@@ -4,7 +4,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (policy *ticketPolicy) On_CloseTickets(req *types.ReqNil) (interface{}, error) {
+func (policy *ticketPolicy) On_CloseTickets(req *types.ReqNil) (types.Message, error) {
 	operater := policy.getWalletOperate()
 	reply, err := policy.forceCloseTicket(operater.GetBlockHeight() + 1)
 	if err != nil {
@@ -20,13 +20,13 @@ func (policy *ticketPolicy) On_CloseTickets(req *types.ReqNil) (interface{}, err
 	return reply, err
 }
 
-func (policy *ticketPolicy) On_WalletGetTickets(req *types.ReqNil) (interface{}, error) {
+func (policy *ticketPolicy) On_WalletGetTickets(req *types.ReqNil) (types.Message, error) {
 	tickets, privs, err := policy.getTicketsByStatus(1)
 	tks := &ty.ReplyWalletTickets{tickets, privs}
 	return tks, err
 }
 
-func (policy *ticketPolicy) On_WalletAutoMiner(req *types.MinerFlag) (interface{}, error) {
+func (policy *ticketPolicy) On_WalletAutoMiner(req *types.MinerFlag) (types.Message, error) {
 	policy.store.SetAutoMinerFlag(req.Flag)
 	policy.setAutoMining(req.Flag)
 	policy.flushTicket()

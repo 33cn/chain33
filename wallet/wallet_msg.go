@@ -1,6 +1,9 @@
 package wallet
 
 import (
+	"errors"
+
+	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
@@ -10,21 +13,17 @@ func (wallet *Wallet) ProcRecvMsg() {
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
 		beg := types.Now()
-		funcExisted, topic, retty, reply, err := wcom.ProcessFuncMap(&msg)
-		if funcExisted {
-			if err != nil {
-				msg.Reply(wallet.api.NewMessage(topic, retty, err))
-			} else {
-				msg.Reply(wallet.api.NewMessage(topic, retty, reply))
-			}
+		reply, err := wallet.ExecWallet(&msg)
+		if err != nil {
+			msg.Reply(wallet.api.NewMessage("", 0, err))
 		} else {
-			walletlog.Error("ProcRecvMsg", "Do not support msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
+			msg.Reply(wallet.api.NewMessage("", 0, reply))
 		}
 		walletlog.Debug("end process", "msg.id", msg.Id, "cost", types.Since(beg))
 	}
 }
 
-func (wallet *Wallet) On_WalletGetAccountList(req *types.ReqAccountList) (interface{}, error) {
+func (wallet *Wallet) On_WalletGetAccountList(req *types.ReqAccountList) (types.Message, error) {
 	reply, err := wallet.ProcGetAccountList(req)
 	if err != nil {
 		walletlog.Error("onWalletGetAccountList", "err", err.Error())
@@ -32,7 +31,7 @@ func (wallet *Wallet) On_WalletGetAccountList(req *types.ReqAccountList) (interf
 	return reply, err
 }
 
-func (wallet *Wallet) On_NewAccount(req *types.ReqNewAccount) (interface{}, error) {
+func (wallet *Wallet) On_NewAccount(req *types.ReqNewAccount) (types.Message, error) {
 	reply, err := wallet.ProcCreateNewAccount(req)
 	if err != nil {
 		walletlog.Error("onNewAccount", "err", err.Error())
@@ -40,7 +39,7 @@ func (wallet *Wallet) On_NewAccount(req *types.ReqNewAccount) (interface{}, erro
 	return reply, err
 }
 
-func (wallet *Wallet) On_WalletTransactionList(req *types.ReqWalletTransactionList) (interface{}, error) {
+func (wallet *Wallet) On_WalletTransactionList(req *types.ReqWalletTransactionList) (types.Message, error) {
 	reply, err := wallet.ProcWalletTxList(req)
 	if err != nil {
 		walletlog.Error("ProcWalletTxList", "err", err.Error())
@@ -48,7 +47,7 @@ func (wallet *Wallet) On_WalletTransactionList(req *types.ReqWalletTransactionLi
 	return reply, err
 }
 
-func (wallet *Wallet) On_WalletImportprivkey(req *types.ReqWalletImportPrivKey) (interface{}, error) {
+func (wallet *Wallet) On_WalletImportprivkey(req *types.ReqWalletImportPrivKey) (types.Message, error) {
 	reply, err := wallet.ProcImportPrivKey(req)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "err", err.Error())
@@ -56,7 +55,7 @@ func (wallet *Wallet) On_WalletImportprivkey(req *types.ReqWalletImportPrivKey) 
 	return reply, err
 }
 
-func (wallet *Wallet) On_WalletSendToAddress(req *types.ReqWalletSendToAddress) (interface{}, error) {
+func (wallet *Wallet) On_WalletSendToAddress(req *types.ReqWalletSendToAddress) (types.Message, error) {
 	reply, err := wallet.ProcSendToAddress(req)
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "err", err.Error())
@@ -64,7 +63,7 @@ func (wallet *Wallet) On_WalletSendToAddress(req *types.ReqWalletSendToAddress) 
 	return reply, err
 }
 
-func (wallet *Wallet) On_WalletSetFee(req *types.ReqWalletSetFee) (interface{}, error) {
+func (wallet *Wallet) On_WalletSetFee(req *types.ReqWalletSetFee) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -77,7 +76,7 @@ func (wallet *Wallet) On_WalletSetFee(req *types.ReqWalletSetFee) (interface{}, 
 	return reply, err
 }
 
-func (wallet *Wallet) On_WalletSetLabel(req *types.ReqWalletSetLabel) (interface{}, error) {
+func (wallet *Wallet) On_WalletSetLabel(req *types.ReqWalletSetLabel) (types.Message, error) {
 	reply, err := wallet.ProcWalletSetLabel(req)
 	if err != nil {
 		walletlog.Error("ProcWalletSetLabel", "err", err.Error())
@@ -85,7 +84,7 @@ func (wallet *Wallet) On_WalletSetLabel(req *types.ReqWalletSetLabel) (interface
 	return reply, err
 }
 
-func (wallet *Wallet) On_WalletMergeBalance(req *types.ReqWalletMergeBalance) (interface{}, error) {
+func (wallet *Wallet) On_WalletMergeBalance(req *types.ReqWalletMergeBalance) (types.Message, error) {
 	reply, err := wallet.ProcMergeBalance(req)
 	if err != nil {
 		walletlog.Error("ProcMergeBalance", "err", err.Error())
@@ -93,7 +92,7 @@ func (wallet *Wallet) On_WalletMergeBalance(req *types.ReqWalletMergeBalance) (i
 	return reply, err
 }
 
-func (wallet *Wallet) On_WalletSetPasswd(req *types.ReqWalletSetPasswd) (interface{}, error) {
+func (wallet *Wallet) On_WalletSetPasswd(req *types.ReqWalletSetPasswd) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -106,7 +105,7 @@ func (wallet *Wallet) On_WalletSetPasswd(req *types.ReqWalletSetPasswd) (interfa
 	return reply, nil
 }
 
-func (wallet *Wallet) On_WalletLock(req *types.ReqNil) (interface{}, error) {
+func (wallet *Wallet) On_WalletLock(req *types.ReqNil) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -119,7 +118,7 @@ func (wallet *Wallet) On_WalletLock(req *types.ReqNil) (interface{}, error) {
 	return reply, err
 }
 
-func (wallet *Wallet) On_WalletUnLock(req *types.WalletUnLock) (interface{}, error) {
+func (wallet *Wallet) On_WalletUnLock(req *types.WalletUnLock) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -132,19 +131,19 @@ func (wallet *Wallet) On_WalletUnLock(req *types.WalletUnLock) (interface{}, err
 	return reply, nil
 }
 
-func (wallet *Wallet) On_AddBlock(block *types.BlockDetail) (interface{}, error) {
+func (wallet *Wallet) On_AddBlock(block *types.BlockDetail) (types.Message, error) {
 	wallet.updateLastHeader(block, 1)
 	wallet.ProcWalletAddBlock(block)
 	return nil, nil
 }
 
-func (wallet *Wallet) On_DelBlock(block *types.BlockDetail) (interface{}, error) {
+func (wallet *Wallet) On_DelBlock(block *types.BlockDetail) (types.Message, error) {
 	wallet.updateLastHeader(block, -1)
 	wallet.ProcWalletDelBlock(block)
 	return nil, nil
 }
 
-func (wallet *Wallet) On_GenSeed(req *types.GenSeedLang) (interface{}, error) {
+func (wallet *Wallet) On_GenSeed(req *types.GenSeedLang) (types.Message, error) {
 	reply, err := wallet.genSeed(req.Lang)
 	if err != nil {
 		walletlog.Error("genSeed", "err", err.Error())
@@ -152,7 +151,7 @@ func (wallet *Wallet) On_GenSeed(req *types.GenSeedLang) (interface{}, error) {
 	return reply, err
 }
 
-func (wallet *Wallet) On_GetSeed(req *types.GetSeedByPw) (interface{}, error) {
+func (wallet *Wallet) On_GetSeed(req *types.GetSeedByPw) (types.Message, error) {
 	reply := &types.ReplySeed{}
 	seed, err := wallet.getSeed(req.Passwd)
 	if err != nil {
@@ -163,7 +162,7 @@ func (wallet *Wallet) On_GetSeed(req *types.GetSeedByPw) (interface{}, error) {
 	return reply, err
 }
 
-func (wallet *Wallet) On_SaveSeed(req *types.SaveSeedByPw) (interface{}, error) {
+func (wallet *Wallet) On_SaveSeed(req *types.SaveSeedByPw) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -176,14 +175,14 @@ func (wallet *Wallet) On_SaveSeed(req *types.SaveSeedByPw) (interface{}, error) 
 	return reply, nil
 }
 
-func (wallet *Wallet) On_GetWalletStatus(req *types.ReqNil) (interface{}, error) {
+func (wallet *Wallet) On_GetWalletStatus(req *types.ReqNil) (types.Message, error) {
 	reply := wallet.GetWalletStatus()
 	return reply, nil
 }
 
-func (wallet *Wallet) On_DumpPrivKey(req *types.ReqString) (interface{}, error) {
+func (wallet *Wallet) On_DumpPrivKey(req *types.ReqString) (types.Message, error) {
 	reply := &types.ReplyString{}
-	privkey, err := wallet.ProcDumpPrivkey(req.ReqStr)
+	privkey, err := wallet.ProcDumpPrivkey(req.Data)
 	if err != nil {
 		walletlog.Error("ProcDumpPrivkey", "err", err.Error())
 	} else {
@@ -192,7 +191,7 @@ func (wallet *Wallet) On_DumpPrivKey(req *types.ReqString) (interface{}, error) 
 	return reply, err
 }
 
-func (wallet *Wallet) On_SignRawTx(req *types.ReqSignRawTx) (interface{}, error) {
+func (wallet *Wallet) On_SignRawTx(req *types.ReqSignRawTx) (types.Message, error) {
 	reply := &types.ReplySignRawTx{}
 	txhex, err := wallet.ProcSignRawTx(req)
 	if err != nil {
@@ -203,19 +202,73 @@ func (wallet *Wallet) On_SignRawTx(req *types.ReqSignRawTx) (interface{}, error)
 	return reply, err
 }
 
-func (wallet *Wallet) On_ErrToFront(req *types.ReportErrEvent) (interface{}, error) {
+func (wallet *Wallet) On_ErrToFront(req *types.ReportErrEvent) (types.Message, error) {
 	wallet.setFatalFailure(req)
 	return nil, nil
 }
 
 // onFatalFailure 定时查询是否有致命性故障产生
-func (wallet *Wallet) On_FatalFailure(req *types.ReqNil) (interface{}, error) {
+func (wallet *Wallet) On_FatalFailure(req *types.ReqNil) (types.Message, error) {
 	reply := &types.Int32{
 		Data: wallet.getFatalFailure(),
 	}
 	return reply, nil
 }
 
-func (wallet *Wallet) On_ExecWallet(req *types.EventWalletExecutor) (interface{}, error) {
-	return nil, nil
+func (wallet *Wallet) ExecWallet(msg *queue.Message) (types.Message, error) {
+	if param, ok := msg.Data.(*types.WalletExecutor); ok {
+		return wallet.execWallet(param)
+	}
+	var data []byte
+	if msg.Data != nil {
+		if d, ok := msg.Data.(types.Message); ok {
+			data = types.Encode(d)
+		} else {
+			return nil, types.ErrInvalidParam
+		}
+	}
+	param := &types.WalletExecutor{
+		Driver:  "wallet",
+		EventId: msg.Ty,
+		Param:   data,
+	}
+	return wallet.execWallet(param)
+}
+
+func (wallet *Wallet) execWallet(param *types.WalletExecutor) (reply types.Message, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			walletlog.Error("Recovered in execWallet", "value", r)
+			switch x := r.(type) {
+			case string:
+				err = errors.New(x)
+			case error:
+				err = x
+			default:
+				err = errors.New("Unknown panic")
+			}
+			// invalidate reply
+			reply = nil
+			// return the modified err and reply
+		}
+	}()
+	if param.FuncName == "" {
+		param.FuncName = types.GetEventName(int(param.EventId))
+		if len(param.FuncName) <= 5 {
+			return nil, types.ErrActionNotSupport
+		}
+		param.FuncName = param.FuncName[5:]
+	}
+	param.FuncName = "On_" + param.FuncName
+	var paramIn types.Message
+	if param.Param == nil {
+		paramIn = &types.ReqNil{}
+	} else {
+		paramIn, err = wcom.DecodeParam(param.Driver, param.FuncName, param.Param)
+		if err != nil {
+			return nil, err
+		}
+	}
+	//这里不判断类型是否可以调用，直接按照名字调用，如果发生panic，用recover 恢复
+	return wcom.CallFunc(param.Driver, param.FuncName, paramIn)
 }

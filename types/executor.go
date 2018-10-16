@@ -482,6 +482,12 @@ func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg inte
 	if len(valueret) != 2 {
 		return nil, ErrMethodNotFound
 	}
+	if !valueret[0].CanInterface() {
+		return nil, ErrMethodNotFound
+	}
+	if !valueret[2].CanInterface() {
+		return nil, ErrMethodNotFound
+	}
 	r1 := valueret[0].Interface()
 	if r1 != nil {
 		if r, ok := r1.(*Transaction); ok {

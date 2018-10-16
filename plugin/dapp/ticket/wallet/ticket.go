@@ -26,7 +26,7 @@ func init() {
 }
 
 func New() wcom.WalletBizPolicy {
-	return &ticketPolicy{}
+	return &ticketPolicy{mtx: &sync.Mutex{}}
 }
 
 type ticketPolicy struct {
@@ -40,17 +40,12 @@ type ticketPolicy struct {
 	minertimeout       *time.Timer
 }
 
-func (policy *ticketPolicy) initFuncMap(walletOperate wcom.WalletOperate) {
-	wcom.RegisterMsgFunc(types.EventCloseTickets, policy.onCloseTickets)
-	wcom.RegisterMsgFunc(types.EventWalletGetTickets, policy.onWalletGetTickets)
-	wcom.RegisterMsgFunc(types.EventWalletAutoMiner, policy.onWalletAutoMiner)
-}
-
 func (policy *ticketPolicy) initMingTicketTicker() {
 	policy.mtx.Lock()
 	defer policy.mtx.Unlock()
 	policy.miningTicketTicker = time.NewTicker(2 * time.Minute)
 }
+
 func (policy *ticketPolicy) getMingTicketTicker() *time.Ticker {
 	policy.mtx.Lock()
 	defer policy.mtx.Unlock()
@@ -84,17 +79,13 @@ func (policy *ticketPolicy) IsTicketLocked() bool {
 }
 
 func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
-	policy.mtx = &sync.Mutex{}
 	policy.setWalletOperate(walletBiz)
 	policy.store = NewStore(walletBiz.GetDBStore())
 	policy.needFlush = false
 	policy.isTicketLocked = 1
 	policy.autoMinerFlag = policy.store.GetAutoMinerFlag()
 	policy.initMingTicketTicker()
-
 	walletBiz.RegisterMineStatusReporter(policy)
-	policy.initFuncMap(walletBiz)
-
 	initMinerWhiteList(walletBiz.GetConfig())
 	// 启动自动挖矿
 	walletBiz.GetWaitGroup().Add(1)
