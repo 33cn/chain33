@@ -1,9 +1,5 @@
 package types
 
-import (
-	"github.com/inconshreveable/log15"
-)
-
 //game action ty
 const (
 	PBGameActionStart = iota + 1
