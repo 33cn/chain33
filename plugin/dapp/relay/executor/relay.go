@@ -13,7 +13,7 @@ var relaylog = log.New("module", "execs.relay")
 
 //初始化过程比较重量级，有很多reflact, 所以弄成全局的
 var executorFunList = make(map[string]reflect.Method)
-var executorType = rTy.NewType()
+var executorType = ty.NewType()
 
 func init() {
 	actionFunList := executorType.GetFuncMap()
@@ -51,18 +51,18 @@ func (c *relay) GetFuncMap() map[string]reflect.Method {
 }
 
 func (c *relay) GetPayloadValue() types.Message {
-	return &rTy.RelayAction{}
+	return &ty.RelayAction{}
 }
 
 func (c *relay) GetTypeMap() map[string]int32 {
 	return map[string]int32{
-		"Create":     rTy.RelayActionCreate,
-		"Accept":     rTy.RelayActionAccept,
-		"Revoke":     rTy.RelayActionRevoke,
-		"ConfirmTx":  rTy.RelayActionConfirmTx,
-		"Verify":     rTy.RelayActionVerifyTx,
-		"VerifyCli":  rTy.RelayActionVerifyCmdTx,
-		"BtcHeaders": rTy.RelayActionRcvBTCHeaders,
+		"Create":     ty.RelayActionCreate,
+		"Accept":     ty.RelayActionAccept,
+		"Revoke":     ty.RelayActionRevoke,
+		"ConfirmTx":  ty.RelayActionConfirmTx,
+		"Verify":     ty.RelayActionVerifyTx,
+		"VerifyCli":  ty.RelayActionVerifyCmdTx,
+		"BtcHeaders": ty.RelayActionRcvBTCHeaders,
 	}
 }
 
@@ -74,7 +74,7 @@ func (r *relay) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-func (r *relay) GetSellOrderByStatus(addrCoins *rTy.ReqRelayAddrCoins) (types.Message, error) {
+func (r *relay) GetSellOrderByStatus(addrCoins *ty.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
 		val := calcOrderPrefixStatus((int32)(addrCoins.Status))

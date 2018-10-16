@@ -45,7 +45,7 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 OPEN_RELAY="Y"
-OPEN_PARA=""
+OPEN_PARA="Y"
 COMPOSE_FILE="-f docker-compose.yml "
 
 ####################
