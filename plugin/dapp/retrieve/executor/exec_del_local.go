@@ -55,7 +55,7 @@ func (c *Retrieve) execDelLocal(tx *types.Transaction, receipt *types.ReceiptDat
 }
 
 func (c *Retrieve) ExecDelLocal_Backup(backup *rt.BackupRetrieve, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := c.execLocal(receiptData)
+	set, err := c.execDelLocal(tx, receiptData, index)
 
 	info := rt.RetrieveQuery{backup.BackupAddress, backup.DefaultAddress, backup.DelayPeriod, zeroPrepareTime, zeroRemainTime, retrieveBackup}
 	kv, err := DelRetrieveInfo(&info, retrieveBackup, c.GetLocalDB())
@@ -71,7 +71,7 @@ func (c *Retrieve) ExecDelLocal_Backup(backup *rt.BackupRetrieve, tx *types.Tran
 }
 
 func (c *Retrieve) ExecDelLocal_Prepare(pre *rt.PrepareRetrieve, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := c.execLocal(receiptData)
+	set, err := c.execDelLocal(tx, receiptData, index)
 
 	info := rt.RetrieveQuery{pre.BackupAddress, pre.DefaultAddress, zeroDelay, c.GetBlockTime(), zeroRemainTime, retrievePrepare}
 	kv, err := DelRetrieveInfo(&info, retrievePrepare, c.GetLocalDB())
@@ -87,7 +87,7 @@ func (c *Retrieve) ExecDelLocal_Prepare(pre *rt.PrepareRetrieve, tx *types.Trans
 }
 
 func (c *Retrieve) ExecDelLocal_Perform(perf *rt.PerformRetrieve, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := c.execLocal(receiptData)
+	set, err := c.execDelLocal(tx, receiptData, index)
 
 	info := rt.RetrieveQuery{perf.BackupAddress, perf.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, retrievePerform}
 	kv, err := DelRetrieveInfo(&info, retrievePerform, c.GetLocalDB())
@@ -103,7 +103,7 @@ func (c *Retrieve) ExecDelLocal_Perform(perf *rt.PerformRetrieve, tx *types.Tran
 }
 
 func (c *Retrieve) ExecDelLocal_Cancel(cancel *rt.CancelRetrieve, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := c.execLocal(receiptData)
+	set, err := c.execDelLocal(tx, receiptData, index)
 
 	info := rt.RetrieveQuery{cancel.BackupAddress, cancel.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, retrieveCancel}
 	kv, err := DelRetrieveInfo(&info, retrieveCancel, c.GetLocalDB())
