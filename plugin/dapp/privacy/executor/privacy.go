@@ -425,7 +425,7 @@ func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
 		return p.ShowUTXOs4SpecifiedAmount(&reqtoken)
 
 	case "GetUTXOGlobalIndex":
-		var getUtxoIndexReq types.ReqUTXOGlobalIndex
+		var getUtxoIndexReq pty.ReqUTXOGlobalIndex
 		err := types.Decode(params, &getUtxoIndexReq)
 		if err != nil {
 			return nil, err
@@ -469,9 +469,9 @@ func (p *privacy) getUtxosByTokenAndAmount(tokenName string, amount int64, count
 	return utxos, nil
 }
 
-func (p *privacy) getGlobalUtxoIndex(getUtxoIndexReq *types.ReqUTXOGlobalIndex) (types.Message, error) {
+func (p *privacy) getGlobalUtxoIndex(getUtxoIndexReq *pty.ReqUTXOGlobalIndex) (types.Message, error) {
 	debugBeginTime := time.Now()
-	utxoGlobalIndexResp := &types.ResUTXOGlobalIndex{}
+	utxoGlobalIndexResp := &pty.ResUTXOGlobalIndex{}
 	tokenName := getUtxoIndexReq.Tokenname
 	currentHeight := p.GetHeight()
 	for _, amount := range getUtxoIndexReq.Amount {
@@ -493,7 +493,7 @@ func (p *privacy) getGlobalUtxoIndex(getUtxoIndexReq *types.ReqUTXOGlobalIndex) 
 			mixCount = totalCnt
 		}
 
-		utxoIndex4Amount := &types.UTXOIndex4Amount{
+		utxoIndex4Amount := &pty.UTXOIndex4Amount{
 			Amount: amount,
 		}
 
@@ -502,11 +502,11 @@ func (p *privacy) getGlobalUtxoIndex(getUtxoIndexReq *types.ReqUTXOGlobalIndex) 
 		for i := int(mixCount - 1); i >= 0; i-- {
 			position := positions[i]
 			item := utxos[position]
-			utxoGlobalIndex := &types.UTXOGlobalIndex{
+			utxoGlobalIndex := &pty.UTXOGlobalIndex{
 				Outindex: item.GetOutindex(),
 				Txhash:   item.GetTxhash(),
 			}
-			utxo := &types.UTXOBasic{
+			utxo := &pty.UTXOBasic{
 				UtxoGlobalIndex: utxoGlobalIndex,
 				OnetimePubkey:   item.GetOnetimepubkey(),
 			}

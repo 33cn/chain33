@@ -225,9 +225,8 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
-	wallet.initFuncMap()
+	wcom.RegisterEventCB("wallet", wallet)
 	wallet.initBizPolicy()
-
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 }

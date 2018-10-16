@@ -484,10 +484,10 @@ out:
 			payLoad := types.Encode(&types.ReqString{
 				Data: types.GetTitle(),
 			})
-			query := types.Query{
-				Execer:   types.ExecerPara,
+			query := types.BlockChainQuery{
+				Driver:   string(types.ExecerPara),
 				FuncName: "ParacrossGetTitle",
-				Payload:  payLoad,
+				Param:    payLoad,
 			}
 			ret, err := client.paraClient.grpcClient.QueryChain(context.Background(), &query)
 			if err != nil {

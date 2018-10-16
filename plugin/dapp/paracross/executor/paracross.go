@@ -533,12 +533,12 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 
 func (c *Paracross) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == "ParacrossGetTitle" {
-		var in types.ReqStr
+		var in types.ReqString
 		err := types.Decode(params, &in)
 		if err != nil {
 			return nil, err
 		}
-		return c.ParacrossGetHeight(in.ReqStr)
+		return c.ParacrossGetHeight(in.Data)
 	} else if funcName == "ParacrossListTitles" {
 		return c.ParacrossListTitles()
 	} else if funcName == "ParacrossGetTitleHeight" {

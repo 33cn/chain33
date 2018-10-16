@@ -946,7 +946,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				newbatch:   newbatch,
 				isprivacy:  false,
 				addDelType: AddTx,
-				utxos:      nil,
+				//utxos:      nil,
 			}
 			//from addr
 			fromaddress := addr.String()
@@ -989,7 +989,7 @@ type buildStoreWalletTxDetailParam struct {
 	isprivacy    bool
 	addDelType   int32
 	sendRecvFlag int32
-	utxos        []*types.UTXO
+	//utxos        []*types.UTXO
 }
 
 func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetailParam) {
@@ -1008,7 +1008,7 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 		txdetail.ActionName = txdetail.Tx.ActionName()
 		txdetail.Amount, _ = param.tx.Amount()
 		txdetail.Fromaddr = param.senderRecver
-		txdetail.Spendrecv = param.utxos
+		//txdetail.Spendrecv = param.utxos
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {

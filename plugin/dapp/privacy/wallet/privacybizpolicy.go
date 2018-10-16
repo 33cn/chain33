@@ -23,7 +23,7 @@ func init() {
 }
 
 func New() wcom.WalletBizPolicy {
-	return &privacyPolicy{}
+	return &privacyPolicy{mtx: &sync.Mutex{}, rescanwg: &sync.WaitGroup{}}
 }
 
 type privacyPolicy struct {
@@ -45,28 +45,9 @@ func (policy *privacyPolicy) getWalletOperate() wcom.WalletOperate {
 	return policy.walletOperate
 }
 
-func (policy *privacyPolicy) initFuncMap(walletOperate wcom.WalletOperate) {
-	wcom.RegisterMsgFunc(types.EventEnablePrivacy, policy.onEnablePrivacy)
-	wcom.RegisterMsgFunc(types.EventShowPrivacyPK, policy.onShowPrivacyPK)
-	wcom.RegisterMsgFunc(types.EventCreateUTXOs, policy.onCreateUTXOs)
-	wcom.RegisterMsgFunc(types.EventPublic2privacy, policy.onPublic2Privacy)
-	wcom.RegisterMsgFunc(types.EventPrivacy2privacy, policy.onPrivacy2Privacy)
-	wcom.RegisterMsgFunc(types.EventPrivacy2public, policy.onPrivacy2Public)
-	wcom.RegisterMsgFunc(types.EventCreateTransaction, policy.onCreateTransaction)
-	wcom.RegisterMsgFunc(types.EventPrivacyAccountInfo, policy.onPrivacyAccountInfo)
-	wcom.RegisterMsgFunc(types.EventShowPrivacyAccountSpend, policy.onShowPrivacyAccountSpend)
-	wcom.RegisterMsgFunc(types.EventPrivacyTransactionList, policy.onPrivacyTransactionList)
-	wcom.RegisterMsgFunc(types.EventRescanUtxos, policy.onRescanUtxos)
-}
-
 func (policy *privacyPolicy) Init(walletOperate wcom.WalletOperate) {
-	policy.mtx = &sync.Mutex{}
 	policy.setWalletOperate(walletOperate)
 	policy.store = NewStore(walletOperate.GetDBStore())
-	policy.rescanwg = &sync.WaitGroup{}
-
-	policy.initFuncMap(walletOperate)
-
 	version := policy.store.getVersion()
 	if version < PRIVACYDBVERSION {
 		policy.rescanAllTxAddToUpdateUTXOs()
