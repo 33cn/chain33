@@ -91,7 +91,6 @@ const (
 	EventFlushTicket         = 85
 	EventFetchBlockHeaders   = 86
 	EventAddBlockHeaders     = 87
-	EventWalletAutoMiner     = 88
 	EventReplyWalletStatus   = 89
 	EventGetLastBlock        = 90
 	EventBlock               = 91
@@ -225,7 +224,6 @@ var eventName = map[int]string{
 	85:  "EventFlushTicket",
 	86:  "EventFetchBlockHeaders",
 	87:  "EventAddBlockHeaders",
-	88:  "EventWalletAutoMiner",
 	89:  "EventReplyWalletStatus",
 	90:  "EventGetLastBlock",
 	91:  "EventBlock",

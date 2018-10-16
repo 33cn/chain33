@@ -16,9 +16,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 		reply, err := wallet.ExecWallet(&msg)
 		if err != nil {
 			//only for test ,del when test end
-			if err == types.ErrActionNotSupport {
-				panic(err)
-			}
 			msg.Reply(wallet.api.NewMessage("", 0, err))
 		} else {
 			msg.Reply(wallet.api.NewMessage("", 0, reply))
