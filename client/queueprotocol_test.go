@@ -99,7 +99,7 @@ func TestQueueProtocol(t *testing.T) {
 func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
 	testCases := []struct {
 		param     *types.BlockChainQuery
-		actualRes *types.ResUTXOGlobalIndex
+		actualRes types.Message
 		actualErr error
 	}{
 		{
@@ -107,13 +107,13 @@ func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
 		},
 		{
 			param:     &types.BlockChainQuery{},
-			actualRes: &types.ResUTXOGlobalIndex{},
+			actualRes: &types.Reply{},
 		},
 	}
 	for index, test := range testCases {
-		res, err := api.BlockChainQuery(test.param)
+		res, err := api.QueryChain(test.param)
 		require.Equalf(t, err, test.actualErr, "testBlockChainQuery case index %d", index)
-		require.Equal(t, res, test.actualRes)
+		require.Equalf(t, res, test.actualRes, "testBlockChainQuery case index %d", index)
 	}
 }
 
@@ -198,7 +198,7 @@ func testCloseTickets(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testDumpPrivkey(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.DumpPrivkey(&types.ReqStr{})
+	_, err := api.DumpPrivkey(&types.ReqString{})
 	if err != nil {
 		t.Error("Call DumpPrivkey Failed.", err)
 	}
@@ -206,7 +206,7 @@ func testDumpPrivkey(t *testing.T, api client.QueueProtocolAPI) {
 	if err == nil {
 		t.Error("DumpPrivkey(nil) need return error.")
 	}
-	_, err = api.DumpPrivkey(&types.ReqStr{ReqStr: "case1"})
+	_, err = api.DumpPrivkey(&types.ReqString{Data: "case1"})
 	if err == nil {
 		t.Error("DumpPrivkey(&types.ReqStr{ReqStr:\"case1\"}) need return error.")
 	}
@@ -643,8 +643,8 @@ func testGetAccountsJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testDumpPrivkeyJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
-	var res types.ReplyStr
-	err := rpc.newRpcCtx("Chain33.DumpPrivkey", &types.ReqStr{}, &res)
+	var res types.ReplyString
+	err := rpc.newRpcCtx("Chain33.DumpPrivkey", &types.ReqString{}, &res)
 	if err != nil {
 		t.Error("testDumpPrivkeyJsonRPC Failed.", err)
 	}
@@ -834,69 +834,6 @@ func TestGRPC(t *testing.T) {
 	testIsSyncGRPC(t, &grpcMock)
 	testIsNtpClockSyncGRPC(t, &grpcMock)
 	testNetInfoGRPC(t, &grpcMock)
-	testShowPrivacyKey(t, &grpcMock)
-	testCreateUTXOs(t, &grpcMock)
-	testMakeTxPublic2Privacy(t, &grpcMock)
-	testMakeTxPrivacy2Privacy(t, &grpcMock)
-	testMakeTxPrivacy2Public(t, &grpcMock)
-	testRescanUtxos(t, &grpcMock)
-	testEnablePrivacy(t, &grpcMock)
-}
-
-func testEnablePrivacy(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.RepEnablePrivacy
-	err := rpc.newRpcCtx("EnablePrivacy", &types.ReqEnablePrivacy{}, &res)
-	if err != nil {
-		t.Error("Call EnablePrivacy Failed.", err)
-	}
-}
-
-func testRescanUtxos(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.RepRescanUtxos
-	err := rpc.newRpcCtx("RescanUtxos", &types.ReqRescanUtxos{}, &res)
-	if err != nil {
-		t.Error("Call RescanUtxos Failed.", err)
-	}
-}
-
-func testMakeTxPrivacy2Public(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
-	err := rpc.newRpcCtx("MakeTxPrivacy2Public", &types.ReqPri2Pub{}, &res)
-	if err != nil {
-		t.Error("Call MakeTxPrivacy2Public Failed.", err)
-	}
-}
-
-func testMakeTxPrivacy2Privacy(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
-	err := rpc.newRpcCtx("MakeTxPrivacy2Privacy", &types.ReqPri2Pri{}, &res)
-	if err != nil {
-		t.Error("Call MakeTxPrivacy2Privacy Failed.", err)
-	}
-}
-
-func testMakeTxPublic2Privacy(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
-	err := rpc.newRpcCtx("MakeTxPublic2Privacy", &types.ReqPub2Pri{}, &res)
-	if err != nil {
-		t.Error("Call MakeTxPublic2Privacy Failed.", err)
-	}
-}
-
-func testCreateUTXOs(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
-	err := rpc.newRpcCtx("CreateUTXOs", &types.ReqCreateUTXOs{}, &res)
-	if err != nil {
-		t.Error("Call CreateUTXOs Failed.", err)
-	}
-}
-
-func testShowPrivacyKey(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.ReplyPrivacyPkPair
-	err := rpc.newRpcCtx("ShowPrivacyKey", &types.ReqStr{}, &res)
-	if err != nil {
-		t.Error("Call ShowPrivacyKey Failed.", err)
-	}
 }
 
 func testNetInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
@@ -932,8 +869,8 @@ func testVersionGRPC(t *testing.T, rpc *mockGRPCSystem) {
 }
 
 func testDumpPrivkeyGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.ReplyStr
-	err := rpc.newRpcCtx("DumpPrivkey", &types.ReqStr{}, &res)
+	var res types.ReplyString
+	err := rpc.newRpcCtx("DumpPrivkey", &types.ReqString{}, &res)
 	if err != nil {
 		t.Error("Call DumpPrivkey Failed.", err)
 	}
@@ -965,7 +902,7 @@ func testSetAutoMiningGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testQueryChainGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.Reply
-	err := rpc.newRpcCtx("QueryChain", &types.Query{}, &res)
+	err := rpc.newRpcCtx("QueryChain", &types.BlockChainQuery{}, &res)
 	if err != nil {
 		t.Error("Call QueryChain Failed.", err)
 	}
