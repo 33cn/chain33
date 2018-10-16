@@ -7,7 +7,7 @@ type CreatePattern interface {
 }
 
 var (
-	mlog = log15.New("pattern", "ecg")
+	mlog = log15.New("module", "pattern")
 )
 
 func New(t string) CreatePattern {

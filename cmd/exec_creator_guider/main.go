@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	mlog = log15.New("main", "ecg")
+	mlog = log15.New("module", "ecg")
 )
 
 func addCommands(rootCmd *cobra.Command) {
