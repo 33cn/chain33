@@ -219,7 +219,7 @@ func TestGetLastMemPool(t *testing.T) {
 //}
 
 func testQueryChainError(t *testing.T) {
-	var in *pb.Query
+	var in *pb.BlockChainQuery
 
 	qapi.On("Query", in).Return(nil, fmt.Errorf("error")).Once()
 	_, err := g.QueryChain(getOkCtx(), in)
@@ -663,7 +663,7 @@ func TestSetAutoMining(t *testing.T) {
 //}
 
 func testDumpPrivkeyOK(t *testing.T) {
-	var in *pb.ReqStr
+	var in *pb.ReqString
 	qapi.On("DumpPrivkey", in).Return(nil, nil)
 	data, err := g.DumpPrivkey(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
