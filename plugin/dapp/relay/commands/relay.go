@@ -382,7 +382,7 @@ func relayOrder(cmd *cobra.Command, args []string) {
 		Amount:    coinUInt64 * 1e4,
 		Coin:      coin,
 		Addr:      coinaddr,
-		CoinWaits:  coinwait,
+		CoinWaits: coinwait,
 		BtyAmount: btyUInt64 * 1e4,
 	}
 
@@ -424,8 +424,8 @@ func relayAccept(cmd *cobra.Command, args []string) {
 	}
 
 	params := &ty.RelayAccept{
-		OrderId:  orderID,
-		CoinAddr: coinaddr,
+		OrderId:   orderID,
+		CoinAddr:  coinaddr,
 		CoinWaits: coinwait,
 	}
 	var res string
@@ -593,11 +593,11 @@ func relayVerifyBTC(cmd *cobra.Command, args []string) {
 	blockhash, _ := cmd.Flags().GetString("block_hash")
 
 	params := &ty.RelayVerifyCli{
-		OrderId:     orderid,
-		RawTx:       rawtx,
-		TxIndex:     txindex,
+		OrderId:    orderid,
+		RawTx:      rawtx,
+		TxIndex:    txindex,
 		MerkBranch: merkbranch,
-		BlockHash:   blockhash,
+		BlockHash:  blockhash,
 	}
 
 	var res string
