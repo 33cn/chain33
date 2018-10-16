@@ -7,5 +7,6 @@ type RunBuildAppTask struct {
 }
 
 func (this *RunBuildAppTask) Execute() error {
+	mlog.Info("Execute run build app task.")
 	return nil
 }

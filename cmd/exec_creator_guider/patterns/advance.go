@@ -78,5 +78,5 @@ func (this *advancePattern) buildTask() tasks.Task {
 		task.SetNext(taskSlice[n])
 		task = taskSlice[n]
 	}
-	return task
+	return taskSlice[0]
 }

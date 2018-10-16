@@ -7,5 +7,7 @@ type CheckFileExistedTask struct {
 }
 
 func (this *CheckFileExistedTask) Execute() error {
+	mlog.Info("Execute file existed task.", "file", this.FileName)
+
 	return nil
 }

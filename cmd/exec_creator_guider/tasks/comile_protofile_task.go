@@ -7,5 +7,6 @@ type CompileProtoFileTask struct {
 }
 
 func (this *CompileProtoFileTask) Execute() error {
+	mlog.Info("Execute compile protobuf file task.", "file", this.FileName)
 	return nil
 }
