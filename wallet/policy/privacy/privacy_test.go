@@ -11,7 +11,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
+	privacy "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/crypto"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
@@ -128,7 +129,7 @@ func (mock *PrivacyMock) CreateUTXOs(sender string, pubkeypair string, amount in
 
 		txhash := tx.Hash()
 		txhashstr := common.Bytes2Hex(txhash)
-		var privateAction types.PrivacyAction
+		var privateAction ty.PrivacyAction
 		if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
 			return
 		}
@@ -197,15 +198,15 @@ func (mock *PrivacyMock) createPublic2PrivacyTx(req *types.ReqCreateTransaction)
 		return nil
 	}
 
-	value := &types.Public2Privacy{
+	value := &ty.Public2Privacy{
 		Tokenname: req.Tokenname,
 		Amount:    amount,
 		Note:      req.GetNote(),
 		Output:    privacyOutput,
 	}
-	action := &types.PrivacyAction{
-		Ty:    types.ActionPublic2Privacy,
-		Value: &types.PrivacyAction_Public2Privacy{Public2Privacy: value},
+	action := &ty.PrivacyAction{
+		Ty:    ty.ActionPublic2Privacy,
+		Value: &ty.PrivacyAction_Public2Privacy{Public2Privacy: value},
 	}
 	tx := &types.Transaction{
 		Execer:  types.ExecerPrivacy,

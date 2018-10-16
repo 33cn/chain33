@@ -20,12 +20,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/init"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
@@ -35,7 +35,6 @@ var (
 )
 
 func init() {
-	executorty.Init()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
@@ -127,8 +126,8 @@ func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, que
 }
 
 // 获取票的列表
-func getTicketList(qApi client.QueueProtocolAPI) (*types.Message, error) {
-	reqaddr := &types.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1}
+func getTicketList(qApi client.QueueProtocolAPI) (types.Message, error) {
+	reqaddr := &ty.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1}
 	var req types.Query
 	req.Execer = []byte("ticket")
 	req.FuncName = "TicketList"
@@ -147,7 +146,7 @@ func setTicketListRealize(qApi client.QueueProtocolAPI, cs *Client) {
 	for _, key := range strPrivs {
 		privKey = append(privKey, getprivkey(key))
 	}
-	reply := (*msg).(*types.ReplyTicketList)
+	reply := msg.(*ty.ReplyTicketList)
 	reply.Tickets = reply.Tickets[0:5000]
 	runtime.GC()
 	cs.setTicket(reply, getPrivMap(privKey))

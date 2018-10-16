@@ -15,6 +15,13 @@ func Init(name string) {
 	drivers.Register(newGame().GetName(), newGame, 0)
 }
 
+var driverName = pkt.PokerBullX
+
+func init() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&PokerBull{}))
+}
+
 type PokerBull struct {
 	drivers.DriverBase
 }
@@ -119,7 +126,7 @@ func (g *PokerBull) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 	}
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogCreateGame || item.Ty == types.TyLogMatchGame || item.Ty == types.TyLogCloseGame || item.Ty == types.TyLogCancleGame {
+		if item.Ty == pkt.TyLogPBGameStart || item.Ty == pkt.TyLogPBGameContinue || item.Ty == pkt.TyLogPBGameQuit {
 			var Gamelog pkt.ReceiptPBGame
 			err := types.Decode(item.Log, &Gamelog)
 			if err != nil {

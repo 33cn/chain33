@@ -2,27 +2,21 @@ package types
 
 import (
 	"encoding/json"
-	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
 	"unicode"
+
+	proto "github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
+
+var random = rand.New(rand.NewSource(Now().UnixNano()))
 
 type LogType interface {
 	Name() string
 	Decode([]byte) (interface{}, error)
-}
-
-type RPCQueryTypeConvert interface {
-	JsonToProto(message json.RawMessage) ([]byte, error)
-	ProtoToJson(reply *Message) (interface{}, error)
-}
-
-type FN_RPCQueryHandle func(param []byte) (Message, error)
-
-type rpcTypeUtilItem struct {
-	convertor RPCQueryTypeConvert
-	handler   FN_RPCQueryHandle
+	Json([]byte) (string, error)
 }
 
 type logInfoType struct {
@@ -42,9 +36,22 @@ func (l *logInfoType) Decode(data []byte) (interface{}, error) {
 	return DecodeLog(l.execer, l.ty, data)
 }
 
+func (l *logInfoType) Json(data []byte) (string, error) {
+	d, err := l.Decode(data)
+	if err != nil {
+		return "", err
+	}
+	if msg, ok := d.(Message); ok {
+		return PBToJson(msg)
+	}
+	jsdata, err := json.Marshal(d)
+	if err != nil {
+		return "", err
+	}
+	return string(jsdata), nil
+}
+
 var executorMap = map[string]ExecutorType{}
-var receiptLogMap = map[int64]LogType{}
-var rpcTypeUtilMap = map[string]*rpcTypeUtilItem{}
 
 func RegistorExecutor(exec string, util ExecutorType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
@@ -65,20 +72,68 @@ func LoadExecutorType(exec string) ExecutorType {
 	return nil
 }
 
-func RegistorLog(logTy int64, util LogType) {
-	//tlog.Debug("rpc", "t", funcName, "t", util)
-	if _, exist := receiptLogMap[logTy]; exist {
-		errMsg := fmt.Sprintf("DupLogType RegistorLog type existed", "logTy", logTy)
-		panic(errMsg)
-	} else {
-		receiptLogMap[logTy] = util
+// 重构完成后删除
+func CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
+	exec := LoadExecutorType(execName)
+	if exec == nil {
+		tlog.Error("callExecNewTx", "Error", "exec not found")
+		return nil, ErrNotSupport
 	}
+	// param is interface{type, var-nil}, check with nil always fail
+	if reflect.ValueOf(param).IsNil() {
+		tlog.Error("callExecNewTx", "Error", "param in nil")
+		return nil, ErrInvalidParam
+	}
+	jsonStr, err := json.Marshal(param)
+	if err != nil {
+		tlog.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	tx, err := exec.CreateTx(action, json.RawMessage(jsonStr))
+	if err != nil {
+		tlog.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	return formatTx(execName, tx)
+}
+
+func CallCreateTx(execName, action string, param Message) ([]byte, error) {
+	exec := LoadExecutorType(execName)
+	if exec == nil {
+		tlog.Error("callExecNewTx", "Error", "exec not found")
+		return nil, ErrNotSupport
+	}
+	// param is interface{type, var-nil}, check with nil always fail
+	if param == nil {
+		tlog.Error("callExecNewTx", "Error", "param in nil")
+		return nil, ErrInvalidParam
+	}
+	tx, err := exec.Create(action, param)
+	if err != nil {
+		tlog.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	return formatTx(execName, tx)
+}
+
+func formatTx(execName string, tx *Transaction) ([]byte, error) {
+	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
+	tx.Nonce = random.Int63()
+	tx.Execer = []byte(execName)
+	//平行链，所有的to地址都是合约地址
+	if IsPara() || tx.To == "" {
+		tx.To = address.ExecAddress(string(tx.Execer))
+	}
+	var err error
+	tx.Fee, err = tx.GetRealFee(MinFee)
+	if err != nil {
+		return nil, err
+	}
+	txbyte := Encode(tx)
+	return txbyte, nil
 }
 
 func LoadLog(execer []byte, ty int64) LogType {
-	if log, exist := receiptLogMap[ty]; exist {
-		return log
-	}
 	loginfo := getLogType(execer, ty)
 	if loginfo.Name == "LogReserved" {
 		return nil
@@ -128,41 +183,6 @@ func DecodeLog(execer []byte, ty int64, data []byte) (interface{}, error) {
 	return msg, nil
 }
 
-func registerRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
-	//tlog.Debug("rpc", "t", funcName, "t", util)
-	if _, exist := rpcTypeUtilMap[funcName]; exist {
-		panic("DupRpcTypeUtil")
-	} else {
-		rpcTypeUtilMap[funcName] = &rpcTypeUtilItem{
-			convertor: convertor,
-			handler:   handler,
-		}
-	}
-}
-
-func RegisterRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert) {
-	registerRPCQueryHandle(funcName, convertor, nil)
-}
-
-func LoadQueryType(funcName string) RPCQueryTypeConvert {
-	if trans, ok := rpcTypeUtilMap[funcName]; ok {
-		return trans.convertor
-	}
-	return nil
-}
-
-// 处理已经注册的RPC Query响应处理过程
-func ProcessRPCQuery(funcName string, param []byte) (Message, error) {
-	if item, ok := rpcTypeUtilMap[funcName]; ok {
-		if item.handler != nil {
-			return item.handler(param)
-		} else {
-			return nil, ErrEmpty
-		}
-	}
-	return nil, ErrNotFound
-}
-
 type ExecutorType interface {
 	//获取交易真正的to addr
 	GetRealToAddr(tx *Transaction) string
@@ -170,8 +190,12 @@ type ExecutorType interface {
 	GetViewFromToAddr(tx *Transaction) (string, string)
 	ActionName(tx *Transaction) string
 	//新版本使用create接口，createTx 重构以后就废弃
-	Create(action string, message interface{}) (*Transaction, error)
+	GetAction(action string) (Message, error)
+	InitFuncList(list map[string]reflect.Method)
+	Create(action string, message Message) (*Transaction, error)
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
+	CreateQuery(funcname string, message json.RawMessage) (Message, error)
+	QueryToJson(funcname string, message Message) (string, error)
 	Amount(tx *Transaction) (int64, error)
 	DecodePayload(tx *Transaction) (interface{}, error)
 	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
@@ -186,6 +210,7 @@ type ExecutorType interface {
 	//action function list map
 	GetFuncMap() map[string]reflect.Method
 	GetRPCFuncMap() map[string]reflect.Method
+	GetExecFuncMap() map[string]reflect.Method
 	CreateTransaction(action string, data Message) (*Transaction, error)
 }
 
@@ -197,8 +222,10 @@ type ExecTypeBase struct {
 	child               ExecutorType
 	childValue          reflect.Value
 	actionFunList       map[string]reflect.Method
+	execFuncList        map[string]reflect.Method
 	actionListValueType map[string]reflect.Type
 	rpclist             map[string]reflect.Method
+	queryMap            map[string]reflect.Type
 }
 
 func (base *ExecTypeBase) SetChild(child ExecutorType) {
@@ -244,20 +271,58 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	}
 }
 
+func (base *ExecTypeBase) buildQuery(funcmap map[string]reflect.Method) {
+	if base.queryMap == nil {
+		base.queryMap = make(map[string]reflect.Type)
+	}
+
+	for funcname := range funcmap {
+		if !strings.HasPrefix(funcname, "Query_") {
+			continue
+		}
+		ty := funcmap[funcname].Type
+		if ty.NumIn() != 2 {
+			continue
+		}
+		paramin := ty.In(1)
+		if paramin.Kind() != reflect.Ptr {
+			continue
+		}
+		p := reflect.New(ty.In(1).Elem())
+		queryin := p.Interface()
+		if _, ok := queryin.(proto.Message); !ok {
+			continue
+		}
+		if ty.NumOut() != 2 {
+			continue
+		}
+		if !ty.Out(0).AssignableTo(reflect.TypeOf((*proto.Message)(nil)).Elem()) {
+			continue
+		}
+		if !ty.Out(1).AssignableTo(reflect.TypeOf((*error)(nil)).Elem()) {
+			continue
+		}
+
+		base.queryMap[funcname[len("Query_"):]] = ty
+	}
+}
+
+func (base *ExecTypeBase) InitFuncList(list map[string]reflect.Method) {
+	base.execFuncList = list
+	actionList := base.GetFuncMap()
+	for k, v := range actionList {
+		base.execFuncList[k] = v
+	}
+	//查询所有的Query_ 接口, 做一个函数名称 和 类型的映射
+	base.buildQuery(base.execFuncList)
+}
+
 func (base *ExecTypeBase) GetRPCFuncMap() map[string]reflect.Method {
 	return base.rpclist
 }
 
-func (base *ExecTypeBase) GetLogMap() map[int64]*LogInfo {
-	return nil
-}
-
-func (base *ExecTypeBase) GetPayload() Message {
-	return nil
-}
-
-func (base *ExecTypeBase) GetTypeMap() map[string]int32 {
-	return nil
+func (base *ExecTypeBase) GetExecFuncMap() map[string]reflect.Method {
+	return base.execFuncList
 }
 
 func (base *ExecTypeBase) GetName() string {
@@ -389,6 +454,34 @@ func lowcaseFirst(v string) string {
 	return v
 }
 
+func (base *ExecTypeBase) CreateQuery(funcname string, message json.RawMessage) (Message, error) {
+	if _, ok := base.queryMap[funcname]; !ok {
+		return nil, ErrActionNotSupport
+	}
+	ty := base.queryMap[funcname]
+	p := reflect.New(ty.In(1).Elem())
+	queryin := p.Interface()
+	if in, ok := queryin.(proto.Message); ok {
+		data, err := message.MarshalJSON()
+		if err != nil {
+			return nil, err
+		}
+		err = JsonToPB(data, in)
+		if err != nil {
+			return nil, err
+		}
+		return in, nil
+	}
+	return nil, ErrActionNotSupport
+}
+
+func (base *ExecTypeBase) QueryToJson(funcname string, message Message) (string, error) {
+	if _, ok := base.queryMap[funcname]; !ok {
+		return "", ErrActionNotSupport
+	}
+	return PBToJson(message)
+}
+
 func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg interface{}) (tx *Transaction, err error) {
 	valueret := method.Func.Call([]reflect.Value{base.childValue, reflect.ValueOf(action), reflect.ValueOf(msg)})
 	if len(valueret) != 2 {
@@ -440,7 +533,7 @@ func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
 	return base.child.CreateTransaction("Transfer", v)
 }
 
-func (base *ExecTypeBase) Create(action string, msg interface{}) (*Transaction, error) {
+func (base *ExecTypeBase) Create(action string, msg Message) (*Transaction, error) {
 	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
 	if msg == nil {
 		return nil, ErrInvalidParam
@@ -468,16 +561,7 @@ func (base *ExecTypeBase) Create(action string, msg interface{}) (*Transaction, 
 	return nil, ErrActionNotSupport
 }
 
-//重构完成后删除
-func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
-	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
-	if action == "" {
-		action = "Default_Process"
-	}
-	funclist := base.GetRPCFuncMap()
-	if method, ok := funclist["RPC_"+action]; ok {
-		return base.callRPC(method, action, msg)
-	}
+func (base *ExecTypeBase) GetAction(action string) (Message, error) {
 	typemap := base.child.GetTypeMap()
 	if _, ok := typemap[action]; ok {
 		tyvalue := reflect.New(base.actionListValueType[action])
@@ -490,20 +574,29 @@ func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transac
 			tlog.Error(action + " tyvalue is not Message")
 			return nil, ErrActionNotSupport
 		}
-		b, err := msg.MarshalJSON()
-		if err != nil {
-			tlog.Error(action + " MarshalJSON  error")
-			return nil, err
-		}
-		err = JsonToPB(b, data)
-		if err != nil {
-			tlog.Error(action + " jsontopb  error")
-			return nil, err
-		}
-		return base.CreateTransaction(action, data)
+		return data, nil
 	}
 	tlog.Error(action + " ErrActionNotSupport")
 	return nil, ErrActionNotSupport
+}
+
+//重构完成后删除
+func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
+	data, err := base.GetAction(action)
+	if err != nil {
+		return nil, err
+	}
+	b, err := msg.MarshalJSON()
+	if err != nil {
+		tlog.Error(action + " MarshalJSON  error")
+		return nil, err
+	}
+	err = JsonToPB(b, data)
+	if err != nil {
+		tlog.Error(action + " jsontopb  error")
+		return nil, err
+	}
+	return base.CreateTransaction(action, data)
 }
 
 func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Transaction, err error) {

@@ -3,8 +3,6 @@ package types
 import (
 	"encoding/json"
 
-	"gitlab.33.cn/chain33/chain33/types/convertor"
-
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -21,11 +19,6 @@ func init() {
 
 	// init executor type
 	types.RegistorExecutor(BlackwhiteX, NewType())
-
-	// init query rpc
-	types.RegisterRPCQueryHandle(GetBlackwhiteRoundInfo, &convertor.QueryConvertor{ProtoObj: &ReqBlackwhiteRoundInfo{}})
-	types.RegisterRPCQueryHandle(GetBlackwhiteByStatusAndAddr, &convertor.QueryConvertor{ProtoObj: &ReqBlackwhiteRoundList{}})
-	types.RegisterRPCQueryHandle(GetBlackwhiteloopResult, &convertor.QueryConvertor{ProtoObj: &ReqLoopResult{}})
 }
 
 type BlackwhiteType struct {
