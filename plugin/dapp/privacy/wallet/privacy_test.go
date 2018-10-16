@@ -5,7 +5,7 @@ import (
 	"time"
 	"unsafe"
 
-	_ "gitlab.33.cn/chain33/chain33/plugin"
+	//_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
 
 	"gitlab.33.cn/chain33/chain33/common"
@@ -140,7 +140,7 @@ func (mock *PrivacyMock) CreateUTXOs(sender string, pubkeypair string, amount in
 		for _, info := range privacyInfo {
 			privacykeyParirs := info.PrivacyKeyPair
 
-			var utxos []*types.UTXO
+			var utxos []*ty.UTXO
 			for indexoutput, output := range privacyOutput.Keyoutput {
 				if utxoProcessed[indexoutput] {
 					continue
@@ -150,7 +150,7 @@ func (mock *PrivacyMock) CreateUTXOs(sender string, pubkeypair string, amount in
 				if bytes.Equal(recoverPub, output.Onetimepubkey) {
 					totalUtxosLeft--
 					utxoProcessed[indexoutput] = true
-					info2store := &types.PrivacyDBStore{
+					info2store := &ty.PrivacyDBStore{
 						Txhash:           txhash,
 						Tokenname:        mock.tokenName,
 						Amount:           output.Amount,
@@ -163,14 +163,14 @@ func (mock *PrivacyMock) CreateUTXOs(sender string, pubkeypair string, amount in
 						Blockhash:        common.Sha256([]byte("some test for hash")),
 					}
 
-					utxoGlobalIndex := &types.UTXOGlobalIndex{
+					utxoGlobalIndex := &ty.UTXOGlobalIndex{
 						Outindex: int32(indexoutput),
 						Txhash:   txhash,
 					}
 
-					utxoCreated := &types.UTXO{
+					utxoCreated := &ty.UTXO{
 						Amount: output.Amount,
-						UtxoBasic: &types.UTXOBasic{
+						UtxoBasic: &ty.UTXOBasic{
 							UtxoGlobalIndex: utxoGlobalIndex,
 							OnetimePubkey:   output.Onetimepubkey,
 						},
