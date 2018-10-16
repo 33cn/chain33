@@ -221,18 +221,18 @@ func TestGetLastMemPool(t *testing.T) {
 func testQueryChainError(t *testing.T) {
 	var in *pb.BlockChainQuery
 
-	qapi.On("Query", in).Return(nil, fmt.Errorf("error")).Once()
+	qapi.On("QueryChain", in).Return(nil, fmt.Errorf("error")).Once()
 	_, err := g.QueryChain(getOkCtx(), in)
 	assert.EqualError(t, err, "error", "return error")
 }
 
 func testQueryChainOK(t *testing.T) {
-	var in *pb.Query
+	var in *pb.BlockChainQuery
 	var msg types.Message
 	var req types.ReqString
 	req.Data = "msg"
 	msg = &req
-	qapi.On("Query", in).Return(msg, nil).Once()
+	qapi.On("QueryChain", in).Return(msg, nil).Once()
 	data, err := g.QueryChain(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
 	assert.Equal(t, true, data.IsOk, "reply should be ok")

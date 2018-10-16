@@ -84,7 +84,7 @@ func CallFunc(driver, name string, in types.Message) (reply types.Message, err e
 	if !valueret[0].CanInterface() {
 		return nil, types.ErrMethodNotFound
 	}
-	if !valueret[2].CanInterface() {
+	if !valueret[1].CanInterface() {
 		return nil, types.ErrMethodNotFound
 	}
 	r1 := valueret[0].Interface()
