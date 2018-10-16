@@ -442,7 +442,7 @@ message PrivacySignatureParam {
 }
 
 service privacy {
-   // Privacy Trading
+    // Privacy Trading
     // 显示指定地址的公钥对信息，可以作为后续交易参数
     rpc ShowPrivacyKey(ReqString) returns (ReplyPrivacyPkPair) {}
     // 创建一系列UTXO

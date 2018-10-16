@@ -20,16 +20,16 @@ option go_package = "gitlab.33.cn/chain33/chain33/types";
 //	 actionName  :交易对应的函数调用
 //   payload: 保存额外的一些信息，主要是给插件使用
 message WalletTxDetail {
-    Transaction tx          = 1;
-    ReceiptData receipt     = 2;
-    int64       height      = 3;
-    int64       index       = 4;
-    int64       blocktime   = 5;
-    int64       amount      = 6;
-    string      fromaddr    = 7;
-    bytes       txhash      = 8;
-    string      actionName  = 9;
-    bytes       payload     = 10;
+    Transaction tx         = 1;
+    ReceiptData receipt    = 2;
+    int64       height     = 3;
+    int64       index      = 4;
+    int64       blocktime  = 5;
+    int64       amount     = 6;
+    string      fromaddr   = 7;
+    bytes       txhash     = 8;
+    string      actionName = 9;
+    bytes       payload    = 10;
 }
 
 message WalletTxDetails {
@@ -233,7 +233,6 @@ message Int32 {
     int32 data = 1;
 }
 
-
 // 某些交易需要存在一些复杂的算法，所以需要请求服务器协助构建交易，返回对应交易哈希值，后续签名可以根据此哈希值进行处理
 message ReqCreateTransaction {
     string tokenname = 1;
@@ -261,8 +260,8 @@ message ReqAccountList {
 
 //执行钱包插件
 message WalletExecutor {
-    string driver    = 1;
-    string funcName  = 2;
-    int64  eventId   = 3;
-    bytes  param     = 4;
+    string driver   = 1;
+    string funcName = 2;
+    int64  eventId  = 3;
+    bytes  param    = 4;
 }
