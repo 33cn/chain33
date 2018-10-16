@@ -32,6 +32,10 @@ var (
 	accTokenMap             = make(map[string]*account.DB)
 )
 
+func init() {
+	wcom.RegisterEventCB("wallet", &Wallet{})
+}
+
 const (
 	// 交易操作的方向
 	AddTx int32 = 20001
@@ -226,7 +230,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
-	wcom.RegisterEventCB("wallet", wallet)
 	wallet.initBizPolicy()
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
