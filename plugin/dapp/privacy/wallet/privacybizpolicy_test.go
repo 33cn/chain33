@@ -18,7 +18,7 @@ import (
 	"gitlab.33.cn/wallet/bipwallet"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.33.cn/chain33/chain33/wallet/policy/privacy"
+	privacy "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/wallet"
 )
 
 var (

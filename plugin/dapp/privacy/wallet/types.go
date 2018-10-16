@@ -2,7 +2,7 @@ package wallet
 
 import (
 	privacy "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/crypto"
-	"gitlab.33.cn/chain33/chain33/types"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 )
 
 type addrAndprivacy struct {
@@ -21,7 +21,7 @@ type buildInputInfo struct {
 // txOutputInfo 存储当前钱包地址下被选中的UTXO信息
 type txOutputInfo struct {
 	amount           int64
-	utxoGlobalIndex  *types.UTXOGlobalIndex
+	utxoGlobalIndex  *privacytypes.UTXOGlobalIndex
 	txPublicKeyR     []byte
 	onetimePublicKey []byte
 }

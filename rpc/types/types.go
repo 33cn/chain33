@@ -210,6 +210,7 @@ type ReqWalletTransactionList struct {
 type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `json:"txDetails"`
 }
+
 type WalletTxDetail struct {
 	Tx         *Transaction       `json:"tx"`
 	Receipt    *ReceiptDataResult `json:"receipt"`

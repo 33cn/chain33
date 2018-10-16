@@ -1,10 +1,11 @@
 package wallet
 
 import (
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (policy *privacyPolicy) On_ShowPrivacyAccountSpend(req *types.ReqPrivBal4AddrToken) (types.Message, error) {
+func (policy *privacyPolicy) On_ShowPrivacyAccountSpend(req *privacytypes.ReqPrivBal4AddrToken) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.showPrivacyAccountsSpend(req)
@@ -24,7 +25,7 @@ func (policy *privacyPolicy) On_ShowPrivacyPK(req *types.ReqString) (types.Messa
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_Public2Privacy(req *types.ReqPub2Pri) (types.Message, error) {
+func (policy *privacyPolicy) On_Public2Privacy(req *privacytypes.ReqPub2Pri) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.sendPublic2PrivacyTransaction(req)
@@ -34,7 +35,7 @@ func (policy *privacyPolicy) On_Public2Privacy(req *types.ReqPub2Pri) (types.Mes
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_Privacy2Privacy(req *types.ReqPri2Pri) (types.Message, error) {
+func (policy *privacyPolicy) On_Privacy2Privacy(req *privacytypes.ReqPri2Pri) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.sendPrivacy2PrivacyTransaction(req)
@@ -44,7 +45,7 @@ func (policy *privacyPolicy) On_Privacy2Privacy(req *types.ReqPri2Pri) (types.Me
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_Privacy2Public(req *types.ReqPri2Pub) (types.Message, error) {
+func (policy *privacyPolicy) On_Privacy2Public(req *privacytypes.ReqPri2Pub) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.sendPrivacy2PublicTransaction(req)
@@ -54,7 +55,7 @@ func (policy *privacyPolicy) On_Privacy2Public(req *types.ReqPri2Pub) (types.Mes
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_CreateUTXOs(req *types.ReqCreateUTXOs) (types.Message, error) {
+func (policy *privacyPolicy) On_CreateUTXOs(req *privacytypes.ReqCreateUTXOs) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.createUTXOs(req)
@@ -89,7 +90,7 @@ func (policy *privacyPolicy) On_CreateTransaction(req *types.ReqCreateTransactio
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_PrivacyAccountInfo(req *types.ReqPPrivacyAccount) (types.Message, error) {
+func (policy *privacyPolicy) On_PrivacyAccountInfo(req *privacytypes.ReqPPrivacyAccount) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 
@@ -100,7 +101,7 @@ func (policy *privacyPolicy) On_PrivacyAccountInfo(req *types.ReqPPrivacyAccount
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_PrivacyTransactionList(req *types.ReqPrivacyTransactionList) (types.Message, error) {
+func (policy *privacyPolicy) On_PrivacyTransactionList(req *privacytypes.ReqPrivacyTransactionList) (types.Message, error) {
 	if req.Direction != 0 && req.Direction != 1 {
 		bizlog.Error("getPrivacyTransactionList", "invalid direction ", req.Direction)
 		return nil, types.ErrInvalidParam
@@ -123,7 +124,7 @@ func (policy *privacyPolicy) On_PrivacyTransactionList(req *types.ReqPrivacyTran
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_RescanUtxos(req *types.ReqRescanUtxos) (types.Message, error) {
+func (policy *privacyPolicy) On_RescanUtxos(req *privacytypes.ReqRescanUtxos) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.rescanUTXOs(req)
@@ -133,7 +134,7 @@ func (policy *privacyPolicy) On_RescanUtxos(req *types.ReqRescanUtxos) (types.Me
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_EnablePrivacy(req *types.ReqEnablePrivacy) (types.Message, error) {
+func (policy *privacyPolicy) On_EnablePrivacy(req *privacytypes.ReqEnablePrivacy) (types.Message, error) {
 	operater := policy.getWalletOperate()
 	operater.GetMutex().Lock()
 	defer operater.GetMutex().Unlock()

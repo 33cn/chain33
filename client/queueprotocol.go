@@ -556,13 +556,13 @@ func (q *QueueProtocol) GetWalletStatus() (*types.WalletStatus, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) Query(driver, funcname string, param []byte) (types.Message, error) {
-	query := &types.BlockChainQuery{Driver: driver, FuncName: funcname, Param: param}
+func (q *QueueProtocol) Query(driver, funcname string, param types.Message) (types.Message, error) {
+	query := &types.BlockChainQuery{Driver: driver, FuncName: funcname, Param: types.Encode(param)}
 	return q.QueryChain(query)
 }
 
-func (q *QueueProtocol) ExecWalletEvent(driver, funcname string, eventId int) (types.Message, error) {
-	query := &types.WalletExecutor{Driver: driver, FuncName: funcname, EventId: int64(eventId)}
+func (q *QueueProtocol) ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error) {
+	query := &types.WalletExecutor{Driver: driver, FuncName: funcname, Param: types.Encode(param)}
 	return q.ExecWallet(query)
 }
 

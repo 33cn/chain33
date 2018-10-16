@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"github.com/inconshreveable/log15"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
@@ -23,4 +24,5 @@ func Init(name string, s types.RPCServer) {
 	cli := &channelClient{}
 	grpc := &Grpc{channelClient: cli}
 	cli.Init(name, s, &Jrpc{cli: cli}, grpc)
+	pty.RegisterPrivacyServer(s.GRPC(), grpc)
 }

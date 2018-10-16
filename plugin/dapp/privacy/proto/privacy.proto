@@ -441,6 +441,13 @@ message PrivacySignatureParam {
     repeated RealKeyInput realKeyInputs = 3;
 }
 
+message WalletAccountPrivacy {
+    bytes viewPubkey   = 1;
+    bytes viewPrivKey  = 2;
+    bytes spendPubkey  = 3;
+    bytes spendPrivKey = 4;
+}
+
 service privacy {
     // Privacy Trading
     // 显示指定地址的公钥对信息，可以作为后续交易参数
