@@ -199,65 +199,59 @@ func (db *PegasusDB) Stats() map[string]string {
 	return nil
 }
 
-func (db *PegasusDB) Iterator(prefix []byte, reverse bool) Iterator {
+func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
 	var (
 		err   error
 		vals  []*pegasus.KeyValue
 		start []byte
 		over  []byte
 	)
-
-	limit := util.BytesPrefix(prefix)
-	hashKey := getHashKey(prefix)
+	if end == nil {
+		end = bytesPrefix(begin)
+	}
+	limit := util.Range{begin, end}
+	hashKey := getHashKey(begin)
 
 	if reverse {
-		start = prefix
+		start = begin
 		over = limit.Limit
 	} else {
 		start = limit.Limit
-		over = prefix
+		over = begin
 	}
-	dbit := &PegasusIt{reverse: reverse, index: -1, table: db.table, begin: start, end: over}
+	dbit := &PegasusIt{itBase: itBase{begin, end, reverse}, index: -1, table: db.table, itbegin: start, itend: over}
 	opts := &pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: IteratorPageSize, Reverse: dbit.reverse}
-	vals, _, err = db.table.MultiGetRangeOpt(context.Background(), hashKey, prefix, limit.Limit, opts)
+	vals, _, err = db.table.MultiGetRangeOpt(context.Background(), hashKey, begin, limit.Limit, opts)
 	if err != nil {
 		slog.Error("create iterator error!")
 		return nil
 	}
-
 	if len(vals) > 0 {
 		dbit.vals = vals
-
 		// 如果返回的数据大小刚好满足分页，则假设下一页还有数据
 		if len(dbit.vals) == IteratorPageSize {
 			dbit.nextPage = true
-
 			// 下一页数据的开始，等于本页数据的结束，不过在下次查询时需要设置StartInclusiv=false，因为本条数据已经包含
 			dbit.tmpEnd = dbit.vals[IteratorPageSize-1].SortKey
 		}
 	}
-
 	return dbit
 }
 
 type PegasusIt struct {
+	itBase
 	table    pegasus.TableConnector
 	vals     []*pegasus.KeyValue
 	index    int
-	reverse  bool
 	nextPage bool
 	tmpEnd   []byte
 
 	// 迭代开始位置
-	begin []byte
+	itbegin []byte
 	// 迭代结束位置
-	end []byte
+	itend []byte
 	// 当前所属的页数（从0开始）
 	pageNo int
-}
-
-func (dbit *PegasusIt) Prefix() []byte {
-	return nil
 }
 
 func (dbit *PegasusIt) Close() {
@@ -282,13 +276,12 @@ func (dbit *PegasusIt) initPage(begin, end []byte) bool {
 		vals []*pegasus.KeyValue
 		err  error
 	)
-
 	opts := &pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: IteratorPageSize, Reverse: dbit.reverse}
 	hashKey := getHashKey(begin)
 	vals, _, err = dbit.table.MultiGetRangeOpt(context.Background(), hashKey, begin, end, opts)
 
 	if err != nil {
-		slog.Error("get iterator next page error", "error", err, "begin", begin, "end", dbit.end, "reverse", dbit.reverse)
+		slog.Error("get iterator next page error", "error", err, "begin", begin, "end", dbit.itend, "reverse", dbit.reverse)
 		return false
 	}
 
@@ -316,9 +309,9 @@ func (dbit *PegasusIt) cacheNextPage(flag []byte) bool {
 	)
 	// 如果是逆序，则取从开始到flag的数据
 	if dbit.reverse {
-		over = dbit.begin
+		over = dbit.itbegin
 	} else {
-		over = dbit.end
+		over = dbit.itend
 	}
 	// 如果是正序，则取从flag到结束的数据
 	if dbit.initPage(flag, over) {
@@ -379,7 +372,7 @@ func (dbit *PegasusIt) Rewind() bool {
 	}
 
 	// 当数据取到第N页的情况时，Rewind需要返回到第一页第一条
-	if dbit.initPage(dbit.begin, dbit.end) {
+	if dbit.initPage(dbit.itbegin, dbit.itend) {
 		dbit.index = 0
 		dbit.pageNo = 0
 		return true
@@ -425,7 +418,7 @@ func (dbit *PegasusIt) Valid() bool {
 	}
 	key := dbit.vals[dbit.index].SortKey
 	pdbBench.read(1, time.Since(start))
-	return bytes.HasPrefix(key, dbit.begin)
+	return dbit.checkKey(key)
 }
 
 type PegasusBatch struct {
