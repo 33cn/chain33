@@ -6,6 +6,8 @@ import (
 
 	"os"
 
+	"reflect"
+
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/runtime"
@@ -62,6 +64,11 @@ func NewEVMExecutor() *EVMExecutor {
 
 	exec.SetChild(exec)
 	return exec
+}
+
+func (evm *EVMExecutor) GetFuncMap() map[string]reflect.Method {
+	ety := types.LoadExecutorType(driverName)
+	return ety.GetExecFuncMap()
 }
 
 func (evm *EVMExecutor) GetDriverName() string {
