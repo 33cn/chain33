@@ -57,9 +57,18 @@ func (m *MVCCIter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.Ke
 	return kvlist, nil
 }
 
-func (m *MVCCIter) Iterator(prefix []byte, reserver bool) Iterator {
-	prefix = getLastKey(prefix)
-	return &mvccIt{m.db.Iterator(prefix, reserver)}
+func (m *MVCCIter) Iterator(start, end []byte, reserver bool) Iterator {
+	if start == nil {
+		start = mvccLast
+	} else {
+		start = getLastKey(start)
+	}
+	if end != nil {
+		end = getLastKey(end)
+	} else {
+		end = bytesPrefix(start)
+	}
+	return &mvccIt{m.db.Iterator(start, end, reserver)}
 }
 
 type mvccIt struct {
