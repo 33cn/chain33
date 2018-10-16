@@ -1437,7 +1437,8 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 		log.Error("CreateTransaction", "err", err.Error())
 		return err
 	}
-	*result = tx
+	data := types.Encode(tx)
+	*result = hex.EncodeToString(data)
 	return nil
 }
 
