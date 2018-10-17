@@ -134,6 +134,9 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
 	}
+	if data.StateHash == nil {
+		data.StateHash = header.StateHash
+	}
 	localdb := NewLocalDB(exec.client)
 	driver.SetLocalDB(localdb)
 	opt := &StateDBOption{EnableMVCC: exec.enableMVCC, FlagMVCC: exec.flagMVCC, Height: header.GetHeight()}
