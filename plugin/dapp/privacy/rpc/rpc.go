@@ -82,6 +82,9 @@ func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *interf
 
 /////////////////privacy///////////////
 func (c *Jrpc) ShowPrivacyAccountSpend(in *pty.ReqPrivBal4AddrToken, result *interface{}) error {
+	if 0 == len(in.Addr) {
+		return types.ErrInputPara
+	}
 	account, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountSpend", in)
 	if err != nil {
 		log.Info("ShowPrivacyAccountSpend", "return err info", err)
@@ -144,6 +147,9 @@ func (c *Jrpc) CreateUTXOs(in *pty.ReqCreateUTXOs, result *interface{}) error {
 
 // PrivacyTxList get all privacy transaction list by param
 func (c *Jrpc) PrivacyTxList(in *pty.ReqPrivacyTransactionList, result *interface{}) error {
+	if in.Direction != 0 && in.Direction != 1 {
+		return types.ErrInvalidParam
+	}
 	reply, err := c.cli.ExecWalletFunc(pty.PrivacyX, "PrivacyTransactionList", in)
 	if err != nil {
 		return err
