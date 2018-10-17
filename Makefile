@@ -22,7 +22,7 @@ PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep 
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 .PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
 
-default: build cli para-cli autotest
+default: build cli depends para-cli autotest
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
