@@ -1,6 +1,7 @@
 package wallet_test
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -67,10 +68,31 @@ func (mock *chain33Mock) start() {
 	mock.network.SetQueueClient(q.Client())
 	mock.api, _ = client.New(q.Client(), nil)
 	cli := q.Client()
-
+	w := wallet.New(cfg.Wallet)
 	mock.client = cli
-	mock.wallet = wallet.New(cfg.Wallet)
+	mock.wallet = w
 	mock.wallet.SetQueueClient(cli)
+	api, _ := client.New(q.Client(), nil)
+	newWalletRealize(api, w)
+}
+
+func newWalletRealize(qApi client.QueueProtocolAPI, w *wallet.Wallet) {
+	seed := &types.SaveSeedByPw{"subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant", "123456"}
+	_, err := qApi.SaveSeed(seed)
+	if err != nil {
+		panic(err)
+	}
+	err = w.ProcWalletUnLock(&types.WalletUnLock{"123456", 0, false})
+	if err != nil {
+		panic(err)
+	}
+	for i, priv := range types.TestPrivkeyHex {
+		privkey := &types.ReqWalletImportPrivkey{priv, fmt.Sprintf("label%d", i)}
+		_, err = w.ProcImportPrivKey(privkey)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (mock *chain33Mock) stop() {

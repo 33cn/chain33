@@ -580,7 +580,7 @@ func showOrCheckAcc(c types.Chain33Client, addr string, sorc int, balance int64)
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -593,7 +593,7 @@ func genaddress() (string, crypto.PrivKey) {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
