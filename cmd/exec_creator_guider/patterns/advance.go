@@ -64,15 +64,15 @@ func (this *advancePattern) buildTask() tasks.Task {
 		// 将文件复制到输出目录下
 		&tasks.CopyTemplateToOutputTask{
 			TemplatePath: this.templateFile,
-			OutputPath: this.outputFolder,
-			ProjectName:this.projName,
-			ClassName:this.clsName,
+			OutputPath:   this.outputFolder,
+			ProjectName:  this.projName,
+			ClassName:    this.clsName,
 		},
 		&tasks.ReplaceTargetTask{
-			OutputPath: this.outputFolder,
-			ProjectName:this.projName,
-			ClassName: this.clsName,
-			ActionName:this.actionName,
+			OutputPath:  this.outputFolder,
+			ProjectName: this.projName,
+			ClassName:   this.clsName,
+			ActionName:  this.actionName,
 		},
 		// 结合系统的模板文件和生成的xxx.pb.go，生成项目生成脚本代码
 		&tasks.CreateBuildAppSourceTask{
