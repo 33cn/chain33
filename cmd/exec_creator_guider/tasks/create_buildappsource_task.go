@@ -47,6 +47,7 @@ func (this *CreateBuildAppSourceTask) readActionMemberNames() error {
 		return err
 	}
 	context := string(pbContext)
+	// 如果文件中含有与ActionName部分匹配的文字，则会造成搜索到多个
 	index := strings.Index(context, this.ActionName)
 	if index < 0 {
 		return errors.New(fmt.Sprintf("Action %s Not Existed", this.ActionName))

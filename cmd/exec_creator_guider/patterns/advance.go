@@ -61,24 +61,25 @@ func (this *advancePattern) buildTask() tasks.Task {
 		&tasks.CheckFileExistedTask{
 			FileName: this.propFile,
 		},
-		// 检查系统配置的模板文件是否存在
-		&tasks.CheckFileExistedTask{
-			FileName: this.templateFile,
+		// 将文件复制到输出目录下
+		&tasks.CopyTemplateToOutputTask{
+			TemplatePath: this.templateFile,
+			OutputPath: this.outputFolder,
+			ProjectName:this.projName,
+			ClassName:this.clsName,
 		},
-		// 使用protoc编译用户编写的protobuf文件，生成 xxx.pb.go
-		//&tasks.CompileProtoFileTask{
-		//	FileName: this.propFile,
-		//},
+		&tasks.ReplaceTargetTask{
+			OutputPath: this.outputFolder,
+			ProjectName:this.projName,
+			ClassName: this.clsName,
+			ActionName:this.actionName,
+		},
 		// 结合系统的模板文件和生成的xxx.pb.go，生成项目生成脚本代码
 		&tasks.CreateBuildAppSourceTask{
 			TemplatePath: this.templateFile,
 			ClsName:      this.clsName,
 			ActionName:   this.actionName,
 			ProtoFile:    this.propFile,
-		},
-		// 编译并运行
-		&tasks.RunBuildAppTask{
-			FileName: this.propFile,
 		},
 	)
 
