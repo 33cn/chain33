@@ -83,7 +83,6 @@ func TestQueueProtocol(t *testing.T) {
 	testGetSeed(t, api)
 	testGetWalletStatus(t, api)
 	testDumpPrivkey(t, api)
-	testCloseTickets(t, api)
 	testIsSync(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
@@ -185,13 +184,6 @@ func testIsSync(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.IsSync()
 	if err != nil {
 		t.Error("Call IsSync Failed.", err)
-	}
-}
-
-func testCloseTickets(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.CloseTickets()
-	if err != nil {
-		t.Error("Call CloseTickets Failed.", err)
 	}
 }
 

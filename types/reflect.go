@@ -4,6 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -199,6 +200,7 @@ func BuildQueryType(prefix string, methods map[string]reflect.Method) (map[strin
 }
 
 type QueryData struct {
+	sync.RWMutex
 	prefix   string
 	funcMap  map[string]map[string]reflect.Method
 	typeMap  map[string]map[string]reflect.Type
@@ -220,7 +222,19 @@ func (q *QueryData) Register(key string, obj interface{}) {
 		panic("QueryData reg dup")
 	}
 	q.funcMap[key], q.typeMap[key] = BuildQueryType(q.prefix, ListMethod(obj))
-	q.valueMap[key] = reflect.ValueOf(obj)
+	q.SetThis(key, reflect.ValueOf(obj))
+}
+
+func (q *QueryData) SetThis(key string, this reflect.Value) {
+	q.Lock()
+	defer q.Unlock()
+	q.valueMap[key] = this
+}
+
+func (q *QueryData) getThis(key string) reflect.Value {
+	q.RLock()
+	defer q.RUnlock()
+	return q.valueMap[key]
 }
 
 func (q *QueryData) GetFunc(driver, name string) (reflect.Method, error) {
@@ -278,6 +292,6 @@ func (q *QueryData) Call(driver, name string, in Message) (reply Message, err er
 	if err != nil {
 		return nil, err
 	}
-	m := q.valueMap[driver]
+	m := q.getThis(driver)
 	return CallQueryFunc(m, f, in)
 }
