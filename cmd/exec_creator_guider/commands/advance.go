@@ -33,11 +33,11 @@ func advanceCreate(cmd *cobra.Command, args []string) {
 	}
 	propFile, _ := cmd.Flags().GetString("propfile")
 	if len(propFile) == 0 {
-		propFile = "template/advance.main.template"
+		propFile = fmt.Sprintf("template/%s.proto", projectName)
 	}
 	templateFile, _ := cmd.Flags().GetString("templatefile")
 	if len(templateFile) == 0 {
-		templateFile = fmt.Sprintf("template/%s.proto", projectName)
+		templateFile = fmt.Sprintf("template/%s.template", projectName)
 	}
 	cp := patterns.New("advance")
 	if cp == nil {
