@@ -12,7 +12,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/relay/commands/relayd/relayd"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/relay/depends/relayd/relayd"
 )
 
 var (
