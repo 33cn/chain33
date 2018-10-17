@@ -64,6 +64,8 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 		tree = data
 	} else {
 		tree = mavl.NewTree(mavls.GetDB(), true)
+		//get接口也应该传入高度
+		//tree.SetBlockHeight(datas.Height)
 		err = tree.Load(datas.StateHash)
 		if err == nil {
 			mavls.cache.Add(search, tree)
@@ -88,6 +90,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 		return datas.StateHash, nil
 	}
 	tree := mavl.NewTree(mavls.GetDB(), sync)
+	tree.SetBlockHeight(datas.Height)
 	err := tree.Load(datas.StateHash)
 	if err != nil {
 		return nil, err

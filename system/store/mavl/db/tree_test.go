@@ -15,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
+	"os"
 )
 
 func init() {
@@ -776,6 +777,73 @@ func TestIAVLPrint(t *testing.T) {
 	}
 }
 
+func TestPruningTree(t *testing.T) {
+	const txN   = 5 // 每个块交易量
+	const preB  = 20  // 一轮区块数
+	const round = 5   // 更新叶子节点次数
+	const preDel= preB/10
+
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	db := db.NewDB("test", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+
+	EnableMavlPrefix(true)
+	EnablePrun(true)
+	SetPrunBlockHeight(preDel)
+
+	for j := 0; j < round; j++  {
+		for i := 0; i < preB; i++ {
+			prevHash, err = saveUpdateBlock(db, int64(i), prevHash, txN, j, int64(j * preB + i))
+			assert.Nil(t, err)
+			m := int64(j * preB + i)
+			if m / int64(preDel) > 1 && m % int64(preDel) == 0 {
+				pruningTree(db, m)
+			}
+		}
+		fmt.Printf("round %d over \n", j)
+	}
+	prunTreePrint(db, []byte(leafKeyCountPrefix))
+	prunTreePrint(db, []byte(hashNodePrefix))
+	prunTreePrint(db, []byte(leafNodePrefix))
+
+//	te := NewTree(db, true)
+//	te.Load(prevHash)
+	//for i := 0; i < preB*txN; i++ {
+	//	key := i2b(int32(i))
+	//	v := i2b(int32(round-1))
+	//	v = append(v, key...)
+	//	value := Sha256(v)
+	//	_, v, exist := te.Get(key)
+	//	assert.Equal(t, exist, true)
+	//	assert.Equal(t, value, v)
+	//}
+}
+
+func genUpdateKV(height int64, txN int64, vIndex int) (kvs []*types.KeyValue) {
+	for i := int64(0); i < txN; i++ {
+		n := height*txN + i
+		key := fmt.Sprintf("my_%018d", n)
+		value := fmt.Sprintf("my_%018d_%d", n, vIndex)
+		//fmt.Printf("index: %d  i: %d  %v \n", vIndex, i, value)
+		kvs = append(kvs, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
+	}
+	return kvs
+}
+
+func saveUpdateBlock(dbm db.DB, height int64, hash []byte, txN int64, vIndex int, blockHeight int64) (newHash []byte, err error) {
+	t := NewTree(dbm, true)
+	t.Load(hash)
+	t.SetBlockHeight(blockHeight)
+	kvs := genUpdateKV(height, txN, vIndex)
+	for _, kv := range kvs {
+		t.Set(kv.Key, kv.Value)
+	}
+	newHash = t.Save()
+	return newHash, nil
+}
+
 func BenchmarkDBSet(b *testing.B) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(b, err)
@@ -833,6 +901,8 @@ func BenchmarkDBGet(b *testing.B) {
 func BenchmarkDBGetMVCC(b *testing.B) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
 	b.Log(dir)
 	ldb := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
@@ -875,6 +945,7 @@ func genKV(height int64, txN int64) (kvs []*types.KeyValue) {
 	return kvs
 }
 
+
 func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool) (newHash []byte, err error) {
 	t := NewTree(dbm, true)
 	t.Load(hash)
@@ -900,3 +971,4 @@ func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool) (newH
 	}
 	return newHash, nil
 }
+
