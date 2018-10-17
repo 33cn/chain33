@@ -76,7 +76,7 @@ func estInitAccount(t *testing.T) {
 	defer fmt.Println("TestInitAccount end")
 
 	var label [accountMax]string
-	var params types.ReqWalletImportPrivKey
+	var params types.ReqWalletImportPrivkey
 	var hashes [][]byte
 
 	privGenesis := getprivkey("11A61A97B3A89E614419BACF735DA585BB3F745A5DF05BF93A63AE6F24A3712E")
@@ -84,8 +84,8 @@ func estInitAccount(t *testing.T) {
 		addr[index], privkey[index] = genaddress()
 		//fmt.Println("privkey: ", common.ToHex(privkey[index].Bytes()))
 		label[index] = strconv.Itoa(int(types.Now().UnixNano()))
-		params = types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey[index].Bytes()), Label: label[index]}
-		_, err := c.ImportPrivKey(context.Background(), &params)
+		params = types.ReqWalletImportPrivkey{Privkey: common.ToHex(privkey[index].Bytes()), Label: label[index]}
+		_, err := c.ImportPrivkey(context.Background(), &params)
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(time.Second)

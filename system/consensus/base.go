@@ -24,6 +24,7 @@ var randgen *rand.Rand
 
 func init() {
 	randgen = rand.New(rand.NewSource(types.Now().UnixNano()))
+	QueryData.Register("base", &BaseClient{})
 }
 
 type Miner interface {

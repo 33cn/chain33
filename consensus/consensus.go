@@ -1,6 +1,8 @@
 package consensus
 
 import (
+	"reflect"
+
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/system/consensus"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -12,6 +14,6 @@ func New(cfg *types.Consensus) queue.Module {
 		panic("Unsupported consensus type:" + cfg.Name + " " + err.Error())
 	}
 	obj := con(cfg)
-	consensus.QueryData.Register(cfg.Name, obj)
+	consensus.QueryData.SetThis(cfg.Name, reflect.ValueOf(obj))
 	return obj
 }

@@ -347,10 +347,10 @@ func NormGet(key string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var req types.Query
-	req.Execer = []byte("norm")
+	var req types.ChainExecutor
+	req.Driver = "norm"
 	req.FuncName = "NormGet"
-	req.Payload = data
+	req.Param = data
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {

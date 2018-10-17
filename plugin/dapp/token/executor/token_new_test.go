@@ -109,7 +109,7 @@ func TestInitAccount(t *testing.T) {
 	//privkey = ""
 	//addr, privkey = genaddress()
 	label := strconv.Itoa(int(types.Now().UnixNano()))
-	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: label}
+	params := types.ReqWalletImportPrivkey{Privkey: common.ToHex(privkey.Bytes()), Label: label}
 
 	unlock := types.WalletUnLock{Passwd: walletPass, Timeout: 0, WalletOrTicket: false}
 	_, err := mainClient.UnLock(context.Background(), &unlock)
@@ -120,7 +120,7 @@ func TestInitAccount(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 
-	_, err = mainClient.ImportPrivKey(context.Background(), &params)
+	_, err = mainClient.ImportPrivkey(context.Background(), &params)
 	if err != nil && err != types.ErrPrivkeyExist {
 		fmt.Println(err)
 		t.Error(err)
@@ -272,15 +272,15 @@ func TestQueryAsset(t *testing.T) {
 	fmt.Println("TestQueryAsset start")
 	defer fmt.Println("TestQueryAsset end")
 
-	var req types.Query
-	req.Execer = []byte(execName)
+	var req types.ChainExecutor
+	req.Driver = execName
 	req.FuncName = "GetAccountTokenAssets"
 
 	var reqAsset tokenty.ReqAccountTokenAssets
 	reqAsset.Address = addr
 	reqAsset.Execer = execName
 
-	req.Payload = types.Encode(&reqAsset)
+	req.Param = types.Encode(&reqAsset)
 
 	reply, err := paraClient.QueryChain(context.Background(), &req)
 	if err != nil {
