@@ -178,7 +178,7 @@ func (t *trade) GetOnesBuyOrdersWithStatus(req *pty.ReqAddrAssets) (types.Messag
 
 func (t *trade) GetTokenSellOrderByStatus(req *pty.ReqTokenSellOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	fromKey := []byte("")
@@ -186,7 +186,7 @@ func (t *trade) GetTokenSellOrderByStatus(req *pty.ReqTokenSellOrder, status int
 		sell := t.replyReplySellOrderfromID([]byte(req.FromKey))
 		if sell == nil {
 			tradelog.Error("GetTokenSellOrderByStatus", "key not exist", req.FromKey)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		fromKey = calcTokensSellOrderKeyStatus(sell.TokenSymbol, sell.Status,
 			calcPriceOfToken(sell.PricePerBoardlot, sell.AmountPerBoardlot), sell.Owner, sell.Key)
@@ -208,7 +208,7 @@ func (t *trade) GetTokenSellOrderByStatus(req *pty.ReqTokenSellOrder, status int
 
 func (t *trade) GetTokenBuyOrderByStatus(req *pty.ReqTokenBuyOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	fromKey := []byte("")
@@ -216,7 +216,7 @@ func (t *trade) GetTokenBuyOrderByStatus(req *pty.ReqTokenBuyOrder, status int32
 		buy := t.replyReplyBuyOrderfromID([]byte(req.FromKey))
 		if buy == nil {
 			tradelog.Error("GetTokenBuyOrderByStatus", "key not exist", req.FromKey)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		fromKey = calcTokensBuyOrderKeyStatus(buy.TokenSymbol, buy.Status,
 			calcPriceOfToken(buy.PricePerBoardlot, buy.AmountPerBoardlot), buy.Owner, buy.Key)
@@ -637,7 +637,7 @@ func (t *trade) GetOnesOrderWithStatus(req *pty.ReqAddrAssets) (types.Message, e
 		order := t.loadOrderFromKey(fromKey)
 		if order == nil {
 			tradelog.Error("GetOnesOrderWithStatus", "key not exist", req.FromKey)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		st, ty := fromStatus(order.Status)
 		fromKey = calcOnesOrderKey(order.Owner, st, ty, order.Height, order.Key)
@@ -645,7 +645,7 @@ func (t *trade) GetOnesOrderWithStatus(req *pty.ReqAddrAssets) (types.Message, e
 
 	orderStatus, orderType := fromStatus(req.Status)
 	if orderStatus == orderStatusInvalid || orderType == orderTypeInvalid {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	keys, err := t.GetLocalDB().List(calcOnesOrderPrefixStatus(req.Addr, orderStatus), fromKey, req.Count, req.Direction)

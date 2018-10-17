@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"bytes"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -26,8 +27,7 @@ type PrivacyMock struct {
 }
 
 func (mock *PrivacyMock) Init(walletOp wcom.WalletOperate, password string) {
-	mock.policy = &privacyPolicy{}
-
+	mock.policy = &privacyPolicy{mtx: &sync.Mutex{}, rescanwg: &sync.WaitGroup{}}
 	mock.tokenName = types.BTY
 	mock.walletOp = walletOp
 	mock.password = password

@@ -296,7 +296,7 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 		onlyquerycache = true
 	}
 	if txhashlist.Expire != nil && len(txhashlist.Expire) != len(txhashlist.Hashes) {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	for i, txhash := range txhashlist.Hashes {
 		expire := int64(0)
@@ -378,7 +378,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	block := blockdetail.Block
 	if block == nil {
 		chainlog.Error("ProcAddBlockMsg input block is null")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	b, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
 	if b != nil {
@@ -418,7 +418,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	}
 	if block == nil {
 		chainlog.Error("SendAddBlockEvent block is null")
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	chainlog.Debug("SendAddBlockEvent", "Height", block.Block.Height)
 
@@ -604,21 +604,21 @@ func (chain *BlockChain) ProcGetBlockByHashMsg(hash []byte) (respblock *types.Bl
 //key=addr:2 :获取本地作为to方的所有交易
 func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	if addr == nil || len(addr.Addr) == 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	//入参数校验
 	curheigt := chain.GetBlockHeight()
 	if addr.GetHeight() > curheigt || addr.GetHeight() < -1 {
 		chainlog.Error("ProcGetTransactionByAddr Height err")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if addr.GetDirection() != 0 && addr.GetDirection() != 1 {
 		chainlog.Error("ProcGetTransactionByAddr Direction err")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if addr.GetIndex() < 0 || addr.GetIndex() > types.MaxTxsPerBlock {
 		chainlog.Error("ProcGetTransactionByAddr Index err")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	//查询的drivers--> main 驱动的名称
 	//查询的方法：  --> GetTxsByAddr
@@ -684,7 +684,7 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 
 	if ReqHash == nil {
 		chainlog.Error("ProcGetBlockOverview input err!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	var blockOverview types.BlockOverview
 	//通过height获取block
@@ -729,7 +729,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 
 	if addr == nil || len(addr.Addr) == 0 {
 		chainlog.Error("ProcGetAddrOverview input err!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	chainlog.Debug("ProcGetAddrOverview", "Addr", addr.GetAddr())
 
@@ -781,12 +781,12 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHash, error) {
 	if height == nil || 0 > height.GetHeight() {
 		chainlog.Error("ProcGetBlockHash input err!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	CurHeight := chain.GetBlockHeight()
 	if height.GetHeight() > CurHeight {
 		chainlog.Error("ProcGetBlockHash input height err!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	var ReplyHash types.ReplyHash
 	block, err := chain.GetBlock(height.GetHeight())
@@ -967,7 +967,7 @@ func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*type
 func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (err error) {
 	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
 		chainlog.Error("ProcDelParaChainBlockMsg input block is null")
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	blockdetail := ParaChainblockdetail.GetBlockdetail()
 	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
@@ -983,7 +983,7 @@ func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblock
 func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (*types.BlockDetail, error) {
 	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
 		chainlog.Error("ProcAddParaChainBlockMsg input block is null")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	blockdetail := ParaChainblockdetail.GetBlockdetail()
 	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
@@ -999,7 +999,7 @@ func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblock
 func (chain *BlockChain) ProcGetSeqByHash(hash []byte) (int64, error) {
 	if len(hash) == 0 {
 		chainlog.Error("ProcGetSeqByHash input hash is null")
-		return -1, types.ErrInputPara
+		return -1, types.ErrInvalidParam
 	}
 	seq, err := chain.blockStore.GetSequenceByHash(hash)
 	chainlog.Debug("ProcGetSeqByHash", "blockhash", common.ToHex(hash), "seq", seq, "err", err)

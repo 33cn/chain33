@@ -382,7 +382,7 @@ func showOnesOrdersStatus(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	status, _ := cmd.Flags().GetInt32("status")
 	if status < 1 || status > 3 {
-		fmt.Fprintln(os.Stderr, types.ErrInputPara)
+		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
 		return
 	}
 	var reqAddrtokens pty.ReqAddrAssets

@@ -358,7 +358,7 @@ func btcWireHeader(head *ty.BtcHeader) (*wire.BlockHeader, error) {
 
 func verifyBlockHeader(head *ty.BtcHeader, preHead *ty.RelayLastRcvBtcHeader, localDb dbm.KVDB) error {
 	if head == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 
 	if preHead != nil && preHead.Header != nil && (preHead.Header.Hash != head.PreviousHash || preHead.Header.Height+1 != head.Height) && !head.IsReset {

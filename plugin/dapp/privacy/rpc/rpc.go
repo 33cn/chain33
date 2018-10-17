@@ -83,7 +83,7 @@ func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *interf
 /////////////////privacy///////////////
 func (c *Jrpc) ShowPrivacyAccountSpend(in *pty.ReqPrivBal4AddrToken, result *interface{}) error {
 	if 0 == len(in.Addr) {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	account, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountSpend", in)
 	if err != nil {
