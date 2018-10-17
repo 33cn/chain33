@@ -11,4 +11,3 @@ func (this *CreateFolderTask) Execute() error {
 	mlog.Info("Execute create folder task.", "path", this.Path)
 	return util.MakeDir(this.Path)
 }
-
