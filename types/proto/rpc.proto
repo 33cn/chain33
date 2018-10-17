@@ -97,7 +97,7 @@ service chain33 {
 
     rpc QueryChain(ChainExecutor) returns (Reply) {}
     rpc ExecWallet(ChainExecutor) returns (Reply) {}
-    rpc QueryConsensus(ChainExecutor) returns(Reply){}
+    rpc QueryConsensus(ChainExecutor) returns (Reply) {}
 
     rpc CreateTransaction(CreateTxIn) returns (UnsignTx) {}
     //获取交易的十六进制编码
