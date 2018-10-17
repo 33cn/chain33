@@ -174,8 +174,8 @@ protobuf: ## Generate protbuf file of types package
 	@find ./plugin/dapp -maxdepth 2 -type d  -name proto -exec make -C {} \;
 
 
-depends: ## Generate cmd file of types package
-	@find ./plugin/dapp -maxdepth 2 -type d  -name depends -exec make -s -C {} \;
+depends: ## Generate depends file of types package
+	@find ./plugin/dapp -maxdepth 2 -type d  -name cmd -exec make -s -C {} \;
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
