@@ -361,7 +361,6 @@ func TestQueueClient(t *testing.T) {
 		{"coins", "GetTxsByAddr"},
 		{"manage", "GetConfigItem"},
 		{"norm", "NormGet"},
-		{"norm", "NormHas"},
 		{"ticket", "TicketInfos"},
 		{"ticket", "TicketList"},
 		{"ticket", "MinerAddress"},

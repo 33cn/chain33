@@ -202,11 +202,6 @@ const (
 	ExecOk   = 2
 )
 
-//norm
-const (
-	NormActionPut = 1
-)
-
 //cert
 const (
 	CertActionNew    = 1
