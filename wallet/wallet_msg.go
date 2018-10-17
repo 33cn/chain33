@@ -167,7 +167,7 @@ func (wallet *Wallet) On_SaveSeed(req *types.SaveSeedByPw) (types.Message, error
 	}
 	ok, err := wallet.saveSeed(req.Passwd, req.Seed)
 	if !ok {
-		walletlog.Error("saveSeed", "err", err.Error())
+		walletlog.Error("[saveSeed]", "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}

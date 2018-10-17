@@ -223,7 +223,9 @@ func (policy *ticketPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
 func (policy *ticketPolicy) flushTicket() {
 	bizlog.Info("wallet FLUSH TICKET")
 	api := policy.getAPI()
+	println("flush ticket.")
 	api.QueryConsensusFunc("ticket", "FlushTicket", &types.ReqNil{})
+	println("flush ticket...")
 }
 
 func (policy *ticketPolicy) needFlushTicket(tx *types.Transaction, receipt *types.ReceiptData) bool {

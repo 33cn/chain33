@@ -228,10 +228,6 @@ func (client *Client) flushTicket() error {
 	return nil
 }
 
-func (client *Client) flushTicketMsg(msg queue.Message) {
-	//list accounts
-}
-
 func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
 	list := make(map[string]crypto.PrivKey)
 	for _, priv := range privs {

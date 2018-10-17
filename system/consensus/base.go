@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -174,9 +175,14 @@ func (bc *BaseClient) EventLoop() {
 			tlog.Debug("consensus recv", "msg", msg)
 			if msg.Ty == types.EventConsensusQuery {
 				exec := msg.GetData().(*types.ChainExecutor)
-				reply, err := bc.ExecConsensus(exec)
+				param, err := QueryData.Decode(exec.Driver, exec.FuncName, exec.Param)
 				if err != nil {
-					//only for test ,del when test end
+					msg.Reply(bc.api.NewMessage("", 0, err))
+					continue
+				}
+				fmt.Println("param:", param)
+				reply, err := QueryData.Call(exec.Driver, exec.FuncName, param)
+				if err != nil {
 					msg.Reply(bc.api.NewMessage("", 0, err))
 				} else {
 					msg.Reply(bc.api.NewMessage("", 0, reply))
