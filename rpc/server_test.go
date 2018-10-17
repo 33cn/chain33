@@ -83,19 +83,6 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, ret.GetIsOk(), isSnyc)
 
-	var mingResult rpctypes.Reply
-	api.On("WalletAutoMiner", mock.Anything).Return(&types.Reply{IsOk: true, Msg: []byte("yes")}, nil)
-	err = jsonClient.Call("Chain33.SetAutoMining", types.MinerFlag{}, &mingResult)
-	assert.Nil(t, err)
-	assert.True(t, mingResult.IsOk, "SetAutoMining")
-
-	var ticketResult int64
-	var expectRet = &types.Int64{Data: 100}
-	api.On("GetTicketCount", mock.Anything).Return(expectRet, nil)
-	err = jsonClient.Call("Chain33.GetTicketCount", &types.ReqNil{}, &ticketResult)
-	assert.Nil(t, err)
-	assert.Equal(t, expectRet.GetData(), ticketResult, "GetTicketCount")
-
 	var nodeInfo rpctypes.NodeNetinfo
 	api.On("GetNetInfo", mock.Anything).Return(&types.NodeNetInfo{Externaladdr: "123"}, nil)
 	err = jsonClient.Call("Chain33.GetNetInfo", &types.ReqNil{}, &nodeInfo)

@@ -27,7 +27,7 @@ func (policy *ticketPolicy) On_WalletGetTickets(req *types.ReqNil) (types.Messag
 	return tks, err
 }
 
-func (policy *ticketPolicy) On_WalletAutoMiner(req *types.MinerFlag) (types.Message, error) {
+func (policy *ticketPolicy) On_WalletAutoMiner(req *ty.MinerFlag) (types.Message, error) {
 	policy.store.SetAutoMinerFlag(req.Flag)
 	policy.setAutoMining(req.Flag)
 	policy.flushTicket()

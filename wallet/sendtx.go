@@ -273,10 +273,11 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 func (wallet *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
-	var req types.BlockChainQuery
-	req.Driver = "ticket"
-	req.FuncName = "MinerSourceList"
-	req.Param = types.Encode(reqaddr)
+	req := types.ChainExecutor{
+		Driver:   "ticket",
+		FuncName: "MinerSourceList",
+		Param:    types.Encode(reqaddr),
+	}
 
 	msg := wallet.client.NewMessage("exec", types.EventBlockChainQuery, &req)
 	wallet.client.Send(msg, true)

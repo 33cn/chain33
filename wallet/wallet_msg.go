@@ -1,8 +1,6 @@
 package wallet
 
 import (
-	"errors"
-
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
@@ -217,8 +215,8 @@ func (wallet *Wallet) On_FatalFailure(req *types.ReqNil) (types.Message, error) 
 }
 
 func (wallet *Wallet) ExecWallet(msg *queue.Message) (types.Message, error) {
-	if param, ok := msg.Data.(*types.WalletExecutor); ok {
-		return wallet.execWallet(param)
+	if param, ok := msg.Data.(*types.ChainExecutor); ok {
+		return wallet.execWallet(param, 0)
 	}
 	var data []byte
 	if msg.Data != nil {
@@ -228,48 +226,30 @@ func (wallet *Wallet) ExecWallet(msg *queue.Message) (types.Message, error) {
 			return nil, types.ErrInvalidParam
 		}
 	}
-	param := &types.WalletExecutor{
-		Driver:  "wallet",
-		EventId: msg.Ty,
-		Param:   data,
+	param := &types.ChainExecutor{
+		Driver: "wallet",
+		Param:  data,
 	}
-	return wallet.execWallet(param)
+	return wallet.execWallet(param, msg.Ty)
 }
 
-func (wallet *Wallet) execWallet(param *types.WalletExecutor) (reply types.Message, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			walletlog.Error("Recovered in execWallet", "value", r)
-			switch x := r.(type) {
-			case string:
-				err = errors.New(x)
-			case error:
-				err = x
-			default:
-				err = errors.New("Unknown panic")
-			}
-			// invalidate reply
-			reply = nil
-			// return the modified err and reply
-		}
-	}()
-	if param.FuncName == "" {
-		param.FuncName = types.GetEventName(int(param.EventId))
+func (wallet *Wallet) execWallet(param *types.ChainExecutor, eventId int64) (reply types.Message, err error) {
+	if param.FuncName == "" && eventId > 0 {
+		param.FuncName = types.GetEventName(int(eventId))
 		if len(param.FuncName) <= 5 {
 			return nil, types.ErrActionNotSupport
 		}
 		param.FuncName = param.FuncName[5:]
 	}
-	param.FuncName = "On_" + param.FuncName
 	var paramIn types.Message
 	if param.Param == nil {
 		paramIn = &types.ReqNil{}
 	} else {
-		paramIn, err = wcom.DecodeParam(param.Driver, param.FuncName, param.Param)
+		paramIn, err = wcom.QueryData.Decode(param.Driver, param.FuncName, param.Param)
 		if err != nil {
 			return nil, err
 		}
 	}
 	//这里不判断类型是否可以调用，直接按照名字调用，如果发生panic，用recover 恢复
-	return wcom.CallFunc(param.Driver, param.FuncName, paramIn)
+	return wcom.QueryData.Call(param.Driver, param.FuncName, paramIn)
 }

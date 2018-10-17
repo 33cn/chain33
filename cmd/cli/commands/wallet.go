@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
+	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -257,10 +258,9 @@ func autoMine(cmd *cobra.Command, args []string) {
 		cmd.UsageFunc()(cmd)
 		return
 	}
-	params := types.MinerFlag{
+	params := tickettypes.MinerFlag{
 		Flag: flag,
 	}
-
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SetAutoMining", params, &res)
 	ctx.Run()

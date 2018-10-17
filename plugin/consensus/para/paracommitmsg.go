@@ -484,7 +484,7 @@ out:
 			payLoad := types.Encode(&types.ReqString{
 				Data: types.GetTitle(),
 			})
-			query := types.BlockChainQuery{
+			query := types.ChainExecutor{
 				Driver:   string(types.ExecerPara),
 				FuncName: "ParacrossGetTitle",
 				Param:    payLoad,

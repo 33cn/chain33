@@ -114,7 +114,7 @@ func (g *Grpc) WalletTransactionList(ctx context.Context, in *pb.ReqWalletTransa
 	return g.cli.WalletTransactionList(in)
 }
 
-func (g *Grpc) ImportPrivKey(ctx context.Context, in *pb.ReqWalletImportPrivKey) (*pb.WalletAccount, error) {
+func (g *Grpc) ImportPrivkey(ctx context.Context, in *pb.ReqWalletImportPrivkey) (*pb.WalletAccount, error) {
 	return g.cli.WalletImportprivkey(in)
 }
 
@@ -201,7 +201,18 @@ func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAddr) (*pb.AllEx
 	return g.cli.GetAllExecBalance(in)
 }
 
-func (g *Grpc) QueryChain(ctx context.Context, in *pb.BlockChainQuery) (*pb.Reply, error) {
+func (g *Grpc) QueryConsensus(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply, error) {
+	msg, err := g.cli.QueryConsensus(in)
+	if err != nil {
+		return nil, err
+	}
+	var reply pb.Reply
+	reply.IsOk = true
+	reply.Msg = pb.Encode(msg)
+	return &reply, nil
+}
+
+func (g *Grpc) QueryChain(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply, error) {
 	msg, err := g.cli.QueryChain(in)
 	if err != nil {
 		return nil, err
@@ -212,7 +223,7 @@ func (g *Grpc) QueryChain(ctx context.Context, in *pb.BlockChainQuery) (*pb.Repl
 	return &reply, nil
 }
 
-func (g *Grpc) ExecWallet(ctx context.Context, in *pb.WalletExecutor) (*pb.Reply, error) {
+func (g *Grpc) ExecWallet(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply, error) {
 	msg, err := g.cli.ExecWallet(in)
 	if err != nil {
 		return nil, err
@@ -223,24 +234,9 @@ func (g *Grpc) ExecWallet(ctx context.Context, in *pb.WalletExecutor) (*pb.Reply
 	return &reply, nil
 }
 
-func (g *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, error) {
-
-	return g.cli.WalletAutoMiner(in)
-}
-
-func (g *Grpc) GetTicketCount(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
-
-	return g.cli.GetTicketCount()
-}
-
 func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyString, error) {
 
 	return g.cli.DumpPrivkey(in)
-}
-
-func (g *Grpc) CloseTickets(ctx context.Context, in *pb.ReqNil) (*pb.ReplyHashes, error) {
-
-	return g.cli.CloseTickets()
 }
 
 func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {

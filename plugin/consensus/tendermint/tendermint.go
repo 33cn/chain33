@@ -393,7 +393,7 @@ func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*tmtypes.
 		tendermintlog.Error("QueryValidatorsByHeight", "err", err)
 		return nil, types.ErrInvalidParam
 	}
-	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetValNodeByHeight", zeroHash[:], param})
+	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.ChainExecutor{"valnode", "GetValNodeByHeight", zeroHash[:], param, nil})
 	client.GetQueueClient().Send(msg, true)
 	msg, err = client.GetQueueClient().Wait(msg)
 	if err != nil {
@@ -412,7 +412,7 @@ func (client *TendermintClient) QueryBlockInfoByHeight(height int64) (*tmtypes.T
 		tendermintlog.Error("QueryBlockInfoByHeight", "err", err)
 		return nil, types.ErrInvalidParam
 	}
-	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetBlockInfoByHeight", zeroHash[:], param})
+	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.ChainExecutor{"valnode", "GetBlockInfoByHeight", zeroHash[:], param, nil})
 	client.GetQueueClient().Send(msg, true)
 	msg, err = client.GetQueueClient().Wait(msg)
 	if err != nil {

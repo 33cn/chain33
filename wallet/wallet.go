@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	wcom.RegisterEventCB("wallet", &Wallet{})
+	wcom.QueryData.Register("wallet", &Wallet{})
 }
 
 const (

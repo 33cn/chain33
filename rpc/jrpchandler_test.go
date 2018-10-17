@@ -886,11 +886,11 @@ func TestChain33_ImportPrivkey(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	expected := &types.ReqWalletImportPrivKey{}
+	expected := &types.ReqWalletImportPrivkey{}
 	api.On("WalletImportprivkey", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
-	actual := types.ReqWalletImportPrivKey{}
+	actual := types.ReqWalletImportPrivkey{}
 	err := testChain33.ImportPrivkey(actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)

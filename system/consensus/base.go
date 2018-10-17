@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -34,6 +35,7 @@ type Miner interface {
 
 type BaseClient struct {
 	client       queue.Client
+	api          client.QueueProtocolAPI
 	minerStart   int32
 	once         sync.Once
 	Cfg          *types.Consensus
@@ -66,6 +68,7 @@ func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	log.Info("Enter SetQueueClient method of consensus")
 	bc.client = c
 	bc.minerstartCB = minerstartCB
+	bc.api, _ = client.New(c, nil)
 	bc.InitMiner()
 }
 
@@ -149,6 +152,14 @@ func (bc *BaseClient) IsCaughtUp() bool {
 	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
 }
 
+func (bc *BaseClient) ExecConsensus(data *types.ChainExecutor) (types.Message, error) {
+	param, err := QueryData.Decode(data.Driver, data.FuncName, data.Param)
+	if err != nil {
+		return nil, err
+	}
+	return QueryData.Call(data.Driver, data.FuncName, param)
+}
+
 // 准备新区块
 func (bc *BaseClient) EventLoop() {
 	// 监听blockchain模块，获取当前最高区块
@@ -156,7 +167,16 @@ func (bc *BaseClient) EventLoop() {
 	go func() {
 		for msg := range bc.client.Recv() {
 			tlog.Debug("consensus recv", "msg", msg)
-			if msg.Ty == types.EventAddBlock {
+			if msg.Ty == types.EventConsensusQuery {
+				exec := msg.GetData().(*types.ChainExecutor)
+				reply, err := bc.ExecConsensus(exec)
+				if err != nil {
+					//only for test ,del when test end
+					msg.Reply(bc.api.NewMessage("", 0, err))
+				} else {
+					msg.Reply(bc.api.NewMessage("", 0, reply))
+				}
+			} else if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
 				bc.SetCurrentBlock(block)
 			} else if msg.Ty == types.EventCheckBlock {

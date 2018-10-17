@@ -82,8 +82,6 @@ func TestQueueProtocol(t *testing.T) {
 	testSaveSeed(t, api)
 	testGetSeed(t, api)
 	testGetWalletStatus(t, api)
-	testWalletAutoMiner(t, api)
-	testGetTicketCount(t, api)
 	testDumpPrivkey(t, api)
 	testCloseTickets(t, api)
 	testIsSync(t, api)
@@ -98,7 +96,7 @@ func TestQueueProtocol(t *testing.T) {
 
 func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
 	testCases := []struct {
-		param     *types.BlockChainQuery
+		param     *types.ChainExecutor
 		actualRes types.Message
 		actualErr error
 	}{
@@ -106,7 +104,7 @@ func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
 			actualErr: types.ErrInvalidParams,
 		},
 		{
-			param:     &types.BlockChainQuery{},
+			param:     &types.ChainExecutor{},
 			actualRes: &types.Reply{},
 		},
 	}
@@ -209,28 +207,6 @@ func testDumpPrivkey(t *testing.T, api client.QueueProtocolAPI) {
 	_, err = api.DumpPrivkey(&types.ReqString{Data: "case1"})
 	if err == nil {
 		t.Error("DumpPrivkey(&types.ReqStr{ReqStr:\"case1\"}) need return error.")
-	}
-}
-
-func testGetTicketCount(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.GetTicketCount()
-	if err != nil {
-		t.Error("Call GetTicketCount Failed.", err)
-	}
-}
-
-func testWalletAutoMiner(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletAutoMiner(&types.MinerFlag{})
-	if err != nil {
-		t.Error("Call WalletAutoMiner Failed.", err)
-	}
-	_, err = api.WalletAutoMiner(nil)
-	if err == nil {
-		t.Error("WalletAutoMiner(nil) need return error.")
-	}
-	_, err = api.WalletAutoMiner(&types.MinerFlag{Flag: 10})
-	if err == nil {
-		t.Error("WalletAutoMiner(&types.GenSeedLang{Lang:10}) need return error.")
 	}
 }
 
@@ -458,7 +434,7 @@ func testWalletSendToAddress(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testWalletImportprivkey(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletImportprivkey(&types.ReqWalletImportPrivKey{})
+	_, err := api.WalletImportprivkey(&types.ReqWalletImportPrivkey{})
 	if err != nil {
 		t.Error("Call WalletTransactionList Failed.", err)
 	}
@@ -466,7 +442,7 @@ func testWalletImportprivkey(t *testing.T, api client.QueueProtocolAPI) {
 	if err == nil {
 		t.Error("WalletImportprivkey(nil) need return error.")
 	}
-	_, err = api.WalletImportprivkey(&types.ReqWalletImportPrivKey{Label: "case1"})
+	_, err = api.WalletImportprivkey(&types.ReqWalletImportPrivkey{Label: "case1"})
 	if err == nil {
 		t.Error("WalletImportprivkey(&types.ReqWalletImportPrivKey{Label:\"case1\"}) need return error.")
 	}
@@ -826,9 +802,7 @@ func TestGRPC(t *testing.T) {
 	testSaveSeedGRPC(t, &grpcMock)
 	testGetBalanceGRPC(t, &grpcMock)
 	testQueryChainGRPC(t, &grpcMock)
-	testSetAutoMiningGRPC(t, &grpcMock)
 	testGetHexTxByHashGRPC(t, &grpcMock)
-	testGetTicketCountGRPC(t, &grpcMock)
 	testDumpPrivkeyGRPC(t, &grpcMock)
 	testVersionGRPC(t, &grpcMock)
 	testIsSyncGRPC(t, &grpcMock)
@@ -876,14 +850,6 @@ func testDumpPrivkeyGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	}
 }
 
-func testGetTicketCountGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Int64
-	err := rpc.newRpcCtx("GetTicketCount", &types.ReqNil{}, &res)
-	if err != nil {
-		t.Error("Call GetTicketCount Failed.", err)
-	}
-}
-
 func testGetHexTxByHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.HexTx
 	err := rpc.newRpcCtx("GetHexTxByHash", &types.ReqHash{Hash: []byte("fdafdsafds")}, &res)
@@ -892,17 +858,9 @@ func testGetHexTxByHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	}
 }
 
-func testSetAutoMiningGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
-	err := rpc.newRpcCtx("SetAutoMining", &types.MinerFlag{}, &res)
-	if err != nil {
-		t.Error("Call SetAutoMining Failed.", err)
-	}
-}
-
 func testQueryChainGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.Reply
-	err := rpc.newRpcCtx("QueryChain", &types.BlockChainQuery{}, &res)
+	err := rpc.newRpcCtx("QueryChain", &types.ChainExecutor{}, &res)
 	if err != nil {
 		t.Error("Call QueryChain Failed.", err)
 	}
@@ -1046,7 +1004,7 @@ func testSendToAddressGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testImportPrivKeyGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.WalletAccount
-	err := rpc.newRpcCtx("ImportPrivKey", &types.ReqWalletImportPrivKey{}, &res)
+	err := rpc.newRpcCtx("ImportPrivkey", &types.ReqWalletImportPrivkey{}, &res)
 	if err != nil {
 		t.Error("Call ImportPrivKey Failed.", err)
 	}

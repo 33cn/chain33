@@ -562,8 +562,25 @@ func (q *QueueProtocol) Query(driver, funcname string, param types.Message) (typ
 		log.Error("Query", "Error", err)
 		return nil, err
 	}
-	query := &types.BlockChainQuery{Driver: driver, FuncName: funcname, Param: types.Encode(param)}
+	query := &types.ChainExecutor{Driver: driver, FuncName: funcname, Param: types.Encode(param)}
 	return q.QueryChain(query)
+}
+
+func (q *QueueProtocol) QueryConsensus(param *types.ChainExecutor) (types.Message, error) {
+	if param == nil {
+		err := types.ErrInvalidParams
+		log.Error("ExecWallet", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(consensusKey, types.EventConsensusQuery, param)
+	if err != nil {
+		log.Error("QueryConsensus", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(types.Message); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
 }
 
 func (q *QueueProtocol) ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error) {
@@ -572,11 +589,11 @@ func (q *QueueProtocol) ExecWalletFunc(driver string, funcname string, param typ
 		log.Error("ExecWalletFunc", "Error", err)
 		return nil, err
 	}
-	query := &types.WalletExecutor{Driver: driver, FuncName: funcname, Param: types.Encode(param)}
+	query := &types.ChainExecutor{Driver: driver, FuncName: funcname, Param: types.Encode(param)}
 	return q.ExecWallet(query)
 }
 
-func (q *QueueProtocol) ExecWallet(param *types.WalletExecutor) (types.Message, error) {
+func (q *QueueProtocol) ExecWallet(param *types.ChainExecutor) (types.Message, error) {
 	if param == nil {
 		err := types.ErrInvalidParams
 		log.Error("ExecWallet", "Error", err)
@@ -588,18 +605,6 @@ func (q *QueueProtocol) ExecWallet(param *types.WalletExecutor) (types.Message, 
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(types.Message); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) GetTicketCount() (*types.Int64, error) {
-	msg, err := q.query(consensusKey, types.EventGetTicketCount, &types.ReqNil{})
-	if err != nil {
-		log.Error("GetTicketCount", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Int64); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
@@ -870,7 +875,7 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 	return nil, err
 }
 
-func (q *QueueProtocol) QueryChain(param *types.BlockChainQuery) (types.Message, error) {
+func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, error) {
 	if param == nil {
 		err := types.ErrInvalidParams
 		log.Error("BlockChainQuery", "Error", err)
@@ -887,4 +892,16 @@ func (q *QueueProtocol) QueryChain(param *types.BlockChainQuery) (types.Message,
 	err = types.ErrTypeAsset
 	log.Error("BlockChainQuery", "Error", err.Error())
 	return nil, err
+}
+
+func (q *QueueProtocol) GetTicketCount() (*types.Int64, error) {
+	msg, err := q.query(consensusKey, types.EventGetTicketCount, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetTicketCount", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int64); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
 }
