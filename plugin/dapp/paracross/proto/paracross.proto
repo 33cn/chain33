@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "transaction.proto";
+import "common.proto";
 
 package types;
 
@@ -122,4 +123,11 @@ message ParacrossAsset {
     int64 commitDoneHeight = 21;
     int64 paraHeight       = 22;
     bool  success          = 23;
+}
+
+service paracross {
+    rpc GetHeight(ReqString) returns (ParacrossStatus) {}
+    rpc ListTitles(ReqNil) returns (RespParacrossTitles) {}
+    rpc GetTitleHeight(ReqParacrossTitleHeight) returns (ReceiptParacrossDone) {}
+    rpc GetAssetTxResult(ReqHash) returns (ParacrossAsset) {}
 }
