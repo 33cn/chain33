@@ -198,11 +198,6 @@ const (
 	ExecOk   = 2
 )
 
-//norm
-const (
-	NormActionPut = 1
-)
-
 // manager action
 const (
 	ManageActionModifyConfig = iota
