@@ -11,8 +11,8 @@ func CreateRawRelayOrderTx(parm *ty.RelayCreate) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-
-	return types.CallCreateTx(types.ExecName(ty.RelayX), "Create", parm)
+	v := *parm
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "Create", &v)
 }
 
 func CreateRawRelayAcceptTx(parm *ty.RelayAccept) ([]byte, error) {
@@ -41,8 +41,8 @@ func CreateRawRelayVerifyBTCTx(parm *ty.RelayVerifyCli) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-
-	return types.CallCreateTx(types.ExecName(ty.RelayX), "VerifyCli", parm)
+	v := *parm
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "VerifyCli", &v)
 }
 
 func CreateRawRelaySaveBTCHeadTx(parm *ty.BtcHeader) ([]byte, error) {
@@ -59,7 +59,7 @@ func CreateRawRelaySaveBTCHeadTx(parm *ty.BtcHeader) ([]byte, error) {
 
 	v := &ty.BtcHeaders{}
 	v.BtcHeader = append(v.BtcHeader, head)
-	return types.CallCreateTx(types.ExecName(ty.RelayX), "SaveBTCHeadTx", v)
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "BtcHeaders", v)
 }
 
 func (c *Jrpc) CreateRawRelayOrderTx(in *ty.RelayCreate, result *interface{}) error {

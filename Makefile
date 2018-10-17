@@ -15,7 +15,7 @@ PARANAME := para
 SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
 RELAYD := build/relayd
-SRC_RELAYD := gitlab.33.cn/chain33/chain33/cmd/relayd
+SRC_RELAYD := gitlab.33.cn/chain33/chain33/plugin/dapp/relay/commands/relayd
 AUTO_TEST := build/tools/autotest/autotest
 SRC_AUTO_TEST := gitlab.33.cn/chain33/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
@@ -88,7 +88,7 @@ build_ci: relayd ## Build the binary file for CI
 
 relayd: ## Build relay deamon binary
 	@go build -race -i -v -o $(RELAYD) $(SRC_RELAYD)
-	@cp cmd/relayd/relayd.toml build/
+	@cp plugin/dapp/relay/commands/relayd/relayd.toml build/
 
 linter: ## Use gometalinter check code, ignore some unserious warning
 	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
