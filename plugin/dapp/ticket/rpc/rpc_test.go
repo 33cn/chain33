@@ -12,25 +12,20 @@ import (
 	context "golang.org/x/net/context"
 )
 
-func newTestChannelClient() *channelClient {
-	api := &mocks.QueueProtocolAPI{}
+func newGrpcClient(api *mocks.QueueProtocolAPI) *channelClient {
 	return &channelClient{
 		ChannelClient: rpctypes.ChannelClient{QueueProtocolAPI: api},
 	}
 }
 
-func newTestJrpcClient() *Jrpc {
-	return &Jrpc{cli: newTestChannelClient()}
+func newJrpcClient(api *mocks.QueueProtocolAPI) *Jrpc {
+	return &Jrpc{cli: newGrpcClient(api)}
 }
 
 func TestChannelClient_BindMiner(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-
-	client := &channelClient{
-		ChannelClient: rpctypes.ChannelClient{QueueProtocolAPI: api},
-	}
+	client := newGrpcClient(api)
 	client.Init("ticket", nil, nil, nil)
-
 	head := &types.Header{StateHash: []byte("sdfadasds")}
 	api.On("GetLastHeader").Return(head, nil)
 
@@ -53,11 +48,12 @@ func TestChannelClient_BindMiner(t *testing.T) {
 }
 
 func testGetTicketCountOK(t *testing.T) {
-	qapi.On("GetTicketCount").Return(nil, nil)
-	data, err := g.GetTicketCount(getOkCtx(), nil)
+	api := &mocks.QueueProtocolAPI{}
+	g := newGrpcClient(api)
+	api.On("QueryConsensusFunc", "ticket", "GetTicketCount", mock.Anything).Return(&types.Int64{}, nil)
+	data, err := g.GetTicketCount(context.Background(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
-
+	assert.Equal(t, data, &types.Int64{})
 }
 
 func TestGetTicketCount(t *testing.T) {
@@ -66,11 +62,13 @@ func TestGetTicketCount(t *testing.T) {
 }
 
 func testSetAutoMiningOK(t *testing.T) {
-	var in *pb.MinerFlag
-	qapi.On("WalletAutoMiner", in).Return(nil, nil)
-	data, err := g.SetAutoMining(getOkCtx(), nil)
+	api := &mocks.QueueProtocolAPI{}
+	g := newGrpcClient(api)
+	in := &ty.MinerFlag{}
+	api.On("ExecWalletFunc", "ticket", "WalletAutoMiner", in).Return(&types.Reply{}, nil)
+	data, err := g.SetAutoMining(context.Background(), in)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
+	assert.Equal(t, data, &types.Reply{})
 
 }
 
@@ -80,10 +78,13 @@ func TestSetAutoMining(t *testing.T) {
 }
 
 func testCloseTicketsOK(t *testing.T) {
-	qapi.On("CloseTickets").Return(nil, nil)
-	data, err := g.CloseTickets(getOkCtx(), nil)
+	api := &mocks.QueueProtocolAPI{}
+	g := newGrpcClient(api)
+	var in *types.ReqNil
+	api.On("ExecWalletFunc", "ticket", "CloseTickets", in).Return(&types.ReplyHashes{}, nil)
+	data, err := g.CloseTickets(context.Background(), in)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
+	assert.Equal(t, data, &types.ReplyHashes{})
 }
 
 func TestCloseTickets(t *testing.T) {
@@ -91,16 +92,24 @@ func TestCloseTickets(t *testing.T) {
 	testCloseTicketsOK(t)
 }
 
+func TestJrpc_SetAutoMining(t *testing.T) {
+	api := &mocks.QueueProtocolAPI{}
+	client := &Jrpc{cli: &channelClient{ChannelClient: rpctypes.ChannelClient{QueueProtocolAPI: api}}}
+	var mingResult rpctypes.Reply
+	api.On("ExecWalletFunc", mock.Anything, mock.Anything, mock.Anything).Return(&types.Reply{IsOk: true, Msg: []byte("yes")}, nil)
+	err := client.SetAutoMining(&ty.MinerFlag{}, &mingResult)
+	assert.Nil(t, err)
+	assert.True(t, mingResult.IsOk, "SetAutoMining")
+}
 
-var mingResult rpctypes.Reply
-api.On("WalletAutoMiner", mock.Anything).Return(&types.Reply{IsOk: true, Msg: []byte("yes")}, nil)
-err = jsonClient.Call("Chain33.SetAutoMining", types.MinerFlag{}, &mingResult)
-assert.Nil(t, err)
-assert.True(t, mingResult.IsOk, "SetAutoMining")
+func TestJrpc_GetTicketCount(t *testing.T) {
+	api := &mocks.QueueProtocolAPI{}
+	client := &Jrpc{cli: &channelClient{ChannelClient: rpctypes.ChannelClient{QueueProtocolAPI: api}}}
 
-var ticketResult int64
-var expectRet = &types.Int64{Data: 100}
-api.On("GetTicketCount", mock.Anything).Return(expectRet, nil)
-err = jsonClient.Call("Chain33.GetTicketCount", &types.ReqNil{}, &ticketResult)
-assert.Nil(t, err)
-assert.Equal(t, expectRet.GetData(), ticketResult, "GetTicketCount")
+	var ticketResult int64
+	var expectRet = &types.Int64{Data: 100}
+	api.On("QueryConsensusFunc", mock.Anything, mock.Anything, mock.Anything).Return(expectRet, nil)
+	err := client.GetTicketCount(&types.ReqNil{}, &ticketResult)
+	assert.Nil(t, err)
+	assert.Equal(t, expectRet.GetData(), ticketResult, "GetTicketCount")
+}
