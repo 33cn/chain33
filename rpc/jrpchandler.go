@@ -14,7 +14,6 @@ import (
 
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 
-	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
@@ -1058,46 +1057,6 @@ func (c *Chain33) CreateRawTradeSellMarketTx(in *tradetype.TradeSellMarketTx, re
 
 func (c *Chain33) CreateRawTradeRevokeBuyTx(in *tradetype.TradeRevokeBuyTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeRevokeBuyTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrieveBackupTx(in *retrievetype.RetrieveBackupTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrieveBackupTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrievePrepareTx(in *retrievetype.RetrievePrepareTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrievePrepareTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrievePerformTx(in *retrievetype.RetrievePerformTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrievePerformTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrieveCancelTx(in *retrievetype.RetrieveCancelTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrieveCancelTx(in)
 	if err != nil {
 		return err
 	}
