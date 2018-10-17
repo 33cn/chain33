@@ -13,7 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"github.com/inconshreveable/log15"
-	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 )
 
@@ -224,22 +223,6 @@ func (c *channelClient) CreateRawTradeSellMarketTx(parm *tradetype.TradeSellMark
 
 func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *tradetype.TradeRevokeBuyTx) ([]byte, error) {
 	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeRevokeBuy", parm)
-}
-
-func (c *channelClient) CreateRawRetrieveBackupTx(parm *retrievetype.RetrieveBackupTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.RetrieveX), "RetrieveBackup", parm)
-}
-
-func (c *channelClient) CreateRawRetrievePrepareTx(parm *retrievetype.RetrievePrepareTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.RetrieveX), "RetrievePrepare", parm)
-}
-
-func (c *channelClient) CreateRawRetrievePerformTx(parm *retrievetype.RetrievePerformTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.RetrieveX), "RetrievePerform", parm)
-}
-
-func (c *channelClient) CreateRawRetrieveCancelTx(parm *retrievetype.RetrieveCancelTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.RetrieveX), "RetrieveCancel", parm)
 }
 
 func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {

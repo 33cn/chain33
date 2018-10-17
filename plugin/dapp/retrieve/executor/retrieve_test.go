@@ -13,7 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
+	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -443,9 +443,9 @@ func estRetrievePerformB(t *testing.T) {
 }
 
 func backup(backupaddrindex int, defaultaddrindex int, privkeyindex int, delayperiod int64) ([]byte, error) {
-	vbackup := &ty.RetrieveAction_Backup{&ty.BackupRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex], DelayPeriod: delayperiod}}
+	vbackup := &rt.RetrieveAction_Backup{&rt.BackupRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex], DelayPeriod: delayperiod}}
 	//fmt.Println(vlock)
-	transfer := &ty.RetrieveAction{Value: vbackup, Ty: ty.RetrieveBackup}
+	transfer := &rt.RetrieveAction{Value: vbackup, Ty: rt.RetrieveBackup}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: addr[backupaddrindex]}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, privkey[privkeyindex])
@@ -462,9 +462,8 @@ func backup(backupaddrindex int, defaultaddrindex int, privkeyindex int, delaype
 }
 
 func prepare(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byte, error) {
-
-	vprepare := &ty.RetrieveAction_PreRet{&ty.PreRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
-	transfer := &ty.RetrieveAction{Value: vprepare, Ty: ty.RetrievePre}
+	vprepare := &rt.RetrieveAction_Prepare{&rt.PrepareRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
+	transfer := &rt.RetrieveAction{Value: vprepare, Ty: rt.RetrievePreapre}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: addr[backupaddrindex]}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, privkey[privkeyindex])
@@ -480,9 +479,8 @@ func prepare(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byt
 }
 
 func perform(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byte, error) {
-
-	vperform := &ty.RetrieveAction_PerfRet{&ty.PerformRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
-	transfer := &ty.RetrieveAction{Value: vperform, Ty: ty.RetrievePerf}
+	vperform := &rt.RetrieveAction_Perform{&rt.PerformRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
+	transfer := &rt.RetrieveAction{Value: vperform, Ty: rt.RetrievePerform}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: addr[backupaddrindex]}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, privkey[privkeyindex])
@@ -498,8 +496,8 @@ func perform(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byt
 }
 
 func cancel(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byte, error) {
-	vcancel := &ty.RetrieveAction_Cancel{&ty.CancelRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
-	transfer := &ty.RetrieveAction{Value: vcancel, Ty: ty.RetrieveCancel}
+	vcancel := &rt.RetrieveAction_Cancel{&rt.CancelRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
+	transfer := &rt.RetrieveAction{Value: vcancel, Ty: rt.RetrieveCancel}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: addr[backupaddrindex]}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, privkey[privkeyindex])
