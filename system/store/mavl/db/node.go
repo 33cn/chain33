@@ -146,8 +146,10 @@ func (node *Node) Hash(t *Tree) []byte {
 		leafnode.Value = node.value
 		node.hash = leafnode.Hash()
 
+		//fmt.Printf("k:%s v:%s hash:%v\n", string(leafnode.Key), string(leafnode.Value), node.hash)
+
 		if enableMavlPrefix && node.height != t.root.height {
-			hashKey := genPrefixHashKey(node, t.randomstr)
+			hashKey := genPrefixHashKey(node, t.blockHeight)
 			hashKey = append(hashKey, node.hash...)
 			node.hash = hashKey
 		}
@@ -177,7 +179,7 @@ func (node *Node) Hash(t *Tree) []byte {
 		innernode.RightHash = node.rightHash
 		node.hash = innernode.Hash()
 		if enableMavlPrefix && node.height != t.root.height {
-			hashKey := genPrefixHashKey(node, t.randomstr)
+			hashKey := genPrefixHashKey(node, t.blockHeight)
 			hashKey = append(hashKey, node.hash...)
 			node.hash = hashKey
 		}
