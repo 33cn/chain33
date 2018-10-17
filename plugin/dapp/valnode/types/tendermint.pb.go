@@ -38,6 +38,8 @@ It has these top-level messages:
 	ValNode
 	ValNodes
 	ValNodeAction
+	ReqNodeInfo
+	ReqBlockInfo
 */
 package types
 
