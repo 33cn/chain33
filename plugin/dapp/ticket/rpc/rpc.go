@@ -65,6 +65,9 @@ func (g *channelClient) GetTicketCount(ctx context.Context, in *types.ReqNil) (*
 }
 
 func (g *channelClient) CloseTickets(ctx context.Context, in *types.ReqNil) (*types.ReplyHashes, error) {
+	if in == nil {
+		in = &types.ReqNil{}
+	}
 	data, err := g.ExecWalletFunc(types.TicketX, "CloseTickets", in)
 	return data.(*types.ReplyHashes), err
 }
