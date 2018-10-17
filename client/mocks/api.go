@@ -39,29 +39,6 @@ func (_m *QueueProtocolAPI) CloseQueue() (*types.Reply, error) {
 	return r0, r1
 }
 
-// CloseTickets provides a mock function with given fields:
-func (_m *QueueProtocolAPI) CloseTickets() (*types.ReplyHashes, error) {
-	ret := _m.Called()
-
-	var r0 *types.ReplyHashes
-	if rf, ok := ret.Get(0).(func() *types.ReplyHashes); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyHashes)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // DumpPrivkey provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) DumpPrivkey(param *types.ReqString) (*types.ReplyString, error) {
 	ret := _m.Called(param)
@@ -803,6 +780,29 @@ func (_m *QueueProtocolAPI) QueryConsensus(param *types.ChainExecutor) (types.Me
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.ChainExecutor) error); ok {
 		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// QueryConsensusFunc provides a mock function with given fields: driver, funcname, param
+func (_m *QueueProtocolAPI) QueryConsensusFunc(driver string, funcname string, param types.Message) (types.Message, error) {
+	ret := _m.Called(driver, funcname, param)
+
+	var r0 types.Message
+	if rf, ok := ret.Get(0).(func(string, string, types.Message) types.Message); ok {
+		r0 = rf(driver, funcname, param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(types.Message)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, types.Message) error); ok {
+		r1 = rf(driver, funcname, param)
 	} else {
 		r1 = ret.Error(1)
 	}

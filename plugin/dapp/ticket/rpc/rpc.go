@@ -54,18 +54,19 @@ func (g *channelClient) CreateBindMiner(ctx context.Context, in *ty.ReqBindMiner
 	return bindMiner(in)
 }
 
-func (g *channelClient) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, error) {
-	return g.cli.WalletAutoMiner(in)
+func (g *channelClient) SetAutoMining(ctx context.Context, in *ty.MinerFlag) (*types.Reply, error) {
+	data, err := g.ExecWalletFunc(types.TicketX, "WalletAutoMiner", in)
+	return data.(*types.Reply), err
 }
 
-func (g *channelClient) GetTicketCount(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
-
-	return g.cli.GetTicketCount()
+func (g *channelClient) GetTicketCount(ctx context.Context, in *types.ReqNil) (*types.Int64, error) {
+	data, err := g.QueryConsensusFunc(types.TicketX, "GetTicketCount", in)
+	return data.(*types.Int64), err
 }
 
-func (g *channelClient) CloseTickets(ctx context.Context, in *pb.ReqNil) (*pb.ReplyHashes, error) {
-
-	return g.cli.CloseTickets()
+func (g *channelClient) CloseTickets(ctx context.Context, in *types.ReqNil) (*types.ReplyHashes, error) {
+	data, err := g.ExecWalletFunc(types.TicketX, "CloseTickets", in)
+	return data.(*types.ReplyHashes), err
 }
 
 func (c *Jrpc) CreateBindMiner(in *ty.ReqBindMiner, result *interface{}) error {
@@ -77,8 +78,8 @@ func (c *Jrpc) CreateBindMiner(in *ty.ReqBindMiner, result *interface{}) error {
 	return nil
 }
 
-func (c *Jrpc) GetTicketCount(in *types.ReqNil, result *interface{}) error {
-	resp, err := c.cli.GetTicketCount()
+func (c *Jrpc) GetTicketCount(in *types.ReqNil, result *int64) error {
+	resp, err := c.cli.GetTicketCount(context.Background(), &types.ReqNil{})
 	if err != nil {
 		return err
 	}
@@ -88,7 +89,7 @@ func (c *Jrpc) GetTicketCount(in *types.ReqNil, result *interface{}) error {
 }
 
 func (c *Jrpc) CloseTickets(in *types.ReqNil, result *interface{}) error {
-	resp, err := c.cli.CloseTickets()
+	resp, err := c.cli.CloseTickets(context.Background(), &types.ReqNil{})
 	if err != nil {
 		return err
 	}
@@ -100,14 +101,14 @@ func (c *Jrpc) CloseTickets(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (c *Jrpc) SetAutoMining(in types.MinerFlag, result *interface{}) error {
-	resp, err := c.cli.WalletAutoMiner(&in)
+func (c *Jrpc) SetAutoMining(in *ty.MinerFlag, result *rpctypes.Reply) error {
+	resp, err := c.cli.SetAutoMining(context.Background(), in)
 	if err != nil {
 		return err
 	}
 	var reply rpctypes.Reply
 	reply.IsOk = resp.GetIsOk()
 	reply.Msg = string(resp.GetMsg())
-	*result = &reply
+	*result = reply
 	return nil
 }
