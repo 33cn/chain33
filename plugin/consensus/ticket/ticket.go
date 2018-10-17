@@ -28,6 +28,7 @@ var (
 
 func init() {
 	drivers.Reg("ticket", New)
+	drivers.QueryData.Register("ticket", &Client{})
 }
 
 type Client struct {

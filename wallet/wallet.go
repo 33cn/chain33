@@ -3,6 +3,7 @@ package wallet
 import (
 	"errors"
 	"math/rand"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -103,6 +104,7 @@ func New(cfg *types.Wallet) *Wallet {
 		rescanUTXOflag:   pty.UtxoFlagNoScan,
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
+	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
 	return wallet
 }
 
