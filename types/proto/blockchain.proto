@@ -161,7 +161,7 @@ message ChainExecutor {
     bytes  stateHash = 3;
     bytes  param     = 4;
     //扩展字段，用于额外的用途
-    bytes  extra     = 5;
+    bytes extra = 5;
 }
 
 //  通过block hash记录block的操作类型及add/del：1/2
