@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -73,4 +74,33 @@ func ReadPemFile(file string) ([]byte, error) {
 	}
 
 	return bytes, nil
+}
+
+func CheckFileIsExist(filename string) bool {
+	var exist = true
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		exist = false
+	}
+	return exist
+}
+
+func DeleteFile(file string) error {
+	return os.Remove(file)
+}
+
+func WriteStringToFile(file, content string) (writeLen int, err error) {
+	var f *os.File
+	if CheckFileIsExist(file) {
+		f, err = os.OpenFile(file, os.O_APPEND, 0666)
+	} else {
+		f, err = os.Create(file)
+	}
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	w := bufio.NewWriter(f)
+	writeLen, err = w.WriteString(content)
+	w.Flush()
+	return
 }

@@ -1,5 +1,13 @@
 package tasks
 
+import (
+	"fmt"
+	"gitlab.33.cn/chain33/chain33/authority/utils"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
 // ReplaceTargetTask 替换指定目录下所有文件的标志性文字
 // 可替换的名字列表如下：
 // ${PROJECTNAME}
@@ -20,5 +28,42 @@ type ReplaceTargetTask struct {
 // 4. 一直到所有的文件都替换完毕
 func (this *ReplaceTargetTask) Execute() error {
 	mlog.Info("Execute replace target task.")
-	return nil
+	err := filepath.Walk(this.OutputPath, func(path string, info os.FileInfo, err error) error {
+		if info == nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if err := this.replaceTarget(path); err != nil {
+			mlog.Error("replaceTarget error", "error", err, "path", path)
+			return err
+		}
+		return nil
+	})
+	return err
+}
+
+
+func (this *ReplaceTargetTask) replaceTarget(file string) error {
+	replacePairs := []struct{
+		src string
+		dst string
+	}{
+		{src:"${PROJECTNAME}", dst:this.ProjectName},
+		{src:"${CLASSNAME}", dst:this.ClassName},
+		{src:"${ACTIONNAME}", dst:this.ActionName},
+	}
+	bcontent, err := utils.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	content := string(bcontent)
+	for _, pair := range replacePairs {
+		content = strings.Replace(content, pair.src, pair.dst, -1)
+	}
+	utils.DeleteFile(file)
+	_, err = utils.WriteStringToFile(file, content)
+	fmt.Println(file)
+	return err
 }
