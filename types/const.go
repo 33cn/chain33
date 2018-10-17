@@ -24,7 +24,6 @@ const (
 	ParaKeyX  = "user.p."
 	TicketX   = "ticket"
 	HashlockX = "hashlock"
-	RetrieveX = "retrieve"
 	NoneX     = "none"
 	TokenX    = "token"
 	TradeX    = "trade"
@@ -32,7 +31,6 @@ const (
 	PrivacyX  = "privacy"
 	RelayX    = "relay"
 	Normx     = "norm"
-	CertX     = "cert"
 	ParaX     = "paracross"
 	ValNodeX  = "valnode"
 )
@@ -45,12 +43,10 @@ var (
 	ExecerPrivacy  = []byte(PrivacyX)
 	ExecerRelay    = []byte(RelayX)
 	ExecerHashlock = []byte(HashlockX)
-	ExecerRetrieve = []byte(RetrieveX)
 	ExecerNone     = []byte(NoneX)
 	ExecerTrade    = []byte(TradeX)
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
-	ExecerCert     = []byte(CertX)
 	ExecerPara     = []byte(ParaX)
 	UserKey        = []byte(UserKeyX)
 	ParaKey        = []byte(ParaKeyX)
@@ -205,13 +201,6 @@ const (
 	ExecErr  = 0
 	ExecPack = 1
 	ExecOk   = 2
-)
-
-//cert
-const (
-	CertActionNew    = 1
-	CertActionUpdate = 2
-	CertActionNormal = 3
 )
 
 // manager action

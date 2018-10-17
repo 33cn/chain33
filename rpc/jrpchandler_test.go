@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
-	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -1421,79 +1420,6 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	}
 
 	err = client.CreateRawTradeRevokeBuyTx(token, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawRetrieveBackupTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawRetrieveBackupTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	backup := &retrievetype.RetrieveBackupTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		DelayPeriod: 1,
-		Fee:         1,
-	}
-
-	err = client.CreateRawRetrieveBackupTx(backup, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawRetrievePrepareTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawRetrievePrepareTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	prepare := &retrievetype.RetrievePrepareTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		Fee:         1,
-	}
-
-	err = client.CreateRawRetrievePrepareTx(prepare, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawRetrievePerformTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawRetrievePerformTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	perform := &retrievetype.RetrievePerformTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		Fee:         1,
-	}
-
-	err = client.CreateRawRetrievePerformTx(perform, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawRetrieveCancelTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawRetrieveCancelTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	cancel := &retrievetype.RetrieveCancelTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		Fee:         1,
-	}
-
-	err = client.CreateRawRetrieveCancelTx(cancel, &testResult)
 	assert.NotNil(t, testResult)
 	assert.Nil(t, err)
 }
