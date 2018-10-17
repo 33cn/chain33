@@ -14,8 +14,6 @@ PARACLI := build/chain33-para-cli
 PARANAME := para
 SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
-RELAYD := build/relayd
-SRC_RELAYD := gitlab.33.cn/chain33/chain33/plugin/dapp/relay/commands/relayd
 AUTO_TEST := build/tools/autotest/autotest
 SRC_AUTO_TEST := gitlab.33.cn/chain33/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
@@ -79,16 +77,13 @@ miner:
 	@go build -v -o $(MINER) $(SRC_MINER)
 	@cp cmd/miner_accounts/miner_accounts.toml build/
 
-build_ci: relayd ## Build the binary file for CI
+build_ci:  ## Build the binary file for CI
 	@go build -race -v -i -o $(CLI) $(SRC_CLI)
 	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
 
-relayd: ## Build relay deamon binary
-	@go build -race -i -v -o $(RELAYD) $(SRC_RELAYD)
-	@cp plugin/dapp/relay/commands/relayd/relayd.toml build/
 
 linter: ## Use gometalinter check code, ignore some unserious warning
 	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
@@ -175,8 +170,12 @@ proto:protobuf
 
 protobuf: ## Generate protbuf file of types package
 	@cd types/proto && ./create_protobuf.sh && cd ../..
-	@find ./system/dapp -maxdepth 1 -type d  -exec sh proto {} \;
-	@find ./plugin/dapp -maxdepth 1 -type d  -exec sh proto {} \;
+	@find ./system/dapp -maxdepth 2 -type d  -name proto -exec make -C {} \;
+	@find ./plugin/dapp -maxdepth 2 -type d  -name proto -exec make -C {} \;
+
+
+commands: ## Generate cmd file of types package
+	@find ./plugin/dapp -maxdepth 2 -type d  -name commands -exec make -C {} \;
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
