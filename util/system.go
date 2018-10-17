@@ -1,6 +1,7 @@
 package util
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -58,4 +59,18 @@ func Pwd() string {
 		panic(err)
 	}
 	return dir
+}
+
+func CopyFile(srcFile, dstFile string) (written int64, err error) {
+	src, err := os.Open(srcFile)
+	if err != nil {
+		return
+	}
+	defer src.Close()
+	dst, err := os.OpenFile(dstFile, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return
+	}
+	defer dst.Close()
+	return io.Copy(dst, src)
 }

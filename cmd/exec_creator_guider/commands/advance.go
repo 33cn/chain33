@@ -21,7 +21,7 @@ func addAdvanceCreateFlag(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("name")
 	cmd.Flags().StringP("action", "a", "", "executor action class name")
 	cmd.Flags().StringP("propfile", "p", "", "protobuf file path")
-	cmd.Flags().StringP("templatefile", "t", "", "template file path")
+	cmd.Flags().StringP("templatepath", "t", "", "template file path")
 }
 
 func advanceCreate(cmd *cobra.Command, args []string) {
@@ -35,9 +35,9 @@ func advanceCreate(cmd *cobra.Command, args []string) {
 	if len(propFile) == 0 {
 		propFile = fmt.Sprintf("template/%s.proto", projectName)
 	}
-	templateFile, _ := cmd.Flags().GetString("templatefile")
+	templateFile, _ := cmd.Flags().GetString("templatepath")
 	if len(templateFile) == 0 {
-		templateFile = fmt.Sprintf("template/%s.template", projectName)
+		templateFile = fmt.Sprintf("template/template")
 	}
 	cp := patterns.New("advance")
 	if cp == nil {
