@@ -95,9 +95,6 @@ It has these top-level messages:
 	ExecTxList
 	Query
 	CreateTxIn
-	Cert
-	CertAction
-	CertPut
 	ArrayConfig
 	StringConfig
 	Int32Config
