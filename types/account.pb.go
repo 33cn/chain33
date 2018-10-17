@@ -66,6 +66,7 @@ It has these top-level messages:
 	TxHash
 	TimeStatus
 	ReqKey
+	PrunData
 	Config
 	Log
 	MemPool

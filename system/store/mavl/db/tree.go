@@ -9,15 +9,16 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
-	hashNodePrefix = "_mh_"
-	leafNodePrefix = "_mb_"
-	// 是否开启添加hash节点前缀
+	hashNodePrefix     = "_mh_"
+	leafNodePrefix     = "_mb_"
+	rootNodePrefix     = "_mr_"
+	leafKeyCountPrefix = "..mk.."
+	blockHeightStrLen  = 10
 )
 
 var (
@@ -27,6 +28,9 @@ var (
 	enableMavlPrefix bool
 	// 是否开启MVCC
 	enableMvcc bool
+	// 是否开启mavl裁剪
+	enablePrun      bool
+	prunBlockHeight int = 100000
 )
 
 func EnableMavlPrefix(enable bool) {
@@ -37,12 +41,21 @@ func EnableMVCC(enable bool) {
 	enableMvcc = enable
 }
 
+func EnablePrun(enable bool) {
+	enablePrun = enable
+}
+
+func SetPrunBlockHeight(height int) {
+	prunBlockHeight = height
+}
+
 //merkle avl tree
 type Tree struct {
 	root *Node
 	ndb  *nodeDB
 	//batch *nodeBatch
-	randomstr string
+	//randomstr string
+	blockHeight int64
 }
 
 // 新建一个merkle avl 树
@@ -50,14 +63,14 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 	if db == nil {
 		// In-memory IAVLTree
 		return &Tree{
-			randomstr: common.GetRandString(5),
+		//randomstr: common.GetRandString(5),
 		}
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db, sync)
 		return &Tree{
-			ndb:       ndb,
-			randomstr: common.GetRandString(5),
+			ndb: ndb,
+			//randomstr: common.GetRandString(5),
 		}
 	}
 }
@@ -136,6 +149,10 @@ func (t *Tree) Save() []byte {
 		if err != nil {
 			return nil
 		}
+		// 该线程应只允许一个
+		//if enablePrun && t.blockHeight % int64(prunBlockHeight) == 0 {
+		//	go pruningTree(t.ndb.db, t.blockHeight)
+		//}
 	}
 	return t.root.hash
 }
@@ -150,6 +167,10 @@ func (t *Tree) Load(hash []byte) (err error) {
 		return err
 	}
 	return nil
+}
+
+func (t *Tree) SetBlockHeight(height int64) {
+	t.blockHeight = height
 }
 
 //通过key获取leaf节点信息
@@ -318,6 +339,25 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	// Save node bytes to db
 	storenode := node.storeNode(t)
 	ndb.batch.Set(node.hash, storenode)
+
+	if enablePrun && node.height == 0 {
+		//save leafnode key&hash
+		k := genLeafCountKey(node.key, node.hash, t.blockHeight)
+		data := &types.PrunData{
+			Height: t.blockHeight,
+			Lenth:  int32(len(node.hash)),
+		}
+		v, err := proto.Marshal(data)
+		if err != nil {
+			panic(err)
+		}
+		ndb.batch.Set(k, v)
+	} else if enablePrun && node.height == t.root.height {
+		// save prefix root
+		k := genPrefixRootHash(node.hash, t.blockHeight)
+		ndb.batch.Set(k, storenode)
+	}
+
 	node.persisted = true
 	ndb.cacheNode(node)
 	delete(ndb.orphans, string(node.hash))
@@ -372,6 +412,7 @@ func (ndb *nodeDB) Commit() error {
 //对外接口
 func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) ([]byte, error) {
 	tree := NewTree(db, sync)
+	tree.SetBlockHeight(storeSet.Height)
 	err := tree.Load(storeSet.StateHash)
 	if err != nil {
 		return nil, err
@@ -467,12 +508,133 @@ func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending 
 	tree.IterateRange(start, end, ascending, fn)
 }
 
-func genPrefixHashKey(node *Node, str string) (key []byte) {
+func genPrefixHashKey(node *Node, blockHeight int64) (key []byte) {
 	//leafnode
 	if node.height == 0 {
-		key = []byte(fmt.Sprintf("%s-%s-", leafNodePrefix, str))
+		key = []byte(fmt.Sprintf("%s-%010d-", leafNodePrefix, blockHeight))
 	} else {
-		key = []byte(fmt.Sprintf("%s-%s-", hashNodePrefix, str))
+		key = []byte(fmt.Sprintf("%s-%010d-", hashNodePrefix, blockHeight))
 	}
 	return key
+}
+
+func genPrefixRootHash(hash []byte, blockHeight int64) (key []byte) {
+	key = []byte(fmt.Sprintf("%s-%010d-%s", rootNodePrefix, blockHeight, string(hash)))
+	return key
+}
+
+func genLeafCountKey(key, hash []byte, height int64) (hashkey []byte) {
+	hashkey = []byte(fmt.Sprintf("%s%s%010d%s", leafKeyCountPrefix, string(key), height, string(hash)))
+	return hashkey
+}
+
+func getKeyFromLeafCountKey(hashkey []byte, hashlen int) ([]byte, error) {
+	if len(hashkey) <= len(leafKeyCountPrefix)+hashlen+blockHeightStrLen {
+		return nil, types.ErrSize
+	}
+	if !bytes.Contains(hashkey, []byte(leafKeyCountPrefix)) {
+		return nil, types.ErrSize
+	}
+	k := bytes.TrimPrefix(hashkey, []byte(leafKeyCountPrefix))
+	k = k[:len(k)-hashlen-blockHeightStrLen]
+	return k, nil
+}
+
+type HashData struct {
+	height int64
+	hash   []byte
+}
+
+func pruningTree(db dbm.DB, curHeight int64) {
+	prefix := []byte(leafKeyCountPrefix)
+	it := db.Iterator(prefix, true)
+	defer it.Close()
+
+	const onceScanCount = 100000
+	var hashLen int
+	mp := make(map[string][]HashData)
+	count := 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		//copy key
+		hashK := make([]byte, len(it.Key()))
+		copy(hashK, it.Key())
+
+		value := it.Value()
+		var pData types.PrunData
+		err := proto.Unmarshal(value, &pData)
+		if err != nil {
+			panic("Unmarshal mavl leafCountKey fail")
+		}
+		hashLen = int(pData.Lenth)
+		key, err := getKeyFromLeafCountKey(hashK, hashLen)
+		if err == nil {
+			data := HashData{
+				height: pData.Height,
+				hash:   hashK[len(hashK)-hashLen:],
+			}
+			mp[string(key)] = append(mp[string(key)], data)
+			count++
+			if count >= onceScanCount {
+				deleteNode(db, &mp, curHeight, key)
+				count = 0
+			}
+		}
+	}
+	deleteNode(db, &mp, curHeight, nil)
+	//TODO curHeight-prunBlockHeight 处遍历树，然后删除hashnode
+}
+
+func deleteNode(db dbm.DB, mp *map[string][]HashData, curHeight int64, lastKey []byte) {
+	if mp == nil {
+		return
+	}
+	batch := db.NewBatch(true)
+	for key, vals := range *mp {
+		if len(vals) == 1 {
+			continue
+		} else {
+			for _, val := range vals[1:] { //从第二个开始判断
+				if curHeight >= val.height+int64(prunBlockHeight) {
+					batch.Delete(val.hash)
+					batch.Delete(genLeafCountKey([]byte(key), val.hash, val.height))
+				}
+			}
+		}
+	}
+	batch.Write()
+	// 除了最后加入的key，其它已将全部state数据放入map
+	if lastKey != nil {
+		for key, _ := range *mp {
+			if !bytes.Equal([]byte(key), lastKey) {
+				delete(*mp, key)
+			}
+		}
+	}
+}
+
+func prunTreePrint(db dbm.DB, prefix []byte) {
+	it := db.Iterator(prefix, true)
+	defer it.Close()
+	count := 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		//copy
+		if bytes.Equal(prefix, []byte(leafKeyCountPrefix)) {
+			hashK := make([]byte, len(it.Key()))
+			copy(hashK, it.Key())
+
+			value := it.Value()
+			var pData types.PrunData
+			err := proto.Unmarshal(value, &pData)
+			if err != nil {
+				panic("Unmarshal mavl leafCountKey fail")
+			}
+			hashLen := int(pData.Lenth)
+			_, err = getKeyFromLeafCountKey(hashK, hashLen)
+			if err == nil {
+				//fmt.Printf("key:%s height:%d \n", string(key), pData.Height)
+			}
+		}
+		count++
+	}
+	fmt.Printf("prefix %s All count:%d \n", string(prefix), count)
 }
