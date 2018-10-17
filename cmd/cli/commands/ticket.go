@@ -55,7 +55,7 @@ func addBindMinerFlags(cmd *cobra.Command) {
 func bindMiner(cmd *cobra.Command, args []string) {
 	bindAddr, _ := cmd.Flags().GetString("bind_addr")
 	originAddr, _ := cmd.Flags().GetString("origin_addr")
-	//c, _ := crypto.New(types.GetSignatureTypeName(wallet.SignType))
+	//c, _ := crypto.New(types.GetSignName(wallet.SignType))
 	//a, _ := common.FromHex(key)
 	//privKey, _ := c.PrivKeyFromBytes(a)
 	//originAddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
