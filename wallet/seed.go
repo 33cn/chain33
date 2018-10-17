@@ -90,8 +90,10 @@ func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 		seedlog.Error("SaveSeed", "AesgcmEncrypter err", err)
 		return false, err
 	}
-	db.SetSync(WalletSeed, Encrypted)
-	//seedlog.Info("SaveSeed ok", "Encryptedseed", Encryptedseed)
+	err = db.SetSync(WalletSeed, Encrypted)
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
@@ -116,7 +118,10 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 		return "", types.ErrInvalidParam
 	}
 	Encryptedseed, err := db.Get(WalletSeed)
-	if len(Encryptedseed) == 0 || err != nil {
+	if err != nil {
+		return "", err
+	}
+	if len(Encryptedseed) == 0 {
 		return "", types.ErrSeedNotExist
 	}
 	seed, err := AesgcmDecrypter([]byte(password), Encryptedseed)
