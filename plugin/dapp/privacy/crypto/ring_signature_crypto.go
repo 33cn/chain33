@@ -85,7 +85,7 @@ func (privkey *RingSignPrivateKey) Sign(msg []byte) crypto.Signature {
 		for _, item := range retSign.Items {
 			utxo := new(privacytypes.UTXOBasic)
 			utxo.OnetimePubkey = item.Pubkey[i]
-			utxo.UtxoGlobalIndex = (*privacytypes.UTXOGlobalIndex)(keyinput.UtxoGlobalIndex[i])
+			utxo.UtxoGlobalIndex = keyinput.UtxoGlobalIndex[i]
 			utxos.Utxos = append(utxos.Utxos, utxo)
 		}
 		//

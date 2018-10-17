@@ -540,7 +540,7 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 		}
 
 		for _, utxo := range utxos {
-			keyInput.UtxoGlobalIndex = append(keyInput.UtxoGlobalIndex, (*privacytypes.UTXOGlobalIndex)(utxo.UtxoGlobalIndex))
+			keyInput.UtxoGlobalIndex = append(keyInput.UtxoGlobalIndex, utxo.UtxoGlobalIndex)
 		}
 		//完成一个input的构造，包括基于其环签名的生成，keyImage的生成，
 		//必须要注意的是，此处要添加用于混淆的其他utxo添加到最终keyinput的顺序必须和生成环签名时提供pubkey的顺序一致
