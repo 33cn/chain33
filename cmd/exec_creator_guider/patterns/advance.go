@@ -1,6 +1,10 @@
 package patterns
 
-import "gitlab.33.cn/chain33/chain33/cmd/exec_creator_guider/tasks"
+import (
+	"fmt"
+
+	"gitlab.33.cn/chain33/chain33/cmd/exec_creator_guider/tasks"
+)
 
 type advancePattern struct {
 	projName     string
@@ -8,6 +12,7 @@ type advancePattern struct {
 	actionName   string
 	propFile     string
 	templateFile string
+	outputFolder string
 }
 
 func (this *advancePattern) Run(projName, clsName, actionName, propFile, templateFile string) {
@@ -29,6 +34,8 @@ func (this *advancePattern) Run(projName, clsName, actionName, propFile, templat
 	this.actionName = actionName
 	this.propFile = propFile
 	this.templateFile = templateFile
+
+	this.outputFolder = fmt.Sprintf("output/%s", projName)
 
 	var err error
 	task := this.buildTask()
@@ -59,12 +66,15 @@ func (this *advancePattern) buildTask() tasks.Task {
 			FileName: this.templateFile,
 		},
 		// 使用protoc编译用户编写的protobuf文件，生成 xxx.pb.go
-		&tasks.CompileProtoFileTask{
-			FileName: this.propFile,
-		},
+		//&tasks.CompileProtoFileTask{
+		//	FileName: this.propFile,
+		//},
 		// 结合系统的模板文件和生成的xxx.pb.go，生成项目生成脚本代码
 		&tasks.CreateBuildAppSourceTask{
-			FileName: this.propFile,
+			TemplatePath: this.templateFile,
+			ClsName:      this.clsName,
+			ActionName:   this.actionName,
+			ProtoFile:    this.propFile,
 		},
 		// 编译并运行
 		&tasks.RunBuildAppTask{
