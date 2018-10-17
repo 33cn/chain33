@@ -64,7 +64,6 @@ const (
 	EventGetBlockHash          = 59
 	EventBlockHash             = 60
 	EventGetLastMempool        = 61
-	EventWalletGetTickets      = 62
 	EventMinerStart            = 63
 	EventMinerStop             = 64
 	EventWalletTickets         = 65
@@ -88,7 +87,6 @@ const (
 	EventCheckTx             = 81
 	EventReceiptCheckTx      = 82
 	EventReplyQuery          = 84
-	EventFlushTicket         = 85
 	EventFetchBlockHeaders   = 86
 	EventAddBlockHeaders     = 87
 	EventReplyWalletStatus   = 89
@@ -200,7 +198,6 @@ var eventName = map[int]string{
 	59:  "EventGetBlockHash",
 	60:  "EventBlockHash",
 	61:  "EventGetLastMempool",
-	62:  "EventWalletGetTickets",
 	63:  "EventMinerStart",
 	64:  "EventMinerStop",
 	65:  "EventWalletTickets",
@@ -222,7 +219,6 @@ var eventName = map[int]string{
 	81:  "EventCheckTx",
 	82:  "EventReceiptCheckTx",
 	84:  "EventReplyQuery",
-	85:  "EventFlushTicket",
 	86:  "EventFetchBlockHeaders",
 	87:  "EventAddBlockHeaders",
 	89:  "EventReplyWalletStatus",

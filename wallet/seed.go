@@ -10,12 +10,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
 	//	"math/big"
 	"strings"
 
 	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	"github.com/NebulousLabs/Sia/modules"
 	log "github.com/inconshreveable/log15"
+
 	//	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -217,7 +219,7 @@ func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 		return "", err
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
+	cr, err := crypto.New(types.GetSignName(SignType))
 	if err != nil {
 		seedlog.Error("GetAddrByPrivkey", "err", err)
 		return "", err

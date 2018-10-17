@@ -65,6 +65,10 @@ func (bc *BaseClient) SetChild(c Miner) {
 	bc.child = c
 }
 
+func (bc *BaseClient) GetAPI() client.QueueProtocolAPI {
+	return bc.api
+}
+
 func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	log.Info("Enter SetQueueClient method of consensus")
 	bc.client = c

@@ -220,7 +220,7 @@ func GetEventName(event int) string {
 	return "unknow-event"
 }
 
-func GetSignatureTypeName(signType int) string {
+func GetSignName(signType int) string {
 	if name, exist := MapSignType2name[signType]; exist {
 		return name
 	}
