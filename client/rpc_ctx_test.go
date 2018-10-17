@@ -163,8 +163,8 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.WalletTxDetails) = *reply
 		}
 		errRet = err
-	case "ImportPrivKey":
-		reply, err := rpc.ImportPrivKey(context.Background(), c.Params.(*types.ReqWalletImportPrivKey))
+	case "ImportPrivkey":
+		reply, err := rpc.ImportPrivkey(context.Background(), c.Params.(*types.ReqWalletImportPrivkey))
 		if err == nil {
 			*c.Res.(*types.WalletAccount) = *reply
 		}
@@ -270,13 +270,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "QueryChain":
-		reply, err := rpc.QueryChain(context.Background(), c.Params.(*types.BlockChainQuery))
-		if err == nil {
-			*c.Res.(*types.Reply) = *reply
-		}
-		errRet = err
-	case "SetAutoMining":
-		reply, err := rpc.SetAutoMining(context.Background(), c.Params.(*types.MinerFlag))
+		reply, err := rpc.QueryChain(context.Background(), c.Params.(*types.ChainExecutor))
 		if err == nil {
 			*c.Res.(*types.Reply) = *reply
 		}
@@ -285,12 +279,6 @@ func (c *GrpcCtx) Run() (err error) {
 		reply, err := rpc.GetHexTxByHash(context.Background(), c.Params.(*types.ReqHash))
 		if err == nil {
 			*c.Res.(*types.HexTx) = *reply
-		}
-		errRet = err
-	case "GetTicketCount":
-		reply, err := rpc.GetTicketCount(context.Background(), c.Params.(*types.ReqNil))
-		if err == nil {
-			*c.Res.(*types.Int64) = *reply
 		}
 		errRet = err
 	case "DumpPrivkey":

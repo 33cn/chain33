@@ -51,3 +51,56 @@ func TestChannelClient_BindMiner(t *testing.T) {
 	_, err := client.CreateBindMiner(context.Background(), in)
 	assert.Nil(t, err)
 }
+
+func testGetTicketCountOK(t *testing.T) {
+	qapi.On("GetTicketCount").Return(nil, nil)
+	data, err := g.GetTicketCount(getOkCtx(), nil)
+	assert.Nil(t, err, "the error should be nil")
+	assert.Nil(t, data)
+
+}
+
+func TestGetTicketCount(t *testing.T) {
+	//testGetTicketCountReject(t)
+	testGetTicketCountOK(t)
+}
+
+func testSetAutoMiningOK(t *testing.T) {
+	var in *pb.MinerFlag
+	qapi.On("WalletAutoMiner", in).Return(nil, nil)
+	data, err := g.SetAutoMining(getOkCtx(), nil)
+	assert.Nil(t, err, "the error should be nil")
+	assert.Nil(t, data)
+
+}
+
+func TestSetAutoMining(t *testing.T) {
+	//testSetAutoMiningReject(t)
+	testSetAutoMiningOK(t)
+}
+
+func testCloseTicketsOK(t *testing.T) {
+	qapi.On("CloseTickets").Return(nil, nil)
+	data, err := g.CloseTickets(getOkCtx(), nil)
+	assert.Nil(t, err, "the error should be nil")
+	assert.Nil(t, data)
+}
+
+func TestCloseTickets(t *testing.T) {
+	//testCloseTicketsReject(t)
+	testCloseTicketsOK(t)
+}
+
+
+var mingResult rpctypes.Reply
+api.On("WalletAutoMiner", mock.Anything).Return(&types.Reply{IsOk: true, Msg: []byte("yes")}, nil)
+err = jsonClient.Call("Chain33.SetAutoMining", types.MinerFlag{}, &mingResult)
+assert.Nil(t, err)
+assert.True(t, mingResult.IsOk, "SetAutoMining")
+
+var ticketResult int64
+var expectRet = &types.Int64{Data: 100}
+api.On("GetTicketCount", mock.Anything).Return(expectRet, nil)
+err = jsonClient.Call("Chain33.GetTicketCount", &types.ReqNil{}, &ticketResult)
+assert.Nil(t, err)
+assert.Equal(t, expectRet.GetData(), ticketResult, "GetTicketCount")

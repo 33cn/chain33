@@ -399,14 +399,6 @@ func (c *Chain33) GetAccounts(in *types.ReqAccountList, result *interface{}) err
 	return nil
 }
 
-/*
-	NewAccount(parm *types.ReqNewAccount) (*types.WalletAccount, error)
-	WalletTxList(parm *types.ReqWalletTransactionList) (*types.TransactionDetails, error)
-	ImportPrivkey(parm *types.ReqWalletImportPrivKey) (*types.WalletAccount, error)
-	SendToAddress(parm *types.ReqWalletSendToAddress) (*types.ReplyHash, error)
-
-*/
-
 func (c *Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error {
 	reply, err := c.cli.NewAccount(&in)
 	if err != nil {
@@ -434,7 +426,7 @@ func (c *Chain33) WalletTxList(in rpctypes.ReqWalletTransactionList, result *int
 	return nil
 }
 
-func (c *Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interface{}) error {
+func (c *Chain33) ImportPrivkey(in types.ReqWalletImportPrivkey, result *interface{}) error {
 	reply, err := c.cli.WalletImportprivkey(&in)
 	if err != nil {
 		return err
@@ -848,29 +840,6 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) SetAutoMining(in types.MinerFlag, result *interface{}) error {
-	resp, err := c.cli.WalletAutoMiner(&in)
-	if err != nil {
-		log.Error("SetAutoMiner", "err", err.Error())
-		return err
-	}
-	var reply rpctypes.Reply
-	reply.IsOk = resp.GetIsOk()
-	reply.Msg = string(resp.GetMsg())
-	*result = &reply
-	return nil
-}
-
-func (c *Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
-	resp, err := c.cli.GetTicketCount()
-	if err != nil {
-		return err
-	}
-	*result = resp.GetData()
-	return nil
-
-}
-
 func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 	reply, err := c.cli.DumpPrivkey(&in)
 	if err != nil {
@@ -878,19 +847,6 @@ func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 	}
 
 	*result = reply
-	return nil
-}
-
-func (c *Chain33) CloseTickets(in *types.ReqNil, result *interface{}) error {
-	resp, err := c.cli.CloseTickets()
-	if err != nil {
-		return err
-	}
-	var hashes rpctypes.ReplyHashes
-	for _, has := range resp.Hashes {
-		hashes.Hashes = append(hashes.Hashes, hex.EncodeToString(has))
-	}
-	*result = &hashes
 	return nil
 }
 

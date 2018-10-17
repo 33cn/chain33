@@ -11,5 +11,7 @@ func New(cfg *types.Consensus) queue.Module {
 	if err != nil {
 		panic("Unsupported consensus type:" + cfg.Name + " " + err.Error())
 	}
-	return con(cfg)
+	obj := con(cfg)
+	consensus.QueryData.Register(cfg.Name, obj)
+	return obj
 }
