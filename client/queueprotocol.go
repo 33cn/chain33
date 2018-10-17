@@ -558,7 +558,7 @@ func (q *QueueProtocol) GetWalletStatus() (*types.WalletStatus, error) {
 
 func (q *QueueProtocol) Query(driver, funcname string, param types.Message) (types.Message, error) {
 	if types.IsNilP(param) {
-		err := types.ErrInvalidParams
+		err := types.ErrInvalidParam
 		log.Error("Query", "Error", err)
 		return nil, err
 	}
@@ -568,7 +568,7 @@ func (q *QueueProtocol) Query(driver, funcname string, param types.Message) (typ
 
 func (q *QueueProtocol) QueryConsensus(param *types.ChainExecutor) (types.Message, error) {
 	if param == nil {
-		err := types.ErrInvalidParams
+		err := types.ErrInvalidParam
 		log.Error("ExecWallet", "Error", err)
 		return nil, err
 	}
@@ -585,7 +585,7 @@ func (q *QueueProtocol) QueryConsensus(param *types.ChainExecutor) (types.Messag
 
 func (q *QueueProtocol) ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error) {
 	if types.IsNilP(param) {
-		err := types.ErrInvalidParams
+		err := types.ErrInvalidParam
 		log.Error("ExecWalletFunc", "Error", err)
 		return nil, err
 	}
@@ -595,7 +595,7 @@ func (q *QueueProtocol) ExecWalletFunc(driver string, funcname string, param typ
 
 func (q *QueueProtocol) QueryConsensusFunc(driver string, funcname string, param types.Message) (types.Message, error) {
 	if types.IsNilP(param) {
-		err := types.ErrInvalidParams
+		err := types.ErrInvalidParam
 		log.Error("QueryConsensusFunc", "Error", err)
 		return nil, err
 	}
@@ -605,7 +605,7 @@ func (q *QueueProtocol) QueryConsensusFunc(driver string, funcname string, param
 
 func (q *QueueProtocol) ExecWallet(param *types.ChainExecutor) (types.Message, error) {
 	if param == nil {
-		err := types.ErrInvalidParams
+		err := types.ErrInvalidParam
 		log.Error("ExecWallet", "Error", err)
 		return nil, err
 	}
@@ -875,7 +875,7 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 
 func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, error) {
 	if param == nil {
-		err := types.ErrInvalidParams
+		err := types.ErrInvalidParam
 		log.Error("BlockChainQuery", "Error", err)
 		return nil, err
 	}

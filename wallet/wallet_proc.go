@@ -247,7 +247,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 
 	if Label == nil || len(Label.GetLabel()) == 0 {
 		walletlog.Error("ProcCreateNewAccount Label is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	//首先校验label是否已被使用
@@ -370,11 +370,11 @@ func (wallet *Wallet) ProcWalletTxList(TxList *types.ReqWalletTransactionList) (
 
 	if TxList == nil {
 		walletlog.Error("ProcWalletTxList TxList is nil!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if TxList.GetDirection() != 0 && TxList.GetDirection() != 1 {
 		walletlog.Error("ProcWalletTxList Direction err!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	WalletTxDetails, err := wallet.walletStore.GetTxDetailByIter(TxList)
 	if err != nil {
@@ -404,7 +404,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 
 	if PrivKey == nil || len(PrivKey.GetLabel()) == 0 || len(PrivKey.GetPrivkey()) == 0 {
 		walletlog.Error("ProcImportPrivKey input parameter is nil!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	//校验label是否已经被使用
@@ -504,11 +504,11 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 
 	if SendToAddress == nil {
 		walletlog.Error("ProcSendToAddress input para is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if len(SendToAddress.From) == 0 || len(SendToAddress.To) == 0 {
 		walletlog.Error("ProcSendToAddress input para From or To is nil!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	ok, err := wallet.IsTransfer(SendToAddress.GetTo())
@@ -571,7 +571,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
 	if WalletSetFee.Amount < minFee {
 		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", minFee)
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	err := wallet.walletStore.SetFeeAmount(WalletSetFee.Amount)
 	if err == nil {
@@ -598,7 +598,7 @@ func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*ty
 
 	if SetLabel == nil || len(SetLabel.Addr) == 0 || len(SetLabel.Label) == 0 {
 		walletlog.Error("ProcWalletSetLabel input parameter is nil!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	//校验label是否已经被使用
 	Account, err := wallet.walletStore.GetAccountByLabel(SetLabel.GetLabel())
@@ -651,7 +651,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 
 	if len(MergeBalance.GetTo()) == 0 {
 		walletlog.Error("ProcMergeBalance input para is nil!")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	//获取钱包上的所有账户信息
@@ -1165,7 +1165,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	}
 	//入参数校验，seed必须是大于等于12个单词或者汉字
 	if len(password) == 0 || len(seed) == 0 {
-		return false, types.ErrInputPara
+		return false, types.ErrInvalidParam
 	}
 
 	seedarry := strings.Fields(seed)
@@ -1216,7 +1216,7 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 	}
 	if len(addr) == 0 {
 		walletlog.Error("ProcDumpPrivkey input para is nil!")
-		return "", types.ErrInputPara
+		return "", types.ErrInvalidParam
 	}
 
 	priv, err := wallet.getPrivKeyByAddr(addr)

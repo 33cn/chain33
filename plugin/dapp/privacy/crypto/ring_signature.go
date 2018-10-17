@@ -21,7 +21,7 @@ func generateKeyImage(pub *PubKeyPrivacy, sec *PrivKeyPrivacy, image *KeyImage) 
 	var point edwards25519.ExtendedGroupElement
 	var point2 edwards25519.ProjectiveGroupElement
 	if pub == nil || sec == nil || image == nil {
-		return types.ErrInvalidParams
+		return types.ErrInvalidParam
 	}
 	p := (*[32]byte)(unsafe.Pointer(sec))
 	// Hp(P)

@@ -188,7 +188,7 @@ func testSeed(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msgSaveEmpty, true)
 	resp, err := wallet.client.Wait(msgSaveEmpty)
 	assert.Nil(t, err)
-	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrInputPara.Error() {
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrInvalidParam.Error() {
 		t.Error("test input empty seed failed")
 	}
 

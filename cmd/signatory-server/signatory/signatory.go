@@ -22,7 +22,7 @@ type Signatory struct {
 
 func (*Signatory) Echo(in *string, out *interface{}) error {
 	if in == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	*out = *in
 	return nil
@@ -36,10 +36,10 @@ type TokenFinish struct {
 
 func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error {
 	if in == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	if len(in.OwnerAddr) == 0 || len(in.Symbol) == 0 {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	v := &tokenty.TokenFinishCreate{Symbol: in.Symbol, Owner: in.OwnerAddr}
 	finish := &tokenty.TokenAction{
@@ -71,10 +71,10 @@ func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error
 
 func (signatory *Signatory) SignTransfer(in *string, out *interface{}) error {
 	if in == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	if len(*in) == 0 {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 
 	amount := 1 * types.Coin

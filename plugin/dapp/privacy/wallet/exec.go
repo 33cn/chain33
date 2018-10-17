@@ -93,7 +93,6 @@ func (policy *privacyPolicy) On_CreateTransaction(req *types.ReqCreateTransactio
 func (policy *privacyPolicy) On_PrivacyAccountInfo(req *privacytypes.ReqPPrivacyAccount) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
-
 	reply, err := policy.getPrivacyAccountInfo(req)
 	if err != nil {
 		bizlog.Error("getPrivacyAccountInfo", "err", err.Error())

@@ -63,10 +63,10 @@ func (a *action) Create(create *gt.BlackwhiteCreate) (*types.Receipt, error) {
 		return nil, types.ErrAmount
 	}
 	if create.PlayerCount < MinPlayerCount || create.PlayerCount > MaxPlayerCount {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if create.Timeout < MinPlayTimeout || create.Timeout > MaxPlayTimeout {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	receipt, err := a.coinsAccount.ExecFrozen(a.fromaddr, a.execaddr, lockAmount)
@@ -133,7 +133,7 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 	if play.Amount < round.PlayAmount {
 		clog.Error("blackwhite play ", "addr", a.fromaddr, "execaddr", a.execaddr, "playAmount < roundAmount in this GameID ",
 			play.GameID)
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	var logs []*types.ReceiptLog
