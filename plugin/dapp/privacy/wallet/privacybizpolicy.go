@@ -126,7 +126,7 @@ func (policy *privacyPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqS
 		}
 	default:
 		bizlog.Error("SignTransaction", "Invalid action type ", action.Ty)
-		err = types.ErrInvalidParams
+		err = types.ErrInvalidParam
 	}
 	signtxhex = common.ToHex(types.Encode(tx))
 	return

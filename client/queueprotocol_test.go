@@ -100,7 +100,7 @@ func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
 		actualErr error
 	}{
 		{
-			actualErr: types.ErrInvalidParams,
+			actualErr: types.ErrInvalidParam,
 		},
 		{
 			param:     &types.ChainExecutor{},

@@ -78,7 +78,7 @@ func (retrieve *RetrieveType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			rlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawRetrieveBackupTx(&param)
 	} else if action == "RetrievePrepare" {
@@ -86,7 +86,7 @@ func (retrieve *RetrieveType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			rlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawRetrievePrepareTx(&param)
 	} else if action == "RetrievePerform" {
@@ -94,7 +94,7 @@ func (retrieve *RetrieveType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			rlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawRetrievePerformTx(&param)
 	} else if action == "RetrieveCancel" {
@@ -102,7 +102,7 @@ func (retrieve *RetrieveType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			rlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawRetrieveCancelTx(&param)
 	} else {

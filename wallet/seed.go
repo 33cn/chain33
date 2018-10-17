@@ -82,7 +82,7 @@ func VerifySeed(seed string) (bool, error) {
 //使用password加密seed存储到db中
 func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 	if len(seed) == 0 || len(password) == 0 {
-		return false, types.ErrInputPara
+		return false, types.ErrInvalidParam
 	}
 
 	Encrypted, err := AesgcmEncrypter([]byte(password), []byte(seed))
@@ -97,7 +97,7 @@ func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 
 func SaveSeedInBatch(db dbm.DB, seed string, password string, batch dbm.Batch) (bool, error) {
 	if len(seed) == 0 || len(password) == 0 {
-		return false, types.ErrInputPara
+		return false, types.ErrInvalidParam
 	}
 
 	Encrypted, err := AesgcmEncrypter([]byte(password), []byte(seed))
@@ -113,7 +113,7 @@ func SaveSeedInBatch(db dbm.DB, seed string, password string, batch dbm.Batch) (
 //使用password解密seed上报给上层
 func GetSeed(db dbm.DB, password string) (string, error) {
 	if len(password) == 0 {
-		return "", types.ErrInputPara
+		return "", types.ErrInvalidParam
 	}
 	Encryptedseed, err := db.Get(WalletSeed)
 	if len(Encryptedseed) == 0 || err != nil {
@@ -211,7 +211,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 //通过私钥生成对应的公钥地址，传入的私钥是十六进制字符串，输出addr
 func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 	if len(HexPrivkey) == 0 {
-		return "", types.ErrInputPara
+		return "", types.ErrInvalidParam
 	}
 	//解码hex格式的私钥
 	privkeybyte, err := common.FromHex(HexPrivkey)

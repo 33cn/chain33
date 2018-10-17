@@ -44,44 +44,44 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	switch action.GetTy() {
 	case ty.RelayActionCreate:
 		if action.GetCreate() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.relayCreate(action.GetCreate())
 
 	case ty.RelayActionAccept:
 		if action.GetAccept() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.accept(action.GetAccept())
 
 	case ty.RelayActionRevoke:
 		if action.GetRevoke() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.relayRevoke(action.GetRevoke())
 
 	case ty.RelayActionConfirmTx:
 		if action.GetConfirmTx() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.confirmTx(action.GetConfirmTx())
 
 	case ty.RelayActionVerifyTx:
 		if action.GetVerify() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.verifyTx(action.GetVerify())
 
 	// OrderId, rawTx, index sibling, blockhash
 	case ty.RelayActionVerifyCmdTx:
 		if action.GetVerifyCli() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.verifyCmdTx(action.GetVerifyCli())
 
 	case ty.RelayActionRcvBTCHeaders:
 		if action.GetBtcHeaders() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.saveBtcHeader(action.GetBtcHeaders(), r.GetLocalDB())
 

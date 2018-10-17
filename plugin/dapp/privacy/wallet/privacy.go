@@ -112,7 +112,7 @@ func (policy *privacyPolicy) createUTXOs(createUTXOs *privacytypes.ReqCreateUTXO
 	}
 	if createUTXOs == nil {
 		bizlog.Error("createUTXOs input para is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if !checkAmountValid(createUTXOs.GetAmount()) {
 		bizlog.Error("not allow amount number")
@@ -363,7 +363,7 @@ func (policy *privacyPolicy) getPrivacyAccountInfo(req *privacytypes.ReqPPrivacy
 // 当该地址上的可用UTXO比较多时，可以考虑改进算法，优先选择币值小的，花掉小票，然后再选择币值接近的，减少找零，最后才选择大面值的找零
 func (policy *privacyPolicy) selectUTXO(token, addr string, amount int64) ([]*txOutputInfo, error) {
 	if len(token) == 0 || len(addr) == 0 || amount <= 0 {
-		return nil, types.ErrInvalidParams
+		return nil, types.ErrInvalidParam
 	}
 	wutxos, err := policy.store.getPrivacyTokenUTXOs(token, addr)
 	if err != nil {
@@ -560,7 +560,7 @@ func (policy *privacyPolicy) createTransaction(req *types.ReqCreateTransaction) 
 	case types.PrivacyTypePrivacy2Public:
 		return policy.createPrivacy2PublicTx(req)
 	}
-	return nil, types.ErrInvalidParams
+	return nil, types.ErrInvalidParam
 }
 
 func (policy *privacyPolicy) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*types.Transaction, error) {
@@ -963,11 +963,11 @@ func (policy *privacyPolicy) sendPublic2PrivacyTransaction(public2private *priva
 	}
 	if public2private == nil {
 		bizlog.Error("sendPublic2PrivacyTransaction public2private is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if len(public2private.GetTokenname()) <= 0 {
 		bizlog.Error("sendPublic2PrivacyTransaction tokenname is nil")
-		return nil, types.ErrInvalidParams
+		return nil, types.ErrInvalidParam
 	}
 	if !checkAmountValid(public2private.GetAmount()) {
 		bizlog.Error("sendPublic2PrivacyTransaction", "invalid amount", public2private.GetAmount())
@@ -1043,7 +1043,7 @@ func (policy *privacyPolicy) sendPrivacy2PrivacyTransaction(privacy2privacy *pri
 	}
 	if privacy2privacy == nil {
 		bizlog.Error("sendPrivacy2PrivacyTransaction input para is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if !checkAmountValid(privacy2privacy.GetAmount()) {
 		bizlog.Error("sendPrivacy2PrivacyTransaction", "invalid amount ", privacy2privacy.GetAmount())
@@ -1174,7 +1174,7 @@ func (policy *privacyPolicy) sendPrivacy2PublicTransaction(privacy2Pub *privacyt
 	}
 	if privacy2Pub == nil {
 		bizlog.Error("privacy2privacy input para is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if !checkAmountValid(privacy2Pub.GetAmount()) {
 		return nil, types.ErrAmount

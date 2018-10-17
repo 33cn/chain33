@@ -46,7 +46,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 
 func ConvertWalletTxDetailToJson(in *types.WalletTxDetails, out *WalletTxDetails) error {
 	if in == nil || out == nil {
-		return types.ErrInvalidParams
+		return types.ErrInvalidParam
 	}
 	for _, tx := range in.TxDetails {
 		var recp ReceiptData
