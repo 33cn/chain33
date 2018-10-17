@@ -57,7 +57,6 @@ func NewRelayd(config *Config) *Relayd {
 	if err != nil {
 		log.Warn("NewRelayd", "atoi firstHeight error: ", err)
 	}
-
 	if firstHeight != int(config.FirstBtcHeight) {
 		firstHeight = int(config.FirstBtcHeight)
 		isResetBtcHeight = true
@@ -208,7 +207,7 @@ out:
 
 func (r *Relayd) queryChain33WithBtcHeight() (*ty.ReplayRelayQryBTCHeadHeight, error) {
 	payLoad := types.Encode(&ty.ReqRelayQryBTCHeadHeight{})
-	query := types.BlockChainQuery{
+	query := types.ChainExecutor{
 		Driver:   types.RelayX,
 		FuncName: "GetBTCHeaderCurHeight",
 		Param:    payLoad,
@@ -366,7 +365,7 @@ func (r *Relayd) requestRelayOrders(status ty.RelayOrderStatus) (*ty.QueryRelayO
 	payLoad := types.Encode(&ty.ReqRelayAddrCoins{
 		Status: status,
 	})
-	query := types.BlockChainQuery{
+	query := types.ChainExecutor{
 		Driver:   types.RelayX,
 		FuncName: "GetRelayOrderByStatus",
 		Param:    payLoad,

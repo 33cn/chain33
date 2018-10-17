@@ -24,7 +24,7 @@ func NewQuery(db dbm.DB, qclient queue.Client, stateHash []byte) *Query {
 }
 
 func (q *Query) Query(driver string, funcname string, param types.Message) (types.Message, error) {
-	query := &types.BlockChainQuery{
+	query := &types.ChainExecutor{
 		Driver:    driver,
 		FuncName:  funcname,
 		Param:     types.Encode(param),

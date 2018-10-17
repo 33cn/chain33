@@ -135,6 +135,7 @@ const (
 	EventWalletCreateTx          = 129
 	//exec
 	EventBlockChainQuery = 212
+	EventConsensusQuery  = 213
 )
 
 var eventName = map[int]string{
@@ -268,4 +269,5 @@ var eventName = map[int]string{
 	EventWalletCreateTx: "EventWalletCreateTx",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
+	EventConsensusQuery:  "EventConsensusQuery",
 }

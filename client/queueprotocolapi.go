@@ -23,9 +23,10 @@ type QueueProtocolAPI interface {
 	// +++++++++++++++ execs interfaces begin
 	// types.EventBlockChainQuery
 	Query(driver, funcname string, param types.Message) (types.Message, error)
-	QueryChain(param *types.BlockChainQuery) (types.Message, error)
+	QueryConsensus(param *types.ChainExecutor) (types.Message, error)
+	QueryChain(param *types.ChainExecutor) (types.Message, error)
 	ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error)
-	ExecWallet(param *types.WalletExecutor) (types.Message, error)
+	ExecWallet(param *types.ChainExecutor) (types.Message, error)
 	// --------------- execs interfaces end
 
 	// +++++++++++++++ p2p interfaces begin
@@ -34,12 +35,6 @@ type QueueProtocolAPI interface {
 	// types.EventGetNetInfo
 	GetNetInfo() (*types.NodeNetInfo, error)
 	// --------------- p2p interfaces end
-
-	// +++++++++++++++ consensus interfaces begin
-	// types.EventGetTicketCount
-	GetTicketCount() (*types.Int64, error)
-	// --------------- consensus interfaces end
-
 	// +++++++++++++++ wallet interfaces begin
 	// types.EventLocalGet
 	LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error)

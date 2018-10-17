@@ -120,11 +120,6 @@ message ReqNewAccount {
     string label = 1;
 }
 
-message MinerFlag {
-    int32 flag    = 1;
-    int64 reserve = 2;
-}
-
 //获取钱包交易的详细信息
 // 	 fromTx : []byte( Sprintf("%018d", height*100000 + index)，
 //				表示从高度 height 中的 index 开始获取交易列表；
@@ -249,12 +244,4 @@ message ReqCreateTransaction {
 
 message ReqAccountList {
     bool withoutBalance = 1;
-}
-
-//执行钱包插件
-message WalletExecutor {
-    string driver   = 1;
-    string funcName = 2;
-    int64  eventId  = 3;
-    bytes  param    = 4;
 }

@@ -447,7 +447,7 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 	// 混淆数大于0时候才向blockchain请求
 	var resUTXOGlobalIndex *privacytypes.ResUTXOGlobalIndex
 	if buildInfo.mixcount > 0 {
-		query := &types.BlockChainQuery{
+		query := &types.ChainExecutor{
 			Driver:   "privacy",
 			FuncName: "GetUTXOGlobalIndex",
 			Param:    types.Encode(&reqGetGlobalIndex),

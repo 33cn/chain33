@@ -217,7 +217,7 @@ func importKey(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	key, _ := cmd.Flags().GetString("key")
 	label, _ := cmd.Flags().GetString("label")
-	params := types.ReqWalletImportPrivKey{
+	params := types.ReqWalletImportPrivkey{
 		Privkey: key,
 		Label:   label,
 	}
