@@ -28,6 +28,7 @@ var (
 
 func init() {
 	drivers.Reg("tendermint", New)
+	drivers.QueryData.Register("tendermint", &TendermintClient{})
 }
 
 type TendermintClient struct {

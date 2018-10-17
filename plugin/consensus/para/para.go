@@ -47,6 +47,7 @@ var (
 
 func init() {
 	drivers.Reg("para", New)
+	drivers.QueryData.Register("para", &ParaClient{})
 }
 
 type ParaClient struct {

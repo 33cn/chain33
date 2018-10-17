@@ -128,11 +128,11 @@ func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, que
 // 获取票的列表
 func getTicketList(qApi client.QueueProtocolAPI) (types.Message, error) {
 	reqaddr := &ty.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1}
-	var req types.Query
-	req.Execer = []byte("ticket")
+	var req types.ChainExecutor
+	req.Driver = "ticket"
 	req.FuncName = "TicketList"
-	req.Payload = types.Encode(reqaddr)
-	msg, err := qApi.Query(&req)
+	req.Param = types.Encode(reqaddr)
+	msg, err := qApi.QueryChain(&req)
 	return msg, err
 }
 
@@ -181,7 +181,7 @@ func newWalletRealize(qApi client.QueueProtocolAPI, w *wallet.Wallet, cs *Client
 	}
 
 	for i, priv := range strPrivs {
-		privkey := &types.ReqWalletImportPrivKey{priv, fmt.Sprintf("label%d", i)}
+		privkey := &types.ReqWalletImportPrivkey{priv, fmt.Sprintf("label%d", i)}
 		_, err = w.ProcImportPrivKey(privkey)
 		if err != nil {
 			panic(err)

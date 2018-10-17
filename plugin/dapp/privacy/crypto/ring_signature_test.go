@@ -9,6 +9,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -350,7 +351,7 @@ func TestRingSignatere2(t *testing.T) {
 
 func TestGenerateRingSignatureAPI(t *testing.T) {
 	const maxCount = 10
-	var utxos []*types.UTXOBasic
+	var utxos []*privacytypes.UTXOBasic
 	var keyImage []byte
 	var sec [64]byte
 
@@ -367,9 +368,9 @@ func TestGenerateRingSignatureAPI(t *testing.T) {
 
 	realUtxoIndex := rand.Int() % maxCount
 	prefix_hash, _ := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
-	utxos = make([]*types.UTXOBasic, maxCount)
+	utxos = make([]*privacytypes.UTXOBasic, maxCount)
 	for i := 0; i < maxCount; i++ {
-		utxo := types.UTXOBasic{}
+		utxo := privacytypes.UTXOBasic{}
 		utxos[i] = &utxo
 		utxo.OnetimePubkey = append(utxo.OnetimePubkey[:], pubs_byte[i]...)
 		if i == realUtxoIndex {

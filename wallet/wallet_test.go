@@ -168,14 +168,7 @@ func TestWallet(t *testing.T) {
 	testProcWalletLock(t, wallet)
 
 	testProcWalletAddBlock(t, wallet)
-
-	testAutoMining(t, wallet)
-
-	testGetTickets(t, wallet)
-
 	testSignRawTx(t, wallet)
-
-	testCloseTickets(t, wallet)
 	testsetFatalFailure(t, wallet)
 	testgetFatalFailure(t, wallet)
 }
@@ -193,7 +186,8 @@ func testSeed(t *testing.T, wallet *Wallet) {
 	saveSeedByPw := &types.SaveSeedByPw{Seed: "", Passwd: ""}
 	msgSaveEmpty := wallet.client.NewMessage("wallet", types.EventSaveSeed, saveSeedByPw)
 	wallet.client.Send(msgSaveEmpty, true)
-	resp, _ := wallet.client.Wait(msgSaveEmpty)
+	resp, err := wallet.client.Wait(msgSaveEmpty)
+	assert.Nil(t, err)
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrInputPara.Error() {
 		t.Error("test input empty seed failed")
 	}
@@ -671,53 +665,6 @@ func testProcWalletAddBlock(t *testing.T, wallet *Wallet) {
 	err = wallet.client.Send(msgDel, false)
 	require.NoError(t, err)
 	println("TestProcWalletAddBlock & TestProcWalletDelBlock end")
-	println("--------------------------")
-}
-
-// Automining
-func testAutoMining(t *testing.T, wallet *Wallet) {
-	println("TestAutoMining begin")
-	_, err := wallet.execWallet(&types.WalletExecutor{
-		Driver:   "ticket",
-		FuncName: "WalletAutoMiner",
-		Param:    types.Encode(&types.MinerFlag{Flag: 1}),
-	})
-	require.NoError(t, err)
-	println("Sleep 10 second for mining")
-	time.Sleep(time.Second * 10)
-	_, err = wallet.execWallet(&types.WalletExecutor{
-		Driver:   "ticket",
-		FuncName: "WalletAutoMiner",
-		Param:    types.Encode(&types.MinerFlag{Flag: 0}),
-	})
-	require.NoError(t, err)
-	println("TestAutoMining end")
-	println("--------------------------")
-}
-
-// GetTickets
-func testGetTickets(t *testing.T, wallet *Wallet) {
-	println("TestGetTickets begin")
-	_, err := wallet.execWallet(&types.WalletExecutor{
-		Driver:   "ticket",
-		FuncName: "WalletGetTickets",
-		Param:    nil,
-	})
-	require.NoError(t, err)
-	println("TestGetTickets end")
-	println("--------------------------")
-}
-
-// CloseTickets
-func testCloseTickets(t *testing.T, wallet *Wallet) {
-	println("TestCloseTickets begin")
-	_, err := wallet.execWallet(&types.WalletExecutor{
-		Driver:   "ticket",
-		FuncName: "CloseTickets",
-		Param:    nil,
-	})
-	require.NoError(t, err)
-	println("TestCloseTickets end")
 	println("--------------------------")
 }
 
