@@ -109,36 +109,6 @@ func TestMinerBind(t *testing.T) {
 	}
 }
 
-/*
-func TestAutoClose(t *testing.T) {
-	//取出已经miner的列表
-	addr := address.PubKeyToAddress(privMiner.PubKey().Bytes()).String()
-	t.Log(addr)
-	tlist, err := getMineredTicketList(addr, 2)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	now := types.Now().Unix()
-	var ids []string
-	for i := 0; i < len(tlist); i++ {
-		if now-tlist[i].CreateTime > types.TicketWithdrawTime {
-			ids = append(ids, tlist[i].TicketId)
-		}
-	}
-	if len(ids) > 0 {
-		for i := 0; i < len(ids); i++ {
-			t.Log("close ticket", i, ids[i])
-		}
-		err := closeTickets(privMiner, ids)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-	}
-}
-*/
-
 func openticket(mineraddr, returnaddr string, priv crypto.PrivKey) error {
 	ta := &tickettypes.TicketAction{}
 	topen := &tickettypes.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: 1}
@@ -179,10 +149,10 @@ func closeTickets(priv crypto.PrivKey, ids []string) error {
 //通rpc 进行query
 func getMineredTicketList(addr string, status int32) ([]*tickettypes.Ticket, error) {
 	reqaddr := &tickettypes.TicketList{addr, status}
-	var req types.Query
-	req.Execer = []byte("ticket")
+	var req types.ChainExecutor
+	req.Driver = "ticket"
 	req.FuncName = "TicketList"
-	req.Payload = types.Encode(reqaddr)
+	req.Param = types.Encode(reqaddr)
 	c := types.NewChain33Client(conn)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -284,10 +254,10 @@ func sendTransactionWait(payload types.Message, execer []byte, priv crypto.PrivK
 
 func getMinerSourceList(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
-	var req types.Query
-	req.Execer = []byte("ticket")
+	var req types.ChainExecutor
+	req.Driver = "ticket"
 	req.FuncName = "MinerSourceList"
-	req.Payload = types.Encode(reqaddr)
+	req.Param = types.Encode(reqaddr)
 
 	c := types.NewChain33Client(conn)
 	reply, err := c.QueryChain(context.Background(), &req)
@@ -332,8 +302,8 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 }
 
 func setAutoMining(flag int32) (err error) {
-	req := &types.MinerFlag{Flag: flag}
-	c := types.NewChain33Client(conn)
+	req := &tickettypes.MinerFlag{Flag: flag}
+	c := tickettypes.NewTicketClient(conn)
 	reply, err := c.SetAutoMining(context.Background(), req)
 	if err != nil {
 		return err
