@@ -24,6 +24,7 @@ type QueueProtocolAPI interface {
 	// types.EventBlockChainQuery
 	Query(driver, funcname string, param types.Message) (types.Message, error)
 	QueryConsensus(param *types.ChainExecutor) (types.Message, error)
+	QueryConsensusFunc(driver string, funcname string, param types.Message) (types.Message, error)
 	QueryChain(param *types.ChainExecutor) (types.Message, error)
 	ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error)
 	ExecWallet(param *types.ChainExecutor) (types.Message, error)
@@ -72,8 +73,6 @@ type QueueProtocolAPI interface {
 	GetWalletStatus() (*types.WalletStatus, error)
 	// types.EventDumpPrivkey
 	DumpPrivkey(param *types.ReqString) (*types.ReplyString, error)
-	// types.EventCloseTickets
-	CloseTickets() (*types.ReplyHashes, error)
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)

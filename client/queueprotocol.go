@@ -593,6 +593,16 @@ func (q *QueueProtocol) ExecWalletFunc(driver string, funcname string, param typ
 	return q.ExecWallet(query)
 }
 
+func (q *QueueProtocol) QueryConsensusFunc(driver string, funcname string, param types.Message) (types.Message, error) {
+	if types.IsNilP(param) {
+		err := types.ErrInvalidParams
+		log.Error("QueryConsensusFunc", "Error", err)
+		return nil, err
+	}
+	query := &types.ChainExecutor{Driver: driver, FuncName: funcname, Param: types.Encode(param)}
+	return q.QueryConsensus(query)
+}
+
 func (q *QueueProtocol) ExecWallet(param *types.ChainExecutor) (types.Message, error) {
 	if param == nil {
 		err := types.ErrInvalidParams
@@ -622,18 +632,6 @@ func (q *QueueProtocol) DumpPrivkey(param *types.ReqString) (*types.ReplyString,
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.ReplyString); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) CloseTickets() (*types.ReplyHashes, error) {
-	msg, err := q.query(walletKey, types.EventCloseTickets, &types.ReqNil{})
-	if err != nil {
-		log.Error("CloseTickets", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.ReplyHashes); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
