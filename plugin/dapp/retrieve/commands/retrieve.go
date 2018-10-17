@@ -4,10 +4,17 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/rpc"
+	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
+
+type RetrieveResult struct {
+	DelayPeriod int64 `json:"delayPeriod"`
+	//RemainTime  int64  `json:"remainTime"`
+	Status string `json:"status"`
+}
 
 func RetrieveCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -62,13 +69,13 @@ func backupCmd(cmd *cobra.Command, args []string) {
 		delay = 60
 	}
 	feeInt64 := int64(fee*types.InputPrecision) * types.Multiple1E4
-	params := retrievetype.RetrieveBackupTx{
+	params := rpc.RetrieveBackupTx{
 		BackupAddr:  backup,
 		DefaultAddr: defaultAddr,
 		DelayPeriod: delay,
 		Fee:         feeInt64,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveBackupTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Retrieve.CreateRawRetrieveBackupTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -100,12 +107,12 @@ func prepareCmd(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee*types.InputPrecision) * types.Multiple1E4
-	params := retrievetype.RetrievePrepareTx{
+	params := rpc.RetrievePrepareTx{
 		BackupAddr:  backup,
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePrepareTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Retrieve.CreateRawRetrievePrepareTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -127,12 +134,12 @@ func performCmd(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee*types.InputPrecision) * types.Multiple1E4
-	params := retrievetype.RetrievePerformTx{
+	params := rpc.RetrievePerformTx{
 		BackupAddr:  backup,
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePerformTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Retrieve.CreateRawRetrievePerformTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -154,12 +161,12 @@ func cancelCmd(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee*types.InputPrecision) * types.Multiple1E4
-	params := retrievetype.RetrieveCancelTx{
+	params := rpc.RetrieveCancelTx{
 		BackupAddr:  backup,
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveCancelTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Retrieve.CreateRawRetrieveCancelTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -182,19 +189,19 @@ func addQueryRetrieveCmdFlags(cmd *cobra.Command) {
 }
 
 func parseRerieveDetail(arg interface{}) (interface{}, error) {
-	res := arg.(*retrievetype.RetrieveQuery)
+	res := arg.(*rt.RetrieveQuery)
 
 	result := RetrieveResult{
 		DelayPeriod: res.DelayPeriod,
 	}
 	switch res.Status {
-	case RetrieveBackup:
+	case rt.RetrieveBackup:
 		result.Status = "backup"
-	case RetrievePreapred:
+	case rt.RetrievePreapre:
 		result.Status = "prepared"
-	case RetrievePerformed:
+	case rt.RetrievePerform:
 		result.Status = "performed"
-	case RetrieveCanceled:
+	case rt.RetrieveCancel:
 		result.Status = "canceled"
 	default:
 		result.Status = "unknown"
@@ -208,7 +215,7 @@ func queryRetrieveCmd(cmd *cobra.Command, args []string) {
 	backup, _ := cmd.Flags().GetString("backup")
 	defaultAddr, _ := cmd.Flags().GetString("default")
 
-	req := &retrievetype.ReqRetrieveInfo{
+	req := &rt.ReqRetrieveInfo{
 		BackupAddress:  backup,
 		DefaultAddress: defaultAddr,
 	}
@@ -218,8 +225,8 @@ func queryRetrieveCmd(cmd *cobra.Command, args []string) {
 	params.FuncName = "GetRetrieveInfo"
 	params.Payload = req
 
-	var res retrievetype.RetrieveQuery
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	var res rt.RetrieveQuery
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseRerieveDetail)
 	ctx.Run()
 }
