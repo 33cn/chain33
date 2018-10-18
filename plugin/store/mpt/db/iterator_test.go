@@ -177,7 +177,7 @@ func TestNodeIteratorCoverage(t *testing.T) {
 		}
 	}
 
-	iter := db.db.(*dbm.GoMemDB).Iterator(nil, false)
+	iter := db.db.(*dbm.GoMemDB).Iterator(nil, nil,false)
 	for iter.Rewind(); iter.Valid(); iter.Next() {
 		if _, ok := hashes[common.BytesToHash(iter.Key())]; !ok {
 			t.Errorf("state entry not reported %x", iter.Key())
@@ -385,7 +385,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 	if memonly {
 		memKeys = triedb.Nodes()
 	} else {
-		iter := diskdb.Iterator(nil, false)
+		iter := diskdb.Iterator(nil, nil,false)
 		for iter.Rewind(); iter.Valid(); iter.Next() {
 			diskKeys = append(diskKeys, iter.Key())
 		}
