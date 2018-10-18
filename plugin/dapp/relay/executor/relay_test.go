@@ -303,8 +303,7 @@ func (s *suiteRelay) TestExec_9_QryStatus1() {
 	var OrderIds [][]byte
 	OrderIds = append(OrderIds, []byte(s.orderId))
 	s.kvdb.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(OrderIds, nil).Once()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetRelayOrderByStatus", param)
+	msg, err := s.relay.Query_GetRelayOrderByStatus(addrCoins)
 	s.Nil(err)
 	//s.T().Log(msg.String())
 	s.Contains(msg.String(), "status:finished")
@@ -321,8 +320,7 @@ func (s *suiteRelay) TestExec_9_QryStatus2() {
 	var OrderIds [][]byte
 	OrderIds = append(OrderIds, []byte(s.orderId))
 	s.kvdb.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(OrderIds, nil).Once()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetSellRelayOrder", param)
+	msg, err := s.relay.Query_GetSellRelayOrder(addrCoins)
 	s.Nil(err)
 	s.Contains(msg.String(), "status:finished")
 }
@@ -337,8 +335,7 @@ func (s *suiteRelay) TestExec_9_QryStatus3() {
 	var OrderIds [][]byte
 	OrderIds = append(OrderIds, []byte(s.orderId))
 	s.kvdb.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(OrderIds, nil).Once()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetBuyRelayOrder", param)
+	msg, err := s.relay.Query_GetBuyRelayOrder(addrCoins)
 	s.Nil(err)
 	s.Contains(msg.String(), "status:finished")
 }
@@ -353,8 +350,7 @@ func (s *suiteRelay) TestExec_9_QryStatus4() {
 	var OrderIds [][]byte
 	OrderIds = append(OrderIds, []byte(s.orderId))
 	s.kvdb.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(OrderIds, nil).Once()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetBTCHeaderList", param)
+	msg, err := s.relay.Query_GetBTCHeaderList(addrCoins)
 	s.Nil(err)
 	//s.T().Log(msg)
 	s.Contains(msg.String(), "heights:-1")
@@ -367,8 +363,7 @@ func (s *suiteRelay) TestExec_9_QryStatus5() {
 
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Twice()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetBTCHeaderCurHeight", param)
+	msg, err := s.relay.Query_GetBTCHeaderCurHeight(addrCoins)
 	s.Nil(err)
 	//s.T().Log(msg)
 	s.Contains(msg.String(), "curHeight:10 baseHeight:10")
