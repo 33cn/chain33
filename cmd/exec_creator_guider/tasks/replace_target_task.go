@@ -2,10 +2,11 @@ package tasks
 
 import (
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gitlab.33.cn/chain33/chain33/authority/utils"
 )
 
 // ReplaceTargetTask 替换指定目录下所有文件的标志性文字
@@ -44,15 +45,14 @@ func (this *ReplaceTargetTask) Execute() error {
 	return err
 }
 
-
 func (this *ReplaceTargetTask) replaceTarget(file string) error {
-	replacePairs := []struct{
+	replacePairs := []struct {
 		src string
 		dst string
 	}{
-		{src:"${PROJECTNAME}", dst:this.ProjectName},
-		{src:"${CLASSNAME}", dst:this.ClassName},
-		{src:"${ACTIONNAME}", dst:this.ActionName},
+		{src: "${PROJECTNAME}", dst: this.ProjectName},
+		{src: "${CLASSNAME}", dst: this.ClassName},
+		{src: "${ACTIONNAME}", dst: this.ActionName},
 	}
 	bcontent, err := utils.ReadFile(file)
 	if err != nil {

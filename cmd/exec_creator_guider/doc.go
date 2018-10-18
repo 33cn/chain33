@@ -1,4 +1,5 @@
 package main
+
 /*
 本工程主要时辅助用户创建执行器工程的辅助工具，用户可以选择使用简单模式或高级模式来完成对应的创建要求。
 
@@ -15,4 +16,4 @@ ecg advance -n ProjectName -a ActionName -p ProtobufFile -t TemplateFilePath
 	文件名替换的标签是 ${CLASSNAME}
 	文件内容替换的标签是 ${PROJECTNAME} ${CLASSNAME} ${ACTIONNAME}
 4. 程序运行时，会先将模板内的文件复制到当前运行目录下 output/ProjectName 文件夹内，然后替换所有标签。
- */
+*/
