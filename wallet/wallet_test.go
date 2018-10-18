@@ -14,7 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 
 	// "gitlab.33.cn/chain33/chain33/common/log"
-	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
+
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -105,7 +105,7 @@ func blockchainModProc(q queue.Queue) {
 		for msg := range client.Recv() {
 			walletlog.Error("execs", "msg.Ty", msg.Ty)
 			if msg.Ty == types.EventBlockChainQuery {
-				msg.Reply(client.NewMessage("", types.EventReplyQuery, &tickettypes.ReplyTicketList{Tickets: []*tickettypes.Ticket{{TicketId: "ticketID"}}}))
+				msg.Reply(client.NewMessage("", types.EventReplyQuery, types.ErrActionNotSupport))
 			}
 		}
 	}()
@@ -115,7 +115,7 @@ func blockchainModProc(q queue.Queue) {
 		for msg := range client.Recv() {
 			walletlog.Error("execs", "msg.Ty", msg.Ty)
 			if msg.Ty == types.EventConsensusQuery {
-				msg.Reply(client.NewMessage("", types.EventReplyQuery, &tickettypes.ReplyTicketList{Tickets: []*tickettypes.Ticket{{TicketId: "ticketID"}}}))
+				msg.Reply(client.NewMessage("", types.EventReplyQuery, types.ErrActionNotSupport))
 			}
 		}
 	}()
@@ -649,10 +649,7 @@ func testProcWalletLock(t *testing.T, wallet *Wallet) {
 // ProcWalletAddBlock
 func testProcWalletAddBlock(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletAddBlock & TestProcWalletDelBlock begin")
-	action := &tickettypes.TicketAction{Ty: tickettypes.TicketActionMiner}
-	miner := &tickettypes.TicketAction_Miner{Miner: &tickettypes.TicketMiner{Reward: 18}}
-	action.Value = miner
-	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
+	tx := &types.Transaction{Execer: []byte(types.NoneX)}
 	blk := &types.Block{
 		Version:    1,
 		ParentHash: []byte("parent hash"),
