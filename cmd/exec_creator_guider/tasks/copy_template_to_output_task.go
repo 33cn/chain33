@@ -2,10 +2,11 @@ package tasks
 
 import (
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/util"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 type CopyTemplateToOutputTask struct {

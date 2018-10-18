@@ -2,11 +2,25 @@ package tasks
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/authority/utils"
+)
+
+var (
+	execFnFmt = `func (c *%s) Exec_%s(payload *ptypes.%s, tx *types.Transaction, index int) (*types.Receipt, error) {
+	return nil
+}`
+	fileTitleFmt = `package executor
+import (
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/%s/ptypes"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
+	"gitlab.33.cn/chain33/chain33/types"
+)
+`
 )
 
 type actionInfoItem struct {
@@ -28,6 +42,15 @@ type CreateBuildAppSourceTask struct {
 func (this *CreateBuildAppSourceTask) Execute() error {
 	mlog.Info("Execute create build app source task.")
 	if err := this.readActionMemberNames(); err != nil {
+		return err
+	}
+	if err := this.createExecFile(); err != nil {
+		return err
+	}
+	if err := this.createExecLocalFile(); err != nil {
+		return err
+	}
+	if err := this.createExecDelLocalFile(); err != nil {
 		return err
 	}
 	return nil
@@ -76,5 +99,19 @@ func (this *CreateBuildAppSourceTask) readActionMemberNames() error {
 	if len(this.actionInfos) == 0 {
 		return errors.New(fmt.Sprintf("Can Not Find %s Member Info", this.ActionName))
 	}
+	return nil
+}
+
+func (this *CreateBuildAppSourceTask) createExecFile() error {
+
+	fmt.Println(fmtTemp)
+	return nil
+}
+
+func (this *CreateBuildAppSourceTask) createExecLocalFile() error {
+	return nil
+}
+
+func (this *CreateBuildAppSourceTask) createExecDelLocalFile() error {
 	return nil
 }

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/cmd/exec_creator_guider/patterns"
 )
