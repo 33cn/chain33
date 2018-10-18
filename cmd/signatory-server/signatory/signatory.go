@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -21,7 +22,7 @@ type Signatory struct {
 
 func (*Signatory) Echo(in *string, out *interface{}) error {
 	if in == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	*out = *in
 	return nil
@@ -35,15 +36,15 @@ type TokenFinish struct {
 
 func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error {
 	if in == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	if len(in.OwnerAddr) == 0 || len(in.Symbol) == 0 {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
-	v := &types.TokenFinishCreate{Symbol: in.Symbol, Owner: in.OwnerAddr}
-	finish := &types.TokenAction{
-		Ty:    types.TokenActionFinishCreate,
-		Value: &types.TokenAction_Tokenfinishcreate{v},
+	v := &tokenty.TokenFinishCreate{Symbol: in.Symbol, Owner: in.OwnerAddr}
+	finish := &tokenty.TokenAction{
+		Ty:    tokenty.TokenActionFinishCreate,
+		Value: &tokenty.TokenAction_Tokenfinishcreate{v},
 	}
 
 	tx := &types.Transaction{
@@ -70,10 +71,10 @@ func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error
 
 func (signatory *Signatory) SignTransfer(in *string, out *interface{}) error {
 	if in == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	if len(*in) == 0 {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 
 	amount := 1 * types.Coin
@@ -112,7 +113,7 @@ func (signatory *Signatory) SignTransfer(in *string, out *interface{}) error {
 
 func signTx(tx *types.Transaction, hexPrivKey string) error {
 	signType := types.SECP256K1
-	c, err := crypto.New(types.GetSignatureTypeName(signType))
+	c, err := crypto.New(types.GetSignName(signType))
 
 	bytes, err := common.FromHex(hexPrivKey)
 	if err != nil {

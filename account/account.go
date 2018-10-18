@@ -17,6 +17,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -137,10 +139,6 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 	acc.SaveAccount(acc1)
 	ty := int32(types.TyLogDeposit)
 	ty = types.TyLogDeposit
-	//token的log做了特殊处理，其他执行器不必如此
-	if acc.execer == types.TokenX {
-		ty = types.TyLogTokenDeposit
-	}
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(receiptBalance),
@@ -155,10 +153,6 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 
 func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogTransfer)
-	//token的log做了特殊处理，其他执行器不必如此
-	if acc.execer == types.TokenX {
-		ty = types.TyLogTokenTransfer
-	}
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(receiptFrom),
@@ -264,4 +258,57 @@ func (acc *DB) LoadAccountsHistory(api client.QueueProtocolAPI, addrs []string, 
 		}
 	}
 	return accs, nil
+}
+
+func (accountdb *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]*types.Account, error) {
+	switch in.GetExecer() {
+	case types.ExecName(types.CoinsX):
+		addrs := in.GetAddresses()
+		var exaddrs []string
+		for _, addr := range addrs {
+			if err := address.CheckAddress(addr); err != nil {
+				addr = address.ExecAddress(addr)
+			}
+			exaddrs = append(exaddrs, addr)
+		}
+		var accounts []*types.Account
+		var err error
+		if len(in.StateHash) == 0 {
+			accounts, err = accountdb.LoadAccounts(api, exaddrs)
+		} else {
+			hash, err := common.FromHex(in.StateHash)
+			if err != nil {
+				return nil, err
+			}
+			accounts, err = accountdb.LoadAccountsHistory(api, exaddrs, hash)
+		}
+		if err != nil {
+			log.Error("GetBalance", "err", err.Error())
+			return nil, err
+		}
+		return accounts, nil
+	default:
+		execaddress := address.ExecAddress(in.GetExecer())
+		addrs := in.GetAddresses()
+		var accounts []*types.Account
+		for _, addr := range addrs {
+			var acc *types.Account
+			var err error
+			if len(in.StateHash) == 0 {
+				acc, err = accountdb.LoadExecAccountQueue(api, addr, execaddress)
+			} else {
+				hash, err := common.FromHex(in.StateHash)
+				if err != nil {
+					return nil, err
+				}
+				acc, err = accountdb.LoadExecAccountHistoryQueue(api, addr, execaddress, hash)
+			}
+			if err != nil {
+				log.Error("GetBalance", "err", err.Error())
+				continue
+			}
+			accounts = append(accounts, acc)
+		}
+		return accounts, nil
+	}
 }

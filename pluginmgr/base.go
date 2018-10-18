@@ -2,12 +2,13 @@ package pluginmgr
 
 import (
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
 type PluginBase struct {
 	Name     string
 	ExecName string
-	RPC      func(s RPCServer)
+	RPC      func(name string, s types.RPCServer)
 	Exec     func(name string)
 	Cmd      func() *cobra.Command
 }
@@ -34,8 +35,8 @@ func (p *PluginBase) AddCmd(rootCmd *cobra.Command) {
 	}
 }
 
-func (p *PluginBase) AddRPC(c RPCServer) {
+func (p *PluginBase) AddRPC(c types.RPCServer) {
 	if p.RPC != nil {
-		p.RPC(c)
+		p.RPC(p.GetExecutorName(), c)
 	}
 }

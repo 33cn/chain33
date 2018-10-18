@@ -4,33 +4,23 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	funcMap         = queue.NewFuncMap()
-	PolicyContainer = map[string]WalletBizPolicy{}
+	QueryData       = types.NewQueryData("On_")
+	PolicyContainer = make(map[string]WalletBizPolicy)
 )
 
-func RegisterPolicy(key string, policy WalletBizPolicy) error {
+func RegisterPolicy(key string, policy WalletBizPolicy) {
 	if _, existed := PolicyContainer[key]; existed {
-		return errors.New("PolicyTypeExisted")
+		panic("RegisterPolicy dup")
 	}
 	PolicyContainer[key] = policy
-	return nil
-}
-
-func RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback) {
-	funcMap.Register(msgid, fn)
-}
-
-func ProcessFuncMap(msg *queue.Message) (bool, string, int64, interface{}, error) {
-	return funcMap.Process(msg)
+	QueryData.Register(key, policy)
 }
 
 // WalletOperate 钱包对业务插件提供服务的操作接口

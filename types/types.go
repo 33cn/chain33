@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -219,7 +220,7 @@ func GetEventName(event int) string {
 	return "unknow-event"
 }
 
-func GetSignatureTypeName(signType int) string {
+func GetSignName(signType int) string {
 	if name, exist := MapSignType2name[signType]; exist {
 		return name
 	}
@@ -326,49 +327,6 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	return false
 }
 
-func (action *PrivacyAction) GetInput() *PrivacyInput {
-	if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetInput()
-
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetInput()
-	}
-	return nil
-}
-
-func (action *PrivacyAction) GetOutput() *PrivacyOutput {
-	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return action.GetPublic2Privacy().GetOutput()
-	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetOutput()
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetOutput()
-	}
-	return nil
-}
-
-func (action *PrivacyAction) GetActionName() string {
-	if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return "Privacy2Privacy"
-	} else if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return "Public2Privacy"
-	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return "Privacy2Public"
-	}
-	return "unknow-privacy"
-}
-
-func (action *PrivacyAction) GetTokenName() string {
-	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return action.GetPublic2Privacy().GetTokenname()
-	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetTokenname()
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetTokenname()
-	}
-	return ""
-}
-
 // GetTxTimeInterval 获取交易有效期
 func GetTxTimeInterval() time.Duration {
 	return time.Second * 120
@@ -381,4 +339,22 @@ type ParaCrossTx interface {
 func PBToJson(r Message) (string, error) {
 	encode := &jsonpb.Marshaler{EmitDefaults: true}
 	return encode.MarshalToString(r)
+}
+
+//判断所有的空值
+func IsNil(a interface{}) bool {
+	defer func() { recover() }()
+	return a == nil || reflect.ValueOf(a).IsNil()
+}
+
+//空指针或者接口
+func IsNilP(a interface{}) bool {
+	if a == nil {
+		return true
+	}
+	v := reflect.ValueOf(a)
+	if v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
+		return v.IsNil()
+	}
+	return false
 }

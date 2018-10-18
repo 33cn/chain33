@@ -91,7 +91,6 @@ func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error
 	return &counts, nil
 }
 
-//todo: add 解析query 的变量, 并且调用query 并返回
 func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, err error) {
 	funcmap := d.child.GetFuncMap()
 	funcname = "Query_" + funcname
@@ -115,32 +114,8 @@ func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, e
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		blog.Error(funcname + " in param is not proto.Message")
-		return nil, types.ErrActionNotSupport
+		return types.CallQueryFunc(d.childValue, funcmap[funcname], in)
 	}
-	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, reflect.ValueOf(queryin)})
-	if len(valueret) != 2 {
-		return nil, types.ErrMethodReturnType
-	}
-	//参数1
-	r1 := valueret[0].Interface()
-	if r1 != nil {
-		if r, ok := r1.(proto.Message); ok {
-			msg = r
-		} else {
-			return nil, types.ErrMethodReturnType
-		}
-	}
-	//参数2
-	r2 := valueret[1].Interface()
-	err = nil
-	if r2 != nil {
-		if r, ok := r2.(error); ok {
-			err = r
-		} else {
-			return nil, types.ErrMethodReturnType
-		}
-	}
-	return msg, err
+	blog.Error(funcname + " in param is not proto.Message")
+	return nil, types.ErrActionNotSupport
 }

@@ -27,7 +27,6 @@ import (
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	ety "gitlab.33.cn/chain33/chain33/types/executor"
 	"gitlab.33.cn/chain33/chain33/util"
 
 	"net/http"
@@ -53,7 +52,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ety.Init()
 	pluginmgr.InitExec()
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	genkey = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
@@ -61,7 +59,7 @@ func init() {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -128,7 +126,7 @@ func createTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}

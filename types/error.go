@@ -63,7 +63,7 @@ var (
 	ErrRetrieveRelation        = errors.New("ErrRetrieveRelation")
 	ErrRetrieveNoBalance       = errors.New("ErrRetrieveNoBalance")
 	ErrLogType                 = errors.New("ErrLogType")
-	ErrInvalidParam            = errors.New("ErrInvalidParameters")
+	ErrInvalidParam            = errors.New("ErrInvalidParam")
 	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
 	ErrStateHashLost           = errors.New("ErrStateHashLost")
 	//err for token
@@ -172,7 +172,6 @@ var (
 	ErrRecoverUTXO            = errors.New("ErrRecoverUTXO")
 	ErrPeerInfoIsNil          = errors.New("ErrPeerInfoIsNil")
 	//wallet
-	ErrInputPara            = errors.New("ErrInputPara")
 	ErrWalletIsLocked       = errors.New("ErrWalletIsLocked")
 	ErrSaveSeedFirst        = errors.New("ErrSaveSeedFirst")
 	ErrUnLockFirst          = errors.New("ErrUnLockFirst")
@@ -240,7 +239,6 @@ var (
 	ErrIndex                      = errors.New("ErrIndex")
 	// ring signature
 	ErrGeFromBytesVartime = errors.New("ErrGeFromBytesVartime")
-	ErrInvalidParams      = errors.New("ErrInvalidParams")
 	ErrNotAllowPubkey     = errors.New("ErrNotAllowPubkey")
 
 	ErrRelayBalanceNotEnough   = errors.New("ErrRelaySellBalanceNotEnough")
