@@ -1,6 +1,10 @@
 package commands
 
-import rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+import (
+	"encoding/json"
+
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+)
 
 type AccountsResult struct {
 	Wallets []*WalletResult `json:"wallets"`
@@ -53,10 +57,10 @@ type ReceiptData struct {
 }
 
 type ReceiptLog struct {
-	Ty     int32  `json:"ty"`
-	TyName string `json:"tyname"`
-	Log    string `json:"log"`
-	RawLog string `json:"rawlog"`
+	Ty     int32           `json:"ty"`
+	TyName string          `json:"tyname"`
+	Log    json.RawMessage `json:"log"`
+	RawLog string          `json:"rawlog"`
 }
 
 type ReceiptAccountTransfer struct {
