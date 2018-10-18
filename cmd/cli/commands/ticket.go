@@ -96,7 +96,7 @@ func CountTicketCmd() *cobra.Command {
 func countTicket(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res int64
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetTicketCount", nil, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "ticket.GetTicketCount", nil, &res)
 	ctx.Run()
 }
 
@@ -130,7 +130,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	err = rpc.Call("Chain33.CloseTickets", nil, &res)
+	err = rpc.Call("ticket.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
