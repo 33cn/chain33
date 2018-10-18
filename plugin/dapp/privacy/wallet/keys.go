@@ -1,4 +1,4 @@
-package privacy
+package wallet
 
 import "fmt"
 

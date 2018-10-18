@@ -29,7 +29,7 @@ type ShowMinerAccount struct {
 
 func (*ShowMinerAccount) Echo(in *string, out *interface{}) error {
 	if in == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	*out = *in
 	return nil
@@ -44,14 +44,14 @@ type TimeAt struct {
 func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	if in == nil {
 		log.Error("show", "in", "nil")
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	seconds := time.Now().Unix()
 	if len(in.TimeAt) != 0 {
 		tm, err := time.Parse("2006-01-02-15", in.TimeAt)
 		if err != nil {
 			log.Error("show", "in.TimeAt Parse", err)
-			return types.ErrInputPara
+			return types.ErrInvalidParam
 		}
 		seconds = tm.Unix()
 	}
