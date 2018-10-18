@@ -107,7 +107,7 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 			values = nil
 			return
 		}
-		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
+		//println(string(it.Key()))
 		values = append(values, value)
 		i++
 		if i == count {

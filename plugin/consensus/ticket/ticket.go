@@ -28,6 +28,7 @@ var (
 
 func init() {
 	drivers.Reg("ticket", New)
+	drivers.QueryData.Register("ticket", &Client{})
 }
 
 type Client struct {
@@ -152,19 +153,27 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	return ret
 }
 
-func (client *Client) ProcEvent(msg queue.Message) bool {
-	if msg.Ty == types.EventFlushTicket {
-		client.flushTicketMsg(msg)
-	} else if msg.Ty == types.EventGetTicketCount {
-		client.getTicketCountMsg(msg)
-	} else {
-		msg.ReplyErr("Client", types.ErrActionNotSupport)
+func (client *Client) Query_GetTicketCount(req *types.ReqNil) (types.Message, error) {
+	var ret types.Int64
+	ret.Data = client.getTicketCount()
+	return &ret, nil
+}
+
+func (client *Client) Query_FlushTicket(req *types.ReqNil) (types.Message, error) {
+	err := client.flushTicket()
+	if err != nil {
+		return nil, err
 	}
+	return &types.Reply{true, []byte("OK")}, nil
+}
+
+func (client *Client) ProcEvent(msg queue.Message) bool {
+	msg.ReplyErr("Client", types.ErrActionNotSupport)
 	return true
 }
 
 func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		return nil, err
 	}
@@ -172,13 +181,11 @@ func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
 }
 
 func (client *Client) getTickets() ([]*ty.Ticket, []crypto.PrivKey, error) {
-	msg := client.GetQueueClient().NewMessage("wallet", types.EventWalletGetTickets, nil)
-	client.GetQueueClient().Send(msg, true)
-	resp, err := client.GetQueueClient().Wait(msg)
+	resp, err := client.GetAPI().ExecWalletFunc("ticket", "WalletGetTickets", &types.ReqNil{})
 	if err != nil {
 		return nil, nil, err
 	}
-	reply := resp.GetData().(types.Message).(*ty.ReplyWalletTickets)
+	reply := resp.(*ty.ReplyWalletTickets)
 	var keys []crypto.PrivKey
 	for i := 0; i < len(reply.Privkeys); i++ {
 		priv, err := client.privFromBytes(reply.Privkeys[i])
@@ -195,13 +202,6 @@ func (client *Client) getTicketCount() int64 {
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
 	return int64(len(client.tlist.Tickets))
-}
-
-func (client *Client) getTicketCountMsg(msg queue.Message) {
-	//list accounts
-	var ret types.Int64
-	ret.Data = client.getTicketCount()
-	msg.Reply(client.GetQueueClient().NewMessage("", types.EventReplyGetTicketCount, &ret))
 }
 
 func (client *Client) setTicket(tlist *ty.ReplyTicketList, privmap map[string]crypto.PrivKey) {
@@ -226,12 +226,6 @@ func (client *Client) flushTicket() error {
 	}
 	client.setTicket(&ty.ReplyTicketList{tickets}, getPrivMap(privs))
 	return nil
-}
-
-func (client *Client) flushTicketMsg(msg queue.Message) {
-	//list accounts
-	err := client.flushTicket()
-	msg.ReplyErr("FlushTicket", err)
 }
 
 func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {

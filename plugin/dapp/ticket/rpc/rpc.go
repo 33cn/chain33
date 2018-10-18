@@ -1,9 +1,12 @@
 package rpc
 
 import (
+	"encoding/hex"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	context "golang.org/x/net/context"
 )
@@ -42,7 +45,7 @@ func (g *channelClient) CreateBindMiner(ctx context.Context, in *ty.ReqBindMiner
 			return nil, err
 		}
 		if len(balances) == 0 {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		if balances[0].Balance < in.Amount+2*types.Coin {
 			return nil, types.ErrNoBalance
@@ -51,11 +54,61 @@ func (g *channelClient) CreateBindMiner(ctx context.Context, in *ty.ReqBindMiner
 	return bindMiner(in)
 }
 
+func (g *channelClient) SetAutoMining(ctx context.Context, in *ty.MinerFlag) (*types.Reply, error) {
+	data, err := g.ExecWalletFunc(types.TicketX, "WalletAutoMiner", in)
+	return data.(*types.Reply), err
+}
+
+func (g *channelClient) GetTicketCount(ctx context.Context, in *types.ReqNil) (*types.Int64, error) {
+	data, err := g.QueryConsensusFunc(types.TicketX, "GetTicketCount", &types.ReqNil{})
+	return data.(*types.Int64), err
+}
+
+func (g *channelClient) CloseTickets(ctx context.Context, in *types.ReqNil) (*types.ReplyHashes, error) {
+	data, err := g.ExecWalletFunc(types.TicketX, "CloseTickets", &types.ReqNil{})
+	return data.(*types.ReplyHashes), err
+}
+
 func (c *Jrpc) CreateBindMiner(in *ty.ReqBindMiner, result *interface{}) error {
 	reply, err := c.cli.CreateBindMiner(context.Background(), in)
 	if err != nil {
 		return err
 	}
+	*result = reply
+	return nil
+}
+
+func (c *Jrpc) GetTicketCount(in *types.ReqNil, result *int64) error {
+	resp, err := c.cli.GetTicketCount(context.Background(), &types.ReqNil{})
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+
+}
+
+func (c *Jrpc) CloseTickets(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.CloseTickets(context.Background(), &types.ReqNil{})
+	if err != nil {
+		return err
+	}
+	var hashes rpctypes.ReplyHashes
+	for _, has := range resp.Hashes {
+		hashes.Hashes = append(hashes.Hashes, hex.EncodeToString(has))
+	}
+	*result = &hashes
+	return nil
+}
+
+func (c *Jrpc) SetAutoMining(in *ty.MinerFlag, result *rpctypes.Reply) error {
+	resp, err := c.cli.SetAutoMining(context.Background(), in)
+	if err != nil {
+		return err
+	}
+	var reply rpctypes.Reply
+	reply.IsOk = resp.GetIsOk()
+	reply.Msg = string(resp.GetMsg())
 	*result = reply
 	return nil
 }

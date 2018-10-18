@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -219,7 +220,7 @@ func GetEventName(event int) string {
 	return "unknow-event"
 }
 
-func GetSignatureTypeName(signType int) string {
+func GetSignName(signType int) string {
 	if name, exist := MapSignType2name[signType]; exist {
 		return name
 	}
@@ -338,4 +339,22 @@ type ParaCrossTx interface {
 func PBToJson(r Message) (string, error) {
 	encode := &jsonpb.Marshaler{EmitDefaults: true}
 	return encode.MarshalToString(r)
+}
+
+//判断所有的空值
+func IsNil(a interface{}) bool {
+	defer func() { recover() }()
+	return a == nil || reflect.ValueOf(a).IsNil()
+}
+
+//空指针或者接口
+func IsNilP(a interface{}) bool {
+	if a == nil {
+		return true
+	}
+	v := reflect.ValueOf(a)
+	if v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
+		return v.IsNil()
+	}
+	return false
 }
