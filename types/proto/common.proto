@@ -64,10 +64,3 @@ message TimeStatus {
 message ReqKey {
     bytes key = 1;
 }
-
-message PrunData {
-    // 对应keyHash下的区块高度
-    int64 height = 1;
-    // hash+prefix的长度
-    int32 lenth  = 2;
-}

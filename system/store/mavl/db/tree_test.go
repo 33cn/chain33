@@ -790,7 +790,7 @@ func TestPruningTree(t *testing.T) {
 	prevHash := make([]byte, 32)
 
 	EnableMavlPrefix(true)
-	EnablePrun(true)
+	EnablePrune(true)
 	SetPrunBlockHeight(preDel)
 
 	for j := 0; j < round; j++  {
@@ -804,9 +804,9 @@ func TestPruningTree(t *testing.T) {
 		}
 		fmt.Printf("round %d over \n", j)
 	}
-	prunTreePrint(db, []byte(leafKeyCountPrefix))
-	prunTreePrint(db, []byte(hashNodePrefix))
-	prunTreePrint(db, []byte(leafNodePrefix))
+	pruningTreePrint(db, []byte(leafKeyCountPrefix))
+	pruningTreePrint(db, []byte(hashNodePrefix))
+	pruningTreePrint(db, []byte(leafNodePrefix))
 
 //	te := NewTree(db, true)
 //	te.Load(prevHash)
@@ -842,6 +842,53 @@ func saveUpdateBlock(dbm db.DB, height int64, hash []byte, txN int64, vIndex int
 	}
 	newHash = t.Save()
 	return newHash, nil
+}
+
+func TestGethash(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+		{"foo", "foo"},
+		{"foobaz", "foobaz"},
+		{"good", "good"},
+		{"foobang", "foobang"},
+		{"foobar", "foobar"},
+		{"food", "food"},
+		{"foml", "foml"},
+	}
+	keys := make([]string, len(records))
+	for i, r := range records {
+		keys[i] = r.key
+	}
+	sort.Strings(keys)
+
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	hash := tree.Save()
+
+	//var keys [][]byte
+	//
+	//common.FromHex("0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d")
+	//keys = append(keys, )
+
+
+	fmt.Printf("---%v---\n", hash)
 }
 
 func BenchmarkDBSet(b *testing.B) {

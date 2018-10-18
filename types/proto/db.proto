@@ -78,3 +78,20 @@ message StoreGet {
 message StoreReplyValue {
     repeated bytes values = 2;
 }
+
+message PruneData {
+    // 对应keyHash下的区块高度
+    int64 height = 1;
+    // hash+prefix的长度
+    int32 lenth  = 2;
+    // 该叶子节点的roothash
+    bytes rHash  = 3;
+}
+
+message PruneRootNode {
+    // 标记是否对hash节点进行裁剪
+    bool  needPruning = 1;
+    bytes key         = 2;
+    bytes leftHash    = 3;
+    bytes rightHash   = 4;
+}
