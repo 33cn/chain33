@@ -10,6 +10,13 @@ import (
 
 var relaylog = log.New("module", "execs.relay")
 
+var driverName = "relay"
+
+func init() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&relay{}))
+}
+
 func Init(name string) {
 	drivers.Register(GetName(), newRelay, types.ForkV18Relay) //TODO: ForkV18Relay
 }
@@ -25,12 +32,12 @@ type relay struct {
 func newRelay() drivers.Driver {
 	r := &relay{}
 	r.SetChild(r)
-
+	r.SetExecutorType(types.LoadExecutorType(driverName))
 	return r
 }
 
 func (r *relay) GetDriverName() string {
-	return "relay"
+	return driverName
 }
 
 func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
