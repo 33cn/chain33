@@ -18,7 +18,8 @@ var tlog = log.New("module", name)
 func init() {
 	name = GameX
 	// init executor type
-	types.RegistorExecutor(name, &GameType{})
+	types.AllowUserExec = append(types.AllowUserExec, []byte(name))
+	types.RegistorExecutor(name, NewType())
 }
 
 //getRealExecName

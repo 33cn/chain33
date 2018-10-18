@@ -62,7 +62,7 @@ func NewMVCC(db DB) *MVCCHelper {
 
 func (m *MVCCHelper) PrintAll() {
 	println("--meta--")
-	it := m.db.Iterator(mvccMeta, true)
+	it := m.db.Iterator(mvccMeta, nil, true)
 	defer it.Close()
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
@@ -73,7 +73,7 @@ func (m *MVCCHelper) PrintAll() {
 	}
 
 	println("--data--")
-	it = m.db.Iterator(mvccData, true)
+	it = m.db.Iterator(mvccData, nil, true)
 	defer it.Close()
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
@@ -83,7 +83,7 @@ func (m *MVCCHelper) PrintAll() {
 		println(string(it.Key()), string(it.Value()))
 	}
 	println("--last--")
-	it = m.db.Iterator(mvccLast, true)
+	it = m.db.Iterator(mvccLast, nil, true)
 	defer it.Close()
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
@@ -96,7 +96,7 @@ func (m *MVCCHelper) PrintAll() {
 
 //Trash del some old kv
 func (m *MVCCHelper) Trash(version int64) error {
-	it := m.db.Iterator(mvccData, true)
+	it := m.db.Iterator(mvccData, nil, true)
 	defer it.Close()
 	perfixkey := []byte("--.xxx.--")
 	for it.Rewind(); it.Valid(); it.Next() {

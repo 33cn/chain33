@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,15 +58,20 @@ func testDBIterator(t *testing.T, db DB) {
 	t.Log("test Get")
 	v, _ := db.Get([]byte("aaaaaa/1"))
 	require.Equal(t, string(v), "aaaaaa/1")
-
+	//test list:
+	it0 := NewListHelper(db)
+	list0 := it0.List(nil, nil, 100, 1)
+	for _, v = range list0 {
+		t.Log("list0", string(v))
+	}
 	t.Log("test PrefixScan")
 	it := NewListHelper(db)
 	list := it.PrefixScan(nil)
-	/*for _, v = range list {
-		t.Log(string(v))
-	}*/
+	for _, v = range list {
+		t.Log("list:", string(v))
+	}
+	assert.Equal(t, list0, list)
 	require.Equal(t, list, [][]byte{[]byte("aaaaaa/1"), []byte("my"), []byte("my_"), []byte("my_key/1"), []byte("my_key/2"), []byte("my_key/3"), []byte("my_key/4"), []byte("zzzzzz/1"), []byte("0xff")})
-
 	t.Log("test IteratorScanFromFirst")
 	list = it.IteratorScanFromFirst([]byte("my"), 2)
 	/*for _, v = range list {

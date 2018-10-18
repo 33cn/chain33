@@ -649,7 +649,7 @@ func sendQuery(rpcAddr, funcName string, request interface{}, result proto.Messa
 		return false
 	}
 
-	err = jsonrpc.Call("Chain33.Query", params, &result)
+	err = jsonrpc.Call("Chain33.Query", params, result)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return false
