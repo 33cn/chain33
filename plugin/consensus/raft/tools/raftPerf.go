@@ -1,23 +1,24 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
-	"bufio"
-	"io"
-	"strings"
-
+	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	rlog "gitlab.33.cn/chain33/chain33/common/log"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/norm/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
@@ -85,11 +86,11 @@ func main() {
 		NormGet(argsWithoutProg[1])
 		//zzh
 	case "normreadperf":
-		if len(argsWithoutProg) != 5 {
+		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		NormReadPerf(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
+		NormReadPerf(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
 	}
 }
 
@@ -100,7 +101,7 @@ func LoadHelp() {
 	fmt.Println("[ip] normperf [size, num, interval, duration]                    : 常规写数据性能测试")
 	fmt.Println("[ip] normput [privkey, key, value]                               : 常规写数据")
 	fmt.Println("[ip] normget [key]                                               : 常规读数据")
-	fmt.Println("[ip] normreadperf [type, num, interval, duration]                : 常规读数据性能测试")
+	fmt.Println("[ip] normreadperf [num, interval, duration]                      : 常规读数据性能测试")
 }
 
 func TransferPerf(from string, to string, amount string, txNum string, duration string) {
@@ -224,14 +225,7 @@ func NormPerf(size string, num string, interval string, duration string) {
 }
 
 //zzh
-func NormReadPerf(ty string, num string, interval string, duration string) {
-	var readType int
-	readType, err := strconv.Atoi(ty)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
+func NormReadPerf(num string, interval string, duration string) {
 	var numThread int
 	numInt, err := strconv.Atoi(num)
 	if err != nil {
@@ -289,11 +283,7 @@ func NormReadPerf(ty string, num string, interval string, duration string) {
 					index := strings.IndexAny(line, "=")
 					if index > 0 {
 						prefix := []byte(line)[0:index]
-						if readType == 0 {
-							NormGet(string(prefix))
-						} else {
-							NormHas(string(prefix))
-						}
+						NormGet(string(prefix))
 						cnt++
 						totalCount++
 					} else {
@@ -303,11 +293,7 @@ func NormReadPerf(ty string, num string, interval string, duration string) {
 				end := time.Now()
 				result += end.Sub(start).Nanoseconds() / 1000000
 				if cnt > 100 {
-					if readType == 0 {
-						fmt.Println("normal get ", cnt, "times, cost time [ms]:", result)
-					} else {
-						fmt.Println("normal has ", cnt, "times, cost time [ms]:", result)
-					}
+					fmt.Println("normal get ", cnt, "times, cost time [ms]:", result)
 					totalTime += result
 					cnt = 0
 					result = 0
@@ -316,11 +302,7 @@ func NormReadPerf(ty string, num string, interval string, duration string) {
 				sec += intervalInt
 			}
 			totalTime += result
-			if readType == 0 {
-				fmt.Println("perform total get ", totalCount, " times, cost total time [ms]:", totalTime)
-			} else {
-				fmt.Println("perform total has ", totalCount, " times, cost total time [ms]:", totalTime)
-			}
+			fmt.Println("perform total get ", totalCount, " times, cost total time [ms]:", totalTime)
 			ch <- struct{}{}
 		}()
 	}
@@ -340,8 +322,8 @@ func RandStringBytes(n int) string {
 
 func NormPut(privkey string, key string, value string) {
 	fmt.Println(key, "=", value)
-	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
-	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
+	nput := &pty.NormAction_Nput{&pty.NormPut{Key: key, Value: []byte(value)}}
+	action := &pty.NormAction{Value: nput, Ty: pty.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
 	tx.To = address.ExecAddress("norm")
 	tx.Nonce = r.Int63()
@@ -359,10 +341,16 @@ func NormPut(privkey string, key string, value string) {
 }
 
 func NormGet(key string) {
-	var req types.Query
-	req.Execer = []byte("norm")
+	in := &pty.NormGetKey{Key: key}
+	data, err := proto.Marshal(in)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var req types.ChainExecutor
+	req.Driver = "norm"
 	req.FuncName = "NormGet"
-	req.Payload = []byte(key)
+	req.Param = data
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -379,29 +367,8 @@ func NormGet(key string) {
 	//fmt.Println("GetValue =", value)
 }
 
-func NormHas(key string) {
-	var req types.Query
-	req.Execer = []byte("norm")
-	req.FuncName = "NormHas"
-	req.Payload = []byte(key)
-
-	reply, err := c.QueryChain(context.Background(), &req)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	if !reply.IsOk {
-		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
-		return
-	}
-	//the first two byte is not valid
-	//QueryChain() need to change
-	value := string(reply.Msg[2:])
-	fmt.Println("GetValue =", value)
-}
-
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -417,7 +384,7 @@ func getprivkey(key string) crypto.PrivKey {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}

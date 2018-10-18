@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -78,7 +79,7 @@ func createTransfer(cmd *cobra.Command, args []string) {
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false, false, "", "")
+	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false, "", "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -116,7 +117,7 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(cmd, execAddr, amount, note, true, false, "", exec)
+	txHex, err := CreateRawTx(cmd, execAddr, amount, note, true, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -154,7 +155,7 @@ func sendToExec(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(cmd, execAddr, amount, note, false, false, "", exec)
+	txHex, err := CreateRawTx(cmd, execAddr, amount, note, false, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -366,7 +367,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Pubkeypair: pubkeypair,
 		Expire:     expire,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -427,7 +428,7 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 		Mixcount:   defaultPrivacyMixCount,
 		Expire:     expire,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -488,6 +489,6 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 		Mixcount:  defaultPrivacyMixCount,
 		Expire:    expire,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
 }

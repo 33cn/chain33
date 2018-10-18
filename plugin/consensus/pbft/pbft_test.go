@@ -36,7 +36,6 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/init"
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -46,7 +45,6 @@ var (
 )
 
 func init() {
-	executorty.Init()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
@@ -114,7 +112,7 @@ func sendReplyList(q queue.Queue) {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}

@@ -15,7 +15,7 @@ package types
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import types4 "gitlab.33.cn/chain33/chain33/types"
+import types3 "gitlab.33.cn/chain33/chain33/types"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -45,7 +45,7 @@ type isManageAction_Value interface {
 }
 
 type ManageAction_Modify struct {
-	Modify *types4.ModifyConfig `protobuf:"bytes,1,opt,name=modify,oneof"`
+	Modify *types3.ModifyConfig `protobuf:"bytes,1,opt,name=modify,oneof"`
 }
 
 func (*ManageAction_Modify) isManageAction_Value() {}
@@ -57,7 +57,7 @@ func (m *ManageAction) GetValue() isManageAction_Value {
 	return nil
 }
 
-func (m *ManageAction) GetModify() *types4.ModifyConfig {
+func (m *ManageAction) GetModify() *types3.ModifyConfig {
 	if x, ok := m.GetValue().(*ManageAction_Modify); ok {
 		return x.Modify
 	}
@@ -101,7 +101,7 @@ func _ManageAction_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.B
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(types4.ModifyConfig)
+		msg := new(types3.ModifyConfig)
 		err := b.DecodeMessage(msg)
 		m.Value = &ManageAction_Modify{msg}
 		return true, err

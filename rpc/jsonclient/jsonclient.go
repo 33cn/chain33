@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -14,11 +16,23 @@ import (
 var log = log15.New("module", "rpc.jsonclient")
 
 type JSONClient struct {
-	url string
+	url    string
+	prefix string
+}
+
+func addPrefix(prefix, name string) string {
+	if strings.Contains(name, ".") {
+		return name
+	}
+	return prefix + "." + name
 }
 
 func NewJSONClient(url string) (*JSONClient, error) {
-	return &JSONClient{url}, nil
+	return &JSONClient{url: url, prefix: "Chain33"}, nil
+}
+
+func New(prefix, url string) (*JSONClient, error) {
+	return &JSONClient{url: url, prefix: prefix}, nil
 }
 
 type clientRequest struct {
@@ -34,6 +48,7 @@ type clientResponse struct {
 }
 
 func (client *JSONClient) Call(method string, params, resp interface{}) error {
+	method = addPrefix(client.prefix, method)
 	req := &clientRequest{}
 	req.Method = method
 	req.Params[0] = params
@@ -70,6 +85,14 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	if cresp.Result == nil {
 		return types.ErrEmpty
 	} else {
+		if msg, ok := resp.(*proto.Message); ok {
+			var str string
+			err = json.Unmarshal(*cresp.Result, &str)
+			if err != nil {
+				return err
+			}
+			return types.JsonToPB([]byte(str), *msg)
+		}
 		return json.Unmarshal(*cresp.Result, resp)
 	}
 }

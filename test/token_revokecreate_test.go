@@ -10,6 +10,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -24,7 +25,7 @@ import (
 //}
 //第二步，precreate token，预创建token，但是发起token precreate的人不是同一个人，需要是平台创建人
 func TestRevokeCreateToken(t *testing.T) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		t.Error(err)
 		return
@@ -45,11 +46,11 @@ func TestRevokeCreateToken(t *testing.T) {
 	tokenOwner := "1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"
 	t.Log(tokenOwner)
 
-	v := &types.TokenAction_Tokenrevokecreate{&types.TokenRevokeCreate{
+	v := &tokenty.TokenAction_Tokenrevokecreate{&tokenty.TokenRevokeCreate{
 		"ABAB",
 		tokenOwner}}
 
-	tokenPrecreate := &types.TokenAction{v, types.TokenActionRevokeCreate}
+	tokenPrecreate := &tokenty.TokenAction{v, tokenty.TokenActionRevokeCreate}
 
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(tokenPrecreate), Fee: 1e6, Nonce: random.Int63()}

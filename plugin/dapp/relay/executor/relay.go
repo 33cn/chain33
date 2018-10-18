@@ -3,6 +3,7 @@ package executor
 import (
 	log "github.com/inconshreveable/log15"
 
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -33,7 +34,7 @@ func (r *relay) GetDriverName() string {
 }
 
 func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var action types.RelayAction
+	var action ty.RelayAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -41,46 +42,46 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	actiondb := newRelayDB(r, tx)
 	switch action.GetTy() {
-	case types.RelayActionCreate:
+	case ty.RelayActionCreate:
 		if action.GetCreate() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.relayCreate(action.GetCreate())
 
-	case types.RelayActionAccept:
+	case ty.RelayActionAccept:
 		if action.GetAccept() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.accept(action.GetAccept())
 
-	case types.RelayActionRevoke:
+	case ty.RelayActionRevoke:
 		if action.GetRevoke() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.relayRevoke(action.GetRevoke())
 
-	case types.RelayActionConfirmTx:
+	case ty.RelayActionConfirmTx:
 		if action.GetConfirmTx() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.confirmTx(action.GetConfirmTx())
 
-	case types.RelayActionVerifyTx:
+	case ty.RelayActionVerifyTx:
 		if action.GetVerify() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.verifyTx(action.GetVerify())
 
 	// OrderId, rawTx, index sibling, blockhash
-	case types.RelayActionVerifyCmdTx:
+	case ty.RelayActionVerifyCmdTx:
 		if action.GetVerifyCli() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.verifyCmdTx(action.GetVerifyCli())
 
-	case types.RelayActionRcvBTCHeaders:
+	case ty.RelayActionRcvBTCHeaders:
 		if action.GetBtcHeaders() == nil {
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return actiondb.saveBtcHeader(action.GetBtcHeaders(), r.GetLocalDB())
 
@@ -106,21 +107,21 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		switch item.Ty {
-		case types.TyLogRelayCreate,
-			types.TyLogRelayRevokeCreate,
-			types.TyLogRelayAccept,
-			types.TyLogRelayRevokeAccept,
-			types.TyLogRelayConfirmTx,
-			types.TyLogRelayFinishTx:
-			var receipt types.ReceiptRelayLog
+		case ty.TyLogRelayCreate,
+			ty.TyLogRelayRevokeCreate,
+			ty.TyLogRelayAccept,
+			ty.TyLogRelayRevokeAccept,
+			ty.TyLogRelayConfirmTx,
+			ty.TyLogRelayFinishTx:
+			var receipt ty.ReceiptRelayLog
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				return nil, err
 			}
 			kv := r.getOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
-		case types.TyLogRelayRcvBTCHead:
-			var receipt = &types.ReceiptRelayRcvBTCHeaders{}
+		case ty.TyLogRelayRcvBTCHead:
+			var receipt = &ty.ReceiptRelayRcvBTCHeaders{}
 			err := types.Decode(item.Log, receipt)
 			if err != nil {
 				return nil, err
@@ -162,21 +163,21 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		switch item.Ty {
-		case types.TyLogRelayCreate,
-			types.TyLogRelayRevokeCreate,
-			types.TyLogRelayAccept,
-			types.TyLogRelayRevokeAccept,
-			types.TyLogRelayConfirmTx,
-			types.TyLogRelayFinishTx:
-			var receipt types.ReceiptRelayLog
+		case ty.TyLogRelayCreate,
+			ty.TyLogRelayRevokeCreate,
+			ty.TyLogRelayAccept,
+			ty.TyLogRelayRevokeAccept,
+			ty.TyLogRelayConfirmTx,
+			ty.TyLogRelayFinishTx:
+			var receipt ty.ReceiptRelayLog
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				return nil, err
 			}
 			kv := r.getDeleteOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
-		case types.TyLogRelayRcvBTCHead:
-			var receipt = &types.ReceiptRelayRcvBTCHeaders{}
+		case ty.TyLogRelayRcvBTCHead:
+			var receipt = &ty.ReceiptRelayRcvBTCHeaders{}
 			err := types.Decode(item.Log, receipt)
 			if err != nil {
 				return nil, err
@@ -208,7 +209,7 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 	switch funcName {
 	case "GetRelayOrderByStatus":
-		var addrCoins types.ReqRelayAddrCoins
+		var addrCoins ty.ReqRelayAddrCoins
 
 		err := types.Decode(params, &addrCoins)
 		if err != nil {
@@ -216,14 +217,14 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		}
 		return r.GetSellOrderByStatus(&addrCoins)
 	case "GetSellRelayOrder":
-		var addrCoins types.ReqRelayAddrCoins
+		var addrCoins ty.ReqRelayAddrCoins
 		err := types.Decode(params, &addrCoins)
 		if err != nil {
 			return nil, err
 		}
 		return r.GetSellRelayOrder(&addrCoins)
 	case "GetBuyRelayOrder":
-		var addrCoins types.ReqRelayAddrCoins
+		var addrCoins ty.ReqRelayAddrCoins
 		err := types.Decode(params, &addrCoins)
 		if err != nil {
 			return nil, err
@@ -231,7 +232,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		return r.GetBuyRelayOrder(&addrCoins)
 
 	case "GetBTCHeaderList":
-		var req types.ReqRelayBtcHeaderHeightList
+		var req ty.ReqRelayBtcHeaderHeightList
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
@@ -240,7 +241,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		return db.getHeadHeightList(&req)
 
 	case "GetBTCHeaderCurHeight":
-		var req types.ReqRelayQryBTCHeadHeight
+		var req ty.ReqRelayQryBTCHeadHeight
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
@@ -253,7 +254,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 	return nil, types.ErrQueryNotSupport
 }
 
-func (r *relay) GetSellOrderByStatus(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
+func (r *relay) GetSellOrderByStatus(addrCoins *ty.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
 		val := calcOrderPrefixStatus((int32)(addrCoins.Status))
@@ -269,7 +270,7 @@ func (r *relay) GetSellOrderByStatus(addrCoins *types.ReqRelayAddrCoins) (types.
 
 }
 
-func (r *relay) GetSellRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
+func (r *relay) GetSellRelayOrder(addrCoins *ty.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
 		val := calcOrderPrefixAddr(addrCoins.Addr)
@@ -285,7 +286,7 @@ func (r *relay) GetSellRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Mes
 
 }
 
-func (r *relay) GetBuyRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
+func (r *relay) GetBuyRelayOrder(addrCoins *ty.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
 		val := calcAcceptPrefixAddr(addrCoins.Addr)
@@ -322,7 +323,7 @@ func (r *relay) GetSellOrder(prefixs [][]byte) (types.Message, error) {
 func (r *relay) getRelayOrderReply(OrderIds [][]byte) (types.Message, error) {
 	OrderIdGot := make(map[string]bool)
 
-	var reply types.ReplyRelayOrders
+	var reply ty.ReplyRelayOrders
 	for _, OrderId := range OrderIds {
 		if !OrderIdGot[string(OrderId)] {
 			if order, err := r.getSellOrderFromDb(OrderId); err == nil {
@@ -334,7 +335,7 @@ func (r *relay) getRelayOrderReply(OrderIds [][]byte) (types.Message, error) {
 	return &reply, nil
 }
 
-func insertOrderDescending(toBeInserted *types.RelayOrder, orders []*types.RelayOrder) []*types.RelayOrder {
+func insertOrderDescending(toBeInserted *ty.RelayOrder, orders []*ty.RelayOrder) []*ty.RelayOrder {
 	if 0 == len(orders) {
 		orders = append(orders, toBeInserted)
 	} else {
@@ -349,7 +350,7 @@ func insertOrderDescending(toBeInserted *types.RelayOrder, orders []*types.Relay
 		if len(orders) == index {
 			orders = append(orders, toBeInserted)
 		} else {
-			rear := append([]*types.RelayOrder{}, orders[index:]...)
+			rear := append([]*ty.RelayOrder{}, orders[index:]...)
 			orders = append(orders[0:index], toBeInserted)
 			orders = append(orders, rear...)
 		}
@@ -357,22 +358,22 @@ func insertOrderDescending(toBeInserted *types.RelayOrder, orders []*types.Relay
 	return orders
 }
 
-func (r *relay) getSellOrderFromDb(OrderId []byte) (*types.RelayOrder, error) {
+func (r *relay) getSellOrderFromDb(OrderId []byte) (*ty.RelayOrder, error) {
 	value, err := r.GetStateDB().Get(OrderId)
 	if err != nil {
 		return nil, err
 	}
-	var order types.RelayOrder
+	var order ty.RelayOrder
 	types.Decode(value, &order)
 	return &order, nil
 }
 
-func (r *relay) getBTCHeaderFromDb(hash []byte) (*types.BtcHeader, error) {
+func (r *relay) getBTCHeaderFromDb(hash []byte) (*ty.BtcHeader, error) {
 	value, err := r.GetStateDB().Get(hash)
 	if err != nil {
 		return nil, err
 	}
-	var header types.BtcHeader
+	var header ty.BtcHeader
 	types.Decode(value, &header)
 	return &header, nil
 }
@@ -396,7 +397,7 @@ func (r *relay) getDeleteOrderKv(OrderId []byte, ty int32) []*types.KeyValue {
 	return kv
 }
 
-func getCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
+func getCreateOrderKeyValue(kv []*types.KeyValue, order *ty.RelayOrder, status int32) []*types.KeyValue {
 	OrderId := []byte(order.Id)
 
 	key := calcOrderKeyStatus(order, status)
@@ -420,7 +421,7 @@ func getCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, statu
 
 }
 
-func deleteCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
+func deleteCreateOrderKeyValue(kv []*types.KeyValue, order *ty.RelayOrder, status int32) []*types.KeyValue {
 
 	key := calcOrderKeyStatus(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})

@@ -58,7 +58,6 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 func (db *GoMemDB) Set(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
 	db.db[string(key)] = CopyBytes(value)
 	if db.db[string(key)] == nil {
 		mlog.Error("Set", "error have no mem")
@@ -245,8 +244,10 @@ func (b *memBatch) Write() error {
 
 	for _, kv := range b.writes {
 		if kv.v == nil {
+			//println("[d]", string(kv.k))
 			delete(b.db.db, string(kv.k))
 		} else {
+			//println("[i]", string(kv.k))
 			b.db.db[string(kv.k)] = kv.v
 		}
 	}

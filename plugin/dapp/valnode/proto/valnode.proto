@@ -1,0 +1,29 @@
+syntax = "proto3";
+package types;
+
+import "tendermint.proto";
+
+message ValNode {
+    bytes pubKey = 1;
+    int64 power  = 2;
+}
+
+message ValNodes {
+    repeated ValNode nodes = 1;
+}
+
+message ValNodeAction {
+    oneof value {
+        ValNode             node      = 1;
+        TendermintBlockInfo blockInfo = 2;
+    }
+    int32 Ty = 3;
+}
+
+message ReqNodeInfo {
+    int64 height = 1;
+}
+
+message ReqBlockInfo {
+    int64 height = 1;
+}

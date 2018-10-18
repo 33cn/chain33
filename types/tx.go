@@ -378,7 +378,7 @@ func (tx *Transaction) SetExpire(expire time.Duration) {
 		return
 	}
 
-	if int64(expire) > expireBound {
+	if int64(expire) > ExpireBound {
 		if expire < time.Second*120 {
 			expire = time.Second * 120
 		}
@@ -414,7 +414,7 @@ func (tx *Transaction) SetRealFee(minFee int64) error {
 	return nil
 }
 
-var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
+var ExpireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	group, _ := tx.GetTxGroup()
@@ -435,7 +435,7 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 	if valid == 0 {
 		return false
 	}
-	if valid <= expireBound {
+	if valid <= ExpireBound {
 		//Expire小于1e9，为height
 		if valid > height { // 未过期
 			return false

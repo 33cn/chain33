@@ -25,7 +25,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	ety "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -60,9 +59,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ety.Init()
 	Init("manage")
-
 	conn, err := grpc.Dial(mainNetgrpcAddr, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
@@ -83,7 +80,7 @@ func init() {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +104,7 @@ func initUnitEnv() (queue.Queue, *executor.Executor) {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -170,13 +167,13 @@ func constructionBlockDetail(block *types.Block, height int64, txcount int) *typ
 }
 
 func genExecTxListMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0, false}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	return msg
 }
 
 func genExecCheckTxMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0, false}
 	msg := client.NewMessage("execs", types.EventCheckTx, list)
 	return msg
 }
@@ -195,7 +192,7 @@ func genEventDelBlockMsg(client queue.Client, block *types.Block) queue.Message 
 
 //"coins", "GetTxsByAddr",
 func genEventBlockChainQueryMsg(client queue.Client, param []byte, strDriver string, strFunName string) queue.Message {
-	blockChainQue := &types.BlockChainQuery{strDriver, strFunName, zeroHash[:], param}
+	blockChainQue := &types.ChainExecutor{strDriver, strFunName, zeroHash[:], param, nil}
 	msg := client.NewMessage("execs", types.EventBlockChainQuery, blockChainQue)
 	return msg
 }

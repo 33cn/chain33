@@ -21,21 +21,18 @@ import (
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 	typesmocks "gitlab.33.cn/chain33/chain33/types/mocks"
 )
 
 var random *rand.Rand
 
 func init() {
-	executorty.Init()
 	types.SetTitle("user.p.para.")
-	rpc.Init(nil)
+	rpc.Init("paracross", nil)
 	pp.Init("paracross")
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	consensusInterval = 2
 	log.SetLogLevel("debug")
-
 }
 
 type suiteParaCommitMsg struct {
@@ -69,7 +66,6 @@ func (s *suiteParaCommitMsg) initEnv(cfg *types.Config) {
 
 	s.store = store.New(cfg.Store)
 	s.store.SetQueueClient(q.Client())
-
 	s.para = New(cfg.Consensus).(*ParaClient)
 	s.grpcCli = &typesmocks.Chain33Client{}
 	//data := &types.Int64{1}
@@ -109,7 +105,7 @@ func walletProcess(q queue.Queue, para *ParaClient) {
 			return
 		case msg := <-client.Recv():
 			if msg.Ty == types.EventDumpPrivkey {
-				msg.Reply(client.NewMessage("", types.EventHeader, &types.ReplyStr{"6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"}))
+				msg.Reply(client.NewMessage("", types.EventHeader, &types.ReplyString{"6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"}))
 			}
 		}
 	}
