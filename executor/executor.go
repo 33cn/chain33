@@ -128,11 +128,14 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
 	}
-	data := msg.GetData().(*types.BlockChainQuery)
+	data := msg.GetData().(*types.ChainExecutor)
 	driver, err := drivers.LoadDriver(data.Driver, header.GetHeight())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
+	}
+	if data.StateHash == nil {
+		data.StateHash = header.StateHash
 	}
 	localdb := NewLocalDB(exec.client)
 	driver.SetLocalDB(localdb)

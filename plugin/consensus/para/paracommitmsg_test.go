@@ -66,7 +66,6 @@ func (s *suiteParaCommitMsg) initEnv(cfg *types.Config) {
 
 	s.store = store.New(cfg.Store)
 	s.store.SetQueueClient(q.Client())
-
 	s.para = New(cfg.Consensus).(*ParaClient)
 	s.grpcCli = &typesmocks.Chain33Client{}
 	//data := &types.Int64{1}
@@ -106,7 +105,7 @@ func walletProcess(q queue.Queue, para *ParaClient) {
 			return
 		case msg := <-client.Recv():
 			if msg.Ty == types.EventDumpPrivkey {
-				msg.Reply(client.NewMessage("", types.EventHeader, &types.ReplyStr{"6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"}))
+				msg.Reply(client.NewMessage("", types.EventHeader, &types.ReplyString{"6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"}))
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-package ticket
+package wallet
 
 import (
 	"gitlab.33.cn/chain33/chain33/common/db"

@@ -37,8 +37,8 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				} else {
 					msg.ReplyErr("Do not support", types.ErrInvalidParam)
 				}
-			case types.EventWalletImportprivkey:
-				if req, ok := msg.GetData().(*types.ReqWalletImportPrivKey); ok {
+			case types.EventWalletImportPrivkey:
+				if req, ok := msg.GetData().(*types.ReqWalletImportPrivkey); ok {
 					if req.Label == "case1" {
 						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.Transaction{}))
 					} else {
@@ -141,22 +141,12 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventGetWalletStatus:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyWalletStatus, &types.WalletStatus{IsWalletLock: true, IsAutoMining: false, IsHasSeed: true, IsTicketLock: false}))
-			case types.EventWalletAutoMiner:
-				if req, ok := msg.GetData().(*types.MinerFlag); ok {
-					if req.Flag == 10 {
-						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
 			case types.EventDumpPrivkey:
-				if req, ok := msg.GetData().(*types.ReqStr); ok {
-					if req.ReqStr == "case1" {
+				if req, ok := msg.GetData().(*types.ReqString); ok {
+					if req.Data == "case1" {
 						msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivkey, &types.Transaction{}))
 					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivkey, &types.ReplyStr{}))
+						msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivkey, &types.ReplyString{}))
 					}
 				} else {
 					msg.ReplyErr("Do not support", types.ErrInvalidParam)
@@ -179,22 +169,6 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventFatalFailure:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyFatalFailure, &types.Int32{}))
-			case types.EventShowPrivacyPK:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyShowPrivacyPK, &types.ReplyPrivacyPkPair{}))
-			case types.EventCreateUTXOs:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyCreateUTXOs, &types.Reply{}))
-			case types.EventPublic2privacy:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyPublic2privacy, &types.Reply{}))
-			case types.EventPrivacy2privacy:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivacy2privacy, &types.Reply{}))
-			case types.EventPrivacy2public:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivacy2public, &types.Reply{}))
-			case types.EventRescanUtxos:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyRescanUtxos, &types.RepRescanUtxos{}))
-			case types.EventEnablePrivacy:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyEnablePrivacy, &types.RepEnablePrivacy{}))
-			case types.EventCreateTransaction:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyCreateTransaction, &types.Reply{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
