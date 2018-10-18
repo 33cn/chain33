@@ -87,7 +87,7 @@ func TestOneElementProof(t *testing.T) {
 		//	t.Errorf("prover %d: proof should have one element", i)
 		//}
 
-		iter := proof.Iterator(nil, false)
+		iter := proof.Iterator(nil, nil,false)
 		index := 0
 		for iter.Rewind(); iter.Valid(); iter.Next() {
 			index++
@@ -116,7 +116,7 @@ func TestBadProof(t *testing.T) {
 				t.Fatalf("prover %d: nil proof", i)
 			}
 			//key := proof.Keys()[mrand.Intn(proof.Len())]
-			iter := proof.Iterator(nil, false)
+			iter := proof.Iterator(nil, nil,false)
 			var keys [][]byte
 			for iter.Rewind(); iter.Valid(); iter.Next() {
 				keys = append(keys, iter.Key())
@@ -149,7 +149,7 @@ func TestMissingKeyProof(t *testing.T) {
 		//	t.Errorf("test %d: proof should have one element", i)
 		//}
 
-		iter := proof.Iterator(nil, false)
+		iter := proof.Iterator(nil, nil,false)
 		index := 0
 		for iter.Rewind(); iter.Valid(); iter.Next() {
 			index++
@@ -197,7 +197,7 @@ func BenchmarkProve(b *testing.B) {
 		if nil != err {
 			b.Fatalf("zero length proof for %x", kv.k)
 		}
-		iter := proofs.Iterator(nil, false)
+		iter := proofs.Iterator(nil, nil,false)
 		if !iter.Valid() {
 			b.Fatalf("zero length proof for %x", kv.k)
 		}

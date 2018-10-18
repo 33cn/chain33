@@ -119,7 +119,7 @@ func (store *EvidenceStore) PendingEvidence() (evidence []ttypes.Evidence) {
 // ListEvidence lists the evidence for the given prefix key.
 // It is wrapped by PriorityEvidence and PendingEvidence for convenience.
 func (store *EvidenceStore) ListEvidence(prefixKey string) (evidence []ttypes.Evidence) {
-	iter := store.db.Iterator([]byte(prefixKey), false)
+	iter := store.db.Iterator([]byte(prefixKey),nil, false)
 	for iter.Next() {
 		val := iter.Value()
 
