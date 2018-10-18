@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/p2p"
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
+	ticketwallet "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/wallet"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
@@ -82,7 +83,7 @@ func newWalletRealize(qApi client.QueueProtocolAPI, w *wallet.Wallet) {
 	if err != nil {
 		panic(err)
 	}
-	err = w.ProcWalletUnLock(&types.WalletUnLock{"123456", 0, false})
+	_, err = qApi.WalletUnLock(&types.WalletUnLock{"123456", 0, false})
 	if err != nil {
 		panic(err)
 	}
@@ -137,8 +138,7 @@ func Test_WalletTicket(t *testing.T) {
 		t.Error("getTicketList return nil")
 		return
 	}
-	mock.api.QueryConsensusFunc("ticket", "FlushTicket", &types.ReqNil{})
-
+	ticketwallet.FlushTicket(mock.api)
 	mock.waitHeight(2, t)
 	header, err := mock.api.GetLastHeader()
 	require.Equal(t, err, nil)

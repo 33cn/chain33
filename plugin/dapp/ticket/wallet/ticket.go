@@ -196,7 +196,7 @@ func (policy *ticketPolicy) OnWalletUnlocked(param *types.WalletUnLock) {
 		}
 	}
 	// 钱包解锁时，需要刷新，通知挖矿
-	policy.flushTicket()
+	FlushTicket(policy.getAPI())
 }
 
 func (policy *ticketPolicy) OnCreateNewAccount(acc *types.Account) {
@@ -215,17 +215,18 @@ func (policy *ticketPolicy) OnAddBlockFinish(block *types.BlockDetail) {
 
 func (policy *ticketPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
 	if policy.needFlush {
-		policy.flushTicket()
+		FlushTicket(policy.getAPI())
 	}
 	policy.needFlush = false
 }
 
-func (policy *ticketPolicy) flushTicket() {
+func FlushTicket(api client.QueueProtocolAPI) {
 	bizlog.Info("wallet FLUSH TICKET")
-	api := policy.getAPI()
-	println("flush ticket.")
-	api.QueryConsensusFunc("ticket", "FlushTicket", &types.ReqNil{})
-	println("flush ticket...")
+	api.Notify("consensus", types.EventConsensusQuery, &types.ChainExecutor{
+		Driver:   "ticket",
+		FuncName: "FlushTicket",
+		Param:    types.Encode(&types.ReqNil{}),
+	})
 }
 
 func (policy *ticketPolicy) needFlushTicket(tx *types.Transaction, receipt *types.ReceiptData) bool {
@@ -739,7 +740,7 @@ func (policy *ticketPolicy) autoMining() {
 					operater.WaitTxs(hashes)
 				}
 				if n1+n2+n3 > 0 {
-					policy.flushTicket()
+					FlushTicket(policy.getAPI())
 				}
 			} else {
 				n1, err := policy.closeTicket(lastHeight + 1)
@@ -758,7 +759,7 @@ func (policy *ticketPolicy) autoMining() {
 					operater.WaitTxs(hashes)
 				}
 				if n1 > 0 {
-					policy.flushTicket()
+					FlushTicket(policy.getAPI())
 				}
 			}
 			bizlog.Info("END miningTicket")
