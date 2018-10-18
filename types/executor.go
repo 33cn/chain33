@@ -16,7 +16,7 @@ var random = rand.New(rand.NewSource(Now().UnixNano()))
 type LogType interface {
 	Name() string
 	Decode([]byte) (interface{}, error)
-	Json([]byte) (string, error)
+	Json([]byte) ([]byte, error)
 }
 
 type logInfoType struct {
@@ -36,19 +36,19 @@ func (l *logInfoType) Decode(data []byte) (interface{}, error) {
 	return DecodeLog(l.execer, l.ty, data)
 }
 
-func (l *logInfoType) Json(data []byte) (string, error) {
+func (l *logInfoType) Json(data []byte) ([]byte, error) {
 	d, err := l.Decode(data)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if msg, ok := d.(Message); ok {
 		return PBToJson(msg)
 	}
 	jsdata, err := json.Marshal(d)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(jsdata), nil
+	return jsdata, nil
 }
 
 var executorMap = map[string]ExecutorType{}
@@ -440,9 +440,9 @@ func (base *ExecTypeBase) CreateQuery(funcname string, message json.RawMessage) 
 	return nil, ErrActionNotSupport
 }
 
-func (base *ExecTypeBase) QueryToJson(funcname string, message Message) (string, error) {
+func (base *ExecTypeBase) QueryToJson(funcname string, message Message) ([]byte, error) {
 	if _, ok := base.queryMap[funcname]; !ok {
-		return "", ErrActionNotSupport
+		return nil, ErrActionNotSupport
 	}
 	return PBToJson(message)
 }

@@ -336,9 +336,13 @@ type ParaCrossTx interface {
 	IsParaCrossTx() bool
 }
 
-func PBToJson(r Message) (string, error) {
+func PBToJson(r Message) ([]byte, error) {
 	encode := &jsonpb.Marshaler{EmitDefaults: true}
-	return encode.MarshalToString(r)
+	var buf bytes.Buffer
+	if err := encode.Marshal(&buf, r); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 //判断所有的空值
