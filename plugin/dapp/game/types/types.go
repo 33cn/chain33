@@ -71,7 +71,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreCreateTx(&param)
@@ -80,7 +80,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreMatchTx(&param)
@@ -89,7 +89,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreCancelTx(&param)
@@ -98,7 +98,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreCloseTx(&param)

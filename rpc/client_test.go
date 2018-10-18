@@ -11,7 +11,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	slog "gitlab.33.cn/chain33/chain33/common/log"
-	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
@@ -34,7 +33,7 @@ func newTestChannelClient() *channelClient {
 // TODO
 func TestInit(t *testing.T) {
 	client := newTestChannelClient()
-	client.Init(&qmock.Client{})
+	client.Init(&qmock.Client{}, nil)
 }
 
 func testCreateRawTransactionNil(t *testing.T) {
@@ -454,71 +453,6 @@ func TestChannelClient_CreateRawTradeRevokeBuyTx(t *testing.T) {
 		Fee:   1,
 	}
 	data, err = client.CreateRawTradeRevokeBuyTx(token)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_CreateRawRetrieveBackupTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawRetrieveBackupTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	backup := &retrievetype.RetrieveBackupTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		DelayPeriod: 1,
-		Fee:         1,
-	}
-	data, err = client.CreateRawRetrieveBackupTx(backup)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_CreateRawRetrievePrepareTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawRetrievePrepareTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	prepare := &retrievetype.RetrievePrepareTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		Fee:         1,
-	}
-	data, err = client.CreateRawRetrievePrepareTx(prepare)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_CreateRawRetrievePerformTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawRetrievePerformTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	perform := &retrievetype.RetrievePerformTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		Fee:         1,
-	}
-	data, err = client.CreateRawRetrievePerformTx(perform)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_CreateRawRetrieveCancelTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawRetrieveCancelTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	cancel := &retrievetype.RetrieveCancelTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		Fee:         1,
-	}
-	data, err = client.CreateRawRetrieveCancelTx(cancel)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 }

@@ -12,6 +12,7 @@ import (
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
+
 	//"gitlab.33.cn/chain33/chain33/types"
 	"fmt"
 )

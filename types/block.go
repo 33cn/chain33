@@ -116,7 +116,7 @@ func checkAll(task []*Transaction, n int) bool {
 }
 
 func CheckSign(data []byte, sign *Signature) bool {
-	c, err := crypto.New(GetSignatureTypeName(int(sign.Ty)))
+	c, err := crypto.New(GetSignName(int(sign.Ty)))
 	if err != nil {
 		return false
 	}

@@ -347,10 +347,10 @@ func NormGet(key string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var req types.Query
-	req.Execer = []byte("norm")
+	var req types.ChainExecutor
+	req.Driver = "norm"
 	req.FuncName = "NormGet"
-	req.Payload = data
+	req.Param = data
 
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -368,7 +368,7 @@ func NormGet(key string) {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -384,7 +384,7 @@ func getprivkey(key string) crypto.PrivKey {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}

@@ -10,19 +10,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
-	ticketty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-func (wallet *Wallet) bindminer(mineraddr, returnaddr string, priv crypto.PrivKey) ([]byte, error) {
-	ta := &ticketty.TicketAction{}
-	tbind := &ticketty.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
-	ta.Value = &ticketty.TicketAction_Tbind{tbind}
-	ta.Ty = ticketty.TicketActionBind
-	return wallet.sendTransaction(ta, []byte("ticket"), priv, "")
-}
 
 func (wallet *Wallet) GetBalance(addr string, execer string) (*types.Account, error) {
 	return wallet.getBalance(addr, execer)
@@ -118,17 +107,7 @@ func (wallet *Wallet) sendTx(tx *types.Transaction) (*types.Reply, error) {
 	if wallet.client == nil {
 		panic("client not bind message queue.")
 	}
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	err := wallet.client.Send(msg, true)
-	if err != nil {
-		walletlog.Error("SendTx", "Error", err.Error())
-		return nil, err
-	}
-	resp, err := wallet.client.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	return resp.GetData().(*types.Reply), nil
+	return wallet.api.SendTx(tx)
 }
 
 func (wallet *Wallet) WaitTx(hash []byte) *types.TransactionDetail {
@@ -185,32 +164,29 @@ func (wallet *Wallet) SendToAddress(priv crypto.PrivKey, addrto string, amount i
 	return wallet.sendToAddress(priv, addrto, amount, note, Istoken, tokenSymbol)
 }
 
-func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error) {
+func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.Transaction, error) {
 	var tx *types.Transaction
-	if !Istoken {
-		transfer := &cty.CoinsAction{}
-		if amount > 0 {
-			v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount, Note: note}}
-			transfer.Value = v
-			transfer.Ty = cty.CoinsActionTransfer
-		} else {
-			v := &cty.CoinsAction_Withdraw{&types.AssetsWithdraw{Amount: -amount, Note: note}}
-			transfer.Value = v
-			transfer.Ty = cty.CoinsActionWithdraw
-		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: addrto, Nonce: wallet.random.Int63()}
-	} else {
-		transfer := &tokenty.TokenAction{}
-		if amount > 0 {
-			v := &tokenty.TokenAction_Transfer{&types.AssetsTransfer{Cointoken: tokenSymbol, Amount: amount, Note: note}}
-			transfer.Value = v
-			transfer.Ty = tokenty.ActionTransfer
-		} else {
-			v := &tokenty.TokenAction_Withdraw{&types.AssetsWithdraw{Cointoken: tokenSymbol, Amount: -amount, Note: note}}
-			transfer.Value = v
-			transfer.Ty = tokenty.ActionWithdraw
-		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: addrto, Nonce: wallet.random.Int63()}
+	create := &types.CreateTx{
+		To:          addrto,
+		Amount:      amount,
+		Note:        note,
+		IsWithdraw:  false,
+		IsToken:     Istoken,
+		TokenSymbol: tokenSymbol,
+	}
+	exec := types.CoinsX
+	//历史原因，token是作为系统合约的,但是改版后，token变成非系统合约
+	//这样的情况下，的方案是做一些特殊的处理
+	if create.IsToken {
+		exec = "token"
+	}
+	ety := types.LoadExecutorType(exec)
+	if ety == nil {
+		return nil, types.ErrActionNotSupport
+	}
+	tx, err := ety.AssertCreate(create)
+	if err != nil {
+		return nil, err
 	}
 	tx.SetExpire(time.Second * 120)
 	fee, err := tx.GetRealFee(wallet.getFee())
@@ -218,17 +194,20 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 		return nil, err
 	}
 	tx.Fee = fee
-	tx.Sign(int32(SignType), priv)
+	return tx, nil
+}
 
-	//发送交易信息给mempool模块
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error) {
+	tx, err := wallet.createSendToAddress(addrto, amount, note, Istoken, tokenSymbol)
 	if err != nil {
-		walletlog.Error("ProcSendToAddress", "Send err", err)
 		return nil, err
 	}
-	reply := resp.GetData().(*types.Reply)
+	tx.Sign(int32(SignType), priv)
+
+	reply, err := wallet.api.SendTx(tx)
+	if err != nil {
+		return nil, err
+	}
 	if !reply.GetIsOk() {
 		return nil, errors.New(string(reply.GetMsg()))
 	}
@@ -273,12 +252,13 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 func (wallet *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
-	var req types.Query
-	req.Execer = []byte("ticket")
-	req.FuncName = "MinerSourceList"
-	req.Payload = types.Encode(reqaddr)
+	req := types.ChainExecutor{
+		Driver:   "ticket",
+		FuncName: "MinerSourceList",
+		Param:    types.Encode(reqaddr),
+	}
 
-	msg := wallet.client.NewMessage("blockchain", types.EventQuery, &req)
+	msg := wallet.client.NewMessage("exec", types.EventBlockChainQuery, &req)
 	wallet.client.Send(msg, true)
 	resp, err := wallet.client.Wait(msg)
 	if err != nil {

@@ -48,7 +48,7 @@ var cacheTxsTxHeigt []*types.Transaction
 var TxHeightOffset int64 = 0
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -116,7 +116,7 @@ func createTxWithTxHeight(priv crypto.PrivKey, to string, amount, expire int64) 
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -916,7 +916,7 @@ func testAddrTxCount(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testAddrTxCount begin --------------------")
 	var reqkey types.ReqKey
 	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"))
-	count, err := blockchain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", types.Encode(&reqkey))
+	count, err := blockchain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", &reqkey)
 	if err != nil {
 		t.Error(err)
 		return
