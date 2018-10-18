@@ -9,11 +9,8 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var log = log15.New("module", "rpc.jsonclient")
 
 type JSONClient struct {
 	url    string
