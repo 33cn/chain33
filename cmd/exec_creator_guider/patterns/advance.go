@@ -7,12 +7,18 @@ import (
 )
 
 type advancePattern struct {
-	projName     string
-	clsName      string
-	actionName   string
-	propFile     string
-	templateFile string
-	outputFolder string
+	projName         string // 创建的执行器包名
+	clsName          string // 执行器主体类名
+	actionName       string // 执行器处理过程中的Action类名
+	propFile         string // protobuf 源文件路径
+	templateFile     string // 生成执行器的模板文件路径
+	outputFolder     string // 生成执行器的输出目录
+	execHeaderTmpFil string // 生成exec\exec_local\exec_del_local的模板
+	configFolder     string // 应用运行的配置目录
+}
+
+func (this *advancePattern) Init(configFolder string) {
+	this.configFolder = configFolder
 }
 
 func (this *advancePattern) Run(projName, clsName, actionName, propFile, templateFile string) {
@@ -35,7 +41,7 @@ func (this *advancePattern) Run(projName, clsName, actionName, propFile, templat
 	this.propFile = propFile
 	this.templateFile = templateFile
 
-	this.outputFolder = fmt.Sprintf("output/%s", projName)
+	this.outputFolder = fmt.Sprintf("output/%s/", projName)
 
 	var err error
 	task := this.buildTask()
@@ -74,12 +80,14 @@ func (this *advancePattern) buildTask() tasks.Task {
 			ClassName:   this.clsName,
 			ActionName:  this.actionName,
 		},
-		// 结合系统的模板文件和生成的xxx.pb.go，生成项目生成脚本代码
-		&tasks.CreateBuildAppSourceTask{
-			TemplatePath: this.templateFile,
-			ClsName:      this.clsName,
-			ActionName:   this.actionName,
-			ProtoFile:    this.propFile,
+		&tasks.CreateDappSourceTask{
+			TemplatePath:       this.templateFile,
+			ClsName:            this.clsName,
+			ActionName:         this.actionName,
+			ProtoFile:          this.propFile,
+			ExecHeaderTempFile: this.configFolder + "/exec_header.template",
+			OutputPath:         this.outputFolder,
+			ProjectName:        this.projName,
 		},
 	)
 

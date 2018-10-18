@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,6 +63,5 @@ func (this *ReplaceTargetTask) replaceTarget(file string) error {
 	}
 	utils.DeleteFile(file)
 	_, err = utils.WriteStringToFile(file, content)
-	fmt.Println(file)
 	return err
 }

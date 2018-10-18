@@ -50,7 +50,8 @@ func OpenFile(fileName string) (*os.File, error) {
 }
 
 func MakeDir(path string) error {
-	return os.MkdirAll(path, os.ModePerm)
+	dir := filepath.Dir(path)
+	return os.MkdirAll(dir, os.ModePerm)
 }
 
 func Pwd() string {
