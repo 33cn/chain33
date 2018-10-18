@@ -206,54 +206,6 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 }
 
-func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
-	switch funcName {
-	case "GetRelayOrderByStatus":
-		var addrCoins ty.ReqRelayAddrCoins
-
-		err := types.Decode(params, &addrCoins)
-		if err != nil {
-			return nil, err
-		}
-		return r.GetSellOrderByStatus(&addrCoins)
-	case "GetSellRelayOrder":
-		var addrCoins ty.ReqRelayAddrCoins
-		err := types.Decode(params, &addrCoins)
-		if err != nil {
-			return nil, err
-		}
-		return r.GetSellRelayOrder(&addrCoins)
-	case "GetBuyRelayOrder":
-		var addrCoins ty.ReqRelayAddrCoins
-		err := types.Decode(params, &addrCoins)
-		if err != nil {
-			return nil, err
-		}
-		return r.GetBuyRelayOrder(&addrCoins)
-
-	case "GetBTCHeaderList":
-		var req ty.ReqRelayBtcHeaderHeightList
-		err := types.Decode(params, &req)
-		if err != nil {
-			return nil, err
-		}
-		db := newBtcStore(r.GetLocalDB())
-		return db.getHeadHeightList(&req)
-
-	case "GetBTCHeaderCurHeight":
-		var req ty.ReqRelayQryBTCHeadHeight
-		err := types.Decode(params, &req)
-		if err != nil {
-			return nil, err
-		}
-		db := newBtcStore(r.GetLocalDB())
-		return db.getBtcCurHeight(&req)
-	default:
-	}
-	relaylog.Error("relay Query", "Query type not supprt with func name", funcName)
-	return nil, types.ErrQueryNotSupport
-}
-
 func (r *relay) GetSellOrderByStatus(addrCoins *ty.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
