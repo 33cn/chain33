@@ -14,7 +14,7 @@ func (policy *ticketPolicy) On_CloseTickets(req *types.ReqNil) (types.Message, e
 		go func() {
 			if len(reply.Hashes) > 0 {
 				operater.WaitTxs(reply.Hashes)
-				policy.flushTicket()
+				FlushTicket(policy.getAPI())
 			}
 		}()
 	}
@@ -30,6 +30,6 @@ func (policy *ticketPolicy) On_WalletGetTickets(req *types.ReqNil) (types.Messag
 func (policy *ticketPolicy) On_WalletAutoMiner(req *ty.MinerFlag) (types.Message, error) {
 	policy.store.SetAutoMinerFlag(req.Flag)
 	policy.setAutoMining(req.Flag)
-	policy.flushTicket()
+	FlushTicket(policy.getAPI())
 	return &types.Reply{IsOk: true}, nil
 }
