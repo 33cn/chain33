@@ -42,7 +42,7 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
-	server := NewJSONRPCServer(&qmocks.Client{})
+	server := NewJSONRPCServer(&qmocks.Client{}, nil)
 	assert.NotNil(t, server)
 
 	api := new(mocks.QueueProtocolAPI)
@@ -123,7 +123,7 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
-	server := NewGRpcServer(&qmocks.Client{})
+	server := NewGRpcServer(&qmocks.Client{}, nil)
 	assert.NotNil(t, server)
 
 	api := new(mocks.QueueProtocolAPI)
