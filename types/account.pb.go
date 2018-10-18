@@ -95,12 +95,6 @@ It has these top-level messages:
 	ExecTxList
 	Query
 	CreateTxIn
-	Norm
-	NormAction
-	NormPut
-	Cert
-	CertAction
-	CertPut
 	ArrayConfig
 	StringConfig
 	Int32Config
