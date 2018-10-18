@@ -1,7 +1,6 @@
 package ticket
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,10 +10,6 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/util/testnode"
-)
-
-var (
-	random *rand.Rand
 )
 
 func init() {

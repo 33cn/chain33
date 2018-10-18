@@ -274,7 +274,7 @@ func (q *QueryData) Decode(driver, name string, in []byte) (reply Message, err e
 	return nil, ErrActionNotSupport
 }
 
-func (q *QueryData) DecodeJson(driver, name string, in json.RawMessage) (reply Message, err error) {
+func (q *QueryData) DecodeJson(driver, name string, in json.Marshaler) (reply Message, err error) {
 	ty, err := q.GetType(driver, name)
 	if err != nil {
 		return nil, err
