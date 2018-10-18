@@ -1,4 +1,4 @@
-package privacy
+package wallet
 
 const (
 	// 交易操作的方向

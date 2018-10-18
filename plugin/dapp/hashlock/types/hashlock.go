@@ -43,7 +43,7 @@ func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			hlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawHashlockLockTx(&param)
 	} else if action == "HashlockUnlock" {
@@ -51,7 +51,7 @@ func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			hlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawHashlockUnlockTx(&param)
 	} else if action == "HashlockSend" {
@@ -59,7 +59,7 @@ func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			hlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawHashlockSendTx(&param)
 	} else {

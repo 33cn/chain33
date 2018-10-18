@@ -54,11 +54,11 @@ func (store *Store) NewListHelper() *db.ListHelper {
 func (store *Store) GetAccountByte(update bool, addr string, account *types.WalletAccountStore) ([]byte, error) {
 	if len(addr) == 0 {
 		storelog.Error("GetAccountByte addr is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if account == nil {
 		storelog.Error("GetAccountByte account is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	timestamp := fmt.Sprintf("%018d", types.Now().Unix())
@@ -108,7 +108,7 @@ func (store *Store) GetAccountByAddr(addr string) (*types.WalletAccountStore, er
 	var account types.WalletAccountStore
 	if len(addr) == 0 {
 		storelog.Error("GetAccountByAddr addr is empty")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	data, err := store.Get(CalcAddrKey(addr))
 	if data == nil || err != nil {
@@ -129,7 +129,7 @@ func (store *Store) GetAccountByLabel(label string) (*types.WalletAccountStore, 
 	var account types.WalletAccountStore
 	if len(label) == 0 {
 		storelog.Error("GetAccountByLabel label is empty")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	data, err := store.Get(CalcLabelKey(label))
 	if data == nil || err != nil {
@@ -149,7 +149,7 @@ func (store *Store) GetAccountByLabel(label string) (*types.WalletAccountStore, 
 func (store *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
 	if len(addr) == 0 {
 		storelog.Error("GetAccountByPrefix addr is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	list := store.NewListHelper()
 	accbytes := list.PrefixScan([]byte(addr))
@@ -175,7 +175,7 @@ func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*
 	var txDetails types.WalletTxDetails
 	if TxList == nil {
 		storelog.Error("GetTxDetailByIter TxList is nil")
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	var txbytes [][]byte
@@ -189,7 +189,7 @@ func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*
 		}
 	} else {
 		list := store.NewListHelper()
-		txbytes = list.IteratorScan([]byte("Tx:"), CalcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
+		txbytes = list.IteratorScan(CalcTxKey(""), CalcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
 			storelog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
 			return nil, types.ErrTxNotExist

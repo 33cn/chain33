@@ -57,7 +57,6 @@ func NewRelayd(config *Config) *Relayd {
 	if err != nil {
 		log.Warn("NewRelayd", "atoi firstHeight error: ", err)
 	}
-
 	if firstHeight != int(config.FirstBtcHeight) {
 		firstHeight = int(config.FirstBtcHeight)
 		isResetBtcHeight = true
@@ -102,7 +101,7 @@ func NewRelayd(config *Config) *Relayd {
 	}
 	db.Set(privateKey[:], pk)
 
-	secp, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	secp, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -208,10 +207,10 @@ out:
 
 func (r *Relayd) queryChain33WithBtcHeight() (*ty.ReplayRelayQryBTCHeadHeight, error) {
 	payLoad := types.Encode(&ty.ReqRelayQryBTCHeadHeight{})
-	query := types.Query{
-		Execer:   types.ExecerRelay,
+	query := types.ChainExecutor{
+		Driver:   types.RelayX,
 		FuncName: "GetBTCHeaderCurHeight",
-		Payload:  payLoad,
+		Param:    payLoad,
 	}
 	ret, err := r.client33.QueryChain(r.ctx, &query)
 	if err != nil {
@@ -366,15 +365,14 @@ func (r *Relayd) requestRelayOrders(status ty.RelayOrderStatus) (*ty.QueryRelayO
 	payLoad := types.Encode(&ty.ReqRelayAddrCoins{
 		Status: status,
 	})
-	query := types.Query{
-		Execer:   types.ExecerRelay,
+	query := types.ChainExecutor{
+		Driver:   types.RelayX,
 		FuncName: "GetRelayOrderByStatus",
-		Payload:  payLoad,
+		Param:    payLoad,
 	}
 	ret, err := r.client33.QueryChain(r.ctx, &query)
 	if err != nil {
 		return nil, err
-
 	}
 	if !ret.GetIsOk() {
 		log.Info("requestRelayOrders", "error")

@@ -10,29 +10,6 @@ type QueueProtocolAPI struct {
 	mock.Mock
 }
 
-// BlockChainQuery provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) BlockChainQuery(param *types.BlockChainQuery) (*types.ResUTXOGlobalIndex, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ResUTXOGlobalIndex
-	if rf, ok := ret.Get(0).(func(*types.BlockChainQuery) *types.ResUTXOGlobalIndex); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ResUTXOGlobalIndex)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.BlockChainQuery) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // Close provides a mock function with given fields:
 func (_m *QueueProtocolAPI) Close() {
 	_m.Called()
@@ -61,90 +38,21 @@ func (_m *QueueProtocolAPI) CloseQueue() (*types.Reply, error) {
 	return r0, r1
 }
 
-// CloseTickets provides a mock function with given fields:
-func (_m *QueueProtocolAPI) CloseTickets() (*types.ReplyHashes, error) {
-	ret := _m.Called()
-
-	var r0 *types.ReplyHashes
-	if rf, ok := ret.Get(0).(func() *types.ReplyHashes); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyHashes)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// CreateTrasaction provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Transaction, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Transaction
-	if rf, ok := ret.Get(0).(func(*types.ReqCreateTransaction) *types.Transaction); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Transaction)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqCreateTransaction) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// CreateUTXOs provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqCreateUTXOs) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqCreateUTXOs) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // DumpPrivkey provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error) {
+func (_m *QueueProtocolAPI) DumpPrivkey(param *types.ReqString) (*types.ReplyString, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.ReplyStr
-	if rf, ok := ret.Get(0).(func(*types.ReqStr) *types.ReplyStr); ok {
+	var r0 *types.ReplyString
+	if rf, ok := ret.Get(0).(func(*types.ReqString) *types.ReplyString); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyStr)
+			r0 = ret.Get(0).(*types.ReplyString)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqStr) error); ok {
+	if rf, ok := ret.Get(1).(func(*types.ReqString) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
@@ -153,22 +61,45 @@ func (_m *QueueProtocolAPI) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, e
 	return r0, r1
 }
 
-// EnablePrivacy provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) EnablePrivacy(param *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
+// ExecWallet provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) ExecWallet(param *types.ChainExecutor) (types.Message, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.RepEnablePrivacy
-	if rf, ok := ret.Get(0).(func(*types.ReqEnablePrivacy) *types.RepEnablePrivacy); ok {
+	var r0 types.Message
+	if rf, ok := ret.Get(0).(func(*types.ChainExecutor) types.Message); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.RepEnablePrivacy)
+			r0 = ret.Get(0).(types.Message)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqEnablePrivacy) error); ok {
+	if rf, ok := ret.Get(1).(func(*types.ChainExecutor) error); ok {
 		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ExecWalletFunc provides a mock function with given fields: driver, funcname, param
+func (_m *QueueProtocolAPI) ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error) {
+	ret := _m.Called(driver, funcname, param)
+
+	var r0 types.Message
+	if rf, ok := ret.Get(0).(func(string, string, types.Message) types.Message); ok {
+		r0 = rf(driver, funcname, param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(types.Message)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, types.Message) error); ok {
+		r1 = rf(driver, funcname, param)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -521,29 +452,6 @@ func (_m *QueueProtocolAPI) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed,
 	return r0, r1
 }
 
-// GetTicketCount provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetTicketCount() (*types.Int64, error) {
-	ret := _m.Called()
-
-	var r0 *types.Int64
-	if rf, ok := ret.Get(0).(func() *types.Int64); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Int64)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetTransactionByAddr provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	ret := _m.Called(param)
@@ -809,22 +717,22 @@ func (_m *QueueProtocolAPI) PeerInfo() (*types.PeerList, error) {
 	return r0, r1
 }
 
-// Privacy2Privacy provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) Privacy2Privacy(param *types.ReqPri2Pri) (*types.Reply, error) {
-	ret := _m.Called(param)
+// Query provides a mock function with given fields: driver, funcname, param
+func (_m *QueueProtocolAPI) Query(driver string, funcname string, param types.Message) (types.Message, error) {
+	ret := _m.Called(driver, funcname, param)
 
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqPri2Pri) *types.Reply); ok {
-		r0 = rf(param)
+	var r0 types.Message
+	if rf, ok := ret.Get(0).(func(string, string, types.Message) types.Message); ok {
+		r0 = rf(driver, funcname, param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
+			r0 = ret.Get(0).(types.Message)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqPri2Pri) error); ok {
-		r1 = rf(param)
+	if rf, ok := ret.Get(1).(func(string, string, types.Message) error); ok {
+		r1 = rf(driver, funcname, param)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -832,81 +740,12 @@ func (_m *QueueProtocolAPI) Privacy2Privacy(param *types.ReqPri2Pri) (*types.Rep
 	return r0, r1
 }
 
-// Privacy2Public provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) Privacy2Public(param *types.ReqPri2Pub) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqPri2Pub) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqPri2Pub) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// PrivacyTransactionList provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) PrivacyTransactionList(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.WalletTxDetails
-	if rf, ok := ret.Get(0).(func(*types.ReqPrivacyTransactionList) *types.WalletTxDetails); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.WalletTxDetails)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqPrivacyTransactionList) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// Publick2Privacy provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) Publick2Privacy(param *types.ReqPub2Pri) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqPub2Pri) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqPub2Pri) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// Query provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) Query(param *types.Query) (types.Message, error) {
+// QueryChain provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) QueryChain(param *types.ChainExecutor) (types.Message, error) {
 	ret := _m.Called(param)
 
 	var r0 types.Message
-	if rf, ok := ret.Get(0).(func(*types.Query) types.Message); ok {
+	if rf, ok := ret.Get(0).(func(*types.ChainExecutor) types.Message); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
@@ -915,8 +754,54 @@ func (_m *QueueProtocolAPI) Query(param *types.Query) (types.Message, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.Query) error); ok {
+	if rf, ok := ret.Get(1).(func(*types.ChainExecutor) error); ok {
 		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// QueryConsensus provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) QueryConsensus(param *types.ChainExecutor) (types.Message, error) {
+	ret := _m.Called(param)
+
+	var r0 types.Message
+	if rf, ok := ret.Get(0).(func(*types.ChainExecutor) types.Message); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(types.Message)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ChainExecutor) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// QueryConsensusFunc provides a mock function with given fields: driver, funcname, param
+func (_m *QueueProtocolAPI) QueryConsensusFunc(driver string, funcname string, param types.Message) (types.Message, error) {
+	ret := _m.Called(driver, funcname, param)
+
+	var r0 types.Message
+	if rf, ok := ret.Get(0).(func(string, string, types.Message) types.Message); ok {
+		r0 = rf(driver, funcname, param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(types.Message)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, types.Message) error); ok {
+		r1 = rf(driver, funcname, param)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -939,29 +824,6 @@ func (_m *QueueProtocolAPI) QueryTx(param *types.ReqHash) (*types.TransactionDet
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.ReqHash) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// RescanUtxos provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) RescanUtxos(param *types.ReqRescanUtxos) (*types.RepRescanUtxos, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.RepRescanUtxos
-	if rf, ok := ret.Get(0).(func(*types.ReqRescanUtxos) *types.RepRescanUtxos); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.RepRescanUtxos)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqRescanUtxos) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
@@ -1008,75 +870,6 @@ func (_m *QueueProtocolAPI) SendTx(param *types.Transaction) (*types.Reply, erro
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.Transaction) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ShowPrivacyAccountInfo provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplyPrivacyAccount
-	if rf, ok := ret.Get(0).(func(*types.ReqPPrivacyAccount) *types.ReplyPrivacyAccount); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyPrivacyAccount)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqPPrivacyAccount) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ShowPrivacyAccountSpend provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.UTXOHaveTxHashs
-	if rf, ok := ret.Get(0).(func(*types.ReqPrivBal4AddrToken) *types.UTXOHaveTxHashs); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.UTXOHaveTxHashs)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqPrivBal4AddrToken) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ShowPrivacyKey provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) ShowPrivacyKey(param *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplyPrivacyPkPair
-	if rf, ok := ret.Get(0).(func(*types.ReqStr) *types.ReplyPrivacyPkPair); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyPrivacyPkPair)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqStr) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
@@ -1177,21 +970,21 @@ func (_m *QueueProtocolAPI) Version() (*types.Reply, error) {
 	return r0, r1
 }
 
-// WalletAutoMiner provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error) {
+// WalletCreateTx provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.MinerFlag) *types.Reply); ok {
+	var r0 *types.Transaction
+	if rf, ok := ret.Get(0).(func(*types.ReqCreateTransaction) *types.Transaction); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
+			r0 = ret.Get(0).(*types.Transaction)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.MinerFlag) error); ok {
+	if rf, ok := ret.Get(1).(func(*types.ReqCreateTransaction) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
@@ -1224,11 +1017,11 @@ func (_m *QueueProtocolAPI) WalletGetAccountList(req *types.ReqAccountList) (*ty
 }
 
 // WalletImportprivkey provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletImportprivkey(param *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
+func (_m *QueueProtocolAPI) WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
 	ret := _m.Called(param)
 
 	var r0 *types.WalletAccount
-	if rf, ok := ret.Get(0).(func(*types.ReqWalletImportPrivKey) *types.WalletAccount); ok {
+	if rf, ok := ret.Get(0).(func(*types.ReqWalletImportPrivkey) *types.WalletAccount); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
@@ -1237,7 +1030,7 @@ func (_m *QueueProtocolAPI) WalletImportprivkey(param *types.ReqWalletImportPriv
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqWalletImportPrivKey) error); ok {
+	if rf, ok := ret.Get(1).(func(*types.ReqWalletImportPrivkey) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
