@@ -3,6 +3,7 @@ package patterns
 import "github.com/inconshreveable/log15"
 
 type CreatePattern interface {
+	Init(configFolder string)
 	Run(projName, clsName, actionName, propFile, templateFile string)
 }
 

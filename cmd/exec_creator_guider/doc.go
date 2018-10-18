@@ -9,7 +9,7 @@ ecg advance -n ProjectName -a ActionName -p ProtobufFile -t TemplateFilePath
 2. 参数介绍
 	-n 设定输出的执行器包名、执行器中主体逻辑的类名，必填参数
 	-a 设定执行器的行为类型名，可以不填，默认为ProjectName+Action
-	-p 设定生成执行器动作行为类型的protobuf协议文件，可以不填，默认为 template/ProjectName.proto
+	-p 设定生成执行器动作行为类型的protobuf协议文件，可以不填，默认为 config/ProjectName.proto
 	-t 设定生成执行器的模板配置文件路径，可以不填，默认为 template/template
 3. 模板文件的设定
 	可以根据自己的需要，在模板文件配置中添加各种文件，目前支持对指定标签的文件名和指定标签的文件进行替换

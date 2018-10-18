@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 func DirMissingOrEmpty(path string) (bool, error) {
@@ -90,6 +92,10 @@ func DeleteFile(file string) error {
 
 func WriteStringToFile(file, content string) (writeLen int, err error) {
 	var f *os.File
+	if err = util.MakeDir(file); err != nil {
+		return
+	}
+	util.DeleteFile(file)
 	if CheckFileIsExist(file) {
 		f, err = os.OpenFile(file, os.O_APPEND, 0666)
 	} else {
