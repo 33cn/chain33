@@ -9,7 +9,6 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
-	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -235,7 +234,7 @@ func mergeBalance(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// set auto mining
+// set auto mining: 为了兼容现在的命令行, 这个命令就放到wallet，实际上依赖 ticket
 func AutoMineCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auto_mine",
@@ -258,11 +257,13 @@ func autoMine(cmd *cobra.Command, args []string) {
 		cmd.UsageFunc()(cmd)
 		return
 	}
-	params := tickettypes.MinerFlag{
+	params := struct {
+		Flag int32
+	}{
 		Flag: flag,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SetAutoMining", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "ticket.SetAutoMining", params, &res)
 	ctx.Run()
 }
 
