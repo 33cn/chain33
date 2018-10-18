@@ -19,12 +19,11 @@ import (
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
-	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
 )
 
 //----------------------------- data for testing ---------------------------------
 var (
-	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	c, _       = crypto.New(types.GetSignName(types.SECP256K1))
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 	a, _       = common.FromHex(hex)
 	privKey, _ = c.PrivKeyFromBytes(a)
@@ -102,7 +101,7 @@ func init() {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -180,7 +179,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -744,18 +743,11 @@ func TestGetAddrTxs(t *testing.T) {
 }
 
 func TestDelBlock(t *testing.T) {
-	ticket.Init()
+
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
-
-	action := &types.TicketAction{Ty: types.TicketActionMiner}
-	miner := &types.TicketAction_Miner{Miner: &types.TicketMiner{Reward: 18}}
-	action.Value = miner
-	minerTx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
 	delBlock := blk
-	txs := []*types.Transaction{minerTx}
-	delBlock.Txs = append(txs, delBlock.Txs...)
 	var blockDetail = &types.BlockDetail{Block: delBlock}
 
 	mem.setHeader(&types.Header{Height: 2, BlockTime: 1e9 + 1})
@@ -774,25 +766,6 @@ func TestDelBlock(t *testing.T) {
 
 	if reply.GetData().(*types.MempoolSize).Size != 2 {
 		t.Error("TestDelBlock failed")
-	}
-}
-
-func TestAddMinerTx(t *testing.T) {
-	q, mem := initEnv(0)
-	defer q.Close()
-	defer mem.Close()
-
-	action := &types.TicketAction{Ty: types.TicketActionMiner}
-	miner := &types.TicketAction_Miner{Miner: &types.TicketMiner{Reward: 18}}
-	action.Value = miner
-
-	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100000, Expire: 0}
-	msg := mem.client.NewMessage("mempool", types.EventTx, tx)
-	mem.client.Send(msg, true)
-	resp, _ := mem.client.Wait(msg)
-
-	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrMinerTx.Error() {
-		t.Error("TestAddMinerTx failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
 }
 

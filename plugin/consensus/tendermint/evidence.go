@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 )
 
 /*
@@ -87,7 +87,7 @@ type EvidenceStore struct {
 func NewEvidenceStore(db dbm.DB) *EvidenceStore {
 	if len(ttypes.EvidenceType2Type) == 0 {
 		ttypes.EvidenceType2Type = map[string]reflect.Type{
-			ttypes.DuplicateVote: reflect.TypeOf(types.DuplicateVoteEvidence{}),
+			ttypes.DuplicateVote: reflect.TypeOf(tmtypes.DuplicateVoteEvidence{}),
 		}
 	}
 	if len(ttypes.EvidenceType2Obj) == 0 {
@@ -359,7 +359,7 @@ func (evpool *EvidencePool) AddEvidence(evidence ttypes.Evidence) (err error) {
 }
 
 // MarkEvidenceAsCommitted marks all the evidence as committed.
-func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence []*types.EvidenceEnvelope) {
+func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence []*tmtypes.EvidenceEnvelope) {
 	for _, ev := range evidence {
 		tmp := ttypes.EvidenceEnvelope2Evidence(ev)
 		if tmp != nil {

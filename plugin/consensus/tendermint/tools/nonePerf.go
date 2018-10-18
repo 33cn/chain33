@@ -16,7 +16,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/rpc"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -205,13 +206,13 @@ func setTxHeight(ip string) {
 }
 
 type RespMsg struct {
-	Id     int64      `json:"id"`
-	Result rpc.Header `json:"result"`
-	Err    string     `json:"error"`
+	Id     int64           `json:"id"`
+	Result rpctypes.Header `json:"result"`
+	Err    string          `json:"error"`
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -227,7 +228,7 @@ func getprivkey(key string) crypto.PrivKey {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -265,8 +266,8 @@ func ValNode(ip, pubkey, power string) {
 	}
 	_, priv := genaddress()
 	privkey := common.ToHex(priv.Bytes())
-	nput := &types.ValNodeAction_Node{Node: &types.ValNode{PubKey: pubkeybyte, Power: int64(powerInt)}}
-	action := &types.ValNodeAction{Value: nput, Ty: types.ValNodeActionUpdate}
+	nput := &ty.ValNodeAction_Node{Node: &ty.ValNode{PubKey: pubkeybyte, Power: int64(powerInt)}}
+	action := &ty.ValNodeAction{Value: nput, Ty: ty.ValNodeActionUpdate}
 	tx := &types.Transaction{Execer: []byte("valnode"), Payload: types.Encode(action), Fee: fee}
 	tx.To = address.ExecAddress("valnode")
 	tx.Nonce = r.Int63()

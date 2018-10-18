@@ -19,13 +19,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/norm/types"
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 	"google.golang.org/grpc"
 )
 
@@ -37,7 +37,6 @@ var (
 )
 
 func init() {
-	executorty.Init()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
@@ -94,7 +93,7 @@ func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *me
 	network.SetQueueClient(q.Client())
 
 	rpc.InitCfg(cfg.Rpc)
-	gapi := rpc.NewGRpcServer(q.Client())
+	gapi := rpc.NewGRpcServer(q.Client(), nil)
 	go gapi.Listen()
 	return q, chain, s, mem, exec, cs, network
 }
@@ -141,8 +140,8 @@ func prepareTxList() *types.Transaction {
 	key = generateKey(i, 32)
 	value = generateValue(i, 180)
 
-	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
-	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
+	nput := &pty.NormAction_Nput{&pty.NormPut{Key: key, Value: []byte(value)}}
+	action := &pty.NormAction{Value: nput, Ty: pty.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
 	tx.To = address.ExecAddress("norm")
 	tx.Nonce = random.Int63()

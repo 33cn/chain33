@@ -244,8 +244,6 @@ type ssDBIt struct {
 	keys    []string
 	index   int
 	reverse bool
-	// 所有KEY的前缀
-	prefix []byte
 	// 迭代开始位置
 	begin string
 	// 迭代结束位置

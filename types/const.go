@@ -1,6 +1,11 @@
 package types
 
-import "reflect"
+import (
+	"reflect"
+
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+)
 
 var slash = []byte("-")
 var Debug = false
@@ -14,26 +19,20 @@ type LogInfo struct {
 }
 
 const (
-	CoinsX          = "coins"
-	UserKeyX        = "user."
-	ParaKeyX        = "user.p."
-	TicketX         = "ticket"
-	HashlockX       = "hashlock"
-	RetrieveX       = "retrieve"
-	NoneX           = "none"
-	TokenX          = "token"
-	TradeX          = "trade"
-	ManageX         = "manage"
-	PrivacyX        = "privacy"
-	ExecerEvmString = "evm"
-	EvmX            = "evm"
-	RelayX          = "relay"
-	Normx           = "norm"
-	UserEvmX        = "user.evm."
-	CertX           = "cert"
-	ParaX           = "paracross"
-	LotteryX        = "lottery"
-	ValNodeX        = "valnode"
+	CoinsX    = "coins"
+	UserKeyX  = "user."
+	ParaKeyX  = "user.p."
+	TicketX   = "ticket"
+	HashlockX = "hashlock"
+	NoneX     = "none"
+	TokenX    = "token"
+	TradeX    = "trade"
+	ManageX   = "manage"
+	PrivacyX  = "privacy"
+	RelayX    = "relay"
+	Normx     = "norm"
+	ParaX     = "paracross"
+	ValNodeX  = "valnode"
 )
 
 var (
@@ -41,19 +40,14 @@ var (
 	ExecerTicket   = []byte(TicketX)
 	ExecerManage   = []byte(ManageX)
 	ExecerToken    = []byte(TokenX)
-	ExecerEvm      = []byte(EvmX)
 	ExecerPrivacy  = []byte(PrivacyX)
 	ExecerRelay    = []byte(RelayX)
 	ExecerHashlock = []byte(HashlockX)
-	ExecerRetrieve = []byte(RetrieveX)
 	ExecerNone     = []byte(NoneX)
 	ExecerTrade    = []byte(TradeX)
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
-	ExecerCert     = []byte(CertX)
-	UserEvm        = []byte(UserEvmX)
 	ExecerPara     = []byte(ParaX)
-	ExecerLottery  = []byte(LotteryX)
 	UserKey        = []byte(UserKeyX)
 	ParaKey        = []byte(ParaKeyX)
 	ExecerValNode  = []byte(ValNodeX)
@@ -187,75 +181,19 @@ var SystemLog = map[int64]*LogInfo{
 }
 
 const (
-	//log for ticket
-	TyLogNewTicket   = 111
-	TyLogCloseTicket = 112
-	TyLogMinerTicket = 113
-	TyLogTicketBind  = 114
-
-	//log for token create
-	TyLogPreCreateToken    = 211
-	TyLogFinishCreateToken = 212
-	TyLogRevokeCreateToken = 213
-
 	//log for trade
-	TyLogTradeSellLimit         = 310
-	TyLogTradeBuyMarket         = 311
-	TyLogTradeSellRevoke        = 312
-	TyLogTokenTransfer          = 313
-	TyLogTokenGenesis           = 314
-	TyLogTokenDeposit           = 315
-	TyLogTokenExecTransfer      = 316
-	TyLogTokenExecWithdraw      = 317
-	TyLogTokenExecDeposit       = 318
-	TyLogTokenExecFrozen        = 319
-	TyLogTokenExecActive        = 320
-	TyLogTokenGenesisTransfer   = 321
-	TyLogTokenGenesisDeposit    = 322
+	TyLogTradeSellLimit  = 310
+	TyLogTradeBuyMarket  = 311
+	TyLogTradeSellRevoke = 312
+
 	TyLogTradeSellMarket        = 330
 	TyLogTradeBuyLimit          = 331
 	TyLogTradeBuyRevoke         = 332
 	TyLogParaTokenAssetTransfer = 333
 	TyLogParaTokenAssetWithdraw = 334
 
-	//log for relay
-	TyLogRelayCreate       = 350
-	TyLogRelayRevokeCreate = 351
-	TyLogRelayAccept       = 352
-	TyLogRelayRevokeAccept = 353
-	TyLogRelayConfirmTx    = 354
-	TyLogRelayFinishTx     = 355
-	TyLogRelayRcvBTCHead   = 356
-
 	// log for config
 	TyLogModifyConfig = 410
-
-	// log for privacy
-	TyLogPrivacyFee    = 500
-	TyLogPrivacyInput  = 501
-	TyLogPrivacyOutput = 502
-
-	// log for evm
-	// 合约代码变更日志
-	TyLogContractData = 601
-	// 合约状态数据变更日志
-	TyLogContractState = 602
-	// 合约状态数据变更日志
-	TyLogCallContract = 603
-	// 合约状态数据变更项日志
-	TyLogEVMStateChangeItem = 604
-
-	//log for game
-	TyLogCreateGame = 711
-	TyLogMatchGame  = 712
-	TyLogCancleGame = 713
-	TyLogCloseGame  = 714
-
-	//log for lottery
-	TyLogLotteryCreate = 801
-	TyLogLotteryBuy    = 802
-	TyLogLotteryDraw   = 803
-	TyLogLotteryClose  = 804
 )
 
 //exec type
@@ -265,103 +203,10 @@ const (
 	ExecOk   = 2
 )
 
+// manager action
 const (
-	InvalidAction = 0
-	//action for token
-	ActionTransfer            = 4
-	ActionGenesis             = 5
-	ActionWithdraw            = 6
-	TokenActionPreCreate      = 7
-	TokenActionFinishCreate   = 8
-	TokenActionRevokeCreate   = 9
-	TokenActionTransferToExec = 11
-	//action type for privacy
-	ActionPublic2Privacy = iota + 100
-	ActionPrivacy2Privacy
-	ActionPrivacy2Public
+	ManageActionModifyConfig = iota
 )
-
-//ticket
-const (
-	TicketActionGenesis = 11
-	TicketActionOpen    = 12
-	TicketActionClose   = 13
-	TicketActionList    = 14 //读的接口不直接经过transaction
-	TicketActionInfos   = 15 //读的接口不直接经过transaction
-	TicketActionMiner   = 16
-	TicketActionBind    = 17
-)
-
-//norm
-const (
-	NormActionPut = 1
-)
-
-//cert
-const (
-	CertActionNew    = 1
-	CertActionUpdate = 2
-	CertActionNormal = 3
-)
-
-// retrieve op
-const (
-	RetrievePre    = 1
-	RetrievePerf   = 2
-	RetrieveBackup = 3
-	RetrieveCancel = 4
-)
-
-// token status
-const (
-	TokenStatusPreCreated = iota
-	TokenStatusCreated
-	TokenStatusCreateRevoked
-)
-
-// trade op
-const (
-	TradeSellLimit = iota
-	TradeBuyMarket
-	TradeRevokeSell
-	TradeSellMarket
-	TradeBuyLimit
-	TradeRevokeBuy
-)
-
-// 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
-const (
-	TradeOrderStatusNotStart = iota
-	TradeOrderStatusOnSale
-	TradeOrderStatusSoldOut
-	TradeOrderStatusRevoked
-	TradeOrderStatusExpired
-	TradeOrderStatusOnBuy
-	TradeOrderStatusBoughtOut
-	TradeOrderStatusBuyRevoked
-)
-
-var SellOrderStatus = map[int32]string{
-	TradeOrderStatusNotStart:   "NotStart",
-	TradeOrderStatusOnSale:     "OnSale",
-	TradeOrderStatusSoldOut:    "SoldOut",
-	TradeOrderStatusRevoked:    "Revoked",
-	TradeOrderStatusExpired:    "Expired",
-	TradeOrderStatusOnBuy:      "OnBuy",
-	TradeOrderStatusBoughtOut:  "BoughtOut",
-	TradeOrderStatusBuyRevoked: "BuyRevoked",
-}
-
-var SellOrderStatus2Int = map[string]int32{
-	"NotStart":   TradeOrderStatusNotStart,
-	"OnSale":     TradeOrderStatusOnSale,
-	"SoldOut":    TradeOrderStatusSoldOut,
-	"Revoked":    TradeOrderStatusRevoked,
-	"Expired":    TradeOrderStatusExpired,
-	"OnBuy":      TradeOrderStatusOnBuy,
-	"BoughtOut":  TradeOrderStatusBoughtOut,
-	"BuyRevoked": TradeOrderStatusBuyRevoked,
-}
 
 // config items
 const (
@@ -369,63 +214,6 @@ const (
 	ConfigItemIntConfig
 	ConfigItemStringConfig
 )
-
-var MapSellOrderStatusStr2Int = map[string]int32{
-	"onsale":  TradeOrderStatusOnSale,
-	"soldout": TradeOrderStatusSoldOut,
-	"revoked": TradeOrderStatusRevoked,
-}
-
-var MapBuyOrderStatusStr2Int = map[string]int32{
-	"onbuy":      TradeOrderStatusOnBuy,
-	"boughtout":  TradeOrderStatusBoughtOut,
-	"buyrevoked": TradeOrderStatusBuyRevoked,
-}
-
-// relay
-const (
-	RelayRevokeCreate = iota
-	RelayRevokeAccept
-)
-
-const (
-	RelayOrderBuy = iota
-	RelayOrderSell
-)
-
-var RelayOrderOperation = map[uint32]string{
-	RelayOrderBuy:  "buy",
-	RelayOrderSell: "sell",
-}
-
-const (
-	RelayUnlock = iota
-	RelayCancel
-)
-
-//relay action ty
-const (
-	RelayActionCreate = iota
-	RelayActionAccept
-	RelayActionRevoke
-	RelayActionConfirmTx
-	RelayActionVerifyTx
-	RelayActionVerifyCmdTx
-	RelayActionRcvBTCHeaders
-)
-
-// RescanUtxoFlag
-const (
-	UtxoFlagNoScan  int32 = 0
-	UtxoFlagScaning int32 = 1
-	UtxoFlagScanEnd int32 = 2
-)
-
-var RescanFlagMapint2string = map[int32]string{
-	UtxoFlagNoScan:  "UtxoFlagNoScan",
-	UtxoFlagScaning: "UtxoFlagScaning",
-	UtxoFlagScanEnd: "UtxoFlagScanEnd",
-}
 
 //flag:
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
@@ -458,20 +246,36 @@ var LowAllowPackHeight int64 = 30
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
 
-const (
-	ParaCrossTransferActionTypeStart = 10000
-	ParaCrossTransferActionTypeEnd   = 10100
-)
+var TestPrivkeyHex = []string{
+	"4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01",
+	"CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944",
+	"B0BB75BC49A787A71F4834DA18614763B53A18291ECE6B5EDEC3AD19D150C3E7",
+	"56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138",
+	"2AFF1981291355322C7A6308D46A9C9BA311AA21D94F36B43FC6A6021A1334CF",
+	"2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989",
+}
 
-//Lottery status
-const (
-	LotteryCreated = 1 + iota
-	LotteryPurchase
-	LotteryDrawed
-	LotteryClosed
-)
+var TestPrivkeyList = []crypto.PrivKey{
+	HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"),
+	HexToPrivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"),
+	HexToPrivkey("B0BB75BC49A787A71F4834DA18614763B53A18291ECE6B5EDEC3AD19D150C3E7"),
+	HexToPrivkey("56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138"),
+	HexToPrivkey("2AFF1981291355322C7A6308D46A9C9BA311AA21D94F36B43FC6A6021A1334CF"),
+	HexToPrivkey("2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989"),
+}
 
-const (
-	ValNodeActionUpdate    = 1
-	ValNodeActionBlockInfo = 2
-)
+func HexToPrivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(GetSignName(SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}

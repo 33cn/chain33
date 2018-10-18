@@ -10,7 +10,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 )
 
 // ErrEvidenceInvalid wraps a piece of evidence and the error denoting how or why it is invalid.
@@ -97,7 +97,7 @@ func (evl EvidenceList) Has(evidence Evidence) bool {
 
 // DuplicateVoteEvidence contains evidence a validator signed two conflicting votes.
 type DuplicateVoteEvidence struct {
-	*types.DuplicateVoteEvidence
+	*tmtypes.DuplicateVoteEvidence
 }
 
 // String returns a string representation of the evidence.
@@ -210,7 +210,7 @@ func (dve *DuplicateVoteEvidence) Copy() Evidence {
 }
 
 func (dve *DuplicateVoteEvidence) SetChild(child proto.Message) {
-	dve.DuplicateVoteEvidence = child.(*types.DuplicateVoteEvidence)
+	dve.DuplicateVoteEvidence = child.(*tmtypes.DuplicateVoteEvidence)
 }
 
 func (dve *DuplicateVoteEvidence) Child() proto.Message {
@@ -227,7 +227,7 @@ func SimpleHashFromBinary(item *DuplicateVoteEvidence) []byte {
 
 }
 
-func EvidenceEnvelope2Evidence(envelope *types.EvidenceEnvelope) Evidence {
+func EvidenceEnvelope2Evidence(envelope *tmtypes.EvidenceEnvelope) Evidence {
 	if v, ok := EvidenceType2Type[envelope.TypeName]; ok {
 		realMsg2 := reflect.New(v).Interface()
 		err := proto.Unmarshal(envelope.Data, realMsg2.(proto.Message))

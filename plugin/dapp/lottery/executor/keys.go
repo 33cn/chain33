@@ -12,8 +12,8 @@ func calcLotteryBuyRoundPrefix(lotteryId string, addr string, round int64) []byt
 	return []byte(key)
 }
 
-func calcLotteryBuyKey(lotteryId string, addr string, round int64, txId string) []byte {
-	key := fmt.Sprintf("lottery-buy:%s:%s:%10d:%s", lotteryId, addr, round, txId)
+func calcLotteryBuyKey(lotteryId string, addr string, round int64, index int64) []byte {
+	key := fmt.Sprintf("lottery-buy:%s:%s:%10d:%18d", lotteryId, addr, round, index)
 	return []byte(key)
 }
 

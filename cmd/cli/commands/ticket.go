@@ -10,8 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -54,17 +55,17 @@ func addBindMinerFlags(cmd *cobra.Command) {
 func bindMiner(cmd *cobra.Command, args []string) {
 	bindAddr, _ := cmd.Flags().GetString("bind_addr")
 	originAddr, _ := cmd.Flags().GetString("origin_addr")
-	//c, _ := crypto.New(types.GetSignatureTypeName(wallet.SignType))
+	//c, _ := crypto.New(types.GetSignName(wallet.SignType))
 	//a, _ := common.FromHex(key)
 	//privKey, _ := c.PrivKeyFromBytes(a)
 	//originAddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
-	ta := &types.TicketAction{}
-	tBind := &types.TicketBind{
+	ta := &ty.TicketAction{}
+	tBind := &ty.TicketBind{
 		MinerAddress:  bindAddr,
 		ReturnAddress: originAddr,
 	}
-	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
-	ta.Ty = types.TicketActionBind
+	ta.Value = &ty.TicketAction_Tbind{Tbind: tBind}
+	ta.Ty = ty.TicketActionBind
 	execer := []byte("ticket")
 	to := address.ExecAddress(string(execer))
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
@@ -95,7 +96,7 @@ func CountTicketCmd() *cobra.Command {
 func countTicket(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res int64
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTicketCount", nil, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "ticket.GetTicketCount", nil, &res)
 	ctx.Run()
 }
 
@@ -117,7 +118,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	isAutoMining := status.(jsonrpc.WalletStatus).IsAutoMining
+	isAutoMining := status.(rpctypes.WalletStatus).IsAutoMining
 	if isAutoMining {
 		fmt.Fprintln(os.Stderr, types.ErrMinerNotClosed)
 		return
@@ -129,7 +130,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	err = rpc.Call("Chain33.CloseTickets", nil, &res)
+	err = rpc.Call("ticket.CloseTickets", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -154,7 +155,7 @@ func getWalletStatus(rpcAddr string) (interface{}, error) {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
 	}
-	var res jsonrpc.WalletStatus
+	var res rpctypes.WalletStatus
 	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -192,6 +193,6 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	params.Payload = reqaddr
 
 	var res types.ReplyStrings
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.Run()
 }

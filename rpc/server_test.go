@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	qmocks "gitlab.33.cn/chain33/chain33/queue/mocks"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -41,7 +42,7 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
-	server := NewJSONRPCServer(&qmocks.Client{})
+	server := NewJSONRPCServer(&qmocks.Client{}, nil)
 	assert.NotNil(t, server)
 
 	api := new(mocks.QueueProtocolAPI)
@@ -82,20 +83,7 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, ret.GetIsOk(), isSnyc)
 
-	var mingResult Reply
-	api.On("WalletAutoMiner", mock.Anything).Return(&types.Reply{IsOk: true, Msg: []byte("yes")}, nil)
-	err = jsonClient.Call("Chain33.SetAutoMining", types.MinerFlag{}, &mingResult)
-	assert.Nil(t, err)
-	assert.True(t, mingResult.IsOk, "SetAutoMining")
-
-	var ticketResult int64
-	var expectRet = &types.Int64{Data: 100}
-	api.On("GetTicketCount", mock.Anything).Return(expectRet, nil)
-	err = jsonClient.Call("Chain33.GetTicketCount", &types.ReqNil{}, &ticketResult)
-	assert.Nil(t, err)
-	assert.Equal(t, expectRet.GetData(), ticketResult, "GetTicketCount")
-
-	var nodeInfo NodeNetinfo
+	var nodeInfo rpctypes.NodeNetinfo
 	api.On("GetNetInfo", mock.Anything).Return(&types.NodeNetInfo{Externaladdr: "123"}, nil)
 	err = jsonClient.Call("Chain33.GetNetInfo", &types.ReqNil{}, &nodeInfo)
 	assert.Nil(t, err)
@@ -135,7 +123,7 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
-	server := NewGRpcServer(&qmocks.Client{})
+	server := NewGRpcServer(&qmocks.Client{}, nil)
 	assert.NotNil(t, server)
 
 	api := new(mocks.QueueProtocolAPI)

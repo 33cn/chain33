@@ -12,6 +12,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -23,7 +24,7 @@ var (
 //-----------------------------------------------------------------------------
 //BlockID
 type BlockID struct {
-	types.BlockID
+	tmtypes.BlockID
 }
 
 // IsZero returns true if this is the BlockID for a nil-block
@@ -49,14 +50,14 @@ func (blockID BlockID) String() string {
 //-----------------------------------------------------------------------------
 //TendermintBlock
 type TendermintBlock struct {
-	*types.TendermintBlock
+	*tmtypes.TendermintBlock
 }
 
 // MakeBlock returns a new block with an empty header, except what can be computed from itself.
 // It populates the same set of fields validated by ValidateBasic
-func MakeBlock(height int64, round int64, Txs []*types.Transaction, commit *types.TendermintCommit) *TendermintBlock {
-	block := &TendermintBlock{&types.TendermintBlock{
-		Header: &types.TendermintBlockHeader{
+func MakeBlock(height int64, round int64, Txs []*types.Transaction, commit *tmtypes.TendermintCommit) *TendermintBlock {
+	block := &TendermintBlock{&tmtypes.TendermintBlock{
+		Header: &tmtypes.TendermintBlockHeader{
 			Height: height,
 			Round:  round,
 			Time:   time.Now().UnixNano(),
@@ -64,7 +65,7 @@ func MakeBlock(height int64, round int64, Txs []*types.Transaction, commit *type
 		},
 		Txs:        Txs,
 		LastCommit: commit,
-		Evidence:   &types.EvidenceData{Evidence: make([]*types.EvidenceEnvelope, 0)},
+		Evidence:   &tmtypes.EvidenceData{Evidence: make([]*tmtypes.EvidenceEnvelope, 0)},
 	},
 	}
 	block.FillHeader()
@@ -81,7 +82,7 @@ func (b *TendermintBlock) AddEvidence(evidence []Evidence) {
 				blocklog.Error("AddEvidence marshal failed", "error", err)
 				panic("AddEvidence marshal failed")
 			}
-			env := &types.EvidenceEnvelope{
+			env := &tmtypes.EvidenceEnvelope{
 				TypeName: item.TypeName(),
 				Data:     data,
 			}
@@ -191,7 +192,7 @@ func (b *TendermintBlock) StringShort() string {
 // TODO: limit header size
 // NOTE: changes to the Header should be duplicated in the abci Header
 type Header struct {
-	*types.TendermintBlockHeader
+	*tmtypes.TendermintBlockHeader
 }
 
 // Hash returns the hash of the header.
@@ -245,15 +246,15 @@ func (h *Header) StringIndented(indent string) string {
 //-----------------------------------------------------------------------------
 //Commit
 type Commit struct {
-	*types.TendermintCommit
+	*tmtypes.TendermintCommit
 
-	firstPrecommit *types.Vote
+	firstPrecommit *tmtypes.Vote
 	hash           []byte
 	bitArray       *BitArray
 }
 
 // FirstPrecommit returns the first non-nil precommit in the commit
-func (commit *Commit) FirstPrecommit() *types.Vote {
+func (commit *Commit) FirstPrecommit() *tmtypes.Vote {
 	if len(commit.Precommits) == 0 {
 		return nil
 	}
@@ -397,7 +398,7 @@ type SignedHeader struct {
 
 //-----------------------------------------------------------------------------
 type EvidenceEnvelope struct {
-	*types.EvidenceEnvelope
+	*tmtypes.EvidenceEnvelope
 }
 
 // EvidenceData contains any evidence of malicious wrong-doing by validators
@@ -460,7 +461,7 @@ func (evl EvidenceEnvelopeList) Has(evidence Evidence) bool {
 }
 
 type EvidenceData struct {
-	*types.EvidenceData
+	*tmtypes.EvidenceData
 	hash []byte
 }
 

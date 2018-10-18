@@ -11,28 +11,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
-
 var (
 	hlog = log.New("module", "exectype.hashlock")
-
-	actionName = map[string]int32{
-		"Hlock":   HashlockActionLock,
-		"Hsend":   HashlockActionSend,
-		"Hunlock": HashlockActionUnlock,
-	}
 )
 
 func init() {
-	nameX = types.ExecName("hashlock")
-	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(HashlockX))
 	types.RegistorExecutor("hashlock", NewType())
-
-	// init log
-	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
-
-	// init query rpc
-	//types.RegisterRPCQueryHandle("q2", &CoinsGetTxsByAddr{})
 }
 
 type HashlockType struct {
@@ -49,22 +34,6 @@ func (hashlock *HashlockType) GetPayload() types.Message {
 	return &HashlockAction{}
 }
 
-func (hashlock *HashlockType) ActionName(tx *types.Transaction) string {
-	var action HashlockAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknown-err"
-	}
-	if action.Ty == HashlockActionLock && action.GetHlock() != nil {
-		return "lock"
-	} else if action.Ty == HashlockActionUnlock && action.GetHunlock() != nil {
-		return "unlock"
-	} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
-		return "send"
-	}
-	return "unknown"
-}
-
 // TODO 暂时不修改实现， 先完成结构的重构
 func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	hlog.Debug("hashlock.CreateTx", "action", action)
@@ -74,7 +43,7 @@ func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			hlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawHashlockLockTx(&param)
 	} else if action == "HashlockUnlock" {
@@ -82,7 +51,7 @@ func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			hlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawHashlockUnlockTx(&param)
 	} else if action == "HashlockSend" {
@@ -90,7 +59,7 @@ func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			hlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawHashlockSendTx(&param)
 	} else {
@@ -100,7 +69,15 @@ func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (
 }
 
 func (hashlock *HashlockType) GetTypeMap() map[string]int32 {
-	return actionName
+	return map[string]int32{
+		"Hlock":   HashlockActionLock,
+		"Hsend":   HashlockActionSend,
+		"Hunlock": HashlockActionUnlock,
+	}
+}
+
+func (at *HashlockType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{}
 }
 
 type CoinsDepositLog struct {
@@ -153,11 +130,11 @@ func CreateRawHashlockLockTx(parm *HashlockLockTx) (*types.Transaction, error) {
 		Value: &HashlockAction_Hlock{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(types.ExecName(nameX)),
+		Execer:  []byte(types.ExecName(HashlockX)),
 		Payload: types.Encode(lock),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.ExecName(nameX)),
+		To:      address.ExecAddress(types.ExecName(HashlockX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -182,11 +159,11 @@ func CreateRawHashlockUnlockTx(parm *HashlockUnlockTx) (*types.Transaction, erro
 		Value: &HashlockAction_Hunlock{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(HashlockX),
 		Payload: types.Encode(unlock),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(HashlockX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -211,11 +188,11 @@ func CreateRawHashlockSendTx(parm *HashlockSendTx) (*types.Transaction, error) {
 		Value: &HashlockAction_Hsend{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(HashlockX),
 		Payload: types.Encode(send),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(HashlockX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)

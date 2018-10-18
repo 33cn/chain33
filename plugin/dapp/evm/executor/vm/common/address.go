@@ -5,6 +5,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	evmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -28,7 +29,7 @@ func (a Address) Big() *big.Int {
 
 // txHash生成EVM合约地址
 func NewAddress(txHash []byte) Address {
-	execAddr := address.GetExecAddress(types.ExecName(types.UserEvmX) + BytesToHash(txHash).Hex())
+	execAddr := address.GetExecAddress(types.ExecName(evmtypes.EvmPrefix) + BytesToHash(txHash).Hex())
 	return Address{addr: execAddr}
 }
 

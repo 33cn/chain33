@@ -128,11 +128,14 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
 	}
-	data := msg.GetData().(*types.BlockChainQuery)
+	data := msg.GetData().(*types.ChainExecutor)
 	driver, err := drivers.LoadDriver(data.Driver, header.GetHeight())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
+	}
+	if data.StateHash == nil {
+		data.StateHash = header.StateHash
 	}
 	localdb := NewLocalDB(exec.client)
 	driver.SetLocalDB(localdb)
@@ -144,10 +147,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
 
-	ret, err := types.ProcessRPCQuery(data.FuncName, data.Param)
-	if err != nil {
-		ret, err = driver.Query(data.FuncName, data.Param)
-	}
+	ret, err := driver.Query(data.FuncName, data.Param)
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
@@ -164,7 +164,11 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
-		err := execute.execCheckTx(tx, i)
+		index := i
+		if datas.IsMempool {
+			index = -1
+		}
+		err := execute.execCheckTx(tx, index)
 		if err != nil {
 			result.Errs = append(result.Errs, err.Error())
 		} else {

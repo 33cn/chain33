@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+import "transaction.proto";
+
+package types;
+
+// message for retrieve start
+message RetrievePara {
+    string defaultAddress = 1;
+    int32  status         = 2;
+    int64  createTime     = 3;
+    int64  prepareTime    = 4;
+    int64  delayPeriod    = 5;
+}
+
+message Retrieve {
+    // used as key
+    string   backupAddress        = 1;
+    repeated RetrievePara retPara = 2;
+}
+
+message RetrieveAction {
+    oneof value {
+        PrepareRetrieve prepare = 1;
+        PerformRetrieve perform = 2;
+        BackupRetrieve  backup  = 3;
+        CancelRetrieve  cancel  = 4;
+    }
+    int32 ty = 5;
+}
+
+message BackupRetrieve {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
+    int64  delayPeriod    = 3;
+}
+
+message PrepareRetrieve {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
+}
+
+message PerformRetrieve {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
+}
+
+message CancelRetrieve {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
+}
+
+message ReqRetrieveInfo {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
+}
+
+message RetrieveQuery {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
+    int64  delayPeriod    = 3;
+    int64  prepareTime    = 4;
+    int64  remainTime     = 5;
+    int32  status         = 6;
+}
+
+// retrieve 对外提供服务的接口
+service retrieve {
+    rpc Prepare(PrepareRetrieve) returns (UnsignTx) {}
+    rpc Perform(PerformRetrieve) returns (UnsignTx) {}
+    rpc Backup(BackupRetrieve) returns (UnsignTx) {}
+    rpc Cancel(CancelRetrieve) returns (UnsignTx) {}
+}
+
+// message for retrieve end
