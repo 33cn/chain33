@@ -40,7 +40,7 @@ func (r *relaydDB) queryOrderByHash(hash []byte) ([]byte, error) {
 }
 
 func (r *relaydDB) queryOrderByStatus(status uint64) [][]byte {
-	iter := r.db.Iterator(append(orderPrefix, fmt.Sprintf("%d", status)...), false)
+	iter := r.db.Iterator(append(orderPrefix, fmt.Sprintf("%d", status)...), nil, false)
 	var orders [][]byte
 	for {
 		if iter.Next() {
