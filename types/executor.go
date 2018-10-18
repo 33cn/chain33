@@ -196,7 +196,7 @@ type ExecutorType interface {
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	CreateQuery(funcname string, message json.RawMessage) (Message, error)
 	AssertCreate(createTx *CreateTx) (*Transaction, error)
-	QueryToJson(funcname string, message Message) (string, error)
+	QueryToJson(funcname string, message Message) ([]byte, error)
 	Amount(tx *Transaction) (int64, error)
 	DecodePayload(tx *Transaction) (interface{}, error)
 	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
