@@ -27,14 +27,14 @@ func (this *CopyTemplateToOutputTask) Execute() error {
 			return nil
 		}
 		if info.IsDir() {
-			outFolder := fmt.Sprintf("%s/%s", this.OutputPath, info.Name())
+			outFolder := fmt.Sprintf("%s/%s/", this.OutputPath, info.Name())
 			if err := util.MakeDir(outFolder); err != nil {
 				mlog.Error("MakeDir failed", "error", err, "outFolder", outFolder)
 				return err
 			}
 		} else {
 			srcFile := path
-			path := strings.Replace(path, "${CLASSNAME}", this.ClassName, -1)
+			path = strings.Replace(path, "${CLASSNAME}", this.ClassName, -1)
 			dstFile := strings.Replace(path, this.TemplatePath, this.OutputPath, -1)
 			if _, err := util.CopyFile(srcFile, dstFile); err != nil {
 				mlog.Error("CopyFile failed", "error", err, "srcFile", srcFile, "dstFile", dstFile)
