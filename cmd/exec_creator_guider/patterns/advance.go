@@ -7,14 +7,13 @@ import (
 )
 
 type advancePattern struct {
-	projName         string // 创建的执行器包名
-	clsName          string // 执行器主体类名
-	actionName       string // 执行器处理过程中的Action类名
-	propFile         string // protobuf 源文件路径
-	templateFile     string // 生成执行器的模板文件路径
-	outputFolder     string // 生成执行器的输出目录
-	execHeaderTmpFil string // 生成exec\exec_local\exec_del_local的模板
-	configFolder     string // 应用运行的配置目录
+	projName     string // 创建的执行器包名
+	clsName      string // 执行器主体类名
+	actionName   string // 执行器处理过程中的Action类名
+	propFile     string // protobuf 源文件路径
+	templateFile string // 生成执行器的模板文件路径
+	outputFolder string // 生成执行器的输出目录
+	configFolder string // 应用运行的配置目录
 }
 
 func (this *advancePattern) Init(configFolder string) {
