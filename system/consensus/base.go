@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -180,7 +179,6 @@ func (bc *BaseClient) EventLoop() {
 					msg.Reply(bc.api.NewMessage("", 0, err))
 					continue
 				}
-				fmt.Println("param:", param)
 				reply, err := QueryData.Call(exec.Driver, exec.FuncName, param)
 				if err != nil {
 					msg.Reply(bc.api.NewMessage("", 0, err))
