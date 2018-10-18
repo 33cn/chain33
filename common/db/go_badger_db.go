@@ -165,18 +165,20 @@ func (db *GoBadgerDB) Stats() map[string]string {
 	return nil
 }
 
-func (db *GoBadgerDB) Iterator(prefix []byte, reserse bool) Iterator {
+func (db *GoBadgerDB) Iterator(start, end []byte, reverse bool) Iterator {
 	txn := db.db.NewTransaction(false)
 	opts := badger.DefaultIteratorOptions
-	opts.Reverse = reserse
+	opts.Reverse = reverse
 	it := txn.NewIterator(opts)
-	if reserse {
-		last := bytesPrefix(prefix)
-		it.Seek(last)
-	} else {
-		it.Seek(prefix)
+	if end == nil {
+		end = bytesPrefix(start)
 	}
-	return &goBadgerDBIt{it, txn, nil, prefix, reserse}
+	if reverse {
+		it.Seek(end)
+	} else {
+		it.Seek(start)
+	}
+	return &goBadgerDBIt{it, itBase{start, end, reverse}, txn, nil}
 }
 
 func (db *GoBadgerDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
@@ -186,10 +188,9 @@ func (db *GoBadgerDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
 
 type goBadgerDBIt struct {
 	*badger.Iterator
-	txn     *badger.Txn
-	err     error
-	prefix  []byte
-	reserse bool
+	itBase
+	txn *badger.Txn
+	err error
 }
 
 func (it *goBadgerDBIt) Next() bool {
@@ -198,11 +199,10 @@ func (it *goBadgerDBIt) Next() bool {
 }
 
 func (it *goBadgerDBIt) Rewind() bool {
-	if it.reserse {
-		last := bytesPrefix(it.prefix)
-		it.Seek(last)
+	if it.reverse {
+		it.Seek(it.end)
 	} else {
-		it.Seek(it.prefix)
+		it.Seek(it.start)
 	}
 	return it.Valid()
 }
@@ -218,7 +218,7 @@ func (it *goBadgerDBIt) Close() {
 }
 
 func (it *goBadgerDBIt) Valid() bool {
-	return it.Iterator.ValidForPrefix(it.prefix)
+	return it.Iterator.Valid() && it.checkKey(it.Key())
 }
 
 func (it *goBadgerDBIt) Key() []byte {
