@@ -29,6 +29,20 @@ func TestAllowExecName(t *testing.T) {
 	assert.Equal(t, isok, true)
 }
 
+func TestJsonNoName(t *testing.T) {
+	flag := int32(1)
+	params := struct {
+		Flag int32
+	}{
+		Flag: flag,
+	}
+	data, err := json.Marshal(params)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, string(data), "{\"Flag\":1}")
+}
+
 func TestNil(t *testing.T) {
 	v := reflect.ValueOf(nil)
 	assert.Equal(t, v.IsValid(), false)

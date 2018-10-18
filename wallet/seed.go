@@ -10,12 +10,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
 	//	"math/big"
 	"strings"
 
 	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	"github.com/NebulousLabs/Sia/modules"
 	log "github.com/inconshreveable/log15"
+
 	//	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -80,7 +82,7 @@ func VerifySeed(seed string) (bool, error) {
 //使用password加密seed存储到db中
 func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 	if len(seed) == 0 || len(password) == 0 {
-		return false, types.ErrInputPara
+		return false, types.ErrInvalidParam
 	}
 
 	Encrypted, err := AesgcmEncrypter([]byte(password), []byte(seed))
@@ -88,14 +90,16 @@ func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 		seedlog.Error("SaveSeed", "AesgcmEncrypter err", err)
 		return false, err
 	}
-	db.SetSync(WalletSeed, Encrypted)
-	//seedlog.Info("SaveSeed ok", "Encryptedseed", Encryptedseed)
+	err = db.SetSync(WalletSeed, Encrypted)
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
 func SaveSeedInBatch(db dbm.DB, seed string, password string, batch dbm.Batch) (bool, error) {
 	if len(seed) == 0 || len(password) == 0 {
-		return false, types.ErrInputPara
+		return false, types.ErrInvalidParam
 	}
 
 	Encrypted, err := AesgcmEncrypter([]byte(password), []byte(seed))
@@ -111,10 +115,13 @@ func SaveSeedInBatch(db dbm.DB, seed string, password string, batch dbm.Batch) (
 //使用password解密seed上报给上层
 func GetSeed(db dbm.DB, password string) (string, error) {
 	if len(password) == 0 {
-		return "", types.ErrInputPara
+		return "", types.ErrInvalidParam
 	}
 	Encryptedseed, err := db.Get(WalletSeed)
-	if len(Encryptedseed) == 0 || err != nil {
+	if err != nil {
+		return "", err
+	}
+	if len(Encryptedseed) == 0 {
 		return "", types.ErrSeedNotExist
 	}
 	seed, err := AesgcmDecrypter([]byte(password), Encryptedseed)
@@ -209,7 +216,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 //通过私钥生成对应的公钥地址，传入的私钥是十六进制字符串，输出addr
 func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 	if len(HexPrivkey) == 0 {
-		return "", types.ErrInputPara
+		return "", types.ErrInvalidParam
 	}
 	//解码hex格式的私钥
 	privkeybyte, err := common.FromHex(HexPrivkey)
@@ -217,7 +224,7 @@ func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 		return "", err
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
+	cr, err := crypto.New(types.GetSignName(SignType))
 	if err != nil {
 		seedlog.Error("GetAddrByPrivkey", "err", err)
 		return "", err

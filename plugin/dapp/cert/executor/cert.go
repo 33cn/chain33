@@ -5,12 +5,18 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/authority"
+	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var clog = log.New("module", "execs.cert")
-var driverName = "cert"
+var driverName = ct.CertX
+
+func init() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Cert{}))
+}
 
 func Init(name string) {
 	driverName = name
@@ -34,63 +40,6 @@ func newCert() drivers.Driver {
 
 func (c *Cert) GetDriverName() string {
 	return driverName
-}
-
-func (c *Cert) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	if !authority.IsAuthEnable {
-		clog.Error("Authority is not available. Please check the authority config or authority initialize error logs.")
-		return nil, types.ErrInitializeAuthority
-	}
-
-	var action types.CertAction
-	err := types.Decode(tx.GetPayload(), &action)
-	if err != nil {
-		panic(err)
-	}
-
-	set, err := c.DriverBase.ExecLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-
-	if action.Ty == types.CertActionNew {
-		//证书启用
-		historityCertdata := &types.HistoryCertStore{}
-		authority.Author.HistoryCertCache.CurHeight = c.GetHeight()
-		authority.Author.HistoryCertCache.ToHistoryCertStore(historityCertdata)
-		key := fmt.Sprintf("cert_%d", c.GetHeight())
-		set.KV = append(set.KV, &types.KeyValue{[]byte(key), types.Encode(historityCertdata)})
-
-		// 构造非证书历史数据
-		noneCertdata := &types.HistoryCertStore{}
-		noneCertdata.NxtHeight = historityCertdata.CurHeigth
-		noneCertdata.CurHeigth = 0
-		set.KV = append(set.KV, &types.KeyValue{[]byte("cert_0"), types.Encode(noneCertdata)})
-	} else if action.Ty == types.CertActionUpdate {
-		// 写入上一纪录的next-height
-		key := []byte(fmt.Sprintf("cert_%d", authority.Author.HistoryCertCache.CurHeight))
-		historityCertdata := &types.HistoryCertStore{}
-		authority.Author.HistoryCertCache.NxtHeight = c.GetHeight()
-		authority.Author.HistoryCertCache.ToHistoryCertStore(historityCertdata)
-		set.KV = append(set.KV, &types.KeyValue{key, types.Encode(historityCertdata)})
-
-		// 证书更新
-		historityCertdata = &types.HistoryCertStore{}
-		authority.Author.ReloadCertByHeght(c.GetHeight())
-		authority.Author.HistoryCertCache.ToHistoryCertStore(historityCertdata)
-		setKey := fmt.Sprintf("cert_%d", c.GetHeight())
-		set.KV = append(set.KV, &types.KeyValue{[]byte(setKey), types.Encode(historityCertdata)})
-	} else if action.Ty == types.CertActionNormal {
-		return set, nil
-	} else {
-		return nil, types.ErrActionNotSupport
-	}
-
-	return set, nil
-}
-
-func (c *Cert) Query(funcname string, params []byte) (types.Message, error) {
-	return nil, types.ErrActionNotSupport
 }
 
 func (c *Cert) CheckTx(tx *types.Transaction, index int) error {

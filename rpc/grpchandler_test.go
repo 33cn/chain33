@@ -219,20 +219,20 @@ func TestGetLastMemPool(t *testing.T) {
 //}
 
 func testQueryChainError(t *testing.T) {
-	var in *pb.Query
+	var in *pb.ChainExecutor
 
-	qapi.On("Query", in).Return(nil, fmt.Errorf("error")).Once()
+	qapi.On("QueryChain", in).Return(nil, fmt.Errorf("error")).Once()
 	_, err := g.QueryChain(getOkCtx(), in)
 	assert.EqualError(t, err, "error", "return error")
 }
 
 func testQueryChainOK(t *testing.T) {
-	var in *pb.Query
+	var in *pb.ChainExecutor
 	var msg types.Message
 	var req types.ReqString
 	req.Data = "msg"
 	msg = &req
-	qapi.On("Query", in).Return(msg, nil).Once()
+	qapi.On("QueryChain", in).Return(msg, nil).Once()
 	data, err := g.QueryChain(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
 	assert.Equal(t, true, data.IsOk, "reply should be ok")
@@ -292,33 +292,6 @@ func testNetInfoOK(t *testing.T) {
 func TestNetInfo(t *testing.T) {
 	//testNetInfoReject(t)
 	testNetInfoOK(t)
-}
-
-//func (g *Grpc) GetTicketCount(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
-//	if !g.checkWhitlist(ctx) {
-//		return nil, fmt.Errorf("reject")
-//	}
-//	return g.cli.GetTicketCount()
-//}
-
-//func testGetTicketCountReject(t *testing.T) {
-//	var in *pb.ReqNil
-//
-//	_, err := g.GetTicketCount(getNokCtx(), in)
-//	assert.EqualError(t, err, "reject", "the error should be reject")
-//}
-
-func testGetTicketCountOK(t *testing.T) {
-	qapi.On("GetTicketCount").Return(nil, nil)
-	data, err := g.GetTicketCount(getOkCtx(), nil)
-	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
-
-}
-
-func TestGetTicketCount(t *testing.T) {
-	//testGetTicketCountReject(t)
-	testGetTicketCountOK(t)
 }
 
 //func testGetAccountsReject(t *testing.T) {
@@ -391,9 +364,9 @@ func TestWalletTransactionList(t *testing.T) {
 //}
 
 func testImportPrivKeyOK(t *testing.T) {
-	var in *pb.ReqWalletImportPrivKey
+	var in *pb.ReqWalletImportPrivkey
 	qapi.On("WalletImportprivkey", in).Return(nil, nil)
-	data, err := g.ImportPrivKey(getOkCtx(), nil)
+	data, err := g.ImportPrivkey(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
 	assert.Nil(t, data)
 
@@ -641,20 +614,6 @@ func TestGetWalletStatus(t *testing.T) {
 //	assert.EqualError(t, err, "reject", "the error should be reject")
 //}
 
-func testSetAutoMiningOK(t *testing.T) {
-	var in *pb.MinerFlag
-	qapi.On("WalletAutoMiner", in).Return(nil, nil)
-	data, err := g.SetAutoMining(getOkCtx(), nil)
-	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
-
-}
-
-func TestSetAutoMining(t *testing.T) {
-	//testSetAutoMiningReject(t)
-	testSetAutoMiningOK(t)
-}
-
 //func testDumpPrivkeyReject(t *testing.T) {
 //	var in *pb.ReqStr
 //
@@ -663,7 +622,7 @@ func TestSetAutoMining(t *testing.T) {
 //}
 
 func testDumpPrivkeyOK(t *testing.T) {
-	var in *pb.ReqStr
+	var in *pb.ReqString
 	qapi.On("DumpPrivkey", in).Return(nil, nil)
 	data, err := g.DumpPrivkey(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
@@ -682,20 +641,6 @@ func TestDumpPrivkey(t *testing.T) {
 //	_, err := g.CloseTickets(getNokCtx(), in)
 //	assert.EqualError(t, err, "reject", "the error should be reject")
 //}
-
-func testCloseTicketsOK(t *testing.T) {
-
-	qapi.On("CloseTickets").Return(nil, nil)
-	data, err := g.CloseTickets(getOkCtx(), nil)
-	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
-
-}
-
-func TestCloseTickets(t *testing.T) {
-	//testCloseTicketsReject(t)
-	testCloseTicketsOK(t)
-}
 
 //func testGetBlocksReject(t *testing.T) {
 //	var in *pb.ReqBlocks
