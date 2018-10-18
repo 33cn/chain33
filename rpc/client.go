@@ -25,8 +25,11 @@ type channelClient struct {
 	accountdb *account.DB
 }
 
-func (c *channelClient) Init(q queue.Client) {
-	c.QueueProtocolAPI, _ = client.New(q, nil)
+func (c *channelClient) Init(q queue.Client, api client.QueueProtocolAPI) {
+	if api == nil {
+		api, _ = client.New(q, nil)
+	}
+	c.QueueProtocolAPI = api
 	c.accountdb = account.NewCoinsAccount()
 }
 
