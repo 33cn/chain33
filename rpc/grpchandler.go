@@ -114,7 +114,7 @@ func (g *Grpc) WalletTransactionList(ctx context.Context, in *pb.ReqWalletTransa
 	return g.cli.WalletTransactionList(in)
 }
 
-func (g *Grpc) ImportPrivKey(ctx context.Context, in *pb.ReqWalletImportPrivKey) (*pb.WalletAccount, error) {
+func (g *Grpc) ImportPrivkey(ctx context.Context, in *pb.ReqWalletImportPrivkey) (*pb.WalletAccount, error) {
 	return g.cli.WalletImportprivkey(in)
 }
 
@@ -201,8 +201,8 @@ func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAddr) (*pb.AllEx
 	return g.cli.GetAllExecBalance(in)
 }
 
-func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) {
-	msg, err := g.cli.Query(in)
+func (g *Grpc) QueryConsensus(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply, error) {
+	msg, err := g.cli.QueryConsensus(in)
 	if err != nil {
 		return nil, err
 	}
@@ -212,24 +212,31 @@ func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) 
 	return &reply, nil
 }
 
-func (g *Grpc) SetAutoMining(ctx context.Context, in *pb.MinerFlag) (*pb.Reply, error) {
-
-	return g.cli.WalletAutoMiner(in)
+func (g *Grpc) QueryChain(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply, error) {
+	msg, err := g.cli.QueryChain(in)
+	if err != nil {
+		return nil, err
+	}
+	var reply pb.Reply
+	reply.IsOk = true
+	reply.Msg = pb.Encode(msg)
+	return &reply, nil
 }
 
-func (g *Grpc) GetTicketCount(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
-
-	return g.cli.GetTicketCount()
+func (g *Grpc) ExecWallet(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply, error) {
+	msg, err := g.cli.ExecWallet(in)
+	if err != nil {
+		return nil, err
+	}
+	var reply pb.Reply
+	reply.IsOk = true
+	reply.Msg = pb.Encode(msg)
+	return &reply, nil
 }
 
-func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyStr, error) {
+func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyString, error) {
 
 	return g.cli.DumpPrivkey(in)
-}
-
-func (g *Grpc) CloseTickets(ctx context.Context, in *pb.ReqNil) (*pb.ReplyHashes, error) {
-
-	return g.cli.CloseTickets()
 }
 
 func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
@@ -273,42 +280,6 @@ func (g *Grpc) GetBlockSequences(ctx context.Context, in *pb.ReqBlocks) (*pb.Blo
 }
 func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.BlockDetails, error) {
 	return g.cli.GetBlockByHashes(in)
-}
-
-// 显示指定地址的公钥对信息，可以作为后续交易参数
-func (g *Grpc) ShowPrivacyKey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyPrivacyPkPair, error) {
-	return g.cli.ShowPrivacyKey(in)
-
-}
-
-// 创建一系列UTXO
-func (g *Grpc) CreateUTXOs(ctx context.Context, in *pb.ReqCreateUTXOs) (*pb.Reply, error) {
-	return g.cli.CreateUTXOs(in)
-}
-
-// 将资金从公开到隐私转移
-func (g *Grpc) MakeTxPublic2Privacy(ctx context.Context, in *pb.ReqPub2Pri) (*pb.Reply, error) {
-	return g.cli.Publick2Privacy(in)
-}
-
-// 将资产从隐私到隐私进行转移
-func (g *Grpc) MakeTxPrivacy2Privacy(ctx context.Context, in *pb.ReqPri2Pri) (*pb.Reply, error) {
-	return g.cli.Privacy2Privacy(in)
-}
-
-// 将资产从隐私到公开进行转移
-func (g *Grpc) MakeTxPrivacy2Public(ctx context.Context, in *pb.ReqPri2Pub) (*pb.Reply, error) {
-	return g.cli.Privacy2Public(in)
-}
-
-// 扫描UTXO以及获取扫描UTXO后的状态
-func (g *Grpc) RescanUtxos(ctx context.Context, in *pb.ReqRescanUtxos) (*pb.RepRescanUtxos, error) {
-	return g.cli.RescanUtxos(in)
-}
-
-// 使能隐私账户
-func (g *Grpc) EnablePrivacy(ctx context.Context, in *pb.ReqEnablePrivacy) (*pb.RepEnablePrivacy, error) {
-	return g.cli.EnablePrivacy(in)
 }
 
 func (g *Grpc) SignRawTx(ctx context.Context, in *pb.ReqSignRawTx) (*pb.ReplySignRawTx, error) {
