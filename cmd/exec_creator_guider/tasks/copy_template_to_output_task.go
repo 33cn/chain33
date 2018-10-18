@@ -35,6 +35,7 @@ func (this *CopyTemplateToOutputTask) Execute() error {
 		} else {
 			srcFile := path
 			path = strings.Replace(path, "${CLASSNAME}", this.ClassName, -1)
+			path = strings.Replace(path, ".tmp", "", -1)
 			dstFile := strings.Replace(path, this.TemplatePath, this.OutputPath, -1)
 			if _, err := util.CopyFile(srcFile, dstFile); err != nil {
 				mlog.Error("CopyFile failed", "error", err, "srcFile", srcFile, "dstFile", dstFile)
