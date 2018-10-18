@@ -8,43 +8,32 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
-	qmocks "gitlab.33.cn/chain33/chain33/queue/mocks"
-	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util/testnode"
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
+
+	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
 func TestRPC_Call(t *testing.T) {
-	rpcCfg := new(types.Rpc)
-	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
-	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
-	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
-	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
-	rpcCfg.JrpcFuncWhitelist = []string{"*"}
-	rpcCfg.GrpcFuncWhitelist = []string{"*"}
-	server := rpc.New(rpcCfg)
-	assert.NotNil(t, server)
-	qclient := &qmocks.Client{}
 	api := new(mocks.QueueProtocolAPI)
-	server.SetAPI(api)
-	server.SetQueueClientNoListen(qclient)
+	mock33 := testnode.New("testdata/chain33.test.toml", api)
 
 	g := newGrpc(api)
-	g.Init("ticket", server, newJrpc(api), g)
-	ty.RegisterTicketServer(server.GRPC(), g)
-	server.Listen()
+	g.Init("ticket", mock33.GetRPC(), newJrpc(api), g)
+	ty.RegisterTicketServer(mock33.GetRPC().GRPC(), g)
+	mock33.GetRPC().Listen()
 	time.Sleep(time.Millisecond)
 	ret := &types.Reply{
 		IsOk: true,
 		Msg:  []byte("123"),
 	}
 	api.On("IsSync").Return(ret, nil)
-	api.On("Close").Return()
-	qclient.On("Close").Return()
 
+	rpcCfg := mock33.GetCfg().Rpc
 	jsonClient, err := jsonclient.NewJSONClient("http://" + rpcCfg.JrpcBindAddr + "/")
 	assert.Nil(t, err)
 	assert.NotNil(t, jsonClient)
@@ -83,6 +72,6 @@ func TestRPC_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, r.IsOk, true)
 
-	server.Close()
+	mock33.Close()
 	mock.AssertExpectationsForObjects(t, api)
 }
