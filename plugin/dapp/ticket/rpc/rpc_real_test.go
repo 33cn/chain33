@@ -30,12 +30,12 @@ func TestRPC_Call(t *testing.T) {
 	qclient := &qmocks.Client{}
 	api := new(mocks.QueueProtocolAPI)
 	server.SetAPI(api)
-	server.SetQueueClient(qclient)
+	server.SetQueueClientNoListen(qclient)
 
 	g := newGrpc(api)
 	g.Init("ticket", server, newJrpc(api), g)
 	ty.RegisterTicketServer(server.GRPC(), g)
-
+	server.Listen()
 	time.Sleep(time.Millisecond)
 	ret := &types.Reply{
 		IsOk: true,
