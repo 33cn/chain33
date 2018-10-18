@@ -103,8 +103,6 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{}))
 			case types.EventGetLastHeader:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventHeader, &types.Header{}))
-			case types.EventQuery:
-				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Header{Version: 10, Height: 10}))
 			case types.EventLocalGet:
 				if req, ok := msg.GetData().(*types.LocalDBGet); ok {
 					if len(req.Keys) > 0 && bytes.Equal(req.Keys[0], []byte("TotalFeeKey:case1")) {

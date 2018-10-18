@@ -195,6 +195,7 @@ type ExecutorType interface {
 	Create(action string, message Message) (*Transaction, error)
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	CreateQuery(funcname string, message json.RawMessage) (Message, error)
+	AssertCreate(createTx *CreateTx) (*Transaction, error)
 	QueryToJson(funcname string, message Message) (string, error)
 	Amount(tx *Transaction) (int64, error)
 	DecodePayload(tx *Transaction) (interface{}, error)
@@ -271,41 +272,6 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	}
 }
 
-func (base *ExecTypeBase) buildQuery(funcmap map[string]reflect.Method) {
-	if base.queryMap == nil {
-		base.queryMap = make(map[string]reflect.Type)
-	}
-	for funcname := range funcmap {
-		if !strings.HasPrefix(funcname, "Query_") {
-			continue
-		}
-		ty := funcmap[funcname].Type
-		if ty.NumIn() != 2 {
-			continue
-		}
-		paramin := ty.In(1)
-		if paramin.Kind() != reflect.Ptr {
-			continue
-		}
-		p := reflect.New(ty.In(1).Elem())
-		queryin := p.Interface()
-		if _, ok := queryin.(proto.Message); !ok {
-			continue
-		}
-		if ty.NumOut() != 2 {
-			continue
-		}
-		if !ty.Out(0).AssignableTo(reflect.TypeOf((*proto.Message)(nil)).Elem()) {
-			continue
-		}
-		if !ty.Out(1).AssignableTo(reflect.TypeOf((*error)(nil)).Elem()) {
-			continue
-		}
-
-		base.queryMap[funcname[len("Query_"):]] = ty
-	}
-}
-
 func (base *ExecTypeBase) InitFuncList(list map[string]reflect.Method) {
 	base.execFuncList = list
 	actionList := base.GetFuncMap()
@@ -313,7 +279,7 @@ func (base *ExecTypeBase) InitFuncList(list map[string]reflect.Method) {
 		base.execFuncList[k] = v
 	}
 	//查询所有的Query_ 接口, 做一个函数名称 和 类型的映射
-	base.buildQuery(base.execFuncList)
+	_, base.queryMap = BuildQueryType("Query_", base.execFuncList)
 }
 
 func (base *ExecTypeBase) GetRPCFuncMap() map[string]reflect.Method {
@@ -411,7 +377,7 @@ func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.V
 		return "", nilValue, err
 	}
 	name, ty, val := GetActionValue(action, base.child.GetFuncMap())
-	if IsNilVal(val) {
+	if IsNil(val) {
 		tlog.Error("GetActionValue is nil")
 		return "", nilValue, ErrActionNotSupport
 	}
@@ -484,6 +450,12 @@ func (base *ExecTypeBase) QueryToJson(funcname string, message Message) (string,
 func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg interface{}) (tx *Transaction, err error) {
 	valueret := method.Func.Call([]reflect.Value{base.childValue, reflect.ValueOf(action), reflect.ValueOf(msg)})
 	if len(valueret) != 2 {
+		return nil, ErrMethodNotFound
+	}
+	if !valueret[0].CanInterface() {
+		return nil, ErrMethodNotFound
+	}
+	if !valueret[1].CanInterface() {
 		return nil, ErrMethodNotFound
 	}
 	r1 := valueret[0].Interface()

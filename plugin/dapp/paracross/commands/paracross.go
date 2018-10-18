@@ -109,7 +109,7 @@ func createAssetTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 	title, _ := cmd.Flags().GetString("title")
 	if !strings.HasPrefix(title, "user.p") {
 		fmt.Fprintln(os.Stderr, "title is not right, title format like `user.p.guodun.`")
-		return "", types.ErrInputPara
+		return "", types.ErrInvalidParam
 	}
 	execName := title + types.ParaX
 

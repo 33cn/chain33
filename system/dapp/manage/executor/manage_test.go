@@ -80,7 +80,7 @@ func init() {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -104,7 +104,7 @@ func initUnitEnv() (queue.Queue, *executor.Executor) {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -192,7 +192,7 @@ func genEventDelBlockMsg(client queue.Client, block *types.Block) queue.Message 
 
 //"coins", "GetTxsByAddr",
 func genEventBlockChainQueryMsg(client queue.Client, param []byte, strDriver string, strFunName string) queue.Message {
-	blockChainQue := &types.BlockChainQuery{strDriver, strFunName, zeroHash[:], param}
+	blockChainQue := &types.ChainExecutor{strDriver, strFunName, zeroHash[:], param, nil}
 	msg := client.NewMessage("execs", types.EventBlockChainQuery, blockChainQue)
 	return msg
 }

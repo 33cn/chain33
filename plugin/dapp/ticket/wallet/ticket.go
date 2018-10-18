@@ -1,4 +1,4 @@
-package ticket
+package wallet
 
 import (
 	"sync"
@@ -12,15 +12,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
 var (
 	minerAddrWhiteList = make(map[string]bool)
-
-	bizlog = log15.New("module", "wallet.ticket")
+	bizlog             = log15.New("module", "wallet.ticket")
 )
 
 func init() {
@@ -28,7 +26,7 @@ func init() {
 }
 
 func New() wcom.WalletBizPolicy {
-	return &ticketPolicy{}
+	return &ticketPolicy{mtx: &sync.Mutex{}}
 }
 
 type ticketPolicy struct {
@@ -42,17 +40,12 @@ type ticketPolicy struct {
 	minertimeout       *time.Timer
 }
 
-func (policy *ticketPolicy) initFuncMap(walletOperate wcom.WalletOperate) {
-	wcom.RegisterMsgFunc(types.EventCloseTickets, policy.onCloseTickets)
-	wcom.RegisterMsgFunc(types.EventWalletGetTickets, policy.onWalletGetTickets)
-	wcom.RegisterMsgFunc(types.EventWalletAutoMiner, policy.onWalletAutoMiner)
-}
-
 func (policy *ticketPolicy) initMingTicketTicker() {
 	policy.mtx.Lock()
 	defer policy.mtx.Unlock()
 	policy.miningTicketTicker = time.NewTicker(2 * time.Minute)
 }
+
 func (policy *ticketPolicy) getMingTicketTicker() *time.Ticker {
 	policy.mtx.Lock()
 	defer policy.mtx.Unlock()
@@ -86,17 +79,13 @@ func (policy *ticketPolicy) IsTicketLocked() bool {
 }
 
 func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
-	policy.mtx = &sync.Mutex{}
 	policy.setWalletOperate(walletBiz)
 	policy.store = NewStore(walletBiz.GetDBStore())
 	policy.needFlush = false
 	policy.isTicketLocked = 1
 	policy.autoMinerFlag = policy.store.GetAutoMinerFlag()
 	policy.initMingTicketTicker()
-
 	walletBiz.RegisterMineStatusReporter(policy)
-	policy.initFuncMap(walletBiz)
-
 	initMinerWhiteList(walletBiz.GetConfig())
 	// 启动自动挖矿
 	walletBiz.GetWaitGroup().Add(1)
@@ -118,7 +107,7 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 		Blocktime:  block.Block.BlockTime,
 		ActionName: tx.ActionName(),
 		Amount:     amount,
-		Spendrecv:  nil,
+		Payload:    nil,
 	}
 	if len(wtxdetail.Fromaddr) <= 0 {
 		pubkey := tx.Signature.GetPubkey()
@@ -153,7 +142,7 @@ func (policy *ticketPolicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.
 		Blocktime:  block.Block.BlockTime,
 		ActionName: tx.ActionName(),
 		Amount:     amount,
-		Spendrecv:  nil,
+		Payload:    nil,
 	}
 	if len(wtxdetail.Fromaddr) <= 0 {
 		pubkey := tx.Signature.GetPubkey()
@@ -207,7 +196,7 @@ func (policy *ticketPolicy) OnWalletUnlocked(param *types.WalletUnLock) {
 		}
 	}
 	// 钱包解锁时，需要刷新，通知挖矿
-	policy.flushTicket()
+	FlushTicket(policy.getAPI())
 }
 
 func (policy *ticketPolicy) OnCreateNewAccount(acc *types.Account) {
@@ -226,15 +215,18 @@ func (policy *ticketPolicy) OnAddBlockFinish(block *types.BlockDetail) {
 
 func (policy *ticketPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
 	if policy.needFlush {
-		policy.flushTicket()
+		FlushTicket(policy.getAPI())
 	}
 	policy.needFlush = false
 }
 
-func (policy *ticketPolicy) flushTicket() {
+func FlushTicket(api client.QueueProtocolAPI) {
 	bizlog.Info("wallet FLUSH TICKET")
-	api := policy.getAPI()
-	api.Notify("consensus", types.EventFlushTicket, nil)
+	api.Notify("consensus", types.EventConsensusQuery, &types.ChainExecutor{
+		Driver:   "ticket",
+		FuncName: "FlushTicket",
+		Param:    types.Encode(&types.ReqNil{}),
+	})
 }
 
 func (policy *ticketPolicy) needFlushTicket(tx *types.Transaction, receipt *types.ReceiptData) bool {
@@ -248,24 +240,6 @@ func (policy *ticketPolicy) checkNeedFlushTicket(tx *types.Transaction, receipt 
 		return false
 	}
 	return policy.needFlushTicket(tx, receipt)
-}
-
-func (policy *ticketPolicy) onCloseTickets(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyHashes)
-	operater := policy.getWalletOperate()
-	reply, err := policy.forceCloseTicket(operater.GetBlockHeight() + 1)
-	if err != nil {
-		bizlog.Error("onCloseTickets", "forceCloseTicket error", err.Error())
-	} else {
-		go func() {
-			if len(reply.Hashes) > 0 {
-				operater.WaitTxs(reply.Hashes)
-				policy.flushTicket()
-			}
-		}()
-	}
-	return topic, retty, reply, err
 }
 
 func (policy *ticketPolicy) forceCloseTicket(height int64) (*types.ReplyHashes, error) {
@@ -294,12 +268,8 @@ func (policy *ticketPolicy) forceCloseAllTicket(height int64) (*types.ReplyHashe
 
 func (policy *ticketPolicy) getTickets(addr string, status int32) ([]*ty.Ticket, error) {
 	reqaddr := &ty.TicketList{addr, status}
-	var req types.Query
-	req.Execer = types.ExecerTicket
-	req.FuncName = "TicketList"
-	req.Payload = types.Encode(reqaddr)
 	api := policy.getAPI()
-	msg, err := api.Query(&req)
+	msg, err := api.Query(types.TicketX, "TicketList", reqaddr)
 	if err != nil {
 		bizlog.Error("getTickets", "Query error", err)
 		return nil, err
@@ -396,29 +366,6 @@ func (policy *ticketPolicy) getTicketsByStatus(status int32) ([]*ty.Ticket, [][]
 		return nil, nil, types.ErrNoTicket
 	}
 	return tickets, privs, nil
-}
-
-func (policy *ticketPolicy) onWalletGetTickets(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventWalletTickets)
-
-	tickets, privs, err := policy.getTicketsByStatus(1)
-	tks := &ty.ReplyWalletTickets{tickets, privs}
-	return topic, retty, tks, err
-}
-
-func (policy *ticketPolicy) onWalletAutoMiner(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventWalletAutoMiner)
-	req, ok := msg.Data.(*types.MinerFlag)
-	if !ok {
-		bizlog.Error("onWalletAutoMiner", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	policy.store.SetAutoMinerFlag(req.Flag)
-	policy.setAutoMining(req.Flag)
-	policy.flushTicket()
-	return topic, retty, &types.Reply{IsOk: true}, nil
 }
 
 func (policy *ticketPolicy) setAutoMining(flag int32) {
@@ -621,12 +568,8 @@ func (policy *ticketPolicy) buyTicket(height int64) ([][]byte, int, error) {
 
 func (policy *ticketPolicy) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
-	var req types.Query
-	req.Execer = types.ExecerTicket
-	req.FuncName = "MinerSourceList"
-	req.Payload = types.Encode(reqaddr)
 	api := policy.walletOperate.GetAPI()
-	msg, err := api.Query(&req)
+	msg, err := api.Query(types.TicketX, "MinerSourceList", reqaddr)
 	if err != nil {
 		bizlog.Error("getMinerColdAddr", "Query error", err)
 		return nil, err
@@ -797,7 +740,7 @@ func (policy *ticketPolicy) autoMining() {
 					operater.WaitTxs(hashes)
 				}
 				if n1+n2+n3 > 0 {
-					policy.flushTicket()
+					FlushTicket(policy.getAPI())
 				}
 			} else {
 				n1, err := policy.closeTicket(lastHeight + 1)
@@ -816,7 +759,7 @@ func (policy *ticketPolicy) autoMining() {
 					operater.WaitTxs(hashes)
 				}
 				if n1 > 0 {
-					policy.flushTicket()
+					FlushTicket(policy.getAPI())
 				}
 			}
 			bizlog.Info("END miningTicket")
