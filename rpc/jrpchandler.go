@@ -12,12 +12,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 
-	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
-	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
-
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 
-	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
@@ -834,11 +830,13 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		log.Error("Query", "funcname", in.FuncName, "err", types.ErrNotSupport)
 		return types.ErrNotSupport
 	}
+
 	decodePayload, err := execty.CreateQuery(in.FuncName, in.Payload)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
+
 	payloadData := types.Encode(decodePayload)
 	resp, err := c.cli.Query(&types.Query{Execer: []byte(types.ExecName(in.Execer)), FuncName: in.FuncName, Payload: payloadData})
 	if err != nil {
@@ -1059,116 +1057,6 @@ func (c *Chain33) CreateRawTradeSellMarketTx(in *tradetype.TradeSellMarketTx, re
 
 func (c *Chain33) CreateRawTradeRevokeBuyTx(in *tradetype.TradeRevokeBuyTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeRevokeBuyTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrieveBackupTx(in *retrievetype.RetrieveBackupTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrieveBackupTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrievePrepareTx(in *retrievetype.RetrievePrepareTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrievePrepareTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrievePerformTx(in *retrievetype.RetrievePerformTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrievePerformTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrieveCancelTx(in *retrievetype.RetrieveCancelTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrieveCancelTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawHashlockLockTx(in *hashlocktype.HashlockLockTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawHashlockLockTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawHashlockUnlockTx(in *hashlocktype.HashlockUnlockTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawHashlockUnlockTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawHashlockSendTx(in *hashlocktype.HashlockSendTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawHashlockSendTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawLotteryCreateTx(in *lotterytype.LotteryCreateTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawLotteryCreateTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawLotteryBuyTx(in *lotterytype.LotteryBuyTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawLotteryBuyTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawLotteryDrawTx(in *lotterytype.LotteryDrawTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawLotteryDrawTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawLotteryCloseTx(in *lotterytype.LotteryCloseTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawLotteryCloseTx(in)
 	if err != nil {
 		return err
 	}
@@ -1437,7 +1325,8 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 		log.Error("CreateTransaction", "err", err.Error())
 		return err
 	}
-	*result = tx
+	data := types.Encode(tx)
+	*result = hex.EncodeToString(data)
 	return nil
 }
 
