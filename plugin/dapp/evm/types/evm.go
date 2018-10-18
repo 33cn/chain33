@@ -89,7 +89,7 @@ func (evm EvmType) CreateTx(action string, message json.RawMessage) (*types.Tran
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			elog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawEvmCreateCallTx(&param)
 	} else {
