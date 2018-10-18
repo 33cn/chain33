@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/util/testnode"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
 var mock33 = testnode.New("testdata/chain33.test.toml", nil)
