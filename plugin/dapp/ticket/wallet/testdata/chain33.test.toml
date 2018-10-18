@@ -1,4 +1,5 @@
-Title="chain33"
+Title="local"
+TestNet=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -39,7 +40,7 @@ enableTxQuickIndex=false
 
 [p2p]
 seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
-enable=true
+enable=false
 isSeed=true
 serverStart=true
 msgCacheSize=10240
@@ -64,7 +65,7 @@ minTxFee=1000000
 maxTxNumPerAccount=10000
 
 [consensus]
-name="solo"
+name="ticket"
 minerstart=true
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
@@ -87,8 +88,8 @@ signType="secp256k1"
 minerwhitelist=["*"]
 
 [exec]
-isFree=false
-minExecFee=100000
+isFree=true
+minExecFee=0
 enableStat=false
 enableMVCC=false
 
