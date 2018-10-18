@@ -1,4 +1,4 @@
-package types
+package rpc
 
 type RetrieveBackupTx struct {
 	BackupAddr  string `json:"backupAddr"`
