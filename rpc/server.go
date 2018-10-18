@@ -174,6 +174,21 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 	go japi.Listen()
 }
 
+func (r *RPC) SetQueueClientNoListen(c queue.Client) {
+	gapi := NewGRpcServer(c, r.api)
+	japi := NewJSONRPCServer(c, r.api)
+	r.gapi = gapi
+	r.japi = japi
+	r.c = c
+	//注册系统rpc
+	pluginmgr.AddRPC(r)
+}
+
+func (rpc *RPC) Listen() {
+	go rpc.gapi.Listen()
+	go rpc.japi.Listen()
+}
+
 func (rpc *RPC) GetQueueClient() queue.Client {
 	return rpc.c
 }
