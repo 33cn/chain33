@@ -11,10 +11,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/util/testnode"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
-	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
-var mock33 = testnode.New("testdata/chain33.test.toml", nil, false)
+var mock33 = testnode.New("testdata/chain33.test.toml", nil)
 
 func getTicketList(addr string, t *testing.T) *tickettypes.ReplyTicketList {
 	msg, err := mock33.GetAPI().Query(types.TicketX, "TicketList", &tickettypes.TicketList{addr, 1})
@@ -24,7 +23,7 @@ func getTicketList(addr string, t *testing.T) *tickettypes.ReplyTicketList {
 
 func Test_WalletTicket(t *testing.T) {
 	t.Log("Begin wallet ticket test")
-	defer mock33.Stop()
+	defer mock33.Close()
 
 	err := mock33.WaitHeight(0)
 	assert.Nil(t, err)
