@@ -4,6 +4,9 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"fmt"
+	"os"
+
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -38,6 +41,11 @@ func saveKVList(db DB, kvlist []*types.KeyValue) {
 }
 
 func TestAddDelMVCCIter(t *testing.T) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
 	m := getMVCCIter()
 	defer m.db.Close()
 	kvlist, err := m.AddMVCC(KeyValueList([2]string{"0.0", "0/0"}, [2]string{"0.1", "0/1"}), hashN(0), nil, 0)
@@ -68,4 +76,88 @@ func TestAddDelMVCCIter(t *testing.T) {
 	assert.Equal(t, "0/1", string(values[1]))
 	assert.Equal(t, "1/1", string(values[2]))
 	//m.PrintAll()
+}
+
+func TestGetAllCoinsMVCCIter(t *testing.T) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	m := getMVCCIter()
+	defer m.db.Close()
+	kvlist, err := m.AddMVCC(KeyValueList([2]string{"mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp", "1"}, [2]string{"mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTq", "2"}), hashN(0), nil, 0)
+	assert.Nil(t, err)
+	saveKVList(m.db, kvlist)
+
+	kvlist, err = m.AddMVCC(KeyValueList([2]string{"mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp", "3"}, [2]string{"mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTs", "4"}), hashN(1), hashN(0), 1)
+	assert.Nil(t, err)
+	saveKVList(m.db, kvlist)
+
+	kvlist, err = m.AddMVCC(KeyValueList([2]string{"mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp", "5"}, [2]string{"mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTt", "6"}), hashN(2), hashN(1), 2)
+	assert.Nil(t, err)
+	saveKVList(m.db, kvlist)
+
+	listhelper := NewListHelper(m)
+	fmt.Println("---case 1-1----")
+
+	values := listhelper.List([]byte("mavl-coins-bty-"), nil, 100, 1)
+	assert.Equal(t, "3", string(values[0]))
+	assert.Equal(t, "2", string(values[1]))
+	assert.Equal(t, "4", string(values[2]))
+	assert.Equal(t, "6", string(values[3]))
+	assert.Equal(t, "5", string(values[4]))
+
+	for i := 0; i < len(values); i++ {
+		fmt.Println(string(values[i]))
+	}
+
+	fmt.Println("---case 1-2----")
+	var match_values [][]byte
+	listhelper.IteratorCallback([]byte("mavl-coins-bty-"), nil, 0, 1, func(key, value []byte) bool {
+		match_values = append(match_values, value)
+		return false
+	})
+	values = match_values
+	assert.Equal(t, "3", string(values[0]))
+	assert.Equal(t, "2", string(values[1]))
+	assert.Equal(t, "4", string(values[2]))
+	assert.Equal(t, "6", string(values[3]))
+	assert.Equal(t, "5", string(values[4]))
+
+	for i := 0; i < len(values); i++ {
+		fmt.Println(string(values[i]))
+	}
+	fmt.Println("---case 2-1----")
+	//m.PrintAll()
+	//删除最新版本
+	kvlist, err = m.DelMVCC(hashN(2), 2, true)
+	assert.Nil(t, err)
+	saveKVList(m.db, kvlist)
+	values = listhelper.List(nil, nil, 0, 1)
+	assert.Equal(t, 4, len(values))
+	assert.Equal(t, "3", string(values[0]))
+	assert.Equal(t, "2", string(values[1]))
+	assert.Equal(t, "4", string(values[2]))
+	assert.Equal(t, "1", string(values[3]))
+
+	for i := 0; i < len(values); i++ {
+		fmt.Println(string(values[i]))
+	}
+	//m.PrintAll()
+	fmt.Println("---case 2-2----")
+	match_values = nil
+	listhelper.IteratorCallback(([]byte("mavl-coins-bty-")), []byte("mavl-coins-bty-exec-"), 0, 1, func(key, value []byte) bool {
+		match_values = append(match_values, value)
+		return false
+	})
+	values = match_values
+
+	for i := 0; i < len(values); i++ {
+		fmt.Println(string(values[i]))
+	}
+	assert.Equal(t, 3, len(values))
+	assert.Equal(t, "3", string(values[0]))
+	assert.Equal(t, "2", string(values[1]))
+	assert.Equal(t, "4", string(values[2]))
 }

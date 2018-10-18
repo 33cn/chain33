@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -217,6 +218,7 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	kv2 = append(kv2, &types.KeyValue{[]byte("mk1"), []byte("v11")})
 	kv2 = append(kv2, &types.KeyValue{[]byte("mk2"), []byte("v22")})
 
+	//触发批量回滚
 	datas2 := &types.StoreSet{hash, kv2, 1}
 	hash, err = store.MemSet(datas2, true)
 	assert.Nil(t, err)
@@ -242,6 +244,147 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	maxVersion, err = store.mvcc.GetMaxVersion()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, int64(2), maxVersion)
+}
+
+func TestIterateRangeByStateHash(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfgIter(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(t, store)
+
+	execaddr := "0111vcBNSEA7fZhAdLJphDwQRQJa111"
+	addr := "06htvcBNSEA7fZhAdLJphDwQRQJaHpy"
+	addr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	addr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	addr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	addr4 := "46htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	accCoin := account.NewCoinsAccount()
+
+	account1 := &types.Account{
+		Balance: 1000 * 1e8,
+		Addr:    addr1,
+	}
+
+	account2 := &types.Account{
+		Balance: 900 * 1e8,
+		Addr:    addr2,
+	}
+
+	account3 := &types.Account{
+		Balance: 800 * 1e8,
+		Addr:    addr3,
+	}
+
+	account4 := &types.Account{
+		Balance: 700 * 1e8,
+		Addr:    addr4,
+	}
+	set1 := accCoin.GetKVSet(account1)
+	set2 := accCoin.GetKVSet(account2)
+	set3 := accCoin.GetKVSet(account3)
+	set4 := accCoin.GetKVSet(account4)
+
+	set5 := accCoin.GetExecKVSet(execaddr, account4)
+
+	fmt.Println("---test case1-1 ---")
+	var kv []*types.KeyValue
+	kv = append(kv, &types.KeyValue{Key: set4[0].GetKey(), Value: set4[0].GetValue()})
+	kv = append(kv, &types.KeyValue{Key: set3[0].GetKey(), Value: set3[0].GetValue()})
+	kv = append(kv, &types.KeyValue{Key: set1[0].GetKey(), Value: set1[0].GetValue()})
+	kv = append(kv, &types.KeyValue{Key: set2[0].GetKey(), Value: set2[0].GetValue()})
+	kv = append(kv, &types.KeyValue{Key: set5[0].GetKey(), Value: set5[0].GetValue()})
+	for i := 0; i < len(kv); i++ {
+		fmt.Println("key:", string(kv[i].Key), "value:", string(kv[i].Value))
+	}
+	datas := &types.StoreSet{drivers.EmptyRoot[:], kv, 0}
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(t, err)
+	var kvset []*types.KeyValue
+	req := &types.ReqHash{hash}
+	hash1 := make([]byte, len(hash))
+	copy(hash1, hash)
+	store.Commit(req)
+
+	resp := &types.ReplyGetTotalCoins{}
+	resp.Count = 100000
+
+	store.IterateRangeByStateHash(hash, []byte("mavl-coins-bty-"), []byte("mavl-coins-bty-exec"), true, resp.IterateRangeByStateHash)
+	fmt.Println("resp.Num=", resp.Num)
+	fmt.Println("resp.Amount=", resp.Amount)
+
+	assert.Equal(t, int64(4), resp.Num)
+	assert.Equal(t, int64(340000000000), resp.Amount)
+
+	fmt.Println("---test case1-2 ---")
+	for i := 1; i <= 10; i++ {
+		kvset = nil
+
+		s1 := fmt.Sprintf("%03d", 11-i)
+		addrx := addr + s1
+		account := &types.Account{
+			Balance: ((1000 + int64(i)) * 1e8),
+			Addr:    addrx,
+		}
+		set := accCoin.GetKVSet(account)
+		fmt.Println("key:", string(set[0].GetKey()), "value:", set[0].GetValue())
+		kvset = append(kvset, &types.KeyValue{set[0].GetKey(), set[0].GetValue()})
+		datas1 := &types.StoreSet{hash1, kvset, datas.Height + int64(i)}
+		hash1, err = store.MemSet(datas1, true)
+		assert.Nil(t, err)
+		req := &types.ReqHash{hash1}
+		store.Commit(req)
+	}
+
+	resp = &types.ReplyGetTotalCoins{}
+	resp.Count = 100000
+	store.IterateRangeByStateHash(hash1, []byte("mavl-coins-bty-"), []byte("mavl-coins-bty-exec"), true, resp.IterateRangeByStateHash)
+	fmt.Println("resp.Num=", resp.Num)
+	fmt.Println("resp.Amount=", resp.Amount)
+	assert.Equal(t, int64(14), resp.Num)
+	assert.Equal(t, int64(1345500000000), resp.Amount)
+
+	fmt.Println("---test case1-3 ---")
+
+	resp = &types.ReplyGetTotalCoins{}
+	resp.Count = 100000
+	store.IterateRangeByStateHash(hash1, []byte("mavl-coins-bty-06htvcBNSEA7fZhAdLJphDwQRQJaHpy003"), []byte("mavl-coins-bty-exec"), true, resp.IterateRangeByStateHash)
+	fmt.Println("resp.Num=", resp.Num)
+	fmt.Println("resp.Amount=", resp.Amount)
+	assert.Equal(t, int64(12), resp.Num)
+	assert.Equal(t, int64(1143600000000), resp.Amount)
+
+	fmt.Println("---test case1-4 ---")
+
+	resp = &types.ReplyGetTotalCoins{}
+	resp.Count = 2
+	store.IterateRangeByStateHash(hash1, []byte("mavl-coins-bty-06htvcBNSEA7fZhAdLJphDwQRQJaHpy003"), []byte("mavl-coins-bty-exec"), true, resp.IterateRangeByStateHash)
+	fmt.Println("resp.Num=", resp.Num)
+	fmt.Println("resp.Amount=", resp.Amount)
+	assert.Equal(t, int64(2), resp.Num)
+	assert.Equal(t, int64(201500000000), resp.Amount)
+
+	fmt.Println("---test case1-5 ---")
+
+	resp = &types.ReplyGetTotalCoins{}
+	resp.Count = 2
+	store.IterateRangeByStateHash(hash1, []byte("mavl-coins-bty-"), []byte("mavl-coins-bty-exec"), true, resp.IterateRangeByStateHash)
+	fmt.Println("resp.Num=", resp.Num)
+	fmt.Println("resp.Amount=", resp.Amount)
+	assert.Equal(t, int64(2), resp.Num)
+	assert.Equal(t, int64(201900000000), resp.Amount)
+
+	fmt.Println("---test case1-6 ---")
+
+	resp = &types.ReplyGetTotalCoins{}
+	resp.Count = 10000
+	store.IterateRangeByStateHash(hash, []byte("mavl-coins-bty-"), []byte("mavl-coins-bty-exec"), true, resp.IterateRangeByStateHash)
+	fmt.Println("resp.Num=", resp.Num)
+	fmt.Println("resp.Amount=", resp.Amount)
+	assert.Equal(t, int64(0), resp.Num)
+	assert.Equal(t, int64(0), resp.Amount)
 }
 
 func GetRandomString(length int) string {
