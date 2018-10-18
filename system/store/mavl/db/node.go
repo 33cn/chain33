@@ -5,6 +5,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
+	"fmt"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 )
 
 // merkle avl Node
@@ -146,7 +148,7 @@ func (node *Node) Hash(t *Tree) []byte {
 		leafnode.Value = node.value
 		node.hash = leafnode.Hash()
 
-		//fmt.Printf("k:%s v:%s hash:%v\n", string(leafnode.Key), string(leafnode.Value), node.hash)
+		fmt.Printf("k:%s v:%s hash:%v\n", string(leafnode.Key), string(leafnode.Value), common.Bytes2Hex(node.hash))
 
 		if enableMavlPrefix && node.height != t.root.height {
 			hashKey := genPrefixHashKey(node, t.blockHeight)

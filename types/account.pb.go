@@ -66,7 +66,6 @@ It has these top-level messages:
 	TxHash
 	TimeStatus
 	ReqKey
-	PrunData
 	Config
 	Log
 	MemPool
@@ -92,6 +91,8 @@ It has these top-level messages:
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
+	PruneData
+	PruneRootNode
 	Genesis
 	ExecTxList
 	Query
