@@ -72,7 +72,7 @@ func SetForkToOne() {
 	ForkV5Retrive = 0
 	ForkV6TokenBlackList = 0
 	ForkV7BadTokenSymbol = 0
-	ForkBlockHash = 0
+	ForkBlockHash =1
 	ForkV9 = 0
 	ForkV10TradeBuyLimit = 0
 	ForkV11ManageExec = 0
@@ -103,7 +103,7 @@ func SetForkForPara(paraName string) {
 	ForkV5Retrive = 0
 	ForkV6TokenBlackList = 0
 	ForkV7BadTokenSymbol = 0
-	ForkBlockHash = 0
+	ForkBlockHash = 1
 	ForkV9 = 0
 	ForkV10TradeBuyLimit = 0
 	ForkV11ManageExec = 0
