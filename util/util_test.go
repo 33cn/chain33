@@ -1,0 +1,34 @@
+package util
+
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func TestMakeStringUpper(t *testing.T) {
+	originStr := "abcdefg"
+	destStr, err := MakeStringToUpper(originStr, 0, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, "Abcdefg", destStr)
+
+	destStr, err = MakeStringToUpper(originStr, 2, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, "abCDefg", destStr)
+
+	destStr, err = MakeStringToUpper(originStr, -1, 2)
+	assert.Error(t, err)
+}
+
+func TestMakeStringLower(t *testing.T) {
+	originStr := "ABCDEFG"
+	destStr, err := MakeStringToLower(originStr, 0, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, "aBCDEFG", destStr)
+
+	destStr, err = MakeStringToLower(originStr, 2, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, "ABcdEFG", destStr)
+
+	destStr, err = MakeStringToLower(originStr, -1, 2)
+	assert.Error(t, err)
+}
