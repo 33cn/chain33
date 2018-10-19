@@ -12,6 +12,7 @@ import (
 
 func init() {
 	drivers.Reg("pbft", NewPbft)
+	drivers.QueryData.Register("pbft", &PbftClient{})
 }
 
 type PbftClient struct {

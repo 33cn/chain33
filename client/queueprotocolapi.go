@@ -20,13 +20,14 @@ type QueueProtocolAPI interface {
 	GetMempool() (*types.ReplyTxList, error)
 	// types.EventGetLastMempool
 	GetLastMempool() (*types.ReplyTxList, error)
-	// types.EventQuery
-	Query(param *types.Query) (types.Message, error)
-	// --------------- mempool interfaces end
-
 	// +++++++++++++++ execs interfaces begin
 	// types.EventBlockChainQuery
-	BlockChainQuery(param *types.BlockChainQuery) (*types.ResUTXOGlobalIndex, error)
+	Query(driver, funcname string, param types.Message) (types.Message, error)
+	QueryConsensus(param *types.ChainExecutor) (types.Message, error)
+	QueryConsensusFunc(driver string, funcname string, param types.Message) (types.Message, error)
+	QueryChain(param *types.ChainExecutor) (types.Message, error)
+	ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error)
+	ExecWallet(param *types.ChainExecutor) (types.Message, error)
 	// --------------- execs interfaces end
 
 	// +++++++++++++++ p2p interfaces begin
@@ -35,12 +36,6 @@ type QueueProtocolAPI interface {
 	// types.EventGetNetInfo
 	GetNetInfo() (*types.NodeNetInfo, error)
 	// --------------- p2p interfaces end
-
-	// +++++++++++++++ consensus interfaces begin
-	// types.EventGetTicketCount
-	GetTicketCount() (*types.Int64, error)
-	// --------------- consensus interfaces end
-
 	// +++++++++++++++ wallet interfaces begin
 	// types.EventLocalGet
 	LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error)
@@ -53,7 +48,7 @@ type QueueProtocolAPI interface {
 	// types.EventWalletTransactionList
 	WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error)
 	// types.EventWalletImportprivkey
-	WalletImportprivkey(param *types.ReqWalletImportPrivKey) (*types.WalletAccount, error)
+	WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error)
 	// types.EventWalletSendToAddress
 	WalletSendToAddress(param *types.ReqWalletSendToAddress) (*types.ReplyHash, error)
 	// types.EventWalletSetFee
@@ -76,42 +71,13 @@ type QueueProtocolAPI interface {
 	GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error)
 	// types.EventGetWalletStatus
 	GetWalletStatus() (*types.WalletStatus, error)
-	// types.EventWalletAutoMiner
-	WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error)
 	// types.EventDumpPrivkey
-	DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error)
-	// types.EventCloseTickets
-	CloseTickets() (*types.ReplyHashes, error)
+	DumpPrivkey(param *types.ReqString) (*types.ReplyString, error)
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
-	// Privacy Begin
-	// types.EventShowPrivacyAccountSpend
-	ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error)
-	// types.EventShowPrivacyPK
-	ShowPrivacyKey(param *types.ReqStr) (*types.ReplyPrivacyPkPair, error)
-	// types.EventPublic2privacy
-	Publick2Privacy(param *types.ReqPub2Pri) (*types.Reply, error)
-	// types.EventPrivacy2privacy
-	Privacy2Privacy(param *types.ReqPri2Pri) (*types.Reply, error)
-	// types.EventPrivacy2public
-	Privacy2Public(param *types.ReqPri2Pub) (*types.Reply, error)
-	// types.EventCreateUTXOs
-	CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error)
 	// types.EventCreateTransaction 由服务器协助创建一个交易
-	CreateTrasaction(param *types.ReqCreateTransaction) (*types.Transaction, error)
-	// types.EventPrivacyAccountInfo
-	ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error)
-	// types.EventPrivacyTransactionList
-	PrivacyTransactionList(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error)
-	// types.EventRescanUtxos
-	RescanUtxos(param *types.ReqRescanUtxos) (*types.RepRescanUtxos, error)
-	// types.EventEnablePrivacy
-	EnablePrivacy(param *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error)
-	// Privacy End
-	// --------------- wallet interfaces end
-
-	// +++++++++++++++ blockchain interfaces begin
+	WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error)
 	// types.EventGetBlocks
 	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
 	// types.EventQueryTx

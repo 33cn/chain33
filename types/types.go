@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -219,7 +220,7 @@ func GetEventName(event int) string {
 	return "unknow-event"
 }
 
-func GetSignatureTypeName(signType int) string {
+func GetSignName(signType int) string {
 	if name, exist := MapSignType2name[signType]; exist {
 		return name
 	}
@@ -309,7 +310,7 @@ func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
 }
 
 func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
-	//tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key), "value", string(value))
+	fmt.Println("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key))
 	var acc Account
 	err := Decode(value, &acc)
 	if err != nil {
@@ -335,7 +336,29 @@ type ParaCrossTx interface {
 	IsParaCrossTx() bool
 }
 
-func PBToJson(r Message) (string, error) {
+func PBToJson(r Message) ([]byte, error) {
 	encode := &jsonpb.Marshaler{EmitDefaults: true}
-	return encode.MarshalToString(r)
+	var buf bytes.Buffer
+	if err := encode.Marshal(&buf, r); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+//判断所有的空值
+func IsNil(a interface{}) bool {
+	defer func() { recover() }()
+	return a == nil || reflect.ValueOf(a).IsNil()
+}
+
+//空指针或者接口
+func IsNilP(a interface{}) bool {
+	if a == nil {
+		return true
+	}
+	v := reflect.ValueOf(a)
+	if v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
+		return v.IsNil()
+	}
+	return false
 }

@@ -636,7 +636,7 @@ func evmWithdraw(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-func sendQuery(rpcAddr, funcName string, request, result interface{}) bool {
+func sendQuery(rpcAddr, funcName string, request interface{}, result proto.Message) bool {
 	params := types.Query4Cli{
 		Execer:   "evm",
 		FuncName: funcName,
@@ -649,7 +649,7 @@ func sendQuery(rpcAddr, funcName string, request, result interface{}) bool {
 		return false
 	}
 
-	err = jsonrpc.Call("Chain33.Query", params, &result)
+	err = jsonrpc.Call("Chain33.Query", params, result)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return false

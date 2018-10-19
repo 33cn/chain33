@@ -123,7 +123,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawTradeSellTx(&param)
 	} else if action == "TradeBuyMarket" {
@@ -131,7 +131,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawTradeBuyTx(&param)
 	} else if action == "TradeSellRevoke" {
@@ -139,7 +139,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawTradeRevokeTx(&param)
 	} else if action == "TradeBuyLimit" {
@@ -147,7 +147,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawTradeBuyLimitTx(&param)
 	} else if action == "TradeSellMarket" {
@@ -155,7 +155,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawTradeSellMarketTx(&param)
 	} else if action == "TradeRevokeBuy" {
@@ -163,7 +163,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawTradeRevokeBuyTx(&param)
 	} else {

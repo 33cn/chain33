@@ -18,7 +18,8 @@ var tlog = log.New("module", name)
 func init() {
 	name = GameX
 	// init executor type
-	types.RegistorExecutor(name, &GameType{})
+	types.AllowUserExec = append(types.AllowUserExec, []byte(name))
+	types.RegistorExecutor(name, NewType())
 }
 
 //getRealExecName
@@ -71,7 +72,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreCreateTx(&param)
@@ -80,7 +81,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreMatchTx(&param)
@@ -89,7 +90,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreCancelTx(&param)
@@ -98,7 +99,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreCloseTx(&param)

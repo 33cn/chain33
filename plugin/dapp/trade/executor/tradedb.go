@@ -255,7 +255,7 @@ func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
 
 func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, error) {
 	if sell.TotalBoardlot < 0 || sell.PricePerBoardlot < 0 || sell.MinBoardlot < 0 || sell.AmountPerBoardlot < 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	if !checkAsset(action.height, sell.AssetExec, sell.TokenSymbol) {
 		return nil, types.ErrInputPara
@@ -305,7 +305,7 @@ func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, er
 
 func (action *tradeAction) tradeBuy(buyOrder *pty.TradeForBuy) (*types.Receipt, error) {
 	if buyOrder.BoardlotCnt < 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	sellidByte := []byte(buyOrder.SellID)
@@ -430,7 +430,7 @@ func checkTokenExist(token string, db dbm.KV) bool {
 
 func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Receipt, error) {
 	if buy.TotalBoardlot < 0 || buy.PricePerBoardlot < 0 || buy.MinBoardlot < 0 || buy.AmountPerBoardlot < 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	// 这个检查会比较鸡肋, 按目前的想法的能支持更多的资产， 各种资产检查不一样
@@ -484,7 +484,7 @@ func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Rece
 
 func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*types.Receipt, error) {
 	if sellOrder.BoardlotCnt < 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	idByte := []byte(sellOrder.BuyID)

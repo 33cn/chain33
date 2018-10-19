@@ -74,15 +74,15 @@ func decodeLog(execer []byte, rlog rpctypes.ReceiptDataResult) *ReceiptData {
 		rl := &ReceiptLog{Ty: l.Ty, TyName: l.TyName, RawLog: l.RawLog}
 		logty := types.LoadLog(execer, int64(l.Ty))
 		if logty == nil {
-			rl.Log = ""
+			rl.Log = nil
 		}
 		data, err := common.FromHex(l.RawLog)
 		if err != nil {
-			rl.Log = ""
+			rl.Log = nil
 		}
 		rl.Log, err = logty.Json(data)
 		if err != nil {
-			rl.Log = ""
+			rl.Log = nil
 		}
 		rd.Logs = append(rd.Logs, rl)
 	}

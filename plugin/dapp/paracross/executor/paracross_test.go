@@ -171,7 +171,7 @@ func fillRawCommitTx(suite suite.Suite) (*types.Transaction, error) {
 
 func signTx(s suite.Suite, tx *types.Transaction, hexPrivKey string) (*types.Transaction, error) {
 	signType := types.SECP256K1
-	c, err := crypto.New(types.GetSignatureTypeName(signType))
+	c, err := crypto.New(types.GetSignName(signType))
 	if err != nil {
 		s.T().Error("TestExec", "new crypto failed", err)
 		return tx, err
@@ -195,7 +195,7 @@ func signTx(s suite.Suite, tx *types.Transaction, hexPrivKey string) (*types.Tra
 
 func getPrivKey(s suite.Suite, hexPrivKey string) (crypto.PrivKey, error) {
 	signType := types.SECP256K1
-	c, err := crypto.New(types.GetSignatureTypeName(signType))
+	c, err := crypto.New(types.GetSignName(signType))
 	if err != nil {
 		s.T().Error("TestExec", "new crypto failed", err)
 		return nil, err

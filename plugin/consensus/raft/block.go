@@ -20,6 +20,7 @@ var (
 
 func init() {
 	drivers.Reg("raft", NewRaftCluster)
+	drivers.QueryData.Register("raft", &RaftClient{})
 }
 
 type RaftClient struct {

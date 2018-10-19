@@ -27,7 +27,6 @@ type GoMemDB struct {
 }
 
 func NewGoMemDB(name string, dir string, cache int) (*GoMemDB, error) {
-
 	// memdb 不需要创建文件，后续考虑增加缓存数目
 	return &GoMemDB{
 		db: make(map[string][]byte),
@@ -59,7 +58,6 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 func (db *GoMemDB) Set(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
 	db.db[string(key)] = CopyBytes(value)
 	if db.db[string(key)] == nil {
 		mlog.Error("Set", "error have no mem")
@@ -113,19 +111,23 @@ func (db *GoMemDB) Stats() map[string]string {
 	return nil
 }
 
-func (db *GoMemDB) Iterator(prefix []byte, reserve bool) Iterator {
+func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
+	if end == nil {
+		end = bytesPrefix(start)
+	}
+	base := itBase{start, end, reverse}
 
 	var keys []string
 	for k := range db.db {
-		if strings.HasPrefix(k, string(prefix)) {
+		if base.checkKey([]byte(k)) {
 			keys = append(keys, k)
 		}
 	}
 	sort.Strings(keys)
 	var index int
-	return &goMemDBIt{index, keys, db, reserve, prefix}
+	return &goMemDBIt{base, index, keys, db}
 }
 
 func (db *GoMemDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
@@ -134,15 +136,13 @@ func (db *GoMemDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
 }
 
 type goMemDBIt struct {
+	itBase
 	index   int      // 记录当前索引
 	keys    []string // 记录所有keys值
 	goMemDb *GoMemDB
-	reserve bool
-	prefix  []byte
 }
 
 func (dbit *goMemDBIt) Seek(key []byte) bool { //指向当前的index值
-
 	for i, k := range dbit.keys {
 		if 0 == strings.Compare(k, string(key)) {
 			dbit.index = i
@@ -157,8 +157,7 @@ func (dbit *goMemDBIt) Close() {
 }
 
 func (dbit *goMemDBIt) Next() bool {
-
-	if dbit.reserve { // 反向
+	if dbit.reverse { // 反向
 		dbit.index-- //将当前key值指向前一个
 		return dbit.Valid()
 	} else { // 正向
@@ -168,8 +167,7 @@ func (dbit *goMemDBIt) Next() bool {
 }
 
 func (dbit *goMemDBIt) Rewind() bool {
-
-	if dbit.reserve { // 反向
+	if dbit.reverse { // 反向
 		if (len(dbit.keys) > 0) && dbit.Valid() {
 			dbit.index = len(dbit.keys) - 1 // 将当前key值指向最后一个
 			return true
@@ -246,8 +244,10 @@ func (b *memBatch) Write() error {
 
 	for _, kv := range b.writes {
 		if kv.v == nil {
+			//println("[d]", string(kv.k))
 			delete(b.db.db, string(kv.k))
 		} else {
+			//println("[i]", string(kv.k))
 			b.db.db[string(kv.k)] = kv.v
 		}
 	}

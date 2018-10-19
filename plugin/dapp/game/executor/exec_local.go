@@ -14,7 +14,7 @@ func (g *Game) execLocal(receiptData *types.ReceiptData) (*types.LocalDBSet, err
 		switch log.Ty {
 		case gt.TyLogCreateGame, gt.TyLogMatchGame, gt.TyLogCloseGame, gt.TyLogCancleGame:
 			receiptGame := &gt.ReceiptGame{}
-			if err := types.Decode(log.Log, receiptData); err != nil {
+			if err := types.Decode(log.Log, receiptGame); err != nil {
 				return nil, err
 			}
 			kv := g.updateIndex(receiptGame)

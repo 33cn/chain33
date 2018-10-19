@@ -1,6 +1,8 @@
 syntax = "proto3";
 package types;
 
+import "common.proto";
+
 message Ticket {
     string ticketId = 1;
     // 0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
@@ -35,6 +37,11 @@ message TicketMiner {
     int64  reward   = 2;
     string ticketId = 3;
     bytes  modify   = 4;
+}
+
+message MinerFlag {
+    int32 flag    = 1;
+    int64 reserve = 2;
 }
 
 message TicketBind {
@@ -106,4 +113,9 @@ message ReplyBindMiner {
 service ticket {
     //创建绑定挖矿
     rpc CreateBindMiner(ReqBindMiner) returns (ReplyBindMiner) {}
+    //查询钱包票数
+    rpc GetTicketCount(types.ReqNil) returns (Int64) {}
+    // Miner
+    //设置自动挖矿
+    rpc SetAutoMining(MinerFlag) returns (Reply) {}
 }
