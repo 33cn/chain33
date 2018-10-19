@@ -75,8 +75,8 @@ pipeline {
             post {
                 always {
                     dir("${PROJ_DIR}"){
-                        sh "cd build/${env.BUILD_NUMBER} && docker-compose down && cd .. && rm -rf ${env.BUILD_NUMBER}"
-                        sh "docker rmi ${env.BUILD_NUMBER}_chain31 ${env.BUILD_NUMBER}_chain32 ${env.BUILD_NUMBER}_chain33 ${env.BUILD_NUMBER}_relayd"
+                        sh "cd build/${env.BUILD_NUMBER} && docker-compose down --remove-orphans && cd .. && rm -rf ${env.BUILD_NUMBER}"
+                        sh "docker rmi ${env.BUILD_NUMBER}_chain31 ${env.BUILD_NUMBER}_chain32 ${env.BUILD_NUMBER}_chain33"
                     }
                 }
             }
