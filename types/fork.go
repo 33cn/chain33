@@ -11,7 +11,7 @@ var (
 	ForkV5Retrive        int64 = 0
 	ForkV6TokenBlackList int64 = 0
 	ForkV7BadTokenSymbol int64 = 0
-	ForkBlockHash        int64 = 0
+	ForkBlockHash        int64 = 1
 	ForkV9               int64 = 0
 	ForkV10TradeBuyLimit int64 = 0
 	ForkV11ManageExec    int64 = 100000
