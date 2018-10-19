@@ -23,6 +23,7 @@ func ParcCmd() *cobra.Command {
 		CreateRawAssetWithdrawCmd(),
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
+		CreateRawTransferToExecCmd(),
 	)
 	return cmd
 }
@@ -139,9 +140,9 @@ func CreateRawTransferCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transfer",
 		Short: "Create a transfer transaction",
-		Run:   createAssetTransfer,
+		Run:   createTransfer,
 	}
-	addCreateAssetTransferFlags(cmd)
+	addCreateTransferFlags(cmd)
 	return cmd
 }
 
@@ -174,9 +175,9 @@ func CreateRawTransferToExecCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transfer",
 		Short: "Create a transfer to exec transaction",
-		Run:   createAssetTransfer,
+		Run:   createTransferToExec,
 	}
-	addCreateAssetTransferFlags(cmd)
+	addCreateTransferToExecFlags(cmd)
 	return cmd
 }
 
@@ -209,9 +210,9 @@ func CreateRawWithdrawCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw",
 		Short: "Create a withdraw transaction",
-		Run:   createAssetWithdraw,
+		Run:   createWithdraw,
 	}
-	addCreateAssetWithdrawFlags(cmd)
+	addCreateWithdrawFlags(cmd)
 	return cmd
 }
 
