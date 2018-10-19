@@ -2,13 +2,14 @@ package patterns
 
 import (
 	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/cmd/exec_creator_guider/tasks"
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
 type advancePattern struct {
 	projName     string // 创建的执行器包名
-	execName string
+	execName     string
 	clsName      string // 执行器主体类名
 	actionName   string // 执行器处理过程中的Action类名
 	propFile     string // protobuf 源文件路径
@@ -87,15 +88,15 @@ func (this *advancePattern) buildTask() tasks.Task {
 			ProjectName:        this.projName,
 			ClsName:            this.clsName,
 			ActionName:         this.actionName,
-			TypeName:			this.clsName + "Type",
-			ExecuteName:		this.execName,
+			TypeName:           this.clsName + "Type",
+			ExecuteName:        this.execName,
 			ProtoFile:          this.propFile,
 			ExecHeaderTempFile: this.configFolder + "/exec_header.template",
-			TypeTempFile:this.configFolder + "/types_content.template",
-			TypeOutputFile:this.outputFolder + "ptypes/",
+			TypeTempFile:       this.configFolder + "/types_content.template",
+			TypeOutputFile:     this.outputFolder + "ptypes/",
 		},
 		&tasks.FormatDappSourceTask{
-			OutputFolder:  this.outputFolder,
+			OutputFolder: this.outputFolder,
 		},
 	)
 

@@ -23,7 +23,7 @@ func (this *FormatDappSourceTask) Execute() error {
 			return nil
 		}
 		ext := path.Ext(fpath)
-		if ext != ".go" {	// 仅对go的源码文件进行格式化
+		if ext != ".go" { // 仅对go的源码文件进行格式化
 			return nil
 		}
 		cmd := exec.Command("gofmt", "-l", "-s", "-w", fpath)
