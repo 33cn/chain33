@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	ticketwallet "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/wallet"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util/testnode"
@@ -14,21 +14,16 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
-var mock33 = testnode.New("testdata/chain33.test.toml", nil)
-
-func getTicketList(addr string, t *testing.T) *tickettypes.ReplyTicketList {
-	msg, err := mock33.GetAPI().Query(types.TicketX, "TicketList", &tickettypes.TicketList{addr, 1})
-	require.Equal(t, err, nil)
-	return msg.(*tickettypes.ReplyTicketList)
-}
-
 func Test_WalletTicket(t *testing.T) {
 	t.Log("Begin wallet ticket test")
+	mock33 := testnode.New("testdata/chain33.test.toml", nil)
 	defer mock33.Close()
 
 	err := mock33.WaitHeight(0)
 	assert.Nil(t, err)
-	ticketList := getTicketList("12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", t)
+	msg, err := mock33.GetAPI().Query(types.TicketX, "TicketList", &ty.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1})
+	require.Equal(t, err, nil)
+	ticketList := msg.(*ty.ReplyTicketList)
 	if ticketList == nil {
 		t.Error("getTicketList return nil")
 		return

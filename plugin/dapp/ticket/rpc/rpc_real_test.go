@@ -20,11 +20,13 @@ import (
 
 func TestRPC_Call(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	mock33 := testnode.New("testdata/chain33.test.toml", api)
 
+	mock33 := testnode.New("testdata/chain33.test.toml", api)
+	defer mock33.Close()
 	g := newGrpc(api)
 	g.Init("ticket", mock33.GetRPC(), newJrpc(api), g)
 	ty.RegisterTicketServer(mock33.GetRPC().GRPC(), g)
+	time.Sleep(time.Millisecond)
 	mock33.GetRPC().Listen()
 	time.Sleep(time.Millisecond)
 	ret := &types.Reply{
@@ -72,6 +74,5 @@ func TestRPC_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, r.IsOk, true)
 
-	mock33.Close()
 	mock.AssertExpectationsForObjects(t, api)
 }
