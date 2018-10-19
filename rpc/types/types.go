@@ -235,10 +235,11 @@ type Query4Jrpc struct {
 	Payload  json.RawMessage `json:"payload"`
 }
 
-type Exec4JRPC struct {
-	Execer   string          `json:"execer"`
-	FuncName string          `json:"funcName"`
-	Payload  json.RawMessage `json:"payload"`
+type ChainExecutor struct {
+	Driver    string          `json:"execer"`
+	FuncName  string          `json:"funcName"`
+	StateHash string          `json:"stateHash"`
+	Payload   json.RawMessage `json:"payload"`
 }
 
 type WalletStatus struct {
