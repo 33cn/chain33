@@ -52,8 +52,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
 		case types.EventGetBlockHash: //GetBlockHash
 			go chain.processMsg(msg, reqnum, chain.getBlockHash)
-		case types.EventQuery:
-			go chain.processMsg(msg, reqnum, chain.getQuery)
 		case types.EventAddBlockHeaders:
 			go chain.processMsg(msg, reqnum, chain.addBlockHeaders)
 		case types.EventGetLastBlock:
@@ -300,16 +298,6 @@ func (chain *BlockChain) localList(msg queue.Message) {
 	q := (msg.Data).(*types.LocalDBList)
 	values := db.NewListHelper(chain.blockStore.db).List(q.Prefix, q.Key, q.Count, q.Direction)
 	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.LocalReplyValue{Values: values}))
-}
-
-func (chain *BlockChain) getQuery(msg queue.Message) {
-	query := (msg.Data).(*types.Query)
-	reply, err := chain.query.Query(string(query.Execer), query.FuncName, query.Payload)
-	if err != nil {
-		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyQuery, err))
-	} else {
-		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyQuery, reply))
-	}
 }
 
 func (chain *BlockChain) addBlockHeaders(msg queue.Message) {

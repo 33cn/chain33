@@ -9,13 +9,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	transfer = &types.CertAction{Value: nil, Ty: types.CertActionNormal}
+	transfer = &ct.CertAction{Value: nil, Ty: ct.CertActionNormal}
 	to       = drivers.ExecAddress("cert")
 	tx1      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: to}
 	tx2      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: to}
@@ -34,7 +35,7 @@ var (
 
 	privRaw, _  = common.FromHex("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	tr          = &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: int64(1e8)}}
-	secpp256, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	secpp256, _ = crypto.New(types.GetSignName(types.SECP256K1))
 	privKey, _  = secpp256.PrivKeyFromBytes(privRaw)
 	tx14        = &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
@@ -181,7 +182,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 TestCase04 不带证书，SM2签名验证
 */
 func TestChckSignWithSm2(t *testing.T) {
-	sm2, _ := crypto.New(types.GetSignatureTypeName(types.AUTH_SM2))
+	sm2, _ := crypto.New(types.GetSignName(types.AUTH_SM2))
 	privKeysm2, _ := sm2.PrivKeyFromBytes(privRaw)
 	tx15 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
@@ -207,7 +208,7 @@ func TestChckSignWithSm2(t *testing.T) {
 TestCase05 不带证书，secp256r1签名验证
 */
 func TestChckSignWithEcdsa(t *testing.T) {
-	ecdsacrypto, _ := crypto.New(types.GetSignatureTypeName(types.AUTH_ECDSA))
+	ecdsacrypto, _ := crypto.New(types.GetSignName(types.AUTH_ECDSA))
 	privKeyecdsa, _ := ecdsacrypto.PrivKeyFromBytes(privRaw)
 	tx16 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),

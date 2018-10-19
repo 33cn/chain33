@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -84,6 +85,18 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	if cresp.Result == nil {
 		return types.ErrEmpty
 	} else {
+		if msg, ok := resp.(proto.Message); ok {
+			var str json.RawMessage
+			err = json.Unmarshal(*cresp.Result, &str)
+			if err != nil {
+				return err
+			}
+			b, err := str.MarshalJSON()
+			if err != nil {
+				return err
+			}
+			return types.JsonToPB(b, msg)
+		}
 		return json.Unmarshal(*cresp.Result, resp)
 	}
 }

@@ -6,135 +6,63 @@ import (
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
-func (wallet *Wallet) initFuncMap() {
-	wcom.RegisterMsgFunc(types.EventWalletGetAccountList, wallet.onWalletGetAccountList)
-	wcom.RegisterMsgFunc(types.EventNewAccount, wallet.onNewAccount)
-	wcom.RegisterMsgFunc(types.EventWalletTransactionList, wallet.onWalletTransactionList)
-	wcom.RegisterMsgFunc(types.EventWalletImportprivkey, wallet.onWalletImportprivkey)
-	wcom.RegisterMsgFunc(types.EventWalletSendToAddress, wallet.onWalletSendToAddress)
-	wcom.RegisterMsgFunc(types.EventWalletSetFee, wallet.onWalletSetFee)
-	wcom.RegisterMsgFunc(types.EventWalletSetLabel, wallet.onWalletSetLabel)
-	wcom.RegisterMsgFunc(types.EventWalletMergeBalance, wallet.onWalletMergeBalance)
-	wcom.RegisterMsgFunc(types.EventWalletSetPasswd, wallet.ontWalletSetPasswd)
-	wcom.RegisterMsgFunc(types.EventWalletLock, wallet.onWalletLock)
-	wcom.RegisterMsgFunc(types.EventWalletUnLock, wallet.onWalletUnLock)
-	wcom.RegisterMsgFunc(types.EventAddBlock, wallet.onAddBlock)
-	wcom.RegisterMsgFunc(types.EventDelBlock, wallet.onDelBlock)
-	wcom.RegisterMsgFunc(types.EventGenSeed, wallet.onGenSeed)
-	wcom.RegisterMsgFunc(types.EventGetSeed, wallet.onGetSeed)
-	wcom.RegisterMsgFunc(types.EventSaveSeed, wallet.onSaveSeed)
-	wcom.RegisterMsgFunc(types.EventGetWalletStatus, wallet.onGetWalletStatus)
-	wcom.RegisterMsgFunc(types.EventDumpPrivkey, wallet.onDumpPrivKey)
-	wcom.RegisterMsgFunc(types.EventSignRawTx, wallet.onSignRawTx)
-	wcom.RegisterMsgFunc(types.EventErrToFront, wallet.onErrToFront)
-	wcom.RegisterMsgFunc(types.EventFatalFailure, wallet.onFatalFailure)
-}
-
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
 		beg := types.Now()
-		funcExisted, topic, retty, reply, err := wcom.ProcessFuncMap(&msg)
-		if funcExisted {
-			if err != nil {
-				msg.Reply(wallet.api.NewMessage(topic, retty, err))
-			} else {
-				msg.Reply(wallet.api.NewMessage(topic, retty, reply))
-			}
+		reply, err := wallet.ExecWallet(&msg)
+		if err != nil {
+			//only for test ,del when test end
+			msg.Reply(wallet.api.NewMessage("", 0, err))
 		} else {
-			walletlog.Error("ProcRecvMsg", "Do not support msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
+			msg.Reply(wallet.api.NewMessage("", 0, reply))
 		}
 		walletlog.Debug("end process", "msg.id", msg.Id, "cost", types.Since(beg))
 	}
 }
 
-func (wallet *Wallet) onWalletGetAccountList(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventWalletAccountList)
-
-	var req *types.ReqAccountList
-	req, ok := msg.Data.(*types.ReqAccountList)
-	if !ok {
-		walletlog.Debug("onWalletGetAccountList", "get account with balance", req)
-		req = &types.ReqAccountList{WithoutBalance: false}
-	}
-
+func (wallet *Wallet) On_WalletGetAccountList(req *types.ReqAccountList) (types.Message, error) {
 	reply, err := wallet.ProcGetAccountList(req)
 	if err != nil {
 		walletlog.Error("onWalletGetAccountList", "err", err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onNewAccount(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventWalletAccount)
-	req, ok := msg.Data.(*types.ReqNewAccount)
-	if !ok {
-		walletlog.Error("onNewAccount", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_NewAccount(req *types.ReqNewAccount) (types.Message, error) {
 	reply, err := wallet.ProcCreateNewAccount(req)
 	if err != nil {
 		walletlog.Error("onNewAccount", "err", err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onWalletTransactionList(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventTransactionDetails)
-	req, ok := msg.Data.(*types.ReqWalletTransactionList)
-	if !ok {
-		walletlog.Error("onWalletTransactionList", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_WalletTransactionList(req *types.ReqWalletTransactionList) (types.Message, error) {
 	reply, err := wallet.ProcWalletTxList(req)
 	if err != nil {
 		walletlog.Error("ProcWalletTxList", "err", err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onWalletImportprivkey(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventTransactionDetails)
-	req, ok := msg.Data.(*types.ReqWalletImportPrivKey)
-	if !ok {
-		walletlog.Error("onWalletImportprivkey", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_WalletImportPrivkey(req *types.ReqWalletImportPrivkey) (types.Message, error) {
 	reply, err := wallet.ProcImportPrivKey(req)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "err", err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onWalletSendToAddress(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyHashes)
-	req, ok := msg.Data.(*types.ReqWalletSendToAddress)
-	if !ok {
-		walletlog.Error("onWalletSendToAddress", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_WalletSendToAddress(req *types.ReqWalletSendToAddress) (types.Message, error) {
 	reply, err := wallet.ProcSendToAddress(req)
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "err", err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onWalletSetFee(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReply)
-	req, ok := msg.Data.(*types.ReqWalletSetFee)
-	if !ok {
-		walletlog.Error("onWalletSetFee", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_WalletSetFee(req *types.ReqWalletSetFee) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -144,47 +72,26 @@ func (wallet *Wallet) onWalletSetFee(msg *queue.Message) (string, int64, interfa
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onWalletSetLabel(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventWalletAccount)
-	req, ok := msg.Data.(*types.ReqWalletSetLabel)
-	if !ok {
-		walletlog.Error("onWalletSetLabel", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_WalletSetLabel(req *types.ReqWalletSetLabel) (types.Message, error) {
 	reply, err := wallet.ProcWalletSetLabel(req)
 	if err != nil {
 		walletlog.Error("ProcWalletSetLabel", "err", err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onWalletMergeBalance(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyHashes)
-	req, ok := msg.Data.(*types.ReqWalletMergeBalance)
-	if !ok {
-		walletlog.Error("onWalletMergeBalance", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_WalletMergeBalance(req *types.ReqWalletMergeBalance) (types.Message, error) {
 	reply, err := wallet.ProcMergeBalance(req)
 	if err != nil {
 		walletlog.Error("ProcMergeBalance", "err", err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) ontWalletSetPasswd(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReply)
-	req, ok := msg.Data.(*types.ReqWalletSetPasswd)
-	if !ok {
-		walletlog.Error("ontWalletSetPasswd", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_WalletSetPasswd(req *types.ReqWalletSetPasswd) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -194,13 +101,10 @@ func (wallet *Wallet) ontWalletSetPasswd(msg *queue.Message) (string, int64, int
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}
-	return topic, retty, reply, nil
+	return reply, nil
 }
 
-func (wallet *Wallet) onWalletLock(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReply)
-
+func (wallet *Wallet) On_WalletLock(req *types.ReqNil) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -210,18 +114,10 @@ func (wallet *Wallet) onWalletLock(msg *queue.Message) (string, int64, interface
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onWalletUnLock(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReply)
-	req, ok := msg.Data.(*types.WalletUnLock)
-	if !ok {
-		walletlog.Error("onWalletUnLock", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-
+func (wallet *Wallet) On_WalletUnLock(req *types.WalletUnLock) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -231,58 +127,30 @@ func (wallet *Wallet) onWalletUnLock(msg *queue.Message) (string, int64, interfa
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}
-	return topic, retty, reply, nil
+	return reply, nil
 }
 
-func (wallet *Wallet) onAddBlock(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventAddBlock)
-	block, ok := msg.Data.(*types.BlockDetail)
-	if !ok {
-		walletlog.Error("onAddBlock", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_AddBlock(block *types.BlockDetail) (types.Message, error) {
 	wallet.updateLastHeader(block, 1)
 	wallet.ProcWalletAddBlock(block)
-	return topic, retty, nil, nil
+	return nil, nil
 }
 
-func (wallet *Wallet) onDelBlock(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventDelBlock)
-	block, ok := msg.Data.(*types.BlockDetail)
-	if !ok {
-		walletlog.Error("onAddBlock", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_DelBlock(block *types.BlockDetail) (types.Message, error) {
 	wallet.updateLastHeader(block, -1)
 	wallet.ProcWalletDelBlock(block)
-	return topic, retty, nil, nil
+	return nil, nil
 }
 
-func (wallet *Wallet) onGenSeed(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyGenSeed)
-	req, ok := msg.Data.(*types.GenSeedLang)
-	if !ok {
-		walletlog.Error("onGenSeed", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_GenSeed(req *types.GenSeedLang) (types.Message, error) {
 	reply, err := wallet.genSeed(req.Lang)
 	if err != nil {
 		walletlog.Error("genSeed", "err", err.Error())
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onGetSeed(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyGetSeed)
-	req, ok := msg.Data.(*types.GetSeedByPw)
-	if !ok {
-		walletlog.Error("onGetSeed", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_GetSeed(req *types.GetSeedByPw) (types.Message, error) {
 	reply := &types.ReplySeed{}
 	seed, err := wallet.getSeed(req.Passwd)
 	if err != nil {
@@ -290,62 +158,39 @@ func (wallet *Wallet) onGetSeed(msg *queue.Message) (string, int64, interface{},
 	} else {
 		reply.Seed = seed
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onSaveSeed(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReply)
-	req, ok := msg.Data.(*types.SaveSeedByPw)
-	if !ok {
-		walletlog.Error("onGetSeed", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_SaveSeed(req *types.SaveSeedByPw) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
 	ok, err := wallet.saveSeed(req.Passwd, req.Seed)
 	if !ok {
-		walletlog.Error("saveSeed", "err", err.Error())
+		walletlog.Error("[saveSeed]", "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}
-	return topic, retty, reply, nil
+	return reply, nil
 }
 
-func (wallet *Wallet) onGetWalletStatus(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReply)
+func (wallet *Wallet) On_GetWalletStatus(req *types.ReqNil) (types.Message, error) {
 	reply := wallet.GetWalletStatus()
-	return topic, retty, reply, nil
+	return reply, nil
 }
 
-func (wallet *Wallet) onDumpPrivKey(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyPrivkey)
-	req, ok := msg.Data.(*types.ReqStr)
-	if !ok {
-		walletlog.Error("onWalletMergeBalance", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	reply := &types.ReplyStr{}
-	privkey, err := wallet.ProcDumpPrivkey(req.ReqStr)
+func (wallet *Wallet) On_DumpPrivkey(req *types.ReqString) (types.Message, error) {
+	reply := &types.ReplyString{}
+	privkey, err := wallet.ProcDumpPrivkey(req.Data)
 	if err != nil {
 		walletlog.Error("ProcDumpPrivkey", "err", err.Error())
 	} else {
-		reply.Replystr = privkey
+		reply.Data = privkey
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onSignRawTx(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplySignRawTx)
-	req, ok := msg.Data.(*types.ReqSignRawTx)
-	if !ok {
-		walletlog.Error("onSignRawTx", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_SignRawTx(req *types.ReqSignRawTx) (types.Message, error) {
 	reply := &types.ReplySignRawTx{}
 	txhex, err := wallet.ProcSignRawTx(req)
 	if err != nil {
@@ -353,27 +198,58 @@ func (wallet *Wallet) onSignRawTx(msg *queue.Message) (string, int64, interface{
 	} else {
 		reply.TxHex = txhex
 	}
-	return topic, retty, reply, err
+	return reply, err
 }
 
-func (wallet *Wallet) onErrToFront(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventErrToFront)
-	req, ok := msg.Data.(*types.ReportErrEvent)
-	if !ok {
-		walletlog.Error("onErrToFront", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
+func (wallet *Wallet) On_ErrToFront(req *types.ReportErrEvent) (types.Message, error) {
 	wallet.setFatalFailure(req)
-	return topic, retty, nil, nil
+	return nil, nil
 }
 
 // onFatalFailure 定时查询是否有致命性故障产生
-func (wallet *Wallet) onFatalFailure(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventFatalFailure)
+func (wallet *Wallet) On_FatalFailure(req *types.ReqNil) (types.Message, error) {
 	reply := &types.Int32{
 		Data: wallet.getFatalFailure(),
 	}
-	return topic, retty, reply, nil
+	return reply, nil
+}
+
+func (wallet *Wallet) ExecWallet(msg *queue.Message) (types.Message, error) {
+	if param, ok := msg.Data.(*types.ChainExecutor); ok {
+		return wallet.execWallet(param, 0)
+	}
+	var data []byte
+	if msg.Data != nil {
+		if d, ok := msg.Data.(types.Message); ok {
+			data = types.Encode(d)
+		} else {
+			return nil, types.ErrInvalidParam
+		}
+	}
+	param := &types.ChainExecutor{
+		Driver: "wallet",
+		Param:  data,
+	}
+	return wallet.execWallet(param, msg.Ty)
+}
+
+func (wallet *Wallet) execWallet(param *types.ChainExecutor, eventId int64) (reply types.Message, err error) {
+	if param.FuncName == "" && eventId > 0 {
+		param.FuncName = types.GetEventName(int(eventId))
+		if len(param.FuncName) <= 5 {
+			return nil, types.ErrActionNotSupport
+		}
+		param.FuncName = param.FuncName[5:]
+	}
+	var paramIn types.Message
+	if param.Param == nil {
+		paramIn = &types.ReqNil{}
+	} else {
+		paramIn, err = wcom.QueryData.Decode(param.Driver, param.FuncName, param.Param)
+		if err != nil {
+			return nil, err
+		}
+	}
+	//这里不判断类型是否可以调用，直接按照名字调用，如果发生panic，用recover 恢复
+	return wcom.QueryData.Call(param.Driver, param.FuncName, paramIn)
 }

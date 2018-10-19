@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -31,13 +32,12 @@ type KVDB interface {
 
 type DB interface {
 	KV
+	IteratorDB
 	SetSync([]byte, []byte) error
 	Delete([]byte) error
 	DeleteSync([]byte) error
 	Close()
 	NewBatch(sync bool) Batch
-	//迭代prefix 范围的所有key value, 支持正反顺序迭代
-	Iterator(prefix []byte, reserver bool) Iterator
 	// For debugging
 	Print()
 	Stats() map[string]string
@@ -87,11 +87,36 @@ type Iterator interface {
 	Value() []byte
 	ValueCopy() []byte
 	Error() error
+	Prefix() []byte
 	Close()
 }
 
+type itBase struct {
+	start   []byte
+	end     []byte
+	reverse bool
+}
+
+func (it *itBase) checkKey(key []byte) bool {
+	//key must in start and end
+	var startok = true
+	var endok = true
+	if it.start != nil {
+		startok = bytes.Compare(key, it.start) >= 0
+	}
+	if it.end != nil {
+		endok = bytes.Compare(key, it.end) <= 0
+	}
+	ok := startok && endok
+	return ok
+}
+
+func (it *itBase) Prefix() []byte {
+	return nil
+}
+
 type IteratorDB interface {
-	Iterator(prefix []byte, reserver bool) Iterator
+	Iterator(start []byte, end []byte, reserver bool) Iterator
 }
 
 func bytesPrefix(prefix []byte) []byte {

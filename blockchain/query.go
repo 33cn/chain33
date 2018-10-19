@@ -3,6 +3,7 @@ package blockchain
 import (
 	"sync"
 
+	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -13,24 +14,23 @@ type Query struct {
 	stateHash []byte
 	client    queue.Client
 	mu        sync.Mutex
+	api       client.QueueProtocolAPI
 }
 
-func NewQuery(db dbm.DB, client queue.Client, stateHash []byte) *Query {
-	return &Query{db: db, client: client, stateHash: stateHash}
+func NewQuery(db dbm.DB, qclient queue.Client, stateHash []byte) *Query {
+	query := &Query{db: db, client: qclient, stateHash: stateHash}
+	query.api, _ = client.New(qclient, nil)
+	return query
 }
 
-func (q *Query) Query(driver string, funcname string, param []byte) (types.Message, error) {
-	msg := q.client.NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{driver, funcname, q.getStateHash(), param})
-	q.client.Send(msg, true)
-	msg, err := q.client.Wait(msg)
-	if err != nil {
-		return nil, err
+func (q *Query) Query(driver string, funcname string, param types.Message) (types.Message, error) {
+	query := &types.ChainExecutor{
+		Driver:    driver,
+		FuncName:  funcname,
+		Param:     types.Encode(param),
+		StateHash: q.getStateHash(),
 	}
-	data := msg.GetData()
-	if data == nil {
-		return nil, types.ErrEmpty
-	}
-	return data.(types.Message), nil
+	return q.api.QueryChain(query)
 }
 
 func (q *Query) updateStateHash(stateHash []byte) {

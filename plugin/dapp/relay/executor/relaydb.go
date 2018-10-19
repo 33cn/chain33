@@ -122,7 +122,7 @@ func (action *relayDB) getOrderByCoinHash(hash []byte) (*ty.RelayOrder, error) {
 	return &order, nil
 }
 
-func (action *relayDB) relayCreate(order *ty.RelayCreate) (*types.Receipt, error) {
+func (action *relayDB) create(order *ty.RelayCreate) (*types.Receipt, error) {
 	var receipt *types.Receipt
 	var err error
 	var coinAddr string

@@ -139,7 +139,7 @@ func getCommitHeight(payload []byte) (int64, error) {
 		return 0, err
 	}
 	if a.GetCommit() == nil {
-		return 0, types.ErrInputPara
+		return 0, types.ErrInvalidParam
 	}
 
 	return a.GetCommit().Status.Height, nil
