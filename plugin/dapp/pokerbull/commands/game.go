@@ -58,7 +58,7 @@ func pokerbullStart(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokerBull.PokerBullStartTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "pokerbull.PokerBullStartTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -90,7 +90,7 @@ func pokerbullContinue(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokerBull.PokerBullContinueTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "pokerbull.PokerBullContinueTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -122,7 +122,7 @@ func pokerbullQuit(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokerBull.PokerBullQuitTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "pokerbull.PokerBullQuitTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
