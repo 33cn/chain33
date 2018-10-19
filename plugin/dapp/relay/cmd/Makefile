@@ -1,2 +1,2 @@
 all:
-	./create_relayd.sh
+	./build.sh $(OUT) $(FLAG)
