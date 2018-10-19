@@ -2,12 +2,13 @@ package patterns
 
 import (
 	"fmt"
-
 	"gitlab.33.cn/chain33/chain33/cmd/exec_creator_guider/tasks"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 type advancePattern struct {
 	projName     string // 创建的执行器包名
+	execName string
 	clsName      string // 执行器主体类名
 	actionName   string // 执行器处理过程中的Action类名
 	propFile     string // protobuf 源文件路径
@@ -41,6 +42,7 @@ func (this *advancePattern) Run(projName, clsName, actionName, propFile, templat
 	this.templateFile = templateFile
 
 	this.outputFolder = fmt.Sprintf("output/%s/", projName)
+	this.execName, _ = util.MakeStringToUpper(projName, 0, 1)
 
 	var err error
 	task := this.buildTask()
@@ -81,12 +83,19 @@ func (this *advancePattern) buildTask() tasks.Task {
 		},
 		&tasks.CreateDappSourceTask{
 			TemplatePath:       this.templateFile,
-			ClsName:            this.clsName,
-			ActionName:         this.actionName,
-			ProtoFile:          this.propFile,
-			ExecHeaderTempFile: this.configFolder + "/exec_header.template",
 			OutputPath:         this.outputFolder,
 			ProjectName:        this.projName,
+			ClsName:            this.clsName,
+			ActionName:         this.actionName,
+			TypeName:			this.clsName + "Type",
+			ExecuteName:		this.execName,
+			ProtoFile:          this.propFile,
+			ExecHeaderTempFile: this.configFolder + "/exec_header.template",
+			TypeTempFile:this.configFolder + "/types_content.template",
+			TypeOutputFile:this.outputFolder + "ptypes/",
+		},
+		&tasks.FormatDappSourceTask{
+			OutputFolder:  this.outputFolder,
 		},
 	)
 
