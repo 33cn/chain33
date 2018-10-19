@@ -80,9 +80,9 @@ miner:
 	@cp cmd/miner_accounts/miner_accounts.toml build/
 
 build_ci: depends ## Build the binary file for CI
-	@go build -v -i -o $(CLI) $(SRC_CLI)
-	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
-	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
+	@go build -v -race -i -o $(CLI) $(SRC_CLI)
+	@go build -v -race -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
+	@go build  $(BUILD_FLAGS) -race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
 
@@ -178,7 +178,7 @@ protobuf: ## Generate protbuf file of types package
 
 depends: ## Generate depends file of types package
 	@find ./plugin/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build" FLAG=-race \;
-	@find ./system/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build" \;
+	@find ./system/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build" FLAG=-race \;
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
