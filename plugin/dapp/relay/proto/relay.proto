@@ -24,15 +24,6 @@ message RelayAction {
     int32 ty = 10;
 }
 
-message RelayCreate {
-    uint32 operation = 1; // 0: buy, 1: sell
-    string coin      = 2; // outside coin BTC, ETH...
-    uint64 amount    = 3;
-    string addr      = 4;
-    uint64 btyAmount = 5;
-    uint32 coinWaits = 6; // the coin blocks to wait
-}
-
 message RelayOrder {
     string           id            = 1;
     RelayOrderStatus status        = 2;
@@ -53,6 +44,15 @@ message RelayOrder {
     int64            height        = 17;
     uint64           coinHeight    = 18;
     uint32           coinWaits     = 19;
+}
+
+message RelayCreate {
+    uint32 operation = 1; // 0: buy, 1: sell
+    string coin      = 2; // outside coin BTC, ETH...
+    uint64 amount    = 3;
+    string addr      = 4;
+    uint64 btyAmount = 5;
+    uint32 coinWaits = 6; // the coin blocks to wait
 }
 
 message RelayAccept {

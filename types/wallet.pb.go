@@ -22,7 +22,7 @@ var _ = math.Inf
 // 	 fromaddr :交易打出地址
 // 	 txhash : 交易对应的哈希值
 // 	 actionName  :交易对应的函数调用
-//   spendrecv 交易对应的输入UTXO
+//   payload: 保存额外的一些信息，主要是给插件使用
 type WalletTxDetail struct {
 	Tx         *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
 	Receipt    *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt,omitempty"`
@@ -33,7 +33,7 @@ type WalletTxDetail struct {
 	Fromaddr   string       `protobuf:"bytes,7,opt,name=fromaddr" json:"fromaddr,omitempty"`
 	Txhash     []byte       `protobuf:"bytes,8,opt,name=txhash,proto3" json:"txhash,omitempty"`
 	ActionName string       `protobuf:"bytes,9,opt,name=actionName" json:"actionName,omitempty"`
-	Spendrecv  []*UTXO      `protobuf:"bytes,10,rep,name=spendrecv" json:"spendrecv,omitempty"`
+	Payload    []byte       `protobuf:"bytes,10,opt,name=payload,proto3" json:"payload,omitempty"`
 }
 
 func (m *WalletTxDetail) Reset()                    { *m = WalletTxDetail{} }
@@ -104,9 +104,9 @@ func (m *WalletTxDetail) GetActionName() string {
 	return ""
 }
 
-func (m *WalletTxDetail) GetSpendrecv() []*UTXO {
+func (m *WalletTxDetail) GetPayload() []byte {
 	if m != nil {
-		return m.Spendrecv
+		return m.Payload
 	}
 	return nil
 }
@@ -172,46 +172,6 @@ func (m *WalletAccountStore) GetTimeStamp() string {
 	return ""
 }
 
-type WalletAccountPrivacy struct {
-	ViewPubkey   []byte `protobuf:"bytes,1,opt,name=viewPubkey,proto3" json:"viewPubkey,omitempty"`
-	ViewPrivKey  []byte `protobuf:"bytes,2,opt,name=viewPrivKey,proto3" json:"viewPrivKey,omitempty"`
-	SpendPubkey  []byte `protobuf:"bytes,3,opt,name=spendPubkey,proto3" json:"spendPubkey,omitempty"`
-	SpendPrivKey []byte `protobuf:"bytes,4,opt,name=spendPrivKey,proto3" json:"spendPrivKey,omitempty"`
-}
-
-func (m *WalletAccountPrivacy) Reset()                    { *m = WalletAccountPrivacy{} }
-func (m *WalletAccountPrivacy) String() string            { return proto.CompactTextString(m) }
-func (*WalletAccountPrivacy) ProtoMessage()               {}
-func (*WalletAccountPrivacy) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{3} }
-
-func (m *WalletAccountPrivacy) GetViewPubkey() []byte {
-	if m != nil {
-		return m.ViewPubkey
-	}
-	return nil
-}
-
-func (m *WalletAccountPrivacy) GetViewPrivKey() []byte {
-	if m != nil {
-		return m.ViewPrivKey
-	}
-	return nil
-}
-
-func (m *WalletAccountPrivacy) GetSpendPubkey() []byte {
-	if m != nil {
-		return m.SpendPubkey
-	}
-	return nil
-}
-
-func (m *WalletAccountPrivacy) GetSpendPrivKey() []byte {
-	if m != nil {
-		return m.SpendPrivKey
-	}
-	return nil
-}
-
 // 钱包模块通过一个随机值对钱包密码加密
 // 	 pwHash : 对钱包密码和一个随机值组合进行哈希计算
 // 	 randstr :对钱包密码加密的一个随机值
@@ -223,7 +183,7 @@ type WalletPwHash struct {
 func (m *WalletPwHash) Reset()                    { *m = WalletPwHash{} }
 func (m *WalletPwHash) String() string            { return proto.CompactTextString(m) }
 func (*WalletPwHash) ProtoMessage()               {}
-func (*WalletPwHash) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{4} }
+func (*WalletPwHash) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{3} }
 
 func (m *WalletPwHash) GetPwHash() []byte {
 	if m != nil {
@@ -254,7 +214,7 @@ type WalletStatus struct {
 func (m *WalletStatus) Reset()                    { *m = WalletStatus{} }
 func (m *WalletStatus) String() string            { return proto.CompactTextString(m) }
 func (*WalletStatus) ProtoMessage()               {}
-func (*WalletStatus) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{5} }
+func (*WalletStatus) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{4} }
 
 func (m *WalletStatus) GetIsWalletLock() bool {
 	if m != nil {
@@ -291,7 +251,7 @@ type WalletAccounts struct {
 func (m *WalletAccounts) Reset()                    { *m = WalletAccounts{} }
 func (m *WalletAccounts) String() string            { return proto.CompactTextString(m) }
 func (*WalletAccounts) ProtoMessage()               {}
-func (*WalletAccounts) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{6} }
+func (*WalletAccounts) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{5} }
 
 func (m *WalletAccounts) GetWallets() []*WalletAccount {
 	if m != nil {
@@ -308,7 +268,7 @@ type WalletAccount struct {
 func (m *WalletAccount) Reset()                    { *m = WalletAccount{} }
 func (m *WalletAccount) String() string            { return proto.CompactTextString(m) }
 func (*WalletAccount) ProtoMessage()               {}
-func (*WalletAccount) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{7} }
+func (*WalletAccount) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{6} }
 
 func (m *WalletAccount) GetAcc() *Account {
 	if m != nil {
@@ -337,7 +297,7 @@ type WalletUnLock struct {
 func (m *WalletUnLock) Reset()                    { *m = WalletUnLock{} }
 func (m *WalletUnLock) String() string            { return proto.CompactTextString(m) }
 func (*WalletUnLock) ProtoMessage()               {}
-func (*WalletUnLock) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{8} }
+func (*WalletUnLock) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{7} }
 
 func (m *WalletUnLock) GetPasswd() string {
 	if m != nil {
@@ -367,7 +327,7 @@ type GenSeedLang struct {
 func (m *GenSeedLang) Reset()                    { *m = GenSeedLang{} }
 func (m *GenSeedLang) String() string            { return proto.CompactTextString(m) }
 func (*GenSeedLang) ProtoMessage()               {}
-func (*GenSeedLang) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{9} }
+func (*GenSeedLang) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{8} }
 
 func (m *GenSeedLang) GetLang() int32 {
 	if m != nil {
@@ -383,7 +343,7 @@ type GetSeedByPw struct {
 func (m *GetSeedByPw) Reset()                    { *m = GetSeedByPw{} }
 func (m *GetSeedByPw) String() string            { return proto.CompactTextString(m) }
 func (*GetSeedByPw) ProtoMessage()               {}
-func (*GetSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{10} }
+func (*GetSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{9} }
 
 func (m *GetSeedByPw) GetPasswd() string {
 	if m != nil {
@@ -403,7 +363,7 @@ type SaveSeedByPw struct {
 func (m *SaveSeedByPw) Reset()                    { *m = SaveSeedByPw{} }
 func (m *SaveSeedByPw) String() string            { return proto.CompactTextString(m) }
 func (*SaveSeedByPw) ProtoMessage()               {}
-func (*SaveSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{11} }
+func (*SaveSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{10} }
 
 func (m *SaveSeedByPw) GetSeed() string {
 	if m != nil {
@@ -426,7 +386,7 @@ type ReplySeed struct {
 func (m *ReplySeed) Reset()                    { *m = ReplySeed{} }
 func (m *ReplySeed) String() string            { return proto.CompactTextString(m) }
 func (*ReplySeed) ProtoMessage()               {}
-func (*ReplySeed) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{12} }
+func (*ReplySeed) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{11} }
 
 func (m *ReplySeed) GetSeed() string {
 	if m != nil {
@@ -443,7 +403,7 @@ type ReqWalletSetPasswd struct {
 func (m *ReqWalletSetPasswd) Reset()                    { *m = ReqWalletSetPasswd{} }
 func (m *ReqWalletSetPasswd) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletSetPasswd) ProtoMessage()               {}
-func (*ReqWalletSetPasswd) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{13} }
+func (*ReqWalletSetPasswd) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{12} }
 
 func (m *ReqWalletSetPasswd) GetOldPass() string {
 	if m != nil {
@@ -466,37 +426,13 @@ type ReqNewAccount struct {
 func (m *ReqNewAccount) Reset()                    { *m = ReqNewAccount{} }
 func (m *ReqNewAccount) String() string            { return proto.CompactTextString(m) }
 func (*ReqNewAccount) ProtoMessage()               {}
-func (*ReqNewAccount) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{14} }
+func (*ReqNewAccount) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{13} }
 
 func (m *ReqNewAccount) GetLabel() string {
 	if m != nil {
 		return m.Label
 	}
 	return ""
-}
-
-type MinerFlag struct {
-	Flag    int32 `protobuf:"varint,1,opt,name=flag" json:"flag,omitempty"`
-	Reserve int64 `protobuf:"varint,2,opt,name=reserve" json:"reserve,omitempty"`
-}
-
-func (m *MinerFlag) Reset()                    { *m = MinerFlag{} }
-func (m *MinerFlag) String() string            { return proto.CompactTextString(m) }
-func (*MinerFlag) ProtoMessage()               {}
-func (*MinerFlag) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{15} }
-
-func (m *MinerFlag) GetFlag() int32 {
-	if m != nil {
-		return m.Flag
-	}
-	return 0
-}
-
-func (m *MinerFlag) GetReserve() int64 {
-	if m != nil {
-		return m.Reserve
-	}
-	return 0
 }
 
 // 获取钱包交易的详细信息
@@ -514,7 +450,7 @@ type ReqWalletTransactionList struct {
 func (m *ReqWalletTransactionList) Reset()                    { *m = ReqWalletTransactionList{} }
 func (m *ReqWalletTransactionList) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletTransactionList) ProtoMessage()               {}
-func (*ReqWalletTransactionList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{16} }
+func (*ReqWalletTransactionList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{14} }
 
 func (m *ReqWalletTransactionList) GetFromTx() []byte {
 	if m != nil {
@@ -537,25 +473,25 @@ func (m *ReqWalletTransactionList) GetDirection() int32 {
 	return 0
 }
 
-type ReqWalletImportPrivKey struct {
+type ReqWalletImportPrivkey struct {
 	// bitcoin 的私钥格式
 	Privkey string `protobuf:"bytes,1,opt,name=privkey" json:"privkey,omitempty"`
 	Label   string `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
 }
 
-func (m *ReqWalletImportPrivKey) Reset()                    { *m = ReqWalletImportPrivKey{} }
-func (m *ReqWalletImportPrivKey) String() string            { return proto.CompactTextString(m) }
-func (*ReqWalletImportPrivKey) ProtoMessage()               {}
-func (*ReqWalletImportPrivKey) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{17} }
+func (m *ReqWalletImportPrivkey) Reset()                    { *m = ReqWalletImportPrivkey{} }
+func (m *ReqWalletImportPrivkey) String() string            { return proto.CompactTextString(m) }
+func (*ReqWalletImportPrivkey) ProtoMessage()               {}
+func (*ReqWalletImportPrivkey) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{15} }
 
-func (m *ReqWalletImportPrivKey) GetPrivkey() string {
+func (m *ReqWalletImportPrivkey) GetPrivkey() string {
 	if m != nil {
 		return m.Privkey
 	}
 	return ""
 }
 
-func (m *ReqWalletImportPrivKey) GetLabel() string {
+func (m *ReqWalletImportPrivkey) GetLabel() string {
 	if m != nil {
 		return m.Label
 	}
@@ -579,7 +515,7 @@ type ReqWalletSendToAddress struct {
 func (m *ReqWalletSendToAddress) Reset()                    { *m = ReqWalletSendToAddress{} }
 func (m *ReqWalletSendToAddress) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletSendToAddress) ProtoMessage()               {}
-func (*ReqWalletSendToAddress) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{18} }
+func (*ReqWalletSendToAddress) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{16} }
 
 func (m *ReqWalletSendToAddress) GetFrom() string {
 	if m != nil {
@@ -630,7 +566,7 @@ type ReqWalletSetFee struct {
 func (m *ReqWalletSetFee) Reset()                    { *m = ReqWalletSetFee{} }
 func (m *ReqWalletSetFee) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletSetFee) ProtoMessage()               {}
-func (*ReqWalletSetFee) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{19} }
+func (*ReqWalletSetFee) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{17} }
 
 func (m *ReqWalletSetFee) GetAmount() int64 {
 	if m != nil {
@@ -647,7 +583,7 @@ type ReqWalletSetLabel struct {
 func (m *ReqWalletSetLabel) Reset()                    { *m = ReqWalletSetLabel{} }
 func (m *ReqWalletSetLabel) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletSetLabel) ProtoMessage()               {}
-func (*ReqWalletSetLabel) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{20} }
+func (*ReqWalletSetLabel) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{18} }
 
 func (m *ReqWalletSetLabel) GetAddr() string {
 	if m != nil {
@@ -670,43 +606,11 @@ type ReqWalletMergeBalance struct {
 func (m *ReqWalletMergeBalance) Reset()                    { *m = ReqWalletMergeBalance{} }
 func (m *ReqWalletMergeBalance) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletMergeBalance) ProtoMessage()               {}
-func (*ReqWalletMergeBalance) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{21} }
+func (*ReqWalletMergeBalance) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{19} }
 
 func (m *ReqWalletMergeBalance) GetTo() string {
 	if m != nil {
 		return m.To
-	}
-	return ""
-}
-
-type ReqStr struct {
-	ReqStr string `protobuf:"bytes,1,opt,name=reqStr" json:"reqStr,omitempty"`
-}
-
-func (m *ReqStr) Reset()                    { *m = ReqStr{} }
-func (m *ReqStr) String() string            { return proto.CompactTextString(m) }
-func (*ReqStr) ProtoMessage()               {}
-func (*ReqStr) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{22} }
-
-func (m *ReqStr) GetReqStr() string {
-	if m != nil {
-		return m.ReqStr
-	}
-	return ""
-}
-
-type ReplyStr struct {
-	Replystr string `protobuf:"bytes,1,opt,name=replystr" json:"replystr,omitempty"`
-}
-
-func (m *ReplyStr) Reset()                    { *m = ReplyStr{} }
-func (m *ReplyStr) String() string            { return proto.CompactTextString(m) }
-func (*ReplyStr) ProtoMessage()               {}
-func (*ReplyStr) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{23} }
-
-func (m *ReplyStr) GetReplystr() string {
-	if m != nil {
-		return m.Replystr
 	}
 	return ""
 }
@@ -724,7 +628,7 @@ type ReqTokenPreCreate struct {
 func (m *ReqTokenPreCreate) Reset()                    { *m = ReqTokenPreCreate{} }
 func (m *ReqTokenPreCreate) String() string            { return proto.CompactTextString(m) }
 func (*ReqTokenPreCreate) ProtoMessage()               {}
-func (*ReqTokenPreCreate) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{24} }
+func (*ReqTokenPreCreate) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{20} }
 
 func (m *ReqTokenPreCreate) GetCreatorAddr() string {
 	if m != nil {
@@ -784,7 +688,7 @@ type ReqTokenFinishCreate struct {
 func (m *ReqTokenFinishCreate) Reset()                    { *m = ReqTokenFinishCreate{} }
 func (m *ReqTokenFinishCreate) String() string            { return proto.CompactTextString(m) }
 func (*ReqTokenFinishCreate) ProtoMessage()               {}
-func (*ReqTokenFinishCreate) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{25} }
+func (*ReqTokenFinishCreate) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{21} }
 
 func (m *ReqTokenFinishCreate) GetFinisherAddr() string {
 	if m != nil {
@@ -816,7 +720,7 @@ type ReqTokenRevokeCreate struct {
 func (m *ReqTokenRevokeCreate) Reset()                    { *m = ReqTokenRevokeCreate{} }
 func (m *ReqTokenRevokeCreate) String() string            { return proto.CompactTextString(m) }
 func (*ReqTokenRevokeCreate) ProtoMessage()               {}
-func (*ReqTokenRevokeCreate) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{26} }
+func (*ReqTokenRevokeCreate) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{22} }
 
 func (m *ReqTokenRevokeCreate) GetRevokerAddr() string {
 	if m != nil {
@@ -849,7 +753,7 @@ type ReqModifyConfig struct {
 func (m *ReqModifyConfig) Reset()                    { *m = ReqModifyConfig{} }
 func (m *ReqModifyConfig) String() string            { return proto.CompactTextString(m) }
 func (*ReqModifyConfig) ProtoMessage()               {}
-func (*ReqModifyConfig) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{27} }
+func (*ReqModifyConfig) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{23} }
 
 func (m *ReqModifyConfig) GetKey() string {
 	if m != nil {
@@ -895,7 +799,7 @@ type ReqSignRawTx struct {
 func (m *ReqSignRawTx) Reset()                    { *m = ReqSignRawTx{} }
 func (m *ReqSignRawTx) String() string            { return proto.CompactTextString(m) }
 func (*ReqSignRawTx) ProtoMessage()               {}
-func (*ReqSignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{28} }
+func (*ReqSignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{24} }
 
 func (m *ReqSignRawTx) GetAddr() string {
 	if m != nil {
@@ -946,7 +850,7 @@ type ReplySignRawTx struct {
 func (m *ReplySignRawTx) Reset()                    { *m = ReplySignRawTx{} }
 func (m *ReplySignRawTx) String() string            { return proto.CompactTextString(m) }
 func (*ReplySignRawTx) ProtoMessage()               {}
-func (*ReplySignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{29} }
+func (*ReplySignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{25} }
 
 func (m *ReplySignRawTx) GetTxHex() string {
 	if m != nil {
@@ -964,7 +868,7 @@ type ReportErrEvent struct {
 func (m *ReportErrEvent) Reset()                    { *m = ReportErrEvent{} }
 func (m *ReportErrEvent) String() string            { return proto.CompactTextString(m) }
 func (*ReportErrEvent) ProtoMessage()               {}
-func (*ReportErrEvent) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{30} }
+func (*ReportErrEvent) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{26} }
 
 func (m *ReportErrEvent) GetFrommodule() string {
 	if m != nil {
@@ -994,721 +898,13 @@ type Int32 struct {
 func (m *Int32) Reset()                    { *m = Int32{} }
 func (m *Int32) String() string            { return proto.CompactTextString(m) }
 func (*Int32) ProtoMessage()               {}
-func (*Int32) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{31} }
+func (*Int32) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{27} }
 
 func (m *Int32) GetData() int32 {
 	if m != nil {
 		return m.Data
 	}
 	return 0
-}
-
-type ReqPub2Pri struct {
-	// 接收人可见公钥A
-	// string viewPublic  = 1;
-	// 接收人花费公钥B
-	// string spendPublic = 2;
-	Tokenname string `protobuf:"bytes,3,opt,name=tokenname" json:"tokenname,omitempty"`
-	Amount    int64  `protobuf:"varint,4,opt,name=amount" json:"amount,omitempty"`
-	Note      string `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
-	// 发送人地址
-	Sender     string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
-	Mixin      int32  `protobuf:"varint,7,opt,name=mixin" json:"mixin,omitempty"`
-	Pubkeypair string `protobuf:"bytes,8,opt,name=pubkeypair" json:"pubkeypair,omitempty"`
-	Expire     int64  `protobuf:"varint,9,opt,name=expire" json:"expire,omitempty"`
-}
-
-func (m *ReqPub2Pri) Reset()                    { *m = ReqPub2Pri{} }
-func (m *ReqPub2Pri) String() string            { return proto.CompactTextString(m) }
-func (*ReqPub2Pri) ProtoMessage()               {}
-func (*ReqPub2Pri) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{32} }
-
-func (m *ReqPub2Pri) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *ReqPub2Pri) GetAmount() int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-func (m *ReqPub2Pri) GetNote() string {
-	if m != nil {
-		return m.Note
-	}
-	return ""
-}
-
-func (m *ReqPub2Pri) GetSender() string {
-	if m != nil {
-		return m.Sender
-	}
-	return ""
-}
-
-func (m *ReqPub2Pri) GetMixin() int32 {
-	if m != nil {
-		return m.Mixin
-	}
-	return 0
-}
-
-func (m *ReqPub2Pri) GetPubkeypair() string {
-	if m != nil {
-		return m.Pubkeypair
-	}
-	return ""
-}
-
-func (m *ReqPub2Pri) GetExpire() int64 {
-	if m != nil {
-		return m.Expire
-	}
-	return 0
-}
-
-type ReqPri2Pri struct {
-	// 接收人可见公钥A
-	// string viewPublic  = 1; //A
-	// 接收人花费公钥B
-	// string spendPublic = 2; //B
-	Tokenname string `protobuf:"bytes,3,opt,name=tokenname" json:"tokenname,omitempty"`
-	Amount    int64  `protobuf:"varint,4,opt,name=amount" json:"amount,omitempty"`
-	Note      string `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
-	// 隐私交易发起人地址
-	Sender string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
-	Mixin  int32  `protobuf:"varint,7,opt,name=mixin" json:"mixin,omitempty"`
-	// 	string txhash      = 7;
-	Pubkeypair string `protobuf:"bytes,8,opt,name=pubkeypair" json:"pubkeypair,omitempty"`
-	Expire     int64  `protobuf:"varint,9,opt,name=expire" json:"expire,omitempty"`
-}
-
-func (m *ReqPri2Pri) Reset()                    { *m = ReqPri2Pri{} }
-func (m *ReqPri2Pri) String() string            { return proto.CompactTextString(m) }
-func (*ReqPri2Pri) ProtoMessage()               {}
-func (*ReqPri2Pri) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{33} }
-
-func (m *ReqPri2Pri) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *ReqPri2Pri) GetAmount() int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-func (m *ReqPri2Pri) GetNote() string {
-	if m != nil {
-		return m.Note
-	}
-	return ""
-}
-
-func (m *ReqPri2Pri) GetSender() string {
-	if m != nil {
-		return m.Sender
-	}
-	return ""
-}
-
-func (m *ReqPri2Pri) GetMixin() int32 {
-	if m != nil {
-		return m.Mixin
-	}
-	return 0
-}
-
-func (m *ReqPri2Pri) GetPubkeypair() string {
-	if m != nil {
-		return m.Pubkeypair
-	}
-	return ""
-}
-
-func (m *ReqPri2Pri) GetExpire() int64 {
-	if m != nil {
-		return m.Expire
-	}
-	return 0
-}
-
-type ReqPri2Pub struct {
-	Receiver  string `protobuf:"bytes,1,opt,name=receiver" json:"receiver,omitempty"`
-	Tokenname string `protobuf:"bytes,2,opt,name=tokenname" json:"tokenname,omitempty"`
-	Amount    int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
-	Note      string `protobuf:"bytes,4,opt,name=note" json:"note,omitempty"`
-	// 隐私交易发起人地址
-	Sender string `protobuf:"bytes,5,opt,name=sender" json:"sender,omitempty"`
-	Mixin  int32  `protobuf:"varint,6,opt,name=mixin" json:"mixin,omitempty"`
-	// 	string txhash     = 6;
-	Expire int64 `protobuf:"varint,7,opt,name=expire" json:"expire,omitempty"`
-}
-
-func (m *ReqPri2Pub) Reset()                    { *m = ReqPri2Pub{} }
-func (m *ReqPri2Pub) String() string            { return proto.CompactTextString(m) }
-func (*ReqPri2Pub) ProtoMessage()               {}
-func (*ReqPri2Pub) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{34} }
-
-func (m *ReqPri2Pub) GetReceiver() string {
-	if m != nil {
-		return m.Receiver
-	}
-	return ""
-}
-
-func (m *ReqPri2Pub) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *ReqPri2Pub) GetAmount() int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-func (m *ReqPri2Pub) GetNote() string {
-	if m != nil {
-		return m.Note
-	}
-	return ""
-}
-
-func (m *ReqPri2Pub) GetSender() string {
-	if m != nil {
-		return m.Sender
-	}
-	return ""
-}
-
-func (m *ReqPri2Pub) GetMixin() int32 {
-	if m != nil {
-		return m.Mixin
-	}
-	return 0
-}
-
-func (m *ReqPri2Pub) GetExpire() int64 {
-	if m != nil {
-		return m.Expire
-	}
-	return 0
-}
-
-type ReqCreateUTXOs struct {
-	// string viewPublic  = 1; //接收人可见公钥A
-	// string spendPublic = 2; //接收人花费公钥B
-	Tokenname  string `protobuf:"bytes,3,opt,name=tokenname" json:"tokenname,omitempty"`
-	Amount     int64  `protobuf:"varint,4,opt,name=amount" json:"amount,omitempty"`
-	Note       string `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
-	Sender     string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
-	Count      int32  `protobuf:"varint,7,opt,name=count" json:"count,omitempty"`
-	Pubkeypair string `protobuf:"bytes,8,opt,name=pubkeypair" json:"pubkeypair,omitempty"`
-	Expire     int64  `protobuf:"varint,9,opt,name=expire" json:"expire,omitempty"`
-}
-
-func (m *ReqCreateUTXOs) Reset()                    { *m = ReqCreateUTXOs{} }
-func (m *ReqCreateUTXOs) String() string            { return proto.CompactTextString(m) }
-func (*ReqCreateUTXOs) ProtoMessage()               {}
-func (*ReqCreateUTXOs) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{35} }
-
-func (m *ReqCreateUTXOs) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *ReqCreateUTXOs) GetAmount() int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-func (m *ReqCreateUTXOs) GetNote() string {
-	if m != nil {
-		return m.Note
-	}
-	return ""
-}
-
-func (m *ReqCreateUTXOs) GetSender() string {
-	if m != nil {
-		return m.Sender
-	}
-	return ""
-}
-
-func (m *ReqCreateUTXOs) GetCount() int32 {
-	if m != nil {
-		return m.Count
-	}
-	return 0
-}
-
-func (m *ReqCreateUTXOs) GetPubkeypair() string {
-	if m != nil {
-		return m.Pubkeypair
-	}
-	return ""
-}
-
-func (m *ReqCreateUTXOs) GetExpire() int64 {
-	if m != nil {
-		return m.Expire
-	}
-	return 0
-}
-
-type ReplyPrivacyPkPair struct {
-	ShowSuccessful bool `protobuf:"varint,1,opt,name=showSuccessful" json:"showSuccessful,omitempty"`
-	// string viewPub       = 2;
-	// string spendPub      = 3;
-	Pubkeypair string `protobuf:"bytes,4,opt,name=pubkeypair" json:"pubkeypair,omitempty"`
-}
-
-func (m *ReplyPrivacyPkPair) Reset()                    { *m = ReplyPrivacyPkPair{} }
-func (m *ReplyPrivacyPkPair) String() string            { return proto.CompactTextString(m) }
-func (*ReplyPrivacyPkPair) ProtoMessage()               {}
-func (*ReplyPrivacyPkPair) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{36} }
-
-func (m *ReplyPrivacyPkPair) GetShowSuccessful() bool {
-	if m != nil {
-		return m.ShowSuccessful
-	}
-	return false
-}
-
-func (m *ReplyPrivacyPkPair) GetPubkeypair() string {
-	if m != nil {
-		return m.Pubkeypair
-	}
-	return ""
-}
-
-type ReqPrivBal4AddrToken struct {
-	Addr  string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Token string `protobuf:"bytes,2,opt,name=token" json:"token,omitempty"`
-}
-
-func (m *ReqPrivBal4AddrToken) Reset()                    { *m = ReqPrivBal4AddrToken{} }
-func (m *ReqPrivBal4AddrToken) String() string            { return proto.CompactTextString(m) }
-func (*ReqPrivBal4AddrToken) ProtoMessage()               {}
-func (*ReqPrivBal4AddrToken) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{37} }
-
-func (m *ReqPrivBal4AddrToken) GetAddr() string {
-	if m != nil {
-		return m.Addr
-	}
-	return ""
-}
-
-func (m *ReqPrivBal4AddrToken) GetToken() string {
-	if m != nil {
-		return m.Token
-	}
-	return ""
-}
-
-type ReplyPrivacyBalance struct {
-	Onetimeaddr string `protobuf:"bytes,1,opt,name=onetimeaddr" json:"onetimeaddr,omitempty"`
-	Balance     int64  `protobuf:"varint,2,opt,name=balance" json:"balance,omitempty"`
-}
-
-func (m *ReplyPrivacyBalance) Reset()                    { *m = ReplyPrivacyBalance{} }
-func (m *ReplyPrivacyBalance) String() string            { return proto.CompactTextString(m) }
-func (*ReplyPrivacyBalance) ProtoMessage()               {}
-func (*ReplyPrivacyBalance) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{38} }
-
-func (m *ReplyPrivacyBalance) GetOnetimeaddr() string {
-	if m != nil {
-		return m.Onetimeaddr
-	}
-	return ""
-}
-
-func (m *ReplyPrivacyBalance) GetBalance() int64 {
-	if m != nil {
-		return m.Balance
-	}
-	return 0
-}
-
-type PrivacyDBStore struct {
-	Txhash           []byte `protobuf:"bytes,1,opt,name=txhash,proto3" json:"txhash,omitempty"`
-	Tokenname        string `protobuf:"bytes,2,opt,name=tokenname" json:"tokenname,omitempty"`
-	Amount           int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
-	OutIndex         int32  `protobuf:"varint,4,opt,name=outIndex" json:"outIndex,omitempty"`
-	TxPublicKeyR     []byte `protobuf:"bytes,5,opt,name=txPublicKeyR,proto3" json:"txPublicKeyR,omitempty"`
-	OnetimePublicKey []byte `protobuf:"bytes,6,opt,name=onetimePublicKey,proto3" json:"onetimePublicKey,omitempty"`
-	Owner            string `protobuf:"bytes,7,opt,name=owner" json:"owner,omitempty"`
-	Height           int64  `protobuf:"varint,8,opt,name=height" json:"height,omitempty"`
-	Txindex          int32  `protobuf:"varint,9,opt,name=txindex" json:"txindex,omitempty"`
-	Blockhash        []byte `protobuf:"bytes,10,opt,name=blockhash,proto3" json:"blockhash,omitempty"`
-}
-
-func (m *PrivacyDBStore) Reset()                    { *m = PrivacyDBStore{} }
-func (m *PrivacyDBStore) String() string            { return proto.CompactTextString(m) }
-func (*PrivacyDBStore) ProtoMessage()               {}
-func (*PrivacyDBStore) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{39} }
-
-func (m *PrivacyDBStore) GetTxhash() []byte {
-	if m != nil {
-		return m.Txhash
-	}
-	return nil
-}
-
-func (m *PrivacyDBStore) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *PrivacyDBStore) GetAmount() int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-func (m *PrivacyDBStore) GetOutIndex() int32 {
-	if m != nil {
-		return m.OutIndex
-	}
-	return 0
-}
-
-func (m *PrivacyDBStore) GetTxPublicKeyR() []byte {
-	if m != nil {
-		return m.TxPublicKeyR
-	}
-	return nil
-}
-
-func (m *PrivacyDBStore) GetOnetimePublicKey() []byte {
-	if m != nil {
-		return m.OnetimePublicKey
-	}
-	return nil
-}
-
-func (m *PrivacyDBStore) GetOwner() string {
-	if m != nil {
-		return m.Owner
-	}
-	return ""
-}
-
-func (m *PrivacyDBStore) GetHeight() int64 {
-	if m != nil {
-		return m.Height
-	}
-	return 0
-}
-
-func (m *PrivacyDBStore) GetTxindex() int32 {
-	if m != nil {
-		return m.Txindex
-	}
-	return 0
-}
-
-func (m *PrivacyDBStore) GetBlockhash() []byte {
-	if m != nil {
-		return m.Blockhash
-	}
-	return nil
-}
-
-type UTXO struct {
-	Amount    int64      `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
-	UtxoBasic *UTXOBasic `protobuf:"bytes,2,opt,name=utxoBasic" json:"utxoBasic,omitempty"`
-}
-
-func (m *UTXO) Reset()                    { *m = UTXO{} }
-func (m *UTXO) String() string            { return proto.CompactTextString(m) }
-func (*UTXO) ProtoMessage()               {}
-func (*UTXO) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{40} }
-
-func (m *UTXO) GetAmount() int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-func (m *UTXO) GetUtxoBasic() *UTXOBasic {
-	if m != nil {
-		return m.UtxoBasic
-	}
-	return nil
-}
-
-type UTXOHaveTxHash struct {
-	Amount    int64      `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
-	TxHash    string     `protobuf:"bytes,2,opt,name=txHash" json:"txHash,omitempty"`
-	UtxoBasic *UTXOBasic `protobuf:"bytes,3,opt,name=utxoBasic" json:"utxoBasic,omitempty"`
-}
-
-func (m *UTXOHaveTxHash) Reset()                    { *m = UTXOHaveTxHash{} }
-func (m *UTXOHaveTxHash) String() string            { return proto.CompactTextString(m) }
-func (*UTXOHaveTxHash) ProtoMessage()               {}
-func (*UTXOHaveTxHash) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{41} }
-
-func (m *UTXOHaveTxHash) GetAmount() int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-func (m *UTXOHaveTxHash) GetTxHash() string {
-	if m != nil {
-		return m.TxHash
-	}
-	return ""
-}
-
-func (m *UTXOHaveTxHash) GetUtxoBasic() *UTXOBasic {
-	if m != nil {
-		return m.UtxoBasic
-	}
-	return nil
-}
-
-type UTXOs struct {
-	Utxos []*UTXO `protobuf:"bytes,1,rep,name=utxos" json:"utxos,omitempty"`
-}
-
-func (m *UTXOs) Reset()                    { *m = UTXOs{} }
-func (m *UTXOs) String() string            { return proto.CompactTextString(m) }
-func (*UTXOs) ProtoMessage()               {}
-func (*UTXOs) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{42} }
-
-func (m *UTXOs) GetUtxos() []*UTXO {
-	if m != nil {
-		return m.Utxos
-	}
-	return nil
-}
-
-type UTXOHaveTxHashs struct {
-	UtxoHaveTxHashs []*UTXOHaveTxHash `protobuf:"bytes,1,rep,name=utxoHaveTxHashs" json:"utxoHaveTxHashs,omitempty"`
-}
-
-func (m *UTXOHaveTxHashs) Reset()                    { *m = UTXOHaveTxHashs{} }
-func (m *UTXOHaveTxHashs) String() string            { return proto.CompactTextString(m) }
-func (*UTXOHaveTxHashs) ProtoMessage()               {}
-func (*UTXOHaveTxHashs) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{43} }
-
-func (m *UTXOHaveTxHashs) GetUtxoHaveTxHashs() []*UTXOHaveTxHash {
-	if m != nil {
-		return m.UtxoHaveTxHashs
-	}
-	return nil
-}
-
-type UTXOGlobalIndex struct {
-	// 	int64 height   = 1;
-	// 	int32 txindex  = 2;
-	Txhash   []byte `protobuf:"bytes,3,opt,name=txhash,proto3" json:"txhash,omitempty"`
-	Outindex int32  `protobuf:"varint,4,opt,name=outindex" json:"outindex,omitempty"`
-}
-
-func (m *UTXOGlobalIndex) Reset()                    { *m = UTXOGlobalIndex{} }
-func (m *UTXOGlobalIndex) String() string            { return proto.CompactTextString(m) }
-func (*UTXOGlobalIndex) ProtoMessage()               {}
-func (*UTXOGlobalIndex) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{44} }
-
-func (m *UTXOGlobalIndex) GetTxhash() []byte {
-	if m != nil {
-		return m.Txhash
-	}
-	return nil
-}
-
-func (m *UTXOGlobalIndex) GetOutindex() int32 {
-	if m != nil {
-		return m.Outindex
-	}
-	return 0
-}
-
-type ReqUTXOGlobalIndex struct {
-	Tokenname string  `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
-	MixCount  int32   `protobuf:"varint,2,opt,name=mixCount" json:"mixCount,omitempty"`
-	Amount    []int64 `protobuf:"varint,3,rep,packed,name=amount" json:"amount,omitempty"`
-}
-
-func (m *ReqUTXOGlobalIndex) Reset()                    { *m = ReqUTXOGlobalIndex{} }
-func (m *ReqUTXOGlobalIndex) String() string            { return proto.CompactTextString(m) }
-func (*ReqUTXOGlobalIndex) ProtoMessage()               {}
-func (*ReqUTXOGlobalIndex) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{45} }
-
-func (m *ReqUTXOGlobalIndex) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *ReqUTXOGlobalIndex) GetMixCount() int32 {
-	if m != nil {
-		return m.MixCount
-	}
-	return 0
-}
-
-func (m *ReqUTXOGlobalIndex) GetAmount() []int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return nil
-}
-
-type UTXOBasic struct {
-	UtxoGlobalIndex *UTXOGlobalIndex `protobuf:"bytes,1,opt,name=utxoGlobalIndex" json:"utxoGlobalIndex,omitempty"`
-	OnetimePubkey   []byte           `protobuf:"bytes,2,opt,name=onetimePubkey,proto3" json:"onetimePubkey,omitempty"`
-}
-
-func (m *UTXOBasic) Reset()                    { *m = UTXOBasic{} }
-func (m *UTXOBasic) String() string            { return proto.CompactTextString(m) }
-func (*UTXOBasic) ProtoMessage()               {}
-func (*UTXOBasic) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{46} }
-
-func (m *UTXOBasic) GetUtxoGlobalIndex() *UTXOGlobalIndex {
-	if m != nil {
-		return m.UtxoGlobalIndex
-	}
-	return nil
-}
-
-func (m *UTXOBasic) GetOnetimePubkey() []byte {
-	if m != nil {
-		return m.OnetimePubkey
-	}
-	return nil
-}
-
-type UTXOIndex4Amount struct {
-	Amount int64        `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
-	Utxos  []*UTXOBasic `protobuf:"bytes,2,rep,name=utxos" json:"utxos,omitempty"`
-}
-
-func (m *UTXOIndex4Amount) Reset()                    { *m = UTXOIndex4Amount{} }
-func (m *UTXOIndex4Amount) String() string            { return proto.CompactTextString(m) }
-func (*UTXOIndex4Amount) ProtoMessage()               {}
-func (*UTXOIndex4Amount) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{47} }
-
-func (m *UTXOIndex4Amount) GetAmount() int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-func (m *UTXOIndex4Amount) GetUtxos() []*UTXOBasic {
-	if m != nil {
-		return m.Utxos
-	}
-	return nil
-}
-
-type ResUTXOGlobalIndex struct {
-	Tokenname        string              `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
-	MixCount         int32               `protobuf:"varint,2,opt,name=mixCount" json:"mixCount,omitempty"`
-	UtxoIndex4Amount []*UTXOIndex4Amount `protobuf:"bytes,3,rep,name=utxoIndex4Amount" json:"utxoIndex4Amount,omitempty"`
-}
-
-func (m *ResUTXOGlobalIndex) Reset()                    { *m = ResUTXOGlobalIndex{} }
-func (m *ResUTXOGlobalIndex) String() string            { return proto.CompactTextString(m) }
-func (*ResUTXOGlobalIndex) ProtoMessage()               {}
-func (*ResUTXOGlobalIndex) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{48} }
-
-func (m *ResUTXOGlobalIndex) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *ResUTXOGlobalIndex) GetMixCount() int32 {
-	if m != nil {
-		return m.MixCount
-	}
-	return 0
-}
-
-func (m *ResUTXOGlobalIndex) GetUtxoIndex4Amount() []*UTXOIndex4Amount {
-	if m != nil {
-		return m.UtxoIndex4Amount
-	}
-	return nil
-}
-
-type FTXOsSTXOsInOneTx struct {
-	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
-	Sender    string `protobuf:"bytes,2,opt,name=sender" json:"sender,omitempty"`
-	// FTXO的超期，设定原则与Transaction.expire一致
-	Expire int64   `protobuf:"varint,3,opt,name=expire" json:"expire,omitempty"`
-	Txhash string  `protobuf:"bytes,4,opt,name=txhash" json:"txhash,omitempty"`
-	Utxos  []*UTXO `protobuf:"bytes,5,rep,name=utxos" json:"utxos,omitempty"`
-}
-
-func (m *FTXOsSTXOsInOneTx) Reset()                    { *m = FTXOsSTXOsInOneTx{} }
-func (m *FTXOsSTXOsInOneTx) String() string            { return proto.CompactTextString(m) }
-func (*FTXOsSTXOsInOneTx) ProtoMessage()               {}
-func (*FTXOsSTXOsInOneTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{49} }
-
-func (m *FTXOsSTXOsInOneTx) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *FTXOsSTXOsInOneTx) GetSender() string {
-	if m != nil {
-		return m.Sender
-	}
-	return ""
-}
-
-func (m *FTXOsSTXOsInOneTx) GetExpire() int64 {
-	if m != nil {
-		return m.Expire
-	}
-	return 0
-}
-
-func (m *FTXOsSTXOsInOneTx) GetTxhash() string {
-	if m != nil {
-		return m.Txhash
-	}
-	return ""
-}
-
-func (m *FTXOsSTXOsInOneTx) GetUtxos() []*UTXO {
-	if m != nil {
-		return m.Utxos
-	}
-	return nil
 }
 
 // 某些交易需要存在一些复杂的算法，所以需要请求服务器协助构建交易，返回对应交易哈希值，后续签名可以根据此哈希值进行处理
@@ -1735,7 +931,7 @@ type ReqCreateTransaction struct {
 func (m *ReqCreateTransaction) Reset()                    { *m = ReqCreateTransaction{} }
 func (m *ReqCreateTransaction) String() string            { return proto.CompactTextString(m) }
 func (*ReqCreateTransaction) ProtoMessage()               {}
-func (*ReqCreateTransaction) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{50} }
+func (*ReqCreateTransaction) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{28} }
 
 func (m *ReqCreateTransaction) GetTokenname() string {
 	if m != nil {
@@ -1800,528 +996,6 @@ func (m *ReqCreateTransaction) GetExpire() int64 {
 	return 0
 }
 
-type RealKeyInput struct {
-	Realinputkey   int32  `protobuf:"varint,1,opt,name=realinputkey" json:"realinputkey,omitempty"`
-	Onetimeprivkey []byte `protobuf:"bytes,2,opt,name=onetimeprivkey,proto3" json:"onetimeprivkey,omitempty"`
-}
-
-func (m *RealKeyInput) Reset()                    { *m = RealKeyInput{} }
-func (m *RealKeyInput) String() string            { return proto.CompactTextString(m) }
-func (*RealKeyInput) ProtoMessage()               {}
-func (*RealKeyInput) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{51} }
-
-func (m *RealKeyInput) GetRealinputkey() int32 {
-	if m != nil {
-		return m.Realinputkey
-	}
-	return 0
-}
-
-func (m *RealKeyInput) GetOnetimeprivkey() []byte {
-	if m != nil {
-		return m.Onetimeprivkey
-	}
-	return nil
-}
-
-type UTXOBasics struct {
-	Utxos []*UTXOBasic `protobuf:"bytes,1,rep,name=utxos" json:"utxos,omitempty"`
-}
-
-func (m *UTXOBasics) Reset()                    { *m = UTXOBasics{} }
-func (m *UTXOBasics) String() string            { return proto.CompactTextString(m) }
-func (*UTXOBasics) ProtoMessage()               {}
-func (*UTXOBasics) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{52} }
-
-func (m *UTXOBasics) GetUtxos() []*UTXOBasic {
-	if m != nil {
-		return m.Utxos
-	}
-	return nil
-}
-
-type CreateTransactionCache struct {
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	// 记录创建时间，用以处理过期的交易
-	Createtime int64 `protobuf:"varint,2,opt,name=createtime" json:"createtime,omitempty"`
-	// 记录签名成功的时间，用以处理过期交易
-	Signtime int64 `protobuf:"varint,3,opt,name=signtime" json:"signtime,omitempty"`
-	// 缓存状态
-	// 0 - 创建状态
-	// 1 - 已经签名状态
-	Status int32 `protobuf:"varint,4,opt,name=status" json:"status,omitempty"`
-	//
-	Transaction  *Transaction    `protobuf:"bytes,5,opt,name=transaction" json:"transaction,omitempty"`
-	Sender       string          `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
-	Realkeyinput []*RealKeyInput `protobuf:"bytes,7,rep,name=realkeyinput" json:"realkeyinput,omitempty"`
-	Utxos        []*UTXOBasics   `protobuf:"bytes,8,rep,name=utxos" json:"utxos,omitempty"`
-	Tokenname    string          `protobuf:"bytes,9,opt,name=tokenname" json:"tokenname,omitempty"`
-}
-
-func (m *CreateTransactionCache) Reset()                    { *m = CreateTransactionCache{} }
-func (m *CreateTransactionCache) String() string            { return proto.CompactTextString(m) }
-func (*CreateTransactionCache) ProtoMessage()               {}
-func (*CreateTransactionCache) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{53} }
-
-func (m *CreateTransactionCache) GetKey() []byte {
-	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *CreateTransactionCache) GetCreatetime() int64 {
-	if m != nil {
-		return m.Createtime
-	}
-	return 0
-}
-
-func (m *CreateTransactionCache) GetSigntime() int64 {
-	if m != nil {
-		return m.Signtime
-	}
-	return 0
-}
-
-func (m *CreateTransactionCache) GetStatus() int32 {
-	if m != nil {
-		return m.Status
-	}
-	return 0
-}
-
-func (m *CreateTransactionCache) GetTransaction() *Transaction {
-	if m != nil {
-		return m.Transaction
-	}
-	return nil
-}
-
-func (m *CreateTransactionCache) GetSender() string {
-	if m != nil {
-		return m.Sender
-	}
-	return ""
-}
-
-func (m *CreateTransactionCache) GetRealkeyinput() []*RealKeyInput {
-	if m != nil {
-		return m.Realkeyinput
-	}
-	return nil
-}
-
-func (m *CreateTransactionCache) GetUtxos() []*UTXOBasics {
-	if m != nil {
-		return m.Utxos
-	}
-	return nil
-}
-
-func (m *CreateTransactionCache) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-type ReqCacheTxList struct {
-	Addr      string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Tokenname string `protobuf:"bytes,2,opt,name=tokenname" json:"tokenname,omitempty"`
-}
-
-func (m *ReqCacheTxList) Reset()                    { *m = ReqCacheTxList{} }
-func (m *ReqCacheTxList) String() string            { return proto.CompactTextString(m) }
-func (*ReqCacheTxList) ProtoMessage()               {}
-func (*ReqCacheTxList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{54} }
-
-func (m *ReqCacheTxList) GetAddr() string {
-	if m != nil {
-		return m.Addr
-	}
-	return ""
-}
-
-func (m *ReqCacheTxList) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-type ReplyCacheTxList struct {
-	Txs []*Transaction `protobuf:"bytes,1,rep,name=txs" json:"txs,omitempty"`
-}
-
-func (m *ReplyCacheTxList) Reset()                    { *m = ReplyCacheTxList{} }
-func (m *ReplyCacheTxList) String() string            { return proto.CompactTextString(m) }
-func (*ReplyCacheTxList) ProtoMessage()               {}
-func (*ReplyCacheTxList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{55} }
-
-func (m *ReplyCacheTxList) GetTxs() []*Transaction {
-	if m != nil {
-		return m.Txs
-	}
-	return nil
-}
-
-type ReqPrivacyAccount struct {
-	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
-	Addr      string `protobuf:"bytes,2,opt,name=addr" json:"addr,omitempty"`
-}
-
-func (m *ReqPrivacyAccount) Reset()                    { *m = ReqPrivacyAccount{} }
-func (m *ReqPrivacyAccount) String() string            { return proto.CompactTextString(m) }
-func (*ReqPrivacyAccount) ProtoMessage()               {}
-func (*ReqPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{56} }
-
-func (m *ReqPrivacyAccount) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *ReqPrivacyAccount) GetAddr() string {
-	if m != nil {
-		return m.Addr
-	}
-	return ""
-}
-
-type ReqPPrivacyAccount struct {
-	Addr  string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Token string `protobuf:"bytes,2,opt,name=token" json:"token,omitempty"`
-	// 设定显示的数据类型信息
-	// 0： 只显示账户的数值信息
-	// 1： 显示UTXO明细
-	// 2： 显示FTXO明细
-	// 3： 全部显示
-	Displaymode int32 `protobuf:"varint,3,opt,name=displaymode" json:"displaymode,omitempty"`
-}
-
-func (m *ReqPPrivacyAccount) Reset()                    { *m = ReqPPrivacyAccount{} }
-func (m *ReqPPrivacyAccount) String() string            { return proto.CompactTextString(m) }
-func (*ReqPPrivacyAccount) ProtoMessage()               {}
-func (*ReqPPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{57} }
-
-func (m *ReqPPrivacyAccount) GetAddr() string {
-	if m != nil {
-		return m.Addr
-	}
-	return ""
-}
-
-func (m *ReqPPrivacyAccount) GetToken() string {
-	if m != nil {
-		return m.Token
-	}
-	return ""
-}
-
-func (m *ReqPPrivacyAccount) GetDisplaymode() int32 {
-	if m != nil {
-		return m.Displaymode
-	}
-	return 0
-}
-
-// 请求隐私账户信息的应答
-type ReplyPrivacyAccount struct {
-	// 未花费的UTXO
-	Utxos *UTXOs `protobuf:"bytes,1,opt,name=utxos" json:"utxos,omitempty"`
-	// 冻结的UTXO
-	Ftxos       *UTXOs `protobuf:"bytes,2,opt,name=ftxos" json:"ftxos,omitempty"`
-	Displaymode int32  `protobuf:"varint,3,opt,name=displaymode" json:"displaymode,omitempty"`
-}
-
-func (m *ReplyPrivacyAccount) Reset()                    { *m = ReplyPrivacyAccount{} }
-func (m *ReplyPrivacyAccount) String() string            { return proto.CompactTextString(m) }
-func (*ReplyPrivacyAccount) ProtoMessage()               {}
-func (*ReplyPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{58} }
-
-func (m *ReplyPrivacyAccount) GetUtxos() *UTXOs {
-	if m != nil {
-		return m.Utxos
-	}
-	return nil
-}
-
-func (m *ReplyPrivacyAccount) GetFtxos() *UTXOs {
-	if m != nil {
-		return m.Ftxos
-	}
-	return nil
-}
-
-func (m *ReplyPrivacyAccount) GetDisplaymode() int32 {
-	if m != nil {
-		return m.Displaymode
-	}
-	return 0
-}
-
-type ReqCreateCacheTxKey struct {
-	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
-	Hashkey   []byte `protobuf:"bytes,2,opt,name=hashkey,proto3" json:"hashkey,omitempty"`
-}
-
-func (m *ReqCreateCacheTxKey) Reset()                    { *m = ReqCreateCacheTxKey{} }
-func (m *ReqCreateCacheTxKey) String() string            { return proto.CompactTextString(m) }
-func (*ReqCreateCacheTxKey) ProtoMessage()               {}
-func (*ReqCreateCacheTxKey) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{59} }
-
-func (m *ReqCreateCacheTxKey) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *ReqCreateCacheTxKey) GetHashkey() []byte {
-	if m != nil {
-		return m.Hashkey
-	}
-	return nil
-}
-
-// get privacy transaction list in wallet
-type ReqPrivacyTransactionList struct {
-	// support BTY
-	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
-	// 1:sendtx  2:recvtx
-	SendRecvFlag int32  `protobuf:"varint,2,opt,name=sendRecvFlag" json:"sendRecvFlag,omitempty"`
-	Direction    int32  `protobuf:"varint,3,opt,name=direction" json:"direction,omitempty"`
-	Count        int32  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
-	From         string `protobuf:"bytes,5,opt,name=from" json:"from,omitempty"`
-	Address      string `protobuf:"bytes,6,opt,name=address" json:"address,omitempty"`
-	Seedtxhash   []byte `protobuf:"bytes,7,opt,name=seedtxhash,proto3" json:"seedtxhash,omitempty"`
-}
-
-func (m *ReqPrivacyTransactionList) Reset()                    { *m = ReqPrivacyTransactionList{} }
-func (m *ReqPrivacyTransactionList) String() string            { return proto.CompactTextString(m) }
-func (*ReqPrivacyTransactionList) ProtoMessage()               {}
-func (*ReqPrivacyTransactionList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{60} }
-
-func (m *ReqPrivacyTransactionList) GetTokenname() string {
-	if m != nil {
-		return m.Tokenname
-	}
-	return ""
-}
-
-func (m *ReqPrivacyTransactionList) GetSendRecvFlag() int32 {
-	if m != nil {
-		return m.SendRecvFlag
-	}
-	return 0
-}
-
-func (m *ReqPrivacyTransactionList) GetDirection() int32 {
-	if m != nil {
-		return m.Direction
-	}
-	return 0
-}
-
-func (m *ReqPrivacyTransactionList) GetCount() int32 {
-	if m != nil {
-		return m.Count
-	}
-	return 0
-}
-
-func (m *ReqPrivacyTransactionList) GetFrom() string {
-	if m != nil {
-		return m.From
-	}
-	return ""
-}
-
-func (m *ReqPrivacyTransactionList) GetAddress() string {
-	if m != nil {
-		return m.Address
-	}
-	return ""
-}
-
-func (m *ReqPrivacyTransactionList) GetSeedtxhash() []byte {
-	if m != nil {
-		return m.Seedtxhash
-	}
-	return nil
-}
-
-type ReqRescanUtxos struct {
-	Addrs []string `protobuf:"bytes,1,rep,name=addrs" json:"addrs,omitempty"`
-	Flag  int32    `protobuf:"varint,2,opt,name=flag" json:"flag,omitempty"`
-}
-
-func (m *ReqRescanUtxos) Reset()                    { *m = ReqRescanUtxos{} }
-func (m *ReqRescanUtxos) String() string            { return proto.CompactTextString(m) }
-func (*ReqRescanUtxos) ProtoMessage()               {}
-func (*ReqRescanUtxos) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{61} }
-
-func (m *ReqRescanUtxos) GetAddrs() []string {
-	if m != nil {
-		return m.Addrs
-	}
-	return nil
-}
-
-func (m *ReqRescanUtxos) GetFlag() int32 {
-	if m != nil {
-		return m.Flag
-	}
-	return 0
-}
-
-type RepRescanResult struct {
-	Addr string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Flag int32  `protobuf:"varint,2,opt,name=flag" json:"flag,omitempty"`
-}
-
-func (m *RepRescanResult) Reset()                    { *m = RepRescanResult{} }
-func (m *RepRescanResult) String() string            { return proto.CompactTextString(m) }
-func (*RepRescanResult) ProtoMessage()               {}
-func (*RepRescanResult) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{62} }
-
-func (m *RepRescanResult) GetAddr() string {
-	if m != nil {
-		return m.Addr
-	}
-	return ""
-}
-
-func (m *RepRescanResult) GetFlag() int32 {
-	if m != nil {
-		return m.Flag
-	}
-	return 0
-}
-
-type RepRescanUtxos struct {
-	Flag             int32              `protobuf:"varint,1,opt,name=flag" json:"flag,omitempty"`
-	RepRescanResults []*RepRescanResult `protobuf:"bytes,2,rep,name=repRescanResults" json:"repRescanResults,omitempty"`
-}
-
-func (m *RepRescanUtxos) Reset()                    { *m = RepRescanUtxos{} }
-func (m *RepRescanUtxos) String() string            { return proto.CompactTextString(m) }
-func (*RepRescanUtxos) ProtoMessage()               {}
-func (*RepRescanUtxos) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{63} }
-
-func (m *RepRescanUtxos) GetFlag() int32 {
-	if m != nil {
-		return m.Flag
-	}
-	return 0
-}
-
-func (m *RepRescanUtxos) GetRepRescanResults() []*RepRescanResult {
-	if m != nil {
-		return m.RepRescanResults
-	}
-	return nil
-}
-
-type ReqEnablePrivacy struct {
-	Addrs []string `protobuf:"bytes,2,rep,name=addrs" json:"addrs,omitempty"`
-}
-
-func (m *ReqEnablePrivacy) Reset()                    { *m = ReqEnablePrivacy{} }
-func (m *ReqEnablePrivacy) String() string            { return proto.CompactTextString(m) }
-func (*ReqEnablePrivacy) ProtoMessage()               {}
-func (*ReqEnablePrivacy) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{64} }
-
-func (m *ReqEnablePrivacy) GetAddrs() []string {
-	if m != nil {
-		return m.Addrs
-	}
-	return nil
-}
-
-type PriAddrResult struct {
-	Addr string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	IsOK bool   `protobuf:"varint,2,opt,name=IsOK" json:"IsOK,omitempty"`
-	Msg  string `protobuf:"bytes,3,opt,name=msg" json:"msg,omitempty"`
-}
-
-func (m *PriAddrResult) Reset()                    { *m = PriAddrResult{} }
-func (m *PriAddrResult) String() string            { return proto.CompactTextString(m) }
-func (*PriAddrResult) ProtoMessage()               {}
-func (*PriAddrResult) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{65} }
-
-func (m *PriAddrResult) GetAddr() string {
-	if m != nil {
-		return m.Addr
-	}
-	return ""
-}
-
-func (m *PriAddrResult) GetIsOK() bool {
-	if m != nil {
-		return m.IsOK
-	}
-	return false
-}
-
-func (m *PriAddrResult) GetMsg() string {
-	if m != nil {
-		return m.Msg
-	}
-	return ""
-}
-
-type RepEnablePrivacy struct {
-	Results []*PriAddrResult `protobuf:"bytes,1,rep,name=results" json:"results,omitempty"`
-}
-
-func (m *RepEnablePrivacy) Reset()                    { *m = RepEnablePrivacy{} }
-func (m *RepEnablePrivacy) String() string            { return proto.CompactTextString(m) }
-func (*RepEnablePrivacy) ProtoMessage()               {}
-func (*RepEnablePrivacy) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{66} }
-
-func (m *RepEnablePrivacy) GetResults() []*PriAddrResult {
-	if m != nil {
-		return m.Results
-	}
-	return nil
-}
-
-// 隐私交易三步发送时，临时存储签名需要的数据信息结构
-type PrivacySignatureParam struct {
-	ActionType    int32           `protobuf:"varint,1,opt,name=actionType" json:"actionType,omitempty"`
-	Utxobasics    []*UTXOBasics   `protobuf:"bytes,2,rep,name=utxobasics" json:"utxobasics,omitempty"`
-	RealKeyInputs []*RealKeyInput `protobuf:"bytes,3,rep,name=realKeyInputs" json:"realKeyInputs,omitempty"`
-}
-
-func (m *PrivacySignatureParam) Reset()                    { *m = PrivacySignatureParam{} }
-func (m *PrivacySignatureParam) String() string            { return proto.CompactTextString(m) }
-func (*PrivacySignatureParam) ProtoMessage()               {}
-func (*PrivacySignatureParam) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{67} }
-
-func (m *PrivacySignatureParam) GetActionType() int32 {
-	if m != nil {
-		return m.ActionType
-	}
-	return 0
-}
-
-func (m *PrivacySignatureParam) GetUtxobasics() []*UTXOBasics {
-	if m != nil {
-		return m.Utxobasics
-	}
-	return nil
-}
-
-func (m *PrivacySignatureParam) GetRealKeyInputs() []*RealKeyInput {
-	if m != nil {
-		return m.RealKeyInputs
-	}
-	return nil
-}
-
 type ReqAccountList struct {
 	WithoutBalance bool `protobuf:"varint,1,opt,name=withoutBalance" json:"withoutBalance,omitempty"`
 }
@@ -2329,7 +1003,7 @@ type ReqAccountList struct {
 func (m *ReqAccountList) Reset()                    { *m = ReqAccountList{} }
 func (m *ReqAccountList) String() string            { return proto.CompactTextString(m) }
 func (*ReqAccountList) ProtoMessage()               {}
-func (*ReqAccountList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{68} }
+func (*ReqAccountList) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{29} }
 
 func (m *ReqAccountList) GetWithoutBalance() bool {
 	if m != nil {
@@ -2342,7 +1016,6 @@ func init() {
 	proto.RegisterType((*WalletTxDetail)(nil), "types.WalletTxDetail")
 	proto.RegisterType((*WalletTxDetails)(nil), "types.WalletTxDetails")
 	proto.RegisterType((*WalletAccountStore)(nil), "types.WalletAccountStore")
-	proto.RegisterType((*WalletAccountPrivacy)(nil), "types.WalletAccountPrivacy")
 	proto.RegisterType((*WalletPwHash)(nil), "types.WalletPwHash")
 	proto.RegisterType((*WalletStatus)(nil), "types.WalletStatus")
 	proto.RegisterType((*WalletAccounts)(nil), "types.WalletAccounts")
@@ -2354,15 +1027,12 @@ func init() {
 	proto.RegisterType((*ReplySeed)(nil), "types.ReplySeed")
 	proto.RegisterType((*ReqWalletSetPasswd)(nil), "types.ReqWalletSetPasswd")
 	proto.RegisterType((*ReqNewAccount)(nil), "types.ReqNewAccount")
-	proto.RegisterType((*MinerFlag)(nil), "types.MinerFlag")
 	proto.RegisterType((*ReqWalletTransactionList)(nil), "types.ReqWalletTransactionList")
-	proto.RegisterType((*ReqWalletImportPrivKey)(nil), "types.ReqWalletImportPrivKey")
+	proto.RegisterType((*ReqWalletImportPrivkey)(nil), "types.ReqWalletImportPrivkey")
 	proto.RegisterType((*ReqWalletSendToAddress)(nil), "types.ReqWalletSendToAddress")
 	proto.RegisterType((*ReqWalletSetFee)(nil), "types.ReqWalletSetFee")
 	proto.RegisterType((*ReqWalletSetLabel)(nil), "types.ReqWalletSetLabel")
 	proto.RegisterType((*ReqWalletMergeBalance)(nil), "types.ReqWalletMergeBalance")
-	proto.RegisterType((*ReqStr)(nil), "types.ReqStr")
-	proto.RegisterType((*ReplyStr)(nil), "types.ReplyStr")
 	proto.RegisterType((*ReqTokenPreCreate)(nil), "types.ReqTokenPreCreate")
 	proto.RegisterType((*ReqTokenFinishCreate)(nil), "types.ReqTokenFinishCreate")
 	proto.RegisterType((*ReqTokenRevokeCreate)(nil), "types.ReqTokenRevokeCreate")
@@ -2371,204 +1041,92 @@ func init() {
 	proto.RegisterType((*ReplySignRawTx)(nil), "types.ReplySignRawTx")
 	proto.RegisterType((*ReportErrEvent)(nil), "types.ReportErrEvent")
 	proto.RegisterType((*Int32)(nil), "types.Int32")
-	proto.RegisterType((*ReqPub2Pri)(nil), "types.ReqPub2Pri")
-	proto.RegisterType((*ReqPri2Pri)(nil), "types.ReqPri2Pri")
-	proto.RegisterType((*ReqPri2Pub)(nil), "types.ReqPri2Pub")
-	proto.RegisterType((*ReqCreateUTXOs)(nil), "types.ReqCreateUTXOs")
-	proto.RegisterType((*ReplyPrivacyPkPair)(nil), "types.ReplyPrivacyPkPair")
-	proto.RegisterType((*ReqPrivBal4AddrToken)(nil), "types.ReqPrivBal4AddrToken")
-	proto.RegisterType((*ReplyPrivacyBalance)(nil), "types.ReplyPrivacyBalance")
-	proto.RegisterType((*PrivacyDBStore)(nil), "types.PrivacyDBStore")
-	proto.RegisterType((*UTXO)(nil), "types.UTXO")
-	proto.RegisterType((*UTXOHaveTxHash)(nil), "types.UTXOHaveTxHash")
-	proto.RegisterType((*UTXOs)(nil), "types.UTXOs")
-	proto.RegisterType((*UTXOHaveTxHashs)(nil), "types.UTXOHaveTxHashs")
-	proto.RegisterType((*UTXOGlobalIndex)(nil), "types.UTXOGlobalIndex")
-	proto.RegisterType((*ReqUTXOGlobalIndex)(nil), "types.ReqUTXOGlobalIndex")
-	proto.RegisterType((*UTXOBasic)(nil), "types.UTXOBasic")
-	proto.RegisterType((*UTXOIndex4Amount)(nil), "types.UTXOIndex4Amount")
-	proto.RegisterType((*ResUTXOGlobalIndex)(nil), "types.ResUTXOGlobalIndex")
-	proto.RegisterType((*FTXOsSTXOsInOneTx)(nil), "types.FTXOsSTXOsInOneTx")
 	proto.RegisterType((*ReqCreateTransaction)(nil), "types.ReqCreateTransaction")
-	proto.RegisterType((*RealKeyInput)(nil), "types.RealKeyInput")
-	proto.RegisterType((*UTXOBasics)(nil), "types.UTXOBasics")
-	proto.RegisterType((*CreateTransactionCache)(nil), "types.CreateTransactionCache")
-	proto.RegisterType((*ReqCacheTxList)(nil), "types.ReqCacheTxList")
-	proto.RegisterType((*ReplyCacheTxList)(nil), "types.ReplyCacheTxList")
-	proto.RegisterType((*ReqPrivacyAccount)(nil), "types.ReqPrivacyAccount")
-	proto.RegisterType((*ReqPPrivacyAccount)(nil), "types.ReqPPrivacyAccount")
-	proto.RegisterType((*ReplyPrivacyAccount)(nil), "types.ReplyPrivacyAccount")
-	proto.RegisterType((*ReqCreateCacheTxKey)(nil), "types.ReqCreateCacheTxKey")
-	proto.RegisterType((*ReqPrivacyTransactionList)(nil), "types.ReqPrivacyTransactionList")
-	proto.RegisterType((*ReqRescanUtxos)(nil), "types.ReqRescanUtxos")
-	proto.RegisterType((*RepRescanResult)(nil), "types.RepRescanResult")
-	proto.RegisterType((*RepRescanUtxos)(nil), "types.RepRescanUtxos")
-	proto.RegisterType((*ReqEnablePrivacy)(nil), "types.ReqEnablePrivacy")
-	proto.RegisterType((*PriAddrResult)(nil), "types.PriAddrResult")
-	proto.RegisterType((*RepEnablePrivacy)(nil), "types.RepEnablePrivacy")
-	proto.RegisterType((*PrivacySignatureParam)(nil), "types.PrivacySignatureParam")
 	proto.RegisterType((*ReqAccountList)(nil), "types.ReqAccountList")
 }
 
 func init() { proto.RegisterFile("wallet.proto", fileDescriptor11) }
 
 var fileDescriptor11 = []byte{
-	// 2506 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x59, 0xcf, 0x6f, 0x24, 0x47,
-	0xf5, 0x57, 0xcf, 0x0f, 0xdb, 0xf3, 0x3c, 0xf6, 0x7a, 0x3b, 0x1b, 0x7f, 0xe7, 0xbb, 0x40, 0x70,
-	0x8a, 0xc4, 0x71, 0x22, 0x64, 0xc4, 0x7a, 0x25, 0x92, 0x48, 0x88, 0xb5, 0x37, 0xeb, 0xd8, 0xda,
-	0xdd, 0xec, 0x50, 0x9e, 0x08, 0x14, 0x21, 0x41, 0x4d, 0x4f, 0x79, 0xdc, 0x72, 0x4f, 0xf7, 0xb8,
-	0xba, 0x66, 0x3c, 0x73, 0xe2, 0x8f, 0x40, 0x42, 0x1c, 0x10, 0x27, 0xb8, 0x73, 0xe4, 0xc0, 0x81,
-	0x0b, 0x37, 0x2e, 0xfc, 0x05, 0xfc, 0x03, 0xfc, 0x11, 0xe8, 0xbd, 0xaa, 0xea, 0xae, 0x1e, 0x8f,
-	0xbd, 0x49, 0x40, 0x48, 0x5c, 0xec, 0x7e, 0xaf, 0x5e, 0x55, 0xbd, 0xf7, 0xa9, 0x57, 0xef, 0x47,
-	0x0d, 0xb4, 0xaf, 0x45, 0x92, 0x48, 0xbd, 0x3f, 0x56, 0x99, 0xce, 0xc2, 0xa6, 0x9e, 0x8f, 0x65,
-	0xfe, 0xf0, 0xbe, 0x56, 0x22, 0xcd, 0x45, 0xa4, 0xe3, 0x2c, 0x35, 0x23, 0x0f, 0xb7, 0xfa, 0x49,
-	0x16, 0x5d, 0x46, 0x17, 0x22, 0x76, 0x9c, 0x0d, 0x11, 0x45, 0xd9, 0x24, 0xb5, 0x53, 0x1f, 0x6e,
-	0xca, 0x99, 0x8c, 0x26, 0x3a, 0x53, 0x86, 0x66, 0x7f, 0xad, 0xc1, 0xe6, 0x4f, 0x68, 0xed, 0xde,
-	0xec, 0x13, 0xa9, 0x45, 0x9c, 0x84, 0x0c, 0x6a, 0x7a, 0xd6, 0x09, 0x76, 0x82, 0xbd, 0xf5, 0x47,
-	0xe1, 0x3e, 0x6d, 0xb5, 0xdf, 0x2b, 0x77, 0xe2, 0x35, 0x3d, 0x0b, 0xbf, 0x0b, 0xab, 0x4a, 0x46,
-	0x32, 0x1e, 0xeb, 0x4e, 0xad, 0x22, 0xc8, 0x0d, 0xf7, 0x13, 0xa1, 0x05, 0x77, 0x22, 0xe1, 0x36,
-	0xac, 0x5c, 0xc8, 0x78, 0x78, 0xa1, 0x3b, 0xf5, 0x9d, 0x60, 0xaf, 0xce, 0x2d, 0x15, 0x3e, 0x80,
-	0x66, 0x9c, 0x0e, 0xe4, 0xac, 0xd3, 0x20, 0xb6, 0x21, 0xc2, 0x6f, 0x42, 0x8b, 0xac, 0xd0, 0xf1,
-	0x48, 0x76, 0x9a, 0x34, 0x52, 0x32, 0x70, 0x2d, 0x31, 0x42, 0x83, 0x3a, 0x2b, 0x66, 0x2d, 0x43,
-	0x85, 0x0f, 0x61, 0xed, 0x5c, 0x65, 0x23, 0x31, 0x18, 0xa8, 0xce, 0xea, 0x4e, 0xb0, 0xd7, 0xe2,
-	0x05, 0x8d, 0x73, 0xf4, 0xec, 0x42, 0xe4, 0x17, 0x9d, 0xb5, 0x9d, 0x60, 0xaf, 0xcd, 0x2d, 0x15,
-	0xbe, 0x05, 0x60, 0x6c, 0xfa, 0x4c, 0x8c, 0x64, 0xa7, 0x45, 0xb3, 0x3c, 0x4e, 0xf8, 0x3e, 0xb4,
-	0xf2, 0xb1, 0x4c, 0x07, 0x4a, 0x46, 0xd3, 0x0e, 0xec, 0xd4, 0xf7, 0xd6, 0x1f, 0xad, 0x5b, 0x3b,
-	0x3f, 0xef, 0xfd, 0xf4, 0x15, 0x2f, 0x47, 0xd9, 0x31, 0xdc, 0xab, 0xc2, 0x98, 0x87, 0x07, 0xd0,
-	0xd2, 0x8e, 0xe8, 0x04, 0x34, 0xfb, 0x4d, 0x3b, 0xbb, 0x2a, 0xca, 0x4b, 0x39, 0x36, 0x85, 0xd0,
-	0x0c, 0x1e, 0x9a, 0x63, 0x3b, 0xd3, 0x99, 0x92, 0x61, 0x07, 0x56, 0xc7, 0x2a, 0x9e, 0x5e, 0xca,
-	0x39, 0x9d, 0x4b, 0x8b, 0x3b, 0x12, 0x21, 0x4c, 0x44, 0x5f, 0x26, 0x74, 0x0c, 0x2d, 0x6e, 0x88,
-	0x30, 0x84, 0x06, 0x01, 0x51, 0x27, 0x26, 0x7d, 0x23, 0xac, 0x08, 0xe0, 0x99, 0x16, 0xa3, 0x31,
-	0x01, 0xde, 0xe2, 0x25, 0x83, 0xfd, 0x2e, 0x80, 0x07, 0x95, 0x8d, 0xbb, 0x2a, 0x9e, 0x8a, 0x68,
-	0x8e, 0x18, 0x4d, 0x63, 0x79, 0xdd, 0x9d, 0xf4, 0xdd, 0xee, 0x6d, 0xee, 0x71, 0xc2, 0x1d, 0x58,
-	0x27, 0x4a, 0xc5, 0xd3, 0xe7, 0x72, 0x4e, 0x6a, 0xb4, 0xb9, 0xcf, 0x42, 0x09, 0xc2, 0xc9, 0x2e,
-	0x51, 0x37, 0x12, 0x1e, 0x2b, 0x64, 0xd0, 0x36, 0xa4, 0x5d, 0xa4, 0x41, 0x22, 0x15, 0x1e, 0x7b,
-	0x02, 0x6d, 0xa3, 0x5f, 0xf7, 0xfa, 0x04, 0xcf, 0x6e, 0x1b, 0x56, 0xc6, 0xf4, 0x65, 0x75, 0xb2,
-	0x14, 0x42, 0xa5, 0x44, 0x3a, 0xc8, 0xb5, 0xb2, 0x90, 0x38, 0x92, 0xfd, 0x26, 0x70, 0x4b, 0x9c,
-	0x69, 0xa1, 0x27, 0x39, 0x6e, 0x1b, 0xe7, 0x86, 0xf3, 0x22, 0x8b, 0x2e, 0x69, 0xa1, 0x35, 0x5e,
-	0xe1, 0x19, 0x99, 0xc3, 0x89, 0xce, 0x5e, 0xc6, 0x69, 0x9c, 0x0e, 0x69, 0x4d, 0x92, 0x29, 0x79,
-	0x88, 0x6c, 0x9c, 0x9f, 0x88, 0xfc, 0x4c, 0xca, 0x01, 0x99, 0xb7, 0xc6, 0x4b, 0x86, 0x59, 0xa1,
-	0x17, 0x47, 0x97, 0x76, 0x97, 0x86, 0x5b, 0xa1, 0xe4, 0xb1, 0x27, 0xee, 0x12, 0x5a, 0xf0, 0xf3,
-	0x70, 0x1f, 0x56, 0xcd, 0x95, 0x77, 0xae, 0xf3, 0xa0, 0xe2, 0x3a, 0x56, 0x8e, 0x3b, 0x21, 0xf6,
-	0x29, 0x6c, 0x54, 0x46, 0xc2, 0x1d, 0xa8, 0x8b, 0x28, 0xb2, 0xd7, 0x78, 0xd3, 0x4e, 0x76, 0xd3,
-	0x70, 0x68, 0xb9, 0xeb, 0xb0, 0x0b, 0x07, 0xd2, 0xe7, 0x29, 0x01, 0x80, 0x38, 0x8b, 0x3c, 0xbf,
-	0x1e, 0x58, 0xcf, 0xb3, 0x14, 0xe2, 0x8c, 0xde, 0x93, 0x4d, 0x4c, 0x04, 0xa8, 0x73, 0x47, 0x86,
-	0xbb, 0xb0, 0x69, 0xb4, 0x7a, 0xa5, 0x8c, 0x89, 0x16, 0x93, 0x05, 0x2e, 0x7b, 0x1b, 0xd6, 0x3f,
-	0x95, 0x29, 0x62, 0xf4, 0x42, 0xa4, 0x43, 0xf4, 0xd9, 0x44, 0xa4, 0x43, 0xda, 0xa6, 0xc9, 0xe9,
-	0x9b, 0xbd, 0x8b, 0x22, 0x1a, 0x45, 0x8e, 0xe6, 0xdd, 0xeb, 0xdb, 0x74, 0x61, 0x1f, 0x43, 0xfb,
-	0x4c, 0x4c, 0x65, 0x21, 0x17, 0x42, 0x23, 0xc7, 0xb3, 0x30, 0x52, 0xf4, 0xed, 0xcd, 0xad, 0x55,
-	0xe6, 0x7e, 0x1b, 0x5a, 0x5c, 0x8e, 0x93, 0x39, 0x9d, 0xd5, 0x92, 0x89, 0xec, 0x04, 0x42, 0x2e,
-	0xaf, 0xac, 0xe3, 0x48, 0xdd, 0x2d, 0xcc, 0xcf, 0x92, 0x01, 0x12, 0xee, 0x46, 0x5a, 0x12, 0x47,
-	0x52, 0x79, 0x4d, 0x23, 0xd6, 0x01, 0x2d, 0xc9, 0xde, 0x85, 0x0d, 0x2e, 0xaf, 0x3e, 0x93, 0xd7,
-	0xee, 0x8c, 0x8a, 0x13, 0x08, 0xfc, 0x13, 0xf8, 0x08, 0x5a, 0x2f, 0xe3, 0x54, 0xaa, 0xe3, 0x44,
-	0x10, 0x2a, 0xe7, 0x89, 0x28, 0x50, 0xc1, 0x6f, 0x72, 0x71, 0x99, 0x4b, 0x35, 0x95, 0x0e, 0x7a,
-	0x4b, 0xb2, 0x73, 0xe8, 0x14, 0xba, 0x7a, 0x21, 0xfb, 0x45, 0x9c, 0x53, 0x10, 0xc6, 0x80, 0xd8,
-	0x9b, 0xb9, 0x0b, 0x63, 0x28, 0x54, 0x82, 0xb4, 0xa1, 0xb5, 0x9a, 0xdc, 0x10, 0xe8, 0xd3, 0x83,
-	0x58, 0x49, 0x9a, 0x4e, 0xe7, 0xd7, 0xe4, 0x25, 0x83, 0x9d, 0xc0, 0x76, 0xb1, 0xcf, 0xe9, 0x68,
-	0x9c, 0x29, 0xed, 0x2e, 0xfb, 0x57, 0x8c, 0x54, 0xec, 0xf7, 0x81, 0xb7, 0xd4, 0x99, 0x4c, 0x07,
-	0xbd, 0xec, 0x70, 0x30, 0x50, 0x32, 0xcf, 0xc9, 0x74, 0x95, 0x8d, 0xdc, 0x61, 0xe0, 0x77, 0xb8,
-	0x09, 0x35, 0x9d, 0xd9, 0x15, 0x6a, 0x3a, 0xf3, 0xb2, 0x41, 0xbd, 0x92, 0x0d, 0x42, 0x68, 0xa4,
-	0x99, 0x96, 0x36, 0xce, 0xd1, 0x37, 0xaa, 0x16, 0xe7, 0xbd, 0xec, 0x52, 0xa6, 0x94, 0x55, 0xd6,
-	0xb8, 0x23, 0x31, 0x42, 0x69, 0xfc, 0x38, 0x9b, 0x8f, 0xfa, 0x59, 0x42, 0x89, 0xa5, 0xc5, 0x7d,
-	0x16, 0x7b, 0x1f, 0xee, 0xf9, 0x4e, 0x70, 0x2c, 0xfd, 0x44, 0x14, 0xf8, 0x5b, 0xb3, 0x1f, 0xc2,
-	0x7d, 0x5f, 0xf4, 0x45, 0x25, 0x20, 0x07, 0x5e, 0x40, 0x5e, 0x0e, 0xc8, 0x7b, 0xf0, 0x66, 0x31,
-	0xfd, 0xa5, 0x54, 0x43, 0x79, 0x24, 0x12, 0x91, 0x46, 0xd2, 0x9a, 0x1e, 0x38, 0xd3, 0xd9, 0x0e,
-	0xac, 0x70, 0x79, 0x75, 0xa6, 0x29, 0xbd, 0x29, 0xfa, 0x72, 0xd7, 0xc2, 0x50, 0x6c, 0x17, 0xd6,
-	0x8c, 0x6b, 0x6b, 0x85, 0xe9, 0x51, 0xe1, 0x77, 0x5e, 0x48, 0x15, 0x34, 0xfb, 0x7b, 0x40, 0x2a,
-	0x13, 0x16, 0x5d, 0x25, 0x9f, 0x2a, 0x29, 0xb4, 0x0c, 0xdf, 0x86, 0x76, 0x84, 0x5f, 0x99, 0xfa,
-	0xb9, 0xa7, 0xfa, 0xba, 0xe5, 0xe1, 0x21, 0x11, 0xca, 0x98, 0x39, 0x6b, 0x16, 0x65, 0x61, 0xf2,
-	0x73, 0x6e, 0x60, 0x34, 0xc9, 0xc7, 0x52, 0x14, 0x06, 0x53, 0xad, 0xb2, 0xc1, 0xc4, 0xf8, 0x94,
-	0x39, 0x99, 0x0a, 0x2f, 0xfc, 0x16, 0x40, 0x76, 0x9d, 0x4a, 0xbb, 0x61, 0xd3, 0xe4, 0x28, 0xe2,
-	0x1c, 0x5a, 0xc0, 0x74, 0xa6, 0x45, 0x62, 0x33, 0xbf, 0x21, 0x90, 0x3b, 0x56, 0x71, 0x24, 0x29,
-	0xeb, 0xd7, 0xb9, 0x21, 0x98, 0x82, 0x07, 0xce, 0xa4, 0xe3, 0x38, 0x8d, 0xf3, 0x0b, 0x6b, 0xd5,
-	0x77, 0x60, 0xe3, 0x9c, 0x68, 0x59, 0x31, 0xab, 0xed, 0x98, 0x87, 0xb6, 0x5e, 0xb0, 0x36, 0xd4,
-	0x2a, 0x36, 0x54, 0xf5, 0xab, 0x2f, 0xe8, 0xc7, 0xc6, 0xe5, 0x9e, 0x5c, 0x4e, 0xb3, 0x4b, 0x0f,
-	0x49, 0x45, 0x74, 0x15, 0x49, 0xcb, 0xfb, 0x77, 0x76, 0x94, 0xe4, 0x96, 0x2f, 0xb3, 0x41, 0x7c,
-	0x3e, 0x7f, 0x9a, 0xa5, 0xe7, 0xf1, 0x30, 0xdc, 0x82, 0x7a, 0x79, 0xf9, 0xf0, 0x13, 0x1d, 0x27,
-	0x1b, 0xbb, 0x3b, 0x93, 0x8d, 0x11, 0xb0, 0xa9, 0x48, 0x26, 0xd2, 0x2e, 0x67, 0x08, 0x74, 0x90,
-	0x11, 0xae, 0x13, 0x4b, 0x65, 0xcf, 0xa6, 0xa0, 0xd9, 0xaf, 0x03, 0x68, 0xa3, 0xaf, 0xc5, 0xc3,
-	0x94, 0x8b, 0xeb, 0xde, 0x6c, 0xa9, 0x3b, 0x7b, 0x37, 0xbf, 0x76, 0xe3, 0xe6, 0xeb, 0xd9, 0x89,
-	0x9c, 0xb9, 0x0d, 0x89, 0x40, 0x93, 0xe5, 0x6c, 0x1c, 0x2b, 0x77, 0x49, 0x2d, 0x55, 0x16, 0x85,
-	0x4d, 0x13, 0x8f, 0x4c, 0x51, 0x48, 0x67, 0x8f, 0x57, 0x77, 0xd5, 0xae, 0x81, 0x04, 0xdb, 0x85,
-	0x4d, 0xe3, 0xe1, 0x85, 0x66, 0xc5, 0x5e, 0x81, 0xb7, 0x17, 0xeb, 0x93, 0x5c, 0xa6, 0xf4, 0x33,
-	0xa5, 0x9e, 0x4d, 0x65, 0xaa, 0xb1, 0xac, 0xc1, 0x80, 0x32, 0xca, 0x06, 0x93, 0x44, 0x5a, 0x61,
-	0x8f, 0x83, 0x70, 0xe8, 0xcc, 0x8e, 0x1a, 0x73, 0x0a, 0x1a, 0xf7, 0x90, 0x4a, 0x65, 0xee, 0x3c,
-	0x0c, 0xc1, 0xbe, 0x01, 0xcd, 0xd3, 0x54, 0x1f, 0x3c, 0x42, 0x70, 0x06, 0x42, 0x0b, 0x17, 0xb2,
-	0xf1, 0x9b, 0xfd, 0x39, 0x00, 0xe0, 0xf2, 0xaa, 0x3b, 0xe9, 0x3f, 0xea, 0xaa, 0x98, 0x6a, 0x31,
-	0x34, 0x80, 0x6e, 0x8f, 0x3d, 0xd5, 0x82, 0xe1, 0x45, 0x96, 0xc6, 0xd2, 0xa0, 0xd6, 0xf4, 0x82,
-	0x1a, 0x3a, 0x8e, 0x4c, 0x07, 0x52, 0xd9, 0xa8, 0x65, 0x29, 0xd4, 0x71, 0x14, 0xcf, 0x62, 0x83,
-	0x57, 0x93, 0x1b, 0x02, 0xad, 0x1e, 0x53, 0xc9, 0x35, 0x16, 0xb1, 0xa2, 0x62, 0xb8, 0xc5, 0x3d,
-	0x8e, 0x77, 0x26, 0x2d, 0xb3, 0xb3, 0xa1, 0x0a, 0xf5, 0x55, 0xfc, 0x3f, 0xa9, 0xfe, 0x9f, 0x3c,
-	0xf5, 0x27, 0x7d, 0x13, 0x0b, 0x23, 0x19, 0x4f, 0xa5, 0x17, 0x0b, 0x0d, 0x5d, 0x35, 0xad, 0x76,
-	0xbb, 0x69, 0xaf, 0x4f, 0x37, 0xa5, 0x69, 0xcd, 0xe5, 0xa6, 0xad, 0xf8, 0xa6, 0x95, 0xaa, 0xaf,
-	0x56, 0x54, 0xff, 0x4b, 0x80, 0xae, 0x7b, 0x65, 0x22, 0x09, 0x36, 0x1d, 0xf9, 0x7f, 0x07, 0x7d,
-	0x53, 0x12, 0xac, 0xfa, 0x25, 0xc1, 0xd7, 0x45, 0xff, 0x67, 0x58, 0x40, 0x8d, 0x93, 0xb9, 0xed,
-	0x28, 0xba, 0x97, 0x5d, 0x94, 0xde, 0x85, 0xcd, 0xfc, 0x22, 0xbb, 0x3e, 0x9b, 0x44, 0x91, 0xcc,
-	0xf3, 0xf3, 0x49, 0x62, 0xcb, 0xef, 0x05, 0xee, 0xc2, 0xae, 0x8d, 0xc5, 0x5d, 0xd9, 0x13, 0x0a,
-	0xba, 0xb8, 0xf6, 0x91, 0x48, 0x1e, 0x63, 0x54, 0x34, 0x39, 0xfd, 0x96, 0x8c, 0x6b, 0x82, 0x48,
-	0xcd, 0x0f, 0x22, 0x3f, 0x86, 0x37, 0x7c, 0xfd, 0x5c, 0xbe, 0xdd, 0x81, 0xf5, 0x2c, 0x95, 0x58,
-	0xd4, 0xfa, 0x41, 0xdb, 0x63, 0x61, 0xc4, 0xeb, 0x1b, 0x61, 0x57, 0x87, 0x59, 0x92, 0xfd, 0xb1,
-	0x06, 0x9b, 0x76, 0xb9, 0x4f, 0x8e, 0x4c, 0x0b, 0x57, 0xf6, 0xa0, 0x41, 0xa5, 0x07, 0xfd, 0x7a,
-	0x0e, 0xf7, 0x10, 0xd6, 0xb2, 0x89, 0x3e, 0x2d, 0x9a, 0xe7, 0x26, 0x2f, 0x68, 0xcc, 0xb4, 0x7a,
-	0xd6, 0x9d, 0xf4, 0x93, 0x38, 0x7a, 0x2e, 0xe7, 0x9c, 0x4e, 0xbc, 0xcd, 0x2b, 0xbc, 0xf0, 0x03,
-	0xd8, 0xb2, 0x96, 0x14, 0x4c, 0xf2, 0x81, 0x36, 0xbf, 0xc1, 0x47, 0xd4, 0x28, 0xe3, 0xb8, 0xd0,
-	0x4b, 0x84, 0xd7, 0xd3, 0xaf, 0x55, 0x7a, 0x7a, 0xec, 0x0b, 0x66, 0x26, 0x80, 0xb7, 0x48, 0x31,
-	0x47, 0x16, 0x7d, 0x3d, 0x81, 0x00, 0xb4, 0x59, 0xc9, 0x60, 0x9f, 0x41, 0x03, 0xdd, 0xfb, 0xb6,
-	0xb2, 0x2a, 0xdc, 0x87, 0xd6, 0x44, 0xcf, 0xb2, 0x23, 0x91, 0xc7, 0x91, 0x7d, 0x73, 0xd8, 0xf2,
-	0x7a, 0x71, 0xe2, 0xf3, 0x52, 0x84, 0x8d, 0x61, 0x13, 0xf9, 0x27, 0x62, 0x2a, 0x7b, 0x33, 0xd7,
-	0x31, 0x2e, 0x5d, 0x99, 0x4e, 0x86, 0x3a, 0x49, 0x9b, 0x7b, 0x0d, 0x55, 0xdd, 0xb1, 0xfe, 0xfa,
-	0x1d, 0x3f, 0x80, 0xa6, 0xb9, 0xa0, 0x6f, 0x43, 0x13, 0xb9, 0xae, 0x73, 0xab, 0x3c, 0x19, 0x98,
-	0x11, 0xc6, 0xe1, 0x5e, 0x55, 0xbb, 0x3c, 0xfc, 0x11, 0xdc, 0xc3, 0x31, 0x8f, 0xb5, 0xf0, 0x68,
-	0x50, 0x9d, 0xc0, 0x17, 0xa5, 0xd9, 0x33, 0xb3, 0xe6, 0xa7, 0x49, 0xd6, 0x17, 0x89, 0x71, 0x85,
-	0xd2, 0xe9, 0xea, 0x15, 0xa7, 0x33, 0xee, 0x13, 0x2f, 0xb8, 0x0f, 0xd1, 0xec, 0x9c, 0xfa, 0x9d,
-	0xc5, 0x95, 0x2a, 0x6e, 0x1a, 0x2c, 0xba, 0x29, 0x16, 0x0f, 0xf1, 0xec, 0xa9, 0xd7, 0x46, 0x14,
-	0x74, 0xc5, 0x85, 0xeb, 0x5e, 0x9d, 0x9c, 0x43, 0xab, 0x80, 0x31, 0x7c, 0x62, 0x8c, 0xf7, 0x76,
-	0xb4, 0x9d, 0xeb, 0xb6, 0x67, 0xbc, 0x37, 0xca, 0x17, 0xc5, 0xc3, 0x77, 0x60, 0xa3, 0xf4, 0xdc,
-	0xcb, 0xe2, 0x25, 0xa2, 0xca, 0x64, 0x1c, 0xb6, 0x70, 0x25, 0x9a, 0xf2, 0xf8, 0x70, 0xb4, 0xa0,
-	0x60, 0xd5, 0x2f, 0x76, 0xdd, 0x31, 0xd6, 0xe8, 0x18, 0x6e, 0x9e, 0xbd, 0x3d, 0xcb, 0x5f, 0x05,
-	0x88, 0x58, 0xfe, 0x9f, 0x43, 0xec, 0x29, 0x6c, 0xe1, 0xca, 0xbe, 0x92, 0x84, 0xdd, 0xfa, 0xa3,
-	0xff, 0xf3, 0x74, 0xf0, 0x87, 0xf9, 0x8d, 0x09, 0xec, 0xb7, 0x01, 0xdc, 0x3f, 0x46, 0x77, 0x3c,
-	0xc3, 0x3f, 0xa7, 0xe9, 0xab, 0x54, 0xf6, 0x5e, 0xa7, 0x54, 0x99, 0x0f, 0x6a, 0x95, 0x7c, 0x50,
-	0x46, 0xf6, 0xba, 0x1f, 0xd9, 0x3d, 0xf7, 0x6a, 0xb8, 0x9b, 0x43, 0xee, 0x55, 0x5c, 0x80, 0xe6,
-	0xad, 0x17, 0xe0, 0x9f, 0x01, 0xc5, 0x6d, 0x93, 0xd7, 0xbc, 0x56, 0xf5, 0x35, 0x1a, 0x86, 0xd0,
-	0xc0, 0xb5, 0x2c, 0x64, 0xf4, 0xfd, 0x95, 0x92, 0xb2, 0xeb, 0x29, 0x9b, 0x37, 0x7a, 0xca, 0x95,
-	0xa2, 0xa7, 0xac, 0x66, 0x1c, 0xb8, 0x91, 0xe7, 0xcc, 0xd1, 0x99, 0x04, 0xb9, 0x5e, 0x1c, 0x5d,
-	0xe4, 0x7c, 0xc9, 0x22, 0xd5, 0xae, 0xe4, 0xc0, 0x2f, 0xb0, 0x80, 0x16, 0xc9, 0x73, 0x39, 0x3f,
-	0x4d, 0xc7, 0x13, 0x8d, 0x31, 0x5a, 0x49, 0x91, 0xc4, 0x48, 0xb8, 0x72, 0xbd, 0xc9, 0x2b, 0x3c,
-	0xcc, 0x90, 0xd6, 0x79, 0xfd, 0xba, 0xba, 0xcd, 0x17, 0xb8, 0xec, 0x31, 0x40, 0xe1, 0x93, 0x79,
-	0xe9, 0xb5, 0xc1, 0xdd, 0x5e, 0xfb, 0xb7, 0x1a, 0x6c, 0xdf, 0x40, 0xff, 0xa9, 0x88, 0x2e, 0xa4,
-	0xdf, 0x42, 0xb4, 0x4d, 0x0b, 0xf1, 0x16, 0x00, 0xf5, 0x7d, 0xb4, 0xaf, 0x4d, 0x76, 0x1e, 0x07,
-	0x21, 0xc9, 0xe3, 0x61, 0x4a, 0xa3, 0xe6, 0x10, 0x0a, 0x9a, 0x9c, 0x8a, 0xde, 0xdb, 0x6c, 0xa4,
-	0xb1, 0x54, 0xf8, 0x18, 0xd6, 0xbd, 0xf7, 0x6b, 0x3a, 0x91, 0xe5, 0xef, 0xcd, 0xbe, 0xd8, 0xad,
-	0x25, 0xcb, 0x0f, 0x0c, 0xa0, 0x97, 0x72, 0x4e, 0xf8, 0x75, 0x56, 0xc9, 0xfa, 0x37, 0x8a, 0x57,
-	0xe9, 0x12, 0x7b, 0x5e, 0x11, 0x0c, 0xdf, 0x73, 0x78, 0xad, 0xd1, 0x8c, 0xfb, 0x8b, 0x78, 0xe5,
-	0x16, 0xb0, 0xaa, 0x63, 0xb6, 0x16, 0x1c, 0x93, 0x1d, 0x99, 0x32, 0x0d, 0xf1, 0xeb, 0xcd, 0xe8,
-	0xbd, 0x65, 0x59, 0x01, 0x72, 0x67, 0xb2, 0x67, 0x1f, 0xc2, 0x16, 0x15, 0x22, 0xfe, 0x2a, 0xef,
-	0x40, 0x5d, 0xcf, 0xdc, 0x61, 0x2e, 0x43, 0x07, 0x87, 0xd9, 0x33, 0x6a, 0xe0, 0x6d, 0xc5, 0xe1,
-	0x5e, 0x97, 0x5e, 0x7b, 0x93, 0x48, 0xbd, 0x5a, 0xa9, 0x1e, 0xfb, 0x05, 0x85, 0xfe, 0xee, 0xc2,
-	0x3a, 0x5f, 0xba, 0x92, 0xc2, 0x92, 0x69, 0x10, 0xe7, 0xe3, 0x44, 0xcc, 0x47, 0xd9, 0x40, 0xda,
-	0x67, 0x23, 0x9f, 0xc5, 0x7e, 0x59, 0xad, 0xb5, 0xdc, 0x16, 0xac, 0x74, 0x5a, 0xf4, 0x82, 0xb6,
-	0x77, 0x08, 0x05, 0xfe, 0x0c, 0x9a, 0xe7, 0x36, 0x1c, 0x2f, 0x91, 0xa1, 0xa1, 0x2f, 0xa1, 0xc0,
-	0x4b, 0x54, 0xc0, 0x86, 0x1d, 0x8b, 0x33, 0xd6, 0x38, 0x77, 0x63, 0xd5, 0x81, 0x55, 0x8c, 0x6b,
-	0xe5, 0x15, 0x74, 0x24, 0xfb, 0x47, 0x00, 0xff, 0x5f, 0x22, 0xbf, 0xf8, 0xe4, 0x76, 0xf7, 0xaa,
-	0x0c, 0xda, 0xe8, 0xbc, 0x5c, 0x46, 0xd3, 0xe3, 0x44, 0x0c, 0x6d, 0x4c, 0xab, 0xf0, 0xee, 0x7e,
-	0x86, 0x2b, 0xeb, 0xf4, 0x86, 0x5f, 0xa7, 0x2f, 0x8b, 0x71, 0x1d, 0x58, 0x15, 0xe6, 0x59, 0xcd,
-	0xde, 0x1b, 0x47, 0xe2, 0xd5, 0xce, 0xa5, 0x1c, 0xd8, 0x38, 0xbe, 0x6a, 0xde, 0xf7, 0x4b, 0x0e,
-	0xfb, 0x98, 0x1c, 0x9b, 0xcb, 0x3c, 0x12, 0xe9, 0xe7, 0x04, 0xf2, 0x03, 0x68, 0xe2, 0x64, 0xe3,
-	0x94, 0x2d, 0x6e, 0x88, 0xe2, 0xa1, 0xb2, 0x56, 0x3e, 0x54, 0xb2, 0x8f, 0xe0, 0x1e, 0x97, 0x63,
-	0x33, 0x97, 0xcb, 0x7c, 0x92, 0x2c, 0x77, 0xa6, 0x65, 0x53, 0x2f, 0xa8, 0x63, 0xf7, 0xb7, 0x5d,
-	0xf6, 0x12, 0x7a, 0x04, 0x5b, 0xaa, 0xba, 0x81, 0xcb, 0xd6, 0xdb, 0xc5, 0xcd, 0xaf, 0x0c, 0xf3,
-	0x1b, 0xf2, 0x6c, 0x0f, 0x6f, 0xdd, 0xd5, 0xb3, 0x54, 0xf4, 0x13, 0xe9, 0x7e, 0xf4, 0x28, 0x4c,
-	0xac, 0x79, 0x26, 0xb2, 0x53, 0xd8, 0xe8, 0xaa, 0x18, 0x5b, 0x8c, 0xbb, 0x8d, 0x39, 0xcd, 0x5f,
-	0x3d, 0xb7, 0x3f, 0x14, 0xd0, 0x37, 0x06, 0xd4, 0x51, 0x3e, 0xb4, 0xbd, 0x1a, 0x7e, 0xb2, 0x23,
-	0xba, 0xea, 0xd5, 0x4d, 0xf7, 0xe9, 0x59, 0x97, 0x6c, 0xa8, 0x3e, 0xf9, 0x57, 0x36, 0xe5, 0x4e,
-	0x88, 0xfd, 0x21, 0x80, 0x37, 0xed, 0xdc, 0xb3, 0x78, 0x98, 0x0a, 0x3d, 0x51, 0xb2, 0x2b, 0x94,
-	0x18, 0x95, 0xbf, 0x6b, 0xf5, 0x30, 0x57, 0x1a, 0xc0, 0x3c, 0x4e, 0xf8, 0x7d, 0x00, 0xbc, 0x53,
-	0x7d, 0x8a, 0x6f, 0x16, 0xb0, 0x25, 0x81, 0xcf, 0x13, 0x0a, 0x3f, 0x82, 0x0d, 0xe5, 0x05, 0xd1,
-	0xdc, 0x16, 0x24, 0x4b, 0x03, 0x6c, 0x55, 0x92, 0x7d, 0x48, 0x1e, 0x64, 0xaf, 0x3a, 0xdd, 0x8b,
-	0x5d, 0xd8, 0xbc, 0x8e, 0xf5, 0x45, 0x36, 0xd1, 0xb6, 0xd9, 0x72, 0xbd, 0x5f, 0x95, 0x7b, 0xf4,
-	0xce, 0x17, 0x6c, 0x18, 0xeb, 0x44, 0xf4, 0xf7, 0x0f, 0x0e, 0xf6, 0xa3, 0xf4, 0x7b, 0xf4, 0xbb,
-	0xe6, 0xc1, 0x41, 0xf1, 0x9f, 0xf6, 0xee, 0xaf, 0xd0, 0x2f, 0x99, 0x07, 0xff, 0x0a, 0x00, 0x00,
-	0xff, 0xff, 0x88, 0x79, 0x25, 0xd6, 0x24, 0x1d, 0x00, 0x00,
+	// 1269 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0xdd, 0x6e, 0x1b, 0x37,
+	0x13, 0xc5, 0x4a, 0x96, 0x6d, 0xd1, 0xb2, 0x93, 0x10, 0x49, 0xb0, 0xf0, 0xf7, 0x35, 0x55, 0xd8,
+	0x26, 0x75, 0x81, 0xc2, 0x05, 0xa2, 0x9b, 0xa2, 0x40, 0x81, 0x38, 0xbf, 0x0e, 0xe0, 0xa4, 0x06,
+	0xa5, 0xa2, 0x40, 0x6f, 0x0a, 0x6a, 0x97, 0x96, 0x08, 0xad, 0x96, 0x6b, 0x2e, 0xf5, 0xf7, 0x22,
+	0x45, 0x1f, 0xa0, 0x8f, 0xd0, 0x17, 0xe9, 0x7b, 0xf4, 0x21, 0x8a, 0x19, 0x92, 0xab, 0x5d, 0xc7,
+	0xbd, 0x08, 0x7a, 0xb5, 0x3c, 0xb3, 0xc3, 0x19, 0xce, 0x19, 0xf2, 0x90, 0xa4, 0xb7, 0x12, 0x59,
+	0x26, 0xed, 0x69, 0x61, 0xb4, 0xd5, 0xb4, 0x63, 0x37, 0x85, 0x2c, 0x8f, 0xef, 0x59, 0x23, 0xf2,
+	0x52, 0x24, 0x56, 0xe9, 0xdc, 0xfd, 0x39, 0xbe, 0x3b, 0xce, 0x74, 0x32, 0x4b, 0xa6, 0x42, 0x05,
+	0xcb, 0xa1, 0x48, 0x12, 0xbd, 0xc8, 0xfd, 0xd4, 0xe3, 0x23, 0xb9, 0x96, 0xc9, 0xc2, 0x6a, 0xe3,
+	0x30, 0xfb, 0xb3, 0x45, 0x8e, 0x7e, 0xc6, 0xd8, 0xa3, 0xf5, 0x2b, 0x69, 0x85, 0xca, 0x28, 0x23,
+	0x2d, 0xbb, 0x8e, 0xa3, 0x7e, 0x74, 0x72, 0xf0, 0x8c, 0x9e, 0x62, 0xaa, 0xd3, 0xd1, 0x36, 0x13,
+	0x6f, 0xd9, 0x35, 0xfd, 0x86, 0xec, 0x19, 0x99, 0x48, 0x55, 0xd8, 0xb8, 0xd5, 0x70, 0xe4, 0xce,
+	0xfa, 0x4a, 0x58, 0xc1, 0x83, 0x0b, 0x7d, 0x48, 0x76, 0xa7, 0x52, 0x4d, 0xa6, 0x36, 0x6e, 0xf7,
+	0xa3, 0x93, 0x36, 0xf7, 0x88, 0xde, 0x27, 0x1d, 0x95, 0xa7, 0x72, 0x1d, 0xef, 0xa0, 0xd9, 0x01,
+	0xfa, 0x7f, 0xd2, 0xc5, 0x2a, 0xac, 0x9a, 0xcb, 0xb8, 0x83, 0x7f, 0xb6, 0x06, 0x88, 0x25, 0xe6,
+	0x50, 0x50, 0xbc, 0xeb, 0x62, 0x39, 0x44, 0x8f, 0xc9, 0xfe, 0x95, 0xd1, 0x73, 0x91, 0xa6, 0x26,
+	0xde, 0xeb, 0x47, 0x27, 0x5d, 0x5e, 0x61, 0x98, 0x63, 0xd7, 0x53, 0x51, 0x4e, 0xe3, 0xfd, 0x7e,
+	0x74, 0xd2, 0xe3, 0x1e, 0xd1, 0x47, 0x84, 0xb8, 0x9a, 0x3e, 0x88, 0xb9, 0x8c, 0xbb, 0x38, 0xab,
+	0x66, 0xa1, 0x31, 0xd9, 0x2b, 0xc4, 0x26, 0xd3, 0x22, 0x8d, 0x09, 0x4e, 0x0c, 0x90, 0xbd, 0x21,
+	0x77, 0x9a, 0xac, 0x95, 0x74, 0x40, 0xba, 0x36, 0x80, 0x38, 0xea, 0xb7, 0x4f, 0x0e, 0x9e, 0x3d,
+	0xf0, 0xa4, 0x34, 0x5d, 0xf9, 0xd6, 0x8f, 0x2d, 0x09, 0x75, 0x3f, 0xcf, 0x5c, 0x97, 0x86, 0x56,
+	0x1b, 0x97, 0xd7, 0xa8, 0xe5, 0x4c, 0x6e, 0xb0, 0x0d, 0x5d, 0x1e, 0x20, 0x30, 0x96, 0x89, 0xb1,
+	0xcc, 0x90, 0xf5, 0x2e, 0x77, 0x80, 0x52, 0xb2, 0x83, 0x75, 0xb7, 0xd1, 0x88, 0x63, 0x60, 0x11,
+	0xf8, 0x1a, 0x5a, 0x31, 0x2f, 0x90, 0xdf, 0x2e, 0xdf, 0x1a, 0xd8, 0x73, 0xd2, 0x73, 0x79, 0x2f,
+	0x57, 0xe7, 0xc0, 0xc4, 0x43, 0xb2, 0x5b, 0xe0, 0x08, 0x13, 0xf6, 0xb8, 0x47, 0xb0, 0x12, 0x23,
+	0xf2, 0xb4, 0xb4, 0xc6, 0x67, 0x0c, 0x90, 0xfd, 0x1e, 0x85, 0x10, 0x43, 0x2b, 0xec, 0xa2, 0xa4,
+	0x8c, 0xf4, 0x54, 0xe9, 0x2c, 0x17, 0x3a, 0x99, 0x61, 0xa0, 0x7d, 0xde, 0xb0, 0x39, 0x9f, 0xb3,
+	0x85, 0xd5, 0xef, 0x55, 0xae, 0xf2, 0x09, 0xc6, 0x44, 0x9f, 0xad, 0x0d, 0x16, 0xae, 0xca, 0x73,
+	0x51, 0x0e, 0xa5, 0x4c, 0xb1, 0xa2, 0x7d, 0xbe, 0x35, 0xb8, 0x08, 0x23, 0x95, 0xcc, 0x7c, 0x96,
+	0x9d, 0x10, 0x61, 0x6b, 0x63, 0xcf, 0xc3, 0x96, 0xf6, 0xa4, 0x96, 0xf4, 0x94, 0xec, 0xb9, 0x03,
+	0x14, 0x3a, 0x73, 0xbf, 0xd1, 0x19, 0xef, 0xc7, 0x83, 0x13, 0x7b, 0x4b, 0x0e, 0x1b, 0x7f, 0x68,
+	0x9f, 0xb4, 0x45, 0x92, 0xf8, 0x43, 0x71, 0xe4, 0x27, 0x87, 0x69, 0xf0, 0xeb, 0xf6, 0xce, 0xb0,
+	0x69, 0x20, 0xe9, 0xa7, 0x1c, 0x09, 0x00, 0x9e, 0x45, 0x59, 0xae, 0x52, 0xdf, 0x58, 0x8f, 0x80,
+	0x67, 0x68, 0x8e, 0x5e, 0xb8, 0xf3, 0xd4, 0xe6, 0x01, 0xd2, 0xa7, 0xe4, 0xc8, 0xad, 0xea, 0x47,
+	0xe3, 0x4a, 0xf4, 0x9c, 0xdc, 0xb0, 0xb2, 0xc7, 0xe4, 0xe0, 0xad, 0xcc, 0x81, 0xa3, 0x0b, 0x91,
+	0x4f, 0x60, 0x4b, 0x64, 0x22, 0x9f, 0x60, 0x9a, 0x0e, 0xc7, 0x31, 0x7b, 0x02, 0x2e, 0x16, 0x5c,
+	0x5e, 0x6c, 0x2e, 0x57, 0xff, 0xb6, 0x16, 0xf6, 0x3d, 0xe9, 0x0d, 0xc5, 0x52, 0x56, 0x7e, 0x94,
+	0xec, 0x94, 0xd0, 0x0b, 0xe7, 0x85, 0xe3, 0xda, 0xdc, 0x56, 0x63, 0xee, 0xe7, 0xa4, 0xcb, 0x65,
+	0x91, 0x6d, 0xb0, 0x57, 0xb7, 0x4c, 0x64, 0xe7, 0x84, 0x72, 0x79, 0xed, 0x37, 0x8e, 0xb4, 0x97,
+	0x55, 0xf9, 0x3a, 0x4b, 0x01, 0x84, 0x0d, 0xef, 0x21, 0xfc, 0xc9, 0xe5, 0x0a, 0xff, 0xf8, 0x0d,
+	0xe8, 0x21, 0x7b, 0x42, 0x0e, 0xb9, 0xbc, 0xfe, 0x20, 0x57, 0xa1, 0x47, 0x55, 0x07, 0xa2, 0x7a,
+	0x07, 0xae, 0x48, 0x5c, 0x25, 0xac, 0xa9, 0xd8, 0x85, 0x2a, 0x51, 0x97, 0x40, 0x23, 0x46, 0xeb,
+	0xb0, 0xeb, 0x1d, 0x82, 0x48, 0x18, 0x12, 0x53, 0x76, 0xb8, 0x03, 0xb0, 0x31, 0x53, 0x65, 0x24,
+	0x4e, 0xc7, 0x26, 0x74, 0xf8, 0xd6, 0xc0, 0xce, 0xc9, 0xc3, 0x2a, 0xcf, 0xbb, 0x79, 0xa1, 0x8d,
+	0xbd, 0xf4, 0x67, 0xf6, 0x13, 0x4f, 0x33, 0xfb, 0x23, 0xaa, 0x85, 0x1a, 0xca, 0x3c, 0x1d, 0xe9,
+	0xb3, 0x34, 0x35, 0xb2, 0x2c, 0x81, 0x51, 0x58, 0x62, 0x60, 0x14, 0xc6, 0xf4, 0x88, 0xb4, 0xac,
+	0xf6, 0x11, 0x5a, 0x56, 0xd7, 0x04, 0xb2, 0xdd, 0x10, 0x48, 0x4a, 0x76, 0x72, 0x6d, 0xa5, 0xd7,
+	0x02, 0x1c, 0xc3, 0xd2, 0x54, 0x39, 0xd2, 0x33, 0x99, 0xa3, 0xd0, 0xee, 0xf3, 0x00, 0x69, 0x9f,
+	0x1c, 0x58, 0x18, 0x0c, 0x37, 0xf3, 0xb1, 0xce, 0x50, 0x6b, 0xbb, 0xbc, 0x6e, 0x62, 0x5f, 0x93,
+	0x3b, 0xf5, 0x4e, 0xbe, 0x91, 0x75, 0x6d, 0x8e, 0xea, 0xa9, 0xd9, 0x0f, 0xe4, 0x5e, 0xdd, 0xf5,
+	0xa2, 0x21, 0x5a, 0x51, 0x4d, 0xb4, 0x6e, 0x27, 0xe4, 0x2b, 0xf2, 0xa0, 0x9a, 0xfe, 0x5e, 0x9a,
+	0x89, 0x7c, 0x21, 0x32, 0x91, 0x27, 0xd2, 0x97, 0x1e, 0x85, 0xd2, 0xd9, 0x5f, 0x11, 0x26, 0xc2,
+	0x0a, 0x2e, 0x8d, 0x7c, 0x69, 0xa4, 0xb0, 0x92, 0x3e, 0x26, 0xbd, 0x04, 0x46, 0xda, 0xfc, 0x5a,
+	0x4b, 0x78, 0xe0, 0x6d, 0x40, 0x2d, 0x72, 0x03, 0x57, 0x40, 0xcb, 0x73, 0x23, 0xdc, 0x45, 0x53,
+	0xba, 0xe2, 0x9d, 0xac, 0x7a, 0x84, 0x0a, 0x94, 0x5b, 0xa3, 0xd3, 0x85, 0xdb, 0x09, 0x8e, 0xcf,
+	0x86, 0x8d, 0x7e, 0x46, 0x88, 0x5e, 0xe5, 0xd2, 0x27, 0xec, 0x38, 0xf5, 0x45, 0xcb, 0x99, 0x2f,
+	0xd3, 0x6a, 0x2b, 0x32, 0x7f, 0x85, 0x39, 0x00, 0xd6, 0xc2, 0xa8, 0x44, 0xe2, 0xf5, 0xd5, 0xe6,
+	0x0e, 0x30, 0x43, 0xee, 0x87, 0x92, 0xde, 0xa8, 0x5c, 0x95, 0x53, 0x5f, 0xd5, 0x17, 0xe4, 0xf0,
+	0x0a, 0xb1, 0x6c, 0x94, 0xd5, 0x0b, 0xc6, 0x33, 0x7f, 0xf1, 0xf9, 0x1a, 0x5a, 0x8d, 0x1a, 0x9a,
+	0xeb, 0x6b, 0xdf, 0x58, 0x1f, 0x2b, 0xb6, 0x39, 0xb9, 0x5c, 0xea, 0x59, 0x8d, 0x49, 0x83, 0xb8,
+	0xc9, 0xa4, 0xb7, 0xfd, 0x97, 0x8c, 0x12, 0x37, 0xd3, 0x7b, 0x9d, 0xaa, 0xab, 0xcd, 0x4b, 0x9d,
+	0x5f, 0xa9, 0x09, 0xbd, 0x4b, 0xda, 0xdb, 0x23, 0x03, 0x43, 0x68, 0xb7, 0x2e, 0xc2, 0x4e, 0xd7,
+	0x05, 0x10, 0xb6, 0x14, 0xd9, 0x42, 0xfa, 0x70, 0x0e, 0xc0, 0x43, 0x60, 0x0e, 0x71, 0x94, 0x34,
+	0xbe, 0x37, 0x15, 0x66, 0xbf, 0x45, 0xa4, 0xc7, 0xe5, 0xf5, 0x50, 0x4d, 0x72, 0x2e, 0x56, 0xa3,
+	0xf5, 0xad, 0x9b, 0xb0, 0x76, 0x5e, 0x5b, 0x1f, 0x9d, 0x57, 0xbb, 0x3e, 0x97, 0xeb, 0x90, 0x10,
+	0x01, 0x94, 0x2c, 0xd7, 0x85, 0x32, 0xe1, 0x68, 0x79, 0xb4, 0x7d, 0xdd, 0x74, 0x9c, 0x8a, 0xb8,
+	0xd7, 0x0d, 0xf6, 0x1e, 0x0e, 0xdc, 0x9e, 0x8f, 0x01, 0x80, 0x3d, 0x25, 0x47, 0x4e, 0x37, 0xab,
+	0x95, 0x55, 0xb9, 0xa2, 0x5a, 0x2e, 0x36, 0x46, 0x3f, 0x6d, 0xec, 0x6b, 0x63, 0x5e, 0x2f, 0x65,
+	0x6e, 0xe1, 0x0d, 0x03, 0x32, 0x30, 0xd7, 0xe9, 0x22, 0x93, 0xde, 0xb9, 0x66, 0x01, 0x3a, 0xac,
+	0xf6, 0x7f, 0x5d, 0x39, 0x15, 0x86, 0x1c, 0xd2, 0x18, 0x1d, 0xfa, 0xe1, 0x00, 0xfb, 0x1f, 0xe9,
+	0xbc, 0xcb, 0xed, 0xe0, 0x19, 0x90, 0x93, 0x0a, 0x2b, 0xc2, 0x1d, 0x02, 0x63, 0xf6, 0x77, 0x84,
+	0x7b, 0xc3, 0x6d, 0x88, 0x9a, 0x9e, 0xe2, 0x7b, 0x03, 0x4a, 0xc1, 0x73, 0x14, 0xf9, 0xf7, 0x46,
+	0x30, 0x40, 0x28, 0xb8, 0x33, 0xbd, 0xa0, 0xe2, 0xf8, 0x93, 0x84, 0x2a, 0x08, 0x5f, 0xe7, 0x23,
+	0xe1, 0xdb, 0xad, 0x84, 0xef, 0x11, 0x21, 0xc5, 0x62, 0x3c, 0x93, 0x9b, 0x42, 0x28, 0x83, 0x0f,
+	0xb6, 0x2e, 0xaf, 0x59, 0x70, 0x63, 0xa8, 0xb5, 0x13, 0xf6, 0x03, 0x5c, 0x47, 0x85, 0x6b, 0x3d,
+	0xec, 0xb9, 0xb5, 0x38, 0xc4, 0xbe, 0x03, 0xbe, 0xaf, 0xfd, 0x0d, 0x83, 0x77, 0x06, 0xdc, 0xc7,
+	0xca, 0x4e, 0xf5, 0xc2, 0x7a, 0x15, 0xf2, 0x0f, 0x9d, 0x1b, 0xd6, 0x17, 0x5f, 0xfe, 0xc2, 0x26,
+	0xca, 0x66, 0x62, 0x7c, 0x3a, 0x18, 0x9c, 0x26, 0xf9, 0xb7, 0xf8, 0x26, 0x1f, 0x0c, 0xaa, 0x2f,
+	0x3e, 0x21, 0xc6, 0xbb, 0xf8, 0x0a, 0x1f, 0xfc, 0x13, 0x00, 0x00, 0xff, 0xff, 0x83, 0xc0, 0x0c,
+	0x7d, 0xe0, 0x0b, 0x00, 0x00,
 }

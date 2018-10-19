@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/rpc"
 
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -106,9 +107,9 @@ func (j *Grpcserver) Close() {
 
 }
 
-func NewGRpcServer(c queue.Client) *Grpcserver {
+func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 	s := &Grpcserver{}
-	s.grpc.cli.Init(c)
+	s.grpc.cli.Init(c, api)
 	var opts []grpc.ServerOption
 	//register interceptor
 	//var interceptor grpc.UnaryServerInterceptor
@@ -126,9 +127,9 @@ func NewGRpcServer(c queue.Client) *Grpcserver {
 	return s
 }
 
-func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
+func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServer {
 	j := &JSONRPCServer{}
-	j.jrpc.cli.Init(c)
+	j.jrpc.cli.Init(c, api)
 	server := rpc.NewServer()
 	j.s = server
 	server.RegisterName("Chain33", &j.jrpc)
@@ -140,6 +141,7 @@ type RPC struct {
 	gapi *Grpcserver
 	japi *JSONRPCServer
 	c    queue.Client
+	api  client.QueueProtocolAPI
 }
 
 func InitCfg(cfg *types.Rpc) {
@@ -156,9 +158,13 @@ func New(cfg *types.Rpc) *RPC {
 	return &RPC{cfg: cfg}
 }
 
+func (r *RPC) SetAPI(api client.QueueProtocolAPI) {
+	r.api = api
+}
+
 func (r *RPC) SetQueueClient(c queue.Client) {
-	gapi := NewGRpcServer(c)
-	japi := NewJSONRPCServer(c)
+	gapi := NewGRpcServer(c, r.api)
+	japi := NewJSONRPCServer(c, r.api)
 	r.gapi = gapi
 	r.japi = japi
 	r.c = c
@@ -166,6 +172,21 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 	pluginmgr.AddRPC(r)
 	go gapi.Listen()
 	go japi.Listen()
+}
+
+func (r *RPC) SetQueueClientNoListen(c queue.Client) {
+	gapi := NewGRpcServer(c, r.api)
+	japi := NewJSONRPCServer(c, r.api)
+	r.gapi = gapi
+	r.japi = japi
+	r.c = c
+	//注册系统rpc
+	pluginmgr.AddRPC(r)
+}
+
+func (rpc *RPC) Listen() {
+	go rpc.gapi.Listen()
+	go rpc.japi.Listen()
 }
 
 func (rpc *RPC) GetQueueClient() queue.Client {
@@ -212,6 +233,7 @@ func InitIpWhitelist(cfg *types.Rpc) {
 	}
 
 }
+
 func InitJrpcFuncWhitelist(cfg *types.Rpc) {
 	if len(cfg.GetJrpcFuncWhitelist()) == 0 {
 		jrpcFuncWhitelist["*"] = true
@@ -225,6 +247,7 @@ func InitJrpcFuncWhitelist(cfg *types.Rpc) {
 		jrpcFuncWhitelist[funcName] = true
 	}
 }
+
 func InitGrpcFuncWhitelist(cfg *types.Rpc) {
 	if len(cfg.GetGrpcFuncWhitelist()) == 0 {
 		grpcFuncWhitelist["*"] = true
@@ -238,6 +261,7 @@ func InitGrpcFuncWhitelist(cfg *types.Rpc) {
 		grpcFuncWhitelist[funcName] = true
 	}
 }
+
 func InitJrpcFuncBlacklist(cfg *types.Rpc) {
 	if len(cfg.GetJrpcFuncBlacklist()) == 0 {
 		jrpcFuncBlacklist["CloseQueue"] = true
@@ -248,6 +272,7 @@ func InitJrpcFuncBlacklist(cfg *types.Rpc) {
 	}
 
 }
+
 func InitGrpcFuncBlacklist(cfg *types.Rpc) {
 	if len(cfg.GetGrpcFuncBlacklist()) == 0 {
 		grpcFuncBlacklist["CloseQueue"] = true

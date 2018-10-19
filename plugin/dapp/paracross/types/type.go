@@ -95,7 +95,7 @@ func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			glog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawParacrossCommitTx(&param)
@@ -113,7 +113,7 @@ func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			glog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawTransferTx(&param)
 
