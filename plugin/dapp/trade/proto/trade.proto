@@ -53,7 +53,7 @@ message TradeForBuyLimit {
     int64  minBoardlot       = 3;
     int64  pricePerBoardlot  = 4;
     int64  totalBoardlot     = 5;
-     string assetExec = 6;
+    string assetExec         = 6;
 }
 
 // 现价卖单
@@ -83,9 +83,9 @@ message SellOrder {
     int64 stoptime  = 9;
     bool  crowdfund = 10;
     //此处使用tx的hash来指定
-    string sellID = 11;
-    int32  status = 12;
-    int64  height = 13;
+    string sellID    = 11;
+    int32  status    = 12;
+    int64  height    = 13;
     string assetExec = 14;
 }
 
@@ -101,10 +101,8 @@ message BuyLimitOrder {
     string buyID             = 8;
     int32  status            = 9;
     int64  height            = 10;
-    string assetExec = 11;
+    string assetExec         = 11;
 }
-
-
 
 // 执行器日志部分
 message ReceiptBuyBase {
@@ -141,9 +139,9 @@ message ReceiptSellBase {
     string sellID = 11;
     string status = 12;
     // buyid
-    string buyID  = 13;
-    string txHash = 14;
-    int64  height = 15;
+    string buyID     = 13;
+    string txHash    = 14;
+    int64  height    = 15;
     string assetExec = 16;
 }
 
@@ -174,8 +172,8 @@ message ReceiptTradeSellRevoke {
 // 查询部分
 
 message ReqAddrAssets {
-    string   addr             = 1;
-    int32    status           = 2;
+    string addr   = 1;
+    int32  status = 2;
     // ??
     repeated string token     = 3;
     int32           direction = 4;
@@ -217,7 +215,7 @@ message ReplyBuyOrder {
     string txHash            = 11;
     int64  height            = 12;
     string key               = 13;
-    string assetExec = 14;
+    string assetExec         = 14;
 }
 
 message ReplySellOrder {
@@ -234,7 +232,7 @@ message ReplySellOrder {
     string txHash            = 11;
     int64  height            = 12;
     string key               = 13;
-    string assetExec = 14;
+    string assetExec         = 14;
 }
 
 message ReplySellOrders {
@@ -261,7 +259,7 @@ message ReplyTradeOrder {
     string key               = 13;
     int64  blockTime         = 14;
     bool   isSellOrder       = 15;
-    string assetExec = 16;
+    string assetExec         = 16;
 }
 
 message ReplyTradeOrders {

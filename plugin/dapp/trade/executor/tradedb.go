@@ -230,9 +230,9 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt in
 }
 
 type envBlock struct {
-	height int64
-	blockTime int64
-	index int
+	height     int64
+	blockTime  int64
+	index      int
 	difficulty uint64
 }
 
