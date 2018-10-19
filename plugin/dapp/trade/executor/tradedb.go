@@ -229,6 +229,13 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt in
 	return log
 }
 
+type envBlock struct {
+	height int64
+	blockTime int64
+	index int
+	difficulty uint64
+}
+
 type tradeAction struct {
 	coinsAccount *account.DB
 	db           dbm.KV
@@ -425,9 +432,15 @@ func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Rece
 	if buy.TotalBoardlot < 0 || buy.PricePerBoardlot < 0 || buy.MinBoardlot < 0 || buy.AmountPerBoardlot < 0 {
 		return nil, types.ErrInputPara
 	}
-	// check token exist
-	if !checkTokenExist(buy.TokenSymbol, action.db) {
-		return nil, types.ErrTokenNotExist
+
+	// 这个检查会比较鸡肋, 按目前的想法的能支持更多的资产， 各种资产检查不一样
+	// 可以先让订单成功, 如果不合适, 自己撤单也行
+	// 或后续跨合约注册一个检测的函数
+	if buy.AssetExec == "" || buy.AssetExec == defaultAssetExec {
+		// check token exist
+		if !checkTokenExist(buy.TokenSymbol, action.db) {
+			return nil, types.ErrTokenNotExist
+		}
 	}
 
 	if !checkAsset(action.height, buy.AssetExec, buy.TokenSymbol) {
