@@ -1,10 +1,10 @@
 package executor
 
 import (
-	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/db"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 /*
@@ -20,7 +20,7 @@ import (
      exec = "paracross"  symbol = "token.TEST"
      exec = "token"      symbol = "token.TEST"
 
-  */
+*/
 
 // return exec, symbol
 func getExecSymbol(order *pt.SellOrder) (string, string) {
@@ -29,7 +29,6 @@ func getExecSymbol(order *pt.SellOrder) (string, string) {
 	}
 	return order.AssetExec, order.TokenSymbol
 }
-
 
 func checkAsset(height int64, exec, symbol string) bool {
 	if types.IsMatchFork(height, ForkSupportMorkAsset) {
