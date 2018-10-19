@@ -46,7 +46,7 @@ const (
 )
 
 const (
-	ParacrossActionAssetTransfer  = iota + ParaCrossTransferActionTypeStart
+	ParacrossActionAssetTransfer = iota + ParaCrossTransferActionTypeStart
 	ParacrossActionAssetWithdraw
 )
 
@@ -57,13 +57,13 @@ const (
 )
 
 var (
-	ParacrossActionCommitStr        = string("Commit")
-	ParacrossTransferPerfix         = "crossPara."
-	ParacrossActionAssetTransferStr = ParacrossTransferPerfix + string("AssetTransfer")
-	ParacrossActionAssetWithdrawStr = ParacrossTransferPerfix + string("AssetWithdraw")
-	ParacrossActionTransferStr = ParacrossTransferPerfix + string("Transfer")
+	ParacrossActionCommitStr         = string("Commit")
+	ParacrossTransferPerfix          = "crossPara."
+	ParacrossActionAssetTransferStr  = ParacrossTransferPerfix + string("AssetTransfer")
+	ParacrossActionAssetWithdrawStr  = ParacrossTransferPerfix + string("AssetWithdraw")
+	ParacrossActionTransferStr       = ParacrossTransferPerfix + string("Transfer")
 	ParacrossActionTransferToExecStr = ParacrossTransferPerfix + string("TransferToExec")
-	ParacrossActionWithdrawStr = ParacrossTransferPerfix + string("Withdraw")
+	ParacrossActionWithdrawStr       = ParacrossTransferPerfix + string("Withdraw")
 )
 
 func CalcMinerHeightKey(title string, height int64) []byte {

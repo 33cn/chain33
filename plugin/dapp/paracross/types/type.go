@@ -13,15 +13,15 @@ var (
 	glog  = log.New("module", types.ParaX)
 
 	/*
-	logInfo = map[int64]*types.LogInfo{
-		TyLogParacrossCommit:  {reflect.TypeOf(ReceiptParacrossCommit{}), "LogParacrossCommit"},
-		TyLogParacrossCommitDone:  {reflect.TypeOf(ReceiptParacrossDone{}), "LogParacrossDone"},
-		TyLogParacrossCommitRecord: {reflect.TypeOf(ReceiptParacrossRecord{}), "LogParacrossCommitRecord"},
-		TyLogParaAssetTransfer: {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetTransfer"},
-		TyLogParaAssetWithdraw:   {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetWithdraw"},
-		TyLogParacrossMiner:  {reflect.TypeOf(ReceiptParacrossMiner{}), "LogParacrossMiner"},
-		TyLogParaAssetDeposit: {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetDeposit"},
-	}*/
+		logInfo = map[int64]*types.LogInfo{
+			TyLogParacrossCommit:  {reflect.TypeOf(ReceiptParacrossCommit{}), "LogParacrossCommit"},
+			TyLogParacrossCommitDone:  {reflect.TypeOf(ReceiptParacrossDone{}), "LogParacrossDone"},
+			TyLogParacrossCommitRecord: {reflect.TypeOf(ReceiptParacrossRecord{}), "LogParacrossCommitRecord"},
+			TyLogParaAssetTransfer: {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetTransfer"},
+			TyLogParaAssetWithdraw:   {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetWithdraw"},
+			TyLogParacrossMiner:  {reflect.TypeOf(ReceiptParacrossMiner{}), "LogParacrossMiner"},
+			TyLogParaAssetDeposit: {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetDeposit"},
+		}*/
 
 	// init query rpc
 	/* TODO-TODO
@@ -31,7 +31,6 @@ var (
 	types.RegisterRPCQueryHandle("ParacrossGetAssetTxResult", &ParacrossGetAssetTxResult{})
 	*/
 )
-
 
 func init() {
 	// init executor type
@@ -67,13 +66,13 @@ func (at *ParacrossType) GetLogMap() map[int64]*types.LogInfo {
 
 func (t *ParacrossType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
-		"Commit":        ParacrossActionCommit,
-		"Miner":         ParacrossActionMiner,
-		"AssetTransfer": ParacrossActionAssetTransfer,
-		"AssetWithdraw": ParacrossActionAssetWithdraw,
-		"Transfer": ParacrossActionTransfer,
-		"Withdraw" : ParacrossActionWithdraw,
-		"TransferToExec" : ParacrossActionTransferToExec,
+		"Commit":         ParacrossActionCommit,
+		"Miner":          ParacrossActionMiner,
+		"AssetTransfer":  ParacrossActionAssetTransfer,
+		"AssetWithdraw":  ParacrossActionAssetWithdraw,
+		"Transfer":       ParacrossActionTransfer,
+		"Withdraw":       ParacrossActionWithdraw,
+		"TransferToExec": ParacrossActionTransferToExec,
 	}
 }
 
@@ -294,4 +293,3 @@ func (t *ParacrossGetAssetTxResult) JsonToProto(message json.RawMessage) ([]byte
 func (t *ParacrossGetAssetTxResult) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
-

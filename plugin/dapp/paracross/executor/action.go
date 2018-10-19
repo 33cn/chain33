@@ -522,7 +522,7 @@ func (a *action) TransferToExec(transfer *types.AssetsTransferToExec, tx *types.
 		return nil, err
 	}
 	//to 是 execs 合约地址
-	if dapp.IsDriverAddress(tx.GetRealToAddr(), a.height) ||  dapp.ExecAddress(transfer.ExecName)== tx.GetRealToAddr()  {
+	if dapp.IsDriverAddress(tx.GetRealToAddr(), a.height) || dapp.ExecAddress(transfer.ExecName) == tx.GetRealToAddr() {
 		return acc.TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
 	}
 	return nil, types.ErrActionNotSupport
