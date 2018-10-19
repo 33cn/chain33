@@ -131,6 +131,7 @@ func (mock *Chain33Mock) Close() {
 	mock.wallet.Close()
 	mock.network.Close()
 	mock.client.Close()
+	mock.rpc.Close()
 }
 
 func (mock *Chain33Mock) WaitHeight(height int64) error {
