@@ -2,11 +2,12 @@ package tasks
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/util"
-	"regexp"
-	"strings"
 )
 
 type actionInfoItem struct {
