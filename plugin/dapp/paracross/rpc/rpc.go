@@ -43,7 +43,7 @@ func (c *Jrpc) ListTitles(req *types.ReqNil, result *interface{}) error {
 }
 
 func (c *channelClient) GetTitleHeight(req *pt.ReqParacrossTitleHeight) (*pt.RespParacrossTitles, error) {
-	data, err := c.Query(pt.GetExecName(),"GetTitleHeight", req)
+	data, err := c.Query(pt.GetExecName(), "GetTitleHeight", req)
 	if err != nil {
 		return nil, err
 	}
