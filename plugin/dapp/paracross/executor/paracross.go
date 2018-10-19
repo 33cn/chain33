@@ -40,8 +40,6 @@ func (c *Paracross) GetDriverName() string {
 	return types.ParaX
 }
 
-
-
 func (c *Paracross) checkTxGroup(tx *types.Transaction, index int) ([]*types.Transaction, error) {
 	if tx.GroupCount >= 2 {
 		txs, err := c.GetTxGroup(index)

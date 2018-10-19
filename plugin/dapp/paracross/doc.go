@@ -1,5 +1,5 @@
 /*
-Package paracross 实现了跨链合约. 
+Package paracross 实现了跨链合约.
 
 合约功能如下
  1. 跨链共识
@@ -23,7 +23,7 @@ Package paracross 实现了跨链合约.
 帐号模型举例: (参数国盾平行链: user.p.guodun ， token的symbol: TEST)
  1. mavl-token-symbol{TEST}-addr{userA}
     * 用户A 的 token TEST 帐号
- 1. mavl-token-symbol{TEST}-addr{paracross}:addr{userA} 
+ 1. mavl-token-symbol{TEST}-addr{paracross}:addr{userA}
     * 用户A 在 paracross 合约中 token TEST 子帐号
  1. mavl-token-symbol{TEST}-addr{paracross}:addr{user.p.guodun.paracross}
     * 国盾平行链 在 paracross 合约中 token TEST 子帐号

@@ -127,7 +127,6 @@ func assetWithdrawBalance(acc *account.DB, addr string, amount int64) (*types.Re
 //                                                                        token-symbol{TEST}-addr{paracross}:addr{user}
 //  数据显示部分， 如交易所, 需要显示  exec + symbol
 
-
 // 这样命名足以满足， 若要开启 平行链资产的转移， symbol 部分扩展为 symbol@host-title, 主链忽略 或添加 @bityuan
 //  为什么不是".", host-title.exec.symbol, host-title 可能有很多点, 容易混淆, 也会使的解析代码不清晰
 //  想象 平行链 titleFrom资产的转移 到  titleTo
