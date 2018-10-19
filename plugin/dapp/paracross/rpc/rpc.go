@@ -1,15 +1,15 @@
 package rpc
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (c *channelClient) GetHeight(req *types.ReqString) (*pt.ParacrossStatus, error) {
 	in := &types.Query{
-		Execer: []byte(pt.GetExecName()),
+		Execer:   []byte(pt.GetExecName()),
 		FuncName: "GetHeight",
-		Payload: types.Encode(req),
+		Payload:  types.Encode(req),
 	}
 	data, err := c.Query(in)
 	if err != nil {
@@ -32,9 +32,9 @@ func (c *Jrpc) GetHeight(req *types.ReqString, result *interface{}) error {
 
 func (c *channelClient) ListTitles(req *types.ReqNil) (*pt.RespParacrossTitles, error) {
 	in := &types.Query{
-		Execer: []byte(pt.GetExecName()),
+		Execer:   []byte(pt.GetExecName()),
 		FuncName: "ListTitles",
-		Payload: nil,
+		Payload:  nil,
 	}
 	data, err := c.Query(in)
 	if err != nil {
@@ -54,9 +54,9 @@ func (c *Jrpc) ListTitles(req *types.ReqNil, result *interface{}) error {
 
 func (c *channelClient) GetTitleHeight(req *pt.ReqParacrossTitleHeight) (*pt.RespParacrossTitles, error) {
 	in := &types.Query{
-		Execer: []byte(pt.GetExecName()),
+		Execer:   []byte(pt.GetExecName()),
 		FuncName: "GetTitleHeight",
-		Payload: nil,
+		Payload:  nil,
 	}
 	data, err := c.Query(in)
 	if err != nil {
@@ -79,9 +79,9 @@ func (c *Jrpc) GetTitleHeight(req *pt.ReqParacrossTitleHeight, result *interface
 
 func (c *channelClient) GetAssetTxResult(req *types.ReqHash) (*pt.ParacrossAsset, error) {
 	in := &types.Query{
-		Execer: []byte(pt.GetExecName()),
+		Execer:   []byte(pt.GetExecName()),
 		FuncName: "GetAssetTxResult",
-		Payload: nil,
+		Payload:  nil,
 	}
 	data, err := c.Query(in)
 	if err != nil {
@@ -101,4 +101,3 @@ func (c *Jrpc) GetAssetTxResult(req *types.ReqHash, result *interface{}) error {
 	*result = data
 	return err
 }
-

@@ -1,8 +1,8 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (e *Paracross) ExecDelLocal_Commit(payload *pt.ParacrossCommitAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.Receipt, error) {

@@ -1,10 +1,10 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
-	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
-	"gitlab.33.cn/chain33/chain33/common"
 	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/common"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (e *Paracross) Exec_Commit(payload *pt.ParacrossCommitAction, tx *types.Transaction, index int) (*types.Receipt, error) {

@@ -134,7 +134,6 @@ func createAssetTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 	return hex.EncodeToString(txHex), nil
 }
 
-
 // create raw transfer tx
 func CreateRawTransferCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -276,4 +275,3 @@ func createTransferTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 	txHex := types.Encode(tx)
 	return hex.EncodeToString(txHex), nil
 }
-
