@@ -64,6 +64,7 @@ func (s *suiteRelay) SetupSuite() {
 	relay.SetIsFree(false)
 	relay.SetApi(nil)
 	relay.SetChild(relay)
+	relay.SetExecutorType(types.LoadExecutorType(driverName))
 	s.relay = relay
 
 	s.Equal("relay", s.relay.GetName())
@@ -395,6 +396,7 @@ func (s *suiteBtcHeader) SetupSuite() {
 	relay.SetIsFree(false)
 	relay.SetApi(nil)
 	relay.SetChild(relay)
+	relay.SetExecutorType(types.LoadExecutorType(driverName))
 	s.relay = relay
 
 	s.Equal("relay", s.relay.GetName())
