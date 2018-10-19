@@ -104,7 +104,7 @@ func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			glog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawAssetTransferTx(&param)
 
@@ -238,7 +238,7 @@ type ParacrossGetTitle struct {
 }
 
 func (t *ParacrossGetTitle) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqStr
+	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
