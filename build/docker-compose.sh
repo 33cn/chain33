@@ -182,7 +182,7 @@ function start() {
     ${CLI} block last_header
     result=$(${CLI} block last_header | jq ".height")
     if [ "${result}" -lt 1 ]; then
-        exit 1
+        block_wait "${CLI}" 2
     fi
 
     sync_status "${CLI}"

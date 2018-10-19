@@ -1,9 +1,6 @@
 package config
 
 import (
-	"fmt"
-	"os"
-
 	tml "github.com/BurntSushi/toml"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -13,12 +10,17 @@ var (
 	ParaName string
 )
 
-func InitCfg(path string) *types.Config {
+func Init(path string) (*types.Config, error) {
 	var cfg types.Config
 	if _, err := tml.DecodeFile(path, &cfg); err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-
+		return nil, err
 	}
-	return &cfg
+	return &cfg, nil
+}
+func InitCfg(path string) *types.Config {
+	cfg, err := Init(path)
+	if err != nil {
+		panic(err)
+	}
+	return cfg
 }
