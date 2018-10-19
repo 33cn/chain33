@@ -22,7 +22,10 @@ func TestRPC_Call(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 
 	mock33 := testnode.New("testdata/chain33.test.toml", api)
-	defer mock33.Close()
+	defer func() {
+		mock33.Close()
+		mock.AssertExpectationsForObjects(t, api)
+	}()
 	g := newGrpc(api)
 	g.Init("ticket", mock33.GetRPC(), newJrpc(api), g)
 	ty.RegisterTicketServer(mock33.GetRPC().GRPC(), g)
@@ -34,7 +37,7 @@ func TestRPC_Call(t *testing.T) {
 		Msg:  []byte("123"),
 	}
 	api.On("IsSync").Return(ret, nil)
-
+	api.On("Close").Return()
 	rpcCfg := mock33.GetCfg().Rpc
 	jsonClient, err := jsonclient.NewJSONClient("http://" + rpcCfg.JrpcBindAddr + "/")
 	assert.Nil(t, err)
@@ -73,6 +76,4 @@ func TestRPC_Call(t *testing.T) {
 	r, err := client2.SetAutoMining(ctx, flag)
 	assert.Nil(t, err)
 	assert.Equal(t, r.IsOk, true)
-
-	mock.AssertExpectationsForObjects(t, api)
 }
