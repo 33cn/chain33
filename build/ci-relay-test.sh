@@ -221,9 +221,11 @@ function relay() {
     sell_hash=$(${1} send relay accept -f 0.001 -o "${sell_id}" -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
     echo "${sell_hash}"
     block_wait "${1}" 1
+
     frozen=$(${1} tx query -s "${buy_hash}" | jq -r ".receipt.logs[1].log.current.frozen")
-    if [ "${frozen}" != "100.0000" ]; then
+    if [ "${frozen}" != "10000000000" ]; then
         echo "wrong buy frozen account, should be 100"
+        ${1} tx query -s "${buy_hash}"
         exit 1
     fi
 
