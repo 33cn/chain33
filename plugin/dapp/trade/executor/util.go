@@ -23,7 +23,7 @@ import (
 */
 
 // return exec, symbol
-func getExecSymbol(order *pt.SellOrder) (string, string) {
+func GetExecSymbol(order *pt.SellOrder) (string, string) {
 	if order.AssetExec == "" {
 		return types.TokenX, types.TokenX + "." + order.TokenSymbol
 	}

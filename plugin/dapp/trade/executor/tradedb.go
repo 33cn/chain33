@@ -229,13 +229,6 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt in
 	return log
 }
 
-type envBlock struct {
-	height     int64
-	blockTime  int64
-	index      int
-	difficulty uint64
-}
-
 type tradeAction struct {
 	coinsAccount *account.DB
 	db           dbm.KV
@@ -258,7 +251,7 @@ func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, er
 		return nil, types.ErrInvalidParam
 	}
 	if !checkAsset(action.height, sell.AssetExec, sell.TokenSymbol) {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	accDB, err := createAccountDB(action.height, action.db, sell.AssetExec, sell.TokenSymbol)
@@ -444,7 +437,7 @@ func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Rece
 	}
 
 	if !checkAsset(action.height, buy.AssetExec, buy.TokenSymbol) {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	// check enough bty
