@@ -265,7 +265,7 @@ var TestPrivkeyList = []crypto.PrivKey{
 }
 
 func HexToPrivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(GetSignName(SECP256K1))
+	cr, err := crypto.New(GetSignName("", SECP256K1))
 	if err != nil {
 		panic(err)
 	}
