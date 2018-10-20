@@ -36,16 +36,19 @@ type Grpc struct {
 type Grpcserver struct {
 	grpc Grpc
 	s    *grpc.Server
+	l    net.Listener
 	//addr string
 }
 
 type JSONRPCServer struct {
 	jrpc Chain33
 	s    *rpc.Server
+	l    net.Listener
 	//addr string
 }
 
 func (s *JSONRPCServer) Close() {
+	s.l.Close()
 	s.jrpc.cli.Close()
 }
 
@@ -104,8 +107,8 @@ func checkGrpcFuncBlacklist(funcName string) bool {
 }
 
 func (j *Grpcserver) Close() {
+	j.l.Close()
 	j.grpc.cli.Close()
-
 }
 
 func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
@@ -185,17 +188,23 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 }
 
 func (rpc *RPC) Listen() {
-	done := make(chan struct{}, 2)
-	go func() {
-		done <- struct{}{}
-		rpc.gapi.Listen()
-	}()
-	go func() {
-		done <- struct{}{}
-		rpc.japi.Listen()
-	}()
-	<-done
-	<-done
+	for i := 0; i < 10; i++ {
+		err := rpc.gapi.Listen()
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	for i := 0; i < 10; i++ {
+		err := rpc.japi.Listen()
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	//sleep for a while
 	time.Sleep(time.Millisecond)
 }
 
