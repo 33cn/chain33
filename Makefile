@@ -20,6 +20,8 @@ LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "blockchain" | grep -v "pbft"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
+MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
+MKDIR=$(dir $(MKPATH))
 .PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
 
 default: build cli depends para-cli autotest
@@ -78,9 +80,9 @@ miner:
 	@cp cmd/miner_accounts/miner_accounts.toml build/
 
 build_ci: depends ## Build the binary file for CI
-	@go build -race -v -i -o $(CLI) $(SRC_CLI)
-	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
-	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
+	@go build -v -i -o $(CLI) $(SRC_CLI)
+	@go build -v  -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
+	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
 
@@ -175,7 +177,8 @@ protobuf: ## Generate protbuf file of types package
 
 
 depends: ## Generate depends file of types package
-	@find ./plugin/dapp -maxdepth 2 -type d  -name cmd -exec make -s -C {} \;
+	@find ./plugin/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build" FLAG= \;
+	@find ./system/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build" FLAG= \;
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"

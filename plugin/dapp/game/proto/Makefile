@@ -1,2 +1,2 @@
 all:
-	./create_protobuf.sh
+	sh ./create_protobuf.sh
