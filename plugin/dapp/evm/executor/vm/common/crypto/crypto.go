@@ -42,7 +42,7 @@ func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
 
 // 随机生成一个新的地址，给新创建的合约地址使用
 func RandomContractAddress() *common.Address {
-	c, err := crypto.New(types.GetSignName(types.SECP256K1))
+	c, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		return nil
 	}
