@@ -48,7 +48,9 @@ type JSONRPCServer struct {
 }
 
 func (s *JSONRPCServer) Close() {
-	s.l.Close()
+	if s.l != nil {
+		s.l.Close()
+	}
 	s.jrpc.cli.Close()
 }
 
@@ -107,7 +109,9 @@ func checkGrpcFuncBlacklist(funcName string) bool {
 }
 
 func (j *Grpcserver) Close() {
-	j.l.Close()
+	if j.l != nil {
+		j.l.Close()
+	}
 	j.grpc.cli.Close()
 }
 
