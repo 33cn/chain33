@@ -191,6 +191,7 @@ type ExecutorType interface {
 	//获取交易真正的to addr
 	GetRealToAddr(tx *Transaction) string
 	GetCryptoDriver(ty int) (string, error)
+	GetCryptoType(name string) (int, error)
 	//给用户显示的from 和 to
 	GetViewFromToAddr(tx *Transaction) (string, string)
 	ActionName(tx *Transaction) string
@@ -279,6 +280,10 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 
 func (base *ExecTypeBase) GetCryptoDriver(ty int) (string, error) {
 	return "", ErrNotSupport
+}
+
+func (base *ExecTypeBase) GetCryptoType(name string) (int, error) {
+	return 0, ErrNotSupport
 }
 
 func (base *ExecTypeBase) InitFuncList(list map[string]reflect.Method) {

@@ -85,8 +85,8 @@ func New(cfg *types.Wallet) *Wallet {
 	//walletStore := NewStore(walletStoreDB)
 	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
-	signType, exist := types.MapSignName2Type[cfg.SignType]
-	if !exist {
+	signType := types.GetSignType("", cfg.SignType)
+	if signType == types.Invalid {
 		signType = types.SECP256K1
 	}
 	SignType = signType
