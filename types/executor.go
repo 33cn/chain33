@@ -151,12 +151,11 @@ func getLogType(execer []byte, ty int64) *LogInfo {
 	//加载执行器已经定义的log
 	if execer != nil {
 		ety := LoadExecutorType(string(execer))
-		if ety == nil {
-			return SystemLog[0]
-		}
-		logmap := ety.GetLogMap()
-		if logty, ok := logmap[ty]; ok {
-			return logty
+		if ety != nil {
+			logmap := ety.GetLogMap()
+			if logty, ok := logmap[ty]; ok {
+				return logty
+			}
 		}
 	}
 	//如果没有，那么用系统默认类型列表
