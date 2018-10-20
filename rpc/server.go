@@ -3,6 +3,7 @@ package rpc
 import (
 	"net"
 	"net/rpc"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
@@ -170,8 +171,7 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 	r.c = c
 	//注册系统rpc
 	pluginmgr.AddRPC(r)
-	go gapi.Listen()
-	go japi.Listen()
+	r.Listen()
 }
 
 func (r *RPC) SetQueueClientNoListen(c queue.Client) {
@@ -185,8 +185,18 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 }
 
 func (rpc *RPC) Listen() {
-	go rpc.gapi.Listen()
-	go rpc.japi.Listen()
+	done := make(chan struct{}, 2)
+	go func() {
+		done <- struct{}{}
+		rpc.gapi.Listen()
+	}()
+	go func() {
+		done <- struct{}{}
+		rpc.japi.Listen()
+	}()
+	<-done
+	<-done
+	time.Sleep(time.Millisecond)
 }
 
 func (rpc *RPC) GetQueueClient() queue.Client {
