@@ -53,7 +53,7 @@ func (mock *PrivacyMock) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	password := []byte(mock.password)
 	privkey := wcom.CBCDecrypterPrivkey(password, prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName(mock.walletOp.GetSignType()))
+	cr, err := crypto.New(types.GetSignName("", mock.walletOp.GetSignType()))
 	if err != nil {
 		bizlog.Error("ProcSendToAddress", "err", err)
 		return nil, err
