@@ -91,14 +91,12 @@ var (
 //ty = 1+offset(1<<8) ->auth_ecdsa
 //ty = 2+offset(1<<8) -> auth_sm2
 const (
-	Invalid           = 0
-	SECP256K1         = 1
-	ED25519           = 2
-	SM2               = 3
-	OnetimeED25519    = 4
-	RingBaseonED25519 = 5
-	AUTH_ECDSA        = 257
-	AUTH_SM2          = 258
+	Invalid    = 0
+	SECP256K1  = 1
+	ED25519    = 2
+	SM2        = 3
+	AUTH_ECDSA = 257
+	AUTH_SM2   = 258
 )
 
 //const (
@@ -111,13 +109,11 @@ const (
 //)
 
 const (
-	SignNameSecp256k1      = "secp256k1"
-	SignNameED25519        = "ed25519"
-	SignNameSM2            = "sm2"
-	SignNameOnetimeED25519 = "onetimeed25519"
-	SignNameRing           = "RingSignatue"
-	SignNameAuthECDSA      = "auth_ecdsa"
-	SignNameAuthSM2        = "auth_sm2"
+	SignNameSecp256k1 = "secp256k1"
+	SignNameED25519   = "ed25519"
+	SignNameSM2       = "sm2"
+	SignNameAuthECDSA = "auth_ecdsa"
+	SignNameAuthSM2   = "auth_sm2"
 )
 
 // 创建隐私交易的类型定义
@@ -127,24 +123,20 @@ const (
 	PrivacyTypePrivacy2Public
 )
 
-var MapSignType2name = map[int]string{
-	SECP256K1:         SignNameSecp256k1,
-	ED25519:           SignNameED25519,
-	SM2:               SignNameSM2,
-	OnetimeED25519:    SignNameOnetimeED25519,
-	RingBaseonED25519: SignNameRing,
-	AUTH_ECDSA:        SignNameAuthECDSA,
-	AUTH_SM2:          SignNameAuthSM2,
+var mapSignType2name = map[int]string{
+	SECP256K1:  SignNameSecp256k1,
+	ED25519:    SignNameED25519,
+	SM2:        SignNameSM2,
+	AUTH_ECDSA: SignNameAuthECDSA,
+	AUTH_SM2:   SignNameAuthSM2,
 }
 
-var MapSignName2Type = map[string]int{
-	SignNameSecp256k1:      SECP256K1,
-	SignNameED25519:        ED25519,
-	SignNameSM2:            SM2,
-	SignNameOnetimeED25519: OnetimeED25519,
-	SignNameRing:           RingBaseonED25519,
-	SignNameAuthECDSA:      AUTH_ECDSA,
-	SignNameAuthSM2:        AUTH_SM2,
+var mapSignName2Type = map[string]int{
+	SignNameSecp256k1: SECP256K1,
+	SignNameED25519:   ED25519,
+	SignNameSM2:       SM2,
+	SignNameAuthECDSA: AUTH_ECDSA,
+	SignNameAuthSM2:   AUTH_SM2,
 }
 
 //log type

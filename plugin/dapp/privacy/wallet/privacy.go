@@ -1154,7 +1154,7 @@ func (policy *privacyPolicy) signatureTx(tx *types.Transaction, privacyInput *pr
 
 	ringSignData := types.Encode(ringSign)
 	tx.Signature = &types.Signature{
-		Ty:        types.RingBaseonED25519,
+		Ty:        privacytypes.RingBaseonED25519,
 		Signature: ringSignData,
 		// 这里填的是隐私合约的公钥，让框架保持一致
 		Pubkey: address.ExecPubKey(types.PrivacyX),
