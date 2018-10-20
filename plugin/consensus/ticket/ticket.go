@@ -173,7 +173,7 @@ func (client *Client) ProcEvent(msg queue.Message) bool {
 }
 
 func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		return nil, err
 	}
