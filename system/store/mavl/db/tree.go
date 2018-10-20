@@ -9,11 +9,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"sync/atomic"
 	"sort"
-	"gitlab.33.cn/chain33/chain33/common"
+	"sync/atomic"
 )
 
 const (
@@ -34,11 +34,11 @@ var (
 	// 是否开启MVCC
 	enableMvcc bool
 	// 是否开启mavl裁剪
-	enablePrune      bool
+	enablePrune bool
 	// 每个100000裁剪一次
 	pruneBlockHeight int = 100000
 	// 裁剪状态
-	pruningState     int32
+	pruningState int32
 )
 
 func EnableMavlPrefix(enable bool) {
@@ -158,9 +158,9 @@ func (t *Tree) Save() []byte {
 			return nil
 		}
 		// 该线程应只允许一个
-		if enablePrune && !isPruning() && t.blockHeight % int64(pruneBlockHeight) == 0 {
-			go pruningTree(t.ndb.db, t.blockHeight)
-		}
+		//if enablePrune && !isPruning() && t.blockHeight%int64(pruneBlockHeight) == 0 {
+		//	go pruningTree(t.ndb.db, t.blockHeight)
+		//}
 	}
 	return t.root.hash
 }
@@ -354,7 +354,7 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 		data := &types.PruneData{
 			Height: t.blockHeight,
 			Lenth:  int32(len(node.hash)),
-			RHash: t.root.hash,
+			RHash:  t.root.hash,
 		}
 		v, err := proto.Marshal(data)
 		if err != nil {
@@ -364,11 +364,11 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	} else if enablePrune && node.height == t.root.height {
 		// save prefix root
 		k := genPrefixRootHash(node.hash, t.blockHeight)
-		pruneNode := &types.PruneRootNode {
+		pruneNode := &types.PruneRootNode{
 			NeedPruning: false,
-			Key: node.key,
-			LeftHash: node.leftHash,
-			RightHash: node.rightHash,
+			Height:      t.blockHeight,
+			LeftHash:    node.leftHash,
+			RightHash:   node.rightHash,
 		}
 		v, err := proto.Marshal(pruneNode)
 		if err != nil {
@@ -576,7 +576,7 @@ func setPruning(state int32) {
 func pruningTree(db dbm.DB, curHeight int64) {
 	setPruning(pruningStateStart)
 	pruningTreeLeafNode(db, curHeight)
-	//TODO curHeight-prunBlockHeight 处遍历树，然后删除hashnode
+	//TODO curHeight-prunBlockHeight 处遍历树，然后删除hashnode;缓存数节点到lru中
 	pruningTreeHashNode(db, curHeight)
 	setPruning(pruningStateEnd)
 }
@@ -604,8 +604,8 @@ func pruningTreeLeafNode(db dbm.DB, curHeight int64) {
 		key, err := getKeyFromLeafCountKey(hashK, hashLen)
 		if err == nil {
 			data := hashData{
-				height: pData.Height,
-				hash:   hashK[len(hashK)-hashLen:],
+				height:   pData.Height,
+				hash:     hashK[len(hashK)-hashLen:],
 				rootHash: pData.RHash,
 			}
 			mp[string(key)] = append(mp[string(key)], data)
@@ -684,65 +684,126 @@ func pruningTreeHashNode(db dbm.DB, curHeight int64) {
 		value := it.Value()
 		prRoot := &types.PruneRootNode{}
 		err := proto.Unmarshal(value, prRoot)
-		if err == nil && prRoot.NeedPruning {
-			hashK := make([]byte, len(it.Key()))
-			copy(hashK, it.Key())
-			if len(hashK) >= hashlen {
-				tree := NewTree(db, true)
-				hash := hashK[len(hashK) - hashlen:]
-				err := tree.Load(hash)
-				if err == nil {
-					batch := db.NewBatch(true)
-					deleteHashNode(tree, batch)
-					// 将rootkey 置为修改完成
-					prRoot.NeedPruning = false
-					v, _ := proto.Marshal(prRoot)
-					batch.Set(hashK, v)
-					batch.Write()
+		if err == nil {
+			if curHeight < prRoot.Height+int64(pruneBlockHeight) {
+				//升序排列，可提前结束循环
+				break
+			}
+			if prRoot.NeedPruning  {
+				hashK := make([]byte, len(it.Key()))
+				copy(hashK, it.Key())
+				if len(hashK) >= hashlen {
+					tree := NewMarkTree(db, true)
+					hash := hashK[len(hashK)-hashlen:]
+					err := tree.Load(hash)
+					if err == nil {
+						batch := db.NewBatch(true)
+						deleteHashNode(tree, batch)
+						// 将rootkey 置为修改完成
+						prRoot.NeedPruning = false
+						v, _ := proto.Marshal(prRoot)
+						batch.Set(hashK, v)
+						batch.Write()
+					}
 				}
 			}
 		}
 	}
 }
 
-func deleteHashNode(t *Tree, batch dbm.Batch) {
+func deleteHashNode(t *MarkTree, batch dbm.Batch) {
 	if t == nil {
 		return
 	}
 	strs := t.root.gethash(t)
+	//fmt.Printf("---gethash loop count: %d ---\n", t.count)
 	for _, str := range strs {
 		batch.Delete([]byte(str))
 	}
 }
 
-func (node *Node) gethash(t *Tree) (strs []string) {
-	leftN  := node.fetchLeftNode(t)
-	if leftN != nil {
-		return leftN.gethash(t)
+type MarkNode struct {
+	height     int32
+	hash       []byte
+	leftHash   []byte
+	leftNode   *MarkNode
+	leftPurne  bool
+	rightHash  []byte
+	rightNode  *MarkNode
+	rightPurne bool
+}
+type MarkTree struct {
+	root *MarkNode
+	ndb  *nodeDB
+	count int
+}
+
+func NewMarkTree(db dbm.DB, sync bool) *MarkTree {
+	if db == nil {
+		// In-memory IAVLTree
+		return &MarkTree{
+		}
+	} else {
+		// Persistent IAVLTree
+		ndb := newNodeDB(db, sync)
+		return &MarkTree{
+			ndb: ndb,
+		}
 	}
-	rightN := node.fetchLeftNode(t)
-	if rightN != nil {
-		return rightN.gethash(t)
+}
+
+func (t *MarkTree) Load(hash []byte) (err error) {
+	if hash == nil {
+		return
 	}
-	if leftN == nil && rightN == nil {
-		// 该节点可以被删除
-		node.persisted = true
-		strs = append(strs, string(node.hash))
-		return strs
+	if !bytes.Equal(hash, emptyRoot[:]) {
+		t.root, err = t.ndb.fetchNode(t, hash)
+		return err
 	}
-	if leftN.persisted && rightN.persisted {
-		node.persisted = true
-		strs = append(strs, string(node.hash))
-		return strs
+	return nil
+}
+
+func (node *MarkNode) gethash(t *MarkTree) (strs []string) {
+	t.count++
+	if node.height == 0 {
+		//do nothing
+	} else {
+		//hash := common.Bytes2Hex(node.hash[:2])
+		//left := common.Bytes2Hex(node.leftHash[:2])
+		//right := common.Bytes2Hex(node.rightHash[:2])
+		//fmt.Printf("hash:%v left:%v right:%v\n", hash, left, right)
+		leftN := node.fetchLeftNode(t)
+		if leftN != nil {
+			strs = append(strs, leftN.gethash(t)...)
+		}
+		if leftN == nil {
+			node.leftPurne = true
+		}else if leftN.leftPurne && leftN.rightPurne {
+			node.leftPurne = true
+		}
+		//
+		rightN := node.fetchRightNode(t)
+		if rightN != nil {
+			strs = append(strs, rightN.gethash(t)...)
+		}
+		if rightN == nil {
+			node.rightPurne = true
+		} else if rightN.leftPurne && rightN.rightPurne{
+			node.rightPurne = true
+		}
+		//
+		if node.leftPurne && node.rightPurne {
+			strs = append(strs, string(node.hash))
+		}
 	}
 	return strs
 }
 
-func (node *Node) fetchLeftNode(t *Tree) *Node {
+func (node *MarkNode) fetchLeftNode(t *MarkTree) *MarkNode {
 	if node.leftNode != nil {
 		return node.leftNode
 	} else {
-		leftNode, err := t.ndb.GetNode(t, node.leftHash)
+		leftNode, err := t.ndb.fetchNode(t, node.leftHash)
 		if err != nil {
 			return nil
 		}
@@ -750,11 +811,11 @@ func (node *Node) fetchLeftNode(t *Tree) *Node {
 	}
 }
 
-func (node *Node) fetchRightNode(t *Tree) *Node {
+func (node *MarkNode) fetchRightNode(t *MarkTree) *MarkNode {
 	if node.rightNode != nil {
 		return node.rightNode
 	} else {
-		rightNode, err := t.ndb.GetNode(t, node.rightHash)
+		rightNode, err := t.ndb.fetchNode(t, node.rightHash)
 		if err != nil {
 			return nil
 		}
@@ -763,36 +824,33 @@ func (node *Node) fetchRightNode(t *Tree) *Node {
 }
 
 //区别主要是对于leaf节点这不缓存
-func (ndb *nodeDB) fetchNode(t *Tree, hash []byte) (*Node, error) {
+func (ndb *nodeDB) fetchNode(t *MarkTree, hash []byte) (*MarkNode, error) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
 	// Check the cache.
 
-	if ndb.cache != nil {
-		elem, ok := ndb.cache.Get(string(hash))
-		if ok {
-			return elem.(*Node), nil
-		}
-	}
-	// Doesn't exist, load from db.
 	var buf []byte
 	buf, err := ndb.db.Get(hash)
 
 	if len(buf) == 0 || err != nil {
 		return nil, ErrNodeNotExist
 	}
-	node, err := MakeNode(buf, t)
+	node, err := MakeNode(buf, nil)
 	if err != nil {
 		panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
 	}
 	node.hash = hash
-	node.persisted = true
-	ndb.cacheNode(node)
-	return node, nil
+	mNode := &MarkNode{
+		height: node.height,
+		hash: node.hash,
+		leftHash: node.leftHash,
+		rightHash: node.rightHash,
+	}
+	//后续加
+	//ndb.cacheNode(node)
+	return mNode, nil
 }
-
-
 
 func pruningTreePrint(db dbm.DB, prefix []byte) {
 	it := db.Iterator(prefix, true)
