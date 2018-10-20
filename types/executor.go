@@ -148,18 +148,21 @@ func GetLogName(execer []byte, ty int64) string {
 }
 
 func getLogType(execer []byte, ty int64) *LogInfo {
-	//首先system log
+	//加载执行器已经定义的log
+	if execer != nil {
+		ety := LoadExecutorType(string(execer))
+		if ety != nil {
+			logmap := ety.GetLogMap()
+			if logty, ok := logmap[ty]; ok {
+				return logty
+			}
+		}
+	}
+	//如果没有，那么用系统默认类型列表
 	if logty, ok := SystemLog[ty]; ok {
 		return logty
 	}
-	ety := LoadExecutorType(string(execer))
-	if ety == nil {
-		return SystemLog[0]
-	}
-	logmap := ety.GetLogMap()
-	if logty, ok := logmap[ty]; ok {
-		return logty
-	}
+	//否则就是默认类型
 	return SystemLog[0]
 }
 
@@ -186,6 +189,8 @@ func DecodeLog(execer []byte, ty int64, data []byte) (interface{}, error) {
 type ExecutorType interface {
 	//获取交易真正的to addr
 	GetRealToAddr(tx *Transaction) string
+	GetCryptoDriver(ty int) (string, error)
+	GetCryptoType(name string) (int, error)
 	//给用户显示的from 和 to
 	GetViewFromToAddr(tx *Transaction) (string, string)
 	ActionName(tx *Transaction) string
@@ -270,6 +275,14 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 			panic("value type not found " + k)
 		}
 	}
+}
+
+func (base *ExecTypeBase) GetCryptoDriver(ty int) (string, error) {
+	return "", ErrNotSupport
+}
+
+func (base *ExecTypeBase) GetCryptoType(name string) (int, error) {
+	return 0, ErrNotSupport
 }
 
 func (base *ExecTypeBase) InitFuncList(list map[string]reflect.Method) {

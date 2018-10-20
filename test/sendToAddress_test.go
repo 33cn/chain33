@@ -15,7 +15,7 @@ import (
 
 func TestSendToAddress(t *testing.T) {
 
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		t.Error(err)
 		return

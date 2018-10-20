@@ -60,8 +60,8 @@ func (auth *Authority) Init(conf *types.Authority) error {
 	}
 	auth.cryptoPath = conf.CryptoPath
 
-	sign, ok := types.MapSignName2Type[conf.SignType]
-	if !ok {
+	sign := types.GetSignType("cert", conf.SignType)
+	if sign == types.Invalid {
 		alog.Error(fmt.Sprintf("Invalid sign type:%s", conf.SignType))
 		return types.ErrInvalidParam
 	}
@@ -310,8 +310,8 @@ func (loader *UserLoader) Init(configPath string, signType string) error {
 	loader.configPath = configPath
 	loader.userMap = make(map[string]*User)
 
-	sign, ok := types.MapSignName2Type[signType]
-	if !ok {
+	sign := types.GetSignType("cert", signType)
+	if sign == types.Invalid {
 		alog.Error(fmt.Sprintf("Invalid sign type:%s", signType))
 		return types.ErrInvalidParam
 	}
@@ -359,11 +359,10 @@ func (loader *UserLoader) loadUsers() error {
 }
 
 func (loader *UserLoader) genCryptoPriv(keyBytes []byte) (crypto.PrivKey, error) {
-	cr, err := crypto.New(types.GetSignName(loader.signType))
+	cr, err := crypto.New(types.GetSignName("cert", loader.signType))
 	if err != nil {
-		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignName(loader.signType), err)
+		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignName("cert", loader.signType), err)
 	}
-
 	privKeyByte, err := utils.PrivKeyByteFromRaw(keyBytes, loader.signType)
 	if err != nil {
 		return nil, err
