@@ -60,8 +60,8 @@ func (auth *Authority) Init(conf *types.Authority) error {
 	}
 	auth.cryptoPath = conf.CryptoPath
 
-	sign, ok := types.MapSignName2Type[conf.SignType]
-	if !ok {
+	sign := types.GetSignType("cert", conf.SignType)
+	if sign == types.Invalid {
 		alog.Error(fmt.Sprintf("Invalid sign type:%s", conf.SignType))
 		return types.ErrInvalidParam
 	}
@@ -310,8 +310,8 @@ func (loader *UserLoader) Init(configPath string, signType string) error {
 	loader.configPath = configPath
 	loader.userMap = make(map[string]*User)
 
-	sign, ok := types.MapSignName2Type[signType]
-	if !ok {
+	sign := types.GetSignType("cert", signType)
+	if sign == types.Invalid {
 		alog.Error(fmt.Sprintf("Invalid sign type:%s", signType))
 		return types.ErrInvalidParam
 	}

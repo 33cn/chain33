@@ -232,10 +232,28 @@ func GetSignName(execer string, signType int) string {
 		}
 	}
 	//加载系统执行器的签名类型
-	if name, exist := MapSignType2name[signType]; exist {
+	if name, exist := mapSignType2name[signType]; exist {
 		return name
 	}
 	return "unknow"
+}
+
+func GetSignType(execer string, name string) int {
+	//优先加载执行器的签名类型
+	if execer != "" {
+		exec := LoadExecutorType(execer)
+		if exec != nil {
+			ty, err := exec.GetCryptoType(name)
+			if err == nil {
+				return ty
+			}
+		}
+	}
+	//加载系统执行器的签名类型
+	if name, exist := mapSignName2Type[name]; exist {
+		return name
+	}
+	return Invalid
 }
 
 var ConfigPrefix = "mavl-config-"
