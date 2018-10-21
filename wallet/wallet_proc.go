@@ -87,7 +87,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		if err != nil || len(keyByte) == 0 {
 			return "", err
 		}
-		cr, err := crypto.New(types.GetSignName(SignType))
+		cr, err := crypto.New(types.GetSignName("", SignType))
 		if err != nil {
 			return "", err
 		}
@@ -679,7 +679,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		walletlog.Error("ProcMergeBalance", "AccStores", len(WalletAccStores), "accounts", len(accounts))
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName(SignType))
+	cr, err := crypto.New(types.GetSignName("", SignType))
 	if err != nil {
 		walletlog.Error("ProcMergeBalance", "err", err)
 		return nil, err

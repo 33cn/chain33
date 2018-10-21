@@ -35,7 +35,7 @@ var (
 
 	privRaw, _  = common.FromHex("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	tr          = &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: int64(1e8)}}
-	secpp256, _ = crypto.New(types.GetSignName(types.SECP256K1))
+	secpp256, _ = crypto.New(types.GetSignName("", types.SECP256K1))
 	privKey, _  = secpp256.PrivKeyFromBytes(privRaw)
 	tx14        = &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
@@ -73,7 +73,7 @@ func initEnv() error {
 	cfg := config.InitCfg("./test/chain33.auth.test.toml")
 
 	Author.Init(cfg.Auth)
-	SIGNTYPE = types.MapSignName2Type[cfg.Auth.SignType]
+	SIGNTYPE = types.GetSignType("cert", cfg.Auth.SignType)
 
 	userLoader := &UserLoader{}
 	err := userLoader.Init(cfg.Auth.CryptoPath, cfg.Auth.SignType)
@@ -182,7 +182,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 TestCase04 不带证书，SM2签名验证
 */
 func TestChckSignWithSm2(t *testing.T) {
-	sm2, _ := crypto.New(types.GetSignName(types.AUTH_SM2))
+	sm2, _ := crypto.New(types.GetSignName("cert", types.AUTH_SM2))
 	privKeysm2, _ := sm2.PrivKeyFromBytes(privRaw)
 	tx15 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
@@ -208,7 +208,7 @@ func TestChckSignWithSm2(t *testing.T) {
 TestCase05 不带证书，secp256r1签名验证
 */
 func TestChckSignWithEcdsa(t *testing.T) {
-	ecdsacrypto, _ := crypto.New(types.GetSignName(types.AUTH_ECDSA))
+	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", types.AUTH_ECDSA))
 	privKeyecdsa, _ := ecdsacrypto.PrivKeyFromBytes(privRaw)
 	tx16 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
