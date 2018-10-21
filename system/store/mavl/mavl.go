@@ -33,7 +33,7 @@ func init() {
 	drivers.Reg("mavl", New)
 }
 
-func New(cfg *types.Store) queue.Module {
+func New(cfg *types.Store, sub []byte) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, cfg.EnableMavlPrefix, cfg.EnableMVCC}
 	mavls.cache, _ = lru.New(10)

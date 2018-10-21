@@ -19,7 +19,7 @@ import (
 //var clog = log.New("module", "execs.coins")
 var driverName = "coins"
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}

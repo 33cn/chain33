@@ -9,8 +9,9 @@ type PluginBase struct {
 	Name     string
 	ExecName string
 	RPC      func(name string, s types.RPCServer)
-	Exec     func(name string)
+	Exec     func(name string, sub []byte)
 	Cmd      func() *cobra.Command
+	execCfg  map[string]byte
 }
 
 func (p *PluginBase) GetName() string {
@@ -21,8 +22,12 @@ func (p *PluginBase) GetExecutorName() string {
 	return p.ExecName
 }
 
-func (p *PluginBase) InitExec() {
-	p.Exec(p.ExecName)
+func (p *PluginBase) InitExec(sub map[string][]byte) {
+	subcfg, ok := sub[p.ExecName]
+	if !ok {
+		subcfg = nil
+	}
+	p.Exec(p.ExecName, subcfg)
 }
 
 func (p *PluginBase) AddCmd(rootCmd *cobra.Command) {

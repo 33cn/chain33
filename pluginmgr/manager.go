@@ -11,10 +11,10 @@ var pluginItems = make(map[string]Plugin)
 
 var once = &sync.Once{}
 
-func InitExec() {
+func InitExec(sub map[string][]byte) {
 	once.Do(func() {
 		for _, item := range pluginItems {
-			item.InitExec()
+			item.InitExec(sub)
 		}
 	})
 }

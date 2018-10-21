@@ -101,7 +101,7 @@ func newWalletRealize(qApi client.QueueProtocolAPI) {
 	if err != nil {
 		panic(err)
 	}
-	for i, priv := range types.TestPrivkeyHex {
+	for i, priv := range TestPrivkeyHex {
 		privkey := &types.ReqWalletImportPrivkey{priv, fmt.Sprintf("label%d", i)}
 		_, err = qApi.WalletImportprivkey(privkey)
 		if err != nil {

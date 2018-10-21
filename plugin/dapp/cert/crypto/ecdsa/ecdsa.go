@@ -12,6 +12,7 @@ import (
 	"math/big"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 )
 
 const (
@@ -196,7 +197,7 @@ func (sig SignatureECDSA) Equals(other crypto.Signature) bool {
 }
 
 func init() {
-	crypto.Register(crypto.SignNameAuthECDSA, &Driver{})
+	crypto.Register(ty.SignNameAuthECDSA, &Driver{})
 }
 
 func privKeyFromBytes(curve elliptic.Curve, pk []byte) (*ecdsa.PrivateKey, *ecdsa.PublicKey) {

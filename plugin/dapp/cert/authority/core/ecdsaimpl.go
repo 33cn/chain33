@@ -15,8 +15,8 @@ import (
 	"crypto/ecdsa"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/authority/utils"
-	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/utils"
+	ecdsa_util "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/crypto/ecdsa"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
