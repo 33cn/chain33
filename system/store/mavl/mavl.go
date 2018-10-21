@@ -42,7 +42,7 @@ func New(cfg *types.Store, sub []byte) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	var subcfg subConfig
 	if sub != nil {
-		types.MustDecode(sub, subcfg)
+		types.MustDecode(sub, &subcfg)
 	}
 	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, subcfg.EnableMavlPrefix, subcfg.EnableMVCC}
 	mavls.cache, _ = lru.New(10)

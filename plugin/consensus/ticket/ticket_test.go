@@ -22,7 +22,7 @@ func init() {
 
 // 执行： go test -cover
 func TestTicket(t *testing.T) {
-	mock33 := testnode.New("testdata/chain33.test.toml", nil)
+	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	err := mock33.WaitHeight(2)
 	assert.Nil(t, err)
