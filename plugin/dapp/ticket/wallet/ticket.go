@@ -91,17 +91,17 @@ func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate, sub []byte) {
 	policy.needFlush = false
 	policy.isTicketLocked = 1
 	policy.autoMinerFlag = policy.store.GetAutoMinerFlag()
-	policy.initMingTicketTicker()
-	walletBiz.RegisterMineStatusReporter(policy)
-	// 启动自动挖矿
-	walletBiz.GetWaitGroup().Add(1)
-
 	var subcfg subConfig
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
 	policy.cfg = &subcfg
 	policy.initMinerWhiteList(walletBiz.GetConfig())
+
+	policy.initMingTicketTicker()
+	walletBiz.RegisterMineStatusReporter(policy)
+	// 启动自动挖矿
+	walletBiz.GetWaitGroup().Add(1)
 	go policy.autoMining()
 }
 
