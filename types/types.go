@@ -14,6 +14,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types/jsonpb"
+
+	_ "gitlab.33.cn/chain33/chain33/system/crypto/init"
 )
 
 var tlog = log.New("module", "types")

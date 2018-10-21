@@ -270,8 +270,8 @@ func BenchmarkSetKey1000(b *testing.B) {
 	s.Close()
 }
 
-var store_cfg0 = &types.Store{"kvdb", "leveldb", "/tmp/store_test0", 100, false, false, false}
-var store_cfg1 = &types.Store{"mavl", "leveldb", "/tmp/store_test1", 100, false, false, false}
+var store_cfg0 = &types.Store{"kvdb", "leveldb", "/tmp/store_test0", 100}
+var store_cfg1 = &types.Store{"mavl", "leveldb", "/tmp/store_test1", 100}
 
 func TestNewKvdb(t *testing.T) {
 	os.RemoveAll(store_cfg0.DbPath)

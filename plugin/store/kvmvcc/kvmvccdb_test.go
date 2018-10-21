@@ -1,6 +1,7 @@
 package kvmvccdb
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -19,11 +20,10 @@ const MaxKeylenth int = 64
 
 func newStoreCfg(dir string) *types.Store {
 	return &types.Store{Name: "kvmvcc_test", Driver: "leveldb", DbPath: dir, DbCache: 100}
-	//return newStoreCfgIter(dir)
 }
 
-func newStoreCfgIter(dir string) *types.Store {
-	return &types.Store{Name: "kvmvcc_test", Driver: "leveldb", DbPath: dir, DbCache: 100, EnableMVCCIter: true}
+func newStoreCfgIter(dir string) (*types.Store, []byte) {
+	return &types.Store{Name: "kvmvcc_test", Driver: "leveldb", DbPath: dir, DbCache: 100}, enableConfig()
 }
 
 func TestKvmvccdbNewClose(t *testing.T) {
@@ -246,13 +246,18 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	assert.Equal(t, int64(2), maxVersion)
 }
 
+func enableConfig() []byte {
+	data, _ := json.Marshal(&subConfig{EnableMVCCIter: true})
+	return data
+}
+
 func TestIterateRangeByStateHash(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg, nil).(*KVMVCCStore)
+	store_cfg, sub := newStoreCfgIter(dir)
+	store := New(store_cfg, sub).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	execaddr := "0111vcBNSEA7fZhAdLJphDwQRQJa111"
@@ -611,8 +616,8 @@ func BenchmarkGetIter(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
-	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg, nil).(*KVMVCCStore)
+	store_cfg, sub := newStoreCfgIter(dir)
+	store := New(store_cfg, sub).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -726,8 +731,8 @@ func BenchmarkSetIter(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg, nil).(*KVMVCCStore)
+	store_cfg, sub := newStoreCfgIter(dir)
+	store := New(store_cfg, sub).(*KVMVCCStore)
 	assert.NotNil(b, store)
 	b.Log(dir)
 
@@ -932,8 +937,8 @@ func BenchmarkIterMemSet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg, nil).(*KVMVCCStore)
+	store_cfg, sub := newStoreCfgIter(dir)
+	store := New(store_cfg, sub).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -965,8 +970,8 @@ func BenchmarkIterCommit(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg, nil).(*KVMVCCStore)
+	store_cfg, sub := newStoreCfgIter(dir)
+	store := New(store_cfg, sub).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
