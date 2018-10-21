@@ -5,8 +5,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (e *Paracross) ExecDelLocal_Commit(payload *pt.ParacrossCommitAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.Receipt, error) {
-	var set types.Receipt
+func (e *Paracross) ExecDelLocal_Commit(payload *pt.ParacrossCommitAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	var set types.LocalDBSet
 	for _, log := range receiptData.Logs {
 		if log.Ty == pt.TyLogParacrossCommit { //} || log.Ty == types.TyLogParacrossCommitRecord {
 			var g pt.ReceiptParacrossCommit
@@ -43,8 +43,8 @@ func (e *Paracross) ExecDelLocal_Commit(payload *pt.ParacrossCommitAction, tx *t
 	return &set, nil
 }
 
-func (e *Paracross) ExecDelLocal_AssetTransfer(payload *types.AssetsTransfer, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.Receipt, error) {
-	var set types.Receipt
+func (e *Paracross) ExecDelLocal_AssetTransfer(payload *types.AssetsTransfer, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	var set types.LocalDBSet
 
 	//  主链转出记录，
 	//  转入在 commit done 时记录， 因为没有日志里没有当时tx信息
@@ -57,11 +57,11 @@ func (e *Paracross) ExecDelLocal_AssetTransfer(payload *types.AssetsTransfer, tx
 	return &set, nil
 }
 
-func (e *Paracross) ExecDelLocal_AssetWithdraw(payload *types.AssetsWithdraw, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.Receipt, error) {
+func (e *Paracross) ExecDelLocal_AssetWithdraw(payload *types.AssetsWithdraw, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return nil, nil
 }
 
-func (e *Paracross) ExecDelLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.Receipt, error) {
+func (e *Paracross) ExecDelLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	if index != 0 {
 		return nil, types.ErrParaMinerBaseIndex
 	}
@@ -72,14 +72,14 @@ func (e *Paracross) ExecDelLocal_Miner(payload *pt.ParacrossMinerAction, tx *typ
 	return nil, nil
 }
 
-func (e *Paracross) ExecDelLocal_Transfer(payload *types.AssetsTransfer, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.Receipt, error) {
+func (e *Paracross) ExecDelLocal_Transfer(payload *types.AssetsTransfer, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return nil, nil
 }
 
-func (e *Paracross) ExecDelLocal_Withdraw(payload *types.AssetsWithdraw, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.Receipt, error) {
+func (e *Paracross) ExecDelLocal_Withdraw(payload *types.AssetsWithdraw, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return nil, nil
 }
 
-func (e *Paracross) ExecDelLocal_TransferToExec(payload *types.AssetsTransferToExec, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.Receipt, error) {
+func (e *Paracross) ExecDelLocal_TransferToExec(payload *types.AssetsTransferToExec, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return nil, nil
 }
