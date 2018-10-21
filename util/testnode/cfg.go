@@ -67,7 +67,7 @@ minTxFee=1000000
 maxTxNumPerAccount=10000
 
 [consensus]
-name="ticket"
+name="solo"
 minerstart=true
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
