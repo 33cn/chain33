@@ -11,7 +11,6 @@ type PluginBase struct {
 	RPC      func(name string, s types.RPCServer)
 	Exec     func(name string, sub []byte)
 	Cmd      func() *cobra.Command
-	execCfg  map[string]byte
 }
 
 func (p *PluginBase) GetName() string {
