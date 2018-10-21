@@ -12,6 +12,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types/jsonpb"
 )
 
@@ -228,10 +229,7 @@ func GetSignName(execer string, signType int) string {
 		}
 	}
 	//加载系统执行器的签名类型
-	if name, exist := mapSignType2name[signType]; exist {
-		return name
-	}
-	return "unknow"
+	return crypto.GetName(signType)
 }
 
 func GetSignType(execer string, name string) int {
@@ -246,10 +244,7 @@ func GetSignType(execer string, name string) int {
 		}
 	}
 	//加载系统执行器的签名类型
-	if name, exist := mapSignName2Type[name]; exist {
-		return name
-	}
-	return Invalid
+	return crypto.GetType(name)
 }
 
 var ConfigPrefix = "mavl-config-"

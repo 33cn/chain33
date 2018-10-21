@@ -191,8 +191,12 @@ func (sig SignatureSM2) Equals(other crypto.Signature) bool {
 	return false
 }
 
+const Name = "sm2"
+const ID = 3
+
 func init() {
-	crypto.Register(crypto.SignNameSM2, &Driver{})
+	crypto.Register(Name, &Driver{})
+	crypto.RegisterType(Name, ID)
 }
 
 func privKeyFromBytes(curve elliptic.Curve, pk []byte) (*sm2.PrivateKey, *sm2.PublicKey) {

@@ -94,30 +94,12 @@ const (
 	SM2       = 3
 )
 
-const (
-	SignNameSecp256k1 = "secp256k1"
-	SignNameED25519   = "ed25519"
-	SignNameSM2       = "sm2"
-)
-
 // 创建隐私交易的类型定义
 const (
 	PrivacyTypePublic2Privacy = iota + 1
 	PrivacyTypePrivacy2Privacy
 	PrivacyTypePrivacy2Public
 )
-
-var mapSignType2name = map[int]string{
-	SECP256K1: SignNameSecp256k1,
-	ED25519:   SignNameED25519,
-	SM2:       SignNameSM2,
-}
-
-var mapSignName2Type = map[string]int{
-	SignNameSecp256k1: SECP256K1,
-	SignNameED25519:   ED25519,
-	SignNameSM2:       SM2,
-}
 
 //log type
 const (

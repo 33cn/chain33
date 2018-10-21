@@ -1,18 +1,23 @@
-package authority
+package authority_test
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/utils"
 	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
+
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
 var (
@@ -37,9 +42,13 @@ var (
 	tr          = &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: int64(1e8)}}
 	secpp256, _ = crypto.New(types.GetSignName("", types.SECP256K1))
 	privKey, _  = secpp256.PrivKeyFromBytes(privRaw)
-	tx14        = &types.Transaction{Execer: []byte("coins"),
+	tx14        = &types.Transaction{
+		Execer:  []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
-		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKey.PubKey().Bytes()).String()}
+		Fee:     1000000,
+		Expire:  2,
+		To:      address.PubKeyToAddress(privKey.PubKey().Bytes()).String(),
+	}
 )
 
 var USERNAME = "User"
@@ -70,15 +79,18 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 初始化Author实例和userloader
 */
 func initEnv() error {
-	cfg, _ := config.InitCfg("./test/chain33.auth.test.toml")
+	_, sub := config.InitCfg("./test/chain33.auth.test.toml")
+	var subcfg ct.Authority
+	if sub.Exec["cert"] != nil {
+		types.MustDecode(sub.Exec["cert"], &subcfg)
+	}
+	authority.Author.Init(&subcfg)
+	SIGNTYPE = types.GetSignType("cert", subcfg.SignType)
 
-	Author.Init(cfg.Auth)
-	SIGNTYPE = types.GetSignType("cert", cfg.Auth.SignType)
-
-	userLoader := &UserLoader{}
-	err := userLoader.Init(cfg.Auth.CryptoPath, cfg.Auth.SignType)
+	userLoader := &authority.UserLoader{}
+	err := userLoader.Init(subcfg.CryptoPath, subcfg.SignType)
 	if err != nil {
-		fmt.Printf("Init user loader falied")
+		fmt.Printf("Init user loader falied -> %v", err)
 		return err
 	}
 
@@ -182,13 +194,14 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 TestCase04 不带证书，SM2签名验证
 */
 func TestChckSignWithSm2(t *testing.T) {
-	sm2, _ := crypto.New(types.GetSignName("cert", ct.AUTH_SM2))
+	sm2, err := crypto.New(types.GetSignName("cert", ct.AUTH_SM2))
+	assert.Nil(t, err)
 	privKeysm2, _ := sm2.PrivKeyFromBytes(privRaw)
 	tx15 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
 		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKeysm2.PubKey().Bytes()).String()}
 
-	err := initEnv()
+	err = initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
 		return
@@ -245,7 +258,7 @@ func TestValidateCert(t *testing.T) {
 	defer types.SetMinFee(prev)
 
 	for _, tx := range txs {
-		err = Author.Validate(tx.Signature)
+		err = authority.Author.Validate(tx.Signature)
 		if err != nil {
 			t.Error("error cert validate", err.Error())
 			return
@@ -264,13 +277,13 @@ func TestValidateTxWithNoneAuth(t *testing.T) {
 	}
 	noneCertdata := &types.HistoryCertStore{}
 	noneCertdata.CurHeigth = 0
-	Author.ReloadCert(noneCertdata)
+	authority.Author.ReloadCert(noneCertdata)
 
 	prev := types.MinFee
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
-	err = Author.Validate(tx14.Signature)
+	err = authority.Author.Validate(tx14.Signature)
 	if err != nil {
 		t.Error("error cert validate", err.Error())
 		return
@@ -293,9 +306,9 @@ func TestReloadCert(t *testing.T) {
 
 	store := &types.HistoryCertStore{}
 
-	Author.ReloadCert(store)
+	authority.Author.ReloadCert(store)
 
-	err = Author.Validate(tx1.Signature)
+	err = authority.Author.Validate(tx1.Signature)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -310,14 +323,12 @@ func TestReloadByHeight(t *testing.T) {
 		t.Errorf("init env failed, error:%s", err)
 		return
 	}
-
 	prev := types.MinFee
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
-	Author.ReloadCertByHeght(30)
-
-	if Author.HistoryCertCache.CurHeight != 30 {
+	authority.Author.ReloadCertByHeght(30)
+	if authority.Author.HistoryCertCache.CurHeight != 30 {
 		t.Error("reload by height failed")
 	}
 }

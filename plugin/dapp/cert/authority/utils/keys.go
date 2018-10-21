@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tjfoc/gmsm/sm2"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	ecdsa_util "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/crypto/ecdsa"
+	ecdsa_util "gitlab.33.cn/chain33/chain33/plugin/crypto/ecdsa"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	sm2_util "gitlab.33.cn/chain33/chain33/system/crypto/sm2"
 )
