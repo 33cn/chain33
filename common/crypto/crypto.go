@@ -43,8 +43,6 @@ const (
 	SignNameSecp256k1 = "secp256k1"
 	SignNameED25519   = "ed25519"
 	SignNameSM2       = "sm2"
-	SignNameAuthECDSA = "auth_ecdsa"
-	SignNameAuthSM2   = "auth_sm2"
 )
 
 func Register(name string, driver Crypto) {

@@ -33,7 +33,7 @@ type KVMVCCStore struct {
 	enableMVCCIter bool
 }
 
-func New(cfg *types.Store) queue.Module {
+func New(cfg *types.Store, sub []byte) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	var kvs *KVMVCCStore
 	if cfg.EnableMVCCIter {

@@ -78,7 +78,7 @@ func DisableLog() {
 	storelog.SetHandler(log.DiscardHandler())
 }
 
-func New(cfg *types.Wallet) *Wallet {
+func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	//walletStore
 	accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)

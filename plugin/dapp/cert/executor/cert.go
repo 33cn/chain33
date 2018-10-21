@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/authority"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority"
 	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -18,7 +18,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Cert{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	driverName = name
 	drivers.Register(driverName, newCert, 0)
 }

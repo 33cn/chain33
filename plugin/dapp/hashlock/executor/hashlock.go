@@ -17,7 +17,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Hashlock{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newHashlock, 0)
 }
 

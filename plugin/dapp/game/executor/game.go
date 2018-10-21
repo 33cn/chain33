@@ -18,7 +18,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Game{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newGame, 0)
 }
 
