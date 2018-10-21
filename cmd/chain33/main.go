@@ -177,9 +177,6 @@ func main() {
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet, sub.Wallet)
 	walletm.SetQueueClient(q.Client())
-	/*todo
-	authority.Author.Init(cfg.Auth)
-	*/
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
