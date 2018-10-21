@@ -129,6 +129,11 @@ func newWalletRealize(qApi client.QueueProtocolAPI) {
 			panic(err)
 		}
 	}
+	req := &types.ReqAccountList{WithoutBalance: true}
+	_, err = qApi.WalletGetAccountList(req)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (mock *Chain33Mock) GetAPI() client.QueueProtocolAPI {
