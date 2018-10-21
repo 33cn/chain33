@@ -17,7 +17,6 @@ message Config {
     bool       testNet    = 12;
     bool       fixTime    = 13;
     Pprof      pprof      = 14;
-    Authority  auth       = 15;
 }
 
 message Log {
@@ -89,9 +88,6 @@ message Wallet {
     string   dbPath                = 3;
     int32    dbCache               = 4;
     string   signType              = 5;
-    bool     forceMining           = 6;
-    bool     minerdisable          = 7;
-    repeated string minerwhitelist = 8;
 }
 
 message Store {
@@ -99,9 +95,6 @@ message Store {
     string driver           = 2;
     string dbPath           = 3;
     int32  dbCache          = 4;
-    bool   enableMavlPrefix = 5;
-    bool   enableMVCC       = 6;
-    bool   enableMVCCIter   = 7;
 }
 
 message BlockChain {
@@ -157,13 +150,7 @@ message Exec {
     bool     enableStat             = 3;
     bool     enableMVCC             = 4;
     repeated string alias           = 5;
-    bool            saveTokenTxList = 6;
-}
-
-message Authority {
-    bool   enable     = 1;
-    string cryptoPath = 2;
-    string signType   = 3;
+    bool     saveTokenTxList = 6;
 }
 
 message Pprof {
