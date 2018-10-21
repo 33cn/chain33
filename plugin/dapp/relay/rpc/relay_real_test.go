@@ -38,5 +38,4 @@ func TestExecQuery(t *testing.T) {
 	err = jsonClient.Call("Chain33.Query", in, &reply)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(-1), reply.CurHeight)
-
 }
