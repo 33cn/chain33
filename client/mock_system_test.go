@@ -22,7 +22,8 @@ var (
 )
 
 func init() {
-	cfg := config.InitCfg(*configPath)
+	cfg, sub := config.InitCfg(*configPath)
+	println(sub)
 	// change rpc bind address
 	cfg.Rpc.JrpcBindAddr = jrpcaddr
 	cfg.Rpc.GrpcBindAddr = grpcaddr

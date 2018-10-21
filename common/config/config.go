@@ -20,12 +20,16 @@ func Init(path string) (*types.Config, error) {
 	return &cfg, nil
 }
 
-func InitCfg(path string) *types.Config {
+func InitCfg(path string) (*types.Config, *types.ConfigSubModule) {
 	cfg, err := Init(path)
 	if err != nil {
 		panic(err)
 	}
-	return cfg
+	sub, err := InitSubModule(path)
+	if err != nil {
+		panic(err)
+	}
+	return cfg, sub
 }
 
 type subModule struct {
