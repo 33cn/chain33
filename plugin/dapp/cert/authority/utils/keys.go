@@ -16,9 +16,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tjfoc/gmsm/sm2"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
-	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
-	"gitlab.33.cn/chain33/chain33/types"
+	ecdsa_util "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/crypto/ecdsa"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
+	sm2_util "gitlab.33.cn/chain33/chain33/system/crypto/sm2"
 )
 
 func SKI(curve elliptic.Curve, x, y *big.Int) (ski []byte) {
@@ -37,14 +37,14 @@ func GetPublicKeySKIFromCert(cert []byte, signType int) (string, error) {
 
 	var ski []byte
 	switch signType {
-	case types.AUTH_ECDSA:
+	case ty.AUTH_ECDSA:
 		x509Cert, err := x509.ParseCertificate(dcert.Bytes)
 		if err != nil {
 			return "", errors.Errorf("Unable to parse cert from decoded bytes: %s", err)
 		}
 		ecdsaPk := x509Cert.PublicKey.(*ecdsa.PublicKey)
 		ski = SKI(ecdsaPk.Curve, ecdsaPk.X, ecdsaPk.Y)
-	case types.AUTH_SM2:
+	case ty.AUTH_SM2:
 		sm2Cert, err := sm2.ParseCertificate(dcert.Bytes)
 		if err != nil {
 			return "", errors.Errorf("Unable to parse cert from decoded bytes: %s", err)
@@ -82,13 +82,13 @@ func PrivKeyByteFromRaw(raw []byte, signType int) ([]byte, error) {
 	}
 
 	switch signType {
-	case types.AUTH_ECDSA:
+	case ty.AUTH_ECDSA:
 		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 		if err != nil {
 			return nil, err
 		}
 		return ecdsa_util.SerializePrivateKey(key.(*ecdsa.PrivateKey)), nil
-	case types.AUTH_SM2:
+	case ty.AUTH_SM2:
 		key, err := sm2.ParsePKCS8PrivateKey(block.Bytes, nil)
 		if err != nil {
 			return nil, err

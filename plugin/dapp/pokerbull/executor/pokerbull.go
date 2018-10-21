@@ -11,7 +11,7 @@ import (
 
 var logger = log.New("module", "execs.pokerbull")
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(newPBGame().GetName(), newPBGame, 0)
 }
 

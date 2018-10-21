@@ -83,6 +83,10 @@ dbCache=128
 enableMavlPrefix=false
 enableMVCC=false
 
+[store.sub.mavl2]
+enableMavlPrefix=false
+enableMVCC=false
+
 [wallet]
 minFee=100000
 driver="leveldb"

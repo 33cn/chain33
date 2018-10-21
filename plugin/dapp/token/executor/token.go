@@ -37,7 +37,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&token{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newToken, types.ForkV2AddToken)
 	setReciptPrefix()
 }
