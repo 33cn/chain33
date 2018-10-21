@@ -3,6 +3,7 @@ package pluginmgr
 import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/rpc/types"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
 type PluginBase struct {
@@ -10,6 +11,7 @@ type PluginBase struct {
 	ExecName string
 	RPC      func(name string, s types.RPCServer)
 	Exec     func(name string, sub []byte)
+	Wallet   func(walletBiz wcom.WalletOperate, sub []byte)
 	Cmd      func() *cobra.Command
 }
 
@@ -27,6 +29,14 @@ func (p *PluginBase) InitExec(sub map[string][]byte) {
 		subcfg = nil
 	}
 	p.Exec(p.ExecName, subcfg)
+}
+
+func (p *PluginBase) InitWallet(walletBiz wcom.WalletOperate, sub map[string][]byte) {
+	subcfg, ok := sub[p.ExecName]
+	if !ok {
+		subcfg = nil
+	}
+	p.Wallet(walletBiz, subcfg)
 }
 
 func (p *PluginBase) AddCmd(rootCmd *cobra.Command) {

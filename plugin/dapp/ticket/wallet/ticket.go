@@ -38,6 +38,13 @@ type ticketPolicy struct {
 	autoMinerFlag      int32
 	isTicketLocked     int32
 	minertimeout       *time.Timer
+	cfg                *subConfig
+}
+
+type subConfig struct {
+	ForceMining    bool     `json:"forceMining"`
+	Minerdisable   bool     `json:"minerdisable"`
+	Minerwhitelist []string `json:"minerwhitelist"`
 }
 
 func (policy *ticketPolicy) initMingTicketTicker() {
@@ -78,7 +85,7 @@ func (policy *ticketPolicy) IsTicketLocked() bool {
 	return atomic.LoadInt32(&policy.isTicketLocked) != 0
 }
 
-func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
+func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate, sub []byte) {
 	policy.setWalletOperate(walletBiz)
 	policy.store = NewStore(walletBiz.GetDBStore())
 	policy.needFlush = false
@@ -89,6 +96,12 @@ func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
 	initMinerWhiteList(walletBiz.GetConfig())
 	// 启动自动挖矿
 	walletBiz.GetWaitGroup().Add(1)
+
+	var subcfg subConfig
+	if sub != nil {
+		types.MustDecode(sub, &subcfg)
+	}
+	policy.cfg = &subcfg
 	go policy.autoMining()
 }
 
