@@ -6,6 +6,8 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+
+	_ "gitlab.33.cn/chain33/chain33/system/crypto/init"
 )
 
 func TestCreateGroupTx(t *testing.T) {

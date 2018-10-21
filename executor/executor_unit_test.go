@@ -22,8 +22,8 @@ var (
 
 func initUnitEnv() (queue.Queue, *Executor) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
-	exec := New(cfg.Exec)
+	cfg, sub := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	exec := New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 	return q, exec
 }

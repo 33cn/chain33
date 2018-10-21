@@ -69,11 +69,7 @@ func main() {
 		panic(err)
 	}
 	//set config: bityuan 用 bityuan.toml 这个配置文件
-	cfg := config.InitCfg(*configPath)
-	sub, err := config.InitSubModule(*configPath)
-	if err != nil {
-		panic(err)
-	}
+	cfg, sub := config.InitCfg(*configPath)
 	if *datadir != "" {
 		resetDatadir(cfg, *datadir)
 	}

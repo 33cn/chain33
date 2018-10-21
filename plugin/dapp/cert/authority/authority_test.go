@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/utils"
 	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -43,7 +43,7 @@ var (
 )
 
 var USERNAME = "User"
-var SIGNTYPE = types.AUTH_SM2
+var SIGNTYPE = ct.AUTH_SM2
 
 func signtx(tx *types.Transaction, priv crypto.PrivKey, cert []byte) {
 	tx.Sign(int32(SIGNTYPE), priv)
@@ -70,7 +70,7 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 初始化Author实例和userloader
 */
 func initEnv() error {
-	cfg := config.InitCfg("./test/chain33.auth.test.toml")
+	cfg, _ := config.InitCfg("./test/chain33.auth.test.toml")
 
 	Author.Init(cfg.Auth)
 	SIGNTYPE = types.GetSignType("cert", cfg.Auth.SignType)
@@ -182,7 +182,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 TestCase04 不带证书，SM2签名验证
 */
 func TestChckSignWithSm2(t *testing.T) {
-	sm2, _ := crypto.New(types.GetSignName("cert", types.AUTH_SM2))
+	sm2, _ := crypto.New(types.GetSignName("cert", ct.AUTH_SM2))
 	privKeysm2, _ := sm2.PrivKeyFromBytes(privRaw)
 	tx15 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
@@ -197,7 +197,7 @@ func TestChckSignWithSm2(t *testing.T) {
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
-	tx15.Sign(types.AUTH_SM2, privKeysm2)
+	tx15.Sign(ct.AUTH_SM2, privKeysm2)
 	if !tx15.CheckSign() {
 		t.Error("check signature failed")
 		return
@@ -208,7 +208,7 @@ func TestChckSignWithSm2(t *testing.T) {
 TestCase05 不带证书，secp256r1签名验证
 */
 func TestChckSignWithEcdsa(t *testing.T) {
-	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", types.AUTH_ECDSA))
+	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", ct.AUTH_ECDSA))
 	privKeyecdsa, _ := ecdsacrypto.PrivKeyFromBytes(privRaw)
 	tx16 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
@@ -223,7 +223,7 @@ func TestChckSignWithEcdsa(t *testing.T) {
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
-	tx16.Sign(types.AUTH_ECDSA, privKeyecdsa)
+	tx16.Sign(ct.AUTH_ECDSA, privKeyecdsa)
 	if !tx16.CheckSign() {
 		t.Error("check signature failed")
 		return

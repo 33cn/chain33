@@ -15,10 +15,10 @@ import (
 	"fmt"
 
 	"github.com/tjfoc/gmsm/sm2"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/utils"
-	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/tools/cryptogen/factory/csp"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/tools/cryptogen/generator"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/tools/cryptogen/generator/utils"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 )
 
 type EcdsaCA struct {
@@ -35,9 +35,9 @@ type SM2CA struct {
 }
 
 func NewCA(baseDir, name string, signType int) (generator.CAGenerator, error) {
-	if signType == types.AUTH_ECDSA {
+	if signType == ty.AUTH_ECDSA {
 		return newEcdsaCA(baseDir, name)
-	} else if signType == types.AUTH_SM2 {
+	} else if signType == ty.AUTH_SM2 {
 		return newSM2CA(baseDir, name)
 	} else {
 		return nil, fmt.Errorf("Invalid sign type")

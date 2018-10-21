@@ -7,8 +7,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/impl"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/tools/cryptogen/generator"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/tools/cryptogen/generator/impl"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 

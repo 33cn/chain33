@@ -9,8 +9,8 @@ import (
 	"fmt"
 
 	"github.com/tjfoc/gmsm/sm2"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/signer"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/tools/cryptogen/factory/csp"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/tools/cryptogen/factory/signer"
 )
 
 func getCSPFromOpts(KeyStorePath string) (csp.CSP, error) {

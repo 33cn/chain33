@@ -32,7 +32,7 @@ func TestKvmvccdbNewClose(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	store.Close()
@@ -44,7 +44,7 @@ func TestKvmvccdbSetGet(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -90,7 +90,7 @@ func TestKvmvccdbMemSet(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -128,7 +128,7 @@ func TestKvmvccdbRollback(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -161,7 +161,7 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -252,7 +252,7 @@ func TestIterateRangeByStateHash(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	execaddr := "0111vcBNSEA7fZhAdLJphDwQRQJa111"
@@ -398,7 +398,7 @@ func BenchmarkGet(b *testing.B) {
 	os.RemoveAll(dir)       //删除已存在目录
 
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -442,7 +442,7 @@ func BenchmarkStoreGetKvs4N(b *testing.B) {
 	os.RemoveAll(dir)       //删除已存在目录
 
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -487,7 +487,7 @@ func BenchmarkStoreGetKvsForNN(b *testing.B) {
 	os.RemoveAll(dir)       //删除已存在目录
 
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -547,7 +547,7 @@ func BenchmarkStoreGetKvsFor10000(b *testing.B) {
 	os.RemoveAll(dir)       //删除已存在目录
 
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -612,7 +612,7 @@ func BenchmarkGetIter(b *testing.B) {
 	os.RemoveAll(dir)       //删除已存在目录
 
 	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -655,7 +655,7 @@ func BenchmarkSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 	b.Log(dir)
 
@@ -692,7 +692,7 @@ func BenchmarkStoreSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -727,7 +727,7 @@ func BenchmarkSetIter(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 	b.Log(dir)
 
@@ -776,7 +776,7 @@ func BenchmarkMemSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -810,7 +810,7 @@ func BenchmarkStoreMemSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -848,7 +848,7 @@ func BenchmarkCommit(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -889,7 +889,7 @@ func BenchmarkStoreCommit(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -933,7 +933,7 @@ func BenchmarkIterMemSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -966,7 +966,7 @@ func BenchmarkIterCommit(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfgIter(dir)
-	store := New(store_cfg).(*KVMVCCStore)
+	store := New(store_cfg, nil).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
