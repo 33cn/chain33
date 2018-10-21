@@ -266,7 +266,7 @@ func TestTrade_Exec_BuyLimit(t *testing.T) {
 
 func signTx(tx *types.Transaction, hexPrivKey string) (*types.Transaction, error) {
 	signType := types.SECP256K1
-	c, err := crypto.New(types.GetSignName(signType))
+	c, err := crypto.New(types.GetSignName(types.TradeX, signType))
 	if err != nil {
 		return tx, err
 	}
