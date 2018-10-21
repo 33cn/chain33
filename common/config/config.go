@@ -32,6 +32,26 @@ func InitCfg(path string) (*types.Config, *types.ConfigSubModule) {
 	return cfg, sub
 }
 
+func InitString(cfgstring string) (*types.Config, error) {
+	var cfg types.Config
+	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+func InitCfgString(cfgstring string) (*types.Config, *types.ConfigSubModule) {
+	cfg, err := InitString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	sub, err := InitSubModuleString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	return cfg, sub
+}
+
 type subModule struct {
 	Store     map[string]interface{}
 	Exec      map[string]interface{}
@@ -39,11 +59,23 @@ type subModule struct {
 	Wallet    map[string]interface{}
 }
 
+func InitSubModuleString(cfgstring string) (*types.ConfigSubModule, error) {
+	var cfg subModule
+	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
+		return nil, err
+	}
+	return parseSubModule(&cfg)
+}
+
 func InitSubModule(path string) (*types.ConfigSubModule, error) {
 	var cfg subModule
 	if _, err := tml.DecodeFile(path, &cfg); err != nil {
 		return nil, err
 	}
+	return parseSubModule(&cfg)
+}
+
+func parseSubModule(cfg *subModule) (*types.ConfigSubModule, error) {
 	var subcfg types.ConfigSubModule
 	subcfg.Store = parseItem(cfg.Store)
 	subcfg.Exec = parseItem(cfg.Exec)
