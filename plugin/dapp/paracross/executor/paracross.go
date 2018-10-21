@@ -15,10 +15,16 @@ import (
 var (
 	clog                    = log.New("module", "execs.paracross")
 	enableParacrossTransfer = true
+	driverName              = types.ParaX
 )
 
 type Paracross struct {
 	drivers.DriverBase
+}
+
+func init() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Paracross{}))
 }
 
 func Init(name string) {
@@ -33,6 +39,7 @@ func GetName() string {
 func newParacross() drivers.Driver {
 	c := &Paracross{}
 	c.SetChild(c)
+	c.SetExecutorType(types.LoadExecutorType(driverName))
 	return c
 }
 
