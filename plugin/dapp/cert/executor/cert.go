@@ -20,6 +20,11 @@ func init() {
 
 func Init(name string, sub []byte) {
 	driverName = name
+	var cfg ct.Authority
+	if sub != nil {
+		types.MustDecode(sub, &cfg)
+	}
+	authority.Author.Init(&cfg)
 	drivers.Register(driverName, newCert, 0)
 }
 
