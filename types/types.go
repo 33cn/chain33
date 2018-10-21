@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -384,4 +385,11 @@ func IsNilP(a interface{}) bool {
 		return v.IsNil()
 	}
 	return false
+}
+
+func MustDecode(data []byte, v interface{}) {
+	err := json.Unmarshal(data, v)
+	if err != nil {
+		panic(err)
+	}
 }

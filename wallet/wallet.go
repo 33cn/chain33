@@ -105,13 +105,8 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
+	wcom.Init(wallet, sub)
 	return wallet
-}
-
-func (wallet *Wallet) initBizPolicy() {
-	for _, policy := range wcom.PolicyContainer {
-		policy.Init(wallet)
-	}
 }
 
 func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) error {
@@ -232,7 +227,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
-	wallet.initBizPolicy()
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 }

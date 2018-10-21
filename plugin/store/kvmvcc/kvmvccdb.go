@@ -33,10 +33,20 @@ type KVMVCCStore struct {
 	enableMVCCIter bool
 }
 
+type subConfig struct {
+	EnableMVCCIter bool `json:"enableMVCCIter"`
+}
+
 func New(cfg *types.Store, sub []byte) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	var kvs *KVMVCCStore
-	if cfg.EnableMVCCIter {
+	enable := false
+	if sub != nil {
+		var subcfg subConfig
+		types.MustDecode(sub, &subcfg)
+		enable = subcfg.EnableMVCCIter
+	}
+	if enable {
 		kvs = &KVMVCCStore{bs, dbm.NewMVCCIter(bs.GetDB()), make(map[string][]*types.KeyValue), true}
 	} else {
 		kvs = &KVMVCCStore{bs, dbm.NewMVCC(bs.GetDB()), make(map[string][]*types.KeyValue), false}
