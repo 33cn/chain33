@@ -14,7 +14,6 @@ import (
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/types"
-
 )
 
 // para-exec addr on main 1HPkPopVe3ERfvaAgedDtJQ792taZFEHCe
