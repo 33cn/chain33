@@ -341,7 +341,7 @@ func (tx *Transaction) checkSign() bool {
 	if tx.GetSignature() == nil {
 		return false
 	}
-	return CheckSign(data, tx.GetSignature())
+	return CheckSign(data, string(tx.Execer), tx.GetSignature())
 }
 
 func (tx *Transaction) Check(height, minfee int64) error {

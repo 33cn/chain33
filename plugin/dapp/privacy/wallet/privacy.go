@@ -34,7 +34,6 @@ func (policy *privacyPolicy) rescanAllTxAddToUpdateUTXOs() {
 		go policy.rescanReqTxDetailByAddr(acc.Addr, policy.rescanwg)
 	}
 	policy.rescanwg.Wait()
-
 	bizlog.Debug("rescanAllTxToUpdateUTXOs sucess!")
 }
 
@@ -204,7 +203,7 @@ func (policy *privacyPolicy) getPrivKeyByAddr(addr string) (crypto.PrivKey, erro
 	password := []byte(operater.GetPassword())
 	privkey := wcom.CBCDecrypterPrivkey(password, prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName(operater.GetSignType()))
+	cr, err := crypto.New(types.GetSignName("privacy", operater.GetSignType()))
 	if err != nil {
 		bizlog.Error("ProcSendToAddress", "err", err)
 		return nil, err
@@ -1155,7 +1154,7 @@ func (policy *privacyPolicy) signatureTx(tx *types.Transaction, privacyInput *pr
 
 	ringSignData := types.Encode(ringSign)
 	tx.Signature = &types.Signature{
-		Ty:        types.RingBaseonED25519,
+		Ty:        privacytypes.RingBaseonED25519,
 		Signature: ringSignData,
 		// 这里填的是隐私合约的公钥，让框架保持一致
 		Pubkey: address.ExecPubKey(types.PrivacyX),
