@@ -42,7 +42,7 @@ type Chain33Mock struct {
 
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	q := queue.New("channel")
-	cfg := config.InitCfg(cfgpath)
+	cfg, sub := config.InitCfg(cfgpath)
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
 	types.Debug = false
@@ -51,14 +51,14 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	mock.chain = blockchain.New(cfg.BlockChain)
 	mock.chain.SetQueueClient(q.Client())
 
-	mock.exec = executor.New(cfg.Exec)
+	mock.exec = executor.New(cfg.Exec, sub.Exec)
 	mock.exec.SetQueueClient(q.Client())
 	types.SetMinFee(cfg.Exec.MinExecFee)
 
-	mock.store = store.New(cfg.Store)
+	mock.store = store.New(cfg.Store, sub.Store)
 	mock.store.SetQueueClient(q.Client())
 
-	mock.cs = consensus.New(cfg.Consensus)
+	mock.cs = consensus.New(cfg.Consensus, sub.Consensus)
 	mock.cs.SetQueueClient(q.Client())
 
 	mock.mem = mempool.New(cfg.MemPool)
@@ -73,7 +73,7 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	}
 
 	cli := q.Client()
-	w := wallet.New(cfg.Wallet)
+	w := wallet.New(cfg.Wallet, sub.Wallet)
 	mock.client = cli
 	mock.wallet = w
 	mock.wallet.SetQueueClient(cli)

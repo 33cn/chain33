@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 
 	"github.com/tjfoc/gmsm/sm2"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/tools/cryptogen/factory/csp"
 )
 
 func CreateCertificateToMem(template, parent *sm2.Certificate, key csp.Key) (cert []byte, err error) {

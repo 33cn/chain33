@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/utils"
-	auth "gitlab.33.cn/chain33/chain33/authority/utils"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/tools/cryptogen/factory/utils"
+	auth "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/utils"
 )
 
 var logger = log.New("tools", "cryptogen")
