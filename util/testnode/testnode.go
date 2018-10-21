@@ -7,7 +7,9 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
@@ -175,4 +177,34 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 }
 
 func (m *mockP2P) Close() {
+}
+
+func (m *Chain33Mock) GenNoneTxs(n int64) (txs []*types.Transaction) {
+	_, priv := m.Genaddress()
+	to, _ := m.Genaddress()
+	for i := 0; i < int(n); i++ {
+		txs = append(txs, m.CreateNoneTx(priv, to, types.Coin*(n+1)))
+	}
+	return txs
+}
+
+func (m *Chain33Mock) Genaddress() (string, crypto.PrivKey) {
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	privto, err := cr.GenKey()
+	if err != nil {
+		panic(err)
+	}
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
+	return addrto.String(), privto
+}
+
+func (m *Chain33Mock) CreateNoneTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+	tx := &types.Transaction{Execer: []byte("none"), Payload: []byte("none"), Fee: 1e6, To: to}
+	tx.Nonce = m.random.Int63()
+	tx.To = address.ExecAddress("none")
+	tx.Sign(types.SECP256K1, priv)
+	return tx
 }
