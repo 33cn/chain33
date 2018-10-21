@@ -42,7 +42,13 @@ type Chain33Mock struct {
 
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	q := queue.New("channel")
-	cfg, sub := config.InitCfg(cfgpath)
+	var cfg *types.Config
+	var sub *types.ConfigSubModule
+	if cfgpath == "" {
+		cfg, sub = config.InitCfgString(cfgstring)
+	} else {
+		cfg, sub = config.InitCfg(cfgpath)
+	}
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
 	types.Debug = false

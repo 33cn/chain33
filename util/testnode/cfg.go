@@ -1,4 +1,6 @@
-Title="local"
+package testnode
+
+var cfgstring = `Title="local"
 TestNet=true
 
 [log]
@@ -104,3 +106,4 @@ enable=false
 cryptoPath="authdir/crypto"
 # 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
 signType="auth_ecdsa"
+`
