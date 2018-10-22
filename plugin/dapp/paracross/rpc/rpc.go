@@ -7,8 +7,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (c *channelClient) GetHeight(ctx context.Context, req *types.ReqString) (*pt.ParacrossStatus, error) {
-	data, err := c.Query(pt.GetExecName(), "GetHeight", req)
+func (c *channelClient) GetTitle(ctx context.Context, req *types.ReqString) (*pt.ParacrossStatus, error) {
+	data, err := c.Query(pt.GetExecName(), "GetTitle", req)
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (c *Jrpc) GetHeight(req *types.ReqString, result *interface{}) error {
 	if req == nil {
 		return types.ErrInvalidParam
 	}
-	data, err := c.cli.GetHeight(context.Background(), req)
+	data, err := c.cli.GetTitle(context.Background(), req)
 	*result = data
 	return err
 }
