@@ -66,10 +66,10 @@ func (e *Paracross) ExecDelLocal_Miner(payload *pt.ParacrossMinerAction, tx *typ
 		return nil, types.ErrParaMinerBaseIndex
 	}
 
-	var set types.Receipt
+	var set types.LocalDBSet
 	set.KV = append(set.KV, &types.KeyValue{pt.CalcMinerHeightKey(payload.Status.Title, payload.Status.Height), nil})
 
-	return nil, nil
+	return &set, nil
 }
 
 func (e *Paracross) ExecDelLocal_Transfer(payload *types.AssetsTransfer, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
