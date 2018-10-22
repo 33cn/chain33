@@ -157,22 +157,6 @@ type GetTicketMinerInfoResult struct {
 	MinerAddress string `json:"minerAddress,omitempty"`
 }
 
-type PrivacyAccountResult struct {
-	Token         string `json:"Token,omitempty"`
-	Txhash        string `json:"Txhash,omitempty"`
-	OutIndex      int32  `json:"OutIndex,omitempty"`
-	Amount        string `json:"Amount,omitempty"`
-	OnetimePubKey string `json:"OnetimePubKey,omitempty"`
-}
-
-type PrivacyAccountInfoResult struct {
-	AvailableDetail []*PrivacyAccountResult `json:"AvailableDetail,omitempty"`
-	FrozenDetail    []*PrivacyAccountResult `json:"FrozenDetail,omitempty"`
-	AvailableAmount string                  `json:"AvailableAmount,omitempty"`
-	FrozenAmount    string                  `json:"FrozenAmount,omitempty"`
-	TotalAmount     string                  `json:"TotalAmount,omitempty"`
-}
-
 type UTXOGlobalIndex struct {
 	// Height   int64  `json:"height,omitempty"`
 	// Txindex  int32  `json:"txindex,omitempty"`
@@ -201,11 +185,6 @@ type ReceiptPrivacyOutput struct {
 	Keyoutput []*KeyOutput `json:"keyoutput,omitempty"`
 }
 
-type PrivacyAccountSpendResult struct {
-	Txhash string                  `json:"Txhash,omitempty"`
-	Res    []*PrivacyAccountResult `json:"Spend,omitempty"`
-}
-
 type AllExecBalance struct {
 	Addr        string         `json:"addr"`
 	ExecAccount []*ExecAccount `json:"execAccount"`
@@ -214,25 +193,6 @@ type AllExecBalance struct {
 type ExecAccount struct {
 	Execer  string         `json:"execer"`
 	Account *AccountResult `json:"account"`
-}
-
-type ShowRescanResult struct {
-	Addr       string `json:"addr"`
-	FlagString string `json:"FlagString"`
-}
-
-type showRescanResults struct {
-	RescanResults []*ShowRescanResult `json:"ShowRescanResults,omitempty"`
-}
-
-type ShowPriAddrResult struct {
-	Addr string `json:"addr"`
-	IsOK bool   `json:"IsOK"`
-	Msg  string `json:"msg"`
-}
-
-type ShowEnablePrivacy struct {
-	Results []*ShowPriAddrResult `json:"results"`
 }
 
 // decodetx

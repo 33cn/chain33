@@ -64,7 +64,7 @@ func (g *channelClient) RescanUtxos(ctx context.Context, in *pty.ReqRescanUtxos)
 
 // 使能隐私账户
 func (g *channelClient) EnablePrivacy(ctx context.Context, in *pty.ReqEnablePrivacy) (*pty.RepEnablePrivacy, error) {
-	data, err := g.ExecWalletFunc(pty.PrivacyX, "RescanUtxos", in)
+	data, err := g.ExecWalletFunc(pty.PrivacyX, "EnablePrivacy", in)
 	if err != nil {
 		return nil, err
 	}
@@ -72,10 +72,12 @@ func (g *channelClient) EnablePrivacy(ctx context.Context, in *pty.ReqEnablePriv
 }
 
 func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *interface{}) error {
-	reply, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountInfo", in)
+	//reply, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountInfo", in)
+	reply, err := c.cli.ExecWalletFunc(pty.PrivacyX, "PrivacyAccountInfo", in)
 	if err != nil {
 		return err
 	}
+
 	*result = reply
 	return nil
 }
