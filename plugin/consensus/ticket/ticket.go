@@ -40,7 +40,7 @@ type Client struct {
 	done     chan struct{}
 }
 
-func New(cfg *types.Consensus) queue.Module {
+func New(cfg *types.Consensus, sub []byte) queue.Module {
 	c := drivers.NewBaseClient(cfg)
 	t := &Client{c, &ty.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{})}
 	c.SetChild(t)
@@ -173,7 +173,7 @@ func (client *Client) ProcEvent(msg queue.Message) bool {
 }
 
 func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		return nil, err
 	}

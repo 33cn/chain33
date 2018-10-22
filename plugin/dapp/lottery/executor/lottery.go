@@ -17,7 +17,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Lottery{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	driverName := GetName()
 	if name != driverName {
 		panic("system dapp can't be rename")

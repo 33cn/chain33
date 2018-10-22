@@ -23,7 +23,7 @@ func init() {
 }
 
 //黑白配可以被重命名执行器名称
-func Init(name string) {
+func Init(name string, sub []byte) {
 	driverName = name
 	gt.BlackwhiteX = driverName
 	gt.ExecerBlackwhite = []byte(driverName)

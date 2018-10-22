@@ -535,7 +535,7 @@ out:
 				panic(err)
 			}
 
-			secp, err := crypto.New(types.GetSignName(types.SECP256K1))
+			secp, err := crypto.New(types.GetSignName("", types.SECP256K1))
 			if err != nil {
 				panic(err)
 			}
