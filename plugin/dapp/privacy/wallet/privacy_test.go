@@ -31,7 +31,7 @@ func (mock *PrivacyMock) Init(walletOp wcom.WalletOperate, password string) {
 	mock.tokenName = types.BTY
 	mock.walletOp = walletOp
 	mock.password = password
-	mock.policy.Init(walletOp)
+	mock.policy.Init(walletOp, nil)
 	mock.store = mock.policy.store
 }
 

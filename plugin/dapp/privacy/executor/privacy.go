@@ -37,7 +37,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&privacy{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newPrivacy, types.ForkV21Privacy)
 	// 如果需要在开发环境下使用隐私交易，则需要使用下面这行代码，否则用上面的代码
 	//drivers.Register(newPrivacy().GetName(), newPrivacy, 0)

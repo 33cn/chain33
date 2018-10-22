@@ -21,7 +21,7 @@ import (
 func init() {
 	slog.SetLogLevel("error")
 	types.SetTitle("local")
-	pluginmgr.InitExec()
+	pluginmgr.InitExec(nil)
 }
 
 func newTestChannelClient() *channelClient {

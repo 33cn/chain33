@@ -153,12 +153,14 @@ message LotteryNumberRecord {
 
 // used for execlocal
 message LotteryBuyRecord {
-    int64 number = 1;
-    int64 amount = 2;
-    int64 round  = 3;
-    int64 type   = 4;
-    int64 way    = 5;
-    int64 index  = 6;
+    int64  number = 1;
+    int64  amount = 2;
+    int64  round  = 3;
+    int64  type   = 4;
+    int64  way    = 5;
+    int64  index  = 6;
+    int64  time   = 7;
+    string txHash = 8;
 }
 
 message LotteryBuyRecords {
@@ -177,11 +179,8 @@ message LotteryDrawRecords {
 }
 
 message LotteryUpdateRec {
-    int64 index  = 1;
-    int64 number = 2;
-    int64 amount = 3;
-    int64 type   = 4;
-    int64 way    = 5;
+    int64 index = 1;
+    int64 type  = 2;
 }
 
 message LotteryUpdateRecs {
