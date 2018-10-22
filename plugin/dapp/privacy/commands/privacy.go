@@ -611,6 +611,27 @@ func listPrivacyTxsFlags(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
+func parseWalletTxListRes(arg interface{}) (interface{}, error) {
+	res := arg.(*rpctypes.WalletTxDetails)
+	var result WalletTxDetailsResult
+	for _, v := range res.TxDetails {
+		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
+		wtxd := &WalletTxDetailResult{
+			Tx:         decodeTransaction(v.Tx),
+			Receipt:    decodeLog([]byte(v.Tx.Execer), *(v.Receipt)),
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.BlockTime,
+			Amount:     amountResult,
+			Fromaddr:   v.FromAddr,
+			Txhash:     v.TxHash,
+			ActionName: v.ActionName,
+		}
+		result.TxDetails = append(result.TxDetails, wtxd)
+	}
+	return result, nil
+}
+
 func RescanUtxosOptCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rescanOpt",
