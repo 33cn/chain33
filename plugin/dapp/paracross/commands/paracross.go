@@ -173,7 +173,7 @@ func createTransfer(cmd *cobra.Command, args []string) {
 // create raw transfer to exec tx
 func CreateRawTransferToExecCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "transfer",
+		Use:   "transfer_exec",
 		Short: "Create a transfer to exec transaction",
 		Run:   createTransferToExec,
 	}
