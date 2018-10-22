@@ -102,6 +102,8 @@ message Store {
     bool   enableMavlPrefix = 5;
     bool   enableMVCC       = 6;
     bool   enableMVCCIter   = 7;
+    bool   enableMavlPrune  = 8;
+    int32  pruneHeight      = 9;
 }
 
 message BlockChain {
