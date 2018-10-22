@@ -2,6 +2,7 @@ package executor
 
 import (
 	"gitlab.33.cn/chain33/chain33/common"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -14,11 +15,10 @@ func (p *privacy) execDelLocal(tx *types.Transaction, receiptData *types.Receipt
 	}
 	localDB := p.GetLocalDB()
 	for i, item := range receiptData.Logs {
-		if item.Ty != types.TyLogPrivacyOutput {
+		if item.Ty != ty.TyLogPrivacyOutput {
 			continue
 		}
-
-		var receiptPrivacyOutput types.ReceiptPrivacyOutput
+		var receiptPrivacyOutput ty.ReceiptPrivacyOutput
 		err := types.Decode(item.Log, &receiptPrivacyOutput)
 		if err != nil {
 			privacylog.Error("PrivacyTrading ExecDelLocal", "txhash", txhashstr, "Decode item.Log error ", err)
@@ -35,7 +35,7 @@ func (p *privacy) execDelLocal(tx *types.Transaction, receiptData *types.Receipt
 			dbSet.KV = append(dbSet.KV, kv)
 
 			//kv2，添加各种不同额度的kv记录，能让我们很方便的获知本系统存在的所有不同的额度的UTXO
-			var amountTypes types.AmountsOfUTXO
+			var amountTypes ty.AmountsOfUTXO
 			key2 := CalcprivacyKeyTokenAmountType(token)
 			value2, err := localDB.Get(key2)
 			//如果该种token不是第一次进行隐私操作
@@ -61,7 +61,7 @@ func (p *privacy) execDelLocal(tx *types.Transaction, receiptData *types.Receipt
 			}
 
 			//kv3,添加存在隐私交易token的类型
-			var tokenNames types.TokenNamesOfUTXO
+			var tokenNames ty.TokenNamesOfUTXO
 			key3 := CalcprivacyKeyTokenTypes()
 			value3, err := localDB.Get(key3)
 			if err == nil && value3 != nil {
@@ -83,14 +83,14 @@ func (p *privacy) execDelLocal(tx *types.Transaction, receiptData *types.Receipt
 	return dbSet, nil
 }
 
-func (p *privacy) ExecDelLocal_Public2Privacy(payload *types.Public2Privacy, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (p *privacy) ExecDelLocal_Public2Privacy(payload *ty.Public2Privacy, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return p.execDelLocal(tx, receiptData, index)
 }
 
-func (p *privacy) ExecDelLocal_Privacy2Privacy(payload *types.Privacy2Privacy, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (p *privacy) ExecDelLocal_Privacy2Privacy(payload *ty.Privacy2Privacy, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return p.execDelLocal(tx, receiptData, index)
 }
 
-func (p *privacy) ExecDelLocal_Privacy2Public(payload *types.Privacy2Public, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (p *privacy) ExecDelLocal_Privacy2Public(payload *ty.Privacy2Public, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return p.execDelLocal(tx, receiptData, index)
 }

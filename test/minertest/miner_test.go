@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -108,50 +109,20 @@ func TestMinerBind(t *testing.T) {
 	}
 }
 
-/*
-func TestAutoClose(t *testing.T) {
-	//取出已经miner的列表
-	addr := address.PubKeyToAddress(privMiner.PubKey().Bytes()).String()
-	t.Log(addr)
-	tlist, err := getMineredTicketList(addr, 2)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	now := types.Now().Unix()
-	var ids []string
-	for i := 0; i < len(tlist); i++ {
-		if now-tlist[i].CreateTime > types.TicketWithdrawTime {
-			ids = append(ids, tlist[i].TicketId)
-		}
-	}
-	if len(ids) > 0 {
-		for i := 0; i < len(ids); i++ {
-			t.Log("close ticket", i, ids[i])
-		}
-		err := closeTickets(privMiner, ids)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-	}
-}
-*/
-
 func openticket(mineraddr, returnaddr string, priv crypto.PrivKey) error {
-	ta := &types.TicketAction{}
-	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: 1}
-	ta.Value = &types.TicketAction_Topen{topen}
-	ta.Ty = types.TicketActionOpen
+	ta := &tickettypes.TicketAction{}
+	topen := &tickettypes.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: 1}
+	ta.Value = &tickettypes.TicketAction_Topen{topen}
+	ta.Ty = tickettypes.TicketActionOpen
 	err := sendTransactionWait(ta, []byte("ticket"), priv, "")
 	return err
 }
 
 func bindminer(mineraddr, returnaddr string, priv crypto.PrivKey) error {
-	ta := &types.TicketAction{}
-	tbind := &types.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
-	ta.Value = &types.TicketAction_Tbind{tbind}
-	ta.Ty = types.TicketActionBind
+	ta := &tickettypes.TicketAction{}
+	tbind := &tickettypes.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
+	ta.Value = &tickettypes.TicketAction_Tbind{tbind}
+	ta.Ty = tickettypes.TicketActionBind
 	err := sendTransactionWait(ta, []byte("ticket"), priv, "")
 	return err
 }
@@ -163,10 +134,10 @@ func closeTickets(priv crypto.PrivKey, ids []string) error {
 		if end > len(ids) {
 			end = len(ids)
 		}
-		ta := &types.TicketAction{}
-		tclose := &types.TicketClose{ids[i:end]}
-		ta.Value = &types.TicketAction_Tclose{tclose}
-		ta.Ty = types.TicketActionClose
+		ta := &tickettypes.TicketAction{}
+		tclose := &tickettypes.TicketClose{ids[i:end]}
+		ta.Value = &tickettypes.TicketAction_Tclose{tclose}
+		ta.Ty = tickettypes.TicketActionClose
 		_, err := sendTransaction(ta, []byte("ticket"), priv, "")
 		if err != nil {
 			return err
@@ -176,12 +147,12 @@ func closeTickets(priv crypto.PrivKey, ids []string) error {
 }
 
 //通rpc 进行query
-func getMineredTicketList(addr string, status int32) ([]*types.Ticket, error) {
-	reqaddr := &types.TicketList{addr, status}
-	var req types.Query
-	req.Execer = []byte("ticket")
+func getMineredTicketList(addr string, status int32) ([]*tickettypes.Ticket, error) {
+	reqaddr := &tickettypes.TicketList{addr, status}
+	var req types.ChainExecutor
+	req.Driver = "ticket"
 	req.FuncName = "TicketList"
-	req.Payload = types.Encode(reqaddr)
+	req.Param = types.Encode(reqaddr)
 	c := types.NewChain33Client(conn)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -191,7 +162,7 @@ func getMineredTicketList(addr string, status int32) ([]*types.Ticket, error) {
 		return nil, errors.New(string(reply.GetMsg()))
 	}
 	//decode
-	var list types.ReplyTicketList
+	var list tickettypes.ReplyTicketList
 	err = types.Decode(reply.GetMsg(), &list)
 	if err != nil {
 		return nil, err
@@ -219,7 +190,7 @@ func getBalance(addr string, execer string) (*types.Account, error) {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -232,7 +203,7 @@ func genaddress() (string, crypto.PrivKey) {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -283,10 +254,10 @@ func sendTransactionWait(payload types.Message, execer []byte, priv crypto.PrivK
 
 func getMinerSourceList(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
-	var req types.Query
-	req.Execer = []byte("ticket")
+	var req types.ChainExecutor
+	req.Driver = "ticket"
 	req.FuncName = "MinerSourceList"
-	req.Payload = types.Encode(reqaddr)
+	req.Param = types.Encode(reqaddr)
 
 	c := types.NewChain33Client(conn)
 	reply, err := c.QueryChain(context.Background(), &req)
@@ -331,8 +302,8 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 }
 
 func setAutoMining(flag int32) (err error) {
-	req := &types.MinerFlag{Flag: flag}
-	c := types.NewChain33Client(conn)
+	req := &tickettypes.MinerFlag{Flag: flag}
+	c := tickettypes.NewTicketClient(conn)
 	reply, err := c.SetAutoMining(context.Background(), req)
 	if err != nil {
 		return err

@@ -10,7 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -71,8 +72,8 @@ func queryTxByAddr(cmd *cobra.Command, args []string) {
 		Height:    height,
 		Index:     index,
 	}
-	var res jsonrpc.ReplyTxInfos
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
+	var res rpctypes.ReplyTxInfos
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
 	ctx.Run()
 }
 
@@ -99,21 +100,21 @@ func queryTx(cmd *cobra.Command, args []string) {
 		fmt.Print(types.ErrHashNotExist.Error())
 		return
 	}
-	params := jsonrpc.QueryParm{
+	params := rpctypes.QueryParm{
 		Hash: hash,
 	}
-	var res jsonrpc.TransactionDetail
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.QueryTransaction", params, &res)
+	var res rpctypes.TransactionDetail
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.QueryTransaction", params, &res)
 	ctx.SetResultCb(parseQueryTxRes)
 	ctx.Run()
 }
 
 func parseQueryTxRes(arg interface{}) (interface{}, error) {
-	res := arg.(*jsonrpc.TransactionDetail)
+	res := arg.(*rpctypes.TransactionDetail)
 	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(types.Coin), 'f', 4, 64)
 	result := TxDetailResult{
 		Tx:         decodeTransaction(res.Tx),
-		Receipt:    decodeLog(*(res.Receipt)),
+		Receipt:    decodeLog([]byte(res.Tx.Execer), *(res.Receipt)),
 		Proofs:     res.Proofs,
 		Height:     res.Height,
 		Index:      res.Index,
@@ -145,19 +146,19 @@ func getTxsByHashes(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	hashes, _ := cmd.Flags().GetString("hashes")
 	hashesArr := strings.Split(hashes, " ")
-	params := jsonrpc.ReqHashes{
+	params := rpctypes.ReqHashes{
 		Hashes: hashesArr,
 	}
 
-	var res jsonrpc.TransactionDetails
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTxByHashes", params, &res)
+	var res rpctypes.TransactionDetails
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetTxByHashes", params, &res)
 	ctx.SetResultCb(parseQueryTxsByHashesRes)
 	ctx.Run()
 }
 
 func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 	var result TxDetailsResult
-	for _, v := range arg.(*jsonrpc.TransactionDetails).Txs {
+	for _, v := range arg.(*rpctypes.TransactionDetails).Txs {
 		if v == nil {
 			result.Txs = append(result.Txs, nil)
 			continue
@@ -165,7 +166,7 @@ func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		td := TxDetailResult{
 			Tx:         decodeTransaction(v.Tx),
-			Receipt:    decodeLog(*(v.Receipt)),
+			Receipt:    decodeLog([]byte(v.Tx.Execer), *(v.Receipt)),
 			Proofs:     v.Proofs,
 			Height:     v.Height,
 			Index:      v.Index,
@@ -198,11 +199,11 @@ func addGetRawTxFlags(cmd *cobra.Command) {
 func getTxHexByHash(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	txHash, _ := cmd.Flags().GetString("hash")
-	params := jsonrpc.QueryParm{
+	params := rpctypes.QueryParm{
 		Hash: txHash,
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -237,7 +238,7 @@ func decodeTx(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	res, err := jsonrpc.DecodeTx(&tx)
+	res, err := rpctypes.DecodeTx(&tx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -278,7 +279,7 @@ func viewAddress(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.AddrOverview
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)
 	ctx.SetResultCb(parseAddrOverview)
 	ctx.Run()
 }

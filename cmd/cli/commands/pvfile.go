@@ -70,7 +70,7 @@ MAIN_LOOP:
 }
 
 func initCryptoImpl() error {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.ED25519))
+	cr, err := crypto.New(types.GetSignName("", types.ED25519))
 	if err != nil {
 		tendermintlog.Error("New crypto impl failed", "err", err)
 		return err

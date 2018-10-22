@@ -2,7 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"reflect"
 
 	log "github.com/inconshreveable/log15"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
@@ -12,19 +11,14 @@ import (
 
 var glog = log.New("module", "execs.game")
 
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = gt.NewType()
+var driverName = gt.GameX
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Game{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Game{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newGame, 0)
 }
 
@@ -35,7 +29,7 @@ type Game struct {
 func newGame() drivers.Driver {
 	t := &Game{}
 	t.SetChild(t)
-	t.SetExecutorType(executorType)
+	t.SetExecutorType(types.LoadExecutorType(driverName))
 	return t
 }
 
@@ -44,7 +38,7 @@ func GetName() string {
 }
 
 func (g *Game) GetDriverName() string {
-	return gt.GameX
+	return driverName
 }
 
 //更新索引
@@ -158,10 +152,6 @@ type ReplyGame struct {
 
 func (c *Game) GetPayloadValue() types.Message {
 	return &gt.GameAction{}
-}
-
-func (c *Game) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
 }
 
 func (c *Game) GetTypeMap() map[string]int32 {

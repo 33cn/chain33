@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -113,7 +114,7 @@ func (s State) GetValidators() (last *ttypes.ValidatorSet, current *ttypes.Valid
 // Create a block from the latest state
 
 // MakeBlock builds a block with the given txs and commit from the current state.
-func (s State) MakeBlock(height int64, round int64, Txs []*types.Transaction, commit *types.TendermintCommit) *ttypes.TendermintBlock {
+func (s State) MakeBlock(height int64, round int64, Txs []*types.Transaction, commit *tmtypes.TendermintCommit) *ttypes.TendermintBlock {
 	// build base block
 	block := ttypes.MakeBlock(height, round, Txs, commit)
 
@@ -214,7 +215,7 @@ func NewStateDB(client *TendermintClient, state State) *CSStateDB {
 	}
 }
 
-func LoadState(state *types.State) State {
+func LoadState(state *tmtypes.State) State {
 	stateTmp := State{
 		ChainID:                          state.GetChainID(),
 		LastBlockHeight:                  state.GetLastBlockHeight(),
@@ -322,7 +323,7 @@ func (csdb *CSStateDB) LoadValidators(height int64) (*ttypes.ValidatorSet, error
 	return state.Validators.Copy(), nil
 }
 
-func saveConsensusParams(dest *types.ConsensusParams, source ttypes.ConsensusParams) {
+func saveConsensusParams(dest *tmtypes.ConsensusParams, source ttypes.ConsensusParams) {
 	dest.BlockSize.MaxBytes = int32(source.BlockSize.MaxBytes)
 	dest.BlockSize.MaxTxs = int32(source.BlockSize.MaxTxs)
 	dest.BlockSize.MaxGas = source.BlockSize.MaxGas
@@ -332,12 +333,12 @@ func saveConsensusParams(dest *types.ConsensusParams, source ttypes.ConsensusPar
 	dest.EvidenceParams.MaxAge = source.EvidenceParams.MaxAge
 }
 
-func saveValidators(dest []*types.Validator, source []*ttypes.Validator) []*types.Validator {
+func saveValidators(dest []*tmtypes.Validator, source []*ttypes.Validator) []*tmtypes.Validator {
 	for _, item := range source {
 		if item == nil {
-			dest = append(dest, &types.Validator{})
+			dest = append(dest, &tmtypes.Validator{})
 		} else {
-			validator := &types.Validator{
+			validator := &tmtypes.Validator{
 				Address:     item.Address,
 				PubKey:      item.PubKey,
 				VotingPower: item.VotingPower,
@@ -349,7 +350,7 @@ func saveValidators(dest []*types.Validator, source []*ttypes.Validator) []*type
 	return dest
 }
 
-func saveProposer(dest *types.Validator, source *ttypes.Validator) {
+func saveProposer(dest *tmtypes.Validator, source *ttypes.Validator) {
 	if source != nil {
 		dest.Address = source.Address
 		dest.PubKey = source.PubKey
@@ -358,16 +359,16 @@ func saveProposer(dest *types.Validator, source *ttypes.Validator) {
 	}
 }
 
-func SaveState(state State) *types.State {
-	newState := types.State{
+func SaveState(state State) *tmtypes.State {
+	newState := tmtypes.State{
 		ChainID:                          state.ChainID,
 		LastBlockHeight:                  state.LastBlockHeight,
 		LastBlockTotalTx:                 state.LastBlockTotalTx,
 		LastBlockTime:                    state.LastBlockTime,
-		Validators:                       &types.ValidatorSet{Validators: make([]*types.Validator, 0), Proposer: &types.Validator{}},
-		LastValidators:                   &types.ValidatorSet{Validators: make([]*types.Validator, 0), Proposer: &types.Validator{}},
+		Validators:                       &tmtypes.ValidatorSet{Validators: make([]*tmtypes.Validator, 0), Proposer: &tmtypes.Validator{}},
+		LastValidators:                   &tmtypes.ValidatorSet{Validators: make([]*tmtypes.Validator, 0), Proposer: &tmtypes.Validator{}},
 		LastHeightValidatorsChanged:      state.LastHeightValidatorsChanged,
-		ConsensusParams:                  &types.ConsensusParams{BlockSize: &types.BlockSize{}, TxSize: &types.TxSize{}, BlockGossip: &types.BlockGossip{}, EvidenceParams: &types.EvidenceParams{}},
+		ConsensusParams:                  &tmtypes.ConsensusParams{BlockSize: &tmtypes.BlockSize{}, TxSize: &tmtypes.TxSize{}, BlockGossip: &tmtypes.BlockGossip{}, EvidenceParams: &tmtypes.EvidenceParams{}},
 		LastHeightConsensusParamsChanged: state.LastHeightConsensusParamsChanged,
 		LastResultsHash:                  state.LastResultsHash,
 		AppHash:                          state.AppHash,
@@ -385,7 +386,7 @@ func SaveState(state State) *types.State {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -400,7 +401,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func LoadValidators(des []*ttypes.Validator, source []*types.Validator) {
+func LoadValidators(des []*ttypes.Validator, source []*tmtypes.Validator) {
 	for i, item := range source {
 		if item.GetAddress() == nil || len(item.GetAddress()) == 0 {
 			tendermintlog.Warn("LoadValidators get address is nil or empty")
@@ -422,7 +423,7 @@ func LoadValidators(des []*ttypes.Validator, source []*types.Validator) {
 	}
 }
 
-func LoadProposer(source *types.Validator) (*ttypes.Validator, error) {
+func LoadProposer(source *tmtypes.Validator) (*ttypes.Validator, error) {
 	if source.GetAddress() == nil || len(source.GetAddress()) == 0 {
 		tendermintlog.Warn("LoadProposer get address is nil or empty")
 		return nil, errors.New("LoadProposer get address is nil or empty")
@@ -444,10 +445,10 @@ func LoadProposer(source *types.Validator) (*ttypes.Validator, error) {
 	return des, nil
 }
 
-func CreateBlockInfoTx(pubkey string, lastCommit *types.TendermintCommit, seenCommit *types.TendermintCommit, state *types.State, proposal *types.Proposal, block *types.TendermintBlock) *types.Transaction {
+func CreateBlockInfoTx(pubkey string, lastCommit *tmtypes.TendermintCommit, seenCommit *tmtypes.TendermintCommit, state *tmtypes.State, proposal *tmtypes.Proposal, block *tmtypes.TendermintBlock) *types.Transaction {
 	blockNoTxs := *block
 	blockNoTxs.Txs = make([]*types.Transaction, 0)
-	blockInfo := &types.TendermintBlockInfo{
+	blockInfo := &tmtypes.TendermintBlockInfo{
 		SeenCommit: seenCommit,
 		LastCommit: lastCommit,
 		State:      state,
@@ -456,8 +457,8 @@ func CreateBlockInfoTx(pubkey string, lastCommit *types.TendermintCommit, seenCo
 	}
 	tendermintlog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators, "block", block, "block-notxs", blockNoTxs)
 
-	nput := &types.ValNodeAction_BlockInfo{BlockInfo: blockInfo}
-	action := &types.ValNodeAction{Value: nput, Ty: types.ValNodeActionBlockInfo}
+	nput := &tmtypes.ValNodeAction_BlockInfo{BlockInfo: blockInfo}
+	action := &tmtypes.ValNodeAction{Value: nput, Ty: tmtypes.ValNodeActionBlockInfo}
 	tx := &types.Transaction{Execer: []byte("valnode"), Payload: types.Encode(action), Fee: fee}
 	tx.To = address.ExecAddress("valnode")
 	tx.Nonce = r.Int63()

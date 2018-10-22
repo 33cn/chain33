@@ -3,7 +3,9 @@ package rpc
 import (
 	"net"
 	"net/rpc"
+	"time"
 
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -34,16 +36,21 @@ type Grpc struct {
 type Grpcserver struct {
 	grpc Grpc
 	s    *grpc.Server
+	l    net.Listener
 	//addr string
 }
 
 type JSONRPCServer struct {
 	jrpc Chain33
 	s    *rpc.Server
+	l    net.Listener
 	//addr string
 }
 
 func (s *JSONRPCServer) Close() {
+	if s.l != nil {
+		s.l.Close()
+	}
 	s.jrpc.cli.Close()
 }
 
@@ -102,13 +109,15 @@ func checkGrpcFuncBlacklist(funcName string) bool {
 }
 
 func (j *Grpcserver) Close() {
+	if j.l != nil {
+		j.l.Close()
+	}
 	j.grpc.cli.Close()
-
 }
 
-func NewGRpcServer(c queue.Client) *Grpcserver {
+func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 	s := &Grpcserver{}
-	s.grpc.cli.Init(c)
+	s.grpc.cli.Init(c, api)
 	var opts []grpc.ServerOption
 	//register interceptor
 	//var interceptor grpc.UnaryServerInterceptor
@@ -126,9 +135,9 @@ func NewGRpcServer(c queue.Client) *Grpcserver {
 	return s
 }
 
-func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
+func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServer {
 	j := &JSONRPCServer{}
-	j.jrpc.cli.Init(c)
+	j.jrpc.cli.Init(c, api)
 	server := rpc.NewServer()
 	j.s = server
 	server.RegisterName("Chain33", &j.jrpc)
@@ -140,6 +149,7 @@ type RPC struct {
 	gapi *Grpcserver
 	japi *JSONRPCServer
 	c    queue.Client
+	api  client.QueueProtocolAPI
 }
 
 func InitCfg(cfg *types.Rpc) {
@@ -156,16 +166,50 @@ func New(cfg *types.Rpc) *RPC {
 	return &RPC{cfg: cfg}
 }
 
+func (r *RPC) SetAPI(api client.QueueProtocolAPI) {
+	r.api = api
+}
+
 func (r *RPC) SetQueueClient(c queue.Client) {
-	gapi := NewGRpcServer(c)
-	japi := NewJSONRPCServer(c)
+	gapi := NewGRpcServer(c, r.api)
+	japi := NewJSONRPCServer(c, r.api)
 	r.gapi = gapi
 	r.japi = japi
 	r.c = c
 	//注册系统rpc
 	pluginmgr.AddRPC(r)
-	go gapi.Listen()
-	go japi.Listen()
+	r.Listen()
+}
+
+func (r *RPC) SetQueueClientNoListen(c queue.Client) {
+	gapi := NewGRpcServer(c, r.api)
+	japi := NewJSONRPCServer(c, r.api)
+	r.gapi = gapi
+	r.japi = japi
+	r.c = c
+	//注册系统rpc
+	pluginmgr.AddRPC(r)
+}
+
+func (rpc *RPC) Listen() {
+	for i := 0; i < 10; i++ {
+		err := rpc.gapi.Listen()
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	for i := 0; i < 10; i++ {
+		err := rpc.japi.Listen()
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	//sleep for a while
+	time.Sleep(time.Millisecond)
 }
 
 func (rpc *RPC) GetQueueClient() queue.Client {
@@ -212,6 +256,7 @@ func InitIpWhitelist(cfg *types.Rpc) {
 	}
 
 }
+
 func InitJrpcFuncWhitelist(cfg *types.Rpc) {
 	if len(cfg.GetJrpcFuncWhitelist()) == 0 {
 		jrpcFuncWhitelist["*"] = true
@@ -225,6 +270,7 @@ func InitJrpcFuncWhitelist(cfg *types.Rpc) {
 		jrpcFuncWhitelist[funcName] = true
 	}
 }
+
 func InitGrpcFuncWhitelist(cfg *types.Rpc) {
 	if len(cfg.GetGrpcFuncWhitelist()) == 0 {
 		grpcFuncWhitelist["*"] = true
@@ -238,6 +284,7 @@ func InitGrpcFuncWhitelist(cfg *types.Rpc) {
 		grpcFuncWhitelist[funcName] = true
 	}
 }
+
 func InitJrpcFuncBlacklist(cfg *types.Rpc) {
 	if len(cfg.GetJrpcFuncBlacklist()) == 0 {
 		jrpcFuncBlacklist["CloseQueue"] = true
@@ -248,6 +295,7 @@ func InitJrpcFuncBlacklist(cfg *types.Rpc) {
 	}
 
 }
+
 func InitGrpcFuncBlacklist(cfg *types.Rpc) {
 	if len(cfg.GetGrpcFuncBlacklist()) == 0 {
 		grpcFuncBlacklist["CloseQueue"] = true

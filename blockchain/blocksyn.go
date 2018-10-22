@@ -806,7 +806,7 @@ func (chain *BlockChain) ReqForkBlocks() {
 //处理从peer获取的headers消息
 func (chain *BlockChain) ProcAddBlockHeadersMsg(headers *types.Headers, pid string) error {
 	if headers == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	count := len(headers.Items)
 	synlog.Debug("ProcAddBlockHeadersMsg", "count", count, "pid", pid)

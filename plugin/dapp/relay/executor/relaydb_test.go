@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/db/mocks"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -26,7 +27,7 @@ func TestRunSuiteRelayLog(t *testing.T) {
 }
 
 func (s *suiteRelayLog) SetupSuite() {
-	order := &types.RelayOrder{
+	order := &ty.RelayOrder{
 		Id:         "123456",
 		CoinTxHash: "aabbccddee",
 	}
@@ -65,7 +66,7 @@ func (s *suiteRelayLog) TestGetKVSet() {
 
 func (s *suiteRelayLog) TestReceiptLog() {
 	val := s.log.receiptLog(1)
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(val.Log, &log)
 	s.Equal(s.log.Id, log.OrderId)
 }
@@ -84,7 +85,7 @@ var privFrom = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE7145
 var privTo = getprivkey("BC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -156,8 +157,8 @@ func (s *suiteRelayDB) SetupSuite() {
 }
 
 func (s *suiteRelayDB) TestRelayCreate_1() {
-	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+	order := &ty.RelayCreate{
+		Operation: ty.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    10 * 1e8,
 		Addr:      addrBtc,
@@ -173,7 +174,7 @@ func (s *suiteRelayDB) TestRelayCreate_1() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
@@ -181,7 +182,7 @@ func (s *suiteRelayDB) TestRelayCreate_1() {
 	s.Equal(int64(200*1e8), account.Frozen)
 	s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(10), log.CoinHeight)
@@ -191,10 +192,10 @@ func (s *suiteRelayDB) TestRelayCreate_1() {
 // the test suite function name need sequence so here aUnlock, bCancel
 // unlock error
 func (s *suiteRelayDB) TestRevokeCreate_1aUnlock() {
-	order := &types.RelayRevoke{
+	order := &ty.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeCreate,
-		Action:  types.RelayUnlock,
+		Target:  ty.RelayRevokeCreate,
+		Action:  ty.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -212,10 +213,10 @@ func (s *suiteRelayDB) TestRevokeCreate_1aUnlock() {
 }
 
 func (s *suiteRelayDB) TestRevokeCreate_1bCancel() {
-	order := &types.RelayRevoke{
+	order := &ty.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeCreate,
-		Action:  types.RelayCancel,
+		Target:  ty.RelayRevokeCreate,
+		Action:  ty.RelayCancel,
 	}
 
 	tx := &types.Transaction{}
@@ -229,9 +230,9 @@ func (s *suiteRelayDB) TestRevokeCreate_1bCancel() {
 
 	receipt, err := s.relayDb.relayRevoke(order)
 	s.Nil(err)
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
-	s.Equal(types.RelayOrderStatus_canceled.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_canceled.String(), log.CurStatus)
 
 	acc := s.relay.GetCoinsAccount()
 	account := acc.LoadExecAccount(addrFrom, s.addrRelay)
@@ -289,8 +290,8 @@ func (s *suiteAccept) setupAccount() {
 }
 
 func (s *suiteAccept) setupRelayCreate() {
-	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+	order := &ty.RelayCreate{
+		Operation: ty.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    10 * 1e8,
 		Addr:      addrBtc,
@@ -306,7 +307,7 @@ func (s *suiteAccept) setupRelayCreate() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
@@ -314,7 +315,7 @@ func (s *suiteAccept) setupRelayCreate() {
 	s.Equal(int64(200*1e8), account.Frozen)
 	s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(10), log.CoinHeight)
@@ -341,7 +342,7 @@ func (s *suiteAccept) SetupSuite() {
 
 func (s *suiteAccept) TestRelayAccept() {
 
-	order := &types.RelayAccept{
+	order := &ty.RelayAccept{
 		OrderId:  s.orderId,
 		CoinAddr: "BTC",
 	}
@@ -362,19 +363,19 @@ func (s *suiteAccept) TestRelayAccept() {
 	//s.Equal(int64(200*1e8),account.Frozen)
 	//s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(20), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_locking.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_locking.String(), log.CurStatus)
 
 }
 
 func (s *suiteAccept) TestRevokeAccept_1() {
-	order := &types.RelayRevoke{
+	order := &ty.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeAccept,
-		Action:  types.RelayUnlock,
+		Target:  ty.RelayRevokeAccept,
+		Action:  ty.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -392,10 +393,10 @@ func (s *suiteAccept) TestRevokeAccept_1() {
 }
 
 func (s *suiteAccept) TestRevokeAccept_2() {
-	order := &types.RelayRevoke{
+	order := &ty.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeAccept,
-		Action:  types.RelayUnlock,
+		Target:  ty.RelayRevokeAccept,
+		Action:  ty.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -413,10 +414,10 @@ func (s *suiteAccept) TestRevokeAccept_2() {
 }
 
 func (s *suiteAccept) TestRevokeAccept_3() {
-	order := &types.RelayRevoke{
+	order := &ty.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeAccept,
-		Action:  types.RelayUnlock,
+		Target:  ty.RelayRevokeAccept,
+		Action:  ty.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -431,10 +432,10 @@ func (s *suiteAccept) TestRevokeAccept_3() {
 	receipt, err := s.relayDb.relayRevoke(order)
 	s.Nil(err)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal(uint64(20), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_pending.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_pending.String(), log.CurStatus)
 }
 
 func TestRunSuiteAccept(t *testing.T) {
@@ -487,8 +488,8 @@ func (s *suiteConfirm) setupAccount() {
 }
 
 func (s *suiteConfirm) setupRelayCreate() {
-	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+	order := &ty.RelayCreate{
+		Operation: ty.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    10 * 1e8,
 		Addr:      addrBtc,
@@ -504,7 +505,7 @@ func (s *suiteConfirm) setupRelayCreate() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
@@ -512,7 +513,7 @@ func (s *suiteConfirm) setupRelayCreate() {
 	s.Equal(int64(200*1e8), account.Frozen)
 	s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(10), log.CoinHeight)
@@ -540,7 +541,7 @@ func (s *suiteConfirm) SetupSuite() {
 
 func (s *suiteConfirm) setupAccept() {
 
-	order := &types.RelayAccept{
+	order := &ty.RelayAccept{
 		OrderId:  s.orderId,
 		CoinAddr: "BTC",
 	}
@@ -561,17 +562,17 @@ func (s *suiteConfirm) setupAccept() {
 	//s.Equal(int64(200*1e8),account.Frozen)
 	//s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(20), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_locking.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_locking.String(), log.CurStatus)
 
 }
 
 func (s *suiteConfirm) TestConfirm_1() {
 
-	order := &types.RelayConfirmTx{
+	order := &ty.RelayConfirmTx{
 		OrderId: s.orderId,
 		TxHash:  "6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4",
 	}
@@ -589,7 +590,7 @@ func (s *suiteConfirm) TestConfirm_1() {
 
 func (s *suiteConfirm) TestConfirm_2() {
 
-	order := &types.RelayConfirmTx{
+	order := &ty.RelayConfirmTx{
 		OrderId: s.orderId,
 		TxHash:  "6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4",
 	}
@@ -610,19 +611,19 @@ func (s *suiteConfirm) TestConfirm_2() {
 	//s.Equal(int64(200*1e8),account.Frozen)
 	//s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(30), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_confirming.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_confirming.String(), log.CurStatus)
 
 }
 
 func (s *suiteConfirm) TestRevokeConfirm_1() {
-	order := &types.RelayRevoke{
+	order := &ty.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeCreate,
-		Action:  types.RelayUnlock,
+		Target:  ty.RelayRevokeCreate,
+		Action:  ty.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -640,10 +641,10 @@ func (s *suiteConfirm) TestRevokeConfirm_1() {
 }
 
 func (s *suiteConfirm) TestRevokeConfirm_2() {
-	order := &types.RelayRevoke{
+	order := &ty.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeCreate,
-		Action:  types.RelayUnlock,
+		Target:  ty.RelayRevokeCreate,
+		Action:  ty.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -657,10 +658,10 @@ func (s *suiteConfirm) TestRevokeConfirm_2() {
 
 	receipt, err := s.relayDb.relayRevoke(order)
 	s.Nil(err)
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal(uint64(30), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_pending.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_pending.String(), log.CurStatus)
 
 }
 
@@ -714,8 +715,8 @@ func (s *suiteVerify) setupAccount() {
 }
 
 func (s *suiteVerify) setupRelayCreate() {
-	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+	order := &ty.RelayCreate{
+		Operation: ty.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    0.299 * 1e8,
 		Addr:      addrBtc,
@@ -731,7 +732,7 @@ func (s *suiteVerify) setupRelayCreate() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
@@ -739,7 +740,7 @@ func (s *suiteVerify) setupRelayCreate() {
 	s.Equal(int64(200*1e8), account.Frozen)
 	s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(10), log.CoinHeight)
@@ -749,7 +750,7 @@ func (s *suiteVerify) setupRelayCreate() {
 
 func (s *suiteVerify) setupAccept() {
 
-	order := &types.RelayAccept{
+	order := &ty.RelayAccept{
 		OrderId:  s.orderId,
 		CoinAddr: "BTC",
 	}
@@ -770,17 +771,17 @@ func (s *suiteVerify) setupAccept() {
 	//s.Equal(int64(200*1e8),account.Frozen)
 	//s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(20), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_locking.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_locking.String(), log.CurStatus)
 
 }
 
 func (s *suiteVerify) setupConfirm() {
 
-	order := &types.RelayConfirmTx{
+	order := &ty.RelayConfirmTx{
 		OrderId: s.orderId,
 		TxHash:  "6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4",
 	}
@@ -801,11 +802,11 @@ func (s *suiteVerify) setupConfirm() {
 	//s.Equal(int64(200*1e8),account.Frozen)
 	//s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(30), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_confirming.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_confirming.String(), log.CurStatus)
 
 }
 
@@ -829,12 +830,12 @@ func (s *suiteVerify) SetupSuite() {
 }
 
 func (s *suiteVerify) TestVerify() {
-	vout := &types.Vout{
+	vout := &ty.Vout{
 		Address: "1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT",
 		Value:   29900000,
 	}
-	transaction := &types.BtcTransaction{
-		Vout:        []*types.Vout{vout},
+	transaction := &ty.BtcTransaction{
+		Vout:        []*ty.Vout{vout},
 		Time:        2500,
 		BlockHeight: 1000,
 		Hash:        "6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4",
@@ -847,7 +848,7 @@ func (s *suiteVerify) TestVerify() {
 		proofs[i], _ = btcHashStrRevers(kk)
 	}
 
-	spv := &types.BtcSpv{
+	spv := &ty.BtcSpv{
 		BranchProof: proofs,
 		TxIndex:     2,
 		BlockHash:   "000000000003ba27aa200b1cecaad478d2b00432346c3f1f3986da1afd33e506",
@@ -857,14 +858,14 @@ func (s *suiteVerify) TestVerify() {
 
 	heightBytes := types.Encode(&types.Int64{int64(1006)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	var head = &types.BtcHeader{
+	var head = &ty.BtcHeader{
 		Version:    1,
 		MerkleRoot: "f3e94742aca4b5ef85488dc37c06c3282295ffec960994b2c0d5ac2a25a95766",
 	}
 	headEnc := types.Encode(head)
 	s.kvdb.On("Get", mock.Anything).Return(headEnc, nil).Once()
 
-	order := &types.RelayVerify{
+	order := &ty.RelayVerify{
 		OrderId: s.orderId,
 		Tx:      transaction,
 		Spv:     spv,
@@ -888,11 +889,11 @@ func (s *suiteVerify) TestVerify() {
 	s.Equal(int64(400*1e8), account.Balance)
 	s.Zero(account.Frozen)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	//s.Equal("200.0000",log.TxAmount)
 	//s.Equal(uint64(30),log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_finished.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_finished.String(), log.CurStatus)
 
 }
 
@@ -945,8 +946,8 @@ func (s *suiteVerifyCli) setupAccount() {
 }
 
 func (s *suiteVerifyCli) setupRelayCreate() {
-	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+	order := &ty.RelayCreate{
+		Operation: ty.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    0.299 * 1e8,
 		Addr:      addrBtc,
@@ -962,7 +963,7 @@ func (s *suiteVerifyCli) setupRelayCreate() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
@@ -970,7 +971,7 @@ func (s *suiteVerifyCli) setupRelayCreate() {
 	s.Equal(int64(200*1e8), account.Frozen)
 	s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(10), log.CoinHeight)
@@ -980,7 +981,7 @@ func (s *suiteVerifyCli) setupRelayCreate() {
 
 func (s *suiteVerifyCli) setupAccept() {
 
-	order := &types.RelayAccept{
+	order := &ty.RelayAccept{
 		OrderId:  s.orderId,
 		CoinAddr: "BTC",
 	}
@@ -1001,17 +1002,17 @@ func (s *suiteVerifyCli) setupAccept() {
 	//s.Equal(int64(200*1e8),account.Frozen)
 	//s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(20), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_locking.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_locking.String(), log.CurStatus)
 
 }
 
 func (s *suiteVerifyCli) setupConfirm() {
 
-	order := &types.RelayConfirmTx{
+	order := &ty.RelayConfirmTx{
 		OrderId: s.orderId,
 		TxHash:  "6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4",
 	}
@@ -1032,11 +1033,11 @@ func (s *suiteVerifyCli) setupConfirm() {
 	//s.Equal(int64(200*1e8),account.Frozen)
 	//s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(30), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_confirming.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_confirming.String(), log.CurStatus)
 
 }
 
@@ -1060,14 +1061,14 @@ func (s *suiteVerifyCli) SetupSuite() {
 }
 
 func (s *suiteVerifyCli) TestVerify() {
-	var head = &types.BtcHeader{
+	var head = &ty.BtcHeader{
 		Version:    1,
 		MerkleRoot: "f3e94742aca4b5ef85488dc37c06c3282295ffec960994b2c0d5ac2a25a95766",
 	}
 	headEnc := types.Encode(head)
 	s.kvdb.On("Get", mock.Anything).Return(headEnc, nil).Once()
 
-	order := &types.RelayVerifyCli{
+	order := &ty.RelayVerifyCli{
 		OrderId:    s.orderId,
 		RawTx:      "0100000001c33ebff2a709f13d9f9a7569ab16a32786af7d7e2de09265e41c61d078294ecf010000008a4730440220032d30df5ee6f57fa46cddb5eb8d0d9fe8de6b342d27942ae90a3231e0ba333e02203deee8060fdc70230a7f5b4ad7d7bc3e628cbe219a886b84269eaeb81e26b4fe014104ae31c31bf91278d99b8377a35bbce5b27d9fff15456839e919453fc7b3f721f0ba403ff96c9deeb680e5fd341c0fc3a7b90da4631ee39560639db462e9cb850fffffffff0240420f00000000001976a914b0dcbf97eabf4404e31d952477ce822dadbe7e1088acc060d211000000001976a9146b1281eec25ab4e1e0793ff4e08ab1abb3409cd988ac00000000",
 		TxIndex:    2,
@@ -1093,10 +1094,10 @@ func (s *suiteVerifyCli) TestVerify() {
 	s.Equal(int64(400*1e8), account.Balance)
 	s.Zero(account.Frozen)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 
-	s.Equal(types.RelayOrderStatus_finished.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_finished.String(), log.CurStatus)
 
 }
 
@@ -1138,7 +1139,7 @@ func (s *suiteSaveBtcHeader) SetupSuite() {
 }
 
 func (s *suiteSaveBtcHeader) TestSaveBtcHeader_1() {
-	head0 := &types.BtcHeader{
+	head0 := &ty.BtcHeader{
 		Hash:          "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
 		Confirmations: 92,
 		Height:        10,
@@ -1150,7 +1151,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_1() {
 		Difficulty:    0,
 		PreviousHash:  "604efe53975ab06cad8748fd703ad5bc960e8b752b2aae98f0f871a4a05abfc7",
 	}
-	head1 := &types.BtcHeader{
+	head1 := &ty.BtcHeader{
 		Hash:          "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
 		Confirmations: 91,
 		Height:        11,
@@ -1163,7 +1164,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_1() {
 		PreviousHash:  "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
 	}
 
-	head2 := &types.BtcHeader{
+	head2 := &ty.BtcHeader{
 		Hash:          "57bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
 		Confirmations: 90,
 		Height:        12,
@@ -1176,7 +1177,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_1() {
 		PreviousHash:  "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
 	}
 
-	headers := &types.BtcHeaders{}
+	headers := &ty.BtcHeaders{}
 	headers.BtcHeader = append(headers.BtcHeader, head0)
 	headers.BtcHeader = append(headers.BtcHeader, head1)
 	headers.BtcHeader = append(headers.BtcHeader, head2)
@@ -1185,7 +1186,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_1() {
 	s.db.On("Set", mock.Anything, mock.Anything).Return(nil).Once()
 	receipt, err := s.relayDb.saveBtcHeader(headers, s.kvdb)
 	s.Nil(err)
-	var log types.ReceiptRelayRcvBTCHeaders
+	var log ty.ReceiptRelayRcvBTCHeaders
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 
 	s.Zero(log.LastHeight)
@@ -1198,7 +1199,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_1() {
 
 //not continuous
 func (s *suiteSaveBtcHeader) TestSaveBtcHeader_2() {
-	head3 := &types.BtcHeader{
+	head3 := &ty.BtcHeader{
 		Hash:          "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
 		Confirmations: 89,
 		Height:        13,
@@ -1210,7 +1211,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_2() {
 		Difficulty:    0,
 		PreviousHash:  "67bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
 	}
-	head4 := &types.BtcHeader{
+	head4 := &ty.BtcHeader{
 		Hash:          "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
 		Confirmations: 89,
 		Height:        14,
@@ -1223,7 +1224,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_2() {
 		PreviousHash:  "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
 	}
 
-	headers := &types.BtcHeaders{}
+	headers := &ty.BtcHeaders{}
 	headers.BtcHeader = append(headers.BtcHeader, head3)
 	headers.BtcHeader = append(headers.BtcHeader, head4)
 	s.db.On("Get", mock.Anything).Return(nil, types.ErrNotFound).Once()
@@ -1234,7 +1235,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_2() {
 
 //not continuous than previous
 func (s *suiteSaveBtcHeader) TestSaveBtcHeader_3() {
-	head3 := &types.BtcHeader{
+	head3 := &ty.BtcHeader{
 		Hash:          "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
 		Confirmations: 89,
 		Height:        13,
@@ -1246,7 +1247,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_3() {
 		Difficulty:    0,
 		PreviousHash:  "67bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
 	}
-	head4 := &types.BtcHeader{
+	head4 := &ty.BtcHeader{
 		Hash:          "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
 		Confirmations: 89,
 		Height:        14,
@@ -1259,10 +1260,10 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_3() {
 		PreviousHash:  "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
 	}
 
-	headers := &types.BtcHeaders{}
+	headers := &ty.BtcHeaders{}
 	headers.BtcHeader = append(headers.BtcHeader, head3)
 
-	lastHead := &types.RelayLastRcvBtcHeader{
+	lastHead := &ty.RelayLastRcvBtcHeader{
 		Header:     head4,
 		BaseHeight: 10,
 	}
@@ -1278,7 +1279,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_3() {
 //reset
 func (s *suiteSaveBtcHeader) TestSaveBtcHeader_4() {
 
-	head4 := &types.BtcHeader{
+	head4 := &ty.BtcHeader{
 		Hash:          "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
 		Confirmations: 89,
 		Height:        14,
@@ -1292,7 +1293,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_4() {
 		IsReset:       true,
 	}
 
-	head5 := &types.BtcHeader{
+	head5 := &ty.BtcHeader{
 		Hash:          "439e515ee8307fccc104395a46626bd43f6042482d56f4abcfaeee3c0a1b1ece",
 		Confirmations: 89,
 		Height:        15,
@@ -1305,7 +1306,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_4() {
 		PreviousHash:  "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
 	}
 
-	headers := &types.BtcHeaders{}
+	headers := &ty.BtcHeaders{}
 	headers.BtcHeader = append(headers.BtcHeader, head4)
 	headers.BtcHeader = append(headers.BtcHeader, head5)
 
@@ -1313,7 +1314,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_4() {
 	s.db.On("Set", mock.Anything, mock.Anything).Return(nil).Once()
 	receipt, err := s.relayDb.saveBtcHeader(headers, s.kvdb)
 	s.Nil(err)
-	var log types.ReceiptRelayRcvBTCHeaders
+	var log ty.ReceiptRelayRcvBTCHeaders
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 
 	s.Zero(log.LastHeight)

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package types;
+
+message Cert {
+    bytes  certId     = 1;
+    int64  createTime = 2;
+    string key        = 3;
+    bytes  value      = 4;
+}
+
+message CertAction {
+    oneof value {
+        CertNew new       = 1;
+        CertUpdate update = 2;
+        CertNormal normal = 3;
+    }
+    int32 ty = 4;
+}
+
+message CertNew {
+    string key   = 1;
+    bytes  value = 2;
+}
+
+message CertUpdate {
+    string key   = 1;
+    bytes  value = 2;
+}
+
+message CertNormal {
+    string key   = 1;
+    bytes  value = 2;
+}
+
+message Authority {
+    bool   enable     = 1;
+    string cryptoPath = 2;
+    string signType   = 3;
+}

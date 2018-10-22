@@ -647,7 +647,7 @@ func (bs *BlockStore) GetTdByBlockHash(hash []byte) (*big.Int, error) {
 //保存block hash对应的总难度到db中
 func (bs *BlockStore) SaveTdByBlockHash(storeBatch dbm.Batch, hash []byte, td *big.Int) error {
 	if td == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 
 	storeBatch.Set(calcHashToTdKey(hash), td.Bytes())
@@ -673,7 +673,7 @@ func LoadBlockStoreHeight(db dbm.DB) (int64, error) {
 // 将收到的block都暂时存储到db中，加入主链之后会重新覆盖。主要是用于chain重组时获取侧链的block使用
 func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync bool) error {
 	if blockdetail == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	height := blockdetail.Block.GetHeight()
 	hash := blockdetail.Block.Hash()

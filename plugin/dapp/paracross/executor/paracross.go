@@ -21,10 +21,9 @@ type Paracross struct {
 	drivers.DriverBase
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newParacross, 0)
 	setPrefix()
-	InitType()
 }
 
 func GetName() string {
@@ -318,7 +317,7 @@ func getCommitHeight(payload []byte) (int64, error) {
 		return 0, err
 	}
 	if a.GetCommit() == nil {
-		return 0, types.ErrInputPara
+		return 0, types.ErrInvalidParam
 	}
 
 	return a.GetCommit().Status.Height, nil
@@ -534,12 +533,12 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 
 func (c *Paracross) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == "ParacrossGetTitle" {
-		var in types.ReqStr
+		var in types.ReqString
 		err := types.Decode(params, &in)
 		if err != nil {
 			return nil, err
 		}
-		return c.ParacrossGetHeight(in.ReqStr)
+		return c.ParacrossGetHeight(in.Data)
 	} else if funcName == "ParacrossListTitles" {
 		return c.ParacrossListTitles()
 	} else if funcName == "ParacrossGetTitleHeight" {

@@ -7,6 +7,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
+	evmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -31,10 +32,10 @@ type ContractAccount struct {
 	Addr string
 
 	// 合约固定数据
-	Data types.EVMContractData
+	Data evmtypes.EVMContractData
 
 	// 合约状态数据
-	State types.EVMContractState
+	State evmtypes.EVMContractState
 
 	// 当前的状态数据缓存
 	stateCache map[string]common.Hash
@@ -119,7 +120,7 @@ func (self *ContractAccount) updateStorageHash() {
 	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
 		return
 	}
-	var state = &types.EVMContractState{Suicided: self.State.Suicided, Nonce: self.State.Nonce}
+	var state = &evmtypes.EVMContractState{Suicided: self.State.Suicided, Nonce: self.State.Nonce}
 	state.Storage = make(map[string][]byte)
 	for k, v := range self.State.GetStorage() {
 		state.Storage[k] = v
@@ -135,7 +136,7 @@ func (self *ContractAccount) updateStorageHash() {
 
 // 从外部恢复合约数据
 func (self *ContractAccount) resotreData(data []byte) {
-	var content types.EVMContractData
+	var content evmtypes.EVMContractData
 	err := proto.Unmarshal(data, &content)
 	if err != nil {
 		log15.Error("read contract data error", self.Addr)
@@ -147,7 +148,7 @@ func (self *ContractAccount) resotreData(data []byte) {
 
 // 从外部恢复合约状态
 func (self *ContractAccount) resotreState(data []byte) {
-	var content types.EVMContractState
+	var content evmtypes.EVMContractState
 	err := proto.Unmarshal(data, &content)
 	if err != nil {
 		log15.Error("read contract state error", self.Addr)
@@ -256,7 +257,7 @@ func (self *ContractAccount) BuildDataLog() (log *types.ReceiptLog) {
 		log15.Error("marshal contract data error!", "addr", self.Addr, "error", err)
 		return
 	}
-	return &types.ReceiptLog{types.TyLogContractData, datas}
+	return &types.ReceiptLog{evmtypes.TyLogContractData, datas}
 }
 
 // 构建变更日志
@@ -267,19 +268,19 @@ func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
 		return
 	}
 
-	return &types.ReceiptLog{types.TyLogContractState, datas}
+	return &types.ReceiptLog{evmtypes.TyLogContractState, datas}
 }
 
 func (self *ContractAccount) GetDataKey() []byte {
-	return []byte("mavl-" + types.EvmX + "-data: " + self.Addr)
+	return []byte("mavl-" + evmtypes.ExecutorName + "-data: " + self.Addr)
 }
 
 func (self *ContractAccount) GetStateKey() []byte {
-	return []byte("mavl-" + types.EvmX + "-state: " + self.Addr)
+	return []byte("mavl-" + evmtypes.ExecutorName + "-state: " + self.Addr)
 }
 
 func getStateItemKey(addr, key string) string {
-	return fmt.Sprintf("mavl-"+types.EvmX+"-state:%v:%v", addr, key)
+	return fmt.Sprintf("mavl-"+evmtypes.ExecutorName+"-state:%v:%v", addr, key)
 }
 
 func (self *ContractAccount) Suicide() bool {

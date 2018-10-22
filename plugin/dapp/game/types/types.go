@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"math/rand"
+	"reflect"
 	"time"
 
 	log "github.com/inconshreveable/log15"
@@ -17,19 +18,8 @@ var tlog = log.New("module", name)
 func init() {
 	name = GameX
 	// init executor type
-	types.RegistorExecutor(name, &GameType{})
-
-	// init log
-	types.RegistorLog(types.TyLogCreateGame, &CreateGameLog{})
-	types.RegistorLog(types.TyLogCancleGame, &CancelGameLog{})
-	types.RegistorLog(types.TyLogMatchGame, &MatchGameLog{})
-	types.RegistorLog(types.TyLogCloseGame, &CloseGameLog{})
-
-	// init query rpc
-	types.RegisterRPCQueryHandle(FuncName_QueryGameListByIds, &GameGetList{})
-	types.RegisterRPCQueryHandle(FuncName_QueryGameById, &GameGetInfo{})
-	types.RegisterRPCQueryHandle(FuncName_QueryGameListByStatusAndAddr, &GameQueryList{})
-	types.RegisterRPCQueryHandle(FuncName_QueryGameListCount, &GameQueryListCount{})
+	types.AllowUserExec = append(types.AllowUserExec, []byte(name))
+	types.RegistorExecutor(name, NewType())
 }
 
 //getRealExecName
@@ -51,48 +41,26 @@ type GameType struct {
 	types.ExecTypeBase
 }
 
-func (game GameType) GetRealToAddr(tx *types.Transaction) string {
-	if string(tx.Execer) == GameX {
-		return tx.To
+func (at *GameType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{
+		TyLogCreateGame: {reflect.TypeOf(ReceiptGame{}), "LogLotteryCreate"},
+		TyLogCancleGame: {reflect.TypeOf(ReceiptGame{}), "LogCancleGame"},
+		TyLogMatchGame:  {reflect.TypeOf(ReceiptGame{}), "LogMatchGame"},
+		TyLogCloseGame:  {reflect.TypeOf(ReceiptGame{}), "LogCloseGame"},
 	}
-	var action GameAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return tx.To
-	}
-	return tx.To
 }
 
-func (game GameType) ActionName(tx *types.Transaction) string {
-	var action GameAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknown-err"
-	}
-
-	if action.Ty == GameActionCreate && action.GetCreate() != nil {
-		return Action_CreateGame
-	} else if action.Ty == GameActionMatch && action.GetMatch() != nil {
-		return Action_MatchGame
-	} else if action.Ty == GameActionCancel && action.GetCancel() != nil {
-		return Action_CancelGame
-	} else if action.Ty == GameActionClose && action.GetClose() != nil {
-		return Action_CloseGame
-	}
-	return "unknown"
+func (g *GameType) GetPayload() types.Message {
+	return &GameAction{}
 }
 
-func (game GameType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action GameAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
+func (g *GameType) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Create": GameActionCreate,
+		"Cancel": GameActionCancel,
+		"Close":  GameActionClose,
+		"Match":  GameActionMatch,
 	}
-	return &action, nil
-}
-
-func (game GameType) Amount(tx *types.Transaction) (int64, error) {
-	return 0, nil
 }
 
 // TODO createTx接口暂时没法用，作为一个预留接口
@@ -104,7 +72,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreCreateTx(&param)
@@ -113,7 +81,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreMatchTx(&param)
@@ -122,7 +90,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreCancelTx(&param)
@@ -131,7 +99,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 
 		return CreateRawGamePreCloseTx(&param)
@@ -243,219 +211,4 @@ func CreateRawGamePreCloseTx(parm *GamePreCloseTx) (*types.Transaction, error) {
 	tx.SetRealFee(types.MinFee)
 
 	return tx, nil
-}
-
-//log
-type CreateGameLog struct {
-}
-
-func (l CreateGameLog) Name() string {
-	return "LogGameCreate"
-}
-
-func (l CreateGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptGame
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type MatchGameLog struct {
-}
-
-func (l MatchGameLog) Name() string {
-	return "LogMatchGame"
-}
-
-func (l MatchGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptGame
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type CancelGameLog struct {
-}
-
-func (l CancelGameLog) Name() string {
-	return "LogCancelGame"
-}
-
-func (l CancelGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptGame
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type CloseGameLog struct {
-}
-
-func (l CloseGameLog) Name() string {
-	return "LogCloseGame"
-}
-
-func (l CloseGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptGame
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-// query
-type GameGetList struct {
-}
-
-func (g *GameGetList) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req QueryGameInfos
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *GameGetList) ProtoToJson(reply *types.Message) (interface{}, error) {
-	if replyGameList, ok := (*reply).(*ReplyGameList); ok {
-		var gameList []*GameData
-		for _, game := range replyGameList.GetGames() {
-			g := &GameData{
-				GameId:        game.GetGameId(),
-				Status:        game.GetStatus(),
-				CreateAddress: game.GetCreateAddress(),
-				MatchAddress:  game.GetMatchAddress(),
-				CreateTime:    game.GetCreateTime(),
-				MatchTime:     game.GetMatchTime(),
-				Closetime:     game.GetClosetime(),
-				Value:         game.GetValue(),
-				HashType:      game.GetHashType(),
-				HashValue:     game.GetHashValue(),
-				Secret:        game.GetSecret(),
-				Result:        game.GetResult(),
-				MatcherGuess:  game.GetMatcherGuess(),
-				CreateTxHash:  game.GetCreateTxHash(),
-				CancelTxHash:  game.GetCancelTxHash(),
-				MatchTxHash:   game.GetMatchTxHash(),
-				CloseTxHash:   game.GetCloseTxHash(),
-				CreatorGuess:  game.GetCreatorGuess(),
-				Index:         game.GetIndex(),
-			}
-			gameList = append(gameList, g)
-		}
-		return gameList, nil
-	}
-	return reply, nil
-}
-
-type GameQueryListCount struct {
-}
-
-func (g *GameQueryListCount) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req QueryGameListCount
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (g *GameQueryListCount) ProtoToJson(reply *types.Message) (interface{}, error) {
-	if replyCount, ok := (*reply).(*ReplyGameListCount); ok {
-		count := replyCount.GetCount()
-		return count, nil
-	}
-	return reply, nil
-}
-
-type GameGetInfo struct {
-}
-
-func (g *GameGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req QueryGameInfo
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (g *GameGetInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
-	if replyGame, ok := (*reply).(*ReplyGame); ok {
-		game := replyGame.GetGame()
-		g := &GameData{
-			GameId:        game.GetGameId(),
-			Status:        game.GetStatus(),
-			CreateAddress: game.GetCreateAddress(),
-			MatchAddress:  game.GetMatchAddress(),
-			CreateTime:    game.GetCreateTime(),
-			MatchTime:     game.GetMatchTime(),
-			Closetime:     game.GetClosetime(),
-			Value:         game.GetValue(),
-			HashType:      game.GetHashType(),
-			HashValue:     game.GetHashValue(),
-			Secret:        game.GetSecret(),
-			Result:        game.GetResult(),
-			MatcherGuess:  game.GetMatcherGuess(),
-			CreateTxHash:  game.GetCreateTxHash(),
-			CancelTxHash:  game.GetCancelTxHash(),
-			MatchTxHash:   game.GetMatchTxHash(),
-			CloseTxHash:   game.GetCloseTxHash(),
-			CreatorGuess:  game.GetCreatorGuess(),
-			Index:         game.GetIndex(),
-		}
-		return g, nil
-	}
-	return reply, nil
-}
-
-type GameQueryList struct {
-}
-
-func (g *GameQueryList) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req QueryGameListByStatusAndAddr
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (g *GameQueryList) ProtoToJson(reply *types.Message) (interface{}, error) {
-	if replyGameList, ok := (*reply).(*ReplyGameList); ok {
-		var gameList []*GameData
-		for _, game := range replyGameList.GetGames() {
-			g := &GameData{
-				GameId:        game.GetGameId(),
-				Status:        game.GetStatus(),
-				CreateAddress: game.GetCreateAddress(),
-				MatchAddress:  game.GetMatchAddress(),
-				CreateTime:    game.GetCreateTime(),
-				MatchTime:     game.GetMatchTime(),
-				Closetime:     game.GetClosetime(),
-				Value:         game.GetValue(),
-				HashType:      game.GetHashType(),
-				HashValue:     game.GetHashValue(),
-				Secret:        game.GetSecret(),
-				Result:        game.GetResult(),
-				MatcherGuess:  game.GetMatcherGuess(),
-				CreateTxHash:  game.GetCreateTxHash(),
-				CancelTxHash:  game.GetCancelTxHash(),
-				MatchTxHash:   game.GetMatchTxHash(),
-				CloseTxHash:   game.GetCloseTxHash(),
-				CreatorGuess:  game.GetCreatorGuess(),
-				Index:         game.GetIndex(),
-			}
-			gameList = append(gameList, g)
-		}
-		return gameList, nil
-	}
-	return reply, nil
 }

@@ -1,11 +1,13 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -75,7 +77,18 @@ func hashlockLockCmd(cmd *cobra.Command, args []string) {
 		ReturnAddr: returnAddr,
 		Fee:        feeInt64,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawHashlockLockTx", params, nil)
+
+	payLoad, err := json.Marshal(params)
+	if err != nil {
+		return
+	}
+
+	paramWithExecAction := rpctypes.CreateTxIn{
+		Execer:     "hashlock",
+		ActionName: "HashlockLock",
+		Payload:    payLoad,
+	}
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTransaction", paramWithExecAction, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -108,7 +121,17 @@ func hashlockUnlockCmd(cmd *cobra.Command, args []string) {
 		Secret: secret,
 		Fee:    feeInt64,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawHashlockUnlockTx", params, nil)
+	payLoad, err := json.Marshal(params)
+	if err != nil {
+		return
+	}
+
+	paramWithExecAction := rpctypes.CreateTxIn{
+		Execer:     "hashlock",
+		ActionName: "HashlockUnlock",
+		Payload:    payLoad,
+	}
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTransaction", paramWithExecAction, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -133,6 +156,16 @@ func hashlockSendCmd(cmd *cobra.Command, args []string) {
 		Secret: secret,
 		Fee:    feeInt64,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawHashlockSendTx", params, nil)
+	payLoad, err := json.Marshal(params)
+	if err != nil {
+		return
+	}
+
+	paramWithExecAction := rpctypes.CreateTxIn{
+		Execer:     "hashlock",
+		ActionName: "HashlockSend",
+		Payload:    payLoad,
+	}
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTransaction", paramWithExecAction, nil)
 	ctx.RunWithoutMarshal()
 }
