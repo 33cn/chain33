@@ -38,6 +38,13 @@ type ticketPolicy struct {
 	autoMinerFlag      int32
 	isTicketLocked     int32
 	minertimeout       *time.Timer
+	cfg                *subConfig
+}
+
+type subConfig struct {
+	ForceMining    bool     `json:"forceMining"`
+	Minerdisable   bool     `json:"minerdisable"`
+	Minerwhitelist []string `json:"minerwhitelist"`
 }
 
 func (policy *ticketPolicy) initMingTicketTicker() {
@@ -78,15 +85,21 @@ func (policy *ticketPolicy) IsTicketLocked() bool {
 	return atomic.LoadInt32(&policy.isTicketLocked) != 0
 }
 
-func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
+func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate, sub []byte) {
 	policy.setWalletOperate(walletBiz)
 	policy.store = NewStore(walletBiz.GetDBStore())
 	policy.needFlush = false
 	policy.isTicketLocked = 1
 	policy.autoMinerFlag = policy.store.GetAutoMinerFlag()
+	var subcfg subConfig
+	if sub != nil {
+		types.MustDecode(sub, &subcfg)
+	}
+	policy.cfg = &subcfg
+	policy.initMinerWhiteList(walletBiz.GetConfig())
+
 	policy.initMingTicketTicker()
 	walletBiz.RegisterMineStatusReporter(policy)
-	initMinerWhiteList(walletBiz.GetConfig())
 	// 启动自动挖矿
 	walletBiz.GetWaitGroup().Add(1)
 	go policy.autoMining()
@@ -578,16 +591,16 @@ func (policy *ticketPolicy) getMinerColdAddr(addr string) ([]string, error) {
 	return reply.Datas, nil
 }
 
-func initMinerWhiteList(cfg *types.Wallet) {
-	if len(cfg.GetMinerwhitelist()) == 0 {
+func (policy *ticketPolicy) initMinerWhiteList(cfg *types.Wallet) {
+	if len(policy.cfg.Minerwhitelist) == 0 {
 		minerAddrWhiteList["*"] = true
 		return
 	}
-	if len(cfg.GetMinerwhitelist()) == 1 && cfg.GetMinerwhitelist()[0] == "*" {
+	if len(policy.cfg.Minerwhitelist) == 1 && policy.cfg.Minerwhitelist[0] == "*" {
 		minerAddrWhiteList["*"] = true
 		return
 	}
-	for _, addr := range cfg.GetMinerwhitelist() {
+	for _, addr := range policy.cfg.Minerwhitelist {
 		minerAddrWhiteList[addr] = true
 	}
 }
@@ -696,17 +709,16 @@ func (policy *ticketPolicy) autoMining() {
 	defer bizlog.Info("End auto mining")
 	operater := policy.getWalletOperate()
 	defer operater.GetWaitGroup().Done()
-	cfg := operater.GetConfig()
 	lastHeight := int64(0)
 	miningTicketTicker := policy.getMingTicketTicker()
 	for {
 		select {
 		case <-miningTicketTicker.C:
-			if cfg.GetMinerdisable() {
+			if policy.cfg.Minerdisable {
 				bizlog.Info("autoMining, GetMinerdisable() is true, exit autoMining()")
 				break
 			}
-			if !(operater.IsCaughtUp() || cfg.GetForceMining()) {
+			if !(operater.IsCaughtUp() || policy.cfg.ForceMining) {
 				bizlog.Error("wallet IsCaughtUp false")
 				break
 			}

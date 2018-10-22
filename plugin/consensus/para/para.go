@@ -62,7 +62,7 @@ type ParaClient struct {
 	wg              sync.WaitGroup
 }
 
-func New(cfg *types.Consensus) queue.Module {
+func New(cfg *types.Consensus, sub []byte) queue.Module {
 	c := drivers.NewBaseClient(cfg)
 	if cfg.ParaRemoteGrpcClient != "" {
 		grpcSite = cfg.ParaRemoteGrpcClient
