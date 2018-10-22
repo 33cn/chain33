@@ -6,6 +6,7 @@ package dapp
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -121,44 +122,7 @@ func (d *DriverBase) SetChild(e Driver) {
 	d.childValue = reflect.ValueOf(e)
 }
 
-func (d *DriverBase) execLocalOldVersion(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	var set types.LocalDBSet
-	//保存：tx
-	kv := d.GetTx(tx, receipt, index)
-	set.KV = append(set.KV, kv...)
-	//保存: from/to
-	txindex := d.getTxIndex(tx, receipt, index)
-	txinfobyte := types.Encode(txindex.index)
-	if len(txindex.from) != 0 {
-		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
-		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
-		set.KV = append(set.KV, &types.KeyValue{fromkey1, txinfobyte})
-		set.KV = append(set.KV, &types.KeyValue{fromkey2, txinfobyte})
-		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.from, 1, true)
-		if err == nil && kv != nil {
-			set.KV = append(set.KV, kv)
-		}
-	}
-	if len(txindex.to) != 0 {
-		tokey1 := CalcTxAddrDirHashKey(txindex.to, TxIndexTo, txindex.heightstr)
-		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
-		set.KV = append(set.KV, &types.KeyValue{tokey1, txinfobyte})
-		set.KV = append(set.KV, &types.KeyValue{tokey2, txinfobyte})
-		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.to, 1, true)
-		if err == nil && kv != nil {
-			set.KV = append(set.KV, kv)
-		}
-	}
-
-	return &set, nil
-}
-
 func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	// 为了支持未修改版本，先进入老代码分支
-	if d.ety == nil {
-		blog.Warn("ExecLocal need to refactor")
-		return d.execLocalOldVersion(tx, receipt, index)
-	}
 	var set types.LocalDBSet
 	//保存：tx
 	kv := d.GetTx(tx, receipt, index)
@@ -241,43 +205,7 @@ func (d *DriverBase) getTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 	return &txIndexInfo
 }
 
-func (d *DriverBase) execDelLocalOldVersion(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	var set types.LocalDBSet
-	//del：tx
-	kvdel := d.GetTx(tx, receipt, index)
-	for k := range kvdel {
-		kvdel[k].Value = nil
-	}
-	//del: addr index
-	txindex := d.getTxIndex(tx, receipt, index)
-	if len(txindex.from) != 0 {
-		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
-		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
-		set.KV = append(set.KV, &types.KeyValue{Key: fromkey1, Value: nil})
-		set.KV = append(set.KV, &types.KeyValue{Key: fromkey2, Value: nil})
-		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.from, 1, false)
-		if err == nil && kv != nil {
-			set.KV = append(set.KV, kv)
-		}
-	}
-	if len(txindex.to) != 0 {
-		tokey1 := CalcTxAddrDirHashKey(txindex.to, TxIndexTo, txindex.heightstr)
-		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
-		set.KV = append(set.KV, &types.KeyValue{Key: tokey1, Value: nil})
-		set.KV = append(set.KV, &types.KeyValue{Key: tokey2, Value: nil})
-		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.to, 1, false)
-		if err == nil && kv != nil {
-			set.KV = append(set.KV, kv)
-		}
-	}
-	set.KV = append(set.KV, kvdel...)
-	return &set, nil
-}
-
 func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	if d.ety == nil {
-		return d.execDelLocalOldVersion(tx, receipt, index)
-	}
 	var set types.LocalDBSet
 	//del：tx
 	kvdel := d.GetTx(tx, receipt, index)
@@ -324,6 +252,20 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 	if d.ety == nil {
 		return nil, types.ErrActionNotSupport
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			blog.Error("call local error", "prefix", prefix, "tx", tx)
+			switch x := r.(type) {
+			case string:
+				err = errors.New(x)
+			case error:
+				err = x
+			default:
+				err = types.ErrActionNotSupport
+			}
+			set = nil
+		}
+	}()
 	name, value, err := d.ety.DecodePayloadValue(tx)
 	if err != nil {
 		return nil, err
@@ -370,6 +312,20 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	if d.ety == nil {
 		return nil, nil
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			blog.Error("call local error", "tx", tx)
+			switch x := r.(type) {
+			case string:
+				err = errors.New(x)
+			case error:
+				err = x
+			default:
+				err = types.ErrActionNotSupport
+			}
+			receipt = nil
+		}
+	}()
 	//为了兼容原来的系统,多加了一个判断
 	if d.child.GetPayloadValue() == nil {
 		return nil, nil

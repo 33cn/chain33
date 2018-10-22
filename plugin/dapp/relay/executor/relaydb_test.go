@@ -85,7 +85,7 @@ var privFrom = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE7145
 var privTo = getprivkey("BC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}

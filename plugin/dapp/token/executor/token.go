@@ -296,7 +296,7 @@ func findTokenTxListUtil(req *tokenty.ReqTokenTx) ([]byte, []byte) {
 
 func (t *token) GetTxByToken(req *tokenty.ReqTokenTx) (types.Message, error) {
 	if req.Flag != 0 && req.Flag != dapp.TxIndexFrom && req.Flag != dapp.TxIndexTo {
-		err := types.ErrInputPara
+		err := types.ErrInvalidParam
 		return nil, errors.Wrap(err, "flag unknown")
 	}
 	key, prefix := findTokenTxListUtil(req)

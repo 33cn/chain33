@@ -14,56 +14,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
-	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
-	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-func TestDecodeUserWrite(t *testing.T) {
-	payload := []byte("#md#hello#world")
-	data := decodeUserWrite(payload)
-	assert.Equal(t, data, &rpctypes.UserWrite{Topic: "md", Content: "hello#world"})
-
-	payload = []byte("hello#world")
-	data = decodeUserWrite(payload)
-	assert.Equal(t, data, &rpctypes.UserWrite{Topic: "", Content: "hello#world"})
-
-	payload = []byte("123#hello#wzw")
-	data = decodeUserWrite(payload)
-	assert.NotEqual(t, data, &rpctypes.UserWrite{Topic: "123", Content: "hello#world"})
-}
-
-func TestDecodeTx(t *testing.T) {
-	tx := types.Transaction{
-		Execer:  []byte(types.ExecName("coin")),
-		Payload: []byte("342412abcd"),
-		Nonce:   8978167239,
-		To:      "1asd234dsf43fds",
-	}
-
-	data, err := DecodeTx(&tx)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-
-	tx.Execer = []byte(types.ExecName(types.CoinsX))
-	data, err = DecodeTx(&tx)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-
-	tx = types.Transaction{
-		Execer:  []byte(types.ExecName(types.HashlockX)),
-		Payload: []byte("34"),
-		Nonce:   8978167239,
-		To:      "1asd234dsf43fds",
-	}
-
-	t.Log(string(tx.Execer))
-	data, err = DecodeTx(&tx)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
 
 func TestDecodeLogErr(t *testing.T) {
 	enc := "0001020304050607"
@@ -931,11 +885,11 @@ func TestChain33_ImportPrivkey(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	expected := &types.ReqWalletImportPrivKey{}
+	expected := &types.ReqWalletImportPrivkey{}
 	api.On("WalletImportprivkey", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
-	actual := types.ReqWalletImportPrivKey{}
+	actual := types.ReqWalletImportPrivkey{}
 	err := testChain33.ImportPrivkey(actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
@@ -1470,134 +1424,6 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestChain33_CreateRawRetrieveBackupTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawRetrieveBackupTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	backup := &retrievetype.RetrieveBackupTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		DelayPeriod: 1,
-		Fee:         1,
-	}
-
-	err = client.CreateRawRetrieveBackupTx(backup, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawRetrievePrepareTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawRetrievePrepareTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	prepare := &retrievetype.RetrievePrepareTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		Fee:         1,
-	}
-
-	err = client.CreateRawRetrievePrepareTx(prepare, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawRetrievePerformTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawRetrievePerformTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	perform := &retrievetype.RetrievePerformTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		Fee:         1,
-	}
-
-	err = client.CreateRawRetrievePerformTx(perform, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawRetrieveCancelTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawRetrieveCancelTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	cancel := &retrievetype.RetrieveCancelTx{
-		BackupAddr:  "12asdfa",
-		DefaultAddr: "0x3456",
-		Fee:         1,
-	}
-
-	err = client.CreateRawRetrieveCancelTx(cancel, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawHashlockLockTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawHashlockLockTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	lock := &hashlocktype.HashlockLockTx{
-		Secret:     "12asdfa",
-		Amount:     100,
-		Time:       100,
-		ToAddr:     "12asdfa",
-		ReturnAddr: "0x3456",
-		Fee:        1,
-	}
-
-	err = client.CreateRawHashlockLockTx(lock, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawHashlockUnlockTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawHashlockUnlockTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	unlock := &hashlocktype.HashlockUnlockTx{
-		Secret: "12asdfa",
-		Fee:    1,
-	}
-
-	err = client.CreateRawHashlockUnlockTx(unlock, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawHashlockSendTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawHashlockSendTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	send := &hashlocktype.HashlockSendTx{
-		Secret: "12asdfa",
-		Fee:    1,
-	}
-
-	err = client.CreateRawHashlockSendTx(send, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
 func TestChain33_GetTimeStatus(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
@@ -1610,7 +1436,7 @@ func TestChain33_GetLastBlockSequence(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
 	var result interface{}
-	api.On("GetLastBlockSequence", mock.Anything).Return(nil, types.ErrInputPara)
+	api.On("GetLastBlockSequence", mock.Anything).Return(nil, types.ErrInvalidParam)
 	err := client.GetLastBlockSequence(&types.ReqNil{}, &result)
 	assert.NotNil(t, err)
 
@@ -1628,7 +1454,7 @@ func TestChain33_GetBlockSequences(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
 	var result interface{}
-	api.On("GetBlockSequences", mock.Anything).Return(nil, types.ErrInputPara)
+	api.On("GetBlockSequences", mock.Anything).Return(nil, types.ErrInvalidParam)
 	err := client.GetBlockSequences(rpctypes.BlockParam{}, &result)
 	assert.NotNil(t, err)
 
@@ -1657,7 +1483,7 @@ func TestChain33_GetBlockByHashes(t *testing.T) {
 	api = new(mocks.QueueProtocolAPI)
 	client = newTestChain33(api)
 	var testResult2 interface{}
-	api.On("GetBlockByHashes", mock.Anything).Return(nil, types.ErrInputPara)
+	api.On("GetBlockByHashes", mock.Anything).Return(nil, types.ErrInvalidParam)
 	err = client.GetBlockByHashes(in, &testResult2)
 	assert.NotNil(t, err)
 }
@@ -1684,21 +1510,4 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	}
 	err = client.CreateTransaction(in, &result)
 	assert.Nil(t, err)
-}
-
-func TestChain33_PrivacyTxList(t *testing.T) {
-	api := new(mocks.QueueProtocolAPI)
-	testChain33 := newTestChain33(api)
-
-	expected := &types.ReqPrivacyTransactionList{}
-	api.On("PrivacyTransactionList", expected).Return(nil, errors.New("error value"))
-
-	var testResult interface{}
-	actual := &types.ReqPrivacyTransactionList{}
-	err := testChain33.PrivacyTxList(actual, &testResult)
-	t.Log(err)
-	assert.Equal(t, nil, testResult)
-	assert.NotNil(t, err)
-
-	mock.AssertExpectationsForObjects(t, api)
 }

@@ -185,7 +185,7 @@ type mockJRPCSystem struct {
 
 func (mock *mockJRPCSystem) OnStartup(m *mockSystem) {
 	println("=============jrpc====")
-	mock.japi = rpc.NewJSONRPCServer(m.q.Client())
+	mock.japi = rpc.NewJSONRPCServer(m.q.Client(), nil)
 	ch := make(chan struct{}, 1)
 	go func() {
 		ch <- struct{}{}
@@ -217,7 +217,7 @@ type mockGRPCSystem struct {
 
 func (mock *mockGRPCSystem) OnStartup(m *mockSystem) {
 	println("=============grpc====")
-	mock.gapi = rpc.NewGRpcServer(m.q.Client())
+	mock.gapi = rpc.NewGRpcServer(m.q.Client(), nil)
 	ch := make(chan struct{}, 1)
 	go func() {
 		ch <- struct{}{}
