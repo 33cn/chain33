@@ -7,7 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (e *Paracross) Query_GetHeight(in *types.ReqString) (types.Message, error) {
+func (e *Paracross) Query_GetTitle(in *types.ReqString) (types.Message, error) {
 	if in == nil {
 		return nil, types.ErrInvalidParam
 	}
