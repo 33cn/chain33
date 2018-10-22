@@ -114,6 +114,10 @@ func (t *PrivacyType) CreateTx(action string, message json.RawMessage) (*types.T
 	return tx, nil
 }
 
+func (t *PrivacyType) Amount(tx *types.Transaction) (int64, error) {
+	return 0, nil
+}
+
 func (base *PrivacyType) GetCryptoDriver(ty int) (string, error) {
 	if name, ok := mapSignType2name[ty]; ok {
 		return name, nil

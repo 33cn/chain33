@@ -30,9 +30,6 @@ import (
 
 var privacylog = log.New("module", "execs.privacy")
 
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorType = pty.NewType()
-
 var driverName = "privacy"
 
 func init() {

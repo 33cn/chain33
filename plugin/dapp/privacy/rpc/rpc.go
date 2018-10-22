@@ -5,7 +5,7 @@ import (
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	context "golang.org/x/net/context"
+	"golang.org/x/net/context"
 )
 
 // 显示指定地址的公钥对信息，可以作为后续交易参数
@@ -77,9 +77,8 @@ func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *interf
 	if err != nil {
 		return err
 	}
-
-	*result = reply
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
 }
 
 /////////////////privacy///////////////
