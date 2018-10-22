@@ -234,7 +234,9 @@ func TestHashSame(t *testing.T) {
 	hash1 := t1.Hash()
 
 	EnableMVCC(true)
+	defer EnableMVCC(false)
 	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
 	//t2 在t1的基础上再做修改
 	t2 := NewTree(dbm, true)
 	t2.Set([]byte("1"), []byte("1"))
@@ -262,7 +264,9 @@ func TestHashSame2(t *testing.T) {
 	db2 := db.NewDB("test2", "leveldb", dir, 100)
 	prevHash = prevHash[:0]
 	EnableMVCC(true)
+	defer EnableMVCC(false)
 	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
 	for i := 0; i < 5; i++ {
 		prevHash, err = saveBlock(db2, int64(i), prevHash, 1000, false)
 		assert.Nil(t, err)
@@ -782,7 +786,6 @@ func TestPruningTree(t *testing.T) {
 	const preB = 20 // 一轮区块数
 	const round = 5 // 更新叶子节点次数
 	const preDel = preB / 10
-
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
 	t.Log(dir)
@@ -790,8 +793,11 @@ func TestPruningTree(t *testing.T) {
 	prevHash := make([]byte, 32)
 
 	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
 	EnablePrune(true)
+	defer EnablePrune(false)
 	SetPruneHeight(preDel)
+	defer SetPruneHeight(0)
 
 	for j := 0; j < round; j++ {
 		for i := 0; i < preB; i++ {
@@ -814,9 +820,6 @@ func TestPruningTree(t *testing.T) {
 		assert.Equal(t, exist, true)
 		assert.Equal(t, value, v)
 	}
-	pruningTreePrint(db, []byte(leafKeyCountPrefix))
-	pruningTreePrint(db, []byte(hashNodePrefix))
-	pruningTreePrint(db, []byte(leafNodePrefix))
 }
 
 func genUpdateKV(height int64, txN int64, vIndex int) (kvs []*types.KeyValue) {
@@ -999,6 +1002,7 @@ func BenchmarkDBGetMVCC(b *testing.B) {
 	ldb := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
 	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
 	for i := 0; i < b.N; i++ {
 		prevHash, err = saveBlock(ldb, int64(i), prevHash, 1000, true)
 		assert.Nil(b, err)
