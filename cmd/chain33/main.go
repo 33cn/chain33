@@ -25,7 +25,6 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/system"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/authority"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -70,7 +69,7 @@ func main() {
 		panic(err)
 	}
 	//set config: bityuan 用 bityuan.toml 这个配置文件
-	cfg := config.InitCfg(*configPath)
+	cfg, sub := config.InitCfg(*configPath)
 	if *datadir != "" {
 		resetDatadir(cfg, *datadir)
 	}
@@ -125,12 +124,14 @@ func main() {
 	types.SetSaveTokenTxList(cfg.Exec.SaveTokenTxList)
 
 	//check mvcc switch，if use kvmvcc then cfg.Exec.EnableMVCC should be always false.
+	/*todo
 	if cfg.Store.Name == "kvmvcc" {
 		if cfg.Exec.EnableMVCC {
 			log.Error("store type is kvmvcc but enableMVCC is configured true.")
 			panic("store type is kvmvcc, configure item enableMVCC should be false.please check it.")
 		}
 	}
+	*/
 	//开始区块链模块加载
 	//channel, rabitmq 等
 	log.Info(cfg.Title + " " + version.GetVersion())
@@ -146,19 +147,21 @@ func main() {
 	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
-	exec := executor.New(cfg.Exec)
+	exec := executor.New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
 	//是否开启MVCC不一样的话以执行器开启为准
+	/*todo
 	if cfg.Exec.EnableMVCC != cfg.Store.EnableMVCC {
 		cfg.Store.EnableMVCC = cfg.Exec.EnableMVCC
 	}
-	s := store.New(cfg.Store)
+	*/
+	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
 
 	log.Info("loading consensus module")
-	cs := consensus.New(cfg.Consensus)
+	cs := consensus.New(cfg.Consensus, sub.Consensus)
 	cs.SetQueueClient(q.Client())
 
 	var network *p2p.P2p
@@ -172,9 +175,8 @@ func main() {
 	rpcapi.SetQueueClient(q.Client())
 
 	log.Info("loading wallet module")
-	walletm := wallet.New(cfg.Wallet)
+	walletm := wallet.New(cfg.Wallet, sub.Wallet)
 	walletm.SetQueueClient(q.Client())
-	authority.Author.Init(cfg.Auth)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
