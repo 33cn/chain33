@@ -159,7 +159,8 @@ func (t *Tree) Save() []byte {
 		}
 		// 该线程应只允许一个
 		if enablePrune && !isPruning() &&
-			t.blockHeight%int64(pruneHeight) == 0 && t.blockHeight/int64(pruneHeight) > 1 {
+			t.blockHeight%int64(pruneHeight) == 0 &&
+			t.blockHeight/int64(pruneHeight) > 1 {
 			go pruningTree(t.ndb.db, t.blockHeight)
 		}
 	}
@@ -582,6 +583,10 @@ func pruningTree(db dbm.DB, curHeight int64) {
 	pruningTreeHashNode(db, curHeight)
 	setPruning(pruningStateEnd)
 	treelog.Info("pruningTree", "end curHeight:", curHeight)
+	//for test
+	pruningTreePrint(db, []byte(leafKeyCountPrefix))
+	pruningTreePrint(db, []byte(hashNodePrefix))
+	pruningTreePrint(db, []byte(leafNodePrefix))
 }
 
 func pruningTreeLeafNode(db dbm.DB, curHeight int64) {
