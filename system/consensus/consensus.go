@@ -8,6 +8,7 @@ import (
 type ConsensusCreate func(cfg *types.Consensus) queue.Module
 
 var regConsensus = make(map[string]ConsensusCreate)
+var QueryData = types.NewQueryData("Query_")
 
 func Reg(name string, create ConsensusCreate) {
 	if create == nil {

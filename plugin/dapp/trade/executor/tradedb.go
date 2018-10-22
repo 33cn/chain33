@@ -244,7 +244,7 @@ func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
 
 func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, error) {
 	if sell.TotalBoardlot < 0 || sell.PricePerBoardlot < 0 || sell.MinBoardlot < 0 || sell.AmountPerBoardlot < 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	tokenAccDB, err := account.NewAccountDB("token", sell.TokenSymbol, action.db)
@@ -290,7 +290,7 @@ func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, er
 
 func (action *tradeAction) tradeBuy(buyOrder *pty.TradeForBuy) (*types.Receipt, error) {
 	if buyOrder.BoardlotCnt < 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	sellidByte := []byte(buyOrder.SellID)
@@ -415,7 +415,7 @@ func checkTokenExist(token string, db dbm.KV) bool {
 
 func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Receipt, error) {
 	if buy.TotalBoardlot < 0 || buy.PricePerBoardlot < 0 || buy.MinBoardlot < 0 || buy.AmountPerBoardlot < 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 	// check token exist
 	if !checkTokenExist(buy.TokenSymbol, action.db) {
@@ -458,7 +458,7 @@ func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Rece
 
 func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*types.Receipt, error) {
 	if sellOrder.BoardlotCnt < 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	idByte := []byte(sellOrder.BuyID)

@@ -20,6 +20,7 @@ type Client struct {
 
 func init() {
 	drivers.Reg("solo", New)
+	drivers.QueryData.Register("solo", &Client{})
 }
 
 func New(cfg *types.Consensus) queue.Module {

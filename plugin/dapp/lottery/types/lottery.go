@@ -51,7 +51,7 @@ func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*ty
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			llog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawLotteryCreateTx(&param)
 	} else if action == "LotteryBuy" {
@@ -59,7 +59,7 @@ func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*ty
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			llog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawLotteryBuyTx(&param)
 	} else if action == "LotteryDraw" {
@@ -67,7 +67,7 @@ func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*ty
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			llog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawLotteryDrawTx(&param)
 	} else if action == "LotteryClose" {
@@ -75,7 +75,7 @@ func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*ty
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			llog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
+			return nil, types.ErrInvalidParam
 		}
 		return CreateRawLotteryCloseTx(&param)
 	} else {

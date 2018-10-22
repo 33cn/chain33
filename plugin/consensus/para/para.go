@@ -47,6 +47,7 @@ var (
 
 func init() {
 	drivers.Reg("para", New)
+	drivers.QueryData.Register("para", &ParaClient{})
 }
 
 type ParaClient struct {
@@ -80,7 +81,7 @@ func New(cfg *types.Consensus) queue.Module {
 	if err != nil {
 		panic(err)
 	}
-	secp, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	secp, err := crypto.New(types.GetSignName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
