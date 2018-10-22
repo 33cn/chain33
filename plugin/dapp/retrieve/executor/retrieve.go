@@ -52,6 +52,10 @@ func (r *Retrieve) GetDriverName() string {
 	return driverName
 }
 
+func (r *Retrieve) CheckTx(tx *types.Transaction, index int) error {
+	return nil
+}
+
 func calcRetrieveKey(backupAddr string, defaultAddr string) []byte {
 	key := fmt.Sprintf("Retrieve-backup:%s:%s", backupAddr, defaultAddr)
 	return []byte(key)
