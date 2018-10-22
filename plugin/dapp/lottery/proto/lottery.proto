@@ -179,8 +179,8 @@ message LotteryDrawRecords {
 }
 
 message LotteryUpdateRec {
-    int64 index  = 1;
-    int64 type   = 2;
+    int64 index = 1;
+    int64 type  = 2;
 }
 
 message LotteryUpdateRecs {
