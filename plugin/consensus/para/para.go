@@ -100,7 +100,7 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 		panic(err)
 	}
 	grpcClient := types.NewChain33Client(conn)
-	paraCli    := paracross.NewParacrossClient(conn)
+	paraCli := paracross.NewParacrossClient(conn)
 
 	para := &ParaClient{
 		BaseClient:  c,
