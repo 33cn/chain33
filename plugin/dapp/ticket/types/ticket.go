@@ -27,6 +27,8 @@ const (
 	TicketActionBind    = 17
 )
 
+const TicketOldParts = 3
+
 var TicketX = types.TicketX
 
 func init() {
