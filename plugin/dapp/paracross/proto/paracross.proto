@@ -126,7 +126,7 @@ message ParacrossAsset {
 }
 
 service paracross {
-    rpc GetHeight(ReqString) returns (ParacrossStatus) {}
+    rpc GetTitle(ReqString) returns (ParacrossStatus) {}
     rpc ListTitles(ReqNil) returns (RespParacrossTitles) {}
     rpc GetTitleHeight(ReqParacrossTitleHeight) returns (ReceiptParacrossDone) {}
     rpc GetAssetTxResult(ReqHash) returns (ParacrossAsset) {}
