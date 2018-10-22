@@ -17,7 +17,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&relay{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newRelay, types.ForkV18Relay) //TODO: ForkV18Relay
 }
 

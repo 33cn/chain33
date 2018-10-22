@@ -26,7 +26,7 @@ func TestKvdbNewClose(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg)
+	store := New(store_cfg, nil)
 
 	assert.NotNil(t, store)
 	store.Close()
@@ -38,7 +38,7 @@ func TestKvddbSetGet(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*Store)
+	store := New(store_cfg, nil).(*Store)
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -85,7 +85,7 @@ func TestKvdbMemSet(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*Store)
+	store := New(store_cfg, nil).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -116,7 +116,7 @@ func TestKvdbRollback(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*Store)
+	store := New(store_cfg, nil).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -160,7 +160,7 @@ func BenchmarkGet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*Store)
+	store := New(store_cfg, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -202,7 +202,7 @@ func BenchmarkSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*Store)
+	store := New(store_cfg, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -237,7 +237,7 @@ func BenchmarkMemSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*Store)
+	store := New(store_cfg, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -270,7 +270,7 @@ func BenchmarkCommit(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg).(*Store)
+	store := New(store_cfg, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
