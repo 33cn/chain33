@@ -114,12 +114,12 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 
 func newWalletRealize(qApi client.QueueProtocolAPI) {
 	seed := &types.SaveSeedByPw{"subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant", "123456"}
-	_, err := qApi.SaveSeed(seed)
-	if err != nil {
+	reply, err := qApi.SaveSeed(seed)
+	if !reply.IsOk && err != nil {
 		panic(err)
 	}
-	_, err = qApi.WalletUnLock(&types.WalletUnLock{"123456", 0, false})
-	if err != nil {
+	reply, err = qApi.WalletUnLock(&types.WalletUnLock{"123456", 0, false})
+	if !reply.IsOk && err != nil {
 		panic(err)
 	}
 	for i, priv := range TestPrivkeyHex {
