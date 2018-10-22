@@ -111,7 +111,7 @@ func (c Comm) dialPeer(addr *NetAddress, node *Node) (*Peer, error) {
 }
 
 func (c Comm) GenPrivPubkey() ([]byte, []byte, error) {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		log.Error("CryPto Error", "Error", err.Error())
 		return nil, nil, err
@@ -126,7 +126,7 @@ func (c Comm) GenPrivPubkey() ([]byte, []byte, error) {
 }
 func (c Comm) Pubkey(key string) (string, error) {
 
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		log.Error("CryPto Error", "Error", err.Error())
 		return "", err
@@ -162,7 +162,7 @@ func (c Comm) NewPingData(nodeInfo *NodeInfo) (*types.P2PPing, error) {
 func (c Comm) Signature(key string, in *types.P2PPing) (*types.P2PPing, error) {
 
 	data := types.Encode(in)
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		log.Error("CryPto Error", "Error", err.Error())
 		return nil, err
@@ -192,7 +192,7 @@ func (c Comm) CheckSign(in *types.P2PPing) bool {
 		return false
 	}
 
-	cr, err := crypto.New(types.GetSignName(int(sign.Ty)))
+	cr, err := crypto.New(types.GetSignName("", int(sign.Ty)))
 	if err != nil {
 		log.Error("CheckSign", "crypto.New err", err.Error())
 		return false

@@ -7,7 +7,10 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
@@ -22,6 +25,10 @@ import (
 
 //这个包提供一个通用的测试节点，用于单元测试和集成测试。
 func init() {
+	err := limits.SetLimits()
+	if err != nil {
+		panic(err)
+	}
 	log.SetLogLevel("info")
 }
 
@@ -40,9 +47,12 @@ type Chain33Mock struct {
 	cfg     *types.Config
 }
 
-func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
+func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
+	return config.InitCfgString(cfgstring)
+}
+
+func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	q := queue.New("channel")
-	cfg := config.InitCfg(cfgpath)
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
 	types.Debug = false
@@ -51,14 +61,14 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	mock.chain = blockchain.New(cfg.BlockChain)
 	mock.chain.SetQueueClient(q.Client())
 
-	mock.exec = executor.New(cfg.Exec)
+	mock.exec = executor.New(cfg.Exec, sub.Exec)
 	mock.exec.SetQueueClient(q.Client())
 	types.SetMinFee(cfg.Exec.MinExecFee)
 
-	mock.store = store.New(cfg.Store)
+	mock.store = store.New(cfg.Store, sub.Store)
 	mock.store.SetQueueClient(q.Client())
 
-	mock.cs = consensus.New(cfg.Consensus)
+	mock.cs = consensus.New(cfg.Consensus, sub.Consensus)
 	mock.cs.SetQueueClient(q.Client())
 
 	mock.mem = mempool.New(cfg.MemPool)
@@ -73,7 +83,7 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	}
 
 	cli := q.Client()
-	w := wallet.New(cfg.Wallet)
+	w := wallet.New(cfg.Wallet, sub.Wallet)
 	mock.client = cli
 	mock.wallet = w
 	mock.wallet.SetQueueClient(cli)
@@ -91,6 +101,17 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	return mock
 }
 
+func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	var cfg *types.Config
+	var sub *types.ConfigSubModule
+	if cfgpath == "" {
+		cfg, sub = config.InitCfgString(cfgstring)
+	} else {
+		cfg, sub = config.InitCfg(cfgpath)
+	}
+	return NewWithConfig(cfg, sub, mockapi)
+}
+
 func newWalletRealize(qApi client.QueueProtocolAPI) {
 	seed := &types.SaveSeedByPw{"subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant", "123456"}
 	_, err := qApi.SaveSeed(seed)
@@ -101,12 +122,17 @@ func newWalletRealize(qApi client.QueueProtocolAPI) {
 	if err != nil {
 		panic(err)
 	}
-	for i, priv := range types.TestPrivkeyHex {
+	for i, priv := range TestPrivkeyHex {
 		privkey := &types.ReqWalletImportPrivkey{priv, fmt.Sprintf("label%d", i)}
 		_, err = qApi.WalletImportprivkey(privkey)
 		if err != nil {
 			panic(err)
 		}
+	}
+	req := &types.ReqAccountList{WithoutBalance: true}
+	_, err = qApi.WalletGetAccountList(req)
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -169,4 +195,34 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 }
 
 func (m *mockP2P) Close() {
+}
+
+func (m *Chain33Mock) GenNoneTxs(n int64) (txs []*types.Transaction) {
+	_, priv := m.Genaddress()
+	to, _ := m.Genaddress()
+	for i := 0; i < int(n); i++ {
+		txs = append(txs, m.CreateNoneTx(priv, to, types.Coin*(n+1)))
+	}
+	return txs
+}
+
+func (m *Chain33Mock) Genaddress() (string, crypto.PrivKey) {
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	privto, err := cr.GenKey()
+	if err != nil {
+		panic(err)
+	}
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
+	return addrto.String(), privto
+}
+
+func (m *Chain33Mock) CreateNoneTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+	tx := &types.Transaction{Execer: []byte("none"), Payload: []byte("none"), Fee: 1e6, To: to}
+	tx.Nonce = m.random.Int63()
+	tx.To = address.ExecAddress("none")
+	tx.Sign(types.SECP256K1, priv)
+	return tx
 }

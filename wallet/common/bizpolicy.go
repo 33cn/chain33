@@ -9,7 +9,7 @@ import (
 // WalletPolicy 细分钱包业务逻辑的街口
 type WalletBizPolicy interface {
 	// Init 初始化钱包业务策略，在使用前调用
-	Init(walletBiz WalletOperate)
+	Init(walletBiz WalletOperate, sub []byte)
 	// OnAddBlockTx 当区块被增加确认时调用本函数
 	// block： 被增加的区块详细信息
 	// tx: 区块增加的交易信息
