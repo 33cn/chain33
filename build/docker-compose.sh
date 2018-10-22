@@ -38,12 +38,20 @@ source ci-para-test.sh
 # shellcheck disable=SC1091
 source ci-relay-test.sh
 
+## global config ###
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
 fi
 
+OPEN_RELAY="Y"
+OPEN_PARA="Y"
+COMPOSE_FILE="-f docker-compose.yml "
+
+####################
+
 function init() {
+
     # update test environment
     sed -i $sedfix 's/^Title.*/Title="local"/g' chain33.toml
     sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
@@ -73,25 +81,31 @@ function init() {
 
 }
 
+# shellcheck disable=SC2086
 function start() {
+
+    if [ -n "${OPEN_PARA}" ]; then
+        COMPOSE_FILE="${COMPOSE_FILE}"" -f docker-compose-para.yml "
+    fi
+    if [ -n "${OPEN_RELAY}" ]; then
+        COMPOSE_FILE="${COMPOSE_FILE}"" -f docker-compose-relay.yml "
+    fi
+
     # docker-compose ps
-    docker-compose ps
+    docker-compose ${COMPOSE_FILE} ps
 
     # remove exsit container
-    docker-compose down
+    docker-compose ${COMPOSE_FILE} down
 
     # create and run docker-compose container
-    docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
+    #docker-compose -f docker-compose.yml -f docker-compose-para.yml -f docker-compose-relay.yml up --build -d
+    docker-compose ${COMPOSE_FILE} up --build -d
 
     local SLEEP=60
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
-    docker-compose ps
-
-    wait_btcd_up
-    run_relayd_with_btcd
-    ping_btcd
+    docker-compose ${COMPOSE_FILE} ps
 
     # query node run status
     ${CLI} block last_header
@@ -168,7 +182,7 @@ function start() {
     ${CLI} block last_header
     result=$(${CLI} block last_header | jq ".height")
     if [ "${result}" -lt 1 ]; then
-        exit 1
+        block_wait "${CLI}" 2
     fi
 
     sync_status "${CLI}"
@@ -176,37 +190,6 @@ function start() {
     ${CLI} wallet status
     ${CLI} account list
     ${CLI} mempool list
-}
-
-#some times btcwallet bin 18554 server port fail in btcd docker, restart btcd will be ok
-# [WRN] BTCW: Can't listen on [::1]:18554: listen tcp6 [::1]:18554: bind: cannot assign requested address
-function wait_btcd_up() {
-    count=20
-    while [ $count -gt 0 ]; do
-        status=$(docker-compose ps | grep btcd | awk '{print $5}')
-        if [ "${status}" == "Up" ]; then
-            break
-        fi
-        docker-compose logs btcd
-        docker-compose restart btcd
-        docker-compose ps
-        echo "==============btcd fail $count  ================="
-        ((count--))
-        if [ $count == 0 ]; then
-            echo "wait btcd up 20 times"
-            exit 1
-        fi
-        mod=$((count % 4))
-        if [ $mod == 0 ]; then
-            docker-compose down
-            sleep 5
-            docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
-            sleep 60
-            continue
-        fi
-        #btcd restart need wait 30s
-        sleep 30
-    done
 }
 
 function block_wait() {
@@ -238,26 +221,6 @@ function check_docker_container() {
             exit 1
         fi
     done
-}
-
-function wait_btc_height() {
-    if [ "$#" -lt 2 ]; then
-        echo "wrong wait_btc_height params"
-        exit 1
-    fi
-    count=100
-    wait_sec=0
-    while [ $count -gt 0 ]; do
-        cur=$(${1} relay btc_cur_height | jq ".curHeight")
-        if [ "${cur}" -ge "${2}" ]; then
-            break
-        fi
-        ((count--))
-        wait_sec=$((wait_sec + 1))
-        sleep 1
-    done
-    echo "wait btc blocks ${wait_sec} s"
-
 }
 
 function sync_status() {
@@ -342,6 +305,7 @@ function main() {
     init
     para_init
     start
+    relay_config "${COMPOSE_FILE}"
     para_transfer
     para_set_wallet
     sync

@@ -1,8 +1,6 @@
 package db
 
 import (
-	"bytes"
-
 	log "github.com/inconshreveable/log15"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
@@ -195,7 +193,7 @@ func (db *GoSSDB) Stats() map[string]string {
 	return make(map[string]string)
 }
 
-func (db *GoSSDB) Iterator(prefix []byte, reverse bool) Iterator {
+func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) Iterator {
 	start := time.Now()
 
 	var (
@@ -204,19 +202,21 @@ func (db *GoSSDB) Iterator(prefix []byte, reverse bool) Iterator {
 		begin string
 		end   string
 	)
-
-	limit := util.BytesPrefix(prefix)
+	if itend == nil {
+		itend = bytesPrefix(itbeg)
+	}
+	limit := util.Range{itbeg, itend}
 	if reverse {
 		begin = string(limit.Limit)
-		end = string(prefix)
+		end = string(itbeg)
 		keys, err = db.pool.get().Rkeys(begin, end, IteratorPageSize)
 	} else {
-		begin = string(prefix)
+		begin = string(itbeg)
 		end = string(limit.Limit)
 		keys, err = db.pool.get().Keys(begin, end, IteratorPageSize)
 	}
 
-	it := newSSDBIt(begin, end, prefix, []string{}, reverse, db)
+	it := newSSDBIt(begin, end, itbeg, itend, []string{}, reverse, db)
 	if err != nil {
 		dlog.Error("get iterator error", "error", err, "keys", keys)
 		return it
@@ -239,12 +239,11 @@ func (db *GoSSDB) Iterator(prefix []byte, reverse bool) Iterator {
 // 为了防止匹配的KEY范围过大，这里需要进行分页，每次只取1024条KEY；
 // Next方法自动进行跨页取数据
 type ssDBIt struct {
+	itBase
 	db      *GoSSDB
 	keys    []string
 	index   int
 	reverse bool
-	// 所有KEY的前缀
-	prefix []byte
 	// 迭代开始位置
 	begin string
 	// 迭代结束位置
@@ -259,8 +258,14 @@ type ssDBIt struct {
 	pageNo int
 }
 
-func newSSDBIt(begin, end string, prefix []byte, keys []string, reverse bool, db *GoSSDB) *ssDBIt {
-	return &ssDBIt{index: -1, keys: keys, reverse: reverse, db: db, begin: begin, end: end, prefix: prefix}
+func newSSDBIt(begin, end string, prefix, itend []byte, keys []string, reverse bool, db *GoSSDB) *ssDBIt {
+	return &ssDBIt{
+		itBase:  itBase{prefix, itend, reverse},
+		index:   -1,
+		keys:    keys,
+		reverse: reverse,
+		db:      db,
+	}
 }
 
 func (dbit *ssDBIt) Close() {
@@ -422,7 +427,7 @@ func (dbit *ssDBIt) Valid() bool {
 	}
 	key := dbit.keys[dbit.index]
 	sdbBench.read(1, time.Since(start))
-	return bytes.HasPrefix([]byte(key), dbit.prefix)
+	return dbit.checkKey([]byte(key))
 }
 
 type ssDBBatch struct {

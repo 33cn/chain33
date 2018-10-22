@@ -49,22 +49,16 @@ type Executor struct {
 	alias          map[string]string
 }
 
-var once sync.Once
-
-func execInit() {
-	once.Do(execInit2)
-}
-
-func execInit2() {
-	pluginmgr.InitExec()
+func execInit(sub map[string][]byte) {
+	pluginmgr.InitExec(sub)
 }
 
 var runonce sync.Once
 
-func New(cfg *types.Exec) *Executor {
+func New(cfg *types.Exec, sub map[string][]byte) *Executor {
 	// init executor
 	runonce.Do(func() {
-		execInit()
+		execInit(sub)
 	})
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果

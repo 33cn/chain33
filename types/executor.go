@@ -16,7 +16,7 @@ var random = rand.New(rand.NewSource(Now().UnixNano()))
 type LogType interface {
 	Name() string
 	Decode([]byte) (interface{}, error)
-	Json([]byte) (string, error)
+	Json([]byte) ([]byte, error)
 }
 
 type logInfoType struct {
@@ -36,19 +36,19 @@ func (l *logInfoType) Decode(data []byte) (interface{}, error) {
 	return DecodeLog(l.execer, l.ty, data)
 }
 
-func (l *logInfoType) Json(data []byte) (string, error) {
+func (l *logInfoType) Json(data []byte) ([]byte, error) {
 	d, err := l.Decode(data)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if msg, ok := d.(Message); ok {
 		return PBToJson(msg)
 	}
 	jsdata, err := json.Marshal(d)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(jsdata), nil
+	return jsdata, nil
 }
 
 var executorMap = map[string]ExecutorType{}
@@ -148,18 +148,21 @@ func GetLogName(execer []byte, ty int64) string {
 }
 
 func getLogType(execer []byte, ty int64) *LogInfo {
-	//首先system log
+	//加载执行器已经定义的log
+	if execer != nil {
+		ety := LoadExecutorType(string(execer))
+		if ety != nil {
+			logmap := ety.GetLogMap()
+			if logty, ok := logmap[ty]; ok {
+				return logty
+			}
+		}
+	}
+	//如果没有，那么用系统默认类型列表
 	if logty, ok := SystemLog[ty]; ok {
 		return logty
 	}
-	ety := LoadExecutorType(string(execer))
-	if ety == nil {
-		return SystemLog[0]
-	}
-	logmap := ety.GetLogMap()
-	if logty, ok := logmap[ty]; ok {
-		return logty
-	}
+	//否则就是默认类型
 	return SystemLog[0]
 }
 
@@ -186,6 +189,8 @@ func DecodeLog(execer []byte, ty int64, data []byte) (interface{}, error) {
 type ExecutorType interface {
 	//获取交易真正的to addr
 	GetRealToAddr(tx *Transaction) string
+	GetCryptoDriver(ty int) (string, error)
+	GetCryptoType(name string) (int, error)
 	//给用户显示的from 和 to
 	GetViewFromToAddr(tx *Transaction) (string, string)
 	ActionName(tx *Transaction) string
@@ -196,7 +201,7 @@ type ExecutorType interface {
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	CreateQuery(funcname string, message json.RawMessage) (Message, error)
 	AssertCreate(createTx *CreateTx) (*Transaction, error)
-	QueryToJson(funcname string, message Message) (string, error)
+	QueryToJson(funcname string, message Message) ([]byte, error)
 	Amount(tx *Transaction) (int64, error)
 	DecodePayload(tx *Transaction) (interface{}, error)
 	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
@@ -270,6 +275,14 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 			panic("value type not found " + k)
 		}
 	}
+}
+
+func (base *ExecTypeBase) GetCryptoDriver(ty int) (string, error) {
+	return "", ErrNotSupport
+}
+
+func (base *ExecTypeBase) GetCryptoType(name string) (int, error) {
+	return 0, ErrNotSupport
 }
 
 func (base *ExecTypeBase) InitFuncList(list map[string]reflect.Method) {
@@ -440,9 +453,9 @@ func (base *ExecTypeBase) CreateQuery(funcname string, message json.RawMessage) 
 	return nil, ErrActionNotSupport
 }
 
-func (base *ExecTypeBase) QueryToJson(funcname string, message Message) (string, error) {
+func (base *ExecTypeBase) QueryToJson(funcname string, message Message) ([]byte, error) {
 	if _, ok := base.queryMap[funcname]; !ok {
-		return "", ErrActionNotSupport
+		return nil, ErrActionNotSupport
 	}
 	return PBToJson(message)
 }

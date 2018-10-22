@@ -174,7 +174,6 @@ func (b *btcStore) getBtcCurHeight(req *ty.ReqRelayQryBTCHeadHeight) (types.Mess
 	var replay ty.ReplayRelayQryBTCHeadHeight
 	replay.CurHeight = height
 	replay.BaseHeight = baseHeight
-
 	return &replay, nil
 }
 
