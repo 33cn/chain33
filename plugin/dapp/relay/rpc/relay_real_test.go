@@ -16,7 +16,7 @@ import (
 )
 
 func TestExecQuery(t *testing.T) {
-	mock33 := testnode.New("testdata/chain33.test.toml", nil)
+	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	time.Sleep(time.Millisecond)
 	mock33.GetRPC().Listen()
