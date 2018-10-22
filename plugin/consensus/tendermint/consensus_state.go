@@ -558,7 +558,7 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 	// before we enterPropose in round 0.
 	waitForTxs := cs.WaitForTxs() && round == 0
 	if waitForTxs {
-		if cs.client.Cfg.CreateEmptyBlocksInterval > 0 {
+		if createEmptyBlocksInterval > 0 {
 			cs.scheduleTimeout(cs.EmptyBlocksInterval(), height, round, ttypes.RoundStepNewRound)
 		}
 		go cs.proposalHeartbeat(height, round)
@@ -1319,7 +1319,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string, peerIP strin
 						cs.enterPrecommit(height, int(vote.Round))
 						cs.enterCommit(height, int(vote.Round))
 
-						if cs.client.Cfg.SkipTimeoutCommit && precommits.HasAll() {
+						if skipTimeoutCommit && precommits.HasAll() {
 							// if we have all the votes now,
 							// go straight to new round (skip timeout commit)
 							cs.enterNewRound(cs.Height, 0)
@@ -1412,42 +1412,42 @@ func CompareHRS(h1 int64, r1 int, s1 ttypes.RoundStepType, h2 int64, r2 int, s2 
 
 // Commit returns the amount of time to wait for straggler votes after receiving +2/3 precommits for a single block (ie. a commit).
 func (cs *ConsensusState) Commit(t time.Time) time.Time {
-	return t.Add(time.Duration(cs.client.Cfg.TimeoutCommit) * time.Millisecond)
+	return t.Add(time.Duration(timeoutCommit) * time.Millisecond)
 }
 
 // Propose returns the amount of time to wait for a proposal
 func (cs *ConsensusState) Propose(round int) time.Duration {
-	return time.Duration(cs.client.Cfg.TimeoutPropose+cs.client.Cfg.TimeoutProposeDelta*int32(round)) * time.Millisecond
+	return time.Duration(timeoutPropose+timeoutProposeDelta*int32(round)) * time.Millisecond
 }
 
 // Prevote returns the amount of time to wait for straggler votes after receiving any +2/3 prevotes
 func (cs *ConsensusState) Prevote(round int) time.Duration {
-	return time.Duration(cs.client.Cfg.TimeoutPrevote+cs.client.Cfg.TimeoutPrevoteDelta*int32(round)) * time.Millisecond
+	return time.Duration(timeoutPrevote+timeoutPrevoteDelta*int32(round)) * time.Millisecond
 }
 
 // Precommit returns the amount of time to wait for straggler votes after receiving any +2/3 precommits
 func (cs *ConsensusState) Precommit(round int) time.Duration {
-	return time.Duration(cs.client.Cfg.TimeoutPrecommit+cs.client.Cfg.TimeoutPrecommitDelta*int32(round)) * time.Millisecond
+	return time.Duration(timeoutPrecommit+timeoutPrecommitDelta*int32(round)) * time.Millisecond
 }
 
 // WaitForTxs returns true if the consensus should wait for transactions before entering the propose step
 func (cs *ConsensusState) WaitForTxs() bool {
-	return !cs.client.Cfg.CreateEmptyBlocks || cs.client.Cfg.CreateEmptyBlocksInterval > 0
+	return !createEmptyBlocks || createEmptyBlocksInterval > 0
 }
 
 // EmptyBlocks returns the amount of time to wait before proposing an empty block or starting the propose timer if there are no txs available
 func (cs *ConsensusState) EmptyBlocksInterval() time.Duration {
-	return time.Duration(cs.client.Cfg.CreateEmptyBlocksInterval) * time.Second
+	return time.Duration(createEmptyBlocksInterval) * time.Second
 }
 
 // PeerGossipSleep returns the amount of time to sleep if there is nothing to send from the ConsensusReactor
 func (cs *ConsensusState) PeerGossipSleep() time.Duration {
-	return time.Duration( /*cs.client.Cfg.PeerGossipSleepDuration*/ 100) * time.Millisecond
+	return time.Duration(peerGossipSleepDuration) * time.Millisecond
 }
 
 // PeerQueryMaj23Sleep returns the amount of time to sleep after each VoteSetMaj23Message is sent in the ConsensusReactor
 func (cs *ConsensusState) PeerQueryMaj23Sleep() time.Duration {
-	return time.Duration( /*cs.PeerQueryMaj23SleepDuration*/ 2000) * time.Millisecond
+	return time.Duration(peerQueryMaj23SleepDuration) * time.Millisecond
 }
 
 func (cs *ConsensusState) IsProposer() bool {
