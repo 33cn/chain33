@@ -35,8 +35,8 @@ var (
 	enableMvcc bool
 	// 是否开启mavl裁剪
 	enablePrune bool
-	// 每个100000裁剪一次
-	pruneBlockHeight int = 100000
+	// 每个10000裁剪一次
+	pruneHeight   int = 10000
 	// 裁剪状态
 	pruningState int32
 )
@@ -53,8 +53,8 @@ func EnablePrune(enable bool) {
 	enablePrune = enable
 }
 
-func SetPrunBlockHeight(height int) {
-	pruneBlockHeight = height
+func SetPruneHeight(height int) {
+	pruneHeight = height
 }
 
 //merkle avl tree
@@ -158,9 +158,10 @@ func (t *Tree) Save() []byte {
 			return nil
 		}
 		// 该线程应只允许一个
-		//if enablePrune && !isPruning() && t.blockHeight%int64(pruneBlockHeight) == 0 {
-		//	go pruningTree(t.ndb.db, t.blockHeight)
-		//}
+		if enablePrune && !isPruning() &&
+			t.blockHeight%int64(pruneHeight) == 0 && t.blockHeight/int64(pruneHeight) > 1 {
+			go pruningTree(t.ndb.db, t.blockHeight)
+		}
 	}
 	return t.root.hash
 }
@@ -574,11 +575,13 @@ func setPruning(state int32) {
 }
 
 func pruningTree(db dbm.DB, curHeight int64) {
+	treelog.Info("pruningTree", "start curHeight:", curHeight)
 	setPruning(pruningStateStart)
 	pruningTreeLeafNode(db, curHeight)
 	//TODO curHeight-prunBlockHeight 处遍历树，然后删除hashnode;缓存数节点到lru中
 	pruningTreeHashNode(db, curHeight)
 	setPruning(pruningStateEnd)
+	treelog.Info("pruningTree", "end curHeight:", curHeight)
 }
 
 func pruningTreeLeafNode(db dbm.DB, curHeight int64) {
@@ -629,7 +632,7 @@ func deleteNode(db dbm.DB, mp *map[string][]hashData, curHeight int64, lastKey [
 	for key, vals := range *mp {
 		if len(vals) > 1 {
 			for _, val := range vals[1:] { //从第二个开始判断
-				if curHeight >= val.height+int64(pruneBlockHeight) {
+				if curHeight >= val.height+int64(pruneHeight) {
 					batch.Delete(val.hash)
 					batch.Delete(genLeafCountKey([]byte(key), val.hash, val.height))
 					upDateMp[string(val.rootHash)] = val.height
@@ -685,7 +688,7 @@ func pruningTreeHashNode(db dbm.DB, curHeight int64) {
 		prRoot := &types.PruneRootNode{}
 		err := proto.Unmarshal(value, prRoot)
 		if err == nil {
-			if curHeight < prRoot.Height+int64(pruneBlockHeight) {
+			if curHeight < prRoot.Height+int64(pruneHeight) {
 				//升序排列，可提前结束循环
 				break
 			}
@@ -732,10 +735,28 @@ type MarkNode struct {
 	rightNode  *MarkNode
 	rightPurne bool
 }
+
+type markNodeDB struct {
+	mtx     sync.Mutex
+	cache   *lru.Cache
+	db      dbm.DB
+	batch   dbm.Batch
+}
+
 type MarkTree struct {
 	root *MarkNode
-	ndb  *nodeDB
+	ndb  *markNodeDB
 	count int
+}
+
+func newMarkNodeDB(db dbm.DB, sync bool, cache int) *markNodeDB {
+	cach, _ := lru.New(cache)
+	ndb := &markNodeDB{
+		cache:   cach,
+		db:      db,
+		batch:   db.NewBatch(sync),
+	}
+	return ndb
 }
 
 func NewMarkTree(db dbm.DB, sync bool) *MarkTree {
@@ -745,7 +766,7 @@ func NewMarkTree(db dbm.DB, sync bool) *MarkTree {
 		}
 	} else {
 		// Persistent IAVLTree
-		ndb := newNodeDB(db, sync)
+		ndb := newMarkNodeDB(db, sync, 1024 * 5)
 		return &MarkTree{
 			ndb: ndb,
 		}
@@ -823,12 +844,17 @@ func (node *MarkNode) fetchRightNode(t *MarkTree) *MarkNode {
 	}
 }
 
-//区别主要是对于leaf节点这不缓存
-func (ndb *nodeDB) fetchNode(t *MarkTree, hash []byte) (*MarkNode, error) {
+func (ndb *markNodeDB) fetchNode(t *MarkTree, hash []byte) (*MarkNode, error) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
 	// Check the cache.
+	if ndb.cache != nil {
+		elem, ok := ndb.cache.Get(string(hash))
+		if ok {
+			return elem.(*MarkNode), nil
+		}
+	}
 
 	var buf []byte
 	buf, err := ndb.db.Get(hash)
@@ -847,8 +873,9 @@ func (ndb *nodeDB) fetchNode(t *MarkTree, hash []byte) (*MarkNode, error) {
 		leftHash: node.leftHash,
 		rightHash: node.rightHash,
 	}
-	//后续加
-	//ndb.cacheNode(node)
+	if ndb.cache != nil {
+		ndb.cache.Add(string(hash), mNode)
+	}
 	return mNode, nil
 }
 

@@ -778,10 +778,10 @@ func TestIAVLPrint(t *testing.T) {
 }
 
 func TestPruningTree(t *testing.T) {
-	const txN   = 100// 每个块交易量
-	const preB  = 1000  // 一轮区块数
-	const round = 5   // 更新叶子节点次数
-	const preDel= preB/10
+	const txN = 10  // 每个块交易量
+	const preB = 20 // 一轮区块数
+	const round = 5 // 更新叶子节点次数
+	const preDel = preB / 10
 
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -791,33 +791,32 @@ func TestPruningTree(t *testing.T) {
 
 	EnableMavlPrefix(true)
 	EnablePrune(true)
-	SetPrunBlockHeight(preDel)
+	SetPruneHeight(preDel)
 
-	for j := 0; j < round; j++  {
+	for j := 0; j < round; j++ {
 		for i := 0; i < preB; i++ {
-			prevHash, err = saveUpdateBlock(db, int64(i), prevHash, txN, j, int64(j * preB + i))
+			prevHash, err = saveUpdateBlock(db, int64(i), prevHash, txN, j, int64(j*preB+i))
 			assert.Nil(t, err)
-			m := int64(j * preB + i)
-			if m / int64(preDel) > 1 && m % int64(preDel) == 0 {
-				pruningTree(db, m)
-			}
+			//m := int64(j*preB + i)
+			//if m/int64(preDel) > 1 && m%int64(preDel) == 0 {
+			//	pruningTree(db, m)
+			//}
 		}
 		fmt.Printf("round %d over \n", j)
 	}
-	pruningTreePrint(db, []byte(leafKeyCountPrefix))
-	pruningTreePrint(db, []byte(hashNodePrefix))
-	pruningTreePrint(db, []byte(leafNodePrefix))
-
 	te := NewTree(db, true)
 	te.Load(prevHash)
 	for i := 0; i < preB*txN; i++ {
 		key := []byte(fmt.Sprintf("my_%018d", i))
-		vIndex := round-1
+		vIndex := round - 1
 		value := []byte(fmt.Sprintf("my_%018d_%d", i, vIndex))
 		_, v, exist := te.Get(key)
 		assert.Equal(t, exist, true)
 		assert.Equal(t, value, v)
 	}
+	pruningTreePrint(db, []byte(leafKeyCountPrefix))
+	pruningTreePrint(db, []byte(hashNodePrefix))
+	pruningTreePrint(db, []byte(leafNodePrefix))
 }
 
 func genUpdateKV(height int64, txN int64, vIndex int) (kvs []*types.KeyValue) {
@@ -869,16 +868,16 @@ func TestGethash(t *testing.T) {
 	}
 
 	/* 叶子节点对应hash值
-	k:abc     v:abc     hash:0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d
-    k:fan     v:fan     hash:0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114
-    k:foml    v:foml    hash:0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0
-    k:foo     v:foo     hash:0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2
-    k:foobang v:foobang hash:0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be
-	k:foobar  v:foobar  hash:0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93
-	k:foobaz  v:foobaz  hash:0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b
-    k:food    v:food    hash:0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39
-    k:good    v:good    hash:0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776
-    k:low     v:low     hash:0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786
+		k:abc     v:abc     hash:0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d
+	    k:fan     v:fan     hash:0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114
+	    k:foml    v:foml    hash:0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0
+	    k:foo     v:foo     hash:0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2
+	    k:foobang v:foobang hash:0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be
+		k:foobar  v:foobar  hash:0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93
+		k:foobaz  v:foobaz  hash:0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b
+	    k:food    v:food    hash:0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39
+	    k:good    v:good    hash:0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776
+	    k:low     v:low     hash:0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786
 	*/
 	keys := make([]string, len(records))
 	for i, r := range records {
@@ -904,8 +903,8 @@ func TestGethash(t *testing.T) {
 	}
 
 	delMp := make(map[string]bool)
-	for _,leaf := range keyLeafs {
-		k, _ :=FromHex(leaf.value)
+	for _, leaf := range keyLeafs {
+		k, _ := FromHex(leaf.value)
 		db.Delete(k)
 		delMp[leaf.key] = true
 	}
@@ -915,7 +914,7 @@ func TestGethash(t *testing.T) {
 	require.NoError(t, err)
 	strs := tr.root.gethash(tr)
 	fmt.Printf("---count: %d ---\n", tr.count)
-	for _,str := range strs {
+	for _, str := range strs {
 		fmt.Printf("delete---%s---\n", Bytes2Hex([]byte(str)[0:2]))
 	}
 	//剩下节点
@@ -1038,7 +1037,6 @@ func genKV(height int64, txN int64) (kvs []*types.KeyValue) {
 	return kvs
 }
 
-
 func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool) (newHash []byte, err error) {
 	t := NewTree(dbm, true)
 	t.Load(hash)
@@ -1064,4 +1062,3 @@ func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool) (newH
 	}
 	return newHash, nil
 }
-

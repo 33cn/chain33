@@ -27,6 +27,8 @@ type Store struct {
 	cache            *lru.Cache
 	enableMavlPrefix bool
 	enableMVCC       bool
+	enableMavlPrune  bool
+	pruneHeight      int32
 }
 
 func init() {
@@ -35,11 +37,13 @@ func init() {
 
 func New(cfg *types.Store) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
-	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, cfg.EnableMavlPrefix, cfg.EnableMVCC}
+	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, cfg.EnableMavlPrefix, cfg.EnableMVCC, cfg.EnableMavlPrune, cfg.PruneHeight}
 	mavls.cache, _ = lru.New(10)
 	//使能前缀mavl以及MVCC
 	mavl.EnableMavlPrefix(mavls.enableMavlPrefix)
 	mavl.EnableMVCC(mavls.enableMVCC)
+	mavl.EnablePrune(mavls.enableMavlPrune)
+	mavl.SetPruneHeight(int(mavls.pruneHeight))
 	bs.SetChild(mavls)
 	return mavls
 }
