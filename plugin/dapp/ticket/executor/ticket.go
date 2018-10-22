@@ -29,7 +29,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Ticket{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newTicket, 0)
 }
 

@@ -868,14 +868,12 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 			return types.ErrVerifyOldpasswdFail
 		}
 	}
-
 	//内存中已经记录password时的校验
 	if len(wallet.Password) != 0 && WalletUnLock.Passwd != wallet.Password {
 		return types.ErrInputPassword
 	}
 	//本钱包没有设置密码加密过,只需要解锁不需要记录解锁密码
 	wallet.Password = WalletUnLock.Passwd
-
 	//只解锁挖矿转账
 	if !WalletUnLock.WalletOrTicket {
 		//wallet.isTicketLocked = false

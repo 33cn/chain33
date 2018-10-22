@@ -29,7 +29,7 @@ type KVStore struct {
 	cache map[string]map[string]*types.KeyValue
 }
 
-func New(cfg *types.Store) queue.Module {
+func New(cfg *types.Store, sub []byte) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	kvs := &KVStore{bs, make(map[string]map[string]*types.KeyValue)}
 	bs.SetChild(kvs)

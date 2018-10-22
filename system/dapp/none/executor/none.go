@@ -10,7 +10,7 @@ import (
 
 var driverName = "none"
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}
