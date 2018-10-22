@@ -13,6 +13,7 @@ import (
 // 执行： go test -cover
 func TestSolo(t *testing.T) {
 	mock33 := testnode.New("", nil)
+	defer mock33.Close()
 	txs := mock33.GenNoneTxs(10)
 	for i := 0; i < len(txs); i++ {
 		mock33.GetAPI().SendTx(txs[i])
