@@ -852,19 +852,19 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 
 	decodePayload, err := execty.CreateQuery(in.FuncName, in.Payload)
 	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
+		log.Error("EventQuery1", "err", err.Error())
 		return err
 	}
 	resp, err := c.cli.Query(types.ExecName(in.Execer), in.FuncName, decodePayload)
 	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
+		log.Error("EventQuery2", "err", err.Error())
 		return err
 	}
 	var jsonmsg json.RawMessage
 	jsonmsg, err = execty.QueryToJson(in.FuncName, resp)
 	*result = jsonmsg
 	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
+		log.Error("EventQuery3", "err", err.Error())
 		return err
 	}
 	return nil
