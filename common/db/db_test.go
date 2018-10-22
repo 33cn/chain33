@@ -220,7 +220,7 @@ func testDBIteratorDel(t *testing.T, db DB) {
 	}
 
 	prefix := []byte("my")
-	it := db.Iterator(prefix, true)
+	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
 	for it.Rewind(); it.Valid(); it.Next() {
 		t.Log(string(it.Key()), "*********", string(it.Value()))
