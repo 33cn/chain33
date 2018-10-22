@@ -87,15 +87,15 @@ func estInitAccount(t *testing.T) {
 	defer fmt.Println("TestInitAccount end")
 
 	var label [accountMax]string
-	var params types.ReqWalletImportPrivKey
+	var params types.ReqWalletImportPrivkey
 
 	privGenesis := getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	for index := 0; index < accountMax; index++ {
 		addr[index], privkey[index] = genaddress()
 		//fmt.Println("privkey: ", common.ToHex(privkey[index].Bytes()))
 		label[index] = strconv.Itoa(int(types.Now().UnixNano()))
-		params = types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey[index].Bytes()), Label: label[index]}
-		_, err := c.ImportPrivKey(context.Background(), &params)
+		params = types.ReqWalletImportPrivkey{Privkey: common.ToHex(privkey[index].Bytes()), Label: label[index]}
+		_, err := c.ImportPrivkey(context.Background(), &params)
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(time.Second)
@@ -154,10 +154,10 @@ func estHashlock(t *testing.T) {
 	}
 	fmt.Println("TestHashlockQuery start")
 	defer fmt.Println("TestHashlockQuery end")
-	var req types.Query
-	req.Execer = []byte("hashlock")
+	var req types.ChainExecutor
+	req.Driver = "hashlock"
 	req.FuncName = "GetHashlocKById"
-	req.Payload = common.Sha256(secret)
+	req.Param = common.Sha256(secret)
 	time.Sleep(15 * time.Second)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -253,10 +253,10 @@ func estHashunlock(t *testing.T) {
 	}
 	fmt.Println("TestHashunlockQuery start")
 	defer fmt.Println("TestHashlockQuery end")
-	var req types.Query
-	req.Execer = []byte("hashlock")
+	var req types.ChainExecutor
+	req.Driver = "hashlock"
 	req.FuncName = "GetHashlocKById"
-	req.Payload = common.Sha256(secret)
+	req.Param = common.Sha256(secret)
 	time.Sleep(15 * time.Second)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -353,10 +353,10 @@ func estHashsend(t *testing.T) {
 	//lock it again & failed as overtime
 	fmt.Println("TestHashsendQuery start")
 	defer fmt.Println("TestHashsendQuery end")
-	var req types.Query
-	req.Execer = []byte("hashlock")
+	var req types.ChainExecutor
+	req.Driver = "hashlock"
 	req.FuncName = "GetHashlocKById"
-	req.Payload = common.Sha256(anothersec)
+	req.Param = common.Sha256(anothersec)
 	time.Sleep(15 * time.Second)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -484,7 +484,7 @@ func checkAccount(balance int64, frozen int64, wallet *types.WalletAccount) bool
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -497,7 +497,7 @@ func genaddress() (string, crypto.PrivKey) {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}

@@ -8,14 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type Jrpc struct {
-	cli channelClient
-}
-
-type Grpc struct {
-	channelClient
-}
-
 func (c *Jrpc) BlackwhiteCreateTx(parm *bw.BlackwhiteCreateTxReq, result *interface{}) error {
 	if parm == nil {
 		return types.ErrInvalidParam
@@ -38,17 +30,14 @@ func (c *Jrpc) BlackwhiteShowTx(parm *BlackwhiteShowTx, result *interface{}) err
 	if parm == nil {
 		return types.ErrInvalidParam
 	}
-
 	head := &bw.BlackwhiteShow{
 		GameID: parm.GameID,
 		Secret: parm.Secret,
 	}
-
 	reply, err := c.cli.Show(context.Background(), head)
 	if err != nil {
 		return err
 	}
-
 	*result = hex.EncodeToString(reply.Data)
 	return nil
 }

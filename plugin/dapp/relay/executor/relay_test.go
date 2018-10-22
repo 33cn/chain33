@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/db/mocks"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -63,6 +64,7 @@ func (s *suiteRelay) SetupSuite() {
 	relay.SetIsFree(false)
 	relay.SetApi(nil)
 	relay.SetChild(relay)
+	relay.SetExecutorType(types.LoadExecutorType(driverName))
 	s.relay = relay
 
 	s.Equal("relay", s.relay.GetName())
@@ -105,17 +107,17 @@ func (s *suiteRelay) testExecDelLocal(tx *types.Transaction, receipt *types.Rece
 
 //create sell
 func (s *suiteRelay) TestExec_1() {
-	order := &types.RelayCreate{
-		Operation: types.RelayOrderSell,
+	order := &ty.RelayCreate{
+		Operation: ty.RelayOrderSell,
 		Coin:      "BTC",
 		Amount:    0.299 * 1e8,
 		Addr:      addrBtc,
 		BtyAmount: 200 * 1e8,
 	}
 
-	sell := &types.RelayAction{
-		Ty:    types.RelayActionCreate,
-		Value: &types.RelayAction_Create{order},
+	sell := &ty.RelayAction{
+		Ty:    ty.RelayActionCreate,
+		Value: &ty.RelayAction_Create{order},
 	}
 
 	tx := &types.Transaction{}
@@ -137,7 +139,7 @@ func (s *suiteRelay) TestExec_1() {
 	//s.Equal(int64(200*1e8), account.Frozen)
 	//s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(10), log.CoinHeight)
@@ -151,14 +153,14 @@ func (s *suiteRelay) TestExec_1() {
 
 //accept
 func (s *suiteRelay) TestExec_2() {
-	order := &types.RelayAccept{
+	order := &ty.RelayAccept{
 		OrderId:  s.orderId,
 		CoinAddr: addrBtc,
 	}
 
-	sell := &types.RelayAction{
-		Ty:    types.RelayActionAccept,
-		Value: &types.RelayAction_Accept{order},
+	sell := &ty.RelayAction{
+		Ty:    ty.RelayActionAccept,
+		Value: &ty.RelayAction_Accept{order},
 	}
 
 	tx := &types.Transaction{}
@@ -177,24 +179,24 @@ func (s *suiteRelay) TestExec_2() {
 	s.Equal(int64(200*1e8), account.Frozen)
 	s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(20), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_locking.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_locking.String(), log.CurStatus)
 
 }
 
 //confirm
 func (s *suiteRelay) TestExec_3() {
 
-	order := &types.RelayConfirmTx{
+	order := &ty.RelayConfirmTx{
 		OrderId: s.orderId,
 		TxHash:  "6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4",
 	}
-	sell := &types.RelayAction{
-		Ty:    types.RelayActionConfirmTx,
-		Value: &types.RelayAction_ConfirmTx{order},
+	sell := &ty.RelayAction{
+		Ty:    ty.RelayActionConfirmTx,
+		Value: &ty.RelayAction_ConfirmTx{order},
 	}
 
 	tx := &types.Transaction{}
@@ -213,23 +215,23 @@ func (s *suiteRelay) TestExec_3() {
 	//s.Equal(int64(200*1e8),account.Frozen)
 	//s.Zero(account.Balance)
 
-	var log types.ReceiptRelayLog
+	var log ty.ReceiptRelayLog
 	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(30), log.CoinHeight)
-	s.Equal(types.RelayOrderStatus_confirming.String(), log.CurStatus)
+	s.Equal(ty.RelayOrderStatus_confirming.String(), log.CurStatus)
 
 }
 
 //verify
 
 func (s *suiteRelay) TestExec_4() {
-	vout := &types.Vout{
+	vout := &ty.Vout{
 		Address: "1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT",
 		Value:   29900000,
 	}
-	transaction := &types.BtcTransaction{
-		Vout:        []*types.Vout{vout},
+	transaction := &ty.BtcTransaction{
+		Vout:        []*ty.Vout{vout},
 		Time:        2500,
 		BlockHeight: 1000,
 		Hash:        "6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4",
@@ -242,7 +244,7 @@ func (s *suiteRelay) TestExec_4() {
 		proofs[i], _ = btcHashStrRevers(kk)
 	}
 
-	spv := &types.BtcSpv{
+	spv := &ty.BtcSpv{
 		BranchProof: proofs,
 		TxIndex:     2,
 		BlockHash:   "000000000003ba27aa200b1cecaad478d2b00432346c3f1f3986da1afd33e506",
@@ -252,21 +254,21 @@ func (s *suiteRelay) TestExec_4() {
 
 	heightBytes := types.Encode(&types.Int64{int64(1006)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	var head = &types.BtcHeader{
+	var head = &ty.BtcHeader{
 		Version:    1,
 		MerkleRoot: "f3e94742aca4b5ef85488dc37c06c3282295ffec960994b2c0d5ac2a25a95766",
 	}
 	headEnc := types.Encode(head)
 	s.kvdb.On("Get", mock.Anything).Return(headEnc, nil).Once()
 
-	order := &types.RelayVerify{
+	order := &ty.RelayVerify{
 		OrderId: s.orderId,
 		Tx:      transaction,
 		Spv:     spv,
 	}
-	sell := &types.RelayAction{
-		Ty:    types.RelayActionVerifyTx,
-		Value: &types.RelayAction_Verify{order},
+	sell := &ty.RelayAction{
+		Ty:    ty.RelayActionVerifyTx,
+		Value: &ty.RelayAction_Verify{order},
 	}
 	tx := &types.Transaction{}
 	tx.To = s.addrRelay
@@ -289,61 +291,58 @@ func (s *suiteRelay) TestExec_4() {
 	//	s.T().Log("exec4",len(receipt.Logs))
 	//var log types.ReceiptRelayLog
 	//types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
-	//s.Equal(types.RelayOrderStatus_finished.String(), log.CurStatus)
+	//s.Equal(ty.RelayOrderStatus_finished.String(), log.CurStatus)
 
 }
 
 func (s *suiteRelay) TestExec_9_QryStatus1() {
-	addrCoins := &types.ReqRelayAddrCoins{
-		Status: types.RelayOrderStatus_finished,
+	addrCoins := &ty.ReqRelayAddrCoins{
+		Status: ty.RelayOrderStatus_finished,
 		//Coins:[]string{"BTC"},
 	}
 
 	var OrderIds [][]byte
 	OrderIds = append(OrderIds, []byte(s.orderId))
 	s.kvdb.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(OrderIds, nil).Once()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetRelayOrderByStatus", param)
+	msg, err := s.relay.Query_GetRelayOrderByStatus(addrCoins)
 	s.Nil(err)
 	//s.T().Log(msg.String())
 	s.Contains(msg.String(), "status:finished")
-	//s.Equal(types.RelayOrderStatus_finished,)
+	//s.Equal(ty.RelayOrderStatus_finished,)
 }
 
 func (s *suiteRelay) TestExec_9_QryStatus2() {
-	addrCoins := &types.ReqRelayAddrCoins{
+	addrCoins := &ty.ReqRelayAddrCoins{
 		Addr: addrFrom,
-		//Status: types.RelayOrderStatus_finished,
+		//Status: ty.RelayOrderStatus_finished,
 		Coins: []string{"BTC"},
 	}
 
 	var OrderIds [][]byte
 	OrderIds = append(OrderIds, []byte(s.orderId))
 	s.kvdb.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(OrderIds, nil).Once()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetSellRelayOrder", param)
+	msg, err := s.relay.Query_GetSellRelayOrder(addrCoins)
 	s.Nil(err)
 	s.Contains(msg.String(), "status:finished")
 }
 
 func (s *suiteRelay) TestExec_9_QryStatus3() {
-	addrCoins := &types.ReqRelayAddrCoins{
+	addrCoins := &ty.ReqRelayAddrCoins{
 		Addr: addrTo,
-		//Status: types.RelayOrderStatus_finished,
+		//Status: ty.RelayOrderStatus_finished,
 		Coins: []string{"BTC"},
 	}
 
 	var OrderIds [][]byte
 	OrderIds = append(OrderIds, []byte(s.orderId))
 	s.kvdb.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(OrderIds, nil).Once()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetBuyRelayOrder", param)
+	msg, err := s.relay.Query_GetBuyRelayOrder(addrCoins)
 	s.Nil(err)
 	s.Contains(msg.String(), "status:finished")
 }
 
 func (s *suiteRelay) TestExec_9_QryStatus4() {
-	addrCoins := &types.ReqRelayBtcHeaderHeightList{
+	addrCoins := &ty.ReqRelayBtcHeaderHeightList{
 		ReqHeight: 12,
 		Counts:    2,
 		Direction: 1,
@@ -352,22 +351,20 @@ func (s *suiteRelay) TestExec_9_QryStatus4() {
 	var OrderIds [][]byte
 	OrderIds = append(OrderIds, []byte(s.orderId))
 	s.kvdb.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(OrderIds, nil).Once()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetBTCHeaderList", param)
+	msg, err := s.relay.Query_GetBTCHeaderList(addrCoins)
 	s.Nil(err)
 	//s.T().Log(msg)
 	s.Contains(msg.String(), "heights:-1")
 }
 
 func (s *suiteRelay) TestExec_9_QryStatus5() {
-	addrCoins := &types.ReqRelayQryBTCHeadHeight{
+	addrCoins := &ty.ReqRelayQryBTCHeadHeight{
 		BaseHeight: 10,
 	}
 
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Twice()
-	param := types.Encode(addrCoins)
-	msg, err := s.relay.Query("GetBTCHeaderCurHeight", param)
+	msg, err := s.relay.Query_GetBTCHeaderCurHeight(addrCoins)
 	s.Nil(err)
 	//s.T().Log(msg)
 	s.Contains(msg.String(), "curHeight:10 baseHeight:10")
@@ -399,13 +396,14 @@ func (s *suiteBtcHeader) SetupSuite() {
 	relay.SetIsFree(false)
 	relay.SetApi(nil)
 	relay.SetChild(relay)
+	relay.SetExecutorType(types.LoadExecutorType(driverName))
 	s.relay = relay
 
 	s.Equal("relay", s.relay.GetName())
 
 }
 
-func (s *suiteBtcHeader) testExecBtcHeadLocal(tx *types.Transaction, receipt *types.Receipt, headers *types.BtcHeaders) {
+func (s *suiteBtcHeader) testExecBtcHeadLocal(tx *types.Transaction, receipt *types.Receipt, headers *ty.BtcHeaders) {
 	s.Equal(int32(types.ExecOk), receipt.Ty)
 	rData := &types.ReceiptData{}
 	rData.Ty = receipt.Ty
@@ -427,7 +425,7 @@ func (s *suiteBtcHeader) testExecBtcHeadLocal(tx *types.Transaction, receipt *ty
 
 }
 
-func (s *suiteBtcHeader) testExecBtcHeadDelLocal(tx *types.Transaction, receipt *types.Receipt, headers *types.BtcHeaders) {
+func (s *suiteBtcHeader) testExecBtcHeadDelLocal(tx *types.Transaction, receipt *types.Receipt, headers *ty.BtcHeaders) {
 	s.Equal(int32(types.ExecOk), receipt.Ty)
 	rData := &types.ReceiptData{}
 	rData.Ty = receipt.Ty
@@ -450,7 +448,7 @@ func (s *suiteBtcHeader) testExecBtcHeadDelLocal(tx *types.Transaction, receipt 
 
 //rcv btchead
 func (s *suiteBtcHeader) TestSaveBtcHead_1() {
-	head0 := &types.BtcHeader{
+	head0 := &ty.BtcHeader{
 		Hash:          "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
 		Confirmations: 92,
 		Height:        10,
@@ -462,7 +460,7 @@ func (s *suiteBtcHeader) TestSaveBtcHead_1() {
 		Difficulty:    0,
 		PreviousHash:  "604efe53975ab06cad8748fd703ad5bc960e8b752b2aae98f0f871a4a05abfc7",
 	}
-	head1 := &types.BtcHeader{
+	head1 := &ty.BtcHeader{
 		Hash:          "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
 		Confirmations: 91,
 		Height:        11,
@@ -475,7 +473,7 @@ func (s *suiteBtcHeader) TestSaveBtcHead_1() {
 		PreviousHash:  "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
 	}
 
-	head2 := &types.BtcHeader{
+	head2 := &ty.BtcHeader{
 		Hash:          "57bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
 		Confirmations: 90,
 		Height:        12,
@@ -488,14 +486,14 @@ func (s *suiteBtcHeader) TestSaveBtcHead_1() {
 		PreviousHash:  "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
 	}
 
-	headers := &types.BtcHeaders{}
+	headers := &ty.BtcHeaders{}
 	headers.BtcHeader = append(headers.BtcHeader, head0)
 	headers.BtcHeader = append(headers.BtcHeader, head1)
 	headers.BtcHeader = append(headers.BtcHeader, head2)
 
-	sell := &types.RelayAction{
-		Ty:    types.RelayActionRcvBTCHeaders,
-		Value: &types.RelayAction_BtcHeaders{headers},
+	sell := &ty.RelayAction{
+		Ty:    ty.RelayActionRcvBTCHeaders,
+		Value: &ty.RelayAction_BtcHeaders{headers},
 	}
 
 	tx := &types.Transaction{}

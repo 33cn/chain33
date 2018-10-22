@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	driver "gitlab.33.cn/chain33/chain33/system/dapp"
@@ -27,20 +28,21 @@ var (
 
 func init() {
 	drivers.Reg("ticket", New)
+	drivers.QueryData.Register("ticket", &Client{})
 }
 
 type Client struct {
 	*drivers.BaseClient
 	//ticket list for miner
-	tlist    *types.ReplyTicketList
+	tlist    *ty.ReplyTicketList
 	privmap  map[string]crypto.PrivKey
 	ticketmu sync.Mutex
 	done     chan struct{}
 }
 
-func New(cfg *types.Consensus) queue.Module {
+func New(cfg *types.Consensus, sub []byte) queue.Module {
 	c := drivers.NewBaseClient(cfg)
-	t := &Client{c, &types.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{})}
+	t := &Client{c, &ty.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{})}
 	c.SetChild(t)
 	go t.flushTicketBackend()
 	return t
@@ -144,40 +146,46 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	tx3 := types.Transaction{}
 	tx3.Execer = []byte("ticket")
 	tx3.To = driver.ExecAddress("ticket")
-	gticket := &types.TicketAction_Genesis{}
-	gticket.Genesis = &types.TicketGenesis{minerAddr, returnAddr, count}
-	tx3.Payload = types.Encode(&types.TicketAction{Value: gticket, Ty: types.TicketActionGenesis})
+	gticket := &ty.TicketAction_Genesis{}
+	gticket.Genesis = &ty.TicketGenesis{minerAddr, returnAddr, count}
+	tx3.Payload = types.Encode(&ty.TicketAction{Value: gticket, Ty: ty.TicketActionGenesis})
 	ret = append(ret, &tx3)
 	return ret
 }
 
-func (client *Client) ProcEvent(msg queue.Message) bool {
-	if msg.Ty == types.EventFlushTicket {
-		client.flushTicketMsg(msg)
-	} else if msg.Ty == types.EventGetTicketCount {
-		client.getTicketCountMsg(msg)
-	} else {
-		msg.ReplyErr("Client", types.ErrActionNotSupport)
+func (client *Client) Query_GetTicketCount(req *types.ReqNil) (types.Message, error) {
+	var ret types.Int64
+	ret.Data = client.getTicketCount()
+	return &ret, nil
+}
+
+func (client *Client) Query_FlushTicket(req *types.ReqNil) (types.Message, error) {
+	err := client.flushTicket()
+	if err != nil {
+		return nil, err
 	}
+	return &types.Reply{true, []byte("OK")}, nil
+}
+
+func (client *Client) ProcEvent(msg queue.Message) bool {
+	msg.ReplyErr("Client", types.ErrActionNotSupport)
 	return true
 }
 
 func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		return nil, err
 	}
 	return cr.PrivKeyFromBytes(privkey)
 }
 
-func (client *Client) getTickets() ([]*types.Ticket, []crypto.PrivKey, error) {
-	msg := client.GetQueueClient().NewMessage("wallet", types.EventWalletGetTickets, nil)
-	client.GetQueueClient().Send(msg, true)
-	resp, err := client.GetQueueClient().Wait(msg)
+func (client *Client) getTickets() ([]*ty.Ticket, []crypto.PrivKey, error) {
+	resp, err := client.GetAPI().ExecWalletFunc("ticket", "WalletGetTickets", &types.ReqNil{})
 	if err != nil {
 		return nil, nil, err
 	}
-	reply := resp.GetData().(types.Message).(*types.ReplyWalletTickets)
+	reply := resp.(*ty.ReplyWalletTickets)
 	var keys []crypto.PrivKey
 	for i := 0; i < len(reply.Privkeys); i++ {
 		priv, err := client.privFromBytes(reply.Privkeys[i])
@@ -196,14 +204,7 @@ func (client *Client) getTicketCount() int64 {
 	return int64(len(client.tlist.Tickets))
 }
 
-func (client *Client) getTicketCountMsg(msg queue.Message) {
-	//list accounts
-	var ret types.Int64
-	ret.Data = client.getTicketCount()
-	msg.Reply(client.GetQueueClient().NewMessage("", types.EventReplyGetTicketCount, &ret))
-}
-
-func (client *Client) setTicket(tlist *types.ReplyTicketList, privmap map[string]crypto.PrivKey) {
+func (client *Client) setTicket(tlist *ty.ReplyTicketList, privmap map[string]crypto.PrivKey) {
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
 	client.tlist = tlist
@@ -223,14 +224,8 @@ func (client *Client) flushTicket() error {
 		tlog.Error("flushTicket error", "err", err)
 		return err
 	}
-	client.setTicket(&types.ReplyTicketList{tickets}, getPrivMap(privs))
+	client.setTicket(&ty.ReplyTicketList{tickets}, getPrivMap(privs))
 	return nil
-}
-
-func (client *Client) flushTicketMsg(msg queue.Message) {
-	//list accounts
-	err := client.flushTicket()
-	msg.ReplyErr("FlushTicket", err)
 }
 
 func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
@@ -242,19 +237,19 @@ func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
 	return list
 }
 
-func (client *Client) getMinerTx(current *types.Block) (*types.TicketAction, error) {
+func (client *Client) getMinerTx(current *types.Block) (*ty.TicketAction, error) {
 	//检查第一个笔交易的execs, 以及执行状态
 	if len(current.Txs) == 0 {
 		return nil, types.ErrEmptyTx
 	}
 	baseTx := current.Txs[0]
 	//判断交易类型和执行情况
-	var ticketAction types.TicketAction
+	var ticketAction ty.TicketAction
 	err := types.Decode(baseTx.GetPayload(), &ticketAction)
 	if err != nil {
 		return nil, err
 	}
-	if ticketAction.GetTy() != types.TicketActionMiner {
+	if ticketAction.GetTy() != ty.TicketActionMiner {
 		return nil, types.ErrCoinBaseTxType
 	}
 	//判断交易执行是否OK
@@ -475,7 +470,7 @@ func printBInt(data *big.Int) string {
 	return strings.Repeat("0", 64-len(txt)) + txt
 }
 
-func (client *Client) searchTargetTicket(parent, block *types.Block) (*types.Ticket, crypto.PrivKey, *big.Int, []byte, int, error) {
+func (client *Client) searchTargetTicket(parent, block *types.Block) (*ty.Ticket, crypto.PrivKey, *big.Int, []byte, int, error) {
 	bits := parent.Difficulty
 	diff, modify, err := client.getNextTarget(parent, bits)
 	if err != nil {
@@ -505,7 +500,7 @@ func (client *Client) searchTargetTicket(parent, block *types.Block) (*types.Tic
 	return nil, nil, nil, nil, 0, nil
 }
 
-func (client *Client) delTicket(ticket *types.Ticket, index int) {
+func (client *Client) delTicket(ticket *ty.Ticket, index int) {
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
 	//1. 结构体没有被重新调整过
@@ -559,14 +554,14 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 	//return 0 always
 	fee := calcTotalFee(block)
 
-	var ticketAction types.TicketAction
-	miner := &types.TicketMiner{}
+	var ticketAction ty.TicketAction
+	miner := &ty.TicketMiner{}
 	miner.TicketId = tid
 	miner.Bits = difficulty.BigToCompact(diff)
 	miner.Modify = modify
 	miner.Reward = types.GetP(block.Height).CoinReward + fee
-	ticketAction.Value = &types.TicketAction_Miner{miner}
-	ticketAction.Ty = types.TicketActionMiner
+	ticketAction.Value = &ty.TicketAction_Miner{miner}
+	ticketAction.Ty = ty.TicketActionMiner
 	//构造transaction
 	tx := client.createMinerTx(&ticketAction, priv)
 	//unshift

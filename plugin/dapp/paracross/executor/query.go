@@ -57,7 +57,7 @@ func (c *Paracross) ParacrossGetTitleHeight(title string, height int64) (types.M
 
 func (c *Paracross) ParacrossGetAssetTxResult(hash []byte) (types.Message, error) {
 	if len(hash) == 0 {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidParam
 	}
 
 	key := calcLocalAssetKey(hash)

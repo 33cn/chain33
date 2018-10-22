@@ -14,29 +14,22 @@ EventTransfer -> 转移资产
 
 import (
 	"fmt"
-	"reflect"
 
 	log "github.com/inconshreveable/log15"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	pty "gitlab.33.cn/chain33/chain33/types/executor/ticket"
 )
 
 var clog = log.New("module", "execs.ticket")
-
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = pty.NewType()
+var driverName = "ticket"
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Ticket{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Ticket{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newTicket, 0)
 }
 
@@ -51,115 +44,15 @@ type Ticket struct {
 func newTicket() drivers.Driver {
 	t := &Ticket{}
 	t.SetChild(t)
-	t.SetExecutorType(executorType)
+	t.SetExecutorType(types.LoadExecutorType(driverName))
 	return t
 }
 
 func (t *Ticket) GetDriverName() string {
-	return "ticket"
+	return driverName
 }
 
-func (t *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var action types.TicketAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	clog.Debug("exec ticket tx=", "tx=", action)
-	actiondb := NewAction(t, tx)
-	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
-		genesis := action.GetGenesis()
-		if genesis.Count <= 0 {
-			return nil, types.ErrTicketCount
-		}
-		//new ticks
-		return actiondb.GenesisInit(genesis)
-	} else if action.Ty == types.TicketActionOpen && action.GetTopen() != nil {
-		topen := action.GetTopen()
-		if topen.Count <= 0 {
-			tlog.Error("topen ", "value", topen)
-			return nil, types.ErrTicketCount
-		}
-		return actiondb.TicketOpen(topen)
-	} else if action.Ty == types.TicketActionBind && action.GetTbind() != nil {
-		tbind := action.GetTbind()
-		return actiondb.TicketBind(tbind)
-	} else if action.Ty == types.TicketActionClose && action.GetTclose() != nil {
-		tclose := action.GetTclose()
-		return actiondb.TicketClose(tclose)
-	} else if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
-		miner := action.GetMiner()
-		return actiondb.TicketMiner(miner, index)
-	}
-	//return error
-	return nil, types.ErrActionNotSupport
-}
-
-func (t *Ticket) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.DriverBase.ExecLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		//这三个是ticket 的log
-		if item.Ty == types.TyLogNewTicket || item.Ty == types.TyLogMinerTicket || item.Ty == types.TyLogCloseTicket {
-			var ticketlog types.ReceiptTicket
-			err := types.Decode(item.Log, &ticketlog)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			kv := t.saveTicket(&ticketlog)
-			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogTicketBind {
-			var ticketlog types.ReceiptTicketBind
-			err := types.Decode(item.Log, &ticketlog)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			kv := t.saveTicketBind(&ticketlog)
-			set.KV = append(set.KV, kv...)
-		}
-	}
-	return set, nil
-}
-
-func (t *Ticket) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.DriverBase.ExecDelLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		//这三个是ticket 的log
-		if item.Ty == types.TyLogNewTicket || item.Ty == types.TyLogMinerTicket || item.Ty == types.TyLogCloseTicket {
-			var ticketlog types.ReceiptTicket
-			err := types.Decode(item.Log, &ticketlog)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			kv := t.delTicket(&ticketlog)
-			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogTicketBind {
-			var ticketlog types.ReceiptTicketBind
-			err := types.Decode(item.Log, &ticketlog)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			kv := t.delTicketBind(&ticketlog)
-			set.KV = append(set.KV, kv...)
-		}
-	}
-	return set, nil
-}
-
-func (t *Ticket) saveTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValue) {
+func (t *Ticket) saveTicketBind(b *ty.ReceiptTicketBind) (kvs []*types.KeyValue) {
 	//解除原来的绑定
 	if len(b.OldMinerAddress) > 0 {
 		kv := &types.KeyValue{
@@ -182,7 +75,7 @@ func (t *Ticket) saveTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyVal
 	return kvs
 }
 
-func (t *Ticket) delTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValue) {
+func (t *Ticket) delTicketBind(b *ty.ReceiptTicketBind) (kvs []*types.KeyValue) {
 	//被取消了，刚好操作反
 	kv := &types.KeyValue{
 		Key:   calcBindMinerKey(b.NewMinerAddress, b.ReturnAddress),
@@ -206,7 +99,7 @@ func (t *Ticket) delTicketBind(b *types.ReceiptTicketBind) (kvs []*types.KeyValu
 	return kvs
 }
 
-func (t *Ticket) saveTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValue) {
+func (t *Ticket) saveTicket(ticketlog *ty.ReceiptTicket) (kvs []*types.KeyValue) {
 	if ticketlog.PrevStatus > 0 {
 		kv := delticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
 		kvs = append(kvs, kv)
@@ -215,7 +108,7 @@ func (t *Ticket) saveTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyVal
 	return kvs
 }
 
-func (t *Ticket) delTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValue) {
+func (t *Ticket) delTicket(ticketlog *ty.ReceiptTicket) (kvs []*types.KeyValue) {
 	if ticketlog.PrevStatus > 0 {
 		kv := addticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
 		kvs = append(kvs, kv)
@@ -226,14 +119,14 @@ func (t *Ticket) delTicket(ticketlog *types.ReceiptTicket) (kvs []*types.KeyValu
 
 func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 	if funcname == "TicketInfos" {
-		var info types.TicketInfos
+		var info ty.TicketInfos
 		err := types.Decode(params, &info)
 		if err != nil {
 			return nil, err
 		}
 		return Infos(t.GetStateDB(), &info)
 	} else if funcname == "TicketList" {
-		var l types.TicketList
+		var l ty.TicketList
 		err := types.Decode(params, &l)
 		if err != nil {
 			return nil, err
@@ -313,26 +206,22 @@ func delticket(addr string, ticketID string, status int32) *types.KeyValue {
 }
 
 func (t *Ticket) IsFriend(myexec, writekey []byte, tx *types.Transaction) bool {
-	panic("xxx")
 	clog.Error("ticket  IsFriend", "myex", string(myexec), "writekey", string(writekey))
 	//不允许平行链
 	return false
 }
 
-func (t *Ticket) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
-}
-
-func (t *Ticket) GetPayloadValue() types.Message {
-	return &types.TicketAction{}
-}
-
-func (t *Ticket) GetTypeMap() map[string]int32 {
-	return map[string]int32{
-		"Genesis": types.TicketActionGenesis,
-		"Topen":   types.TicketActionOpen,
-		"Tbind":   types.TicketActionBind,
-		"Tclose":  types.TicketActionClose,
-		"Miner":   types.TicketActionMiner,
+func (t *Ticket) CheckTx(tx *types.Transaction, index int) error {
+	//index == -1 only when check in mempool
+	if index == -1 {
+		var action ty.TicketAction
+		err := types.Decode(tx.Payload, &action)
+		if err != nil {
+			return err
+		}
+		if action.Ty == ty.TicketActionMiner && action.GetMiner() != nil {
+			return types.ErrMinerTx
+		}
 	}
+	return nil
 }

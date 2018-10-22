@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -25,7 +26,7 @@ import (
 //第二步，precreate token，预创建token，但是发起token precreate的人不是同一个人，需要是平台创建人
 //第三步，finish create token，创建token，但是发起token finish create的人不是同一个人，需要是平台创建人
 func TestFinishCreateToken(t *testing.T) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		t.Error(err)
 		return
@@ -46,11 +47,11 @@ func TestFinishCreateToken(t *testing.T) {
 	addrfrom := address.PubKeyToAddress(priv.PubKey().Bytes())
 	t.Log(addrfrom)
 
-	v := &types.TokenAction_Tokenfinishcreate{&types.TokenFinishCreate{
+	v := &tokenty.TokenAction_Tokenfinishcreate{&tokenty.TokenFinishCreate{
 		"GOOD",
 		"1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"}}
 
-	tokenFinishcreate := &types.TokenAction{v, types.TokenActionFinishCreate}
+	tokenFinishcreate := &tokenty.TokenAction{v, tokenty.TokenActionFinishCreate}
 
 	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(tokenFinishcreate), Fee: 1e6}
 	tx.Sign(types.SECP256K1, priv)

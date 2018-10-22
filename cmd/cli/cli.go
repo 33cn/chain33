@@ -8,7 +8,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	// 这一步是必需的，目的时让插件源码有机会进行匿名注册
@@ -34,8 +35,8 @@ var closeCmd = &cobra.Command{
 		rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 		//		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
 		//		rpc.Call("Chain33.CloseQueue", nil, nil)
-		var res jsonrpc.Reply
-		ctx := commands.NewRpcCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
+		var res rpctypes.Reply
+		ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
 		ctx.Run()
 	},
 }
@@ -52,18 +53,12 @@ func init() {
 		commands.BlockCmd(),
 		commands.BTYCmd(),
 		commands.CoinsCmd(),
-		commands.ConfigCmd(),
-		commands.EvmCmd(),
 		commands.ExecCmd(),
 		commands.MempoolCmd(),
 		commands.NetCmd(),
-		commands.RelayCmd(),
-		commands.RetrieveCmd(),
 		commands.SeedCmd(),
 		commands.StatCmd(),
 		commands.TicketCmd(),
-		commands.TokenCmd(),
-		commands.TradeCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.PrivacyCmd(),

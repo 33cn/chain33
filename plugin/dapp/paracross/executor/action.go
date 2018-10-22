@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -77,18 +77,18 @@ func validNode(addr string, nodes map[string]struct{}) bool {
 
 func checkCommitInfo(commit *pt.ParacrossCommitAction) error {
 	if commit.Status == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	if commit.Status.Height == 0 {
 		if len(commit.Status.Title) == 0 || len(commit.Status.BlockHash) == 0 {
-			return types.ErrInputPara
+			return types.ErrInvalidParam
 		}
 		return nil
 	}
 	if len(commit.Status.MainBlockHash) == 0 || len(commit.Status.Title) == 0 || commit.Status.Height < 0 ||
 		len(commit.Status.PreBlockHash) == 0 || len(commit.Status.BlockHash) == 0 ||
 		len(commit.Status.StateHash) == 0 || len(commit.Status.PreStateHash) == 0 {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 
 	return nil

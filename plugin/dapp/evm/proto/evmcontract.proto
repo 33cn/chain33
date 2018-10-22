@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package types;
+
+//合约对象信息
+message EVMContractObject {
+    string           addr  = 1;
+    EVMContractData  data  = 2;
+    EVMContractState state = 3;
+}
+
+// 存放合约固定数据
+message EVMContractData {
+    string creator  = 1;
+    string name     = 2;
+    string alias    = 3;
+    string addr     = 4;
+    bytes  code     = 5;
+    bytes  codeHash = 6;
+}
+
+// 存放合约变化数据
+message EVMContractState {
+    uint64             nonce       = 1;
+    bool               suicided    = 2;
+    bytes              storageHash = 3;
+    map<string, bytes> storage     = 4;
+}
+
+// 创建/调用合约的请求结构
+message EVMContractAction {
+    // 转账金额
+    uint64 amount = 1;
+    // 消耗限制，默认为Transaction.Fee
+    uint64 gasLimit = 2;
+    // gas价格，默认为1
+    uint32 gasPrice = 3;
+    // 合约数据
+    bytes code = 4;
+    // 合约别名，方便识别
+    string alias = 5;
+    // 交易备注
+    string note = 6;
+}
+
+// 合约创建/调用日志
+message ReceiptEVMContract {
+    string caller       = 1;
+    string contractName = 2;
+    string contractAddr = 3;
+    uint64 usedGas      = 4;
+    // 创建合约返回的代码
+    bytes ret = 5;
+}
+
+// 用于保存EVM只能合约中的状态数据变更
+message EVMStateChangeItem {
+    string key          = 1;
+    bytes  preValue     = 2;
+    bytes  currentValue = 3;
+}
+
+// 存放合约固定数据
+message EVMContractDataCmd {
+    string creator  = 1;
+    string name     = 2;
+    string alias    = 3;
+    string addr     = 4;
+    string code     = 5;
+    string codeHash = 6;
+}
+
+// 存放合约变化数据
+message EVMContractStateCmd {
+    uint64              nonce       = 1;
+    bool                suicided    = 2;
+    string              storageHash = 3;
+    map<string, string> storage     = 4;
+}
+
+// 合约创建/调用日志
+message ReceiptEVMContractCmd {
+    string caller = 1;
+    // 合约创建时才会返回此内容
+    string contractName = 2;
+    string contractAddr = 3;
+    uint64 usedGas      = 4;
+    // 创建合约返回的代码
+    string ret = 5;
+}
+
+message CheckEVMAddrReq {
+    string addr = 1;
+}
+message CheckEVMAddrResp {
+    bool   contract     = 1;
+    string contractAddr = 2;
+    string contractName = 3;
+    string aliasName    = 4;
+}
+
+message EstimateEVMGasReq {
+    string to     = 1;
+    bytes  code   = 2;
+    string caller = 3;
+    uint64 amount = 4;
+}
+message EstimateEVMGasResp {
+    uint64 gas = 1;
+}
+
+message EvmDebugReq {
+    // 0 query, 1 set, -1 clear
+    int32 optype = 1;
+}
+
+message EvmDebugResp {
+    string debugStatus = 1;
+}

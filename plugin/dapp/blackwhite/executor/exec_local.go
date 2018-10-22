@@ -6,6 +6,7 @@ import (
 )
 
 func (c *Blackwhite) execLocal(receiptData *types.ReceiptData) ([]*types.KeyValue, error) {
+	var set []*types.KeyValue
 	for _, log := range receiptData.Logs {
 		switch log.Ty {
 		case gt.TyLogBlackwhiteCreate,
@@ -19,7 +20,8 @@ func (c *Blackwhite) execLocal(receiptData *types.ReceiptData) ([]*types.KeyValu
 				if err != nil {
 					return nil, err
 				}
-				return c.saveHeightIndex(&receipt), nil
+				kv := c.saveHeightIndex(&receipt)
+				set = append(set, kv...)
 			}
 		case gt.TyLogBlackwhiteLoopInfo:
 			{
@@ -28,13 +30,14 @@ func (c *Blackwhite) execLocal(receiptData *types.ReceiptData) ([]*types.KeyValu
 				if err != nil {
 					return nil, err
 				}
-				return c.saveLoopResult(&res), nil
+				kv := c.saveLoopResult(&res)
+				set = append(set, kv...)
 			}
 		default:
 			break
 		}
 	}
-	return nil, types.ErrNotSupport
+	return set, nil
 }
 
 func (c *Blackwhite) ExecLocal_Create(payload *gt.BlackwhiteCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {

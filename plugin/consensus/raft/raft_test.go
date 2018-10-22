@@ -23,9 +23,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/init"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/norm/types"
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -35,7 +35,6 @@ var (
 )
 
 func init() {
-	executorty.Init()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
@@ -62,17 +61,17 @@ func RaftPerf() {
 func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
-	cfg := config.InitCfg("chain33.test.toml")
+	cfg, sub := config.InitCfg("chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New(cfg.Exec)
+	exec := executor.New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
-	s := store.New(cfg.Store)
+	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
 
-	cs := NewRaftCluster(cfg.Consensus)
+	cs := NewRaftCluster(cfg.Consensus, sub.Consensus["raft"])
 	cs.SetQueueClient(q.Client())
 
 	mem := mempool.New(cfg.MemPool)
@@ -104,7 +103,7 @@ func generateValue(i, valI int) string {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -144,8 +143,8 @@ func prepareTxList() *types.Transaction {
 	key = generateKey(i, 32)
 	value = generateValue(i, 180)
 
-	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
-	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
+	nput := &pty.NormAction_Nput{&pty.NormPut{Key: key, Value: []byte(value)}}
+	action := &pty.NormAction{Value: nput, Ty: pty.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: 0}
 	tx.Nonce = random.Int63()
 	tx.Sign(types.SECP256K1, getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"))

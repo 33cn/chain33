@@ -5,9 +5,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type ConsensusCreate func(cfg *types.Consensus) queue.Module
+type ConsensusCreate func(cfg *types.Consensus, sub []byte) queue.Module
 
 var regConsensus = make(map[string]ConsensusCreate)
+var QueryData = types.NewQueryData("Query_")
 
 func Reg(name string, create ConsensusCreate) {
 	if create == nil {

@@ -7,21 +7,23 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+
 	//log "github.com/inconshreveable/log15"
+	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
 const (
-	retrieveBackup    = 1
-	retrievePrepared  = 2
-	retrievePerformed = 3
-	retrieveCanceled  = 4
+	retrieveBackup  = 1
+	retrievePrepare = 2
+	retrievePerform = 3
+	retrieveCancel  = 4
 )
 
 const MaxRelation = 10
 
 type DB struct {
-	types.Retrieve
+	rt.Retrieve
 }
 
 func NewDB(backupaddress string) *DB {
@@ -36,7 +38,7 @@ func (r *DB) RelateDB(defaultAddress string, createTime int64, delayPeriod int64
 		return false
 	}
 	rlog.Debug("RetrieveBackup", "RelateDB", defaultAddress)
-	para := &types.RetrievePara{defaultAddress, retrieveBackup, createTime, 0, delayPeriod}
+	para := &rt.RetrievePara{defaultAddress, retrieveBackup, createTime, 0, delayPeriod}
 	r.RetPara = append(r.RetPara, para)
 
 	return true
@@ -93,7 +95,7 @@ func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *Action {
 }
 
 //wait for valuable comment
-func (action *Action) RetrieveBackup(backupRet *types.BackupRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrieveBackup(backupRet *rt.BackupRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -147,7 +149,7 @@ func (action *Action) RetrieveBackup(backupRet *types.BackupRetrieve) (*types.Re
 	return receipt, nil
 }
 
-func (action *Action) RetrievePrepare(preRet *types.PreRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrievePrepare(preRet *rt.PrepareRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -176,7 +178,7 @@ func (action *Action) RetrievePrepare(preRet *types.PreRetrieve) (*types.Receipt
 		return nil, types.ErrRetrieveStatus
 	}
 	r.RetPara[index].PrepareTime = action.blocktime
-	r.RetPara[index].Status = retrievePrepared
+	r.RetPara[index].Status = retrievePrepare
 
 	r.Save(action.db)
 	kv = append(kv, r.GetKVSet()...)
@@ -185,7 +187,7 @@ func (action *Action) RetrievePrepare(preRet *types.PreRetrieve) (*types.Receipt
 	return receipt, nil
 }
 
-func (action *Action) RetrievePerform(perfRet *types.PerformRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrievePerform(perfRet *rt.PerformRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -211,7 +213,7 @@ func (action *Action) RetrievePerform(perfRet *types.PerformRetrieve) (*types.Re
 		return nil, types.ErrRetrievePerformAddress
 	}
 
-	if r.RetPara[index].Status != retrievePrepared {
+	if r.RetPara[index].Status != retrievePrepare {
 		rlog.Debug("RetrievePerform", "Status", r.RetPara[index].Status)
 		return nil, types.ErrRetrieveStatus
 	}
@@ -244,7 +246,7 @@ func (action *Action) RetrievePerform(perfRet *types.PerformRetrieve) (*types.Re
 	return receipt, nil
 }
 
-func (action *Action) RetrieveCancel(cancel *types.CancelRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrieveCancel(cancel *rt.CancelRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -268,7 +270,7 @@ func (action *Action) RetrieveCancel(cancel *types.CancelRetrieve) (*types.Recei
 		return nil, types.ErrRetrieveCancelAddress
 	}
 
-	if r.RetPara[index].Status != retrievePrepared {
+	if r.RetPara[index].Status != retrievePrepare {
 		rlog.Debug("RetrieveCancel", "Status", r.RetPara[index].Status)
 		return nil, types.ErrRetrieveStatus
 	}
@@ -283,13 +285,13 @@ func (action *Action) RetrieveCancel(cancel *types.CancelRetrieve) (*types.Recei
 	return receipt, nil
 }
 
-func readRetrieve(db dbm.KV, address string) (*types.Retrieve, error) {
+func readRetrieve(db dbm.KV, address string) (*rt.Retrieve, error) {
 	data, err := db.Get(Key(address))
 	if err != nil {
 		rlog.Debug("readRetrieve", "get", err)
 		return nil, err
 	}
-	var retrieve types.Retrieve
+	var retrieve rt.Retrieve
 	//decode
 	err = types.Decode(data, &retrieve)
 	if err != nil {

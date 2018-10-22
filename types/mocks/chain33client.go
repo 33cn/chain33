@@ -41,36 +41,6 @@ func (_m *Chain33Client) CloseQueue(ctx context.Context, in *types.ReqNil, opts 
 	return r0, r1
 }
 
-// CreateBindMiner provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) CreateBindMiner(ctx context.Context, in *types.ReqBindMiner, opts ...grpc.CallOption) (*types.ReplyBindMiner, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.ReplyBindMiner
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqBindMiner, ...grpc.CallOption) *types.ReplyBindMiner); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyBindMiner)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqBindMiner, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // CreateNoBalanceTransaction provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) CreateNoBalanceTransaction(ctx context.Context, in *types.NoBalanceTx, opts ...grpc.CallOption) (*types.ReplySignRawTx, error) {
 	_va := make([]interface{}, len(opts))
@@ -161,8 +131,68 @@ func (_m *Chain33Client) CreateRawTxGroup(ctx context.Context, in *types.CreateT
 	return r0, r1
 }
 
-// CreateUTXOs provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) CreateUTXOs(ctx context.Context, in *types.ReqCreateUTXOs, opts ...grpc.CallOption) (*types.Reply, error) {
+// CreateTransaction provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) CreateTransaction(ctx context.Context, in *types.CreateTxIn, opts ...grpc.CallOption) (*types.UnsignTx, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.UnsignTx
+	if rf, ok := ret.Get(0).(func(context.Context, *types.CreateTxIn, ...grpc.CallOption) *types.UnsignTx); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.UnsignTx)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.CreateTxIn, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DumpPrivkey provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) DumpPrivkey(ctx context.Context, in *types.ReqString, opts ...grpc.CallOption) (*types.ReplyString, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.ReplyString
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqString, ...grpc.CallOption) *types.ReplyString); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyString)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqString, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ExecWallet provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) ExecWallet(ctx context.Context, in *types.ChainExecutor, opts ...grpc.CallOption) (*types.Reply, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -173,7 +203,7 @@ func (_m *Chain33Client) CreateUTXOs(ctx context.Context, in *types.ReqCreateUTX
 	ret := _m.Called(_ca...)
 
 	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqCreateUTXOs, ...grpc.CallOption) *types.Reply); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ChainExecutor, ...grpc.CallOption) *types.Reply); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -182,67 +212,7 @@ func (_m *Chain33Client) CreateUTXOs(ctx context.Context, in *types.ReqCreateUTX
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqCreateUTXOs, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// DumpPrivkey provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) DumpPrivkey(ctx context.Context, in *types.ReqStr, opts ...grpc.CallOption) (*types.ReplyStr, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.ReplyStr
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqStr, ...grpc.CallOption) *types.ReplyStr); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyStr)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqStr, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// EnablePrivacy provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) EnablePrivacy(ctx context.Context, in *types.ReqEnablePrivacy, opts ...grpc.CallOption) (*types.RepEnablePrivacy, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.RepEnablePrivacy
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqEnablePrivacy, ...grpc.CallOption) *types.RepEnablePrivacy); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.RepEnablePrivacy)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqEnablePrivacy, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ChainExecutor, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -791,36 +761,6 @@ func (_m *Chain33Client) GetSeed(ctx context.Context, in *types.GetSeedByPw, opt
 	return r0, r1
 }
 
-// GetTicketCount provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) GetTicketCount(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.Int64, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.Int64
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqNil, ...grpc.CallOption) *types.Int64); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Int64)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetTransactionByAddr provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetTransactionByAddr(ctx context.Context, in *types.ReqAddr, opts ...grpc.CallOption) (*types.ReplyTxInfos, error) {
 	_va := make([]interface{}, len(opts))
@@ -911,8 +851,8 @@ func (_m *Chain33Client) GetWalletStatus(ctx context.Context, in *types.ReqNil, 
 	return r0, r1
 }
 
-// ImportPrivKey provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) ImportPrivKey(ctx context.Context, in *types.ReqWalletImportPrivKey, opts ...grpc.CallOption) (*types.WalletAccount, error) {
+// ImportPrivkey provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) ImportPrivkey(ctx context.Context, in *types.ReqWalletImportPrivkey, opts ...grpc.CallOption) (*types.WalletAccount, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -923,7 +863,7 @@ func (_m *Chain33Client) ImportPrivKey(ctx context.Context, in *types.ReqWalletI
 	ret := _m.Called(_ca...)
 
 	var r0 *types.WalletAccount
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqWalletImportPrivKey, ...grpc.CallOption) *types.WalletAccount); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqWalletImportPrivkey, ...grpc.CallOption) *types.WalletAccount); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -932,7 +872,7 @@ func (_m *Chain33Client) ImportPrivKey(ctx context.Context, in *types.ReqWalletI
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqWalletImportPrivKey, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqWalletImportPrivkey, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -1023,96 +963,6 @@ func (_m *Chain33Client) Lock(ctx context.Context, in *types.ReqNil, opts ...grp
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MakeTxPrivacy2Privacy provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) MakeTxPrivacy2Privacy(ctx context.Context, in *types.ReqPri2Pri, opts ...grpc.CallOption) (*types.Reply, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqPri2Pri, ...grpc.CallOption) *types.Reply); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqPri2Pri, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MakeTxPrivacy2Public provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) MakeTxPrivacy2Public(ctx context.Context, in *types.ReqPri2Pub, opts ...grpc.CallOption) (*types.Reply, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqPri2Pub, ...grpc.CallOption) *types.Reply); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqPri2Pub, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MakeTxPublic2Privacy provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) MakeTxPublic2Privacy(ctx context.Context, in *types.ReqPub2Pri, opts ...grpc.CallOption) (*types.Reply, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqPub2Pri, ...grpc.CallOption) *types.Reply); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqPub2Pri, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -1212,7 +1062,7 @@ func (_m *Chain33Client) NewAccount(ctx context.Context, in *types.ReqNewAccount
 }
 
 // QueryChain provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) QueryChain(ctx context.Context, in *types.Query, opts ...grpc.CallOption) (*types.Reply, error) {
+func (_m *Chain33Client) QueryChain(ctx context.Context, in *types.ChainExecutor, opts ...grpc.CallOption) (*types.Reply, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -1223,7 +1073,7 @@ func (_m *Chain33Client) QueryChain(ctx context.Context, in *types.Query, opts .
 	ret := _m.Called(_ca...)
 
 	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Query, ...grpc.CallOption) *types.Reply); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ChainExecutor, ...grpc.CallOption) *types.Reply); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1232,7 +1082,37 @@ func (_m *Chain33Client) QueryChain(ctx context.Context, in *types.Query, opts .
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.Query, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ChainExecutor, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// QueryConsensus provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) QueryConsensus(ctx context.Context, in *types.ChainExecutor, opts ...grpc.CallOption) (*types.Reply, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ChainExecutor, ...grpc.CallOption) *types.Reply); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ChainExecutor, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -1263,36 +1143,6 @@ func (_m *Chain33Client) QueryTransaction(ctx context.Context, in *types.ReqHash
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqHash, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// RescanUtxos provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) RescanUtxos(ctx context.Context, in *types.ReqRescanUtxos, opts ...grpc.CallOption) (*types.RepRescanUtxos, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.RepRescanUtxos
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqRescanUtxos, ...grpc.CallOption) *types.RepRescanUtxos); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.RepRescanUtxos)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqRescanUtxos, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -1421,36 +1271,6 @@ func (_m *Chain33Client) SendTransaction(ctx context.Context, in *types.Transact
 	return r0, r1
 }
 
-// SetAutoMining provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) SetAutoMining(ctx context.Context, in *types.MinerFlag, opts ...grpc.CallOption) (*types.Reply, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(context.Context, *types.MinerFlag, ...grpc.CallOption) *types.Reply); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.MinerFlag, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // SetLabl provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) SetLabl(ctx context.Context, in *types.ReqWalletSetLabel, opts ...grpc.CallOption) (*types.WalletAccount, error) {
 	_va := make([]interface{}, len(opts))
@@ -1533,36 +1353,6 @@ func (_m *Chain33Client) SetTxFee(ctx context.Context, in *types.ReqWalletSetFee
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqWalletSetFee, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ShowPrivacyKey provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) ShowPrivacyKey(ctx context.Context, in *types.ReqStr, opts ...grpc.CallOption) (*types.ReplyPrivacyPkPair, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.ReplyPrivacyPkPair
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqStr, ...grpc.CallOption) *types.ReplyPrivacyPkPair); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyPrivacyPkPair)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqStr, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

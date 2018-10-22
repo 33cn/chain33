@@ -20,9 +20,10 @@ type Client struct {
 
 func init() {
 	drivers.Reg("solo", New)
+	drivers.QueryData.Register("solo", &Client{})
 }
 
-func New(cfg *types.Consensus) queue.Module {
+func New(cfg *types.Consensus, sub []byte) queue.Module {
 	c := drivers.NewBaseClient(cfg)
 	solo := &Client{c}
 	c.SetChild(solo)

@@ -1,0 +1,211 @@
+syntax = "proto3";
+package types;
+
+enum RelayOrderStatus {
+    init       = 0;
+    pending    = 1;
+    locking    = 2;
+    confirming = 3;
+    finished   = 4;
+    canceled   = 5;
+    timeout    = 6; // TODO: may not needed?
+}
+
+message RelayAction {
+    oneof value {
+        RelayCreate    create     = 1;
+        RelayAccept    accept     = 2;
+        RelayRevoke    revoke     = 3;
+        RelayConfirmTx confirmTx  = 4;
+        RelayVerify    verify     = 5;
+        RelayVerifyCli verifyCli  = 6;
+        BtcHeaders     btcHeaders = 7;
+    }
+    int32 ty = 10;
+}
+
+message RelayOrder {
+    string           id            = 1;
+    RelayOrderStatus status        = 2;
+    RelayOrderStatus preStatus     = 3;
+    uint64           amount        = 4;
+    string           createrAddr   = 5;
+    uint32           coinOperation = 6;
+    string           coin          = 7;
+    uint64           coinAmount    = 8;
+    string           coinAddr      = 9;
+    string           coinTxHash    = 10;
+    int64            createTime    = 11;
+    string           acceptAddr    = 12;
+    int64            acceptTime    = 13;
+    int64            confirmTime   = 14;
+    int64            finishTime    = 15;
+    string           finishTxHash  = 16;
+    int64            height        = 17;
+    uint64           coinHeight    = 18;
+    uint32           coinWaits     = 19;
+}
+
+message RelayCreate {
+    uint32 operation = 1; // 0: buy, 1: sell
+    string coin      = 2; // outside coin BTC, ETH...
+    uint64 amount    = 3;
+    string addr      = 4;
+    uint64 btyAmount = 5;
+    uint32 coinWaits = 6; // the coin blocks to wait
+}
+
+message RelayAccept {
+    string orderId   = 1;
+    string coinAddr  = 2; // for sell coin case needed
+    uint32 coinWaits = 3;
+}
+
+message RelayRevoke {
+    string orderId = 1;
+    uint32 target  = 2; // 0:create , 1: accept
+    uint32 action  = 3; // 0: unlock, 1: cancel (only for creator)
+}
+
+//客户只用交易hash提交， 验证需要的其他信息由relayd提供
+message RelayConfirmTx {
+    string orderId = 1;
+    string txHash  = 2;
+}
+
+// relayd提供验证信息
+message RelayVerify {
+    string         orderId = 1;
+    BtcTransaction tx      = 2;
+    BtcSpv         spv     = 3;
+}
+
+message RelayVerifyCli {
+    string orderId    = 1;
+    string rawTx      = 2;
+    uint32 txIndex    = 3;
+    string merkBranch = 4;
+    string blockHash  = 5;
+}
+
+message BtcHeader {
+    string hash          = 1;
+    uint64 confirmations = 2;
+    uint64 height        = 3;
+    uint32 version       = 4;
+    string merkleRoot    = 5;
+    int64  time          = 6;
+    uint64 nonce         = 7;
+    int64  bits          = 8;
+    int64  difficulty    = 9;
+    string previousHash  = 10;
+    string nextHash      = 11;
+    bool   isReset       = 12; // 0: nomal btc headers sync (default), 1: set the base head (may not from 1)
+}
+
+message BtcHeaders {
+    repeated BtcHeader btcHeader = 1;
+}
+
+message BtcTransaction {
+    string   hash               = 1; // txhash
+    uint64   blockHeight        = 2;
+    repeated Vin vin            = 3;
+    repeated Vout vout          = 4;
+    int64         time          = 5;
+    uint64        confirmations = 6;
+}
+
+message Vin {
+    string address = 1;
+    uint64 Value   = 2;
+}
+
+message Vout {
+    bool   coinbase = 1;
+    string address  = 2;
+    uint64 Value    = 3;
+}
+
+message BtcSpv {
+    string   hash              = 1; // txhash
+    int64    time              = 2;
+    uint64   height            = 3;
+    string   blockHash         = 4;
+    uint32   txIndex           = 5;
+    repeated bytes branchProof = 6;
+}
+
+message RelayLastRcvBtcHeader {
+    BtcHeader Header     = 1;
+    uint64    baseHeight = 2;
+}
+
+message ReceiptRelayRcvBTCHeaders {
+    repeated BtcHeader headers        = 1;
+    uint64             lastHeight     = 2; // last height is the last btc Tx's last height
+    uint64             newHeight      = 3;
+    uint64             lastBaseHeight = 4; // last base height means ever base height
+    uint64             newBaseHeight  = 5;
+}
+
+message ReceiptRelayLog {
+    string orderId       = 1;
+    string curStatus     = 2;
+    string preStatus     = 3;
+    string txAmount      = 4;
+    string createrAddr   = 5;
+    string coinOperation = 6;
+    string coin          = 7;
+    string coinAmount    = 8;
+    string coinAddr      = 9;
+    string coinTxHash    = 10;
+    int64  createTime    = 11;
+    string acceptAddr    = 12;
+    int64  acceptTime    = 13;
+    int64  confirmTime   = 14;
+    int64  finishTime    = 15;
+    string finishTxHash  = 16;
+    uint64 coinHeight    = 17;
+    uint32 coinWaits     = 18;
+}
+
+message ReqRelayAddrCoins {
+    string           addr      = 1;
+    RelayOrderStatus status    = 2;
+    repeated string coins      = 3;
+    int32           pageNumber = 4;
+    int32           pageSize   = 5;
+}
+
+message ReplyRelayOrders {
+    repeated RelayOrder relayorders = 1;
+}
+
+message QueryRelayOrderParam {
+    RelayOrderStatus status  = 1;
+    string           orderId = 2;
+}
+
+message QueryRelayOrderResult {
+    repeated RelayOrder orders = 1;
+}
+
+message ReqRelayBtcHeaderHeightList {
+    int64 reqHeight = 1;
+    int32 counts    = 2;
+    int32 direction = 3; // 0: desc, 1: asc
+}
+
+message ReplyRelayBtcHeadHeightList {
+    repeated int64 heights = 1;
+}
+
+message ReqRelayQryBTCHeadHeight {
+    int64 baseHeight = 1; // from the baseHeight begin, if any
+}
+
+message ReplayRelayQryBTCHeadHeight {
+    int64 curHeight  = 1; // current height in chain
+    int64 baseHeight = 2; // base height means the the 1st head record in chain db (base height can be change)
+}

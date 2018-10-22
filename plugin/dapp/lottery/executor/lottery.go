@@ -1,7 +1,7 @@
 package executor
 
 import (
-	"reflect"
+	"sort"
 
 	log "github.com/inconshreveable/log15"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
@@ -10,20 +10,14 @@ import (
 )
 
 var llog = log.New("module", "execs.lottery")
-
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = pty.NewType()
+var driverName = pty.LotteryX
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Lottery{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Lottery{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	driverName := GetName()
 	if name != driverName {
 		panic("system dapp can't be rename")
@@ -42,12 +36,12 @@ type Lottery struct {
 func newLottery() drivers.Driver {
 	l := &Lottery{}
 	l.SetChild(l)
-	l.SetExecutorType(executorType)
+	l.SetExecutorType(types.LoadExecutorType(driverName))
 	return l
 }
 
 func (l *Lottery) GetDriverName() string {
-	return types.LotteryX
+	return pty.LotteryX
 }
 
 func (lott *Lottery) findLotteryBuyRecord(key []byte) (*pty.LotteryBuyRecords, error) {
@@ -92,28 +86,64 @@ func (lott *Lottery) findLotteryDrawRecord(key []byte) (*pty.LotteryDrawRecord, 
 	return &record, nil
 }
 
-func (lott *Lottery) saveLotteryBuy(lotterylog *pty.ReceiptLottery, txId string) (kvs []*types.KeyValue) {
-	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, txId)
+func (lott *Lottery) saveLotteryBuy(lotterylog *pty.ReceiptLottery) (kvs []*types.KeyValue) {
+	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, lotterylog.Index)
 	kv := &types.KeyValue{}
-	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round}
+	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round, 0, lotterylog.Way, lotterylog.Index}
 	kv = &types.KeyValue{key, types.Encode(record)}
 
 	kvs = append(kvs, kv)
 	return kvs
 }
 
-func (lott *Lottery) deleteLotteryBuy(lotterylog *pty.ReceiptLottery, txId string) (kvs []*types.KeyValue) {
-	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, txId)
+func (lott *Lottery) deleteLotteryBuy(lotterylog *pty.ReceiptLottery) (kvs []*types.KeyValue) {
+	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, lotterylog.Index)
 
 	kv := &types.KeyValue{key, nil}
 	kvs = append(kvs, kv)
 	return kvs
 }
 
+func (lott *Lottery) updateLotteryBuy(lotterylog *pty.ReceiptLottery, isAdd bool) (kvs []*types.KeyValue) {
+	if lotterylog.UpdateInfo != nil {
+		llog.Debug("updateLotteryBuy")
+		buyInfo := lotterylog.UpdateInfo.BuyInfo
+		//sort for map
+		addrkeys := make([]string, len(buyInfo))
+		i := 0
+
+		for addr := range buyInfo {
+			addrkeys[i] = addr
+			i++
+		}
+		sort.Strings(addrkeys)
+		//update old record
+		for _, addr := range addrkeys {
+			for _, updateRec := range buyInfo[addr].Records {
+				//find addr, txhash
+				key := calcLotteryBuyKey(lotterylog.LotteryId, addr, lotterylog.Round, updateRec.Index)
+				kv := &types.KeyValue{}
+				record := &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, 0, updateRec.Way, updateRec.Index}
+				if isAdd {
+					llog.Error("updateLotteryBuy update key")
+					record = &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, updateRec.Type, updateRec.Way, updateRec.Index}
+				}
+
+				kv = &types.KeyValue{key, types.Encode(record)}
+
+				kvs = append(kvs, kv)
+
+			}
+		}
+		return kvs
+	}
+	return kvs
+}
+
 func (lott *Lottery) saveLotteryDraw(lotterylog *pty.ReceiptLottery) (kvs []*types.KeyValue) {
 	key := calcLotteryDrawKey(lotterylog.LotteryId, lotterylog.Round)
 	kv := &types.KeyValue{}
-	record := &pty.LotteryDrawRecord{lotterylog.LuckyNumber, lotterylog.Round}
+	record := &pty.LotteryDrawRecord{lotterylog.LuckyNumber, lotterylog.Round, lotterylog.Time, lotterylog.TxHash}
 	kv = &types.KeyValue{key, types.Encode(record)}
 	kvs = append(kvs, kv)
 	return kvs
@@ -156,10 +186,6 @@ func dellottery(lotteryId string, status int32) *types.KeyValue {
 	kv.Key = calcLotteryKey(lotteryId, status)
 	kv.Value = nil
 	return kv
-}
-
-func (lott *Lottery) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
 }
 
 func (lott *Lottery) GetPayloadValue() types.Message {

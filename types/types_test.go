@@ -27,20 +27,20 @@ func TestAllowExecName(t *testing.T) {
 
 	isok = IsAllowExecName([]byte("coins"), []byte("user.coins.evm2"))
 	assert.Equal(t, isok, true)
+}
 
-	isok = IsAllowExecName([]byte("evm"), []byte("user.evm.evm2"))
-	assert.Equal(t, isok, true)
-
-	//两层的情况也可以自动识别
-	isok = IsAllowExecName([]byte("evm"), []byte("user.p.guodun.user.evm.xxx"))
-	assert.Equal(t, isok, true)
-
-	//三层不支持
-	isok = IsAllowExecName([]byte("evm"), []byte("user.p.guodun.user.evm.user.hello"))
-	assert.Equal(t, isok, true)
-
-	isok = IsAllowExecName([]byte("user.p.evm.user.hello"), []byte("user.p.guodun.user.p.evm.user.hello"))
-	assert.Equal(t, isok, true)
+func TestJsonNoName(t *testing.T) {
+	flag := int32(1)
+	params := struct {
+		Flag int32
+	}{
+		Flag: flag,
+	}
+	data, err := json.Marshal(params)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, string(data), "{\"Flag\":1}")
 }
 
 func TestNil(t *testing.T) {

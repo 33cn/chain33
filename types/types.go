@@ -3,19 +3,19 @@ package types
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types/jsonpb"
 
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
+	_ "gitlab.33.cn/chain33/chain33/system/crypto/init"
 )
 
 var tlog = log.New("module", "types")
@@ -219,12 +219,34 @@ func GetEventName(event int) string {
 	return "unknow-event"
 }
 
-func GetSignatureTypeName(signType int) string {
-	if name, exist := MapSignType2name[signType]; exist {
-		return name
+func GetSignName(execer string, signType int) string {
+	//优先加载执行器的签名类型
+	if execer != "" {
+		exec := LoadExecutorType(execer)
+		if exec != nil {
+			name, err := exec.GetCryptoDriver(signType)
+			if err == nil {
+				return name
+			}
+		}
 	}
+	//加载系统执行器的签名类型
+	return crypto.GetName(signType)
+}
 
-	return "unknow"
+func GetSignType(execer string, name string) int {
+	//优先加载执行器的签名类型
+	if execer != "" {
+		exec := LoadExecutorType(execer)
+		if exec != nil {
+			ty, err := exec.GetCryptoType(name)
+			if err == nil {
+				return ty
+			}
+		}
+	}
+	//加载系统执行器的签名类型
+	return crypto.GetType(name)
 }
 
 var ConfigPrefix = "mavl-config-"
@@ -309,7 +331,7 @@ func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
 }
 
 func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
-	//tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key), "value", string(value))
+	fmt.Println("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key))
 	var acc Account
 	err := Decode(value, &acc)
 	if err != nil {
@@ -326,49 +348,6 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	return false
 }
 
-func (action *PrivacyAction) GetInput() *PrivacyInput {
-	if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetInput()
-
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetInput()
-	}
-	return nil
-}
-
-func (action *PrivacyAction) GetOutput() *PrivacyOutput {
-	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return action.GetPublic2Privacy().GetOutput()
-	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetOutput()
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetOutput()
-	}
-	return nil
-}
-
-func (action *PrivacyAction) GetActionName() string {
-	if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return "Privacy2Privacy"
-	} else if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return "Public2Privacy"
-	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return "Privacy2Public"
-	}
-	return "unknow-privacy"
-}
-
-func (action *PrivacyAction) GetTokenName() string {
-	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return action.GetPublic2Privacy().GetTokenname()
-	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetTokenname()
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetTokenname()
-	}
-	return ""
-}
-
 // GetTxTimeInterval 获取交易有效期
 func GetTxTimeInterval() time.Duration {
 	return time.Second * 120
@@ -378,7 +357,36 @@ type ParaCrossTx interface {
 	IsParaCrossTx() bool
 }
 
-func PBToJson(r Message) (string, error) {
+func PBToJson(r Message) ([]byte, error) {
 	encode := &jsonpb.Marshaler{EmitDefaults: true}
-	return encode.MarshalToString(r)
+	var buf bytes.Buffer
+	if err := encode.Marshal(&buf, r); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+//判断所有的空值
+func IsNil(a interface{}) bool {
+	defer func() { recover() }()
+	return a == nil || reflect.ValueOf(a).IsNil()
+}
+
+//空指针或者接口
+func IsNilP(a interface{}) bool {
+	if a == nil {
+		return true
+	}
+	v := reflect.ValueOf(a)
+	if v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
+		return v.IsNil()
+	}
+	return false
+}
+
+func MustDecode(data []byte, v interface{}) {
+	err := json.Unmarshal(data, v)
+	if err != nil {
+		panic(err)
+	}
 }

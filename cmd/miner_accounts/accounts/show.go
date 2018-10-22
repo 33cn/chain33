@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
 const secondsPerBlock = 15
@@ -29,7 +29,7 @@ type ShowMinerAccount struct {
 
 func (*ShowMinerAccount) Echo(in *string, out *interface{}) error {
 	if in == nil {
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	*out = *in
 	return nil
@@ -44,14 +44,14 @@ type TimeAt struct {
 func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	if in == nil {
 		log.Error("show", "in", "nil")
-		return types.ErrInputPara
+		return types.ErrInvalidParam
 	}
 	seconds := time.Now().Unix()
 	if len(in.TimeAt) != 0 {
 		tm, err := time.Parse("2006-01-02-15", in.TimeAt)
 		if err != nil {
 			log.Error("show", "in.TimeAt Parse", err)
-			return types.ErrInputPara
+			return types.ErrInvalidParam
 		}
 		seconds = tm.Unix()
 	}
@@ -100,11 +100,11 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	return nil
 }
 
-func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpc.Account, header *rpc.Header) *MinerAccounts {
+func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *rpctypes.Header) *MinerAccounts {
 	type minerAt struct {
 		addr    string
-		curAcc  *rpc.Account
-		lastAcc *rpc.Account
+		curAcc  *rpctypes.Account
+		lastAcc *rpctypes.Account
 	}
 	miners := map[string]*minerAt{}
 	for _, a := range acc1 {
