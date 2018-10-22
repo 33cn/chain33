@@ -7,10 +7,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func New(cfg *types.Store) queue.Module {
+func New(cfg *types.Store, sub map[string][]byte) queue.Module {
 	s, err := store.Load(cfg.Name)
 	if err != nil {
 		panic("Unsupported store type:" + cfg.Name + " " + err.Error())
 	}
-	return s(cfg)
+	subcfg, ok := sub[cfg.Name]
+	if !ok {
+		subcfg = nil
+	}
+	return s(cfg, subcfg)
 }

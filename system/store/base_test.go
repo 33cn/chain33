@@ -11,8 +11,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var store_cfg0 = &types.Store{"base_test", "leveldb", "/tmp/base_test0", 100, false, false, false}
-var store_cfg1 = &types.Store{"base_test", "leveldb", "/tmp/base_test1", 100, false, false, false}
+var store_cfg0 = &types.Store{"base_test", "leveldb", "/tmp/base_test0", 100}
+var store_cfg1 = &types.Store{"base_test", "leveldb", "/tmp/base_test1", 100}
 
 type storeChild struct {
 }
