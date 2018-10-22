@@ -10,7 +10,7 @@ import (
 
 var plog = log.New("module", "Pbft")
 
-func NewPbft(cfg *pb.Consensus) queue.Module {
+func NewPbft(cfg *pb.Consensus, sub []byte) queue.Module {
 	plog.Info("start to creat pbft node")
 	if int(cfg.NodeId) == 0 || strings.Compare(cfg.PeersURL, "") == 0 {
 		plog.Error("nodeid or ip error")

@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -11,12 +12,10 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types/jsonpb"
 
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
+	_ "gitlab.33.cn/chain33/chain33/system/crypto/init"
 )
 
 var tlog = log.New("module", "types")
@@ -232,10 +231,7 @@ func GetSignName(execer string, signType int) string {
 		}
 	}
 	//加载系统执行器的签名类型
-	if name, exist := mapSignType2name[signType]; exist {
-		return name
-	}
-	return "unknow"
+	return crypto.GetName(signType)
 }
 
 func GetSignType(execer string, name string) int {
@@ -250,10 +246,7 @@ func GetSignType(execer string, name string) int {
 		}
 	}
 	//加载系统执行器的签名类型
-	if name, exist := mapSignName2Type[name]; exist {
-		return name
-	}
-	return Invalid
+	return crypto.GetType(name)
 }
 
 var ConfigPrefix = "mavl-config-"
@@ -389,4 +382,11 @@ func IsNilP(a interface{}) bool {
 		return v.IsNil()
 	}
 	return false
+}
+
+func MustDecode(data []byte, v interface{}) {
+	err := json.Unmarshal(data, v)
+	if err != nil {
+		panic(err)
+	}
 }
