@@ -49,12 +49,12 @@ type suiteParaCommitMsg struct {
 	network *p2p.P2p
 }
 
-func initConfigFile() *types.Config {
-	cfg := config.InitCfg("../../../cmd/chain33/chain33.para.test.toml")
-	return cfg
+func initConfigFile() (*types.Config, *types.ConfigSubModule) {
+	cfg, sub := config.InitCfg("../../../cmd/chain33/chain33.para.test.toml")
+	return cfg, sub
 }
 
-func (s *suiteParaCommitMsg) initEnv(cfg *types.Config) {
+func (s *suiteParaCommitMsg) initEnv(cfg *types.Config, sub *types.ConfigSubModule) {
 	q := queue.New("channel")
 	s.q = q
 	//api, _ = client.New(q.Client(), nil)
@@ -62,12 +62,12 @@ func (s *suiteParaCommitMsg) initEnv(cfg *types.Config) {
 	s.block = blockchain.New(cfg.BlockChain)
 	s.block.SetQueueClient(q.Client())
 
-	s.exec = executor.New(cfg.Exec)
+	s.exec = executor.New(cfg.Exec, sub.Exec)
 	s.exec.SetQueueClient(q.Client())
 
-	s.store = store.New(cfg.Store)
+	s.store = store.New(cfg.Store, sub.Store)
 	s.store.SetQueueClient(q.Client())
-	s.para = New(cfg.Consensus).(*ParaClient)
+	s.para = New(cfg.Consensus, sub.Consensus["para"]).(*ParaClient)
 	s.grpcCli = &typesmocks.Chain33Client{}
 	//data := &types.Int64{1}
 	s.grpcCli.On("GetLastBlockSequence", mock.Anything, mock.Anything).Return(nil, errors.New("nil"))

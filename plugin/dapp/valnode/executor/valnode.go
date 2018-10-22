@@ -16,7 +16,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&ValNode{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	clog.Debug("register valnode execer")
 	drivers.Register(GetName(), newValNode, 0)
 }

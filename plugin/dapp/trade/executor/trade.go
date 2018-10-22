@@ -32,7 +32,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&trade{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newTrade, types.ForkV2AddToken)
 }
 

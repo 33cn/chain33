@@ -27,7 +27,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Paracross{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newParacross, 0)
 	setPrefix()
 }

@@ -17,7 +17,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Lottery{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	driverName := GetName()
 	if name != driverName {
 		panic("system dapp can't be rename")
@@ -44,10 +44,10 @@ func (l *Lottery) GetDriverName() string {
 	return pty.LotteryX
 }
 
-func (lott *Lottery) findLotteryBuyRecord(key []byte) (*pty.LotteryBuyRecords, error) {
+func (lott *Lottery) findLotteryBuyRecords(key []byte) (*pty.LotteryBuyRecords, error) {
 
 	count := lott.GetLocalDB().PrefixCount(key)
-	llog.Error("findLotteryBuyRecord", "count", count)
+	llog.Error("findLotteryBuyRecords", "count", count)
 
 	values, err := lott.GetLocalDB().List(key, nil, int32(count), 0)
 	if err != nil {
@@ -65,6 +65,25 @@ func (lott *Lottery) findLotteryBuyRecord(key []byte) (*pty.LotteryBuyRecords, e
 	}
 
 	return &records, nil
+}
+
+func (lott *Lottery) findLotteryBuyRecord(key []byte) (*pty.LotteryBuyRecord, error) {
+	value, err := lott.GetLocalDB().Get(key)
+	if err != nil && err != types.ErrNotFound {
+		llog.Error("findLotteryBuyRecord", "err", err)
+		return nil, err
+	}
+	if err == types.ErrNotFound {
+		return nil, nil
+	}
+	var record pty.LotteryBuyRecord
+
+	err = types.Decode(value, &record)
+	if err != nil {
+		llog.Error("findLotteryBuyRecord", "err", err)
+		return nil, err
+	}
+	return &record, nil
 }
 
 func (lott *Lottery) findLotteryDrawRecord(key []byte) (*pty.LotteryDrawRecord, error) {
@@ -89,7 +108,7 @@ func (lott *Lottery) findLotteryDrawRecord(key []byte) (*pty.LotteryDrawRecord, 
 func (lott *Lottery) saveLotteryBuy(lotterylog *pty.ReceiptLottery) (kvs []*types.KeyValue) {
 	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, lotterylog.Index)
 	kv := &types.KeyValue{}
-	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round, 0, lotterylog.Way, lotterylog.Index}
+	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round, 0, lotterylog.Way, lotterylog.Index, lotterylog.Time, lotterylog.TxHash}
 	kv = &types.KeyValue{key, types.Encode(record)}
 
 	kvs = append(kvs, kv)
@@ -120,19 +139,23 @@ func (lott *Lottery) updateLotteryBuy(lotterylog *pty.ReceiptLottery, isAdd bool
 		//update old record
 		for _, addr := range addrkeys {
 			for _, updateRec := range buyInfo[addr].Records {
-				//find addr, txhash
+				//find addr, index
 				key := calcLotteryBuyKey(lotterylog.LotteryId, addr, lotterylog.Round, updateRec.Index)
+				record, err := lott.findLotteryBuyRecord(key)
+				if err != nil || record == nil {
+					return kvs
+				}
 				kv := &types.KeyValue{}
-				record := &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, 0, updateRec.Way, updateRec.Index}
+
 				if isAdd {
-					llog.Error("updateLotteryBuy update key")
-					record = &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, updateRec.Type, updateRec.Way, updateRec.Index}
+					llog.Debug("updateLotteryBuy update key")
+					record.Type = updateRec.Type
+				} else {
+					record.Type = 0
 				}
 
 				kv = &types.KeyValue{key, types.Encode(record)}
-
 				kvs = append(kvs, kv)
-
 			}
 		}
 		return kvs

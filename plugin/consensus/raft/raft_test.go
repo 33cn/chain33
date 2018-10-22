@@ -61,17 +61,17 @@ func RaftPerf() {
 func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
-	cfg := config.InitCfg("chain33.test.toml")
+	cfg, sub := config.InitCfg("chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New(cfg.Exec)
+	exec := executor.New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
-	s := store.New(cfg.Store)
+	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
 
-	cs := NewRaftCluster(cfg.Consensus)
+	cs := NewRaftCluster(cfg.Consensus, sub.Consensus["raft"])
 	cs.SetQueueClient(q.Client())
 
 	mem := mempool.New(cfg.MemPool)
