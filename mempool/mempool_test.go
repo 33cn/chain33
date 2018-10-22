@@ -118,16 +118,16 @@ func getprivkey(key string) crypto.PrivKey {
 
 func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, sub := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	cfg.Consensus.Minerstart = false
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New(cfg.Exec)
+	exec := executor.New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 
 	types.SetMinFee(0)
-	s := store.New(cfg.Store)
+	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
@@ -138,7 +138,7 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 
 func initEnv2(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, _ := config.InitCfg("../cmd/chain33/chain33.test.toml")
 
 	blockchainProcess(q)
 	execProcess(q)
@@ -155,7 +155,7 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 
 func initEnv(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, _ := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	blockchainProcess(q)
 	execProcess(q)
 	mem := New(cfg.MemPool)
