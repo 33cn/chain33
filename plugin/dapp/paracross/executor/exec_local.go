@@ -68,7 +68,7 @@ func (e *Paracross) ExecLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.
 		return nil, types.ErrParaMinerBaseIndex
 	}
 
-	var set types.Receipt
+	var set types.LocalDBSet
 
 	var mixTxHashs, paraTxHashs, crossTxHashs [][]byte
 	txs := e.GetTxs()
@@ -107,7 +107,7 @@ func (e *Paracross) ExecLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.
 		pt.CalcMinerHeightKey(payload.Status.Title, payload.Status.Height),
 		types.Encode(payload.Status)})
 
-	return nil, nil
+	return &set, nil
 }
 
 func (e *Paracross) ExecLocal_Transfer(payload *types.AssetsTransfer, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
