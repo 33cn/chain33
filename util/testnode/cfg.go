@@ -1,6 +1,6 @@
 package testnode
 
-var cfgstring = `Title="chain33"
+var cfgstring = `Title="local"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
