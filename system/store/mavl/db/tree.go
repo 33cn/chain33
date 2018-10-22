@@ -576,13 +576,19 @@ func setPruning(state int32) {
 }
 
 func pruningTree(db dbm.DB, curHeight int64) {
+	//for test
+	pruningTreePrint(db, []byte(leafKeyCountPrefix))
+	pruningTreePrint(db, []byte(hashNodePrefix))
+	pruningTreePrint(db, []byte(leafNodePrefix))
+
 	treelog.Info("pruningTree", "start curHeight:", curHeight)
 	setPruning(pruningStateStart)
 	pruningTreeLeafNode(db, curHeight)
-	//TODO curHeight-prunBlockHeight 处遍历树，然后删除hashnode;缓存数节点到lru中
+	//curHeight-prunBlockHeight 处遍历树，然后删除hashnode;缓存数节点到lru中
 	pruningTreeHashNode(db, curHeight)
 	setPruning(pruningStateEnd)
 	treelog.Info("pruningTree", "end curHeight:", curHeight)
+
 	//for test
 	pruningTreePrint(db, []byte(leafKeyCountPrefix))
 	pruningTreePrint(db, []byte(hashNodePrefix))
@@ -591,7 +597,7 @@ func pruningTree(db dbm.DB, curHeight int64) {
 
 func pruningTreeLeafNode(db dbm.DB, curHeight int64) {
 	prefix := []byte(leafKeyCountPrefix)
-	it := db.Iterator(prefix, true)
+	it := db.Iterator(prefix, nil,true)
 	defer it.Close()
 
 	const onceScanCount = 100000
@@ -684,7 +690,7 @@ func updatePruningState(db dbm.DB, mp *map[string]int64) {
 
 func pruningTreeHashNode(db dbm.DB, curHeight int64) {
 	prefix := []byte(rootNodePrefix)
-	it := db.Iterator(prefix, false)
+	it := db.Iterator(prefix, nil, false)
 	defer it.Close()
 
 	hashlen := len(common.Hash{})
@@ -885,28 +891,29 @@ func (ndb *markNodeDB) fetchNode(t *MarkTree, hash []byte) (*MarkNode, error) {
 }
 
 func pruningTreePrint(db dbm.DB, prefix []byte) {
-	it := db.Iterator(prefix, true)
+	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
 	count := 0
 	for it.Rewind(); it.Valid(); it.Next() {
 		//copy
-		if bytes.Equal(prefix, []byte(leafKeyCountPrefix)) {
-			hashK := make([]byte, len(it.Key()))
-			copy(hashK, it.Key())
-
-			value := it.Value()
-			var pData types.PruneData
-			err := proto.Unmarshal(value, &pData)
-			if err != nil {
-				panic("Unmarshal mavl leafCountKey fail")
-			}
-			hashLen := int(pData.Lenth)
-			_, err = getKeyFromLeafCountKey(hashK, hashLen)
-			if err == nil {
-				//fmt.Printf("key:%s height:%d \n", string(key), pData.Height)
-			}
-		}
+		//if bytes.Equal(prefix, []byte(leafKeyCountPrefix)) {
+		//	hashK := make([]byte, len(it.Key()))
+		//	copy(hashK, it.Key())
+		//
+		//	value := it.Value()
+		//	var pData types.PruneData
+		//	err := proto.Unmarshal(value, &pData)
+		//	if err != nil {
+		//		panic("Unmarshal mavl leafCountKey fail")
+		//	}
+		//	hashLen := int(pData.Lenth)
+		//	_, err = getKeyFromLeafCountKey(hashK, hashLen)
+		//	if err == nil {
+		//		//fmt.Printf("key:%s height:%d \n", string(key), pData.Height)
+		//	}
+		//}
 		count++
 	}
 	fmt.Printf("prefix %s All count:%d \n", string(prefix), count)
+	treelog.Info("pruningTreePrint:", "prefix:", string(prefix), "All count", count)
 }
