@@ -20,8 +20,6 @@ import (
 
 	//	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -211,32 +209,6 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	db.SetSync([]byte(BACKUPKEYINDEX), pubkeyindex)
 	//seedlog.Info("GetPrivkeyBySeed", "Hexsubprivkey", Hexsubprivkey, "index", index)
 	return Hexsubprivkey, nil
-}
-
-//通过私钥生成对应的公钥地址，传入的私钥是十六进制字符串，输出addr
-func GetAddrByPrivkey(HexPrivkey string) (string, error) {
-	if len(HexPrivkey) == 0 {
-		return "", types.ErrInvalidParam
-	}
-	//解码hex格式的私钥
-	privkeybyte, err := common.FromHex(HexPrivkey)
-	if err != nil {
-		return "", err
-	}
-	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName(SignType))
-	if err != nil {
-		seedlog.Error("GetAddrByPrivkey", "err", err)
-		return "", err
-	}
-
-	priv, err := cr.PrivKeyFromBytes(privkeybyte)
-	if err != nil {
-		seedlog.Error("GetAddrByPrivkey", "PrivKeyFromBytes err", err)
-		return "", err
-	}
-	addr := address.PubKeyToAddress(priv.PubKey().Bytes())
-	return addr.String(), nil
 }
 
 //使用钱包的password对seed进行aesgcm加密,返回加密后的seed

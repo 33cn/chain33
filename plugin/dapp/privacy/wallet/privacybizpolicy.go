@@ -45,7 +45,7 @@ func (policy *privacyPolicy) getWalletOperate() wcom.WalletOperate {
 	return policy.walletOperate
 }
 
-func (policy *privacyPolicy) Init(walletOperate wcom.WalletOperate) {
+func (policy *privacyPolicy) Init(walletOperate wcom.WalletOperate, sub []byte) {
 	policy.setWalletOperate(walletOperate)
 	policy.store = NewStore(walletOperate.GetDBStore())
 	version := policy.store.getVersion()
