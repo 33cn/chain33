@@ -47,7 +47,7 @@ It has these top-level messages:
 	BlockBody
 	IsCaughtUp
 	IsNtpClockSync
-	BlockChainQuery
+	ChainExecutor
 	BlockSequence
 	BlockSequences
 	ParaChainBlockDetail
@@ -97,12 +97,6 @@ It has these top-level messages:
 	ExecTxList
 	Query
 	CreateTxIn
-	Norm
-	NormAction
-	NormPut
-	Cert
-	CertAction
-	CertPut
 	ArrayConfig
 	StringConfig
 	Int32Config
@@ -195,7 +189,6 @@ It has these top-level messages:
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
-	WalletAccountPrivacy
 	WalletPwHash
 	WalletStatus
 	WalletAccounts
@@ -207,15 +200,12 @@ It has these top-level messages:
 	ReplySeed
 	ReqWalletSetPasswd
 	ReqNewAccount
-	MinerFlag
 	ReqWalletTransactionList
-	ReqWalletImportPrivKey
+	ReqWalletImportPrivkey
 	ReqWalletSendToAddress
 	ReqWalletSetFee
 	ReqWalletSetLabel
 	ReqWalletMergeBalance
-	ReqStr
-	ReplyStr
 	ReqTokenPreCreate
 	ReqTokenFinishCreate
 	ReqTokenRevokeCreate
@@ -224,42 +214,7 @@ It has these top-level messages:
 	ReplySignRawTx
 	ReportErrEvent
 	Int32
-	ReqPub2Pri
-	ReqPri2Pri
-	ReqPri2Pub
-	ReqCreateUTXOs
-	ReplyPrivacyPkPair
-	ReqPrivBal4AddrToken
-	ReplyPrivacyBalance
-	PrivacyDBStore
-	UTXO
-	UTXOHaveTxHash
-	UTXOs
-	UTXOHaveTxHashs
-	UTXOGlobalIndex
-	ReqUTXOGlobalIndex
-	UTXOBasic
-	UTXOIndex4Amount
-	ResUTXOGlobalIndex
-	FTXOsSTXOsInOneTx
 	ReqCreateTransaction
-	RealKeyInput
-	UTXOBasics
-	CreateTransactionCache
-	ReqCacheTxList
-	ReplyCacheTxList
-	ReqPrivacyAccount
-	ReqPPrivacyAccount
-	ReplyPrivacyAccount
-	ReqCreateCacheTxKey
-	ReqPrivacyTransactionList
-	ReqRescanUtxos
-	RepRescanResult
-	RepRescanUtxos
-	ReqEnablePrivacy
-	PriAddrResult
-	RepEnablePrivacy
-	PrivacySignatureParam
 	ReqAccountList
 */
 package types

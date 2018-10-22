@@ -13,9 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"github.com/inconshreveable/log15"
-	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
-	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
-	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 )
 
@@ -28,8 +25,11 @@ type channelClient struct {
 	accountdb *account.DB
 }
 
-func (c *channelClient) Init(q queue.Client) {
-	c.QueueProtocolAPI, _ = client.New(q, nil)
+func (c *channelClient) Init(q queue.Client, api client.QueueProtocolAPI) {
+	if api == nil {
+		api, _ = client.New(q, nil)
+	}
+	c.QueueProtocolAPI = api
 	c.accountdb = account.NewCoinsAccount()
 }
 
@@ -226,50 +226,6 @@ func (c *channelClient) CreateRawTradeSellMarketTx(parm *tradetype.TradeSellMark
 
 func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *tradetype.TradeRevokeBuyTx) ([]byte, error) {
 	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeRevokeBuy", parm)
-}
-
-func (c *channelClient) CreateRawRetrieveBackupTx(parm *retrievetype.RetrieveBackupTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.RetrieveX), "RetrieveBackup", parm)
-}
-
-func (c *channelClient) CreateRawRetrievePrepareTx(parm *retrievetype.RetrievePrepareTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.RetrieveX), "RetrievePrepare", parm)
-}
-
-func (c *channelClient) CreateRawRetrievePerformTx(parm *retrievetype.RetrievePerformTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.RetrieveX), "RetrievePerform", parm)
-}
-
-func (c *channelClient) CreateRawRetrieveCancelTx(parm *retrievetype.RetrieveCancelTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.RetrieveX), "RetrieveCancel", parm)
-}
-
-func (c *channelClient) CreateRawHashlockLockTx(parm *hashlocktype.HashlockLockTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.HashlockX), "HashlockLock", parm)
-}
-
-func (c *channelClient) CreateRawHashlockUnlockTx(parm *hashlocktype.HashlockUnlockTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.HashlockX), "HashlockUnlock", parm)
-}
-
-func (c *channelClient) CreateRawHashlockSendTx(parm *hashlocktype.HashlockSendTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.HashlockX), "HashlockSend", parm)
-}
-
-func (c *channelClient) CreateRawLotteryCreateTx(parm *lotterytype.LotteryCreateTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryCreate", parm)
-}
-
-func (c *channelClient) CreateRawLotteryBuyTx(parm *lotterytype.LotteryBuyTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryBuy", parm)
-}
-
-func (c *channelClient) CreateRawLotteryDrawTx(parm *lotterytype.LotteryDrawTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryDraw", parm)
-}
-
-func (c *channelClient) CreateRawLotteryCloseTx(parm *lotterytype.LotteryCloseTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryClose", parm)
 }
 
 func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {

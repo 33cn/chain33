@@ -133,11 +133,11 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 
 		break
 	}
-	var parm types.ReqWalletImportPrivKey
+	var parm types.ReqWalletImportPrivkey
 	parm.Privkey, _ = network.node.nodeInfo.addrBook.GetPrivPubKey()
 	parm.Label = "node award"
 ReTry:
-	msg := network.client.NewMessage("wallet", types.EventWalletImportprivkey, &parm)
+	msg := network.client.NewMessage("wallet", types.EventWalletImportPrivkey, &parm)
 	err := network.client.SendTimeout(msg, true, time.Minute)
 	if err != nil {
 		log.Error("ImportPrivkey", "Error", err.Error())

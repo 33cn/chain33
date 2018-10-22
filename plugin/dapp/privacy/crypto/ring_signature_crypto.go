@@ -81,11 +81,11 @@ func (privkey *RingSignPrivateKey) Sign(msg []byte) crypto.Signature {
 	//data := types.Encode(tx)
 	//h := common.BytesToHash(data)
 	for i, keyinput := range privacyInput.Keyinput {
-		utxos := new(types.UTXOBasics)
+		utxos := new(privacytypes.UTXOBasics)
 		for _, item := range retSign.Items {
-			utxo := new(types.UTXOBasic)
+			utxo := new(privacytypes.UTXOBasic)
 			utxo.OnetimePubkey = item.Pubkey[i]
-			utxo.UtxoGlobalIndex = (*types.UTXOGlobalIndex)(keyinput.UtxoGlobalIndex[i])
+			utxo.UtxoGlobalIndex = keyinput.UtxoGlobalIndex[i]
 			utxos.Utxos = append(utxos.Utxos, utxo)
 		}
 		//
@@ -202,7 +202,7 @@ func (r *RingSignED25519) GenKey() (crypto.PrivKey, error) {
 
 func (r *RingSignED25519) PrivKeyFromBytes(b []byte) (crypto.PrivKey, error) {
 	if len(b) <= 0 {
-		return nil, types.ErrInvalidParams
+		return nil, types.ErrInvalidParam
 	}
 	if len(b) != KeyLen32 {
 		return nil, types.ErrPrivateKeyLen
@@ -214,7 +214,7 @@ func (r *RingSignED25519) PrivKeyFromBytes(b []byte) (crypto.PrivKey, error) {
 
 func (r *RingSignED25519) PubKeyFromBytes(b []byte) (crypto.PubKey, error) {
 	if len(b) <= 0 {
-		return nil, types.ErrInvalidParams
+		return nil, types.ErrInvalidParam
 	}
 	if len(b) != PublicKeyLen {
 		return nil, types.ErrPubKeyLen
@@ -226,7 +226,7 @@ func (r *RingSignED25519) PubKeyFromBytes(b []byte) (crypto.PubKey, error) {
 
 func (r *RingSignED25519) SignatureFromBytes(b []byte) (crypto.Signature, error) {
 	if len(b) <= 0 {
-		return nil, types.ErrInvalidParams
+		return nil, types.ErrInvalidParam
 	}
 	sign := new(RingSignature)
 	if err := types.Decode(b, &sign.sign); err != nil {
