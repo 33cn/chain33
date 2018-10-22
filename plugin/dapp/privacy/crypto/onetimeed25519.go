@@ -4,20 +4,21 @@ import (
 	"errors"
 	"unsafe"
 
-	. "gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 )
 
 type OneTimeEd25519 struct{}
 
 func init() {
-	Register(SignNameOnetimeED25519, &OneTimeEd25519{})
+	crypto.Register(privacytypes.SignNameOnetimeED25519, &OneTimeEd25519{})
 }
 
-func (onetime *OneTimeEd25519) GenKey() (PrivKey, error) {
+func (onetime *OneTimeEd25519) GenKey() (crypto.PrivKey, error) {
 	privKeyPrivacyPtr := &PrivKeyPrivacy{}
 	pubKeyPrivacyPtr := &PubKeyPrivacy{}
-	copy(privKeyPrivacyPtr[:PrivateKeyLen], CRandBytes(PrivateKeyLen))
+	copy(privKeyPrivacyPtr[:PrivateKeyLen], crypto.CRandBytes(PrivateKeyLen))
 
 	addr32 := (*[KeyLen32]byte)(unsafe.Pointer(privKeyPrivacyPtr))
 	addr64 := (*[PrivateKeyLen]byte)(unsafe.Pointer(privKeyPrivacyPtr))
@@ -33,7 +34,7 @@ func (onetime *OneTimeEd25519) GenKey() (PrivKey, error) {
 	return *privKeyPrivacyPtr, nil
 }
 
-func (onetime *OneTimeEd25519) PrivKeyFromBytes(b []byte) (privKey PrivKey, err error) {
+func (onetime *OneTimeEd25519) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
 	if len(b) != 64 {
 		return nil, errors.New("invalid priv key byte")
 	}
@@ -54,7 +55,7 @@ func (onetime *OneTimeEd25519) PrivKeyFromBytes(b []byte) (privKey PrivKey, err 
 	return PrivKeyPrivacy(*privKeyBytes), nil
 }
 
-func (onetime *OneTimeEd25519) PubKeyFromBytes(b []byte) (pubKey PubKey, err error) {
+func (onetime *OneTimeEd25519) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
 	if len(b) != 32 {
 		return nil, errors.New("invalid pub key byte")
 	}
@@ -63,7 +64,7 @@ func (onetime *OneTimeEd25519) PubKeyFromBytes(b []byte) (pubKey PubKey, err err
 	return PubKeyPrivacy(*pubKeyBytes), nil
 }
 
-func (onetime *OneTimeEd25519) SignatureFromBytes(b []byte) (sig Signature, err error) {
+func (onetime *OneTimeEd25519) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	sigBytes := new([64]byte)
 	copy(sigBytes[:], b[:])
 	return SignatureOnetime(*sigBytes), nil

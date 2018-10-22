@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	crypto.Register(crypto.SignNameRing, &RingSignED25519{})
+	crypto.Register(privacytypes.SignNameRing, &RingSignED25519{})
 }
 
 // RingSignature 环签名中对于crypto.Signature接口实现

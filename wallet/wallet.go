@@ -78,15 +78,15 @@ func DisableLog() {
 	storelog.SetHandler(log.DiscardHandler())
 }
 
-func New(cfg *types.Wallet) *Wallet {
+func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	//walletStore
 	accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
 	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
-	signType, exist := types.MapSignName2Type[cfg.SignType]
-	if !exist {
+	signType := types.GetSignType("", cfg.SignType)
+	if signType == types.Invalid {
 		signType = types.SECP256K1
 	}
 	SignType = signType
@@ -105,13 +105,8 @@ func New(cfg *types.Wallet) *Wallet {
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
+	wcom.Init(wallet, sub)
 	return wallet
-}
-
-func (wallet *Wallet) initBizPolicy() {
-	for _, policy := range wcom.PolicyContainer {
-		policy.Init(wallet)
-	}
 }
 
 func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) error {
@@ -232,7 +227,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
-	wallet.initBizPolicy()
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 }
@@ -266,7 +260,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 
 	privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName(SignType))
+	cr, err := crypto.New(types.GetSignName("", SignType))
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "err", err)
 		return nil, err

@@ -1,6 +1,7 @@
 package privacy
 
 import (
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/crypto"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/executor"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/wallet"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"

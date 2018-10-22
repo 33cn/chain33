@@ -231,7 +231,7 @@ func (a *AddrBook) loadDb() bool {
 
 	a.setKey(string(privkey), a.genPubkey(string(privkey)))
 
-	iteror := a.bookDb.Iterator(nil, false)
+	iteror := a.bookDb.Iterator(nil, nil, false)
 	for iteror.Next() {
 		if string(iteror.Key()) == addrkeyTag {
 			//读取存入的其他节点地址信息

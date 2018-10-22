@@ -59,7 +59,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	Init("manage")
+	Init("manage", nil)
 	conn, err := grpc.Dial(mainNetgrpcAddr, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
@@ -80,7 +80,7 @@ func init() {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -97,14 +97,14 @@ func getprivkey(key string) crypto.PrivKey {
 
 func initUnitEnv() (queue.Queue, *executor.Executor) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../../../../cmd/chain33/chain33.test.toml")
-	exec := executor.New(cfg.Exec)
+	cfg, sub := config.InitCfg("../../../../cmd/chain33/chain33.test.toml")
+	exec := executor.New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 	return q, exec
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
