@@ -481,13 +481,13 @@ out:
 				isSync = true
 			}
 
-			payLoad := types.Encode(&types.ReqStr{
-				ReqStr: types.GetTitle(),
+			payLoad := types.Encode(&types.ReqString{
+				Data: types.GetTitle(),
 			})
-			query := types.Query{
-				Execer:   types.ExecerPara,
+			query := types.ChainExecutor{
+				Driver:   string(types.ExecerPara),
 				FuncName: "ParacrossGetTitle",
-				Payload:  payLoad,
+				Param:    payLoad,
 			}
 			ret, err := client.paraClient.grpcClient.QueryChain(context.Background(), &query)
 			if err != nil {
@@ -515,7 +515,7 @@ func (client *CommitMsgClient) fetchPrivacyKey(ch chan crypto.PrivKey) {
 		return
 	}
 
-	req := &types.ReqStr{ReqStr: client.paraClient.authAccount}
+	req := &types.ReqString{Data: client.paraClient.authAccount}
 out:
 	for {
 		select {
@@ -529,13 +529,13 @@ out:
 				plog.Error("para commit msg sign to wallet", "err", err.Error())
 				continue
 			}
-			str := resp.GetData().(*types.ReplyStr).Replystr
+			str := resp.GetData().(*types.ReplyString).Data
 			pk, err := common.FromHex(str)
 			if err != nil && pk == nil {
 				panic(err)
 			}
 
-			secp, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+			secp, err := crypto.New(types.GetSignName("", types.SECP256K1))
 			if err != nil {
 				panic(err)
 			}

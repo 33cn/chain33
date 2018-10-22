@@ -2,7 +2,8 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -45,7 +46,7 @@ func genSeed(cmd *cobra.Command, args []string) {
 		Lang: lang,
 	}
 	var res types.ReplySeed
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
 	ctx.Run()
 }
 
@@ -72,7 +73,7 @@ func getSeed(cmd *cobra.Command, args []string) {
 		Passwd: pwd,
 	}
 	var res types.ReplySeed
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetSeed", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetSeed", params, &res)
 	ctx.Run()
 }
 
@@ -103,7 +104,7 @@ func saveSeed(cmd *cobra.Command, args []string) {
 		Seed:   seed,
 		Passwd: pwd,
 	}
-	var res jsonrpc.Reply
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
+	var res rpctypes.Reply
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
 	ctx.Run()
 }

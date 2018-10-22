@@ -14,7 +14,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 )
 
 const (
@@ -292,8 +292,8 @@ func (node *Node) evidenceBroadcastRoutine() {
 			data, err := proto.Marshal(evidence.Child())
 			if err != nil {
 				msg := MsgInfo{TypeID: ttypes.EvidenceListID,
-					Msg: &types.EvidenceData{
-						Evidence: []*types.EvidenceEnvelope{
+					Msg: &tmtypes.EvidenceData{
+						Evidence: []*tmtypes.EvidenceEnvelope{
 							{
 								TypeName: evidence.TypeName(),
 								Data:     data,
@@ -311,7 +311,7 @@ func (node *Node) evidenceBroadcastRoutine() {
 
 		case <-ticker.C:
 			// broadcast all pending evidence
-			var eData types.EvidenceData
+			var eData tmtypes.EvidenceData
 			evidence := node.evpool.PendingEvidence()
 			for _, item := range evidence {
 				ev := item.Child()
@@ -320,7 +320,7 @@ func (node *Node) evidenceBroadcastRoutine() {
 					if err != nil {
 						panic("AddEvidence marshal failed")
 					}
-					env := &types.EvidenceEnvelope{
+					env := &tmtypes.EvidenceEnvelope{
 						TypeName: item.TypeName(),
 						Data:     data,
 					}

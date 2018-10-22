@@ -14,17 +14,17 @@ PARACLI := build/chain33-para-cli
 PARANAME := para
 SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
-RELAYD := build/relayd
-SRC_RELAYD := gitlab.33.cn/chain33/chain33/cmd/relayd
 AUTO_TEST := build/tools/autotest/autotest
 SRC_AUTO_TEST := gitlab.33.cn/chain33/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "blockchain" | grep -v "pbft"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
+MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
+MKDIR=$(dir $(MKPATH))
 .PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
 
-default: build cli relayd para-cli autotest
+default: build cli depends para-cli autotest
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
@@ -79,16 +79,13 @@ miner:
 	@go build -v -o $(MINER) $(SRC_MINER)
 	@cp cmd/miner_accounts/miner_accounts.toml build/
 
-build_ci: relayd ## Build the binary file for CI
-	@go build -race -v -i -o $(CLI) $(SRC_CLI)
-	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
-	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
+build_ci: depends ## Build the binary file for CI
+	@go build -v -i -o $(CLI) $(SRC_CLI)
+	@go build -v  -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
+	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
 
-relayd: ## Build relay deamon binary
-	@go build -race -i -v -o $(RELAYD) $(SRC_RELAYD)
-	@cp cmd/relayd/relayd.toml build/
 
 linter: ## Use gometalinter check code, ignore some unserious warning
 	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
@@ -171,11 +168,17 @@ clean: ## Remove previous build
 	@rm -rf build/tools/autotest/autotest
 	@go clean
 
+proto:protobuf
+
 protobuf: ## Generate protbuf file of types package
 	@cd types/proto && ./create_protobuf.sh && cd ../..
-	@cd system/dapp/coins/proto && sh create_protobuf.sh && cd ../..
-	@cd plugin/dapp/paracross/proto && sh create_protobuf.sh && cd ../..
+	@find ./system/dapp -maxdepth 2 -type d  -name proto -exec make -C {} \;
+	@find ./plugin/dapp -maxdepth 2 -type d  -name proto -exec make -C {} \;
 
+
+depends: ## Generate depends file of types package
+	@find ./plugin/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build" FLAG= \;
+	@find ./system/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build" FLAG= \;
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"

@@ -5,21 +5,11 @@ import (
 	"math/rand"
 
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/executor"
 	pb "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-type channelClient struct {
-	client.QueueProtocolAPI
-}
-
-func (c *channelClient) Init(q queue.Client) {
-	c.QueueProtocolAPI, _ = client.New(q, nil)
-}
 
 func (c *channelClient) Start(ctx context.Context, head *pb.PBGameStart) (*types.UnsignTx, error) {
 	if head.PlayerNum > executor.MAX_PLAYER_NUM {

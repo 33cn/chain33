@@ -36,7 +36,6 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/init"
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -46,7 +45,6 @@ var (
 )
 
 func init() {
-	executorty.Init()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
@@ -73,22 +71,22 @@ func TestPbft(t *testing.T) {
 func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
-	cfg := config.InitCfg("chain33.test.toml")
+	cfg, sub := config.InitCfg("chain33.test.toml")
 	log.SetFileLog(cfg.Log)
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
-	exec := executor.New(cfg.Exec)
+	exec := executor.New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
-	s := store.New(cfg.Store)
+	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
-	cs := NewPbft(cfg.Consensus)
+	cs := NewPbft(cfg.Consensus, sub.Consensus["pbft"])
 	cs.SetQueueClient(q.Client())
 	p2pnet := p2p.New(cfg.P2P)
 	p2pnet.SetQueueClient(q.Client())
-	walletm := wallet.New(cfg.Wallet)
+	walletm := wallet.New(cfg.Wallet, sub.Wallet)
 	walletm.SetQueueClient(q.Client())
 
 	return q, chain, p2pnet, s, mem, exec, cs, walletm
@@ -114,7 +112,7 @@ func sendReplyList(q queue.Queue) {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}

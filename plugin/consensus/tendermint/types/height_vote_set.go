@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 )
 
 type RoundVoteSet struct {
@@ -208,7 +208,7 @@ func (hvs *HeightVoteSet) StringIndented(indent string) string {
 // NOTE: if there are too many peers, or too much peer churn,
 // this can cause memory issues.
 // TODO: implement ability to remove peers too
-func (hvs *HeightVoteSet) SetPeerMaj23(round int, type_ byte, peerID string, blockID *types.BlockID) {
+func (hvs *HeightVoteSet) SetPeerMaj23(round int, type_ byte, peerID string, blockID *tmtypes.BlockID) {
 	hvs.mtx.Lock()
 	defer hvs.mtx.Unlock()
 	if !IsVoteTypeValid(type_) {

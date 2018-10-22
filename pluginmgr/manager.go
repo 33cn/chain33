@@ -4,16 +4,26 @@ import (
 	"sync"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/rpc/types"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
 var pluginItems = make(map[string]Plugin)
 
 var once = &sync.Once{}
 
-func InitExec() {
+func InitExec(sub map[string][]byte) {
 	once.Do(func() {
 		for _, item := range pluginItems {
-			item.InitExec()
+			item.InitExec(sub)
+		}
+	})
+}
+
+func InitWallet(wallet wcom.WalletOperate, sub map[string][]byte) {
+	once.Do(func() {
+		for _, item := range pluginItems {
+			item.InitWallet(wallet, sub)
 		}
 	})
 }
@@ -47,7 +57,7 @@ func AddCmd(rootCmd *cobra.Command) {
 	}
 }
 
-func AddRPC(s RPCServer) {
+func AddRPC(s types.RPCServer) {
 	for _, item := range pluginItems {
 		item.AddRPC(s)
 	}

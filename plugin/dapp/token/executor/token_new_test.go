@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -25,7 +26,6 @@ import (
 var (
 	isMainNetTest bool = false
 	isParaNetTest bool = false
-	isManageTest  bool = false
 )
 
 var (
@@ -57,7 +57,6 @@ var (
 	tokenPrice  int64 = 0
 	tokenAmount int64 = 1000 * 1e4 * 1e4
 	execName          = "user.p.guodun.token"
-	execNameMa        = "user.p.guodun.manage"
 	feeForToken int64 = 1e6
 	transToAddr       = "1NYxhca2zVMzxFqMRJdMcZfrSFnqbqotKe"
 	transAmount int64 = 100 * 1e4 * 1e4
@@ -110,7 +109,7 @@ func TestInitAccount(t *testing.T) {
 	//privkey = ""
 	//addr, privkey = genaddress()
 	label := strconv.Itoa(int(types.Now().UnixNano()))
-	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: label}
+	params := types.ReqWalletImportPrivkey{Privkey: common.ToHex(privkey.Bytes()), Label: label}
 
 	unlock := types.WalletUnLock{Passwd: walletPass, Timeout: 0, WalletOrTicket: false}
 	_, err := mainClient.UnLock(context.Background(), &unlock)
@@ -121,7 +120,7 @@ func TestInitAccount(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 
-	_, err = mainClient.ImportPrivKey(context.Background(), &params)
+	_, err = mainClient.ImportPrivkey(context.Background(), &params)
 	if err != nil && err != types.ErrPrivkeyExist {
 		fmt.Println(err)
 		t.Error(err)
@@ -144,89 +143,6 @@ func TestInitAccount(t *testing.T) {
 	*/
 }
 
-func TestManageForTokenBlackList(t *testing.T) {
-	if !isManageTest {
-		return
-	}
-	fmt.Println("TestManageForTokenBlackList start")
-	defer fmt.Println("TestManageForTokenBlackList end")
-
-	v := &types.ModifyConfig{Key: "token-blacklist", Op: "add", Value: "GDT", Addr: ""}
-	modify := &types.ManageAction{
-		Ty:    types.ManageActionModifyConfig,
-		Value: &types.ManageAction_Modify{Modify: v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte(execNameMa),
-		Payload: types.Encode(modify),
-		Fee:     feeForToken,
-		Nonce:   r.Int63(),
-		To:      address.ExecAddress(execNameMa),
-	}
-
-	tx.Sign(types.SECP256K1, privkeySuper)
-
-	reply, err := mainClient.SendTransaction(context.Background(), tx)
-	if err != nil {
-		fmt.Println("err", err)
-		t.Error(err)
-		return
-	}
-	if !reply.IsOk {
-		fmt.Println("err = ", reply.GetMsg())
-		t.Error(ErrTest)
-		return
-	}
-
-	if !waitTx(tx.Hash()) {
-		t.Error(ErrTest)
-		return
-	}
-	time.Sleep(5 * time.Second)
-
-}
-
-func TestManageForTokenFinisher(t *testing.T) {
-	if !isManageTest {
-		return
-	}
-	fmt.Println("TestManageForTokenFinisher start")
-	defer fmt.Println("TestManageForTokenFinisher end")
-
-	v := &types.ModifyConfig{Key: "token-finisher", Op: "add", Value: addr, Addr: ""}
-	modify := &types.ManageAction{
-		Ty:    types.ManageActionModifyConfig,
-		Value: &types.ManageAction_Modify{Modify: v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte(execNameMa),
-		Payload: types.Encode(modify),
-		Fee:     feeForToken,
-		Nonce:   r.Int63(),
-		To:      address.ExecAddress(execNameMa),
-	}
-
-	tx.Sign(types.SECP256K1, privkeySuper)
-
-	reply, err := mainClient.SendTransaction(context.Background(), tx)
-	if err != nil {
-		fmt.Println("err", err)
-		t.Error(err)
-		return
-	}
-	if !reply.IsOk {
-		fmt.Println("err = ", reply.GetMsg())
-		t.Error(ErrTest)
-		return
-	}
-
-	if !waitTx(tx.Hash()) {
-		t.Error(ErrTest)
-		return
-	}
-	time.Sleep(5 * time.Second)
-}
-
 func TestPrecreate(t *testing.T) {
 	if !isMainNetTest {
 		return
@@ -234,7 +150,7 @@ func TestPrecreate(t *testing.T) {
 	fmt.Println("TestPrecreate start")
 	defer fmt.Println("TestPrecreate end")
 
-	v := &types.TokenPreCreate{
+	v := &tokenty.TokenPreCreate{
 		Name:         tokenName,
 		Symbol:       tokenSym,
 		Introduction: tokenIntro,
@@ -242,9 +158,9 @@ func TestPrecreate(t *testing.T) {
 		Price:        tokenPrice,
 		Owner:        addr,
 	}
-	precreate := &types.TokenAction{
-		Ty:    types.TokenActionPreCreate,
-		Value: &types.TokenAction_Tokenprecreate{v},
+	precreate := &tokenty.TokenAction{
+		Ty:    tokenty.TokenActionPreCreate,
+		Value: &tokenty.TokenAction_Tokenprecreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(execName),
@@ -282,10 +198,10 @@ func TestFinish(t *testing.T) {
 	fmt.Println("TestFinish start")
 	defer fmt.Println("TestFinish end")
 
-	v := &types.TokenFinishCreate{Symbol: tokenSym, Owner: addr}
-	finish := &types.TokenAction{
-		Ty:    types.TokenActionFinishCreate,
-		Value: &types.TokenAction_Tokenfinishcreate{v},
+	v := &tokenty.TokenFinishCreate{Symbol: tokenSym, Owner: addr}
+	finish := &tokenty.TokenAction{
+		Ty:    tokenty.TokenActionFinishCreate,
+		Value: &tokenty.TokenAction_Tokenfinishcreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(execName),
@@ -323,8 +239,8 @@ func TestTransferToken(t *testing.T) {
 	fmt.Println("TestTransferToken start")
 	defer fmt.Println("TestTransferToken end")
 
-	v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{Cointoken: tokenSym, Amount: transAmount, Note: "", To: transToAddr}}
-	transfer := &types.TokenAction{Value: v, Ty: types.ActionTransfer}
+	v := &tokenty.TokenAction_Transfer{Transfer: &types.AssetsTransfer{Cointoken: tokenSym, Amount: transAmount, Note: "", To: transToAddr}}
+	transfer := &tokenty.TokenAction{Value: v, Ty: tokenty.ActionTransfer}
 
 	tx := &types.Transaction{Execer: []byte(execName), Payload: types.Encode(transfer), Fee: fee, To: addrexec}
 	tx.Nonce = r.Int63()
@@ -356,15 +272,15 @@ func TestQueryAsset(t *testing.T) {
 	fmt.Println("TestQueryAsset start")
 	defer fmt.Println("TestQueryAsset end")
 
-	var req types.Query
-	req.Execer = []byte(execName)
+	var req types.ChainExecutor
+	req.Driver = execName
 	req.FuncName = "GetAccountTokenAssets"
 
-	var reqAsset types.ReqAccountTokenAssets
+	var reqAsset tokenty.ReqAccountTokenAssets
 	reqAsset.Address = addr
 	reqAsset.Execer = execName
 
-	req.Payload = types.Encode(&reqAsset)
+	req.Param = types.Encode(&reqAsset)
 
 	reply, err := paraClient.QueryChain(context.Background(), &req)
 	if err != nil {
@@ -377,7 +293,7 @@ func TestQueryAsset(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	var res types.ReplyAccountTokenAssets
+	var res tokenty.ReplyAccountTokenAssets
 	err = types.Decode(reply.Msg, &res)
 	if err != nil {
 		t.Error(err)
@@ -440,7 +356,7 @@ func waitTx(hash []byte) bool {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -453,7 +369,7 @@ func genaddress() (string, crypto.PrivKey) {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}

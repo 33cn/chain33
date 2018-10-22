@@ -12,6 +12,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -82,7 +83,7 @@ type ConsensusState struct {
 	// some functions can be overwritten for testing
 	decideProposal func(height int64, round int)
 	doPrevote      func(height int64, round int)
-	setProposal    func(proposal *types.Proposal) error
+	setProposal    func(proposal *tmtypes.Proposal) error
 
 	broadcastChannel chan<- MsgInfo
 	ourId            ID
@@ -180,7 +181,7 @@ func (cs *ConsensusState) SetTimeoutTicker(timeoutTicker TimeoutTicker) {
 }
 
 // LoadCommit loads the commit for a given height.
-func (cs *ConsensusState) LoadCommit(height int64) *types.TendermintCommit {
+func (cs *ConsensusState) LoadCommit(height int64) *tmtypes.TendermintCommit {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	if height == cs.client.GetCurrentHeight() {
@@ -405,21 +406,21 @@ func (cs *ConsensusState) handleMsg(mi MsgInfo) {
 	var err error
 	msg, peerID, peerIP := mi.Msg, string(mi.PeerID), mi.PeerIP
 	switch msg := msg.(type) {
-	case *types.Proposal:
+	case *tmtypes.Proposal:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
 		err = cs.setProposal(msg)
 		if err != nil {
 			tendermintlog.Error("handleMsg proposalMsg failed", "msg", msg, "error", err)
 		}
-	case *types.TendermintBlock:
+	case *tmtypes.TendermintBlock:
 		// if the block is complete, we'll enterPrevote or tryFinalizeCommit
 		err = cs.addProposalBlock(msg)
 		if err != nil && cs.Round != int(msg.Header.Round) {
 			tendermintlog.Debug("Received block from wrong round", "height", cs.Height, "csRound", cs.Round, "blockRound", msg.Header.Round)
 			err = nil
 		}
-	case *types.Vote:
+	case *tmtypes.Vote:
 		// attempt to add the vote and dupeout the validator if its a duplicate signature
 		// if the vote gives us a 2/3-any or 2/3-one, we transition
 		err := cs.tryAddVote(msg, peerID, peerIP)
@@ -577,7 +578,7 @@ func (cs *ConsensusState) proposalHeartbeat(height int64, round int) {
 		if rs.Step > ttypes.RoundStepNewRound || rs.Round > round || rs.Height > height {
 			return
 		}
-		heartbeat := &types.Heartbeat{
+		heartbeat := &tmtypes.Heartbeat{
 			Height:           rs.Height,
 			Round:            int32(rs.Round),
 			Sequence:         int32(counter),
@@ -695,11 +696,11 @@ func (cs *ConsensusState) isProposalComplete() bool {
 // Returns nil block upon error.
 // NOTE: keep it side-effect free for clarity.
 func (cs *ConsensusState) createProposalBlock() (block *ttypes.TendermintBlock) {
-	var commit *types.TendermintCommit
+	var commit *tmtypes.TendermintCommit
 	if cs.Height == 1 {
 		// We're creating a proposal for the first block.
 		// The commit is empty, but not nil.
-		commit = &types.TendermintCommit{}
+		commit = &tmtypes.TendermintCommit{}
 	} else if cs.LastCommit.HasTwoThirdsMajority() {
 		// Make the commit from LastCommit
 		commit = cs.LastCommit.MakeCommit()
@@ -1023,7 +1024,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	tendermintlog.Debug("finalizeCommit validators of statecopy", "validators", stateCopy.Validators)
 	// NOTE: the block.AppHash wont reflect these txs until the next block
 	var err error
-	stateCopy, err = cs.blockExec.ApplyBlock(stateCopy, ttypes.BlockID{BlockID: types.BlockID{Hash: block.Hash()}}, block)
+	stateCopy, err = cs.blockExec.ApplyBlock(stateCopy, ttypes.BlockID{BlockID: tmtypes.BlockID{Hash: block.Hash()}}, block)
 	if err != nil {
 		tendermintlog.Error("Error on ApplyBlock", "err", err)
 		cs.enterNewRound(cs.Height, cs.CommitRound+1)
@@ -1111,7 +1112,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 //-----------------------------------------------------------------------------
 
-func (cs *ConsensusState) defaultSetProposal(proposal *types.Proposal) error {
+func (cs *ConsensusState) defaultSetProposal(proposal *tmtypes.Proposal) error {
 	tendermintlog.Debug(fmt.Sprintf("Consensus receive proposal. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step),
 		"proposal", fmt.Sprintf("%v/%v", proposal.Height, proposal.Round))
 	// Already have one
@@ -1166,7 +1167,7 @@ func (cs *ConsensusState) defaultSetProposal(proposal *types.Proposal) error {
 
 // NOTE: block is not necessarily valid.
 // Asynchronously triggers either enterPrevote (before we timeout of propose) or tryFinalizeCommit, once we have the full block.
-func (cs *ConsensusState) addProposalBlock(proposalBlock *types.TendermintBlock) (err error) {
+func (cs *ConsensusState) addProposalBlock(proposalBlock *tmtypes.TendermintBlock) (err error) {
 	block := &ttypes.TendermintBlock{proposalBlock}
 	height, round := block.Header.Height, block.Header.Round
 	tendermintlog.Debug(fmt.Sprintf("Consensus receive proposal block. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step),
@@ -1214,7 +1215,7 @@ func (cs *ConsensusState) addProposalBlock(proposalBlock *types.TendermintBlock)
 }
 
 // Attempt to add the vote. if its a duplicate signature, dupeout the validator
-func (cs *ConsensusState) tryAddVote(voteRaw *types.Vote, peerID string, peerIP string) error {
+func (cs *ConsensusState) tryAddVote(voteRaw *tmtypes.Vote, peerID string, peerIP string) error {
 	vote := &ttypes.Vote{Vote: voteRaw}
 	_, err := cs.addVote(vote, peerID, peerIP)
 	if err != nil {
@@ -1256,7 +1257,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string, peerIP strin
 		added, err = cs.Votes.AddVote(vote, peerID)
 		if added {
 			//cs.broadcastChannel <- MsgInfo{TypeID: ttypes.VoteID, Msg: vote.Vote, PeerID: cs.ourId, PeerIP: ""}
-			hasVoteMsg := &types.HasVoteMsg{
+			hasVoteMsg := &tmtypes.HasVoteMsg{
 				Height: vote.Height,
 				Round:  vote.Round,
 				Type:   int32(vote.Type),
@@ -1350,17 +1351,17 @@ func (cs *ConsensusState) signVote(type_ byte, hash []byte) (*ttypes.Vote, error
 
 	addr := cs.privValidator.GetAddress()
 	valIndex, _ := cs.Validators.GetByAddress(addr)
-	tVote := &types.Vote{}
-	tVote.BlockID = &types.BlockID{Hash: hash}
+	tVote := &tmtypes.Vote{}
+	tVote.BlockID = &tmtypes.BlockID{Hash: hash}
 	vote := &ttypes.Vote{
-		Vote: &types.Vote{
+		Vote: &tmtypes.Vote{
 			ValidatorAddress: addr,
 			ValidatorIndex:   int32(valIndex),
 			Height:           cs.Height,
 			Round:            int32(cs.Round),
 			Timestamp:        time.Now().UnixNano(),
 			Type:             uint32(type_),
-			BlockID:          &types.BlockID{Hash: hash},
+			BlockID:          &tmtypes.BlockID{Hash: hash},
 			Signature:        nil,
 		},
 	}
@@ -1453,21 +1454,21 @@ func (cs *ConsensusState) IsProposer() bool {
 	return cs.isProposer()
 }
 
-func (cs *ConsensusState) GetPrevotesState(height int64, round int, blockID *types.BlockID) *ttypes.BitArray {
+func (cs *ConsensusState) GetPrevotesState(height int64, round int, blockID *tmtypes.BlockID) *ttypes.BitArray {
 	if height != cs.Height {
 		return nil
 	}
 	return cs.Votes.Prevotes(round).BitArrayByBlockID(blockID)
 }
 
-func (cs *ConsensusState) GetPrecommitsState(height int64, round int, blockID *types.BlockID) *ttypes.BitArray {
+func (cs *ConsensusState) GetPrecommitsState(height int64, round int, blockID *tmtypes.BlockID) *ttypes.BitArray {
 	if height != cs.Height {
 		return nil
 	}
 	return cs.Votes.Precommits(round).BitArrayByBlockID(blockID)
 }
 
-func (cs *ConsensusState) SetPeerMaj23(height int64, round int, type_ byte, peerID ID, blockID *types.BlockID) {
+func (cs *ConsensusState) SetPeerMaj23(height int64, round int, type_ byte, peerID ID, blockID *tmtypes.BlockID) {
 	if height == cs.Height {
 		cs.Votes.SetPeerMaj23(round, type_, string(peerID), blockID)
 	}

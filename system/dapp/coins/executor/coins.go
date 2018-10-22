@@ -12,17 +12,14 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
-	"reflect"
-
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 //var clog = log.New("module", "execs.coins")
 var driverName = "coins"
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}
@@ -30,15 +27,9 @@ func Init(name string) {
 }
 
 //初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = cty.NewType()
-
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Coins{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Coins{}))
 }
 
 func GetName() string {
@@ -52,7 +43,7 @@ type Coins struct {
 func newCoins() drivers.Driver {
 	c := &Coins{}
 	c.SetChild(c)
-	c.SetExecutorType(executorType)
+	c.SetExecutorType(types.LoadExecutorType(driverName))
 	return c
 }
 
@@ -75,8 +66,4 @@ func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bo
 		return true
 	}
 	return false
-}
-
-func (c *Coins) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
 }

@@ -75,11 +75,11 @@ func (q *queue) Start() {
 		break
 	case <-q.interupt:
 		fmt.Println("closing chain33")
-		atomic.StoreInt32(&q.isClose, 1)
+		//atomic.StoreInt32(&q.isClose, 1)
 		break
 	case s := <-c:
 		fmt.Println("Got signal:", s)
-		atomic.StoreInt32(&q.isClose, 1)
+		//atomic.StoreInt32(&q.isClose, 1)
 		break
 	}
 }
