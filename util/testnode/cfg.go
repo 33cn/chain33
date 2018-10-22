@@ -74,9 +74,9 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 [consensus.sub.solo]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
+hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
 [consensus.sub.ticket]
-hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 genesisBlockTime=1514533394
 [[consensus.sub.ticket.genesis]]
 minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"

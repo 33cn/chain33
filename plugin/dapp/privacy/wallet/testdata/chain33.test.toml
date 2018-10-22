@@ -72,18 +72,23 @@ hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
 [store]
 name="mavl"
-driver="memdb"
+driver="leveldb"
 dbPath="datadir/mavltree"
 dbCache=128
+
+[store.sub.mavl]
 enableMavlPrefix=false
 enableMVCC=false
 
 [wallet]
-minFee=1000000
-driver="memdb"
-dbPath="datadir/wallet"
+minFee=100000
+driver="leveldb"
+dbPath="wallet"
 dbCache=16
 signType="secp256k1"
+
+[wallet.sub.ticket]
+minerdisable=false
 minerwhitelist=["*"]
 
 [exec]
@@ -91,8 +96,10 @@ isFree=false
 minExecFee=100000
 enableStat=false
 enableMVCC=false
+alias=["token1:token","token2:token","token3:token"]
+saveTokenTxList=false
 
-[auth]
+[exec.sub.cert]
 # 是否启用证书验证和签名
 enable=false
 # 加密文件路径
