@@ -39,8 +39,8 @@ func TestRPC_Call(t *testing.T) {
 		Token:       "token",
 		Displaymode: 3,
 	}
-	var utxo1 = &pty.UTXO{10, &pty.UTXOBasic{nil, []byte("hello")}}
-	var utxo2 = &pty.UTXO{11, &pty.UTXOBasic{nil, []byte("world")}}
+	var utxo1 = &pty.UTXO{10, &pty.UTXOBasic{&pty.UTXOGlobalIndex{[]byte("hash1"), 1}, []byte("hello")}}
+	var utxo2 = &pty.UTXO{11, &pty.UTXOBasic{&pty.UTXOGlobalIndex{[]byte("hash2"), 2}, []byte("world")}}
 	var res = pty.ReplyPrivacyAccount{
 		Utxos: &pty.UTXOs{[]*pty.UTXO{utxo1, utxo2}},
 	}
