@@ -31,7 +31,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&EVMExecutor{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	driverName = name
 	drivers.Register(driverName, newEVMDriver, types.ForkV17EVM)
 	EvmAddress = address.ExecAddress(types.ExecName(name))

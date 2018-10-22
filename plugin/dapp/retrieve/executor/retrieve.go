@@ -29,7 +29,7 @@ func init() {
 }
 
 //const maxTimeWeight = 2
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newRetrieve, 0)
 }
 

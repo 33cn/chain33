@@ -2,16 +2,17 @@ package rpc
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
+	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 )
@@ -814,6 +815,34 @@ func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error
 	return nil
 }
 
+func (c *Chain33) ExecWallet(in *rpctypes.ChainExecutor, result *interface{}) error {
+	hash, err := common.FromHex(in.StateHash)
+	if err != nil {
+		return err
+	}
+	param, err := wcom.QueryData.DecodeJson(in.Driver, in.FuncName, in.Payload)
+	if err != nil {
+		return err
+	}
+	execdata := &types.ChainExecutor{
+		Driver:    in.Driver,
+		FuncName:  in.FuncName,
+		StateHash: hash,
+		Param:     types.Encode(param),
+	}
+	msg, err := c.cli.ExecWallet(execdata)
+	if err != nil {
+		return err
+	}
+	var jsonmsg json.RawMessage
+	jsonmsg, err = types.PBToJson(msg)
+	if err != nil {
+		return err
+	}
+	*result = jsonmsg
+	return nil
+}
+
 func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 	execty := types.LoadExecutorType(in.Execer)
 	if execty == nil {
@@ -831,7 +860,9 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
-	*result, err = execty.QueryToJson(in.FuncName, resp)
+	var jsonmsg json.RawMessage
+	jsonmsg, err = execty.QueryToJson(in.FuncName, resp)
+	*result = jsonmsg
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err

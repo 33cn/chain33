@@ -7,60 +7,45 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func CreateRawRelayOrderTx(parm *ty.RelayOrderTx) ([]byte, error) {
+func CreateRawRelayOrderTx(parm *ty.RelayCreate) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &ty.RelayCreate{
-		Operation: parm.Operation,
-		Coin:      parm.Coin,
-		Amount:    parm.Amount,
-		Addr:      parm.Addr,
-		CoinWaits: parm.CoinWait,
-		BtyAmount: parm.BtyAmount,
-	}
-	return types.CallCreateTx(types.ExecName(ty.RelayX), "Create", v)
+	v := *parm
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "Create", &v)
 }
 
-func CreateRawRelayAcceptTx(parm *ty.RelayAcceptTx) ([]byte, error) {
+func CreateRawRelayAcceptTx(parm *ty.RelayAccept) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &ty.RelayAccept{OrderId: parm.OrderId, CoinAddr: parm.CoinAddr, CoinWaits: parm.CoinWait}
-	return types.CallCreateTx(types.ExecName(ty.RelayX), "Accept", v)
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "Accept", parm)
 }
 
-func CreateRawRelayRevokeTx(parm *ty.RelayRevokeTx) ([]byte, error) {
+func CreateRawRelayRevokeTx(parm *ty.RelayRevoke) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &ty.RelayRevoke{OrderId: parm.OrderId, Target: parm.Target, Action: parm.Action}
-	return types.CallCreateTx(types.ExecName(ty.RelayX), "Revoke", v)
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "Revoke", parm)
 }
 
 func CreateRawRelayConfirmTx(parm *ty.RelayConfirmTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &ty.RelayConfirmTx{OrderId: parm.OrderId, TxHash: parm.TxHash}
-	return types.CallCreateTx(types.ExecName(ty.RelayX), "ConfirmTx", v)
+
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "ConfirmTx", parm)
 }
 
-func CreateRawRelayVerifyBTCTx(parm *ty.RelayVerifyBTCTx) ([]byte, error) {
+func CreateRawRelayVerifyBTCTx(parm *ty.RelayVerifyCli) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &ty.RelayVerifyCli{
-		OrderId:    parm.OrderId,
-		RawTx:      parm.RawTx,
-		TxIndex:    parm.TxIndex,
-		MerkBranch: parm.MerklBranch,
-		BlockHash:  parm.BlockHash,
-	}
-	return types.CallCreateTx(types.ExecName(ty.RelayX), "VerifyCli", v)
+	v := *parm
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "VerifyCli", &v)
 }
 
-func CreateRawRelaySaveBTCHeadTx(parm *ty.RelaySaveBTCHeadTx) ([]byte, error) {
+func CreateRawRelaySaveBTCHeadTx(parm *ty.BtcHeader) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -74,10 +59,10 @@ func CreateRawRelaySaveBTCHeadTx(parm *ty.RelaySaveBTCHeadTx) ([]byte, error) {
 
 	v := &ty.BtcHeaders{}
 	v.BtcHeader = append(v.BtcHeader, head)
-	return types.CallCreateTx(types.ExecName(ty.RelayX), "SaveBTCHeadTx", v)
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "BtcHeaders", v)
 }
 
-func (c *Jrpc) CreateRawRelayOrderTx(in *ty.RelayOrderTx, result *interface{}) error {
+func (c *Jrpc) CreateRawRelayOrderTx(in *ty.RelayCreate, result *interface{}) error {
 	reply, err := CreateRawRelayOrderTx(in)
 	if err != nil {
 		return err
@@ -86,7 +71,7 @@ func (c *Jrpc) CreateRawRelayOrderTx(in *ty.RelayOrderTx, result *interface{}) e
 	return nil
 }
 
-func (c *Jrpc) CreateRawRelayAcceptTx(in *ty.RelayAcceptTx, result *interface{}) error {
+func (c *Jrpc) CreateRawRelayAcceptTx(in *ty.RelayAccept, result *interface{}) error {
 	reply, err := CreateRawRelayAcceptTx(in)
 	if err != nil {
 		return err
@@ -96,7 +81,7 @@ func (c *Jrpc) CreateRawRelayAcceptTx(in *ty.RelayAcceptTx, result *interface{})
 	return nil
 }
 
-func (c *Jrpc) CreateRawRelayRevokeTx(in *ty.RelayRevokeTx, result *interface{}) error {
+func (c *Jrpc) CreateRawRelayRevokeTx(in *ty.RelayRevoke, result *interface{}) error {
 	reply, err := CreateRawRelayRevokeTx(in)
 	if err != nil {
 		return err
@@ -116,7 +101,7 @@ func (c *Jrpc) CreateRawRelayConfirmTx(in *ty.RelayConfirmTx, result *interface{
 	return nil
 }
 
-func (c *Jrpc) CreateRawRelayVerifyBTCTx(in *ty.RelayVerifyBTCTx, result *interface{}) error {
+func (c *Jrpc) CreateRawRelayVerifyBTCTx(in *ty.RelayVerifyCli, result *interface{}) error {
 	reply, err := CreateRawRelayVerifyBTCTx(in)
 	if err != nil {
 		return err
@@ -125,7 +110,7 @@ func (c *Jrpc) CreateRawRelayVerifyBTCTx(in *ty.RelayVerifyBTCTx, result *interf
 	return nil
 }
 
-func (c *Jrpc) CreateRawRelaySaveBTCHeadTx(in *ty.RelaySaveBTCHeadTx, result *interface{}) error {
+func (c *Jrpc) CreateRawRelaySaveBTCHeadTx(in *ty.BtcHeader, result *interface{}) error {
 	reply, err := CreateRawRelaySaveBTCHeadTx(in)
 	if err != nil {
 		return err
