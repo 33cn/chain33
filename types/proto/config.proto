@@ -69,17 +69,6 @@ message Consensus {
     int64    emptyBlockInterval        = 24;
     string   authAccount               = 25;
     int32    waitBlocks4CommitMsg      = 26;
-    int32    timeoutPropose            = 30;
-    int32    timeoutProposeDelta       = 31;
-    int32    timeoutPrevote            = 32;
-    int32    timeoutPrevoteDelta       = 33;
-    int32    timeoutPrecommit          = 34;
-    int32    timeoutPrecommitDelta     = 35;
-    int32    timeoutCommit             = 36;
-    bool     skipTimeoutCommit         = 37;
-    bool     createEmptyBlocks         = 38;
-    int32    createEmptyBlocksInterval = 39;
-    repeated string validators         = 40;
 }
 
 message Wallet {
