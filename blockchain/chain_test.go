@@ -28,6 +28,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
+	"gitlab.33.cn/chain33/chain33/system/consensus/solo"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
