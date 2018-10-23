@@ -35,6 +35,9 @@ type ParacrossCommitTx struct {
 const (
 	ParacrossActionCommit = iota
 	ParacrossActionMiner
+	ParacrossActionTransfer
+	ParacrossActionWithdraw
+	ParacrossActionTransferToExec
 )
 
 const (
@@ -43,8 +46,8 @@ const (
 )
 
 const (
-	ParacrossActionTransfer = iota + ParaCrossTransferActionTypeStart
-	ParacrossActionWithdraw
+	ParacrossActionAssetTransfer = iota + ParaCrossTransferActionTypeStart
+	ParacrossActionAssetWithdraw
 )
 
 // status
@@ -54,10 +57,13 @@ const (
 )
 
 var (
-	ParacrossActionCommitStr   = string("Commit")
-	ParacrossTransferPerfix    = "crossPara."
-	ParacrossActionTransferStr = ParacrossTransferPerfix + string("Transfer")
-	ParacrossActionWithdrawStr = ParacrossTransferPerfix + string("Withdraw")
+	ParacrossActionCommitStr         = string("Commit")
+	ParacrossTransferPerfix          = "crossPara."
+	ParacrossActionAssetTransferStr  = ParacrossTransferPerfix + string("AssetTransfer")
+	ParacrossActionAssetWithdrawStr  = ParacrossTransferPerfix + string("AssetWithdraw")
+	ParacrossActionTransferStr       = ParacrossTransferPerfix + string("Transfer")
+	ParacrossActionTransferToExecStr = ParacrossTransferPerfix + string("TransferToExec")
+	ParacrossActionWithdrawStr       = ParacrossTransferPerfix + string("Withdraw")
 )
 
 func CalcMinerHeightKey(title string, height int64) []byte {
@@ -101,10 +107,10 @@ func createRawCommitTx(status *ParacrossNodeStatus, name string, fee int64) (*ty
 	return tx, nil
 }
 
-func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
+func CreateRawAssetTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 	// 跨链交易需要在主链和平行链上执行， 所以应该可以在主链和平行链上构建
 	if !types.IsParaExecName(param.GetExecName()) {
-		tlog.Error("CreateRawTransferTx", "exec", param.GetExecName())
+		tlog.Error("CreateRawAssetTransferTx", "exec", param.GetExecName())
 		return nil, types.ErrInvalidParam
 	}
 
@@ -113,12 +119,12 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 		v := &ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
 		transfer.Value = v
-		transfer.Ty = ParacrossActionTransfer
+		transfer.Ty = ParacrossActionAssetTransfer
 	} else {
 		v := &ParacrossAction_AssetWithdraw{AssetWithdraw: &types.AssetsWithdraw{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
 		transfer.Value = v
-		transfer.Ty = ParacrossActionWithdraw
+		transfer.Ty = ParacrossActionAssetWithdraw
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
@@ -152,6 +158,39 @@ func CreateRawMinerTx(status *ParacrossNodeStatus) (*types.Transaction, error) {
 
 	err := tx.SetRealFee(types.MinFee)
 	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
+	if !types.IsParaExecName(param.GetExecName()) {
+		tlog.Error("CreateRawTransferTx", "exec", param.GetExecName())
+		return nil, types.ErrInvalidParam
+	}
+
+	transfer := &ParacrossAction{}
+	if !param.IsWithdraw {
+		v := &ParacrossAction_Transfer{Transfer: &types.AssetsTransfer{
+			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
+		transfer.Value = v
+		transfer.Ty = ParacrossActionTransfer
+	} else {
+		v := &ParacrossAction_Withdraw{Withdraw: &types.AssetsWithdraw{
+			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
+		transfer.Value = v
+		transfer.Ty = ParacrossActionWithdraw
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(param.GetExecName()),
+		Payload: types.Encode(transfer),
+		To:      address.ExecAddress(param.GetExecName()),
+		Fee:     param.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+	}
+
+	if err := tx.SetRealFee(types.MinFee); err != nil {
 		return nil, err
 	}
 
