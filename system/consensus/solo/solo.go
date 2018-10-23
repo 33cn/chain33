@@ -16,6 +16,7 @@ var slog = log.New("module", "solo")
 
 type Client struct {
 	*drivers.BaseClient
+	subcfg *subConfig
 }
 
 func init() {
@@ -23,9 +24,18 @@ func init() {
 	drivers.QueryData.Register("solo", &Client{})
 }
 
-func New(cfg *types.Consensus) queue.Module {
+type subConfig struct {
+	Genesis          string `json:"genesis"`
+	GenesisBlockTime int64  `json:"genesisBlockTime"`
+}
+
+func New(cfg *types.Consensus, sub []byte) queue.Module {
 	c := drivers.NewBaseClient(cfg)
-	solo := &Client{c}
+	var subcfg subConfig
+	if sub != nil {
+		types.MustDecode(sub, &subcfg)
+	}
+	solo := &Client{c, &subcfg}
 	c.SetChild(solo)
 	return solo
 }
@@ -34,10 +44,14 @@ func (client *Client) Close() {
 	slog.Info("consensus solo closed")
 }
 
+func (client *Client) GetGenesisBlockTime() int64 {
+	return client.subcfg.GenesisBlockTime
+}
+
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
 	tx.Execer = []byte("coins")
-	tx.To = client.Cfg.Genesis
+	tx.To = client.subcfg.Genesis
 	//gen payload
 	g := &cty.CoinsAction_Genesis{}
 	g.Genesis = &types.AssetsGenesis{}

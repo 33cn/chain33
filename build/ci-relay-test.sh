@@ -18,7 +18,70 @@ function ping_btcd() {
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet listaccounts
 }
 
+function relay_config() {
+    if [ -n "${OPEN_RELAY}" ]; then
+        wait_btcd_up "${1}"
+        run_relayd_with_btcd
+        ping_btcd
+    fi
+}
+
+#some times btcwallet bin 18554 server port fail in btcd docker, restart btcd will be ok
+# [WRN] BTCW: Can't listen on [::1]:18554: listen tcp6 [::1]:18554: bind: cannot assign requested address
+# shellcheck disable=SC2068
+function wait_btcd_up() {
+    count=20
+    while [ $count -gt 0 ]; do
+        status=$(docker-compose $@ ps | grep btcd | awk '{print $5}')
+        if [ "${status}" == "Up" ]; then
+            break
+        fi
+        docker-compose $@ logs btcd
+        docker-compose $@ restart btcd
+        docker-compose $@ ps
+        echo "==============btcd fail $count  ================="
+        ((count--))
+        if [ $count == 0 ]; then
+            echo "wait btcd up 20 times"
+            exit 1
+        fi
+        mod=$((count % 4))
+        if [ $mod == 0 ]; then
+            docker-compose $@ down
+            sleep 5
+            docker-compose $@ up --build -d
+            sleep 60
+            continue
+        fi
+        #btcd restart need wait 30s
+        sleep 30
+    done
+}
+
+function wait_btc_height() {
+    if [ "$#" -lt 2 ]; then
+        echo "wrong wait_btc_height params"
+        exit 1
+    fi
+    count=100
+    wait_sec=0
+    while [ $count -gt 0 ]; do
+        cur=$(${1} relay btc_cur_height | jq ".curHeight")
+        if [ "${cur}" -ge "${2}" ]; then
+            break
+        fi
+        ((count--))
+        wait_sec=$((wait_sec + 1))
+        sleep 1
+    done
+    echo "wait btc blocks ${wait_sec} s"
+
+}
+
 function relay() {
+    if [ -z "${OPEN_RELAY}" ]; then
+        return
+    fi
     echo "================relayd========================"
 
     block_wait "${1}" 2
@@ -158,9 +221,11 @@ function relay() {
     sell_hash=$(${1} send relay accept -f 0.001 -o "${sell_id}" -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
     echo "${sell_hash}"
     block_wait "${1}" 1
+
     frozen=$(${1} tx query -s "${buy_hash}" | jq -r ".receipt.logs[1].log.current.frozen")
-    if [ "${frozen}" != "100.0000" ]; then
+    if [ "${frozen}" != "10000000000" ]; then
         echo "wrong buy frozen account, should be 100"
+        ${1} tx query -s "${buy_hash}"
         exit 1
     fi
 
@@ -217,6 +282,8 @@ function relay() {
     echo "${confirm_hash}"
 
     block_wait "${1}" 1
+    echo "${revoke_hash}"
+    ${1} tx query -s "${revoke_hash}"
 
     id=$(${1} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
     if [ "${id}" != "${buy_id}" ]; then
@@ -256,6 +323,8 @@ function relay() {
     echo "${cancel_hash}"
 
     block_wait "${1}" 1
+    echo "${revoke_hash}"
+    ${1} tx query -s "${revoke_hash}"
 
     cancel_id=$(${1} tx query -s "${cancel_hash}" | jq -r ".receipt.logs[2].log.orderId")
     if [ -z "${cancel_id}" ]; then
@@ -297,6 +366,8 @@ function relay() {
     hash=$(${1} send relay revoke -a 1 -t 0 -f 0.01 -i "${cancel_id}" -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
     echo "${hash}"
     block_wait "${1}" 1
+    echo "${hash}"
+    ${1} tx query -s "${hash}"
 
     status=$(${1} relay status -s 5 | jq -r ".status")
     if [ "${status}" != "canceled" ]; then

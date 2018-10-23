@@ -9,11 +9,8 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var log = log15.New("module", "rpc.jsonclient")
 
 type JSONClient struct {
 	url    string
@@ -56,7 +53,7 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("request JsonStr", string(data), "")
+	//println("request JsonStr", string(data), "")
 	postresp, err := http.Post(client.url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return err
@@ -66,7 +63,7 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("response", string(b), "")
+	//println("response", string(b), "")
 	cresp := &clientResponse{}
 	err = json.Unmarshal(b, &cresp)
 	if err != nil {
@@ -85,13 +82,17 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	if cresp.Result == nil {
 		return types.ErrEmpty
 	} else {
-		if msg, ok := resp.(*proto.Message); ok {
-			var str string
+		if msg, ok := resp.(proto.Message); ok {
+			var str json.RawMessage
 			err = json.Unmarshal(*cresp.Result, &str)
 			if err != nil {
 				return err
 			}
-			return types.JsonToPB([]byte(str), *msg)
+			b, err := str.MarshalJSON()
+			if err != nil {
+				return err
+			}
+			return types.JsonToPB(b, msg)
 		}
 		return json.Unmarshal(*cresp.Result, resp)
 	}

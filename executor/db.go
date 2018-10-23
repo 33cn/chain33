@@ -136,14 +136,16 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 
 func debugAccount(prefix string, key []byte, value []byte) {
 	//println(prefix, string(key), value)
-	if !types.Debug {
-		return
-	}
-	var msg types.Account
-	err := types.Decode(value, &msg)
-	if err == nil {
-		elog.Info(prefix, "key", string(key), "value", msg)
-	}
+	/*
+		if !types.Debug {
+			return
+		}
+		var msg types.Account
+		err := types.Decode(value, &msg)
+		if err == nil {
+			elog.Info(prefix, "key", string(key), "value", msg)
+		}
+	*/
 }
 
 func (s *StateDB) StartTx() {
