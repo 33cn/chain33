@@ -12,6 +12,7 @@ import (
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	cmdtypes "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -114,7 +115,7 @@ func public2Privacy(cmd *cobra.Command, args []string) {
 		}
 	} else if expiretype == 1 {
 		if expire <= 0 {
-			expire = int64(time.Hour / time.Second)
+			expire = int64(time.Hour)
 		}
 	} else {
 		fmt.Println("Invalid expiretype", expiretype)
@@ -179,7 +180,7 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 		}
 	} else if expiretype == 1 {
 		if expire <= 0 {
-			expire = int64(time.Hour / time.Second)
+			expire = int64(time.Hour)
 		}
 	} else {
 		fmt.Println("Invalid expiretype", expiretype)
@@ -246,7 +247,7 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 		}
 	} else if expiretype == 1 {
 		if expire <= 0 {
-			expire = int64(time.Hour / time.Second)
+			expire = int64(time.Hour)
 		}
 	} else {
 		fmt.Println("Invalid expiretype", expiretype)
@@ -609,6 +610,27 @@ func listPrivacyTxsFlags(cmd *cobra.Command, args []string) {
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "privacy.PrivacyTxList", params, &res)
 	ctx.SetResultCb(parseWalletTxListRes)
 	ctx.Run()
+}
+
+func parseWalletTxListRes(arg interface{}) (interface{}, error) {
+	res := arg.(*rpctypes.WalletTxDetails)
+	var result cmdtypes.WalletTxDetailsResult
+	for _, v := range res.TxDetails {
+		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
+		wtxd := &cmdtypes.WalletTxDetailResult{
+			Tx:         cmdtypes.DecodeTransaction(v.Tx),
+			Receipt:    v.Receipt,
+			Height:     v.Height,
+			Index:      v.Index,
+			Blocktime:  v.BlockTime,
+			Amount:     amountResult,
+			Fromaddr:   v.FromAddr,
+			Txhash:     v.TxHash,
+			ActionName: v.ActionName,
+		}
+		result.TxDetails = append(result.TxDetails, wtxd)
+	}
+	return result, nil
 }
 
 func RescanUtxosOptCmd() *cobra.Command {

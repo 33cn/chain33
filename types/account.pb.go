@@ -183,6 +183,7 @@ It has these top-level messages:
 	TransactionDetails
 	ReqAddrs
 	ReqDecodeRawTransaction
+	UserWrite
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
