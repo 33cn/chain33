@@ -23,7 +23,6 @@ import (
 var (
 	tradelog             = log.New("module", "execs.trade")
 	defaultAssetExec     = types.TokenX
-	ForkSupportMorkAsset = int64(66666) // TODO
 	driverName           = "trade"
 )
 
