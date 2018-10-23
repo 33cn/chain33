@@ -7,6 +7,31 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+func (e *Paracross) Query_GetTitle(in *types.ReqString) (types.Message, error) {
+	if in == nil {
+		return nil, types.ErrInvalidParam
+	}
+	return e.ParacrossGetHeight(in.GetData())
+}
+
+func (e *Paracross) Query_ListTitles(in *types.ReqNil) (types.Message, error) {
+	return e.ParacrossListTitles()
+}
+
+func (e *Paracross) Query_GetTitleHeight(in *pt.ReqParacrossTitleHeight) (types.Message, error) {
+	if in == nil {
+		return nil, types.ErrInvalidParam
+	}
+	return e.ParacrossGetTitleHeight(in.Title, in.Height)
+}
+
+func (e *Paracross) Query_GetAssetTxResult(in *types.ReqHash) (types.Message, error) {
+	if in == nil {
+		return nil, types.ErrInvalidParam
+	}
+	return e.ParacrossGetAssetTxResult(in.Hash)
+}
+
 func (c *Paracross) ParacrossGetHeight(title string) (types.Message, error) {
 	ret, err := getTitle(c.GetStateDB(), calcTitleKey(title))
 	if err != nil {
