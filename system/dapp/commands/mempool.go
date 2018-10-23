@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
 )
 
 func MempoolCmd() *cobra.Command {
@@ -43,7 +44,7 @@ func parseListMempoolTxsRes(arg interface{}) (interface{}, error) {
 	res := arg.(*rpctypes.ReplyTxList)
 	var result TxListResult
 	for _, v := range res.Txs {
-		result.Txs = append(result.Txs, decodeTransaction(v))
+		result.Txs = append(result.Txs, DecodeTransaction(v))
 	}
 	return result, nil
 }
@@ -70,7 +71,7 @@ func parselastMempoolTxsRes(arg interface{}) (interface{}, error) {
 	res := arg.(*rpctypes.ReplyTxList)
 	var result TxListResult
 	for _, v := range res.Txs {
-		result.Txs = append(result.Txs, decodeTransaction(v))
+		result.Txs = append(result.Txs, DecodeTransaction(v))
 	}
 	return result, nil
 }
