@@ -176,13 +176,13 @@ func addTxTxHeigt(height int64) (string, error) {
 	return hash, nil
 }
 
-func TestcalcHeightToBlockHeaderKey(t *testing.T) {
+func TestCalcHeightToBlockHeaderKey(t *testing.T) {
 	key := calcHeightToBlockHeaderKey(1)
-	assert.Equal(t, key, []byte("000000000001"))
+	assert.Equal(t, key, []byte("HH:000000000001"))
 	key = calcHeightToBlockHeaderKey(0)
-	assert.Equal(t, key, []byte("000000000000"))
+	assert.Equal(t, key, []byte("HH:000000000000"))
 	key = calcHeightToBlockHeaderKey(10)
-	assert.Equal(t, key, []byte("000000000010"))
+	assert.Equal(t, key, []byte("HH:000000000010"))
 }
 
 func TestBlockChain(t *testing.T) {
