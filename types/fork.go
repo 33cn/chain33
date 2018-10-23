@@ -31,6 +31,7 @@ var (
 	ForkV25BlackWhite    int64 = MaxHeight
 	ForkV25BlackWhiteV2  int64 = MaxHeight
 	ForkV26EVMKVHash     int64 = MaxHeight
+	ForkV27TradeAsset    int64 = MaxHeight
 )
 
 //bityuan test net fork
@@ -62,6 +63,7 @@ func SetTestNetFork() {
 	ForkV25BlackWhite = 850000
 	ForkV25BlackWhiteV2 = 900000
 	ForkV26EVMKVHash = 1000000
+	ForkV27TradeAsset = 1010000
 }
 
 func SetForkToOne() {
