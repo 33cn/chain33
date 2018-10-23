@@ -12,6 +12,7 @@ import (
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	cmdtypes "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -613,12 +614,12 @@ func listPrivacyTxsFlags(cmd *cobra.Command, args []string) {
 
 func parseWalletTxListRes(arg interface{}) (interface{}, error) {
 	res := arg.(*rpctypes.WalletTxDetails)
-	var result WalletTxDetailsResult
+	var result cmdtypes.WalletTxDetailsResult
 	for _, v := range res.TxDetails {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
-		wtxd := &WalletTxDetailResult{
-			Tx:         decodeTransaction(v.Tx),
-			Receipt:    decodeLog([]byte(v.Tx.Execer), *(v.Receipt)),
+		wtxd := &cmdtypes.WalletTxDetailResult{
+			Tx:         cmdtypes.DecodeTransaction(v.Tx),
+			Receipt:    v.Receipt,
 			Height:     v.Height,
 			Index:      v.Index,
 			Blocktime:  v.BlockTime,
