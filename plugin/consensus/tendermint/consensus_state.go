@@ -94,7 +94,6 @@ type ConsensusState struct {
 	txsAvailable      chan int64
 	begCons           time.Time
 	ProposalBlockHash []byte
-	needRecover       bool
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -110,7 +109,6 @@ func NewConsensusState(client *TendermintClient, state State, blockExec *BlockEx
 		Quit:         make(chan struct{}),
 		txsAvailable: make(chan int64, 1),
 		begCons:      time.Time{},
-		needRecover:  false,
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -153,7 +151,7 @@ func (cs *ConsensusState) GetState() State {
 
 // GetRoundState returns a copy of the internal consensus state.
 func (cs *ConsensusState) GetRoundState() *ttypes.RoundState {
-	// avoid deadlock in gossipVotesRoutine
+	// need avoid deadlock in gossipVotesRoutine
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 
@@ -208,7 +206,6 @@ func (cs *ConsensusState) Start() {
 		// schedule the first round!
 		// use GetRoundState so we don't race the receiveRoutine for access
 		cs.scheduleRound0(cs.GetRoundState())
-
 	}
 }
 
@@ -503,12 +500,6 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 
-	if cs.needRecover {
-		cs.needRecover = false
-		tendermintlog.Info("Consensus recover from no txs", "H/R", fmt.Sprintf("%v/%v", height, cs.Round))
-		cs.enterPropose(height, cs.Round)
-		return
-	}
 	// we only need to do this for round 0
 	cs.enterPropose(height, 0)
 }
@@ -564,34 +555,16 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 	cs.broadcastChannel <- MsgInfo{TypeID: ttypes.NewRoundStepID, Msg: cs.RoundStateMessage(), PeerID: cs.ourId, PeerIP: ""}
 
 	// Wait for txs to be available in the mempool
-	// before we enterPropose in round 0. If the last block changed the app hash,
-	// we may need an empty "proof" block, and enterPropose immediately.
-
-	waitForTxs := cs.WaitForTxs() && round == 0 && !cs.needProofBlock(height)
+	// before we enterPropose in round 0.
+	waitForTxs := cs.WaitForTxs() && round == 0
 	if waitForTxs {
-		if cs.client.Cfg.CreateEmptyBlocksInterval > 0 {
+		if createEmptyBlocksInterval > 0 {
 			cs.scheduleTimeout(cs.EmptyBlocksInterval(), height, round, ttypes.RoundStepNewRound)
 		}
 		go cs.proposalHeartbeat(height, round)
 	} else {
-		if !cs.client.CheckTxsAvailable() {
-			cs.begCons = time.Time{}
-			cs.needRecover = true
-			tendermintlog.Warn("Consensus hangup due to no txs", "H/R", fmt.Sprintf("%v/%v", height, round))
-			go cs.proposalHeartbeat(height, round)
-			return
-		}
 		cs.enterPropose(height, round)
 	}
-}
-
-// needProofBlock returns true on the first height (so the genesis app hash is signed right away)
-// and where the last block (height-1) caused the app hash to change
-func (cs *ConsensusState) needProofBlock(height int64) bool {
-	if height == 1 {
-		//return true
-	}
-	return false
 }
 
 func (cs *ConsensusState) proposalHeartbeat(height int64, round int) {
@@ -740,11 +713,6 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.TendermintBlock) 
 	// Mempool validated transactions
 	beg := time.Now()
 	pblock := cs.client.BuildBlock()
-	if pblock == nil {
-		tendermintlog.Error("No new block to propose, will change Proposer", "height", cs.Height)
-		return
-	}
-
 	tendermintlog.Info(fmt.Sprintf("createProposalBlock BuildBlock. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "txs-len", len(pblock.Txs), "cost", types.Since(beg))
 
 	if pblock.Height != cs.Height {
@@ -780,7 +748,6 @@ func (cs *ConsensusState) enterPrevote(height int64, round int) {
 
 	// fire event for how we got here
 	if cs.isProposalComplete() {
-		//only used to test hg 20180227
 		//cs.eventBus.PublishEventCompleteProposal(cs.RoundStateEvent())
 	} else {
 		// we received +2/3 prevotes for a future round
@@ -1080,7 +1047,10 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		seenCommit := precommits.MakeCommit()
 		tx0 := CreateBlockInfoTx(cs.client.pubKey, lastCommit, seenCommit, newState, newProposal, cs.ProposalBlock.TendermintBlock)
 		commitBlock.Txs[0] = tx0
+
+		cs.mtx.Unlock()
 		err = cs.client.CommitBlock(commitBlock)
+		cs.mtx.Lock()
 		if err != nil {
 			cs.LockedRound = 0
 			cs.LockedBlock = nil
@@ -1349,7 +1319,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string, peerIP strin
 						cs.enterPrecommit(height, int(vote.Round))
 						cs.enterCommit(height, int(vote.Round))
 
-						if cs.client.Cfg.SkipTimeoutCommit && precommits.HasAll() {
+						if skipTimeoutCommit && precommits.HasAll() {
 							// if we have all the votes now,
 							// go straight to new round (skip timeout commit)
 							cs.enterNewRound(cs.Height, 0)
@@ -1367,7 +1337,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string, peerIP strin
 			}
 		}
 		// Either duplicate, or error upon cs.Votes.AddByIndex()
-		return
+		// return
 	} else {
 		err = ErrVoteHeightMismatch
 	}
@@ -1442,42 +1412,42 @@ func CompareHRS(h1 int64, r1 int, s1 ttypes.RoundStepType, h2 int64, r2 int, s2 
 
 // Commit returns the amount of time to wait for straggler votes after receiving +2/3 precommits for a single block (ie. a commit).
 func (cs *ConsensusState) Commit(t time.Time) time.Time {
-	return t.Add(time.Duration(cs.client.Cfg.TimeoutCommit) * time.Millisecond)
+	return t.Add(time.Duration(timeoutCommit) * time.Millisecond)
 }
 
 // Propose returns the amount of time to wait for a proposal
 func (cs *ConsensusState) Propose(round int) time.Duration {
-	return time.Duration(cs.client.Cfg.TimeoutPropose+cs.client.Cfg.TimeoutProposeDelta*int32(round)) * time.Millisecond
+	return time.Duration(timeoutPropose+timeoutProposeDelta*int32(round)) * time.Millisecond
 }
 
 // Prevote returns the amount of time to wait for straggler votes after receiving any +2/3 prevotes
 func (cs *ConsensusState) Prevote(round int) time.Duration {
-	return time.Duration(cs.client.Cfg.TimeoutPrevote+cs.client.Cfg.TimeoutPrevoteDelta*int32(round)) * time.Millisecond
+	return time.Duration(timeoutPrevote+timeoutPrevoteDelta*int32(round)) * time.Millisecond
 }
 
 // Precommit returns the amount of time to wait for straggler votes after receiving any +2/3 precommits
 func (cs *ConsensusState) Precommit(round int) time.Duration {
-	return time.Duration(cs.client.Cfg.TimeoutPrecommit+cs.client.Cfg.TimeoutPrecommitDelta*int32(round)) * time.Millisecond
+	return time.Duration(timeoutPrecommit+timeoutPrecommitDelta*int32(round)) * time.Millisecond
 }
 
 // WaitForTxs returns true if the consensus should wait for transactions before entering the propose step
 func (cs *ConsensusState) WaitForTxs() bool {
-	return !cs.client.Cfg.CreateEmptyBlocks || cs.client.Cfg.CreateEmptyBlocksInterval > 0
+	return !createEmptyBlocks || createEmptyBlocksInterval > 0
 }
 
 // EmptyBlocks returns the amount of time to wait before proposing an empty block or starting the propose timer if there are no txs available
 func (cs *ConsensusState) EmptyBlocksInterval() time.Duration {
-	return time.Duration(cs.client.Cfg.CreateEmptyBlocksInterval) * time.Second
+	return time.Duration(createEmptyBlocksInterval) * time.Second
 }
 
 // PeerGossipSleep returns the amount of time to sleep if there is nothing to send from the ConsensusReactor
 func (cs *ConsensusState) PeerGossipSleep() time.Duration {
-	return time.Duration( /*cs.client.Cfg.PeerGossipSleepDuration*/ 100) * time.Millisecond
+	return time.Duration(peerGossipSleepDuration) * time.Millisecond
 }
 
 // PeerQueryMaj23Sleep returns the amount of time to sleep after each VoteSetMaj23Message is sent in the ConsensusReactor
 func (cs *ConsensusState) PeerQueryMaj23Sleep() time.Duration {
-	return time.Duration( /*cs.PeerQueryMaj23SleepDuration*/ 2000) * time.Millisecond
+	return time.Duration(peerQueryMaj23SleepDuration) * time.Millisecond
 }
 
 func (cs *ConsensusState) IsProposer() bool {
