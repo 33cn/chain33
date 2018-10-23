@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/authority/utils"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/utils"
 )
 
 // ReplaceTargetTask 替换指定目录下所有文件的标志性文字
