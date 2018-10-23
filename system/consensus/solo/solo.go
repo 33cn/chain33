@@ -16,7 +16,7 @@ var slog = log.New("module", "solo")
 
 type Client struct {
 	*drivers.BaseClient
-	subcfg *subConfig
+	subcfg    *subConfig
 	sleepTime time.Duration
 }
 
