@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -109,6 +110,20 @@ func addBalanceFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("addr")
 	cmd.Flags().StringP("exec", "e", "", getExecuterNameString())
 	cmd.Flags().IntP("height", "", -1, "block height")
+}
+
+func getExecuterNameString() string {
+	str := "executer name (only "
+	allowExeName := types.AllowUserExec
+	nameLen := len(allowExeName)
+	for i := 0; i < nameLen; i++ {
+		if i > 0 {
+			str += ", "
+		}
+		str += fmt.Sprintf("\"%s\"", string(allowExeName[i]))
+	}
+	str += " and user-defined type supported)"
+	return str
 }
 
 func balance(cmd *cobra.Command, args []string) {
@@ -229,7 +244,7 @@ func importKey(cmd *cobra.Command, args []string) {
 
 func parseImportKeyRes(arg interface{}) (interface{}, error) {
 	res := arg.(*types.WalletAccount)
-	accResult := decodeAccount(res.GetAcc(), types.Coin)
+	accResult := DecodeAccount(res.GetAcc(), types.Coin)
 	result := WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),
@@ -267,7 +282,7 @@ func createAccount(cmd *cobra.Command, args []string) {
 
 func parseCreateAccountRes(arg interface{}) (interface{}, error) {
 	res := arg.(*types.WalletAccount)
-	accResult := decodeAccount(res.GetAcc(), types.Coin)
+	accResult := DecodeAccount(res.GetAcc(), types.Coin)
 	result := WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),
@@ -310,7 +325,7 @@ func setLabel(cmd *cobra.Command, args []string) {
 
 func parseSetLabelRes(arg interface{}) (interface{}, error) {
 	res := arg.(*types.WalletAccount)
-	accResult := decodeAccount(res.GetAcc(), types.Coin)
+	accResult := DecodeAccount(res.GetAcc(), types.Coin)
 	result := WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),

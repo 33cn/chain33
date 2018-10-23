@@ -1,8 +1,6 @@
-package commands
+package types
 
 import (
-	"encoding/json"
-
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
@@ -50,19 +48,6 @@ type TxResult struct {
 	Next       string              `json:"next,omitempty"`
 }
 
-type ReceiptData struct {
-	Ty     int32         `json:"ty"`
-	TyName string        `json:"tyname"`
-	Logs   []*ReceiptLog `json:"logs"`
-}
-
-type ReceiptLog struct {
-	Ty     int32           `json:"ty"`
-	TyName string          `json:"tyname"`
-	Log    json.RawMessage `json:"log"`
-	RawLog string          `json:"rawlog"`
-}
-
 type ReceiptAccountTransfer struct {
 	Prev    *AccountResult `protobuf:"bytes,1,opt,name=prev" json:"prev,omitempty"`
 	Current *AccountResult `protobuf:"bytes,2,opt,name=current" json:"current,omitempty"`
@@ -75,15 +60,15 @@ type ReceiptExecAccountTransfer struct {
 }
 
 type TxDetailResult struct {
-	Tx         *TxResult    `json:"tx"`
-	Receipt    *ReceiptData `json:"receipt"`
-	Proofs     []string     `json:"proofs,omitempty"`
-	Height     int64        `json:"height"`
-	Index      int64        `json:"index"`
-	Blocktime  int64        `json:"blocktime"`
-	Amount     string       `json:"amount"`
-	Fromaddr   string       `json:"fromaddr"`
-	ActionName string       `json:"actionname"`
+	Tx         *TxResult                   `json:"tx"`
+	Receipt    *rpctypes.ReceiptDataResult `json:"receipt"`
+	Proofs     []string                    `json:"proofs,omitempty"`
+	Height     int64                       `json:"height"`
+	Index      int64                       `json:"index"`
+	Blocktime  int64                       `json:"blocktime"`
+	Amount     string                      `json:"amount"`
+	Fromaddr   string                      `json:"fromaddr"`
+	ActionName string                      `json:"actionname"`
 }
 
 type TxDetailsResult struct {
@@ -101,8 +86,8 @@ type BlockResult struct {
 }
 
 type BlockDetailResult struct {
-	Block    *BlockResult   `json:"block"`
-	Receipts []*ReceiptData `json:"receipts"`
+	Block    *BlockResult                  `json:"block"`
+	Receipts []*rpctypes.ReceiptDataResult `json:"receipts"`
 }
 
 type BlockDetailsResult struct {
@@ -114,15 +99,15 @@ type WalletTxDetailsResult struct {
 }
 
 type WalletTxDetailResult struct {
-	Tx         *TxResult    `json:"tx"`
-	Receipt    *ReceiptData `json:"receipt"`
-	Height     int64        `json:"height"`
-	Index      int64        `json:"index"`
-	Blocktime  int64        `json:"blocktime"`
-	Amount     string       `json:"amount"`
-	Fromaddr   string       `json:"fromaddr"`
-	Txhash     string       `json:"txhash"`
-	ActionName string       `json:"actionname"`
+	Tx         *TxResult                   `json:"tx"`
+	Receipt    *rpctypes.ReceiptDataResult `json:"receipt"`
+	Height     int64                       `json:"height"`
+	Index      int64                       `json:"index"`
+	Blocktime  int64                       `json:"blocktime"`
+	Amount     string                      `json:"amount"`
+	Fromaddr   string                      `json:"fromaddr"`
+	Txhash     string                      `json:"txhash"`
+	ActionName string                      `json:"actionname"`
 }
 
 type AddrOverviewResult struct {
@@ -157,22 +142,6 @@ type GetTicketMinerInfoResult struct {
 	MinerAddress string `json:"minerAddress,omitempty"`
 }
 
-type PrivacyAccountResult struct {
-	Token         string `json:"Token,omitempty"`
-	Txhash        string `json:"Txhash,omitempty"`
-	OutIndex      int32  `json:"OutIndex,omitempty"`
-	Amount        string `json:"Amount,omitempty"`
-	OnetimePubKey string `json:"OnetimePubKey,omitempty"`
-}
-
-type PrivacyAccountInfoResult struct {
-	AvailableDetail []*PrivacyAccountResult `json:"AvailableDetail,omitempty"`
-	FrozenDetail    []*PrivacyAccountResult `json:"FrozenDetail,omitempty"`
-	AvailableAmount string                  `json:"AvailableAmount,omitempty"`
-	FrozenAmount    string                  `json:"FrozenAmount,omitempty"`
-	TotalAmount     string                  `json:"TotalAmount,omitempty"`
-}
-
 type UTXOGlobalIndex struct {
 	// Height   int64  `json:"height,omitempty"`
 	// Txindex  int32  `json:"txindex,omitempty"`
@@ -201,11 +170,6 @@ type ReceiptPrivacyOutput struct {
 	Keyoutput []*KeyOutput `json:"keyoutput,omitempty"`
 }
 
-type PrivacyAccountSpendResult struct {
-	Txhash string                  `json:"Txhash,omitempty"`
-	Res    []*PrivacyAccountResult `json:"Spend,omitempty"`
-}
-
 type AllExecBalance struct {
 	Addr        string         `json:"addr"`
 	ExecAccount []*ExecAccount `json:"execAccount"`
@@ -214,25 +178,6 @@ type AllExecBalance struct {
 type ExecAccount struct {
 	Execer  string         `json:"execer"`
 	Account *AccountResult `json:"account"`
-}
-
-type ShowRescanResult struct {
-	Addr       string `json:"addr"`
-	FlagString string `json:"FlagString"`
-}
-
-type showRescanResults struct {
-	RescanResults []*ShowRescanResult `json:"ShowRescanResults,omitempty"`
-}
-
-type ShowPriAddrResult struct {
-	Addr string `json:"addr"`
-	IsOK bool   `json:"IsOK"`
-	Msg  string `json:"msg"`
-}
-
-type ShowEnablePrivacy struct {
-	Results []*ShowPriAddrResult `json:"results"`
 }
 
 // decodetx

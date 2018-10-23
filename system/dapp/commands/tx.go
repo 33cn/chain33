@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -113,8 +114,8 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 	res := arg.(*rpctypes.TransactionDetail)
 	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(types.Coin), 'f', 4, 64)
 	result := TxDetailResult{
-		Tx:         decodeTransaction(res.Tx),
-		Receipt:    decodeLog([]byte(res.Tx.Execer), *(res.Receipt)),
+		Tx:         DecodeTransaction(res.Tx),
+		Receipt:    res.Receipt,
 		Proofs:     res.Proofs,
 		Height:     res.Height,
 		Index:      res.Index,
@@ -165,8 +166,8 @@ func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		td := TxDetailResult{
-			Tx:         decodeTransaction(v.Tx),
-			Receipt:    decodeLog([]byte(v.Tx.Execer), *(v.Receipt)),
+			Tx:         DecodeTransaction(v.Tx),
+			Receipt:    v.Receipt,
 			Proofs:     v.Proofs,
 			Height:     v.Height,
 			Index:      v.Index,
@@ -244,7 +245,7 @@ func decodeTx(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	txResult := decodeTransaction(res)
+	txResult := DecodeTransaction(res)
 
 	result, err := json.MarshalIndent(txResult, "", "    ")
 	if err != nil {
