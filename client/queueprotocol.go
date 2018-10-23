@@ -1,7 +1,5 @@
 /*
-封装系统内部模块间调用的功能接口，支持同步调用和异步调用
-一旦新增了模块间调用接口（types.Event*）就应该在QueueProtocolAPI中定义一个接口，并实现
-外部使用者通过QueueProtocolAPI直接调用目标模块的功能
+系统接口客户端: 封装 Queue Event
 */
 package client
 

@@ -1,3 +1,6 @@
+/*
+实现chain33 区块链资产操作
+*/
 package account
 
 //package for account manger
