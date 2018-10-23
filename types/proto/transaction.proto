@@ -218,6 +218,6 @@ message ReqDecodeRawTransaction {
 }
 
 message UserWrite {
-	string topic = 1;
-	string content = 2;
+    string topic   = 1;
+    string content = 2;
 }
