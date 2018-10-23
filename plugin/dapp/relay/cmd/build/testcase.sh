@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 
+BTCD="${1}_btcd_1"
+
+RELAYD="${1}_relayd_1"
+
 BTC_CTL="docker exec ${BTCD} btcctl"
+
+# shellcheck disable=SC2086,2154
+function relay_init() {
+    # relayd
+    sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' relayd.toml
+    sed -i $sedfix 's/^Tick33.*/Tick33 = 5/g' relayd.toml
+    sed -i $sedfix 's/^TickBTC.*/TickBTC = 5/g' relayd.toml
+    sed -i $sedfix 's/^pprof.*/pprof = false/g' relayd.toml
+    sed -i $sedfix 's/^watch.*/watch = false/g' relayd.toml
+
+}
 
 function run_relayd_with_btcd() {
     echo "============== run_relayd_with_btcd ==============================="
@@ -19,11 +34,10 @@ function ping_btcd() {
 }
 
 function relay_config() {
-    if [ -n "${OPEN_RELAY}" ]; then
-        wait_btcd_up "${1}"
-        run_relayd_with_btcd
-        ping_btcd
-    fi
+    wait_btcd_up
+    run_relayd_with_btcd
+    ping_btcd
+
 }
 
 #some times btcwallet bin 18554 server port fail in btcd docker, restart btcd will be ok
@@ -32,13 +46,13 @@ function relay_config() {
 function wait_btcd_up() {
     count=20
     while [ $count -gt 0 ]; do
-        status=$(docker-compose $@ ps | grep btcd | awk '{print $5}')
+        status=$(docker-compose ps | grep btcd | awk '{print $5}')
         if [ "${status}" == "Up" ]; then
             break
         fi
-        docker-compose $@ logs btcd
-        docker-compose $@ restart btcd
-        docker-compose $@ ps
+        docker-compose logs btcd
+        docker-compose restart btcd
+        docker-compose ps
         echo "==============btcd fail $count  ================="
         ((count--))
         if [ $count == 0 ]; then
@@ -47,9 +61,9 @@ function wait_btcd_up() {
         fi
         mod=$((count % 4))
         if [ $mod == 0 ]; then
-            docker-compose $@ down
+            docker-compose down
             sleep 5
-            docker-compose $@ up --build -d
+            docker-compose up --build -d
             sleep 60
             continue
         fi
@@ -78,12 +92,8 @@ function wait_btc_height() {
 
 }
 
-function relay() {
-    if [ -z "${OPEN_RELAY}" ]; then
-        return
-    fi
-    echo "================relayd========================"
-
+function relay_test() {
+    echo "================relayd test========================"
     block_wait "${1}" 2
 
     ${1} relay btc_cur_height
@@ -378,6 +388,17 @@ function relay() {
     if [ "${id}" != "${cancel_id}" ]; then
         echo "wrong relay status cancel order id"
         exit 1
+    fi
+
+}
+
+function relay() {
+    if [ "${2}" == "init" ]; then
+        relay_init
+    elif [ "${2}" == "config" ]; then
+        relay_config
+    elif [ "${2}" == "test" ]; then
+        relay_test "${1}"
     fi
 
 }

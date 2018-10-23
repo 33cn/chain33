@@ -6,4 +6,6 @@ FLAG=$2
 
 # shellcheck disable=SC2086
 go build -i ${FLAG} -v -o "${OUT_DIR}/relayd" "${SRC_RELAYD}"
-cp "./relayd/relayd.toml" "${OUT_DIR}"
+cp ./relayd/relayd.toml "${OUT_DIR}"
+cp ./build/Dockerfile-app* "${OUT_DIR}"
+cp ./build/*.yml "${OUT_DIR}"

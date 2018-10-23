@@ -2,21 +2,37 @@ version: '3'
 
 services:
   chain33:
+    build:
+      dockerfile: Dockerfile-app-paracross
     entrypoint: /root/entrypoint.sh
     environment:
       PARAFILE: "/root/chain33.para33.toml"
 
   chain32:
+    build:
+      dockerfile: Dockerfile-app-paracross
     entrypoint: /root/entrypoint.sh
     environment:
       PARAFILE: "/root/chain33.para32.toml"
 
   chain31:
+    build:
+      dockerfile: Dockerfile-app-paracross
     entrypoint: /root/entrypoint.sh
     environment:
       PARAFILE: "/root/chain33.para31.toml"
 
   chain30:
+    build:
+      dockerfile: Dockerfile-app-paracross
     entrypoint: /root/entrypoint.sh
     environment:
       PARAFILE: "/root/chain33.para30.toml"
+
+  chain29:
+    build:
+      dockerfile: Dockerfile-app-paracross
+
+  chain28:
+    build:
+      dockerfile: Dockerfile-app-paracross
