@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"encoding/json"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
@@ -71,13 +73,13 @@ func (g *channelClient) EnablePrivacy(ctx context.Context, in *pty.ReqEnablePriv
 	return data.(*pty.RepEnablePrivacy), nil
 }
 
-func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *interface{}) error {
+func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *json.RawMessage) error {
 	reply, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountInfo", in)
 	if err != nil {
 		return err
 	}
-	*result = reply
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
 }
 
 /////////////////privacy///////////////

@@ -1,6 +1,10 @@
 package commands
 
-import rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+import (
+	"encoding/json"
+
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+)
 
 type AccountsResult struct {
 	Wallets []*WalletResult `json:"wallets"`
@@ -53,10 +57,10 @@ type ReceiptData struct {
 }
 
 type ReceiptLog struct {
-	Ty     int32  `json:"ty"`
-	TyName string `json:"tyname"`
-	Log    string `json:"log"`
-	RawLog string `json:"rawlog"`
+	Ty     int32           `json:"ty"`
+	TyName string          `json:"tyname"`
+	Log    json.RawMessage `json:"log"`
+	RawLog string          `json:"rawlog"`
 }
 
 type ReceiptAccountTransfer struct {
@@ -200,25 +204,6 @@ type ReceiptPrivacyOutput struct {
 type PrivacyAccountSpendResult struct {
 	Txhash string                  `json:"Txhash,omitempty"`
 	Res    []*PrivacyAccountResult `json:"Spend,omitempty"`
-}
-
-type RelayOrder2Show struct {
-	OrderId       string `json:"orderid"`
-	Status        string `json:"status"`
-	Creator       string `json:"address"`
-	Amount        string `json:"amount"`
-	CoinOperation string `json:"coinoperation"`
-	Coin          string `json:"coin"`
-	CoinAmount    string `json:"coinamount"`
-	CoinAddr      string `json:"coinaddr"`
-	CoinWaits     uint32 `json:"coinwaits"`
-	CreateTime    int64  `json:"createtime"`
-	AcceptAddr    string `json:"acceptaddr"`
-	AcceptTime    int64  `json:"accepttime"`
-	ConfirmTime   int64  `json:"confirmtime"`
-	FinishTime    int64  `json:"finishtime"`
-	FinishTxHash  string `json:"finishtxhash"`
-	Height        int64  `json:"height"`
 }
 
 type AllExecBalance struct {

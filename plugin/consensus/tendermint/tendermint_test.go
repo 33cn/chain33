@@ -20,13 +20,15 @@ import (
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/norm/types"
-	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
-	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
+
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/init"
+	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
+	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
 var (
@@ -73,17 +75,17 @@ func RaftPerf() {
 func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
-	cfg := config.InitCfg("chain33.test.toml")
+	cfg, sub := config.InitCfg("chain33.test.toml")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New(cfg.Exec)
+	exec := executor.New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
-	s := store.New(cfg.Store)
+	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
 
-	cs := New(cfg.Consensus)
+	cs := New(cfg.Consensus, sub.Consensus["tendermint"])
 	cs.SetQueueClient(q.Client())
 
 	mem := mempool.New(cfg.MemPool)

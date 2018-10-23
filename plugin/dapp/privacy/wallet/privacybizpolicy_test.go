@@ -7,13 +7,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util/testnode"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 	"gitlab.33.cn/wallet/bipwallet"
@@ -74,14 +74,14 @@ func (mock *testDataMock) init() {
 
 func (mock *testDataMock) initMember() {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("testdata/chain33.test.toml")
+	cfg, sub := testnode.GetDefaultConfig()
 
-	wallet := wallet.New(cfg.Wallet)
+	wallet := wallet.New(cfg.Wallet, sub.Wallet)
 	wallet.SetQueueClient(q.Client())
 	mock.modules = append(mock.modules, wallet)
 	mock.wallet = wallet
 
-	store := store.New(cfg.Store)
+	store := store.New(cfg.Store, sub.Store)
 	store.SetQueueClient(q.Client())
 	mock.modules = append(mock.modules, store)
 
@@ -104,7 +104,7 @@ func (mock *testDataMock) initMember() {
 
 	mock.accdb = account.NewCoinsAccount()
 	mock.policy = privacy.New()
-	mock.policy.Init(wallet)
+	mock.policy.Init(wallet, sub.Wallet["privacy"])
 	mock.password = "123456"
 }
 

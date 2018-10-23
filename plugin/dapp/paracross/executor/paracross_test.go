@@ -83,7 +83,7 @@ func makeNodeInfo(key, addr string, cnt int) *types.ConfigItem {
 func init() {
 	log.SetFileLog(nil)
 	log.SetLogLevel("debug")
-	Init(types.ParaX)
+	Init(types.ParaX, nil)
 }
 
 func (suite *CommitTestSuite) SetupSuite() {
@@ -171,7 +171,7 @@ func fillRawCommitTx(suite suite.Suite) (*types.Transaction, error) {
 
 func signTx(s suite.Suite, tx *types.Transaction, hexPrivKey string) (*types.Transaction, error) {
 	signType := types.SECP256K1
-	c, err := crypto.New(types.GetSignName(signType))
+	c, err := crypto.New(types.GetSignName("", signType))
 	if err != nil {
 		s.T().Error("TestExec", "new crypto failed", err)
 		return tx, err
@@ -195,7 +195,7 @@ func signTx(s suite.Suite, tx *types.Transaction, hexPrivKey string) (*types.Tra
 
 func getPrivKey(s suite.Suite, hexPrivKey string) (crypto.PrivKey, error) {
 	signType := types.SECP256K1
-	c, err := crypto.New(types.GetSignName(signType))
+	c, err := crypto.New(types.GetSignName("", signType))
 	if err != nil {
 		s.T().Error("TestExec", "new crypto failed", err)
 		return nil, err
@@ -472,7 +472,7 @@ func createCrossMainTx(to []byte) (*types.Transaction, error) {
 	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
-	transfer.Ty = pt.ParacrossActionTransfer
+	transfer.Ty = pt.ParacrossActionAssetTransfer
 
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
@@ -496,7 +496,7 @@ func createCrossParaTx(s suite.Suite, to []byte) (*types.Transaction, error) {
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err

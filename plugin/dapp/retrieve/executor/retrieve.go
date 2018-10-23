@@ -29,7 +29,7 @@ func init() {
 }
 
 //const maxTimeWeight = 2
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newRetrieve, 0)
 }
 
@@ -50,6 +50,10 @@ func newRetrieve() drivers.Driver {
 
 func (r *Retrieve) GetDriverName() string {
 	return driverName
+}
+
+func (r *Retrieve) CheckTx(tx *types.Transaction, index int) error {
+	return nil
 }
 
 func calcRetrieveKey(backupAddr string, defaultAddr string) []byte {

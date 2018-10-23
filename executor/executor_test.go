@@ -39,6 +39,7 @@ import (
 var random *rand.Rand
 var zeroHash [32]byte
 var cfg *types.Config
+var sub *types.ConfigSubModule
 var genkey crypto.PrivKey
 
 func init() {
@@ -52,14 +53,14 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	pluginmgr.InitExec()
+	pluginmgr.InitExec(nil)
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	genkey = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	log.SetLogLevel("error")
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -76,14 +77,14 @@ func getprivkey(key string) crypto.PrivKey {
 
 func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
-	cfg = config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, sub = config.InitCfg("../cmd/chain33/chain33.test.toml")
 	cfg.Consensus.Minerstart = false
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
-	exec := New(cfg.Exec)
+	exec := New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
-	s := store.New(cfg.Store)
+	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
 	network := p2p.New(cfg.P2P)
 	network.SetQueueClient(q.Client())
@@ -126,7 +127,7 @@ func createTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -199,7 +200,7 @@ func TestExecGenesisBlock(t *testing.T) {
 
 func TestExecutorGetTxGroup(t *testing.T) {
 	exec := &Executor{}
-	execInit()
+	execInit(nil)
 	var txs []*types.Transaction
 	addr2, priv2 := genaddress()
 	addr3, priv3 := genaddress()

@@ -52,7 +52,7 @@ func DefaultDBProvider(ID string) (dbm.DB, error) {
 	return dbm.NewDB(ID, "leveldb", "./datadir", 0), nil
 }
 
-func New(cfg *types.Consensus) queue.Module {
+func New(cfg *types.Consensus, sub []byte) queue.Module {
 	tendermintlog.Info("Start to create tendermint client")
 
 	if cfg.WriteBlockSeconds > 0 {
@@ -74,7 +74,7 @@ func New(cfg *types.Consensus) queue.Module {
 		return nil
 	}
 
-	cr, err := crypto.New(types.GetSignName(types.ED25519))
+	cr, err := crypto.New(types.GetSignName("", types.ED25519))
 	if err != nil {
 		tendermintlog.Error("NewTendermintClient", "err", err)
 		return nil

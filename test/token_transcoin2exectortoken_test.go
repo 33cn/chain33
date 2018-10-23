@@ -26,7 +26,7 @@ import (
 //}
 //第一步，发送100个bty到合约地址
 func TestTransfer2ExecAddrToken(t *testing.T) {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		t.Error(err)
 		return
