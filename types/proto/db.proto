@@ -90,9 +90,9 @@ message PruneData {
 
 message PruneRootNode {
     // 标记是否对hash节点进行裁剪
-    bool  needPruning = 1;
-    //bytes key         = 2;
-    int64 height      = 2;
-    bytes leftHash    = 3;
-    bytes rightHash   = 4;
+    bool  needPruning  = 1;
+    int32 pruneLeafNum = 2;
+    int64 height       = 3;
+    bytes leftHash     = 4;
+    bytes rightHash    = 5;
 }
