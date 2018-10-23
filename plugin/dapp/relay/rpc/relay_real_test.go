@@ -17,7 +17,7 @@ import (
 func TestExecQuery(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	mock33.GetRPC().Listen()
+	mock33.Listen()
 
 	rpcCfg := mock33.GetCfg().Rpc
 	jsonClient, err := jsonclient.NewJSONClient("http://" + rpcCfg.JrpcBindAddr + "/")
