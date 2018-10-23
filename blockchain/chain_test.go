@@ -21,7 +21,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
-	"gitlab.33.cn/chain33/chain33/system/consensus/solo"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
@@ -29,6 +28,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
+	"gitlab.33.cn/chain33/chain33/system/consensus/solo"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
