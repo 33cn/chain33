@@ -21,7 +21,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
-	"gitlab.33.cn/chain33/chain33/system/consensus/solo"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
@@ -39,7 +38,6 @@ func init() {
 	types.SetTitle("local")
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	log.SetLogLevel("error")
-	solo.SleepTime = time.Millisecond * 10
 }
 
 var q queue.Queue
