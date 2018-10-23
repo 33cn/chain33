@@ -21,9 +21,9 @@ import (
 )
 
 var (
-	tradelog             = log.New("module", "execs.trade")
-	defaultAssetExec     = types.TokenX
-	driverName           = "trade"
+	tradelog         = log.New("module", "execs.trade")
+	defaultAssetExec = types.TokenX
+	driverName       = "trade"
 )
 
 func init() {
