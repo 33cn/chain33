@@ -40,10 +40,15 @@ func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC
 	c.SetChild(client)
 	return client
 }
+
+func (client *RaftClient) GetGenesisBlockTime() int64 {
+	return genesisBlockTime
+}
+
 func (client *RaftClient) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
 	tx.Execer = []byte(types.CoinsX)
-	tx.To = client.Cfg.Genesis
+	tx.To = genesis
 	//gen payload
 	g := &cty.CoinsAction_Genesis{}
 	g.Genesis = &types.AssetsGenesis{}
