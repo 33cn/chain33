@@ -21,6 +21,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
+	"gitlab.33.cn/chain33/chain33/system/consensus/solo"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
@@ -38,6 +39,7 @@ func init() {
 	types.SetTitle("local")
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	log.SetLogLevel("error")
+	solo.SleepTime = time.Millisecond * 10
 }
 
 var q queue.Queue
@@ -46,7 +48,7 @@ var priv = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B
 var cacheTxs []*types.Transaction
 var cacheTxsTxHeigt []*types.Transaction
 var TxHeightOffset int64 = 0
-var sendTxWait = time.Microsecond * 20
+var sendTxWait = time.Millisecond * 5
 
 func getprivkey(key string) crypto.PrivKey {
 	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
