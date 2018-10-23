@@ -48,27 +48,27 @@ message MemPool {
 }
 
 message Consensus {
-    string   name                      = 1;
-    int64    genesisBlockTime          = 2;
-    bool     minerstart                = 3;
-    string   genesis                   = 4;
-    string   hotkeyAddr                = 5;
-    bool     forceMining               = 6;
-    int64    NodeId                    = 7;
-    string   PeersURL                  = 8;
-    string   ClientAddr                = 9;
-    int64    raftApiPort               = 15;
-    bool     isNewJoinNode             = 16;
-    string   readOnlyPeersURL          = 17;
-    string   addPeersURL               = 18;
-    int64    defaultSnapCount          = 19;
-    int64    writeBlockSeconds         = 20;
-    int32    heartbeatTick             = 21;
-    string   paraRemoteGrpcClient      = 22;
-    int64    startHeight               = 23;
-    int64    emptyBlockInterval        = 24;
-    string   authAccount               = 25;
-    int32    waitBlocks4CommitMsg      = 26;
+    string name                 = 1;
+    int64  genesisBlockTime     = 2;
+    bool   minerstart           = 3;
+    string genesis              = 4;
+    string hotkeyAddr           = 5;
+    bool   forceMining          = 6;
+    int64  NodeId               = 7;
+    string PeersURL             = 8;
+    string ClientAddr           = 9;
+    int64  raftApiPort          = 15;
+    bool   isNewJoinNode        = 16;
+    string readOnlyPeersURL     = 17;
+    string addPeersURL          = 18;
+    int64  defaultSnapCount     = 19;
+    int64  writeBlockSeconds    = 20;
+    int32  heartbeatTick        = 21;
+    string paraRemoteGrpcClient = 22;
+    int64  startHeight          = 23;
+    int64  emptyBlockInterval   = 24;
+    string authAccount          = 25;
+    int32  waitBlocks4CommitMsg = 26;
 }
 
 message Wallet {
