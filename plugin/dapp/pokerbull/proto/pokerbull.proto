@@ -13,14 +13,14 @@ message PokerBull {
     int64    value               = 5;  //赌注
     PBPoker  poker               = 6;  //扑克牌
     repeated PBPlayer players    = 7;  //玩家历史牌和结果集
-    int32             playerNum  = 8;  //玩家数
+    int32    playerNum           = 8;  //玩家数
     repeated PBResult results    = 9;  //游戏结果集
-    int64             index      = 10; //索引
-    int64             prevIndex  = 11; //上级索引
-    int64             quitTime   = 12; //游戏结束时间
-    string            quitTxHash = 13; //游戏结束交易hash
-    string            dealerAddr = 14; //下局庄家地址
-    bool              isWaiting  = 15; //游戏是否处于等待状态
+    int64    index               = 10; //索引
+    int64    prevIndex           = 11; //上级索引
+    int64    quitTime            = 12; //游戏结束时间
+    string   quitTxHash          = 13; //游戏结束交易hash
+    string   dealerAddr          = 14; //下局庄家地址
+    bool     isWaiting           = 15; //游戏是否处于等待状态
 }
 
 //一把牌
@@ -122,6 +122,7 @@ message ReceiptPBGame {
     int64  index     = 5;
     int64  prevIndex = 6;
     int32  playerNum = 7;
+    int64  value     = 8;
 }
 
 message PBStartTxReq {

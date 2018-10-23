@@ -9,6 +9,11 @@ const (
 )
 
 const (
+	PlayStyleDefault = iota + 1
+	PlayStyleDealer
+)
+
+const (
 	//log for PBgame
 	TyLogPBGameStart    = 721
 	TyLogPBGameContinue = 722
