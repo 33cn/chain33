@@ -80,15 +80,6 @@ func (b *ParacrossType) GetPayload() types.Message {
 	return &ParacrossAction{}
 }
 
-func (m ParacrossType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action ParacrossAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
 func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	if action == "ParacrossCommit" {
 		var param ParacrossCommitTx
