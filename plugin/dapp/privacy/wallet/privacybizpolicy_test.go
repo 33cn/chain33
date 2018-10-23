@@ -539,7 +539,7 @@ func Test_PrivacyAccountInfo(t *testing.T) {
 		},
 	}
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "PrivacyAccountInfo", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "ShowPrivacyAccountInfo", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "ShowPrivacyAccoPrivacyAccountInfountInfo test case index %d", index)
 	}
 }
