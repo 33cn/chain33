@@ -802,3 +802,32 @@ function enablePrivacy() {
 #    fi
 #    return 1
 #}
+
+function privacy() {
+    if [ "${2}" == "forkInit" ]; then
+        resetPrivacyGlobalData
+    elif [ "${2}" == "forkConfig" ]; then
+        initPriAccount
+    elif [ "${2}" == "forkAGroupRun" ]; then
+        genFirstChainPritx
+        genFirstChainPritxType4
+    elif [ "${2}" == "forkBGroupRun" ]; then
+        genSecondChainPritx
+        genSecondChainPritxType4
+    elif [ "${2}" == "forkCheckRst" ]; then
+        checkPriResult
+    fi
+
+    if [ "${2}" == "fork2Init" ]; then
+        resetPrivacyGlobalData
+    elif [ "${2}" == "fork2Config" ]; then
+        return
+    elif [ "${2}" == "fork2AGroupRun" ]; then
+        genFirstChainPritxType4
+    elif [ "${2}" == "fork2BGroupRun" ]; then
+        genSecondChainPritxType4
+    elif [ "${2}" == "fork2CheckRst" ]; then
+        return
+    fi
+
+}

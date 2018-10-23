@@ -22,6 +22,8 @@ PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep 
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
+DAPP := ""
+PROJ := "build"
 .PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
 
 default: build cli depends para-cli autotest
@@ -44,7 +46,6 @@ all: ## Builds for multiple platforms
 build: ## Build the binary file
 	@go build $(BUILD_FLAGS) -v -i -o  $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
-	@cp cmd/chain33/chain33.para.toml build/
 
 release: ## Build the binary file
 	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
@@ -84,7 +85,6 @@ build_ci: depends ## Build the binary file for CI
 	@go build -v  -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
-	@cp cmd/chain33/chain33.para.toml build/
 
 
 linter: ## Use gometalinter check code, ignore some unserious warning
@@ -151,10 +151,13 @@ docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
 docker-compose: ## build docker-compose for chain33 run
-	@cd build && ./docker-compose.sh build && cd ..
+	@cd build && ./docker-compose.sh $(PROJ) $(DAPP) && cd ..
+
+docker-compose-down: ## build docker-compose for chain33 run
+	@cd build && ./docker-compose-down.sh $(PROJ) $(DAPP) && cd ..
 
 fork-test: ## build fork-test for chain33 run
-	@cd build && ./fork-test.sh build && cd ..
+	@cd build && ./fork-test.sh $(PROJ) $(DAPP) && cd ..
 
 privacy-test: ## build privacy-test for chain33 run
 	@cd build && ./privacy-test.sh build && cd ..
@@ -166,6 +169,9 @@ clean: ## Remove previous build
 	@rm -rf build/*.log
 	@rm -rf build/logs
 	@rm -rf build/tools/autotest/autotest
+	@rm -rf build/Dockerfile-app*
+	@rm -rf build/docker-compose-*.yml
+	@rm -f build/entrypoint.sh
 	@go clean
 
 proto:protobuf
