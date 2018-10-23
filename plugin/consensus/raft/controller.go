@@ -22,7 +22,7 @@ var (
 	confChangeC             chan raftpb.ConfChange
 )
 
-func NewRaftCluster(cfg *types.Consensus) queue.Module {
+func NewRaftCluster(cfg *types.Consensus, sub []byte) queue.Module {
 	if cfg.Genesis != "" {
 		genesisAddr = cfg.Genesis
 	}
