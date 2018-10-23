@@ -24,6 +24,7 @@ var (
 		"IAMSELLID",                // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
 		pty.TradeOrderStatusOnSale, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
+		"token",
 	}
 
 	sellorderSoldOut = pty.SellOrder{
@@ -40,6 +41,7 @@ var (
 		"IAMSELLID",                 // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
 		pty.TradeOrderStatusSoldOut, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
+		"token",
 	}
 
 	sellorderRevoked = pty.SellOrder{
@@ -56,6 +58,7 @@ var (
 		"IAMSELLID",                 // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
 		pty.TradeOrderStatusRevoked, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
+		"token",
 	}
 )
 

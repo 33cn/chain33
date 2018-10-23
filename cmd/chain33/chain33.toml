@@ -69,9 +69,25 @@ maxTxNumPerAccount=10000
 [consensus]
 name="ticket"
 minerstart=true
+genesisBlockTime=1514533394
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
-#[consensus.sub.ticket]
-#testparam=1
+[consensus.sub.ticket]
+genesisBlockTime=1514533394
+[[consensus.sub.ticket.genesis]]
+minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+count=10000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1PUiGcbsccfxW3zuvHXZBJfznziph5miAo"
+returnAddr="1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
+count=10000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+returnAddr="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
+count=10000
 
 [store]
 name="mavl"
