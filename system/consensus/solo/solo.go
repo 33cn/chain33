@@ -13,11 +13,11 @@ import (
 )
 
 var slog = log.New("module", "solo")
-var SleepTime = time.Second
 
 type Client struct {
 	*drivers.BaseClient
 	subcfg *subConfig
+	sleepTime time.Duration
 }
 
 func init() {
@@ -28,6 +28,7 @@ func init() {
 type subConfig struct {
 	Genesis          string `json:"genesis"`
 	GenesisBlockTime int64  `json:"genesisBlockTime"`
+	WaitTxMs         int64  `json:"waitTxMs"`
 }
 
 func New(cfg *types.Consensus, sub []byte) queue.Module {
@@ -36,7 +37,10 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
-	solo := &Client{c, &subcfg}
+	if subcfg.WaitTxMs == 0 {
+		subcfg.WaitTxMs = 1000
+	}
+	solo := &Client{c, &subcfg, time.Duration(subcfg.WaitTxMs) * time.Millisecond}
 	c.SetChild(solo)
 	return solo
 }
@@ -75,11 +79,11 @@ func (client *Client) CreateBlock() {
 	issleep := true
 	for {
 		if !client.IsMining() || !client.IsCaughtUp() {
-			time.Sleep(SleepTime)
+			time.Sleep(client.sleepTime)
 			continue
 		}
 		if issleep {
-			time.Sleep(SleepTime)
+			time.Sleep(client.sleepTime)
 		}
 		lastBlock := client.GetCurrentBlock()
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
