@@ -7,21 +7,21 @@ import (
 
 func (c *PokerBull) updateIndex(log *pkt.ReceiptPBGame) (kvs []*types.KeyValue) {
 	//先保存本次Action产生的索引
-	kvs = append(kvs, addPBGameStatus(log.Status, log.PlayerNum, log.Index, log.GameId))
+	kvs = append(kvs, addPBGameStatus(log.Status, log.PlayerNum, log.Value, log.Index, log.GameId))
 
 	//状态更新
 	if log.Status == pkt.PBGameActionStart {
-		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionStart, log.PlayerNum, log.PrevIndex))
+		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
 	}
 
 	if log.Status == pkt.PBGameActionContinue {
-		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionStart, log.PlayerNum, log.PrevIndex))
-		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionContinue, log.PlayerNum, log.PrevIndex))
+		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
+		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionContinue, log.PlayerNum, log.Value, log.PrevIndex))
 	}
 
 	if log.Status == pkt.PBGameActionQuit {
-		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionStart, log.PlayerNum, log.PrevIndex))
-		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionContinue, log.PlayerNum, log.PrevIndex))
+		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
+		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionContinue, log.PlayerNum, log.Value, log.PrevIndex))
 	}
 	return kvs
 }
