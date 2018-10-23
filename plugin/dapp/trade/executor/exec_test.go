@@ -65,7 +65,7 @@ func TestTrade_Exec_SellLimit(t *testing.T) {
 
 	env := execEnv{
 		1539918074,
-		10000000,
+		types.ForkV27TradeAsset + 1,
 		2,
 		1539918074,
 		"hash",
@@ -174,7 +174,7 @@ func TestTrade_Exec_BuyLimit(t *testing.T) {
 
 	env := execEnv{
 		1539918074,
-		10000000,
+		types.ForkV27TradeAsset + 1,
 		2,
 		1539918074,
 		"hash",
