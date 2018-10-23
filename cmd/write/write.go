@@ -17,8 +17,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	"gitlab.33.cn/chain33/chain33/types"
 	coinstypes "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
