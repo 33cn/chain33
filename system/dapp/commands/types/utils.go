@@ -1,13 +1,12 @@
-package commands
+package types
 
 import (
 	//	"encoding/json"
-	"fmt"
+
 	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
@@ -22,14 +21,14 @@ import (
 	"time"
 )
 
-func decodeTransaction(tx *rpctypes.Transaction) *TxResult {
-	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
+func DecodeTransaction(tx *rpctypes.Transaction) *TxResult {
 	result := &TxResult{
 		Execer:     tx.Execer,
 		Payload:    tx.Payload,
 		RawPayload: tx.RawPayload,
 		Signature:  tx.Signature,
-		Fee:        feeResult,
+		Fee:        tx.FeeFmt,
+		Amount:     tx.AmountFmt,
 		Expire:     tx.Expire,
 		Nonce:      tx.Nonce,
 		To:         tx.To,
@@ -38,25 +37,10 @@ func decodeTransaction(tx *rpctypes.Transaction) *TxResult {
 		Header:     tx.Header,
 		Next:       tx.Next,
 	}
-
-	if tx.Amount != 0 {
-		result.Amount = strconv.FormatFloat(float64(tx.Amount)/float64(types.Coin), 'f', 4, 64)
-	}
-	if tx.From != "" {
-		result.From = tx.From
-	}
-	payload, err := common.FromHex(tx.RawPayload)
-	if err != nil {
-		return result
-	}
-	exec := types.LoadExecutorType(tx.Execer)
-	if exec != nil {
-		tx.Payload, _ = exec.DecodePayload(&types.Transaction{Payload: payload})
-	}
 	return result
 }
 
-func decodeAccount(acc *types.Account, precision int64) *AccountResult {
+func DecodeAccount(acc *types.Account, precision int64) *AccountResult {
 	balanceResult := strconv.FormatFloat(float64(acc.GetBalance())/float64(precision), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(acc.GetFrozen())/float64(precision), 'f', 4, 64)
 	accResult := &AccountResult{
@@ -66,27 +50,6 @@ func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 		Frozen:   frozenResult,
 	}
 	return accResult
-}
-
-func decodeLog(execer []byte, rlog rpctypes.ReceiptDataResult) *ReceiptData {
-	rd := &ReceiptData{Ty: rlog.Ty, TyName: rlog.TyName}
-	for _, l := range rlog.Logs {
-		rl := &ReceiptLog{Ty: l.Ty, TyName: l.TyName, RawLog: l.RawLog}
-		logty := types.LoadLog(execer, int64(l.Ty))
-		if logty == nil {
-			rl.Log = nil
-		}
-		data, err := common.FromHex(l.RawLog)
-		if err != nil {
-			rl.Log = nil
-		}
-		rl.Log, err = logty.Json(data)
-		if err != nil {
-			rl.Log = nil
-		}
-		rd.Logs = append(rd.Logs, rl)
-	}
-	return rd
 }
 
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
@@ -161,20 +124,6 @@ func GetExecAddr(exec string) (string, error) {
 	addrResult := address.ExecAddress(exec)
 	result := addrResult
 	return result, nil
-}
-
-func getExecuterNameString() string {
-	str := "executer name (only "
-	allowExeName := types.AllowUserExec
-	nameLen := len(allowExeName)
-	for i := 0; i < nameLen; i++ {
-		if i > 0 {
-			str += ", "
-		}
-		str += fmt.Sprintf("\"%s\"", string(allowExeName[i]))
-	}
-	str += " and user-defined type supported)"
-	return str
 }
 
 // FormatAmountValue2Display 将传输、计算的amount值格式化成显示值
