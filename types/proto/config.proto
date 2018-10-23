@@ -49,9 +49,9 @@ message MemPool {
 
 message Consensus {
     string   name                      = 1;
-    string   genesis                   = 2;
+    int64    genesisBlockTime          = 2;
     bool     minerstart                = 3;
-    int64    genesisBlockTime          = 4;
+    string   genesis                   = 4;
     string   hotkeyAddr                = 5;
     bool     forceMining               = 6;
     int64    NodeId                    = 7;
