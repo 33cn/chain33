@@ -30,7 +30,7 @@ func TestRPC_Call(t *testing.T) {
 	g.Init("ticket", mock33.GetRPC(), newJrpc(api), g)
 	ty.RegisterTicketServer(mock33.GetRPC().GRPC(), g)
 	time.Sleep(time.Millisecond)
-	mock33.GetRPC().Listen()
+	mock33.Listen()
 	time.Sleep(time.Millisecond)
 	ret := &types.Reply{
 		IsOk: true,
