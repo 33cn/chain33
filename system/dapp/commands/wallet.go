@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -192,8 +193,8 @@ func parseWalletTxListRes(arg interface{}) (interface{}, error) {
 	for _, v := range res.TxDetails {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		wtxd := &WalletTxDetailResult{
-			Tx:         decodeTransaction(v.Tx),
-			Receipt:    decodeLog([]byte(v.Tx.Execer), *(v.Receipt)),
+			Tx:         DecodeTransaction(v.Tx),
+			Receipt:    v.Receipt,
 			Height:     v.Height,
 			Index:      v.Index,
 			Blocktime:  v.BlockTime,

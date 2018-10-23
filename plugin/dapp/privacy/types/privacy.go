@@ -99,15 +99,6 @@ func (coins PrivacyType) ActionName(tx *types.Transaction) string {
 	return action.GetActionName()
 }
 
-func (privacy *PrivacyType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	action := &PrivacyAction{}
-	err := types.Decode(tx.Payload, action)
-	if err != nil {
-		return nil, err
-	}
-	return action, nil
-}
-
 // TODO 暂时不修改实现， 先完成结构的重构
 func (t *PrivacyType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
