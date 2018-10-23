@@ -13,6 +13,7 @@ import (
 )
 
 var slog = log.New("module", "solo")
+var SleepTime = time.Second
 
 type Client struct {
 	*drivers.BaseClient
@@ -74,11 +75,11 @@ func (client *Client) CreateBlock() {
 	issleep := true
 	for {
 		if !client.IsMining() || !client.IsCaughtUp() {
-			time.Sleep(time.Second)
+			time.Sleep(SleepTime)
 			continue
 		}
 		if issleep {
-			time.Sleep(time.Second)
+			time.Sleep(SleepTime)
 		}
 		lastBlock := client.GetCurrentBlock()
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
