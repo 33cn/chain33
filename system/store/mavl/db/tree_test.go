@@ -912,7 +912,8 @@ func TestGethash(t *testing.T) {
 		delMp[leaf.key] = true
 	}
 
-	tr := NewMarkTree(db, true)
+	ndb := newMarkNodeDB(db, 1024 * 10)
+	tr := NewMarkTree(ndb)
 	err = tr.Load(hash)
 	require.NoError(t, err)
 	strs := tr.root.gethash(tr)
