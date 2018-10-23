@@ -20,8 +20,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var tradelog = log.New("module", "execs.trade")
-var driverName = "trade"
+var (
+	tradelog             = log.New("module", "execs.trade")
+	defaultAssetExec     = types.TokenX
+	ForkSupportMorkAsset = int64(66666) // TODO
+	driverName           = "trade"
+)
 
 func init() {
 	ety := types.LoadExecutorType(driverName)
