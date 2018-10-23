@@ -7,7 +7,7 @@ import (
 )
 
 func TestTask(t *testing.T) {
-	task := newTask(time.Second)
+	task := newTask(time.Millisecond * 10)
 	if task.InProgress() {
 		task.Cancel()
 		t.Log("task not start")
@@ -16,7 +16,7 @@ func TestTask(t *testing.T) {
 	task.Start(1, 10, nil)
 	perm := rand.Perm(10)
 	for i := 0; i < len(perm); i++ {
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 5)
 		task.Done(int64(perm[i]) + 1)
 		if i < len(perm)-1 && !task.InProgress() {
 			task.Cancel()
@@ -32,7 +32,7 @@ func TestTask(t *testing.T) {
 }
 
 func TestTasks(t *testing.T) {
-	for n := 0; n < 1000; n++ {
+	for n := 0; n < 10; n++ {
 		task := newTask(time.Millisecond * 10)
 		if task.InProgress() {
 			task.Cancel()
