@@ -9,16 +9,18 @@ import (
 
 // merkle avl Node
 type Node struct {
-	key       []byte
-	value     []byte
-	height    int32
-	size      int32
-	hash      []byte
-	leftHash  []byte
-	leftNode  *Node
-	rightHash []byte
-	rightNode *Node
-	persisted bool
+	key         []byte
+	value       []byte
+	height      int32
+	size        int32
+	hash        []byte
+	leftHash    []byte
+	leftNode    *Node
+	rightHash   []byte
+	rightNode   *Node
+	parentHash  []byte
+	brotherHash []byte
+	persisted   bool
 }
 
 //保存数据的是叶子节点
@@ -47,6 +49,8 @@ func MakeNode(buf []byte, t *Tree) (node *Node, err error) {
 	node.height = storeNode.Height
 	node.size = storeNode.Size
 	node.key = storeNode.Key
+	node.parentHash = storeNode.ParentHash
+	node.brotherHash = storeNode.BrotherHash
 
 	//leaf(叶子节点保存数据)
 	if node.height == 0 {
@@ -71,6 +75,8 @@ func (node *Node) _copy() *Node {
 		leftNode:  node.leftNode,
 		rightHash: node.rightHash,
 		rightNode: node.rightNode,
+		parentHash: node.parentHash,
+		brotherHash: node.brotherHash,
 		persisted: false, // Going to be mutated, so it can't already be persisted.
 	}
 }
@@ -178,12 +184,22 @@ func (node *Node) Hash(t *Tree) []byte {
 		}
 		innernode.RightHash = node.rightHash
 		node.hash = innernode.Hash()
-		//fmt.Printf("height:%d hash:%v left:%v right:%v\n", node.height, common.Bytes2Hex(node.hash[:2]),
-		//	common.Bytes2Hex(node.leftHash[:2]), common.Bytes2Hex(node.rightHash[:2]))
 		if enableMavlPrefix && node.height != t.root.height {
 			hashKey := genPrefixHashKey(node, t.blockHeight)
 			hashKey = append(hashKey, node.hash...)
 			node.hash = hashKey
+		}
+
+		if enablePrune {
+			//加入parentHash、brotherHash
+			if node.leftNode != nil {
+				node.leftNode.parentHash = node.hash
+				node.leftNode.brotherHash = node.rightHash
+			}
+			if node.rightNode != nil {
+				node.rightNode.parentHash = node.hash
+				node.rightNode.brotherHash = node.leftHash
+			}
 		}
 	}
 
@@ -227,6 +243,8 @@ func (node *Node) storeNode(t *Tree) []byte {
 	storeNode.Value = nil
 	storeNode.LeftHash = nil
 	storeNode.RightHash = nil
+	storeNode.ParentHash = node.parentHash
+	storeNode.BrotherHash = node.brotherHash
 
 	//leafnode
 	if node.height == 0 {

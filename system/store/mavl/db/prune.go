@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
-	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	"sync/atomic"
@@ -26,7 +25,7 @@ var (
 	// 是否开启mavl裁剪
 	enablePrune bool
 	// 每个10000裁剪一次
-	pruneHeight   int = 10000
+	pruneHeight int = 10000
 	// 裁剪状态
 	pruningState int32
 )
@@ -64,7 +63,6 @@ func getKeyFromLeafCountKey(hashkey []byte, hashlen int) ([]byte, error) {
 type hashData struct {
 	height   int64
 	hash     []byte
-	rootHash []byte
 }
 
 func isPruning() bool {
@@ -77,31 +75,18 @@ func setPruning(state int32) {
 
 func pruningTree(db dbm.DB, curHeight int64) {
 	setPruning(pruningStateStart)
-	//for test
-	//pruningTreePrint(db, []byte(leafKeyCountPrefix))
-	//pruningTreePrint(db, []byte(hashNodePrefix))
-	//pruningTreePrint(db, []byte(leafNodePrefix))
-
 	treelog.Info("pruningTree", "start curHeight:", curHeight)
 	start := time.Now()
 	pruningTreeLeafNode(db, curHeight)
 	end := time.Now()
 	treelog.Info("pruningTree", "leafNode cost time:", end.Sub(start))
-	//curHeight-prunBlockHeight 处遍历树，然后删除hashnode;缓存数节点到lru中
-	pruningTreeHashNode(db, curHeight)
-	end1 := time.Now()
-	treelog.Info("pruningTree", "end curHeight:", curHeight, "hashNode cost time", end1.Sub(end))
-
-	//for test
-	//pruningTreePrint(db, []byte(leafKeyCountPrefix))
-	//pruningTreePrint(db, []byte(hashNodePrefix))
-	//pruningTreePrint(db, []byte(leafNodePrefix))
+	fmt.Println("pruningTree leafNode cost time: ", end.Sub(start))
 	setPruning(pruningStateEnd)
 }
 
 func pruningTreeLeafNode(db dbm.DB, curHeight int64) {
 	prefix := []byte(leafKeyCountPrefix)
-	it := db.Iterator(prefix, nil,true)
+	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
 
 	const onceScanCount = 100000
@@ -124,42 +109,33 @@ func pruningTreeLeafNode(db dbm.DB, curHeight int64) {
 			data := hashData{
 				height:   pData.Height,
 				hash:     hashK[len(hashK)-hashLen:],
-				rootHash: pData.RHash,
 			}
 			mp[string(key)] = append(mp[string(key)], data)
 			count++
 			if count >= onceScanCount {
-				deleteNode(db, &mp, curHeight, key)
+				deleteNode(db, mp, curHeight, key)
 				count = 0
 			}
 		}
 	}
-	deleteNode(db, &mp, curHeight, nil)
+	if count > 0 {
+		deleteNode(db, mp, curHeight, nil)
+	}
 }
 
-type mapStat struct {
-	pruneLeafNum int32
-	height       int64
-}
-
-func deleteNode(db dbm.DB, mp *map[string][]hashData, curHeight int64, lastKey []byte) {
-	if mp == nil {
+func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, lastKey []byte) {
+	if len(mp) == 0 {
 		return
 	}
-	// 存储是否需要裁剪hashnode的root数据
-	upDateMp := make(map[string]mapStat)
+	delMp := make(map[string]bool)
 	batch := db.NewBatch(true)
-	for key, vals := range *mp {
+	for key, vals := range mp {
 		if len(vals) > 1 {
 			for _, val := range vals[1:] { //从第二个开始判断
 				if curHeight >= val.height+int64(pruneHeight) {
-					batch.Delete(val.hash)
+					//batch.Delete(val.hash) //叶子节点hash值的删除放入pruningHashNode中
 					batch.Delete(genLeafCountKey([]byte(key), val.hash, val.height))
-
-					stat := upDateMp[string(genPrefixRootHash(val.rootHash, val.height))]
-					stat.height = val.height
-					stat.pruneLeafNum++
-					upDateMp[string(genPrefixRootHash(val.rootHash, val.height))] = stat
+					delMp[string(val.hash)] = true
 				}
 			}
 		}
@@ -167,271 +143,188 @@ func deleteNode(db dbm.DB, mp *map[string][]hashData, curHeight int64, lastKey [
 	batch.Write()
 	if lastKey != nil {
 		// 除了最后加入的key，删除已更新map key
-		for key, _ := range *mp {
+		for key, _ := range mp {
 			if !bytes.Equal([]byte(key), lastKey) {
-				delete(*mp, key)
+				delete(mp, key)
 			}
 		}
 	}
-	// 更新裁剪状态
-	updatePruningState(db, &upDateMp)
+	//裁剪hashNode
+	pruningHashNode(db, delMp)
 }
 
-func updatePruningState(db dbm.DB, mp *map[string]mapStat) {
-	batch := db.NewBatch(true)
-	for key, val := range *mp {
-		value, err := db.Get([]byte(key))
-		if err == nil && len(value) > 0 {
-			root := types.PruneRootNode{}
-			err = proto.Unmarshal(value, &root)
-			if err == nil {
-				root.NeedPruning = true
-				root.PruneLeafNum += val.pruneLeafNum
-				//treelog.Info("updatePruningState", "pruneLeafNum", root.PruneLeafNum)
-				//fmt.Printf("updatePruningState pruneLeafNum %d \n", root.PruneLeafNum)
-				v, err := proto.Marshal(&root)
-				if err == nil {
-					batch.Set([]byte(key), v)
-				}
-			}
-		}
-	}
-	batch.Write()
-}
-
-type pruneRootKv struct {
-	key   []byte
-	value *types.PruneRootNode
-}
-
-func pruningTreeHashNode(db dbm.DB, curHeight int64) {
-	pruneKvs := needPruningHashNodeTree(db, curHeight)
-	if len(pruneKvs) == 0 {
+func pruningHashNode(db dbm.DB, mp map[string]bool) {
+	if len(mp) == 0 {
 		return
 	}
-	//协程池
-	poolnum := make(chan struct{}, 10)
-	ndb := newMarkNodeDB(db, 1024 * 100)
-	for _, kv := range pruneKvs{
-		poolnum <- struct{}{}
-		go ndb.process(kv, poolnum, deleteHashNode)
-	}
-	ndb.wg.Wait()
-}
-
-func needPruningHashNodeTree(db dbm.DB, curHeight int64) (pruneKvs []*pruneRootKv) {
-	prefix := []byte(rootNodePrefix)
-	it := db.Iterator(prefix, nil, false)
-	defer it.Close()
-
-	hashlen := len(common.Hash{})
-	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.Value()
-		prRoot := &types.PruneRootNode{}
-		err := proto.Unmarshal(value, prRoot)
+	ndb := newMarkNodeDB(db, 1024*10, mp)
+	var strs []string
+	count := 0
+	for key, _ := range mp {
+		mNode, err := ndb.LoadLeaf([]byte(key))
 		if err == nil {
-			if curHeight < prRoot.Height+int64(pruneHeight) {
-				//升序排列，可提前结束循环
-				break
-			}
-			if prRoot.NeedPruning {
-				hashK := make([]byte, len(it.Key()))
-				copy(hashK, it.Key())
-				if len(hashK) >= hashlen {
-					pruneKvs = append(pruneKvs, &pruneRootKv{hashK, prRoot})
-				}
-			}
+			strs = append(strs, mNode.getHash(ndb)...)
 		}
+		count++
 	}
-	return pruneKvs
-}
-
-type funcProcess func(ndb *markNodeDB, pruneKv *pruneRootKv)
-
-func (ndb  *markNodeDB)process(pruneKv *pruneRootKv, reqnum chan struct{}, cb funcProcess) {
-	beg := types.Now()
-	ndb.wg.Add(1)
-	defer func() {
-		<-reqnum
-		ndb.wg.Add(-1)
-		treelog.Debug("process deleteHashNode", "cost", types.Since(beg))
-	}()
-	cb(ndb, pruneKv)
-}
-
-func deleteHashNode(ndb *markNodeDB, pruneKv *pruneRootKv) {
-	if pruneKv == nil {
-		return
-	}
-	hashlen := len(common.Hash{})
-	t := NewMarkTree(ndb)
-	if t == nil {
-		return
-	}
-	hash := pruneKv.key[len(pruneKv.key)-hashlen:]
-	err := t.Load(hash)
-	if err != nil {
-		return
-	}
-	strs := t.root.gethash(t)
-	//fmt.Printf("---gethash loop count: %d ---\n", t.count)
-	batch := ndb.db.NewBatch(true)
+	fmt.Printf("pruningHashNode count %d , ndb.count %d \n", count, ndb.count)
+	//去重复
+	mpN := make(map[string]bool)
 	for _, str := range strs {
-		batch.Delete([]byte(str))
+		mpN[str] = true
 	}
-	pruneKv.value.NeedPruning = false
-	v, _ := proto.Marshal(pruneKv.value)
-	batch.Set(pruneKv.key, v)
+	batch := db.NewBatch(true)
+	for key, _  := range mpN {
+		batch.Delete([]byte(key))
+	}
 	batch.Write()
+}
+
+func (node *MarkNode) getHash(ndb *markNodeDB) (strs []string) {
+	ndb.count++
+	if node.hashPrune {
+		strs = append(strs, string(node.hash))
+	}
+	//for test
+	//hash := common.Bytes2Hex(node.hash[:2])
+	//var b string
+	//if len(node.brotherHash) > 3 {
+	//	b = common.Bytes2Hex(node.brotherHash[:2])
+	//}
+	//var p string
+	//if len(node.parentHash) > 3 {
+	//	p = common.Bytes2Hex(node.parentHash[:2])
+	//}
+	//fmt.Printf("hash:%v left:%v right:%v\n", hash, b, p)
+	broN := node.fetchBrotherNode(ndb)
+	if broN == nil || (broN != nil && broN.hashPrune) {
+		node.brotherPrune = true
+		if node.hashPrune && node.brotherPrune {
+			node.parentPrune = true
+			//记录该节点需要裁剪
+			ndb.addHash2Map(string(node.parentHash))
+		}
+		parN := node.fetchParentNode(ndb)
+		if parN != nil {
+			parN.hashPrune = node.parentPrune
+			strs = append(strs, parN.getHash(ndb)...)
+		}
+	} else {
+		// do nothing
+	}
+	return strs
+}
+
+func (ndb *markNodeDB)addHash2Map(str string) {
+	ndb.mHash[str] = true
 }
 
 type MarkNode struct {
 	height     int32
 	hash       []byte
-	leftHash   []byte
-	leftNode   *MarkNode
-	leftPurne  bool
-	rightHash  []byte
-	rightNode  *MarkNode
-	rightPurne bool
+	hashPrune    bool
+	parentHash   []byte
+	parentNode   *MarkNode
+	parentPrune  bool
+	brotherNode  *MarkNode
+	brotherHash  []byte
+	brotherPrune bool
 }
 
 type markNodeDB struct {
 	wg      sync.WaitGroup
 	mtx     sync.Mutex
-	cache   *lru.Cache
+	cache   *lru.Cache //存储需要裁剪的节点
 	db      dbm.DB
+	mLeaf   map[string]bool
+	mHash   map[string]bool
+	count   int
 }
 
-type MarkTree struct {
-	root *MarkNode
-	ndb  *markNodeDB
-	count int
-}
-
-func newMarkNodeDB(db dbm.DB, cache int) *markNodeDB {
+func newMarkNodeDB(db dbm.DB, cache int, mp map[string]bool) *markNodeDB {
 	cach, _ := lru.New(cache)
 	ndb := &markNodeDB{
-		cache:   cach,
-		db:      db,
+		cache: cach,
+		db:    db,
+		mLeaf:  mp,
+		mHash: make(map[string]bool),
 	}
 	return ndb
 }
 
-func NewMarkTree(ndb *markNodeDB) *MarkTree {
-	if ndb == nil {
-		// In-memory IAVLTree
-		return nil
-	} else {
-		return &MarkTree{
-			ndb: ndb,
-		}
-	}
-}
-
-func (t *MarkTree) Load(hash []byte) (err error) {
-	if hash == nil {
-		return
-	}
+func (ndb *markNodeDB) LoadLeaf(hash []byte) (node *MarkNode, err error) {
 	if !bytes.Equal(hash, emptyRoot[:]) {
-		t.root, err = t.ndb.fetchNode(t, hash)
-		return err
+		leaf, err := ndb.fetchNode(hash)
+		return leaf, err
 	}
-	return nil
+	return nil, types.ErrNotFound
 }
 
-func (node *MarkNode) gethash(t *MarkTree) (strs []string) {
-	t.count++
-	if node.height == 0 {
-		//do nothing
-	} else {
-		//hash := common.Bytes2Hex(node.hash[:2])
-		//left := common.Bytes2Hex(node.leftHash[:2])
-		//right := common.Bytes2Hex(node.rightHash[:2])
-		//fmt.Printf("hash:%v left:%v right:%v\n", hash, left, right)
-		leftN := node.fetchLeftNode(t)
-		if leftN != nil {
-			strs = append(strs, leftN.gethash(t)...)
-		}
-		if leftN == nil {
-			node.leftPurne = true
-		}else if leftN.leftPurne && leftN.rightPurne {
-			node.leftPurne = true
-		}
-		//
-		rightN := node.fetchRightNode(t)
-		if rightN != nil {
-			strs = append(strs, rightN.gethash(t)...)
-		}
-		if rightN == nil {
-			node.rightPurne = true
-		} else if rightN.leftPurne && rightN.rightPurne{
-			node.rightPurne = true
-		}
-		//
-		if node.leftPurne && node.rightPurne {
-			strs = append(strs, string(node.hash))
-		}
-	}
-	return strs
-}
 
-func (node *MarkNode) fetchLeftNode(t *MarkTree) *MarkNode {
-	if node.leftNode != nil {
-		return node.leftNode
+func (node *MarkNode) fetchBrotherNode(ndb *markNodeDB) *MarkNode {
+	if node.brotherNode != nil {
+		return node.brotherNode
 	} else {
-		leftNode, err := t.ndb.fetchNode(t, node.leftHash)
+		bNode, err := ndb.fetchNode(node.brotherHash)
 		if err != nil {
 			return nil
 		}
-		return leftNode
+		return bNode
 	}
 }
 
-func (node *MarkNode) fetchRightNode(t *MarkTree) *MarkNode {
-	if node.rightNode != nil {
-		return node.rightNode
+func (node *MarkNode) fetchParentNode(ndb *markNodeDB) *MarkNode {
+	if node.parentNode != nil {
+		return node.parentNode
 	} else {
-		rightNode, err := t.ndb.fetchNode(t, node.rightHash)
+		pNode, err := ndb.fetchNode(node.parentHash)
 		if err != nil {
 			return nil
 		}
-		return rightNode
+		return pNode
 	}
 }
 
-func (ndb *markNodeDB) fetchNode(t *MarkTree, hash []byte) (*MarkNode, error) {
+func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
-	// Check the cache.
+	var mNode *MarkNode
+	// cache
 	if ndb.cache != nil {
 		elem, ok := ndb.cache.Get(string(hash))
 		if ok {
-			//treelog.Info("************for tree test************")
-			return elem.(*MarkNode), nil
+			mNode = elem.(*MarkNode)
 		}
 	}
+	if mNode == nil {
+		var buf []byte
+		buf, err := ndb.db.Get(hash)
 
-	var buf []byte
-	buf, err := ndb.db.Get(hash)
-
-	if len(buf) == 0 || err != nil {
-		return nil, ErrNodeNotExist
+		if len(buf) == 0 || err != nil {
+			return nil, ErrNodeNotExist
+		}
+		node, err := MakeNode(buf, nil)
+		if err != nil {
+			panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
+		}
+		node.hash = hash
+		mNode = &MarkNode{
+			height:      node.height,
+			hash:        node.hash,
+			parentHash:  node.parentHash,
+			brotherHash: node.brotherHash,
+		}
+		if ndb.cache != nil {
+			ndb.cache.Add(string(hash), mNode)
+		}
 	}
-	node, err := MakeNode(buf, nil)
-	if err != nil {
-		panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
+	//检查是否删除
+	if _, ok := ndb.mLeaf[string(hash)]; ok {
+		mNode.hashPrune = true
 	}
-	node.hash = hash
-	mNode := &MarkNode{
-		height: node.height,
-		hash: node.hash,
-		leftHash: node.leftHash,
-		rightHash: node.rightHash,
-	}
-	if ndb.cache != nil {
-		ndb.cache.Add(string(hash), mNode)
+	if _, ok := ndb.mHash[string(hash)]; ok  {
+		mNode.hashPrune = true
 	}
 	return mNode, nil
 }
@@ -441,25 +334,27 @@ func pruningTreePrint(db dbm.DB, prefix []byte) {
 	defer it.Close()
 	count := 0
 	for it.Rewind(); it.Valid(); it.Next() {
-		//copy
-		//if bytes.Equal(prefix, []byte(leafKeyCountPrefix)) {
-		//	hashK := make([]byte, len(it.Key()))
-		//	copy(hashK, it.Key())
-		//
-		//	value := it.Value()
-		//	var pData types.PruneData
-		//	err := proto.Unmarshal(value, &pData)
-		//	if err != nil {
-		//		panic("Unmarshal mavl leafCountKey fail")
-		//	}
-		//	hashLen := int(pData.Lenth)
-		//	_, err = getKeyFromLeafCountKey(hashK, hashLen)
-		//	if err == nil {
-		//		//fmt.Printf("key:%s height:%d \n", string(key), pData.Height)
-		//	}
-		//}
 		count++
 	}
 	fmt.Printf("prefix %s All count:%d \n", string(prefix), count)
 	treelog.Info("pruningTree:", "prefix:", string(prefix), "All count", count)
 }
+
+//type pruneRootKv struct {
+//	key   []byte
+//	value *types.PruneRootNode
+//}
+//
+//type funcProcess func(ndb *markNodeDB, pruneKv *pruneRootKv)
+//
+//func (ndb *markNodeDB) process(pruneKv *pruneRootKv, reqnum chan struct{}, cb funcProcess) {
+//	beg := types.Now()
+//	ndb.wg.Add(1)
+//	defer func() {
+//		<-reqnum
+//		ndb.wg.Add(-1)
+//		treelog.Debug("process deleteHashNode", "cost", types.Since(beg))
+//	}()
+//	cb(ndb, pruneKv)
+//}
+

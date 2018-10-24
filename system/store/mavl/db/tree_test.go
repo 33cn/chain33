@@ -782,8 +782,8 @@ func TestIAVLPrint(t *testing.T) {
 }
 
 func TestPruningTree(t *testing.T) {
-	const txN = 10  // 每个块交易量
-	const preB = 20 // 一轮区块数
+	const txN = 200  // 每个块交易量
+	const preB = 1000 // 一轮区块数
 	const round = 5 // 更新叶子节点次数
 	const preDel = preB / 10
 	dir, err := ioutil.TempDir("", "datastore")
@@ -801,12 +801,13 @@ func TestPruningTree(t *testing.T) {
 
 	for j := 0; j < round; j++ {
 		for i := 0; i < preB; i++ {
+			setPruning(pruningStateStart)
 			prevHash, err = saveUpdateBlock(db, int64(i), prevHash, txN, j, int64(j*preB+i))
 			assert.Nil(t, err)
-			//m := int64(j*preB + i)
-			//if m/int64(preDel) > 1 && m%int64(preDel) == 0 {
-			//	pruningTree(db, m)
-			//}
+			m := int64(j*preB + i)
+			if m/int64(preDel) > 1 && m%int64(preDel) == 0 {
+				pruningTree(db, m)
+			}
 		}
 		fmt.Printf("round %d over \n", j)
 	}
@@ -820,6 +821,9 @@ func TestPruningTree(t *testing.T) {
 		assert.Equal(t, exist, true)
 		assert.Equal(t, value, v)
 	}
+	pruningTreePrint(db, []byte(leafKeyCountPrefix))
+	pruningTreePrint(db, []byte(hashNodePrefix))
+	pruningTreePrint(db, []byte(leafNodePrefix))
 }
 
 func genUpdateKV(height int64, txN int64, vIndex int) (kvs []*types.KeyValue) {
@@ -845,7 +849,7 @@ func saveUpdateBlock(dbm db.DB, height int64, hash []byte, txN int64, vIndex int
 	return newHash, nil
 }
 
-func TestGethash(t *testing.T) {
+func TestPruningHashNode(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
 	t.Log(dir)
@@ -903,28 +907,41 @@ func TestGethash(t *testing.T) {
 		{"foo", "0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2"},
 		{"foobang", "0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be"},
 		{"foobar", "0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93"},
+
+		//{"foobaz", "0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b"},
+		//{"food", "0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39"},
+		//{"good", "0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
+		//{"low", "0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
 	}
 
-	delMp := make(map[string]bool)
+	mpK := make(map[string]bool)
+	mpleaf := make(map[string]bool)
 	for _, leaf := range keyLeafs {
 		k, _ := FromHex(leaf.value)
-		db.Delete(k)
-		delMp[leaf.key] = true
+		mpleaf[string(k)] = true
+		mpK[string(leaf.key)] = true
 	}
 
-	ndb := newMarkNodeDB(db, 1024 * 10)
-	tr := NewMarkTree(ndb)
-	err = tr.Load(hash)
-	require.NoError(t, err)
-	strs := tr.root.gethash(tr)
-	fmt.Printf("---count: %d ---\n", tr.count)
-	for _, str := range strs {
-		fmt.Printf("delete---%s---\n", Bytes2Hex([]byte(str)[0:2]))
+	ndb := newMarkNodeDB(db, 1024*10, mpleaf)
+	var strs []string
+	for key, _ := range mpleaf {
+		mNode, err := ndb.LoadLeaf([]byte(key))
+		fmt.Printf("loadLeaf---%s---\n", Bytes2Hex([]byte(key)[0:2]))
+		if err == nil {
+			strs = append(strs, mNode.getHash(ndb)...)
+		}
 	}
-	//剩下节点
-	batch := db.NewBatch(true)
+
+	//去重复
+	mpNode := make(map[string]bool)
 	for _, str := range strs {
-		batch.Delete([]byte(str))
+		mpNode[str] = true
+	}
+    //删除
+	batch := db.NewBatch(true)
+	for key, _ := range mpNode {
+		batch.Delete([]byte(key))
+		fmt.Printf("delete---%s---\n", Bytes2Hex([]byte(key)[0:2]))
 	}
 	batch.Write()
 
@@ -933,7 +950,7 @@ func TestGethash(t *testing.T) {
 	err = tr1.Load(hash)
 	require.NoError(t, err)
 	for _, k := range records {
-		if _, ok := delMp[k.key]; !ok {
+		if _, ok := mpK[k.key]; !ok {
 			_, v, _ := tr1.Get([]byte(k.key))
 			assert.Equal(t, []byte(k.value), v)
 		}

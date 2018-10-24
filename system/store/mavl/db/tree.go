@@ -327,6 +327,26 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	// Save node bytes to db
 	storenode := node.storeNode(t)
 	ndb.batch.Set(node.hash, storenode)
+	//// lyh for test
+	//var parent  []byte
+	//var brother []byte
+	//var left  []byte
+	//var right []byte
+	//if len(node.parentHash) > 3 {
+	//	parent = node.parentHash[:2]
+	//}
+	//if len(node.brotherHash) > 3 {
+	//	brother = node.brotherHash[:2]
+	//}
+	//if len(node.leftHash) > 3 {
+	//	left = node.leftHash[:2]
+	//}
+	//if len(node.rightHash) > 3 {
+	//	right = node.rightHash[:2]
+	//}
+	//fmt.Printf("height:%d hash:%v left:%v right:%v parentHash:%v brotherHash:%v\n", node.height, common.Bytes2Hex(node.hash[:2]),
+	//	common.Bytes2Hex(left), common.Bytes2Hex(right),
+	//	common.Bytes2Hex(parent), common.Bytes2Hex(brother))
 
 	if enablePrune && node.height == 0 {
 		//save leafnode key&hash
@@ -334,28 +354,28 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 		data := &types.PruneData{
 			Height: t.blockHeight,
 			Lenth:  int32(len(node.hash)),
-			RHash:  t.root.hash,
 		}
 		v, err := proto.Marshal(data)
 		if err != nil {
 			panic(err)
 		}
 		ndb.batch.Set(k, v)
-	} else if enablePrune && node.height == t.root.height {
-		// save prefix root
-		k := genPrefixRootHash(node.hash, t.blockHeight)
-		pruneNode := &types.PruneRootNode{
-			NeedPruning: false,
-			Height:      t.blockHeight,
-			LeftHash:    node.leftHash,
-			RightHash:   node.rightHash,
-		}
-		v, err := proto.Marshal(pruneNode)
-		if err != nil {
-			panic(err)
-		}
-		ndb.batch.Set(k, v)
 	}
+	//else if enablePrune && node.height == t.root.height {
+	//	// save prefix root
+	//	k := genPrefixRootHash(node.hash, t.blockHeight)
+	//	pruneNode := &types.PruneRootNode{
+	//		NeedPruning: false,
+	//		Height:      t.blockHeight,
+	//		LeftHash:    node.leftHash,
+	//		RightHash:   node.rightHash,
+	//	}
+	//	v, err := proto.Marshal(pruneNode)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	ndb.batch.Set(k, v)
+	//}
 
 	node.persisted = true
 	ndb.cacheNode(node)
