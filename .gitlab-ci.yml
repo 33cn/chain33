@@ -59,7 +59,7 @@ go_test:
     tags:
         - 33cn
     script:
-        - cd build && docker-compose down --remove-orphans && cd ..
+        - cd build && docker-compose down && cd ..
         - make test
     only:
         - master
@@ -100,7 +100,7 @@ deploy:
     script:
         - make build_ci
         - make docker-compose
-        - cd build && docker-compose down --remove-orphans && cd ..
+        - cd build && docker-compose down  && cd ..
     only:
         - master
         - develop

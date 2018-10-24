@@ -41,16 +41,11 @@ if [ -n "${2}" ]; then
 fi
 
 DAPP_TEST_FILE=""
-SYS_TEST_FILE=""
 if [ -n "${DAPP}" ]; then
-    DAPP_TEST_FILE="../plugin/dapp/$DAPP/cmd/build/testcase.sh"
-    SYS_TEST_FILE="../system/dapp/$DAPP/cmd/build/testcase.sh"
+    DAPP_TEST_FILE="testcase.sh"
     if [ -e "$DAPP_TEST_FILE" ]; then
         # shellcheck source=/dev/null
         source "${DAPP_TEST_FILE}"
-    elif [ -e "$SYS_TEST_FILE" ]; then
-        # shellcheck source=/dev/null
-        source "${SYS_TEST_FILE}"
     fi
 
     DAPP_COMPOSE_FILE="docker-compose-${DAPP}.yml"
@@ -64,7 +59,6 @@ fi
 echo "=========== # env setting ============="
 echo "DAPP=$DAPP"
 echo "DAPP_TEST_FILE=$DAPP_TEST_FILE"
-echo "SYS_TEST_FILE=$SYS_TEST_FILE"
 echo "COMPOSE_FILE=$COMPOSE_FILE"
 echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
 echo "CLI=$CLI"
@@ -310,13 +304,13 @@ function base_config() {
 }
 
 function dapp_run() {
-    if [ -e "$DAPP_TEST_FILE" ] || [ -e "$SYS_TEST_FILE" ]; then
+    if [ -e "$DAPP_TEST_FILE" ] ; then
         ${DAPP} "${CLI}" "${1}"
     fi
 
 }
 function main() {
-    echo "==========================================main begin========================================================"
+    echo "==============================DAPP=$DAPP main begin========================================================"
     ### init para ####
     base_init
     dapp_run init
@@ -333,7 +327,7 @@ function main() {
 
     ### finish ###
     check_docker_container
-    echo "==========================================main end========================================================="
+    echo "===============================DAPP=$DAPP main end========================================================="
 }
 
 # run script

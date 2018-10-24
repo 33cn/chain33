@@ -19,8 +19,8 @@ function relay_init() {
 
 function run_relayd_with_btcd() {
     echo "============== run_relayd_with_btcd ==============================="
-    docker cp "${BTCD}:/root/rpc.cert" ./
-    docker cp ./rpc.cert "${RELAYD}:/root/"
+    docker cp "${BTCD}:/root/rpc.cert" ./rpc.cert
+    docker cp ./rpc.cert "${RELAYD}:/root/rpc.cert"
     docker restart "${RELAYD}"
 }
 
@@ -92,20 +92,28 @@ function wait_btc_height() {
 
 }
 
+
 function relay_test() {
     echo "================relayd test========================"
     block_wait "${1}" 2
 
+    echo ${1}
     ${1} relay btc_cur_height
     base_height=$(${1} relay btc_cur_height | jq ".baseHeight")
     btc_cur_height=$(${1} relay btc_cur_height | jq ".curHeight")
     if [ "${btc_cur_height}" == "${base_height}" ]; then
-        echo "height not correct"
-        exit 1
+        echo "height not correct, wait 2 block.."
+        block_wait "${1}" 2
+        base_height=$(${1} relay btc_cur_height | jq ".baseHeight")
+        btc_cur_height=$(${1} relay btc_cur_height | jq ".curHeight")
+        if [ "${btc_cur_height}" == "${base_height}" ]; then
+            echo "height not correct"
+            exit 1
+        fi
     fi
 
     echo "=========== # get real BTC account ============="
-    newacct="mdj"
+    newacct="relay"
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet walletpassphrase password 100000000
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet createnewaccount "${newacct}"
     btcrcv_addr=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getaccountaddress "${newacct}")
