@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# shellcheck disable=SC1091
-source ../plugin/dapp/paracross/cmd/build/testcase.sh
+# shellcheck source=/dev/null
+source testcase.sh
 
 #================fork-test============================
 # shellcheck disable=SC2154

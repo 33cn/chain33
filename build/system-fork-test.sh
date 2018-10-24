@@ -39,17 +39,13 @@ if [ -n "${2}" ]; then
 fi
 
 DAPP_TEST_FILE=""
-SYS_TEST_FILE=""
 
 if [ -n "${DAPP}" ]; then
-    DAPP_TEST_FILE="../plugin/dapp/$DAPP/cmd/build/fork-test.sh"
-    SYS_TEST_FILE="../system/dapp/$DAPP/cmd/build/fork-test.sh"
-    if [ -e "$DAPP_TEST_FILE" ]; then
+    testfile="fork-test.sh"
+    if [ -e "$testfile" ]; then
         # shellcheck source=/dev/null
-        source "${DAPP_TEST_FILE}"
-    elif [ -e "$SYS_TEST_FILE" ]; then
-        # shellcheck source=/dev/null
-        source "${SYS_TEST_FILE}"
+        source "${testfile}"
+        DAPP_TEST_FILE="$testfile"
     fi
 
     DAPP_COMPOSE_FILE="docker-compose-${DAPP}.yml"
@@ -61,13 +57,11 @@ if [ -n "${DAPP}" ]; then
 fi
 
 # shellcheck source=/dev/null
-source "../system/dapp/coins/cmd/build/fork-test.sh"
-
+source "../system/coins/fork-test.sh"
 
 echo "=========== # env setting ============="
 echo "DAPP=$DAPP"
 echo "DAPP_TEST_FILE=$DAPP_TEST_FILE"
-echo "SYS_TEST_FILE=$SYS_TEST_FILE"
 echo "COMPOSE_FILE=$COMPOSE_FILE"
 echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
 echo "CLI=$CLI"
@@ -237,7 +231,7 @@ function start() {
 }
 
 function dapp_run() {
-    if [ -e "$DAPP_TEST_FILE" ] || [ -e "$SYS_TEST_FILE" ]; then
+    if [ -e "$DAPP_TEST_FILE" ] ; then
         ${DAPP} "${CLI}" "${1}"
     fi
 
