@@ -46,6 +46,7 @@ var priv = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B
 var cacheTxs []*types.Transaction
 var cacheTxsTxHeigt []*types.Transaction
 var TxHeightOffset int64 = 0
+var sendTxWait = time.Millisecond * 5
 
 func getprivkey(key string) crypto.PrivKey {
 	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
@@ -176,13 +177,13 @@ func addTxTxHeigt(height int64) (string, error) {
 	return hash, nil
 }
 
-func TestcalcHeightToBlockHeaderKey(t *testing.T) {
+func TestCalcHeightToBlockHeaderKey(t *testing.T) {
 	key := calcHeightToBlockHeaderKey(1)
-	assert.Equal(t, key, []byte("000000000001"))
+	assert.Equal(t, key, []byte("HH:000000000001"))
 	key = calcHeightToBlockHeaderKey(0)
-	assert.Equal(t, key, []byte("000000000000"))
+	assert.Equal(t, key, []byte("HH:000000000000"))
 	key = calcHeightToBlockHeaderKey(10)
-	assert.Equal(t, key, []byte("000000000010"))
+	assert.Equal(t, key, []byte("HH:000000000010"))
 }
 
 func TestBlockChain(t *testing.T) {
@@ -272,7 +273,7 @@ func testProcAddBlockMsg(t *testing.T, blockchain *BlockChain) {
 		if curheight >= addblockheight {
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(sendTxWait)
 	}
 	chainlog.Info("testProcAddBlockMsg end --------------------")
 }
@@ -417,7 +418,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		if curheight >= addblockheight {
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(sendTxWait)
 	}
 
 	//重复交易
@@ -487,7 +488,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 		if curheight >= addblockheight {
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(sendTxWait)
 	}
 
 	//重复交易
@@ -557,7 +558,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 		if curheight >= addblockheight {
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(sendTxWait)
 	}
 
 	//重复交易,不带TxHeight，cache没有会检查db
@@ -629,7 +630,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 		if curheightForExpire >= addblockheight {
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(sendTxWait)
 	}
 
 	//重复交易,不带TxHeight，cache没有会检查db
@@ -698,7 +699,7 @@ func TestCheckDupTxHashList05(t *testing.T) {
 	for i := 1; i < 10; i++ {
 		_, err := addTxTxHeigt(int64(i))
 		require.EqualError(t, err, "ErrTxExpire")
-		time.Sleep(time.Second)
+		time.Sleep(sendTxWait)
 	}
 	chainlog.Info("TestCheckDupTxHashList05 end --------------------")
 }

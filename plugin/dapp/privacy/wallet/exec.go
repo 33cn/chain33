@@ -90,7 +90,7 @@ func (policy *privacyPolicy) On_CreateTransaction(req *types.ReqCreateTransactio
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_PrivacyAccountInfo(req *privacytypes.ReqPPrivacyAccount) (types.Message, error) {
+func (policy *privacyPolicy) On_ShowPrivacyAccountInfo(req *privacytypes.ReqPPrivacyAccount) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.getPrivacyAccountInfo(req)
