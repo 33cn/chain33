@@ -66,7 +66,7 @@ func (g *channelClient) RescanUtxos(ctx context.Context, in *pty.ReqRescanUtxos)
 
 // 使能隐私账户
 func (g *channelClient) EnablePrivacy(ctx context.Context, in *pty.ReqEnablePrivacy) (*pty.RepEnablePrivacy, error) {
-	data, err := g.ExecWalletFunc(pty.PrivacyX, "RescanUtxos", in)
+	data, err := g.ExecWalletFunc(pty.PrivacyX, "EnablePrivacy", in)
 	if err != nil {
 		return nil, err
 	}

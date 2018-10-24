@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -78,7 +79,6 @@ func blockBodyCmd(cmd *cobra.Command, args []string) {
 
 func parseBlockDetail(res interface{}) (interface{}, error) {
 	var result BlockDetailsResult
-
 	for _, vItem := range res.(*rpctypes.BlockDetails).Items {
 		b := &BlockResult{
 			Version:    vItem.Block.Version,
@@ -88,16 +88,12 @@ func parseBlockDetail(res interface{}) (interface{}, error) {
 			Height:     vItem.Block.Height,
 			BlockTime:  vItem.Block.BlockTime,
 		}
-		var rpt []*ReceiptData
-		for i, vTx := range vItem.Block.Txs {
-			b.Txs = append(b.Txs, decodeTransaction(vTx))
-			vR := vItem.Receipts[i]
-			rpt = append(rpt, decodeLog([]byte(vTx.Execer), *vR))
+		for _, vTx := range vItem.Block.Txs {
+			b.Txs = append(b.Txs, DecodeTransaction(vTx))
 		}
-		bd := &BlockDetailResult{Block: b, Receipts: rpt}
+		bd := &BlockDetailResult{Block: b, Receipts: vItem.Receipts}
 		result.Items = append(result.Items, bd)
 	}
-
 	return result, nil
 }
 

@@ -31,7 +31,7 @@ func GetExecSymbol(order *pt.SellOrder) (string, string) {
 }
 
 func checkAsset(height int64, exec, symbol string) bool {
-	if types.IsMatchFork(height, ForkSupportMorkAsset) {
+	if types.IsMatchFork(height, types.ForkV27TradeAsset) {
 		if exec == "" || symbol == "" {
 			return false
 		}
@@ -44,7 +44,7 @@ func checkAsset(height int64, exec, symbol string) bool {
 }
 
 func createAccountDB(height int64, db db.KV, exec, symbol string) (*account.DB, error) {
-	if types.IsMatchFork(height, ForkSupportMorkAsset) {
+	if types.IsMatchFork(height, types.ForkV27TradeAsset) {
 		return account.NewAccountDB(exec, symbol, db)
 	} else {
 		return account.NewAccountDB(defaultAssetExec, symbol, db)
