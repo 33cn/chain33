@@ -17,7 +17,7 @@ import (
 func newTestChain33(api *mocks.QueueProtocolAPI) *Jrpc {
 	cli := &channelClient{
 		ChannelClient: rpctypes.ChannelClient{
-			QueueProtocolAPI: &mocks.QueueProtocolAPI{},
+			QueueProtocolAPI: api,
 		},
 	}
 	return &Jrpc{cli: cli}
