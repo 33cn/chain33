@@ -1,5 +1,4 @@
-Title="chain33"
-TestNet=false
+Title="local"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -33,6 +32,7 @@ dbCache=64
 isStrongConsistency=true
 singleMode=true
 batchsync=false
+enableTxQuickIndex=true
 
 [p2p]
 seeds=["127.0.0.1:13802"]
@@ -65,7 +65,7 @@ minTxFee=100000
 [consensus]
 # 共识驱动名,支持solo/raft/ticket/tendermint/pbft
 name="raft"
-minerstart=true
+minerstart=false
 
 [consensus.sub.raft]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
