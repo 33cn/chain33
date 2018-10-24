@@ -4,10 +4,15 @@ import (
 	"context"
 	"encoding/hex"
 
+	"gitlab.33.cn/chain33/chain33/types"
+
 	ptypes "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 )
 
 func (this *Jrpc) CreateRawTradeSellTx(in *ptypes.TradeSellTx, result *interface{}) error {
+	if in == nil {
+		return types.ErrInvalidParam
+	}
 	param := &ptypes.TradeForSell{
 		TokenSymbol:       in.TokenSymbol,
 		AmountPerBoardlot: in.AmountPerBoardlot,
@@ -29,6 +34,9 @@ func (this *Jrpc) CreateRawTradeSellTx(in *ptypes.TradeSellTx, result *interface
 }
 
 func (this *Jrpc) CreateRawTradeBuyTx(in *ptypes.TradeBuyTx, result *interface{}) error {
+	if in == nil {
+		return types.ErrInvalidParam
+	}
 	param := &ptypes.TradeForBuy{
 		SellID:      in.SellID,
 		BoardlotCnt: in.BoardlotCnt,
@@ -43,6 +51,9 @@ func (this *Jrpc) CreateRawTradeBuyTx(in *ptypes.TradeBuyTx, result *interface{}
 }
 
 func (this *Jrpc) CreateRawTradeRevokeTx(in *ptypes.TradeRevokeTx, result *interface{}) error {
+	if in == nil {
+		return types.ErrInvalidParam
+	}
 	param := &ptypes.TradeForRevokeSell{
 		SellID: in.SellID,
 	}
@@ -56,6 +67,9 @@ func (this *Jrpc) CreateRawTradeRevokeTx(in *ptypes.TradeRevokeTx, result *inter
 }
 
 func (this *Jrpc) CreateRawTradeBuyLimitTx(in *ptypes.TradeBuyLimitTx, result *interface{}) error {
+	if in == nil {
+		return types.ErrInvalidParam
+	}
 	param := &ptypes.TradeForBuyLimit{
 		TokenSymbol:       in.TokenSymbol,
 		AmountPerBoardlot: in.AmountPerBoardlot,
@@ -74,6 +88,9 @@ func (this *Jrpc) CreateRawTradeBuyLimitTx(in *ptypes.TradeBuyLimitTx, result *i
 }
 
 func (this *Jrpc) CreateRawTradeSellMarketTx(in *ptypes.TradeSellMarketTx, result *interface{}) error {
+	if in == nil {
+		return types.ErrInvalidParam
+	}
 	param := &ptypes.TradeForSellMarket{
 		BuyID:       in.BuyID,
 		BoardlotCnt: in.BoardlotCnt,
@@ -88,6 +105,9 @@ func (this *Jrpc) CreateRawTradeSellMarketTx(in *ptypes.TradeSellMarketTx, resul
 }
 
 func (this *Jrpc) CreateRawTradeRevokeBuyTx(in *ptypes.TradeRevokeBuyTx, result *interface{}) error {
+	if in == nil {
+		return types.ErrInvalidParam
+	}
 	param := &ptypes.TradeForRevokeBuy{
 		BuyID: in.BuyID,
 	}
