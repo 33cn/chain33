@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
-	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -343,138 +342,6 @@ func TestDecodeLogGenesisDeposit(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "LogGenesisDeposit", result.Logs[0].TyName)
-}
-
-func TestDecodeLogTradeSellLimit(t *testing.T) {
-	var logTmp = &tradetype.ReceiptTradeSellLimit{}
-	dec := types.Encode(logTmp)
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeSellLimit,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("trade"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeSell", result.Logs[0].TyName)
-}
-
-func TestDecodeLogTradeBuyMarket(t *testing.T) {
-	var logTmp = &tradetype.ReceiptTradeBuyMarket{}
-	dec := types.Encode(logTmp)
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeBuyMarket,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("trade"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeBuyMarket", result.Logs[0].TyName)
-}
-
-func TestDecodeLogTradeSellRevoke(t *testing.T) {
-	var logTmp = &tradetype.ReceiptTradeBuyMarket{}
-	dec := types.Encode(logTmp)
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeSellRevoke,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("trade"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeSellRevoke", result.Logs[0].TyName)
-}
-
-func TestDecodeLogTradeBuyLimit(t *testing.T) {
-	var logTmp = &tradetype.ReceiptTradeBuyLimit{}
-	dec := types.Encode(logTmp)
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeBuyLimit,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("trade"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeBuyLimit", result.Logs[0].TyName)
-}
-
-func TestDecodeLogTradeSellMarket(t *testing.T) {
-	var logTmp = &tradetype.ReceiptSellMarket{}
-	dec := types.Encode(logTmp)
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeSellMarket,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("trade"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeSellMarket", result.Logs[0].TyName)
-}
-
-func TestDecodeLogTradeBuyRevoke(t *testing.T) {
-	var logTmp = &tradetype.ReceiptTradeBuyRevoke{}
-	dec := types.Encode(logTmp)
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeBuyRevoke,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("trade"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeBuyRevoke", result.Logs[0].TyName)
 }
 
 func TestDecodeLogModifyConfig(t *testing.T) {
@@ -1105,32 +972,6 @@ func TestChain33_GetLastMemPool(t *testing.T) {
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
-
-	mock.AssertExpectationsForObjects(t, api)
-}
-
-func TestChain33_GetLastMemPoolOk(t *testing.T) {
-	api := new(mocks.QueueProtocolAPI)
-	testChain33 := newTestChain33(api)
-
-	var txlist types.ReplyTxList
-	var action tradetype.Trade
-	act := types.Encode(&action)
-	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName(types.TradeX)),
-		Payload: act,
-		To:      "to",
-	}
-	txlist.Txs = append(txlist.Txs, tx)
-
-	// expected := &types.ReqBlocks{}
-	api.On("GetLastMempool").Return(&txlist, nil)
-
-	var testResult interface{}
-	actual := types.ReqNil{}
-	err := testChain33.GetLastMemPool(actual, &testResult)
-	assert.Nil(t, err)
-	assert.Equal(t, testResult.(*rpctypes.ReplyTxList).Txs[0].Execer, string(tx.Execer))
 
 	mock.AssertExpectationsForObjects(t, api)
 }
