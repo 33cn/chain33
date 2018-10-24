@@ -11,7 +11,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	slog "gitlab.33.cn/chain33/chain33/common/log"
-	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -355,106 +354,6 @@ func TestChannelClient_GetBalance(t *testing.T) {
 	testChannelClient_GetBalanceCoin(t)
 	testChannelClient_GetBalanceOther(t)
 
-}
-
-func TestChannelClient_CreateRawTradeSellTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawTradeSellTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	token := &tradetype.TradeSellTx{
-		TokenSymbol:       "CNY",
-		AmountPerBoardlot: 10,
-		MinBoardlot:       1,
-		PricePerBoardlot:  100,
-		TotalBoardlot:     100,
-		Fee:               1,
-	}
-	data, err = client.CreateRawTradeSellTx(token)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_CreateRawTradeBuyTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawTradeBuyTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	token := &tradetype.TradeBuyTx{
-		SellID:      "sadfghjkhgfdsa",
-		BoardlotCnt: 100,
-		Fee:         1,
-	}
-	data, err = client.CreateRawTradeBuyTx(token)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_CreateRawTradeRevokeTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawTradeRevokeTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	token := &tradetype.TradeRevokeTx{
-		SellID: "sadfghjkhgfdsa",
-		Fee:    1,
-	}
-	data, err = client.CreateRawTradeRevokeTx(token)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_CreateRawTradeBuyLimitTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawTradeBuyLimitTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	token := &tradetype.TradeBuyLimitTx{
-		TokenSymbol:       "CNY",
-		AmountPerBoardlot: 10,
-		MinBoardlot:       1,
-		PricePerBoardlot:  100,
-		TotalBoardlot:     100,
-		Fee:               1,
-	}
-	data, err = client.CreateRawTradeBuyLimitTx(token)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_CreateRawTradeSellMarketTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawTradeSellMarketTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	token := &tradetype.TradeSellMarketTx{
-		BuyID:       "12asdfa",
-		BoardlotCnt: 100,
-		Fee:         1,
-	}
-	data, err = client.CreateRawTradeSellMarketTx(token)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_CreateRawTradeRevokeBuyTx(t *testing.T) {
-	client := newTestChannelClient()
-	data, err := client.CreateRawTradeRevokeBuyTx(nil)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
-
-	token := &tradetype.TradeRevokeBuyTx{
-		BuyID: "12asdfa",
-		Fee:   1,
-	}
-	data, err = client.CreateRawTradeRevokeBuyTx(token)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
 }
 
 // func TestChannelClient_GetTotalCoins(t *testing.T) {
