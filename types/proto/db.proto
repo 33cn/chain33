@@ -33,6 +33,8 @@ message StoreNode {
     bytes rightHash = 4;
     int32 height    = 5;
     int32 size      = 6;
+    bytes parentHash  = 7;
+    bytes brotherHash = 8;
 }
 
 message LocalDBSet {
@@ -85,14 +87,14 @@ message PruneData {
     // hash+prefix的长度
     int32 lenth  = 2;
     // 该叶子节点的roothash
-    bytes rHash  = 3;
+    //bytes rHash  = 3;
 }
 
-message PruneRootNode {
-    // 标记是否对hash节点进行裁剪
-    bool  needPruning  = 1;
-    int32 pruneLeafNum = 2;
-    int64 height       = 3;
-    bytes leftHash     = 4;
-    bytes rightHash    = 5;
-}
+//message PruneRootNode {
+//    // 标记是否对hash节点进行裁剪
+//    bool  needPruning  = 1;
+//    int32 pruneLeafNum = 2;
+//    int64 height       = 3;
+//    bytes leftHash     = 4;
+//    bytes rightHash    = 5;
+//}
