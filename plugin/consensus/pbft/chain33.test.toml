@@ -68,17 +68,35 @@ ClientAddr = "127.0.0.1:8890"
 name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
+dbCache=128
 
-[localstore]
-driver="leveldb"
-dbPath="datadir/mavltree"
+[store.sub.mavl]
+enableMavlPrefix=false
+enableMVCC=false
 
 [wallet]
 minFee=100000
 driver="leveldb"
-dbPath="datadir/wallet"
+dbPath="wallet"
+dbCache=16
 signType="secp256k1"
+
+[wallet.sub.ticket]
+minerdisable=false
+minerwhitelist=["*"]
 
 [exec]
 isFree=false
 minExecFee=100000
+enableStat=false
+enableMVCC=false
+alias=["token1:token","token2:token","token3:token"]
+saveTokenTxList=false
+
+[exec.sub.cert]
+# 是否启用证书验证和签名
+enable=false
+# 加密文件路径
+cryptoPath="authdir/crypto"
+# 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
+signType="auth_ecdsa"

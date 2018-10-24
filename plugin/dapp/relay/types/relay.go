@@ -127,15 +127,6 @@ func (r RelayType) ActionName(tx *types.Transaction) string {
 	return "unknown"
 }
 
-func (r RelayType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action RelayAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
 func (r *RelayType) Amount(tx *types.Transaction) (int64, error) {
 	data, err := r.DecodePayload(tx)
 	if err != nil {
