@@ -13,7 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"github.com/inconshreveable/log15"
-	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 )
 
 //提供系统rpc接口
@@ -202,30 +201,6 @@ func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyG
 		return nil, err
 	}
 	return resp, nil
-}
-
-func (c *channelClient) CreateRawTradeSellTx(parm *tradetype.TradeSellTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeSellLimit", parm)
-}
-
-func (c *channelClient) CreateRawTradeBuyTx(parm *tradetype.TradeBuyTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeBuyMarket", parm)
-}
-
-func (c *channelClient) CreateRawTradeRevokeTx(parm *tradetype.TradeRevokeTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeSellRevoke", parm)
-}
-
-func (c *channelClient) CreateRawTradeBuyLimitTx(parm *tradetype.TradeBuyLimitTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeBuyLimit", parm)
-}
-
-func (c *channelClient) CreateRawTradeSellMarketTx(parm *tradetype.TradeSellMarketTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeSellMarket", parm)
-}
-
-func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *tradetype.TradeRevokeBuyTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeRevokeBuy", parm)
 }
 
 func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {

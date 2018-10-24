@@ -2,7 +2,6 @@ package rpc_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
@@ -16,11 +15,9 @@ import (
 )
 
 func TestExecQuery(t *testing.T) {
-	mock33 := testnode.New("testdata/chain33.test.toml", nil)
+	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	time.Sleep(time.Millisecond)
-	mock33.GetRPC().Listen()
-	time.Sleep(time.Millisecond)
+	mock33.Listen()
 
 	rpcCfg := mock33.GetCfg().Rpc
 	jsonClient, err := jsonclient.NewJSONClient("http://" + rpcCfg.JrpcBindAddr + "/")

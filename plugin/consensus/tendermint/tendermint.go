@@ -21,9 +21,24 @@ import (
 const tendermint_version = "0.1.0"
 
 var (
-	tendermintlog       = log15.New("module", "tendermint")
-	blockSec      int64 = 1000 //write block interval, millisecond
-	zeroHash      [32]byte
+	tendermintlog                      = log15.New("module", "tendermint")
+	genesis                     string = types.GenesisAddr
+	genesisBlockTime            int64  = types.GenesisBlockTime
+	timeoutTxAvail              int32  = 1000
+	timeoutPropose              int32  = 3000 // millisecond
+	timeoutProposeDelta         int32  = 500
+	timeoutPrevote              int32  = 1000
+	timeoutPrevoteDelta         int32  = 500
+	timeoutPrecommit            int32  = 1000
+	timeoutPrecommitDelta       int32  = 500
+	timeoutCommit               int32  = 1000
+	skipTimeoutCommit           bool   = false
+	createEmptyBlocks           bool   = false
+	createEmptyBlocksInterval   int32  = 0 // second
+	validatorNodes                     = []string{"127.0.0.1:46656"}
+	peerGossipSleepDuration     int32  = 100
+	peerQueryMaj23SleepDuration int32  = 2000
+	zeroHash                    [32]byte
 )
 
 func init() {
@@ -46,6 +61,68 @@ type TendermintClient struct {
 	stopC         chan struct{}
 }
 
+type subConfig struct {
+	Genesis                   string   `json:"genesis"`
+	GenesisBlockTime          int64    `json:"genesisBlockTime"`
+	TimeoutTxAvail            int32    `json:"timeoutTxAvail"`
+	TimeoutPropose            int32    `json:"timeoutPropose"`
+	TimeoutProposeDelta       int32    `json:"timeoutProposeDelta"`
+	TimeoutPrevote            int32    `json:"timeoutPrevote"`
+	TimeoutPrevoteDelta       int32    `json:"timeoutPrevoteDelta"`
+	TimeoutPrecommit          int32    `json:"timeoutPrecommit"`
+	TimeoutPrecommitDelta     int32    `json:"timeoutPrecommitDelta"`
+	TimeoutCommit             int32    `json:"timeoutCommit"`
+	SkipTimeoutCommit         bool     `json:"skipTimeoutCommit"`
+	CreateEmptyBlocks         bool     `json:"createEmptyBlocks"`
+	CreateEmptyBlocksInterval int32    `json:"createEmptyBlocksInterval"`
+	ValidatorNodes            []string `json:"validatorNodes"`
+}
+
+func (client *TendermintClient) applyConfig(sub []byte) {
+	var subcfg subConfig
+	if sub != nil {
+		types.MustDecode(sub, &subcfg)
+	}
+	if subcfg.Genesis != "" {
+		genesis = subcfg.Genesis
+	}
+	if subcfg.GenesisBlockTime > 0 {
+		genesisBlockTime = subcfg.GenesisBlockTime
+	}
+	if subcfg.TimeoutTxAvail > 0 {
+		timeoutTxAvail = subcfg.TimeoutTxAvail
+	}
+	if subcfg.TimeoutPropose > 0 {
+		timeoutPropose = subcfg.TimeoutPropose
+	}
+	if subcfg.TimeoutProposeDelta > 0 {
+		timeoutProposeDelta = subcfg.TimeoutProposeDelta
+	}
+	if subcfg.TimeoutPrevote > 0 {
+		timeoutPrevote = subcfg.TimeoutPrevote
+	}
+	if subcfg.TimeoutPrevoteDelta > 0 {
+		timeoutPrevoteDelta = subcfg.TimeoutPrevoteDelta
+	}
+	if subcfg.TimeoutPrecommit > 0 {
+		timeoutPrecommit = subcfg.TimeoutPrecommit
+	}
+	if subcfg.TimeoutPrecommitDelta > 0 {
+		timeoutPrecommitDelta = subcfg.TimeoutPrecommitDelta
+	}
+	if subcfg.TimeoutCommit > 0 {
+		timeoutCommit = subcfg.TimeoutCommit
+	}
+	skipTimeoutCommit = subcfg.SkipTimeoutCommit
+	createEmptyBlocks = subcfg.CreateEmptyBlocks
+	if subcfg.CreateEmptyBlocksInterval > 0 {
+		createEmptyBlocksInterval = subcfg.CreateEmptyBlocksInterval
+	}
+	if len(subcfg.ValidatorNodes) > 0 {
+		validatorNodes = subcfg.ValidatorNodes
+	}
+}
+
 // DefaultDBProvider returns a database using the DBBackend and DBDir
 // specified in the ctx.Config.
 func DefaultDBProvider(ID string) (dbm.DB, error) {
@@ -54,10 +131,6 @@ func DefaultDBProvider(ID string) (dbm.DB, error) {
 
 func New(cfg *types.Consensus, sub []byte) queue.Module {
 	tendermintlog.Info("Start to create tendermint client")
-
-	if cfg.WriteBlockSeconds > 0 {
-		blockSec = cfg.WriteBlockSeconds
-	}
 	//init rand
 	ttypes.Init()
 
@@ -97,9 +170,7 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	ttypes.InitMessageMap()
 
 	pubkey := privValidator.GetPubKey().KeyString()
-
 	c := drivers.NewBaseClient(cfg)
-
 	client := &TendermintClient{
 		BaseClient:    c,
 		genesisDoc:    genDoc,
@@ -111,8 +182,9 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 		txsAvailable:  make(chan int64, 1),
 		stopC:         make(chan struct{}, 1),
 	}
-
 	c.SetChild(client)
+
+	client.applyConfig(sub)
 	return client
 }
 
@@ -244,7 +316,7 @@ OuterLoop:
 
 	// Create & add listener
 	protocol, listeningAddress := "tcp", "0.0.0.0:46656"
-	node := NewNode(client.Cfg.Seeds, protocol, listeningAddress, client.privKey, state.ChainID, tendermint_version, csState, evidencePool)
+	node := NewNode(validatorNodes, protocol, listeningAddress, client.privKey, state.ChainID, tendermint_version, csState, evidencePool)
 
 	client.node = node
 	node.Start()
@@ -252,10 +324,14 @@ OuterLoop:
 	go client.CreateBlock()
 }
 
+func (client *TendermintClient) GetGenesisBlockTime() int64 {
+	return genesisBlockTime
+}
+
 func (client *TendermintClient) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
 	tx.Execer = []byte("coins")
-	tx.To = client.Cfg.Genesis
+	tx.To = genesis
 	//gen payload
 	g := &cty.CoinsAction_Genesis{}
 	g.Genesis = &types.AssetsGenesis{}
@@ -294,7 +370,7 @@ func (client *TendermintClient) CreateBlock() {
 		issleep = false
 
 		client.txsAvailable <- client.GetCurrentHeight() + 1
-		time.Sleep(time.Duration(blockSec) * time.Millisecond)
+		time.Sleep(time.Duration(timeoutTxAvail) * time.Millisecond)
 	}
 }
 
@@ -325,14 +401,6 @@ func (client *TendermintClient) CheckTxDup(txs []*types.Transaction, height int6
 func (client *TendermintClient) BuildBlock() *types.Block {
 	lastHeight := client.GetCurrentHeight()
 	txs := client.RequestTx(int(types.GetP(lastHeight+1).MaxTxNumber)-1, nil)
-
-	//check dup
-	txs = client.CheckTxDup(txs, lastHeight)
-	if len(txs) == 0 {
-		tendermintlog.Error("No new txs")
-		return nil
-	}
-
 	newblock := &types.Block{}
 	newblock.Height = lastHeight + 1
 	client.AddTxsToBlock(newblock, txs)

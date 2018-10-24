@@ -128,7 +128,7 @@ func createMainTx(exec string, to string) (*types.Transaction, error) {
 	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
-	transfer.Ty = pt.ParacrossActionTransfer
+	transfer.Ty = pt.ParacrossActionAssetTransfer
 
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
@@ -156,7 +156,7 @@ func createCrossMainTx(to string) (*types.Transaction, error) {
 	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
-	transfer.Ty = pt.ParacrossActionTransfer
+	transfer.Ty = pt.ParacrossActionAssetTransfer
 
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
@@ -180,7 +180,7 @@ func createCrossParaTx(to string, amount int64) (*types.Transaction, error) {
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawAssetTransferTx(&param)
 
 	return tx, err
 }
