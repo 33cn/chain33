@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -23,14 +24,19 @@ func init() {
 }
 
 func New() wcom.WalletBizPolicy {
-	return &privacyPolicy{mtx: &sync.Mutex{}, rescanwg: &sync.WaitGroup{}}
+	return &privacyPolicy{
+		mtx:            &sync.Mutex{},
+		rescanwg:       &sync.WaitGroup{},
+		rescanUTXOflag: privacytypes.UtxoFlagNoScan,
+	}
 }
 
 type privacyPolicy struct {
-	mtx           *sync.Mutex
-	store         *privacyStore
-	walletOperate wcom.WalletOperate
-	rescanwg      *sync.WaitGroup
+	mtx            *sync.Mutex
+	store          *privacyStore
+	walletOperate  wcom.WalletOperate
+	rescanwg       *sync.WaitGroup
+	rescanUTXOflag int32
 }
 
 func (policy *privacyPolicy) setWalletOperate(walletBiz wcom.WalletOperate) {
@@ -86,6 +92,17 @@ func (policy *privacyPolicy) OnWalletLocked() {
 }
 
 func (policy *privacyPolicy) OnWalletUnlocked(WalletUnLock *types.WalletUnLock) {
+}
+
+func (this *privacyPolicy) Call(funName string, in types.Message) (ret types.Message, err error) {
+	switch funName {
+	case "GetUTXOScaningFlag":
+		isok := this.GetRescanFlag() == privacytypes.UtxoFlagScaning
+		ret = &types.Reply{IsOk: isok}
+	default:
+		err = types.ErrNotSupport
+	}
+	return
 }
 
 func (policy *privacyPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtxhex string, err error) {
@@ -155,4 +172,12 @@ func (policy *privacyPolicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types
 	policy.addDelPrivacyTxsFromBlock(tx, index, block, dbbatch, DelTx)
 	// 自己处理掉所有事务，部需要外部处理了
 	return nil
+}
+
+func (this *privacyPolicy) GetRescanFlag() int32 {
+	return atomic.LoadInt32(&this.rescanUTXOflag)
+}
+
+func (this *privacyPolicy) SetRescanFlag(flag int32) {
+	atomic.StoreInt32(&this.rescanUTXOflag, flag)
 }
