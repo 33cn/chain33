@@ -41,7 +41,7 @@ enableTxQuickIndex=false
 
 [p2p]
 seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
-enable=true
+enable=false
 isSeed=true
 serverStart=true
 msgCacheSize=10240
@@ -54,8 +54,8 @@ verMix=216
 verMax=217
 
 [rpc]
-jrpcBindAddr="localhost:8801"
-grpcBindAddr="localhost:8802"
+jrpcBindAddr="localhost:0"
+grpcBindAddr="localhost:0"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
