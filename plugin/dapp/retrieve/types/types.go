@@ -2,7 +2,7 @@ package types
 
 import (
 	"encoding/json"
-	
+
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
