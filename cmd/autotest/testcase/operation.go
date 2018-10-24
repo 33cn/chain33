@@ -82,6 +82,7 @@ func (tester *TestOperator) HandleDependency() {
 		case testPack := <-tester.delDepBuf:
 
 			packID := testPack.getPackID()
+			//取出依赖于该用例的所有用例
 			caseArr, exist := tester.depCaseMap[packID]
 			if exist {
 
@@ -299,22 +300,8 @@ func (tester *TestOperator) RunCheckFlow() {
 	tester.checkDone <- true
 }
 
-func (tester *TestOperator) AddCase(testCase CaseFunc) {
-
-	if len(testCase.getDep()) > 0 {
-		//save to depend map
-		tester.addDepBuf <- testCase
-
-	} else {
-
-		tester.sendBuf <- testCase
-	}
-
-}
-
 func (tester *TestOperator) WaitTest() {
 
-	tester.addDone <- true
 	<-tester.checkDone
 	if tester.totalFail > 0 {
 
