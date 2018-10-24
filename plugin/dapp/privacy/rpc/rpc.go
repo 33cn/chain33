@@ -8,7 +8,7 @@ import (
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	context "golang.org/x/net/context"
+	"golang.org/x/net/context"
 )
 
 // 显示指定地址的公钥对信息，可以作为后续交易参数
@@ -92,26 +92,26 @@ func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *json.R
 }
 
 /////////////////privacy///////////////
-func (c *Jrpc) ShowPrivacyAccountSpend(in *pty.ReqPrivBal4AddrToken, result *interface{}) error {
+func (c *Jrpc) ShowPrivacyAccountSpend(in *pty.ReqPrivBal4AddrToken, result *json.RawMessage) error {
 	if 0 == len(in.Addr) {
 		return types.ErrInvalidParam
 	}
-	account, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountSpend", in)
+	reply, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountSpend", in)
 	if err != nil {
 		log.Info("ShowPrivacyAccountSpend", "return err info", err)
 		return err
 	}
-	*result = account
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
 }
 
-func (c *Jrpc) ShowPrivacykey(in *types.ReqString, result *interface{}) error {
+func (c *Jrpc) ShowPrivacykey(in *types.ReqString, result *json.RawMessage) error {
 	reply, err := c.cli.ShowPrivacyKey(context.Background(), in)
 	if err != nil {
 		return err
 	}
-	*result = reply
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
 }
 
 func (c *Jrpc) MakeTxPublic2privacy(in *pty.ReqPub2Pri, result *interface{}) error {
