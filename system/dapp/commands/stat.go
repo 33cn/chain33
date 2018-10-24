@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 

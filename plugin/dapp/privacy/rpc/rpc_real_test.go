@@ -25,7 +25,7 @@ func TestRPC_Call(t *testing.T) {
 	g := newGrpc(api)
 	g.Init("privacy", mock33.GetRPC(), newJrpc(api), g)
 	time.Sleep(time.Millisecond)
-	mock33.GetRPC().Listen()
+	mock33.Listen()
 	time.Sleep(time.Millisecond)
 	api.On("Close").Return()
 	rpcCfg := mock33.GetCfg().Rpc

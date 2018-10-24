@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	coinstypes "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -137,23 +138,21 @@ func scanWrite() {
 				fmt.Fprintln(os.Stderr, err)
 				continue
 			}
-			pl, ok := transactionDetail.Tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
-			if !ok {
+			if len(transactionDetail.Tx.Payload) == 0 {
 				fmt.Fprintln(os.Stderr, "not a coin action")
 				continue
 			}
-			trans, ok := pl["Transfer"]
-			if !ok {
+			action := &coinstypes.CoinsAction{}
+			if err = types.Decode(transactionDetail.Tx.Payload, action); err != nil {
+				fmt.Fprintln(os.Stderr, err.Error())
+				continue
+			}
+			if action.Ty != coinstypes.CoinsActionTransfer {
 				fmt.Fprintln(os.Stderr, "not a transfer action")
 				continue
 			}
-			note, ok := trans.(map[string]interface{})["note"].(string)
-			if !ok {
-				fmt.Fprintln(os.Stderr, "no note found")
-				continue
-			}
 			var noteTx types.Transaction
-			txBytes, err := common.FromHex(note)
+			txBytes, err := common.FromHex(action.GetTransfer().Note)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "not a user data tx")
 				continue
