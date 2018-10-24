@@ -4,6 +4,7 @@ package types;
 
 import "common.proto";
 import "transaction.proto";
+import "wallet.proto";
 
 //////////////////////////////////////////////////////////////////////////////
 // message for Privacy start/////////////////////////////////////////////////////
@@ -464,5 +465,6 @@ service privacy {
     rpc RescanUtxos(ReqRescanUtxos) returns (RepRescanUtxos) {}
     // 使能隐私账户
     rpc EnablePrivacy(ReqEnablePrivacy) returns (RepEnablePrivacy) {}
-    //获取最新的block执行序列
+    // 创建隐私交易
+    rpc CreateRawTransaction(ReqCreateTransaction) returns (Transaction) {}
 }
