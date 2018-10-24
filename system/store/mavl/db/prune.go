@@ -80,7 +80,6 @@ func pruningTree(db dbm.DB, curHeight int64) {
 	pruningTreeLeafNode(db, curHeight)
 	end := time.Now()
 	treelog.Info("pruningTree", "leafNode cost time:", end.Sub(start))
-	fmt.Println("pruningTree leafNode cost time: ", end.Sub(start))
 	setPruning(pruningStateEnd)
 }
 
@@ -167,16 +166,19 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 		}
 		count++
 	}
-	fmt.Printf("pruningHashNode count %d , ndb.count %d \n", count, ndb.count)
 	//去重复
 	mpN := make(map[string]bool)
 	for _, str := range strs {
 		mpN[str] = true
 	}
 	batch := db.NewBatch(true)
+	count1 := 0
 	for key, _  := range mpN {
 		batch.Delete([]byte(key))
+		count1++
 	}
+	fmt.Printf("pruningHashNode count %d , ndb.count %d delete %d \n", count, ndb.count, count1)
+	treelog.Info("pruningHashNode ", "count ", count, "ndb.count", ndb.count, "delete node count", count1)
 	batch.Write()
 }
 
