@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"encoding/json"
 
 	"gitlab.33.cn/chain33/chain33/common"
@@ -71,6 +72,14 @@ func (g *channelClient) EnablePrivacy(ctx context.Context, in *pty.ReqEnablePriv
 		return nil, err
 	}
 	return data.(*pty.RepEnablePrivacy), nil
+}
+
+func (g *channelClient) CreateRawTransaction(ctx context.Context, in *types.ReqCreateTransaction) (*types.Transaction, error) {
+	data, err := g.ExecWalletFunc(pty.PrivacyX, "CreateTransaction", in)
+	if err != nil {
+		return nil, err
+	}
+	return data.(*types.Transaction), nil
 }
 
 func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *json.RawMessage) error {
@@ -181,4 +190,14 @@ func (c *Jrpc) EnablePrivacy(in *pty.ReqEnablePrivacy, result *interface{}) erro
 	}
 	*result = reply
 	return nil
+}
+
+func (this *Jrpc) CreateRawTransaction(in *types.ReqCreateTransaction, result *interface{}) error {
+	reply, err := this.cli.CreateRawTransaction(context.Background(), in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(types.Encode(reply))
+	return err
 }
