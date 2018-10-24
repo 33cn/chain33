@@ -1,21 +1,18 @@
 package testnode
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
@@ -26,11 +23,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 	"gitlab.33.cn/chain33/chain33/wallet"
-
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 )
-
-var chainlog = log15.New("module", "testnode")
 
 //这个包提供一个通用的测试节点，用于单元测试和集成测试。
 func init() {
@@ -38,7 +31,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	log.SetLogLevel("info")
+	log.SetLogLevel("error")
 }
 
 type Chain33Mock struct {
@@ -143,7 +136,7 @@ func newWalletRealize(qApi client.QueueProtocolAPI) {
 	if !reply.IsOk && err != nil {
 		panic(err)
 	}
-	for i, priv := range TestPrivkeyHex {
+	for i, priv := range util.TestPrivkeyHex {
 		privkey := &types.ReqWalletImportPrivkey{priv, fmt.Sprintf("label%d", i)}
 		_, err = qApi.WalletImportprivkey(privkey)
 		if err != nil {
@@ -195,6 +188,33 @@ func (mock *Chain33Mock) WaitHeight(height int64) error {
 	return nil
 }
 
+func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Account {
+	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
+	acc := account.NewCoinsAccount()
+	acc.SetDB(statedb)
+	return acc.LoadAccount(addr)
+}
+
+func (mock *Chain33Mock) GetBlock(height int64) *types.Block {
+	blocks, err := mock.api.GetBlocks(&types.ReqBlocks{Start: height, End: height})
+	if err != nil {
+		panic(err)
+	}
+	return blocks.Items[0].Block
+}
+
+func (m *Chain33Mock) GetClient() queue.Client {
+	return m.client
+}
+
+func (m *Chain33Mock) GetGenesisKey() crypto.PrivKey {
+	return util.TestPrivkeyList[1]
+}
+
+func (m *Chain33Mock) GetGenesisAddress() string {
+	return m.cfg.Consensus.Genesis
+}
+
 type mockP2P struct {
 }
 
@@ -216,194 +236,4 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 }
 
 func (m *mockP2P) Close() {
-}
-
-func (m *Chain33Mock) GenNoneTxs(n int64) (txs []*types.Transaction) {
-	_, priv := m.Genaddress()
-	to, _ := m.Genaddress()
-	for i := 0; i < int(n); i++ {
-		txs = append(txs, m.CreateNoneTx(priv, to, types.Coin*(n+1)))
-	}
-	return txs
-}
-
-func (m *Chain33Mock) Genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
-	if err != nil {
-		panic(err)
-	}
-	privto, err := cr.GenKey()
-	if err != nil {
-		panic(err)
-	}
-	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
-	return addrto.String(), privto
-}
-
-func (m *Chain33Mock) CreateNoneTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	tx := &types.Transaction{Execer: []byte("none"), Payload: []byte("none"), Fee: 1e6, To: to}
-	tx.Nonce = m.random.Int63()
-	tx.To = address.ExecAddress("none")
-	tx.Sign(types.SECP256K1, priv)
-	return tx
-}
-
-func (m *Chain33Mock) CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	exec := types.LoadExecutorType("coins")
-	if exec == nil {
-		panic("unknow driver coins")
-	}
-	tx, err := exec.AssertCreate(&types.CreateTx{
-		To:     to,
-		Amount: amount,
-	})
-	if err != nil {
-		panic(err)
-	}
-	tx.Nonce = m.random.Int63()
-	tx.To = to
-	tx.Sign(types.SECP256K1, priv)
-	return tx
-}
-
-var zeroHash [32]byte
-
-func (m *Chain33Mock) CreateNoneBlock(n int64) *types.Block {
-	newblock := &types.Block{}
-	newblock.Height = -1
-	newblock.BlockTime = types.Now().Unix()
-	newblock.ParentHash = zeroHash[:]
-	newblock.Txs = m.GenNoneTxs(n)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-	return newblock
-}
-
-func (m *Chain33Mock) CreateGenesisBlock() *types.Block {
-	var tx types.Transaction
-	tx.Execer = []byte("coins")
-	tx.To = m.cfg.Consensus.Genesis
-	//gen payload
-	g := &cty.CoinsAction_Genesis{}
-	g.Genesis = &types.AssetsGenesis{}
-	g.Genesis.Amount = 1e8 * types.Coin
-	tx.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
-	newblock := &types.Block{}
-	newblock.Height = 0
-	newblock.BlockTime = types.Now().Unix()
-	newblock.ParentHash = zeroHash[:]
-	newblock.Txs = append(newblock.Txs, &tx)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-	return newblock
-}
-
-func (m *Chain33Mock) ExecBlock(prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
-	//发送执行交易给execs模块
-	//通过consensus module 再次检查
-	client := m.client
-	chainlog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
-	beg := types.Now()
-	defer func() {
-		chainlog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
-	}()
-
-	if errReturn && block.Height > 0 && !block.CheckSign() {
-		//block的来源不是自己的mempool，而是别人的区块
-		return nil, nil, types.ErrSign
-	}
-	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
-	cacheTxs := types.TxsToCache(block.Txs)
-	oldtxscount := len(cacheTxs)
-	var err error
-	cacheTxs, err = util.CheckTxDup(client, cacheTxs, block.Height)
-	if err != nil {
-		return nil, nil, err
-	}
-	newtxscount := len(cacheTxs)
-	if oldtxscount != newtxscount && errReturn {
-		return nil, nil, types.ErrTxDup
-	}
-	chainlog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
-	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
-	block.Txs = types.CacheToTxs(cacheTxs)
-
-	receipts := util.ExecTx(client, prevStateRoot, block)
-	var maplist = make(map[string]*types.KeyValue)
-	var kvset []*types.KeyValue
-	var deltxlist = make(map[int]bool)
-	var rdata []*types.ReceiptData //save to db receipt log
-	for i := 0; i < len(receipts.Receipts); i++ {
-		receipt := receipts.Receipts[i]
-		if receipt.Ty == types.ExecErr {
-			chainlog.Error("exec tx err", "err", receipt)
-			if errReturn { //认为这个是一个错误的区块
-				return nil, nil, types.ErrBlockExec
-			}
-			deltxlist[i] = true
-			continue
-		}
-
-		rdata = append(rdata, &types.ReceiptData{receipt.Ty, receipt.Logs})
-		//处理KV
-		kvs := receipt.KV
-		for _, kv := range kvs {
-			if item, ok := maplist[string(kv.Key)]; ok {
-				item.Value = kv.Value //更新item 的value
-			} else {
-				maplist[string(kv.Key)] = kv
-				kvset = append(kvset, kv)
-			}
-		}
-	}
-	//check TxHash
-	calcHash := merkle.CalcMerkleRoot(block.Txs)
-	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
-		return nil, nil, types.ErrCheckTxHash
-	}
-	block.TxHash = calcHash
-	//删除无效的交易
-	var deltx []*types.Transaction
-	if len(deltxlist) > 0 {
-		var newtx []*types.Transaction
-		for i := 0; i < len(block.Txs); i++ {
-			if deltxlist[i] {
-				deltx = append(deltx, block.Txs[i])
-			} else {
-				newtx = append(newtx, block.Txs[i])
-			}
-		}
-		block.Txs = newtx
-		block.TxHash = merkle.CalcMerkleRoot(block.Txs)
-	}
-
-	var detail types.BlockDetail
-
-	calcHash = util.ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
-
-	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
-		util.ExecKVSetRollback(client, calcHash)
-		if len(rdata) > 0 {
-			for i, rd := range rdata {
-				rd.OutputReceiptDetails(block.Txs[i].Execer, chainlog)
-			}
-		}
-		return nil, nil, types.ErrCheckStateHash
-	}
-	block.StateHash = calcHash
-	detail.Block = block
-	detail.Receipts = rdata
-	if detail.Block.Height > 0 {
-		err := util.CheckBlock(client, &detail)
-		if err != nil {
-			chainlog.Debug("CheckBlock-->", "err=", err)
-			return nil, deltx, err
-		}
-	}
-	//save to db
-	util.ExecKVSetCommit(client, block.StateHash)
-	detail.KV = kvset
-	detail.PrevStatusHash = prevStateRoot
-	//get receipts
-	//save kvset and get state hash
-	//ulog.Debug("blockdetail-->", "detail=", detail)
-	return &detail, deltx, nil
 }
