@@ -10,8 +10,6 @@ SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
 SRC_MINER := gitlab.33.cn/chain33/chain33/cmd/miner_accounts
 APP := build/chain33
 CLI := build/chain33-cli
-PARACLI := build/chain33-para-cli
-PARANAME := para
 SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
 AUTO_TEST := build/tools/autotest/autotest
@@ -24,9 +22,9 @@ MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
 DAPP := ""
 PROJ := "build"
-.PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
+.PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
 
-default: build cli depends para-cli autotest
+default: build cli depends autotest
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
@@ -62,9 +60,6 @@ execblock: ## Build cli binary
 para:
 	@go build -v -o build/$(NAME) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(NAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
-para-cli:
-	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
-
 
 autotest:## build autotest binary
 	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
@@ -82,7 +77,6 @@ miner:
 
 build_ci: depends ## Build the binary file for CI
 	@go build -v -i -o $(CLI) $(SRC_CLI)
-	@go build -v  -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
@@ -151,16 +145,14 @@ docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
 docker-compose: ## build docker-compose for chain33 run
-	@cd build && ./docker-compose.sh $(PROJ) $(DAPP) && cd ..
+	@cd build && cp chain33* Dockerfile  docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh run $(PROJ) $(DAPP)  && cd ../..
 
 docker-compose-down: ## build docker-compose for chain33 run
-	@cd build && ./docker-compose-down.sh $(PROJ) $(DAPP) && cd ..
+	@cd build/ci && ./docker-compose-pre.sh down $(PROJ) $(DAPP) && cd ..
 
 fork-test: ## build fork-test for chain33 run
-	@cd build && ./fork-test.sh $(PROJ) $(DAPP) && cd ..
+	@cd build && cp chain33* Dockerfile system-fork-test.sh docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh forktest $(PROJ) $(DAPP) && cd ..
 
-privacy-test: ## build privacy-test for chain33 run
-	@cd build && ./privacy-test.sh build && cd ..
 
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
@@ -169,9 +161,7 @@ clean: ## Remove previous build
 	@rm -rf build/*.log
 	@rm -rf build/logs
 	@rm -rf build/tools/autotest/autotest
-	@rm -rf build/Dockerfile-app*
-	@rm -rf build/docker-compose-*.yml
-	@rm -f build/entrypoint.sh
+	@rm -rf build/ci
 	@go clean
 
 proto:protobuf
@@ -183,8 +173,8 @@ protobuf: ## Generate protbuf file of types package
 
 
 depends: ## Generate depends file of types package
-	@find ./plugin/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build" FLAG= \;
-	@find ./system/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build" FLAG= \;
+	@find ./plugin/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build/ci" FLAG= \;
+	@find ./system/dapp -maxdepth 2 -type d  -name cmd -exec make -C {} OUT="$(MKDIR)build/ci" FLAG= \;
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"

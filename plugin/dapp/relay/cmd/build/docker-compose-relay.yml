@@ -1,40 +1,10 @@
 version: '3'
 
 services:
-  chain33:
-    build:
-      context: .
-      dockerfile: Dockerfile-app-relay
-
-  chain32:
-    build:
-      context: .
-      dockerfile: Dockerfile-app-relay
-
-  chain31:
-    build:
-      context: .
-      dockerfile: Dockerfile-app-relay
-
-  chain30:
-    build:
-      context: .
-      dockerfile: Dockerfile-app-relay
-
-  chain29:
-    build:
-      context: .
-      dockerfile: Dockerfile-app-relay
-
-  chain28:
-    build:
-      context: .
-      dockerfile: Dockerfile-app-relay
-
   relayd:
     build:
       context: .
-      dockerfile: Dockerfile-app-relayd
+      dockerfile: Dockerfile-relayd
 
   btcd:
     image: suyanlong/btcd-run:latest
