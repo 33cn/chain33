@@ -12,6 +12,9 @@ import (
 )
 
 func (this *channelClient) CreateRawTradeSellTx(ctx context.Context, in *ptypes.TradeForSell) (*types.UnsignTx, error) {
+	if in == nil {
+		return nil, types.ErrInvalidParam
+	}
 	sell := &ptypes.Trade{
 		Ty:    ptypes.TradeSellLimit,
 		Value: &ptypes.Trade_SellLimit{SellLimit: in},
@@ -32,6 +35,9 @@ func (this *channelClient) CreateRawTradeSellTx(ctx context.Context, in *ptypes.
 }
 
 func (this *channelClient) CreateRawTradeBuyTx(ctx context.Context, in *ptypes.TradeForBuy) (*types.UnsignTx, error) {
+	if in == nil {
+		return nil, types.ErrInvalidParam
+	}
 	buy := &ptypes.Trade{
 		Ty:    ptypes.TradeBuyMarket,
 		Value: &ptypes.Trade_BuyMarket{in},
@@ -52,6 +58,9 @@ func (this *channelClient) CreateRawTradeBuyTx(ctx context.Context, in *ptypes.T
 }
 
 func (this *channelClient) CreateRawTradeRevokeTx(ctx context.Context, in *ptypes.TradeForRevokeSell) (*types.UnsignTx, error) {
+	if in == nil {
+		return nil, types.ErrInvalidParam
+	}
 	buy := &ptypes.Trade{
 		Ty:    ptypes.TradeRevokeSell,
 		Value: &ptypes.Trade_RevokeSell{in},
@@ -72,6 +81,9 @@ func (this *channelClient) CreateRawTradeRevokeTx(ctx context.Context, in *ptype
 }
 
 func (this *channelClient) CreateRawTradeBuyLimitTx(ctx context.Context, in *ptypes.TradeForBuyLimit) (*types.UnsignTx, error) {
+	if in == nil {
+		return nil, types.ErrInvalidParam
+	}
 	buy := &ptypes.Trade{
 		Ty:    ptypes.TradeBuyLimit,
 		Value: &ptypes.Trade_BuyLimit{in},
@@ -92,6 +104,9 @@ func (this *channelClient) CreateRawTradeBuyLimitTx(ctx context.Context, in *pty
 }
 
 func (this *channelClient) CreateRawTradeSellMarketTx(ctx context.Context, in *ptypes.TradeForSellMarket) (*types.UnsignTx, error) {
+	if in == nil {
+		return nil, types.ErrInvalidParam
+	}
 	buy := &ptypes.Trade{
 		Ty:    ptypes.TradeSellMarket,
 		Value: &ptypes.Trade_SellMarket{in},
@@ -112,6 +127,9 @@ func (this *channelClient) CreateRawTradeSellMarketTx(ctx context.Context, in *p
 }
 
 func (this *channelClient) CreateRawTradeRevokeBuyTx(ctx context.Context, in *ptypes.TradeForRevokeBuy) (*types.UnsignTx, error) {
+	if in == nil {
+		return nil, types.ErrInvalidParam
+	}
 	buy := &ptypes.Trade{
 		Ty:    ptypes.TradeRevokeBuy,
 		Value: &ptypes.Trade_RevokeBuy{in},
