@@ -3,6 +3,7 @@ package testnode
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -110,6 +111,18 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 		cfg, sub = config.InitCfg(cfgpath)
 	}
 	return NewWithConfig(cfg, sub, mockapi)
+}
+
+func (m *Chain33Mock) Listen() {
+	portgrpc, portjsonrpc := m.rpc.Listen()
+	if strings.HasSuffix(m.cfg.Rpc.JrpcBindAddr, ":0") {
+		l := len(m.cfg.Rpc.JrpcBindAddr)
+		m.cfg.Rpc.JrpcBindAddr = m.cfg.Rpc.JrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portjsonrpc)
+	}
+	if strings.HasSuffix(m.cfg.Rpc.GrpcBindAddr, ":0") {
+		l := len(m.cfg.Rpc.GrpcBindAddr)
+		m.cfg.Rpc.GrpcBindAddr = m.cfg.Rpc.GrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portgrpc)
+	}
 }
 
 func newWalletRealize(qApi client.QueueProtocolAPI) {

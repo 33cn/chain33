@@ -476,7 +476,7 @@ func tokenSell(cmd *cobra.Command, args []string) {
 		Fee:               feeInt64 * 1e4,
 	}
 
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "trade.CreateRawTradeSellTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -512,7 +512,7 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 		Fee:         feeInt64 * 1e4,
 	}
 
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "trade.CreateRawTradeBuyTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -545,6 +545,6 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 		Fee:    feeInt64 * 1e4,
 	}
 
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "trade.CreateRawTradeRevokeTx", params, nil)
 	ctx.RunWithoutMarshal()
 }

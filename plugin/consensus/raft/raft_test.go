@@ -11,6 +11,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
@@ -146,6 +147,7 @@ func prepareTxList() *types.Transaction {
 	nput := &pty.NormAction_Nput{&pty.NormPut{Key: key, Value: []byte(value)}}
 	action := &pty.NormAction{Value: nput, Ty: pty.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: 0}
+	tx.To = address.ExecAddress("norm")
 	tx.Nonce = random.Int63()
 	tx.Sign(types.SECP256K1, getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"))
 	return tx
