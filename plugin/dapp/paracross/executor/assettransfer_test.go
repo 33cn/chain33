@@ -7,13 +7,11 @@ import (
 	//"github.com/stretchr/testify/mock"
 	"testing"
 
-	//"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/account"
 	apimock "gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -40,10 +38,6 @@ type AssetTransferTestSuite struct {
 
 func TestAssetTransfer(t *testing.T) {
 	suite.Run(t, new(AssetTransferTestSuite))
-}
-
-func init() {
-	rpc.Init("paracross", nil)
 }
 
 func (suite *AssetTransferTestSuite) SetupTest() {
@@ -198,7 +192,7 @@ func createAssetTransferTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err
@@ -302,7 +296,7 @@ func createAssetTransferTokenTx(s suite.Suite, privFrom string, to []byte) (*typ
 		TokenSymbol: TestSymbol,
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err

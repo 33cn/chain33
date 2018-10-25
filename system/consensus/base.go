@@ -29,6 +29,7 @@ func init() {
 
 type Miner interface {
 	CreateGenesisTx() []*types.Transaction
+	GetGenesisBlockTime() int64
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	ProcEvent(msg queue.Message) bool
@@ -48,9 +49,6 @@ type BaseClient struct {
 }
 
 func NewBaseClient(cfg *types.Consensus) *BaseClient {
-	cfg.Genesis = types.GenesisAddr
-	cfg.HotkeyAddr = types.HotkeyAddr
-	cfg.GenesisBlockTime = types.GenesisBlockTime
 	var flag int32
 	if cfg.Minerstart {
 		flag = 1
@@ -59,6 +57,10 @@ func NewBaseClient(cfg *types.Consensus) *BaseClient {
 	client.Cfg = cfg
 	log.Info("Enter consensus " + cfg.GetName())
 	return client
+}
+
+func (client *BaseClient) GetGenesisBlockTime() int64 {
+	return client.Cfg.GenesisBlockTime
 }
 
 func (bc *BaseClient) SetChild(c Miner) {
@@ -108,7 +110,7 @@ func (bc *BaseClient) InitBlock() {
 		// 创世区块
 		newblock := &types.Block{}
 		newblock.Height = 0
-		newblock.BlockTime = bc.Cfg.GenesisBlockTime
+		newblock.BlockTime = bc.child.GetGenesisBlockTime()
 		// TODO: 下面这些值在创世区块中赋值nil，是否合理？
 		newblock.ParentHash = zeroHash[:]
 		tx := bc.child.CreateGenesisTx()

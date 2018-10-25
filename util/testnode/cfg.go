@@ -1,7 +1,6 @@
 package testnode
 
 var cfgstring = `Title="local"
-TestNet=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -55,8 +54,8 @@ verMix=216
 verMax=217
 
 [rpc]
-jrpcBindAddr="localhost:8801"
-grpcBindAddr="localhost:8802"
+jrpcBindAddr="localhost:0"
+grpcBindAddr="localhost:0"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
@@ -69,9 +68,30 @@ maxTxNumPerAccount=10000
 [consensus]
 name="solo"
 minerstart=true
+genesisBlockTime=1514533394
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+
+[consensus.sub.solo]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
-hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+
+[consensus.sub.ticket]
+genesisBlockTime=1514533394
+[[consensus.sub.ticket.genesis]]
+minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+count=10000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1PUiGcbsccfxW3zuvHXZBJfznziph5miAo"
+returnAddr="1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
+count=10000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+returnAddr="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
+count=10000
 
 [store]
 name="mavl"
@@ -88,9 +108,9 @@ minFee=1000000
 driver="memdb"
 dbPath="datadir/wallet"
 dbCache=16
+signType="secp256k1"
 
 [wallet.sub.ticket]
-signType="secp256k1"
 minerwhitelist=["*"]
 
 [exec]

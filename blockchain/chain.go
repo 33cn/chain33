@@ -1,3 +1,6 @@
+/*
+实现区块链模块，包含区块链存储
+*/
 package blockchain
 
 import (

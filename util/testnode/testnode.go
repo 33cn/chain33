@@ -3,11 +3,12 @@ package testnode
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
@@ -20,6 +21,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util"
 	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
@@ -29,7 +31,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	log.SetLogLevel("info")
+	log.SetLogLevel("error")
 }
 
 type Chain33Mock struct {
@@ -112,17 +114,29 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	return NewWithConfig(cfg, sub, mockapi)
 }
 
+func (m *Chain33Mock) Listen() {
+	portgrpc, portjsonrpc := m.rpc.Listen()
+	if strings.HasSuffix(m.cfg.Rpc.JrpcBindAddr, ":0") {
+		l := len(m.cfg.Rpc.JrpcBindAddr)
+		m.cfg.Rpc.JrpcBindAddr = m.cfg.Rpc.JrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portjsonrpc)
+	}
+	if strings.HasSuffix(m.cfg.Rpc.GrpcBindAddr, ":0") {
+		l := len(m.cfg.Rpc.GrpcBindAddr)
+		m.cfg.Rpc.GrpcBindAddr = m.cfg.Rpc.GrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portgrpc)
+	}
+}
+
 func newWalletRealize(qApi client.QueueProtocolAPI) {
 	seed := &types.SaveSeedByPw{"subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant", "123456"}
-	_, err := qApi.SaveSeed(seed)
-	if err != nil {
+	reply, err := qApi.SaveSeed(seed)
+	if !reply.IsOk && err != nil {
 		panic(err)
 	}
-	_, err = qApi.WalletUnLock(&types.WalletUnLock{"123456", 0, false})
-	if err != nil {
+	reply, err = qApi.WalletUnLock(&types.WalletUnLock{"123456", 0, false})
+	if !reply.IsOk && err != nil {
 		panic(err)
 	}
-	for i, priv := range TestPrivkeyHex {
+	for i, priv := range util.TestPrivkeyHex {
 		privkey := &types.ReqWalletImportPrivkey{priv, fmt.Sprintf("label%d", i)}
 		_, err = qApi.WalletImportprivkey(privkey)
 		if err != nil {
@@ -174,6 +188,33 @@ func (mock *Chain33Mock) WaitHeight(height int64) error {
 	return nil
 }
 
+func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Account {
+	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
+	acc := account.NewCoinsAccount()
+	acc.SetDB(statedb)
+	return acc.LoadAccount(addr)
+}
+
+func (mock *Chain33Mock) GetBlock(height int64) *types.Block {
+	blocks, err := mock.api.GetBlocks(&types.ReqBlocks{Start: height, End: height})
+	if err != nil {
+		panic(err)
+	}
+	return blocks.Items[0].Block
+}
+
+func (m *Chain33Mock) GetClient() queue.Client {
+	return m.client
+}
+
+func (m *Chain33Mock) GetGenesisKey() crypto.PrivKey {
+	return util.TestPrivkeyList[1]
+}
+
+func (m *Chain33Mock) GetGenesisAddress() string {
+	return m.cfg.Consensus.Genesis
+}
+
 type mockP2P struct {
 }
 
@@ -195,34 +236,4 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 }
 
 func (m *mockP2P) Close() {
-}
-
-func (m *Chain33Mock) GenNoneTxs(n int64) (txs []*types.Transaction) {
-	_, priv := m.Genaddress()
-	to, _ := m.Genaddress()
-	for i := 0; i < int(n); i++ {
-		txs = append(txs, m.CreateNoneTx(priv, to, types.Coin*(n+1)))
-	}
-	return txs
-}
-
-func (m *Chain33Mock) Genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
-	if err != nil {
-		panic(err)
-	}
-	privto, err := cr.GenKey()
-	if err != nil {
-		panic(err)
-	}
-	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
-	return addrto.String(), privto
-}
-
-func (m *Chain33Mock) CreateNoneTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	tx := &types.Transaction{Execer: []byte("none"), Payload: []byte("none"), Fee: 1e6, To: to}
-	tx.Nonce = m.random.Int63()
-	tx.To = address.ExecAddress("none")
-	tx.Sign(types.SECP256K1, priv)
-	return tx
 }

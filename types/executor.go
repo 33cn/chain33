@@ -203,7 +203,7 @@ type ExecutorType interface {
 	AssertCreate(createTx *CreateTx) (*Transaction, error)
 	QueryToJson(funcname string, message Message) ([]byte, error)
 	Amount(tx *Transaction) (int64, error)
-	DecodePayload(tx *Transaction) (interface{}, error)
+	DecodePayload(tx *Transaction) (Message, error)
 	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
 	//write for executor
 	GetPayload() Message
@@ -368,7 +368,7 @@ func (base *ExecTypeBase) GetFuncMap() map[string]reflect.Method {
 	return base.actionFunList
 }
 
-func (base *ExecTypeBase) DecodePayload(tx *Transaction) (interface{}, error) {
+func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 	if base.child == nil {
 		return nil, ErrActionNotSupport
 	}

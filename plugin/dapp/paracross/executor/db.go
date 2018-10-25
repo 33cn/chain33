@@ -15,7 +15,7 @@ func getTitle(db dbm.KV, key []byte) (*pt.ParacrossStatus, error) {
 			return nil, err
 		}
 		// 平行链如果是从其他链上移过来的，  需要增加配置， 对应title的平行链的起始高度
-		clog.Info("first time load title", string(key))
+		clog.Info("first time load title", "key", string(key))
 		return &pt.ParacrossStatus{Height: -1}, nil
 	}
 
