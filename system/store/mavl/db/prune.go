@@ -79,7 +79,7 @@ func pruningTree(db dbm.DB, curHeight int64) {
 	start := time.Now()
 	pruningTreeLeafNode(db, curHeight)
 	end := time.Now()
-	treelog.Info("pruningTree", "leafNode cost time:", end.Sub(start))
+	treelog.Info("pruningTree", "curHeight:", curHeight, "pruning leafNode cost time:", end.Sub(start))
 	setPruning(pruningStateEnd)
 }
 
