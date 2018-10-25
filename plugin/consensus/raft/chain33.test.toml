@@ -1,5 +1,4 @@
-Title="chain33"
-TestNet=false
+Title="local"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -33,6 +32,7 @@ dbCache=64
 isStrongConsistency=true
 singleMode=true
 batchsync=false
+enableTxQuickIndex=true
 
 [p2p]
 seeds=["127.0.0.1:13802"]
@@ -65,8 +65,11 @@ minTxFee=100000
 [consensus]
 # 共识驱动名,支持solo/raft/ticket/tendermint/pbft
 name="raft"
-minerstart=true
+minerstart=false
+
+[consensus.sub.raft]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+genesisBlockTime=1514533394
 # =============== raft共识配置参数 ===========================
 # 共识节点ID，raft共识用到，不同的节点设置不同的nodeId（目前只支持1，2，3这种设置）
 nodeId=1
@@ -86,23 +89,40 @@ writeBlockSeconds=1
 #raft共识用到，默认raft中leader发送心跳包时间间隔
 heartbeatTick=1
 # =============== raft共识配置参数 ===========================
-genesisBlockTime=1514533394
-hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
 [store]
 name="kvdb"
 driver="leveldb"
-dbPath="datadir/kvdb"
+dbPath="datadir/mavltree"
 dbCache=128
+
+[store.sub.kvdb]
+enableMavlPrefix=false
+enableMVCC=false
 
 [wallet]
 minFee=100000
 driver="leveldb"
-dbPath="datadir/wallet"
+dbPath="wallet"
 dbCache=16
 signType="secp256k1"
-minerdisable=true
+
+[wallet.sub.ticket]
+minerdisable=false
+minerwhitelist=["*"]
 
 [exec]
-isFree=true
-minExecFee=0
+isFree=false
+minExecFee=100000
+enableStat=false
+enableMVCC=false
+alias=["token1:token","token2:token","token3:token"]
+saveTokenTxList=false
+
+[exec.sub.cert]
+# 是否启用证书验证和签名
+enable=false
+# 加密文件路径
+cryptoPath="authdir/crypto"
+# 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
+signType="auth_ecdsa"

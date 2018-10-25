@@ -16,6 +16,8 @@ var slog = log.New("module", "solo")
 
 type Client struct {
 	*drivers.BaseClient
+	subcfg    *subConfig
+	sleepTime time.Duration
 }
 
 func init() {
@@ -23,9 +25,22 @@ func init() {
 	drivers.QueryData.Register("solo", &Client{})
 }
 
+type subConfig struct {
+	Genesis          string `json:"genesis"`
+	GenesisBlockTime int64  `json:"genesisBlockTime"`
+	WaitTxMs         int64  `json:"waitTxMs"`
+}
+
 func New(cfg *types.Consensus, sub []byte) queue.Module {
 	c := drivers.NewBaseClient(cfg)
-	solo := &Client{c}
+	var subcfg subConfig
+	if sub != nil {
+		types.MustDecode(sub, &subcfg)
+	}
+	if subcfg.WaitTxMs == 0 {
+		subcfg.WaitTxMs = 1000
+	}
+	solo := &Client{c, &subcfg, time.Duration(subcfg.WaitTxMs) * time.Millisecond}
 	c.SetChild(solo)
 	return solo
 }
@@ -34,10 +49,14 @@ func (client *Client) Close() {
 	slog.Info("consensus solo closed")
 }
 
+func (client *Client) GetGenesisBlockTime() int64 {
+	return client.subcfg.GenesisBlockTime
+}
+
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
 	tx.Execer = []byte("coins")
-	tx.To = client.Cfg.Genesis
+	tx.To = client.subcfg.Genesis
 	//gen payload
 	g := &cty.CoinsAction_Genesis{}
 	g.Genesis = &types.AssetsGenesis{}
@@ -60,11 +79,11 @@ func (client *Client) CreateBlock() {
 	issleep := true
 	for {
 		if !client.IsMining() || !client.IsCaughtUp() {
-			time.Sleep(time.Second)
+			time.Sleep(client.sleepTime)
 			continue
 		}
 		if issleep {
-			time.Sleep(time.Second)
+			time.Sleep(client.sleepTime)
 		}
 		lastBlock := client.GetCurrentBlock()
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
