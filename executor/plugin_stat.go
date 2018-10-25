@@ -6,6 +6,16 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+	//定制数据统计
+	if exec.enableStat {
+		kvs, err := exec.stat(execute, datas)
+		if err != nil {
+			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+			return
+		}
+		kvset.KV = append(kvset.KV, kvs...)
+	}
+
 func countInfo(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
 	var kvset types.LocalDBSet
 
@@ -57,3 +67,14 @@ func StatisticTicketInfoOrderKey(minerAddr string, createTime int64, ticketId st
 func StatisticTicketKey(minerAddr string) []byte {
 	return []byte("Statistics:TicketStat:Addr:" + minerAddr)
 }
+
+
+	//定制数据统计
+	if exec.enableStat {
+		kvs, err := delCountInfo(execute, datas)
+		if err != nil {
+			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
+			return
+		}
+		kvset.KV = append(kvset.KV, kvs.KV...)
+	}
