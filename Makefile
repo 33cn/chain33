@@ -145,10 +145,15 @@ docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
 docker-compose: ## build docker-compose for chain33 run
-	@cd build && cp chain33* Dockerfile  docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh run $(PROJ) $(DAPP)  && cd ../..
+	@cd build && if ! [ -d ci ]; then \
+	 make -C ../ ; \
+	 fi; \
+	 cp chain33* Dockerfile  docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh run $(PROJ) $(DAPP)  && cd ../..
 
 docker-compose-down: ## build docker-compose for chain33 run
-	@cd build && cp chain33* Dockerfile  docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh down $(PROJ) $(DAPP) && cd ..
+	@cd build && if [ -d ci ]; then \
+	 cp chain33* Dockerfile  docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh down $(PROJ) $(DAPP) && cd .. ; \
+	 fi;
 
 fork-test: ## build fork-test for chain33 run
 	@cd build && cp chain33* Dockerfile system-fork-test.sh docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh forktest $(PROJ) $(DAPP) && cd ..
