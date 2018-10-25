@@ -19,6 +19,11 @@ import (
 
 var blog = log.New("module", "execs.base")
 
+const (
+	TxIndexFrom = 1
+	TxIndexTo   = 2
+)
+
 type Driver interface {
 	SetStateDB(dbm.KV)
 	GetCoinsAccount() *account.DB

@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"time"
 )
 
 //CalcTxKey local db中保存交易的方法
@@ -33,4 +34,25 @@ func CalcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
 //存储地址参与的交易数量。add时加一，del时减一
 func CalcAddrTxsCountKey(addr string) []byte {
 	return []byte(fmt.Sprintf("AddrTxsCount:%s", addr))
+}
+
+func StatisticFlag() []byte {
+	return []byte("Statistics:Flag")
+}
+
+func StatisticTicketInfoKey(ticketId string) []byte {
+	return []byte("Statistics:TicketInfo:TicketId:" + ticketId)
+}
+
+func StatisticTicketInfoOrderKey(minerAddr string, createTime int64, ticketId string) []byte {
+	return []byte("Statistics:TicketInfoOrder:Addr:" + minerAddr + ":CreateTime:" + time.Unix(createTime, 0).Format("20060102150405") + ":TicketId:" + ticketId)
+}
+
+func StatisticTicketKey(minerAddr string) []byte {
+	return []byte("Statistics:TicketStat:Addr:" + minerAddr)
+}
+
+func TotalFeeKey(hash []byte) []byte {
+	key := []byte("TotalFeeKey:")
+	return append(key, hash...)
 }

@@ -7,6 +7,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -28,9 +30,8 @@ type executor struct {
 func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64,
 	txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
 	client := exec.client
-	enableMVCC := exec.enableMVCC
-	flagMVCC := exec.flagMVCC
-	opt := &StateDBOption{EnableMVCC: enableMVCC, FlagMVCC: flagMVCC, Height: height}
+	enableMVCC := exec.pluginEnable["mvcc"]
+	opt := &StateDBOption{EnableMVCC: enableMVCC, Height: height}
 	localdb := NewLocalDB(client)
 	e := &executor{
 		stateDB:      NewStateDB(client, stateHash, localdb, opt),
