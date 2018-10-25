@@ -8,6 +8,7 @@ import (
 func (c *PokerBull) updateIndex(log *pkt.ReceiptPBGame) (kvs []*types.KeyValue) {
 	//先保存本次Action产生的索引
 	kvs = append(kvs, addPBGameStatus(log.Status, log.PlayerNum, log.Value, log.Index, log.GameId))
+	kvs = append(kvs, addPBGameAddrIndexKey(log.Status, log.Addr, log.GameId, log.Index))
 
 	//状态更新
 	if log.Status == pkt.PBGameActionStart {
@@ -23,6 +24,17 @@ func (c *PokerBull) updateIndex(log *pkt.ReceiptPBGame) (kvs []*types.KeyValue) 
 		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
 		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionContinue, log.PlayerNum, log.Value, log.PrevIndex))
 	}
+
+	//结束一局，更新所有玩家地址状态
+	if !log.IsWaiting {
+		for _, v := range log.Players {
+			if v != log.Addr {
+				kvs = append(kvs, addPBGameAddrIndexKey(log.Status, v, log.GameId, log.Index))
+			}
+			kvs = append(kvs, delPBGameAddrIndexKey(v, log.PrevIndex))
+		}
+	}
+
 	return kvs
 }
 

@@ -5,6 +5,8 @@ import (
 	pkt "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
+	"strconv"
+	"fmt"
 )
 
 func PokerBullCmd() *cobra.Command {
@@ -138,23 +140,41 @@ func PokerBullQueryResultRawTxCmd() *cobra.Command {
 
 func addPokerbullQueryFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("gameID", "g", "", "game ID")
-	cmd.MarkFlagRequired("gameID")
+	cmd.Flags().StringP("address", "a", "", "address")
+	cmd.Flags().StringP("index", "i", "", "index")
 }
 
 func pokerbullQuery(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	gameID, _ := cmd.Flags().GetString("gameID")
+	address, _ := cmd.Flags().GetString("address")
+	indexstr, _ := cmd.Flags().GetString("index")
+	index,_ := strconv.ParseInt(indexstr, 10, 64)
+	if address == "" && gameID == "" {
+		fmt.Println("Error: requeres at least one of gameID and address")
+		return
+	}
 
 	var params types.Query4Cli
 	params.Execer = pkt.PokerBullX
-
 	req := &pkt.QueryPBGameInfo{
 		GameId: gameID,
+		Addr:   address,
+		Index:  index,
+	}
+	params.Payload = req
+	if gameID != "" {
+		params.FuncName = pkt.FuncName_QueryGameById
+		var res pkt.ReplyPBGame
+		ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+		ctx.Run()
+	} else if address != "" {
+		params.FuncName = pkt.FuncName_QueryGameByAddr
+		var res pkt.PBGameRecords
+		ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+		ctx.Run()
 	}
 
-	params.Payload = req
-	params.FuncName = pkt.FuncName_QueryGameById
-	var res pkt.ReplyPBGame
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
-	ctx.Run()
+
+
 }

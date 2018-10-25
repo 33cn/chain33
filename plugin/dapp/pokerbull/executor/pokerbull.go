@@ -41,6 +41,16 @@ func (g *PokerBull) GetDriverName() string {
 	return pkt.PokerBullX
 }
 
+func calcPBGameAddrPrefix(addr string) []byte {
+	key := fmt.Sprintf("PBGame-addr:%s:", addr)
+	return []byte(key)
+}
+
+func calcPBGameAddrKey(addr string, index int64) []byte {
+	key := fmt.Sprintf("PBGame-addr:%s:%d", addr, index)
+	return []byte(key)
+}
+
 func calcPBGameStatusKey(status, player int32, value, index int64) []byte {
 	key := fmt.Sprintf("PBgame-status:%d:%d:%d:%d", status, player, value, index)
 	return []byte(key)
@@ -57,11 +67,31 @@ func calcPBGameStatusAndPlayerPrefix(status, player int32, value int64) []byte {
 	return []byte(key)
 }
 
+func addPBGameAddrIndexKey(status int32, addr, gameID string, index int64) *types.KeyValue {
+	kv := &types.KeyValue{}
+	kv.Key = calcPBGameAddrKey(addr, index)
+	record := &pkt.PBGameRecord{
+		GameId:gameID,
+		Status:status,
+		Index:index,
+	}
+	kv.Value = types.Encode(record)
+	return kv
+}
+
+func delPBGameAddrIndexKey(addr string, index int64) *types.KeyValue {
+	kv := &types.KeyValue{}
+	kv.Key = calcPBGameAddrKey(addr, index)
+	kv.Value = nil
+	return kv
+}
+
 func addPBGameStatus(status int32, player int32, value, index int64, gameId string) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcPBGameStatusKey(status, player, value, index)
 	record := &pkt.PBGameRecord{
 		GameId: gameId,
+		Index:index,
 	}
 	kv.Value = types.Encode(record)
 	return kv

@@ -105,6 +105,31 @@ func Infos(db dbm.KV, infos *pkt.QueryPBGameInfos) (types.Message, error) {
 	return &pkt.ReplyPBGameList{Games: games}, nil
 }
 
+func getGameListByAddr(db dbm.Lister, addr string, index int64) (types.Message, error) {
+	var values [][]byte
+	var err error
+	if index == 0 {
+		values,err = db.List(calcPBGameAddrPrefix(addr), nil, DefaultCount, ListDESC)
+	} else {
+		values, err = db.List(calcPBGameAddrPrefix(addr), calcPBGameAddrKey(addr, index), DefaultCount, ListDESC)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var gameIds []*pkt.PBGameRecord
+	for _, value := range values {
+		var record pkt.PBGameRecord
+		err := types.Decode(value, &record)
+		if err != nil {
+			continue
+		}
+		gameIds = append(gameIds, &record)
+	}
+
+	return &pkt.PBGameRecords{gameIds}, nil
+}
+
 func queryGameListByStatusAndPlayer(db dbm.Lister, stat int32, player int32, value int64) ([]string, error) {
 	values, err := db.List(calcPBGameStatusAndPlayerPrefix(stat, player, value), nil, DefaultCount, ListDESC)
 	if err != nil {
@@ -153,6 +178,12 @@ func (action *Action) GetReceiptLog(game *pkt.PokerBull) *types.ReceiptLog {
 	r.PrevIndex = game.GetPrevIndex()
 	r.PlayerNum = game.PlayerNum
 	r.Value = game.Value
+    r.IsWaiting = game.IsWaiting
+    if !r.IsWaiting {
+		for _, v := range game.Players {
+			r.Players = append(r.Players, v.Address)
+		}
+	}
 	log.Log = types.Encode(r)
 	return log
 }
@@ -485,16 +516,12 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 		}
 	} else {
 		game = action.selectGameFromIds(ids, start.GetValue())
-
-		// 如果也没有匹配到游戏，则按照最低赌注创建
 		if game == nil {
+			// 如果也没有匹配到游戏，则按照最低赌注创建
 			game,err = action.newGame(gameId, start)
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			game.PrevIndex = game.Index
-			game.Index = action.getIndex(game)
 		}
 	}
 
@@ -520,6 +547,8 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 		logs = append(logs, logsH...)
 		kv = append(kv, kvH...)
 
+		game.PrevIndex = game.Index
+		game.Index = action.getIndex(game)
 		game.Status = pkt.PBGameActionContinue // 更新游戏状态
 		game.IsWaiting = false
 	} else {
@@ -606,9 +635,6 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 	pbplayer.TxHash = txrng
 	pbplayer.Ready = true
 
-	game.PrevIndex = game.Index
-	game.Index = action.getIndex(game)
-
 	if getReadyPlayerNum(game.Players) == int(game.PlayerNum) {
 		logsH, kvH, err := action.settleAccount(action.fromaddr, game)
 		if err != nil {
@@ -616,6 +642,8 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 		}
 		logs = append(logs, logsH...)
 		kv = append(kv, kvH...)
+		game.PrevIndex = game.Index
+		game.Index = action.getIndex(game)
 		game.IsWaiting = false
 	} else {
 		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, game.GetValue()*POKERBULL_LEVERAGE_MAX) //冻结子账户资金,最后一位玩家不需要冻结

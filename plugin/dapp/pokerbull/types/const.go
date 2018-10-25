@@ -34,4 +34,5 @@ const (
 	//查询方法名
 	FuncName_QueryGameListByIds = "QueryGameListByIds"
 	FuncName_QueryGameById      = "QueryGameById"
+	FuncName_QueryGameByAddr    = "QueryGameByAddr"
 )
