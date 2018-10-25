@@ -18,6 +18,7 @@ build/guodun
 build/main.sh
 build/main*
 build/para.sh
+build/ci
 cmd/execblock/execblock
 cmd/miner_accounts/miner_accounts
 cmd/write/write
