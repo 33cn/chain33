@@ -149,8 +149,6 @@ func (t *token) ExecLocal_Tokenrevokecreate(payload *tokenty.TokenRevokeCreate, 
 	var set []*types.KeyValue
 	set = append(set, &types.KeyValue{Key:prepareKey, Value: nil})
 	set = append(set, &types.KeyValue{Key:key, Value: types.Encode(&localToken)})
-	kv := AddTokenToAssets(payload.Owner, t.GetLocalDB(), payload.Symbol)
-	set = append(set, kv...)
 	return &types.LocalDBSet{KV: set}, nil
 }
 
