@@ -59,6 +59,15 @@ func (t *token) ExecLocal_Withdraw(payload *types.AssetsWithdraw, tx *types.Tran
 	return set, nil
 }
 
+
+func (t *token) ExecLocal_TransferToExec(payload *types.AssetsTransferToExec, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := t.ExecLocalTransWithdraw(tx, receiptData, index)
+	if err != nil {
+		return nil, err
+	}
+	return set, nil
+}
+
 func (t *token) ExecLocal_Tokenprecreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	localToken := newLocalToken(payload)
 	localToken = setPrepare(localToken, tx.From(), t.GetHeight(), t.GetBlockTime())
@@ -99,13 +108,6 @@ func (t *token) ExecLocal_Tokenrevokecreate(payload *tokenty.TokenRevokeCreate, 
 	return &types.LocalDBSet{KV: set}, nil
 }
 
-func (t *token) ExecLocal_TransferToExec(payload *types.AssetsTransferToExec, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.ExecLocalTransWithdraw(tx, receiptData, index)
-	if err != nil {
-		return nil, err
-	}
-	return set, nil
-}
 
 func newLocalToken(payload *tokenty.TokenPreCreate) *tokenty.LocalToken {
 	localToken := tokenty.LocalToken{
