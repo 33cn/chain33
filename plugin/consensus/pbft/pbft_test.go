@@ -1,36 +1,27 @@
 package pbft
 
 import (
-	"testing"
-
-	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/queue"
-
-	//"gitlab.33.cn/chain33/chain33/store"
-	//"gitlab.33.cn/chain33/chain33/p2p"
 	"flag"
+	"fmt"
 	"math/rand"
-
-	"gitlab.33.cn/chain33/chain33/common/config"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/mempool"
-	"gitlab.33.cn/chain33/chain33/types"
-
-	//"time"
-	//"gitlab.33.cn/chain33/chain33/execs"
-	//"os/exec"
-	//"github.com/piotrnar/gocoin/lib/chain"
-	"gitlab.33.cn/chain33/chain33/store"
-	//"gitlab.33.cn/chain33/chain33/execs"
+	"os"
 	"strconv"
+	"testing"
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/store"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
+	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/wallet"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/init"
@@ -50,7 +41,7 @@ func init() {
 		panic(err)
 	}
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
-	//common.SetLogLevel("info")
+	log.SetLogLevel("info")
 }
 func TestPbft(t *testing.T) {
 	q, chain, p2pnet, s, mem, exec, cs, wallet := initEnvPbft()
@@ -65,14 +56,13 @@ func TestPbft(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	sendReplyList(q)
-
+	clearTestData()
 }
 
 func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg, sub := config.InitCfg("chain33.test.toml")
-	log.SetFileLog(cfg.Log)
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 	mem := mempool.New(cfg.MemPool)
@@ -143,4 +133,16 @@ func createReplyList(account string) {
 	}
 	//result = append(result, tx)
 	transactions = result
+}
+
+func clearTestData() {
+	err := os.RemoveAll("datadir")
+	if err != nil {
+		fmt.Println("delete datadir have a err:", err.Error())
+	}
+	err = os.RemoveAll("wallet")
+	if err != nil {
+		fmt.Println("delete wallet have a err:", err.Error())
+	}
+	fmt.Println("test data clear sucessfully!")
 }
