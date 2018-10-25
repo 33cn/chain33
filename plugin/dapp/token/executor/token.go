@@ -264,8 +264,10 @@ func (t *token) makeTokenTxKvs(tx *types.Transaction, action *tokenty.TokenActio
 	var symbol string
 	if action.Ty == tokenty.ActionTransfer {
 		symbol = action.GetTransfer().Cointoken
-	} else if action.Ty != tokenty.ActionWithdraw {
+	} else if action.Ty == tokenty.ActionWithdraw {
 		symbol = action.GetWithdraw().Cointoken
+	} else if action.Ty == tokenty.TokenActionTransferToExec {
+		symbol = action.GetTransferToExec().Cointoken
 	} else {
 		return kvs, nil
 	}
