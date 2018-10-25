@@ -69,6 +69,19 @@ func (t *token) ExecDelLocal_TransferToExec(payload *types.AssetsTransferToExec,
 	if err != nil {
 		return nil, err
 	}
+	if types.GetSaveTokenTxList() {
+		tokenAction := tokenty.TokenAction{
+			Ty: tokenty.TokenActionTransferToExec,
+			Value: &tokenty.TokenAction_TransferToExec{
+				payload,
+			},
+		}
+		kvs, err := t.makeTokenTxKvs(tx, &tokenAction, receiptData, index, true)
+		if err != nil {
+			return nil, err
+		}
+		set.KV = append(set.KV, kvs...)
+	}
 	return set, nil
 }
 
