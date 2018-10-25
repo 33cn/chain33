@@ -191,9 +191,10 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 	pluginmgr.AddRPC(r)
 }
 
-func (rpc *RPC) Listen() {
+func (rpc *RPC) Listen() (port1 int, port2 int) {
+	var err error
 	for i := 0; i < 10; i++ {
-		err := rpc.gapi.Listen()
+		port1, err = rpc.gapi.Listen()
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -201,7 +202,7 @@ func (rpc *RPC) Listen() {
 		break
 	}
 	for i := 0; i < 10; i++ {
-		err := rpc.japi.Listen()
+		port2, err = rpc.japi.Listen()
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -210,6 +211,7 @@ func (rpc *RPC) Listen() {
 	}
 	//sleep for a while
 	time.Sleep(time.Millisecond)
+	return port1, port2
 }
 
 func (rpc *RPC) GetQueueClient() queue.Client {

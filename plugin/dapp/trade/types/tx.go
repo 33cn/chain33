@@ -7,6 +7,7 @@ type TradeSellTx struct {
 	PricePerBoardlot  int64  `json:"pricePerBoardlot"`
 	TotalBoardlot     int64  `json:"totalBoardlot"`
 	Fee               int64  `json:"fee"`
+	AssetExec         string `json:"assetExec"`
 }
 
 type TradeBuyTx struct {
@@ -27,6 +28,7 @@ type TradeBuyLimitTx struct {
 	PricePerBoardlot  int64  `json:"pricePerBoardlot"`
 	TotalBoardlot     int64  `json:"totalBoardlot"`
 	Fee               int64  `json:"fee"`
+	AssetExec         string `json:"assetExec"`
 }
 
 type TradeSellMarketTx struct {

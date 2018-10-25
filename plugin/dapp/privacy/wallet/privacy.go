@@ -95,7 +95,7 @@ func (policy *privacyPolicy) reqTxDetailByAddr(addr string) {
 }
 
 func (policy *privacyPolicy) isRescanUtxosFlagScaning() (bool, error) {
-	if privacytypes.UtxoFlagScaning == policy.getWalletOperate().GetRescanFlag() {
+	if privacytypes.UtxoFlagScaning == policy.GetRescanFlag() {
 		return true, types.ErrRescanFlagScaning
 	}
 	return false, nil
@@ -804,7 +804,7 @@ func (policy *privacyPolicy) rescanUTXOs(req *privacytypes.ReqRescanUtxos) (*pri
 	if err != nil {
 		return nil, err
 	}
-	operater.SetRescanFlag(privacytypes.UtxoFlagScaning)
+	policy.SetRescanFlag(privacytypes.UtxoFlagScaning)
 	operater.GetWaitGroup().Add(1)
 	go policy.rescanReqUtxosByAddr(req.Addrs)
 	return &repRescanUtxos, nil
@@ -895,7 +895,7 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 		}
 	}
 	// 扫描完毕
-	operater.SetRescanFlag(privacytypes.UtxoFlagNoScan)
+	policy.SetRescanFlag(privacytypes.UtxoFlagNoScan)
 	// 删除privacyInput
 	policy.deleteScanPrivacyInputUtxo()
 	policy.store.saveREscanUTXOsAddresses(storeAddrs)

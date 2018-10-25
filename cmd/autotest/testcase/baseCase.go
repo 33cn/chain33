@@ -159,7 +159,7 @@ func (pack *BaseCasePack) doCheckResult(handlerMap CheckHandlerMap) (bCheck bool
 
 				logMap := log.(map[string]interface{})
 
-				if logMap["tyname"].(string) == "LogErr" {
+				if logMap["tyName"].(string) == "LogErr" {
 
 					pack.fLog.Error("TxLogErr", "TestID", pack.packID,
 						"ErrInfo", logMap["log"].(string))

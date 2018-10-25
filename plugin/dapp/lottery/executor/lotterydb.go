@@ -143,6 +143,8 @@ func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy
 		l.Addr = action.fromaddr
 		l.Way = way
 		l.Index = action.GetIndex()
+		l.Time = action.blocktime
+		l.TxHash = common.ToHex(action.txhash)
 	}
 	if logTy == pty.TyLogLotteryDraw {
 		l.Round = round
@@ -595,7 +597,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, *pty.LotteryUp
 		for _, rec := range lott.Records[addr].Record {
 			fund, fundType := checkFundAmount(luckynum, rec.Number, rec.Way)
 			if fund != 0 {
-				newUpdateRec := &pty.LotteryUpdateRec{rec.Index, rec.Number, rec.Amount, fundType, rec.Way}
+				newUpdateRec := &pty.LotteryUpdateRec{rec.Index, fundType}
 				if update, ok := updateInfo.BuyInfo[action.fromaddr]; ok {
 					update.Records = append(update.Records, newUpdateRec)
 				} else {

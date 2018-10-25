@@ -481,27 +481,14 @@ out:
 				isSync = true
 			}
 
-			payLoad := types.Encode(&types.ReqString{
-				Data: types.GetTitle(),
-			})
-			query := types.ChainExecutor{
-				Driver:   string(types.ExecerPara),
-				FuncName: "ParacrossGetTitle",
-				Param:    payLoad,
-			}
-			ret, err := client.paraClient.grpcClient.QueryChain(context.Background(), &query)
+			ret, err := client.paraClient.paraClient.GetTitle(context.Background(),
+				&types.ReqString{types.GetTitle()})
 			if err != nil {
 				plog.Error("getConsensusHeight ", "err", err.Error())
 				continue
 			}
-			if !ret.GetIsOk() {
-				plog.Error("getConsensusHeight not OK", "error", ret.GetMsg())
-				continue
-			}
 
-			var result pt.ParacrossStatus
-			types.Decode(ret.Msg, &result)
-			consensusRst <- &result
+			consensusRst <- ret
 		}
 	}
 

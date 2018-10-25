@@ -472,7 +472,7 @@ func createCrossMainTx(to []byte) (*types.Transaction, error) {
 	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
-	transfer.Ty = pt.ParacrossActionTransfer
+	transfer.Ty = pt.ParacrossActionAssetTransfer
 
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
@@ -496,7 +496,7 @@ func createCrossParaTx(s suite.Suite, to []byte) (*types.Transaction, error) {
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err

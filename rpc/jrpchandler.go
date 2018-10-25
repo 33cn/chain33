@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
-	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
@@ -852,19 +851,19 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 
 	decodePayload, err := execty.CreateQuery(in.FuncName, in.Payload)
 	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
+		log.Error("EventQuery1", "err", err.Error())
 		return err
 	}
 	resp, err := c.cli.Query(types.ExecName(in.Execer), in.FuncName, decodePayload)
 	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
+		log.Error("EventQuery2", "err", err.Error())
 		return err
 	}
 	var jsonmsg json.RawMessage
 	jsonmsg, err = execty.QueryToJson(in.FuncName, resp)
 	*result = jsonmsg
 	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
+		log.Error("EventQuery3", "err", err.Error())
 		return err
 	}
 	return nil
@@ -926,66 +925,6 @@ func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error
 		return err
 	}
 	*result = fee
-	return nil
-}
-
-func (c *Chain33) CreateRawTradeSellTx(in *tradetype.TradeSellTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTradeSellTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawTradeBuyTx(in *tradetype.TradeBuyTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTradeBuyTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawTradeRevokeTx(in *tradetype.TradeRevokeTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTradeRevokeTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawTradeBuyLimitTx(in *tradetype.TradeBuyLimitTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTradeBuyLimitTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawTradeSellMarketTx(in *tradetype.TradeSellMarketTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTradeSellMarketTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawTradeRevokeBuyTx(in *tradetype.TradeRevokeBuyTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTradeRevokeBuyTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
 	return nil
 }
 

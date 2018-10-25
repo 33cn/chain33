@@ -66,15 +66,39 @@ maxTxNumPerAccount=10000
 [consensus]
 name="solo"
 minerstart=true
+genesisBlockTime=1514533394
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
+[consensus.sub.solo]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
 hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+waitTxMs=10
+
+[consensus.sub.ticket]
+genesisBlockTime=1514533394
+[[consensus.sub.ticket.genesis]]
+minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+count=10000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1PUiGcbsccfxW3zuvHXZBJfznziph5miAo"
+returnAddr="1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
+count=10000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+returnAddr="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
+count=10000
 
 [store]
 name="mavl"
 driver="memdb"
 dbPath="datadir/mavltree"
 dbCache=128
+
+[store.sub.mavl]
 enableMavlPrefix=false
 enableMVCC=false
 
@@ -84,6 +108,8 @@ driver="memdb"
 dbPath="datadir/wallet"
 dbCache=16
 signType="secp256k1"
+
+[wallet.sub.ticket]
 minerwhitelist=["*"]
 
 [exec]
@@ -92,7 +118,7 @@ minExecFee=100000
 enableStat=false
 enableMVCC=false
 
-[auth]
+[exec.sub.cert]
 # 是否启用证书验证和签名
 enable=false
 # 加密文件路径
