@@ -178,3 +178,17 @@ func setRevoked(t *tokenty.LocalToken, height, time int64) *tokenty.LocalToken {
 	return t
 }
 
+func resetCreated(t *tokenty.LocalToken) *tokenty.LocalToken {
+	t.CreatedTime = 0
+	t.CreatedHeight = 0
+	t.Status = tokenty.TokenStatusPreCreated
+	return t
+}
+
+func resetRevoked(t *tokenty.LocalToken) *tokenty.LocalToken {
+	t.RevokedTime = 0
+	t.RevokedHeight = 0
+	t.Status = tokenty.TokenStatusPreCreated
+	return t
+}
+
