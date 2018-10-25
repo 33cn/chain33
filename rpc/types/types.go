@@ -4,11 +4,6 @@ import (
 	"encoding/json"
 )
 
-type UserWrite struct {
-	Topic   string `json:"topic"`
-	Content string `json:"content"`
-}
-
 type TransParm struct {
 	Execer    string     `json:"execer"`
 	Payload   string     `json:"payload"`
@@ -58,19 +53,21 @@ type Signature struct {
 }
 
 type Transaction struct {
-	Execer     string      `json:"execer"`
-	Payload    interface{} `json:"payload"`
-	RawPayload string      `json:"rawPayload"`
-	Signature  *Signature  `json:"signature"`
-	Fee        int64       `json:"fee"`
-	Expire     int64       `json:"expire"`
-	Nonce      int64       `json:"nonce"`
-	From       string      `json:"from,omitempty"`
-	To         string      `json:"to"`
-	Amount     int64       `json:"amount,omitempty"`
-	GroupCount int32       `json:"groupCount,omitempty"`
-	Header     string      `json:"header,omitempty"`
-	Next       string      `json:"next,omitempty"`
+	Execer     string          `json:"execer"`
+	Payload    json.RawMessage `json:"payload"`
+	RawPayload string          `json:"rawPayload"`
+	Signature  *Signature      `json:"signature"`
+	Fee        int64           `json:"fee"`
+	FeeFmt     string          `json:"feefmt"`
+	Expire     int64           `json:"expire"`
+	Nonce      int64           `json:"nonce"`
+	From       string          `json:"from,omitempty"`
+	To         string          `json:"to"`
+	Amount     int64           `json:"amount,omitempty"`
+	AmountFmt  string          `json:"amountfmt,omitempty"`
+	GroupCount int32           `json:"groupCount,omitempty"`
+	Header     string          `json:"header,omitempty"`
+	Next       string          `json:"next,omitempty"`
 }
 
 type ReceiptLog struct {
@@ -90,10 +87,10 @@ type ReceiptDataResult struct {
 }
 
 type ReceiptLogResult struct {
-	Ty     int32       `json:"ty"`
-	TyName string      `json:"tyName"`
-	Log    interface{} `json:"log"`
-	RawLog string      `json:"rawLog"`
+	Ty     int32           `json:"ty"`
+	TyName string          `json:"tyName"`
+	Log    json.RawMessage `json:"log"`
+	RawLog string          `json:"rawLog"`
 }
 
 type Block struct {

@@ -107,7 +107,7 @@ func sendPrivacyTxCommand(cmd string) (string, bool) {
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal([]byte(output), &jsonMap)
 	if err != nil {
-		return "JsonUnmarshalPrivacyTxHashFailed", false
+		return fmt.Sprintf("JsonUnmarshalPrivacyTxHashFailed:%s", output), false
 	}
 	output = jsonMap["hash"].(string)
 
@@ -117,7 +117,7 @@ func sendPrivacyTxCommand(cmd string) (string, bool) {
 //get tx query -s txHash
 func getTxRecpTyname(txInfo map[string]interface{}) (tyname string, bSuccess bool) {
 
-	tyname = txInfo["receipt"].(map[string]interface{})["tyname"].(string)
+	tyname = txInfo["receipt"].(map[string]interface{})["tyName"].(string)
 
 	bSuccess = false
 
@@ -152,7 +152,7 @@ func checkBalanceDeltaWithAddr(log map[string]interface{}, addr string, delta fl
 	prev, _ := strconv.ParseFloat(log["prev"].(map[string]interface{})["balance"].(string), 64)
 	curr, _ := strconv.ParseFloat(log["current"].(map[string]interface{})["balance"].(string), 64)
 
-	logDelta := curr - prev
+	logDelta := (curr - prev) / 1e8
 
 	return (logAddr == addr) && (isBalanceEqualFloat(logDelta, delta))
 }
@@ -163,7 +163,7 @@ func checkFrozenDeltaWithAddr(log map[string]interface{}, addr string, delta flo
 	prev, _ := strconv.ParseFloat(log["prev"].(map[string]interface{})["frozen"].(string), 64)
 	curr, _ := strconv.ParseFloat(log["current"].(map[string]interface{})["frozen"].(string), 64)
 
-	logDelta := curr - prev
+	logDelta := (curr - prev) / 1e8
 
 	return (logAddr == addr) && (isBalanceEqualFloat(logDelta, delta))
 }
@@ -184,7 +184,7 @@ func calcTxUtxoAmount(log map[string]interface{}, key string) float64 {
 		totalAmount += temp
 	}
 
-	return totalAmount
+	return totalAmount / 1e8
 }
 
 //calculate available utxo with specific addr and txHash

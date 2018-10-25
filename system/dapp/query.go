@@ -95,6 +95,7 @@ func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, e
 	funcmap := d.child.GetFuncMap()
 	funcname = "Query_" + funcname
 	if _, ok := funcmap[funcname]; !ok {
+		blog.Error(funcname+" funcname not find", "func", funcname)
 		return nil, types.ErrActionNotSupport
 	}
 	ty := funcmap[funcname].Type

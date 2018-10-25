@@ -39,10 +39,10 @@ func (c *HTTPConn) Write(d []byte) (n int, err error) { //添加支持gzip 发�
 
 func (c *HTTPConn) Close() error { return nil }
 
-func (j *JSONRPCServer) Listen() error {
+func (j *JSONRPCServer) Listen() (int, error) {
 	listener, err := net.Listen("tcp", rpcCfg.GetJrpcBindAddr())
 	if err != nil {
-		return err
+		return 0, err
 	}
 	j.l = listener
 	co := cors.New(cors.Options{})
@@ -102,7 +102,7 @@ func (j *JSONRPCServer) Listen() error {
 
 	handler = co.Handler(handler)
 	go http.Serve(listener, handler)
-	return nil
+	return listener.Addr().(*net.TCPAddr).Port, nil
 }
 
 type serverResponse struct {
@@ -123,14 +123,14 @@ func writeError(w http.ResponseWriter, r *http.Request, id uint64, errstr string
 	w.Write(resp)
 }
 
-func (g *Grpcserver) Listen() error {
+func (g *Grpcserver) Listen() (int, error) {
 	listener, err := net.Listen("tcp", rpcCfg.GetGrpcBindAddr())
 	if err != nil {
-		return err
+		return 0, err
 	}
 	g.l = listener
 	go g.s.Serve(listener)
-	return nil
+	return listener.Addr().(*net.TCPAddr).Port, nil
 }
 
 func isLoopBackAddr(addr net.Addr) bool {

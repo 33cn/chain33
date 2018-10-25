@@ -1,6 +1,7 @@
 package util
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -49,7 +50,8 @@ func OpenFile(fileName string) (*os.File, error) {
 }
 
 func MakeDir(path string) error {
-	return os.MkdirAll(path, os.ModePerm)
+	dir := filepath.Dir(path)
+	return os.MkdirAll(dir, os.ModePerm)
 }
 
 func Pwd() string {
@@ -58,4 +60,18 @@ func Pwd() string {
 		panic(err)
 	}
 	return dir
+}
+
+func CopyFile(srcFile, dstFile string) (written int64, err error) {
+	src, err := os.Open(srcFile)
+	if err != nil {
+		return
+	}
+	defer src.Close()
+	dst, err := os.OpenFile(dstFile, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return
+	}
+	defer dst.Close()
+	return io.Copy(dst, src)
 }

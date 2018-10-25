@@ -5,11 +5,11 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	"gitlab.33.cn/chain33/chain33/system/dapp/commands"
 
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	// 这一步是必需的，目的时让插件源码有机会进行匿名注册
@@ -58,10 +58,8 @@ func init() {
 		commands.NetCmd(),
 		commands.SeedCmd(),
 		commands.StatCmd(),
-		commands.TicketCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
-		commands.PrivacyCmd(),
 		commands.VersionCmd(),
 		sendCmd,
 		closeCmd,

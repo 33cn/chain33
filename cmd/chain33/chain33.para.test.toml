@@ -68,6 +68,8 @@ maxTxNumPerAccount=10000
 
 [consensus]
 name="para"
+genesisBlockTime=1514533394
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 ParaRemoteGrpcClient = "localhost:8802"
 #主链指定高度的区块开始同步
 startHeight=20
@@ -83,26 +85,30 @@ waitBlocks4CommitMsg=2
 [store]
 name="mavl"
 driver="memdb"
-dbPath="paradatadir/mavltree"
+dbPath="datadir/mavltree"
 dbCache=128
+
+[store.sub.mavl]
 enableMavlPrefix=false
 enableMVCC=false
 
 [wallet]
-minFee=100000
+minFee=1000000
 driver="memdb"
-dbPath="paradatadir/parawallet"
+dbPath="datadir/wallet"
 dbCache=16
 signType="secp256k1"
+
+[wallet.sub.ticket]
 minerwhitelist=["*"]
 
 [exec]
-isFree=true
+isFree=false
 minExecFee=100000
 enableStat=false
 enableMVCC=false
 
-[auth]
+[exec.sub.cert]
 # 是否启用证书验证和签名
 enable=false
 # 加密文件路径
