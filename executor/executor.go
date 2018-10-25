@@ -298,7 +298,6 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
 	//打开MVCC之后中途关闭，可能会发生致命的错误
-	//println("procExecAddBlock addmvcc", b.Height, hex.EncodeToString(b.StateHash))
 	for _, kv := range datas.KV {
 		execute.stateDB.Set(kv.Key, kv.Value)
 	}
