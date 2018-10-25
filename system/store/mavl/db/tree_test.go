@@ -9,13 +9,14 @@ import (
 	"sort"
 	"testing"
 
+	"os"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	. "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
-	"os"
 )
 
 func init() {
@@ -782,9 +783,9 @@ func TestIAVLPrint(t *testing.T) {
 }
 
 func TestPruningTree(t *testing.T) {
-	const txN = 200  // 每个块交易量
+	const txN = 200   // 每个块交易量
 	const preB = 1000 // 一轮区块数
-	const round = 5 // 更新叶子节点次数
+	const round = 5   // 更新叶子节点次数
 	const preDel = preB / 10
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -924,7 +925,7 @@ func TestPruningHashNode(t *testing.T) {
 
 	ndb := newMarkNodeDB(db, 1024*10, mpleaf)
 	var strs []string
-	for key, _ := range mpleaf {
+	for key := range mpleaf {
 		mNode, err := ndb.LoadLeaf([]byte(key))
 		fmt.Printf("loadLeaf---%s---\n", Bytes2Hex([]byte(key)[0:2]))
 		if err == nil {
@@ -937,9 +938,9 @@ func TestPruningHashNode(t *testing.T) {
 	for _, str := range strs {
 		mpNode[str] = true
 	}
-    //删除
+	//删除
 	batch := db.NewBatch(true)
-	for key, _ := range mpNode {
+	for key := range mpNode {
 		batch.Delete([]byte(key))
 		fmt.Printf("delete---%s---\n", Bytes2Hex([]byte(key)[0:2]))
 	}

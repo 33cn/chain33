@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"sync"
 
+	"sync/atomic"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"sync/atomic"
-	"time"
 )
 
 const (
@@ -61,8 +62,8 @@ func getKeyFromLeafCountKey(hashkey []byte, hashlen int) ([]byte, error) {
 }
 
 type hashData struct {
-	height   int64
-	hash     []byte
+	height int64
+	hash   []byte
 }
 
 func isPruning() bool {
@@ -106,8 +107,8 @@ func pruningTreeLeafNode(db dbm.DB, curHeight int64) {
 		key, err := getKeyFromLeafCountKey(hashK, hashLen)
 		if err == nil {
 			data := hashData{
-				height:   pData.Height,
-				hash:     hashK[len(hashK)-hashLen:],
+				height: pData.Height,
+				hash:   hashK[len(hashK)-hashLen:],
 			}
 			mp[string(key)] = append(mp[string(key)], data)
 			count++
@@ -142,7 +143,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, lastKey []
 	batch.Write()
 	if lastKey != nil {
 		// 除了最后加入的key，删除已更新map key
-		for key, _ := range mp {
+		for key := range mp {
 			if !bytes.Equal([]byte(key), lastKey) {
 				delete(mp, key)
 			}
@@ -159,7 +160,7 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	ndb := newMarkNodeDB(db, 1024*10, mp)
 	var strs []string
 	count := 0
-	for key, _ := range mp {
+	for key := range mp {
 		mNode, err := ndb.LoadLeaf([]byte(key))
 		if err == nil {
 			strs = append(strs, mNode.getHash(ndb)...)
@@ -173,7 +174,7 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	}
 	batch := db.NewBatch(true)
 	count1 := 0
-	for key, _  := range mpN {
+	for key := range mpN {
 		batch.Delete([]byte(key))
 		count1++
 	}
@@ -217,13 +218,13 @@ func (node *MarkNode) getHash(ndb *markNodeDB) (strs []string) {
 	return strs
 }
 
-func (ndb *markNodeDB)addHash2Map(str string) {
+func (ndb *markNodeDB) addHash2Map(str string) {
 	ndb.mHash[str] = true
 }
 
 type MarkNode struct {
-	height     int32
-	hash       []byte
+	height       int32
+	hash         []byte
 	hashPrune    bool
 	parentHash   []byte
 	parentNode   *MarkNode
@@ -234,13 +235,13 @@ type MarkNode struct {
 }
 
 type markNodeDB struct {
-	wg      sync.WaitGroup
-	mtx     sync.Mutex
-	cache   *lru.Cache //存储需要裁剪的节点
-	db      dbm.DB
-	mLeaf   map[string]bool
-	mHash   map[string]bool
-	count   int
+	wg    sync.WaitGroup
+	mtx   sync.Mutex
+	cache *lru.Cache //存储需要裁剪的节点
+	db    dbm.DB
+	mLeaf map[string]bool
+	mHash map[string]bool
+	count int
 }
 
 func newMarkNodeDB(db dbm.DB, cache int, mp map[string]bool) *markNodeDB {
@@ -248,7 +249,7 @@ func newMarkNodeDB(db dbm.DB, cache int, mp map[string]bool) *markNodeDB {
 	ndb := &markNodeDB{
 		cache: cach,
 		db:    db,
-		mLeaf:  mp,
+		mLeaf: mp,
 		mHash: make(map[string]bool),
 	}
 	return ndb
@@ -261,7 +262,6 @@ func (ndb *markNodeDB) LoadLeaf(hash []byte) (node *MarkNode, err error) {
 	}
 	return nil, types.ErrNotFound
 }
-
 
 func (node *MarkNode) fetchBrotherNode(ndb *markNodeDB) *MarkNode {
 	if node.brotherNode != nil {
@@ -325,7 +325,7 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 	if _, ok := ndb.mLeaf[string(hash)]; ok {
 		mNode.hashPrune = true
 	}
-	if _, ok := ndb.mHash[string(hash)]; ok  {
+	if _, ok := ndb.mHash[string(hash)]; ok {
 		mNode.hashPrune = true
 	}
 	return mNode, nil
@@ -359,4 +359,3 @@ func pruningTreePrint(db dbm.DB, prefix []byte) {
 //	}()
 //	cb(ndb, pruneKv)
 //}
-
