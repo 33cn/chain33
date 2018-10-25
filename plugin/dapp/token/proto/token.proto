@@ -5,9 +5,7 @@ import "account.proto";
 
 package types;
 
-//////////////////////////////////////////////////////////////////////////////
-// message for token start/////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
+// action
 message TokenAction {
     oneof value {
         TokenPreCreate       tokenprecreate    = 1;
@@ -41,6 +39,7 @@ message TokenRevokeCreate {
     string owner  = 2;
 }
 
+// state db
 message Token {
     string name         = 1;
     string symbol       = 2;
@@ -52,6 +51,14 @@ message Token {
     int32  status       = 8;
 }
 
+// log
+message ReceiptToken {
+    string symbol = 1;
+    string owner  = 2;
+    int32  status = 3;
+}
+
+// query
 message ReqTokens {
     bool     queryAll          = 1;
     int32    status            = 2;
@@ -63,11 +70,6 @@ message ReplyTokens {
     repeated Token tokens = 1;
 }
 
-message ReceiptToken {
-    string symbol = 1;
-    string owner  = 2;
-    int32  status = 3;
-}
 
 message TokenRecv {
     string token = 1;
