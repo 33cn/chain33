@@ -88,12 +88,12 @@ function para_transfer() {
     para_transfer2account "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
     block_wait "${CLI}" 1
 
-    para_config "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"
-    para_config "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"
-    para_config "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"
-    para_config "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
+    para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"
+    para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"
+    para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"
+    para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
 
-    para_config "${PARA_CLI}" "token-blacklist" "BTY"
+    para_configkey "${PARA_CLI}" "token-blacklist" "BTY"
 
 }
 
@@ -103,7 +103,7 @@ function para_transfer2account() {
     echo "${hash1}"
 }
 
-function para_config() {
+function para_configkey() {
     echo "=========== # para chain send config ============="
     echo "${3}"
     tx=$(${1} config config_tx -o add -k "${2}" -v "${3}")
@@ -179,7 +179,7 @@ function para_cross_transfer_withdraw() {
     fi
 }
 
-function para() {
+function para_test() {
     echo "=========== # para chain test ============="
     token_create "${PARA_CLI}"
     para_cross_transfer_withdraw
@@ -239,4 +239,36 @@ function checkParaBlockHashfun() {
         fi
     done
     echo "====== syn para blockchain success======"
+}
+
+function paracross() {
+    if [ "${2}" == "init" ]; then
+        para_init
+    elif [ "${2}" == "config" ]; then
+        para_transfer
+        para_set_wallet
+    elif [ "${2}" == "test" ]; then
+        para_test "${1}"
+    elif [ "${2}" == "forktest" ]; then
+        checkParaBlockHashfun
+    fi
+
+    if [ "${2}" == "forkInit" ]; then
+        para_init
+    elif [ "${2}" == "forkConfig" ]; then
+        para_transfer
+        para_set_wallet
+    elif [ "${2}" == "forkCheckRst" ]; then
+        checkParaBlockHashfun 30
+    fi
+
+    if [ "${2}" == "fork2Init" ]; then
+        para_init
+    elif [ "${2}" == "fork2Config" ]; then
+        para_transfer
+        para_set_wallet
+    elif [ "${2}" == "fork2CheckRst" ]; then
+        checkParaBlockHashfun 30
+    fi
+
 }

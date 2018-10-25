@@ -59,7 +59,7 @@ go_test:
     tags:
         - 33cn
     script:
-        - cd build && docker-compose down --remove-orphans && cd ..
+        - make docker-compose-down DAPP=all
         - make test
     only:
         - master
@@ -100,11 +100,33 @@ deploy:
     script:
         - make build_ci
         - make docker-compose
-        - cd build && docker-compose down --remove-orphans && cd ..
+        - make docker-compose-down
     only:
         - master
         - develop
         - bty_develop
+
+deploy_relay:
+    stage: deploy
+    tags:
+        - 33cn
+    script:
+        - make build_ci
+        - make docker-compose PROJ=relay DAPP=relay
+        - make docker-compose-down PROJ=relay DAPP=relay
+    only:
+        - develop
+
+deploy_paracross:
+    stage: deploy
+    tags:
+        - 33cn
+    script:
+        - make build_ci
+        - make docker-compose PROJ=paracross DAPP=paracross
+        - make docker-compose-down PROJ=paracross DAPP=paracross
+    only:
+        - develop
 
 fork_test:
     stage: fork_test
@@ -120,6 +142,65 @@ fork_test:
         - master
         - develop
         - forkTest
+
+fork_test_privacy:
+    stage: fork_test
+    tags:
+        - 33cn
+    script:
+         - if [ -n "${onceEveryday}" ]; then
+         - make build_ci
+         - make fork-test PROJ=privacy DAPP=privacy
+         - make docker-compose-down PROJ=privacy DAPP=privacy
+         - fi
+    only:
+        - develop
+        - forkTest
+
+fork_test_paracross:
+    stage: fork_test
+    tags:
+        - 33cn
+    script:
+         - if [ -n "${onceEveryday}" ]; then
+         - make build_ci
+         - make fork-test PROJ=paracross DAPP=paracross
+         - make docker-compose-down PROJ=paracross DAPP=paracross
+         - fi
+    only:
+        - develop
+        - forkTest
+
+##serial run all dapp
+fork_test_all:
+    stage: fork_test
+    tags:
+        - 33cn
+    script:
+         - if [ -n "${onceEveryday}" ]; then
+         - make build_ci
+         - make fork-test PROJ=fork DAPP=all
+         - make docker-compose-down PROJ=fork DAPP=all
+         - fi
+    only:
+        - develop
+        - forkTest
+
+##serial run all dapp
+deploy_test_all:
+    stage: fork_test
+    tags:
+        - 33cn
+    script:
+         - if [ -n "${onceEveryday}" ]; then
+         - make build_ci
+         - make docker-compose PROJ=deploy DAPP=all
+         - make docker-compose-down PROJ=deploy DAPP=all
+         - fi
+    only:
+        - develop
+        - forkTest
+
 
 autotest:
     stage: autotest
