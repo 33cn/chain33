@@ -59,7 +59,6 @@ func (t *token) ExecLocal_Withdraw(payload *types.AssetsWithdraw, tx *types.Tran
 	return set, nil
 }
 
-
 func (t *token) ExecLocal_TransferToExec(payload *types.AssetsTransferToExec, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := t.ExecLocalTransWithdraw(tx, receiptData, index)
 	if err != nil {
@@ -68,7 +67,7 @@ func (t *token) ExecLocal_TransferToExec(payload *types.AssetsTransferToExec, tx
 	return set, nil
 }
 
-func (t *token) ExecLocal_Tokenprecreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *token) ExecLocal_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	localToken := newLocalToken(payload)
 	localToken = setPrepare(localToken, tx.From(), t.GetHeight(), t.GetBlockTime())
 	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
@@ -78,7 +77,7 @@ func (t *token) ExecLocal_Tokenprecreate(payload *tokenty.TokenPreCreate, tx *ty
 	return &types.LocalDBSet{KV: set}, nil
 }
 
-func (t *token) ExecLocal_Tokenfinishcreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *token) ExecLocal_TokenFinishCreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	prepareKey := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
 	localToken, err := loadLocalToken(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated, t.GetLocalDB())
 	if err != nil {
@@ -94,7 +93,7 @@ func (t *token) ExecLocal_Tokenfinishcreate(payload *tokenty.TokenFinishCreate, 
 	return &types.LocalDBSet{KV: set}, nil
 }
 
-func (t *token) ExecLocal_Tokenrevokecreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *token) ExecLocal_TokenRevokeCreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	prepareKey := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
 	localToken, err := loadLocalToken(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated, t.GetLocalDB())
 	if err != nil {
