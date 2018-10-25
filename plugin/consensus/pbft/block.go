@@ -34,7 +34,7 @@ func (client *PbftClient) ProcEvent(msg queue.Message) bool {
 
 func (client *PbftClient) Propose(block *types.Block) {
 	op := &types.Operation{block}
-	req := ToRequestClient(op, types.Now().String(), client.BaseClient.Cfg.ClientAddr)
+	req := ToRequestClient(op, types.Now().String(), clientAddr)
 	client.requestChan <- req
 }
 
@@ -91,10 +91,14 @@ func (client *PbftClient) CreateBlock() {
 	}
 }
 
+func (client *PbftClient) GetGenesisBlockTime() int64 {
+	return genesisBlockTime
+}
+
 func (client *PbftClient) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
 	tx.Execer = []byte("coins")
-	tx.To = client.Cfg.Genesis
+	tx.To = genesis
 	//gen payload
 	g := &cty.CoinsAction_Genesis{}
 	g.Genesis = &types.AssetsGenesis{}
