@@ -50,7 +50,7 @@ type suiteParaCommitMsg struct {
 }
 
 func initConfigFile() (*types.Config, *types.ConfigSubModule) {
-	cfg, sub := config.InitCfg("../../../cmd/chain33/chain33.para.test.toml")
+	cfg, sub := config.InitCfg("../../../plugin/dapp/paracross/cmd/build/chain33.para.test.toml")
 	return cfg, sub
 }
 
