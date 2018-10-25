@@ -62,48 +62,6 @@ func (p *privacy) GetDriverName() string {
 	return driverName
 }
 
-func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
-	privacylog.Info("privacy Query", "name", funcName)
-	switch funcName {
-	case "ShowAmountsOfUTXO":
-		var reqtoken pty.ReqPrivacyToken
-		err := types.Decode(params, &reqtoken)
-		if err != nil {
-			return nil, err
-		}
-		privacylog.Info("ShowAmountsOfUTXO", "query tokens", reqtoken)
-
-		return p.ShowAmountsOfUTXO(&reqtoken)
-	case "ShowUTXOs4SpecifiedAmount":
-		var reqtoken pty.ReqPrivacyToken
-		err := types.Decode(params, &reqtoken)
-		if err != nil {
-			return nil, err
-		}
-		privacylog.Info("ShowUTXOs4SpecifiedAmount", "query tokens", reqtoken)
-
-		return p.ShowUTXOs4SpecifiedAmount(&reqtoken)
-
-	case "GetUTXOGlobalIndex":
-		var getUtxoIndexReq pty.ReqUTXOGlobalIndex
-		err := types.Decode(params, &getUtxoIndexReq)
-		if err != nil {
-			return nil, err
-		}
-		privacylog.Info("GetUTXOGlobalIndex", "get utxo global index", err)
-
-		return p.getGlobalUtxoIndex(&getUtxoIndexReq)
-	case "GetTxsByAddr": // 通过查询获取交易hash这里主要通过获取隐私合约执行器地址的交易
-		var in types.ReqAddr
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return p.GetTxsByAddr(&in)
-	}
-	return nil, types.ErrActionNotSupport
-}
-
 func (p *privacy) getUtxosByTokenAndAmount(tokenName string, amount int64, count int32) ([]*pty.LocalUTXOItem, error) {
 	localDB := p.GetLocalDB()
 	var utxos []*pty.LocalUTXOItem
