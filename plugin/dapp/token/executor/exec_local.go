@@ -154,11 +154,10 @@ func (t *token) ExecLocal_Tokenrevokecreate(payload *tokenty.TokenRevokeCreate, 
 	return &types.LocalDBSet{KV: set}, nil
 }
 
-// TODO fix
 func (t *token) ExecLocal_TransferToExec(payload *types.AssetsTransferToExec, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execLocal(receiptData, "", "")
+	set, err := t.ExecLocalTransWithdraw(tx, receiptData, index)
 	if err != nil {
 		return nil, err
 	}
-	return &types.LocalDBSet{KV: kv}, nil
+	return set, nil
 }
