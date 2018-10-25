@@ -288,7 +288,7 @@ func Test_EnablePrivacy(t *testing.T) {
 	}
 }
 
-func Test_ShowPrivacyPK(t *testing.T) {
+func Test_ShowPrivacyKey(t *testing.T) {
 	mock := &testDataMock{}
 	mock.init()
 	// 设置第0个地址开启隐私交易
@@ -313,8 +313,8 @@ func Test_ShowPrivacyPK(t *testing.T) {
 	}
 
 	for index, testCase := range testCases {
-		getReply, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "ShowPrivacyPK", testCase.req)
-		require.Equalf(t, getErr, testCase.needError, "ShowPrivacyPK test case index %d", index)
+		getReply, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "ShowPrivacyKey", testCase.req)
+		require.Equalf(t, getErr, testCase.needError, "ShowPrivacyKey test case index %d", index)
 		if testCase.needReply == nil {
 			assert.Nil(t, getReply)
 			continue
