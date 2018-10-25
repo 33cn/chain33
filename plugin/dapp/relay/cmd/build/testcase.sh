@@ -92,12 +92,11 @@ function wait_btc_height() {
 
 }
 
-
 function relay_test() {
     echo "================relayd test========================"
     block_wait "${1}" 2
 
-    echo ${1}
+    echo "${1}"
     ${1} relay btc_cur_height
     base_height=$(${1} relay btc_cur_height | jq ".baseHeight")
     btc_cur_height=$(${1} relay btc_cur_height | jq ".curHeight")

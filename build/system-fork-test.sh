@@ -56,8 +56,9 @@ if [ -n "${DAPP}" ]; then
 
 fi
 
+system_coins_file="system/coins/fork-test.sh"
 # shellcheck source=/dev/null
-source "../system/coins/fork-test.sh"
+source "${system_coins_file}"
 
 echo "=========== # env setting ============="
 echo "DAPP=$DAPP"
@@ -231,7 +232,7 @@ function start() {
 }
 
 function dapp_run() {
-    if [ -e "$DAPP_TEST_FILE" ] ; then
+    if [ -e "$DAPP_TEST_FILE" ]; then
         ${DAPP} "${CLI}" "${1}"
     fi
 

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-OUT_DIR="${1}/relay"
+strpwd=$(pwd)
+strcmd=${strpwd##*dapp/}
+strapp=${strcmd%/cmd*}
+
+OUT_DIR="${1}/$strapp"
 SRC_RELAYD=gitlab.33.cn/chain33/chain33/plugin/dapp/relay/cmd/relayd
 FLAG=$2
 
