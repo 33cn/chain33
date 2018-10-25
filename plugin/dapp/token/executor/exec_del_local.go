@@ -64,34 +64,36 @@ func (t *token) ExecDelLocal_Withdraw(payload *types.AssetsWithdraw, tx *types.T
 	return set, nil
 }
 
-func (t *token) ExecDelLocal_Tokenprecreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
-	if err != nil {
-		return nil, err
-	}
-	return &types.LocalDBSet{KV: kv}, nil
-}
-
-func (t *token) ExecDelLocal_Tokenfinishcreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
-	if err != nil {
-		return nil, err
-	}
-	return &types.LocalDBSet{KV: kv}, nil
-}
-
-func (t *token) ExecDelLocal_Tokenrevokecreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
-	if err != nil {
-		return nil, err
-	}
-	return &types.LocalDBSet{KV: kv}, nil
-}
-
 func (t *token) ExecDelLocal_TransferToExec(payload *types.AssetsTransferToExec, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	set, err := t.ExecDelLocalLocalTransWithdraw(tx, receiptData, index)
+	if err != nil {
+		return nil, err
+	}
+	return set, nil
+}
+
+func (t *token) ExecDelLocal_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	kv, err := t.execDelLocal(receiptData)
 	if err != nil {
 		return nil, err
 	}
 	return &types.LocalDBSet{KV: kv}, nil
 }
+
+func (t *token) ExecDelLocal_TokenFinishCreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	kv, err := t.execDelLocal(receiptData)
+	if err != nil {
+		return nil, err
+	}
+	return &types.LocalDBSet{KV: kv}, nil
+}
+
+func (t *token) ExecDelLocal_TokenRevokeCreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	kv, err := t.execDelLocal(receiptData)
+	if err != nil {
+		return nil, err
+	}
+	return &types.LocalDBSet{KV: kv}, nil
+}
+
+
