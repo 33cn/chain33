@@ -88,7 +88,7 @@ func (t *token) ExecDelLocal_TransferToExec(payload *types.AssetsTransferToExec,
 func (t *token) ExecDelLocal_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
 	var set []*types.KeyValue
-	set = append(set, &types.KeyValue{ Key:key, Value: nil})
+	set = append(set, &types.KeyValue{Key: key, Value: nil})
 	return &types.LocalDBSet{KV: set}, nil
 }
 
@@ -101,8 +101,8 @@ func (t *token) ExecDelLocal_TokenFinishCreate(payload *tokenty.TokenFinishCreat
 	localToken = resetCreated(localToken)
 	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusCreated)
 	var set []*types.KeyValue
-	set = append(set, &types.KeyValue{Key:prepareKey, Value: types.Encode(localToken)})
-	set = append(set, &types.KeyValue{Key:key, Value: nil})
+	set = append(set, &types.KeyValue{Key: prepareKey, Value: types.Encode(localToken)})
+	set = append(set, &types.KeyValue{Key: key, Value: nil})
 	return &types.LocalDBSet{KV: set}, nil
 }
 
@@ -115,9 +115,7 @@ func (t *token) ExecDelLocal_TokenRevokeCreate(payload *tokenty.TokenRevokeCreat
 	localToken = resetRevoked(localToken)
 	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusCreateRevoked)
 	var set []*types.KeyValue
-	set = append(set, &types.KeyValue{Key:key, Value: nil})
-	set = append(set, &types.KeyValue{Key:prepareKey, Value: types.Encode(localToken)})
+	set = append(set, &types.KeyValue{Key: key, Value: nil})
+	set = append(set, &types.KeyValue{Key: prepareKey, Value: types.Encode(localToken)})
 	return &types.LocalDBSet{KV: set}, nil
 }
-
-

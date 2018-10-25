@@ -86,7 +86,7 @@ func (t *token) ExecLocal_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *ty
 	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
 
 	var set []*types.KeyValue
-	set = append(set, &types.KeyValue{ Key:key, Value: types.Encode(localToken)})
+	set = append(set, &types.KeyValue{Key: key, Value: types.Encode(localToken)})
 	return &types.LocalDBSet{KV: set}, nil
 }
 
@@ -99,8 +99,8 @@ func (t *token) ExecLocal_TokenFinishCreate(payload *tokenty.TokenFinishCreate, 
 	localToken = setCreated(localToken, t.GetHeight(), t.GetBlockTime())
 	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusCreated)
 	var set []*types.KeyValue
-	set = append(set, &types.KeyValue{Key:prepareKey, Value: nil})
-	set = append(set, &types.KeyValue{Key:key, Value: types.Encode(localToken)})
+	set = append(set, &types.KeyValue{Key: prepareKey, Value: nil})
+	set = append(set, &types.KeyValue{Key: key, Value: types.Encode(localToken)})
 	kv := AddTokenToAssets(payload.Owner, t.GetLocalDB(), payload.Symbol)
 	set = append(set, kv...)
 	return &types.LocalDBSet{KV: set}, nil
@@ -115,11 +115,10 @@ func (t *token) ExecLocal_TokenRevokeCreate(payload *tokenty.TokenRevokeCreate, 
 	localToken = setRevoked(localToken, t.GetHeight(), t.GetBlockTime())
 	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusCreateRevoked)
 	var set []*types.KeyValue
-	set = append(set, &types.KeyValue{Key:prepareKey, Value: nil})
-	set = append(set, &types.KeyValue{Key:key, Value: types.Encode(localToken)})
+	set = append(set, &types.KeyValue{Key: prepareKey, Value: nil})
+	set = append(set, &types.KeyValue{Key: key, Value: types.Encode(localToken)})
 	return &types.LocalDBSet{KV: set}, nil
 }
-
 
 func newLocalToken(payload *tokenty.TokenPreCreate) *tokenty.LocalToken {
 	localToken := tokenty.LocalToken{
@@ -191,4 +190,3 @@ func resetRevoked(t *tokenty.LocalToken) *tokenty.LocalToken {
 	t.Status = tokenty.TokenStatusPreCreated
 	return t
 }
-
