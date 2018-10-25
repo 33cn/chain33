@@ -86,27 +86,38 @@ func (t *token) ExecDelLocal_TransferToExec(payload *types.AssetsTransferToExec,
 }
 
 func (t *token) ExecDelLocal_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
-	if err != nil {
-		return nil, err
-	}
-	return &types.LocalDBSet{KV: kv}, nil
+	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
+	var set []*types.KeyValue
+	set = append(set, &types.KeyValue{ Key:key, Value: nil})
+	return &types.LocalDBSet{KV: set}, nil
 }
 
 func (t *token) ExecDelLocal_TokenFinishCreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
+	prepareKey := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
+	localToken, err := loadLocalToken(payload.Symbol, payload.Owner, tokenty.TokenStatusCreated, t.GetLocalDB())
 	if err != nil {
 		return nil, err
 	}
-	return &types.LocalDBSet{KV: kv}, nil
+	localToken = resetCreated(localToken)
+	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusCreated)
+	var set []*types.KeyValue
+	set = append(set, &types.KeyValue{Key:prepareKey, Value: types.Encode(localToken)})
+	set = append(set, &types.KeyValue{Key:key, Value: nil})
+	return &types.LocalDBSet{KV: set}, nil
 }
 
 func (t *token) ExecDelLocal_TokenRevokeCreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
+	prepareKey := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
+	localToken, err := loadLocalToken(payload.Symbol, payload.Owner, tokenty.TokenStatusCreateRevoked, t.GetLocalDB())
 	if err != nil {
 		return nil, err
 	}
-	return &types.LocalDBSet{KV: kv}, nil
+	localToken = resetRevoked(localToken)
+	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusCreateRevoked)
+	var set []*types.KeyValue
+	set = append(set, &types.KeyValue{Key:key, Value: nil})
+	set = append(set, &types.KeyValue{Key:prepareKey, Value: types.Encode(localToken)})
+	return &types.LocalDBSet{KV: set}, nil
 }
 
 
