@@ -76,7 +76,7 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 			transfer.Value = v
 			transfer.Ty = ty
 		} else if tokenty.TokenActionPreCreate == ty {
-			v := &tokenty.TokenAction_Tokenprecreate{&tokenty.TokenPreCreate{
+			v := &tokenty.TokenAction_TokenPreCreate{&tokenty.TokenPreCreate{
 				"Yuan chain coin",
 				"GOOD",
 				"An Easy Way to Build Blockchain",
@@ -86,11 +86,11 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 			transfer.Value = v
 			transfer.Ty = ty
 		} else if tokenty.TokenActionFinishCreate == ty {
-			v := &tokenty.TokenAction_Tokenfinishcreate{&tokenty.TokenFinishCreate{}}
+			v := &tokenty.TokenAction_TokenFinishCreate{&tokenty.TokenFinishCreate{}}
 			transfer.Value = v
 			transfer.Ty = ty
 		} else if tokenty.TokenActionRevokeCreate == ty {
-			v := &tokenty.TokenAction_Tokenrevokecreate{&tokenty.TokenRevokeCreate{}}
+			v := &tokenty.TokenAction_TokenRevokeCreate{&tokenty.TokenRevokeCreate{}}
 			transfer.Value = v
 			transfer.Ty = ty
 		} else {

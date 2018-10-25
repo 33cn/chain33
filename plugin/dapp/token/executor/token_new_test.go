@@ -160,7 +160,7 @@ func TestPrecreate(t *testing.T) {
 	}
 	precreate := &tokenty.TokenAction{
 		Ty:    tokenty.TokenActionPreCreate,
-		Value: &tokenty.TokenAction_Tokenprecreate{v},
+		Value: &tokenty.TokenAction_TokenPreCreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(execName),
@@ -201,7 +201,7 @@ func TestFinish(t *testing.T) {
 	v := &tokenty.TokenFinishCreate{Symbol: tokenSym, Owner: addr}
 	finish := &tokenty.TokenAction{
 		Ty:    tokenty.TokenActionFinishCreate,
-		Value: &tokenty.TokenAction_Tokenfinishcreate{v},
+		Value: &tokenty.TokenAction_TokenFinishCreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(execName),
