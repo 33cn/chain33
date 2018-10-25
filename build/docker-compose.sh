@@ -304,7 +304,7 @@ function base_config() {
 }
 
 function dapp_run() {
-    if [ -e "$DAPP_TEST_FILE" ] ; then
+    if [ -e "$DAPP_TEST_FILE" ]; then
         ${DAPP} "${CLI}" "${1}"
     fi
 

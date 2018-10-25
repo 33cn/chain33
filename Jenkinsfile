@@ -67,7 +67,7 @@ pipeline {
                 dir("${PROJ_DIR}"){
                     gitlabCommitStatus(name: 'deploy'){
                         sh 'make build_ci'
-                        sh "cd build && mkdir ${env.BUILD_NUMBER} && cp chain33* Dockerfile* docker* *.sh ${env.BUILD_NUMBER}/ && cd ${env.BUILD_NUMBER}/ && ./docker-compose.sh ${env.BUILD_NUMBER}"
+                        sh "cd build && mkdir ${env.BUILD_NUMBER} && cp chain33* Dockerfile* docker* *.sh ${env.BUILD_NUMBER}/ && cd ${env.BUILD_NUMBER}/ && ./docker-compose-pre.sh run ${env.BUILD_NUMBER} "
                     }
                 }
             }
@@ -75,7 +75,7 @@ pipeline {
             post {
                 always {
                     dir("${PROJ_DIR}"){
-                        sh "cd build/${env.BUILD_NUMBER} && docker-compose down  && cd .. && rm -rf ${env.BUILD_NUMBER}"
+                        sh "cd build/${env.BUILD_NUMBER} && ./docker-compose-pre.sh down ${env.BUILD_NUMBER}  && cd .. && rm -rf ${env.BUILD_NUMBER}"
                         sh "docker rmi ${env.BUILD_NUMBER}_chain31 ${env.BUILD_NUMBER}_chain32 ${env.BUILD_NUMBER}_chain33"
                     }
                 }
