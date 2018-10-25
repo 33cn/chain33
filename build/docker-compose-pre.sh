@@ -120,15 +120,14 @@ function main() {
         fi
     elif [ "${OP}" == "forktest" ]; then
         if [ "${DAPP}" == "all" ]; then
-#            echo "============ run main start ================="
-#            if ! ./system-fork-test.sh "$PROJ"; then
-#                exit 1
-#            fi
-#            echo "============ down main test ================="
-#            ./docker-compose-down.sh "$PROJ"
-#            echo "============ run main end ================="
-            #  dir=$(ls -l ./ |awk '/^d/ {print $NF}')
-            ## remove all the *-ci folders
+            echo "============ run main start ================="
+            if ! ./system-fork-test.sh "$PROJ"; then
+                exit 1
+            fi
+            echo "============ down main test ================="
+            ./docker-compose-down.sh "$PROJ"
+            echo "============ run main end ================="
+            # remove all the *-ci folders
             find . -maxdepth 1 -type d -name "*-ci" -exec rm -rf {} \;
             dir=$(find . -maxdepth 1 -type d ! -name system ! -name . | sed 's/^\.\///')
             for app in $dir; do
