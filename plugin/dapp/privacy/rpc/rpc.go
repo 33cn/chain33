@@ -174,22 +174,22 @@ func (c *Jrpc) PrivacyTxList(in *pty.ReqPrivacyTransactionList, result *interfac
 	return nil
 }
 
-func (c *Jrpc) RescanUtxos(in *pty.ReqRescanUtxos, result *interface{}) error {
+func (c *Jrpc) RescanUtxos(in *pty.ReqRescanUtxos, result *json.RawMessage) error {
 	reply, err := c.cli.RescanUtxos(context.Background(), in)
 	if err != nil {
 		return err
 	}
-	*result = reply
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
 }
 
-func (c *Jrpc) EnablePrivacy(in *pty.ReqEnablePrivacy, result *interface{}) error {
+func (c *Jrpc) EnablePrivacy(in *pty.ReqEnablePrivacy, result *json.RawMessage) error {
 	reply, err := c.cli.EnablePrivacy(context.Background(), in)
 	if err != nil {
 		return err
 	}
-	*result = reply
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
 }
 
 func (this *Jrpc) CreateRawTransaction(in *types.ReqCreateTransaction, result *interface{}) error {
