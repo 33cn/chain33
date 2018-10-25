@@ -152,6 +152,7 @@ It has these top-level messages:
 	IterateRangeByStateHash
 	TicketStatistic
 	TicketMinerInfo
+	TotalAmount
 	AssetsGenesis
 	AssetsTransferToExec
 	AssetsWithdraw

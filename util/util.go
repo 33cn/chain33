@@ -16,7 +16,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var random = rand.New(rand.NewSource(types.Now().UnixNano()))
+func init() {
+	rand.Seed(types.Now().UnixNano())
+}
+
 var chainlog = log15.New("module", "testnode")
 
 func GetRealExecName(paraName string, name string) string {
@@ -95,7 +98,7 @@ func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 		return CreateCoinsTx(priv, to, types.Coin)
 	}
 	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none"), Fee: 1e6}
-	tx.Nonce = random.Int63()
+	tx.Nonce = rand.Int63()
 	tx.To = address.ExecAddress(execer)
 	tx.Sign(types.SECP256K1, priv)
 	return tx
@@ -114,7 +117,7 @@ func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transact
 		panic(err)
 	}
 	tx.Execer = []byte("coins")
-	tx.Nonce = random.Int63()
+	tx.Nonce = rand.Int63()
 	tx.Fee = 100000
 	tx.To = to
 	tx.Sign(types.SECP256K1, priv)
