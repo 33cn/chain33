@@ -31,9 +31,9 @@ func (t *TokenType) GetTypeMap() map[string]int32 {
 		"Transfer":          ActionTransfer,
 		"Genesis":           ActionGenesis,
 		"Withdraw":          ActionWithdraw,
-		"Tokenprecreate":    TokenActionPreCreate,
-		"Tokenfinishcreate": TokenActionFinishCreate,
-		"Tokenrevokecreate": TokenActionRevokeCreate,
+		"TokenPreCreate":    TokenActionPreCreate,
+		"TokenFinishCreate": TokenActionFinishCreate,
+		"TokenRevokeCreate": TokenActionRevokeCreate,
 		"TransferToExec":    TokenActionTransferToExec,
 	}
 }

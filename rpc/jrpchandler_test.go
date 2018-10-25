@@ -1505,7 +1505,7 @@ func TestChain33_CreateTransaction(t *testing.T) {
 
 	in = &rpctypes.CreateTxIn{
 		Execer:     types.ExecName(types.TokenX),
-		ActionName: "Tokenfinishcreate",
+		ActionName: "TokenFinishCreate",
 		Payload:    []byte("{\"symbol\": \"TOKEN\", \"owner\":\"string\"}"),
 	}
 	err = client.CreateTransaction(in, &result)
