@@ -139,7 +139,7 @@ func (t *Tree) Save() []byte {
 		if enablePrune && !isPruning() &&
 			t.blockHeight%int64(pruneHeight) == 0 &&
 			t.blockHeight/int64(pruneHeight) > 1 {
-			go pruningTree(t.ndb.db, t.blockHeight)
+			go  pruningTree(t.ndb.db, t.blockHeight)
 		}
 	}
 	return t.root.hash
