@@ -35,13 +35,10 @@ func DisableLog() {
 }
 
 type Executor struct {
-	client         queue.Client
-	qclient        client.QueueProtocolAPI
-	enableStat     bool
-	enableMVCC     bool
-	enableStatFlag int64
-	flagMVCC       int64
-	alias          map[string]string
+	client       queue.Client
+	qclient      client.QueueProtocolAPI
+	pluginEnable map[string]bool
+	alias        map[string]string
 }
 
 func execInit(sub map[string][]byte) {
@@ -65,8 +62,13 @@ func New(cfg *types.Exec, sub map[string][]byte) *Executor {
 		types.SetMinFee(cfg.MinExecFee)
 	}
 	exec := &Executor{}
-	exec.enableStat = cfg.EnableStat
-	exec.enableMVCC = cfg.EnableMVCC
+	exec.pluginEnable = make(map[string]bool)
+	exec.pluginEnable["stat"] = cfg.EnableStat
+	exec.pluginEnable["mvcc"] = cfg.EnableMVCC
+	exec.pluginEnable["addrindex"] = !cfg.DisableAddrIndex
+	exec.pluginEnable["txindex"] = true
+	exec.pluginEnable["fee"] = true
+
 	exec.alias = make(map[string]string)
 	for _, v := range cfg.Alias {
 		data := strings.Split(v, ":")
@@ -128,7 +130,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	}
 	localdb := NewLocalDB(exec.client)
 	driver.SetLocalDB(localdb)
-	opt := &StateDBOption{EnableMVCC: exec.enableMVCC, FlagMVCC: exec.flagMVCC, Height: header.GetHeight()}
+	opt := &StateDBOption{EnableMVCC: exec.pluginEnable["mvcc"], Height: header.GetHeight()}
 
 	db := NewStateDB(exec.client, data.StateHash, localdb, opt)
 	db.(*StateDB).enableMVCC()
@@ -225,25 +227,29 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs, datas.Receipts)
 	execute.enableMVCC()
 	execute.api = exec.qclient
-	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
 		execute.stateDB.Set(kv.Key, kv.Value)
 	}
-	for _, plugin := range globalPlugins {
-		ok, err := plugin.CheckEnable()
+	for name, plugin := range globalPlugins {
+		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])
 		if err != nil {
 			panic(err)
 		}
 		if !ok {
 			continue
 		}
-		kvs, err := plugin.ExecLocal(exec, execute.localDB, datas)
+		if len(kvs) > 0 {
+			kvset.KV = append(kvset.KV, kvs...)
+		}
+		kvs, err = plugin.ExecLocal(execute, datas)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 			return
 		}
-		kvset.KV = append(kvset.KV, kvs...)
+		if len(kvs) > 0 {
+			kvset.KV = append(kvset.KV, kvs...)
+		}
 	}
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
@@ -277,20 +283,25 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	for _, kv := range datas.KV {
 		execute.stateDB.Set(kv.Key, kv.Value)
 	}
-	for _, plugin := range globalPlugins {
-		ok, err := plugin.CheckEnable()
+	for name, plugin := range globalPlugins {
+		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])
 		if err != nil {
 			panic(err)
 		}
 		if !ok {
 			continue
 		}
-		kvs, err := plugin.ExecDelLocal(exec, execute.localDB, datas)
+		if len(kvs) > 0 {
+			kvset.KV = append(kvset.KV, kvs...)
+		}
+		kvs, err = plugin.ExecDelLocal(execute, datas)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 			return
 		}
-		kvset.KV = append(kvset.KV, kvs...)
+		if len(kvs) > 0 {
+			kvset.KV = append(kvset.KV, kvs...)
+		}
 	}
 	for i := len(b.Txs) - 1; i >= 0; i-- {
 		tx := b.Txs[i]
