@@ -74,6 +74,8 @@ message LocalToken {
     int64  prepareCreateTime = 12;
     int32  precision = 13;
     int64  totalTransferTimes = 14;
+    int64  revokedHeight = 15;
+    int64  revokedTime = 16;
 }
 
 // query
