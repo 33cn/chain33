@@ -1,4 +1,4 @@
-package testnode
+package util
 
 import (
 	"gitlab.33.cn/chain33/chain33/common"
