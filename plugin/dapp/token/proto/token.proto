@@ -58,6 +58,24 @@ message ReceiptToken {
     int32  status = 3;
 }
 
+// local
+message LocalToken {
+    string name         = 1;
+    string symbol       = 2;
+    string introduction = 3;
+    int64  total        = 4;
+    int64  price        = 5;
+    string owner        = 6;
+    string creator      = 7;
+    int32  status       = 8;
+    int64  createdHeight = 9;
+    int64  createdTime  = 10;
+    int64  prepareCreateHeight = 11;
+    int64  prepareCreateTime = 12;
+    int32  precision = 13;
+    int64  totalTransferTimes = 14;
+}
+
 // query
 message ReqTokens {
     bool     queryAll          = 1;
@@ -65,6 +83,9 @@ message ReqTokens {
     repeated string tokens     = 3;
     bool            symbolOnly = 4;
 }
+
+
+
 
 message ReplyTokens {
     repeated Token tokens = 1;
