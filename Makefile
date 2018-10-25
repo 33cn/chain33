@@ -132,7 +132,7 @@ fmt_proto: ## go fmt protobuf file
 	@find . -name '*.proto' -not -path "./vendor/*" | xargs clang-format -i
 
 fmt_shell: ## check shell file
-	@sh test.sh
+	@cat /etc/profile
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shfmt -w -s -i 4 -ci -bn
 
 vet: ## go vet
