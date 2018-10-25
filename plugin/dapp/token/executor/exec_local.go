@@ -6,34 +6,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-
-
-func (t *token) execLocal(receiptData *types.ReceiptData, addr, symbol string) ([]*types.KeyValue, error) {
-	var set []*types.KeyValue
-	for i := 0; i < len(receiptData.Logs); i++ {
-		item := receiptData.Logs[i]
-		if item.Ty == tokenty.TyLogPreCreateToken || item.Ty == tokenty.TyLogFinishCreateToken || item.Ty == tokenty.TyLogRevokeCreateToken {
-			var receipt tokenty.ReceiptToken
-			err := types.Decode(item.Log, &receipt)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-
-			receiptKV := t.saveLogs(&receipt)
-			set = append(set, receiptKV...)
-
-			// 添加个人资产列表
-			if item.Ty == tokenty.TyLogFinishCreateToken {
-				kv := AddTokenToAssets(addr, t.GetLocalDB(), symbol)
-				if kv != nil {
-					set = append(set, kv...)
-				}
-			}
-		}
-	}
-	return set, nil
-}
-
 func (t *token) ExecLocal_Transfer(payload *types.AssetsTransfer, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := t.ExecLocalTransWithdraw(tx, receiptData, index)
 	if err != nil {
