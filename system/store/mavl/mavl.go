@@ -36,9 +36,9 @@ func init() {
 }
 
 type subConfig struct {
-	EnableMavlPrefix bool `json:"enableMavlPrefix"`
-	EnableMVCC       bool `json:"enableMVCC"`
-	EnableMavlPrune  bool `json:"enableMavlPrune"`
+	EnableMavlPrefix bool  `json:"enableMavlPrefix"`
+	EnableMVCC       bool  `json:"enableMVCC"`
+	EnableMavlPrune  bool  `json:"enableMavlPrune"`
 	PruneHeight      int32 `json:"pruneHeight"`
 }
 
