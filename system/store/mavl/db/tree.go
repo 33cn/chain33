@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	hashNodePrefix     = "_mh_"
-	leafNodePrefix     = "_mb_"
+	hashNodePrefix = "_mh_"
+	leafNodePrefix = "_mb_"
 )
 
 var (
