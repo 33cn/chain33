@@ -34,7 +34,6 @@ func TestGoMemDBIteratorDel(t *testing.T) {
 	testDBIteratorDel(t, memdb)
 }
 
-
 // memdb边界测试
 func TestGoMemDBBoundary(t *testing.T) {
 	dir, err := ioutil.TempDir("", "gomemdb")
