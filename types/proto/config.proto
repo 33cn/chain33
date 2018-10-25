@@ -54,9 +54,6 @@ message Consensus {
     string genesis              = 4;
     string hotkeyAddr           = 5;
     bool   forceMining          = 6;
-    int64  NodeId               = 7;
-    string PeersURL             = 8;
-    string ClientAddr           = 9;
     int64  writeBlockSeconds    = 20;
     string paraRemoteGrpcClient = 22;
     int64  startHeight          = 23;
