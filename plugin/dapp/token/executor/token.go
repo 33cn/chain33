@@ -10,8 +10,6 @@ token执行器支持token的创建，
 */
 
 import (
-	"strings"
-
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -130,13 +128,19 @@ func (t *token) GetAddrReceiverforTokens(addrTokens *tokenty.ReqAddrTokens) (typ
 }
 
 func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
-	db := t.GetStateDB()
-	token, err := db.Get(calcTokenKey(symbol))
-	if err != nil {
-		return nil, types.ErrEmpty
+	if symbol == "" {
+		return nil, types.ErrInvalidParam
 	}
-	var tokenInfo tokenty.Token
-	err = types.Decode(token, &tokenInfo)
+	key := calcTokenStatusSymbolNewPrefix(tokenty.TokenStatusCreated, symbol)
+	values, err := t.GetLocalDB().List(key, nil, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		return nil, types.ErrNotFound
+	}
+	var tokenInfo tokenty.LocalToken
+	err = types.Decode(values[0], &tokenInfo)
 	if err != nil {
 		return &tokenInfo, err
 	}
@@ -145,32 +149,28 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 
 func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 	replyTokens := &tokenty.ReplyTokens{}
-	keys, err := t.listTokenKeys(reqTokens)
+	tokens, err := t.listTokenKeys(reqTokens)
 	if err != nil {
 		return nil, err
 	}
-	tokenlog.Debug("token Query GetTokens", "get count", len(keys), "KEY", string(keys[0]))
+	tokenlog.Debug("token Query GetTokens", "get count", len(tokens))
 	if reqTokens.SymbolOnly {
-		for _, key := range keys {
-			idx := strings.LastIndex(string(key), "-")
-			if idx < 0 || idx >= len(key) {
-				continue
+		for _, t1 := range tokens {
+			var tokenValue tokenty.LocalToken
+			err = types.Decode(t1, &tokenValue)
+			if err == nil {
+				token := tokenty.LocalToken{Symbol: tokenValue.Symbol}
+				replyTokens.Tokens = append(replyTokens.Tokens, &token)
 			}
-			symbol := key[idx+1:]
-			token := tokenty.Token{Symbol: string(symbol)}
-			replyTokens.Tokens = append(replyTokens.Tokens, &token)
 		}
 		return replyTokens, nil
 	}
 
-	db := t.GetStateDB()
-	for _, key := range keys {
-		if tokenValue, err := db.Get(key); err == nil {
-			var token tokenty.Token
-			err = types.Decode(tokenValue, &token)
-			if err == nil {
-				replyTokens.Tokens = append(replyTokens.Tokens, &token)
-			}
+	for _, t1 := range tokens {
+		var token tokenty.LocalToken
+		err = types.Decode(t1, &token)
+		if err == nil {
+			replyTokens.Tokens = append(replyTokens.Tokens, &token)
 		}
 	}
 
