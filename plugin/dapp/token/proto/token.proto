@@ -73,6 +73,7 @@ message LocalToken {
     int64  prepareCreateHeight = 11;
     int64  prepareCreateTime = 12;
     int32  precision = 13;
+    // 如果需要这个项可以单独做一个域存储
     int64  totalTransferTimes = 14;
     int64  revokedHeight = 15;
     int64  revokedTime = 16;
@@ -86,13 +87,9 @@ message ReqTokens {
     bool            symbolOnly = 4;
 }
 
-
-
-
 message ReplyTokens {
-    repeated Token tokens = 1;
+    repeated LocalToken tokens = 1;
 }
-
 
 message TokenRecv {
     string token = 1;
