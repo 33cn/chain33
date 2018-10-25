@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -79,9 +78,10 @@ func totalCoins(cmd *cobra.Command, args []string) {
 
 	// 获取高度statehash
 	params := rpctypes.BlockParam{
-		Start:    height,
-		End:      height,
-		Isdetail: false,
+		Start: height,
+		End:   height,
+		//Isdetail: false,
+		Isdetail: true,
 	}
 
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
@@ -137,14 +137,19 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		totalAmount = (317430000+30*height)*types.Coin - res2.Fee
 		resp.TotalAmount = strconv.FormatFloat(float64(totalAmount)/float64(types.Coin), 'f', 4, 64)
 	} else {
-		//查询Token总量
 		var req types.ReqString
 		req.Data = symbol
 		var params types.Query4Cli
 		params.Execer = "token"
-		params.FuncName = "GetTokenInfo"
+		// 查询Token的总量
+		params.FuncName = "GetTotalAmount"
 		params.Payload = req
-		var res tokenty.Token
+		var res types.TotalAmount
+
+		//查询Token总量
+		//params.FuncName = "GetTokenInfo"
+		//params.Payload = req
+		//var res tokenty.Token
 		err = rpc.Call("Chain33.Query", params, &res)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
