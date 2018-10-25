@@ -21,7 +21,7 @@ message TokenAction {
     int32 Ty = 7;
 }
 
-//创建token，支持最大精确度是6位小数,即存入数据库的实际总额需要放大1e6倍
+//创建token，支持最大精确度是8位小数,即存入数据库的实际总额需要放大1e8倍
 message TokenPreCreate {
     string name         = 1;
     string symbol       = 2;
