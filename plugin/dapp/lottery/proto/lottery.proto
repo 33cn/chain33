@@ -16,23 +16,23 @@ message PurchaseRecords {
 }
 
 message Lottery {
-    string lotteryId            = 1;
-    int32  status               = 2;
-    int64  createHeight         = 3;
-    int64  fund                 = 4;
-    int64  purBlockNum          = 5;
-    int64  drawBlockNum         = 6;
-    int64  lastTransToPurState  = 7;
-    int64  lastTransToDrawState = 8;
-    map<string, PurchaseRecords> records = 9;
-    int64    totalPurchasedTxNum          = 10;
-    string   createAddr                   = 11;
-    int64    round                        = 12;
-    int64    luckyNumber                  = 13;
-    int64    createOnMain                 = 14;
-    int64    lastTransToPurStateOnMain    = 15;
-    int64    lastTransToDrawStateOnMain   = 16;
-    repeated MissingRecord missingRecords = 17;
+    string                       lotteryId                  = 1;
+    int32                        status                     = 2;
+    int64                        createHeight               = 3;
+    int64                        fund                       = 4;
+    int64                        purBlockNum                = 5;
+    int64                        drawBlockNum               = 6;
+    int64                        lastTransToPurState        = 7;
+    int64                        lastTransToDrawState       = 8;
+    map<string, PurchaseRecords> records                    = 9;
+    int64                        totalPurchasedTxNum        = 10;
+    string                       createAddr                 = 11;
+    int64                        round                      = 12;
+    int64                        luckyNumber                = 13;
+    int64                        createOnMain               = 14;
+    int64                        lastTransToPurStateOnMain  = 15;
+    int64                        lastTransToDrawStateOnMain = 16;
+    repeated MissingRecord missingRecords                   = 17;
 }
 
 message MissingRecord {
