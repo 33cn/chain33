@@ -46,15 +46,6 @@ func (m ManageType) ActionName(tx *types.Transaction) string {
 	return "config"
 }
 
-func (manage ManageType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action ManageAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
 func (m ManageType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }

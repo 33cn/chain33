@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "transaction.proto";
+import "common.proto";
 
 package types;
 
@@ -51,10 +52,13 @@ message ParacrossMinerAction {
 
 message ParacrossAction {
     oneof value {
-        ParacrossCommitAction commit        = 1;
-        ParacrossMinerAction  miner         = 3;
-        AssetsTransfer        assetTransfer = 4;
-        AssetsWithdraw        assetWithdraw = 5;
+        ParacrossCommitAction commit         = 1;
+        ParacrossMinerAction  miner          = 3;
+        AssetsTransfer        assetTransfer  = 4;
+        AssetsWithdraw        assetWithdraw  = 5;
+        AssetsTransfer        transfer       = 6;
+        AssetsWithdraw        withdraw       = 7;
+        AssetsTransferToExec  transferToExec = 8;
     }
     int32 ty = 2;
 }
@@ -119,4 +123,11 @@ message ParacrossAsset {
     int64 commitDoneHeight = 21;
     int64 paraHeight       = 22;
     bool  success          = 23;
+}
+
+service paracross {
+    rpc GetTitle(ReqString) returns (ParacrossStatus) {}
+    rpc ListTitles(ReqNil) returns (RespParacrossTitles) {}
+    rpc GetTitleHeight(ReqParacrossTitleHeight) returns (ReceiptParacrossDone) {}
+    rpc GetAssetTxResult(ReqHash) returns (ParacrossAsset) {}
 }

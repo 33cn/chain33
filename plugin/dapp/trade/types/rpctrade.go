@@ -21,6 +21,7 @@ type RpcReplyTradeOrder struct {
 	Key               string `protobuf:"bytes,13,opt,name=key" json:"key"`
 	BlockTime         int64  `protobuf:"varint,14,opt,name=blockTime" json:"blockTime"`
 	IsSellOrder       bool   `protobuf:"varint,15,opt,name=isSellOrder" json:"isSellOrder"`
+	AssetExec         string `protobuf:"bytes,16,opt,name=assetExec" json:"assetExec"`
 }
 
 func (reply *ReplyTradeOrder) MarshalJSON() ([]byte, error) {

@@ -7,13 +7,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util/testnode"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 	"gitlab.33.cn/wallet/bipwallet"
@@ -74,7 +74,7 @@ func (mock *testDataMock) init() {
 
 func (mock *testDataMock) initMember() {
 	var q = queue.New("channel")
-	cfg, sub := config.InitCfg("testdata/chain33.test.toml")
+	cfg, sub := testnode.GetDefaultConfig()
 
 	wallet := wallet.New(cfg.Wallet, sub.Wallet)
 	wallet.SetQueueClient(q.Client())
@@ -539,7 +539,7 @@ func Test_PrivacyAccountInfo(t *testing.T) {
 		},
 	}
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "PrivacyAccountInfo", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "ShowPrivacyAccountInfo", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "ShowPrivacyAccoPrivacyAccountInfountInfo test case index %d", index)
 	}
 }

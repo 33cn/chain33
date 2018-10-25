@@ -54,6 +54,7 @@ type ParaClient struct {
 	*drivers.BaseClient
 	conn            *grpc.ClientConn
 	grpcClient      types.Chain33Client
+	paraClient      paracross.ParacrossClient
 	isCatchingUp    bool
 	commitMsgClient *CommitMsgClient
 	authAccount     string
@@ -99,11 +100,13 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 		panic(err)
 	}
 	grpcClient := types.NewChain33Client(conn)
+	paraCli := paracross.NewParacrossClient(conn)
 
 	para := &ParaClient{
 		BaseClient:  c,
 		conn:        conn,
 		grpcClient:  grpcClient,
+		paraClient:  paraCli,
 		authAccount: cfg.AuthAccount,
 		privateKey:  priKey,
 	}
