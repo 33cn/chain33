@@ -7,6 +7,7 @@ var (
 	BlockChainVerKey = []byte("BlockChainVerKey")
 	LocalDBMeta      = []byte("LocalDBMeta")
 	MavlTreeVerKey   = []byte("MavlTreeVerKey")
+	localversion     = "0.0.0"
 	GitCommit        string
 )
 
@@ -23,13 +24,19 @@ func GetVersion() string {
 	return version
 }
 
-//数据库版本解析
+//GetLocalDBVersion 数据库版本解析
 /*
 格式: v1.v2.v3
 如果: v1 升级了， 那么意味着localdb 需要 重新 reindex
 */
 func GetLocalDBVersion() string {
-	return "0.0.0"
+	return localversion
+}
+
+//SetLocalDBVersion only used for test
+//通过设置版本号，强制重建数据库
+func SetLocalDBVersion(version string) {
+	localversion = version
 }
 
 //v0.1.2
