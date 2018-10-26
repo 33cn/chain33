@@ -555,20 +555,6 @@ func (tx *Transaction) IsWithdraw() bool {
 	return false
 }
 
-//CalcTxKey local db中保存交易的方法
-func CalcTxKey(hash []byte) []byte {
-	if IsEnable("quickIndex") {
-		txhash := []byte("TX:")
-		return append(txhash, hash...)
-	}
-	return hash
-}
-
-func CalcTxShortKey(hash []byte) []byte {
-	txhash := []byte("STX:")
-	return append(txhash, hash[0:8]...)
-}
-
 func IsEnable(name string) bool {
 	isenable, err := GetChainConfig(name)
 	if err == nil && isenable.(bool) {

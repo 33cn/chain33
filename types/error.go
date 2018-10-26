@@ -306,4 +306,6 @@ var (
 	ErrLotteryErrCloser         = errors.New("ErrLotteryErrCloser")
 	ErrLotteryErrUnableClose    = errors.New("ErrLotteryErrUnableClose")
 	ErrNodeNotExist             = errors.New("ErrNodeNotExist")
+
+	ErrDBFlag = errors.New("ErrDBFlag")
 )
