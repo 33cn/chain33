@@ -74,7 +74,7 @@ func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.
 	return tx, err
 }
 
-func (t *CoinsType) GetAssets(tx *types.Transaction) []*types.Asset {
+func (c *CoinsType) GetAssets(tx *types.Transaction) []*types.Asset {
 	var action CoinsAction
 	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
