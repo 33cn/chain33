@@ -7,7 +7,7 @@ import (
 
 func (t *Ticket) Exec_Genesis(payload *ty.TicketGenesis, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if payload.Count <= 0 {
-		return nil, types.ErrTicketCount
+		return nil, ty.ErrTicketCount
 	}
 	actiondb := NewAction(t, tx)
 	return actiondb.GenesisInit(payload)
@@ -16,7 +16,7 @@ func (t *Ticket) Exec_Genesis(payload *ty.TicketGenesis, tx *types.Transaction, 
 func (t *Ticket) Exec_Topen(payload *ty.TicketOpen, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if payload.Count <= 0 {
 		tlog.Error("topen ", "value", payload)
-		return nil, types.ErrTicketCount
+		return nil, ty.ErrTicketCount
 	}
 	actiondb := NewAction(t, tx)
 	return actiondb.TicketOpen(payload)

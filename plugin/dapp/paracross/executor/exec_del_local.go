@@ -63,7 +63,7 @@ func (e *Paracross) ExecDelLocal_AssetWithdraw(payload *types.AssetsWithdraw, tx
 
 func (e *Paracross) ExecDelLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	if index != 0 {
-		return nil, types.ErrParaMinerBaseIndex
+		return nil, pt.ErrParaMinerBaseIndex
 	}
 
 	var set types.LocalDBSet

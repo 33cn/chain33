@@ -57,7 +57,7 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 	// auth模块关闭则返回
 	if !authority.IsAuthEnable {
 		clog.Error("Authority is not available. Please check the authority config or authority initialize error logs.")
-		return types.ErrInitializeAuthority
+		return ct.ErrInitializeAuthority
 	}
 
 	// 重启
@@ -105,7 +105,7 @@ func (c *Cert) loadHistoryByPrefix() error {
 		}
 	}
 
-	return types.ErrGetHistoryCertData
+	return ct.ErrGetHistoryCertData
 }
 
 /**
@@ -127,5 +127,5 @@ func (c *Cert) loadHistoryByHeight() error {
 		}
 	}
 
-	return types.ErrGetHistoryCertData
+	return ct.ErrGetHistoryCertData
 }

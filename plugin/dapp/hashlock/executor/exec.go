@@ -11,7 +11,7 @@ func (h *Hashlock) Exec_Hlock(hlock *pty.HashlockLock, tx *types.Transaction, in
 	clog.Debug("hashlocklock action")
 	if hlock.Amount <= 0 {
 		clog.Warn("hashlock amount <=0")
-		return nil, types.ErrHashlockAmount
+		return nil, pty.ErrHashlockAmount
 	}
 	if err := address.CheckAddress(hlock.ToAddress); err != nil {
 		clog.Warn("hashlock checkaddress")
@@ -23,12 +23,12 @@ func (h *Hashlock) Exec_Hlock(hlock *pty.HashlockLock, tx *types.Transaction, in
 	}
 	if hlock.ReturnAddress != tx.From() {
 		clog.Warn("hashlock return address")
-		return nil, types.ErrHashlockReturnAddrss
+		return nil, pty.ErrHashlockReturnAddrss
 	}
 
 	if hlock.Time <= minLockTime {
 		clog.Warn("exec hashlock time not enough")
-		return nil, types.ErrHashlockTime
+		return nil, pty.ErrHashlockTime
 	}
 	actiondb := NewAction(h, tx, drivers.ExecAddress(string(tx.Execer)))
 	return actiondb.Hashlocklock(hlock)

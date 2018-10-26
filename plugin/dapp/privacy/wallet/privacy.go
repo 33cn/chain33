@@ -96,7 +96,7 @@ func (policy *privacyPolicy) reqTxDetailByAddr(addr string) {
 
 func (policy *privacyPolicy) isRescanUtxosFlagScaning() (bool, error) {
 	if privacytypes.UtxoFlagScaning == policy.GetRescanFlag() {
-		return true, types.ErrRescanFlagScaning
+		return true, privacytypes.ErrRescanFlagScaning
 	}
 	return false, nil
 }
@@ -233,7 +233,7 @@ func (policy *privacyPolicy) getPrivacykeyPair(addr string) (*privacy.Privacy, e
 		if err != nil {
 			return nil, err
 		}
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 }
 
@@ -778,7 +778,7 @@ func (policy *privacyPolicy) getPrivacyKeyPairs() ([]addrAndprivacy, error) {
 	}
 
 	if 0 == len(infoPriRes) {
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 
 	return infoPriRes, nil
