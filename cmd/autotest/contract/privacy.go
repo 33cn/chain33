@@ -8,6 +8,7 @@ import (
 )
 
 type TestPrivacyConfig struct {
+	SimpleCaseArr            []testcase.SimpleCase            `toml:"SimpleCase,omitempty"`
 	TokenPreCreateCaseArr    []testcase.TokenPreCreateCase    `toml:"TokenPreCreateCase,omitempty"`
 	TokenFinishCreateCaseArr []testcase.TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
 	TransferCaseArr          []testcase.TransferCase          `toml:"TransferCase,omitempty"`
@@ -29,7 +30,7 @@ func (caseConf *TestPrivacyConfig) RunTest(caseFile string, wg *sync.WaitGroup) 
 	}
 	tester := testcase.NewTestOperator(fLog, tLog)
 
-	go tester.AddCaseArray(caseConf.TokenPreCreateCaseArr, caseConf.TokenFinishCreateCaseArr,
+	go tester.AddCaseArray(caseConf.SimpleCaseArr, caseConf.TokenPreCreateCaseArr, caseConf.TokenFinishCreateCaseArr,
 		caseConf.TransferCaseArr, caseConf.PubToPrivCaseArr, caseConf.PrivToPrivCaseArr, caseConf.PrivToPubCaseArr)
 	go tester.HandleDependency()
 	go tester.RunSendFlow()

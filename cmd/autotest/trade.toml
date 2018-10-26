@@ -2,13 +2,22 @@
 [[TokenPreCreateCase]]
 id = "tokenPre"
 command = "send token precreate -f 0.01 -i testToken -n testToken -s TS -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -t 100000 -p 1 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-
+dep = ["transForPrecreate"]
 
 [[TokenFinishCreateCase]]
 id = "tokenFinish"
 command = "send token finish -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -f 0.01 -s TS -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc"
 dep = ["tokenPre"]
 
+
+#send to token for precreate
+[[TransferCase]]
+id = "transForPrecreate"
+command = "send bty transfer -a 10 -t 12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+to = "12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa"
+amount = "10"
+checkItem = ["balance"]
 
 
 #prepare bty for trade sell
