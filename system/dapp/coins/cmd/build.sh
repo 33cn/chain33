@@ -1,6 +1,11 @@
 #!/bin/sh
 
-echo "-----only for test begin-----"
-echo "$1"
-echo "$2"
-echo "-----only for test end-----"
+strpwd=$(pwd)
+strcmd=${strpwd##*dapp/}
+strapp=${strcmd%/cmd*}
+
+OUT_DIR="${1}/system/$strapp"
+#FLAG=$2
+
+mkdir -p "${OUT_DIR}"
+cp ./build/* "${OUT_DIR}"
