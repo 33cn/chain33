@@ -40,15 +40,13 @@ function config_chain33() {
     # update test environment
     sed -i $sedfix 's/^Title.*/Title="local"/g' ${chain33Config}
     # sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' ${chain33Config}
-#    grep -q '^TestNet' ${chain33Config} && sed -i $sedfix 's/^TestNet.*/TestNet=true/' ${chain33Config} || sed -i '/^Title/a TestNet=true' ${chain33Config}
+    #    grep -q '^TestNet' ${chain33Config} && sed -i $sedfix 's/^TestNet.*/TestNet=true/' ${chain33Config} || sed -i '/^Title/a TestNet=true' ${chain33Config}
 
     if grep -q '^TestNet' ${chain33Config}; then
         sed -i $sedfix 's/^TestNet.*/TestNet=true/' ${chain33Config}
     else
         sed -i '/^Title/a TestNet=true' ${chain33Config}
     fi
-
-
 
     #update fee
     sed -i $sedfix 's/Fee=.*/Fee=100000/' ${chain33Config}
@@ -76,17 +74,17 @@ function config_autotest() {
         #copy specific dapp cofig
 
         for dapp in "$@"; do
-#            echo "[[TestCaseFile]]" >> ${autotestTempConfig}
-#            echo "contract=\"$dapp\"" >> ${autotestTempConfig}
-#            echo "filename=\"$dapp.toml\"" >> ${autotestTempConfig}
+            #            echo "[[TestCaseFile]]" >> ${autotestTempConfig}
+            #            echo "contract=\"$dapp\"" >> ${autotestTempConfig}
+            #            echo "filename=\"$dapp.toml\"" >> ${autotestTempConfig}
 
             {
                 echo "[[TestCaseFile]]"
                 echo "contract=\"$dapp\""
                 echo "filename=\"$dapp.toml\""
-            } >> ${autotestTempConfig}
+            } >>${autotestTempConfig}
 
-       done
+        done
     fi
 
     sed -i $sedfix 's/^checkSleepTime.*/checkSleepTime='${chain33BlockTime}'/' ${autotestTempConfig}
