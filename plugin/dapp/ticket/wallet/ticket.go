@@ -496,7 +496,7 @@ func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto
 	hashList := make([][]byte, int(count))
 	privStr := ""
 	for i := 0; i < int(count); i++ {
-		privStr = fmt.Sprintf("%x:%d:%d", priv.Bytes(), count, topen.RandSeed)
+		privStr = fmt.Sprintf("%x:%d:%d", priv.Bytes(), i, topen.RandSeed)
 		privHash := common.Sha256([]byte(privStr))
 		pubHash := common.Sha256(privHash)
 		hashList[i] = pubHash
