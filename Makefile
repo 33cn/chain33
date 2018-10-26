@@ -153,10 +153,11 @@ docker-compose: ## build docker-compose for chain33 run
 docker-compose-down: ## build docker-compose for chain33 run
 	@cd build && if [ -d ci ]; then \
 	 cp chain33* Dockerfile  docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh down $(PROJ) $(DAPP) && cd .. ; \
-	 fi;
+	 fi; \
+	 cd ..
 
 fork-test: ## build fork-test for chain33 run
-	@cd build && cp chain33* Dockerfile system-fork-test.sh docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh forktest $(PROJ) $(DAPP) && cd ..
+	@cd build && cp chain33* Dockerfile system-fork-test.sh docker-compose* ci/ && cd ci/ && ./docker-compose-pre.sh forktest $(PROJ) $(DAPP) && cd ../..
 
 
 clean: ## Remove previous build
