@@ -560,9 +560,12 @@ func genPrivHash(priv crypto.PrivKey, tid string) []byte {
 	if len(parts) > ty.TicketOldParts {
 		count := parts[ty.TicketOldParts-1]
 		seed := parts[len(parts)-1]
-		tlog.Info("new ticketId", "count", count, "seed", seed)
-		privStr := fmt.Sprintf("%x:%d:%d", priv.Bytes(), count, seed)
+
+		var countNum int
+		fmt.Sscanf(count, "%10d", &countNum)
+		privStr := fmt.Sprintf("%x:%d:%s", priv.Bytes(), countNum, seed)
 		privHash = common.Sha256([]byte(privStr))
+
 	}
 	return privHash
 }
