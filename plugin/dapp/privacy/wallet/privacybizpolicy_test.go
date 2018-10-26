@@ -301,7 +301,7 @@ func Test_ShowPrivacyKey(t *testing.T) {
 	}{
 		{
 			req:       &types.ReqString{Data: testAddrs[1]},
-			needError: types.ErrPrivacyNotEnabled,
+			needError: ty.ErrPrivacyNotEnabled,
 		},
 		{
 			req: &types.ReqString{Data: testAddrs[0]},
@@ -617,7 +617,7 @@ func Test_RescanUTXOs(t *testing.T) {
 				Addrs: testAddrs,
 				Flag:  0,
 			},
-			needError: types.ErrPrivacyNotEnabled,
+			needError: ty.ErrPrivacyNotEnabled,
 		},
 		{
 			enable: true,
