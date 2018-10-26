@@ -3,6 +3,7 @@ package wallet
 import (
 	"encoding/hex"
 	"errors"
+	"math/rand"
 	"sync/atomic"
 	"time"
 
@@ -194,6 +195,14 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 		return nil, err
 	}
 	tx.Fee = fee
+	if tx.To == "" {
+		tx.To = addrto
+	}
+	if len(tx.Execer) == 0 {
+		tx.Execer = []byte(exec)
+	}
+	tx.Nonce = rand.New(rand.NewSource(types.Now().UnixNano())).Int63()
+
 	return tx, nil
 }
 
