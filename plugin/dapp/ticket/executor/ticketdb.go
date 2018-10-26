@@ -2,7 +2,8 @@ package executor
 
 //database opeartion for execs ticket
 import (
-	"bytes"
+	//"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -249,11 +250,11 @@ func readTicket(db dbm.KV, id string) (*ty.Ticket, error) {
 	return &ticket, nil
 }
 
-func genPubHash(tid string) []byte {
-	var pubHash []byte
+func genPubHash(tid string) string {
+	var pubHash string
 	parts := strings.Split(tid, ":")
 	if len(parts) > ty.TicketOldParts {
-		pubHash = []byte(parts[ty.TicketOldParts])
+		pubHash = parts[ty.TicketOldParts]
 	}
 	return pubHash
 }
@@ -282,7 +283,8 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 	//check pubHash and privHash
 	if len(miner.PrivHash) != 0 {
 		pubHash := genPubHash(ticket.TicketId)
-		if len(pubHash) == 0 || !bytes.Equal(pubHash, common.Sha256(miner.PrivHash)) {
+		if len(pubHash) == 0 || hex.EncodeToString(common.Sha256(miner.PrivHash)) != pubHash {
+			tlog.Error("TicketMiner", "pubHash", pubHash, "privHashHash", common.Sha256(miner.PrivHash), "ticketId", ticket.TicketId)
 			return nil, errors.New("ErrCheckPubHash")
 		}
 	}
