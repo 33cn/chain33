@@ -223,7 +223,7 @@ message UserWrite {
 }
 
 message UpgradeMeta {
-    bool indexing = 1;
-    string version = 2;
-    int64 height = 3;
+    bool   indexing = 1;
+    string version  = 2;
+    int64  height   = 3;
 }
