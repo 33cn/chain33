@@ -18,9 +18,9 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	var err error
 	//取最新的交易hash列表
 	if addr.Flag == 0 { //所有的交易hash列表
-		prefix = CalcTxAddrHashKey(addr.GetAddr(), "")
+		prefix = types.CalcTxAddrHashKey(addr.GetAddr(), "")
 	} else if addr.Flag > 0 { //from的交易hash列表
-		prefix = CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, "")
+		prefix = types.CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, "")
 	} else {
 		return nil, errors.New("flag unknown")
 	}
@@ -35,9 +35,9 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	} else { //翻页查找指定的txhash列表
 		heightstr := HeightIndexStr(addr.GetHeight(), addr.GetIndex())
 		if addr.Flag == 0 {
-			key = CalcTxAddrHashKey(addr.GetAddr(), heightstr)
+			key = types.CalcTxAddrHashKey(addr.GetAddr(), heightstr)
 		} else if addr.Flag > 0 { //from的交易hash列表
-			key = CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, heightstr)
+			key = types.CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, heightstr)
 		} else {
 			return nil, errors.New("flag unknown")
 		}
