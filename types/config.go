@@ -100,8 +100,7 @@ func GetP(height int64) *ChainParam {
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowDepositExec = [][]byte{ExecerTicket}
-	AllowUserExec    = [][]byte{ExecerTicket, ExecerNorm, ExecerHashlock, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
-		ExecerPrivacy /*ExecerBlackwhite,*/, ExecerPara, ExecerValNode}
+	AllowUserExec    = [][]byte{ExecerNone}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
