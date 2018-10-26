@@ -60,23 +60,23 @@ message ReceiptToken {
 
 // local
 message LocalToken {
-    string name         = 1;
-    string symbol       = 2;
-    string introduction = 3;
-    int64  total        = 4;
-    int64  price        = 5;
-    string owner        = 6;
-    string creator      = 7;
-    int32  status       = 8;
-    int64  createdHeight = 9;
-    int64  createdTime  = 10;
+    string name                = 1;
+    string symbol              = 2;
+    string introduction        = 3;
+    int64  total               = 4;
+    int64  price               = 5;
+    string owner               = 6;
+    string creator             = 7;
+    int32  status              = 8;
+    int64  createdHeight       = 9;
+    int64  createdTime         = 10;
     int64  prepareCreateHeight = 11;
-    int64  prepareCreateTime = 12;
-    int32  precision = 13;
+    int64  prepareCreateTime   = 12;
+    int32  precision           = 13;
     // 如果需要这个项可以单独做一个域存储
-    int64  totalTransferTimes = 14;
-    int64  revokedHeight = 15;
-    int64  revokedTime = 16;
+    int64 totalTransferTimes = 14;
+    int64 revokedHeight      = 15;
+    int64 revokedTime        = 16;
 }
 
 // query
