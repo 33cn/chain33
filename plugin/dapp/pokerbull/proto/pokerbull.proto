@@ -97,10 +97,18 @@ message QueryPBGameListByStatusAndPlayerNum {
 // 索引value值
 message PBGameRecord {
     string gameId = 1;
+    int32  status = 2;
+    int64  index  = 3;
+}
+
+message PBGameRecords {
+    repeated PBGameRecord records = 1;
 }
 
 message QueryPBGameInfo {
     string gameId = 1;
+    string addr   = 2;
+    int64  index  = 3;
 }
 
 message ReplyPBGame {
@@ -116,12 +124,15 @@ message ReplyPBGameList {
 }
 
 message ReceiptPBGame {
-    string gameId    = 1;
-    int32  status    = 2;
-    string addr      = 4;
-    int64  index     = 5;
-    int64  prevIndex = 6;
-    int32  playerNum = 7;
+    string   gameId         = 1;
+    int32    status         = 2;
+    string   addr           = 3;
+    int64    index          = 4;
+    int64    prevIndex      = 5;
+    int32    playerNum      = 6;
+    int64    value          = 7;
+    bool     isWaiting      = 8;
+    repeated string players = 9;
 }
 
 message PBStartTxReq {
