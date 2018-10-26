@@ -151,9 +151,10 @@ var (
 	ErrNotAllowMemSetKey          = errors.New("ErrNotAllowMemSetKey")
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
+	ErrTxGroupParaCount           = errors.New("ErrTxGroupParaCount")
 
 	//rpc
 	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
 
-	ErrTxGroupParaCount = errors.New("ErrTxGroupParaCount")
+	ErrDBFlag = errors.New("ErrDBFlag")
 )
