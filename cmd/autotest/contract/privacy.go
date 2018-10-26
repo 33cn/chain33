@@ -8,7 +8,7 @@ import (
 )
 
 type TestPrivacyConfig struct {
-	SimpleCaseArr			 []testcase.SimpleCase   		  `toml:"SimpleCase,omitempty"`
+	SimpleCaseArr            []testcase.SimpleCase            `toml:"SimpleCase,omitempty"`
 	TokenPreCreateCaseArr    []testcase.TokenPreCreateCase    `toml:"TokenPreCreateCase,omitempty"`
 	TokenFinishCreateCaseArr []testcase.TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
 	TransferCaseArr          []testcase.TransferCase          `toml:"TransferCase,omitempty"`

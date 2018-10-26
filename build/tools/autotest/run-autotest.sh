@@ -138,7 +138,6 @@ function start() {
         exit 1
     fi
 
-
     echo "=========== # close auto mining ============="
     result=$(${CLI} wallet auto_mine -f 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
