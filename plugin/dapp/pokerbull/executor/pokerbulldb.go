@@ -313,7 +313,7 @@ func (action *Action) settleDealerAccount(lastAddress string, game *pkt.PokerBul
 	for _, hand := range result.Hands {
 		// 最后一名玩家没有冻结
 		if hand.Address != lastAddress {
-			receipt, err := action.coinsAccount.ExecActive(hand.Address, action.execaddr, int64(game.GetValue()*POKERBULL_LEVERAGE_MAX))
+			receipt, err := action.coinsAccount.ExecActive(hand.Address, action.execaddr, game.GetValue()*POKERBULL_LEVERAGE_MAX)
 			if err != nil {
 				logger.Error("GameSettleDealer.ExecActive", "addr", hand.Address, "execaddr", action.execaddr, "amount", game.GetValue(),
 					"err", err)
