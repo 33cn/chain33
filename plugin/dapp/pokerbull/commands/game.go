@@ -1,12 +1,13 @@
 package commands
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/spf13/cobra"
 	pkt "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strconv"
-	"fmt"
 )
 
 func PokerBullCmd() *cobra.Command {
@@ -149,7 +150,7 @@ func pokerbullQuery(cmd *cobra.Command, args []string) {
 	gameID, _ := cmd.Flags().GetString("gameID")
 	address, _ := cmd.Flags().GetString("address")
 	indexstr, _ := cmd.Flags().GetString("index")
-	index,_ := strconv.ParseInt(indexstr, 10, 64)
+	index, _ := strconv.ParseInt(indexstr, 10, 64)
 	if address == "" && gameID == "" {
 		fmt.Println("Error: requeres at least one of gameID and address")
 		return
@@ -174,7 +175,5 @@ func pokerbullQuery(cmd *cobra.Command, args []string) {
 		ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 		ctx.Run()
 	}
-
-
 
 }
