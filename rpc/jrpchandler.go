@@ -304,6 +304,12 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	var txdetails rpctypes.TransactionDetails
 	if 0 != len(txs) {
 		for _, tx := range txs {
+			//增加判断，上游接口可能返回空指针
+			if tx == nil {
+				//参数中hash和返回的detail一一对应，顺序一致
+				txdetails.Txs = append(txdetails.Txs, nil)
+				continue
+			}
 			var recp rpctypes.ReceiptData
 			var proofs []string
 			var recpResult *rpctypes.ReceiptDataResult
