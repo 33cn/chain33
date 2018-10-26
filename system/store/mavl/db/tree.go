@@ -128,6 +128,10 @@ func (t *Tree) Save() []byte {
 	if t.root == nil {
 		return nil
 	}
+	// for test
+	if t.blockHeight > 50000 {
+		return nil
+	}
 	if t.ndb != nil {
 		saveNodeNo := t.root.save(t)
 		treelog.Debug("Tree.Save", "saveNodeNo", saveNodeNo, "tree height", t.blockHeight)
@@ -139,7 +143,8 @@ func (t *Tree) Save() []byte {
 		if enablePrune && !isPruning() &&
 			t.blockHeight%int64(pruneHeight) == 0 &&
 			t.blockHeight/int64(pruneHeight) > 1 {
-			go pruningTree(t.ndb.db, t.blockHeight)
+			pruningTree(t.ndb.db, t.blockHeight)
+				//go pruningTree(t.ndb.db, t.blockHeight)
 		}
 	}
 	return t.root.hash

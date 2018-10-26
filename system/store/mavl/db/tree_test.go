@@ -783,8 +783,8 @@ func TestIAVLPrint(t *testing.T) {
 }
 
 func TestPruningTree(t *testing.T) {
-	const txN = 200   // 每个块交易量
-	const preB = 1000 // 一轮区块数
+	const txN = 20   // 每个块交易量
+	const preB = 100 // 一轮区块数
 	const round = 5   // 更新叶子节点次数
 	const preDel = preB / 10
 	dir, err := ioutil.TempDir("", "datastore")
@@ -822,9 +822,9 @@ func TestPruningTree(t *testing.T) {
 		assert.Equal(t, exist, true)
 		assert.Equal(t, value, v)
 	}
-	pruningTreePrint(db, []byte(leafKeyCountPrefix))
-	pruningTreePrint(db, []byte(hashNodePrefix))
-	pruningTreePrint(db, []byte(leafNodePrefix))
+	PruningTreePrint(db, []byte(leafKeyCountPrefix))
+	PruningTreePrint(db, []byte(hashNodePrefix))
+	PruningTreePrint(db, []byte(leafNodePrefix))
 }
 
 func genUpdateKV(height int64, txN int64, vIndex int) (kvs []*types.KeyValue) {
