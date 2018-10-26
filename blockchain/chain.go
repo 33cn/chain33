@@ -5,6 +5,7 @@ package blockchain
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -193,8 +195,33 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
 	chain.recvwg.Add(1)
 	//初始化blockchian模块
+	chain.upgradeChain()
 	chain.InitBlockChain()
 	go chain.ProcRecvMsg()
+}
+
+func (chain *BlockChain) upgradeChain() {
+	meta := chain.readUpgradeMeta()
+	if chain.needReIndex(meta) {
+		curheight := chain.GetBlockHeight()
+		start := meta.Start
+		//reindex 的过程中，会每个高度都去更新meta
+		chain.reIndex(start, curheight)
+	}
+}
+
+func (chain *BlockChain) needReIndex(meta *types.UpgradeMeta) bool {
+	if meta.Indexing { //正在index
+		return true
+	}
+	v1 := meta.Version
+	v2 := version.GetLocalDBVersion()
+	v1arr := strings.Split(v1, ".")
+	v2arr := strings.Split(v2, ".")
+	if len(v1arr) != 3 || len(v2arr) != 3 {
+		panic("upgrade meta version error")
+	}
+	return v1arr[0] != v2arr[0]
 }
 
 func (chain *BlockChain) InitBlockChain() {
