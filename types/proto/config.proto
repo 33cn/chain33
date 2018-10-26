@@ -129,6 +129,7 @@ message Exec {
     bool     isFree                 = 2;
     bool     enableStat             = 3;
     bool     enableMVCC             = 4;
+    bool     disableAddrIndex       = 7;
     repeated string alias           = 5;
     bool            saveTokenTxList = 6;
 }
