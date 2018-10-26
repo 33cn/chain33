@@ -5,9 +5,16 @@ const version = "5.3.0"
 var (
 	WalletVerKey     = []byte("WalletVerKey")
 	BlockChainVerKey = []byte("BlockChainVerKey")
+	LocalDBMeta      = []byte("LocalDBMeta")
 	MavlTreeVerKey   = []byte("MavlTreeVerKey")
 	GitCommit        string
 )
+
+func GetLocalDBKeyList() [][]byte {
+	return [][]byte{
+		WalletVerKey, BlockChainVerKey, LocalDBMeta, MavlTreeVerKey,
+	}
+}
 
 func GetVersion() string {
 	if GitCommit != "" {
@@ -22,7 +29,7 @@ func GetVersion() string {
 如果: v1 升级了， 那么意味着localdb 需要 重新 reindex
 */
 func GetLocalDBVersion() string {
-	return "0.0.0"
+	return "1.0.0"
 }
 
 //v0.1.2

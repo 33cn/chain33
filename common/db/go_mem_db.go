@@ -1,12 +1,14 @@
 package db
 
 import (
+	"bytes"
 	"sync"
 
 	"sort"
 	"strings"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var mlog = log.New("module", "db.memdb")
@@ -116,6 +118,9 @@ func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	defer db.lock.RUnlock()
 	if end == nil {
 		end = bytesPrefix(start)
+	}
+	if bytes.Equal(end, types.EmptyValue) {
+		end = nil
 	}
 	base := itBase{start, end, reverse}
 

@@ -60,8 +60,6 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 	types.Debug = false
 	mock := &Chain33Mock{cfg: cfg}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
-	mock.chain = blockchain.New(cfg.BlockChain)
-	mock.chain.SetQueueClient(q.Client())
 
 	mock.exec = executor.New(cfg.Exec, sub.Exec)
 	mock.exec.SetQueueClient(q.Client())
@@ -75,6 +73,9 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 
 	mock.mem = mempool.New(cfg.MemPool)
 	mock.mem.SetQueueClient(q.Client())
+
+	mock.chain = blockchain.New(cfg.BlockChain)
+	mock.chain.SetQueueClient(q.Client())
 
 	if cfg.P2P.Enable {
 		mock.network = p2p.New(cfg.P2P)
