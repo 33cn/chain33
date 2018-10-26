@@ -7,12 +7,29 @@
 
 ### 运行
 
+#### **直接执行**
+需要配置自定义配置用例文件
 ```
 $ ./autotest -f autotest.toml -l autotest.log
 ```
 
 -f，-l分别指定配置文件和日志文件，
 不指定默认为autotest.toml，autotest.log
+
+
+#### **通过chain33 makefile**
+chain33开发人员修改框架或dapp代码，验证测试
+```
+//启动单节点solo版本chain33， 并执行所有预配置的autotest用例
+$ make autotest
+
+//make中可以指定dapp参数，从而选择性执行autotest用例
+$ make autotest dapp=bty
+$ make autotest dapp="bty token"
+$ make autotest dapp=all
+```
+目前autotest支持的dapp有，bty token trade privacy，后续有待扩展
+
 
 ### 配置文件
 
