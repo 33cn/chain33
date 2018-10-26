@@ -93,7 +93,7 @@ func (store *privacyStore) getWalletAccountPrivacy(addr string) (*privacytypes.W
 		return nil, err
 	}
 	if nil == privacyByte {
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 	var accPrivacy privacytypes.WalletAccountPrivacy
 	err = proto.Unmarshal(privacyByte, &accPrivacy)

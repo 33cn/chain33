@@ -171,7 +171,7 @@ func (t *Ticket) CheckTx(tx *types.Transaction, index int) error {
 			return err
 		}
 		if action.Ty == ty.TicketActionMiner && action.GetMiner() != nil {
-			return types.ErrMinerTx
+			return ty.ErrMinerTx
 		}
 	}
 	return nil

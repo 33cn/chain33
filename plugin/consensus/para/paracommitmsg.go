@@ -553,16 +553,16 @@ func CheckMinerTx(current *types.BlockDetail) error {
 		return err
 	}
 	if action.GetTy() != paracross.ParacrossActionMiner {
-		return types.ErrParaMinerTxType
+		return paracross.ErrParaMinerTxType
 	}
 	//判断交易执行是否OK
 	if action.GetMiner() == nil {
-		return types.ErrParaEmptyMinerTx
+		return paracross.ErrParaEmptyMinerTx
 	}
 
 	//判断exec 是否成功
 	if current.Receipts[0].Ty != types.ExecOk {
-		return types.ErrParaMinerExecErr
+		return paracross.ErrParaMinerExecErr
 	}
 	return nil
 }

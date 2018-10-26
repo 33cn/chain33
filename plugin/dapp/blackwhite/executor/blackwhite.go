@@ -355,7 +355,7 @@ func (c *Blackwhite) GetBwRoundLoopResult(req *gt.ReqLoopResult) (types.Message,
 
 	if req.LoopSeq > 0 { //取出具体一轮
 		if len(result.Results) < int(req.LoopSeq) {
-			return nil, types.ErrNoLoopSeq
+			return nil, gt.ErrNoLoopSeq
 		}
 		res := &gt.ReplyLoopResults{
 			GameID: result.GameID,

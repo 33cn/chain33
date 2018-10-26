@@ -113,7 +113,7 @@ func (action *Action) RetrieveBackup(backupRet *rt.BackupRetrieve) (*types.Recei
 
 		if action.fromaddr != backupRet.DefaultAddress {
 			rlog.Debug("RetrieveBackup", "action.fromaddr", action.fromaddr, "backupRet.DefaultAddress", backupRet.DefaultAddress)
-			return nil, types.ErrRetrieveDefaultAddress
+			return nil, rt.ErrRetrieveDefaultAddress
 		}
 	}
 	//用备份地址检索，如果没有，就建立新的，然后检查并处理关联
@@ -135,11 +135,11 @@ func (action *Action) RetrieveBackup(backupRet *rt.BackupRetrieve) (*types.Recei
 	if index, related := r.CheckRelation(backupRet.DefaultAddress); !related {
 		if !r.RelateDB(backupRet.DefaultAddress, action.blocktime, backupRet.DelayPeriod) {
 			rlog.Debug("RetrieveBackup", "index", index)
-			return nil, types.ErrRetrieveRelateLimit
+			return nil, rt.ErrRetrieveRelateLimit
 		}
 	} else {
 		rlog.Debug("RetrieveBackup", "repeataddr")
-		return nil, types.ErrRetrieveRepeatAddress
+		return nil, rt.ErrRetrieveRepeatAddress
 	}
 
 	r.Save(action.db)
@@ -165,17 +165,17 @@ func (action *Action) RetrievePrepare(preRet *rt.PrepareRetrieve) (*types.Receip
 	r = &DB{*retrieve}
 	if action.fromaddr != r.BackupAddress {
 		rlog.Debug("RetrievePrepare", "action.fromaddr", action.fromaddr, "r.BackupAddress", r.BackupAddress)
-		return nil, types.ErrRetrievePrepareAddress
+		return nil, rt.ErrRetrievePrepareAddress
 	}
 
 	if index, related = r.CheckRelation(preRet.DefaultAddress); !related {
 		rlog.Debug("RetrievePrepare", "CheckRelation", preRet.DefaultAddress)
-		return nil, types.ErrRetrieveRelation
+		return nil, rt.ErrRetrieveRelation
 	}
 
 	if r.RetPara[index].Status != retrieveBackup {
 		rlog.Debug("RetrievePrepare", "Status", r.RetPara[index].Status)
-		return nil, types.ErrRetrieveStatus
+		return nil, rt.ErrRetrieveStatus
 	}
 	r.RetPara[index].PrepareTime = action.blocktime
 	r.RetPara[index].Status = retrievePrepare
@@ -205,21 +205,21 @@ func (action *Action) RetrievePerform(perfRet *rt.PerformRetrieve) (*types.Recei
 
 	if index, related = r.CheckRelation(perfRet.DefaultAddress); !related {
 		rlog.Debug("RetrievePerform", "CheckRelation", perfRet.DefaultAddress)
-		return nil, types.ErrRetrieveRelation
+		return nil, rt.ErrRetrieveRelation
 	}
 
 	if r.BackupAddress != action.fromaddr {
 		rlog.Debug("RetrievePerform", "BackupAddress", r.BackupAddress, "action.fromaddr", action.fromaddr)
-		return nil, types.ErrRetrievePerformAddress
+		return nil, rt.ErrRetrievePerformAddress
 	}
 
 	if r.RetPara[index].Status != retrievePrepare {
 		rlog.Debug("RetrievePerform", "Status", r.RetPara[index].Status)
-		return nil, types.ErrRetrieveStatus
+		return nil, rt.ErrRetrieveStatus
 	}
 	if action.blocktime-r.RetPara[index].PrepareTime < r.RetPara[index].DelayPeriod {
 		rlog.Debug("RetrievePerform", "ErrRetrievePeriodLimit")
-		return nil, types.ErrRetrievePeriodLimit
+		return nil, rt.ErrRetrievePeriodLimit
 	}
 
 	acc = action.coinsAccount.LoadExecAccount(r.RetPara[index].DefaultAddress, action.execaddr)
@@ -231,7 +231,7 @@ func (action *Action) RetrievePerform(perfRet *rt.PerformRetrieve) (*types.Recei
 			return nil, err
 		}
 	} else {
-		return nil, types.ErrRetrieveNoBalance
+		return nil, rt.ErrRetrieveNoBalance
 	}
 
 	//r.RetPara[index].Status = Retrieve_Performed
@@ -262,17 +262,17 @@ func (action *Action) RetrieveCancel(cancel *rt.CancelRetrieve) (*types.Receipt,
 
 	if index, related = r.CheckRelation(cancel.DefaultAddress); !related {
 		rlog.Debug("RetrieveCancel", "CheckRelation", cancel.DefaultAddress)
-		return nil, types.ErrRetrieveRelation
+		return nil, rt.ErrRetrieveRelation
 	}
 
 	if action.fromaddr != r.RetPara[index].DefaultAddress {
 		rlog.Debug("RetrieveCancel", "action.fromaddr", action.fromaddr, "DefaultAddress", r.RetPara[index].DefaultAddress)
-		return nil, types.ErrRetrieveCancelAddress
+		return nil, rt.ErrRetrieveCancelAddress
 	}
 
 	if r.RetPara[index].Status != retrievePrepare {
 		rlog.Debug("RetrieveCancel", "Status", r.RetPara[index].Status)
-		return nil, types.ErrRetrieveStatus
+		return nil, rt.ErrRetrieveStatus
 	}
 
 	//r.RetPara[index].Status = Retrieve_Canceled
