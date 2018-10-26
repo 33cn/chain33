@@ -80,7 +80,7 @@ function forktest_down() {
 
 function main() {
     if [ "${OP}" == "run" ]; then
-        if [ "${DAPP}" == "all" ]; then
+        if [ "${DAPP}" == "all" ] || [ "${DAPP}" == "ALL" ]; then
             echo "============ run main start ================="
             if ! ./docker-compose.sh "$PROJ"; then
                 exit 1
@@ -101,7 +101,7 @@ function main() {
             ./docker-compose.sh "${PROJ}"
         fi
     elif [ "${OP}" == "down" ]; then
-        if [ "${DAPP}" == "all" ]; then
+        if [ "${DAPP}" == "all" ] || [ "${DAPP}" == "ALL" ]; then
             dir=$(find . -maxdepth 1 -type d ! -name system ! -name . | sed 's/^\.\///')
             for app in $dir; do
                 down_dapp "${app}"
@@ -118,7 +118,7 @@ function main() {
             ./docker-compose-down.sh "${PROJ}"
         fi
     elif [ "${OP}" == "forktest" ]; then
-        if [ "${DAPP}" == "all" ]; then
+        if [ "${DAPP}" == "all" ] || [ "${DAPP}" == "ALL" ]; then
             echo "============ run main start ================="
             if ! ./system-fork-test.sh "$PROJ"; then
                 exit 1
