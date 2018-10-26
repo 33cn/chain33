@@ -136,7 +136,7 @@ fork_test:
          - if [ -n "${onceEveryday}" ]; then
          - make build_ci
          - make fork-test
-         - cd build && docker-compose down && cd ..
+         - make docker-compose-down
          - fi
     only:
         - master
