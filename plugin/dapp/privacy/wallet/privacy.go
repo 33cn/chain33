@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -319,10 +320,14 @@ func (policy *privacyPolicy) showPrivacyKeyPair(reqAddr *types.ReqString) (*priv
 }
 
 func (policy *privacyPolicy) getPrivacyAccountInfo(req *privacytypes.ReqPPrivacyAccount) (*privacytypes.ReplyPrivacyAccount, error) {
-	addr := req.GetAddr()
+	addr := strings.Trim(req.GetAddr(), " ")
 	token := req.GetToken()
 	reply := &privacytypes.ReplyPrivacyAccount{}
 	reply.Displaymode = req.Displaymode
+	if len(addr) == 0 {
+		return nil, errors.New("Address is empty")
+	}
+
 	// 搜索可用余额
 	privacyDBStore, err := policy.store.listAvailableUTXOs(token, addr)
 	utxos := make([]*privacytypes.UTXO, 0)
