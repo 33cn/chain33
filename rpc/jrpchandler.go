@@ -267,7 +267,7 @@ func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 		infos := reply.GetTxInfos()
 		for _, info := range infos {
 			txinfos.TxInfos = append(txinfos.TxInfos, &rpctypes.ReplyTxInfo{Hash: common.ToHex(info.GetHash()),
-				Height: info.GetHeight(), Index: info.GetIndex()})
+				Height: info.GetHeight(), Index: info.GetIndex(), Assets: info.Assets})
 		}
 		*result = &txinfos
 	}
