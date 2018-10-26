@@ -331,11 +331,28 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 	return mNode, nil
 }
 
-func pruningTreePrint(db dbm.DB, prefix []byte) {
+func PruningTreePrint(db dbm.DB, prefix []byte) {
 	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
 	count := 0
 	for it.Rewind(); it.Valid(); it.Next() {
+		if bytes.Equal(prefix, []byte(leafKeyCountPrefix)) {
+			hashK := it.Key()
+			value := it.Value()
+			var pData types.PruneData
+			err := proto.Unmarshal(value, &pData)
+			if err == nil {
+				hashLen := int(pData.Lenth)
+				key, err := getKeyFromLeafCountKey(hashK, hashLen)
+				if err == nil {
+					treelog.Info("pruningTree:", "key:", string(key), "height", pData.Height)
+				}
+			}
+		} else if bytes.Equal(prefix, []byte(hashNodePrefix)) {
+			treelog.Info("pruningTree:", "key:", string(it.Key()))
+		} else if bytes.Equal(prefix, []byte(leafNodePrefix)) {
+			treelog.Info("pruningTree:", "key:", string(it.Key()))
+		}
 		count++
 	}
 	fmt.Printf("prefix %s All count:%d \n", string(prefix), count)
