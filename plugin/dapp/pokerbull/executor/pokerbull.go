@@ -71,9 +71,9 @@ func addPBGameAddrIndexKey(status int32, addr, gameID string, index int64) *type
 	kv := &types.KeyValue{}
 	kv.Key = calcPBGameAddrKey(addr, index)
 	record := &pkt.PBGameRecord{
-		GameId:gameID,
-		Status:status,
-		Index:index,
+		GameId: gameID,
+		Status: status,
+		Index:  index,
 	}
 	kv.Value = types.Encode(record)
 	return kv
@@ -91,7 +91,7 @@ func addPBGameStatus(status int32, player int32, value, index int64, gameId stri
 	kv.Key = calcPBGameStatusKey(status, player, value, index)
 	record := &pkt.PBGameRecord{
 		GameId: gameId,
-		Index:index,
+		Index:  index,
 	}
 	kv.Value = types.Encode(record)
 	return kv

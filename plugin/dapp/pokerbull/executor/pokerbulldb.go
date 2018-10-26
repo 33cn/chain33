@@ -21,7 +21,7 @@ const (
 	DefaultCount   = int32(20) //默认一次取多少条记录
 	MAX_PLAYER_NUM = 5
 	MIN_PLAY_VALUE = 10 * types.Coin
-	DefaultStyle = pkt.PlayStyleDefault
+	DefaultStyle   = pkt.PlayStyleDefault
 )
 
 type Action struct {
@@ -109,7 +109,7 @@ func getGameListByAddr(db dbm.Lister, addr string, index int64) (types.Message, 
 	var values [][]byte
 	var err error
 	if index == 0 {
-		values,err = db.List(calcPBGameAddrPrefix(addr), nil, DefaultCount, ListDESC)
+		values, err = db.List(calcPBGameAddrPrefix(addr), nil, DefaultCount, ListDESC)
 	} else {
 		values, err = db.List(calcPBGameAddrPrefix(addr), calcPBGameAddrKey(addr, index), DefaultCount, ListDESC)
 	}
@@ -178,8 +178,8 @@ func (action *Action) GetReceiptLog(game *pkt.PokerBull) *types.ReceiptLog {
 	r.PrevIndex = game.GetPrevIndex()
 	r.PlayerNum = game.PlayerNum
 	r.Value = game.Value
-    r.IsWaiting = game.IsWaiting
-    if !r.IsWaiting {
+	r.IsWaiting = game.IsWaiting
+	if !r.IsWaiting {
 		for _, v := range game.Players {
 			r.Players = append(r.Players, v.Address)
 		}
@@ -373,11 +373,11 @@ func (action *Action) settleDefaultAccount(lastAddress string, game *pkt.PokerBu
 
 		//给赢家转账
 		if player.Address != result.Winner {
-			receipt, err := action.coinsAccount.ExecTransfer(player.Address, result.Winner, action.execaddr, game.GetValue()/**int64(result.Leverage)*/) //TODO Dealer:暂时不支持倍数
+			receipt, err := action.coinsAccount.ExecTransfer(player.Address, result.Winner, action.execaddr, game.GetValue() /**int64(result.Leverage)*/) //TODO Dealer:暂时不支持倍数
 			if err != nil {
 				action.coinsAccount.ExecFrozen(result.Winner, action.execaddr, game.GetValue()) // rollback
 				logger.Error("GameSettleDefault.ExecTransfer", "addr", result.Winner, "execaddr", action.execaddr,
-					"amount", game.GetValue()/**int64(result.Leverage)*/, "err", err) //TODO Dealer:暂时不支持倍数
+					"amount", game.GetValue() /**int64(result.Leverage)*/, "err", err) //TODO Dealer:暂时不支持倍数
 				return nil, nil, err
 			}
 			logs = append(logs, receipt.Logs...)
@@ -455,7 +455,7 @@ func (action *Action) newGame(gameId string, start *pkt.PBGameStart) (*pkt.Poker
 
 	Shuffle(game.Poker, action.blocktime) //洗牌
 
-	return game,nil
+	return game, nil
 }
 
 // 筛选合适的牌局
@@ -498,7 +498,7 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 	}
 
 	gameId := common.ToHex(action.txhash)
-	if !action.CheckExecAccountBalance(action.fromaddr, start.GetValue() * POKERBULL_LEVERAGE_MAX, 0) {
+	if !action.CheckExecAccountBalance(action.fromaddr, start.GetValue()*POKERBULL_LEVERAGE_MAX, 0) {
 		logger.Error("GameStart", "addr", action.fromaddr, "execaddr", action.execaddr, "id", gameId, "err", types.ErrNoBalance)
 		return nil, types.ErrNoBalance
 	}
@@ -510,7 +510,7 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 			return nil, err
 		}
 
-		game,err = action.newGame(gameId, start)
+		game, err = action.newGame(gameId, start)
 		if err != nil {
 			return nil, err
 		}
@@ -518,7 +518,7 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 		game = action.selectGameFromIds(ids, start.GetValue())
 		if game == nil {
 			// 如果也没有匹配到游戏，则按照最低赌注创建
-			game,err = action.newGame(gameId, start)
+			game, err = action.newGame(gameId, start)
 			if err != nil {
 				return nil, err
 			}
