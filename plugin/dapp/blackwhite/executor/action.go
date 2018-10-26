@@ -114,7 +114,7 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 
 	// 检查当前状态
 	if gt.BlackwhiteStatusPlay != round.Status && gt.BlackwhiteStatusCreate != round.Status {
-		err := types.ErrIncorrectStatus
+		err := gt.ErrIncorrectStatus
 		clog.Error("blackwhite play ", "addr", a.fromaddr, "round status", round.Status, "status is not match, GameID ",
 			play.GameID, "err", err)
 		return nil, err
@@ -123,7 +123,7 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 	// 检查是否有重复
 	for _, addrResult := range round.AddrResult {
 		if addrResult.Addr == a.fromaddr {
-			err := types.ErrRepeatPlayerAddr
+			err := gt.ErrRepeatPlayerAddr
 			clog.Error("blackwhite play ", "addr", a.fromaddr, "execaddr", a.execaddr, "repeat address GameID",
 				play.GameID, "err", err)
 			return nil, err
@@ -202,7 +202,7 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 	}
 	// 检查当前状态
 	if gt.BlackwhiteStatusShow != round.Status {
-		err := types.ErrIncorrectStatus
+		err := gt.ErrIncorrectStatus
 		clog.Error("blackwhite show ", "addr", a.fromaddr, "round status", round.Status, "status is not match, GameID ",
 			show.GameID, "err", err)
 		return nil, err
@@ -219,7 +219,7 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 		}
 	}
 	if !bIsExist {
-		err := types.ErrNoExistAddr
+		err := gt.ErrNoExistAddr
 		clog.Error("blackwhite show ", "addr", a.fromaddr, "execaddr", a.execaddr, "this addr is play in GameID",
 			show.GameID, "err", err)
 		return nil, err
@@ -324,7 +324,7 @@ func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, er
 			round.Status = gt.BlackwhiteStatusTimeout
 
 		} else {
-			err := types.ErrNoTimeoutDone
+			err := gt.ErrNoTimeoutDone
 			clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "is BlackwhiteStatusPlay GameID",
 				done.GameID, "err", err)
 			return nil, err
@@ -342,13 +342,13 @@ func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, er
 			kv = append(kv, receipt.KV...)
 
 		} else {
-			err := types.ErrNoTimeoutDone
+			err := gt.ErrNoTimeoutDone
 			clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "is blackwhiteStatusShow GameID",
 				done.GameID, "err", err)
 			return nil, err
 		}
 	} else {
-		err := types.ErrIncorrectStatus
+		err := gt.ErrIncorrectStatus
 		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "status is not match GameID",
 			done.GameID, "status", round.Status, "err", err)
 		return nil, err

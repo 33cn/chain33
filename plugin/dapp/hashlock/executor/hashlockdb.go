@@ -83,7 +83,7 @@ func (action *Action) Hashlocklock(hlock *pty.HashlockLock) (*types.Receipt, err
 	_, err := readHashlock(action.db, common.Sha256(hlock.Hash))
 	if err != types.ErrNotFound {
 		hlog.Error("Hashlocklock", "hlock.Hash repeated", hlock.Hash)
-		return nil, types.ErrHashlockReapeathash
+		return nil, pty.ErrHashlockReapeathash
 	}
 
 	h := NewDB(hlock.Hash, action.fromaddr, hlock.ToAddress, action.blocktime, hlock.Amount, hlock.Time)
@@ -118,17 +118,17 @@ func (action *Action) Hashlockunlock(unlock *pty.HashlockUnlock) (*types.Receipt
 
 	if hash.ReturnAddress != action.fromaddr {
 		hlog.Error("Hashlockunlock.Frozen", "action.fromaddr", action.fromaddr)
-		return nil, types.ErrHashlockReturnAddrss
+		return nil, pty.ErrHashlockReturnAddrss
 	}
 
 	if hash.Status != hashlockLocked {
 		hlog.Error("Hashlockunlock", "hash.Status", hash.Status)
-		return nil, types.ErrHashlockStatus
+		return nil, pty.ErrHashlockStatus
 	}
 
 	if action.blocktime-hash.GetCreateTime() < hash.Frozentime {
 		hlog.Error("Hashlockunlock", "action.blocktime-hash.GetCreateTime", action.blocktime-hash.GetCreateTime())
-		return nil, types.ErrTime
+		return nil, pty.ErrTime
 	}
 
 	//different with typedef in C
@@ -163,17 +163,17 @@ func (action *Action) Hashlocksend(send *pty.HashlockSend) (*types.Receipt, erro
 
 	if hash.Status != hashlockLocked {
 		hlog.Error("Hashlocksend", "hash.Status", hash.Status)
-		return nil, types.ErrHashlockStatus
+		return nil, pty.ErrHashlockStatus
 	}
 
 	if action.fromaddr != hash.ToAddress {
 		hlog.Error("Hashlocksend", "action.fromaddr", action.fromaddr, "hash.ToAddress", hash.ToAddress)
-		return nil, types.ErrHashlockSendAddress
+		return nil, pty.ErrHashlockSendAddress
 	}
 
 	if action.blocktime-hash.GetCreateTime() > hash.Frozentime {
 		hlog.Error("Hashlocksend", "action.blocktime-hash.GetCreateTime", action.blocktime-hash.GetCreateTime())
-		return nil, types.ErrTime
+		return nil, pty.ErrTime
 	}
 
 	//different with typedef in C

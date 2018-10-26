@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func GetLocalValidator(authConfig *AuthConfig, signType int) (Validator, error) {
@@ -16,7 +15,7 @@ func GetLocalValidator(authConfig *AuthConfig, signType int) (Validator, error) 
 	} else if signType == ty.AUTH_SM2 {
 		lclValidator = NewGmValidator()
 	} else {
-		return nil, types.ErrUnknowAuthSignType
+		return nil, ty.ErrUnknowAuthSignType
 	}
 
 	err = lclValidator.Setup(authConfig)
