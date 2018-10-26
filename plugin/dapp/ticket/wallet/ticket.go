@@ -381,7 +381,7 @@ func (policy *ticketPolicy) getTicketsByStatus(status int32) ([]*ty.Ticket, [][]
 		}
 	}
 	if len(tickets) == 0 {
-		return nil, nil, types.ErrNoTicket
+		return nil, nil, ty.ErrNoTicket
 	}
 	return tickets, privs, nil
 }

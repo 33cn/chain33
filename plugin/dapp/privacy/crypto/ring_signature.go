@@ -41,7 +41,7 @@ func generateRingSignature(data []byte, image *KeyImage, pubs []*PubKeyPrivacy, 
 
 	if !edwards25519.GeFromBytesVartime(&image_unp, (*[32]byte)(unsafe.Pointer(image))) {
 		privacylog.Error("generateRingSignature", "from image failed.")
-		return types.ErrGeFromBytesVartime
+		return privacytypes.ErrGeFromBytesVartime
 	}
 	edwards25519.GeDsmPrecomp(&image_pre, &image_unp)
 	for i := 0; i < len(pubs); i++ {
@@ -72,7 +72,7 @@ func generateRingSignature(data []byte, image *KeyImage, pubs []*PubKeyPrivacy, 
 			randomScalar(pa)
 			randomScalar(pb)
 			if !edwards25519.GeFromBytesVartime(&tmp3, (*[32]byte)(unsafe.Pointer(pubkey))) {
-				return types.ErrGeFromBytesVartime
+				return privacytypes.ErrGeFromBytesVartime
 			}
 			// (r, a, A, b)
 			// r = a  * A   + b   * G
