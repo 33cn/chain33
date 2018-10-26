@@ -218,7 +218,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 
 	if tx.Fee < types.PrivacyTxFee {
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "fee set:", tx.Fee, "required:", types.PrivacyTxFee, " error ErrPrivacyTxFeeNotEnough")
-		return types.ErrPrivacyTxFeeNotEnough
+		return pty.ErrPrivacyTxFeeNotEnough
 	}
 
 	var ringSignature types.RingSignature
@@ -248,7 +248,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "UTXO spent already errindex", errIndex, "utxo amout", input.Amount/types.Coin, "utxo keyimage", common.ToHex(input.KeyImage))
 		}
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkUTXOValid failed ")
-		return types.ErrDoubleSpendOccur
+		return pty.ErrDoubleSpendOccur
 	}
 
 	res, errIndex = p.checkPubKeyValid(keys, pubkeys)
@@ -257,7 +257,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "Wrong pubkey errIndex ", errIndex)
 		}
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkPubKeyValid ", false)
-		return types.ErrPubkeysOfUTXO
+		return pty.ErrPubkeysOfUTXO
 	}
 
 	for _, output := range keyOutput {
@@ -273,7 +273,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 
 	if feeAmount < types.PrivacyTxFee {
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "fee available:", feeAmount, "required:", types.PrivacyTxFee)
-		return types.ErrPrivacyTxFeeNotEnough
+		return pty.ErrPrivacyTxFeeNotEnough
 	}
 	return nil
 }

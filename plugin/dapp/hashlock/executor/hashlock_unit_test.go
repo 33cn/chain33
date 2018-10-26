@@ -58,7 +58,7 @@ func TestExecHashlock(t *testing.T) {
 func TestExecHashunlock(t *testing.T) {
 
 	var targetReceipt types.Receipt
-	var targetErr = types.ErrTime
+	var targetErr = pty.ErrTime
 	var receipt *types.Receipt
 	var err error
 	targetReceipt.Ty = 2

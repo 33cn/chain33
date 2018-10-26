@@ -208,7 +208,7 @@ func (mvccs *KVMVCCStore) checkVersion(height int64) ([]*types.KeyValue, error) 
 	var kvset []*types.KeyValue
 	if maxVersion < height-1 {
 		klog.Error("store kvmvcc checkVersion found statehash lost", "maxVersion", maxVersion, "height", height)
-		return nil, types.ErrStateHashLost
+		return nil, ErrStateHashLost
 	} else if maxVersion == height-1 {
 		return nil, nil
 	} else {
