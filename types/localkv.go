@@ -46,7 +46,7 @@ func CalcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
 
 //存储地址参与的交易数量。add时加一，del时减一
 func CalcAddrTxsCountKey(addr string) []byte {
-	return append(AddrTxsCount, []byte(fmt.Sprintf("%s", addr))...)
+	return append(AddrTxsCount, []byte(addr)...)
 }
 
 func StatisticFlag() []byte {
