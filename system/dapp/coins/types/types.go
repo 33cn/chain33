@@ -73,3 +73,26 @@ func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.
 	}
 	return tx, err
 }
+
+func (t *CoinsType) GetAssets(tx *types.Transaction) []*types.Asset {
+	var action CoinsAction
+	err := types.Decode(tx.GetPayload(), &action)
+	if err != nil {
+		return []*types.Asset{}
+	}
+	asset := &types.Asset{Exec: CoinsX}
+	if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
+		asset.Symbol = action.GetTransfer().Cointoken
+	} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
+		asset.Symbol = action.GetWithdraw().Cointoken
+	} else if action.Ty == CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		asset.Symbol = action.GetTransferToExec().Cointoken
+	} else {
+		return []*types.Asset{}
+	}
+	if asset.Symbol == "" {
+		asset.Symbol = types.BTY
+	}
+
+	return []*types.Asset{asset}
+}
