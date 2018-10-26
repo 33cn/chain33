@@ -16,6 +16,15 @@ func GetVersion() string {
 	return version
 }
 
+//数据库版本解析
+/*
+格式: v1.v2.v3
+如果: v1 升级了， 那么意味着localdb 需要 重新 reindex
+*/
+func GetLocalDBVersion() string {
+	return "0.0.0"
+}
+
 //v0.1.2
 //更新内容：
 // 1.p2p 修改为在nat结束后，在启动peer的stream，ping,version 等功能
