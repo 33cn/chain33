@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -31,8 +32,10 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	log.SetLogLevel("error")
+	log.SetLogLevel("info")
 }
+
+var lognode = log15.New("module", "lognode")
 
 type Chain33Mock struct {
 	random  *rand.Rand
@@ -64,18 +67,23 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 	mock.exec = executor.New(cfg.Exec, sub.Exec)
 	mock.exec.SetQueueClient(q.Client())
 	types.SetMinFee(cfg.Exec.MinExecFee)
+	lognode.Info("init exec")
 
 	mock.store = store.New(cfg.Store, sub.Store)
 	mock.store.SetQueueClient(q.Client())
-
-	mock.cs = consensus.New(cfg.Consensus, sub.Consensus)
-	mock.cs.SetQueueClient(q.Client())
-
-	mock.mem = mempool.New(cfg.MemPool)
-	mock.mem.SetQueueClient(q.Client())
+	lognode.Info("init store")
 
 	mock.chain = blockchain.New(cfg.BlockChain)
 	mock.chain.SetQueueClient(q.Client())
+	lognode.Info("init blockchain")
+
+	mock.cs = consensus.New(cfg.Consensus, sub.Consensus)
+	mock.cs.SetQueueClient(q.Client())
+	lognode.Info("init consensus")
+
+	mock.mem = mempool.New(cfg.MemPool)
+	mock.mem.SetQueueClient(q.Client())
+	lognode.Info("init mempool")
 
 	if cfg.P2P.Enable {
 		mock.network = p2p.New(cfg.P2P)
@@ -84,13 +92,13 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 		mock.network = &mockP2P{}
 		mock.network.SetQueueClient(q.Client())
 	}
-
+	lognode.Info("init P2P")
 	cli := q.Client()
 	w := wallet.New(cfg.Wallet, sub.Wallet)
 	mock.client = cli
 	mock.wallet = w
 	mock.wallet.SetQueueClient(cli)
-
+	lognode.Info("init wallet")
 	if mockapi == nil {
 		mockapi, _ = client.New(q.Client(), nil)
 		newWalletRealize(mockapi)
@@ -229,8 +237,9 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.PeerList{}))
 			case types.EventGetNetInfo:
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.NodeNetInfo{}))
+			case types.EventTxBroadcast, types.EventBlockBroadcast:
 			default:
-				msg.ReplyErr("Do not support", types.ErrNotSupport)
+				msg.ReplyErr("p2p->Do not support "+types.GetEventName(int(msg.Ty)), types.ErrNotSupport)
 			}
 		}
 	}()
