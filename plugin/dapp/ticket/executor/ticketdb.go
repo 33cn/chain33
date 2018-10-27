@@ -215,9 +215,13 @@ func (action *Action) TicketOpen(topen *ty.TicketOpen) (*types.Receipt, error) {
 	for i := 0; i < int(topen.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
 		//add pubHash
-		if len(topen.PubHashes) != 0 {
+		if action.height > types.ForkV27TicketId {
+			if len(topen.PubHashes) == 0 {
+				return nil, types.ErrOpenTicketPubHash
+			}
 			id = id + ":" + fmt.Sprintf("%x:%d", topen.PubHashes[i], topen.RandSeed)
 		}
+
 		t := NewDB(id, topen.MinerAddress, topen.ReturnAddress, action.blocktime, false)
 
 		//冻结子账户资金
