@@ -1,8 +1,6 @@
 package executor
 
 import (
-	"fmt"
-
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority"
 	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
@@ -84,7 +82,7 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 根据前缀查找证书变更记录，cert回滚、重启、同步用到
 */
 func (c *Cert) loadHistoryByPrefix() error {
-	parm := &types.LocalDBList{[]byte("cert_"), nil, 0, 0}
+	parm := &types.LocalDBList{[]byte("LODB-cert-"), nil, 0, 0}
 	result, err := c.DriverBase.GetApi().LocalList(parm)
 	if err != nil {
 		return err
@@ -112,13 +110,12 @@ func (c *Cert) loadHistoryByPrefix() error {
 根据具体高度查找变更记录，cert回滚用到
 */
 func (c *Cert) loadHistoryByHeight() error {
-	key := []byte(fmt.Sprintf("cert_%s", c.GetHeight()))
+	key := calcCertHeightKey(c.GetHeight())
 	parm := &types.LocalDBGet{[][]byte{key}}
 	result, err := c.DriverBase.GetApi().LocalGet(parm)
 	if err != nil {
 		return err
 	}
-
 	var historyData types.HistoryCertStore
 	for _, v := range result.Values {
 		types.Decode(v, &historyData)
@@ -126,6 +123,5 @@ func (c *Cert) loadHistoryByHeight() error {
 			return authority.Author.ReloadCert(&historyData)
 		}
 	}
-
 	return ct.ErrGetHistoryCertData
 }

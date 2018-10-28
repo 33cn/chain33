@@ -2,53 +2,18 @@ package dapp
 
 import (
 	"bytes"
-	"strings"
 
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (d *DriverBase) AllowIsSame(execer []byte) bool {
+	execer = types.GetParaExec(execer)
 	return d.child.GetDriverName() == string(execer)
-}
-
-func (d *DriverBase) GetPara(execer []byte) ([]byte, bool) {
-	//必须是平行链
-	if !types.IsPara() {
-		return nil, false
-	}
-	//必须是相同的平行链
-	if !strings.HasPrefix(string(execer), types.GetTitle()) {
-		return nil, false
-	}
-	return execer[len(types.GetTitle()):], true
-}
-
-func (d *DriverBase) AllowIsSamePara(execer []byte) bool {
-	exec, ok := d.GetPara(execer)
-	if !ok {
-		return false
-	}
-	return d.AllowIsSame(exec)
-}
-
-func (d *DriverBase) AllowIsUserDot1Para(execer []byte) bool {
-	exec, ok := d.GetPara(execer)
-	if !ok {
-		return false
-	}
-	return d.AllowIsUserDot1(exec)
-}
-
-func (d *DriverBase) AllowIsUserDot2Para(execer []byte) bool {
-	exec, ok := d.GetPara(execer)
-	if !ok {
-		return false
-	}
-	return d.AllowIsUserDot2(exec)
 }
 
 //user.evm
 func (d *DriverBase) AllowIsUserDot1(execer []byte) bool {
+	execer = types.GetParaExec(execer)
 	if !bytes.HasPrefix(execer, types.UserKey) {
 		return false
 	}
@@ -57,6 +22,7 @@ func (d *DriverBase) AllowIsUserDot1(execer []byte) bool {
 
 //user.evm.xxx
 func (d *DriverBase) AllowIsUserDot2(execer []byte) bool {
+	execer = types.GetParaExec(execer)
 	if !bytes.HasPrefix(execer, types.UserKey) {
 		return false
 	}
@@ -77,12 +43,7 @@ func (d *DriverBase) AllowIsUserDot2(execer []byte) bool {
 
 //默认行为: 名字相同 或者 是平行链
 func (d *DriverBase) Allow(tx *types.Transaction, index int) error {
-	//主链: 名字相同
-	if !types.IsPara() && d.AllowIsSame(tx.Execer) {
-		return nil
-	}
-	//平行链: 除掉title, 名字相同
-	if types.IsPara() && d.AllowIsSamePara(tx.Execer) {
+	if d.AllowIsSame(tx.Execer) {
 		return nil
 	}
 	return types.ErrNotAllow
