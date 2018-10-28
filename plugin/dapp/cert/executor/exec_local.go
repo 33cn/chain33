@@ -23,7 +23,7 @@ func (c *Cert) ExecLocal_New(payload *ct.CertNew, tx *types.Transaction, receipt
 	authority.Author.HistoryCertCache.CurHeight = c.GetHeight()
 	authority.Author.HistoryCertCache.ToHistoryCertStore(historityCertdata)
 	key := calcCertHeightKey(c.GetHeight())
-	set.KV = append(set.KV, &types.KeyValue{[]byte(key), types.Encode(historityCertdata)})
+	set.KV = append(set.KV, &types.KeyValue{key, types.Encode(historityCertdata)})
 
 	// 构造非证书历史数据
 	noneCertdata := &types.HistoryCertStore{}
@@ -53,7 +53,7 @@ func (c *Cert) ExecLocal_Update(payload *ct.CertUpdate, tx *types.Transaction, r
 	authority.Author.ReloadCertByHeght(c.GetHeight())
 	authority.Author.HistoryCertCache.ToHistoryCertStore(historityCertdata)
 	setKey := calcCertHeightKey(c.GetHeight())
-	set.KV = append(set.KV, &types.KeyValue{[]byte(setKey), types.Encode(historityCertdata)})
+	set.KV = append(set.KV, &types.KeyValue{setKey, types.Encode(historityCertdata)})
 	return &set, nil
 }
 
