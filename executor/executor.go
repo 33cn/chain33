@@ -339,20 +339,18 @@ func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 }
 
 func isAllowLocalKey(execer []byte, key []byte) error {
+	println(string(execer), string(key))
 	minkeylen := len(types.LocalPrefix) + len(execer) + 2
 	if len(key) <= minkeylen {
 		return types.ErrLocalKeyLen
 	}
 	if key[minkeylen-1] != '-' {
-		println("1")
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key, types.LocalPrefix) {
-		println("2")
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key[len(types.LocalPrefix)+1:], execer) {
-		println("3")
 		return types.ErrLocalPrefix
 	}
 	return nil
