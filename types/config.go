@@ -106,7 +106,7 @@ var (
 	GenesisBlockTime   int64 = 1526486816
 	HotkeyAddr               = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 	FundKeyAddr              = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
-	EmptyValue               = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	EmptyValue               = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 	SuperManager             = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
 	TokenApprs               = []string{}
 	MinFee             int64 = 1e5

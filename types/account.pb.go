@@ -185,6 +185,7 @@ It has these top-level messages:
 	ReqAddrs
 	ReqDecodeRawTransaction
 	UserWrite
+	UpgradeMeta
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore

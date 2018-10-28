@@ -1,6 +1,8 @@
 package db
 
 import (
+	"bytes"
+
 	log "github.com/inconshreveable/log15"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
@@ -204,6 +206,9 @@ func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) Iterator {
 	)
 	if itend == nil {
 		itend = bytesPrefix(itbeg)
+	}
+	if bytes.Equal(itend, types.EmptyValue) {
+		itend = nil
 	}
 	limit := util.Range{itbeg, itend}
 	if reverse {
