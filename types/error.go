@@ -156,5 +156,7 @@ var (
 	//rpc
 	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
 
-	ErrDBFlag = errors.New("ErrDBFlag")
+	ErrDBFlag      = errors.New("ErrDBFlag")
+	ErrLocalPrefix = errors.New("ErrLocalPrefix")
+	ErrLocalKeyLen = errors.New("ErrLocalKeyLen")
 )

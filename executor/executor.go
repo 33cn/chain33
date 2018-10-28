@@ -2,6 +2,7 @@ package executor
 
 //store package store the world - state data
 import (
+	"bytes"
 	"strings"
 	"sync"
 
@@ -313,7 +314,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 			return
 		}
-
 		if kv != nil && kv.KV != nil {
 			err := exec.checkPrefix(tx.Execer, kv.KV)
 			if err != nil {
@@ -327,6 +327,29 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 }
 
 func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
+	for i := 0; i < len(kvs); i++ {
+		err := isAllowLocalKey(execer, kvs[i].Key)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func isAllowLocalKey(execer []byte, key []byte) error {
+	minkeylen := len(types.LocalPrefix) + len(execer) + 2
+	if len(key) <= minkeylen {
+		return types.ErrLocalKeyLen
+	}
+	if key[minkeylen-1] != '-' {
+		return types.ErrLocalPrefix
+	}
+	if !bytes.HasPrefix(key, types.LocalPrefix) {
+		return types.ErrLocalPrefix
+	}
+	if !bytes.HasPrefix(key[len(types.LocalPrefix):], execer) {
+		return types.ErrLocalPrefix
+	}
 	return nil
 }
 

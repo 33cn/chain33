@@ -1,9 +1,15 @@
 package executor
 
 import (
+	"fmt"
+
 	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
+
+func localKey(key string) []byte {
+	return []byte(fmt.Sprintf("LODB-manage-%s", key))
+}
 
 func (c *Manage) ExecDelLocal_Modify(transfer *types.ModifyConfig, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set := &types.LocalDBSet{}
@@ -20,7 +26,7 @@ func (c *Manage) ExecDelLocal_Modify(transfer *types.ModifyConfig, tx *types.Tra
 				panic(err) //数据错误了，已经被修改了
 			}
 			key := receipt.Current.Key
-			set.KV = append(set.KV, &types.KeyValue{Key: []byte(key), Value: types.Encode(receipt.Prev)})
+			set.KV = append(set.KV, &types.KeyValue{Key: localKey(key), Value: types.Encode(receipt.Prev)})
 			clog.Debug("ExecDelLocal to savelogs", "config ", key, "value", receipt.Prev)
 		}
 	}
