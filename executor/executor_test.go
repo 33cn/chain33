@@ -99,7 +99,7 @@ func TestKeyAllow(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowExec(key, exec, &tx12, int64(1)) {
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("retrieve can modify exec")
 	}
 }
@@ -113,7 +113,7 @@ func TestKeyAllow_evm(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowExec(key, exec, &tx12, int64(1)) {
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("user.evm.hash can modify exec")
 	}
 	//assert.Nil(t, t)
@@ -128,7 +128,7 @@ func TestKeyAllow_evmallow(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowExec(key, exec, &tx12, int64(1)) {
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("user.evm.hash can modify exec")
 	}
 	//assert.Nil(t, t)
@@ -143,7 +143,7 @@ func TestKeyAllow_paraallow(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if isAllowExec(key, exec, &tx12, int64(1)) {
+	if isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("user.noexec.hash can not modify noexec")
 	}
 	//assert.Nil(t, t)
@@ -158,7 +158,7 @@ func TestKeyAllow_ticket(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowExec(key, exec, &tx12, int64(1)) {
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("ticket can modify exec")
 	}
 }
@@ -172,7 +172,7 @@ func TestKeyAllow_paracross(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = []byte("user.p.para.paracross")
-	if !isAllowExec(key, exec, &tx12, int64(1)) {
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("paracross can modify exec")
 	}
 }
