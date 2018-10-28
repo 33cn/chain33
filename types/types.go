@@ -46,9 +46,13 @@ func ExecName(name string) string {
 }
 
 //默认的allow 规则->根据 GetRealExecName 来判断
+//name 必须大于3 小于 100
 func IsAllowExecName(name []byte, execer []byte) bool {
 	// name长度不能超过系统限制
 	if len(name) > address.MaxExecNameLength || len(execer) > address.MaxExecNameLength {
+		return false
+	}
+	if len(name) < 3 || len(execer) < 3 {
 		return false
 	}
 	// name中不允许有 "-"
