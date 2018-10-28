@@ -57,9 +57,13 @@ func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
 }
 
 func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	q := queue.New("channel")
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
+	return newWithConfig(cfg, sub, mockapi)
+}
+
+func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	q := queue.New("channel")
 	types.Debug = false
 	mock := &Chain33Mock{cfg: cfg}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
@@ -115,12 +119,16 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	var cfg *types.Config
 	var sub *types.ConfigSubModule
-	if cfgpath == "" {
+	if cfgpath == "" || cfgpath == "--notset--" {
 		cfg, sub = config.InitCfgString(cfgstring)
 	} else {
 		cfg, sub = config.InitCfg(cfgpath)
 	}
-	return NewWithConfig(cfg, sub, mockapi)
+	if cfgpath != "--notset--" {
+		return NewWithConfig(cfg, sub, mockapi)
+	} else {
+		return newWithConfig(cfg, sub, mockapi)
+	}
 }
 
 func (m *Chain33Mock) Listen() {
