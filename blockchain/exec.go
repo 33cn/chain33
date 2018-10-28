@@ -38,7 +38,7 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	chainlog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
 	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
 	block.Txs = types.CacheToTxs(cacheTxs)
-
+	//println("1")
 	receipts := util.ExecTx(client, prevStateRoot, block)
 	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
@@ -91,7 +91,7 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	var detail types.BlockDetail
 
 	calcHash = util.ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
-
+	//println("2")
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		util.ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {
@@ -111,6 +111,7 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			return nil, deltx, err
 		}
 	}
+	//println("3")
 	//save to db
 	util.ExecKVSetCommit(client, block.StateHash)
 	detail.KV = kvset
@@ -118,5 +119,6 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//get receipts
 	//save kvset and get state hash
 	//ulog.Debug("blockdetail-->", "detail=", detail)
+	//println("4")
 	return &detail, deltx, nil
 }

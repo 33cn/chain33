@@ -29,7 +29,6 @@ var (
 	FutureBlockDelayTime  int64 = 1
 	isRecordBlockSequence       = false //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
 	isParaChain                 = false //是否是平行链。平行链需要记录Sequence信息
-
 )
 
 const maxFutureBlocks = 256

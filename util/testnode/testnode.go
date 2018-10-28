@@ -79,7 +79,7 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 
 	mock.cs = consensus.New(cfg.Consensus, sub.Consensus)
 	mock.cs.SetQueueClient(q.Client())
-	lognode.Info("init consensus")
+	lognode.Info("init consensus " + cfg.Consensus.Name)
 
 	mock.mem = mempool.New(cfg.MemPool)
 	mock.mem.SetQueueClient(q.Client())
