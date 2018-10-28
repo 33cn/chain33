@@ -25,9 +25,9 @@ import (
 var tokenlog = log.New("module", "execs.token")
 
 const (
-	finisherKey       = "token-finisher"
-	tokenAssetsPrefix = "token-assets:"
-	blacklist         = "token-blacklist"
+	finisherKey       = "LODB-token-finisher"
+	tokenAssetsPrefix = "LODB-token-assets:"
+	blacklist         = "LODB-token-blacklist"
 )
 
 var driverName = "token"
