@@ -15,6 +15,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
+func init() {
+	types.SetTitle("local")
+}
+
 func TestExecutorGetTxGroup(t *testing.T) {
 	exec := &Executor{}
 	execInit(nil)
@@ -95,7 +99,7 @@ func TestKeyAllow(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowExec(key, exec, &tx12, int64(1)) {
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("retrieve can modify exec")
 	}
 }
@@ -109,9 +113,40 @@ func TestKeyAllow_evm(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowExec(key, exec, &tx12, int64(1)) {
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("user.evm.hash can modify exec")
 	}
+	//assert.Nil(t, t)
+}
+
+func TestKeyAllow_evmallow(t *testing.T) {
+	execInit(nil)
+	key := []byte("mavl-evm-xxx")
+	exec := []byte("user.evm.0xc79c9113a71c0a4244e20f0780e7c13552f40ee30b05998a38edb08fe617aaa5")
+	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = exec
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
+		t.Error("user.evm.hash can modify exec")
+	}
+	//assert.Nil(t, t)
+}
+
+func TestKeyAllow_paraallow(t *testing.T) {
+	execInit(nil)
+	key := []byte("mavl-noexec-xxx")
+	exec := []byte("user.p.user.noexec.0xc79c9113a71c0a4244e20f0780e7c13552f40ee30b05998a38edb08fe617aaa5")
+	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = exec
+	if isAllowKeyWrite(key, exec, &tx12, int64(1)) {
+		t.Error("user.noexec.hash can not modify noexec")
+	}
+	//assert.Nil(t, t)
 }
 
 func TestKeyAllow_ticket(t *testing.T) {
@@ -123,7 +158,7 @@ func TestKeyAllow_ticket(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowExec(key, exec, &tx12, int64(1)) {
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("ticket can modify exec")
 	}
 }
@@ -137,7 +172,20 @@ func TestKeyAllow_paracross(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = []byte("user.p.para.paracross")
-	if !isAllowExec(key, exec, &tx12, int64(1)) {
+	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
 		t.Error("paracross can modify exec")
 	}
+}
+
+func TestKeyLocalAllow(t *testing.T) {
+	err := isAllowLocalKey([]byte("token"), []byte("LODB-token-"))
+	assert.Equal(t, err, types.ErrLocalKeyLen)
+	err = isAllowLocalKey([]byte("token"), []byte("LODB-token-a"))
+	assert.Nil(t, err)
+	err = isAllowLocalKey([]byte(""), []byte("LODB--a"))
+	assert.Nil(t, err)
+	err = isAllowLocalKey([]byte("exec"), []byte("LODB-execaa"))
+	assert.Equal(t, err, types.ErrLocalPrefix)
+	err = isAllowLocalKey([]byte("exec"), []byte("-exec------aa"))
+	assert.Equal(t, err, types.ErrLocalPrefix)
 }

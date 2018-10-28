@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+var LocalPrefix = []byte("LODB")
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
 var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
 var TxHashPerfix = []byte("TX:")
