@@ -141,3 +141,16 @@ func TestKeyAllow_paracross(t *testing.T) {
 		t.Error("paracross can modify exec")
 	}
 }
+
+func TestKeyLocalAllow(t *testing.T) {
+	err := isAllowLocalKey([]byte("token"), []byte("LODB-token-"))
+	assert.Equal(t, err, types.ErrLocalKeyLen)
+	err = isAllowLocalKey([]byte("token"), []byte("LODB-token-a"))
+	assert.Nil(t, err)
+	err = isAllowLocalKey([]byte(""), []byte("LODB--a"))
+	assert.Nil(t, err)
+	err = isAllowLocalKey([]byte("exec"), []byte("LODB-execaa"))
+	assert.Equal(t, err, types.ErrLocalPrefix)
+	err = isAllowLocalKey([]byte("exec"), []byte("-exec------aa"))
+	assert.Equal(t, err, types.ErrLocalPrefix)
+}
