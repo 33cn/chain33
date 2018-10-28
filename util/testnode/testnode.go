@@ -135,6 +135,10 @@ func (m *Chain33Mock) Listen() {
 	}
 }
 
+func (m *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
+	return m.chain
+}
+
 func newWalletRealize(qApi client.QueueProtocolAPI) {
 	seed := &types.SaveSeedByPw{"subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant", "123456"}
 	reply, err := qApi.SaveSeed(seed)
