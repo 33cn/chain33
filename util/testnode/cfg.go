@@ -62,7 +62,7 @@ grpcFuncWhitelist=["*"]
 
 [mempool]
 poolCacheSize=10240
-minTxFee=1000000
+minTxFee=100000
 maxTxNumPerAccount=10000
 
 [consensus]
@@ -104,7 +104,7 @@ enableMavlPrefix=false
 enableMVCC=false
 
 [wallet]
-minFee=1000000
+minFee=100000
 driver="memdb"
 dbPath="datadir/wallet"
 dbCache=16
