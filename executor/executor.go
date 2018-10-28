@@ -330,7 +330,9 @@ func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 	for i := 0; i < len(kvs); i++ {
 		err := isAllowLocalKey(execer, kvs[i].Key)
 		if err != nil {
-			return err
+			//测试的情况下，先panic，实际情况下会删除返回错误
+			panic(err)
+			//return err
 		}
 	}
 	return nil
