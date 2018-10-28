@@ -7,7 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bool {
+func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64) bool {
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
@@ -47,7 +47,6 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
-	println("load", string(execdriver))
 	d, err := drivers.LoadDriver(string(execdriver), height)
 	if err != nil {
 		elog.Error("load drivers error", "err", err)
