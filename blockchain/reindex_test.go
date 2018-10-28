@@ -50,7 +50,7 @@ func TestReindex(t *testing.T) {
 	}
 	mock33.WaitHeight(4)
 	kvs1 := getAllKeys(db)
-	version.SetLocalDBVersion("1.0.0")
+	version.SetLocalDBVersion("10000.0.0")
 	chain.UpgradeChain()
 	kvs2 := getAllKeys(db)
 	assert.Equal(t, kvs1, kvs2)
