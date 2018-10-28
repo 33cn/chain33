@@ -332,6 +332,10 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 	return nil
 }
 
+func (chain *BlockChain) GetDB() dbm.DB {
+	return chain.blockStore.db
+}
+
 func (chain *BlockChain) InitCache(height int64) {
 	if height < 0 {
 		return
