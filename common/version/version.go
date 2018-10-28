@@ -7,7 +7,7 @@ var (
 	BlockChainVerKey = []byte("BlockChainVerKey")
 	LocalDBMeta      = []byte("LocalDBMeta")
 	MavlTreeVerKey   = []byte("MavlTreeVerKey")
-	localversion     = "0.0.0"
+	localversion     = "1.0.0"
 	GitCommit        string
 )
 
