@@ -60,6 +60,8 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 func (db *GoMemDB) Set(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
+	//debug.PrintStack()
+	//println("--", string(key)[0:4], common.ToHex(key))
 	db.db[string(key)] = CopyBytes(value)
 	if db.db[string(key)] == nil {
 		mlog.Error("Set", "error have no mem")
@@ -70,7 +72,8 @@ func (db *GoMemDB) Set(key []byte, value []byte) error {
 func (db *GoMemDB) SetSync(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
+	//debug.PrintStack()
+	//println("--", string(key)[0:4], common.ToHex(key))
 	db.db[string(key)] = CopyBytes(value)
 	if db.db[string(key)] == nil {
 		mlog.Error("Set", "error have no mem")
@@ -234,6 +237,7 @@ func (db *GoMemDB) NewBatch(sync bool) Batch {
 }
 
 func (b *memBatch) Set(key, value []byte) {
+	//println("-b-", string(key)[0:4], common.ToHex(key))
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(value)})
 	b.size += len(value)
 }

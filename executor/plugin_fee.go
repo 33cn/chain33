@@ -16,6 +16,7 @@ func (p *feePlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.K
 }
 
 func (p *feePlugin) ExecLocal(executor *executor, data *types.BlockDetail) ([]*types.KeyValue, error) {
+	p.fee = types.TotalFee{}
 	for i := 0; i < len(data.Block.Txs); i++ {
 		tx := data.Block.Txs[i]
 		p.fee.Fee += tx.Fee
