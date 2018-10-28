@@ -170,8 +170,6 @@ const (
 )
 
 //flag:
-var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
-var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
 
 //TxHeight 选项
 //设计思路:
