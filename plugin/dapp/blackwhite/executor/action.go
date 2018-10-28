@@ -86,7 +86,7 @@ func (a *action) Create(create *gt.BlackwhiteCreate) (*types.Receipt, error) {
 	round.CreateTime = a.blocktime
 	round.Index = heightIndexToIndex(a.height, a.index)
 
-	key := calcRoundKey(round.GameID)
+	key := calcMavlRoundKey(round.GameID)
 	value := types.Encode(round)
 	kv = append(kv, &types.KeyValue{key, value})
 
@@ -98,7 +98,7 @@ func (a *action) Create(create *gt.BlackwhiteCreate) (*types.Receipt, error) {
 
 func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 	// 获取GameID
-	value, err := a.db.Get(calcRoundKey(play.GameID))
+	value, err := a.db.Get(calcMavlRoundKey(play.GameID))
 	if err != nil {
 		clog.Error("blackwhite play ", "addr", a.fromaddr, "execaddr", a.execaddr, "get round failed",
 			play.GameID, "err", err)
@@ -174,7 +174,7 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 		logs = append(logs, receiptLog)
 	}
 
-	key1 := calcRoundKey(round.GameID)
+	key1 := calcMavlRoundKey(round.GameID)
 	value1 := types.Encode(&round)
 	if types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
 		//将当前游戏状态保存，便于同一区块中游戏参数的累加
@@ -187,7 +187,7 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 
 func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 	// 获取GameID
-	value, err := a.db.Get(calcRoundKey(show.GameID))
+	value, err := a.db.Get(calcMavlRoundKey(show.GameID))
 	if err != nil {
 		clog.Error("blackwhite show ", "addr", a.fromaddr, "execaddr", a.execaddr, "get round failed",
 			show.GameID, "err", err)
@@ -258,7 +258,7 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 		logs = append(logs, receiptLog)
 	}
 
-	key1 := calcRoundKey(round.GameID)
+	key1 := calcMavlRoundKey(round.GameID)
 	value1 := types.Encode(&round)
 	if types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
 		//将当前游戏状态保存，便于同一区块中游戏参数的累加
@@ -270,7 +270,7 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 }
 
 func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, error) {
-	value, err := a.db.Get(calcRoundKey(done.GameID))
+	value, err := a.db.Get(calcMavlRoundKey(done.GameID))
 	if err != nil {
 		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "get round failed",
 			done.GameID, "err", err)
@@ -354,7 +354,7 @@ func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, er
 		return nil, err
 	}
 
-	key1 := calcRoundKey(round.GameID)
+	key1 := calcMavlRoundKey(round.GameID)
 	value1 := types.Encode(&round)
 	if types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
 		//将当前游戏状态保存，便于同一区块中游戏参数的累加

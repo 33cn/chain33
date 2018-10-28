@@ -213,6 +213,10 @@ func NewHashlockquery() *pty.Hashlockquery {
 	return &q
 }
 
+func calcHashlockIdKey(id []byte) []byte {
+	return append([]byte("LODB-hashlock-"), id...)
+}
+
 //将Information转换成byte类型，使输出为kv模式
 func GeHashReciverKV(hashlockID []byte, information *pty.Hashlockquery) *types.KeyValue {
 	clog.Error("GeHashReciverKV action")
@@ -225,7 +229,7 @@ func GeHashReciverKV(hashlockID []byte, information *pty.Hashlockquery) *types.K
 		fmt.Println(err)
 	}
 	clog.Error("GeHashReciverKV action", "reciver", reciver)
-	kv := &types.KeyValue{hashlockID, reciver}
+	kv := &types.KeyValue{calcHashlockIdKey(hashlockID), reciver}
 	clog.Error("GeHashReciverKV action", "kv", kv)
 	return kv
 }

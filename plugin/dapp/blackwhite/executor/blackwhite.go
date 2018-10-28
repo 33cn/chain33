@@ -223,7 +223,7 @@ func (c *Blackwhite) createTx(parm *gt.BlackwhiteCreateTxReq) (types.Message, er
 
 func (c *Blackwhite) GetBlackwhiteRoundInfo(req *gt.ReqBlackwhiteRoundInfo) (types.Message, error) {
 	gameId := req.GameID
-	key := calcRoundKey(gameId)
+	key := calcMavlRoundKey(gameId)
 	values, err := c.GetStateDB().Get(key)
 	if err != nil {
 		return nil, err
@@ -302,7 +302,7 @@ func (c *Blackwhite) GetBwRoundListInfo(req *gt.ReqBlackwhiteRoundList) (types.M
 	storeDb := c.GetStateDB()
 	var rep gt.ReplyBlackwhiteRoundList
 	for _, value := range values {
-		v, err := storeDb.Get(calcRoundKey(string(value)))
+		v, err := storeDb.Get(calcMavlRoundKey(string(value)))
 		if nil != err {
 			return nil, err
 		}
