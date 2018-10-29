@@ -32,7 +32,7 @@ function down() {
 
     # remove exsit container
     echo "=========== # docker-compose down ============="
-    docker-compose down
+    docker-compose down --rmi local
 
 }
 
