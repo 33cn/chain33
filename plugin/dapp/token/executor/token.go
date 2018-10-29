@@ -226,9 +226,9 @@ func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	key := calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
 	var value []byte
 	if t.GetHeight() >= types.ForkV13ExecKey {
-		value = calcTokenAddrNewKeyLocal(receipt.Symbol, receipt.Owner)
+		value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
 	} else {
-		value = calcTokenAddrKeyLocal(receipt.Symbol, receipt.Owner)
+		value = calcTokenAddrKeyS(receipt.Symbol, receipt.Owner)
 	}
 	kv = append(kv, &types.KeyValue{key, value})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被删除
@@ -249,9 +249,9 @@ func (t *token) deleteLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 		key = calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		var value []byte
 		if t.GetHeight() >= types.ForkV13ExecKey {
-			value = calcTokenAddrNewKeyLocal(receipt.Symbol, receipt.Owner)
+			value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
 		} else {
-			value = calcTokenAddrKeyLocal(receipt.Symbol, receipt.Owner)
+			value = calcTokenAddrKeyS(receipt.Symbol, receipt.Owner)
 		}
 		kv = append(kv, &types.KeyValue{key, value})
 	}
