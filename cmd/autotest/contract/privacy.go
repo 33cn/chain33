@@ -15,6 +15,7 @@ type TestPrivacyConfig struct {
 	PubToPrivCaseArr         []testcase.PubToPrivCase         `toml:"PubToPrivCase,omitempty"`
 	PrivToPrivCaseArr        []testcase.PrivToPrivCase        `toml:"PrivToPrivCase,omitempty"`
 	PrivToPubCaseArr         []testcase.PrivToPubCase         `toml:"PrivToPubCase,omitempty"`
+	PrivCreateutxosCaseArr   []testcase.PrivCreateutxosCase   `toml:"PrivCreateutxosCase,omitempty"`
 }
 
 func (caseConf *TestPrivacyConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
@@ -29,9 +30,9 @@ func (caseConf *TestPrivacyConfig) RunTest(caseFile string, wg *sync.WaitGroup) 
 		return
 	}
 	tester := testcase.NewTestOperator(fLog, tLog)
-
+	
 	go tester.AddCaseArray(caseConf.SimpleCaseArr, caseConf.TokenPreCreateCaseArr, caseConf.TokenFinishCreateCaseArr,
-		caseConf.TransferCaseArr, caseConf.PubToPrivCaseArr, caseConf.PrivToPrivCaseArr, caseConf.PrivToPubCaseArr)
+		caseConf.TransferCaseArr, caseConf.PubToPrivCaseArr, caseConf.PrivToPrivCaseArr, caseConf.PrivToPubCaseArr, caseConf.PrivCreateutxosCaseArr)
 	go tester.HandleDependency()
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()
