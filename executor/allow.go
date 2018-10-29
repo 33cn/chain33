@@ -55,3 +55,22 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 	//交给 -> friend 来判定
 	return d.IsFriend(execdriver, key, tx)
 }
+
+func isAllowLocalKey(execer []byte, key []byte) error {
+	execer = types.GetParaExec(execer)
+	//println(string(execer), string(key))
+	minkeylen := len(types.LocalPrefix) + len(execer) + 2
+	if len(key) <= minkeylen {
+		return types.ErrLocalKeyLen
+	}
+	if key[minkeylen-1] != '-' {
+		return types.ErrLocalPrefix
+	}
+	if !bytes.HasPrefix(key, types.LocalPrefix) {
+		return types.ErrLocalPrefix
+	}
+	if !bytes.HasPrefix(key[len(types.LocalPrefix)+1:], execer) {
+		return types.ErrLocalPrefix
+	}
+	return nil
+}
