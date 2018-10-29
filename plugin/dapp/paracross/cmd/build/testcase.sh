@@ -92,9 +92,10 @@ function para_transfer() {
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
+    block_wait "${CLI}" 1
 
     para_configkey "${PARA_CLI}" "token-blacklist" "BTY"
-
+    block_wait "${PARA_CLI}" 1
 }
 
 function para_transfer2account() {
