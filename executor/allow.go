@@ -57,23 +57,24 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 }
 
 func isAllowLocalKey(execer []byte, key []byte) error {
-	execer = types.GetParaExec(execer)
+	execer = types.GetRealExecName(execer)
 	//println(string(execer), string(key))
 	minkeylen := len(types.LocalPrefix) + len(execer) + 2
 	if len(key) <= minkeylen {
-		elog.Error("isAllowLocalKey", "key", string(key), "exec", string(execer))
+		elog.Error("isAllowLocalKey too short", "key", string(key), "exec", string(execer))
 		return types.ErrLocalKeyLen
 	}
 	if key[minkeylen-1] != '-' {
-		elog.Error("isAllowLocalKey", "key", string(key), "exec", string(execer))
+		elog.Error("isAllowLocalKey prefix last char is not '-'", "key", string(key), "exec", string(execer),
+			"minkeylen", minkeylen, )
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key, types.LocalPrefix) {
-		elog.Error("isAllowLocalKey", "key", string(key), "exec", string(execer))
+		elog.Error("isAllowLocalKey common prefix not match", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key[len(types.LocalPrefix)+1:], execer) {
-		elog.Error("isAllowLocalKey", "key", string(key), "exec", string(execer))
+		elog.Error("isAllowLocalKey key prefix not match", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
 	return nil
