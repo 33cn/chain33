@@ -40,12 +40,12 @@ function config_chain33() {
     # update test environment
     sed -i $sedfix 's/^Title.*/Title="local"/g' ${chain33Config}
     # sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' ${chain33Config}
-    #    grep -q '^TestNet' ${chain33Config} && sed -i $sedfix 's/^TestNet.*/TestNet=true/' ${chain33Config} || sed -i '/^Title/a TestNet=true' ${chain33Config}
+    # grep -q '^TestNet' ${chain33Config} && sed -i $sedfix 's/^TestNet.*/TestNet=true/' ${chain33Config} || sed -i '/^Title/a TestNet=true' ${chain33Config}
 
     if grep -q '^TestNet' ${chain33Config}; then
         sed -i $sedfix 's/^TestNet.*/TestNet=true/' ${chain33Config}
     else
-        sed -i '/^Title/a TestNet=true' ${chain33Config}
+        sed -i $sedfix '/^Title/a TestNet=true' ${chain33Config}
     fi
 
     #update fee
@@ -94,7 +94,7 @@ function start_chain33() {
 
     echo "# start solo chain33, make sure there is no chain33 instance running"
     rm -rf ../autotest/datadir ../autotest/logs
-    rm ../autotest/grpc33.log
+    rm -rf ../autotest/grpc33.log
     ./chain33 -f chain33.test.toml >/dev/null 2>&1 &
 
     local SLEEP=5
