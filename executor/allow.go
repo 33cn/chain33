@@ -66,7 +66,7 @@ func isAllowLocalKey(execer []byte, key []byte) error {
 	}
 	if key[minkeylen-1] != '-' {
 		elog.Error("isAllowLocalKey prefix last char is not '-'", "key", string(key), "exec", string(execer),
-			"minkeylen", minkeylen, )
+			"minkeylen", minkeylen)
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key, types.LocalPrefix) {
