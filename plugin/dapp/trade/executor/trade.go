@@ -20,15 +20,18 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var tradelog = log.New("module", "execs.trade")
-var driverName = "trade"
+var (
+	tradelog         = log.New("module", "execs.trade")
+	defaultAssetExec = types.TokenX
+	driverName       = "trade"
+)
 
 func init() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&trade{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newTrade, types.ForkV2AddToken)
 }
 

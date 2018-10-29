@@ -204,10 +204,10 @@ func (action *Action) TicketOpen(topen *ty.TicketOpen) (*types.Receipt, error) {
 	if action.fromaddr != topen.ReturnAddress {
 		mineraddr := action.getBind(topen.ReturnAddress)
 		if mineraddr != action.fromaddr {
-			return nil, types.ErrMinerNotPermit
+			return nil, ty.ErrMinerNotPermit
 		}
 		if topen.MinerAddress != mineraddr {
-			return nil, types.ErrMinerAddr
+			return nil, ty.ErrMinerAddr
 		}
 	}
 	//action.fromaddr == topen.ReturnAddress or mineraddr == action.fromaddr
@@ -277,7 +277,7 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 	cfg := types.GetP(action.height)
 	if !ticket.IsGenesis {
 		if action.blocktime-ticket.GetCreateTime() < cfg.TicketFrozenTime {
-			return nil, types.ErrTime
+			return nil, ty.ErrTime
 		}
 	}
 	//check from address
@@ -335,19 +335,19 @@ func (action *Action) TicketClose(tclose *ty.TicketClose) (*types.Receipt, error
 		//ticket 的生成时间超过 2天,可提款
 		if ticket.Status != 2 && ticket.Status != 1 {
 			tlog.Error("ticket", "id", ticket.GetTicketId(), "status", ticket.GetStatus())
-			return nil, types.ErrTicketClosed
+			return nil, ty.ErrTicketClosed
 		}
 		if !ticket.IsGenesis {
 			//分成两种情况
 			if ticket.Status == 1 && action.blocktime-ticket.GetCreateTime() < cfg.TicketWithdrawTime {
-				return nil, types.ErrTime
+				return nil, ty.ErrTime
 			}
 			//已经挖矿成功了
 			if ticket.Status == 2 && action.blocktime-ticket.GetCreateTime() < cfg.TicketWithdrawTime {
-				return nil, types.ErrTime
+				return nil, ty.ErrTime
 			}
 			if ticket.Status == 2 && action.blocktime-ticket.GetMinerTime() < cfg.TicketMinerWaitTime {
-				return nil, types.ErrTime
+				return nil, ty.ErrTime
 			}
 		}
 		//check from address

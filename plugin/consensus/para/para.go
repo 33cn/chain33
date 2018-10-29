@@ -54,6 +54,7 @@ type ParaClient struct {
 	*drivers.BaseClient
 	conn            *grpc.ClientConn
 	grpcClient      types.Chain33Client
+	paraClient      paracross.ParacrossClient
 	isCatchingUp    bool
 	commitMsgClient *CommitMsgClient
 	authAccount     string
@@ -61,7 +62,7 @@ type ParaClient struct {
 	wg              sync.WaitGroup
 }
 
-func New(cfg *types.Consensus) queue.Module {
+func New(cfg *types.Consensus, sub []byte) queue.Module {
 	c := drivers.NewBaseClient(cfg)
 	if cfg.ParaRemoteGrpcClient != "" {
 		grpcSite = cfg.ParaRemoteGrpcClient
@@ -81,7 +82,7 @@ func New(cfg *types.Consensus) queue.Module {
 	if err != nil {
 		panic(err)
 	}
-	secp, err := crypto.New(types.GetSignName(types.SECP256K1))
+	secp, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -99,11 +100,13 @@ func New(cfg *types.Consensus) queue.Module {
 		panic(err)
 	}
 	grpcClient := types.NewChain33Client(conn)
+	paraCli := paracross.NewParacrossClient(conn)
 
 	para := &ParaClient{
 		BaseClient:  c,
 		conn:        conn,
 		grpcClient:  grpcClient,
+		paraClient:  paraCli,
 		authAccount: cfg.AuthAccount,
 		privateKey:  priKey,
 	}

@@ -1,10 +1,8 @@
 package executor
 
 import (
-	"fmt"
-
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/authority"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority"
 	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -18,8 +16,13 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Cert{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	driverName = name
+	var cfg ct.Authority
+	if sub != nil {
+		types.MustDecode(sub, &cfg)
+	}
+	authority.Author.Init(&cfg)
 	drivers.Register(driverName, newCert, 0)
 }
 
@@ -52,7 +55,7 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 	// auth模块关闭则返回
 	if !authority.IsAuthEnable {
 		clog.Error("Authority is not available. Please check the authority config or authority initialize error logs.")
-		return types.ErrInitializeAuthority
+		return ct.ErrInitializeAuthority
 	}
 
 	// 重启
@@ -79,7 +82,7 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 根据前缀查找证书变更记录，cert回滚、重启、同步用到
 */
 func (c *Cert) loadHistoryByPrefix() error {
-	parm := &types.LocalDBList{[]byte("cert_"), nil, 0, 0}
+	parm := &types.LocalDBList{[]byte("LODB-cert-"), nil, 0, 0}
 	result, err := c.DriverBase.GetApi().LocalList(parm)
 	if err != nil {
 		return err
@@ -100,20 +103,19 @@ func (c *Cert) loadHistoryByPrefix() error {
 		}
 	}
 
-	return types.ErrGetHistoryCertData
+	return ct.ErrGetHistoryCertData
 }
 
 /**
 根据具体高度查找变更记录，cert回滚用到
 */
 func (c *Cert) loadHistoryByHeight() error {
-	key := []byte(fmt.Sprintf("cert_%s", c.GetHeight()))
+	key := calcCertHeightKey(c.GetHeight())
 	parm := &types.LocalDBGet{[][]byte{key}}
 	result, err := c.DriverBase.GetApi().LocalGet(parm)
 	if err != nil {
 		return err
 	}
-
 	var historyData types.HistoryCertStore
 	for _, v := range result.Values {
 		types.Decode(v, &historyData)
@@ -121,6 +123,5 @@ func (c *Cert) loadHistoryByHeight() error {
 			return authority.Author.ReloadCert(&historyData)
 		}
 	}
-
-	return types.ErrGetHistoryCertData
+	return ct.ErrGetHistoryCertData
 }

@@ -85,7 +85,7 @@ var privFrom = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE7145
 var privTo = getprivkey("BC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -208,7 +208,7 @@ func (s *suiteRelayDB) TestRevokeCreate_1aUnlock() {
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
 
 	_, err := s.relayDb.relayRevoke(order)
-	s.Equal(types.ErrRelayOrderParamErr, err)
+	s.Equal(ty.ErrRelayOrderParamErr, err)
 
 }
 
@@ -388,7 +388,7 @@ func (s *suiteAccept) TestRevokeAccept_1() {
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
 
 	_, err := s.relayDb.relayRevoke(order)
-	s.Equal(types.ErrRelayBtcTxTimeErr, err)
+	s.Equal(ty.ErrRelayBtcTxTimeErr, err)
 
 }
 
@@ -409,7 +409,7 @@ func (s *suiteAccept) TestRevokeAccept_2() {
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
 
 	_, err := s.relayDb.relayRevoke(order)
-	s.Equal(types.ErrRelayReturnAddr, err)
+	s.Equal(ty.ErrRelayReturnAddr, err)
 
 }
 
@@ -584,7 +584,7 @@ func (s *suiteConfirm) TestConfirm_1() {
 	s.relay.SetEnv(30, 3000, 1)
 	s.relayDb = newRelayDB(s.relay, tx)
 	_, err := s.relayDb.confirmTx(order)
-	s.Equal(types.ErrRelayReturnAddr, err)
+	s.Equal(ty.ErrRelayReturnAddr, err)
 
 }
 
@@ -636,7 +636,7 @@ func (s *suiteConfirm) TestRevokeConfirm_1() {
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
 
 	_, err := s.relayDb.relayRevoke(order)
-	s.Equal(types.ErrRelayBtcTxTimeErr, err)
+	s.Equal(ty.ErrRelayBtcTxTimeErr, err)
 
 }
 
@@ -1229,7 +1229,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_2() {
 	headers.BtcHeader = append(headers.BtcHeader, head4)
 	s.db.On("Get", mock.Anything).Return(nil, types.ErrNotFound).Once()
 	_, err := s.relayDb.saveBtcHeader(headers, s.kvdb)
-	s.Equal(types.ErrRelayBtcHeadHashErr, err)
+	s.Equal(ty.ErrRelayBtcHeadHashErr, err)
 
 }
 
@@ -1272,7 +1272,7 @@ func (s *suiteSaveBtcHeader) TestSaveBtcHeader_3() {
 	s.db.On("Get", mock.Anything).Return(head4Encode, nil).Once()
 
 	_, err := s.relayDb.saveBtcHeader(headers, s.kvdb)
-	s.Equal(types.ErrRelayBtcHeadSequenceErr, err)
+	s.Equal(ty.ErrRelayBtcHeadSequenceErr, err)
 
 }
 

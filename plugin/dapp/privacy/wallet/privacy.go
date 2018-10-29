@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -34,7 +35,6 @@ func (policy *privacyPolicy) rescanAllTxAddToUpdateUTXOs() {
 		go policy.rescanReqTxDetailByAddr(acc.Addr, policy.rescanwg)
 	}
 	policy.rescanwg.Wait()
-
 	bizlog.Debug("rescanAllTxToUpdateUTXOs sucess!")
 }
 
@@ -96,8 +96,8 @@ func (policy *privacyPolicy) reqTxDetailByAddr(addr string) {
 }
 
 func (policy *privacyPolicy) isRescanUtxosFlagScaning() (bool, error) {
-	if privacytypes.UtxoFlagScaning == policy.getWalletOperate().GetRescanFlag() {
-		return true, types.ErrRescanFlagScaning
+	if privacytypes.UtxoFlagScaning == policy.GetRescanFlag() {
+		return true, privacytypes.ErrRescanFlagScaning
 	}
 	return false, nil
 }
@@ -204,7 +204,7 @@ func (policy *privacyPolicy) getPrivKeyByAddr(addr string) (crypto.PrivKey, erro
 	password := []byte(operater.GetPassword())
 	privkey := wcom.CBCDecrypterPrivkey(password, prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName(operater.GetSignType()))
+	cr, err := crypto.New(types.GetSignName("privacy", operater.GetSignType()))
 	if err != nil {
 		bizlog.Error("ProcSendToAddress", "err", err)
 		return nil, err
@@ -234,7 +234,7 @@ func (policy *privacyPolicy) getPrivacykeyPair(addr string) (*privacy.Privacy, e
 		if err != nil {
 			return nil, err
 		}
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 }
 
@@ -320,10 +320,14 @@ func (policy *privacyPolicy) showPrivacyKeyPair(reqAddr *types.ReqString) (*priv
 }
 
 func (policy *privacyPolicy) getPrivacyAccountInfo(req *privacytypes.ReqPPrivacyAccount) (*privacytypes.ReplyPrivacyAccount, error) {
-	addr := req.GetAddr()
+	addr := strings.Trim(req.GetAddr(), " ")
 	token := req.GetToken()
 	reply := &privacytypes.ReplyPrivacyAccount{}
 	reply.Displaymode = req.Displaymode
+	if len(addr) == 0 {
+		return nil, errors.New("Address is empty")
+	}
+
 	// 搜索可用余额
 	privacyDBStore, err := policy.store.listAvailableUTXOs(token, addr)
 	utxos := make([]*privacytypes.UTXO, 0)
@@ -779,7 +783,7 @@ func (policy *privacyPolicy) getPrivacyKeyPairs() ([]addrAndprivacy, error) {
 	}
 
 	if 0 == len(infoPriRes) {
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 
 	return infoPriRes, nil
@@ -805,7 +809,7 @@ func (policy *privacyPolicy) rescanUTXOs(req *privacytypes.ReqRescanUtxos) (*pri
 	if err != nil {
 		return nil, err
 	}
-	operater.SetRescanFlag(privacytypes.UtxoFlagScaning)
+	policy.SetRescanFlag(privacytypes.UtxoFlagScaning)
 	operater.GetWaitGroup().Add(1)
 	go policy.rescanReqUtxosByAddr(req.Addrs)
 	return &repRescanUtxos, nil
@@ -896,7 +900,7 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 		}
 	}
 	// 扫描完毕
-	operater.SetRescanFlag(privacytypes.UtxoFlagNoScan)
+	policy.SetRescanFlag(privacytypes.UtxoFlagNoScan)
 	// 删除privacyInput
 	policy.deleteScanPrivacyInputUtxo()
 	policy.store.saveREscanUTXOsAddresses(storeAddrs)
@@ -1155,7 +1159,7 @@ func (policy *privacyPolicy) signatureTx(tx *types.Transaction, privacyInput *pr
 
 	ringSignData := types.Encode(ringSign)
 	tx.Signature = &types.Signature{
-		Ty:        types.RingBaseonED25519,
+		Ty:        privacytypes.RingBaseonED25519,
 		Signature: ringSignData,
 		// 这里填的是隐私合约的公钥，让框架保持一致
 		Pubkey: address.ExecPubKey(types.PrivacyX),

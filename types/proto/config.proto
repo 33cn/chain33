@@ -17,7 +17,6 @@ message Config {
     bool       testNet    = 12;
     bool       fixTime    = 13;
     Pprof      pprof      = 14;
-    Authority  auth       = 15;
 }
 
 message Log {
@@ -49,59 +48,33 @@ message MemPool {
 }
 
 message Consensus {
-    string   name                      = 1;
-    string   genesis                   = 2;
-    bool     minerstart                = 3;
-    int64    genesisBlockTime          = 4;
-    string   hotkeyAddr                = 5;
-    bool     forceMining               = 6;
-    int64    NodeId                    = 7;
-    string   PeersURL                  = 8;
-    string   ClientAddr                = 9;
-    int64    raftApiPort               = 15;
-    bool     isNewJoinNode             = 16;
-    string   readOnlyPeersURL          = 17;
-    string   addPeersURL               = 18;
-    int64    defaultSnapCount          = 19;
-    int64    writeBlockSeconds         = 20;
-    int32    heartbeatTick             = 21;
-    string   paraRemoteGrpcClient      = 22;
-    int64    startHeight               = 23;
-    int64    emptyBlockInterval        = 24;
-    string   authAccount               = 25;
-    int32    waitBlocks4CommitMsg      = 26;
-    int32    timeoutPropose            = 30;
-    int32    timeoutProposeDelta       = 31;
-    int32    timeoutPrevote            = 32;
-    int32    timeoutPrevoteDelta       = 33;
-    int32    timeoutPrecommit          = 34;
-    int32    timeoutPrecommitDelta     = 35;
-    int32    timeoutCommit             = 36;
-    bool     skipTimeoutCommit         = 37;
-    bool     createEmptyBlocks         = 38;
-    int32    createEmptyBlocksInterval = 39;
-    repeated string seeds              = 40;
+    string name                 = 1;
+    int64  genesisBlockTime     = 2;
+    bool   minerstart           = 3;
+    string genesis              = 4;
+    string hotkeyAddr           = 5;
+    bool   forceMining          = 6;
+    int64  writeBlockSeconds    = 20;
+    string paraRemoteGrpcClient = 22;
+    int64  startHeight          = 23;
+    int64  emptyBlockInterval   = 24;
+    string authAccount          = 25;
+    int32  waitBlocks4CommitMsg = 26;
 }
 
 message Wallet {
-    int64    minFee                = 1;
-    string   driver                = 2;
-    string   dbPath                = 3;
-    int32    dbCache               = 4;
-    string   signType              = 5;
-    bool     forceMining           = 6;
-    bool     minerdisable          = 7;
-    repeated string minerwhitelist = 8;
+    int64  minFee   = 1;
+    string driver   = 2;
+    string dbPath   = 3;
+    int32  dbCache  = 4;
+    string signType = 5;
 }
 
 message Store {
-    string name             = 1;
-    string driver           = 2;
-    string dbPath           = 3;
-    int32  dbCache          = 4;
-    bool   enableMavlPrefix = 5;
-    bool   enableMVCC       = 6;
-    bool   enableMVCCIter   = 7;
+    string name    = 1;
+    string driver  = 2;
+    string dbPath  = 3;
+    int32  dbCache = 4;
 }
 
 message BlockChain {
@@ -156,14 +129,9 @@ message Exec {
     bool     isFree                 = 2;
     bool     enableStat             = 3;
     bool     enableMVCC             = 4;
+    bool     disableAddrIndex       = 7;
     repeated string alias           = 5;
     bool            saveTokenTxList = 6;
-}
-
-message Authority {
-    bool   enable     = 1;
-    string cryptoPath = 2;
-    string signType   = 3;
 }
 
 message Pprof {

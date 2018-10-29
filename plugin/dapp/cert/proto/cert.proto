@@ -32,3 +32,9 @@ message CertNormal {
     string key   = 1;
     bytes  value = 2;
 }
+
+message Authority {
+    bool   enable     = 1;
+    string cryptoPath = 2;
+    string signType   = 3;
+}

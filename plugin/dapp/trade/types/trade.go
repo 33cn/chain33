@@ -3,9 +3,8 @@ package types
 import (
 	"encoding/json"
 	"math/rand"
-	"time"
-
 	"reflect"
+	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -49,7 +48,7 @@ func (at *tradeType) GetLogMap() map[int64]*types.LogInfo {
 
 func init() {
 	nameX = types.ExecName(types.TradeX)
-	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.TradeX))
 	types.RegistorExecutor(types.TradeX, NewType())
 }
 
@@ -87,15 +86,6 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 		return "revokebuytoken"
 	}
 	return "unknown"
-}
-
-func (t tradeType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action Trade
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
 }
 
 func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
@@ -186,6 +176,7 @@ func CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
 		Starttime:         0,
 		Stoptime:          0,
 		Crowdfund:         false,
+		AssetExec:         parm.AssetExec,
 	}
 	sell := &Trade{
 		Ty:    TradeSellLimit,
@@ -259,6 +250,7 @@ func CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) (*types.Transaction, error)
 		MinBoardlot:       parm.MinBoardlot,
 		PricePerBoardlot:  parm.PricePerBoardlot,
 		TotalBoardlot:     parm.TotalBoardlot,
+		AssetExec:         parm.AssetExec,
 	}
 	buyLimit := &Trade{
 		Ty:    TradeBuyLimit,
