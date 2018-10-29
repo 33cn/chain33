@@ -19,7 +19,7 @@ var (
 func setPrefix() {
 	title = "mavl-paracross-title-"
 	titleHeight = "mavl-paracross-titleHeight-"
-	configNodes = "LODB-paracross-nodes-"
+	configNodes = "paracross-nodes-"
 	localTx = "LODB-paracross-titleHeightAddr-"
 	localTitle = "LODB-paracross-title-"
 	localTitleHeight = "LODB-paracross-titleHeight-"
@@ -32,6 +32,10 @@ func calcTitleKey(t string) []byte {
 
 func calcTitleHeightKey(title string, height int64) []byte {
 	return []byte(fmt.Sprintf(titleHeight+"%s-%d", title, height))
+}
+
+func calcLocalHeightKey(title string, height int64) []byte {
+	return []byte(fmt.Sprintf(localTitleHeight+"%s-%d", title, height))
 }
 
 func calcConfigNodesKey(title string) []byte {
