@@ -22,6 +22,14 @@ type TokenFinishCreatePack struct {
 	BaseCasePack
 }
 
+type TokenrevokeCase struct {
+	BaseCase
+}
+
+type TokenrevokePack struct {
+	BaseCasePack
+}
+
 func (testCase *TokenPreCreateCase) doSendCommand(packID string) (PackFunc, error) {
 
 	txHash, bSuccess := sendTxCommand(testCase.Command)
@@ -29,6 +37,21 @@ func (testCase *TokenPreCreateCase) doSendCommand(packID string) (PackFunc, erro
 		return nil, errors.New(txHash)
 	}
 	pack := TokenPreCreatePack{}
+	pack.txHash = txHash
+	pack.tCase = testCase
+
+	pack.packID = packID
+	pack.checkTimes = 0
+	return &pack, nil
+}
+
+func (testCase *TokenrevokeCase) doSendCommand(packID string) (PackFunc, error) {
+
+	txHash, bSuccess := sendTxCommand(testCase.Command)
+	if !bSuccess {
+		return nil, errors.New(txHash)
+	}
+	pack := TokenrevokePack{}
 	pack.txHash = txHash
 	pack.tCase = testCase
 
@@ -59,6 +82,12 @@ func (pack *TokenPreCreatePack) getCheckHandlerMap() CheckHandlerMap {
 }
 
 func (pack *TokenFinishCreatePack) getCheckHandlerMap() CheckHandlerMap {
+
+	funcMap := make(map[string]CheckHandlerFunc, 1)
+	return funcMap
+}
+
+func (pack *TokenrevokePack) getCheckHandlerMap() CheckHandlerMap {
 
 	funcMap := make(map[string]CheckHandlerFunc, 1)
 	return funcMap
