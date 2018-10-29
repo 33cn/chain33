@@ -783,9 +783,9 @@ func TestIAVLPrint(t *testing.T) {
 }
 
 func TestPruningTree(t *testing.T) {
-	const txN = 20   // 每个块交易量
-	const preB = 100 // 一轮区块数
-	const round = 5   // 更新叶子节点次数
+	const txN = 10   // 每个块交易量
+	const preB = 10000 // 一轮区块数
+	const round = 1   // 更新叶子节点次数
 	const preDel = preB / 10
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -813,14 +813,17 @@ func TestPruningTree(t *testing.T) {
 		fmt.Printf("round %d over \n", j)
 	}
 	te := NewTree(db, true)
-	te.Load(prevHash)
-	for i := 0; i < preB*txN; i++ {
-		key := []byte(fmt.Sprintf("my_%018d", i))
-		vIndex := round - 1
-		value := []byte(fmt.Sprintf("my_%018d_%d", i, vIndex))
-		_, v, exist := te.Get(key)
-		assert.Equal(t, exist, true)
-		assert.Equal(t, value, v)
+	err = te.Load(prevHash)
+	if err == nil {
+		fmt.Printf("te.Load \n")
+		for i := 0; i < preB*txN; i++ {
+			key := []byte(fmt.Sprintf("my_%018d", i))
+			vIndex := round - 1
+			value := []byte(fmt.Sprintf("my_%018d_%d", i, vIndex))
+			_, v, exist := te.Get(key)
+			assert.Equal(t, exist, true)
+			assert.Equal(t, value, v)
+		}
 	}
 	PruningTreePrint(db, []byte(leafKeyCountPrefix))
 	PruningTreePrint(db, []byte(hashNodePrefix))

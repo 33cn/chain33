@@ -192,7 +192,7 @@ func (node *Node) Hash(t *Tree) []byte {
 
 		if enablePrune {
 			//加入parentHash、brotherHash
-			if node.leftNode != nil {
+			if node.leftNode != nil {//只对倒数第二层做裁剪
 				node.leftNode.parentHash = node.hash
 				node.leftNode.brotherHash = node.rightHash
 			}
