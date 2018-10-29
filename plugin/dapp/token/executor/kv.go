@@ -11,8 +11,6 @@ var (
 	tokenPreCreatedOTNew  = "mavl-token-create-ot-"
 	tokenPreCreatedSTONew = "mavl-token-create-sto-"
 
-	tokenPreCreatedOTLocal     = "LODB-token-create-ot-"
-	tokenPreCreatedOTNewLocal  = "LODB-token-create-ot-"
 	tokenPreCreatedSTONewLocal = "LODB-token-create-sto-"
 )
 
