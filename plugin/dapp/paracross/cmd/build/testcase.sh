@@ -109,11 +109,11 @@ function para_transfer2account() {
 
 function para_configkey() {
     echo "=========== # para chain send config ============="
-#    echo "${3}"
+    #    echo "${3}"
     tx=$(${1} config config_tx -o add -k "${2}" -v "${3}")
-#    echo "${tx}"
+    #    echo "${tx}"
     sign=$(${CLI} wallet sign -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc -d "${tx}")
-#    echo "${sign}"
+    #    echo "${sign}"
     send=$(${CLI} wallet send -d "${sign}")
     echo "${send}"
 }
@@ -188,7 +188,6 @@ function para_test() {
     token_create "${PARA_CLI}"
     para_cross_transfer_withdraw
 }
-
 
 function paracross() {
     if [ "${2}" == "init" ]; then
