@@ -119,7 +119,7 @@ func (txgroup *Transactions) Check(height int64, minfee int64) error {
 		}
 	}
 	//txgroup 只允许一条平行链的交易
-	if IsEnableFork(height, ForkV24TxGroupPara, EnableTxGroupParaFork) {
+	if IsEnableFork(height, "ForkV24TxGroupPara", EnableTxGroupParaFork) {
 		if len(para) > 1 {
 			tlog.Info("txgroup has multi para transaction")
 			return ErrTxGroupParaCount
@@ -460,7 +460,7 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 }
 
 func GetTxHeight(valid int64, height int64) int64 {
-	if IsEnableFork(height, ForkV23TxHeight, EnableTxHeight) && valid > TxHeightFlag {
+	if IsEnableFork(height, "ForkV23TxHeight", EnableTxHeight) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
 	return -1

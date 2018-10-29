@@ -91,10 +91,10 @@ func GetChainConfig(key string) (value interface{}, err error) {
 }
 
 func GetP(height int64) *ChainParam {
-	if height < ForkV3 {
-		return chainBaseParam
+	if IsFork(height, "ForkV3") {
+		return chainV3Param
 	}
-	return chainV3Param
+	return chainBaseParam
 }
 
 //区块链共识相关的参数，重要参数不要随便修改
@@ -136,16 +136,18 @@ var (
 	ExecNamePrefix       string
 	ParaRemoteGrpcClient string
 	SaveTokenTxList      bool
+	mu                   sync.Mutex
 )
 
 func SetTitle(t string) {
+	mu.Lock()
+	defer mu.Unlock()
 	title = t
 	if IsBityuan() {
 		AllowUserExec = [][]byte{[]byte("coins"), ExecerTicket, ExecerHashlock, ExecerNone, ExecerToken, ExecerTrade, ExecerManage}
 		return
 	}
 	if IsLocal() {
-		SetForkToOne()
 		initChainTestNet()
 		EnableTxHeight = true
 		Debug = true
@@ -159,6 +161,8 @@ func SetTitle(t string) {
 }
 
 func GetTitle() string {
+	mu.Lock()
+	defer mu.Unlock()
 	return title
 }
 

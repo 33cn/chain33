@@ -159,4 +159,7 @@ var (
 	ErrDBFlag      = errors.New("ErrDBFlag")
 	ErrLocalPrefix = errors.New("ErrLocalPrefix")
 	ErrLocalKeyLen = errors.New("ErrLocalKeyLen")
+
+	ErrCloneForkFrom    = errors.New("ErrCloneForkFrom")
+	ErrCloneForkToExist = errors.New("ErrCloneForkToExist")
 )
