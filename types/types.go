@@ -288,7 +288,7 @@ func ManageKey(key string) string {
 }
 
 func ManaeKeyWithHeigh(key string, height int64) string {
-	if height >= ForkV13ExecKey {
+	if IsFork(height, "ForkV13ExecKey") {
 		return ManageKey(key)
 	} else {
 		return ConfigKey(key)
