@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,58 +19,66 @@ import (
 )
 
 var (
-	blockLastHeight = []byte("blockLastHeight")
-	storeLog        = chainlog.New("submodule", "store")
-	lastheaderlock  sync.Mutex
+	blockLastHeight       = []byte("blockLastHeight")
+	bodyPerfix            = []byte("Body:")
 	LastSequence          = []byte("LastSequence")
-	addBlock        int64 = 1
-	delBlock        int64 = 2
+	headerPerfix          = []byte("Header:")
+	heightToHeaderPerfix  = []byte("HH:")
+	hashPerfix            = []byte("Hash:")
+	tdPerfix              = []byte("TD:")
+	heightToHashKeyPerfix = []byte("Height:")
+	seqToHashKey          = []byte("Seq:")
+	HashToSeqPerfix       = []byte("HashToSeq:")
+
+	storeLog       = chainlog.New("submodule", "store")
+	lastheaderlock sync.Mutex
+	addBlock       int64 = 1
+	delBlock       int64 = 2
 )
+
+func GetLocalDBKeyList() [][]byte {
+	return [][]byte{
+		blockLastHeight, bodyPerfix, LastSequence, headerPerfix, heightToHeaderPerfix,
+		hashPerfix, tdPerfix, heightToHashKeyPerfix, seqToHashKey, HashToSeqPerfix,
+	}
+}
 
 //存储block hash对应的blockbody信息
 func calcHashToBlockBodyKey(hash []byte) []byte {
-	bodyPerfix := []byte("Body:")
 	return append(bodyPerfix, hash...)
-	//return []byte(fmt.Sprintf("Body:%v", hash))
 }
 
 //存储block hash对应的header信息
 func calcHashToBlockHeaderKey(hash []byte) []byte {
-	headerPerfix := []byte("Header:")
 	return append(headerPerfix, hash...)
-	//return []byte(fmt.Sprintf("Header:%v", hash))
 }
 
 func calcHeightToBlockHeaderKey(height int64) []byte {
-	return []byte(fmt.Sprintf("HH:%012d", height))
+	return append(heightToHeaderPerfix, []byte(fmt.Sprintf("%012d", height))...)
 }
 
 //存储block hash对应的block height
 func calcHashToHeightKey(hash []byte) []byte {
-	hashPerfix := []byte("Hash:")
 	return append(hashPerfix, hash...)
-	//return []byte(fmt.Sprintf("Hash:%v", hash))
 }
 
 //存储block hash对应的block总难度TD
 func calcHashToTdKey(hash []byte) []byte {
-	tdPerfix := []byte("TD:")
 	return append(tdPerfix, hash...)
 }
 
 //存储block height 对应的block  hash
 func calcHeightToHashKey(height int64) []byte {
-	return []byte(fmt.Sprintf("Height:%v", height))
+	return append(heightToHashKeyPerfix, []byte(fmt.Sprintf("%v", height))...)
 }
 
 //存储block操作序列号对应的block hash,KEY=Seq:sequence
 func calcSequenceToHashKey(sequence int64) []byte {
-	return []byte(fmt.Sprintf("Seq:%v", sequence))
+	return append(seqToHashKey, []byte(fmt.Sprintf("%v", sequence))...)
 }
 
 //存储block hash对应的seq序列号，KEY=Seq:sequence，只用于平行链addblock操作，方便delblock回退是查找对应seq的hash
 func calcHashToSequenceKey(hash []byte) []byte {
-	HashToSeqPerfix := []byte("HashToSeq:")
 	return append(HashToSeqPerfix, hash...)
 }
 
@@ -165,6 +174,55 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 		storeLog.Info("initQuickIndex", "height", height)
 	}
 	bs.saveQuickIndexFlag()
+}
+
+func (bs *BlockStore) delAllKeys() {
+	var allkeys [][]byte
+	allkeys = append(allkeys, GetLocalDBKeyList()...)
+	allkeys = append(allkeys, version.GetLocalDBKeyList()...)
+	allkeys = append(allkeys, types.GetLocalDBKeyList()...)
+	var lastkey []byte
+	isvalid := true
+	for isvalid {
+		lastkey, isvalid = bs.delKeys(lastkey, allkeys)
+	}
+}
+
+func (bs *BlockStore) delKeys(seek []byte, allkeys [][]byte) ([]byte, bool) {
+	it := bs.db.Iterator(seek, types.EmptyValue, false)
+	defer it.Close()
+	i := 0
+	count := 0
+	var lastkey []byte
+	for it.Rewind(); it.Valid(); it.Next() {
+		key := it.Key()
+		lastkey = key
+		if it.Error() != nil {
+			panic(it.Error())
+		}
+		has := false
+		for _, prefix := range allkeys {
+			if bytes.HasPrefix(key, prefix) {
+				has = true
+				break
+			}
+		}
+		if !has {
+			i++
+			if i > 0 && i%10000 == 0 {
+				chainlog.Info("del key count", "count", i)
+			}
+			err := bs.db.Delete(key)
+			if err != nil {
+				panic(err)
+			}
+		}
+		count++
+		if count == 1000000 {
+			break
+		}
+	}
+	return lastkey, it.Valid()
 }
 
 func (bs *BlockStore) saveQuickIndexFlag() {
@@ -886,4 +944,28 @@ func (bs *BlockStore) SetDbVersion(versionNo int64) error {
 	storeLog.Info("SetDbVersion", "blcokchain db version", versionNo)
 
 	return bs.db.SetSync(version.BlockChainVerKey, verByte)
+}
+
+func (bs *BlockStore) GetUpgradeMeta() (*types.UpgradeMeta, error) {
+	ver := types.UpgradeMeta{}
+	version, err := bs.db.Get(version.LocalDBMeta)
+	if err != nil && err != dbm.ErrNotFoundInDb {
+		return nil, err
+	}
+	if len(version) == 0 {
+		return &types.UpgradeMeta{Version: "0.0.0"}, nil
+	}
+	err = types.Decode(version, &ver)
+	if err != nil {
+		return nil, err
+	}
+	storeLog.Info("GetUpgradeMeta", "blockchain db version", ver)
+	return &ver, nil
+}
+
+//获取blockchain的数据库版本号
+func (bs *BlockStore) SetUpgradeMeta(meta *types.UpgradeMeta) error {
+	verByte := types.Encode(meta)
+	storeLog.Info("SetUpgradeMeta", "meta", meta)
+	return bs.db.SetSync(version.LocalDBMeta, verByte)
 }

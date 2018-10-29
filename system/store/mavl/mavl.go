@@ -33,11 +33,23 @@ func init() {
 	drivers.Reg("mavl", New)
 }
 
-func New(cfg *types.Store) queue.Module {
+type subConfig struct {
+	EnableMavlPrefix bool `json:"enableMavlPrefix"`
+	EnableMVCC       bool `json:"enableMVCC"`
+}
+
+func New(cfg *types.Store, sub []byte) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
-	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, cfg.EnableMavlPrefix, cfg.EnableMVCC}
+	var subcfg subConfig
+	if sub != nil {
+		types.MustDecode(sub, &subcfg)
+	}
+	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, subcfg.EnableMavlPrefix, subcfg.EnableMVCC}
 	mavls.cache, _ = lru.New(10)
 	//使能前缀mavl以及MVCC
+
+	mavls.enableMavlPrefix = subcfg.EnableMavlPrefix
+	mavls.enableMVCC = subcfg.EnableMVCC
 	mavl.EnableMavlPrefix(mavls.enableMavlPrefix)
 	mavl.EnableMVCC(mavls.enableMVCC)
 	bs.SetChild(mavls)

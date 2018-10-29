@@ -5,7 +5,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type StoreCreate func(cfg *types.Store) queue.Module
+type StoreCreate func(cfg *types.Store, sub []byte) queue.Module
 
 var regStore = make(map[string]StoreCreate)
 

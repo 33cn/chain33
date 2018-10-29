@@ -20,7 +20,7 @@ func (c *Manage) ExecLocal_Modify(transfer *types.ModifyConfig, tx *types.Transa
 				panic(err) //数据错误了，已经被修改了
 			}
 			key := receipt.Current.Key
-			set.KV = append(set.KV, &types.KeyValue{Key: []byte(key), Value: types.Encode(receipt.Current)})
+			set.KV = append(set.KV, &types.KeyValue{Key: localKey(key), Value: types.Encode(receipt.Current)})
 			clog.Debug("ExecLocal to savelogs", "config ", key, "value", receipt.Current)
 		}
 	}

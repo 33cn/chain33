@@ -25,7 +25,7 @@ import (
 //}
 //第二步，precreate token，预创建token，但是发起token precreate的人不是同一个人，需要是平台创建人
 func TestPreCreateToken(t *testing.T) {
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		t.Error(err)
 		return

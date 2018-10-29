@@ -6,6 +6,8 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+
+	_ "gitlab.33.cn/chain33/chain33/system/crypto/init"
 )
 
 func TestCreateGroupTx(t *testing.T) {
@@ -72,7 +74,7 @@ func TestDecodeTx(t *testing.T) {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(GetSignName(SECP256K1))
+	cr, err := crypto.New(GetSignName("", SECP256K1))
 	if err != nil {
 		panic(err)
 	}

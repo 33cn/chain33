@@ -142,30 +142,33 @@ func (pack *BaseCasePack) doCheckResult(handlerMap CheckHandlerMap) (bCheck bool
 
 		if err != nil {
 
-			pack.fLog.Error("UnMarshalFailed", "TestID", pack.packID, "ErrInfo", err.Error())
+			pack.fLog.Error("UnMarshalFailed", "TestID", pack.packID, "jsonStr", txInfo, "ErrInfo", err.Error())
 			return true, false
 		}
 
 		pack.fLog.Info("TxJsonInfo", "TestID", pack.packID)
-		//tricky, for pretty json log
+		//hack, for pretty json log
 		pack.fLog.Info("PrettyJsonLogFormat", "TxJson", []byte(txInfo))
 		tyname, bSuccess = getTxRecpTyname(jsonMap)
-		pack.fLog.Info("CheckItemResult", "TestID", pack.packID, "tyname", tyname)
+		pack.fLog.Info("CheckItemResult", "TestID", pack.packID, "RecpTyname", tyname)
 
 		if !bSuccess {
 
 			logArr := jsonMap["receipt"].(map[string]interface{})["logs"].([]interface{})
+			logErrInfo := ""
 			for _, log := range logArr {
 
 				logMap := log.(map[string]interface{})
 
-				if logMap["tyname"].(string) == "LogErr" {
+				if logMap["tyName"].(string) == "LogErr" {
 
-					pack.fLog.Error("TxLogErr", "TestID", pack.packID,
-						"ErrInfo", logMap["log"].(string))
+					logErrInfo = logMap["log"].(string)
 					break
 				}
 			}
+			pack.fLog.Error("ExecPack", "TestID", pack.packID,
+				"LogErrInfo", logErrInfo)
+
 		} else {
 
 			for _, item := range tCase.CheckItem {

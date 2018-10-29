@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"reflect"
 	"strings"
@@ -268,6 +269,24 @@ func (q *QueryData) Decode(driver, name string, in []byte) (reply Message, err e
 	queryin := p.Interface()
 	if paramIn, ok := queryin.(proto.Message); ok {
 		err = Decode(in, paramIn)
+		return paramIn, err
+	}
+	return nil, ErrActionNotSupport
+}
+
+func (q *QueryData) DecodeJson(driver, name string, in json.Marshaler) (reply Message, err error) {
+	ty, err := q.GetType(driver, name)
+	if err != nil {
+		return nil, err
+	}
+	p := reflect.New(ty.In(1).Elem())
+	queryin := p.Interface()
+	if paramIn, ok := queryin.(proto.Message); ok {
+		data, err := in.MarshalJSON()
+		if err != nil {
+			return nil, err
+		}
+		err = JsonToPB(data, paramIn)
 		return paramIn, err
 	}
 	return nil, ErrActionNotSupport

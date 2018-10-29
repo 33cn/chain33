@@ -41,7 +41,7 @@ func (block *Block) CheckSign() bool {
 	if block.Signature != nil {
 		hash := block.Hash()
 		sign := block.GetSignature()
-		if !CheckSign(hash, sign) {
+		if !CheckSign(hash, "", sign) {
 			return false
 		}
 	}
@@ -115,8 +115,9 @@ func checkAll(task []*Transaction, n int) bool {
 	return true
 }
 
-func CheckSign(data []byte, sign *Signature) bool {
-	c, err := crypto.New(GetSignName(int(sign.Ty)))
+func CheckSign(data []byte, execer string, sign *Signature) bool {
+	//GetDefaultSign: 系统内置钱包，非插件中的签名
+	c, err := crypto.New(GetSignName(execer, int(sign.Ty)))
 	if err != nil {
 		return false
 	}

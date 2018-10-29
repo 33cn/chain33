@@ -68,7 +68,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	defer wallet.mtx.Unlock()
 	index := unsigned.Index
 
-	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
+	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok || err != nil {
 		return "", err
 	}
 
@@ -87,7 +87,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		if err != nil || len(keyByte) == 0 {
 			return "", err
 		}
-		cr, err := crypto.New(types.GetSignName(SignType))
+		cr, err := crypto.New(types.GetSignName("", SignType))
 		if err != nil {
 			return "", err
 		}
@@ -99,11 +99,11 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", types.ErrNoPrivKeyOrAddr
 	}
 
-	var tx types.Transaction
 	txByteData, err := common.FromHex(unsigned.GetTxHex())
 	if err != nil {
 		return "", err
 	}
+	var tx types.Transaction
 	err = types.Decode(txByteData, &tx)
 	if err != nil {
 		return "", err
@@ -679,7 +679,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		walletlog.Error("ProcMergeBalance", "AccStores", len(WalletAccStores), "accounts", len(accounts))
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName(SignType))
+	cr, err := crypto.New(types.GetSignName("", SignType))
 	if err != nil {
 		walletlog.Error("ProcMergeBalance", "err", err)
 		return nil, err
@@ -868,14 +868,12 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 			return types.ErrVerifyOldpasswdFail
 		}
 	}
-
 	//内存中已经记录password时的校验
 	if len(wallet.Password) != 0 && WalletUnLock.Passwd != wallet.Password {
 		return types.ErrInputPassword
 	}
 	//本钱包没有设置密码加密过,只需要解锁不需要记录解锁密码
 	wallet.Password = WalletUnLock.Passwd
-
 	//只解锁挖矿转账
 	if !WalletUnLock.WalletOrTicket {
 		//wallet.isTicketLocked = false
@@ -1197,10 +1195,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 		var ReqWalletSetPasswd types.ReqWalletSetPasswd
 		ReqWalletSetPasswd.OldPass = password
 		ReqWalletSetPasswd.NewPass = password
-		Err := wallet.ProcWalletSetPasswd(&ReqWalletSetPasswd)
-		if Err != nil {
-			walletlog.Error("saveSeed", "ProcWalletSetPasswd err", err)
-		}
+		wallet.ProcWalletSetPasswd(&ReqWalletSetPasswd)
 	}
 	return ok, err
 }

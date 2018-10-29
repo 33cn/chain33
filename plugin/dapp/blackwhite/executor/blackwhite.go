@@ -23,7 +23,7 @@ func init() {
 }
 
 //黑白配可以被重命名执行器名称
-func Init(name string) {
+func Init(name string, sub []byte) {
 	driverName = name
 	gt.BlackwhiteX = driverName
 	gt.ExecerBlackwhite = []byte(driverName)
@@ -223,7 +223,7 @@ func (c *Blackwhite) createTx(parm *gt.BlackwhiteCreateTxReq) (types.Message, er
 
 func (c *Blackwhite) GetBlackwhiteRoundInfo(req *gt.ReqBlackwhiteRoundInfo) (types.Message, error) {
 	gameId := req.GameID
-	key := calcRoundKey(gameId)
+	key := calcMavlRoundKey(gameId)
 	values, err := c.GetStateDB().Get(key)
 	if err != nil {
 		return nil, err
@@ -302,7 +302,7 @@ func (c *Blackwhite) GetBwRoundListInfo(req *gt.ReqBlackwhiteRoundList) (types.M
 	storeDb := c.GetStateDB()
 	var rep gt.ReplyBlackwhiteRoundList
 	for _, value := range values {
-		v, err := storeDb.Get(calcRoundKey(string(value)))
+		v, err := storeDb.Get(calcMavlRoundKey(string(value)))
 		if nil != err {
 			return nil, err
 		}
@@ -355,7 +355,7 @@ func (c *Blackwhite) GetBwRoundLoopResult(req *gt.ReqLoopResult) (types.Message,
 
 	if req.LoopSeq > 0 { //取出具体一轮
 		if len(result.Results) < int(req.LoopSeq) {
-			return nil, types.ErrNoLoopSeq
+			return nil, gt.ErrNoLoopSeq
 		}
 		res := &gt.ReplyLoopResults{
 			GameID: result.GameID,
