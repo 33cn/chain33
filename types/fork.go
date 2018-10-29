@@ -96,8 +96,8 @@ func SetForkToOne() {
 	ForkV25BlackWhite = 0
 	ForkV25BlackWhiteV2 = 0
 	ForkV26EVMKVHash = 0
-    ForkV27TicketId = 0
-    ForkV27TradeAsset = 0
+	ForkV27TicketId = 0
+	ForkV27TradeAsset = 0
 }
 
 //paraName not used currently
@@ -129,8 +129,8 @@ func SetForkForPara(paraName string) {
 	ForkV25BlackWhite = 0
 	ForkV25BlackWhiteV2 = 0
 	ForkV26EVMKVHash = 0
-    ForkV27TicketId = 0
-    ForkV27TradeAsset = 0
+	ForkV27TicketId = 0
+	ForkV27TradeAsset = 0
 }
 
 func IsMatchFork(height int64, fork int64) bool {
