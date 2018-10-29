@@ -53,11 +53,11 @@ func (t *tokenDB) getKVSet(key []byte) (kvset []*types.KeyValue) {
 }
 
 func getTokenFromDB(db dbm.KV, symbol string, owner string) (*tokenty.Token, error) {
-	key := calcTokenAddrKey(symbol, owner)
+	key := calcTokenAddrKeyS(symbol, owner)
 	value, err := db.Get(key)
 	if err != nil {
 		// not found old key
-		key = calcTokenAddrNewKey(symbol, owner)
+		key = calcTokenAddrNewKeyS(symbol, owner)
 		value, err = db.Get(key)
 		if err != nil {
 			return nil, err
@@ -147,11 +147,11 @@ func (action *tokenAction) preCreate(token *tokenty.TokenPreCreate) (*types.Rece
 	var statuskey []byte
 	var key []byte
 	if action.height >= types.ForkV13ExecKey {
-		statuskey = calcTokenStatusNewKey(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
-		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
+		statuskey = calcTokenStatusNewKeyS(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
+		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
 		statuskey = calcTokenStatusKey(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
-		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	}
 
 	tokendb.save(action.db, statuskey)
@@ -222,9 +222,9 @@ func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) 
 	tokendb := &tokenDB{*token}
 	var key []byte
 	if action.height >= types.ForkV13ExecKey {
-		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
+		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
-		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	}
 	tokendb.save(action.db, key)
 
@@ -283,9 +283,9 @@ func (action *tokenAction) revokeCreate(tokenRevoke *tokenty.TokenRevokeCreate) 
 	tokendb := &tokenDB{*token}
 	var key []byte
 	if action.height >= types.ForkV13ExecKey {
-		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
+		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
-		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	}
 	tokendb.save(action.db, key)
 
@@ -302,11 +302,11 @@ func CheckTokenExist(token string, db dbm.KV) bool {
 }
 
 func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KV) bool {
-	_, err := db.Get(calcTokenAddrKey(token, owner))
+	_, err := db.Get(calcTokenAddrKeyS(token, owner))
 	if err == nil {
 		return true
 	}
-	_, err = db.Get(calcTokenAddrNewKey(token, owner))
+	_, err = db.Get(calcTokenAddrNewKeyS(token, owner))
 	return err == nil
 }
 
