@@ -24,10 +24,6 @@ func calcTokenAddrKeyS(token string, owner string) (key []byte) {
 	return []byte(fmt.Sprintf(tokenPreCreatedOT+"%s-%s", owner, token))
 }
 
-func calcTokenAddrKeyLocal(token string, owner string) (key []byte) {
-	return []byte(fmt.Sprintf(tokenPreCreatedOTLocal+"%s-%s", owner, token))
-}
-
 func calcTokenStatusKey(token string, owner string, status int32) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTO+"%d-%s-%s", status, token, owner))
 }
@@ -42,10 +38,6 @@ func calcTokenStatusSymbolPrefix(status int32, token string) []byte {
 
 func calcTokenAddrNewKeyS(token string, owner string) (key []byte) {
 	return []byte(fmt.Sprintf(tokenPreCreatedOTNew+"%s-%s", owner, token))
-}
-
-func calcTokenAddrNewKeyLocal(token string, owner string) (key []byte) {
-	return []byte(fmt.Sprintf(tokenPreCreatedOTNewLocal+"%s-%s", owner, token))
 }
 
 func calcTokenStatusNewKeyS(token string, owner string, status int32) []byte {
