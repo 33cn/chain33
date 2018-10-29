@@ -318,7 +318,7 @@ func getManageKey(key string, db dbm.KV) ([]byte, error) {
 	manageKey := types.ManageKey(key)
 	value, err := db.Get([]byte(manageKey))
 	if err != nil {
-		tokenlog.Info("tokendb", "get db key", "not found")
+		tokenlog.Info("tokendb", "get db key", "not found manageKey", "key", string(manageKey))
 		return getConfigKey(key, db)
 	}
 	return value, nil
@@ -328,7 +328,7 @@ func getConfigKey(key string, db dbm.KV) ([]byte, error) {
 	configKey := types.ConfigKey(key)
 	value, err := db.Get([]byte(configKey))
 	if err != nil {
-		tokenlog.Info("tokendb", "get db key", "not found")
+		tokenlog.Info("tokendb", "get db key", "not found configKey", "key", string(configKey))
 		return nil, err
 	}
 	return value, nil
@@ -337,11 +337,11 @@ func getConfigKey(key string, db dbm.KV) ([]byte, error) {
 func validOperator(addr, key string, db dbm.KV) (bool, error) {
 	value, err := getManageKey(key, db)
 	if err != nil {
-		tokenlog.Info("tokendb", "get db key", "not found")
+		tokenlog.Info("tokendb", "get db key", "not found",  "key", key)
 		return false, err
 	}
 	if value == nil {
-		tokenlog.Info("tokendb", "get db key", "  found nil value")
+		tokenlog.Info("tokendb", "get db key", "  found nil value", "key", key)
 		return false, nil
 	}
 
