@@ -39,7 +39,6 @@ func init() {
 
 func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newToken, types.ForkV2AddToken)
-	setReciptPrefix()
 }
 
 func GetName() string {
@@ -224,17 +223,17 @@ func (t *token) listTokenKeys(reqTokens *tokenty.ReqTokens) ([][]byte, error) {
 func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, receipt.Status)
+	key := calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
 	var value []byte
 	if t.GetHeight() >= types.ForkV13ExecKey {
-		value = calcTokenAddrNewKey(receipt.Symbol, receipt.Owner)
+		value = calcTokenAddrNewKeyLocal(receipt.Symbol, receipt.Owner)
 	} else {
-		value = calcTokenAddrKey(receipt.Symbol, receipt.Owner)
+		value = calcTokenAddrKeyLocal(receipt.Symbol, receipt.Owner)
 	}
 	kv = append(kv, &types.KeyValue{key, value})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被删除
 	if receipt.Status != tokenty.TokenStatusPreCreated {
-		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
+		key = calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		kv = append(kv, &types.KeyValue{key, nil})
 	}
 	return kv
@@ -243,16 +242,16 @@ func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 func (t *token) deleteLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, receipt.Status)
+	key := calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
 	kv = append(kv, &types.KeyValue{key, nil})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被恢复
 	if receipt.Status != tokenty.TokenStatusPreCreated {
-		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
+		key = calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		var value []byte
 		if t.GetHeight() >= types.ForkV13ExecKey {
-			value = calcTokenAddrNewKey(receipt.Symbol, receipt.Owner)
+			value = calcTokenAddrNewKeyLocal(receipt.Symbol, receipt.Owner)
 		} else {
-			value = calcTokenAddrKey(receipt.Symbol, receipt.Owner)
+			value = calcTokenAddrKeyLocal(receipt.Symbol, receipt.Owner)
 		}
 		kv = append(kv, &types.KeyValue{key, value})
 	}

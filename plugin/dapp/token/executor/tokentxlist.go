@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	tokenTxPrefix        = "token-txHash:"
-	tokenTxAddrPrifex    = "token-txAddrHash:"
-	tokenTxAddrDirPrifex = "token-txAddrDirHash:"
+	tokenTxPrefix        = "LODB-token-txHash:"
+	tokenTxAddrPrifex    = "LODB-token-txAddrHash:"
+	tokenTxAddrDirPrifex = "LODB-token-txAddrDirHash:"
 )
 
 func TokenTxKvs(tx *types.Transaction, symbol string, height, index int64, isDel bool) ([]*types.KeyValue, error) {

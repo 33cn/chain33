@@ -5,35 +5,29 @@ import (
 )
 
 var (
-	tokenCreated          string
-	tokenPreCreatedOT     string
-	tokenPreCreatedSTO    string
-	tokenPreCreatedOTNew  string
-	tokenPreCreatedSTONew string
-)
-
-//const (
-//	tokenCreated          = "mavl-token-"
-//	tokenPreCreatedOT     = "mavl-create-token-ot-"
-//	tokenPreCreatedSTO    = "mavl-create-token-sto-"
-//	tokenPreCreatedOTNew  = "mavl-token-create-ot-"
-//	tokenPreCreatedSTONew = "mavl-token-create-sto-"
-//)
-
-func setReciptPrefix() {
-	tokenCreated = "mavl-token-"
-	tokenPreCreatedOT = "mavl-create-token-ot-"
-	tokenPreCreatedSTO = "mavl-create-token-sto-"
-	tokenPreCreatedOTNew = "mavl-token-create-ot-"
+	tokenCreated          = "mavl-token-"
+	tokenPreCreatedOT     = "mavl-create-token-ot-"
+	tokenPreCreatedSTO    = "mavl-create-token-sto-"
+	tokenPreCreatedOTNew  = "mavl-token-create-ot-"
 	tokenPreCreatedSTONew = "mavl-token-create-sto-"
-}
+
+	tokenCreatedLocal          = "LODB-token-"
+	tokenPreCreatedOTLocal     = "LODB-token-create-ot-"
+	tokenPreCreatedSTOLocal    = "LODB-token-create-sto-"
+	tokenPreCreatedOTNewLocal  = "LODB-token-create-ot-"
+	tokenPreCreatedSTONewLocal = "LODB-token-create-sto-"
+)
 
 func calcTokenKey(token string) (key []byte) {
 	return []byte(fmt.Sprintf(tokenCreated+"%s", token))
 }
 
-func calcTokenAddrKey(token string, owner string) (key []byte) {
+func calcTokenAddrKeyS(token string, owner string) (key []byte) {
 	return []byte(fmt.Sprintf(tokenPreCreatedOT+"%s-%s", owner, token))
+}
+
+func calcTokenAddrKeyLocal(token string, owner string) (key []byte) {
+	return []byte(fmt.Sprintf(tokenPreCreatedOTLocal+"%s-%s", owner, token))
 }
 
 func calcTokenStatusKey(token string, owner string, status int32) []byte {
@@ -48,12 +42,20 @@ func calcTokenStatusSymbolPrefix(status int32, token string) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTO+"%d-%s-", status, token))
 }
 
-func calcTokenAddrNewKey(token string, owner string) (key []byte) {
+func calcTokenAddrNewKeyS(token string, owner string) (key []byte) {
 	return []byte(fmt.Sprintf(tokenPreCreatedOTNew+"%s-%s", owner, token))
 }
 
-func calcTokenStatusNewKey(token string, owner string, status int32) []byte {
+func calcTokenAddrNewKeyLocal(token string, owner string) (key []byte) {
+	return []byte(fmt.Sprintf(tokenPreCreatedOTNewLocal+"%s-%s", owner, token))
+}
+
+func calcTokenStatusNewKeyS(token string, owner string, status int32) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTONew+"%d-%s-%s", status, token, owner))
+}
+
+func calcTokenStatusNewKeyLocal(token string, owner string, status int32) []byte {
+	return []byte(fmt.Sprintf(tokenPreCreatedSTONewLocal+"%d-%s-%s", status, token, owner))
 }
 
 func calcTokenStatusKeyNewPrefix(status int32) []byte {
@@ -62,4 +64,9 @@ func calcTokenStatusKeyNewPrefix(status int32) []byte {
 
 func calcTokenStatusSymbolNewPrefix(status int32, token string) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTONew+"%d-%s-", status, token))
+}
+
+//存储地址上收币的信息
+func calcAddrKey(token string, addr string) []byte {
+	return []byte(fmt.Sprintf("LODB-token-%s-Addr:%s", token, addr))
 }
