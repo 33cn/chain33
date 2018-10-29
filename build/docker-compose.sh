@@ -206,7 +206,7 @@ function block_wait() {
         count=$((count + 1))
         sleep 1
     done
-    echo "wait new block $count s"
+    echo "wait new block $count s, cur height=$expect,old=$cur_height"
 }
 
 function check_docker_container() {
