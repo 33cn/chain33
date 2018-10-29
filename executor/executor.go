@@ -345,12 +345,15 @@ func isAllowLocalKey(execer []byte, key []byte) error {
 		return types.ErrLocalKeyLen
 	}
 	if key[minkeylen-1] != '-' {
+		elog.Error("isAllowLocalKey", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key, types.LocalPrefix) {
+		elog.Error("isAllowLocalKey", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key[len(types.LocalPrefix)+1:], execer) {
+		elog.Error("isAllowLocalKey", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
 	return nil
