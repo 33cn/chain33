@@ -3,6 +3,7 @@ datadir*
 *.exe
 *.orig
 *.bak
+*.log.last
 .idea
 .vscode
 cmd/chain33/chain33
