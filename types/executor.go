@@ -213,6 +213,8 @@ type ExecutorType interface {
 	GetName() string
 	//exec result of receipt log
 	GetLogMap() map[int64]*LogInfo
+	GetForks() *Forks
+	IsFork(height int64, key string) bool
 	//actionType -> name map
 	GetTypeMap() map[string]int32
 	GetValueTypeMap() map[string]reflect.Type
@@ -235,6 +237,7 @@ type ExecTypeBase struct {
 	actionListValueType map[string]reflect.Type
 	rpclist             map[string]reflect.Method
 	queryMap            map[string]reflect.Type
+	forks               *Forks
 }
 
 func (base *ExecTypeBase) SetChild(child ExecutorType) {
@@ -243,6 +246,7 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	base.rpclist = ListMethod(child)
 	base.actionListValueType = make(map[string]reflect.Type)
 	base.actionFunList = make(map[string]reflect.Method)
+	base.forks = child.GetForks()
 
 	action := child.GetPayload()
 	if action == nil {
@@ -280,6 +284,10 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	}
 }
 
+func (base *ExecTypeBase) GetForks() *Forks {
+	return &Forks{}
+}
+
 func (base *ExecTypeBase) GetCryptoDriver(ty int) (string, error) {
 	return "", ErrNotSupport
 }
@@ -308,6 +316,13 @@ func (base *ExecTypeBase) GetExecFuncMap() map[string]reflect.Method {
 
 func (base *ExecTypeBase) GetName() string {
 	return "typedriverbase"
+}
+
+func (base *ExecTypeBase) IsFork(height int64, key string) bool {
+	if base.GetForks == nil {
+		return false
+	}
+	return base.forks.IsFork(GetTitle(), height, key)
 }
 
 func (base *ExecTypeBase) GetValueTypeMap() map[string]reflect.Type {
