@@ -88,6 +88,7 @@ function para_transfer() {
     para_transfer2account "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
     block_wait "${CLI}" 1
 
+    echo "=========== # para chain send config ============="
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"
@@ -95,9 +96,9 @@ function para_transfer() {
     block_wait "${CLI}" 1
 
     txhash=$(para_configkey "${PARA_CLI}" "token-blacklist" "BTY")
-    block_wait "${PARA_CLI}" 2
     echo "txhash=$txhash"
-    $CLI tx query -s "${txhash}"
+    block_wait "${PARA_CLI}" 1
+    $PARA_CLI tx query -s "${txhash}"
 
 }
 
@@ -108,12 +109,8 @@ function para_transfer2account() {
 }
 
 function para_configkey() {
-    echo "=========== # para chain send config ============="
-#    echo "${3}"
     tx=$(${1} config config_tx -o add -k "${2}" -v "${3}")
-#    echo "${tx}"
     sign=$(${CLI} wallet sign -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc -d "${tx}")
-#    echo "${sign}"
     send=$(${CLI} wallet send -d "${sign}")
     echo "${send}"
 }
@@ -198,8 +195,6 @@ function paracross() {
         para_set_wallet
     elif [ "${2}" == "test" ]; then
         para_test "${1}"
-    elif [ "${2}" == "forktest" ]; then
-        checkParaBlockHashfun
     fi
 
     if [ "${2}" == "forkInit" ]; then
