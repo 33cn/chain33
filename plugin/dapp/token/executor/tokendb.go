@@ -337,7 +337,7 @@ func getConfigKey(key string, db dbm.KV) ([]byte, error) {
 func validOperator(addr, key string, db dbm.KV) (bool, error) {
 	value, err := getManageKey(key, db)
 	if err != nil {
-		tokenlog.Info("tokendb", "get db key", "not found",  "key", key)
+		tokenlog.Info("tokendb", "get db key", "not found", "key", key)
 		return false, err
 	}
 	if value == nil {

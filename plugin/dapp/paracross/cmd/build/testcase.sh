@@ -186,7 +186,6 @@ function para_test() {
     para_cross_transfer_withdraw
 }
 
-
 function paracross() {
     if [ "${2}" == "init" ]; then
         para_init
