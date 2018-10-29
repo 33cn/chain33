@@ -24,7 +24,7 @@ var (
 
 func init() {
 	nameX = types.ExecName(types.ManageX)
-	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.ManageX))
 	types.RegistorExecutor(types.ManageX, NewType())
 }
 
@@ -44,15 +44,6 @@ func (at *ManageType) GetPayload() types.Message {
 
 func (m ManageType) ActionName(tx *types.Transaction) string {
 	return "config"
-}
-
-func (manage ManageType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action ManageAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
 }
 
 func (m ManageType) Amount(tx *types.Transaction) (int64, error) {

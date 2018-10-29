@@ -216,3 +216,14 @@ message ReqAddrs {
 message ReqDecodeRawTransaction {
     string txHex = 1;
 }
+
+message UserWrite {
+    string topic   = 1;
+    string content = 2;
+}
+
+message UpgradeMeta {
+    bool   indexing = 1;
+    string version  = 2;
+    int64  height   = 3;
+}

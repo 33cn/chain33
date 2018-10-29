@@ -15,6 +15,12 @@ var (
 	PolicyContainer = make(map[string]WalletBizPolicy)
 )
 
+func Init(wallet WalletOperate, sub map[string][]byte) {
+	for k, v := range PolicyContainer {
+		v.Init(wallet, sub[k])
+	}
+}
+
 func RegisterPolicy(key string, policy WalletBizPolicy) {
 	if _, existed := PolicyContainer[key]; existed {
 		panic("RegisterPolicy dup")
@@ -48,8 +54,6 @@ type WalletOperate interface {
 	IsClose() bool
 	IsCaughtUp() bool
 	AddrInWallet(addr string) bool
-	GetRescanFlag() int32
-	SetRescanFlag(flag int32)
 
 	CheckWalletStatus() (bool, error)
 	Nonce() int64

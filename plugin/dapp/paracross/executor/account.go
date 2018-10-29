@@ -106,10 +106,47 @@ func assetWithdrawBalance(acc *account.DB, addr string, amount int64) (*types.Re
 // 平行链
 //   `合约`    paracross  ` : 主链上的    user.p.guodun.paracross`
 //    `币名称`         coins.bty
-// mavl- `合约` - `币名称` - 地址                                                              5
+// mavl- `合约` - `币名称` - 地址
 //
 
 // transfer / withdraw
 //
 
-// mavl -token  - xxx - aaaaa
+// mavl -exec  -  symbol - addr
+
+// 主链 token TEST   -> trade
+//                                                                         token-symbol{TEST}-addr{trade}:addr{user}
+// 主链 token TEST -> 主链paracross -> 平行链 paracross： token.TEST -> 移动到 trade:   token.TEST@user.p.guodun.paracross
+//           TEST     token-TEST-addr{paracross}:addr{user}
+//                                    paracross-symbol{token.TEST}:addr{user}
+//                                                                         paracross-symbol{token.TEST}-addr{trade}:addr{user}
+// 平行链 token  TEST -> trade
+//                                                                         token-symbol{TEST}-addr{trade}:addr{user}
+// 同样是 TEST, 但前缀不同
+// 平行链 token  TEST -> paracross
+//                                                                        token-symbol{TEST}-addr{paracross}:addr{user}
+//  数据显示部分， 如交易所, 需要显示  exec + symbol
+
+// 这样命名足以满足， 若要开启 平行链资产的转移， symbol 部分扩展为 symbol@host-title, 主链忽略 或添加 @bityuan
+//  为什么不是".", host-title.exec.symbol, host-title 可能有很多点, 容易混淆, 也会使的解析代码不清晰
+//  想象 平行链 titleFrom资产的转移 到  titleTo
+// token TEST -> paracross     -> 主链 paracross ->  主链 trade
+//                token-symbol{TEST}-addr{paracross}:addr{user}
+//                                  paracross-symbol{token.TEST@tileFrom}-addr{user}
+//                                                   paracross-symbol{token.TEST@tileFrom}-addr{trade}:addr{user}
+//                                        ->  另平行链 titleTo  paracross -> titleTo.trade
+//                                              paracross-symbol{token.TEST@tileFrom}-addr{user}
+//                                                                      paracross-symbol{token.TEST@tileFrom}-addr{trade}:addr{user}
+
+/*
+在平行链上， trade里， 资产可以互相交换
+
+ 货币可以是哪些？ 是这条链认可某些币的价值， 还是都和本链的主币交换
+  1. 对应平行链上的国盾币
+  1. 是主链上平移过来的bty
+  1. 或是其他连上的币
+  1. 某调链上的token 如 YCC
+ 先做成都和主币交换
+
+ 在trade 里需要修改订单的结构， 即定义资产的部分。
+*/

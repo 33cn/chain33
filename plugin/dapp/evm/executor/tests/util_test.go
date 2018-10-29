@@ -174,7 +174,7 @@ func unpre(data string) string {
 }
 
 func getPrivKey() crypto.PrivKey {
-	c, err := crypto.New(types.GetSignName(types.SECP256K1))
+	c, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		return nil
 	}

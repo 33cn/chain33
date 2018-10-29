@@ -16,3 +16,12 @@ func (g *PokerBull) Query_QueryGameById(in *pkt.QueryPBGameInfo) (types.Message,
 	}
 	return &pkt.ReplyPBGame{game}, nil
 }
+
+func (g *PokerBull) Query_QueryGameByAddr(in *pkt.QueryPBGameInfo) (types.Message, error) {
+	gameIds, err := getGameListByAddr(g.GetLocalDB(), in.Addr, in.Index)
+	if err != nil {
+		return nil, err
+	}
+
+	return gameIds, nil
+}

@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	tty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -52,6 +53,7 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 		"",
 		txhash,
 		selldb.Height,
+		selldb.AssetExec,
 	}
 	if types.TyLogTradeSellLimit == tradeType {
 		receiptTrade := &pty.ReceiptTradeSellLimit{base}
@@ -81,6 +83,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash str
 		selldb.SellID,
 		txhash,
 		selldb.Height,
+		selldb.AssetExec,
 	}
 
 	receipt := &pty.ReceiptTradeBuyMarket{base}
@@ -171,6 +174,7 @@ func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog
 		"",
 		txhash,
 		buydb.Height,
+		buydb.AssetExec,
 	}
 	if types.TyLogTradeBuyLimit == tradeType {
 		receiptTrade := &pty.ReceiptTradeBuyLimit{base}
@@ -218,6 +222,7 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt in
 		buydb.BuyID,
 		txhash,
 		buydb.Height,
+		buydb.AssetExec,
 	}
 	receiptSellMarket := &pty.ReceiptSellMarket{Base: base}
 	log.Log = types.Encode(receiptSellMarket)
@@ -246,14 +251,17 @@ func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, er
 	if sell.TotalBoardlot < 0 || sell.PricePerBoardlot < 0 || sell.MinBoardlot < 0 || sell.AmountPerBoardlot < 0 {
 		return nil, types.ErrInvalidParam
 	}
+	if !checkAsset(action.height, sell.AssetExec, sell.TokenSymbol) {
+		return nil, types.ErrInvalidParam
+	}
 
-	tokenAccDB, err := account.NewAccountDB("token", sell.TokenSymbol, action.db)
+	accDB, err := createAccountDB(action.height, action.db, sell.AssetExec, sell.TokenSymbol)
 	if err != nil {
 		return nil, err
 	}
 	//确认发起此次出售或者众筹的余额是否足够
 	totalAmount := sell.GetTotalBoardlot() * sell.GetAmountPerBoardlot()
-	receipt, err := tokenAccDB.ExecFrozen(action.fromaddr, action.execaddr, totalAmount)
+	receipt, err := accDB.ExecFrozen(action.fromaddr, action.execaddr, totalAmount)
 	if err != nil {
 		tradelog.Error("trade sell ", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", totalAmount)
 		return nil, err
@@ -275,6 +283,7 @@ func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, er
 		calcTokenSellID(action.txhash),
 		pty.TradeOrderStatusOnSale,
 		action.height,
+		sell.AssetExec,
 	}
 
 	tokendb := newSellDB(sellOrder)
@@ -296,21 +305,21 @@ func (action *tradeAction) tradeBuy(buyOrder *pty.TradeForBuy) (*types.Receipt, 
 	sellidByte := []byte(buyOrder.SellID)
 	sellOrder, err := getSellOrderFromID(sellidByte, action.db)
 	if err != nil {
-		return nil, types.ErrTSellOrderNotExist
+		return nil, pty.ErrTSellOrderNotExist
 	}
 
 	if sellOrder.Status == pty.TradeOrderStatusNotStart && sellOrder.Starttime > action.blocktime {
-		return nil, types.ErrTSellOrderNotStart
+		return nil, pty.ErrTSellOrderNotStart
 	} else if sellOrder.Status == pty.TradeOrderStatusSoldOut {
-		return nil, types.ErrTSellOrderSoldout
+		return nil, pty.ErrTSellOrderSoldout
 	} else if sellOrder.Status == pty.TradeOrderStatusOnSale && sellOrder.TotalBoardlot-sellOrder.SoldBoardlot < buyOrder.BoardlotCnt {
-		return nil, types.ErrTSellOrderNotEnough
+		return nil, pty.ErrTSellOrderNotEnough
 	} else if sellOrder.Status == pty.TradeOrderStatusRevoked {
-		return nil, types.ErrTSellOrderRevoked
+		return nil, pty.ErrTSellOrderRevoked
 	} else if sellOrder.Status == pty.TradeOrderStatusExpired {
-		return nil, types.ErrTSellOrderExpired
+		return nil, pty.ErrTSellOrderExpired
 	} else if sellOrder.Status == pty.TradeOrderStatusOnSale && buyOrder.BoardlotCnt < sellOrder.MinBoardlot {
-		return nil, types.ErrTCntLessThanMinBoardlot
+		return nil, pty.ErrTCntLessThanMinBoardlot
 	}
 
 	//首先购买费用的划转
@@ -322,11 +331,11 @@ func (action *tradeAction) tradeBuy(buyOrder *pty.TradeForBuy) (*types.Receipt, 
 	}
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
 	//TODO: 创建一个LRU用来保存token对应的子合约账户的地址
-	tokenAccDB, err := account.NewAccountDB("token", sellOrder.TokenSymbol, action.db)
+	accDB, err := createAccountDB(action.height, action.db, sellOrder.AssetExec, sellOrder.TokenSymbol)
 	if err != nil {
 		return nil, err
 	}
-	receiptFromExecAcc, err := tokenAccDB.ExecTransferFrozen(sellOrder.Address, action.fromaddr, action.execaddr, buyOrder.BoardlotCnt*sellOrder.AmountPerBoardlot)
+	receiptFromExecAcc, err := accDB.ExecTransferFrozen(sellOrder.Address, action.fromaddr, action.execaddr, buyOrder.BoardlotCnt*sellOrder.AmountPerBoardlot)
 	if err != nil {
 		tradelog.Error("account.ExecTransfer token ", "error info", err, "addrFrom", sellOrder.Address,
 			"addrTo", action.fromaddr, "execaddr", action.execaddr,
@@ -362,27 +371,27 @@ func (action *tradeAction) tradeRevokeSell(revoke *pty.TradeForRevokeSell) (*typ
 	sellidByte := []byte(revoke.SellID)
 	sellOrder, err := getSellOrderFromID(sellidByte, action.db)
 	if err != nil {
-		return nil, types.ErrTSellOrderNotExist
+		return nil, pty.ErrTSellOrderNotExist
 	}
 
 	if sellOrder.Status == pty.TradeOrderStatusSoldOut {
-		return nil, types.ErrTSellOrderSoldout
+		return nil, pty.ErrTSellOrderSoldout
 	} else if sellOrder.Status == pty.TradeOrderStatusRevoked {
-		return nil, types.ErrTSellOrderRevoked
+		return nil, pty.ErrTSellOrderRevoked
 	} else if sellOrder.Status == pty.TradeOrderStatusExpired {
-		return nil, types.ErrTSellOrderExpired
+		return nil, pty.ErrTSellOrderExpired
 	}
 
 	if action.fromaddr != sellOrder.Address {
-		return nil, types.ErrTSellOrderRevoke
+		return nil, pty.ErrTSellOrderRevoke
 	}
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
-	tokenAccDB, err := account.NewAccountDB("token", sellOrder.TokenSymbol, action.db)
+	accDB, err := createAccountDB(action.height, action.db, sellOrder.AssetExec, sellOrder.TokenSymbol)
 	if err != nil {
 		return nil, err
 	}
 	tradeRest := (sellOrder.TotalBoardlot - sellOrder.SoldBoardlot) * sellOrder.AmountPerBoardlot
-	receiptFromExecAcc, err := tokenAccDB.ExecActive(sellOrder.Address, action.execaddr, tradeRest)
+	receiptFromExecAcc, err := accDB.ExecActive(sellOrder.Address, action.execaddr, tradeRest)
 	if err != nil {
 		tradelog.Error("account.ExecActive token ", "addrFrom", sellOrder.Address, "execaddr", action.execaddr, "amount", tradeRest)
 		return nil, err
@@ -417,9 +426,19 @@ func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Rece
 	if buy.TotalBoardlot < 0 || buy.PricePerBoardlot < 0 || buy.MinBoardlot < 0 || buy.AmountPerBoardlot < 0 {
 		return nil, types.ErrInvalidParam
 	}
-	// check token exist
-	if !checkTokenExist(buy.TokenSymbol, action.db) {
-		return nil, types.ErrTokenNotExist
+
+	// 这个检查会比较鸡肋, 按目前的想法的能支持更多的资产， 各种资产检查不一样
+	// 可以先让订单成功, 如果不合适, 自己撤单也行
+	// 或后续跨合约注册一个检测的函数
+	if buy.AssetExec == "" || buy.AssetExec == defaultAssetExec {
+		// check token exist
+		if !checkTokenExist(buy.TokenSymbol, action.db) {
+			return nil, tty.ErrTokenNotExist
+		}
+	}
+
+	if !checkAsset(action.height, buy.AssetExec, buy.TokenSymbol) {
+		return nil, types.ErrInvalidParam
 	}
 
 	// check enough bty
@@ -443,6 +462,7 @@ func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Rece
 		calcTokenBuyID(action.txhash),
 		pty.TradeOrderStatusOnBuy,
 		action.height,
+		buy.AssetExec,
 	}
 
 	tokendb := newBuyDB(buyOrder)
@@ -464,27 +484,27 @@ func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*
 	idByte := []byte(sellOrder.BuyID)
 	buyOrder, err := getBuyOrderFromID(idByte, action.db)
 	if err != nil {
-		return nil, types.ErrTBuyOrderNotExist
+		return nil, pty.ErrTBuyOrderNotExist
 	}
 
 	if buyOrder.Status == pty.TradeOrderStatusBoughtOut {
-		return nil, types.ErrTBuyOrderSoldout
+		return nil, pty.ErrTBuyOrderSoldout
 	} else if buyOrder.Status == pty.TradeOrderStatusRevoked {
-		return nil, types.ErrTBuyOrderRevoked
+		return nil, pty.ErrTBuyOrderRevoked
 	} else if buyOrder.Status == pty.TradeOrderStatusOnBuy && buyOrder.TotalBoardlot-buyOrder.BoughtBoardlot < sellOrder.BoardlotCnt {
-		return nil, types.ErrTBuyOrderNotEnough
+		return nil, pty.ErrTBuyOrderNotEnough
 	} else if buyOrder.Status == pty.TradeOrderStatusOnBuy && sellOrder.BoardlotCnt < buyOrder.MinBoardlot {
-		return nil, types.ErrTCntLessThanMinBoardlot
+		return nil, pty.ErrTCntLessThanMinBoardlot
 	}
 
 	// 打token
-	tokenAccDB, err := account.NewAccountDB("token", buyOrder.TokenSymbol, action.db)
+	accDB, err := createAccountDB(action.height, action.db, buyOrder.AssetExec, buyOrder.TokenSymbol)
 	if err != nil {
 		return nil, err
 	}
 	amountToken := sellOrder.BoardlotCnt * buyOrder.AmountPerBoardlot
 	tradelog.Debug("tradeSellMarket", "step1 cnt", sellOrder.BoardlotCnt, "amountToken", amountToken)
-	receiptFromExecAcc, err := tokenAccDB.ExecTransfer(action.fromaddr, buyOrder.Address, action.execaddr, amountToken)
+	receiptFromExecAcc, err := accDB.ExecTransfer(action.fromaddr, buyOrder.Address, action.execaddr, amountToken)
 	if err != nil {
 		tradelog.Error("account.ExecTransfer token ", "error info", err, "addrFrom", buyOrder.Address,
 			"addrTo", action.fromaddr, "execaddr", action.execaddr,
@@ -500,7 +520,7 @@ func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*
 		tradelog.Error("account.Transfer ", "addrFrom", buyOrder.Address, "addrTo", action.fromaddr,
 			"amount", amount)
 		// 因为未能成功将对应的币进行转账，所以需要回退
-		tokenAccDB.ExecTransfer(buyOrder.Address, action.fromaddr, action.execaddr, amountToken)
+		accDB.ExecTransfer(buyOrder.Address, action.fromaddr, action.execaddr, amountToken)
 		return nil, err
 	}
 
@@ -530,17 +550,17 @@ func (action *tradeAction) tradeRevokeBuyLimit(revoke *pty.TradeForRevokeBuy) (*
 	buyIDByte := []byte(revoke.BuyID)
 	buyOrder, err := getBuyOrderFromID(buyIDByte, action.db)
 	if err != nil {
-		return nil, types.ErrTBuyOrderNotExist
+		return nil, pty.ErrTBuyOrderNotExist
 	}
 
 	if buyOrder.Status == pty.TradeOrderStatusBoughtOut {
-		return nil, types.ErrTBuyOrderSoldout
+		return nil, pty.ErrTBuyOrderSoldout
 	} else if buyOrder.Status == pty.TradeOrderStatusBuyRevoked {
-		return nil, types.ErrTBuyOrderRevoked
+		return nil, pty.ErrTBuyOrderRevoked
 	}
 
 	if action.fromaddr != buyOrder.Address {
-		return nil, types.ErrTBuyOrderRevoke
+		return nil, pty.ErrTBuyOrderRevoke
 	}
 
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结

@@ -33,10 +33,20 @@ type KVMVCCStore struct {
 	enableMVCCIter bool
 }
 
-func New(cfg *types.Store) queue.Module {
+type subConfig struct {
+	EnableMVCCIter bool `json:"enableMVCCIter"`
+}
+
+func New(cfg *types.Store, sub []byte) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	var kvs *KVMVCCStore
-	if cfg.EnableMVCCIter {
+	enable := false
+	if sub != nil {
+		var subcfg subConfig
+		types.MustDecode(sub, &subcfg)
+		enable = subcfg.EnableMVCCIter
+	}
+	if enable {
 		kvs = &KVMVCCStore{bs, dbm.NewMVCCIter(bs.GetDB()), make(map[string][]*types.KeyValue), true}
 	} else {
 		kvs = &KVMVCCStore{bs, dbm.NewMVCC(bs.GetDB()), make(map[string][]*types.KeyValue), false}
@@ -198,7 +208,7 @@ func (mvccs *KVMVCCStore) checkVersion(height int64) ([]*types.KeyValue, error) 
 	var kvset []*types.KeyValue
 	if maxVersion < height-1 {
 		klog.Error("store kvmvcc checkVersion found statehash lost", "maxVersion", maxVersion, "height", height)
-		return nil, types.ErrStateHashLost
+		return nil, ErrStateHashLost
 	} else if maxVersion == height-1 {
 		return nil, nil
 	} else {

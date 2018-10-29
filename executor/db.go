@@ -18,13 +18,11 @@ type StateDB struct {
 	version   int64
 	height    int64
 	local     *db.SimpleMVCC
-	flagMVCC  int64
 	opt       *StateDBOption
 }
 
 type StateDBOption struct {
 	EnableMVCC bool
-	FlagMVCC   int64
 	Height     int64
 }
 
@@ -56,7 +54,6 @@ func (s *StateDB) enableMVCC() {
 			println("init state db", "height", s.height, "err", err.Error(), "v", v, "stateHash", hex.EncodeToString(s.stateHash))
 			panic("mvcc get version error,config set enableMVCC=true, it must be synchronized from 0 height")
 		}
-		s.flagMVCC = opt.FlagMVCC
 	}
 }
 
@@ -136,14 +133,16 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 
 func debugAccount(prefix string, key []byte, value []byte) {
 	//println(prefix, string(key), value)
-	if !types.Debug {
-		return
-	}
-	var msg types.Account
-	err := types.Decode(value, &msg)
-	if err == nil {
-		elog.Info(prefix, "key", string(key), "value", msg)
-	}
+	/*
+		if !types.Debug {
+			return
+		}
+		var msg types.Account
+		err := types.Decode(value, &msg)
+		if err == nil {
+			elog.Info(prefix, "key", string(key), "value", msg)
+		}
+	*/
 }
 
 func (s *StateDB) StartTx() {

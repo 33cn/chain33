@@ -61,7 +61,7 @@ func TestSendRawTx(t *testing.T) {
 		return
 	}
 
-	cr, err := crypto.New(types.GetSignName(types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		fmt.Println("ProcSendToAddress", "err", err)
 		return

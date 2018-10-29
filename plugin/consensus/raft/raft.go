@@ -1,6 +1,7 @@
 package raft
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -8,8 +9,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"context"
 
 	"github.com/coreos/etcd/etcdserver/stats"
 	"github.com/coreos/etcd/pkg/fileutil"
