@@ -6,8 +6,6 @@ PARA_CLI2="docker exec ${NODE2} /root/chain33-para-cli"
 PARA_CLI1="docker exec ${NODE1} /root/chain33-para-cli"
 PARA_CLI4="docker exec ${NODE4} /root/chain33-para-cli"
 
-forkParaContainers=("${PARA_CLI}" "${PARA_CLI2}" "${PARA_CLI1}" "${PARA_CLI4}")
-
 PARANAME="para"
 
 xsedfix=""
