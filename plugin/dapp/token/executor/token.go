@@ -181,11 +181,11 @@ func (t *token) listTokenKeys(reqTokens *tokenty.ReqTokens) ([][]byte, error) {
 	querydb := t.GetLocalDB()
 	if reqTokens.QueryAll {
 		//list := dbm.NewListHelper(querydb)
-		keys, err := querydb.List(calcTokenStatusKeyNewPrefix(reqTokens.Status), nil, 0, 0)
+		keys, err := querydb.List(calcTokenStatusKeyNewPrefixLocal(reqTokens.Status), nil, 0, 0)
 		if err != nil && err != types.ErrNotFound {
 			return nil, err
 		}
-		keys2, err := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
+		keys2, err := querydb.List(calcTokenStatusKeyPrefixLocal(reqTokens.Status), nil, 0, 0)
 		if err != nil && err != types.ErrNotFound {
 			return nil, err
 		}
