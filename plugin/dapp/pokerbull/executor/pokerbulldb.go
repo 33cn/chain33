@@ -130,6 +130,31 @@ func getGameListByAddr(db dbm.Lister, addr string, index int64) (types.Message, 
 	return &pkt.PBGameRecords{gameIds}, nil
 }
 
+func getGameListByStatus(db dbm.Lister, status int32, index int64) (types.Message, error) {
+	var values [][]byte
+	var err error
+	if index == 0 {
+		values, err = db.List(calcPBGameStatusPrefix(status), nil, DefaultCount, ListDESC)
+	} else {
+		values, err = db.List(calcPBGameStatusPrefix(status), calcPBGameStatusKey(status, index), DefaultCount, ListDESC)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var gameIds []*pkt.PBGameRecord
+	for _, value := range values {
+		var record pkt.PBGameRecord
+		err := types.Decode(value, &record)
+		if err != nil {
+			continue
+		}
+		gameIds = append(gameIds, &record)
+	}
+
+	return &pkt.PBGameRecords{gameIds}, nil
+}
+
 func queryGameListByStatusAndPlayer(db dbm.Lister, stat int32, player int32, value int64) ([]string, error) {
 	values, err := db.List(calcPBGameStatusAndPlayerPrefix(stat, player, value), nil, DefaultCount, ListDESC)
 	if err != nil {
@@ -138,7 +163,7 @@ func queryGameListByStatusAndPlayer(db dbm.Lister, stat int32, player int32, val
 
 	var gameIds []string
 	for _, value := range values {
-		var record pkt.PBGameRecord
+		var record pkt.PBGameIndexRecord
 		err := types.Decode(value, &record)
 		if err != nil {
 			continue
@@ -184,6 +209,7 @@ func (action *Action) GetReceiptLog(game *pkt.PokerBull) *types.ReceiptLog {
 			r.Players = append(r.Players, v.Address)
 		}
 	}
+	r.PreStatus = game.PreStatus
 	log.Log = types.Encode(r)
 	return log
 }
@@ -451,6 +477,7 @@ func (action *Action) newGame(gameId string, start *pkt.PBGameStart) (*pkt.Poker
 		Index:       action.getIndex(game),
 		DealerAddr:  action.fromaddr,
 		IsWaiting:   true,
+		PreStatus:   0,
 	}
 
 	Shuffle(game.Poker, action.blocktime) //洗牌
@@ -487,6 +514,24 @@ func (action *Action) selectGameFromIds(ids []string, value int64) *pkt.PokerBul
 	return gameRet
 }
 
+func (action *Action) checkPlayerExistInGame() bool {
+	values, err := action.localDB.List(calcPBGameAddrPrefix(action.fromaddr), nil, DefaultCount, ListDESC)
+	if err == types.ErrNotFound {
+		return false
+	}
+
+	var value pkt.PBGameRecord
+	lenght := len(values)
+	if lenght != 0 {
+		valueBytes := values[lenght - 1]
+		err := types.Decode(valueBytes, &value)
+		if err == nil && value.Status == pkt.PBGameActionQuit {
+			return false
+		}
+	}
+	return true
+}
+
 func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -501,6 +546,11 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 	if !action.CheckExecAccountBalance(action.fromaddr, start.GetValue()*POKERBULL_LEVERAGE_MAX, 0) {
 		logger.Error("GameStart", "addr", action.fromaddr, "execaddr", action.execaddr, "id", gameId, "err", types.ErrNoBalance)
 		return nil, types.ErrNoBalance
+	}
+
+	if action.checkPlayerExistInGame() {
+		logger.Error("GameStart", "addr", action.fromaddr, "execaddr", action.execaddr, "err", "Address is already in a game")
+		return nil, fmt.Errorf("Address is already in a game")
 	}
 
 	var game *pkt.PokerBull = nil
@@ -550,6 +600,7 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 		game.PrevIndex = game.Index
 		game.Index = action.getIndex(game)
 		game.Status = pkt.PBGameActionContinue // 更新游戏状态
+		game.PreStatus = pkt.PBGameActionStart
 		game.IsWaiting = false
 	} else {
 		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, start.GetValue()*POKERBULL_LEVERAGE_MAX) //冻结子账户资金, 最后一位玩家不需要冻结
@@ -645,6 +696,7 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 		game.PrevIndex = game.Index
 		game.Index = action.getIndex(game)
 		game.IsWaiting = false
+		game.PreStatus = pkt.PBGameActionContinue
 	} else {
 		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, game.GetValue()*POKERBULL_LEVERAGE_MAX) //冻结子账户资金,最后一位玩家不需要冻结
 		if err != nil {
@@ -704,6 +756,7 @@ func (action *Action) GameQuit(pbend *pkt.PBGameQuit) (*types.Receipt, error) {
 			}
 		}
 	}
+	game.PreStatus = game.Status
 	game.Status = pkt.PBGameActionQuit
 	game.PrevIndex = game.Index
 	game.Index = action.getIndex(game)
