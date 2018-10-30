@@ -44,6 +44,9 @@ func (l *logInfoType) Json(data []byte) ([]byte, error) {
 	if msg, ok := d.(Message); ok {
 		return PBToJson(msg)
 	}
+	if msg, ok := d.(json.RawMessage); ok {
+		return msg.MarshalJSON()
+	}
 	jsdata, err := json.Marshal(d)
 	if err != nil {
 		return nil, err
@@ -169,7 +172,7 @@ func getLogType(execer []byte, ty int64) *LogInfo {
 func DecodeLog(execer []byte, ty int64, data []byte) (interface{}, error) {
 	t := getLogType(execer, ty)
 	if t.Name == "LogErr" || t.Name == "LogReserved" {
-		return string(data), nil
+		return json.RawMessage(data), nil
 	}
 	pdata := reflect.New(t.Ty)
 	if !pdata.CanInterface() {
