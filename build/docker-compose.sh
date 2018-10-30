@@ -99,7 +99,7 @@ function start() {
     #docker-compose -f docker-compose.yml -f docker-compose-paracross.yml -f docker-compose-relay.yml up --build -d
     docker-compose up --build -d
 
-    local SLEEP=60
+    local SLEEP=20
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
@@ -164,8 +164,7 @@ function start() {
         exit 1
     fi
 
-    echo "=========== sleep ${SLEEP}s ============="
-    sleep ${SLEEP}
+    block_wait "${CLI}" 1
 
     echo "=========== check genesis hash ========== "
     ${CLI} block hash -t 0
@@ -247,7 +246,7 @@ function sync_status() {
 function sync() {
     echo "=========== stop  ${NODE5} node========== "
     docker stop "${NODE5}"
-    sleep 20
+    sleep 10
 
     echo "=========== start ${NODE5} node========== "
     docker start "${NODE5}"
