@@ -1,4 +1,4 @@
-package test
+package rpc_test
 
 import (
 	"fmt"
