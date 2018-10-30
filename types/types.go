@@ -278,7 +278,7 @@ func GetSignType(execer string, name string) int {
 var ConfigPrefix = "mavl-config-"
 
 func ConfigKey(key string) string {
-	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
+	return fmt.Sprintf("%s%s", ConfigPrefix, key)
 }
 
 var ManagePrefix = "mavl-"

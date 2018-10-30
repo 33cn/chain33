@@ -2,7 +2,6 @@ package executor
 
 //store package store the world - state data
 import (
-	"bytes"
 	"strings"
 	"sync"
 
@@ -334,24 +333,6 @@ func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 			panic(err)
 			//return err
 		}
-	}
-	return nil
-}
-
-func isAllowLocalKey(execer []byte, key []byte) error {
-	execer = types.GetParaExec(execer)
-	minkeylen := len(types.LocalPrefix) + len(execer) + 2
-	if len(key) <= minkeylen {
-		return types.ErrLocalKeyLen
-	}
-	if key[minkeylen-1] != '-' {
-		return types.ErrLocalPrefix
-	}
-	if !bytes.HasPrefix(key, types.LocalPrefix) {
-		return types.ErrLocalPrefix
-	}
-	if !bytes.HasPrefix(key[len(types.LocalPrefix)+1:], execer) {
-		return types.ErrLocalPrefix
 	}
 	return nil
 }
