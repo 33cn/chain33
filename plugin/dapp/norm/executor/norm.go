@@ -16,7 +16,7 @@ func init() {
 
 func Init(name string, sub []byte) {
 	clog.Debug("register norm execer")
-	drivers.Register(GetName(), newNorm, 0)
+	drivers.Register(GetName(), newNorm, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {

@@ -18,7 +18,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newHashlock, 0)
+	drivers.Register(GetName(), newHashlock, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {

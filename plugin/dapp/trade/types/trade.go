@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	nameX string
-	tlog  = log.New("module", types.TradeX)
+	TradeX = "trade"
+	tlog   = log.New("module", TradeX)
 
 	actionName = map[string]int32{
 		"SellLimit":  TradeSellLimit,
@@ -35,7 +35,7 @@ var (
 )
 
 func (t *tradeType) GetName() string {
-	return nameX
+	return TradeX
 }
 
 func (t *tradeType) GetTypeMap() map[string]int32 {
@@ -47,9 +47,8 @@ func (at *tradeType) GetLogMap() map[int64]*types.LogInfo {
 }
 
 func init() {
-	nameX = types.ExecName(types.TradeX)
-	types.AllowUserExec = append(types.AllowUserExec, []byte(types.TradeX))
-	types.RegistorExecutor(types.TradeX, NewType())
+	types.AllowUserExec = append(types.AllowUserExec, []byte(TradeX))
+	types.RegistorExecutor(TradeX, NewType())
 }
 
 type tradeType struct {
@@ -183,11 +182,11 @@ func CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
 		Value: &Trade_SellLimit{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(TradeX)),
 		Payload: types.Encode(sell),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(TradeX)),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -205,11 +204,11 @@ func CreateRawTradeBuyTx(parm *TradeBuyTx) (*types.Transaction, error) {
 		Value: &Trade_BuyMarket{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(TradeX)),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(TradeX)),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -228,11 +227,11 @@ func CreateRawTradeRevokeTx(parm *TradeRevokeTx) (*types.Transaction, error) {
 		Value: &Trade_RevokeSell{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(TradeX)),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(TradeX)),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -257,11 +256,11 @@ func CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) (*types.Transaction, error)
 		Value: &Trade_BuyLimit{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(TradeX)),
 		Payload: types.Encode(buyLimit),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(TradeX)),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -279,11 +278,11 @@ func CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) (*types.Transaction, er
 		Value: &Trade_SellMarket{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(TradeX)),
 		Payload: types.Encode(sellMarket),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(TradeX)),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -302,11 +301,11 @@ func CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) (*types.Transaction, erro
 		Value: &Trade_RevokeBuy{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(TradeX)),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(TradeX)),
 	}
 
 	tx.SetRealFee(types.MinFee)

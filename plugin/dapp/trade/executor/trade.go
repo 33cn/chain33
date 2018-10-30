@@ -32,7 +32,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newTrade, types.ForkV2AddToken)
+	drivers.Register(GetName(), newTrade, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {

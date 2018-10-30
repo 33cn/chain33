@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	nameX string
-	glog  = log.New("module", types.ParaX)
+	ParaX = "paracross"
+	glog  = log.New("module", ParaX)
 
 	/*
 		logInfo = map[int64]*types.LogInfo{
@@ -34,13 +34,12 @@ var (
 
 func init() {
 	// init executor type
-	nameX = types.ExecName(types.ParaX)
-	types.AllowUserExec = append(types.AllowUserExec, []byte(types.ParaX))
-	types.RegistorExecutor(types.ParaX, NewType())
+	types.AllowUserExec = append(types.AllowUserExec, []byte(ParaX))
+	types.RegistorExecutor(ParaX, NewType())
 }
 
 func GetExecName() string {
-	return types.ExecName(types.ParaX)
+	return types.ExecName(ParaX)
 }
 
 type ParacrossType struct {
