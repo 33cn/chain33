@@ -19,7 +19,6 @@ type Node struct {
 	rightHash   []byte
 	rightNode   *Node
 	parentHash  []byte
-	brotherHash []byte
 	persisted   bool
 }
 
@@ -50,7 +49,6 @@ func MakeNode(buf []byte, t *Tree) (node *Node, err error) {
 	node.size = storeNode.Size
 	node.key = storeNode.Key
 	node.parentHash = storeNode.ParentHash
-	node.brotherHash = storeNode.BrotherHash
 
 	//leaf(叶子节点保存数据)
 	if node.height == 0 {
@@ -76,7 +74,6 @@ func (node *Node) _copy() *Node {
 		rightHash:   node.rightHash,
 		rightNode:   node.rightNode,
 		parentHash:  node.parentHash,
-		brotherHash: node.brotherHash,
 		persisted:   false, // Going to be mutated, so it can't already be persisted.
 	}
 }
@@ -152,13 +149,12 @@ func (node *Node) Hash(t *Tree) []byte {
 		leafnode.Value = node.value
 		node.hash = leafnode.Hash()
 
-		//fmt.Printf("*****k:%s v:%s hash:%v\n", string(leafnode.Key), string(leafnode.Value), common.Bytes2Hex(node.hash[:2]))
-
 		if enableMavlPrefix && node.height != t.root.height {
 			hashKey := genPrefixHashKey(node, t.blockHeight)
 			hashKey = append(hashKey, node.hash...)
 			node.hash = hashKey
 		}
+		//fmt.Printf("*****k:%s v:%s hash:%v\n", string(leafnode.Key), string(leafnode.Value), common.Bytes2Hex(node.hash))
 	} else {
 		var innernode types.InnerNode
 		innernode.Height = node.height
@@ -192,13 +188,11 @@ func (node *Node) Hash(t *Tree) []byte {
 
 		if enablePrune {
 			//加入parentHash、brotherHash
-			if node.leftNode != nil {//只对倒数第二层做裁剪
+			if node.leftNode != nil && node.leftNode.height == 0 {//只对倒数第二层做裁剪
 				node.leftNode.parentHash = node.hash
-				node.leftNode.brotherHash = node.rightHash
 			}
-			if node.rightNode != nil {
+			if node.rightNode != nil && node.rightNode.height == 0 {
 				node.rightNode.parentHash = node.hash
-				node.rightNode.brotherHash = node.leftHash
 			}
 		}
 	}
@@ -243,13 +237,15 @@ func (node *Node) storeNode(t *Tree) []byte {
 	storeNode.Value = nil
 	storeNode.LeftHash = nil
 	storeNode.RightHash = nil
-	storeNode.ParentHash = node.parentHash
-	storeNode.BrotherHash = node.brotherHash
+	storeNode.ParentHash = nil
 
 	//leafnode
 	if node.height == 0 {
 		if !enableMvcc {
 			storeNode.Value = node.value
+		}
+		if enablePrune {
+			storeNode.ParentHash = node.parentHash
 		}
 	} else {
 		// left
