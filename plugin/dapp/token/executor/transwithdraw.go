@@ -1,8 +1,6 @@
 package executor
 
 import (
-	"fmt"
-
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -131,11 +129,6 @@ func (t *token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *t
 		set.KV = append(set.KV, kv)
 	}
 	return set, nil
-}
-
-//存储地址上收币的信息
-func calcAddrKey(token string, addr string) []byte {
-	return []byte(fmt.Sprintf("token:%s-Addr:%s", token, addr))
 }
 
 func getAddrReciverKV(token string, addr string, reciverAmount int64) *types.KeyValue {

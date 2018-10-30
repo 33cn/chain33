@@ -25,7 +25,7 @@ func (e *Paracross) ExecLocal_Commit(payload *pt.ParacrossCommitAction, tx *type
 			key := calcLocalTitleKey(g.Title)
 			set.KV = append(set.KV, &types.KeyValue{key, types.Encode(&g)})
 
-			key = calcTitleHeightKey(g.Title, g.Height)
+			key = calcLocalHeightKey(g.Title, g.Height)
 			set.KV = append(set.KV, &types.KeyValue{key, types.Encode(&g)})
 
 			r, err := e.saveLocalParaTxs(tx, false)
