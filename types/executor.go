@@ -169,7 +169,7 @@ func getLogType(execer []byte, ty int64) *LogInfo {
 func DecodeLog(execer []byte, ty int64, data []byte) (interface{}, error) {
 	t := getLogType(execer, ty)
 	if t.Name == "LogErr" || t.Name == "LogReserved" {
-		return data, nil
+		return string(data), nil
 	}
 	pdata := reflect.New(t.Ty)
 	if !pdata.CanInterface() {
