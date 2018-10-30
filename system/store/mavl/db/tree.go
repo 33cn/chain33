@@ -139,7 +139,7 @@ func (t *Tree) Save() []byte {
 		if enablePrune && !isPruning() &&
 			t.blockHeight%int64(pruneHeight) == 0 &&
 			t.blockHeight/int64(pruneHeight) > 1 {
-			if t.blockHeight > 86000 {
+			if t.blockHeight > 850000 {
 				panic("for test stop")
 			}
 			go pruningTree(t.ndb.db, t.blockHeight)

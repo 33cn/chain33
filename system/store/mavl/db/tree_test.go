@@ -859,7 +859,7 @@ func TestMaxLevalDbValue(t *testing.T) {
 	t.Log(dir)
 
 	db := db.NewDB("mavltree", "leveldb", dir, 100)
-	value := make([]byte, 1024*1024*50)
+	value := make([]byte, 1024*1024*5)
 	for i := 0; i < 5; i++  {
 		db.Set([]byte(fmt.Sprintf("mmm%d", i)), value)
 	}
