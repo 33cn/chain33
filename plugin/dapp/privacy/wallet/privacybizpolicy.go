@@ -84,11 +84,11 @@ func (policy *privacyPolicy) OnClose() {
 }
 
 func (this *privacyPolicy) OnSetQueueClient() {
-	version := this.store.getVersion()
-	if version < PRIVACYDBVERSION {
-		this.rescanAllTxAddToUpdateUTXOs()
-		this.store.setVersion()
-	}
+	//version := this.store.getVersion()
+	//if version < PRIVACYDBVERSION {
+	//	this.rescanAllTxAddToUpdateUTXOs()
+	//	this.store.setVersion()
+	//}
 }
 
 func (policy *privacyPolicy) OnWalletLocked() {
