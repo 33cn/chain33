@@ -190,7 +190,7 @@ func (tester *TestOperator) RunSendFlow() {
 
 						if err != nil {
 
-							if strings.Contains(packID, "fail")  { //some logs
+							if strings.Contains(packID, "fail") { //some logs
 
 								tester.tLog.Info("TestCaseResult", "TestID", packID, "Result", "Succeed")
 
@@ -199,7 +199,7 @@ func (tester *TestOperator) RunSendFlow() {
 								tester.totalFail++
 								tester.failID = append(tester.failID, packID)
 								tester.tLog.Error("TestCaseFailDetail", "TestID", packID, "Command", baseCase.Command, "Result", "")
-								fmt.Println( err.Error())
+								fmt.Println(err.Error())
 							}
 							tester.fLog.Info("CommandResult", "TestID", packID, "Result", err.Error())
 							tester.delDepBuf <- &BaseCasePack{packID: packID}
@@ -288,7 +288,7 @@ func (tester *TestOperator) RunCheckFlow() {
 								tester.totalFail++
 								tester.failID = append(tester.failID, casePack.getPackID())
 								tester.tLog.Error("TestCaseFailDetail", "TestID", casePack.getPackID(), "Command", baseCase.Command, "TxHash", basePack.txHash, "TxReceipt", "")
-								fmt.Println( basePack.txReceipt)
+								fmt.Println(basePack.txReceipt)
 							}
 						}
 					}

@@ -75,6 +75,6 @@ func (pack *PrivCreateutxosPack) checkUtxo(txInfo map[string]interface{}) bool {
 		"TransferAmount", interCase.Amount, "UtxoOutput", totalOutput,
 		"ToAddr", interCase.To, "UtxoAvailable", availUtxo, "CalcAvailErr", err)
 
-		return availCheck && isBalanceEqualFloat(totalOutput, amount)
+	return availCheck && isBalanceEqualFloat(totalOutput, amount)
 
 }
