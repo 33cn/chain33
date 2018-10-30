@@ -107,11 +107,6 @@ function main() {
                 down_dapp "${app}"
             done
             ./docker-compose-down.sh "${PROJ}"
-            remains=$(docker ps -a -q | awk '{print $1}')
-            for rems in $remains; do
-                docker rm "$rems" -f
-            done
-            docker ps -a -q
         elif [ -n "${DAPP}" ]; then
             down_dapp "${DAPP}"
         else
