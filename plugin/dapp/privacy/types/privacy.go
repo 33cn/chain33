@@ -53,6 +53,7 @@ var mapSignName2Type = map[string]int{
 
 func init() {
 	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.PrivacyX))
 	types.RegistorExecutor(types.PrivacyX, NewType())
 }
 

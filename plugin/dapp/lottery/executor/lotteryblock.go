@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -36,13 +37,13 @@ func (action *Action) getTxActions(height int64, blockNum int64) ([]*tickettypes
 		mainHeight := action.GetMainHeightByTxHash(action.txhash)
 		if mainHeight < 0 {
 			llog.Error("LotteryCreate", "mainHeight", mainHeight)
-			return nil, types.ErrLotteryStatus
+			return nil, pty.ErrLotteryStatus
 		}
 
 		blockDetails, err := action.GetBlocksOnMain(mainHeight-blockNum, mainHeight-1)
 		if err != nil {
 			llog.Error("LotteryCreate", "mainHeight", mainHeight)
-			return nil, types.ErrLotteryStatus
+			return nil, pty.ErrLotteryStatus
 		}
 
 		for _, block := range blockDetails.Items {
@@ -120,7 +121,7 @@ func (action *Action) getMinerTx(current *types.Block) (*tickettypes.TicketActio
 	}
 	//判断交易执行是否OK
 	if ticketAction.GetMiner() == nil {
-		return nil, types.ErrEmptyMinerTx
+		return nil, tickettypes.ErrEmptyMinerTx
 	}
 	return &ticketAction, nil
 }

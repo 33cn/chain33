@@ -57,7 +57,7 @@ func (r *Retrieve) CheckTx(tx *types.Transaction, index int) error {
 }
 
 func calcRetrieveKey(backupAddr string, defaultAddr string) []byte {
-	key := fmt.Sprintf("Retrieve-backup:%s:%s", backupAddr, defaultAddr)
+	key := fmt.Sprintf("LODB-retrieve-backup:%s:%s", backupAddr, defaultAddr)
 	return []byte(key)
 }
 
