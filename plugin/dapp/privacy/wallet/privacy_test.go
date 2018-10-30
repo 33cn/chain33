@@ -31,7 +31,7 @@ func (mock *PrivacyMock) Init(walletOp wcom.WalletOperate, password string) {
 	mock.tokenName = types.BTY
 	mock.walletOp = walletOp
 	mock.password = password
-	mock.policy.Init(walletOp)
+	mock.policy.Init(walletOp, nil)
 	mock.store = mock.policy.store
 }
 
@@ -53,7 +53,7 @@ func (mock *PrivacyMock) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	password := []byte(mock.password)
 	privkey := wcom.CBCDecrypterPrivkey(password, prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName(mock.walletOp.GetSignType()))
+	cr, err := crypto.New(types.GetSignName("", mock.walletOp.GetSignType()))
 	if err != nil {
 		bizlog.Error("ProcSendToAddress", "err", err)
 		return nil, err
@@ -82,7 +82,7 @@ func (mock *PrivacyMock) getPrivacykeyPair(addr string) (*privacy.Privacy, error
 	if err != nil {
 		return nil, err
 	}
-	return nil, types.ErrPrivacyNotEnabled
+	return nil, ty.ErrPrivacyNotEnabled
 
 }
 
@@ -106,7 +106,7 @@ func (mock *PrivacyMock) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) 
 	}
 
 	if 0 == len(infoPriRes) {
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, ty.ErrPrivacyNotEnabled
 	}
 
 	return infoPriRes, nil

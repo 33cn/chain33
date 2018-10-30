@@ -31,7 +31,7 @@ func init() {
 	drivers.Reg("mpt", New)
 }
 
-func New(cfg *types.Store) queue.Module {
+func New(cfg *types.Store, sub []byte) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	mpts := &Store{bs, make(map[string]*mpt.TrieEx), nil}
 	mpts.cache, _ = lru.New(10)

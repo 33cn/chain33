@@ -2,7 +2,8 @@ package types
 
 import (
 	"bytes"
-	"encoding/hex"
+	"encoding/json"
+	"strconv"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -21,22 +22,19 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 		rTy = "Unkown"
 	}
 	rd := &ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
-
 	for _, l := range rlog.Logs {
 		var lTy string
-		var logIns interface{}
-
-		lLog, err := hex.DecodeString(l.Log[2:])
+		var logIns json.RawMessage
+		lLog, err := common.FromHex(l.Log)
 		if err != nil {
 			return nil, err
 		}
-
 		logType := types.LoadLog(execer, int64(l.Ty))
 		if logType == nil {
 			lTy = "unkownType"
 			logIns = nil
 		} else {
-			logIns, err = logType.Decode(lLog)
+			logIns, err = logType.Json(lLog)
 			lTy = logType.Name()
 		}
 		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
@@ -84,24 +82,25 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		return nil, types.ErrEmpty
 	}
 	execStr := string(tx.Execer)
-	var pl interface{}
+	var pl types.Message
 	plType := types.LoadExecutorType(execStr)
+	var err error
 	if plType != nil {
-		var err error
 		pl, err = plType.DecodePayload(tx)
 		if err != nil {
-			pl = map[string]interface{}{"unkownpayload": string(tx.Payload)}
+			pl = nil
 		}
 	}
 	if string(tx.Execer) == "user.write" {
 		pl = decodeUserWrite(tx.GetPayload())
 	}
-	if pl == nil {
-		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
+	var pljson json.RawMessage
+	if pl != nil {
+		pljson, _ = types.PBToJson(pl)
 	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),
-		Payload:    pl,
+		Payload:    pljson,
 		RawPayload: common.ToHex(tx.GetPayload()),
 		Signature: &Signature{
 			Ty:        tx.GetSignature().GetTy(),
@@ -117,11 +116,16 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Header:     common.ToHex(tx.Header),
 		Next:       common.ToHex(tx.Next),
 	}
+	if result.Amount != 0 {
+		result.AmountFmt = strconv.FormatFloat(float64(result.Amount)/float64(types.Coin), 'f', 4, 64)
+	}
+	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
+	result.FeeFmt = feeResult
 	return result, nil
 }
 
-func decodeUserWrite(payload []byte) *UserWrite {
-	var article UserWrite
+func decodeUserWrite(payload []byte) *types.UserWrite {
+	var article types.UserWrite
 	if len(payload) != 0 {
 		if payload[0] == '#' {
 			data := bytes.SplitN(payload[1:], []byte("#"), 2)

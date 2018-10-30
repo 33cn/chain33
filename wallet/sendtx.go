@@ -3,15 +3,18 @@ package wallet
 import (
 	"encoding/hex"
 	"errors"
+	"math/rand"
 	"sync/atomic"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
+
+func init() {
+	rand.Seed(types.Now().UnixNano())
+}
 
 func (wallet *Wallet) GetBalance(addr string, execer string) (*types.Account, error) {
 	return wallet.getBalance(addr, execer)
@@ -85,7 +88,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 		to = address.ExecAddress(string(execer))
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: minFee, To: to}
-	tx.Nonce = wallet.random.Int63()
+	tx.Nonce = rand.Int63()
 	tx.Fee, err = tx.GetRealFee(wallet.getFee())
 	if err != nil {
 		return nil, err
@@ -194,6 +197,13 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 		return nil, err
 	}
 	tx.Fee = fee
+	if tx.To == "" {
+		tx.To = addrto
+	}
+	if len(tx.Execer) == 0 {
+		tx.Execer = []byte(exec)
+	}
+	tx.Nonce = rand.Int63()
 	return tx, nil
 }
 
@@ -277,52 +287,4 @@ func (wallet *Wallet) IsCaughtUp() bool {
 		return false
 	}
 	return reply.IsOk
-}
-
-func (wallet *Wallet) GetRofPrivateTx(txhashptr *string) (R_txpubkey []byte, err error) {
-	txhash, err := common.FromHex(*txhashptr)
-	if err != nil {
-		walletlog.Error("GetRofPrivateTx common.FromHex", "err", err)
-		return nil, err
-	}
-	var reqHashes types.ReqHashes
-	reqHashes.Hashes = append(reqHashes.Hashes, txhash)
-
-	//通过txhashs获取对应的txdetail
-	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, &reqHashes)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
-	if err != nil {
-		walletlog.Error("GetRofPrivateTx EventGetTransactionByHash", "err", err)
-		return nil, err
-	}
-	TxDetails := resp.GetData().(*types.TransactionDetails)
-	if TxDetails == nil {
-		walletlog.Error("GetRofPrivateTx TransactionDetails is nil")
-		return nil, errors.New("ErrTxDetail")
-	}
-	if len(TxDetails.Txs) <= 0 {
-		walletlog.Error("GetRofPrivateTx TransactionDetails is empty")
-		return nil, errors.New("ErrTxDetail")
-	}
-
-	if "privacy" != string(TxDetails.Txs[0].Tx.Execer) {
-		walletlog.Error("GetRofPrivateTx get tx but not privacy")
-		return nil, errors.New("ErrPrivacyExecer")
-	}
-
-	var privateAction pty.PrivacyAction
-	if err := types.Decode(TxDetails.Txs[0].Tx.Payload, &privateAction); err != nil {
-		walletlog.Error("GetRofPrivateTx failed to decode payload")
-		return nil, errors.New("ErrPrivacyPayload")
-	}
-
-	if pty.ActionPublic2Privacy == privateAction.Ty {
-		return privateAction.GetPublic2Privacy().GetOutput().GetRpubKeytx(), nil
-	} else if pty.ActionPrivacy2Privacy == privateAction.Ty {
-		return privateAction.GetPrivacy2Privacy().GetOutput().GetRpubKeytx(), nil
-	} else {
-		walletlog.Info("GetPrivateTxByHashes failed to get value required", "privacy type is", privateAction.Ty)
-		return nil, errors.New("ErrPrivacyType")
-	}
 }

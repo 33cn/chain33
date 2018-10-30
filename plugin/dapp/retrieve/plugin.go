@@ -9,7 +9,7 @@ import (
 
 func init() {
 	pluginmgr.Register(&pluginmgr.PluginBase{
-		Name:     "chain33.retrieve",
+		Name:     "retrieve",
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
 		Cmd:      commands.RetrieveCmd,

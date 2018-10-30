@@ -101,7 +101,7 @@ func NewRelayd(config *Config) *Relayd {
 	}
 	db.Set(privateKey[:], pk)
 
-	secp, err := crypto.New(types.GetSignName(types.SECP256K1))
+	secp, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}

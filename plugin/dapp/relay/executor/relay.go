@@ -1,8 +1,6 @@
 package executor
 
 import (
-	"reflect"
-
 	log "github.com/inconshreveable/log15"
 
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
@@ -12,19 +10,14 @@ import (
 
 var relaylog = log.New("module", "execs.relay")
 
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = ty.NewType()
+var driverName = "relay"
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&relay{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&relay{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newRelay, types.ForkV18Relay) //TODO: ForkV18Relay
 }
 
@@ -39,36 +32,16 @@ type relay struct {
 func newRelay() drivers.Driver {
 	r := &relay{}
 	r.SetChild(r)
-	r.SetExecutorType(executorType)
+	r.SetExecutorType(types.LoadExecutorType(driverName))
 	return r
 }
 
 func (r *relay) GetDriverName() string {
-	return "relay"
-}
-
-func (c *relay) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
+	return driverName
 }
 
 func (c *relay) GetPayloadValue() types.Message {
 	return &ty.RelayAction{}
-}
-
-func (c *relay) GetTypeMap() map[string]int32 {
-	return map[string]int32{
-		"Create":     ty.RelayActionCreate,
-		"Accept":     ty.RelayActionAccept,
-		"Revoke":     ty.RelayActionRevoke,
-		"ConfirmTx":  ty.RelayActionConfirmTx,
-		"Verify":     ty.RelayActionVerifyTx,
-		"VerifyCli":  ty.RelayActionVerifyCmdTx,
-		"BtcHeaders": ty.RelayActionRcvBTCHeaders,
-	}
-}
-
-func (r *relay) GetActionName(tx *types.Transaction) string {
-	return tx.ActionName()
 }
 
 func (r *relay) CheckTx(tx *types.Transaction, index int) error {

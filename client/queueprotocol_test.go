@@ -25,7 +25,7 @@ var (
 func TestMain(m *testing.M) {
 	mock.grpcMock = &grpcMock
 	mock.jrpcMock = &jrpc
-	pluginmgr.InitExec()
+	pluginmgr.InitExec(nil)
 	api = mock.startup(0)
 	flag := m.Run()
 	mock.stop()
