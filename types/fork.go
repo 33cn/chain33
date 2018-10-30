@@ -1,5 +1,7 @@
 package types
 
+import "strings"
+
 /*
 出于forks 过程安全的考虑，比如代码更新，出现了新的fork，旧的链只要不明确指定 fork的高度，那么默认fork高度为 MaxHeight
 也就是新的代码默认不会被启用，知道使用的人明确指定了fork的高度
@@ -19,21 +21,33 @@ type Forks struct {
 	forks map[string]map[string]int64
 }
 
+func checkKey(key string) {
+	if strings.Contains(key, ".") {
+		panic("name must not have dot")
+	}
+}
+
 func (f *Forks) SetFork(title, key string, height int64) {
-	if f.forks == nil {
-		f.forks = make(map[string]map[string]int64)
-	}
-	_, ok := f.forks[title]
-	if !ok {
-		f.forks[title] = make(map[string]int64)
-	}
-	if _, ok := f.forks[title][key]; ok {
-		panic("set dup fork " + title + " " + key)
-	}
-	f.forks[title][key] = height
+	checkKey(key)
+	f.setFork(title, key, height)
 }
 
 func (f *Forks) ReplaceFork(title, key string, height int64) {
+	checkKey(key)
+	f.replaceFork(title, key, height)
+}
+
+func (f *Forks) SetDappFork(title, dapp, key string, height int64) {
+	checkKey(key)
+	f.setFork(title, dapp+"."+key, height)
+}
+
+func (f *Forks) ReplaceDappFork(title, dapp, key string, height int64) {
+	checkKey(key)
+	f.replaceFork(title, dapp+"."+key, height)
+}
+
+func (f *Forks) replaceFork(title, key string, height int64) {
 	if f.forks == nil {
 		f.forks = make(map[string]map[string]int64)
 	}
@@ -43,6 +57,20 @@ func (f *Forks) ReplaceFork(title, key string, height int64) {
 	}
 	if _, ok := f.forks[title][key]; !ok {
 		panic("replace a not exist key " + title + " " + key)
+	}
+	f.forks[title][key] = height
+}
+
+func (f *Forks) setFork(title, key string, height int64) {
+	if f.forks == nil {
+		f.forks = make(map[string]map[string]int64)
+	}
+	_, ok := f.forks[title]
+	if !ok {
+		f.forks[title] = make(map[string]int64)
+	}
+	if _, ok := f.forks[title][key]; ok {
+		panic("set dup fork " + title + " " + key)
 	}
 	f.forks[title][key] = height
 }
@@ -58,6 +86,10 @@ func (f *Forks) GetFork(title, key string) int64 {
 		return MaxHeight
 	}
 	return height
+}
+
+func (f *Forks) GetDappFork(title, app string, key string) int64 {
+	return f.GetFork(title, app+"."+key)
 }
 
 func (f *Forks) Clone(from, to string) error {
@@ -96,6 +128,14 @@ func (f *Forks) SetAllFork(title string, height int64) {
 	}
 }
 
+func (f *Forks) GetAll(title string) map[string]int64 {
+	forkitem, ok := f.forks[title]
+	if !ok {
+		return nil
+	}
+	return forkitem
+}
+
 func (f *Forks) IsFork(title string, height int64, fork string) bool {
 	ifork := f.GetFork(title, fork)
 	//fork 不存在，默认跑最新代码，这样只要不设置就跑最新代码
@@ -103,6 +143,10 @@ func (f *Forks) IsFork(title string, height int64, fork string) bool {
 		return true
 	}
 	return false
+}
+
+func (f *Forks) IsDappFork(title string, height int64, dapp, fork string) bool {
+	return f.IsFork(title, height, dapp+"."+fork)
 }
 
 //default hard fork block height for bityuan real network
@@ -176,9 +220,72 @@ func IsFork(height int64, fork string) bool {
 	return systemFork.IsFork(GetTitle(), height, fork)
 }
 
+func IsDappFork(height int64, dapp, fork string) bool {
+	return systemFork.IsDappFork(GetTitle(), height, dapp, fork)
+}
+
+func GetDappFork(dapp, fork string) int64 {
+	return systemFork.GetDappFork(GetTitle(), dapp, fork)
+}
+
+func GetFork(fork string) int64 {
+	return systemFork.GetFork(GetTitle(), fork)
+}
+
 func IsEnableFork(height int64, fork string, enable bool) bool {
 	if !enable {
 		return false
 	}
 	return IsFork(height, fork)
+}
+
+//fork 设置规则：
+//所有的fork都需要有明确的配置，不开启fork 配置为 -1
+func InitForkConfig(title string, forks *ForkList) {
+	chain33fork := systemFork.GetAll("chain33")
+	if chain33fork == nil {
+		panic("chain33 fork not init")
+	}
+	//开始判断chain33fork中的system部分是否已经设置
+	for k := range chain33fork {
+		if !strings.Contains(k, ".") {
+			if _, ok := forks.System[k]; !ok {
+				panic("system fork " + k + " not config")
+			}
+		}
+	}
+	for k := range chain33fork {
+		forkname := strings.Split(k, ".")
+		if len(forkname) > 2 {
+			panic("fork name has too many dot")
+		}
+		exec := forkname[0]
+		name := forkname[1]
+		if forks.Sub != nil {
+			//如果这个执行器，用户没有enable
+			if _, ok := forks.Sub[exec]; !ok {
+				continue
+			}
+			if _, ok := forks.Sub[exec][name]; ok {
+				continue
+			}
+		}
+		panic("exec " + exec + " name " + name + " not config")
+	}
+	//配置检查没有问题后，开始设置配置
+	for k, v := range forks.System {
+		if v == -1 {
+			v = MaxHeight
+		}
+		systemFork.SetFork(title, k, v)
+	}
+
+	for dapp, forklist := range forks.Sub {
+		for k, v := range forklist {
+			if v == -1 {
+				v = MaxHeight
+			}
+			systemFork.SetDappFork(title, dapp, k, v)
+		}
+	}
 }
