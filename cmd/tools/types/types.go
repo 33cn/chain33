@@ -1,0 +1,14 @@
+package types
+
+const (
+	// 通过使用 go vendor 工具，从三方代码库中下载对应的插件代码
+	KeyImportPackage        = "import_package"
+	KeyCreateSimpleProject  = "create_simple_project"
+	KeyCreateAdvanceProject = "create_advance_project"
+	KeyConfigFolder         = "config_folder"
+	KeyProjectName          = "project_name"
+	KeyClassName            = "class_name"
+	KeyActionName           = "action_name"
+	KeyProtobufFile         = "protobuf_file"
+	KeyTemplateFilePath     = "template_file_path"
+)
