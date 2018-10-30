@@ -201,6 +201,8 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 			addMpStrs = append(addMpStrs, add...)
 			delMpStrs = append(delMpStrs, del...)
 			delNodeStrs = append(delNodeStrs, delN...)
+		} else {
+			treelog.Info("----->pruningHashNode LoadLeaf fail", "hash:", common.Bytes2Hex([]byte(key)[len(key)-32:]), "err", err)
 		}
 		count++
 	}
@@ -231,6 +233,7 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	batch := db.NewBatch(true)
 	for mpk, mpV := range mpAddDel {
 		delMp := ndb.getMapPool(mpk)
+		lenth := len(delMp.MpNode)
 		if delMp != nil {
 			for _, aHsh := range mpV {
 				if aHsh.isAdd {
@@ -239,8 +242,10 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 					delete(delMp.MpNode, string(aHsh.hash))
 				}
 			}
+			lenth = len(delMp.MpNode)
 			ndb.updateHash2Map(batch, mpk, delMp)
 		}
+		fmt.Println(lenth)
 	}
 	batch.Write()
 
@@ -367,12 +372,12 @@ func (ndb *markNodeDB) getMapPool(str string) (mp *types.DeleteNodeMap) {
 	if err != nil || len(v) == 0 {
 		//如果不存在说明是新的则
 		//创建一个空的map集
-		m := types.DeleteNodeMap{}
+		m := &types.DeleteNodeMap{}
 		m.MpNode = make(map[string]bool)
-		return &m
+		return m
 	}
-	m := types.DeleteNodeMap{}
-	err = proto.Unmarshal(v, &m)
+	m := &types.DeleteNodeMap{}
+	err = proto.Unmarshal(v, m)
 	if err != nil {
 		return nil
 	}
@@ -391,7 +396,7 @@ func (ndb *markNodeDB) getMapPool(str string) (mp *types.DeleteNodeMap) {
 		}
 		ndb.delMpCache.Add(string(str), m)
 	}
-	return &m
+	return m
 }
 
 func (ndb *markNodeDB) addHash2Map(str string) {
@@ -492,8 +497,8 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 		var buf []byte
 		buf, err := ndb.db.Get(hash)
 		if len(buf) == 0 || err != nil {
-			treelog.Info("fetchNode this not happend, because have map pool:", "err:", err)
-			return nil, ErrNodeNotExist
+			treelog.Info("----->fetchNode this not happend", "hash", common.Bytes2Hex(hash[len(hash)-32:]), "err:", err)
+			return nil, err
 		}
 		node, err := MakeNode(buf, nil)
 		if err != nil {
