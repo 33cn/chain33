@@ -253,7 +253,7 @@ func (chain *BlockChain) fetchPeerList() error {
 		synlog.Error("fetchPeerList", "client.Send err:", Err)
 		return Err
 	}
-	resp, err := chain.client.Wait(msg)
+	resp, err := chain.client.WaitTimeout(msg, 60*time.Second)
 	if err != nil {
 		synlog.Error("fetchPeerList", "client.Wait err:", err)
 		return err
