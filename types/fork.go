@@ -4,6 +4,12 @@ const MaxHeight = 10000000000000000
 
 var systemFork = &Forks{}
 
+func init() {
+	SetBityuanFork()
+	SetTestNetFork()
+	SetLocalFork()
+}
+
 type Forks struct {
 	forks map[string]map[string]int64
 }
@@ -59,8 +65,9 @@ func (f *Forks) SetAllFork(title string, height int64) {
 
 func (f *Forks) IsFork(title string, height int64, fork string) bool {
 	ifork, ok := f.GetFork(title, fork)
+	//fork 不存在，默认跑最新代码，这样只要不设置就跑最新代码
 	if !ok {
-		return false
+		return true
 	}
 	if height == -1 || height >= ifork {
 		return true
@@ -133,15 +140,11 @@ func SetTestNetFork() {
 }
 
 func SetLocalFork() {
-	systemFork.Clone("bityuan", "local")
-	systemFork.SetAllFork("local", 0)
 	systemFork.SetFork("local", "ForkBlockHash", 1)
 }
 
 //paraName not used currently
 func SetForkForPara(paraName string) {
-	systemFork.Clone("bityuan", paraName)
-	systemFork.SetAllFork(paraName, 0)
 	systemFork.SetFork(paraName, "ForkBlockHash", 1)
 }
 
@@ -153,12 +156,5 @@ func IsEnableFork(height int64, fork string, enable bool) bool {
 	if !enable {
 		return false
 	}
-	ifork, ok := systemFork.GetFork(GetTitle(), fork)
-	if !ok {
-		return false
-	}
-	if height == -1 || height >= ifork {
-		return true
-	}
-	return false
+	return IsFork(height, fork)
 }
