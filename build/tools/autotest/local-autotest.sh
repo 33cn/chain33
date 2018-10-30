@@ -206,6 +206,8 @@ function stop_chain33() {
 
     echo "=========== #stop chain33 ============="
     ${CLI} close
+    #wait close
+    sleep ${chain33BlockTime}
 }
 
 function main() {
