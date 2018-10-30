@@ -119,38 +119,38 @@ func parseViewSpendPubKeyPair(in string) (viewPubKey, spendPubKey []byte, err er
 
 // genCustomOuts 构建一个交易的输出
 // 构建方式是，P=Hs(rA)G+B
-func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int32) (*privacytypes.PrivacyOutput, error) {
-	decomDigit := make([]int64, count)
-	for i := range decomDigit {
-		decomDigit[i] = transAmount
-	}
-
-	pk := &privacy.PubKeyPrivacy{}
-	sk := &privacy.PrivKeyPrivacy{}
-	privacy.GenerateKeyPair(sk, pk)
-	RtxPublicKey := pk.Bytes()
-
-	sktx := (*[32]byte)(unsafe.Pointer(&sk[0]))
-	var privacyOutput privacytypes.PrivacyOutput
-	privacyOutput.RpubKeytx = RtxPublicKey
-	privacyOutput.Keyoutput = make([]*privacytypes.KeyOutput, len(decomDigit))
-
-	//添加本次转账的目的接收信息（UTXO），包括一次性公钥和额度
-	for index, digit := range decomDigit {
-		pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewpubTo, spendpubto, sktx, int64(index))
-		if err != nil {
-			bizlog.Error("genCustomOuts", "Fail to GenerateOneTimeAddr due to cause", err)
-			return nil, err
-		}
-		keyOutput := &privacytypes.KeyOutput{
-			Amount:        digit,
-			Onetimepubkey: pubkeyOnetime[:],
-		}
-		privacyOutput.Keyoutput[index] = keyOutput
-	}
-
-	return &privacyOutput, nil
-}
+//func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int32) (*privacytypes.PrivacyOutput, error) {
+//	decomDigit := make([]int64, count)
+//	for i := range decomDigit {
+//		decomDigit[i] = transAmount
+//	}
+//
+//	pk := &privacy.PubKeyPrivacy{}
+//	sk := &privacy.PrivKeyPrivacy{}
+//	privacy.GenerateKeyPair(sk, pk)
+//	RtxPublicKey := pk.Bytes()
+//
+//	sktx := (*[32]byte)(unsafe.Pointer(&sk[0]))
+//	var privacyOutput privacytypes.PrivacyOutput
+//	privacyOutput.RpubKeytx = RtxPublicKey
+//	privacyOutput.Keyoutput = make([]*privacytypes.KeyOutput, len(decomDigit))
+//
+//	//添加本次转账的目的接收信息（UTXO），包括一次性公钥和额度
+//	for index, digit := range decomDigit {
+//		pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewpubTo, spendpubto, sktx, int64(index))
+//		if err != nil {
+//			bizlog.Error("genCustomOuts", "Fail to GenerateOneTimeAddr due to cause", err)
+//			return nil, err
+//		}
+//		keyOutput := &privacytypes.KeyOutput{
+//			Amount:        digit,
+//			Onetimepubkey: pubkeyOnetime[:],
+//		}
+//		privacyOutput.Keyoutput[index] = keyOutput
+//	}
+//
+//	return &privacyOutput, nil
+//}
 
 //最后构造完成的utxo依次是2种类型，不构造交易费utxo，使其直接燃烧消失
 //1.进行实际转账utxo

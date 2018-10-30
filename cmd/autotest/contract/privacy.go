@@ -30,7 +30,7 @@ func (caseConf *TestPrivacyConfig) RunTest(caseFile string, wg *sync.WaitGroup) 
 		return
 	}
 	tester := testcase.NewTestOperator(fLog, tLog)
-	
+
 	go tester.AddCaseArray(caseConf.SimpleCaseArr, caseConf.TokenPreCreateCaseArr, caseConf.TokenFinishCreateCaseArr,
 		caseConf.TransferCaseArr, caseConf.PubToPrivCaseArr, caseConf.PrivToPrivCaseArr, caseConf.PrivToPubCaseArr, caseConf.PrivCreateutxosCaseArr)
 	go tester.HandleDependency()
