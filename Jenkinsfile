@@ -76,7 +76,6 @@ pipeline {
                 always {
                     dir("${PROJ_DIR}"){
                         sh "cd build/${env.BUILD_NUMBER} && ./docker-compose-pre.sh down ${env.BUILD_NUMBER} all && cd .. && rm -rf ${env.BUILD_NUMBER} && cd .. && make clean "
-                        sh "docker rmi ${env.BUILD_NUMBER}_chain31 ${env.BUILD_NUMBER}_chain32 ${env.BUILD_NUMBER}_chain33"
                     }
                 }
             }
