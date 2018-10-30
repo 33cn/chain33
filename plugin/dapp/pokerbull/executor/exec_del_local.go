@@ -6,15 +6,16 @@ import (
 )
 
 func (g *PokerBull) rollbackIndex(log *pkt.ReceiptPBGame) (kvs []*types.KeyValue) {
-	kvs = append(kvs, delPBGameStatus(log.Status, log.PlayerNum, log.Value, log.Index))
+	kvs = append(kvs, delPBGameStatusAndPlayer(log.Status, log.PlayerNum, log.Value, log.Index))
+	kvs = append(kvs, addPBGameStatusAndPlayer(log.PreStatus, log.PlayerNum, log.PrevIndex, log.Value, log.GameId))
+	kvs = append(kvs, delPBGameStatusIndexKey(log.Status, log.Index))
+	kvs = append(kvs, addPBGameStatusIndexKey(log.PreStatus, log.GameId, log.PrevIndex))
 
-	if log.Status == pkt.PBGameActionContinue {
-		kvs = append(kvs, addPBGameStatus(log.Status, log.PlayerNum, log.PrevIndex, log.Value, log.GameId))
+	for _, v := range log.Players {
+		kvs = append(kvs, delPBGameAddrIndexKey(v, log.Index))
+		kvs = append(kvs, addPBGameAddrIndexKey(log.PreStatus, v, log.GameId, log.PrevIndex))
 	}
 
-	if log.Status == pkt.PBGameActionQuit {
-		kvs = append(kvs, addPBGameStatus(pkt.PBGameActionContinue, log.PlayerNum, log.PrevIndex, log.Value, log.GameId))
-	}
 	return kvs
 }
 
