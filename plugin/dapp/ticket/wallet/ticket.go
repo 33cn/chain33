@@ -491,6 +491,11 @@ func (policy *ticketPolicy) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, 
 
 func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
 	bizlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", count)
+	if count > ty.TicketCountOpenOnce {
+		count = ty.TicketCountOpenOnce
+		bizlog.Info("openticket", "Update count", "wait for another open")
+	}
+
 	ta := &ty.TicketAction{}
 	topen := &ty.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count, RandSeed: types.Now().UnixNano()}
 	hashList := make([][]byte, int(count))
