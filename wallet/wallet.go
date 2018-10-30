@@ -234,6 +234,9 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.api, _ = client.New(cli, nil)
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
+	for _, policy := range wcom.PolicyContainer {
+		policy.OnSetQueueClient()
+	}
 }
 
 func (wallet *Wallet) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
