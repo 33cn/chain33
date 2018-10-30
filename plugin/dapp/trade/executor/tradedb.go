@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	tty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -304,21 +305,21 @@ func (action *tradeAction) tradeBuy(buyOrder *pty.TradeForBuy) (*types.Receipt, 
 	sellidByte := []byte(buyOrder.SellID)
 	sellOrder, err := getSellOrderFromID(sellidByte, action.db)
 	if err != nil {
-		return nil, types.ErrTSellOrderNotExist
+		return nil, pty.ErrTSellOrderNotExist
 	}
 
 	if sellOrder.Status == pty.TradeOrderStatusNotStart && sellOrder.Starttime > action.blocktime {
-		return nil, types.ErrTSellOrderNotStart
+		return nil, pty.ErrTSellOrderNotStart
 	} else if sellOrder.Status == pty.TradeOrderStatusSoldOut {
-		return nil, types.ErrTSellOrderSoldout
+		return nil, pty.ErrTSellOrderSoldout
 	} else if sellOrder.Status == pty.TradeOrderStatusOnSale && sellOrder.TotalBoardlot-sellOrder.SoldBoardlot < buyOrder.BoardlotCnt {
-		return nil, types.ErrTSellOrderNotEnough
+		return nil, pty.ErrTSellOrderNotEnough
 	} else if sellOrder.Status == pty.TradeOrderStatusRevoked {
-		return nil, types.ErrTSellOrderRevoked
+		return nil, pty.ErrTSellOrderRevoked
 	} else if sellOrder.Status == pty.TradeOrderStatusExpired {
-		return nil, types.ErrTSellOrderExpired
+		return nil, pty.ErrTSellOrderExpired
 	} else if sellOrder.Status == pty.TradeOrderStatusOnSale && buyOrder.BoardlotCnt < sellOrder.MinBoardlot {
-		return nil, types.ErrTCntLessThanMinBoardlot
+		return nil, pty.ErrTCntLessThanMinBoardlot
 	}
 
 	//首先购买费用的划转
@@ -370,19 +371,19 @@ func (action *tradeAction) tradeRevokeSell(revoke *pty.TradeForRevokeSell) (*typ
 	sellidByte := []byte(revoke.SellID)
 	sellOrder, err := getSellOrderFromID(sellidByte, action.db)
 	if err != nil {
-		return nil, types.ErrTSellOrderNotExist
+		return nil, pty.ErrTSellOrderNotExist
 	}
 
 	if sellOrder.Status == pty.TradeOrderStatusSoldOut {
-		return nil, types.ErrTSellOrderSoldout
+		return nil, pty.ErrTSellOrderSoldout
 	} else if sellOrder.Status == pty.TradeOrderStatusRevoked {
-		return nil, types.ErrTSellOrderRevoked
+		return nil, pty.ErrTSellOrderRevoked
 	} else if sellOrder.Status == pty.TradeOrderStatusExpired {
-		return nil, types.ErrTSellOrderExpired
+		return nil, pty.ErrTSellOrderExpired
 	}
 
 	if action.fromaddr != sellOrder.Address {
-		return nil, types.ErrTSellOrderRevoke
+		return nil, pty.ErrTSellOrderRevoke
 	}
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
 	accDB, err := createAccountDB(action.height, action.db, sellOrder.AssetExec, sellOrder.TokenSymbol)
@@ -432,7 +433,7 @@ func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Rece
 	if buy.AssetExec == "" || buy.AssetExec == defaultAssetExec {
 		// check token exist
 		if !checkTokenExist(buy.TokenSymbol, action.db) {
-			return nil, types.ErrTokenNotExist
+			return nil, tty.ErrTokenNotExist
 		}
 	}
 
@@ -483,17 +484,17 @@ func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*
 	idByte := []byte(sellOrder.BuyID)
 	buyOrder, err := getBuyOrderFromID(idByte, action.db)
 	if err != nil {
-		return nil, types.ErrTBuyOrderNotExist
+		return nil, pty.ErrTBuyOrderNotExist
 	}
 
 	if buyOrder.Status == pty.TradeOrderStatusBoughtOut {
-		return nil, types.ErrTBuyOrderSoldout
+		return nil, pty.ErrTBuyOrderSoldout
 	} else if buyOrder.Status == pty.TradeOrderStatusRevoked {
-		return nil, types.ErrTBuyOrderRevoked
+		return nil, pty.ErrTBuyOrderRevoked
 	} else if buyOrder.Status == pty.TradeOrderStatusOnBuy && buyOrder.TotalBoardlot-buyOrder.BoughtBoardlot < sellOrder.BoardlotCnt {
-		return nil, types.ErrTBuyOrderNotEnough
+		return nil, pty.ErrTBuyOrderNotEnough
 	} else if buyOrder.Status == pty.TradeOrderStatusOnBuy && sellOrder.BoardlotCnt < buyOrder.MinBoardlot {
-		return nil, types.ErrTCntLessThanMinBoardlot
+		return nil, pty.ErrTCntLessThanMinBoardlot
 	}
 
 	// 打token
@@ -549,17 +550,17 @@ func (action *tradeAction) tradeRevokeBuyLimit(revoke *pty.TradeForRevokeBuy) (*
 	buyIDByte := []byte(revoke.BuyID)
 	buyOrder, err := getBuyOrderFromID(buyIDByte, action.db)
 	if err != nil {
-		return nil, types.ErrTBuyOrderNotExist
+		return nil, pty.ErrTBuyOrderNotExist
 	}
 
 	if buyOrder.Status == pty.TradeOrderStatusBoughtOut {
-		return nil, types.ErrTBuyOrderSoldout
+		return nil, pty.ErrTBuyOrderSoldout
 	} else if buyOrder.Status == pty.TradeOrderStatusBuyRevoked {
-		return nil, types.ErrTBuyOrderRevoked
+		return nil, pty.ErrTBuyOrderRevoked
 	}
 
 	if action.fromaddr != buyOrder.Address {
-		return nil, types.ErrTBuyOrderRevoke
+		return nil, pty.ErrTBuyOrderRevoke
 	}
 
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结

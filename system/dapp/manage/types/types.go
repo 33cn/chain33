@@ -24,7 +24,7 @@ var (
 
 func init() {
 	nameX = types.ExecName(types.ManageX)
-	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.ManageX))
 	types.RegistorExecutor(types.ManageX, NewType())
 }
 

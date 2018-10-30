@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -44,9 +45,14 @@ func ExecName(name string) string {
 	return ExecNamePrefix + name
 }
 
+//默认的allow 规则->根据 GetRealExecName 来判断
+//name 必须大于3 小于 100
 func IsAllowExecName(name []byte, execer []byte) bool {
 	// name长度不能超过系统限制
-	if len(name) > address.MaxExecNameLength {
+	if len(name) > address.MaxExecNameLength || len(execer) > address.MaxExecNameLength {
+		return false
+	}
+	if len(name) < 3 || len(execer) < 3 {
 		return false
 	}
 	// name中不允许有 "-"
@@ -113,23 +119,43 @@ func FindExecer(key []byte) (execer []byte, err error) {
 	return nil, ErrNoExecerInMavlKey
 }
 
+func GetParaExec(execer []byte) []byte {
+	//必须是平行链
+	if !IsPara() {
+		return execer
+	}
+	//必须是相同的平行链
+	if !strings.HasPrefix(string(execer), GetTitle()) {
+		return execer
+	}
+	return execer[len(GetTitle()):]
+}
+
+func getParaExecName(execer []byte) []byte {
+	if !bytes.HasPrefix(execer, ParaKey) {
+		return execer
+	}
+	count := 0
+	for i := 0; i < len(execer); i++ {
+		if execer[i] == '.' {
+			count++
+		}
+		if count == 3 && i < (len(execer)-1) {
+			newexec := execer[i+1:]
+			return newexec
+		}
+	}
+	return execer
+}
+
 func GetRealExecName(execer []byte) []byte {
 	//平行链执行器，获取真实执行器的规则
+	execer = getParaExecName(execer)
+	//平行链嵌套平行链是不被允许的
 	if bytes.HasPrefix(execer, ParaKey) {
-		count := 0
-		for i := 0; i < len(execer); i++ {
-			if execer[i] == '.' {
-				count++
-			}
-			if count == 3 && i < (len(execer)-1) {
-				newexec := execer[i+1:]
-				if bytes.HasPrefix(newexec, UserKey) && !bytes.HasPrefix(newexec, ParaKey) {
-					return GetRealExecName(newexec)
-				}
-				return newexec
-			}
-		}
-	} else if bytes.HasPrefix(execer, UserKey) {
+		return execer
+	}
+	if bytes.HasPrefix(execer, UserKey) {
 		//不是user.p. 的情况, 而是user. 的情况
 		count := 0
 		index := 0
@@ -143,7 +169,7 @@ func GetRealExecName(execer []byte) []byte {
 				break
 			}
 		}
-		e := execer[5 : index+1]
+		e := execer[len(UserKey) : index+1]
 		if len(e) > 0 {
 			return e
 		}
@@ -252,7 +278,7 @@ func GetSignType(execer string, name string) int {
 var ConfigPrefix = "mavl-config-"
 
 func ConfigKey(key string) string {
-	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
+	return fmt.Sprintf("%s%s", ConfigPrefix, key)
 }
 
 var ManagePrefix = "mavl-"
