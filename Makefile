@@ -24,7 +24,7 @@ DAPP := ""
 PROJ := "build"
 .PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
 
-default: build cli depends autotest
+default: build cli depends
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
@@ -64,6 +64,7 @@ para:
 autotest:## build autotest binary
 	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
 	@cp cmd/autotest/*.toml build/tools/autotest/
+	@cd build/tools/autotest && bash ./local-autotest.sh $(dapp) && cd ../../../
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..

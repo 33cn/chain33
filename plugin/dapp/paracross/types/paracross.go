@@ -67,7 +67,7 @@ var (
 )
 
 func CalcMinerHeightKey(title string, height int64) []byte {
-	paraVoteHeightKey := types.ExecName("paracross") + "-titleVoteHeight-"
+	paraVoteHeightKey := "LODB-paracross-titleVoteHeight-"
 	return []byte(fmt.Sprintf(paraVoteHeightKey+"%s-%012d", title, height))
 }
 

@@ -5,15 +5,38 @@ const version = "5.3.0"
 var (
 	WalletVerKey     = []byte("WalletVerKey")
 	BlockChainVerKey = []byte("BlockChainVerKey")
+	LocalDBMeta      = []byte("LocalDBMeta")
 	MavlTreeVerKey   = []byte("MavlTreeVerKey")
+	localversion     = "1.0.0"
 	GitCommit        string
 )
+
+func GetLocalDBKeyList() [][]byte {
+	return [][]byte{
+		WalletVerKey, BlockChainVerKey, LocalDBMeta, MavlTreeVerKey,
+	}
+}
 
 func GetVersion() string {
 	if GitCommit != "" {
 		return version + "-" + GitCommit
 	}
 	return version
+}
+
+//GetLocalDBVersion 数据库版本解析
+/*
+格式: v1.v2.v3
+如果: v1 升级了， 那么意味着localdb 需要 重新 reindex
+*/
+func GetLocalDBVersion() string {
+	return localversion
+}
+
+//SetLocalDBVersion only used for test
+//通过设置版本号，强制重建数据库
+func SetLocalDBVersion(version string) {
+	localversion = version
 }
 
 //v0.1.2

@@ -42,36 +42,36 @@ func (g *PokerBull) GetDriverName() string {
 }
 
 func calcPBGameAddrPrefix(addr string) []byte {
-	key := fmt.Sprintf("PBGame-addr:%s:", addr)
+	key := fmt.Sprintf("LODB-PBGame-addr:%s:", addr)
 	return []byte(key)
 }
 
 func calcPBGameAddrKey(addr string, index int64) []byte {
-	key := fmt.Sprintf("PBGame-addr:%s:%018d", addr, index)
+	key := fmt.Sprintf("LODB-PBGame-addr:%s:%018d", addr, index)
 	return []byte(key)
 }
 
 func calcPBGameStatusPrefix(status int32) []byte {
-	key := fmt.Sprintf("PBGame-status-index:%d:", status)
+	key := fmt.Sprintf("LODB-PBGame-status-index:%d:", status)
 	return []byte(key)
 }
 
 func calcPBGameStatusKey(status int32, index int64) []byte {
-	key := fmt.Sprintf("PBGame-status-index:%d:%018d", status, index)
+	key := fmt.Sprintf("LODB-PBGame-status-index:%d:%018d", status, index)
 	return []byte(key)
 }
 
 func calcPBGameStatusAndPlayerKey(status, player int32, value, index int64) []byte {
-	key := fmt.Sprintf("PBgame-status:%d:%d:%d:%018d", status, player, value, index)
+	key := fmt.Sprintf("LODB-PBgame-status:%d:%d:%d:%018d", status, player, value, index)
 	return []byte(key)
 }
 
 func calcPBGameStatusAndPlayerPrefix(status, player int32, value int64) []byte {
 	var key string
 	if value == 0 {
-		key = fmt.Sprintf("PBgame-status:%d:%d:", status, player)
+		key = fmt.Sprintf("LODB-PBGame-status:%d:%d:", status, player)
 	} else {
-		key = fmt.Sprintf("PBgame-status:%d:%d:%d", status, player, value)
+		key = fmt.Sprintf("LODB-PBGame-status:%d:%d:%d", status, player, value)
 	}
 
 	return []byte(key)

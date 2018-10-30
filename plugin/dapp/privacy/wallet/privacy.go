@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -96,7 +97,7 @@ func (policy *privacyPolicy) reqTxDetailByAddr(addr string) {
 
 func (policy *privacyPolicy) isRescanUtxosFlagScaning() (bool, error) {
 	if privacytypes.UtxoFlagScaning == policy.GetRescanFlag() {
-		return true, types.ErrRescanFlagScaning
+		return true, privacytypes.ErrRescanFlagScaning
 	}
 	return false, nil
 }
@@ -233,7 +234,7 @@ func (policy *privacyPolicy) getPrivacykeyPair(addr string) (*privacy.Privacy, e
 		if err != nil {
 			return nil, err
 		}
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 }
 
@@ -319,10 +320,14 @@ func (policy *privacyPolicy) showPrivacyKeyPair(reqAddr *types.ReqString) (*priv
 }
 
 func (policy *privacyPolicy) getPrivacyAccountInfo(req *privacytypes.ReqPPrivacyAccount) (*privacytypes.ReplyPrivacyAccount, error) {
-	addr := req.GetAddr()
+	addr := strings.Trim(req.GetAddr(), " ")
 	token := req.GetToken()
 	reply := &privacytypes.ReplyPrivacyAccount{}
 	reply.Displaymode = req.Displaymode
+	if len(addr) == 0 {
+		return nil, errors.New("Address is empty")
+	}
+
 	// 搜索可用余额
 	privacyDBStore, err := policy.store.listAvailableUTXOs(token, addr)
 	utxos := make([]*privacytypes.UTXO, 0)
@@ -778,7 +783,7 @@ func (policy *privacyPolicy) getPrivacyKeyPairs() ([]addrAndprivacy, error) {
 	}
 
 	if 0 == len(infoPriRes) {
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 
 	return infoPriRes, nil
