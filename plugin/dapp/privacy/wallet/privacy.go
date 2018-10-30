@@ -149,7 +149,7 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
 	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
 	//因为此时是pub2priv的交易，此时不需要构造找零的输出，同时设置fee为0，也是为了简化计算
-	privacyOutput, err := genCustomOuts(viewPublic, spendPublic, reqCreateUTXOs.Amount, reqCreateUTXOs.Count)
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, nil, nil, reqCreateUTXOs.Amount, reqCreateUTXOs.Amount, 0)
 	if err != nil {
 		bizlog.Error("createUTXOsByPub2Priv", "genCustomOuts error.", err)
 		return nil, err
@@ -157,7 +157,7 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 
 	value := &privacytypes.Public2Privacy{
 		Tokenname: reqCreateUTXOs.Tokenname,
-		Amount:    reqCreateUTXOs.Amount * int64(reqCreateUTXOs.Count),
+		Amount:    reqCreateUTXOs.Amount,
 		Note:      reqCreateUTXOs.Note,
 		Output:    privacyOutput,
 	}
