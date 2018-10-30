@@ -47,19 +47,26 @@ func main() {
 	if a > 0 {
 		mavl.PruningTreePrint(db, []byte("..mk.."))
 	}
-	b := 0
+	a = 0
 	fmt.Println("是否需要查询_mh_计数")
-	fmt.Fscan(stdin, &b)
+	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
-	if b > 0 {
+	if a > 0 {
 		mavl.PruningTreePrint(db, []byte("_mh_"))
 	}
-	c := 0
+	a = 0
 	fmt.Println("是否需要查询_mb_计数")
-	fmt.Fscan(stdin, &c)
+	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
-	if c > 0 {
+	if a > 0 {
 		mavl.PruningTreePrint(db, []byte("_mb_"))
+	}
+	a = 0
+	fmt.Println("是否需要查询_..md.._计数")
+	fmt.Fscan(stdin, &a)
+	stdin.ReadString('\n')
+	if a > 0 {
+		mavl.PruningTreePrint(db, []byte("_..md.._"))
 	}
 	exit := make(chan os.Signal,10) //初始化一个channel
 	signal.Notify(exit, syscall.SIGINT, syscall.SIGTERM) //notify方法用来监听收到的信号

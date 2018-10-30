@@ -91,6 +91,7 @@ It has these top-level messages:
 	StoreGet
 	StoreReplyValue
 	PruneData
+	DeleteNodeMap
 	Genesis
 	ExecTxList
 	Query
