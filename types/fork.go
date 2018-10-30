@@ -1,12 +1,17 @@
 package types
 
+/*
+出于forks 过程安全的考虑，比如代码更新，出现了新的fork，旧的链只要不明确指定 fork的高度，那么默认fork高度为 MaxHeight
+也就是新的代码默认不会被启用，知道使用的人明确指定了fork的高度
+*/
 const MaxHeight = 10000000000000000
 
 var systemFork = &Forks{}
 
 func init() {
-	SetBityuanFork()
+	//先要初始化
 	SetTestNetFork()
+	SetBityuanFork()
 	SetLocalFork()
 }
 
@@ -28,13 +33,31 @@ func (f *Forks) SetFork(title, key string, height int64) {
 	f.forks[title][key] = height
 }
 
-func (f *Forks) GetFork(title, key string) (int64, bool) {
+func (f *Forks) ReplaceFork(title, key string, height int64) {
+	if f.forks == nil {
+		f.forks = make(map[string]map[string]int64)
+	}
+	_, ok := f.forks[title]
+	if !ok {
+		panic("replace a not exist title " + title)
+	}
+	if _, ok := f.forks[title][key]; !ok {
+		panic("replace a not exist key " + title + " " + key)
+	}
+	f.forks[title][key] = height
+}
+
+//如果不存在，那么fork高度为0
+func (f *Forks) GetFork(title, key string) int64 {
 	forkitem, ok := f.forks[title]
 	if !ok {
-		return 0, false
+		return MaxHeight
 	}
 	height, ok := forkitem[key]
-	return height, ok
+	if !ok {
+		return MaxHeight
+	}
+	return height
 }
 
 func (f *Forks) Clone(from, to string) error {
@@ -53,6 +76,16 @@ func (f *Forks) Clone(from, to string) error {
 	return nil
 }
 
+func (f *Forks) CloneZero(from, to string) {
+	f.Clone(from, to)
+	f.SetAllFork(to, 0)
+}
+
+func (f *Forks) CloneMaxHeight(from, to string) {
+	f.Clone(from, to)
+	f.SetAllFork(to, MaxHeight)
+}
+
 func (f *Forks) SetAllFork(title string, height int64) {
 	forkitem, ok := f.forks[title]
 	if !ok {
@@ -64,11 +97,8 @@ func (f *Forks) SetAllFork(title string, height int64) {
 }
 
 func (f *Forks) IsFork(title string, height int64, fork string) bool {
-	ifork, ok := f.GetFork(title, fork)
+	ifork := f.GetFork(title, fork)
 	//fork 不存在，默认跑最新代码，这样只要不设置就跑最新代码
-	if !ok {
-		return true
-	}
 	if height == -1 || height >= ifork {
 		return true
 	}
@@ -77,34 +107,26 @@ func (f *Forks) IsFork(title string, height int64, fork string) bool {
 
 //default hard fork block height for bityuan real network
 func SetBityuanFork() {
-	systemFork.SetFork("bityuan", "ForkV1", 0)
-	systemFork.SetFork("bityuan", "ForkV2AddToken", 0)
-	systemFork.SetFork("bityuan", "ForkV3", 0)
-	systemFork.SetFork("bityuan", "ForkV4AddManage", 0)
-	systemFork.SetFork("bityuan", "ForkV5Retrive", 0)
-	systemFork.SetFork("bityuan", "ForkV6TokenBlackList", 0)
-	systemFork.SetFork("bityuan", "ForkV7BadTokenSymbol", 0)
-	systemFork.SetFork("bityuan", "ForkBlockHash", 1)
-	systemFork.SetFork("bityuan", "ForkV9", 0)
-	systemFork.SetFork("bityuan", "ForkV10TradeBuyLimit", 0)
-	systemFork.SetFork("bityuan", "ForkV11ManageExec", 100000)
-	systemFork.SetFork("bityuan", "ForkV12TransferExec", 100000)
-	systemFork.SetFork("bityuan", "ForkV13ExecKey", 200000)
-	systemFork.SetFork("bityuan", "ForkV14TxGroup", 200000)
-	systemFork.SetFork("bityuan", "ForkV15ResetTx0", 200000)
-	systemFork.SetFork("bityuan", "ForkV16Withdraw", 200000)
-	systemFork.SetFork("bityuan", "ForkV17EVM", 250000)
-	systemFork.SetFork("bityuan", "ForkV18Relay", 500000)
-	systemFork.SetFork("bityuan", "ForkV19TokenPrice", 300000)
-	systemFork.SetFork("bityuan", "ForkV20EVMState", 350000)
-	systemFork.SetFork("bityuan", "ForkV21Privacy", MaxHeight)
-	systemFork.SetFork("bityuan", "ForkV22ExecRollback", 450000)
-	systemFork.SetFork("bityuan", "ForkV23TxHeight", MaxHeight)
-	systemFork.SetFork("bityuan", "ForkV24TxGroupPara", MaxHeight)
-	systemFork.SetFork("bityuan", "ForkV25BlackWhite", MaxHeight)
-	systemFork.SetFork("bityuan", "ForkV25BlackWhiteV2", MaxHeight)
-	systemFork.SetFork("bityuan", "ForkV26EVMKVHash", MaxHeight)
-	systemFork.SetFork("bityuan", "ForkV27TradeAsset", MaxHeight)
+	systemFork.CloneZero("chain33", "bityuan")
+	systemFork.ReplaceFork("bityuan", "ForkBlockHash", 1)
+	systemFork.ReplaceFork("bityuan", "ForkV11ManageExec", 100000)
+	systemFork.ReplaceFork("bityuan", "ForkV12TransferExec", 100000)
+	systemFork.ReplaceFork("bityuan", "ForkV13ExecKey", 200000)
+	systemFork.ReplaceFork("bityuan", "ForkV14TxGroup", 200000)
+	systemFork.ReplaceFork("bityuan", "ForkV15ResetTx0", 200000)
+	systemFork.ReplaceFork("bityuan", "ForkV16Withdraw", 200000)
+	systemFork.ReplaceFork("bityuan", "ForkV17EVM", 250000)
+	systemFork.ReplaceFork("bityuan", "ForkV18Relay", 500000)
+	systemFork.ReplaceFork("bityuan", "ForkV19TokenPrice", 300000)
+	systemFork.ReplaceFork("bityuan", "ForkV20EVMState", 350000)
+	systemFork.ReplaceFork("bityuan", "ForkV21Privacy", MaxHeight)
+	systemFork.ReplaceFork("bityuan", "ForkV22ExecRollback", 450000)
+	systemFork.ReplaceFork("bityuan", "ForkV23TxHeight", MaxHeight)
+	systemFork.ReplaceFork("bityuan", "ForkV24TxGroupPara", MaxHeight)
+	systemFork.ReplaceFork("bityuan", "ForkV25BlackWhite", MaxHeight)
+	systemFork.ReplaceFork("bityuan", "ForkV25BlackWhiteV2", MaxHeight)
+	systemFork.ReplaceFork("bityuan", "ForkV26EVMKVHash", MaxHeight)
+	systemFork.ReplaceFork("bityuan", "ForkV27TradeAsset", MaxHeight)
 }
 
 //bityuan test net fork
@@ -140,12 +162,14 @@ func SetTestNetFork() {
 }
 
 func SetLocalFork() {
-	systemFork.SetFork("local", "ForkBlockHash", 1)
+	systemFork.CloneZero("chain33", "local")
+	systemFork.ReplaceFork("local", "ForkBlockHash", 1)
 }
 
 //paraName not used currently
 func SetForkForPara(paraName string) {
-	systemFork.SetFork(paraName, "ForkBlockHash", 1)
+	systemFork.CloneZero("chain33", paraName)
+	systemFork.ReplaceFork(paraName, "ForkBlockHash", 1)
 }
 
 func IsFork(height int64, fork string) bool {
