@@ -248,7 +248,7 @@ func (chain *BlockChain) fetchPeerList() error {
 		return nil
 	}
 	msg := chain.client.NewMessage("p2p", types.EventPeerInfo, nil)
-	Err := chain.client.Send(msg, true)
+	Err := chain.client.SendTimeout(msg, true, 30*time.Second)
 	if Err != nil {
 		synlog.Error("fetchPeerList", "client.Send err:", Err)
 		return Err
