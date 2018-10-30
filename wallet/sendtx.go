@@ -3,6 +3,7 @@ package wallet
 import (
 	"encoding/hex"
 	"errors"
+	"math/rand"
 	"sync/atomic"
 	"time"
 
@@ -10,6 +11,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
+
+func init() {
+	rand.Seed(types.Now().UnixNano())
+}
 
 func (wallet *Wallet) GetBalance(addr string, execer string) (*types.Account, error) {
 	return wallet.getBalance(addr, execer)
@@ -83,7 +88,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 		to = address.ExecAddress(string(execer))
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: minFee, To: to}
-	tx.Nonce = wallet.random.Int63()
+	tx.Nonce = rand.Int63()
 	tx.Fee, err = tx.GetRealFee(wallet.getFee())
 	if err != nil {
 		return nil, err
@@ -192,6 +197,13 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 		return nil, err
 	}
 	tx.Fee = fee
+	if tx.To == "" {
+		tx.To = addrto
+	}
+	if len(tx.Execer) == 0 {
+		tx.Execer = []byte(exec)
+	}
+	tx.Nonce = rand.Int63()
 	return tx, nil
 }
 

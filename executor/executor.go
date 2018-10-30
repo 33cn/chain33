@@ -313,7 +313,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 			return
 		}
-
 		if kv != nil && kv.KV != nil {
 			err := exec.checkPrefix(tx.Execer, kv.KV)
 			if err != nil {
@@ -327,6 +326,14 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 }
 
 func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
+	for i := 0; i < len(kvs); i++ {
+		err := isAllowLocalKey(execer, kvs[i].Key)
+		if err != nil {
+			//测试的情况下，先panic，实际情况下会删除返回错误
+			panic(err)
+			//return err
+		}
+	}
 	return nil
 }
 

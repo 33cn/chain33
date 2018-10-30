@@ -6,8 +6,6 @@ PARA_CLI2="docker exec ${NODE2} /root/chain33-para-cli"
 PARA_CLI1="docker exec ${NODE1} /root/chain33-para-cli"
 PARA_CLI4="docker exec ${NODE4} /root/chain33-para-cli"
 
-forkParaContainers=("${PARA_CLI}" "${PARA_CLI2}" "${PARA_CLI1}" "${PARA_CLI4}")
-
 PARANAME="para"
 
 xsedfix=""
@@ -88,12 +86,17 @@ function para_transfer() {
     para_transfer2account "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
     block_wait "${CLI}" 1
 
+    echo "=========== # para chain send config ============="
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"
     para_configkey "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
+    block_wait "${CLI}" 1
 
-    para_configkey "${PARA_CLI}" "token-blacklist" "BTY"
+    txhash=$(para_configkey "${PARA_CLI}" "token-blacklist" "BTY")
+    echo "txhash=$txhash"
+    block_wait "${PARA_CLI}" 1
+    $PARA_CLI tx query -s "${txhash}"
 
 }
 
@@ -104,12 +107,8 @@ function para_transfer2account() {
 }
 
 function para_configkey() {
-    echo "=========== # para chain send config ============="
-    echo "${3}"
     tx=$(${1} config config_tx -o add -k "${2}" -v "${3}")
-    echo "${tx}"
     sign=$(${CLI} wallet sign -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc -d "${tx}")
-    echo "${sign}"
     send=$(${CLI} wallet send -d "${sign}")
     echo "${send}"
 }
@@ -185,62 +184,6 @@ function para_test() {
     para_cross_transfer_withdraw
 }
 
-#================fork-test============================
-function checkParaBlockHashfun() {
-    echo "====== syn para blockchain ======"
-
-    height=0
-    hash=""
-    height1=$($PARA_CLI block last_header | jq ".height")
-    sleep 1
-    height2=$($PARA_CLI4 block last_header | jq ".height")
-
-    if [ "${height2}" -ge "${height1}" ]; then
-        height=$height2
-        printf "主链为 $PARA_CLI 当前最大高度 %d \\n" "${height}"
-        sleep 1
-        hash=$($CLI block hash -t "${height}" | jq ".hash")
-    else
-        height=$height1
-        printf "主链为 $PARA_CLI4 当前最大高度 %d \\n" "${height}"
-        sleep 1
-        hash=$($CLI4 block hash -t "${height}" | jq ".hash")
-    fi
-
-    for ((j = 0; j < $1; j++)); do
-        for ((k = 0; k < ${#forkParaContainers[*]}; k++)); do
-            sleep 1
-            height0[$k]=$(${forkParaContainers[$k]} block last_header | jq ".height")
-            if [ "${height0[$k]}" -ge "${height}" ]; then
-                sleep 1
-                hash0[$k]=$(${forkParaContainers[$k]} block hash -t "${height}" | jq ".hash")
-            else
-                hash0[$k]="${forkParaContainers[$k]}"
-            fi
-        done
-
-        if [ "${hash0[0]}" = "${hash}" ] && [ "${hash0[1]}" = "${hash}" ] && [ "${hash0[2]}" = "${hash}" ] && [ "${hash0[3]}" = "${hash}" ]; then
-            echo "syn para blockchain success break"
-            break
-        else
-            if [ "${hash0[1]}" = "${hash0[0]}" ] && [ "${hash0[2]}" = "${hash0[0]}" ] && [ "${hash0[3]}" = "${hash0[0]}" ]; then
-                echo "syn para blockchain success break"
-                break
-            fi
-        fi
-
-        printf '第 %d 次，10s后查询\n' $j
-        sleep 10
-        #检查是否超过了最大检测次数
-        var=$(($1 - 1))
-        if [ $j -ge "${var}" ]; then
-            echo "====== syn para blockchain fail======"
-            exit 1
-        fi
-    done
-    echo "====== syn para blockchain success======"
-}
-
 function paracross() {
     if [ "${2}" == "init" ]; then
         para_init
@@ -249,8 +192,6 @@ function paracross() {
         para_set_wallet
     elif [ "${2}" == "test" ]; then
         para_test "${1}"
-    elif [ "${2}" == "forktest" ]; then
-        checkParaBlockHashfun
     fi
 
     if [ "${2}" == "forkInit" ]; then
