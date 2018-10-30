@@ -19,7 +19,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newGame, 0)
+	drivers.Register(GetName(), newGame, types.GetDappFork(driverName, "Enable"))
 }
 
 type Game struct {
