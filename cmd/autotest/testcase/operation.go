@@ -185,15 +185,24 @@ func (tester *TestOperator) RunSendFlow() {
 
 					for i := 1; i <= repeat; i++ {
 
-						tester.fLog.Info("CommandExec", "TestID", packID, "CMD", baseCase.Command)
+						tester.fLog.Info("CommandExec", "TestID", packID, "Command", baseCase.Command)
 						pack, err := testCase.doSendCommand(packID)
 
 						if err != nil {
-							tester.tLog.Error("TestCaseResult", "TestID", packID, "Result", "Failed", "ErrInfo", err.Error())
+
+							if strings.Contains(packID, "fail")  { //some logs
+
+								tester.tLog.Info("TestCaseResult", "TestID", packID, "Result", "Succeed")
+
+							} else {
+
+								tester.totalFail++
+								tester.failID = append(tester.failID, packID)
+								tester.tLog.Error("TestCaseFailDetail", "TestID", packID, "Command", baseCase.Command, "Result", "")
+								fmt.Println( err.Error())
+							}
 							tester.fLog.Info("CommandResult", "TestID", packID, "Result", err.Error())
 							tester.delDepBuf <- &BaseCasePack{packID: packID}
-							tester.totalFail++
-							tester.failID = append(tester.failID, packID)
 							continue
 						}
 
@@ -247,7 +256,7 @@ func (tester *TestOperator) RunCheckFlow() {
 			}
 
 			checkWg.Add(1)
-			go func(c *list.List, wg *sync.WaitGroup, depBuf chan PackFunc) {
+			go func(c *list.List, wg *sync.WaitGroup) {
 
 				defer wg.Done()
 				for c.Len() > 0 {
@@ -266,7 +275,7 @@ func (tester *TestOperator) RunCheckFlow() {
 
 							c.Remove(e)
 							//find if any case depend
-							depBuf <- casePack
+							tester.delDepBuf <- casePack
 							isFailCase := strings.Contains(casePack.getPackID(), "fail")
 
 							if (bSuccess && !isFailCase) || (!bSuccess && isFailCase) { //some logs
@@ -274,23 +283,25 @@ func (tester *TestOperator) RunCheckFlow() {
 								tester.tLog.Info("TestCaseResult", "TestID", casePack.getPackID(), "Result", "Succeed")
 
 							} else {
-
+								basePack := casePack.getBasePack()
+								baseCase := basePack.tCase.getBaseCase()
 								tester.totalFail++
 								tester.failID = append(tester.failID, casePack.getPackID())
-								tester.tLog.Error("TestCaseResult", "TestID", casePack.getPackID(), "Result", "Failed")
+								tester.tLog.Error("TestCaseFailDetail", "TestID", casePack.getPackID(), "Command", baseCase.Command, "TxHash", basePack.txHash, "TxReceipt", "")
+								fmt.Println( basePack.txReceipt)
 							}
 						}
 					}
 
 					if c.Len() > 0 {
 
-						tester.tLog.Info("CheckRoutineSleep", "SleepTime", CheckSleepTime*time.Second, "WaitCheckNum", c.Len())
+						//tester.tLog.Info("CheckRoutineSleep", "SleepTime", CheckSleepTime*time.Second, "WaitCheckNum", c.Len())
 						time.Sleep(CheckSleepTime * time.Second)
 					}
 
 				}
 
-			}(checkList, checkWg, tester.delDepBuf)
+			}(checkList, checkWg)
 
 			checkList = nil //always set nil for new list
 		}
