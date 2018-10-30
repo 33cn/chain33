@@ -8,10 +8,34 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var glog = log.New("module", types.ParaX)
+var (
+	nameX string
+	glog  = log.New("module", types.ParaX)
+
+	/*
+		logInfo = map[int64]*types.LogInfo{
+			TyLogParacrossCommit:  {reflect.TypeOf(ReceiptParacrossCommit{}), "LogParacrossCommit"},
+			TyLogParacrossCommitDone:  {reflect.TypeOf(ReceiptParacrossDone{}), "LogParacrossDone"},
+			TyLogParacrossCommitRecord: {reflect.TypeOf(ReceiptParacrossRecord{}), "LogParacrossCommitRecord"},
+			TyLogParaAssetTransfer: {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetTransfer"},
+			TyLogParaAssetWithdraw:   {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetWithdraw"},
+			TyLogParacrossMiner:  {reflect.TypeOf(ReceiptParacrossMiner{}), "LogParacrossMiner"},
+			TyLogParaAssetDeposit: {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetDeposit"},
+		}*/
+
+	// init query rpc
+	/* TODO-TODO
+	types.RegisterRPCQueryHandle("ParacrossGetTitle", &ParacrossGetTitle{})
+	types.RegisterRPCQueryHandle("ParacrossListTitles", &ParacrossListTitles{})
+	types.RegisterRPCQueryHandle("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
+	types.RegisterRPCQueryHandle("ParacrossGetAssetTxResult", &ParacrossGetAssetTxResult{})
+	*/
+)
 
 func init() {
 	// init executor type
+	nameX = types.ExecName(types.ParaX)
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.ParaX))
 	types.RegistorExecutor(types.ParaX, NewType())
 }
 
@@ -43,24 +67,18 @@ func (at *ParacrossType) GetLogMap() map[int64]*types.LogInfo {
 
 func (t *ParacrossType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
-		"Commit":        ParacrossActionCommit,
-		"Miner":         ParacrossActionMiner,
-		"AssetTransfer": ParacrossActionTransfer,
-		"AssetWithdraw": ParacrossActionWithdraw,
+		"Commit":         ParacrossActionCommit,
+		"Miner":          ParacrossActionMiner,
+		"AssetTransfer":  ParacrossActionAssetTransfer,
+		"AssetWithdraw":  ParacrossActionAssetWithdraw,
+		"Transfer":       ParacrossActionTransfer,
+		"Withdraw":       ParacrossActionWithdraw,
+		"TransferToExec": ParacrossActionTransferToExec,
 	}
 }
 
 func (b *ParacrossType) GetPayload() types.Message {
 	return &ParacrossAction{}
-}
-
-func (m ParacrossType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action ParacrossAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
 }
 
 func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
@@ -73,7 +91,16 @@ func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.
 		}
 
 		return CreateRawParacrossCommitTx(&param)
-	} else if action == "ParacrossTransfer" || action == "ParacrossWithdraw" {
+	} else if action == "ParacrossAssetTransfer" || action == "ParacrossAssetWithdraw" {
+		var param types.CreateTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			glog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInvalidParam
+		}
+		return CreateRawAssetTransferTx(&param)
+
+	} else if action == "ParacrossTransfer" || action == "ParacrossWithdraw" || action == "ParacrossTransferToExec" {
 		var param types.CreateTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
@@ -197,4 +224,64 @@ func (l ParacrossAssetDepositLog) Decode(msg []byte) (interface{}, error) {
 		return nil, err
 	}
 	return logTmp, nil
+}
+
+type ParacrossGetTitle struct {
+}
+
+func (t *ParacrossGetTitle) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req types.ReqString
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossGetTitle) ProtoToJson(reply *types.Message) (interface{}, error) {
+	return reply, nil
+}
+
+type ParacrossListTitles struct {
+}
+
+func (t *ParacrossListTitles) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req types.ReqNil
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossListTitles) ProtoToJson(reply *types.Message) (interface{}, error) {
+	return reply, nil
+}
+
+type ParacrossGetTitleHeight struct {
+}
+
+func (t *ParacrossGetTitleHeight) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req ReqParacrossTitleHeight
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossGetTitleHeight) ProtoToJson(reply *types.Message) (interface{}, error) {
+	return reply, nil
+}
+
+type ParacrossGetAssetTxResult struct {
+}
+
+func (t *ParacrossGetAssetTxResult) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req types.ReqHash
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossGetAssetTxResult) ProtoToJson(reply *types.Message) (interface{}, error) {
+	return reply, nil
 }

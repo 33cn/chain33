@@ -9,18 +9,18 @@ import (
 )
 
 const (
-	sellOrderSHTAS = "token-sellorder-shtas:"
-	sellOrderASTS  = "token-sellorder-asts:"
-	sellOrderATSS  = "token-sellorder-atss:"
-	sellOrderTSPAS = "token-sellorder-tspas:"
-	buyOrderSHTAS  = "token-buyorder-shtas:"
-	buyOrderASTS   = "token-buyorder-asts:"
-	buyOrderATSS   = "token-buyorder-atss:"
-	buyOrderTSPAS  = "token-buyorder-tspas:"
+	sellOrderSHTAS = "LODB-token-sellorder-shtas:"
+	sellOrderASTS  = "LODB-token-sellorder-asts:"
+	sellOrderATSS  = "LODB-token-sellorder-atss:"
+	sellOrderTSPAS = "LODB-token-sellorder-tspas:"
+	buyOrderSHTAS  = "LODB-token-buyorder-shtas:"
+	buyOrderASTS   = "LODB-token-buyorder-asts:"
+	buyOrderATSS   = "LODB-token-buyorder-atss:"
+	buyOrderTSPAS  = "LODB-token-buyorder-tspas:"
 	sellIDPrefix   = "mavl-trade-sell-"
 	buyIDPrefix    = "mavl-trade-buy-"
 	// Addr-Status-Type-Height-Key
-	orderASTHK = "token-order-asthk:"
+	orderASTHK = "LODB-token-order-asthk:"
 )
 
 // sell order 4 key, 4prefix

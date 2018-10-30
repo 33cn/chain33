@@ -20,6 +20,12 @@ const (
 	TyLogPrivacyFee    = 500
 	TyLogPrivacyInput  = 501
 	TyLogPrivacyOutput = 502
+
+	//privacy name of crypto
+	SignNameOnetimeED25519 = "privacy.onetimeed25519"
+	SignNameRing           = "privacy.RingSignatue"
+	OnetimeED25519         = 4
+	RingBaseonED25519      = 5
 )
 
 // RescanUtxoFlag
@@ -35,8 +41,19 @@ var RescanFlagMapint2string = map[int32]string{
 	UtxoFlagScanEnd: "UtxoFlagScanEnd",
 }
 
+var mapSignType2name = map[int]string{
+	OnetimeED25519:    SignNameOnetimeED25519,
+	RingBaseonED25519: SignNameRing,
+}
+
+var mapSignName2Type = map[string]int{
+	SignNameOnetimeED25519: OnetimeED25519,
+	SignNameRing:           RingBaseonED25519,
+}
+
 func init() {
 	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.PrivacyX))
 	types.RegistorExecutor(types.PrivacyX, NewType())
 }
 
@@ -83,35 +100,28 @@ func (coins PrivacyType) ActionName(tx *types.Transaction) string {
 	return action.GetActionName()
 }
 
-func (privacy PrivacyType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	action := &PrivacyAction{}
-	err := types.Decode(tx.Payload, action)
-	if err != nil {
-		return nil, err
-	}
-	return action, nil
+// TODO 暂时不修改实现， 先完成结构的重构
+func (t *PrivacyType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+	var tx *types.Transaction
+	return tx, nil
 }
 
-func (t PrivacyType) Amount(tx *types.Transaction) (int64, error) {
-	var action PrivacyAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return 0, types.ErrDecode
-	}
-	if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return action.GetPublic2Privacy().GetAmount(), nil
-	} else if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetAmount(), nil
-	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetAmount(), nil
-	}
+func (t *PrivacyType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
 
-// TODO 暂时不修改实现， 先完成结构的重构
-func (t PrivacyType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
-	var tx *types.Transaction
-	return tx, nil
+func (base *PrivacyType) GetCryptoDriver(ty int) (string, error) {
+	if name, ok := mapSignType2name[ty]; ok {
+		return name, nil
+	}
+	return "", types.ErrNotSupport
+}
+
+func (base *PrivacyType) GetCryptoType(name string) (int, error) {
+	if ty, ok := mapSignName2Type[name]; ok {
+		return ty, nil
+	}
+	return 0, types.ErrNotSupport
 }
 
 func (action *PrivacyAction) GetInput() *PrivacyInput {

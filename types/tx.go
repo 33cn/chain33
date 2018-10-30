@@ -341,7 +341,7 @@ func (tx *Transaction) checkSign() bool {
 	if tx.GetSignature() == nil {
 		return false
 	}
-	return CheckSign(data, tx.GetSignature())
+	return CheckSign(data, string(tx.Execer), tx.GetSignature())
 }
 
 func (tx *Transaction) Check(height, minfee int64) error {
@@ -553,20 +553,6 @@ func (tx *Transaction) IsWithdraw() bool {
 		}
 	}
 	return false
-}
-
-//CalcTxKey local db中保存交易的方法
-func CalcTxKey(hash []byte) []byte {
-	if IsEnable("quickIndex") {
-		txhash := []byte("TX:")
-		return append(txhash, hash...)
-	}
-	return hash
-}
-
-func CalcTxShortKey(hash []byte) []byte {
-	txhash := []byte("STX:")
-	return append(txhash, hash[0:8]...)
 }
 
 func IsEnable(name string) bool {

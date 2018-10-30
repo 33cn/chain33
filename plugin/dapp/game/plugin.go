@@ -9,7 +9,7 @@ import (
 
 func init() {
 	pluginmgr.Register(&pluginmgr.PluginBase{
-		Name:     gt.PackageName,
+		Name:     gt.GameX,
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
 		Cmd:      commands.Cmd,

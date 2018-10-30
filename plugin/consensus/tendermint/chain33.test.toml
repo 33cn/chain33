@@ -66,10 +66,11 @@ minTxFee=100000
 [consensus]
 name="tendermint"
 minerstart=false
+
+[consensus.sub.tendermint]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
-hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-writeBlockSeconds=1000
+timeoutTxAvail=1000
 timeoutPropose=3000
 timeoutProposeDelta=500
 timeoutPrevote=1000
@@ -80,13 +81,17 @@ timeoutCommit=1000
 skipTimeoutCommit=false
 createEmptyBlocks=false
 createEmptyBlocksInterval=0
-seeds=["127.0.0.1:46656"]
+validatorNodes=["127.0.0.1:46656"]
 
 [store]
 name="kvdb"
 driver="leveldb"
-dbPath="datadir/kvdb"
+dbPath="datadir/mavltree"
 dbCache=128
+
+[store.sub.kvdb]
+enableMavlPrefix=false
+enableMVCC=false
 
 [wallet]
 minFee=100000
@@ -94,8 +99,23 @@ driver="leveldb"
 dbPath="wallet"
 dbCache=16
 signType="secp256k1"
+
+[wallet.sub.ticket]
 minerdisable=false
+minerwhitelist=["*"]
 
 [exec]
 isFree=false
 minExecFee=100000
+enableStat=false
+enableMVCC=false
+alias=["token1:token","token2:token","token3:token"]
+saveTokenTxList=false
+
+[exec.sub.cert]
+# 是否启用证书验证和签名
+enable=false
+# 加密文件路径
+cryptoPath="authdir/crypto"
+# 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
+signType="auth_ecdsa"

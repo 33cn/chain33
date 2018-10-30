@@ -27,6 +27,11 @@ func TestStateDBGet(t *testing.T) {
 }
 
 func TestStateDBTxGetOld(t *testing.T) {
+	old := types.ForkV22ExecRollback
+	types.ForkV22ExecRollback = 10
+	defer func() {
+		types.ForkV22ExecRollback = old
+	}()
 	db := newStateDbForTest(types.ForkV22ExecRollback - 1)
 
 	db.Begin()

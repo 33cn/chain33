@@ -23,7 +23,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Manage{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newManage, types.ForkV4AddManage)
 }
 

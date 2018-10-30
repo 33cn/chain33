@@ -2,9 +2,6 @@ package types
 
 import (
 	"reflect"
-
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 var slash = []byte("-")
@@ -91,33 +88,10 @@ var (
 //ty = 1+offset(1<<8) ->auth_ecdsa
 //ty = 2+offset(1<<8) -> auth_sm2
 const (
-	Invalid           = 0
-	SECP256K1         = 1
-	ED25519           = 2
-	SM2               = 3
-	OnetimeED25519    = 4
-	RingBaseonED25519 = 5
-	AUTH_ECDSA        = 257
-	AUTH_SM2          = 258
-)
-
-//const (
-//	SignTypeInvalid        = 0
-//	SignTypeSecp256k1      = 1
-//	SignTypeED25519        = 2
-//	SignTypeSM2            = 3
-//	SignTypeOnetimeED25519 = 4
-//	SignTypeRing           = 5
-//)
-
-const (
-	SignNameSecp256k1      = "secp256k1"
-	SignNameED25519        = "ed25519"
-	SignNameSM2            = "sm2"
-	SignNameOnetimeED25519 = "onetimeed25519"
-	SignNameRing           = "RingSignatue"
-	SignNameAuthECDSA      = "auth_ecdsa"
-	SignNameAuthSM2        = "auth_sm2"
+	Invalid   = 0
+	SECP256K1 = 1
+	ED25519   = 2
+	SM2       = 3
 )
 
 // 创建隐私交易的类型定义
@@ -126,26 +100,6 @@ const (
 	PrivacyTypePrivacy2Privacy
 	PrivacyTypePrivacy2Public
 )
-
-var MapSignType2name = map[int]string{
-	SECP256K1:         SignNameSecp256k1,
-	ED25519:           SignNameED25519,
-	SM2:               SignNameSM2,
-	OnetimeED25519:    SignNameOnetimeED25519,
-	RingBaseonED25519: SignNameRing,
-	AUTH_ECDSA:        SignNameAuthECDSA,
-	AUTH_SM2:          SignNameAuthSM2,
-}
-
-var MapSignName2Type = map[string]int{
-	SignNameSecp256k1:      SECP256K1,
-	SignNameED25519:        ED25519,
-	SignNameSM2:            SM2,
-	SignNameOnetimeED25519: OnetimeED25519,
-	SignNameRing:           RingBaseonED25519,
-	SignNameAuthECDSA:      AUTH_ECDSA,
-	SignNameAuthSM2:        AUTH_SM2,
-}
 
 //log type
 const (
@@ -216,8 +170,6 @@ const (
 )
 
 //flag:
-var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
-var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
 
 //TxHeight 选项
 //设计思路:
@@ -245,37 +197,3 @@ var LowAllowPackHeight int64 = 30
 
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
-
-var TestPrivkeyHex = []string{
-	"4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01",
-	"CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944",
-	"B0BB75BC49A787A71F4834DA18614763B53A18291ECE6B5EDEC3AD19D150C3E7",
-	"56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138",
-	"2AFF1981291355322C7A6308D46A9C9BA311AA21D94F36B43FC6A6021A1334CF",
-	"2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989",
-}
-
-var TestPrivkeyList = []crypto.PrivKey{
-	HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"),
-	HexToPrivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"),
-	HexToPrivkey("B0BB75BC49A787A71F4834DA18614763B53A18291ECE6B5EDEC3AD19D150C3E7"),
-	HexToPrivkey("56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138"),
-	HexToPrivkey("2AFF1981291355322C7A6308D46A9C9BA311AA21D94F36B43FC6A6021A1334CF"),
-	HexToPrivkey("2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989"),
-}
-
-func HexToPrivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(GetSignName(SECP256K1))
-	if err != nil {
-		panic(err)
-	}
-	bkey, err := common.FromHex(key)
-	if err != nil {
-		panic(err)
-	}
-	priv, err := cr.PrivKeyFromBytes(bkey)
-	if err != nil {
-		panic(err)
-	}
-	return priv
-}
