@@ -39,7 +39,7 @@ func getNodes(db dbm.KV, title string) (map[string]struct{}, error) {
 	key := calcConfigNodesKey(title)
 	item, err := db.Get(key)
 	if err != nil {
-		clog.Info("getNodes", "get db key", key, "failed", err)
+		clog.Info("getNodes", "get db key", string(key), "failed", err)
 		if isNotFound(err) {
 			err = pt.ErrTitleNotExist
 		}
