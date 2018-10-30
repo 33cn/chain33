@@ -25,7 +25,9 @@ func init() {
 func TestRPCChannel(t *testing.T) {
 	// 启动RPCmocker
 	mocker := testnode.New("--notset--", nil)
-	defer mocker.Close()
+	defer func() {
+		mocker.Close()
+	}()
 	mocker.Listen()
 
 	rpcCfg := mocker.GetCfg().Rpc
