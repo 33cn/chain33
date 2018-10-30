@@ -73,9 +73,8 @@ func isBalanceEqualFloat(f1 float64, f2 float64) bool {
 
 func checkTxHashValid(txHash string) bool {
 
-	return len(txHash) == 66  && strings.HasPrefix(txHash, "0x")
+	return len(txHash) == 66 && strings.HasPrefix(txHash, "0x")
 }
-
 
 //excute
 func sendTxCommand(cmd string) (string, bool) {
