@@ -142,7 +142,6 @@ var (
 	ErrNotSync                    = errors.New("ErrNotSync")
 	ErrSize                       = errors.New("ErrSize")
 	ErrMinerTx                    = errors.New("ErrMinerTx")
-	ErrOpenTicketPubHash          = errors.New("ErrOpenTicketPubHash")
 
 	// BlockChain Error Types
 	ErrHashNotExist           = errors.New("ErrHashNotExist")

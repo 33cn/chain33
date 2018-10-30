@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 
 	//log "github.com/inconshreveable/log15"
@@ -28,6 +29,9 @@ const (
 )
 
 const TicketOldParts = 3
+const TicketCountOpenOnce = 1000
+
+var ErrOpenTicketPubHash = errors.New("ErrOpenTicketPubHash")
 
 var TicketX = types.TicketX
 

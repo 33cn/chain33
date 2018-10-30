@@ -217,7 +217,7 @@ func (action *Action) TicketOpen(topen *ty.TicketOpen) (*types.Receipt, error) {
 		//add pubHash
 		if action.height > types.ForkV27TicketId {
 			if len(topen.PubHashes) == 0 {
-				return nil, types.ErrOpenTicketPubHash
+				return nil, ty.ErrOpenTicketPubHash
 			}
 			id = id + ":" + fmt.Sprintf("%x:%d", topen.PubHashes[i], topen.RandSeed)
 		}
