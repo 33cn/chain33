@@ -156,7 +156,6 @@ func (c *Chain33) QueryTransaction(in rpctypes.QueryParm, result *interface{}) e
 		if err != nil {
 			return err
 		}
-
 		for _, proof := range reply.Proofs {
 			transDetail.Proofs = append(transDetail.Proofs, common.ToHex(proof))
 		}
