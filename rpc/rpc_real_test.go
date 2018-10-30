@@ -48,12 +48,12 @@ func TestErrLog(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, reply.GetMsg(), tx12.Hash())
 	mocker.WaitHeight(2)
-	var testResult interface{}
+	var testResult rpctypes.TransactionDetail
 	req := rpctypes.QueryParm{
 		Hash: common.ToHex(tx12.Hash()),
 	}
 	//query transaction
 	err = jrpcClient.Call("Chain33.QueryTransaction", req, &testResult)
 	assert.Nil(t, err)
-	t.Log(testResult)
+	assert.Equal(t, string(testResult.Receipt.Logs[0].Log), `"ErrNoBalance"`)
 }
