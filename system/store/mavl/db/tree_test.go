@@ -783,9 +783,9 @@ func TestIAVLPrint(t *testing.T) {
 }
 
 func TestPruningTree(t *testing.T) {
-	const txN = 10   // 每个块交易量
-	const preB = 10000 // 一轮区块数
-	const round = 1   // 更新叶子节点次数
+	const txN = 50   // 每个块交易量
+	const preB = 500 // 一轮区块数
+	const round = 5   // 更新叶子节点次数
 	const preDel = preB / 10
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -853,10 +853,67 @@ func saveUpdateBlock(dbm db.DB, height int64, hash []byte, txN int64, vIndex int
 	return newHash, nil
 }
 
-func TestPruningHashNode(t *testing.T) {
+func TestMaxLevalDbValue(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
 	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	value := make([]byte, 1024*1024*50)
+	for i := 0; i < 5; i++  {
+		db.Set([]byte(fmt.Sprintf("mmm%d", i)), value)
+	}
+
+	for i := 0; i < 5; i++  {
+		_, e := db.Get([]byte(fmt.Sprintf("mmm%d", i)))
+		assert.NoError(t,e,"")
+		//fmt.Println(v)
+	}
+}
+
+func TestPruningHashNode(t *testing.T) {
+	//开启前缀时候需要加入在叶子节点hash上加入：5f6d625f2d303030303030303030302d
+	/* 叶子节点对应hash值
+		k:abc     v:abc     hash:0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d
+	    k:fan     v:fan     hash:0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114
+	    k:foml    v:foml    hash:0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0
+	    k:foo     v:foo     hash:0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2
+	    k:foobang v:foobang hash:0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be
+		k:foobar  v:foobar  hash:0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93
+		k:foobaz  v:foobaz  hash:0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b
+	    k:food    v:food    hash:0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39
+	    k:good    v:good    hash:0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776
+	    k:low     v:low     hash:0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786
+
+        height:0 hash:d95f left: right: parentHash:967b
+        height:0 hash:3bf2 left: right: parentHash:cf1e
+		height:0 hash:0ac6 left: right: parentHash:cf1e
+		height:1 hash:cf1e left:3bf2 right:0ac6 parentHash:
+		height:2 hash:967b left:d95f right:cf1e parentHash:
+		height:0 hash:890d left: right: parentHash:c0bf
+		height:0 hash:6d46 left: right: parentHash:2f47
+		height:0 hash:5308 left: right: parentHash:2f47
+		height:1 hash:2f47 left:6d46 right:5308 parentHash:
+		height:2 hash:c0bf left:890d right:2f47 parentHash:
+		height:3 hash:d556 left:967b right:c0bf parentHash:
+		height:0 hash:cbcb left: right: parentHash:121e
+		height:0 hash:e508 left: right: parentHash:121e
+		height:1 hash:121e left:cbcb right:e508 parentHash:
+		height:0 hash:0c99 left: right: parentHash:00ab
+		height:0 hash:5a82 left: right: parentHash:00ab
+		height:1 hash:00ab left:0c99 right:5a82 parentHash:
+		height:2 hash:5202 left:121e right:00ab parentHash:
+		height:4 hash:1134 left:d556 right:5202 parentHash:
+	*/
+
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
+	EnablePrune(true)
+	defer EnablePrune(false)
 
 	db := db.NewDB("mavltree", "leveldb", dir, 100)
 	tree := NewTree(db, true)
@@ -878,18 +935,6 @@ func TestPruningHashNode(t *testing.T) {
 		{"foml", "foml"},
 	}
 
-	/* 叶子节点对应hash值
-		k:abc     v:abc     hash:0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d
-	    k:fan     v:fan     hash:0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114
-	    k:foml    v:foml    hash:0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0
-	    k:foo     v:foo     hash:0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2
-	    k:foobang v:foobang hash:0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be
-		k:foobar  v:foobar  hash:0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93
-		k:foobaz  v:foobaz  hash:0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b
-	    k:food    v:food    hash:0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39
-	    k:good    v:good    hash:0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776
-	    k:low     v:low     hash:0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786
-	*/
 	keys := make([]string, len(records))
 	for i, r := range records {
 		keys[i] = r.key
@@ -904,59 +949,62 @@ func TestPruningHashNode(t *testing.T) {
 	}
 	hash := tree.Save()
 	fmt.Printf("root height %d---%s---\n", tree.root.height, Bytes2Hex(hash[:2]))
+	//keyLeafs := []record{
+	//	{"abc", "0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"},
+	//	{"fan", "0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114"},
+	//	{"foml", "0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0"},
+	//	{"foo", "0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2"},
+	//	{"foobang", "0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be"},
+	//	{"foobar", "0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93"},
+	//
+	//	{"foobaz", "0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b"},
+	//	{"food", "0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39"},
+	//	{"good", "0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
+	//	{"low", "0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
+	//}
+
+	//加入前缀的叶子节点
 	keyLeafs := []record{
-		{"abc", "0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"},
-		{"fan", "0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114"},
-		{"foml", "0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0"},
-		{"foo", "0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2"},
-		{"foobang", "0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be"},
-		{"foobar", "0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93"},
+		{"abc", "0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"},
+		{"fan", "0x5f6d625f2d303030303030303030302d3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114"},
+		{"foml", "0x5f6d625f2d303030303030303030302d0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0"},
+		{"foo", "0x5f6d625f2d303030303030303030302d890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2"},
+		{"foobang", "0x5f6d625f2d303030303030303030302d6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be"},
+		{"foobar", "0x5f6d625f2d303030303030303030302d5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93"},
 
-		//{"foobaz", "0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b"},
-		//{"food", "0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39"},
-		//{"good", "0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
-		//{"low", "0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
+		{"foobaz", "0x5f6d625f2d303030303030303030302dcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b"},
+		{"food", "0x5f6d625f2d303030303030303030302de5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39"},
+		{"good", "0x5f6d625f2d303030303030303030302d0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
+		{"low", "0x5f6d625f2d303030303030303030302d5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
 	}
 
-	mpK := make(map[string]bool)
-	mpleaf := make(map[string]bool)
-	for _, leaf := range keyLeafs {
-		k, _ := FromHex(leaf.value)
-		mpleaf[string(k)] = true
-		mpK[string(leaf.key)] = true
+	testCases := [][]record {
+		{keyLeafs[4]},                // foobang---6d4
+		{keyLeafs[5], keyLeafs[3]},   // foobar---530     foo---890
+		{keyLeafs[1], keyLeafs[2]},   // fan---3bf        foml---0ac
+		{keyLeafs[0], keyLeafs[6]},   // abc---d95        foobaz---cbc
+		{keyLeafs[8]},                // good---0c9
 	}
 
-	ndb := newMarkNodeDB(db, 1024*10, mpleaf)
-	var strs []string
-	for key := range mpleaf {
-		mNode, err := ndb.LoadLeaf([]byte(key))
-		fmt.Printf("loadLeaf---%s---\n", Bytes2Hex([]byte(key)[0:2]))
-		if err == nil {
-			strs = append(strs, mNode.getHash(ndb)...)
+	mpleafName:= make(map[string]bool)
+	mpleafHash := make(map[string]bool)
+	for _, tCase := range testCases {
+		fmt.Println("********************")
+		//加入casemap
+		for _, tc := range tCase {
+			k, _ := FromHex(tc.value)
+			mpleafHash[string(k)] = true
+			mpleafName[string(tc.key)] = true
 		}
-	}
-
-	//去重复
-	mpNode := make(map[string]bool)
-	for _, str := range strs {
-		mpNode[str] = true
-	}
-	//删除
-	batch := db.NewBatch(true)
-	for key := range mpNode {
-		batch.Delete([]byte(key))
-		fmt.Printf("delete---%s---\n", Bytes2Hex([]byte(key)[0:2]))
-	}
-	batch.Write()
-
-	//重新载入树
-	tr1 := NewTree(db, true)
-	err = tr1.Load(hash)
-	require.NoError(t, err)
-	for _, k := range records {
-		if _, ok := mpK[k.key]; !ok {
-			_, v, _ := tr1.Get([]byte(k.key))
-			assert.Equal(t, []byte(k.value), v)
+		pruningHashNode(db, mpleafHash)
+		tr1 := NewTree(db, true)
+		err = tr1.Load(hash)
+		require.NoError(t, err)
+		for _, k := range records {
+			if _, ok := mpleafName[k.key]; !ok {
+				_, v, _ := tr1.Get([]byte(k.key))
+				assert.Equal(t, []byte(k.value), v)
+			}
 		}
 	}
 }

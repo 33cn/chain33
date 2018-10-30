@@ -139,7 +139,10 @@ func (t *Tree) Save() []byte {
 		if enablePrune && !isPruning() &&
 			t.blockHeight%int64(pruneHeight) == 0 &&
 			t.blockHeight/int64(pruneHeight) > 1 {
-				go pruningTree(t.ndb.db, t.blockHeight)
+			if t.blockHeight > 86000 {
+				panic("for test stop")
+			}
+			go pruningTree(t.ndb.db, t.blockHeight)
 		}
 	}
 	return t.root.hash
@@ -327,16 +330,12 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	// Save node bytes to db
 	storenode := node.storeNode(t)
 	ndb.batch.Set(node.hash, storenode)
-	//// lyh for test
+	// lyh for test
 	//var parent  []byte
-	//var brother []byte
 	//var left  []byte
 	//var right []byte
 	//if len(node.parentHash) > 3 {
 	//	parent = node.parentHash[:2]
-	//}
-	//if len(node.brotherHash) > 3 {
-	//	brother = node.brotherHash[:2]
 	//}
 	//if len(node.leftHash) > 3 {
 	//	left = node.leftHash[:2]
@@ -344,9 +343,8 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	//if len(node.rightHash) > 3 {
 	//	right = node.rightHash[:2]
 	//}
-	//fmt.Printf("height:%d hash:%v left:%v right:%v parentHash:%v brotherHash:%v\n", node.height, common.Bytes2Hex(node.hash[:2]),
-	//	common.Bytes2Hex(left), common.Bytes2Hex(right),
-	//	common.Bytes2Hex(parent), common.Bytes2Hex(brother))
+	//fmt.Printf("height:%d hash:%v left:%v right:%v parentHash:%v \n", node.height, common.Bytes2Hex(node.hash[:2]),
+	//	common.Bytes2Hex(left), common.Bytes2Hex(right), common.Bytes2Hex(parent))
 
 	if enablePrune && node.height == 0 {
 		//save leafnode key&hash
