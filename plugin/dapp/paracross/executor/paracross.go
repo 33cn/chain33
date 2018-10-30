@@ -15,7 +15,7 @@ import (
 var (
 	clog                    = log.New("module", "execs.paracross")
 	enableParacrossTransfer = true
-	driverName              = types.ParaX
+	driverName              = pt.ParaX
 )
 
 type Paracross struct {
@@ -28,7 +28,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newParacross, 0)
+	drivers.Register(GetName(), newParacross, types.GetDappFork(driverName, "Enable"))
 	setPrefix()
 }
 

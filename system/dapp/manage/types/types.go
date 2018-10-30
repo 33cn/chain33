@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	nameX      string
+	ManageX    = "manage"
 	actionName = map[string]int32{
 		"Modify": ManageActionModifyConfig,
 	}
@@ -23,9 +23,8 @@ var (
 //var tlog = log.New("module", name)
 
 func init() {
-	nameX = types.ExecName(types.ManageX)
-	types.AllowUserExec = append(types.AllowUserExec, []byte(types.ManageX))
-	types.RegistorExecutor(types.ManageX, NewType())
+	types.AllowUserExec = append(types.AllowUserExec, []byte(ManageX))
+	types.RegistorExecutor(ManageX, NewType())
 }
 
 type ManageType struct {

@@ -100,6 +100,8 @@ func GetP(height int64) *ChainParam {
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowUserExec = [][]byte{ExecerNone}
+	//这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
+	AllowDepositExec = [][]byte{[]byte("ticket")}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
@@ -138,24 +140,36 @@ var (
 	mu                   sync.Mutex
 )
 
-func SetTitle(t string) {
+var titles = map[string]bool{}
+
+func Init(t string, cfg *Config) {
 	mu.Lock()
 	defer mu.Unlock()
-	title = t
-	if IsBityuan() {
+	//每个title 只会初始化一次
+	if titles[t] {
+		title = t
 		return
 	}
+	titles[t] = true
+	title = t
+	if IsPara() {
+		ExecNamePrefix = title
+	}
+	//local 只用于单元测试
 	if IsLocal() {
 		initChainTestNet()
+		SetLocalFork()
 		EnableTxHeight = true
 		Debug = true
 		return
 	}
-	if IsPara() {
+	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
+	if IsPara() && (cfg.Fork == nil || cfg.Fork.System == nil) {
 		//keep superManager same with mainnet
-		ExecNamePrefix = title
 		SetForkForPara(title)
+		return
 	}
+	InitForkConfig(title, cfg.Fork)
 }
 
 func GetTitle() string {

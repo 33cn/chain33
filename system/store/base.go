@@ -57,7 +57,7 @@ func NewBaseStore(cfg *types.Store) *BaseStore {
 	db.SetCacheSize(102400)
 	store := &BaseStore{db: db}
 	store.done = make(chan struct{}, 1)
-	slog.Info("Enter store " + cfg.GetName())
+	slog.Info("Enter store " + cfg.Name)
 	return store
 }
 

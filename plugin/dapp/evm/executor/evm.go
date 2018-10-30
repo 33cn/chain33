@@ -33,7 +33,7 @@ func init() {
 
 func Init(name string, sub []byte) {
 	driverName = name
-	drivers.Register(driverName, newEVMDriver, types.ForkV17EVM)
+	drivers.Register(driverName, newEVMDriver, types.GetDappFork(driverName, "Enable"))
 	EvmAddress = address.ExecAddress(types.ExecName(name))
 	// 初始化硬分叉数据
 	state.InitForkData()

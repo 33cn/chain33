@@ -8,7 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var RelayX = types.RelayX
+var RelayX = "relay"
 
 //var tlog = log.New("module", name)
 //log for relay

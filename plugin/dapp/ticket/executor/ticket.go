@@ -30,7 +30,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newTicket, 0)
+	drivers.Register(GetName(), newTicket, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {

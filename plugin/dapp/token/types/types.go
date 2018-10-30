@@ -8,7 +8,7 @@ import (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(TokenX))
-	types.RegistorExecutor(types.TokenX, NewType())
+	types.RegistorExecutor(TokenX, NewType())
 }
 
 // exec

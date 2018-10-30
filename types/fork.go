@@ -228,6 +228,10 @@ func GetDappFork(dapp, fork string) int64 {
 	return systemFork.GetDappFork(GetTitle(), dapp, fork)
 }
 
+func SetDappFork(title, dapp, fork string, height int64) {
+	systemFork.SetDappFork(title, dapp, fork, height)
+}
+
 func GetFork(fork string) int64 {
 	return systemFork.GetFork(GetTitle(), fork)
 }
@@ -279,8 +283,10 @@ func InitForkConfig(title string, forks *ForkList) {
 		}
 		systemFork.SetFork(title, k, v)
 	}
-
+	//重置allow exec 的权限，让他只限制在配置文件设置的
+	AllowUserExec = [][]byte{ExecerNone}
 	for dapp, forklist := range forks.Sub {
+		AllowUserExec = append(AllowUserExec, []byte(dapp))
 		for k, v := range forklist {
 			if v == -1 {
 				v = MaxHeight
