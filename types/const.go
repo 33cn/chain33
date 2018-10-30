@@ -18,11 +18,13 @@ type LogInfo struct {
 const (
 	UserKeyX = "user."
 	ParaKeyX = "user.p."
+	NoneX    = "none"
 )
 
 var (
-	UserKey = []byte(UserKeyX)
-	ParaKey = []byte(ParaKeyX)
+	UserKey    = []byte(UserKeyX)
+	ParaKey    = []byte(ParaKeyX)
+	ExecerNone = []byte(NoneX)
 )
 
 const (
