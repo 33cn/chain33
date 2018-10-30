@@ -20,7 +20,7 @@ import (
 
 //存储地址上收币的信息
 func calcAddrKey(addr string) []byte {
-	return []byte(fmt.Sprintf("Addr:%s", addr))
+	return []byte(fmt.Sprintf("LODB-coins-Addr:%s", addr))
 }
 
 func geAddrReciverKV(addr string, reciverAmount int64) *types.KeyValue {

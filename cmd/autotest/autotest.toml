@@ -8,10 +8,6 @@ checkTimeout = 10
 
 
 [[TestCaseFile]]
-contract = "init"
-filename = "init.toml"
-
-[[TestCaseFile]]
 contract = "bty"
 filename = "bty.toml"
 
