@@ -34,6 +34,8 @@ function down() {
     echo "=========== # docker-compose down ============="
     docker-compose down --rmi local
 
+    docker-compose ps
+
 }
 
 # run script
