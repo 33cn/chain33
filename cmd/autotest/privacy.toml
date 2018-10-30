@@ -1,5 +1,8 @@
 
 
+[[SimpleCase]]
+id = "enablePrivacy"
+command = "privacy enable -a all"
 
 #prepare for privacy
 [[TransferCase]]
@@ -9,6 +12,7 @@ from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 to = "1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
 amount = "999"
 checkItem = ["balance"]
+dep = ["enablePrivacy"]
 
 
 #pub2priv

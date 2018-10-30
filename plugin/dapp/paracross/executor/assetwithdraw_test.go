@@ -254,7 +254,7 @@ func createAssetWithdrawTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset Withdraw failed")
 	if err != nil {
 		return nil, err

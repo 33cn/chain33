@@ -14,7 +14,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Norm{}))
 }
 
-func Init(name string) {
+func Init(name string, sub []byte) {
 	clog.Debug("register norm execer")
 	drivers.Register(GetName(), newNorm, 0)
 }

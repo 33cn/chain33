@@ -7,6 +7,11 @@ const (
 	CertActionNew    = 1
 	CertActionUpdate = 2
 	CertActionNormal = 3
+
+	SignNameAuthECDSA = "auth_ecdsa"
+	AUTH_ECDSA        = 257
+	SignNameAuthSM2   = "auth_sm2"
+	AUTH_SM2          = 258
 )
 
 func init() {

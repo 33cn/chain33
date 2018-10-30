@@ -3,6 +3,7 @@ package rpc
 import (
 	"net"
 	"net/rpc"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
@@ -35,16 +36,21 @@ type Grpc struct {
 type Grpcserver struct {
 	grpc Grpc
 	s    *grpc.Server
+	l    net.Listener
 	//addr string
 }
 
 type JSONRPCServer struct {
 	jrpc Chain33
 	s    *rpc.Server
+	l    net.Listener
 	//addr string
 }
 
 func (s *JSONRPCServer) Close() {
+	if s.l != nil {
+		s.l.Close()
+	}
 	s.jrpc.cli.Close()
 }
 
@@ -103,8 +109,10 @@ func checkGrpcFuncBlacklist(funcName string) bool {
 }
 
 func (j *Grpcserver) Close() {
+	if j.l != nil {
+		j.l.Close()
+	}
 	j.grpc.cli.Close()
-
 }
 
 func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
@@ -170,8 +178,7 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 	r.c = c
 	//注册系统rpc
 	pluginmgr.AddRPC(r)
-	go gapi.Listen()
-	go japi.Listen()
+	r.Listen()
 }
 
 func (r *RPC) SetQueueClientNoListen(c queue.Client) {
@@ -184,9 +191,27 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 	pluginmgr.AddRPC(r)
 }
 
-func (rpc *RPC) Listen() {
-	go rpc.gapi.Listen()
-	go rpc.japi.Listen()
+func (rpc *RPC) Listen() (port1 int, port2 int) {
+	var err error
+	for i := 0; i < 10; i++ {
+		port1, err = rpc.gapi.Listen()
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	for i := 0; i < 10; i++ {
+		port2, err = rpc.japi.Listen()
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	//sleep for a while
+	time.Sleep(time.Millisecond)
+	return port1, port2
 }
 
 func (rpc *RPC) GetQueueClient() queue.Client {

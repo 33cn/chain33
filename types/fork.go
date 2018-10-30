@@ -4,16 +4,16 @@ const MaxHeight = 10000000000000000
 
 //default hard fork block height for bityuan real network
 var (
-	ForkV1               int64 = 1
-	ForkV2AddToken       int64 = 1
-	ForkV3               int64 = 1
-	ForkV4AddManage      int64 = 1
-	ForkV5Retrive        int64 = 1
-	ForkV6TokenBlackList int64 = 1
-	ForkV7BadTokenSymbol int64 = 1
+	ForkV1               int64 = 0
+	ForkV2AddToken       int64 = 0
+	ForkV3               int64 = 0
+	ForkV4AddManage      int64 = 0
+	ForkV5Retrive        int64 = 0
+	ForkV6TokenBlackList int64 = 0
+	ForkV7BadTokenSymbol int64 = 0
 	ForkBlockHash        int64 = 1
-	ForkV9               int64 = 1
-	ForkV10TradeBuyLimit int64 = 1
+	ForkV9               int64 = 0
+	ForkV10TradeBuyLimit int64 = 0
 	ForkV11ManageExec    int64 = 100000
 	ForkV12TransferExec  int64 = 100000
 	ForkV13ExecKey       int64 = 200000
@@ -32,6 +32,7 @@ var (
 	ForkV25BlackWhiteV2  int64 = MaxHeight
 	ForkV26EVMKVHash     int64 = MaxHeight
 	ForkV27TicketId      int64 = MaxHeight
+	ForkV27TradeAsset    int64 = MaxHeight
 )
 
 //bityuan test net fork
@@ -64,69 +65,72 @@ func SetTestNetFork() {
 	ForkV25BlackWhiteV2 = 900000
 	ForkV26EVMKVHash = 1000000
 	ForkV27TicketId = 500
+	ForkV27TradeAsset = 1010000
 }
 
 func SetForkToOne() {
-	ForkV1 = 1
-	ForkV2AddToken = 1
-	ForkV3 = 1
-	ForkV4AddManage = 1
-	ForkV5Retrive = 1
-	ForkV6TokenBlackList = 1
-	ForkV7BadTokenSymbol = 1
+	ForkV1 = 0
+	ForkV2AddToken = 0
+	ForkV3 = 0
+	ForkV4AddManage = 0
+	ForkV5Retrive = 0
+	ForkV6TokenBlackList = 0
+	ForkV7BadTokenSymbol = 0
 	ForkBlockHash = 1
-	ForkV9 = 1
-	ForkV10TradeBuyLimit = 1
-	ForkV11ManageExec = 1
-	ForkV12TransferExec = 1
-	ForkV13ExecKey = 1
-	ForkV14TxGroup = 1
-	ForkV15ResetTx0 = 1
-	ForkV16Withdraw = 1
-	ForkV17EVM = 1
-	ForkV18Relay = 1
-	ForkV19TokenPrice = 1
-	ForkV20EVMState = 1
-	ForkV21Privacy = 1
-	ForkV22ExecRollback = 1
-	ForkV23TxHeight = 1
-	ForkV24TxGroupPara = 1
-	ForkV25BlackWhite = 1
-	ForkV25BlackWhiteV2 = 1
-	ForkV26EVMKVHash = 1
-	ForkV27TicketId = 1
+	ForkV9 = 0
+	ForkV10TradeBuyLimit = 0
+	ForkV11ManageExec = 0
+	ForkV12TransferExec = 0
+	ForkV13ExecKey = 0
+	ForkV14TxGroup = 0
+	ForkV15ResetTx0 = 0
+	ForkV16Withdraw = 0
+	ForkV17EVM = 0
+	ForkV18Relay = 0
+	ForkV19TokenPrice = 0
+	ForkV20EVMState = 0
+	ForkV21Privacy = 0
+	ForkV22ExecRollback = 0
+	ForkV23TxHeight = 0
+	ForkV24TxGroupPara = 0
+	ForkV25BlackWhite = 0
+	ForkV25BlackWhiteV2 = 0
+	ForkV26EVMKVHash = 0
+	ForkV27TicketId = 0
+	ForkV27TradeAsset = 0
 }
 
 //paraName not used currently
 func SetForkForPara(paraName string) {
-	ForkV1 = 1
-	ForkV2AddToken = 1
-	ForkV3 = 1
-	ForkV4AddManage = 1
-	ForkV5Retrive = 1
-	ForkV6TokenBlackList = 1
-	ForkV7BadTokenSymbol = 1
+	ForkV1 = 0
+	ForkV2AddToken = 0
+	ForkV3 = 0
+	ForkV4AddManage = 0
+	ForkV5Retrive = 0
+	ForkV6TokenBlackList = 0
+	ForkV7BadTokenSymbol = 0
 	ForkBlockHash = 1
-	ForkV9 = 1
-	ForkV10TradeBuyLimit = 1
-	ForkV11ManageExec = 1
-	ForkV12TransferExec = 1
-	ForkV13ExecKey = 1
-	ForkV14TxGroup = 1
-	ForkV15ResetTx0 = 1
-	ForkV16Withdraw = 1
-	ForkV17EVM = 1
-	ForkV18Relay = 1
-	ForkV19TokenPrice = 1
-	ForkV20EVMState = 1
-	ForkV21Privacy = 1
-	ForkV22ExecRollback = 1
-	ForkV23TxHeight = 1
-	ForkV24TxGroupPara = 1
-	ForkV25BlackWhite = 1
-	ForkV25BlackWhiteV2 = 1
-	ForkV26EVMKVHash = 1
-	ForkV27TicketId = 1
+	ForkV9 = 0
+	ForkV10TradeBuyLimit = 0
+	ForkV11ManageExec = 0
+	ForkV12TransferExec = 0
+	ForkV13ExecKey = 0
+	ForkV14TxGroup = 0
+	ForkV15ResetTx0 = 0
+	ForkV16Withdraw = 0
+	ForkV17EVM = 0
+	ForkV18Relay = 0
+	ForkV19TokenPrice = 0
+	ForkV20EVMState = 0
+	ForkV21Privacy = 0
+	ForkV22ExecRollback = 0
+	ForkV23TxHeight = 0
+	ForkV24TxGroupPara = 0
+	ForkV25BlackWhite = 0
+	ForkV25BlackWhiteV2 = 0
+	ForkV26EVMKVHash = 0
+	ForkV27TicketId = 0
+	ForkV27TradeAsset = 0
 }
 
 func IsMatchFork(height int64, fork int64) bool {

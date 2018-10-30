@@ -16,7 +16,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
@@ -65,7 +64,6 @@ type Wallet struct {
 	cfg                *types.Wallet
 	done               chan struct{}
 	rescanwg           *sync.WaitGroup
-	rescanUTXOflag     int32
 	lastHeader         *types.Header
 }
 
@@ -78,15 +76,15 @@ func DisableLog() {
 	storelog.SetHandler(log.DiscardHandler())
 }
 
-func New(cfg *types.Wallet) *Wallet {
+func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	//walletStore
 	accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
 	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
-	signType, exist := types.MapSignName2Type[cfg.SignType]
-	if !exist {
+	signType := types.GetSignType("", cfg.SignType)
+	if signType == types.Invalid {
 		signType = types.SECP256K1
 	}
 	SignType = signType
@@ -101,17 +99,11 @@ func New(cfg *types.Wallet) *Wallet {
 		done:             make(chan struct{}),
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
-		rescanUTXOflag:   pty.UtxoFlagNoScan,
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
+	wcom.Init(wallet, sub)
 	return wallet
-}
-
-func (wallet *Wallet) initBizPolicy() {
-	for _, policy := range wcom.PolicyContainer {
-		policy.Init(wallet)
-	}
 }
 
 func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) error {
@@ -177,14 +169,6 @@ func (wallet *Wallet) GetLastHeader() *types.Header {
 	return wallet.lastHeader
 }
 
-func (wallet *Wallet) GetRescanFlag() int32 {
-	return atomic.LoadInt32(&wallet.rescanUTXOflag)
-}
-
-func (wallet *Wallet) SetRescanFlag(flag int32) {
-	atomic.StoreInt32(&wallet.rescanUTXOflag, flag)
-}
-
 func (wallet *Wallet) GetWaitGroup() *sync.WaitGroup {
 	return wallet.wg
 }
@@ -194,10 +178,26 @@ func (ws *Wallet) GetAccountByLabel(label string) (*types.WalletAccountStore, er
 }
 
 func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
-	if pty.UtxoFlagScaning == atomic.LoadInt32(&wallet.rescanUTXOflag) {
-		return true, types.ErrRescanFlagScaning
+	in := &types.ReqNil{}
+	flag := false
+	for _, policy := range wcom.PolicyContainer {
+		out, err := policy.Call("GetUTXOScaningFlag", in)
+		if err != nil {
+			if err.Error() == types.ErrNotSupport.Error() {
+				continue
+			}
+			return flag, err
+		}
+		reply, ok := out.(*types.Reply)
+		if !ok {
+			err = types.ErrTypeAsset
+			return flag, err
+		}
+		flag = reply.IsOk
+		return flag, err
 	}
-	return false, nil
+
+	return flag, types.ErrNotSupport
 }
 
 func (wallet *Wallet) Close() {
@@ -232,7 +232,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
-	wallet.initBizPolicy()
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 }
@@ -266,7 +265,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 
 	privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName(SignType))
+	cr, err := crypto.New(types.GetSignName("", SignType))
 	if err != nil {
 		walletlog.Error("ProcSendToAddress", "err", err)
 		return nil, err

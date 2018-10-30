@@ -56,15 +56,6 @@ func (evm *EvmType) GetTypeMap() map[string]int32 {
 	return actionName
 }
 
-func (evm EvmType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action EVMContractAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
 func (evm EvmType) GetRealToAddr(tx *types.Transaction) string {
 	if string(tx.Execer) == ExecutorName {
 		return tx.To

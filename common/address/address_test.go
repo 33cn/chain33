@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
-	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
+
+	_ "gitlab.33.cn/chain33/chain33/system/crypto/init"
 )
 
 func TestAddress(t *testing.T) {

@@ -66,7 +66,7 @@ func (l *Lottery) Query_GetLotteryHistoryBuyInfo(param *pty.ReqLotteryBuyHistory
 
 func (l *Lottery) Query_GetLotteryBuyRoundInfo(param *pty.ReqLotteryBuyInfo) (types.Message, error) {
 	key := calcLotteryBuyRoundPrefix(param.LotteryId, param.Addr, param.Round)
-	record, err := l.findLotteryBuyRecord(key)
+	record, err := l.findLotteryBuyRecords(key)
 	if err != nil {
 		return nil, err
 	}

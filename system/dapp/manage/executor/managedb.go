@@ -2,6 +2,7 @@ package executor
 
 import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -26,13 +27,13 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	//}
 
 	if !IsSuperManager(m.fromaddr) {
-		return nil, types.ErrNoPrivilege
+		return nil, pty.ErrNoPrivilege
 	}
 	if len(modify.Key) == 0 {
-		return nil, types.ErrBadConfigKey
+		return nil, pty.ErrBadConfigKey
 	}
 	if modify.Op != "add" && modify.Op != "delete" {
-		return nil, types.ErrBadConfigOp
+		return nil, pty.ErrBadConfigOp
 	}
 
 	var item types.ConfigItem

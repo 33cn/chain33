@@ -76,7 +76,6 @@ It has these top-level messages:
 	P2P
 	Rpc
 	Exec
-	Authority
 	Pprof
 	LeafNode
 	InnerNode
@@ -153,6 +152,7 @@ It has these top-level messages:
 	IterateRangeByStateHash
 	TicketStatistic
 	TicketMinerInfo
+	TotalAmount
 	AssetsGenesis
 	AssetsTransferToExec
 	AssetsWithdraw
@@ -184,6 +184,8 @@ It has these top-level messages:
 	TransactionDetails
 	ReqAddrs
 	ReqDecodeRawTransaction
+	UserWrite
+	UpgradeMeta
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
