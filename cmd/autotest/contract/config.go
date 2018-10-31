@@ -40,6 +40,7 @@ type TestRunner interface {
 func InitConfig(logfile string) {
 
 	fileLog.SetHandler(log15.Must.FileHandler(logfile, testcase.AutoTestLogFormat()))
+	stdLog.SetHandler(log15.StdoutHandler)
 
 }
 
@@ -50,14 +51,14 @@ func DoTestOperation(configFile string) {
 
 	if _, err := toml.DecodeFile(configFile, &configConf); err != nil {
 
-		stdLog.Error("ErrTomlDecode", "Error", err.Error())
+		stdLog.Error("DecodeConfigFile", "filename", configFile, "Error", err.Error())
 		return
 	}
 
 	testcase.Init(configConf.CliCommand, configConf.CheckSleepTime, configConf.CheckTimeout)
 
-	stdLog.Info("[=====================BeginTest====================]")
-	fileLog.Info("[=====================BeginTest====================]")
+	stdLog.Info("[================================BeginAutoTest===============================]")
+	fileLog.Info("[================================BeginAutoTest===============================]")
 
 	for _, caseFile := range configConf.TestCaseFileArr {
 
@@ -96,6 +97,6 @@ func DoTestOperation(configFile string) {
 
 	wg.Wait()
 
-	stdLog.Info("[=====================EndTest======================]")
-	fileLog.Info("[=====================EndTest======================]")
+	stdLog.Info("[================================EndAutoTest=================================]")
+	fileLog.Info("[================================EndAutoTest=================================]")
 }
