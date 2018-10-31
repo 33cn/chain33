@@ -78,9 +78,9 @@ func main() {
 	}
 	//set test net flag
 	types.SetTestNet(cfg.TestNet)
-	types.SetTitle(cfg.Title)
+	types.Init(cfg.Title, cfg)
 	types.SetFixTime(cfg.FixTime)
-	types.SetParaRemoteGrpcClient(cfg.GetConsensus().GetParaRemoteGrpcClient())
+	types.SetParaRemoteGrpcClient(cfg.Consensus.ParaRemoteGrpcClient)
 	if cfg.FixTime {
 		go fixtimeRoutine()
 	}
@@ -91,7 +91,7 @@ func main() {
 	//set file log
 	clog.SetFileLog(cfg.Log)
 	//set grpc log
-	f, err := createFile(cfg.P2P.GetGrpcLogFile())
+	f, err := createFile(cfg.P2P.GrpcLogFile)
 	if err != nil {
 		glogv2 := grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout)
 		grpclog.SetLoggerV2(glogv2)

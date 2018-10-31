@@ -21,10 +21,6 @@ type channelClient struct {
 	rpctypes.ChannelClient
 }
 
-func init() {
-	types.RegisterFork("")
-}
-
 func Init(name string, s rpctypes.RPCServer) {
 	cli := &channelClient{}
 	grpc := &Grpc{channelClient: cli}

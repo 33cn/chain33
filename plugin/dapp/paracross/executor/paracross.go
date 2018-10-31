@@ -44,7 +44,7 @@ func newParacross() drivers.Driver {
 }
 
 func (c *Paracross) GetDriverName() string {
-	return types.ParaX
+	return pt.ParaX
 }
 
 func (c *Paracross) checkTxGroup(tx *types.Transaction, index int) ([]*types.Transaction, error) {
@@ -69,10 +69,10 @@ func crossTxGroupProc(txs []*types.Transaction, index int) ([]*types.Transaction
 			break
 		}
 	}
-	//cross mix tx, contain main and para tx, main prefix with types.ParaX
+	//cross mix tx, contain main and para tx, main prefix with pt.ParaX
 	endIdx = headIdx + txs[index].GroupCount
 	for i := headIdx; i < endIdx; i++ {
-		if bytes.HasPrefix(txs[i].Execer, []byte(types.ParaX)) {
+		if bytes.HasPrefix(txs[i].Execer, []byte(pt.ParaX)) {
 			return txs[headIdx:endIdx], endIdx
 		}
 	}
@@ -80,7 +80,7 @@ func crossTxGroupProc(txs []*types.Transaction, index int) ([]*types.Transaction
 	var transfers []*types.Transaction
 	for i := headIdx; i < endIdx; i++ {
 		if bytes.Contains(txs[i].Execer, []byte(types.ExecNamePrefix)) &&
-			bytes.HasSuffix(txs[i].Execer, []byte(types.ParaX)) {
+			bytes.HasSuffix(txs[i].Execer, []byte(pt.ParaX)) {
 			transfers = append(transfers, txs[i])
 
 		}
@@ -168,10 +168,10 @@ func (c *Paracross) initLocalAssetTransfer(tx *types.Transaction, success, isDel
 	if payload.GetAssetTransfer() == nil {
 		return nil, errors.New("GetAssetTransfer is nil")
 	}
-	exec := types.CoinsX
+	exec := "coins"
 	symbol := types.BTY
 	if payload.GetAssetTransfer().Cointoken != "" {
-		exec = types.TokenX
+		exec = "token"
 		symbol = payload.GetAssetTransfer().Cointoken
 	}
 
@@ -225,10 +225,10 @@ func (c *Paracross) initLocalAssetWithdraw(txCommit, tx *types.Transaction, isWi
 	if payload.GetAssetWithdraw() == nil {
 		return nil, errors.New("GetAssetWithdraw is nil")
 	}
-	exec := types.CoinsX
+	exec := "coins"
 	symbol := types.BTY
 	if payload.GetAssetWithdraw().Cointoken != "" {
-		exec = types.TokenX
+		exec = "token"
 		symbol = payload.GetAssetWithdraw().Cointoken
 	}
 
