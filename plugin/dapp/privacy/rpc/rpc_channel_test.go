@@ -57,9 +57,9 @@ func TestRPCChannel(t *testing.T) {
 		if err == nil {
 			continue
 		}
-		assert.NotEqual(t, err, types.ErrActionNotSupport)
+		assert.NotEqualf(t, err, types.ErrActionNotSupport, "test index %d", index)
 		if strings.Contains(err.Error(), "rpc: can't find") {
-			assert.FailNow(t, err.Error())
+			assert.FailNowf(t, err.Error(), "test index %d", index)
 		}
 	}
 }
