@@ -26,14 +26,6 @@ func calcTokenStatusKey(token string, owner string, status int32) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTO+"%d-%s-%s", status, token, owner))
 }
 
-func calcTokenStatusKeyPrefixLocal(status int32) []byte {
-	return []byte(fmt.Sprintf(tokenPreCreatedSTONewLocal+"%d", status))
-}
-
-func calcTokenStatusSymbolPrefix(status int32, token string) []byte {
-	return []byte(fmt.Sprintf(tokenPreCreatedSTO+"%d-%s-", status, token))
-}
-
 func calcTokenAddrNewKeyS(token string, owner string) (key []byte) {
 	return []byte(fmt.Sprintf(tokenPreCreatedOTNew+"%s-%s", owner, token))
 }
@@ -42,16 +34,16 @@ func calcTokenStatusNewKeyS(token string, owner string, status int32) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTONew+"%d-%s-%s", status, token, owner))
 }
 
-func calcTokenStatusNewKeyLocal(token string, owner string, status int32) []byte {
+func calcTokenStatusKeyLocal(token string, owner string, status int32) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTONewLocal+"%d-%s-%s", status, token, owner))
 }
 
-func calcTokenStatusKeyNewPrefixLocal(status int32) []byte {
+func calcTokenStatusKeyPrefixLocal(status int32) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTONewLocal+"%d", status))
 }
 
-func calcTokenStatusSymbolNewPrefix(status int32, token string) []byte {
-	return []byte(fmt.Sprintf(tokenPreCreatedSTONew+"%d-%s-", status, token))
+func calcTokenStatusTokenKeyPrefixLocal(status int32, token string) []byte {
+	return []byte(fmt.Sprintf(tokenPreCreatedSTONewLocal+"%d-%s-", status, token))
 }
 
 //存储地址上收币的信息
