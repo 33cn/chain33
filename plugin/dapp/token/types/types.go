@@ -74,22 +74,3 @@ func (t *TokenType) RPC_Default_Process(action string, msg interface{}) (*types.
 	}
 	return tx, err
 }
-
-func (t *TokenType) GetAssets(tx *types.Transaction) ([]*types.Asset, error) {
-	var action TokenAction
-	err := types.Decode(tx.GetPayload(), &action)
-	if err != nil {
-		return nil, err
-	}
-	asset := &types.Asset{Exec: TokenX}
-	if action.Ty == ActionTransfer && action.GetTransfer() != nil {
-		asset.Symbol = action.GetTransfer().Cointoken
-	} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
-		asset.Symbol = action.GetWithdraw().Cointoken
-	} else if action.Ty == TokenActionTransferToExec && action.GetTransferToExec() != nil {
-		asset.Symbol = action.GetTransferToExec().Cointoken
-	} else {
-		return []*types.Asset{}, nil
-	}
-	return []*types.Asset{asset}, nil
-}
