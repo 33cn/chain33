@@ -1,12 +1,12 @@
 package rpc_test
 
 import (
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/rpc"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	commonlog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/rpc"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
