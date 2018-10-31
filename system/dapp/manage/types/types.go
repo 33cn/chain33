@@ -5,8 +5,6 @@ import (
 	"reflect"
 
 	"gitlab.33.cn/chain33/chain33/common/address"
-
-	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -25,6 +23,9 @@ var (
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(ManageX))
 	types.RegistorExecutor(ManageX, NewType())
+
+	types.RegisterDappFork(ManageX, "Enable", 120000)
+	types.RegisterDappFork(ManageX, "ForkManageExec", 400000)
 }
 
 type ManageType struct {

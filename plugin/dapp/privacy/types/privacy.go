@@ -55,6 +55,7 @@ func init() {
 	// init executor type
 	types.AllowUserExec = append(types.AllowUserExec, []byte(PrivacyX))
 	types.RegistorExecutor(PrivacyX, NewType())
+	types.RegisterDappFork(PrivacyX, "Enable", 980000)
 }
 
 type PrivacyType struct {
