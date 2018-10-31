@@ -21,6 +21,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
@@ -184,6 +185,11 @@ func (mock *Chain33Mock) GetRPC() *rpc.RPC {
 
 func (mock *Chain33Mock) GetCfg() *types.Config {
 	return mock.cfg
+}
+
+func (this *Chain33Mock) CreateJRPCClient() (*jsonclient.JSONClient, error) {
+	rpcCfg := this.GetCfg().Rpc
+	return jsonclient.NewJSONClient(fmt.Sprintf("http://%s/", rpcCfg.JrpcBindAddr))
 }
 
 func (mock *Chain33Mock) Close() {
