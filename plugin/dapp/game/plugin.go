@@ -5,7 +5,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/game/executor"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func init() {
@@ -16,5 +15,4 @@ func init() {
 		Cmd:      commands.Cmd,
 		RPC:      nil,
 	})
-	types.RegisterDappFork(gt.GameX, "Enable", 0)
 }
