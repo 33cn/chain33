@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -17,6 +18,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
@@ -31,11 +33,14 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	log.SetLogLevel("error")
+	log.SetLogLevel("info")
 }
+
+var lognode = log15.New("module", "lognode")
 
 type Chain33Mock struct {
 	random  *rand.Rand
+	q       queue.Queue
 	client  queue.Client
 	api     client.QueueProtocolAPI
 	chain   *blockchain.BlockChain
@@ -54,27 +59,37 @@ func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
 }
 
 func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	q := queue.New("channel")
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
+	return newWithConfig(cfg, sub, mockapi)
+}
+
+func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	q := queue.New("channel")
 	types.Debug = false
-	mock := &Chain33Mock{cfg: cfg}
+	mock := &Chain33Mock{cfg: cfg, q: q}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
-	mock.chain = blockchain.New(cfg.BlockChain)
-	mock.chain.SetQueueClient(q.Client())
 
 	mock.exec = executor.New(cfg.Exec, sub.Exec)
 	mock.exec.SetQueueClient(q.Client())
 	types.SetMinFee(cfg.Exec.MinExecFee)
+	lognode.Info("init exec")
 
 	mock.store = store.New(cfg.Store, sub.Store)
 	mock.store.SetQueueClient(q.Client())
+	lognode.Info("init store")
+
+	mock.chain = blockchain.New(cfg.BlockChain)
+	mock.chain.SetQueueClient(q.Client())
+	lognode.Info("init blockchain")
 
 	mock.cs = consensus.New(cfg.Consensus, sub.Consensus)
 	mock.cs.SetQueueClient(q.Client())
+	lognode.Info("init consensus " + cfg.Consensus.Name)
 
 	mock.mem = mempool.New(cfg.MemPool)
 	mock.mem.SetQueueClient(q.Client())
+	lognode.Info("init mempool")
 
 	if cfg.P2P.Enable {
 		mock.network = p2p.New(cfg.P2P)
@@ -83,13 +98,13 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 		mock.network = &mockP2P{}
 		mock.network.SetQueueClient(q.Client())
 	}
-
+	lognode.Info("init P2P")
 	cli := q.Client()
 	w := wallet.New(cfg.Wallet, sub.Wallet)
 	mock.client = cli
 	mock.wallet = w
 	mock.wallet.SetQueueClient(cli)
-
+	lognode.Info("init wallet")
 	if mockapi == nil {
 		mockapi, _ = client.New(q.Client(), nil)
 		newWalletRealize(mockapi)
@@ -106,15 +121,20 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	var cfg *types.Config
 	var sub *types.ConfigSubModule
-	if cfgpath == "" {
+	if cfgpath == "" || cfgpath == "--notset--" {
 		cfg, sub = config.InitCfgString(cfgstring)
 	} else {
 		cfg, sub = config.InitCfg(cfgpath)
 	}
-	return NewWithConfig(cfg, sub, mockapi)
+	if cfgpath != "--notset--" {
+		return NewWithConfig(cfg, sub, mockapi)
+	} else {
+		return newWithConfig(cfg, sub, mockapi)
+	}
 }
 
 func (m *Chain33Mock) Listen() {
+	pluginmgr.AddRPC(m.rpc)
 	portgrpc, portjsonrpc := m.rpc.Listen()
 	if strings.HasSuffix(m.cfg.Rpc.JrpcBindAddr, ":0") {
 		l := len(m.cfg.Rpc.JrpcBindAddr)
@@ -124,6 +144,10 @@ func (m *Chain33Mock) Listen() {
 		l := len(m.cfg.Rpc.GrpcBindAddr)
 		m.cfg.Rpc.GrpcBindAddr = m.cfg.Rpc.GrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portgrpc)
 	}
+}
+
+func (m *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
+	return m.chain
 }
 
 func newWalletRealize(qApi client.QueueProtocolAPI) {
@@ -228,8 +252,9 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.PeerList{}))
 			case types.EventGetNetInfo:
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.NodeNetInfo{}))
+			case types.EventTxBroadcast, types.EventBlockBroadcast:
 			default:
-				msg.ReplyErr("Do not support", types.ErrNotSupport)
+				msg.ReplyErr("p2p->Do not support "+types.GetEventName(int(msg.Ty)), types.ErrNotSupport)
 			}
 		}
 	}()

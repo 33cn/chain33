@@ -54,11 +54,6 @@ func (policy *privacyPolicy) getWalletOperate() wcom.WalletOperate {
 func (policy *privacyPolicy) Init(walletOperate wcom.WalletOperate, sub []byte) {
 	policy.setWalletOperate(walletOperate)
 	policy.store = NewStore(walletOperate.GetDBStore())
-	version := policy.store.getVersion()
-	if version < PRIVACYDBVERSION {
-		policy.rescanAllTxAddToUpdateUTXOs()
-		policy.store.setVersion()
-	}
 	// 启动定时检查超期FTXO的协程
 	walletOperate.GetWaitGroup().Add(1)
 	go policy.checkWalletStoreData()
@@ -86,6 +81,14 @@ func (policy *privacyPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
 
 func (policy *privacyPolicy) OnClose() {
 
+}
+
+func (this *privacyPolicy) OnSetQueueClient() {
+	version := this.store.getVersion()
+	if version < PRIVACYDBVERSION {
+		this.rescanAllTxAddToUpdateUTXOs()
+		this.store.setVersion()
+	}
 }
 
 func (policy *privacyPolicy) OnWalletLocked() {

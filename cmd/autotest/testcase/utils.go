@@ -71,19 +71,22 @@ func isBalanceEqualFloat(f1 float64, f2 float64) bool {
 	}
 }
 
+func checkTxHashValid(txHash string) bool {
+
+	return len(txHash) == 66 && strings.HasPrefix(txHash, "0x")
+}
+
 //excute
 func sendTxCommand(cmd string) (string, bool) {
 
 	output, err := runChain33Cli(strings.Fields(cmd))
-	bSuccess := true
 	if err != nil {
-		bSuccess = false
-		output = err.Error()
+		return err.Error(), false
 	} else {
 		output = output[0 : len(output)-1]
 	}
 
-	return output, bSuccess
+	return output, checkTxHashValid(output)
 }
 
 //隐私交易执行回执哈希为json格式，需要解析
@@ -107,11 +110,11 @@ func sendPrivacyTxCommand(cmd string) (string, bool) {
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal([]byte(output), &jsonMap)
 	if err != nil {
-		return fmt.Sprintf("JsonUnmarshalPrivacyTxHashFailed:%s", output), false
+		return output, false
 	}
 	output = jsonMap["hash"].(string)
 
-	return output, true
+	return output, checkTxHashValid(output)
 }
 
 //get tx query -s txHash

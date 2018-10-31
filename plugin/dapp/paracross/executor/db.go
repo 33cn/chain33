@@ -58,11 +58,11 @@ func GetBlock(api client.QueueProtocolAPI, blockHash []byte) (*types.BlockDetail
 	}
 	if len(blockDetails.Items) != 1 {
 		clog.Error("paracross.Commit getBlockHeader", "len in not 1", len(blockDetails.Items))
-		return nil, types.ErrParaBlockHashNoMatch
+		return nil, pt.ErrParaBlockHashNoMatch
 	}
 	if blockDetails.Items[0] == nil {
 		clog.Error("paracross.Commit getBlockHeader", "commit tx hash net found", common.Bytes2Hex(blockHash))
-		return nil, types.ErrParaBlockHashNoMatch
+		return nil, pt.ErrParaBlockHashNoMatch
 	}
 	return blockDetails.Items[0], nil
 }
@@ -93,11 +93,11 @@ func GetTx(api client.QueueProtocolAPI, txHash []byte) (*types.TransactionDetail
 	}
 	if len(txs.Txs) != 1 {
 		clog.Error("paracross.Commit GetTx", "len in not 1", len(txs.Txs))
-		return nil, types.ErrParaBlockHashNoMatch
+		return nil, pt.ErrParaBlockHashNoMatch
 	}
 	if txs.Txs == nil {
 		clog.Error("paracross.Commit GetTx", "commit tx hash net found", common.Bytes2Hex(txHash))
-		return nil, types.ErrParaBlockHashNoMatch
+		return nil, pt.ErrParaBlockHashNoMatch
 	}
 	return txs.Txs[0], nil
 }

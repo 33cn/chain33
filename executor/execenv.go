@@ -413,5 +413,5 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
 	realExecer := execute.getRealExecName(tx, index)
 	height := execute.height
-	return isAllowExec(key, realExecer, tx, height)
+	return isAllowKeyWrite(key, realExecer, tx, height)
 }
