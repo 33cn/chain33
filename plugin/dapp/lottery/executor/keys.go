@@ -28,6 +28,6 @@ func calcLotteryDrawKey(lotteryId string, round int64) []byte {
 }
 
 func calcLotteryKey(lotteryId string, status int32) []byte {
-	key := fmt.Sprintf("LODB-lottery:%d:%s", status, lotteryId)
+	key := fmt.Sprintf("LODB-lottery-:%d:%s", status, lotteryId)
 	return []byte(key)
 }
