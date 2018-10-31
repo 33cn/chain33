@@ -47,7 +47,7 @@ func TestFinishCreateToken(t *testing.T) {
 	addrfrom := address.PubKeyToAddress(priv.PubKey().Bytes())
 	t.Log(addrfrom)
 
-	v := &tokenty.TokenAction_Tokenfinishcreate{&tokenty.TokenFinishCreate{
+	v := &tokenty.TokenAction_TokenFinishCreate{&tokenty.TokenFinishCreate{
 		"GOOD",
 		"1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"}}
 
