@@ -54,8 +54,8 @@ var mapSignName2Type = map[string]int{
 func init() {
 	// init executor type
 	types.AllowUserExec = append(types.AllowUserExec, []byte(PrivacyX))
-	types.SetDappFork("chain33", PrivacyX, "ForkV21Privacy", 980000)
 	types.RegistorExecutor(PrivacyX, NewType())
+	types.RegisterDappFork(PrivacyX, "Enable", 980000)
 }
 
 type PrivacyType struct {

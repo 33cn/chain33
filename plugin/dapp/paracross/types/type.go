@@ -36,6 +36,7 @@ func init() {
 	// init executor type
 	types.AllowUserExec = append(types.AllowUserExec, []byte(ParaX))
 	types.RegistorExecutor(ParaX, NewType())
+	types.RegisterDappFork(ParaX, "Enable", 0)
 }
 
 func GetExecName() string {

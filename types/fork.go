@@ -191,17 +191,11 @@ func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkV14TxGroup", 408400)
 	systemFork.SetFork("chain33", "ForkV15ResetTx0", 453400)
 	systemFork.SetFork("chain33", "ForkV16Withdraw", 480000)
-	systemFork.SetFork("chain33", "ForkV17EVM", 500000)
-	systemFork.SetFork("chain33", "ForkV18Relay", 570000)
 	systemFork.SetFork("chain33", "ForkV19TokenPrice", 560000)
-	systemFork.SetFork("chain33", "ForkV20EVMState", 650000)
 	systemFork.SetFork("chain33", "ForkV21Privacy", 980000)
 	systemFork.SetFork("chain33", "ForkV22ExecRollback", 706531)
 	systemFork.SetFork("chain33", "ForkV23TxHeight", 806578)
 	systemFork.SetFork("chain33", "ForkV24TxGroupPara", 806578)
-	systemFork.SetFork("chain33", "ForkV25BlackWhite", 850000)
-	systemFork.SetFork("chain33", "ForkV25BlackWhiteV2", 900000)
-	systemFork.SetFork("chain33", "ForkV26EVMKVHash", 1000000)
 	systemFork.SetFork("chain33", "ForkV27TradeAsset", 1010000)
 }
 
@@ -230,6 +224,10 @@ func GetDappFork(dapp, fork string) int64 {
 
 func SetDappFork(title, dapp, fork string, height int64) {
 	systemFork.SetDappFork(title, dapp, fork, height)
+}
+
+func RegisterDappFork(dapp, fork string, height int64) {
+	systemFork.SetDappFork("chain33", dapp, fork, height)
 }
 
 func GetFork(fork string) int64 {

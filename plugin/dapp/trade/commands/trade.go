@@ -474,7 +474,7 @@ func tokenSell(cmd *cobra.Command, args []string) {
 		PricePerBoardlot:  priceInt64 * 1e4,
 		TotalBoardlot:     totalInt64,
 		Fee:               feeInt64 * 1e4,
-		AssetExec:         types.TokenX,
+		AssetExec:         "token",
 	}
 
 	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "trade.CreateRawTradeSellTx", params, nil)

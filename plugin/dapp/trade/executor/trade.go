@@ -22,7 +22,7 @@ import (
 
 var (
 	tradelog         = log.New("module", "execs.trade")
-	defaultAssetExec = types.TokenX
+	defaultAssetExec = "token"
 	driverName       = "trade"
 )
 

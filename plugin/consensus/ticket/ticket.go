@@ -603,7 +603,7 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 
 func (client *Client) CreateBlock() {
 	for {
-		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.GetForceMining()) {
+		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.ForceMining) {
 			tlog.Debug("createblock.ismining is disable or client is caughtup is false")
 			time.Sleep(time.Second)
 			continue
