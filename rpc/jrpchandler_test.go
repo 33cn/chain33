@@ -392,7 +392,7 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 		IsWithdraw:  false,
 		IsToken:     true,
 		TokenSymbol: "CNY",
-		ExecName:    types.ExecName(types.TokenX),
+		ExecName:    types.ExecName("token"),
 	}
 
 	err = testChain33.CreateRawTransaction(tx, &testResult)
@@ -583,7 +583,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	}
 	payload := types.Encode(act)
 	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName(types.TicketX)),
+		Execer:  []byte(types.ExecName("ticket")),
 		Payload: payload,
 	}
 
@@ -1225,12 +1225,12 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrExecNameNotAllow, err)
 
-	in = &rpctypes.CreateTxIn{Execer: types.ExecName(types.TokenX), ActionName: "notExist", Payload: []byte("x")}
+	in = &rpctypes.CreateTxIn{Execer: types.ExecName("token"), ActionName: "notExist", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrActionNotSupport, err)
 
 	in = &rpctypes.CreateTxIn{
-		Execer:     types.ExecName(types.TokenX),
+		Execer:     types.ExecName("token"),
 		ActionName: "Tokenfinishcreate",
 		Payload:    []byte("{\"symbol\": \"TOKEN\", \"owner\":\"string\"}"),
 	}

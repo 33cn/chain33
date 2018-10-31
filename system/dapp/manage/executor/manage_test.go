@@ -52,9 +52,7 @@ func init() {
 	go func() {
 		http.ListenAndServe("localhost:6060", nil)
 	}()
-	types.SetTitle("local")
-	types.SetForkToOne()
-	types.SetTestNet(true)
+	types.Init("local", nil)
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
