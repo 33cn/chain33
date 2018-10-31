@@ -45,7 +45,7 @@ func TestJRPCChannel(t *testing.T) {
 		{fn: testShowTokenBuyOrdersStatusCmd},
 		{fn: testShowOnesOrdersStatusCmd},
 	}
-	for _, testCase := range testCases {
+	for index, testCase := range testCases {
 		err := testCase.fn(t, jrpcClient)
 		if err == nil {
 			continue
