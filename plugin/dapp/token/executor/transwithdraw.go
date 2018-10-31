@@ -20,7 +20,7 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 		return accountDB.Transfer(from, tx.GetRealToAddr(), transfer.Amount)
 	} else if (action.Ty == tokenty.ActionWithdraw) && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
-		if types.IsDappFork(t.GetHeight(), tokenty.TokenX, "ForkWithdraw") {
+		if types.IsFork(t.GetHeight(), "ForkWithdraw") {
 			withdraw.ExecName = ""
 		}
 		from := tx.From()
@@ -40,7 +40,7 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 			return nil, types.ErrReRunGenesis
 		}
 	} else if action.Ty == tokenty.TokenActionTransferToExec && action.GetTransferToExec() != nil {
-		if !types.IsDappFork(t.GetHeight(), tokenty.TokenX, "ForkTransferExec") {
+		if !types.IsFork(t.GetHeight(), "ForkTransferExec") {
 			return nil, types.ErrActionNotSupport
 		}
 		transfer := action.GetTransferToExec()

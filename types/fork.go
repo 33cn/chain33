@@ -14,7 +14,6 @@ func init() {
 	//先要初始化
 	SetTestNetFork()
 	SetBityuanFork()
-	SetLocalFork()
 }
 
 type Forks struct {
@@ -79,6 +78,9 @@ func (f *Forks) setFork(title, key string, height int64) {
 func (f *Forks) GetFork(title, key string) int64 {
 	forkitem, ok := f.forks[title]
 	if !ok {
+		if title == "local" {
+			panic("key not exisit -> " + key)
+		}
 		return MaxHeight
 	}
 	height, ok := forkitem[key]
@@ -108,9 +110,13 @@ func (f *Forks) Clone(from, to string) error {
 	return nil
 }
 
-func (f *Forks) CloneZero(from, to string) {
-	f.Clone(from, to)
+func (f *Forks) CloneZero(from, to string) error {
+	err := f.Clone(from, to)
+	if err != nil {
+		return err
+	}
 	f.SetAllFork(to, 0)
+	return nil
 }
 
 func (f *Forks) CloneMaxHeight(from, to string) {
@@ -138,7 +144,6 @@ func (f *Forks) GetAll(title string) map[string]int64 {
 
 func (f *Forks) IsFork(title string, height int64, fork string) bool {
 	ifork := f.GetFork(title, fork)
-	//fork 不存在，默认跑最新代码，这样只要不设置就跑最新代码
 	if height == -1 || height >= ifork {
 		return true
 	}
@@ -153,54 +158,35 @@ func (f *Forks) IsDappFork(title string, height int64, dapp, fork string) bool {
 func SetBityuanFork() {
 	systemFork.CloneZero("chain33", "bityuan")
 	systemFork.ReplaceFork("bityuan", "ForkBlockHash", 1)
-	systemFork.ReplaceFork("bityuan", "ForkV11ManageExec", 100000)
-	systemFork.ReplaceFork("bityuan", "ForkV12TransferExec", 100000)
-	systemFork.ReplaceFork("bityuan", "ForkV13ExecKey", 200000)
-	systemFork.ReplaceFork("bityuan", "ForkV14TxGroup", 200000)
-	systemFork.ReplaceFork("bityuan", "ForkV15ResetTx0", 200000)
-	systemFork.ReplaceFork("bityuan", "ForkV16Withdraw", 200000)
-	systemFork.ReplaceFork("bityuan", "ForkV17EVM", 250000)
-	systemFork.ReplaceFork("bityuan", "ForkV18Relay", 500000)
-	systemFork.ReplaceFork("bityuan", "ForkV19TokenPrice", 300000)
-	systemFork.ReplaceFork("bityuan", "ForkV20EVMState", 350000)
-	systemFork.ReplaceFork("bityuan", "ForkV21Privacy", MaxHeight)
-	systemFork.ReplaceFork("bityuan", "ForkV22ExecRollback", 450000)
-	systemFork.ReplaceFork("bityuan", "ForkV23TxHeight", MaxHeight)
-	systemFork.ReplaceFork("bityuan", "ForkV24TxGroupPara", MaxHeight)
-	systemFork.ReplaceFork("bityuan", "ForkV25BlackWhite", MaxHeight)
-	systemFork.ReplaceFork("bityuan", "ForkV25BlackWhiteV2", MaxHeight)
-	systemFork.ReplaceFork("bityuan", "ForkV26EVMKVHash", MaxHeight)
-	systemFork.ReplaceFork("bityuan", "ForkV27TradeAsset", MaxHeight)
+	systemFork.ReplaceFork("bityuan", "ForkTransferExec", 100000)
+	systemFork.ReplaceFork("bityuan", "ForkExecKey", 200000)
+	systemFork.ReplaceFork("bityuan", "ForkTxGroup", 200000)
+	systemFork.ReplaceFork("bityuan", "ForkResetTx0", 200000)
+	systemFork.ReplaceFork("bityuan", "ForkWithdraw", 200000)
+	systemFork.ReplaceFork("bityuan", "ForkExecRollback", 450000)
+	systemFork.ReplaceFork("bityuan", "ForkTxHeight", MaxHeight)
+	systemFork.ReplaceFork("bityuan", "ForkTxGroupPara", MaxHeight)
 }
 
 //bityuan test net fork
 func SetTestNetFork() {
-	systemFork.SetFork("chain33", "ForkV1", 75260)
-	systemFork.SetFork("chain33", "ForkV2AddToken", 100899)
-	systemFork.SetFork("chain33", "ForkV3", 110000)
-	systemFork.SetFork("chain33", "ForkV4AddManage", 120000)
-	systemFork.SetFork("chain33", "ForkV5Retrive", 180000)
-	systemFork.SetFork("chain33", "ForkV6TokenBlackList", 190000)
-	systemFork.SetFork("chain33", "ForkV7BadTokenSymbol", 184000)
-	systemFork.SetFork("chain33", "ForkBlockHash", 208986+200)
-	systemFork.SetFork("chain33", "ForkV9", 350000)
-	systemFork.SetFork("chain33", "ForkV10TradeBuyLimit", 301000)
-	systemFork.SetFork("chain33", "ForkV11ManageExec", 400000)
-	systemFork.SetFork("chain33", "ForkV12TransferExec", 408400)
-	systemFork.SetFork("chain33", "ForkV13ExecKey", 408400)
-	systemFork.SetFork("chain33", "ForkV14TxGroup", 408400)
-	systemFork.SetFork("chain33", "ForkV15ResetTx0", 453400)
-	systemFork.SetFork("chain33", "ForkV16Withdraw", 480000)
-	systemFork.SetFork("chain33", "ForkV19TokenPrice", 560000)
-	systemFork.SetFork("chain33", "ForkV21Privacy", 980000)
-	systemFork.SetFork("chain33", "ForkV22ExecRollback", 706531)
-	systemFork.SetFork("chain33", "ForkV23TxHeight", 806578)
-	systemFork.SetFork("chain33", "ForkV24TxGroupPara", 806578)
-	systemFork.SetFork("chain33", "ForkV27TradeAsset", 1010000)
+	systemFork.SetFork("chain33", "ForkChainParamV1", 110000)
+	systemFork.SetFork("chain33", "ForkBlockHash", 209186)
+	systemFork.SetFork("chain33", "ForkTransferExec", 408400)
+	systemFork.SetFork("chain33", "ForkExecKey", 408400)
+	systemFork.SetFork("chain33", "ForkWithdraw", 480000)
+	systemFork.SetFork("chain33", "ForkTxGroup", 408400)
+	systemFork.SetFork("chain33", "ForkResetTx0", 453400)
+	systemFork.SetFork("chain33", "ForkExecRollback", 706531)
+	systemFork.SetFork("chain33", "ForkTxHeight", 806578)
+	systemFork.SetFork("chain33", "ForkTxGroupPara", 806578)
 }
 
 func SetLocalFork() {
-	systemFork.CloneZero("chain33", "local")
+	err := systemFork.CloneZero("chain33", "local")
+	if err != nil {
+		panic(err)
+	}
 	systemFork.ReplaceFork("local", "ForkBlockHash", 1)
 }
 

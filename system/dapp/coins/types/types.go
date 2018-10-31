@@ -26,6 +26,7 @@ var (
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerCoins)
 	types.RegistorExecutor("coins", NewType())
+	types.RegisterDappFork(CoinsX, "Enable", 0)
 }
 
 type CoinsType struct {

@@ -3,7 +3,6 @@ package executor
 import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -17,7 +16,7 @@ func (c *Coins) Exec_Transfer(transfer *types.AssetsTransfer, tx *types.Transact
 }
 
 func (c *Coins) Exec_TransferToExec(transfer *types.AssetsTransferToExec, tx *types.Transaction, index int) (*types.Receipt, error) {
-	if !types.IsDappFork(c.GetHeight(), cty.CoinsX, "ForkTransferExec") {
+	if !types.IsFork(c.GetHeight(), "ForkTransferExec") {
 		return nil, types.ErrActionNotSupport
 	}
 	from := tx.From()
@@ -29,7 +28,7 @@ func (c *Coins) Exec_TransferToExec(transfer *types.AssetsTransferToExec, tx *ty
 }
 
 func (c *Coins) Exec_Withdraw(withdraw *types.AssetsWithdraw, tx *types.Transaction, index int) (*types.Receipt, error) {
-	if !types.IsDappFork(c.GetHeight(), cty.CoinsX, "ForkWithdraw") {
+	if !types.IsFork(c.GetHeight(), "ForkWithdraw") {
 		withdraw.ExecName = ""
 	}
 	from := tx.From()
