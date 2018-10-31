@@ -217,7 +217,7 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 	receipts[0], err = execute.execTxOne(feelog, txs[0], index)
 	if err != nil {
 		//状态数据库回滚
-		if types.IsMatchFork(execute.height, types.ForkV22ExecRollback) {
+		if types.IsFork(execute.height, "ForkExecRollback") {
 			execute.stateDB.Rollback()
 		}
 		return receipts, nil
@@ -231,7 +231,7 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 				receipts[k] = &types.Receipt{Ty: types.ExecPack}
 			}
 			//撤销txs[0]的交易
-			if types.IsMatchFork(execute.height, types.ForkV15ResetTx0) {
+			if types.IsFork(execute.height, "ForkResetTx0") {
 				receipts[0] = rollbackLog
 			}
 			//撤销所有的数据库更新
@@ -383,7 +383,7 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 		return nil, err
 	}
 	//ignore err
-	matchfork := types.IsMatchFork(execute.height, types.ForkV22ExecRollback)
+	matchfork := types.IsFork(execute.height, "ForkExecRollback")
 	if matchfork {
 		execute.stateDB.Begin()
 	}

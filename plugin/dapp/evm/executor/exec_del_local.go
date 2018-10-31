@@ -14,7 +14,7 @@ func (evm *EVMExecutor) ExecDelLocal(tx *types.Transaction, receipt *types.Recei
 		return set, nil
 	}
 
-	if types.IsMatchFork(evm.GetHeight(), types.ForkV20EVMState) {
+	if types.IsDappFork(evm.GetHeight(), "evm", "ForkEVMState") {
 		// 需要将Exec中生成的合约状态变更信息从localdb中恢复
 		for _, logItem := range receipt.Logs {
 			if evmtypes.TyLogEVMStateChangeItem == logItem.Ty {

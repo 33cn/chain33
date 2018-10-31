@@ -218,7 +218,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	// 从ForkV20EVMState开始，状态数据存储发生变更，需要做数据迁移
-	if types.IsMatchFork(evm.BlockNumber.Int64(), types.ForkV20EVMState) {
+	if types.IsDappFork(evm.BlockNumber.Int64(), "evm", "ForkEVMState") {
 		evm.StateDB.TransferStateData(addr.String())
 	}
 

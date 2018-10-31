@@ -23,11 +23,11 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 	// 历史原因做只针对对bityuan的fork特殊化处理一下
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
-	if !types.IsMatchFork(height, types.ForkV13ExecKey) {
-		if bytes.Equal(exec, types.ExecerManage) && bytes.Equal(keyExecer, types.ExecerConfig) {
+	if !types.IsFork(height, "ForkExecKey") {
+		if bytes.Equal(exec, []byte("manage")) && bytes.Equal(keyExecer, []byte("config")) {
 			return true
 		}
-		if bytes.Equal(exec, types.ExecerToken) {
+		if bytes.Equal(exec, []byte("token")) {
 			if bytes.HasPrefix(key, []byte("mavl-create-token-")) {
 				return true
 			}
