@@ -60,3 +60,8 @@ message TicketMinerInfo {
     int64  minerValue   = 8;
     string minerAddress = 9;
 }
+
+message TotalAmount {
+    // 统计的总数
+    int64 total = 1;
+}

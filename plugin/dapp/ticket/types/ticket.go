@@ -30,6 +30,7 @@ const (
 var TicketX = types.TicketX
 
 func init() {
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.TicketX))
 	types.RegistorExecutor(TicketX, NewType())
 }
 

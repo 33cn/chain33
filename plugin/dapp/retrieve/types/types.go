@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -20,6 +21,14 @@ func NewType() *RetrieveType {
 	c := &RetrieveType{}
 	c.SetChild(c)
 	return c
+}
+
+//GetRealToAddr，避免老的，没有To字段的交易分叉
+func (r RetrieveType) GetRealToAddr(tx *types.Transaction) string {
+	if len(tx.To) == 0 {
+		return address.ExecAddress(string(tx.Execer))
+	}
+	return tx.To
 }
 
 func (at *RetrieveType) GetPayload() types.Message {

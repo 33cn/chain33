@@ -83,7 +83,7 @@ func (t *token) ExecLocal_TransferToExec(payload *types.AssetsTransferToExec, tx
 func (t *token) ExecLocal_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	localToken := newLocalToken(payload)
 	localToken = setPrepare(localToken, tx.From(), t.GetHeight(), t.GetBlockTime())
-	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
+	key := calcTokenStatusNewKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
 
 	var set []*types.KeyValue
 	set = append(set, &types.KeyValue{Key: key, Value: types.Encode(localToken)})
@@ -91,13 +91,13 @@ func (t *token) ExecLocal_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *ty
 }
 
 func (t *token) ExecLocal_TokenFinishCreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	prepareKey := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
+	prepareKey := calcTokenStatusNewKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
 	localToken, err := loadLocalToken(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated, t.GetLocalDB())
 	if err != nil {
 		return nil, err
 	}
 	localToken = setCreated(localToken, t.GetHeight(), t.GetBlockTime())
-	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusCreated)
+	key := calcTokenStatusNewKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusCreated)
 	var set []*types.KeyValue
 	set = append(set, &types.KeyValue{Key: prepareKey, Value: nil})
 	set = append(set, &types.KeyValue{Key: key, Value: types.Encode(localToken)})
@@ -107,13 +107,13 @@ func (t *token) ExecLocal_TokenFinishCreate(payload *tokenty.TokenFinishCreate, 
 }
 
 func (t *token) ExecLocal_TokenRevokeCreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	prepareKey := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
+	prepareKey := calcTokenStatusNewKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
 	localToken, err := loadLocalToken(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated, t.GetLocalDB())
 	if err != nil {
 		return nil, err
 	}
 	localToken = setRevoked(localToken, t.GetHeight(), t.GetBlockTime())
-	key := calcTokenStatusNewKey(payload.Symbol, payload.Owner, tokenty.TokenStatusCreateRevoked)
+	key := calcTokenStatusNewKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusCreateRevoked)
 	var set []*types.KeyValue
 	set = append(set, &types.KeyValue{Key: prepareKey, Value: nil})
 	set = append(set, &types.KeyValue{Key: key, Value: types.Encode(localToken)})
@@ -150,7 +150,7 @@ func setPrepare(t *tokenty.LocalToken, creator string, height, time int64) *toke
 }
 
 func loadLocalToken(symbol, owner string, status int32, db db.KVDB) (*tokenty.LocalToken, error) {
-	key := calcTokenStatusNewKey(symbol, owner, status)
+	key := calcTokenStatusNewKeyLocal(symbol, owner, status)
 	v, err := db.Get(key)
 	if err != nil {
 		return nil, err

@@ -23,7 +23,7 @@ func (e *Paracross) ExecDelLocal_Commit(payload *pt.ParacrossCommitAction, tx *t
 			key := calcLocalTitleKey(g.Title)
 			set.KV = append(set.KV, &types.KeyValue{key, types.Encode(&g)})
 
-			key = calcTitleHeightKey(g.Title, g.Height)
+			key = calcLocalHeightKey(g.Title, g.Height)
 			set.KV = append(set.KV, &types.KeyValue{key, nil})
 
 			r, err := e.saveLocalParaTxs(tx, true)
@@ -63,7 +63,7 @@ func (e *Paracross) ExecDelLocal_AssetWithdraw(payload *types.AssetsWithdraw, tx
 
 func (e *Paracross) ExecDelLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	if index != 0 {
-		return nil, types.ErrParaMinerBaseIndex
+		return nil, pt.ErrParaMinerBaseIndex
 	}
 
 	var set types.LocalDBSet

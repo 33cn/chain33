@@ -40,10 +40,15 @@ func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC
 	c.SetChild(client)
 	return client
 }
+
+func (client *RaftClient) GetGenesisBlockTime() int64 {
+	return genesisBlockTime
+}
+
 func (client *RaftClient) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
 	tx.Execer = []byte(types.CoinsX)
-	tx.To = client.Cfg.Genesis
+	tx.To = genesis
 	//gen payload
 	g := &cty.CoinsAction_Genesis{}
 	g.Genesis = &types.AssetsGenesis{}
@@ -89,35 +94,6 @@ func (client *RaftClient) Close() {
 	rlog.Info("consensus raft closed")
 }
 
-func (client *RaftClient) InitBlock() {
-	block, err := client.RequestLastBlock()
-	if err != nil {
-		panic(err)
-	}
-	if block == nil {
-		// 创世区块
-		newblock := &types.Block{}
-		newblock.Height = 0
-		newblock.BlockTime = client.Cfg.GenesisBlockTime
-		newblock.ParentHash = zeroHash[:]
-		tx := client.CreateGenesisTx()
-		newblock.Txs = tx
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		err := client.WriteBlock(zeroHash[:], newblock)
-		if err != nil {
-			rlog.Error(fmt.Sprintf("chain33 init block failed: %v", err.Error()))
-			return
-		}
-		client.SetCurrentBlock(newblock)
-	} else {
-		block, err := client.RequestBlock(block.GetHeight())
-		if err != nil {
-			panic(err)
-		}
-		client.SetCurrentBlock(block)
-	}
-}
-
 func (client *RaftClient) CreateBlock() {
 	issleep := true
 	retry := 0
@@ -125,14 +101,13 @@ func (client *RaftClient) CreateBlock() {
 	count := 0
 
 	//打包区块前先同步到最大高度
-	time.Sleep(1 * time.Second)
 	for {
 		if client.IsCaughtUp() {
 			rlog.Info("Leader has caught up the max height")
 			break
 		}
-		retry++
 		time.Sleep(time.Second)
+		retry++
 		if retry >= 600 {
 			panic("This node encounter problem, exit.")
 		}
@@ -251,10 +226,6 @@ func (client *RaftClient) pollingTask(c queue.Client) {
 				rlog.Debug("================I'm not the validator node!=============")
 				isLeader = false
 			} else if ok && !isLeader && value {
-				client.once.Do(
-					func() {
-						client.InitMiner()
-					})
 				isLeader = true
 				go client.CreateBlock()
 			} else if !ok {

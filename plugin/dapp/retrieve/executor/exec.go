@@ -8,7 +8,7 @@ import (
 func (c *Retrieve) Exec_Backup(backup *rt.BackupRetrieve, tx *types.Transaction, index int) (*types.Receipt, error) {
 	actiondb := NewRetrieveAcction(c, tx)
 	if backup.DelayPeriod < minPeriod {
-		return nil, types.ErrRetrievePeriodLimit
+		return nil, rt.ErrRetrievePeriodLimit
 	}
 	rlog.Debug("RetrieveBackup action")
 	return actiondb.RetrieveBackup(backup)

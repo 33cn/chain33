@@ -1,13 +1,14 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"encoding/json"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	context "golang.org/x/net/context"
+	"golang.org/x/net/context"
 )
 
 // 显示指定地址的公钥对信息，可以作为后续交易参数
@@ -73,6 +74,14 @@ func (g *channelClient) EnablePrivacy(ctx context.Context, in *pty.ReqEnablePriv
 	return data.(*pty.RepEnablePrivacy), nil
 }
 
+func (g *channelClient) CreateRawTransaction(ctx context.Context, in *types.ReqCreateTransaction) (*types.Transaction, error) {
+	data, err := g.ExecWalletFunc(pty.PrivacyX, "CreateTransaction", in)
+	if err != nil {
+		return nil, err
+	}
+	return data.(*types.Transaction), nil
+}
+
 func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *json.RawMessage) error {
 	reply, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountInfo", in)
 	if err != nil {
@@ -83,26 +92,26 @@ func (c *Jrpc) ShowPrivacyAccountInfo(in *pty.ReqPPrivacyAccount, result *json.R
 }
 
 /////////////////privacy///////////////
-func (c *Jrpc) ShowPrivacyAccountSpend(in *pty.ReqPrivBal4AddrToken, result *interface{}) error {
+func (c *Jrpc) ShowPrivacyAccountSpend(in *pty.ReqPrivBal4AddrToken, result *json.RawMessage) error {
 	if 0 == len(in.Addr) {
 		return types.ErrInvalidParam
 	}
-	account, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountSpend", in)
+	reply, err := c.cli.ExecWalletFunc(pty.PrivacyX, "ShowPrivacyAccountSpend", in)
 	if err != nil {
 		log.Info("ShowPrivacyAccountSpend", "return err info", err)
 		return err
 	}
-	*result = account
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
 }
 
-func (c *Jrpc) ShowPrivacykey(in *types.ReqString, result *interface{}) error {
+func (c *Jrpc) ShowPrivacykey(in *types.ReqString, result *json.RawMessage) error {
 	reply, err := c.cli.ShowPrivacyKey(context.Background(), in)
 	if err != nil {
 		return err
 	}
-	*result = reply
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
 }
 
 func (c *Jrpc) MakeTxPublic2privacy(in *pty.ReqPub2Pri, result *interface{}) error {
@@ -165,20 +174,30 @@ func (c *Jrpc) PrivacyTxList(in *pty.ReqPrivacyTransactionList, result *interfac
 	return nil
 }
 
-func (c *Jrpc) RescanUtxos(in *pty.ReqRescanUtxos, result *interface{}) error {
+func (c *Jrpc) RescanUtxos(in *pty.ReqRescanUtxos, result *json.RawMessage) error {
 	reply, err := c.cli.RescanUtxos(context.Background(), in)
 	if err != nil {
 		return err
 	}
-	*result = reply
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
 }
 
-func (c *Jrpc) EnablePrivacy(in *pty.ReqEnablePrivacy, result *interface{}) error {
+func (c *Jrpc) EnablePrivacy(in *pty.ReqEnablePrivacy, result *json.RawMessage) error {
 	reply, err := c.cli.EnablePrivacy(context.Background(), in)
 	if err != nil {
 		return err
 	}
-	*result = reply
-	return nil
+	*result, err = types.PBToJson(reply)
+	return err
+}
+
+func (this *Jrpc) CreateRawTransaction(in *types.ReqCreateTransaction, result *interface{}) error {
+	reply, err := this.cli.CreateRawTransaction(context.Background(), in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(types.Encode(reply))
+	return err
 }
