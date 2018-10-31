@@ -147,9 +147,9 @@ message HexTx {
 }
 
 message ReplyTxInfo {
-    bytes hash   = 1;
-    int64 height = 2;
-    int64 index  = 3;
+    bytes    hash         = 1;
+    int64    height       = 2;
+    int64    index        = 3;
     repeated Asset assets = 4;
 }
 
