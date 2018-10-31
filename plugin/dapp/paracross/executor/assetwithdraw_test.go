@@ -85,7 +85,7 @@ func (suite *AssetWithdrawTestSuite) SetupTest() {
 
 // 主链先不执行
 func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnMainChain() {
-	types.SetTitle("test")
+	types.Init("test", nil)
 	tx, err := createAssetWithdrawTx(suite.Suite, PrivKeyA, Nodes[1])
 	if err != nil {
 		suite.T().Error("createAssetWithdrawTx", "err", err)
@@ -102,7 +102,7 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnMainChain() {
 
 // 平行链执行
 func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnParaChain() {
-	types.SetTitle(Title)
+	types.Init(Title, nil)
 	// make coins for transfer
 
 	total := 1000 * types.Coin
@@ -140,7 +140,7 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnParaChain() {
 
 // 主链在平行链执行成功后执行
 func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawAfterPara() {
-	types.SetTitle("test")
+	types.Init("test", nil)
 	// make coins for transfer
 	acc := account.NewCoinsAccount()
 	acc.SetDB(suite.stateDB)
@@ -148,8 +148,8 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawAfterPara() {
 	total := 10 * types.Coin
 	pp := 5 * types.Coin
 	pb := 5 * types.Coin
-	addrPara := address.ExecAddress(Title + types.ParaX)
-	addrMain := address.ExecAddress(types.ParaX)
+	addrPara := address.ExecAddress(Title + pt.ParaX)
+	addrMain := address.ExecAddress(pt.ParaX)
 	addrB := string(Nodes[1])
 	accountPara := types.Account{
 		Balance: pp,
@@ -208,12 +208,12 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawAfterPara() {
 }
 
 func (suite *AssetWithdrawTestSuite) TestExecWithdrawFailedOnPara() {
-	types.SetTitle(Title)
+	types.Init(Title, nil)
 	// make coins for transfer
 	acc := account.NewCoinsAccount()
 	acc.SetDB(suite.stateDB)
 
-	addrPara := address.ExecAddress(Title + types.ParaX)
+	addrPara := address.ExecAddress(Title + pt.ParaX)
 
 	total := 1000 * types.Coin
 	accountA := types.Account{
@@ -252,7 +252,7 @@ func createAssetWithdrawTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 		IsWithdraw:  true,
 		IsToken:     false,
 		TokenSymbol: "",
-		ExecName:    Title + types.ParaX,
+		ExecName:    Title + pt.ParaX,
 	}
 	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset Withdraw failed")
