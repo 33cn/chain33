@@ -58,6 +58,9 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
+	if subcfg.GenesisBlockTime > 0 {
+		cfg.GenesisBlockTime = subcfg.GenesisBlockTime
+	}
 	t := &Client{c, &ty.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{}), &subcfg}
 	c.SetChild(t)
 	go t.flushTicketBackend()
