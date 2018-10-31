@@ -7,10 +7,11 @@ import (
 )
 
 func TestForks(t *testing.T) {
+	SetLocalFork()
 	assert.Equal(t, systemFork.IsFork("abc", 1, "ForkV1"), false)
 	assert.Equal(t, systemFork.IsFork("abc", 1, "ForkV12"), false)
-	assert.Equal(t, systemFork.IsFork("bityuan", 1, "ForkV12TransferExec"), false)
+	assert.Equal(t, systemFork.IsFork("bityuan", 1, "ForkTransferExec"), false)
 	assert.Equal(t, systemFork.IsFork("local", 0, "ForkBlockHash"), false)
 	assert.Equal(t, systemFork.IsFork("local", 1, "ForkBlockHash"), true)
-	assert.Equal(t, systemFork.IsFork("local", 1, "ForkV12TransferExec"), true)
+	assert.Equal(t, systemFork.IsFork("local", 1, "ForkTransferExec"), true)
 }
