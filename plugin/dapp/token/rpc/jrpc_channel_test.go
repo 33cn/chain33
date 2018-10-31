@@ -80,7 +80,7 @@ func testGetTokenAssetsCmd(t *testing.T, jrpc *jsonclient.JSONClient) error {
 	var rep interface{}
 	var params types.Query4Cli
 	req := &pty.ReqAccountTokenAssets{}
-	params.Execer = "trade"
+	params.Execer = "token"
 	params.FuncName = "GetAccountTokenAssets"
 	params.Payload = req
 	rep = &pty.ReplyAccountTokenAssets{}
