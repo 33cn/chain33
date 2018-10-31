@@ -155,7 +155,7 @@ func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 	tokenlog.Error("token Query GetTokens", "get count", len(tokens))
 	if reqTokens.SymbolOnly {
 		for _, t1 := range tokens {
-			if t1 == nil || len(t1) == 0 {
+			if len(t1) == 0 {
 				continue
 			}
 
@@ -171,7 +171,7 @@ func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 
 	for _, t1 := range tokens {
 		// delete impl by set nil
-		if t1 == nil || len(t1) == 0 {
+		if len(t1) == 0 {
 			continue
 		}
 
