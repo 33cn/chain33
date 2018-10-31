@@ -169,7 +169,7 @@ func Init(t string, cfg *Config) {
 		SetForkForPara(title)
 		return
 	}
-	if cfg != nil {
+	if cfg != nil && cfg.Fork != nil {
 		InitForkConfig(title, cfg.Fork)
 	}
 }
@@ -225,8 +225,6 @@ func SetTestNet(isTestNet bool) {
 	if IsLocal() {
 		return
 	}
-	//测试网络的Fork
-	SetTestNetFork()
 }
 
 func IsTestNet() bool {

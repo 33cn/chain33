@@ -16,9 +16,8 @@ const (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerCert)
-	// init executor type
 	types.RegistorExecutor(CertX, NewType())
-	types.RegisterDappFork(CertX, "Enable", 0)
+	// init executor type
 }
 
 type CertType struct {
