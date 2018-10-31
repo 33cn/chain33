@@ -220,7 +220,7 @@ type ExecutorType interface {
 	GetExecFuncMap() map[string]reflect.Method
 	CreateTransaction(action string, data Message) (*Transaction, error)
 	// collect assets the tx deal with
-	GetAssets(tx *Transaction) []*Asset
+	GetAssets(tx *Transaction) ([]*Asset, error)
 }
 
 type ExecTypeGet interface {
@@ -630,6 +630,6 @@ func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Tr
 	return nil, ErrActionNotSupport
 }
 
-func (base *ExecTypeBase) GetAssets(tx *Transaction) []*Asset {
-	return []*Asset{}
+func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
+	return []*Asset{}, nil
 }

@@ -79,7 +79,7 @@ func getTxIndex(executor *executor, tx *types.Transaction, receipt *types.Receip
 	ety := types.LoadExecutorType(string(tx.Execer))
 	// none exec has not execType
 	if ety != nil {
-		txinf.Assets = ety.GetAssets(tx)
+		txinf.Assets, _ = ety.GetAssets(tx)
 	}
 
 	txIndexInfo.index = &txinf
