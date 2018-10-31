@@ -32,5 +32,4 @@ func TestBityuanInit(t *testing.T) {
 	assert.Equal(t, int64(0), cfg.Fork.Sub["token"]["Enable"])
 	assert.Nil(t, err)
 	types.InitForkConfig(cfg.Title, cfg.Fork)
-	assert.NotNil(t, err)
 }
