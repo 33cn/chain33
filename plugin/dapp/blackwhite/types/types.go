@@ -16,8 +16,6 @@ const (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerBlackwhite)
-	types.RegisterDappFork(BlackwhiteX, "ForkBlackWhiteV2", 900000)
-	types.RegisterDappFork(BlackwhiteX, "Enable", 850000)
 	// init executor type
 	types.RegistorExecutor(BlackwhiteX, NewType())
 }

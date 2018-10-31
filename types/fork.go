@@ -13,7 +13,6 @@ var systemFork = &Forks{}
 func init() {
 	//先要初始化
 	SetTestNetFork()
-	SetBityuanFork()
 }
 
 type Forks struct {
@@ -93,6 +92,15 @@ func (f *Forks) GetFork(title, key string) int64 {
 	return height
 }
 
+func (f *Forks) HasFork(title, key string) bool {
+	forkitem, ok := f.forks[title]
+	if !ok {
+		return false
+	}
+	_, ok = forkitem[key]
+	return ok
+}
+
 func (f *Forks) GetDappFork(title, app string, key string) int64 {
 	return f.GetFork(title, app+"."+key)
 }
@@ -157,25 +165,12 @@ func (f *Forks) IsDappFork(title string, height int64, dapp, fork string) bool {
 	return f.IsFork(title, height, dapp+"."+fork)
 }
 
-//default hard fork block height for bityuan real network
-func SetBityuanFork() {
-	systemFork.CloneZero("chain33", "bityuan")
-	systemFork.ReplaceFork("bityuan", "ForkBlockHash", 1)
-	systemFork.ReplaceFork("bityuan", "ForkTransferExec", 100000)
-	systemFork.ReplaceFork("bityuan", "ForkExecKey", 200000)
-	systemFork.ReplaceFork("bityuan", "ForkTxGroup", 200000)
-	systemFork.ReplaceFork("bityuan", "ForkResetTx0", 200000)
-	systemFork.ReplaceFork("bityuan", "ForkWithdraw", 200000)
-	systemFork.ReplaceFork("bityuan", "ForkExecRollback", 450000)
-	systemFork.ReplaceFork("bityuan", "ForkTxHeight", MaxHeight)
-	systemFork.ReplaceFork("bityuan", "ForkTxGroupPara", MaxHeight)
-}
-
 //bityuan test net fork
 func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkCheckTxDup", 75260)
 	systemFork.SetFork("chain33", "ForkChainParamV1", 110000)
 	systemFork.SetFork("chain33", "ForkBlockHash", 209186)
+	systemFork.SetFork("chain33", "ForkMinerTime", 350000)
 	systemFork.SetFork("chain33", "ForkTransferExec", 408400)
 	systemFork.SetFork("chain33", "ForkExecKey", 408400)
 	systemFork.SetFork("chain33", "ForkWithdraw", 480000)
@@ -224,6 +219,10 @@ func GetFork(fork string) int64 {
 	return systemFork.GetFork(GetTitle(), fork)
 }
 
+func HasFork(fork string) bool {
+	return systemFork.HasFork("chain33", fork)
+}
+
 func IsEnableFork(height int64, fork string, enable bool) bool {
 	if !enable {
 		return false
@@ -234,20 +233,27 @@ func IsEnableFork(height int64, fork string, enable bool) bool {
 //fork 设置规则：
 //所有的fork都需要有明确的配置，不开启fork 配置为 -1
 func InitForkConfig(title string, forks *ForkList) {
+	if title == "chain33" { //chain33 fork is default set in code
+		return
+	}
 	chain33fork := systemFork.GetAll("chain33")
 	if chain33fork == nil {
 		panic("chain33 fork not init")
 	}
 	//开始判断chain33fork中的system部分是否已经设置
+	s := ""
 	for k := range chain33fork {
 		if !strings.Contains(k, ".") {
 			if _, ok := forks.System[k]; !ok {
-				panic("system fork " + k + " not config")
+				s += "system fork " + k + " not config\n"
 			}
 		}
 	}
 	for k := range chain33fork {
 		forkname := strings.Split(k, ".")
+		if len(forkname) == 1 {
+			continue
+		}
 		if len(forkname) > 2 {
 			panic("fork name has too many dot")
 		}
@@ -262,12 +268,15 @@ func InitForkConfig(title string, forks *ForkList) {
 				continue
 			}
 		}
-		panic("exec " + exec + " name " + name + " not config")
+		s += "exec " + exec + " name " + name + " not config\n"
 	}
 	//配置检查没有问题后，开始设置配置
 	for k, v := range forks.System {
 		if v == -1 {
 			v = MaxHeight
+		}
+		if !HasFork(k) {
+			s += "system fork not exist : " + k + "\n"
 		}
 		systemFork.SetFork(title, k, v)
 	}
@@ -279,7 +288,13 @@ func InitForkConfig(title string, forks *ForkList) {
 			if v == -1 {
 				v = MaxHeight
 			}
+			if !HasFork(dapp + "." + k) {
+				s += "exec fork not exist : exec = " + dapp + " key = " + k + "\n"
+			}
 			systemFork.SetDappFork(title, dapp, k, v)
 		}
+	}
+	if len(s) > 0 {
+		panic(s)
 	}
 }

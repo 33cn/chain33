@@ -32,7 +32,6 @@ var TicketX = "ticket"
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(TicketX))
 	types.RegistorExecutor(TicketX, NewType())
-	types.RegisterDappFork(TicketX, "Enable", 0)
 }
 
 type TicketType struct {

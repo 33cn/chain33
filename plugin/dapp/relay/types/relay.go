@@ -46,7 +46,6 @@ const (
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(RelayX))
 	types.RegistorExecutor(RelayX, NewType())
-	types.RegisterDappFork(RelayX, "Enable", 570000)
 }
 
 func NewType() *RelayType {

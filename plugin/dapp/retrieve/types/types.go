@@ -10,8 +10,6 @@ import (
 func init() {
 	// init executor type
 	types.RegistorExecutor(RetrieveX, NewType())
-	types.RegisterDappFork(RetrieveX, "Enable", 0)
-	types.RegisterDappFork(RetrieveX, "ForkRetrive", 180000)
 }
 
 type RetrieveType struct {
