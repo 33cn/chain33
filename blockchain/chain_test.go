@@ -389,7 +389,7 @@ func initCache() {
 
 //构造10个区块，10笔交易不带TxHeight，缓存size128
 func TestCheckDupTxHashList01(t *testing.T) {
-	types.EnableTxHeight = true
+	types.SetChainConfig("TxHeight", true)
 	cfg, sub := initConfigFile()
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg, sub)
 	defer func() {
@@ -399,7 +399,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		s.Close()
 		mem.Close()
 		p2p.Close()
-		types.EnableTxHeight = false
+		types.SetChainConfig("TxHeight", false)
 	}()
 
 	chainlog.Info("TestCheckDupTxHashList01 begin --------------------")
@@ -459,7 +459,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 
 //构造10个区块，10笔交易带TxHeight，缓存size128
 func TestCheckDupTxHashList02(t *testing.T) {
-	types.EnableTxHeight = true
+	types.SetChainConfig("TxHeight", true)
 	cfg, sub := initConfigFile()
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg, sub)
 	defer func() {
@@ -469,7 +469,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 		s.Close()
 		mem.Close()
 		p2p.Close()
-		types.EnableTxHeight = false
+		types.SetChainConfig("TxHeight", false)
 	}()
 
 	chainlog.Info("TestCheckDupTxHashList02 begin --------------------")
@@ -529,7 +529,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 
 //构造130个区块，130笔交易不带TxHeight，缓存满
 func TestCheckDupTxHashList03(t *testing.T) {
-	types.EnableTxHeight = true
+	types.SetChainConfig("TxHeight", true)
 	cfg, sub := initConfigFile()
 
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg, sub)
@@ -540,7 +540,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 		s.Close()
 		mem.Close()
 		p2p.Close()
-		types.EnableTxHeight = false
+		types.SetChainConfig("TxHeight", false)
 	}()
 	chainlog.Info("TestCheckDupTxHashList03 begin --------------------")
 
@@ -600,7 +600,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 
 //构造130个区块，130笔交易带TxHeight，缓存满
 func TestCheckDupTxHashList04(t *testing.T) {
-	types.EnableTxHeight = true
+	types.SetChainConfig("TxHeight", true)
 	cfg, sub := initConfigFile()
 
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg, sub)
@@ -611,7 +611,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 		s.Close()
 		mem.Close()
 		p2p.Close()
-		types.EnableTxHeight = false
+		types.SetChainConfig("TxHeight", false)
 	}()
 	chainlog.Info("TestCheckDupTxHashList04 begin --------------------")
 
@@ -672,7 +672,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 
 //异常：构造10个区块，10笔交易带TxHeight，TxHeight不满足条件 size128
 func TestCheckDupTxHashList05(t *testing.T) {
-	types.EnableTxHeight = true
+	types.SetChainConfig("TxHeight", true)
 	cfg, sub := initConfigFile()
 
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg, sub)
@@ -684,7 +684,7 @@ func TestCheckDupTxHashList05(t *testing.T) {
 		mem.Close()
 		p2p.Close()
 		TxHeightOffset = 0
-		types.EnableTxHeight = false
+		types.SetChainConfig("TxHeight", false)
 	}()
 	chainlog.Info("TestCheckDupTxHashList05 begin --------------------")
 	initCache()

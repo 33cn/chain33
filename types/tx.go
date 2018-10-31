@@ -373,7 +373,7 @@ func (tx *Transaction) check(minfee int64) error {
 
 func (tx *Transaction) SetExpire(expire time.Duration) {
 	//Txheight处理
-	if EnableTxHeight && int64(expire) > TxHeightFlag {
+	if IsEnable("TxHeight") && int64(expire) > TxHeightFlag {
 		tx.Expire = int64(expire)
 		return
 	}
@@ -460,7 +460,7 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 }
 
 func GetTxHeight(valid int64, height int64) int64 {
-	if IsEnableFork(height, "ForkV23TxHeight", EnableTxHeight) && valid > TxHeightFlag {
+	if IsEnableFork(height, "ForkTxHeight", IsEnable("TxHeight")) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
 	return -1

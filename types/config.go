@@ -159,7 +159,7 @@ func Init(t string, cfg *Config) {
 	if IsLocal() {
 		initChainTestNet()
 		SetLocalFork()
-		EnableTxHeight = true
+		SetChainConfig("TxHeight", true)
 		Debug = true
 		return
 	}
