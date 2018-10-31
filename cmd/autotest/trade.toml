@@ -2,13 +2,30 @@
 [[TokenPreCreateCase]]
 id = "tokenPre"
 command = "send token precreate -f 0.01 -i testToken -n testToken -s TS -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -t 100000 -p 1 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-
+dep = ["transForPrecreate"]
 
 [[TokenFinishCreateCase]]
 id = "tokenFinish"
 command = "send token finish -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -f 0.01 -s TS -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc"
 dep = ["tokenPre"]
 
+
+#send to token for precreate
+[[TransferCase]]
+id = "transForPrecreate"
+command = "send bty transfer -a 10 -t 12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+to = "12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa"
+amount = "10"
+checkItem = ["balance"]
+
+[[TransferCase]]
+id = "transForFee"
+command = "send bty transfer -a 10 -t 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
+amount = "10"
+checkItem = ["balance"]
 
 
 #prepare bty for trade sell
@@ -29,7 +46,7 @@ from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 to = "1BXvgjmBw1aBgmGn1hjfGyRkmN3krWpFP4"
 amount = "50"
 checkItem = ["balance"]
-dep = ["tokenTrans"]
+dep = ["tokenTrans", "transForFee"]
 
 
 #prepare bty for trade buy
@@ -82,7 +99,7 @@ dep = ["tokenToTrade"]
 
 #no balance
 [[SellCase]]
-id = "failSell"
+id = "failSell"     #带有fail前缀表示用例本身是失败的，在autotest程序中集成了这个特性
 command = "send trade sell -f 0.01 -m 100 -p 0.01 -t 100 -s TS -k 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "100"
@@ -99,45 +116,45 @@ btyAmount = "1"
 tokenAmount = "1"
 checkItem = ["balance", "frozen"]
 dep = ["tokenSell1"]
-repeat = 5
+repeat = 1
 
 
 
 #不满足最少份数
-[[DependBuyCase]]
-id = "failBuy1"
-command = "send trade buy -c 90 -f 0.01 -k 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
-from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
-to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
-btyAmount = "0.9"
-tokenAmount = "0.9"
-checkItem = ["balance", "frozen"]
-dep = ["tokenSell1"]
+#[[DependBuyCase]]
+#id = "failBuy1"
+#command = "send trade buy -c 90 -f 0.01 -k 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
+#from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
+#to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
+#btyAmount = "0.9"
+#tokenAmount = "0.9"
+#checkItem = ["balance", "frozen"]
+#dep = ["tokenSell1"]
+#
+#
+##剩余正在sell的不够
+#[[DependBuyCase]]
+#id = "failBuy2"
+#command = "send trade buy -c 200 -f 0.01 -k 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
+#from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
+#to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
+#btyAmount = "2"
+#tokenAmount = "2"
+#checkItem = ["balance", "frozen"]
+#dep = ["tokenSell2"]
 
 
-#剩余正在sell的不够
-[[DependBuyCase]]
-id = "failBuy2"
-command = "send trade buy -c 200 -f 0.01 -k 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
-from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
-to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
-btyAmount = "2"
-tokenAmount = "2"
-checkItem = ["balance", "frozen"]
-dep = ["tokenSell2"]
 
 
 
-
-
-#bty余额不足
-[[DependBuyCase]]
-id = "failBuy3"
-command = "send trade buy -c 800 -f 0.01 -k 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
-from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
-to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
-btyAmount = "8"
-tokenAmount = "8"
-checkItem = ["balance", "frozen"]
-dep = ["tokenSell3"]
+##bty余额不足
+#[[DependBuyCase]]
+#id = "failBuy3"
+#command = "send trade buy -c 800 -f 0.01 -k 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
+#from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
+#to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
+#btyAmount = "8"
+#tokenAmount = "8"
+#checkItem = ["balance", "frozen"]
+#dep = ["tokenSell3"]
 

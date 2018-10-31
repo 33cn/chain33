@@ -9,9 +9,9 @@ import (
 const (
 	PrivacyOutputKeyPrefix  = "mavl-privacy-UTXO-tahi"
 	PrivacyKeyImagePrefix   = "mavl-privacy-UTXO-keyimage"
-	PrivacyUTXOKEYPrefix    = "local-privacy-UTXO-tahhi"
-	PrivacyAmountTypePrefix = "local-privacy-UTXO-atype"
-	PrivacyTokenTypesPrefix = "local-privacy-UTXO-token"
+	PrivacyUTXOKEYPrefix    = "LODB-privacy-UTXO-tahhi"
+	PrivacyAmountTypePrefix = "LODB-privacy-UTXO-atype"
+	PrivacyTokenTypesPrefix = "LODB-privacy-UTXO-token"
 	KeyImageSpentAlready    = 0x01
 	Invalid_index           = -1
 )

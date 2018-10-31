@@ -190,3 +190,7 @@ message LotteryUpdateRecs {
 message LotteryUpdateBuyInfo {
     map<string, LotteryUpdateRecs> buyInfo = 1;
 }
+
+message ReplyLotteryPurchaseAddr {
+    repeated string address = 1;
+}

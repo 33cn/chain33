@@ -97,7 +97,7 @@ func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 		to, _ := Genaddress()
 		return CreateCoinsTx(priv, to, types.Coin)
 	}
-	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none"), Fee: 1e6}
+	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none"), Fee: 1e5}
 	tx.Nonce = rand.Int63()
 	tx.To = address.ExecAddress(execer)
 	tx.Sign(types.SECP256K1, priv)
@@ -118,7 +118,7 @@ func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transact
 	}
 	tx.Execer = []byte("coins")
 	tx.Nonce = rand.Int63()
-	tx.Fee = 100000
+	tx.Fee = 1e5
 	tx.To = to
 	tx.Sign(types.SECP256K1, priv)
 	return tx

@@ -1,12 +1,14 @@
 package db
 
 import (
+	"bytes"
 	"sync"
 
 	"sort"
 	"strings"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var mlog = log.New("module", "db.memdb")
@@ -58,6 +60,8 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 func (db *GoMemDB) Set(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
+	//debug.PrintStack()
+	//println("--", string(key)[0:4], common.ToHex(key))
 	db.db[string(key)] = CopyBytes(value)
 	if db.db[string(key)] == nil {
 		mlog.Error("Set", "error have no mem")
@@ -68,7 +72,8 @@ func (db *GoMemDB) Set(key []byte, value []byte) error {
 func (db *GoMemDB) SetSync(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
+	//debug.PrintStack()
+	//println("--", string(key)[0:4], common.ToHex(key))
 	db.db[string(key)] = CopyBytes(value)
 	if db.db[string(key)] == nil {
 		mlog.Error("Set", "error have no mem")
@@ -116,6 +121,9 @@ func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	defer db.lock.RUnlock()
 	if end == nil {
 		end = bytesPrefix(start)
+	}
+	if bytes.Equal(end, types.EmptyValue) {
+		end = nil
 	}
 	base := itBase{start, end, reverse}
 
@@ -229,6 +237,7 @@ func (db *GoMemDB) NewBatch(sync bool) Batch {
 }
 
 func (b *memBatch) Set(key, value []byte) {
+	//println("-b-", string(key)[0:4], common.ToHex(key))
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(value)})
 	b.size += len(value)
 }
