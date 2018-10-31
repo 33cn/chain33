@@ -34,7 +34,7 @@ import (
 var random *rand.Rand
 
 func init() {
-	types.SetTitle("local")
+	types.Init("local", nil)
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	//log.SetLogLevel("error")
 }

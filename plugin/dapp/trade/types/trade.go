@@ -49,7 +49,9 @@ func (at *tradeType) GetLogMap() map[int64]*types.LogInfo {
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(TradeX))
 	types.RegistorExecutor(TradeX, NewType())
-	types.RegisterDappFork(TradeX, "Enable", 0)
+	types.RegisterDappFork(TradeX, "Enable", 100899)
+	types.RegisterDappFork(TradeX, "ForkTradeBuyLimit", 301000)
+	types.RegisterDappFork(TradeX, "ForkTradeAsset", 1010000)
 }
 
 type tradeType struct {

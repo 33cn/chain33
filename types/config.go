@@ -91,7 +91,7 @@ func GetChainConfig(key string) (value interface{}, err error) {
 }
 
 func GetP(height int64) *ChainParam {
-	if IsFork(height, "ForkV3") {
+	if IsFork(height, "ForkChainParamV1") {
 		return chainV3Param
 	}
 	return chainBaseParam
@@ -164,12 +164,14 @@ func Init(t string, cfg *Config) {
 		return
 	}
 	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
-	if IsPara() && (cfg.Fork == nil || cfg.Fork.System == nil) {
+	if IsPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
 		//keep superManager same with mainnet
 		SetForkForPara(title)
 		return
 	}
-	InitForkConfig(title, cfg.Fork)
+	if cfg != nil {
+		InitForkConfig(title, cfg.Fork)
+	}
 }
 
 func GetTitle() string {
