@@ -155,6 +155,10 @@ func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 	tokenlog.Error("token Query GetTokens", "get count", len(tokens))
 	if reqTokens.SymbolOnly {
 		for _, t1 := range tokens {
+			if t1 == nil || len(t1) == 0 {
+				continue
+			}
+
 			var tokenValue tokenty.LocalToken
 			err = types.Decode(t1, &tokenValue)
 			if err == nil {
@@ -166,9 +170,13 @@ func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 	}
 
 	for _, t1 := range tokens {
+		// delete impl by set nil
+		if t1 == nil || len(t1) == 0 {
+			continue
+		}
+
 		var token tokenty.LocalToken
 		err = types.Decode(t1, &token)
-		tokenlog.Error("token Query GetTokens", "token", token)
 		if err == nil {
 			replyTokens.Tokens = append(replyTokens.Tokens, &token)
 		}
@@ -193,18 +201,12 @@ func (t *token) listTokenKeys(reqTokens *tokenty.ReqTokens) ([][]byte, error) {
 	} else {
 		var keys [][]byte
 		for _, token := range reqTokens.Tokens {
-			//list := dbm.NewListHelper(querydb)
-			keys1, err := querydb.List(calcTokenStatusSymbolNewPrefix(reqTokens.Status, token), nil, 0, 0)
+			keys1, err := querydb.List(calcTokenStatusTokenKeyPrefixLocal(reqTokens.Status, token), nil, 0, 0)
 			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			keys = append(keys, keys1...)
 
-			keys2, err := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
-			if err != nil && err != types.ErrNotFound {
-				return nil, err
-			}
-			keys = append(keys, keys2...)
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 		}
 		if len(keys) == 0 {
