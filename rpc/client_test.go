@@ -353,7 +353,6 @@ func testChannelClient_GetBalanceOther(t *testing.T) {
 func TestChannelClient_GetBalance(t *testing.T) {
 	testChannelClient_GetBalanceCoin(t)
 	testChannelClient_GetBalanceOther(t)
-
 }
 
 // func TestChannelClient_GetTotalCoins(t *testing.T) {
