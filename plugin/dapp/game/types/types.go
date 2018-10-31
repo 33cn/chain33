@@ -17,7 +17,6 @@ func init() {
 	// init executor type
 	types.AllowUserExec = append(types.AllowUserExec, []byte(GameX))
 	types.RegistorExecutor(GameX, NewType())
-	types.RegisterDappFork(GameX, "Enable", 0)
 }
 
 //getRealExecName
