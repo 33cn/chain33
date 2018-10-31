@@ -16,7 +16,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
@@ -65,7 +64,6 @@ type Wallet struct {
 	cfg                *types.Wallet
 	done               chan struct{}
 	rescanwg           *sync.WaitGroup
-	rescanUTXOflag     int32
 	lastHeader         *types.Header
 }
 
@@ -101,7 +99,6 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 		done:             make(chan struct{}),
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
-		rescanUTXOflag:   pty.UtxoFlagNoScan,
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
@@ -172,14 +169,6 @@ func (wallet *Wallet) GetLastHeader() *types.Header {
 	return wallet.lastHeader
 }
 
-func (wallet *Wallet) GetRescanFlag() int32 {
-	return atomic.LoadInt32(&wallet.rescanUTXOflag)
-}
-
-func (wallet *Wallet) SetRescanFlag(flag int32) {
-	atomic.StoreInt32(&wallet.rescanUTXOflag, flag)
-}
-
 func (wallet *Wallet) GetWaitGroup() *sync.WaitGroup {
 	return wallet.wg
 }
@@ -189,10 +178,26 @@ func (ws *Wallet) GetAccountByLabel(label string) (*types.WalletAccountStore, er
 }
 
 func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
-	if pty.UtxoFlagScaning == atomic.LoadInt32(&wallet.rescanUTXOflag) {
-		return true, types.ErrRescanFlagScaning
+	in := &types.ReqNil{}
+	flag := false
+	for _, policy := range wcom.PolicyContainer {
+		out, err := policy.Call("GetUTXOScaningFlag", in)
+		if err != nil {
+			if err.Error() == types.ErrNotSupport.Error() {
+				continue
+			}
+			return flag, err
+		}
+		reply, ok := out.(*types.Reply)
+		if !ok {
+			err = types.ErrTypeAsset
+			return flag, err
+		}
+		flag = reply.IsOk
+		return flag, err
 	}
-	return false, nil
+
+	return flag, types.ErrNotSupport
 }
 
 func (wallet *Wallet) Close() {
@@ -229,6 +234,9 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.api, _ = client.New(cli, nil)
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
+	for _, policy := range wcom.PolicyContainer {
+		policy.OnSetQueueClient()
+	}
 }
 
 func (wallet *Wallet) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {

@@ -109,6 +109,9 @@ func checkGrpcFuncBlacklist(funcName string) bool {
 }
 
 func (j *Grpcserver) Close() {
+	if j == nil {
+		return
+	}
 	if j.l != nil {
 		j.l.Close()
 	}
@@ -187,8 +190,6 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 	r.gapi = gapi
 	r.japi = japi
 	r.c = c
-	//注册系统rpc
-	pluginmgr.AddRPC(r)
 }
 
 func (rpc *RPC) Listen() (port1 int, port2 int) {
@@ -227,8 +228,12 @@ func (rpc *RPC) JRPC() *rpc.Server {
 }
 
 func (rpc *RPC) Close() {
-	rpc.gapi.Close()
-	rpc.japi.Close()
+	if rpc.gapi != nil {
+		rpc.gapi.Close()
+	}
+	if rpc.japi != nil {
+		rpc.japi.Close()
+	}
 }
 
 func InitIpWhitelist(cfg *types.Rpc) {

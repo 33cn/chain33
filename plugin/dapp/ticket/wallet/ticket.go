@@ -109,6 +109,15 @@ func (policy *ticketPolicy) OnClose() {
 	policy.getMingTicketTicker().Stop()
 }
 
+func (this *ticketPolicy) OnSetQueueClient() {
+
+}
+
+func (this *ticketPolicy) Call(funName string, in types.Message) (ret types.Message, err error) {
+	err = types.ErrNotSupport
+	return
+}
+
 func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
 	receipt := block.Receipts[index]
 	amount, _ := tx.Amount()
@@ -376,7 +385,7 @@ func (policy *ticketPolicy) getTicketsByStatus(status int32) ([]*ty.Ticket, [][]
 		}
 	}
 	if len(tickets) == 0 {
-		return nil, nil, types.ErrNoTicket
+		return nil, nil, ty.ErrNoTicket
 	}
 	return tickets, privs, nil
 }

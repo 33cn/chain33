@@ -3,9 +3,8 @@ package types
 import (
 	"encoding/json"
 	"math/rand"
-	"time"
-
 	"reflect"
+	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -49,7 +48,7 @@ func (at *tradeType) GetLogMap() map[int64]*types.LogInfo {
 
 func init() {
 	nameX = types.ExecName(types.TradeX)
-	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.TradeX))
 	types.RegistorExecutor(types.TradeX, NewType())
 }
 

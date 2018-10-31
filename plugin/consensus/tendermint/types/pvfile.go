@@ -1,4 +1,4 @@
-package commands
+package types
 
 import (
 	"math/rand"
@@ -8,7 +8,6 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -75,7 +74,7 @@ func initCryptoImpl() error {
 		tendermintlog.Error("New crypto impl failed", "err", err)
 		return err
 	}
-	ttypes.ConsensusCrypto = cr
+	ConsensusCrypto = cr
 	return nil
 }
 
@@ -87,8 +86,8 @@ func createFiles(cmd *cobra.Command, args []string) {
 	}
 
 	// genesis file
-	genDoc := ttypes.GenesisDoc{
-		ChainID:     ttypes.Fmt("chain33-%v", RandStr(6)),
+	genDoc := GenesisDoc{
+		ChainID:     Fmt("chain33-%v", RandStr(6)),
 		GenesisTime: time.Now(),
 	}
 
@@ -97,15 +96,15 @@ func createFiles(cmd *cobra.Command, args []string) {
 	for i := 0; i < n; i++ {
 		// create private validator file
 		pvFileName := pvFile + strconv.Itoa(i) + ".json"
-		privValidator := ttypes.LoadOrGenPrivValidatorFS(pvFileName)
+		privValidator := LoadOrGenPrivValidatorFS(pvFileName)
 		if privValidator == nil {
 			tendermintlog.Error("Create priv_validator file failed.")
 			break
 		}
 
 		// create genesis validator by the pubkey of private validator
-		gv := ttypes.GenesisValidator{
-			PubKey: ttypes.KeyText{"ed25519", privValidator.GetPubKey().KeyString()},
+		gv := GenesisValidator{
+			PubKey: KeyText{"ed25519", privValidator.GetPubKey().KeyString()},
 			Power:  10,
 		}
 		genDoc.Validators = append(genDoc.Validators, gv)

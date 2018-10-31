@@ -40,4 +40,6 @@ type WalletBizPolicy interface {
 	OnAddBlockFinish(block *types.BlockDetail)
 	OnDeleteBlockFinish(block *types.BlockDetail)
 	OnClose()
+	OnSetQueueClient()
+	Call(funName string, in types.Message) (ret types.Message, err error)
 }
