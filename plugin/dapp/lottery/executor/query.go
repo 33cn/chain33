@@ -16,6 +16,19 @@ func (l *Lottery) Query_GetLotteryNormalInfo(param *pty.ReqLotteryInfo) (types.M
 		lottery.CreateAddr}, nil
 }
 
+func (l *Lottery) Query_GetLotteryPurchaseAddr(param *pty.ReqLotteryInfo) (types.Message, error) {
+	lottery, err := findLottery(l.GetStateDB(), param.GetLotteryId())
+	if err != nil {
+		return nil, err
+	}
+	reply := &pty.ReplyLotteryPurchaseAddr{}
+	for addr := range lottery.Records {
+		reply.Address = append(reply.Address, addr)
+	}
+	//lottery.Records
+	return reply, nil
+}
+
 func (l *Lottery) Query_GetLotteryCurrentInfo(param *pty.ReqLotteryInfo) (types.Message, error) {
 	lottery, err := findLottery(l.GetStateDB(), param.GetLotteryId())
 	if err != nil {

@@ -46,13 +46,13 @@ func (val *ValNode) CheckTx(tx *types.Transaction, index int) error {
 }
 
 func CalcValNodeUpdateHeightIndexKey(height int64, index int) []byte {
-	return []byte(fmt.Sprintf("ValNodeUpdate:%18d:%18d", height, int64(index)))
+	return []byte(fmt.Sprintf("LODB-valnode-Update:%18d:%18d", height, int64(index)))
 }
 
 func CalcValNodeUpdateHeightKey(height int64) []byte {
-	return []byte(fmt.Sprintf("ValNodeUpdate:%18d:", height))
+	return []byte(fmt.Sprintf("LODB-valnode-Update:%18d:", height))
 }
 
 func CalcValNodeBlockInfoHeightKey(height int64) []byte {
-	return []byte(fmt.Sprintf("ValNodeBlockInfo:%18d:", height))
+	return []byte(fmt.Sprintf("LODB-valnode-BlockInfo:%18d:", height))
 }

@@ -368,7 +368,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Pubkeypair: pubkeypair,
 		Expire:     expire,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -429,7 +429,7 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 		Mixcount:   defaultPrivacyMixCount,
 		Expire:     expire,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -490,6 +490,6 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 		Mixcount:  defaultPrivacyMixCount,
 		Expire:    expire,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }

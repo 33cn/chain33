@@ -82,7 +82,7 @@ func (mock *PrivacyMock) getPrivacykeyPair(addr string) (*privacy.Privacy, error
 	if err != nil {
 		return nil, err
 	}
-	return nil, types.ErrPrivacyNotEnabled
+	return nil, ty.ErrPrivacyNotEnabled
 
 }
 
@@ -106,7 +106,7 @@ func (mock *PrivacyMock) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) 
 	}
 
 	if 0 == len(infoPriRes) {
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, ty.ErrPrivacyNotEnabled
 	}
 
 	return infoPriRes, nil

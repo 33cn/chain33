@@ -152,6 +152,7 @@ It has these top-level messages:
 	IterateRangeByStateHash
 	TicketStatistic
 	TicketMinerInfo
+	TotalAmount
 	AssetsGenesis
 	AssetsTransferToExec
 	AssetsWithdraw
@@ -184,6 +185,7 @@ It has these top-level messages:
 	ReqAddrs
 	ReqDecodeRawTransaction
 	UserWrite
+	UpgradeMeta
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore

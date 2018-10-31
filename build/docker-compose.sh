@@ -27,30 +27,44 @@ NODE4="${1}_chain30_1"
 NODE5="${1}_chain29_1"
 CLI5="docker exec ${NODE5} /root/chain33-cli"
 
-BTCD="${1}_btcd_1"
-
-RELAYD="${1}_relayd_1"
-
-containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${BTCD}" "${RELAYD}")
-
-# shellcheck disable=SC1091
-source ci-para-test.sh
-# shellcheck disable=SC1091
-source ci-relay-test.sh
-
+containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}")
+export COMPOSE_PROJECT_NAME="$1"
 ## global config ###
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
 fi
 
-OPEN_RELAY="Y"
-OPEN_PARA="Y"
-COMPOSE_FILE="-f docker-compose.yml "
+DAPP=""
+if [ -n "${2}" ]; then
+    DAPP=$2
+fi
 
+DAPP_TEST_FILE=""
+if [ -n "${DAPP}" ]; then
+    DAPP_TEST_FILE="testcase.sh"
+    if [ -e "$DAPP_TEST_FILE" ]; then
+        # shellcheck source=/dev/null
+        source "${DAPP_TEST_FILE}"
+    fi
+
+    DAPP_COMPOSE_FILE="docker-compose-${DAPP}.yml"
+    if [ -e "$DAPP_COMPOSE_FILE" ]; then
+        export COMPOSE_FILE="docker-compose.yml:${DAPP_COMPOSE_FILE}"
+
+    fi
+
+fi
+
+echo "=========== # env setting ============="
+echo "DAPP=$DAPP"
+echo "DAPP_TEST_FILE=$DAPP_TEST_FILE"
+echo "COMPOSE_FILE=$COMPOSE_FILE"
+echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
+echo "CLI=$CLI"
 ####################
 
-function init() {
+function base_init() {
 
     # update test environment
     sed -i $sedfix 's/^Title.*/Title="local"/g' chain33.toml
@@ -72,40 +86,24 @@ function init() {
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
-    # relayd
-    sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' relayd.toml
-    sed -i $sedfix 's/^Tick33.*/Tick33 = 5/g' relayd.toml
-    sed -i $sedfix 's/^TickBTC.*/TickBTC = 5/g' relayd.toml
-    sed -i $sedfix 's/^pprof.*/pprof = false/g' relayd.toml
-    sed -i $sedfix 's/^watch.*/watch = false/g' relayd.toml
-
 }
 
-# shellcheck disable=SC2086
 function start() {
-
-    if [ -n "${OPEN_PARA}" ]; then
-        COMPOSE_FILE="${COMPOSE_FILE}"" -f docker-compose-para.yml "
-    fi
-    if [ -n "${OPEN_RELAY}" ]; then
-        COMPOSE_FILE="${COMPOSE_FILE}"" -f docker-compose-relay.yml "
-    fi
-
-    # docker-compose ps
-    docker-compose ${COMPOSE_FILE} ps
+    echo "=========== # docker-compose ps ============="
+    docker-compose ps
 
     # remove exsit container
-    docker-compose ${COMPOSE_FILE} down
+    docker-compose down
 
     # create and run docker-compose container
-    #docker-compose -f docker-compose.yml -f docker-compose-para.yml -f docker-compose-relay.yml up --build -d
-    docker-compose ${COMPOSE_FILE} up --build -d
+    #docker-compose -f docker-compose.yml -f docker-compose-paracross.yml -f docker-compose-relay.yml up --build -d
+    docker-compose up --build -d
 
-    local SLEEP=60
+    local SLEEP=30
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
-    docker-compose ${COMPOSE_FILE} ps
+    docker-compose ps
 
     # query node run status
     ${CLI} block last_header
@@ -115,8 +113,13 @@ function start() {
     peersCount=$(${CLI} net peer_info | jq '.[] | length')
     echo "${peersCount}"
     if [ "${peersCount}" -lt 2 ]; then
-        echo "peers error"
-        exit 1
+        sleep 20
+        peersCount=$(${CLI} net peer_info | jq '.[] | length')
+        echo "${peersCount}"
+        if [ "${peersCount}" -lt 2 ]; then
+            echo "peers error"
+            exit 1
+        fi
     fi
 
     #echo "=========== # create seed for wallet ============="
@@ -166,8 +169,7 @@ function start() {
         exit 1
     fi
 
-    echo "=========== sleep ${SLEEP}s ============="
-    sleep ${SLEEP}
+    block_wait "${CLI}" 1
 
     echo "=========== check genesis hash ========== "
     ${CLI} block hash -t 0
@@ -208,7 +210,7 @@ function block_wait() {
         count=$((count + 1))
         sleep 1
     done
-    echo "wait new block $count s"
+    echo "wait new block $count s, cur height=$expect,old=$cur_height"
 }
 
 function check_docker_container() {
@@ -249,7 +251,7 @@ function sync_status() {
 function sync() {
     echo "=========== stop  ${NODE5} node========== "
     docker stop "${NODE5}"
-    sleep 20
+    sleep 10
 
     echo "=========== start ${NODE5} node========== "
     docker start "${NODE5}"
@@ -300,23 +302,36 @@ function transfer() {
     fi
 }
 
-function main() {
-    echo "==========================================main begin========================================================"
-    init
-    para_init
-    start
-    relay_config "${COMPOSE_FILE}"
-    para_transfer
-    para_set_wallet
+function base_config() {
     sync
     transfer
+}
 
-    para
-    relay "${CLI}"
-    # TODO other work!!!
+function dapp_run() {
+    if [ -e "$DAPP_TEST_FILE" ]; then
+        ${DAPP} "${CLI}" "${1}"
+    fi
 
+}
+function main() {
+    echo "==============================DAPP=$DAPP main begin========================================================"
+    ### init para ####
+    base_init
+    dapp_run init
+
+    ### start docker ####
+    start
+
+    ### config env ###
+    base_config
+    dapp_run config
+
+    ### test cases ###
+    dapp_run test
+
+    ### finish ###
     check_docker_container
-    echo "==========================================main end========================================================="
+    echo "===============================DAPP=$DAPP main end========================================================="
 }
 
 # run script

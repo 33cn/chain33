@@ -117,77 +117,28 @@ func (t *Ticket) delTicket(ticketlog *ty.ReceiptTicket) (kvs []*types.KeyValue) 
 	return kvs
 }
 
-func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
-	if funcname == "TicketInfos" {
-		var info ty.TicketInfos
-		err := types.Decode(params, &info)
-		if err != nil {
-			return nil, err
-		}
-		return Infos(t.GetStateDB(), &info)
-	} else if funcname == "TicketList" {
-		var l ty.TicketList
-		err := types.Decode(params, &l)
-		if err != nil {
-			return nil, err
-		}
-		return List(t.GetLocalDB(), t.GetStateDB(), &l)
-	} else if funcname == "MinerAddress" {
-		var reqaddr types.ReqString
-		err := types.Decode(params, &reqaddr)
-		if err != nil {
-			return nil, err
-		}
-		value, err := t.GetLocalDB().Get(calcBindReturnKey(reqaddr.Data))
-		if value == nil || err != nil {
-			return nil, types.ErrNotFound
-		}
-		return &types.ReplyString{string(value)}, nil
-	} else if funcname == "MinerSourceList" {
-		var reqaddr types.ReqString
-		err := types.Decode(params, &reqaddr)
-		if err != nil {
-			return nil, err
-		}
-		key := calcBindMinerKeyPrefix(reqaddr.Data)
-		values, err := t.GetLocalDB().List(key, nil, 0, 1)
-		if err != nil {
-			return nil, err
-		}
-		if len(values) == 0 {
-			return nil, types.ErrNotFound
-		}
-		reply := &types.ReplyStrings{}
-		for _, value := range values {
-			reply.Datas = append(reply.Datas, string(value))
-		}
-		return reply, nil
-	}
-	return nil, types.ErrActionNotSupport
-}
-
 func calcTicketKey(addr string, ticketID string, status int32) []byte {
-	key := fmt.Sprintf("ticket-tl:%s:%d:%s", addr, status, ticketID)
+	key := fmt.Sprintf("LODB-ticket-tl:%s:%d:%s", addr, status, ticketID)
 	return []byte(key)
 }
 
 func calcBindReturnKey(returnAddress string) []byte {
-	key := fmt.Sprintf("ticket-bind:%s", returnAddress)
+	key := fmt.Sprintf("LODB-ticket-bind:%s", returnAddress)
 	return []byte(key)
 }
 
 func calcBindMinerKey(minerAddress string, returnAddress string) []byte {
-	key := fmt.Sprintf("ticket-miner:%s:%s", minerAddress, returnAddress)
+	key := fmt.Sprintf("LODB-ticket-miner:%s:%s", minerAddress, returnAddress)
 	return []byte(key)
 }
 
 func calcBindMinerKeyPrefix(minerAddress string) []byte {
-	key := fmt.Sprintf("ticket-miner:%s", minerAddress)
+	key := fmt.Sprintf("LODB-ticket-miner:%s", minerAddress)
 	return []byte(key)
 }
 
 func calcTicketPrefix(addr string, status int32) []byte {
-	key := fmt.Sprintf("ticket-tl:%s:%d", addr, status)
+	key := fmt.Sprintf("LODB-ticket-tl:%s:%d", addr, status)
 	return []byte(key)
 }
 
@@ -220,7 +171,7 @@ func (t *Ticket) CheckTx(tx *types.Transaction, index int) error {
 			return err
 		}
 		if action.Ty == ty.TicketActionMiner && action.GetMiner() != nil {
-			return types.ErrMinerTx
+			return ty.ErrMinerTx
 		}
 	}
 	return nil

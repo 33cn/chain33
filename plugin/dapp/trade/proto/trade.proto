@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "transaction.proto";
+
 package types;
 
 // trade 交易部分
@@ -279,4 +281,13 @@ message ReqRevokeSell {
 message ReqBuyToken {
     TradeForBuy buy   = 1;
     string      buyer = 2;
+}
+
+service trade {
+    rpc CreateRawTradeSellTx(TradeForSell) returns (UnsignTx) {}
+    rpc CreateRawTradeBuyTx(TradeForBuy) returns (UnsignTx) {}
+    rpc CreateRawTradeRevokeTx(TradeForRevokeSell) returns (UnsignTx) {}
+    rpc CreateRawTradeBuyLimitTx(TradeForBuyLimit) returns (UnsignTx) {}
+    rpc CreateRawTradeSellMarketTx(TradeForSellMarket) returns (UnsignTx) {}
+    rpc CreateRawTradeRevokeBuyTx(TradeForRevokeBuy) returns (UnsignTx) {}
 }

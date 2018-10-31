@@ -209,6 +209,9 @@ func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
 	if end == nil {
 		end = bytesPrefix(begin)
 	}
+	if bytes.Equal(end, types.EmptyValue) {
+		end = nil
+	}
 	limit := util.Range{begin, end}
 	hashKey := getHashKey(begin)
 

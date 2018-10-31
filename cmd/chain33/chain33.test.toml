@@ -1,4 +1,5 @@
 Title="chain33"
+TestNet=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
