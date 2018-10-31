@@ -42,12 +42,8 @@ func calcTokenStatusNewKeyS(token string, owner string, status int32) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTONew+"%d-%s-%s", status, token, owner))
 }
 
-func calcTokenStatusNewKeyLocal(token string, owner string, status int32) []byte {
+func calcTokenStatusKeyLocal(token string, owner string, status int32) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTONewLocal+"%d-%s-%s", status, token, owner))
-}
-
-func calcTokenStatusKeyNewPrefixLocal(status int32) []byte {
-	return []byte(fmt.Sprintf(tokenPreCreatedSTONewLocal+"%d", status))
 }
 
 func calcTokenStatusSymbolNewPrefix(status int32, token string) []byte {
