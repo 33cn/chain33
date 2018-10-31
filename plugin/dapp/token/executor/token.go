@@ -152,7 +152,7 @@ func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	tokenlog.Debug("token Query GetTokens", "get count", len(tokens))
+	tokenlog.Error("token Query GetTokens", "get count", len(tokens))
 	if reqTokens.SymbolOnly {
 		for _, t1 := range tokens {
 			var tokenValue tokenty.LocalToken
@@ -168,6 +168,7 @@ func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 	for _, t1 := range tokens {
 		var token tokenty.LocalToken
 		err = types.Decode(t1, &token)
+		tokenlog.Error("token Query GetTokens", "token", token)
 		if err == nil {
 			replyTokens.Tokens = append(replyTokens.Tokens, &token)
 		}
@@ -180,16 +181,10 @@ func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 func (t *token) listTokenKeys(reqTokens *tokenty.ReqTokens) ([][]byte, error) {
 	querydb := t.GetLocalDB()
 	if reqTokens.QueryAll {
-		//list := dbm.NewListHelper(querydb)
-		keys, err := querydb.List(calcTokenStatusKeyNewPrefixLocal(reqTokens.Status), nil, 0, 0)
+		keys, err := querydb.List(calcTokenStatusKeyPrefixLocal(reqTokens.Status), nil, 0, 0)
 		if err != nil && err != types.ErrNotFound {
 			return nil, err
 		}
-		keys2, err := querydb.List(calcTokenStatusKeyPrefixLocal(reqTokens.Status), nil, 0, 0)
-		if err != nil && err != types.ErrNotFound {
-			return nil, err
-		}
-		keys = append(keys, keys2...)
 		if len(keys) == 0 {
 			return nil, types.ErrNotFound
 		}
@@ -223,7 +218,7 @@ func (t *token) listTokenKeys(reqTokens *tokenty.ReqTokens) ([][]byte, error) {
 func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
+	key := calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
 	var value []byte
 	if t.GetHeight() >= types.ForkV13ExecKey {
 		value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
@@ -233,7 +228,7 @@ func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	kv = append(kv, &types.KeyValue{key, value})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被删除
 	if receipt.Status != tokenty.TokenStatusPreCreated {
-		key = calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
+		key = calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		kv = append(kv, &types.KeyValue{key, nil})
 	}
 	return kv
@@ -242,11 +237,11 @@ func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 func (t *token) deleteLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
+	key := calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
 	kv = append(kv, &types.KeyValue{key, nil})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被恢复
 	if receipt.Status != tokenty.TokenStatusPreCreated {
-		key = calcTokenStatusNewKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
+		key = calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		var value []byte
 		if t.GetHeight() >= types.ForkV13ExecKey {
 			value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
