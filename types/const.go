@@ -146,6 +146,10 @@ const (
 	ConfigItemStringConfig
 )
 
+func init() {
+	SetChainConfig("TxHeight", false)
+}
+
 //flag:
 
 //TxHeight 选项
@@ -155,9 +159,6 @@ const (
 
 //标记是一个时间还是一个 TxHeight
 var TxHeightFlag int64 = 1 << 62
-
-//是否开启TxHeight选项
-var EnableTxHeight = false
 
 //eg: current Height is 10000
 //TxHeight is  10010

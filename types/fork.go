@@ -79,12 +79,15 @@ func (f *Forks) GetFork(title, key string) int64 {
 	forkitem, ok := f.forks[title]
 	if !ok {
 		if title == "local" {
-			panic("key not exisit -> " + key)
+			panic("title not exisit -> " + title)
 		}
 		return MaxHeight
 	}
 	height, ok := forkitem[key]
 	if !ok {
+		if title == "local" {
+			panic("key not exisit -> " + key)
+		}
 		return MaxHeight
 	}
 	return height
@@ -170,6 +173,7 @@ func SetBityuanFork() {
 
 //bityuan test net fork
 func SetTestNetFork() {
+	systemFork.SetFork("chain33", "ForkCheckTxDup", 75260)
 	systemFork.SetFork("chain33", "ForkChainParamV1", 110000)
 	systemFork.SetFork("chain33", "ForkBlockHash", 209186)
 	systemFork.SetFork("chain33", "ForkTransferExec", 408400)
