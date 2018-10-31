@@ -64,7 +64,9 @@ para:
 autotest:## build autotest binary
 	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
 	@cp cmd/autotest/*.toml build/tools/autotest/
-	@cd build/tools/autotest && bash ./local-autotest.sh $(dapp) && cd ../../../
+	@if [ -n "$(dapp)" ]; then \
+		cd build/tools/autotest && bash ./local-autotest.sh $(dapp) && cd ../../../; \
+	fi
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..

@@ -3,6 +3,12 @@ id = "tokenPre"
 command = "send token precreate -f 0.01 -i testToken -n testToken -s TC -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -t 100000 -p 1 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 dep = ["transForPrecreate"]
 
+[[TokenPreCreateCase]]
+id = "tokenPre2"
+command = "send token precreate -f 0.01 -i testToken -n testToken -s TCC -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -t 100000 -p 1 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+dep = ["transForPrecreate"]
+
+
 [[TokenFinishCreateCase]]
 id = "tokenFinish"
 command = "send token finish -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -f 0.01 -s TC -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc"
@@ -42,7 +48,7 @@ dep = ["tokenTrans1"]
 
 
 [[TransferCase]]
-id = "failTokenTrans"
+id = "failTokenTrans"       #带有fail前缀表示用例本身是失败的，在autotest程序中集成了这个特性
 command = "send token transfer -a 101 -s TC -t 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT -k 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 to = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
@@ -72,8 +78,15 @@ repeat = 4
 
 
 [[WithdrawCase]]
-id = "failTokenWithDraw"
+id = "failTokenWithDraw"            #带有fail前缀表示用例本身是失败的，在autotest程序中集成了这个特性
 command = "send token withdraw -a 11 -s TC -e trade -k 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 addr = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "11"
 checkItem = ["balance"]
+
+
+#--liugui 2018.9.19-- 
+[[tokenRevokeCase]]
+id = "tokenRevoke"
+command = "send token revoke -f 0.01 -s TCC -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+dep = ["tokenPre2"]
