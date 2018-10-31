@@ -42,7 +42,7 @@ func TestJRPCChannel(t *testing.T) {
 		{fn: testRoundListCmd},
 		{fn: testLoopResultCmd},
 	}
-	for _, testCase := range testCases {
+	for index, testCase := range testCases {
 		err := testCase.fn(t, jrpcClient)
 		if err == nil {
 			continue
