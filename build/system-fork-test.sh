@@ -100,7 +100,7 @@ function start() {
     #    docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
     docker-compose up --build -d
 
-    local SLEEP=60
+    local SLEEP=30
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
@@ -115,8 +115,13 @@ function start() {
     peersCount=$(${CLI} net peer_info | jq '.[] | length')
     echo "${peersCount}"
     if [ "${peersCount}" -lt 2 ]; then
-        echo "peers error"
-        exit 1
+        sleep 20
+        peersCount=$(${CLI} net peer_info | jq '.[] | length')
+        echo "${peersCount}"
+        if [ "${peersCount}" -lt 2 ]; then
+            echo "peers error"
+            exit 1
+        fi
     fi
 
     #echo "=========== # create seed for wallet ============="
@@ -207,8 +212,7 @@ function start() {
         exit 1
     fi
 
-    echo "=========== sleep ${SLEEP}s ============="
-    sleep ${SLEEP}
+    block_wait "${CLI}" 1
 
     echo "=========== check genesis hash ========== "
     ${CLI} block hash -t 0

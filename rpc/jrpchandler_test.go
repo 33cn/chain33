@@ -1230,8 +1230,8 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	assert.Equal(t, types.ErrActionNotSupport, err)
 
 	in = &rpctypes.CreateTxIn{
-		Execer:     types.ExecName("token"),
-		ActionName: "Tokenfinishcreate",
+		Execer:     types.ExecName(types.TokenX),
+		ActionName: "TokenFinishCreate",
 		Payload:    []byte("{\"symbol\": \"TOKEN\", \"owner\":\"string\"}"),
 	}
 	err = client.CreateTransaction(in, &result)

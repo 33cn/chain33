@@ -25,3 +25,12 @@ func (g *PokerBull) Query_QueryGameByAddr(in *pkt.QueryPBGameInfo) (types.Messag
 
 	return gameIds, nil
 }
+
+func (g *PokerBull) Query_QueryGameByStatus(in *pkt.QueryPBGameInfo) (types.Message, error) {
+	gameIds, err := getGameListByStatus(g.GetLocalDB(), in.Status, in.Index)
+	if err != nil {
+		return nil, err
+	}
+
+	return gameIds, nil
+}

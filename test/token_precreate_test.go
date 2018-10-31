@@ -46,7 +46,7 @@ func TestPreCreateToken(t *testing.T) {
 	tokenOwner := "1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"
 	t.Log(tokenOwner)
 
-	v := &tokenty.TokenAction_Tokenprecreate{&tokenty.TokenPreCreate{
+	v := &tokenty.TokenAction_TokenPreCreate{&tokenty.TokenPreCreate{
 		"Yuan chain coin",
 		"GOOD",
 		"An Easy Way to Build Blockchain",

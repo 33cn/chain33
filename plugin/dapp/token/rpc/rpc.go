@@ -81,7 +81,7 @@ func (c *Jrpc) CreateRawTokenPreCreateTx(param *tokenty.TokenPreCreate, result *
 	if param == nil || param.Symbol == "" {
 		return types.ErrInvalidParam
 	}
-	data, err := types.CallCreateTx(types.ExecName(tokenty.TokenX), "Tokenprecreate", param)
+	data, err := types.CallCreateTx(types.ExecName(tokenty.TokenX), "TokenPreCreate", param)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (c *Jrpc) CreateRawTokenFinishTx(param *tokenty.TokenFinishCreate, result *
 	if param == nil || param.Symbol == "" {
 		return types.ErrInvalidParam
 	}
-	data, err := types.CallCreateTx(types.ExecName(tokenty.TokenX), "Tokenfinishcreate", param)
+	data, err := types.CallCreateTx(types.ExecName(tokenty.TokenX), "TokenFinishCreate", param)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (c *Jrpc) CreateRawTokenRevokeTx(param *tokenty.TokenRevokeCreate, result *
 	if param == nil || param.Symbol == "" {
 		return types.ErrInvalidParam
 	}
-	data, err := types.CallCreateTx(types.ExecName(tokenty.TokenX), "Tokenrevokecreate", param)
+	data, err := types.CallCreateTx(types.ExecName(tokenty.TokenX), "TokenRevokeCreate", param)
 	if err != nil {
 		return err
 	}
