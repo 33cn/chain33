@@ -35,5 +35,5 @@ const (
 	FuncName_QueryGameListByIds = "QueryGameListByIds"
 	FuncName_QueryGameById      = "QueryGameById"
 	FuncName_QueryGameByAddr    = "QueryGameByAddr"
-	FuncName_QueryGameByStatus    = "QueryGameByStatus"
+	FuncName_QueryGameByStatus  = "QueryGameByStatus"
 )
