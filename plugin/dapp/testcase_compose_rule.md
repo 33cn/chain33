@@ -35,7 +35,8 @@ build下的文件都是和CI 测试相关的
  1. docker-compose yml文件是组织docker service编排的，chain33至少需要启动2个docker才能挖矿，如果对Dockerfile 命名有修改，可以在
     这里指定，docker-compose文件可以和系统文件继承， 也就是dapp里面可以只写修改的部分，如和系统有重叠，以dapp里面的为准。
     docker-compose yml文件可以对docker service做各种定制
-    如果对docker-compose没有修改，也可以不提供    
+    如果对docker-compose没有修改，也可以不提供
+    如果和系统docker-compose.yml文件组合使用，dapp的compose文件必须符合docker-compose-$dapp.yml的命名    
  1. testcase.sh 测试用例写在这个文件里，规定一定是testcase.sh这个文件名，不然系统找不到。
     当前对testcase提供三个step：
     1. init 是docker 启动前对配置文件需要的修改

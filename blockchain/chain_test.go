@@ -18,7 +18,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
@@ -37,7 +36,7 @@ var random *rand.Rand
 func init() {
 	types.SetTitle("local")
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
-	log.SetLogLevel("error")
+	//log.SetLogLevel("error")
 }
 
 var q queue.Queue

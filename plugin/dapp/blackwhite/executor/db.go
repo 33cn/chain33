@@ -8,20 +8,20 @@ import (
 
 var (
 	roundPrefix      = "mavl-blackwhite-"
-	loopResultPrefix = "blackwhite-loop-"
+	loopResultPrefix = "LODB-blackwhite-loop-"
 )
 
-func calcRoundKey(ID string) []byte {
+func calcMavlRoundKey(ID string) []byte {
 	return []byte(fmt.Sprintf(roundPrefix+"%s", ID))
 }
 
 func calcRoundKey4AddrHeight(addr, heightindex string) []byte {
-	key := fmt.Sprintf(roundPrefix+"%s-"+"%s", addr, heightindex)
+	key := fmt.Sprintf(loopResultPrefix+"%s-"+"%s", addr, heightindex)
 	return []byte(key)
 }
 
 func calcRoundKey4StatusAddrHeight(status int32, addr, heightindex string) []byte {
-	key := fmt.Sprintf(roundPrefix+"%d-"+"%s-"+"%s", status, addr, heightindex)
+	key := fmt.Sprintf(loopResultPrefix+"%d-"+"%s-"+"%s", status, addr, heightindex)
 	return []byte(key)
 }
 

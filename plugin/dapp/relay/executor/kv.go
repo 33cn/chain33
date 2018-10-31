@@ -7,22 +7,22 @@ import (
 )
 
 const (
-	relayOrderSCAIH          = "relay-sellorder-scaih:"
-	relayOrderCSAIH          = "relay-sellorder-csaih:"
-	relayOrderASCIH          = "relay-sellorder-ascih:"
-	relayOrderACSIH          = "relay-sellorder-acsih:"
-	relayBuyOrderACSIH       = "relay-buyorder-acsih:"
+	relayOrderSCAIH          = "LODB-relay-sellorder-scaih:"
+	relayOrderCSAIH          = "LODB-relay-sellorder-csaih:"
+	relayOrderASCIH          = "LODB-relay-sellorder-ascih:"
+	relayOrderACSIH          = "LODB-relay-sellorder-acsih:"
+	relayBuyOrderACSIH       = "LODB-relay-buyorder-acsih:"
 	orderIDPrefix            = "mavl-relay-orderid-"
 	coinHashPrefix           = "mavl-relay-coinhash-"
 	btcLastHead              = "mavl-relay-btclasthead"
-	relayBTCHeaderHash       = "relay-btcheader-hash"
-	relayBTCHeaderHeight     = "relay-btcheader-height"
-	relayBTCHeaderHeightList = "relay-btcheader-height-list"
+	relayBTCHeaderHash       = "LODB-relay-btcheader-hash"
+	relayBTCHeaderHeight     = "LODB-relay-btcheader-height"
+	relayBTCHeaderHeightList = "LODB-relay-btcheader-height-list"
 )
 
 var (
-	relayBTCHeaderLastHeight = []byte("relay-btcheader-last-height")
-	relayBTCHeaderBaseHeight = []byte("relay-btcheader-base-height")
+	relayBTCHeaderLastHeight = []byte("LODB-relay-btcheader-last-height")
+	relayBTCHeaderBaseHeight = []byte("LODB-relay-btcheader-base-height")
 )
 
 func calcBtcHeaderKeyHash(hash string) []byte {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -96,7 +97,7 @@ func (policy *privacyPolicy) reqTxDetailByAddr(addr string) {
 
 func (policy *privacyPolicy) isRescanUtxosFlagScaning() (bool, error) {
 	if privacytypes.UtxoFlagScaning == policy.GetRescanFlag() {
-		return true, types.ErrRescanFlagScaning
+		return true, privacytypes.ErrRescanFlagScaning
 	}
 	return false, nil
 }
@@ -149,7 +150,7 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
 	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
 	//因为此时是pub2priv的交易，此时不需要构造找零的输出，同时设置fee为0，也是为了简化计算
-	privacyOutput, err := genCustomOuts(viewPublic, spendPublic, reqCreateUTXOs.Amount, reqCreateUTXOs.Count)
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, nil, nil, reqCreateUTXOs.Amount, reqCreateUTXOs.Amount, 0)
 	if err != nil {
 		bizlog.Error("createUTXOsByPub2Priv", "genCustomOuts error.", err)
 		return nil, err
@@ -157,7 +158,7 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 
 	value := &privacytypes.Public2Privacy{
 		Tokenname: reqCreateUTXOs.Tokenname,
-		Amount:    reqCreateUTXOs.Amount * int64(reqCreateUTXOs.Count),
+		Amount:    reqCreateUTXOs.Amount,
 		Note:      reqCreateUTXOs.Note,
 		Output:    privacyOutput,
 	}
@@ -233,7 +234,7 @@ func (policy *privacyPolicy) getPrivacykeyPair(addr string) (*privacy.Privacy, e
 		if err != nil {
 			return nil, err
 		}
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 }
 
@@ -319,10 +320,14 @@ func (policy *privacyPolicy) showPrivacyKeyPair(reqAddr *types.ReqString) (*priv
 }
 
 func (policy *privacyPolicy) getPrivacyAccountInfo(req *privacytypes.ReqPPrivacyAccount) (*privacytypes.ReplyPrivacyAccount, error) {
-	addr := req.GetAddr()
+	addr := strings.Trim(req.GetAddr(), " ")
 	token := req.GetToken()
 	reply := &privacytypes.ReplyPrivacyAccount{}
 	reply.Displaymode = req.Displaymode
+	if len(addr) == 0 {
+		return nil, errors.New("Address is empty")
+	}
+
 	// 搜索可用余额
 	privacyDBStore, err := policy.store.listAvailableUTXOs(token, addr)
 	utxos := make([]*privacytypes.UTXO, 0)
@@ -778,7 +783,7 @@ func (policy *privacyPolicy) getPrivacyKeyPairs() ([]addrAndprivacy, error) {
 	}
 
 	if 0 == len(infoPriRes) {
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 
 	return infoPriRes, nil

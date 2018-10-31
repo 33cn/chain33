@@ -35,6 +35,7 @@ var (
 func init() {
 	// init executor type
 	nameX = types.ExecName(types.ParaX)
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.ParaX))
 	types.RegistorExecutor(types.ParaX, NewType())
 }
 
