@@ -27,7 +27,7 @@ func (t *token) Query_GetTotalAmount(in *types.ReqString) (types.Message, error)
 	if err != nil {
 		return nil, err
 	}
-	tokenInfo, ok := ret.(*tokenty.Token)
+	tokenInfo, ok := ret.(*tokenty.LocalToken)
 	if !ok {
 		return nil, types.ErrTypeAsset
 	}
