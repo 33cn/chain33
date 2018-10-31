@@ -1,4 +1,4 @@
-package executor
+package executor_test
 
 import (
 	"context"
@@ -11,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/grpc"
-
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -23,8 +21,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
+	_ "gitlab.33.cn/chain33/chain33/system"
 	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -57,7 +57,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	Init("manage", nil)
 	conn, err := grpc.Dial(mainNetgrpcAddr, grpc.WithInsecure())
 	if err != nil {
 		panic(err)

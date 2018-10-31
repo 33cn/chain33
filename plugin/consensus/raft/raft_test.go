@@ -63,6 +63,7 @@ func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg, sub := config.InitCfg("chain33.test.toml")
+	types.Init(cfg.Title, cfg)
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
