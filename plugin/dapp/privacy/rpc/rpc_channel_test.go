@@ -58,7 +58,7 @@ func TestRPCChannel(t *testing.T) {
 			continue
 		}
 		assert.NotEqual(t, err, types.ErrActionNotSupport)
-		if strings.Contains(err.Error(), "rpc: can't find method") {
+		if strings.Contains(err.Error(), "rpc: can't find") {
 			assert.FailNow(t, err.Error())
 		}
 	}
