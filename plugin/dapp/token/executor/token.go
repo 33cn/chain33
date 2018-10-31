@@ -130,12 +130,12 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 	if symbol == "" {
 		return nil, types.ErrInvalidParam
 	}
-	key := calcTokenStatusSymbolNewPrefix(tokenty.TokenStatusCreated, symbol)
+	key := calcTokenStatusTokenKeyPrefixLocal(tokenty.TokenStatusCreated, symbol)
 	values, err := t.GetLocalDB().List(key, nil, 0, 0)
 	if err != nil {
 		return nil, err
 	}
-	if len(values) == 0 {
+	if len(values) == 0 || values[0] == nil || len(values[0]) == 0 {
 		return nil, types.ErrNotFound
 	}
 	var tokenInfo tokenty.LocalToken
