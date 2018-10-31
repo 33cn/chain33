@@ -32,7 +32,7 @@ func TestDecodeLogErr(t *testing.T) {
 	logs = append(logs, rlog)
 
 	var data = &rpctypes.ReceiptData{
-		Ty:   5,
+		Ty:   1,
 		Logs: logs,
 	}
 	result, err := rpctypes.DecodeLog([]byte("coins"), data)

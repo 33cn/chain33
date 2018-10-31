@@ -46,6 +46,27 @@ checkItem = ["balance", "utxo"]
 dep = ["trans1"]
 
 
+#failpub2priv
+[[PubToPrivCase]]
+id = "failpub2priv1"
+command = "privacy pub2priv -a 1000 -f 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -p d736dcff89c2e588d1fc3d44ba956af4d15d0a01eb1aedaf58fcbc2bdd09591fec9fd83ea6eee18c5a0fd8f1d167b1f8b020d8a6203be49f0bf3f410473fc534"
+from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+to = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
+amount = "1000"
+checkItem = ["balance", "utxo"]
+dep = ["trans1"]
+
+
+[[PubToPrivCase]]
+id = "failpub2priv2"
+command = "privacy pub2priv -a 603 -f 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -p d45063357ab3454cfb7ee87db8f9ca2772d11bd82d4f681ce00ae44fe5929e8fd964867dae1b19b265b7f68d4ad965cfd4a0aaf71580344adf9fce28cfebadab"
+from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
+amount = "603"
+checkItem = ["balance", "utxo"]
+dep = ["pub2priv3"]
+
+
 #priv2priv
 
 [[PrivToPrivCase]]
@@ -76,6 +97,28 @@ to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 amount = "69"
 checkItem = ["utxo"]
 dep = ["pub2priv3"]
+
+
+#failpriv2priv
+
+[[PrivToPrivCase]]
+id = "failpriv2priv1"
+command = "privacy priv2priv -a 100 -f 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT -p 0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
+from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
+to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+amount = "100"
+checkItem = ["utxo"]
+dep = ["pub2priv1"]
+
+
+[[PrivToPrivCase]]
+id = "failpriv2priv2"
+command = "privacy priv2priv -a 51 -f 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt -p 0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
+from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
+to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+amount = "51"
+checkItem = ["utxo"]
+dep = ["priv2priv2"]
 
 
 #priv2pub
@@ -109,3 +152,47 @@ amount = "69"
 checkItem = ["balance", "utxo"]
 dep = ["priv2priv3"]
 
+
+#failpriv2pub
+
+[[PrivToPubCase]]
+id = "failpriv2pub1"
+command = "privacy priv2pub -a 100 -f 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
+to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+amount = "100"
+checkItem = ["balance", "utxo"]
+dep = ["priv2priv1"]
+
+
+[[PrivToPubCase]]
+id = "failpriv2pub2"
+command = "privacy priv2pub -a 3 -f 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
+to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+amount = "3"
+checkItem = ["balance", "utxo"]
+dep = ["priv2pub2"]
+
+#createutxosCase
+
+[[PrivCreateutxosCase]]
+id = "privCreateutxos"
+command = "privacy createutxos -a 20 -f 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -p 0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
+from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+amount = "20"
+checkItem = ["balance", "utxo"]
+dep = ["trans1"]
+
+
+#failcreateutxosCase
+
+[[PrivCreateutxosCase]]
+id = "failprivCreateutxos"
+command = "privacy createutxos -a 1000 -f 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -p 0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
+from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+amount = "1000"
+checkItem = ["balance", "utxo"]
+dep = ["trans1"]
