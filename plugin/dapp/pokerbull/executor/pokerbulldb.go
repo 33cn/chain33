@@ -755,6 +755,7 @@ func (action *Action) GameQuit(pbend *pkt.PBGameQuit) (*types.Receipt, error) {
 				kv = append(kv, receipt.KV...)
 			}
 		}
+		game.IsWaiting = false
 	}
 	game.PreStatus = game.Status
 	game.Status = pkt.PBGameActionQuit
