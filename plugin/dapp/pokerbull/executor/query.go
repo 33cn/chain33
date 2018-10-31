@@ -34,4 +34,3 @@ func (g *PokerBull) Query_QueryGameByStatus(in *pkt.QueryPBGameInfo) (types.Mess
 
 	return gameIds, nil
 }
-

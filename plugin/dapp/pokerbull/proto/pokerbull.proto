@@ -114,7 +114,7 @@ message PBGameRecords {
 message QueryPBGameInfo {
     string gameId = 1;
     string addr   = 2;
-    int32 status  = 3;
+    int32  status = 3;
     int64  index  = 4;
 }
 
@@ -131,16 +131,16 @@ message ReplyPBGameList {
 }
 
 message ReceiptPBGame {
-    string   gameId         = 1;
-    int32    status         = 2;
-    string   addr           = 3;
-    int64    index          = 4;
-    int64    prevIndex      = 5;
-    int32    playerNum      = 6;
-    int64    value          = 7;
-    bool     isWaiting      = 8;
-    repeated string players = 9;
-    int32    preStatus      = 10;
+    string   gameId           = 1;
+    int32    status           = 2;
+    string   addr             = 3;
+    int64    index            = 4;
+    int64    prevIndex        = 5;
+    int32    playerNum        = 6;
+    int64    value            = 7;
+    bool     isWaiting        = 8;
+    repeated string players   = 9;
+    int32           preStatus = 10;
 }
 
 message PBStartTxReq {

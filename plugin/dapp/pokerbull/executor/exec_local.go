@@ -11,27 +11,27 @@ func (c *PokerBull) updateIndex(log *pkt.ReceiptPBGame) (kvs []*types.KeyValue) 
 	kvs = append(kvs, addPBGameStatusIndexKey(log.Status, log.GameId, log.Index))
 	kvs = append(kvs, addPBGameAddrIndexKey(log.Status, log.Addr, log.GameId, log.Index))
 
-/*
-	//状态更新
-	if log.Status == pkt.PBGameActionStart {
-		kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
-		kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionStart, log.PrevIndex))
-	}
+	/*
+		//状态更新
+		if log.Status == pkt.PBGameActionStart {
+			kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
+			kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionStart, log.PrevIndex))
+		}
 
-	if log.Status == pkt.PBGameActionContinue {
-		kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
-		kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionContinue, log.PlayerNum, log.Value, log.PrevIndex))
-		kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionStart, log.PrevIndex))
-		kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionContinue, log.PrevIndex))
-	}
+		if log.Status == pkt.PBGameActionContinue {
+			kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
+			kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionContinue, log.PlayerNum, log.Value, log.PrevIndex))
+			kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionStart, log.PrevIndex))
+			kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionContinue, log.PrevIndex))
+		}
 
-	if log.Status == pkt.PBGameActionQuit {
-		kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
-		kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionContinue, log.PlayerNum, log.Value, log.PrevIndex))
-		kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionStart, log.PrevIndex))
-		kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionContinue, log.PrevIndex))
+		if log.Status == pkt.PBGameActionQuit {
+			kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionStart, log.PlayerNum, log.Value, log.PrevIndex))
+			kvs = append(kvs, delPBGameStatusAndPlayer(pkt.PBGameActionContinue, log.PlayerNum, log.Value, log.PrevIndex))
+			kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionStart, log.PrevIndex))
+			kvs = append(kvs, delPBGameStatusIndexKey(pkt.PBGameActionContinue, log.PrevIndex))
 
-	}*/
+		}*/
 
 	//结束一局，更新所有玩家地址状态
 	if !log.IsWaiting {
