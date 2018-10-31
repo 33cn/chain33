@@ -61,6 +61,9 @@ func (g *channelClient) SetAutoMining(ctx context.Context, in *ty.MinerFlag) (*t
 
 func (g *channelClient) GetTicketCount(ctx context.Context, in *types.ReqNil) (*types.Int64, error) {
 	data, err := g.QueryConsensusFunc(types.TicketX, "GetTicketCount", &types.ReqNil{})
+	if err != nil {
+		return nil, err
+	}
 	return data.(*types.Int64), err
 }
 

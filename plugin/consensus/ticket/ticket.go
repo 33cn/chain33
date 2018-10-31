@@ -173,6 +173,9 @@ func (client *Client) getTickets() ([]*ty.Ticket, []crypto.PrivKey, error) {
 func (client *Client) getTicketCount() int64 {
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
+	if client.tlist == nil {
+		return 0
+	}
 	return int64(len(client.tlist.Tickets))
 }
 
