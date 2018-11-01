@@ -239,12 +239,12 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 			addDelStrs = append(addDelStrs, addDel...)
 			delNodeStrs = append(delNodeStrs, delN...)
 		} else {
+			//for test
 			if len([]byte(key)) < 32 {
 				treelog.Error("----->pruningHashNode -------", "hash:", common.Bytes2Hex([]byte(key)), "err", err, "lenth", len([]byte(key)))
 			} else {
 				treelog.Error("----->pruningHashNode LoadLeaf fail", "hash:", common.Bytes2Hex([]byte(key)), "err", err, "lenth", len([]byte(key)))
 			}
-			//panic("for test")
 		}
 	}
 	//根据keyMap进行归类
