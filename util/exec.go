@@ -89,7 +89,7 @@ func CheckTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCac
 
 func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList
-	if height >= types.ForkV1 {
+	if types.IsFork(height, "ForkCheckTxDup") {
 		txs = CheckTxDupInner(txs)
 	}
 	for _, tx := range txs {

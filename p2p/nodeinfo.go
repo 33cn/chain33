@@ -117,7 +117,7 @@ func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 		if peer.Addr() == n.nodeInfo.GetExternalAddr().String() { //fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort())
 			continue
 		}
-		peerinfo, err := peer.GetPeerInfo(nf.cfg.GetVersion())
+		peerinfo, err := peer.GetPeerInfo(nf.cfg.Version)
 		if err != nil {
 			if err == types.ErrVersion {
 				peer.version.SetSupport(false)
@@ -183,7 +183,7 @@ func (nf *NodeInfo) IsNatDone() bool {
 
 func (nf *NodeInfo) IsOutService() bool {
 
-	if !nf.cfg.GetServerStart() {
+	if !nf.cfg.ServerStart {
 		return false
 	}
 

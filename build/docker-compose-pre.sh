@@ -14,6 +14,9 @@ OP="${1}"
 PROJ="${2}"
 DAPP="${3}"
 
+TESTCASEFILE="testcase.sh"
+FORKTESTFILE="fork-test.sh"
+
 function down_dapp() {
     app=$1
 
@@ -37,12 +40,12 @@ function run_dapp() {
     cp -n ./* ./"${app}"-ci/ && echo $?
     cd "${app}"-ci/ && pwd
 
-    if [ "$test" == "fork-test.sh" ]; then
+    if [ "$test" == "$FORKTESTFILE" ]; then
         sed -i $sedfix 's/^system_coins_file=.*/system_coins_file="..\/system\/coins\/fork-test.sh"/g' system-fork-test.sh
         if ! ./system-fork-test.sh "${PROJ}" "${app}"; then
             exit 1
         fi
-    elif [ "$test" == "testcase.sh" ]; then
+    elif [ "$test" == "$TESTCASEFILE" ]; then
         if ! ./docker-compose.sh "${PROJ}" "${app}"; then
             exit 1
         fi
@@ -83,10 +86,10 @@ function main() {
             find . -maxdepth 1 -type d -name "*-ci" -exec rm -rf {} \;
             dir=$(find . -maxdepth 1 -type d ! -name system ! -name . | sed 's/^\.\///')
             for app in $dir; do
-                run_single_app "${app}" "testcase.sh" "down"
+                run_single_app "${app}" "$TESTCASEFILE" "down"
             done
         elif [ -n "${DAPP}" ]; then
-            run_single_app "${DAPP}" "testcase.sh"
+            run_single_app "${DAPP}" "$TESTCASEFILE"
         else
             ./docker-compose.sh "${PROJ}"
         fi
@@ -115,10 +118,10 @@ function main() {
             find . -maxdepth 1 -type d -name "*-ci" -exec rm -rf {} \;
             dir=$(find . -maxdepth 1 -type d ! -name system ! -name . | sed 's/^\.\///')
             for app in $dir; do
-                run_single_app "${app}" "fork-test.sh" "down"
+                run_single_app "${app}" "$FORKTESTFILE" "down"
             done
         elif [ -n "${DAPP}" ]; then
-            run_single_app "${DAPP}" "fork-test.sh"
+            run_single_app "${DAPP}" "$FORKTESTFILE"
         else
             ./system-fork-test.sh "${PROJ}"
         fi

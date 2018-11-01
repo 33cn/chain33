@@ -39,15 +39,18 @@ dep: ## Get the dependencies
 all: ## Builds for multiple platforms
 	@gox  $(LDFLAGS) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/bityuan.toml build/
 	@mv chain33* build/
 
 build: ## Build the binary file
 	@go build $(BUILD_FLAGS) -v -i -o  $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/bityuan.toml build/
 
 release: ## Build the binary file
 	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/bityuan.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
 
 cli: ## Build cli binary
@@ -64,7 +67,9 @@ para:
 autotest:## build autotest binary
 	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
 	@cp cmd/autotest/*.toml build/tools/autotest/
-	@cd build/tools/autotest && bash ./local-autotest.sh $(dapp) && cd ../../../
+	@if [ -n "$(dapp)" ]; then \
+		cd build/tools/autotest && bash ./local-autotest.sh $(dapp) && cd ../../../; \
+	fi
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..

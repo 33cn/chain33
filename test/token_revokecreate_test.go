@@ -46,7 +46,7 @@ func TestRevokeCreateToken(t *testing.T) {
 	tokenOwner := "1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"
 	t.Log(tokenOwner)
 
-	v := &tokenty.TokenAction_Tokenrevokecreate{&tokenty.TokenRevokeCreate{
+	v := &tokenty.TokenAction_TokenRevokeCreate{&tokenty.TokenRevokeCreate{
 		"ABAB",
 		tokenOwner}}
 

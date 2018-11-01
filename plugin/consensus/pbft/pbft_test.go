@@ -63,6 +63,7 @@ func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module,
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg, sub := config.InitCfg("chain33.test.toml")
+	types.Init(cfg.Title, cfg)
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 	mem := mempool.New(cfg.MemPool)

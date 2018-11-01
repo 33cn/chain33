@@ -93,7 +93,7 @@ func (e *Paracross) ExecLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.
 			continue
 		}
 		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) &&
-			bytes.HasSuffix(tx.Execer, []byte(types.ParaX)) {
+			bytes.HasSuffix(tx.Execer, []byte(pt.ParaX)) {
 			crossTxHashs = append(crossTxHashs, tx.Hash())
 		}
 	}

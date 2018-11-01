@@ -118,7 +118,7 @@ func (action *tokenAction) preCreate(token *tokenty.TokenPreCreate) (*types.Rece
 		return nil, tokenty.ErrTokenHavePrecreated
 	}
 
-	if action.height >= types.ForkV6TokenBlackList {
+	if types.IsDappFork(action.height, tokenty.TokenX, "ForkTokenBlackList") {
 		found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
 		if err != nil {
 			return nil, err
@@ -131,7 +131,7 @@ func (action *tokenAction) preCreate(token *tokenty.TokenPreCreate) (*types.Rece
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
-	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
+	if types.IsDappFork(action.height, tokenty.TokenX, "ForkTokenPrice") && token.GetPrice() == 0 {
 		// pay for create token offline
 	} else {
 		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, token.GetPrice())
@@ -146,7 +146,7 @@ func (action *tokenAction) preCreate(token *tokenty.TokenPreCreate) (*types.Rece
 	tokendb := newTokenDB(token, action.fromaddr)
 	var statuskey []byte
 	var key []byte
-	if action.height >= types.ForkV13ExecKey {
+	if types.IsFork(action.height, "ForkExecKey") {
 		statuskey = calcTokenStatusNewKeyS(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
 		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
@@ -193,7 +193,7 @@ func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
-	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
+	if types.IsDappFork(action.height, tokenty.TokenX, "ForkTokenPrice") && token.GetPrice() == 0 {
 		// pay for create token offline
 	} else {
 		//将之前冻结的资金转账到fund合约账户中
@@ -221,7 +221,7 @@ func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) 
 	token.Status = tokenty.TokenStatusCreated
 	tokendb := &tokenDB{*token}
 	var key []byte
-	if action.height >= types.ForkV13ExecKey {
+	if types.IsFork(action.height, "ForkExecKey") {
 		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
 		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
@@ -266,7 +266,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *tokenty.TokenRevokeCreate) 
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
+	if types.IsDappFork(action.height, tokenty.TokenX, "ForkTokenPrice") && token.GetPrice() == 0 {
 		// pay for create token offline
 	} else {
 		//解锁之前冻结的资金
@@ -282,7 +282,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *tokenty.TokenRevokeCreate) 
 	token.Status = tokenty.TokenStatusCreateRevoked
 	tokendb := &tokenDB{*token}
 	var key []byte
-	if action.height >= types.ForkV13ExecKey {
+	if types.IsFork(action.height, "ForkExecKey") {
 		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
 		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
@@ -428,7 +428,7 @@ func ValidSymbol(cs []byte) bool {
 }
 
 func ValidSymbolWithHeight(cs []byte, height int64) bool {
-	if height < types.ForkV7BadTokenSymbol {
+	if !types.IsDappFork(height, tokenty.TokenX, "ForkBadTokenSymbol") {
 		symbol := string(cs)
 		upSymbol := strings.ToUpper(symbol)
 		return upSymbol == symbol

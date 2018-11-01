@@ -99,7 +99,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	logs = append(logs, &types.ReceiptLog{evmtypes.TyLogCallContract, types.Encode(contractReceipt)})
 	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr.String())...)
 
-	if types.IsMatchFork(evm.GetHeight(), types.ForkV26EVMKVHash) {
+	if types.IsDappFork(evm.GetHeight(), "evm", "ForkEVMKVHash") {
 		// 将执行时生成的合约状态数据变更信息也计算哈希并保存
 		hashKV := evm.calcKVHash(contractAddr, logs)
 		if hashKV != nil {
