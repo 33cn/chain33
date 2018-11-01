@@ -1,7 +1,6 @@
 package executor
 
 import (
-	token "gitlab.33.cn/chain33/chain33/plugin/dapp/token/executor"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -32,7 +31,6 @@ func (t *trade) ExecLocal_RevokeBuy(revoke *pty.TradeForRevokeBuy, tx *types.Tra
 
 func (t *trade) localAddLog(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
-	var symbol string
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
@@ -44,7 +42,6 @@ func (t *trade) localAddLog(tx *types.Transaction, receipt *types.ReceiptData, i
 			}
 			kv := t.saveSell([]byte(receipt.Base.SellID), item.Ty)
 			set.KV = append(set.KV, kv...)
-			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyMarket {
 			var receipt pty.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
@@ -53,7 +50,6 @@ func (t *trade) localAddLog(tx *types.Transaction, receipt *types.ReceiptData, i
 			}
 			kv := t.saveBuy(receipt.Base)
 			set.KV = append(set.KV, kv...)
-			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyRevoke || item.Ty == types.TyLogTradeBuyLimit {
 			var receipt pty.ReceiptTradeBuyLimit
 			err := types.Decode(item.Log, &receipt)
@@ -63,7 +59,6 @@ func (t *trade) localAddLog(tx *types.Transaction, receipt *types.ReceiptData, i
 
 			kv := t.saveBuyLimit([]byte(receipt.Base.BuyID), item.Ty)
 			set.KV = append(set.KV, kv...)
-			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeSellMarket {
 			var receipt pty.ReceiptSellMarket
 			err := types.Decode(item.Log, &receipt)
@@ -73,16 +68,7 @@ func (t *trade) localAddLog(tx *types.Transaction, receipt *types.ReceiptData, i
 			kv := t.saveSellMarket(receipt.Base)
 			//tradelog.Info("saveSellMarket", "kv", kv)
 			set.KV = append(set.KV, kv...)
-			symbol = receipt.Base.TokenSymbol
 		}
-	}
-	if types.GetSaveTokenTxList() {
-		kvs, err := token.TokenTxKvs(tx, symbol, t.GetHeight(), int64(index), false)
-		// t.makeT1okenTxKvs(tx, &action, receipt, index, false)
-		if err != nil {
-			return nil, err
-		}
-		set.KV = append(set.KV, kvs...)
 	}
 
 	return &set, nil

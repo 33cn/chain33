@@ -146,7 +146,7 @@ func (action *tokenAction) preCreate(token *tokenty.TokenPreCreate) (*types.Rece
 	tokendb := newTokenDB(token, action.fromaddr)
 	var statuskey []byte
 	var key []byte
-	if types.IsDappFork(action.height, tokenty.TokenX, "ForkExecKey") {
+	if types.IsFork(action.height, "ForkExecKey") {
 		statuskey = calcTokenStatusNewKeyS(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
 		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
@@ -221,7 +221,7 @@ func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) 
 	token.Status = tokenty.TokenStatusCreated
 	tokendb := &tokenDB{*token}
 	var key []byte
-	if types.IsDappFork(action.height, tokenty.TokenX, "ForkExecKey") {
+	if types.IsFork(action.height, "ForkExecKey") {
 		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
 		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
@@ -282,7 +282,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *tokenty.TokenRevokeCreate) 
 	token.Status = tokenty.TokenStatusCreateRevoked
 	tokendb := &tokenDB{*token}
 	var key []byte
-	if types.IsDappFork(action.height, tokenty.TokenX, "ForkExecKey") {
+	if types.IsFork(action.height, "ForkExecKey") {
 		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
 		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
