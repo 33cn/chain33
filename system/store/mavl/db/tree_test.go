@@ -795,8 +795,8 @@ func TestIAVLPrint(t *testing.T) {
 }
 
 func TestPruningTree(t *testing.T) {
-	const txN = 1000   // 每个块交易量
-	const preB = 500 // 一轮区块数
+	const txN = 100   // 每个块交易量
+	const preB = 50 // 一轮区块数
 	const round = 5   // 更新叶子节点次数
 	const preDel = preB / 10
 	dir, err := ioutil.TempDir("", "datastore")
