@@ -215,7 +215,7 @@ func (action *Action) TicketOpen(topen *ty.TicketOpen) (*types.Receipt, error) {
 	for i := 0; i < int(topen.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
 		//add pubHash
-		if types.IsDappFork(action.height, ty.TicketX, "ForkTicket") {
+		if types.IsDappFork(action.height, ty.TicketX, "ForkTicketId") {
 			if len(topen.PubHashes) == 0 {
 				return nil, ty.ErrOpenTicketPubHash
 			}
