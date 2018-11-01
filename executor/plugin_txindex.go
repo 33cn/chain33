@@ -76,6 +76,11 @@ func getTxIndex(executor *executor, tx *types.Transaction, receipt *types.Receip
 	txinf.Hash = tx.Hash()
 	txinf.Height = executor.height
 	txinf.Index = int64(index)
+	ety := types.LoadExecutorType(string(tx.Execer))
+	// none exec has not execType
+	if ety != nil {
+		txinf.Assets, _ = ety.GetAssets(tx)
+	}
 
 	txIndexInfo.index = &txinf
 	heightstr := fmt.Sprintf("%018d", executor.height*types.MaxTxsPerBlock+int64(index))
