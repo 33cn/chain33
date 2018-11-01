@@ -177,7 +177,7 @@ func (action *Action) GameCreate(create *gt.GameCreate) (*types.Receipt, error) 
 	maxGameAmount := GetConfValue(action.db, ConfName_MaxGameAmount, MaxGameAmount)
 	if create.GetValue() > maxGameAmount*types.Coin {
 		glog.Error("Create the game, the deposit is too big  ", "value", create.GetValue())
-		return nil, types.ErrGameCreateAmount
+		return nil, gt.ErrGameCreateAmount
 	}
 	minGameAmount := GetConfValue(action.db, ConfName_MinGameAmount, MinGameAmount)
 	if create.GetValue() < minGameAmount*types.Coin || math.Remainder(float64(create.GetValue()), 2) != 0 {
@@ -230,13 +230,13 @@ func (action *Action) GameMatch(match *gt.GameMatch) (*types.Receipt, error) {
 	}
 	if game.GetStatus() != gt.GameActionCreate {
 		glog.Error("GameMatch", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
-			match.GetGameId(), "err", types.ErrGameMatchStatus)
-		return nil, types.ErrGameMatchStatus
+			match.GetGameId(), "err", gt.ErrGameMatchStatus)
+		return nil, gt.ErrGameMatchStatus
 	}
 	if game.GetCreateAddress() == action.fromaddr {
 		glog.Error("GameMatch", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
-			match.GetGameId(), "err", types.ErrGameMatch)
-		return nil, types.ErrGameMatch
+			match.GetGameId(), "err", gt.ErrGameMatch)
+		return nil, gt.ErrGameMatch
 	}
 	if !action.CheckExecAccountBalance(action.fromaddr, game.GetValue()/2, 0) {
 		glog.Error("GameMatch", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
@@ -283,13 +283,13 @@ func (action *Action) GameCancel(cancel *gt.GameCancel) (*types.Receipt, error) 
 	}
 	if game.GetCreateAddress() != action.fromaddr {
 		glog.Error("GameCancel ", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
-			cancel.GetGameId(), "err", types.ErrGameCancleAddr)
-		return nil, types.ErrGameCancleAddr
+			cancel.GetGameId(), "err", gt.ErrGameCancleAddr)
+		return nil, gt.ErrGameCancleAddr
 	}
 	if game.GetStatus() != gt.GameActionCreate {
 		glog.Error("GameCancel ", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
-			cancel.GetGameId(), "err", types.ErrGameCancleStatus)
-		return nil, types.ErrGameCancleStatus
+			cancel.GetGameId(), "err", gt.ErrGameCancleStatus)
+		return nil, gt.ErrGameCancleStatus
 	}
 	if !action.CheckExecAccountBalance(action.fromaddr, 0, game.GetValue()) {
 		glog.Error("GameCancel", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
@@ -336,12 +336,12 @@ func (action *Action) GameClose(close *gt.GameClose) (*types.Receipt, error) {
 	//开奖时间控制
 	if action.fromaddr != game.GetCreateAddress() && !action.checkGameIsTimeOut(game) {
 		//如果不是游戏创建者开奖，则检查是否超时
-		glog.Error(types.ErrGameCloseAddr.Error())
-		return nil, types.ErrGameCloseAddr
+		glog.Error(gt.ErrGameCloseAddr.Error())
+		return nil, gt.ErrGameCloseAddr
 	}
 	if game.GetStatus() != gt.GameActionMatch {
-		glog.Error(types.ErrGameCloseStatus.Error())
-		return nil, types.ErrGameCloseStatus
+		glog.Error(gt.ErrGameCloseStatus.Error())
+		return nil, gt.ErrGameCloseStatus
 	}
 	//各自冻结余额检查
 	if !action.CheckExecAccountBalance(game.GetCreateAddress(), 0, 2*game.GetValue()/3) {

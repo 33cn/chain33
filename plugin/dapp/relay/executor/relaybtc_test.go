@@ -352,7 +352,7 @@ func (s *suiteBtcStore) TestVerifyBlockHeader_2() {
 	}
 
 	err := verifyBlockHeader(head, preHead, s.kvdb)
-	s.Equal(types.ErrRelayBtcHeadNewBitsErr, err)
+	s.Equal(ty.ErrRelayBtcHeadNewBitsErr, err)
 
 }
 

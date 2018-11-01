@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+
 	//_ "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross"
 	pp "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/executor"
 	//"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
@@ -28,8 +29,7 @@ import (
 var random *rand.Rand
 
 func init() {
-	types.SetTitle("user.p.para.")
-	//rpc.Init("paracross", nil)
+	types.Init("user.p.para.", nil)
 	pp.Init("paracross", nil)
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	consensusInterval = 2
@@ -50,7 +50,7 @@ type suiteParaCommitMsg struct {
 }
 
 func initConfigFile() (*types.Config, *types.ConfigSubModule) {
-	cfg, sub := config.InitCfg("../../../cmd/chain33/chain33.para.test.toml")
+	cfg, sub := config.InitCfg("../../../plugin/dapp/paracross/cmd/build/chain33.para.test.toml")
 	return cfg, sub
 }
 

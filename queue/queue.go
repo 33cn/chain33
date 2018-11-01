@@ -260,7 +260,7 @@ func (msg Message) String() string {
 func (msg Message) ReplyErr(title string, err error) {
 	var reply types.Reply
 	if err != nil {
-		qlog.Error(title, "err", err.Error())
+		qlog.Error(title, "reply.err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	} else {

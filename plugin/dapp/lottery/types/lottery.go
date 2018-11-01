@@ -18,6 +18,7 @@ var (
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(LotteryX))
 	types.RegistorExecutor(LotteryX, NewType())
+	types.RegisterDappFork(LotteryX, "Enable", 0)
 }
 
 type LotteryType struct {

@@ -223,7 +223,7 @@ func (client *CommitMsgClient) getTxsGroup(txsArr *types.Transactions) (*types.T
 func (client *CommitMsgClient) batchCalcTxGroup(notifications []*pt.ParacrossNodeStatus) (*types.Transaction, int, error) {
 	var rawTxs types.Transactions
 	for _, status := range notifications {
-		tx, err := paracross.CreateRawCommitTx4MainChain(status, types.ParaX, 0)
+		tx, err := paracross.CreateRawCommitTx4MainChain(status, pt.ParaX, 0)
 		if err != nil {
 			plog.Error("para get commit tx", "block height", status.Height)
 			return nil, 0, err
@@ -239,7 +239,7 @@ func (client *CommitMsgClient) batchCalcTxGroup(notifications []*pt.ParacrossNod
 }
 
 func (client *CommitMsgClient) singleCalcTx(status *pt.ParacrossNodeStatus) (*types.Transaction, error) {
-	tx, err := paracross.CreateRawCommitTx4MainChain(status, types.ParaX, 0)
+	tx, err := paracross.CreateRawCommitTx4MainChain(status, pt.ParaX, 0)
 	if err != nil {
 		plog.Error("para get commit tx", "block height", status.Height)
 		return nil, err
@@ -553,16 +553,16 @@ func CheckMinerTx(current *types.BlockDetail) error {
 		return err
 	}
 	if action.GetTy() != paracross.ParacrossActionMiner {
-		return types.ErrParaMinerTxType
+		return paracross.ErrParaMinerTxType
 	}
 	//判断交易执行是否OK
 	if action.GetMiner() == nil {
-		return types.ErrParaEmptyMinerTx
+		return paracross.ErrParaEmptyMinerTx
 	}
 
 	//判断exec 是否成功
 	if current.Receipts[0].Ty != types.ExecOk {
-		return types.ErrParaMinerExecErr
+		return paracross.ErrParaMinerExecErr
 	}
 	return nil
 }

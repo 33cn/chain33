@@ -293,7 +293,9 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	prevStateHash := b.bestChain.Tip().statehash
 	//广播或者同步过来的blcok需要调用执行模块
 	errReturn := (node.pid != "self")
+	//println("--exec before--")
 	blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync)
+	//println("--exec end--")
 	if err != nil && err != types.ErrFutureBlock {
 		//记录执行出错的block信息,需要过滤掉ErrFutureBlock错误的block，不计入故障中，尝试再次执行
 		b.RecordFaultPeer(node.pid, block.Height, node.hash, err)

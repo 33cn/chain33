@@ -25,7 +25,7 @@ func (e *Paracross) ExecLocal_Commit(payload *pt.ParacrossCommitAction, tx *type
 			key := calcLocalTitleKey(g.Title)
 			set.KV = append(set.KV, &types.KeyValue{key, types.Encode(&g)})
 
-			key = calcTitleHeightKey(g.Title, g.Height)
+			key = calcLocalHeightKey(g.Title, g.Height)
 			set.KV = append(set.KV, &types.KeyValue{key, types.Encode(&g)})
 
 			r, err := e.saveLocalParaTxs(tx, false)
@@ -65,7 +65,7 @@ func (e *Paracross) ExecLocal_AssetWithdraw(payload *types.AssetsWithdraw, tx *t
 
 func (e *Paracross) ExecLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	if index != 0 {
-		return nil, types.ErrParaMinerBaseIndex
+		return nil, pt.ErrParaMinerBaseIndex
 	}
 
 	var set types.LocalDBSet
@@ -93,7 +93,7 @@ func (e *Paracross) ExecLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.
 			continue
 		}
 		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) &&
-			bytes.HasSuffix(tx.Execer, []byte(types.ParaX)) {
+			bytes.HasSuffix(tx.Execer, []byte(pt.ParaX)) {
 			crossTxHashs = append(crossTxHashs, tx.Hash())
 		}
 	}

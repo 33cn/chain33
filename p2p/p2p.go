@@ -40,7 +40,7 @@ func New(cfg *types.P2P) *P2p {
 		}
 	}
 
-	VERSION = cfg.GetVersion()
+	VERSION = cfg.Version
 	log.Info("p2p", "Version", VERSION)
 
 	if cfg.InnerBounds == 0 {

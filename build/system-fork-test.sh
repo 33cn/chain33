@@ -26,23 +26,48 @@ CLI6="docker exec ${NODE6} /root/chain33-cli"
 containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}")
 forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
 
-#引入隐私交易分叉测试
-# shellcheck disable=SC1091
-source privacy-fork-test.sh
-
-#引入coins交易分叉测试
-# shellcheck disable=SC1091
-source coins-fork-test.sh
-
-# shellcheck disable=SC1091
-source ci-para-test.sh
+export COMPOSE_PROJECT_NAME="$1"
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
 fi
 
-function init() {
+DAPP=""
+if [ -n "${2}" ]; then
+    DAPP=$2
+fi
+
+DAPP_TEST_FILE=""
+
+if [ -n "${DAPP}" ]; then
+    testfile="fork-test.sh"
+    if [ -e "$testfile" ]; then
+        # shellcheck source=/dev/null
+        source "${testfile}"
+        DAPP_TEST_FILE="$testfile"
+    fi
+
+    DAPP_COMPOSE_FILE="docker-compose-${DAPP}.yml"
+    if [ -e "$DAPP_COMPOSE_FILE" ]; then
+        export COMPOSE_FILE="docker-compose.yml:${DAPP_COMPOSE_FILE}"
+
+    fi
+
+fi
+
+system_coins_file="system/coins/fork-test.sh"
+# shellcheck source=/dev/null
+source "${system_coins_file}"
+
+echo "=========== # env setting ============="
+echo "DAPP=$DAPP"
+echo "DAPP_TEST_FILE=$DAPP_TEST_FILE"
+echo "COMPOSE_FILE=$COMPOSE_FILE"
+echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
+echo "CLI=$CLI"
+
+function base_init() {
     # update test environment
     sed -i $sedfix 's/^Title.*/Title="local"/g' chain33.toml
     sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
@@ -62,8 +87,9 @@ function init() {
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
-    para_init
+}
 
+function start() {
     # docker-compose ps
     docker-compose ps
 
@@ -71,10 +97,10 @@ function init() {
     docker-compose down
 
     # create and run docker-compose container
-    #docker-compose up --build -d
-    docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
+    #    docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
+    docker-compose up --build -d
 
-    local SLEEP=60
+    local SLEEP=30
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
@@ -89,8 +115,13 @@ function init() {
     peersCount=$(${CLI} net peer_info | jq '.[] | length')
     echo "${peersCount}"
     if [ "${peersCount}" -lt 2 ]; then
-        echo "peers error"
-        exit 1
+        sleep 20
+        peersCount=$(${CLI} net peer_info | jq '.[] | length')
+        echo "${peersCount}"
+        if [ "${peersCount}" -lt 2 ]; then
+            echo "peers error"
+            exit 1
+        fi
     fi
 
     #echo "=========== # create seed for wallet ============="
@@ -181,8 +212,7 @@ function init() {
         exit 1
     fi
 
-    echo "=========== sleep ${SLEEP}s ============="
-    sleep ${SLEEP}
+    block_wait "${CLI}" 1
 
     echo "=========== check genesis hash ========== "
     ${CLI} block hash -t 0
@@ -200,12 +230,16 @@ function init() {
         exit 1
     fi
 
-    para_transfer
-    para_set_wallet
-
     ${CLI} wallet status
     ${CLI} account list
     ${CLI} mempool list
+}
+
+function dapp_run() {
+    if [ -e "$DAPP_TEST_FILE" ]; then
+        ${DAPP} "${CLI}" "${1}"
+    fi
+
 }
 
 function optDockerfun() {
@@ -228,40 +262,39 @@ function optDockerfun() {
 
 function forkType1() {
     echo "=========== 开始进行类型1分叉测试 ========== "
-    init
-    resetPrivacyGlobalData
+    base_init
+    dapp_run forkInit
 
+    start
     optDockerPart1
     #############################################
     #此处根据具体需求加入；如从钱包中转入某个具体合约账户
     #1 初始化交易余额
-    initPriAccount
+    dapp_run forkConfig
 
     #############################################
     optDockerPart2
     #############################################
     #此处根据具体需求加入在一条测试链中发送测试数据
     #2 构造第一条链中交易
-    genFirstChainPritx
-    genFirstChainPritxType4
+    dapp_run forkAGroupRun
 
     #############################################
     optDockerPart3
     #############################################
     #此处根据具体需求加入在第二条测试链中发送测试数据
     #3 构造第二条链中交易
-    genSecondChainPritx
-    genSecondChainPritxType4
+    dapp_run forkBGroupRun
 
     #############################################
     optDockerPart4
     loopCount=30 #循环次数，每次循环休眠时间100s
     checkBlockHashfun $loopCount
-    checkParaBlockHashfun $loopCount
+
     #############################################
     #此处根据具体需求加入结果检查
     #4 检查交易结果
-    checkPriResult
+    dapp_run forkCheckRst
 
     #############################################
     echo "=========== 类型1分叉测试结束 ========== "
@@ -269,14 +302,17 @@ function forkType1() {
 
 function forkType2() {
     echo "=========== 开始进行类型2分叉测试 ========== "
-    init
-    resetPrivacyGlobalData
+    base_init
+    dapp_run fork2Init
+
+    start
 
     optDockerPart1
     #############################################
     #此处根据具体需求加入；如从钱包中转入某个具体合约账户
     #1 初始化交易余额
     initCoinsAccount
+    dapp_run fork2Config
 
     #############################################
     type2_optDockerPart2
@@ -284,28 +320,24 @@ function forkType2() {
     #此处根据具体需求加入在一条测试链中发送测试数据
     #2 构造第一条链中交易
     genFirstChainCoinstx
-    genFirstChainPritxType4
-
+    dapp_run fork2AGroupRun
     #############################################
     type2_optDockerPart3
     #############################################
     #此处根据具体需求加入在第二条测试链中发送测试数据
     #3 构造第二条链中交易
-
     genSecondChainCoinstx
-    genSecondChainPritxType4
+    dapp_run fork2BGroupRun
 
     #############################################
     type2_optDockerPart4
     loopCount=30 #循环次数，每次循环休眠时间100s
     checkBlockHashfun $loopCount
-    checkParaBlockHashfun $loopCount
     #############################################
     #此处根据具体需求加入结果检查
     #4 检查交易结果
-
     checkCoinsResult
-
+    dapp_run fork2CheckRst
     #############################################
     echo "=========== 类型2分叉测试结束 ========== "
 }

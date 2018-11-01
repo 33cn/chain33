@@ -78,10 +78,10 @@ func (c *Chain33) SendRawTransaction(in rpctypes.SignedTx, result *interface{}) 
 
 //used only in parachain
 func forwardTranToMainNet(in rpctypes.RawParm, result *interface{}) error {
-	if rpcCfg.GetMainnetJrpcAddr() == "" {
+	if rpcCfg.MainnetJrpcAddr == "" {
 		return types.ErrInvalidMainnetRpcAddr
 	}
-	rpc, err := jsonclient.NewJSONClient(rpcCfg.GetMainnetJrpcAddr())
+	rpc, err := jsonclient.NewJSONClient(rpcCfg.MainnetJrpcAddr)
 
 	if err != nil {
 		return err
@@ -156,7 +156,6 @@ func (c *Chain33) QueryTransaction(in rpctypes.QueryParm, result *interface{}) e
 		if err != nil {
 			return err
 		}
-
 		for _, proof := range reply.Proofs {
 			transDetail.Proofs = append(transDetail.Proofs, common.ToHex(proof))
 		}
@@ -267,7 +266,7 @@ func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 		infos := reply.GetTxInfos()
 		for _, info := range infos {
 			txinfos.TxInfos = append(txinfos.TxInfos, &rpctypes.ReplyTxInfo{Hash: common.ToHex(info.GetHash()),
-				Height: info.GetHeight(), Index: info.GetIndex()})
+				Height: info.GetHeight(), Index: info.GetIndex(), Assets: info.Assets})
 		}
 		*result = &txinfos
 	}
@@ -304,6 +303,12 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	var txdetails rpctypes.TransactionDetails
 	if 0 != len(txs) {
 		for _, tx := range txs {
+			//增加判断，上游接口可能返回空指针
+			if tx == nil {
+				//参数中hash和返回的detail一一对应，顺序一致
+				txdetails.Txs = append(txdetails.Txs, nil)
+				continue
+			}
 			var recp rpctypes.ReceiptData
 			var proofs []string
 			var recpResult *rpctypes.ReceiptDataResult
@@ -445,7 +450,7 @@ func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interfa
 			IsWithdraw:  false,
 			IsToken:     true,
 			TokenSymbol: in.GetTokenSymbol(),
-			ExecName:    types.ExecName(types.TokenX),
+			ExecName:    types.ExecName("token"),
 		}
 		tx, err := c.cli.CreateRawTransaction(createTx)
 		if err != nil {

@@ -23,7 +23,6 @@ callerFile = false
 # 是否打印调用方法
 callerFunction = false
 
-
 [blockchain]
 defCacheSize=128
 maxFetchBlockNum=128
@@ -52,7 +51,6 @@ driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-
 
 [rpc]
 jrpcBindAddr="localhost:8801"

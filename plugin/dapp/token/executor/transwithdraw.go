@@ -1,8 +1,6 @@
 package executor
 
 import (
-	"fmt"
-
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -22,7 +20,7 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 		return accountDB.Transfer(from, tx.GetRealToAddr(), transfer.Amount)
 	} else if (action.Ty == tokenty.ActionWithdraw) && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
-		if !types.IsMatchFork(t.GetHeight(), types.ForkV16Withdraw) {
+		if types.IsFork(t.GetHeight(), "ForkWithdraw") {
 			withdraw.ExecName = ""
 		}
 		from := tx.From()
@@ -42,7 +40,7 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 			return nil, types.ErrReRunGenesis
 		}
 	} else if action.Ty == tokenty.TokenActionTransferToExec && action.GetTransferToExec() != nil {
-		if !types.IsMatchFork(t.GetHeight(), types.ForkV12TransferExec) {
+		if !types.IsFork(t.GetHeight(), "ForkTransferExec") {
 			return nil, types.ErrActionNotSupport
 		}
 		transfer := action.GetTransferToExec()
@@ -131,11 +129,6 @@ func (t *token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *t
 		set.KV = append(set.KV, kv)
 	}
 	return set, nil
-}
-
-//存储地址上收币的信息
-func calcAddrKey(token string, addr string) []byte {
-	return []byte(fmt.Sprintf("token:%s-Addr:%s", token, addr))
 }
 
 func getAddrReciverKV(token string, addr string, reciverAmount int64) *types.KeyValue {

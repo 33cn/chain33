@@ -86,7 +86,7 @@ func (a *action) Create(create *gt.BlackwhiteCreate) (*types.Receipt, error) {
 	round.CreateTime = a.blocktime
 	round.Index = heightIndexToIndex(a.height, a.index)
 
-	key := calcRoundKey(round.GameID)
+	key := calcMavlRoundKey(round.GameID)
 	value := types.Encode(round)
 	kv = append(kv, &types.KeyValue{key, value})
 
@@ -98,7 +98,7 @@ func (a *action) Create(create *gt.BlackwhiteCreate) (*types.Receipt, error) {
 
 func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 	// 获取GameID
-	value, err := a.db.Get(calcRoundKey(play.GameID))
+	value, err := a.db.Get(calcMavlRoundKey(play.GameID))
 	if err != nil {
 		clog.Error("blackwhite play ", "addr", a.fromaddr, "execaddr", a.execaddr, "get round failed",
 			play.GameID, "err", err)
@@ -114,7 +114,7 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 
 	// 检查当前状态
 	if gt.BlackwhiteStatusPlay != round.Status && gt.BlackwhiteStatusCreate != round.Status {
-		err := types.ErrIncorrectStatus
+		err := gt.ErrIncorrectStatus
 		clog.Error("blackwhite play ", "addr", a.fromaddr, "round status", round.Status, "status is not match, GameID ",
 			play.GameID, "err", err)
 		return nil, err
@@ -123,7 +123,7 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 	// 检查是否有重复
 	for _, addrResult := range round.AddrResult {
 		if addrResult.Addr == a.fromaddr {
-			err := types.ErrRepeatPlayerAddr
+			err := gt.ErrRepeatPlayerAddr
 			clog.Error("blackwhite play ", "addr", a.fromaddr, "execaddr", a.execaddr, "repeat address GameID",
 				play.GameID, "err", err)
 			return nil, err
@@ -174,9 +174,9 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 		logs = append(logs, receiptLog)
 	}
 
-	key1 := calcRoundKey(round.GameID)
+	key1 := calcMavlRoundKey(round.GameID)
 	value1 := types.Encode(&round)
-	if types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
+	if types.IsDappFork(a.height, gt.BlackwhiteX, "ForkBlackWhiteV2") {
 		//将当前游戏状态保存，便于同一区块中游戏参数的累加
 		a.db.Set(key1, value1)
 	}
@@ -187,7 +187,7 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 
 func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 	// 获取GameID
-	value, err := a.db.Get(calcRoundKey(show.GameID))
+	value, err := a.db.Get(calcMavlRoundKey(show.GameID))
 	if err != nil {
 		clog.Error("blackwhite show ", "addr", a.fromaddr, "execaddr", a.execaddr, "get round failed",
 			show.GameID, "err", err)
@@ -202,7 +202,7 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 	}
 	// 检查当前状态
 	if gt.BlackwhiteStatusShow != round.Status {
-		err := types.ErrIncorrectStatus
+		err := gt.ErrIncorrectStatus
 		clog.Error("blackwhite show ", "addr", a.fromaddr, "round status", round.Status, "status is not match, GameID ",
 			show.GameID, "err", err)
 		return nil, err
@@ -219,7 +219,7 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 		}
 	}
 	if !bIsExist {
-		err := types.ErrNoExistAddr
+		err := gt.ErrNoExistAddr
 		clog.Error("blackwhite show ", "addr", a.fromaddr, "execaddr", a.execaddr, "this addr is play in GameID",
 			show.GameID, "err", err)
 		return nil, err
@@ -258,9 +258,9 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 		logs = append(logs, receiptLog)
 	}
 
-	key1 := calcRoundKey(round.GameID)
+	key1 := calcMavlRoundKey(round.GameID)
 	value1 := types.Encode(&round)
-	if types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
+	if types.IsDappFork(a.height, gt.BlackwhiteX, "ForkBlackWhiteV2") {
 		//将当前游戏状态保存，便于同一区块中游戏参数的累加
 		a.db.Set(key1, value1)
 	}
@@ -270,7 +270,7 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 }
 
 func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, error) {
-	value, err := a.db.Get(calcRoundKey(done.GameID))
+	value, err := a.db.Get(calcMavlRoundKey(done.GameID))
 	if err != nil {
 		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "get round failed",
 			done.GameID, "err", err)
@@ -324,7 +324,7 @@ func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, er
 			round.Status = gt.BlackwhiteStatusTimeout
 
 		} else {
-			err := types.ErrNoTimeoutDone
+			err := gt.ErrNoTimeoutDone
 			clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "is BlackwhiteStatusPlay GameID",
 				done.GameID, "err", err)
 			return nil, err
@@ -342,21 +342,21 @@ func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, er
 			kv = append(kv, receipt.KV...)
 
 		} else {
-			err := types.ErrNoTimeoutDone
+			err := gt.ErrNoTimeoutDone
 			clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "is blackwhiteStatusShow GameID",
 				done.GameID, "err", err)
 			return nil, err
 		}
 	} else {
-		err := types.ErrIncorrectStatus
+		err := gt.ErrIncorrectStatus
 		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "status is not match GameID",
 			done.GameID, "status", round.Status, "err", err)
 		return nil, err
 	}
 
-	key1 := calcRoundKey(round.GameID)
+	key1 := calcMavlRoundKey(round.GameID)
 	value1 := types.Encode(&round)
-	if types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
+	if types.IsDappFork(a.height, gt.BlackwhiteX, "ForkBlackWhiteV2") {
 		//将当前游戏状态保存，便于同一区块中游戏参数的累加
 		a.db.Set(key1, value1)
 	}
@@ -529,7 +529,7 @@ func (a *action) getWinner(round *gt.BlackwhiteRound) ([]*addrResult, *gt.ReplyL
 			var isBlack []bool
 			// 加入分叉高度判断：分叉高度在ForkV25BlackWhite到ForkV25BlackWhiteV2之间的执行原来逻辑，大于ForkV25BlackWhiteV2执行新逻辑，
 			// 小于ForkV25BlackWhite则无法进入
-			if !types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
+			if !types.IsDappFork(a.height, gt.BlackwhiteX, "ForkBlackWhiteV2") {
 				for _, hash := range addres.HashValues {
 					if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+black)), hash) {
 						isBlack = append(isBlack, true)

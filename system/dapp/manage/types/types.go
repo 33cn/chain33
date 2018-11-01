@@ -5,13 +5,11 @@ import (
 	"reflect"
 
 	"gitlab.33.cn/chain33/chain33/common/address"
-
-	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	nameX      string
+	ManageX    = "manage"
 	actionName = map[string]int32{
 		"Modify": ManageActionModifyConfig,
 	}
@@ -23,9 +21,11 @@ var (
 //var tlog = log.New("module", name)
 
 func init() {
-	nameX = types.ExecName(types.ManageX)
-	// init executor type
-	types.RegistorExecutor(types.ManageX, NewType())
+	types.AllowUserExec = append(types.AllowUserExec, []byte(ManageX))
+	types.RegistorExecutor(ManageX, NewType())
+
+	types.RegisterDappFork(ManageX, "Enable", 120000)
+	types.RegisterDappFork(ManageX, "ForkManageExec", 400000)
 }
 
 type ManageType struct {

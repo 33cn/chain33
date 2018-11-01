@@ -216,7 +216,7 @@ func (mock *testDataMock) initAccounts() {
 }
 
 func (mock *testDataMock) enablePrivacy() {
-	mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "EnablePrivacy", &ty.ReqEnablePrivacy{Addrs: testAddrs})
+	mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "EnablePrivacy", &ty.ReqEnablePrivacy{Addrs: testAddrs})
 }
 
 func (mock *testDataMock) setBlockChainHeight(height int64) {
@@ -278,7 +278,7 @@ func Test_EnablePrivacy(t *testing.T) {
 		},
 	}
 	for index, testCase := range testCases {
-		getReply, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "EnablePrivacy", testCase.req)
+		getReply, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "EnablePrivacy", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "EnablePrivacy test case index %d", index)
 		if testCase.needReply == nil {
 			assert.Nil(t, getReply)
@@ -288,11 +288,11 @@ func Test_EnablePrivacy(t *testing.T) {
 	}
 }
 
-func Test_ShowPrivacyPK(t *testing.T) {
+func Test_ShowPrivacyKey(t *testing.T) {
 	mock := &testDataMock{}
 	mock.init()
 	// 设置第0个地址开启隐私交易
-	mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "EnablePrivacy", &ty.ReqEnablePrivacy{Addrs: []string{testAddrs[0]}})
+	mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "EnablePrivacy", &ty.ReqEnablePrivacy{Addrs: []string{testAddrs[0]}})
 
 	testCases := []struct {
 		req       *types.ReqString
@@ -301,7 +301,7 @@ func Test_ShowPrivacyPK(t *testing.T) {
 	}{
 		{
 			req:       &types.ReqString{Data: testAddrs[1]},
-			needError: types.ErrPrivacyNotEnabled,
+			needError: ty.ErrPrivacyNotEnabled,
 		},
 		{
 			req: &types.ReqString{Data: testAddrs[0]},
@@ -313,8 +313,8 @@ func Test_ShowPrivacyPK(t *testing.T) {
 	}
 
 	for index, testCase := range testCases {
-		getReply, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "ShowPrivacyPK", testCase.req)
-		require.Equalf(t, getErr, testCase.needError, "ShowPrivacyPK test case index %d", index)
+		getReply, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "ShowPrivacyKey", testCase.req)
+		require.Equalf(t, getErr, testCase.needError, "ShowPrivacyKey test case index %d", index)
 		if testCase.needReply == nil {
 			assert.Nil(t, getReply)
 			continue
@@ -349,7 +349,7 @@ func Test_CreateUTXOs(t *testing.T) {
 	}
 
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "CreateUTXOs", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "CreateUTXOs", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "CreateUTXOs test case index %d", index)
 	}
 }
@@ -379,7 +379,7 @@ func Test_SendPublic2PrivacyTransaction(t *testing.T) {
 	}
 
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "Public2Privacy", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "Public2Privacy", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "Publick2Privacy test case index %d", index)
 	}
 }
@@ -418,7 +418,7 @@ func Test_SendPrivacy2PrivacyTransaction(t *testing.T) {
 	}
 
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "Privacy2Privacy", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "Privacy2Privacy", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "Privacy2Privacy test case index %d", index)
 	}
 }
@@ -457,7 +457,7 @@ func Test_SendPrivacy2PublicTransaction(t *testing.T) {
 	}
 
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "Privacy2Public", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "Privacy2Public", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "Privacy2Public test case index %d", index)
 	}
 }
@@ -513,7 +513,7 @@ func Test_CreateTransaction(t *testing.T) {
 		},
 	}
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "CreateTransaction", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "CreateTransaction", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "CreateTransaction test case index %d", index)
 	}
 }
@@ -539,7 +539,7 @@ func Test_PrivacyAccountInfo(t *testing.T) {
 		},
 	}
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "ShowPrivacyAccountInfo", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "ShowPrivacyAccountInfo", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "ShowPrivacyAccoPrivacyAccountInfountInfo test case index %d", index)
 	}
 }
@@ -565,7 +565,7 @@ func Test_ShowPrivacyAccountSpend(t *testing.T) {
 		},
 	}
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "ShowPrivacyAccountSpend", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "ShowPrivacyAccountSpend", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "ShowPrivacyAccountSpend test case index %d", index)
 	}
 }
@@ -594,7 +594,7 @@ func Test_PrivacyTransactionList(t *testing.T) {
 		},
 	}
 	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "PrivacyTransactionList", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "PrivacyTransactionList", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "PrivacyTransactionList test case index %d", index)
 	}
 }
@@ -617,7 +617,7 @@ func Test_RescanUTXOs(t *testing.T) {
 				Addrs: testAddrs,
 				Flag:  0,
 			},
-			needError: types.ErrPrivacyNotEnabled,
+			needError: ty.ErrPrivacyNotEnabled,
 		},
 		{
 			enable: true,
@@ -631,7 +631,7 @@ func Test_RescanUTXOs(t *testing.T) {
 		if testCase.enable {
 			mock.enablePrivacy()
 		}
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(types.PrivacyX, "RescanUtxos", testCase.req)
+		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "RescanUtxos", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "RescanUtxos test case index %d", index)
 	}
 }
