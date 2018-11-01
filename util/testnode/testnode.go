@@ -242,6 +242,9 @@ func (mock *Chain33Mock) WaitHeight(height int64) error {
 }
 
 func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error) {
+	if hash == nil {
+		return nil, nil
+	}
 	for {
 		param := &types.ReqHash{Hash: hash}
 		_, err := mock.api.QueryTx(param)
@@ -265,7 +268,10 @@ func (mock *Chain33Mock) SendHot() error {
 		return err
 	}
 	tx := util.CreateCoinsTx(mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
-	mock.GetAPI().SendTx(tx)
+	_, err = mock.GetAPI().SendTx(tx)
+	if err != nil {
+		panic(err)
+	}
 	return mock.WaitHeight(header.Height + 1)
 }
 

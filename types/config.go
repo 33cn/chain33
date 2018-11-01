@@ -158,10 +158,13 @@ func Init(t string, cfg *Config) {
 	//local 只用于单元测试
 	if IsLocal() {
 		initChainTestNet()
+		SetTestNet(true)
 		SetLocalFork()
 		SetChainConfig("TxHeight", true)
 		Debug = true
 		return
+	} else {
+		SetTestNet(cfg.TestNet)
 	}
 	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
 	if IsPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
@@ -214,13 +217,14 @@ func SetTestNet(isTestNet bool) {
 	//const 初始化TestNet 的初始化参数
 	GenesisBlockTime = 1514533394
 	FundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
-	SuperManager = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	SuperManager = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
 	TokenApprs = []string{
 		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
 		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
 		"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
 		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
 		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
+		"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
 	}
 	if IsLocal() {
 		return
