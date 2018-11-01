@@ -27,13 +27,13 @@ message MAVLProof {
 }
 
 message StoreNode {
-    bytes key         = 1;
-    bytes value       = 2;
-    bytes leftHash    = 3;
-    bytes rightHash   = 4;
-    int32 height      = 5;
-    int32 size        = 6;
-    bytes parentHash  = 7;
+    bytes key        = 1;
+    bytes value      = 2;
+    bytes leftHash   = 3;
+    bytes rightHash  = 4;
+    int32 height     = 5;
+    int32 size       = 6;
+    bytes parentHash = 7;
 }
 
 message LocalDBSet {
@@ -90,7 +90,7 @@ message PruneData {
 }
 
 message DeleteNodeMap {
-    map<string, bool>  mpNode = 1;
+    map<string, bool> mpNode = 1;
 }
 
 //用于存储db Pool数据的Value

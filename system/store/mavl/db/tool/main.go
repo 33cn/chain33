@@ -1,19 +1,21 @@
 // +build go1.8
 
 package main
+
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 
-	mavl "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"bufio"
 	"os/signal"
 	"syscall"
+
 	log "github.com/inconshreveable/log15"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	mavl "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"bufio"
 )
 
 func main() {
@@ -34,17 +36,16 @@ func main() {
 	}
 
 	log1 := &types.Log{
-		Loglevel: str,
+		Loglevel:        str,
 		LogConsoleLevel: "info",
-		LogFile: "logs/syc.log",
-		MaxFileSize: 400,
-		MaxBackups: 100,
-		MaxAge: 28,
-		LocalTime: true,
-		Compress: false,
+		LogFile:         "logs/syc.log",
+		MaxFileSize:     400,
+		MaxBackups:      100,
+		MaxAge:          28,
+		LocalTime:       true,
+		Compress:        false,
 	}
 	clog.SetFileLog(log1)
-
 
 	log.Info("test", dir)
 	db := dbm.NewDB("store", "leveldb", dir, 100)
@@ -85,9 +86,8 @@ func main() {
 		mavl.PruningTree(db, int64(a))
 	}
 	fmt.Println("over")
-	exit := make(chan os.Signal,10) //初始化一个channel
+	exit := make(chan os.Signal, 10)                     //初始化一个channel
 	signal.Notify(exit, syscall.SIGINT, syscall.SIGTERM) //notify方法用来监听收到的信号
 	sig := <-exit
 	fmt.Println(sig.String())
 }
-
