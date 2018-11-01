@@ -57,6 +57,9 @@ var executorMap = map[string]ExecutorType{}
 
 func RegistorExecutor(exec string, util ExecutorType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
+	if util.GetChild() == nil {
+		panic("exec " + exec + " executorType child is nil")
+	}
 	if _, exist := executorMap[exec]; exist {
 		panic("DupExecutorType")
 	} else {
@@ -64,10 +67,10 @@ func RegistorExecutor(exec string, util ExecutorType) {
 	}
 }
 
-func LoadExecutorType(exec string) ExecutorType {
+func LoadExecutorType(execstr string) ExecutorType {
 	//尽可能的加载执行器
 	//真正的权限控制在区块执行的时候做控制
-	realname := GetRealExecName([]byte(exec))
+	realname := GetRealExecName([]byte(execstr))
 	if exec, exist := executorMap[string(realname)]; exist {
 		return exec
 	}
@@ -218,6 +221,7 @@ type ExecutorType interface {
 	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
 	//write for executor
 	GetPayload() Message
+	GetChild() ExecutorType
 	GetName() string
 	//exec result of receipt log
 	GetLogMap() map[int64]*LogInfo
@@ -231,6 +235,8 @@ type ExecutorType interface {
 	GetRPCFuncMap() map[string]reflect.Method
 	GetExecFuncMap() map[string]reflect.Method
 	CreateTransaction(action string, data Message) (*Transaction, error)
+	// collect assets the tx deal with
+	GetAssets(tx *Transaction) ([]*Asset, error)
 }
 
 type ExecTypeGet interface {
@@ -248,6 +254,10 @@ type ExecTypeBase struct {
 	forks               *Forks
 }
 
+func (base *ExecTypeBase) GetChild() ExecutorType {
+	return base.child
+}
+
 func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	base.child = child
 	base.childValue = reflect.ValueOf(child)
@@ -261,6 +271,9 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 		return
 	}
 	base.actionFunList = ListMethod(action)
+	if _, ok := base.actionFunList["XXX_OneofFuncs"]; !ok {
+		return
+	}
 	retval := base.actionFunList["XXX_OneofFuncs"].Func.Call([]reflect.Value{reflect.ValueOf(action)})
 	if len(retval) != 4 {
 		panic("err XXX_OneofFuncs")
@@ -410,6 +423,9 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 }
 
 func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
+	if base.child == nil {
+		return "", nilValue, ErrActionNotSupport
+	}
 	action, err := base.child.DecodePayload(tx)
 	if err != nil {
 		tlog.Error("DecodePayload", "err", err)
@@ -651,4 +667,23 @@ func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Tr
 		return &Transaction{Payload: Encode(value)}, nil
 	}
 	return nil, ErrActionNotSupport
+}
+
+func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
+	_, v, err := base.DecodePayloadValue(tx)
+	if err != nil {
+		return nil, err
+	}
+	payload := v.Interface()
+	asset := &Asset{Exec: string(tx.Execer)}
+	if a, ok := payload.(*AssetsTransfer); ok {
+		asset.Symbol = a.Cointoken
+	} else if a, ok := payload.(*AssetsWithdraw); ok {
+		asset.Symbol = a.Cointoken
+	} else if a, ok := payload.(*AssetsTransferToExec); ok {
+		asset.Symbol = a.Cointoken
+	} else {
+		return nil, nil
+	}
+	return []*Asset{asset}, nil
 }

@@ -145,6 +145,7 @@ It has these top-level messages:
 	AssetsTransferToExec
 	AssetsWithdraw
 	AssetsTransfer
+	Asset
 	CreateTx
 	CreateTransactionGroup
 	UnsignTx

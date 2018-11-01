@@ -2,6 +2,7 @@ package executor
 
 import (
 	"bytes"
+	"runtime/debug"
 
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -10,7 +11,7 @@ import (
 func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64) bool {
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
-		elog.Error("find execer ", "err", err)
+		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer))
 		return false
 	}
 	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
@@ -49,7 +50,7 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 	}
 	d, err := drivers.LoadDriver(string(execdriver), height)
 	if err != nil {
-		elog.Error("load drivers error", "err", err)
+		elog.Error("load drivers error", "err", err, "execdriver", string(execdriver), "height", height)
 		return false
 	}
 	//交给 -> friend 来判定
@@ -61,19 +62,23 @@ func isAllowLocalKey(execer []byte, key []byte) error {
 	//println(string(execer), string(key))
 	minkeylen := len(types.LocalPrefix) + len(execer) + 2
 	if len(key) <= minkeylen {
+		debug.PrintStack()
 		elog.Error("isAllowLocalKey too short", "key", string(key), "exec", string(execer))
 		return types.ErrLocalKeyLen
 	}
 	if key[minkeylen-1] != '-' {
+		debug.PrintStack()
 		elog.Error("isAllowLocalKey prefix last char is not '-'", "key", string(key), "exec", string(execer),
 			"minkeylen", minkeylen)
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key, types.LocalPrefix) {
+		debug.PrintStack()
 		elog.Error("isAllowLocalKey common prefix not match", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key[len(types.LocalPrefix)+1:], execer) {
+		debug.PrintStack()
 		elog.Error("isAllowLocalKey key prefix not match", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
