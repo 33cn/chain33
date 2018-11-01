@@ -101,8 +101,9 @@ func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 	}
 	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none")}
 	tx.To = address.ExecAddress(execer)
+	tx, _ = types.FormatTx(execer, tx)
 	tx.Sign(types.SECP256K1, priv)
-	return format(tx)
+	return tx
 }
 
 func JsonPrint(t *testing.T, input interface{}) {
@@ -124,14 +125,8 @@ func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transacti
 	if err != nil {
 		panic(err)
 	}
-	tx.Sign(types.SECP256K1, priv)
 	tx, _ = types.FormatTx("manage", tx)
-	return tx
-}
-
-func format(tx *types.Transaction) *types.Transaction {
-	tx.Nonce = rand.Int63()
-	tx.Fee = 1e5
+	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
 
@@ -147,10 +142,10 @@ func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transact
 	if err != nil {
 		panic(err)
 	}
-	tx.Execer = []byte("coins")
 	tx.To = to
+	tx, _ = types.FormatTx("coins", tx)
 	tx.Sign(types.SECP256K1, priv)
-	return format(tx)
+	return tx
 }
 
 var zeroHash [32]byte
