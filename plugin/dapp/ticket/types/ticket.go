@@ -39,6 +39,7 @@ func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(TicketX))
 	types.RegistorExecutor(TicketX, NewType())
 	types.RegisterDappFork(TicketX, "Enable", 0)
+	types.RegisterDappFork(TicketX, "ForkTicketId", 1200000)
 }
 
 type TicketType struct {
