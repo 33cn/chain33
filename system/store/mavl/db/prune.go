@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	rootNodePrefix     = "_mr_"
 	leafKeyCountPrefix = "..mk.."
 	delMapPoolPrefix   = "_..md.._"
 	blockHeightStrLen  = 10
@@ -24,7 +23,6 @@ const (
 	pruningStateEnd    = 0
 	//删除节点pool以hash的首字母为key因此有256个
 	delNodeCacheSize   = 256+1
-
 	//每个del Pool下存放默认4096个hash
 	perDelNodePoolSize = 4096
 )
@@ -238,13 +236,6 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 			addDel, delN := mNode.getHashNode(ndb)
 			addDelStrs = append(addDelStrs, addDel...)
 			delNodeStrs = append(delNodeStrs, delN...)
-		} else {
-			//for test
-			if len([]byte(key)) < 32 {
-				treelog.Error("----->pruningHashNode -------", "hash:", common.Bytes2Hex([]byte(key)), "err", err, "lenth", len([]byte(key)))
-			} else {
-				treelog.Error("----->pruningHashNode LoadLeaf fail", "hash:", common.Bytes2Hex([]byte(key)), "err", err, "lenth", len([]byte(key)))
-			}
 		}
 	}
 	//根据keyMap进行归类
@@ -269,9 +260,6 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 				} else {
 					dep.delCache.Remove(string(aHsh.hash))
 				}
-				//for test
-				k := []byte(mpk)
-				treelog.Info("----->mpool ", "mpk", string(k[:8]), "", common.ToHex(k[8:]), "aHsh.isAdd", aHsh.isAdd, "hash:", common.ToHex(aHsh.hash))
 			}
 			ndb.updateDelHash(batch, mpk, dep)
 		}
@@ -285,8 +273,6 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	count := 0
 	batch = db.NewBatch(true)
 	for key := range mp {
-		//fmt.Println("delNodeStrs", common.ToHex([]byte(key)[:2]))
-		//treelog.Error("----->pruningHashNode delete leafnode", "hash:", common.ToHex([]byte(key)))
 		batch.Delete([]byte(key))
 		count++
 	}
@@ -305,20 +291,6 @@ func (node *MarkNode) getHashNode(ndb *markNodeDB) (addDelStrs  []*addDelStr, de
 		} else {
 			node.brotherHash = parN.leftHash
 		}
-		/*******************/
-		//for test
-		//hash := common.Bytes2Hex(node.hash[:2])
-		//var b string
-		//if len(node.brotherHash) > 3 {
-		//	b = common.Bytes2Hex(node.brotherHash[:2])
-		//}
-		//var p string
-		//if len(node.parentHash) > 3 {
-		//	p = common.Bytes2Hex(node.parentHash[:2])
-		//}
-		//fmt.Printf("hash:%v left:%v right:%v\n", hash, b, p)
-		/*******************/
-
 		broN := node.fetchBrotherNode(ndb)
 		if broN == nil || (broN != nil && broN.hashPrune) {
 			node.parentPrune = true
@@ -505,7 +477,7 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 		var buf []byte
 		buf, err := ndb.db.Get(hash)
 		if len(buf) == 0 || err != nil {
-			treelog.Info("----->DeleteNodePool has not this", "hash", common.Bytes2Hex(hash), "err:", err)
+			treelog.Debug("----->DeleteNodePool has not this", "hash", common.Bytes2Hex(hash), "err:", err)
 			return nil, err
 		}
 		node, err := MakeNode(buf, nil)
@@ -545,20 +517,20 @@ func PruningTreePrint(db dbm.DB, prefix []byte) {
 				hashLen := int(pData.Lenth)
 				key, err := getKeyFromLeafCountKey(hashK, hashLen)
 				if err == nil {
-					treelog.Info("pruningTree:", "key:", string(key), "height", pData.Height)
+					treelog.Debug("pruningTree:", "key:", string(key), "height", pData.Height)
 				}
 			}
 		} else if bytes.Equal(prefix, []byte(hashNodePrefix)) {
-			treelog.Info("pruningTree:", "key:", string(it.Key()))
+			treelog.Debug("pruningTree:", "key:", string(it.Key()))
 		} else if bytes.Equal(prefix, []byte(leafNodePrefix)) {
-			treelog.Info("pruningTree:", "key:", string(it.Key()))
+			treelog.Debug("pruningTree:", "key:", string(it.Key()))
 		} else if bytes.Equal(prefix, []byte(delMapPoolPrefix)) {
 			value := it.Value()
 			var pData types.StoreValuePool
 			err := proto.Unmarshal(value, &pData)
 			if err == nil {
 				for _, k := range pData.Values {
-					treelog.Info("delMapPool value ", "hash:", common.Bytes2Hex([]byte(k)[:2]) )
+					treelog.Debug("delMapPool value ", "hash:", common.Bytes2Hex([]byte(k)[:2]) )
 				}
 			}
 		}
