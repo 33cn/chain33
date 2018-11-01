@@ -78,7 +78,7 @@ func makeReplyTxInfo(tx *types.Transaction, height, index int64, symbol string) 
 	info.Hash = tx.Hash()
 	info.Height = height
 	info.Index = index
-	info.Assets = []*types.Asset{&types.Asset{Exec: tp.TokenX, Symbol: symbol}}
+	info.Assets = []*types.Asset{{Exec: tp.TokenX, Symbol: symbol}}
 
 	return types.Encode(&info)
 }
