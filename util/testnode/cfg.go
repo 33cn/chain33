@@ -115,7 +115,7 @@ minerwhitelist=["*"]
 
 [exec]
 isFree=true
-minExecFee=0
+minExecFee=100000
 enableStat=false
 enableMVCC=false
 

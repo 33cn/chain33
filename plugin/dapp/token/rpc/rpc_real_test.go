@@ -23,10 +23,19 @@ func TestRPCTokenPreCreate(t *testing.T) {
 	mock33.SendHot()
 	block := mock33.GetLastBlock()
 	acc := mock33.GetAccount(block.StateHash, mock33.GetGenesisAddress())
-	assert.Equal(t, acc.Balance, 99990000*types.Coin)
+	assert.Equal(t, acc.Balance, int64(9998999999900000))
 	acc = mock33.GetAccount(block.StateHash, mock33.GetHotAddress())
 	assert.Equal(t, acc.Balance, 10000*types.Coin)
 
+	tx := util.CreateManageTx(mock33.GetHotKey(), "token-blacklist", "add", "BTY")
+	reply, err := mock33.GetAPI().SendTx(tx)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	detail, err := mock33.WaitTx(reply.GetMsg())
+	assert.Nil(t, err)
+	assert.Equal(t, detail.Receipt.Ty, int32(types.ExecOk))
 	//开始发行percreate
 	param := tokenty.TokenPreCreate{
 		Name:   "Test",
@@ -35,7 +44,7 @@ func TestRPCTokenPreCreate(t *testing.T) {
 		Owner:  mock33.GetHotAddress(),
 	}
 	var txhex string
-	err := mock33.GetJsonC().Call("token.CreateRawTokenPreCreateTx", param, &txhex)
+	err = mock33.GetJsonC().Call("token.CreateRawTokenPreCreateTx", param, &txhex)
 	assert.Nil(t, err)
 	hash, err := mock33.SendAndSign(mock33.GetHotKey(), txhex)
 	assert.Nil(t, err)
@@ -43,8 +52,8 @@ func TestRPCTokenPreCreate(t *testing.T) {
 		return
 	}
 	assert.NotNil(t, hash)
-	detail, err := mock33.WaitTx(hash)
+	detail, err = mock33.WaitTx(hash)
 	assert.Nil(t, err)
-	assert.Equal(t, detail.Receipt.Ty, types.ExecOk)
-	util.JsonPrint(t, detail)
+	assert.Equal(t, detail.Receipt.Ty, int32(types.ExecOk))
+	//util.JsonPrint(t, detail)
 }
