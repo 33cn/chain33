@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/common/address"
+	tp "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -23,7 +24,7 @@ func TokenTxKvs(tx *types.Transaction, symbol string, height, index int64, isDel
 
 	var txInfo []byte
 	if !isDel {
-		txInfo = makeReplyTxInfo(tx, height, index)
+		txInfo = makeReplyTxInfo(tx, height, index, symbol)
 	}
 	for _, k := range keys {
 		kv = append(kv, &types.KeyValue{k, txInfo})
@@ -72,11 +73,12 @@ func CalcTokenAddrTxDirKey(symbol, addr string, flag int32, height, index int64)
 		dapp.HeightIndexStr(height, index)))
 }
 
-func makeReplyTxInfo(tx *types.Transaction, height, index int64) []byte {
+func makeReplyTxInfo(tx *types.Transaction, height, index int64, symbol string) []byte {
 	var info types.ReplyTxInfo
 	info.Hash = tx.Hash()
 	info.Height = height
 	info.Index = index
+	info.Assets = []*types.Asset{&types.Asset{Exec: tp.TokenX, Symbol: symbol}}
 
 	return types.Encode(&info)
 }
