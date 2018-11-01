@@ -29,10 +29,7 @@ func TestRPCTokenPreCreate(t *testing.T) {
 
 	tx := util.CreateManageTx(mock33.GetHotKey(), "token-blacklist", "add", "BTY")
 	reply, err := mock33.GetAPI().SendTx(tx)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.Nil(t, err)
 	detail, err := mock33.WaitTx(reply.GetMsg())
 	assert.Nil(t, err)
 	assert.Equal(t, detail.Receipt.Ty, int32(types.ExecOk))
@@ -48,12 +45,8 @@ func TestRPCTokenPreCreate(t *testing.T) {
 	assert.Nil(t, err)
 	hash, err := mock33.SendAndSign(mock33.GetHotKey(), txhex)
 	assert.Nil(t, err)
-	if hash == nil {
-		return
-	}
 	assert.NotNil(t, hash)
 	detail, err = mock33.WaitTx(hash)
 	assert.Nil(t, err)
 	assert.Equal(t, detail.Receipt.Ty, int32(types.ExecOk))
-	//util.JsonPrint(t, detail)
 }
