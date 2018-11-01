@@ -78,10 +78,10 @@ func (c *Chain33) SendRawTransaction(in rpctypes.SignedTx, result *interface{}) 
 
 //used only in parachain
 func forwardTranToMainNet(in rpctypes.RawParm, result *interface{}) error {
-	if rpcCfg.GetMainnetJrpcAddr() == "" {
+	if rpcCfg.MainnetJrpcAddr == "" {
 		return types.ErrInvalidMainnetRpcAddr
 	}
-	rpc, err := jsonclient.NewJSONClient(rpcCfg.GetMainnetJrpcAddr())
+	rpc, err := jsonclient.NewJSONClient(rpcCfg.MainnetJrpcAddr)
 
 	if err != nil {
 		return err
@@ -266,7 +266,7 @@ func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 		infos := reply.GetTxInfos()
 		for _, info := range infos {
 			txinfos.TxInfos = append(txinfos.TxInfos, &rpctypes.ReplyTxInfo{Hash: common.ToHex(info.GetHash()),
-				Height: info.GetHeight(), Index: info.GetIndex()})
+				Height: info.GetHeight(), Index: info.GetIndex(), Assets: info.Assets})
 		}
 		*result = &txinfos
 	}
@@ -450,7 +450,7 @@ func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interfa
 			IsWithdraw:  false,
 			IsToken:     true,
 			TokenSymbol: in.GetTokenSymbol(),
-			ExecName:    types.ExecName(types.TokenX),
+			ExecName:    types.ExecName("token"),
 		}
 		tx, err := c.cli.CreateRawTransaction(createTx)
 		if err != nil {

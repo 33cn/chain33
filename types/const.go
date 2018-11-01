@@ -16,38 +16,15 @@ type LogInfo struct {
 }
 
 const (
-	CoinsX    = "coins"
-	UserKeyX  = "user."
-	ParaKeyX  = "user.p."
-	TicketX   = "ticket"
-	HashlockX = "hashlock"
-	NoneX     = "none"
-	TokenX    = "token"
-	TradeX    = "trade"
-	ManageX   = "manage"
-	PrivacyX  = "privacy"
-	RelayX    = "relay"
-	Normx     = "norm"
-	ParaX     = "paracross"
-	ValNodeX  = "valnode"
+	UserKeyX = "user."
+	ParaKeyX = "user.p."
+	NoneX    = "none"
 )
 
 var (
-	ExecerCoins    = []byte(CoinsX)
-	ExecerTicket   = []byte(TicketX)
-	ExecerManage   = []byte(ManageX)
-	ExecerToken    = []byte(TokenX)
-	ExecerPrivacy  = []byte(PrivacyX)
-	ExecerRelay    = []byte(RelayX)
-	ExecerHashlock = []byte(HashlockX)
-	ExecerNone     = []byte(NoneX)
-	ExecerTrade    = []byte(TradeX)
-	ExecerNorm     = []byte(Normx)
-	ExecerConfig   = []byte("config")
-	ExecerPara     = []byte(ParaX)
-	UserKey        = []byte(UserKeyX)
-	ParaKey        = []byte(ParaKeyX)
-	ExecerValNode  = []byte(ValNodeX)
+	UserKey    = []byte(UserKeyX)
+	ParaKey    = []byte(ParaKeyX)
+	ExecerNone = []byte(NoneX)
 )
 
 const (
@@ -169,6 +146,10 @@ const (
 	ConfigItemStringConfig
 )
 
+func init() {
+	SetChainConfig("TxHeight", false)
+}
+
 //flag:
 
 //TxHeight 选项
@@ -178,9 +159,6 @@ const (
 
 //标记是一个时间还是一个 TxHeight
 var TxHeightFlag int64 = 1 << 62
-
-//是否开启TxHeight选项
-var EnableTxHeight = false
 
 //eg: current Height is 10000
 //TxHeight is  10010

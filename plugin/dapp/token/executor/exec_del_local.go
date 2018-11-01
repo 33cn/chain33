@@ -64,34 +64,58 @@ func (t *token) ExecDelLocal_Withdraw(payload *types.AssetsWithdraw, tx *types.T
 	return set, nil
 }
 
-func (t *token) ExecDelLocal_Tokenprecreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
-	if err != nil {
-		return nil, err
-	}
-	return &types.LocalDBSet{KV: kv}, nil
-}
-
-func (t *token) ExecDelLocal_Tokenfinishcreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
-	if err != nil {
-		return nil, err
-	}
-	return &types.LocalDBSet{KV: kv}, nil
-}
-
-func (t *token) ExecDelLocal_Tokenrevokecreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
-	if err != nil {
-		return nil, err
-	}
-	return &types.LocalDBSet{KV: kv}, nil
-}
-
 func (t *token) ExecDelLocal_TransferToExec(payload *types.AssetsTransferToExec, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := t.execDelLocal(receiptData)
+	set, err := t.ExecDelLocalLocalTransWithdraw(tx, receiptData, index)
 	if err != nil {
 		return nil, err
 	}
-	return &types.LocalDBSet{KV: kv}, nil
+	if types.GetSaveTokenTxList() {
+		tokenAction := tokenty.TokenAction{
+			Ty: tokenty.TokenActionTransferToExec,
+			Value: &tokenty.TokenAction_TransferToExec{
+				payload,
+			},
+		}
+		kvs, err := t.makeTokenTxKvs(tx, &tokenAction, receiptData, index, true)
+		if err != nil {
+			return nil, err
+		}
+		set.KV = append(set.KV, kvs...)
+	}
+	return set, nil
+}
+
+func (t *token) ExecDelLocal_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	key := calcTokenStatusKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
+	var set []*types.KeyValue
+	set = append(set, &types.KeyValue{Key: key, Value: nil})
+	return &types.LocalDBSet{KV: set}, nil
+}
+
+func (t *token) ExecDelLocal_TokenFinishCreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	prepareKey := calcTokenStatusKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
+	localToken, err := loadLocalToken(payload.Symbol, payload.Owner, tokenty.TokenStatusCreated, t.GetLocalDB())
+	if err != nil {
+		return nil, err
+	}
+	localToken = resetCreated(localToken)
+	key := calcTokenStatusKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusCreated)
+	var set []*types.KeyValue
+	set = append(set, &types.KeyValue{Key: prepareKey, Value: types.Encode(localToken)})
+	set = append(set, &types.KeyValue{Key: key, Value: nil})
+	return &types.LocalDBSet{KV: set}, nil
+}
+
+func (t *token) ExecDelLocal_TokenRevokeCreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	prepareKey := calcTokenStatusKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusPreCreated)
+	localToken, err := loadLocalToken(payload.Symbol, payload.Owner, tokenty.TokenStatusCreateRevoked, t.GetLocalDB())
+	if err != nil {
+		return nil, err
+	}
+	localToken = resetRevoked(localToken)
+	key := calcTokenStatusKeyLocal(payload.Symbol, payload.Owner, tokenty.TokenStatusCreateRevoked)
+	var set []*types.KeyValue
+	set = append(set, &types.KeyValue{Key: key, Value: nil})
+	set = append(set, &types.KeyValue{Key: prepareKey, Value: types.Encode(localToken)})
+	return &types.LocalDBSet{KV: set}, nil
 }
