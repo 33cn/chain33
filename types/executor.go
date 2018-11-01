@@ -219,6 +219,8 @@ type ExecutorType interface {
 	GetRPCFuncMap() map[string]reflect.Method
 	GetExecFuncMap() map[string]reflect.Method
 	CreateTransaction(action string, data Message) (*Transaction, error)
+	// collect assets the tx deal with
+	GetAssets(tx *Transaction) ([]*Asset, error)
 }
 
 type ExecTypeGet interface {
@@ -626,4 +628,23 @@ func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Tr
 		return &Transaction{Payload: Encode(value)}, nil
 	}
 	return nil, ErrActionNotSupport
+}
+
+func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
+	_, v, err := base.DecodePayloadValue(tx)
+	if err != nil {
+		return nil, err
+	}
+	payload := v.Interface()
+	asset := &Asset{Exec: string(tx.Execer)}
+	if a, ok := payload.(*AssetsTransfer); ok {
+		asset.Symbol = a.Cointoken
+	} else if a, ok := payload.(*AssetsWithdraw); ok {
+		asset.Symbol = a.Cointoken
+	} else if a, ok := payload.(*AssetsTransferToExec); ok {
+		asset.Symbol = a.Cointoken
+	} else {
+		return nil, nil
+	}
+	return []*Asset{asset}, nil
 }
