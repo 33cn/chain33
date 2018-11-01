@@ -145,6 +145,7 @@ var (
 	ErrTxGroupFeeNotZero          = errors.New("ErrTxGroupFeeNotZero")
 	ErrNomalTx                    = errors.New("ErrNomalTx")
 	ErrUnknowDriver               = errors.New("ErrUnknowDriver")
+	ErrUnRegistedDriver           = errors.New("ErrUnRegistedDriver")
 	ErrSymbolNameNotAllow         = errors.New("ErrSymbolNameNotAllow")
 	ErrTxGroupNotSupport          = errors.New("ErrTxGroupNotSupport")
 	ErrNotAllowKey                = errors.New("ErrNotAllowKey")
@@ -159,4 +160,7 @@ var (
 	ErrDBFlag      = errors.New("ErrDBFlag")
 	ErrLocalPrefix = errors.New("ErrLocalPrefix")
 	ErrLocalKeyLen = errors.New("ErrLocalKeyLen")
+
+	ErrCloneForkFrom    = errors.New("ErrCloneForkFrom")
+	ErrCloneForkToExist = errors.New("ErrCloneForkToExist")
 )

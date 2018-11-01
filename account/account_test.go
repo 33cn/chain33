@@ -208,12 +208,12 @@ func TestAccountName(t *testing.T) {
 	tradeAddr := address.ExecAddress("trade")
 	t.Log("tradeAddr:", tradeAddr)
 
-	paraAddr := address.ExecAddress(types.ParaX)
+	paraAddr := address.ExecAddress("paracross")
 	t.Log("paraAddr:", paraAddr)
 
 	myAddr := "13DP8mVru5Rtu6CrjXQMvLsjvve3epRR1i"
-	t.Log("paraAddr:", accToken.ExecAddress(types.ParaX))
-	t.Log("user.p.guodun.paraAddr:", accToken.ExecAddress("user.p.guodun"+types.ParaX))
+	t.Log("paraAddr:", accToken.ExecAddress("paracross"))
+	t.Log("user.p.guodun.paraAddr:", accToken.ExecAddress("user.p.guodun.paracross"))
 	fromAcc := accToken.LoadExecAccount(myAddr, paraAddr)
 	t.Log("myAddr of paracorss", fromAcc)
 }

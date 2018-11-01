@@ -82,7 +82,7 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 	for _, peer := range peers {
 		//获取远程 peer invs
 		resp, err := peer.mconn.gcli.GetMemPool(context.Background(),
-			&pb.P2PGetMempool{Version: m.network.node.nodeInfo.cfg.GetVersion()}, grpc.FailFast(true))
+			&pb.P2PGetMempool{Version: m.network.node.nodeInfo.cfg.Version}, grpc.FailFast(true))
 		P2pComm.CollectPeerStat(err, peer)
 		if err != nil {
 			if err == pb.ErrVersion {
@@ -114,7 +114,7 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 		}
 		//获取真正的交易Tx call GetData
 		datacli, dataerr := peer.mconn.gcli.GetData(context.Background(),
-			&pb.P2PGetData{Invs: ableInv, Version: m.network.node.nodeInfo.cfg.GetVersion()}, grpc.FailFast(true))
+			&pb.P2PGetData{Invs: ableInv, Version: m.network.node.nodeInfo.cfg.Version}, grpc.FailFast(true))
 		P2pComm.CollectPeerStat(dataerr, peer)
 		if dataerr != nil {
 			continue
@@ -229,7 +229,7 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	}
 	addrfrom := nodeinfo.GetExternalAddr().String()
 
-	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: int64(nodeinfo.ServiceTy()), Timestamp: pb.Now().Unix(),
+	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.Version, Service: int64(nodeinfo.ServiceTy()), Timestamp: pb.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight}, grpc.FailFast(true))
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
@@ -350,7 +350,7 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 				var err error
 
 				headers, err := peer.mconn.gcli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
-					Version: m.network.node.nodeInfo.cfg.GetVersion()}, grpc.FailFast(true))
+					Version: m.network.node.nodeInfo.cfg.Version}, grpc.FailFast(true))
 				P2pComm.CollectPeerStat(err, peer)
 				if err != nil {
 					log.Error("GetBlocks", "Err", err.Error())
@@ -404,7 +404,7 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 					if len(MaxInvs.GetInvs()) != int(req.GetEnd()-req.GetStart())+1 {
 						var err error
 						MaxInvs, err = peer.mconn.gcli.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
-							Version: m.network.node.nodeInfo.cfg.GetVersion()}, grpc.FailFast(true))
+							Version: m.network.node.nodeInfo.cfg.Version}, grpc.FailFast(true))
 						P2pComm.CollectPeerStat(err, peer)
 						if err != nil {
 							log.Error("GetBlocks", "Err", err.Error())
@@ -441,7 +441,7 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 			}
 
 			invs, err := peer.mconn.gcli.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
-				Version: m.network.node.nodeInfo.cfg.GetVersion()}, grpc.FailFast(true))
+				Version: m.network.node.nodeInfo.cfg.Version}, grpc.FailFast(true))
 			P2pComm.CollectPeerStat(err, peer)
 			if err != nil {
 				log.Error("GetBlocks", "Err", err.Error())

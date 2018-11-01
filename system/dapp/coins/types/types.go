@@ -26,6 +26,8 @@ var (
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerCoins)
 	types.RegistorExecutor("coins", NewType())
+
+	types.RegisterDappFork(CoinsX, "Enable", 0)
 }
 
 type CoinsType struct {
@@ -72,4 +74,15 @@ func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.
 		tx.To = create.To
 	}
 	return tx, err
+}
+
+func (c *CoinsType) GetAssets(tx *types.Transaction) ([]*types.Asset, error) {
+	assetlist, err := c.ExecTypeBase.GetAssets(tx)
+	if err != nil || len(assetlist) == 0 {
+		return nil, err
+	}
+	if assetlist[0].Symbol == "" {
+		assetlist[0].Symbol = types.BTY
+	}
+	return assetlist, nil
 }
