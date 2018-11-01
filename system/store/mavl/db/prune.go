@@ -10,9 +10,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
+	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common"
 )
 
 const (
@@ -22,16 +22,16 @@ const (
 	pruningStateStart  = 1
 	pruningStateEnd    = 0
 	//删除节点pool以hash的首字母为key因此有256个
-	delNodeCacheSize   = 256+1
+	delNodeCacheSize = 256 + 1
 	//每个del Pool下存放默认4096个hash
 	perDelNodePoolSize = 4096
 )
 
 var (
 	// 是否开启mavl裁剪
-	enablePrune  bool
+	enablePrune bool
 	// 每个10000裁剪一次
-	pruneHeight  int = 10000
+	pruneHeight int = 10000
 	// 裁剪状态
 	pruningState int32
 	delPoolCache *lru.Cache
@@ -62,8 +62,8 @@ type addHash struct {
 }
 
 type addDelStr struct {
-	isAdd  bool
-	str    string
+	isAdd bool
+	str   string
 }
 
 func NewDelNodeValuePool(cacSize int) *delNodeValuePool {
@@ -114,7 +114,7 @@ func genDeletePoolKey(hash []byte) (key, value []byte) {
 	}
 	hashLen := len(common.Hash{})
 	if len(hash) > hashLen {
-		value = hash[len(hash) - hashLen:]
+		value = hash[len(hash)-hashLen:]
 	} else {
 		value = hash
 	}
@@ -227,9 +227,9 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	if len(mp) == 0 {
 		return
 	}
-	ndb := newMarkNodeDB(db, 1024 * 10, mp)
+	ndb := newMarkNodeDB(db, 1024*10, mp)
 	var delNodeStrs []string
-	var addDelStrs  []*addDelStr
+	var addDelStrs []*addDelStr
 	for key := range mp {
 		mNode, err := ndb.LoadLeaf([]byte(key))
 		if err == nil {
@@ -240,7 +240,7 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	}
 	//根据keyMap进行归类
 	mpAddDel := make(map[string][]addHash)
-	for _, s := range addDelStrs  {
+	for _, s := range addDelStrs {
 		key, hash := genDeletePoolKey([]byte(s.str))
 		data := addHash{
 			hash:  hash,
@@ -256,7 +256,7 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 		if dep != nil {
 			for _, aHsh := range mpV {
 				if aHsh.isAdd {
-					dep.delCache.Add(string(aHsh.hash), true )
+					dep.delCache.Add(string(aHsh.hash), true)
 				} else {
 					dep.delCache.Remove(string(aHsh.hash))
 				}
@@ -282,7 +282,7 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 }
 
 //获取要删除的hash节点
-func (node *MarkNode) getHashNode(ndb *markNodeDB) (addDelStrs  []*addDelStr, delNodeStrs []string) {
+func (node *MarkNode) getHashNode(ndb *markNodeDB) (addDelStrs []*addDelStr, delNodeStrs []string) {
 	//目前只裁剪第0,1层节点，暂时不使用递归
 	parN := node.fetchParentNode(ndb)
 	if parN != nil {
@@ -376,7 +376,7 @@ func (ndb *markNodeDB) judgeDelNodeCache() {
 		if ok {
 			mp := elem.(*delNodeValuePool)
 			stp := &types.StoreValuePool{}
-			for _, k := range mp.delCache.Keys()  {
+			for _, k := range mp.delCache.Keys() {
 				stp.Values = append(stp.Values, []byte(k.(string)))
 			}
 			v, err := proto.Marshal(stp)
@@ -404,8 +404,8 @@ type MarkNode struct {
 
 type markNodeDB struct {
 	mtx          sync.Mutex
-	cache        *lru.Cache    // 节点数据缓存
-	delPoolCache *lru.Cache  // 缓存已经删除的节点hash
+	cache        *lru.Cache // 节点数据缓存
+	delPoolCache *lru.Cache // 缓存已经删除的节点hash
 	db           dbm.DB
 	mLeaf        map[string]bool
 }
@@ -413,10 +413,10 @@ type markNodeDB struct {
 func newMarkNodeDB(db dbm.DB, cache int, mp map[string]bool) *markNodeDB {
 	cach, _ := lru.New(cache)
 	ndb := &markNodeDB{
-		cache: cach,
+		cache:        cach,
 		delPoolCache: delPoolCache,
-		db:    db,
-		mLeaf: mp,
+		db:           db,
+		mLeaf:        mp,
 	}
 	return ndb
 }
@@ -486,11 +486,11 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 		}
 		node.hash = hash
 		mNode = &MarkNode{
-			height:      node.height,
-			hash:        node.hash,
-			leftHash:    node.leftHash,
-			rightHash:   node.rightHash,
-			parentHash:  node.parentHash,
+			height:     node.height,
+			hash:       node.hash,
+			leftHash:   node.leftHash,
+			rightHash:  node.rightHash,
+			parentHash: node.parentHash,
 		}
 		if ndb.cache != nil {
 			ndb.cache.Add(string(hash), mNode)
@@ -530,7 +530,7 @@ func PruningTreePrint(db dbm.DB, prefix []byte) {
 			err := proto.Unmarshal(value, &pData)
 			if err == nil {
 				for _, k := range pData.Values {
-					treelog.Debug("delMapPool value ", "hash:", common.Bytes2Hex([]byte(k)[:2]) )
+					treelog.Debug("delMapPool value ", "hash:", common.Bytes2Hex([]byte(k)[:2]))
 				}
 			}
 		}

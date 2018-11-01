@@ -23,7 +23,7 @@ type LeafNode struct {
 func (m *LeafNode) Reset()                    { *m = LeafNode{} }
 func (m *LeafNode) String() string            { return proto.CompactTextString(m) }
 func (*LeafNode) ProtoMessage()               {}
-func (*LeafNode) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{0} }
+func (*LeafNode) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{0} }
 
 func (m *LeafNode) GetKey() []byte {
 	if m != nil {
@@ -63,7 +63,7 @@ type InnerNode struct {
 func (m *InnerNode) Reset()                    { *m = InnerNode{} }
 func (m *InnerNode) String() string            { return proto.CompactTextString(m) }
 func (*InnerNode) ProtoMessage()               {}
-func (*InnerNode) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{1} }
+func (*InnerNode) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{1} }
 
 func (m *InnerNode) GetLeftHash() []byte {
 	if m != nil {
@@ -102,7 +102,7 @@ type MAVLProof struct {
 func (m *MAVLProof) Reset()                    { *m = MAVLProof{} }
 func (m *MAVLProof) String() string            { return proto.CompactTextString(m) }
 func (*MAVLProof) ProtoMessage()               {}
-func (*MAVLProof) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{2} }
+func (*MAVLProof) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{2} }
 
 func (m *MAVLProof) GetLeafHash() []byte {
 	if m != nil {
@@ -138,7 +138,7 @@ type StoreNode struct {
 func (m *StoreNode) Reset()                    { *m = StoreNode{} }
 func (m *StoreNode) String() string            { return proto.CompactTextString(m) }
 func (*StoreNode) ProtoMessage()               {}
-func (*StoreNode) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{3} }
+func (*StoreNode) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{3} }
 
 func (m *StoreNode) GetKey() []byte {
 	if m != nil {
@@ -196,7 +196,7 @@ type LocalDBSet struct {
 func (m *LocalDBSet) Reset()                    { *m = LocalDBSet{} }
 func (m *LocalDBSet) String() string            { return proto.CompactTextString(m) }
 func (*LocalDBSet) ProtoMessage()               {}
-func (*LocalDBSet) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{4} }
+func (*LocalDBSet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{4} }
 
 func (m *LocalDBSet) GetKV() []*KeyValue {
 	if m != nil {
@@ -215,7 +215,7 @@ type LocalDBList struct {
 func (m *LocalDBList) Reset()                    { *m = LocalDBList{} }
 func (m *LocalDBList) String() string            { return proto.CompactTextString(m) }
 func (*LocalDBList) ProtoMessage()               {}
-func (*LocalDBList) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{5} }
+func (*LocalDBList) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{5} }
 
 func (m *LocalDBList) GetPrefix() []byte {
 	if m != nil {
@@ -252,7 +252,7 @@ type LocalDBGet struct {
 func (m *LocalDBGet) Reset()                    { *m = LocalDBGet{} }
 func (m *LocalDBGet) String() string            { return proto.CompactTextString(m) }
 func (*LocalDBGet) ProtoMessage()               {}
-func (*LocalDBGet) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{6} }
+func (*LocalDBGet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{6} }
 
 func (m *LocalDBGet) GetKeys() [][]byte {
 	if m != nil {
@@ -268,7 +268,7 @@ type LocalReplyValue struct {
 func (m *LocalReplyValue) Reset()                    { *m = LocalReplyValue{} }
 func (m *LocalReplyValue) String() string            { return proto.CompactTextString(m) }
 func (*LocalReplyValue) ProtoMessage()               {}
-func (*LocalReplyValue) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{7} }
+func (*LocalReplyValue) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{7} }
 
 func (m *LocalReplyValue) GetValues() [][]byte {
 	if m != nil {
@@ -286,7 +286,7 @@ type StoreSet struct {
 func (m *StoreSet) Reset()                    { *m = StoreSet{} }
 func (m *StoreSet) String() string            { return proto.CompactTextString(m) }
 func (*StoreSet) ProtoMessage()               {}
-func (*StoreSet) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{8} }
+func (*StoreSet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{8} }
 
 func (m *StoreSet) GetStateHash() []byte {
 	if m != nil {
@@ -317,7 +317,7 @@ type StoreDel struct {
 func (m *StoreDel) Reset()                    { *m = StoreDel{} }
 func (m *StoreDel) String() string            { return proto.CompactTextString(m) }
 func (*StoreDel) ProtoMessage()               {}
-func (*StoreDel) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{9} }
+func (*StoreDel) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{9} }
 
 func (m *StoreDel) GetStateHash() []byte {
 	if m != nil {
@@ -341,7 +341,7 @@ type StoreSetWithSync struct {
 func (m *StoreSetWithSync) Reset()                    { *m = StoreSetWithSync{} }
 func (m *StoreSetWithSync) String() string            { return proto.CompactTextString(m) }
 func (*StoreSetWithSync) ProtoMessage()               {}
-func (*StoreSetWithSync) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{10} }
+func (*StoreSetWithSync) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{10} }
 
 func (m *StoreSetWithSync) GetStoreset() *StoreSet {
 	if m != nil {
@@ -365,7 +365,7 @@ type StoreGet struct {
 func (m *StoreGet) Reset()                    { *m = StoreGet{} }
 func (m *StoreGet) String() string            { return proto.CompactTextString(m) }
 func (*StoreGet) ProtoMessage()               {}
-func (*StoreGet) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{11} }
+func (*StoreGet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{11} }
 
 func (m *StoreGet) GetStateHash() []byte {
 	if m != nil {
@@ -388,7 +388,7 @@ type StoreReplyValue struct {
 func (m *StoreReplyValue) Reset()                    { *m = StoreReplyValue{} }
 func (m *StoreReplyValue) String() string            { return proto.CompactTextString(m) }
 func (*StoreReplyValue) ProtoMessage()               {}
-func (*StoreReplyValue) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{12} }
+func (*StoreReplyValue) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{12} }
 
 func (m *StoreReplyValue) GetValues() [][]byte {
 	if m != nil {
@@ -407,7 +407,7 @@ type PruneData struct {
 func (m *PruneData) Reset()                    { *m = PruneData{} }
 func (m *PruneData) String() string            { return proto.CompactTextString(m) }
 func (*PruneData) ProtoMessage()               {}
-func (*PruneData) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{13} }
+func (*PruneData) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{13} }
 
 func (m *PruneData) GetHeight() int64 {
 	if m != nil {
@@ -430,7 +430,7 @@ type DeleteNodeMap struct {
 func (m *DeleteNodeMap) Reset()                    { *m = DeleteNodeMap{} }
 func (m *DeleteNodeMap) String() string            { return proto.CompactTextString(m) }
 func (*DeleteNodeMap) ProtoMessage()               {}
-func (*DeleteNodeMap) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{14} }
+func (*DeleteNodeMap) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{14} }
 
 func (m *DeleteNodeMap) GetMpNode() map[string]bool {
 	if m != nil {
@@ -447,7 +447,7 @@ type StoreValuePool struct {
 func (m *StoreValuePool) Reset()                    { *m = StoreValuePool{} }
 func (m *StoreValuePool) String() string            { return proto.CompactTextString(m) }
 func (*StoreValuePool) ProtoMessage()               {}
-func (*StoreValuePool) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{15} }
+func (*StoreValuePool) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{15} }
 
 func (m *StoreValuePool) GetValues() [][]byte {
 	if m != nil {
@@ -475,9 +475,9 @@ func init() {
 	proto.RegisterType((*StoreValuePool)(nil), "types.StoreValuePool")
 }
 
-func init() { proto.RegisterFile("db.proto", fileDescriptor4) }
+func init() { proto.RegisterFile("db.proto", fileDescriptor3) }
 
-var fileDescriptor4 = []byte{
+var fileDescriptor3 = []byte{
 	// 595 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x41, 0x6f, 0xd3, 0x4c,
 	0x10, 0x95, 0xed, 0x26, 0x9f, 0x3d, 0xed, 0x47, 0xab, 0x15, 0x42, 0x56, 0x55, 0x41, 0xb4, 0xe2,

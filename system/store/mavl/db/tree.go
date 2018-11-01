@@ -40,7 +40,6 @@ type Tree struct {
 	root *Node
 	ndb  *nodeDB
 	//batch *nodeBatch
-	//randomstr string
 	blockHeight int64
 }
 
@@ -48,15 +47,12 @@ type Tree struct {
 func NewTree(db dbm.DB, sync bool) *Tree {
 	if db == nil {
 		// In-memory IAVLTree
-		return &Tree{
-		//randomstr: common.GetRandString(5),
-		}
+		return &Tree{}
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db, sync)
 		return &Tree{
 			ndb: ndb,
-			//randomstr: common.GetRandString(5),
 		}
 	}
 }
@@ -139,9 +135,6 @@ func (t *Tree) Save() []byte {
 		if enablePrune && !isPruning() &&
 			t.blockHeight%int64(pruneHeight) == 0 &&
 			t.blockHeight/int64(pruneHeight) > 1 {
-			if t.blockHeight > 850000 {
-				panic("for test stop")
-			}
 			go pruningTree(t.ndb.db, t.blockHeight)
 		}
 	}
