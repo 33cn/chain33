@@ -97,12 +97,3 @@ message DeleteNodeMap {
 message StoreValuePool {
     repeated bytes values = 1;
 }
-
-// message PruneRootNode {
-//    // 标记是否对hash节点进行裁剪
-//    bool  needPruning  = 1;
-//    int32 pruneLeafNum = 2;
-//    int64 height       = 3;
-//    bytes leftHash     = 4;
-//    bytes rightHash    = 5;
-//}

@@ -15,24 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 	. "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func init() {
-	//log.SetLogLevel("error")
-	log1 := &types.Log{
-		Loglevel: "info",
-		LogConsoleLevel: "error",
-		LogFile: "logs/test.log",
-		MaxFileSize: 400,
-		MaxBackups: 100,
-		MaxAge: 28,
-		LocalTime: true,
-		Compress: false,
-	}
-	log.SetFileLog(log1)
-
+	log.SetLogLevel("error")
 }
 
 const (

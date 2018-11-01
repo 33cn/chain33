@@ -154,7 +154,6 @@ func (node *Node) Hash(t *Tree) []byte {
 			hashKey = append(hashKey, node.hash...)
 			node.hash = hashKey
 		}
-		//fmt.Printf("*****k:%s v:%s hash:%v\n", string(leafnode.Key), string(leafnode.Value), common.Bytes2Hex(node.hash))
 	} else {
 		var innernode types.InnerNode
 		innernode.Height = node.height

@@ -17,8 +17,24 @@ import (
 )
 
 func main() {
+	stdin := bufio.NewReader(os.Stdin)
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(dir)
+
+	str := ""
+	fmt.Println("请输入打印日志级别(debug(dbug)/info/warn/error(eror)/crit)")
+	fmt.Fscan(stdin, &str)
+	stdin.ReadString('\n')
+	if str == "" {
+		str = "info"
+	}
+
 	log1 := &types.Log{
-		Loglevel: "info",
+		Loglevel: str,
 		LogConsoleLevel: "info",
 		LogFile: "logs/syc.log",
 		MaxFileSize: 400,
@@ -29,40 +45,33 @@ func main() {
 	}
 	clog.SetFileLog(log1)
 
-	stdin := bufio.NewReader(os.Stdin)
 
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(dir)
 	log.Info("test", dir)
 	db := dbm.NewDB("store", "leveldb", dir, 100)
 
 	a := 0
-	fmt.Println("是否需要查询..mk..计数")
+	fmt.Println("是否需要查询leaf索引计数")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
 		mavl.PruningTreePrint(db, []byte("..mk.."))
 	}
 	a = 0
-	fmt.Println("是否需要查询_mh_计数")
+	fmt.Println("是否需要查询hash节点计数")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
 		mavl.PruningTreePrint(db, []byte("_mh_"))
 	}
 	a = 0
-	fmt.Println("是否需要查询_mb_计数")
+	fmt.Println("是否需要查询leaf节点计数")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
 		mavl.PruningTreePrint(db, []byte("_mb_"))
 	}
 	a = 0
-	fmt.Println("是否需要查询_..md.._计数")
+	fmt.Println("是否需要查询节点删除pool")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
@@ -75,6 +84,7 @@ func main() {
 	if a > 0 {
 		mavl.PruningTree(db, int64(a))
 	}
+	fmt.Println("over")
 	exit := make(chan os.Signal,10) //初始化一个channel
 	signal.Notify(exit, syscall.SIGINT, syscall.SIGTERM) //notify方法用来监听收到的信号
 	sig := <-exit
