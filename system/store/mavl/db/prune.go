@@ -334,7 +334,7 @@ func (ndb *markNodeDB) updateDelHash(batch dbm.Batch, key string, dep *delNodeVa
 
 func (ndb *markNodeDB) getPool(str string) (dep *delNodeValuePool) {
 	if ndb.delPoolCache != nil {
-		elem, ok := ndb.delPoolCache.Get(string(str))
+		elem, ok := ndb.delPoolCache.Get(str)
 		if ok {
 			dep = elem.(*delNodeValuePool)
 			return dep
@@ -347,7 +347,7 @@ func (ndb *markNodeDB) getPool(str string) (dep *delNodeValuePool) {
 		ndb.judgeDelNodeCache()
 		dep = NewDelNodeValuePool(perDelNodePoolSize)
 		if dep != nil {
-			ndb.delPoolCache.Add(string(str), dep)
+			ndb.delPoolCache.Add(str, dep)
 		}
 	} else {
 		stp := &types.StoreValuePool{}
@@ -362,7 +362,7 @@ func (ndb *markNodeDB) getPool(str string) (dep *delNodeValuePool) {
 				for _, k := range stp.Values {
 					dep.delCache.Add(string(k), true)
 				}
-				ndb.delPoolCache.Add(string(str), dep)
+				ndb.delPoolCache.Add(str, dep)
 			}
 		}
 	}
@@ -389,17 +389,16 @@ func (ndb *markNodeDB) judgeDelNodeCache() {
 }
 
 type MarkNode struct {
-	height       int32
-	hash         []byte
-	hashPrune    bool
-	leftHash     []byte
-	rightHash    []byte
-	parentHash   []byte
-	parentNode   *MarkNode
-	parentPrune  bool
-	brotherNode  *MarkNode
-	brotherHash  []byte
-	brotherPrune bool
+	height      int32
+	hash        []byte
+	hashPrune   bool
+	leftHash    []byte
+	rightHash   []byte
+	parentHash  []byte
+	parentNode  *MarkNode
+	parentPrune bool
+	brotherNode *MarkNode
+	brotherHash []byte
 }
 
 type markNodeDB struct {
@@ -503,7 +502,7 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 	return mNode, nil
 }
 
-func PruningTreePrint(db dbm.DB, prefix []byte) {
+func PruningTreePrintDB(db dbm.DB, prefix []byte) {
 	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
 	count := 0
@@ -530,7 +529,7 @@ func PruningTreePrint(db dbm.DB, prefix []byte) {
 			err := proto.Unmarshal(value, &pData)
 			if err == nil {
 				for _, k := range pData.Values {
-					treelog.Debug("delMapPool value ", "hash:", common.Bytes2Hex([]byte(k)[:2]))
+					treelog.Debug("delMapPool value ", "hash:", common.Bytes2Hex(k[:2]))
 				}
 			}
 		}
