@@ -825,9 +825,9 @@ func TestPruningTree(t *testing.T) {
 			assert.Equal(t, value, v)
 		}
 	}
-	PruningTreePrint(db, []byte(leafKeyCountPrefix))
-	PruningTreePrint(db, []byte(hashNodePrefix))
-	PruningTreePrint(db, []byte(leafNodePrefix))
+	PruningTreePrintDB(db, []byte(leafKeyCountPrefix))
+	PruningTreePrintDB(db, []byte(hashNodePrefix))
+	PruningTreePrintDB(db, []byte(leafNodePrefix))
 }
 
 func genUpdateKV(height int64, txN int64, vIndex int) (kvs []*types.KeyValue) {
