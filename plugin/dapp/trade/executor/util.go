@@ -25,13 +25,13 @@ import (
 // return exec, symbol
 func GetExecSymbol(order *pt.SellOrder) (string, string) {
 	if order.AssetExec == "" {
-		return types.TokenX, types.TokenX + "." + order.TokenSymbol
+		return defaultAssetExec, defaultAssetExec + "." + order.TokenSymbol
 	}
 	return order.AssetExec, order.TokenSymbol
 }
 
 func checkAsset(height int64, exec, symbol string) bool {
-	if types.IsMatchFork(height, types.ForkV27TradeAsset) {
+	if types.IsDappFork(height, pt.TradeX, "ForkTradeAsset") {
 		if exec == "" || symbol == "" {
 			return false
 		}
@@ -44,7 +44,7 @@ func checkAsset(height int64, exec, symbol string) bool {
 }
 
 func createAccountDB(height int64, db db.KV, exec, symbol string) (*account.DB, error) {
-	if types.IsMatchFork(height, types.ForkV27TradeAsset) {
+	if types.IsDappFork(height, pt.TradeX, "ForkTradeAsset") {
 		return account.NewAccountDB(exec, symbol, db)
 	} else {
 		return account.NewAccountDB(defaultAssetExec, symbol, db)

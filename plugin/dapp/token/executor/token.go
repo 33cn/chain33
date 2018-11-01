@@ -36,7 +36,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newToken, types.ForkV2AddToken)
+	drivers.Register(GetName(), newToken, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {
@@ -222,7 +222,7 @@ func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 
 	key := calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
 	var value []byte
-	if t.GetHeight() >= types.ForkV13ExecKey {
+	if types.IsFork(t.GetHeight(), "ForkExecKey") {
 		value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
 	} else {
 		value = calcTokenAddrKeyS(receipt.Symbol, receipt.Owner)
@@ -245,7 +245,7 @@ func (t *token) deleteLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	if receipt.Status != tokenty.TokenStatusPreCreated {
 		key = calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		var value []byte
-		if t.GetHeight() >= types.ForkV13ExecKey {
+		if types.IsFork(t.GetHeight(), "ForkExecKey") {
 			value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
 		} else {
 			value = calcTokenAddrKeyS(receipt.Symbol, receipt.Owner)

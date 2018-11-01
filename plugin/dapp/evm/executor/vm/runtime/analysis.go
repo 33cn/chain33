@@ -19,7 +19,6 @@ func (d Destinations) Has(codehash common.Hash, code []byte, dest *big.Int) bool
 	if dest.BitLen() >= 63 || udest >= uint64(len(code)) {
 		return false
 	}
-
 	// 查看丢应代码是否已经解析，如果没有则，立即执行解析
 	m, analysed := d[codehash]
 	if !analysed {

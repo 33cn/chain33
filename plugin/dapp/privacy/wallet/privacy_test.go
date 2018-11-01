@@ -209,10 +209,10 @@ func (mock *PrivacyMock) createPublic2PrivacyTx(req *types.ReqCreateTransaction)
 		Value: &ty.PrivacyAction_Public2Privacy{Public2Privacy: value},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerPrivacy,
+		Execer:  []byte(ty.PrivacyX),
 		Payload: types.Encode(action),
 		Nonce:   mock.walletOp.Nonce(),
-		To:      address.ExecAddress(types.PrivacyX),
+		To:      address.ExecAddress(ty.PrivacyX),
 	}
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB

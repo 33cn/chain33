@@ -278,7 +278,7 @@ func TestChain33_GetLastMemPoolOk(t *testing.T) {
 	var action ptypes.Trade
 	act := types.Encode(&action)
 	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName(types.TradeX)),
+		Execer:  []byte(types.ExecName(ptypes.TradeX)),
 		Payload: act,
 		To:      "to",
 	}

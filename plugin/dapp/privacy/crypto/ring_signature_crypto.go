@@ -59,7 +59,7 @@ func (privkey *RingSignPrivateKey) Sign(msg []byte) crypto.Signature {
 		return emptySign
 	}
 	tx := new(types.Transaction)
-	if err := types.Decode(msg, tx); err != nil || !bytes.Equal(types.ExecerPrivacy, tx.Execer) {
+	if err := types.Decode(msg, tx); err != nil || !bytes.Equal([]byte(privacytypes.PrivacyX), tx.Execer) {
 		// 目前只有隐私交易用到了环签名
 		return emptySign
 	}
@@ -141,7 +141,7 @@ func (pubkey *RingSignPublicKey) VerifyBytes(msg []byte, sign crypto.Signature) 
 		return false
 	}
 	tx := new(types.Transaction)
-	if err := types.Decode(msg, tx); err != nil || !bytes.Equal(types.ExecerPrivacy, tx.Execer) {
+	if err := types.Decode(msg, tx); err != nil || !bytes.Equal([]byte(privacytypes.PrivacyX), tx.Execer) {
 		// 目前只有隐私交易用到了环签名
 		return false
 	}
