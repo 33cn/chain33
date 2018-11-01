@@ -2,9 +2,11 @@ package util
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strings"
+	"testing"
 	"unicode"
 
 	"github.com/inconshreveable/log15"
@@ -97,10 +99,39 @@ func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 		to, _ := Genaddress()
 		return CreateCoinsTx(priv, to, types.Coin)
 	}
-	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none"), Fee: 1e5}
-	tx.Nonce = rand.Int63()
+	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none")}
 	tx.To = address.ExecAddress(execer)
 	tx.Sign(types.SECP256K1, priv)
+	return format(tx)
+}
+
+func JsonPrint(t *testing.T, input interface{}) {
+	data, err := json.MarshalIndent(input, "", "\t")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Log(string(data))
+}
+
+func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transaction {
+	v := &types.ModifyConfig{Key: key, Op: op, Value: value, Addr: ""}
+	exec := types.LoadExecutorType("manage")
+	if exec == nil {
+		panic("manage exec is not init")
+	}
+	tx, err := exec.Create("Modify", v)
+	if err != nil {
+		panic(err)
+	}
+	tx.Sign(types.SECP256K1, priv)
+	tx, _ = types.FormatTx("manage", tx)
+	return tx
+}
+
+func format(tx *types.Transaction) *types.Transaction {
+	tx.Nonce = rand.Int63()
+	tx.Fee = 1e5
 	return tx
 }
 
@@ -117,11 +148,9 @@ func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transact
 		panic(err)
 	}
 	tx.Execer = []byte("coins")
-	tx.Nonce = rand.Int63()
-	tx.Fee = 1e5
 	tx.To = to
 	tx.Sign(types.SECP256K1, priv)
-	return tx
+	return format(tx)
 }
 
 var zeroHash [32]byte
