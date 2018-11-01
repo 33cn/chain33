@@ -1,7 +1,5 @@
 package types
 
-import "gitlab.33.cn/chain33/chain33/types"
-
 const (
 	//action for token
 	ActionTransfer            = 4
@@ -21,7 +19,7 @@ const (
 )
 
 var (
-	TokenX = types.TokenX
+	TokenX = "token"
 )
 
 const (

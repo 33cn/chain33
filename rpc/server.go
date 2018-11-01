@@ -237,26 +237,26 @@ func (rpc *RPC) Close() {
 }
 
 func InitIpWhitelist(cfg *types.Rpc) {
-	if len(cfg.GetWhitelist()) == 0 && len(cfg.GetWhitlist()) == 0 {
+	if len(cfg.Whitelist) == 0 && len(cfg.Whitlist) == 0 {
 		remoteIpWhitelist["127.0.0.1"] = true
 		return
 	}
-	if len(cfg.GetWhitelist()) == 1 && cfg.GetWhitelist()[0] == "*" {
+	if len(cfg.Whitelist) == 1 && cfg.Whitelist[0] == "*" {
 		remoteIpWhitelist["0.0.0.0"] = true
 		return
 	}
-	if len(cfg.GetWhitlist()) == 1 && cfg.GetWhitlist()[0] == "*" {
+	if len(cfg.Whitlist) == 1 && cfg.Whitlist[0] == "*" {
 		remoteIpWhitelist["0.0.0.0"] = true
 		return
 	}
-	if len(cfg.GetWhitelist()) != 0 {
-		for _, addr := range cfg.GetWhitelist() {
+	if len(cfg.Whitelist) != 0 {
+		for _, addr := range cfg.Whitelist {
 			remoteIpWhitelist[addr] = true
 		}
 		return
 	}
-	if len(cfg.GetWhitlist()) != 0 {
-		for _, addr := range cfg.GetWhitlist() {
+	if len(cfg.Whitlist) != 0 {
+		for _, addr := range cfg.Whitlist {
 			remoteIpWhitelist[addr] = true
 		}
 		return
@@ -265,50 +265,50 @@ func InitIpWhitelist(cfg *types.Rpc) {
 }
 
 func InitJrpcFuncWhitelist(cfg *types.Rpc) {
-	if len(cfg.GetJrpcFuncWhitelist()) == 0 {
+	if len(cfg.JrpcFuncWhitelist) == 0 {
 		jrpcFuncWhitelist["*"] = true
 		return
 	}
-	if len(cfg.GetJrpcFuncWhitelist()) == 1 && cfg.GetJrpcFuncWhitelist()[0] == "*" {
+	if len(cfg.JrpcFuncWhitelist) == 1 && cfg.JrpcFuncWhitelist[0] == "*" {
 		jrpcFuncWhitelist["*"] = true
 		return
 	}
-	for _, funcName := range cfg.GetJrpcFuncWhitelist() {
+	for _, funcName := range cfg.JrpcFuncWhitelist {
 		jrpcFuncWhitelist[funcName] = true
 	}
 }
 
 func InitGrpcFuncWhitelist(cfg *types.Rpc) {
-	if len(cfg.GetGrpcFuncWhitelist()) == 0 {
+	if len(cfg.GrpcFuncWhitelist) == 0 {
 		grpcFuncWhitelist["*"] = true
 		return
 	}
-	if len(cfg.GetGrpcFuncWhitelist()) == 1 && cfg.GetGrpcFuncWhitelist()[0] == "*" {
+	if len(cfg.GrpcFuncWhitelist) == 1 && cfg.GrpcFuncWhitelist[0] == "*" {
 		grpcFuncWhitelist["*"] = true
 		return
 	}
-	for _, funcName := range cfg.GetGrpcFuncWhitelist() {
+	for _, funcName := range cfg.GrpcFuncWhitelist {
 		grpcFuncWhitelist[funcName] = true
 	}
 }
 
 func InitJrpcFuncBlacklist(cfg *types.Rpc) {
-	if len(cfg.GetJrpcFuncBlacklist()) == 0 {
+	if len(cfg.JrpcFuncBlacklist) == 0 {
 		jrpcFuncBlacklist["CloseQueue"] = true
 		return
 	}
-	for _, funcName := range cfg.GetJrpcFuncBlacklist() {
+	for _, funcName := range cfg.JrpcFuncBlacklist {
 		jrpcFuncBlacklist[funcName] = true
 	}
 
 }
 
 func InitGrpcFuncBlacklist(cfg *types.Rpc) {
-	if len(cfg.GetGrpcFuncBlacklist()) == 0 {
+	if len(cfg.GrpcFuncBlacklist) == 0 {
 		grpcFuncBlacklist["CloseQueue"] = true
 		return
 	}
-	for _, funcName := range cfg.GetGrpcFuncBlacklist() {
+	for _, funcName := range cfg.GrpcFuncBlacklist {
 		grpcFuncBlacklist[funcName] = true
 	}
 }

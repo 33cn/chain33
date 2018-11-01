@@ -9,6 +9,7 @@ var ValNodeX = "valnode"
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(ValNodeX))
 	types.RegistorExecutor(ValNodeX, NewType())
+	types.RegisterDappFork(ValNodeX, "Enable", 0)
 }
 
 // exec

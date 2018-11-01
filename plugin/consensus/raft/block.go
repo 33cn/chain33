@@ -47,7 +47,7 @@ func (client *RaftClient) GetGenesisBlockTime() int64 {
 
 func (client *RaftClient) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
-	tx.Execer = []byte(types.CoinsX)
+	tx.Execer = []byte(cty.CoinsX)
 	tx.To = genesis
 	//gen payload
 	g := &cty.CoinsAction_Genesis{}

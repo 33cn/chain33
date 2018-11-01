@@ -18,7 +18,7 @@ import (
 func NewParaAccount(paraTitle, mainExecName, mainSymbol string, db db.KV) (*account.DB, error) {
 	// 按照现在的配置， title 是 带 "." 做结尾
 	// paraExec := paraTitle + types.ParaX
-	paraExec := types.ParaX // 现在平行链是执行器注册和算地址是不带前缀的，
+	paraExec := pt.ParaX // 现在平行链是执行器注册和算地址是不带前缀的，
 	// 如果能确保(或规定) tokne 的 symbol  和 coins 中的 symbol 不会混淆，  localExecName 可以不要
 	paraSymbol := mainExecName + "." + mainSymbol
 	return account.NewAccountDB(paraExec, paraSymbol, db)
@@ -31,7 +31,7 @@ func NewParaAccount(paraTitle, mainExecName, mainSymbol string, db db.KV) (*acco
 // 对应平行链上子地址  mavl-coins-{guodun}-exec-{Address(paracross)}:{Address(paracross)}
 func NewMainAccount(paraTitle, paraExecName, paraSymbol string, db db.KV) (*account.DB, error) {
 	mainSymbol := paraTitle + paraExecName + "." + paraSymbol
-	return account.NewAccountDB(types.ParaX, mainSymbol, db)
+	return account.NewAccountDB(pt.ParaX, mainSymbol, db)
 }
 
 func assetDepositBalance(acc *account.DB, addr string, amount int64) (*types.Receipt, error) {

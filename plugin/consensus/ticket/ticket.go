@@ -58,6 +58,9 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
+	if subcfg.GenesisBlockTime > 0 {
+		cfg.GenesisBlockTime = subcfg.GenesisBlockTime
+	}
 	t := &Client{c, &ty.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{}), &subcfg}
 	c.SetChild(t)
 	go t.flushTicketBackend()
@@ -606,7 +609,7 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 
 func (client *Client) CreateBlock() {
 	for {
-		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.GetForceMining()) {
+		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.ForceMining) {
 			tlog.Debug("createblock.ismining is disable or client is caughtup is false")
 			time.Sleep(time.Second)
 			continue

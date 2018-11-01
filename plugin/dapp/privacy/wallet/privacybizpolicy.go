@@ -20,7 +20,7 @@ var (
 )
 
 func init() {
-	wcom.RegisterPolicy(types.PrivacyX, New())
+	wcom.RegisterPolicy(privacytypes.PrivacyX, New())
 }
 
 func New() wcom.WalletBizPolicy {

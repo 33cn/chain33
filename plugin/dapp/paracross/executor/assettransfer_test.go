@@ -89,7 +89,7 @@ func (suite *AssetTransferTestSuite) SetupTest() {
 }
 
 func (suite *AssetTransferTestSuite) TestExecTransferNobalance() {
-	types.SetTitle("test")
+	types.Init("test", nil)
 	toB := Nodes[1]
 	tx, err := createAssetTransferTx(suite.Suite, PrivKeyD, toB)
 	if err != nil {
@@ -105,7 +105,7 @@ func (suite *AssetTransferTestSuite) TestExecTransferNobalance() {
 }
 
 func (suite *AssetTransferTestSuite) TestExecTransfer() {
-	types.SetTitle("test")
+	types.Init("test", nil)
 	toB := Nodes[1]
 
 	total := 1000 * types.Coin
@@ -116,8 +116,8 @@ func (suite *AssetTransferTestSuite) TestExecTransfer() {
 	}
 	acc := account.NewCoinsAccount()
 	acc.SetDB(suite.stateDB)
-	addrMain := address.ExecAddress(types.ParaX)
-	addrPara := address.ExecAddress(Title + types.ParaX)
+	addrMain := address.ExecAddress(pt.ParaX)
+	addrPara := address.ExecAddress(Title + pt.ParaX)
 
 	acc.SaveExecAccount(addrMain, &accountA)
 
@@ -152,7 +152,7 @@ func (suite *AssetTransferTestSuite) TestExecTransfer() {
 }
 
 func (suite *AssetTransferTestSuite) TestExecTransferInPara() {
-	types.SetTitle(Title)
+	types.Init(Title, nil)
 	toB := Nodes[1]
 
 	tx, err := createAssetTransferTx(suite.Suite, PrivKeyA, toB)
@@ -190,7 +190,7 @@ func createAssetTransferTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
-		ExecName:    Title + types.ParaX,
+		ExecName:    Title + pt.ParaX,
 	}
 	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
@@ -210,7 +210,7 @@ func createAssetTransferTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 const TestSymbol = "TEST"
 
 func (suite *AssetTransferTestSuite) TestExecTransferToken() {
-	types.SetTitle("test")
+	types.Init("test", nil)
 	toB := Nodes[1]
 
 	total := 1000 * types.Coin
@@ -219,9 +219,9 @@ func (suite *AssetTransferTestSuite) TestExecTransferToken() {
 		Frozen:  0,
 		Addr:    string(Nodes[0]),
 	}
-	acc, _ := account.NewAccountDB(types.TokenX, TestSymbol, suite.stateDB)
-	addrMain := address.ExecAddress(types.ParaX)
-	addrPara := address.ExecAddress(Title + types.ParaX)
+	acc, _ := account.NewAccountDB("token", TestSymbol, suite.stateDB)
+	addrMain := address.ExecAddress(pt.ParaX)
+	addrPara := address.ExecAddress(Title + pt.ParaX)
 
 	acc.SaveExecAccount(addrMain, &accountA)
 
@@ -256,7 +256,7 @@ func (suite *AssetTransferTestSuite) TestExecTransferToken() {
 }
 
 func (suite *AssetTransferTestSuite) TestExecTransferTokenInPara() {
-	types.SetTitle(Title)
+	types.Init(Title, nil)
 	toB := Nodes[1]
 
 	tx, err := createAssetTransferTokenTx(suite.Suite, PrivKeyA, toB)
@@ -280,7 +280,7 @@ func (suite *AssetTransferTestSuite) TestExecTransferTokenInPara() {
 		suite.T().Log(string(kv.Key), v)
 	}
 
-	acc, _ := NewParaAccount(Title, types.TokenX, TestSymbol, suite.stateDB)
+	acc, _ := NewParaAccount(Title, "token", TestSymbol, suite.stateDB)
 	resultB := acc.LoadAccount(string(toB))
 	assert.Equal(suite.T(), Amount, resultB.Balance)
 }
@@ -294,7 +294,7 @@ func createAssetTransferTokenTx(s suite.Suite, privFrom string, to []byte) (*typ
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: TestSymbol,
-		ExecName:    Title + types.ParaX,
+		ExecName:    Title + pt.ParaX,
 	}
 	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")

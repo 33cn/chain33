@@ -265,7 +265,7 @@ func (acc *DB) LoadAccountsHistory(api client.QueueProtocolAPI, addrs []string, 
 
 func (accountdb *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]*types.Account, error) {
 	switch in.GetExecer() {
-	case types.ExecName(types.CoinsX):
+	case types.ExecName("coins"):
 		addrs := in.GetAddresses()
 		var exaddrs []string
 		for _, addr := range addrs {
