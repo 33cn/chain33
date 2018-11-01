@@ -1,9 +1,12 @@
 package db
 
 import (
+	"bytes"
+
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var blog = log.New("module", "db.gobadgerdb")
@@ -172,6 +175,9 @@ func (db *GoBadgerDB) Iterator(start, end []byte, reverse bool) Iterator {
 	it := txn.NewIterator(opts)
 	if end == nil {
 		end = bytesPrefix(start)
+	}
+	if bytes.Equal(end, types.EmptyValue) {
+		end = nil
 	}
 	if reverse {
 		it.Seek(end)

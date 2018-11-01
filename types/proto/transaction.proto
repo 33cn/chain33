@@ -34,6 +34,11 @@ message AssetsTransfer {
     string to        = 4;
 }
 
+message Asset {
+    string exec   = 1;
+    string symbol = 2;
+}
+
 message CreateTx {
     string to          = 1;
     int64  amount      = 2;
@@ -142,9 +147,10 @@ message HexTx {
 }
 
 message ReplyTxInfo {
-    bytes hash   = 1;
-    int64 height = 2;
-    int64 index  = 3;
+    bytes    hash         = 1;
+    int64    height       = 2;
+    int64    index        = 3;
+    repeated Asset assets = 4;
 }
 
 message ReqTxList {
@@ -220,4 +226,10 @@ message ReqDecodeRawTransaction {
 message UserWrite {
     string topic   = 1;
     string content = 2;
+}
+
+message UpgradeMeta {
+    bool   indexing = 1;
+    string version  = 2;
+    int64  height   = 3;
 }

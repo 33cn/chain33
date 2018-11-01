@@ -2,6 +2,8 @@ package types
 
 import (
 	"encoding/json"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type TransParm struct {
@@ -129,9 +131,10 @@ type ReplyTxInfos struct {
 }
 
 type ReplyTxInfo struct {
-	Hash   string `json:"hash"`
-	Height int64  `json:"height"`
-	Index  int64  `json:"index"`
+	Hash   string         `json:"hash"`
+	Height int64          `json:"height"`
+	Index  int64          `json:"index"`
+	Assets []*types.Asset `json:"assets"`
 }
 
 type TransactionDetails struct {

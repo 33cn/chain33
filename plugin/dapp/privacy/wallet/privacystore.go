@@ -93,7 +93,7 @@ func (store *privacyStore) getWalletAccountPrivacy(addr string) (*privacytypes.W
 		return nil, err
 	}
 	if nil == privacyByte {
-		return nil, types.ErrPrivacyNotEnabled
+		return nil, privacytypes.ErrPrivacyNotEnabled
 	}
 	var accPrivacy privacytypes.WalletAccountPrivacy
 	err = proto.Unmarshal(privacyByte, &accPrivacy)
@@ -530,7 +530,7 @@ func (store *privacyStore) moveUTXO2STXO(owner, token, txhash string, utxos []*p
 func (store *privacyStore) selectPrivacyTransactionToWallet(txDetals *types.TransactionDetails, privacyInfo []addrAndprivacy) {
 	newbatch := store.NewBatch(true)
 	for _, txdetal := range txDetals.Txs {
-		if !bytes.Equal(types.ExecerPrivacy, txdetal.Tx.Execer) {
+		if !bytes.Equal([]byte(privacytypes.PrivacyX), txdetal.Tx.Execer) {
 			continue
 		}
 		store.selectCurrentWalletPrivacyTx(txdetal, int32(txdetal.Index), privacyInfo, newbatch)

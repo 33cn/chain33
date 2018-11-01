@@ -21,11 +21,11 @@ import (
 
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/blockchain"
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
@@ -78,9 +78,9 @@ func main() {
 	}
 	//set test net flag
 	types.SetTestNet(cfg.TestNet)
-	types.SetTitle(cfg.Title)
+	types.Init(cfg.Title, cfg)
 	types.SetFixTime(cfg.FixTime)
-	types.SetParaRemoteGrpcClient(cfg.GetConsensus().GetParaRemoteGrpcClient())
+	types.SetParaRemoteGrpcClient(cfg.Consensus.ParaRemoteGrpcClient)
 	if cfg.FixTime {
 		go fixtimeRoutine()
 	}
@@ -91,7 +91,7 @@ func main() {
 	//set file log
 	clog.SetFileLog(cfg.Log)
 	//set grpc log
-	f, err := createFile(cfg.P2P.GetGrpcLogFile())
+	f, err := createFile(cfg.P2P.GrpcLogFile)
 	if err != nil {
 		glogv2 := grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout)
 		grpclog.SetLoggerV2(glogv2)
@@ -138,10 +138,6 @@ func main() {
 	log.Info("loading queue")
 	q := queue.New("channel")
 
-	log.Info("loading blockchain module")
-	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueueClient(q.Client())
-
 	log.Info("loading mempool module")
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
@@ -151,14 +147,14 @@ func main() {
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
-	//是否开启MVCC不一样的话以执行器开启为准
-	/*todo
-	if cfg.Exec.EnableMVCC != cfg.Store.EnableMVCC {
-		cfg.Store.EnableMVCC = cfg.Exec.EnableMVCC
-	}
-	*/
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
+
+	log.Info("loading blockchain module")
+	chain := blockchain.New(cfg.BlockChain)
+	chain.SetQueueClient(q.Client())
+
+	chain.UpgradeChain()
 
 	log.Info("loading consensus module")
 	cs := consensus.New(cfg.Consensus, sub.Consensus)

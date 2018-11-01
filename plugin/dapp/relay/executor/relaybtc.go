@@ -201,7 +201,7 @@ func (b *btcStore) verifyBtcTx(verify *ty.RelayVerify, order *ty.RelayOrder) err
 	}
 
 	if !foundtx {
-		return types.ErrRelayVerifyAddrNotFound
+		return ty.ErrRelayVerifyAddrNotFound
 	}
 
 	acceptTime := time.Unix(order.AcceptTime, 0)
@@ -210,7 +210,7 @@ func (b *btcStore) verifyBtcTx(verify *ty.RelayVerify, order *ty.RelayOrder) err
 
 	if txTime.Sub(acceptTime) < 0 || confirmTime.Sub(txTime) < 0 {
 		relaylog.Error("verifyTx", "tx time not correct to accept", txTime.Sub(acceptTime), "to confirm time", confirmTime.Sub(txTime))
-		return types.ErrRelayBtcTxTimeErr
+		return ty.ErrRelayBtcTxTimeErr
 	}
 
 	height, err := b.getLastBtcHeadHeight()
@@ -219,7 +219,7 @@ func (b *btcStore) verifyBtcTx(verify *ty.RelayVerify, order *ty.RelayOrder) err
 	}
 
 	if verify.Tx.BlockHeight+uint64(order.CoinWaits) > uint64(height) {
-		return types.ErrRelayWaitBlocksErr
+		return ty.ErrRelayWaitBlocksErr
 	}
 
 	rawHash, err := btcHashStrRevers(verify.GetTx().GetHash())
@@ -240,7 +240,7 @@ func (b *btcStore) verifyBtcTx(verify *ty.RelayVerify, order *ty.RelayOrder) err
 
 	rst := bytes.Equal(realMerkleRoot, verifyRoot)
 	if !rst {
-		return types.ErrRelayVerify
+		return ty.ErrRelayVerify
 	}
 
 	return nil
@@ -269,7 +269,7 @@ func (b *btcStore) verifyCmdBtcTx(verify *ty.RelayVerifyCli) error {
 
 	rst := bytes.Equal(realmerkleroot, verifymerkleroot)
 	if !rst {
-		return types.ErrRelayVerify
+		return ty.ErrRelayVerify
 	}
 
 	return nil
@@ -362,7 +362,7 @@ func verifyBlockHeader(head *ty.BtcHeader, preHead *ty.RelayLastRcvBtcHeader, lo
 
 	if preHead != nil && preHead.Header != nil && (preHead.Header.Hash != head.PreviousHash || preHead.Header.Height+1 != head.Height) && !head.IsReset {
 
-		return types.ErrRelayBtcHeadSequenceErr
+		return ty.ErrRelayBtcHeadSequenceErr
 	}
 
 	//real BTC block not change the bits before height<30000, not match with the calculation result
@@ -373,7 +373,7 @@ func verifyBlockHeader(head *ty.BtcHeader, preHead *ty.RelayLastRcvBtcHeader, lo
 		}
 
 		if newBits != 0 && newBits != head.Bits {
-			return types.ErrRelayBtcHeadNewBitsErr
+			return ty.ErrRelayBtcHeadNewBitsErr
 		}
 	}
 
@@ -384,7 +384,7 @@ func verifyBlockHeader(head *ty.BtcHeader, preHead *ty.RelayLastRcvBtcHeader, lo
 	hash := btcHeader.BlockHash()
 
 	if hash.String() != head.Hash {
-		return types.ErrRelayBtcHeadHashErr
+		return ty.ErrRelayBtcHeadHashErr
 	}
 
 	target := difficulty.CompactToBig(uint32(head.Bits))
@@ -392,7 +392,7 @@ func verifyBlockHeader(head *ty.BtcHeader, preHead *ty.RelayLastRcvBtcHeader, lo
 	// The block hash must be less than the claimed target.
 	hashNum := difficulty.HashToBig(hash[:])
 	if hashNum.Cmp(target) > 0 {
-		return types.ErrRelayBtcHeadBitsErr
+		return ty.ErrRelayBtcHeadBitsErr
 	}
 
 	return nil

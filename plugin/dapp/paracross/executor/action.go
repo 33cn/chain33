@@ -39,9 +39,9 @@ func getNodes(db dbm.KV, title string) (map[string]struct{}, error) {
 	key := calcConfigNodesKey(title)
 	item, err := db.Get(key)
 	if err != nil {
-		clog.Info("getNodes", "get db key", key, "failed", err)
+		clog.Info("getNodes", "get db key", string(key), "failed", err)
 		if isNotFound(err) {
-			err = types.ErrTitleNotExist
+			err = pt.ErrTitleNotExist
 		}
 		return nil, errors.Wrapf(err, "db get key:%s", string(key))
 	}
@@ -207,7 +207,7 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 	}
 	clog.Debug("paracross.Commit check", "input", commit.Status)
 	if !validTitle(commit.Status.Title) {
-		return nil, types.ErrInvalidTitle
+		return nil, pt.ErrInvalidTitle
 	}
 
 	nodes, err := getNodes(a.db, commit.Status.Title)
@@ -216,7 +216,7 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 	}
 
 	if !validNode(a.fromaddr, nodes) {
-		return nil, errors.Wrapf(types.ErrNodeNotForTheTitle, "not validNode:%s", a.fromaddr)
+		return nil, errors.Wrapf(pt.ErrNodeNotForTheTitle, "not validNode:%s", a.fromaddr)
 	}
 
 	titleStatus, err := getTitle(a.db, calcTitleKey(commit.Status.Title))
@@ -229,7 +229,7 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 			clog.Error("paracross.Commit", "check PreBlockHash", common.Bytes2Hex(titleStatus.BlockHash),
 				"commit tx", common.Bytes2Hex(commit.Status.PreBlockHash), "commitheit", commit.Status.Height,
 				"from", a.fromaddr)
-			return nil, types.ErrParaBlockHashNoMatch
+			return nil, pt.ErrParaBlockHashNoMatch
 		}
 	}
 
@@ -330,7 +330,7 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 }
 
 func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCommitAction, i int) (*types.Receipt, error) {
-	if !bytes.HasSuffix(tx.Tx.Execer, []byte(types.ParaX)) {
+	if !bytes.HasSuffix(tx.Tx.Execer, []byte(pt.ParaX)) {
 		return nil, nil
 	}
 	var payload pt.ParacrossAction
@@ -432,7 +432,7 @@ func (a *action) AssetWithdraw(withdraw *types.AssetsWithdraw) (*types.Receipt, 
 //当前miner tx不需要校验上一个区块的衔接性，因为tx就是本节点发出，高度，preHash等都在本区块里面的blockchain做了校验
 func (a *action) Miner(miner *pt.ParacrossMinerAction) (*types.Receipt, error) {
 	if miner.Status.Title != types.GetTitle() || miner.Status.PreBlockHash == nil || miner.Status.MainBlockHash == nil {
-		return nil, types.ErrParaMinerExecErr
+		return nil, pt.ErrParaMinerExecErr
 	}
 
 	var logs []*types.ReceiptLog
@@ -485,7 +485,7 @@ func (a *action) Transfer(transfer *types.AssetsTransfer, tx *types.Transaction,
 		transfer.Amount, "to", tx.To)
 	from := tx.From()
 
-	acc, err := account.NewAccountDB(types.ParaX, transfer.Cointoken, a.db)
+	acc, err := account.NewAccountDB(pt.ParaX, transfer.Cointoken, a.db)
 	if err != nil {
 		clog.Error("Transfer failed", "err", err)
 		return nil, err
@@ -500,7 +500,7 @@ func (a *action) Transfer(transfer *types.AssetsTransfer, tx *types.Transaction,
 func (a *action) Withdraw(withdraw *types.AssetsWithdraw, tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Debug("Paracross.Exec Withdraw", "symbol", withdraw.Cointoken, "amount",
 		withdraw.Amount, "to", tx.To)
-	acc, err := account.NewAccountDB(types.ParaX, withdraw.Cointoken, a.db)
+	acc, err := account.NewAccountDB(pt.ParaX, withdraw.Cointoken, a.db)
 	if err != nil {
 		clog.Error("Withdraw failed", "err", err)
 		return nil, err
@@ -516,7 +516,7 @@ func (a *action) TransferToExec(transfer *types.AssetsTransferToExec, tx *types.
 		transfer.Amount, "to", tx.To)
 	from := tx.From()
 
-	acc, err := account.NewAccountDB(types.ParaX, transfer.Cointoken, a.db)
+	acc, err := account.NewAccountDB(pt.ParaX, transfer.Cointoken, a.db)
 	if err != nil {
 		clog.Error("TransferToExec failed", "err", err)
 		return nil, err

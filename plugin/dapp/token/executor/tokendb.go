@@ -53,11 +53,11 @@ func (t *tokenDB) getKVSet(key []byte) (kvset []*types.KeyValue) {
 }
 
 func getTokenFromDB(db dbm.KV, symbol string, owner string) (*tokenty.Token, error) {
-	key := calcTokenAddrKey(symbol, owner)
+	key := calcTokenAddrKeyS(symbol, owner)
 	value, err := db.Get(key)
 	if err != nil {
 		// not found old key
-		key = calcTokenAddrNewKey(symbol, owner)
+		key = calcTokenAddrNewKeyS(symbol, owner)
 		value, err = db.Get(key)
 		if err != nil {
 			return nil, err
@@ -96,42 +96,42 @@ func (action *tokenAction) preCreate(token *tokenty.TokenPreCreate) (*types.Rece
 		return nil, types.ErrInvalidParam
 	}
 	if len(token.GetName()) > types.TokenNameLenLimit {
-		return nil, types.ErrTokenNameLen
+		return nil, tokenty.ErrTokenNameLen
 	} else if len(token.GetIntroduction()) > types.TokenIntroLenLimit {
-		return nil, types.ErrTokenIntroLen
+		return nil, tokenty.ErrTokenIntroLen
 	} else if len(token.GetSymbol()) > types.TokenSymbolLenLimit {
-		return nil, types.ErrTokenSymbolLen
+		return nil, tokenty.ErrTokenSymbolLen
 	} else if token.GetTotal() > types.MaxTokenBalance || token.GetTotal() <= 0 {
-		return nil, types.ErrTokenTotalOverflow
+		return nil, tokenty.ErrTokenTotalOverflow
 	}
 
 	if !ValidSymbolWithHeight([]byte(token.GetSymbol()), action.height) {
 		tokenlog.Error("token precreate ", "symbol need be upper", token.GetSymbol())
-		return nil, types.ErrTokenSymbolUpper
+		return nil, tokenty.ErrTokenSymbolUpper
 	}
 
 	if CheckTokenExist(token.GetSymbol(), action.db) {
-		return nil, types.ErrTokenExist
+		return nil, tokenty.ErrTokenExist
 	}
 
 	if checkTokenHasPrecreate(token.GetSymbol(), token.GetOwner(), tokenty.TokenStatusPreCreated, action.db) {
-		return nil, types.ErrTokenHavePrecreated
+		return nil, tokenty.ErrTokenHavePrecreated
 	}
 
-	if action.height >= types.ForkV6TokenBlackList {
+	if types.IsDappFork(action.height, tokenty.TokenX, "ForkTokenBlackList") {
 		found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
 		if err != nil {
 			return nil, err
 		}
 		if found {
-			return nil, types.ErrTokenBlacklist
+			return nil, tokenty.ErrTokenBlacklist
 		}
 	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
-	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
+	if types.IsDappFork(action.height, tokenty.TokenX, "ForkTokenPrice") && token.GetPrice() == 0 {
 		// pay for create token offline
 	} else {
 		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, token.GetPrice())
@@ -146,12 +146,12 @@ func (action *tokenAction) preCreate(token *tokenty.TokenPreCreate) (*types.Rece
 	tokendb := newTokenDB(token, action.fromaddr)
 	var statuskey []byte
 	var key []byte
-	if action.height >= types.ForkV13ExecKey {
-		statuskey = calcTokenStatusNewKey(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
-		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
+	if types.IsFork(action.height, "ForkExecKey") {
+		statuskey = calcTokenStatusNewKeyS(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
+		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
 		statuskey = calcTokenStatusKey(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
-		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	}
 
 	tokendb.save(action.db, statuskey)
@@ -174,7 +174,7 @@ func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) 
 	}
 	token, err := getTokenFromDB(action.db, tokenFinish.GetSymbol(), tokenFinish.GetOwner())
 	if err != nil || token.Status != tokenty.TokenStatusPreCreated {
-		return nil, types.ErrTokenNotPrecreated
+		return nil, tokenty.ErrTokenNotPrecreated
 	}
 
 	approverValid := false
@@ -187,13 +187,13 @@ func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) 
 
 	hasPriv, ok := validFinisher(action.fromaddr, action.db)
 	if (ok != nil || !hasPriv) && !approverValid {
-		return nil, types.ErrTokenCreatedApprover
+		return nil, tokenty.ErrTokenCreatedApprover
 	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
-	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
+	if types.IsDappFork(action.height, tokenty.TokenX, "ForkTokenPrice") && token.GetPrice() == 0 {
 		// pay for create token offline
 	} else {
 		//将之前冻结的资金转账到fund合约账户中
@@ -221,10 +221,10 @@ func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) 
 	token.Status = tokenty.TokenStatusCreated
 	tokendb := &tokenDB{*token}
 	var key []byte
-	if action.height >= types.ForkV13ExecKey {
-		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
+	if types.IsFork(action.height, "ForkExecKey") {
+		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
-		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	}
 	tokendb.save(action.db, key)
 
@@ -248,12 +248,12 @@ func (action *tokenAction) revokeCreate(tokenRevoke *tokenty.TokenRevokeCreate) 
 	token, err := getTokenFromDB(action.db, tokenRevoke.GetSymbol(), tokenRevoke.GetOwner())
 	if err != nil {
 		tokenlog.Error("token revokeCreate ", "Can't get token form db for token", tokenRevoke.GetSymbol())
-		return nil, types.ErrTokenNotPrecreated
+		return nil, tokenty.ErrTokenNotPrecreated
 	}
 
 	if token.Status != tokenty.TokenStatusPreCreated {
 		tokenlog.Error("token revokeCreate ", "token's status should be precreated to be revoked for token", tokenRevoke.GetSymbol())
-		return nil, types.ErrTokenCanotRevoked
+		return nil, tokenty.ErrTokenCanotRevoked
 	}
 
 	//确认交易发起者的身份，token的发起人可以撤销该项token的创建
@@ -261,12 +261,12 @@ func (action *tokenAction) revokeCreate(tokenRevoke *tokenty.TokenRevokeCreate) 
 	if action.fromaddr != token.Owner && action.fromaddr != token.Creator {
 		tokenlog.Error("tprocTokenRevokeCreate, different creator/owner vs actor of this revoke",
 			"action.fromaddr", action.fromaddr, "creator", token.Creator, "owner", token.Owner)
-		return nil, types.ErrTokenRevoker
+		return nil, tokenty.ErrTokenRevoker
 	}
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
+	if types.IsDappFork(action.height, tokenty.TokenX, "ForkTokenPrice") && token.GetPrice() == 0 {
 		// pay for create token offline
 	} else {
 		//解锁之前冻结的资金
@@ -282,10 +282,10 @@ func (action *tokenAction) revokeCreate(tokenRevoke *tokenty.TokenRevokeCreate) 
 	token.Status = tokenty.TokenStatusCreateRevoked
 	tokendb := &tokenDB{*token}
 	var key []byte
-	if action.height >= types.ForkV13ExecKey {
-		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
+	if types.IsFork(action.height, "ForkExecKey") {
+		key = calcTokenAddrNewKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
-		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+		key = calcTokenAddrKeyS(tokendb.token.Symbol, tokendb.token.Owner)
 	}
 	tokendb.save(action.db, key)
 
@@ -302,11 +302,11 @@ func CheckTokenExist(token string, db dbm.KV) bool {
 }
 
 func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KV) bool {
-	_, err := db.Get(calcTokenAddrKey(token, owner))
+	_, err := db.Get(calcTokenAddrKeyS(token, owner))
 	if err == nil {
 		return true
 	}
-	_, err = db.Get(calcTokenAddrNewKey(token, owner))
+	_, err = db.Get(calcTokenAddrNewKeyS(token, owner))
 	return err == nil
 }
 
@@ -318,7 +318,7 @@ func getManageKey(key string, db dbm.KV) ([]byte, error) {
 	manageKey := types.ManageKey(key)
 	value, err := db.Get([]byte(manageKey))
 	if err != nil {
-		tokenlog.Info("tokendb", "get db key", "not found")
+		tokenlog.Info("tokendb", "get db key", "not found manageKey", "key", manageKey)
 		return getConfigKey(key, db)
 	}
 	return value, nil
@@ -328,7 +328,7 @@ func getConfigKey(key string, db dbm.KV) ([]byte, error) {
 	configKey := types.ConfigKey(key)
 	value, err := db.Get([]byte(configKey))
 	if err != nil {
-		tokenlog.Info("tokendb", "get db key", "not found")
+		tokenlog.Info("tokendb", "get db key", "not found configKey", "key", configKey)
 		return nil, err
 	}
 	return value, nil
@@ -337,11 +337,11 @@ func getConfigKey(key string, db dbm.KV) ([]byte, error) {
 func validOperator(addr, key string, db dbm.KV) (bool, error) {
 	value, err := getManageKey(key, db)
 	if err != nil {
-		tokenlog.Info("tokendb", "get db key", "not found")
+		tokenlog.Info("tokendb", "get db key", "not found", "key", key)
 		return false, err
 	}
 	if value == nil {
-		tokenlog.Info("tokendb", "get db key", "  found nil value")
+		tokenlog.Info("tokendb", "get db key", "  found nil value", "key", key)
 		return false, nil
 	}
 
@@ -428,7 +428,7 @@ func ValidSymbol(cs []byte) bool {
 }
 
 func ValidSymbolWithHeight(cs []byte, height int64) bool {
-	if height < types.ForkV7BadTokenSymbol {
+	if !types.IsDappFork(height, tokenty.TokenX, "ForkBadTokenSymbol") {
 		symbol := string(cs)
 		upSymbol := strings.ToUpper(symbol)
 		return upSymbol == symbol

@@ -21,6 +21,7 @@ message PokerBull {
     string            quitTxHash = 13; //游戏结束交易hash
     string            dealerAddr = 14; //下局庄家地址
     bool              isWaiting  = 15; //游戏是否处于等待状态
+    int32             preStatus  = 16; //上一index的状态
 }
 
 //一把牌
@@ -97,10 +98,24 @@ message QueryPBGameListByStatusAndPlayerNum {
 // 索引value值
 message PBGameRecord {
     string gameId = 1;
+    int32  status = 2;
+    int64  index  = 3;
+}
+
+message PBGameIndexRecord {
+    string gameId = 1;
+    int64  index  = 2;
+}
+
+message PBGameRecords {
+    repeated PBGameRecord records = 1;
 }
 
 message QueryPBGameInfo {
     string gameId = 1;
+    string addr   = 2;
+    int32  status = 3;
+    int64  index  = 4;
 }
 
 message ReplyPBGame {
@@ -116,12 +131,16 @@ message ReplyPBGameList {
 }
 
 message ReceiptPBGame {
-    string gameId    = 1;
-    int32  status    = 2;
-    string addr      = 4;
-    int64  index     = 5;
-    int64  prevIndex = 6;
-    int32  playerNum = 7;
+    string   gameId           = 1;
+    int32    status           = 2;
+    string   addr             = 3;
+    int64    index            = 4;
+    int64    prevIndex        = 5;
+    int32    playerNum        = 6;
+    int64    value            = 7;
+    bool     isWaiting        = 8;
+    repeated string players   = 9;
+    int32           preStatus = 10;
 }
 
 message PBStartTxReq {

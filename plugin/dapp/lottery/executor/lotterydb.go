@@ -173,25 +173,25 @@ func (action *Action) LotteryCreate(create *pty.LotteryCreate) (*types.Receipt, 
 	lotteryId := common.ToHex(action.txhash)
 
 	if !isRightCreator(action.fromaddr, action.db, false) {
-		return nil, types.ErrNoPrivilege
+		return nil, pty.ErrNoPrivilege
 	}
 
 	if create.GetPurBlockNum() < minPurBlockNum {
-		return nil, types.ErrLotteryPurBlockLimit
+		return nil, pty.ErrLotteryPurBlockLimit
 	}
 
 	if create.GetDrawBlockNum() < minDrawBlockNum {
-		return nil, types.ErrLotteryDrawBlockLimit
+		return nil, pty.ErrLotteryDrawBlockLimit
 	}
 
 	if create.GetPurBlockNum() > create.GetDrawBlockNum() {
-		return nil, types.ErrLotteryDrawBlockLimit
+		return nil, pty.ErrLotteryDrawBlockLimit
 	}
 
 	_, err := findLottery(action.db, lotteryId)
 	if err != types.ErrNotFound {
 		llog.Error("LotteryCreate", "LotteryCreate repeated", lotteryId)
-		return nil, types.ErrLotteryRepeatHash
+		return nil, pty.ErrLotteryRepeatHash
 	}
 
 	lott := NewLotteryDB(lotteryId, create.GetPurBlockNum(),
@@ -201,7 +201,7 @@ func (action *Action) LotteryCreate(create *pty.LotteryCreate) (*types.Receipt, 
 		mainHeight := action.GetMainHeightByTxHash(action.txhash)
 		if mainHeight < 0 {
 			llog.Error("LotteryCreate", "mainHeight", mainHeight)
-			return nil, types.ErrLotteryStatus
+			return nil, pty.ErrLotteryStatus
 		}
 		lott.CreateOnMain = mainHeight
 	}
@@ -235,14 +235,14 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 
 	if lott.Status == pty.LotteryClosed {
 		llog.Error("LotteryBuy", "status", lott.Status)
-		return nil, types.ErrLotteryStatus
+		return nil, pty.ErrLotteryStatus
 	}
 
 	if lott.Status == pty.LotteryDrawed {
 		//no problem both on main and para
 		if action.height <= lott.LastTransToDrawState {
 			llog.Error("LotteryBuy", "action.heigt", action.height, "lastTransToDrawState", lott.LastTransToDrawState)
-			return nil, types.ErrLotteryStatus
+			return nil, pty.ErrLotteryStatus
 		}
 	}
 
@@ -255,7 +255,7 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 			mainHeight := action.GetMainHeightByTxHash(action.txhash)
 			if mainHeight < 0 {
 				llog.Error("LotteryBuy", "mainHeight", mainHeight)
-				return nil, types.ErrLotteryStatus
+				return nil, pty.ErrLotteryStatus
 			}
 			lott.LastTransToPurStateOnMain = mainHeight
 		}
@@ -266,32 +266,32 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 			mainHeight := action.GetMainHeightByTxHash(action.txhash)
 			if mainHeight < 0 {
 				llog.Error("LotteryBuy", "mainHeight", mainHeight)
-				return nil, types.ErrLotteryStatus
+				return nil, pty.ErrLotteryStatus
 			}
 			if mainHeight-lott.LastTransToPurStateOnMain > lott.GetPurBlockNum() {
 				llog.Error("LotteryBuy", "action.height", action.height, "mainHeight", mainHeight, "LastTransToPurStateOnMain", lott.LastTransToPurStateOnMain)
-				return nil, types.ErrLotteryStatus
+				return nil, pty.ErrLotteryStatus
 			}
 		} else {
 			if action.height-lott.LastTransToPurState > lott.GetPurBlockNum() {
 				llog.Error("LotteryBuy", "action.height", action.height, "LastTransToPurState", lott.LastTransToPurState)
-				return nil, types.ErrLotteryStatus
+				return nil, pty.ErrLotteryStatus
 			}
 		}
 	}
 
 	if lott.CreateAddr == action.fromaddr {
-		return nil, types.ErrLotteryCreatorBuy
+		return nil, pty.ErrLotteryCreatorBuy
 	}
 
 	if buy.GetAmount() <= 0 {
 		llog.Error("LotteryBuy", "buyAmount", buy.GetAmount())
-		return nil, types.ErrLotteryBuyAmount
+		return nil, pty.ErrLotteryBuyAmount
 	}
 
 	if buy.GetNumber() < 0 || buy.GetNumber() >= luckyNumMol {
 		llog.Error("LotteryBuy", "buyNumber", buy.GetNumber())
-		return nil, types.ErrLotteryBuyNumber
+		return nil, pty.ErrLotteryBuyNumber
 	}
 
 	if lott.Records == nil {
@@ -366,30 +366,30 @@ func (action *Action) LotteryDraw(draw *pty.LotteryDraw) (*types.Receipt, error)
 
 	if lott.Status != pty.LotteryPurchase {
 		llog.Error("LotteryDraw", "lott.Status", lott.Status)
-		return nil, types.ErrLotteryStatus
+		return nil, pty.ErrLotteryStatus
 	}
 
 	if types.IsPara() {
 		mainHeight := action.GetMainHeightByTxHash(action.txhash)
 		if mainHeight < 0 {
 			llog.Error("LotteryBuy", "mainHeight", mainHeight)
-			return nil, types.ErrLotteryStatus
+			return nil, pty.ErrLotteryStatus
 		}
 		if mainHeight-lott.GetLastTransToPurStateOnMain() < lott.GetDrawBlockNum() {
 			llog.Error("LotteryDraw", "action.height", action.height, "mainHeight", mainHeight, "GetLastTransToPurStateOnMain", lott.GetLastTransToPurState())
-			return nil, types.ErrLotteryStatus
+			return nil, pty.ErrLotteryStatus
 		}
 	} else {
 		if action.height-lott.GetLastTransToPurState() < lott.GetDrawBlockNum() {
 			llog.Error("LotteryDraw", "action.height", action.height, "GetLastTransToPurState", lott.GetLastTransToPurState())
-			return nil, types.ErrLotteryStatus
+			return nil, pty.ErrLotteryStatus
 		}
 	}
 
 	if action.fromaddr != lott.GetCreateAddr() {
 		if _, ok := lott.Records[action.fromaddr]; !ok {
 			llog.Error("LotteryDraw", "action.fromaddr", action.fromaddr)
-			return nil, types.ErrLotteryDrawActionInvalid
+			return nil, pty.ErrLotteryDrawActionInvalid
 		}
 	}
 
@@ -416,7 +416,7 @@ func (action *Action) LotteryClose(draw *pty.LotteryClose) (*types.Receipt, erro
 	//var receipt *types.Receipt
 
 	if !isEableToClose() {
-		return nil, types.ErrLotteryErrUnableClose
+		return nil, pty.ErrLotteryErrUnableClose
 	}
 
 	lottery, err := findLottery(action.db, draw.LotteryId)
@@ -429,11 +429,11 @@ func (action *Action) LotteryClose(draw *pty.LotteryClose) (*types.Receipt, erro
 	preStatus := lott.Status
 
 	if action.fromaddr != lott.CreateAddr {
-		return nil, types.ErrLotteryErrCloser
+		return nil, pty.ErrLotteryErrCloser
 	}
 
 	if lott.Status == pty.LotteryClosed {
-		return nil, types.ErrLotteryStatus
+		return nil, pty.ErrLotteryStatus
 	}
 
 	addrkeys := make([]string, len(lott.Records))
@@ -449,7 +449,7 @@ func (action *Action) LotteryClose(draw *pty.LotteryClose) (*types.Receipt, erro
 	if totalReturn > 0 {
 
 		if !action.CheckExecAccount(lott.CreateAddr, decimal*totalReturn, true) {
-			return nil, types.ErrLotteryFundNotEnough
+			return nil, pty.ErrLotteryFundNotEnough
 		}
 
 		sort.Strings(addrkeys)
@@ -575,7 +575,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, *pty.LotteryUp
 
 	luckynum := action.findLuckyNum(false, lott)
 	if luckynum < 0 || luckynum >= luckyNumMol {
-		return nil, nil, types.ErrLotteryErrLuckyNum
+		return nil, nil, pty.ErrLotteryErrLuckyNum
 	}
 
 	llog.Error("checkDraw", "luckynum", luckynum)
@@ -628,11 +628,11 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, *pty.LotteryUp
 	//protection for rollback
 	if factor == 1.0 {
 		if !action.CheckExecAccount(lott.CreateAddr, totalFund, true) {
-			return nil, nil, types.ErrLotteryFundNotEnough
+			return nil, nil, pty.ErrLotteryFundNotEnough
 		}
 	} else {
 		if !action.CheckExecAccount(lott.CreateAddr, decimal*lott.Fund/2+1, true) {
-			return nil, nil, types.ErrLotteryFundNotEnough
+			return nil, nil, pty.ErrLotteryFundNotEnough
 		}
 	}
 
@@ -668,7 +668,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, *pty.LotteryUp
 		mainHeight := action.GetMainHeightByTxHash(action.txhash)
 		if mainHeight < 0 {
 			llog.Error("LotteryBuy", "mainHeight", mainHeight)
-			return nil, nil, types.ErrLotteryStatus
+			return nil, nil, pty.ErrLotteryStatus
 		}
 		lott.LastTransToDrawStateOnMain = mainHeight
 	}

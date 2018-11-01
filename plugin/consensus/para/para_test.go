@@ -20,7 +20,7 @@ var (
 )
 
 func TestFilterTxsForPara(t *testing.T) {
-	types.SetTitle(Title)
+	types.Init(Title, nil)
 
 	//only main txs
 	tx0, _ := createMainTx("ticket", "to")
@@ -150,7 +150,7 @@ func createCrossMainTx(to string) (*types.Transaction, error) {
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
-		ExecName:    types.ParaX,
+		ExecName:    pt.ParaX,
 	}
 	transfer := &pt.ParacrossAction{}
 	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
@@ -178,7 +178,7 @@ func createCrossParaTx(to string, amount int64) (*types.Transaction, error) {
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
-		ExecName:    Title + types.ParaX,
+		ExecName:    types.ExecName(pt.ParaX),
 	}
 	tx, err := pt.CreateRawAssetTransferTx(&param)
 

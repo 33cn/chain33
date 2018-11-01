@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"path"
 
 	log "github.com/inconshreveable/log15"
@@ -10,6 +11,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var llog = log.New("module", "db.goleveldb")
@@ -151,6 +153,9 @@ func (db *GoLevelDB) Stats() map[string]string {
 func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	if end == nil {
 		end = bytesPrefix(start)
+	}
+	if bytes.Equal(end, types.EmptyValue) {
+		end = nil
 	}
 	r := &util.Range{start, end}
 	it := db.db.NewIterator(r, nil)

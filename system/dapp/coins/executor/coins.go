@@ -23,7 +23,7 @@ func Init(name string, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}
-	drivers.Register(driverName, newCoins, 0)
+	drivers.Register(driverName, newCoins, types.GetDappFork(driverName, "Enable"))
 }
 
 //初始化过程比较重量级，有很多reflact, 所以弄成全局的
@@ -58,7 +58,7 @@ func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
 //coins 合约 运行 ticket 合约的挖矿交易
 func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
 	//step1 先判定自己合约的权限
-	if !c.AllowIsSame(myexec) && !c.AllowIsSamePara(myexec) {
+	if !c.AllowIsSame(myexec) {
 		return false
 	}
 	//step2 判定 othertx 的 执行器名称(只允许主链，并且是挖矿的行为)

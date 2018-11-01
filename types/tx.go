@@ -119,7 +119,7 @@ func (txgroup *Transactions) Check(height int64, minfee int64) error {
 		}
 	}
 	//txgroup 只允许一条平行链的交易
-	if IsEnableFork(height, ForkV24TxGroupPara, EnableTxGroupParaFork) {
+	if IsEnableFork(height, "ForkV24TxGroupPara", EnableTxGroupParaFork) {
 		if len(para) > 1 {
 			tlog.Info("txgroup has multi para transaction")
 			return ErrTxGroupParaCount
@@ -373,7 +373,7 @@ func (tx *Transaction) check(minfee int64) error {
 
 func (tx *Transaction) SetExpire(expire time.Duration) {
 	//Txheight处理
-	if EnableTxHeight && int64(expire) > TxHeightFlag {
+	if IsEnable("TxHeight") && int64(expire) > TxHeightFlag {
 		tx.Expire = int64(expire)
 		return
 	}
@@ -460,7 +460,7 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 }
 
 func GetTxHeight(valid int64, height int64) int64 {
-	if IsEnableFork(height, ForkV23TxHeight, EnableTxHeight) && valid > TxHeightFlag {
+	if IsEnableFork(height, "ForkTxHeight", IsEnable("TxHeight")) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
 	return -1
@@ -553,20 +553,6 @@ func (tx *Transaction) IsWithdraw() bool {
 		}
 	}
 	return false
-}
-
-//CalcTxKey local db中保存交易的方法
-func CalcTxKey(hash []byte) []byte {
-	if IsEnable("quickIndex") {
-		txhash := []byte("TX:")
-		return append(txhash, hash...)
-	}
-	return hash
-}
-
-func CalcTxShortKey(hash []byte) []byte {
-	txhash := []byte("STX:")
-	return append(txhash, hash[0:8]...)
 }
 
 func IsEnable(name string) bool {

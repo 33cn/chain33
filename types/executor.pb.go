@@ -19,7 +19,7 @@ type Genesis struct {
 func (m *Genesis) Reset()                    { *m = Genesis{} }
 func (m *Genesis) String() string            { return proto.CompactTextString(m) }
 func (*Genesis) ProtoMessage()               {}
-func (*Genesis) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{0} }
+func (*Genesis) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{0} }
 
 func (m *Genesis) GetIsrun() bool {
 	if m != nil {
@@ -40,7 +40,7 @@ type ExecTxList struct {
 func (m *ExecTxList) Reset()                    { *m = ExecTxList{} }
 func (m *ExecTxList) String() string            { return proto.CompactTextString(m) }
 func (*ExecTxList) ProtoMessage()               {}
-func (*ExecTxList) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{1} }
+func (*ExecTxList) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{1} }
 
 func (m *ExecTxList) GetStateHash() []byte {
 	if m != nil {
@@ -93,7 +93,7 @@ type Query struct {
 func (m *Query) Reset()                    { *m = Query{} }
 func (m *Query) String() string            { return proto.CompactTextString(m) }
 func (*Query) ProtoMessage()               {}
-func (*Query) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{2} }
+func (*Query) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{2} }
 
 func (m *Query) GetExecer() []byte {
 	if m != nil {
@@ -125,7 +125,7 @@ type CreateTxIn struct {
 func (m *CreateTxIn) Reset()                    { *m = CreateTxIn{} }
 func (m *CreateTxIn) String() string            { return proto.CompactTextString(m) }
 func (*CreateTxIn) ProtoMessage()               {}
-func (*CreateTxIn) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{3} }
+func (*CreateTxIn) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{3} }
 
 func (m *CreateTxIn) GetExecer() []byte {
 	if m != nil {
@@ -156,7 +156,7 @@ type ArrayConfig struct {
 func (m *ArrayConfig) Reset()                    { *m = ArrayConfig{} }
 func (m *ArrayConfig) String() string            { return proto.CompactTextString(m) }
 func (*ArrayConfig) ProtoMessage()               {}
-func (*ArrayConfig) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{4} }
+func (*ArrayConfig) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{4} }
 
 func (m *ArrayConfig) GetValue() []string {
 	if m != nil {
@@ -172,7 +172,7 @@ type StringConfig struct {
 func (m *StringConfig) Reset()                    { *m = StringConfig{} }
 func (m *StringConfig) String() string            { return proto.CompactTextString(m) }
 func (*StringConfig) ProtoMessage()               {}
-func (*StringConfig) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{5} }
+func (*StringConfig) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{5} }
 
 func (m *StringConfig) GetValue() string {
 	if m != nil {
@@ -188,7 +188,7 @@ type Int32Config struct {
 func (m *Int32Config) Reset()                    { *m = Int32Config{} }
 func (m *Int32Config) String() string            { return proto.CompactTextString(m) }
 func (*Int32Config) ProtoMessage()               {}
-func (*Int32Config) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{6} }
+func (*Int32Config) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{6} }
 
 func (m *Int32Config) GetValue() int32 {
 	if m != nil {
@@ -211,7 +211,7 @@ type ConfigItem struct {
 func (m *ConfigItem) Reset()                    { *m = ConfigItem{} }
 func (m *ConfigItem) String() string            { return proto.CompactTextString(m) }
 func (*ConfigItem) ProtoMessage()               {}
-func (*ConfigItem) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{7} }
+func (*ConfigItem) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{7} }
 
 type isConfigItem_Value interface {
 	isConfigItem_Value()
@@ -383,7 +383,7 @@ type ModifyConfig struct {
 func (m *ModifyConfig) Reset()                    { *m = ModifyConfig{} }
 func (m *ModifyConfig) String() string            { return proto.CompactTextString(m) }
 func (*ModifyConfig) ProtoMessage()               {}
-func (*ModifyConfig) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{8} }
+func (*ModifyConfig) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{8} }
 
 func (m *ModifyConfig) GetKey() string {
 	if m != nil {
@@ -421,7 +421,7 @@ type ReceiptConfig struct {
 func (m *ReceiptConfig) Reset()                    { *m = ReceiptConfig{} }
 func (m *ReceiptConfig) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptConfig) ProtoMessage()               {}
-func (*ReceiptConfig) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{9} }
+func (*ReceiptConfig) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{9} }
 
 func (m *ReceiptConfig) GetPrev() *ConfigItem {
 	if m != nil {
@@ -445,7 +445,7 @@ type ReplyConfig struct {
 func (m *ReplyConfig) Reset()                    { *m = ReplyConfig{} }
 func (m *ReplyConfig) String() string            { return proto.CompactTextString(m) }
 func (*ReplyConfig) ProtoMessage()               {}
-func (*ReplyConfig) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{10} }
+func (*ReplyConfig) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{10} }
 
 func (m *ReplyConfig) GetKey() string {
 	if m != nil {
@@ -472,7 +472,7 @@ type HistoryCertStore struct {
 func (m *HistoryCertStore) Reset()                    { *m = HistoryCertStore{} }
 func (m *HistoryCertStore) String() string            { return proto.CompactTextString(m) }
 func (*HistoryCertStore) ProtoMessage()               {}
-func (*HistoryCertStore) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{11} }
+func (*HistoryCertStore) Descriptor() ([]byte, []int) { return fileDescriptor4, []int{11} }
 
 func (m *HistoryCertStore) GetRootcerts() [][]byte {
 	if m != nil {
@@ -524,9 +524,9 @@ func init() {
 	proto.RegisterType((*HistoryCertStore)(nil), "types.HistoryCertStore")
 }
 
-func init() { proto.RegisterFile("executor.proto", fileDescriptor5) }
+func init() { proto.RegisterFile("executor.proto", fileDescriptor4) }
 
-var fileDescriptor5 = []byte{
+var fileDescriptor4 = []byte{
 	// 628 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x61, 0x6b, 0x13, 0x41,
 	0x10, 0xf5, 0x72, 0x49, 0xd3, 0x4c, 0x62, 0x69, 0x57, 0x91, 0xa3, 0x48, 0x0d, 0xd7, 0x5a, 0x03,

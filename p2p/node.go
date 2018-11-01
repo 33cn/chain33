@@ -75,7 +75,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		cacheBound: make(map[string]*Peer),
 		pubsub:     pubsub.NewPubSub(10200),
 	}
-	if cfg.GetInnerSeedEnable() {
+	if cfg.InnerSeedEnable {
 		if types.IsTestNet() {
 			cfg.Seeds = append(cfg.Seeds, TestNetSeeds...)
 		} else {
@@ -85,7 +85,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	}
 
 	node.nodeInfo = NewNodeInfo(cfg)
-	if cfg.GetServerStart() {
+	if cfg.ServerStart {
 		node.listener = NewListener(protocol, node)
 	}
 	return node, nil
@@ -131,7 +131,7 @@ func (n *Node) doNat() {
 	}
 	log.Info("node inside")
 	//在内网，并且非种子节点，则进行端口映射
-	if !n.nodeInfo.OutSide() && !n.nodeInfo.cfg.GetIsSeed() && n.nodeInfo.cfg.GetServerStart() {
+	if !n.nodeInfo.OutSide() && !n.nodeInfo.cfg.IsSeed && n.nodeInfo.cfg.ServerStart {
 
 		go n.natMapPort()
 		if !n.natOk() {
@@ -323,7 +323,7 @@ func (n *Node) detectNodeAddr() {
 			continue
 		}
 		log.Info("detectNodeAddr", "LocalAddr", laddr)
-		if cfg.GetIsSeed() {
+		if cfg.IsSeed {
 			log.Info("DetectNodeAddr", "ExIp", laddr)
 			externalIP = laddr
 			n.nodeInfo.SetNetSide(true)
@@ -338,7 +338,7 @@ func (n *Node) detectNodeAddr() {
 		var externaladdr string
 		var externalPort int
 
-		if cfg.GetIsSeed() {
+		if cfg.IsSeed {
 			externalPort = defaultPort
 		} else {
 			exportBytes, _ := n.nodeInfo.addrBook.bookDb.Get([]byte(externalPortTag))

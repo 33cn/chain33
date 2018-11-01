@@ -51,7 +51,7 @@ func (e *Paracross) Exec_AssetWithdraw(payload *types.AssetsWithdraw, tx *types.
 
 func (e *Paracross) Exec_Miner(payload *pt.ParacrossMinerAction, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if index != 0 {
-		return nil, types.ErrParaMinerBaseIndex
+		return nil, pt.ErrParaMinerBaseIndex
 	}
 	if !types.IsPara() {
 		return nil, types.ErrNotSupport
