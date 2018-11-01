@@ -55,28 +55,28 @@ func main() {
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
-		mavl.PruningTreePrint(db, []byte("..mk.."))
+		mavl.PruningTreePrintDB(db, []byte("..mk.."))
 	}
 	a = 0
 	fmt.Println("是否需要查询hash节点计数")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
-		mavl.PruningTreePrint(db, []byte("_mh_"))
+		mavl.PruningTreePrintDB(db, []byte("_mh_"))
 	}
 	a = 0
 	fmt.Println("是否需要查询leaf节点计数")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
-		mavl.PruningTreePrint(db, []byte("_mb_"))
+		mavl.PruningTreePrintDB(db, []byte("_mb_"))
 	}
 	a = 0
 	fmt.Println("是否需要查询节点删除pool")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
-		mavl.PruningTreePrint(db, []byte("_..md.._"))
+		mavl.PruningTreePrintDB(db, []byte("_..md.._"))
 	}
 	a = 0
 	fmt.Println("是否需要裁剪树,请输入最大裁剪数高度")
