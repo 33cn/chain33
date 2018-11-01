@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -61,15 +60,6 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	execute.setEnv(e)
 	_, err = e.GetTxGroup(len(txs) - 1)
 	assert.Equal(t, err, types.ErrTxGroupFormat)
-}
-
-func jsonPrint(t *testing.T, input interface{}) {
-	data, err := json.MarshalIndent(input, "", "\t")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	t.Log(string(data))
 }
 
 //gen 1万币需要 2s，主要是签名的花费
