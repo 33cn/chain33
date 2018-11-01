@@ -217,7 +217,7 @@ func (client *ParaClient) GetSeqByHeightOnMain(height int64, originSeq int64) in
 
 func (client *ParaClient) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
-	tx.Execer = []byte(types.ExecName(types.CoinsX))
+	tx.Execer = []byte(types.ExecName(cty.CoinsX))
 	tx.To = client.Cfg.Genesis
 	//gen payload
 	g := &cty.CoinsAction_Genesis{}

@@ -23,7 +23,7 @@ func Init(name string, sub []byte) {
 		types.MustDecode(sub, &cfg)
 	}
 	authority.Author.Init(&cfg)
-	drivers.Register(driverName, newCert, 0)
+	drivers.Register(driverName, newCert, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {

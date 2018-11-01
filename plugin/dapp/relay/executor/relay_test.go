@@ -121,8 +121,8 @@ func (s *suiteRelay) TestExec_1() {
 	}
 
 	tx := &types.Transaction{}
-	tx.Execer = types.ExecerRelay
-	tx.To = address.ExecAddress(string(types.ExecerRelay))
+	tx.Execer = []byte(ty.RelayX)
+	tx.To = address.ExecAddress(ty.RelayX)
 	tx.Nonce = 1 //for different order id
 	tx.Payload = types.Encode(sell)
 	tx.Sign(types.SECP256K1, privFrom)
@@ -497,8 +497,8 @@ func (s *suiteBtcHeader) TestSaveBtcHead_1() {
 	}
 
 	tx := &types.Transaction{}
-	tx.Execer = types.ExecerRelay
-	tx.To = address.ExecAddress(string(types.ExecerRelay))
+	tx.Execer = []byte(ty.RelayX)
+	tx.To = address.ExecAddress(ty.RelayX)
 	tx.Nonce = 2 //for different order id
 	tx.Payload = types.Encode(sell)
 	tx.Sign(types.SECP256K1, privFrom)

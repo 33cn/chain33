@@ -5,14 +5,14 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
+	ety "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"github.com/inconshreveable/log15"
 )
 
 //提供系统rpc接口
@@ -39,9 +39,9 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	}
 	//因为历史原因，这里还是有部分token 的字段，但是没有依赖token dapp
 	//未来这个调用可能会被废弃
-	execer := types.ExecName(types.CoinsX)
+	execer := types.ExecName(ety.CoinsX)
 	if param.IsToken {
-		execer = types.ExecName(types.TokenX)
+		execer = types.ExecName("token")
 	}
 	return types.CallCreateTx(execer, "", param)
 }

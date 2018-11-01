@@ -307,8 +307,9 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 		return ok, err
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
+	//这里依赖了ticket 挖矿合约
 	if !wallet.isTicketLocked() {
-		if addr == address.ExecAddress(types.TicketX) {
+		if addr == address.ExecAddress("ticket") {
 			return true, nil
 		}
 	}

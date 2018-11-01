@@ -360,7 +360,7 @@ func showAmountOfUTXO(cmd *cobra.Command, args []string) {
 
 	reqPrivacyToken := pty.ReqPrivacyToken{Token: types.BTY}
 	var params types.Query4Cli
-	params.Execer = types.PrivacyX
+	params.Execer = pty.PrivacyX
 	params.FuncName = "ShowAmountsOfUTXO"
 	params.Payload = reqPrivacyToken
 
@@ -403,7 +403,7 @@ func showUTXOs4SpecifiedAmount(cmd *cobra.Command, args []string) {
 		Amount: amountInt64,
 	}
 	var params types.Query4Cli
-	params.Execer = types.PrivacyX
+	params.Execer = pty.PrivacyX
 	params.FuncName = "ShowUTXOs4SpecifiedAmount"
 	params.Payload = reqPrivacyToken
 

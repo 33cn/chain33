@@ -40,7 +40,7 @@ func (c *HTTPConn) Write(d []byte) (n int, err error) { //添加支持gzip 发�
 func (c *HTTPConn) Close() error { return nil }
 
 func (j *JSONRPCServer) Listen() (int, error) {
-	listener, err := net.Listen("tcp", rpcCfg.GetJrpcBindAddr())
+	listener, err := net.Listen("tcp", rpcCfg.JrpcBindAddr)
 	if err != nil {
 		return 0, err
 	}
@@ -124,7 +124,7 @@ func writeError(w http.ResponseWriter, r *http.Request, id uint64, errstr string
 }
 
 func (g *Grpcserver) Listen() (int, error) {
-	listener, err := net.Listen("tcp", rpcCfg.GetGrpcBindAddr())
+	listener, err := net.Listen("tcp", rpcCfg.GrpcBindAddr)
 	if err != nil {
 		return 0, err
 	}
