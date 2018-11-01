@@ -222,7 +222,7 @@ func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 
 	key := calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
 	var value []byte
-	if types.IsDappFork(t.GetHeight(), tokenty.TokenX, "ForkExecKey") {
+	if types.IsFork(t.GetHeight(), "ForkExecKey") {
 		value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
 	} else {
 		value = calcTokenAddrKeyS(receipt.Symbol, receipt.Owner)
@@ -245,7 +245,7 @@ func (t *token) deleteLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	if receipt.Status != tokenty.TokenStatusPreCreated {
 		key = calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		var value []byte
-		if types.IsDappFork(t.GetHeight(), tokenty.TokenX, "ForkExecKey") {
+		if types.IsFork(t.GetHeight(), "ForkExecKey") {
 			value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
 		} else {
 			value = calcTokenAddrKeyS(receipt.Symbol, receipt.Owner)
