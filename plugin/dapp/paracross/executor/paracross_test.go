@@ -83,7 +83,7 @@ func makeNodeInfo(key, addr string, cnt int) *types.ConfigItem {
 func init() {
 	log.SetFileLog(nil)
 	log.SetLogLevel("debug")
-	Init(types.ParaX, nil)
+	Init(pt.ParaX, nil)
 }
 
 func (suite *CommitTestSuite) SetupSuite() {
@@ -162,7 +162,7 @@ func fillRawCommitTx(suite suite.Suite) (*types.Transaction, error) {
 		[]byte("abc"),
 		[][]byte{},
 	}
-	tx, err := pt.CreateRawCommitTx4MainChain(&st1, types.ParaX, 0)
+	tx, err := pt.CreateRawCommitTx4MainChain(&st1, pt.ParaX, 0)
 	if err != nil {
 		suite.T().Error("TestExec", "create tx failed", err)
 	}
@@ -366,7 +366,7 @@ type VoteTestSuite struct {
 }
 
 func (suite *VoteTestSuite) SetupSuite() {
-	types.SetTitle(Title)
+	types.Init(Title, nil)
 	suite.exec = newParacross().(*Paracross)
 }
 
@@ -466,7 +466,7 @@ func createCrossMainTx(to []byte) (*types.Transaction, error) {
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
-		ExecName:    types.ParaX,
+		ExecName:    pt.ParaX,
 	}
 	transfer := &pt.ParacrossAction{}
 	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
@@ -494,7 +494,7 @@ func createCrossParaTx(s suite.Suite, to []byte) (*types.Transaction, error) {
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
-		ExecName:    Title + types.ParaX,
+		ExecName:    Title + pt.ParaX,
 	}
 	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")

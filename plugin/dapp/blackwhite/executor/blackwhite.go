@@ -27,7 +27,7 @@ func Init(name string, sub []byte) {
 	driverName = name
 	gt.BlackwhiteX = driverName
 	gt.ExecerBlackwhite = []byte(driverName)
-	drivers.Register(name, newBlackwhite, types.ForkV25BlackWhite)
+	drivers.Register(name, newBlackwhite, types.GetDappFork(driverName, "Enable"))
 }
 
 type Blackwhite struct {

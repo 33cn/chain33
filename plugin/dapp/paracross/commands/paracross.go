@@ -114,7 +114,7 @@ func createAssetTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 		fmt.Fprintln(os.Stderr, "title is not right, title format like `user.p.guodun.`")
 		return "", types.ErrInvalidParam
 	}
-	execName := title + types.ParaX
+	execName := title + pt.ParaX
 
 	param := types.CreateTx{
 		To:          toAddr,
@@ -256,7 +256,7 @@ func createTransferTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 		fmt.Fprintln(os.Stderr, "title is not right, title format like `user.p.guodun.`")
 		return "", types.ErrInvalidParam
 	}
-	execName := title + types.ParaX
+	execName := title + pt.ParaX
 
 	param := types.CreateTx{
 		To:          toAddr,

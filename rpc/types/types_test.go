@@ -33,13 +33,13 @@ func TestDecodeTx(t *testing.T) {
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
-	tx.Execer = []byte(types.ExecName(types.CoinsX))
+	tx.Execer = []byte(types.ExecName("coins"))
 	data, err = DecodeTx(&tx)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
 	tx = types.Transaction{
-		Execer:  []byte(types.ExecName(types.HashlockX)),
+		Execer:  []byte(types.ExecName("hashlock")),
 		Payload: []byte("34"),
 		Nonce:   8978167239,
 		To:      "1asd234dsf43fds",

@@ -170,7 +170,7 @@ func (a *AddrBook) saveToDb() {
 	defer a.mtx.Unlock()
 	addrs := []*knownAddress{}
 
-	seeds := a.cfg.GetSeeds()
+	seeds := a.cfg.Seeds
 	seedsMap := make(map[string]int)
 	for index, seed := range seeds {
 		seedsMap[seed] = index

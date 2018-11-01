@@ -44,7 +44,7 @@ func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error
 	v := &tokenty.TokenFinishCreate{Symbol: in.Symbol, Owner: in.OwnerAddr}
 	finish := &tokenty.TokenAction{
 		Ty:    tokenty.TokenActionFinishCreate,
-		Value: &tokenty.TokenAction_Tokenfinishcreate{v},
+		Value: &tokenty.TokenAction_TokenFinishCreate{v},
 	}
 
 	tx := &types.Transaction{

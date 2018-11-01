@@ -10,6 +10,7 @@ func init() {
 	// init executor type
 	types.RegistorExecutor(PokerBullX, NewType())
 	types.AllowUserExec = append(types.AllowUserExec, ExecerPokerBull)
+	types.RegisterDappFork(PokerBullX, "Enable", 0)
 }
 
 // exec

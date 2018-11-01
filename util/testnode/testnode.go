@@ -60,7 +60,7 @@ func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
 
 func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	types.SetTestNet(cfg.TestNet)
-	types.SetTitle(cfg.Title)
+	types.Init(cfg.Title, cfg)
 	return newWithConfig(cfg, sub, mockapi)
 }
 
