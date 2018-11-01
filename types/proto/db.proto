@@ -93,6 +93,11 @@ message DeleteNodeMap {
     map<string, bool>  mpNode = 1;
 }
 
+//用于存储db Pool数据的Value
+message StoreValuePool {
+    repeated bytes values = 1;
+}
+
 // message PruneRootNode {
 //    // 标记是否对hash节点进行裁剪
 //    bool  needPruning  = 1;

@@ -15,12 +15,24 @@ import (
 	"github.com/stretchr/testify/require"
 	. "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/log"
 )
 
 func init() {
-	log.SetLogLevel("error")
+	//log.SetLogLevel("error")
+	log1 := &types.Log{
+		Loglevel: "info",
+		LogConsoleLevel: "error",
+		LogFile: "logs/test.log",
+		MaxFileSize: 400,
+		MaxBackups: 100,
+		MaxAge: 28,
+		LocalTime: true,
+		Compress: false,
+	}
+	log.SetFileLog(log1)
+
 }
 
 const (
@@ -783,7 +795,7 @@ func TestIAVLPrint(t *testing.T) {
 }
 
 func TestPruningTree(t *testing.T) {
-	const txN = 50   // 每个块交易量
+	const txN = 1000   // 每个块交易量
 	const preB = 500 // 一轮区块数
 	const round = 5   // 更新叶子节点次数
 	const preDel = preB / 10
