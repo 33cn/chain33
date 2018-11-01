@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/common/address"
+	tp "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
 	tokenTxPrefix        = "LODB-token-txHash:"
-	tokenTxAddrPrifex    = "LODB-token-txAddrHash:"
-	tokenTxAddrDirPrifex = "LODB-token-txAddrDirHash:"
+	tokenTxAddrPrefix    = "LODB-token-txAddrHash:"
+	tokenTxAddrDirPrefix = "LODB-token-txAddrDirHash:"
 )
 
 func TokenTxKvs(tx *types.Transaction, symbol string, height, index int64, isDel bool) ([]*types.KeyValue, error) {
@@ -23,7 +24,7 @@ func TokenTxKvs(tx *types.Transaction, symbol string, height, index int64, isDel
 
 	var txInfo []byte
 	if !isDel {
-		txInfo = makeReplyTxInfo(tx, height, index)
+		txInfo = makeReplyTxInfo(tx, height, index, symbol)
 	}
 	for _, k := range keys {
 		kv = append(kv, &types.KeyValue{k, txInfo})
@@ -59,24 +60,25 @@ func CalcTokenTxKey(symbol string, height, index int64) []byte {
 
 func CalcTokenAddrTxKey(symbol, addr string, height, index int64) []byte {
 	if height == -1 {
-		return []byte(fmt.Sprintf(tokenTxAddrPrifex+"%s:%s:%s", symbol, addr, ""))
+		return []byte(fmt.Sprintf(tokenTxAddrPrefix+"%s:%s:%s", symbol, addr, ""))
 	}
-	return []byte(fmt.Sprintf(tokenTxAddrPrifex+"%s:%s:%s", symbol, addr, dapp.HeightIndexStr(height, index)))
+	return []byte(fmt.Sprintf(tokenTxAddrPrefix+"%s:%s:%s", symbol, addr, dapp.HeightIndexStr(height, index)))
 }
 
 func CalcTokenAddrTxDirKey(symbol, addr string, flag int32, height, index int64) []byte {
 	if height == -1 {
-		return []byte(fmt.Sprintf(tokenTxAddrDirPrifex+"%s:%s:%d:%s", symbol, addr, flag, ""))
+		return []byte(fmt.Sprintf(tokenTxAddrDirPrefix+"%s:%s:%d:%s", symbol, addr, flag, ""))
 	}
-	return []byte(fmt.Sprintf(tokenTxAddrDirPrifex+"%s:%s:%d:%s", symbol, addr, flag,
+	return []byte(fmt.Sprintf(tokenTxAddrDirPrefix+"%s:%s:%d:%s", symbol, addr, flag,
 		dapp.HeightIndexStr(height, index)))
 }
 
-func makeReplyTxInfo(tx *types.Transaction, height, index int64) []byte {
+func makeReplyTxInfo(tx *types.Transaction, height, index int64, symbol string) []byte {
 	var info types.ReplyTxInfo
 	info.Hash = tx.Hash()
 	info.Height = height
 	info.Index = index
+	info.Assets = []*types.Asset{{Exec: tp.TokenX, Symbol: symbol}}
 
 	return types.Encode(&info)
 }

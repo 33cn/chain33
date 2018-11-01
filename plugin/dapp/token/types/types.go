@@ -59,7 +59,7 @@ func (t *TokenType) GetLogMap() map[int64]*types.LogInfo {
 	}
 }
 
-func (c *TokenType) RPC_Default_Process(action string, msg interface{}) (*types.Transaction, error) {
+func (t *TokenType) RPC_Default_Process(action string, msg interface{}) (*types.Transaction, error) {
 	var create *types.CreateTx
 	if _, ok := msg.(*types.CreateTx); !ok {
 		return nil, types.ErrInvalidParam
@@ -68,7 +68,7 @@ func (c *TokenType) RPC_Default_Process(action string, msg interface{}) (*types.
 	if !create.IsToken {
 		return nil, types.ErrNotSupport
 	}
-	tx, err := c.AssertCreate(create)
+	tx, err := t.AssertCreate(create)
 	if err != nil {
 		return nil, err
 	}

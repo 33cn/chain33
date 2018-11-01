@@ -36,7 +36,7 @@ type EvmType struct {
 
 func NewType() *EvmType {
 	c := &EvmType{}
-	//c.SetChild(c)
+	c.SetChild(c)
 	return c
 }
 
