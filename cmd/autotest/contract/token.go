@@ -12,6 +12,7 @@ type TestTokenConfig struct {
 	TokenFinishCreateCaseArr []testcase.TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
 	TransferCaseArr          []testcase.TransferCase          `toml:"TransferCase,omitempty"`
 	WithdrawCaseArr          []testcase.WithdrawCase          `toml:"WithdrawCase,omitempty"`
+	TokenrevokeCaseArr       []testcase.TokenrevokeCase       `toml:"TokenrevokeCase,omitempty"`
 }
 
 func (caseConf *TestTokenConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
@@ -29,7 +30,7 @@ func (caseConf *TestTokenConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 	tester := testcase.NewTestOperator(fLog, tLog)
 
 	go tester.AddCaseArray(caseConf.TokenPreCreateCaseArr, caseConf.TokenFinishCreateCaseArr,
-		caseConf.TransferCaseArr, caseConf.WithdrawCaseArr)
+		caseConf.TransferCaseArr, caseConf.WithdrawCaseArr, caseConf.TokenrevokeCaseArr)
 	go tester.HandleDependency()
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()

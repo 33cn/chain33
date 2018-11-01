@@ -21,6 +21,7 @@ type CaseFunc interface {
 type PackFunc interface {
 	getPackID() string
 	getTxHash() string
+	getBasePack() *BaseCasePack
 	setLogger(fLog log15.Logger, tLog log15.Logger)
 	getCheckHandlerMap() CheckHandlerMap
 	getDependData() interface{}
@@ -45,6 +46,7 @@ type BaseCasePack struct {
 	tCase      CaseFunc
 	checkTimes int
 	txHash     string
+	txReceipt  string
 	packID     string
 	fLog       log15.Logger
 	tLog       log15.Logger
@@ -129,7 +131,9 @@ func (pack *BaseCasePack) doCheckResult(handlerMap CheckHandlerMap) (bCheck bool
 
 	if !bReady && (txInfo != "tx not exist\n" || pack.checkTimes >= CheckTimeout) {
 
-		pack.fLog.Error("CheckTimeOut", "TestID", pack.packID, "ErrInfo", txInfo)
+		pack.txReceipt = txInfo
+		pack.fLog.Error("CheckTimeout", "TestID", pack.packID, "ErrInfo", txInfo)
+		pack.txReceipt = txInfo
 		return true, false
 	}
 
@@ -138,17 +142,17 @@ func (pack *BaseCasePack) doCheckResult(handlerMap CheckHandlerMap) (bCheck bool
 		bCheck = true
 		var tyname string
 		var jsonMap map[string]interface{}
+		pack.txReceipt = txInfo
+		pack.fLog.Info("TxReceiptJson", "TestID", pack.packID)
+		//hack, for pretty json log
+		pack.fLog.Info("PrettyJsonLogFormat", "TxReceipt", []byte(txInfo))
 		err := json.Unmarshal([]byte(txInfo), &jsonMap)
-
 		if err != nil {
 
 			pack.fLog.Error("UnMarshalFailed", "TestID", pack.packID, "jsonStr", txInfo, "ErrInfo", err.Error())
 			return true, false
 		}
 
-		pack.fLog.Info("TxJsonInfo", "TestID", pack.packID)
-		//hack, for pretty json log
-		pack.fLog.Info("PrettyJsonLogFormat", "TxJson", []byte(txInfo))
 		tyname, bSuccess = getTxRecpTyname(jsonMap)
 		pack.fLog.Info("CheckItemResult", "TestID", pack.packID, "RecpTyname", tyname)
 

@@ -8,7 +8,7 @@ import (
 
 func TestTradeType_GetName(t *testing.T) {
 	tp := NewType()
-	assert.Equal(t, nameX, tp.GetName())
+	assert.Equal(t, TradeX, tp.GetName())
 }
 
 func TestTradeType_GetTypeMap(t *testing.T) {

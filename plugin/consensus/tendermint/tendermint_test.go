@@ -46,11 +46,12 @@ func init() {
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	log.SetLogLevel("info")
 }
-func TestRaftPerf(t *testing.T) {
+func TestTendermintPerf(t *testing.T) {
 	RaftPerf()
 	fmt.Println("=======start clear test data!=======")
 	clearTestData()
 }
+
 func RaftPerf() {
 	q, chain, s, mem, exec, cs, p2p := initEnvTendermint()
 	defer chain.Close()
@@ -76,6 +77,7 @@ func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *me
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg, sub := config.InitCfg("chain33.test.toml")
+	types.Init(cfg.Title, cfg)
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 

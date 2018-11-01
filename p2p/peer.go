@@ -193,7 +193,7 @@ func (p *Peer) sendStream() {
 
 		//send softversion&p2pversion
 		_, peername := p.node.nodeInfo.addrBook.GetPrivPubKey()
-		p2pdata.Value = &pb.BroadCastData_Version{Version: &pb.Versions{P2Pversion: p.node.nodeInfo.cfg.GetVersion(),
+		p2pdata.Value = &pb.BroadCastData_Version{Version: &pb.Versions{P2Pversion: p.node.nodeInfo.cfg.Version,
 			Softversion: v.GetVersion(), Peername: peername}}
 
 		if err := resp.Send(p2pdata); err != nil {
@@ -223,7 +223,7 @@ func (p *Peer) sendStream() {
 					hex.Encode(hash[:], block.GetBlock().Hash())
 					blockhash := string(hash[:])
 					log.Debug("sendStream", "will send block", blockhash)
-					pinfo, err := p.GetPeerInfo(p.node.nodeInfo.cfg.GetVersion())
+					pinfo, err := p.GetPeerInfo(p.node.nodeInfo.cfg.Version)
 					P2pComm.CollectPeerStat(err, p)
 					if err == nil {
 						if pinfo.GetHeader().GetHeight() >= height {

@@ -277,8 +277,10 @@ func GetSignType(execer string, name string) int {
 
 var ConfigPrefix = "mavl-config-"
 
+// 原来实现有bug， 但生成的key在状态树里， 不可修改
+// mavl-config–{key}  key 前面两个-
 func ConfigKey(key string) string {
-	return fmt.Sprintf("%s%s", ConfigPrefix, key)
+	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }
 
 var ManagePrefix = "mavl-"
@@ -288,7 +290,7 @@ func ManageKey(key string) string {
 }
 
 func ManaeKeyWithHeigh(key string, height int64) string {
-	if height >= ForkV13ExecKey {
+	if IsFork(height, "ForkExecKey") {
 		return ManageKey(key)
 	} else {
 		return ConfigKey(key)

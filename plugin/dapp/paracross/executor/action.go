@@ -330,7 +330,7 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 }
 
 func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCommitAction, i int) (*types.Receipt, error) {
-	if !bytes.HasSuffix(tx.Tx.Execer, []byte(types.ParaX)) {
+	if !bytes.HasSuffix(tx.Tx.Execer, []byte(pt.ParaX)) {
 		return nil, nil
 	}
 	var payload pt.ParacrossAction
@@ -485,7 +485,7 @@ func (a *action) Transfer(transfer *types.AssetsTransfer, tx *types.Transaction,
 		transfer.Amount, "to", tx.To)
 	from := tx.From()
 
-	acc, err := account.NewAccountDB(types.ParaX, transfer.Cointoken, a.db)
+	acc, err := account.NewAccountDB(pt.ParaX, transfer.Cointoken, a.db)
 	if err != nil {
 		clog.Error("Transfer failed", "err", err)
 		return nil, err
@@ -500,7 +500,7 @@ func (a *action) Transfer(transfer *types.AssetsTransfer, tx *types.Transaction,
 func (a *action) Withdraw(withdraw *types.AssetsWithdraw, tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Debug("Paracross.Exec Withdraw", "symbol", withdraw.Cointoken, "amount",
 		withdraw.Amount, "to", tx.To)
-	acc, err := account.NewAccountDB(types.ParaX, withdraw.Cointoken, a.db)
+	acc, err := account.NewAccountDB(pt.ParaX, withdraw.Cointoken, a.db)
 	if err != nil {
 		clog.Error("Withdraw failed", "err", err)
 		return nil, err
@@ -516,7 +516,7 @@ func (a *action) TransferToExec(transfer *types.AssetsTransferToExec, tx *types.
 		transfer.Amount, "to", tx.To)
 	from := tx.From()
 
-	acc, err := account.NewAccountDB(types.ParaX, transfer.Cointoken, a.db)
+	acc, err := account.NewAccountDB(pt.ParaX, transfer.Cointoken, a.db)
 	if err != nil {
 		clog.Error("TransferToExec failed", "err", err)
 		return nil, err
