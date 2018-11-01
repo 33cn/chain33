@@ -11,8 +11,8 @@ import (
 
 const (
 	tokenTxPrefix        = "LODB-token-txHash:"
-	tokenTxAddrPrifex    = "LODB-token-txAddrHash:"
-	tokenTxAddrDirPrifex = "LODB-token-txAddrDirHash:"
+	tokenTxAddrPrefix    = "LODB-token-txAddrHash:"
+	tokenTxAddrDirPrefix = "LODB-token-txAddrDirHash:"
 )
 
 func TokenTxKvs(tx *types.Transaction, symbol string, height, index int64, isDel bool) ([]*types.KeyValue, error) {
@@ -60,16 +60,16 @@ func CalcTokenTxKey(symbol string, height, index int64) []byte {
 
 func CalcTokenAddrTxKey(symbol, addr string, height, index int64) []byte {
 	if height == -1 {
-		return []byte(fmt.Sprintf(tokenTxAddrPrifex+"%s:%s:%s", symbol, addr, ""))
+		return []byte(fmt.Sprintf(tokenTxAddrPrefix+"%s:%s:%s", symbol, addr, ""))
 	}
-	return []byte(fmt.Sprintf(tokenTxAddrPrifex+"%s:%s:%s", symbol, addr, dapp.HeightIndexStr(height, index)))
+	return []byte(fmt.Sprintf(tokenTxAddrPrefix+"%s:%s:%s", symbol, addr, dapp.HeightIndexStr(height, index)))
 }
 
 func CalcTokenAddrTxDirKey(symbol, addr string, flag int32, height, index int64) []byte {
 	if height == -1 {
-		return []byte(fmt.Sprintf(tokenTxAddrDirPrifex+"%s:%s:%d:%s", symbol, addr, flag, ""))
+		return []byte(fmt.Sprintf(tokenTxAddrDirPrefix+"%s:%s:%d:%s", symbol, addr, flag, ""))
 	}
-	return []byte(fmt.Sprintf(tokenTxAddrDirPrifex+"%s:%s:%d:%s", symbol, addr, flag,
+	return []byte(fmt.Sprintf(tokenTxAddrDirPrefix+"%s:%s:%d:%s", symbol, addr, flag,
 		dapp.HeightIndexStr(height, index)))
 }
 
