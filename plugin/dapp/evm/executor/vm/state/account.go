@@ -279,8 +279,9 @@ func (self *ContractAccount) GetStateKey() []byte {
 	return []byte("mavl-" + evmtypes.ExecutorName + "-state: " + self.Addr)
 }
 
+// 这份数据是存在LocalDB中的
 func getStateItemKey(addr, key string) string {
-	return fmt.Sprintf("mavl-"+evmtypes.ExecutorName+"-state:%v:%v", addr, key)
+	return fmt.Sprintf("LODB-"+evmtypes.ExecutorName+"-state:%v:%v", addr, key)
 }
 
 func (self *ContractAccount) Suicide() bool {
