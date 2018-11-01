@@ -10,8 +10,6 @@ token执行器支持token的创建，
 */
 
 import (
-	"strings"
-
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -26,7 +24,7 @@ var tokenlog = log.New("module", "execs.token")
 
 const (
 	finisherKey       = "token-finisher"
-	tokenAssetsPrefix = "token-assets:"
+	tokenAssetsPrefix = "LODB-token-assets:"
 	blacklist         = "token-blacklist"
 )
 
@@ -38,8 +36,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newToken, types.ForkV2AddToken)
-	setReciptPrefix()
+	drivers.Register(GetName(), newToken, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {
@@ -130,13 +127,19 @@ func (t *token) GetAddrReceiverforTokens(addrTokens *tokenty.ReqAddrTokens) (typ
 }
 
 func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
-	db := t.GetStateDB()
-	token, err := db.Get(calcTokenKey(symbol))
-	if err != nil {
-		return nil, types.ErrEmpty
+	if symbol == "" {
+		return nil, types.ErrInvalidParam
 	}
-	var tokenInfo tokenty.Token
-	err = types.Decode(token, &tokenInfo)
+	key := calcTokenStatusTokenKeyPrefixLocal(tokenty.TokenStatusCreated, symbol)
+	values, err := t.GetLocalDB().List(key, nil, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) == 0 || values[0] == nil || len(values[0]) == 0 {
+		return nil, types.ErrNotFound
+	}
+	var tokenInfo tokenty.LocalToken
+	err = types.Decode(values[0], &tokenInfo)
 	if err != nil {
 		return &tokenInfo, err
 	}
@@ -145,32 +148,37 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 
 func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 	replyTokens := &tokenty.ReplyTokens{}
-	keys, err := t.listTokenKeys(reqTokens)
+	tokens, err := t.listTokenKeys(reqTokens)
 	if err != nil {
 		return nil, err
 	}
-	tokenlog.Debug("token Query GetTokens", "get count", len(keys), "KEY", string(keys[0]))
+	tokenlog.Error("token Query GetTokens", "get count", len(tokens))
 	if reqTokens.SymbolOnly {
-		for _, key := range keys {
-			idx := strings.LastIndex(string(key), "-")
-			if idx < 0 || idx >= len(key) {
+		for _, t1 := range tokens {
+			if len(t1) == 0 {
 				continue
 			}
-			symbol := key[idx+1:]
-			token := tokenty.Token{Symbol: string(symbol)}
-			replyTokens.Tokens = append(replyTokens.Tokens, &token)
+
+			var tokenValue tokenty.LocalToken
+			err = types.Decode(t1, &tokenValue)
+			if err == nil {
+				token := tokenty.LocalToken{Symbol: tokenValue.Symbol}
+				replyTokens.Tokens = append(replyTokens.Tokens, &token)
+			}
 		}
 		return replyTokens, nil
 	}
 
-	db := t.GetStateDB()
-	for _, key := range keys {
-		if tokenValue, err := db.Get(key); err == nil {
-			var token tokenty.Token
-			err = types.Decode(tokenValue, &token)
-			if err == nil {
-				replyTokens.Tokens = append(replyTokens.Tokens, &token)
-			}
+	for _, t1 := range tokens {
+		// delete impl by set nil
+		if len(t1) == 0 {
+			continue
+		}
+
+		var token tokenty.LocalToken
+		err = types.Decode(t1, &token)
+		if err == nil {
+			replyTokens.Tokens = append(replyTokens.Tokens, &token)
 		}
 	}
 
@@ -181,16 +189,10 @@ func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
 func (t *token) listTokenKeys(reqTokens *tokenty.ReqTokens) ([][]byte, error) {
 	querydb := t.GetLocalDB()
 	if reqTokens.QueryAll {
-		//list := dbm.NewListHelper(querydb)
-		keys, err := querydb.List(calcTokenStatusKeyNewPrefix(reqTokens.Status), nil, 0, 0)
+		keys, err := querydb.List(calcTokenStatusKeyPrefixLocal(reqTokens.Status), nil, 0, 0)
 		if err != nil && err != types.ErrNotFound {
 			return nil, err
 		}
-		keys2, err := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
-		if err != nil && err != types.ErrNotFound {
-			return nil, err
-		}
-		keys = append(keys, keys2...)
 		if len(keys) == 0 {
 			return nil, types.ErrNotFound
 		}
@@ -199,18 +201,12 @@ func (t *token) listTokenKeys(reqTokens *tokenty.ReqTokens) ([][]byte, error) {
 	} else {
 		var keys [][]byte
 		for _, token := range reqTokens.Tokens {
-			//list := dbm.NewListHelper(querydb)
-			keys1, err := querydb.List(calcTokenStatusSymbolNewPrefix(reqTokens.Status, token), nil, 0, 0)
+			keys1, err := querydb.List(calcTokenStatusTokenKeyPrefixLocal(reqTokens.Status, token), nil, 0, 0)
 			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			keys = append(keys, keys1...)
 
-			keys2, err := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
-			if err != nil && err != types.ErrNotFound {
-				return nil, err
-			}
-			keys = append(keys, keys2...)
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 		}
 		if len(keys) == 0 {
@@ -224,17 +220,17 @@ func (t *token) listTokenKeys(reqTokens *tokenty.ReqTokens) ([][]byte, error) {
 func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, receipt.Status)
+	key := calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
 	var value []byte
-	if t.GetHeight() >= types.ForkV13ExecKey {
-		value = calcTokenAddrNewKey(receipt.Symbol, receipt.Owner)
+	if types.IsFork(t.GetHeight(), "ForkExecKey") {
+		value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
 	} else {
-		value = calcTokenAddrKey(receipt.Symbol, receipt.Owner)
+		value = calcTokenAddrKeyS(receipt.Symbol, receipt.Owner)
 	}
 	kv = append(kv, &types.KeyValue{key, value})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被删除
 	if receipt.Status != tokenty.TokenStatusPreCreated {
-		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
+		key = calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		kv = append(kv, &types.KeyValue{key, nil})
 	}
 	return kv
@@ -243,16 +239,16 @@ func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 func (t *token) deleteLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
-	key := calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, receipt.Status)
+	key := calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, receipt.Status)
 	kv = append(kv, &types.KeyValue{key, nil})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被恢复
 	if receipt.Status != tokenty.TokenStatusPreCreated {
-		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
+		key = calcTokenStatusKeyLocal(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		var value []byte
-		if t.GetHeight() >= types.ForkV13ExecKey {
-			value = calcTokenAddrNewKey(receipt.Symbol, receipt.Owner)
+		if types.IsFork(t.GetHeight(), "ForkExecKey") {
+			value = calcTokenAddrNewKeyS(receipt.Symbol, receipt.Owner)
 		} else {
-			value = calcTokenAddrKey(receipt.Symbol, receipt.Owner)
+			value = calcTokenAddrKeyS(receipt.Symbol, receipt.Owner)
 		}
 		kv = append(kv, &types.KeyValue{key, value})
 	}
@@ -264,8 +260,10 @@ func (t *token) makeTokenTxKvs(tx *types.Transaction, action *tokenty.TokenActio
 	var symbol string
 	if action.Ty == tokenty.ActionTransfer {
 		symbol = action.GetTransfer().Cointoken
-	} else if action.Ty != tokenty.ActionWithdraw {
+	} else if action.Ty == tokenty.ActionWithdraw {
 		symbol = action.GetWithdraw().Cointoken
+	} else if action.Ty == tokenty.TokenActionTransferToExec {
+		symbol = action.GetTransferToExec().Cointoken
 	} else {
 		return kvs, nil
 	}

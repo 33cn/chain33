@@ -58,6 +58,9 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
+	if subcfg.GenesisBlockTime > 0 {
+		cfg.GenesisBlockTime = subcfg.GenesisBlockTime
+	}
 	t := &Client{c, &ty.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{}), &subcfg}
 	c.SetChild(t)
 	go t.flushTicketBackend()
@@ -226,7 +229,7 @@ func (client *Client) getMinerTx(current *types.Block) (*ty.TicketAction, error)
 	}
 	//判断交易执行是否OK
 	if ticketAction.GetMiner() == nil {
-		return nil, types.ErrEmptyMinerTx
+		return nil, ty.ErrEmptyMinerTx
 	}
 	return &ticketAction, nil
 }
@@ -303,7 +306,7 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 		return err
 	}
 	if string(modify) != string(miner.Modify) {
-		return types.ErrModify
+		return ty.ErrModify
 	}
 	currentdiff := client.getCurrentTarget(current.Block.BlockTime, miner.TicketId, miner.Modify)
 	if currentdiff.Sign() < 0 {
@@ -603,7 +606,7 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 
 func (client *Client) CreateBlock() {
 	for {
-		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.GetForceMining()) {
+		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.ForceMining) {
 			tlog.Debug("createblock.ismining is disable or client is caughtup is false")
 			time.Sleep(time.Second)
 			continue

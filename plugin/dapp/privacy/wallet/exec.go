@@ -15,7 +15,7 @@ func (policy *privacyPolicy) On_ShowPrivacyAccountSpend(req *privacytypes.ReqPri
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_ShowPrivacyPK(req *types.ReqString) (types.Message, error) {
+func (policy *privacyPolicy) On_ShowPrivacyKey(req *types.ReqString) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.showPrivacyKeyPair(req)

@@ -33,7 +33,7 @@ func init() {
 
 func Init(name string, sub []byte) {
 	driverName = name
-	drivers.Register(driverName, newEVMDriver, types.ForkV17EVM)
+	drivers.Register(driverName, newEVMDriver, types.GetDappFork(driverName, "Enable"))
 	EvmAddress = address.ExecAddress(types.ExecName(name))
 	// 初始化硬分叉数据
 	state.InitForkData()
@@ -83,39 +83,25 @@ func (evm *EVMExecutor) Allow(tx *types.Transaction, index int) error {
 	//增加新的规则:
 	//主链: user.evm.xxx  执行 evm 合约
 	//平行链: user.p.guodun.user.evm.xxx 执行 evm 合约
-	if types.IsPara() && evm.allowPara(tx, index) {
-		return nil
-	}
-	if !types.IsPara() && evm.allow(tx, index) {
+	exec := types.GetParaExec(tx.Execer)
+	if evm.AllowIsUserDot2(exec) {
 		return nil
 	}
 	return types.ErrNotAllow
 }
 
-func (evm *EVMExecutor) allow(tx *types.Transaction, index int) bool {
-	return evm.AllowIsUserDot2(tx.Execer)
-}
-
-func (evm *EVMExecutor) allowPara(tx *types.Transaction, index int) bool {
-	return evm.AllowIsUserDot2Para(tx.Execer)
-}
-
 func (evm *EVMExecutor) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
-	if othertx != nil {
-		exec := othertx.Execer
-		if types.IsPara() {
-			exec, _ = evm.GetPara(exec)
-		}
-		if exec == nil || len(bytes.TrimSpace(exec)) == 0 {
-			return false
-		}
-
-		if bytes.HasPrefix(exec, evmtypes.UserPrefix) || bytes.Equal(exec, evmtypes.ExecerEvm) {
-			if bytes.HasPrefix(writekey, []byte("mavl-evm-")) {
-				return true
-			}
-		}
+	if othertx == nil {
 		return false
+	}
+	exec := types.GetParaExec(othertx.Execer)
+	if exec == nil || len(bytes.TrimSpace(exec)) == 0 {
+		return false
+	}
+	if bytes.HasPrefix(exec, evmtypes.UserPrefix) || bytes.Equal(exec, evmtypes.ExecerEvm) {
+		if bytes.HasPrefix(writekey, []byte("mavl-evm-")) {
+			return true
+		}
 	}
 	return false
 }

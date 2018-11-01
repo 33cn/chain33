@@ -19,7 +19,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newGame, 0)
+	drivers.Register(GetName(), newGame, types.GetDappFork(driverName, "Enable"))
 }
 
 type Game struct {
@@ -92,20 +92,20 @@ func (g *Game) rollbackIndex(log *gt.ReceiptGame) (kvs []*types.KeyValue) {
 }
 
 func calcGameStatusIndexKey(status int32, index int64) []byte {
-	key := fmt.Sprintf("game-status:%d:%018d", status, index)
+	key := fmt.Sprintf("LODB-game-status:%d:%018d", status, index)
 	return []byte(key)
 }
 
 func calcGameStatusIndexPrefix(status int32) []byte {
-	key := fmt.Sprintf("game-status:%d:", status)
+	key := fmt.Sprintf("LODB-game-status:%d:", status)
 	return []byte(key)
 }
 func calcGameAddrIndexKey(status int32, addr string, index int64) []byte {
-	key := fmt.Sprintf("game-addr:%d:%s:%018d", status, addr, index)
+	key := fmt.Sprintf("LODB-game-addr:%d:%s:%018d", status, addr, index)
 	return []byte(key)
 }
 func calcGameAddrIndexPrefix(status int32, addr string) []byte {
-	key := fmt.Sprintf("game-addr:%d:%s:", status, addr)
+	key := fmt.Sprintf("LODB-game-addr:%d:%s:", status, addr)
 	return []byte(key)
 }
 func addGameStatusIndex(status int32, gameId string, index int64) *types.KeyValue {

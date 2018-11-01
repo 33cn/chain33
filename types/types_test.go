@@ -12,6 +12,11 @@ import (
 
 func TestAllowExecName(t *testing.T) {
 	//allow exec list
+	old := AllowUserExec
+	defer func() {
+		AllowUserExec = old
+	}()
+	AllowUserExec = nil
 	AllowUserExec = append(AllowUserExec, []byte("coins"))
 	isok := IsAllowExecName([]byte("a"), []byte("a"))
 	assert.Equal(t, isok, false)
@@ -26,6 +31,15 @@ func TestAllowExecName(t *testing.T) {
 	assert.Equal(t, isok, false)
 
 	isok = IsAllowExecName([]byte("coins"), []byte("user.coins.evm2"))
+	assert.Equal(t, isok, true)
+
+	isok = IsAllowExecName([]byte("coins"), []byte("user.p.guodun.coins.evm2"))
+	assert.Equal(t, isok, false)
+
+	isok = IsAllowExecName([]byte("coins"), []byte("user.p.guodun.coins"))
+	assert.Equal(t, isok, true)
+
+	isok = IsAllowExecName([]byte("coins"), []byte("user.p.guodun.user.coins"))
 	assert.Equal(t, isok, true)
 }
 
@@ -122,4 +136,22 @@ func TestDecodeLog(t *testing.T) {
 	j, err := json.Marshal(l)
 	assert.Nil(t, err)
 	assert.Equal(t, "{\"prev\":{\"balance\":999769400000,\"addr\":\"1LmyRajNDhosPBtbYXmiLFkQtb83g9HyUe\"},\"current\":{\"balance\":999769200000,\"addr\":\"1LmyRajNDhosPBtbYXmiLFkQtb83g9HyUe\"}}", string(j))
+}
+
+func TestGetRealExecName(t *testing.T) {
+	a := []struct {
+		key     string
+		realkey string
+	}{
+		{"coins", "coins"},
+		{"user.p.coins", "user.p.coins"},
+		{"user.p.guodun.coins", "coins"},
+		{"user.evm.hash", "evm"},
+		{"user.p.para.evm.hash", "evm.hash"},
+		{"user.p.para.user.evm.hash", "evm"},
+		{"user.p.para.", "user.p.para."},
+	}
+	for _, v := range a {
+		assert.Equal(t, string(GetRealExecName([]byte(v.key))), v.realkey)
+	}
 }

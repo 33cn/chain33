@@ -247,7 +247,7 @@ func (ch storageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 }
 
 func (ch storageChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
-	if types.IsMatchFork(mdb.blockHeight, types.ForkV20EVMState) {
+	if types.IsDappFork(mdb.blockHeight, "evm", "ForkEVMState") {
 		acc := mdb.accounts[ch.account]
 		if acc != nil {
 			currentVal := acc.GetState(ch.key)

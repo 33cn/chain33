@@ -91,23 +91,23 @@ func GetChainConfig(key string) (value interface{}, err error) {
 }
 
 func GetP(height int64) *ChainParam {
-	if height < ForkV3 {
-		return chainBaseParam
+	if IsFork(height, "ForkChainParamV1") {
+		return chainV3Param
 	}
-	return chainV3Param
+	return chainBaseParam
 }
 
 //区块链共识相关的参数，重要参数不要随便修改
 var (
-	AllowDepositExec = [][]byte{ExecerTicket}
-	AllowUserExec    = [][]byte{ExecerTicket, ExecerNorm, ExecerHashlock, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
-		ExecerPrivacy /*ExecerBlackwhite,*/, ExecerPara, ExecerValNode}
+	AllowUserExec = [][]byte{ExecerNone}
+	//这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
+	AllowDepositExec = [][]byte{[]byte("ticket")}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
 	HotkeyAddr               = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 	FundKeyAddr              = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
-	EmptyValue               = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	EmptyValue               = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 	SuperManager             = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
 	TokenApprs               = []string{}
 	MinFee             int64 = 1e5
@@ -137,29 +137,46 @@ var (
 	ExecNamePrefix       string
 	ParaRemoteGrpcClient string
 	SaveTokenTxList      bool
+	mu                   sync.Mutex
 )
 
-func SetTitle(t string) {
-	title = t
-	if IsBityuan() {
-		AllowUserExec = [][]byte{[]byte("coins"), ExecerTicket, ExecerHashlock, ExecerNone, ExecerToken, ExecerTrade, ExecerManage}
+var titles = map[string]bool{}
+
+func Init(t string, cfg *Config) {
+	mu.Lock()
+	defer mu.Unlock()
+	//每个title 只会初始化一次
+	if titles[t] {
+		title = t
 		return
 	}
+	titles[t] = true
+	title = t
+	if IsPara() {
+		ExecNamePrefix = title
+	}
+	//local 只用于单元测试
 	if IsLocal() {
-		SetForkToOne()
 		initChainTestNet()
-		EnableTxHeight = true
+		SetLocalFork()
+		SetChainConfig("TxHeight", true)
 		Debug = true
 		return
 	}
-	if IsPara() {
+	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
+	if IsPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
 		//keep superManager same with mainnet
-		ExecNamePrefix = title
 		SetForkForPara(title)
+		return
+	}
+	if cfg != nil && cfg.Fork != nil {
+		InitForkConfig(title, cfg.Fork)
 	}
 }
 
 func GetTitle() string {
+	mu.Lock()
+	defer mu.Unlock()
 	return title
 }
 
@@ -208,8 +225,6 @@ func SetTestNet(isTestNet bool) {
 	if IsLocal() {
 		return
 	}
-	//测试网络的Fork
-	SetTestNetFork()
 }
 
 func IsTestNet() bool {

@@ -59,7 +59,7 @@ func NewContractAccount(addr string, db *MemoryStateDB) *ContractAccount {
 // 获取数据分为两层，一层是从当前的缓存中获取，如果获取不到，再从localdb中获取
 func (self *ContractAccount) GetState(key common.Hash) common.Hash {
 	// 从ForkV19开始，状态数据使用单独的KEY存储
-	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
+	if types.IsDappFork(self.mdb.blockHeight, "evm", "ForkEVMState") {
 		if val, ok := self.stateCache[key.Hex()]; ok {
 			return val
 		}
@@ -86,7 +86,7 @@ func (self *ContractAccount) SetState(key, value common.Hash) {
 		key:        key,
 		prevalue:   self.GetState(key),
 	})
-	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
+	if types.IsDappFork(self.mdb.blockHeight, "evm", "ForkEVMState") {
 		self.stateCache[key.Hex()] = value
 		//需要设置到localdb中，以免同一个区块中同一个合约多次调用时，状态数据丢失
 		keyStr := getStateItemKey(self.Addr, key.Hex())
@@ -117,7 +117,7 @@ func (self *ContractAccount) TransferState() {
 
 func (self *ContractAccount) updateStorageHash() {
 	// 从ForkV20开始，状态数据使用单独KEY存储
-	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
+	if types.IsDappFork(self.mdb.blockHeight, "evm", "ForkEVMState") {
 		return
 	}
 	var state = &evmtypes.EVMContractState{Suicided: self.State.Suicided, Nonce: self.State.Nonce}
@@ -279,8 +279,9 @@ func (self *ContractAccount) GetStateKey() []byte {
 	return []byte("mavl-" + evmtypes.ExecutorName + "-state: " + self.Addr)
 }
 
+// 这份数据是存在LocalDB中的
 func getStateItemKey(addr, key string) string {
-	return fmt.Sprintf("mavl-"+evmtypes.ExecutorName+"-state:%v:%v", addr, key)
+	return fmt.Sprintf("LODB-"+evmtypes.ExecutorName+"-state:%v:%v", addr, key)
 }
 
 func (self *ContractAccount) Suicide() bool {
