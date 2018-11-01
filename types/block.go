@@ -28,7 +28,7 @@ func (block *Block) GetHeader() *Header {
 	head.TxHash = block.TxHash
 	head.BlockTime = block.BlockTime
 	head.Height = block.Height
-	if head.Height >= ForkBlockHash {
+	if IsFork(head.Height, "ForkBlockHash") {
 		head.Difficulty = block.Difficulty
 		head.StateHash = block.StateHash
 		head.TxCount = int64(len(block.Txs))

@@ -23,7 +23,7 @@ func Init(name string, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}
-	drivers.Register(driverName, newCoins, 0)
+	drivers.Register(driverName, newCoins, types.GetDappFork(driverName, "Enable"))
 }
 
 //初始化过程比较重量级，有很多reflact, 所以弄成全局的

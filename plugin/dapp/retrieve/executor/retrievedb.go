@@ -101,7 +101,7 @@ func (action *Action) RetrieveBackup(backupRet *rt.BackupRetrieve) (*types.Recei
 	var receipt *types.Receipt
 	var r *DB
 	var newRetrieve = false
-	if action.height >= types.ForkV5Retrive {
+	if types.IsDappFork(action.height, rt.RetrieveX, "ForkRetrive") {
 		if err := address.CheckAddress(backupRet.BackupAddress); err != nil {
 			rlog.Debug("retrieve checkaddress")
 			return nil, err

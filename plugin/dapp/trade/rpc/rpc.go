@@ -20,10 +20,10 @@ func (this *channelClient) CreateRawTradeSellTx(ctx context.Context, in *ptypes.
 		Value: &ptypes.Trade_SellLimit{SellLimit: in},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerTrade,
+		Execer:  []byte(ptypes.TradeX),
 		Payload: types.Encode(sell),
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.TradeX),
+		To:      address.ExecAddress(ptypes.TradeX),
 	}
 	err := tx.SetRealFee(types.MinFee)
 	if err != nil {
@@ -43,10 +43,10 @@ func (this *channelClient) CreateRawTradeBuyTx(ctx context.Context, in *ptypes.T
 		Value: &ptypes.Trade_BuyMarket{in},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerTrade,
+		Execer:  []byte(ptypes.TradeX),
 		Payload: types.Encode(buy),
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.TradeX),
+		To:      address.ExecAddress(ptypes.TradeX),
 	}
 	err := tx.SetRealFee(types.MinFee)
 	if err != nil {
@@ -66,10 +66,10 @@ func (this *channelClient) CreateRawTradeRevokeTx(ctx context.Context, in *ptype
 		Value: &ptypes.Trade_RevokeSell{in},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerTrade,
+		Execer:  []byte(ptypes.TradeX),
 		Payload: types.Encode(buy),
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.TradeX),
+		To:      address.ExecAddress(ptypes.TradeX),
 	}
 	err := tx.SetRealFee(types.MinFee)
 	if err != nil {
@@ -89,10 +89,10 @@ func (this *channelClient) CreateRawTradeBuyLimitTx(ctx context.Context, in *pty
 		Value: &ptypes.Trade_BuyLimit{in},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerTrade,
+		Execer:  []byte(ptypes.TradeX),
 		Payload: types.Encode(buy),
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.TradeX),
+		To:      address.ExecAddress(ptypes.TradeX),
 	}
 	err := tx.SetRealFee(types.MinFee)
 	if err != nil {
@@ -112,10 +112,10 @@ func (this *channelClient) CreateRawTradeSellMarketTx(ctx context.Context, in *p
 		Value: &ptypes.Trade_SellMarket{in},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerTrade,
+		Execer:  []byte(ptypes.TradeX),
 		Payload: types.Encode(buy),
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.TradeX),
+		To:      address.ExecAddress(ptypes.TradeX),
 	}
 	err := tx.SetRealFee(types.MinFee)
 	if err != nil {
@@ -135,10 +135,10 @@ func (this *channelClient) CreateRawTradeRevokeBuyTx(ctx context.Context, in *pt
 		Value: &ptypes.Trade_RevokeBuy{in},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerTrade,
+		Execer:  []byte(ptypes.TradeX),
 		Payload: types.Encode(buy),
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.TradeX),
+		To:      address.ExecAddress(ptypes.TradeX),
 	}
 	err := tx.SetRealFee(types.MinFee)
 	if err != nil {

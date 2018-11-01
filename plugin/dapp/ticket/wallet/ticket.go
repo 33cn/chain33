@@ -22,7 +22,7 @@ var (
 )
 
 func init() {
-	wcom.RegisterPolicy(types.TicketX, New())
+	wcom.RegisterPolicy(ty.TicketX, New())
 }
 
 func New() wcom.WalletBizPolicy {
@@ -291,7 +291,7 @@ func (policy *ticketPolicy) forceCloseAllTicket(height int64) (*types.ReplyHashe
 func (policy *ticketPolicy) getTickets(addr string, status int32) ([]*ty.Ticket, error) {
 	reqaddr := &ty.TicketList{addr, status}
 	api := policy.getAPI()
-	msg, err := api.Query(types.TicketX, "TicketList", reqaddr)
+	msg, err := api.Query(ty.TicketX, "TicketList", reqaddr)
 	if err != nil {
 		bizlog.Error("getTickets", "Query error", err)
 		return nil, err
@@ -463,11 +463,11 @@ func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
 	if err != nil {
 		return err
 	}
-	acc2, err := operater.GetBalance(addr, types.TicketX)
+	acc2, err := operater.GetBalance(addr, ty.TicketX)
 	if err != nil {
 		return err
 	}
-	toaddr := address.ExecAddress(types.TicketX)
+	toaddr := address.ExecAddress(ty.TicketX)
 	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
 	if (acc1.Balance < (types.Coin / 2)) && (acc2.Balance > types.Coin) {
 		_, err := operater.SendToAddress(priv, toaddr, -types.Coin, "ticket->coins", false, "")
@@ -496,12 +496,12 @@ func (policy *ticketPolicy) processFees() error {
 func (policy *ticketPolicy) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error) {
 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	operater := policy.getWalletOperate()
-	acc, err := operater.GetBalance(addr, types.TicketX)
+	acc, err := operater.GetBalance(addr, ty.TicketX)
 	if err != nil {
 		return nil, err
 	}
 	if acc.Balance > 0 {
-		hash, err := operater.SendToAddress(priv, address.ExecAddress(types.TicketX), -acc.Balance, "autominer->withdraw", false, "")
+		hash, err := operater.SendToAddress(priv, address.ExecAddress(ty.TicketX), -acc.Balance, "autominer->withdraw", false, "")
 		if err != nil {
 			return nil, err
 		}
@@ -516,7 +516,7 @@ func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto
 	topen := &ty.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
 	ta.Value = &ty.TicketAction_Topen{topen}
 	ta.Ty = ty.TicketActionOpen
-	return policy.walletOperate.SendTransaction(ta, types.ExecerTicket, priv, "")
+	return policy.walletOperate.SendTransaction(ta, []byte(ty.TicketX), priv, "")
 }
 
 func (policy *ticketPolicy) buyTicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
@@ -527,7 +527,7 @@ func (policy *ticketPolicy) buyTicketOne(height int64, priv crypto.PrivKey) ([]b
 	if err != nil {
 		return nil, 0, err
 	}
-	acc2, err := operater.GetBalance(addr, types.TicketX)
+	acc2, err := operater.GetBalance(addr, ty.TicketX)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -538,7 +538,7 @@ func (policy *ticketPolicy) buyTicketOne(height int64, priv crypto.PrivKey) ([]b
 		// 如果可用余额+冻结余额，可以凑成新票，则转币到冻结余额
 		if (acc1.Balance+acc2.Balance-2*fee)/types.GetP(height).TicketPrice > acc2.Balance/types.GetP(height).TicketPrice {
 			//第一步。转移币到 ticket
-			toaddr := address.ExecAddress(types.TicketX)
+			toaddr := address.ExecAddress(ty.TicketX)
 			amount := acc1.Balance - 2*fee
 			//必须大于0，才需要转移币
 			var hash *types.ReplyHash
@@ -553,7 +553,7 @@ func (policy *ticketPolicy) buyTicketOne(height int64, priv crypto.PrivKey) ([]b
 			}
 		}
 
-		acc, err := operater.GetBalance(addr, types.TicketX)
+		acc, err := operater.GetBalance(addr, ty.TicketX)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -591,7 +591,7 @@ func (policy *ticketPolicy) buyTicket(height int64) ([][]byte, int, error) {
 func (policy *ticketPolicy) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
 	api := policy.walletOperate.GetAPI()
-	msg, err := api.Query(types.TicketX, "MinerSourceList", reqaddr)
+	msg, err := api.Query(ty.TicketX, "MinerSourceList", reqaddr)
 	if err != nil {
 		bizlog.Error("getMinerColdAddr", "Query error", err)
 		return nil, err
@@ -641,7 +641,7 @@ func (policy *ticketPolicy) buyMinerAddrTicketOne(height int64, priv crypto.Priv
 			bizlog.Info("buyMinerAddrTicketOne Cold Addr not in MinerWhiteList", "addr", addrs[i])
 			continue
 		}
-		acc, err := policy.getWalletOperate().GetBalance(addrs[i], types.TicketX)
+		acc, err := policy.getWalletOperate().GetBalance(addrs[i], ty.TicketX)
 		if err != nil {
 			return nil, 0, err
 		}
