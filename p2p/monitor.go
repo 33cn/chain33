@@ -49,7 +49,7 @@ func (n *Node) monitorErrPeer() {
 }
 
 func (n *Node) getAddrFromGithub() {
-	if !n.nodeInfo.cfg.GetUseGithub() {
+	if !n.nodeInfo.cfg.UseGithub {
 		return
 	}
 	//从github 上下载种子节点文件
@@ -96,7 +96,7 @@ func (n *Node) getAddrFromOnline() {
 
 		seedsMap := make(map[string]bool)
 		//每次循环seed的排序不同
-		seedArr := n.nodeInfo.cfg.GetSeeds()
+		seedArr := n.nodeInfo.cfg.Seeds
 		for _, seed := range seedArr {
 			seedsMap[seed] = true
 		}

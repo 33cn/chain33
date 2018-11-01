@@ -25,7 +25,9 @@ func init() {
 func TestRPCChannel(t *testing.T) {
 	// 启动RPCmocker
 	mocker := testnode.New("--notset--", nil)
-	defer mocker.Close()
+	defer func() {
+		mocker.Close()
+	}()
 	mocker.Listen()
 
 	rpcCfg := mocker.GetCfg().Rpc
@@ -140,7 +142,7 @@ func testPrivacy2Public(t *testing.T, jrpc *jsonclient.JSONClient) error {
 func testShowAmountsOfUTXO(t *testing.T, jrpc *jsonclient.JSONClient) error {
 	reqPrivacyToken := pty.ReqPrivacyToken{Token: types.BTY}
 	var params types.Query4Cli
-	params.Execer = types.PrivacyX
+	params.Execer = pty.PrivacyX
 	params.FuncName = "ShowAmountsOfUTXO"
 	params.Payload = reqPrivacyToken
 
@@ -155,7 +157,7 @@ func testShowUTXOs4SpecifiedAmount(t *testing.T, jrpc *jsonclient.JSONClient) er
 		Amount: 123456,
 	}
 	var params types.Query4Cli
-	params.Execer = types.PrivacyX
+	params.Execer = pty.PrivacyX
 	params.FuncName = "ShowUTXOs4SpecifiedAmount"
 	params.Payload = reqPrivacyToken
 

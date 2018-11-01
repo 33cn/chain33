@@ -33,11 +33,12 @@ const TicketCountOpenOnce = 1000
 
 var ErrOpenTicketPubHash = errors.New("ErrOpenTicketPubHash")
 
-var TicketX = types.TicketX
+var TicketX = "ticket"
 
 func init() {
-	types.AllowUserExec = append(types.AllowUserExec, []byte(types.TicketX))
+	types.AllowUserExec = append(types.AllowUserExec, []byte(TicketX))
 	types.RegistorExecutor(TicketX, NewType())
+	types.RegisterDappFork(TicketX, "Enable", 0)
 }
 
 type TicketType struct {

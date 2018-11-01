@@ -19,7 +19,7 @@ import (
 
 func init() {
 	slog.SetLogLevel("error")
-	types.SetTitle("local")
+	types.Init("local", nil)
 	pluginmgr.InitExec(nil)
 }
 
@@ -113,7 +113,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 }
 
 func testCreateRawTransactionCoinTransferExec(t *testing.T) {
-	name := types.ExecName(types.TicketX)
+	name := types.ExecName("ticket")
 	ctx := types.CreateTx{
 		ExecName:   name,
 		Amount:     10,
@@ -142,7 +142,7 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 
 func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   types.ExecName(types.TicketX),
+		ExecName:   types.ExecName("ticket"),
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: true,
@@ -199,7 +199,7 @@ func testSendRawTransactionErr(t *testing.T) {
 
 func testSendRawTransactionOk(t *testing.T) {
 	transfer := &types.Transaction{
-		Execer: []byte(types.ExecName(types.TicketX)),
+		Execer: []byte(types.ExecName("ticket")),
 	}
 	payload := types.Encode(transfer)
 
@@ -341,7 +341,7 @@ func testChannelClient_GetBalanceOther(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqBalance{
-		Execer:    types.ExecName(types.TicketX),
+		Execer:    types.ExecName("ticket"),
 		Addresses: addrs,
 	}
 	data, err := client.GetBalance(in)
@@ -353,7 +353,6 @@ func testChannelClient_GetBalanceOther(t *testing.T) {
 func TestChannelClient_GetBalance(t *testing.T) {
 	testChannelClient_GetBalanceCoin(t)
 	testChannelClient_GetBalanceOther(t)
-
 }
 
 // func TestChannelClient_GetTotalCoins(t *testing.T) {

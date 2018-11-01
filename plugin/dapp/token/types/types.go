@@ -8,7 +8,11 @@ import (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(TokenX))
-	types.RegistorExecutor(types.TokenX, NewType())
+	types.RegistorExecutor(TokenX, NewType())
+	types.RegisterDappFork(TokenX, "Enable", 100899)
+	types.RegisterDappFork(TokenX, "ForkTokenBlackList", 190000)
+	types.RegisterDappFork(TokenX, "ForkBadTokenSymbol", 184000)
+	types.RegisterDappFork(TokenX, "ForkTokenPrice", 560000)
 }
 
 // exec
@@ -31,9 +35,9 @@ func (t *TokenType) GetTypeMap() map[string]int32 {
 		"Transfer":          ActionTransfer,
 		"Genesis":           ActionGenesis,
 		"Withdraw":          ActionWithdraw,
-		"Tokenprecreate":    TokenActionPreCreate,
-		"Tokenfinishcreate": TokenActionFinishCreate,
-		"Tokenrevokecreate": TokenActionRevokeCreate,
+		"TokenPreCreate":    TokenActionPreCreate,
+		"TokenFinishCreate": TokenActionFinishCreate,
+		"TokenRevokeCreate": TokenActionRevokeCreate,
 		"TransferToExec":    TokenActionTransferToExec,
 	}
 }
@@ -55,7 +59,7 @@ func (t *TokenType) GetLogMap() map[int64]*types.LogInfo {
 	}
 }
 
-func (c *TokenType) RPC_Default_Process(action string, msg interface{}) (*types.Transaction, error) {
+func (t *TokenType) RPC_Default_Process(action string, msg interface{}) (*types.Transaction, error) {
 	var create *types.CreateTx
 	if _, ok := msg.(*types.CreateTx); !ok {
 		return nil, types.ErrInvalidParam
@@ -64,7 +68,7 @@ func (c *TokenType) RPC_Default_Process(action string, msg interface{}) (*types.
 	if !create.IsToken {
 		return nil, types.ErrNotSupport
 	}
-	tx, err := c.AssertCreate(create)
+	tx, err := t.AssertCreate(create)
 	if err != nil {
 		return nil, err
 	}

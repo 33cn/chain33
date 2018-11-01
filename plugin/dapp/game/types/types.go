@@ -11,15 +11,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
-
-var tlog = log.New("module", name)
+var tlog = log.New("module", GameX)
 
 func init() {
-	name = GameX
 	// init executor type
-	types.AllowUserExec = append(types.AllowUserExec, []byte(name))
-	types.RegistorExecutor(name, NewType())
+	types.AllowUserExec = append(types.AllowUserExec, []byte(GameX))
+	types.RegistorExecutor(GameX, NewType())
+	types.RegisterDappFork(GameX, "Enable", 0)
 }
 
 //getRealExecName

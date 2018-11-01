@@ -30,7 +30,7 @@ func init() {
 
 //const maxTimeWeight = 2
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newRetrieve, 0)
+	drivers.Register(GetName(), newRetrieve, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {
