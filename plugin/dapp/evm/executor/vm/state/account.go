@@ -259,11 +259,11 @@ func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
 }
 
 func (self *ContractAccount) GetDataKey() []byte {
-	return []byte("LODB-" + evmtypes.ExecutorName + "-data: " + self.Addr)
+	return []byte("mavl-" + evmtypes.ExecutorName + "-data: " + self.Addr)
 }
 
 func (self *ContractAccount) GetStateKey() []byte {
-	return []byte("LODB-" + evmtypes.ExecutorName + "-state: " + self.Addr)
+	return []byte("mavl-" + evmtypes.ExecutorName + "-state: " + self.Addr)
 }
 
 // 这份数据是存在LocalDB中的
