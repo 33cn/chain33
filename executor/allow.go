@@ -2,6 +2,7 @@ package executor
 
 import (
 	"bytes"
+	"runtime/debug"
 
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -61,19 +62,23 @@ func isAllowLocalKey(execer []byte, key []byte) error {
 	//println(string(execer), string(key))
 	minkeylen := len(types.LocalPrefix) + len(execer) + 2
 	if len(key) <= minkeylen {
+		debug.PrintStack()
 		elog.Error("isAllowLocalKey too short", "key", string(key), "exec", string(execer))
 		return types.ErrLocalKeyLen
 	}
 	if key[minkeylen-1] != '-' {
+		debug.PrintStack()
 		elog.Error("isAllowLocalKey prefix last char is not '-'", "key", string(key), "exec", string(execer),
 			"minkeylen", minkeylen)
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key, types.LocalPrefix) {
+		debug.PrintStack()
 		elog.Error("isAllowLocalKey common prefix not match", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key[len(types.LocalPrefix)+1:], execer) {
+		debug.PrintStack()
 		elog.Error("isAllowLocalKey key prefix not match", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
