@@ -203,7 +203,7 @@ func test5(t *testing.T) {
 func Test_getWinnerAndLoser(t *testing.T) {
 
 	a := action{}
-	a.height = 1 + types.ForkV25BlackWhiteV2
+	a.height = 1 + types.GetFork("ForkBlackWhiteV2")
 
 	showSecret := "123456789012345678901234567890"
 

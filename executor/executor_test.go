@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	types.SetTitle("local")
+	types.Init("local", nil)
 }
 
 func TestExecutorGetTxGroup(t *testing.T) {

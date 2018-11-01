@@ -215,7 +215,7 @@ func (action *Action) TicketOpen(topen *ty.TicketOpen) (*types.Receipt, error) {
 	for i := 0; i < int(topen.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
 		//add pubHash
-		if action.height > types.ForkV28TicketId {
+		if types.IsDappFork(action.height, ty.TicketX, "ForkTicket") {
 			if len(topen.PubHashes) == 0 {
 				return nil, ty.ErrOpenTicketPubHash
 			}
@@ -295,7 +295,7 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 	prevstatus := ticket.Status
 	ticket.Status = 2
 	ticket.MinerValue = miner.Reward
-	if action.height >= types.ForkV9 {
+	if types.IsFork(action.height, "ForkMinerTime") {
 		ticket.MinerTime = action.blocktime
 	}
 	t := &DB{*ticket, prevstatus}

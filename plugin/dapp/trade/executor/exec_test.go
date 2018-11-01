@@ -31,8 +31,8 @@ type orderArgs struct {
 
 var (
 	Symbol         = "TEST"
-	AssetExecToken = types.TokenX
-	AssetExecPara  = types.ParaX
+	AssetExecToken = "token"
+	AssetExecPara  = "paracross"
 
 	PrivKeyA = "0x6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b" // 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4
 	PrivKeyB = "0x19c069234f9d3e61135fefbeb7791b149cdf6af536f26bebb310d4cd22c3fee4" // 1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR
@@ -65,7 +65,7 @@ func TestTrade_Exec_SellLimit(t *testing.T) {
 
 	env := execEnv{
 		1539918074,
-		types.ForkV27TradeAsset,
+		types.GetDappFork("trade", "ForkTradeAsset"),
 		2,
 		1539918074,
 		"hash",
@@ -74,10 +74,10 @@ func TestTrade_Exec_SellLimit(t *testing.T) {
 	stateDB, _ := dbm.NewGoMemDB("1", "2", 100)
 	accB := account.NewCoinsAccount()
 	accB.SetDB(stateDB)
-	accB.SaveExecAccount(address.ExecAddress(types.TradeX), &accountB)
+	accB.SaveExecAccount(address.ExecAddress("trade"), &accountB)
 
 	accA, _ := account.NewAccountDB(AssetExecToken, Symbol, stateDB)
-	accA.SaveExecAccount(address.ExecAddress(types.TradeX), &accountA)
+	accA.SaveExecAccount(address.ExecAddress("trade"), &accountA)
 
 	driver := newTrade()
 	driver.SetEnv(env.blockHeight, env.blockTime, env.difficulty)
@@ -174,7 +174,7 @@ func TestTrade_Exec_BuyLimit(t *testing.T) {
 
 	env := execEnv{
 		1539918074,
-		types.ForkV27TradeAsset,
+		types.GetDappFork("trade", "ForkTradeAsset"),
 		2,
 		1539918074,
 		"hash",
@@ -183,10 +183,10 @@ func TestTrade_Exec_BuyLimit(t *testing.T) {
 	stateDB, _ := dbm.NewGoMemDB("1", "2", 100)
 	accB := account.NewCoinsAccount()
 	accB.SetDB(stateDB)
-	accB.SaveExecAccount(address.ExecAddress(types.TradeX), &accountB)
+	accB.SaveExecAccount(address.ExecAddress("trade"), &accountB)
 
 	accA, _ := account.NewAccountDB(AssetExecPara, Symbol, stateDB)
-	accA.SaveExecAccount(address.ExecAddress(types.TradeX), &accountA)
+	accA.SaveExecAccount(address.ExecAddress("trade"), &accountA)
 
 	driver := newTrade()
 	driver.SetEnv(env.blockHeight, env.blockTime, env.difficulty)
@@ -266,7 +266,7 @@ func TestTrade_Exec_BuyLimit(t *testing.T) {
 
 func signTx(tx *types.Transaction, hexPrivKey string) (*types.Transaction, error) {
 	signType := types.SECP256K1
-	c, err := crypto.New(types.GetSignName(types.TradeX, signType))
+	c, err := crypto.New(types.GetSignName("trade", signType))
 	if err != nil {
 		return tx, err
 	}

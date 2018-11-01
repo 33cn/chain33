@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,10 +13,10 @@ func TestLogErr(t *testing.T) {
 	assert.Equal(t, logty.Name(), "LogErr")
 	result, err := logty.Decode([]byte("hello world"))
 	assert.Nil(t, err)
-	assert.Equal(t, LogErr(result.(json.RawMessage)), errlog)
+	assert.Equal(t, LogErr(result.(string)), errlog)
 
 	//json test
 	data, err := logty.Json([]byte("hello world"))
 	assert.Nil(t, err)
-	assert.Equal(t, string(data), "hello world")
+	assert.Equal(t, string(data), `"hello world"`)
 }

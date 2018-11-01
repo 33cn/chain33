@@ -208,7 +208,7 @@ out:
 func (r *Relayd) queryChain33WithBtcHeight() (*ty.ReplayRelayQryBTCHeadHeight, error) {
 	payLoad := types.Encode(&ty.ReqRelayQryBTCHeadHeight{})
 	query := types.ChainExecutor{
-		Driver:   types.RelayX,
+		Driver:   ty.RelayX,
 		FuncName: "GetBTCHeaderCurHeight",
 		Param:    payLoad,
 	}
@@ -308,10 +308,10 @@ func (r *Relayd) syncBlockHeaders() {
 
 func (r *Relayd) transaction(payload []byte) *types.Transaction {
 	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
+		Execer:  []byte(ty.RelayX),
 		Payload: payload,
 		Nonce:   rand.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
+		To:      address.ExecAddress(ty.RelayX),
 	}
 
 	fee, _ := tx.GetRealFee(types.MinFee)
@@ -366,7 +366,7 @@ func (r *Relayd) requestRelayOrders(status ty.RelayOrderStatus) (*ty.QueryRelayO
 		Status: status,
 	})
 	query := types.ChainExecutor{
-		Driver:   types.RelayX,
+		Driver:   ty.RelayX,
 		FuncName: "GetRelayOrderByStatus",
 		Param:    payLoad,
 	}
