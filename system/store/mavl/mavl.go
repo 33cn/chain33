@@ -65,6 +65,7 @@ func New(cfg *types.Store, sub []byte) queue.Module {
 }
 
 func (mavls *Store) Close() {
+	mavl.ClosePrune()
 	mavls.BaseStore.Close()
 	mlog.Info("store mavl closed")
 }

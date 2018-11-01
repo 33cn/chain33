@@ -18,8 +18,8 @@ import (
 
 func main() {
 	log1 := &types.Log{
-		Loglevel: "debug",
-		LogConsoleLevel: "error",
+		Loglevel: "info",
+		LogConsoleLevel: "info",
 		LogFile: "logs/syc.log",
 		MaxFileSize: 400,
 		MaxBackups: 100,
@@ -67,6 +67,13 @@ func main() {
 	stdin.ReadString('\n')
 	if a > 0 {
 		mavl.PruningTreePrint(db, []byte("_..md.._"))
+	}
+	a = 0
+	fmt.Println("是否需要裁剪树,请输入最大裁剪数高度")
+	fmt.Fscan(stdin, &a)
+	stdin.ReadString('\n')
+	if a > 0 {
+		mavl.PruningTree(db, int64(a))
 	}
 	exit := make(chan os.Signal,10) //初始化一个channel
 	signal.Notify(exit, syscall.SIGINT, syscall.SIGTERM) //notify方法用来监听收到的信号
