@@ -10,7 +10,7 @@ import (
 func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64) bool {
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
-		elog.Error("find execer ", "err", err)
+		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer))
 		return false
 	}
 	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
@@ -49,7 +49,7 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 	}
 	d, err := drivers.LoadDriver(string(execdriver), height)
 	if err != nil {
-		elog.Error("load drivers error", "err", err)
+		elog.Error("load drivers error", "err", err, "execdriver", string(execdriver), "height", height)
 		return false
 	}
 	//交给 -> friend 来判定
