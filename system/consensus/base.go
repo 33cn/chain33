@@ -55,7 +55,7 @@ func NewBaseClient(cfg *types.Consensus) *BaseClient {
 	}
 	client := &BaseClient{minerStart: flag, isCaughtUp: 0}
 	client.Cfg = cfg
-	log.Info("Enter consensus " + cfg.GetName())
+	log.Info("Enter consensus " + cfg.Name)
 	return client
 }
 

@@ -24,7 +24,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newManage, types.ForkV4AddManage)
+	drivers.Register(GetName(), newManage, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {

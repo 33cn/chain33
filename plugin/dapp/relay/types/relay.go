@@ -8,7 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var RelayX = types.RelayX
+var RelayX = "relay"
 
 //var tlog = log.New("module", name)
 //log for relay
@@ -46,6 +46,7 @@ const (
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(RelayX))
 	types.RegistorExecutor(RelayX, NewType())
+	types.RegisterDappFork(RelayX, "Enable", 570000)
 }
 
 func NewType() *RelayType {

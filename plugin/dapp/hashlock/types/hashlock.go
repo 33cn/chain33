@@ -17,7 +17,8 @@ var (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(HashlockX))
-	types.RegistorExecutor("hashlock", NewType())
+	types.RegistorExecutor(HashlockX, NewType())
+	types.RegisterDappFork(HashlockX, "Enable", 0)
 }
 
 type HashlockType struct {

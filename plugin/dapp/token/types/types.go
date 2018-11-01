@@ -8,7 +8,11 @@ import (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(TokenX))
-	types.RegistorExecutor(types.TokenX, NewType())
+	types.RegistorExecutor(TokenX, NewType())
+	types.RegisterDappFork(TokenX, "Enable", 100899)
+	types.RegisterDappFork(TokenX, "ForkTokenBlackList", 190000)
+	types.RegisterDappFork(TokenX, "ForkBadTokenSymbol", 184000)
+	types.RegisterDappFork(TokenX, "ForkTokenPrice", 560000)
 }
 
 // exec
