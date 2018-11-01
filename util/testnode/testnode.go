@@ -1,6 +1,7 @@
 package testnode
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
@@ -21,6 +23,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
@@ -150,6 +154,30 @@ func (m *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
 	return m.chain
 }
 
+func (m *Chain33Mock) GetJsonC() *jsonclient.JSONClient {
+	jsonc, _ := jsonclient.NewJSONClient("http://" + m.cfg.Rpc.JrpcBindAddr + "/")
+	return jsonc
+}
+
+func (m *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte, error) {
+	txbytes, err := hex.DecodeString(hextx)
+	if err != nil {
+		return nil, err
+	}
+	tx := &types.Transaction{}
+	err = types.Decode(txbytes, tx)
+	if err != nil {
+		return nil, err
+	}
+	tx.Fee = 1e6
+	tx.Sign(types.SECP256K1, priv)
+	reply, err := m.api.SendTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	return reply.GetMsg(), nil
+}
+
 func newWalletRealize(qApi client.QueueProtocolAPI) {
 	seed := &types.SaveSeedByPw{"subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant", "123456"}
 	reply, err := qApi.SaveSeed(seed)
@@ -162,10 +190,11 @@ func newWalletRealize(qApi client.QueueProtocolAPI) {
 	}
 	for i, priv := range util.TestPrivkeyHex {
 		privkey := &types.ReqWalletImportPrivkey{priv, fmt.Sprintf("label%d", i)}
-		_, err = qApi.WalletImportprivkey(privkey)
+		acc, err := qApi.WalletImportprivkey(privkey)
 		if err != nil {
 			panic(err)
 		}
+		lognode.Info("import", "index", i, "addr", acc.Acc.Addr)
 	}
 	req := &types.ReqAccountList{WithoutBalance: true}
 	_, err = qApi.WalletGetAccountList(req)
@@ -212,6 +241,34 @@ func (mock *Chain33Mock) WaitHeight(height int64) error {
 	return nil
 }
 
+func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error) {
+	for {
+		param := &types.ReqHash{Hash: hash}
+		_, err := mock.api.QueryTx(param)
+		if err != nil {
+			println(err)
+			time.Sleep(time.Second / 10)
+			continue
+		}
+		var testResult rpctypes.TransactionDetail
+		data := rpctypes.QueryParm{
+			Hash: common.ToHex(hash),
+		}
+		err = mock.GetJsonC().Call("Chain33.QueryTransaction", data, &testResult)
+		return &testResult, err
+	}
+}
+
+func (mock *Chain33Mock) SendHot() error {
+	header, err := mock.api.GetLastHeader()
+	if err != nil {
+		return err
+	}
+	tx := util.CreateCoinsTx(mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
+	mock.GetAPI().SendTx(tx)
+	return mock.WaitHeight(header.Height + 1)
+}
+
 func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Account {
 	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
 	acc := account.NewCoinsAccount()
@@ -227,8 +284,24 @@ func (mock *Chain33Mock) GetBlock(height int64) *types.Block {
 	return blocks.Items[0].Block
 }
 
+func (mock *Chain33Mock) GetLastBlock() *types.Block {
+	header, err := mock.api.GetLastHeader()
+	if err != nil {
+		panic(err)
+	}
+	return mock.GetBlock(header.Height)
+}
+
 func (m *Chain33Mock) GetClient() queue.Client {
 	return m.client
+}
+
+func (m *Chain33Mock) GetHotKey() crypto.PrivKey {
+	return util.TestPrivkeyList[0]
+}
+
+func (m *Chain33Mock) GetHotAddress() string {
+	return m.cfg.Consensus.HotkeyAddr
 }
 
 func (m *Chain33Mock) GetGenesisKey() crypto.PrivKey {
