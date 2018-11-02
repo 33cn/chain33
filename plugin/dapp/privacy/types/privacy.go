@@ -26,6 +26,8 @@ const (
 	SignNameRing           = "privacy.RingSignatue"
 	OnetimeED25519         = 4
 	RingBaseonED25519      = 5
+	PrivacyMaxCount        = 16
+	PrivacyTxFee           = types.Coin
 )
 
 // RescanUtxoFlag

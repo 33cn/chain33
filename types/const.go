@@ -147,7 +147,7 @@ const (
 )
 
 func init() {
-	SetChainConfig("TxHeight", false)
+	S("TxHeight", false)
 }
 
 //flag:

@@ -17,7 +17,7 @@ func (t *token) ExecLocal_Transfer(payload *types.AssetsTransfer, tx *types.Tran
 	if kv != nil {
 		set.KV = append(set.KV, kv...)
 	}
-	if types.GetSaveTokenTxList() {
+	if cfg.SaveTokenTxList {
 		tokenAction := tokenty.TokenAction{
 			Ty: tokenty.ActionTransfer,
 			Value: &tokenty.TokenAction_Transfer{
@@ -43,7 +43,7 @@ func (t *token) ExecLocal_Withdraw(payload *types.AssetsWithdraw, tx *types.Tran
 	if kv != nil {
 		set.KV = append(set.KV, kv...)
 	}
-	if types.GetSaveTokenTxList() {
+	if cfg.SaveTokenTxList {
 		tokenAction := tokenty.TokenAction{
 			Ty: tokenty.ActionWithdraw,
 			Value: &tokenty.TokenAction_Withdraw{
@@ -64,7 +64,7 @@ func (t *token) ExecLocal_TransferToExec(payload *types.AssetsTransferToExec, tx
 	if err != nil {
 		return nil, err
 	}
-	if types.GetSaveTokenTxList() {
+	if cfg.SaveTokenTxList {
 		tokenAction := tokenty.TokenAction{
 			Ty: tokenty.TokenActionTransferToExec,
 			Value: &tokenty.TokenAction_TransferToExec{

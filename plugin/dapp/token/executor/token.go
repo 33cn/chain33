@@ -35,7 +35,16 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&token{}))
 }
 
+type subConfig struct {
+	SaveTokenTxList bool `json:"saveTokenTxList"`
+}
+
+var cfg subConfig
+
 func Init(name string, sub []byte) {
+	if sub != nil {
+		types.MustDecode(sub, &cfg)
+	}
 	drivers.Register(GetName(), newToken, types.GetDappFork(driverName, "Enable"))
 }
 

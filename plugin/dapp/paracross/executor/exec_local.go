@@ -78,7 +78,7 @@ func (e *Paracross) ExecLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.
 		hash := tx.Hash()
 		mixTxHashs = append(mixTxHashs, hash)
 		//跨链交易包含了主链交易，需要过滤出来
-		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
+		if types.IsParaExecName(string(tx.Execer)) {
 			paraTxHashs = append(paraTxHashs, hash)
 		}
 	}
@@ -92,7 +92,7 @@ func (e *Paracross) ExecLocal_Miner(payload *pt.ParacrossMinerAction, tx *types.
 			i = int(end) - 1
 			continue
 		}
-		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) &&
+		if types.IsParaExecName(string(tx.Execer)) &&
 			bytes.HasSuffix(tx.Execer, []byte(pt.ParaX)) {
 			crossTxHashs = append(crossTxHashs, tx.Hash())
 		}
