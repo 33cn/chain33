@@ -7,13 +7,12 @@ import (
 	"unsafe"
 
 	//_ "gitlab.33.cn/chain33/chain33/plugin"
-	_ "gitlab.33.cn/chain33/chain33/system"
-
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	privacy "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/crypto"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
+	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
@@ -215,7 +214,7 @@ func (mock *PrivacyMock) createPublic2PrivacyTx(req *types.ReqCreateTransaction)
 		To:      address.ExecAddress(ty.PrivacyX),
 	}
 	txSize := types.Size(tx) + types.SignatureSize
-	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
+	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.GInt("MinFee")
 	tx.Fee = realFee
 	tx.SetExpire(time.Hour)
 

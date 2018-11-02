@@ -2,9 +2,7 @@ package types
 
 import (
 	"encoding/json"
-	"math/rand"
 	"reflect"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -122,16 +120,18 @@ func CreateRawGamePreCreateTx(parm *GamePreCreateTx) (*types.Transaction, error)
 		Ty:    GameActionCreate,
 		Value: &GameAction_Create{v},
 	}
+
 	tx := &types.Transaction{
 		Execer:  []byte(getRealExecName(types.GetParaName())),
 		Payload: types.Encode(precreate),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(getRealExecName(types.GetParaName())),
 	}
-
-	tx.SetRealFee(types.MinFee)
-
+	name := getRealExecName(types.GetParaName())
+	tx, err := types.FormatTx(name, tx)
+	if err != nil {
+		return nil, err
+	}
 	return tx, nil
 }
 
@@ -152,12 +152,13 @@ func CreateRawGamePreMatchTx(parm *GamePreMatchTx) (*types.Transaction, error) {
 		Execer:  []byte(getRealExecName(types.GetParaName())),
 		Payload: types.Encode(game),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(getRealExecName(types.GetParaName())),
 	}
-
-	tx.SetRealFee(types.MinFee)
-
+	name := getRealExecName(types.GetParaName())
+	tx, err := types.FormatTx(name, tx)
+	if err != nil {
+		return nil, err
+	}
 	return tx, nil
 }
 
@@ -176,12 +177,13 @@ func CreateRawGamePreCancelTx(parm *GamePreCancelTx) (*types.Transaction, error)
 		Execer:  []byte(getRealExecName(types.GetParaName())),
 		Payload: types.Encode(cancel),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(getRealExecName(types.GetParaName())),
 	}
-
-	tx.SetRealFee(types.MinFee)
-
+	name := getRealExecName(types.GetParaName())
+	tx, err := types.FormatTx(name, tx)
+	if err != nil {
+		return nil, err
+	}
 	return tx, nil
 }
 
@@ -202,11 +204,12 @@ func CreateRawGamePreCloseTx(parm *GamePreCloseTx) (*types.Transaction, error) {
 		Execer:  []byte(getRealExecName(types.GetParaName())),
 		Payload: types.Encode(close),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(getRealExecName(types.GetParaName())),
 	}
-
-	tx.SetRealFee(types.MinFee)
-
+	name := getRealExecName(types.GetParaName())
+	tx, err := types.FormatTx(name, tx)
+	if err != nil {
+		return nil, err
+	}
 	return tx, nil
 }

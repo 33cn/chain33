@@ -232,7 +232,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
 	beg := types.Now()
-	curdbver, err := types.GetChainConfig("dbversion")
+	curdbver, err := types.G("dbversion")
 	if err != nil {
 		return nil, err
 	}
