@@ -14,6 +14,7 @@ func init() {
 	initChainBase()
 	initChainBityuanV3()
 	S("TestNet", false)
+	S("MinFee", 100000)
 }
 
 func initChainBase() {
@@ -93,6 +94,17 @@ func GInt(name string) int64 {
 		return i
 	}
 	return 0
+}
+
+func GStr(name string) string {
+	value, err := G(name)
+	if err != nil {
+		return ""
+	}
+	if i, ok := value.(string); ok {
+		return i
+	}
+	return ""
 }
 
 func S(key string, value interface{}) {
