@@ -4,9 +4,7 @@ import (
 	"encoding/hex"
 
 	"math"
-	"math/rand"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -41,14 +39,10 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	} else {
 		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: address.ExecAddress(string(execer))}
 	}
-
-	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	tx, err := types.FormatTx(string(execer), tx)
 	if err != nil {
 		return "", err
 	}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
 	txHex := types.Encode(tx)
 	return hex.EncodeToString(txHex), nil
 }

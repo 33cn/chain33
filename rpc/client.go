@@ -76,9 +76,10 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*types.Transaction, error) {
 	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))
-	txNone.Fee, _ = txNone.GetRealFee(types.MinFee)
-	txNone.Nonce = random.Int63()
-
+	txNone, err := types.FormatTx(types.ExecName(types.NoneX), txNone)
+	if err != nil {
+		return nil, err
+	}
 	tx, err := decodeTx(in.TxHex)
 	if err != nil {
 		return nil, err
@@ -88,7 +89,7 @@ func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*type
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(0, types.MinFee)
+	err = group.Check(0, types.GInt("MinFee"))
 	if err != nil {
 		return nil, err
 	}

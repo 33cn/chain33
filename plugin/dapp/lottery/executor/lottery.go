@@ -17,10 +17,19 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&Lottery{}))
 }
 
+type subConfig struct {
+	ParaRemoteGrpcClient string `json:"paraRemoteGrpcClient"`
+}
+
+var cfg subConfig
+
 func Init(name string, sub []byte) {
 	driverName := GetName()
 	if name != driverName {
 		panic("system dapp can't be rename")
+	}
+	if sub != nil {
+		types.MustDecode(sub, &cfg)
 	}
 	drivers.Register(driverName, newLottery, types.GetDappFork(driverName, "Enable"))
 }

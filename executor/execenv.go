@@ -273,7 +273,7 @@ func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Recei
 	}
 	var err error
 	//公链不允许手续费为0
-	if !types.IsPara() && types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
+	if !types.IsPara() && types.MinFee > 0 && !e.IsFree() {
 		feelog, err = execute.processFee(tx)
 		if err != nil {
 			return nil, err

@@ -64,8 +64,9 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 //gen 1万币需要 2s，主要是签名的花费
 func BenchmarkGenRandBlock(b *testing.B) {
+	_, key := util.Genaddress()
 	for i := 0; i < b.N; i++ {
-		util.CreateNoneBlock(10000)
+		util.CreateNoneBlock(key, 10000)
 	}
 }
 
