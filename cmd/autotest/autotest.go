@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
 
-	"gitlab.33.cn/chain33/chain33/cmd/autotest/contract"
+	"gitlab.33.cn/chain33/chain33/cmd/autotest/flow"
 )
 
 var (
@@ -20,7 +22,14 @@ func init() {
 
 func main() {
 
-	contract.InitConfig(logFile)
-	contract.DoTestOperation(configFile)
+	flow.InitFlowConfig(configFile, logFile)
 
+	if flow.StartAutoTest() {
+
+		fmt.Println("Success!")
+		os.Exit(0)
+	}else {
+		fmt.Println("Failed!")
+		os.Exit(1)
+	}
 }
