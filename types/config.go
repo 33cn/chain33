@@ -14,7 +14,7 @@ func init() {
 	initChainBase()
 	initChainBityuanV3()
 	S("TestNet", false)
-	S("MinFee", 100000)
+	SetMinFee(1e5)
 }
 
 func initChainBase() {
