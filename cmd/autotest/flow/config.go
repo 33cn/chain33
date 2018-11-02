@@ -66,67 +66,6 @@ func InitFlowConfig(conf string, log string) {
 
 }
 
-//func DoTestOperation(configFile string) {
-//
-//	var wg sync.WaitGroup
-//	var configConf TestCaseConfig
-//
-//	if _, err := toml.DecodeFile(configFile, &configConf); err != nil {
-//
-//		stdLog.Error("DecodeConfigFile", "filename", configFile, "Error", err.Error())
-//		return
-//	}
-//
-//	testcase.Init(configConf.CliCommand, configConf.CheckSleepTime, configConf.CheckTimeout)
-//
-//	stdLog.Info("[================================BeginAutoTest===============================]")
-//	fileLog.Info("[================================BeginAutoTest===============================]")
-//
-//	for _, caseFile := range configConf.TestCaseFileArr {
-//
-//		filename := caseFile.Filename
-//
-//		switch caseFile.Dapp {
-//
-//		case "init":
-//
-//			//init需要优先进行处理, 阻塞等待完成
-//			new(TestInitConfig).RunTest(filename, &wg)
-//
-//		case "bty":
-//
-//			wg.Add(1)
-//			go new(TestBtyConfig).RunTest(filename, &wg)
-//
-//		case "token":
-//
-//			wg.Add(1)
-//			go new(TestTokenConfig).RunTest(filename, &wg)
-//
-//		case "trade":
-//
-//			wg.Add(1)
-//			go new(TestTradeConfig).RunTest(filename, &wg)
-//
-//		case "privacy":
-//
-//			wg.Add(1)
-//			go new(TestPrivacyConfig).RunTest(filename, &wg)
-//
-//		}
-//
-//	}
-//
-//	wg.Wait()
-//
-//	stdLog.Info("[================================EndAutoTest=================================]")
-//	fileLog.Info("[================================EndAutoTest=================================]")
-//}
-//
-//
-
-
-
 
 
 func StartAutoTest() bool {
