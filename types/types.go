@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -392,35 +391,6 @@ func PBToJson(r Message) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-//判断所有的空值
-func IsNil(a interface{}) (ok bool) {
-	defer func() {
-		if e := recover(); e != nil {
-			panic(e)
-			ok = false
-		}
-	}()
-	if v, ok := a.(reflect.Value); ok {
-		if !v.IsValid() {
-			return true
-		}
-		return v.IsNil()
-	}
-	return a == nil || reflect.ValueOf(a).IsNil()
-}
-
-//空指针或者接口
-func IsNilP(a interface{}) bool {
-	if a == nil {
-		return true
-	}
-	v := reflect.ValueOf(a)
-	if v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
-		return v.IsNil()
-	}
-	return false
 }
 
 func MustDecode(data []byte, v interface{}) {
