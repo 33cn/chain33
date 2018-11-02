@@ -102,7 +102,14 @@ func GetActionValue(action interface{}, funclist map[string]reflect.Method) (str
 	if !IsOK(rcvr, 1) || IsNil(rcvr[0]) {
 		return "", 0, nilValue
 	}
-	sname := rcvr[0].Elem().Type().String()
+	if rcvr[0].Kind() != reflect.Ptr && rcvr[0].Kind() != reflect.Interface {
+		return "", 0, nilValue
+	}
+	elem := rcvr[0].Elem()
+	if IsNil(elem) {
+		return "", 0, nilValue
+	}
+	sname := elem.Type().String()
 	datas := strings.Split(sname, "_")
 	if len(datas) != 2 {
 		return "", 0, nilValue
@@ -112,7 +119,7 @@ func GetActionValue(action interface{}, funclist map[string]reflect.Method) (str
 		return "", 0, nilValue
 	}
 	val := funclist[funcname].Func.Call([]reflect.Value{value})
-	if !IsOK(val, 1) || IsNil(rcvr[0]) {
+	if !IsOK(val, 1) || IsNil(val[0]) {
 		return "", 0, nilValue
 	}
 	return datas[1], ty, val[0]
