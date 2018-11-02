@@ -28,7 +28,7 @@ func TestRPC_Call(t *testing.T) {
 	}()
 	g := newGrpc(api)
 	g.Init("ticket", mock33.GetRPC(), newJrpc(api), g)
-	ty.RegisterTicketServer(mock33.GetRPC().GRPC(), g)
+	//ty.RegisterTicketServer(mock33.GetRPC().GRPC(), g)
 	time.Sleep(time.Millisecond)
 	mock33.Listen()
 	time.Sleep(time.Millisecond)

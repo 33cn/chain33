@@ -195,6 +195,15 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	go chain.ProcRecvMsg()
 }
 
+//only used for test
+func (chain *BlockChain) GetStore() *BlockStore {
+	return chain.blockStore
+}
+
+func (chain *BlockChain) GetOrphanPool() *OrphanPool {
+	return chain.orphanPool
+}
+
 func (chain *BlockChain) InitBlockChain() {
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
