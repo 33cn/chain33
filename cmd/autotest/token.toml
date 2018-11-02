@@ -86,7 +86,7 @@ checkItem = ["balance"]
 
 
 #--liugui 2018.9.19-- 
-[[tokenRevokeCase]]
+[[TokenRevokeCase]]
 id = "tokenRevoke"
 command = "send token revoke -f 0.01 -s TCC -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 dep = ["tokenPre2"]
