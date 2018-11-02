@@ -2,9 +2,7 @@ package types
 
 import (
 	"encoding/json"
-	"math/rand"
 	"strings"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -171,25 +169,21 @@ func CreateRawEvmCreateCallTx(parm *CreateCallTx) (*types.Transaction, error) {
 		tx = &types.Transaction{
 			Execer:  []byte(types.ExecName(ExecutorName)),
 			Payload: types.Encode(action),
-			//Fee:     parm.Fee,
-			Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-			To:    address.ExecAddress(types.ExecName(ExecutorName)),
+			To:      address.ExecAddress(types.ExecName(ExecutorName)),
 		}
 	} else {
 		tx = &types.Transaction{
 			Execer:  []byte(types.ExecName(parm.Name)),
 			Payload: types.Encode(action),
-			//Fee:     parm.Fee,
-			Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-			To:    address.ExecAddress(types.ExecName(parm.Name)),
+			To:      address.ExecAddress(types.ExecName(parm.Name)),
 		}
 	}
-
-	//according to cli/commands/evm.go/createEvmTx
-	tx.Fee, _ = tx.GetRealFee(types.MinFee)
+	tx, err = types.FormatTx(string(tx.Execer), tx)
+	if err != nil {
+		return nil, err
+	}
 	if tx.Fee < parm.Fee {
 		tx.Fee += parm.Fee
 	}
-
 	return tx, nil
 }

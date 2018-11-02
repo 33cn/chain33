@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -40,7 +41,9 @@ func init() {
 	log.SetLogLevel("info")
 }
 
+//保证只有一个chain33 会运行
 var lognode = log15.New("module", "lognode")
+var chain33globalLock sync.Mutex
 
 type Chain33Mock struct {
 	random  *rand.Rand
@@ -63,12 +66,12 @@ func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
 }
 
 func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	types.SetTestNet(cfg.TestNet)
-	types.Init(cfg.Title, cfg)
 	return newWithConfig(cfg, sub, mockapi)
 }
 
 func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	chain33globalLock.Lock()
+	types.Init(cfg.Title, cfg)
 	q := queue.New("channel")
 	types.Debug = false
 	mock := &Chain33Mock{cfg: cfg, q: q}
@@ -237,6 +240,7 @@ func (mock *Chain33Mock) Close() {
 	mock.network.Close()
 	mock.client.Close()
 	mock.rpc.Close()
+	chain33globalLock.Unlock
 }
 
 func (mock *Chain33Mock) WaitHeight(height int64) error {
