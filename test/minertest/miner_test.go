@@ -285,7 +285,7 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 	if err != nil {
 		return nil, err
 	}
-	tx.Fee += types.MinFee
+	tx.Fee += types.GInt("MinFee")
 	tx.Sign(types.SECP256K1, priv)
 
 	// Contact the server and print out its response.

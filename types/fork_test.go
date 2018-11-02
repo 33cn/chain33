@@ -7,7 +7,7 @@ import (
 )
 
 func TestForks(t *testing.T) {
-	SetLocalFork()
+	setLocalFork()
 	assert.Equal(t, systemFork.IsFork("abc", 1, "ForkV1"), false)
 	assert.Equal(t, systemFork.IsFork("abc", 1, "ForkV12"), false)
 	assert.Equal(t, systemFork.IsFork("bityuan", 1, "ForkTransferExec"), false)

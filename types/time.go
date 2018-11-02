@@ -6,7 +6,6 @@ import (
 )
 
 var deltaTime int64
-var timeCalibration bool
 var NtpHosts = []string{
 	"time.windows.com:123",
 	"ntp.ubuntu.com:123",

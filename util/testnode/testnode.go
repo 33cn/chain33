@@ -240,7 +240,7 @@ func (mock *Chain33Mock) Close() {
 	mock.network.Close()
 	mock.client.Close()
 	mock.rpc.Close()
-	chain33globalLock.Unlock
+	chain33globalLock.Unlock()
 }
 
 func (mock *Chain33Mock) WaitHeight(height int64) error {
