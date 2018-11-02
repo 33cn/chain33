@@ -409,6 +409,9 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 	if err != nil {
 		return nil, err
 	}
+	if IsNilP(payload) {
+		return nil, ErrDecode
+	}
 	return payload, nil
 }
 
@@ -417,8 +420,8 @@ func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.V
 		return "", nilValue, ErrActionNotSupport
 	}
 	action, err := base.child.DecodePayload(tx)
-	if err != nil {
-		tlog.Error("DecodePayload", "err", err)
+	if err != nil || action == nil {
+		tlog.Error("DecodePayload", "err", err, "exec", string(tx.Execer))
 		return "", nilValue, err
 	}
 	name, ty, val := GetActionValue(action, base.child.GetFuncMap())

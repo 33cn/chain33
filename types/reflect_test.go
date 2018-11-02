@@ -70,3 +70,13 @@ func BenchmarkCallQueryData(b *testing.B) {
 	}
 	assert.Equal(b, result, int64(b.N*30))
 }
+
+func TestIsOK(t *testing.T) {
+	data := make([]reflect.Value, 2)
+	var err interface{}
+	data[0] = reflect.ValueOf(&ReqNil{})
+	data[1] = reflect.ValueOf(err)
+	assert.Equal(t, reflect.Invalid, data[1].Kind())
+	assert.Equal(t, true, IsNil(data[1]))
+	assert.Equal(t, true, IsOK(data, 2))
+}
