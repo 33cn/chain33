@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -63,19 +62,11 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	assert.Equal(t, err, types.ErrTxGroupFormat)
 }
 
-func jsonPrint(t *testing.T, input interface{}) {
-	data, err := json.MarshalIndent(input, "", "\t")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	t.Log(string(data))
-}
-
 //gen 1万币需要 2s，主要是签名的花费
 func BenchmarkGenRandBlock(b *testing.B) {
+	_, key := util.Genaddress()
 	for i := 0; i < b.N; i++ {
-		util.CreateNoneBlock(10000)
+		util.CreateNoneBlock(key, 10000)
 	}
 }
 

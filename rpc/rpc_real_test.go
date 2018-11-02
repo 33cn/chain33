@@ -23,7 +23,7 @@ func init() {
 
 func TestErrLog(t *testing.T) {
 	// 启动RPCmocker
-	mocker := testnode.New("--notset--", nil)
+	mocker := testnode.New("--free--", nil)
 	defer mocker.Close()
 	mocker.Listen()
 

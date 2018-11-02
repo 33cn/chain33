@@ -29,7 +29,7 @@ func TestCreateGroupTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = group.Check(0, MinFee)
+	err = group.Check(0, GInt("MinFee"))
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].Json())
@@ -112,7 +112,7 @@ func TestSignGroupTx(t *testing.T) {
 			return
 		}
 	}
-	err = group.Check(0, MinFee)
+	err = group.Check(0, GInt("MinFee"))
 	if err != nil {
 		t.Error(err)
 		return

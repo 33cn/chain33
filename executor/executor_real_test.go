@@ -41,7 +41,7 @@ func newMockNode() *testnode.Chain33Mock {
 func TestTxGroup(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
 	cfg := mock33.GetCfg()
@@ -138,7 +138,7 @@ func TestTxGroup(t *testing.T) {
 func TestExecAllow(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
 	genkey := mock33.GetGenesisKey()
@@ -216,7 +216,7 @@ func TestExecBlock2(t *testing.T) {
 func TestExecBlock(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
-	block := util.CreateNoneBlock(10)
+	block := util.CreateNoneBlock(mock33.GetGenesisKey(), 10)
 	util.ExecBlock(mock33.GetClient(), nil, block, false, true)
 }
 
@@ -231,7 +231,7 @@ func TestExecBlock(t *testing.T) {
 func BenchmarkExecBlock(b *testing.B) {
 	mock33 := newMockNode()
 	defer mock33.Close()
-	block := util.CreateNoneBlock(10000)
+	block := util.CreateNoneBlock(mock33.GetGenesisKey(), 10000)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		util.ExecBlock(mock33.GetClient(), nil, block, false, true)
