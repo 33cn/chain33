@@ -181,7 +181,7 @@ func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkTxGroupPara", 806578)
 }
 
-func SetLocalFork() {
+func setLocalFork() {
 	err := systemFork.CloneZero("chain33", "local")
 	if err != nil {
 		panic(err)
@@ -190,7 +190,7 @@ func SetLocalFork() {
 }
 
 //paraName not used currently
-func SetForkForPara(paraName string) {
+func setForkForPara(paraName string) {
 	systemFork.CloneZero("chain33", paraName)
 	systemFork.ReplaceFork(paraName, "ForkBlockHash", 1)
 }

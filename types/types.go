@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -42,7 +41,10 @@ func ExecName(name string) string {
 	if IsParaExecName(name) {
 		return name
 	}
-	return ExecNamePrefix + name
+	if IsPara() {
+		return GetTitle() + name
+	}
+	return name
 }
 
 //默认的allow 规则->根据 GetRealExecName 来判断
@@ -392,24 +394,6 @@ func PBToJson(r Message) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-//判断所有的空值
-func IsNil(a interface{}) bool {
-	defer func() { recover() }()
-	return a == nil || reflect.ValueOf(a).IsNil()
-}
-
-//空指针或者接口
-func IsNilP(a interface{}) bool {
-	if a == nil {
-		return true
-	}
-	v := reflect.ValueOf(a)
-	if v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
-		return v.IsNil()
-	}
-	return false
 }
 
 func MustDecode(data []byte, v interface{}) {

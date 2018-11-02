@@ -119,6 +119,9 @@ minExecFee=100000
 enableStat=false
 enableMVCC=false
 
+[exec.sub.token]
+saveTokenTxList=true
+
 [exec.sub.cert]
 # 是否启用证书验证和签名
 enable=false
