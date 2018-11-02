@@ -130,6 +130,12 @@ func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transacti
 }
 
 func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+	tx := createCoinsTx(to, amount)
+	tx.Sign(types.SECP256K1, priv)
+	return tx
+}
+
+func createCoinsTx(to string, amount int64) *types.Transaction {
 	exec := types.LoadExecutorType("coins")
 	if exec == nil {
 		panic("unknow driver coins")
@@ -143,8 +149,23 @@ func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transact
 	}
 	tx.To = to
 	tx, _ = types.FormatTx("coins", tx)
+	return tx
+}
+
+func CreateTxWithTxHeight(priv crypto.PrivKey, to string, amount, expire int64) *types.Transaction {
+	tx := createCoinsTx(to, amount)
+	tx.Expire = expire + types.TxHeightFlag
 	tx.Sign(types.SECP256K1, priv)
 	return tx
+}
+
+func GenTxsTxHeigt(priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
+	to, _ := Genaddress()
+	for i := 0; i < int(n); i++ {
+		tx := CreateTxWithTxHeight(priv, to, types.Coin*(n+1), 20+height)
+		txs = append(txs, tx)
+	}
+	return txs
 }
 
 var zeroHash [32]byte
