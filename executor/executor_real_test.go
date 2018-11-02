@@ -41,7 +41,7 @@ func newMockNode() *testnode.Chain33Mock {
 func TestTxGroup(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
 	cfg := mock33.GetCfg()
@@ -138,7 +138,7 @@ func TestTxGroup(t *testing.T) {
 func TestExecAllow(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
 	genkey := mock33.GetGenesisKey()

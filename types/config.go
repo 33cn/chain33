@@ -9,7 +9,6 @@ import (
 var chainBaseParam *ChainParam
 var chainV3Param *ChainParam
 var chainConfig map[string]interface{}
-var configMutex sync.Mutex
 
 func init() {
 	initChainBase()
