@@ -159,8 +159,11 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 		return nil, types.ErrActionNotSupport
 	}
 	defer func() {
+		if types.IsLocal() || types.GetTitle() == "chain33" {
+			return
+		}
 		if r := recover(); r != nil {
-			blog.Error("call local error", "prefix", prefix, "tx", tx)
+			blog.Error("call localexec error", "prefix", prefix, "tx", tx)
 			switch x := r.(type) {
 			case string:
 				err = errors.New(x)
@@ -219,8 +222,11 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 		return nil, nil
 	}
 	defer func() {
+		if types.IsLocal() || types.GetTitle() == "chain33" {
+			return
+		}
 		if r := recover(); r != nil {
-			blog.Error("call local error", "tx", tx)
+			blog.Error("call exec error", "tx", tx)
 			switch x := r.(type) {
 			case string:
 				err = errors.New(x)
