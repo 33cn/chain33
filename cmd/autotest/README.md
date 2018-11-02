@@ -27,8 +27,8 @@ chain33开发人员修改框架或dapp代码，验证测试
 ```
 
 //启动单节点solo版本chain33，运行默认配置autotest，dapp用于指定需要跑的配置用例
-$ make autotest dapp=bty
-$ make autotest dapp="bty token"
+$ make autotest dapp=coins
+$ make autotest dapp="coins token"
 
 //dapp=all，执行所有预配置用例
 $ make autotest dapp=all

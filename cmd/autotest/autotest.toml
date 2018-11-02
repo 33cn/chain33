@@ -8,8 +8,8 @@ checkTimeout = 10
 
 
 [[TestCaseFile]]
-contract = "bty"
-filename = "bty.toml"
+contract = "coins"
+filename = "coins.toml"
 
 [[TestCaseFile]]
 contract = "token"
