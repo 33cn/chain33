@@ -398,9 +398,16 @@ func PBToJson(r Message) ([]byte, error) {
 func IsNil(a interface{}) (ok bool) {
 	defer func() {
 		if e := recover(); e != nil {
+			panic(e)
 			ok = false
 		}
 	}()
+	if v, ok := a.(reflect.Value); ok {
+		if !v.IsValid() {
+			return true
+		}
+		return v.IsNil()
+	}
 	return a == nil || reflect.ValueOf(a).IsNil()
 }
 
