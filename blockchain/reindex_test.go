@@ -14,7 +14,7 @@ import (
 )
 
 func TestReindex(t *testing.T) {
-	mock33 := testnode.New("--notset-free--", nil)
+	mock33 := testnode.New("--free--", nil)
 	//发送交易
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
