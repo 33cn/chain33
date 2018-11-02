@@ -118,7 +118,7 @@ func getChainConfig(key string) (value interface{}, err error) {
 		return data, nil
 	}
 	if isLocal() {
-		panic("chain config " + key + " not found")
+		tlog.Warn("chain config " + key + " not found")
 	}
 	return nil, ErrNotFound
 }
