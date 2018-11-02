@@ -52,14 +52,14 @@ func TestRPCChannel(t *testing.T) {
 		{fn: testRescanUtxosOpt},
 		{fn: testEnablePrivacy},
 	}
-	for _, testCase := range testCases {
+	for index, testCase := range testCases {
 		err := testCase.fn(t, jrpcClient)
 		if err == nil {
 			continue
 		}
-		assert.NotEqual(t, err, types.ErrActionNotSupport)
-		if strings.Contains(err.Error(), "rpc: can't find method") {
-			assert.FailNow(t, err.Error())
+		assert.NotEqualf(t, err, types.ErrActionNotSupport, "test index %d", index)
+		if strings.Contains(err.Error(), "rpc: can't find") {
+			assert.FailNowf(t, err.Error(), "test index %d", index)
 		}
 	}
 }
