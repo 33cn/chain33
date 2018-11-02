@@ -164,7 +164,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	if size > 0 {
 		mem.Resize(size)
 	}
-	mem.SetMinFee(types.MinFee)
+	mem.SetMinFee(types.GInt("MinFee"))
 	mem.WaitPollLastHeader()
 	return q, mem
 }
