@@ -7,11 +7,11 @@ import (
 )
 
 func TestChainConfig(t *testing.T) {
-	SetChainConfig("a", true)
-	_, err := GetChainConfig("b")
+	S("a", true)
+	_, err := G("b")
 	assert.Equal(t, err, ErrNotFound)
 
-	adata, err := GetChainConfig("a")
+	adata, err := G("a")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, adata.(bool), true)
 }

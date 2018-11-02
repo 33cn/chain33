@@ -14,7 +14,7 @@ import (
 )
 
 func TestReindex(t *testing.T) {
-	mock33 := testnode.New("--notset--", nil)
+	mock33 := testnode.New("--free--", nil)
 	//发送交易
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
@@ -35,14 +35,14 @@ func TestReindex(t *testing.T) {
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(2)
-	txs = util.GenNoneTxs(1)
+	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 1)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(3)
-	txs = util.GenNoneTxs(2)
+	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 2)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)

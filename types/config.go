@@ -8,14 +8,13 @@ import (
 
 var chainBaseParam *ChainParam
 var chainV3Param *ChainParam
-var chainConfig map[string]interface{}
-var configMutex sync.Mutex
+var chainConfig = make(map[string]interface{})
 
 func init() {
 	initChainBase()
 	initChainBityuanV3()
-
-	chainConfig = make(map[string]interface{})
+	S("TestNet", false)
+	SetMinFee(1e5)
 }
 
 func initChainBase() {
@@ -74,20 +73,60 @@ type ChainParam struct {
 	RetargetAdjustmentFactor int64
 }
 
-func SetChainConfig(key string, value interface{}) {
-	configMutex.Lock()
+func setChainConfig(key string, value interface{}) {
 	chainConfig[key] = value
-	configMutex.Unlock()
 }
 
-func GetChainConfig(key string) (value interface{}, err error) {
-	configMutex.Lock()
+func IsEnable(name string) bool {
+	isenable, err := G(name)
+	if err == nil && isenable.(bool) {
+		return true
+	}
+	return false
+}
+
+func GInt(name string) int64 {
+	value, err := G(name)
+	if err != nil {
+		return 0
+	}
+	if i, ok := value.(int64); ok {
+		return i
+	}
+	return 0
+}
+
+func GStr(name string) string {
+	value, err := G(name)
+	if err != nil {
+		return ""
+	}
+	if i, ok := value.(string); ok {
+		return i
+	}
+	return ""
+}
+
+func S(key string, value interface{}) {
+	mu.Lock()
+	defer mu.Unlock()
+	setChainConfig(key, value)
+}
+
+func getChainConfig(key string) (value interface{}, err error) {
 	if data, ok := chainConfig[key]; ok {
-		configMutex.Unlock()
 		return data, nil
 	}
-	configMutex.Unlock()
+	if isLocal() {
+		tlog.Warn("chain config " + key + " not found")
+	}
 	return nil, ErrNotFound
+}
+
+func G(key string) (value interface{}, err error) {
+	mu.Lock()
+	defer mu.Unlock()
+	return getChainConfig(key)
 }
 
 func GetP(height int64) *ChainParam {
@@ -103,17 +142,13 @@ var (
 	//这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
 	AllowDepositExec = [][]byte{[]byte("ticket")}
 
-	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	GenesisBlockTime   int64 = 1526486816
-	HotkeyAddr               = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	FundKeyAddr              = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
-	EmptyValue               = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	SuperManager             = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
-	TokenApprs               = []string{}
-	MinFee             int64 = 1e5
-	MinBalanceTransfer int64 = 1e6
-	// 隐私交易中最大的混淆度
-	PrivacyMaxCount = 16
+	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+	GenesisBlockTime int64 = 1526486816
+	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+	FundKeyAddr            = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	EmptyValue             = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	SuperManager           = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
+	TokenApprs             = []string{}
 )
 
 // coin conversation
@@ -129,15 +164,8 @@ const (
 )
 
 var (
-	testNet      bool
-	title        string
-	FeePerKB     = MinFee
-	PrivacyTxFee = Coin
-	//used in Getname for exec driver
-	ExecNamePrefix       string
-	ParaRemoteGrpcClient string
-	SaveTokenTxList      bool
-	mu                   sync.Mutex
+	title string
+	mu    sync.Mutex
 )
 
 var titles = map[string]bool{}
@@ -152,21 +180,30 @@ func Init(t string, cfg *Config) {
 	}
 	titles[t] = true
 	title = t
-	if IsPara() {
-		ExecNamePrefix = title
+	if cfg != nil {
+		if isLocal() {
+			setTestNet(true)
+		} else {
+			setTestNet(cfg.TestNet)
+		}
+		if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
+			panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
+		}
+		setMinFee(cfg.Exec.MinExecFee)
+		setChainConfig("FixTime", cfg.FixTime)
 	}
 	//local 只用于单元测试
-	if IsLocal() {
+	if isLocal() {
 		initChainTestNet()
-		SetLocalFork()
-		SetChainConfig("TxHeight", true)
-		Debug = true
+		setLocalFork()
+		setChainConfig("TxHeight", true)
+		setChainConfig("Debug", true)
 		return
 	}
 	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
-	if IsPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
+	if isPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
 		//keep superManager same with mainnet
-		SetForkForPara(title)
+		setForkForPara(title)
 		return
 	}
 	if cfg != nil && cfg.Fork != nil {
@@ -180,93 +217,76 @@ func GetTitle() string {
 	return title
 }
 
-func IsBityuan() bool {
-	return title == "bityuan"
-}
-
-func IsLocal() bool {
+func isLocal() bool {
 	return title == "local"
 }
 
-func IsYcc() bool {
-	return title == "yuanchain"
+func IsLocal() bool {
+	mu.Lock()
+	defer mu.Unlock()
+	return IsLocal()
+}
+
+func SetMinFee(fee int64) {
+	mu.Lock()
+	defer mu.Unlock()
+	setMinFee(fee)
+}
+
+func isPara() bool {
+	//user.p.guodun.
+	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
 }
 
 func IsPara() bool {
-	//user.p.guodun.
-	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
+	mu.Lock()
+	defer mu.Unlock()
+	return isPara()
 }
 
 func IsParaExecName(name string) bool {
 	return strings.HasPrefix(name, ParaKeyX)
 }
 
-func IsPublicChain() bool {
-	return IsBityuan() || IsYcc()
-}
-
-func SetTestNet(isTestNet bool) {
+func setTestNet(isTestNet bool) {
 	if !isTestNet {
-		testNet = false
+		setChainConfig("TestNet", false)
 		return
 	}
-	testNet = true
+	setChainConfig("TestNet", true)
 	//const 初始化TestNet 的初始化参数
 	GenesisBlockTime = 1514533394
 	FundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
-	SuperManager = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	SuperManager = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
 	TokenApprs = []string{
 		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
 		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
 		"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
 		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
 		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
-	}
-	if IsLocal() {
-		return
+		"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
 	}
 }
 
 func IsTestNet() bool {
-	return testNet
+	return IsEnable("TestNet")
 }
 
-func SetMinFee(fee int64) {
+func setMinFee(fee int64) {
 	if fee < 0 {
 		panic("fee less than zero")
 	}
-	MinFee = fee
-	MinBalanceTransfer = fee * 10
+	setChainConfig("MinFee", fee)
+	setChainConfig("MinBalanceTransfer", fee*10)
 }
 
 func GetParaName() string {
 	if IsPara() {
-		return title
+		return GetTitle()
 	}
 	return ""
 }
 
 func FlagKV(key []byte, value int64) *KeyValue {
 	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
-}
-
-func SetParaRemoteGrpcClient(grpc string) {
-	if IsPara() {
-		ParaRemoteGrpcClient = grpc
-	}
-}
-
-func GetParaRemoteGrpcClient() string {
-	if IsPara() {
-		return ParaRemoteGrpcClient
-	}
-	return ""
-}
-
-func SetSaveTokenTxList(v bool) {
-	SaveTokenTxList = v
-}
-
-func GetSaveTokenTxList() bool {
-	return SaveTokenTxList
 }
