@@ -53,7 +53,7 @@ func addBakupCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().Int64P("delay", "d", 60, "delay period (minimum 60 seconds)")
 	cmd.MarkFlagRequired("delay")
 
-	defaultFee := float64(types.MinFee) / float64(types.Coin)
+	defaultFee := float64(types.GInt("MinFee")) / float64(types.Coin)
 	cmd.Flags().Float64P("fee", "f", defaultFee, "transaction fee")
 }
 
@@ -96,7 +96,7 @@ func addRetrieveCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("default", "t", "", "default address")
 	cmd.MarkFlagRequired("default")
 
-	defaultFee := float64(types.MinFee) / float64(types.Coin)
+	defaultFee := float64(types.GInt("MinFee")) / float64(types.Coin)
 	cmd.Flags().Float64P("fee", "f", defaultFee, "sign address")
 }
 

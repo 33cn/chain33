@@ -216,8 +216,8 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 		amount = action.GetPrivacy2Public().Amount
 	}
 
-	if tx.Fee < types.PrivacyTxFee {
-		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "fee set:", tx.Fee, "required:", types.PrivacyTxFee, " error ErrPrivacyTxFeeNotEnough")
+	if tx.Fee < pty.PrivacyTxFee {
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "fee set:", tx.Fee, "required:", pty.PrivacyTxFee, " error ErrPrivacyTxFeeNotEnough")
 		return pty.ErrPrivacyTxFeeNotEnough
 	}
 
@@ -271,8 +271,8 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 		feeAmount = totalInput - totalOutput - amount
 	}
 
-	if feeAmount < types.PrivacyTxFee {
-		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "fee available:", feeAmount, "required:", types.PrivacyTxFee)
+	if feeAmount < pty.PrivacyTxFee {
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "fee available:", feeAmount, "required:", pty.PrivacyTxFee)
 		return pty.ErrPrivacyTxFeeNotEnough
 	}
 	return nil
