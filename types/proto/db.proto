@@ -89,10 +89,6 @@ message PruneData {
     // bytes rHash  = 3;
 }
 
-message DeleteNodeMap {
-    map<string, bool> mpNode = 1;
-}
-
 //用于存储db Pool数据的Value
 message StoreValuePool {
     repeated bytes values = 1;

@@ -453,6 +453,9 @@ func (node *MarkNode) fetchParentNode(ndb *markNodeDB) *MarkNode {
 }
 
 func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
+	if len(hash) == 0 {
+		return nil, ErrNodeNotExist
+	}
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
