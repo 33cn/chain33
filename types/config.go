@@ -8,13 +8,12 @@ import (
 
 var chainBaseParam *ChainParam
 var chainV3Param *ChainParam
-var chainConfig map[string]interface{}
+var chainConfig = make(map[string]interface{})
 
 func init() {
 	initChainBase()
 	initChainBityuanV3()
-
-	chainConfig = make(map[string]interface{})
+	S("TestNet", false)
 }
 
 func initChainBase() {
