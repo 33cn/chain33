@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/hex"
-	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -16,7 +15,6 @@ import (
 )
 
 //提供系统rpc接口
-var random = rand.New(rand.NewSource(types.Now().UnixNano()))
 var log = log15.New("module", "rpc")
 
 type channelClient struct {
