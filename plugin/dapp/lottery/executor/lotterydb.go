@@ -115,7 +115,7 @@ func NewLotteryAction(l *Lottery, tx *types.Transaction, index int) *Action {
 	fromaddr := tx.From()
 
 	msgRecvOp := grpc.WithMaxMsgSize(grpcRecSize)
-	conn, err := grpc.Dial(types.GetParaRemoteGrpcClient(), grpc.WithInsecure(), msgRecvOp)
+	conn, err := grpc.Dial(cfg.ParaRemoteGrpcClient, grpc.WithInsecure(), msgRecvOp)
 
 	if err != nil {
 		panic(err)

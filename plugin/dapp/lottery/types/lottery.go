@@ -2,9 +2,7 @@ package types
 
 import (
 	"encoding/json"
-	"math/rand"
 	"reflect"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -113,15 +111,13 @@ func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error)
 		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(create),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
-
-	err := tx.SetRealFee(types.MinFee)
+	name := types.ExecName(LotteryX)
+	tx, err := types.FormatTx(name, tx)
 	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }
 
@@ -145,15 +141,13 @@ func CreateRawLotteryBuyTx(parm *LotteryBuyTx) (*types.Transaction, error) {
 		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
-
-	err := tx.SetRealFee(types.MinFee)
+	name := types.ExecName(LotteryX)
+	tx, err := types.FormatTx(name, tx)
 	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }
 
@@ -174,15 +168,13 @@ func CreateRawLotteryDrawTx(parm *LotteryDrawTx) (*types.Transaction, error) {
 		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(draw),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
-
-	err := tx.SetRealFee(types.MinFee)
+	name := types.ExecName(LotteryX)
+	tx, err := types.FormatTx(name, tx)
 	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }
 
@@ -203,14 +195,13 @@ func CreateRawLotteryCloseTx(parm *LotteryCloseTx) (*types.Transaction, error) {
 		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(close),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
 
-	err := tx.SetRealFee(types.MinFee)
+	name := types.ExecName(LotteryX)
+	tx, err := types.FormatTx(name, tx)
 	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }

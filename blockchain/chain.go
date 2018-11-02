@@ -147,7 +147,7 @@ func initConfig(cfg *types.BlockChain) {
 	isStrongConsistency = cfg.IsStrongConsistency
 	isRecordBlockSequence = cfg.IsRecordBlockSequence
 	isParaChain = cfg.IsParaChain
-	types.SetChainConfig("quickIndex", cfg.EnableTxQuickIndex)
+	types.S("quickIndex", cfg.EnableTxQuickIndex)
 }
 
 func (chain *BlockChain) Close() {
@@ -212,7 +212,7 @@ func (chain *BlockChain) InitBlockChain() {
 		curdbver = 1
 		chain.blockStore.SetDbVersion(curdbver)
 	}
-	types.SetChainConfig("dbversion", curdbver)
+	types.S("dbversion", curdbver)
 	if !chain.cfg.IsParaChain {
 		// 定时检测/同步block
 		go chain.SynRoutine()

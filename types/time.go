@@ -15,14 +15,6 @@ var NtpHosts = []string{
 	"time.apple.com:123",
 }
 
-func SetFixTime(openTimeCalibration bool) {
-	timeCalibration = openTimeCalibration
-}
-
-func IsFixTime() bool {
-	return timeCalibration
-}
-
 //realtime - localtime
 //超过60s 不做修正
 //为了系统的安全，我们只做小范围时间错误的修复
