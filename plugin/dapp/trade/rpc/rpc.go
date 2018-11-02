@@ -2,10 +2,6 @@ package rpc
 
 import (
 	"context"
-	"math/rand"
-	"time"
-
-	"gitlab.33.cn/chain33/chain33/common/address"
 
 	ptypes "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -19,17 +15,10 @@ func (this *channelClient) CreateRawTradeSellTx(ctx context.Context, in *ptypes.
 		Ty:    ptypes.TradeSellLimit,
 		Value: &ptypes.Trade_SellLimit{SellLimit: in},
 	}
-	tx := &types.Transaction{
-		Execer:  []byte(ptypes.TradeX),
-		Payload: types.Encode(sell),
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(ptypes.TradeX),
-	}
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(types.ExecName(ptypes.TradeX), types.Encode(sell))
 	if err != nil {
 		return nil, err
 	}
-
 	data := types.Encode(tx)
 	return &types.UnsignTx{Data: data}, nil
 }
@@ -42,17 +31,10 @@ func (this *channelClient) CreateRawTradeBuyTx(ctx context.Context, in *ptypes.T
 		Ty:    ptypes.TradeBuyMarket,
 		Value: &ptypes.Trade_BuyMarket{in},
 	}
-	tx := &types.Transaction{
-		Execer:  []byte(ptypes.TradeX),
-		Payload: types.Encode(buy),
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(ptypes.TradeX),
-	}
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(types.ExecName(ptypes.TradeX), types.Encode(buy))
 	if err != nil {
 		return nil, err
 	}
-
 	data := types.Encode(tx)
 	return &types.UnsignTx{Data: data}, nil
 }
@@ -65,17 +47,10 @@ func (this *channelClient) CreateRawTradeRevokeTx(ctx context.Context, in *ptype
 		Ty:    ptypes.TradeRevokeSell,
 		Value: &ptypes.Trade_RevokeSell{in},
 	}
-	tx := &types.Transaction{
-		Execer:  []byte(ptypes.TradeX),
-		Payload: types.Encode(buy),
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(ptypes.TradeX),
-	}
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(types.ExecName(ptypes.TradeX), types.Encode(buy))
 	if err != nil {
 		return nil, err
 	}
-
 	data := types.Encode(tx)
 	return &types.UnsignTx{Data: data}, nil
 }
@@ -88,17 +63,10 @@ func (this *channelClient) CreateRawTradeBuyLimitTx(ctx context.Context, in *pty
 		Ty:    ptypes.TradeBuyLimit,
 		Value: &ptypes.Trade_BuyLimit{in},
 	}
-	tx := &types.Transaction{
-		Execer:  []byte(ptypes.TradeX),
-		Payload: types.Encode(buy),
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(ptypes.TradeX),
-	}
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(types.ExecName(ptypes.TradeX), types.Encode(buy))
 	if err != nil {
 		return nil, err
 	}
-
 	data := types.Encode(tx)
 	return &types.UnsignTx{Data: data}, nil
 }
@@ -111,17 +79,10 @@ func (this *channelClient) CreateRawTradeSellMarketTx(ctx context.Context, in *p
 		Ty:    ptypes.TradeSellMarket,
 		Value: &ptypes.Trade_SellMarket{in},
 	}
-	tx := &types.Transaction{
-		Execer:  []byte(ptypes.TradeX),
-		Payload: types.Encode(buy),
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(ptypes.TradeX),
-	}
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(types.ExecName(ptypes.TradeX), types.Encode(buy))
 	if err != nil {
 		return nil, err
 	}
-
 	data := types.Encode(tx)
 	return &types.UnsignTx{Data: data}, nil
 }
@@ -134,17 +95,10 @@ func (this *channelClient) CreateRawTradeRevokeBuyTx(ctx context.Context, in *pt
 		Ty:    ptypes.TradeRevokeBuy,
 		Value: &ptypes.Trade_RevokeBuy{in},
 	}
-	tx := &types.Transaction{
-		Execer:  []byte(ptypes.TradeX),
-		Payload: types.Encode(buy),
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(ptypes.TradeX),
-	}
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(types.ExecName(ptypes.TradeX), types.Encode(buy))
 	if err != nil {
 		return nil, err
 	}
-
 	data := types.Encode(tx)
 	return &types.UnsignTx{Data: data}, nil
 }

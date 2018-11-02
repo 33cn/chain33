@@ -11,7 +11,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
-var random = rand.New(rand.NewSource(Now().UnixNano()))
+func init() {
+	rand.Seed(Now().UnixNano())
+}
 
 type LogType interface {
 	Name() string
@@ -97,7 +99,7 @@ func CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		tlog.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-	return formatTx(execName, tx)
+	return FormatTxEncode(execName, tx)
 }
 
 func CallCreateTx(execName, action string, param Message) ([]byte, error) {
@@ -116,19 +118,35 @@ func CallCreateTx(execName, action string, param Message) ([]byte, error) {
 		tlog.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-	return formatTx(execName, tx)
+	return FormatTxEncode(execName, tx)
 }
 
-func formatTx(execName string, tx *Transaction) ([]byte, error) {
+func CreateFormatTx(execName string, payload []byte) (*Transaction, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
-	tx.Nonce = random.Int63()
+	tx := &Transaction{Payload: payload}
+	return FormatTx(execName, tx)
+}
+
+func FormatTx(execName string, tx *Transaction) (*Transaction, error) {
+	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
+	tx.Nonce = rand.Int63()
 	tx.Execer = []byte(execName)
 	//平行链，所有的to地址都是合约地址
 	if IsPara() || tx.To == "" {
 		tx.To = address.ExecAddress(string(tx.Execer))
 	}
 	var err error
-	tx.Fee, err = tx.GetRealFee(MinFee)
+	if tx.Fee == 0 {
+		tx.Fee, err = tx.GetRealFee(GInt("MinFee"))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return tx, nil
+}
+
+func FormatTxEncode(execName string, tx *Transaction) ([]byte, error) {
+	tx, err := FormatTx(execName, tx)
 	if err != nil {
 		return nil, err
 	}

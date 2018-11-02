@@ -102,7 +102,7 @@ func addUserData(cmd *cobra.Command, args []string) {
 		Payload: []byte(data),
 		To:      addrResult,
 	}
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	tx.Fee, err = tx.GetRealFee(types.GInt("MinFee"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

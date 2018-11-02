@@ -540,6 +540,9 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 	//构造transaction
 	tx := client.createMinerTx(&ticketAction, priv)
 	//unshift
+	if tx == nil {
+		return
+	}
 	block.Difficulty = miner.Bits
 	//判断是替换还是append
 	_, err := client.getMinerTx(block)
@@ -552,12 +555,10 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 }
 
 func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.PrivKey) *types.Transaction {
-	tx := &types.Transaction{}
-	tx.Execer = []byte("ticket")
-	tx.Fee = types.MinFee
-	tx.Nonce = client.RandInt64()
-	tx.To = address.ExecAddress("ticket")
-	tx.Payload = types.Encode(ticketAction)
+	tx, err := types.CreateFormatTx("ticket", types.Encode(ticketAction))
+	if err != nil {
+		return nil
+	}
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }

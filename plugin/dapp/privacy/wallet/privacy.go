@@ -173,7 +173,7 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 		To:      address.ExecAddress(privacytypes.PrivacyX),
 	}
 	txSize := types.Size(tx) + types.SignatureSize
-	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
+	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.GInt("MinFee")
 	tx.Fee = realFee
 	tx.Sign(int32(operater.GetSignType()), priv)
 
@@ -442,7 +442,7 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 	}
 
 	if buildInfo.mixcount > 0 {
-		reqGetGlobalIndex.MixCount = common.MinInt32(int32(types.PrivacyMaxCount), common.MaxInt32(buildInfo.mixcount, 0))
+		reqGetGlobalIndex.MixCount = common.MinInt32(int32(privacytypes.PrivacyMaxCount), common.MaxInt32(buildInfo.mixcount, 0))
 	}
 	for _, out := range selectedUtxo {
 		reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, out.amount)
@@ -606,7 +606,7 @@ func (policy *privacyPolicy) createPublic2PrivacyTx(req *types.ReqCreateTransact
 	}
 
 	txSize := types.Size(tx) + types.SignatureSize
-	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
+	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.GInt("MinFee")
 	tx.Fee = realFee
 	return tx, nil
 }
@@ -615,22 +615,19 @@ func (policy *privacyPolicy) createPrivacy2PrivacyTx(req *types.ReqCreateTransac
 	buildInfo := &buildInputInfo{
 		tokenname: req.GetTokenname(),
 		sender:    req.GetFrom(),
-		amount:    req.GetAmount() + types.PrivacyTxFee,
+		amount:    req.GetAmount() + privacytypes.PrivacyTxFee,
 		mixcount:  req.GetMixcount(),
 	}
-
 	privacyInfo, err := policy.getPrivacykeyPair(req.GetFrom())
 	if err != nil {
 		bizlog.Error("createPrivacy2PrivacyTx", "getPrivacykeyPair error", err)
 		return nil, err
 	}
-
 	//step 1,buildInput
 	privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, err := policy.buildInput(privacyInfo, buildInfo)
 	if err != nil {
 		return nil, err
 	}
-
 	//step 2,generateOuts
 	viewPublicSlice, spendPublicSlice, err := parseViewSpendPubKeyPair(req.GetPubkeypair())
 	if err != nil {
@@ -649,7 +646,7 @@ func (policy *privacyPolicy) createPrivacy2PrivacyTx(req *types.ReqCreateTransac
 		selectedAmounTotal += input.Amount
 	}
 	//构造输出UTXO
-	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, req.GetAmount(), selectedAmounTotal, types.PrivacyTxFee)
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, req.GetAmount(), selectedAmounTotal, privacytypes.PrivacyTxFee)
 	if err != nil {
 		return nil, err
 	}
@@ -669,7 +666,7 @@ func (policy *privacyPolicy) createPrivacy2PrivacyTx(req *types.ReqCreateTransac
 	tx := &types.Transaction{
 		Execer:  []byte(privacytypes.PrivacyX),
 		Payload: types.Encode(action),
-		Fee:     types.PrivacyTxFee,
+		Fee:     privacytypes.PrivacyTxFee,
 		Nonce:   policy.getWalletOperate().Nonce(),
 		To:      address.ExecAddress(privacytypes.PrivacyX),
 	}
@@ -689,7 +686,7 @@ func (policy *privacyPolicy) createPrivacy2PublicTx(req *types.ReqCreateTransact
 	buildInfo := &buildInputInfo{
 		tokenname: req.GetTokenname(),
 		sender:    req.GetFrom(),
-		amount:    req.GetAmount() + types.PrivacyTxFee,
+		amount:    req.GetAmount() + privacytypes.PrivacyTxFee,
 		mixcount:  req.GetMixcount(),
 	}
 	privacyInfo, err := policy.getPrivacykeyPair(req.GetFrom())
@@ -718,7 +715,7 @@ func (policy *privacyPolicy) createPrivacy2PublicTx(req *types.ReqCreateTransact
 	changeAmount := selectedAmounTotal - req.GetAmount()
 	//step 2,generateOuts
 	//构造输出UTXO,只生成找零的UTXO
-	privacyOutput, err := generateOuts(nil, nil, viewPub4chgPtr, spendPub4chgPtr, 0, changeAmount, types.PrivacyTxFee)
+	privacyOutput, err := generateOuts(nil, nil, viewPub4chgPtr, spendPub4chgPtr, 0, changeAmount, privacytypes.PrivacyTxFee)
 	if err != nil {
 		return nil, err
 	}
@@ -738,7 +735,7 @@ func (policy *privacyPolicy) createPrivacy2PublicTx(req *types.ReqCreateTransact
 	tx := &types.Transaction{
 		Execer:  []byte(privacytypes.PrivacyX),
 		Payload: types.Encode(action),
-		Fee:     types.PrivacyTxFee,
+		Fee:     privacytypes.PrivacyTxFee,
 		Nonce:   policy.getWalletOperate().Nonce(),
 		To:      req.GetTo(),
 	}
@@ -1023,7 +1020,7 @@ func (policy *privacyPolicy) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *pri
 	}
 	tx.SetExpire(time.Duration(reqPub2Pri.GetExpire()))
 	txSize := types.Size(tx) + types.SignatureSize
-	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
+	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.GInt("MinFee")
 	tx.Fee = realFee
 	tx.Sign(int32(operater.GetSignType()), priv)
 
@@ -1065,7 +1062,7 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 	buildInfo := &buildInputInfo{
 		tokenname: reqPri2Pri.Tokenname,
 		sender:    reqPri2Pri.Sender,
-		amount:    reqPri2Pri.Amount + types.PrivacyTxFee,
+		amount:    reqPri2Pri.Amount + privacytypes.PrivacyTxFee,
 		mixcount:  reqPri2Pri.Mixin,
 	}
 
@@ -1094,7 +1091,7 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 		selectedAmounTotal += input.Amount
 	}
 	//构造输出UTXO
-	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, reqPri2Pri.Amount, selectedAmounTotal, types.PrivacyTxFee)
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, reqPri2Pri.Amount, selectedAmounTotal, privacytypes.PrivacyTxFee)
 	if err != nil {
 		bizlog.Error("transPub2Pri", "generateOuts  ", err)
 		return nil, err
@@ -1116,7 +1113,7 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 	tx := &types.Transaction{
 		Execer:  []byte(privacytypes.PrivacyX),
 		Payload: types.Encode(action),
-		Fee:     types.PrivacyTxFee,
+		Fee:     privacytypes.PrivacyTxFee,
 		Nonce:   operater.Nonce(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: address.ExecAddress(privacytypes.PrivacyX),
@@ -1196,7 +1193,7 @@ func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 	buildInfo := &buildInputInfo{
 		tokenname: reqPri2Pub.Tokenname,
 		sender:    reqPri2Pub.Sender,
-		amount:    reqPri2Pub.Amount + types.PrivacyTxFee,
+		amount:    reqPri2Pub.Amount + privacytypes.PrivacyTxFee,
 		mixcount:  reqPri2Pub.Mixin,
 	}
 	//step 1,buildInput
@@ -1220,7 +1217,7 @@ func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 	changeAmount := selectedAmounTotal - reqPri2Pub.Amount
 	//step 2,generateOuts
 	//构造输出UTXO,只生成找零的UTXO
-	privacyOutput, err := generateOuts(nil, nil, viewPub4chgPtr, spendPub4chgPtr, 0, changeAmount, types.PrivacyTxFee)
+	privacyOutput, err := generateOuts(nil, nil, viewPub4chgPtr, spendPub4chgPtr, 0, changeAmount, privacytypes.PrivacyTxFee)
 	if err != nil {
 		bizlog.Error("transPri2PubV2", "generateOuts error", err)
 		return nil, err
@@ -1242,7 +1239,7 @@ func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 	tx := &types.Transaction{
 		Execer:  []byte(privacytypes.PrivacyX),
 		Payload: types.Encode(action),
-		Fee:     types.PrivacyTxFee,
+		Fee:     privacytypes.PrivacyTxFee,
 		Nonce:   operater.Nonce(),
 		To:      reqPri2Pub.Receiver,
 	}

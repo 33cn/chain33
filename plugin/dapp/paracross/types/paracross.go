@@ -2,8 +2,6 @@ package types
 
 import (
 	fmt "fmt"
-	"math/rand"
-	"time"
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -95,15 +93,12 @@ func createRawCommitTx(status *ParacrossNodeStatus, name string, fee int64) (*ty
 		Execer:  []byte(name),
 		Payload: types.Encode(action),
 		Fee:     fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(name),
 	}
-
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.FormatTx(name, tx)
 	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }
 
@@ -131,13 +126,11 @@ func CreateRawAssetTransferTx(param *types.CreateTx) (*types.Transaction, error)
 		Payload: types.Encode(transfer),
 		To:      address.ExecAddress(param.GetExecName()),
 		Fee:     param.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 	}
-
-	if err := tx.SetRealFee(types.MinFee); err != nil {
+	tx, err := types.FormatTx(param.GetExecName(), tx)
+	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }
 
@@ -155,12 +148,10 @@ func CreateRawMinerTx(status *ParacrossNodeStatus) (*types.Transaction, error) {
 		Nonce:   0, //for consensus purpose, block hash need same, different auth node need keep totally same vote tx
 		To:      address.ExecAddress(types.ExecName(ParaX)),
 	}
-
-	err := tx.SetRealFee(types.MinFee)
+	err := tx.SetRealFee(types.GInt("MinFee"))
 	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }
 
@@ -187,12 +178,11 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 		Payload: types.Encode(transfer),
 		To:      address.ExecAddress(param.GetExecName()),
 		Fee:     param.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 	}
-
-	if err := tx.SetRealFee(types.MinFee); err != nil {
+	var err error
+	tx, err = types.FormatTx(param.GetExecName(), tx)
+	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }
