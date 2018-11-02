@@ -395,8 +395,12 @@ func PBToJson(r Message) ([]byte, error) {
 }
 
 //判断所有的空值
-func IsNil(a interface{}) bool {
-	defer func() { recover() }()
+func IsNil(a interface{}) (ok bool) {
+	defer func() {
+		if e := recover(); e != nil {
+			ok = true
+		}
+	}()
 	return a == nil || reflect.ValueOf(a).IsNil()
 }
 
