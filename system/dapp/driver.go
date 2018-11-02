@@ -6,7 +6,6 @@ package dapp
 
 import (
 	"bytes"
-	"errors"
 	"reflect"
 
 	log "github.com/inconshreveable/log15"
@@ -160,15 +159,8 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			blog.Error("call local error", "prefix", prefix, "tx", tx)
-			switch x := r.(type) {
-			case string:
-				err = errors.New(x)
-			case error:
-				err = x
-			default:
-				err = types.ErrActionNotSupport
-			}
+			blog.Error("call localexec error", "prefix", prefix, "tx.exec", tx.Execer, "info", r)
+			err = types.ErrActionNotSupport
 			set = nil
 		}
 	}()
@@ -220,15 +212,8 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			blog.Error("call local error", "tx", tx)
-			switch x := r.(type) {
-			case string:
-				err = errors.New(x)
-			case error:
-				err = x
-			default:
-				err = types.ErrActionNotSupport
-			}
+			blog.Error("call exec error", "tx.exec", tx.Execer, "info", r)
+			err = types.ErrActionNotSupport
 			receipt = nil
 		}
 	}()
