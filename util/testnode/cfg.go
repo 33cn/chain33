@@ -75,6 +75,7 @@ hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 [consensus.sub.solo]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 genesisBlockTime=1514533394
+waitTxMs=10
 
 [consensus.sub.ticket]
 genesisBlockTime=1514533394
