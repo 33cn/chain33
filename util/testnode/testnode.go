@@ -128,19 +128,15 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	var cfg *types.Config
 	var sub *types.ConfigSubModule
-	if cfgpath == "" || cfgpath == "--notset--" || cfgpath == "--notset-free--" {
+	if cfgpath == "" || cfgpath == "--notset--" || cfgpath == "--free--" {
 		cfg, sub = config.InitCfgString(cfgstring)
-		if cfgpath == "--notset-free--" {
+		if cfgpath == "--free--" {
 			setFee(cfg, 0)
 		}
 	} else {
 		cfg, sub = config.InitCfg(cfgpath)
 	}
-	if cfgpath != "--notset--" {
-		return NewWithConfig(cfg, sub, mockapi)
-	} else {
-		return newWithConfig(cfg, sub, mockapi)
-	}
+	return newWithConfig(cfg, sub, mockapi)
 }
 
 func (m *Chain33Mock) Listen() {
