@@ -409,6 +409,9 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 	if err != nil {
 		return nil, err
 	}
+	if IsNilP(payload) {
+		return nil, ErrDecode
+	}
 	return payload, nil
 }
 
