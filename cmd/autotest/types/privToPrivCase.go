@@ -1,7 +1,6 @@
-package testcase
+package types
 
 import (
-	"errors"
 	"strconv"
 )
 
@@ -17,21 +16,12 @@ type PrivToPrivPack struct {
 	BaseCasePack
 }
 
-func (testCase *PrivToPrivCase) doSendCommand(packID string) (PackFunc, error) {
+func (testCase *PrivToPrivCase) SendCommand(packID string) (PackFunc, error) {
 
-	txHash, bSuccess := sendPrivacyTxCommand(testCase.Command)
-	if !bSuccess {
-		return nil, errors.New(txHash)
-	}
-	pack := PrivToPrivPack{}
-	pack.txHash = txHash
-	pack.tCase = testCase
-	pack.packID = packID
-	pack.checkTimes = 0
-	return &pack, nil
+	return DefaultSend(testCase, &PrivToPrivPack{}, packID)
 }
 
-func (pack *PrivToPrivPack) getCheckHandlerMap() CheckHandlerMap {
+func (pack *PrivToPrivPack) GetCheckHandlerMap() CheckHandlerMap {
 
 	funcMap := make(map[string]CheckHandlerFunc, 2)
 	funcMap["utxo"] = pack.checkUtxo
@@ -40,29 +30,29 @@ func (pack *PrivToPrivPack) getCheckHandlerMap() CheckHandlerMap {
 
 func (pack *PrivToPrivPack) checkUtxo(txInfo map[string]interface{}) bool {
 
-	interCase := pack.tCase.(*PrivToPrivCase)
+	interCase := pack.TCase.(*PrivToPrivCase)
 	logArr := txInfo["receipt"].(map[string]interface{})["logs"].([]interface{})
 	inputLog := logArr[1].(map[string]interface{})["log"].(map[string]interface{})
 	outputLog := logArr[2].(map[string]interface{})["log"].(map[string]interface{})
 	amount, _ := strconv.ParseFloat(interCase.Amount, 64)
 	fee, _ := strconv.ParseFloat(txInfo["tx"].(map[string]interface{})["fee"].(string), 64)
 
-	utxoInput := calcTxUtxoAmount(inputLog, "keyinput")
-	utxoOutput := calcTxUtxoAmount(outputLog, "keyoutput")
+	utxoInput := CalcTxUtxoAmount(inputLog, "keyinput")
+	utxoOutput := CalcTxUtxoAmount(outputLog, "keyoutput")
 
-	fromAvail, err1 := calcUtxoAvailAmount(interCase.From, pack.txHash)
-	fromSpend, err2 := calcUtxoSpendAmount(interCase.From, pack.txHash)
-	toAvail, err3 := calcUtxoAvailAmount(interCase.To, pack.txHash)
+	fromAvail, err1 := CalcUtxoAvailAmount(interCase.From, pack.TxHash)
+	fromSpend, err2 := CalcUtxoSpendAmount(interCase.From, pack.TxHash)
+	toAvail, err3 := CalcUtxoAvailAmount(interCase.To, pack.TxHash)
 
-	utxoCheck := isBalanceEqualFloat(fromAvail, utxoInput-amount-fee) &&
-		isBalanceEqualFloat(toAvail, amount) &&
-		isBalanceEqualFloat(fromSpend, utxoInput)
+	utxoCheck := IsBalanceEqualFloat(fromAvail, utxoInput-amount-fee) &&
+		IsBalanceEqualFloat(toAvail, amount) &&
+		IsBalanceEqualFloat(fromSpend, utxoInput)
 
-	pack.fLog.Info("Private2PrivateUtxoDetail", "TestID", pack.packID,
+	pack.FLog.Info("Private2PrivateUtxoDetail", "TestID", pack.PackID,
 		"FromAddr", interCase.From, "ToAddr", interCase.To, "Fee", fee,
 		"TransferAmount", interCase.Amount, "UtxoInput", utxoInput, "UtxoOutput", utxoOutput,
 		"FromAvailable", fromAvail, "FromSpend", fromSpend, "ToAvailable", toAvail,
 		"CalcFromAvailErr", err1, "CalcFromSpendErr", err2, "CalcToAvailErr", err3)
 
-	return isBalanceEqualFloat(fee, utxoInput-utxoOutput) && utxoCheck
+	return IsBalanceEqualFloat(fee, utxoInput-utxoOutput) && utxoCheck
 }
