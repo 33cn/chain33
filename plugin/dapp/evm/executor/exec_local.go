@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"bytes"
+
 	evmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -23,7 +25,15 @@ func (evm *EVMExecutor) ExecLocal(tx *types.Transaction, receipt *types.ReceiptD
 				if err != nil {
 					return set, err
 				}
-				set.KV = append(set.KV, &types.KeyValue{Key: []byte(changeItem.Key), Value: changeItem.CurrentValue})
+				//转换老的log的key-> 新的key
+				key := []byte(changeItem.Key)
+				if bytes.HasPrefix(key, []byte("mavl-")) {
+					key[0] = 'L'
+					key[1] = 'O'
+					key[2] = 'D'
+					key[3] = 'B'
+				}
+				set.KV = append(set.KV, &types.KeyValue{Key: key, Value: changeItem.CurrentValue})
 			}
 		}
 	}
