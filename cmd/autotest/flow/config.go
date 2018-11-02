@@ -9,7 +9,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/inconshreveable/log15"
-	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 )
 
 var (
@@ -62,7 +61,7 @@ type TestRunner interface {
 
 func InitFlowConfig(conf string, log string) {
 
-	fileLog.SetHandler(log15.Must.FileHandler(log, AutoTestLogFormat()))
+	fileLog.SetHandler(log15.Must.FileHandler(log, types.AutoTestLogFormat()))
 	configFile = conf
 
 }

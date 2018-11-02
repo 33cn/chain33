@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"gitlab.33.cn/chain33/chain33/cmd/autotest/flow"
+
+	_ "gitlab.33.cn/chain33/chain33/cmd/autotest/autotest"
 )
 
 var (

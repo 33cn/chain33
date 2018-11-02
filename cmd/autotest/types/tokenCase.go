@@ -1,4 +1,4 @@
-package autotest
+package types
 
 type TokenPreCreateCase struct {
 	BaseCase
