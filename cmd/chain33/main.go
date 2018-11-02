@@ -77,17 +77,11 @@ func main() {
 		cfg.FixTime = *fixtime
 	}
 	//set test net flag
-	types.SetTestNet(cfg.TestNet)
 	types.Init(cfg.Title, cfg)
-	types.SetFixTime(cfg.FixTime)
-	types.SetParaRemoteGrpcClient(cfg.Consensus.ParaRemoteGrpcClient)
 	if cfg.FixTime {
 		go fixtimeRoutine()
 	}
 	//compare minFee in wallet, mempool, exec
-	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
-		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
-	}
 	//set file log
 	clog.SetFileLog(cfg.Log)
 	//set grpc log
@@ -119,10 +113,6 @@ func main() {
 	go startTrace()
 	//set maxprocs
 	runtime.GOMAXPROCS(cpuNum)
-
-	// SaveTokenTxList
-	types.SetSaveTokenTxList(cfg.Exec.SaveTokenTxList)
-
 	//check mvcc switch，if use kvmvcc then cfg.Exec.EnableMVCC should be always false.
 	/*todo
 	if cfg.Store.Name == "kvmvcc" {

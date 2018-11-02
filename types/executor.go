@@ -121,6 +121,12 @@ func CallCreateTx(execName, action string, param Message) ([]byte, error) {
 	return FormatTxEncode(execName, tx)
 }
 
+func CreateFormatTx(execName string, payload []byte) (*Transaction, error) {
+	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
+	tx := &Transaction{Payload: payload}
+	return FormatTx(execName, tx)
+}
+
 func FormatTx(execName string, tx *Transaction) (*Transaction, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
 	tx.Nonce = rand.Int63()
@@ -130,9 +136,11 @@ func FormatTx(execName string, tx *Transaction) (*Transaction, error) {
 		tx.To = address.ExecAddress(string(tx.Execer))
 	}
 	var err error
-	tx.Fee, err = tx.GetRealFee(MinFee)
-	if err != nil {
-		return nil, err
+	if tx.Fee == 0 {
+		tx.Fee, err = tx.GetRealFee(GInt("MinFee"))
+		if err != nil {
+			return nil, err
+		}
 	}
 	return tx, nil
 }

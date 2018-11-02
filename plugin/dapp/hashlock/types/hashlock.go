@@ -2,8 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"math/rand"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -134,15 +132,12 @@ func CreateRawHashlockLockTx(parm *HashlockLockTx) (*types.Transaction, error) {
 		Execer:  []byte(types.ExecName(HashlockX)),
 		Payload: types.Encode(lock),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(types.ExecName(HashlockX)),
 	}
-
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.FormatTx(types.ExecName(HashlockX), tx)
 	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }
 
@@ -160,14 +155,13 @@ func CreateRawHashlockUnlockTx(parm *HashlockUnlockTx) (*types.Transaction, erro
 		Value: &HashlockAction_Hunlock{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(HashlockX),
+		Execer:  []byte(types.ExecName(HashlockX)),
 		Payload: types.Encode(unlock),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(HashlockX),
 	}
 
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.FormatTx(types.ExecName(HashlockX), tx)
 	if err != nil {
 		return nil, err
 	}
@@ -192,11 +186,9 @@ func CreateRawHashlockSendTx(parm *HashlockSendTx) (*types.Transaction, error) {
 		Execer:  []byte(HashlockX),
 		Payload: types.Encode(send),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(HashlockX),
 	}
-
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.FormatTx(types.ExecName(HashlockX), tx)
 	if err != nil {
 		return nil, err
 	}

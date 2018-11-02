@@ -79,7 +79,7 @@ func crossTxGroupProc(txs []*types.Transaction, index int) ([]*types.Transaction
 	//cross asset transfer in tx group
 	var transfers []*types.Transaction
 	for i := headIdx; i < endIdx; i++ {
-		if bytes.Contains(txs[i].Execer, []byte(types.ExecNamePrefix)) &&
+		if types.IsParaExecName(string(txs[i].Execer)) &&
 			bytes.HasSuffix(txs[i].Execer, []byte(pt.ParaX)) {
 			transfers = append(transfers, txs[i])
 

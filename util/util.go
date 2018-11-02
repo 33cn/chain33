@@ -61,8 +61,7 @@ func MakeStringToLower(in string, pos, count int) (out string, err error) {
 	return
 }
 
-func GenNoneTxs(n int64) (txs []*types.Transaction) {
-	_, priv := Genaddress()
+func GenNoneTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	for i := 0; i < int(n); i++ {
 		txs = append(txs, CreateNoneTx(priv))
 	}
@@ -150,12 +149,12 @@ func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transact
 
 var zeroHash [32]byte
 
-func CreateNoneBlock(n int64) *types.Block {
+func CreateNoneBlock(priv crypto.PrivKey, n int64) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = -1
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
-	newblock.Txs = GenNoneTxs(n)
+	newblock.Txs = GenNoneTxs(priv, n)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	return newblock
 }

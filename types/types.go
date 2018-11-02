@@ -42,7 +42,7 @@ func ExecName(name string) string {
 	if IsParaExecName(name) {
 		return name
 	}
-	return ExecNamePrefix + name
+	return GetTitle() + name
 }
 
 //默认的allow 规则->根据 GetRealExecName 来判断
