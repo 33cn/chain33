@@ -125,8 +125,11 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	var cfg *types.Config
 	var sub *types.ConfigSubModule
-	if cfgpath == "" || cfgpath == "--notset--" {
+	if cfgpath == "" || cfgpath == "--notset--" || cfgpath == "--notset-free--" {
 		cfg, sub = config.InitCfgString(cfgstring)
+		if cfgpath == "--notset-free--" {
+			setFee(cfg, 0)
+		}
 	} else {
 		cfg, sub = config.InitCfg(cfgpath)
 	}
@@ -152,6 +155,15 @@ func (m *Chain33Mock) Listen() {
 
 func (m *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
 	return m.chain
+}
+
+func setFee(cfg *types.Config, fee int64) {
+	cfg.Exec.MinExecFee = fee
+	cfg.MemPool.MinTxFee = fee
+	cfg.Wallet.MinFee = fee
+	if fee == 0 {
+		cfg.Exec.IsFree = true
+	}
 }
 
 func (m *Chain33Mock) GetJsonC() *jsonclient.JSONClient {
