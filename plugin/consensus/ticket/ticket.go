@@ -579,7 +579,7 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 	tx := client.createMinerTx(&ticketAction, priv)
 	//unshift
 	if tx == nil {
-		return
+		return ty.ErrEmptyMinerTx
 	}
 	block.Difficulty = miner.Bits
 	//判断是替换还是append
