@@ -41,6 +41,13 @@ message TicketMiner {
     bytes privHash = 5;
 }
 
+message TicketMinerOld {
+    uint32 bits     = 1;
+    int64  reward   = 2;
+    string ticketId = 3;
+    bytes  modify   = 4;
+}
+
 message MinerFlag {
     int32 flag    = 1;
     int64 reserve = 2;
