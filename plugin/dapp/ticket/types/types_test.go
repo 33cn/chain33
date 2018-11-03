@@ -104,3 +104,23 @@ func TestDecodeLogTicketBind(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, "LogTicketBind", result.Logs[0].TyName)
 }
+
+func TestProtoNewEncodeOldDecode(t *testing.T) {
+	tnew := &TicketMiner{
+		Bits:     1,
+		Reward:   1,
+		TicketId: "id",
+		Modify:   []byte("modify"),
+		PrivHash: []byte("hash"),
+	}
+	data := types.Encode(tnew)
+	told := &TicketMinerOld{}
+	err := types.Decode(data, told)
+	assert.Nil(t, err)
+	assert.Equal(t, &TicketMinerOld{
+		Bits:     1,
+		Reward:   1,
+		TicketId: "id",
+		Modify:   []byte("modify"),
+	}, told)
+}

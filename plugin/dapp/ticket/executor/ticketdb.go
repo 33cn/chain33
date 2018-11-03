@@ -2,7 +2,11 @@ package executor
 
 //database opeartion for execs ticket
 import (
+	//"bytes"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"strings"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -210,6 +214,14 @@ func (action *Action) TicketOpen(topen *ty.TicketOpen) (*types.Receipt, error) {
 	cfg := types.GetP(action.height)
 	for i := 0; i < int(topen.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
+		//add pubHash
+		if types.IsDappFork(action.height, ty.TicketX, "ForkTicketId") {
+			if len(topen.PubHashes) == 0 {
+				return nil, ty.ErrOpenTicketPubHash
+			}
+			id = id + ":" + fmt.Sprintf("%x:%d", topen.PubHashes[i], topen.RandSeed)
+		}
+
 		t := NewDB(id, topen.MinerAddress, topen.ReturnAddress, action.blocktime, false)
 
 		//冻结子账户资金
@@ -242,6 +254,15 @@ func readTicket(db dbm.KV, id string) (*ty.Ticket, error) {
 	return &ticket, nil
 }
 
+func genPubHash(tid string) string {
+	var pubHash string
+	parts := strings.Split(tid, ":")
+	if len(parts) > ty.TicketOldParts {
+		pubHash = parts[ty.TicketOldParts]
+	}
+	return pubHash
+}
+
 func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Receipt, error) {
 	if index != 0 {
 		return nil, types.ErrCoinBaseIndex
@@ -262,6 +283,17 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 	//check from address
 	if action.fromaddr != ticket.MinerAddress && action.fromaddr != ticket.ReturnAddress {
 		return nil, types.ErrFromAddr
+	}
+	//check pubHash and privHash
+	if !types.IsDappFork(action.height, ty.TicketX, "ForkTicketId") {
+		miner.PrivHash = nil
+	}
+	if len(miner.PrivHash) != 0 {
+		pubHash := genPubHash(ticket.TicketId)
+		if len(pubHash) == 0 || hex.EncodeToString(common.Sha256(miner.PrivHash)) != pubHash {
+			tlog.Error("TicketMiner", "pubHash", pubHash, "privHashHash", common.Sha256(miner.PrivHash), "ticketId", ticket.TicketId)
+			return nil, errors.New("ErrCheckPubHash")
+		}
 	}
 	prevstatus := ticket.Status
 	ticket.Status = 2
