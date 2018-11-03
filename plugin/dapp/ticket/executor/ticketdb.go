@@ -285,6 +285,9 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 		return nil, types.ErrFromAddr
 	}
 	//check pubHash and privHash
+	if !types.IsDappFork(action.height, ty.TicketX, "ForkTicketId") {
+		miner.PrivHash = nil
+	}
 	if len(miner.PrivHash) != 0 {
 		pubHash := genPubHash(ticket.TicketId)
 		if len(pubHash) == 0 || hex.EncodeToString(common.Sha256(miner.PrivHash)) != pubHash {
