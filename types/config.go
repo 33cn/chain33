@@ -56,6 +56,7 @@ func initChainTestNet() {
 	chainV3Param.TicketMinerWaitTime = 2                // 2s only for test
 	chainV3Param.TargetTimespan = 144 * 2 * time.Second //only for test
 	chainV3Param.TargetTimePerBlock = 2 * time.Second   //only for test
+	chainV3Param.PowLimitBits = uint32(0x1f2fffff)
 }
 
 type ChainParam struct {
