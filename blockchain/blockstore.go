@@ -32,8 +32,8 @@ var (
 
 	storeLog       = chainlog.New("submodule", "store")
 	lastheaderlock sync.Mutex
-	addBlock       int64 = 1
-	delBlock       int64 = 2
+	AddBlock       int64 = 1
+	DelBlock       int64 = 2
 )
 
 func GetLocalDBKeyList() [][]byte {
@@ -466,7 +466,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 
 	if isRecordBlockSequence || isParaChain {
 		//存储记录block序列执行的type add
-		err = bs.SaveBlockSequence(storeBatch, hash, height, addBlock, sequence)
+		err = bs.SaveBlockSequence(storeBatch, hash, height, AddBlock, sequence)
 		if err != nil {
 			storeLog.Error("SaveBlock SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "error", err)
 			return err
@@ -495,7 +495,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 
 	if isRecordBlockSequence || isParaChain {
 		//存储记录block序列执行的type del
-		err := bs.SaveBlockSequence(storeBatch, hash, height, delBlock, sequence)
+		err := bs.SaveBlockSequence(storeBatch, hash, height, DelBlock, sequence)
 		if err != nil {
 			storeLog.Error("DelBlock SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "error", err)
 			return err
@@ -856,7 +856,7 @@ func (bs *BlockStore) SaveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 	storeBatch.Set(calcSequenceToHashKey(newSequence), BlockSequenceByte)
 
 	//parachain  hash->seq 只记录add block时的hash和seq对应关系
-	if Type == addBlock && isParaChain {
+	if Type == AddBlock && isParaChain {
 		Sequencebytes := types.Encode(&types.Int64{newSequence})
 		storeBatch.Set(calcHashToSequenceKey(hash), Sequencebytes)
 	}
