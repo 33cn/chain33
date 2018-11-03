@@ -28,17 +28,13 @@ It has these top-level messages:
 */
 package types
 
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
+import types1 "gitlab.33.cn/chain33/chain33/types"
+
 import (
-	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
-	math "math"
-
-	types1 "gitlab.33.cn/chain33/chain33/types"
-
 	context "golang.org/x/net/context"
-
 	grpc "google.golang.org/grpc"
 )
 
