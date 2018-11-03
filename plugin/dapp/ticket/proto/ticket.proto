@@ -37,6 +37,15 @@ message TicketMiner {
     int64  reward   = 2;
     string ticketId = 3;
     bytes  modify   = 4;
+    //挖到区块时公开
+    bytes privHash = 5;
+}
+
+message TicketMinerOld {
+    uint32 bits     = 1;
+    int64  reward   = 2;
+    string ticketId = 3;
+    bytes  modify   = 4;
 }
 
 message MinerFlag {
@@ -56,6 +65,10 @@ message TicketOpen {
     int32 count = 2;
     //币实际存储的地址
     string returnAddress = 3;
+    //随机种子
+    int64 randSeed = 4;
+    //购买ticket时公开
+    repeated bytes pubHashes = 5;
 }
 
 message TicketGenesis {

@@ -3,6 +3,7 @@ package ticket
 import (
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -311,7 +312,7 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 	if string(modify) != string(miner.Modify) {
 		return ty.ErrModify
 	}
-	currentdiff := client.getCurrentTarget(current.Block.BlockTime, miner.TicketId, miner.Modify)
+	currentdiff := client.getCurrentTarget(current.Block.BlockTime, miner.TicketId, miner.Modify, miner.PrivHash)
 	if currentdiff.Sign() < 0 {
 		return types.ErrCoinBaseTarget
 	}
@@ -350,8 +351,11 @@ func (client *Client) getNextTarget(block *types.Block, bits uint32) (*big.Int, 
 	return difficulty.CompactToBig(targetBits), modify, nil
 }
 
-func (client *Client) getCurrentTarget(blocktime int64, id string, modify []byte) *big.Int {
+func (client *Client) getCurrentTarget(blocktime int64, id string, modify []byte, privHash []byte) *big.Int {
 	s := fmt.Sprintf("%d:%s:%x", blocktime, id, modify)
+	if len(privHash) != 0 {
+		s = s + ":" + string(privHash)
+	}
 	hash := common.Sha2Sum([]byte(s))
 	num := difficulty.HashToBig(hash[:])
 	return difficulty.CompactToBig(difficulty.BigToCompact(num))
@@ -467,7 +471,11 @@ func (client *Client) searchTargetTicket(parent, block *types.Block) (*ty.Ticket
 		}
 		//find priv key
 		priv := client.privmap[ticket.MinerAddress]
-		currentdiff := client.getCurrentTarget(block.BlockTime, ticket.TicketId, modify)
+		privHash, err := genPrivHash(priv, ticket.TicketId)
+		if err != nil {
+			continue
+		}
+		currentdiff := client.getCurrentTarget(block.BlockTime, ticket.TicketId, modify, privHash)
 		if currentdiff.Cmp(diff) >= 0 { //难度要大于前一个，注意数字越小难度越大
 			continue
 		}
@@ -514,7 +522,10 @@ func (client *Client) Miner(parent, block *types.Block) bool {
 	if ticket == nil {
 		return false
 	}
-	client.addMinerTx(parent, block, diff, priv, ticket.TicketId, modify)
+	err = client.addMinerTx(parent, block, diff, priv, ticket.TicketId, modify)
+	if err != nil {
+		return false
+	}
 	err = client.WriteBlock(parent.StateHash, block)
 	if err != nil {
 		return false
@@ -528,7 +539,26 @@ func calcTotalFee(block *types.Block) (total int64) {
 	return 0
 }
 
-func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv crypto.PrivKey, tid string, modify []byte) {
+func genPrivHash(priv crypto.PrivKey, tid string) ([]byte, error) {
+	var privHash []byte
+	parts := strings.Split(tid, ":")
+	if len(parts) > ty.TicketOldParts {
+		count := parts[ty.TicketOldParts-1]
+		seed := parts[len(parts)-1]
+
+		var countNum int
+		countNum, err := strconv.Atoi(count)
+		if err != nil {
+			return privHash, err
+		}
+		privStr := fmt.Sprintf("%x:%d:%s", priv.Bytes(), countNum, seed)
+		privHash = common.Sha256([]byte(privStr))
+
+	}
+	return privHash, nil
+}
+
+func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv crypto.PrivKey, tid string, modify []byte) error {
 	//return 0 always
 	fee := calcTotalFee(block)
 
@@ -538,6 +568,11 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 	miner.Bits = difficulty.BigToCompact(diff)
 	miner.Modify = modify
 	miner.Reward = types.GetP(block.Height).CoinReward + fee
+	privHash, err := genPrivHash(priv, tid)
+	if err != nil {
+		return err
+	}
+	miner.PrivHash = privHash
 	ticketAction.Value = &ty.TicketAction_Miner{miner}
 	ticketAction.Ty = ty.TicketActionMiner
 	//构造transaction
@@ -548,13 +583,14 @@ func (client *Client) addMinerTx(parent, block *types.Block, diff *big.Int, priv
 	}
 	block.Difficulty = miner.Bits
 	//判断是替换还是append
-	_, err := client.getMinerTx(block)
+	_, err = client.getMinerTx(block)
 	if err != nil {
 		block.Txs = append([]*types.Transaction{tx}, block.Txs...)
 	} else {
 		//ticket miner 交易已经存在
 		block.Txs[0] = tx
 	}
+	return nil
 }
 
 func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.PrivKey) *types.Transaction {
