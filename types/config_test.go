@@ -34,7 +34,7 @@ func TestConfig(t *testing.T) {
 }
 
 func TestBityuanInit(t *testing.T) {
-	cfg, err := initCfg("../cmd/chain33/bityuan.toml")
+	cfg, err := initCfgString(mergeCfg(readFile("../cmd/chain33/bityuan.toml")))
 	assert.Nil(t, err)
 	assert.Equal(t, int64(200000), cfg.Fork.System["ForkWithdraw"])
 	assert.Equal(t, int64(0), cfg.Fork.Sub["token"]["Enable"])
