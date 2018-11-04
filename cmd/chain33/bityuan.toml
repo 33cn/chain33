@@ -161,6 +161,7 @@ ForkTxGroup= 200000
 ForkResetTx0= 200000
 ForkWithdraw= 200000
 ForkExecRollback= 450000
+ForkCheckBlockTime=1200000
 ForkTxHeight= -1
 ForkTxGroupPara= -1
 
