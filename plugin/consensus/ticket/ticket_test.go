@@ -16,6 +16,6 @@ func TestTicket(t *testing.T) {
 	cfg.Consensus.Name = "ticket"
 	mock33 := testnode.NewWithConfig(cfg, sub, nil)
 	defer mock33.Close()
-	err := mock33.WaitHeight(2)
+	err := mock33.WaitHeight(100)
 	assert.Nil(t, err)
 }
