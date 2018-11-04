@@ -1,9 +1,12 @@
 package types
 
 import (
+	"encoding/json"
 	"strings"
 	"sync"
 	"time"
+
+	tml "github.com/BurntSushi/toml"
 )
 
 var chainBaseParam *ChainParam
@@ -290,4 +293,145 @@ func GetParaName() string {
 
 func FlagKV(key []byte, value int64) *KeyValue {
 	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
+}
+
+func MergeConfig(conf map[string]interface{}, def map[string]interface{}) string {
+	errstr := checkConfig("", conf, def)
+	if errstr != "" {
+		return errstr
+	}
+	mergeConfig(conf, def)
+	return ""
+}
+
+//检查默认配置文件
+func checkConfig(key string, conf map[string]interface{}, def map[string]interface{}) string {
+	errstr := ""
+	for key1, value1 := range conf {
+		if vdef, ok := def[key1]; ok {
+			conf1, ok1 := value1.(map[string]interface{})
+			def1, ok2 := vdef.(map[string]interface{})
+			if ok1 && ok2 {
+				errstr += checkConfig(getkey(key, key1), conf1, def1)
+			} else {
+				errstr += "rewrite defalut key " + getkey(key, key1) + "\n"
+			}
+		}
+	}
+	return errstr
+}
+
+func mergeConfig(conf map[string]interface{}, def map[string]interface{}) {
+	for key1, value1 := range def {
+		if vdef, ok := conf[key1]; ok {
+			conf1, ok1 := value1.(map[string]interface{})
+			def1, ok2 := vdef.(map[string]interface{})
+			if ok1 && ok2 {
+				mergeConfig(conf1, def1)
+				conf[key1] = conf1
+			}
+		} else {
+			conf[key1] = value1
+		}
+	}
+}
+
+func getkey(key, key1 string) string {
+	if key == "" {
+		return key1
+	}
+	return key + "." + key1
+}
+
+var (
+	RPCAddr  string
+	ParaName string
+)
+
+func initCfg(path string) (*Config, error) {
+	var cfg Config
+	if _, err := tml.DecodeFile(path, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+func InitCfg(path string) (*Config, *ConfigSubModule) {
+	cfg, err := initCfg(path)
+	if err != nil {
+		panic(err)
+	}
+	sub, err := initSubModule(path)
+	if err != nil {
+		panic(err)
+	}
+	return cfg, sub
+}
+
+func InitCfgString(cfgstring string) (*Config, *ConfigSubModule) {
+	cfg, err := initString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	sub, err := initSubModuleString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	return cfg, sub
+}
+
+func initString(cfgstring string) (*Config, error) {
+	var cfg Config
+	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+type subModule struct {
+	Store     map[string]interface{}
+	Exec      map[string]interface{}
+	Consensus map[string]interface{}
+	Wallet    map[string]interface{}
+}
+
+func initSubModuleString(cfgstring string) (*ConfigSubModule, error) {
+	var cfg subModule
+	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
+		return nil, err
+	}
+	return parseSubModule(&cfg)
+}
+
+func initSubModule(path string) (*ConfigSubModule, error) {
+	var cfg subModule
+	if _, err := tml.DecodeFile(path, &cfg); err != nil {
+		return nil, err
+	}
+	return parseSubModule(&cfg)
+}
+
+func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
+	var subcfg ConfigSubModule
+	subcfg.Store = parseItem(cfg.Store)
+	subcfg.Exec = parseItem(cfg.Exec)
+	subcfg.Consensus = parseItem(cfg.Consensus)
+	subcfg.Wallet = parseItem(cfg.Wallet)
+	return &subcfg, nil
+}
+
+func parseItem(data map[string]interface{}) map[string][]byte {
+	subconfig := make(map[string][]byte)
+	if len(data) == 0 {
+		return subconfig
+	}
+	for key := range data {
+		if key == "sub" {
+			subcfg := data[key].(map[string]interface{})
+			for k := range subcfg {
+				subconfig[k], _ = json.Marshal(subcfg[k])
+			}
+		}
+	}
+	return subconfig
 }
