@@ -343,11 +343,6 @@ func getkey(key, key1 string) string {
 	return key + "." + key1
 }
 
-var (
-	RPCAddr  string
-	ParaName string
-)
-
 func initCfg(path string) (*Config, error) {
 	var cfg Config
 	if _, err := tml.DecodeFile(path, &cfg); err != nil {
