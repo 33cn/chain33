@@ -18,7 +18,7 @@ func TestChainConfig(t *testing.T) {
 
 //测试实际的配置文件
 func TestSubConfig(t *testing.T) {
-	cfg, err := initSubModule("testdata/chain33.toml")
+	cfg, err := initSubModuleString(readFile("testdata/chain33.toml"))
 	assert.Equal(t, 0, len(cfg.Consensus))
 	assert.Equal(t, 2, len(cfg.Store))
 	assert.Equal(t, 1, len(cfg.Exec))
@@ -27,7 +27,7 @@ func TestSubConfig(t *testing.T) {
 }
 
 func TestConfig(t *testing.T) {
-	cfg, err := initCfg("testdata/chain33.toml")
+	cfg, err := initCfgString(readFile("testdata/chain33.toml"))
 	assert.Equal(t, cfg.Fork.System["ForkV16Withdraw"], int64(480000))
 	assert.Equal(t, cfg.Fork.Sub["token"]["Enable"], int64(100899))
 	assert.Nil(t, err)
