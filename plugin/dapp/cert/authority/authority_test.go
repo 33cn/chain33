@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/utils"
@@ -79,7 +78,7 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 初始化Author实例和userloader
 */
 func initEnv() error {
-	_, sub := config.InitCfg("./test/chain33.auth.test.toml")
+	_, sub := types.InitCfg("./test/chain33.auth.test.toml")
 	var subcfg ct.Authority
 	if sub.Exec["cert"] != nil {
 		types.MustDecode(sub.Exec["cert"], &subcfg)

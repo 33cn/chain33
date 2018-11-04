@@ -390,10 +390,6 @@ func mergeCfgString(cfgstring, cfgdefault string) string {
 	return buf.String()
 }
 
-func initCfg(path string) (*Config, error) {
-	return initCfgString(readFile(path))
-}
-
 func initCfgString(cfgstring string) (*Config, error) {
 	var cfg Config
 	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
@@ -440,10 +436,6 @@ func initSubModuleString(cfgstring string) (*ConfigSubModule, error) {
 		return nil, err
 	}
 	return parseSubModule(&cfg)
-}
-
-func initSubModule(path string) (*ConfigSubModule, error) {
-	return initSubModuleString(readFile(path))
 }
 
 func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
