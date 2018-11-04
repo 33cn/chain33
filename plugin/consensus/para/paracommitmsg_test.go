@@ -124,13 +124,13 @@ func (s *suiteParaCommitMsg) TestRun_1() {
 		plog.Error("para test", "err", err.Error())
 	}
 	plog.Info("para test---------", "last height", lastBlock.Height)
-	s.para.createBlock(lastBlock, nil, 0, getMainBlock(1))
+	s.para.createBlock(lastBlock, nil, 0, getMainBlock(1, lastBlock.BlockTime+1))
 	lastBlock, err = s.para.RequestLastBlock()
 	if err != nil {
 		plog.Error("para test--2", "err", err.Error())
 	}
 	plog.Info("para test---------", "last height", lastBlock.Height)
-	s.para.createBlock(lastBlock, nil, 1, getMainBlock(2))
+	s.para.createBlock(lastBlock, nil, 1, getMainBlock(2, lastBlock.BlockTime+1))
 	time.Sleep(time.Second * 3)
 	lastBlock, err = s.para.RequestLastBlock()
 	s.para.DelBlock(lastBlock, 2)
@@ -154,8 +154,9 @@ func (s *suiteParaCommitMsg) TearDownSuite() {
 
 }
 
-func getMainBlock(height int64) *types.Block {
+func getMainBlock(height int64, BlockTime int64) *types.Block {
 	return &types.Block{
-		Height: height,
+		Height:    height,
+		BlockTime: BlockTime,
 	}
 }
