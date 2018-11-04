@@ -51,6 +51,7 @@ var (
 	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
 	versionCmd = flag.Bool("v", false, "version")
 	fixtime    = flag.Bool("fixtime", false, "fix time")
+	configMap  = make(map[string]string)
 )
 
 func main() {
