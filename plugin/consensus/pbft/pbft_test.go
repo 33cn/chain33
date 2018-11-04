@@ -11,7 +11,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
@@ -62,7 +61,7 @@ func TestPbft(t *testing.T) {
 func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
-	cfg, sub := config.InitCfg("chain33.test.toml")
+	cfg, sub := types.InitCfg("chain33.test.toml")
 	types.Init(cfg.Title, cfg)
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
