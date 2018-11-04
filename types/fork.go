@@ -179,6 +179,7 @@ func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkExecRollback", 706531)
 	systemFork.SetFork("chain33", "ForkTxHeight", 806578)
 	systemFork.SetFork("chain33", "ForkTxGroupPara", 806578)
+	systemFork.SetFork("chain33", "ForkCheckBlockTime", 1200000)
 }
 
 func setLocalFork() {

@@ -609,7 +609,7 @@ func (client *Client) createBlock() (*types.Block, *types.Block) {
 	newblock.Height = lastBlock.Height + 1
 	newblock.BlockTime = types.Now().Unix()
 	if lastBlock.BlockTime >= newblock.BlockTime {
-		newblock.BlockTime = lastBlock.BlockTime + 1
+		newblock.BlockTime = lastBlock.BlockTime
 	}
 	txs := client.RequestTx(int(types.GetP(newblock.Height).MaxTxNumber)-1, nil)
 	client.AddTxsToBlock(&newblock, txs)
