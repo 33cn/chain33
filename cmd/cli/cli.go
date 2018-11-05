@@ -5,11 +5,11 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp/commands"
+	"gitlab.33.cn/chain33/chain33/types"
 
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	// 这一步是必需的，目的时让插件源码有机会进行匿名注册
@@ -42,11 +42,11 @@ var closeCmd = &cobra.Command{
 }
 
 func init() {
-	if config.RPCAddr == "" {
-		config.RPCAddr = "http://localhost:8801"
+	if types.GStr("RPCAddr") == "" {
+		types.S("RPCAddr", "http://localhost:8801")
 	}
-	rootCmd.PersistentFlags().String("rpc_laddr", config.RPCAddr, "http url")
-	rootCmd.PersistentFlags().String("paraName", config.ParaName, "parachain")
+	rootCmd.PersistentFlags().String("rpc_laddr", types.GStr("RPCAddr"), "http url")
+	rootCmd.PersistentFlags().String("paraName", types.GStr("ParaName"), "parachain")
 
 	rootCmd.AddCommand(
 		commands.AccountCmd(),

@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
@@ -50,7 +49,7 @@ type suiteParaCommitMsg struct {
 }
 
 func initConfigFile() (*types.Config, *types.ConfigSubModule) {
-	cfg, sub := config.InitCfg("../../../plugin/dapp/paracross/cmd/build/chain33.para.test.toml")
+	cfg, sub := types.InitCfg("../../../plugin/dapp/paracross/cmd/build/chain33.para.test.toml")
 	return cfg, sub
 }
 
@@ -124,13 +123,13 @@ func (s *suiteParaCommitMsg) TestRun_1() {
 		plog.Error("para test", "err", err.Error())
 	}
 	plog.Info("para test---------", "last height", lastBlock.Height)
-	s.para.createBlock(lastBlock, nil, 0, getMainBlock(1))
+	s.para.createBlock(lastBlock, nil, 0, getMainBlock(1, lastBlock.BlockTime+1))
 	lastBlock, err = s.para.RequestLastBlock()
 	if err != nil {
 		plog.Error("para test--2", "err", err.Error())
 	}
 	plog.Info("para test---------", "last height", lastBlock.Height)
-	s.para.createBlock(lastBlock, nil, 1, getMainBlock(2))
+	s.para.createBlock(lastBlock, nil, 1, getMainBlock(2, lastBlock.BlockTime+1))
 	time.Sleep(time.Second * 3)
 	lastBlock, err = s.para.RequestLastBlock()
 	s.para.DelBlock(lastBlock, 2)
@@ -154,8 +153,9 @@ func (s *suiteParaCommitMsg) TearDownSuite() {
 
 }
 
-func getMainBlock(height int64) *types.Block {
+func getMainBlock(height int64, BlockTime int64) *types.Block {
 	return &types.Block{
-		Height: height,
+		Height:    height,
+		BlockTime: BlockTime,
 	}
 }

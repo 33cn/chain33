@@ -1,21 +1,29 @@
 package types
 
 import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
 	"strings"
 	"sync"
 	"time"
+
+	tml "github.com/BurntSushi/toml"
+	"gitlab.33.cn/chain33/chain33/types/chaincfg"
 )
 
 var chainBaseParam *ChainParam
 var chainV3Param *ChainParam
-var chainConfig map[string]interface{}
-var configMutex sync.Mutex
+var chainConfig = make(map[string]interface{})
 
 func init() {
 	initChainBase()
 	initChainBityuanV3()
-
-	chainConfig = make(map[string]interface{})
+	S("TestNet", false)
+	SetMinFee(1e5)
+	for key, cfg := range chaincfg.LoadAll() {
+		S("cfg."+key, cfg)
+	}
 }
 
 func initChainBase() {
@@ -57,6 +65,7 @@ func initChainTestNet() {
 	chainV3Param.TicketMinerWaitTime = 2                // 2s only for test
 	chainV3Param.TargetTimespan = 144 * 2 * time.Second //only for test
 	chainV3Param.TargetTimePerBlock = 2 * time.Second   //only for test
+	chainV3Param.PowLimitBits = uint32(0x1f2fffff)
 }
 
 type ChainParam struct {
@@ -74,20 +83,60 @@ type ChainParam struct {
 	RetargetAdjustmentFactor int64
 }
 
-func SetChainConfig(key string, value interface{}) {
-	configMutex.Lock()
+func setChainConfig(key string, value interface{}) {
 	chainConfig[key] = value
-	configMutex.Unlock()
 }
 
-func GetChainConfig(key string) (value interface{}, err error) {
-	configMutex.Lock()
+func IsEnable(name string) bool {
+	isenable, err := G(name)
+	if err == nil && isenable.(bool) {
+		return true
+	}
+	return false
+}
+
+func GInt(name string) int64 {
+	value, err := G(name)
+	if err != nil {
+		return 0
+	}
+	if i, ok := value.(int64); ok {
+		return i
+	}
+	return 0
+}
+
+func GStr(name string) string {
+	value, err := G(name)
+	if err != nil {
+		return ""
+	}
+	if i, ok := value.(string); ok {
+		return i
+	}
+	return ""
+}
+
+func S(key string, value interface{}) {
+	mu.Lock()
+	defer mu.Unlock()
+	setChainConfig(key, value)
+}
+
+func getChainConfig(key string) (value interface{}, err error) {
 	if data, ok := chainConfig[key]; ok {
-		configMutex.Unlock()
 		return data, nil
 	}
-	configMutex.Unlock()
+	if isLocal() {
+		tlog.Warn("chain config " + key + " not found")
+	}
 	return nil, ErrNotFound
+}
+
+func G(key string) (value interface{}, err error) {
+	mu.Lock()
+	defer mu.Unlock()
+	return getChainConfig(key)
 }
 
 func GetP(height int64) *ChainParam {
@@ -103,17 +152,13 @@ var (
 	//这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
 	AllowDepositExec = [][]byte{[]byte("ticket")}
 
-	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	GenesisBlockTime   int64 = 1526486816
-	HotkeyAddr               = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	FundKeyAddr              = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
-	EmptyValue               = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	SuperManager             = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
-	TokenApprs               = []string{}
-	MinFee             int64 = 1e5
-	MinBalanceTransfer int64 = 1e6
-	// 隐私交易中最大的混淆度
-	PrivacyMaxCount = 16
+	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+	GenesisBlockTime int64 = 1526486816
+	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+	FundKeyAddr            = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	EmptyValue             = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	SuperManager           = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
+	TokenApprs             = []string{}
 )
 
 // coin conversation
@@ -129,15 +174,8 @@ const (
 )
 
 var (
-	testNet      bool
-	title        string
-	FeePerKB     = MinFee
-	PrivacyTxFee = Coin
-	//used in Getname for exec driver
-	ExecNamePrefix       string
-	ParaRemoteGrpcClient string
-	SaveTokenTxList      bool
-	mu                   sync.Mutex
+	title string
+	mu    sync.Mutex
 )
 
 var titles = map[string]bool{}
@@ -152,21 +190,30 @@ func Init(t string, cfg *Config) {
 	}
 	titles[t] = true
 	title = t
-	if IsPara() {
-		ExecNamePrefix = title
+	if cfg != nil {
+		if isLocal() {
+			setTestNet(true)
+		} else {
+			setTestNet(cfg.TestNet)
+		}
+		if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
+			panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
+		}
+		setMinFee(cfg.Exec.MinExecFee)
+		setChainConfig("FixTime", cfg.FixTime)
 	}
 	//local 只用于单元测试
-	if IsLocal() {
+	if isLocal() {
 		initChainTestNet()
-		SetLocalFork()
-		SetChainConfig("TxHeight", true)
-		Debug = true
+		setLocalFork()
+		setChainConfig("TxHeight", true)
+		setChainConfig("Debug", true)
 		return
 	}
 	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
-	if IsPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
+	if isPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
 		//keep superManager same with mainnet
-		SetForkForPara(title)
+		setForkForPara(title)
 		return
 	}
 	if cfg != nil && cfg.Fork != nil {
@@ -180,68 +227,72 @@ func GetTitle() string {
 	return title
 }
 
-func IsBityuan() bool {
-	return title == "bityuan"
-}
-
-func IsLocal() bool {
+func isLocal() bool {
 	return title == "local"
 }
 
-func IsYcc() bool {
-	return title == "yuanchain"
+func IsLocal() bool {
+	mu.Lock()
+	defer mu.Unlock()
+	return IsLocal()
+}
+
+func SetMinFee(fee int64) {
+	mu.Lock()
+	defer mu.Unlock()
+	setMinFee(fee)
+}
+
+func isPara() bool {
+	//user.p.guodun.
+	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
 }
 
 func IsPara() bool {
-	//user.p.guodun.
-	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
+	mu.Lock()
+	defer mu.Unlock()
+	return isPara()
 }
 
 func IsParaExecName(name string) bool {
 	return strings.HasPrefix(name, ParaKeyX)
 }
 
-func IsPublicChain() bool {
-	return IsBityuan() || IsYcc()
-}
-
-func SetTestNet(isTestNet bool) {
+func setTestNet(isTestNet bool) {
 	if !isTestNet {
-		testNet = false
+		setChainConfig("TestNet", false)
 		return
 	}
-	testNet = true
+	setChainConfig("TestNet", true)
 	//const 初始化TestNet 的初始化参数
 	GenesisBlockTime = 1514533394
 	FundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
-	SuperManager = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	SuperManager = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
 	TokenApprs = []string{
 		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
 		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
 		"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
 		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
 		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
-	}
-	if IsLocal() {
-		return
+		"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
 	}
 }
 
 func IsTestNet() bool {
-	return testNet
+	return IsEnable("TestNet")
 }
 
-func SetMinFee(fee int64) {
+func setMinFee(fee int64) {
 	if fee < 0 {
 		panic("fee less than zero")
 	}
-	MinFee = fee
-	MinBalanceTransfer = fee * 10
+	setChainConfig("MinFee", fee)
+	setChainConfig("MinBalanceTransfer", fee*10)
 }
 
 func GetParaName() string {
 	if IsPara() {
-		return title
+		return GetTitle()
 	}
 	return ""
 }
@@ -250,23 +301,164 @@ func FlagKV(key []byte, value int64) *KeyValue {
 	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
 }
 
-func SetParaRemoteGrpcClient(grpc string) {
-	if IsPara() {
-		ParaRemoteGrpcClient = grpc
+func MergeConfig(conf map[string]interface{}, def map[string]interface{}) string {
+	errstr := checkConfig("", conf, def)
+	if errstr != "" {
+		return errstr
 	}
-}
-
-func GetParaRemoteGrpcClient() string {
-	if IsPara() {
-		return ParaRemoteGrpcClient
-	}
+	mergeConfig(conf, def)
 	return ""
 }
 
-func SetSaveTokenTxList(v bool) {
-	SaveTokenTxList = v
+//检查默认配置文件
+func checkConfig(key string, conf map[string]interface{}, def map[string]interface{}) string {
+	errstr := ""
+	for key1, value1 := range conf {
+		if vdef, ok := def[key1]; ok {
+			conf1, ok1 := value1.(map[string]interface{})
+			def1, ok2 := vdef.(map[string]interface{})
+			if ok1 && ok2 {
+				errstr += checkConfig(getkey(key, key1), conf1, def1)
+			} else {
+				errstr += "rewrite defalut key " + getkey(key, key1) + "\n"
+			}
+		}
+	}
+	return errstr
 }
 
-func GetSaveTokenTxList() bool {
-	return SaveTokenTxList
+func mergeConfig(conf map[string]interface{}, def map[string]interface{}) {
+	for key1, value1 := range def {
+		if vdef, ok := conf[key1]; ok {
+			conf1, ok1 := value1.(map[string]interface{})
+			def1, ok2 := vdef.(map[string]interface{})
+			if ok1 && ok2 {
+				mergeConfig(conf1, def1)
+				conf[key1] = conf1
+			}
+		} else {
+			conf[key1] = value1
+		}
+	}
+}
+
+func getkey(key, key1 string) string {
+	if key == "" {
+		return key1
+	}
+	return key + "." + key1
+}
+
+func getDefCfg(cfg *Config) string {
+	if cfg.Title == "" {
+		panic("title is not set in cfg")
+	}
+	return GStr("cfg." + cfg.Title)
+}
+
+func mergeCfg(cfgstring string) string {
+	cfg, err := initCfgString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	cfgdefault := getDefCfg(cfg)
+	if cfgdefault != "" {
+		return mergeCfgString(cfgstring, cfgdefault)
+	}
+	return cfgstring
+}
+
+func mergeCfgString(cfgstring, cfgdefault string) string {
+	//1. defconfig
+	def := make(map[string]interface{})
+	_, err := tml.Decode(cfgdefault, &def)
+	if err != nil {
+		panic(err)
+	}
+	//2. userconfig
+	conf := make(map[string]interface{})
+	_, err = tml.Decode(cfgstring, &conf)
+	if err != nil {
+		panic(err)
+	}
+	errstr := MergeConfig(conf, def)
+	if errstr != "" {
+		panic(errstr)
+	}
+	buf := new(bytes.Buffer)
+	err = tml.NewEncoder(buf).Encode(conf)
+	return buf.String()
+}
+
+func initCfgString(cfgstring string) (*Config, error) {
+	var cfg Config
+	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+func InitCfg(path string) (*Config, *ConfigSubModule) {
+	return InitCfgString(readFile(path))
+}
+
+func InitCfgString(cfgstring string) (*Config, *ConfigSubModule) {
+	cfgstring = mergeCfg(cfgstring)
+	cfg, err := initCfgString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	sub, err := initSubModuleString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	return cfg, sub
+}
+
+type subModule struct {
+	Store     map[string]interface{}
+	Exec      map[string]interface{}
+	Consensus map[string]interface{}
+	Wallet    map[string]interface{}
+}
+
+func readFile(path string) string {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+func initSubModuleString(cfgstring string) (*ConfigSubModule, error) {
+	var cfg subModule
+	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
+		return nil, err
+	}
+	return parseSubModule(&cfg)
+}
+
+func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
+	var subcfg ConfigSubModule
+	subcfg.Store = parseItem(cfg.Store)
+	subcfg.Exec = parseItem(cfg.Exec)
+	subcfg.Consensus = parseItem(cfg.Consensus)
+	subcfg.Wallet = parseItem(cfg.Wallet)
+	return &subcfg, nil
+}
+
+func parseItem(data map[string]interface{}) map[string][]byte {
+	subconfig := make(map[string][]byte)
+	if len(data) == 0 {
+		return subconfig
+	}
+	for key := range data {
+		if key == "sub" {
+			subcfg := data[key].(map[string]interface{})
+			for k := range subcfg {
+				subconfig[k], _ = json.Marshal(subcfg[k])
+			}
+		}
+	}
+	return subconfig
 }

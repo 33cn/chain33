@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
@@ -22,7 +21,7 @@ var (
 )
 
 func init() {
-	cfg, sub := config.InitCfg(*configPath)
+	cfg, sub := types.InitCfg(*configPath)
 	println(sub)
 	// change rpc bind address
 	cfg.Rpc.JrpcBindAddr = jrpcaddr

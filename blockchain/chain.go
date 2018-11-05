@@ -147,7 +147,7 @@ func initConfig(cfg *types.BlockChain) {
 	isStrongConsistency = cfg.IsStrongConsistency
 	isRecordBlockSequence = cfg.IsRecordBlockSequence
 	isParaChain = cfg.IsParaChain
-	types.SetChainConfig("quickIndex", cfg.EnableTxQuickIndex)
+	types.S("quickIndex", cfg.EnableTxQuickIndex)
 }
 
 func (chain *BlockChain) Close() {
@@ -195,6 +195,15 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	go chain.ProcRecvMsg()
 }
 
+//only used for test
+func (chain *BlockChain) GetStore() *BlockStore {
+	return chain.blockStore
+}
+
+func (chain *BlockChain) GetOrphanPool() *OrphanPool {
+	return chain.orphanPool
+}
+
 func (chain *BlockChain) InitBlockChain() {
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
@@ -212,7 +221,7 @@ func (chain *BlockChain) InitBlockChain() {
 		curdbver = 1
 		chain.blockStore.SetDbVersion(curdbver)
 	}
-	types.SetChainConfig("dbversion", curdbver)
+	types.S("dbversion", curdbver)
 	if !chain.cfg.IsParaChain {
 		// 定时检测/同步block
 		go chain.SynRoutine()

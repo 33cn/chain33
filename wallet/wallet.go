@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	minFee            int64 = types.MinFee
+	minFee            int64
 	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
