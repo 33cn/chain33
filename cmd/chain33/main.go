@@ -27,7 +27,6 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/version"
@@ -69,7 +68,7 @@ func main() {
 		panic(err)
 	}
 	//set config: bityuan 用 bityuan.toml 这个配置文件
-	cfg, sub := config.InitCfg(*configPath)
+	cfg, sub := types.InitCfg(*configPath)
 	if *datadir != "" {
 		resetDatadir(cfg, *datadir)
 	}

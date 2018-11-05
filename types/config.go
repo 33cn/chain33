@@ -1,9 +1,15 @@
 package types
 
 import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
 	"strings"
 	"sync"
 	"time"
+
+	tml "github.com/BurntSushi/toml"
+	"gitlab.33.cn/chain33/chain33/types/chaincfg"
 )
 
 var chainBaseParam *ChainParam
@@ -15,6 +21,9 @@ func init() {
 	initChainBityuanV3()
 	S("TestNet", false)
 	SetMinFee(1e5)
+	for key, cfg := range chaincfg.LoadAll() {
+		S("cfg."+key, cfg)
+	}
 }
 
 func initChainBase() {
@@ -290,4 +299,166 @@ func GetParaName() string {
 
 func FlagKV(key []byte, value int64) *KeyValue {
 	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
+}
+
+func MergeConfig(conf map[string]interface{}, def map[string]interface{}) string {
+	errstr := checkConfig("", conf, def)
+	if errstr != "" {
+		return errstr
+	}
+	mergeConfig(conf, def)
+	return ""
+}
+
+//检查默认配置文件
+func checkConfig(key string, conf map[string]interface{}, def map[string]interface{}) string {
+	errstr := ""
+	for key1, value1 := range conf {
+		if vdef, ok := def[key1]; ok {
+			conf1, ok1 := value1.(map[string]interface{})
+			def1, ok2 := vdef.(map[string]interface{})
+			if ok1 && ok2 {
+				errstr += checkConfig(getkey(key, key1), conf1, def1)
+			} else {
+				errstr += "rewrite defalut key " + getkey(key, key1) + "\n"
+			}
+		}
+	}
+	return errstr
+}
+
+func mergeConfig(conf map[string]interface{}, def map[string]interface{}) {
+	for key1, value1 := range def {
+		if vdef, ok := conf[key1]; ok {
+			conf1, ok1 := value1.(map[string]interface{})
+			def1, ok2 := vdef.(map[string]interface{})
+			if ok1 && ok2 {
+				mergeConfig(conf1, def1)
+				conf[key1] = conf1
+			}
+		} else {
+			conf[key1] = value1
+		}
+	}
+}
+
+func getkey(key, key1 string) string {
+	if key == "" {
+		return key1
+	}
+	return key + "." + key1
+}
+
+func getDefCfg(cfg *Config) string {
+	if cfg.Title == "" {
+		panic("title is not set in cfg")
+	}
+	return GStr("cfg." + cfg.Title)
+}
+
+func mergeCfg(cfgstring string) string {
+	cfg, err := initCfgString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	cfgdefault := getDefCfg(cfg)
+	if cfgdefault != "" {
+		return mergeCfgString(cfgstring, cfgdefault)
+	}
+	return cfgstring
+}
+
+func mergeCfgString(cfgstring, cfgdefault string) string {
+	//1. defconfig
+	def := make(map[string]interface{})
+	_, err := tml.Decode(cfgdefault, &def)
+	if err != nil {
+		panic(err)
+	}
+	//2. userconfig
+	conf := make(map[string]interface{})
+	_, err = tml.Decode(cfgstring, &conf)
+	if err != nil {
+		panic(err)
+	}
+	errstr := MergeConfig(conf, def)
+	if errstr != "" {
+		panic(errstr)
+	}
+	buf := new(bytes.Buffer)
+	err = tml.NewEncoder(buf).Encode(conf)
+	return buf.String()
+}
+
+func initCfgString(cfgstring string) (*Config, error) {
+	var cfg Config
+	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+func InitCfg(path string) (*Config, *ConfigSubModule) {
+	return InitCfgString(readFile(path))
+}
+
+func InitCfgString(cfgstring string) (*Config, *ConfigSubModule) {
+	cfgstring = mergeCfg(cfgstring)
+	cfg, err := initCfgString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	sub, err := initSubModuleString(cfgstring)
+	if err != nil {
+		panic(err)
+	}
+	return cfg, sub
+}
+
+type subModule struct {
+	Store     map[string]interface{}
+	Exec      map[string]interface{}
+	Consensus map[string]interface{}
+	Wallet    map[string]interface{}
+}
+
+func readFile(path string) string {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+func initSubModuleString(cfgstring string) (*ConfigSubModule, error) {
+	var cfg subModule
+	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
+		return nil, err
+	}
+	return parseSubModule(&cfg)
+}
+
+func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
+	var subcfg ConfigSubModule
+	subcfg.Store = parseItem(cfg.Store)
+	subcfg.Exec = parseItem(cfg.Exec)
+	subcfg.Consensus = parseItem(cfg.Consensus)
+	subcfg.Wallet = parseItem(cfg.Wallet)
+	return &subcfg, nil
+}
+
+func parseItem(data map[string]interface{}) map[string][]byte {
+	subconfig := make(map[string][]byte)
+	if len(data) == 0 {
+		return subconfig
+	}
+	for key := range data {
+		if key == "sub" {
+			subcfg := data[key].(map[string]interface{})
+			for k := range subcfg {
+				subconfig[k], _ = json.Marshal(subcfg[k])
+			}
+		}
+	}
+	return subconfig
 }

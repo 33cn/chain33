@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
@@ -50,7 +49,7 @@ type suiteParaCommitMsg struct {
 }
 
 func initConfigFile() (*types.Config, *types.ConfigSubModule) {
-	cfg, sub := config.InitCfg("../../../plugin/dapp/paracross/cmd/build/chain33.para.test.toml")
+	cfg, sub := types.InitCfg("../../../plugin/dapp/paracross/cmd/build/chain33.para.test.toml")
 	return cfg, sub
 }
 
