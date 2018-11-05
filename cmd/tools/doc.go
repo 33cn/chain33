@@ -4,4 +4,33 @@ package main
 chain33开发者工具，主要提供以下功能：
 1. 通过chain33.cpm.toml配置，指定需要下载的包，从远程下载到本地 import
 2. 通过本地创建各种执行器工程，相关命令为 simple, advance
+
+库包获取的步骤
+
+简单执行器工程向导
+
+高级执行器工程向导
+	文字替换规则：
+		${PROJECTNAME}:	设定的项目名称
+		${CLASSNAME}:	设定的执行器类名
+		${ACTIONNAME}:	执行器内部逻辑使用的
+		${EXECNAME}:	执行器的名称
+		${TYPENAME}:
+	自动创建文件：
+		exec.go : 执行器功能中
+		exec_local.go:
+		exec_del_local.go
+	使用步骤：
+		1. 按照proto3的语法格式，创建执行器使用的Action结构,参考结构如下
+		// actions
+		message DemoAction {
+			oneof value {
+				DemoCreate	create      = 1;
+				DemoRun		play        = 2;
+				DemoClose	show        = 3;
+			}
+			int32 ty = 6;
+		}
+		2. 实现Action中使用的所有类型，例如上面的DemoCreate、DemoRun、DemoClose
+		3. 将编辑好的协议文件保存到tools所在目录下的config内
 */
