@@ -63,7 +63,7 @@ function para_import_key() {
 
     echo "=========== # import private key ============="
     echo "key: ${2}"
-    result=$(${1} account import_key -k "${2}" -l returnAddr | jq ".label")
+    result=$(${1} account import_key -k "${2}" -l paraAuthAccount | jq ".label")
     if [ -z "${result}" ]; then
         exit 1
     fi
@@ -121,9 +121,15 @@ function token_create() {
     block_wait "${1}" 3
 
     ${1} tx query -s "${hash}"
-    owner=$(${1} tx query -s "${hash}" | jq -r ".receipt.logs[0].log.owner")
+    ${1} token get_precreated
+    owner=$(${1} token get_precreated | jq -r ".owner")
     if [ "${owner}" != "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4" ]; then
         echo "wrong pre create owner"
+        exit 1
+    fi
+    total=$(${1} token get_precreated | jq -r ".total")
+    if [ "${total}" != 10000 ]; then
+        echo "wrong pre create total"
         exit 1
     fi
 
@@ -133,9 +139,15 @@ function token_create() {
     block_wait "${1}" 3
 
     ${1} tx query -s "${hash}"
-    owner=$(${1} tx query -s "${hash}" | jq -r ".receipt.logs[1].log.owner")
+    ${1} token get_finish_created
+    owner=$(${1} token get_finish_created | jq -r ".owner")
     if [ "${owner}" != "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4" ]; then
-        echo "wrong finish create owner"
+        echo "wrong finish created owner"
+        exit 1
+    fi
+    total=$(${1} token get_finish_created | jq -r ".total")
+    if [ "${total}" != 10000 ]; then
+        echo "wrong finish created total"
         exit 1
     fi
 
