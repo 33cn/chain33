@@ -5,14 +5,12 @@ import "account.proto";
 
 package types;
 
-//////////////////////////////////////////////////////////////////////////////
-// message for token start/////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
+// action
 message TokenAction {
     oneof value {
-        TokenPreCreate       tokenprecreate    = 1;
-        TokenFinishCreate    tokenfinishcreate = 2;
-        TokenRevokeCreate    tokenrevokecreate = 3;
+        TokenPreCreate       tokenPreCreate    = 1;
+        TokenFinishCreate    tokenFinishCreate = 2;
+        TokenRevokeCreate    tokenRevokeCreate = 3;
         AssetsTransfer       transfer          = 4;
         AssetsWithdraw       withdraw          = 5;
         AssetsGenesis        genesis           = 6;
@@ -21,7 +19,7 @@ message TokenAction {
     int32 Ty = 7;
 }
 
-//创建token，支持最大精确度是6位小数,即存入数据库的实际总额需要放大1e6倍
+//创建token，支持最大精确度是8位小数,即存入数据库的实际总额需要放大1e8倍
 message TokenPreCreate {
     string name         = 1;
     string symbol       = 2;
@@ -41,6 +39,7 @@ message TokenRevokeCreate {
     string owner  = 2;
 }
 
+// state db
 message Token {
     string name         = 1;
     string symbol       = 2;
@@ -52,6 +51,35 @@ message Token {
     int32  status       = 8;
 }
 
+// log
+message ReceiptToken {
+    string symbol = 1;
+    string owner  = 2;
+    int32  status = 3;
+}
+
+// local
+message LocalToken {
+    string name                = 1;
+    string symbol              = 2;
+    string introduction        = 3;
+    int64  total               = 4;
+    int64  price               = 5;
+    string owner               = 6;
+    string creator             = 7;
+    int32  status              = 8;
+    int64  createdHeight       = 9;
+    int64  createdTime         = 10;
+    int64  prepareCreateHeight = 11;
+    int64  prepareCreateTime   = 12;
+    int32  precision           = 13;
+    // 如果需要这个项可以单独做一个域存储
+    int64 totalTransferTimes = 14;
+    int64 revokedHeight      = 15;
+    int64 revokedTime        = 16;
+}
+
+// query
 message ReqTokens {
     bool     queryAll          = 1;
     int32    status            = 2;
@@ -60,13 +88,7 @@ message ReqTokens {
 }
 
 message ReplyTokens {
-    repeated Token tokens = 1;
-}
-
-message ReceiptToken {
-    string symbol = 1;
-    string owner  = 2;
-    int32  status = 3;
+    repeated LocalToken tokens = 1;
 }
 
 message TokenRecv {

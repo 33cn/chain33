@@ -7,7 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var PrivacyX = types.PrivacyX
+var PrivacyX = "privacy"
 
 const (
 	InvalidAction = 0
@@ -53,8 +53,9 @@ var mapSignName2Type = map[string]int{
 
 func init() {
 	// init executor type
-	types.AllowUserExec = append(types.AllowUserExec, []byte(types.PrivacyX))
-	types.RegistorExecutor(types.PrivacyX, NewType())
+	types.AllowUserExec = append(types.AllowUserExec, []byte(PrivacyX))
+	types.RegistorExecutor(PrivacyX, NewType())
+	types.RegisterDappFork(PrivacyX, "Enable", 980000)
 }
 
 type PrivacyType struct {

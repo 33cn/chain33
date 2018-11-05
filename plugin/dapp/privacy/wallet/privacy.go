@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
-
-	"sync"
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -150,7 +149,7 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
 	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
 	//因为此时是pub2priv的交易，此时不需要构造找零的输出，同时设置fee为0，也是为了简化计算
-	privacyOutput, err := genCustomOuts(viewPublic, spendPublic, reqCreateUTXOs.Amount, reqCreateUTXOs.Count)
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, nil, nil, reqCreateUTXOs.Amount, reqCreateUTXOs.Amount, 0)
 	if err != nil {
 		bizlog.Error("createUTXOsByPub2Priv", "genCustomOuts error.", err)
 		return nil, err
@@ -158,7 +157,7 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 
 	value := &privacytypes.Public2Privacy{
 		Tokenname: reqCreateUTXOs.Tokenname,
-		Amount:    reqCreateUTXOs.Amount * int64(reqCreateUTXOs.Count),
+		Amount:    reqCreateUTXOs.Amount,
 		Note:      reqCreateUTXOs.Note,
 		Output:    privacyOutput,
 	}
@@ -171,7 +170,7 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
 		Nonce:   operater.Nonce(),
-		To:      address.ExecAddress(types.PrivacyX),
+		To:      address.ExecAddress(privacytypes.PrivacyX),
 	}
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
@@ -595,10 +594,10 @@ func (policy *privacyPolicy) createPublic2PrivacyTx(req *types.ReqCreateTransact
 	}
 
 	tx := &types.Transaction{
-		Execer:  types.ExecerPrivacy,
+		Execer:  []byte(privacytypes.PrivacyX),
 		Payload: types.Encode(action),
 		Nonce:   policy.getWalletOperate().Nonce(),
-		To:      address.ExecAddress(types.PrivacyX),
+		To:      address.ExecAddress(privacytypes.PrivacyX),
 	}
 	tx.Signature = &types.Signature{
 		Signature: types.Encode(&privacytypes.PrivacySignatureParam{
@@ -668,11 +667,11 @@ func (policy *privacyPolicy) createPrivacy2PrivacyTx(req *types.ReqCreateTransac
 	}
 
 	tx := &types.Transaction{
-		Execer:  types.ExecerPrivacy,
+		Execer:  []byte(privacytypes.PrivacyX),
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
 		Nonce:   policy.getWalletOperate().Nonce(),
-		To:      address.ExecAddress(types.PrivacyX),
+		To:      address.ExecAddress(privacytypes.PrivacyX),
 	}
 	// 创建交易成功，将已经使用掉的UTXO冻结
 	policy.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
@@ -737,7 +736,7 @@ func (policy *privacyPolicy) createPrivacy2PublicTx(req *types.ReqCreateTransact
 	}
 
 	tx := &types.Transaction{
-		Execer:  []byte(types.PrivacyX),
+		Execer:  []byte(privacytypes.PrivacyX),
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
 		Nonce:   policy.getWalletOperate().Nonce(),
@@ -840,7 +839,7 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 	}
 	policy.store.saveREscanUTXOsAddresses(storeAddrs)
 
-	reqAddr := address.ExecAddress(types.PrivacyX)
+	reqAddr := address.ExecAddress(privacytypes.PrivacyX)
 	var txInfo types.ReplyTxInfo
 	i := 0
 	operater := policy.getWalletOperate()
@@ -864,13 +863,13 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 		} else {
 			ReqAddr.Height = txInfo.GetHeight()
 			ReqAddr.Index = txInfo.GetIndex()
-			if types.ForkV21Privacy > ReqAddr.Height { // 小于隐私分叉高度不做扫描
+			if !types.IsDappFork(ReqAddr.Height, privacytypes.PrivacyX, "ForkV21Privacy") { // 小于隐私分叉高度不做扫描
 				break
 			}
 		}
 		i++
 		//请求交易信息
-		msg, err := operater.GetAPI().Query(types.PrivacyX, "GetTxsByAddr", &ReqAddr)
+		msg, err := operater.GetAPI().Query(privacytypes.PrivacyX, "GetTxsByAddr", &ReqAddr)
 		if err != nil {
 			bizlog.Error("reqUtxosByAddr", "GetTxsByAddr error", err, "addr", reqAddr)
 			break
@@ -1020,7 +1019,7 @@ func (policy *privacyPolicy) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *pri
 		Payload: types.Encode(action),
 		Nonce:   operater.Nonce(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
-		To: address.ExecAddress(types.PrivacyX),
+		To: address.ExecAddress(privacytypes.PrivacyX),
 	}
 	tx.SetExpire(time.Duration(reqPub2Pri.GetExpire()))
 	txSize := types.Size(tx) + types.SignatureSize
@@ -1115,12 +1114,12 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 	}
 
 	tx := &types.Transaction{
-		Execer:  []byte(types.PrivacyX),
+		Execer:  []byte(privacytypes.PrivacyX),
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
 		Nonce:   operater.Nonce(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
-		To: address.ExecAddress(types.PrivacyX),
+		To: address.ExecAddress(privacytypes.PrivacyX),
 	}
 	tx.SetExpire(time.Duration(reqPri2Pri.GetExpire()))
 	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，
@@ -1162,7 +1161,7 @@ func (policy *privacyPolicy) signatureTx(tx *types.Transaction, privacyInput *pr
 		Ty:        privacytypes.RingBaseonED25519,
 		Signature: ringSignData,
 		// 这里填的是隐私合约的公钥，让框架保持一致
-		Pubkey: address.ExecPubKey(types.PrivacyX),
+		Pubkey: address.ExecPubKey(privacytypes.PrivacyX),
 	}
 	return nil
 }
@@ -1241,7 +1240,7 @@ func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 	}
 
 	tx := &types.Transaction{
-		Execer:  []byte(types.PrivacyX),
+		Execer:  []byte(privacytypes.PrivacyX),
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
 		Nonce:   operater.Nonce(),

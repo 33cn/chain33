@@ -14,23 +14,12 @@ OP="${1}"
 PROJ="${2}"
 DAPP="${3}"
 
-function run_dapp() {
-    app=$1
-    if [ -d "${app}" ]; then
-        echo "============ run dapp=$app start ================="
-        rm -rf "${app}"-ci && mkdir -p "${app}"-ci && cp ./"${app}"/* ./"${app}"-ci && cp -n ./* ./"${app}"-ci/ && echo $?
-        cd "${app}"-ci/ && pwd
-        if ! ./docker-compose.sh "${PROJ}" "${app}"; then
-            exit 1
-        fi
-        cd ..
-        echo "============ run dapp=$app end ================="
-    fi
-
-}
+TESTCASEFILE="testcase.sh"
+FORKTESTFILE="fork-test.sh"
 
 function down_dapp() {
     app=$1
+
     if [ -d "${app}" ] && [ "${app}" != "system" ] && [ -d "${app}-ci" ]; then
         cd "${app}"-ci/ && pwd
 
@@ -42,39 +31,45 @@ function down_dapp() {
     fi
 }
 
-function forktest_dapp() {
+function run_dapp() {
     app=$1
-    if [ -d "${app}" ]; then
-        echo "============ run dapp=$app start ================="
-        rm -rf "${app}"-ci && mkdir -p "${app}"-ci && cp ./"${app}"/* ./"${app}"-ci && echo $?
-        cp -n ./* ./"${app}"-ci/ && echo $?
-        cd "${app}"-ci/ && pwd
+    test=$2
+
+    echo "============ run dapp=$app start ================="
+    rm -rf "${app}"-ci && mkdir -p "${app}"-ci && cp ./"${app}"/* ./"${app}"-ci && echo $?
+    cp -n ./* ./"${app}"-ci/ && echo $?
+    cd "${app}"-ci/ && pwd
+
+    if [ "$test" == "$FORKTESTFILE" ]; then
         sed -i $sedfix 's/^system_coins_file=.*/system_coins_file="..\/system\/coins\/fork-test.sh"/g' system-fork-test.sh
-        appfile="fork-test.sh"
-        if [ -e $appfile ]; then
-            if ! ./system-fork-test.sh "${PROJ}" "${app}"; then
-                exit 1
-            fi
-        else
-            echo "#### note: dapp=$app not exit the fork test file: fork-test.sh ####"
+        if ! ./system-fork-test.sh "${PROJ}" "${app}"; then
+            exit 1
         fi
-        cd ..
-        echo "============ run dapp=$app end ================="
+    elif [ "$test" == "$TESTCASEFILE" ]; then
+        if ! ./docker-compose.sh "${PROJ}" "${app}"; then
+            exit 1
+        fi
     fi
+    cd ..
+    echo "============ run dapp=$app end ================="
 
 }
 
-function forktest_down() {
+function run_single_app() {
     app=$1
-    if [ -d "${app}" ] && [ "${app}" != "system" ] && [ -d "${app}-ci" ]; then
-        cd "${app}"-ci/ && pwd
-        appfile="fork-test.sh"
-        if [ -e $appfile ]; then
-            echo "============ down dapp=$app start ================="
-            ./docker-compose-down.sh "${PROJ}" "${app}"
-            echo "============ down dapp=$app end ================="
+    testfile=$2
+
+    if [ -d "${app}" ] && [ "${app}" != "system" ]; then
+        if [ -e "$app/$testfile" ]; then
+            run_dapp "${app}" "$testfile"
+            if [ "$#" -gt 2 ]; then
+                down_dapp "${app}"
+            fi
+        else
+            echo "#### dapp=$app not exist the test file: $testfile ####"
         fi
-        cd .. && rm -rf ./"${app}"-ci
+    else
+        echo "#### dapp=$app not exist or is system dir ####"
     fi
 }
 
@@ -88,15 +83,13 @@ function main() {
             ./docker-compose-down.sh "$PROJ"
             echo "============ run main end ================="
 
-            #dir=$(ls -l ./ |awk '/^d/ {print $NF}')
             find . -maxdepth 1 -type d -name "*-ci" -exec rm -rf {} \;
             dir=$(find . -maxdepth 1 -type d ! -name system ! -name . | sed 's/^\.\///')
             for app in $dir; do
-                run_dapp "${app}"
-                down_dapp "${app}"
+                run_single_app "${app}" "$TESTCASEFILE" "down"
             done
         elif [ -n "${DAPP}" ]; then
-            run_dapp "${DAPP}"
+            run_single_app "${DAPP}" "$TESTCASEFILE"
         else
             ./docker-compose.sh "${PROJ}"
         fi
@@ -107,11 +100,6 @@ function main() {
                 down_dapp "${app}"
             done
             ./docker-compose-down.sh "${PROJ}"
-            remains=$(docker ps -a -q | awk '{print $1}')
-            for rems in $remains; do
-                docker rm "$rems" -f
-            done
-            docker ps -a -q
         elif [ -n "${DAPP}" ]; then
             down_dapp "${DAPP}"
         else
@@ -130,11 +118,10 @@ function main() {
             find . -maxdepth 1 -type d -name "*-ci" -exec rm -rf {} \;
             dir=$(find . -maxdepth 1 -type d ! -name system ! -name . | sed 's/^\.\///')
             for app in $dir; do
-                forktest_dapp "${app}"
-                forktest_down "${app}"
+                run_single_app "${app}" "$FORKTESTFILE" "down"
             done
         elif [ -n "${DAPP}" ]; then
-            forktest_dapp "${DAPP}"
+            run_single_app "${DAPP}" "$FORKTESTFILE"
         else
             ./system-fork-test.sh "${PROJ}"
         fi

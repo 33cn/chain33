@@ -194,7 +194,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			continue
 		}
 		//所有tx.GroupCount > 0 的交易都是错误的交易
-		if !types.IsMatchFork(datas.Height, types.ForkV14TxGroup) {
+		if !types.IsFork(datas.Height, "ForkTxGroup") {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupNotSupport))
 			continue
 		}

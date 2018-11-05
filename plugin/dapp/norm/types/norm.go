@@ -8,7 +8,8 @@ var NormX = "norm"
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(NormX))
-	types.RegistorExecutor("norm", NewType())
+	types.RegistorExecutor(NormX, NewType())
+	types.RegisterDappFork(NormX, "Enable", 0)
 }
 
 type NormType struct {

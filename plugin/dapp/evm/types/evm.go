@@ -25,6 +25,9 @@ func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerEvm)
 	// init executor type
 	types.RegistorExecutor(ExecutorName, NewType())
+	types.RegisterDappFork(ExecutorName, "ForkEVMState", 650000)
+	types.RegisterDappFork(ExecutorName, "ForkEVMKVHash", 1000000)
+	types.RegisterDappFork(ExecutorName, "Enable", 500000)
 }
 
 type EvmType struct {
@@ -33,7 +36,7 @@ type EvmType struct {
 
 func NewType() *EvmType {
 	c := &EvmType{}
-	//c.SetChild(c)
+	c.SetChild(c)
 	return c
 }
 

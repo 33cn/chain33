@@ -8,9 +8,10 @@ import (
 )
 
 func init() {
-	name := RetrieveX
 	// init executor type
-	types.RegistorExecutor(name, NewType())
+	types.RegistorExecutor(RetrieveX, NewType())
+	types.RegisterDappFork(RetrieveX, "Enable", 0)
+	types.RegisterDappFork(RetrieveX, "ForkRetrive", 180000)
 }
 
 type RetrieveType struct {

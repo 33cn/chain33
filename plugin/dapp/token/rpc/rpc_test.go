@@ -42,7 +42,7 @@ func testChannelClient_GetTokenBalanceToken(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &tokenty.ReqTokenBalance{
-		Execer:      types.ExecName(types.TokenX),
+		Execer:      types.ExecName(tokenty.TokenX),
 		Addresses:   addrs,
 		TokenSymbol: "xxx",
 	}
@@ -71,7 +71,7 @@ func testChannelClient_GetTokenBalanceOther(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &tokenty.ReqTokenBalance{
-		Execer:      types.ExecName(types.TradeX),
+		Execer:      types.ExecName("trade"),
 		Addresses:   addrs,
 		TokenSymbol: "xxx",
 	}
