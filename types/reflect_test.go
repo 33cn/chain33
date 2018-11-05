@@ -62,7 +62,6 @@ func init() {
 	qdata.Register("TT", data)
 }
 func BenchmarkCallQueryData(b *testing.B) {
-
 	result := int64(0)
 	for i := 0; i < b.N; i++ {
 		reply, _ := qdata.Call("TT", "Add", &ReqNil{})
