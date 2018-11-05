@@ -62,7 +62,7 @@ grpcFuncWhitelist=["*"]
 [mempool]
 poolCacheSize=102400
 minTxFee=100000
-maxTxNumPerAccount=10000
+maxTxNumPerAccount=100
 
 [consensus]
 name="ticket"
@@ -163,6 +163,7 @@ ForkWithdraw= 200000
 ForkExecRollback= 450000
 ForkTxHeight= -1
 ForkTxGroupPara= -1
+ForkCheckBlockTime=1200000
 
 [fork.sub.coins]
 Enable=0
