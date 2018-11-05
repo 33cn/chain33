@@ -249,9 +249,11 @@ function auto_test() {
 
 function stop() {
 
+    rv=$?
     echo "=========== #stop docker-compose ============="
     docker cp "${NODE3}":/root/autotest.log ./
     docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down && rm ./chain33* && rm ./*.toml
+    exit ${rv}
 }
 
 function main() {
@@ -259,7 +261,6 @@ function main() {
     init
     start
     auto_test
-    stop
     echo "==========================================main end========================================================="
 }
 
@@ -268,5 +269,9 @@ if [ "$#" -ne 1 ]; then
     echo "Suggest Usage: $0 build"
     exit 1
 fi
+
+#trap exit
+trap "stop" INT TERM EXIT
+
 # run script
 main
