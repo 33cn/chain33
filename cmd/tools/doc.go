@@ -40,4 +40,5 @@ chain33开发者工具，主要提供以下功能：
 		}
 		2. 实现Action中使用的所有类型，例如上面的DemoCreate、DemoRun、DemoClose
 		3. 将编辑好的协议文件保存到tools所在目录下的config内
+		4. 使用命令行生成
 */
