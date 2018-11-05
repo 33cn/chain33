@@ -153,11 +153,10 @@ func getPreCreatedTokens(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	for i, preCreatedToken := range res.Tokens {
+	for _, preCreatedToken := range res.Tokens {
 		preCreatedToken.Price = preCreatedToken.Price / types.Coin
 		preCreatedToken.Total = preCreatedToken.Total / types.TokenPrecision
 
-		fmt.Printf("---The %dth precreated token is below--------------------\n", i)
 		data, err := json.MarshalIndent(preCreatedToken, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -200,11 +199,11 @@ func getFinishCreatedTokens(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	for i, createdToken := range res.Tokens {
+	for _, createdToken := range res.Tokens {
 		createdToken.Price = createdToken.Price / types.Coin
 		createdToken.Total = createdToken.Total / types.TokenPrecision
 
-		fmt.Printf("---The %dth Finish Created token is below--------------------\n", i)
+		//fmt.Printf("---The %dth Finish Created token is below--------------------\n", i)
 		data, err := json.MarshalIndent(createdToken, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)

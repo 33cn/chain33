@@ -41,3 +41,9 @@ func TestBityuanInit(t *testing.T) {
 	assert.Nil(t, err)
 	InitForkConfig(cfg.Title, cfg.Fork)
 }
+
+/*
+func TestConfigFork(t *testing.T) {
+	cfg, err := initCfgString(readFile("testdata/chain33.fork.toml"))
+}
+*/
