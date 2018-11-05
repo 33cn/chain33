@@ -2,11 +2,7 @@ Title="bityuan"
 TestNet=false
 FixTime=false
 
-[mver]
-hello=world
 
-[mver.ForkChainParamV1]
-hello=forkworld
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -75,11 +71,7 @@ minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
-[mver.consensus]
-name2="ticket-bityuan"
 
-[mver.consensus.ForkChainParamV1]
-name2="ticket-bityuanv5"
 
 [consensus.sub.ticket]
 genesisBlockTime=1526486816
@@ -159,11 +151,6 @@ enableMVCC=false
 [exec.sub.token]
 saveTokenTxList=false
 
-[mver.exec.sub.token]
-name2="ticket-bityuan"
-
-[mver.exec.sub.token.ForkChainParamV1]
-name2="ticket-bityuanv5"
 
 #系统中所有的fork,默认用chain33的测试网络的
 #但是我们可以替换
