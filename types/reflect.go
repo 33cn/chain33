@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"unicode"
@@ -229,8 +230,10 @@ func (q *QueryData) Register(key string, obj interface{}) {
 	if _, existed := q.funcMap[key]; existed {
 		panic("QueryData reg dup")
 	}
+	if key == "ticket" {
+		debug.PrintStack()
+	}
 	q.funcMap[key], q.typeMap[key] = BuildQueryType(q.prefix, ListMethod(obj))
-	q.SetThis(key, reflect.ValueOf(obj))
 }
 
 func (q *QueryData) SetThis(key string, this reflect.Value) {
@@ -239,10 +242,11 @@ func (q *QueryData) SetThis(key string, this reflect.Value) {
 	q.valueMap[key] = this
 }
 
-func (q *QueryData) getThis(key string) reflect.Value {
+func (q *QueryData) getThis(key string) (reflect.Value, bool) {
 	q.RLock()
 	defer q.RUnlock()
-	return q.valueMap[key]
+	v, ok := q.valueMap[key]
+	return v, ok
 }
 
 func (q *QueryData) GetFunc(driver, name string) (reflect.Method, error) {
@@ -301,6 +305,7 @@ func (q *QueryData) DecodeJson(driver, name string, in json.Marshaler) (reply Me
 
 func (q *QueryData) Call(driver, name string, in Message) (reply Message, err error) {
 	defer func() {
+		return
 		if r := recover(); r != nil {
 			tlog.Error("query data call error", "driver", driver, "name", name, "param", in, "msg", r)
 			switch x := r.(type) {
@@ -318,7 +323,10 @@ func (q *QueryData) Call(driver, name string, in Message) (reply Message, err er
 	if err != nil {
 		return nil, err
 	}
-	m := q.getThis(driver)
+	m, ok := q.getThis(driver)
+	if !ok {
+		return nil, ErrQueryThistIsNotSet
+	}
 	return CallQueryFunc(m, f, in)
 }
 
