@@ -1,12 +1,13 @@
-Title="bityuan"
+Title="testtilte"
 TestNet=false
 FixTime=false
 
 [mver]
-hello=world
+hello="world"
+nofork="nofork"
 
 [mver.ForkChainParamV1]
-hello=forkworld
+hello="forkworld"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -165,11 +166,14 @@ name2="ticket-bityuan"
 [mver.exec.sub.token.ForkChainParamV1]
 name2="ticket-bityuanv5"
 
+[mver.exec.sub.token.Enable]
+name2="ticket-bityuanv5-enable"
+
 #系统中所有的fork,默认用chain33的测试网络的
 #但是我们可以替换
 [fork.system]
 ForkCheckTxDup=0
-ForkChainParamV1= 0
+ForkChainParamV1= 10
 ForkBlockHash= 1
 ForkMinerTime= 0
 ForkTransferExec= 100000
