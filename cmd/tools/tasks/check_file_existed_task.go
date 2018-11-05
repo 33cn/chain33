@@ -10,6 +10,10 @@ type CheckFileExistedTask struct {
 	FileName string
 }
 
+func (this *CheckFileExistedTask) GetName() string {
+	return "CheckFileExistedTask"
+}
+
 func (this *CheckFileExistedTask) Execute() error {
 	mlog.Info("Execute file existed task.", "file", this.FileName)
 	_, err := util.CheckFileExists(this.FileName)

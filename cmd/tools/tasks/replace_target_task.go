@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/utils"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 // ReplaceTargetTask 替换指定目录下所有文件的标志性文字
@@ -13,12 +13,18 @@ import (
 // ${PROJECTNAME}
 // ${CLASSNAME}
 // ${ACTIONNAME}
+// ${EXECNAME}
 type ReplaceTargetTask struct {
 	TaskBase
 	OutputPath  string
 	ProjectName string
 	ClassName   string
 	ActionName  string
+	ExecName    string
+}
+
+func (this *ReplaceTargetTask) GetName() string {
+	return "ReplaceTargetTask"
 }
 
 // Execute 执行具体的替换动作
@@ -52,8 +58,9 @@ func (this *ReplaceTargetTask) replaceTarget(file string) error {
 		{src: "${PROJECTNAME}", dst: this.ProjectName},
 		{src: "${CLASSNAME}", dst: this.ClassName},
 		{src: "${ACTIONNAME}", dst: this.ActionName},
+		{src: "${EXECNAME}", dst: this.ExecName},
 	}
-	bcontent, err := utils.ReadFile(file)
+	bcontent, err := util.ReadFile(file)
 	if err != nil {
 		return err
 	}
@@ -61,7 +68,7 @@ func (this *ReplaceTargetTask) replaceTarget(file string) error {
 	for _, pair := range replacePairs {
 		content = strings.Replace(content, pair.src, pair.dst, -1)
 	}
-	utils.DeleteFile(file)
-	_, err = utils.WriteStringToFile(file, content)
+	util.DeleteFile(file)
+	_, err = util.WriteStringToFile(file, content)
 	return err
 }

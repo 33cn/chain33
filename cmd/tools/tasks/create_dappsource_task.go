@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/utils"
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
@@ -34,6 +33,10 @@ type CreateDappSourceTask struct {
 	execHeaderTempContent string
 }
 
+func (this *CreateDappSourceTask) GetName() string {
+	return "CreateDappSourceTask"
+}
+
 func (this *CreateDappSourceTask) Execute() error {
 	mlog.Info("Execute create build app source task.")
 	if err := this.init(); err != nil {
@@ -58,14 +61,16 @@ func (this *CreateDappSourceTask) Execute() error {
 }
 
 func (this *CreateDappSourceTask) init() error {
-	if !utils.CheckFileIsExist(this.ExecHeaderTempFile) {
+	if !util.CheckFileIsExist(this.ExecHeaderTempFile) {
 		return errors.New(fmt.Sprintf("File %s not existed.", this.ExecHeaderTempFile))
 	}
-	content, err := utils.ReadFile(this.ExecHeaderTempFile)
+	contentbt, err := util.ReadFile(this.ExecHeaderTempFile)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Read file %s failed. error %q", this.ExecHeaderTempFile, err))
 	}
-	this.execHeaderTempContent = strings.Replace(string(content), "${CLASSNAME}", this.ClsName, -1)
+	content := strings.Replace(string(contentbt), "${CLASSNAME}", this.ClsName, -1)
+	content = strings.Replace(content, "${EXECNAME}", this.ExecuteName, -1)
+	this.execHeaderTempContent = content
 	return nil
 }
 
@@ -78,7 +83,7 @@ func (this *CreateDappSourceTask) init() error {
 5. 将获取到的变量名去除空格，并将首字母大写
 */
 func (this *CreateDappSourceTask) readActionMemberNames() error {
-	pbContext, err := utils.ReadFile(this.ProtoFile)
+	pbContext, err := util.ReadFile(this.ProtoFile)
 	if err != nil {
 		return err
 	}
@@ -124,7 +129,7 @@ func (this *CreateDappSourceTask) createExecFile() error {
 		content += fmt.Sprintf(fnFmtStr, this.ClsName, info.memberName, info.memberType)
 	}
 	fileName := fmt.Sprintf("%s/executor/exec.go", this.OutputPath)
-	_, err := utils.WriteStringToFile(fileName, content)
+	_, err := util.WriteStringToFile(fileName, content)
 	if err != nil {
 		mlog.Error(fmt.Sprintf("Write to file %s failed. error %q", fileName, err))
 		return err
@@ -143,7 +148,7 @@ func (this *CreateDappSourceTask) createExecLocalFile() error {
 		content += fmt.Sprintf(fnFmtStr, this.ClsName, info.memberName, info.memberType)
 	}
 	fileName := fmt.Sprintf("%s/executor/exec_local.go", this.OutputPath)
-	_, err := utils.WriteStringToFile(fileName, content)
+	_, err := util.WriteStringToFile(fileName, content)
 	if err != nil {
 		mlog.Error(fmt.Sprintf("Write to file %s failed. error %q", fileName, err))
 		return err
@@ -162,7 +167,7 @@ func (this *CreateDappSourceTask) createExecDelLocalFile() error {
 		content += fmt.Sprintf(fnFmtStr, this.ClsName, info.memberName, info.memberType)
 	}
 	fileName := fmt.Sprintf("%s/executor/exec_del_local.go", this.OutputPath)
-	_, err := utils.WriteStringToFile(fileName, content)
+	_, err := util.WriteStringToFile(fileName, content)
 	if err != nil {
 		mlog.Error(fmt.Sprintf("Write to file %s failed. error %q", fileName, err))
 		return err
@@ -241,10 +246,10 @@ func (this *CreateDappSourceTask) createTypeExecuteFile() error {
 		{src: "${LOGMAPTEXT}", dst: logMapText},
 		{src: "${TYPEMAPTEXT}", dst: typeMapText},
 		{src: "${TYPENAME}", dst: this.TypeName},
-		{src: "${EXECUTENAME}", dst: this.ExecuteName},
+		{src: "${EXECNAME}", dst: this.ExecuteName},
 		{src: "${ACTIONNAME}", dst: this.ActionName},
 	}
-	bcontent, err := utils.ReadFile(this.TypeTempFile)
+	bcontent, err := util.ReadFile(this.TypeTempFile)
 	if err != nil {
 		return err
 	}
@@ -253,8 +258,8 @@ func (this *CreateDappSourceTask) createTypeExecuteFile() error {
 		content = strings.Replace(content, pair.src, pair.dst, -1)
 	}
 	fileName := fmt.Sprintf("%s%s.go", this.TypeOutputFile, this.ClsName)
-	utils.DeleteFile(fileName)
-	_, err = utils.WriteStringToFile(fileName, content)
+	util.DeleteFile(fileName)
+	_, err = util.WriteStringToFile(fileName, content)
 	return err
 
 	return nil
