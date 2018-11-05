@@ -821,9 +821,13 @@ func testDelBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight)
 	require.NoError(t, err)
+	//copy block, or may be data race
+	tmp := *block.Block
+	tmp.Difficulty = block.Block.Difficulty - 100
+	newblock := block
+	newblock.Block = &tmp
 
-	block.Block.Difficulty = block.Block.Difficulty - 100
-	blockchain.ProcessBlock(true, block, "1", true, 0)
+	blockchain.ProcessBlock(true, newblock, "1", true, 0)
 
 	chainlog.Info("testDelBlock end --------------------")
 }

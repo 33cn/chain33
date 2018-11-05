@@ -27,10 +27,13 @@ func TestSubConfig(t *testing.T) {
 }
 
 func TestConfig(t *testing.T) {
-	cfg, err := initCfgString(readFile("testdata/chain33.toml"))
+	cfg, _ := InitCfgString(readFile("testdata/chain33.toml"))
 	assert.Equal(t, cfg.Fork.System["ForkV16Withdraw"], int64(480000))
 	assert.Equal(t, cfg.Fork.Sub["token"]["Enable"], int64(100899))
-	assert.Nil(t, err)
+	confsystem := Conf("config.fork.system")
+	assert.Equal(t, confsystem.GInt("ForkV16Withdraw"), int64(480000))
+	confsubtoken := Conf("config.fork.sub.token")
+	assert.Equal(t, confsubtoken.GInt("Enable"), int64(100899))
 }
 
 func TestBityuanInit(t *testing.T) {
@@ -41,9 +44,3 @@ func TestBityuanInit(t *testing.T) {
 	assert.Nil(t, err)
 	InitForkConfig(cfg.Title, cfg.Fork)
 }
-
-/*
-func TestConfigFork(t *testing.T) {
-	cfg, err := initCfgString(readFile("testdata/chain33.fork.toml"))
-}
-*/

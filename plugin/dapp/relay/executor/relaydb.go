@@ -671,7 +671,7 @@ func (action *relayDB) saveBtcHeader(headers *ty.BtcHeaders, localDb dbm.KVDB) (
 	var preHead = &ty.RelayLastRcvBtcHeader{}
 	var receipt = &ty.ReceiptRelayRcvBTCHeaders{}
 
-	if action.fromAddr != types.GenesisAddr {
+	if action.fromAddr != subconfig.GStr("GenesisAddr") {
 		return nil, types.ErrFromAddr
 	}
 
