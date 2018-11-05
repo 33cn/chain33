@@ -8,19 +8,19 @@ checkTimeout = 10
 
 
 [[TestCaseFile]]
-contract = "coins"
+dapp = "coins"
 filename = "coins.toml"
 
 [[TestCaseFile]]
-contract = "token"
+dapp = "token"
 filename = "token.toml"
 
 [[TestCaseFile]]
-contract = "trade"
+dapp = "trade"
 filename = "trade.toml"
 
 
 [[TestCaseFile]]
-contract = "privacy"
+dapp = "privacy"
 filename = "privacy.toml"
 

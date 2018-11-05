@@ -19,19 +19,19 @@ type privacyAutoTest struct {
 
 func init() {
 
-	RegisterAutoTest(&privacyAutoTest{})
+	RegisterAutoTest(privacyAutoTest{})
 
 }
 
 
 
-func (config *privacyAutoTest) GetName() string {
+func (config privacyAutoTest) GetName() string {
 
 	return "privacy"
 }
 
 
-func (config *privacyAutoTest) GetTestConfigType() reflect.Type {
+func (config privacyAutoTest) GetTestConfigType() reflect.Type {
 
 	return reflect.TypeOf(config)
 }
