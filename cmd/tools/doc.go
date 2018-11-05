@@ -5,6 +5,13 @@ chain33开发者工具，主要提供以下功能：
 1. 通过chain33.cpm.toml配置，指定需要下载的包，从远程下载到本地 import
 2. 通过本地创建各种执行器工程，相关命令为 simple, advance
 
+目录介绍
+	1. config目录为tools工具使用的配置目录
+	2. config/chain33.cpm.toml 是tools工具通过go vendor下载三方系统插件的配置
+	3. config/exec_header.template 是tools工具创建执行器过程中使用的代码模板
+	4. config/types_content.template 是tools工具创建执行器过程中使用的代码模板
+	5. config/template 目录是tools工具创建执行器过程中使用的代码模板
+
 库包获取的步骤
 
 简单执行器工程向导
