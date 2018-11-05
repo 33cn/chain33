@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"fmt"
 	"gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 	"time"
 
@@ -115,8 +116,8 @@ func StartAutoTest() bool {
 
 	//log with test result
 	bSuccess := true
-	stdLog.Info("====================================AutoTestResultSummary======================================================")
-	fileLog.Info("====================================AutoTestResultSummary======================================================")
+	fmt.Println("==================================AutoTestResultSummary======================================")
+	fileLog.Info("====================================AutoTestResultSummary========================================")
 	for _, res := range testResultArr {
 
 		if res.failCase > 0 {
