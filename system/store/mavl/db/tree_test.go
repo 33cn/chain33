@@ -783,9 +783,9 @@ func TestIAVLPrint(t *testing.T) {
 }
 
 func TestPruningTree(t *testing.T) {
-	const txN = 5 // 每个块交易量
+	const txN = 5    // 每个块交易量
 	const preB = 500 // 一轮区块数
-	const round = 5 // 更新叶子节点次数
+	const round = 5  // 更新叶子节点次数
 	const preDel = preB / 10
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -929,10 +929,10 @@ func TestPruningHashNode(t *testing.T) {
 		{"foo", "foo"},
 		{"foobaz", "foobaz"},
 		{"good", "good"},
-		{"foobang", "foobang"},
-		{"foobar", "foobar"},
-		{"food", "food"},
-		{"foml", "foml"},
+		//{"foobang", "foobang"},
+		//{"foobar", "foobar"},
+		//{"food", "food"},
+		//{"foml", "foml"},
 	}
 
 	keys := make([]string, len(records))
@@ -948,65 +948,73 @@ func TestPruningHashNode(t *testing.T) {
 		}
 	}
 	hash := tree.Save()
-	fmt.Printf("root height %d---%s---\n", tree.root.height, Bytes2Hex(hash[:2]))
-	//keyLeafs := []record{
-	//	{"abc", "0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"},
-	//	{"fan", "0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114"},
-	//	{"foml", "0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0"},
-	//	{"foo", "0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2"},
-	//	{"foobang", "0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be"},
-	//	{"foobar", "0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93"},
-	//
-	//	{"foobaz", "0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b"},
-	//	{"food", "0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39"},
-	//	{"good", "0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
-	//	{"low", "0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
-	//}
+
+	tree1 := NewTree(db, true)
+	tree1.Load(hash)
+	records1 := []record{
+		{"abc", "abc1"},
+		{"low", "low1"},
+		{"fan", "fan1"},
+		{"foo", "foo1"},
+		//新增
+		{"foobang", "foobang"},
+		{"foobar", "foobar"},
+		{"food", "food"},
+		{"foml", "foml"},
+	}
+	for _, r := range records1 {
+		tree1.Set([]byte(r.key), []byte(r.value))
+	}
+	hash1 := tree1.Save()
 
 	//加入前缀的叶子节点
 	keyLeafs := []record{
 		{"abc", "0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"},
+		{"low", "0x5f6d625f2d303030303030303030302d5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
 		{"fan", "0x5f6d625f2d303030303030303030302d3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114"},
-		{"foml", "0x5f6d625f2d303030303030303030302d0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0"},
 		{"foo", "0x5f6d625f2d303030303030303030302d890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2"},
+
+		{"foml", "0x5f6d625f2d303030303030303030302d0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0"},
 		{"foobang", "0x5f6d625f2d303030303030303030302d6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be"},
 		{"foobar", "0x5f6d625f2d303030303030303030302d5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93"},
-
 		{"foobaz", "0x5f6d625f2d303030303030303030302dcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b"},
 		{"food", "0x5f6d625f2d303030303030303030302de5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39"},
 		{"good", "0x5f6d625f2d303030303030303030302d0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
-		{"low", "0x5f6d625f2d303030303030303030302d5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
 	}
-
-	testCases := [][]record{
-		{keyLeafs[4]},              // foobang---6d4
-		{keyLeafs[5], keyLeafs[3]}, // foobar---530     foo---890
-		{keyLeafs[1], keyLeafs[2]}, // fan---3bf        foml---0ac
-		{keyLeafs[0], keyLeafs[6]}, // abc---d95        foobaz---cbc
-		{keyLeafs[8]},              // good---0c9
+	//删除
+	delLeafs := []record{
+		{keyLeafs[0].key, keyLeafs[0].value},
+		{keyLeafs[1].key, keyLeafs[1].value},
+		{keyLeafs[2].key, keyLeafs[2].value},
+		{keyLeafs[3].key, keyLeafs[3].value},
 	}
-
-	mpleafName := make(map[string]bool)
 	mpleafHash := make(map[string]bool)
-	for _, tCase := range testCases {
-		fmt.Println("********************")
-		//加入casemap
-		for _, tc := range tCase {
-			k, _ := FromHex(tc.value)
-			mpleafHash[string(k)] = true
-			mpleafName[string(tc.key)] = true
-		}
-		pruningHashNode(db, mpleafHash)
-		tr1 := NewTree(db, true)
-		err = tr1.Load(hash)
-		require.NoError(t, err)
-		for _, k := range records {
-			if _, ok := mpleafName[k.key]; !ok {
-				_, v, _ := tr1.Get([]byte(k.key))
-				assert.Equal(t, []byte(k.value), v)
-			}
-		}
+	for _, d := range delLeafs {
+		k, _ := FromHex(d.value)
+		mpleafHash[string(k)] = true
 	}
+	pruningHashNode(db, mpleafHash)
+	tree2 := NewTree(db, true)
+	err = tree2.Load(hash1)
+	require.NoError(t, err)
+	upRecords := []record{
+		{"abc", "abc1"},
+		{"low", "low1"},
+		{"fan", "fan1"},
+		{"foo", "foo1"},
+		{"foobaz", "foobaz"},
+		{"good", "good"},
+
+		{"foobang", "foobang"},
+		{"foobar", "foobar"},
+		{"food", "food"},
+		{"foml", "foml"},
+	}
+	for _, k := range upRecords {
+		_, v, _ := tree2.Get([]byte(k.key))
+		assert.Equal(t, []byte(k.value), v)
+	}
+
 }
 
 func BenchmarkDBSet(b *testing.B) {
