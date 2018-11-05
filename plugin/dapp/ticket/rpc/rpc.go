@@ -56,17 +56,26 @@ func (g *channelClient) CreateBindMiner(ctx context.Context, in *ty.ReqBindMiner
 
 func (g *channelClient) SetAutoMining(ctx context.Context, in *ty.MinerFlag) (*types.Reply, error) {
 	data, err := g.ExecWalletFunc(ty.TicketX, "WalletAutoMiner", in)
-	return data.(*types.Reply), err
+	if err != nil {
+		return nil, err
+	}
+	return data.(*types.Reply), nil
 }
 
 func (g *channelClient) GetTicketCount(ctx context.Context, in *types.ReqNil) (*types.Int64, error) {
 	data, err := g.QueryConsensusFunc(ty.TicketX, "GetTicketCount", &types.ReqNil{})
-	return data.(*types.Int64), err
+	if err != nil {
+		return nil, err
+	}
+	return data.(*types.Int64), nil
 }
 
 func (g *channelClient) CloseTickets(ctx context.Context, in *types.ReqNil) (*types.ReplyHashes, error) {
 	data, err := g.ExecWalletFunc(ty.TicketX, "CloseTickets", &types.ReqNil{})
-	return data.(*types.ReplyHashes), err
+	if err != nil {
+		return nil, err
+	}
+	return data.(*types.ReplyHashes), nil
 }
 
 func (c *Jrpc) CreateBindMiner(in *ty.ReqBindMiner, result *interface{}) error {

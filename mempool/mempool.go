@@ -587,22 +587,21 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 		defer mlog.Info("mempool message recv quit")
 		defer mem.wg.Done()
 		for msg := range mem.client.Recv() {
-			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Info("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
 			beg := types.Now()
 			switch msg.Ty {
 			case types.EventTx:
 				if !mem.isSync() {
 					msg.Reply(mem.client.NewMessage("", types.EventReply, &types.Reply{false, []byte(types.ErrNotSync.Error())}))
-					mlog.Debug("wrong tx", "err", types.ErrNotSync.Error())
-					continue
+					mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
+				} else {
+					checkedMsg := mem.CheckTxs(msg)
+					mem.in <- checkedMsg
 				}
-				checkedMsg := mem.CheckTxs(msg)
-				mem.in <- checkedMsg
 			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{mem.RemoveExpiredAndDuplicateMempoolTxs()}))
-				mlog.Debug("reply EventGetMempool ok", "msg", msg)
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易
 				hashList := msg.GetData().(*types.TxHashList)
@@ -612,7 +611,6 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				} else {
 					txList := mem.GetTxList(hashList)
 					msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, &types.ReplyTxList{Txs: txList}))
-					mlog.Debug("reply EventTxList ok", "msg", msg)
 				}
 			case types.EventDelTxList:
 				// 消息类型EventDelTxList：获取Mempool中一定数量交易，并把这些交易从Mempool中删除
@@ -634,19 +632,16 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					mem.setHeader(header)
 				}
 				mem.RemoveTxsOfBlock(block)
-				mlog.Debug("handle EventAddBlock ok", "msg", msg, "msgid", msg.Id)
 			case types.EventGetMempoolSize:
 				// 消息类型EventGetMempoolSize：获取Mempool大小
 				memSize := int64(mem.Size())
 				msg.Reply(mem.client.NewMessage("rpc", types.EventMempoolSize,
 					&types.MempoolSize{Size: memSize}))
-				mlog.Debug("reply EventGetMempoolSize ok", "msg", msg)
 			case types.EventGetLastMempool:
 				// 消息类型EventGetLastMempool：获取最新十条加入到Mempool的交易
 				txList := mem.GetLatestTx()
 				msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
 					&types.ReplyTxList{Txs: txList}))
-				mlog.Debug("reply EventGetLastMempool ok", "msg", msg)
 			case types.EventDelBlock:
 				// 回滚区块，把该区块内交易重新加回Mempool
 				block := msg.GetData().(*types.BlockDetail).Block
@@ -666,10 +661,9 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				addrs := msg.GetData().(*types.ReqAddrs)
 				txlist := mem.GetAccTxs(addrs)
 				msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
-				mlog.Debug("reply EventGetAddrTxs ok", "msg", msg)
 			default:
 			}
-			mlog.Debug("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Info("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }
