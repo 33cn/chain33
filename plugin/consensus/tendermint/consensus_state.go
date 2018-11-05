@@ -484,7 +484,7 @@ func (cs *ConsensusState) checkTxsAvailable() {
 				tendermintlog.Info(fmt.Sprintf("blockchain(H: %v) and consensus(H: %v) are not sync", height, rs.Height))
 				break
 			}
-			if cs.isProposalComplete() {
+			if cs.checkProposalComplete() {
 				tendermintlog.Debug("already has proposal")
 				break
 			}
@@ -494,6 +494,13 @@ func (cs *ConsensusState) checkTxsAvailable() {
 			return
 		}
 	}
+}
+
+func (cs *ConsensusState) checkProposalComplete() bool {
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
+
+	return cs.isProposalComplete()
 }
 
 func (cs *ConsensusState) handleTxsAvailable(height int64) {
