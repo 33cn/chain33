@@ -572,7 +572,7 @@ func (q *QueueProtocol) QueryConsensus(param *types.ChainExecutor) (types.Messag
 	}
 	msg, err := q.query(consensusKey, types.EventConsensusQuery, param)
 	if err != nil {
-		log.Error("QueryConsensus", "Error", err.Error())
+		log.Error("query QueryConsensus", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(types.Message); ok {
