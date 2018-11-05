@@ -41,6 +41,7 @@ type BaseCase struct {
 	Dep       []string `toml:"dep,omitempty"`
 	CheckItem []string `toml:"checkItem,omitempty"`
 	Repeat    int      `toml:"repeat,omitempty"`
+	Fail	  bool     `toml:"fail,omitempty"`
 }
 
 //check item handler
@@ -59,7 +60,7 @@ type BaseCasePack struct {
 }
 
 
-//default send command implementation
+//default send command implementation, only for transaction type case
 func DefaultSend(testCase CaseFunc, testPack PackFunc, packID string) (PackFunc, error) {
 
 

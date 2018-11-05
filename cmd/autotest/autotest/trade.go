@@ -6,6 +6,7 @@ import (
 )
 
 type tradeAutoTest struct {
+	SimpleCaseArr            []SimpleCase            `toml:"SimpleCase,omitempty"`
 	TokenPreCreateCaseArr    []TokenPreCreateCase    `toml:"TokenPreCreateCase,omitempty"`
 	TokenFinishCreateCaseArr []TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
 	TransferCaseArr          []TransferCase          `toml:"TransferCase,omitempty"`
@@ -15,19 +16,19 @@ type tradeAutoTest struct {
 
 func init() {
 
-	RegisterAutoTest(&tradeAutoTest{})
+	RegisterAutoTest(tradeAutoTest{})
 
 }
 
 
 
-func (config *tradeAutoTest) GetName() string {
+func (config tradeAutoTest) GetName() string {
 
 	return "trade"
 }
 
 
-func (config *tradeAutoTest) GetTestConfigType() reflect.Type {
+func (config tradeAutoTest) GetTestConfigType() reflect.Type {
 
 	return reflect.TypeOf(config)
 }

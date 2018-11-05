@@ -75,7 +75,7 @@ function config_autotest() {
         for dapp in "$@"; do
             {
                 echo "[[TestCaseFile]]"
-                echo "contract=\"$dapp\""
+                echo "dapp=\"$dapp\""
                 echo "filename=\"$dapp.toml\""
             } >>${autotestTempConfig}
 

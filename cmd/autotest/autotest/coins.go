@@ -9,6 +9,7 @@ import (
 
 
 type coinsAutoTest struct {
+	SimpleCaseArr   []SimpleCase   `toml:"SimpleCase,omitempty"`
 	TransferCaseArr []TransferCase `toml:"TransferCase,omitempty"`
 	WithdrawCaseArr []WithdrawCase `toml:"WithdrawCase,omitempty"`
 }
@@ -17,19 +18,19 @@ type coinsAutoTest struct {
 
 func init() {
 
-	RegisterAutoTest(&coinsAutoTest{})
+	RegisterAutoTest(coinsAutoTest{})
 
 }
 
 
 
-func (config *coinsAutoTest) GetName() string {
+func (config coinsAutoTest) GetName() string {
 
 	return "coins"
 }
 
 
-func (config *coinsAutoTest) GetTestConfigType() reflect.Type {
+func (config coinsAutoTest) GetTestConfigType() reflect.Type {
 
 	return reflect.TypeOf(config)
 }
