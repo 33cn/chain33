@@ -69,7 +69,7 @@ func (this *importPackageStrategy) runImpl() error {
 func (this *importPackageStrategy) readConfig() error {
 	fmt.Println("读取配置文件")
 	if len(this.cfgFileName) == 0 {
-		this.cfgFileName = defCfgFileName
+		this.cfgFileName = fmt.Sprintf("config/%s", defCfgFileName)
 	}
 	_, err := toml.DecodeFile(this.cfgFileName, &this.cfgItems)
 	return err
