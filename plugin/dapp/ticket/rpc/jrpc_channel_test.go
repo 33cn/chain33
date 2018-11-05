@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	commonlog "gitlab.33.cn/chain33/chain33/common/log"
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	_ "gitlab.33.cn/chain33/chain33/system"
@@ -13,16 +12,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/util/testnode"
 )
 
-func init() {
-	commonlog.SetLogLevel("error")
-}
-
 func TestJRPCChannel(t *testing.T) {
 	// 启动RPCmocker
 	mocker := testnode.New("--notset--", nil)
-	defer func() {
-		mocker.Close()
-	}()
+	defer mocker.Close()
 	mocker.Listen()
 
 	jrpcClient := mocker.GetJsonC()
