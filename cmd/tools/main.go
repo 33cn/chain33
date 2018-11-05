@@ -23,6 +23,7 @@ func addCommands(rootCmd *cobra.Command) {
 		commands.SimpleCmd(),
 		commands.AdvanceCmd(),
 		commands.ImportCmd(),
+		commands.UpdateInitCmd(),
 	)
 }
 
