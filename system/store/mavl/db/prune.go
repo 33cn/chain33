@@ -56,15 +56,6 @@ type hashData struct {
 	hash   []byte
 }
 
-type addHash struct {
-	hash  []byte
-}
-
-type addDelStr struct {
-	isAdd bool
-	str   string
-}
-
 func NewDelNodeValuePool(cacSize int) *delNodeValuePool {
 	cache, err := lru.New(cacSize)
 	if err != nil {
@@ -203,7 +194,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, lastKey []
 	batch := db.NewBatch(true)
 	for key, vals := range mp {
 		if len(vals) > 1 {
-			if vals[1].height != vals[0].height {//防止相同高度时候出现的误删除
+			if vals[1].height != vals[0].height { //防止相同高度时候出现的误删除
 				for _, val := range vals[1:] { //从第二个开始判断
 					if curHeight >= val.height+int64(pruneHeight) {
 						//batch.Delete(val.hash) //叶子节点hash值的删除放入pruningHashNode中
@@ -230,13 +221,12 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	if len(mp) == 0 {
 		return
 	}
-	ndb := newMarkNodeDB(db, 1024*10, mp)
+	ndb := newMarkNodeDB(db, 1024*10)
 	var delNodeStrs []string
 	for key := range mp {
 		mNode, err := ndb.LoadLeaf([]byte(key))
 		if err == nil {
-			delN := mNode.getHashNode(ndb)
-			delNodeStrs = append(delNodeStrs, delN...)
+			delNodeStrs = append(delNodeStrs, mNode.getHashNode(ndb)...)
 		}
 	}
 	//根据keyMap进行归类
@@ -375,25 +365,21 @@ type MarkNode struct {
 	parentHash  []byte
 	parentNode  *MarkNode
 	parentPrune bool
-	brotherNode *MarkNode
-	brotherHash []byte
 }
 
 type markNodeDB struct {
 	mtx          sync.Mutex
-	cache        *lru.Cache // 节点数据缓存
-	delPoolCache *lru.Cache // 缓存已经删除的节点hash
+	cache        *lru.Cache // 缓存当前批次已经删除的节点,
+	delPoolCache *lru.Cache // 缓存全部的已经删除的节点
 	db           dbm.DB
-	mLeaf        map[string]bool
 }
 
-func newMarkNodeDB(db dbm.DB, cache int, mp map[string]bool) *markNodeDB {
+func newMarkNodeDB(db dbm.DB, cache int) *markNodeDB {
 	cach, _ := lru.New(cache)
 	ndb := &markNodeDB{
 		cache:        cach,
 		delPoolCache: delPoolCache,
 		db:           db,
-		mLeaf:        mp,
 	}
 	return ndb
 }
@@ -404,18 +390,6 @@ func (ndb *markNodeDB) LoadLeaf(hash []byte) (node *MarkNode, err error) {
 		return leaf, err
 	}
 	return nil, types.ErrNotFound
-}
-
-func (node *MarkNode) fetchBrotherNode(ndb *markNodeDB) *MarkNode {
-	if node.brotherNode != nil {
-		return node.brotherNode
-	} else {
-		bNode, err := ndb.fetchNode(node.brotherHash)
-		if err != nil {
-			return nil
-		}
-		return bNode
-	}
 }
 
 func (node *MarkNode) fetchParentNode(ndb *markNodeDB) *MarkNode {
@@ -440,9 +414,10 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 	var mNode *MarkNode
 	// cache
 	if ndb.cache != nil {
-		elem, ok := ndb.cache.Get(string(hash))
+		_, ok := ndb.cache.Get(string(hash))
 		if ok {
-			mNode = elem.(*MarkNode)
+			//缓存已经删除的节点,
+			return nil, ErrNodeNotExist
 		}
 	}
 	if mNode == nil {
@@ -457,7 +432,6 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 		var buf []byte
 		buf, err := ndb.db.Get(hash)
 		if len(buf) == 0 || err != nil {
-			treelog.Debug("----->DeleteNodePool has not this", "hash", common.Bytes2Hex(hash), "err:", err)
 			return nil, err
 		}
 		node, err := MakeNode(buf, nil)
@@ -475,10 +449,6 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 		if ndb.cache != nil {
 			ndb.cache.Add(string(hash), mNode)
 		}
-	}
-	//检查是否删除
-	if _, ok := ndb.mLeaf[string(hash)]; ok {
-		mNode.hashPrune = true
 	}
 	return mNode, nil
 }
