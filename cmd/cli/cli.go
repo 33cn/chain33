@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/cmd/cli/buildflags"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
@@ -42,9 +43,17 @@ var closeCmd = &cobra.Command{
 }
 
 func init() {
-	if types.GStr("RPCAddr") == "" {
-		types.S("RPCAddr", "http://localhost:8801")
+	if buildflags.RPCAddr == "" {
+		buildflags.RPCAddr = "http://localhost:8801"
 	}
+	if types.GStr("RPCAddr") == "" {
+		types.S("RPCAddr", buildflags.RPCAddr)
+	}
+	println("RPCAddr", buildflags.RPCAddr)
+	if types.GStr("ParaName") == "" {
+		types.S("ParaName", buildflags.ParaName)
+	}
+	println("ParaName", buildflags.ParaName)
 	rootCmd.PersistentFlags().String("rpc_laddr", types.GStr("RPCAddr"), "http url")
 	rootCmd.PersistentFlags().String("paraName", types.GStr("ParaName"), "parachain")
 
