@@ -65,15 +65,22 @@ func checkTxHashValid(txHash string) bool {
 //excute
 func SendTxCommand(cmd string) (string, bool) {
 
-	if strings.HasPrefix(cmd, "privacy") {
-		return SendPrivacyTxCommand(cmd)
-	}
-
 	output, err := RunChain33Cli(strings.Fields(cmd))
 	if err != nil {
 		return err.Error(), false
-	} else {
+	} else if len(output) == 67 {
 		output = output[0 : len(output)-1]
+	} else {
+
+		//check if privacy transaction
+		var jsonMap map[string]interface{}
+		err = json.Unmarshal([]byte(output), &jsonMap)
+		if err != nil {
+			return output, false
+		}
+		if hash, ok := jsonMap["hash"].(string); ok {
+			output = hash
+		}
 	}
 
 	return output, checkTxHashValid(output)
@@ -81,11 +88,6 @@ func SendTxCommand(cmd string) (string, bool) {
 
 //隐私交易执行回执哈希为json格式，需要解析
 func SendPrivacyTxCommand(cmd string) (string, bool) {
-
-	//construct tx by send command
-	if strings.HasPrefix(cmd, "send") {
-		return SendTxCommand(cmd)
-	}
 
 	output, err := RunChain33Cli(strings.Fields(cmd))
 

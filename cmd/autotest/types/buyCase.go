@@ -34,7 +34,7 @@ func (testCase *DependBuyCase) SendCommand(packID string) (PackFunc, error) {
 	}
 	testCase.Command = fmt.Sprintf("%s -s %s", testCase.Command, testCase.SellID)
 
-	return DefaultSend(testCase, &BuyPack{}, packID)
+	return DefaultSend(&testCase.BuyCase, &BuyPack{}, packID)
 }
 
 func (testCase *DependBuyCase) SetDependData(depData interface{}) {

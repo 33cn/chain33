@@ -49,7 +49,7 @@ type autoTestResult struct {
 var (
 	configFile string
 	resultChan = make(chan *autoTestResult, 1)
-	testResultArr = make([]*autoTestResult, 1)
+	testResultArr = make([]*autoTestResult, 0)
 	autoTestConfig = &TestCaseConfig{}
 
 )
@@ -115,8 +115,8 @@ func StartAutoTest() bool {
 
 	//log with test result
 	bSuccess := true
-	stdLog.Info("====================================AutoTestResult======================================================")
-	fileLog.Info("====================================AutoTestResult======================================================")
+	stdLog.Info("====================================AutoTestResultSummary======================================================")
+	fileLog.Info("====================================AutoTestResultSummary======================================================")
 	for _, res := range testResultArr {
 
 		if res.failCase > 0 {
@@ -126,8 +126,8 @@ func StartAutoTest() bool {
 			fileLog.Error("TestFailed", "dapp", res.dapp, "TotalCase", res.totalCase, "TotalFail", res.failCase, "FailID", res.failCaseID)
 		}else {
 
-			stdLog.Error("TestSuccess", "dapp", res.dapp, "TotalCase", res.totalCase)
-			fileLog.Error("TestSuccess", "dapp", res.dapp, "TotalCase", res.totalCase)
+			stdLog.Info("TestSuccess", "dapp", res.dapp, "TotalCase", res.totalCase, "TotalFail", res.failCase)
+			fileLog.Info("TestSuccess", "dapp", res.dapp, "TotalCase", res.totalCase, "TotalFail", res.failCase)
 		}
 	}
 
@@ -145,21 +145,33 @@ func newTestFlow(dapp string, filename string, wg *sync.WaitGroup) {
 
 
 	configType := types.GetAutoTestConfig(dapp)
+
+	if configType == nil {
+
+		stdLog.Error("GetAutoTestConfigType", "DappName", dapp, "Error", "NotSupportAutoTestType")
+		return
+	}
+
+	if configType.Kind() == reflect.Ptr {
+		configType = configType.Elem()
+	}
+
 	caseConf := reflect.New(configType)
 
-	if _, err := toml.DecodeFile(filename, caseConf.Addr().Interface()); err != nil {
+	if _, err := toml.DecodeFile(filename, caseConf.Interface()); err != nil {
 
-		stdLog.Error("TomlDecodeTestCaseFile", "dapp", dapp, "Filename", filename, "Error", err.Error())
+		stdLog.Error("TomlDecodeTestCaseFile", "Dapp", dapp, "Filename", filename, "Error", err.Error())
 		return
 	}
 
 
 	//get config fields
-	caseArrList := make([]interface{}, caseConf.NumField())
+	fields := caseConf.Elem().NumField()
+	caseArrList := make([]interface{}, fields)
 
-	for i := 0; i < caseConf.NumField(); i++ {
+	for i := 0; i < fields; i++ {
 
-		caseArrList[i] = caseConf.Field(i).Interface()
+		caseArrList[i] = caseConf.Elem().Field(i).Interface()
 	}
 
 	tester := NewTestOperator(stdLog, fileLog, dapp)

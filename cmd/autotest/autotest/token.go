@@ -7,6 +7,7 @@ import (
 )
 
 type tokenAutoTest struct {
+	SimpleCaseArr            []SimpleCase            `toml:"SimpleCase,omitempty"`
 	TokenPreCreateCaseArr    []TokenPreCreateCase    `toml:"TokenPreCreateCase,omitempty"`
 	TokenFinishCreateCaseArr []TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
 	TransferCaseArr          []TransferCase          `toml:"TransferCase,omitempty"`
@@ -16,19 +17,19 @@ type tokenAutoTest struct {
 
 func init() {
 
-	RegisterAutoTest(&tokenAutoTest{})
+	RegisterAutoTest(tokenAutoTest{})
 
 }
 
 
 
-func (config *tokenAutoTest) GetName() string {
+func (config tokenAutoTest) GetName() string {
 
 	return "token"
 }
 
 
-func (config *tokenAutoTest) GetTestConfigType() reflect.Type {
+func (config tokenAutoTest) GetTestConfigType() reflect.Type {
 
 	return reflect.TypeOf(config)
 }
