@@ -2,6 +2,8 @@ package strategy
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/cmd/tools/tasks"
@@ -58,7 +60,18 @@ func (this *advanceCreateExecProjStrategy) initMember() {
 	if v, err := this.getParam(types.KeyTemplateFilePath); err == nil {
 		this.templateFile = v
 	}
-	this.outputFolder = fmt.Sprintf("output/%s/", this.projName)
+	// 默认输出到chain33项目的plugin/dapp/目录下
+	var outputPath string
+	gopath := os.Getenv("GOPATH")
+	if len(gopath) > 0 {
+		outputPath = filepath.Join(gopath, "/src/gitlab.33.cn/chain33/chain33/plugin/dapp/")
+	}
+	if len(outputPath) > 0 && util.CheckPathExisted(outputPath) {
+		this.outputFolder = fmt.Sprintf("%s/%s/", outputPath, this.projName)
+	} else {
+		// 默认就在当前目录下
+		this.outputFolder = fmt.Sprintf("output/%s/", this.projName)
+	}
 	util.MakeDir(this.outputFolder)
 }
 

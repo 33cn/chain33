@@ -18,6 +18,11 @@ func DirExists(path string) (bool, error) {
 	return false, err
 }
 
+func CheckPathExisted(path string) bool {
+	existed, _ := DirExists(path)
+	return existed
+}
+
 func CheckFileExists(fileName string) (bool, error) {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
 		return false, err
