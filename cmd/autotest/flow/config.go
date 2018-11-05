@@ -32,7 +32,6 @@ type TestCaseFile struct {
 
 type TestCaseConfig struct {
 	CliCommand      string         `toml:"cliCmd"`
-	CheckSleepTime  int            `toml:"checkSleepTime"`
 	CheckTimeout    int            `toml:"checkTimeout"`
 	TestCaseFileArr []TestCaseFile `toml:"TestCaseFile"`
 }
@@ -53,6 +52,7 @@ var (
 	testResultArr = make([]*autoTestResult, 0)
 	autoTestConfig = &TestCaseConfig{}
 
+	checkSleepTime = 1 //second, s
 )
 
 
@@ -88,7 +88,7 @@ func StartAutoTest() bool {
 		return false
 	}
 	//init types
-	types.Init(autoTestConfig.CliCommand, autoTestConfig.CheckTimeout)
+	types.Init(autoTestConfig.CliCommand, autoTestConfig.CheckTimeout / checkSleepTime)
 
 
 	for _, caseFile := range autoTestConfig.TestCaseFileArr {

@@ -3,8 +3,7 @@
 
 
 cliCmd = "./chain33-cli"
-checkSleepTime = 10
-checkTimeout = 10
+checkTimeout = 60      #发送一笔交易后等待回执的超时时间，单位秒
 
 
 [[TestCaseFile]]

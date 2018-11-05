@@ -26,7 +26,7 @@ chain33BlockTime=1
 function init() {
     # update test environment
     echo "# temporary close chain33 if running"
-    ${CLI} close > /dev/null 2>&1
+    ${CLI} close > /dev/null 2>&1 || true
     #wait close
     sleep ${chain33BlockTime}
     echo "# copy chain33 for solo test"
@@ -127,27 +127,6 @@ function start_chain33() {
         exit 1
     fi
 
-    echo "=========== # import test addr1 ============="
-    result=$(${CLI} account import_key -k 0x88b2fb90411935872f0501dd13345aba19b5fac9b00eb0dddd7df977d4d5477e -l test_addr1 | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
-    echo "=========== # import test addr2 ============="
-    result=$(${CLI} account import_key -k 0xa0c6f46de8d275ce21e935afa5363e9b8a087fe604e05f7a9eef1258dc781c3a -l test_addr2 | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
-    echo "=========== # import test addr3 ============="
-    result=$(${CLI} account import_key -k 0x9d4f8ab11361be596468b265cb66946c87873d4a119713fd0c3d8302eae0a8e4 -l test_addr3 | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
     echo "=========== #transfer to miner addr ============="
     hash=$(${CLI} send coins transfer -a 10000 -n test -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
 
@@ -219,6 +198,7 @@ function main() {
     echo "==========================================main end========================================================="
 }
 
-trap "stop_chain33" INT TERM EXIT
+#trap "stop_chain33" INT TERM EXIT
+
 main "$@"
 
