@@ -54,6 +54,7 @@ from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 to = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
 amount = "101"
 checkItem = ["balance"]
+fail = true
 
 
 #diposit to trade
@@ -83,6 +84,7 @@ command = "send token withdraw -a 11 -s TC -e trade -k 1D9xKRnLvV2zMtSxSx33ow1GF
 addr = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "11"
 checkItem = ["balance"]
+fail = true
 
 
 #--liugui 2018.9.19-- 

@@ -55,6 +55,7 @@ to = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
 amount = "1000"
 checkItem = ["balance", "utxo"]
 dep = ["trans1"]
+fail = true
 
 
 [[PubToPrivCase]]
@@ -65,6 +66,7 @@ to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "603"
 checkItem = ["balance", "utxo"]
 dep = ["pub2priv3"]
+fail = true
 
 
 #priv2priv
@@ -109,6 +111,7 @@ to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 amount = "100"
 checkItem = ["utxo"]
 dep = ["pub2priv1"]
+fail = true
 
 
 [[PrivToPrivCase]]
@@ -119,6 +122,7 @@ to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 amount = "51"
 checkItem = ["utxo"]
 dep = ["priv2priv2"]
+fail = true
 
 
 #priv2pub
@@ -163,6 +167,7 @@ to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 amount = "100"
 checkItem = ["balance", "utxo"]
 dep = ["priv2priv1"]
+fail = true
 
 
 [[PrivToPubCase]]
@@ -173,6 +178,7 @@ to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 amount = "3"
 checkItem = ["balance", "utxo"]
 dep = ["priv2pub2"]
+fail = true
 
 #createutxosCase
 
@@ -196,3 +202,4 @@ to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 amount = "1000"
 checkItem = ["balance", "utxo"]
 dep = ["trans1"]
+fail = true
