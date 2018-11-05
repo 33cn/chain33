@@ -61,7 +61,7 @@ execblock: ## Build cli binary
 
 
 para:
-	@go build -v -o build/$(NAME) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(NAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
+	@go build -v -o build/$(NAME) -ldflags "-X $(SRC_CLI)/buildflags.ParaName=user.p.$(NAME). -X $(SRC_CLI)/buildflags.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
 
 autotest:## build autotest binary
