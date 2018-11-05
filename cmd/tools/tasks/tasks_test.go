@@ -1,8 +1,9 @@
 package tasks
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"gitlab.33.cn/chain33/chain33/util"
 )
