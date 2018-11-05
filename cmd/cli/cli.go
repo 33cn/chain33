@@ -49,11 +49,9 @@ func init() {
 	if types.GStr("RPCAddr") == "" {
 		types.S("RPCAddr", buildflags.RPCAddr)
 	}
-	println("RPCAddr", buildflags.RPCAddr)
 	if types.GStr("ParaName") == "" {
 		types.S("ParaName", buildflags.ParaName)
 	}
-	println("ParaName", buildflags.ParaName)
 	rootCmd.PersistentFlags().String("rpc_laddr", types.GStr("RPCAddr"), "http url")
 	rootCmd.PersistentFlags().String("paraName", types.GStr("ParaName"), "parachain")
 
