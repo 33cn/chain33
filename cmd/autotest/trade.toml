@@ -104,6 +104,7 @@ command = "send trade sell -f 0.01 -m 100 -p 0.01 -t 100 -s TS -k 1D9xKRnLvV2zMt
 from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "100"
 checkItem = ["balance", "frozen"]
+fail = true
 
 
 #因trade购买需要指定sellID, DependBuyCase自动获取由dep指定SellCase的sellID

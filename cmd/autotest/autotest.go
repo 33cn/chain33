@@ -28,10 +28,10 @@ func main() {
 
 	if flow.StartAutoTest() {
 
-		fmt.Println("Success!")
+		fmt.Println("========================================Succeed!============================================")
 		os.Exit(0)
 	}else {
-		fmt.Println("Failed!")
+		fmt.Println("==========================================Failed!============================================")
 		os.Exit(1)
 	}
 }

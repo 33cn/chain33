@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -193,7 +192,7 @@ func (tester *TestOperator) RunSendFlow() {
 
 						if err != nil {
 
-							if strings.Contains(packID, "fail") { //some logs
+							if baseCase.Fail { //some logs
 
 								tester.tLog.Info("TestCaseResult", "TestID", packID, "Result", "Succeed")
 
@@ -281,7 +280,7 @@ func (tester *TestOperator) RunCheckFlow() {
 							c.Remove(e)
 							//find if any case depend
 							tester.delDepBuf <- casePack
-							isFailCase := strings.Contains(casePack.GetPackID(), "fail")
+							isFailCase := casePack.GetBaseCase().Fail
 
 							if (bSuccess && !isFailCase) || (!bSuccess && isFailCase) { //some logs
 

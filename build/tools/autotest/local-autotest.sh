@@ -22,10 +22,13 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 chain33Config="chain33.test.toml"
-chain33BlockTime=2
+chain33BlockTime=1
 function init() {
     # update test environment
-
+    echo "# temporary close chain33 if running"
+    ${CLI} close > /dev/null 2>&1
+    #wait close
+    sleep ${chain33BlockTime}
     echo "# copy chain33 for solo test"
     cp ../../chain33 ./
     cp ../../chain33-cli ./
@@ -87,11 +90,10 @@ function config_autotest() {
 
 function start_chain33() {
 
-    echo "# start solo chain33, make sure there is no chain33 instance running"
+    echo "# start solo chain33"
     rm -rf ../autotest/datadir ../autotest/logs ../autotest/grpc33.log
     ./chain33 -f chain33.test.toml >/dev/null 2>&1 &
-
-    local SLEEP=5
+    local SLEEP=2
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
@@ -198,10 +200,12 @@ function start_autotest() {
 
 function stop_chain33() {
 
+    rv=$?
     echo "=========== #stop chain33 ============="
     ${CLI} close
     #wait close
     sleep ${chain33BlockTime}
+    exit ${rv}
 }
 
 function main() {
@@ -211,9 +215,10 @@ function main() {
     config_chain33
     start_chain33
     start_autotest
-    stop_chain33
 
     echo "==========================================main end========================================================="
 }
 
+trap "stop_chain33" INT TERM EXIT
 main "$@"
+
