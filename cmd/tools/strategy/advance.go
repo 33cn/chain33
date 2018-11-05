@@ -47,10 +47,10 @@ func (this *advanceCreateExecProjStrategy) initMember() {
 		this.clsName = v
 	}
 	if v, err := this.getParam(types.KeyExecutorName); err == nil {
-		this.execName, _ = util.MakeStringToUpper(v, 0, 1)
+		this.execName = v
 	}
 	if v, err := this.getParam(types.KeyActionName); err == nil {
-		this.actionName = v
+		this.actionName, _ = util.MakeStringToUpper(v, 0, 1)
 	}
 	if v, err := this.getParam(types.KeyProtobufFile); err == nil {
 		this.propFile = v
@@ -59,6 +59,7 @@ func (this *advanceCreateExecProjStrategy) initMember() {
 		this.templateFile = v
 	}
 	this.outputFolder = fmt.Sprintf("output/%s/", this.projName)
+	util.MakeDir(this.outputFolder)
 }
 
 func (this *advanceCreateExecProjStrategy) runImpl() error {
@@ -70,12 +71,10 @@ func (this *advanceCreateExecProjStrategy) runImpl() error {
 		}
 		err = task.Execute()
 		if err != nil {
+			mlog.Error("Execute command failed.", "error", err, "taskname", task.GetName())
 			break
 		}
 		task = task.Next()
-	}
-	if err != nil {
-		mlog.Error("Execute command failed.", "error", err)
 	}
 	return err
 }
@@ -99,6 +98,7 @@ func (this *advanceCreateExecProjStrategy) buildTask() tasks.Task {
 			ProjectName: this.projName,
 			ClassName:   this.clsName,
 			ActionName:  this.actionName,
+			ExecName:    this.execName,
 		},
 		&tasks.CreateDappSourceTask{
 			TemplatePath:       this.templateFile,
