@@ -232,7 +232,7 @@ func (bc *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	if parent.Height+1 != block.Block.Height {
 		return types.ErrBlockHeight
 	}
-	if types.IsFork(block.Block.Height, "ForkCheckBlockTime") && parent.BlockTime >= block.Block.BlockTime {
+	if types.IsFork(block.Block.Height, "ForkCheckBlockTime") && parent.BlockTime > block.Block.BlockTime {
 		return types.ErrBlockTime
 	}
 	//check parent hash
