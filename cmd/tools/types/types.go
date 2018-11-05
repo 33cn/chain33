@@ -12,6 +12,7 @@ const (
 	KeyActionName               = "action_name"
 	KeyProtobufFile             = "protobuf_file"
 	KeyTemplateFilePath         = "template_file_path"
+	KeyUpdateInit               = "update_init"
 
 	// 逻辑中用设定的项目名称替换的文字标签
 	TagProjectName = "${PROJECTNAME}"
