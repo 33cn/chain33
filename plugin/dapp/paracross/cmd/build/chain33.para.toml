@@ -90,6 +90,8 @@ dbPath="paradatadir/mavltree"
 dbCache=128
 enableMavlPrefix=false
 enableMVCC=false
+enableMavlPrune=false
+pruneHeight=10000
 
 [wallet]
 minFee=100000

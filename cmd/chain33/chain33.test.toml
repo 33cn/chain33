@@ -102,6 +102,8 @@ dbCache=128
 [store.sub.mavl]
 enableMavlPrefix=false
 enableMVCC=false
+enableMavlPrune=false
+pruneHeight=10000
 
 [wallet]
 minFee=1000000

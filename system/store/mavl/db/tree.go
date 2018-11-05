@@ -9,7 +9,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -17,7 +16,6 @@ import (
 const (
 	hashNodePrefix = "_mh_"
 	leafNodePrefix = "_mb_"
-	// 是否开启添加hash节点前缀
 )
 
 var (
@@ -42,22 +40,19 @@ type Tree struct {
 	root *Node
 	ndb  *nodeDB
 	//batch *nodeBatch
-	randomstr string
+	blockHeight int64
 }
 
 // 新建一个merkle avl 树
 func NewTree(db dbm.DB, sync bool) *Tree {
 	if db == nil {
 		// In-memory IAVLTree
-		return &Tree{
-			randomstr: common.GetRandString(5),
-		}
+		return &Tree{}
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db, sync)
 		return &Tree{
-			ndb:       ndb,
-			randomstr: common.GetRandString(5),
+			ndb: ndb,
 		}
 	}
 }
@@ -131,10 +126,16 @@ func (t *Tree) Save() []byte {
 	}
 	if t.ndb != nil {
 		saveNodeNo := t.root.save(t)
-		treelog.Debug("Tree.Save", "saveNodeNo", saveNodeNo)
+		treelog.Debug("Tree.Save", "saveNodeNo", saveNodeNo, "tree height", t.blockHeight)
 		err := t.ndb.Commit()
 		if err != nil {
 			return nil
+		}
+		// 该线程应只允许一个
+		if enablePrune && !isPruning() &&
+			t.blockHeight%int64(pruneHeight) == 0 &&
+			t.blockHeight/int64(pruneHeight) > 1 {
+			go pruningTree(t.ndb.db, t.blockHeight)
 		}
 	}
 	return t.root.hash
@@ -150,6 +151,10 @@ func (t *Tree) Load(hash []byte) (err error) {
 		return err
 	}
 	return nil
+}
+
+func (t *Tree) SetBlockHeight(height int64) {
+	t.blockHeight = height
 }
 
 //通过key获取leaf节点信息
@@ -318,6 +323,19 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	// Save node bytes to db
 	storenode := node.storeNode(t)
 	ndb.batch.Set(node.hash, storenode)
+	if enablePrune && node.height == 0 {
+		//save leafnode key&hash
+		k := genLeafCountKey(node.key, node.hash, t.blockHeight)
+		data := &types.PruneData{
+			Height: t.blockHeight,
+			Lenth:  int32(len(node.hash)),
+		}
+		v, err := proto.Marshal(data)
+		if err != nil {
+			panic(err)
+		}
+		ndb.batch.Set(k, v)
+	}
 	node.persisted = true
 	ndb.cacheNode(node)
 	delete(ndb.orphans, string(node.hash))
@@ -372,6 +390,7 @@ func (ndb *nodeDB) Commit() error {
 //对外接口
 func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) ([]byte, error) {
 	tree := NewTree(db, sync)
+	tree.SetBlockHeight(storeSet.Height)
 	err := tree.Load(storeSet.StateHash)
 	if err != nil {
 		return nil, err
@@ -467,12 +486,12 @@ func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending 
 	tree.IterateRange(start, end, ascending, fn)
 }
 
-func genPrefixHashKey(node *Node, str string) (key []byte) {
+func genPrefixHashKey(node *Node, blockHeight int64) (key []byte) {
 	//leafnode
 	if node.height == 0 {
-		key = []byte(fmt.Sprintf("%s-%s-", leafNodePrefix, str))
+		key = []byte(fmt.Sprintf("%s-%010d-", leafNodePrefix, blockHeight))
 	} else {
-		key = []byte(fmt.Sprintf("%s-%s-", hashNodePrefix, str))
+		key = []byte(fmt.Sprintf("%s-%010d-", hashNodePrefix, blockHeight))
 	}
 	return key
 }
