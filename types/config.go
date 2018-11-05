@@ -234,7 +234,7 @@ func isLocal() bool {
 func IsLocal() bool {
 	mu.Lock()
 	defer mu.Unlock()
-	return IsLocal()
+	return isLocal()
 }
 
 func SetMinFee(fee int64) {
