@@ -41,4 +41,10 @@ chain33开发者工具，主要提供以下功能：
 		2. 实现Action中使用的所有类型，例如上面的DemoCreate、DemoRun、DemoClose
 		3. 将编辑好的协议文件保存到tools所在目录下的config内
 		4. 使用命令行生成
+	命令行说明：
+		示例：tools advance -n demo
+			-a  --action  		执行器中Action使用的类型名，如果不填则为执行器名称+Action，例如DemoAction
+			-n  --name    		执行器的项目名和类名，必填参数
+			-p  --propfile 		导入执行器类型的proto3协议模板，如果不填默认为config/执行器名称.proto
+			-t  --templatepath 	生成执行器项目的模板文件，不填默认为config/template下的所有文件
 */
