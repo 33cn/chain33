@@ -15,6 +15,7 @@ import (
 var chainBaseParam *ChainParam
 var chainV3Param *ChainParam
 var chainConfig = make(map[string]interface{})
+var mver = make(map[string]*mversion)
 
 func init() {
 	initChainBase()
@@ -87,42 +88,6 @@ func setChainConfig(key string, value interface{}) {
 	chainConfig[key] = value
 }
 
-func IsEnable(name string) bool {
-	isenable, err := G(name)
-	if err == nil && isenable.(bool) {
-		return true
-	}
-	return false
-}
-
-func GInt(name string) int64 {
-	value, err := G(name)
-	if err != nil {
-		return 0
-	}
-	if i, ok := value.(int64); ok {
-		return i
-	}
-	return 0
-}
-
-func GStr(name string) string {
-	value, err := G(name)
-	if err != nil {
-		return ""
-	}
-	if i, ok := value.(string); ok {
-		return i
-	}
-	return ""
-}
-
-func S(key string, value interface{}) {
-	mu.Lock()
-	defer mu.Unlock()
-	setChainConfig(key, value)
-}
-
 func getChainConfig(key string) (value interface{}, err error) {
 	if data, ok := chainConfig[key]; ok {
 		return data, nil
@@ -139,6 +104,91 @@ func G(key string) (value interface{}, err error) {
 	return getChainConfig(key)
 }
 
+func MG(key string, height int64) (value interface{}, err error) {
+	mu.Lock()
+	defer mu.Unlock()
+	mymver, ok := mver[title]
+	if !ok {
+		if isLocal() {
+			tlog.Warn("mver config " + title + " not found")
+		}
+		return nil, ErrNotFound
+	}
+	return mymver.Get(key, height)
+}
+
+func GStr(name string) string {
+	value, err := G(name)
+	if err != nil {
+		return ""
+	}
+	if i, ok := value.(string); ok {
+		return i
+	}
+	return ""
+}
+
+func MGStr(name string, height int64) string {
+	value, err := MG(name, height)
+	if err != nil {
+		return ""
+	}
+	if i, ok := value.(string); ok {
+		return i
+	}
+	return ""
+}
+
+func GInt(name string) int64 {
+	value, err := G(name)
+	if err != nil {
+		return 0
+	}
+	if i, ok := value.(int64); ok {
+		return i
+	}
+	return 0
+}
+
+func MGInt(name string, height int64) int64 {
+	value, err := MG(name, height)
+	if err != nil {
+		return 0
+	}
+	if i, ok := value.(int64); ok {
+		return i
+	}
+	return 0
+}
+
+func IsEnable(name string) bool {
+	isenable, err := G(name)
+	if err == nil && isenable.(bool) {
+		return true
+	}
+	return false
+}
+
+func MIsEnable(name string, height int64) bool {
+	isenable, err := MG(name, height)
+	if err == nil && isenable.(bool) {
+		return true
+	}
+	return false
+}
+
+func S(key string, value interface{}) {
+	mu.Lock()
+	defer mu.Unlock()
+	if strings.HasPrefix(key, "config.") {
+		if isLocal() {
+			panic("prefix config. is readonly")
+		}
+		return
+	}
+	setChainConfig(key, value)
+}
+
 func GetP(height int64) *ChainParam {
 	if IsFork(height, "ForkChainParamV1") {
 		return chainV3Param
@@ -151,14 +201,10 @@ var (
 	AllowUserExec = [][]byte{ExecerNone}
 	//这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
 	AllowDepositExec = [][]byte{[]byte("ticket")}
-
-	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	GenesisBlockTime int64 = 1526486816
-	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	FundKeyAddr            = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
-	EmptyValue             = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	SuperManager           = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
-	TokenApprs             = []string{}
+	FundKeyAddr      = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	EmptyValue       = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	SuperManager     = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
+	TokenApprs       = []string{}
 )
 
 // coin conversation
@@ -185,6 +231,7 @@ func Init(t string, cfg *Config) {
 	defer mu.Unlock()
 	//每个title 只会初始化一次
 	if titles[t] {
+		tlog.Warn("title " + t + " only init once")
 		title = t
 		return
 	}
@@ -208,16 +255,20 @@ func Init(t string, cfg *Config) {
 		setLocalFork()
 		setChainConfig("TxHeight", true)
 		setChainConfig("Debug", true)
+		//更新fork配置信息
+		mver[title].UpdateFork()
 		return
 	}
 	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
 	if isPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
 		//keep superManager same with mainnet
 		setForkForPara(title)
+		mver[title].UpdateFork()
 		return
 	}
 	if cfg != nil && cfg.Fork != nil {
 		InitForkConfig(title, cfg.Fork)
+		mver[title].UpdateFork()
 	}
 }
 
@@ -234,7 +285,7 @@ func isLocal() bool {
 func IsLocal() bool {
 	mu.Lock()
 	defer mu.Unlock()
-	return IsLocal()
+	return isLocal()
 }
 
 func SetMinFee(fee int64) {
@@ -265,7 +316,6 @@ func setTestNet(isTestNet bool) {
 	}
 	setChainConfig("TestNet", true)
 	//const 初始化TestNet 的初始化参数
-	GenesisBlockTime = 1514533394
 	FundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 	SuperManager = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
 	TokenApprs = []string{
@@ -402,12 +452,50 @@ func InitCfg(path string) (*Config, *ConfigSubModule) {
 	return InitCfgString(readFile(path))
 }
 
+func setFlatConfig(cfgstring string) {
+	mu.Lock()
+	defer mu.Unlock()
+	cfg := make(map[string]interface{})
+	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
+		panic(err)
+	}
+	flat := FlatConfig(cfg)
+	for k, v := range flat {
+		setChainConfig("config."+k, v)
+	}
+}
+
+func flatConfig(key string, conf map[string]interface{}, flat map[string]interface{}) {
+	for key1, value1 := range conf {
+		conf1, ok := value1.(map[string]interface{})
+		if ok {
+			flatConfig(getkey(key, key1), conf1, flat)
+		} else {
+			flat[getkey(key, key1)] = value1
+		}
+	}
+}
+
+func FlatConfig(conf map[string]interface{}) map[string]interface{} {
+	flat := make(map[string]interface{})
+	flatConfig("", conf, flat)
+	return flat
+}
+
+func setMver(title string, cfgstring string) {
+	mu.Lock()
+	defer mu.Unlock()
+	mver[title] = newMversion(title, cfgstring)
+}
+
 func InitCfgString(cfgstring string) (*Config, *ConfigSubModule) {
 	cfgstring = mergeCfg(cfgstring)
+	setFlatConfig(cfgstring)
 	cfg, err := initCfgString(cfgstring)
 	if err != nil {
 		panic(err)
 	}
+	setMver(cfg.Title, cfgstring)
 	sub, err := initSubModuleString(cfgstring)
 	if err != nil {
 		panic(err)
@@ -461,4 +549,47 @@ func parseItem(data map[string]interface{}) map[string][]byte {
 		}
 	}
 	return subconfig
+}
+
+type ConfQuery struct {
+	prefix string
+}
+
+func Conf(prefix string) *ConfQuery {
+	if prefix == "" || (!strings.HasPrefix(prefix, "config.") && !strings.HasPrefix(prefix, "mver.")) {
+		panic("ConfQuery must init buy prefix config. or mver.")
+	}
+	return &ConfQuery{prefix}
+}
+
+func (query *ConfQuery) G(key string) (interface{}, error) {
+	return G(getkey(query.prefix, key))
+}
+
+func (query *ConfQuery) GInt(key string) int64 {
+	return GInt(getkey(query.prefix, key))
+}
+
+func (query *ConfQuery) GStr(key string) string {
+	return GStr(getkey(query.prefix, key))
+}
+
+func (query *ConfQuery) IsEnable(key string) bool {
+	return IsEnable(getkey(query.prefix, key))
+}
+
+func (query *ConfQuery) MG(key string, height int64) (interface{}, error) {
+	return MG(getkey(query.prefix, key), height)
+}
+
+func (query *ConfQuery) MGInt(key string, height int64) int64 {
+	return MGInt(getkey(query.prefix, key), height)
+}
+
+func (query *ConfQuery) MGStr(key string, height int64) string {
+	return MGStr(getkey(query.prefix, key), height)
+}
+
+func (query *ConfQuery) MIsEnable(key string, height int64) bool {
+	return MIsEnable(getkey(query.prefix, key), height)
 }
