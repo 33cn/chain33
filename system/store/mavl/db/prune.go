@@ -357,12 +357,12 @@ func (ndb *markNodeDB) judgeDelNodeCache() {
 }
 
 type MarkNode struct {
-	height      int32
-	hash        []byte
-	leftHash    []byte
-	rightHash   []byte
-	parentHash  []byte
-	parentNode  *MarkNode
+	height     int32
+	hash       []byte
+	leftHash   []byte
+	rightHash  []byte
+	parentHash []byte
+	parentNode *MarkNode
 }
 
 type markNodeDB struct {
