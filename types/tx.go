@@ -29,7 +29,7 @@ func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 	for i := len(txs) - 1; i >= 0; i-- {
 		txs[i].GroupCount = int32(len(txs))
 		totalfee += txs[i].GetFee()
-		realfee, err := txs[i].GetRealFee(MinFee)
+		realfee, err := txs[i].GetRealFee(GInt("MinFee"))
 		if err != nil {
 			return nil, err
 		}
@@ -551,14 +551,6 @@ func (tx *Transaction) IsWithdraw() bool {
 		if tx.ActionName() == withdraw {
 			return true
 		}
-	}
-	return false
-}
-
-func IsEnable(name string) bool {
-	isenable, err := GetChainConfig(name)
-	if err == nil && isenable.(bool) {
-		return true
 	}
 	return false
 }

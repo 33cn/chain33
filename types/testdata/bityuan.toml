@@ -62,7 +62,7 @@ grpcFuncWhitelist=["*"]
 [mempool]
 poolCacheSize=102400
 minTxFee=100000
-maxTxNumPerAccount=10000
+maxTxNumPerAccount=100
 
 [consensus]
 name="ticket"
@@ -145,6 +145,9 @@ minExecFee=100000
 enableStat=false
 enableMVCC=false
 
+[exec.sub.token]
+saveTokenTxList=false
+
 #系统中所有的fork,默认用chain33的测试网络的
 #但是我们可以替换
 [fork.system]
@@ -160,12 +163,14 @@ ForkWithdraw= 200000
 ForkExecRollback= 450000
 ForkTxHeight= -1
 ForkTxGroupPara= -1
+ForkCheckBlockTime=1200000
 
 [fork.sub.coins]
 Enable=0
 
 [fork.sub.ticket]
 Enable=0
+ForkTicketId = 1200000
 
 [fork.sub.retrieve]
 Enable=0

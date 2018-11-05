@@ -6,21 +6,12 @@ import (
 )
 
 var deltaTime int64
-var timeCalibration bool
 var NtpHosts = []string{
 	"time.windows.com:123",
 	"ntp.ubuntu.com:123",
 	"pool.ntp.org:123",
 	"cn.pool.ntp.org:123",
 	"time.apple.com:123",
-}
-
-func SetFixTime(openTimeCalibration bool) {
-	timeCalibration = openTimeCalibration
-}
-
-func IsFixTime() bool {
-	return timeCalibration
 }
 
 //realtime - localtime

@@ -31,6 +31,7 @@ var (
 	ErrNotMinered              = errors.New("ErrNotMinered")
 	ErrFromAddr                = errors.New("ErrFromAddr")
 	ErrBlockHeight             = errors.New("ErrBlockHeight")
+	ErrBlockTime               = errors.New("ErrBlockTime")
 	ErrCoinBaseExecer          = errors.New("ErrCoinBaseExecer")
 	ErrCoinBaseTxType          = errors.New("ErrCoinBaseTxType")
 	ErrCoinBaseExecErr         = errors.New("ErrCoinBaseExecErr")

@@ -1,13 +1,14 @@
 package wallet
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/inconshreveable/log15"
-
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
@@ -512,8 +513,22 @@ func (policy *ticketPolicy) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, 
 
 func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
 	bizlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", count)
+	if count > ty.TicketCountOpenOnce {
+		count = ty.TicketCountOpenOnce
+		bizlog.Info("openticket", "Update count", "wait for another open")
+	}
+
 	ta := &ty.TicketAction{}
-	topen := &ty.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
+	topen := &ty.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count, RandSeed: types.Now().UnixNano()}
+	hashList := make([][]byte, int(count))
+	privStr := ""
+	for i := 0; i < int(count); i++ {
+		privStr = fmt.Sprintf("%x:%d:%d", priv.Bytes(), i, topen.RandSeed)
+		privHash := common.Sha256([]byte(privStr))
+		pubHash := common.Sha256(privHash)
+		hashList[i] = pubHash
+	}
+	topen.PubHashes = hashList
 	ta.Value = &ty.TicketAction_Topen{topen}
 	ta.Ty = ty.TicketActionOpen
 	return policy.walletOperate.SendTransaction(ta, []byte(ty.TicketX), priv, "")

@@ -4,12 +4,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
@@ -66,19 +63,12 @@ func bindMiner(cmd *cobra.Command, args []string) {
 	}
 	ta.Value = &ty.TicketAction_Tbind{Tbind: tBind}
 	ta.Ty = ty.TicketActionBind
-	execer := []byte("ticket")
-	to := address.ExecAddress(string(execer))
-	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
-	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
+
+	tx, err := types.CreateFormatTx("ticket", types.Encode(ta))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	tx.Fee += types.MinFee
-	//tx.Sign(int32(wallet.SignType), privKey)
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))
 }

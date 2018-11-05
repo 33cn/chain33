@@ -314,7 +314,7 @@ func (r *Relayd) transaction(payload []byte) *types.Transaction {
 		To:      address.ExecAddress(ty.RelayX),
 	}
 
-	fee, _ := tx.GetRealFee(types.MinFee)
+	fee, _ := tx.GetRealFee(types.GInt("MinFee"))
 	tx.Fee = fee
 	tx.Sign(types.SECP256K1, r.privateKey)
 	log.Info("transaction", "fee : ", fee)
