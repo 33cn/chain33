@@ -12,4 +12,11 @@ const (
 	KeyActionName               = "action_name"
 	KeyProtobufFile             = "protobuf_file"
 	KeyTemplateFilePath         = "template_file_path"
+
+	// 逻辑中用设定的项目名称替换的文字标签
+	TagProjectName				= "${PROJECTNAME}"
+	// 逻辑中用设定的执行器类名替换的文字标签
+	TagClassName				= "${CLASSNAME}"
+	// 逻辑中用设定的执行器中使用的Action名替换的文字标签
+	TagActionName				= "${ACTIONNAME}"
 )
