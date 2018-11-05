@@ -219,6 +219,7 @@ func BenchmarkGet(b *testing.B) {
 	store := New(store_cfg, nil).(*Store)
 	assert.NotNil(b, store)
 	mavldb.EnableMavlPrefix(true)
+	defer mavldb.EnableMavlPrefix(false)
 	var kv []*types.KeyValue
 	var keys [][]byte
 	var hash = drivers.EmptyRoot[:]
@@ -433,6 +434,7 @@ func BenchmarkSet(b *testing.B) {
 	store := New(store_cfg, nil).(*Store)
 	assert.NotNil(b, store)
 	mavldb.EnableMavlPrefix(true)
+	defer mavldb.EnableMavlPrefix(false)
 	var kv []*types.KeyValue
 	var keys [][]byte
 	var hash = drivers.EmptyRoot[:]
