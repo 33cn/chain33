@@ -13,7 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
@@ -62,7 +61,7 @@ type Chain33Mock struct {
 }
 
 func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
-	return config.InitCfgString(cfgstring)
+	return types.InitCfgString(cfgstring)
 }
 
 func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
@@ -129,12 +128,12 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	var cfg *types.Config
 	var sub *types.ConfigSubModule
 	if cfgpath == "" || cfgpath == "--notset--" || cfgpath == "--free--" {
-		cfg, sub = config.InitCfgString(cfgstring)
+		cfg, sub = types.InitCfgString(cfgstring)
 		if cfgpath == "--free--" {
 			setFee(cfg, 0)
 		}
 	} else {
-		cfg, sub = config.InitCfg(cfgpath)
+		cfg, sub = types.InitCfg(cfgpath)
 	}
 	return newWithConfig(cfg, sub, mockapi)
 }
