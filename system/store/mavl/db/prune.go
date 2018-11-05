@@ -58,7 +58,6 @@ type hashData struct {
 
 type addHash struct {
 	hash  []byte
-	isAdd bool
 }
 
 type addDelStr struct {
@@ -78,6 +77,8 @@ func NewDelNodeValuePool(cacSize int) *delNodeValuePool {
 
 func EnablePrune(enable bool) {
 	enablePrune = enable
+	//开启裁剪需要同时开启前缀
+	enableMavlPrefix = enable
 }
 
 func SetPruneHeight(height int) {
@@ -202,11 +203,13 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, lastKey []
 	batch := db.NewBatch(true)
 	for key, vals := range mp {
 		if len(vals) > 1 {
-			for _, val := range vals[1:] { //从第二个开始判断
-				if curHeight >= val.height+int64(pruneHeight) {
-					//batch.Delete(val.hash) //叶子节点hash值的删除放入pruningHashNode中
-					batch.Delete(genLeafCountKey([]byte(key), val.hash, val.height))
-					delMp[string(val.hash)] = true
+			if vals[1].height != vals[0].height {//防止相同高度时候出现的误删除
+				for _, val := range vals[1:] { //从第二个开始判断
+					if curHeight >= val.height+int64(pruneHeight) {
+						//batch.Delete(val.hash) //叶子节点hash值的删除放入pruningHashNode中
+						batch.Delete(genLeafCountKey([]byte(key), val.hash, val.height))
+						delMp[string(val.hash)] = true
+					}
 				}
 			}
 		}
@@ -229,24 +232,18 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	}
 	ndb := newMarkNodeDB(db, 1024*10, mp)
 	var delNodeStrs []string
-	var addDelStrs []*addDelStr
 	for key := range mp {
 		mNode, err := ndb.LoadLeaf([]byte(key))
 		if err == nil {
-			addDel, delN := mNode.getHashNode(ndb)
-			addDelStrs = append(addDelStrs, addDel...)
+			delN := mNode.getHashNode(ndb)
 			delNodeStrs = append(delNodeStrs, delN...)
 		}
 	}
 	//根据keyMap进行归类
-	mpAddDel := make(map[string][]addHash)
-	for _, s := range addDelStrs {
-		key, hash := genDeletePoolKey([]byte(s.str))
-		data := addHash{
-			hash:  hash,
-			isAdd: s.isAdd,
-		}
-		mpAddDel[string(key)] = append(mpAddDel[string(key)], data)
+	mpAddDel := make(map[string][][]byte)
+	for _, s := range delNodeStrs {
+		key, hash := genDeletePoolKey([]byte(s))
+		mpAddDel[string(key)] = append(mpAddDel[string(key)], hash)
 	}
 
 	//更新pool数据
@@ -255,11 +252,7 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 		dep := ndb.getPool(mpk)
 		if dep != nil {
 			for _, aHsh := range mpV {
-				if aHsh.isAdd {
-					dep.delCache.Add(string(aHsh.hash), true)
-				} else {
-					dep.delCache.Remove(string(aHsh.hash))
-				}
+				dep.delCache.Add(string(aHsh), true)
 			}
 			ndb.updateDelHash(batch, mpk, dep)
 		}
@@ -267,8 +260,10 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	batch.Write()
 
 	//加入要删除的hash节点
+	count1 := 0
 	for _, str := range delNodeStrs {
 		mp[str] = true
+		count1++
 	}
 	count := 0
 	batch = db.NewBatch(true)
@@ -278,39 +273,22 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 	}
 	batch.Write()
 	//fmt.Printf("pruningHashNode ndb.count %d delete %d \n", ndb.count, count1)
-	treelog.Info("pruningHashNode ", "delete node count", count)
+	treelog.Info("pruningHashNode ", "delNodeStrs", count1, "delete node mp count", count)
 }
 
 //获取要删除的hash节点
-func (node *MarkNode) getHashNode(ndb *markNodeDB) (addDelStrs []*addDelStr, delNodeStrs []string) {
-	//目前只裁剪第0,1层节点，暂时不使用递归
-	parN := node.fetchParentNode(ndb)
-	if parN != nil {
-		if bytes.Equal(parN.leftHash, node.hash) {
-			node.brotherHash = parN.rightHash
+func (node *MarkNode) getHashNode(ndb *markNodeDB) (delNodeStrs []string) {
+	for {
+		parN := node.fetchParentNode(ndb)
+		if parN != nil {
+			delNodeStrs = append(delNodeStrs, string(node.hash))
+			node = parN
 		} else {
-			node.brotherHash = parN.leftHash
-		}
-		broN := node.fetchBrotherNode(ndb)
-		if broN == nil || (broN != nil && broN.hashPrune) {
-			node.parentPrune = true
-		}
-		if node.parentPrune {
-			if broN == nil {
-				//将兄弟节点从已删除map部分移除
-				addDelStrs = append(addDelStrs, &addDelStr{false, string(node.brotherHash)})
-			}
-			//将父节点删除
-			delNodeStrs = append(delNodeStrs, string(node.parentHash))
-		} else {
-			if parN.height == 1 {
-				// 需要将本节点加入的已删除map部分,只针对父节点为1,
-				// 父节点大于1不处理当前只裁剪叶子节点之上一层
-				addDelStrs = append(addDelStrs, &addDelStr{true, string(node.hash)})
-			}
+			delNodeStrs = append(delNodeStrs, string(node.hash))
+			break
 		}
 	}
-	return addDelStrs, delNodeStrs
+	return delNodeStrs
 }
 
 func (ndb *markNodeDB) updateDelHash(batch dbm.Batch, key string, dep *delNodeValuePool) {
