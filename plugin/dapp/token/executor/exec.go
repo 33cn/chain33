@@ -36,17 +36,17 @@ func (t *token) Exec_Withdraw(payload *types.AssetsWithdraw, tx *types.Transacti
 	return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 }
 
-func (t *token) Exec_Tokenprecreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *token) Exec_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := newTokenAction(t, "", tx)
 	return action.preCreate(payload)
 }
 
-func (t *token) Exec_Tokenfinishcreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *token) Exec_TokenFinishCreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := newTokenAction(t, types.FundKeyAddr, tx)
 	return action.finishCreate(payload)
 }
 
-func (t *token) Exec_Tokenrevokecreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *token) Exec_TokenRevokeCreate(payload *tokenty.TokenRevokeCreate, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := newTokenAction(t, "", tx)
 	return action.revokeCreate(payload)
 }

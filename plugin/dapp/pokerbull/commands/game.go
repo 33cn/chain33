@@ -143,24 +143,26 @@ func addPokerbullQueryFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("gameID", "g", "", "game ID")
 	cmd.Flags().StringP("address", "a", "", "address")
 	cmd.Flags().StringP("index", "i", "", "index")
+	cmd.Flags().StringP("status", "s", "", "status")
+	cmd.Flags().StringP("gameIDs", "d", "", "gameIDs")
 }
 
 func pokerbullQuery(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	gameID, _ := cmd.Flags().GetString("gameID")
 	address, _ := cmd.Flags().GetString("address")
+	statusStr, _ := cmd.Flags().GetString("status")
+	status, _ := strconv.ParseInt(statusStr, 10, 32)
 	indexstr, _ := cmd.Flags().GetString("index")
 	index, _ := strconv.ParseInt(indexstr, 10, 64)
-	if address == "" && gameID == "" {
-		fmt.Println("Error: requeres at least one of gameID and address")
-		return
-	}
+	gameIDs, _ := cmd.Flags().GetString("gameIDs")
 
 	var params types.Query4Cli
 	params.Execer = pkt.PokerBullX
 	req := &pkt.QueryPBGameInfo{
 		GameId: gameID,
 		Addr:   address,
+		Status: int32(status),
 		Index:  index,
 	}
 	params.Payload = req
@@ -174,6 +176,23 @@ func pokerbullQuery(cmd *cobra.Command, args []string) {
 		var res pkt.PBGameRecords
 		ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 		ctx.Run()
+	} else if statusStr != "" {
+		params.FuncName = pkt.FuncName_QueryGameByStatus
+		var res pkt.PBGameRecords
+		ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+		ctx.Run()
+	} else if gameIDs != "" {
+		params.FuncName = pkt.FuncName_QueryGameListByIds
+		var gameIDsS []string
+		gameIDsS = append(gameIDsS, gameIDs)
+		gameIDsS = append(gameIDsS, gameIDs)
+		req := &pkt.QueryPBGameInfos{gameIDsS}
+		params.Payload = req
+		var res pkt.ReplyPBGameList
+		ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+		ctx.Run()
+	} else {
+		fmt.Println("Error: requeres at least one of gameID, address or status")
+		cmd.Help()
 	}
-
 }

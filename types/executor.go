@@ -44,9 +44,6 @@ func (l *logInfoType) Json(data []byte) ([]byte, error) {
 	if msg, ok := d.(Message); ok {
 		return PBToJson(msg)
 	}
-	if msg, ok := d.(json.RawMessage); ok {
-		return msg.MarshalJSON()
-	}
 	jsdata, err := json.Marshal(d)
 	if err != nil {
 		return nil, err
@@ -58,6 +55,9 @@ var executorMap = map[string]ExecutorType{}
 
 func RegistorExecutor(exec string, util ExecutorType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
+	if util.GetChild() == nil {
+		panic("exec " + exec + " executorType child is nil")
+	}
 	if _, exist := executorMap[exec]; exist {
 		panic("DupExecutorType")
 	} else {
@@ -65,10 +65,10 @@ func RegistorExecutor(exec string, util ExecutorType) {
 	}
 }
 
-func LoadExecutorType(exec string) ExecutorType {
+func LoadExecutorType(execstr string) ExecutorType {
 	//尽可能的加载执行器
 	//真正的权限控制在区块执行的时候做控制
-	realname := GetRealExecName([]byte(exec))
+	realname := GetRealExecName([]byte(execstr))
 	if exec, exist := executorMap[string(realname)]; exist {
 		return exec
 	}
@@ -172,7 +172,8 @@ func getLogType(execer []byte, ty int64) *LogInfo {
 func DecodeLog(execer []byte, ty int64, data []byte) (interface{}, error) {
 	t := getLogType(execer, ty)
 	if t.Name == "LogErr" || t.Name == "LogReserved" {
-		return json.RawMessage(data), nil
+		msg := string(data)
+		return msg, nil
 	}
 	pdata := reflect.New(t.Ty)
 	if !pdata.CanInterface() {
@@ -210,9 +211,12 @@ type ExecutorType interface {
 	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
 	//write for executor
 	GetPayload() Message
+	GetChild() ExecutorType
 	GetName() string
 	//exec result of receipt log
 	GetLogMap() map[int64]*LogInfo
+	GetForks() *Forks
+	IsFork(height int64, key string) bool
 	//actionType -> name map
 	GetTypeMap() map[string]int32
 	GetValueTypeMap() map[string]reflect.Type
@@ -221,6 +225,8 @@ type ExecutorType interface {
 	GetRPCFuncMap() map[string]reflect.Method
 	GetExecFuncMap() map[string]reflect.Method
 	CreateTransaction(action string, data Message) (*Transaction, error)
+	// collect assets the tx deal with
+	GetAssets(tx *Transaction) ([]*Asset, error)
 }
 
 type ExecTypeGet interface {
@@ -235,6 +241,11 @@ type ExecTypeBase struct {
 	actionListValueType map[string]reflect.Type
 	rpclist             map[string]reflect.Method
 	queryMap            map[string]reflect.Type
+	forks               *Forks
+}
+
+func (base *ExecTypeBase) GetChild() ExecutorType {
+	return base.child
 }
 
 func (base *ExecTypeBase) SetChild(child ExecutorType) {
@@ -243,12 +254,16 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	base.rpclist = ListMethod(child)
 	base.actionListValueType = make(map[string]reflect.Type)
 	base.actionFunList = make(map[string]reflect.Method)
+	base.forks = child.GetForks()
 
 	action := child.GetPayload()
 	if action == nil {
 		return
 	}
 	base.actionFunList = ListMethod(action)
+	if _, ok := base.actionFunList["XXX_OneofFuncs"]; !ok {
+		return
+	}
 	retval := base.actionFunList["XXX_OneofFuncs"].Func.Call([]reflect.Value{reflect.ValueOf(action)})
 	if len(retval) != 4 {
 		panic("err XXX_OneofFuncs")
@@ -280,6 +295,10 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	}
 }
 
+func (base *ExecTypeBase) GetForks() *Forks {
+	return &Forks{}
+}
+
 func (base *ExecTypeBase) GetCryptoDriver(ty int) (string, error) {
 	return "", ErrNotSupport
 }
@@ -308,6 +327,13 @@ func (base *ExecTypeBase) GetExecFuncMap() map[string]reflect.Method {
 
 func (base *ExecTypeBase) GetName() string {
 	return "typedriverbase"
+}
+
+func (base *ExecTypeBase) IsFork(height int64, key string) bool {
+	if base.GetForks == nil {
+		return false
+	}
+	return base.forks.IsFork(GetTitle(), height, key)
 }
 
 func (base *ExecTypeBase) GetValueTypeMap() map[string]reflect.Type {
@@ -387,6 +413,9 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 }
 
 func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
+	if base.child == nil {
+		return "", nilValue, ErrActionNotSupport
+	}
 	action, err := base.child.DecodePayload(tx)
 	if err != nil {
 		tlog.Error("DecodePayload", "err", err)
@@ -628,4 +657,23 @@ func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Tr
 		return &Transaction{Payload: Encode(value)}, nil
 	}
 	return nil, ErrActionNotSupport
+}
+
+func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
+	_, v, err := base.DecodePayloadValue(tx)
+	if err != nil {
+		return nil, err
+	}
+	payload := v.Interface()
+	asset := &Asset{Exec: string(tx.Execer)}
+	if a, ok := payload.(*AssetsTransfer); ok {
+		asset.Symbol = a.Cointoken
+	} else if a, ok := payload.(*AssetsWithdraw); ok {
+		asset.Symbol = a.Cointoken
+	} else if a, ok := payload.(*AssetsTransferToExec); ok {
+		asset.Symbol = a.Cointoken
+	} else {
+		return nil, nil
+	}
+	return []*Asset{asset}, nil
 }

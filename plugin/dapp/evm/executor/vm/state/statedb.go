@@ -237,7 +237,7 @@ func (self *MemoryStateDB) SetState(addr string, key common.Hash, value common.H
 	if acc != nil {
 		acc.SetState(key, value)
 		// 新的分叉中状态数据变更不需要单独进行标识
-		if !types.IsMatchFork(self.blockHeight, types.ForkV20EVMState) {
+		if !types.IsDappFork(self.blockHeight, "evm", "ForkEVMState") {
 			self.stateDirty[addr] = true
 		}
 	}

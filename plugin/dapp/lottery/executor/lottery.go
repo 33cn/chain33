@@ -22,7 +22,7 @@ func Init(name string, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}
-	drivers.Register(driverName, newLottery, 0)
+	drivers.Register(driverName, newLottery, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {
