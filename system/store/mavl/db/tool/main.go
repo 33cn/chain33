@@ -51,7 +51,7 @@ func main() {
 	db := dbm.NewDB("store", "leveldb", dir, 100)
 
 	a := 0
-	fmt.Println("是否需要查询leaf索引计数")
+	fmt.Println("是否需要查询叶子节点索引计数")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
@@ -65,11 +65,18 @@ func main() {
 		mavl.PruningTreePrintDB(db, []byte("_mh_"))
 	}
 	a = 0
-	fmt.Println("是否需要查询leaf节点计数")
+	fmt.Println("是否需要查询叶子节点计数")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')
 	if a > 0 {
 		mavl.PruningTreePrintDB(db, []byte("_mb_"))
+	}
+	a = 0
+	fmt.Println("是否需要查询全部节点计数")
+	fmt.Fscan(stdin, &a)
+	stdin.ReadString('\n')
+	if a > 0 {
+		mavl.PruningTreePrintDB(db, nil)
 	}
 	a = 0
 	fmt.Println("是否需要查询节点删除pool")

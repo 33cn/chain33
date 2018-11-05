@@ -187,10 +187,10 @@ func (node *Node) Hash(t *Tree) []byte {
 
 		if enablePrune {
 			//加入parentHash、brotherHash
-			if node.leftNode != nil && node.leftNode.height == 0 { //只对倒数第二层做裁剪
+			if node.leftNode != nil && node.leftNode.height != t.root.height { //只对倒数第二层做裁剪
 				node.leftNode.parentHash = node.hash
 			}
-			if node.rightNode != nil && node.rightNode.height == 0 {
+			if node.rightNode != nil && node.rightNode.height != t.root.height {
 				node.rightNode.parentHash = node.hash
 			}
 		}
@@ -243,9 +243,6 @@ func (node *Node) storeNode(t *Tree) []byte {
 		if !enableMvcc {
 			storeNode.Value = node.value
 		}
-		if enablePrune {
-			storeNode.ParentHash = node.parentHash
-		}
 	} else {
 		// left
 		if node.leftHash == nil {
@@ -258,6 +255,9 @@ func (node *Node) storeNode(t *Tree) []byte {
 			panic("node.rightHash was nil in writePersistBytes")
 		}
 		storeNode.RightHash = node.rightHash
+	}
+	if enablePrune {
+		storeNode.ParentHash = node.parentHash
 	}
 	storeNodebytes, err := proto.Marshal(&storeNode)
 	if err != nil {
