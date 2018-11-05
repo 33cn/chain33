@@ -116,7 +116,9 @@ minExecFee=100000
 enableStat=false
 enableMVCC=false
 alias=["token1:token","token2:token","token3:token"]
-saveTokenTxList=false
+
+[exec.sub.token]
+saveTokenTxList=true
 
 [exec.sub.cert]
 # 是否启用证书验证和签名

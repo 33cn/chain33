@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 
 	// "gitlab.33.cn/chain33/chain33/common/log"
@@ -31,7 +30,7 @@ func init() {
 
 func initEnv() (*Wallet, queue.Module, queue.Queue) {
 	var q = queue.New("channel")
-	cfg, sub := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
 
 	wallet := New(cfg.Wallet, sub.Wallet)
 	wallet.SetQueueClient(q.Client())

@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/cert/authority/utils"
@@ -79,7 +78,7 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 初始化Author实例和userloader
 */
 func initEnv() error {
-	_, sub := config.InitCfg("./test/chain33.auth.test.toml")
+	_, sub := types.InitCfg("./test/chain33.auth.test.toml")
 	var subcfg ct.Authority
 	if sub.Exec["cert"] != nil {
 		types.MustDecode(sub.Exec["cert"], &subcfg)
@@ -118,7 +117,7 @@ func TestChckSign(t *testing.T) {
 		t.Errorf("init env failed, error:%s", err)
 		return
 	}
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -137,7 +136,7 @@ func TestChckSigns(t *testing.T) {
 		t.Errorf("init env failed, error:%s", err)
 		return
 	}
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -158,7 +157,7 @@ func TestChckSignsPara(t *testing.T) {
 		t.Errorf("init env failed, error:%s", err)
 		return
 	}
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -179,7 +178,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 		t.Errorf("init env failed, error:%s", err)
 		return
 	}
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -206,7 +205,7 @@ func TestChckSignWithSm2(t *testing.T) {
 		t.Errorf("init env failed, error:%s", err)
 		return
 	}
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -232,7 +231,7 @@ func TestChckSignWithEcdsa(t *testing.T) {
 		t.Errorf("init env failed, error:%s", err)
 		return
 	}
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -253,7 +252,7 @@ func TestValidateCert(t *testing.T) {
 		return
 	}
 
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -279,7 +278,7 @@ func TestValidateTxWithNoneAuth(t *testing.T) {
 	noneCertdata.CurHeigth = 0
 	authority.Author.ReloadCert(noneCertdata)
 
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -300,7 +299,7 @@ func TestReloadCert(t *testing.T) {
 		return
 	}
 
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -323,7 +322,7 @@ func TestReloadByHeight(t *testing.T) {
 		t.Errorf("init env failed, error:%s", err)
 		return
 	}
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
@@ -341,7 +340,7 @@ func TestValidateCerts(t *testing.T) {
 		t.Errorf("init env failed, error:%s", err)
 	}
 
-	prev := types.MinFee
+	prev := types.GInt("MinFee")
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 

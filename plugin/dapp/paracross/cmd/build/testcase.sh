@@ -168,14 +168,23 @@ function para_cross_transfer_withdraw() {
 
     sleep 15
     ${CLI} send para asset_withdraw --title user.p.para. -a 0.7 -n test -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01
-    block_wait "${CLI}" 5
 
-    acc=$(${CLI} account balance -e paracross -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv | jq -r ".balance")
-    echo "account balance is ${acc}, except 9.3 "
-    if [ "${acc}" != "9.3000" ]; then
-        echo "para_cross_transfer_withdraw failed"
-        exit 1
-    fi
+    times=100
+    while true; do
+        acc=$(${CLI} account balance -e paracross -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv | jq -r ".balance")
+        echo "account balance is ${acc}, except 9.3 "
+        if [ "${acc}" != "9.3000" ]; then
+            block_wait "${CLI}" 2
+            times=$((times - 1))
+            if [ $times -le 0 ]; then
+                echo "para_cross_transfer_withdraw failed"
+                exit 1
+            fi
+        else
+            echo "para_cross_transfer_withdraw success"
+            break
+        fi
+    done
 }
 
 function para_test() {
