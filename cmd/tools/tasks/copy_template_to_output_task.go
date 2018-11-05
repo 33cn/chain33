@@ -17,6 +17,10 @@ type CopyTemplateToOutputTask struct {
 	ClassName    string
 }
 
+func (this *CopyTemplateToOutputTask) GetName() string {
+	return "CopyTemplateToOutputTask"
+}
+
 func (this *CopyTemplateToOutputTask) Execute() error {
 	mlog.Info("Execute copy template task.")
 	err := filepath.Walk(this.TemplatePath, func(path string, info os.FileInfo, err error) error {
