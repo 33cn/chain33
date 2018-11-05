@@ -18,6 +18,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
@@ -39,6 +40,7 @@ var lognode = log15.New("module", "lognode")
 
 type Chain33Mock struct {
 	random  *rand.Rand
+	q       queue.Queue
 	client  queue.Client
 	api     client.QueueProtocolAPI
 	chain   *blockchain.BlockChain
@@ -58,14 +60,14 @@ func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
 
 func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	types.SetTestNet(cfg.TestNet)
-	types.SetTitle(cfg.Title)
+	types.Init(cfg.Title, cfg)
 	return newWithConfig(cfg, sub, mockapi)
 }
 
 func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	q := queue.New("channel")
 	types.Debug = false
-	mock := &Chain33Mock{cfg: cfg}
+	mock := &Chain33Mock{cfg: cfg, q: q}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 
 	mock.exec = executor.New(cfg.Exec, sub.Exec)
@@ -132,6 +134,7 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 }
 
 func (m *Chain33Mock) Listen() {
+	pluginmgr.AddRPC(m.rpc)
 	portgrpc, portjsonrpc := m.rpc.Listen()
 	if strings.HasSuffix(m.cfg.Rpc.JrpcBindAddr, ":0") {
 		l := len(m.cfg.Rpc.JrpcBindAddr)

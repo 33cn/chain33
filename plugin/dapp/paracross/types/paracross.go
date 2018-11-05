@@ -10,7 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var tlog = log15.New("module", types.ParaX)
+var tlog = log15.New("module", ParaX)
 
 const (
 	// paracross 执行器的日志类型
@@ -80,7 +80,7 @@ func CreateRawParacrossCommitTx(parm *ParacrossCommitTx) (*types.Transaction, er
 		tlog.Error("CreateRawParacrossCommitTx", "parm", parm)
 		return nil, types.ErrInvalidParam
 	}
-	return createRawCommitTx(&parm.Status, types.ExecName(types.ParaX), parm.Fee)
+	return createRawCommitTx(&parm.Status, types.ExecName(ParaX), parm.Fee)
 }
 
 func createRawCommitTx(status *ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
@@ -150,10 +150,10 @@ func CreateRawMinerTx(status *ParacrossNodeStatus) (*types.Transaction, error) {
 		Value: &ParacrossAction_Miner{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(types.ExecName(types.ParaX)),
+		Execer:  []byte(types.ExecName(ParaX)),
 		Payload: types.Encode(action),
 		Nonce:   0, //for consensus purpose, block hash need same, different auth node need keep totally same vote tx
-		To:      address.ExecAddress(types.ExecName(types.ParaX)),
+		To:      address.ExecAddress(types.ExecName(ParaX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)

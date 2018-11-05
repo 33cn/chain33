@@ -19,6 +19,7 @@ if [ -n "${DAPP}" ]; then
 
 fi
 
+echo "=========== # down docker-compose ============="
 echo "=========== # env setting ============="
 echo "DAPP=$DAPP"
 echo "COMPOSE_FILE=$COMPOSE_FILE"
@@ -29,10 +30,16 @@ echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
 function down() {
     echo "=========== # docker-compose ps ============="
     docker-compose ps
-
-    # remove exsit container
-    echo "=========== # docker-compose down ============="
-    docker-compose down --rmi local
+    # shellchk not recommend the first way
+    # remains=( $(docker-compose ps -q | awk '{print $1}') )
+    mapfile -t remains < <(docker-compose ps -q | awk '{print $1}')
+    num=${#remains[@]}
+    echo "container num=$num"
+    if [ "$num" -gt 0 ]; then
+        # remove exsit container
+        echo "=========== # docker-compose down ============="
+        docker-compose down --rmi local
+    fi
 
 }
 

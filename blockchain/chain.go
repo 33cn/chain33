@@ -133,7 +133,7 @@ func initConfig(cfg *types.BlockChain) {
 		DefCacheSize = cfg.DefCacheSize
 	}
 
-	if types.EnableTxHeight && DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
+	if types.IsEnable("TxHeight") && DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
 		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
 	}
 
@@ -198,7 +198,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 func (chain *BlockChain) InitBlockChain() {
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
-	if types.EnableTxHeight {
+	if types.IsEnable("TxHeight") {
 		chain.InitCache(curheight)
 	}
 	//获取数据库中最新的10240个区块加载到index和bestview链中

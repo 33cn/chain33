@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	ticketwallet "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/wallet"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util/testnode"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
@@ -24,7 +23,7 @@ func Test_WalletTicket(t *testing.T) {
 
 	err := mock33.WaitHeight(0)
 	assert.Nil(t, err)
-	msg, err := mock33.GetAPI().Query(types.TicketX, "TicketList", &ty.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1})
+	msg, err := mock33.GetAPI().Query(ty.TicketX, "TicketList", &ty.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1})
 	require.Equal(t, err, nil)
 	ticketList := msg.(*ty.ReplyTicketList)
 	if ticketList == nil {

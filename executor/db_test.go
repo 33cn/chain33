@@ -27,12 +27,10 @@ func TestStateDBGet(t *testing.T) {
 }
 
 func TestStateDBTxGetOld(t *testing.T) {
-	old := types.ForkV22ExecRollback
-	types.ForkV22ExecRollback = 10
-	defer func() {
-		types.ForkV22ExecRollback = old
-	}()
-	db := newStateDbForTest(types.ForkV22ExecRollback - 1)
+	title := types.GetTitle()
+	types.Init("chain33", nil)
+	defer types.Init(title, nil)
+	db := newStateDbForTest(types.GetFork("ForkExecRollback") - 1)
 
 	db.Begin()
 	err := db.Set([]byte("k1"), []byte("v1"))
@@ -72,7 +70,7 @@ func TestStateDBTxGetOld(t *testing.T) {
 	db.Commit()
 
 	//新版本
-	db = newStateDbForTest(types.ForkV22ExecRollback)
+	db = newStateDbForTest(types.GetFork("ForkExecRollback"))
 	db.Begin()
 	err = db.Set([]byte("k1"), []byte("v1"))
 	assert.Nil(t, err)

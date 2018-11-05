@@ -18,7 +18,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newRelay, types.ForkV18Relay) //TODO: ForkV18Relay
+	drivers.Register(GetName(), newRelay, types.GetDappFork(driverName, "Enable")) //TODO: ForkV18Relay
 }
 
 func GetName() string {
