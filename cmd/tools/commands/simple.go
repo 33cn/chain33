@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/cmd/tools/strategy"
 	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
 
@@ -33,9 +34,9 @@ func simpleCreate(cmd *cobra.Command, args []string) {
 		templateFile = fmt.Sprintf("template/%s.proto", projectName)
 	}
 
-	s := strategy.New(types.KeyCreateSimpleProject)
+	s := strategy.New(types.KeyCreateSimpleExecProject)
 	if s == nil {
-		fmt.Println(types.KeyCreateSimpleProject, "Not support")
+		fmt.Println(types.KeyCreateSimpleExecProject, "Not support")
 		return
 	}
 	s.SetParam(types.KeyProjectName, projectName)

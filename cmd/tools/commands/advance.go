@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/cmd/tools/strategy"
 	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
 
@@ -50,14 +51,15 @@ func advanceCreate(cmd *cobra.Command, args []string) {
 	fmt.Println("Protobuf File:", propFile)
 	fmt.Println("Template File Path:", templateFile)
 
-	s := strategy.New(types.KeyCreateAdvanceProject)
+	s := strategy.New(types.KeyCreateAdvanceExecProject)
 	if s == nil {
-		fmt.Println(types.KeyCreateAdvanceProject, "Not support")
+		fmt.Println(types.KeyCreateAdvanceExecProject, "Not support")
 		return
 	}
 	s.SetParam(types.KeyConfigFolder, configFolder)
 	s.SetParam(types.KeyProjectName, projectName)
 	s.SetParam(types.KeyClassName, className)
+	s.SetParam(types.KeyExecutorName, projectName)
 	s.SetParam(types.KeyActionName, actionName)
 	s.SetParam(types.KeyProtobufFile, propFile)
 	s.SetParam(types.KeyTemplateFilePath, templateFile)

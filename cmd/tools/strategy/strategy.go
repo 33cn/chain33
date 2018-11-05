@@ -1,11 +1,12 @@
 package strategy
 
 import (
+	"fmt"
+
 	"github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
 )
-
 
 var (
 	mlog = log15.New("module", "strategy")
@@ -19,7 +20,23 @@ type Strategy interface {
 func New(name string) Strategy {
 	switch name {
 	case types.KeyImportPackage:
-		return &importPackageStrategy{}
+		return &importPackageStrategy{
+			strategyBasic: strategyBasic{
+				params: make(map[string]string),
+			},
+		}
+	case types.KeyCreateSimpleExecProject:
+		return &simpleCreateExecProjStrategy{
+			strategyBasic: strategyBasic{
+				params: make(map[string]string),
+			},
+		}
+	case types.KeyCreateAdvanceExecProject:
+		return &advanceCreateExecProjStrategy{
+			strategyBasic: strategyBasic{
+				params: make(map[string]string),
+			},
+		}
 	}
 	return nil
 }
@@ -30,6 +47,13 @@ type strategyBasic struct {
 
 func (this *strategyBasic) SetParam(key string, value string) {
 	this.params[key] = value
+}
+
+func (this *strategyBasic) getParam(key string) (string, error) {
+	if v, ok := this.params[key]; ok {
+		return v, nil
+	}
+	return "", errors.New(fmt.Sprintf("Key:%v not existed.", key))
 }
 
 func (this *strategyBasic) Run() error {
