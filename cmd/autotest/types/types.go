@@ -18,7 +18,7 @@ type AutoTest interface{
 }
 
 
-
+//超时次数等于总超时时间除以每次check时睡眠时间
 func Init(cliCmd string, checkTimeout int) {
 
 	CliCmd = cliCmd

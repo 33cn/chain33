@@ -39,6 +39,10 @@ func (testCase *DependBuyCase) SendCommand(packID string) (PackFunc, error) {
 
 func (testCase *DependBuyCase) SetDependData(depData interface{}) {
 
+	if depData == nil {
+		return
+	}
+
 	if orderInfo, ok := depData.(*SellOrderInfo); ok {
 
 		testCase.SellID = orderInfo.sellID

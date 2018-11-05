@@ -299,7 +299,7 @@ func (tester *TestOperator) RunCheckFlow() {
 					if c.Len() > 0 {
 
 						//tester.tLog.Info("CheckRoutineSleep", "SleepTime", CheckSleepTime*time.Second, "WaitCheckNum", c.Len())
-						time.Sleep(time.Duration(autoTestConfig.CheckSleepTime) * time.Second)
+						time.Sleep(time.Duration(checkSleepTime) * time.Second)
 					}
 
 				}
