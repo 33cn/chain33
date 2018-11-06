@@ -19,9 +19,9 @@ func (testCase *WithdrawCase) SendCommand(packID string) (PackFunc, error) {
 	return DefaultSend(testCase, &WithdrawPack{}, packID)
 }
 
-func (pack *WithdrawPack) GetCheckHandlerMap() CheckHandlerMap {
+func (pack *WithdrawPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(map[string]CheckHandlerFunc, 1)
+	funcMap := make(CheckHandlerMapDiscard, 1)
 	funcMap["balance"] = pack.checkBalance
 
 	return funcMap

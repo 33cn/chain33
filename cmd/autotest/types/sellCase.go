@@ -24,9 +24,9 @@ func (testCase *SellCase) SendCommand(packID string) (PackFunc, error) {
 	return DefaultSend(testCase, &SellPack{}, packID)
 }
 
-func (pack *SellPack) GetCheckHandlerMap() CheckHandlerMap {
+func (pack *SellPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(map[string]CheckHandlerFunc, 2)
+	funcMap := make(CheckHandlerMapDiscard, 2)
 	funcMap["frozen"] = pack.checkFrozen
 	funcMap["balance"] = pack.checkBalance
 

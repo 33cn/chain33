@@ -45,9 +45,9 @@ func (testCase *DependBuyCase) SetDependData(depData interface{}) {
 	}
 }
 
-func (pack *BuyPack) GetCheckHandlerMap() CheckHandlerMap {
+func (pack *BuyPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(map[string]CheckHandlerFunc, 2)
+	funcMap := make(CheckHandlerMapDiscard, 2)
 	funcMap["frozen"] = pack.checkFrozen
 	funcMap["balance"] = pack.checkBalance
 

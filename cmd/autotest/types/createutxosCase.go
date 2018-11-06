@@ -21,9 +21,9 @@ func (testCase *CreateUtxosCase) SendCommand(packID string) (PackFunc, error) {
 	return DefaultSend(testCase, &CreateUtxosPack{}, packID)
 }
 
-func (pack *CreateUtxosPack) GetCheckHandlerMap() CheckHandlerMap {
+func (pack *CreateUtxosPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(map[string]CheckHandlerFunc, 2)
+	funcMap := make(CheckHandlerMapDiscard, 2)
 	funcMap["balance"] = pack.checkBalance
 	funcMap["utxo"] = pack.checkUtxo
 	return funcMap
