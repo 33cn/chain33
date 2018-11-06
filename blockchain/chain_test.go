@@ -824,11 +824,10 @@ func testDelBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 	//copy block, or may be data race
 	tmp := *block.Block
 	tmp.Difficulty = block.Block.Difficulty - 100
-	newblock := block
+	newblock := *block
 	newblock.Block = &tmp
 
-	blockchain.ProcessBlock(true, newblock, "1", true, 0)
-
+	blockchain.ProcessBlock(true, &newblock, "1", true, 0)
 	chainlog.Info("testDelBlock end --------------------")
 }
 

@@ -110,9 +110,13 @@ signType="secp256k1"
 [exec]
 isFree=false
 minExecFee=100000
+
 [exec.sub.token]
 #配置一个空值，防止配置文件被覆盖
 tokenApprs = []
+
+[exec.sub.relay]
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [exec.sub.manage]
 superManager=[
