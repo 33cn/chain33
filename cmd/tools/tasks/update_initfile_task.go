@@ -32,7 +32,8 @@ func (this *UpdateInitFileTask) GetName() string {
 func (this *UpdateInitFileTask) Execute() error {
 	// 1. 检查目标文件夹是否存在，如果不存在则不扫描
 	if !util.CheckPathExisted(this.Folder) {
-		return errors.New(fmt.Sprintf("%s Not Existed.", this.Folder))
+		mlog.Error("UpdateInitFileTask Execute failed", "folder", this.Folder)
+		return errors.New("NotExisted")
 	}
 	funcs := []func() error{
 		this.init,
@@ -73,7 +74,8 @@ func (this *UpdateInitFileTask) scanPlugin() error {
 		}
 	}
 	if err != nil {
-		return errors.New(fmt.Sprintf("Scan Plugin Error %v", err))
+		mlog.Error("Scan Plugin Error", "Error", err)
+		return err
 	}
 	return nil
 }
