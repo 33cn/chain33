@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
+
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -68,8 +70,8 @@ func (this *CreateDappSourceTask) init() error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Read file %s failed. error %q", this.ExecHeaderTempFile, err))
 	}
-	content := strings.Replace(string(contentbt), "${CLASSNAME}", this.ClsName, -1)
-	content = strings.Replace(content, "${EXECNAME}", this.ExecuteName, -1)
+	content := strings.Replace(string(contentbt), types.TagClassName, this.ClsName, -1)
+	content = strings.Replace(content, types.TagExecName, this.ExecuteName, -1)
 	this.execHeaderTempContent = content
 	return nil
 }
@@ -241,13 +243,13 @@ func (this *CreateDappSourceTask) createTypeExecuteFile() error {
 		src string
 		dst string
 	}{
-		{src: "${TYLOGACTIONTYPE}", dst: logText},
-		{src: "${ACTIONIDTEXT}", dst: actionIDText},
-		{src: "${LOGMAPTEXT}", dst: logMapText},
-		{src: "${TYPEMAPTEXT}", dst: typeMapText},
-		{src: "${TYPENAME}", dst: this.TypeName},
-		{src: "${EXECNAME}", dst: this.ExecuteName},
-		{src: "${ACTIONNAME}", dst: this.ActionName},
+		{src: types.TagTyLogActionType, dst: logText},
+		{src: types.TagActionIDText, dst: actionIDText},
+		{src: types.TagLogMapText, dst: logMapText},
+		{src: types.TagTypeMapText, dst: typeMapText},
+		{src: types.TagTypeName, dst: this.TypeName},
+		{src: types.TagExecName, dst: this.ExecuteName},
+		{src: types.TagActionName, dst: this.ActionName},
 	}
 	bcontent, err := util.ReadFile(this.TypeTempFile)
 	if err != nil {

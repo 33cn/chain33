@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
+
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
@@ -55,10 +57,10 @@ func (this *ReplaceTargetTask) replaceTarget(file string) error {
 		src string
 		dst string
 	}{
-		{src: "${PROJECTNAME}", dst: this.ProjectName},
-		{src: "${CLASSNAME}", dst: this.ClassName},
-		{src: "${ACTIONNAME}", dst: this.ActionName},
-		{src: "${EXECNAME}", dst: this.ExecName},
+		{src: types.TagProjectName, dst: this.ProjectName},
+		{src: types.TagClassName, dst: this.ClassName},
+		{src: types.TagActionName, dst: this.ActionName},
+		{src: types.TagExecName, dst: this.ExecName},
 	}
 	bcontent, err := util.ReadFile(file)
 	if err != nil {
