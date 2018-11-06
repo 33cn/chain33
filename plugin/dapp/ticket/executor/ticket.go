@@ -23,7 +23,6 @@ import (
 
 var clog = log.New("module", "execs.ticket")
 var driverName = "ticket"
-var conf = types.ConfSub(driverName)
 
 func init() {
 	ety := types.LoadExecutorType(driverName)

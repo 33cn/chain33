@@ -31,6 +31,9 @@ minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
+[mver.consensus]
+fundKeyAddr = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+
 [mver.consensus.sub.ticket]
 coinReward = 18
 coinDevFund = 12
@@ -112,9 +115,6 @@ minExecFee=100000
 [exec.sub.token]
 #配置一个空值，防止配置文件被覆盖
 tokenApprs = []
-
-[exec.sub.ticket]
-fundKeyAddr = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 
 [exec.sub.manage]
 superManager=[
