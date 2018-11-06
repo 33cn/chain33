@@ -145,6 +145,9 @@ enableMVCC=false
 [exec.sub.token]
 saveTokenTxList=true
 
+[exec.sub.relay]
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
 [exec.sub.cert]
 # 是否启用证书验证和签名
 enable=false

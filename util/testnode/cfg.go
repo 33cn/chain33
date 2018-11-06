@@ -82,10 +82,10 @@ ticketPrice = 10000
 powLimitBits = "0x1f00ffff"
 retargetAdjustmentFactor = 4
 futureBlockTime = 16
-ticketFrozenTime = 5    #5s only for test
-ticketWithdrawTime = 10 #10s only for test
-ticketMinerWaitTime = 2 #2s only for test
-maxTxNumber = 1600      #160
+ticketFrozenTime = 5
+ticketWithdrawTime = 10
+ticketMinerWaitTime = 2
+maxTxNumber = 1600
 targetTimespan = 2304
 targetTimePerBlock = 16
 
@@ -157,6 +157,9 @@ tokenApprs = [
 	"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
 	"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
 ]
+
+[exec.sub.relay]
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [exec.sub.cert]
 # 是否启用证书验证和签名
