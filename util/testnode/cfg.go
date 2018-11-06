@@ -76,13 +76,6 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [mver.consensus]
 fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
-
-[consensus.sub.solo]
-genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-genesisBlockTime=1514533394
-waitTxMs=10
-
-[mver.consensus.sub.ticket]
 coinReward = 18
 coinDevFund = 12
 ticketPrice = 10000
@@ -96,13 +89,18 @@ maxTxNumber = 1600      #160
 targetTimespan = 2304
 targetTimePerBlock = 16
 
-[mver.consensus.sub.ticket.ForkChainParamV1]
+[mver.consensus.ForkChainParamV1]
 maxTxNumber = 10000
 targetTimespan = 288 #only for test
 targetTimePerBlock = 2
 
-[mver.consensus.sub.ticket.ForkChainParamV2]
+[mver.consensus.ForkChainParamV2]
 powLimitBits = "0x1f2fffff"
+
+[consensus.sub.solo]
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+genesisBlockTime=1514533394
+waitTxMs=10
 
 [consensus.sub.ticket]
 genesisBlockTime=1514533394
