@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -12,61 +13,15 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/chaincfg"
 )
 
-var chainBaseParam *ChainParam
-var chainV3Param *ChainParam
 var chainConfig = make(map[string]interface{})
 var mver = make(map[string]*mversion)
 
 func init() {
-	initChainBase()
-	initChainBityuanV3()
 	S("TestNet", false)
 	SetMinFee(1e5)
 	for key, cfg := range chaincfg.LoadAll() {
 		S("cfg."+key, cfg)
 	}
-}
-
-func initChainBase() {
-	chainBaseParam = &ChainParam{}
-	chainBaseParam.CoinReward = 18 * Coin  //用户回报
-	chainBaseParam.CoinDevFund = 12 * Coin //发展基金回报
-	chainBaseParam.TicketPrice = 10000 * Coin
-	chainBaseParam.PowLimitBits = uint32(0x1f00ffff)
-	chainBaseParam.RetargetAdjustmentFactor = 4
-	chainBaseParam.FutureBlockTime = 16
-	chainBaseParam.TicketFrozenTime = 5    //5s only for test
-	chainBaseParam.TicketWithdrawTime = 10 //10s only for test
-	chainBaseParam.TicketMinerWaitTime = 2 // 2s only for test
-	chainBaseParam.MaxTxNumber = 1600      //160
-	chainBaseParam.TargetTimespan = 144 * 16 * time.Second
-	chainBaseParam.TargetTimePerBlock = 16 * time.Second
-}
-
-func initChainBityuanV3() {
-	chainV3Param = &ChainParam{}
-	tmp := *chainBaseParam
-	//copy base param
-	chainV3Param = &tmp
-	//修改的值
-	chainV3Param.FutureBlockTime = 15
-	chainV3Param.TicketFrozenTime = 12 * 3600
-	chainV3Param.TicketWithdrawTime = 48 * 3600
-	chainV3Param.TicketMinerWaitTime = 2 * 3600
-	chainV3Param.MaxTxNumber = 1500
-	chainV3Param.TargetTimespan = 144 * 15 * time.Second
-	chainV3Param.TargetTimePerBlock = 15 * time.Second
-}
-
-//title is local
-func initChainTestNet() {
-	chainV3Param.MaxTxNumber = 10000
-	chainV3Param.TicketFrozenTime = 5                   //5s only for test
-	chainV3Param.TicketWithdrawTime = 10                //10s only for test
-	chainV3Param.TicketMinerWaitTime = 2                // 2s only for test
-	chainV3Param.TargetTimespan = 144 * 2 * time.Second //only for test
-	chainV3Param.TargetTimePerBlock = 2 * time.Second   //only for test
-	chainV3Param.PowLimitBits = uint32(0x1f2fffff)
 }
 
 type ChainParam struct {
@@ -82,6 +37,28 @@ type ChainParam struct {
 	TargetTimespan           time.Duration
 	TargetTimePerBlock       time.Duration
 	RetargetAdjustmentFactor int64
+}
+
+func GetP(height int64) *ChainParam {
+	conf := Conf("mver.consensus.sub.ticket")
+	c := &ChainParam{}
+	c.CoinDevFund = conf.MGInt("coinDevFund", height) * Coin
+	c.CoinReward = conf.MGInt("coinReward", height) * Coin
+	c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
+	c.TicketPrice = conf.MGInt("ticketPrice", height) * Coin
+	c.TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
+	c.TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
+	c.TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
+	c.MaxTxNumber = conf.MGInt("maxTxNumber", height)
+	c.PowLimitBits = uint32(conf.MGInt("powLimitBits", height))
+	c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
+	c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
+	c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
+	return c
+}
+
+func GetFundAddr() string {
+	return GStr("exec.sub.ticket.fundKeyAddr")
 }
 
 func setChainConfig(key string, value interface{}) {
@@ -139,15 +116,27 @@ func MGStr(name string, height int64) string {
 	return ""
 }
 
+func parseInt(value interface{}) int64 {
+	if i, ok := value.(int64); ok {
+		return i
+	}
+	if s, ok := value.(string); ok {
+		if strings.HasPrefix(s, "0x") {
+			i, err := strconv.ParseUint(s, 0, 64)
+			if err == nil {
+				return int64(i)
+			}
+		}
+	}
+	return 0
+}
+
 func GInt(name string) int64 {
 	value, err := G(name)
 	if err != nil {
 		return 0
 	}
-	if i, ok := value.(int64); ok {
-		return i
-	}
-	return 0
+	return parseInt(value)
 }
 
 func MGInt(name string, height int64) int64 {
@@ -155,10 +144,7 @@ func MGInt(name string, height int64) int64 {
 	if err != nil {
 		return 0
 	}
-	if i, ok := value.(int64); ok {
-		return i
-	}
-	return 0
+	return parseInt(value)
 }
 
 func IsEnable(name string) bool {
@@ -189,22 +175,12 @@ func S(key string, value interface{}) {
 	setChainConfig(key, value)
 }
 
-func GetP(height int64) *ChainParam {
-	if IsFork(height, "ForkChainParamV1") {
-		return chainV3Param
-	}
-	return chainBaseParam
-}
-
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowUserExec = [][]byte{ExecerNone}
 	//这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
 	AllowDepositExec = [][]byte{[]byte("ticket")}
-	FundKeyAddr      = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	EmptyValue       = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	SuperManager     = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
-	TokenApprs       = []string{}
 )
 
 // coin conversation
@@ -251,7 +227,6 @@ func Init(t string, cfg *Config) {
 	}
 	//local 只用于单元测试
 	if isLocal() {
-		initChainTestNet()
 		setLocalFork()
 		setChainConfig("TxHeight", true)
 		setChainConfig("Debug", true)
@@ -322,16 +297,6 @@ func setTestNet(isTestNet bool) {
 	}
 	setChainConfig("TestNet", true)
 	//const 初始化TestNet 的初始化参数
-	FundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
-	SuperManager = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
-	TokenApprs = []string{
-		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
-		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
-		"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
-		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
-		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
-		"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
-	}
 }
 
 func IsTestNet() bool {
@@ -568,8 +533,23 @@ func Conf(prefix string) *ConfQuery {
 	return &ConfQuery{prefix}
 }
 
+func ConfSub(name string) *ConfQuery {
+	return Conf("config.exec.sub." + name)
+}
+
 func (query *ConfQuery) G(key string) (interface{}, error) {
 	return G(getkey(query.prefix, key))
+}
+
+func (query *ConfQuery) GStrList(key string) []string {
+	data, err := query.G(key)
+	var list []string
+	if err == nil {
+		if item, ok := data.([]string); ok {
+			list = item
+		}
+	}
+	return list
 }
 
 func (query *ConfQuery) GInt(key string) int64 {
@@ -594,6 +574,17 @@ func (query *ConfQuery) MGInt(key string, height int64) int64 {
 
 func (query *ConfQuery) MGStr(key string, height int64) string {
 	return MGStr(getkey(query.prefix, key), height)
+}
+
+func (query *ConfQuery) MGStrList(key string, height int64) []string {
+	data, err := query.MG(key, height)
+	var list []string
+	if err == nil {
+		if item, ok := data.([]string); ok {
+			list = item
+		}
+	}
+	return list
 }
 
 func (query *ConfQuery) MIsEnable(key string, height int64) bool {
