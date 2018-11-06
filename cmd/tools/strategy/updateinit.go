@@ -27,17 +27,21 @@ func (this *updateInitStrategy) Run() error {
 }
 
 func (this *updateInitStrategy) initMember() error {
-	var outputPath string
+	var path string
 	gopath := os.Getenv("GOPATH")
 	if len(gopath) > 0 {
-		outputPath = filepath.Join(gopath, "/src/gitlab.33.cn/chain33/chain33/plugin/")
+		path = filepath.Join(gopath, "/src/gitlab.33.cn/chain33/chain33/plugin/")
 	}
-	if len(outputPath) <= 0 {
+	if len(path) <= 0 {
 		return errors.New("Chain33 Plugin Not Existed")
 	}
-	this.consRootPath = fmt.Sprintf("%s/consensus/", outputPath)
-	this.dappRootPath = fmt.Sprintf("%s/dapp/", outputPath)
-	this.storeRootPath = fmt.Sprintf("%s/store/", outputPath)
+	this.consRootPath = fmt.Sprintf("%s/consensus/", path)
+	this.dappRootPath = fmt.Sprintf("%s/dapp/", path)
+	this.storeRootPath = fmt.Sprintf("%s/store/", path)
+
+	// TODO: 确认vendor目录下的所有插件源码，需要将其加入到引用中
+	path = filepath.Join(gopath, "/src/gitlab.33.cn/chain33/chain33/vendor/gitlab.33.cn/")
+
 	return nil
 }
 
