@@ -96,7 +96,7 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 	mock.mem = mempool.New(cfg.MemPool)
 	mock.mem.SetQueueClient(q.Client())
 	lognode.Info("init mempool")
-
+	mock.mem.WaitPollLastHeader()
 	if cfg.P2P.Enable {
 		mock.network = p2p.New(cfg.P2P)
 		mock.network.SetQueueClient(q.Client())
