@@ -18,8 +18,8 @@ type updateInitStrategy struct {
 }
 
 func (this *updateInitStrategy) Run() error {
-	fmt.Println("Begin run chain33 update init.go.")
-	defer fmt.Println("Run chain33 update init.go finish.")
+	mlog.Info("Begin run chain33 update init.go.")
+	defer mlog.Info("Run chain33 update init.go finish.")
 	if err := this.initMember(); err != nil {
 		return err
 	}
