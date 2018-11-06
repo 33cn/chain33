@@ -16,10 +16,11 @@ const (
 
 	DEF_CPM_CONFIGFILE = "chain33.cpm.toml"
 
-	TagProjectName     = "${PROJECTNAME}"
-	TagClassName       = "${CLASSNAME}"
-	TagActionName      = "${ACTIONNAME}"
-	TagExecName        = "${EXECNAME}"
+	TagProjectName     = "${PROJECTNAME}" // 项目名称替换标签
+	TagClassName       = "${CLASSNAME}"   // 主类类名替换标签
+	TagActionName      = "${ACTIONNAME}"  // 执行器中使用的Action替换标签
+	TagExecName        = "${EXECNAME}"    // 执行器名称替换标签
+	TagExecNameFB      = "${EXECNAME_FB}" // 首字母大写的执行器名称替换标签
 	TagTyLogActionType = "${TYLOGACTIONTYPE}"
 	TagActionIDText    = "${ACTIONIDTEXT}"
 	TagLogMapText      = "${LOGMAPTEXT}"

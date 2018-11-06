@@ -68,7 +68,7 @@ func (this *importPackageStrategy) runImpl() error {
 }
 
 func (this *importPackageStrategy) readConfig() error {
-	fmt.Println("读取配置文件")
+	mlog.Info("读取配置文件")
 	if len(this.cfgFileName) == 0 {
 		this.cfgFileName = fmt.Sprintf("config/%s", types.DEF_CPM_CONFIGFILE)
 	}
@@ -77,7 +77,7 @@ func (this *importPackageStrategy) readConfig() error {
 }
 
 func (this *importPackageStrategy) initData() error {
-	fmt.Println("初始化数据")
+	mlog.Info("初始化数据")
 	if len(this.cfgItems) == 0 {
 		return errors.New("Config is empty.")
 	}
@@ -112,7 +112,7 @@ func (this *importPackageStrategy) initData() error {
 }
 
 func (this *importPackageStrategy) generateImportFile() error {
-	fmt.Println("生成引用文件")
+	mlog.Info("生成引用文件")
 	importStrs := map[string]string{}
 	for name, plugins := range this.items {
 		for _, item := range plugins {
@@ -161,16 +161,16 @@ func (this *importPackageStrategy) fetchPlugin(gitrepo, version string) error {
 
 // fetchPluginPackage 使用govendor来下载依赖包
 func (this *importPackageStrategy) fetchPluginPackage() error {
-	fmt.Println("下载插件源码包")
+	mlog.Info("下载插件源码包")
 	pwd := util.Pwd()
 	os.Chdir(this.projRootPath)
 	defer os.Chdir(pwd)
 	for _, plugins := range this.items {
 		for _, plugin := range plugins {
-			fmt.Printf("同步插件包%s，版本%s\n", plugin.gitRepo, plugin.version)
+			mlog.Info("同步插件", "repo", plugin.gitRepo, "version", plugin.version)
 			err := this.fetchPlugin(plugin.gitRepo, plugin.version)
 			if err != nil {
-				fmt.Printf("同步插件包%s出错 error:\n", plugin.gitRepo, err.Error())
+				mlog.Info("同步插件包出错", "repo", plugin.gitRepo, "error", err.Error())
 				return err
 			}
 		}
