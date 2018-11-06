@@ -20,13 +20,14 @@ func TestRPCTokenPreCreate(t *testing.T) {
 	}()
 	mock33.Listen()
 	//precreate
-	mock33.SendHot()
+	err := mock33.SendHot()
+	assert.Nil(t, err)
 	block := mock33.GetLastBlock()
 	acc := mock33.GetAccount(block.StateHash, mock33.GetGenesisAddress())
 	assert.Equal(t, acc.Balance, int64(9998999999900000))
 	acc = mock33.GetAccount(block.StateHash, mock33.GetHotAddress())
 	assert.Equal(t, acc.Balance, 10000*types.Coin)
-
+	return
 	tx := util.CreateManageTx(mock33.GetHotKey(), "token-blacklist", "add", "BTY")
 	reply, err := mock33.GetAPI().SendTx(tx)
 	assert.Nil(t, err)
