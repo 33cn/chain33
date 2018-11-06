@@ -14,10 +14,15 @@ const (
 	KeyTemplateFilePath         = "template_file_path"
 	KeyUpdateInit               = "update_init"
 
-	// 逻辑中用设定的项目名称替换的文字标签
-	TagProjectName = "${PROJECTNAME}"
-	// 逻辑中用设定的执行器类名替换的文字标签
-	TagClassName = "${CLASSNAME}"
-	// 逻辑中用设定的执行器中使用的Action名替换的文字标签
-	TagActionName = "${ACTIONNAME}"
+	DEF_CPM_CONFIGFILE = "chain33.cpm.toml"
+
+	TagProjectName     = "${PROJECTNAME}"
+	TagClassName       = "${CLASSNAME}"
+	TagActionName      = "${ACTIONNAME}"
+	TagExecName        = "${EXECNAME}"
+	TagTyLogActionType = "${TYLOGACTIONTYPE}"
+	TagActionIDText    = "${ACTIONIDTEXT}"
+	TagLogMapText      = "${LOGMAPTEXT}"
+	TagTypeMapText     = "${TYPEMAPTEXT}"
+	TagTypeName        = "${TYPENAME}"
 )

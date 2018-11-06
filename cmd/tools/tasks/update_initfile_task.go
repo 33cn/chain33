@@ -16,6 +16,7 @@ type itemData struct {
 	path string
 }
 
+// UpdateInitFileTask 通过扫描本地目录更新init.go文件
 type UpdateInitFileTask struct {
 	TaskBase
 	Folder string
