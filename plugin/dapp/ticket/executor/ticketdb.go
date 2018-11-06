@@ -413,8 +413,9 @@ func Infos(db dbm.KV, tinfos *ty.TicketInfos) (types.Message, error) {
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]
 		ticket, err := readTicket(db, id)
+		//数据库可能会不一致，读的过程中可能会有写
 		if err != nil {
-			return nil, err
+			continue
 		}
 		tickets = append(tickets, ticket)
 	}
