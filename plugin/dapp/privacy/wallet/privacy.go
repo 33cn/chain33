@@ -24,7 +24,7 @@ import (
 func (policy *privacyPolicy) rescanAllTxAddToUpdateUTXOs() {
 	accounts, err := policy.getWalletOperate().GetWalletAccounts()
 	if err != nil {
-		bizlog.Error("rescanAllTxToUpdateUTXOs", "walletOperate.GetWalletAccounts error", err)
+		bizlog.Debug("rescanAllTxToUpdateUTXOs", "walletOperate.GetWalletAccounts error", err)
 		return
 	}
 	bizlog.Debug("rescanAllTxToUpdateUTXOs begin!")
