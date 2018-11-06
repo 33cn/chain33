@@ -86,5 +86,6 @@ func TestInitChainParam(t *testing.T) {
 	assert.Equal(t, GetP(0), getP(0))
 	assert.Equal(t, GetP(forkid-1), getP(forkid-1))
 	assert.Equal(t, GetP(forkid), getP(forkid))
-	//assert.Equal(t, GetP(forkid+1), getP(forkid+1))
+	assert.Equal(t, GetP(forkid+1), getP(forkid+1))
+	assert.Equal(t, GetFundAddr(), "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5")
 }

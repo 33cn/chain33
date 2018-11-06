@@ -71,6 +71,9 @@ minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
+[mver.consensus]
+fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+
 [mver.consensus.sub.ticket]
 coinReward = 18
 coinDevFund = 12
@@ -156,9 +159,6 @@ enable=false
 cryptoPath="authdir/crypto"
 # 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
 signType="auth_ecdsa"
-
-[exec.sub.ticket]
-fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 
 [exec.sub.manage]
 superManager=[
