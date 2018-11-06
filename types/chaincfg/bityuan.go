@@ -33,8 +33,6 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [mver.consensus]
 fundKeyAddr = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
-
-[mver.consensus.sub.ticket]
 coinReward = 18
 coinDevFund = 12
 ticketPrice = 10000
@@ -124,6 +122,7 @@ superManager=[
 #系统中所有的fork,默认用chain33的测试网络的
 #但是我们可以替换
 [fork.system]
+ForkChainParamV1= 0
 ForkCheckTxDup=0
 ForkBlockHash= 1
 ForkMinerTime= 0
@@ -133,9 +132,10 @@ ForkTxGroup= 200000
 ForkResetTx0= 200000
 ForkWithdraw= 200000
 ForkExecRollback= 450000
+ForkCheckBlockTime=1200000
 ForkTxHeight= -1
 ForkTxGroupPara= -1
-ForkCheckBlockTime=1200000
+ForkChainParamV2= -1
 
 [fork.sub.coins]
 Enable=0
@@ -143,8 +143,6 @@ Enable=0
 [fork.sub.ticket]
 Enable=0
 ForkTicketId = 1200000
-ForkChainParamV1= 0
-ForkChainParamV2= -1
 
 [fork.sub.retrieve]
 Enable=0

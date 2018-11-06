@@ -1,6 +1,8 @@
 package types
 
-import "strings"
+import (
+	"strings"
+)
 
 /*
 出于forks 过程安全的考虑，比如代码更新，出现了新的fork，旧的链只要不明确指定 fork的高度，那么默认fork高度为 MaxHeight
@@ -79,6 +81,8 @@ func (f *Forks) GetFork(title, key string) int64 {
 	if !ok {
 		if title == "local" {
 			panic("title not exisit -> " + title)
+		} else {
+			tlog.Error("getfork title not exisit -> " + title)
 		}
 		return MaxHeight
 	}
@@ -86,6 +90,8 @@ func (f *Forks) GetFork(title, key string) int64 {
 	if !ok {
 		if title == "local" {
 			panic("key not exisit -> " + key)
+		} else {
+			tlog.Error("get fork key not exisit -> " + key)
 		}
 		return MaxHeight
 	}
@@ -167,6 +173,8 @@ func (f *Forks) IsDappFork(title string, height int64, dapp, fork string) bool {
 
 //bityuan test net fork
 func SetTestNetFork() {
+	systemFork.SetFork("chain33", "ForkChainParamV1", 110000)
+	systemFork.SetFork("chain33", "ForkChainParamV2", MaxHeight)
 	systemFork.SetFork("chain33", "ForkCheckTxDup", 75260)
 	systemFork.SetFork("chain33", "ForkBlockHash", 209186)
 	systemFork.SetFork("chain33", "ForkMinerTime", 350000)
@@ -232,7 +240,7 @@ func IsEnableFork(height int64, fork string, enable bool) bool {
 
 //fork 设置规则：
 //所有的fork都需要有明确的配置，不开启fork 配置为 -1
-func InitForkConfig(title string, forks *ForkList) {
+func initForkConfig(title string, forks *ForkList) {
 	if title == "chain33" { //chain33 fork is default set in code
 		return
 	}

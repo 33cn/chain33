@@ -73,7 +73,7 @@ func initChainTestNet() {
 func getP(height int64) *ChainParam {
 	initChainBase()
 	initChainTestNet()
-	if IsFork(height, "ticket.ForkChainParamV1") {
+	if IsFork(height, "ForkChainParamV1") {
 		return chainV3Param
 	}
 	return chainBaseParam
@@ -82,7 +82,7 @@ func getP(height int64) *ChainParam {
 func getPBityuan(height int64) *ChainParam {
 	initChainBase()
 	initChainBityuanV3()
-	if IsFork(height, "ticket.ForkChainParamV1") {
+	if IsFork(height, "ForkChainParamV1") {
 		return chainV3Param
 	}
 	return chainBaseParam
@@ -106,7 +106,7 @@ func initChainBityuanV3() {
 func TestInitChainParam(t *testing.T) {
 	cfg, _ := InitCfg("../cmd/chain33/chain33.toml")
 	Init(cfg.Title, cfg)
-	forkid := GetFork("ticket.ForkChainParamV1")
+	forkid := GetFork("ForkChainParamV1")
 	assert.Equal(t, GetP(0), getP(0))
 	assert.Equal(t, GetP(forkid-1), getP(forkid-1))
 	assert.Equal(t, GetP(forkid), getP(forkid))
@@ -124,7 +124,7 @@ func TestInitChainParam(t *testing.T) {
 	Init(cfg.Title, cfg)
 	assert.Equal(t, GetFundAddr(), "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP")
 
-	forkid = GetFork("ticket.ForkChainParamV1")
+	forkid = GetFork("ForkChainParamV1")
 	assert.Equal(t, GetP(0), getPBityuan(0))
 	assert.Equal(t, GetP(forkid-1), getPBityuan(forkid-1))
 	assert.Equal(t, GetP(forkid), getPBityuan(forkid))
