@@ -109,7 +109,7 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 	lognode.Info("init P2P")
 	cli := q.Client()
 	w := wallet.New(cfg.Wallet, sub.Wallet)
-	mock.client = cli
+	mock.client = q.Client()
 	mock.wallet = w
 	mock.wallet.SetQueueClient(cli)
 	lognode.Info("init wallet")
@@ -118,7 +118,6 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 		newWalletRealize(mockapi)
 	}
 	mock.api = mockapi
-
 	server := rpc.New(cfg.Rpc)
 	server.SetAPI(mock.api)
 	server.SetQueueClientNoListen(q.Client())
