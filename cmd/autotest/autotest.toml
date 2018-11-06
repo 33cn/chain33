@@ -1,9 +1,10 @@
 
 
 
-
+#chain33的客户端文件
 cliCmd = "./chain33-cli"
-checkTimeout = 60      #发送一笔交易后等待回执的超时时间，单位秒
+#发送一笔交易后等待回执的超时时间，单位秒
+checkTimeout = 60
 
 
 [[TestCaseFile]]
