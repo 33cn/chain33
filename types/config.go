@@ -247,9 +247,9 @@ func Init(t string, cfg *Config) {
 	}
 	if cfg != nil && cfg.Fork != nil {
 		InitForkConfig(title, cfg.Fork)
-		if mver[title] != nil {
-			mver[title].UpdateFork()
-		}
+	}
+	if mver[title] != nil {
+		mver[title].UpdateFork()
 	}
 }
 
