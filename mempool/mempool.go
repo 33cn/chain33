@@ -435,7 +435,10 @@ func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptC
 // Mempool.pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
 func (mem *Mempool) pollLastHeader() {
 	defer mem.wg.Done()
-	defer mlog.Info("pollLastHeader quit")
+	defer func() {
+		mlog.Info("pollLastHeader quit")
+		mem.poolHeader <- struct{}{}
+	}()
 	for {
 		if mem.isClose() {
 			return
@@ -448,7 +451,6 @@ func (mem *Mempool) pollLastHeader() {
 		}
 		h := lastHeader.(queue.Message).Data.(*types.Header)
 		mem.setHeader(h)
-		mem.poolHeader <- struct{}{}
 		return
 	}
 }
@@ -461,6 +463,8 @@ func (mem *Mempool) setHeader(h *types.Header) {
 }
 
 func (mem *Mempool) WaitPollLastHeader() {
+	<-mem.poolHeader
+	//wait sync
 	<-mem.poolHeader
 }
 
@@ -484,7 +488,10 @@ func (mem *Mempool) isSync() bool {
 
 // Mempool.getSync获取Mempool同步状态
 func (mem *Mempool) getSync() {
-	defer mlog.Info("getSync quit")
+	defer func() {
+		mlog.Info("getsync quit")
+		mem.poolHeader <- struct{}{}
+	}()
 	defer mem.wg.Done()
 	if mem.isSync() {
 		return
