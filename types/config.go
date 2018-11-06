@@ -58,7 +58,7 @@ func GetP(height int64) *ChainParam {
 }
 
 func GetFundAddr() string {
-	return GStr("exec.sub.ticket.fundKeyAddr")
+	return MGStr("mver.consensus.fundKeyAddr", 0)
 }
 
 func setChainConfig(key string, value interface{}) {

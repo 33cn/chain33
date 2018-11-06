@@ -311,9 +311,9 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 		return nil, err
 	}
 	//fund
-	receipt2, err := action.coinsAccount.ExecDepositFrozen(conf.GStr("FundKeyAddr"), action.execaddr, cfg.CoinDevFund)
+	receipt2, err := action.coinsAccount.ExecDepositFrozen(types.GetFundAddr(), action.execaddr, cfg.CoinDevFund)
 	if err != nil {
-		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", conf.GStr("FundKeyAddr"), "execaddr", action.execaddr)
+		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", types.GetFundAddr(), "execaddr", action.execaddr)
 		return nil, err
 	}
 	t.Save(action.db)
@@ -379,9 +379,9 @@ func (action *Action) TicketClose(tclose *ty.TicketClose) (*types.Receipt, error
 		kv = append(kv, receipt1.KV...)
 		//如果ticket 已经挖矿成功了，那么要解冻发展基金部分币
 		if t.prevstatus == 2 {
-			receipt2, err := action.coinsAccount.ExecActive(conf.GStr("FundKeyAddr"), action.execaddr, cfg.CoinDevFund)
+			receipt2, err := action.coinsAccount.ExecActive(types.GetFundAddr(), action.execaddr, cfg.CoinDevFund)
 			if err != nil {
-				tlog.Error("TicketClose.ExecActive fund", "addr", conf.GStr("FundKeyAddr"), "execaddr", action.execaddr, "value", retValue)
+				tlog.Error("TicketClose.ExecActive fund", "addr", types.GetFundAddr(), "execaddr", action.execaddr, "value", retValue)
 				return nil, err
 			}
 			logs = append(logs, receipt2.Logs...)
