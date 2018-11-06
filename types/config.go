@@ -13,8 +13,30 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/chaincfg"
 )
 
-var chainConfig = make(map[string]interface{})
-var mver = make(map[string]*mversion)
+//区块链共识相关的参数，重要参数不要随便修改
+var (
+	AllowUserExec = [][]byte{ExecerNone}
+	//这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
+	AllowDepositExec = [][]byte{[]byte("ticket")}
+	EmptyValue       = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	title            string
+	mu               sync.Mutex
+	titles           = map[string]bool{}
+	chainConfig      = make(map[string]interface{})
+	mver             = make(map[string]*mversion)
+)
+
+// coin conversation
+const (
+	Coin            int64 = 1e8
+	MaxCoin         int64 = 1e17
+	MaxTxSize             = 100000 //100K
+	MaxTxGroupSize  int32 = 20
+	MaxBlockSize          = 20000000 //20M
+	MaxTxsPerBlock        = 100000
+	TokenPrecision  int64 = 1e8
+	MaxTokenBalance int64 = 900 * 1e8 * TokenPrecision //900亿
+)
 
 func init() {
 	S("TestNet", false)
@@ -47,7 +69,7 @@ type ChainParam struct {
 }
 
 func GetP(height int64) *ChainParam {
-	conf := Conf("mver.consensus.sub.ticket")
+	conf := Conf("mver.consensus")
 	c := &ChainParam{}
 	c.CoinDevFund = conf.MGInt("coinDevFund", height) * Coin
 	c.CoinReward = conf.MGInt("coinReward", height) * Coin
@@ -186,33 +208,6 @@ func S(key string, value interface{}) {
 	setChainConfig(key, value)
 }
 
-//区块链共识相关的参数，重要参数不要随便修改
-var (
-	AllowUserExec = [][]byte{ExecerNone}
-	//这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
-	AllowDepositExec = [][]byte{[]byte("ticket")}
-	EmptyValue       = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-)
-
-// coin conversation
-const (
-	Coin            int64 = 1e8
-	MaxCoin         int64 = 1e17
-	MaxTxSize             = 100000 //100K
-	MaxTxGroupSize  int32 = 20
-	MaxBlockSize          = 20000000 //20M
-	MaxTxsPerBlock        = 100000
-	TokenPrecision  int64 = 1e8
-	MaxTokenBalance int64 = 900 * 1e8 * TokenPrecision //900亿
-)
-
-var (
-	title string
-	mu    sync.Mutex
-)
-
-var titles = map[string]bool{}
-
 func Init(t string, cfg *Config) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -257,7 +252,7 @@ func Init(t string, cfg *Config) {
 		return
 	}
 	if cfg != nil && cfg.Fork != nil {
-		InitForkConfig(title, cfg.Fork)
+		initForkConfig(title, cfg.Fork)
 	}
 	if mver[title] != nil {
 		mver[title].UpdateFork()
