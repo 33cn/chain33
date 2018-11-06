@@ -150,6 +150,8 @@ saveTokenTxList=false
 #系统中所有的fork,默认用chain33的测试网络的
 #但是我们可以替换
 [fork.system]
+ForkChainParamV1= 0
+ForkChainParamV2= -1
 ForkCheckTxDup=0
 ForkBlockHash= 1
 ForkMinerTime= 0
@@ -169,8 +171,6 @@ Enable=0
 [fork.sub.ticket]
 Enable=0
 ForkTicketId = 1200000
-ForkChainParamV1= 0
-ForkChainParamV2= -1
 
 [fork.sub.retrieve]
 Enable=0

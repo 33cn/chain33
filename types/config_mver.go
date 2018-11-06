@@ -128,7 +128,8 @@ func (v *versionList) GetForkName(height int64) string {
 				items := strings.Split(forkname, ".")
 				forkname = items[1]
 			}
-			return v.prefix + "." + forkname + "." + v.suffix
+			s := v.prefix + "." + forkname + "." + v.suffix
+			return s
 		}
 	}
 	return v.key
