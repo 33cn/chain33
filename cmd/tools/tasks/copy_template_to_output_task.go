@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
+
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
@@ -38,7 +40,7 @@ func (this *CopyTemplateToOutputTask) Execute() error {
 			}
 		} else {
 			srcFile := path
-			path = strings.Replace(path, "${CLASSNAME}", this.ClassName, -1)
+			path = strings.Replace(path, types.TagClassName, this.ClassName, -1)
 			path = strings.Replace(path, ".tmp", "", -1)
 			dstFile := strings.Replace(path, this.TemplatePath, this.OutputPath, -1)
 			if _, err := util.CopyFile(srcFile, dstFile); err != nil {

@@ -8,12 +8,13 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
+
 	"github.com/BurntSushi/toml"
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
 const (
-	defCfgFileName      = "chain33.cpm.toml"
 	dappFolderName      = "dapp"
 	consensusFolderName = "consensus"
 	storeFolderName     = "store"
@@ -69,7 +70,7 @@ func (this *importPackageStrategy) runImpl() error {
 func (this *importPackageStrategy) readConfig() error {
 	fmt.Println("读取配置文件")
 	if len(this.cfgFileName) == 0 {
-		this.cfgFileName = fmt.Sprintf("config/%s", defCfgFileName)
+		this.cfgFileName = fmt.Sprintf("config/%s", types.DEF_CPM_CONFIGFILE)
 	}
 	_, err := toml.DecodeFile(this.cfgFileName, &this.cfgItems)
 	return err
