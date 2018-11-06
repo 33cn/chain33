@@ -5,15 +5,16 @@ import (
 	"time"
 )
 
-var LocalPrefix = []byte("LODB")
-var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
-var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
-var TxHashPerfix = []byte("TX:")
-var TxShortHashPerfix = []byte("STX:")
-
-var TxAddrHash = []byte("TxAddrHash:")
-var TxAddrDirHash = []byte("TxAddrDirHash:")
-var AddrTxsCount = []byte("AddrTxsCount:")
+var (
+	LocalPrefix       = []byte("LODB")
+	FlagTxQuickIndex  = []byte("FLAG:FlagTxQuickIndex")
+	FlagKeyMVCC       = []byte("FLAG:keyMVCCFlag")
+	TxHashPerfix      = []byte("TX:")
+	TxShortHashPerfix = []byte("STX:")
+	TxAddrHash        = []byte("TxAddrHash:")
+	TxAddrDirHash     = []byte("TxAddrDirHash:")
+	AddrTxsCount      = []byte("AddrTxsCount:")
+)
 
 func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
