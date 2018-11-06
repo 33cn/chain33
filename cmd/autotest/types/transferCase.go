@@ -20,16 +20,15 @@ func (testCase *TransferCase) SendCommand(packID string) (PackFunc, error) {
 	return DefaultSend(testCase, &TransferPack{}, packID)
 }
 
-func (pack *TransferPack) GetCheckHandlerMap() CheckHandlerMap {
+func (pack *TransferPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(map[string]CheckHandlerFunc, 2)
+	funcMap := make(CheckHandlerMapDiscard, 2)
 	funcMap["balance"] = pack.checkBalance
 
 	return funcMap
 }
 
 func (pack *TransferPack) checkBalance(txInfo map[string]interface{}) bool {
-
 	/*fromAddr := txInfo["tx"].(map[string]interface{})["from"].(string)
 	toAddr := txInfo["tx"].(map[string]interface{})["to"].(string)*/
 	interCase := pack.TCase.(*TransferCase)

@@ -21,9 +21,9 @@ func (testCase *PubToPrivCase) SendCommand(packID string) (PackFunc, error) {
 	return DefaultSend(testCase, &PubToPrivPack{}, packID)
 }
 
-func (pack *PubToPrivPack) GetCheckHandlerMap() CheckHandlerMap {
+func (pack *PubToPrivPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(map[string]CheckHandlerFunc, 2)
+	funcMap := make(CheckHandlerMapDiscard, 2)
 	funcMap["balance"] = pack.checkBalance
 	funcMap["utxo"] = pack.checkUtxo
 	return funcMap
