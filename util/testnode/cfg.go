@@ -57,8 +57,8 @@ dbCache=4
 grpcLogFile="grpc33.log"
 
 [rpc]
-jrpcBindAddr="localhost:8801"
-grpcBindAddr="localhost:8802"
+jrpcBindAddr="localhost:0"
+grpcBindAddr="localhost:0"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
