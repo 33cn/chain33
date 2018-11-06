@@ -192,7 +192,7 @@ func (tester *TestOperator) RunSendFlow() {
 
 						if err != nil {
 
-							if baseCase.Fail { //some logs
+							if baseCase.Fail { //fail type case
 
 								tester.tLog.Info("TestCaseResult", "TestID", packID, "Result", "Succeed")
 
@@ -200,19 +200,21 @@ func (tester *TestOperator) RunSendFlow() {
 
 								tester.totalFail++
 								tester.failID = append(tester.failID, packID)
-								tester.tLog.Error("TestCaseFailDetail", "TestID", packID, "Command", baseCase.Command, "Result", "")
+								tester.tLog.Error("TestCaseResult", "TestID", packID, "Command", baseCase.Command, "Result", "")
 								fmt.Println(err.Error())
 							}
 							tester.fLog.Info("CommandResult", "TestID", packID, "Result", err.Error())
 							casePack := &BaseCasePack{}
 							casePack.SetPackID(packID)
 							tester.delDepBuf <- casePack
-							continue
+
+						} else {
+
+							pack.SetLogger(tester.fLog, tester.tLog)
+							tester.checkBuf <- pack
+							tester.fLog.Info("CommandResult", "TestID", packID, "Result", pack.GetTxHash())
 						}
 
-						pack.SetLogger(tester.fLog, tester.tLog)
-						tester.checkBuf <- pack
-						tester.fLog.Info("CommandResult", "TestID", packID, "Result", pack.GetTxHash())
 						//distinguish with different packID, format: [TestID_RepeatOrder]
 						packID = fmt.Sprintf("%s_%d", baseCase.ID, i)
 					}

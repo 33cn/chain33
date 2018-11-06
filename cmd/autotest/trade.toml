@@ -104,6 +104,7 @@ btyAmount = "1"
 tokenAmount = "1"
 checkItem = ["balance", "frozen"]
 dep = ["tokenSell1"]
+repeat = 5
 
 
 

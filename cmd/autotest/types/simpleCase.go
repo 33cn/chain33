@@ -36,7 +36,7 @@ func (testCase *SimpleCase) SendCommand(packID string) (PackFunc, error) {
 }
 
 //simple case needn't check
-func (pack *SimplePack) CheckResult(handlerMap CheckHandlerMap) (bCheck bool, bSuccess bool) {
+func (pack *SimplePack) CheckResult(handlerMap interface{}) (bCheck bool, bSuccess bool) {
 
 	bCheck = true
 	bSuccess = true

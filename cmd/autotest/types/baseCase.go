@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"github.com/inconshreveable/log15"
 
+	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
+
 	"errors"
 )
 
@@ -29,9 +31,9 @@ type PackFunc interface {
 	GetTxReceipt() string
 	GetBasePack() *BaseCasePack
 	SetLogger(fLog log15.Logger, tLog log15.Logger)
-	GetCheckHandlerMap() CheckHandlerMap
+	GetCheckHandlerMap() interface{}
 	GetDependData() interface{}
-	CheckResult(CheckHandlerMap) (bool, bool)
+	CheckResult(interface{}) (bool, bool)
 }
 
 //base test case
@@ -45,8 +47,15 @@ type BaseCase struct {
 }
 
 //check item handler
-type CheckHandlerFunc func(map[string]interface{}) bool
+//适配autotest早期版本，handlerfunc的参数为json的map形式，后续统一使用chain33的TxDetailResult结构体结构
+type CheckHandlerFuncDiscard func(map[string]interface{}) bool
+type CheckHandlerMapDiscard map[string]CheckHandlerFuncDiscard
+//建议使用
+type CheckHandlerParamType *TxDetailResult
+type CheckHandlerFunc func(CheckHandlerParamType) bool
 type CheckHandlerMap map[string]CheckHandlerFunc
+
+
 
 //pack testCase with some check info
 type BaseCasePack struct {
@@ -157,12 +166,13 @@ func (pack *BaseCasePack) GetDependData() interface{} {
 	return nil
 }
 
-func (pack *BaseCasePack) GetCheckHandlerMap() CheckHandlerMap {
+func (pack *BaseCasePack) GetCheckHandlerMap() interface{} {
 
-	return make(map[string]CheckHandlerFunc, 1)
+	//return make(map[string]CheckHandlerFunc, 1)
+	return nil
 }
 
-func (pack *BaseCasePack) CheckResult(handlerMap CheckHandlerMap) (bCheck bool, bSuccess bool) {
+func (pack *BaseCasePack) CheckResult(handlerMap interface{}) (bCheck bool, bSuccess bool) {
 
 	bCheck = false
 	bSuccess = false
@@ -183,12 +193,16 @@ func (pack *BaseCasePack) CheckResult(handlerMap CheckHandlerMap) (bCheck bool, 
 		bCheck = true
 		var tyname string
 		var jsonMap map[string]interface{}
+		var txRecp TxDetailResult
 		pack.TxReceipt = txInfo
 		pack.FLog.Info("TxReceiptJson", "TestID", pack.PackID)
 		//hack, for pretty json log
 		pack.FLog.Info("PrettyJsonLogFormat", "TxReceipt", []byte(txInfo))
+		//适配前期的接口
 		err := json.Unmarshal([]byte(txInfo), &jsonMap)
-		if err != nil {
+		err1 := json.Unmarshal([]byte(txInfo), &txRecp)
+
+		if err != nil || err1 != nil {
 
 			pack.FLog.Error("UnMarshalFailed", "TestID", pack.PackID, "jsonStr", txInfo, "ErrInfo", err.Error())
 			return true, false
@@ -216,14 +230,32 @@ func (pack *BaseCasePack) CheckResult(handlerMap CheckHandlerMap) (bCheck bool, 
 
 		} else {
 
-			for _, item := range tCase.CheckItem {
+			//为了兼容前期autotest的map形式交易回执
+			if funcMap, ok := handlerMap.(CheckHandlerMapDiscard); ok {
 
-				checkHandler, ok := handlerMap[item]
-				if ok {
+				for _, item := range tCase.CheckItem {
 
-					itemRes := checkHandler(jsonMap)
-					bSuccess = bSuccess && itemRes
-					pack.FLog.Info("CheckItemResult", "TestID", pack.PackID, "Item", item, "Passed", itemRes)
+					checkHandler, exist := funcMap[item]
+					if exist {
+
+						itemRes := checkHandler(jsonMap)
+						bSuccess = bSuccess && itemRes
+						pack.FLog.Info("CheckItemResult", "TestID", pack.PackID, "Item", item, "Passed", itemRes)
+					}
+				}
+
+			} else if funcMap, ok := handlerMap.(CheckHandlerMap); ok {	//采用结构体形式回执
+
+
+				for _, item := range tCase.CheckItem {
+
+					checkHandler, exist := funcMap[item]
+					if exist {
+
+						itemRes := checkHandler(&txRecp)
+						bSuccess = bSuccess && itemRes
+						pack.FLog.Info("CheckItemResult", "TestID", pack.PackID, "Item", item, "Passed", itemRes)
+					}
 				}
 			}
 		}
