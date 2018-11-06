@@ -43,8 +43,8 @@ type importPackageStrategy struct {
 }
 
 func (this *importPackageStrategy) Run() error {
-	fmt.Println("Begin run chain33 import packages.")
-	defer fmt.Println("Run chain33 import packages finish.")
+	mlog.Info("Begin run chain33 import packages.")
+	defer mlog.Info("Run chain33 import packages finish.")
 	return this.runImpl()
 }
 

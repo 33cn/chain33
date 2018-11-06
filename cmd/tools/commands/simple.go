@@ -23,7 +23,6 @@ func addSimpleCreateFlag(cmd *cobra.Command) {
 	cmd.Flags().StringP("name", "n", "", "executor project and class name")
 	cmd.MarkFlagRequired("name")
 	cmd.Flags().StringP("templatefile", "t", "", "template file path")
-
 }
 
 func simpleCreate(cmd *cobra.Command, args []string) {
