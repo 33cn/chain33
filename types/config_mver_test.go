@@ -2,6 +2,7 @@ package types
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -34,4 +35,56 @@ func TestConfigMverInit(t *testing.T) {
 	assert.Equal(t, MGStr("mver.exec.sub.token.name2", 9), "ticket-bityuanv5-enable")
 	assert.Equal(t, MGStr("mver.exec.sub.token.name2", 10), "ticket-bityuanv5")
 	assert.Equal(t, MGStr("mver.exec.sub.token.name2", 11), "ticket-bityuanv5")
+}
+
+var chainBaseParam *ChainParam
+var chainV3Param *ChainParam
+
+func initChainBase() {
+	chainBaseParam = &ChainParam{}
+	chainBaseParam.CoinReward = 18 * Coin  //用户回报
+	chainBaseParam.CoinDevFund = 12 * Coin //发展基金回报
+	chainBaseParam.TicketPrice = 10000 * Coin
+	chainBaseParam.PowLimitBits = uint32(0x1f00ffff)
+	chainBaseParam.RetargetAdjustmentFactor = 4
+	chainBaseParam.FutureBlockTime = 16
+	chainBaseParam.TicketFrozenTime = 5    //5s only for test
+	chainBaseParam.TicketWithdrawTime = 10 //10s only for test
+	chainBaseParam.TicketMinerWaitTime = 2 // 2s only for test
+	chainBaseParam.MaxTxNumber = 1600      //160
+	chainBaseParam.TargetTimespan = 144 * 16 * time.Second
+	chainBaseParam.TargetTimePerBlock = 16 * time.Second
+}
+
+func initChainTestNet() {
+	chainV3Param = &ChainParam{}
+	tmp := *chainBaseParam
+	//copy base param
+	chainV3Param = &tmp
+	chainV3Param.MaxTxNumber = 10000
+	chainV3Param.TicketFrozenTime = 5                   //5s only for test
+	chainV3Param.TicketWithdrawTime = 10                //10s only for test
+	chainV3Param.TicketMinerWaitTime = 2                // 2s only for test
+	chainV3Param.TargetTimespan = 144 * 2 * time.Second //only for test
+	chainV3Param.TargetTimePerBlock = 2 * time.Second   //only for test
+	chainV3Param.PowLimitBits = uint32(0x1f2fffff)
+}
+
+func getP(height int64) *ChainParam {
+	initChainBase()
+	initChainTestNet()
+	if IsFork(height, "ForkBlockHash") {
+		return chainV3Param
+	}
+	return chainBaseParam
+}
+
+func TestInitChainParam(t *testing.T) {
+	cfg, _ := InitCfg("testdata/chain33.toml")
+	Init(cfg.Title, cfg)
+	forkid := GetFork("ForkChainParamV1")
+	assert.Equal(t, GetP(0), getP(0))
+	assert.Equal(t, GetP(forkid-1), getP(forkid-1))
+	assert.Equal(t, GetP(forkid), getP(forkid))
+	assert.Equal(t, GetP(forkid+1), getP(forkid+1))
 }
