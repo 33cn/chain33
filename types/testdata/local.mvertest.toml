@@ -6,7 +6,7 @@ FixTime=false
 hello="world"
 nofork="nofork"
 
-[mver.ForkChainParamV1]
+[mver.ForkMinerTime]
 hello="forkworld"
 
 [log]
@@ -79,7 +79,7 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 [mver.consensus]
 name2="ticket-bityuan"
 
-[mver.consensus.ForkChainParamV1]
+[mver.consensus.ForkMinerTime]
 name2="ticket-bityuanv5"
 
 [consensus.sub.ticket]
@@ -163,7 +163,7 @@ saveTokenTxList=false
 [mver.exec.sub.token]
 name2="ticket-bityuan"
 
-[mver.exec.sub.token.ForkChainParamV1]
+[mver.exec.sub.token.ForkMinerTime]
 name2="ticket-bityuanv5"
 
 [mver.exec.sub.token.Enable]
@@ -173,9 +173,8 @@ name2="ticket-bityuanv5-enable"
 #但是我们可以替换
 [fork.system]
 ForkCheckTxDup=0
-ForkChainParamV1= 10
 ForkBlockHash= 1
-ForkMinerTime= 0
+ForkMinerTime= 10
 ForkTransferExec= 100000
 ForkExecKey= 200000
 ForkTxGroup= 200000
@@ -192,6 +191,8 @@ Enable=0
 [fork.sub.ticket]
 Enable=0
 ForkTicketId = 1200000
+ForkChainParamV1= 10
+ForkChainParamV2= 10
 
 [fork.sub.retrieve]
 Enable=0
