@@ -52,7 +52,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.minFee = cfg.MinTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
 	pool.cfg = cfg
-	pool.poolHeader = make(chan struct{}, 1)
+	pool.poolHeader = make(chan struct{}, 2)
 	pool.removeBlockTicket = time.NewTicker(time.Minute)
 	return pool
 }
