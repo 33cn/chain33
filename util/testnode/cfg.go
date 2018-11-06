@@ -5,6 +5,7 @@ Title="local"
 TestNet=true
 FixTime=false
 
+
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
 loglevel = "debug"
@@ -31,11 +32,11 @@ defCacheSize=128
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
-driver="leveldb"
+driver="memdb"
 dbPath="datadir"
 dbCache=64
 isStrongConsistency=false
-singleMode=false
+singleMode=true
 batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
@@ -43,14 +44,14 @@ enableTxQuickIndex=false
 
 [p2p]
 seeds=[]
-enable=true
+enable=false
 isSeed=false
 serverStart=true
 innerSeedEnable=true
 useGithub=true
 innerBounds=300
 msgCacheSize=10240
-driver="leveldb"
+driver="memdb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
@@ -72,6 +73,14 @@ name="solo"
 minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
+[mver.consensus]
+fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+
+[consensus.sub.solo]
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+genesisBlockTime=1514533394
+waitTxMs=10
 
 [mver.consensus.sub.ticket]
 coinReward = 18
@@ -114,7 +123,7 @@ count=10000
 
 [store]
 name="mavl"
-driver="leveldb"
+driver="memdb"
 dbPath="datadir/mavltree"
 dbCache=128
 
@@ -124,7 +133,7 @@ enableMVCC=false
 
 [wallet]
 minFee=100000
-driver="leveldb"
+driver="memdb"
 dbPath="wallet"
 dbCache=16
 signType="secp256k1"
@@ -158,9 +167,6 @@ enable=false
 cryptoPath="authdir/crypto"
 # 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
 signType="auth_ecdsa"
-
-[exec.sub.ticket]
-fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 
 [exec.sub.manage]
 superManager=[
