@@ -22,6 +22,13 @@ func init() {
 	for key, cfg := range chaincfg.LoadAll() {
 		S("cfg."+key, cfg)
 	}
+	//防止报error 错误，不影响功能
+	if !HasConf("cfg.chain33") {
+		S("cfg.chain33", "")
+	}
+	if !HasConf("cfg.local") {
+		S("cfg.local", "")
+	}
 }
 
 type ChainParam struct {
@@ -69,9 +76,8 @@ func getChainConfig(key string) (value interface{}, err error) {
 	if data, ok := chainConfig[key]; ok {
 		return data, nil
 	}
-	if isLocal() {
-		tlog.Warn("chain config " + key + " not found")
-	}
+	//报错警告
+	tlog.Error("chain config " + key + " not found")
 	return nil, ErrNotFound
 }
 
@@ -86,9 +92,7 @@ func MG(key string, height int64) (value interface{}, err error) {
 	defer mu.Unlock()
 	mymver, ok := mver[title]
 	if !ok {
-		if isLocal() {
-			tlog.Warn("mver config " + title + " not found")
-		}
+		tlog.Error("mver config " + title + " not found")
 		return nil, ErrNotFound
 	}
 	return mymver.Get(key, height)
@@ -161,6 +165,13 @@ func MIsEnable(name string, height int64) bool {
 		return true
 	}
 	return false
+}
+
+func HasConf(key string) bool {
+	mu.Lock()
+	defer mu.Unlock()
+	_, ok := chainConfig[key]
+	return ok
 }
 
 func S(key string, value interface{}) {
@@ -541,15 +552,25 @@ func (query *ConfQuery) G(key string) (interface{}, error) {
 	return G(getkey(query.prefix, key))
 }
 
-func (query *ConfQuery) GStrList(key string) []string {
-	data, err := query.G(key)
+func parseStrList(data interface{}) []string {
 	var list []string
-	if err == nil {
-		if item, ok := data.([]string); ok {
-			list = item
+	if item, ok := data.([]interface{}); ok {
+		for i := 0; i < len(item); i++ {
+			one, ok := item[i].(string)
+			if ok {
+				list = append(list, one)
+			}
 		}
 	}
 	return list
+}
+
+func (query *ConfQuery) GStrList(key string) []string {
+	data, err := query.G(key)
+	if err == nil {
+		return parseStrList(data)
+	}
+	return []string{}
 }
 
 func (query *ConfQuery) GInt(key string) int64 {
@@ -578,13 +599,10 @@ func (query *ConfQuery) MGStr(key string, height int64) string {
 
 func (query *ConfQuery) MGStrList(key string, height int64) []string {
 	data, err := query.MG(key, height)
-	var list []string
 	if err == nil {
-		if item, ok := data.([]string); ok {
-			list = item
-		}
+		return parseStrList(data)
 	}
-	return list
+	return []string{}
 }
 
 func (query *ConfQuery) MIsEnable(key string, height int64) bool {

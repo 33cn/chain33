@@ -587,7 +587,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 		defer mlog.Info("mempool message recv quit")
 		defer mem.wg.Done()
 		for msg := range mem.client.Recv() {
-			mlog.Info("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
 			beg := types.Now()
 			switch msg.Ty {
 			case types.EventTx:
@@ -663,7 +663,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
 			default:
 			}
-			mlog.Info("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }
