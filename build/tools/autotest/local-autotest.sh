@@ -23,12 +23,9 @@ fi
 
 chain33Config="chain33.test.toml"
 chain33BlockTime=1
+autoTestCheckTimeout=10
 function init() {
     # update test environment
-    echo "# temporary close chain33 if running"
-    ${CLI} close > /dev/null 2>&1 || true
-    #wait close
-    sleep ${chain33BlockTime}
     echo "# copy chain33 for solo test"
     cp ../../chain33 ./
     cp ../../chain33-cli ./
@@ -71,7 +68,7 @@ function config_autotest() {
         cp ${autotestConfig} ${autotestTempConfig}
     else
         #copy config before [
-        sed -n '/^\[/!p;//q' ${autotestConfig} >${autotestTempConfig}
+        sed -n '/^\[\[/!p;//q' ${autotestConfig} >${autotestTempConfig}
 
         #copy specific dapp cofig
 
@@ -85,7 +82,7 @@ function config_autotest() {
         done
     fi
 
-    sed -i $sedfix 's/^checkSleepTime.*/checkSleepTime='${chain33BlockTime}'/' ${autotestTempConfig}
+    sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autotestTempConfig}
 }
 
 function start_chain33() {
@@ -181,24 +178,24 @@ function stop_chain33() {
 
     rv=$?
     echo "=========== #stop chain33 ============="
-    ${CLI} close
+    ${CLI} close || true
     #wait close
     sleep ${chain33BlockTime}
     exit ${rv}
 }
 
 function main() {
-    echo "==========================================main begin========================================================"
+    echo "==========================================local-auto-test-shell-begin========================================================"
     config_autotest "$@"
     init
     config_chain33
     start_chain33
     start_autotest
 
-    echo "==========================================main end========================================================="
+    echo "==========================================local-auto-test-shell-end========================================================="
 }
 
-#trap "stop_chain33" INT TERM EXIT
+trap "stop_chain33" INT TERM EXIT
 
 main "$@"
 
