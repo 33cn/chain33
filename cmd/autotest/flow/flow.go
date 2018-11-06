@@ -112,7 +112,7 @@ func (tester *TestOperator) HandleDependency() {
 				if !exist {
 					//depending testCase not exist
 					for i := range tester.depCaseMap[depID] {
-						tester.tLog.Error("InvalidDependency", "TestIDs", tester.depCaseMap[depID][i].GetID())
+						tester.tLog.Error("CheckCaseDependencyValid", "TestID", tester.depCaseMap[depID][i].GetID(), "DependTestID", depID, "Error", "DependCaseNotExist")
 					}
 					delete(tester.depCaseMap, depID)
 				}
