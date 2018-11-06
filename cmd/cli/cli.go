@@ -46,12 +46,8 @@ func init() {
 	if buildflags.RPCAddr == "" {
 		buildflags.RPCAddr = "http://localhost:8801"
 	}
-	if types.GStr("RPCAddr") == "" {
-		types.S("RPCAddr", buildflags.RPCAddr)
-	}
-	if types.GStr("ParaName") == "" {
-		types.S("ParaName", buildflags.ParaName)
-	}
+	types.S("RPCAddr", buildflags.RPCAddr)
+	types.S("ParaName", buildflags.ParaName)
 	rootCmd.PersistentFlags().String("rpc_laddr", types.GStr("RPCAddr"), "http url")
 	rootCmd.PersistentFlags().String("paraName", types.GStr("ParaName"), "parachain")
 
