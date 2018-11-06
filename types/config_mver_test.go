@@ -79,6 +79,30 @@ func getP(height int64) *ChainParam {
 	return chainBaseParam
 }
 
+func getPBityuan(height int64) *ChainParam {
+	initChainBase()
+	initChainBityuanV3()
+	if IsFork(height, "ticket.ForkChainParamV1") {
+		return chainV3Param
+	}
+	return chainBaseParam
+}
+
+func initChainBityuanV3() {
+	chainV3Param = &ChainParam{}
+	tmp := *chainBaseParam
+	//copy base param
+	chainV3Param = &tmp
+	//修改的值
+	chainV3Param.FutureBlockTime = 15
+	chainV3Param.TicketFrozenTime = 12 * 3600
+	chainV3Param.TicketWithdrawTime = 48 * 3600
+	chainV3Param.TicketMinerWaitTime = 2 * 3600
+	chainV3Param.MaxTxNumber = 1500
+	chainV3Param.TargetTimespan = 144 * 15 * time.Second
+	chainV3Param.TargetTimePerBlock = 15 * time.Second
+}
+
 func TestInitChainParam(t *testing.T) {
 	cfg, _ := InitCfg("../cmd/chain33/chain33.toml")
 	Init(cfg.Title, cfg)
@@ -88,4 +112,21 @@ func TestInitChainParam(t *testing.T) {
 	assert.Equal(t, GetP(forkid), getP(forkid))
 	assert.Equal(t, GetP(forkid+1), getP(forkid+1))
 	assert.Equal(t, GetFundAddr(), "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5")
+
+	conf := ConfSub("manage")
+	assert.Equal(t, GetFundAddr(), "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5")
+	assert.Equal(t, conf.GStrList("superManager"), []string{
+		"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+		"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
+		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
+	})
+	cfg, _ = InitCfg("../cmd/chain33/bityuan.toml")
+	Init(cfg.Title, cfg)
+	assert.Equal(t, GetFundAddr(), "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP")
+
+	forkid = GetFork("ticket.ForkChainParamV1")
+	assert.Equal(t, GetP(0), getPBityuan(0))
+	assert.Equal(t, GetP(forkid-1), getPBityuan(forkid-1))
+	assert.Equal(t, GetP(forkid), getPBityuan(forkid))
+	assert.Equal(t, GetP(forkid+1), getPBityuan(forkid+1))
 }
