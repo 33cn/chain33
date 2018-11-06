@@ -56,6 +56,7 @@ func (m *mversion) get(key string) (interface{}, error) {
 	if data, ok := m.data[key]; ok {
 		return data, nil
 	}
+	tlog.Error("mver config " + key + " not found")
 	return nil, ErrNotFound
 }
 
