@@ -10,7 +10,15 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/db/mocks"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util/testnode"
+
+	_ "gitlab.33.cn/chain33/chain33/system"
 )
+
+func init() {
+	//init some config param
+	testnode.New("", nil)
+}
 
 type suiteRelay struct {
 	// Include our basic suite logic.

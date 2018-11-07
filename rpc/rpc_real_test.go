@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common"
-	commonlog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -16,10 +15,6 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
 )
-
-func init() {
-	commonlog.SetLogLevel("error")
-}
 
 func TestErrLog(t *testing.T) {
 	// 启动RPCmocker
