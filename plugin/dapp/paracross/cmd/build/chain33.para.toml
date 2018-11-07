@@ -83,6 +83,22 @@ authAccount=""
 #等待平行链共识消息在主链上链并成功的块数，超出会重发共识消息，最小是2
 waitBlocks4CommitMsg=2
 
+
+[mver.consensus]
+fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+coinReward = 18
+coinDevFund = 12
+ticketPrice = 10000
+powLimitBits = "0x1f00ffff"
+retargetAdjustmentFactor = 4
+futureBlockTime = 16
+ticketFrozenTime = 5    #5s only for test
+ticketWithdrawTime = 10 #10s only for test
+ticketMinerWaitTime = 2 #2s only for test
+maxTxNumber = 1600      #160
+targetTimespan = 2304
+targetTimePerBlock = 16
+
 [store]
 name="mavl"
 driver="leveldb"
@@ -103,6 +119,28 @@ minerdisable=true
 isFree=true
 minExecFee=100000
 enableStat=false
+
+[exec.sub.relay]
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
+[exec.sub.manage]
+superManager=[
+    "1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+    "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
+    "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"
+]
+
+[exec.sub.token]
+saveTokenTxList=true
+tokenApprs = [
+	"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+	"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
+	"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
+	"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
+	"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
+	"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
+]
+
 
 [pprof]
 listenAddr = "localhost:6061"
