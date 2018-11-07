@@ -184,6 +184,20 @@ func (this *importPackageStrategy) fetchPluginPackage() error {
 	pwd := util.Pwd()
 	os.Chdir(this.projRootPath)
 	defer os.Chdir(pwd)
+	for _, plugins := range this.items {
+		for _, plugin := range plugins {
+			mlog.Info("同步插件", "repo", plugin.gitRepo, "version", plugin.version)
+			if plugin.version == "" {
+				//留给后面的 fetch +m
+				continue
+			}
+			err := this.fetchPlugin(plugin.gitRepo, plugin.version)
+			if err != nil {
+				mlog.Info("同步插件包出错", "repo", plugin.gitRepo, "error", err.Error())
+				return err
+			}
+		}
+	}
 	err := runcmd("fetch", "+m")
 	if err != nil {
 		mlog.Info("同步插件包出错 fetch +m", "error", err.Error())
@@ -194,17 +208,5 @@ func (this *importPackageStrategy) fetchPluginPackage() error {
 		mlog.Info("同步插件包出错 add +e", "error", err.Error())
 		return err
 	}
-	/*
-		for _, plugins := range this.items {
-			for _, plugin := range plugins {
-				mlog.Info("同步插件", "repo", plugin.gitRepo, "version", plugin.version)
-				err := this.fetchPlugin(plugin.gitRepo, plugin.version)
-				if err != nil {
-					mlog.Info("同步插件包出错", "repo", plugin.gitRepo, "error", err.Error())
-					return err
-				}
-			}
-		}
-	*/
 	return nil
 }
