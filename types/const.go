@@ -134,11 +134,6 @@ const (
 	ExecOk   = 2
 )
 
-// manager action
-const (
-	ManageActionModifyConfig = iota
-)
-
 func init() {
 	S("TxHeight", false)
 }
