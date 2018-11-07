@@ -1,9 +1,11 @@
-package types
+package autotest
 
 import (
 	"errors"
 	"fmt"
 	"strconv"
+
+	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 )
 
 type BuyCase struct {

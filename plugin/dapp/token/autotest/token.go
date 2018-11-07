@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
+	. "gitlab.33.cn/chain33/chain33/system/dapp/coins/autotest"
 )
 
 type tokenAutoTest struct {

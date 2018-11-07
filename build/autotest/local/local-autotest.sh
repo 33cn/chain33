@@ -24,14 +24,7 @@ fi
 chain33Config="chain33.test.toml"
 chain33BlockTime=1
 autoTestCheckTimeout=10
-function init() {
-    # update test environment
-    echo "# copy chain33 for solo test"
-    cp ../../chain33 ./
-    cp ../../chain33-cli ./
-    cp ../../../cmd/chain33/chain33.test.toml ./
 
-}
 
 function config_chain33() {
 
@@ -60,18 +53,25 @@ autotestConfig="autotest.toml"
 autotestTempConfig="autotest.temp.toml"
 function config_autotest() {
 
-    #delete all blank lines
     echo "# config autotest"
-    sed -i $sedfix '/^\s*$/d' ${autotestConfig}
+    #delete all blank lines
+#    sed -i $sedfix '/^\s*$/d' ${autotestConfig}
 
     if [[ $1 == "" ]] || [[ $1 == "all" ]]; then
         cp ${autotestConfig} ${autotestTempConfig}
     else
         #copy config before [
-        sed -n '/^\[\[/!p;//q' ${autotestConfig} >${autotestTempConfig}
+#        sed -n '/^\[\[/!p;//q' ${autotestConfig} >${autotestTempConfig}
 
-        #copy specific dapp cofig
+        #pre config auto test
+        {
 
+            echo "cliCmd=\"./chain33-cli\""
+            echo "checkTimeout=${autoTestCheckTimeout}"
+            printf "\n"
+        } > ${autotestTempConfig}
+
+        #specific dapp config
         for dapp in "$@"; do
             {
                 echo "[[TestCaseFile]]"
@@ -82,13 +82,13 @@ function config_autotest() {
         done
     fi
 
-    sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autotestTempConfig}
+#    sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autotestTempConfig}
 }
 
 function start_chain33() {
 
     echo "# start solo chain33"
-    rm -rf ../autotest/datadir ../autotest/logs ../autotest/grpc33.log
+    rm -rf ../local/datadir ../local/logs ../local/grpc33.log
     ./chain33 -f chain33.test.toml >/dev/null 2>&1 &
     local SLEEP=2
     echo "=========== sleep ${SLEEP}s ============="
@@ -163,14 +163,14 @@ function start_chain33() {
 
 function start_autotest() {
 
-    echo "=========== #run autotest, make sure saving autotest.log.last file============="
+    echo "=========== #run autotest, make sure saving autotest.last.log file============="
 
     if [ -e autotest.log ]; then
-        cat autotest.log >autotest.log.last
+        cat autotest.log > autotest.last.log
         rm autotest.log
     fi
 
-    ./autotest -f ${autotestTempConfig}
+    ../autotest -f ${autotestTempConfig}
 
 }
 
@@ -187,7 +187,6 @@ function stop_chain33() {
 function main() {
     echo "==========================================local-auto-test-shell-begin========================================================"
     config_autotest "$@"
-    init
     config_chain33
     start_chain33
     start_autotest

@@ -30,9 +30,6 @@ fi
 
 function init() {
     # update test environment
-    cp ../../chain33.toml ./
-    cp ../../chain33 ./
-    cp ../../chain33-cli ./
     sed -i $sedfix 's/^Title.*/Title="local"/g' chain33.toml
     sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
 
