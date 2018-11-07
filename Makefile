@@ -67,6 +67,7 @@ autotest:## build autotest binary
 		cd build/autotest && bash ./copy-autotest.sh local && cd local && bash ./local-autotest.sh $(dapp) && cd ../../../; \
 	fi
 autotest_ci: ## autotest jerkins ci
+	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
 	@cd build/autotest && bash ./copy-autotest.sh jerkinsci && cd jerkinsci && bash ./jerkins-ci-autotest.sh $(proj) && cd ../../../
 
 signatory:
