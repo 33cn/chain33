@@ -103,7 +103,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	m.db.Set([]byte(key), valueSave)
 	kv = append(kv, &types.KeyValue{[]byte(key), valueSave})
 	log := types.ReceiptConfig{Prev: &copyItem, Current: &item}
-	logs = append(logs, &types.ReceiptLog{Ty: types.TyLogModifyConfig, Log: types.Encode(&log)})
+	logs = append(logs, &types.ReceiptLog{Ty: pty.TyLogModifyConfig, Log: types.Encode(&log)})
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
 	return receipt, nil
 }
