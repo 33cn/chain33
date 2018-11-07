@@ -37,3 +37,9 @@ const (
 	TyLogTokenGenesisTransfer = 321
 	TyLogTokenGenesisDeposit  = 322
 )
+
+const (
+	TokenNameLenLimit   = 128
+	TokenSymbolLenLimit = 16
+	TokenIntroLenLimit  = 1024
+)

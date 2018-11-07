@@ -2,6 +2,7 @@ package queue
 
 import (
 	"errors"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -176,6 +177,7 @@ func (client *client) isEnd(data Message, ok bool) bool {
 		return true
 	}
 	if data.Data == nil && data.Id == 0 && data.Ty == 0 {
+		debug.PrintStack()
 		return true
 	}
 	return false

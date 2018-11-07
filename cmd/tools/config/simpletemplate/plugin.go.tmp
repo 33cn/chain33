@@ -1,0 +1,18 @@
+package ${EXECNAME}
+
+import (
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/${EXECNAME}/commands"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/${EXECNAME}/executor"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/${EXECNAME}/types"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
+)
+
+func init() {
+	pluginmgr.Register(&pluginmgr.PluginBase{
+		Name:     pty.${EXECNAME}X,
+		ExecName: executor.GetName(),
+		Exec:     executor.Init,
+		Cmd:      commands.Cmd,
+		RPC:      rpc.Init,
+	})
+}

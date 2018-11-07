@@ -7,15 +7,20 @@ import (
 )
 
 // CheckPathExists 检查文件夹是否存在
-func CheckPathExists(path string) bool {
+func DirExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
-		return true
+		return true, nil
 	}
 	if os.IsNotExist(err) {
-		return false
+		return false, nil
 	}
-	return false
+	return false, err
+}
+
+func CheckPathExisted(path string) bool {
+	existed, _ := DirExists(path)
+	return existed
 }
 
 func CheckFileExists(fileName string) (bool, error) {
@@ -62,16 +67,16 @@ func Pwd() string {
 	return dir
 }
 
-func CopyFile(srcFile, dstFile string) (written int64, err error) {
-	src, err := os.Open(srcFile)
+func DirEmpty(path string) (bool, error) {
+	f, err := os.Open(path)
 	if err != nil {
-		return
+		return false, err
 	}
-	defer src.Close()
-	dst, err := os.OpenFile(dstFile, os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return
+	defer f.Close()
+
+	_, err = f.Readdir(1)
+	if err == io.EOF {
+		return true, nil
 	}
-	defer dst.Close()
-	return io.Copy(dst, src)
+	return false, err
 }

@@ -17,7 +17,7 @@ type sellDB struct {
 
 func newSellDB(sellOrder pty.SellOrder) (selldb *sellDB) {
 	selldb = &sellDB{sellOrder}
-	if types.InvalidStartTime != selldb.Starttime {
+	if pty.InvalidStartTime != selldb.Starttime {
 		selldb.Status = pty.TradeOrderStatusNotStart
 	}
 	return
@@ -53,11 +53,11 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 		selldb.Height,
 		selldb.AssetExec,
 	}
-	if types.TyLogTradeSellLimit == tradeType {
+	if pty.TyLogTradeSellLimit == tradeType {
 		receiptTrade := &pty.ReceiptTradeSellLimit{base}
 		log.Log = types.Encode(receiptTrade)
 
-	} else if types.TyLogTradeSellRevoke == tradeType {
+	} else if pty.TyLogTradeSellRevoke == tradeType {
 		receiptTrade := &pty.ReceiptTradeSellRevoke{base}
 		log.Log = types.Encode(receiptTrade)
 	}
@@ -67,7 +67,7 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 
 func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogTradeBuyMarket
+	log.Ty = pty.TyLogTradeBuyMarket
 	base := &pty.ReceiptBuyBase{
 		selldb.TokenSymbol,
 		buyerAddr,
@@ -174,11 +174,11 @@ func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog
 		buydb.Height,
 		buydb.AssetExec,
 	}
-	if types.TyLogTradeBuyLimit == tradeType {
+	if pty.TyLogTradeBuyLimit == tradeType {
 		receiptTrade := &pty.ReceiptTradeBuyLimit{base}
 		log.Log = types.Encode(receiptTrade)
 
-	} else if types.TyLogTradeBuyRevoke == tradeType {
+	} else if pty.TyLogTradeBuyRevoke == tradeType {
 		receiptTrade := &pty.ReceiptTradeBuyRevoke{base}
 		log.Log = types.Encode(receiptTrade)
 	}
@@ -203,7 +203,7 @@ func getBuyOrderFromID(buyID []byte, db dbm.KV) (*pty.BuyLimitOrder, error) {
 
 func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogTradeSellMarket
+	log.Ty = pty.TyLogTradeSellMarket
 	base := &pty.ReceiptSellBase{
 		buydb.TokenSymbol,
 		sellerAddr,
@@ -287,7 +287,7 @@ func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, er
 	tokendb := newSellDB(sellOrder)
 	sellOrderKV := tokendb.save(action.db)
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeSellLimit, action.txhash))
+	logs = append(logs, tokendb.getSellLogs(pty.TyLogTradeSellLimit, action.txhash))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, sellOrderKV...)
 
@@ -357,7 +357,7 @@ func (action *tradeAction) tradeBuy(buyOrder *pty.TradeForBuy) (*types.Receipt, 
 
 	logs = append(logs, receiptFromAcc.Logs...)
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, sellTokendb.getSellLogs(types.TyLogTradeSellLimit, action.txhash))
+	logs = append(logs, sellTokendb.getSellLogs(pty.TyLogTradeSellLimit, action.txhash))
 	logs = append(logs, sellTokendb.getBuyLogs(action.fromaddr, buyOrder.BoardlotCnt, action.txhash))
 	kv = append(kv, receiptFromAcc.KV...)
 	kv = append(kv, receiptFromExecAcc.KV...)
@@ -402,7 +402,7 @@ func (action *tradeAction) tradeRevokeSell(revoke *pty.TradeForRevokeSell) (*typ
 	sellOrderKV := tokendb.save(action.db)
 
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, tokendb.getSellLogs(types.TyLogTradeSellRevoke, action.txhash))
+	logs = append(logs, tokendb.getSellLogs(pty.TyLogTradeSellRevoke, action.txhash))
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -444,7 +444,7 @@ func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Rece
 	tokendb := newBuyDB(buyOrder)
 	buyOrderKV := tokendb.save(action.db)
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, tokendb.getBuyLogs(types.TyLogTradeBuyLimit, action.txhash))
+	logs = append(logs, tokendb.getBuyLogs(pty.TyLogTradeBuyLimit, action.txhash))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, buyOrderKV...)
 
@@ -514,7 +514,7 @@ func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*
 
 	logs = append(logs, receiptFromAcc.Logs...)
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, buyTokendb.getBuyLogs(types.TyLogTradeBuyLimit, action.txhash))
+	logs = append(logs, buyTokendb.getBuyLogs(pty.TyLogTradeBuyLimit, action.txhash))
 	logs = append(logs, buyTokendb.getSellLogs(action.fromaddr, action.txhash, sellOrder.BoardlotCnt, action.txhash))
 	kv = append(kv, receiptFromAcc.KV...)
 	kv = append(kv, receiptFromExecAcc.KV...)
@@ -555,7 +555,7 @@ func (action *tradeAction) tradeRevokeBuyLimit(revoke *pty.TradeForRevokeBuy) (*
 	sellOrderKV := tokendb.save(action.db)
 
 	logs = append(logs, receiptFromExecAcc.Logs...)
-	logs = append(logs, tokendb.getBuyLogs(types.TyLogTradeBuyRevoke, action.txhash))
+	logs = append(logs, tokendb.getBuyLogs(pty.TyLogTradeBuyRevoke, action.txhash))
 	kv = append(kv, receiptFromExecAcc.KV...)
 	kv = append(kv, sellOrderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil

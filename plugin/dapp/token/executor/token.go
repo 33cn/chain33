@@ -29,6 +29,7 @@ const (
 )
 
 var driverName = "token"
+var conf = types.ConfSub(driverName)
 
 func init() {
 	ety := types.LoadExecutorType(driverName)
