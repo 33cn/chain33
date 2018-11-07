@@ -66,6 +66,8 @@ autotest:## build autotest binary
 	@if [ -n "$(dapp)" ]; then \
 		cd build/autotest && bash ./copy-autotest.sh local && cd local && bash ./local-autotest.sh $(dapp) && cd ../../../; \
 	fi
+autotest_ci: ## autotest jerkins ci
+	@cd build/autotest && bash ./copy-autotest.sh jerkinsci && cd jerkinsci && bash ./jerkins-ci-autotest.sh $(proj) && cd ../../../
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
@@ -168,7 +170,7 @@ clean: ## Remove previous build
 	@rm -rf build/relayd*
 	@rm -rf build/*.log
 	@rm -rf build/logs
-	@rm -rf build/autotest/autotest && find ./build/autotest/local -type f -not -name 'local-autotest.sh' -delete
+	@rm -rf build/autotest/autotest
 	@rm -rf build/ci
 	@go clean
 
