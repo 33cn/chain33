@@ -31,6 +31,21 @@ minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
+[mver.consensus]
+fundKeyAddr = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+coinReward = 18
+coinDevFund = 12
+ticketPrice = 10000
+powLimitBits = "0x1f00ffff"
+retargetAdjustmentFactor = 4
+futureBlockTime = 15
+ticketFrozenTime = 43200
+ticketWithdrawTime = 172800
+ticketMinerWaitTime = 7200
+maxTxNumber = 1500
+targetTimespan = 2160
+targetTimePerBlock = 15
+
 [consensus.sub.ticket]
 genesisBlockTime=1526486816
 [[consensus.sub.ticket.genesis]]
@@ -96,11 +111,23 @@ signType="secp256k1"
 isFree=false
 minExecFee=100000
 
+[exec.sub.token]
+#配置一个空值，防止配置文件被覆盖
+tokenApprs = []
+
+[exec.sub.relay]
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
+[exec.sub.manage]
+superManager=[
+    "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP", 
+]
+
 #系统中所有的fork,默认用chain33的测试网络的
 #但是我们可以替换
 [fork.system]
-ForkCheckTxDup=0
 ForkChainParamV1= 0
+ForkCheckTxDup=0
 ForkBlockHash= 1
 ForkMinerTime= 0
 ForkTransferExec= 100000
@@ -109,9 +136,10 @@ ForkTxGroup= 200000
 ForkResetTx0= 200000
 ForkWithdraw= 200000
 ForkExecRollback= 450000
+ForkCheckBlockTime=1200000
 ForkTxHeight= -1
 ForkTxGroupPara= -1
-ForkCheckBlockTime=1200000
+ForkChainParamV2= -1
 
 [fork.sub.coins]
 Enable=0

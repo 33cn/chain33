@@ -21,6 +21,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	mty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 )
 
 // 构造一个4个节点的平行链数据， 进行测试
@@ -67,7 +68,7 @@ func makeNodeInfo(key, addr string, cnt int) *types.ConfigItem {
 	var item types.ConfigItem
 	item.Key = key
 	item.Addr = addr
-	item.Ty = types.ConfigItemArrayConfig
+	item.Ty = mty.ConfigItemArrayConfig
 	emptyValue := &types.ArrayConfig{make([]string, 0)}
 	arr := types.ConfigItem_Arr{emptyValue}
 	item.Value = &arr
