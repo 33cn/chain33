@@ -31,6 +31,7 @@ var (
 	ErrNotMinered              = errors.New("ErrNotMinered")
 	ErrFromAddr                = errors.New("ErrFromAddr")
 	ErrBlockHeight             = errors.New("ErrBlockHeight")
+	ErrBlockTime               = errors.New("ErrBlockTime")
 	ErrCoinBaseExecer          = errors.New("ErrCoinBaseExecer")
 	ErrCoinBaseTxType          = errors.New("ErrCoinBaseTxType")
 	ErrCoinBaseExecErr         = errors.New("ErrCoinBaseExecErr")
@@ -161,6 +162,7 @@ var (
 	ErrLocalPrefix = errors.New("ErrLocalPrefix")
 	ErrLocalKeyLen = errors.New("ErrLocalKeyLen")
 
-	ErrCloneForkFrom    = errors.New("ErrCloneForkFrom")
-	ErrCloneForkToExist = errors.New("ErrCloneForkToExist")
+	ErrCloneForkFrom      = errors.New("ErrCloneForkFrom")
+	ErrCloneForkToExist   = errors.New("ErrCloneForkToExist")
+	ErrQueryThistIsNotSet = errors.New("ErrQueryThistIsNotSet")
 )

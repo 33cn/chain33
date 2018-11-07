@@ -13,7 +13,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
@@ -76,7 +75,7 @@ func RaftPerf() {
 func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
-	cfg, sub := config.InitCfg("chain33.test.toml")
+	cfg, sub := types.InitCfg("chain33.test.toml")
 	types.Init(cfg.Title, cfg)
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())

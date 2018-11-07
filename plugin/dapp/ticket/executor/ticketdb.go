@@ -2,7 +2,11 @@ package executor
 
 //database opeartion for execs ticket
 import (
+	//"bytes"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"strings"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -210,6 +214,14 @@ func (action *Action) TicketOpen(topen *ty.TicketOpen) (*types.Receipt, error) {
 	cfg := types.GetP(action.height)
 	for i := 0; i < int(topen.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
+		//add pubHash
+		if types.IsDappFork(action.height, ty.TicketX, "ForkTicketId") {
+			if len(topen.PubHashes) == 0 {
+				return nil, ty.ErrOpenTicketPubHash
+			}
+			id = id + ":" + fmt.Sprintf("%x:%d", topen.PubHashes[i], topen.RandSeed)
+		}
+
 		t := NewDB(id, topen.MinerAddress, topen.ReturnAddress, action.blocktime, false)
 
 		//冻结子账户资金
@@ -242,6 +254,15 @@ func readTicket(db dbm.KV, id string) (*ty.Ticket, error) {
 	return &ticket, nil
 }
 
+func genPubHash(tid string) string {
+	var pubHash string
+	parts := strings.Split(tid, ":")
+	if len(parts) > ty.TicketOldParts {
+		pubHash = parts[ty.TicketOldParts]
+	}
+	return pubHash
+}
+
 func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Receipt, error) {
 	if index != 0 {
 		return nil, types.ErrCoinBaseIndex
@@ -263,6 +284,17 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 	if action.fromaddr != ticket.MinerAddress && action.fromaddr != ticket.ReturnAddress {
 		return nil, types.ErrFromAddr
 	}
+	//check pubHash and privHash
+	if !types.IsDappFork(action.height, ty.TicketX, "ForkTicketId") {
+		miner.PrivHash = nil
+	}
+	if len(miner.PrivHash) != 0 {
+		pubHash := genPubHash(ticket.TicketId)
+		if len(pubHash) == 0 || hex.EncodeToString(common.Sha256(miner.PrivHash)) != pubHash {
+			tlog.Error("TicketMiner", "pubHash", pubHash, "privHashHash", common.Sha256(miner.PrivHash), "ticketId", ticket.TicketId)
+			return nil, errors.New("ErrCheckPubHash")
+		}
+	}
 	prevstatus := ticket.Status
 	ticket.Status = 2
 	ticket.MinerValue = miner.Reward
@@ -272,7 +304,6 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 	t := &DB{*ticket, prevstatus}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-
 	//user
 	receipt1, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, ticket.MinerValue)
 	if err != nil {
@@ -280,9 +311,9 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 		return nil, err
 	}
 	//fund
-	receipt2, err := action.coinsAccount.ExecDepositFrozen(types.FundKeyAddr, action.execaddr, cfg.CoinDevFund)
+	receipt2, err := action.coinsAccount.ExecDepositFrozen(types.GetFundAddr(), action.execaddr, cfg.CoinDevFund)
 	if err != nil {
-		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr)
+		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", types.GetFundAddr(), "execaddr", action.execaddr)
 		return nil, err
 	}
 	t.Save(action.db)
@@ -348,9 +379,9 @@ func (action *Action) TicketClose(tclose *ty.TicketClose) (*types.Receipt, error
 		kv = append(kv, receipt1.KV...)
 		//如果ticket 已经挖矿成功了，那么要解冻发展基金部分币
 		if t.prevstatus == 2 {
-			receipt2, err := action.coinsAccount.ExecActive(types.FundKeyAddr, action.execaddr, cfg.CoinDevFund)
+			receipt2, err := action.coinsAccount.ExecActive(types.GetFundAddr(), action.execaddr, cfg.CoinDevFund)
 			if err != nil {
-				tlog.Error("TicketClose.ExecActive fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr, "value", retValue)
+				tlog.Error("TicketClose.ExecActive fund", "addr", types.GetFundAddr(), "execaddr", action.execaddr, "value", retValue)
 				return nil, err
 			}
 			logs = append(logs, receipt2.Logs...)
@@ -382,8 +413,9 @@ func Infos(db dbm.KV, tinfos *ty.TicketInfos) (types.Message, error) {
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]
 		ticket, err := readTicket(db, id)
+		//数据库可能会不一致，读的过程中可能会有写
 		if err != nil {
-			return nil, err
+			continue
 		}
 		tickets = append(tickets, ticket)
 	}

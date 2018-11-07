@@ -53,7 +53,7 @@ func addBakupCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().Int64P("delay", "d", 60, "delay period (minimum 60 seconds)")
 	cmd.MarkFlagRequired("delay")
 
-	defaultFee := float64(types.MinFee) / float64(types.Coin)
+	defaultFee := float64(types.GInt("MinFee")) / float64(types.Coin)
 	cmd.Flags().Float64P("fee", "f", defaultFee, "transaction fee")
 }
 
@@ -75,7 +75,7 @@ func backupCmd(cmd *cobra.Command, args []string) {
 		DelayPeriod: delay,
 		Fee:         feeInt64,
 	}
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Retrieve.CreateRawRetrieveBackupTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "retrieve.CreateRawRetrieveBackupTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -96,7 +96,7 @@ func addRetrieveCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("default", "t", "", "default address")
 	cmd.MarkFlagRequired("default")
 
-	defaultFee := float64(types.MinFee) / float64(types.Coin)
+	defaultFee := float64(types.GInt("MinFee")) / float64(types.Coin)
 	cmd.Flags().Float64P("fee", "f", defaultFee, "sign address")
 }
 
@@ -112,7 +112,7 @@ func prepareCmd(cmd *cobra.Command, args []string) {
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Retrieve.CreateRawRetrievePrepareTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "retrieve.CreateRawRetrievePrepareTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -139,7 +139,7 @@ func performCmd(cmd *cobra.Command, args []string) {
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Retrieve.CreateRawRetrievePerformTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "retrieve.CreateRawRetrievePerformTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -166,7 +166,7 @@ func cancelCmd(cmd *cobra.Command, args []string) {
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Retrieve.CreateRawRetrieveCancelTx", params, nil)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "retrieve.CreateRawRetrieveCancelTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
