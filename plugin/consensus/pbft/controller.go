@@ -10,8 +10,8 @@ import (
 
 var (
 	plog             = log.New("module", "Pbft")
-	genesis          = pb.GenesisAddr
-	genesisBlockTime = pb.GenesisBlockTime
+	genesis          string
+	genesisBlockTime int64
 	clientAddr       string
 )
 

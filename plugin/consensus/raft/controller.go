@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	rlog                           = log.New("module", "raft")
-	genesis                        = types.GenesisAddr
-	genesisBlockTime               = types.GenesisBlockTime
+	rlog                    = log.New("module", "raft")
+	genesis                 string
+	genesisBlockTime        int64
 	defaultSnapCount        uint64 = 1000
 	snapshotCatchUpEntriesN uint64 = 1000
 	writeBlockSeconds       int64  = 1
