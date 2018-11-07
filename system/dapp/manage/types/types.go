@@ -15,11 +15,9 @@ var (
 	}
 	logmap = map[int64]*types.LogInfo{
 		// 这里reflect.TypeOf类型必须是proto.Message类型，且是交易的回持结构
-		types.TyLogModifyConfig: {reflect.TypeOf(types.ModifyConfig{}), "LogModifyConfig"},
+		TyLogModifyConfig: {reflect.TypeOf(types.ModifyConfig{}), "LogModifyConfig"},
 	}
 )
-
-//var tlog = log.New("module", name)
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(ManageX))
@@ -72,20 +70,4 @@ func (m ManageType) GetRealToAddr(tx *types.Transaction) string {
 
 func (m ManageType) GetTypeMap() map[string]int32 {
 	return actionName
-}
-
-type ModifyConfigLog struct {
-}
-
-func (l ModifyConfigLog) Name() string {
-	return "LogModifyConfig"
-}
-
-func (l ModifyConfigLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptConfig
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
 }

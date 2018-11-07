@@ -4,3 +4,15 @@ package types
 const (
 	ManageActionModifyConfig = iota
 )
+
+const (
+	// log for config
+	TyLogModifyConfig = 410
+)
+
+// config items
+const (
+	ConfigItemArrayConfig = iota
+	ConfigItemIntConfig
+	ConfigItemStringConfig
+)
