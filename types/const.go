@@ -112,17 +112,6 @@ var SystemLog = map[int64]*LogInfo{
 }
 
 const (
-	//log for trade
-	TyLogTradeSellLimit  = 310
-	TyLogTradeBuyMarket  = 311
-	TyLogTradeSellRevoke = 312
-
-	TyLogTradeSellMarket        = 330
-	TyLogTradeBuyLimit          = 331
-	TyLogTradeBuyRevoke         = 332
-	TyLogParaTokenAssetTransfer = 333
-	TyLogParaTokenAssetWithdraw = 334
-
 	// log for config
 	TyLogModifyConfig = 410
 )

@@ -302,7 +302,7 @@ func txResult2sellOrderReply(txResult *types.TxResult) *pty.ReplySellOrder {
 	logs := txResult.Receiptdate.Logs
 	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
-		if log.Ty == types.TyLogTradeSellMarket {
+		if log.Ty == pty.TyLogTradeSellMarket {
 			var receipt pty.ReceiptSellMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
@@ -369,7 +369,7 @@ func txResult2buyOrderReply(txResult *types.TxResult) *pty.ReplyBuyOrder {
 	logs := txResult.Receiptdate.Logs
 	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
-		if log.Ty == types.TyLogTradeBuyMarket {
+		if log.Ty == pty.TyLogTradeBuyMarket {
 			var receipt pty.ReceiptTradeBuyMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
@@ -525,7 +525,7 @@ func txResult2OrderReply(txResult *types.TxResult) *pty.ReplyTradeOrder {
 	logs := txResult.Receiptdate.Logs
 	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
-		if log.Ty == types.TyLogTradeBuyMarket {
+		if log.Ty == pty.TyLogTradeBuyMarket {
 			var receipt pty.ReceiptTradeBuyMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
@@ -534,7 +534,7 @@ func txResult2OrderReply(txResult *types.TxResult) *pty.ReplyTradeOrder {
 			}
 			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
 			return buyBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
-		} else if log.Ty == types.TyLogTradeBuyRevoke {
+		} else if log.Ty == pty.TyLogTradeBuyRevoke {
 			var receipt pty.ReceiptTradeBuyRevoke
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
@@ -543,7 +543,7 @@ func txResult2OrderReply(txResult *types.TxResult) *pty.ReplyTradeOrder {
 			}
 			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
 			return buyBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
-		} else if log.Ty == types.TyLogTradeSellRevoke {
+		} else if log.Ty == pty.TyLogTradeSellRevoke {
 			var receipt pty.ReceiptTradeSellRevoke
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
@@ -552,7 +552,7 @@ func txResult2OrderReply(txResult *types.TxResult) *pty.ReplyTradeOrder {
 			}
 			tradelog.Debug("txResult2sellOrderReply", "show revoke 1 ", receipt)
 			return sellBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
-		} else if log.Ty == types.TyLogTradeSellMarket {
+		} else if log.Ty == pty.TyLogTradeSellMarket {
 			var receipt pty.ReceiptSellMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
@@ -570,7 +570,7 @@ func limitOrderTxResult2Order(txResult *types.TxResult) *pty.ReplyTradeOrder {
 	logs := txResult.Receiptdate.Logs
 	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
-		if log.Ty == types.TyLogTradeSellLimit {
+		if log.Ty == pty.TyLogTradeSellLimit {
 			var receipt pty.ReceiptTradeSellLimit
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
@@ -579,7 +579,7 @@ func limitOrderTxResult2Order(txResult *types.TxResult) *pty.ReplyTradeOrder {
 			}
 			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
 			return sellBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
-		} else if log.Ty == types.TyLogTradeBuyLimit {
+		} else if log.Ty == pty.TyLogTradeBuyLimit {
 			var receipt pty.ReceiptTradeBuyLimit
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
