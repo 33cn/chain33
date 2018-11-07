@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 
 	//log "github.com/inconshreveable/log15"
@@ -27,12 +28,18 @@ const (
 	TicketActionBind    = 17
 )
 
+const TicketOldParts = 3
+const TicketCountOpenOnce = 1000
+
+var ErrOpenTicketPubHash = errors.New("ErrOpenTicketPubHash")
+
 var TicketX = "ticket"
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(TicketX))
 	types.RegistorExecutor(TicketX, NewType())
 	types.RegisterDappFork(TicketX, "Enable", 0)
+	types.RegisterDappFork(TicketX, "ForkTicketId", 1200000)
 }
 
 type TicketType struct {

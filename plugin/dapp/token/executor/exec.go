@@ -42,7 +42,7 @@ func (t *token) Exec_TokenPreCreate(payload *tokenty.TokenPreCreate, tx *types.T
 }
 
 func (t *token) Exec_TokenFinishCreate(payload *tokenty.TokenFinishCreate, tx *types.Transaction, index int) (*types.Receipt, error) {
-	action := newTokenAction(t, types.FundKeyAddr, tx)
+	action := newTokenAction(t, types.GetFundAddr(), tx)
 	return action.finishCreate(payload)
 }
 

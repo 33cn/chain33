@@ -15,12 +15,12 @@ import (
 func TestSolo(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	txs := util.GenNoneTxs(10)
+	txs := util.GenNoneTxs(mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		mock33.GetAPI().SendTx(txs[i])
 	}
 	mock33.WaitHeight(1)
-	txs = util.GenNoneTxs(10)
+	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		mock33.GetAPI().SendTx(txs[i])
 	}

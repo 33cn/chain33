@@ -14,7 +14,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
@@ -94,7 +93,7 @@ func getprivkey(key string) crypto.PrivKey {
 
 func initUnitEnv() (queue.Queue, *executor.Executor) {
 	var q = queue.New("channel")
-	cfg, sub := config.InitCfg("../../../../cmd/chain33/chain33.test.toml")
+	cfg, sub := types.InitCfg("../../../../cmd/chain33/chain33.test.toml")
 	exec := executor.New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 	return q, exec

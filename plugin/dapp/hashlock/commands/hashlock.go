@@ -50,7 +50,7 @@ func addHashlockLockCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("return", "r", "", "return address")
 	cmd.MarkFlagRequired("return")
 
-	defaultFee := float64(types.MinFee) / float64(types.Coin)
+	defaultFee := float64(types.GInt("MinFee")) / float64(types.Coin)
 	cmd.Flags().Float64P("fee", "f", defaultFee, "transaction fee")
 }
 
@@ -107,7 +107,7 @@ func addHashlockCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("secret", "s", "", "secret information")
 	cmd.MarkFlagRequired("secret")
 
-	defaultFee := float64(types.MinFee) / float64(types.Coin)
+	defaultFee := float64(types.GInt("MinFee")) / float64(types.Coin)
 	cmd.Flags().Float64P("fee", "f", defaultFee, "transaction fee")
 }
 

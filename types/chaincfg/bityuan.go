@@ -1,74 +1,50 @@
-Title="bityuan"
+package chaincfg
+
+func init() {
+	Register("bityuan", bityuan)
+}
+
+var bityuan = `
 TestNet=false
-FixTime=false
-
-[log]
-# 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
-loglevel = "debug"
-logConsoleLevel = "info"
-# 日志文件名，可带目录，所有生成的日志文件都放到此目录下
-logFile = "logs/chain33.log"
-# 单个日志文件的最大值（单位：兆）
-maxFileSize = 300
-# 最多保存的历史日志文件个数
-maxBackups = 100
-# 最多保存的历史日志消息（单位：天）
-maxAge = 28
-# 日志文件名是否使用本地事件（否则使用UTC时间）
-localTime = true
-# 历史日志文件是否压缩（压缩格式为gz）
-compress = true
-# 是否打印调用源文件和行号
-callerFile = false
-# 是否打印调用方法
-callerFunction = false
-
-
 [blockchain]
 defCacheSize=128
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
 driver="leveldb"
-dbPath="datadir"
-dbCache=64
 isStrongConsistency=false
 singleMode=false
-batchsync=false
-isRecordBlockSequence=false
-enableTxQuickIndex=false
 
 [p2p]
-seeds=[]
 enable=true
-isSeed=false
 serverStart=true
-innerSeedEnable=true
-useGithub=true
-innerBounds=300
 msgCacheSize=10240
 driver="leveldb"
-dbPath="datadir/addrbook"
-dbCache=4
-grpcLogFile="grpc33.log"
-
-[rpc]
-jrpcBindAddr="localhost:8801"
-grpcBindAddr="localhost:8802"
-whitelist=["127.0.0.1"]
-jrpcFuncWhitelist=["*"]
-grpcFuncWhitelist=["*"]
 
 [mempool]
 poolCacheSize=102400
 minTxFee=100000
-maxTxNumPerAccount=10000
 
 [consensus]
 name="ticket"
 minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
+[mver.consensus]
+fundKeyAddr = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+coinReward = 18
+coinDevFund = 12
+ticketPrice = 10000
+powLimitBits = "0x1f00ffff"
+retargetAdjustmentFactor = 4
+futureBlockTime = 15
+ticketFrozenTime = 43200
+ticketWithdrawTime = 172800
+ticketMinerWaitTime = 7200
+maxTxNumber = 1500
+targetTimespan = 2160
+targetTimePerBlock = 15
 
 [consensus.sub.ticket]
 genesisBlockTime=1526486816
@@ -125,31 +101,33 @@ count=4733
 [store]
 name="mavl"
 driver="leveldb"
-dbPath="datadir/mavltree"
-dbCache=128
-enableMavlPrefix=false
-enableMVCC=false
 
 [wallet]
 minFee=100000
 driver="leveldb"
-dbPath="wallet"
-dbCache=16
 signType="secp256k1"
-minerdisable=false
-minerwhitelist=["*"]
 
 [exec]
 isFree=false
 minExecFee=100000
-enableStat=false
-enableMVCC=false
+
+[exec.sub.token]
+#配置一个空值，防止配置文件被覆盖
+tokenApprs = []
+
+[exec.sub.relay]
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
+[exec.sub.manage]
+superManager=[
+    "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP", 
+]
 
 #系统中所有的fork,默认用chain33的测试网络的
 #但是我们可以替换
 [fork.system]
-ForkCheckTxDup=0
 ForkChainParamV1= 0
+ForkCheckTxDup=0
 ForkBlockHash= 1
 ForkMinerTime= 0
 ForkTransferExec= 100000
@@ -158,14 +136,17 @@ ForkTxGroup= 200000
 ForkResetTx0= 200000
 ForkWithdraw= 200000
 ForkExecRollback= 450000
+ForkCheckBlockTime=1200000
 ForkTxHeight= -1
 ForkTxGroupPara= -1
+ForkChainParamV2= -1
 
 [fork.sub.coins]
 Enable=0
 
 [fork.sub.ticket]
 Enable=0
+ForkTicketId = 1200000
 
 [fork.sub.retrieve]
 Enable=0
@@ -188,3 +169,4 @@ ForkTokenPrice= 300000
 Enable=0
 ForkTradeBuyLimit= 0
 ForkTradeAsset= -1
+`

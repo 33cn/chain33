@@ -96,20 +96,24 @@ function relay_test() {
     echo "================relayd test========================"
     block_wait "${1}" 2
 
-    echo "${1}"
-    ${1} relay btc_cur_height
-    base_height=$(${1} relay btc_cur_height | jq ".baseHeight")
-    btc_cur_height=$(${1} relay btc_cur_height | jq ".curHeight")
-    if [ "${btc_cur_height}" == "${base_height}" ]; then
-        echo "height not correct, wait 2 block.."
-        block_wait "${1}" 2
+    times=100
+    while true; do
+        ${1} relay btc_cur_height
         base_height=$(${1} relay btc_cur_height | jq ".baseHeight")
         btc_cur_height=$(${1} relay btc_cur_height | jq ".curHeight")
         if [ "${btc_cur_height}" == "${base_height}" ]; then
-            echo "height not correct"
-            exit 1
+            echo "height not correct, wait 2 block.."
+            block_wait "${1}" 2
+            times=$((times - 1))
+            if [ $times -le 0 ]; then
+                echo "height not correct failed"
+                exit 1
+            fi
+        else
+            echo "btc height correct, pass"
+            break
         fi
-    fi
+    done
 
     echo "=========== # get real BTC account ============="
     newacct="relay"

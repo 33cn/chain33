@@ -2,10 +2,7 @@ package rpc
 
 import (
 	"context"
-	"math/rand"
-	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
 	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -15,19 +12,10 @@ func (c *channelClient) Backup(ctx context.Context, v *rt.BackupRetrieve) (*type
 		Ty:    rt.RetrieveActionBackup,
 		Value: &rt.RetrieveAction_Backup{v},
 	}
-	tx := &types.Transaction{
-		Execer:  rt.ExecerRetrieve,
-		Payload: types.Encode(backup),
-		Fee:     0,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(rt.RetrieveX),
-	}
-
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(string(rt.ExecerRetrieve), types.Encode(backup))
 	if err != nil {
 		return nil, err
 	}
-
 	data := types.Encode(tx)
 	return &types.UnsignTx{Data: data}, nil
 }
@@ -37,15 +25,7 @@ func (c *channelClient) Prepare(ctx context.Context, v *rt.PrepareRetrieve) (*ty
 		Ty:    rt.RetrieveActionPrepare,
 		Value: &rt.RetrieveAction_Prepare{v},
 	}
-	tx := &types.Transaction{
-		Execer:  rt.ExecerRetrieve,
-		Payload: types.Encode(prepare),
-		Fee:     0,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(rt.RetrieveX),
-	}
-
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(string(rt.ExecerRetrieve), types.Encode(prepare))
 	if err != nil {
 		return nil, err
 	}
@@ -59,19 +39,10 @@ func (c *channelClient) Perform(ctx context.Context, v *rt.PerformRetrieve) (*ty
 		Ty:    rt.RetrieveActionPerform,
 		Value: &rt.RetrieveAction_Perform{v},
 	}
-	tx := &types.Transaction{
-		Execer:  rt.ExecerRetrieve,
-		Payload: types.Encode(perform),
-		Fee:     0,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(rt.RetrieveX),
-	}
-
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(string(rt.ExecerRetrieve), types.Encode(perform))
 	if err != nil {
 		return nil, err
 	}
-
 	data := types.Encode(tx)
 	return &types.UnsignTx{Data: data}, nil
 }
@@ -81,19 +52,10 @@ func (c *channelClient) Cancel(ctx context.Context, v *rt.CancelRetrieve) (*type
 		Ty:    rt.RetrieveActionCancel,
 		Value: &rt.RetrieveAction_Cancel{v},
 	}
-	tx := &types.Transaction{
-		Execer:  rt.ExecerRetrieve,
-		Payload: types.Encode(cancel),
-		Fee:     0,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(rt.RetrieveX),
-	}
-
-	err := tx.SetRealFee(types.MinFee)
+	tx, err := types.CreateFormatTx(string(rt.ExecerRetrieve), types.Encode(cancel))
 	if err != nil {
 		return nil, err
 	}
-
 	data := types.Encode(tx)
 	return &types.UnsignTx{Data: data}, nil
 }
