@@ -30,15 +30,10 @@ var (
 const (
 	InputPrecision        float64 = 1e4
 	Multiple1E4           int64   = 1e4
-	BlockDurPerSecCnt             = 15
 	BTY                           = "BTY"
 	BTYDustThreshold              = Coin
 	ConfirmedHeight               = 12
 	UTXOCacheCount                = 256
-	M_1_TIMES                     = 1
-	M_2_TIMES                     = 2
-	M_5_TIMES                     = 5
-	M_10_TIMES                    = 10
 	SignatureSize                 = (4 + 33 + 65)
 	PrivacyMaturityDegree         = 12
 	TxGroupMaxCount               = 20
