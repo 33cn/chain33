@@ -178,7 +178,8 @@ func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) 
 	}
 
 	approverValid := false
-	for _, approver := range types.TokenApprs {
+
+	for _, approver := range conf.GStrList("tokenApprs") {
 		if approver == action.fromaddr {
 			approverValid = true
 			break

@@ -52,7 +52,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.minFee = cfg.MinTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
 	pool.cfg = cfg
-	pool.poolHeader = make(chan struct{}, 1)
+	pool.poolHeader = make(chan struct{}, 2)
 	pool.removeBlockTicket = time.NewTicker(time.Minute)
 	return pool
 }
@@ -435,7 +435,10 @@ func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptC
 // Mempool.pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
 func (mem *Mempool) pollLastHeader() {
 	defer mem.wg.Done()
-	defer mlog.Info("pollLastHeader quit")
+	defer func() {
+		mlog.Info("pollLastHeader quit")
+		mem.poolHeader <- struct{}{}
+	}()
 	for {
 		if mem.isClose() {
 			return
@@ -448,7 +451,6 @@ func (mem *Mempool) pollLastHeader() {
 		}
 		h := lastHeader.(queue.Message).Data.(*types.Header)
 		mem.setHeader(h)
-		mem.poolHeader <- struct{}{}
 		return
 	}
 }
@@ -461,6 +463,8 @@ func (mem *Mempool) setHeader(h *types.Header) {
 }
 
 func (mem *Mempool) WaitPollLastHeader() {
+	<-mem.poolHeader
+	//wait sync
 	<-mem.poolHeader
 }
 
@@ -484,7 +488,10 @@ func (mem *Mempool) isSync() bool {
 
 // Mempool.getSync获取Mempool同步状态
 func (mem *Mempool) getSync() {
-	defer mlog.Info("getSync quit")
+	defer func() {
+		mlog.Info("getsync quit")
+		mem.poolHeader <- struct{}{}
+	}()
 	defer mem.wg.Done()
 	if mem.isSync() {
 		return
@@ -587,7 +594,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 		defer mlog.Info("mempool message recv quit")
 		defer mem.wg.Done()
 		for msg := range mem.client.Recv() {
-			mlog.Info("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
 			beg := types.Now()
 			switch msg.Ty {
 			case types.EventTx:
@@ -663,7 +670,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
 			default:
 			}
-			mlog.Info("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }
