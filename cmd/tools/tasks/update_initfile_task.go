@@ -92,17 +92,14 @@ func (this *UpdateInitFileTask) genInitFile() error {
 
 	util.DeleteFile(this.initFile)
 	_, err := util.WriteStringToFile(this.initFile, content)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (this *UpdateInitFileTask) formatInitFile() error {
 	cmd := exec.Command("gofmt", "-l", "-s", "-w", this.initFile)
 	err := cmd.Run()
 	if err != nil {
-		return errors.New(fmt.Sprintf("Format init.go failed. file %v", this.initFile))
+		return fmt.Errorf("Format init.go failed. file %v", this.initFile)
 	}
 	return nil
 }
