@@ -3,7 +3,6 @@ datadir*
 *.exe
 *.orig
 *.bak
-*.log.last
 .idea
 .vscode
 cmd/chain33/chain33
@@ -24,10 +23,10 @@ build/ci
 cmd/execblock/execblock
 cmd/miner_accounts/miner_accounts
 cmd/write/write
-build/tools/autotest/autotest
-build/tools/autotest/*.toml
-build/tools/autotest/chain33
-build/tools/autotest/chain33-cli
+build/autotest/autotest
+build/autotest/local/*.toml
+build/autotest/local/autotest*
+build/autotest/local/chain33*
 plugin/consensus/raft/chain33_raft-1/
 common/mavl/datastore
 .DS_Store
