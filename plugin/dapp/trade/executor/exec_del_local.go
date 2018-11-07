@@ -34,7 +34,7 @@ func (t *trade) localDelLog(tx *types.Transaction, receipt *types.ReceiptData, i
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogTradeSellLimit || item.Ty == types.TyLogTradeSellRevoke {
+		if item.Ty == pty.TyLogTradeSellLimit || item.Ty == pty.TyLogTradeSellRevoke {
 			var receipt pty.ReceiptTradeSellLimit
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -42,7 +42,7 @@ func (t *trade) localDelLog(tx *types.Transaction, receipt *types.ReceiptData, i
 			}
 			kv := t.deleteSell([]byte(receipt.Base.SellID), item.Ty)
 			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogTradeBuyMarket {
+		} else if item.Ty == pty.TyLogTradeBuyMarket {
 			var receipt pty.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -50,7 +50,7 @@ func (t *trade) localDelLog(tx *types.Transaction, receipt *types.ReceiptData, i
 			}
 			kv := t.deleteBuy(receipt.Base)
 			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogTradeBuyRevoke || item.Ty == types.TyLogTradeBuyLimit {
+		} else if item.Ty == pty.TyLogTradeBuyRevoke || item.Ty == pty.TyLogTradeBuyLimit {
 			var receipt pty.ReceiptTradeBuyLimit
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -58,7 +58,7 @@ func (t *trade) localDelLog(tx *types.Transaction, receipt *types.ReceiptData, i
 			}
 			kv := t.deleteBuyLimit([]byte(receipt.Base.BuyID), item.Ty)
 			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogTradeSellMarket {
+		} else if item.Ty == pty.TyLogTradeSellMarket {
 			var receipt pty.ReceiptSellMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {

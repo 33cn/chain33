@@ -37,7 +37,7 @@ func (store *ticketStore) GetAutoMinerFlag() int32 {
 	flag := int32(0)
 	value, err := store.Get(CalcWalletAutoMiner())
 	if err != nil {
-		bizlog.Error("GetAutoMinerFlag", "Get error", err)
+		bizlog.Debug("GetAutoMinerFlag", "Get error", err)
 		return flag
 	}
 	if value != nil && string(value) == "1" {

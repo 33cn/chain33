@@ -23,7 +23,6 @@ callerFile = false
 # 是否打印调用方法
 callerFunction = false
 
-
 [blockchain]
 defCacheSize=128
 maxFetchBlockNum=128
@@ -151,8 +150,9 @@ saveTokenTxList=false
 #系统中所有的fork,默认用chain33的测试网络的
 #但是我们可以替换
 [fork.system]
-ForkCheckTxDup=0
 ForkChainParamV1= 0
+ForkChainParamV2= -1
+ForkCheckTxDup=0
 ForkBlockHash= 1
 ForkMinerTime= 0
 ForkTransferExec= 100000
