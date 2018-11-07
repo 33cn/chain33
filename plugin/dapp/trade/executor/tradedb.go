@@ -17,7 +17,7 @@ type sellDB struct {
 
 func newSellDB(sellOrder pty.SellOrder) (selldb *sellDB) {
 	selldb = &sellDB{sellOrder}
-	if types.InvalidStartTime != selldb.Starttime {
+	if pty.InvalidStartTime != selldb.Starttime {
 		selldb.Status = pty.TradeOrderStatusNotStart
 	}
 	return

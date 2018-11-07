@@ -30,8 +30,6 @@ var (
 const (
 	InputPrecision        float64 = 1e4
 	Multiple1E4           int64   = 1e4
-	InvalidStartTime              = 0
-	InvalidStopTime               = 0
 	BlockDurPerSecCnt             = 15
 	BTY                           = "BTY"
 	BTYDustThreshold              = Coin

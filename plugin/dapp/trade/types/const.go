@@ -66,3 +66,8 @@ var MapBuyOrderStatusStr2Int = map[string]int32{
 	"boughtout":  TradeOrderStatusBoughtOut,
 	"buyrevoked": TradeOrderStatusBuyRevoked,
 }
+
+const (
+	InvalidStartTime              = 0
+)
+
