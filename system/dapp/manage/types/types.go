@@ -14,7 +14,7 @@ var (
 		"Modify": ManageActionModifyConfig,
 	}
 	logmap = map[int64]*types.LogInfo{
-		types.TyLogModifyConfig: {reflect.TypeOf(ModifyConfigLog{}), "LogModifyConfig"},
+		TyLogModifyConfig: {reflect.TypeOf(ModifyConfigLog{}), "LogModifyConfig"},
 	}
 )
 
