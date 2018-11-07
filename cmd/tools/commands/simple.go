@@ -3,10 +3,9 @@ package commands
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/cmd/tools/strategy"
 	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
-
-	"github.com/spf13/cobra"
 )
 
 func SimpleCmd() *cobra.Command {

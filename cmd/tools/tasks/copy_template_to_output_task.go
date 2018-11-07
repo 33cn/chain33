@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
-
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
