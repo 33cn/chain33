@@ -16,7 +16,7 @@ import (
 	l "github.com/inconshreveable/log15"
 	"github.com/rs/cors"
 
-	"gitlab.33.cn/chain33/chain33/cmd/signatory-server/signatory"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/token/cmd/signatory-server/signatory"
 )
 
 var (
