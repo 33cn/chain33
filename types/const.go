@@ -139,13 +139,6 @@ const (
 	ManageActionModifyConfig = iota
 )
 
-// config items
-const (
-	ConfigItemArrayConfig = iota
-	ConfigItemIntConfig
-	ConfigItemStringConfig
-)
-
 func init() {
 	S("TxHeight", false)
 }
