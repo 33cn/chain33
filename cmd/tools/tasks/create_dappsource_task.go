@@ -5,9 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
-
 	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
 

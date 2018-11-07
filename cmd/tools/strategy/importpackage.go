@@ -8,9 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
-
 	"github.com/BurntSushi/toml"
+	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
