@@ -69,7 +69,6 @@ func OneStepSend(args []string) {
 		fmt.Println(errCreate.String())
 		return
 	}
-	//fmt.Println("unsignedTx", outCreate.String(), errCreate.String())
 
 	if !hasKey || key == "" {
 		fmt.Fprintln(os.Stderr, "no private key found")
