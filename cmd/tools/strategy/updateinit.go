@@ -1,8 +1,10 @@
 package strategy
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -11,10 +13,10 @@ import (
 
 type updateInitStrategy struct {
 	strategyBasic
-
-	consRootPath  string
-	dappRootPath  string
-	storeRootPath string
+	consRootPath   string
+	dappRootPath   string
+	storeRootPath  string
+	cryptoRootPath string
 }
 
 func (this *updateInitStrategy) Run() error {
@@ -27,22 +29,53 @@ func (this *updateInitStrategy) Run() error {
 }
 
 func (this *updateInitStrategy) initMember() error {
-	var path string
-	gopath := os.Getenv("GOPATH")
-	if len(gopath) > 0 {
-		path = filepath.Join(gopath, "/src/gitlab.33.cn/chain33/chain33/plugin/")
+	path, err := this.getParam("path")
+	packname, _ := this.getParam("packname")
+	if err != nil || path == "" {
+		gopath := os.Getenv("GOPATH")
+		if len(gopath) > 0 {
+			path = filepath.Join(gopath, "/src/gitlab.33.cn/chain33/chain33/plugin/")
+		}
 	}
-	if len(path) <= 0 {
+	if len(path) == 0 {
 		return errors.New("Chain33 Plugin Not Existed")
 	}
 	this.consRootPath = fmt.Sprintf("%s/consensus/", path)
 	this.dappRootPath = fmt.Sprintf("%s/dapp/", path)
 	this.storeRootPath = fmt.Sprintf("%s/store/", path)
-
-	// TODO: 确认vendor目录下的所有插件源码，需要将其加入到引用中
-	path = filepath.Join(gopath, "/src/gitlab.33.cn/chain33/chain33/vendor/gitlab.33.cn/")
-
+	this.cryptoRootPath = fmt.Sprintf("%s/crypto/", path)
+	mkdir(this.consRootPath)
+	mkdir(this.dappRootPath)
+	mkdir(this.storeRootPath)
+	mkdir(this.cryptoRootPath)
+	buildInit(path, packname)
 	return nil
+}
+
+func mkdir(path string) {
+	path += "init"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.MkdirAll(path, 0755)
+	}
+}
+
+func buildInit(path string, packname string) {
+	if packname == "" {
+		return
+	}
+	path += "/init.go"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		var data = []byte(`package plugin
+
+import (
+	_ "${packname}/plugin/consensus/init"
+	_ "${packname}/plugin/crypto/init"
+	_ "${packname}/plugin/dapp/init"
+	_ "${packname}/plugin/store/init"
+)`)
+		data = bytes.Replace(data, []byte("${packname}"), []byte(packname), -1)
+		ioutil.WriteFile(path, data, 0666)
+	}
 }
 
 func (this *updateInitStrategy) runImpl() error {
@@ -73,6 +106,9 @@ func (this *updateInitStrategy) buildTask() tasks.Task {
 		},
 		&tasks.UpdateInitFileTask{
 			Folder: this.storeRootPath,
+		},
+		&tasks.UpdateInitFileTask{
+			Folder: this.cryptoRootPath,
 		},
 	)
 

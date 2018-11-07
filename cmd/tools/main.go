@@ -32,7 +32,6 @@ func runCommands() {
 		Use:   "tools",
 		Short: "chain33 tools",
 	}
-
 	addCommands(rootCmd)
 
 	if err := rootCmd.Execute(); err != nil {
