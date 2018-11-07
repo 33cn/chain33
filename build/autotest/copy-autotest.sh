@@ -7,7 +7,6 @@ set -o pipefail
 
 # os: ubuntu16.04 x64
 
-
 #chain33 dapp autotest root directory
 declare -a Chain33AutoTestDirs=("system" "plugin")
 
