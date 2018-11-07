@@ -16,6 +16,7 @@ import (
 var (
 	clog       = log.New("module", "execs.manage")
 	driverName = "manage"
+	conf       = types.ConfSub(driverName)
 )
 
 func init() {
@@ -51,7 +52,7 @@ func (c *Manage) CheckTx(tx *types.Transaction, index int) error {
 }
 
 func IsSuperManager(addr string) bool {
-	for _, m := range types.SuperManager {
+	for _, m := range conf.GStrList("superManager") {
 		if addr == m {
 			return true
 		}

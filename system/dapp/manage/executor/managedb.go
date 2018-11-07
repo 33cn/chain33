@@ -56,7 +56,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	} else { // if config item not exist, create a new empty
 		item.Key = modify.Key
 		item.Addr = modify.Addr
-		item.Ty = types.ConfigItemArrayConfig
+		item.Ty = pty.ConfigItemArrayConfig
 		emptyValue := &types.ArrayConfig{make([]string, 0)}
 		arr := types.ConfigItem_Arr{emptyValue}
 		item.Value = &arr
@@ -103,7 +103,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	m.db.Set([]byte(key), valueSave)
 	kv = append(kv, &types.KeyValue{[]byte(key), valueSave})
 	log := types.ReceiptConfig{Prev: &copyItem, Current: &item}
-	logs = append(logs, &types.ReceiptLog{Ty: types.TyLogModifyConfig, Log: types.Encode(&log)})
+	logs = append(logs, &types.ReceiptLog{Ty: pty.TyLogModifyConfig, Log: types.Encode(&log)})
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
 	return receipt, nil
 }

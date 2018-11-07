@@ -10,6 +10,17 @@ const (
 	TradeRevokeBuy
 )
 
+// log
+const (
+	TyLogTradeSellLimit  = 310
+	TyLogTradeBuyMarket  = 311
+	TyLogTradeSellRevoke = 312
+
+	TyLogTradeSellMarket = 330
+	TyLogTradeBuyLimit   = 331
+	TyLogTradeBuyRevoke  = 332
+)
+
 // 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
 const (
 	TradeOrderStatusNotStart = iota
@@ -55,3 +66,7 @@ var MapBuyOrderStatusStr2Int = map[string]int32{
 	"boughtout":  TradeOrderStatusBoughtOut,
 	"buyrevoked": TradeOrderStatusBuyRevoked,
 }
+
+const (
+	InvalidStartTime = 0
+)
