@@ -4,15 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/inconshreveable/log15"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/inconshreveable/log15"
 )
 
 const FloatDiff = 0.00001
-
-
 
 //customize log15 log format
 func AutoTestLogFormat() log15.Format {

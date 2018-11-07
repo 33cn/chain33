@@ -29,7 +29,7 @@ function copyAutoTestConfig() {
         echo 'cliCmd="./chain33-cli"'
         echo "checkTimeout=60"
         printf "\n"
-    } >${AutoTestConfigFile}
+    } >"${AutoTestConfigFile}"
 
     #copy all the dapp test case config file
     for rootDir in "${Chain33AutoTestDirs[@]}"; do
@@ -42,9 +42,9 @@ function copyAutoTestConfig() {
             dappConfig=${autotest}/${dapp}.toml
 
             #make sure dapp have auto test config
-            if [ -e ${dappConfig} ]; then
+            if [ -e "${dappConfig}" ]; then
 
-                cp ${dappConfig} $1/
+                cp "${dappConfig}" "$1"/
 
                 #add dapp test case config
                 {
@@ -52,7 +52,7 @@ function copyAutoTestConfig() {
                     echo "dapp=\"$dapp\""
                     echo "filename=\"$dapp.toml\""
                     printf "\n"
-                } >>${AutoTestConfigFile}
+                } >>"${AutoTestConfigFile}"
 
             fi
 
@@ -63,18 +63,18 @@ function copyAutoTestConfig() {
 function copyChain33() {
 
     echo "#copy chain33 bin to path \"$1\""
-    cp ../chain33 ../chain33-cli ../chain33.toml ../../cmd/chain33/chain33.test.toml $1
+    cp ../chain33 ../chain33-cli ../chain33.toml ../../cmd/chain33/chain33.test.toml "$1"
 
 }
 
 for dir in "$@"; do
 
     #check dir exist
-    if [ ! -d ${dir} ]; then
+    if [ ! -d "${dir}" ]; then
         echo "directory ${dir} not exist!"
     fi
-    cp autotest ${dir} || true
-    copyAutoTestConfig ${dir}
-    copyChain33 ${dir}
+    cp autotest "${dir}" || true
+    copyAutoTestConfig "${dir}"
+    copyChain33 "${dir}"
 
 done

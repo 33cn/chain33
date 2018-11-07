@@ -2,7 +2,6 @@ package autotest
 
 import (
 	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
-
 )
 
 type TokenPreCreateCase struct {

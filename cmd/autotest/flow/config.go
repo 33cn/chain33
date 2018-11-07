@@ -2,8 +2,9 @@ package flow
 
 import (
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 	"time"
+
+	"gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 
 	"reflect"
 	"sync"
@@ -36,25 +37,21 @@ type TestCaseConfig struct {
 	TestCaseFileArr []TestCaseFile `toml:"TestCaseFile"`
 }
 
-
 type autoTestResult struct {
-
-	dapp string
-	totalCase int
-	failCase int
+	dapp       string
+	totalCase  int
+	failCase   int
 	failCaseID []string
 }
 
-
 var (
-	configFile string
-	resultChan = make(chan *autoTestResult, 1)
-	testResultArr = make([]*autoTestResult, 0)
+	configFile     string
+	resultChan     = make(chan *autoTestResult, 1)
+	testResultArr  = make([]*autoTestResult, 0)
 	autoTestConfig = &TestCaseConfig{}
 
 	checkSleepTime = 1 //second, s
 )
-
 
 type TestRunner interface {
 	RunTest(tomlFile string, wg *sync.WaitGroup)
@@ -67,10 +64,7 @@ func InitFlowConfig(conf string, log string) {
 
 }
 
-
-
 func StartAutoTest() bool {
-
 
 	stdLog.Info("[================================BeginAutoTest===============================]")
 	fileLog.Info("[================================BeginAutoTest===============================]")
@@ -88,8 +82,7 @@ func StartAutoTest() bool {
 		return false
 	}
 	//init types
-	types.Init(autoTestConfig.CliCommand, autoTestConfig.CheckTimeout / checkSleepTime)
-
+	types.Init(autoTestConfig.CliCommand, autoTestConfig.CheckTimeout/checkSleepTime)
 
 	for _, caseFile := range autoTestConfig.TestCaseFileArr {
 
@@ -100,10 +93,10 @@ func StartAutoTest() bool {
 	//collect test results
 	go func() {
 		for {
-			res, more := <- resultChan
+			res, more := <-resultChan
 			if more {
 				testResultArr = append(testResultArr, res)
-			}else {
+			} else {
 				return
 			}
 		}
@@ -125,7 +118,7 @@ func StartAutoTest() bool {
 			bSuccess = false
 			stdLog.Error("TestFailed", "dapp", res.dapp, "TotalCase", res.totalCase, "TotalFail", res.failCase, "FailID", res.failCaseID)
 			fileLog.Error("TestFailed", "dapp", res.dapp, "TotalCase", res.totalCase, "TotalFail", res.failCase, "FailID", res.failCaseID)
-		}else {
+		} else {
 
 			stdLog.Info("TestSuccess", "dapp", res.dapp, "TotalCase", res.totalCase, "TotalFail", res.failCase)
 			fileLog.Info("TestSuccess", "dapp", res.dapp, "TotalCase", res.totalCase, "TotalFail", res.failCase)
@@ -135,15 +128,9 @@ func StartAutoTest() bool {
 	return bSuccess
 }
 
-
-
-
 func newTestFlow(dapp string, filename string, wg *sync.WaitGroup) {
 
-
-
 	defer wg.Done()
-
 
 	configType := types.GetAutoTestConfig(dapp)
 
@@ -165,7 +152,6 @@ func newTestFlow(dapp string, filename string, wg *sync.WaitGroup) {
 		return
 	}
 
-
 	//get config fields
 	fields := caseConf.Elem().NumField()
 	caseArrList := make([]interface{}, fields)
@@ -182,9 +168,7 @@ func newTestFlow(dapp string, filename string, wg *sync.WaitGroup) {
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()
 
-
 	testRes := tester.WaitTest()
 	resultChan <- testRes
 
 }
-
