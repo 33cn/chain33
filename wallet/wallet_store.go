@@ -35,7 +35,7 @@ func (ws *walletStore) SetFeeAmount(FeeAmount int64) error {
 func (store *walletStore) GetFeeAmount(minFee int64) int64 {
 	FeeAmountbytes, err := store.Get(CalcWalletPassKey())
 	if FeeAmountbytes == nil || err != nil {
-		//storelog.Error("GetFeeAmount", "Get from db error", err)
+		storelog.Debug("GetFeeAmount", "Get from db error", err)
 		return minFee
 	}
 	var FeeAmount int64

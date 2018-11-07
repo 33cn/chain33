@@ -32,7 +32,7 @@ func (store *privacyStore) getVersion() int64 {
 	var version int64
 	data, err := store.Get(calcPrivacyDBVersion())
 	if err != nil || data == nil {
-		bizlog.Error("getVersion", "db.Get error", err)
+		bizlog.Debug("getVersion", "db.Get error", err)
 		return 0
 	}
 	err = json.Unmarshal(data, &version)

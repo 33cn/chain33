@@ -154,7 +154,7 @@ func (store *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore
 	list := store.NewListHelper()
 	accbytes := list.PrefixScan([]byte(addr))
 	if len(accbytes) == 0 {
-		storelog.Error("GetAccountByPrefix addr not exist")
+		storelog.Debug("GetAccountByPrefix addr not exist")
 		return nil, types.ErrAccountNotExist
 	}
 	WalletAccountStores := make([]*types.WalletAccountStore, len(accbytes))
