@@ -225,7 +225,9 @@ func (policy *ticketPolicy) OnWalletUnlocked(param *types.WalletUnLock) {
 func (policy *ticketPolicy) OnCreateNewAccount(acc *types.Account) {
 }
 
+//导入key的时候flush ticket
 func (policy *ticketPolicy) OnImportPrivateKey(acc *types.Account) {
+	FlushTicket(policy.getAPI())
 }
 
 func (policy *ticketPolicy) OnAddBlockFinish(block *types.BlockDetail) {

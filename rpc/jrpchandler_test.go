@@ -6,15 +6,15 @@ import (
 
 	"encoding/hex"
 
-	_ "gitlab.33.cn/chain33/chain33/plugin"
-	_ "gitlab.33.cn/chain33/chain33/system"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
+	_ "gitlab.33.cn/chain33/chain33/plugin"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	_ "gitlab.33.cn/chain33/chain33/system"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
+	mty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -349,7 +349,7 @@ func TestDecodeLogModifyConfig(t *testing.T) {
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogModifyConfig,
+		Ty:  mty.TyLogModifyConfig,
 		Log: "0x" + strdec,
 	}
 

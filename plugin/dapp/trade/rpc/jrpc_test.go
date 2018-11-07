@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
-	ptypes "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
@@ -30,7 +30,7 @@ func TestChain33_CreateRawTradeSellTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &ptypes.TradeSellTx{
+	token := &pty.TradeSellTx{
 		TokenSymbol:       "CNY",
 		AmountPerBoardlot: 10,
 		MinBoardlot:       1,
@@ -51,7 +51,7 @@ func TestChain33_CreateRawTradeBuyTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &ptypes.TradeBuyTx{
+	token := &pty.TradeBuyTx{
 		SellID:      "sadfghjkhgfdsa",
 		BoardlotCnt: 100,
 		Fee:         1,
@@ -69,7 +69,7 @@ func TestChain33_CreateRawTradeRevokeTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &ptypes.TradeRevokeTx{
+	token := &pty.TradeRevokeTx{
 		SellID: "sadfghjkhgfdsa",
 		Fee:    1,
 	}
@@ -87,7 +87,7 @@ func TestChain33_CreateRawTradeBuyLimitTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &ptypes.TradeBuyLimitTx{
+	token := &pty.TradeBuyLimitTx{
 		TokenSymbol:       "CNY",
 		AmountPerBoardlot: 10,
 		MinBoardlot:       1,
@@ -109,7 +109,7 @@ func TestChain33_CreateRawTradeSellMarketTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &ptypes.TradeSellMarketTx{
+	token := &pty.TradeSellMarketTx{
 		BuyID:       "12asdfa",
 		BoardlotCnt: 100,
 		Fee:         1,
@@ -128,7 +128,7 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &ptypes.TradeRevokeBuyTx{
+	token := &pty.TradeRevokeBuyTx{
 		BuyID: "12asdfa",
 		Fee:   1,
 	}
@@ -139,11 +139,11 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 }
 
 func TestDecodeLogTradeSellLimit(t *testing.T) {
-	var logTmp = &ptypes.ReceiptTradeSellLimit{}
+	var logTmp = &pty.ReceiptTradeSellLimit{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeSellLimit,
+		Ty:  pty.TyLogTradeSellLimit,
 		Log: "0x" + strdec,
 	}
 
@@ -161,11 +161,11 @@ func TestDecodeLogTradeSellLimit(t *testing.T) {
 }
 
 func TestDecodeLogTradeSellRevoke(t *testing.T) {
-	var logTmp = &ptypes.ReceiptTradeBuyMarket{}
+	var logTmp = &pty.ReceiptTradeBuyMarket{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeSellRevoke,
+		Ty:  pty.TyLogTradeSellRevoke,
 		Log: "0x" + strdec,
 	}
 
@@ -183,11 +183,11 @@ func TestDecodeLogTradeSellRevoke(t *testing.T) {
 }
 
 func TestDecodeLogTradeBuyLimit(t *testing.T) {
-	var logTmp = &ptypes.ReceiptTradeBuyLimit{}
+	var logTmp = &pty.ReceiptTradeBuyLimit{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeBuyLimit,
+		Ty:  pty.TyLogTradeBuyLimit,
 		Log: "0x" + strdec,
 	}
 
@@ -205,11 +205,11 @@ func TestDecodeLogTradeBuyLimit(t *testing.T) {
 }
 
 func TestDecodeLogTradeSellMarket(t *testing.T) {
-	var logTmp = &ptypes.ReceiptSellMarket{}
+	var logTmp = &pty.ReceiptSellMarket{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeSellMarket,
+		Ty:  pty.TyLogTradeSellMarket,
 		Log: "0x" + strdec,
 	}
 
@@ -227,11 +227,11 @@ func TestDecodeLogTradeSellMarket(t *testing.T) {
 }
 
 func TestDecodeLogTradeBuyRevoke(t *testing.T) {
-	var logTmp = &ptypes.ReceiptTradeBuyRevoke{}
+	var logTmp = &pty.ReceiptTradeBuyRevoke{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeBuyRevoke,
+		Ty:  pty.TyLogTradeBuyRevoke,
 		Log: "0x" + strdec,
 	}
 
@@ -249,11 +249,11 @@ func TestDecodeLogTradeBuyRevoke(t *testing.T) {
 }
 
 func TestDecodeLogTradeBuyMarket(t *testing.T) {
-	var logTmp = &ptypes.ReceiptTradeBuyMarket{}
+	var logTmp = &pty.ReceiptTradeBuyMarket{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTradeBuyMarket,
+		Ty:  pty.TyLogTradeBuyMarket,
 		Log: "0x" + strdec,
 	}
 
@@ -275,10 +275,10 @@ func TestChain33_GetLastMemPoolOk(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	var txlist types.ReplyTxList
-	var action ptypes.Trade
+	var action pty.Trade
 	act := types.Encode(&action)
 	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName(ptypes.TradeX)),
+		Execer:  []byte(types.ExecName(pty.TradeX)),
 		Payload: act,
 		To:      "to",
 	}
