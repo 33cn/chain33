@@ -5,14 +5,11 @@ const (
 	ManageActionModifyConfig = iota
 )
 
+// log
 const (
-	// log for config
 	TyLogModifyConfig = 410
 )
 
-// config items
 const (
 	ConfigItemArrayConfig = iota
-	ConfigItemIntConfig
-	ConfigItemStringConfig
 )
