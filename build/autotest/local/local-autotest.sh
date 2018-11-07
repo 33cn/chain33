@@ -67,7 +67,6 @@ function config_autotest() {
 
             echo 'cliCmd="./chain33-cli"'
             echo "checkTimeout=${autoTestCheckTimeout}"
-            printf '\n'
         } >${autotestTempConfig}
 
         #specific dapp config

@@ -27,7 +27,6 @@ function copyAutoTestConfig() {
 
         echo 'cliCmd="./chain33-cli"'
         echo "checkTimeout=60"
-        printf '\n'
     } >"${AutoTestConfigFile}"
 
     #copy all the dapp test case config file
@@ -50,7 +49,6 @@ function copyAutoTestConfig() {
                     echo "[[TestCaseFile]]"
                     echo "dapp=\"$dapp\""
                     echo "filename=\"$dapp.toml\""
-                    printf '\n'
                 } >>"${AutoTestConfigFile}"
 
             fi
