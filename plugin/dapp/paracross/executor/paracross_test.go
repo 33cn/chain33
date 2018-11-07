@@ -68,7 +68,7 @@ func makeNodeInfo(key, addr string, cnt int) *types.ConfigItem {
 	var item types.ConfigItem
 	item.Key = key
 	item.Addr = addr
-	item.Ty = mty.ManageActionModifyConfig
+	item.Ty = mty.ConfigItemArrayConfig
 	emptyValue := &types.ArrayConfig{make([]string, 0)}
 	arr := types.ConfigItem_Arr{emptyValue}
 	item.Value = &arr
