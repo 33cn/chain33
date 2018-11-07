@@ -30,20 +30,10 @@ var (
 const (
 	InputPrecision        float64 = 1e4
 	Multiple1E4           int64   = 1e4
-	TokenNameLenLimit             = 128
-	TokenSymbolLenLimit           = 16
-	TokenIntroLenLimit            = 1024
-	InvalidStartTime              = 0
-	InvalidStopTime               = 0
-	BlockDurPerSecCnt             = 15
 	BTY                           = "BTY"
 	BTYDustThreshold              = Coin
 	ConfirmedHeight               = 12
 	UTXOCacheCount                = 256
-	M_1_TIMES                     = 1
-	M_2_TIMES                     = 2
-	M_5_TIMES                     = 5
-	M_10_TIMES                    = 10
 	SignatureSize                 = (4 + 33 + 65)
 	PrivacyMaturityDegree         = 12
 	TxGroupMaxCount               = 20
@@ -110,19 +100,6 @@ var SystemLog = map[int64]*LogInfo{
 	TyLogGenesisTransfer: {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisTransfer"},
 	TyLogGenesisDeposit:  {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
 }
-
-const (
-	//log for trade
-	TyLogTradeSellLimit  = 310
-	TyLogTradeBuyMarket  = 311
-	TyLogTradeSellRevoke = 312
-
-	TyLogTradeSellMarket        = 330
-	TyLogTradeBuyLimit          = 331
-	TyLogTradeBuyRevoke         = 332
-	TyLogParaTokenAssetTransfer = 333
-	TyLogParaTokenAssetWithdraw = 334
-)
 
 //exec type
 const (
