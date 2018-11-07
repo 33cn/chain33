@@ -1,7 +1,9 @@
-package types
+package autotest
 
 import (
 	"strconv"
+
+	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 )
 
 type SellCase struct {

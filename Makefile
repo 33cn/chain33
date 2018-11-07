@@ -12,7 +12,7 @@ APP := build/chain33
 CLI := build/chain33-cli
 SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
-AUTO_TEST := build/tools/autotest/autotest
+AUTO_TEST := build/autotest/autotest
 SRC_AUTO_TEST := gitlab.33.cn/chain33/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
@@ -63,9 +63,8 @@ para:
 
 autotest:## build autotest binary
 	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
-	@cp cmd/autotest/*.toml build/tools/autotest/
 	@if [ -n "$(dapp)" ]; then \
-		cd build/tools/autotest && bash ./local-autotest.sh $(dapp) && cd ../../../; \
+		cd build/autotest && bash ./copy-autotest.sh local && cd local && bash ./local-autotest.sh $(dapp) && cd ../../../; \
 	fi
 
 signatory:
@@ -169,7 +168,7 @@ clean: ## Remove previous build
 	@rm -rf build/relayd*
 	@rm -rf build/*.log
 	@rm -rf build/logs
-	@rm -rf build/tools/autotest/autotest
+	@rm -rf build/autotest/autotest && find ./build/autotest/local -type f -not -name 'local-autotest.sh' -delete
 	@rm -rf build/ci
 	@go clean
 
