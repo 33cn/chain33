@@ -15,12 +15,11 @@ import (
 func TestRPCTokenPreCreate(t *testing.T) {
 	// 启动RPCmocker
 	mock33 := testnode.New("", nil)
-	defer func() {
-		mock33.Close()
-	}()
+	defer mock33.Close()
 	mock33.Listen()
 	//precreate
-	mock33.SendHot()
+	err := mock33.SendHot()
+	assert.Nil(t, err)
 	block := mock33.GetLastBlock()
 	acc := mock33.GetAccount(block.StateHash, mock33.GetGenesisAddress())
 	assert.Equal(t, acc.Balance, int64(9998999999900000))

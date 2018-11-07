@@ -11,6 +11,7 @@ import (
 var relaylog = log.New("module", "execs.relay")
 
 var driverName = "relay"
+var subconfig = types.ConfSub(driverName)
 
 func init() {
 	ety := types.LoadExecutorType(driverName)

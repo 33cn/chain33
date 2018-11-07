@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
@@ -45,19 +46,20 @@ var lognode = log15.New("module", "lognode")
 var chain33globalLock sync.Mutex
 
 type Chain33Mock struct {
-	random  *rand.Rand
-	q       queue.Queue
-	client  queue.Client
-	api     client.QueueProtocolAPI
-	chain   *blockchain.BlockChain
-	mem     *mempool.Mempool
-	cs      queue.Module
-	exec    *executor.Executor
-	wallet  queue.Module
-	network queue.Module
-	store   queue.Module
-	rpc     *rpc.RPC
-	cfg     *types.Config
+	random   *rand.Rand
+	q        queue.Queue
+	client   queue.Client
+	api      client.QueueProtocolAPI
+	chain    *blockchain.BlockChain
+	mem      *mempool.Mempool
+	cs       queue.Module
+	exec     *executor.Executor
+	wallet   queue.Module
+	network  queue.Module
+	store    queue.Module
+	rpc      *rpc.RPC
+	cfg      *types.Config
+	lastsend []byte
 }
 
 func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
@@ -96,7 +98,7 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 	mock.mem = mempool.New(cfg.MemPool)
 	mock.mem.SetQueueClient(q.Client())
 	lognode.Info("init mempool")
-
+	mock.mem.WaitPollLastHeader()
 	if cfg.P2P.Enable {
 		mock.network = p2p.New(cfg.P2P)
 		mock.network.SetQueueClient(q.Client())
@@ -107,7 +109,7 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 	lognode.Info("init P2P")
 	cli := q.Client()
 	w := wallet.New(cfg.Wallet, sub.Wallet)
-	mock.client = cli
+	mock.client = q.Client()
 	mock.wallet = w
 	mock.wallet.SetQueueClient(cli)
 	lognode.Info("init wallet")
@@ -116,7 +118,6 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 		newWalletRealize(mockapi)
 	}
 	mock.api = mockapi
-
 	server := rpc.New(cfg.Rpc)
 	server.SetAPI(mock.api)
 	server.SetQueueClientNoListen(q.Client())
@@ -260,7 +261,6 @@ func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error
 		param := &types.ReqHash{Hash: hash}
 		_, err := mock.api.QueryTx(param)
 		if err != nil {
-			println(err)
 			time.Sleep(time.Second / 10)
 			continue
 		}
@@ -274,16 +274,26 @@ func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error
 }
 
 func (mock *Chain33Mock) SendHot() error {
-	header, err := mock.api.GetLastHeader()
-	if err != nil {
-		return err
-	}
 	tx := util.CreateCoinsTx(mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
-	_, err = mock.GetAPI().SendTx(tx)
+	mock.SendTx(tx)
+	return mock.Wait()
+}
+
+func (mock *Chain33Mock) SendTx(tx *types.Transaction) []byte {
+	reply, err := mock.GetAPI().SendTx(tx)
 	if err != nil {
 		panic(err)
 	}
-	return mock.WaitHeight(header.Height + 1)
+	mock.lastsend = reply.GetMsg()
+	return reply.GetMsg()
+}
+
+func (mock *Chain33Mock) Wait() error {
+	if mock.lastsend == nil {
+		return nil
+	}
+	_, err := mock.WaitTx(mock.lastsend)
+	return err
 }
 
 func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Account {
@@ -318,7 +328,7 @@ func (m *Chain33Mock) GetHotKey() crypto.PrivKey {
 }
 
 func (m *Chain33Mock) GetHotAddress() string {
-	return m.cfg.Consensus.HotkeyAddr
+	return address.PubKeyToAddress(m.GetHotKey().PubKey().Bytes()).String()
 }
 
 func (m *Chain33Mock) GetGenesisKey() crypto.PrivKey {
@@ -326,7 +336,7 @@ func (m *Chain33Mock) GetGenesisKey() crypto.PrivKey {
 }
 
 func (m *Chain33Mock) GetGenesisAddress() string {
-	return m.cfg.Consensus.Genesis
+	return address.PubKeyToAddress(m.GetGenesisKey().PubKey().Bytes()).String()
 }
 
 type mockP2P struct {

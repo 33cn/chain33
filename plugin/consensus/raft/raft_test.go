@@ -58,6 +58,7 @@ func RaftPerf() {
 	defer p2p.Close()
 	sendReplyList(q)
 }
+
 func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
