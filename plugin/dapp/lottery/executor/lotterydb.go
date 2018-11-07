@@ -598,7 +598,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, *pty.LotteryUp
 			fund, fundType := checkFundAmount(luckynum, rec.Number, rec.Way)
 			if fund != 0 {
 				newUpdateRec := &pty.LotteryUpdateRec{rec.Index, fundType}
-				if update, ok := updateInfo.BuyInfo[action.fromaddr]; ok {
+				if update, ok := updateInfo.BuyInfo[addr]; ok {
 					update.Records = append(update.Records, newUpdateRec)
 				} else {
 					initrecord := &pty.LotteryUpdateRecs{}
