@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
@@ -17,6 +17,7 @@ const (
 	dappFolderName      = "dapp"
 	consensusFolderName = "consensus"
 	storeFolderName     = "store"
+	cryptoFolderName    = "crypto"
 )
 
 type pluginConfigItem struct {
@@ -33,7 +34,6 @@ type pluginItem struct {
 
 type importPackageStrategy struct {
 	strategyBasic
-
 	cfgFileName    string
 	cfgItems       map[string]*pluginConfigItem
 	projRootPath   string
@@ -68,7 +68,11 @@ func (this *importPackageStrategy) runImpl() error {
 
 func (this *importPackageStrategy) readConfig() error {
 	mlog.Info("读取配置文件")
-	if len(this.cfgFileName) == 0 {
+	conf, _ := this.getParam("conf")
+	if conf != "" {
+		this.cfgFileName = conf
+	}
+	if this.cfgFileName == "" {
 		this.cfgFileName = fmt.Sprintf("config/%s", types.DEF_CPM_CONFIGFILE)
 	}
 	_, err := toml.DecodeFile(this.cfgFileName, &this.cfgItems)
@@ -84,7 +88,13 @@ func (this *importPackageStrategy) initData() error {
 	dappItems := make([]*pluginItem, 0)
 	consensusItems := make([]*pluginItem, 0)
 	storeItems := make([]*pluginItem, 0)
+	cryptoItems := make([]*pluginItem, 0)
 	for name, cfgItem := range this.cfgItems {
+		splitdata := strings.Split(name, "-")
+		if len(splitdata) == 2 {
+			cfgItem.Type = splitdata[0]
+			name = splitdata[1]
+		}
 		item := &pluginItem{
 			name:    name,
 			gitRepo: cfgItem.Gitrepo,
@@ -97,6 +107,8 @@ func (this *importPackageStrategy) initData() error {
 			consensusItems = append(consensusItems, item)
 		case storeFolderName:
 			storeItems = append(storeItems, item)
+		case cryptoFolderName:
+			cryptoItems = append(cryptoItems, item)
 		default:
 			fmt.Printf("type %s is not supported.\n", cfgItem.Type)
 			return errors.New("Config error.")
@@ -105,8 +117,9 @@ func (this *importPackageStrategy) initData() error {
 	this.items[dappFolderName] = dappItems
 	this.items[consensusFolderName] = consensusItems
 	this.items[storeFolderName] = storeItems
-	this.projRootPath = filepath.Join(os.Getenv("GOPATH") + "/src/gitlab.33.cn/chain33/chain33")
-	this.projPluginPath = filepath.Join(this.projRootPath + "/plugin")
+	this.items[cryptoFolderName] = cryptoItems
+	this.projRootPath = ""
+	this.projPluginPath = "plugin"
 	return nil
 }
 
@@ -158,21 +171,40 @@ func (this *importPackageStrategy) fetchPlugin(gitrepo, version string) error {
 	return cmd.Run()
 }
 
+func runcmd(action string, param string) error {
+	cmd := exec.Command("govendor", action, param)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 // fetchPluginPackage 使用govendor来下载依赖包
 func (this *importPackageStrategy) fetchPluginPackage() error {
 	mlog.Info("下载插件源码包")
 	pwd := util.Pwd()
 	os.Chdir(this.projRootPath)
 	defer os.Chdir(pwd)
-	for _, plugins := range this.items {
-		for _, plugin := range plugins {
-			mlog.Info("同步插件", "repo", plugin.gitRepo, "version", plugin.version)
-			err := this.fetchPlugin(plugin.gitRepo, plugin.version)
-			if err != nil {
-				mlog.Info("同步插件包出错", "repo", plugin.gitRepo, "error", err.Error())
-				return err
+	err := runcmd("fetch", "+m")
+	if err != nil {
+		mlog.Info("同步插件包出错 fetch +m", "error", err.Error())
+		return err
+	}
+	err = runcmd("add", "+e")
+	if err != nil {
+		mlog.Info("同步插件包出错 add +e", "error", err.Error())
+		return err
+	}
+	/*
+		for _, plugins := range this.items {
+			for _, plugin := range plugins {
+				mlog.Info("同步插件", "repo", plugin.gitRepo, "version", plugin.version)
+				err := this.fetchPlugin(plugin.gitRepo, plugin.version)
+				if err != nil {
+					mlog.Info("同步插件包出错", "repo", plugin.gitRepo, "error", err.Error())
+					return err
+				}
 			}
 		}
-	}
+	*/
 	return nil
 }
