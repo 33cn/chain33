@@ -28,7 +28,7 @@ type TestOperator struct {
 	fLog log15.Logger
 	tLog log15.Logger
 
-	dapp	  string
+	dapp      string
 	totalCase int
 	totalFail int
 	failID    []string
@@ -316,14 +316,14 @@ func (tester *TestOperator) RunCheckFlow() {
 	tester.checkDone <- true
 }
 
-func (tester *TestOperator) WaitTest() *autoTestResult{
+func (tester *TestOperator) WaitTest() *autoTestResult {
 
 	<-tester.checkDone
 	return &autoTestResult{
-		dapp: tester.dapp,
-		totalCase: tester.totalCase,
-		failCase: tester.totalFail,
-		failCaseID:tester.failID,
+		dapp:       tester.dapp,
+		totalCase:  tester.totalCase,
+		failCase:   tester.totalFail,
+		failCaseID: tester.failID,
 	}
 }
 

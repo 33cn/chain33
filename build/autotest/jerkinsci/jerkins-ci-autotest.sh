@@ -55,12 +55,10 @@ function config_chain33() {
     sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' autotest.toml
 }
 
-
 function start_chain33() {
 
     # create and run docker-compose container
     docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml up --build -d
-
 
     local SLEEP=2
     sleep ${SLEEP}
@@ -139,13 +137,13 @@ function start_autotest() {
 
 }
 
-function stop() {
+function stop_chain33() {
 
     rv=$?
     echo "=========== #stop docker-compose ============="
     docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down && rm -rf ./chain33* ./*.toml autotest
     echo "=========== #remove related images ============"
-    docker rmi ${PROJECT_NAME}_autotest || true
+    docker rmi "${PROJECT_NAME}"_autotest || true
     exit ${rv}
 }
 
@@ -162,7 +160,7 @@ function main() {
 }
 
 #trap exit
-trap "stop" INT TERM EXIT
+trap "stop_chain33" INT TERM EXIT
 
 # run script
 main

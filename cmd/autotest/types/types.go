@@ -2,21 +2,17 @@ package types
 
 import "reflect"
 
-
 var (
-	CliCmd         string	//chain33 cli可执行文件名
-	CheckTimeout   int		//用例check时超时次数
-	autoTestItems = make(map[string]AutoTest)	//保存注册的dapp测试类型
+	CliCmd        string                      //chain33 cli可执行文件名
+	CheckTimeout  int                         //用例check时超时次数
+	autoTestItems = make(map[string]AutoTest) //保存注册的dapp测试类型
 )
 
-
 //dapp实现auto test的接口，需要提供每个dapp对应的测试配置类型，并注册
-type AutoTest interface{
-
+type AutoTest interface {
 	GetName() string
 	GetTestConfigType() reflect.Type
 }
-
 
 //超时次数等于总超时时间除以每次check时睡眠时间
 func Init(cliCmd string, checkTimeout int) {
@@ -24,7 +20,6 @@ func Init(cliCmd string, checkTimeout int) {
 	CliCmd = cliCmd
 	CheckTimeout = checkTimeout
 }
-
 
 //注册测试配置类型
 func RegisterAutoTest(at AutoTest) {
@@ -40,10 +35,8 @@ func RegisterAutoTest(at AutoTest) {
 	autoTestItems[dapp] = at
 }
 
-
 //获取测试配置类型
 func GetAutoTestConfig(dapp string) reflect.Type {
-
 
 	if len(dapp) == 0 {
 

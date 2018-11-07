@@ -25,7 +25,6 @@ chain33Config="chain33.test.toml"
 chain33BlockTime=1
 autoTestCheckTimeout=10
 
-
 function config_chain33() {
 
     # shellcheck disable=SC2015
@@ -55,21 +54,21 @@ function config_autotest() {
 
     echo "# config autotest"
     #delete all blank lines
-#    sed -i $sedfix '/^\s*$/d' ${autotestConfig}
+    #    sed -i $sedfix '/^\s*$/d' ${autotestConfig}
 
     if [[ $1 == "" ]] || [[ $1 == "all" ]]; then
         cp ${autotestConfig} ${autotestTempConfig}
     else
         #copy config before [
-#        sed -n '/^\[\[/!p;//q' ${autotestConfig} >${autotestTempConfig}
+        #        sed -n '/^\[\[/!p;//q' ${autotestConfig} >${autotestTempConfig}
 
         #pre config auto test
         {
 
-            echo "cliCmd=\"./chain33-cli\""
+            echo 'cliCmd="./chain33-cli"'
             echo "checkTimeout=${autoTestCheckTimeout}"
             printf "\n"
-        } > ${autotestTempConfig}
+        } >${autotestTempConfig}
 
         #specific dapp config
         for dapp in "$@"; do
@@ -82,7 +81,7 @@ function config_autotest() {
         done
     fi
 
-#    sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autotestTempConfig}
+    #    sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autotestTempConfig}
 }
 
 function start_chain33() {
@@ -162,7 +161,7 @@ function start_autotest() {
     echo "=========== #run autotest, make sure saving autotest.last.log file============="
 
     if [ -e autotest.log ]; then
-        cat autotest.log > autotest.last.log
+        cat autotest.log >autotest.last.log
         rm autotest.log
     fi
 
@@ -193,4 +192,3 @@ function main() {
 trap "stop_chain33" INT TERM EXIT
 
 main "$@"
-

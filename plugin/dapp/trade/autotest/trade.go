@@ -1,10 +1,11 @@
 package autotest
 
 import (
+	"reflect"
+
 	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 	. "gitlab.33.cn/chain33/chain33/plugin/dapp/token/autotest"
 	. "gitlab.33.cn/chain33/chain33/system/dapp/coins/autotest"
-	"reflect"
 )
 
 type tradeAutoTest struct {
@@ -22,13 +23,10 @@ func init() {
 
 }
 
-
-
 func (config tradeAutoTest) GetName() string {
 
 	return "trade"
 }
-
 
 func (config tradeAutoTest) GetTestConfigType() reflect.Type {
 
