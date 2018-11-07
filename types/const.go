@@ -122,9 +122,6 @@ const (
 	TyLogTradeBuyRevoke         = 332
 	TyLogParaTokenAssetTransfer = 333
 	TyLogParaTokenAssetWithdraw = 334
-
-	// log for config
-	TyLogModifyConfig = 410
 )
 
 //exec type
@@ -132,18 +129,6 @@ const (
 	ExecErr  = 0
 	ExecPack = 1
 	ExecOk   = 2
-)
-
-// manager action
-const (
-	ManageActionModifyConfig = iota
-)
-
-// config items
-const (
-	ConfigItemArrayConfig = iota
-	ConfigItemIntConfig
-	ConfigItemStringConfig
 )
 
 func init() {
