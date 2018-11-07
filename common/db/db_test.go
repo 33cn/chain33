@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"fmt"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -209,4 +211,22 @@ func testDBBoundary(t *testing.T, db DB) {
 	t.Log("IteratorScan 0")
 	list = it.IteratorScan(b, d, 100, 0)
 	require.Equal(t, list, [][]byte{[]byte("0xff")})
+}
+
+func testDBIteratorDel(t *testing.T, db DB) {
+	for i := 0; i < 1000; i++ {
+		k := []byte(fmt.Sprintf("my_key/%010d", i))
+		v := []byte(fmt.Sprintf("my_value/%010d", i))
+		db.Set(k, v)
+	}
+
+	prefix := []byte("my")
+	it := db.Iterator(prefix, nil, true)
+	defer it.Close()
+	for it.Rewind(); it.Valid(); it.Next() {
+		t.Log(string(it.Key()), "*********", string(it.Value()))
+		batch := db.NewBatch(true)
+		batch.Delete(it.Key())
+		batch.Write()
+	}
 }

@@ -21,6 +21,18 @@ func TestGoBadgerDBIterator(t *testing.T) {
 	testDBIterator(t, badgerdb)
 }
 
+func TestGoBadgerDBIteratorDel(t *testing.T) {
+	dir, err := ioutil.TempDir("", "badger")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	badgerdb, err := NewGoBadgerDB("gobadgerdb", dir, 128)
+	require.NoError(t, err)
+	defer badgerdb.Close()
+
+	testDBIteratorDel(t, badgerdb)
+}
+
 // badgerdb边界测试
 func TestGoBadgerDBBoundary(t *testing.T) {
 	dir, err := ioutil.TempDir("", "badger")

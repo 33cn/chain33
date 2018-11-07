@@ -78,6 +78,8 @@ It has these top-level messages:
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
+	PruneData
+	StoreValuePool
 	Genesis
 	ExecTxList
 	Query

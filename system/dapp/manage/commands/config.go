@@ -3,14 +3,11 @@ package commands
 import (
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/util"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -65,20 +62,13 @@ func configTx(cmd *cobra.Command, args []string) {
 		Ty:    pty.ManageActionModifyConfig,
 		Value: &pty.ManageAction_Modify{Modify: v},
 	}
-	tx := &types.Transaction{Execer: []byte(util.GetRealExecName(paraName, "manage")), Payload: types.Encode(modify)}
-
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
-
-	tx.To = address.ExecAddress(util.GetRealExecName(paraName, "manage"))
-
+	tx := &types.Transaction{Payload: types.Encode(modify)}
 	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	tx, err = types.FormatTx(util.GetRealExecName(paraName, "manage"), tx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	tx.Fee += types.MinFee
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))
 }

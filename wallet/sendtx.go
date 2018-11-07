@@ -170,14 +170,20 @@ func (wallet *Wallet) SendToAddress(priv crypto.PrivKey, addrto string, amount i
 
 func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.Transaction, error) {
 	var tx *types.Transaction
+	var isWithdraw = false
+	if amount < 0 {
+		amount = -amount
+		isWithdraw = true
+	}
 	create := &types.CreateTx{
 		To:          addrto,
 		Amount:      amount,
 		Note:        note,
-		IsWithdraw:  false,
+		IsWithdraw:  isWithdraw,
 		IsToken:     Istoken,
 		TokenSymbol: tokenSymbol,
 	}
+
 	exec := cty.CoinsX
 	//历史原因，token是作为系统合约的,但是改版后，token变成非系统合约
 	//这样的情况下，的方案是做一些特殊的处理

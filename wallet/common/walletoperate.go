@@ -2,6 +2,7 @@ package common
 
 import (
 	"math/rand"
+	"reflect"
 	"sync"
 
 	"gitlab.33.cn/chain33/chain33/client"
@@ -27,6 +28,7 @@ func RegisterPolicy(key string, policy WalletBizPolicy) {
 	}
 	PolicyContainer[key] = policy
 	QueryData.Register(key, policy)
+	QueryData.SetThis(key, reflect.ValueOf(policy))
 }
 
 // WalletOperate 钱包对业务插件提供服务的操作接口

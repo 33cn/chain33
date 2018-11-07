@@ -27,6 +27,8 @@ type Store struct {
 	cache            *lru.Cache
 	enableMavlPrefix bool
 	enableMVCC       bool
+	enableMavlPrune  bool
+	pruneHeight      int32
 }
 
 func init() {
@@ -34,8 +36,10 @@ func init() {
 }
 
 type subConfig struct {
-	EnableMavlPrefix bool `json:"enableMavlPrefix"`
-	EnableMVCC       bool `json:"enableMVCC"`
+	EnableMavlPrefix bool  `json:"enableMavlPrefix"`
+	EnableMVCC       bool  `json:"enableMVCC"`
+	EnableMavlPrune  bool  `json:"enableMavlPrune"`
+	PruneHeight      int32 `json:"pruneHeight"`
 }
 
 func New(cfg *types.Store, sub []byte) queue.Module {
@@ -44,19 +48,24 @@ func New(cfg *types.Store, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
-	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, subcfg.EnableMavlPrefix, subcfg.EnableMVCC}
+	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, subcfg.EnableMavlPrefix, subcfg.EnableMVCC, subcfg.EnableMavlPrune, subcfg.PruneHeight}
 	mavls.cache, _ = lru.New(10)
 	//使能前缀mavl以及MVCC
 
 	mavls.enableMavlPrefix = subcfg.EnableMavlPrefix
 	mavls.enableMVCC = subcfg.EnableMVCC
+	mavls.enableMavlPrune = subcfg.EnableMavlPrune
+	mavls.pruneHeight = subcfg.PruneHeight
 	mavl.EnableMavlPrefix(mavls.enableMavlPrefix)
 	mavl.EnableMVCC(mavls.enableMVCC)
+	mavl.EnablePrune(mavls.enableMavlPrune)
+	mavl.SetPruneHeight(int(mavls.pruneHeight))
 	bs.SetChild(mavls)
 	return mavls
 }
 
 func (mavls *Store) Close() {
+	mavl.ClosePrune()
 	mavls.BaseStore.Close()
 	mlog.Info("store mavl closed")
 }
@@ -76,6 +85,8 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 		tree = data
 	} else {
 		tree = mavl.NewTree(mavls.GetDB(), true)
+		//get接口也应该传入高度
+		//tree.SetBlockHeight(datas.Height)
 		err = tree.Load(datas.StateHash)
 		if err == nil {
 			mavls.cache.Add(search, tree)
@@ -100,6 +111,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 		return datas.StateHash, nil
 	}
 	tree := mavl.NewTree(mavls.GetDB(), sync)
+	tree.SetBlockHeight(datas.Height)
 	err := tree.Load(datas.StateHash)
 	if err != nil {
 		return nil, err

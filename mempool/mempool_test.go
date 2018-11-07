@@ -8,7 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/executor"
@@ -118,7 +117,7 @@ func getprivkey(key string) crypto.PrivKey {
 
 func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	var q = queue.New("channel")
-	cfg, sub := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
 	cfg.Consensus.Minerstart = false
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
@@ -138,7 +137,7 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 
 func initEnv2(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
-	cfg, _ := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, _ := types.InitCfg("../cmd/chain33/chain33.test.toml")
 
 	blockchainProcess(q)
 	execProcess(q)
@@ -155,7 +154,7 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 
 func initEnv(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
-	cfg, _ := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, _ := types.InitCfg("../cmd/chain33/chain33.test.toml")
 	blockchainProcess(q)
 	execProcess(q)
 	mem := New(cfg.MemPool)
@@ -164,7 +163,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	if size > 0 {
 		mem.Resize(size)
 	}
-	mem.SetMinFee(types.MinFee)
+	mem.SetMinFee(types.GInt("MinFee"))
 	mem.WaitPollLastHeader()
 	return q, mem
 }

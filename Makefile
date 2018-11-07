@@ -4,6 +4,8 @@
 # 3. make build
 # ...
 
+
+
 SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
 SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
 SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
@@ -61,7 +63,7 @@ execblock: ## Build cli binary
 
 
 para:
-	@go build -v -o build/$(NAME) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(NAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
+	@go build -v -o build/$(NAME) -ldflags "-X $(SRC_CLI)/buildflags.ParaName=user.p.$(NAME). -X $(SRC_CLI)/buildflags.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
 
 autotest:## build autotest binary

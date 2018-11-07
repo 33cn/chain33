@@ -2,9 +2,11 @@ package util
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strings"
+	"testing"
 	"unicode"
 
 	"github.com/inconshreveable/log15"
@@ -59,8 +61,7 @@ func MakeStringToLower(in string, pos, count int) (out string, err error) {
 	return
 }
 
-func GenNoneTxs(n int64) (txs []*types.Transaction) {
-	_, priv := Genaddress()
+func GenNoneTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	for i := 0; i < int(n); i++ {
 		txs = append(txs, CreateNoneTx(priv))
 	}
@@ -97,14 +98,44 @@ func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 		to, _ := Genaddress()
 		return CreateCoinsTx(priv, to, types.Coin)
 	}
-	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none"), Fee: 1e5}
-	tx.Nonce = rand.Int63()
+	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none")}
 	tx.To = address.ExecAddress(execer)
+	tx, _ = types.FormatTx(execer, tx)
+	tx.Sign(types.SECP256K1, priv)
+	return tx
+}
+
+func JsonPrint(t *testing.T, input interface{}) {
+	data, err := json.MarshalIndent(input, "", "\t")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Log(string(data))
+}
+
+func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transaction {
+	v := &types.ModifyConfig{Key: key, Op: op, Value: value, Addr: ""}
+	exec := types.LoadExecutorType("manage")
+	if exec == nil {
+		panic("manage exec is not init")
+	}
+	tx, err := exec.Create("Modify", v)
+	if err != nil {
+		panic(err)
+	}
+	tx, _ = types.FormatTx("manage", tx)
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
 
 func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+	tx := createCoinsTx(to, amount)
+	tx.Sign(types.SECP256K1, priv)
+	return tx
+}
+
+func createCoinsTx(to string, amount int64) *types.Transaction {
 	exec := types.LoadExecutorType("coins")
 	if exec == nil {
 		panic("unknow driver coins")
@@ -116,22 +147,35 @@ func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transact
 	if err != nil {
 		panic(err)
 	}
-	tx.Execer = []byte("coins")
-	tx.Nonce = rand.Int63()
-	tx.Fee = 1e5
 	tx.To = to
+	tx, _ = types.FormatTx("coins", tx)
+	return tx
+}
+
+func CreateTxWithTxHeight(priv crypto.PrivKey, to string, amount, expire int64) *types.Transaction {
+	tx := createCoinsTx(to, amount)
+	tx.Expire = expire + types.TxHeightFlag
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
 
+func GenTxsTxHeigt(priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
+	to, _ := Genaddress()
+	for i := 0; i < int(n); i++ {
+		tx := CreateTxWithTxHeight(priv, to, types.Coin*(n+1), 20+height)
+		txs = append(txs, tx)
+	}
+	return txs
+}
+
 var zeroHash [32]byte
 
-func CreateNoneBlock(n int64) *types.Block {
+func CreateNoneBlock(priv crypto.PrivKey, n int64) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = -1
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
-	newblock.Txs = GenNoneTxs(n)
+	newblock.Txs = GenNoneTxs(priv, n)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	return newblock
 }
