@@ -56,7 +56,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	} else { // if config item not exist, create a new empty
 		item.Key = modify.Key
 		item.Addr = modify.Addr
-		item.Ty = types.ConfigItemArrayConfig
+		item.Ty = pty.ManageActionModifyConfig
 		emptyValue := &types.ArrayConfig{make([]string, 0)}
 		arr := types.ConfigItem_Arr{emptyValue}
 		item.Value = &arr
