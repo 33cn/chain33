@@ -111,11 +111,6 @@ var SystemLog = map[int64]*LogInfo{
 	TyLogGenesisDeposit:  {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
 }
 
-const (
-	// log for config
-	TyLogModifyConfig = 410
-)
-
 //exec type
 const (
 	ExecErr  = 0
