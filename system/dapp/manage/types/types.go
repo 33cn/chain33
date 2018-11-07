@@ -14,7 +14,8 @@ var (
 		"Modify": ManageActionModifyConfig,
 	}
 	logmap = map[int64]*types.LogInfo{
-		types.TyLogModifyConfig: {reflect.TypeOf(ModifyConfigLog{}), "LogModifyConfig"},
+		// 这里reflect.TypeOf类型必须是proto.Message类型，且是交易的回持结构
+		types.TyLogModifyConfig: {reflect.TypeOf(types.ModifyConfig{}), "LogModifyConfig"},
 	}
 )
 
@@ -56,7 +57,7 @@ func (m ManageType) CreateTx(action string, message json.RawMessage) (*types.Tra
 	return tx, nil
 }
 
-func (m ManageType) GetLogMap() map[int64]*types.LogInfo {
+func (m *ManageType) GetLogMap() map[int64]*types.LogInfo {
 	return logmap
 }
 
