@@ -16,9 +16,9 @@ const (
 	TyLogTradeBuyMarket  = 311
 	TyLogTradeSellRevoke = 312
 
-	TyLogTradeSellMarket        = 330
-	TyLogTradeBuyLimit          = 331
-	TyLogTradeBuyRevoke         = 332
+	TyLogTradeSellMarket = 330
+	TyLogTradeBuyLimit   = 331
+	TyLogTradeBuyRevoke  = 332
 )
 
 // 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
@@ -68,6 +68,5 @@ var MapBuyOrderStatusStr2Int = map[string]int32{
 }
 
 const (
-	InvalidStartTime              = 0
+	InvalidStartTime = 0
 )
-

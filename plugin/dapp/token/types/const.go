@@ -39,7 +39,7 @@ const (
 )
 
 const (
-	TokenNameLenLimit             = 128
-	TokenSymbolLenLimit           = 16
-	TokenIntroLenLimit            = 1024
+	TokenNameLenLimit   = 128
+	TokenSymbolLenLimit = 16
+	TokenIntroLenLimit  = 1024
 )
