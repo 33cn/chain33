@@ -1,0 +1,49 @@
+package commands
+
+import "github.com/spf13/cobra"
+
+func Cmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "${EXECNAME}",
+		Short: "${EXECNAME} show hello",
+		Args:  cobra.MinimumNArgs(1),
+	}
+	cmd.AddCommand(
+		AddMessageCmd(),
+		QueryMessageCmd(),
+	)
+
+	return cmd
+}
+
+func AddMessageCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "add",
+		Short: "add a new message",
+		Run:   addMessage,
+	}
+	addMessageFlags(cmd)
+	return cmd
+}
+
+func addMessageFlags(cmd *cobra.Command) {
+}
+
+func addMessage(cmd *cobra.Command, args []string) {
+}
+
+func QueryMessageCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "query",
+		Short: "query message",
+		Run:   queryMessage,
+	}
+	queryMessageFlags(cmd)
+	return cmd
+}
+
+func queryMessageFlags(cmd *cobra.Command) {
+}
+
+func queryMessage(cmd *cobra.Command, args []string) {
+}
