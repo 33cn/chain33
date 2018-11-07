@@ -83,7 +83,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	transfer := &cty.CoinsAction{}
 	if !isWithdraw {
 		if initExecName != "" {
-			v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName}}
+			v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName, To: to}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionTransferToExec
 		} else {
