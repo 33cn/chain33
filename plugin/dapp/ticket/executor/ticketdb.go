@@ -304,7 +304,6 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 	t := &DB{*ticket, prevstatus}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-
 	//user
 	receipt1, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, ticket.MinerValue)
 	if err != nil {
@@ -312,9 +311,9 @@ func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Rece
 		return nil, err
 	}
 	//fund
-	receipt2, err := action.coinsAccount.ExecDepositFrozen(types.FundKeyAddr, action.execaddr, cfg.CoinDevFund)
+	receipt2, err := action.coinsAccount.ExecDepositFrozen(types.GetFundAddr(), action.execaddr, cfg.CoinDevFund)
 	if err != nil {
-		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr)
+		tlog.Error("TicketMiner.ExecDepositFrozen fund", "addr", types.GetFundAddr(), "execaddr", action.execaddr)
 		return nil, err
 	}
 	t.Save(action.db)
@@ -380,9 +379,9 @@ func (action *Action) TicketClose(tclose *ty.TicketClose) (*types.Receipt, error
 		kv = append(kv, receipt1.KV...)
 		//如果ticket 已经挖矿成功了，那么要解冻发展基金部分币
 		if t.prevstatus == 2 {
-			receipt2, err := action.coinsAccount.ExecActive(types.FundKeyAddr, action.execaddr, cfg.CoinDevFund)
+			receipt2, err := action.coinsAccount.ExecActive(types.GetFundAddr(), action.execaddr, cfg.CoinDevFund)
 			if err != nil {
-				tlog.Error("TicketClose.ExecActive fund", "addr", types.FundKeyAddr, "execaddr", action.execaddr, "value", retValue)
+				tlog.Error("TicketClose.ExecActive fund", "addr", types.GetFundAddr(), "execaddr", action.execaddr, "value", retValue)
 				return nil, err
 			}
 			logs = append(logs, receipt2.Logs...)
@@ -414,8 +413,9 @@ func Infos(db dbm.KV, tinfos *ty.TicketInfos) (types.Message, error) {
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]
 		ticket, err := readTicket(db, id)
+		//数据库可能会不一致，读的过程中可能会有写
 		if err != nil {
-			return nil, err
+			continue
 		}
 		tickets = append(tickets, ticket)
 	}

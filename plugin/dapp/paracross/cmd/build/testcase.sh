@@ -151,6 +151,7 @@ function token_create() {
         exit 1
     fi
 
+    ${1} token token_balance -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -e token -s GD
     balance=$(${1} token token_balance -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -e token -s GD | jq -r '.[]|.balance')
     if [ "${balance}" != "10000.0000" ]; then
         echo "wrong para token genesis create, should be 10000.0000"

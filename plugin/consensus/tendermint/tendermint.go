@@ -21,23 +21,23 @@ import (
 const tendermint_version = "0.1.0"
 
 var (
-	tendermintlog                      = log15.New("module", "tendermint")
-	genesis                     string = types.GenesisAddr
-	genesisBlockTime            int64  = types.GenesisBlockTime
-	timeoutTxAvail              int32  = 1000
-	timeoutPropose              int32  = 3000 // millisecond
-	timeoutProposeDelta         int32  = 500
-	timeoutPrevote              int32  = 1000
-	timeoutPrevoteDelta         int32  = 500
-	timeoutPrecommit            int32  = 1000
-	timeoutPrecommitDelta       int32  = 500
-	timeoutCommit               int32  = 1000
-	skipTimeoutCommit           bool   = false
-	createEmptyBlocks           bool   = false
-	createEmptyBlocksInterval   int32  = 0 // second
-	validatorNodes                     = []string{"127.0.0.1:46656"}
-	peerGossipSleepDuration     int32  = 100
-	peerQueryMaj23SleepDuration int32  = 2000
+	tendermintlog               = log15.New("module", "tendermint")
+	genesis                     string
+	genesisBlockTime            int64
+	timeoutTxAvail              int32 = 1000
+	timeoutPropose              int32 = 3000 // millisecond
+	timeoutProposeDelta         int32 = 500
+	timeoutPrevote              int32 = 1000
+	timeoutPrevoteDelta         int32 = 500
+	timeoutPrecommit            int32 = 1000
+	timeoutPrecommitDelta       int32 = 500
+	timeoutCommit               int32 = 1000
+	skipTimeoutCommit           bool  = false
+	createEmptyBlocks           bool  = false
+	createEmptyBlocksInterval   int32 = 0 // second
+	validatorNodes                    = []string{"127.0.0.1:46656"}
+	peerGossipSleepDuration     int32 = 100
+	peerQueryMaj23SleepDuration int32 = 2000
 	zeroHash                    [32]byte
 )
 

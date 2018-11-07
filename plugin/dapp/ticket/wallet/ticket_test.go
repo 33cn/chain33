@@ -20,16 +20,13 @@ func Test_WalletTicket(t *testing.T) {
 	cfg.Consensus.Name = "ticket"
 	mock33 := testnode.NewWithConfig(cfg, sub, nil)
 	defer mock33.Close()
-
 	err := mock33.WaitHeight(0)
 	assert.Nil(t, err)
 	msg, err := mock33.GetAPI().Query(ty.TicketX, "TicketList", &ty.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1})
-	require.Equal(t, err, nil)
+	assert.Nil(t, err)
 	ticketList := msg.(*ty.ReplyTicketList)
-	if ticketList == nil {
-		t.Error("getTicketList return nil")
-		return
-	}
+	assert.NotNil(t, ticketList)
+	return
 	ticketwallet.FlushTicket(mock33.GetAPI())
 	err = mock33.WaitHeight(2)
 	assert.Nil(t, err)
