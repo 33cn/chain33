@@ -30,9 +30,6 @@ var (
 const (
 	InputPrecision        float64 = 1e4
 	Multiple1E4           int64   = 1e4
-	TokenNameLenLimit             = 128
-	TokenSymbolLenLimit           = 16
-	TokenIntroLenLimit            = 1024
 	InvalidStartTime              = 0
 	InvalidStopTime               = 0
 	BlockDurPerSecCnt             = 15
