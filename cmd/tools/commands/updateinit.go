@@ -17,14 +17,20 @@ func UpdateInitCmd() *cobra.Command {
 		Short: "Update chain33 plugin consensus、dapp、store init.go file",
 		Run:   updateInit,
 	}
+	cmd.Flags().StringP("path", "p", "plugin", "path of plugin")
+	cmd.Flags().StringP("packname", "", "", "project package name")
 	return cmd
 }
 
 func updateInit(cmd *cobra.Command, args []string) {
+	path, _ := cmd.Flags().GetString("path")
+	packname, _ := cmd.Flags().GetString("packname")
 	s := strategy.New(types.KeyUpdateInit)
 	if s == nil {
 		fmt.Println(types.KeyUpdateInit, "Not support")
 		return
 	}
+	s.SetParam("path", path)
+	s.SetParam("packname", packname)
 	s.Run()
 }
