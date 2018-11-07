@@ -1,8 +1,9 @@
 package autotest
 
 import (
-	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 	"reflect"
+
+	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 
 	. "gitlab.33.cn/chain33/chain33/plugin/dapp/token/autotest"
 	. "gitlab.33.cn/chain33/chain33/system/dapp/coins/autotest"
@@ -16,9 +17,8 @@ type privacyAutoTest struct {
 	PubToPrivCaseArr         []PubToPrivCase         `toml:"PubToPrivCase,omitempty"`
 	PrivToPrivCaseArr        []PrivToPrivCase        `toml:"PrivToPrivCase,omitempty"`
 	PrivToPubCaseArr         []PrivToPubCase         `toml:"PrivToPubCase,omitempty"`
-	CreateUtxosCaseArr   	 []CreateUtxosCase       `toml:"CreateUtxosCase,omitempty"`
+	CreateUtxosCaseArr       []CreateUtxosCase       `toml:"CreateUtxosCase,omitempty"`
 }
-
 
 func init() {
 
@@ -26,13 +26,10 @@ func init() {
 
 }
 
-
-
 func (config privacyAutoTest) GetName() string {
 
 	return "privacy"
 }
-
 
 func (config privacyAutoTest) GetTestConfigType() reflect.Type {
 

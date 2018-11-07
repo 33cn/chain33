@@ -22,13 +22,10 @@ func init() {
 
 }
 
-
-
 func (config tokenAutoTest) GetName() string {
 
 	return "token"
 }
-
 
 func (config tokenAutoTest) GetTestConfigType() reflect.Type {
 

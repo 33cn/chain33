@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+
 	"github.com/inconshreveable/log15"
 
 	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
@@ -43,19 +44,18 @@ type BaseCase struct {
 	Dep       []string `toml:"dep,omitempty"`
 	CheckItem []string `toml:"checkItem,omitempty"`
 	Repeat    int      `toml:"repeat,omitempty"`
-	Fail	  bool     `toml:"fail,omitempty"`
+	Fail      bool     `toml:"fail,omitempty"`
 }
 
 //check item handler
 //适配autotest早期版本，handlerfunc的参数为json的map形式，后续统一使用chain33的TxDetailResult结构体结构
 type CheckHandlerFuncDiscard func(map[string]interface{}) bool
 type CheckHandlerMapDiscard map[string]CheckHandlerFuncDiscard
+
 //建议使用
 type CheckHandlerParamType *TxDetailResult
 type CheckHandlerFunc func(CheckHandlerParamType) bool
 type CheckHandlerMap map[string]CheckHandlerFunc
-
-
 
 //pack testCase with some check info
 type BaseCasePack struct {
@@ -68,10 +68,8 @@ type BaseCasePack struct {
 	TLog       log15.Logger
 }
 
-
 //default send command implementation, only for transaction type case
 func DefaultSend(testCase CaseFunc, testPack PackFunc, packID string) (PackFunc, error) {
-
 
 	baseCase := testCase.GetBaseCase()
 	txHash, bSuccess := SendTxCommand(baseCase.Command)
@@ -86,7 +84,6 @@ func DefaultSend(testCase CaseFunc, testPack PackFunc, packID string) (PackFunc,
 	pack.CheckTimes = 0
 	return testPack, nil
 }
-
 
 //interface CaseFunc implementing by BaseCase
 func (t *BaseCase) SendCommand(packID string) (PackFunc, error) {
@@ -143,7 +140,6 @@ func (pack *BaseCasePack) GetTxHash() string {
 
 	return pack.TxHash
 }
-
 
 func (pack *BaseCasePack) GetTxReceipt() string {
 
@@ -244,8 +240,7 @@ func (pack *BaseCasePack) CheckResult(handlerMap interface{}) (bCheck bool, bSuc
 					}
 				}
 
-			} else if funcMap, ok := handlerMap.(CheckHandlerMap); ok {	//采用结构体形式回执
-
+			} else if funcMap, ok := handlerMap.(CheckHandlerMap); ok { //采用结构体形式回执
 
 				for _, item := range tCase.CheckItem {
 

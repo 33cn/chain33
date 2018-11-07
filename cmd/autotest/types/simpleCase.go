@@ -18,7 +18,6 @@ type SimplePack struct {
 
 func (testCase *SimpleCase) SendCommand(packID string) (PackFunc, error) {
 
-
 	output, err := RunChain33Cli(strings.Fields(testCase.GetCmd()))
 	if err != nil {
 		return nil, errors.New(output)
@@ -31,7 +30,6 @@ func (testCase *SimpleCase) SendCommand(packID string) (PackFunc, error) {
 	pack.PackID = packID
 	pack.CheckTimes = 0
 	return testPack, nil
-
 
 }
 

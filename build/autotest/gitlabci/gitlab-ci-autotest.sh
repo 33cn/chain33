@@ -223,13 +223,13 @@ function auto_test() {
     docker exec "${NODE3}" /root/autotest
 }
 
-function stop() {
+function stop_chain33() {
 
     rv=$?
     echo "=========== #stop docker-compose ============="
     docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down && rm -rf ./chain33* ./*.toml ./autotest
     echo "=========== #remove related images ============"
-    docker rmi ${PROJECT_NAME}_autotest || true
+    docker rmi "${PROJECT_NAME}"_autotest || true
     exit ${rv}
 }
 
@@ -248,7 +248,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 #trap exit
-trap "stop" INT TERM EXIT
+trap "stop_chain33" INT TERM EXIT
 
 # run script
 main

@@ -22,7 +22,7 @@ type BuyPack struct {
 
 type DependBuyCase struct {
 	BuyCase
-	SellID	string `toml:"sellID,omitempty"`
+	SellID string `toml:"sellID,omitempty"`
 }
 
 type DependBuyPack struct {
@@ -41,7 +41,7 @@ func (testCase *DependBuyCase) SendCommand(packID string) (PackFunc, error) {
 
 func (testCase *DependBuyCase) SetDependData(depData interface{}) {
 
-	if orderInfo, ok := depData.(*SellOrderInfo); ok && orderInfo != nil{
+	if orderInfo, ok := depData.(*SellOrderInfo); ok && orderInfo != nil {
 
 		testCase.SellID = orderInfo.sellID
 	}
