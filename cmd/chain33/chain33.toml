@@ -88,9 +88,9 @@ targetTimePerBlock = 16
 
 [mver.consensus.ForkChainParamV1]
 futureBlockTime = 15
-ticketFrozenTime = 12 * 3600
-ticketWithdrawTime = 48 * 3600
-ticketMinerWaitTime = 2 * 3600
+ticketFrozenTime = 43200
+ticketWithdrawTime = 172800
+ticketMinerWaitTime = 7200
 maxTxNumber = 1500
 targetTimespan = 2160
 targetTimePerBlock = 15
