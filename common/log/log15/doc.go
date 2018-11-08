@@ -17,7 +17,7 @@ Getting Started
 
 To get started, you'll want to import the library:
 
-    import log "github.com/inconshreveable/log15"
+    import log "gitlab.33.cn/chain33/chain33/common/log/log15"
 
 
 Now you're ready to start logging:
@@ -224,7 +224,7 @@ by default and to provide a public Logger instance that consumers of your librar
 
     package yourlib
 
-    import "github.com/inconshreveable/log15"
+    import "gitlab.33.cn/chain33/chain33/common/log/log15"
 
     var Log = log.New()
 
@@ -234,7 +234,7 @@ by default and to provide a public Logger instance that consumers of your librar
 
 Users of your library may then enable it if they like:
 
-    import "github.com/inconshreveable/log15"
+    import "gitlab.33.cn/chain33/chain33/common/log/log15"
     import "example.com/yourlib"
 
     func main() {
@@ -285,7 +285,7 @@ function to let you generate what you might call "surrogate keys"
 They're just random hex identifiers to use for tracing. Back to our
 Tab example, we would prefer to set up our Logger like so:
 
-        import logext "github.com/inconshreveable/log15/ext"
+        import logext "gitlab.33.cn/chain33/chain33/common/log/log15/ext"
 
         t := &Tab {
             // ...

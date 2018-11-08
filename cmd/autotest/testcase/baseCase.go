@@ -3,7 +3,7 @@ package testcase
 import (
 	"encoding/json"
 
-	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/log/log15"
 )
 
 //interface for testCase
