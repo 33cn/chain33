@@ -146,6 +146,7 @@ It has these top-level messages:
 	ReqGetExecBalance
 	ExecBalanceItem
 	ReplyGetExecBalance
+	IterateExecBalanceByStateHash
 	AssetsGenesis
 	AssetsTransferToExec
 	AssetsWithdraw
