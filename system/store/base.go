@@ -57,7 +57,7 @@ func NewBaseStore(cfg *types.Store) *BaseStore {
 	db.SetCacheSize(102400)
 	store := &BaseStore{db: db}
 	store.done = make(chan struct{}, 1)
-	slog.Info("Enter store " + cfg.GetName())
+	slog.Info("Enter store " + cfg.Name)
 	return store
 }
 
@@ -67,9 +67,9 @@ func (store *BaseStore) SetQueueClient(c queue.Client) {
 	//recv 消息的处理
 	go func() {
 		for msg := range store.qclient.Recv() {
-			slog.Debug("store recv", "msg", msg)
+			//slog.Debug("store recv", "msg", msg)
 			store.processMessage(msg)
-			slog.Debug("store process end", "msg.id", msg.Id)
+			//slog.Debug("store process end", "msg.id", msg.Id)
 		}
 		store.done <- struct{}{}
 	}()

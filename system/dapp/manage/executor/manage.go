@@ -16,6 +16,7 @@ import (
 var (
 	clog       = log.New("module", "execs.manage")
 	driverName = "manage"
+	conf       = types.ConfSub(driverName)
 )
 
 func init() {
@@ -24,7 +25,7 @@ func init() {
 }
 
 func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newManage, types.ForkV4AddManage)
+	drivers.Register(GetName(), newManage, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {
@@ -51,7 +52,7 @@ func (c *Manage) CheckTx(tx *types.Transaction, index int) error {
 }
 
 func IsSuperManager(addr string) bool {
-	for _, m := range types.SuperManager {
+	for _, m := range conf.GStrList("superManager") {
 		if addr == m {
 			return true
 		}

@@ -163,7 +163,9 @@ func (q *queue) send(msg Message, timeout time.Duration) (err error) {
 		qlog.Debug("send timeout", "msg", msg, "topic", msg.Topic, "sub", sub)
 		return types.ErrTimeout
 	}
-	qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
+	if msg.Topic != "store" {
+		qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
+	}
 	return nil
 }
 
@@ -249,7 +251,9 @@ func (msg Message) Reply(replyMsg Message) {
 		return
 	}
 	msg.chReply <- replyMsg
-	qlog.Debug("reply msg ok", "msg", msg)
+	if msg.Topic != "store" {
+		qlog.Debug("reply msg ok", "msg", msg)
+	}
 }
 
 func (msg Message) String() string {

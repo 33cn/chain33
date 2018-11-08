@@ -1,4 +1,4 @@
-// ci server: http://47.97.200.227:8080
+// ci server: http://39.98.41.13:8080
 // user/pass: jenkins/33fuzamei123
 
 pipeline {

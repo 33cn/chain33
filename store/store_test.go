@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -24,7 +23,7 @@ func init() {
 
 func initEnv() (queue.Queue, queue.Module) {
 	var q = queue.New("channel")
-	cfg, sub := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
 	s := New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
 	return q, s
