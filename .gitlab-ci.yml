@@ -29,7 +29,6 @@ go_fmt:
         - make fmt
     only:
         - master
-        - develop
         - bty_develop
 
 go_lint:
@@ -40,19 +39,7 @@ go_lint:
         - make linter
     only:
         - master
-        - develop
         - bty_develop
-
-#go_build:
-#    stage: build
-#    tags:
-#        - 33cn
-#    script:
-#        - make build_ci
-#    only:
-#        - master
-#        - develop
-#        - bty_develop
 
 go_test:
     stage: test
@@ -63,7 +50,6 @@ go_test:
         - make test
     only:
         - master
-        - develop
         - bty_develop
 
 #memory_sanitizer:
@@ -81,7 +67,6 @@ code_coverage:
         - make coverage
     only:
         - master
-        - develop
         - bty_develop
 
 #code_coverage_report:
@@ -103,7 +88,6 @@ deploy:
         - make docker-compose-down
     only:
         - master
-        - develop
         - bty_develop
 
 deploy_relay:
@@ -115,7 +99,7 @@ deploy_relay:
         - make docker-compose PROJ=relay DAPP=relay
         - make docker-compose-down PROJ=relay DAPP=relay
     only:
-        - develop
+        - master
 
 deploy_paracross:
     stage: deploy
@@ -126,7 +110,7 @@ deploy_paracross:
         - make docker-compose PROJ=paracross DAPP=paracross
         - make docker-compose-down PROJ=paracross DAPP=paracross
     only:
-        - develop
+        - master
 
 fork_test:
     stage: fork_test
@@ -140,7 +124,6 @@ fork_test:
          - fi
     only:
         - master
-        - develop
         - forkTest
 
 fork_test_privacy:
@@ -154,7 +137,7 @@ fork_test_privacy:
          - make docker-compose-down PROJ=privacy DAPP=privacy
          - fi
     only:
-        - develop
+        - master
         - forkTest
 
 fork_test_paracross:
@@ -168,7 +151,7 @@ fork_test_paracross:
          - make docker-compose-down PROJ=paracross DAPP=paracross
          - fi
     only:
-        - develop
+        - master
         - forkTest
 
 ##serial run all dapp
@@ -183,7 +166,7 @@ fork_test_all:
          - make docker-compose-down PROJ=fork DAPP=all
          - fi
     only:
-        - develop
+        - master
         - forkTest
 
 ##serial run all dapp
@@ -198,7 +181,7 @@ deploy_test_all:
          - make docker-compose-down PROJ=deploy DAPP=all
          - fi
     only:
-        - develop
+        - master
         - forkTest
 
 
@@ -215,5 +198,5 @@ autotest:
         - fi
     when: always
     only:
-        - develop
+        - master
 
