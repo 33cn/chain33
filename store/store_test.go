@@ -13,7 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 
-	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
@@ -269,14 +268,7 @@ func BenchmarkSetKey1000(b *testing.B) {
 	s.Close()
 }
 
-var store_cfg0 = &types.Store{"kvdb", "leveldb", "/tmp/store_test0", 100}
 var store_cfg1 = &types.Store{"mavl", "leveldb", "/tmp/store_test1", 100}
-
-func TestNewKvdb(t *testing.T) {
-	os.RemoveAll(store_cfg0.DbPath)
-	store := New(store_cfg0, nil)
-	assert.NotNil(t, store)
-}
 
 func TestNewMavl(t *testing.T) {
 	os.RemoveAll(store_cfg1.DbPath)

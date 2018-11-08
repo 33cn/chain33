@@ -113,7 +113,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 }
 
 func testCreateRawTransactionCoinTransferExec(t *testing.T) {
-	name := types.ExecName("ticket")
+	name := types.ExecName("coins")
 	ctx := types.CreateTx{
 		ExecName:   name,
 		Amount:     10,
@@ -142,7 +142,7 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 
 func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   types.ExecName("ticket"),
+		ExecName:   types.ExecName("coins"),
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: true,
