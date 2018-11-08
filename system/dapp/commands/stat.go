@@ -33,6 +33,7 @@ func StatCmd() *cobra.Command {
 		GetTicketInfoCmd(),
 		GetTicketInfoListCmd(),
 		GetMinerStatCmd(),
+		GetExecBalanceCmd(),
 	)
 
 	return cmd
@@ -632,4 +633,127 @@ type difficultyRange struct {
 type MinerResult struct {
 	Expect *big.Float
 	Actual int64
+}
+
+// get exec-addr balance of specific addr
+func GetExecBalanceCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "exec_balance",
+		Short: "Get the exec amount of a token of one address (default: all exec-addr bty of current height of one addr)",
+		Run:   execBalance,
+	}
+	addExecBalanceCmdFlags(cmd)
+	return cmd
+}
+
+func addExecBalanceCmdFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("symbol", "s", "bty", "token symbol")
+	cmd.Flags().StringP("exec", "e", "coins", "excutor name")
+	cmd.Flags().StringP("addr", "a", "", "address")
+	cmd.Flags().StringP("exec_addr", "x", "", "exec address")
+	cmd.Flags().Int64P("height", "t", -1, `block height, "-1" stands for current height`)
+}
+
+func execBalance(cmd *cobra.Command, args []string) {
+	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
+	symbol, _ := cmd.Flags().GetString("symbol")
+	exec, _ := cmd.Flags().GetString("exec")
+	addr, _ := cmd.Flags().GetString("addr")
+	execAddr, _ := cmd.Flags().GetString("exec_addr")
+	height, _ := cmd.Flags().GetInt64("height")
+
+	if height == -1 {
+		rpc, err := jsonclient.NewJSONClient(rpcAddr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var res rpctypes.Header
+		err = rpc.Call("Chain33.GetLastHeader", nil, &res)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		height = res.Height
+	}
+
+	// 获取高度statehash
+	params := rpctypes.BlockParam{
+		Start: height,
+		End:   height,
+		//Isdetail: false,
+		Isdetail: true,
+	}
+
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	var res rpctypes.BlockDetails
+	err = rpc.Call("Chain33.GetBlocks", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	stateHash, err := common.FromHex(res.Items[0].Block.StateHash)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	resp := GetExecBalanceResult{}
+	reqParam := types.ReqGetExecBalance{
+		Symbol: symbol,
+		StateHash: stateHash,
+		Addr: []byte(addr),
+		ExecAddr: []byte(execAddr),
+		Execer: exec,
+	}
+	if symbol == "bty" {
+		reqParam.Execer = "coins"
+	}
+
+	var resResult types.ReplyGetExecBalance
+	err = rpc.Call("Chain33.GetExecBalance", reqParam, &resResult)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	if symbol == "bty" {
+		resp.Amount = strconv.FormatFloat(float64(resResult.Amount)/float64(types.Coin), 'f', 4, 64)
+		resp.AmountFrozen = strconv.FormatFloat(float64(resResult.AmountFrozen)/float64(types.Coin), 'f', 4, 64)
+		resp.AmountActive = strconv.FormatFloat(float64(resResult.AmountActive)/float64(types.Coin), 'f', 4, 64)
+
+		for i := 0; i < len(resResult.Items); i++ {
+			item := &ExecBalance{}
+			item.ExecAddr = resResult.Items[i].ExecAddr
+			item.Frozen = strconv.FormatFloat(float64(resResult.Items[i].Frozen)/float64(types.Coin), 'f', 4, 64)
+			item.Active = strconv.FormatFloat(float64(resResult.Items[i].Active)/float64(types.Coin), 'f', 4, 64)
+			resp.ExecBalances = append(resp.ExecBalances, item)
+		}
+	} else {
+		resp.Amount = strconv.FormatFloat(float64(resResult.Amount)/float64(types.TokenPrecision), 'f', 4, 64)
+		resp.AmountFrozen = strconv.FormatFloat(float64(resResult.AmountFrozen)/float64(types.TokenPrecision), 'f', 4, 64)
+		resp.AmountActive = strconv.FormatFloat(float64(resResult.AmountActive)/float64(types.TokenPrecision), 'f', 4, 64)
+
+		for i := 0; i < len(resResult.Items); i++ {
+			item := &ExecBalance{}
+			item.ExecAddr = resResult.Items[i].ExecAddr
+			item.Frozen = strconv.FormatFloat(float64(resResult.Items[i].Frozen)/float64(types.Coin), 'f', 4, 64)
+			item.Active = strconv.FormatFloat(float64(resResult.Items[i].Active)/float64(types.Coin), 'f', 4, 64)
+			resp.ExecBalances = append(resp.ExecBalances, item)
+		}
+	}
+
+	data, err := json.MarshalIndent(resp, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
 }
