@@ -3,8 +3,8 @@ package log15
 import (
 	"os"
 
-	"gitlab.33.cn/chain33/chain33/common/log/log15/term"
 	"github.com/mattn/go-colorable"
+	"gitlab.33.cn/chain33/chain33/common/log/log15/term"
 )
 
 // Predefined handlers
