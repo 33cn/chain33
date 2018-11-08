@@ -3,10 +3,7 @@ package tasks
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"os/exec"
-	"strings"
 
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -37,7 +34,6 @@ func (this *UpdateInitFileTask) Execute() error {
 	}
 	funcs := []func() error{
 		this.init,
-		this.scanPlugin,
 		this.genInitFile,
 		this.formatInitFile,
 	}
@@ -53,30 +49,6 @@ func (this *UpdateInitFileTask) Execute() error {
 func (this *UpdateInitFileTask) init() error {
 	this.initFile = fmt.Sprintf("%sinit/init.go", this.Folder)
 	this.itemDatas = make([]*itemData, 0)
-	return nil
-}
-
-// 扫描目标文件夹内一级文件夹名称，记录到一个数组中
-func (this *UpdateInitFileTask) scanPlugin() error {
-	srcpath := os.Getenv("GOPATH") + "/src/"
-	packagePath := strings.Replace(this.Folder, srcpath, "", -1)
-	infos, err := ioutil.ReadDir(this.Folder)
-	if err == nil {
-		for _, info := range infos {
-			if !info.IsDir() || info.Name() == "init" {
-				continue
-			}
-			item := &itemData{
-				name: info.Name(),
-				path: fmt.Sprintf("%s%s", packagePath, info.Name()),
-			}
-			this.itemDatas = append(this.itemDatas, item)
-		}
-	}
-	if err != nil {
-		mlog.Error("Scan Plugin Error", "Error", err)
-		return err
-	}
 	return nil
 }
 
