@@ -87,9 +87,13 @@ targetTimespan = 2304
 targetTimePerBlock = 16
 
 [mver.consensus.ForkChainParamV1]
-maxTxNumber = 10000
-targetTimespan = 288 #only for test
-targetTimePerBlock = 2
+futureBlockTime = 15
+ticketFrozenTime = 43200
+ticketWithdrawTime = 172800
+ticketMinerWaitTime = 7200
+maxTxNumber = 1500
+targetTimespan = 2160
+targetTimePerBlock = 15
 
 [mver.consensus.ForkChainParamV2]
 powLimitBits = "0x1f2fffff"
