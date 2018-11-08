@@ -59,7 +59,7 @@ function copyAutoTestConfig() {
 
 function copyChain33() {
 
-    echo "#copy chain33 bin to path \"$1\""
+    echo "# copy chain33 bin to path \"$1\""
     cp ../chain33 ../chain33-cli ../chain33.toml ../../cmd/chain33/chain33.test.toml "$1"
 
 }
@@ -68,10 +68,11 @@ for dir in "$@"; do
 
     #check dir exist
     if [ ! -d "${dir}" ]; then
-        echo "directory ${dir} not exist!"
+        mkdir "${dir}"
     fi
-    cp autotest "${dir}" || true
+    cp autotest "${dir}"
     copyAutoTestConfig "${dir}"
     copyChain33 "${dir}"
+    echo  "# all copy have done!"
 
 done

@@ -58,10 +58,10 @@ function config_autotest() {
 
     if [[ $1 == "" ]] || [[ $1 == "all" ]]; then
         cp ${autotestConfig} ${autotestTempConfig}
+        sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autotestTempConfig}
     else
         #copy config before [
-        #        sed -n '/^\[\[/!p;//q' ${autotestConfig} >${autotestTempConfig}
-
+        # sed -n '/^\[\[/!p;//q' ${autotestConfig} >${autotestTempConfig}
         #pre config auto test
         {
 
@@ -79,8 +79,6 @@ function config_autotest() {
 
         done
     fi
-
-    #    sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autotestTempConfig}
 }
 
 function start_chain33() {
