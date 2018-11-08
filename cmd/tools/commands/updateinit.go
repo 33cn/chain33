@@ -18,6 +18,7 @@ func UpdateInitCmd() *cobra.Command {
 		Run:   updateInit,
 	}
 	cmd.Flags().StringP("path", "p", "plugin", "path of plugin")
+	cmd.Flags().StringP("out", "o", "", "output new config file")
 	cmd.Flags().StringP("packname", "", "", "project package name")
 	return cmd
 }
@@ -25,11 +26,14 @@ func UpdateInitCmd() *cobra.Command {
 func updateInit(cmd *cobra.Command, args []string) {
 	path, _ := cmd.Flags().GetString("path")
 	packname, _ := cmd.Flags().GetString("packname")
+	out, _ := cmd.Flags().GetString("out")
+
 	s := strategy.New(types.KeyUpdateInit)
 	if s == nil {
 		fmt.Println(types.KeyUpdateInit, "Not support")
 		return
 	}
+	s.SetParam("out", out)
 	s.SetParam("path", path)
 	s.SetParam("packname", packname)
 	s.Run()
