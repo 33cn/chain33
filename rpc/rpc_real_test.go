@@ -12,7 +12,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/util"
 	"gitlab.33.cn/chain33/chain33/util/testnode"
 
-	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
