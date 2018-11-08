@@ -109,6 +109,7 @@ func TestKeyAllow_evm(t *testing.T) {
 	//assert.Nil(t, t)
 }
 
+/*
 func TestKeyAllow_evmallow(t *testing.T) {
 	execInit(nil)
 	key := []byte("mavl-evm-xxx")
@@ -166,6 +167,7 @@ func TestKeyAllow_paracross(t *testing.T) {
 		t.Error("paracross can modify exec")
 	}
 }
+*/
 
 func TestKeyLocalAllow(t *testing.T) {
 	err := isAllowLocalKey([]byte("token"), []byte("LODB-token-"))
