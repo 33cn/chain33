@@ -51,7 +51,7 @@ var ansAddress = map[string]string{
 //测试基于BTC规则的币种
 func TestBtcBaseTransformer(t *testing.T) {
 	initialBTCPrivByte()
-	for name, _ := range testPrivkey {
+	for name := range testPrivkey {
 		testPrivToPub(t, name)
 		testPubToAddr(t, name)
 	}
