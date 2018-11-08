@@ -3,7 +3,7 @@ package solo
 import (
 	"time"
 
-	log "github.com/inconshreveable/log15"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"

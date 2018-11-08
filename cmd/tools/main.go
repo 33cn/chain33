@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/log/log15"
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/cmd/tools/commands"
 	"gitlab.33.cn/chain33/chain33/common/log"

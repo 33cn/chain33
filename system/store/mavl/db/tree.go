@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
-	log "github.com/inconshreveable/log15"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )

@@ -23,7 +23,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 
-	log "github.com/inconshreveable/log15"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
