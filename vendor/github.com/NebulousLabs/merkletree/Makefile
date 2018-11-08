@@ -6,6 +6,8 @@ REBUILD:
 dependencies:
 	go get -u github.com/dvyukov/go-fuzz/go-fuzz
 	go get -u github.com/dvyukov/go-fuzz/go-fuzz-build
+	go get -u github.com/NebulousLabs/fastrand
+	go get -u github.com/NebulousLabs/errors
 
 install: REBUILD
 	go install
