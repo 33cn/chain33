@@ -6,12 +6,9 @@ import (
 	"os"
 
 	"gitlab.33.cn/chain33/chain33/cmd/autotest/flow"
-
-	//新增dapp的autoest需要在此处导入对应autotest包，匿名注册
-	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/autotest"
-	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/token/autotest"
-	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/autotest"
-	_ "gitlab.33.cn/chain33/chain33/system/dapp/coins/autotest"
+	//导入所有dapp的AutoTest
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
 var (

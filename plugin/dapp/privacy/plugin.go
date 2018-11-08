@@ -7,6 +7,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/rpc"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/wallet"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
+
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/autotest"
 )
 
 func init() {
