@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
-	_ "gitlab.33.cn/chain33/chain33/plugin"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -390,9 +389,9 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 		Fee:         1,
 		Note:        "12312",
 		IsWithdraw:  false,
-		IsToken:     true,
-		TokenSymbol: "CNY",
-		ExecName:    types.ExecName("token"),
+		IsToken:     false,
+		TokenSymbol: "",
+		ExecName:    types.ExecName("coins"),
 	}
 
 	err = testChain33.CreateRawTransaction(tx, &testResult)
@@ -1225,14 +1224,14 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrExecNameNotAllow, err)
 
-	in = &rpctypes.CreateTxIn{Execer: types.ExecName("token"), ActionName: "notExist", Payload: []byte("x")}
+	in = &rpctypes.CreateTxIn{Execer: types.ExecName("coins"), ActionName: "notExist", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrActionNotSupport, err)
 
 	in = &rpctypes.CreateTxIn{
-		Execer:     types.ExecName("token"),
-		ActionName: "TokenFinishCreate",
-		Payload:    []byte("{\"symbol\": \"TOKEN\", \"owner\":\"string\"}"),
+		Execer:     types.ExecName("coins"),
+		ActionName: "Transfer",
+		Payload:    []byte("{\"to\": \"addr\", \"amount\":\"10\"}"),
 	}
 	err = client.CreateTransaction(in, &result)
 	assert.Nil(t, err)

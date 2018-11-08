@@ -19,7 +19,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 
-	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
 )
 

@@ -9,7 +9,6 @@ import (
 )
 
 type itemData struct {
-	name string
 	path string
 }
 

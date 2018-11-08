@@ -22,8 +22,6 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
-	_ "gitlab.33.cn/chain33/chain33/plugin"
-	_ "gitlab.33.cn/chain33/chain33/system"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
