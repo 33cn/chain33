@@ -79,6 +79,17 @@ func (op *OrphanPool) RemoveOrphanBlock(orphan *orphanBlock) {
 	op.removeOrphanBlock(orphan)
 }
 
+func (op *OrphanPool) RemoveOrphanBlock2(block *types.Block, expiration time.Time, broadcast bool, pid string, sequence int64) {
+	b := &orphanBlock{
+		block:      block,
+		expiration: expiration,
+		broadcast:  broadcast,
+		pid:        pid,
+		sequence:   sequence,
+	}
+	op.RemoveOrphanBlock(b)
+}
+
 // 删除孤儿节点从OrphanPool中，以及prevOrphans中的index
 func (op *OrphanPool) removeOrphanBlock(orphan *orphanBlock) {
 	chainlog.Debug("removeOrphanBlock:", "orphan.block.height", orphan.block.Height, "orphan.block.hash", common.ToHex(orphan.block.Hash()))

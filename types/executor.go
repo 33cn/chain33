@@ -11,7 +11,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
-var random = rand.New(rand.NewSource(Now().UnixNano()))
+func init() {
+	rand.Seed(Now().UnixNano())
+}
 
 type LogType interface {
 	Name() string
@@ -55,6 +57,9 @@ var executorMap = map[string]ExecutorType{}
 
 func RegistorExecutor(exec string, util ExecutorType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
+	if util.GetChild() == nil {
+		panic("exec " + exec + " executorType child is nil")
+	}
 	if _, exist := executorMap[exec]; exist {
 		panic("DupExecutorType")
 	} else {
@@ -62,10 +67,10 @@ func RegistorExecutor(exec string, util ExecutorType) {
 	}
 }
 
-func LoadExecutorType(exec string) ExecutorType {
+func LoadExecutorType(execstr string) ExecutorType {
 	//尽可能的加载执行器
 	//真正的权限控制在区块执行的时候做控制
-	realname := GetRealExecName([]byte(exec))
+	realname := GetRealExecName([]byte(execstr))
 	if exec, exist := executorMap[string(realname)]; exist {
 		return exec
 	}
@@ -94,7 +99,7 @@ func CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		tlog.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-	return formatTx(execName, tx)
+	return FormatTxEncode(execName, tx)
 }
 
 func CallCreateTx(execName, action string, param Message) ([]byte, error) {
@@ -113,19 +118,35 @@ func CallCreateTx(execName, action string, param Message) ([]byte, error) {
 		tlog.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-	return formatTx(execName, tx)
+	return FormatTxEncode(execName, tx)
 }
 
-func formatTx(execName string, tx *Transaction) ([]byte, error) {
+func CreateFormatTx(execName string, payload []byte) (*Transaction, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
-	tx.Nonce = random.Int63()
+	tx := &Transaction{Payload: payload}
+	return FormatTx(execName, tx)
+}
+
+func FormatTx(execName string, tx *Transaction) (*Transaction, error) {
+	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
+	tx.Nonce = rand.Int63()
 	tx.Execer = []byte(execName)
 	//平行链，所有的to地址都是合约地址
 	if IsPara() || tx.To == "" {
 		tx.To = address.ExecAddress(string(tx.Execer))
 	}
 	var err error
-	tx.Fee, err = tx.GetRealFee(MinFee)
+	if tx.Fee == 0 {
+		tx.Fee, err = tx.GetRealFee(GInt("MinFee"))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return tx, nil
+}
+
+func FormatTxEncode(execName string, tx *Transaction) ([]byte, error) {
+	tx, err := FormatTx(execName, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -208,9 +229,12 @@ type ExecutorType interface {
 	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
 	//write for executor
 	GetPayload() Message
+	GetChild() ExecutorType
 	GetName() string
 	//exec result of receipt log
 	GetLogMap() map[int64]*LogInfo
+	GetForks() *Forks
+	IsFork(height int64, key string) bool
 	//actionType -> name map
 	GetTypeMap() map[string]int32
 	GetValueTypeMap() map[string]reflect.Type
@@ -219,6 +243,8 @@ type ExecutorType interface {
 	GetRPCFuncMap() map[string]reflect.Method
 	GetExecFuncMap() map[string]reflect.Method
 	CreateTransaction(action string, data Message) (*Transaction, error)
+	// collect assets the tx deal with
+	GetAssets(tx *Transaction) ([]*Asset, error)
 }
 
 type ExecTypeGet interface {
@@ -233,6 +259,11 @@ type ExecTypeBase struct {
 	actionListValueType map[string]reflect.Type
 	rpclist             map[string]reflect.Method
 	queryMap            map[string]reflect.Type
+	forks               *Forks
+}
+
+func (base *ExecTypeBase) GetChild() ExecutorType {
+	return base.child
 }
 
 func (base *ExecTypeBase) SetChild(child ExecutorType) {
@@ -241,12 +272,16 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	base.rpclist = ListMethod(child)
 	base.actionListValueType = make(map[string]reflect.Type)
 	base.actionFunList = make(map[string]reflect.Method)
+	base.forks = child.GetForks()
 
 	action := child.GetPayload()
 	if action == nil {
 		return
 	}
 	base.actionFunList = ListMethod(action)
+	if _, ok := base.actionFunList["XXX_OneofFuncs"]; !ok {
+		return
+	}
 	retval := base.actionFunList["XXX_OneofFuncs"].Func.Call([]reflect.Value{reflect.ValueOf(action)})
 	if len(retval) != 4 {
 		panic("err XXX_OneofFuncs")
@@ -278,6 +313,10 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	}
 }
 
+func (base *ExecTypeBase) GetForks() *Forks {
+	return &Forks{}
+}
+
 func (base *ExecTypeBase) GetCryptoDriver(ty int) (string, error) {
 	return "", ErrNotSupport
 }
@@ -306,6 +345,13 @@ func (base *ExecTypeBase) GetExecFuncMap() map[string]reflect.Method {
 
 func (base *ExecTypeBase) GetName() string {
 	return "typedriverbase"
+}
+
+func (base *ExecTypeBase) IsFork(height int64, key string) bool {
+	if base.GetForks == nil {
+		return false
+	}
+	return base.forks.IsFork(GetTitle(), height, key)
 }
 
 func (base *ExecTypeBase) GetValueTypeMap() map[string]reflect.Type {
@@ -381,13 +427,19 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 	if err != nil {
 		return nil, err
 	}
+	if IsNilP(payload) {
+		return nil, ErrDecode
+	}
 	return payload, nil
 }
 
 func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
+	if base.child == nil {
+		return "", nilValue, ErrActionNotSupport
+	}
 	action, err := base.child.DecodePayload(tx)
-	if err != nil {
-		tlog.Error("DecodePayload", "err", err)
+	if err != nil || action == nil {
+		tlog.Error("DecodePayload", "err", err, "exec", string(tx.Execer))
 		return "", nilValue, err
 	}
 	name, ty, val := GetActionValue(action, base.child.GetFuncMap())
@@ -626,4 +678,23 @@ func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Tr
 		return &Transaction{Payload: Encode(value)}, nil
 	}
 	return nil, ErrActionNotSupport
+}
+
+func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
+	_, v, err := base.DecodePayloadValue(tx)
+	if err != nil {
+		return nil, err
+	}
+	payload := v.Interface()
+	asset := &Asset{Exec: string(tx.Execer)}
+	if a, ok := payload.(*AssetsTransfer); ok {
+		asset.Symbol = a.Cointoken
+	} else if a, ok := payload.(*AssetsWithdraw); ok {
+		asset.Symbol = a.Cointoken
+	} else if a, ok := payload.(*AssetsTransferToExec); ok {
+		asset.Symbol = a.Cointoken
+	} else {
+		return nil, nil
+	}
+	return []*Asset{asset}, nil
 }

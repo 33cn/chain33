@@ -43,6 +43,23 @@ func TestAllowExecName(t *testing.T) {
 	assert.Equal(t, isok, true)
 }
 
+func BenchmarkExecName(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ExecName("hello")
+	}
+}
+
+func BenchmarkG(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		G("TestNet")
+	}
+}
+
+func BenchmarkS(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		S("helloword", true)
+	}
+}
 func TestJsonNoName(t *testing.T) {
 	flag := int32(1)
 	params := struct {

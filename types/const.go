@@ -16,57 +16,24 @@ type LogInfo struct {
 }
 
 const (
-	CoinsX    = "coins"
-	UserKeyX  = "user."
-	ParaKeyX  = "user.p."
-	TicketX   = "ticket"
-	HashlockX = "hashlock"
-	NoneX     = "none"
-	TokenX    = "token"
-	TradeX    = "trade"
-	ManageX   = "manage"
-	PrivacyX  = "privacy"
-	RelayX    = "relay"
-	Normx     = "norm"
-	ParaX     = "paracross"
-	ValNodeX  = "valnode"
+	UserKeyX = "user."
+	ParaKeyX = "user.p."
+	NoneX    = "none"
 )
 
 var (
-	ExecerCoins    = []byte(CoinsX)
-	ExecerTicket   = []byte(TicketX)
-	ExecerManage   = []byte(ManageX)
-	ExecerToken    = []byte(TokenX)
-	ExecerPrivacy  = []byte(PrivacyX)
-	ExecerRelay    = []byte(RelayX)
-	ExecerHashlock = []byte(HashlockX)
-	ExecerNone     = []byte(NoneX)
-	ExecerTrade    = []byte(TradeX)
-	ExecerNorm     = []byte(Normx)
-	ExecerConfig   = []byte("config")
-	ExecerPara     = []byte(ParaX)
-	UserKey        = []byte(UserKeyX)
-	ParaKey        = []byte(ParaKeyX)
-	ExecerValNode  = []byte(ValNodeX)
+	UserKey    = []byte(UserKeyX)
+	ParaKey    = []byte(ParaKeyX)
+	ExecerNone = []byte(NoneX)
 )
 
 const (
 	InputPrecision        float64 = 1e4
 	Multiple1E4           int64   = 1e4
-	TokenNameLenLimit             = 128
-	TokenSymbolLenLimit           = 16
-	TokenIntroLenLimit            = 1024
-	InvalidStartTime              = 0
-	InvalidStopTime               = 0
-	BlockDurPerSecCnt             = 15
 	BTY                           = "BTY"
 	BTYDustThreshold              = Coin
 	ConfirmedHeight               = 12
 	UTXOCacheCount                = 256
-	M_1_TIMES                     = 1
-	M_2_TIMES                     = 2
-	M_5_TIMES                     = 5
-	M_10_TIMES                    = 10
 	SignatureSize                 = (4 + 33 + 65)
 	PrivacyMaturityDegree         = 12
 	TxGroupMaxCount               = 20
@@ -134,22 +101,6 @@ var SystemLog = map[int64]*LogInfo{
 	TyLogGenesisDeposit:  {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
 }
 
-const (
-	//log for trade
-	TyLogTradeSellLimit  = 310
-	TyLogTradeBuyMarket  = 311
-	TyLogTradeSellRevoke = 312
-
-	TyLogTradeSellMarket        = 330
-	TyLogTradeBuyLimit          = 331
-	TyLogTradeBuyRevoke         = 332
-	TyLogParaTokenAssetTransfer = 333
-	TyLogParaTokenAssetWithdraw = 334
-
-	// log for config
-	TyLogModifyConfig = 410
-)
-
 //exec type
 const (
 	ExecErr  = 0
@@ -157,17 +108,9 @@ const (
 	ExecOk   = 2
 )
 
-// manager action
-const (
-	ManageActionModifyConfig = iota
-)
-
-// config items
-const (
-	ConfigItemArrayConfig = iota
-	ConfigItemIntConfig
-	ConfigItemStringConfig
-)
+func init() {
+	S("TxHeight", false)
+}
 
 //flag:
 
@@ -178,9 +121,6 @@ const (
 
 //标记是一个时间还是一个 TxHeight
 var TxHeightFlag int64 = 1 << 62
-
-//是否开启TxHeight选项
-var EnableTxHeight = false
 
 //eg: current Height is 10000
 //TxHeight is  10010

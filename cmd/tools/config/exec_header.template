@@ -1,0 +1,6 @@
+package executor
+
+import (
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/${EXECNAME}/ptypes"
+	"gitlab.33.cn/chain33/chain33/types"
+)

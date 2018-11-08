@@ -60,7 +60,7 @@ func (s *StateDB) enableMVCC() {
 func (s *StateDB) Begin() {
 	s.intx = true
 	s.keys = nil
-	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+	if types.IsFork(s.height, "ForkExecRollback") {
 		s.txcache = nil
 	}
 }
@@ -75,7 +75,7 @@ func (s *StateDB) Commit() {
 	}
 	s.intx = false
 	s.keys = nil
-	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+	if types.IsFork(s.height, "ForkExecRollback") {
 		s.resetTx()
 	}
 }

@@ -6,15 +6,15 @@ import (
 
 	"encoding/hex"
 
-	_ "gitlab.33.cn/chain33/chain33/plugin"
-	_ "gitlab.33.cn/chain33/chain33/system"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
+	_ "gitlab.33.cn/chain33/chain33/plugin"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	_ "gitlab.33.cn/chain33/chain33/system"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
+	mty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -349,7 +349,7 @@ func TestDecodeLogModifyConfig(t *testing.T) {
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogModifyConfig,
+		Ty:  mty.TyLogModifyConfig,
 		Log: "0x" + strdec,
 	}
 
@@ -392,7 +392,7 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 		IsWithdraw:  false,
 		IsToken:     true,
 		TokenSymbol: "CNY",
-		ExecName:    types.ExecName(types.TokenX),
+		ExecName:    types.ExecName("token"),
 	}
 
 	err = testChain33.CreateRawTransaction(tx, &testResult)
@@ -423,7 +423,7 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 		t.Error("Test createtxgroup failed")
 		return
 	}
-	err = tx.Check(0, types.MinFee)
+	err = tx.Check(0, types.GInt("MinFee"))
 	assert.Nil(t, err)
 }
 
@@ -583,7 +583,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	}
 	payload := types.Encode(act)
 	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName(types.TicketX)),
+		Execer:  []byte(types.ExecName("ticket")),
 		Payload: payload,
 	}
 
@@ -1225,13 +1225,13 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrExecNameNotAllow, err)
 
-	in = &rpctypes.CreateTxIn{Execer: types.ExecName(types.TokenX), ActionName: "notExist", Payload: []byte("x")}
+	in = &rpctypes.CreateTxIn{Execer: types.ExecName("token"), ActionName: "notExist", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrActionNotSupport, err)
 
 	in = &rpctypes.CreateTxIn{
-		Execer:     types.ExecName(types.TokenX),
-		ActionName: "Tokenfinishcreate",
+		Execer:     types.ExecName("token"),
+		ActionName: "TokenFinishCreate",
 		Payload:    []byte("{\"symbol\": \"TOKEN\", \"owner\":\"string\"}"),
 	}
 	err = client.CreateTransaction(in, &result)
