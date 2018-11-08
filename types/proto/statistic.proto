@@ -83,10 +83,12 @@ message ExecBalanceItem {
 
 //查询symbol在合约中的代币总额应答
 message ReplyGetExecBalance {
-    int64 amount  = 1;
-    int64 amountFrozen  = 2;
-    int64 amountActive = 3;
-    repeated ExecBalanceItem items = 4;
+    bytes addr = 1;
+    bytes prefix = 2;
+    int64 amount  = 3;
+    int64 amountFrozen  = 4;
+    int64 amountActive = 5;
+    repeated ExecBalanceItem items = 6;
 }
 
 //迭代查询symbol代币在合约中的总额
