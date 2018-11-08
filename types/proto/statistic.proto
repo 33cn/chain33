@@ -92,6 +92,6 @@ message ReplyGetExecBalance {
 //迭代查询symbol代币在合约中的总额
 message IterateExecBalanceByStateHash {
     bytes stateHash = 1;
-    bytes  addr = 2;
-    bytes execAddr     = 3;
+    bytes addr = 2;
+    bytes prefix = 3;
 }

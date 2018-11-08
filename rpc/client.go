@@ -227,7 +227,7 @@ func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
 
 func (c *channelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.ReplyGetExecBalance, error) {
 	//通过account模块获取地址账户在合约中的余额
-	resp, err := c.accountdb.GetTotalCoins(c.QueueProtocolAPI, in)
+	resp, err := c.accountdb.GetExecBalance(c.QueueProtocolAPI, in)
 	if err != nil {
 		return nil, err
 	}

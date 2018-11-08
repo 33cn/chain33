@@ -315,3 +315,19 @@ func (accountdb *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalanc
 		return accounts, nil
 	}
 }
+
+func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecBalance) (reply *types.ReplyGetExecBalance, err error) {
+	req := types.IterateExecBalanceByStateHash{}
+	req.StateHash = in.StateHash
+
+	req.Count = in.Count
+	start := SymbolPrefix(in.Execer, in.Symbol)
+	end := SymbolExecPrefix(in.Execer, in.Symbol)
+	if in.StartKey == nil {
+		req.Start = []byte(start)
+	} else {
+		req.Start = in.StartKey
+	}
+	req.End = []byte(end)
+	return api.StoreGetTotalCoins(&req)
+}
