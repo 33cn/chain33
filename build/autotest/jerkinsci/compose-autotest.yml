@@ -5,6 +5,5 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-autotest
-    container_name: autotest-chain33
 
 
