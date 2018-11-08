@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 
 	"github.com/stretchr/testify/assert"
-	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
