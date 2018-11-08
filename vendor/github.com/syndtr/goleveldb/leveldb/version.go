@@ -8,7 +8,6 @@ package leveldb
 
 import (
 	"fmt"
-	"runtime/debug"
 	"sync/atomic"
 	"unsafe"
 
@@ -138,7 +137,6 @@ func (v *version) walkOverlapping(aux tFiles, ikey internalKey, f func(level int
 
 func (v *version) get(aux tFiles, ikey internalKey, ro *opt.ReadOptions, noValue bool) (value []byte, tcomp bool, err error) {
 	if v.closing {
-		debug.PrintStack()
 		return nil, false, ErrClosed
 	}
 

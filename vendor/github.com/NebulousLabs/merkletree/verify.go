@@ -113,7 +113,7 @@ func VerifyProof(h hash.Hash, merkleRoot []byte, proofSet [][]byte, proofIndex u
 	}
 
 	// Compare our calculated Merkle root to the desired Merkle root.
-	if bytes.Compare(sum, merkleRoot) == 0 {
+	if bytes.Equal(sum, merkleRoot) {
 		return true
 	}
 	return false

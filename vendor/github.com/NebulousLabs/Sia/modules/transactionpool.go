@@ -131,7 +131,7 @@ type (
 		// TransactionConfirmed returns true if the transaction has been seen on the
 		// blockchain. Note, however, that the block containing the transaction may
 		// later be invalidated by a reorg.
-		TransactionConfirmed(id types.TransactionID) bool
+		TransactionConfirmed(id types.TransactionID) (bool, error)
 
 		// TransactionList returns a list of all transactions in the transaction
 		// pool. The transactions are provided in an order that can acceptably be
@@ -142,6 +142,10 @@ type (
 		// Subscribers will receive all consensus set changes as well as
 		// transaction pool changes, and should not subscribe to both.
 		TransactionPoolSubscribe(TransactionPoolSubscriber)
+
+		// TransactionSet returns the transaction set the provided object
+		// appears in.
+		TransactionSet(crypto.Hash) []types.Transaction
 
 		// Unsubscribe removes a subscriber from the transaction pool.
 		// This is necessary for clean shutdown of the miner.

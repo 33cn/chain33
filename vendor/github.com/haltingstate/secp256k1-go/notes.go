@@ -1,5 +1,6 @@
 package secp256k1
 
+
 /*
 Key Exchange:
 <sipa> HaltingState: you need the multiplicative tweak
@@ -34,6 +35,7 @@ Key Exchange:
 <sipa> the receiver than has p and E, so can compute p*E = p*e*G = e*p*G = e*P, and the hash thereof
 <sipa> and can thus decrypt the message
 */
+
 
 /*
 <sipa> where A = a*G and B = b*G
