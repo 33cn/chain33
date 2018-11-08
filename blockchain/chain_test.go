@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/log/log15"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -16,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"

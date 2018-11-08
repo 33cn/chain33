@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
-	"gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/cmd/autotest/testcase"
+	"gitlab.33.cn/chain33/chain33/common/log/log15"
 )
 
 var (
