@@ -1129,3 +1129,12 @@ func (c *Chain33) ConvertExectoAddr(in rpctypes.ExecNameParm, result *string) er
 	*result = address.ExecAddress(in.ExecName)
 	return nil
 }
+
+func (c *Chain33) GetExecBalance(in *types.ReqGetExecBalance, result *interface{}) error {
+	resp, err := c.cli.GetExecBalance(in)
+	if err != nil {
+		return err
+	}
+	*result = resp
+	return nil
+}
