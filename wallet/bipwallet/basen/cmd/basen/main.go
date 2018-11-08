@@ -28,38 +28,38 @@ type codec struct {
 }
 
 var codecs = map[string]codec{
-	"none": codec{
+	"none": {
 		label:          "No encoding, raw binary",
 		raw:            true,
 		EncodeToString: func(b []byte) string { return string(b) },
 		DecodeString:   func(s string) ([]byte, error) { return []byte(s), nil },
 	},
-	"16": codec{
+	"16": {
 		EncodeToString: hex.EncodeToString,
 		DecodeString:   hex.DecodeString,
 	},
-	"32": codec{
+	"32": {
 		EncodeToString: base32.StdEncoding.EncodeToString,
 		DecodeString:   base32.StdEncoding.DecodeString,
 	},
-	"32hex": codec{
+	"32hex": {
 		label:          "Base 32 \"Extended Hex Alphabet\"",
 		EncodeToString: base32.HexEncoding.EncodeToString,
 		DecodeString:   base32.HexEncoding.DecodeString,
 	},
-	"58": codec{
+	"58": {
 		EncodeToString: basen.Base58.EncodeToString,
 		DecodeString:   basen.Base58.DecodeString,
 	},
-	"62": codec{
+	"62": {
 		EncodeToString: basen.Base62.EncodeToString,
 		DecodeString:   basen.Base62.DecodeString,
 	},
-	"64": codec{
+	"64": {
 		EncodeToString: base64.StdEncoding.EncodeToString,
 		DecodeString:   base64.StdEncoding.DecodeString,
 	},
-	"64url": codec{
+	"64url": {
 		label:          "Base 64 alternate URL encoding",
 		EncodeToString: base64.URLEncoding.EncodeToString,
 		DecodeString:   base64.URLEncoding.DecodeString,
