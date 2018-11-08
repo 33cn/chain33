@@ -1,15 +1,16 @@
 package strategy
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
@@ -69,11 +70,11 @@ func (this *importPackageStrategy) runImpl() error {
 func (this *importPackageStrategy) readConfig() error {
 	mlog.Info("读取配置文件")
 	conf, _ := this.getParam("conf")
+	if conf == "" {
+		return nil
+	}
 	if conf != "" {
 		this.cfgFileName = conf
-	}
-	if this.cfgFileName == "" {
-		this.cfgFileName = fmt.Sprintf("config/%s", types.DEF_CPM_CONFIGFILE)
 	}
 	_, err := toml.DecodeFile(this.cfgFileName, &this.cfgItems)
 	return err
@@ -81,14 +82,41 @@ func (this *importPackageStrategy) readConfig() error {
 
 func (this *importPackageStrategy) initData() error {
 	mlog.Info("初始化数据")
-	if len(this.cfgItems) == 0 {
-		return errors.New("Config is empty.")
-	}
 	this.items = make(map[string][]*pluginItem)
 	dappItems := make([]*pluginItem, 0)
 	consensusItems := make([]*pluginItem, 0)
 	storeItems := make([]*pluginItem, 0)
 	cryptoItems := make([]*pluginItem, 0)
+
+	//read current plugin dir
+	//(分成两级，并且去掉了 init 目录)
+	path, _ := this.getParam("path")
+	dirlist, err := this.readPluginDir(path)
+	if err != nil {
+		return err
+	}
+	if this.cfgItems == nil {
+		this.cfgItems = make(map[string]*pluginConfigItem)
+	}
+	for name, value := range dirlist {
+		this.cfgItems[name] = value
+	}
+	out, _ := this.getParam("out")
+	//输出新的配置文件
+	if out != "" {
+		buf := new(bytes.Buffer)
+		err = toml.NewEncoder(buf).Encode(this.cfgItems)
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(out, buf.Bytes(), 0666)
+		if err != nil {
+			return err
+		}
+	}
+	if len(this.cfgItems) == 0 {
+		return errors.New("Config is empty.")
+	}
 	for name, cfgItem := range this.cfgItems {
 		splitdata := strings.Split(name, "-")
 		if len(splitdata) == 2 {
@@ -119,8 +147,49 @@ func (this *importPackageStrategy) initData() error {
 	this.items[storeFolderName] = storeItems
 	this.items[cryptoFolderName] = cryptoItems
 	this.projRootPath = ""
-	this.projPluginPath = "plugin"
+	this.projPluginPath, _ = this.getParam("path")
 	return nil
+}
+
+func getDirList(path string) ([]string, error) {
+	dirlist, err := ioutil.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	dirs := make([]string, 0)
+	for _, f := range dirlist {
+		if f.IsDir() {
+			if f.Name() == "." || f.Name() == ".." || f.Name() == "init" || f.Name() == ".git" {
+				continue
+			}
+			dirs = append(dirs, f.Name())
+		}
+	}
+	return dirs, nil
+}
+
+func (this *importPackageStrategy) readPluginDir(path string) (map[string]*pluginConfigItem, error) {
+	dirlist, err := getDirList(path)
+	if err != nil {
+		return nil, err
+	}
+	packname, _ := this.getParam("packname")
+	conf := make(map[string]*pluginConfigItem)
+	for _, ty := range dirlist {
+		names, err := getDirList(path + "/" + ty)
+		if err != nil {
+			return nil, err
+		}
+		for _, name := range names {
+			key := ty + "-" + name
+			item := &pluginConfigItem{
+				Type:    ty,
+				Gitrepo: packname + "/" + ty + "/" + name,
+			}
+			conf[key] = item
+		}
+	}
+	return conf, nil
 }
 
 func (this *importPackageStrategy) generateImportFile() error {
