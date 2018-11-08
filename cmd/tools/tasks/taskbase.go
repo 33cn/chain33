@@ -1,6 +1,6 @@
 package tasks
 
-import "github.com/inconshreveable/log15"
+import "gitlab.33.cn/chain33/chain33/common/log/log15"
 
 var (
 	mlog = log15.New("module", "task")
