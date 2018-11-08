@@ -24,7 +24,7 @@ Usage
         natpmp "github.com/jackpal/go-nat-pmp"
     )
 
-    gatewayIP, err := gateway.DiscoverGateway()
+    gatewayIP, err = gateway.DiscoverGateway()
     if err != nil {
         return
     }

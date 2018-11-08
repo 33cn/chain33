@@ -334,7 +334,7 @@ func UnmarshalTimeOfDay(s string) (TimeOfDay, error) {
 	if err != nil {
 		return TimeOfDay{}, err
 	} else if t.HasOffset {
-		return TimeOfDay{}, fmt.Errorf("soap time: value %q contains unexpected timezone")
+		return TimeOfDay{}, fmt.Errorf("soap time: value %q contains unexpected timezone", s)
 	}
 	return t, nil
 }

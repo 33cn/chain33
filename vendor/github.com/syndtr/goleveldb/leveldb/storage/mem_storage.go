@@ -9,11 +9,14 @@ package storage
 import (
 	"bytes"
 	"os"
-	"runtime/debug"
 	"sync"
 )
 
-const typeShift = 3
+const typeShift = 4
+
+// Verify at compile-time that typeShift is large enough to cover all FileType
+// values by confirming that 0 == 0.
+var _ [0]struct{} = [TypeAll >> typeShift]struct{}{}
 
 type memStorageLock struct {
 	ms *memStorage
@@ -144,7 +147,7 @@ func (ms *memStorage) Remove(fd FileDesc) error {
 }
 
 func (ms *memStorage) Rename(oldfd, newfd FileDesc) error {
-	if FileDescOk(oldfd) || FileDescOk(newfd) {
+	if !FileDescOk(oldfd) || !FileDescOk(newfd) {
 		return ErrInvalidFile
 	}
 	if oldfd == newfd {
@@ -186,7 +189,6 @@ func (mr *memReader) Close() error {
 	mr.ms.mu.Lock()
 	defer mr.ms.mu.Unlock()
 	if mr.closed {
-		debug.PrintStack()
 		return ErrClosed
 	}
 	mr.m.open = false
@@ -205,7 +207,6 @@ func (mw *memWriter) Close() error {
 	mw.ms.mu.Lock()
 	defer mw.ms.mu.Unlock()
 	if mw.closed {
-		debug.PrintStack()
 		return ErrClosed
 	}
 	mw.memFile.open = false

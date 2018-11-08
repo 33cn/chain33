@@ -4,13 +4,16 @@ package types
 // contracts.
 
 import (
-	"github.com/NebulousLabs/Sia/build"
 	"github.com/NebulousLabs/Sia/crypto"
 )
 
 var (
+	// ProofMissed indicates that a StorageProof was missed, which means that
+	// no valid proof was submitted within the proof window.
 	ProofMissed ProofStatus = false
-	ProofValid  ProofStatus = true
+	// ProofValid indicates that a valid StorageProof was submitted within the
+	// proof window.
+	ProofValid ProofStatus = true
 )
 
 type (
@@ -90,6 +93,7 @@ type (
 		HashSet  []crypto.Hash            `json:"hashset"`
 	}
 
+	// ProofStatus indicates whether a StorageProof was valid (true) or missed (false).
 	ProofStatus bool
 )
 
@@ -118,7 +122,7 @@ func PostTax(height BlockHeight, payout Currency) Currency {
 func Tax(height BlockHeight, payout Currency) Currency {
 	// COMPATv0.4.0 - until the first 20,000 blocks have been archived, they
 	// will need to be handled in a special way.
-	if (height < 21e3 && build.Release == "standard") || (height < 10 && build.Release == "testing") {
+	if height < TaxHardforkHeight {
 		return payout.MulFloat(0.039).RoundDown(SiafundCount)
 	}
 	return payout.MulTax().RoundDown(SiafundCount)
