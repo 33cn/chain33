@@ -57,7 +57,11 @@ type directoryLockGuard struct {
 }
 
 // AcquireDirectoryLock acquires exclusive access to a directory.
-func acquireDirectoryLock(dirPath string, pidFileName string) (*directoryLockGuard, error) {
+func acquireDirectoryLock(dirPath string, pidFileName string, readOnly bool) (*directoryLockGuard, error) {
+	if readOnly {
+		return nil, ErrWindowsNotSupported
+	}
+
 	// Convert to absolute path so that Release still works even if we do an unbalanced
 	// chdir in the meantime.
 	absLockFilePath, err := filepath.Abs(filepath.Join(dirPath, pidFileName))
@@ -65,9 +69,7 @@ func acquireDirectoryLock(dirPath string, pidFileName string) (*directoryLockGua
 		return nil, errors.Wrap(err, "Cannot get absolute path for pid lock file")
 	}
 
-	// modify zhangjb by 20180313
-	// f, err := os.OpenFile(absLockFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-	f, err := os.OpenFile(absLockFilePath, os.O_RDWR|os.O_CREATE, 0666)
+	f, err := os.OpenFile(absLockFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"Cannot create pid lock file %q.  Another process is using this Badger database",
