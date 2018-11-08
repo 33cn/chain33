@@ -5,6 +5,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/trade/executor"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/trade/rpc"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
+
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/autotest"
 )
 
 func init() {
