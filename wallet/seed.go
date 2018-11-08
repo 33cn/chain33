@@ -5,7 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 
-	"gitlab.33.cn/wallet/bipwallet"
+	"gitlab.33.cn/chain33/chain33/wallet/bipwallet"
 	//	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
