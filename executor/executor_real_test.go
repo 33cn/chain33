@@ -3,18 +3,15 @@ package executor_test
 import (
 	"errors"
 	"net/http"
+	_ "net/http/pprof"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 	"gitlab.33.cn/chain33/chain33/util/testnode"
-
-	_ "net/http/pprof"
-
-	_ "gitlab.33.cn/chain33/chain33/plugin"
-	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
 func init() {

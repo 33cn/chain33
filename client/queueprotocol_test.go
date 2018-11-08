@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	_ "gitlab.33.cn/chain33/chain33/plugin"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	_ "gitlab.33.cn/chain33/chain33/system"
 
