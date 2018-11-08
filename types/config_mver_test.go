@@ -30,11 +30,11 @@ func TestConfigMverInit(t *testing.T) {
 	assert.Equal(t, MGStr("mver.nofork", 9), "nofork")
 	assert.Equal(t, MGStr("mver.nofork", 11), "nofork")
 
-	assert.Equal(t, MGStr("mver.exec.sub.token.name2", -1), "ticket-bityuan")
-	assert.Equal(t, MGStr("mver.exec.sub.token.name2", 0), "ticket-bityuanv5-enable")
-	assert.Equal(t, MGStr("mver.exec.sub.token.name2", 9), "ticket-bityuanv5-enable")
-	assert.Equal(t, MGStr("mver.exec.sub.token.name2", 10), "ticket-bityuanv5")
-	assert.Equal(t, MGStr("mver.exec.sub.token.name2", 11), "ticket-bityuanv5")
+	assert.Equal(t, MGStr("mver.exec.sub.coins.name2", -1), "ticket-bityuan")
+	assert.Equal(t, MGStr("mver.exec.sub.coins.name2", 0), "ticket-bityuanv5-enable")
+	assert.Equal(t, MGStr("mver.exec.sub.coins.name2", 9), "ticket-bityuanv5-enable")
+	assert.Equal(t, MGStr("mver.exec.sub.coins.name2", 10), "ticket-bityuanv5")
+	assert.Equal(t, MGStr("mver.exec.sub.coins.name2", 11), "ticket-bityuanv5")
 }
 
 var chainBaseParam *ChainParam
@@ -56,30 +56,7 @@ func initChainBase() {
 	chainBaseParam.TargetTimePerBlock = 16 * time.Second
 }
 
-func initChainTestNet() {
-	chainV3Param = &ChainParam{}
-	tmp := *chainBaseParam
-	//copy base param
-	chainV3Param = &tmp
-	chainV3Param.MaxTxNumber = 10000
-	chainV3Param.TicketFrozenTime = 5                   //5s only for test
-	chainV3Param.TicketWithdrawTime = 10                //10s only for test
-	chainV3Param.TicketMinerWaitTime = 2                // 2s only for test
-	chainV3Param.TargetTimespan = 144 * 2 * time.Second //only for test
-	chainV3Param.TargetTimePerBlock = 2 * time.Second   //only for test
-	//chainV3Param.PowLimitBits = uint32(0x1f2fffff)
-}
-
 func getP(height int64) *ChainParam {
-	initChainBase()
-	initChainTestNet()
-	if IsFork(height, "ForkChainParamV1") {
-		return chainV3Param
-	}
-	return chainBaseParam
-}
-
-func getPBityuan(height int64) *ChainParam {
 	initChainBase()
 	initChainBityuanV3()
 	if IsFork(height, "ForkChainParamV1") {
@@ -124,9 +101,4 @@ func TestInitChainParam(t *testing.T) {
 	Init(cfg.Title, cfg)
 	assert.Equal(t, GetFundAddr(), "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP")
 
-	forkid = GetFork("ForkChainParamV1")
-	assert.Equal(t, GetP(0), getPBityuan(0))
-	assert.Equal(t, GetP(forkid-1), getPBityuan(forkid-1))
-	assert.Equal(t, GetP(forkid), getPBityuan(forkid))
-	assert.Equal(t, GetP(forkid+1), getPBityuan(forkid+1))
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
-	_ "gitlab.33.cn/chain33/chain33/plugin"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"

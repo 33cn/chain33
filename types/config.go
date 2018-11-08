@@ -380,7 +380,10 @@ func getDefCfg(cfg *Config) string {
 	if cfg.Title == "" {
 		panic("title is not set in cfg")
 	}
-	return GStr("cfg." + cfg.Title)
+	if HasConf("cfg." + cfg.Title) {
+		return GStr("cfg." + cfg.Title)
+	}
+	return ""
 }
 
 func mergeCfg(cfgstring string) string {

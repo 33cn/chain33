@@ -160,13 +160,13 @@ enableMVCC=false
 [exec.sub.token]
 saveTokenTxList=false
 
-[mver.exec.sub.token]
+[mver.exec.sub.coins]
 name2="ticket-bityuan"
 
-[mver.exec.sub.token.ForkMinerTime]
+[mver.exec.sub.coins.ForkMinerTime]
 name2="ticket-bityuanv5"
 
-[mver.exec.sub.token.Enable]
+[mver.exec.sub.coins.Enable]
 name2="ticket-bityuanv5-enable"
 
 #系统中所有的fork,默认用chain33的测试网络的
@@ -190,28 +190,7 @@ ForkCheckBlockTime=1200000
 [fork.sub.coins]
 Enable=0
 
-[fork.sub.ticket]
-Enable=0
-ForkTicketId = 1200000
-
-[fork.sub.retrieve]
-Enable=0
-ForkRetrive=0
-
-[fork.sub.hashlock]
-Enable=0
-
 [fork.sub.manage]
 Enable=0
 ForkManageExec=100000
 
-[fork.sub.token]
-Enable=0
-ForkTokenBlackList= 0
-ForkBadTokenSymbol= 0
-ForkTokenPrice= 300000
-
-[fork.sub.trade]
-Enable=0
-ForkTradeBuyLimit= 0
-ForkTradeAsset= -1
