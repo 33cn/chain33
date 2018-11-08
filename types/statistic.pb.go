@@ -388,7 +388,7 @@ func (m *ExecBalanceItem) GetActive() int64 {
 }
 
 // 查询symbol在合约中的代币总额应答
-type ReplyGetExecBalance struct {
+type  ReplyGetExecBalance struct {
 	Addr         []byte             `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
 	Prefix       []byte             `protobuf:"bytes,2,opt,name=prefix,proto3" json:"prefix,omitempty"`
 	Amount       int64              `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`

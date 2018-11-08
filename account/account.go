@@ -320,14 +320,14 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 	req := types.IterateExecBalanceByStateHash{}
 	req.StateHash = in.StateHash
 
-	req.Count = in.Count
-	start := SymbolPrefix(in.Execer, in.Symbol)
-	end := SymbolExecPrefix(in.Execer, in.Symbol)
-	if in.StartKey == nil {
-		req.Start = []byte(start)
-	} else {
-		req.Start = in.StartKey
+	prefix := SymbolExecPrefix(in.Execer, in.Symbol)
+    if len(in.ExecAddr) > 0 {
+    	prefix = prefix + "-" + string(in.ExecAddr) + ":"
+	}else{
+		prefix = prefix + "-"
 	}
-	req.End = []byte(end)
-	return api.StoreGetTotalCoins(&req)
+
+	req.Prefix = []byte(prefix)
+	req.Addr = in.Addr
+	return api.StoreGetExecBalance(&req)
 }

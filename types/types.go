@@ -402,3 +402,45 @@ func MustDecode(data []byte, v interface{}) {
 		panic(err)
 	}
 }
+
+func (t *ReplyGetExecBalance) IterateExecBalanceByStateHash(key, value []byte) bool {
+	//合法的key例子：mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP
+	strKey := string(key)
+	strPrefix := string(t.Prefix)
+	fmt.Println("ReplyGetExecBalance.IterateExecBalanceByStateHash", "key", strKey)
+    if !strings.HasPrefix(strKey, strPrefix) {
+		tlog.Error("ReplyGetExecBalance.IterateExecBalanceByStateHash key does not match prefix", "key", strKey, "prefix", strPrefix)
+		return true
+	}
+	combinAddr := strKey[len(strPrefix):]
+	addrs := strings.Split(combinAddr, ":")
+	if 2 != len(addrs) {
+		tlog.Error("ReplyGetExecBalance.IterateExecBalanceByStateHash key does not contain exec-addr & addr", "key", strKey)
+		return true
+	}
+
+	if addrs[1] != string(t.Addr) {
+		return false
+	}
+	var acc Account
+	err := Decode(value, &acc)
+	if err != nil {
+		tlog.Error("ReplyGetExecBalance.IterateExecBalanceByStateHash", "err", err)
+		return true
+	}
+	//tlog.Info("acc:", "value", acc)
+	t.Amount += acc.Balance
+	t.Amount += acc.Frozen
+
+	t.AmountActive += acc.Balance
+	t.AmountFrozen += acc.Frozen
+
+	item := &ExecBalanceItem{[]byte(addrs[0]), acc.Frozen, acc.Balance}
+	t.Items = append(t.Items, item)
+
+	//如果perfix形如：mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:  ,则是查找addr在一个合约地址上的余额，找到一个值即可结束。
+	if strings.HasSuffix(strPrefix, ":") {
+		return true
+	}
+	return false
+}

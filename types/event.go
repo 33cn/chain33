@@ -131,6 +131,8 @@ const (
 	EventGetSeqByHash            = 127
 	EventLocalPrefixCount        = 128
 	EventWalletCreateTx          = 129
+	EventStoreGetExecBalance     = 130
+	EventGetExecBalanceReply     = 131
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213

@@ -130,7 +130,14 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreDel, &types.ReplyHash{hash}))
 		}
-	} else {
+	} else if msg.Ty == types.EventStoreGetExecBalance {
+		req := msg.GetData().(*types.IterateExecBalanceByStateHash)
+		resp := &types.ReplyGetExecBalance{}
+		resp.Addr = req.Addr
+		resp.Prefix = req.Prefix
+		store.child.IterateRangeByStateHash(req.StateHash, req.Prefix, nil, true, resp.IterateExecBalanceByStateHash)
+		msg.Reply(client.NewMessage("", types.EventGetExecBalanceReply, resp))
+	} else{
 		store.child.ProcEvent(msg)
 	}
 }

@@ -901,3 +901,22 @@ func (q *QueueProtocol) GetTicketCount() (*types.Int64, error) {
 	}
 	return nil, types.ErrTypeAsset
 }
+
+func (q *QueueProtocol) StoreGetExecBalance(param *types.IterateExecBalanceByStateHash) (*types.ReplyGetExecBalance, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreGetExecBalance", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(storeKey, types.EventStoreGetExecBalance, param)
+	if err != nil {
+		log.Error("StoreGetExecBalance", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyGetExecBalance); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreGetExecBalance", "Error", err.Error())
+	return nil, err
+}
