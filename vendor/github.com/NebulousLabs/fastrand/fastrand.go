@@ -50,6 +50,9 @@ func init() {
 
 // Read fills b with random data. It always returns len(b), nil.
 func (r *randReader) Read(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, nil
+	}
 	// Grab a unique counter from the reader, while atomically updating the
 	// counter so that concurrent callers also end up with unique values.
 	counter := atomic.AddUint64(&r.counter, 1)

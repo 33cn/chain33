@@ -24,10 +24,12 @@ type Tree struct {
 	// Helper variables used to construct proofs that the data at 'proofIndex'
 	// is in the Merkle tree. The proofSet is constructed as elements are being
 	// added to the tree. The first element of the proof set is the original
-	// data used to create the leaf at index 'proofIndex'.
+	// data used to create the leaf at index 'proofIndex'. proofTree indicates
+	// if the tree will be used to create a merkle proof.
 	currentIndex uint64
 	proofIndex   uint64
 	proofSet     [][]byte
+	proofTree    bool
 
 	// The cachedTree flag indicates that the tree is cached, meaning that
 	// different code is used in 'Push' for creating a new head subtree. Adding
@@ -97,8 +99,13 @@ func New(h hash.Hash) *Tree {
 
 // Prove creates a proof that the leaf at the established index (established by
 // SetIndex) is an element of the Merkle tree. Prove will return a nil proof
-// set if used incorrectly. Prove does not modify the Tree.
+// set if used incorrectly. Prove does not modify the Tree. Prove can only be
+// called if SetIndex has been called previously.
 func (t *Tree) Prove() (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64) {
+	if !t.proofTree {
+		panic("wrong usage: can't call prove on a tree if SetIndex wasn't called")
+	}
+
 	// Return nil if the Tree is empty, or if the proofIndex hasn't yet been
 	// reached.
 	if t.head == nil || len(t.proofSet) == 0 {
@@ -184,9 +191,109 @@ func (t *Tree) Push(data []byte) {
 		t.head.sum = leafSum(t.hash, data)
 	}
 
-	// Insert the subTree into the Tree. As long as the height of the next
-	// subTree is the same as the height of the current subTree, the two will
-	// be combined into a single subTree of height n+1.
+	// Join subTrees if possible.
+	t.joinAllSubTrees()
+
+	// Update the index.
+	t.currentIndex++
+
+	// Sanity check - From head to tail of the stack, the height should be
+	// strictly increasing.
+	if DEBUG {
+		current := t.head
+		height := current.height
+		for current.next != nil {
+			current = current.next
+			if current.height <= height {
+				panic("subtrees are out of order")
+			}
+			height = current.height
+		}
+	}
+}
+
+// PushSubTree pushes a cached subtree into the merkle tree. The subtree has to
+// be smaller than the smallest subtree in the merkle tree, it has to be
+// balanced and it can't contain the element that needs to be proven.  Since we
+// can't tell if a subTree is balanced, we can't sanity check for unbalanced
+// trees. Therefore an unbalanced tree will cause silent errors, pain and
+// misery for the person who wants to debug the resulting error.
+func (t *Tree) PushSubTree(height int, sum []byte) error {
+	// Check if the cached tree that is pushed contains the element at
+	// proofIndex. This is not allowed.
+	newIndex := t.currentIndex + 1<<uint64(height)
+	if t.proofTree && (t.currentIndex == t.proofIndex ||
+		(t.currentIndex < t.proofIndex && t.proofIndex < newIndex)) {
+		return errors.New("the cached tree shouldn't contain the element to prove")
+	}
+
+	// We can only add the cached tree if its depth is <= the depth of the
+	// current subtree.
+	if t.head != nil && height > t.head.height {
+		return errors.New("can't add a subtree that is larger than the smallest subtree")
+	}
+
+	// Insert the cached tree as the new head.
+	t.head = &subTree{
+		height: height,
+		next:   t.head,
+		sum:    sum,
+	}
+
+	// Join subTrees if possible.
+	t.joinAllSubTrees()
+
+	// Update the index.
+	t.currentIndex = newIndex
+
+	// Sanity check - From head to tail of the stack, the height should be
+	// strictly increasing.
+	if DEBUG {
+		current := t.head
+		height := current.height
+		for current.next != nil {
+			current = current.next
+			if current.height <= height {
+				panic("subtrees are out of order")
+			}
+			height = current.height
+		}
+	}
+	return nil
+}
+
+// Root returns the Merkle root of the data that has been pushed.
+func (t *Tree) Root() []byte {
+	// If the Tree is empty, return nil.
+	if t.head == nil {
+		return nil
+	}
+
+	// The root is formed by hashing together subTrees in order from least in
+	// height to greatest in height. The taller subtree is the first subtree in
+	// the join.
+	current := t.head
+	for current.next != nil {
+		current = joinSubTrees(t.hash, current.next, current)
+	}
+	return current.sum
+}
+
+// SetIndex will tell the Tree to create a storage proof for the leaf at the
+// input index. SetIndex must be called on an empty tree.
+func (t *Tree) SetIndex(i uint64) error {
+	if t.head != nil {
+		return errors.New("cannot call SetIndex on Tree if Tree has not been reset")
+	}
+	t.proofTree = true
+	t.proofIndex = i
+	return nil
+}
+
+// joinAllSubTrees inserts the subTree at t.head into the Tree. As long as the
+// height of the next subTree is the same as the height of the current subTree,
+// the two will be combined into a single subTree of height n+1.
+func (t *Tree) joinAllSubTrees() {
 	for t.head.next != nil && t.head.height == t.head.next.height {
 		// Before combining subtrees, check whether one of the subtree hashes
 		// needs to be added to the proof set. This is going to be true IFF the
@@ -221,46 +328,4 @@ func (t *Tree) Push(data []byte) {
 		// compare the new subTree to the next subTree.
 		t.head = joinSubTrees(t.hash, t.head.next, t.head)
 	}
-	t.currentIndex++
-
-	// Sanity check - From head to tail of the stack, the height should be
-	// strictly increasing.
-	if DEBUG {
-		current := t.head
-		height := current.height
-		for current.next != nil {
-			current = current.next
-			if current.height <= height {
-				panic("subtrees are out of order")
-			}
-			height = current.height
-		}
-	}
-}
-
-// Root returns the Merkle root of the data that has been pushed.
-func (t *Tree) Root() []byte {
-	// If the Tree is empty, return nil.
-	if t.head == nil {
-		return nil
-	}
-
-	// The root is formed by hashing together subTrees in order from least in
-	// height to greatest in height. The taller subtree is the first subtree in
-	// the join.
-	current := t.head
-	for current.next != nil {
-		current = joinSubTrees(t.hash, current.next, current)
-	}
-	return current.sum
-}
-
-// SetIndex will tell the Tree to create a storage proof for the leaf at the
-// input index. SetIndex must be called on an empty tree.
-func (t *Tree) SetIndex(i uint64) error {
-	if t.head != nil {
-		return errors.New("cannot call SetIndex on Tree if Tree has not been reset")
-	}
-	t.proofIndex = i
-	return nil
 }
