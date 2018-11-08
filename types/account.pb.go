@@ -143,6 +143,9 @@ It has these top-level messages:
 	TicketStatistic
 	TicketMinerInfo
 	TotalAmount
+	ReqGetExecBalance
+	ExecBalanceItem
+	ReplyGetExecBalance
 	AssetsGenesis
 	AssetsTransferToExec
 	AssetsWithdraw
