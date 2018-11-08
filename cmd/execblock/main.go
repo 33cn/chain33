@@ -11,7 +11,6 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/config"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -41,7 +40,7 @@ func resetDatadir(cfg *types.Config, datadir string) {
 
 func initEnv() (queue.Queue, queue.Module, queue.Module) {
 	var q = queue.New("channel")
-	cfg, sub := config.InitCfg(*configPath)
+	cfg, sub := types.InitCfg(*configPath)
 	if *datadir != "" {
 		resetDatadir(cfg, *datadir)
 	}

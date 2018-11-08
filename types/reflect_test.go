@@ -23,6 +23,7 @@ func TestValue(t *testing.T) {
 	b := 20
 	data := &T{10, &b}
 	qdata.Register("T", data)
+	qdata.SetThis("T", reflect.ValueOf(data))
 
 	reply, err := qdata.Call("T", "Add", &ReqNil{})
 	assert.Nil(t, err)
@@ -60,13 +61,24 @@ func init() {
 	bb := 20
 	data := &T{10, &bb}
 	qdata.Register("TT", data)
+	qdata.SetThis("TT", reflect.ValueOf(data))
 }
-func BenchmarkCallQueryData(b *testing.B) {
 
+func BenchmarkCallQueryData(b *testing.B) {
 	result := int64(0)
 	for i := 0; i < b.N; i++ {
 		reply, _ := qdata.Call("TT", "Add", &ReqNil{})
 		result += reply.(*Int64).Data
 	}
 	assert.Equal(b, result, int64(b.N*30))
+}
+
+func TestIsOK(t *testing.T) {
+	data := make([]reflect.Value, 2)
+	var err interface{}
+	data[0] = reflect.ValueOf(&ReqNil{})
+	data[1] = reflect.ValueOf(err)
+	assert.Equal(t, reflect.Invalid, data[1].Kind())
+	assert.Equal(t, true, IsNil(data[1]))
+	assert.Equal(t, true, IsOK(data, 2))
 }

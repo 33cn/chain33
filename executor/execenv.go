@@ -111,7 +111,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(e.height, types.MinFee); err != nil {
+	if err := tx.Check(e.height, types.GInt("MinFee")); err != nil {
 		return err
 	}
 	//允许重写的情况
@@ -136,7 +136,7 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(e.height, types.MinFee); err != nil {
+	if err := txgroup.Check(e.height, types.GInt("MinFee")); err != nil {
 		return err
 	}
 	return nil
@@ -155,10 +155,10 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//checkInExec
 	exec := e.loadDriver(tx, index)
 	//手续费检查
-	if !exec.IsFree() && types.MinFee > 0 {
+	if !exec.IsFree() && types.GInt("MinFee") > 0 {
 		from := tx.From()
 		accFrom := e.coinsAccount.LoadAccount(from)
-		if accFrom.GetBalance() < types.MinBalanceTransfer {
+		if accFrom.GetBalance() < types.GInt("MinBalanceTransfer") {
 			elog.Error("execCheckTx", "ispara", types.IsPara(), "exec", string(tx.Execer), "nonce", tx.Nonce)
 			return types.ErrBalanceLessThanTenTimesFee
 		}
@@ -217,7 +217,7 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 	receipts[0], err = execute.execTxOne(feelog, txs[0], index)
 	if err != nil {
 		//状态数据库回滚
-		if types.IsMatchFork(execute.height, types.ForkV22ExecRollback) {
+		if types.IsFork(execute.height, "ForkExecRollback") {
 			execute.stateDB.Rollback()
 		}
 		return receipts, nil
@@ -231,7 +231,7 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 				receipts[k] = &types.Receipt{Ty: types.ExecPack}
 			}
 			//撤销txs[0]的交易
-			if types.IsMatchFork(execute.height, types.ForkV15ResetTx0) {
+			if types.IsFork(execute.height, "ForkResetTx0") {
 				receipts[0] = rollbackLog
 			}
 			//撤销所有的数据库更新
@@ -273,7 +273,7 @@ func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Recei
 	}
 	var err error
 	//公链不允许手续费为0
-	if !types.IsPara() && types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
+	if !types.IsPara() && types.GInt("MinFee") > 0 && !e.IsFree() {
 		feelog, err = execute.processFee(tx)
 		if err != nil {
 			return nil, err
@@ -383,7 +383,7 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 		return nil, err
 	}
 	//ignore err
-	matchfork := types.IsMatchFork(execute.height, types.ForkV22ExecRollback)
+	matchfork := types.IsFork(execute.height, "ForkExecRollback")
 	if matchfork {
 		execute.stateDB.Begin()
 	}

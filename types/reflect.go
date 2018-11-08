@@ -102,7 +102,14 @@ func GetActionValue(action interface{}, funclist map[string]reflect.Method) (str
 	if !IsOK(rcvr, 1) || IsNil(rcvr[0]) {
 		return "", 0, nilValue
 	}
-	sname := rcvr[0].Elem().Type().String()
+	if rcvr[0].Kind() != reflect.Ptr && rcvr[0].Kind() != reflect.Interface {
+		return "", 0, nilValue
+	}
+	elem := rcvr[0].Elem()
+	if IsNil(elem) {
+		return "", 0, nilValue
+	}
+	sname := elem.Type().String()
 	datas := strings.Split(sname, "_")
 	if len(datas) != 2 {
 		return "", 0, nilValue
@@ -112,7 +119,7 @@ func GetActionValue(action interface{}, funclist map[string]reflect.Method) (str
 		return "", 0, nilValue
 	}
 	val := funclist[funcname].Func.Call([]reflect.Value{value})
-	if !IsOK(val, 1) || IsNil(rcvr[0]) {
+	if !IsOK(val, 1) || IsNil(val[0]) {
 		return "", 0, nilValue
 	}
 	return datas[1], ty, val[0]
@@ -223,7 +230,6 @@ func (q *QueryData) Register(key string, obj interface{}) {
 		panic("QueryData reg dup")
 	}
 	q.funcMap[key], q.typeMap[key] = BuildQueryType(q.prefix, ListMethod(obj))
-	q.SetThis(key, reflect.ValueOf(obj))
 }
 
 func (q *QueryData) SetThis(key string, this reflect.Value) {
@@ -232,10 +238,11 @@ func (q *QueryData) SetThis(key string, this reflect.Value) {
 	q.valueMap[key] = this
 }
 
-func (q *QueryData) getThis(key string) reflect.Value {
+func (q *QueryData) getThis(key string) (reflect.Value, bool) {
 	q.RLock()
 	defer q.RUnlock()
-	return q.valueMap[key]
+	v, ok := q.valueMap[key]
+	return v, ok
 }
 
 func (q *QueryData) GetFunc(driver, name string) (reflect.Method, error) {
@@ -294,8 +301,9 @@ func (q *QueryData) DecodeJson(driver, name string, in json.Marshaler) (reply Me
 
 func (q *QueryData) Call(driver, name string, in Message) (reply Message, err error) {
 	defer func() {
+		return
 		if r := recover(); r != nil {
-			tlog.Error("query data call error", "driver", driver, "name", name, "param", in)
+			tlog.Error("query data call error", "driver", driver, "name", name, "param", in, "msg", r)
 			switch x := r.(type) {
 			case string:
 				err = errors.New(x)
@@ -311,6 +319,46 @@ func (q *QueryData) Call(driver, name string, in Message) (reply Message, err er
 	if err != nil {
 		return nil, err
 	}
-	m := q.getThis(driver)
+	m, ok := q.getThis(driver)
+	if !ok {
+		return nil, ErrQueryThistIsNotSet
+	}
 	return CallQueryFunc(m, f, in)
+}
+
+//判断所有的空值
+func IsNil(a interface{}) (ok bool) {
+	defer func() {
+		if e := recover(); e != nil {
+			panic(e)
+			ok = false
+		}
+	}()
+	if v, ok := a.(reflect.Value); ok {
+		if !v.IsValid() {
+			return true
+		}
+		return v.IsNil()
+	}
+	return a == nil || reflect.ValueOf(a).IsNil()
+}
+
+//空指针或者接口
+func IsNilP(a interface{}) bool {
+	if a == nil {
+		return true
+	}
+	var v reflect.Value
+	if val, ok := a.(reflect.Value); ok {
+		v = val
+	} else {
+		v = reflect.ValueOf(a)
+	}
+	if !v.IsValid() {
+		return true
+	}
+	if v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
+		return v.IsNil()
+	}
+	return false
 }

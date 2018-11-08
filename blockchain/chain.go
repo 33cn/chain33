@@ -133,7 +133,7 @@ func initConfig(cfg *types.BlockChain) {
 		DefCacheSize = cfg.DefCacheSize
 	}
 
-	if types.EnableTxHeight && DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
+	if types.IsEnable("TxHeight") && DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
 		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
 	}
 
@@ -147,7 +147,7 @@ func initConfig(cfg *types.BlockChain) {
 	isStrongConsistency = cfg.IsStrongConsistency
 	isRecordBlockSequence = cfg.IsRecordBlockSequence
 	isParaChain = cfg.IsParaChain
-	types.SetChainConfig("quickIndex", cfg.EnableTxQuickIndex)
+	types.S("quickIndex", cfg.EnableTxQuickIndex)
 }
 
 func (chain *BlockChain) Close() {
@@ -195,10 +195,19 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	go chain.ProcRecvMsg()
 }
 
+//only used for test
+func (chain *BlockChain) GetStore() *BlockStore {
+	return chain.blockStore
+}
+
+func (chain *BlockChain) GetOrphanPool() *OrphanPool {
+	return chain.orphanPool
+}
+
 func (chain *BlockChain) InitBlockChain() {
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
-	if types.EnableTxHeight {
+	if types.IsEnable("TxHeight") {
 		chain.InitCache(curheight)
 	}
 	//获取数据库中最新的10240个区块加载到index和bestview链中
@@ -212,7 +221,7 @@ func (chain *BlockChain) InitBlockChain() {
 		curdbver = 1
 		chain.blockStore.SetDbVersion(curdbver)
 	}
-	types.SetChainConfig("dbversion", curdbver)
+	types.S("dbversion", curdbver)
 	if !chain.cfg.IsParaChain {
 		// 定时检测/同步block
 		go chain.SynRoutine()

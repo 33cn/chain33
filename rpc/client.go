@@ -2,21 +2,19 @@ package rpc
 
 import (
 	"encoding/hex"
-	"math/rand"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
+	ety "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"github.com/inconshreveable/log15"
 )
 
 //提供系统rpc接口
-var random = rand.New(rand.NewSource(types.Now().UnixNano()))
 var log = log15.New("module", "rpc")
 
 type channelClient struct {
@@ -39,9 +37,9 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	}
 	//因为历史原因，这里还是有部分token 的字段，但是没有依赖token dapp
 	//未来这个调用可能会被废弃
-	execer := types.ExecName(types.CoinsX)
+	execer := types.ExecName(ety.CoinsX)
 	if param.IsToken {
-		execer = types.ExecName(types.TokenX)
+		execer = types.ExecName("token")
 	}
 	return types.CallCreateTx(execer, "", param)
 }
@@ -76,9 +74,10 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*types.Transaction, error) {
 	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))
-	txNone.Fee, _ = txNone.GetRealFee(types.MinFee)
-	txNone.Nonce = random.Int63()
-
+	txNone, err := types.FormatTx(types.ExecName(types.NoneX), txNone)
+	if err != nil {
+		return nil, err
+	}
 	tx, err := decodeTx(in.TxHex)
 	if err != nil {
 		return nil, err
@@ -88,7 +87,7 @@ func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*type
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(0, types.MinFee)
+	err = group.Check(0, types.GInt("MinFee"))
 	if err != nil {
 		return nil, err
 	}

@@ -5,27 +5,26 @@ import (
 	"reflect"
 
 	"gitlab.33.cn/chain33/chain33/common/address"
-
-	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	nameX      string
+	ManageX    = "manage"
 	actionName = map[string]int32{
 		"Modify": ManageActionModifyConfig,
 	}
 	logmap = map[int64]*types.LogInfo{
-		types.TyLogModifyConfig: {reflect.TypeOf(ModifyConfigLog{}), "LogModifyConfig"},
+		// 这里reflect.TypeOf类型必须是proto.Message类型，且是交易的回持结构
+		TyLogModifyConfig: {reflect.TypeOf(types.ReceiptConfig{}), "LogModifyConfig"},
 	}
 )
 
-//var tlog = log.New("module", name)
-
 func init() {
-	nameX = types.ExecName(types.ManageX)
-	types.AllowUserExec = append(types.AllowUserExec, []byte(types.ManageX))
-	types.RegistorExecutor(types.ManageX, NewType())
+	types.AllowUserExec = append(types.AllowUserExec, []byte(ManageX))
+	types.RegistorExecutor(ManageX, NewType())
+
+	types.RegisterDappFork(ManageX, "Enable", 120000)
+	types.RegisterDappFork(ManageX, "ForkManageExec", 400000)
 }
 
 type ManageType struct {
@@ -56,7 +55,7 @@ func (m ManageType) CreateTx(action string, message json.RawMessage) (*types.Tra
 	return tx, nil
 }
 
-func (m ManageType) GetLogMap() map[int64]*types.LogInfo {
+func (m *ManageType) GetLogMap() map[int64]*types.LogInfo {
 	return logmap
 }
 
@@ -71,20 +70,4 @@ func (m ManageType) GetRealToAddr(tx *types.Transaction) string {
 
 func (m ManageType) GetTypeMap() map[string]int32 {
 	return actionName
-}
-
-type ModifyConfigLog struct {
-}
-
-func (l ModifyConfigLog) Name() string {
-	return "LogModifyConfig"
-}
-
-func (l ModifyConfigLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptConfig
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
 }

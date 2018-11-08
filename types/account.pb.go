@@ -8,7 +8,6 @@ It is generated from these files:
 	account.proto
 	blockchain.proto
 	common.proto
-	config.proto
 	db.proto
 	executor.proto
 	p2p.proto
@@ -66,17 +65,6 @@ It has these top-level messages:
 	TxHash
 	TimeStatus
 	ReqKey
-	Config
-	Log
-	MemPool
-	Consensus
-	Wallet
-	Store
-	BlockChain
-	P2P
-	Rpc
-	Exec
-	Pprof
 	LeafNode
 	InnerNode
 	MAVLProof
@@ -90,6 +78,8 @@ It has these top-level messages:
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
+	PruneData
+	StoreValuePool
 	Genesis
 	ExecTxList
 	Query
@@ -157,6 +147,7 @@ It has these top-level messages:
 	AssetsTransferToExec
 	AssetsWithdraw
 	AssetsTransfer
+	Asset
 	CreateTx
 	CreateTransactionGroup
 	UnsignTx

@@ -9,16 +9,17 @@ import (
 
 // merkle avl Node
 type Node struct {
-	key       []byte
-	value     []byte
-	height    int32
-	size      int32
-	hash      []byte
-	leftHash  []byte
-	leftNode  *Node
-	rightHash []byte
-	rightNode *Node
-	persisted bool
+	key        []byte
+	value      []byte
+	height     int32
+	size       int32
+	hash       []byte
+	leftHash   []byte
+	leftNode   *Node
+	rightHash  []byte
+	rightNode  *Node
+	parentHash []byte
+	persisted  bool
 }
 
 //保存数据的是叶子节点
@@ -47,6 +48,7 @@ func MakeNode(buf []byte, t *Tree) (node *Node, err error) {
 	node.height = storeNode.Height
 	node.size = storeNode.Size
 	node.key = storeNode.Key
+	node.parentHash = storeNode.ParentHash
 
 	//leaf(叶子节点保存数据)
 	if node.height == 0 {
@@ -63,15 +65,16 @@ func (node *Node) _copy() *Node {
 		panic("Why are you copying a value node?")
 	}
 	return &Node{
-		key:       node.key,
-		height:    node.height,
-		size:      node.size,
-		hash:      nil, // Going to be mutated anyways.
-		leftHash:  node.leftHash,
-		leftNode:  node.leftNode,
-		rightHash: node.rightHash,
-		rightNode: node.rightNode,
-		persisted: false, // Going to be mutated, so it can't already be persisted.
+		key:        node.key,
+		height:     node.height,
+		size:       node.size,
+		hash:       nil, // Going to be mutated anyways.
+		leftHash:   node.leftHash,
+		leftNode:   node.leftNode,
+		rightHash:  node.rightHash,
+		rightNode:  node.rightNode,
+		parentHash: node.parentHash,
+		persisted:  false, // Going to be mutated, so it can't already be persisted.
 	}
 }
 
@@ -147,7 +150,7 @@ func (node *Node) Hash(t *Tree) []byte {
 		node.hash = leafnode.Hash()
 
 		if enableMavlPrefix && node.height != t.root.height {
-			hashKey := genPrefixHashKey(node, t.randomstr)
+			hashKey := genPrefixHashKey(node, t.blockHeight)
 			hashKey = append(hashKey, node.hash...)
 			node.hash = hashKey
 		}
@@ -177,9 +180,19 @@ func (node *Node) Hash(t *Tree) []byte {
 		innernode.RightHash = node.rightHash
 		node.hash = innernode.Hash()
 		if enableMavlPrefix && node.height != t.root.height {
-			hashKey := genPrefixHashKey(node, t.randomstr)
+			hashKey := genPrefixHashKey(node, t.blockHeight)
 			hashKey = append(hashKey, node.hash...)
 			node.hash = hashKey
+		}
+
+		if enablePrune {
+			//加入parentHash、brotherHash
+			if node.leftNode != nil && node.leftNode.height != t.root.height { //只对倒数第二层做裁剪
+				node.leftNode.parentHash = node.hash
+			}
+			if node.rightNode != nil && node.rightNode.height != t.root.height {
+				node.rightNode.parentHash = node.hash
+			}
 		}
 	}
 
@@ -223,6 +236,7 @@ func (node *Node) storeNode(t *Tree) []byte {
 	storeNode.Value = nil
 	storeNode.LeftHash = nil
 	storeNode.RightHash = nil
+	storeNode.ParentHash = nil
 
 	//leafnode
 	if node.height == 0 {
@@ -241,6 +255,9 @@ func (node *Node) storeNode(t *Tree) []byte {
 			panic("node.rightHash was nil in writePersistBytes")
 		}
 		storeNode.RightHash = node.rightHash
+	}
+	if enablePrune {
+		storeNode.ParentHash = node.parentHash
 	}
 	storeNodebytes, err := proto.Marshal(&storeNode)
 	if err != nil {

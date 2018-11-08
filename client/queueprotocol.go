@@ -572,7 +572,7 @@ func (q *QueueProtocol) QueryConsensus(param *types.ChainExecutor) (types.Messag
 	}
 	msg, err := q.query(consensusKey, types.EventConsensusQuery, param)
 	if err != nil {
-		log.Error("QueryConsensus", "Error", err.Error())
+		log.Error("query QueryConsensus", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(types.Message); ok {
@@ -867,26 +867,26 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 		return reply, nil
 	}
 	err = types.ErrTypeAsset
-	log.Error("GetBlockSequences", "Error", err.Error())
+	log.Error("GetBlockSequences", "Error", err)
 	return nil, err
 }
 
 func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
-		log.Error("BlockChainQuery", "Error", err)
+		log.Error("QueryChain", "Error", err)
 		return nil, err
 	}
 	msg, err := q.query(executorKey, types.EventBlockChainQuery, param)
 	if err != nil {
-		log.Error("BlockChainQuery", "Error", err.Error())
+		log.Error("QueryChain", "Error", err, "driver", param.Driver, "func", param.FuncName)
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(types.Message); ok {
 		return reply, nil
 	}
 	err = types.ErrTypeAsset
-	log.Error("BlockChainQuery", "Error", err.Error())
+	log.Error("QueryChain", "Error", err)
 	return nil, err
 }
 

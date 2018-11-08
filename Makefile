@@ -4,6 +4,8 @@
 # 3. make build
 # ...
 
+
+
 SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
 SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
 SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
@@ -39,15 +41,18 @@ dep: ## Get the dependencies
 all: ## Builds for multiple platforms
 	@gox  $(LDFLAGS) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/bityuan.toml build/
 	@mv chain33* build/
 
 build: ## Build the binary file
 	@go build $(BUILD_FLAGS) -v -i -o  $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/bityuan.toml build/
 
 release: ## Build the binary file
 	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/bityuan.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
 
 cli: ## Build cli binary
@@ -58,7 +63,7 @@ execblock: ## Build cli binary
 
 
 para:
-	@go build -v -o build/$(NAME) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(NAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
+	@go build -v -o build/$(NAME) -ldflags "-X $(SRC_CLI)/buildflags.ParaName=user.p.$(NAME). -X $(SRC_CLI)/buildflags.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
 
 autotest:## build autotest binary

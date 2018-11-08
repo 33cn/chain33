@@ -22,6 +22,18 @@ func TestGoMemDBIterator(t *testing.T) {
 	testDBIterator(t, memdb)
 }
 
+func TestGoMemDBIteratorDel(t *testing.T) {
+	dir, err := ioutil.TempDir("", "gomemdb")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	memdb, err := NewGoMemDB("gomemdb", dir, 128)
+	require.NoError(t, err)
+	defer memdb.Close()
+
+	testDBIteratorDel(t, memdb)
+}
+
 // memdb边界测试
 func TestGoMemDBBoundary(t *testing.T) {
 	dir, err := ioutil.TempDir("", "gomemdb")
