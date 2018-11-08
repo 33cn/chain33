@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/log/log15"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/blockchain"

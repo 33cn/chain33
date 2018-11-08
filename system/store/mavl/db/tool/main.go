@@ -11,7 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	log "github.com/inconshreveable/log15"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	mavl "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
