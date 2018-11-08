@@ -23,10 +23,10 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"

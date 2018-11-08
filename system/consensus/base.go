@@ -6,8 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/client"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
