@@ -856,6 +856,10 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "5420a8b6744d3b0345ab293f6fcba19c978f1183",
 			"revisionTime": "2018-03-28T19:50:20Z"
+		},
+		{
+			"path": "launchpad.net/gocheck",
+			"revision": ""
 		}
 	],
 	"rootPath": "gitlab.33.cn/chain33/chain33"

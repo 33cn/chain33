@@ -18,8 +18,8 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/wallet/bipwallet"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
-	"gitlab.33.cn/wallet/bipwallet"
 )
 
 func (wallet *Wallet) parseExpire(expire string) (int64, error) {
