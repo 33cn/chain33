@@ -8,7 +8,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	log "github.com/inconshreveable/log15"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
 	clog "gitlab.33.cn/chain33/chain33/common/log"

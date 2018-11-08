@@ -280,13 +280,13 @@
 		},
 		{
 			"checksumSHA1": "6SSsX4Mvz8QekUqzCdRPnQ+8dOQ=",
-			"path": "github.com/inconshreveable/log15",
+			"path": "gitlab.33.cn/chain33/chain33/common/log/log15",
 			"revision": "0f77f5243b7d7de1cb4c2a92f2fd2e18fb1856aa",
 			"revisionTime": "2016-12-12T18:33:35Z"
 		},
 		{
 			"checksumSHA1": "W/khCvuwG1LB/NWsbKjCU11Gn+4=",
-			"path": "github.com/inconshreveable/log15/term",
+			"path": "gitlab.33.cn/chain33/chain33/common/log/log15/term",
 			"revision": "0f77f5243b7d7de1cb4c2a92f2fd2e18fb1856aa",
 			"revisionTime": "2016-12-12T18:33:35Z"
 		},

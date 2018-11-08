@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
-	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/cmd/autotest/testcase"
 )
 
