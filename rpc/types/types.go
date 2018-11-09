@@ -124,6 +124,7 @@ type TransactionDetail struct {
 	Amount     int64              `json:"amount"`
 	Fromaddr   string             `json:"fromAddr"`
 	ActionName string             `json:"actionName"`
+	Assets     []*types.Asset     `json:"assets"`
 }
 
 type ReplyTxInfos struct {
