@@ -160,14 +160,6 @@
   version = "v1.8.0"
 
 [[projects]]
-  digest = "1:bbadccf3d3317ea03c0dac0b45b673b4b397c8f91a1d2eff550a3c51c4ad770e"
-  name = "github.com/gogo/protobuf"
-  packages = ["proto"]
-  pruneopts = "UT"
-  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
-  version = "v1.1.1"
-
-[[projects]]
   digest = "1:eadabf0f61f62c1c00eb476c1ffd05956eb54e67860e5580e87bfdc155bc1b00"
   name = "github.com/golang/protobuf"
   packages = [
@@ -382,15 +374,23 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c33a0598a33c3f5ccc731695b6de44a3dc3acc47ab0ddd7d3cbfed9e00799eb6"
+  digest = "1:21522f9602604fff534ab71ec1c91cee9e963505e4bc2bbdeefb6863de52e229"
   name = "golang.org/x/crypto"
   packages = [
     "blake2b",
+    "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "internal/chacha20",
+    "internal/subtle",
+    "nacl/box",
+    "nacl/secretbox",
     "pbkdf2",
+    "poly1305",
     "ripemd160",
+    "salsa20/salsa",
     "sha3",
+    "ssh",
     "twofish",
   ]
   pruneopts = "UT"
@@ -542,7 +542,6 @@
     "github.com/dgraph-io/badger",
     "github.com/dgraph-io/badger/options",
     "github.com/go-stack/stack",
-    "github.com/gogo/protobuf/proto",
     "github.com/golang/protobuf/jsonpb/jsonpb_test_proto",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/proto/proto3_proto",
@@ -575,8 +574,11 @@
     "github.com/syndtr/goleveldb/leveldb/util",
     "github.com/tjfoc/gmsm/sm2",
     "github.com/tjfoc/gmsm/sm3",
+    "golang.org/x/crypto/nacl/box",
+    "golang.org/x/crypto/nacl/secretbox",
     "golang.org/x/crypto/pbkdf2",
     "golang.org/x/crypto/ripemd160",
+    "golang.org/x/crypto/ssh",
     "golang.org/x/net/context",
     "golang.org/x/net/trace",
     "golang.org/x/sys/unix",
