@@ -137,38 +137,13 @@ func (c *Chain33) QueryTransaction(in rpctypes.QueryParm, result *interface{}) e
 		return err
 	}
 
-	{ //重新格式化数据
-
-		var transDetail rpctypes.TransactionDetail
-		transDetail.Tx, err = rpctypes.DecodeTx(reply.GetTx())
-		if err != nil {
-			return err
-		}
-
-		receiptTmp := &rpctypes.ReceiptData{Ty: reply.GetReceipt().GetTy()}
-		logs := reply.GetReceipt().GetLogs()
-		for _, log := range logs {
-			receiptTmp.Logs = append(receiptTmp.Logs,
-				&rpctypes.ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
-		}
-
-		transDetail.Receipt, err = rpctypes.DecodeLog([]byte(transDetail.Tx.Execer), receiptTmp)
-		if err != nil {
-			return err
-		}
-		for _, proof := range reply.Proofs {
-			transDetail.Proofs = append(transDetail.Proofs, common.ToHex(proof))
-		}
-		transDetail.Height = reply.GetHeight()
-		transDetail.Index = reply.GetIndex()
-		transDetail.Blocktime = reply.GetBlocktime()
-		transDetail.Amount = reply.GetAmount()
-		transDetail.Fromaddr = reply.GetFromaddr()
-		transDetail.ActionName = reply.GetActionName()
-		transDetail.Assets = reply.GetAssets()
-
-		*result = &transDetail
+	transDetail, err := fmtTxDetail(reply, true)
+	if err != nil {
+		return err
 	}
+
+	*result = &transDetail
+
 	return nil
 }
 
@@ -304,7 +279,7 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	var txdetails rpctypes.TransactionDetails
 	if 0 != len(txs) {
 		for _, tx := range txs {
-			txDetail := fmtTxDetail(tx, in.DisableDetail)
+			txDetail, _ := fmtTxDetail(tx, in.DisableDetail)
 			txdetails.Txs = append(txdetails.Txs, txDetail)
 		}
 	}
@@ -312,11 +287,11 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	return nil
 }
 
-func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) *rpctypes.TransactionDetail {
+func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.TransactionDetail, error) {
 	//增加判断，上游接口可能返回空指针
 	if tx == nil {
 		//参数中hash和返回的detail一一对应，顺序一致
-		return nil
+		return nil, nil
 	}
 
 	var recp rpctypes.ReceiptData
@@ -334,7 +309,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) *rpctypes.Tran
 	recpResult, err := rpctypes.DecodeLog(tx.Tx.Execer, &recp)
 	if err != nil {
 		log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
-		return nil
+		return nil, err
 	}
 
 	var proofs []string
@@ -345,7 +320,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) *rpctypes.Tran
 	tran, err := rpctypes.DecodeTx(tx.GetTx())
 	if err != nil {
 		log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)
-		return nil
+		return nil, err
 	}
 	return &rpctypes.TransactionDetail{
 			Tx:         tran,
@@ -358,7 +333,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) *rpctypes.Tran
 			Fromaddr:   tx.GetFromaddr(),
 			ActionName: tx.GetActionName(),
 			Assets:     tx.GetAssets(),
-		}
+		}, nil
 }
 
 func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
