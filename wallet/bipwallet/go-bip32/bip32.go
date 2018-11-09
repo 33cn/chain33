@@ -34,7 +34,7 @@ type Key struct {
 func NewMasterKey(seed []byte) (*Key, error) {
 	// Generate key and chaincode
 	hmac := hmac.New(sha512.New, []byte("Bitcoin seed"))
-	hmac.Write([]byte(seed))
+	hmac.Write(seed)
 	intermediary := hmac.Sum(nil)
 
 	// Split it into our key and chain code
@@ -175,6 +175,6 @@ func (key *Key) String() string {
 func NewSeed() ([]byte, error) {
 	// Well that easy, just make go read 256 random bytes into a slice
 	s := make([]byte, 256)
-	_, err := rand.Read([]byte(s))
+	_, err := rand.Read(s)
 	return s, err
 }

@@ -63,7 +63,7 @@ func base58Encode(data []byte) []byte {
 
 // Keys
 func publicKeyForPrivateKey(key []byte) []byte {
-	return compressPublicKey(curve.ScalarBaseMult([]byte(key)))
+	return compressPublicKey(curve.ScalarBaseMult(key))
 }
 
 func addPublicKeys(key1 []byte, key2 []byte) []byte {
