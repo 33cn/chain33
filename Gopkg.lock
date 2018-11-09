@@ -374,15 +374,23 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c33a0598a33c3f5ccc731695b6de44a3dc3acc47ab0ddd7d3cbfed9e00799eb6"
+  digest = "1:21522f9602604fff534ab71ec1c91cee9e963505e4bc2bbdeefb6863de52e229"
   name = "golang.org/x/crypto"
   packages = [
     "blake2b",
+    "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "internal/chacha20",
+    "internal/subtle",
+    "nacl/box",
+    "nacl/secretbox",
     "pbkdf2",
+    "poly1305",
     "ripemd160",
+    "salsa20/salsa",
     "sha3",
+    "ssh",
     "twofish",
   ]
   pruneopts = "UT"
@@ -566,8 +574,11 @@
     "github.com/syndtr/goleveldb/leveldb/util",
     "github.com/tjfoc/gmsm/sm2",
     "github.com/tjfoc/gmsm/sm3",
+    "golang.org/x/crypto/nacl/box",
+    "golang.org/x/crypto/nacl/secretbox",
     "golang.org/x/crypto/pbkdf2",
     "golang.org/x/crypto/ripemd160",
+    "golang.org/x/crypto/ssh",
     "golang.org/x/net/context",
     "golang.org/x/net/trace",
     "golang.org/x/sys/unix",
