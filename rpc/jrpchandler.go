@@ -165,6 +165,7 @@ func (c *Chain33) QueryTransaction(in rpctypes.QueryParm, result *interface{}) e
 		transDetail.Amount = reply.GetAmount()
 		transDetail.Fromaddr = reply.GetFromaddr()
 		transDetail.ActionName = reply.GetActionName()
+		transDetail.Assets = reply.GetAssets()
 
 		*result = &transDetail
 	}
@@ -349,6 +350,7 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 					Amount:     tx.GetAmount(),
 					Fromaddr:   tx.GetFromaddr(),
 					ActionName: tx.GetActionName(),
+					Assets:     tx.GetAssets(),
 				})
 		}
 	}
