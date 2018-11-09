@@ -186,7 +186,7 @@ function start() {
 }
 
 function check_docker_status() {
-    status=$(docker-compose ps | grep build_chain33_1 | awk '{print $6}')
+    status=$(docker-compose ps | grep chain33_1 | awk '{print $6}')
     if [ "${status}" == "Exit" ]; then
         echo "=========== chain33 service Exit logs ========== "
         docker-compose logs chain33
