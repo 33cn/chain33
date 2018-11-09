@@ -240,13 +240,6 @@ func (this *importPackageStrategy) fetchPlugin(gitrepo, version string) error {
 	return cmd.Run()
 }
 
-func runcmd(action string, param string) error {
-	cmd := exec.Command("govendor", action, param)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
-
 // fetchPluginPackage 使用govendor来下载依赖包
 func (this *importPackageStrategy) fetchPluginPackage() error {
 	mlog.Info("下载插件源码包")
