@@ -70,30 +70,30 @@ message TotalAmount {
 message ReqGetExecBalance {
     string symbol    = 1;
     bytes  stateHash = 2;
-    bytes  addr = 3;
+    bytes  addr      = 3;
     bytes  execAddr  = 4;
     string execer    = 5;
 }
 
 message ExecBalanceItem {
     bytes execAddr = 1;
-    int64 frozen = 2;
-    int64 active = 3;
+    int64 frozen   = 2;
+    int64 active   = 3;
 }
 
 //查询symbol在合约中的代币总额应答
 message ReplyGetExecBalance {
-    bytes addr = 1;
-    bytes prefix = 2;
-    int64 amount  = 3;
-    int64 amountFrozen  = 4;
-    int64 amountActive = 5;
+    bytes    addr                  = 1;
+    bytes    prefix                = 2;
+    int64    amount                = 3;
+    int64    amountFrozen          = 4;
+    int64    amountActive          = 5;
     repeated ExecBalanceItem items = 6;
 }
 
 //迭代查询symbol代币在合约中的总额
 message IterateExecBalanceByStateHash {
     bytes stateHash = 1;
-    bytes addr = 2;
-    bytes prefix = 3;
+    bytes addr      = 2;
+    bytes prefix    = 3;
 }
