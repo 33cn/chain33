@@ -53,34 +53,8 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
-			txDetail.Receipt = txresult.Receiptdate
-			txDetail.Tx = txresult.GetTx()
-			txDetail.Blocktime = txresult.GetBlocktime()
-			txDetail.Height = txresult.GetHeight()
-			txDetail.Index = int64(txresult.GetIndex())
-
-			//获取Amount
-			amount, err := txresult.GetTx().Amount()
-			if err != nil {
-				txDetail.Amount = 0
-			} else {
-				txDetail.Amount = amount
-			}
-			assets, err := txresult.GetTx().Assets()
-			if err != nil {
-				txDetail.Assets = nil
-			} else {
-				txDetail.Assets = assets
-			}
-
-			txDetail.ActionName = txresult.GetTx().ActionName()
-
-			//获取from地址
-			txDetail.Fromaddr = txresult.GetTx().From()
-			if txDetail.GetTx().IsWithdraw() {
-				//swap from and to
-				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
-			}
+			setTxDetailFromTxResult(&txDetail, txresult)
+			
 			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		} else {
