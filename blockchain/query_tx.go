@@ -66,6 +66,12 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			} else {
 				txDetail.Amount = amount
 			}
+			assets, err := txresult.GetTx().Assets()
+			if err != nil {
+				txDetail.Assets = nil
+			} else {
+				txDetail.Assets = assets
+			}
 
 			txDetail.ActionName = txresult.GetTx().ActionName()
 
@@ -194,6 +200,11 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 		amount = 0
 	}
 	TransactionDetail.Amount = amount
+	assets, err := txresult.GetTx().Assets()
+	if err != nil {
+		assets = nil
+	}
+	TransactionDetail.Assets = assets
 	TransactionDetail.ActionName = txresult.GetTx().ActionName()
 
 	//获取from地址
