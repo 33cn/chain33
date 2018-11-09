@@ -208,7 +208,7 @@ function block_wait_by_height() {
 
     cur_height=$1
     # shellcheck disable=SC2004
-    expect=$((cur_height + $2))
+    expect=$(($1 + $2))
     count=100
     while true; do
         new_height=$(${CLI} block last_header | jq ".height")
