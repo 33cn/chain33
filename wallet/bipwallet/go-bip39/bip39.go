@@ -106,12 +106,12 @@ func MnemonicToByteArray(mnemonic string) ([]byte, error) {
 		var found bool
 		if lang == 0 {
 			index, found = ReverseWordMap[v]
-			if found == false {
+			if !found {
 				return nil, fmt.Errorf("Word `%v` not found in reverse map", v)
 			}
 		} else {
 			index, found = ReverseWordMapCHN[v]
-			if found == false {
+			if !found {
 				return nil, fmt.Errorf("Word `%v` not found in reverse map", v)
 			}
 		}
@@ -198,7 +198,7 @@ func addChecksum(data []byte) []byte {
 		dataBigInt.Mul(dataBigInt, BigTwo)
 
 		// Set rightmost bit if leftmost checksum bit is set
-		if uint8(firstChecksumByte&(1<<(7-i))) > 0 {
+		if firstChecksumByte&(1<<(7-i)) > 0 {
 			dataBigInt.Or(dataBigInt, BigOne)
 		}
 	}
@@ -220,7 +220,7 @@ func validateEntropyBitSize(bitSize int) error {
 
 func validateEntropyWithChecksumBitSize(bitSize int) error {
 	if (bitSize != 128+4) && (bitSize != 160+5) && (bitSize != 192+6) && (bitSize != 224+7) && (bitSize != 256+8) {
-		return fmt.Errorf("Wrong entropy + checksum size - expected %v, got %v", int((bitSize-bitSize%32)+(bitSize-bitSize%32)/32), bitSize)
+		return fmt.Errorf("Wrong entropy + checksum size - expected %v, got %v", (bitSize-bitSize%32)+(bitSize-bitSize%32)/32, bitSize)
 	}
 	return nil
 }

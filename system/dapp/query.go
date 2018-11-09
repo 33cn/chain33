@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
