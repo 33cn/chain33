@@ -160,14 +160,6 @@
   version = "v1.8.0"
 
 [[projects]]
-  digest = "1:bbadccf3d3317ea03c0dac0b45b673b4b397c8f91a1d2eff550a3c51c4ad770e"
-  name = "github.com/gogo/protobuf"
-  packages = ["proto"]
-  pruneopts = "UT"
-  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
-  version = "v1.1.1"
-
-[[projects]]
   digest = "1:eadabf0f61f62c1c00eb476c1ffd05956eb54e67860e5580e87bfdc155bc1b00"
   name = "github.com/golang/protobuf"
   packages = [
@@ -542,7 +534,6 @@
     "github.com/dgraph-io/badger",
     "github.com/dgraph-io/badger/options",
     "github.com/go-stack/stack",
-    "github.com/gogo/protobuf/proto",
     "github.com/golang/protobuf/jsonpb/jsonpb_test_proto",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/proto/proto3_proto",

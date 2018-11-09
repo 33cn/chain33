@@ -10,7 +10,7 @@ Official golang implementation of the chain33 blockchain framework
 
 **chain33-cli**: it is used test chain33 for a cli tool.
 
-**chain33**: 33fuzamei blockchain product.
+**chain33**: 33.cn blockchain product.
 
 ## Download
 
