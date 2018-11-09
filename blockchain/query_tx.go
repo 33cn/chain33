@@ -54,7 +54,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
 			setTxDetailFromTxResult(&txDetail, txresult)
-			
+
 			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		} else {
@@ -197,6 +197,7 @@ func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresul
 		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
 	}
 }
+
 //type  AddrOverview {
 //	int64 reciver = 1;
 //	int64 balance = 2;

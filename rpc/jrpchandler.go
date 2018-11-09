@@ -323,17 +323,17 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		return nil, err
 	}
 	return &rpctypes.TransactionDetail{
-			Tx:         tran,
-			Height:     tx.GetHeight(),
-			Index:      tx.GetIndex(),
-			Blocktime:  tx.GetBlocktime(),
-			Receipt:    recpResult,
-			Proofs:     proofs,
-			Amount:     tx.GetAmount(),
-			Fromaddr:   tx.GetFromaddr(),
-			ActionName: tx.GetActionName(),
-			Assets:     tx.GetAssets(),
-		}, nil
+		Tx:         tran,
+		Height:     tx.GetHeight(),
+		Index:      tx.GetIndex(),
+		Blocktime:  tx.GetBlocktime(),
+		Receipt:    recpResult,
+		Proofs:     proofs,
+		Amount:     tx.GetAmount(),
+		Fromaddr:   tx.GetFromaddr(),
+		ActionName: tx.GetActionName(),
+		Assets:     tx.GetAssets(),
+	}, nil
 }
 
 func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
