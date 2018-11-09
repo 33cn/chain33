@@ -3,6 +3,7 @@
 package log15
 
 import (
+	"io"
 	"log/syslog"
 	"strings"
 )
@@ -21,23 +22,24 @@ func SyslogNetHandler(net, addr string, priority syslog.Priority, tag string, fm
 	return sharedSyslog(fmtr, wr, err)
 }
 
-func sharedSyslog(fmtr Format, sysWr *syslog.Writer, err error) (Handler, error) {
+func sharedSyslog(fmtr Format, sysWr io.WriteCloser, err error) (Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	var syslogFn = sysWr.Info
+	wr := sysWr.(*syslog.Writer)
 	h := FuncHandler(int(LvlDebug), func(r *Record) error {
+		var syslogFn = wr.Info
 		switch r.Lvl {
 		case LvlCrit:
-			syslogFn = sysWr.Crit
+			syslogFn = wr.Crit
 		case LvlError:
-			syslogFn = sysWr.Err
+			syslogFn = wr.Err
 		case LvlWarn:
-			syslogFn = sysWr.Warning
+			syslogFn = wr.Warning
 		case LvlInfo:
-			syslogFn = sysWr.Info
+			syslogFn = wr.Info
 		case LvlDebug:
-			syslogFn = sysWr.Debug
+			syslogFn = wr.Debug
 		}
 		s := strings.TrimSpace(string(fmtr.Format(r)))
 		return syslogFn(s)
