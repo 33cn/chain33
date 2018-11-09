@@ -127,7 +127,6 @@ function start() {
     peersCount=$(${CLI} net peer_info | jq '.[] | length')
     echo "peersCount=${peersCount}"
 
-
     echo "=========== # save seed to wallet ============="
     result=$(${CLI} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
     if [ "${result}" = "false" ]; then
@@ -161,9 +160,7 @@ function start() {
         exit 1
     fi
 
-
-
-    block_wait  1
+    block_wait 1
 
     echo "=========== check genesis hash ========== "
     ${CLI} block hash -t 0
@@ -178,7 +175,7 @@ function start() {
     ${CLI} block last_header
     result=$(${CLI} block last_header | jq ".height")
     if [ "${result}" -lt 1 ]; then
-        block_wait  2
+        block_wait 2
     fi
 
     #    sync_status "${CLI}"
@@ -203,7 +200,6 @@ function block_wait() {
 
 }
 
-
 function block_wait_by_height() {
     if [ "$#" -lt 2 ]; then
         echo "wrong block_wait params"
@@ -212,7 +208,7 @@ function block_wait_by_height() {
 
     cur_height=$1
     # shellcheck disable=SC2004
-    expect=$(($cur_height + $2))
+    expect=$((cur_height + $2))
     count=100
     while true; do
         new_height=$(${CLI} block last_header | jq ".height")
@@ -309,7 +305,6 @@ function transfer() {
         echo "wrong balance=$balance, should not be 10.0000"
         exit 1
     fi
-
 
 }
 
