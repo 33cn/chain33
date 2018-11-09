@@ -730,7 +730,7 @@ func execBalance(cmd *cobra.Command, args []string) {
 
 		for i := 0; i < len(resResult.Items); i++ {
 			item := &ExecBalance{}
-			item.ExecAddr = resResult.Items[i].ExecAddr
+			item.ExecAddr = string(resResult.Items[i].ExecAddr)
 			item.Frozen = strconv.FormatFloat(float64(resResult.Items[i].Frozen)/float64(types.Coin), 'f', 4, 64)
 			item.Active = strconv.FormatFloat(float64(resResult.Items[i].Active)/float64(types.Coin), 'f', 4, 64)
 			resp.ExecBalances = append(resp.ExecBalances, item)
@@ -742,9 +742,9 @@ func execBalance(cmd *cobra.Command, args []string) {
 
 		for i := 0; i < len(resResult.Items); i++ {
 			item := &ExecBalance{}
-			item.ExecAddr = resResult.Items[i].ExecAddr
-			item.Frozen = strconv.FormatFloat(float64(resResult.Items[i].Frozen)/float64(types.Coin), 'f', 4, 64)
-			item.Active = strconv.FormatFloat(float64(resResult.Items[i].Active)/float64(types.Coin), 'f', 4, 64)
+			item.ExecAddr = string(resResult.Items[i].ExecAddr)
+			item.Frozen = strconv.FormatFloat(float64(resResult.Items[i].Frozen)/float64(types.TokenPrecision), 'f', 4, 64)
+			item.Active = strconv.FormatFloat(float64(resResult.Items[i].Active)/float64(types.TokenPrecision), 'f', 4, 64)
 			resp.ExecBalances = append(resp.ExecBalances, item)
 		}
 	}

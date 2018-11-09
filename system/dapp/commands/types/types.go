@@ -269,7 +269,7 @@ type GetExecBalanceResult struct {
 }
 
 type ExecBalance struct {
-	ExecAddr []byte `json:"execAddr,omitempty"`
+	ExecAddr string `json:"execAddr,omitempty"`
 	Frozen   string  `json:"frozen"`
 	Active   string  `json:"active"`
 }
