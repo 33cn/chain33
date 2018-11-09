@@ -267,14 +267,14 @@ func (this *importPackageStrategy) fetchPluginPackage() error {
 			}
 		}
 	}
-	err := runcmd("fetch", "+m")
-	if err != nil {
-		mlog.Info("同步插件包出错 fetch +m", "error", err.Error())
-		return err
-	}
-	err = runcmd("add", "+e")
+	err := runcmd("add", "+e")
 	if err != nil {
 		mlog.Info("同步插件包出错 add +e", "error", err.Error())
+		return err
+	}
+	err = runcmd("fetch", "-v +m")
+	if err != nil {
+		mlog.Info("同步插件包出错 fetch +m", "error", err.Error())
 		return err
 	}
 	return nil
