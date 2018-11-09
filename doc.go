@@ -9,3 +9,9 @@ chain33 是由复杂美科技有限公司开发的区块链链框架
 
 3. 创新的 合约 调用和组合方式
 */
+
+import (
+	_ "golang.org/x/crypto/nacl/box"
+	_ "golang.org/x/crypto/nacl/secretbox"
+	_ "golang.org/x/crypto/ssh"
+)
