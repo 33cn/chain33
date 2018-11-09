@@ -187,6 +187,14 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 
 	TransactionDetail.Proofs = proofs
 	chainlog.Debug("ProcQueryTxMsg", "proofs", TransactionDetail.Proofs)
+
+	setTxDetailFromTxResult(&TransactionDetail, txresult)
+	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
+
+	return &TransactionDetail, nil
+}
+
+func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresult *types.TxResult) {
 	TransactionDetail.Receipt = txresult.Receiptdate
 	TransactionDetail.Tx = txresult.GetTx()
 	TransactionDetail.Height = txresult.GetHeight()
@@ -214,11 +222,7 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 		//swap from and to
 		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
 	}
-	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
-
-	return &TransactionDetail, nil
 }
-
 //type  AddrOverview {
 //	int64 reciver = 1;
 //	int64 balance = 2;
