@@ -407,7 +407,7 @@ func (t *ReplyGetExecBalance) IterateExecBalanceByStateHash(key, value []byte) b
 	//合法的key例子：mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP
 	strKey := string(key)
 	strPrefix := string(t.Prefix)
-	fmt.Println("ReplyGetExecBalance.IterateExecBalanceByStateHash", "key", strKey)
+	//fmt.Println("ReplyGetExecBalance.IterateExecBalanceByStateHash", "key", strKey)
     if !strings.HasPrefix(strKey, strPrefix) {
 		tlog.Error("ReplyGetExecBalance.IterateExecBalanceByStateHash key does not match prefix", "key", strKey, "prefix", strPrefix)
 		return true

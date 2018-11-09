@@ -135,6 +135,7 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		resp := &types.ReplyGetExecBalance{}
 		resp.Addr = req.Addr
 		resp.Prefix = req.Prefix
+		//slog.Info("Store get EventStoreGetExecBalance", "Addr", string(req.Addr), "Prefix", string(req.Prefix))
 		store.child.IterateRangeByStateHash(req.StateHash, req.Prefix, nil, true, resp.IterateExecBalanceByStateHash)
 		msg.Reply(client.NewMessage("", types.EventGetExecBalanceReply, resp))
 	} else{

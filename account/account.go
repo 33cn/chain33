@@ -329,5 +329,6 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 
 	req.Prefix = []byte(prefix)
 	req.Addr = in.Addr
+	//log.Info("DB.GetExecBalance", "hash", string(req.StateHash), "Prefix", string(req.Prefix), "Addr", string(req.Addr))
 	return api.StoreGetExecBalance(&req)
 }

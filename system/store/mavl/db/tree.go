@@ -11,7 +11,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/types"
-)
+	)
 
 const (
 	hashNodePrefix = "_mh_"

@@ -650,6 +650,7 @@ func addExecBalanceCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("symbol", "s", "bty", "token symbol")
 	cmd.Flags().StringP("exec", "e", "coins", "excutor name")
 	cmd.Flags().StringP("addr", "a", "", "address")
+	cmd.MarkFlagRequired("addr")
 	cmd.Flags().StringP("exec_addr", "x", "", "exec address")
 	cmd.Flags().Int64P("height", "t", -1, `block height, "-1" stands for current height`)
 }
@@ -715,14 +716,12 @@ func execBalance(cmd *cobra.Command, args []string) {
 	if symbol == "bty" {
 		reqParam.Execer = "coins"
 	}
-
 	var resResult types.ReplyGetExecBalance
 	err = rpc.Call("Chain33.GetExecBalance", reqParam, &resResult)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-
 	if symbol == "bty" {
 		resp.Amount = strconv.FormatFloat(float64(resResult.Amount)/float64(types.Coin), 'f', 4, 64)
 		resp.AmountFrozen = strconv.FormatFloat(float64(resResult.AmountFrozen)/float64(types.Coin), 'f', 4, 64)
