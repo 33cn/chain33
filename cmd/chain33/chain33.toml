@@ -98,6 +98,13 @@ targetTimePerBlock = 15
 [mver.consensus.ForkChainParamV2]
 powLimitBits = "0x1f2fffff"
 
+[consensus.sub.solo]
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+genesisBlockTime=1514533394
+hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+waitTxMs=10
+
+
 [consensus.sub.ticket]
 genesisBlockTime=1514533394
 [[consensus.sub.ticket.genesis]]
