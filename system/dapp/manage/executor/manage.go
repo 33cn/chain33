@@ -8,7 +8,7 @@ manage 负责管理配置
 */
 
 import (
-	log "github.com/inconshreveable/log15"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )

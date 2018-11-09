@@ -7,7 +7,6 @@
 package leveldb
 
 import (
-	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -71,7 +70,6 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 	flush := func() (retry bool) {
 		mdb = db.getEffectiveMem()
 		if mdb == nil {
-			debug.PrintStack()
 			err = ErrClosed
 			return false
 		}
@@ -87,17 +85,18 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 		case tLen >= slowdownTrigger && !delayed:
 			delayed = true
 			time.Sleep(time.Millisecond)
-			db.logf("slowdownTrigger...")
 		case mdbFree >= n:
 			return false
 		case tLen >= pauseTrigger:
 			delayed = true
-			beg := time.Now()
+			// Set the write paused flag explicitly.
+			atomic.StoreInt32(&db.inWritePaused, 1)
 			err = db.compTriggerWait(db.tcompCmdC)
+			// Unset the write paused flag.
+			atomic.StoreInt32(&db.inWritePaused, 0)
 			if err != nil {
 				return false
 			}
-			db.logf("pauseTrigger...cost.%v", time.Since(beg))
 		default:
 			// Allow memdb to grow if it has no entry.
 			if mdb.Len() == 0 {
@@ -117,7 +116,6 @@ func (db *DB) flush(n int) (mdb *memDB, mdbFree int, err error) {
 	}
 	start := time.Now()
 	for flush() {
-		db.logf("flush...")
 	}
 	if delayed {
 		db.writeDelay += time.Since(start)
@@ -152,7 +150,7 @@ func (db *DB) unlockWrite(overflow bool, merged int, err error) {
 	}
 }
 
-// ourBatch if defined should equal with batch.
+// ourBatch is batch that we can modify.
 func (db *DB) writeLocked(batch, ourBatch *Batch, merge, sync bool) error {
 	// Try to flush memdb. This method would also trying to throttle writes
 	// if it is too fast and compaction cannot catch-up.
@@ -219,6 +217,11 @@ func (db *DB) writeLocked(batch, ourBatch *Batch, merge, sync bool) error {
 				break merge
 			}
 		}
+	}
+
+	// Release ourBatch if any.
+	if ourBatch != nil {
+		defer db.batchPool.Put(ourBatch)
 	}
 
 	// Seq number.
@@ -296,7 +299,6 @@ func (db *DB) Write(batch *Batch, wo *opt.WriteOptions) error {
 			return err
 		case <-db.closeC:
 			// Closed
-			debug.PrintStack()
 			return ErrClosed
 		}
 	} else {
@@ -308,7 +310,6 @@ func (db *DB) Write(batch *Batch, wo *opt.WriteOptions) error {
 			return err
 		case <-db.closeC:
 			// Closed
-			debug.PrintStack()
 			return ErrClosed
 		}
 	}
@@ -340,7 +341,6 @@ func (db *DB) putRec(kt keyType, key, value []byte, wo *opt.WriteOptions) error 
 			return err
 		case <-db.closeC:
 			// Closed
-			debug.PrintStack()
 			return ErrClosed
 		}
 	} else {
@@ -352,7 +352,6 @@ func (db *DB) putRec(kt keyType, key, value []byte, wo *opt.WriteOptions) error 
 			return err
 		case <-db.closeC:
 			// Closed
-			debug.PrintStack()
 			return ErrClosed
 		}
 	}
@@ -409,14 +408,12 @@ func (db *DB) CompactRange(r util.Range) error {
 	case err := <-db.compPerErrC:
 		return err
 	case <-db.closeC:
-		debug.PrintStack()
 		return ErrClosed
 	}
 
 	// Check for overlaps in memdb.
 	mdb := db.getEffectiveMem()
 	if mdb == nil {
-		debug.PrintStack()
 		return ErrClosed
 	}
 	defer mdb.decref()
@@ -451,7 +448,6 @@ func (db *DB) SetReadOnly() error {
 	case err := <-db.compPerErrC:
 		return err
 	case <-db.closeC:
-		debug.PrintStack()
 		return ErrClosed
 	}
 
@@ -461,7 +457,6 @@ func (db *DB) SetReadOnly() error {
 	case perr := <-db.compPerErrC:
 		return perr
 	case <-db.closeC:
-		debug.PrintStack()
 		return ErrClosed
 	}
 

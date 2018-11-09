@@ -5,7 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 
-	"gitlab.33.cn/wallet/bipwallet"
+	"gitlab.33.cn/chain33/chain33/wallet/bipwallet"
 	//	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -16,7 +16,7 @@ import (
 
 	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	"github.com/NebulousLabs/Sia/modules"
-	log "github.com/inconshreveable/log15"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 
 	//	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.33.cn/chain33/chain33/common"

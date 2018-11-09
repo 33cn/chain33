@@ -3,9 +3,9 @@ package strategy
 import (
 	"fmt"
 
-	"github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
+	"gitlab.33.cn/chain33/chain33/common/log/log15"
 )
 
 var (

@@ -2,9 +2,9 @@ package mavl
 
 import (
 	lru "github.com/hashicorp/golang-lru"
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	mavl "gitlab.33.cn/chain33/chain33/system/store/mavl/db"

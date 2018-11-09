@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	tml "github.com/BurntSushi/toml"
-	l "github.com/inconshreveable/log15"
 	"github.com/rs/cors"
+	l "gitlab.33.cn/chain33/chain33/common/log/log15"
 
 	"gitlab.33.cn/chain33/chain33/cmd/miner_accounts/accounts"
 )

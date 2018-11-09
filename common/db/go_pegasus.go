@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/XiaoMi/pegasus-go-client/pegasus"
-	log "github.com/inconshreveable/log15"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	log "gitlab.33.cn/chain33/chain33/common/log/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
