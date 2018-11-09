@@ -57,7 +57,7 @@ func NewAccountDB(execer string, symbol string, db dbm.KV) (*DB, error) {
 	return accDB, nil
 }
 
-func newAccountDB(prefix string) *DB {
+func  newAccountDB(prefix string) *DB {
 	acc := &DB{}
 	acc.accountKeyPerfix = []byte(prefix)
 	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)

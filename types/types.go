@@ -412,27 +412,14 @@ func (t *ReplyGetExecBalance) IterateExecBalanceByStateHash(key, value []byte) b
 		tlog.Error("ReplyGetExecBalance.IterateExecBalanceByStateHash key does not match prefix", "key", strKey, "prefix", strPrefix)
 		return true
 	}
-	//如果perfix形如：mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:  ,则是查找addr在一个合约地址上的余额，找到一个值即可结束。
+	//如果prefix形如：mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:  ,则是查找addr在一个合约地址上的余额，找到一个值即可结束。
 	if strings.HasSuffix(strPrefix, ":") {
 		addr := strKey[len(strPrefix):]
 		if addr == string(t.Addr) {
-			var acc Account
-			err := Decode(value, &acc)
-			if err != nil {
-				tlog.Error("ReplyGetExecBalance.IterateExecBalanceByStateHash", "err", err)
-				return true
-			}
-			//tlog.Info("acc:", "value", acc)
-			t.Amount += acc.Balance
-			t.Amount += acc.Frozen
-
-			t.AmountActive += acc.Balance
-			t.AmountFrozen += acc.Frozen
-
-			item := &ExecBalanceItem{[]byte(strPrefix[(len(strPrefix) - len(addr) - 1):(len(strPrefix) - 1)]), acc.Frozen, acc.Balance}
-			t.Items = append(t.Items, item)
+			execAddr := []byte(strPrefix[(len(strPrefix) - len(addr) - 1):(len(strPrefix) - 1)])
+			t.addItem(execAddr, value)
 			return true
-		}else {
+		} else {
 			return false
 		}
 	} else {
@@ -446,23 +433,25 @@ func (t *ReplyGetExecBalance) IterateExecBalanceByStateHash(key, value []byte) b
 		if addrs[1] != string(t.Addr) {
 			return false
 		}
-		var acc Account
-		err := Decode(value, &acc)
-		if err != nil {
-			tlog.Error("ReplyGetExecBalance.IterateExecBalanceByStateHash", "err", err)
-			return true
-		}
-		//tlog.Info("acc:", "value", acc)
-		t.Amount += acc.Balance
-		t.Amount += acc.Frozen
-
-		t.AmountActive += acc.Balance
-		t.AmountFrozen += acc.Frozen
-
-		item := &ExecBalanceItem{[]byte(addrs[0]), acc.Frozen, acc.Balance}
-		t.Items = append(t.Items, item)
-
-
+		t.addItem([]byte(addrs[0]), value)
 		return false
 	}
+}
+
+func (t *ReplyGetExecBalance) addItem(execAddr, value []byte) {
+	var acc Account
+	err := Decode(value, &acc)
+	if err != nil {
+		tlog.Error("ReplyGetExecBalance.IterateExecBalanceByStateHash", "err", err)
+		return
+	}
+	//tlog.Info("acc:", "value", acc)
+	t.Amount += acc.Balance
+	t.Amount += acc.Frozen
+
+	t.AmountActive += acc.Balance
+	t.AmountFrozen += acc.Frozen
+
+	item := &ExecBalanceItem{execAddr, acc.Frozen, acc.Balance}
+	t.Items = append(t.Items, item)
 }

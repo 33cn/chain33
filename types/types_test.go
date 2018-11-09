@@ -174,7 +174,7 @@ func TestGetRealExecName(t *testing.T) {
 	}
 }
 
-func TestIterateExecBalanceByStateHash(t *testing.T){
+func TestIterateExecBalanceByStateHash_PrefixWithoutExecAddr(t *testing.T){
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	//prefix1 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:"
 	prefix2 := "mavl-coins-bty-exec-"
@@ -228,7 +228,7 @@ func TestIterateExecBalanceByStateHash(t *testing.T){
 	assert.Equal(t, int64(9*3), reply.AmountFrozen)
 }
 
-func TestIterateExecBalanceByStateHash2(t *testing.T){
+func TestIterateExecBalanceByStateHash_PrefixWithExecAddr(t *testing.T){
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	prefix1 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:"
 	//execAddr := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"

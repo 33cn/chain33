@@ -5,14 +5,14 @@ import (
 	"os"
 	"testing"
 
+			"github.com/stretchr/testify/assert"
+		drivers "gitlab.33.cn/chain33/chain33/system/store"
+		"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
+	mavldb "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
 	"fmt"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/common"
-	drivers "gitlab.33.cn/chain33/chain33/system/store"
-	mavldb "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const MaxKeylenth int = 64
@@ -149,6 +149,7 @@ func checkKV(k, v []byte) bool {
 	mlog.Debug("checkKV", "key", string(k), "value", string(v))
 	return false
 }
+
 func TestKvdbIterate(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
@@ -172,6 +173,84 @@ func TestKvdbIterate(t *testing.T) {
 	assert.Equal(t, []byte("v1"), checkKVResult[0].Value)
 	assert.Equal(t, []byte("v2"), checkKVResult[1].Value)
 
+}
+
+func TestIterateRangeForExecBalance(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg, nil).(*Store)
+	assert.NotNil(t, store)
+	//mavldb.EnableMavlPrefix(true)
+	//defer mavldb.EnableMavlPrefix(false)
+
+	var accountdb *account.DB
+	accountdb = account.NewCoinsAccount()
+	//key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	prefix := "mavl-coins-bty-exec-"
+	execAddr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	var acc = &types.Account{
+		Currency: 0,
+		Balance: 1,
+		Frozen: 1,
+		Addr: addr,
+	}
+
+
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		accountdb.GetExecKVSet(execAddr1, acc),
+		0}
+	hash0, err := store.Set(datas, true)
+
+	execAddr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	datas = &types.StoreSet{
+		hash0,
+		accountdb.GetExecKVSet(execAddr2, acc),
+		1}
+	hash1, err := store.Set(datas, true)
+
+	execAddr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	datas = &types.StoreSet{
+		hash1,
+		accountdb.GetExecKVSet(execAddr3, acc),
+		2}
+	hash2, err := store.Set(datas, true)
+
+	assert.Nil(t, err)
+
+	fmt.Println("func TestIterateRangeForExecBalance------test case1-------")
+	resp2 := &types.ReplyGetExecBalance{}
+	resp2.Addr = []byte(addr)
+	resp2.Prefix = []byte(prefix)
+	store.IterateRangeByStateHash(hash2, resp2.Prefix, nil, true, resp2.IterateExecBalanceByStateHash)
+
+	assert.Equal(t, int64(6), resp2.Amount)
+	assert.Equal(t, int64(3), resp2.AmountFrozen)
+	assert.Equal(t, int64(3), resp2.AmountActive)
+
+	fmt.Println("func TestIterateRangeForExecBalance------test case2-------")
+	resp1 := &types.ReplyGetExecBalance{}
+	resp1.Addr = []byte(addr)
+	resp1.Prefix = []byte(prefix)
+	store.IterateRangeByStateHash(hash1, resp2.Prefix, nil, true, resp1.IterateExecBalanceByStateHash)
+
+	assert.Equal(t, int64(4), resp1.Amount)
+	assert.Equal(t, int64(2), resp1.AmountFrozen)
+	assert.Equal(t, int64(2), resp1.AmountActive)
+
+	fmt.Println("func TestIterateRangeForExecBalance------test case3-------")
+	resp0 := &types.ReplyGetExecBalance{}
+	resp0.Addr = []byte(addr)
+	resp0.Prefix = []byte(prefix)
+	store.IterateRangeByStateHash(hash0, resp0.Prefix, nil, true, resp0.IterateExecBalanceByStateHash)
+
+	assert.Equal(t, int64(2), resp0.Amount)
+	assert.Equal(t, int64(1), resp0.AmountFrozen)
+	assert.Equal(t, int64(1), resp0.AmountActive)
 }
 
 func GetRandomString(length int) string {
