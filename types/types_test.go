@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types/jsonpb"
+	"fmt"
 )
 
 func TestAllowExecName(t *testing.T) {
@@ -171,4 +172,118 @@ func TestGetRealExecName(t *testing.T) {
 	for _, v := range a {
 		assert.Equal(t, string(GetRealExecName([]byte(v.key))), v.realkey)
 	}
+}
+
+func TestIterateExecBalanceByStateHash(t *testing.T){
+	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	//prefix1 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:"
+	prefix2 := "mavl-coins-bty-exec-"
+
+	//execAddr := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+
+
+	var reply = &ReplyGetExecBalance{
+		Addr: []byte(addr),
+		Prefix: []byte(prefix2),
+	}
+
+	var acc = &Account{
+		Currency: 0,
+		Balance: 10,
+		Frozen: 9,
+		Addr: addr,
+	}
+
+	value := Encode(acc)
+
+	fmt.Println("TestIterateExecBalanceByStateHash--test case 1---")
+	bRet := reply.IterateExecBalanceByStateHash([]byte(key), value)
+	assert.Equal(t, false, bRet)
+	assert.Equal(t, int64(19), reply.Amount)
+	assert.Equal(t, int64(10), reply.AmountActive)
+	assert.Equal(t, int64(9), reply.AmountFrozen)
+
+	fmt.Println("TestIterateExecBalanceByStateHash--test case 2---")
+	bRet = reply.IterateExecBalanceByStateHash([]byte(key), value)
+	assert.Equal(t, false, bRet)
+	assert.Equal(t, int64(19*2), reply.Amount)
+	assert.Equal(t, int64(10*2), reply.AmountActive)
+	assert.Equal(t, int64(9*2), reply.AmountFrozen)
+
+	fmt.Println("TestIterateExecBalanceByStateHash--test case 3---")
+	key2 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:2JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	bRet = reply.IterateExecBalanceByStateHash([]byte(key2), value)
+	assert.Equal(t, false, bRet)
+	assert.Equal(t, int64(19*2), reply.Amount)
+	assert.Equal(t, int64(10*2), reply.AmountActive)
+	assert.Equal(t, int64(9*2), reply.AmountFrozen)
+
+	fmt.Println("TestIterateExecBalanceByStateHash--test case 4---")
+	key3 := "mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	bRet = reply.IterateExecBalanceByStateHash([]byte(key3), value)
+	assert.Equal(t, false, bRet)
+	assert.Equal(t, int64(19*3), reply.Amount)
+	assert.Equal(t, int64(10*3), reply.AmountActive)
+	assert.Equal(t, int64(9*3), reply.AmountFrozen)
+}
+
+func TestIterateExecBalanceByStateHash2(t *testing.T){
+	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	prefix1 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:"
+	//execAddr := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+
+
+	var reply = &ReplyGetExecBalance{
+		Addr: []byte(addr),
+		Prefix: []byte(prefix1),
+	}
+
+	var acc = &Account{
+		Currency: 0,
+		Balance: 10,
+		Frozen: 9,
+		Addr: addr,
+	}
+
+	value := Encode(acc)
+
+	fmt.Println("TestIterateExecBalanceByStateHash2--test case 1---")
+	key2 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:2JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	bRet := reply.IterateExecBalanceByStateHash([]byte(key2), value)
+	assert.Equal(t, false, bRet)
+	assert.Equal(t, int64(0), reply.Amount)
+	assert.Equal(t, int64(0), reply.AmountActive)
+	assert.Equal(t, int64(0), reply.AmountFrozen)
+
+	fmt.Println("TestIterateExecBalanceByStateHash--test case 2---")
+	bRet = reply.IterateExecBalanceByStateHash([]byte(key), value)
+	assert.Equal(t, true, bRet)
+	assert.Equal(t, int64(19), reply.Amount)
+	assert.Equal(t, int64(10), reply.AmountActive)
+	assert.Equal(t, int64(9), reply.AmountFrozen)
+
+	fmt.Println("TestIterateExecBalanceByStateHash--test case 3---")
+	//key2 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:2JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	bRet = reply.IterateExecBalanceByStateHash([]byte(key2), value)
+	assert.Equal(t, false, bRet)
+	assert.Equal(t, int64(19), reply.Amount)
+	assert.Equal(t, int64(10), reply.AmountActive)
+	assert.Equal(t, int64(9), reply.AmountFrozen)
+
+	fmt.Println("TestIterateExecBalanceByStateHash--test case 4---")
+	key3 := "mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	bRet = reply.IterateExecBalanceByStateHash([]byte(key3), value)
+	assert.Equal(t, true, bRet)
+	assert.Equal(t, int64(19), reply.Amount)
+	assert.Equal(t, int64(10), reply.AmountActive)
+	assert.Equal(t, int64(9), reply.AmountFrozen)
+
+	fmt.Println("TestIterateExecBalanceByStateHash--test case 5---")
+	bRet = reply.IterateExecBalanceByStateHash([]byte(key), value)
+	assert.Equal(t, true, bRet)
+	assert.Equal(t, int64(19 * 2), reply.Amount)
+	assert.Equal(t, int64(10 * 2), reply.AmountActive)
+	assert.Equal(t, int64(9 * 2), reply.AmountFrozen)
 }
