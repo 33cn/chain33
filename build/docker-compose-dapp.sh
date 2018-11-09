@@ -64,43 +64,30 @@ echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
 echo "CLI=$CLI"
 ####################
 
-testtoml=chain33.toml
-
 function base_init() {
 
     # update test environment
-    sed -i $sedfix 's/^Title.*/Title="local"/g' ${testtoml}
-    sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' ${testtoml}
+    sed -i $sedfix 's/^Title.*/Title="local"/g' chain33.toml
+    sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
 
     # p2p
-    sed -i $sedfix 's/^seeds=.*/seeds=["chain33:13802","chain32:13802","chain31:13802"]/g' ${testtoml}
+    sed -i $sedfix 's/^seeds=.*/seeds=["chain33:13802","chain32:13802","chain31:13802"]/g' chain33.toml
     #sed -i $sedfix 's/^enable=.*/enable=true/g' chain33.toml
-    sed -i $sedfix '0,/^enable=.*/s//enable=true/' ${testtoml}
-    sed -i $sedfix 's/^isSeed=.*/isSeed=true/g' ${testtoml}
-    sed -i $sedfix 's/^innerSeedEnable=.*/innerSeedEnable=false/g' ${testtoml}
-    sed -i $sedfix 's/^useGithub=.*/useGithub=false/g' ${testtoml}
+    sed -i $sedfix '0,/^enable=.*/s//enable=true/' chain33.toml
+    sed -i $sedfix 's/^isSeed=.*/isSeed=true/g' chain33.toml
+    sed -i $sedfix 's/^innerSeedEnable=.*/innerSeedEnable=false/g' chain33.toml
+    sed -i $sedfix 's/^useGithub=.*/useGithub=false/g' chain33.toml
 
     # rpc
-    sed -i $sedfix 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8801"/g' ${testtoml}
-    sed -i $sedfix 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8802"/g' ${testtoml}
-    sed -i $sedfix 's/^whitelist=.*/whitelist=["localhost","127.0.0.1","0.0.0.0"]/g' ${testtoml}
+    sed -i $sedfix 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8801"/g' chain33.toml
+    sed -i $sedfix 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8802"/g' chain33.toml
+    sed -i $sedfix 's/^whitelist=.*/whitelist=["localhost","127.0.0.1","0.0.0.0"]/g' chain33.toml
 
     # wallet
-    sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' ${testtoml}
-
-    #consens
-    consens_init "solo"
+    sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
 }
 
-function consens_init() {
-
-    if [ "$1" == "solo" ]; then
-        sed -i $sedfix 's/^name="ticket"/name="solo"/g' ${testtoml}
-        sed -i $sedfix 's/^singleMode=false/singleMode=true/g' ${testtoml}
-    fi
-
-}
 function start() {
     echo "=========== # docker-compose ps ============="
     docker-compose ps
@@ -112,20 +99,35 @@ function start() {
     #docker-compose -f docker-compose.yml -f docker-compose-paracross.yml -f docker-compose-relay.yml up --build -d
     docker-compose up --build -d
 
-    local SLEEP=5
+    local SLEEP=30
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
     docker-compose ps
 
     # query node run status
-    check_docker_status
     ${CLI} block last_header
     ${CLI} net info
 
     ${CLI} net peer_info
     peersCount=$(${CLI} net peer_info | jq '.[] | length')
-    echo "peersCount=${peersCount}"
+    echo "${peersCount}"
+    if [ "${peersCount}" -lt 2 ]; then
+        sleep 20
+        peersCount=$(${CLI} net peer_info | jq '.[] | length')
+        echo "${peersCount}"
+        if [ "${peersCount}" -lt 2 ]; then
+            echo "peers error"
+            exit 1
+        fi
+    fi
+
+    #echo "=========== # create seed for wallet ============="
+    #seed=$(${CLI} seed generate -l 0 | jq ".seed")
+    #if [ -z "${seed}" ]; then
+    #    echo "create seed error"
+    #    exit 1
+    #fi
 
     echo "=========== # save seed to wallet ============="
     result=$(${CLI} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
@@ -160,12 +162,19 @@ function start() {
         exit 1
     fi
 
-    block_wait 1
+    sleep 1
+    echo "=========== # close auto mining ============="
+    result=$(${CLI} wallet auto_mine -f 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+
+    block_wait "${CLI}" 1
 
     echo "=========== check genesis hash ========== "
     ${CLI} block hash -t 0
     res=$(${CLI} block hash -t 0 | jq ".hash")
-    count=$(echo "$res" | grep -c "0xfd39dbdbd2cdeb9f34bcec3612735671b35e2e2dbf9a4e6e3ed0c34804a757bb")
+    count=$(echo "$res" | grep -c "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6")
     if [ "${count}" != 1 ]; then
         echo "genesis hash error!"
         exit 1
@@ -175,54 +184,33 @@ function start() {
     ${CLI} block last_header
     result=$(${CLI} block last_header | jq ".height")
     if [ "${result}" -lt 1 ]; then
-        block_wait 2
+        block_wait "${CLI}" 2
     fi
 
-    #    sync_status "${CLI}"
+    sync_status "${CLI}"
 
     ${CLI} wallet status
     ${CLI} account list
     ${CLI} mempool list
 }
 
-function check_docker_status() {
-    status=$(docker-compose ps | grep chain33_1 | awk '{print $6}')
-    if [ "${status}" == "Exit" ]; then
-        echo "=========== chain33 service Exit logs ========== "
-        docker-compose logs chain33
-        echo "=========== chain33 service Exit logs End========== "
-    fi
-
-}
-
 function block_wait() {
-    sleep "$1"
-
-}
-
-function block_wait_by_height() {
     if [ "$#" -lt 2 ]; then
         echo "wrong block_wait params"
         exit 1
     fi
-
-    cur_height=$1
-    # shellcheck disable=SC2004
-    expect=$(($1 + $2))
-    count=100
+    cur_height=$(${1} block last_header | jq ".height")
+    expect=$((cur_height + ${2}))
+    count=0
     while true; do
-        new_height=$(${CLI} block last_header | jq ".height")
+        new_height=$(${1} block last_header | jq ".height")
         if [ "${new_height}" -ge "${expect}" ]; then
             break
         fi
-        count=$((count - 1))
-        if [ $count -le 0 ]; then
-            exit 1
-        fi
-        echo "wait new block, cur height=$new_height,expect=$expect"
+        count=$((count + 1))
         sleep 1
     done
-    echo "wait new block remain $count s, cur height=$new_height,old=$cur_height"
+    echo "wait new block $count s, cur height=$expect,old=$cur_height"
 }
 
 function check_docker_container() {
@@ -274,23 +262,18 @@ function sync() {
 
 function transfer() {
     echo "=========== # transfer ============="
-    ${CLI} block last_header
-    curHeight=$(${CLI} block last_header | jq ".height")
-    echo "curheight=$curHeight"
     hashes=()
     for ((i = 0; i < 10; i++)); do
-        hash=$(${CLI} send coins transfer -a 1 -n test -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
-        echo "$hash"
+        hash=$(${CLI} send coins transfer -a 1 -n test -t 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
         hashes=("${hashes[@]}" "$hash")
     done
-
-    block_wait_by_height "$curHeight", 1
-
+    block_wait "${CLI}" 1
     echo "len: ${#hashes[@]}"
     if [ "${#hashes[@]}" != 10 ]; then
         echo "tx number wrong"
         exit 1
     fi
+
     for ((i = 0; i < ${#hashes[*]}; i++)); do
         txs=$(${CLI} tx query_hash -s "${hashes[$i]}" | jq ".txs")
         if [ -z "${txs}" ]; then
@@ -299,17 +282,28 @@ function transfer() {
         fi
     done
 
-    ${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e coins
-    balance=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e coins | jq -r ".balance")
-    if [ "${balance}" != "10.0000" ]; then
-        echo "wrong balance=$balance, should not be 10.0000"
+    echo "=========== # withdraw ============="
+    hash=$(${CLI} send coins transfer -a 2 -n deposit -t 1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
+    echo "${hash}"
+    block_wait "${CLI}" 1
+    before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e retrieve | jq -r ".balance")
+    if [ "${before}" == "0.0000" ]; then
+        echo "wrong ticket balance, should not be zero"
         exit 1
     fi
 
+    hash=$(${CLI} send coins withdraw -a 1 -n withdraw -e retrieve -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
+    echo "${hash}"
+    block_wait "${CLI}" 1
+    txs=$(${CLI} tx query_hash -s "${hash}" | jq ".txs")
+    if [ "${txs}" == "null" ]; then
+        echo "withdraw cannot find tx"
+        exit 1
+    fi
 }
 
 function base_config() {
-    #    sync
+    sync
     transfer
 }
 

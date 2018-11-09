@@ -197,7 +197,7 @@ func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
 		return flag, err
 	}
 
-	return flag, types.ErrNotSupport
+	return flag, nil
 }
 
 func (wallet *Wallet) Close() {
