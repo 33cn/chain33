@@ -1,3 +1,7 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // Copyright 2010 The Go Authors. All rights reserved.
 // Copyright 2011 ThePiachu. All rights reserved.
 // Copyright 2013 Michael Hendricks. All rights reserved.
