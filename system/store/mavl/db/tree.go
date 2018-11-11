@@ -8,9 +8,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/types"
+	dbm "github.com/33cn/chain33/common/db"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/types"
 )
 
 const (

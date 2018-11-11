@@ -2,8 +2,8 @@ package pluginmgr
 
 import (
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/rpc/types"
-	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
+	"github.com/33cn/chain33/rpc/types"
+	wcom "github.com/33cn/chain33/wallet/common"
 )
 
 //

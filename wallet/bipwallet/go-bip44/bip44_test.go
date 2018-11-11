@@ -3,9 +3,9 @@ package bip44_test
 import (
 	"testing"
 
-	bip32 "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip32"
-	bip39 "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip39"
-	. "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip44"
+	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
+	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
+	. "github.com/33cn/chain33/wallet/bipwallet/go-bip44"
 )
 
 func TestNewKeyFromMnemonic(t *testing.T) {

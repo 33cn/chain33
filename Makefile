@@ -6,20 +6,20 @@
 
 
 
-SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
-SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
-SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
-SRC_MINER := gitlab.33.cn/chain33/chain33/cmd/miner_accounts
+SRC := github.com/33cn/chain33/cmd/chain33
+SRC_CLI := github.com/33cn/chain33/cmd/cli
+SRC_SIGNATORY := github.com/33cn/chain33/cmd/signatory-server
+SRC_MINER := github.com/33cn/chain33/cmd/miner_accounts
 APP := build/chain33
 CLI := build/chain33-cli
 SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
 AUTO_TEST := build/tools/autotest/autotest
-SRC_AUTO_TEST := gitlab.33.cn/chain33/chain33/cmd/autotest
+SRC_AUTO_TEST := github.com/33cn/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "blockchain" | grep -v "pbft"`
-BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
+BUILD_FLAGS = -ldflags "-X github.com/33cn/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
 DAPP := ""
@@ -59,7 +59,7 @@ cli: ## Build cli binary
 	@go build -v -i -o $(CLI) $(SRC_CLI)
 
 execblock: ## Build cli binary
-	@go build -v -i -o build/execblock gitlab.33.cn/chain33/chain33/cmd/execblock
+	@go build -v -i -o build/execblock github.com/33cn/chain33/cmd/execblock
 
 
 para:

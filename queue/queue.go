@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
+	log "github.com/33cn/chain33/common/log/log15"
 )
 
 //消息队列：

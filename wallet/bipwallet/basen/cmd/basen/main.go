@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/wallet/bipwallet/basen"
+	"github.com/33cn/chain33/wallet/bipwallet/basen"
 )
 
 var decoder = flag.String("decode", "none", "input decoding method")

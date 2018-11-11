@@ -3,7 +3,7 @@ package executor
 import (
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 )
 
 func (c *Manage) Query_GetConfigItem(in *types.ReqString) (types.Message, error) {

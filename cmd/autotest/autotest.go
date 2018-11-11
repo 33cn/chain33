@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"gitlab.33.cn/chain33/chain33/cmd/autotest/contract"
+	"github.com/33cn/chain33/cmd/autotest/contract"
 )
 
 var (

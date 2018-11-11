@@ -3,11 +3,11 @@ package bipwallet
 import (
 	"errors"
 
-	bip32 "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip32"
-	bip39 "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip39"
-	bip44 "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip44"
-	"gitlab.33.cn/chain33/chain33/wallet/bipwallet/transformer"
-	_ "gitlab.33.cn/chain33/chain33/wallet/bipwallet/transformer/btcbase"
+	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
+	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
+	bip44 "github.com/33cn/chain33/wallet/bipwallet/go-bip44"
+	"github.com/33cn/chain33/wallet/bipwallet/transformer"
+	_ "github.com/33cn/chain33/wallet/bipwallet/transformer/btcbase"
 )
 
 // https://github.com/satoshilabs/slips/blob/master/slip-0044.md

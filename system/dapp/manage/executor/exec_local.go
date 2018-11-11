@@ -1,8 +1,8 @@
 package executor
 
 import (
-	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	pty "github.com/33cn/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/types"
 )
 
 func (c *Manage) ExecLocal_Modify(transfer *types.ModifyConfig, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {

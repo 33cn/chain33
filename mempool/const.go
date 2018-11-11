@@ -3,7 +3,7 @@ package mempool
 import (
 	"runtime"
 
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
+	log "github.com/33cn/chain33/common/log/log15"
 )
 
 var (

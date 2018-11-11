@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/types"
 )
 
 var (

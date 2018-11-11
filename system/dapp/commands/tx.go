@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/rpc/jsonclient"
+	rpctypes "github.com/33cn/chain33/rpc/types"
+	. "github.com/33cn/chain33/system/dapp/commands/types"
+	"github.com/33cn/chain33/types"
 )
 
 func TxCmd() *cobra.Command {

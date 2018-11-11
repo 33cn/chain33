@@ -4,14 +4,14 @@ import (
 	"encoding/hex"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/queue"
-	ety "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/queue"
+	ety "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
 )
 
 //提供系统rpc接口

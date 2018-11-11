@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	secp256k1 "github.com/btcsuite/btcd/btcec"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"github.com/33cn/chain33/common/crypto"
 )
 
 type Driver struct{}

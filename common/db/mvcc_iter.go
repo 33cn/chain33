@@ -3,7 +3,7 @@ package db
 import (
 	"bytes"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 )
 
 //mvcc 迭代器版本

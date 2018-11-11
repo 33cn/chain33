@@ -1,10 +1,10 @@
 package ${EXECNAME}
 
 import (
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/${EXECNAME}/commands"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/${EXECNAME}/executor"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/${EXECNAME}/types"
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
+	"github.com/33cn/chain33/plugin/dapp/${EXECNAME}/commands"
+	"github.com/33cn/chain33/plugin/dapp/${EXECNAME}/executor"
+	pty "github.com/33cn/chain33/plugin/dapp/${EXECNAME}/types"
+	"github.com/33cn/chain33/pluginmgr"
 )
 
 func init() {

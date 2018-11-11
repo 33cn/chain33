@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
+	"github.com/33cn/chain33/common/address"
 )
 
 func OneStepSend(args []string) {

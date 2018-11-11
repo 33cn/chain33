@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"math/big"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 )
 
 //big-end mode,    that is bytes [0]      [1]

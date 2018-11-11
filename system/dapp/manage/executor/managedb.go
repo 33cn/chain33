@@ -1,9 +1,9 @@
 package executor
 
 import (
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	dbm "github.com/33cn/chain33/common/db"
+	pty "github.com/33cn/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/types"
 )
 
 type Action struct {

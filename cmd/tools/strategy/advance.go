@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/cmd/tools/tasks"
-	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
-	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/33cn/chain33/cmd/tools/tasks"
+	"github.com/33cn/chain33/cmd/tools/types"
+	"github.com/33cn/chain33/util"
 )
 
 type advanceCreateExecProjStrategy struct {
@@ -64,7 +64,7 @@ func (this *advanceCreateExecProjStrategy) initMember() {
 	var outputPath string
 	gopath := os.Getenv("GOPATH")
 	if len(gopath) > 0 {
-		outputPath = filepath.Join(gopath, "/src/gitlab.33.cn/chain33/chain33/plugin/dapp/")
+		outputPath = filepath.Join(gopath, "/src/github.com/33cn/chain33/plugin/dapp/")
 	}
 	if len(outputPath) > 0 && util.CheckPathExisted(outputPath) {
 		this.outputFolder = fmt.Sprintf("%s/%s/", outputPath, this.projName)

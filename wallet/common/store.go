@@ -7,11 +7,11 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/common/version"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/common/version"
+	"github.com/33cn/chain33/types"
 )
 
 var (

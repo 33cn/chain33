@@ -9,8 +9,8 @@ import (
 	"io"
 	"math/big"
 
-	"gitlab.33.cn/chain33/chain33/wallet/bipwallet/basen"
-	btcutil "gitlab.33.cn/chain33/chain33/wallet/bipwallet/btcutilecc"
+	"github.com/33cn/chain33/wallet/bipwallet/basen"
+	btcutil "github.com/33cn/chain33/wallet/bipwallet/btcutilecc"
 	"golang.org/x/crypto/ripemd160"
 )
 

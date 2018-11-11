@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
-	"gitlab.33.cn/chain33/chain33/cmd/autotest/testcase"
+	"github.com/33cn/chain33/cmd/autotest/testcase"
 )
 
 type TestTradeConfig struct {
