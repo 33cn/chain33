@@ -6,12 +6,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gitlab.33.cn/chain33/chain33/client"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/33cn/chain33/client"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/common/merkle"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 )
 
 var tlog = log.New("module", "consensus")

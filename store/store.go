@@ -2,9 +2,9 @@ package store
 
 //store package store the world - state data
 import (
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/system/store"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/system/store"
+	"github.com/33cn/chain33/types"
 )
 
 func New(cfg *types.Store, sub map[string][]byte) queue.Module {

@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types/jsonpb"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/types/jsonpb"
 )
 
 func TestAllowExecName(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	l "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
+	l "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 
 	// register gzip
 	_ "google.golang.org/grpc/encoding/gzip"

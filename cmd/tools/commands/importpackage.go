@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/cmd/tools/strategy"
-	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
+	"github.com/33cn/chain33/cmd/tools/strategy"
+	"github.com/33cn/chain33/cmd/tools/types"
 )
 
 func ImportCmd() *cobra.Command {

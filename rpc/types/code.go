@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/types"
 )
 
 func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {

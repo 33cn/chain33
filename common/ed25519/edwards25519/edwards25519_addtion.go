@@ -4,7 +4,7 @@
 package edwards25519
 
 import (
-	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
+	"github.com/33cn/chain33/common/crypto/sha3"
 )
 
 var (

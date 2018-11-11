@@ -3,8 +3,8 @@ package rpc
 import (
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/types"
-	pb "gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
+	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 
 	"encoding/hex"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gitlab.33.cn/chain33/chain33/client/mocks"
+	"github.com/33cn/chain33/client/mocks"
 	"google.golang.org/grpc/peer"
 )
 

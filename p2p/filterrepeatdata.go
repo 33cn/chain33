@@ -6,7 +6,7 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 )
 
 var Filter = NewFilter()

@@ -7,11 +7,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gitlab.33.cn/chain33/chain33/client/mocks"
-	qmocks "gitlab.33.cn/chain33/chain33/queue/mocks"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/client/mocks"
+	qmocks "github.com/33cn/chain33/queue/mocks"
+	"github.com/33cn/chain33/rpc/jsonclient"
+	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )

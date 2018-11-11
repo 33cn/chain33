@@ -3,9 +3,9 @@ package main
 import (
 
 	// 这一步是必需的，目的时让插件源码有机会进行匿名注册
-	"gitlab.33.cn/chain33/chain33/cmd/cli/buildflags"
-	_ "gitlab.33.cn/chain33/chain33/system"
-	"gitlab.33.cn/chain33/chain33/util/cli"
+	"github.com/33cn/chain33/cmd/cli/buildflags"
+	_ "github.com/33cn/chain33/system"
+	"github.com/33cn/chain33/util/cli"
 )
 
 func main() {

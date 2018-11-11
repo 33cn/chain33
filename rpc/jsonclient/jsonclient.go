@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 )
 
 type JSONClient struct {

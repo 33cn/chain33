@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	pb "gitlab.33.cn/chain33/chain33/types"
+	pb "github.com/33cn/chain33/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"

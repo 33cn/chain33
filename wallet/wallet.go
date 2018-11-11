@@ -8,17 +8,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	clog "gitlab.33.cn/chain33/chain33/common/log"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
-	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
+	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
+	dbm "github.com/33cn/chain33/common/db"
+	clog "github.com/33cn/chain33/common/log"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
+	wcom "github.com/33cn/chain33/wallet/common"
 )
 
 var (

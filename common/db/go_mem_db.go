@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/types"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/types"
 )
 
 var mlog = log.New("module", "db.memdb")

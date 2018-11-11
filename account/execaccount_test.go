@@ -4,10 +4,10 @@ import (
 	"testing"
 	//"fmt"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
-	//"gitlab.33.cn/chain33/chain33/queue"
+	"github.com/33cn/chain33/common/address"
+	//"github.com/33cn/chain33/queue"
 	"github.com/stretchr/testify/require"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 )
 
 func (acc *DB) GenerExecAccData(execaddr string) {

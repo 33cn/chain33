@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/rpc/jsonclient"
+	"github.com/33cn/chain33/types"
 
 	"fmt"
 

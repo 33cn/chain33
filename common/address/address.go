@@ -7,7 +7,7 @@ import (
 
 	"github.com/decred/base58"
 	lru "github.com/hashicorp/golang-lru"
-	. "gitlab.33.cn/chain33/chain33/common"
+	. "github.com/33cn/chain33/common"
 )
 
 var addrSeed = []byte("address seed bytes for public key")

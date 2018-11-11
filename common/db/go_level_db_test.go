@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/common"
+	"github.com/33cn/chain33/common"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -5,16 +5,16 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.33.cn/chain33/chain33/account"
-	clog "gitlab.33.cn/chain33/chain33/common/log"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	"github.com/33cn/chain33/account"
+	clog "github.com/33cn/chain33/common/log"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/pluginmgr"
+	drivers "github.com/33cn/chain33/system/dapp"
 
 	// register drivers
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 var elog = log.New("module", "execs")

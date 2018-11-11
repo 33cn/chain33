@@ -4,14 +4,14 @@ import (
 	"bytes"
 
 	"github.com/syndtr/goleveldb/leveldb/util"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
+	log "github.com/33cn/chain33/common/log/log15"
 
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 )
 
 var dlog = log.New("module", "db.ssdb")

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"runtime/debug"
 
-	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	"gitlab.33.cn/chain33/chain33/types"
+	drivers "github.com/33cn/chain33/system/dapp"
+	"github.com/33cn/chain33/types"
 )
 
 func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64) bool {

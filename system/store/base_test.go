@@ -6,9 +6,9 @@ import (
 	"os"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common/log"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 var store_cfg0 = &types.Store{"base_test", "leveldb", "/tmp/base_test0", 100}

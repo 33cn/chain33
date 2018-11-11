@@ -7,10 +7,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
 )
 
 func init() {

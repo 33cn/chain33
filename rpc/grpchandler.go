@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"time"
 
-	pb "gitlab.33.cn/chain33/chain33/types"
+	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 )
 

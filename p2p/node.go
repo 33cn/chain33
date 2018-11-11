@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/pubsub"
-	"gitlab.33.cn/chain33/chain33/p2p/nat"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common/pubsub"
+	"github.com/33cn/chain33/p2p/nat"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 // 启动Node节点

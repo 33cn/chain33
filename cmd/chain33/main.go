@@ -3,8 +3,8 @@
 package main
 
 import (
-	_ "gitlab.33.cn/chain33/chain33/system"
-	"gitlab.33.cn/chain33/chain33/util/cli"
+	_ "github.com/33cn/chain33/system"
+	"github.com/33cn/chain33/util/cli"
 )
 
 func main() {

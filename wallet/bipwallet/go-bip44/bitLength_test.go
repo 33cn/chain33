@@ -3,7 +3,7 @@ package bip44_test
 import (
 	"testing"
 
-	. "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip44"
+	. "github.com/33cn/chain33/wallet/bipwallet/go-bip44"
 )
 
 func TestBitLength(t *testing.T) {

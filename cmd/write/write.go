@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	coinstypes "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/log"
+	"github.com/33cn/chain33/rpc/jsonclient"
+	rpctypes "github.com/33cn/chain33/rpc/types"
+	coinstypes "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
 )
 
 var (

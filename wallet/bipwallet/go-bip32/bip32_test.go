@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	bip32 "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip32"
+	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
 )
 
 type testMasterKey struct {

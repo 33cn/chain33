@@ -1,9 +1,9 @@
 package common
 
 import (
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
 )
 
 // WalletPolicy 细分钱包业务逻辑的街口

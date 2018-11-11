@@ -3,8 +3,8 @@ package executor
 import (
 	"fmt"
 
-	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	pty "github.com/33cn/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/types"
 )
 
 func localKey(key string) []byte {

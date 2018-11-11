@@ -1,9 +1,9 @@
 package coins
 
 import (
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	"gitlab.33.cn/chain33/chain33/system/dapp/coins/executor"
-	"gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/pluginmgr"
+	"github.com/33cn/chain33/system/dapp/coins/executor"
+	"github.com/33cn/chain33/system/dapp/coins/types"
 )
 
 func init() {

@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	_ "gitlab.33.cn/chain33/chain33/system"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
-	"gitlab.33.cn/chain33/chain33/util/testnode"
+	"github.com/33cn/chain33/common/address"
+	_ "github.com/33cn/chain33/system"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/util/testnode"
 )
 
 func init() {
