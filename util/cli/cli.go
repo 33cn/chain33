@@ -54,10 +54,10 @@ func init() {
 		sendCmd,
 		closeCmd,
 	)
-	pluginmgr.AddCmd(rootCmd)
 }
 
 func Run(RPCAddr, ParaName string) {
+	pluginmgr.AddCmd(rootCmd)
 	log.SetLogLevel("error")
 	types.S("RPCAddr", RPCAddr)
 	types.S("ParaName", ParaName)
