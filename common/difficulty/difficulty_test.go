@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"sort"
 
-	"gitlab.33.cn/chain33/chain33/common"
+	"github.com/33cn/chain33/common"
 )
 
 type ByteSlice []byte

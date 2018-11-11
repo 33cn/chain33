@@ -1,7 +1,7 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 )
 
 func (c *Coins) Query_GetAddrReciver(in *types.ReqAddr) (types.Message, error) {

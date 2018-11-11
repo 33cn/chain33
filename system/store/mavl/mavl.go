@@ -2,13 +2,13 @@ package mavl
 
 import (
 	lru "github.com/hashicorp/golang-lru"
-	"gitlab.33.cn/chain33/chain33/common"
-	clog "gitlab.33.cn/chain33/chain33/common/log"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/queue"
-	drivers "gitlab.33.cn/chain33/chain33/system/store"
-	mavl "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common"
+	clog "github.com/33cn/chain33/common/log"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/queue"
+	drivers "github.com/33cn/chain33/system/store"
+	mavl "github.com/33cn/chain33/system/store/mavl/db"
+	"github.com/33cn/chain33/types"
 )
 
 var mlog = log.New("module", "mavl")

@@ -1,5 +1,5 @@
-[![pipeline status](https://gitlab.33.cn/chain33/chain33/badges/master/pipeline.svg)](https://gitlab.33.cn/chain33/chain33/commits/master)
-[![coverage report](https://gitlab.33.cn/chain33/chain33/badges/master/coverage.svg)](https://gitlab.33.cn/chain33/chain33/commits/master)
+[![pipeline status](https://github.com/33cn/chain33/badges/master/pipeline.svg)](https://github.com/33cn/chain33/commits/master)
+[![coverage report](https://github.com/33cn/chain33/badges/master/coverage.svg)](https://github.com/33cn/chain33/commits/master)
 [![Go Report Card](https://goreportcard.com/badge/gitlab.33.cn/chain33/chain33)](https://goreportcard.com/report/gitlab.33.cn/chain33/chain33)
 
 # Chain33 Core Developer Edition

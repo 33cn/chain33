@@ -7,10 +7,10 @@ import (
 	"encoding/hex"
 
 	"github.com/stretchr/testify/assert"
-	_ "gitlab.33.cn/chain33/chain33/system"
-	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
+	_ "github.com/33cn/chain33/system"
+	drivers "github.com/33cn/chain33/system/dapp"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 )
 
 func init() {

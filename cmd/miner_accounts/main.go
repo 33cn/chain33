@@ -14,9 +14,9 @@ import (
 
 	tml "github.com/BurntSushi/toml"
 	"github.com/rs/cors"
-	l "gitlab.33.cn/chain33/chain33/common/log/log15"
+	l "github.com/33cn/chain33/common/log/log15"
 
-	"gitlab.33.cn/chain33/chain33/cmd/miner_accounts/accounts"
+	"github.com/33cn/chain33/cmd/miner_accounts/accounts"
 )
 
 var (

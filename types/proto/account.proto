@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package types;
-option go_package = "gitlab.33.cn/chain33/chain33/types";
+option go_package = "github.com/33cn/chain33/types";
 
 // Account 的信息
 message Account {

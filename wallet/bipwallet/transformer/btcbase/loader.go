@@ -2,7 +2,7 @@
 package btcbase
 
 import (
-	"gitlab.33.cn/chain33/chain33/wallet/bipwallet/transformer"
+	"github.com/33cn/chain33/wallet/bipwallet/transformer"
 )
 
 //不同币种的前缀版本号

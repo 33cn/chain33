@@ -3,9 +3,9 @@ package executor
 import (
 	"encoding/hex"
 
-	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 type StateDB struct {

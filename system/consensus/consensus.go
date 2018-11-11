@@ -1,8 +1,8 @@
 package consensus
 
 import (
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 type ConsensusCreate func(cfg *types.Consensus, sub []byte) queue.Module

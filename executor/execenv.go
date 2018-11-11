@@ -4,12 +4,12 @@ import (
 	"bytes"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common/address"
+	dbm "github.com/33cn/chain33/common/db"
+	drivers "github.com/33cn/chain33/system/dapp"
+	"github.com/33cn/chain33/types"
 )
 
 //执行器 -> db 环境

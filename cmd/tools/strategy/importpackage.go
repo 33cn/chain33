@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/33cn/chain33/util"
 )
 
 const (

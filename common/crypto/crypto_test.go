@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	_ "gitlab.33.cn/chain33/chain33/system/crypto/init"
+	"github.com/33cn/chain33/common/crypto"
+	_ "github.com/33cn/chain33/system/crypto/init"
 )
 
 func TestAll(t *testing.T) {

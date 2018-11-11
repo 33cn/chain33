@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/mr-tron/base58/base58"
-	"gitlab.33.cn/chain33/chain33/wallet/bipwallet/transformer"
+	"github.com/33cn/chain33/wallet/bipwallet/transformer"
 )
 
 //TODO: 更新USDT的测试数据

@@ -4,10 +4,10 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/crypto"
 
-	_ "gitlab.33.cn/chain33/chain33/system/crypto/init"
+	_ "github.com/33cn/chain33/system/crypto/init"
 )
 
 func TestCreateGroupTx(t *testing.T) {

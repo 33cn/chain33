@@ -11,15 +11,15 @@ import (
 	"strconv"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet/bipwallet"
-	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
+	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
+	dbm "github.com/33cn/chain33/common/db"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/wallet/bipwallet"
+	wcom "github.com/33cn/chain33/wallet/common"
 )
 
 func (wallet *Wallet) parseExpire(expire string) (int64, error) {

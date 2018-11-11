@@ -4,14 +4,14 @@ import (
 	"os"
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	_ "gitlab.33.cn/chain33/chain33/system"
+	"github.com/33cn/chain33/pluginmgr"
+	_ "github.com/33cn/chain33/system"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/queue"
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/queue"
+	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/types"
 )
 
 var (

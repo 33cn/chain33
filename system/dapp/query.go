@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 )
 
 //通过addr前缀查找本地址参与的所有交易

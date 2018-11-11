@@ -1,10 +1,10 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/system/dapp"
-	mty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/system/dapp"
+	mty "github.com/33cn/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/types"
 )
 
 func (c *Manage) checkAddress(addr string) error {

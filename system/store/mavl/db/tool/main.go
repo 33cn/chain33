@@ -11,11 +11,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	clog "gitlab.33.cn/chain33/chain33/common/log"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	mavl "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
-	"gitlab.33.cn/chain33/chain33/types"
+	dbm "github.com/33cn/chain33/common/db"
+	clog "github.com/33cn/chain33/common/log"
+	log "github.com/33cn/chain33/common/log/log15"
+	mavl "github.com/33cn/chain33/system/store/mavl/db"
+	"github.com/33cn/chain33/types"
 )
 
 func main() {

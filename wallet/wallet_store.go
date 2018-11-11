@@ -3,9 +3,9 @@ package wallet
 import (
 	"encoding/json"
 
-	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/types"
-	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
+	"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
+	wcom "github.com/33cn/chain33/wallet/common"
 )
 
 var (

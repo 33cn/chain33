@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"sync"
 
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/difficulty"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/difficulty"
+	"github.com/33cn/chain33/types"
 )
 
 type blockNode struct {

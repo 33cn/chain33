@@ -3,10 +3,10 @@ package blockchain
 import (
 	"bytes"
 
-	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/33cn/chain33/common/merkle"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 )
 
 //执行区块将变成一个私有的函数
