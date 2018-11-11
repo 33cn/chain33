@@ -2,7 +2,12 @@
 
 # Chain33 区块链开发框架
 
-高度模块化, 遵循 KISS原则的区块链开发框架, 官方网站 和 文档: https://chain.33.cn
+高度模块化, 遵循 KISS原则的区块链开发框架
+
+官方网站 和 文档: https://chain.33.cn
+
+官方插件库: https://github.com/33cn/plugin
+
 
 ## Building from source
 
