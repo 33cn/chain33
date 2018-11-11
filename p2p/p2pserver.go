@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/version"
-	pb "gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common/version"
+	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 	pr "google.golang.org/grpc/peer"
 )

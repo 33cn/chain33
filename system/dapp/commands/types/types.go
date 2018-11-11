@@ -1,7 +1,7 @@
 package types
 
 import (
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
 type AccountsResult struct {

@@ -10,7 +10,7 @@ import (
 	"math/big"
 
 	"github.com/tjfoc/gmsm/sm2"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"github.com/33cn/chain33/common/crypto"
 )
 
 const (

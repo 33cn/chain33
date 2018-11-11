@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/queue"
+	"github.com/33cn/chain33/queue"
 )
 
 func TestStep(t *testing.T) {

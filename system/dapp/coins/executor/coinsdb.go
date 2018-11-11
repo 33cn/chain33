@@ -14,8 +14,8 @@ EventTransfer -> 转移资产
 import (
 	"fmt"
 
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/types"
+	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
 )
 
 //存储地址上收币的信息

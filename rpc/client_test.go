@@ -7,14 +7,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/client/mocks"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	slog "gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/common/address"
+	slog "github.com/33cn/chain33/common/log"
+	"github.com/33cn/chain33/pluginmgr"
+	qmock "github.com/33cn/chain33/queue/mocks"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
 )
 
 func init() {

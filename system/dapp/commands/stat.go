@@ -7,17 +7,17 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/rpc/jsonclient"
 
 	"math/big"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/difficulty"
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/difficulty"
+	rpctypes "github.com/33cn/chain33/rpc/types"
+	. "github.com/33cn/chain33/system/dapp/commands/types"
+	"github.com/33cn/chain33/types"
 )
 
 func StatCmd() *cobra.Command {

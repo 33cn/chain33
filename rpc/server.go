@@ -5,10 +5,10 @@ import (
 	"net/rpc"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/pluginmgr"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 
 	// register gzip

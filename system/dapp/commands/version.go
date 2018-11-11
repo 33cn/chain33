@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	"github.com/33cn/chain33/rpc/jsonclient"
 )
 
 func VersionCmd() *cobra.Command {

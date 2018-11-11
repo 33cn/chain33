@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/types/jsonpb"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/types/jsonpb"
 
-	_ "gitlab.33.cn/chain33/chain33/system/crypto/init"
+	_ "github.com/33cn/chain33/system/crypto/init"
 )
 
 var tlog = log.New("module", "types")

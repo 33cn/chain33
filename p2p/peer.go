@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	v "gitlab.33.cn/chain33/chain33/common/version"
-	pb "gitlab.33.cn/chain33/chain33/types"
+	v "github.com/33cn/chain33/common/version"
+	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

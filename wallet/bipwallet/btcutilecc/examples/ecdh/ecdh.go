@@ -2,7 +2,7 @@ package main
 
 import "crypto/rand"
 import "fmt"
-import btcutil "gitlab.33.cn/chain33/chain33/wallet/bipwallet/btcutilecc"
+import btcutil "github.com/33cn/chain33/wallet/bipwallet/btcutilecc"
 
 func main() {
 	// generate keys for Alice and Bob

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/33cn/chain33/util"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
-	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/rpc/jsonclient"
+	pty "github.com/33cn/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/types"
 )
 
 func ConfigCmd() *cobra.Command {

@@ -3,8 +3,8 @@ package executor
 import (
 	"sync"
 
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/types"
+	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
 )
 
 //plugin 主要用于处理 execlocal 和 execdellocal 时候的全局kv的处理
