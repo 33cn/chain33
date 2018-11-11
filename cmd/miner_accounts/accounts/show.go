@@ -3,16 +3,16 @@ package accounts
 import (
 	"time"
 
-	l "gitlab.33.cn/chain33/chain33/common/log/log15"
+	l "github.com/33cn/chain33/common/log/log15"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/types"
 
 	//"encoding/json"
 	//"io/ioutil"
 	"fmt"
 	"strconv"
 
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
 const secondsPerBlock = 15

@@ -1,9 +1,9 @@
 package executor
 
 import (
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	"gitlab.33.cn/chain33/chain33/types"
+	dbm "github.com/33cn/chain33/common/db"
+	drivers "github.com/33cn/chain33/system/dapp"
+	"github.com/33cn/chain33/types"
 )
 
 func init() {

@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/rpc/jsonclient"
+	rpctypes "github.com/33cn/chain33/rpc/types"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
 
 	// TODO: 暂时将插件中的类型引用起来，后续需要修改
 

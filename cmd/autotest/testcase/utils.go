@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"gitlab.33.cn/chain33/chain33/common/log/log15"
+	"github.com/33cn/chain33/common/log/log15"
 )
 
 const FloatDiff = 0.00001

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	tml "github.com/BurntSushi/toml"
-	"gitlab.33.cn/chain33/chain33/types/chaincfg"
+	"github.com/33cn/chain33/types/chaincfg"
 )
 
 //区块链共识相关的参数，重要参数不要随便修改

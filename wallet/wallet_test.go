@@ -8,18 +8,18 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
 
-	// "gitlab.33.cn/chain33/chain33/common/log"
+	// "github.com/33cn/chain33/common/log"
 
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/store"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/store"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 
-	_ "gitlab.33.cn/chain33/chain33/system"
+	_ "github.com/33cn/chain33/system"
 )
 
 func init() {

@@ -1,10 +1,10 @@
 package manage
 
 import (
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	"gitlab.33.cn/chain33/chain33/system/dapp/manage/commands"
-	"gitlab.33.cn/chain33/chain33/system/dapp/manage/executor"
-	"gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/pluginmgr"
+	"github.com/33cn/chain33/system/dapp/manage/commands"
+	"github.com/33cn/chain33/system/dapp/manage/executor"
+	"github.com/33cn/chain33/system/dapp/manage/types"
 )
 
 func init() {

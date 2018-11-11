@@ -3,10 +3,10 @@ package util
 import (
 	"errors"
 
-	"gitlab.33.cn/chain33/chain33/common"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/common"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {

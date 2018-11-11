@@ -5,8 +5,8 @@
 package bip44
 
 import (
-	bip32 "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip32"
-	bip39 "gitlab.33.cn/chain33/chain33/wallet/bipwallet/go-bip39"
+	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
+	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 )
 
 const Purpose uint32 = 0x8000002C

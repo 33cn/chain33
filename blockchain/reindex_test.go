@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/common/version"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
-	"gitlab.33.cn/chain33/chain33/util/testnode"
+	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/version"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/util/testnode"
 )
 
 func TestReindex(t *testing.T) {

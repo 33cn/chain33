@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/version"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
-	"gitlab.33.cn/chain33/chain33/types"
-	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/version"
+	"github.com/33cn/chain33/rpc/jsonclient"
+	"github.com/33cn/chain33/types"
+	wcom "github.com/33cn/chain33/wallet/common"
 
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
+	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {

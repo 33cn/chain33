@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/cmd/tools/types"
-	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/33cn/chain33/cmd/tools/types"
+	"github.com/33cn/chain33/util"
 )
 
 type CopyTemplateToOutputTask struct {

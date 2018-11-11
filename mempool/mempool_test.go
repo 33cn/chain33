@@ -5,17 +5,17 @@ import (
 	"math/rand"
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/limits"
-	"gitlab.33.cn/chain33/chain33/executor"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/store"
-	_ "gitlab.33.cn/chain33/chain33/system"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/blockchain"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/limits"
+	"github.com/33cn/chain33/executor"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/store"
+	_ "github.com/33cn/chain33/system"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
 )
 
 //----------------------------- data for testing ---------------------------------

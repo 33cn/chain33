@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
+	log "github.com/33cn/chain33/common/log/log15"
 )
 
 type ListHelper struct {

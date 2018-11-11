@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	pb "gitlab.33.cn/chain33/chain33/types"
+	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )

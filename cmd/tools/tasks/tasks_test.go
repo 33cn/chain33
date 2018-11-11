@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/33cn/chain33/util"
 )
 
 func TestReplaceTarget(t *testing.T) {
