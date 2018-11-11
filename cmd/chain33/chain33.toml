@@ -2,7 +2,6 @@ Title="chain33"
 TestNet=true
 FixTime=false
 
-
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
 loglevel = "debug"
@@ -33,7 +32,7 @@ driver="leveldb"
 dbPath="datadir"
 dbCache=64
 isStrongConsistency=false
-singleMode=false
+singleMode=true
 batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
@@ -41,7 +40,7 @@ enableTxQuickIndex=false
 
 [p2p]
 seeds=[]
-enable=true
+enable=false
 isSeed=false
 serverStart=true
 innerSeedEnable=true
@@ -66,7 +65,7 @@ minTxFee=100000
 maxTxNumPerAccount=10000
 
 [consensus]
-name="ticket"
+name="solo"
 minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
