@@ -1,7 +1,6 @@
 [![pipeline status](https://api.travis-ci.org/33cn/chain33.svg?branch=master)](https://travis-ci.org/33cn/chain33/)
-
 [![Go Report Card](https://goreportcard.com/badge/github.com/33cn/chain33)](https://goreportcard.com/report/github.com/33cn/chain33)
-
+ 
 # Chain33 区块链开发框架
 
 高度模块化, 遵循 KISS原则的区块链开发框架, 官方网站 和 文档: https://chain.33.cn
