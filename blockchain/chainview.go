@@ -5,7 +5,7 @@ import (
 	"container/list"
 	"sync"
 
-	"gitlab.33.cn/chain33/chain33/common"
+	"github.com/33cn/chain33/common"
 )
 
 const blockNodeCacheLimit = 10240 //目前best主链保存最新的10240个blocknode

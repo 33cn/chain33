@@ -3,9 +3,9 @@ package types
 import (
 	"net/rpc"
 
-	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/queue"
+	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/queue"
 	"google.golang.org/grpc"
 )
 

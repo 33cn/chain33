@@ -12,8 +12,8 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
-	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	"gitlab.33.cn/chain33/chain33/types"
+	drivers "github.com/33cn/chain33/system/dapp"
+	"github.com/33cn/chain33/types"
 )
 
 //var clog = log.New("module", "execs.coins")

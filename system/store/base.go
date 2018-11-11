@@ -2,12 +2,12 @@ package store
 
 //store package store the world - state data
 import (
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	clog "gitlab.33.cn/chain33/chain33/common/log"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
+	dbm "github.com/33cn/chain33/common/db"
+	clog "github.com/33cn/chain33/common/log"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 )
 
 /*

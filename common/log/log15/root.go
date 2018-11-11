@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/mattn/go-colorable"
-	"gitlab.33.cn/chain33/chain33/common/log/log15/term"
+	"github.com/33cn/chain33/common/log/log15/term"
 )
 
 // Predefined handlers

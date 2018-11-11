@@ -8,15 +8,15 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/client"
-	clog "gitlab.33.cn/chain33/chain33/common/log"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/executor"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/store"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/33cn/chain33/blockchain"
+	"github.com/33cn/chain33/client"
+	clog "github.com/33cn/chain33/common/log"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/executor"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/store"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 )
 
 var height = flag.Int64("height", 1, "exec block height")

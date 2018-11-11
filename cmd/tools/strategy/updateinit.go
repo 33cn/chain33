@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.33.cn/chain33/chain33/cmd/tools/tasks"
+	"github.com/33cn/chain33/cmd/tools/tasks"
 )
 
 type updateInitStrategy struct {
@@ -34,7 +34,7 @@ func (this *updateInitStrategy) initMember() error {
 	if err != nil || path == "" {
 		gopath := os.Getenv("GOPATH")
 		if len(gopath) > 0 {
-			path = filepath.Join(gopath, "/src/gitlab.33.cn/chain33/chain33/plugin/")
+			path = filepath.Join(gopath, "/src/github.com/33cn/chain33/plugin/")
 		}
 	}
 	if len(path) == 0 {

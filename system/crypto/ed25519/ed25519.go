@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/ed25519"
+	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/ed25519"
 )
 
 type Driver struct{}

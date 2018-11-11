@@ -1,9 +1,9 @@
 package account
 
 import (
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/types"
 )
 
 func (acc *DB) LoadExecAccount(addr, execaddr string) *types.Account {

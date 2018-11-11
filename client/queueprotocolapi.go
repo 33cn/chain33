@@ -1,8 +1,8 @@
 package client
 
 import (
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 // 消息通道交互API接口定义

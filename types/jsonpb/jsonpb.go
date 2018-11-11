@@ -52,7 +52,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/common"
+	"github.com/33cn/chain33/common"
 
 	stpb "github.com/golang/protobuf/ptypes/struct"
 )

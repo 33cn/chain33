@@ -8,13 +8,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gitlab.33.cn/chain33/chain33/client/mocks"
-	"gitlab.33.cn/chain33/chain33/common"
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	_ "gitlab.33.cn/chain33/chain33/system"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	mty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/common"
+	rpctypes "github.com/33cn/chain33/rpc/types"
+	_ "github.com/33cn/chain33/system"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
+	mty "github.com/33cn/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/types"
 )
 
 func TestDecodeLogErr(t *testing.T) {

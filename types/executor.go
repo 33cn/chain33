@@ -8,7 +8,7 @@ import (
 	"unicode"
 
 	proto "github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/common/address"
+	"github.com/33cn/chain33/common/address"
 )
 
 func init() {

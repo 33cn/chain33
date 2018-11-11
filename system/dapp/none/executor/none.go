@@ -5,7 +5,7 @@ package executor
 //nofee transaction will not pack into block
 
 import (
-	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	drivers "github.com/33cn/chain33/system/dapp"
 )
 
 var driverName = "none"

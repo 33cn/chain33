@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/wallet/bipwallet"
+	"github.com/33cn/chain33/wallet/bipwallet"
 )
 
 func TestBipwallet(t *testing.T) {

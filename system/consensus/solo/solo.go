@@ -3,13 +3,13 @@ package solo
 import (
 	"time"
 
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/queue"
-	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/common/merkle"
+	"github.com/33cn/chain33/queue"
+	drivers "github.com/33cn/chain33/system/consensus"
 
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
 )
 
 var slog = log.New("module", "solo")

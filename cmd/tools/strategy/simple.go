@@ -1,6 +1,6 @@
 package strategy
 
-import "gitlab.33.cn/chain33/chain33/cmd/tools/tasks"
+import "github.com/33cn/chain33/cmd/tools/tasks"
 
 type simpleCreateExecProjStrategy struct {
 	strategyBasic

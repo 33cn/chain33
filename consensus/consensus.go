@@ -3,9 +3,9 @@ package consensus
 import (
 	"reflect"
 
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/system/consensus"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/system/consensus"
+	"github.com/33cn/chain33/types"
 )
 
 func New(cfg *types.Consensus, sub map[string][]byte) queue.Module {

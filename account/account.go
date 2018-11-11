@@ -18,12 +18,12 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	log "gitlab.33.cn/chain33/chain33/common/log/log15"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	dbm "github.com/33cn/chain33/common/db"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/types"
 )
 
 var alog = log.New("module", "account")
