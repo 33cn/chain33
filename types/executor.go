@@ -11,8 +11,8 @@ import (
 	"strings"
 	"unicode"
 
-	proto "github.com/golang/protobuf/proto"
 	"github.com/33cn/chain33/common/address"
+	proto "github.com/golang/protobuf/proto"
 )
 
 func init() {

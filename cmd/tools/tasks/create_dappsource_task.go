@@ -9,9 +9,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/33cn/chain33/cmd/tools/types"
 	"github.com/33cn/chain33/util"
+	"github.com/pkg/errors"
 )
 
 type actionInfoItem struct {
