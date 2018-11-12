@@ -57,28 +57,8 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
-			txDetail.Receipt = txresult.Receiptdate
-			txDetail.Tx = txresult.GetTx()
-			txDetail.Blocktime = txresult.GetBlocktime()
-			txDetail.Height = txresult.GetHeight()
-			txDetail.Index = int64(txresult.GetIndex())
+			setTxDetailFromTxResult(&txDetail, txresult)
 
-			//获取Amount
-			amount, err := txresult.GetTx().Amount()
-			if err != nil {
-				txDetail.Amount = 0
-			} else {
-				txDetail.Amount = amount
-			}
-
-			txDetail.ActionName = txresult.GetTx().ActionName()
-
-			//获取from地址
-			txDetail.Fromaddr = txresult.GetTx().From()
-			if txDetail.GetTx().IsWithdraw() {
-				//swap from and to
-				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
-			}
 			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		} else {
@@ -185,6 +165,14 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 
 	TransactionDetail.Proofs = proofs
 	chainlog.Debug("ProcQueryTxMsg", "proofs", TransactionDetail.Proofs)
+
+	setTxDetailFromTxResult(&TransactionDetail, txresult)
+	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
+
+	return &TransactionDetail, nil
+}
+
+func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresult *types.TxResult) {
 	TransactionDetail.Receipt = txresult.Receiptdate
 	TransactionDetail.Tx = txresult.GetTx()
 	TransactionDetail.Height = txresult.GetHeight()
@@ -198,6 +186,11 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 		amount = 0
 	}
 	TransactionDetail.Amount = amount
+	assets, err := txresult.GetTx().Assets()
+	if err != nil {
+		assets = nil
+	}
+	TransactionDetail.Assets = assets
 	TransactionDetail.ActionName = txresult.GetTx().ActionName()
 
 	//获取from地址
@@ -207,9 +200,6 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 		//swap from and to
 		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
 	}
-	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
-
-	return &TransactionDetail, nil
 }
 
 //type  AddrOverview {
