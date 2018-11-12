@@ -13,7 +13,7 @@ $ make autotest
 ### 运行
 
 #### **直接执行**
-需要自定义配置用例文件
+已启动chain33服务并需要自定义配置用例文件
 ```
 $ ./autotest -f autotest.toml -l autotest.log
 ```
@@ -27,8 +27,8 @@ chain33开发人员修改框架或dapp代码，验证测试
 ```
 
 //启动单节点solo版本chain33，运行默认配置autotest，dapp用于指定需要跑的配置用例
-$ make autotest dapp=bty
-$ make autotest dapp="bty token"
+$ make autotest dapp=coins
+$ make autotest dapp="coins token"
 
 //dapp=all，执行所有预配置用例
 $ make autotest dapp=all
@@ -43,11 +43,8 @@ $ make autotest dapp=all
 # 指定内部调用chain33-cli程序文件
 cliCmd = "./chain33-cli"
 
-# 进行用例执行结果check，等待回执时协程睡眠时间(秒/s)，大概配置为单个区块生成时间
-checkSleepTime = 10
-
-# 进行用例check时，主要根据交易hash查询回执，查询失败的超时次数
-checkTimeout = 10
+# 进行用例check时，主要根据交易hash查询回执，多次查询失败总超时，单位秒
+checkTimeout = 60
 
 # 测试用例配置文件，根据dapp分类
 [[TestCaseFile]]
@@ -61,7 +58,7 @@ filename = "token.toml"
 
 
 ### 用例文件
-用例文件用于配置具体的测试用例，autotest代码目录下预配置了基本用例文件，可以作为参考，如bty.toml:
+用例文件用于配置具体的测试用例,采用toml格式，dapp的autotest目录下预配置了跑ci的用例文件，如coins.toml:
 ```
 [[TransferCase]]
 id = "btyTrans1"
@@ -72,22 +69,6 @@ amount = "10"
 checkItem = ["balance"]
 repeat = 1
 
-[[TransferCase]]
-id = "btyTrans2"
-command = "send bty transfer -a 1 -t 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT -k 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
-from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
-to = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
-amount = "1"
-checkItem = ["balance"]
-repeat = 5
-dep = ["btyTrans1"]
-
-[[WithdrawCase]]
-id = "failWithdraw"     #带有fail前缀表示用例本身是失败的，在autotest程序中集成了这个特性
-command = "send bty withdraw -a 1.1 -e token -k 17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
-addr = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
-amount = "1.1"
-checkItem = ["balance"]
 ```
 
 
@@ -100,7 +81,8 @@ type BaseCase struct {
 	Command   string   `toml:"command"` //执行的cli命令
 	Dep       []string `toml:"dep,omitempty"`   //依赖的用例id数组
 	CheckItem []string `toml:"checkItem,omitempty"` //回执中需要check项
-	Repeat    int      `toml:"repeat,omitempty"`    //重复次数
+	Repeat    int      `toml:"repeat,omitempty"`    //重复执行次数
+	Fail      bool     'toml:"fail,omitempty"'  //错误标志，置true时表示用例本身为错误用例，默认不配置为false
 }
 ```
 
@@ -133,15 +115,66 @@ type BaseCase struct {
 
 
 ### 扩展开发
+#### 新增dapp的autotest，以系统dapp-coins为例，步骤如下：
+1. 在coins目录名下新增autotest目录，coins/autotest
+1. 新增coins.go文件，注册autoest类型
+```go
+package autotest
+
+//导入autotest开发依赖，主要是types包
+import (
+	"reflect"
+	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
+)
+
+//声明coins的AutoTest结构，其成员皆为coins将实现的用例类型
+type coinsAutoTest struct {
+	SimpleCaseArr   []SimpleCase   `toml:"SimpleCase,omitempty"`
+	TransferCaseArr []TransferCase `toml:"TransferCase,omitempty"`
+	WithdrawCaseArr []WithdrawCase `toml:"WithdrawCase,omitempty"`
+}
+
+//注册AutoTest类型
+//coinsAutoest结构需要实现AutoTest接口，
+//才能进行注册，该接口共有两个函数
+func init() {
+
+	RegisterAutoTest(coinsAutoTest{})
+
+}
+
+//返回dapp名字
+func (config coinsAutoTest) GetName() string {
+
+	return "coins"
+}
+
+//返回AutoTest的类型
+func (config coinsAutoTest) GetTestConfigType() reflect.Type {
+
+	return reflect.TypeOf(config)
+}
+```
+3. 实现需要测试的用例，即上述结构体中定义的用例类型，TransferCase和WithdrawCase
+4. 在autotest主程序中增加匿名导入注册
+```
+//新增dapp的autoest需要在此处导入对应autotest包，匿名注册
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/autotest"
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/token/autotest"
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/autotest"
+	_ "gitlab.33.cn/chain33/chain33/system/dapp/coins/autotest"
+```
+
+#### 新增用例
 可以根据测试需求，开发自定义测试用例，只需继承实现相关的接口
 ```go
-doSendCommand(id string)    //实现用例执行命令的行为
+SendCommand(id string)    //实现用例执行命令的行为
 
 //实现用例check回执行为，正常的交易类型继承即可，无须重写。特殊需要可以重写
-doCheckResult(CheckHandlerMap) (bool, bool)
+CheckResult(CheckHandlerMap) (bool, bool)
 
 //需要实现用例checkItem每一项的check行为，并用该接口返回FunctionMap
-getCheckHandlerMap() CheckHandlerMap
+getCheckHandlerMap() interface{} 返回CheckHandlerMap类型
 
 ```
 根据需要重写以上接口，灵活定义用例行为
