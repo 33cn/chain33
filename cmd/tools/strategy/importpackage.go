@@ -14,8 +14,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/33cn/chain33/util"
+	"github.com/BurntSushi/toml"
 )
 
 const (

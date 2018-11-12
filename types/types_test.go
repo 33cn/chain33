@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types/jsonpb"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAllowExecName(t *testing.T) {
