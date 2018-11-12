@@ -14,9 +14,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/33cn/chain33/client/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/33cn/chain33/client/mocks"
 	"google.golang.org/grpc/peer"
 )
 

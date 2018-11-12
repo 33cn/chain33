@@ -7,9 +7,9 @@ package contract
 import (
 	"sync"
 
-	"github.com/BurntSushi/toml"
 	"github.com/33cn/chain33/cmd/autotest/testcase"
 	"github.com/33cn/chain33/common/log/log15"
+	"github.com/BurntSushi/toml"
 )
 
 var (

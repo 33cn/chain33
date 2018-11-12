@@ -7,8 +7,8 @@ package contract
 import (
 	"sync"
 
-	"github.com/BurntSushi/toml"
 	"github.com/33cn/chain33/cmd/autotest/testcase"
+	"github.com/BurntSushi/toml"
 )
 
 type TestTradeConfig struct {

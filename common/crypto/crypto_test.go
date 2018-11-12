@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/init"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAll(t *testing.T) {
