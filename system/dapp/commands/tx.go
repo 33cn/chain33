@@ -127,6 +127,7 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 		Amount:     amountResult,
 		Fromaddr:   res.Fromaddr,
 		ActionName: res.ActionName,
+		Assets:     res.Assets,
 	}
 	return result, nil
 }
@@ -179,6 +180,7 @@ func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 			Amount:     amountResult,
 			Fromaddr:   v.Fromaddr,
 			ActionName: v.ActionName,
+			Assets:     v.Assets,
 		}
 		result.Txs = append(result.Txs, &td)
 	}
