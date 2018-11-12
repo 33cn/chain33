@@ -700,5 +700,10 @@ func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
 	} else {
 		return nil, nil
 	}
+	amount, err := tx.Amount()
+	if err != nil {
+		return nil, nil
+	}
+	asset.Amount = amount
 	return []*Asset{asset}, nil
 }

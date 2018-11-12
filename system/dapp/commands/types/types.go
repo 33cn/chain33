@@ -6,6 +6,7 @@ package types
 
 import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/types"
 )
 
 type AccountsResult struct {
@@ -73,6 +74,7 @@ type TxDetailResult struct {
 	Amount     string                      `json:"amount"`
 	Fromaddr   string                      `json:"fromaddr"`
 	ActionName string                      `json:"actionname"`
+	Assets     []*types.Asset              `json:"assets"`
 }
 
 type TxDetailsResult struct {
