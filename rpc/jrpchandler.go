@@ -137,12 +137,12 @@ func (c *Chain33) QueryTransaction(in rpctypes.QueryParm, result *interface{}) e
 		return err
 	}
 
-	transDetail, err := fmtTxDetail(reply, true)
+	transDetail, err := fmtTxDetail(reply, false)
 	if err != nil {
 		return err
 	}
 
-	*result = &transDetail
+	*result = transDetail
 
 	return nil
 }
