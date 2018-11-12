@@ -113,7 +113,7 @@ func TestBlockChain(t *testing.T) {
 
 	testDelBlock(t, blockchain)
 
-	testLoadBlockBySequence(t, blockchain)
+	//testLoadBlockBySequence(t, blockchain)
 
 	testProcDelParaChainBlockMsg(t, mock33, blockchain)
 
