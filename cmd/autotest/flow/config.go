@@ -6,15 +6,12 @@ package flow
 
 import (
 	"fmt"
-	"time"
-
-	"gitlab.33.cn/chain33/chain33/cmd/autotest/types"
-
+	"github.com/33cn/chain33/cmd/autotest/types"
+	"github.com/33cn/chain33/common/log/log15"
+	"github.com/BurntSushi/toml"
 	"reflect"
 	"sync"
-
-	"github.com/BurntSushi/toml"
-	"github.com/inconshreveable/log15"
+	"time"
 )
 
 var (

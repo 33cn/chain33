@@ -6,11 +6,8 @@ package types
 
 import (
 	"encoding/json"
-
-	"github.com/inconshreveable/log15"
-
-	. "gitlab.33.cn/chain33/chain33/system/dapp/commands/types"
-
+	"github.com/33cn/chain33/common/log/log15"
+	. "github.com/33cn/chain33/system/dapp/commands/types"
 	"errors"
 )
 
