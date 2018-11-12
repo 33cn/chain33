@@ -17,8 +17,8 @@
 编译:
 
 ```shell
-go get -v -u github.com/33cn/chain33
-cd $GOPATH/github.com/33cn/chain33
+git clone https://github.com/33cn/chain33.git $GOPATH/src/github.com/33cn/chain33
+cd $GOPATH/src/github.com/33cn/chain33
 make
 ```
 
