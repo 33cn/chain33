@@ -7,8 +7,8 @@ package mavl
 import (
 	"bytes"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/33cn/chain33/types"
+	"github.com/golang/protobuf/proto"
 )
 
 // merkle avl Node

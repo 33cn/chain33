@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BurntSushi/toml"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/log"
@@ -23,6 +22,7 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	coinstypes "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
+	"github.com/BurntSushi/toml"
 )
 
 var (

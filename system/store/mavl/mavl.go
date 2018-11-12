@@ -5,7 +5,6 @@
 package mavl
 
 import (
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/33cn/chain33/common"
 	clog "github.com/33cn/chain33/common/log"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -13,6 +12,7 @@ import (
 	drivers "github.com/33cn/chain33/system/store"
 	mavl "github.com/33cn/chain33/system/store/mavl/db"
 	"github.com/33cn/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var mlog = log.New("module", "mavl")

@@ -7,8 +7,8 @@ package account
 import (
 	"testing"
 	//"fmt"
-	"github.com/stretchr/testify/require"
 	"github.com/33cn/chain33/common/address"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGenesisInit(t *testing.T) {

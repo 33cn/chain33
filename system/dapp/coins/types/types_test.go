@@ -8,8 +8,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTypeReflact(t *testing.T) {

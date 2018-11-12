@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types/jsonpb"
+	"github.com/golang/protobuf/proto"
 
 	_ "github.com/33cn/chain33/system/crypto/init"
 )
