@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/33cn/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
