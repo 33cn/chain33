@@ -5,9 +5,8 @@
 package types
 
 import (
-	"strings"
-
 	"errors"
+	"strings"
 )
 
 //simple case just executes without checking, suitable for init situation

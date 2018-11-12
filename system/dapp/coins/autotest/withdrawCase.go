@@ -5,8 +5,8 @@
 package autotest
 
 import (
+	. "github.com/33cn/chain33/cmd/autotest/types"
 	"strconv"
-	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 )
 
 type WithdrawCase struct {
