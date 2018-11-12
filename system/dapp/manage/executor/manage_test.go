@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
@@ -27,6 +26,7 @@ import (
 	_ "github.com/33cn/chain33/system"
 	pty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 )
 

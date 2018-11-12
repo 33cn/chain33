@@ -9,8 +9,6 @@ import (
 
 	"fmt"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common/address"
@@ -19,6 +17,8 @@ import (
 	qmock "github.com/33cn/chain33/queue/mocks"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func init() {
