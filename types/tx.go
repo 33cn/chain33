@@ -516,6 +516,14 @@ func (tx *Transaction) Amount() (int64, error) {
 	return exec.Amount(tx)
 }
 
+func (tx *Transaction) Assets() ([]*Asset, error) {
+	exec := LoadExecutorType(string(tx.Execer))
+	if exec == nil {
+		return nil, nil
+	}
+	return exec.GetAssets(tx)
+}
+
 //解析tx的payload获取real to值
 func (tx *Transaction) GetRealToAddr() string {
 	exec := LoadExecutorType(string(tx.Execer))
