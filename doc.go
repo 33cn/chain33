@@ -15,7 +15,7 @@ package chain33
 
 //有些包国内需要翻墙才能下载，我们把部分参见的包含在这里
 import (
-	_ "golang.org/x/crypto/nacl/box"
+	    _ "golang.org/x/crypto/nacl/box"
 	_ "golang.org/x/crypto/nacl/secretbox"
 	_ "golang.org/x/crypto/ssh"
 )
