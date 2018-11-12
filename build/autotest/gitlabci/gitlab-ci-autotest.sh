@@ -30,9 +30,6 @@ fi
 
 function init() {
     # update test environment
-    cp ../../chain33.toml ./
-    cp ../../chain33 ./
-    cp ../../chain33-cli ./
     sed -i $sedfix 's/^Title.*/Title="local"/g' chain33.toml
     sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
 
@@ -62,7 +59,7 @@ function start() {
     # create and run docker-compose container
     docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml up --build -d
 
-    local SLEEP=60
+    local SLEEP=30
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
@@ -112,27 +109,6 @@ function start() {
 
     echo "=========== # import private key mining ============="
     result=$(${CLI} account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l minerAddr | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
-    echo "=========== # import test addr1 ============="
-    result=$(${CLI} account import_key -k 0x88b2fb90411935872f0501dd13345aba19b5fac9b00eb0dddd7df977d4d5477e -l test_addr1 | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
-    echo "=========== # import test addr2 ============="
-    result=$(${CLI} account import_key -k 0xa0c6f46de8d275ce21e935afa5363e9b8a087fe604e05f7a9eef1258dc781c3a -l test_addr2 | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
-    echo "=========== # import test addr3 ============="
-    result=$(${CLI} account import_key -k 0x9d4f8ab11361be596468b265cb66946c87873d4a119713fd0c3d8302eae0a8e4 -l test_addr3 | jq ".label")
     echo "${result}"
     if [ -z "${result}" ]; then
         exit 1
@@ -247,11 +223,14 @@ function auto_test() {
     docker exec "${NODE3}" /root/autotest
 }
 
-function stop() {
+function stop_chain33() {
 
+    rv=$?
     echo "=========== #stop docker-compose ============="
-    docker cp "${NODE3}":/root/autotest.log ./
-    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down && rm ./chain33* && rm ./*.toml
+    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down && rm -rf ./chain33* ./*.toml ./autotest
+    echo "=========== #remove related images ============"
+    docker rmi "${PROJECT_NAME}"_autotest || true
+    exit ${rv}
 }
 
 function main() {
@@ -259,7 +238,6 @@ function main() {
     init
     start
     auto_test
-    stop
     echo "==========================================main end========================================================="
 }
 
@@ -268,5 +246,9 @@ if [ "$#" -ne 1 ]; then
     echo "Suggest Usage: $0 build"
     exit 1
 fi
+
+#trap exit
+trap "stop_chain33" INT TERM EXIT
+
 # run script
 main

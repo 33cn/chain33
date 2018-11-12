@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package testcase
+package autotest
 
 import (
-	"errors"
 	"strconv"
+	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 )
 
 type WithdrawCase struct {
@@ -19,23 +19,14 @@ type WithdrawPack struct {
 	BaseCasePack
 }
 
-func (testCase *WithdrawCase) doSendCommand(packID string) (PackFunc, error) {
+func (testCase *WithdrawCase) SendCommand(packID string) (PackFunc, error) {
 
-	txHash, bSuccess := sendTxCommand(testCase.Command)
-	if !bSuccess {
-		return nil, errors.New(txHash)
-	}
-	pack := WithdrawPack{}
-	pack.txHash = txHash
-	pack.tCase = testCase
-	pack.packID = packID
-	pack.checkTimes = 0
-	return &pack, nil
+	return DefaultSend(testCase, &WithdrawPack{}, packID)
 }
 
-func (pack *WithdrawPack) getCheckHandlerMap() CheckHandlerMap {
+func (pack *WithdrawPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(map[string]CheckHandlerFunc, 1)
+	funcMap := make(CheckHandlerMapDiscard, 1)
 	funcMap["balance"] = pack.checkBalance
 
 	return funcMap
@@ -45,7 +36,7 @@ func (pack *WithdrawPack) checkBalance(txInfo map[string]interface{}) bool {
 
 	/*fromAddr := txInfo["tx"].(map[string]interface{})["from"].(string)
 	toAddr := txInfo["tx"].(map[string]interface{})["to"].(string)*/
-	interCase := pack.tCase.(*WithdrawCase)
+	interCase := pack.TCase.(*WithdrawCase)
 	feeStr := txInfo["tx"].(map[string]interface{})["fee"].(string)
 	withdrawFrom := txInfo["fromaddr"].(string)
 	logArr := txInfo["receipt"].(map[string]interface{})["logs"].([]interface{})
@@ -57,7 +48,7 @@ func (pack *WithdrawPack) checkBalance(txInfo map[string]interface{}) bool {
 	fee, _ := strconv.ParseFloat(feeStr, 64)
 	Amount, _ := strconv.ParseFloat(interCase.Amount, 64)
 
-	pack.fLog.Info("WithdrawBalanceDetails", "TestID", pack.packID,
+	pack.FLog.Info("WithdrawBalanceDetails", "TestID", pack.PackID,
 		"Fee", feeStr, "Amount", Amount, "Addr", interCase.Addr, "ExecAddr", withdrawFrom,
 		"WithdrawPrev", logWithdraw["prev"].(map[string]interface{})["balance"].(string),
 		"WithdrawCurr", logWithdraw["current"].(map[string]interface{})["balance"].(string),
@@ -66,8 +57,8 @@ func (pack *WithdrawPack) checkBalance(txInfo map[string]interface{}) bool {
 		"ToPrev", logRecv["prev"].(map[string]interface{})["balance"].(string),
 		"ToCurr", logRecv["current"].(map[string]interface{})["balance"].(string))
 
-	return checkBalanceDeltaWithAddr(logFee, interCase.Addr, -fee) &&
-		checkBalanceDeltaWithAddr(logWithdraw, interCase.Addr, -Amount) &&
-		checkBalanceDeltaWithAddr(logSend, withdrawFrom, -Amount) &&
-		checkBalanceDeltaWithAddr(logRecv, interCase.Addr, Amount)
+	return CheckBalanceDeltaWithAddr(logFee, interCase.Addr, -fee) &&
+		CheckBalanceDeltaWithAddr(logWithdraw, interCase.Addr, -Amount) &&
+		CheckBalanceDeltaWithAddr(logSend, withdrawFrom, -Amount) &&
+		CheckBalanceDeltaWithAddr(logRecv, interCase.Addr, Amount)
 }

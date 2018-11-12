@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  chain33:
+  autotest:
     build:
       context: .
       dockerfile: Dockerfile-autotest

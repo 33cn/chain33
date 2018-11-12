@@ -1,26 +1,28 @@
 
 
 
+#######该配置文件仅为示例，具体使用autotest时，根据需要调整配置
 
+
+#chain33的客户端文件
 cliCmd = "./chain33-cli"
-checkSleepTime = 10
-checkTimeout = 10
-
-
-[[TestCaseFile]]
-contract = "bty"
-filename = "bty.toml"
+#发送一笔交易后等待回执的超时时间，单位秒
+checkTimeout = 60
 
 [[TestCaseFile]]
-contract = "token"
+dapp = "coins"
+filename = "coins.toml"
+
+[[TestCaseFile]]
+dapp = "token"
 filename = "token.toml"
 
 [[TestCaseFile]]
-contract = "trade"
+dapp = "trade"
 filename = "trade.toml"
 
 
 [[TestCaseFile]]
-contract = "privacy"
+dapp = "privacy"
 filename = "privacy.toml"
 
