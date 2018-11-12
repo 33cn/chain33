@@ -7,12 +7,11 @@ package flow
 import (
 	"container/list"
 	"fmt"
+	. "github.com/33cn/chain33/cmd/autotest/types"
+	"github.com/33cn/chain33/common/log/log15"
 	"reflect"
 	"sync"
 	"time"
-
-	"github.com/33cn/chain33/common/log/log15"
-	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 )
 
 //test flow, Add=>HandleDepend=>Send=>Check
