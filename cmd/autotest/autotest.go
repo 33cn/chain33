@@ -6,8 +6,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
 
-	"github.com/33cn/chain33/cmd/autotest/contract"
+	"github.com/33cn/chain33/cmd/autotest/flow"
+	//导入所有dapp的AutoTest
+	_ "github.com/33cn/chain33/system"
 )
 
 var (
@@ -24,7 +28,14 @@ func init() {
 
 func main() {
 
-	contract.InitConfig(logFile)
-	contract.DoTestOperation(configFile)
+	flow.InitFlowConfig(configFile, logFile)
 
+	if flow.StartAutoTest() {
+
+		fmt.Println("========================================Succeed!============================================")
+		os.Exit(0)
+	} else {
+		fmt.Println("==========================================Failed!============================================")
+		os.Exit(1)
+	}
 }

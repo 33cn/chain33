@@ -14,7 +14,7 @@ APP := build/chain33
 CLI := build/chain33-cli
 SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
-AUTO_TEST := build/tools/autotest/autotest
+AUTO_TEST := build/autotest/autotest
 SRC_AUTO_TEST := github.com/33cn/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
@@ -68,10 +68,11 @@ para:
 
 autotest:## build autotest binary
 	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
-	@cp cmd/autotest/*.toml build/tools/autotest/
 	@if [ -n "$(dapp)" ]; then \
-		cd build/tools/autotest && bash ./local-autotest.sh $(dapp) && cd ../../../; \
+		cd build/autotest && bash ./copy-autotest.sh local && cd local && bash ./local-autotest.sh $(dapp) && cd ../../../; \
 	fi
+autotest_ci: autotest ## autotest jerkins ci
+	@cd build/autotest && bash ./copy-autotest.sh jerkinsci/temp$(proj) && cd jerkinsci && bash ./jerkins-ci-autotest.sh $(proj) && cd ../../../
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
@@ -174,7 +175,7 @@ clean: ## Remove previous build
 	@rm -rf build/relayd*
 	@rm -rf build/*.log
 	@rm -rf build/logs
-	@rm -rf build/tools/autotest/autotest
+	@rm -rf build/autotest/autotest
 	@rm -rf build/ci
 	@go clean
 

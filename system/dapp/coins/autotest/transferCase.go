@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package testcase
+package autotest
 
 import (
-	"errors"
 	"strconv"
+
+	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
 )
 
 type TransferCase struct {
@@ -20,33 +21,23 @@ type TransferPack struct {
 	BaseCasePack
 }
 
-func (testCase *TransferCase) doSendCommand(packID string) (PackFunc, error) {
+func (testCase *TransferCase) SendCommand(packID string) (PackFunc, error) {
 
-	txHash, bSuccess := sendTxCommand(testCase.Command)
-	if !bSuccess {
-		return nil, errors.New(txHash)
-	}
-	pack := TransferPack{}
-	pack.txHash = txHash
-	pack.tCase = testCase
-	pack.packID = packID
-	pack.checkTimes = 0
-	return &pack, nil
+	return DefaultSend(testCase, &TransferPack{}, packID)
 }
 
-func (pack *TransferPack) getCheckHandlerMap() CheckHandlerMap {
+func (pack *TransferPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(map[string]CheckHandlerFunc, 2)
+	funcMap := make(CheckHandlerMapDiscard, 2)
 	funcMap["balance"] = pack.checkBalance
 
 	return funcMap
 }
 
 func (pack *TransferPack) checkBalance(txInfo map[string]interface{}) bool {
-
 	/*fromAddr := txInfo["tx"].(map[string]interface{})["from"].(string)
 	toAddr := txInfo["tx"].(map[string]interface{})["to"].(string)*/
-	interCase := pack.tCase.(*TransferCase)
+	interCase := pack.TCase.(*TransferCase)
 	feeStr := txInfo["tx"].(map[string]interface{})["fee"].(string)
 	logArr := txInfo["receipt"].(map[string]interface{})["logs"].([]interface{})
 	logFee := logArr[0].(map[string]interface{})["log"].(map[string]interface{})
@@ -55,7 +46,7 @@ func (pack *TransferPack) checkBalance(txInfo map[string]interface{}) bool {
 	fee, _ := strconv.ParseFloat(feeStr, 64)
 	Amount, _ := strconv.ParseFloat(interCase.Amount, 64)
 
-	pack.fLog.Info("TransferBalanceDetails", "TestID", pack.packID,
+	pack.FLog.Info("TransferBalanceDetails", "TestID", pack.PackID,
 		"Fee", feeStr, "Amount", interCase.Amount,
 		"FromPrev", logSend["prev"].(map[string]interface{})["balance"].(string),
 		"FromCurr", logSend["current"].(map[string]interface{})["balance"].(string),
@@ -66,10 +57,10 @@ func (pack *TransferPack) checkBalance(txInfo map[string]interface{}) bool {
 	//transfer to contract, deposit
 	if len(logArr) == 4 {
 		logDeposit := logArr[3].(map[string]interface{})["log"].(map[string]interface{})
-		depositCheck = checkBalanceDeltaWithAddr(logDeposit, interCase.From, Amount)
+		depositCheck = CheckBalanceDeltaWithAddr(logDeposit, interCase.From, Amount)
 	}
 
-	return checkBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
-		checkBalanceDeltaWithAddr(logSend, interCase.From, -Amount) &&
-		checkBalanceDeltaWithAddr(logRecv, interCase.To, Amount) && depositCheck
+	return CheckBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
+		CheckBalanceDeltaWithAddr(logSend, interCase.From, -Amount) &&
+		CheckBalanceDeltaWithAddr(logRecv, interCase.To, Amount) && depositCheck
 }
