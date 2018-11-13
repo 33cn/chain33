@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/33cn/chain33/types"
+	"github.com/golang/protobuf/proto"
 )
 
 type JSONClient struct {

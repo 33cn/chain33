@@ -12,12 +12,12 @@ import (
 
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	. "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
+	"github.com/spf13/cobra"
 )
 
 func TxCmd() *cobra.Command {
