@@ -21,7 +21,7 @@ jobs:
   include:
     - stage: test
       sudo: require
-      install: skip
+      install:
         - go get -u golang.org/x/tools/cmd/goimports
         - go get -u gopkg.in/alecthomas/gometalinter.v2
         - gometalinter.v2 -i
