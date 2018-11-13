@@ -265,3 +265,22 @@ auto_ci: clean fmt_proto fmt_shell protobuf mock
 		  fi;
 
 
+addupstream:
+	git remote add upstream https://github.com/33cn/chain33.git
+	git remote -v
+
+sync:
+	git fetch upstream
+	git checkout master
+	git merge upstream/master
+
+branch:
+	make sync
+	git checkout -b ${b}
+
+push:
+	make sync
+	git checkout ${b}
+	git commit -a -m "${m}"
+	git merge master
+	git push origin ${b}
