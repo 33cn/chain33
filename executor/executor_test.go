@@ -10,11 +10,11 @@ import (
 
 	"encoding/hex"
 
-	"github.com/stretchr/testify/assert"
 	_ "github.com/33cn/chain33/system"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {

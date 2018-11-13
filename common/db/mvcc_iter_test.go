@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func getMVCCIter() *MVCCIter {
