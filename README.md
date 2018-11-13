@@ -42,6 +42,10 @@ $ chain33 -f chain33.toml
 
 ## 贡献代码
 
+我们先说一下代码贡献的细节流程，这些流程可以不看，用户可以直接看我们贡献代码简化流程
+
+### 细节过程
+
 * 如果有什么想法，建立 issues, 和我们来讨论。
 * 首先点击 右上角的 fork 图标， 把chain33 fork 到自己的分支 比如我的是 vipwzw/chain33
 * `git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33`
@@ -85,9 +89,16 @@ git push origin fixbug_ci
 
 然后在界面上进行pull request
 
-为了简化如上的个流程，我们把整个过程包装到 Makefile, 可以用下面到几个命令就可以：
+### 简化流程
 
-#### 系统第一次 clone 成功后 运行, 这个命令后面就不用运行了:
+#### 准备阶段
+
+* 首先点击 右上角的 fork 图标， 把chain33 fork 到自己的分支 比如我的是 vipwzw/chain33
+* `git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33`
+
+```
+注意：这里要 clone 到 $GOPATH/src/github.com/33cn/chain33, 否则go 包路径会找不到
+```
 
 ```
 make addupstream
@@ -106,6 +117,7 @@ make push b=mydevbranchname m="这个提交的信息"
 ```
 
 如果m不设置，那么不会执行 git commit 的命令
+
 ## License
 
 ```
