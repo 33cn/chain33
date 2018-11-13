@@ -82,6 +82,16 @@ git push origin fixbug_ci
 make addupstream
 ```
 
+开始开发： 这个分支名称自己设置
+```
+make branch b=mydevbranchname
+```
+
+开发完成: push 
+
+```
+make push b=mydevbranchname m="这个提交的信息"
+```
 
 ## License
 
