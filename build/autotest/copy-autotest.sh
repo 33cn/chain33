@@ -8,7 +8,7 @@ set -o pipefail
 # os: ubuntu16.04 x64
 
 #chain33 dapp autotest root directory
-declare -a Chain33AutoTestDirs=("system" "plugin")
+declare -a Chain33AutoTestDirs=("system" "../plugin/plugin" "vendor/github.com/33cn/chain33/system")
 
 #copy auto test to specific directory
 # check args
@@ -31,6 +31,10 @@ function copyAutoTestConfig() {
 
     #copy all the dapp test case config file
     for rootDir in "${Chain33AutoTestDirs[@]}"; do
+
+        if [ ! -d ../../"${rootDir}" ]; then
+            continue
+        fi
 
         testDirArr=$(find ../../"${rootDir}" -type d -name autotest)
 
@@ -73,6 +77,6 @@ for dir in "$@"; do
     cp autotest "${dir}"
     copyAutoTestConfig "${dir}"
     copyChain33 "${dir}"
-    echo  "# all copy have done!"
+    echo "# all copy have done!"
 
 done

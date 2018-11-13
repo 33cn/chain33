@@ -8,10 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/33cn/chain33/common/log/log15"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/33cn/chain33/common/log/log15"
 )
 
 const FloatDiff = 0.00001

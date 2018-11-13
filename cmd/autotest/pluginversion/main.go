@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//本地存在github.com/33cn/plugin官方包时，autotest编译版本
 package main
 
 import (
@@ -9,9 +10,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/33cn/chain33/cmd/autotest/flow"
+	"github.com/33cn/chain33/cmd/autotest/testflow"
 	//导入所有dapp的AutoTest
 	_ "github.com/33cn/chain33/system"
+	_ "github.com/33cn/plugin/plugin/dapp/init"
 )
 
 var (
@@ -28,9 +30,9 @@ func init() {
 
 func main() {
 
-	flow.InitFlowConfig(configFile, logFile)
+	testflow.InitFlowConfig(configFile, logFile)
 
-	if flow.StartAutoTest() {
+	if testflow.StartAutoTest() {
 
 		fmt.Println("========================================Succeed!============================================")
 		os.Exit(0)

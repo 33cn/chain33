@@ -162,7 +162,7 @@ function start_autotest() {
         rm autotest.log
     fi
 
-    ../autotest -f ${autotestTempConfig}
+    ./autotest -f ${autotestTempConfig}
 
 }
 

@@ -2,16 +2,17 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package flow
+package testflow
 
 import (
 	"container/list"
 	"fmt"
-	. "github.com/33cn/chain33/cmd/autotest/types"
-	"github.com/33cn/chain33/common/log/log15"
 	"reflect"
 	"sync"
 	"time"
+
+	. "github.com/33cn/chain33/cmd/autotest/types"
+	"github.com/33cn/chain33/common/log/log15"
 )
 
 //test flow, Add=>HandleDepend=>Send=>Check
