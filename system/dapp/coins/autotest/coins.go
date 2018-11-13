@@ -5,8 +5,9 @@
 package autotest
 
 import (
-	. "github.com/33cn/chain33/cmd/autotest/types"
 	"reflect"
+
+	. "github.com/33cn/chain33/cmd/autotest/types"
 )
 
 type coinsAutoTest struct {

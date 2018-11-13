@@ -17,8 +17,8 @@ export PATH="$PWD:$PATH"
 
 PROJECT_NAME="${1}"
 if [[ ${PROJECT_NAME} == "" ]]; then
-     PROJECT_NAME="build"
-     mv -f ./temp tempbuild
+    PROJECT_NAME="build"
+    mv -f ./temp tempbuild
 fi
 
 NODE3="${PROJECT_NAME}_autotest_1"
@@ -32,8 +32,8 @@ fi
 
 chain33Config="chain33.test.toml"
 chain33BlockTime=1
+autoTestConfig="autotest.toml"
 autoTestCheckTimeout=10
-
 
 function config_chain33() {
 
@@ -56,9 +56,23 @@ function config_chain33() {
 
     #update wallet store driver
     sed -i $sedfix '/^\[wallet\]/,/^\[wallet./ s/^driver.*/driver="leveldb"/' ${chain33Config}
+}
 
-    #config autotest
-    sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' autotest.toml
+function config_autotest() {
+
+    echo "# config autotest"
+    sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autoTestConfig}
+
+    #only run coins if it is chain33
+    if [ -d ../../../../system/dapp/coins/autotest ]; then
+        {
+            echo 'cliCmd="./chain33-cli"'
+            echo "checkTimeout=${autoTestCheckTimeout}"
+            echo "[[TestCaseFile]]"
+            echo "dapp=coins"
+            echo 'filename="coins.toml"'
+        } >${autoTestConfig}
+    fi
 }
 
 function start_chain33() {
@@ -158,6 +172,7 @@ function main() {
 
     cd "${TEMP_CI_DIR}" && cp ../compose-autotest.yml ../Dockerfile-autotest ./
     config_chain33
+    config_autotest
     start_chain33
     start_autotest
 
