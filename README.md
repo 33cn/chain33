@@ -13,6 +13,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 
 官方插件库: https://github.com/33cn/plugin
 
+典型案例: https://github.com/bityuan/bityuan
 
 ## Building from source
 
