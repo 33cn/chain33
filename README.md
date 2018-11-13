@@ -40,6 +40,49 @@ $ make test
 $ chain33 -f chain33.toml
 ```
 
+## 贡献代码
+
+0. 如果有什么想法，建立 issues, 和我们来讨论。
+1. 首先点击 右上角的 fork 图标， 把chain33 fork 到自己的分支 比如我的是 vipwzw/chain33
+2. `git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33`
+
+```
+注意：这里要 clone 到 $GOPATH/src/github.com/33cn/chain33, 否则go 包路径会找不到
+```
+3. 添加 `33cn/chain33` 远端分支： `git remote add upstream https://github.com/33cn/chain33.git`  我已经把这个加入了 Makefile 可以直接 运行 `make addupstream` 
+
+4. 保持 `33cn/chain33` 和 `vipwzw/chain33` master 分支的同步，可以直接跑 `make sync` , 或者执行下面的命令
+
+```
+git fetch upstream
+git checkout master
+git merge upstream/master
+```
+```
+注意：不要去修改 master 分支，这样，master 分支永远和upstream/master 保持同步
+```
+5. 建立分支开始开发
+
+```
+git branch -a "fixbug_ci"
+```
+
+6. 开发完成后, push 到 `vipwzw/chain33`
+
+```
+git push origin fixbug_ci
+```
+
+然后在界面上进行pull request
+
+为了简单化这个流程，我们把整个过程包装到 Makefile, 可以用下面到几个命令就可以：
+
+系统第一次 clone 成功后 运行, 这个命令后面就不用运行了:
+```
+make addupstream
+```
+
+
 ## License
 
 ```
