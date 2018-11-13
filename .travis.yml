@@ -22,17 +22,22 @@ jobs:
     - stage: test
       sudo: require
       install: skip
-#        - go get -u golang.org/x/tools/cmd/goimports
-#        - go get -u gopkg.in/alecthomas/gometalinter.v2
-#        - gometalinter.v2 -i
-#        - go get -u mvdan.cc/sh/cmd/shfmt
-#        - go get -u mvdan.cc/sh/cmd/gosh
+        - go get -u golang.org/x/tools/cmd/goimports
+        - go get -u gopkg.in/alecthomas/gometalinter.v2
+        - gometalinter.v2 -i
+        - go get -u mvdan.cc/sh/cmd/shfmt
+        - go get -u mvdan.cc/sh/cmd/gosh
       os: linux
       dist: xenial
       go:
         - "1.9"
         - master
       script:
+        - make checkgofmt
+        - make fmt_go
+        - make linter
+        - make test
+        - make coverage
         - make build_ci
         - make docker-compose
         - make docker-compose-down
