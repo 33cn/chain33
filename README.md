@@ -49,6 +49,7 @@ $ chain33 -f chain33.toml
 ```
 注意：这里要 clone 到 $GOPATH/src/github.com/33cn/chain33, 否则go 包路径会找不到
 ```
+
 * 添加 `33cn/chain33` 远端分支： `git remote add upstream https://github.com/33cn/chain33.git`  我已经把这个加入了 Makefile 可以直接 运行 `make addupstream` 
 
 * 保持 `33cn/chain33` 和 `vipwzw/chain33` master 分支的同步，可以直接跑 `make sync` , 或者执行下面的命令
@@ -61,33 +62,45 @@ git merge upstream/master
 ```
 注意：不要去修改 master 分支，这样，master 分支永远和upstream/master 保持同步
 ```
-* 建立分支开始开发
+
+* 从最新的33cn/chain33代码建立分支开始开发
 
 ```
+git fetch upstream
+git checkout master
+git merge upstream/master
 git branch -a "fixbug_ci"
 ```
 
 * 开发完成后, push 到 `vipwzw/chain33`
 
 ```
+git fetch upstream
+git checkout master
+git merge upstream/master
+git checkout fixbug_ci
+git merge master
 git push origin fixbug_ci
 ```
 
 然后在界面上进行pull request
 
-为了简单化这个流程，我们把整个过程包装到 Makefile, 可以用下面到几个命令就可以：
+为了简化如上的个流程，我们把整个过程包装到 Makefile, 可以用下面到几个命令就可以：
 
 #### 系统第一次 clone 成功后 运行, 这个命令后面就不用运行了:
+
 ```
 make addupstream
 ```
 
 #### 开始开发： 这个分支名称自己设置
+
 ```
 make branch b=mydevbranchname
 ```
 
 #### 开发完成: push 
+
 ```
 make push b=mydevbranchname m="这个提交的信息"
 ```
