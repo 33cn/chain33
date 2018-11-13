@@ -7,9 +7,9 @@ package commands
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/33cn/chain33/cmd/tools/strategy"
 	"github.com/33cn/chain33/cmd/tools/types"
+	"github.com/spf13/cobra"
 )
 
 func SimpleCmd() *cobra.Command {

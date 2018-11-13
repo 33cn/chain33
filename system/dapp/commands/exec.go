@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/types"
+	"github.com/spf13/cobra"
 )
 
 func ExecCmd() *cobra.Command {

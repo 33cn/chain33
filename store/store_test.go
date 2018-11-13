@@ -11,11 +11,11 @@ import (
 
 	"os"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/assert"
 
 	_ "github.com/33cn/chain33/system"
 )

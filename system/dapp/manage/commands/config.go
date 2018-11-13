@@ -11,10 +11,10 @@ import (
 
 	"github.com/33cn/chain33/util"
 
-	"github.com/spf13/cobra"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	pty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
+	"github.com/spf13/cobra"
 )
 
 func ConfigCmd() *cobra.Command {

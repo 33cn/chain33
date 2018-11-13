@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	// "github.com/33cn/chain33/common/log"
 

@@ -5,9 +5,9 @@
 package pluginmgr
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/33cn/chain33/rpc/types"
 	wcom "github.com/33cn/chain33/wallet/common"
+	"github.com/spf13/cobra"
 )
 
 type PluginBase struct {
