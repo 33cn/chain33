@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/33cn/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var Filter = NewFilter()

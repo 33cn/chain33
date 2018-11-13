@@ -8,8 +8,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
+	"github.com/stretchr/testify/assert"
 )
 
 type testMasterKey struct {

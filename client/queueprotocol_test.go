@@ -11,11 +11,11 @@ import (
 	"github.com/33cn/chain33/pluginmgr"
 	_ "github.com/33cn/chain33/system"
 
-	"github.com/stretchr/testify/require"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/require"
 )
 
 var (
