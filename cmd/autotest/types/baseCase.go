@@ -6,17 +6,23 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/33cn/chain33/common/log/log15"
-	. "github.com/33cn/chain33/system/dapp/commands/types"
 	"errors"
+
+	"github.com/33cn/chain33/common/log/log15"
+	chain33Type "github.com/33cn/chain33/system/dapp/commands/types"
 )
 
 //interface for testCase
 type CaseFunc interface {
+	//获取用例id
 	GetID() string
+	//获取命令行
 	GetCmd() string
+	//获取依赖数组
 	GetDep() []string
+	//获取重复次数
 	GetRepeat() int
+	//直接获取基类类型指针，方便获取所有成员
 	GetBaseCase() *BaseCase
 	//一个用例的输入依赖于另一个用例输出，设置依赖的输出数据
 	SetDependData(interface{})
@@ -26,15 +32,25 @@ type CaseFunc interface {
 
 //interface for check testCase result
 type PackFunc interface {
+	//获取id
 	GetPackID() string
+	//设置id
 	SetPackID(id string)
+	//获取用例的基类指针
 	GetBaseCase() *BaseCase
+	//获取交易哈希
 	GetTxHash() string
+	//获取交易回执，json字符串
 	GetTxReceipt() string
+	//获取基类打包类型指针，提供直接访问成员
 	GetBasePack() *BaseCasePack
+	//设置log15日志
 	SetLogger(fLog log15.Logger, tLog log15.Logger)
+	//获取check函数字典
 	GetCheckHandlerMap() interface{}
+	//获取依赖数据
 	GetDependData() interface{}
+	//执行结果check
 	CheckResult(interface{}) (bool, bool)
 }
 
@@ -54,7 +70,7 @@ type CheckHandlerFuncDiscard func(map[string]interface{}) bool
 type CheckHandlerMapDiscard map[string]CheckHandlerFuncDiscard
 
 //建议使用
-type CheckHandlerParamType *TxDetailResult
+type CheckHandlerParamType *chain33Type.TxDetailResult
 type CheckHandlerFunc func(CheckHandlerParamType) bool
 type CheckHandlerMap map[string]CheckHandlerFunc
 
@@ -190,7 +206,7 @@ func (pack *BaseCasePack) CheckResult(handlerMap interface{}) (bCheck bool, bSuc
 		bCheck = true
 		var tyname string
 		var jsonMap map[string]interface{}
-		var txRecp TxDetailResult
+		var txRecp chain33Type.TxDetailResult
 		pack.TxReceipt = txInfo
 		pack.FLog.Info("TxReceiptJson", "TestID", pack.PackID)
 		//hack, for pretty json log
