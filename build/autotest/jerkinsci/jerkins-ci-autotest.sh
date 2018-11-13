@@ -18,6 +18,7 @@ export PATH="$PWD:$PATH"
 PROJECT_NAME="${1}"
 if [[ ${PROJECT_NAME} == "" ]]; then
     PROJECT_NAME="build"
+    rm -rf ../jerkinsci/tempbuild
     mv -f ./temp tempbuild
 fi
 
@@ -69,7 +70,7 @@ function config_autotest() {
             echo 'cliCmd="./chain33-cli"'
             echo "checkTimeout=${autoTestCheckTimeout}"
             echo "[[TestCaseFile]]"
-            echo "dapp=coins"
+            echo 'dapp="coins"'
             echo 'filename="coins.toml"'
         } >${autoTestConfig}
     fi
