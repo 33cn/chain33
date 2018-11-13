@@ -279,8 +279,10 @@ branch:
 	git checkout -b ${b}
 
 push:
+	if [ -n "$$m" ]; then \
+	git commit -a -m "${m}" ; \
+	fi;
 	make sync
 	git checkout ${b}
-	git commit -a -m "${m}"
 	git merge master
 	git push origin ${b}
