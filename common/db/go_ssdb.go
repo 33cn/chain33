@@ -7,8 +7,8 @@ package db
 import (
 	"bytes"
 
-	"github.com/syndtr/goleveldb/leveldb/util"
 	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/syndtr/goleveldb/leveldb/util"
 
 	"fmt"
 	"strconv"

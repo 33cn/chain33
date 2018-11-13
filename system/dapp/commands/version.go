@@ -5,8 +5,8 @@
 package commands
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/33cn/chain33/rpc/jsonclient"
+	"github.com/spf13/cobra"
 )
 
 func VersionCmd() *cobra.Command {

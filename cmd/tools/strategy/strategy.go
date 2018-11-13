@@ -7,9 +7,9 @@ package strategy
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/33cn/chain33/cmd/tools/types"
 	"github.com/33cn/chain33/common/log/log15"
+	"github.com/pkg/errors"
 )
 
 var (

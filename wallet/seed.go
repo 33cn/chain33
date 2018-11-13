@@ -18,9 +18,9 @@ import (
 	//	"math/big"
 	"strings"
 
+	log "github.com/33cn/chain33/common/log/log15"
 	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	"github.com/NebulousLabs/Sia/modules"
-	log "github.com/33cn/chain33/common/log/log15"
 
 	//	"github.com/piotrnar/gocoin/lib/btc"
 	"github.com/33cn/chain33/common"

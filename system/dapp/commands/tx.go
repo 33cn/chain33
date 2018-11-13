@@ -12,12 +12,12 @@ import (
 
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	. "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
+	"github.com/spf13/cobra"
 )
 
 func TxCmd() *cobra.Command {
@@ -127,6 +127,7 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 		Amount:     amountResult,
 		Fromaddr:   res.Fromaddr,
 		ActionName: res.ActionName,
+		Assets:     res.Assets,
 	}
 	return result, nil
 }
@@ -179,6 +180,7 @@ func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 			Amount:     amountResult,
 			Fromaddr:   v.Fromaddr,
 			ActionName: v.ActionName,
+			Assets:     v.Assets,
 		}
 		result.Txs = append(result.Txs, &td)
 	}

@@ -10,8 +10,8 @@ import (
 
 	"github.com/33cn/chain33/common/address"
 	//"github.com/33cn/chain33/queue"
-	"github.com/stretchr/testify/require"
 	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/require"
 )
 
 func (acc *DB) GenerExecAccData(execaddr string) {

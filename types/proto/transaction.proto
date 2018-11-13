@@ -37,6 +37,7 @@ message AssetsTransfer {
 message Asset {
     string exec   = 1;
     string symbol = 2;
+    int64  amount = 3;
 }
 
 message CreateTx {
@@ -209,6 +210,7 @@ message TransactionDetail {
     int64          amount     = 7;
     string         fromaddr   = 8;
     string         actionName = 9;
+    repeated Asset assets     = 10;
 }
 
 message TransactionDetails {

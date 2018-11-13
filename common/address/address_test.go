@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/33cn/chain33/system/crypto/init"
 )

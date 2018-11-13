@@ -7,10 +7,10 @@ package main
 import (
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/33cn/chain33/cmd/tools/commands"
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/common/log/log15"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -28,6 +28,7 @@ func addCommands(rootCmd *cobra.Command) {
 		commands.AdvanceCmd(),
 		commands.ImportCmd(),
 		commands.UpdateInitCmd(),
+		commands.CreatePluginCmd(),
 	)
 }
 
