@@ -1,6 +1,3 @@
-// ci server: http://39.98.41.13:8080
-// user/pass: jenkins/33fuzamei123
-
 pipeline {
     agent any
 

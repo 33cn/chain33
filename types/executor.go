@@ -11,8 +11,8 @@ import (
 	"strings"
 	"unicode"
 
-	proto "github.com/golang/protobuf/proto"
 	"github.com/33cn/chain33/common/address"
+	proto "github.com/golang/protobuf/proto"
 )
 
 func init() {
@@ -700,5 +700,10 @@ func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
 	} else {
 		return nil, nil
 	}
+	amount, err := tx.Amount()
+	if err != nil {
+		return nil, nil
+	}
+	asset.Amount = amount
 	return []*Asset{asset}, nil
 }
