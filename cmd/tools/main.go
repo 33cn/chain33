@@ -28,6 +28,7 @@ func addCommands(rootCmd *cobra.Command) {
 		commands.AdvanceCmd(),
 		commands.ImportCmd(),
 		commands.UpdateInitCmd(),
+		commands.CreatePluginCmd(),
 	)
 }
 
