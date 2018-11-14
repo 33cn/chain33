@@ -29,6 +29,8 @@ jobs:
       install: skip
       script:
         - make coverage
+      after_success:
+        - bash <(curl -s https://codecov.io/bash)
 
 #    - stage: deploy
 #      sudo: required
