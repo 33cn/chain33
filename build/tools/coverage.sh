@@ -4,8 +4,11 @@
 set -e -o pipefail
 
 COVERAGE_DIR="${COVERAGE_DIR:-build/coverage}"
-PKG_LIST=$(go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mock" | grep -v "mocks" \
-    | grep -v "cmd" | grep -v "nat" | grep -v "pbft")
+#PKG_LIST=$(go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mock" | grep -v "mocks" \
+#    | grep -v "cmd" | grep -v "nat" | grep -v "pbft" |grep -v "common" |grep -v "system" |grep -v "wallet" |grep -v "blockchain" \
+#    | grep -v "types" |grep -v "rpc" |grep -v "util" |grep -v "consensus" |grep -v "mempool"|grep -v "queue" |grep -v "store")
+
+PKG_LIST=$(go list ./... | grep -E "account|client"|grep -v "cmd" |grep -v "rpc" | grep -v "mocks")
 
 # Create the coverage files directory
 mkdir -p "$COVERAGE_DIR"
