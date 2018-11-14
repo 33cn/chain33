@@ -30,7 +30,7 @@ type advanceCreateExecProjStrategy struct {
 
 func (this *advanceCreateExecProjStrategy) Run() error {
 	fmt.Println("Begin run chain33 create executor project advance mode.")
-	defer fmt.Println("Run chain33 create executor project advance modefinish.")
+	defer fmt.Println("Run chain33 create executor project advance mode finish.")
 	this.initMember()
 	if !this.checkParamValid() {
 		return errors.New("InvalidParams")

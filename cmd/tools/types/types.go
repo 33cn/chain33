@@ -17,6 +17,7 @@ const (
 	KeyProtobufFile             = "protobuf_file"
 	KeyTemplateFilePath         = "template_file_path"
 	KeyUpdateInit               = "update_init"
+	KeyCreatePlugin             = "create_plugin"
 
 	DEF_CPM_CONFIGFILE = "chain33.cpm.toml"
 
