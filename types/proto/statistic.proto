@@ -65,3 +65,29 @@ message TotalAmount {
     // 统计的总数
     int64 total = 1;
 }
+
+//查询symbol在合约中的代币总额，如果execAddr为空，则为查询symbol在所有合约中的代币总额
+message ReqGetExecBalance {
+    string symbol    = 1;
+    bytes  stateHash = 2;
+    bytes  addr      = 3;
+    bytes  execAddr  = 4;
+    string execer    = 5;
+    int64 count     = 6;
+    bytes nextKey   = 7;
+}
+
+message ExecBalanceItem {
+    bytes execAddr = 1;
+    int64 frozen   = 2;
+    int64 active   = 3;
+}
+
+//查询symbol在合约中的代币总额应答
+message ReplyGetExecBalance {
+    int64    amount                = 1;
+    int64    amountFrozen          = 2;
+    int64    amountActive          = 3;
+    bytes    nextKey               = 4;
+    repeated ExecBalanceItem items = 5;
+}

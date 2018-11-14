@@ -406,3 +406,60 @@ func MustDecode(data []byte, v interface{}) {
 		panic(err)
 	}
 }
+
+func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
+	var acc Account
+	err := Decode(value, &acc)
+	if err != nil {
+		tlog.Error("ReplyGetExecBalance.AddItem", "err", err)
+		return
+	}
+	tlog.Info("acc:", "value", acc)
+	t.Amount += acc.Balance
+	t.Amount += acc.Frozen
+
+	t.AmountActive += acc.Balance
+	t.AmountFrozen += acc.Frozen
+
+	item := &ExecBalanceItem{execAddr, acc.Frozen, acc.Balance}
+	t.Items = append(t.Items, item)
+}
+
+func (t *StoreListReply) IterateCallBack(key, value []byte) bool {
+	if t.Mode == 1 {   //[start, end)模式
+		if t.Num >= t.Count {
+			t.NextKey = key
+			return true
+		}
+		t.Num++
+		t.Keys = append(t.Keys, cloneByte(key))
+		t.Values = append(t.Values, cloneByte(value))
+		return false
+	} else if t.Mode == 2 {  //prefix + suffix模式，要对按prefix得到的数据key进行suffix的判断，符合条件的数据才是最终要的数据
+		if len(key) > len(t.End) {
+			if string(key[len(key) - len(t.End):]) == string(t.End){
+				t.Num++
+				t.Keys = append(t.Keys, cloneByte(key))
+				t.Values = append(t.Values, cloneByte(value))
+				if t.Num >= t.Count {
+					t.NextKey = key
+					return true
+				}
+				return false
+			} else {
+				return false
+			}
+		}else {
+			return false
+		}
+	} else {
+		tlog.Error("StoreListReply.IterateCallBack unsupported mode", "mode", t.Mode)
+		return true
+	}
+}
+
+func cloneByte(v []byte) []byte {
+	value := make([]byte, len(v))
+	copy(value, v)
+	return value
+}

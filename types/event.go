@@ -135,6 +135,8 @@ const (
 	EventGetSeqByHash            = 127
 	EventLocalPrefixCount        = 128
 	EventWalletCreateTx          = 129
+	EventStoreList               = 130
+	EventStoreListReply          = 131
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
@@ -267,6 +269,8 @@ var eventName = map[int]string{
 	128: "EventLocalPrefixCount",
 	//todo: 这个可能后面会删除
 	EventWalletCreateTx: "EventWalletCreateTx",
+	EventStoreList: "EventStoreList",
+	EventStoreListReply: "EventStoreListReply",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 	EventConsensusQuery:  "EventConsensusQuery",

@@ -82,6 +82,8 @@ It has these top-level messages:
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
+	StoreList
+	StoreListReply
 	PruneData
 	StoreValuePool
 	Genesis
@@ -147,6 +149,9 @@ It has these top-level messages:
 	TicketStatistic
 	TicketMinerInfo
 	TotalAmount
+	ReqGetExecBalance
+	ExecBalanceItem
+	ReplyGetExecBalance
 	AssetsGenesis
 	AssetsTransferToExec
 	AssetsWithdraw

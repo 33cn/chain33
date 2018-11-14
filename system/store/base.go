@@ -134,6 +134,16 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreDel, &types.ReplyHash{hash}))
 		}
+	} else if msg.Ty == types.EventStoreList {
+		req := msg.GetData().(*types.StoreList)
+		resp := &types.StoreListReply{}
+		resp.Start = req.Start
+		resp.End = req.End
+		resp.Count = req.Count
+		resp.Mode = req.Mode
+		//slog.Info("Store get EventStoreGetExecBalance", "Addr", string(req.Addr), "Prefix", string(req.Prefix))
+		store.child.IterateRangeByStateHash(req.StateHash, req.Start, req.End, true, resp.IterateCallBack)
+		msg.Reply(client.NewMessage("", types.EventStoreListReply, resp))
 	} else {
 		store.child.ProcEvent(msg)
 	}
