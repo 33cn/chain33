@@ -2,18 +2,20 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package testcase
+package testflow
 
 import (
 	"container/list"
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 
+	. "github.com/33cn/chain33/cmd/autotest/types"
 	"github.com/33cn/chain33/common/log/log15"
 )
+
+//test flow, Add=>HandleDepend=>Send=>Check
 
 type TestOperator struct {
 	addDone     chan bool
@@ -30,6 +32,7 @@ type TestOperator struct {
 	fLog log15.Logger
 	tLog log15.Logger
 
+	dapp      string
 	totalCase int
 	totalFail int
 	failID    []string
@@ -48,7 +51,7 @@ func (tester *TestOperator) AddCaseArray(caseArrayList ...interface{}) {
 		for j := 0; j < caseArray.Len(); j++ {
 
 			testCase := caseArray.Index(j).Addr().Interface().(CaseFunc)
-			baseCase := testCase.getBaseCase()
+			baseCase := testCase.GetBaseCase()
 
 			if len(baseCase.Dep) > 0 {
 
@@ -75,7 +78,7 @@ func (tester *TestOperator) HandleDependency() {
 
 		case testCase := <-tester.addDepBuf:
 
-			baseCase := testCase.getBaseCase()
+			baseCase := testCase.GetBaseCase()
 
 			for _, depID := range baseCase.Dep {
 
@@ -85,18 +88,17 @@ func (tester *TestOperator) HandleDependency() {
 
 		case testPack := <-tester.delDepBuf:
 
-			packID := testPack.getPackID()
+			packID := testPack.GetPackID()
 			//取出依赖于该用例的所有用例
 			caseArr, exist := tester.depCaseMap[packID]
 			if exist {
 
 				for i := range caseArr {
 
-					baseCase := caseArr[i].getBaseCase()
+					caseArr[i].SetDependData(testPack.GetDependData())
+					baseCase := caseArr[i].GetBaseCase()
 					tester.depCountMap[baseCase.ID]--
 					if tester.depCountMap[baseCase.ID] == 0 {
-
-						caseArr[i].setDependData(testPack.getDependData())
 						tester.sendBuf <- caseArr[i]
 						delete(tester.depCountMap, baseCase.ID)
 					}
@@ -114,7 +116,7 @@ func (tester *TestOperator) HandleDependency() {
 				if !exist {
 					//depending testCase not exist
 					for i := range tester.depCaseMap[depID] {
-						tester.tLog.Error("InvalidDependency", "TestIDs", tester.depCaseMap[depID][i].getID())
+						tester.tLog.Error("CheckCaseDependencyValid", "TestID", tester.depCaseMap[depID][i].GetID(), "DependTestID", depID, "Error", "DependCaseNotExist")
 					}
 					delete(tester.depCaseMap, depID)
 				}
@@ -177,7 +179,7 @@ func (tester *TestOperator) RunSendFlow() {
 					n = e.Next()
 					testCase := e.Value.(CaseFunc)
 					c.Remove(e)
-					baseCase := testCase.getBaseCase()
+					baseCase := testCase.GetBaseCase()
 
 					repeat := baseCase.Repeat
 					if repeat <= 0 { //default val if empty in tomlFile
@@ -190,11 +192,11 @@ func (tester *TestOperator) RunSendFlow() {
 					for i := 1; i <= repeat; i++ {
 
 						tester.fLog.Info("CommandExec", "TestID", packID, "Command", baseCase.Command)
-						pack, err := testCase.doSendCommand(packID)
+						pack, err := testCase.SendCommand(packID)
 
 						if err != nil {
 
-							if strings.Contains(packID, "fail") { //some logs
+							if baseCase.Fail { //fail type case
 
 								tester.tLog.Info("TestCaseResult", "TestID", packID, "Result", "Succeed")
 
@@ -202,17 +204,21 @@ func (tester *TestOperator) RunSendFlow() {
 
 								tester.totalFail++
 								tester.failID = append(tester.failID, packID)
-								tester.tLog.Error("TestCaseFailDetail", "TestID", packID, "Command", baseCase.Command, "Result", "")
+								tester.tLog.Error("TestCaseResult", "TestID", packID, "Command", baseCase.Command, "Result", "")
 								fmt.Println(err.Error())
 							}
 							tester.fLog.Info("CommandResult", "TestID", packID, "Result", err.Error())
-							tester.delDepBuf <- &BaseCasePack{packID: packID}
-							continue
+							casePack := &BaseCasePack{}
+							casePack.SetPackID(packID)
+							tester.delDepBuf <- casePack
+
+						} else {
+
+							pack.SetLogger(tester.fLog, tester.tLog)
+							tester.checkBuf <- pack
+							tester.fLog.Info("CommandResult", "TestID", packID, "Result", pack.GetTxHash())
 						}
 
-						pack.setLogger(tester.fLog, tester.tLog)
-						tester.checkBuf <- pack
-						tester.fLog.Info("CommandResult", "TestID", packID, "Result", pack.getTxHash())
 						//distinguish with different packID, format: [TestID_RepeatOrder]
 						packID = fmt.Sprintf("%s_%d", baseCase.ID, i)
 					}
@@ -249,7 +255,7 @@ func (tester *TestOperator) RunCheckFlow() {
 		case <-tester.sendDone:
 			sendDoneFlag = true
 
-		case <-time.After(time.Second): //do check operation with an dependent check list
+		case <-time.After(time.Second): //do check operation with an independent check list
 
 			if checkList == nil {
 
@@ -271,7 +277,7 @@ func (tester *TestOperator) RunCheckFlow() {
 					for e := c.Front(); e != nil; e = n {
 
 						casePack := e.Value.(PackFunc)
-						checkOver, bSuccess := casePack.doCheckResult(casePack.getCheckHandlerMap())
+						checkOver, bSuccess := casePack.CheckResult(casePack.GetCheckHandlerMap())
 						n = e.Next()
 
 						//have done checking
@@ -280,19 +286,18 @@ func (tester *TestOperator) RunCheckFlow() {
 							c.Remove(e)
 							//find if any case depend
 							tester.delDepBuf <- casePack
-							isFailCase := strings.Contains(casePack.getPackID(), "fail")
+							isFailCase := casePack.GetBaseCase().Fail
 
 							if (bSuccess && !isFailCase) || (!bSuccess && isFailCase) { //some logs
 
-								tester.tLog.Info("TestCaseResult", "TestID", casePack.getPackID(), "Result", "Succeed")
+								tester.tLog.Info("TestCaseResult", "TestID", casePack.GetPackID(), "Result", "Succeed")
 
 							} else {
-								basePack := casePack.getBasePack()
-								baseCase := basePack.tCase.getBaseCase()
+								baseCase := casePack.GetBaseCase()
 								tester.totalFail++
-								tester.failID = append(tester.failID, casePack.getPackID())
-								tester.tLog.Error("TestCaseFailDetail", "TestID", casePack.getPackID(), "Command", baseCase.Command, "TxHash", basePack.txHash, "TxReceipt", "")
-								fmt.Println(basePack.txReceipt)
+								tester.failID = append(tester.failID, casePack.GetPackID())
+								tester.tLog.Error("TestCaseFailDetail", "TestID", casePack.GetPackID(), "Command", baseCase.Command, "TxHash", casePack.GetTxHash(), "TxReceipt", "")
+								fmt.Println(casePack.GetTxReceipt())
 							}
 						}
 					}
@@ -300,7 +305,7 @@ func (tester *TestOperator) RunCheckFlow() {
 					if c.Len() > 0 {
 
 						//tester.tLog.Info("CheckRoutineSleep", "SleepTime", CheckSleepTime*time.Second, "WaitCheckNum", c.Len())
-						time.Sleep(CheckSleepTime * time.Second)
+						time.Sleep(time.Duration(checkSleepTime) * time.Second)
 					}
 
 				}
@@ -315,21 +320,18 @@ func (tester *TestOperator) RunCheckFlow() {
 	tester.checkDone <- true
 }
 
-func (tester *TestOperator) WaitTest() {
+func (tester *TestOperator) WaitTest() *autoTestResult {
 
 	<-tester.checkDone
-	if tester.totalFail > 0 {
-
-		tester.tLog.Error("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
-		tester.fLog.Error("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
-	} else {
-
-		tester.tLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail)
-		tester.fLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail)
+	return &autoTestResult{
+		dapp:       tester.dapp,
+		totalCase:  tester.totalCase,
+		failCase:   tester.totalFail,
+		failCaseID: tester.failID,
 	}
 }
 
-func NewTestOperator(fileLog log15.Logger, stdLog log15.Logger) (tester *TestOperator) {
+func NewTestOperator(stdLog log15.Logger, fileLog log15.Logger, dapp string) (tester *TestOperator) {
 
 	tester = new(TestOperator)
 
@@ -343,8 +345,9 @@ func NewTestOperator(fileLog log15.Logger, stdLog log15.Logger) (tester *TestOpe
 	tester.checkBuf = make(chan PackFunc, 1)
 	tester.depCaseMap = make(map[string][]CaseFunc)
 	tester.depCountMap = make(map[string]int)
-	tester.fLog = fileLog
-	tester.tLog = stdLog
+	tester.fLog = fileLog.New("module", dapp)
+	tester.tLog = stdLog.New("module", dapp)
+	tester.dapp = dapp
 	tester.totalCase = 0
 	tester.totalFail = 0
 	return tester

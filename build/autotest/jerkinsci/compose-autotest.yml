@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  autotest:
+    build:
+      context: .
+      dockerfile: Dockerfile-autotest
+
+
