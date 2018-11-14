@@ -150,10 +150,10 @@ msan: ## Run memory sanitizer
 	@go test -msan -short $(PKG_LIST)
 
 coverage: ## Generate global code coverage report
-	@./build/tools/coverage.sh;
+	@./build/tools/coverage.sh
 
 coverhtml: ## Generate global code coverage report in HTML
-	@./build/tools/coverage.sh html;
+	@./build/tools/coverage.sh html
 
 docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
