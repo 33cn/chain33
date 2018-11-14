@@ -10,11 +10,21 @@ set -o pipefail
 # sudo apt-get install jq
 # sudo apt-get install shellcheck, in order to static check shell script
 # sudo apt-get install parallel
+# ./run-autotest.sh build
 
 PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
 
-CLI="./chain33-cli"
+PROJECT_NAME="${1}"
+if [[ ${PROJECT_NAME} == "" ]]; then
+    PROJECT_NAME="build"
+    rm -rf ../jerkinsci/tempbuild
+    mv -f ./temp tempbuild
+fi
+
+NODE3="${PROJECT_NAME}_autotest_1"
+CLI="docker exec ${NODE3} /root/chain33-cli"
+TEMP_CI_DIR=temp"${PROJECT_NAME}"
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
@@ -22,16 +32,9 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 chain33Config="chain33.test.toml"
-chain33BlockTime=2
-function init() {
-    # update test environment
-
-    echo "# copy chain33 for solo test"
-    cp ../../chain33 ./
-    cp ../../chain33-cli ./
-    cp ../../../cmd/chain33/chain33.test.toml ./
-
-}
+chain33BlockTime=1
+autoTestConfig="autotest.toml"
+autoTestCheckTimeout=10
 
 function config_chain33() {
 
@@ -56,44 +59,33 @@ function config_chain33() {
     sed -i $sedfix '/^\[wallet\]/,/^\[wallet./ s/^driver.*/driver="leveldb"/' ${chain33Config}
 }
 
-autotestConfig="autotest.toml"
-autotestTempConfig="autotest.temp.toml"
 function config_autotest() {
 
-    #delete all blank lines
     echo "# config autotest"
-    sed -i $sedfix '/^\s*$/d' ${autotestConfig}
+    sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autoTestConfig}
 
-    if [[ $1 == "" ]] || [[ $1 == "all" ]]; then
-        cp ${autotestConfig} ${autotestTempConfig}
-    else
-        #copy config before [
-        sed -n '/^\[/!p;//q' ${autotestConfig} >${autotestTempConfig}
-
-        #copy specific dapp cofig
-
-        for dapp in "$@"; do
-            {
-                echo "[[TestCaseFile]]"
-                echo "contract=\"$dapp\""
-                echo "filename=\"$dapp.toml\""
-            } >>${autotestTempConfig}
-
-        done
+    #only run coins if it is chain33
+    if [ -d ../../../../system/dapp/coins/autotest ]; then
+        {
+            echo 'cliCmd="./chain33-cli"'
+            echo "checkTimeout=${autoTestCheckTimeout}"
+            echo "[[TestCaseFile]]"
+            echo 'dapp="coins"'
+            echo 'filename="coins.toml"'
+        } >${autoTestConfig}
     fi
-
-    sed -i $sedfix 's/^checkSleepTime.*/checkSleepTime='${chain33BlockTime}'/' ${autotestTempConfig}
 }
 
 function start_chain33() {
 
-    echo "# start solo chain33, make sure there is no chain33 instance running"
-    rm -rf ../autotest/datadir ../autotest/logs ../autotest/grpc33.log
-    ./chain33 -f chain33.test.toml >/dev/null 2>&1 &
+    # create and run docker-compose container
+    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml up --build -d
 
-    local SLEEP=5
-    echo "=========== sleep ${SLEEP}s ============="
+    local SLEEP=2
     sleep ${SLEEP}
+
+    # docker-compose ps
+    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml ps
 
     # query node run status
     ${CLI} block last_header
@@ -120,27 +112,6 @@ function start_chain33() {
 
     echo "=========== # import private key mining ============="
     result=$(${CLI} account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l minerAddr | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
-    echo "=========== # import test addr1 ============="
-    result=$(${CLI} account import_key -k 0x88b2fb90411935872f0501dd13345aba19b5fac9b00eb0dddd7df977d4d5477e -l test_addr1 | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
-    echo "=========== # import test addr2 ============="
-    result=$(${CLI} account import_key -k 0xa0c6f46de8d275ce21e935afa5363e9b8a087fe604e05f7a9eef1258dc781c3a -l test_addr2 | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
-    echo "=========== # import test addr3 ============="
-    result=$(${CLI} account import_key -k 0x9d4f8ab11361be596468b265cb66946c87873d4a119713fd0c3d8302eae0a8e4 -l test_addr3 | jq ".label")
     echo "${result}"
     if [ -z "${result}" ]; then
         exit 1
@@ -178,42 +149,38 @@ function start_chain33() {
         exit 1
     fi
 
-    ${CLI} wallet status
-    ${CLI} account list
-    ${CLI} mempool list
 }
 
 function start_autotest() {
 
-    echo "=========== #run autotest, make sure saving autotest.log.last file============="
-
-    if [ -e autotest.log ]; then
-        cat autotest.log >autotest.log.last
-        rm autotest.log
-    fi
-
-    ./autotest -f ${autotestTempConfig}
+    echo "=========== #start auto-test program ============="
+    docker exec "${NODE3}" /root/autotest
 
 }
 
 function stop_chain33() {
 
-    echo "=========== #stop chain33 ============="
-    ${CLI} close
-    #wait close
-    sleep ${chain33BlockTime}
+    rv=$?
+    echo "=========== #stop docker-compose ============="
+    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down
+    echo "=========== #remove related images ============"
+    docker rmi "${PROJECT_NAME}"_autotest || true
+    cd ../ && rm -rf ./"${TEMP_CI_DIR}"
+    exit ${rv}
 }
 
 function main() {
-    echo "==========================================main begin========================================================"
-    config_autotest "$@"
-    init
+
+    cd "${TEMP_CI_DIR}" && cp ../compose-autotest.yml ../Dockerfile-autotest ./
     config_chain33
+    config_autotest
     start_chain33
     start_autotest
-    stop_chain33
 
-    echo "==========================================main end========================================================="
 }
 
-main "$@"
+#trap exit
+trap "stop_chain33" INT TERM EXIT
+
+# run script
+main
