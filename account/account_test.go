@@ -5,7 +5,6 @@
 package account
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/33cn/chain33/client"
@@ -140,8 +139,8 @@ func storeProcess(q queue.Queue) {
 		for msg := range client.Recv() {
 			switch msg.Ty {
 			case types.EventStoreGet:
-				datas := msg.GetData().(*types.StoreGet)
-				fmt.Println("EventStoreGet data = %v", datas)
+				//datas := msg.GetData().(*types.StoreGet)
+				//fmt.Println("EventStoreGet data = %v", datas)
 
 				values := make([][]byte, 2)
 				account := &types.Account{
