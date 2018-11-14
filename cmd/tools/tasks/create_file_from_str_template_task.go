@@ -40,6 +40,11 @@ func (this *CreateFileFromStrTemplateTask) Execute() error {
 		return err
 	}
 	util.DeleteFile(this.OutputFile)
-	_, err := util.WriteStringToFile(this.OutputFile, this.fileContent)
+	len, err := util.WriteStringToFile(this.OutputFile, this.fileContent)
+	if err == nil {
+		mlog.Info("Create file success.", "file", this.OutputFile, "file len", len)
+	} else {
+		mlog.Info("Create file falied.", "error", err)
+	}
 	return err
 }
