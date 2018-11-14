@@ -4,7 +4,7 @@
 set -e -o pipefail
 
 COVERAGE_DIR="${COVERAGE_DIR:-build/coverage}"
-PKG_LIST=$(go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mock" | grep -v "mocks" \
+PKG_LIST=$(go list ./... | grep -v "vendor" | grep -v "mock" | grep -v "mocks" \
     | grep -v "cmd" | grep -v "nat" | grep -v "pbft")
 
 
@@ -13,7 +13,7 @@ mkdir -p "$COVERAGE_DIR"
 
 # Create a coverage file for each package
 for package in ${PKG_LIST}; do
-    go test -covermode=count -coverprofile "${COVERAGE_DIR}/${package##*/}.cov" "$package"
+    go test -race -covermode=count -coverprofile "${COVERAGE_DIR}/${package##*/}.cov" "$package"
 done
 
 # Merge the coverage profile files
