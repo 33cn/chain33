@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// for test common contains various helper functions.
+
+// Package common contains various helper functions.
+
 package common
 
 import (
