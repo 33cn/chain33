@@ -216,8 +216,8 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	//mavldb.EnableMavlPrefix(true)
 	//defer mavldb.EnableMavlPrefix(false)
 
-	var accountdb *account.DB
-	accountdb = account.NewCoinsAccount()
+	//var accountdb *account.DB
+	accountdb := account.NewCoinsAccount()
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	prefix := "mavl-coins-bty-exec-"
 	execAddr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
@@ -352,8 +352,8 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	//mavldb.EnableMavlPrefix(true)
 	//defer mavldb.EnableMavlPrefix(false)
 
-	var accountdb *account.DB
-	accountdb = account.NewCoinsAccount()
+	//var accountdb *account.DB
+	accountdb := account.NewCoinsAccount()
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	prefix := "mavl-coins-bty-exec-"
 	execAddr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
