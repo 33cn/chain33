@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+	"fmt"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types/jsonpb"
