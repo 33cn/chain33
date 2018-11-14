@@ -5,6 +5,7 @@ package commands
 
 import (
 	"fmt"
+
 	"github.com/33cn/chain33/cmd/tools/strategy"
 	"github.com/33cn/chain33/cmd/tools/types"
 	"github.com/spf13/cobra"
@@ -21,15 +22,19 @@ func CreatePluginCmd() *cobra.Command {
 }
 
 func addCreatePluginFlag(cmd *cobra.Command) {
+	cmd.Flags().StringP("name", "n", "", "project name")
+	cmd.MarkFlagRequired("name")
 
 }
 
 func createPlugin(cmd *cobra.Command, args []string) {
+	projectName, _ := cmd.Flags().GetString("name")
 
 	s := strategy.New(types.KeyCreatePlugin)
 	if s == nil {
 		fmt.Println(types.KeyCreatePlugin, "Not support")
 		return
 	}
+	s.SetParam(types.KeyProjectName, projectName)
 	s.Run()
 }
