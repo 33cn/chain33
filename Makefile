@@ -16,7 +16,6 @@ SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
 AUTOTEST := build/autotest/autotest
 SRC_AUTOTEST := github.com/33cn/chain33/cmd/autotest
-SRC_AUTOTEST_PLUGIN := github.com/33cn/plugin/vendor/github.com/33cn/chain33/cmd/autotest/pluginversion
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "blockchain" | grep -v "pbft"`
@@ -67,12 +66,8 @@ para:
 	@go build -v -o build/$(NAME) -ldflags "-X $(SRC_CLI)/buildflags.ParaName=user.p.$(NAME). -X $(SRC_CLI)/buildflags.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
 
-autotest:## build autotest binary, prior build plugin version
-	@if [ -d $(GOPATH)/src/$(SRC_AUTOTEST_PLUGIN) ]; then \
-		go build -v -i -o $(AUTOTEST) $(SRC_AUTOTEST_PLUGIN);\
-	else \
-		go build -v -i -o $(AUTOTEST) $(SRC_AUTOTEST);\
-	fi;
+autotest:## build autotest binary
+	@go build -v -i -o $(AUTOTEST) $(SRC_AUTOTEST)
 	@if [ -n "$(dapp)" ]; then \
 		cd build/autotest && bash ./copy-autotest.sh local && cd local && bash ./local-autotest.sh $(dapp) && cd ../../../; \
 	fi
