@@ -193,7 +193,7 @@ autotest:
         - if [ -n "${onceEveryday}" ]; then
         - make build_ci
         - make autotest
-        - cd build/tools/autotest && ./run-autotest.sh build
+        - cd build/autotest && ./copy-autotest.sh gitlabci && cd gitlabci && ./gitlabci-autotest.sh build
         - cd $GO_PROJECT_PATH
         - fi
     when: always

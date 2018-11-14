@@ -1,0 +1,74 @@
+#exec addr
+#coins = "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt"
+#token = "12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa"
+#trade = "1BXvgjmBw1aBgmGn1hjfGyRkmN3krWpFP4"
+#ticket = "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+#privacy = "1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
+
+
+#import coins test addr, 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj
+[[SimpleCase]]
+id = "import1"
+command = "account import_key -k 0xd165c84ed37c2a427fea487470ee671b7a0495d68d82607cafbc6348bf23bec5 -l coins_test"
+
+
+[[TransferCase]]
+id = "btyTrans1"
+command = "send bty transfer -a 10 -t 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+to = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+amount = "10"
+checkItem = ["balance"]
+dep = ["import1"]
+
+
+[[TransferCase]]
+id = "btyTrans2"
+command = "send bty transfer -a 1 -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+from = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+amount = "1"
+checkItem = ["balance"]
+repeat = 5
+dep = ["btyTrans1"]
+
+
+[[TransferCase]]
+id = "failBtyTrans"
+command = "send bty transfer -a 15 -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+from = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+amount = "15"
+checkItem = ["balance"]
+dep = ["btyTrans1"]
+fail = true
+
+
+[[TransferCase]]
+id = "btyTrans3"
+command = "send bty transfer -a 1 -t 12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+from = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+to = "12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa"
+amount = "1"
+checkItem = ["balance"]
+dep = ["btyTrans1"]
+
+
+[[WithdrawCase]]
+id = "btyWithdraw"
+command = "send bty withdraw -a 0.1 -e token -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+addr = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+amount = "0.1"
+checkItem = ["balance"]
+repeat = 5
+dep = ["btyTrans3"]
+
+
+[[WithdrawCase]]
+id = "failWithdraw"
+command = "send bty withdraw -a 1.1 -e token -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+addr = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+amount = "1.1"
+checkItem = ["balance"]
+fail = true
+
