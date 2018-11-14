@@ -269,7 +269,7 @@ var eventName = map[int]string{
 	128: "EventLocalPrefixCount",
 	//todo: 这个可能后面会删除
 	EventWalletCreateTx: "EventWalletCreateTx",
-	EventStoreList: "EventStoreList",
+	EventStoreList:      "EventStoreList",
 	EventStoreListReply: "EventStoreListReply",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",

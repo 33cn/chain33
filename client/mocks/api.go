@@ -1227,7 +1227,6 @@ func (_m *QueueProtocolAPI) WalletUnLock(param *types.WalletUnLock) (*types.Repl
 	return r0, r1
 }
 
-
 // StoreList provides a mock function with given fields: _a0
 func (_m *QueueProtocolAPI) StoreList(_a0 *types.StoreList) (*types.StoreListReply, error) {
 	ret := _m.Called(_a0)

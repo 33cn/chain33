@@ -6,9 +6,9 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
-	"fmt"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types/jsonpb"
@@ -178,7 +178,7 @@ func TestGetRealExecName(t *testing.T) {
 	}
 }
 
-func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T){
+func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T) {
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	//prefix1 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:"
 	prefix2 := "mavl-coins-bty-exec-"
@@ -186,17 +186,17 @@ func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T){
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 
 	var reply = &StoreListReply{
-		End: []byte(addr),
+		End:   []byte(addr),
 		Start: []byte(prefix2),
-		Mode: int64(2),
+		Mode:  int64(2),
 		Count: int64(100),
 	}
 
 	var acc = &Account{
 		Currency: 0,
-		Balance: 1,
-		Frozen: 1,
-		Addr: addr,
+		Balance:  1,
+		Frozen:   1,
+		Addr:     addr,
 	}
 
 	value := Encode(acc)
@@ -247,24 +247,24 @@ func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T){
 	fmt.Println(string(reply.NextKey))
 }
 
-func TestIterateCallBack_PrefixWithExecAddr(t *testing.T){
+func TestIterateCallBack_PrefixWithExecAddr(t *testing.T) {
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	prefix1 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:"
 	//execAddr := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 
 	var reply = &StoreListReply{
-		End: []byte(addr),
+		End:   []byte(addr),
 		Start: []byte(prefix1),
-		Mode: int64(2),
+		Mode:  int64(2),
 		Count: int64(1),
 	}
 
 	var acc = &Account{
 		Currency: 0,
-		Balance: 1,
-		Frozen: 1,
-		Addr: addr,
+		Balance:  1,
+		Frozen:   1,
+		Addr:     addr,
 	}
 
 	value := Encode(acc)

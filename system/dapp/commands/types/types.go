@@ -268,14 +268,14 @@ type PrivacyOutput struct {
 }
 
 type GetExecBalanceResult struct {
-	Amount          string  `json:"totalAmount"`
-	AmountFrozen     string  `json:"frozenAmount"`
-	AmountActive      string `json:"activeAmount"`
+	Amount       string         `json:"totalAmount"`
+	AmountFrozen string         `json:"frozenAmount"`
+	AmountActive string         `json:"activeAmount"`
 	ExecBalances []*ExecBalance `json:"execBalances,omitempty"`
 }
 
 type ExecBalance struct {
 	ExecAddr string `json:"execAddr,omitempty"`
-	Frozen   string  `json:"frozen"`
-	Active   string  `json:"active"`
+	Frozen   string `json:"frozen"`
+	Active   string `json:"active"`
 }

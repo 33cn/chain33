@@ -8,15 +8,16 @@ import (
 	"fmt"
 	"testing"
 
+	"strings"
+
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/db"
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"strings"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -241,37 +242,37 @@ func TestGetExecBalance(t *testing.T) {
 
 	fmt.Println("TestGetExecBalance---------------test case 1_1------------------------")
 	in := &types.ReqGetExecBalance{
-		Symbol: "bty",
+		Symbol:    "bty",
 		StateHash: []byte("0000000000"),
-		Addr: []byte(addr),
-		Execer: "coins",
+		Addr:      []byte(addr),
+		Execer:    "coins",
 	}
 
 	in.Count = 2
 	reply, err := getExecBalance(storeList1_1, in)
 	assert.Nil(t, err)
-	assert.Equal(t,int64(4)  , reply.Amount)
-	assert.Equal(t,int64(2)  , reply.AmountFrozen)
-	assert.Equal(t,int64(2)  , reply.AmountActive)
-	assert.Equal(t,2  , len(reply.Items))
+	assert.Equal(t, int64(4), reply.Amount)
+	assert.Equal(t, int64(2), reply.AmountFrozen)
+	assert.Equal(t, int64(2), reply.AmountActive)
+	assert.Equal(t, 2, len(reply.Items))
 	assert.Equal(t, len([]byte(key)), len(reply.NextKey))
 	fmt.Println("TestGetExecBalance---------------test case 1_2------------------------")
 	reply, err = getExecBalance(storeList1_2, in)
 	assert.Nil(t, err)
-	assert.Equal(t,int64(2)  , reply.Amount)
-	assert.Equal(t,int64(1)  , reply.AmountFrozen)
-	assert.Equal(t,int64(1)  , reply.AmountActive)
-	assert.Equal(t,1  , len(reply.Items))
+	assert.Equal(t, int64(2), reply.Amount)
+	assert.Equal(t, int64(1), reply.AmountFrozen)
+	assert.Equal(t, int64(1), reply.AmountActive)
+	assert.Equal(t, 1, len(reply.Items))
 	assert.Equal(t, 0, len(reply.NextKey))
 
 	fmt.Println("TestGetExecBalance---------------test case 2------------------------")
 	in.Count = 3
 	reply, err = getExecBalance(storeList2, in)
 	assert.Nil(t, err)
-	assert.Equal(t,int64(6)  , reply.Amount)
-	assert.Equal(t,int64(3)  , reply.AmountFrozen)
-	assert.Equal(t,int64(3)  , reply.AmountActive)
-	assert.Equal(t,3  , len(reply.Items))
+	assert.Equal(t, int64(6), reply.Amount)
+	assert.Equal(t, int64(3), reply.AmountFrozen)
+	assert.Equal(t, int64(3), reply.AmountActive)
+	assert.Equal(t, 3, len(reply.Items))
 	assert.Equal(t, 0, len(reply.NextKey))
 
 	fmt.Println("TestGetExecBalance---------------test case 3------------------------")
@@ -283,12 +284,11 @@ func TestGetExecBalance(t *testing.T) {
 	in.ExecAddr = []byte("26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
 	reply, err = getExecBalance(storeList3, in)
 	assert.Nil(t, err)
-	assert.Equal(t,int64(2)  , reply.Amount)
-	assert.Equal(t,int64(1)  , reply.AmountFrozen)
-	assert.Equal(t,int64(1)  , reply.AmountActive)
-	assert.Equal(t,1  , len(reply.Items))
+	assert.Equal(t, int64(2), reply.Amount)
+	assert.Equal(t, int64(1), reply.AmountFrozen)
+	assert.Equal(t, int64(1), reply.AmountActive)
+	assert.Equal(t, 1, len(reply.Items))
 }
-
 
 func cloneByte(v []byte) []byte {
 	value := make([]byte, len(v))
@@ -296,45 +296,45 @@ func cloneByte(v []byte) []byte {
 	return value
 }
 
-func storeList1_1(req *types.StoreList) (reply *types.StoreListReply,err  error){
+func storeList1_1(req *types.StoreList) (reply *types.StoreListReply, err error) {
 	reply = &types.StoreListReply{
 		Start: req.Start,
-		End: req.End,
+		End:   req.End,
 		Count: req.Count,
-		Mode: req.Mode,
+		Mode:  req.Mode,
 	}
 	var acc = &types.Account{
 		Currency: 0,
-		Balance: 1,
-		Frozen: 1,
-		Addr: string(req.End),
+		Balance:  1,
+		Frozen:   1,
+		Addr:     string(req.End),
 	}
 	value := types.Encode(acc)
 
 	key1 := []byte("mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP")
 	key2 := []byte("mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP")
 	key3 := []byte("mavl-coins-bty-exec-36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP")
-		reply.Num = 2
-		reply.Keys = append(reply.Keys, key1)
-		reply.Keys = append(reply.Keys, key2)
-		reply.Values = append(reply.Values, cloneByte(value))
-		reply.Values = append(reply.Values, cloneByte(value))
-		reply.NextKey = key3
-		return reply, nil
+	reply.Num = 2
+	reply.Keys = append(reply.Keys, key1)
+	reply.Keys = append(reply.Keys, key2)
+	reply.Values = append(reply.Values, cloneByte(value))
+	reply.Values = append(reply.Values, cloneByte(value))
+	reply.NextKey = key3
+	return reply, nil
 }
 
-func storeList1_2(req *types.StoreList) (reply *types.StoreListReply,err  error){
+func storeList1_2(req *types.StoreList) (reply *types.StoreListReply, err error) {
 	reply = &types.StoreListReply{
 		Start: req.Start,
-		End: req.End,
+		End:   req.End,
 		Count: req.Count,
-		Mode: req.Mode,
+		Mode:  req.Mode,
 	}
 	var acc = &types.Account{
 		Currency: 0,
-		Balance: 1,
-		Frozen: 1,
-		Addr: string(req.End),
+		Balance:  1,
+		Frozen:   1,
+		Addr:     string(req.End),
 	}
 	value := types.Encode(acc)
 	//key1 := []byte("mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP")
@@ -346,18 +346,18 @@ func storeList1_2(req *types.StoreList) (reply *types.StoreListReply,err  error)
 	return reply, nil
 }
 
-func storeList2(req *types.StoreList) (reply *types.StoreListReply,err  error){
+func storeList2(req *types.StoreList) (reply *types.StoreListReply, err error) {
 	reply = &types.StoreListReply{
 		Start: req.Start,
-		End: req.End,
+		End:   req.End,
 		Count: req.Count,
-		Mode: req.Mode,
+		Mode:  req.Mode,
 	}
 	var acc = &types.Account{
 		Currency: 0,
-		Balance: 1,
-		Frozen: 1,
-		Addr: string(req.End),
+		Balance:  1,
+		Frozen:   1,
+		Addr:     string(req.End),
 	}
 	value := types.Encode(acc)
 
@@ -376,18 +376,18 @@ func storeList2(req *types.StoreList) (reply *types.StoreListReply,err  error){
 	return reply, nil
 }
 
-func storeList3(req *types.StoreList) (reply *types.StoreListReply,err  error){
+func storeList3(req *types.StoreList) (reply *types.StoreListReply, err error) {
 	reply = &types.StoreListReply{
 		Start: req.Start,
-		End: req.End,
+		End:   req.End,
 		Count: req.Count,
-		Mode: req.Mode,
+		Mode:  req.Mode,
 	}
 	var acc = &types.Account{
 		Currency: 0,
-		Balance: 1,
-		Frozen: 1,
-		Addr: string(req.End),
+		Balance:  1,
+		Frozen:   1,
+		Addr:     string(req.End),
 	}
 	value := types.Encode(acc)
 
@@ -406,20 +406,20 @@ func storeList3(req *types.StoreList) (reply *types.StoreListReply,err  error){
 	return reply, nil
 }
 
-func getExecBalance(callback func(*types.StoreList)(*types.StoreListReply, error), in *types.ReqGetExecBalance) (reply *types.ReplyGetExecBalance, err error) {
+func getExecBalance(callback func(*types.StoreList) (*types.StoreListReply, error), in *types.ReqGetExecBalance) (reply *types.ReplyGetExecBalance, err error) {
 	req := &types.StoreList{}
 	req.StateHash = in.StateHash
 
 	prefix := SymbolExecPrefix(in.Execer, in.Symbol)
 	if len(in.ExecAddr) > 0 {
 		prefix = prefix + "-" + string(in.ExecAddr) + ":"
-	}else{
+	} else {
 		prefix = prefix + "-"
 	}
 
 	req.Start = []byte(prefix)
 	req.End = in.Addr
-	req.Mode = 2  //1：为[start,end）模式，按前缀或者范围进行查找。2：为prefix + suffix遍历模式，先按前缀查找，再判断后缀是否满足条件。
+	req.Mode = 2 //1：为[start,end）模式，按前缀或者范围进行查找。2：为prefix + suffix遍历模式，先按前缀查找，再判断后缀是否满足条件。
 	req.Count = in.Count
 
 	if len(in.NextKey) > 0 {

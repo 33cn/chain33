@@ -11,6 +11,7 @@ import (
 
 	"fmt"
 	"time"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/common"
 	drivers "github.com/33cn/chain33/system/store"
@@ -177,8 +178,9 @@ func TestKvdbIterate(t *testing.T) {
 	assert.Equal(t, []byte("v2"), checkKVResult[1].Value)
 
 }
-type StatTool struct{
-	Amount int64
+
+type StatTool struct {
+	Amount       int64
 	AmountActive int64
 	AmountFrozen int64
 }
@@ -222,9 +224,9 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	var acc = &types.Account{
 		Currency: 0,
-		Balance: 1,
-		Frozen: 1,
-		Addr: addr,
+		Balance:  1,
+		Frozen:   1,
+		Addr:     addr,
 	}
 
 	datas := &types.StoreSet{
@@ -358,9 +360,9 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	var acc = &types.Account{
 		Currency: 0,
-		Balance: 1,
-		Frozen: 1,
-		Addr: addr,
+		Balance:  1,
+		Frozen:   1,
+		Addr:     addr,
 	}
 	datas := &types.StoreSet{
 		drivers.EmptyRoot[:],

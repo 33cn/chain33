@@ -327,13 +327,13 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 	prefix := SymbolExecPrefix(in.Execer, in.Symbol)
 	if len(in.ExecAddr) > 0 {
 		prefix = prefix + "-" + string(in.ExecAddr) + ":"
-	}else{
+	} else {
 		prefix = prefix + "-"
 	}
 
 	req.Start = []byte(prefix)
 	req.End = in.Addr
-	req.Mode = 2  //1：为[start,end）模式，按前缀或者范围进行查找。2：为prefix + suffix遍历模式，先按前缀查找，再判断后缀是否满足条件。
+	req.Mode = 2 //1：为[start,end）模式，按前缀或者范围进行查找。2：为prefix + suffix遍历模式，先按前缀查找，再判断后缀是否满足条件。
 	req.Count = in.Count
 
 	if len(in.NextKey) > 0 {
@@ -360,7 +360,7 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 		if strings.HasSuffix(prefix, ":") {
 			addr := strKey[len(prefix):]
 			execAddr := []byte(prefix[(len(prefix) - len(addr) - 1):(len(prefix) - 1)])
-			log.Info("DB.GetExecBalance record for specific exec addr", "execAddr", string(execAddr), "addr", string(addr))
+			log.Info("DB.GetExecBalance record for specific exec addr", "execAddr", string(execAddr), "addr", addr)
 			reply.AddItem(execAddr, res.Values[i])
 		} else {
 			combinAddr := strKey[len(prefix):]
@@ -369,7 +369,7 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 				log.Error("accountDB.GetExecBalance key does not contain exec-addr & addr", "key", strKey, "combinAddr", combinAddr)
 				return nil, types.ErrTypeAsset
 			}
-			log.Info("DB.GetExecBalance", "execAddr", string(addrs[0]), "addr", string(addrs[1]))
+			log.Info("DB.GetExecBalance", "execAddr", addrs[0], "addr", addrs[1])
 			reply.AddItem([]byte(addrs[0]), res.Values[i])
 		}
 	}

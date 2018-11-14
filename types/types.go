@@ -426,7 +426,7 @@ func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 }
 
 func (t *StoreListReply) IterateCallBack(key, value []byte) bool {
-	if t.Mode == 1 {   //[start, end)模式
+	if t.Mode == 1 { //[start, end)模式
 		if t.Num >= t.Count {
 			t.NextKey = key
 			return true
@@ -435,9 +435,9 @@ func (t *StoreListReply) IterateCallBack(key, value []byte) bool {
 		t.Keys = append(t.Keys, cloneByte(key))
 		t.Values = append(t.Values, cloneByte(value))
 		return false
-	} else if t.Mode == 2 {  //prefix + suffix模式，要对按prefix得到的数据key进行suffix的判断，符合条件的数据才是最终要的数据
+	} else if t.Mode == 2 { //prefix + suffix模式，要对按prefix得到的数据key进行suffix的判断，符合条件的数据才是最终要的数据
 		if len(key) > len(t.End) {
-			if string(key[len(key) - len(t.End):]) == string(t.End){
+			if string(key[len(key)-len(t.End):]) == string(t.End) {
 				t.Num++
 				t.Keys = append(t.Keys, cloneByte(key))
 				t.Values = append(t.Values, cloneByte(value))
@@ -449,7 +449,7 @@ func (t *StoreListReply) IterateCallBack(key, value []byte) bool {
 			} else {
 				return false
 			}
-		}else {
+		} else {
 			return false
 		}
 	} else {

@@ -711,24 +711,23 @@ func execBalance(cmd *cobra.Command, args []string) {
 
 	resp := GetExecBalanceResult{}
 
-
 	if symbol == "bty" {
 		exec = "coins"
 	}
 
 	reqParam := types.ReqGetExecBalance{
-		Symbol:symbol,
+		Symbol:    symbol,
 		StateHash: stateHash,
-		Addr: []byte(addr),
-		ExecAddr: []byte(execAddr),
-		Execer: exec,
+		Addr:      []byte(addr),
+		ExecAddr:  []byte(execAddr),
+		Execer:    exec,
 	}
 	reqParam.StateHash = stateHash
 
 	if len(execAddr) > 0 {
-		reqParam.Count = 1  //由于精确匹配一条记录，所以这里设定为1
-	}else{
-		reqParam.Count = 100  //每次最多读取100条
+		reqParam.Count = 1 //由于精确匹配一条记录，所以这里设定为1
+	} else {
+		reqParam.Count = 100 //每次最多读取100条
 	}
 
 	var replys types.ReplyGetExecBalance
@@ -751,7 +750,7 @@ func execBalance(cmd *cobra.Command, args []string) {
 
 		if len(reply.NextKey) > 0 {
 			reqParam.NextKey = reply.NextKey
-		}else {
+		} else {
 			break
 		}
 	}
@@ -771,7 +770,7 @@ func execBalance(cmd *cobra.Command, args []string) {
 	fmt.Println(string(data))
 }
 
-func convertReplyToResult(reply *types.ReplyGetExecBalance, result *GetExecBalanceResult, precision int64){
+func convertReplyToResult(reply *types.ReplyGetExecBalance, result *GetExecBalanceResult, precision int64) {
 	result.Amount = strconv.FormatFloat(float64(reply.Amount)/float64(precision), 'f', 4, 64)
 	result.AmountFrozen = strconv.FormatFloat(float64(reply.AmountFrozen)/float64(precision), 'f', 4, 64)
 	result.AmountActive = strconv.FormatFloat(float64(reply.AmountActive)/float64(precision), 'f', 4, 64)
