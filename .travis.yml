@@ -1,8 +1,6 @@
 language: go
 go_import_path: github.com/33cn/chain33
-go:
-  - "1.9"
-  - master
+
 os: linux
 dist: xenial
 
@@ -12,7 +10,9 @@ jobs:
   include:
     - stage: check_fmt
       sudo: require
-
+      go:
+        - "1.9"
+        - master
       install:
         - go get -u golang.org/x/tools/cmd/goimports
         - go get -u gopkg.in/alecthomas/gometalinter.v2
@@ -24,6 +24,9 @@ jobs:
         - make linter
 
     - stage: test
+      go:
+        - "1.9"
+        - master
       before_install:
         - go get -t -v ./...
       install: skip
