@@ -293,11 +293,11 @@ push:
 	git push origin ${b}
 
 pull:
-	#make pull name=fork_user_name b=pull_requst_branch
-	@remotelist=$$(git remote | grep ${name}); if [ -z "$$remotelist" ]; then \
-		git remote add ${name} https://github.com/${name}/chain33.git \  
+	@remotelist=$$(git remote | grep ${name});if [ -z $$remotelist ]; then \
+		echo ${remotelist}; \
+		git remote add ${name} https://github.com/${name}/chain33.git ; \
 	fi;
-	git fetch ${name}
+	git fetch ${name}/${b}
 	git checkout ${name}/${b}
 	git checkout -b ${name}-${b}
 
