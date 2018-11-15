@@ -136,12 +136,7 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		}
 	} else if msg.Ty == types.EventStoreList {
 		req := msg.GetData().(*types.StoreList)
-		resp := &types.StoreListReply{}
-		resp.Start = req.Start
-		resp.End = req.End
-		resp.Count = req.Count
-		resp.Mode = req.Mode
-		//slog.Info("Store get EventStoreGetExecBalance", "Addr", string(req.Addr), "Prefix", string(req.Prefix))
+		resp := NewStoreListQuery(req.Start, req.End, req.Count, req.Count)
 		store.child.IterateRangeByStateHash(req.StateHash, req.Start, req.End, true, resp.IterateCallBack)
 		msg.Reply(client.NewMessage("", types.EventStoreListReply, resp))
 	} else {
@@ -167,4 +162,52 @@ func (store *BaseStore) GetDB() dbm.DB {
 
 func (store *BaseStore) GetQueueClient() queue.Client {
 	return store.qclient
+}
+
+func NewStoreListQuery(start, end []byte, count, mode int64) *StoreListQuery {
+	reply := types.StoreListReply{Start: start, End: end, Count: count, Mode: mode}
+	return &StoreListQuery{StoreListReply: reply}
+}
+
+type StoreListQuery struct {
+	types.StoreListReply
+}
+
+func (t *StoreListQuery) IterateCallBack(key, value []byte) bool {
+	if t.Mode == 1 { //[start, end)模式
+		if t.Num >= t.Count {
+			t.NextKey = key
+			return true
+		}
+		t.Num++
+		t.Keys = append(t.Keys, cloneByte(key))
+		t.Values = append(t.Values, cloneByte(value))
+		return false
+	} else if t.Mode == 2 { //prefix + suffix模式，要对按prefix得到的数据key进行suffix的判断，符合条件的数据才是最终要的数据
+		if len(key) > len(t.End) {
+			if string(key[len(key)-len(t.End):]) == string(t.End) {
+				t.Num++
+				t.Keys = append(t.Keys, cloneByte(key))
+				t.Values = append(t.Values, cloneByte(value))
+				if t.Num >= t.Count {
+					t.NextKey = key
+					return true
+				}
+				return false
+			} else {
+				return false
+			}
+		} else {
+			return false
+		}
+	} else {
+		slog.Error("StoreListReply.IterateCallBack unsupported mode", "mode", t.Mode)
+		return true
+	}
+}
+
+func cloneByte(v []byte) []byte {
+	value := make([]byte, len(v))
+	copy(value, v)
+	return value
 }

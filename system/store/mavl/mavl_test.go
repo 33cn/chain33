@@ -199,6 +199,7 @@ func (t *StatTool) AddItem(value [][]byte) {
 		t.AmountFrozen += acc.Frozen
 	}
 }
+
 func (t *StatTool) Reset() {
 	t.Amount = 0
 	t.AmountActive = 0
@@ -297,9 +298,9 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 
 	tool.AddItem(resp0.Values)
 	assert.Equal(t, int64(1), resp0.Num)
-	assert.Equal(t, (0), len(resp0.NextKey))
-	assert.Equal(t, (1), len(resp0.Keys))
-	assert.Equal(t, (1), len(resp0.Values))
+	assert.Equal(t, 0, len(resp0.NextKey))
+	assert.Equal(t, 1, len(resp0.Keys))
+	assert.Equal(t, 1, len(resp0.Values))
 	assert.Equal(t, int64(2), tool.Amount)
 	assert.Equal(t, int64(1), tool.AmountActive)
 	assert.Equal(t, int64(1), tool.AmountFrozen)
