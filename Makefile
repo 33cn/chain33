@@ -211,7 +211,6 @@ fmt_go: fmt_shell ## go fmt
 
 .PHONY: checkgofmt
 checkgofmt: ## get all go files and run go fmt on them
-	env
 	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
 		  find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s ;\
@@ -222,6 +221,7 @@ checkgofmt: ## get all go files and run go fmt on them
 		  find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w ;\
 		  exit 1; \
 		  fi;
+
 
 .PHONY: mock
 mock:
