@@ -37,6 +37,7 @@ func StatCmd() *cobra.Command {
 		GetTicketInfoCmd(),
 		GetTicketInfoListCmd(),
 		GetMinerStatCmd(),
+		GetExecBalanceCmd(),
 	)
 
 	return cmd
@@ -636,4 +637,149 @@ type difficultyRange struct {
 type MinerResult struct {
 	Expect *big.Float
 	Actual int64
+}
+
+// get exec-addr balance of specific addr
+func GetExecBalanceCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "exec_balance",
+		Short: "Get the exec amount of a token of one address (default: all exec-addr bty of current height of one addr)",
+		Run:   execBalance,
+	}
+	addExecBalanceCmdFlags(cmd)
+	return cmd
+}
+
+func addExecBalanceCmdFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("symbol", "s", "bty", "token symbol")
+	cmd.Flags().StringP("exec", "e", "coins", "excutor name")
+	cmd.Flags().StringP("addr", "a", "", "address")
+	cmd.MarkFlagRequired("addr")
+	cmd.Flags().StringP("exec_addr", "x", "", "exec address")
+	cmd.Flags().Int64P("height", "t", -1, `block height, "-1" stands for current height`)
+}
+
+func execBalance(cmd *cobra.Command, args []string) {
+	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
+	symbol, _ := cmd.Flags().GetString("symbol")
+	exec, _ := cmd.Flags().GetString("exec")
+	addr, _ := cmd.Flags().GetString("addr")
+	execAddr, _ := cmd.Flags().GetString("exec_addr")
+	height, _ := cmd.Flags().GetInt64("height")
+
+	if height == -1 {
+		rpc, err := jsonclient.NewJSONClient(rpcAddr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var res rpctypes.Header
+		err = rpc.Call("Chain33.GetLastHeader", nil, &res)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		height = res.Height
+	}
+
+	// 获取高度statehash
+	params := rpctypes.BlockParam{
+		Start: height,
+		End:   height,
+		//Isdetail: false,
+		Isdetail: true,
+	}
+
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	var res rpctypes.BlockDetails
+	err = rpc.Call("Chain33.GetBlocks", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	stateHash, err := common.FromHex(res.Items[0].Block.StateHash)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	resp := GetExecBalanceResult{}
+
+	if symbol == "bty" {
+		exec = "coins"
+	}
+
+	reqParam := types.ReqGetExecBalance{
+		Symbol:    symbol,
+		StateHash: stateHash,
+		Addr:      []byte(addr),
+		ExecAddr:  []byte(execAddr),
+		Execer:    exec,
+	}
+	reqParam.StateHash = stateHash
+
+	if len(execAddr) > 0 {
+		reqParam.Count = 1 //由于精确匹配一条记录，所以这里设定为1
+	} else {
+		reqParam.Count = 100 //每次最多读取100条
+	}
+
+	var replys types.ReplyGetExecBalance
+	for {
+		var reply types.ReplyGetExecBalance
+		err = rpc.Call("Chain33.GetExecBalance", reqParam, &reply)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		replys.Amount += reply.Amount
+		replys.AmountActive += reply.AmountActive
+		replys.AmountFrozen += reply.AmountFrozen
+		replys.Items = append(replys.Items, reply.Items...)
+
+		if reqParam.Count == 1 {
+			break
+		}
+
+		if len(reply.NextKey) > 0 {
+			reqParam.NextKey = reply.NextKey
+		} else {
+			break
+		}
+	}
+
+	if symbol == "bty" {
+		convertReplyToResult(&replys, &resp, types.Coin)
+	} else {
+		convertReplyToResult(&replys, &resp, types.TokenPrecision)
+	}
+
+	data, err := json.MarshalIndent(resp, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func convertReplyToResult(reply *types.ReplyGetExecBalance, result *GetExecBalanceResult, precision int64) {
+	result.Amount = strconv.FormatFloat(float64(reply.Amount)/float64(precision), 'f', 4, 64)
+	result.AmountFrozen = strconv.FormatFloat(float64(reply.AmountFrozen)/float64(precision), 'f', 4, 64)
+	result.AmountActive = strconv.FormatFloat(float64(reply.AmountActive)/float64(precision), 'f', 4, 64)
+
+	for i := 0; i < len(reply.Items); i++ {
+		item := &ExecBalance{}
+		item.ExecAddr = string(reply.Items[i].ExecAddr)
+		item.Frozen = strconv.FormatFloat(float64(reply.Items[i].Frozen)/float64(precision), 'f', 4, 64)
+		item.Active = strconv.FormatFloat(float64(reply.Items[i].Active)/float64(precision), 'f', 4, 64)
+		result.ExecBalances = append(result.ExecBalances, item)
+	}
 }
