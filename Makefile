@@ -224,7 +224,6 @@ checkgofmt: ## get all go files and run go fmt on them
 		  exit 1; \
 		  fi;
 
-
 .PHONY: mock
 mock:
 	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
