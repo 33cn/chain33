@@ -305,7 +305,6 @@ pullsync:
 	git fetch ${name}
 	git checkout ${name}-${b}
 	git merge ${name}/${b}
-
 pullpush:
 	@if [ -n "$$m" ]; then \
 	git commit -a -m "${m}" ; \
