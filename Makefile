@@ -297,7 +297,7 @@ pull:
 		echo ${remotelist}; \
 		git remote add ${name} https://github.com/${name}/chain33.git ; \
 	fi;
-	git fetch ${name}/${b}
+	git fetch ${name}
 	git checkout ${name}/${b}
 	git checkout -b ${name}-${b}
 
