@@ -63,9 +63,9 @@ function copyAutoTestConfig() {
 
 function copyChain33() {
 
-    echo "# copy chain33 bin to path \"$1\""
-    cp ../chain33 ../chain33-cli ../chain33.toml ../../cmd/chain33/chain33.test.toml "$1"
-
+    echo "# copy chain33 bin to path \"$1\", make sure build chain33"
+    cp ../chain33 ../chain33-cli ../chain33.toml "$1"
+    find ../../ -path '*cmd/chain33/chain33.test.toml' -exec cp {} "$1" ';'
 }
 
 for dir in "$@"; do
