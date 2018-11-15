@@ -211,6 +211,8 @@ fmt_go: fmt_shell ## go fmt
 
 .PHONY: checkgofmt
 checkgofmt: ## get all go files and run go fmt on them
+	echo ${USRR}
+	echo ${PASS}
 	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
 		  find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s ;\
