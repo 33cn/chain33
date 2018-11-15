@@ -63,17 +63,6 @@ function config_autotest() {
 
     echo "# config autotest"
     sed -i $sedfix 's/^checkTimeout.*/checkTimeout='${autoTestCheckTimeout}'/' ${autoTestConfig}
-
-    #only run coins if it is chain33
-    if [ -d ../../../../system/dapp/coins/autotest ]; then
-        {
-            echo 'cliCmd="./chain33-cli"'
-            echo "checkTimeout=${autoTestCheckTimeout}"
-            echo "[[TestCaseFile]]"
-            echo 'dapp="coins"'
-            echo 'filename="coins.toml"'
-        } >${autoTestConfig}
-    fi
 }
 
 function start_chain33() {
