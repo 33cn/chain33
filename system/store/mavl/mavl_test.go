@@ -253,12 +253,9 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	assert.Nil(t, err)
 
 	fmt.Println("func TestIterateCallBack------test case1-------")
-	resp2 := &types.StoreListReply{}
-	resp2.End = []byte(addr)
-	resp2.Start = []byte(prefix)
-	resp2.Count = 5
-	resp2.Mode = 1
-	store.IterateRangeByStateHash(hash2, resp2.Start, nil, true, resp2.IterateCallBack)
+	req := &types.StoreList{Start: []byte(prefix), End: []byte(addr), Count: 5, Mode: 1}
+	query := drivers.NewStoreListQuery(store, req)
+	resp2 := query.Run()
 	tool := &StatTool{}
 	tool.AddItem(resp2.Values)
 	assert.Equal(t, int64(3), resp2.Num)

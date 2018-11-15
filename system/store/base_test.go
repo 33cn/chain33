@@ -138,5 +138,4 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventGetTotalCoinsReply), resp.Ty)
-
 }

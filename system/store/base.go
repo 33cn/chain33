@@ -136,9 +136,8 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		}
 	} else if msg.Ty == types.EventStoreList {
 		req := msg.GetData().(*types.StoreList)
-		resp := NewStoreListQuery(req.Start, req.End, req.Count, req.Count)
-		store.child.IterateRangeByStateHash(req.StateHash, req.Start, req.End, true, resp.IterateCallBack)
-		msg.Reply(client.NewMessage("", types.EventStoreListReply, resp))
+		query := NewStoreListQuery(store.child, req)
+		msg.Reply(client.NewMessage("", types.EventStoreListReply, query.Run()))
 	} else {
 		store.child.ProcEvent(msg)
 	}
@@ -164,13 +163,20 @@ func (store *BaseStore) GetQueueClient() queue.Client {
 	return store.qclient
 }
 
-func NewStoreListQuery(start, end []byte, count, mode int64) *StoreListQuery {
-	reply := types.StoreListReply{Start: start, End: end, Count: count, Mode: mode}
-	return &StoreListQuery{StoreListReply: reply}
+func NewStoreListQuery(store SubStore, req *types.StoreList) *StoreListQuery {
+	reply := &types.StoreListReply{Start: req.Start, End: req.End, Count: req.Count, Mode: req.Mode}
+	return &StoreListQuery{StoreListReply: reply, req: req, store: store}
 }
 
 type StoreListQuery struct {
-	types.StoreListReply
+	store SubStore
+	req   *types.StoreList
+	*types.StoreListReply
+}
+
+func (t *StoreListQuery) Run() *types.StoreListReply {
+	t.store.IterateRangeByStateHash(t.req.StateHash, t.req.Start, t.req.End, true, t.IterateCallBack)
+	return t.StoreListReply
 }
 
 func (t *StoreListQuery) IterateCallBack(key, value []byte) bool {
