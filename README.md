@@ -120,6 +120,20 @@ make push b=mydevbranchname m="这个提交的信息"
 
 如果m不设置，那么不会执行 git commit 的命令
 
+#### 修改别人提交的pull request
+
+```
+make pull name=fork_user_name b=pull_requst_branch
+```
+
+在本地创建分支后，开始修改别人的代码，最后提交一下代码就可以
+
+```
+make pushpull name=fork_user_name b=pull_requst_branch
+```
+
+在pull request 到页面上就可以看到你的修改
+
 ## License
 
 ```
