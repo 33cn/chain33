@@ -733,7 +733,7 @@ func TestGetAddrTxs(t *testing.T) {
 	for _, i := range txsExpect {
 		for _, j := range txsFact {
 			if j.Tx == i.Tx {
-				same += 1
+				same++
 				break
 			}
 		}
