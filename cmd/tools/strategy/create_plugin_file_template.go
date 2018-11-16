@@ -15,21 +15,21 @@ package main
 
 import (
 	_ "github.com/33cn/chain33/system"
-	_ "github.com/bityuan/bityuan/plugin"
+	_ "github.com/bityuan/${PROJECTNAME}/plugin"
 
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util/cli"
 )
 
 func main() {
-	types.S("cfg.bityuan", bityuan)
-	cli.RunChain33("bityuan")
+	types.S("cfg.${PROJECTNAME}", ${PROJECTNAME})
+	cli.RunChain33("${PROJECTNAME}")
 }
 `
 
 	// 生成的配置文件模板 xxx.toml
 	CPFT_CFG_TOML = `
-Title="bityuan"
+Title="${PROJECTNAME}"
 FixTime=false
 
 [log]
@@ -37,7 +37,7 @@ FixTime=false
 loglevel = "debug"
 logConsoleLevel = "info"
 # 日志文件名，可带目录，所有生成的日志文件都放到此目录下
-logFile = "logs/chain33.log"
+logFile = "logs/${PROJECTNAME}.log"
 # 单个日志文件的最大值（单位：兆）
 maxFileSize = 300
 # 最多保存的历史日志文件个数
@@ -106,7 +106,7 @@ saveTokenTxList=false
 
 	CPFT_RUNMAIN_BLOCK = `package main
 
-var bityuan = `
+var ${PROJECTNAME} = `
 
 	// 生成项目运行主程序的模板 xxx.go
 	// 顶部还需要加上package main
@@ -249,15 +249,15 @@ ForkTradeBuyLimit= 0
 ForkTradeAsset= -1
 `
 
-	// 生成项目Makefile文件的模板
+	// 生成项目Makefile文件的模板 Makefile
 	CPFT_MAKEFILE = `
 CHAIN33=github.com/33cn/chain33
 CHAIN33_PATH=vendor/${CHAIN33}
 all: vendor build
 
 build:
-	go build -i -o bityuan
-	go build -i -o bityuan-cli github.com/bityuan/bityuan/cli
+	go build -i -o ${PROJECTNAME}
+	go build -i -o ${PROJECTNAME}-cli github.com/${PROJECTNAME}/cli
 
 vendor:
 	make update
@@ -272,8 +272,8 @@ update:
 	cp -Rf vendor/${CHAIN33}/vendor/* vendor/
 	rm -rf vendor/${CHAIN33}/vendor
 	govendor init
-	go build -i -o tool github.com/bityuan/bityuan/vendor/github.com/33cn/chain33/cmd/tools
-	./tool import --path "plugin" --packname "github.com/bityuan/bityuan/plugin" --conf "plugin/plugin.toml"
+	go build -i -o tool github.com/33cn/plugin/vendor/github.com/33cn/chain33/cmd/tools
+	./tool import --path "plugin" --packname "${PROJECTPATH}/plugin" --conf "plugin/plugin.toml"
 
 updatevendor:
 	govendor add +e
@@ -285,8 +285,8 @@ clean:
 	@rm -rf logs
 	@rm -rf wallet
 	@rm -rf grpc33.log
-	@rm -rf bityuan
-	@rm -rf bityuan-cli
+	@rm -rf ${PROJECTNAME}
+	@rm -rf ${PROJECTNAME}-cli
 	@rm -rf tool
 	@rm -rf plugin/init.go
 	@rm -rf plugin/consensus/init
@@ -332,14 +332,160 @@ gitrepo = "github.com/33cn/plugin/plugin/dapp/trade"
 package main
 
 import (
-	_ "github.com/bityuan/bityuan/plugin"
+	_ "${PROJECTPATH}/plugin"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/util/cli"
-	//_ "github.com/33cn/plugin"
 )
 
 func main() {
 	cli.Run("", "")
+}
+`
+	// plugin/dapp/xxxx/commands/cmd.go文件的模板c
+	CPFT_DAPP_COMMANDS = `package commands
+
+import (
+	"github.com/spf13/cobra"
+)
+
+func Cmd() *cobra.Command {
+	return nil
+}`
+
+	// plugin/dapp/xxxx/plugin.go文件的模板
+	CPFT_DAPP_PLUGIN = `package ${PROJECTNAME}
+
+import (
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/${PROJECTNAME}/commands"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/${PROJECTNAME}/executor"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/${PROJECTNAME}/types"
+)
+
+func init() {
+	pluginmgr.Register(&pluginmgr.PluginBase{
+		Name:     types.${EXECNAME_FB},
+		ExecName: executor.GetName(),
+		Exec:     executor.Init,
+		Cmd:      commands.Cmd,
+		RPC:      nil,
+	})
+}
+`
+
+	// plugin/dapp/xxxx/executor/xxxx.go文件模板
+	CPFT_DAPP_EXEC = `package executor
+
+import (
+	log "github.com/inconshreveable/log15"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	"gitlab.33.cn/chain33/chain33/types"
+)
+
+var clog = log.New("module", "execs.${EXECNAME}")
+var driverName = "${EXECNAME}"
+
+func init() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&${CLASSNAME}{}))
+}
+
+func Init(name string, sub []byte) {
+	clog.Debug("register ${EXECNAME} execer")
+	drivers.Register(GetName(), newNorm, types.GetDappFork(driverName, "Enable"))
+}
+
+func GetName() string {
+	return newNorm().GetName()
+}
+
+type ${CLASSNAME} struct {
+	drivers.DriverBase
+}
+
+func new${CLASSNAME}() drivers.Driver {
+	n := &${CLASSNAME}{}
+	n.SetChild(n)
+	n.SetIsFree(true)
+	n.SetExecutorType(types.LoadExecutorType(driverName))
+	return n
+}
+
+func (this *${CLASSNAME}) GetDriverName() string {
+	return driverName
+}
+
+func (this *${CLASSNAME}) CheckTx(tx *types.Transaction, index int) error {
+	return nil
+}
+`
+	// plugin/dapp/xxxx/proto/create_protobuf.sh文件模板
+	CPFT_DAPP_CREATEPB = `#!/bin/sh
+protoc --go_out=plugins=grpc:../types ./*.proto --proto_path=. --proto_path="../../../../types/proto/"
+`
+
+	// plugin/dapp/xxxx/proto/Makefile 文件模板
+	CPFT_DAPP_MAKEFILE = `all:
+	sh ./create_protobuf.sh
+`
+
+	// plugin/dapp/xxxx/proto/xxxx.proto的文件模板
+	CPFT_DAPP_PROTO = `syntax = "proto3";
+package types;
+`
+
+	// plugin/dapp/xxxx/types/types.go的文件模板
+	CPFT_DAPP_TYPEFILE = `package types
+
+import (
+	"gitlab.33.cn/chain33/chain33/types"
+)
+
+const (
+	CoinsActionTransfer       = 1
+	CoinsActionGenesis        = 2
+	CoinsActionWithdraw       = 3
+	CoinsActionTransferToExec = 10
+)
+
+var (
+	${EXECNAME_FB}X      = "${EXECNAME}"
+	Execer${CLASSTYPENAME} = []byte(${CLASSTYPENAME}X)
+	actionName  = map[string]int32{}
+	logmap = map[int64]*types.LogInfo{}
+)
+
+func init() {
+	types.AllowUserExec = append(types.AllowUserExec, ExecerCoins)
+	types.RegistorExecutor("${EXECNAME}", NewType())
+
+	types.RegisterDappFork(${EXECNAME_FB}X, "Enable", 0)
+}
+
+type ${CLASSTYPENAME} struct {
+	types.ExecTypeBase
+}
+
+func NewType() *${CLASSTYPENAME} {
+	c := &${CLASSTYPENAME}{}
+	c.SetChild(c)
+	return c
+}
+
+func (coins *${CLASSTYPENAME}) GetPayload() types.Message {
+	return &${ACTIONNAME}{}
+}
+
+func (coins *${CLASSTYPENAME}) GetName() string {
+	return ${EXECNAME_FB}X
+}
+
+func (coins *${CLASSTYPENAME}) GetLogMap() map[int64]*types.LogInfo {
+	return logmap
+}
+
+func (c *${CLASSTYPENAME}) GetTypeMap() map[string]int32 {
+	return actionName
 }
 `
 )

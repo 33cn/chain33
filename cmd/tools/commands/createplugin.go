@@ -36,5 +36,7 @@ func createPlugin(cmd *cobra.Command, args []string) {
 		return
 	}
 	s.SetParam(types.KeyProjectName, projectName)
+	s.SetParam(types.KeyExecutorName, projectName)
+	s.SetParam(types.KeyClassName, projectName)
 	s.Run()
 }
