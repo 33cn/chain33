@@ -273,7 +273,7 @@ webhook_auto_ci: clean fmt_proto fmt_shell protobuf mock
 	@files=$$(git status -suno);if [ -n "$$files" ]; then \
 		  git status; \
 		  git commit -a -m "auto ci"; \
-		  git push ${name} ${b}' \
+		  git push origin ${b}; \
 		  exit 0; \
 		  fi;
 
@@ -319,11 +319,5 @@ pullpush:
 	git push ${name} ${name}-${b}:${b}'
 
 webhook:
-	git checkout .
-	@remotelist=$$(git remote | grep ${name});if [ -z $$remotelist ]; then \
-		echo ${remotelist}; \
-		git remote add ${name} https://github.com/${name}/chain33.git ; \
-	fi;
-	git fetch ${name}
-	git checkout ${name}/${b}
+	git checkout ${b}
 	make webhook_auto_ci name=${name} b=${b}
