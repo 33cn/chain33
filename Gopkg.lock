@@ -514,6 +514,14 @@
   revision = "788fd78401277ebd861206a03c884797c6ec5541"
 
 [[projects]]
+  digest = "1:717ae725b36550a31f5060b4b549063b8a9cc72e55119ea051b59db6101f490b"
+  name = "gopkg.in/go-playground/webhooks.v5"
+  packages = ["github"]
+  pruneopts = "UT"
+  revision = "dfc330f6eb49e2cf5b18ca40df7229a83f36e137"
+  version = "v5.2.0"
+
+[[projects]]
   digest = "1:c805e517269b0ba4c21ded5836019ed7d16953d4026cb7d00041d039c7906be9"
   name = "gopkg.in/natefinch/lumberjack.v2"
   packages = ["."]
@@ -589,6 +597,7 @@
     "google.golang.org/grpc/keepalive",
     "google.golang.org/grpc/peer",
     "gopkg.in/check.v1",
+    "gopkg.in/go-playground/webhooks.v5/github",
     "gopkg.in/natefinch/lumberjack.v2",
   ]
   solver-name = "gps-cdcl"
