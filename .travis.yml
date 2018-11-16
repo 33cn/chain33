@@ -57,5 +57,7 @@ jobs:
         - chmod +x docker-compose
         - sudo mv docker-compose /usr/local/bin
       script:
-        - make build_ci && make docker-compose && make docker-compose-down
+        - make build_ci
+        - make autotest_ci
+        - make docker-compose && make docker-compose-down
 
