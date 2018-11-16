@@ -5,10 +5,11 @@ package strategy
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/util"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/cmd/tools/tasks"
 	"github.com/33cn/chain33/cmd/tools/types"
@@ -105,6 +106,8 @@ func (this *createPluginStrategy) buildTask() []tasks.Task {
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: this.projName,
 				types.TagProjectPath: goprojpath,
+				types.TagGoPath:      this.gopath,
+				types.TagExecName:    this.execName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{

@@ -250,7 +250,7 @@ ForkTradeAsset= -1
 	CPFT_MAKEFILE = `
 CHAIN33=github.com/33cn/chain33
 CHAIN33_PATH=vendor/${CHAIN33}
-all: vendor build
+all: vendor proto build
 
 build:
 	go build -i -o ${PROJECTNAME}
@@ -259,6 +259,9 @@ build:
 vendor:
 	make update
 	make updatevendor
+
+proto: 
+	cd ${GOPATH}/src/${PROJECTPATH}/plugin/dapp/${EXECNAME}/proto && sh create_protobuf.sh
 
 update:
 	go get -u -v github.com/kardianos/govendor
@@ -381,16 +384,23 @@ var driverName = "${EXECNAME}"
 
 func init() {
 	ety := types.LoadExecutorType(driverName)
-	ety.InitFuncList(types.ListMethod(&${CLASSNAME}{}))
+	if ety != nil {
+		ety.InitFuncList(types.ListMethod(&${CLASSNAME}{}))
+	}
 }
 
 func Init(name string, sub []byte) {
+	ety := types.LoadExecutorType(driverName)
+	if ety != nil {
+		ety.InitFuncList(types.ListMethod(&${CLASSNAME}{}))
+	}
+
 	clog.Debug("register ${EXECNAME} execer")
-	drivers.Register(GetName(), newNorm, types.GetDappFork(driverName, "Enable"))
+	drivers.Register(GetName(), new${CLASSNAME}, types.GetDappFork(driverName, "Enable"))
 }
 
 func GetName() string {
-	return newNorm().GetName()
+	return new${CLASSNAME}().GetName()
 }
 
 type ${CLASSNAME} struct {
@@ -415,7 +425,7 @@ func (this *${CLASSNAME}) CheckTx(tx *types.Transaction, index int) error {
 `
 	// plugin/dapp/xxxx/proto/create_protobuf.sh文件模板
 	CPFT_DAPP_CREATEPB = `#!/bin/sh
-protoc --go_out=plugins=grpc:../types ./*.proto --proto_path=. --proto_path="../../../../types/proto/"
+protoc --go_out=plugins=grpc:../types ./*.proto --proto_path=. 
 `
 
 	// plugin/dapp/xxxx/proto/Makefile 文件模板
