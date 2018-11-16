@@ -8,14 +8,11 @@ package strategy
 
 const (
 	// 創建main.go的文件模板
-	CPFT_MAIN_GO = `
-// +build go 1.8
-
-package main
+	CPFT_MAIN_GO = `package main
 
 import (
 	_ "github.com/33cn/chain33/system"
-	_ "github.com/bityuan/${PROJECTNAME}/plugin"
+	_ "${PROJECTPATH}/plugin"
 
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util/cli"
@@ -257,7 +254,7 @@ all: vendor build
 
 build:
 	go build -i -o ${PROJECTNAME}
-	go build -i -o ${PROJECTNAME}-cli github.com/${PROJECTNAME}/cli
+	go build -i -o ${PROJECTNAME}-cli ${PROJECTPATH}/cli
 
 vendor:
 	make update
@@ -326,10 +323,7 @@ gitrepo = "github.com/33cn/plugin/plugin/dapp/token"
 gitrepo = "github.com/33cn/plugin/plugin/dapp/trade"
 `
 	// 项目 cli/main.go 文件模板
-	CPFT_CLI_MAIN = `
-// +build go1.8
-
-package main
+	CPFT_CLI_MAIN = `package main
 
 import (
 	_ "${PROJECTPATH}/plugin"
@@ -356,15 +350,15 @@ func Cmd() *cobra.Command {
 	CPFT_DAPP_PLUGIN = `package ${PROJECTNAME}
 
 import (
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/${PROJECTNAME}/commands"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/${PROJECTNAME}/executor"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/${PROJECTNAME}/types"
+	"github.com/33cn/chain33/pluginmgr"
+	"${PROJECTPATH}/plugin/dapp/${PROJECTNAME}/commands"
+	"${PROJECTPATH}/plugin/dapp/${PROJECTNAME}/executor"
+	"${PROJECTPATH}/plugin/dapp/${PROJECTNAME}/types"
 )
 
 func init() {
 	pluginmgr.Register(&pluginmgr.PluginBase{
-		Name:     types.${EXECNAME_FB},
+		Name:     types.${EXECNAME_FB}X,
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
 		Cmd:      commands.Cmd,
@@ -432,20 +426,23 @@ protoc --go_out=plugins=grpc:../types ./*.proto --proto_path=. --proto_path="../
 	// plugin/dapp/xxxx/proto/xxxx.proto的文件模板
 	CPFT_DAPP_PROTO = `syntax = "proto3";
 package types;
+
+message ${ACTIONNAME} {
+    int32 ty = 1;
+	oneof value {
+		${ACTIONNAME}None none = 2;
+	}
+}
+
+message ${ACTIONNAME}None {
+}
 `
 
-	// plugin/dapp/xxxx/types/types.go的文件模板
+	// plugin/dapp/xxxx/types/types.go的文件模板cd
 	CPFT_DAPP_TYPEFILE = `package types
 
 import (
 	"gitlab.33.cn/chain33/chain33/types"
-)
-
-const (
-	CoinsActionTransfer       = 1
-	CoinsActionGenesis        = 2
-	CoinsActionWithdraw       = 3
-	CoinsActionTransferToExec = 10
 )
 
 var (
@@ -456,7 +453,7 @@ var (
 )
 
 func init() {
-	types.AllowUserExec = append(types.AllowUserExec, ExecerCoins)
+	types.AllowUserExec = append(types.AllowUserExec, Execer${EXECNAME_FB})
 	types.RegistorExecutor("${EXECNAME}", NewType())
 
 	types.RegisterDappFork(${EXECNAME_FB}X, "Enable", 0)
