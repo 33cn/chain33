@@ -1,13 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
-
-	"net/http"
 
 	"gopkg.in/go-playground/webhooks.v5/github"
 )
@@ -16,7 +16,10 @@ const (
 	path = "/webhooks"
 )
 
+var project = flag.String("p", "chain33", "the github project name")
+
 func main() {
+	flag.Parse()
 	hook, _ := github.New(github.Options.Secret(""))
 	qhook := make(chan interface{}, 64)
 	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +34,7 @@ func main() {
 		case github.ReleasePayload:
 			release := payload.(github.ReleasePayload)
 			// Do whatever you want from here...
-			fmt.Printf("%+v", release)
+			//fmt.Printf("%+v", release)
 			w.WriteHeader(http.StatusOK)
 			io.WriteString(w, `{"action":"release"}`)
 			qhook <- release
@@ -39,7 +42,7 @@ func main() {
 		case github.PullRequestPayload:
 			pullRequest := payload.(github.PullRequestPayload)
 			// Do whatever you want from here...
-			fmt.Printf("%+v", pullRequest)
+			//fmt.Printf("%+v", pullRequest)
 			w.WriteHeader(http.StatusOK)
 			io.WriteString(w, `{"action":"pullrequest"}`)
 			qhook <- pullRequest
@@ -64,16 +67,31 @@ func webhooksProcess(ch chan interface{}) {
 }
 
 func processGithubPL(payload github.PullRequestPayload) {
-	cmd := exec.Command("make webhook")
+	gopath := os.Getenv("GOPATH")
+
 	id := fmt.Sprintf("%d", payload.PullRequest.ID)
 	user := payload.PullRequest.User.Login
 	branch := payload.PullRequest.Head.Ref
+
+	repo := "https://github.com/" + user + "/" + *project + ".git"
+	gitpath := gopath + "/src/github.com/" + user + "/" + *project
+	log.Println("git path", gitpath)
+	cmd := exec.Command("rm", "-rf", gitpath)
+	if err := cmd.Run(); err != nil {
+		log.Println("rm -rf ", gitpath, err)
+	}
+	cmd = exec.Command("git", "clone", "--depth", "50", repo, gitpath)
+	if err := cmd.Run(); err != nil {
+		log.Println("run git", err)
+	}
+	cmd = exec.Command("make", "webhook")
+	cmd.Dir = gitpath
 	cmd.Env = append(os.Environ(),
 		"ChangeID="+id,
 		"name="+user,
 		"b="+branch,
 	)
 	if err := cmd.Run(); err != nil {
-		log.Println("run make auto_ci", err)
+		log.Println("run make webhook", err)
 	}
 }
