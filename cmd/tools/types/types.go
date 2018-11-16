@@ -21,6 +21,7 @@ const (
 
 	DEF_CPM_CONFIGFILE = "chain33.cpm.toml"
 
+	TagGoPath          = "${GOPATH}"
 	TagProjectName     = "${PROJECTNAME}"   // 项目名称替换标签
 	TagClassName       = "${CLASSNAME}"     // 主类类名替换标签
 	TagClassTypeName   = "${CLASSTYPENAME}" // ClassName+Type
