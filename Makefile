@@ -260,16 +260,28 @@ auto_ci: clean fmt_proto fmt_shell protobuf mock
 	@-${auto_fmt}
 	@-find . -name '*.go' -not -path './vendor/*' | xargs gofmt -l -w -s
 	@${auto_fmt}
-	@git add *.go *.sh *.proto
 	@git status
 	@files=$$(git status -suno);if [ -n "$$files" ]; then \
 		  git add *.go *.sh *.proto; \
 		  git status; \
-		  git commit -m "auto ci"; \
+		  git commit -a -m "auto ci"; \
 		  git push origin HEAD:$(branch); \
 		  exit 1; \
 		  fi;
 
+webhook_auto_ci: clean fmt_proto fmt_shell protobuf mock
+	@-find . -name '*.go' -not -path './vendor/*' | xargs gofmt -l -w -s
+	@-${auto_fmt}
+	@-find . -name '*.go' -not -path './vendor/*' | xargs gofmt -l -w -s
+	@${auto_fmt}
+	@git status
+	@files=$$(git status -suno);if [ -n "$$files" ]; then \
+		  git add *.go *.sh *.proto; \
+		  git status; \
+		  git commit -a -m "auto ci"; \
+		  make pullpush name=${name} b=${b} \
+		  exit 0; \
+		  fi;
 
 addupstream:
 	git remote add upstream https://github.com/33cn/chain33.git
@@ -292,3 +304,26 @@ push:
 	git checkout ${b}
 	git merge master
 	git push origin ${b}
+
+pull:
+	@remotelist=$$(git remote | grep ${name});if [ -z $$remotelist ]; then \
+		echo ${remotelist}; \
+		git remote add ${name} https://github.com/${name}/chain33.git ; \
+	fi;
+	git fetch ${name}
+	git checkout ${name}/${b}
+	git checkout -b ${name}-${b}
+ pullsync:
+	git fetch ${name}
+	git checkout ${name}-${b}
+	git merge ${name}/${b}
+pullpush:
+	@if [ -n "$$m" ]; then \
+	git commit -a -m "${m}" ; \
+	fi;
+	make pullsync
+	git push ${name} ${name}-${b}:${b}'
+
+webhook:
+	make pull name=${name} b=${b}
+	make webhook_auto_ci name=${name} b=${b}
