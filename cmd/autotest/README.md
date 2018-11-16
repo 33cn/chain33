@@ -33,7 +33,7 @@ $ make autotest dapp="coins token"
 //dapp=all，执行所有预配置用例
 $ make autotest dapp=all
 ```
-目前autotest支持的dapp有，bty(coins） token trade privacy，后续有待扩展
+目前autotest支持的dapp有，coins token trade privacy，后续有待扩展
 
 
 ### 配置文件
@@ -115,16 +115,16 @@ type BaseCase struct {
 
 
 ### 扩展开发
-#### 新增dapp的autotest，以系统dapp-coins为例，步骤如下：
-1. 在coins目录名下新增autotest目录，coins/autotest
-1. 新增coins.go文件，注册autoest类型
+分为以下几个步骤
+> 注册dapp的AutoTest类型，以chain33/system/dapp/coins为例
+增加autotest目录，并新建coins.go文件
 ```go
 package autotest
 
 //导入autotest开发依赖，主要是types包
 import (
 	"reflect"
-	. "gitlab.33.cn/chain33/chain33/cmd/autotest/types"
+	. "github.com/33cn/chain33/cmd/autotest/types"
 )
 
 //声明coins的AutoTest结构，其成员皆为coins将实现的用例类型
@@ -155,18 +155,9 @@ func (config coinsAutoTest) GetTestConfigType() reflect.Type {
 	return reflect.TypeOf(config)
 }
 ```
-3. 实现需要测试的用例，即上述结构体中定义的用例类型，TransferCase和WithdrawCase
-4. 在autotest主程序中增加匿名导入注册
-```
-//新增dapp的autoest需要在此处导入对应autotest包，匿名注册
-	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/autotest"
-	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/token/autotest"
-	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/autotest"
-	_ "gitlab.33.cn/chain33/chain33/system/dapp/coins/autotest"
-```
 
-#### 新增用例
-可以根据测试需求，开发自定义测试用例，只需继承实现相关的接口
+
+> 实现用例的测试行为
 ```go
 SendCommand(id string)    //实现用例执行命令的行为
 
