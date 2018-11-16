@@ -22,6 +22,7 @@ type plugin interface {
 
 var globalPlugins = make(map[string]plugin)
 
+// RegisterPlugin register plugin
 func RegisterPlugin(name string, p plugin) {
 	if _, ok := globalPlugins[name]; ok {
 		panic("plugin exist " + name)
