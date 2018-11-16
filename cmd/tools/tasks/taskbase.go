@@ -10,18 +10,22 @@ var (
 	mlog = log15.New("module", "task")
 )
 
+//TaskBase 基础对象
 type TaskBase struct {
 	NextTask Task
 }
 
-func (this *TaskBase) Execute() error {
+//Execute 执行
+func (t *TaskBase) Execute() error {
 	return nil
 }
 
-func (this *TaskBase) SetNext(t Task) {
-	this.NextTask = t
+//SetNext 设置下一个task
+func (t *TaskBase) SetNext(t Task) {
+	t.NextTask = t
 }
 
-func (this *TaskBase) Next() Task {
-	return this.NextTask
+//Next 获取下一个task
+func (t *TaskBase) Next() Task {
+	return t.NextTask
 }

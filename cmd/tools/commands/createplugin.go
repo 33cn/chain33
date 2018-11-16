@@ -2,6 +2,7 @@ package commands
 
 import "github.com/spf13/cobra"
 
+//CreatePluginCmd 插件命令
 func CreatePluginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "createplugin",

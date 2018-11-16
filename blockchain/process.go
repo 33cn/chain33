@@ -16,10 +16,11 @@ import (
 	"github.com/33cn/chain33/util"
 )
 
-// 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
-// 共识模块和peer广播过来的block需要广播出去
-//共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
-// 返回参数说明：是否主链，是否孤儿节点，具体err
+/*ProcessBlock 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
+共识模块和peer广播过来的block需要广播出去
+共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
+返回参数说明：是否主链，是否孤儿节点，具体err
+*/
 func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addBlock bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
 
 	b.chainLock.Lock()
@@ -381,7 +382,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	//广播此block到全网络
 	if node.broadcast {
-		if blockdetail.Block.BlockTime-types.Now().Unix() > FutureBlockDelayTime {
+		if blockdetail.Block.BlockTime-types.Now().Unix() > futureBlockDelayTime {
 			//将此block添加到futureblocks中延时广播
 			b.futureBlocks.Add(string(blockdetail.Block.Hash()), blockdetail)
 			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
@@ -411,7 +412,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	}
 
 	//从db中删除block相关的信息
-	err = b.blockStore.DelBlock(newbatch, blockdetail, sequence)
+	err = b.blockStore.delBlock(newbatch, blockdetail, sequence)
 	if err != nil {
 		chainlog.Error("disconnectBlock DelBlock:", "height", blockdetail.Block.Height, "err", err)
 		return err
@@ -474,6 +475,7 @@ func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List
 	return detachNodes, attachNodes
 }
 
+//LoadBlockByHash 根据hash从缓存中获取区块
 func (b *BlockChain) LoadBlockByHash(hash []byte) (block *types.BlockDetail, err error) {
 	block = b.cache.GetCacheBlock(hash)
 	if block == nil {
@@ -551,7 +553,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	return nil
 }
 
-//只能从 best chain tip节点开始删除，目前只提供给平行链使用
+//ProcessDelParaChainBlock 只能从best chain tip节点开始删除，目前只提供给平行链使用
 func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
 
 	//获取当前的tip节点
