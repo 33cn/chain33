@@ -20,6 +20,8 @@ build/main.sh
 build/main*
 build/para.sh
 build/ci
+nohup.out
+webhook
 cmd/execblock/execblock
 cmd/miner_accounts/miner_accounts
 cmd/write/write
