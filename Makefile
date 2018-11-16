@@ -233,6 +233,7 @@ mock:
 	@cd types/ && mockery -name=Chain33Client && mv mocks/Chain33Client.go mocks/chain33client.go && cd -
 
 
+
 .PHONY: auto_ci_before auto_ci_after auto_ci
 auto_ci_before: clean fmt protobuf mock
 	@echo "auto_ci"
