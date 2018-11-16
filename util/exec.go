@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+//CheckBlock : To check the block's validaty
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	req := block
 	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
@@ -28,6 +29,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	return errors.New(string(reply.GetMsg()))
 }
 
+//ExecTx : To send lists of txs within a block to exector for exection
 func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height, uint64(block.Difficulty), false}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
@@ -40,6 +42,7 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *type
 	return receipts
 }
 
+//ExecKVMemSet : send kv values to memory store and set it in db
 func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset []*types.KeyValue, sync bool) []byte {
 	set := &types.StoreSet{prevStateRoot, kvset, height}
 	setwithsync := &types.StoreSetWithSync{set, sync}
@@ -54,6 +57,7 @@ func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset
 	return hash.GetHash()
 }
 
+//ExecKVSetCommit : commit the data set opetation to db
 func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{hash}
 	msg := client.NewMessage("store", types.EventStoreCommit, req)
@@ -66,6 +70,7 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	return nil
 }
 
+//ExecKVSetRollback : do the db's roll back operation
 func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{hash}
 	msg := client.NewMessage("store", types.EventStoreRollback, req)
@@ -78,6 +83,7 @@ func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	return nil
 }
 
+//CheckTxDupInner : check whether the tx is duplicated within the current block
 func CheckTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCache) {
 	dupMap := make(map[string]bool)
 	for _, tx := range txs {
@@ -91,6 +97,7 @@ func CheckTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCac
 	return ret
 }
 
+//CheckTxDup : check whether the tx is duplicated within the while chain
 func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList
 	if types.IsFork(height, "ForkCheckTxDup") {
@@ -123,7 +130,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	return transactions, nil
 }
 
-//上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，
+//ReportErrEventToFront :上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，
 //然后由钱包模块前端定时调用显示给客户
 func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule string, tomodule string, err error) {
 	if client == nil || len(tomodule) == 0 || len(frommodule) == 0 || err == nil {

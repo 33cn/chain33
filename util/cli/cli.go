@@ -59,7 +59,7 @@ func init() {
 		closeCmd,
 	)
 }
-
+//Run :
 func Run(RPCAddr, ParaName string) {
 	pluginmgr.AddCmd(rootCmd)
 	log.SetLogLevel("error")
