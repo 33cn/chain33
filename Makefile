@@ -276,10 +276,9 @@ webhook_auto_ci: clean fmt_proto fmt_shell protobuf mock
 	@${auto_fmt}
 	@git status
 	@files=$$(git status -suno);if [ -n "$$files" ]; then \
-		  git add *.go *.sh *.proto; \
 		  git status; \
 		  git commit -a -m "auto ci"; \
-		  make pullpush name=${name} b=${b} \
+		  git push ${name} ${name}-${b}:${b}' \
 		  exit 0; \
 		  fi;
 
@@ -325,5 +324,6 @@ pullpush:
 	git push ${name} ${name}-${b}:${b}'
 
 webhook:
+	git checkout .
 	make pull name=${name} b=${b}
 	make webhook_auto_ci name=${name} b=${b}
