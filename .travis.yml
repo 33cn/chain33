@@ -1,25 +1,63 @@
 language: go
 go_import_path: github.com/33cn/chain33
-sudo: false
+
+os: linux
+dist: xenial
+
 notifications:
   email: false
 jobs:
   include:
-    - stage: test
+    - stage: check_fmt
       sudo: require
+      go:
+        - "1.9"
+        - master
       install:
         - go get -u golang.org/x/tools/cmd/goimports
         - go get -u gopkg.in/alecthomas/gometalinter.v2
         - gometalinter.v2 -i
         - go get -u mvdan.cc/sh/cmd/shfmt
         - go get -u mvdan.cc/sh/cmd/gosh
-      os: linux
-      dist: xenial
-      go:
-        - "1.9"
-        - master
       script:
-        - make checkgofmt
-        - make fmt_go
+        - make checkgofmt && make fmt_go
         - make linter
+
+    - stage: unit-test
+      go: "1.9.x"
+      install: skip
+      script:
         - make test
+
+    - stage: coverage
+      if: branch = master
+      go:
+        - "1.9.x"
+      before_install:
+        - go get -t -v ./...
+      install: skip
+      script:
+        - make coverage
+      after_success:
+        - bash <(curl -s https://codecov.io/bash)
+
+    - stage: deploy
+      sudo: required
+      services:
+        - docker
+      env:
+        - DOCKER_COMPOSE_VERSION=1.21.2
+      install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+        - sudo rm /usr/local/bin/docker-compose
+        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+        - chmod +x docker-compose
+        - sudo mv docker-compose /usr/local/bin
+      script:
+        - make build_ci
+        - make autotest_ci
+        - make docker-compose && make docker-compose-down
+

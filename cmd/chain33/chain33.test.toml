@@ -146,6 +146,14 @@ enableMVCC=false
 
 [exec.sub.token]
 saveTokenTxList=true
+tokenApprs = [
+	"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+	"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
+	"1LY8GFia5EiyoTodMLfkB5PHNNpXRqxhyB",
+	"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
+	"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
+	"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
+]
 
 [exec.sub.relay]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
@@ -157,3 +165,10 @@ enable=false
 cryptoPath="authdir/crypto"
 # 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
 signType="auth_ecdsa"
+
+[exec.sub.manage]
+superManager=[
+    "1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+    "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
+    "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"
+]
