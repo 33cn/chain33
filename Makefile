@@ -3,9 +3,6 @@
 # 2. make dep
 # 3. make build
 # ...
-
-
-
 SRC := github.com/33cn/chain33/cmd/chain33
 SRC_CLI := github.com/33cn/chain33/cmd/cli
 SRC_SIGNATORY := github.com/33cn/chain33/cmd/signatory-server
