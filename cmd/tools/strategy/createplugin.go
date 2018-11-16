@@ -5,10 +5,10 @@ package strategy
 
 import (
 	"fmt"
+	"github.com/33cn/chain33/util"
 	"os"
 	"path/filepath"
-
-	"github.com/33cn/chain33/util"
+	"strings"
 
 	"github.com/33cn/chain33/cmd/tools/tasks"
 	"github.com/33cn/chain33/cmd/tools/types"
@@ -19,6 +19,7 @@ import (
 type createPluginStrategy struct {
 	strategyBasic
 
+	gopath          string
 	projName        string // 项目名称
 	execName        string // 项目中实现的执行器名称
 	execNameFB      string
@@ -26,7 +27,7 @@ type createPluginStrategy struct {
 	classTypeName   string
 	classActionName string
 	outRootPath     string // 项目生成的根目录
-	projectPath     string // 生成的项目路径
+	projectPath     string // 生成的项目路径,是绝对路径
 
 }
 
@@ -44,6 +45,7 @@ func (this *createPluginStrategy) initMember() error {
 	if len(gopath) <= 0 {
 		return errors.New("Can't find GOPATH")
 	}
+	this.gopath = gopath
 	this.outRootPath = filepath.Join(gopath, "/src/github.com/33cn")
 	this.projName, _ = this.getParam(types.KeyProjectName)
 	this.execName, _ = this.getParam(types.KeyExecutorName)
@@ -69,6 +71,8 @@ func (this *createPluginStrategy) rumImpl() error {
 }
 
 func (this *createPluginStrategy) buildTask() []tasks.Task {
+	// 获取项目相对于gopath/src中的目录路径
+	goprojpath := strings.Replace(this.projectPath, this.gopath+"/src/", "", -1)
 	taskSlice := make([]tasks.Task, 0)
 	taskSlice = append(taskSlice,
 		&tasks.CreateFileFromStrTemplateTask{
@@ -76,6 +80,7 @@ func (this *createPluginStrategy) buildTask() []tasks.Task {
 			OutputFile: fmt.Sprintf("%s/main.go", this.projectPath),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: this.projName,
+				types.TagProjectPath: goprojpath,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
@@ -99,6 +104,7 @@ func (this *createPluginStrategy) buildTask() []tasks.Task {
 			OutputFile: fmt.Sprintf("%s/Makefile", this.projectPath),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: this.projName,
+				types.TagProjectPath: goprojpath,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
@@ -120,7 +126,7 @@ func (this *createPluginStrategy) buildTask() []tasks.Task {
 			OutputFile: fmt.Sprintf("%s/cli/main.go", this.projectPath),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: this.projName,
-				types.TagProjectPath: this.projectPath,
+				types.TagProjectPath: goprojpath,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
@@ -136,6 +142,7 @@ func (this *createPluginStrategy) buildTask() []tasks.Task {
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: this.projName,
 				types.TagExecNameFB:  this.execNameFB,
+				types.TagProjectPath: goprojpath,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
@@ -158,9 +165,11 @@ func (this *createPluginStrategy) buildTask() []tasks.Task {
 			ReplaceKeyPairs: map[string]string{},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:       CPFT_DAPP_PROTO,
-			OutputFile:      fmt.Sprintf("%s/plugin/dapp/%s/proto/%s.proto", this.projectPath, this.projName, this.execName),
-			ReplaceKeyPairs: map[string]string{},
+			SourceStr:  CPFT_DAPP_PROTO,
+			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/proto/%s.proto", this.projectPath, this.projName, this.execName),
+			ReplaceKeyPairs: map[string]string{
+				types.TagActionName: this.classActionName,
+			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_DAPP_TYPEFILE,
