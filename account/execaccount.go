@@ -116,6 +116,7 @@ func (acc *DB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, 
 	ty := int32(types.TyLogExecFrozen)
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
+
 // ExecActive 执行激活资金
 func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
