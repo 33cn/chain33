@@ -450,7 +450,7 @@ const (
 
 var (
 	${EXECNAME_FB}X      = "${EXECNAME}"
-	Execer${CLASSTYPENAME} = []byte(${CLASSTYPENAME}X)
+	Execer${EXECNAME_FB} = []byte(${EXECNAME_FB}X)
 	actionName  = map[string]int32{}
 	logmap = map[int64]*types.LogInfo{}
 )
