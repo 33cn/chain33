@@ -9,7 +9,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-// 消息通道交互API接口定义
+// QueueProtocolAPI 消息通道交互API接口定义
 type QueueProtocolAPI interface {
 	Version() (*types.Reply, error)
 	Close()
