@@ -55,6 +55,7 @@ pipeline {
                     gitlabCommitStatus(name: 'test'){
                         sh 'make test'
                         //sh 'export CC=clang-5.0 && make msan'
+                        //sh 'debug'
                     }
                 }
             }
