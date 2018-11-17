@@ -12,6 +12,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// StateDB state db for store mavl
 type StateDB struct {
 	cache     map[string][]byte
 	txcache   map[string][]byte
@@ -25,11 +26,13 @@ type StateDB struct {
 	opt       *StateDBOption
 }
 
+// StateDBOption state db option enable mvcc
 type StateDBOption struct {
 	EnableMVCC bool
 	Height     int64
 }
 
+// NewStateDB new state db
 func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *StateDBOption) db.KV {
 	if opt == nil {
 		opt = &StateDBOption{}
@@ -61,6 +64,7 @@ func (s *StateDB) enableMVCC() {
 	}
 }
 
+// Begin 开启内存事务处理
 func (s *StateDB) Begin() {
 	s.intx = true
 	s.keys = nil
@@ -69,10 +73,12 @@ func (s *StateDB) Begin() {
 	}
 }
 
+// Rollback reset tx
 func (s *StateDB) Rollback() {
 	s.resetTx()
 }
 
+// Commit canche tx
 func (s *StateDB) Commit() {
 	for k, v := range s.txcache {
 		s.cache[k] = v
@@ -90,6 +96,7 @@ func (s *StateDB) resetTx() {
 	s.keys = nil
 }
 
+// Get get value from state db
 func (s *StateDB) Get(key []byte) ([]byte, error) {
 	v, err := s.get(key)
 	debugAccount("==get==", key, v)
@@ -149,14 +156,17 @@ func debugAccount(prefix string, key []byte, value []byte) {
 	*/
 }
 
+// StartTx reset state db keys
 func (s *StateDB) StartTx() {
 	s.keys = nil
 }
 
+// GetSetKeys  get state db set keys
 func (s *StateDB) GetSetKeys() (keys []string) {
 	return s.keys
 }
 
+// Set set key value to state db
 func (s *StateDB) Set(key []byte, value []byte) error {
 	debugAccount("==set==", key, value)
 	skey := string(key)
@@ -180,9 +190,10 @@ func setmap(data map[string][]byte, key string, value []byte) {
 	data[key] = value
 }
 
-func (db *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+// BatchGet batch get keys from state db
+func (s *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	for _, key := range keys {
-		v, err := db.Get(key)
+		v, err := s.Get(key)
 		if err != nil && err != types.ErrNotFound {
 			return nil, err
 		}
@@ -191,16 +202,19 @@ func (db *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	return values, nil
 }
 
+// LocalDB local db for store key value in local
 type LocalDB struct {
 	db.TransactionDB
 	cache  map[string][]byte
 	client queue.Client
 }
 
+// NewLocalDB new local db
 func NewLocalDB(client queue.Client) db.KVDB {
 	return &LocalDB{cache: make(map[string][]byte), client: client}
 }
 
+// Get get value from local db
 func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	value, err := l.get(key)
 	debugAccount("==lget==", key, value)
@@ -231,15 +245,17 @@ func (l *LocalDB) get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
+// Set set key value to local db
 func (l *LocalDB) Set(key []byte, value []byte) error {
 	debugAccount("==lset==", key, value)
 	setmap(l.cache, string(key), value)
 	return nil
 }
 
-func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+// BatchGet batch get values from local db
+func (l *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	for _, key := range keys {
-		v, err := db.Get(key)
+		v, err := l.Get(key)
 		if err != nil && err != types.ErrNotFound {
 			return nil, err
 		}
@@ -248,7 +264,7 @@ func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	return values, nil
 }
 
-//从数据库中查询数据列表，set 中的cache 更新不会影响这个list
+// List 从数据库中查询数据列表，set 中的cache 更新不会影响这个list
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
 	query := &types.LocalDBList{Prefix: prefix, Key: key, Count: count, Direction: direction}
 	msg := l.client.NewMessage("blockchain", types.EventLocalList, query)
@@ -265,7 +281,7 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 	return values, nil
 }
 
-//从数据库中查询指定前缀的key的数量
+// PrefixCount 从数据库中查询指定前缀的key的数量
 func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
 	query := &types.ReqKey{Key: prefix}
 	msg := l.client.NewMessage("blockchain", types.EventLocalPrefixCount, query)

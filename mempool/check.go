@@ -41,7 +41,7 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 	return msg
 }
 
-// Mempool.CheckTxList初步检查并筛选交易消息
+// CheckTxs 初步检查并筛选交易消息
 func (mem *Mempool) CheckTxs(msg queue.Message) queue.Message {
 	// 判断消息是否含有nil交易
 	if msg.GetData() == nil {
