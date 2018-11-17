@@ -733,7 +733,19 @@ func execBalance(cmd *cobra.Command, args []string) {
 	var replys types.ReplyGetExecBalance
 	for {
 		var reply types.ReplyGetExecBalance
-		err = rpc.Call("Chain33.GetExecBalance", reqParam, &reply)
+		var str string
+		err = rpc.Call("Chain33.GetExecBalance", reqParam, &str)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		data, err := common.Hex2Bytes(str)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		err = types.Decode(data, &reply)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return

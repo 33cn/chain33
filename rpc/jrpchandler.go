@@ -1119,6 +1119,7 @@ func (c *Chain33) GetExecBalance(in *types.ReqGetExecBalance, result *interface{
 	if err != nil {
 		return err
 	}
-	*result = resp
+	//*result = resp
+	*result = hex.EncodeToString(types.Encode(resp))
 	return nil
 }
