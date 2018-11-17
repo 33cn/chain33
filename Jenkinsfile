@@ -30,7 +30,7 @@ pipeline {
             steps {
                 dir("${env.PROJ_DIR}"){
                     gitlabCommitStatus(name: 'build'){
-                        sh 'echo 113132'
+                        sh 'echo 1131232'
                         sh 'make checkgofmt'
                         sh 'make linter'
                     }
