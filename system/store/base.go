@@ -164,7 +164,7 @@ func (store *BaseStore) GetQueueClient() queue.Client {
 }
 
 func NewStoreListQuery(store SubStore, req *types.StoreList) *StoreListQuery {
-	reply := &types.StoreListReply{Start: req.Start, End: req.End, Count: req.Count, Mode: req.Mode}
+	reply := &types.StoreListReply{Start: req.Start, End: req.End, Suffix: req.Suffix, Count: req.Count, Mode: req.Mode}
 	return &StoreListQuery{StoreListReply: reply, req: req, store: store}
 }
 
@@ -190,8 +190,8 @@ func (t *StoreListQuery) IterateCallBack(key, value []byte) bool {
 		t.Values = append(t.Values, cloneByte(value))
 		return false
 	} else if t.Mode == 2 { //prefix + suffix模式，要对按prefix得到的数据key进行suffix的判断，符合条件的数据才是最终要的数据
-		if len(key) > len(t.End) {
-			if string(key[len(key)-len(t.End):]) == string(t.End) {
+		if len(key) > len(t.Suffix) {
+			if string(key[len(key)-len(t.Suffix):]) == string(t.Suffix) {
 				t.Num++
 				t.Keys = append(t.Keys, cloneByte(key))
 				t.Values = append(t.Values, cloneByte(value))

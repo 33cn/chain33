@@ -332,7 +332,8 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 	}
 
 	req.Start = []byte(prefix)
-	req.End = in.Addr
+	req.End = genPrefixEdge(req.Start)
+	req.Suffix = in.Addr
 	req.Mode = 2 //1：为[start,end）模式，按前缀或者范围进行查找。2：为prefix + suffix遍历模式，先按前缀查找，再判断后缀是否满足条件。
 	req.Count = in.Count
 
@@ -378,3 +379,23 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 
 	return reply, nil
 }
+
+func genPrefixEdge(prefix []byte)(r []byte) {
+	for j := 0; j < len(prefix); j++ {
+		r = append(r, prefix[j])
+	}
+
+	i := len(prefix) - 1
+	for i >= 0 {
+		if r[i] < 0xff {
+			r[i] += 1
+			break
+		} else {
+			i--
+		}
+	}
+
+	return r
+}
+
+
