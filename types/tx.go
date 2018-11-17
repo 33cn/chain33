@@ -307,13 +307,29 @@ func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 	return nil, nil
 }
 
-//交易的hash不包含header的值，引入tx group的概念后，做了修改
+//Hash 交易的hash不包含header的值，引入tx group的概念后，做了修改
 func (tx *Transaction) Hash() []byte {
-	copytx := *tx
+	copytx := clone(tx)
 	copytx.Signature = nil
 	copytx.Header = nil
-	data := Encode(&copytx)
+	data := Encode(copytx)
 	return common.Sha256(data)
+}
+
+//clone copytx := proto.Clone(tx).(*Transaction) too slow
+func clone(tx *Transaction) *Transaction {
+	copytx := &Transaction{}
+	copytx.Execer = tx.Execer
+	copytx.Payload = tx.Payload
+	copytx.Signature = tx.Signature
+	copytx.Fee = tx.Fee
+	copytx.Expire = tx.Expire
+	copytx.Nonce = tx.Nonce
+	copytx.To = tx.To
+	copytx.GroupCount = tx.GroupCount
+	copytx.Header = tx.Header
+	copytx.Next = tx.Next
+	return copytx
 }
 
 func (tx *Transaction) Size() int {
