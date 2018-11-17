@@ -268,7 +268,7 @@ auto_ci: clean fmt_proto fmt_shell protobuf mock
 		  git remote -v; \
 		  git commit -m "auto ci"; \
 		  git push origin HEAD:$(branch); \
-		  git log -n 3; \
+		  git log -n 2; \
 		  exit 1; \
 		  fi;
 
