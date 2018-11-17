@@ -150,7 +150,8 @@ func TestGrpc_Call(t *testing.T) {
 	result, err := client.IsSync(ctx, &types.ReqNil{})
 
 	assert.Nil(t, err)
-	assert.Equal(t, ret, result)
+	assert.Equal(t, ret.IsOk, result.IsOk)
+	assert.Equal(t, ret.Msg, result.Msg)
 
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)

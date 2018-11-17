@@ -33,8 +33,8 @@ func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail)
 		if len(txindex.from) != 0 {
 			fromkey1 := types.CalcTxAddrDirHashKey(txindex.from, drivers.TxIndexFrom, txindex.heightstr)
 			fromkey2 := types.CalcTxAddrHashKey(txindex.from, txindex.heightstr)
-			set.KV = append(set.KV, &types.KeyValue{fromkey1, txinfobyte})
-			set.KV = append(set.KV, &types.KeyValue{fromkey2, txinfobyte})
+			set.KV = append(set.KV, &types.KeyValue{Key: fromkey1, Value: txinfobyte})
+			set.KV = append(set.KV, &types.KeyValue{Key: fromkey2, Value: txinfobyte})
 			kv, err := updateAddrTxsCount(executor.localDB, txindex.from, 1, true)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
@@ -43,8 +43,8 @@ func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail)
 		if len(txindex.to) != 0 {
 			tokey1 := types.CalcTxAddrDirHashKey(txindex.to, drivers.TxIndexTo, txindex.heightstr)
 			tokey2 := types.CalcTxAddrHashKey(txindex.to, txindex.heightstr)
-			set.KV = append(set.KV, &types.KeyValue{tokey1, txinfobyte})
-			set.KV = append(set.KV, &types.KeyValue{tokey2, txinfobyte})
+			set.KV = append(set.KV, &types.KeyValue{Key: tokey1, Value: txinfobyte})
+			set.KV = append(set.KV, &types.KeyValue{Key: tokey2, Value: txinfobyte})
 			kv, err := updateAddrTxsCount(executor.localDB, txindex.to, 1, true)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)

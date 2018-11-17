@@ -585,10 +585,10 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 		for m := range mem.out {
 			if m.Err() != nil {
 				m.Reply(mem.client.NewMessage("rpc", types.EventReply,
-					&types.Reply{false, []byte(m.Err().Error())}))
+					&types.Reply{Msg: []byte(m.Err().Error())}))
 			} else {
 				mem.SendTxToP2P(m.GetData().(types.TxGroup).Tx())
-				m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
+				m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true}))
 			}
 		}
 	}()
@@ -604,7 +604,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 			switch msg.Ty {
 			case types.EventTx:
 				if !mem.isSync() {
-					msg.Reply(mem.client.NewMessage("", types.EventReply, &types.Reply{false, []byte(types.ErrNotSync.Error())}))
+					msg.Reply(mem.client.NewMessage("", types.EventReply, &types.Reply{Msg: []byte(types.ErrNotSync.Error())}))
 					mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
 				} else {
 					checkedMsg := mem.CheckTxs(msg)
@@ -613,7 +613,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
-					&types.ReplyTxList{mem.RemoveExpiredAndDuplicateMempoolTxs()}))
+					&types.ReplyTxList{Txs: mem.RemoveExpiredAndDuplicateMempoolTxs()}))
 			case types.EventTxList:
 				// 消息类型EventTxList：获取Mempool中一定数量交易
 				hashList := msg.GetData().(*types.TxHashList)

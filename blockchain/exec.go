@@ -59,7 +59,7 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			continue
 		}
 
-		rdata = append(rdata, &types.ReceiptData{receipt.Ty, receipt.Logs})
+		rdata = append(rdata, &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs})
 		//处理KV
 		kvs := receipt.KV
 		for _, kv := range kvs {

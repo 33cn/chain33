@@ -167,7 +167,7 @@ func (chain *BlockChain) getHeaders(msg queue.Message) {
 
 func (chain *BlockChain) isSync(msg queue.Message) {
 	ok := chain.IsCaughtUp()
-	msg.Reply(chain.client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{ok}))
+	msg.Reply(chain.client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: ok}))
 }
 
 func (chain *BlockChain) getLastHeader(msg queue.Message) {
@@ -332,7 +332,7 @@ func (chain *BlockChain) getLastBlock(msg queue.Message) {
 
 func (chain *BlockChain) isNtpClockSync(msg queue.Message) {
 	ok := GetNtpClockSyncStatus()
-	msg.Reply(chain.client.NewMessage("", types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{ok}))
+	msg.Reply(chain.client.NewMessage("", types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{Isntpclocksync: ok}))
 }
 
 type funcProcess func(msg queue.Message)

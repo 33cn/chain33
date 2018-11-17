@@ -6,22 +6,18 @@ package wallet
 
 import (
 	"fmt"
-	//	"strings"
 	"testing"
 	"time"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	// "github.com/33cn/chain33/common/log"
-
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/store"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/33cn/chain33/system"
 )
@@ -131,7 +127,7 @@ func mempoolModProc(q queue.Queue) {
 		for msg := range client.Recv() {
 			//walletlog.Info("mempool", "msg.Ty", msg.Ty)
 			if msg.Ty == types.EventTx {
-				msg.Reply(client.NewMessage("wallet", types.EventReply, &types.Reply{true, nil}))
+				msg.Reply(client.NewMessage("wallet", types.EventReply, &types.Reply{IsOk: true}))
 			}
 		}
 	}()
@@ -318,7 +314,7 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	for _, acc1 := range accountlist.Wallets {
 		exist := false
 		for _, acc2 := range accs[:10] {
-			if *acc1.Acc == *acc2 {
+			if equal(*acc1.Acc, *acc2) {
 				exist = true
 				break
 			}
@@ -330,6 +326,22 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	}
 	println("TestProcCreateNewAccount end")
 	println("--------------------------")
+}
+
+func equal(acc1 types.Account, acc2 types.Account) bool {
+	if acc1.Currency != acc2.Currency {
+		return false
+	}
+	if acc1.Balance != acc2.Balance {
+		return false
+	}
+	if acc1.Frozen != acc2.Frozen {
+		return false
+	}
+	if acc1.Addr != acc2.Addr {
+		return false
+	}
+	return true
 }
 
 func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
