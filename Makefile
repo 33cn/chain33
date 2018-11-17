@@ -266,7 +266,8 @@ auto_ci: clean fmt_proto fmt_shell protobuf mock
 		  git add -u; \
 		  git status; \
 		  git commit -m "auto ci"; \
-		  git add remote originx $(ext_origin); \
+		  echo $(ext_origin); \
+		  git remote add originx $(ext_origin); \
 		  git remote -v; \
 		  git push --quiet --set-upstream originx HEAD:$(branch); \
 		  git log -n 2; \
