@@ -334,7 +334,7 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 	req := types.StoreList{}
 	req.StateHash = in.StateHash
 
-	prefix := SymbolExecPrefix(in.Execer, in.Symbol)
+	prefix := symbolExecPrefix(in.Execer, in.Symbol)
 	if len(in.ExecAddr) > 0 {
 		prefix = prefix + "-" + string(in.ExecAddr) + ":"
 	} else {

@@ -6,6 +6,7 @@ package account
 
 import (
 	"testing"
+	"fmt"
 
 	"strings"
 
@@ -409,7 +410,7 @@ func getExecBalance(callback func(*types.StoreList) (*types.StoreListReply, erro
 	req := &types.StoreList{}
 	req.StateHash = in.StateHash
 
-	prefix := SymbolExecPrefix(in.Execer, in.Symbol)
+	prefix := symbolExecPrefix(in.Execer, in.Symbol)
 	if len(in.ExecAddr) > 0 {
 		prefix = prefix + "-" + string(in.ExecAddr) + ":"
 	} else {
