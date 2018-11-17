@@ -83,8 +83,8 @@ message StoreReplyValue {
 message StoreList {
     bytes stateHash = 1;
     bytes start     = 2;
-    bytes suffix    = 3;
-    bytes end       = 4;
+    bytes end       = 3;
+    bytes suffix    = 4;
     int64 count     = 5;
     int64 mode      = 6;
 }
