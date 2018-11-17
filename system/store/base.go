@@ -88,11 +88,11 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 			msg.Reply(client.NewMessage("", types.EventStoreSetReply, err))
 			return
 		}
-		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
+		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{Hash: hash}))
 	} else if msg.Ty == types.EventStoreGet {
 		datas := msg.GetData().(*types.StoreGet)
 		values := store.child.Get(datas)
-		msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{values}))
+		msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{Values: values}))
 	} else if msg.Ty == types.EventStoreMemSet { //只是在内存中set 一下，并不改变状态
 		datas := msg.GetData().(*types.StoreSetWithSync)
 		hash, err := store.child.MemSet(datas.Storeset, datas.Sync)
@@ -100,7 +100,7 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 			msg.Reply(client.NewMessage("", types.EventStoreSetReply, err))
 			return
 		}
-		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
+		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{Hash: hash}))
 	} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
 		req := msg.GetData().(*types.ReqHash)
 		hash, err := store.child.Commit(req)
@@ -110,7 +110,7 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 				go util.ReportErrEventToFront(slog, client, "store", "wallet", err)
 			}
 		} else {
-			msg.Reply(client.NewMessage("", types.EventStoreCommit, &types.ReplyHash{hash}))
+			msg.Reply(client.NewMessage("", types.EventStoreCommit, &types.ReplyHash{Hash: hash}))
 		}
 	} else if msg.Ty == types.EventStoreRollback {
 		req := msg.GetData().(*types.ReqHash)
@@ -118,7 +118,7 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		if err != nil {
 			msg.Reply(client.NewMessage("", types.EventStoreRollback, types.ErrHashNotFound))
 		} else {
-			msg.Reply(client.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash}))
+			msg.Reply(client.NewMessage("", types.EventStoreRollback, &types.ReplyHash{Hash: hash}))
 		}
 	} else if msg.Ty == types.EventStoreGetTotalCoins {
 		req := msg.GetData().(*types.IterateRangeByStateHash)
@@ -132,7 +132,7 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		if err != nil {
 			msg.Reply(client.NewMessage("", types.EventStoreDel, types.ErrHashNotFound))
 		} else {
-			msg.Reply(client.NewMessage("", types.EventStoreDel, &types.ReplyHash{hash}))
+			msg.Reply(client.NewMessage("", types.EventStoreDel, &types.ReplyHash{Hash: hash}))
 		}
 	} else {
 		store.child.ProcEvent(msg)

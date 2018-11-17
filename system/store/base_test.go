@@ -79,13 +79,13 @@ func TestBaseStore_Queue(t *testing.T) {
 	store.SetChild(child)
 
 	var kv []*types.KeyValue
-	kv = append(kv, &types.KeyValue{[]byte("k1"), []byte("v1")})
-	kv = append(kv, &types.KeyValue{[]byte("k2"), []byte("v2")})
+	kv = append(kv, &types.KeyValue{Key: []byte("k1"), Value: []byte("v1")})
+	kv = append(kv, &types.KeyValue{Key: []byte("k2"), Value: []byte("v2")})
 	datas := &types.StoreSet{
-		EmptyRoot[:],
-		kv,
-		0}
-	set := &types.StoreSetWithSync{datas, true}
+		StateHash: EmptyRoot[:],
+		KV:        kv,
+	}
+	set := &types.StoreSetWithSync{Storeset: datas, Sync: true}
 	msg := queueClinet.NewMessage("store", types.EventStoreSet, set)
 	err := queueClinet.Send(msg, true)
 	assert.Nil(t, err)
@@ -94,7 +94,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreSetReply), resp.Ty)
 
-	get := &types.StoreGet{EmptyRoot[:], [][]byte{}}
+	get := &types.StoreGet{StateHash: EmptyRoot[:], Keys: [][]byte{}}
 	msg = queueClinet.NewMessage("store", types.EventStoreGet, get)
 	err = queueClinet.Send(msg, true)
 	assert.Nil(t, err)
@@ -112,7 +112,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreSetReply), resp.Ty)
 
-	commit := &types.ReqHash{EmptyRoot[:]}
+	commit := &types.ReqHash{Hash: EmptyRoot[:]}
 	msg = queueClinet.NewMessage("store", types.EventStoreCommit, commit)
 	err = queueClinet.Send(msg, true)
 	assert.Nil(t, err)
@@ -121,7 +121,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreCommit), resp.Ty)
 
-	rollback := &types.ReqHash{EmptyRoot[:]}
+	rollback := &types.ReqHash{Hash: EmptyRoot[:]}
 	msg = queueClinet.NewMessage("store", types.EventStoreRollback, rollback)
 	err = queueClinet.Send(msg, true)
 	assert.Nil(t, err)
@@ -130,7 +130,12 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreRollback), resp.Ty)
 
-	totalCoins := &types.IterateRangeByStateHash{EmptyRoot[:], []byte(""), []byte(""), 100}
+	totalCoins := &types.IterateRangeByStateHash{
+		StateHash: EmptyRoot[:],
+		Start:     []byte(""),
+		End:       []byte(""),
+		Count:     100,
+	}
 	msg = queueClinet.NewMessage("store", types.EventStoreGetTotalCoins, totalCoins)
 	err = queueClinet.Send(msg, true)
 	assert.Nil(t, err)

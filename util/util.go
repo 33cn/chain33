@@ -28,18 +28,19 @@ func init() {
 
 var chainlog = log15.New("module", "testnode")
 
-func GetRealExecName(paraName string, name string) string {
+//GetParaExecName 如果 name 没有 paraName 前缀，那么加上这个前缀
+func GetParaExecName(paraName string, name string) string {
 	if strings.HasPrefix(name, "user.p.") {
 		return name
 	}
 	return paraName + name
 }
 
-// MakeStringToUpper 将给定的in字符串从pos开始一共count个转换为大写字母
+//MakeStringToUpper 将给定的in字符串从pos开始一共count个转换为大写字母
 func MakeStringToUpper(in string, pos, count int) (out string, err error) {
 	l := len(in)
 	if pos < 0 || pos >= l || (pos+count) >= l {
-		err = errors.New(fmt.Sprintf("Invalid params. in=%s pos=%d count=%d", in, pos, count))
+		err = fmt.Errorf("Invalid params. in=%s pos=%d count=%d", in, pos, count)
 		return
 	}
 	tmp := []rune(in)
@@ -54,7 +55,7 @@ func MakeStringToUpper(in string, pos, count int) (out string, err error) {
 func MakeStringToLower(in string, pos, count int) (out string, err error) {
 	l := len(in)
 	if pos < 0 || pos >= l || (pos+count) >= l {
-		err = errors.New(fmt.Sprintf("Invalid params. in=%s pos=%d count=%d", in, pos, count))
+		err = fmt.Errorf("Invalid params. in=%s pos=%d count=%d", in, pos, count)
 		return
 	}
 	tmp := []rune(in)
@@ -65,6 +66,7 @@ func MakeStringToLower(in string, pos, count int) (out string, err error) {
 	return
 }
 
+//GenNoneTxs 创建一些 none 执行器的 交易列表，一般用于测试
 func GenNoneTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	for i := 0; i < int(n); i++ {
 		txs = append(txs, CreateNoneTx(priv))
@@ -228,7 +230,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			deltxlist[i] = true
 			continue
 		}
-		rdata = append(rdata, &types.ReceiptData{receipt.Ty, receipt.Logs})
+		rdata = append(rdata, &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs})
 		//处理KV
 		kvs := receipt.KV
 		for _, kv := range kvs {

@@ -88,7 +88,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	if accFrom.GetBalance()-tx.Fee >= 0 {
 		copyfrom := *accFrom
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
-		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
+		receiptBalance := &types.ReceiptAccountTransfer{Prev: &copyfrom, Current: accFrom}
 		e.coinsAccount.SaveAccount(accFrom)
 		return e.cutFeeReceipt(accFrom, receiptBalance), nil
 	}
@@ -96,8 +96,12 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 }
 
 func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
-	feelog := &types.ReceiptLog{types.TyLogFee, types.Encode(receiptBalance)}
-	return &types.Receipt{types.ExecPack, e.coinsAccount.GetKVSet(acc), []*types.ReceiptLog{feelog}}
+	feelog := &types.ReceiptLog{Ty: types.TyLogFee, Log: types.Encode(receiptBalance)}
+	return &types.Receipt{
+		Ty:   types.ExecPack,
+		KV:   e.coinsAccount.GetKVSet(acc),
+		Logs: append([]*types.ReceiptLog{}, feelog),
+	}
 }
 
 func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
@@ -306,7 +310,7 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 	if err != nil {
 		elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
 		//add error log
-		errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
+		errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(err.Error())}
 		feelog.Logs = append(feelog.Logs, errlog)
 		return feelog, err
 	}
@@ -341,7 +345,7 @@ func (e *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*types.
 		if _, ok := keys[key]; !ok {
 			elog.Error("err memset key", "key", key)
 			//非法的receipt，交易执行失败
-			errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowMemSetKey.Error())}
+			errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(types.ErrNotAllowMemSetKey.Error())}
 			feelog.Logs = append(feelog.Logs, errlog)
 			return feelog, types.ErrNotAllowMemSetKey
 		}
@@ -356,7 +360,7 @@ func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, i
 			elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
 				"tx.action", tx.ActionName())
 			//非法的receipt，交易执行失败
-			errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowKey.Error())}
+			errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(types.ErrNotAllowKey.Error())}
 			feelog.Logs = append(feelog.Logs, errlog)
 			return feelog, types.ErrNotAllowKey
 		}

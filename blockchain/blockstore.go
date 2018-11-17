@@ -459,7 +459,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	storeBatch.Set(calcHeightToBlockHeaderKey(height), header)
 
 	//更新最新的block 高度
-	heightbytes := types.Encode(&types.Int64{height})
+	heightbytes := types.Encode(&types.Int64{Data: height})
 	storeBatch.Set(blockLastHeight, heightbytes)
 
 	//存储block hash和height的对应关系，便于通过hash查询block
@@ -487,7 +487,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 	hash := blockdetail.Block.Hash()
 
 	//更新最新的block高度为前一个高度
-	bytes := types.Encode(&types.Int64{height - 1})
+	bytes := types.Encode(&types.Int64{Data: height - 1})
 	storeBatch.Set(blockLastHeight, bytes)
 
 	//删除block hash和height的对应关系
@@ -861,10 +861,10 @@ func (bs *BlockStore) SaveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 
 	//parachain  hash->seq 只记录add block时的hash和seq对应关系
 	if Type == AddBlock && isParaChain {
-		Sequencebytes := types.Encode(&types.Int64{newSequence})
+		Sequencebytes := types.Encode(&types.Int64{Data: newSequence})
 		storeBatch.Set(calcHashToSequenceKey(hash), Sequencebytes)
 	}
-	Sequencebytes := types.Encode(&types.Int64{newSequence})
+	Sequencebytes := types.Encode(&types.Int64{Data: newSequence})
 	storeBatch.Set(LastSequence, Sequencebytes)
 
 	return nil

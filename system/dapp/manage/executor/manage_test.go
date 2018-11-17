@@ -167,13 +167,23 @@ func constructionBlockDetail(block *types.Block, height int64, txcount int) *typ
 }
 
 func genExecTxListMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0, false}
+	list := &types.ExecTxList{
+		StateHash: zeroHash[:],
+		Txs:       block.Txs,
+		BlockTime: block.BlockTime,
+		Height:    block.Height,
+	}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	return msg
 }
 
 func genExecCheckTxMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0, false}
+	list := &types.ExecTxList{
+		StateHash: zeroHash[:],
+		Txs:       block.Txs,
+		BlockTime: block.BlockTime,
+		Height:    block.Height,
+	}
 	msg := client.NewMessage("execs", types.EventCheckTx, list)
 	return msg
 }
@@ -192,7 +202,12 @@ func genEventDelBlockMsg(client queue.Client, block *types.Block) queue.Message 
 
 //"coins", "GetTxsByAddr",
 func genEventBlockChainQueryMsg(client queue.Client, param []byte, strDriver string, strFunName string) queue.Message {
-	blockChainQue := &types.ChainExecutor{strDriver, strFunName, zeroHash[:], param, nil}
+	blockChainQue := &types.ChainExecutor{
+		Driver:    strDriver,
+		FuncName:  strFunName,
+		StateHash: zeroHash[:],
+		Param:     param,
+	}
 	msg := client.NewMessage("execs", types.EventBlockChainQuery, blockChainQue)
 	return msg
 }
@@ -225,7 +240,7 @@ func storeProcess(q queue.Queue) {
 				}
 				values := make([][]byte, 2)
 				values = append(values[:0], value)
-				msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{values}))
+				msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{Values: values}))
 			case types.EventStoreGetTotalCoins:
 				req := msg.GetData().(*types.IterateRangeByStateHash)
 				resp := &types.ReplyGetTotalCoins{}

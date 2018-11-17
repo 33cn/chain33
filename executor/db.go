@@ -122,7 +122,7 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 	if s.client == nil {
 		return nil, types.ErrNotFound
 	}
-	query := &types.StoreGet{s.stateHash, [][]byte{key}}
+	query := &types.StoreGet{StateHash: s.stateHash, Keys: [][]byte{key}}
 	msg := s.client.NewMessage("store", types.EventStoreGet, query)
 	s.client.Send(msg, true)
 	resp, err := s.client.Wait(msg)
@@ -225,7 +225,7 @@ func (l *LocalDB) get(key []byte) ([]byte, error) {
 	if value, ok := l.cache[string(key)]; ok {
 		return value, nil
 	}
-	query := &types.LocalDBGet{[][]byte{key}}
+	query := &types.LocalDBGet{Keys: [][]byte{key}}
 	msg := l.client.NewMessage("blockchain", types.EventLocalGet, query)
 	l.client.Send(msg, true)
 	resp, err := l.client.Wait(msg)

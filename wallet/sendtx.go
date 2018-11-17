@@ -156,7 +156,7 @@ func (wallet *Wallet) waitTxs(hashes [][]byte) (ret []*types.TransactionDetail) 
 }
 
 func (wallet *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
-	msg := wallet.client.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
+	msg := wallet.client.NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{Hash: hash})
 	err := wallet.client.Send(msg, true)
 	if err != nil {
 		walletlog.Error("QueryTx", "Error", err.Error())
@@ -272,7 +272,7 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 }
 
 func (wallet *Wallet) getMinerColdAddr(addr string) ([]string, error) {
-	reqaddr := &types.ReqString{addr}
+	reqaddr := &types.ReqString{Data: addr}
 	req := types.ChainExecutor{
 		Driver:   "ticket",
 		FuncName: "MinerSourceList",

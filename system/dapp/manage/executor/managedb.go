@@ -61,13 +61,13 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 		item.Key = modify.Key
 		item.Addr = modify.Addr
 		item.Ty = pty.ConfigItemArrayConfig
-		emptyValue := &types.ArrayConfig{make([]string, 0)}
-		arr := types.ConfigItem_Arr{emptyValue}
+		emptyValue := &types.ArrayConfig{Value: make([]string, 0)}
+		arr := types.ConfigItem_Arr{Arr: emptyValue}
 		item.Value = &arr
 	}
 	copyValue := *item.GetArr()
 	copyItem := item
-	copyItem.Value = &types.ConfigItem_Arr{&copyValue}
+	copyItem.Value = &types.ConfigItem_Arr{Arr: &copyValue}
 
 	switch modify.Op {
 	case "add":
@@ -105,7 +105,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	key := types.ManaeKeyWithHeigh(modify.Key, m.height)
 	valueSave := types.Encode(&item)
 	m.db.Set([]byte(key), valueSave)
-	kv = append(kv, &types.KeyValue{[]byte(key), valueSave})
+	kv = append(kv, &types.KeyValue{Key: []byte(key), Value: valueSave})
 	log := types.ReceiptConfig{Prev: &copyItem, Current: &item}
 	logs = append(logs, &types.ReceiptLog{Ty: pty.TyLogModifyConfig, Log: types.Encode(&log)})
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
