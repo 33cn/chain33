@@ -21,7 +21,7 @@ type txCache struct {
 	accMap     map[string][]*types.Transaction
 }
 
-// Item为Mempool中包装交易的数据结构
+// Item 为Mempool中包装交易的数据结构
 type Item struct {
 	value     *types.Transaction
 	priority  int64
@@ -62,17 +62,16 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		addedTime := addedItem.enterTime
 		if types.Now().Unix()-addedTime < mempoolDupResendInterval {
 			return types.ErrTxExist
-		} else {
-			// 超过2分钟之后的重发交易返回nil，再次发送给P2P，但是不再次加入mempool
-			// 并修改其enterTime，以避免该交易一直在节点间被重发
-			newEnterTime := types.Now().Unix()
-			resendItem := &Item{value: tx, priority: tx.Fee, enterTime: newEnterTime}
-			newItem := cache.txList.InsertAfter(resendItem, cache.txMap[string(hash)])
-			cache.txList.Remove(cache.txMap[string(hash)])
-			cache.txMap[string(hash)] = newItem
-			// ------------------
-			return nil
 		}
+		// 超过2分钟之后的重发交易返回nil，再次发送给P2P，但是不再次加入mempool
+		// 并修改其enterTime，以避免该交易一直在节点间被重发
+		newEnterTime := types.Now().Unix()
+		resendItem := &Item{value: tx, priority: tx.Fee, enterTime: newEnterTime}
+		newItem := cache.txList.InsertAfter(resendItem, cache.txMap[string(hash)])
+		cache.txList.Remove(cache.txMap[string(hash)])
+		cache.txMap[string(hash)] = newItem
+		// ------------------
+		return nil
 	}
 
 	if cache.txList.Len() >= cache.size {
