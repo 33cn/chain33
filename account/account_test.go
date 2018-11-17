@@ -149,7 +149,7 @@ func storeProcess(q queue.Queue) {
 				}
 				value := types.Encode(account)
 				values = append(values[:0], value)
-				msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{values}))
+				msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{Values: values}))
 			case types.EventStoreGetTotalCoins:
 				req := msg.GetData().(*types.IterateRangeByStateHash)
 				resp := &types.ReplyGetTotalCoins{}

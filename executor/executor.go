@@ -221,7 +221,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		index += int(tx.GroupCount)
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventReceipts,
-		&types.Receipts{receipts}))
+		&types.Receipts{Receipts: receipts}))
 }
 
 func (exec *Executor) procExecAddBlock(msg queue.Message) {

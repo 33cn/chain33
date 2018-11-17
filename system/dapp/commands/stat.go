@@ -113,7 +113,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 
 	if symbol == "bty" {
 		//查询高度blockhash
-		params := types.ReqInt{height}
+		params := types.ReqInt{Height: height}
 		var res1 rpctypes.ReplyHash
 		err = rpc.Call("Chain33.GetBlockHash", params, &res1)
 		if err != nil {

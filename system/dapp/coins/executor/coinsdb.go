@@ -28,9 +28,9 @@ func calcAddrKey(addr string) []byte {
 }
 
 func geAddrReciverKV(addr string, reciverAmount int64) *types.KeyValue {
-	reciver := &types.Int64{reciverAmount}
+	reciver := &types.Int64{Data: reciverAmount}
 	amountbytes := types.Encode(reciver)
-	kv := &types.KeyValue{calcAddrKey(addr), amountbytes}
+	kv := &types.KeyValue{Key: calcAddrKey(addr), Value: amountbytes}
 	return kv
 }
 

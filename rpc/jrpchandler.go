@@ -702,13 +702,7 @@ func (c *Chain33) GetAddrOverview(in types.ReqAddr, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	type AddrOverview struct {
-		Reciver int64 `json:"reciver"`
-		Balance int64 `json:"balance"`
-		TxCount int64 `json:"txCount"`
-	}
-
-	*result = (*AddrOverview)(reply)
+	*result = reply
 	return nil
 }
 
@@ -760,8 +754,7 @@ func (c *Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	*result = *(*rpctypes.WalletStatus)(reply)
+	*result = reply
 	return nil
 }
 

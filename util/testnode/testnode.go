@@ -193,26 +193,29 @@ func (m *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte, er
 	return reply.GetMsg(), nil
 }
 
-func newWalletRealize(qApi client.QueueProtocolAPI) {
-	seed := &types.SaveSeedByPw{"subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant", "123456"}
-	reply, err := qApi.SaveSeed(seed)
+func newWalletRealize(qAPI client.QueueProtocolAPI) {
+	seed := &types.SaveSeedByPw{
+		Seed:   "subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant",
+		Passwd: "123456",
+	}
+	reply, err := qAPI.SaveSeed(seed)
 	if !reply.IsOk && err != nil {
 		panic(err)
 	}
-	reply, err = qApi.WalletUnLock(&types.WalletUnLock{"123456", 0, false})
+	reply, err = qAPI.WalletUnLock(&types.WalletUnLock{Passwd: "123456"})
 	if !reply.IsOk && err != nil {
 		panic(err)
 	}
 	for i, priv := range util.TestPrivkeyHex {
-		privkey := &types.ReqWalletImportPrivkey{priv, fmt.Sprintf("label%d", i)}
-		acc, err := qApi.WalletImportprivkey(privkey)
+		privkey := &types.ReqWalletImportPrivkey{Privkey: priv, Label: fmt.Sprintf("label%d", i)}
+		acc, err := qAPI.WalletImportprivkey(privkey)
 		if err != nil {
 			panic(err)
 		}
 		lognode.Info("import", "index", i, "addr", acc.Acc.Addr)
 	}
 	req := &types.ReqAccountList{WithoutBalance: true}
-	_, err = qApi.WalletGetAccountList(req)
+	_, err = qAPI.WalletGetAccountList(req)
 	if err != nil {
 		panic(err)
 	}
