@@ -5,18 +5,17 @@
 package rpc
 
 import (
-	"testing"
-
-	"github.com/33cn/chain33/types"
-	pb "github.com/33cn/chain33/types"
-	"golang.org/x/net/context"
-
 	"encoding/hex"
 	"fmt"
+	"testing"
 
 	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/types"
+	pb "github.com/33cn/chain33/types"
+	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc/peer"
 )
 
@@ -242,7 +241,7 @@ func testQueryChainOK(t *testing.T) {
 	assert.Equal(t, true, data.IsOk, "reply should be ok")
 	var decodemsg types.ReqString
 	pb.Decode(data.Msg, &decodemsg)
-	assert.Equal(t, msg, &decodemsg)
+	assert.Equal(t, req.Data, decodemsg.Data)
 }
 
 func TestQueryChain(t *testing.T) {
@@ -654,7 +653,7 @@ func TestDumpPrivkey(t *testing.T) {
 //}
 
 func testGetBlocksError(t *testing.T) {
-	var in = pb.ReqBlocks{0, 0, true, []string{""}}
+	var in = pb.ReqBlocks{IsDetail: true}
 
 	qapi.On("GetBlocks", &in).Return(nil, fmt.Errorf("error")).Once()
 	_, err := g.GetBlocks(getOkCtx(), &in)
@@ -663,11 +662,11 @@ func testGetBlocksError(t *testing.T) {
 }
 
 func testGetBlocksOK(t *testing.T) {
-	var in = pb.ReqBlocks{0, 0, true, []string{""}}
+	var in = pb.ReqBlocks{IsDetail: true}
 	var details types.BlockDetails
 
 	var block = &types.Block{Version: 1}
-	var detail = &types.BlockDetail{Block: block, Receipts: nil}
+	var detail = &types.BlockDetail{Block: block}
 	details.Items = append(details.Items, detail)
 
 	qapi.On("GetBlocks", &in).Return(&details, nil).Once()
@@ -677,8 +676,9 @@ func testGetBlocksOK(t *testing.T) {
 
 	var details2 types.BlockDetails
 	pb.Decode(data.Msg, &details2)
-	assert.Equal(t, details, details2)
-
+	if !proto.Equal(&details, &details2) {
+		assert.Equal(t, details, details2)
+	}
 }
 
 func TestGetBlocks(t *testing.T) {

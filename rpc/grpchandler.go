@@ -67,7 +67,11 @@ func (g *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.Transa
 }
 
 func (g *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, error) {
-	reply, err := g.cli.GetBlocks(&pb.ReqBlocks{in.Start, in.End, in.IsDetail, []string{""}})
+	reply, err := g.cli.GetBlocks(&pb.ReqBlocks{
+		Start:    in.Start,
+		End:      in.End,
+		IsDetail: in.IsDetail,
+	})
 	if err != nil {
 		return nil, err
 	}

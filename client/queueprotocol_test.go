@@ -474,7 +474,7 @@ func testNewAccount(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testWalletGetAccountList(t *testing.T, api client.QueueProtocolAPI) {
-	req := types.ReqAccountList{true}
+	req := types.ReqAccountList{WithoutBalance: true}
 	_, err := api.WalletGetAccountList(&req)
 	if err != nil {
 		t.Error("Call WalletGetAccountList Failed.", err)
