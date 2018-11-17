@@ -55,6 +55,7 @@ func (e *executor) enableMVCC() {
 	e.stateDB.(*StateDB).enableMVCC()
 }
 
+// AddMVCC convert key value to mvcc kv data
 func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	kvs := detail.KV
 	hash := detail.Block.StateHash
@@ -67,6 +68,7 @@ func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) 
 	return kvlist
 }
 
+// DelMVCC convert key value to mvcc kv data
 func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	hash := detail.Block.StateHash
 	mvcc := dbm.NewSimpleMVCC(db)
@@ -171,6 +173,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	return exec.CheckTx(tx, index)
 }
 
+// Exec base exec func
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriver(tx, index)
 	//to 必须是一个地址
@@ -200,56 +203,56 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 	return exec
 }
 
-func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Receipt, error) {
+func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Receipt, error) {
 	txgroup := &types.Transactions{Txs: txs}
-	err := execute.checkTxGroup(txgroup, index)
+	err := e.checkTxGroup(txgroup, index)
 	if err != nil {
 		return nil, err
 	}
-	feelog, err := execute.execFee(txs[0], index)
+	feelog, err := e.execFee(txs[0], index)
 	if err != nil {
 		return nil, err
 	}
 	//开启内存事务处理，假设系统只有一个thread 执行
 	//如果系统执行失败，回滚到这个状态
 	rollbackLog := copyReceipt(feelog)
-	execute.stateDB.Begin()
+	e.stateDB.Begin()
 	receipts := make([]*types.Receipt, len(txs))
 	for i := 1; i < len(txs); i++ {
 		receipts[i] = &types.Receipt{Ty: types.ExecPack}
 	}
-	receipts[0], err = execute.execTxOne(feelog, txs[0], index)
+	receipts[0], err = e.execTxOne(feelog, txs[0], index)
 	if err != nil {
 		//状态数据库回滚
-		if types.IsFork(execute.height, "ForkExecRollback") {
-			execute.stateDB.Rollback()
+		if types.IsFork(e.height, "ForkExecRollback") {
+			e.stateDB.Rollback()
 		}
 		return receipts, nil
 	}
 	for i := 1; i < len(txs); i++ {
 		//如果有一笔执行失败了，那么全部回滚
-		receipts[i], err = execute.execTxOne(receipts[i], txs[i], index+i)
+		receipts[i], err = e.execTxOne(receipts[i], txs[i], index+i)
 		if err != nil {
 			//reset other exec , and break!
 			for k := 1; k < i; k++ {
 				receipts[k] = &types.Receipt{Ty: types.ExecPack}
 			}
 			//撤销txs[0]的交易
-			if types.IsFork(execute.height, "ForkResetTx0") {
+			if types.IsFork(e.height, "ForkResetTx0") {
 				receipts[0] = rollbackLog
 			}
 			//撤销所有的数据库更新
-			execute.stateDB.Rollback()
+			e.stateDB.Rollback()
 			return receipts, nil
 		}
 	}
-	execute.stateDB.Commit()
+	e.stateDB.Commit()
 	return receipts, nil
 }
 
-func (execute *executor) loadFlag(key []byte) (int64, error) {
+func (e *executor) loadFlag(key []byte) (int64, error) {
 	flag := &types.Int64{}
-	flagBytes, err := execute.localDB.Get(key)
+	flagBytes, err := e.localDB.Get(key)
 	if err == nil {
 		err = types.Decode(flagBytes, flag)
 		if err != nil {
@@ -262,23 +265,23 @@ func (execute *executor) loadFlag(key []byte) (int64, error) {
 	return 0, err
 }
 
-func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	execer := string(tx.Execer)
-	e := execute.loadDriver(tx, index)
-	execute.setEnv(e)
+	ex := e.loadDriver(tx, index)
+	e.setEnv(ex)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
 	if bytes.Equal(address.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {
-		err := e.CheckTx(tx, index)
+		err := ex.CheckTx(tx, index)
 		if err != nil {
 			return nil, err
 		}
 	}
 	var err error
 	//公链不允许手续费为0
-	if !types.IsPara() && types.GInt("MinFee") > 0 && !e.IsFree() {
-		feelog, err = execute.processFee(tx)
+	if !types.IsPara() && types.GInt("MinFee") > 0 && !ex.IsFree() {
+		feelog, err = e.processFee(tx)
 		if err != nil {
 			return nil, err
 		}
@@ -296,10 +299,10 @@ func copyReceipt(feelog *types.Receipt) *types.Receipt {
 	return &receipt
 }
 
-func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index int) (*types.Receipt, error) {
 	//只有到pack级别的，才会增加index
-	execute.stateDB.(*StateDB).StartTx()
-	receipt, err := execute.Exec(tx, index)
+	e.stateDB.(*StateDB).StartTx()
+	receipt, err := e.Exec(tx, index)
 	if err != nil {
 		elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
 		//add error log
@@ -311,12 +314,12 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 	//需要检查两个东西:
 	//1. statedb 中 Set的 key 必须是 在 receipt.GetKV() 这个集合中
 	//2. receipt.GetKV() 中的 key, 必须符合权限控制要求
-	memkvset := execute.stateDB.(*StateDB).GetSetKeys()
-	feelog, err = execute.checkKV(feelog, memkvset, receipt.GetKV())
+	memkvset := e.stateDB.(*StateDB).GetSetKeys()
+	feelog, err = e.checkKV(feelog, memkvset, receipt.GetKV())
 	if err != nil {
 		return feelog, err
 	}
-	feelog, err = execute.checkKeyAllow(feelog, tx, index, receipt.GetKV())
+	feelog, err = e.checkKeyAllow(feelog, tx, index, receipt.GetKV())
 	if err != nil {
 		return feelog, err
 	}
@@ -328,7 +331,7 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 	return feelog, nil
 }
 
-func (execute *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*types.KeyValue) (*types.Receipt, error) {
+func (e *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*types.KeyValue) (*types.Receipt, error) {
 	keys := make(map[string]bool)
 	for _, kv := range kvs {
 		k := kv.GetKey()
@@ -346,10 +349,10 @@ func (execute *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*
 	return feelog, nil
 }
 
-func (execute *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, index int, kvs []*types.KeyValue) (*types.Receipt, error) {
+func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, index int, kvs []*types.KeyValue) (*types.Receipt, error) {
 	for _, kv := range kvs {
 		k := kv.GetKey()
-		if !execute.isAllowExec(k, tx, index) {
+		if !e.isAllowExec(k, tx, index) {
 			elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
 				"tx.action", tx.ActionName())
 			//非法的receipt，交易执行失败
@@ -361,9 +364,9 @@ func (execute *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transact
 	return feelog, nil
 }
 
-func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receipt, error) {
-	if execute.height == 0 { //genesis block 不检查手续费
-		receipt, err := execute.Exec(tx, index)
+func (e *executor) execTx(tx *types.Transaction, index int) (*types.Receipt, error) {
+	if e.height == 0 { //genesis block 不检查手续费
+		receipt, err := e.Exec(tx, index)
 		if err != nil {
 			panic(err)
 		}
@@ -375,30 +378,30 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 	//交易检查规则：
 	//1. mempool 检查区块，尽量检查更多的错误
 	//2. 打包的时候，尽量打包更多的交易，只要基本的签名，以及格式没有问题
-	err := execute.checkTx(tx, index)
+	err := e.checkTx(tx, index)
 	if err != nil {
 		return nil, err
 	}
 	//处理交易手续费(先把手续费收了)
 	//如果收了手续费，表示receipt 至少是pack 级别
 	//收不了手续费的交易才是 error 级别
-	feelog, err := execute.execFee(tx, index)
+	feelog, err := e.execFee(tx, index)
 	if err != nil {
 		return nil, err
 	}
 	//ignore err
-	matchfork := types.IsFork(execute.height, "ForkExecRollback")
+	matchfork := types.IsFork(e.height, "ForkExecRollback")
 	if matchfork {
-		execute.stateDB.Begin()
+		e.stateDB.Begin()
 	}
-	feelog, err = execute.execTxOne(feelog, tx, index)
+	feelog, err = e.execTxOne(feelog, tx, index)
 	if err != nil {
 		if matchfork {
-			execute.stateDB.Rollback()
+			e.stateDB.Rollback()
 		}
 	} else {
 		if matchfork {
-			execute.stateDB.Commit()
+			e.stateDB.Commit()
 		}
 	}
 	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
@@ -414,8 +417,8 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 
 2. friend 合约行为, 合约可以定义其他合约 可以修改的 key的内容
 */
-func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
-	realExecer := execute.getRealExecName(tx, index)
-	height := execute.height
+func (e *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
+	realExecer := e.getRealExecName(tx, index)
+	height := e.height
 	return isAllowKeyWrite(key, realExecer, tx, height)
 }
