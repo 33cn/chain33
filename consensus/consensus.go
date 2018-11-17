@@ -12,6 +12,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// New new consensus queue module
 func New(cfg *types.Consensus, sub map[string][]byte) queue.Module {
 	con, err := consensus.Load(cfg.Name)
 	if err != nil {
