@@ -20,7 +20,7 @@ pipeline {
             steps {
                 dir("${PROJ_DIR}"){
                     gitlabCommitStatus(name: 'check'){
-                        sh "make auto_ci branch=${env.ghprbSourceBranch}"
+                        sh "make auto_ci branch=${env.ghprbSourceBranch} ext_origin=${env.ghprbAuthorRepoGitUrl}"
                     }
                 }
             }

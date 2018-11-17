@@ -265,9 +265,10 @@ auto_ci: clean fmt_proto fmt_shell protobuf mock
 	@files=$$(git status -suno);if [ -n "$$files" ]; then \
 		  git add -u; \
 		  git status; \
-		  git remote -v; \
 		  git commit -m "auto ci"; \
-		  git push origin HEAD:$(branch); \
+		  git add remote originx $(ext_origin); \
+		  git remote -v; \
+		  git push --quiet --set-upstream originx HEAD:$(branch); \
 		  git log -n 2; \
 		  exit 1; \
 		  fi;
