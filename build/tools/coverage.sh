@@ -5,7 +5,7 @@ set -e -o pipefail
 
 COVERAGE_DIR="${COVERAGE_DIR:-build/coverage}"
 PKG_LIST=$(go list ./... | grep -v "vendor" | grep -v "mock" | grep -v "mocks" \
-    | grep -v "cmd" | grep -v "types" |grep -v "nat" | grep -v "pbft")
+    | grep -v "cmd" | grep -v "types" | grep -v "nat" | grep -v "pbft")
 
 # Create the coverage files directory
 mkdir -p "$COVERAGE_DIR"
