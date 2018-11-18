@@ -43,6 +43,11 @@ type Grpcserver struct {
 	l    net.Listener
 }
 
+//NewGrpcServer 创建 GrpcServer 对象
+func NewGrpcServer() *Grpcserver {
+	return &Grpcserver{grpc: &Grpc{}}
+}
+
 type JSONRPCServer struct {
 	jrpc *Chain33
 	s    *rpc.Server
@@ -53,7 +58,9 @@ func (s *JSONRPCServer) Close() {
 	if s.l != nil {
 		s.l.Close()
 	}
-	s.jrpc.cli.Close()
+	if s.jrpc != nil {
+		s.jrpc.cli.Close()
+	}
 }
 
 func checkIpWhitelist(addr string) bool {
@@ -117,11 +124,13 @@ func (j *Grpcserver) Close() {
 	if j.l != nil {
 		j.l.Close()
 	}
-	j.grpc.cli.Close()
+	if j.grpc != nil {
+		j.grpc.cli.Close()
+	}
 }
 
 func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
-	s := &Grpcserver{}
+	s := &Grpcserver{grpc: &Grpc{}}
 	s.grpc.cli.Init(c, api)
 	var opts []grpc.ServerOption
 	//register interceptor
@@ -141,7 +150,7 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 }
 
 func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServer {
-	j := &JSONRPCServer{}
+	j := &JSONRPCServer{jrpc: &Chain33{}}
 	j.jrpc.cli.Init(c, api)
 	server := rpc.NewServer()
 	j.s = server
