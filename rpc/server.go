@@ -41,14 +41,12 @@ type Grpcserver struct {
 	grpc *Grpc
 	s    *grpc.Server
 	l    net.Listener
-	//addr string
 }
 
 type JSONRPCServer struct {
 	jrpc *Chain33
 	s    *rpc.Server
 	l    net.Listener
-	//addr string
 }
 
 func (s *JSONRPCServer) Close() {
