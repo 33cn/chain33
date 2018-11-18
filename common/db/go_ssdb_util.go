@@ -366,12 +366,6 @@ func (c *SDBClient) recv() (resp []string, err error) {
 			}
 		}
 	}
-	packetBuf = nil
-	//设置不超时
-	if err = c.sock.SetReadDeadline(c.timeZero); err != nil {
-		return nil, err
-	}
-	return resp, nil
 }
 
 func (c *SDBClient) parse(buf []byte) (resp string, size int) {

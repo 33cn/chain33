@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var store_cfg0 = &types.Store{"base_test", "leveldb", "/tmp/base_test0", 100}
-var store_cfg1 = &types.Store{"base_test", "leveldb", "/tmp/base_test1", 100}
+var storecfg0 = &types.Store{Name: "base_test", Driver: "leveldb", DbPath: "/tmp/base_test0", DbCache: 100}
+var storecfg1 = &types.Store{Name: "base_test", Driver: "leveldb", DbPath: "/tmp/base_test1", DbCache: 100}
 
 type storeChild struct {
 }
@@ -56,8 +56,8 @@ func init() {
 }
 
 func TestBaseStore_NewClose(t *testing.T) {
-	os.RemoveAll(store_cfg0.DbPath)
-	store := NewBaseStore(store_cfg0)
+	os.RemoveAll(storecfg0.DbPath)
+	store := NewBaseStore(storecfg0)
 	assert.NotNil(t, store)
 
 	db := store.GetDB()
@@ -67,8 +67,8 @@ func TestBaseStore_NewClose(t *testing.T) {
 }
 
 func TestBaseStore_Queue(t *testing.T) {
-	os.RemoveAll(store_cfg1.DbPath)
-	store := NewBaseStore(store_cfg1)
+	os.RemoveAll(storecfg1.DbPath)
+	store := NewBaseStore(storecfg1)
 	assert.NotNil(t, store)
 
 	var q = queue.New("channel")

@@ -156,7 +156,7 @@ func TestWallet(t *testing.T) {
 	mempoolModProc(q)
 
 	testSeed(t, wallet)
-	return
+
 	testProcCreateNewAccount(t, wallet)
 
 	testProcImportPrivKey(t, wallet)

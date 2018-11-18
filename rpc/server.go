@@ -38,14 +38,14 @@ type Grpc struct {
 }
 
 type Grpcserver struct {
-	grpc Grpc
+	grpc *Grpc
 	s    *grpc.Server
 	l    net.Listener
 	//addr string
 }
 
 type JSONRPCServer struct {
-	jrpc Chain33
+	jrpc *Chain33
 	s    *rpc.Server
 	l    net.Listener
 	//addr string
@@ -138,7 +138,7 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 	opts = append(opts, grpc.UnaryInterceptor(interceptor))
 	server := grpc.NewServer(opts...)
 	s.s = server
-	types.RegisterChain33Server(server, &s.grpc)
+	types.RegisterChain33Server(server, s.grpc)
 	return s
 }
 
@@ -147,7 +147,7 @@ func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServe
 	j.jrpc.cli.Init(c, api)
 	server := rpc.NewServer()
 	j.s = server
-	server.RegisterName("Chain33", &j.jrpc)
+	server.RegisterName("Chain33", j.jrpc)
 	return j
 }
 

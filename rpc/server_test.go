@@ -52,7 +52,7 @@ func TestJSONClient_Call(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 	assert.NotNil(t, testChain33)
-	server.jrpc = *testChain33
+	server.jrpc = testChain33
 	done := make(chan struct{}, 1)
 	go func() {
 		done <- struct{}{}
