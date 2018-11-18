@@ -87,8 +87,7 @@ build_ci: depends ## Build the binary file for CI
 	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
-
-linter: ## Use gometalinter check code, ignore some unserious warning
+linter: vet ## Use gometalinter check code, ignore some unserious warning
 	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
 	--enable=gofmt \
 	--enable=gosimple \
@@ -117,7 +116,7 @@ race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
 
 vet:
-	@go vet ${PKG_LIST_VET}
+	@go vet ${PKG_LIST}
 
 test: ## Run unittests
 	@go test -race $(PKG_LIST)
