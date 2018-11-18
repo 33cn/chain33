@@ -41,6 +41,10 @@ $ make test
 ```shell
 $ chain33 -f chain33.toml
 ```
+## 使用原则
+
+* 开发插件的时候，不要使用 master 版本，使用 稳定的 release 版本
+* 尽量使用系统自带的vendor库，不要自己去更新。
 
 ## 贡献代码
 
