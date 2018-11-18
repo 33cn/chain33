@@ -15,7 +15,7 @@ AUTOTEST := build/autotest/autotest
 SRC_AUTOTEST := github.com/33cn/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "mocks"`
-PKG_LIST_VET := `go list ./... | grep -v "vendor" | grep -v "sha3"`
+PKG_LIST_VET := `go list ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15"`
 PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "mocks"`
 BUILD_FLAGS = -ldflags "-X github.com/33cn/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
@@ -116,7 +116,7 @@ race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
 
 vet:
-	@go vet ${PKG_LIST}
+	@go vet ${PKG_LIST_VET}
 
 test: ## Run unittests
 	@go test -race $(PKG_LIST)
