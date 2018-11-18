@@ -74,7 +74,7 @@ func parsePegasusNodes(url string) *pegasus.Config {
 		return nil
 	}
 
-	cfg := &pegasus.Config{hosts}
+	cfg := &pegasus.Config{MetaServers: hosts}
 	return cfg
 }
 
@@ -216,7 +216,7 @@ func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
 	if bytes.Equal(end, types.EmptyValue) {
 		end = nil
 	}
-	limit := util.Range{begin, end}
+	limit := util.Range{Start: begin, Limit: end}
 	hashKey := getHashKey(begin)
 
 	if reverse {

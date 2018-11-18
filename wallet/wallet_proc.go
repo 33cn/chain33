@@ -28,7 +28,7 @@ import (
 
 func (wallet *Wallet) parseExpire(expire string) (int64, error) {
 	if len(expire) == 0 {
-		return 0, errors.New("Expire string should not be empty.")
+		return 0, errors.New("Expire string should not be empty")
 	}
 
 	if expire[0] == 'H' && expire[1] == ':' {
@@ -719,7 +719,9 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 			continue
 		}
 		amount = amount - wallet.FeeAmount
-		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount, Note: note}}
+		v := &cty.CoinsAction_Transfer{
+			Transfer: &types.AssetsTransfer{Amount: amount, Note: note},
+		}
 		transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 		//初始化随机数
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}

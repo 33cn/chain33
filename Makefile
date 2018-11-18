@@ -14,8 +14,9 @@ MINER := build/miner_accounts
 AUTOTEST := build/autotest/autotest
 SRC_AUTOTEST := github.com/33cn/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
-PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "blockchain" | grep -v "pbft"`
+PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "mocks"`
+PKG_LIST_VET := `go list ./... | grep -v "vendor" | grep -v "sha3"`
+PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "mocks"`
 BUILD_FLAGS = -ldflags "-X github.com/33cn/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
@@ -115,6 +116,9 @@ linter: ## Use gometalinter check code, ignore some unserious warning
 race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
 
+vet:
+	@go vet ${PKG_LIST_VET}
+
 test: ## Run unittests
 	@go test -race $(PKG_LIST)
 
@@ -131,9 +135,6 @@ fmt_proto: ## go fmt protobuf file
 
 fmt_shell: ## check shell file
 	find . -name '*.sh' -not -path "./vendor/*" | xargs shfmt -w -s -i 4 -ci -bn
-
-vet: ## go vet
-	@go vet ./...
 
 bench: ## Run benchmark of all
 	@go test ./... -v -bench=.
