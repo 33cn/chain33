@@ -1203,7 +1203,7 @@ func TestChain33_GetBlockByHashes(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
 	var testResult interface{}
-	in := rpctypes.ReqHashes{[]string{}, false}
+	in := rpctypes.ReqHashes{Hashes: []string{}}
 	in.Hashes = append(in.Hashes, common.ToHex([]byte("h1")))
 	api.On("GetBlockByHashes", mock.Anything).Return(&types.BlockDetails{}, nil)
 	err := client.GetBlockByHashes(in, &testResult)

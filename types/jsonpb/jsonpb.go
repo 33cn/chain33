@@ -869,18 +869,18 @@ func (u *Unmarshaler) unmarshalValue(target reflect.Value, inputValue json.RawMe
 			if ivStr == "null" {
 				target.Field(0).Set(reflect.ValueOf(&stpb.Value_NullValue{}))
 			} else if v, err := strconv.ParseFloat(ivStr, 0); err == nil {
-				target.Field(0).Set(reflect.ValueOf(&stpb.Value_NumberValue{v}))
+				target.Field(0).Set(reflect.ValueOf(&stpb.Value_NumberValue{NumberValue: v}))
 			} else if v, err := unquote(ivStr); err == nil {
-				target.Field(0).Set(reflect.ValueOf(&stpb.Value_StringValue{v}))
+				target.Field(0).Set(reflect.ValueOf(&stpb.Value_StringValue{StringValue: v}))
 			} else if v, err := strconv.ParseBool(ivStr); err == nil {
-				target.Field(0).Set(reflect.ValueOf(&stpb.Value_BoolValue{v}))
+				target.Field(0).Set(reflect.ValueOf(&stpb.Value_BoolValue{BoolValue: v}))
 			} else if err := json.Unmarshal(inputValue, &[]json.RawMessage{}); err == nil {
 				lv := &stpb.ListValue{}
-				target.Field(0).Set(reflect.ValueOf(&stpb.Value_ListValue{lv}))
+				target.Field(0).Set(reflect.ValueOf(&stpb.Value_ListValue{ListValue: lv}))
 				return u.unmarshalValue(reflect.ValueOf(lv).Elem(), inputValue, prop)
 			} else if err := json.Unmarshal(inputValue, &map[string]json.RawMessage{}); err == nil {
 				sv := &stpb.Struct{}
-				target.Field(0).Set(reflect.ValueOf(&stpb.Value_StructValue{sv}))
+				target.Field(0).Set(reflect.ValueOf(&stpb.Value_StructValue{StructValue: sv}))
 				return u.unmarshalValue(reflect.ValueOf(sv).Elem(), inputValue, prop)
 			} else {
 				return fmt.Errorf("unrecognized type for Value %q", ivStr)

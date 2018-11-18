@@ -305,7 +305,6 @@ func (q *QueryData) DecodeJson(driver, name string, in json.Marshaler) (reply Me
 
 func (q *QueryData) Call(driver, name string, in Message) (reply Message, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			tlog.Error("query data call error", "driver", driver, "name", name, "param", in, "msg", r)
 			switch x := r.(type) {
@@ -334,7 +333,6 @@ func (q *QueryData) Call(driver, name string, in Message) (reply Message, err er
 func IsNil(a interface{}) (ok bool) {
 	defer func() {
 		if e := recover(); e != nil {
-			panic(e)
 			ok = false
 		}
 	}()

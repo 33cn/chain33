@@ -408,7 +408,7 @@ func kindsSet(t *Tree, mvccdb *db.MVCCHelper, key []byte, value []byte, version 
 		if mvccdb != nil {
 			err := mvccdb.SetV(key, value, version)
 			if err != nil {
-				panic(fmt.Errorf("mvccdb cant setv", err))
+				panic(fmt.Errorf("mvccdb cant setv %s", err.Error()))
 			}
 		}
 	}
