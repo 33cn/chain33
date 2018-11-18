@@ -271,10 +271,10 @@ func BenchmarkSetKey1000(b *testing.B) {
 	s.Close()
 }
 
-var store_cfg1 = &types.Store{"mavl", "leveldb", "/tmp/store_test1", 100}
+var storecfg1 = &types.Store{Name: "mavl", Driver: "leveldb", DbPath: "/tmp/store_test1", DbCache: 100}
 
 func TestNewMavl(t *testing.T) {
-	os.RemoveAll(store_cfg1.DbPath)
-	store := New(store_cfg1, nil)
+	os.RemoveAll(storecfg1.DbPath)
+	store := New(storecfg1, nil)
 	assert.NotNil(t, store)
 }

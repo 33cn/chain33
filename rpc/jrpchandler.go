@@ -924,8 +924,13 @@ func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	*result = &rpctypes.NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService(), resp.GetOutbounds(), resp.GetInbounds()}
+	*result = &rpctypes.NodeNetinfo{
+		Externaladdr: resp.GetExternaladdr(),
+		Localaddr:    resp.GetLocaladdr(),
+		Service:      resp.GetService(),
+		Outbounds:    resp.GetOutbounds(),
+		Inbounds:     resp.GetInbounds(),
+	}
 	return nil
 }
 

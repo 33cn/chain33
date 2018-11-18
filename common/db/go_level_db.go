@@ -161,7 +161,7 @@ func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	if bytes.Equal(end, types.EmptyValue) {
 		end = nil
 	}
-	r := &util.Range{start, end}
+	r := &util.Range{Start: start, Limit: end}
 	it := db.db.NewIterator(r, nil)
 	return &goLevelDBIt{it, itBase{start, end, reverse}}
 }

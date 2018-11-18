@@ -266,6 +266,4 @@ func (this *CreateDappSourceTask) createTypeExecuteFile() error {
 	util.DeleteFile(fileName)
 	_, err = util.WriteStringToFile(fileName, content)
 	return err
-
-	return nil
 }

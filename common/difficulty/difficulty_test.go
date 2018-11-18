@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"bytes"
-	"sort"
 
 	"github.com/33cn/chain33/common"
 )
@@ -26,7 +25,6 @@ func TestHashToBig(t *testing.T) {
 	if len(bigint.Bytes()) != 32 {
 		t.Error("Wrong hash len after HashToBig")
 	}
-	sort.Reverse(ByteSlice(hash))
 	if !bytes.Equal(hash, bigint.Bytes()) {
 		t.Error("Failed to HashToBig")
 	}
@@ -41,7 +39,7 @@ func TestCompactToBigSmallPositive(t *testing.T) {
 
 	value := bigint.Bytes()
 	if 0xff != value[0] {
-		t.Error("Bad value for compact %x", compact)
+		t.Errorf("Bad value for compact %x", compact)
 	}
 
 	if 1 != len(value) {
@@ -77,7 +75,7 @@ func TestCompactToBigSmallNegative(t *testing.T) {
 
 	value := bigint.Bytes()
 	if 0xff != value[0] {
-		t.Error("Bad value for compact %x", compact)
+		t.Errorf("Bad value for compact %x", compact)
 	}
 
 	if 1 != len(value) {
