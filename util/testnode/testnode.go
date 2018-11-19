@@ -48,7 +48,7 @@ func init() {
 //保证只有一个chain33 会运行
 var lognode = log15.New("module", "lognode")
 var chain33globalLock sync.Mutex
-
+//Chain33Mock :
 type Chain33Mock struct {
 	random   *rand.Rand
 	q        queue.Queue
@@ -65,11 +65,11 @@ type Chain33Mock struct {
 	cfg      *types.Config
 	lastsend []byte
 }
-
+//GetDefaultConfig :
 func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
 	return types.InitCfgString(cfgstring)
 }
-
+//NewWithConfig :
 func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	return newWithConfig(cfg, sub, mockapi)
 }
@@ -128,7 +128,7 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 	mock.rpc = server
 	return mock
 }
-
+//New :
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	var cfg *types.Config
 	var sub *types.ConfigSubModule
@@ -142,22 +142,22 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	}
 	return newWithConfig(cfg, sub, mockapi)
 }
-
-func (m *Chain33Mock) Listen() {
-	pluginmgr.AddRPC(m.rpc)
-	portgrpc, portjsonrpc := m.rpc.Listen()
-	if strings.HasSuffix(m.cfg.Rpc.JrpcBindAddr, ":0") {
-		l := len(m.cfg.Rpc.JrpcBindAddr)
-		m.cfg.Rpc.JrpcBindAddr = m.cfg.Rpc.JrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portjsonrpc)
+//Listen :
+func (mock *Chain33Mock) Listen() {
+	pluginmgr.AddRPC(mock.rpc)
+	portgrpc, portjsonrpc := mock.rpc.Listen()
+	if strings.HasSuffix(mock.cfg.Rpc.JrpcBindAddr, ":0") {
+		l := len(mock.cfg.Rpc.JrpcBindAddr)
+		mock.cfg.Rpc.JrpcBindAddr = mock.cfg.Rpc.JrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portjsonrpc)
 	}
-	if strings.HasSuffix(m.cfg.Rpc.GrpcBindAddr, ":0") {
-		l := len(m.cfg.Rpc.GrpcBindAddr)
-		m.cfg.Rpc.GrpcBindAddr = m.cfg.Rpc.GrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portgrpc)
+	if strings.HasSuffix(mock.cfg.Rpc.GrpcBindAddr, ":0") {
+		l := len(mock.cfg.Rpc.GrpcBindAddr)
+		mock.cfg.Rpc.GrpcBindAddr = mock.cfg.Rpc.GrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portgrpc)
 	}
 }
-
-func (m *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
-	return m.chain
+//GetBlockChain :
+func (mock *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
+	return mock.chain
 }
 
 func setFee(cfg *types.Config, fee int64) {
@@ -168,13 +168,13 @@ func setFee(cfg *types.Config, fee int64) {
 		cfg.Exec.IsFree = true
 	}
 }
-
-func (m *Chain33Mock) GetJsonC() *jsonclient.JSONClient {
-	jsonc, _ := jsonclient.NewJSONClient("http://" + m.cfg.Rpc.JrpcBindAddr + "/")
+//GetJSONC :
+func (mock *Chain33Mock) GetJSONC() *jsonclient.JSONClient {
+	jsonc, _ := jsonclient.NewJSONClient("http://" + mock.cfg.Rpc.JrpcBindAddr + "/")
 	return jsonc
 }
-
-func (m *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte, error) {
+//SendAndSign :
+func (mock *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte, error) {
 	txbytes, err := hex.DecodeString(hextx)
 	if err != nil {
 		return nil, err
@@ -186,7 +186,7 @@ func (m *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte, er
 	}
 	tx.Fee = 1e6
 	tx.Sign(types.SECP256K1, priv)
-	reply, err := m.api.SendTx(tx)
+	reply, err := mock.api.SendTx(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -220,19 +220,19 @@ func newWalletRealize(qAPI client.QueueProtocolAPI) {
 		panic(err)
 	}
 }
-
+//GetAPI :
 func (mock *Chain33Mock) GetAPI() client.QueueProtocolAPI {
 	return mock.api
 }
-
+//GetRPC :
 func (mock *Chain33Mock) GetRPC() *rpc.RPC {
 	return mock.rpc
 }
-
+//GetCfg :
 func (mock *Chain33Mock) GetCfg() *types.Config {
 	return mock.cfg
 }
-
+//Close :
 func (mock *Chain33Mock) Close() {
 	mock.chain.Close()
 	mock.store.Close()
@@ -245,7 +245,7 @@ func (mock *Chain33Mock) Close() {
 	mock.rpc.Close()
 	chain33globalLock.Unlock()
 }
-
+//WaitHeight :
 func (mock *Chain33Mock) WaitHeight(height int64) error {
 	for {
 		header, err := mock.api.GetLastHeader()
@@ -259,7 +259,7 @@ func (mock *Chain33Mock) WaitHeight(height int64) error {
 	}
 	return nil
 }
-
+//WaitTx :
 func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error) {
 	if hash == nil {
 		return nil, nil
@@ -275,17 +275,17 @@ func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error
 		data := rpctypes.QueryParm{
 			Hash: common.ToHex(hash),
 		}
-		err = mock.GetJsonC().Call("Chain33.QueryTransaction", data, &testResult)
+		err = mock.GetJSONC().Call("Chain33.QueryTransaction", data, &testResult)
 		return &testResult, err
 	}
 }
-
+//SendHot :
 func (mock *Chain33Mock) SendHot() error {
 	tx := util.CreateCoinsTx(mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
 	mock.SendTx(tx)
 	return mock.Wait()
 }
-
+//SendTx :
 func (mock *Chain33Mock) SendTx(tx *types.Transaction) []byte {
 	reply, err := mock.GetAPI().SendTx(tx)
 	if err != nil {
@@ -294,7 +294,7 @@ func (mock *Chain33Mock) SendTx(tx *types.Transaction) []byte {
 	mock.lastsend = reply.GetMsg()
 	return reply.GetMsg()
 }
-
+//Wait :
 func (mock *Chain33Mock) Wait() error {
 	if mock.lastsend == nil {
 		return nil
@@ -302,14 +302,14 @@ func (mock *Chain33Mock) Wait() error {
 	_, err := mock.WaitTx(mock.lastsend)
 	return err
 }
-
+//GetAccount :
 func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Account {
 	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
 	acc := account.NewCoinsAccount()
 	acc.SetDB(statedb)
 	return acc.LoadAccount(addr)
 }
-
+//GetBlock :
 func (mock *Chain33Mock) GetBlock(height int64) *types.Block {
 	blocks, err := mock.api.GetBlocks(&types.ReqBlocks{Start: height, End: height})
 	if err != nil {
@@ -317,7 +317,7 @@ func (mock *Chain33Mock) GetBlock(height int64) *types.Block {
 	}
 	return blocks.Items[0].Block
 }
-
+//GetLastBlock :
 func (mock *Chain33Mock) GetLastBlock() *types.Block {
 	header, err := mock.api.GetLastHeader()
 	if err != nil {
@@ -325,30 +325,30 @@ func (mock *Chain33Mock) GetLastBlock() *types.Block {
 	}
 	return mock.GetBlock(header.Height)
 }
-
-func (m *Chain33Mock) GetClient() queue.Client {
-	return m.client
+//GetClient :
+func (mock *Chain33Mock) GetClient() queue.Client {
+	return mock.client
 }
-
-func (m *Chain33Mock) GetHotKey() crypto.PrivKey {
+//GetHotKey :
+func (mock *Chain33Mock) GetHotKey() crypto.PrivKey {
 	return util.TestPrivkeyList[0]
 }
-
-func (m *Chain33Mock) GetHotAddress() string {
-	return address.PubKeyToAddress(m.GetHotKey().PubKey().Bytes()).String()
+//GetHotAddress :
+func (mock *Chain33Mock) GetHotAddress() string {
+	return address.PubKeyToAddress(mock.GetHotKey().PubKey().Bytes()).String()
 }
-
-func (m *Chain33Mock) GetGenesisKey() crypto.PrivKey {
+//GetGenesisKey :
+func (mock *Chain33Mock) GetGenesisKey() crypto.PrivKey {
 	return util.TestPrivkeyList[1]
 }
-
-func (m *Chain33Mock) GetGenesisAddress() string {
-	return address.PubKeyToAddress(m.GetGenesisKey().PubKey().Bytes()).String()
+//GetGenesisAddress :
+func (mock *Chain33Mock) GetGenesisAddress() string {
+	return address.PubKeyToAddress(mock.GetGenesisKey().PubKey().Bytes()).String()
 }
 
 type mockP2P struct {
 }
-
+//SetQueueClient :
 func (m *mockP2P) SetQueueClient(client queue.Client) {
 	go func() {
 		p2pKey := "p2p"
@@ -366,6 +366,6 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 		}
 	}()
 }
-
+//Close :
 func (m *mockP2P) Close() {
 }

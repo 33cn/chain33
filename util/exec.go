@@ -13,7 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//CheckBlock send checkblock event to consensus, and check block is ok
+//CheckBlock : To check the block's validaty
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	req := block
 	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
@@ -29,7 +29,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	return errors.New(string(reply.GetMsg()))
 }
 
-//ExecTx send exec event, need context of block exec env and tx list
+//ExecTx : To send lists of txs within a block to exector for exection
 func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	list := &types.ExecTxList{
 		StateHash:  prevStateRoot,
@@ -49,7 +49,7 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *type
 	return receipts
 }
 
-//ExecKVMemSet exec store memset event
+//ExecKVMemSet : send kv values to memory store and set it in db
 func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset []*types.KeyValue, sync bool) []byte {
 	set := &types.StoreSet{StateHash: prevStateRoot, KV: kvset, Height: height}
 	setwithsync := &types.StoreSetWithSync{Storeset: set, Sync: sync}
@@ -64,7 +64,7 @@ func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset
 	return hash.GetHash()
 }
 
-//ExecKVSetCommit exec store commit event
+//ExecKVSetCommit : commit the data set opetation to db
 func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreCommit, req)
@@ -77,7 +77,7 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	return nil
 }
 
-//ExecKVSetRollback exec store rollback event
+//ExecKVSetRollback : do the db's roll back operation
 func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreRollback, req)
@@ -103,7 +103,7 @@ func checkTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCac
 	return ret
 }
 
-//CheckTxDup 检查交易列表是否已经被打包
+//CheckTxDup : check whether the tx is duplicated within the while chain
 func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList
 	if types.IsFork(height, "ForkCheckTxDup") {
