@@ -636,7 +636,7 @@ func testProcWalletLock(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msg, true)
 	resp, _ = wallet.client.Wait(msg)
 	status := resp.GetData().(*types.WalletStatus)
-	if !status.IsHasSeed || status.IsAutoMining || !status.IsWalletLock {
+	if !status.IsHasSeed || status.IsAutoMining || !status.IsWalletLock || (walletUnLock.GetWalletOrTicket() && status.IsTicketLock) {
 		t.Error("testGetWalletStatus failed")
 	}
 
