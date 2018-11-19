@@ -421,6 +421,6 @@ func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 	t.AmountActive += acc.Balance
 	t.AmountFrozen += acc.Frozen
 
-	item := &ExecBalanceItem{execAddr, acc.Frozen, acc.Balance}
+	item := &ExecBalanceItem{ ExecAddr: execAddr, Frozen: acc.Frozen, Active: acc.Balance}
 	t.Items = append(t.Items, item)
 }

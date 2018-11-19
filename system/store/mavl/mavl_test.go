@@ -390,23 +390,23 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 		Addr:     addr,
 	}
 	datas := &types.StoreSet{
-		drivers.EmptyRoot[:],
-		accountdb.GetExecKVSet(execAddr1, acc),
-		0}
+		StateHash: drivers.EmptyRoot[:],
+		KV: accountdb.GetExecKVSet(execAddr1, acc),
+		Height: 0}
 	hash0, err := store.Set(datas, true)
 
 	execAddr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
-		hash0,
-		accountdb.GetExecKVSet(execAddr2, acc),
-		1}
+		StateHash: hash0,
+		KV: accountdb.GetExecKVSet(execAddr2, acc),
+		Height: 1}
 	hash1, err := store.Set(datas, true)
 
 	execAddr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
-		hash1,
-		accountdb.GetExecKVSet(execAddr3, acc),
-		2}
+		StateHash: hash1,
+		KV: accountdb.GetExecKVSet(execAddr3, acc),
+		Height: 2}
 	hash2, err := store.Set(datas, true)
 
 	assert.Nil(t, err)
