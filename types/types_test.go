@@ -178,7 +178,7 @@ func TestGetRealExecName(t *testing.T) {
 	}
 }
 
-func genPrefixEdge(prefix []byte)(r []byte) {
+func genPrefixEdge(prefix []byte) (r []byte) {
 	for j := 0; j < len(prefix); j++ {
 		r = append(r, prefix[j])
 	}
@@ -243,11 +243,11 @@ func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T) {
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 
 	var reply = &StoreListReply{
-		Start: []byte(prefix2),
-		End: genPrefixEdge([]byte(prefix2)),
-		Suffix:   []byte(addr),
-		Mode:  int64(2),
-		Count: int64(100),
+		Start:  []byte(prefix2),
+		End:    genPrefixEdge([]byte(prefix2)),
+		Suffix: []byte(addr),
+		Mode:   int64(2),
+		Count:  int64(100),
 	}
 
 	var acc = &Account{
@@ -312,11 +312,11 @@ func TestIterateCallBack_PrefixWithExecAddr(t *testing.T) {
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 
 	var reply = &StoreListReply{
-		Start: []byte(prefix1),
-		End: genPrefixEdge([]byte(prefix1)),
+		Start:  []byte(prefix1),
+		End:    genPrefixEdge([]byte(prefix1)),
 		Suffix: []byte(addr),
-		Mode:  int64(2),
-		Count: int64(1),
+		Mode:   int64(2),
+		Count:  int64(1),
 	}
 
 	var acc = &Account{
