@@ -146,7 +146,6 @@ func SaveAccountTomavl(client queue.Client, prevStateRoot []byte, accs []*types.
 }
 
 func TestWallet(t *testing.T) {
-	t.Skip()
 	wallet, store, q := initEnv()
 	defer wallet.Close()
 	defer store.Close()
@@ -648,7 +647,7 @@ func testProcWalletLock(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msg, true)
 	resp, _ = wallet.client.Wait(msg)
 	status = resp.GetData().(*types.WalletStatus)
-	if !status.IsHasSeed || status.IsAutoMining || !status.IsWalletLock || status.IsTicketLock {
+	if !status.IsHasSeed || status.IsAutoMining || !status.IsWalletLock {
 		t.Error("testGetWalletStatus failed")
 	}
 
