@@ -41,7 +41,7 @@ enableTxQuickIndex=false
 [p2p]
 p2pPort=13802
 seeds=[]
-enable=false
+enable=true
 isSeed=false
 serverStart=true
 innerSeedEnable=true
