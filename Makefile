@@ -304,7 +304,7 @@ pull:
 	git fetch ${name}
 	git checkout ${name}/${b}
 	git checkout -b ${name}-${b}
- pullsync:
+pullsync:
 	git fetch ${name}
 	git checkout ${name}-${b}
 	git merge ${name}/${b}
