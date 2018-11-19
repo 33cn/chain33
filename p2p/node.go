@@ -79,6 +79,11 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		cacheBound: make(map[string]*Peer),
 		pubsub:     pubsub.NewPubSub(10200),
 	}
+
+	if cfg.P2pPort != 0 && cfg.P2pPort <= 65535 && cfg.P2pPort > 1024 {
+		defaultPort = int(cfg.P2pPort)
+	}
+
 	if cfg.InnerSeedEnable {
 		if types.IsTestNet() {
 			cfg.Seeds = append(cfg.Seeds, TestNetSeeds...)
@@ -391,7 +396,7 @@ func (n *Node) natMapPort() {
 		ok := p2pcli.CheckSelf(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
 		if !ok {
 			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
-			n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
+			n.flushNodePort(uint16(defaultPort), uint16(rand.Intn(64512)+1023))
 		}
 
 	}
@@ -403,7 +408,7 @@ func (n *Node) natMapPort() {
 		if err != nil {
 			if i > tryMapPortTimes/2 { //如果连续失败次数超过最大限制次数的二分之一则切换为随机端口映射
 				log.Error("NatMapPort", "err", err.Error())
-				n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
+				n.flushNodePort(uint16(defaultPort), uint16(rand.Intn(64512)+1023))
 
 			}
 			log.Info("NatMapPort", "External Port", n.nodeInfo.GetExternalAddr().Port)
@@ -416,7 +421,7 @@ func (n *Node) natMapPort() {
 	if err != nil {
 		//映射失败
 		log.Warn("NatMapPort", "Nat", "Faild")
-		n.flushNodePort(defaultPort, defaultPort)
+		n.flushNodePort(uint16(defaultPort), uint16(defaultPort))
 		n.nodeInfo.natResultChain <- false
 		return
 	}
