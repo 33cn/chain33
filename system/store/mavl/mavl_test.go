@@ -206,6 +206,23 @@ func (t *StatTool) Reset() {
 	t.AmountFrozen = 0
 }
 
+func genPrefixEdge(prefix []byte)(r []byte) {
+	for j := 0; j < len(prefix); j++ {
+		r = append(r, prefix[j])
+	}
+
+	i := len(prefix) - 1
+	for i >= 0 {
+		if r[i] < 0xff {
+			r[i] += 1
+			break
+		} else {
+			i--
+		}
+	}
+
+	return r
+}
 func TestIterateCallBack_Mode1(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
@@ -231,29 +248,29 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	}
 
 	datas := &types.StoreSet{
-		drivers.EmptyRoot[:],
-		accountdb.GetExecKVSet(execAddr1, acc),
-		0}
+		StateHash: drivers.EmptyRoot[:],
+		KV: accountdb.GetExecKVSet(execAddr1, acc),
+		Height: 0}
 	hash0, err := store.Set(datas, true)
 
 	execAddr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
-		hash0,
-		accountdb.GetExecKVSet(execAddr2, acc),
-		1}
+		StateHash: hash0,
+		KV: accountdb.GetExecKVSet(execAddr2, acc),
+		Height: 1}
 	hash1, err := store.Set(datas, true)
 
 	execAddr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
-		hash1,
-		accountdb.GetExecKVSet(execAddr3, acc),
-		2}
+		StateHash: hash1,
+		KV: accountdb.GetExecKVSet(execAddr3, acc),
+		Height: 2}
 	hash2, err := store.Set(datas, true)
 
 	assert.Nil(t, err)
 
 	fmt.Println("func TestIterateCallBack------test case1-------")
-	req := &types.StoreList{Start: []byte(prefix), End: []byte(addr), Count: 5, Mode: 1}
+	req := &types.StoreList{StateHash: hash2, Start: []byte(prefix), Suffix: []byte(addr),End: genPrefixEdge([]byte(prefix)), Count: 5, Mode: 1}
 	query := drivers.NewStoreListQuery(store, req)
 	resp2 := query.Run()
 	tool := &StatTool{}
@@ -267,13 +284,17 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	assert.Equal(t, int64(3), tool.AmountFrozen)
 	tool.Reset()
 
+
 	fmt.Println("func TestIterateCallBack------test case2-------")
 	resp1 := &types.StoreListReply{}
-	resp1.End = []byte(addr)
+	resp1.Suffix = []byte(addr)
 	resp1.Start = []byte(prefix)
+	resp1.End = genPrefixEdge([]byte(prefix))
 	resp1.Count = 5
 	resp1.Mode = 1
-	store.IterateRangeByStateHash(hash1, resp1.Start, nil, true, resp1.IterateCallBack)
+
+	query = &drivers.StoreListQuery{StoreListReply: resp1}
+	store.IterateRangeByStateHash(hash1, resp1.Start, resp1.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp1.Values)
 	assert.Equal(t, int64(2), resp1.Num)
@@ -287,11 +308,13 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 
 	fmt.Println("func TestIterateCallBack------test case3-------")
 	resp0 := &types.StoreListReply{}
-	resp0.End = []byte(addr)
+	resp0.Suffix = []byte(addr)
 	resp0.Start = []byte(prefix)
+	resp0.End = genPrefixEdge([]byte(prefix))
 	resp0.Count = 5
 	resp0.Mode = 1
-	store.IterateRangeByStateHash(hash0, resp0.Start, nil, true, resp0.IterateCallBack)
+	query = &drivers.StoreListQuery{StoreListReply: resp0}
+	store.IterateRangeByStateHash(hash0, resp0.Start, resp0.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp0.Values)
 	assert.Equal(t, int64(1), resp0.Num)
@@ -305,11 +328,13 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 
 	fmt.Println("func TestIterateCallBack------test case4-------")
 	resp := &types.StoreListReply{}
-	resp.End = []byte(addr)
+	resp.Suffix = []byte(addr)
 	resp.Start = []byte(prefix)
+	resp.End = genPrefixEdge([]byte(prefix))
 	resp.Count = 1
 	resp.Mode = 1
-	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, resp.IterateCallBack)
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, resp.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp.Values)
 	assert.Equal(t, int64(1), resp.Num)
@@ -323,11 +348,13 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 
 	fmt.Println("func TestIterateCallBack------test case5-------")
 	resp = &types.StoreListReply{}
-	resp.End = []byte(addr)
+	resp.Suffix = []byte(addr)
 	resp.Start = []byte(prefix)
+	resp.End = genPrefixEdge([]byte(prefix))
 	resp.Count = 2
 	resp.Mode = 1
-	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, resp.IterateCallBack)
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, resp.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp.Values)
 	assert.Equal(t, int64(2), resp.Num)
@@ -386,11 +413,14 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 
 	fmt.Println("func TestIterateCallBack------test case1-------")
 	resp2 := &types.StoreListReply{}
-	resp2.End = []byte(addr)
+	resp2.Suffix = []byte(addr)
 	resp2.Start = []byte(prefix)
+	resp2.End = genPrefixEdge([]byte(prefix))
 	resp2.Count = 5
 	resp2.Mode = 2
-	store.IterateRangeByStateHash(hash2, resp2.Start, nil, true, resp2.IterateCallBack)
+
+	query := &drivers.StoreListQuery{StoreListReply: resp2}
+	store.IterateRangeByStateHash(hash2, resp2.Start, nil, true, query.IterateCallBack)
 	tool := &StatTool{}
 	tool.AddItem(resp2.Values)
 	assert.Equal(t, int64(3), resp2.Num)
@@ -404,11 +434,13 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 
 	fmt.Println("func TestIterateCallBack------test case2-------")
 	resp1 := &types.StoreListReply{}
-	resp1.End = []byte(addr)
+	resp1.Suffix = []byte(addr)
 	resp1.Start = []byte(prefix)
+	resp1.End = genPrefixEdge([]byte(prefix))
 	resp1.Count = 5
 	resp1.Mode = 2
-	store.IterateRangeByStateHash(hash1, resp1.Start, nil, true, resp1.IterateCallBack)
+	query = &drivers.StoreListQuery{StoreListReply: resp1}
+	store.IterateRangeByStateHash(hash1, resp1.Start, resp1.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp1.Values)
 	assert.Equal(t, int64(2), resp1.Num)
@@ -422,11 +454,13 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 
 	fmt.Println("func TestIterateCallBack------test case3-------")
 	resp0 := &types.StoreListReply{}
-	resp0.End = []byte(addr)
+	resp0.Suffix = []byte(addr)
 	resp0.Start = []byte(prefix)
+	resp0.End = genPrefixEdge([]byte(prefix))
 	resp0.Count = 5
 	resp0.Mode = 2
-	store.IterateRangeByStateHash(hash0, resp0.Start, nil, true, resp0.IterateCallBack)
+	query = &drivers.StoreListQuery{StoreListReply: resp0}
+	store.IterateRangeByStateHash(hash0, resp0.Start, nil, true, query.IterateCallBack)
 
 	tool.AddItem(resp0.Values)
 	assert.Equal(t, int64(1), resp0.Num)
@@ -440,11 +474,13 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 
 	fmt.Println("func TestIterateCallBack------test case4-------")
 	resp := &types.StoreListReply{}
-	resp.End = []byte(addr)
+	resp.Suffix = []byte(addr)
 	resp.Start = []byte(prefix)
+	resp.End = genPrefixEdge([]byte(prefix))
 	resp.Count = 1
 	resp.Mode = 2
-	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, resp.IterateCallBack)
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, query.IterateCallBack)
 
 	tool.AddItem(resp.Values)
 	assert.Equal(t, int64(1), resp.Num)
@@ -458,11 +494,13 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 
 	fmt.Println("func TestIterateCallBack------test case5-------")
 	resp = &types.StoreListReply{}
-	resp.End = []byte(addr)
+	resp.Suffix = []byte(addr)
 	resp.Start = []byte(prefix)
+	resp.End = genPrefixEdge([]byte(prefix))
 	resp.Count = 2
 	resp.Mode = 2
-	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, resp.IterateCallBack)
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, query.IterateCallBack)
 
 	tool.AddItem(resp.Values)
 	assert.Equal(t, int64(2), resp.Num)
@@ -478,9 +516,11 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	resp = &types.StoreListReply{}
 	resp.End = []byte(addr)
 	resp.Start = []byte("mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:")
+	resp.End = genPrefixEdge([]byte("mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:"))
 	resp.Count = 1
 	resp.Mode = 2
-	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, resp.IterateCallBack)
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, resp.End, true, query.IterateCallBack)
 	tool.AddItem(resp.Values)
 	assert.Equal(t, int64(1), resp.Num)
 	assert.Equal(t, len([]byte(key)), len(resp.NextKey))
