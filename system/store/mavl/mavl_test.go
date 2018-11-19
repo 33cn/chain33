@@ -206,7 +206,7 @@ func (t *StatTool) Reset() {
 	t.AmountFrozen = 0
 }
 
-func genPrefixEdge(prefix []byte)(r []byte) {
+func genPrefixEdge(prefix []byte) (r []byte) {
 	for j := 0; j < len(prefix); j++ {
 		r = append(r, prefix[j])
 	}
@@ -249,28 +249,28 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 
 	datas := &types.StoreSet{
 		StateHash: drivers.EmptyRoot[:],
-		KV: accountdb.GetExecKVSet(execAddr1, acc),
-		Height: 0}
+		KV:        accountdb.GetExecKVSet(execAddr1, acc),
+		Height:    0}
 	hash0, err := store.Set(datas, true)
 
 	execAddr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
 		StateHash: hash0,
-		KV: accountdb.GetExecKVSet(execAddr2, acc),
-		Height: 1}
+		KV:        accountdb.GetExecKVSet(execAddr2, acc),
+		Height:    1}
 	hash1, err := store.Set(datas, true)
 
 	execAddr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
 		StateHash: hash1,
-		KV: accountdb.GetExecKVSet(execAddr3, acc),
-		Height: 2}
+		KV:        accountdb.GetExecKVSet(execAddr3, acc),
+		Height:    2}
 	hash2, err := store.Set(datas, true)
 
 	assert.Nil(t, err)
 
 	fmt.Println("func TestIterateCallBack------test case1-------")
-	req := &types.StoreList{StateHash: hash2, Start: []byte(prefix), Suffix: []byte(addr),End: genPrefixEdge([]byte(prefix)), Count: 5, Mode: 1}
+	req := &types.StoreList{StateHash: hash2, Start: []byte(prefix), Suffix: []byte(addr), End: genPrefixEdge([]byte(prefix)), Count: 5, Mode: 1}
 	query := drivers.NewStoreListQuery(store, req)
 	resp2 := query.Run()
 	tool := &StatTool{}
@@ -283,7 +283,6 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	assert.Equal(t, int64(3), tool.AmountActive)
 	assert.Equal(t, int64(3), tool.AmountFrozen)
 	tool.Reset()
-
 
 	fmt.Println("func TestIterateCallBack------test case2-------")
 	resp1 := &types.StoreListReply{}
@@ -391,22 +390,22 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	}
 	datas := &types.StoreSet{
 		StateHash: drivers.EmptyRoot[:],
-		KV: accountdb.GetExecKVSet(execAddr1, acc),
-		Height: 0}
+		KV:        accountdb.GetExecKVSet(execAddr1, acc),
+		Height:    0}
 	hash0, err := store.Set(datas, true)
 
 	execAddr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
 		StateHash: hash0,
-		KV: accountdb.GetExecKVSet(execAddr2, acc),
-		Height: 1}
+		KV:        accountdb.GetExecKVSet(execAddr2, acc),
+		Height:    1}
 	hash1, err := store.Set(datas, true)
 
 	execAddr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
 		StateHash: hash1,
-		KV: accountdb.GetExecKVSet(execAddr3, acc),
-		Height: 2}
+		KV:        accountdb.GetExecKVSet(execAddr3, acc),
+		Height:    2}
 	hash2, err := store.Set(datas, true)
 
 	assert.Nil(t, err)
