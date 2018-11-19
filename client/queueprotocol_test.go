@@ -93,6 +93,7 @@ func TestQueueProtocol(t *testing.T) {
 	testGetLastHeader(t, api)
 	testSignRawTx(t, api)
 	testStoreGetTotalCoins(t, api)
+	testStoreList(t, api)
 	testBlockChainQuery(t, api)
 }
 
@@ -129,6 +130,18 @@ func testStoreGetTotalCoins(t *testing.T, api client.QueueProtocolAPI) {
 	_, err = api.StoreGetTotalCoins(&types.IterateRangeByStateHash{Count: 10})
 	if err == nil {
 		t.Error("StoreGetTotalCoins(&types.IterateRangeByStateHash{Count:10}) need return error.")
+	}
+}
+
+func testStoreList(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.StoreList(&types.StoreList{})
+	if err == nil {
+		t.Error("Call StoreList Failed.", err)
+	}
+
+	_, err = api.StoreList(nil)
+	if err == nil {
+		t.Error("StoreList(nil) need return error.")
 	}
 }
 
