@@ -352,7 +352,7 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 	}
 
 	reply = &types.ReplyGetExecBalance{}
-	log.Info("DB.GetExecBalance", "hash", common.ToHex(req.StateHash), "Prefix", string(req.Start), "Addr", string(req.End))
+	//log.Info("DB.GetExecBalance", "hash", common.ToHex(req.StateHash), "Prefix", string(req.Start), "End", string(req.End), "Addr", string(req.Suffix))
 
 	res, err := api.StoreList(&req)
 	if err != nil {
@@ -380,7 +380,7 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 				log.Error("accountDB.GetExecBalance key does not contain exec-addr & addr", "key", strKey, "combinAddr", combinAddr)
 				return nil, types.ErrTypeAsset
 			}
-			log.Info("DB.GetExecBalance", "execAddr", addrs[0], "addr", addrs[1])
+			//log.Info("DB.GetExecBalance", "execAddr", addrs[0], "addr", addrs[1])
 			reply.AddItem([]byte(addrs[0]), res.Values[i])
 		}
 	}
