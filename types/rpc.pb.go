@@ -3,12 +3,12 @@
 
 package types
 
-import (
-	context "context"
-	fmt "fmt"
-	math "math"
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
-	proto "github.com/golang/protobuf/proto"
+import (
+	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 )
 
@@ -16,81 +16,6 @@ import (
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
-func init() { proto.RegisterFile("rpc.proto", fileDescriptor_77a6da22d6a3feb1) }
-
-var fileDescriptor_77a6da22d6a3feb1 = []byte{
-	// 996 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0x6d, 0x6f, 0xe2, 0xc6,
-	0x13, 0xf7, 0x8b, 0xff, 0x3f, 0x1c, 0x7b, 0x40, 0xc8, 0x86, 0x44, 0x77, 0x56, 0x4f, 0x27, 0x59,
-	0xaa, 0x5a, 0xa9, 0x3a, 0xe8, 0x41, 0x9b, 0x3e, 0x57, 0x0a, 0x49, 0x21, 0x48, 0x1c, 0xe5, 0x62,
-	0xae, 0x95, 0xfa, 0x6e, 0x31, 0x53, 0x62, 0xc5, 0xec, 0xfa, 0xbc, 0xeb, 0x60, 0xbe, 0x64, 0x3f,
-	0x53, 0xb5, 0x6b, 0xaf, 0xf1, 0x13, 0x97, 0xf4, 0x9d, 0x77, 0x66, 0x7e, 0xf3, 0xe0, 0xfd, 0xcd,
-	0xcc, 0xa2, 0x7a, 0xe0, 0x3b, 0x5d, 0x3f, 0x60, 0x82, 0xe1, 0xff, 0x8b, 0x9d, 0x0f, 0xdc, 0x6c,
-	0x38, 0x6c, 0xb3, 0x61, 0x34, 0x16, 0x9a, 0x27, 0x22, 0x20, 0x94, 0x13, 0x47, 0xb8, 0xa9, 0xa8,
-	0xbd, 0xf4, 0x98, 0x73, 0xef, 0xdc, 0x11, 0x57, 0x4b, 0x1a, 0x5b, 0xe2, 0x79, 0x20, 0x92, 0x53,
-	0xdd, 0xef, 0xfb, 0xc9, 0x67, 0x93, 0x38, 0x0e, 0x0b, 0xa9, 0xd6, 0xb4, 0x20, 0x02, 0x27, 0x14,
-	0x2c, 0x88, 0xcf, 0xfd, 0x7f, 0xce, 0x50, 0x4d, 0xf9, 0x19, 0x0c, 0xf0, 0x1b, 0x54, 0x1f, 0x83,
-	0x18, 0x4a, 0xd7, 0x1c, 0xb7, 0xbb, 0x2a, 0x97, 0xee, 0x2d, 0x7c, 0x8c, 0x25, 0x66, 0x23, 0x95,
-	0xf8, 0xde, 0xce, 0x32, 0x70, 0x0f, 0x35, 0xc7, 0x20, 0xa6, 0x84, 0x8b, 0x1b, 0x20, 0x2b, 0x08,
-	0x70, 0x73, 0x0f, 0x99, 0xb9, 0x9e, 0xa9, 0x8f, 0xb1, 0xd6, 0x32, 0xf0, 0x8f, 0xa8, 0x73, 0x15,
-	0x00, 0x11, 0x70, 0x4b, 0xb6, 0x8b, 0x7d, 0x4d, 0xf8, 0x38, 0x31, 0x8c, 0x95, 0x8b, 0xc8, 0xd4,
-	0x82, 0x0f, 0x94, 0xbb, 0x6b, 0xba, 0x88, 0x2c, 0x03, 0x5f, 0xa3, 0xf6, 0x1e, 0x1b, 0x8d, 0x03,
-	0x16, 0xfa, 0xf8, 0x55, 0x1e, 0xb7, 0xf7, 0xa8, 0xd4, 0x55, 0x5e, 0xbe, 0x45, 0xd8, 0x06, 0xba,
-	0x3a, 0x10, 0xdf, 0x76, 0xd7, 0x14, 0x56, 0x8b, 0xa8, 0x54, 0xe9, 0xaf, 0xa8, 0xfd, 0x3e, 0x84,
-	0x60, 0x97, 0x05, 0xb5, 0xf6, 0xc5, 0xde, 0x10, 0x7e, 0x67, 0xbe, 0x48, 0xce, 0x19, 0x9b, 0x6b,
-	0x10, 0xc4, 0xf5, 0x54, 0xd8, 0x63, 0x19, 0x36, 0x0b, 0xc7, 0x65, 0xf3, 0x52, 0xd8, 0x5f, 0x50,
-	0x67, 0x0c, 0x22, 0x63, 0x31, 0xdc, 0x5d, 0xae, 0x56, 0x41, 0x36, 0xb4, 0x3c, 0x9b, 0xa7, 0x59,
-	0xdc, 0x22, 0x9a, 0xd0, 0xbf, 0x19, 0xb7, 0x0c, 0x3c, 0x46, 0xe7, 0x45, 0xb8, 0xcc, 0x14, 0x72,
-	0x77, 0x1b, 0x4b, 0xcc, 0x97, 0x87, 0xb2, 0x97, 0x8e, 0xde, 0x22, 0x34, 0x06, 0xf1, 0x0e, 0x36,
-	0x73, 0xc6, 0xbc, 0xe2, 0x2d, 0xe3, 0x7c, 0xf0, 0xa9, 0xcb, 0x85, 0xaa, 0xf8, 0xf9, 0x18, 0xc4,
-	0x65, 0x4c, 0x3d, 0x5e, 0xc4, 0x9c, 0x25, 0xc7, 0x3f, 0x15, 0x67, 0xb5, 0x95, 0x62, 0x08, 0x9a,
-	0xc1, 0x36, 0x11, 0xe0, 0x4e, 0x06, 0x95, 0x4a, 0xcd, 0x4e, 0x15, 0xd8, 0x32, 0xf0, 0x2d, 0x3a,
-	0x8b, 0x45, 0x99, 0x1a, 0x64, 0x36, 0xf8, 0xf5, 0xde, 0x4d, 0xa5, 0x81, 0x79, 0x9e, 0xf3, 0xb8,
-	0x88, 0xf6, 0x95, 0x8f, 0x50, 0x73, 0xb2, 0xf1, 0x59, 0x20, 0xe6, 0x81, 0xfb, 0x70, 0x0f, 0xbb,
-	0x94, 0x72, 0xa9, 0xaf, 0x9c, 0xfa, 0x60, 0x6e, 0x43, 0xd4, 0x54, 0x04, 0x60, 0xf2, 0xbe, 0x80,
-	0xf3, 0xb2, 0x9f, 0x9c, 0xda, 0x6c, 0x67, 0x7f, 0xaa, 0xbc, 0x22, 0xcb, 0xc0, 0x7d, 0xf4, 0xcc,
-	0x96, 0xd9, 0x8d, 0x00, 0xf0, 0x79, 0x19, 0x2e, 0x46, 0x00, 0x25, 0x06, 0xfd, 0x84, 0x6a, 0xb6,
-	0x6c, 0xd1, 0xa5, 0x87, 0x5f, 0x54, 0x40, 0xa6, 0x64, 0x09, 0xde, 0x27, 0x92, 0x6e, 0xbc, 0x83,
-	0x60, 0x0d, 0x43, 0xe2, 0x11, 0xea, 0x00, 0xfe, 0xac, 0xe8, 0x21, 0xab, 0xcd, 0xf3, 0x20, 0x66,
-	0x95, 0x65, 0xe0, 0x0b, 0x54, 0xb7, 0x41, 0xcc, 0x09, 0xe7, 0xdb, 0x15, 0x7e, 0x59, 0x91, 0x42,
-	0xac, 0x2a, 0x25, 0xfe, 0x39, 0xfa, 0xdf, 0x94, 0x39, 0xf7, 0x45, 0xe2, 0x14, 0xcd, 0xde, 0xa0,
-	0xa3, 0x0f, 0x54, 0x19, 0x9e, 0xe6, 0x8a, 0x88, 0x85, 0x15, 0x13, 0x4b, 0xb2, 0x72, 0x0e, 0x10,
-	0xc8, 0x1e, 0x29, 0x3a, 0xd7, 0x63, 0x40, 0xea, 0x53, 0x1a, 0xb7, 0x92, 0x11, 0xf7, 0x9f, 0xd8,
-	0xff, 0x1d, 0x3a, 0x1e, 0x83, 0x48, 0x6a, 0x14, 0x44, 0x84, 0xa5, 0x0e, 0xc8, 0xa7, 0x1b, 0xdb,
-	0x28, 0xfe, 0xb7, 0xf5, 0x04, 0xfe, 0xfd, 0x01, 0x82, 0x07, 0x17, 0xb6, 0xa5, 0x41, 0xa3, 0xaf,
-	0x2b, 0x67, 0x65, 0x19, 0xf8, 0x7b, 0x15, 0x54, 0x32, 0xa8, 0x0a, 0x9a, 0x1b, 0x14, 0x59, 0x23,
-	0xd5, 0xdf, 0x0d, 0x1d, 0x55, 0x46, 0xc8, 0xe6, 0x3a, 0xa1, 0xa2, 0x92, 0x8c, 0x6f, 0x51, 0x6d,
-	0x0c, 0xd4, 0x06, 0x58, 0xa5, 0x93, 0x2c, 0x39, 0x4f, 0x09, 0x5d, 0xe7, 0x21, 0x52, 0xaa, 0x21,
-	0xa2, 0x00, 0x51, 0xe7, 0xe1, 0x6e, 0xbe, 0xad, 0x84, 0xf4, 0xd0, 0x33, 0x9b, 0x3c, 0x80, 0xc2,
-	0xe8, 0xdc, 0xb5, 0x40, 0x81, 0x8a, 0x17, 0xdc, 0x57, 0x93, 0x4a, 0x13, 0xf6, 0x24, 0xb3, 0xc2,
-	0x12, 0x96, 0xea, 0x3b, 0xce, 0xcc, 0x9c, 0x3e, 0x42, 0x6a, 0xb8, 0x5f, 0xc9, 0x2d, 0x98, 0xce,
-	0x1c, 0x75, 0xfa, 0x2d, 0xd9, 0x95, 0x55, 0x71, 0xa4, 0x2e, 0xbe, 0xbd, 0x27, 0x62, 0x2e, 0x50,
-	0x2b, 0x8e, 0xc3, 0x28, 0x07, 0xca, 0x43, 0xfe, 0x44, 0xdc, 0x0f, 0xe8, 0xa4, 0xb4, 0xe0, 0xd2,
-	0xd2, 0xf4, 0xca, 0x9c, 0xd0, 0xaa, 0x75, 0xf7, 0xb5, 0xa2, 0xef, 0x0d, 0x44, 0x8b, 0x28, 0x9e,
-	0xfd, 0x25, 0x32, 0x35, 0xd2, 0x1d, 0x1d, 0x25, 0x0b, 0xf2, 0xf9, 0x75, 0xb8, 0xf1, 0xf5, 0xb8,
-	0xcb, 0x2c, 0x0a, 0x5b, 0x04, 0x2e, 0x5d, 0xe7, 0x09, 0x1f, 0xcb, 0x2c, 0x03, 0x7f, 0x89, 0x6a,
-	0x7f, 0x40, 0xc0, 0x65, 0x66, 0x8f, 0x74, 0xec, 0x17, 0xe8, 0x68, 0xc2, 0xed, 0x1d, 0x75, 0x1e,
-	0x33, 0xec, 0xa1, 0xd6, 0x84, 0xcf, 0x84, 0x7f, 0x25, 0x69, 0xf9, 0x14, 0x40, 0x17, 0xd5, 0x66,
-	0x20, 0xaa, 0x1a, 0x5b, 0xe7, 0x3c, 0x63, 0x2b, 0x48, 0x4c, 0xd4, 0xcf, 0x91, 0xfd, 0x32, 0x22,
-	0x82, 0x78, 0x23, 0xe2, 0x7a, 0x61, 0x00, 0x87, 0x22, 0x4c, 0xa8, 0x18, 0xf4, 0xd5, 0xcf, 0xe9,
-	0x24, 0xd3, 0x40, 0xf5, 0x8a, 0x0d, 0x1f, 0x43, 0x90, 0x3c, 0x3b, 0x0c, 0xbb, 0xf8, 0x46, 0xbd,
-	0x1e, 0x4e, 0x74, 0x7b, 0x69, 0x48, 0xd5, 0xf3, 0xea, 0x2c, 0xdb, 0xd7, 0xa9, 0xa1, 0x1a, 0xe2,
-	0xe9, 0x50, 0xf8, 0xc4, 0x06, 0x3f, 0xcd, 0xc2, 0xf7, 0x1b, 0xec, 0x2b, 0x84, 0xae, 0x3c, 0xc6,
-	0xe1, 0x7d, 0x08, 0x21, 0x3c, 0xf6, 0x0b, 0x7f, 0x56, 0x99, 0x5e, 0x7a, 0x9e, 0x24, 0xa3, 0xee,
-	0xa2, 0xe2, 0x10, 0xd1, 0x79, 0xe6, 0xcd, 0x14, 0x51, 0xeb, 0xf2, 0x05, 0xa5, 0x1e, 0x68, 0xf8,
-	0x34, 0xc3, 0x1c, 0x2d, 0x4c, 0xa1, 0x31, 0x79, 0xb4, 0xd8, 0x32, 0xf0, 0x04, 0x99, 0x31, 0x93,
-	0x67, 0x2c, 0xf1, 0x57, 0xf5, 0x56, 0xda, 0x2b, 0x0f, 0xbb, 0x1a, 0xbe, 0xfe, 0xeb, 0xd5, 0xda,
-	0x15, 0x77, 0xe1, 0xb2, 0xeb, 0xb0, 0x4d, 0x6f, 0x30, 0x70, 0x68, 0x2f, 0x79, 0xdf, 0xf6, 0x14,
-	0x62, 0x79, 0xa4, 0x1e, 0xbe, 0x83, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x4d, 0x10, 0xea, 0x9b,
-	0x77, 0x0b, 0x00, 0x00,
-}
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
@@ -100,102 +25,101 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Chain33Client is the client API for Chain33 service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+// Client API for Chain33 service
+
 type Chain33Client interface {
 	// chain33 对外提供服务的接口
-	//区块链接口
+	// 区块链接口
 	GetBlocks(ctx context.Context, in *ReqBlocks, opts ...grpc.CallOption) (*Reply, error)
-	//获取最新的区块头
+	// 获取最新的区块头
 	GetLastHeader(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Header, error)
-	//交易接口
+	// 交易接口
 	CreateRawTransaction(ctx context.Context, in *CreateTx, opts ...grpc.CallOption) (*UnsignTx, error)
 	CreateRawTxGroup(ctx context.Context, in *CreateTransactionGroup, opts ...grpc.CallOption) (*UnsignTx, error)
-	//发送签名后交易
+	// 发送签名后交易
 	SendRawTransaction(ctx context.Context, in *SignedTx, opts ...grpc.CallOption) (*Reply, error)
 	// 根据哈希查询交易
 	QueryTransaction(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*TransactionDetail, error)
 	// 发送交易
 	SendTransaction(ctx context.Context, in *Transaction, opts ...grpc.CallOption) (*Reply, error)
-	//通过地址获取交易信息
+	// 通过地址获取交易信息
 	GetTransactionByAddr(ctx context.Context, in *ReqAddr, opts ...grpc.CallOption) (*ReplyTxInfos, error)
-	//通过哈希数组获取对应的交易
+	// 通过哈希数组获取对应的交易
 	GetTransactionByHashes(ctx context.Context, in *ReqHashes, opts ...grpc.CallOption) (*TransactionDetails, error)
-	//缓存接口
+	// 缓存接口
 	GetMemPool(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyTxList, error)
-	//钱包接口
-	//获取钱包账户信息
+	// 钱包接口
+	// 获取钱包账户信息
 	GetAccounts(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*WalletAccounts, error)
-	//创建钱包账户
+	// 创建钱包账户
 	NewAccount(ctx context.Context, in *ReqNewAccount, opts ...grpc.CallOption) (*WalletAccount, error)
-	//获取钱包的交易列表
+	// 获取钱包的交易列表
 	WalletTransactionList(ctx context.Context, in *ReqWalletTransactionList, opts ...grpc.CallOption) (*WalletTxDetails, error)
-	//导入钱包私钥
+	// 导入钱包私钥
 	ImportPrivkey(ctx context.Context, in *ReqWalletImportPrivkey, opts ...grpc.CallOption) (*WalletAccount, error)
 	// 发送交易
 	SendToAddress(ctx context.Context, in *ReqWalletSendToAddress, opts ...grpc.CallOption) (*ReplyHash, error)
-	//设置交易手续费
+	// 设置交易手续费
 	SetTxFee(ctx context.Context, in *ReqWalletSetFee, opts ...grpc.CallOption) (*Reply, error)
-	//设置标签
+	// 设置标签
 	SetLabl(ctx context.Context, in *ReqWalletSetLabel, opts ...grpc.CallOption) (*WalletAccount, error)
-	//合并钱包余额
+	// 合并钱包余额
 	MergeBalance(ctx context.Context, in *ReqWalletMergeBalance, opts ...grpc.CallOption) (*ReplyHashes, error)
-	//设置钱包密码
+	// 设置钱包密码
 	SetPasswd(ctx context.Context, in *ReqWalletSetPasswd, opts ...grpc.CallOption) (*Reply, error)
-	//给钱包上锁
+	// 给钱包上锁
 	Lock(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error)
-	//给钱包解锁
+	// 给钱包解锁
 	UnLock(ctx context.Context, in *WalletUnLock, opts ...grpc.CallOption) (*Reply, error)
-	//获取当前节点连接的其他节点信息
+	// 获取当前节点连接的其他节点信息
 	GetPeerInfo(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*PeerList, error)
-	//获取最新的Mempool
+	// 获取最新的Mempool
 	GetLastMemPool(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyTxList, error)
 	// 获取钱包状态
 	GetWalletStatus(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*WalletStatus, error)
-	//区块浏览器接口
-	///
+	// 区块浏览器接口
+	// /
 	GetBlockOverview(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*BlockOverview, error)
 	GetAddrOverview(ctx context.Context, in *ReqAddr, opts ...grpc.CallOption) (*AddrOverview, error)
 	GetBlockHash(ctx context.Context, in *ReqInt, opts ...grpc.CallOption) (*ReplyHash, error)
 	// seed
 	// 创建seed
 	GenSeed(ctx context.Context, in *GenSeedLang, opts ...grpc.CallOption) (*ReplySeed, error)
-	//获取seed
+	// 获取seed
 	GetSeed(ctx context.Context, in *GetSeedByPw, opts ...grpc.CallOption) (*ReplySeed, error)
-	//保存seed
+	// 保存seed
 	SaveSeed(ctx context.Context, in *SaveSeedByPw, opts ...grpc.CallOption) (*Reply, error)
 	// Balance Query
-	//获取余额
+	// 获取余额
 	GetBalance(ctx context.Context, in *ReqBalance, opts ...grpc.CallOption) (*Accounts, error)
 	QueryChain(ctx context.Context, in *ChainExecutor, opts ...grpc.CallOption) (*Reply, error)
 	ExecWallet(ctx context.Context, in *ChainExecutor, opts ...grpc.CallOption) (*Reply, error)
 	QueryConsensus(ctx context.Context, in *ChainExecutor, opts ...grpc.CallOption) (*Reply, error)
 	CreateTransaction(ctx context.Context, in *CreateTxIn, opts ...grpc.CallOption) (*UnsignTx, error)
-	//获取交易的十六进制编码
+	// 获取交易的十六进制编码
 	GetHexTxByHash(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*HexTx, error)
 	// 导出私钥
 	DumpPrivkey(ctx context.Context, in *ReqString, opts ...grpc.CallOption) (*ReplyString, error)
-	//获取程序版本
+	// 获取程序版本
 	Version(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error)
-	//是否同步
+	// 是否同步
 	IsSync(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error)
 	// ntpclock是否同步
 	IsNtpClockSync(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error)
-	//获取当前节点的网络信息
+	// 获取当前节点的网络信息
 	NetInfo(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*NodeNetInfo, error)
-	//获取系统致命故障信息
+	// 获取系统致命故障信息
 	GetFatalFailure(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Int32, error)
 	GetLastBlockSequence(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Int64, error)
-	//获取指定区间的block加载序列号信息
+	// 获取指定区间的block加载序列号信息
 	GetBlockSequences(ctx context.Context, in *ReqBlocks, opts ...grpc.CallOption) (*BlockSequences, error)
-	//通过block hash 获取对应的blocks信息
+	// 通过block hash 获取对应的blocks信息
 	GetBlockByHashes(ctx context.Context, in *ReqHashes, opts ...grpc.CallOption) (*BlockDetails, error)
-	//关闭chain33
+	// 关闭chain33
 	CloseQueue(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error)
-	//获取地址所以合约下的余额
+	// 获取地址所以合约下的余额
 	GetAllExecBalance(ctx context.Context, in *ReqAddr, opts ...grpc.CallOption) (*AllExecBalance, error)
-	//签名交易
+	// 签名交易
 	SignRawTx(ctx context.Context, in *ReqSignRawTx, opts ...grpc.CallOption) (*ReplySignRawTx, error)
 	CreateNoBalanceTransaction(ctx context.Context, in *NoBalanceTx, opts ...grpc.CallOption) (*ReplySignRawTx, error)
 }
@@ -210,7 +134,7 @@ func NewChain33Client(cc *grpc.ClientConn) Chain33Client {
 
 func (c *chain33Client) GetBlocks(ctx context.Context, in *ReqBlocks, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetBlocks", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetBlocks", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +143,7 @@ func (c *chain33Client) GetBlocks(ctx context.Context, in *ReqBlocks, opts ...gr
 
 func (c *chain33Client) GetLastHeader(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Header, error) {
 	out := new(Header)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetLastHeader", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetLastHeader", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +152,7 @@ func (c *chain33Client) GetLastHeader(ctx context.Context, in *ReqNil, opts ...g
 
 func (c *chain33Client) CreateRawTransaction(ctx context.Context, in *CreateTx, opts ...grpc.CallOption) (*UnsignTx, error) {
 	out := new(UnsignTx)
-	err := c.cc.Invoke(ctx, "/types.chain33/CreateRawTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/CreateRawTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +161,7 @@ func (c *chain33Client) CreateRawTransaction(ctx context.Context, in *CreateTx, 
 
 func (c *chain33Client) CreateRawTxGroup(ctx context.Context, in *CreateTransactionGroup, opts ...grpc.CallOption) (*UnsignTx, error) {
 	out := new(UnsignTx)
-	err := c.cc.Invoke(ctx, "/types.chain33/CreateRawTxGroup", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/CreateRawTxGroup", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +170,7 @@ func (c *chain33Client) CreateRawTxGroup(ctx context.Context, in *CreateTransact
 
 func (c *chain33Client) SendRawTransaction(ctx context.Context, in *SignedTx, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/SendRawTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/SendRawTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +179,7 @@ func (c *chain33Client) SendRawTransaction(ctx context.Context, in *SignedTx, op
 
 func (c *chain33Client) QueryTransaction(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*TransactionDetail, error) {
 	out := new(TransactionDetail)
-	err := c.cc.Invoke(ctx, "/types.chain33/QueryTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/QueryTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +188,7 @@ func (c *chain33Client) QueryTransaction(ctx context.Context, in *ReqHash, opts 
 
 func (c *chain33Client) SendTransaction(ctx context.Context, in *Transaction, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/SendTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/SendTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +197,7 @@ func (c *chain33Client) SendTransaction(ctx context.Context, in *Transaction, op
 
 func (c *chain33Client) GetTransactionByAddr(ctx context.Context, in *ReqAddr, opts ...grpc.CallOption) (*ReplyTxInfos, error) {
 	out := new(ReplyTxInfos)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetTransactionByAddr", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetTransactionByAddr", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +206,7 @@ func (c *chain33Client) GetTransactionByAddr(ctx context.Context, in *ReqAddr, o
 
 func (c *chain33Client) GetTransactionByHashes(ctx context.Context, in *ReqHashes, opts ...grpc.CallOption) (*TransactionDetails, error) {
 	out := new(TransactionDetails)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetTransactionByHashes", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetTransactionByHashes", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +215,7 @@ func (c *chain33Client) GetTransactionByHashes(ctx context.Context, in *ReqHashe
 
 func (c *chain33Client) GetMemPool(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyTxList, error) {
 	out := new(ReplyTxList)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetMemPool", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetMemPool", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +224,7 @@ func (c *chain33Client) GetMemPool(ctx context.Context, in *ReqNil, opts ...grpc
 
 func (c *chain33Client) GetAccounts(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*WalletAccounts, error) {
 	out := new(WalletAccounts)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetAccounts", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetAccounts", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +233,7 @@ func (c *chain33Client) GetAccounts(ctx context.Context, in *ReqNil, opts ...grp
 
 func (c *chain33Client) NewAccount(ctx context.Context, in *ReqNewAccount, opts ...grpc.CallOption) (*WalletAccount, error) {
 	out := new(WalletAccount)
-	err := c.cc.Invoke(ctx, "/types.chain33/NewAccount", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/NewAccount", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +242,7 @@ func (c *chain33Client) NewAccount(ctx context.Context, in *ReqNewAccount, opts 
 
 func (c *chain33Client) WalletTransactionList(ctx context.Context, in *ReqWalletTransactionList, opts ...grpc.CallOption) (*WalletTxDetails, error) {
 	out := new(WalletTxDetails)
-	err := c.cc.Invoke(ctx, "/types.chain33/WalletTransactionList", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/WalletTransactionList", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +251,7 @@ func (c *chain33Client) WalletTransactionList(ctx context.Context, in *ReqWallet
 
 func (c *chain33Client) ImportPrivkey(ctx context.Context, in *ReqWalletImportPrivkey, opts ...grpc.CallOption) (*WalletAccount, error) {
 	out := new(WalletAccount)
-	err := c.cc.Invoke(ctx, "/types.chain33/ImportPrivkey", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/ImportPrivkey", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +260,7 @@ func (c *chain33Client) ImportPrivkey(ctx context.Context, in *ReqWalletImportPr
 
 func (c *chain33Client) SendToAddress(ctx context.Context, in *ReqWalletSendToAddress, opts ...grpc.CallOption) (*ReplyHash, error) {
 	out := new(ReplyHash)
-	err := c.cc.Invoke(ctx, "/types.chain33/SendToAddress", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/SendToAddress", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +269,7 @@ func (c *chain33Client) SendToAddress(ctx context.Context, in *ReqWalletSendToAd
 
 func (c *chain33Client) SetTxFee(ctx context.Context, in *ReqWalletSetFee, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/SetTxFee", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/SetTxFee", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +278,7 @@ func (c *chain33Client) SetTxFee(ctx context.Context, in *ReqWalletSetFee, opts 
 
 func (c *chain33Client) SetLabl(ctx context.Context, in *ReqWalletSetLabel, opts ...grpc.CallOption) (*WalletAccount, error) {
 	out := new(WalletAccount)
-	err := c.cc.Invoke(ctx, "/types.chain33/SetLabl", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/SetLabl", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +287,7 @@ func (c *chain33Client) SetLabl(ctx context.Context, in *ReqWalletSetLabel, opts
 
 func (c *chain33Client) MergeBalance(ctx context.Context, in *ReqWalletMergeBalance, opts ...grpc.CallOption) (*ReplyHashes, error) {
 	out := new(ReplyHashes)
-	err := c.cc.Invoke(ctx, "/types.chain33/MergeBalance", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/MergeBalance", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +296,7 @@ func (c *chain33Client) MergeBalance(ctx context.Context, in *ReqWalletMergeBala
 
 func (c *chain33Client) SetPasswd(ctx context.Context, in *ReqWalletSetPasswd, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/SetPasswd", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/SetPasswd", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +305,7 @@ func (c *chain33Client) SetPasswd(ctx context.Context, in *ReqWalletSetPasswd, o
 
 func (c *chain33Client) Lock(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/Lock", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/Lock", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -390,7 +314,7 @@ func (c *chain33Client) Lock(ctx context.Context, in *ReqNil, opts ...grpc.CallO
 
 func (c *chain33Client) UnLock(ctx context.Context, in *WalletUnLock, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/UnLock", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/UnLock", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +323,7 @@ func (c *chain33Client) UnLock(ctx context.Context, in *WalletUnLock, opts ...gr
 
 func (c *chain33Client) GetPeerInfo(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*PeerList, error) {
 	out := new(PeerList)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetPeerInfo", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetPeerInfo", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +332,7 @@ func (c *chain33Client) GetPeerInfo(ctx context.Context, in *ReqNil, opts ...grp
 
 func (c *chain33Client) GetLastMemPool(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyTxList, error) {
 	out := new(ReplyTxList)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetLastMemPool", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetLastMemPool", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +341,7 @@ func (c *chain33Client) GetLastMemPool(ctx context.Context, in *ReqNil, opts ...
 
 func (c *chain33Client) GetWalletStatus(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*WalletStatus, error) {
 	out := new(WalletStatus)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetWalletStatus", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetWalletStatus", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -426,7 +350,7 @@ func (c *chain33Client) GetWalletStatus(ctx context.Context, in *ReqNil, opts ..
 
 func (c *chain33Client) GetBlockOverview(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*BlockOverview, error) {
 	out := new(BlockOverview)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetBlockOverview", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetBlockOverview", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -435,7 +359,7 @@ func (c *chain33Client) GetBlockOverview(ctx context.Context, in *ReqHash, opts 
 
 func (c *chain33Client) GetAddrOverview(ctx context.Context, in *ReqAddr, opts ...grpc.CallOption) (*AddrOverview, error) {
 	out := new(AddrOverview)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetAddrOverview", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetAddrOverview", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -444,7 +368,7 @@ func (c *chain33Client) GetAddrOverview(ctx context.Context, in *ReqAddr, opts .
 
 func (c *chain33Client) GetBlockHash(ctx context.Context, in *ReqInt, opts ...grpc.CallOption) (*ReplyHash, error) {
 	out := new(ReplyHash)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetBlockHash", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetBlockHash", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -453,7 +377,7 @@ func (c *chain33Client) GetBlockHash(ctx context.Context, in *ReqInt, opts ...gr
 
 func (c *chain33Client) GenSeed(ctx context.Context, in *GenSeedLang, opts ...grpc.CallOption) (*ReplySeed, error) {
 	out := new(ReplySeed)
-	err := c.cc.Invoke(ctx, "/types.chain33/GenSeed", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GenSeed", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +386,7 @@ func (c *chain33Client) GenSeed(ctx context.Context, in *GenSeedLang, opts ...gr
 
 func (c *chain33Client) GetSeed(ctx context.Context, in *GetSeedByPw, opts ...grpc.CallOption) (*ReplySeed, error) {
 	out := new(ReplySeed)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetSeed", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetSeed", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -471,7 +395,7 @@ func (c *chain33Client) GetSeed(ctx context.Context, in *GetSeedByPw, opts ...gr
 
 func (c *chain33Client) SaveSeed(ctx context.Context, in *SaveSeedByPw, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/SaveSeed", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/SaveSeed", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -480,7 +404,7 @@ func (c *chain33Client) SaveSeed(ctx context.Context, in *SaveSeedByPw, opts ...
 
 func (c *chain33Client) GetBalance(ctx context.Context, in *ReqBalance, opts ...grpc.CallOption) (*Accounts, error) {
 	out := new(Accounts)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetBalance", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetBalance", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -489,7 +413,7 @@ func (c *chain33Client) GetBalance(ctx context.Context, in *ReqBalance, opts ...
 
 func (c *chain33Client) QueryChain(ctx context.Context, in *ChainExecutor, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/QueryChain", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/QueryChain", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +422,7 @@ func (c *chain33Client) QueryChain(ctx context.Context, in *ChainExecutor, opts 
 
 func (c *chain33Client) ExecWallet(ctx context.Context, in *ChainExecutor, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/ExecWallet", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/ExecWallet", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -507,7 +431,7 @@ func (c *chain33Client) ExecWallet(ctx context.Context, in *ChainExecutor, opts 
 
 func (c *chain33Client) QueryConsensus(ctx context.Context, in *ChainExecutor, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/QueryConsensus", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/QueryConsensus", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -516,7 +440,7 @@ func (c *chain33Client) QueryConsensus(ctx context.Context, in *ChainExecutor, o
 
 func (c *chain33Client) CreateTransaction(ctx context.Context, in *CreateTxIn, opts ...grpc.CallOption) (*UnsignTx, error) {
 	out := new(UnsignTx)
-	err := c.cc.Invoke(ctx, "/types.chain33/CreateTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/CreateTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +449,7 @@ func (c *chain33Client) CreateTransaction(ctx context.Context, in *CreateTxIn, o
 
 func (c *chain33Client) GetHexTxByHash(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*HexTx, error) {
 	out := new(HexTx)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetHexTxByHash", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetHexTxByHash", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -534,7 +458,7 @@ func (c *chain33Client) GetHexTxByHash(ctx context.Context, in *ReqHash, opts ..
 
 func (c *chain33Client) DumpPrivkey(ctx context.Context, in *ReqString, opts ...grpc.CallOption) (*ReplyString, error) {
 	out := new(ReplyString)
-	err := c.cc.Invoke(ctx, "/types.chain33/DumpPrivkey", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/DumpPrivkey", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +467,7 @@ func (c *chain33Client) DumpPrivkey(ctx context.Context, in *ReqString, opts ...
 
 func (c *chain33Client) Version(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/Version", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/Version", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -552,7 +476,7 @@ func (c *chain33Client) Version(ctx context.Context, in *ReqNil, opts ...grpc.Ca
 
 func (c *chain33Client) IsSync(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/IsSync", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/IsSync", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +485,7 @@ func (c *chain33Client) IsSync(ctx context.Context, in *ReqNil, opts ...grpc.Cal
 
 func (c *chain33Client) IsNtpClockSync(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/IsNtpClockSync", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/IsNtpClockSync", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -570,7 +494,7 @@ func (c *chain33Client) IsNtpClockSync(ctx context.Context, in *ReqNil, opts ...
 
 func (c *chain33Client) NetInfo(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*NodeNetInfo, error) {
 	out := new(NodeNetInfo)
-	err := c.cc.Invoke(ctx, "/types.chain33/NetInfo", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/NetInfo", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -579,7 +503,7 @@ func (c *chain33Client) NetInfo(ctx context.Context, in *ReqNil, opts ...grpc.Ca
 
 func (c *chain33Client) GetFatalFailure(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Int32, error) {
 	out := new(Int32)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetFatalFailure", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetFatalFailure", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -588,7 +512,7 @@ func (c *chain33Client) GetFatalFailure(ctx context.Context, in *ReqNil, opts ..
 
 func (c *chain33Client) GetLastBlockSequence(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Int64, error) {
 	out := new(Int64)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetLastBlockSequence", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetLastBlockSequence", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -597,7 +521,7 @@ func (c *chain33Client) GetLastBlockSequence(ctx context.Context, in *ReqNil, op
 
 func (c *chain33Client) GetBlockSequences(ctx context.Context, in *ReqBlocks, opts ...grpc.CallOption) (*BlockSequences, error) {
 	out := new(BlockSequences)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetBlockSequences", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetBlockSequences", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -606,7 +530,7 @@ func (c *chain33Client) GetBlockSequences(ctx context.Context, in *ReqBlocks, op
 
 func (c *chain33Client) GetBlockByHashes(ctx context.Context, in *ReqHashes, opts ...grpc.CallOption) (*BlockDetails, error) {
 	out := new(BlockDetails)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetBlockByHashes", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetBlockByHashes", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -615,7 +539,7 @@ func (c *chain33Client) GetBlockByHashes(ctx context.Context, in *ReqHashes, opt
 
 func (c *chain33Client) CloseQueue(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/CloseQueue", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/CloseQueue", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -624,7 +548,7 @@ func (c *chain33Client) CloseQueue(ctx context.Context, in *ReqNil, opts ...grpc
 
 func (c *chain33Client) GetAllExecBalance(ctx context.Context, in *ReqAddr, opts ...grpc.CallOption) (*AllExecBalance, error) {
 	out := new(AllExecBalance)
-	err := c.cc.Invoke(ctx, "/types.chain33/GetAllExecBalance", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/GetAllExecBalance", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -633,7 +557,7 @@ func (c *chain33Client) GetAllExecBalance(ctx context.Context, in *ReqAddr, opts
 
 func (c *chain33Client) SignRawTx(ctx context.Context, in *ReqSignRawTx, opts ...grpc.CallOption) (*ReplySignRawTx, error) {
 	out := new(ReplySignRawTx)
-	err := c.cc.Invoke(ctx, "/types.chain33/SignRawTx", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/SignRawTx", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -642,107 +566,108 @@ func (c *chain33Client) SignRawTx(ctx context.Context, in *ReqSignRawTx, opts ..
 
 func (c *chain33Client) CreateNoBalanceTransaction(ctx context.Context, in *NoBalanceTx, opts ...grpc.CallOption) (*ReplySignRawTx, error) {
 	out := new(ReplySignRawTx)
-	err := c.cc.Invoke(ctx, "/types.chain33/CreateNoBalanceTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.chain33/CreateNoBalanceTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Chain33Server is the server API for Chain33 service.
+// Server API for Chain33 service
+
 type Chain33Server interface {
 	// chain33 对外提供服务的接口
-	//区块链接口
+	// 区块链接口
 	GetBlocks(context.Context, *ReqBlocks) (*Reply, error)
-	//获取最新的区块头
+	// 获取最新的区块头
 	GetLastHeader(context.Context, *ReqNil) (*Header, error)
-	//交易接口
+	// 交易接口
 	CreateRawTransaction(context.Context, *CreateTx) (*UnsignTx, error)
 	CreateRawTxGroup(context.Context, *CreateTransactionGroup) (*UnsignTx, error)
-	//发送签名后交易
+	// 发送签名后交易
 	SendRawTransaction(context.Context, *SignedTx) (*Reply, error)
 	// 根据哈希查询交易
 	QueryTransaction(context.Context, *ReqHash) (*TransactionDetail, error)
 	// 发送交易
 	SendTransaction(context.Context, *Transaction) (*Reply, error)
-	//通过地址获取交易信息
+	// 通过地址获取交易信息
 	GetTransactionByAddr(context.Context, *ReqAddr) (*ReplyTxInfos, error)
-	//通过哈希数组获取对应的交易
+	// 通过哈希数组获取对应的交易
 	GetTransactionByHashes(context.Context, *ReqHashes) (*TransactionDetails, error)
-	//缓存接口
+	// 缓存接口
 	GetMemPool(context.Context, *ReqNil) (*ReplyTxList, error)
-	//钱包接口
-	//获取钱包账户信息
+	// 钱包接口
+	// 获取钱包账户信息
 	GetAccounts(context.Context, *ReqNil) (*WalletAccounts, error)
-	//创建钱包账户
+	// 创建钱包账户
 	NewAccount(context.Context, *ReqNewAccount) (*WalletAccount, error)
-	//获取钱包的交易列表
+	// 获取钱包的交易列表
 	WalletTransactionList(context.Context, *ReqWalletTransactionList) (*WalletTxDetails, error)
-	//导入钱包私钥
+	// 导入钱包私钥
 	ImportPrivkey(context.Context, *ReqWalletImportPrivkey) (*WalletAccount, error)
 	// 发送交易
 	SendToAddress(context.Context, *ReqWalletSendToAddress) (*ReplyHash, error)
-	//设置交易手续费
+	// 设置交易手续费
 	SetTxFee(context.Context, *ReqWalletSetFee) (*Reply, error)
-	//设置标签
+	// 设置标签
 	SetLabl(context.Context, *ReqWalletSetLabel) (*WalletAccount, error)
-	//合并钱包余额
+	// 合并钱包余额
 	MergeBalance(context.Context, *ReqWalletMergeBalance) (*ReplyHashes, error)
-	//设置钱包密码
+	// 设置钱包密码
 	SetPasswd(context.Context, *ReqWalletSetPasswd) (*Reply, error)
-	//给钱包上锁
+	// 给钱包上锁
 	Lock(context.Context, *ReqNil) (*Reply, error)
-	//给钱包解锁
+	// 给钱包解锁
 	UnLock(context.Context, *WalletUnLock) (*Reply, error)
-	//获取当前节点连接的其他节点信息
+	// 获取当前节点连接的其他节点信息
 	GetPeerInfo(context.Context, *ReqNil) (*PeerList, error)
-	//获取最新的Mempool
+	// 获取最新的Mempool
 	GetLastMemPool(context.Context, *ReqNil) (*ReplyTxList, error)
 	// 获取钱包状态
 	GetWalletStatus(context.Context, *ReqNil) (*WalletStatus, error)
-	//区块浏览器接口
-	///
+	// 区块浏览器接口
+	// /
 	GetBlockOverview(context.Context, *ReqHash) (*BlockOverview, error)
 	GetAddrOverview(context.Context, *ReqAddr) (*AddrOverview, error)
 	GetBlockHash(context.Context, *ReqInt) (*ReplyHash, error)
 	// seed
 	// 创建seed
 	GenSeed(context.Context, *GenSeedLang) (*ReplySeed, error)
-	//获取seed
+	// 获取seed
 	GetSeed(context.Context, *GetSeedByPw) (*ReplySeed, error)
-	//保存seed
+	// 保存seed
 	SaveSeed(context.Context, *SaveSeedByPw) (*Reply, error)
 	// Balance Query
-	//获取余额
+	// 获取余额
 	GetBalance(context.Context, *ReqBalance) (*Accounts, error)
 	QueryChain(context.Context, *ChainExecutor) (*Reply, error)
 	ExecWallet(context.Context, *ChainExecutor) (*Reply, error)
 	QueryConsensus(context.Context, *ChainExecutor) (*Reply, error)
 	CreateTransaction(context.Context, *CreateTxIn) (*UnsignTx, error)
-	//获取交易的十六进制编码
+	// 获取交易的十六进制编码
 	GetHexTxByHash(context.Context, *ReqHash) (*HexTx, error)
 	// 导出私钥
 	DumpPrivkey(context.Context, *ReqString) (*ReplyString, error)
-	//获取程序版本
+	// 获取程序版本
 	Version(context.Context, *ReqNil) (*Reply, error)
-	//是否同步
+	// 是否同步
 	IsSync(context.Context, *ReqNil) (*Reply, error)
 	// ntpclock是否同步
 	IsNtpClockSync(context.Context, *ReqNil) (*Reply, error)
-	//获取当前节点的网络信息
+	// 获取当前节点的网络信息
 	NetInfo(context.Context, *ReqNil) (*NodeNetInfo, error)
-	//获取系统致命故障信息
+	// 获取系统致命故障信息
 	GetFatalFailure(context.Context, *ReqNil) (*Int32, error)
 	GetLastBlockSequence(context.Context, *ReqNil) (*Int64, error)
-	//获取指定区间的block加载序列号信息
+	// 获取指定区间的block加载序列号信息
 	GetBlockSequences(context.Context, *ReqBlocks) (*BlockSequences, error)
-	//通过block hash 获取对应的blocks信息
+	// 通过block hash 获取对应的blocks信息
 	GetBlockByHashes(context.Context, *ReqHashes) (*BlockDetails, error)
-	//关闭chain33
+	// 关闭chain33
 	CloseQueue(context.Context, *ReqNil) (*Reply, error)
-	//获取地址所以合约下的余额
+	// 获取地址所以合约下的余额
 	GetAllExecBalance(context.Context, *ReqAddr) (*AllExecBalance, error)
-	//签名交易
+	// 签名交易
 	SignRawTx(context.Context, *ReqSignRawTx) (*ReplySignRawTx, error)
 	CreateNoBalanceTransaction(context.Context, *NoBalanceTx) (*ReplySignRawTx, error)
 }
@@ -1836,4 +1761,73 @@ var _Chain33_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "rpc.proto",
+}
+
+func init() { proto.RegisterFile("rpc.proto", fileDescriptor7) }
+
+var fileDescriptor7 = []byte{
+	// 996 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0x6d, 0x6f, 0xe2, 0xc6,
+	0x13, 0xf7, 0x8b, 0xff, 0x3f, 0x1c, 0x7b, 0x40, 0xc8, 0x86, 0x44, 0x77, 0x56, 0x4f, 0x27, 0x59,
+	0xaa, 0x5a, 0xa9, 0x3a, 0xe8, 0x41, 0x9b, 0x3e, 0x57, 0x0a, 0x49, 0x21, 0x48, 0x1c, 0xe5, 0x62,
+	0xae, 0x95, 0xfa, 0x6e, 0x31, 0x53, 0x62, 0xc5, 0xec, 0xfa, 0xbc, 0xeb, 0x60, 0xbe, 0x64, 0x3f,
+	0x53, 0xb5, 0x6b, 0xaf, 0xf1, 0x13, 0x97, 0xf4, 0x9d, 0x77, 0x66, 0x7e, 0xf3, 0xe0, 0xfd, 0xcd,
+	0xcc, 0xa2, 0x7a, 0xe0, 0x3b, 0x5d, 0x3f, 0x60, 0x82, 0xe1, 0xff, 0x8b, 0x9d, 0x0f, 0xdc, 0x6c,
+	0x38, 0x6c, 0xb3, 0x61, 0x34, 0x16, 0x9a, 0x27, 0x22, 0x20, 0x94, 0x13, 0x47, 0xb8, 0xa9, 0xa8,
+	0xbd, 0xf4, 0x98, 0x73, 0xef, 0xdc, 0x11, 0x57, 0x4b, 0x1a, 0x5b, 0xe2, 0x79, 0x20, 0x92, 0x53,
+	0xdd, 0xef, 0xfb, 0xc9, 0x67, 0x93, 0x38, 0x0e, 0x0b, 0xa9, 0xd6, 0xb4, 0x20, 0x02, 0x27, 0x14,
+	0x2c, 0x88, 0xcf, 0xfd, 0x7f, 0xce, 0x50, 0x4d, 0xf9, 0x19, 0x0c, 0xf0, 0x1b, 0x54, 0x1f, 0x83,
+	0x18, 0x4a, 0xd7, 0x1c, 0xb7, 0xbb, 0x2a, 0x97, 0xee, 0x2d, 0x7c, 0x8c, 0x25, 0x66, 0x23, 0x95,
+	0xf8, 0xde, 0xce, 0x32, 0x70, 0x0f, 0x35, 0xc7, 0x20, 0xa6, 0x84, 0x8b, 0x1b, 0x20, 0x2b, 0x08,
+	0x70, 0x73, 0x0f, 0x99, 0xb9, 0x9e, 0xa9, 0x8f, 0xb1, 0xd6, 0x32, 0xf0, 0x8f, 0xa8, 0x73, 0x15,
+	0x00, 0x11, 0x70, 0x4b, 0xb6, 0x8b, 0x7d, 0x4d, 0xf8, 0x38, 0x31, 0x8c, 0x95, 0x8b, 0xc8, 0xd4,
+	0x82, 0x0f, 0x94, 0xbb, 0x6b, 0xba, 0x88, 0x2c, 0x03, 0x5f, 0xa3, 0xf6, 0x1e, 0x1b, 0x8d, 0x03,
+	0x16, 0xfa, 0xf8, 0x55, 0x1e, 0xb7, 0xf7, 0xa8, 0xd4, 0x55, 0x5e, 0xbe, 0x45, 0xd8, 0x06, 0xba,
+	0x3a, 0x10, 0xdf, 0x76, 0xd7, 0x14, 0x56, 0x8b, 0xa8, 0x54, 0xe9, 0xaf, 0xa8, 0xfd, 0x3e, 0x84,
+	0x60, 0x97, 0x05, 0xb5, 0xf6, 0xc5, 0xde, 0x10, 0x7e, 0x67, 0xbe, 0x48, 0xce, 0x19, 0x9b, 0x6b,
+	0x10, 0xc4, 0xf5, 0x54, 0xd8, 0x63, 0x19, 0x36, 0x0b, 0xc7, 0x65, 0xf3, 0x52, 0xd8, 0x5f, 0x50,
+	0x67, 0x0c, 0x22, 0x63, 0x31, 0xdc, 0x5d, 0xae, 0x56, 0x41, 0x36, 0xb4, 0x3c, 0x9b, 0xa7, 0x59,
+	0xdc, 0x22, 0x9a, 0xd0, 0xbf, 0x19, 0xb7, 0x0c, 0x3c, 0x46, 0xe7, 0x45, 0xb8, 0xcc, 0x14, 0x72,
+	0x77, 0x1b, 0x4b, 0xcc, 0x97, 0x87, 0xb2, 0x97, 0x8e, 0xde, 0x22, 0x34, 0x06, 0xf1, 0x0e, 0x36,
+	0x73, 0xc6, 0xbc, 0xe2, 0x2d, 0xe3, 0x7c, 0xf0, 0xa9, 0xcb, 0x85, 0xaa, 0xf8, 0xf9, 0x18, 0xc4,
+	0x65, 0x4c, 0x3d, 0x5e, 0xc4, 0x9c, 0x25, 0xc7, 0x3f, 0x15, 0x67, 0xb5, 0x95, 0x62, 0x08, 0x9a,
+	0xc1, 0x36, 0x11, 0xe0, 0x4e, 0x06, 0x95, 0x4a, 0xcd, 0x4e, 0x15, 0xd8, 0x32, 0xf0, 0x2d, 0x3a,
+	0x8b, 0x45, 0x99, 0x1a, 0x64, 0x36, 0xf8, 0xf5, 0xde, 0x4d, 0xa5, 0x81, 0x79, 0x9e, 0xf3, 0xb8,
+	0x88, 0xf6, 0x95, 0x8f, 0x50, 0x73, 0xb2, 0xf1, 0x59, 0x20, 0xe6, 0x81, 0xfb, 0x70, 0x0f, 0xbb,
+	0x94, 0x72, 0xa9, 0xaf, 0x9c, 0xfa, 0x60, 0x6e, 0x43, 0xd4, 0x54, 0x04, 0x60, 0xf2, 0xbe, 0x80,
+	0xf3, 0xb2, 0x9f, 0x9c, 0xda, 0x6c, 0x67, 0x7f, 0xaa, 0xbc, 0x22, 0xcb, 0xc0, 0x7d, 0xf4, 0xcc,
+	0x96, 0xd9, 0x8d, 0x00, 0xf0, 0x79, 0x19, 0x2e, 0x46, 0x00, 0x25, 0x06, 0xfd, 0x84, 0x6a, 0xb6,
+	0x6c, 0xd1, 0xa5, 0x87, 0x5f, 0x54, 0x40, 0xa6, 0x64, 0x09, 0xde, 0x27, 0x92, 0x6e, 0xbc, 0x83,
+	0x60, 0x0d, 0x43, 0xe2, 0x11, 0xea, 0x00, 0xfe, 0xac, 0xe8, 0x21, 0xab, 0xcd, 0xf3, 0x20, 0x66,
+	0x95, 0x65, 0xe0, 0x0b, 0x54, 0xb7, 0x41, 0xcc, 0x09, 0xe7, 0xdb, 0x15, 0x7e, 0x59, 0x91, 0x42,
+	0xac, 0x2a, 0x25, 0xfe, 0x39, 0xfa, 0xdf, 0x94, 0x39, 0xf7, 0x45, 0xe2, 0x14, 0xcd, 0xde, 0xa0,
+	0xa3, 0x0f, 0x54, 0x19, 0x9e, 0xe6, 0x8a, 0x88, 0x85, 0x15, 0x13, 0x4b, 0xb2, 0x72, 0x0e, 0x10,
+	0xc8, 0x1e, 0x29, 0x3a, 0xd7, 0x63, 0x40, 0xea, 0x53, 0x1a, 0xb7, 0x92, 0x11, 0xf7, 0x9f, 0xd8,
+	0xff, 0x1d, 0x3a, 0x1e, 0x83, 0x48, 0x6a, 0x14, 0x44, 0x84, 0xa5, 0x0e, 0xc8, 0xa7, 0x1b, 0xdb,
+	0x28, 0xfe, 0xb7, 0xf5, 0x04, 0xfe, 0xfd, 0x01, 0x82, 0x07, 0x17, 0xb6, 0xa5, 0x41, 0xa3, 0xaf,
+	0x2b, 0x67, 0x65, 0x19, 0xf8, 0x7b, 0x15, 0x54, 0x32, 0xa8, 0x0a, 0x9a, 0x1b, 0x14, 0x59, 0x23,
+	0xd5, 0xdf, 0x0d, 0x1d, 0x55, 0x46, 0xc8, 0xe6, 0x3a, 0xa1, 0xa2, 0x92, 0x8c, 0x6f, 0x51, 0x6d,
+	0x0c, 0xd4, 0x06, 0x58, 0xa5, 0x93, 0x2c, 0x39, 0x4f, 0x09, 0x5d, 0xe7, 0x21, 0x52, 0xaa, 0x21,
+	0xa2, 0x00, 0x51, 0xe7, 0xe1, 0x6e, 0xbe, 0xad, 0x84, 0xf4, 0xd0, 0x33, 0x9b, 0x3c, 0x80, 0xc2,
+	0xe8, 0xdc, 0xb5, 0x40, 0x81, 0x8a, 0x17, 0xdc, 0x57, 0x93, 0x4a, 0x13, 0xf6, 0x24, 0xb3, 0xc2,
+	0x12, 0x96, 0xea, 0x3b, 0xce, 0xcc, 0x9c, 0x3e, 0x42, 0x6a, 0xb8, 0x5f, 0xc9, 0x2d, 0x98, 0xce,
+	0x1c, 0x75, 0xfa, 0x2d, 0xd9, 0x95, 0x55, 0x71, 0xa4, 0x2e, 0xbe, 0xbd, 0x27, 0x62, 0x2e, 0x50,
+	0x2b, 0x8e, 0xc3, 0x28, 0x07, 0xca, 0x43, 0xfe, 0x44, 0xdc, 0x0f, 0xe8, 0xa4, 0xb4, 0xe0, 0xd2,
+	0xd2, 0xf4, 0xca, 0x9c, 0xd0, 0xaa, 0x75, 0xf7, 0xb5, 0xa2, 0xef, 0x0d, 0x44, 0x8b, 0x28, 0x9e,
+	0xfd, 0x25, 0x32, 0x35, 0xd2, 0x1d, 0x1d, 0x25, 0x0b, 0xf2, 0xf9, 0x75, 0xb8, 0xf1, 0xf5, 0xb8,
+	0xcb, 0x2c, 0x0a, 0x5b, 0x04, 0x2e, 0x5d, 0xe7, 0x09, 0x1f, 0xcb, 0x2c, 0x03, 0x7f, 0x89, 0x6a,
+	0x7f, 0x40, 0xc0, 0x65, 0x66, 0x8f, 0x74, 0xec, 0x17, 0xe8, 0x68, 0xc2, 0xed, 0x1d, 0x75, 0x1e,
+	0x33, 0xec, 0xa1, 0xd6, 0x84, 0xcf, 0x84, 0x7f, 0x25, 0x69, 0xf9, 0x14, 0x40, 0x17, 0xd5, 0x66,
+	0x20, 0xaa, 0x1a, 0x5b, 0xe7, 0x3c, 0x63, 0x2b, 0x48, 0x4c, 0xd4, 0xcf, 0x91, 0xfd, 0x32, 0x22,
+	0x82, 0x78, 0x23, 0xe2, 0x7a, 0x61, 0x00, 0x87, 0x22, 0x4c, 0xa8, 0x18, 0xf4, 0xd5, 0xcf, 0xe9,
+	0x24, 0xd3, 0x40, 0xf5, 0x8a, 0x0d, 0x1f, 0x43, 0x90, 0x3c, 0x3b, 0x0c, 0xbb, 0xf8, 0x46, 0xbd,
+	0x1e, 0x4e, 0x74, 0x7b, 0x69, 0x48, 0xd5, 0xf3, 0xea, 0x2c, 0xdb, 0xd7, 0xa9, 0xa1, 0x1a, 0xe2,
+	0xe9, 0x50, 0xf8, 0xc4, 0x06, 0x3f, 0xcd, 0xc2, 0xf7, 0x1b, 0xec, 0x2b, 0x84, 0xae, 0x3c, 0xc6,
+	0xe1, 0x7d, 0x08, 0x21, 0x3c, 0xf6, 0x0b, 0x7f, 0x56, 0x99, 0x5e, 0x7a, 0x9e, 0x24, 0xa3, 0xee,
+	0xa2, 0xe2, 0x10, 0xd1, 0x79, 0xe6, 0xcd, 0x14, 0x51, 0xeb, 0xf2, 0x05, 0xa5, 0x1e, 0x68, 0xf8,
+	0x34, 0xc3, 0x1c, 0x2d, 0x4c, 0xa1, 0x31, 0x79, 0xb4, 0xd8, 0x32, 0xf0, 0x04, 0x99, 0x31, 0x93,
+	0x67, 0x2c, 0xf1, 0x57, 0xf5, 0x56, 0xda, 0x2b, 0x0f, 0xbb, 0x1a, 0xbe, 0xfe, 0xeb, 0xd5, 0xda,
+	0x15, 0x77, 0xe1, 0xb2, 0xeb, 0xb0, 0x4d, 0x6f, 0x30, 0x70, 0x68, 0x2f, 0x79, 0xdf, 0xf6, 0x14,
+	0x62, 0x79, 0xa4, 0x1e, 0xbe, 0x83, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x4d, 0x10, 0xea, 0x9b,
+	0x77, 0x0b, 0x00, 0x00,
 }

@@ -3,57 +3,25 @@
 
 package types
 
-import (
-	fmt "fmt"
-	math "math"
-
-	proto "github.com/golang/protobuf/proto"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
-//手续费
+// 手续费
 type TotalFee struct {
-	Fee                  int64    `protobuf:"varint,1,opt,name=fee,proto3" json:"fee,omitempty"`
-	TxCount              int64    `protobuf:"varint,2,opt,name=txCount,proto3" json:"txCount,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Fee     int64 `protobuf:"varint,1,opt,name=fee" json:"fee,omitempty"`
+	TxCount int64 `protobuf:"varint,2,opt,name=txCount" json:"txCount,omitempty"`
 }
 
-func (m *TotalFee) Reset()         { *m = TotalFee{} }
-func (m *TotalFee) String() string { return proto.CompactTextString(m) }
-func (*TotalFee) ProtoMessage()    {}
-func (*TotalFee) Descriptor() ([]byte, []int) {
-	return fileDescriptor_405f6cee9ed2da7e, []int{0}
-}
-
-func (m *TotalFee) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TotalFee.Unmarshal(m, b)
-}
-func (m *TotalFee) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TotalFee.Marshal(b, m, deterministic)
-}
-func (m *TotalFee) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TotalFee.Merge(m, src)
-}
-func (m *TotalFee) XXX_Size() int {
-	return xxx_messageInfo_TotalFee.Size(m)
-}
-func (m *TotalFee) XXX_DiscardUnknown() {
-	xxx_messageInfo_TotalFee.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TotalFee proto.InternalMessageInfo
+func (m *TotalFee) Reset()                    { *m = TotalFee{} }
+func (m *TotalFee) String() string            { return proto.CompactTextString(m) }
+func (*TotalFee) ProtoMessage()               {}
+func (*TotalFee) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{0} }
 
 func (m *TotalFee) GetFee() int64 {
 	if m != nil {
@@ -69,42 +37,19 @@ func (m *TotalFee) GetTxCount() int64 {
 	return 0
 }
 
-//查询symbol代币总额
+// 查询symbol代币总额
 type ReqGetTotalCoins struct {
-	Symbol               string   `protobuf:"bytes,1,opt,name=symbol,proto3" json:"symbol,omitempty"`
-	StateHash            []byte   `protobuf:"bytes,2,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	StartKey             []byte   `protobuf:"bytes,3,opt,name=startKey,proto3" json:"startKey,omitempty"`
-	Count                int64    `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
-	Execer               string   `protobuf:"bytes,5,opt,name=execer,proto3" json:"execer,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Symbol    string `protobuf:"bytes,1,opt,name=symbol" json:"symbol,omitempty"`
+	StateHash []byte `protobuf:"bytes,2,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	StartKey  []byte `protobuf:"bytes,3,opt,name=startKey,proto3" json:"startKey,omitempty"`
+	Count     int64  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	Execer    string `protobuf:"bytes,5,opt,name=execer" json:"execer,omitempty"`
 }
 
-func (m *ReqGetTotalCoins) Reset()         { *m = ReqGetTotalCoins{} }
-func (m *ReqGetTotalCoins) String() string { return proto.CompactTextString(m) }
-func (*ReqGetTotalCoins) ProtoMessage()    {}
-func (*ReqGetTotalCoins) Descriptor() ([]byte, []int) {
-	return fileDescriptor_405f6cee9ed2da7e, []int{1}
-}
-
-func (m *ReqGetTotalCoins) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqGetTotalCoins.Unmarshal(m, b)
-}
-func (m *ReqGetTotalCoins) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqGetTotalCoins.Marshal(b, m, deterministic)
-}
-func (m *ReqGetTotalCoins) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqGetTotalCoins.Merge(m, src)
-}
-func (m *ReqGetTotalCoins) XXX_Size() int {
-	return xxx_messageInfo_ReqGetTotalCoins.Size(m)
-}
-func (m *ReqGetTotalCoins) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqGetTotalCoins.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqGetTotalCoins proto.InternalMessageInfo
+func (m *ReqGetTotalCoins) Reset()                    { *m = ReqGetTotalCoins{} }
+func (m *ReqGetTotalCoins) String() string            { return proto.CompactTextString(m) }
+func (*ReqGetTotalCoins) ProtoMessage()               {}
+func (*ReqGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{1} }
 
 func (m *ReqGetTotalCoins) GetSymbol() string {
 	if m != nil {
@@ -141,41 +86,18 @@ func (m *ReqGetTotalCoins) GetExecer() string {
 	return ""
 }
 
-//查询symbol代币总额应答
+// 查询symbol代币总额应答
 type ReplyGetTotalCoins struct {
-	Count                int64    `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-	Num                  int64    `protobuf:"varint,2,opt,name=num,proto3" json:"num,omitempty"`
-	Amount               int64    `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
-	NextKey              []byte   `protobuf:"bytes,4,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Count   int64  `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
+	Num     int64  `protobuf:"varint,2,opt,name=num" json:"num,omitempty"`
+	Amount  int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
+	NextKey []byte `protobuf:"bytes,4,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
 }
 
-func (m *ReplyGetTotalCoins) Reset()         { *m = ReplyGetTotalCoins{} }
-func (m *ReplyGetTotalCoins) String() string { return proto.CompactTextString(m) }
-func (*ReplyGetTotalCoins) ProtoMessage()    {}
-func (*ReplyGetTotalCoins) Descriptor() ([]byte, []int) {
-	return fileDescriptor_405f6cee9ed2da7e, []int{2}
-}
-
-func (m *ReplyGetTotalCoins) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplyGetTotalCoins.Unmarshal(m, b)
-}
-func (m *ReplyGetTotalCoins) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplyGetTotalCoins.Marshal(b, m, deterministic)
-}
-func (m *ReplyGetTotalCoins) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplyGetTotalCoins.Merge(m, src)
-}
-func (m *ReplyGetTotalCoins) XXX_Size() int {
-	return xxx_messageInfo_ReplyGetTotalCoins.Size(m)
-}
-func (m *ReplyGetTotalCoins) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplyGetTotalCoins.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplyGetTotalCoins proto.InternalMessageInfo
+func (m *ReplyGetTotalCoins) Reset()                    { *m = ReplyGetTotalCoins{} }
+func (m *ReplyGetTotalCoins) String() string            { return proto.CompactTextString(m) }
+func (*ReplyGetTotalCoins) ProtoMessage()               {}
+func (*ReplyGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{2} }
 
 func (m *ReplyGetTotalCoins) GetCount() int64 {
 	if m != nil {
@@ -205,41 +127,18 @@ func (m *ReplyGetTotalCoins) GetNextKey() []byte {
 	return nil
 }
 
-//迭代查询symbol代币总额
+// 迭代查询symbol代币总额
 type IterateRangeByStateHash struct {
-	StateHash            []byte   `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	Start                []byte   `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
-	End                  []byte   `protobuf:"bytes,3,opt,name=end,proto3" json:"end,omitempty"`
-	Count                int64    `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	StateHash []byte `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	Start     []byte `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
+	End       []byte `protobuf:"bytes,3,opt,name=end,proto3" json:"end,omitempty"`
+	Count     int64  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
 }
 
-func (m *IterateRangeByStateHash) Reset()         { *m = IterateRangeByStateHash{} }
-func (m *IterateRangeByStateHash) String() string { return proto.CompactTextString(m) }
-func (*IterateRangeByStateHash) ProtoMessage()    {}
-func (*IterateRangeByStateHash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_405f6cee9ed2da7e, []int{3}
-}
-
-func (m *IterateRangeByStateHash) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_IterateRangeByStateHash.Unmarshal(m, b)
-}
-func (m *IterateRangeByStateHash) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_IterateRangeByStateHash.Marshal(b, m, deterministic)
-}
-func (m *IterateRangeByStateHash) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IterateRangeByStateHash.Merge(m, src)
-}
-func (m *IterateRangeByStateHash) XXX_Size() int {
-	return xxx_messageInfo_IterateRangeByStateHash.Size(m)
-}
-func (m *IterateRangeByStateHash) XXX_DiscardUnknown() {
-	xxx_messageInfo_IterateRangeByStateHash.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_IterateRangeByStateHash proto.InternalMessageInfo
+func (m *IterateRangeByStateHash) Reset()                    { *m = IterateRangeByStateHash{} }
+func (m *IterateRangeByStateHash) String() string            { return proto.CompactTextString(m) }
+func (*IterateRangeByStateHash) ProtoMessage()               {}
+func (*IterateRangeByStateHash) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{3} }
 
 func (m *IterateRangeByStateHash) GetStateHash() []byte {
 	if m != nil {
@@ -270,41 +169,18 @@ func (m *IterateRangeByStateHash) GetCount() int64 {
 }
 
 type TicketStatistic struct {
-	//当前在挖的ticket
-	CurrentOpenCount int64 `protobuf:"varint,1,opt,name=currentOpenCount,proto3" json:"currentOpenCount,omitempty"`
-	//一共挖到的ticket
-	TotalMinerCount int64 `protobuf:"varint,2,opt,name=totalMinerCount,proto3" json:"totalMinerCount,omitempty"`
-	//一共取消的ticket
-	TotalCancleCount     int64    `protobuf:"varint,3,opt,name=totalCancleCount,proto3" json:"totalCancleCount,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	// 当前在挖的ticket
+	CurrentOpenCount int64 `protobuf:"varint,1,opt,name=currentOpenCount" json:"currentOpenCount,omitempty"`
+	// 一共挖到的ticket
+	TotalMinerCount int64 `protobuf:"varint,2,opt,name=totalMinerCount" json:"totalMinerCount,omitempty"`
+	// 一共取消的ticket
+	TotalCancleCount int64 `protobuf:"varint,3,opt,name=totalCancleCount" json:"totalCancleCount,omitempty"`
 }
 
-func (m *TicketStatistic) Reset()         { *m = TicketStatistic{} }
-func (m *TicketStatistic) String() string { return proto.CompactTextString(m) }
-func (*TicketStatistic) ProtoMessage()    {}
-func (*TicketStatistic) Descriptor() ([]byte, []int) {
-	return fileDescriptor_405f6cee9ed2da7e, []int{4}
-}
-
-func (m *TicketStatistic) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TicketStatistic.Unmarshal(m, b)
-}
-func (m *TicketStatistic) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TicketStatistic.Marshal(b, m, deterministic)
-}
-func (m *TicketStatistic) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TicketStatistic.Merge(m, src)
-}
-func (m *TicketStatistic) XXX_Size() int {
-	return xxx_messageInfo_TicketStatistic.Size(m)
-}
-func (m *TicketStatistic) XXX_DiscardUnknown() {
-	xxx_messageInfo_TicketStatistic.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TicketStatistic proto.InternalMessageInfo
+func (m *TicketStatistic) Reset()                    { *m = TicketStatistic{} }
+func (m *TicketStatistic) String() string            { return proto.CompactTextString(m) }
+func (*TicketStatistic) ProtoMessage()               {}
+func (*TicketStatistic) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{4} }
 
 func (m *TicketStatistic) GetCurrentOpenCount() int64 {
 	if m != nil {
@@ -328,50 +204,27 @@ func (m *TicketStatistic) GetTotalCancleCount() int64 {
 }
 
 type TicketMinerInfo struct {
-	TicketId string `protobuf:"bytes,1,opt,name=ticketId,proto3" json:"ticketId,omitempty"`
+	TicketId string `protobuf:"bytes,1,opt,name=ticketId" json:"ticketId,omitempty"`
 	// 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
-	Status     int32 `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
-	PrevStatus int32 `protobuf:"varint,3,opt,name=prevStatus,proto3" json:"prevStatus,omitempty"`
+	Status     int32 `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
+	PrevStatus int32 `protobuf:"varint,3,opt,name=prevStatus" json:"prevStatus,omitempty"`
 	// genesis 创建的私钥比较特殊
-	IsGenesis bool `protobuf:"varint,4,opt,name=isGenesis,proto3" json:"isGenesis,omitempty"`
-	//创建ticket时间
-	CreateTime int64 `protobuf:"varint,5,opt,name=createTime,proto3" json:"createTime,omitempty"`
+	IsGenesis bool `protobuf:"varint,4,opt,name=isGenesis" json:"isGenesis,omitempty"`
+	// 创建ticket时间
+	CreateTime int64 `protobuf:"varint,5,opt,name=createTime" json:"createTime,omitempty"`
 	// ticket挖矿时间
-	MinerTime int64 `protobuf:"varint,6,opt,name=minerTime,proto3" json:"minerTime,omitempty"`
-	//关闭ticket时间
-	CloseTime int64 `protobuf:"varint,7,opt,name=closeTime,proto3" json:"closeTime,omitempty"`
-	//挖到的币的数目
-	MinerValue           int64    `protobuf:"varint,8,opt,name=minerValue,proto3" json:"minerValue,omitempty"`
-	MinerAddress         string   `protobuf:"bytes,9,opt,name=minerAddress,proto3" json:"minerAddress,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	MinerTime int64 `protobuf:"varint,6,opt,name=minerTime" json:"minerTime,omitempty"`
+	// 关闭ticket时间
+	CloseTime int64 `protobuf:"varint,7,opt,name=closeTime" json:"closeTime,omitempty"`
+	// 挖到的币的数目
+	MinerValue   int64  `protobuf:"varint,8,opt,name=minerValue" json:"minerValue,omitempty"`
+	MinerAddress string `protobuf:"bytes,9,opt,name=minerAddress" json:"minerAddress,omitempty"`
 }
 
-func (m *TicketMinerInfo) Reset()         { *m = TicketMinerInfo{} }
-func (m *TicketMinerInfo) String() string { return proto.CompactTextString(m) }
-func (*TicketMinerInfo) ProtoMessage()    {}
-func (*TicketMinerInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_405f6cee9ed2da7e, []int{5}
-}
-
-func (m *TicketMinerInfo) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TicketMinerInfo.Unmarshal(m, b)
-}
-func (m *TicketMinerInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TicketMinerInfo.Marshal(b, m, deterministic)
-}
-func (m *TicketMinerInfo) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TicketMinerInfo.Merge(m, src)
-}
-func (m *TicketMinerInfo) XXX_Size() int {
-	return xxx_messageInfo_TicketMinerInfo.Size(m)
-}
-func (m *TicketMinerInfo) XXX_DiscardUnknown() {
-	xxx_messageInfo_TicketMinerInfo.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TicketMinerInfo proto.InternalMessageInfo
+func (m *TicketMinerInfo) Reset()                    { *m = TicketMinerInfo{} }
+func (m *TicketMinerInfo) String() string            { return proto.CompactTextString(m) }
+func (*TicketMinerInfo) ProtoMessage()               {}
+func (*TicketMinerInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{5} }
 
 func (m *TicketMinerInfo) GetTicketId() string {
 	if m != nil {
@@ -438,42 +291,165 @@ func (m *TicketMinerInfo) GetMinerAddress() string {
 
 type TotalAmount struct {
 	// 统计的总数
-	Total                int64    `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Total int64 `protobuf:"varint,1,opt,name=total" json:"total,omitempty"`
 }
 
-func (m *TotalAmount) Reset()         { *m = TotalAmount{} }
-func (m *TotalAmount) String() string { return proto.CompactTextString(m) }
-func (*TotalAmount) ProtoMessage()    {}
-func (*TotalAmount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_405f6cee9ed2da7e, []int{6}
-}
-
-func (m *TotalAmount) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TotalAmount.Unmarshal(m, b)
-}
-func (m *TotalAmount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TotalAmount.Marshal(b, m, deterministic)
-}
-func (m *TotalAmount) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TotalAmount.Merge(m, src)
-}
-func (m *TotalAmount) XXX_Size() int {
-	return xxx_messageInfo_TotalAmount.Size(m)
-}
-func (m *TotalAmount) XXX_DiscardUnknown() {
-	xxx_messageInfo_TotalAmount.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TotalAmount proto.InternalMessageInfo
+func (m *TotalAmount) Reset()                    { *m = TotalAmount{} }
+func (m *TotalAmount) String() string            { return proto.CompactTextString(m) }
+func (*TotalAmount) ProtoMessage()               {}
+func (*TotalAmount) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{6} }
 
 func (m *TotalAmount) GetTotal() int64 {
 	if m != nil {
 		return m.Total
 	}
 	return 0
+}
+
+// 查询symbol在合约中的代币总额，如果execAddr为空，则为查询symbol在所有合约中的代币总额
+type ReqGetExecBalance struct {
+	Symbol    string `protobuf:"bytes,1,opt,name=symbol" json:"symbol,omitempty"`
+	StateHash []byte `protobuf:"bytes,2,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	Addr      []byte `protobuf:"bytes,3,opt,name=addr,proto3" json:"addr,omitempty"`
+	ExecAddr  []byte `protobuf:"bytes,4,opt,name=execAddr,proto3" json:"execAddr,omitempty"`
+	Execer    string `protobuf:"bytes,5,opt,name=execer" json:"execer,omitempty"`
+	Count     int64  `protobuf:"varint,6,opt,name=count" json:"count,omitempty"`
+	NextKey   []byte `protobuf:"bytes,7,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+}
+
+func (m *ReqGetExecBalance) Reset()                    { *m = ReqGetExecBalance{} }
+func (m *ReqGetExecBalance) String() string            { return proto.CompactTextString(m) }
+func (*ReqGetExecBalance) ProtoMessage()               {}
+func (*ReqGetExecBalance) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{7} }
+
+func (m *ReqGetExecBalance) GetSymbol() string {
+	if m != nil {
+		return m.Symbol
+	}
+	return ""
+}
+
+func (m *ReqGetExecBalance) GetStateHash() []byte {
+	if m != nil {
+		return m.StateHash
+	}
+	return nil
+}
+
+func (m *ReqGetExecBalance) GetAddr() []byte {
+	if m != nil {
+		return m.Addr
+	}
+	return nil
+}
+
+func (m *ReqGetExecBalance) GetExecAddr() []byte {
+	if m != nil {
+		return m.ExecAddr
+	}
+	return nil
+}
+
+func (m *ReqGetExecBalance) GetExecer() string {
+	if m != nil {
+		return m.Execer
+	}
+	return ""
+}
+
+func (m *ReqGetExecBalance) GetCount() int64 {
+	if m != nil {
+		return m.Count
+	}
+	return 0
+}
+
+func (m *ReqGetExecBalance) GetNextKey() []byte {
+	if m != nil {
+		return m.NextKey
+	}
+	return nil
+}
+
+type ExecBalanceItem struct {
+	ExecAddr []byte `protobuf:"bytes,1,opt,name=execAddr,proto3" json:"execAddr,omitempty"`
+	Frozen   int64  `protobuf:"varint,2,opt,name=frozen" json:"frozen,omitempty"`
+	Active   int64  `protobuf:"varint,3,opt,name=active" json:"active,omitempty"`
+}
+
+func (m *ExecBalanceItem) Reset()                    { *m = ExecBalanceItem{} }
+func (m *ExecBalanceItem) String() string            { return proto.CompactTextString(m) }
+func (*ExecBalanceItem) ProtoMessage()               {}
+func (*ExecBalanceItem) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{8} }
+
+func (m *ExecBalanceItem) GetExecAddr() []byte {
+	if m != nil {
+		return m.ExecAddr
+	}
+	return nil
+}
+
+func (m *ExecBalanceItem) GetFrozen() int64 {
+	if m != nil {
+		return m.Frozen
+	}
+	return 0
+}
+
+func (m *ExecBalanceItem) GetActive() int64 {
+	if m != nil {
+		return m.Active
+	}
+	return 0
+}
+
+// 查询symbol在合约中的代币总额应答
+type ReplyGetExecBalance struct {
+	Amount       int64              `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
+	AmountFrozen int64              `protobuf:"varint,2,opt,name=amountFrozen" json:"amountFrozen,omitempty"`
+	AmountActive int64              `protobuf:"varint,3,opt,name=amountActive" json:"amountActive,omitempty"`
+	NextKey      []byte             `protobuf:"bytes,4,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	Items        []*ExecBalanceItem `protobuf:"bytes,5,rep,name=items" json:"items,omitempty"`
+}
+
+func (m *ReplyGetExecBalance) Reset()                    { *m = ReplyGetExecBalance{} }
+func (m *ReplyGetExecBalance) String() string            { return proto.CompactTextString(m) }
+func (*ReplyGetExecBalance) ProtoMessage()               {}
+func (*ReplyGetExecBalance) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{9} }
+
+func (m *ReplyGetExecBalance) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *ReplyGetExecBalance) GetAmountFrozen() int64 {
+	if m != nil {
+		return m.AmountFrozen
+	}
+	return 0
+}
+
+func (m *ReplyGetExecBalance) GetAmountActive() int64 {
+	if m != nil {
+		return m.AmountActive
+	}
+	return 0
+}
+
+func (m *ReplyGetExecBalance) GetNextKey() []byte {
+	if m != nil {
+		return m.NextKey
+	}
+	return nil
+}
+
+func (m *ReplyGetExecBalance) GetItems() []*ExecBalanceItem {
+	if m != nil {
+		return m.Items
+	}
+	return nil
 }
 
 func init() {
@@ -484,41 +460,53 @@ func init() {
 	proto.RegisterType((*TicketStatistic)(nil), "types.TicketStatistic")
 	proto.RegisterType((*TicketMinerInfo)(nil), "types.TicketMinerInfo")
 	proto.RegisterType((*TotalAmount)(nil), "types.TotalAmount")
+	proto.RegisterType((*ReqGetExecBalance)(nil), "types.ReqGetExecBalance")
+	proto.RegisterType((*ExecBalanceItem)(nil), "types.ExecBalanceItem")
+	proto.RegisterType((*ReplyGetExecBalance)(nil), "types.ReplyGetExecBalance")
 }
 
-func init() { proto.RegisterFile("statistic.proto", fileDescriptor_405f6cee9ed2da7e) }
+func init() { proto.RegisterFile("statistic.proto", fileDescriptor8) }
 
-var fileDescriptor_405f6cee9ed2da7e = []byte{
-	// 496 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x53, 0x4f, 0x6b, 0xdb, 0x4e,
-	0x10, 0x45, 0x51, 0xe4, 0xd8, 0xf3, 0x0b, 0xd8, 0x2c, 0xe6, 0x57, 0x51, 0xfa, 0x0f, 0xf5, 0x12,
-	0x7a, 0x88, 0x0f, 0x86, 0xde, 0x13, 0x43, 0x53, 0x53, 0x4a, 0x41, 0x36, 0x3d, 0xf4, 0xb6, 0x5e,
-	0x4f, 0xe2, 0xa5, 0xd2, 0xca, 0xdd, 0x1d, 0x15, 0xeb, 0x6b, 0xb4, 0x1f, 0xa1, 0x5f, 0xb4, 0xec,
-	0xe8, 0x8f, 0xe5, 0xa4, 0xb7, 0x7d, 0x6f, 0xb4, 0x6f, 0xe6, 0xbd, 0x1d, 0xc1, 0xd8, 0x91, 0x24,
-	0xed, 0x48, 0xab, 0xeb, 0xbd, 0x2d, 0xa8, 0x10, 0x11, 0x55, 0x7b, 0x74, 0xc9, 0x7b, 0x18, 0xae,
-	0x0b, 0x92, 0xd9, 0x07, 0x44, 0x31, 0x81, 0xf0, 0x1e, 0x31, 0x0e, 0xde, 0x04, 0x57, 0x61, 0xea,
-	0x8f, 0x22, 0x86, 0x0b, 0x3a, 0x2c, 0x8a, 0xd2, 0x50, 0x7c, 0xc6, 0x6c, 0x0b, 0x93, 0x5f, 0x01,
-	0x4c, 0x52, 0xfc, 0x71, 0x87, 0xc4, 0xd7, 0x17, 0x85, 0x36, 0x4e, 0xfc, 0x0f, 0x03, 0x57, 0xe5,
-	0x9b, 0x22, 0x63, 0x8d, 0x51, 0xda, 0x20, 0xf1, 0x02, 0x46, 0xbe, 0x3d, 0x7e, 0x94, 0x6e, 0xc7,
-	0x42, 0x97, 0xe9, 0x91, 0x10, 0xcf, 0x61, 0xe8, 0x48, 0x5a, 0xfa, 0x84, 0x55, 0x1c, 0x72, 0xb1,
-	0xc3, 0x62, 0x0a, 0x91, 0xe2, 0xf6, 0xe7, 0xdc, 0xbe, 0x06, 0xbe, 0x0f, 0x1e, 0x50, 0xa1, 0x8d,
-	0xa3, 0xba, 0x4f, 0x8d, 0x12, 0x03, 0x22, 0xc5, 0x7d, 0x56, 0x9d, 0x4e, 0xd5, 0x69, 0x04, 0x7d,
-	0x8d, 0x09, 0x84, 0xa6, 0xcc, 0x1b, 0x5b, 0xfe, 0xe8, 0x55, 0x65, 0xce, 0x1f, 0x86, 0x4c, 0x36,
-	0xc8, 0x87, 0x60, 0xf0, 0xc0, 0xe3, 0x9d, 0xf3, 0x78, 0x2d, 0x4c, 0x4a, 0x78, 0xb6, 0x24, 0xb4,
-	0x92, 0x30, 0x95, 0xe6, 0x01, 0x6f, 0xab, 0x55, 0x67, 0xea, 0xc4, 0x72, 0xf0, 0xd8, 0xf2, 0x14,
-	0x22, 0xb6, 0xd8, 0x84, 0x51, 0x03, 0x3f, 0x12, 0x9a, 0x6d, 0x93, 0x81, 0x3f, 0xfe, 0xdb, 0x7e,
-	0xf2, 0x3b, 0x80, 0xf1, 0x5a, 0xab, 0xef, 0x48, 0xab, 0xf6, 0x51, 0xc5, 0x3b, 0x98, 0xa8, 0xd2,
-	0x5a, 0x34, 0xf4, 0x65, 0x8f, 0x66, 0xd1, 0xf3, 0xfb, 0x84, 0x17, 0x57, 0x30, 0x26, 0x1f, 0xcf,
-	0x67, 0x6d, 0xd0, 0xf6, 0x5f, 0xf7, 0x31, 0xed, 0x55, 0x99, 0x5a, 0x48, 0xa3, 0x32, 0x5c, 0xf4,
-	0xc2, 0x79, 0xc2, 0x27, 0x7f, 0xce, 0xda, 0xa9, 0x58, 0x60, 0x69, 0xee, 0x0b, 0xff, 0xb4, 0xc4,
-	0xd4, 0x72, 0xdb, 0xac, 0x44, 0x87, 0x79, 0x59, 0x48, 0x52, 0xe9, 0xb8, 0x79, 0x94, 0x36, 0x48,
-	0xbc, 0x02, 0xd8, 0x5b, 0xfc, 0xb9, 0xaa, 0x6b, 0x21, 0xd7, 0x7a, 0x8c, 0x4f, 0x56, 0xbb, 0x3b,
-	0x34, 0xe8, 0xb4, 0xe3, 0x5c, 0x86, 0xe9, 0x91, 0xf0, 0xb7, 0x95, 0x45, 0x49, 0xb8, 0xd6, 0x39,
-	0xf2, 0x7a, 0x84, 0x69, 0x8f, 0xf1, 0xb7, 0x73, 0x3f, 0x1e, 0x97, 0x07, 0x5c, 0x3e, 0x12, 0xbe,
-	0xaa, 0xb2, 0xc2, 0xd5, 0x97, 0x2f, 0xea, 0x6a, 0x47, 0x78, 0x6d, 0xfe, 0xf4, 0xab, 0xcc, 0x4a,
-	0x8c, 0x87, 0xb5, 0xf6, 0x91, 0x11, 0x09, 0x5c, 0x32, 0xba, 0xd9, 0x6e, 0x2d, 0x3a, 0x17, 0x8f,
-	0xd8, 0xf1, 0x09, 0x97, 0xbc, 0x85, 0xff, 0x78, 0x35, 0x6f, 0xea, 0xdd, 0x9a, 0x42, 0xc4, 0x41,
-	0xb6, 0xbb, 0xc9, 0xe0, 0xf6, 0xf5, 0xb7, 0x97, 0x0f, 0x9a, 0x76, 0xe5, 0xe6, 0x5a, 0x15, 0xf9,
-	0x6c, 0x3e, 0x57, 0x66, 0xa6, 0x76, 0x52, 0x9b, 0xf9, 0x7c, 0xc6, 0x7f, 0xed, 0x66, 0xc0, 0xff,
-	0xf0, 0xfc, 0x6f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x09, 0x56, 0x34, 0x63, 0xd6, 0x03, 0x00, 0x00,
+var fileDescriptor8 = []byte{
+	// 637 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0xcd, 0x6e, 0xd3, 0x40,
+	0x10, 0x96, 0xeb, 0x3a, 0x4d, 0xa7, 0x95, 0x12, 0x96, 0xaa, 0x58, 0x88, 0x9f, 0xca, 0x5c, 0x2a,
+	0x84, 0x52, 0x89, 0x48, 0xdc, 0xdb, 0x88, 0x96, 0x08, 0x21, 0x24, 0xb7, 0xe2, 0x80, 0xc4, 0x61,
+	0xbb, 0x99, 0xb6, 0x16, 0xf6, 0x3a, 0x78, 0xc7, 0x55, 0xc2, 0x63, 0xc0, 0x23, 0xf0, 0x1c, 0x1c,
+	0x78, 0x33, 0xb4, 0xe3, 0x8d, 0x7f, 0x52, 0x7a, 0xe1, 0xb6, 0xdf, 0x37, 0x3b, 0xbf, 0x3b, 0xdf,
+	0xc2, 0xc0, 0x90, 0xa4, 0xc4, 0x50, 0xa2, 0x46, 0xf3, 0x22, 0xa7, 0x5c, 0x04, 0xb4, 0x9c, 0xa3,
+	0x89, 0xde, 0x40, 0xff, 0x22, 0x27, 0x99, 0x9e, 0x22, 0x8a, 0x21, 0xf8, 0x57, 0x88, 0xa1, 0x77,
+	0xe0, 0x1d, 0xfa, 0xb1, 0x3d, 0x8a, 0x10, 0xb6, 0x68, 0x31, 0xc9, 0x4b, 0x4d, 0xe1, 0x06, 0xb3,
+	0x2b, 0x18, 0xfd, 0xf0, 0x60, 0x18, 0xe3, 0xb7, 0x33, 0x24, 0x76, 0x9f, 0xe4, 0x89, 0x36, 0x62,
+	0x1f, 0x7a, 0x66, 0x99, 0x5d, 0xe6, 0x29, 0xc7, 0xd8, 0x8e, 0x1d, 0x12, 0x4f, 0x60, 0xdb, 0xa6,
+	0xc7, 0x77, 0xd2, 0xdc, 0x70, 0xa0, 0xdd, 0xb8, 0x21, 0xc4, 0x63, 0xe8, 0x1b, 0x92, 0x05, 0xbd,
+	0xc7, 0x65, 0xe8, 0xb3, 0xb1, 0xc6, 0x62, 0x0f, 0x02, 0xc5, 0xe9, 0x37, 0x39, 0x7d, 0x05, 0x6c,
+	0x1e, 0x5c, 0xa0, 0xc2, 0x22, 0x0c, 0xaa, 0x3c, 0x15, 0x8a, 0x34, 0x88, 0x18, 0xe7, 0xe9, 0xb2,
+	0x5b, 0x55, 0x1d, 0xc3, 0x6b, 0xc7, 0x18, 0x82, 0xaf, 0xcb, 0xcc, 0xb5, 0x65, 0x8f, 0x36, 0xaa,
+	0xcc, 0xf8, 0xa2, 0xcf, 0xa4, 0x43, 0x76, 0x08, 0x1a, 0x17, 0x5c, 0xde, 0x26, 0x97, 0xb7, 0x82,
+	0x51, 0x09, 0x8f, 0xa6, 0x84, 0x85, 0x24, 0x8c, 0xa5, 0xbe, 0xc6, 0x93, 0xe5, 0x79, 0xdd, 0x54,
+	0xa7, 0x65, 0x6f, 0xbd, 0xe5, 0x3d, 0x08, 0xb8, 0x45, 0x37, 0x8c, 0x0a, 0xd8, 0x92, 0x50, 0xcf,
+	0xdc, 0x0c, 0xec, 0xf1, 0xdf, 0xed, 0x47, 0x3f, 0x3d, 0x18, 0x5c, 0x24, 0xea, 0x2b, 0xd2, 0xf9,
+	0xea, 0x51, 0xc5, 0x4b, 0x18, 0xaa, 0xb2, 0x28, 0x50, 0xd3, 0xc7, 0x39, 0xea, 0x49, 0xab, 0xdf,
+	0x3b, 0xbc, 0x38, 0x84, 0x01, 0xd9, 0xf1, 0x7c, 0x48, 0x34, 0x16, 0xed, 0xd7, 0x5d, 0xa7, 0x6d,
+	0x54, 0xa6, 0x26, 0x52, 0xab, 0x14, 0x27, 0xad, 0xe1, 0xdc, 0xe1, 0xa3, 0x5f, 0x1b, 0xab, 0xaa,
+	0x38, 0xc0, 0x54, 0x5f, 0xe5, 0xf6, 0x69, 0x89, 0xa9, 0xe9, 0xcc, 0xad, 0x44, 0x8d, 0x79, 0x59,
+	0x48, 0x52, 0x69, 0x38, 0x79, 0x10, 0x3b, 0x24, 0x9e, 0x01, 0xcc, 0x0b, 0xbc, 0x3d, 0xaf, 0x6c,
+	0x3e, 0xdb, 0x5a, 0x8c, 0x9d, 0x6c, 0x62, 0xce, 0x50, 0xa3, 0x49, 0x0c, 0xcf, 0xa5, 0x1f, 0x37,
+	0x84, 0xf5, 0x56, 0x05, 0x4a, 0xc2, 0x8b, 0x24, 0x43, 0x5e, 0x0f, 0x3f, 0x6e, 0x31, 0xd6, 0x3b,
+	0xb3, 0xe5, 0xb1, 0xb9, 0xc7, 0xe6, 0x86, 0xb0, 0x56, 0x95, 0xe6, 0xa6, 0x72, 0xde, 0xaa, 0xac,
+	0x35, 0x61, 0x63, 0xf3, 0xd5, 0x4f, 0x32, 0x2d, 0x31, 0xec, 0x57, 0xb1, 0x1b, 0x46, 0x44, 0xb0,
+	0xcb, 0xe8, 0x78, 0x36, 0x2b, 0xd0, 0x98, 0x70, 0x9b, 0x3b, 0xee, 0x70, 0xd1, 0x0b, 0xd8, 0xe1,
+	0xd5, 0x3c, 0xae, 0x76, 0x6b, 0x0f, 0x02, 0x1e, 0xe4, 0x6a, 0x37, 0x19, 0x44, 0x7f, 0x3c, 0x78,
+	0x50, 0x89, 0xeb, 0xed, 0x02, 0xd5, 0x89, 0x4c, 0xa5, 0x56, 0xf8, 0x9f, 0xea, 0x12, 0xb0, 0x29,
+	0x67, 0xb3, 0xc2, 0x6d, 0x15, 0x9f, 0xed, 0xb3, 0x58, 0xc5, 0xd8, 0x9a, 0xdc, 0x4a, 0xd7, 0xf8,
+	0x3e, 0x6d, 0x35, 0xab, 0xd8, 0x6b, 0xab, 0xa8, 0xa5, 0x8d, 0xad, 0xae, 0x36, 0xbe, 0xc0, 0xa0,
+	0x55, 0xfc, 0x94, 0x30, 0xeb, 0xa4, 0xf5, 0xee, 0xa6, 0xbd, 0x2a, 0xf2, 0xef, 0xa8, 0xdd, 0x2a,
+	0x3a, 0xc4, 0xa2, 0x54, 0x94, 0xdc, 0x62, 0x2d, 0x4a, 0x46, 0xd1, 0x6f, 0x0f, 0x1e, 0xae, 0xb4,
+	0xbe, 0x36, 0x24, 0x27, 0x62, 0xaf, 0x23, 0xe2, 0x08, 0x76, 0xab, 0xd3, 0x69, 0x3b, 0x4b, 0x87,
+	0x6b, 0xee, 0x1c, 0xb7, 0x33, 0x76, 0xb8, 0xfb, 0x3f, 0x03, 0xf1, 0x0a, 0x82, 0x84, 0x30, 0x33,
+	0x61, 0x70, 0xe0, 0x1f, 0xee, 0xbc, 0xde, 0x1f, 0xf1, 0x07, 0x3b, 0x5a, 0x1b, 0x42, 0x5c, 0x5d,
+	0x3a, 0x79, 0xfe, 0xf9, 0xe9, 0x75, 0x42, 0x37, 0xe5, 0xe5, 0x48, 0xe5, 0xd9, 0xd1, 0x78, 0xac,
+	0xf4, 0x91, 0xba, 0x91, 0x89, 0x1e, 0x8f, 0x8f, 0xd8, 0xef, 0xb2, 0xc7, 0xdf, 0xf4, 0xf8, 0x6f,
+	0x00, 0x00, 0x00, 0xff, 0xff, 0xbf, 0x11, 0x9f, 0xa6, 0xb9, 0x05, 0x00, 0x00,
 }

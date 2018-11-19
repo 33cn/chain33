@@ -197,7 +197,7 @@ func genPrefixEdge(prefix []byte)(r []byte) {
 }
 
 func (t *StoreListReply) IterateCallBack(key, value []byte) bool {
-	if t.Mode == 1 { //[start, end)模式
+	if t.Mode == 1 { //[start, end)
 		if t.Num >= t.Count {
 			t.NextKey = key
 			return true
@@ -206,7 +206,7 @@ func (t *StoreListReply) IterateCallBack(key, value []byte) bool {
 		t.Keys = append(t.Keys, cloneByte(key))
 		t.Values = append(t.Values, cloneByte(value))
 		return false
-	} else if t.Mode == 2 { //prefix + suffix模式，要对按prefix得到的数据key进行suffix的判断，符合条件的数据才是最终要的数据
+	} else if t.Mode == 2 { //prefix + suffix
 		if len(key) > len(t.Suffix) {
 			if string(key[len(key)-len(t.Suffix):]) == string(t.Suffix) {
 				t.Num++
