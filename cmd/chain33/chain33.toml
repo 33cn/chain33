@@ -39,7 +39,7 @@ isParaChain=false
 enableTxQuickIndex=false
 
 [p2p]
-p2pPort=13802
+port=13802
 seeds=[]
 enable=true
 isSeed=false
