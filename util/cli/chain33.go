@@ -17,7 +17,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" //
 	"os"
 	"os/user"
 	"path/filepath"
@@ -54,6 +54,7 @@ var (
 	fixtime    = flag.Bool("fixtime", false, "fix time")
 )
 
+//RunChain33 : run Chain33
 func RunChain33(name string) {
 	flag.Parse()
 	if *versionCmd {

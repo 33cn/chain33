@@ -352,7 +352,7 @@ func (base *ExecTypeBase) GetName() string {
 }
 
 func (base *ExecTypeBase) IsFork(height int64, key string) bool {
-	if base.GetForks == nil {
+	if base.GetForks() == nil {
 		return false
 	}
 	return base.forks.IsFork(GetTitle(), height, key)

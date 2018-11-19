@@ -46,13 +46,9 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
-	server := NewJSONRPCServer(&qmocks.Client{}, nil)
-	assert.NotNil(t, server)
-
 	api := new(mocks.QueueProtocolAPI)
-	testChain33 := newTestChain33(api)
-	assert.NotNil(t, testChain33)
-	server.jrpc = *testChain33
+	server := NewJSONRPCServer(&qmocks.Client{}, api)
+	assert.NotNil(t, server)
 	done := make(chan struct{}, 1)
 	go func() {
 		done <- struct{}{}
@@ -69,6 +65,7 @@ func TestJSONClient_Call(t *testing.T) {
 	jsonClient, err := jsonclient.NewJSONClient("http://" + rpcCfg.JrpcBindAddr + "/root")
 	assert.Nil(t, err)
 	assert.NotNil(t, jsonClient)
+
 	var result = ""
 	err = jsonClient.Call("Chain33.Version", nil, &result)
 	assert.NotNil(t, err)
@@ -86,7 +83,6 @@ func TestJSONClient_Call(t *testing.T) {
 	err = jsonClient.Call("Chain33.IsSync", &types.ReqNil{}, &isSnyc)
 	assert.Nil(t, err)
 	assert.Equal(t, ret.GetIsOk(), isSnyc)
-
 	var nodeInfo rpctypes.NodeNetinfo
 	api.On("GetNetInfo", mock.Anything).Return(&types.NodeNetInfo{Externaladdr: "123"}, nil)
 	err = jsonClient.Call("Chain33.GetNetInfo", &types.ReqNil{}, &nodeInfo)
@@ -127,11 +123,9 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
-	server := NewGRpcServer(&qmocks.Client{}, nil)
-	assert.NotNil(t, server)
-
 	api := new(mocks.QueueProtocolAPI)
-	server.grpc.cli.QueueProtocolAPI = api
+	server := NewGRpcServer(&qmocks.Client{}, api)
+	assert.NotNil(t, server)
 	go server.Listen()
 	time.Sleep(time.Second)
 	ret := &types.Reply{
@@ -150,7 +144,8 @@ func TestGrpc_Call(t *testing.T) {
 	result, err := client.IsSync(ctx, &types.ReqNil{})
 
 	assert.Nil(t, err)
-	assert.Equal(t, ret, result)
+	assert.Equal(t, ret.IsOk, result.IsOk)
+	assert.Equal(t, ret.Msg, result.Msg)
 
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)

@@ -68,7 +68,7 @@ func configTx(cmd *cobra.Command, args []string) {
 	}
 	tx := &types.Transaction{Payload: types.Encode(modify)}
 	var err error
-	tx, err = types.FormatTx(util.GetRealExecName(paraName, "manage"), tx)
+	tx, err = types.FormatTx(util.GetParaExecName(paraName, "manage"), tx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -101,7 +101,7 @@ func queryConfig(cmd *cobra.Command, args []string) {
 		Data: key,
 	}
 	var params types.Query4Cli
-	params.Execer = util.GetRealExecName(paraName, "manage")
+	params.Execer = util.GetParaExecName(paraName, "manage")
 	params.FuncName = "GetConfigItem"
 	params.Payload = req
 

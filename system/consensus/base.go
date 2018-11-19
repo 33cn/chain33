@@ -266,7 +266,8 @@ func (bc *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 	if bc.client == nil {
 		panic("bc not bind message queue.")
 	}
-	msg := bc.client.NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false, []string{""}})
+	reqblock := &types.ReqBlocks{Start: start, End: start, IsDetail: false, Pid: []string{""}}
+	msg := bc.client.NewMessage("blockchain", types.EventGetBlocks, reqblock)
 	bc.client.Send(msg, true)
 	resp, err := bc.client.Wait(msg)
 	if err != nil {

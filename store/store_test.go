@@ -7,9 +7,8 @@ package store
 import (
 	"crypto/rand"
 	"fmt"
-	"testing"
-
 	"os"
+	"testing"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/log"
@@ -33,11 +32,11 @@ func initEnv() (queue.Queue, queue.Module) {
 }
 
 func set(client queue.Client, hash, key, value []byte) ([]byte, error) {
-	kv := &types.KeyValue{key, value}
+	kv := &types.KeyValue{Key: key, Value: value}
 	set := &types.StoreSet{}
 	set.StateHash = hash
 	set.KV = append(set.KV, kv)
-	setwithsync := &types.StoreSetWithSync{set, true}
+	setwithsync := &types.StoreSetWithSync{Storeset: set, Sync: true}
 
 	msg := client.NewMessage("store", types.EventStoreSet, setwithsync)
 	client.Send(msg, true)
@@ -49,12 +48,12 @@ func set(client queue.Client, hash, key, value []byte) ([]byte, error) {
 }
 
 func setmem(client queue.Client, hash, key, value []byte) ([]byte, error) {
-	kv := &types.KeyValue{key, value}
+	kv := &types.KeyValue{Key: key, Value: value}
 	set := &types.StoreSet{}
 	set.StateHash = hash
 	set.KV = append(set.KV, kv)
-
-	msg := client.NewMessage("store", types.EventStoreMemSet, &types.StoreSetWithSync{set, true})
+	storeset := &types.StoreSetWithSync{Storeset: set, Sync: true}
+	msg := client.NewMessage("store", types.EventStoreMemSet, storeset)
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
 	if err != nil {
@@ -64,7 +63,7 @@ func setmem(client queue.Client, hash, key, value []byte) ([]byte, error) {
 }
 
 func get(client queue.Client, hash, key []byte) ([]byte, error) {
-	query := &types.StoreGet{hash, [][]byte{key}}
+	query := &types.StoreGet{StateHash: hash, Keys: [][]byte{key}}
 	msg := client.NewMessage("store", types.EventStoreGet, query)
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
@@ -76,7 +75,7 @@ func get(client queue.Client, hash, key []byte) ([]byte, error) {
 }
 
 func commit(client queue.Client, hash []byte) ([]byte, error) {
-	req := &types.ReqHash{hash}
+	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreCommit, req)
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
@@ -88,7 +87,7 @@ func commit(client queue.Client, hash []byte) ([]byte, error) {
 }
 
 func rollback(client queue.Client, hash []byte) ([]byte, error) {
-	req := &types.ReqHash{hash}
+	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreRollback, req)
 	client.Send(msg, true)
 	msg, err := client.Wait(msg)
@@ -250,7 +249,7 @@ func BenchmarkSetKey1000(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		key := []byte(fmt.Sprintf("%020d", i))
 		value := []byte(fmt.Sprintf("%020d", i))
-		kv := &types.KeyValue{key, value}
+		kv := &types.KeyValue{Key: key, Value: value}
 		if i%1000 == 0 {
 			set = &types.StoreSet{}
 			set.StateHash = hash
@@ -258,7 +257,7 @@ func BenchmarkSetKey1000(b *testing.B) {
 		set.KV = append(set.KV, kv)
 
 		if i > 0 && i%1000 == 0 {
-			setwithsync := &types.StoreSetWithSync{set, true}
+			setwithsync := &types.StoreSetWithSync{Storeset: set, Sync: true}
 			msg := client.NewMessage("store", types.EventStoreSet, setwithsync)
 			client.Send(msg, true)
 			msg, err := client.Wait(msg)
@@ -272,10 +271,10 @@ func BenchmarkSetKey1000(b *testing.B) {
 	s.Close()
 }
 
-var store_cfg1 = &types.Store{"mavl", "leveldb", "/tmp/store_test1", 100}
+var storecfg1 = &types.Store{Name: "mavl", Driver: "leveldb", DbPath: "/tmp/store_test1", DbCache: 100}
 
 func TestNewMavl(t *testing.T) {
-	os.RemoveAll(store_cfg1.DbPath)
-	store := New(store_cfg1, nil)
+	os.RemoveAll(storecfg1.DbPath)
+	store := New(storecfg1, nil)
 	assert.NotNil(t, store)
 }

@@ -214,7 +214,7 @@ func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) Iterator {
 	if bytes.Equal(itend, types.EmptyValue) {
 		itend = nil
 	}
-	limit := util.Range{itbeg, itend}
+	limit := util.Range{Start: itbeg, Limit: itend}
 	if reverse {
 		begin = string(limit.Limit)
 		end = string(itbeg)

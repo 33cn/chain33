@@ -24,20 +24,17 @@ import (
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
 
-const (
-	FlagInit        = int64(0)
-	FlagFromZero    = int64(1)
-	FlagNotFromZero = int64(2)
-)
-
+// SetLogLevel set log level
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
 }
 
+// DisableLog disable log
 func DisableLog() {
 	elog.SetHandler(log.DiscardHandler())
 }
 
+// Executor executor struct
 type Executor struct {
 	client       queue.Client
 	qclient      client.QueueProtocolAPI
@@ -51,6 +48,7 @@ func execInit(sub map[string][]byte) {
 
 var runonce sync.Once
 
+// New new executor
 func New(cfg *types.Exec, sub map[string][]byte) *Executor {
 	// init executor
 	runonce.Do(func() {
@@ -90,6 +88,7 @@ func New(cfg *types.Exec, sub map[string][]byte) *Executor {
 	return exec
 }
 
+// SetQueueClient set client queue, for recv msg
 func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	exec.client = qcli
 	exec.client.Sub("execs")
@@ -222,7 +221,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		index += int(tx.GroupCount)
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventReceipts,
-		&types.Receipts{receipts}))
+		&types.Receipts{Receipts: receipts}))
 }
 
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
@@ -341,6 +340,7 @@ func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 	return nil
 }
 
+// Close close executor
 func (exec *Executor) Close() {
 	elog.Info("exec module closed")
 }

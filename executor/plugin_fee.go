@@ -54,9 +54,9 @@ func saveFee(ex *executor, fee *types.TotalFee, parentHash, hash []byte) (*types
 	}
 	totalFee.Fee += fee.Fee
 	totalFee.TxCount += fee.TxCount
-	return &types.KeyValue{types.TotalFeeKey(hash), types.Encode(totalFee)}, nil
+	return &types.KeyValue{Key: types.TotalFeeKey(hash), Value: types.Encode(totalFee)}, nil
 }
 
 func delFee(ex *executor, hash []byte) (*types.KeyValue, error) {
-	return &types.KeyValue{types.TotalFeeKey(hash), nil}, nil
+	return &types.KeyValue{Key: types.TotalFeeKey(hash)}, nil
 }

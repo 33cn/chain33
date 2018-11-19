@@ -232,8 +232,8 @@ func (innernode *InnerNode) Hash() []byte {
 
 func NewErrReceipt(err error) *Receipt {
 	berr := err.Error()
-	errlog := &ReceiptLog{TyLogErr, []byte(berr)}
-	return &Receipt{ExecErr, nil, []*ReceiptLog{errlog}}
+	errlog := &ReceiptLog{Ty: TyLogErr, Log: []byte(berr)}
+	return &Receipt{Ty: ExecErr, KV: nil, Logs: []*ReceiptLog{errlog}}
 }
 
 func CheckAmount(amount int64) bool {

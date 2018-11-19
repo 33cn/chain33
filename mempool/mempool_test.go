@@ -32,7 +32,7 @@ var (
 	mainPriv   crypto.PrivKey
 	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	amount     = int64(1e8)
-	v          = &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+	v          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
 	transfer   = &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: toAddr}
 	tx2        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
@@ -733,7 +733,7 @@ func TestGetAddrTxs(t *testing.T) {
 	for _, i := range txsExpect {
 		for _, j := range txsFact {
 			if j.Tx == i.Tx {
-				same += 1
+				same++
 				break
 			}
 		}
