@@ -390,7 +390,7 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 	return reply, nil
 }
 
-func genPrefixEdge(prefix []byte)(r []byte) {
+func genPrefixEdge(prefix []byte) (r []byte) {
 	for j := 0; j < len(prefix); j++ {
 		r = append(r, prefix[j])
 	}
@@ -407,5 +407,3 @@ func genPrefixEdge(prefix []byte)(r []byte) {
 
 	return r
 }
-
-
