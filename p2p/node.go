@@ -80,8 +80,8 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		pubsub:     pubsub.NewPubSub(10200),
 	}
 
-	if cfg.P2pPort != 0 && cfg.P2pPort <= 65535 && cfg.P2pPort > 1024 {
-		defaultPort = int(cfg.P2pPort)
+	if cfg.Port != 0 && cfg.Port <= 65535 && cfg.Port > 1024 {
+		defaultPort = int(cfg.Port)
 	}
 
 	if cfg.InnerSeedEnable {
