@@ -127,7 +127,7 @@ make push b=mydevbranchname m="这个提交的信息"
 
 ## 修改别人的pull requset
 
-比如我要修改 name=libangzhu brach chain33-p2p-listenPort 的pr
+比如我要修改 name=libangzhu branch chain33-p2p-listenPort 的pr
 ##### step1: 拉取要修改的分支
 ```
 make pull name=libangzhu b=chain33-p2p-listenPort
