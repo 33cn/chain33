@@ -1246,26 +1246,3 @@ func (_m *QueueProtocolAPI) WalletUnLock(param *types.WalletUnLock) (*types.Repl
 
 	return r0, r1
 }
-
-// GetExecBalance provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) GetStoreList(param *types.StoreList) (*types.StoreListReply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.StoreListReply
-	if rf, ok := ret.Get(0).(func(*types.StoreList) *types.StoreListReply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.StoreListReply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.StoreList) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}

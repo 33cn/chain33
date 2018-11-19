@@ -11,15 +11,15 @@ import (
 	"strings"
 
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/mock"
-	"github.com/33cn/chain33/client/mocks"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -474,7 +474,6 @@ func TestGetExecBalance2(t *testing.T) {
 	execAddr := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 
-
 	fmt.Println("-------------TestGetExecBalance2---test case1---")
 	api := new(mocks.QueueProtocolAPI)
 	in := &types.ReqGetExecBalance{}
@@ -505,53 +504,53 @@ func TestGetExecBalance2(t *testing.T) {
 	assert.NotNil(t, err)
 
 	/*
-	fmt.Println("TestGetExecBalance---------------test case 1_1------------------------")
-	in := &types.ReqGetExecBalance{
-		Symbol:    "bty",
-		StateHash: []byte("0000000000"),
-		Addr:      []byte(addr),
-		Execer:    "coins",
-	}
+		fmt.Println("TestGetExecBalance---------------test case 1_1------------------------")
+		in := &types.ReqGetExecBalance{
+			Symbol:    "bty",
+			StateHash: []byte("0000000000"),
+			Addr:      []byte(addr),
+			Execer:    "coins",
+		}
 
-	in.Count = 2
-	reply, err := getExecBalance(storeList1_1, in)
-	assert.Nil(t, err)
-	assert.Equal(t, int64(4), reply.Amount)
-	assert.Equal(t, int64(2), reply.AmountFrozen)
-	assert.Equal(t, int64(2), reply.AmountActive)
-	assert.Equal(t, 2, len(reply.Items))
-	assert.Equal(t, len([]byte(key)), len(reply.NextKey))
-	fmt.Println("TestGetExecBalance---------------test case 1_2------------------------")
-	reply, err = getExecBalance(storeList1_2, in)
-	assert.Nil(t, err)
-	assert.Equal(t, int64(2), reply.Amount)
-	assert.Equal(t, int64(1), reply.AmountFrozen)
-	assert.Equal(t, int64(1), reply.AmountActive)
-	assert.Equal(t, 1, len(reply.Items))
-	assert.Equal(t, 0, len(reply.NextKey))
+		in.Count = 2
+		reply, err := getExecBalance(storeList1_1, in)
+		assert.Nil(t, err)
+		assert.Equal(t, int64(4), reply.Amount)
+		assert.Equal(t, int64(2), reply.AmountFrozen)
+		assert.Equal(t, int64(2), reply.AmountActive)
+		assert.Equal(t, 2, len(reply.Items))
+		assert.Equal(t, len([]byte(key)), len(reply.NextKey))
+		fmt.Println("TestGetExecBalance---------------test case 1_2------------------------")
+		reply, err = getExecBalance(storeList1_2, in)
+		assert.Nil(t, err)
+		assert.Equal(t, int64(2), reply.Amount)
+		assert.Equal(t, int64(1), reply.AmountFrozen)
+		assert.Equal(t, int64(1), reply.AmountActive)
+		assert.Equal(t, 1, len(reply.Items))
+		assert.Equal(t, 0, len(reply.NextKey))
 
-	fmt.Println("TestGetExecBalance---------------test case 2------------------------")
-	in.Count = 3
-	reply, err = getExecBalance(storeList2, in)
-	assert.Nil(t, err)
-	assert.Equal(t, int64(6), reply.Amount)
-	assert.Equal(t, int64(3), reply.AmountFrozen)
-	assert.Equal(t, int64(3), reply.AmountActive)
-	assert.Equal(t, 3, len(reply.Items))
-	assert.Equal(t, 0, len(reply.NextKey))
+		fmt.Println("TestGetExecBalance---------------test case 2------------------------")
+		in.Count = 3
+		reply, err = getExecBalance(storeList2, in)
+		assert.Nil(t, err)
+		assert.Equal(t, int64(6), reply.Amount)
+		assert.Equal(t, int64(3), reply.AmountFrozen)
+		assert.Equal(t, int64(3), reply.AmountActive)
+		assert.Equal(t, 3, len(reply.Items))
+		assert.Equal(t, 0, len(reply.NextKey))
 
-	fmt.Println("TestGetExecBalance---------------test case 3------------------------")
-	in.ExecAddr = []byte("16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
-	reply, err = getExecBalance(storeList3, in)
-	assert.NotNil(t, err)
+		fmt.Println("TestGetExecBalance---------------test case 3------------------------")
+		in.ExecAddr = []byte("16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
+		reply, err = getExecBalance(storeList3, in)
+		assert.NotNil(t, err)
 
-	fmt.Println("TestGetExecBalance---------------test case 4------------------------")
-	in.ExecAddr = []byte("26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
-	reply, err = getExecBalance(storeList3, in)
-	assert.Nil(t, err)
-	assert.Equal(t, int64(2), reply.Amount)
-	assert.Equal(t, int64(1), reply.AmountFrozen)
-	assert.Equal(t, int64(1), reply.AmountActive)
-	assert.Equal(t, 1, len(reply.Items))
+		fmt.Println("TestGetExecBalance---------------test case 4------------------------")
+		in.ExecAddr = []byte("26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
+		reply, err = getExecBalance(storeList3, in)
+		assert.Nil(t, err)
+		assert.Equal(t, int64(2), reply.Amount)
+		assert.Equal(t, int64(1), reply.AmountFrozen)
+		assert.Equal(t, int64(1), reply.AmountActive)
+		assert.Equal(t, 1, len(reply.Items))
 	*/
 }
