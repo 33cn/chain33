@@ -80,6 +80,27 @@ message StoreReplyValue {
     repeated bytes values = 2;
 }
 
+message StoreList {
+    bytes stateHash = 1;
+    bytes start     = 2;
+    bytes end       = 3;
+    bytes suffix    = 4;
+    int64 count     = 5;
+    int64 mode      = 6;
+}
+
+message StoreListReply {
+    bytes    start        = 1;
+    bytes    end          = 2;
+    bytes    suffix       = 3;
+    int64    count        = 4;
+    int64    num          = 5;
+    int64    mode         = 6;
+    bytes    nextKey      = 7;
+    repeated bytes keys   = 8;
+    repeated bytes values = 9;
+}
+
 message PruneData {
     // 对应keyHash下的区块高度
     int64 height = 1;

@@ -406,3 +406,21 @@ func MustDecode(data []byte, v interface{}) {
 		panic(err)
 	}
 }
+
+func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
+	var acc Account
+	err := Decode(value, &acc)
+	if err != nil {
+		tlog.Error("ReplyGetExecBalance.AddItem", "err", err)
+		return
+	}
+	tlog.Info("acc:", "value", acc)
+	t.Amount += acc.Balance
+	t.Amount += acc.Frozen
+
+	t.AmountActive += acc.Balance
+	t.AmountFrozen += acc.Frozen
+
+	item := &ExecBalanceItem{execAddr, acc.Frozen, acc.Balance}
+	t.Items = append(t.Items, item)
+}
