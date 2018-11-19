@@ -82,6 +82,7 @@ func GenCoinsTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	}
 	return txs
 }
+
 //Genaddress : generate a address
 func Genaddress() (string, crypto.PrivKey) {
 	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
@@ -194,6 +195,7 @@ func CreateNoneBlock(priv crypto.PrivKey, n int64) *types.Block {
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	return newblock
 }
+
 // ExecBlock : just exec block
 func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
 	//发送执行交易给execs模块
@@ -296,6 +298,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//}
 	return &detail, deltx, nil
 }
+
 //CreateNewBlock : Create a New Block
 func CreateNewBlock(parent *types.Block, txs []*types.Transaction) *types.Block {
 	newblock := &types.Block{}
