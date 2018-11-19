@@ -313,7 +313,7 @@ pullpush:
 	git commit -a -m "${m}" ; \
 	fi;
 	make pullsync
-	git push ${name} ${name}-${b}:${b}'
+	git push ${name} ${name}-${b}:${b}
 
 webhook:
 	git checkout ${b}
