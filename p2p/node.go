@@ -452,7 +452,7 @@ func (n *Node) deleteNatMapPort() {
 	if n.nodeInfo.OutSide() {
 		return
 	}
-	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(defaultPort))
+	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort)
 
 }
 
