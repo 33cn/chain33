@@ -192,7 +192,7 @@ func (d *downloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan cha
 			return err
 		}
 		for _, item := range invdatas.Items {
-			bchan <- &pb.BlockPid{peer.GetPeerName(), item.GetBlock()} //下载完成后插入bchan
+			bchan <- &pb.BlockPid{Pid: peer.GetPeerName(), Block: item.GetBlock()} //下载完成后插入bchan
 
 		}
 	}

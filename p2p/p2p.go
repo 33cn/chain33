@@ -213,7 +213,7 @@ func (network *P2p) subP2pMsg() {
 				go network.p2pCli.GetNetInfo(msg, taskIndex)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
-				msg.Reply(network.client.NewMessage("", msg.Ty, types.Reply{false, []byte("unknown msgtype")}))
+				msg.Reply(network.client.NewMessage("", msg.Ty, types.Reply{Msg: []byte("unknown msgtype")}))
 				<-network.otherFactory
 				continue
 			}

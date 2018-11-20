@@ -348,7 +348,7 @@ func (p *Peer) readStream() {
 					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr(),
 						"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash",
 						blockhash)
-					msg := p.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{p.GetPeerName(), block.GetBlock()})
+					msg := p.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{Pid: p.GetPeerName(), Block: block.GetBlock()})
 					err = p.node.nodeInfo.client.Send(msg, false)
 					if err != nil {
 						log.Error("readStream", "send to blockchain Error", err.Error())
