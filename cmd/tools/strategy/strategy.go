@@ -16,11 +16,13 @@ var (
 	mlog = log15.New("module", "strategy")
 )
 
+//Strategy 接口
 type Strategy interface {
 	SetParam(key string, value string)
 	Run() error
 }
 
+//New 新建
 func New(name string) Strategy {
 	switch name {
 	case types.KeyImportPackage:
@@ -47,12 +49,6 @@ func New(name string) Strategy {
 				params: make(map[string]string),
 			},
 		}
-	case types.KeyCreatePlugin:
-		return &createPluginStrategy{
-			strategyBasic: strategyBasic{
-				params: make(map[string]string),
-			},
-		}
 	}
 	return nil
 }
@@ -61,17 +57,19 @@ type strategyBasic struct {
 	params map[string]string
 }
 
-func (this *strategyBasic) SetParam(key string, value string) {
-	this.params[key] = value
+//SetParam 设置参数
+func (s *strategyBasic) SetParam(key string, value string) {
+	s.params[key] = value
 }
 
-func (this *strategyBasic) getParam(key string) (string, error) {
-	if v, ok := this.params[key]; ok {
+func (s *strategyBasic) getParam(key string) (string, error) {
+	if v, ok := s.params[key]; ok {
 		return v, nil
 	}
 	return "", errors.New(fmt.Sprintf("Key:%v not existed.", key))
 }
 
-func (this *strategyBasic) Run() error {
+//Run 运行
+func (s *strategyBasic) Run() error {
 	return errors.New("NotSupport")
 }

@@ -46,19 +46,19 @@ type importPackageStrategy struct {
 	items          map[string][]*pluginItem
 }
 
-func (this *importPackageStrategy) Run() error {
+func (im *importPackageStrategy) Run() error {
 	mlog.Info("Begin run chain33 import packages.")
 	defer mlog.Info("Run chain33 import packages finish.")
-	return this.runImpl()
+	return im.runImpl()
 }
 
-func (this *importPackageStrategy) runImpl() error {
+func (im *importPackageStrategy) runImpl() error {
 	type STEP func() error
 	steps := []STEP{
-		this.readConfig,
-		this.initData,
-		this.generateImportFile,
-		this.fetchPluginPackage,
+		im.readConfig,
+		im.initData,
+		im.generateImportFile,
+		im.fetchPluginPackage,
 	}
 
 	for s, step := range steps {
@@ -71,22 +71,22 @@ func (this *importPackageStrategy) runImpl() error {
 	return nil
 }
 
-func (this *importPackageStrategy) readConfig() error {
+func (im *importPackageStrategy) readConfig() error {
 	mlog.Info("读取配置文件")
-	conf, _ := this.getParam("conf")
+	conf, _ := im.getParam("conf")
 	if conf == "" {
 		return nil
 	}
 	if conf != "" {
-		this.cfgFileName = conf
+		im.cfgFileName = conf
 	}
-	_, err := toml.DecodeFile(this.cfgFileName, &this.cfgItems)
+	_, err := toml.DecodeFile(im.cfgFileName, &im.cfgItems)
 	return err
 }
 
-func (this *importPackageStrategy) initData() error {
+func (im *importPackageStrategy) initData() error {
 	mlog.Info("初始化数据")
-	this.items = make(map[string][]*pluginItem)
+	im.items = make(map[string][]*pluginItem)
 	dappItems := make([]*pluginItem, 0)
 	consensusItems := make([]*pluginItem, 0)
 	storeItems := make([]*pluginItem, 0)
@@ -94,22 +94,22 @@ func (this *importPackageStrategy) initData() error {
 
 	//read current plugin dir
 	//(分成两级，并且去掉了 init 目录)
-	path, _ := this.getParam("path")
-	dirlist, err := this.readPluginDir(path)
+	path, _ := im.getParam("path")
+	dirlist, err := im.readPluginDir(path)
 	if err != nil {
 		return err
 	}
-	if this.cfgItems == nil {
-		this.cfgItems = make(map[string]*pluginConfigItem)
+	if im.cfgItems == nil {
+		im.cfgItems = make(map[string]*pluginConfigItem)
 	}
 	for name, value := range dirlist {
-		this.cfgItems[name] = value
+		im.cfgItems[name] = value
 	}
-	out, _ := this.getParam("out")
+	out, _ := im.getParam("out")
 	//输出新的配置文件
 	if out != "" {
 		buf := new(bytes.Buffer)
-		err = toml.NewEncoder(buf).Encode(this.cfgItems)
+		err = toml.NewEncoder(buf).Encode(im.cfgItems)
 		if err != nil {
 			return err
 		}
@@ -118,10 +118,10 @@ func (this *importPackageStrategy) initData() error {
 			return err
 		}
 	}
-	if len(this.cfgItems) == 0 {
-		return errors.New("Config is empty.")
+	if len(im.cfgItems) == 0 {
+		return errors.New("empty config")
 	}
-	for name, cfgItem := range this.cfgItems {
+	for name, cfgItem := range im.cfgItems {
 		splitdata := strings.Split(name, "-")
 		if len(splitdata) == 2 {
 			cfgItem.Type = splitdata[0]
@@ -143,15 +143,15 @@ func (this *importPackageStrategy) initData() error {
 			cryptoItems = append(cryptoItems, item)
 		default:
 			fmt.Printf("type %s is not supported.\n", cfgItem.Type)
-			return errors.New("Config error.")
+			return errors.New("config error")
 		}
 	}
-	this.items[dappFolderName] = dappItems
-	this.items[consensusFolderName] = consensusItems
-	this.items[storeFolderName] = storeItems
-	this.items[cryptoFolderName] = cryptoItems
-	this.projRootPath = ""
-	this.projPluginPath, _ = this.getParam("path")
+	im.items[dappFolderName] = dappItems
+	im.items[consensusFolderName] = consensusItems
+	im.items[storeFolderName] = storeItems
+	im.items[cryptoFolderName] = cryptoItems
+	im.projRootPath = ""
+	im.projPluginPath, _ = im.getParam("path")
 	return nil
 }
 
@@ -172,12 +172,12 @@ func getDirList(path string) ([]string, error) {
 	return dirs, nil
 }
 
-func (this *importPackageStrategy) readPluginDir(path string) (map[string]*pluginConfigItem, error) {
+func (im *importPackageStrategy) readPluginDir(path string) (map[string]*pluginConfigItem, error) {
 	dirlist, err := getDirList(path)
 	if err != nil {
 		return nil, err
 	}
-	packname, _ := this.getParam("packname")
+	packname, _ := im.getParam("packname")
 	conf := make(map[string]*pluginConfigItem)
 	for _, ty := range dirlist {
 		names, err := getDirList(path + "/" + ty)
@@ -196,17 +196,17 @@ func (this *importPackageStrategy) readPluginDir(path string) (map[string]*plugi
 	return conf, nil
 }
 
-func (this *importPackageStrategy) generateImportFile() error {
+func (im *importPackageStrategy) generateImportFile() error {
 	mlog.Info("生成引用文件")
 	importStrs := map[string]string{}
-	for name, plugins := range this.items {
+	for name, plugins := range im.items {
 		for _, item := range plugins {
 			importStrs[name] += fmt.Sprintf("\r\n_ \"%s\"", item.gitRepo)
 		}
 	}
 	for key, value := range importStrs {
 		content := fmt.Sprintf("package init\r\n\r\nimport(%s\r\n)", value)
-		initFile := fmt.Sprintf("%s/%s/init/init.go", this.projPluginPath, key)
+		initFile := fmt.Sprintf("%s/%s/init/init.go", im.projPluginPath, key)
 		util.MakeDir(initFile)
 
 		{ // 写入到文件中
@@ -231,7 +231,7 @@ func (this *importPackageStrategy) generateImportFile() error {
 	return nil
 }
 
-func (this *importPackageStrategy) fetchPlugin(gitrepo, version string) error {
+func (im *importPackageStrategy) fetchPlugin(gitrepo, version string) error {
 	var param string
 	if len(version) > 0 {
 		param = fmt.Sprintf("%s@%s", gitrepo, version)
@@ -245,19 +245,19 @@ func (this *importPackageStrategy) fetchPlugin(gitrepo, version string) error {
 }
 
 // fetchPluginPackage 使用govendor来下载依赖包
-func (this *importPackageStrategy) fetchPluginPackage() error {
+func (im *importPackageStrategy) fetchPluginPackage() error {
 	mlog.Info("下载插件源码包")
 	pwd := util.Pwd()
-	os.Chdir(this.projRootPath)
+	os.Chdir(im.projRootPath)
 	defer os.Chdir(pwd)
-	for _, plugins := range this.items {
+	for _, plugins := range im.items {
 		for _, plugin := range plugins {
 			mlog.Info("同步插件", "repo", plugin.gitRepo, "version", plugin.version)
 			if plugin.version == "" {
 				//留给后面的 fetch +m
 				continue
 			}
-			err := this.fetchPlugin(plugin.gitRepo, plugin.version)
+			err := im.fetchPlugin(plugin.gitRepo, plugin.version)
 			if err != nil {
 				mlog.Info("同步插件包出错", "repo", plugin.gitRepo, "error", err.Error())
 				return err
