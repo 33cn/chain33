@@ -16,16 +16,20 @@ import (
 )
 
 var (
-	QueryData       = types.NewQueryData("On_")
+	// QueryData 查询接口数据全局对象
+	QueryData = types.NewQueryData("On_")
+	// PolicyContainer 钱包业务容器
 	PolicyContainer = make(map[string]WalletBizPolicy)
 )
 
+// Init 初始化所有已经注册的钱包业务
 func Init(wallet WalletOperate, sub map[string][]byte) {
 	for k, v := range PolicyContainer {
 		v.Init(wallet, sub[k])
 	}
 }
 
+// RegisterPolicy 注册钱包业务策略接口
 func RegisterPolicy(key string, policy WalletBizPolicy) {
 	if _, existed := PolicyContainer[key]; existed {
 		panic("RegisterPolicy dup")

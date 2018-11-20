@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//对各个币种进行注册
 package btcbase
 
 import (
@@ -10,7 +9,7 @@ import (
 )
 
 //不同币种的前缀版本号
-var coin_prefix = map[string][]byte{
+var coinPrefix = map[string][]byte{
 	"BTC":  {0x00},
 	"BCH":  {0x00},
 	"BTY":  {0x00},
@@ -21,7 +20,7 @@ var coin_prefix = map[string][]byte{
 
 func init() {
 	//注册
-	for name, prefix := range coin_prefix {
-		transformer.Register(name, &BtcBaseTransformer{prefix})
+	for name, prefix := range coinPrefix {
+		transformer.Register(name, &btcBaseTransformer{prefix})
 	}
 }
