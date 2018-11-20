@@ -18,7 +18,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-// provide rpc interface of system
+
 var log = log15.New("module", "rpc")
 
 type channelClient struct {
