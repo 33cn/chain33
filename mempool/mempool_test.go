@@ -767,8 +767,8 @@ func TestDelBlock(t *testing.T) {
 	}
 
 	size := reply.GetData().(*types.MempoolSize).Size
-	if size < 2 {
-		t.Error("TestDelBlock", "size", size)
+	if size != 2 {
+		t.Error("TestDelBlock failed")
 	}
 }
 
