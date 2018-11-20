@@ -16,6 +16,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+//var
 var (
 	synBlocklock     sync.Mutex
 	peerMaxBlklock   sync.Mutex
