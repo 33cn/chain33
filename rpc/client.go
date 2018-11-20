@@ -232,3 +232,12 @@ func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
 	diff := local.Sub(ntpTime) / time.Second
 	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: int64(diff)}, nil
 }
+
+func (c *channelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.ReplyGetExecBalance, error) {
+	//通过account模块获取地址账户在合约中的余额
+	resp, err := c.accountdb.GetExecBalance(c.QueueProtocolAPI, in)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}

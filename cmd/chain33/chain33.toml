@@ -39,8 +39,9 @@ isParaChain=false
 enableTxQuickIndex=false
 
 [p2p]
+port=13802
 seeds=[]
-enable=false
+enable=true
 isSeed=false
 serverStart=true
 innerSeedEnable=true

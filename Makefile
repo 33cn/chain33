@@ -304,7 +304,7 @@ pull:
 	git fetch ${name}
 	git checkout ${name}/${b}
 	git checkout -b ${name}-${b}
- pullsync:
+pullsync:
 	git fetch ${name}
 	git checkout ${name}-${b}
 	git merge ${name}/${b}
@@ -313,7 +313,7 @@ pullpush:
 	git commit -a -m "${m}" ; \
 	fi;
 	make pullsync
-	git push ${name} ${name}-${b}:${b}'
+	git push ${name} ${name}-${b}:${b}
 
 webhook:
 	git checkout ${b}

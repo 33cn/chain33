@@ -164,4 +164,20 @@ func TestGetAllCoinsMVCCIter(t *testing.T) {
 	assert.Equal(t, "3", string(values[0]))
 	assert.Equal(t, "2", string(values[1]))
 	assert.Equal(t, "4", string(values[2]))
+
+	fmt.Println("---case 2-3----")
+	match_values = nil
+	listhelper.IteratorCallback(([]byte("mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTq")), []byte("mavl-coins-bty-exec-"), 0, 1, func(key, value []byte) bool {
+		match_values = append(match_values, value)
+		return false
+	})
+	values = match_values
+
+	for i := 0; i < len(values); i++ {
+		fmt.Println(string(values[i]))
+	}
+	assert.Equal(t, 2, len(values))
+	//assert.Equal(t, "3", string(values[0]))
+	assert.Equal(t, "2", string(values[0]))
+	assert.Equal(t, "4", string(values[1]))
 }

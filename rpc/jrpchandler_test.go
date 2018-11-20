@@ -1240,3 +1240,20 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err = client.CreateTransaction(in, &result)
 	assert.Nil(t, err)
 }
+
+func TestChain33_GetExecBalance(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+	var testResult interface{}
+	in := &types.ReqGetExecBalance{}
+	api.On("StoreList", mock.Anything).Return(&types.StoreListReply{}, nil)
+	err := client.GetExecBalance(in, &testResult)
+	assert.Nil(t, err)
+
+	api = new(mocks.QueueProtocolAPI)
+	client = newTestChain33(api)
+	var testResult2 interface{}
+	api.On("StoreList", mock.Anything).Return(nil, types.ErrInvalidParam)
+	err = client.GetExecBalance(in, &testResult2)
+	assert.NotNil(t, err)
+}
