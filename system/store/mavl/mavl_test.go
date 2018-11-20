@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/common"
 	drivers "github.com/33cn/chain33/system/store"
 	mavldb "github.com/33cn/chain33/system/store/mavl/db"
@@ -176,6 +177,358 @@ func TestKvdbIterate(t *testing.T) {
 	assert.Equal(t, []byte("v1"), checkKVResult[0].Value)
 	assert.Equal(t, []byte("v2"), checkKVResult[1].Value)
 
+}
+
+type StatTool struct {
+	Amount       int64
+	AmountActive int64
+	AmountFrozen int64
+}
+
+func (t *StatTool) AddItem(value [][]byte) {
+	for i := 0; i < len(value); i++ {
+		var acc types.Account
+		err := types.Decode(value[i], &acc)
+		if err != nil {
+			return
+		}
+		t.Amount += acc.Balance
+		t.Amount += acc.Frozen
+
+		t.AmountActive += acc.Balance
+		t.AmountFrozen += acc.Frozen
+	}
+}
+
+func (t *StatTool) Reset() {
+	t.Amount = 0
+	t.AmountActive = 0
+	t.AmountFrozen = 0
+}
+
+func genPrefixEdge(prefix []byte) (r []byte) {
+	for j := 0; j < len(prefix); j++ {
+		r = append(r, prefix[j])
+	}
+
+	i := len(prefix) - 1
+	for i >= 0 {
+		if r[i] < 0xff {
+			r[i] += 1
+			break
+		} else {
+			i--
+		}
+	}
+
+	return r
+}
+func TestIterateCallBack_Mode1(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg, nil).(*Store)
+	assert.NotNil(t, store)
+	//mavldb.EnableMavlPrefix(true)
+	//defer mavldb.EnableMavlPrefix(false)
+
+	//var accountdb *account.DB
+	accountdb := account.NewCoinsAccount()
+	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	prefix := "mavl-coins-bty-exec-"
+	execAddr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	var acc = &types.Account{
+		Currency: 0,
+		Balance:  1,
+		Frozen:   1,
+		Addr:     addr,
+	}
+
+	datas := &types.StoreSet{
+		StateHash: drivers.EmptyRoot[:],
+		KV:        accountdb.GetExecKVSet(execAddr1, acc),
+		Height:    0}
+	hash0, err := store.Set(datas, true)
+
+	execAddr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	datas = &types.StoreSet{
+		StateHash: hash0,
+		KV:        accountdb.GetExecKVSet(execAddr2, acc),
+		Height:    1}
+	hash1, err := store.Set(datas, true)
+
+	execAddr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	datas = &types.StoreSet{
+		StateHash: hash1,
+		KV:        accountdb.GetExecKVSet(execAddr3, acc),
+		Height:    2}
+	hash2, err := store.Set(datas, true)
+
+	assert.Nil(t, err)
+
+	fmt.Println("func TestIterateCallBack------test case1-------")
+	req := &types.StoreList{StateHash: hash2, Start: []byte(prefix), Suffix: []byte(addr), End: genPrefixEdge([]byte(prefix)), Count: 5, Mode: 1}
+	query := drivers.NewStoreListQuery(store, req)
+	resp2 := query.Run()
+	tool := &StatTool{}
+	tool.AddItem(resp2.Values)
+	assert.Equal(t, int64(3), resp2.Num)
+	assert.Equal(t, (0), len(resp2.NextKey))
+	assert.Equal(t, (3), len(resp2.Keys))
+	assert.Equal(t, (3), len(resp2.Values))
+	assert.Equal(t, int64(6), tool.Amount)
+	assert.Equal(t, int64(3), tool.AmountActive)
+	assert.Equal(t, int64(3), tool.AmountFrozen)
+	tool.Reset()
+
+	fmt.Println("func TestIterateCallBack------test case2-------")
+	resp1 := &types.StoreListReply{}
+	resp1.Suffix = []byte(addr)
+	resp1.Start = []byte(prefix)
+	resp1.End = genPrefixEdge([]byte(prefix))
+	resp1.Count = 5
+	resp1.Mode = 1
+
+	query = &drivers.StoreListQuery{StoreListReply: resp1}
+	store.IterateRangeByStateHash(hash1, resp1.Start, resp1.End, true, query.IterateCallBack)
+
+	tool.AddItem(resp1.Values)
+	assert.Equal(t, int64(2), resp1.Num)
+	assert.Equal(t, (0), len(resp1.NextKey))
+	assert.Equal(t, (2), len(resp1.Keys))
+	assert.Equal(t, (2), len(resp1.Values))
+	assert.Equal(t, int64(4), tool.Amount)
+	assert.Equal(t, int64(2), tool.AmountActive)
+	assert.Equal(t, int64(2), tool.AmountFrozen)
+	tool.Reset()
+
+	fmt.Println("func TestIterateCallBack------test case3-------")
+	resp0 := &types.StoreListReply{}
+	resp0.Suffix = []byte(addr)
+	resp0.Start = []byte(prefix)
+	resp0.End = genPrefixEdge([]byte(prefix))
+	resp0.Count = 5
+	resp0.Mode = 1
+	query = &drivers.StoreListQuery{StoreListReply: resp0}
+	store.IterateRangeByStateHash(hash0, resp0.Start, resp0.End, true, query.IterateCallBack)
+
+	tool.AddItem(resp0.Values)
+	assert.Equal(t, int64(1), resp0.Num)
+	assert.Equal(t, 0, len(resp0.NextKey))
+	assert.Equal(t, 1, len(resp0.Keys))
+	assert.Equal(t, 1, len(resp0.Values))
+	assert.Equal(t, int64(2), tool.Amount)
+	assert.Equal(t, int64(1), tool.AmountActive)
+	assert.Equal(t, int64(1), tool.AmountFrozen)
+	tool.Reset()
+
+	fmt.Println("func TestIterateCallBack------test case4-------")
+	resp := &types.StoreListReply{}
+	resp.Suffix = []byte(addr)
+	resp.Start = []byte(prefix)
+	resp.End = genPrefixEdge([]byte(prefix))
+	resp.Count = 1
+	resp.Mode = 1
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, resp.End, true, query.IterateCallBack)
+
+	tool.AddItem(resp.Values)
+	assert.Equal(t, int64(1), resp.Num)
+	assert.Equal(t, len([]byte(key)), len(resp.NextKey))
+	assert.Equal(t, (1), len(resp.Keys))
+	assert.Equal(t, (1), len(resp.Values))
+	assert.Equal(t, int64(2), tool.Amount)
+	assert.Equal(t, int64(1), tool.AmountActive)
+	assert.Equal(t, int64(1), tool.AmountFrozen)
+	tool.Reset()
+
+	fmt.Println("func TestIterateCallBack------test case5-------")
+	resp = &types.StoreListReply{}
+	resp.Suffix = []byte(addr)
+	resp.Start = []byte(prefix)
+	resp.End = genPrefixEdge([]byte(prefix))
+	resp.Count = 2
+	resp.Mode = 1
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, resp.End, true, query.IterateCallBack)
+
+	tool.AddItem(resp.Values)
+	assert.Equal(t, int64(2), resp.Num)
+	assert.Equal(t, len([]byte(key)), len(resp.NextKey))
+	assert.Equal(t, (2), len(resp.Keys))
+	assert.Equal(t, (2), len(resp.Values))
+	assert.Equal(t, int64(4), tool.Amount)
+	assert.Equal(t, int64(2), tool.AmountActive)
+	assert.Equal(t, int64(2), tool.AmountFrozen)
+	tool.Reset()
+}
+func TestIterateCallBack_Mode2(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg, nil).(*Store)
+	assert.NotNil(t, store)
+	//mavldb.EnableMavlPrefix(true)
+	//defer mavldb.EnableMavlPrefix(false)
+
+	//var accountdb *account.DB
+	accountdb := account.NewCoinsAccount()
+	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	prefix := "mavl-coins-bty-exec-"
+	execAddr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	var acc = &types.Account{
+		Currency: 0,
+		Balance:  1,
+		Frozen:   1,
+		Addr:     addr,
+	}
+	datas := &types.StoreSet{
+		StateHash: drivers.EmptyRoot[:],
+		KV:        accountdb.GetExecKVSet(execAddr1, acc),
+		Height:    0}
+	hash0, err := store.Set(datas, true)
+
+	execAddr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	datas = &types.StoreSet{
+		StateHash: hash0,
+		KV:        accountdb.GetExecKVSet(execAddr2, acc),
+		Height:    1}
+	hash1, err := store.Set(datas, true)
+
+	execAddr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+	datas = &types.StoreSet{
+		StateHash: hash1,
+		KV:        accountdb.GetExecKVSet(execAddr3, acc),
+		Height:    2}
+	hash2, err := store.Set(datas, true)
+
+	assert.Nil(t, err)
+
+	fmt.Println("func TestIterateCallBack------test case1-------")
+	resp2 := &types.StoreListReply{}
+	resp2.Suffix = []byte(addr)
+	resp2.Start = []byte(prefix)
+	resp2.End = genPrefixEdge([]byte(prefix))
+	resp2.Count = 5
+	resp2.Mode = 2
+
+	query := &drivers.StoreListQuery{StoreListReply: resp2}
+	store.IterateRangeByStateHash(hash2, resp2.Start, nil, true, query.IterateCallBack)
+	tool := &StatTool{}
+	tool.AddItem(resp2.Values)
+	assert.Equal(t, int64(3), resp2.Num)
+	assert.Equal(t, (0), len(resp2.NextKey))
+	assert.Equal(t, (3), len(resp2.Keys))
+	assert.Equal(t, (3), len(resp2.Values))
+	assert.Equal(t, int64(6), tool.Amount)
+	assert.Equal(t, int64(3), tool.AmountActive)
+	assert.Equal(t, int64(3), tool.AmountFrozen)
+	tool.Reset()
+
+	fmt.Println("func TestIterateCallBack------test case2-------")
+	resp1 := &types.StoreListReply{}
+	resp1.Suffix = []byte(addr)
+	resp1.Start = []byte(prefix)
+	resp1.End = genPrefixEdge([]byte(prefix))
+	resp1.Count = 5
+	resp1.Mode = 2
+	query = &drivers.StoreListQuery{StoreListReply: resp1}
+	store.IterateRangeByStateHash(hash1, resp1.Start, resp1.End, true, query.IterateCallBack)
+
+	tool.AddItem(resp1.Values)
+	assert.Equal(t, int64(2), resp1.Num)
+	assert.Equal(t, (0), len(resp1.NextKey))
+	assert.Equal(t, (2), len(resp1.Keys))
+	assert.Equal(t, (2), len(resp1.Values))
+	assert.Equal(t, int64(4), tool.Amount)
+	assert.Equal(t, int64(2), tool.AmountActive)
+	assert.Equal(t, int64(2), tool.AmountFrozen)
+	tool.Reset()
+
+	fmt.Println("func TestIterateCallBack------test case3-------")
+	resp0 := &types.StoreListReply{}
+	resp0.Suffix = []byte(addr)
+	resp0.Start = []byte(prefix)
+	resp0.End = genPrefixEdge([]byte(prefix))
+	resp0.Count = 5
+	resp0.Mode = 2
+	query = &drivers.StoreListQuery{StoreListReply: resp0}
+	store.IterateRangeByStateHash(hash0, resp0.Start, nil, true, query.IterateCallBack)
+
+	tool.AddItem(resp0.Values)
+	assert.Equal(t, int64(1), resp0.Num)
+	assert.Equal(t, (0), len(resp0.NextKey))
+	assert.Equal(t, (1), len(resp0.Keys))
+	assert.Equal(t, (1), len(resp0.Values))
+	assert.Equal(t, int64(2), tool.Amount)
+	assert.Equal(t, int64(1), tool.AmountActive)
+	assert.Equal(t, int64(1), tool.AmountFrozen)
+	tool.Reset()
+
+	fmt.Println("func TestIterateCallBack------test case4-------")
+	resp := &types.StoreListReply{}
+	resp.Suffix = []byte(addr)
+	resp.Start = []byte(prefix)
+	resp.End = genPrefixEdge([]byte(prefix))
+	resp.Count = 1
+	resp.Mode = 2
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, query.IterateCallBack)
+
+	tool.AddItem(resp.Values)
+	assert.Equal(t, int64(1), resp.Num)
+	assert.Equal(t, len([]byte(key)), len(resp.NextKey))
+	assert.Equal(t, (1), len(resp.Keys))
+	assert.Equal(t, (1), len(resp.Values))
+	assert.Equal(t, int64(2), tool.Amount)
+	assert.Equal(t, int64(1), tool.AmountActive)
+	assert.Equal(t, int64(1), tool.AmountFrozen)
+	tool.Reset()
+
+	fmt.Println("func TestIterateCallBack------test case5-------")
+	resp = &types.StoreListReply{}
+	resp.Suffix = []byte(addr)
+	resp.Start = []byte(prefix)
+	resp.End = genPrefixEdge([]byte(prefix))
+	resp.Count = 2
+	resp.Mode = 2
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, query.IterateCallBack)
+
+	tool.AddItem(resp.Values)
+	assert.Equal(t, int64(2), resp.Num)
+	assert.Equal(t, len([]byte(key)), len(resp.NextKey))
+	assert.Equal(t, (2), len(resp.Keys))
+	assert.Equal(t, (2), len(resp.Values))
+	assert.Equal(t, int64(4), tool.Amount)
+	assert.Equal(t, int64(2), tool.AmountActive)
+	assert.Equal(t, int64(2), tool.AmountFrozen)
+	tool.Reset()
+
+	fmt.Println("func TestIterateCallBack------test case6-------")
+	resp = &types.StoreListReply{}
+	resp.End = []byte(addr)
+	resp.Start = []byte("mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:")
+	resp.End = genPrefixEdge([]byte("mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:"))
+	resp.Count = 1
+	resp.Mode = 2
+	query = &drivers.StoreListQuery{StoreListReply: resp}
+	store.IterateRangeByStateHash(hash2, resp.Start, resp.End, true, query.IterateCallBack)
+	tool.AddItem(resp.Values)
+	assert.Equal(t, int64(1), resp.Num)
+	assert.Equal(t, len([]byte(key)), len(resp.NextKey))
+	assert.Equal(t, (1), len(resp.Keys))
+	assert.Equal(t, (1), len(resp.Values))
+	assert.Equal(t, int64(2), tool.Amount)
+	assert.Equal(t, int64(1), tool.AmountActive)
+	assert.Equal(t, int64(1), tool.AmountFrozen)
+	tool.Reset()
 }
 
 func GetRandomString(length int) string {

@@ -7,6 +7,7 @@ package types
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -231,7 +232,7 @@ func NewQueryData(prefix string) *QueryData {
 
 func (q *QueryData) Register(key string, obj interface{}) {
 	if _, existed := q.funcMap[key]; existed {
-		panic("QueryData reg dup")
+		panic(fmt.Sprintf("QueryData Register dup for key=%s", key))
 	}
 	q.funcMap[key], q.typeMap[key] = BuildQueryType(q.prefix, ListMethod(obj))
 }

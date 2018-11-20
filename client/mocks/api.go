@@ -948,6 +948,29 @@ func (_m *QueueProtocolAPI) StoreGetTotalCoins(_a0 *types.IterateRangeByStateHas
 	return r0, r1
 }
 
+// StoreList provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) StoreList(param *types.StoreList) (*types.StoreListReply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.StoreListReply
+	if rf, ok := ret.Get(0).(func(*types.StoreList) *types.StoreListReply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.StoreListReply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.StoreList) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Version provides a mock function with given fields:
 func (_m *QueueProtocolAPI) Version() (*types.Reply, error) {
 	ret := _m.Called()

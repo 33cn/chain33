@@ -32,11 +32,11 @@ const (
 )
 
 var (
-	LocalAddr string
+	LocalAddr   string
+	defaultPort int = 13802
 )
 
 const (
-	defaultPort     = 13802
 	defalutNatPort  = 23802
 	maxOutBoundNum  = 25
 	stableBoundNum  = 15
