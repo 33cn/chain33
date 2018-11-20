@@ -27,6 +27,7 @@ import (
 
 var gid int64
 
+// Client 消息队列的接口，每个模块都需要一个发送接受client
 type Client interface {
 	Send(msg Message, waitReply bool) (err error) //同步发送消息
 	SendTimeout(msg Message, waitReply bool, timeout time.Duration) (err error)
@@ -39,7 +40,7 @@ type Client interface {
 	NewMessage(topic string, ty int64, data interface{}) (msg Message)
 }
 
-/// Module be used for module interface
+// Module be used for module interface
 type Module interface {
 	SetQueueClient(client Client)
 	Close()
@@ -64,6 +65,7 @@ func newClient(q *queue) Client {
 	return client
 }
 
+// Send 发送消息,msg 消息 ,waitReply 是否等待回应
 //1. 系统保证send出去的消息就是成功了，除非系统崩溃
 //2. 系统保证每个消息都有对应的 response 消息
 func (client *client) Send(msg Message, waitReply bool) (err error) {
@@ -78,6 +80,7 @@ func (client *client) Send(msg Message, waitReply bool) (err error) {
 	return err
 }
 
+// SendTimeout 超时发送， msg 消息 ,waitReply 是否等待回应， timeout 超时时间
 func (client *client) SendTimeout(msg Message, waitReply bool, timeout time.Duration) (err error) {
 	if client.isClose() {
 		return types.ErrIsClosed
@@ -93,11 +96,13 @@ func (client *client) SendTimeout(msg Message, waitReply bool, timeout time.Dura
 //1. SendAsyn 低优先级
 //2. Send 高优先级别的发送消息
 
+// NewMessage 新建消息 topic模块名称 ty消息类型 data 数据
 func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
 	id := atomic.AddInt64(&gid, 1)
 	return NewMessage(id, topic, ty, data)
 }
 
+// WaitTimeout 等待时间 msg 消息 timeout 超时时间
 func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, error) {
 	if msg.chReply == nil {
 		return Message{}, errors.New("empty wait channel")
@@ -114,6 +119,7 @@ func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, 
 	}
 }
 
+// Wait 等待时间
 func (client *client) Wait(msg Message) (Message, error) {
 	timeout := 10 * time.Minute
 	if types.IsTestNet() {
@@ -126,6 +132,7 @@ func (client *client) Wait(msg Message) (Message, error) {
 	return msg, err
 }
 
+// Recv 获取接受消息通道
 func (client *client) Recv() chan Message {
 	return client.recv
 }
@@ -148,6 +155,7 @@ func (client *client) isInClose() bool {
 	return atomic.LoadInt32(&client.isCloseing) == 1
 }
 
+// Close 关闭client
 func (client *client) Close() {
 	if atomic.LoadInt32(&client.isClosed) == 1 {
 		return
@@ -161,6 +169,7 @@ func (client *client) Close() {
 	close(client.Recv())
 }
 
+// CloseQueue 关闭消息队列
 func (client *client) CloseQueue() (*types.Reply, error) {
 	//	client.q.Close()
 	if client.q.isClosed() {
@@ -185,6 +194,7 @@ func (client *client) isEnd(data Message, ok bool) bool {
 	return false
 }
 
+// Sub 订阅消息类型
 func (client *client) Sub(topic string) {
 	//正在关闭或者已经关闭
 	if client.isInClose() || client.isClose() {

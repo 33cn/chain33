@@ -11,6 +11,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// New new store queue module
 func New(cfg *types.Store, sub map[string][]byte) queue.Module {
 	s, err := store.Load(cfg.Name)
 	if err != nil {

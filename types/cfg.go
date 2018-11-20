@@ -102,7 +102,7 @@ type BlockChain struct {
 }
 
 type P2P struct {
-	SeedPort        int32    `protobuf:"varint,1,opt,name=seedPort" json:"seedPort,omitempty"`
+	Port            int32    `protobuf:"varint,1,opt,name=port" json:"port,omitempty"`
 	Driver          string   `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
 	DbPath          string   `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
 	DbCache         int32    `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
@@ -113,7 +113,7 @@ type P2P struct {
 	Enable          bool     `protobuf:"varint,9,opt,name=enable" json:"enable,omitempty"`
 	MsgCacheSize    int32    `protobuf:"varint,10,opt,name=msgCacheSize" json:"msgCacheSize,omitempty"`
 	Version         int32    `protobuf:"varint,11,opt,name=version" json:"version,omitempty"`
-	VerMix          int32    `protobuf:"varint,12,opt,name=verMix" json:"verMix,omitempty"`
+	VerMin          int32    `protobuf:"varint,12,opt,name=verMin" json:"verMin,omitempty"`
 	VerMax          int32    `protobuf:"varint,13,opt,name=verMax" json:"verMax,omitempty"`
 	InnerSeedEnable bool     `protobuf:"varint,14,opt,name=innerSeedEnable" json:"innerSeedEnable,omitempty"`
 	InnerBounds     int32    `protobuf:"varint,15,opt,name=innerBounds" json:"innerBounds,omitempty"`

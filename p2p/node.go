@@ -21,11 +21,12 @@ import (
 )
 
 // 启动Node节点
-//1.启动监听GRPC Server
-//2.检测自身地址
-//3.启动端口映射
-//4.启动监控模块，进行节点管理
+// 1.启动监听GRPC Server
+// 2.检测自身地址
+// 3.启动端口映射
+// 4.启动监控模块，进行节点管理
 
+// Start Node listener
 func (n *Node) Start() {
 	if n.listener != nil {
 		n.listener.Start()
@@ -36,6 +37,7 @@ func (n *Node) Start() {
 
 }
 
+// Close node listener
 func (n *Node) Close() {
 	atomic.StoreInt32(&n.closed, 1)
 	if n.listener != nil {
@@ -57,6 +59,7 @@ func (n *Node) isClose() bool {
 	return atomic.LoadInt32(&n.closed) == 1
 }
 
+// Node attribute
 type Node struct {
 	omtx       sync.Mutex
 	nodeInfo   *NodeInfo
@@ -68,10 +71,12 @@ type Node struct {
 	pubsub     *pubsub.PubSub
 }
 
+// SetQueueClinet return client for nodeinfo
 func (n *Node) SetQueueClient(client queue.Client) {
 	n.nodeInfo.client = client
 }
 
+// NewNode produce a node object
 func NewNode(cfg *types.P2P) (*Node, error) {
 
 	node := &Node{
@@ -79,6 +84,12 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		cacheBound: make(map[string]*Peer),
 		pubsub:     pubsub.NewPubSub(10200),
 	}
+
+	if cfg.Port != 0 && cfg.Port <= 65535 && cfg.Port > 1024 {
+		defaultPort = int(cfg.Port)
+
+	}
+
 	if cfg.InnerSeedEnable {
 		if types.IsTestNet() {
 			cfg.Seeds = append(cfg.Seeds, TestNetSeeds...)
@@ -187,18 +198,21 @@ func (n *Node) addPeer(pr *Peer) {
 	pr.Start()
 }
 
+// AddCachePeer  add cacheBound map by addr
 func (n *Node) AddCachePeer(pr *Peer) {
 	n.cmtx.Lock()
 	defer n.cmtx.Unlock()
 	n.cacheBound[pr.Addr()] = pr
 }
 
+// RemoveCachePeer remove cacheBound by addr
 func (n *Node) RemoveCachePeer(addr string) {
 	n.cmtx.Lock()
 	defer n.cmtx.Unlock()
 	delete(n.cacheBound, addr)
 }
 
+// HasCacheBound peer whether exists according to address
 func (n *Node) HasCacheBound(addr string) bool {
 	n.cmtx.Lock()
 	defer n.cmtx.Unlock()
@@ -206,11 +220,15 @@ func (n *Node) HasCacheBound(addr string) bool {
 	return ok
 
 }
+
+// CacheBoundsSize return node cachebount size
 func (n *Node) CacheBoundsSize() int {
 	n.cmtx.Lock()
 	defer n.cmtx.Unlock()
 	return len(n.cacheBound)
 }
+
+// GetCacheBounds get node cachebounds
 func (n *Node) GetCacheBounds() []*Peer {
 	n.cmtx.Lock()
 	defer n.cmtx.Unlock()
@@ -225,11 +243,13 @@ func (n *Node) GetCacheBounds() []*Peer {
 	return peers
 }
 
+// Size return size for peersize
 func (n *Node) Size() int {
 
 	return n.nodeInfo.peerInfos.PeerSize()
 }
 
+// Has peer whether exists according to address
 func (n *Node) Has(paddr string) bool {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
@@ -240,6 +260,7 @@ func (n *Node) Has(paddr string) bool {
 	return false
 }
 
+// GetRegisterPeer return one peer according to paddr
 func (n *Node) GetRegisterPeer(paddr string) *Peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
@@ -249,6 +270,7 @@ func (n *Node) GetRegisterPeer(paddr string) *Peer {
 	return nil
 }
 
+// GetRigisterPeers return peers
 func (n *Node) GetRegisterPeers() []*Peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
@@ -263,6 +285,7 @@ func (n *Node) GetRegisterPeers() []*Peer {
 	return peers
 }
 
+// GetActivepeers return activities of the peers and infos
 func (n *Node) GetActivePeers() (map[string]*Peer, map[string]*types.Peer) {
 	regPeers := n.GetRegisterPeers()
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()
@@ -391,7 +414,7 @@ func (n *Node) natMapPort() {
 		ok := p2pcli.CheckSelf(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
 		if !ok {
 			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
-			n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
+			n.flushNodePort(uint16(defaultPort), uint16(rand.Intn(64512)+1023))
 		}
 
 	}
@@ -403,7 +426,7 @@ func (n *Node) natMapPort() {
 		if err != nil {
 			if i > tryMapPortTimes/2 { //如果连续失败次数超过最大限制次数的二分之一则切换为随机端口映射
 				log.Error("NatMapPort", "err", err.Error())
-				n.flushNodePort(defaultPort, uint16(rand.Intn(64512)+1023))
+				n.flushNodePort(uint16(defaultPort), uint16(rand.Intn(64512)+1023))
 
 			}
 			log.Info("NatMapPort", "External Port", n.nodeInfo.GetExternalAddr().Port)
@@ -416,7 +439,7 @@ func (n *Node) natMapPort() {
 	if err != nil {
 		//映射失败
 		log.Warn("NatMapPort", "Nat", "Faild")
-		n.flushNodePort(defaultPort, defaultPort)
+		n.flushNodePort(uint16(defaultPort), uint16(defaultPort))
 		n.nodeInfo.natResultChain <- false
 		return
 	}
@@ -447,7 +470,7 @@ func (n *Node) deleteNatMapPort() {
 	if n.nodeInfo.OutSide() {
 		return
 	}
-	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), int(defaultPort))
+	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort)
 
 }
 

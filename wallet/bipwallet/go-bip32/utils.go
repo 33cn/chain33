@@ -21,7 +21,7 @@ import (
 var (
 	curve                 = btcutil.Secp256k1()
 	curveParams           = curve.Params()
-	BitcoinBase58Encoding = basen.NewEncoding("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+	bitcoinBase58Encoding = basen.NewEncoding("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
 )
 
 //
@@ -62,7 +62,7 @@ func addChecksumToBytes(data []byte) []byte {
 }
 
 func base58Encode(data []byte) []byte {
-	return []byte(BitcoinBase58Encoding.EncodeToString(data))
+	return []byte(bitcoinBase58Encoding.EncodeToString(data))
 }
 
 // Keys

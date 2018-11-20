@@ -35,7 +35,7 @@ var (
 	// 是否开启mavl裁剪
 	enablePrune bool
 	// 每个10000裁剪一次
-	pruneHeight int = 10000
+	pruneHeight = 10000
 	// 裁剪状态
 	pruningState int32
 	delPoolCache *lru.Cache
@@ -60,7 +60,8 @@ type hashData struct {
 	hash   []byte
 }
 
-func NewDelNodeValuePool(cacSize int) *delNodeValuePool {
+// newDelNodeValuePool 创建记录已经删除节点缓存池
+func newDelNodeValuePool(cacSize int) *delNodeValuePool {
 	cache, err := lru.New(cacSize)
 	if err != nil {
 		return nil
@@ -70,16 +71,19 @@ func NewDelNodeValuePool(cacSize int) *delNodeValuePool {
 	return dNodePool
 }
 
+// EnablePrune 使能裁剪
 func EnablePrune(enable bool) {
 	enablePrune = enable
 	//开启裁剪需要同时开启前缀
 	enableMavlPrefix = enable
 }
 
+// SetPruneHeight 设置每次裁剪高度
 func SetPruneHeight(height int) {
 	pruneHeight = height
 }
 
+// ClosePrune 关闭裁剪
 func ClosePrune() {
 	quit = true
 	wg.Wait()
@@ -317,7 +321,7 @@ func (ndb *markNodeDB) getPool(str string) (dep *delNodeValuePool) {
 		//如果不存在说明是新的则
 		//创建一个空的集
 		ndb.judgeDelNodeCache()
-		dep = NewDelNodeValuePool(perDelNodePoolSize)
+		dep = newDelNodeValuePool(perDelNodePoolSize)
 		if dep != nil {
 			ndb.delPoolCache.Add(str, dep)
 		}
@@ -329,7 +333,7 @@ func (ndb *markNodeDB) getPool(str string) (dep *delNodeValuePool) {
 		}
 		if ndb.delPoolCache != nil {
 			ndb.judgeDelNodeCache()
-			dep = NewDelNodeValuePool(perDelNodePoolSize)
+			dep = newDelNodeValuePool(perDelNodePoolSize)
 			if dep != nil {
 				for _, k := range stp.Values {
 					dep.delCache.Add(string(k), true)
@@ -360,6 +364,7 @@ func (ndb *markNodeDB) judgeDelNodeCache() {
 	}
 }
 
+// MarkNode 用于裁剪的节点结构体
 type MarkNode struct {
 	height     int32
 	hash       []byte
@@ -386,6 +391,7 @@ func newMarkNodeDB(db dbm.DB, cache int) *markNodeDB {
 	return ndb
 }
 
+// LoadLeaf 载入叶子节点
 func (ndb *markNodeDB) LoadLeaf(hash []byte) (node *MarkNode, err error) {
 	if !bytes.Equal(hash, emptyRoot[:]) {
 		leaf, err := ndb.fetchNode(hash)
@@ -397,13 +403,12 @@ func (ndb *markNodeDB) LoadLeaf(hash []byte) (node *MarkNode, err error) {
 func (node *MarkNode) fetchParentNode(ndb *markNodeDB) *MarkNode {
 	if node.parentNode != nil {
 		return node.parentNode
-	} else {
-		pNode, err := ndb.fetchNode(node.parentHash)
-		if err != nil {
-			return nil
-		}
-		return pNode
 	}
+	pNode, err := ndb.fetchNode(node.parentHash)
+	if err != nil {
+		return nil
+	}
+	return pNode
 }
 
 func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
@@ -455,6 +460,7 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 	return mNode, nil
 }
 
+// PruningTreePrintDB 打印统计数据库中节点数据
 func PruningTreePrintDB(db dbm.DB, prefix []byte) {
 	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
@@ -492,6 +498,7 @@ func PruningTreePrintDB(db dbm.DB, prefix []byte) {
 	treelog.Info("pruningTree:", "prefix:", string(prefix), "All count", count)
 }
 
+// PruningTree 裁剪树
 func PruningTree(db dbm.DB, curHeight int64) {
 	pruningTree(db, curHeight)
 }

@@ -16,6 +16,7 @@ var pluginItems = make(map[string]Plugin)
 
 var once = &sync.Once{}
 
+// InitExec init exec
 func InitExec(sub map[string][]byte) {
 	once.Do(func() {
 		for _, item := range pluginItems {
@@ -24,6 +25,7 @@ func InitExec(sub map[string][]byte) {
 	})
 }
 
+// InitWallet init wallet plugin
 func InitWallet(wallet wcom.WalletOperate, sub map[string][]byte) {
 	once.Do(func() {
 		for _, item := range pluginItems {
@@ -32,6 +34,7 @@ func InitWallet(wallet wcom.WalletOperate, sub map[string][]byte) {
 	})
 }
 
+// HasExec check is have the name exec
 func HasExec(name string) bool {
 	for _, item := range pluginItems {
 		if item.GetExecutorName() == name {
@@ -41,6 +44,7 @@ func HasExec(name string) bool {
 	return false
 }
 
+// Register Register plugin
 func Register(p Plugin) {
 	if p == nil {
 		panic("plugin param is nil" + p.GetName())
@@ -55,12 +59,14 @@ func Register(p Plugin) {
 	pluginItems[packageName] = p
 }
 
+// AddCmd add Command for plugin
 func AddCmd(rootCmd *cobra.Command) {
 	for _, item := range pluginItems {
 		item.AddCmd(rootCmd)
 	}
 }
 
+// AddRPC add Rpc
 func AddRPC(s types.RPCServer) {
 	for _, item := range pluginItems {
 		item.AddRPC(s)
