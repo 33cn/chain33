@@ -102,7 +102,7 @@ type BlockChain struct {
 }
 
 type P2P struct {
-	P2pPort         int32    `protobuf:"varint,1,opt,name=p2pPort" json:"p2pPort,omitempty"`
+	Port            int32    `protobuf:"varint,1,opt,name=port" json:"port,omitempty"`
 	Driver          string   `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
 	DbPath          string   `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
 	DbCache         int32    `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`

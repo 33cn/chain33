@@ -39,7 +39,11 @@ enableTxQuickIndex=false
 
 
 [p2p]
+<<<<<<< HEAD
 p2pPort=13802
+=======
+port=13802
+>>>>>>> upstream/master
 seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
 enable=true
 isSeed=true

@@ -822,6 +822,25 @@ func (q *QueueProtocol) StoreGet(param *types.StoreGet) (*types.StoreReplyValue,
 	return nil, err
 }
 
+//StoreList query list from statedb
+func (q *QueueProtocol) StoreList(param *types.StoreList) (*types.StoreListReply, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreList", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(storeKey, types.EventStoreList, param)
+	if err != nil {
+		log.Error("StoreList", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.StoreListReply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 // StoreGetTotalCoins get total coins from statedb
 func (q *QueueProtocol) StoreGetTotalCoins(param *types.IterateRangeByStateHash) (*types.ReplyGetTotalCoins, error) {
 	if param == nil {

@@ -17,14 +17,17 @@ import (
 
 var mlog = log.New("module", "mavl")
 
+// SetLogLevel set log level
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
 }
 
+// DisableLog disable log
 func DisableLog() {
 	mlog.SetHandler(log.DiscardHandler())
 }
 
+// Store mavl store struct
 type Store struct {
 	*drivers.BaseStore
 	trees            map[string]*mavl.Tree
@@ -46,6 +49,7 @@ type subConfig struct {
 	PruneHeight      int32 `json:"pruneHeight"`
 }
 
+// New new mavl store module
 func New(cfg *types.Store, sub []byte) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	var subcfg subConfig
@@ -68,16 +72,19 @@ func New(cfg *types.Store, sub []byte) queue.Module {
 	return mavls
 }
 
+// Close close mavl store
 func (mavls *Store) Close() {
 	mavl.ClosePrune()
 	mavls.BaseStore.Close()
 	mlog.Info("store mavl closed")
 }
 
+// Set set k v to mavl store db; sync is true represent write sync
 func (mavls *Store) Set(datas *types.StoreSet, sync bool) ([]byte, error) {
 	return mavl.SetKVPair(mavls.GetDB(), datas, sync)
 }
 
+// Get get values by keys
 func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 	var tree *mavl.Tree
 	var err error
@@ -108,6 +115,7 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 	return values
 }
 
+// MemSet set keys values to memcory mavl, return root hash and error
 func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	if len(datas.KV) == 0 {
 		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
@@ -131,6 +139,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	return hash, nil
 }
 
+// Commit convert memcory mavl to storage db
 func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 	tree, ok := mavls.trees[string(req.Hash)]
 	if !ok {
@@ -153,6 +162,7 @@ func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 	return req.Hash, nil
 }
 
+// Rollback 回退将缓存的mavl树删除掉
 func (mavls *Store) Rollback(req *types.ReqHash) ([]byte, error) {
 	_, ok := mavls.trees[string(req.Hash)]
 	if !ok {
@@ -163,14 +173,17 @@ func (mavls *Store) Rollback(req *types.ReqHash) ([]byte, error) {
 	return req.Hash, nil
 }
 
+// IterateRangeByStateHash 迭代实现功能； statehash：当前状态hash, start：开始查找的key, end: 结束的key, ascending：升序，降序, fn 迭代回调函数
 func (mavls *Store) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
 	mavl.IterateRangeByStateHash(mavls.GetDB(), statehash, start, end, ascending, fn)
 }
 
+// ProcEvent not support message
 func (mavls *Store) ProcEvent(msg queue.Message) {
 	msg.ReplyErr("Store", types.ErrActionNotSupport)
 }
 
+// Del ...
 func (mavls *Store) Del(req *types.StoreDel) ([]byte, error) {
 	//not support
 	return nil, nil

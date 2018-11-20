@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// Prints the in-memory children recursively.
+// PrintNode the in-memory children recursively.
 func PrintNode(node *Node) {
 	fmt.Println("==== NODE")
 	if node != nil {
