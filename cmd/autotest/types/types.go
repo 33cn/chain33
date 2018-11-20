@@ -19,9 +19,9 @@ type AutoTest interface {
 }
 
 //Init 超时次数等于总超时时间除以每次check时睡眠时间
-func Init(cliCmd string, checkTimeout int) {
+func Init(cliCommand string, checkTimeout int) {
 
-	cliCmd = cliCmd
+	cliCmd = cliCommand
 	checkTimeOut = checkTimeout
 }
 
