@@ -5,9 +5,9 @@
 package bip44_test
 
 import (
-	"github.com/33cn/chain33/wallet/bipwallet"
 	"testing"
 
+	"github.com/33cn/chain33/wallet/bipwallet"
 	. "github.com/33cn/chain33/wallet/bipwallet/go-bip44"
 )
 
