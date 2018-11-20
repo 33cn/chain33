@@ -219,7 +219,7 @@ func (sig SignatureSM2) Equals(other crypto.Signature) bool {
 //const
 const (
 	Name = "sm2"
-	ID = 3
+	ID   = 3
 )
 
 func init() {
