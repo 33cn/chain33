@@ -134,6 +134,10 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreDel, &types.ReplyHash{Hash: hash}))
 		}
+	} else if msg.Ty == types.EventStoreList {
+		req := msg.GetData().(*types.StoreList)
+		query := NewStoreListQuery(store.child, req)
+		msg.Reply(client.NewMessage("", types.EventStoreListReply, query.Run()))
 	} else {
 		store.child.ProcEvent(msg)
 	}
@@ -157,4 +161,59 @@ func (store *BaseStore) GetDB() dbm.DB {
 
 func (store *BaseStore) GetQueueClient() queue.Client {
 	return store.qclient
+}
+
+func NewStoreListQuery(store SubStore, req *types.StoreList) *StoreListQuery {
+	reply := &types.StoreListReply{Start: req.Start, End: req.End, Suffix: req.Suffix, Count: req.Count, Mode: req.Mode}
+	return &StoreListQuery{StoreListReply: reply, req: req, store: store}
+}
+
+type StoreListQuery struct {
+	store SubStore
+	req   *types.StoreList
+	*types.StoreListReply
+}
+
+func (t *StoreListQuery) Run() *types.StoreListReply {
+	t.store.IterateRangeByStateHash(t.req.StateHash, t.req.Start, t.req.End, true, t.IterateCallBack)
+	return t.StoreListReply
+}
+
+func (t *StoreListQuery) IterateCallBack(key, value []byte) bool {
+	if t.Mode == 1 { //[start, end)模式
+		if t.Num >= t.Count {
+			t.NextKey = key
+			return true
+		}
+		t.Num++
+		t.Keys = append(t.Keys, cloneByte(key))
+		t.Values = append(t.Values, cloneByte(value))
+		return false
+	} else if t.Mode == 2 { //prefix + suffix模式，要对按prefix得到的数据key进行suffix的判断，符合条件的数据才是最终要的数据
+		if len(key) > len(t.Suffix) {
+			if string(key[len(key)-len(t.Suffix):]) == string(t.Suffix) {
+				t.Num++
+				t.Keys = append(t.Keys, cloneByte(key))
+				t.Values = append(t.Values, cloneByte(value))
+				if t.Num >= t.Count {
+					t.NextKey = key
+					return true
+				}
+				return false
+			} else {
+				return false
+			}
+		} else {
+			return false
+		}
+	} else {
+		slog.Error("StoreListReply.IterateCallBack unsupported mode", "mode", t.Mode)
+		return true
+	}
+}
+
+func cloneByte(v []byte) []byte {
+	value := make([]byte, len(v))
+	copy(value, v)
+	return value
 }

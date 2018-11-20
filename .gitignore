@@ -1,3 +1,7 @@
+clean.sh
+rm.sh
+top.txt
+top2.txt
 datadir*
 *.log
 *.exe

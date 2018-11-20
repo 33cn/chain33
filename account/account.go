@@ -329,3 +329,81 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 		return accounts, nil
 	}
 }
+
+func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecBalance) (reply *types.ReplyGetExecBalance, err error) {
+	req := types.StoreList{}
+	req.StateHash = in.StateHash
+
+	prefix := symbolExecPrefix(in.Execer, in.Symbol)
+	if len(in.ExecAddr) > 0 {
+		prefix = prefix + "-" + string(in.ExecAddr) + ":"
+	} else {
+		prefix = prefix + "-"
+	}
+
+	req.Start = []byte(prefix)
+	req.End = genPrefixEdge(req.Start)
+	req.Suffix = in.Addr
+	req.Mode = 2 //1：为[start,end）模式，按前缀或者范围进行查找。2：为prefix + suffix遍历模式，先按前缀查找，再判断后缀是否满足条件。
+	req.Count = in.Count
+
+	if len(in.NextKey) > 0 {
+		req.Start = in.NextKey
+	}
+
+	reply = &types.ReplyGetExecBalance{}
+	//log.Info("DB.GetExecBalance", "hash", common.ToHex(req.StateHash), "Prefix", string(req.Start), "End", string(req.End), "Addr", string(req.Suffix))
+
+	res, err := api.StoreList(&req)
+	if err != nil {
+		err = types.ErrTypeAsset
+		return nil, err
+	}
+
+	for i := 0; i < len(res.Keys); i++ {
+		strKey := string(res.Keys[i])
+		log.Info("DB.GetExecBalance process one record", "key", strKey)
+		if !strings.HasPrefix(strKey, prefix) {
+			log.Error("accountDB.GetExecBalance key does not match prefix", "key", strKey, "prefix", prefix)
+			return nil, types.ErrTypeAsset
+		}
+		//如果prefix形如：mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:  ,则是查找addr在一个合约地址上的余额，找到一个值即可结束。
+		if strings.HasSuffix(prefix, ":") {
+			addr := strKey[len(prefix):]
+			execAddr := []byte(prefix[(len(prefix) - len(addr) - 1):(len(prefix) - 1)])
+			log.Info("DB.GetExecBalance record for specific exec addr", "execAddr", string(execAddr), "addr", addr)
+			reply.AddItem(execAddr, res.Values[i])
+		} else {
+			combinAddr := strKey[len(prefix):]
+			addrs := strings.Split(combinAddr, ":")
+			if 2 != len(addrs) {
+				log.Error("accountDB.GetExecBalance key does not contain exec-addr & addr", "key", strKey, "combinAddr", combinAddr)
+				return nil, types.ErrTypeAsset
+			}
+			//log.Info("DB.GetExecBalance", "execAddr", addrs[0], "addr", addrs[1])
+			reply.AddItem([]byte(addrs[0]), res.Values[i])
+		}
+	}
+
+	reply.NextKey = res.NextKey
+
+	return reply, nil
+}
+
+func genPrefixEdge(prefix []byte) (r []byte) {
+	for j := 0; j < len(prefix); j++ {
+		r = append(r, prefix[j])
+	}
+
+	i := len(prefix) - 1
+	for i >= 0 {
+		if r[i] < 0xff {
+			r[i] += 1
+			break
+		} else {
+			i--
+		}
+	}
+
+	return r
+}
