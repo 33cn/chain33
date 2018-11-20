@@ -257,7 +257,10 @@ auto_ci: clean fmt_proto fmt_shell protobuf mock
 		  git add *.go *.sh *.proto; \
 		  git status; \
 		  git commit -a -m "auto ci"; \
-		  git push origin HEAD:$(branch); \
+		  git remote add originx $(originx); \
+		  git remote -v; \
+		  git push --quiet --set-upstream originx HEAD:$(branch); \
+		  git log -n 2; \
 		  exit 1; \
 		  fi;
 
