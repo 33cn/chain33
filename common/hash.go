@@ -32,8 +32,10 @@ func BytesToHash(b []byte) Hash {
 
 //StringToHash string -> Hash
 func StringToHash(s string) Hash { return BytesToHash([]byte(s)) }
+
 //BigToHash *big.Int -> Hash
-func BigToHash(b *big.Int) Hash  { return BytesToHash(b.Bytes()) }
+func BigToHash(b *big.Int) Hash { return BytesToHash(b.Bytes()) }
+
 //HexToHash hex string -> Hash
 func HexToHash(s string) Hash {
 	b, _ := FromHex(s)
@@ -43,11 +45,13 @@ func HexToHash(s string) Hash {
 // Get the string representation of the underlying hash
 
 //Str 返回string格式
-func (h Hash) Str() string   { return string(h[:]) }
+func (h Hash) Str() string { return string(h[:]) }
+
 //Bytes 返回[]byte格式
 func (h Hash) Bytes() []byte { return h[:] }
+
 //Hex 返回编码成16进制的hex格式
-func (h Hash) Hex() string   { return hexEncode(h[:]) }
+func (h Hash) Hex() string { return hexEncode(h[:]) }
 
 // TerminalString implements log.TerminalStringer, formatting a string for console
 // output during logging.

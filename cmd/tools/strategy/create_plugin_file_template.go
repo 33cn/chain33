@@ -100,7 +100,7 @@ enableMVCC=false
 [exec.sub.token]
 saveTokenTxList=false
 `
-//CPFT_RUNMAIN_BLOCK ...
+	//CPFT_RUNMAIN_BLOCK ...
 	CPFT_RUNMAIN_BLOCK = `package main
 
 var ${PROJECTNAME} = `

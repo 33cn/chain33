@@ -13,6 +13,7 @@ import (
 type Create func(cfg *types.Consensus, sub []byte) queue.Module
 
 var regConsensus = make(map[string]Create)
+
 //QueryData 请求数据
 var QueryData = types.NewQueryData("Query_")
 
