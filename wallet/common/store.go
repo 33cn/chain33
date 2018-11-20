@@ -22,39 +22,47 @@ var (
 	storelog = log15.New("wallet", "store")
 )
 
+// NewStore 新建存储对象
 func NewStore(db db.DB) *Store {
 	return &Store{db: db}
 }
 
-// 钱包通用数据库存储类，实现对钱包账户数据库操作的基本实现
+// Store 钱包通用数据库存储类，实现对钱包账户数据库操作的基本实现
 type Store struct {
 	db db.DB
 }
 
+// Close 关闭数据库
 func (store *Store) Close() {
 	store.db.Close()
 }
 
+// GetDB 获取数据库操作接口
 func (store *Store) GetDB() db.DB {
 	return store.db
 }
 
+// NewBatch 新建批处理操作对象接口
 func (store *Store) NewBatch(sync bool) db.Batch {
 	return store.db.NewBatch(sync)
 }
 
+// Get 取值
 func (store *Store) Get(key []byte) ([]byte, error) {
 	return store.db.Get(key)
 }
 
+// Set 设置值
 func (store *Store) Set(key []byte, value []byte) (err error) {
 	return store.db.Set(key, value)
 }
 
+// NewListHelper 新建列表复制操作对象
 func (store *Store) NewListHelper() *db.ListHelper {
 	return db.NewListHelper(store.db)
 }
 
+// GetAccountByte 获取账号byte类型
 func (store *Store) GetAccountByte(update bool, addr string, account *types.WalletAccountStore) ([]byte, error) {
 	if len(addr) == 0 {
 		storelog.Error("GetAccountByte addr is nil")
@@ -80,6 +88,7 @@ func (store *Store) GetAccountByte(update bool, addr string, account *types.Wall
 	return accountbyte, nil
 }
 
+// SetWalletAccount 保存钱包账户信息
 func (store *Store) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
 	accountbyte, err := store.GetAccountByte(update, addr, account)
 	if err != nil {
@@ -95,6 +104,7 @@ func (store *Store) SetWalletAccount(update bool, addr string, account *types.Wa
 	return nil
 }
 
+// SetWalletAccountInBatch 保存钱包账号信息
 func (store *Store) SetWalletAccountInBatch(update bool, addr string, account *types.WalletAccountStore, newbatch db.Batch) error {
 	accountbyte, err := store.GetAccountByte(update, addr, account)
 	if err != nil {
@@ -108,6 +118,7 @@ func (store *Store) SetWalletAccountInBatch(update bool, addr string, account *t
 	return nil
 }
 
+// GetAccountByAddr 根据地址获取账号信息
 func (store *Store) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(addr) == 0 {
@@ -129,6 +140,7 @@ func (store *Store) GetAccountByAddr(addr string) (*types.WalletAccountStore, er
 	return &account, nil
 }
 
+// GetAccountByLabel 根据标签获取账号信息
 func (store *Store) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(label) == 0 {
@@ -150,6 +162,7 @@ func (store *Store) GetAccountByLabel(label string) (*types.WalletAccountStore, 
 	return &account, nil
 }
 
+// GetAccountByPrefix 根据前缀获取账号信息列表
 func (store *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
 	if len(addr) == 0 {
 		storelog.Error("GetAccountByPrefix addr is nil")
@@ -174,7 +187,7 @@ func (store *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore
 	return WalletAccountStores, nil
 }
 
-//迭代获取从指定key：height*100000+index 开始向前或者向后查找指定count的交易
+//GetTxDetailByIter 迭代获取从指定key：height*100000+index 开始向前或者向后查找指定count的交易
 func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	var txDetails types.WalletTxDetails
 	if TxList == nil {
@@ -219,6 +232,7 @@ func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*
 	return &txDetails, nil
 }
 
+// SetEncryptionFlag 设置加密方式标志
 func (store *Store) SetEncryptionFlag(batch db.Batch) error {
 	var flag int64 = 1
 	data, err := json.Marshal(flag)
@@ -231,6 +245,7 @@ func (store *Store) SetEncryptionFlag(batch db.Batch) error {
 	return nil
 }
 
+// GetEncryptionFlag 获取加密方式
 func (store *Store) GetEncryptionFlag() int64 {
 	var flag int64
 	data, err := store.Get(CalcEncryptionFlag())
@@ -248,6 +263,7 @@ func (store *Store) GetEncryptionFlag() int64 {
 	return flag
 }
 
+// SetPasswordHash 保存密码哈希
 func (store *Store) SetPasswordHash(password string, batch db.Batch) error {
 	var WalletPwHash types.WalletPwHash
 	//获取一个随机字符串
@@ -268,6 +284,7 @@ func (store *Store) SetPasswordHash(password string, batch db.Batch) error {
 	return nil
 }
 
+// VerifyPasswordHash 检查密码有效性
 func (store *Store) VerifyPasswordHash(password string) bool {
 	var WalletPwHash types.WalletPwHash
 	pwhashbytes, err := store.Get(CalcPasswordHash())
@@ -286,11 +303,12 @@ func (store *Store) VerifyPasswordHash(password string) bool {
 	return bytes.Equal(WalletPwHash.GetPwHash(), Pwhash)
 }
 
+// DelAccountByLabel 根据标签名称，删除对应的账号信息
 func (store *Store) DelAccountByLabel(label string) {
 	store.GetDB().DeleteSync(CalcLabelKey(label))
 }
 
-//升级数据库的版本号
+//SetWalletVersion 升级数据库的版本号
 func (store *Store) SetWalletVersion(ver int64) error {
 	data, err := json.Marshal(ver)
 	if err != nil {
@@ -302,7 +320,7 @@ func (store *Store) SetWalletVersion(ver int64) error {
 	return nil
 }
 
-// 获取wallet数据库的版本号
+// GetWalletVersion 获取wallet数据库的版本号
 func (store *Store) GetWalletVersion() int64 {
 	var ver int64
 	data, err := store.Get(version.WalletVerKey)
@@ -317,7 +335,7 @@ func (store *Store) GetWalletVersion() int64 {
 	return ver
 }
 
-//判断钱包是否已经保存seed
+//HasSeed 判断钱包是否已经保存seed
 func (store *Store) HasSeed() (bool, error) {
 	seed, err := store.Get(CalcWalletSeed())
 	if len(seed) == 0 || err != nil {

@@ -1,5 +1,5 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
-// Use of this source code is governed by a BSD-style
+// Use of policy source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package wallet
@@ -34,78 +34,78 @@ type walletBizPlicy struct {
 	walletOperate wcom.WalletOperate
 }
 
-func (this *walletBizPlicy) Init(walletBiz wcom.WalletOperate, sub []byte) {
-	this.setWalletOperate(walletBiz)
+func (policy *walletBizPlicy) Init(walletBiz wcom.WalletOperate, sub []byte) {
+	policy.setWalletOperate(walletBiz)
 }
 
-func (this *walletBizPlicy) setWalletOperate(walletBiz wcom.WalletOperate) {
-	this.mtx.Lock()
-	defer this.mtx.Unlock()
-	this.walletOperate = walletBiz
+func (policy *walletBizPlicy) setWalletOperate(walletBiz wcom.WalletOperate) {
+	policy.mtx.Lock()
+	defer policy.mtx.Unlock()
+	policy.walletOperate = walletBiz
 }
 
-func (this *walletBizPlicy) getWalletOperate() wcom.WalletOperate {
-	this.mtx.Lock()
-	defer this.mtx.Unlock()
-	return this.walletOperate
+func (policy *walletBizPlicy) getWalletOperate() wcom.WalletOperate {
+	policy.mtx.Lock()
+	defer policy.mtx.Unlock()
+	return policy.walletOperate
 }
 
-func (this *walletBizPlicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
+func (policy *walletBizPlicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
 	return nil
 }
 
-func (this *walletBizPlicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
+func (policy *walletBizPlicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
 	return nil
 }
 
-func (this *walletBizPlicy) SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtx string, err error) {
+func (policy *walletBizPlicy) SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtx string, err error) {
 	needSysSign = true
 	return
 }
 
-func (this *walletBizPlicy) OnCreateNewAccount(acc *types.Account) {
-	wg := this.getWalletOperate().GetWaitGroup()
+func (policy *walletBizPlicy) OnCreateNewAccount(acc *types.Account) {
+	wg := policy.getWalletOperate().GetWaitGroup()
 	wg.Add(1)
-	go this.rescanReqTxDetailByAddr(acc.Addr, wg)
+	go policy.rescanReqTxDetailByAddr(acc.Addr, wg)
 }
 
-func (this *walletBizPlicy) OnImportPrivateKey(acc *types.Account) {
-	wg := this.getWalletOperate().GetWaitGroup()
+func (policy *walletBizPlicy) OnImportPrivateKey(acc *types.Account) {
+	wg := policy.getWalletOperate().GetWaitGroup()
 	wg.Add(1)
-	go this.rescanReqTxDetailByAddr(acc.Addr, wg)
+	go policy.rescanReqTxDetailByAddr(acc.Addr, wg)
 }
 
-func (this *walletBizPlicy) OnWalletLocked() {
+func (policy *walletBizPlicy) OnWalletLocked() {
 }
 
-func (this *walletBizPlicy) OnWalletUnlocked(WalletUnLock *types.WalletUnLock) {
+func (policy *walletBizPlicy) OnWalletUnlocked(WalletUnLock *types.WalletUnLock) {
 }
 
-func (this *walletBizPlicy) OnAddBlockFinish(block *types.BlockDetail) {
+func (policy *walletBizPlicy) OnAddBlockFinish(block *types.BlockDetail) {
 }
 
-func (this *walletBizPlicy) OnDeleteBlockFinish(block *types.BlockDetail) {
+func (policy *walletBizPlicy) OnDeleteBlockFinish(block *types.BlockDetail) {
 }
 
-func (this *walletBizPlicy) OnClose() {
+func (policy *walletBizPlicy) OnClose() {
 }
 
-func (this *walletBizPlicy) OnSetQueueClient() {
+func (policy *walletBizPlicy) OnSetQueueClient() {
 }
 
-func (this *walletBizPlicy) Call(funName string, in types.Message) (ret types.Message, err error) {
+func (policy *walletBizPlicy) Call(funName string, in types.Message) (ret types.Message, err error) {
 	err = types.ErrNotSupport
 	return
 }
 
 //从blockchain模块同步addr参与的所有交易详细信息
-func (this *walletBizPlicy) rescanReqTxDetailByAddr(addr string, wg *sync.WaitGroup) {
+func (policy *walletBizPlicy) rescanReqTxDetailByAddr(addr string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	this.reqTxDetailByAddr(addr)
+	policy.reqTxDetailByAddr(addr)
 }
 
 //从blockchain模块同步addr参与的所有交易详细信息
-func (this *walletBizPlicy) reqTxDetailByAddr(addr string) {
+func (policy *walletBizPlicy) reqTxDetailByAddr(addr string) {
 	if len(addr) == 0 {
 		walletlog.Error("reqTxDetailByAddr input addr is nil!")
 		return
@@ -113,7 +113,7 @@ func (this *walletBizPlicy) reqTxDetailByAddr(addr string) {
 	var txInfo types.ReplyTxInfo
 
 	i := 0
-	operater := this.getWalletOperate()
+	operater := policy.getWalletOperate()
 	for {
 		//首先从blockchain模块获取地址对应的所有交易hashs列表,从最新的交易开始获取
 		var ReqAddr types.ReqAddr

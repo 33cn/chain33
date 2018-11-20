@@ -14,13 +14,17 @@ import (
 )
 
 const (
-	FirstHardenedChild        = uint32(0x80000000)
+	// FirstHardenedChild FirstHardenedChild
+	FirstHardenedChild = uint32(0x80000000)
+	// PublicKeyCompressedLength 公钥压缩长度
 	PublicKeyCompressedLength = 33
 )
 
 var (
+	// PrivateWalletVersion 私钥钱包版本
 	PrivateWalletVersion, _ = hex.DecodeString("0488ADE4")
-	PublicWalletVersion, _  = hex.DecodeString("0488B21E")
+	// PublicWalletVersion 公钥钱包版本
+	PublicWalletVersion, _ = hex.DecodeString("0488B21E")
 )
 
 // Represents a bip32 extended key containing key data, chain code, parent information, and other meta data
