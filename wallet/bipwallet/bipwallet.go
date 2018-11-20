@@ -124,7 +124,7 @@ var CoinName = map[uint32]string{
 	TypeYcc:          "YCC",
 }
 
-// 支持BIP-44标准的HD钱包
+// HDWallet 支持BIP-44标准的HD钱包
 type HDWallet struct {
 	CoinType  uint32
 	RootSeed  []byte
