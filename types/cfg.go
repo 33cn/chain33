@@ -113,7 +113,7 @@ type P2P struct {
 	Enable          bool     `protobuf:"varint,9,opt,name=enable" json:"enable,omitempty"`
 	MsgCacheSize    int32    `protobuf:"varint,10,opt,name=msgCacheSize" json:"msgCacheSize,omitempty"`
 	Version         int32    `protobuf:"varint,11,opt,name=version" json:"version,omitempty"`
-	VerMix          int32    `protobuf:"varint,12,opt,name=verMix" json:"verMix,omitempty"`
+	VerMin          int32    `protobuf:"varint,12,opt,name=verMin" json:"verMin,omitempty"`
 	VerMax          int32    `protobuf:"varint,13,opt,name=verMax" json:"verMax,omitempty"`
 	InnerSeedEnable bool     `protobuf:"varint,14,opt,name=innerSeedEnable" json:"innerSeedEnable,omitempty"`
 	InnerBounds     int32    `protobuf:"varint,15,opt,name=innerBounds" json:"innerBounds,omitempty"`
