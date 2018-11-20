@@ -7,6 +7,7 @@ package bip44_test
 import (
 	"testing"
 
+	"github.com/33cn/chain33/wallet/bipwallet"
 	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
 	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 	. "github.com/33cn/chain33/wallet/bipwallet/go-bip44"
@@ -14,7 +15,7 @@ import (
 
 func TestNewKeyFromMnemonic(t *testing.T) {
 	mnemonic := "yellow yellow yellow yellow yellow yellow yellow yellow yellow yellow yellow yellow"
-	fKey, err := NewKeyFromMnemonic(mnemonic, TypeFactomFactoids, bip32.FirstHardenedChild, 0, 0)
+	fKey, err := NewKeyFromMnemonic(mnemonic, bipwallet.TypeFactomFactoids, bip32.FirstHardenedChild, 0, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -22,7 +23,7 @@ func TestNewKeyFromMnemonic(t *testing.T) {
 		t.Errorf("Invalid Factoid key - %v", fKey.String())
 	}
 
-	ecKey, err := NewKeyFromMnemonic(mnemonic, TypeFactomEntryCredits, bip32.FirstHardenedChild, 0, 0)
+	ecKey, err := NewKeyFromMnemonic(mnemonic, bipwallet.TypeFactomEntryCredits, bip32.FirstHardenedChild, 0, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -44,7 +45,7 @@ func TestNewKeyFromMasterKey(t *testing.T) {
 		panic(err)
 	}
 
-	fKey, err := NewKeyFromMasterKey(masterKey, TypeFactomFactoids, bip32.FirstHardenedChild, 0, 0)
+	fKey, err := NewKeyFromMasterKey(masterKey, bipwallet.TypeFactomFactoids, bip32.FirstHardenedChild, 0, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +53,7 @@ func TestNewKeyFromMasterKey(t *testing.T) {
 		t.Errorf("Invalid Factoid key - %v", fKey.String())
 	}
 
-	ecKey, err := NewKeyFromMasterKey(masterKey, TypeFactomEntryCredits, bip32.FirstHardenedChild, 0, 0)
+	ecKey, err := NewKeyFromMasterKey(masterKey, bipwallet.TypeFactomEntryCredits, bip32.FirstHardenedChild, 0, 0)
 	if err != nil {
 		panic(err)
 	}
