@@ -15,6 +15,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
 )
+
 // JSONClinet a object of jsonclient
 type JSONClient struct {
 	url    string
@@ -27,10 +28,12 @@ func addPrefix(prefix, name string) string {
 	}
 	return prefix + "." + name
 }
+
 // NewJSONClient produce a json object
 func NewJSONClient(url string) (*JSONClient, error) {
 	return &JSONClient{url: url, prefix: "Chain33"}, nil
 }
+
 // New produce a jsonclient by perfix and url
 func New(prefix, url string) (*JSONClient, error) {
 	return &JSONClient{url: url, prefix: prefix}, nil
@@ -47,6 +50,7 @@ type clientResponse struct {
 	Result *json.RawMessage `json:"result"`
 	Error  interface{}      `json:"error"`
 }
+
 // Call jsonclinet call method
 func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	method = addPrefix(client.prefix, method)
