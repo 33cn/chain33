@@ -17,10 +17,13 @@ import (
 	"github.com/33cn/chain33/types"
 	"google.golang.org/grpc"
 )
+
 // P2pComm p2p communication
 var P2pComm Comm
+
 // Comm information
 type Comm struct{}
+
 // AddrRouteble address router ,return enbale address
 func (Comm) AddrRouteble(addrs []string) []string {
 	var enableAddrs []string
@@ -41,6 +44,7 @@ func (Comm) AddrRouteble(addrs []string) []string {
 	}
 	return enableAddrs
 }
+
 // RandStr return a rand string
 func (c Comm) RandStr(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -53,6 +57,7 @@ func (c Comm) RandStr(n int) string {
 
 	return string(b)
 }
+
 // GetLocalAddr get local address ,return address
 func (c Comm) GetLocalAddr() string {
 
@@ -113,6 +118,7 @@ func (c Comm) dialPeer(addr *NetAddress, node *Node) (*Peer, error) {
 	log.Debug("dialPeer", "Peer info", peer)
 	return peer, nil
 }
+
 // GenPrivPubkey return key and pubkey in bytes
 func (c Comm) GenPrivPubkey() ([]byte, []byte, error) {
 	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
@@ -128,6 +134,7 @@ func (c Comm) GenPrivPubkey() ([]byte, []byte, error) {
 	}
 	return key.Bytes(), key.PubKey().Bytes(), nil
 }
+
 // Pubkey get pubkey by key
 func (c Comm) Pubkey(key string) (string, error) {
 
@@ -150,6 +157,7 @@ func (c Comm) Pubkey(key string) (string, error) {
 
 	return hex.EncodeToString(priv.PubKey().Bytes()), nil
 }
+
 // NewPingData get ping node ,return p2pping
 func (c Comm) NewPingData(nodeInfo *NodeInfo) (*types.P2PPing, error) {
 	randNonce := rand.Int31n(102040)
@@ -164,6 +172,7 @@ func (c Comm) NewPingData(nodeInfo *NodeInfo) (*types.P2PPing, error) {
 	return ping, nil
 
 }
+
 // Signature nodedata by key
 func (c Comm) Signature(key string, in *types.P2PPing) (*types.P2PPing, error) {
 
@@ -190,6 +199,7 @@ func (c Comm) Signature(key string, in *types.P2PPing) (*types.P2PPing, error) {
 
 	return in, nil
 }
+
 // CheckSign check signature data
 func (c Comm) CheckSign(in *types.P2PPing) bool {
 
@@ -223,6 +233,7 @@ func (c Comm) CheckSign(in *types.P2PPing) bool {
 	}
 	return false
 }
+
 // CollectPeerStat collect peer stat and report
 func (c Comm) CollectPeerStat(err error, peer *Peer) {
 	if err != nil {
@@ -245,6 +256,7 @@ func (c Comm) reportPeerStat(peer *Peer) {
 		<-timeout.C
 	}
 }
+
 // BytesToInt32 bytes to int32 type
 func (c Comm) BytesToInt32(b []byte) int32 {
 	bytesBuffer := bytes.NewBuffer(b)
@@ -252,6 +264,7 @@ func (c Comm) BytesToInt32(b []byte) int32 {
 	binary.Read(bytesBuffer, binary.LittleEndian, &tmp)
 	return tmp
 }
+
 // Int32ToBytes int32 to bytes type
 func (c Comm) Int32ToBytes(n int32) []byte {
 	tmp := n
@@ -259,6 +272,7 @@ func (c Comm) Int32ToBytes(n int32) []byte {
 	binary.Write(bytesBuffer, binary.LittleEndian, tmp)
 	return bytesBuffer.Bytes()
 }
+
 // GrpcConfig grpc config
 func (c Comm) GrpcConfig() grpc.ServiceConfig {
 

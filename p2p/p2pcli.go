@@ -43,10 +43,12 @@ type NormalInterface interface {
 	GetInPeersNum(peer *Peer) (int, error)
 	CheckSelf(addr string, nodeinfo *NodeInfo) bool
 }
+
 // Cli p2p client
 type Cli struct {
 	network *P2p
 }
+
 // NewP2PCli produce a p2p client
 func NewP2PCli(network *P2p) EventInterface {
 	if network == nil {
@@ -58,10 +60,12 @@ func NewP2PCli(network *P2p) EventInterface {
 
 	return pcli
 }
+
 // NewNormalP2PCli produce a normal client
 func NewNormalP2PCli() NormalInterface {
 	return &Cli{}
 }
+
 // BroadCastTx broadcast transactions
 func (m *Cli) BroadCastTx(msg queue.Message, taskindex int64) {
 	defer func() {
@@ -72,6 +76,7 @@ func (m *Cli) BroadCastTx(msg queue.Message, taskindex int64) {
 	m.network.node.pubsub.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, "tx")
 	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
 }
+
 // GetMemPool get mempool contents
 func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 	defer func() {
@@ -138,6 +143,7 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 	}
 	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
 }
+
 // GetAddr get address list
 func (m *Cli) GetAddr(peer *Peer) ([]string, error) {
 
@@ -151,6 +157,7 @@ func (m *Cli) GetAddr(peer *Peer) ([]string, error) {
 	log.Debug("GetAddr Resp", "Resp", resp, "addrlist", resp.Addrlist)
 	return resp.Addrlist, nil
 }
+
 // GetInPeersNum return normal number of peers
 func (m *Cli) GetInPeersNum(peer *Peer) (int, error) {
 	ping, err := P2pComm.NewPingData(peer.node.nodeInfo)
@@ -168,6 +175,7 @@ func (m *Cli) GetInPeersNum(peer *Peer) (int, error) {
 
 	return len(resp.GetPeers()), nil
 }
+
 // GetAddrList return a map for address-prot
 func (m *Cli) GetAddrList(peer *Peer) (map[string]int64, error) {
 
@@ -207,6 +215,7 @@ func (m *Cli) GetAddrList(peer *Peer) (map[string]int64, error) {
 	}
 	return addrlist, nil
 }
+
 // SendVersion send version
 func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	client := nodeinfo.client
@@ -268,6 +277,7 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	}
 	return resp.GetUserAgent(), nil
 }
+
 // SendPing send ping
 func (m *Cli) SendPing(peer *Peer, nodeinfo *NodeInfo) error {
 	randNonce := rand.Int31n(102040)
@@ -288,6 +298,7 @@ func (m *Cli) SendPing(peer *Peer, nodeinfo *NodeInfo) error {
 	log.Debug("SendPing", "Peer", peer.Addr(), "nonce", randNonce, "recv", r.Nonce)
 	return nil
 }
+
 // GetBlockHeight return block height
 func (m *Cli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	client := nodeinfo.client
@@ -305,6 +316,7 @@ func (m *Cli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 	header := resp.GetData().(*pb.Header)
 	return header.GetHeight(), nil
 }
+
 // GetPeerInfo return peer information
 func (m *Cli) GetPeerInfo(msg queue.Message, taskindex int64) {
 	defer func() {
@@ -329,6 +341,7 @@ func (m *Cli) GetPeerInfo(msg queue.Message, taskindex int64) {
 	peers = append(peers, &peer)
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peers}))
 }
+
 // GetHeadrs get headers information
 func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 	defer func() {
@@ -373,6 +386,7 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 		}
 	}
 }
+
 // GetBlocks get blocks information
 func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 	defer func() {
@@ -530,6 +544,7 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 	}
 
 }
+
 // BlockBroadcast block broadcast
 func (m *Cli) BlockBroadcast(msg queue.Message, taskindex int64) {
 	defer func() {
@@ -538,6 +553,7 @@ func (m *Cli) BlockBroadcast(msg queue.Message, taskindex int64) {
 	}()
 	m.network.node.pubsub.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, "block")
 }
+
 // GetNetInfo get network information
 func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
 	defer func() {
@@ -554,12 +570,14 @@ func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
 	msg.Reply(m.network.client.NewMessage("rpc", pb.EventReplyNetInfo, &netinfo))
 
 }
+
 // CheckPeerNatOk check peer is ok or not
 func (m *Cli) CheckPeerNatOk(addr string) bool {
 	//连接自己的地址信息做测试
 	return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
 
 }
+
 // CheckSelf check addrbook privPubKey
 func (m *Cli) CheckSelf(addr string, nodeinfo *NodeInfo) bool {
 	netaddr, err := NewNetAddressString(addr)

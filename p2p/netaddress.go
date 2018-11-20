@@ -103,6 +103,7 @@ func (na *NetAddress) Equals(other interface{}) bool {
 
 	return false
 }
+
 // Less reports whether na and other are the less addresses
 func (na *NetAddress) Less(other interface{}) bool {
 	if o, ok := other.(*NetAddress); ok {
@@ -123,6 +124,7 @@ func (na *NetAddress) String() string {
 	}
 	return na.str
 }
+
 // Copy na address
 func (na *NetAddress) Copy() *NetAddress {
 	copytmp := *na
@@ -137,6 +139,7 @@ func isCompressSupport(err error) bool {
 	}
 	return true
 }
+
 // DialTimeout dial timeout
 func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	ch := make(chan grpc.ServiceConfig, 1)
