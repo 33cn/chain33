@@ -39,12 +39,12 @@ type CreateDappSourceTask struct {
 }
 
 //GetName 获取name
-func (c*CreateDappSourceTask) GetName() string {
+func (c *CreateDappSourceTask) GetName() string {
 	return "CreateDappSourceTask"
 }
 
 //Execute 执行
-func (c*CreateDappSourceTask) Execute() error {
+func (c *CreateDappSourceTask) Execute() error {
 	mlog.Info("Execute create build app source task.")
 	if err := c.init(); err != nil {
 		return err
@@ -67,7 +67,7 @@ func (c*CreateDappSourceTask) Execute() error {
 	return nil
 }
 
-func (c*CreateDappSourceTask) init() error {
+func (c *CreateDappSourceTask) init() error {
 	if !util.CheckFileIsExist(c.ExecHeaderTempFile) {
 		return errors.New(fmt.Sprintf("File %s not existed.", c.ExecHeaderTempFile))
 	}

@@ -28,7 +28,7 @@ type TestOperator struct {
 	addDepBuf   chan types.CaseFunc
 	delDepBuf   chan types.PackFunc
 	depCaseMap  map[string][]types.CaseFunc //key:TestID, val: array of testCases depending on the key
-	depCountMap map[string]int        //key:TestID, val: dependency count
+	depCountMap map[string]int              //key:TestID, val: dependency count
 
 	fLog log15.Logger
 	tLog log15.Logger
