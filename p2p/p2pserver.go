@@ -254,7 +254,8 @@ func (s *P2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 
 		} else if inv.GetTy() == msgBlock {
 			height := inv.GetHeight()
-			msg := client.NewMessage("blockchain", pb.EventGetBlocks, &pb.ReqBlocks{height, height, false, []string{""}})
+			reqblock := &pb.ReqBlocks{Start: height, End: height}
+			msg := client.NewMessage("blockchain", pb.EventGetBlocks, reqblock)
 			err := client.Send(msg, true)
 			if err != nil {
 				log.Error("GetBlocks", "Error", err.Error())
@@ -461,7 +462,7 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(),
 				"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash", blockhash)
 			if block.GetBlock() != nil {
-				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{peername, block.GetBlock()})
+				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{Pid: peername, Block: block.GetBlock()})
 				s.node.nodeInfo.client.Send(msg, false)
 			}
 
