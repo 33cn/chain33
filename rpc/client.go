@@ -179,7 +179,7 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 	addrs = append(addrs, addr)
 	allBalance := &types.AllExecBalance{Addr: addr}
 	for _, exec := range types.AllowUserExec {
-		execer := string(exec)
+		execer := types.ExecName(string(exec))
 		params := &types.ReqBalance{
 			Addresses: addrs,
 			Execer:    execer,
