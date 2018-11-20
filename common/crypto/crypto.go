@@ -9,6 +9,7 @@ import (
 	"sync"
 )
 
+//PrivKey 私钥接口
 type PrivKey interface {
 	Bytes() []byte
 	Sign(msg []byte) Signature
@@ -16,6 +17,7 @@ type PrivKey interface {
 	Equals(PrivKey) bool
 }
 
+//Signature 签名接口
 type Signature interface {
 	Bytes() []byte
 	IsZero() bool
@@ -23,6 +25,7 @@ type Signature interface {
 	Equals(Signature) bool
 }
 
+//PubKey 公钥接口
 type PubKey interface {
 	Bytes() []byte
 	KeyString() string
@@ -30,6 +33,7 @@ type PubKey interface {
 	Equals(PubKey) bool
 }
 
+//Crypto 加密接口
 type Crypto interface {
 	GenKey() (PrivKey, error)
 	SignatureFromBytes([]byte) (Signature, error)
@@ -44,10 +48,12 @@ var (
 
 var driverMutex sync.Mutex
 
+//some const
 const (
 	SignNameED25519 = "ed25519"
 )
 
+//Register 注册对象
 func Register(name string, driver Crypto) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
@@ -60,6 +66,7 @@ func Register(name string, driver Crypto) {
 	drivers[name] = driver
 }
 
+//RegisterType 注册类型
 func RegisterType(name string, ty int) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
@@ -69,6 +76,7 @@ func RegisterType(name string, ty int) {
 	driversType[name] = ty
 }
 
+//GetName 获取name
 func GetName(ty int) string {
 	for name, t := range driversType {
 		if t == ty {
@@ -78,6 +86,7 @@ func GetName(ty int) string {
 	return "unknown"
 }
 
+//GetType 获取类型
 func GetType(name string) int {
 	if ty, ok := driversType[name]; ok {
 		return ty
@@ -85,6 +94,7 @@ func GetType(name string) int {
 	return 0
 }
 
+//New 新建
 func New(name string) (c Crypto, err error) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
@@ -97,6 +107,7 @@ func New(name string) (c Crypto, err error) {
 	return c, nil
 }
 
+//CertSignature 签名
 type CertSignature struct {
 	Signature []byte
 	Cert      []byte

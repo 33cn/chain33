@@ -12,7 +12,7 @@ import (
 	chain33Type "github.com/33cn/chain33/system/dapp/commands/types"
 )
 
-//interface for testCase
+//CaseFunc interface for testCase
 type CaseFunc interface {
 	//获取用例id
 	GetID() string
@@ -27,10 +27,10 @@ type CaseFunc interface {
 	//一个用例的输入依赖于另一个用例输出，设置依赖的输出数据
 	SetDependData(interface{})
 	//执行用例命令，并返回用例打包结构
-	SendCommand(packId string) (PackFunc, error)
+	SendCommand(packID string) (PackFunc, error)
 }
 
-//interface for check testCase result
+//PackFunc interface for check testCase result
 type PackFunc interface {
 	//获取id
 	GetPackID() string
@@ -54,7 +54,7 @@ type PackFunc interface {
 	CheckResult(interface{}) (bool, bool)
 }
 
-//base test case
+//BaseCase base test case
 type BaseCase struct {
 	ID        string   `toml:"id"`
 	Command   string   `toml:"command"`
@@ -66,15 +66,25 @@ type BaseCase struct {
 
 //check item handler
 //适配autotest早期版本，handlerfunc的参数为json的map形式，后续统一使用chain33的TxDetailResult结构体结构
+
+//CheckHandlerFuncDiscard ...
 type CheckHandlerFuncDiscard func(map[string]interface{}) bool
+
+//CheckHandlerMapDiscard ...
 type CheckHandlerMapDiscard map[string]CheckHandlerFuncDiscard
 
 //建议使用
+
+//CheckHandlerParamType ...
 type CheckHandlerParamType *chain33Type.TxDetailResult
+
+//CheckHandlerFunc ...
 type CheckHandlerFunc func(CheckHandlerParamType) bool
+
+//CheckHandlerMap ...
 type CheckHandlerMap map[string]CheckHandlerFunc
 
-//pack testCase with some check info
+//BaseCasePack pack testCase with some check info
 type BaseCasePack struct {
 	TCase      CaseFunc
 	CheckTimes int
@@ -85,7 +95,7 @@ type BaseCasePack struct {
 	TLog       log15.Logger
 }
 
-//default send command implementation, only for transaction type case
+//DefaultSend default send command implementation, only for transaction type case
 func DefaultSend(testCase CaseFunc, testPack PackFunc, packID string) (PackFunc, error) {
 
 	baseCase := testCase.GetBaseCase()
@@ -102,89 +112,105 @@ func DefaultSend(testCase CaseFunc, testPack PackFunc, packID string) (PackFunc,
 	return testPack, nil
 }
 
-//interface CaseFunc implementing by BaseCase
+//SendCommand interface CaseFunc implementing by BaseCase
 func (t *BaseCase) SendCommand(packID string) (PackFunc, error) {
 	return nil, nil
 }
 
+//GetID 获取ID
 func (t *BaseCase) GetID() string {
 
 	return t.ID
 }
 
+//GetCmd 获取command
 func (t *BaseCase) GetCmd() string {
 
 	return t.Command
 }
 
+//GetDep 获取dep
 func (t *BaseCase) GetDep() []string {
 
 	return t.Dep
 }
 
+//GetRepeat 获取repeat
 func (t *BaseCase) GetRepeat() int {
 
 	return t.Repeat
 }
 
+//GetBaseCase 获取基础用例
 func (t *BaseCase) GetBaseCase() *BaseCase {
 
 	return t
 }
 
+//SetDependData 设置依赖数据
 func (t *BaseCase) SetDependData(interface{}) {
 
 }
 
 //interface PackFunc implementing by BaseCasePack
 
+//GetPackID 获取packID
 func (pack *BaseCasePack) GetPackID() string {
 
 	return pack.PackID
 }
 
+//SetPackID 设置packID
 func (pack *BaseCasePack) SetPackID(id string) {
 
 	pack.PackID = id
 }
 
+//GetBaseCase 获取基础用例
 func (pack *BaseCasePack) GetBaseCase() *BaseCase {
 
 	return pack.TCase.GetBaseCase()
 }
 
+//GetTxHash 获取交易哈希
 func (pack *BaseCasePack) GetTxHash() string {
 
 	return pack.TxHash
 }
 
+//GetTxReceipt 获取交易接收方
 func (pack *BaseCasePack) GetTxReceipt() string {
 
 	return pack.TxReceipt
 }
 
+//SetLogger 日志配置
 func (pack *BaseCasePack) SetLogger(fLog log15.Logger, tLog log15.Logger) {
 
 	pack.FLog = fLog
 	pack.TLog = tLog
 }
 
+//GetBasePack 获取base pack
 func (pack *BaseCasePack) GetBasePack() *BaseCasePack {
 
 	return pack
 }
 
+//GetDependData 依赖数据
 func (pack *BaseCasePack) GetDependData() interface{} {
 
 	return nil
 }
 
+//GetCheckHandlerMap ...
 func (pack *BaseCasePack) GetCheckHandlerMap() interface{} {
 
 	//return make(map[string]CheckHandlerFunc, 1)
 	return nil
 }
 
+//CheckResult 检查结果
 func (pack *BaseCasePack) CheckResult(handlerMap interface{}) (bCheck bool, bSuccess bool) {
 
 	bCheck = false
@@ -193,7 +219,7 @@ func (pack *BaseCasePack) CheckResult(handlerMap interface{}) (bCheck bool, bSuc
 	tCase := pack.TCase.GetBaseCase()
 	txInfo, bReady := GetTxInfo(pack.TxHash)
 
-	if !bReady && (txInfo != "tx not exist\n" || pack.CheckTimes >= CheckTimeout) {
+	if !bReady && (txInfo != "tx not exist\n" || pack.CheckTimes >= checkTimeOut) {
 
 		pack.TxReceipt = txInfo
 		pack.FLog.Error("CheckTimeout", "TestID", pack.PackID, "ErrInfo", txInfo)

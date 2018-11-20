@@ -4,5 +4,8 @@
 
 package buildflags
 
-var ParaName string
-var RPCAddr string
+//some var
+var (
+	ParaName string
+	RPCAddr  string
+)

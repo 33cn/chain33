@@ -21,6 +21,7 @@ import (
 	"github.com/33cn/chain33/common/ed25519/edwards25519"
 )
 
+//some const
 const (
 	PublicKeySize  = 32
 	PrivateKeySize = 64

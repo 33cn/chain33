@@ -25,25 +25,26 @@ import (
 var (
 	blockLastHeight       = []byte("blockLastHeight")
 	bodyPerfix            = []byte("Body:")
-	LastSequence          = []byte("LastSequence")
+	lastSequence          = []byte("LastSequence")
 	headerPerfix          = []byte("Header:")
 	heightToHeaderPerfix  = []byte("HH:")
 	hashPerfix            = []byte("Hash:")
 	tdPerfix              = []byte("TD:")
 	heightToHashKeyPerfix = []byte("Height:")
 	seqToHashKey          = []byte("Seq:")
-	HashToSeqPerfix       = []byte("HashToSeq:")
+	hashToSeqPerfix       = []byte("HashToSeq:")
 
 	storeLog       = chainlog.New("submodule", "store")
 	lastheaderlock sync.Mutex
-	AddBlock       int64 = 1
-	DelBlock       int64 = 2
+	addBlock       int64 = 1
+	delBlock       int64 = 2
 )
 
+//GetLocalDBKeyList 获取LocalDB的所有键值
 func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
-		blockLastHeight, bodyPerfix, LastSequence, headerPerfix, heightToHeaderPerfix,
-		hashPerfix, tdPerfix, heightToHashKeyPerfix, seqToHashKey, HashToSeqPerfix,
+		blockLastHeight, bodyPerfix, lastSequence, headerPerfix, heightToHeaderPerfix,
+		hashPerfix, tdPerfix, heightToHashKeyPerfix, seqToHashKey, hashToSeqPerfix,
 	}
 }
 
@@ -71,7 +72,7 @@ func calcHashToTdKey(hash []byte) []byte {
 	return append(tdPerfix, hash...)
 }
 
-//存储block height 对应的block  hash
+//存储block height对应的block hash
 func calcHeightToHashKey(height int64) []byte {
 	return append(heightToHashKeyPerfix, []byte(fmt.Sprintf("%v", height))...)
 }
@@ -81,11 +82,12 @@ func calcSequenceToHashKey(sequence int64) []byte {
 	return append(seqToHashKey, []byte(fmt.Sprintf("%v", sequence))...)
 }
 
-//存储block hash对应的seq序列号，KEY=Seq:sequence，只用于平行链addblock操作，方便delblock回退是查找对应seq的hash
+//存储block hash对应的seq序列号，KEY=Seq:sequence，只用于平行链addBlock操作，方便delBlock回退是查找对应seq的hash
 func calcHashToSequenceKey(hash []byte) []byte {
-	return append(HashToSeqPerfix, hash...)
+	return append(hashToSeqPerfix, hash...)
 }
 
+//BlockStore  区块存储对象
 type BlockStore struct {
 	db        dbm.DB
 	client    queue.Client
@@ -93,6 +95,7 @@ type BlockStore struct {
 	lastBlock *types.Block
 }
 
+//NewBlockStore 新建一个BlockStore
 func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 	height, err := LoadBlockStoreHeight(db)
 	if err != nil {
@@ -252,6 +255,7 @@ func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
 	return 0, err
 }
 
+//HasTx 检查BlockStore中是否包含一笔交易
 func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 	if types.IsEnable("quickIndex") {
 		if _, err := bs.db.Get(types.CalcTxShortKey(key)); err != nil {
@@ -271,24 +275,25 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 	return true, nil
 }
 
-// 返回BlockStore保存的当前block高度
+//Height 返回BlockStore保存的当前block高度
 func (bs *BlockStore) Height() int64 {
 	return atomic.LoadInt64(&bs.height)
 }
 
-// 更新db中的block高度到BlockStore.Height
+//UpdateHeight 更新db中的block高度到BlockStore.Height
 func (bs *BlockStore) UpdateHeight() {
 	height, _ := LoadBlockStoreHeight(bs.db)
 	atomic.StoreInt64(&bs.height, height)
 	storeLog.Debug("UpdateHeight", "curblockheight", height)
 }
 
+//UpdateHeight2 更新db中的block高度到一个特定高度
 func (bs *BlockStore) UpdateHeight2(height int64) {
 	atomic.StoreInt64(&bs.height, height)
 	storeLog.Debug("UpdateHeight2", "curblockheight", height)
 }
 
-// 返回BlockStore保存的当前blockheader
+//LastHeader 返回BlockStore保存的当前blockheader
 func (bs *BlockStore) LastHeader() *types.Header {
 	lastheaderlock.Lock()
 	defer lastheaderlock.Unlock()
@@ -311,7 +316,7 @@ func (bs *BlockStore) LastHeader() *types.Header {
 	return &blockheader
 }
 
-// 更新LastBlock到缓存中
+//UpdateLastBlock 更新LastBlock到缓存中
 func (bs *BlockStore) UpdateLastBlock(hash []byte) {
 	blockdetail, err := bs.LoadBlockByHash(hash)
 	if err != nil {
@@ -326,6 +331,7 @@ func (bs *BlockStore) UpdateLastBlock(hash []byte) {
 	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", blockdetail.Block.Height, "LastHederhash", common.ToHex(blockdetail.Block.Hash()))
 }
 
+//UpdateLastBlock2 更新LastBlock到缓存中
 func (bs *BlockStore) UpdateLastBlock2(block *types.Block) {
 	lastheaderlock.Lock()
 	defer lastheaderlock.Unlock()
@@ -333,7 +339,7 @@ func (bs *BlockStore) UpdateLastBlock2(block *types.Block) {
 	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", block.Height, "LastHederhash", common.ToHex(block.Hash()))
 }
 
-//获取最新的block信息
+//LastBlock 获取最新的block信息
 func (bs *BlockStore) LastBlock() *types.Block {
 	lastheaderlock.Lock()
 	defer lastheaderlock.Unlock()
@@ -343,6 +349,7 @@ func (bs *BlockStore) LastBlock() *types.Block {
 	return nil
 }
 
+//Get 通过keys键值列表获取values值列表
 func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
 	var reply types.LocalReplyValue
 	for i := 0; i < len(keys.Keys); i++ {
@@ -353,7 +360,7 @@ func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
 	return &reply
 }
 
-//通过height高度获取BlockDetail信息
+//LoadBlockByHeight 通过height高度获取BlockDetail信息
 func (bs *BlockStore) LoadBlockByHeight(height int64) (*types.BlockDetail, error) {
 	//首先通过height获取block hash从db中
 	hash, err := bs.GetBlockHashByHeight(height)
@@ -363,7 +370,7 @@ func (bs *BlockStore) LoadBlockByHeight(height int64) (*types.BlockDetail, error
 	return bs.LoadBlockByHash(hash)
 }
 
-//通过hash获取BlockDetail信息
+//LoadBlockByHash 通过hash获取BlockDetail信息
 func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
 	var blockdetail types.BlockDetail
 	var blockheader types.Header
@@ -414,7 +421,7 @@ func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
 	return &blockdetail, nil
 }
 
-//  批量保存blocks信息到db数据库中
+//SaveBlock 批量保存blocks信息到db数据库中
 func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDetail, sequence int64) error {
 
 	height := blockdetail.Block.Height
@@ -470,7 +477,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 
 	if isRecordBlockSequence || isParaChain {
 		//存储记录block序列执行的type add
-		err = bs.SaveBlockSequence(storeBatch, hash, height, AddBlock, sequence)
+		err = bs.SaveBlockSequence(storeBatch, hash, height, addBlock, sequence)
 		if err != nil {
 			storeLog.Error("SaveBlock SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "error", err)
 			return err
@@ -480,8 +487,8 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	return nil
 }
 
-// 删除block信息从db数据库中
-func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDetail, sequence int64) error {
+//delBlock 删除block信息从db数据库中
+func (bs *BlockStore) delBlock(storeBatch dbm.Batch, blockdetail *types.BlockDetail, sequence int64) error {
 
 	height := blockdetail.Block.Height
 	hash := blockdetail.Block.Hash()
@@ -499,18 +506,18 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 
 	if isRecordBlockSequence || isParaChain {
 		//存储记录block序列执行的type del
-		err := bs.SaveBlockSequence(storeBatch, hash, height, DelBlock, sequence)
+		err := bs.SaveBlockSequence(storeBatch, hash, height, delBlock, sequence)
 		if err != nil {
-			storeLog.Error("DelBlock SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "error", err)
+			storeLog.Error("delBlock SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "error", err)
 			return err
 		}
 	}
 
-	storeLog.Debug("DelBlock success", "blockheight", height, "hash", common.ToHex(hash))
+	storeLog.Debug("delBlock success", "blockheight", height, "hash", common.ToHex(hash))
 	return nil
 }
 
-// 通过tx hash 从db数据库中获取tx交易信息
+//GetTx 通过tx hash 从db数据库中获取tx交易信息
 func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	if len(hash) == 0 {
 		err := errors.New("input hash is null")
@@ -533,7 +540,7 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	return &txResult, nil
 }
 
-// 通过批量存储tx信息到db中
+//AddTxs 通过批量存储tx信息到db中
 func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail) error {
 	kv, err := bs.getLocalKV(blockDetail)
 	if err != nil {
@@ -551,7 +558,7 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 	return nil
 }
 
-//通过批量删除tx信息从db中
+//DelTxs 通过批量删除tx信息从db中
 func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail) error {
 	//存储key:addr:flag:height ,value:txhash
 	//flag :0-->from,1--> to
@@ -572,7 +579,7 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 	return nil
 }
 
-//从db数据库中获取指定hash对应的block高度
+//GetHeightByBlockHash 从db数据库中获取指定hash对应的block高度
 func (bs *BlockStore) GetHeightByBlockHash(hash []byte) (int64, error) {
 
 	heightbytes, err := bs.db.Get(calcHashToHeightKey(hash))
@@ -599,7 +606,7 @@ func decodeHeight(heightbytes []byte) (int64, error) {
 	return height.Data, nil
 }
 
-//从db数据库中获取指定height对应的blockhash
+//GetBlockHashByHeight 从db数据库中获取指定height对应的blockhash
 func (bs *BlockStore) GetBlockHashByHeight(height int64) ([]byte, error) {
 
 	hash, err := bs.db.Get(calcHeightToHashKey(height))
@@ -612,7 +619,7 @@ func (bs *BlockStore) GetBlockHashByHeight(height int64) ([]byte, error) {
 	return hash, nil
 }
 
-//通过blockheight获取blockheader
+//GetBlockHeaderByHeight 通过blockheight获取blockheader
 func (bs *BlockStore) GetBlockHeaderByHeight(height int64) (*types.Header, error) {
 	//从最新版本的key里面获取header，找不到找老版本的数据库
 	blockheader, err := bs.db.Get(calcHeightToBlockHeaderKey(height))
@@ -645,7 +652,7 @@ func (bs *BlockStore) GetBlockHeaderByHeight(height int64) (*types.Header, error
 	return &header, nil
 }
 
-//通过blockhash获取blockheader
+//GetBlockHeaderByHash 通过blockhash获取blockheader
 func (bs *BlockStore) GetBlockHeaderByHash(hash []byte) (*types.Header, error) {
 
 	var header types.Header
@@ -692,7 +699,7 @@ func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSe
 	return localDBSet, nil
 }
 
-//从db数据库中获取指定blockhash对应的block总难度td
+//GetTdByBlockHash 从db数据库中获取指定blockhash对应的block总难度td
 func (bs *BlockStore) GetTdByBlockHash(hash []byte) (*big.Int, error) {
 
 	blocktd, err := bs.db.Get(calcHashToTdKey(hash))
@@ -706,7 +713,7 @@ func (bs *BlockStore) GetTdByBlockHash(hash []byte) (*big.Int, error) {
 	return td.SetBytes(blocktd), nil
 }
 
-//保存block hash对应的总难度到db中
+//SaveTdByBlockHash 保存block hash对应的总难度到db中
 func (bs *BlockStore) SaveTdByBlockHash(storeBatch dbm.Batch, hash []byte, td *big.Int) error {
 	if td == nil {
 		return types.ErrInvalidParam
@@ -716,11 +723,13 @@ func (bs *BlockStore) SaveTdByBlockHash(storeBatch dbm.Batch, hash []byte, td *b
 	return nil
 }
 
+//NewBatch 新建一个Batch
 func (bs *BlockStore) NewBatch(sync bool) dbm.Batch {
 	storeBatch := bs.db.NewBatch(sync)
 	return storeBatch
 }
 
+//LoadBlockStoreHeight 获取BlockStore最新高度
 func LoadBlockStoreHeight(db dbm.DB) (int64, error) {
 	bytes, err := db.Get(blockLastHeight)
 	if bytes == nil || err != nil {
@@ -732,7 +741,7 @@ func LoadBlockStoreHeight(db dbm.DB) (int64, error) {
 	return decodeHeight(bytes)
 }
 
-// 将收到的block都暂时存储到db中，加入主链之后会重新覆盖。主要是用于chain重组时获取侧链的block使用
+//dbMaybeStoreBlock 将收到的block都暂时存储到db中，加入主链之后会重新覆盖。主要是用于chain重组时获取侧链的block使用
 func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync bool) error {
 	if blockdetail == nil {
 		return types.ErrInvalidParam
@@ -809,9 +818,9 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	return nil
 }
 
-//获取当前最新的block操作序列号
+//LoadBlockLastSequence 获取当前最新的block操作序列号
 func (bs *BlockStore) LoadBlockLastSequence() (int64, error) {
-	bytes, err := bs.db.Get(LastSequence)
+	bytes, err := bs.db.Get(lastSequence)
 	if bytes == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("LoadBlockLastSequence", "error", err)
@@ -821,7 +830,7 @@ func (bs *BlockStore) LoadBlockLastSequence() (int64, error) {
 	return decodeHeight(bytes)
 }
 
-//存储block 序列执行的类型用于blockchain的恢复
+//SaveBlockSequence 存储block 序列执行的类型用于blockchain的恢复
 //获取当前的序列号，将此序列号加1存储本block的hash ，当主链使能isRecordBlockSequence
 // 平行链使能isParaChain时，sequence序列号是传入的
 func (bs *BlockStore) SaveBlockSequence(storeBatch dbm.Batch, hash []byte, height int64, Type int64, sequence int64) error {
@@ -860,17 +869,17 @@ func (bs *BlockStore) SaveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 	storeBatch.Set(calcSequenceToHashKey(newSequence), BlockSequenceByte)
 
 	//parachain  hash->seq 只记录add block时的hash和seq对应关系
-	if Type == AddBlock && isParaChain {
+	if Type == addBlock && isParaChain {
 		Sequencebytes := types.Encode(&types.Int64{Data: newSequence})
 		storeBatch.Set(calcHashToSequenceKey(hash), Sequencebytes)
 	}
 	Sequencebytes := types.Encode(&types.Int64{Data: newSequence})
-	storeBatch.Set(LastSequence, Sequencebytes)
+	storeBatch.Set(lastSequence, Sequencebytes)
 
 	return nil
 }
 
-//通过seq高度获取BlockDetail信息
+//LoadBlockBySequence 通过seq高度获取BlockDetail信息
 func (bs *BlockStore) LoadBlockBySequence(Sequence int64) (*types.BlockDetail, error) {
 	//首先通过Sequence序列号获取对应的blockhash和操作类型从db中
 	BlockSequence, err := bs.GetBlockSequence(Sequence)
@@ -880,7 +889,7 @@ func (bs *BlockStore) LoadBlockBySequence(Sequence int64) (*types.BlockDetail, e
 	return bs.LoadBlockByHash(BlockSequence.Hash)
 }
 
-//从db数据库中获取指定Sequence对应的block序列操作信息
+//GetBlockSequence 从db数据库中获取指定Sequence对应的block序列操作信息
 func (bs *BlockStore) GetBlockSequence(Sequence int64) (*types.BlockSequence, error) {
 
 	var blockSeq types.BlockSequence
@@ -900,7 +909,7 @@ func (bs *BlockStore) GetBlockSequence(Sequence int64) (*types.BlockSequence, er
 	return &blockSeq, nil
 }
 
-//通过block还是获取对应的seq，只提供给parachain使用
+//GetSequenceByHash 通过block还是获取对应的seq，只提供给parachain使用
 func (bs *BlockStore) GetSequenceByHash(hash []byte) (int64, error) {
 	var seq types.Int64
 	seqbytes, err := bs.db.Get(calcHashToSequenceKey(hash))
@@ -919,7 +928,7 @@ func (bs *BlockStore) GetSequenceByHash(hash []byte) (int64, error) {
 	return seq.Data, nil
 }
 
-//获取blockchain的数据库版本号
+//GetDbVersion 获取blockchain的数据库版本号
 func (bs *BlockStore) GetDbVersion() int64 {
 	ver := types.Int64{}
 	version, err := bs.db.Get(version.BlockChainVerKey)
@@ -940,7 +949,7 @@ func (bs *BlockStore) GetDbVersion() int64 {
 	return ver.Data
 }
 
-//获取blockchain的数据库版本号
+//SetDbVersion 获取blockchain的数据库版本号
 func (bs *BlockStore) SetDbVersion(versionNo int64) error {
 	ver := types.Int64{Data: versionNo}
 	verByte := types.Encode(&ver)
@@ -950,6 +959,7 @@ func (bs *BlockStore) SetDbVersion(versionNo int64) error {
 	return bs.db.SetSync(version.BlockChainVerKey, verByte)
 }
 
+//GetUpgradeMeta 获取blockchain的数据库版本号
 func (bs *BlockStore) GetUpgradeMeta() (*types.UpgradeMeta, error) {
 	ver := types.UpgradeMeta{}
 	version, err := bs.db.Get(version.LocalDBMeta)
@@ -967,7 +977,7 @@ func (bs *BlockStore) GetUpgradeMeta() (*types.UpgradeMeta, error) {
 	return &ver, nil
 }
 
-//获取blockchain的数据库版本号
+//SetUpgradeMeta 设置blockchain的数据库版本号
 func (bs *BlockStore) SetUpgradeMeta(meta *types.UpgradeMeta) error {
 	verByte := types.Encode(meta)
 	storeLog.Info("SetUpgradeMeta", "meta", meta)

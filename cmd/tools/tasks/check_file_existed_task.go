@@ -8,18 +8,20 @@ import (
 	"github.com/33cn/chain33/util"
 )
 
-// CheckFileExistedTask 检测文件是否存在
+//CheckFileExistedTask 检测文件是否存在
 type CheckFileExistedTask struct {
 	TaskBase
 	FileName string
 }
 
-func (this *CheckFileExistedTask) GetName() string {
+//GetName 获取name
+func (c *CheckFileExistedTask) GetName() string {
 	return "CheckFileExistedTask"
 }
 
-func (this *CheckFileExistedTask) Execute() error {
-	mlog.Info("Execute file existed task.", "file", this.FileName)
-	_, err := util.CheckFileExists(this.FileName)
+//Execute 执行
+func (c *CheckFileExistedTask) Execute() error {
+	mlog.Info("Execute file existed task.", "file", c.FileName)
+	_, err := util.CheckFileExists(c.FileName)
 	return err
 }

@@ -28,11 +28,13 @@ func init() {
 	registerDBCreator(goLevelDBBackendStr, dbCreator, false)
 }
 
+//GoLevelDB ...
 type GoLevelDB struct {
 	TransactionDB
 	db *leveldb.DB
 }
 
+//NewGoLevelDB ...
 func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
 	dbPath := path.Join(dir, name+".db")
 	if cache == 0 {
@@ -62,19 +64,20 @@ func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
 	return database, nil
 }
 
+//Get ...
 func (db *GoLevelDB) Get(key []byte) ([]byte, error) {
 	res, err := db.db.Get(key, nil)
 	if err != nil {
 		if err == errors.ErrNotFound {
 			return nil, ErrNotFoundInDb
-		} else {
-			llog.Error("Get", "error", err)
-			return nil, err
 		}
+		llog.Error("Get", "error", err)
+		return nil, err
 	}
 	return res, nil
 }
 
+//Set ...
 func (db *GoLevelDB) Set(key []byte, value []byte) error {
 	err := db.db.Put(key, value, nil)
 	if err != nil {
@@ -84,6 +87,7 @@ func (db *GoLevelDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
+//SetSync ...
 func (db *GoLevelDB) SetSync(key []byte, value []byte) error {
 	err := db.db.Put(key, value, &opt.WriteOptions{Sync: true})
 	if err != nil {
@@ -93,6 +97,7 @@ func (db *GoLevelDB) SetSync(key []byte, value []byte) error {
 	return nil
 }
 
+//Delete ...
 func (db *GoLevelDB) Delete(key []byte) error {
 	err := db.db.Delete(key, nil)
 	if err != nil {
@@ -102,6 +107,7 @@ func (db *GoLevelDB) Delete(key []byte) error {
 	return nil
 }
 
+//DeleteSync ...
 func (db *GoLevelDB) DeleteSync(key []byte) error {
 	err := db.db.Delete(key, &opt.WriteOptions{Sync: true})
 	if err != nil {
@@ -111,14 +117,17 @@ func (db *GoLevelDB) DeleteSync(key []byte) error {
 	return nil
 }
 
+//DB ...
 func (db *GoLevelDB) DB() *leveldb.DB {
 	return db.db
 }
 
+//Close ...
 func (db *GoLevelDB) Close() {
 	db.db.Close()
 }
 
+//Print 打印
 func (db *GoLevelDB) Print() {
 	str, _ := db.db.GetProperty("leveldb.stats")
 	llog.Info("Print", "stats", str)
@@ -132,6 +141,7 @@ func (db *GoLevelDB) Print() {
 	}
 }
 
+//Stats ...
 func (db *GoLevelDB) Stats() map[string]string {
 	keys := []string{
 		"leveldb.num-files-at-level{n}",
@@ -154,6 +164,7 @@ func (db *GoLevelDB) Stats() map[string]string {
 	return stats
 }
 
+//Iterator ...
 func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	if end == nil {
 		end = bytesPrefix(start)
@@ -166,6 +177,7 @@ func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	return &goLevelDBIt{it, itBase{start, end, reverse}}
 }
 
+//BatchGet ...
 func (db *GoLevelDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
 	llog.Error("BatchGet", "Need to implement")
 	return nil, nil
@@ -220,6 +232,7 @@ type goLevelDBBatch struct {
 	size  int
 }
 
+//NewBatch ...
 func (db *GoLevelDB) NewBatch(sync bool) Batch {
 	batch := new(leveldb.Batch)
 	wop := &opt.WriteOptions{Sync: sync}
@@ -233,7 +246,7 @@ func (mBatch *goLevelDBBatch) Set(key, value []byte) {
 
 func (mBatch *goLevelDBBatch) Delete(key []byte) {
 	mBatch.batch.Delete(key)
-	mBatch.size += 1
+	mBatch.size++
 }
 
 func (mBatch *goLevelDBBatch) Write() error {

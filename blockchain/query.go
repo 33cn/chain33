@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+//Query 查询对象
 type Query struct {
 	db        dbm.DB
 	stateHash []byte
@@ -21,12 +22,14 @@ type Query struct {
 	api       client.QueueProtocolAPI
 }
 
+//NewQuery 新建一个Query
 func NewQuery(db dbm.DB, qclient queue.Client, stateHash []byte) *Query {
 	query := &Query{db: db, client: qclient, stateHash: stateHash}
 	query.api, _ = client.New(qclient, nil)
 	return query
 }
 
+//Query 查询
 func (q *Query) Query(driver string, funcname string, param types.Message) (types.Message, error) {
 	query := &types.ChainExecutor{
 		Driver:    driver,

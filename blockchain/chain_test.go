@@ -781,7 +781,7 @@ func testProcGetBlockHash(t *testing.T, blockchain *blockchain.BlockChain) {
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
-	height := &types.ReqInt{Height: curheight - 5}
+	height := &types.ReqInt{curheight - 5}
 	hash, err := blockchain.ProcGetBlockHash(height)
 	require.NoError(t, err)
 

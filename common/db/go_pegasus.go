@@ -18,7 +18,7 @@ import (
 
 var slog = log.New("module", "db.pegasus")
 var pdbBench = &SsdbBench{}
-var HashKeyLen = 24
+var hashKeyLen = 24
 
 func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
@@ -27,6 +27,7 @@ func init() {
 	registerDBCreator(goPegasusDbBackendStr, dbCreator, false)
 }
 
+//PegasusDB ...
 type PegasusDB struct {
 	TransactionDB
 
@@ -44,6 +45,7 @@ func printPegasusBenchmark() {
 	}
 }
 
+//NewPegasusDB ...
 func NewPegasusDB(name string, dir string, cache int) (*PegasusDB, error) {
 	database := &PegasusDB{name: name}
 	database.cfg = parsePegasusNodes(dir)
@@ -78,6 +80,7 @@ func parsePegasusNodes(url string) *pegasus.Config {
 	return cfg
 }
 
+//Get get
 func (db *PegasusDB) Get(key []byte) ([]byte, error) {
 	start := time.Now()
 	hashKey := getHashKey(key)
@@ -94,6 +97,7 @@ func (db *PegasusDB) Get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
+//BatchGet ...
 func (db *PegasusDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	start := time.Now()
 	defer pdbBench.read(len(keys), time.Since(start))
@@ -159,6 +163,7 @@ func (db *PegasusDB) batchGet(hashKey []byte, keys [][]byte) (values [][]byte, e
 	return values, nil
 }
 
+//Set ...
 func (db *PegasusDB) Set(key []byte, value []byte) error {
 	start := time.Now()
 	hashKey := getHashKey(key)
@@ -171,10 +176,12 @@ func (db *PegasusDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
+//SetSync ...
 func (db *PegasusDB) SetSync(key []byte, value []byte) error {
 	return db.Set(key, value)
 }
 
+//Delete ...
 func (db *PegasusDB) Delete(key []byte) error {
 	start := time.Now()
 	defer pdbBench.write(1, time.Since(start))
@@ -187,22 +194,27 @@ func (db *PegasusDB) Delete(key []byte) error {
 	return nil
 }
 
+//DeleteSync ...
 func (db *PegasusDB) DeleteSync(key []byte) error {
 	return db.Delete(key)
 }
 
+//Close ...
 func (db *PegasusDB) Close() {
 	db.table.Close()
 	db.client.Close()
 }
 
+//Print ...
 func (db *PegasusDB) Print() {
 }
 
+//Stats ..
 func (db *PegasusDB) Stats() map[string]string {
 	return nil
 }
 
+//Iterator ...
 func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
 	var (
 		err   error
@@ -245,6 +257,7 @@ func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
 	return dbit
 }
 
+//PegasusIt ...
 type PegasusIt struct {
 	itBase
 	table    pegasus.TableConnector
@@ -261,21 +274,23 @@ type PegasusIt struct {
 	pageNo int
 }
 
+//Close 关闭
 func (dbit *PegasusIt) Close() {
 	dbit.index = -1
 }
 
+//Next ...
 func (dbit *PegasusIt) Next() bool {
 	if len(dbit.vals) > dbit.index+1 {
 		dbit.index++
 		return true
-	} else {
-		// 如果有下一页数据，则自动抓取
-		if dbit.nextPage {
-			return dbit.cacheNextPage(dbit.tmpEnd)
-		}
-		return false
 	}
+	// 如果有下一页数据，则自动抓取
+	if dbit.nextPage {
+		return dbit.cacheNextPage(dbit.tmpEnd)
+	}
+	return false
+
 }
 
 func (dbit *PegasusIt) initPage(begin, end []byte) bool {
@@ -304,9 +319,9 @@ func (dbit *PegasusIt) initPage(begin, end []byte) bool {
 			dbit.nextPage = false
 		}
 		return true
-	} else {
-		return false
 	}
+	return false
+
 }
 
 // 获取下一页的数据
@@ -325,9 +340,9 @@ func (dbit *PegasusIt) cacheNextPage(flag []byte) bool {
 		dbit.index = 0
 		dbit.pageNo++
 		return true
-	} else {
-		return false
 	}
+	return false
+
 }
 
 func (dbit *PegasusIt) checkKeyCmp(key1, key2 []byte, reverse bool) bool {
@@ -353,6 +368,7 @@ func (dbit *PegasusIt) findInPage(key []byte) int {
 	return pos
 }
 
+//Seek ...
 func (dbit *PegasusIt) Seek(key []byte) bool {
 	pos := -1
 	pos = dbit.findInPage(key)
@@ -370,6 +386,7 @@ func (dbit *PegasusIt) Seek(key []byte) bool {
 	return dbit.Valid()
 }
 
+//Rewind ...
 func (dbit *PegasusIt) Rewind() bool {
 	// 目前代码的Rewind调用都是在第一页，正常情况下走不到else分支；
 	// 但为了代码健壮性考虑，这里增加对else分支的处理
@@ -383,18 +400,21 @@ func (dbit *PegasusIt) Rewind() bool {
 		dbit.index = 0
 		dbit.pageNo = 0
 		return true
-	} else {
-		return false
 	}
+	return false
+
 }
 
+//Key ...
 func (dbit *PegasusIt) Key() []byte {
 	if dbit.index >= 0 && dbit.index < len(dbit.vals) {
 		return dbit.vals[dbit.index].SortKey
-	} else {
-		return nil
 	}
+	return nil
+
 }
+
+//Value ...
 func (dbit *PegasusIt) Value() []byte {
 	if dbit.index >= len(dbit.vals) {
 		slog.Error("get iterator value error: index out of bounds")
@@ -408,6 +428,7 @@ func (dbit *PegasusIt) Error() error {
 	return nil
 }
 
+//ValueCopy ...
 func (dbit *PegasusIt) ValueCopy() []byte {
 	v := dbit.Value()
 	value := make([]byte, len(v))
@@ -415,6 +436,7 @@ func (dbit *PegasusIt) ValueCopy() []byte {
 	return value
 }
 
+//Valid ...
 func (dbit *PegasusIt) Valid() bool {
 	start := time.Now()
 	if dbit.index < 0 {
@@ -428,27 +450,32 @@ func (dbit *PegasusIt) Valid() bool {
 	return dbit.checkKey(key)
 }
 
+//PegasusBatch ...
 type PegasusBatch struct {
 	table    pegasus.TableConnector
 	batchset map[string][]byte
 	batchdel map[string][]byte
 }
 
+//NewBatch ...
 func (db *PegasusDB) NewBatch(sync bool) Batch {
 	return &PegasusBatch{table: db.table, batchset: make(map[string][]byte), batchdel: make(map[string][]byte)}
 }
 
+//Set ...
 func (db *PegasusBatch) Set(key, value []byte) {
 	db.batchset[string(key)] = value
 	delete(db.batchdel, string(key))
 }
 
+//Delete ...
 func (db *PegasusBatch) Delete(key []byte) {
 	db.batchset[string(key)] = []byte("")
 	delete(db.batchset, string(key))
 	db.batchdel[string(key)] = key
 }
 
+// Write ...
 // 注意本方法的实现逻辑，因为ssdb没有提供删除和更新同时进行的批量操作；
 // 所以这里先执行更新操作（删除的KEY在这里会将VALUE设置为空）；
 // 然后再执行删除操作；
@@ -527,18 +554,20 @@ func (db *PegasusBatch) Write() error {
 	return nil
 }
 
+//ValueSize ...
 func (db *PegasusBatch) ValueSize() int {
 	return len(db.batchset)
 }
 
+//Reset ...
 func (db *PegasusBatch) Reset() {
 	db.batchset = make(map[string][]byte)
 	db.batchdel = make(map[string][]byte)
 }
 
 func getHashKey(key []byte) []byte {
-	if len(key) <= HashKeyLen {
+	if len(key) <= hashKeyLen {
 		return key
 	}
-	return key[:HashKeyLen]
+	return key[:hashKeyLen]
 }

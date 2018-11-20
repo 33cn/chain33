@@ -26,12 +26,14 @@ func init() {
 	registerDBCreator(memDBBackendStr, dbCreator, false)
 }
 
+//GoMemDB ...
 type GoMemDB struct {
 	TransactionDB
 	db   map[string][]byte
 	lock sync.RWMutex
 }
 
+//NewGoMemDB ...
 func NewGoMemDB(name string, dir string, cache int) (*GoMemDB, error) {
 	// memdb 不需要创建文件，后续考虑增加缓存数目
 	return &GoMemDB{
@@ -39,6 +41,7 @@ func NewGoMemDB(name string, dir string, cache int) (*GoMemDB, error) {
 	}, nil
 }
 
+//CopyBytes ...
 func CopyBytes(b []byte) (copiedBytes []byte) {
 	/* 兼容leveldb
 	if b == nil {
@@ -51,6 +54,7 @@ func CopyBytes(b []byte) (copiedBytes []byte) {
 	return copiedBytes
 }
 
+//Get ...
 func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
@@ -61,6 +65,7 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	return nil, ErrNotFoundInDb
 }
 
+//Set set
 func (db *GoMemDB) Set(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
@@ -73,6 +78,7 @@ func (db *GoMemDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
+//SetSync ...
 func (db *GoMemDB) SetSync(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
@@ -85,6 +91,7 @@ func (db *GoMemDB) SetSync(key []byte, value []byte) error {
 	return nil
 }
 
+//Delete ...
 func (db *GoMemDB) Delete(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
@@ -93,6 +100,7 @@ func (db *GoMemDB) Delete(key []byte) error {
 	return nil
 }
 
+//DeleteSync ...
 func (db *GoMemDB) DeleteSync(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
@@ -101,25 +109,30 @@ func (db *GoMemDB) DeleteSync(key []byte) error {
 	return nil
 }
 
+//DB ...
 func (db *GoMemDB) DB() map[string][]byte {
 	return db.db
 }
 
+//Close ...
 func (db *GoMemDB) Close() {
 
 }
 
+//Print ...
 func (db *GoMemDB) Print() {
 	for key, value := range db.db {
 		mlog.Info("Print", "key", key, "value", string(value))
 	}
 }
 
+//Stats ...
 func (db *GoMemDB) Stats() map[string]string {
 	//TODO
 	return nil
 }
 
+//Iterator ...
 func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
@@ -142,6 +155,7 @@ func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	return &goMemDBIt{base, index, keys, db}
 }
 
+//BatchGet ...
 func (db *GoMemDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
 	mlog.Error("BatchGet", "Need to implement")
 	return nil, nil
@@ -154,6 +168,7 @@ type goMemDBIt struct {
 	goMemDb *GoMemDB
 }
 
+//Seek ...
 func (dbit *goMemDBIt) Seek(key []byte) bool { //指向当前的index值
 	for i, k := range dbit.keys {
 		if 0 == strings.Compare(k, string(key)) {
@@ -172,10 +187,10 @@ func (dbit *goMemDBIt) Next() bool {
 	if dbit.reverse { // 反向
 		dbit.index-- //将当前key值指向前一个
 		return dbit.Valid()
-	} else { // 正向
-		dbit.index++ //将当前key值指向后一个
-		return dbit.Valid()
 	}
+	// 正向
+	dbit.index++ //将当前key值指向后一个
+	return dbit.Valid()
 }
 
 func (dbit *goMemDBIt) Rewind() bool {
@@ -183,17 +198,15 @@ func (dbit *goMemDBIt) Rewind() bool {
 		if (len(dbit.keys) > 0) && dbit.Valid() {
 			dbit.index = len(dbit.keys) - 1 // 将当前key值指向最后一个
 			return true
-		} else {
-			return false
 		}
-	} else { // 正向
-		if dbit.Valid() {
-			dbit.index = 0 // 将当前key值指向第一个
-			return true
-		} else {
-			return false
-		}
+		return false
+	} // 正向
+	if dbit.Valid() {
+		dbit.index = 0 // 将当前key值指向第一个
+		return true
 	}
+	return false
+
 }
 
 func (dbit *goMemDBIt) Key() []byte {
@@ -220,9 +233,9 @@ func (dbit *goMemDBIt) Valid() bool {
 
 	if len(dbit.keys) > dbit.index && dbit.index >= 0 {
 		return true
-	} else {
-		return false
 	}
+	return false
+
 }
 
 func (dbit *goMemDBIt) Error() error {
@@ -236,6 +249,7 @@ type memBatch struct {
 	size   int
 }
 
+//NewBatch ...
 func (db *GoMemDB) NewBatch(sync bool) Batch {
 	return &memBatch{db: db}
 }
@@ -248,7 +262,7 @@ func (b *memBatch) Set(key, value []byte) {
 
 func (b *memBatch) Delete(key []byte) {
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(nil)})
-	b.size += 1
+	b.size++
 }
 
 func (b *memBatch) Write() error {

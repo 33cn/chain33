@@ -9,12 +9,16 @@ import (
 	"fmt"
 )
 
+//HashSize 哈希长度
 const HashSize = 32
 
+//Hash 哈希
 type Hash [HashSize]byte
 
+//MaxHashStringSize ...
 const MaxHashStringSize = HashSize * 2
 
+//ErrHashStrSize 错误类型
 var ErrHashStrSize = fmt.Errorf("max hash string length is %v bytes", MaxHashStringSize)
 
 // CloneBytes returns a copy of the bytes which represent the hash as a byte

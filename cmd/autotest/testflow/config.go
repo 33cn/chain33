@@ -20,26 +20,26 @@ var (
 	stdLog  = log15.New()
 )
 
-//contract type
 /*
+contract type：
 bty,
 token,
 trade,
-
 */
 
-type TestCaseFile struct {
+type testCaseFile struct {
 	Dapp     string `toml:"dapp"`
 	Filename string `toml:"filename"`
 }
 
-type TestCaseConfig struct {
+type testCaseConfig struct {
 	CliCommand      string         `toml:"cliCmd"`
 	CheckTimeout    int            `toml:"checkTimeout"`
-	TestCaseFileArr []TestCaseFile `toml:"TestCaseFile"`
+	TestCaseFileArr []testCaseFile `toml:"testCaseFile"`
 }
 
-type autoTestResult struct {
+//AutoTestResult 自动测试结果
+type AutoTestResult struct {
 	dapp       string
 	totalCase  int
 	failCase   int
@@ -48,17 +48,19 @@ type autoTestResult struct {
 
 var (
 	configFile     string
-	resultChan     = make(chan *autoTestResult, 1)
-	testResultArr  = make([]*autoTestResult, 0)
-	autoTestConfig = &TestCaseConfig{}
+	resultChan     = make(chan *AutoTestResult, 1)
+	testResultArr  = make([]*AutoTestResult, 0)
+	autoTestConfig = &testCaseConfig{}
 
 	checkSleepTime = 1 //second, s
 )
 
+//TestRunner 测试接口
 type TestRunner interface {
 	RunTest(tomlFile string, wg *sync.WaitGroup)
 }
 
+//InitFlowConfig 初始化配置
 func InitFlowConfig(conf string, log string) {
 
 	fileLog.SetHandler(log15.Must.FileHandler(log, types.AutoTestLogFormat()))
@@ -66,6 +68,7 @@ func InitFlowConfig(conf string, log string) {
 
 }
 
+//StartAutoTest 启动自动测试
 func StartAutoTest() bool {
 
 	stdLog.Info("[================================BeginAutoTest===============================]")
@@ -150,7 +153,7 @@ func newTestFlow(dapp string, filename string, wg *sync.WaitGroup) {
 
 	if _, err := toml.DecodeFile(filename, caseConf.Interface()); err != nil {
 
-		stdLog.Error("TomlDecodeTestCaseFile", "Dapp", dapp, "Filename", filename, "Error", err.Error())
+		stdLog.Error("TomlDecodetestCaseFile", "Dapp", dapp, "Filename", filename, "Error", err.Error())
 		return
 	}
 

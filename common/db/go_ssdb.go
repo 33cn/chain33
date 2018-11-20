@@ -28,6 +28,7 @@ func init() {
 	registerDBCreator(ssDBBackendStr, dbCreator, false)
 }
 
+//SsdbBench ...
 type SsdbBench struct {
 	// 写次数
 	writeCount int
@@ -39,10 +40,14 @@ type SsdbBench struct {
 	readNum   int
 	readTime  time.Duration
 }
+
+//SsdbNode ...
 type SsdbNode struct {
 	ip   string
 	port int
 }
+
+//GoSSDB ...
 type GoSSDB struct {
 	TransactionDB
 	pool  *SDBPool
@@ -98,6 +103,7 @@ func parseSsdbNode(url string) (nodes []*SsdbNode) {
 	return nodes
 }
 
+//NewGoSSDB new
 func NewGoSSDB(name string, dir string, cache int) (*GoSSDB, error) {
 	database := &GoSSDB{}
 	database.nodes = parseSsdbNode(dir)
@@ -118,6 +124,7 @@ func NewGoSSDB(name string, dir string, cache int) (*GoSSDB, error) {
 	return database, nil
 }
 
+//Get get
 func (db *GoSSDB) Get(key []byte) ([]byte, error) {
 	start := time.Now()
 
@@ -134,6 +141,7 @@ func (db *GoSSDB) Get(key []byte) ([]byte, error) {
 	return value.Bytes(), nil
 }
 
+//BatchGet 批量get
 func (db *GoSSDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	start := time.Now()
 	var keylist = []string{}
@@ -156,6 +164,7 @@ func (db *GoSSDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	return values, nil
 }
 
+//Set set
 func (db *GoSSDB) Set(key []byte, value []byte) error {
 	start := time.Now()
 
@@ -168,10 +177,12 @@ func (db *GoSSDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
+//SetSync ...
 func (db *GoSSDB) SetSync(key []byte, value []byte) error {
 	return db.Set(key, value)
 }
 
+//Delete ...
 func (db *GoSSDB) Delete(key []byte) error {
 	start := time.Now()
 
@@ -184,21 +195,26 @@ func (db *GoSSDB) Delete(key []byte) error {
 	return nil
 }
 
+//DeleteSync ...
 func (db *GoSSDB) DeleteSync(key []byte) error {
 	return db.Delete(key)
 }
 
+//Close ...
 func (db *GoSSDB) Close() {
 	db.pool.close()
 }
 
+//Print ...
 func (db *GoSSDB) Print() {
 }
 
+//Stats ...
 func (db *GoSSDB) Stats() map[string]string {
 	return make(map[string]string)
 }
 
+//Iterator ...
 func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) Iterator {
 	start := time.Now()
 
@@ -287,9 +303,9 @@ func (dbit *ssDBIt) cacheNextPage(begin string) bool {
 		dbit.index = 0
 		dbit.pageNo++
 		return true
-	} else {
-		return false
 	}
+	return false
+
 }
 
 func (dbit *ssDBIt) initKeys(begin, end string) bool {
@@ -319,9 +335,8 @@ func (dbit *ssDBIt) initKeys(begin, end string) bool {
 			dbit.nextPage = false
 		}
 		return true
-	} else {
-		return false
 	}
+	return false
 
 }
 
@@ -329,13 +344,13 @@ func (dbit *ssDBIt) Next() bool {
 	if len(dbit.keys) > dbit.index+1 {
 		dbit.index++
 		return true
-	} else {
-		// 如果有下一页数据，则自动抓取
-		if dbit.nextPage {
-			return dbit.cacheNextPage(dbit.tmpEnd)
-		}
-		return false
 	}
+	// 如果有下一页数据，则自动抓取
+	if dbit.nextPage {
+		return dbit.cacheNextPage(dbit.tmpEnd)
+	}
+	return false
+
 }
 
 func (dbit *ssDBIt) checkKeyCmp(key1, key2 string, reverse bool) bool {
@@ -392,17 +407,17 @@ func (dbit *ssDBIt) Rewind() bool {
 		dbit.index = 0
 		dbit.pageNo = 0
 		return true
-	} else {
-		return false
 	}
+	return false
+
 }
 
 func (dbit *ssDBIt) Key() []byte {
 	if dbit.index >= 0 && dbit.index < len(dbit.keys) {
 		return []byte(dbit.keys[dbit.index])
-	} else {
-		return nil
 	}
+	return nil
+
 }
 func (dbit *ssDBIt) Value() []byte {
 	key := dbit.keys[dbit.index]
@@ -445,6 +460,7 @@ type ssDBBatch struct {
 	batchdel map[string]bool
 }
 
+//NewBatch ...
 func (db *GoSSDB) NewBatch(sync bool) Batch {
 	return &ssDBBatch{db: db, batchset: make(map[string][]byte), batchdel: make(map[string]bool)}
 }

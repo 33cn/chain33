@@ -6,6 +6,7 @@ package version
 
 const version = "5.3.0"
 
+//some var
 var (
 	WalletVerKey     = []byte("WalletVerKey")
 	BlockChainVerKey = []byte("BlockChainVerKey")
@@ -15,12 +16,14 @@ var (
 	GitCommit        string
 )
 
+//GetLocalDBKeyList 获取keys
 func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
 		WalletVerKey, BlockChainVerKey, LocalDBMeta, MavlTreeVerKey,
 	}
 }
 
+//GetVersion 获取版本信息
 func GetVersion() string {
 	if GitCommit != "" {
 		return version + "-" + GitCommit

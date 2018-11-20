@@ -117,12 +117,12 @@ func TestGetAllCoinsMVCCIter(t *testing.T) {
 	}
 
 	fmt.Println("---case 1-2----")
-	var match_values [][]byte
+	var matchValues [][]byte
 	listhelper.IteratorCallback([]byte("mavl-coins-bty-"), nil, 0, 1, func(key, value []byte) bool {
-		match_values = append(match_values, value)
+		matchValues = append(matchValues, value)
 		return false
 	})
-	values = match_values
+	values = matchValues
 	assert.Equal(t, "3", string(values[0]))
 	assert.Equal(t, "2", string(values[1]))
 	assert.Equal(t, "4", string(values[2]))
@@ -150,12 +150,12 @@ func TestGetAllCoinsMVCCIter(t *testing.T) {
 	}
 	//m.PrintAll()
 	fmt.Println("---case 2-2----")
-	match_values = nil
+	matchValues = nil
 	listhelper.IteratorCallback(([]byte("mavl-coins-bty-")), []byte("mavl-coins-bty-exec-"), 0, 1, func(key, value []byte) bool {
-		match_values = append(match_values, value)
+		matchValues = append(matchValues, value)
 		return false
 	})
-	values = match_values
+	values = matchValues
 
 	for i := 0; i < len(values); i++ {
 		fmt.Println(string(values[i]))
