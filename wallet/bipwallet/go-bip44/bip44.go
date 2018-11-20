@@ -13,12 +13,14 @@ import (
 	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 )
 
+// Purpose Purpose
 const Purpose uint32 = 0x8000002C
 
 //https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki
 //https://github.com/satoshilabs/slips/blob/master/slip-0044.md
 //https://github.com/FactomProject/FactomDocs/blob/master/wallet_info/wallet_test_vectors.md
 
+/*
 const (
 	// TypeBitcoin 比特币类型
 	TypeBitcoin uint32 = 0x80000000
@@ -121,6 +123,7 @@ const (
 	TypeZcash              uint32 = 0x80000085
 	TypeLisk               uint32 = 0x80000086
 )
+*/
 
 // NewKeyFromMnemonic 新建Key
 func NewKeyFromMnemonic(mnemonic string, coin, account, chain, address uint32) (*bip32.Key, error) {
