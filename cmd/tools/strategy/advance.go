@@ -28,41 +28,41 @@ type advanceCreateExecProjStrategy struct {
 	configFolder string // 应用运行的配置目录
 }
 
-func (ad *advanceCreateExecProjStrategy) Run() error {
+func (this *advanceCreateExecProjStrategy) Run() error {
 	fmt.Println("Begin run chain33 create executor project advance mode.")
-	defer fmt.Println("Run chain33 create executor project advance modefinish.")
-	ad.initMember()
-	if !ad.checkParamValid() {
+	defer fmt.Println("Run chain33 create executor project advance mode finish.")
+	this.initMember()
+	if !this.checkParamValid() {
 		return errors.New("InvalidParams")
 	}
-	return ad.runImpl()
+	return this.runImpl()
 }
 
-func (ad *advanceCreateExecProjStrategy) checkParamValid() bool {
+func (this *advanceCreateExecProjStrategy) checkParamValid() bool {
 	return true
 }
 
-func (ad *advanceCreateExecProjStrategy) initMember() {
-	if v, err := ad.getParam(types.KeyConfigFolder); err == nil {
-		ad.configFolder = v
+func (this *advanceCreateExecProjStrategy) initMember() {
+	if v, err := this.getParam(types.KeyConfigFolder); err == nil {
+		this.configFolder = v
 	}
-	if v, err := ad.getParam(types.KeyProjectName); err == nil {
-		ad.projName = v
+	if v, err := this.getParam(types.KeyProjectName); err == nil {
+		this.projName = v
 	}
-	if v, err := ad.getParam(types.KeyClassName); err == nil {
-		ad.clsName = v
+	if v, err := this.getParam(types.KeyClassName); err == nil {
+		this.clsName = v
 	}
-	if v, err := ad.getParam(types.KeyExecutorName); err == nil {
-		ad.execName = v
+	if v, err := this.getParam(types.KeyExecutorName); err == nil {
+		this.execName = v
 	}
-	if v, err := ad.getParam(types.KeyActionName); err == nil {
-		ad.actionName, _ = util.MakeStringToUpper(v, 0, 1)
+	if v, err := this.getParam(types.KeyActionName); err == nil {
+		this.actionName, _ = util.MakeStringToUpper(v, 0, 1)
 	}
-	if v, err := ad.getParam(types.KeyProtobufFile); err == nil {
-		ad.propFile = v
+	if v, err := this.getParam(types.KeyProtobufFile); err == nil {
+		this.propFile = v
 	}
-	if v, err := ad.getParam(types.KeyTemplateFilePath); err == nil {
-		ad.templateFile = v
+	if v, err := this.getParam(types.KeyTemplateFilePath); err == nil {
+		this.templateFile = v
 	}
 	// 默认输出到chain33项目的plugin/dapp/目录下
 	var outputPath string
@@ -71,17 +71,17 @@ func (ad *advanceCreateExecProjStrategy) initMember() {
 		outputPath = filepath.Join(gopath, "/src/github.com/33cn/chain33/plugin/dapp/")
 	}
 	if len(outputPath) > 0 && util.CheckPathExisted(outputPath) {
-		ad.outputFolder = fmt.Sprintf("%s/%s/", outputPath, ad.projName)
+		this.outputFolder = fmt.Sprintf("%s/%s/", outputPath, this.projName)
 	} else {
 		// 默认就在当前目录下
-		ad.outputFolder = fmt.Sprintf("output/%s/", ad.projName)
+		this.outputFolder = fmt.Sprintf("output/%s/", this.projName)
 	}
-	util.MakeDir(ad.outputFolder)
+	util.MakeDir(this.outputFolder)
 }
 
-func (ad *advanceCreateExecProjStrategy) runImpl() error {
+func (this *advanceCreateExecProjStrategy) runImpl() error {
 	var err error
-	task := ad.buildTask()
+	task := this.buildTask()
 	for {
 		if task == nil {
 			break
@@ -96,42 +96,42 @@ func (ad *advanceCreateExecProjStrategy) runImpl() error {
 	return err
 }
 
-func (ad *advanceCreateExecProjStrategy) buildTask() tasks.Task {
+func (this *advanceCreateExecProjStrategy) buildTask() tasks.Task {
 	taskSlice := make([]tasks.Task, 0)
 	taskSlice = append(taskSlice,
 		// 检查用户编写的protobuf文件是否存在
 		&tasks.CheckFileExistedTask{
-			FileName: ad.propFile,
+			FileName: this.propFile,
 		},
 		// 将文件复制到输出目录下
 		&tasks.CopyTemplateToOutputTask{
-			TemplatePath: ad.templateFile,
-			OutputPath:   ad.outputFolder,
-			ProjectName:  ad.projName,
-			ClassName:    ad.clsName,
+			TemplatePath: this.templateFile,
+			OutputPath:   this.outputFolder,
+			ProjectName:  this.projName,
+			ClassName:    this.clsName,
 		},
 		&tasks.ReplaceTargetTask{
-			OutputPath:  ad.outputFolder,
-			ProjectName: ad.projName,
-			ClassName:   ad.clsName,
-			ActionName:  ad.actionName,
-			ExecName:    ad.execName,
+			OutputPath:  this.outputFolder,
+			ProjectName: this.projName,
+			ClassName:   this.clsName,
+			ActionName:  this.actionName,
+			ExecName:    this.execName,
 		},
 		&tasks.CreateDappSourceTask{
-			TemplatePath:       ad.templateFile,
-			OutputPath:         ad.outputFolder,
-			ProjectName:        ad.projName,
-			ClsName:            ad.clsName,
-			ActionName:         ad.actionName,
-			TypeName:           ad.clsName + "Type",
-			ExecuteName:        ad.execName,
-			ProtoFile:          ad.propFile,
-			ExecHeaderTempFile: ad.configFolder + "/exec_header.template",
-			TypeTempFile:       ad.configFolder + "/types_content.template",
-			TypeOutputFile:     ad.outputFolder + "ptypes/",
+			TemplatePath:       this.templateFile,
+			OutputPath:         this.outputFolder,
+			ProjectName:        this.projName,
+			ClsName:            this.clsName,
+			ActionName:         this.actionName,
+			TypeName:           this.clsName + "Type",
+			ExecuteName:        this.execName,
+			ProtoFile:          this.propFile,
+			ExecHeaderTempFile: this.configFolder + "/exec_header.template",
+			TypeTempFile:       this.configFolder + "/types_content.template",
+			TypeOutputFile:     this.outputFolder + "ptypes/",
 		},
 		&tasks.FormatDappSourceTask{
-			OutputFolder: ad.outputFolder,
+			OutputFolder: this.outputFolder,
 		},
 	)
 

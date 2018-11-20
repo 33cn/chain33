@@ -136,7 +136,6 @@ func syncHeaders(host string) {
 	fmt.Fprintln(os.Stderr, err, cache.lastHeader.Height)
 }
 
-//SyncBlock 同步区块
 func SyncBlock(host string) {
 	cache.Host = host
 	syncHeaders(host)

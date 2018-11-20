@@ -11,7 +11,6 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//BlockCache 区块缓存
 type BlockCache struct {
 	cache      map[int64]*list.Element
 	cacheHash  map[string]*list.Element
@@ -22,7 +21,6 @@ type BlockCache struct {
 	maxHeight  int64 //用来辅助判断cache 是否正确
 }
 
-//NewBlockCache 新建区块缓存
 func NewBlockCache(defCacheSize int64) *BlockCache {
 	return &BlockCache{
 		cache:      make(map[int64]*list.Element),
@@ -34,7 +32,7 @@ func NewBlockCache(defCacheSize int64) *BlockCache {
 	}
 }
 
-//CheckcacheBlock 从cache缓存中获取block信息
+//从cache缓存中获取block信息
 func (chain *BlockCache) CheckcacheBlock(height int64) (block *types.BlockDetail) {
 	chain.cachelock.Lock()
 	defer chain.cachelock.Unlock()
@@ -48,7 +46,7 @@ func (chain *BlockCache) CheckcacheBlock(height int64) (block *types.BlockDetail
 	return nil
 }
 
-//GetCacheBlock 不做移动，cache最后的128个区块
+//不做移动，cache最后的 128个区块
 func (chain *BlockCache) GetCacheBlock(hash []byte) (block *types.BlockDetail) {
 	chain.cachelock.Lock()
 	defer chain.cachelock.Unlock()
@@ -59,7 +57,6 @@ func (chain *BlockCache) GetCacheBlock(hash []byte) (block *types.BlockDetail) {
 	return nil
 }
 
-//HasCacheTx 检查缓存中是否包含该交易hash
 func (chain *BlockCache) HasCacheTx(hash []byte) bool {
 	chain.cachelock.Lock()
 	defer chain.cachelock.Unlock()
@@ -67,7 +64,7 @@ func (chain *BlockCache) HasCacheTx(hash []byte) bool {
 	return ok
 }
 
-//cacheBlock 添加block到cache中，方便快速查询
+//添加block到cache中，方便快速查询
 func (chain *BlockCache) cacheBlock(blockdetail *types.BlockDetail) {
 	chain.cachelock.Lock()
 	defer chain.cachelock.Unlock()

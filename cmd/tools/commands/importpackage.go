@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//ImportCmd 导入命令
 func ImportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import",

@@ -14,7 +14,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//ProcRecvMsg blockchain模块的消息接收处理
+//blockchain模块的消息接收处理
 func (chain *BlockChain) ProcRecvMsg() {
 	defer chain.recvwg.Done()
 	reqnum := make(chan struct{}, 1000)
@@ -214,7 +214,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	curheight := chain.GetBlockHeight()
 	//当本节点在同步阶段并且远远落后主网最新高度时不处理广播block,暂定落后128个区块
 	//以免广播区块占用go goroutine资源
-	if blockwithpid.Block.Height > curheight+backBlockNum {
+	if blockwithpid.Block.Height > curheight+BackBlockNum {
 		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "result", "Do not handle broad cast Block in sync")
 		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 		return

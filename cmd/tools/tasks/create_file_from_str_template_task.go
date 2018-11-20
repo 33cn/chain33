@@ -24,27 +24,25 @@ type CreateFileFromStrTemplateTask struct {
 	fileContent     string
 }
 
-//GetName 获取name
-func (c *CreateFileFromStrTemplateTask) GetName() string {
+func (this *CreateFileFromStrTemplateTask) GetName() string {
 	return "CreateFileFromStrTemplateTask"
 }
 
-//Execute 执行
-func (c *CreateFileFromStrTemplateTask) Execute() error {
-	if len(c.BlockStrBegin) > 0 && len(c.BlockStrEnd) > 0 {
-		c.SourceStr = fmt.Sprintf("%s%s%s", c.BlockStrBegin, c.SourceStr, c.BlockStrEnd)
+func (this *CreateFileFromStrTemplateTask) Execute() error {
+	if len(this.BlockStrBegin) > 0 && len(this.BlockStrEnd) > 0 {
+		this.SourceStr = fmt.Sprintf("%s%s%s", this.BlockStrBegin, this.SourceStr, this.BlockStrEnd)
 	}
-	c.fileContent = c.SourceStr
-	for key, value := range c.ReplaceKeyPairs {
-		c.fileContent = strings.Replace(c.fileContent, key, value, -1)
+	this.fileContent = this.SourceStr
+	for key, value := range this.ReplaceKeyPairs {
+		this.fileContent = strings.Replace(this.fileContent, key, value, -1)
 	}
-	if err := util.MakeDir(c.OutputFile); err != nil {
+	if err := util.MakeDir(this.OutputFile); err != nil {
 		return err
 	}
-	util.DeleteFile(c.OutputFile)
-	len, err := util.WriteStringToFile(c.OutputFile, c.fileContent)
+	util.DeleteFile(this.OutputFile)
+	len, err := util.WriteStringToFile(this.OutputFile, this.fileContent)
 	if err == nil {
-		mlog.Info("Create file success.", "file", c.OutputFile, "file len", len)
+		mlog.Info("Create file success.", "file", this.OutputFile, "file len", len)
 	} else {
 		mlog.Info("Create file falied.", "error", err)
 	}
