@@ -12,7 +12,6 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//Task 任务对象
 type Task struct {
 	sync.Mutex
 	cond     *sync.Cond
@@ -54,20 +53,17 @@ func (t *Task) tick() {
 	}
 }
 
-//InProgress 检查是否正在运行
 func (t *Task) InProgress() bool {
 	t.Lock()
 	defer t.Unlock()
 	return t.isruning
 }
 
-//TimerReset 重置timer
 func (t *Task) TimerReset(timeout time.Duration) {
 	t.TimerStop()
 	t.ticker.Reset(timeout)
 }
 
-//TimerStop 停止Timer
 func (t *Task) TimerStop() {
 	if !t.ticker.Stop() {
 		select {
@@ -77,7 +73,6 @@ func (t *Task) TimerStop() {
 	}
 }
 
-//Start 启动task进程
 func (t *Task) Start(start, end int64, cb func()) error {
 	t.Lock()
 	defer t.Unlock()
@@ -98,7 +93,6 @@ func (t *Task) Start(start, end int64, cb func()) error {
 	return nil
 }
 
-//Done task结束
 func (t *Task) Done(height int64) {
 	t.Lock()
 	defer t.Unlock()
@@ -124,7 +118,6 @@ func (t *Task) stop(runcb bool) error {
 	return nil
 }
 
-//Cancel 取消task
 func (t *Task) Cancel() error {
 	t.Lock()
 	defer t.Unlock()

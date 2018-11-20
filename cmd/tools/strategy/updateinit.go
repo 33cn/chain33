@@ -23,19 +23,18 @@ type updateInitStrategy struct {
 	cryptoRootPath string
 }
 
-//Run 执行
-func (u *updateInitStrategy) Run() error {
+func (this *updateInitStrategy) Run() error {
 	mlog.Info("Begin run chain33 update init.go.")
 	defer mlog.Info("Run chain33 update init.go finish.")
-	if err := u.initMember(); err != nil {
+	if err := this.initMember(); err != nil {
 		return err
 	}
-	return u.runImpl()
+	return this.runImpl()
 }
 
-func (u *updateInitStrategy) initMember() error {
-	path, err := u.getParam("path")
-	packname, _ := u.getParam("packname")
+func (this *updateInitStrategy) initMember() error {
+	path, err := this.getParam("path")
+	packname, _ := this.getParam("packname")
 	if err != nil || path == "" {
 		gopath := os.Getenv("GOPATH")
 		if len(gopath) > 0 {
@@ -45,14 +44,14 @@ func (u *updateInitStrategy) initMember() error {
 	if len(path) == 0 {
 		return errors.New("Chain33 Plugin Not Existed")
 	}
-	u.consRootPath = fmt.Sprintf("%s/consensus/", path)
-	u.dappRootPath = fmt.Sprintf("%s/dapp/", path)
-	u.storeRootPath = fmt.Sprintf("%s/store/", path)
-	u.cryptoRootPath = fmt.Sprintf("%s/crypto/", path)
-	mkdir(u.consRootPath)
-	mkdir(u.dappRootPath)
-	mkdir(u.storeRootPath)
-	mkdir(u.cryptoRootPath)
+	this.consRootPath = fmt.Sprintf("%s/consensus/", path)
+	this.dappRootPath = fmt.Sprintf("%s/dapp/", path)
+	this.storeRootPath = fmt.Sprintf("%s/store/", path)
+	this.cryptoRootPath = fmt.Sprintf("%s/crypto/", path)
+	mkdir(this.consRootPath)
+	mkdir(this.dappRootPath)
+	mkdir(this.storeRootPath)
+	mkdir(this.cryptoRootPath)
 	buildInit(path, packname)
 	return nil
 }
@@ -83,9 +82,9 @@ import (
 	}
 }
 
-func (u *updateInitStrategy) runImpl() error {
+func (this *updateInitStrategy) runImpl() error {
 	var err error
-	task := u.buildTask()
+	task := this.buildTask()
 	for {
 		if task == nil {
 			break
@@ -100,20 +99,20 @@ func (u *updateInitStrategy) runImpl() error {
 	return err
 }
 
-func (u *updateInitStrategy) buildTask() tasks.Task {
+func (this *updateInitStrategy) buildTask() tasks.Task {
 	taskSlice := make([]tasks.Task, 0)
 	taskSlice = append(taskSlice,
 		&tasks.UpdateInitFileTask{
-			Folder: u.consRootPath,
+			Folder: this.consRootPath,
 		},
 		&tasks.UpdateInitFileTask{
-			Folder: u.dappRootPath,
+			Folder: this.dappRootPath,
 		},
 		&tasks.UpdateInitFileTask{
-			Folder: u.storeRootPath,
+			Folder: this.storeRootPath,
 		},
 		&tasks.UpdateInitFileTask{
-			Folder: u.cryptoRootPath,
+			Folder: this.cryptoRootPath,
 		},
 	)
 

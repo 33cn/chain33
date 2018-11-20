@@ -15,9 +15,9 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 )
 
-const floatDiff = 0.00001
+const FloatDiff = 0.00001
 
-//AutoTestLogFormat customize log15 log format
+//customize log15 log format
 func AutoTestLogFormat() log15.Format {
 
 	logfmt := log15.LogfmtFormat()
@@ -38,25 +38,26 @@ func AutoTestLogFormat() log15.Format {
 
 }
 
-//RunChain33Cli invoke chain33 client
+//invoke chain33 client
 func RunChain33Cli(para []string) (string, error) {
 
-	rawOut, err := exec.Command(cliCmd, para[0:]...).CombinedOutput()
+	rawOut, err := exec.Command(CliCmd, para[0:]...).CombinedOutput()
 
 	strOut := string(rawOut)
 
 	return strOut, err
 }
 
-//IsBalanceEqualFloat according to the accuracy of coins balance
+//according to the accuracy of coins balance
 func IsBalanceEqualFloat(f1 float64, f2 float64) bool {
 
-	if (f2-f1 < floatDiff) && (f1-f2 < floatDiff) {
+	if (f2-f1 < FloatDiff) && (f1-f2 < FloatDiff) {
 
 		return true
-	}
-	return false
+	} else {
 
+		return false
+	}
 }
 
 func checkTxHashValid(txHash string) bool {
@@ -64,7 +65,7 @@ func checkTxHashValid(txHash string) bool {
 	return len(txHash) == 66 && strings.HasPrefix(txHash, "0x")
 }
 
-//SendTxCommand excute
+//excute
 func SendTxCommand(cmd string) (string, bool) {
 
 	output, err := RunChain33Cli(strings.Fields(cmd))
@@ -88,7 +89,7 @@ func SendTxCommand(cmd string) (string, bool) {
 	return output, checkTxHashValid(output)
 }
 
-//SendPrivacyTxCommand 隐私交易执行回执哈希为json格式，需要解析
+//隐私交易执行回执哈希为json格式，需要解析
 func SendPrivacyTxCommand(cmd string) (string, bool) {
 
 	output, err := RunChain33Cli(strings.Fields(cmd))
@@ -111,7 +112,7 @@ func SendPrivacyTxCommand(cmd string) (string, bool) {
 	return output, checkTxHashValid(output)
 }
 
-//GetTxRecpTyname get tx query -s TxHash
+//get tx query -s TxHash
 func GetTxRecpTyname(txInfo map[string]interface{}) (tyname string, bSuccess bool) {
 
 	tyname = txInfo["receipt"].(map[string]interface{})["tyName"].(string)
@@ -125,7 +126,7 @@ func GetTxRecpTyname(txInfo map[string]interface{}) (tyname string, bSuccess boo
 	return tyname, bSuccess
 }
 
-//GetTxInfo get tx receipt with tx hash code if exist
+//get tx receipt with tx hash code if exist
 func GetTxInfo(txHash string) (string, bool) {
 
 	bReady := false
@@ -142,7 +143,7 @@ func GetTxInfo(txHash string) (string, bool) {
 	return txInfo, bReady
 }
 
-//CheckBalanceDeltaWithAddr diff balance
+//diff balance
 func CheckBalanceDeltaWithAddr(log map[string]interface{}, addr string, delta float64) bool {
 
 	logAddr := log["current"].(map[string]interface{})["addr"].(string)
@@ -154,7 +155,6 @@ func CheckBalanceDeltaWithAddr(log map[string]interface{}, addr string, delta fl
 	return (logAddr == addr) && (IsBalanceEqualFloat(logDelta, delta))
 }
 
-//CheckFrozenDeltaWithAddr check
 func CheckFrozenDeltaWithAddr(log map[string]interface{}, addr string, delta float64) bool {
 
 	logAddr := log["current"].(map[string]interface{})["addr"].(string)
@@ -166,7 +166,7 @@ func CheckFrozenDeltaWithAddr(log map[string]interface{}, addr string, delta flo
 	return (logAddr == addr) && (IsBalanceEqualFloat(logDelta, delta))
 }
 
-//CalcTxUtxoAmount calculate total amount in tx in/out utxo set, key = ["keyinput" | "keyoutput"]
+//calculate total amount in tx in/out utxo set, key = ["keyinput" | "keyoutput"]
 func CalcTxUtxoAmount(log map[string]interface{}, key string) float64 {
 
 	if log[key] == nil {
@@ -174,7 +174,7 @@ func CalcTxUtxoAmount(log map[string]interface{}, key string) float64 {
 	}
 
 	utxoArr := log[key].([]interface{})
-	var totalAmount float64
+	var totalAmount float64 = 0.0
 
 	for i := range utxoArr {
 
@@ -185,7 +185,7 @@ func CalcTxUtxoAmount(log map[string]interface{}, key string) float64 {
 	return totalAmount / 1e8
 }
 
-//CalcUtxoAvailAmount calculate available utxo with specific addr and TxHash
+//calculate available utxo with specific addr and TxHash
 func CalcUtxoAvailAmount(addr string, txHash string) (float64, error) {
 
 	outStr, err := RunChain33Cli(strings.Fields(fmt.Sprintf("privacy showpai -d 1 -a %s", addr)))
@@ -200,7 +200,7 @@ func CalcUtxoAvailAmount(addr string, txHash string) (float64, error) {
 		return 0, err
 	}
 
-	var totalAmount float64
+	var totalAmount float64 = 0
 	if jsonMap["AvailableDetail"] == nil {
 		return 0, nil
 	}
@@ -219,7 +219,7 @@ func CalcUtxoAvailAmount(addr string, txHash string) (float64, error) {
 	return totalAmount, nil
 }
 
-//CalcUtxoSpendAmount calculate spend utxo with specific addr and TxHash
+//calculate spend utxo with specific addr and TxHash
 func CalcUtxoSpendAmount(addr string, txHash string) (float64, error) {
 
 	outStr, err := RunChain33Cli(strings.Fields(fmt.Sprintf("privacy showpas -a %s", addr)))
@@ -240,7 +240,7 @@ func CalcUtxoSpendAmount(addr string, txHash string) (float64, error) {
 		return 0, err
 	}
 
-	var totalAmount float64
+	var totalAmount float64 = 0
 
 	for i := range jsonArr {
 

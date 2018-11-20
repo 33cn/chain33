@@ -13,13 +13,12 @@ import (
 	"github.com/33cn/chain33/util"
 )
 
-/*ReplaceTargetTask 替换指定目录下所有文件的标志性文字
-可替换的名字列表如下：
-${PROJECTNAME}
-${CLASSNAME}
-${ACTIONNAME}
-${EXECNAME}
-*/
+// ReplaceTargetTask 替换指定目录下所有文件的标志性文字
+// 可替换的名字列表如下：
+// ${PROJECTNAME}
+// ${CLASSNAME}
+// ${ACTIONNAME}
+// ${EXECNAME}
 type ReplaceTargetTask struct {
 	TaskBase
 	OutputPath  string
@@ -29,27 +28,25 @@ type ReplaceTargetTask struct {
 	ExecName    string
 }
 
-//GetName 获取name
-func (r *ReplaceTargetTask) GetName() string {
+func (this *ReplaceTargetTask) GetName() string {
 	return "ReplaceTargetTask"
 }
 
-/*Execute 执行具体的替换动作
-1. 扫描指定的output路径
-2. 打开每一个文件，根据替换规则替换内部的所有标签
-3. 保存时查看文件名是否要替换，如果要则替换后保存，否则直接保存
-4. 一直到所有的文件都替换完毕
-*/
-func (r *ReplaceTargetTask) Execute() error {
+// Execute 执行具体的替换动作
+// 1. 扫描指定的output路径
+// 2. 打开每一个文件，根据替换规则替换内部的所有标签
+// 3. 保存时查看文件名是否要替换，如果要则替换后保存，否则直接保存
+// 4. 一直到所有的文件都替换完毕
+func (this *ReplaceTargetTask) Execute() error {
 	mlog.Info("Execute replace target task.")
-	err := filepath.Walk(r.OutputPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(this.OutputPath, func(path string, info os.FileInfo, err error) error {
 		if info == nil {
 			return err
 		}
 		if info.IsDir() {
 			return nil
 		}
-		if err := r.replaceTarget(path); err != nil {
+		if err := this.replaceTarget(path); err != nil {
 			mlog.Error("replaceTarget error", "error", err, "path", path)
 			return err
 		}
@@ -58,15 +55,15 @@ func (r *ReplaceTargetTask) Execute() error {
 	return err
 }
 
-func (r *ReplaceTargetTask) replaceTarget(file string) error {
+func (this *ReplaceTargetTask) replaceTarget(file string) error {
 	replacePairs := []struct {
 		src string
 		dst string
 	}{
-		{src: types.TagProjectName, dst: r.ProjectName},
-		{src: types.TagClassName, dst: r.ClassName},
-		{src: types.TagActionName, dst: r.ActionName},
-		{src: types.TagExecName, dst: r.ExecName},
+		{src: types.TagProjectName, dst: this.ProjectName},
+		{src: types.TagClassName, dst: this.ClassName},
+		{src: types.TagActionName, dst: this.ActionName},
+		{src: types.TagExecName, dst: this.ExecName},
 	}
 	bcontent, err := util.ReadFile(file)
 	if err != nil {

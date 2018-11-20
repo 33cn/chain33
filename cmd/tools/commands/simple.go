@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//SimpleCmd ...
 func SimpleCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "simple",
