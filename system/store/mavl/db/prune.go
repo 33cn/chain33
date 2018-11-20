@@ -35,7 +35,7 @@ var (
 	// 是否开启mavl裁剪
 	enablePrune bool
 	// 每个10000裁剪一次
-	pruneHeight  = 10000
+	pruneHeight = 10000
 	// 裁剪状态
 	pruningState int32
 	delPoolCache *lru.Cache
@@ -404,11 +404,11 @@ func (node *MarkNode) fetchParentNode(ndb *markNodeDB) *MarkNode {
 	if node.parentNode != nil {
 		return node.parentNode
 	}
-		pNode, err := ndb.fetchNode(node.parentHash)
-		if err != nil {
-			return nil
-		}
-		return pNode
+	pNode, err := ndb.fetchNode(node.parentHash)
+	if err != nil {
+		return nil
+	}
+	return pNode
 }
 
 func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
