@@ -40,13 +40,13 @@ func TestQueueProtocolAPI(t *testing.T) {
 	option.SendTimeout = 100
 	option.WaitTimeout = 200
 
-	qc, err := client.New(nil, nil)
+	_, err := client.New(nil, nil)
 	if err == nil {
 		t.Error("client.New(nil, nil) need return error")
 	}
 
 	var q = queue.New("channel")
-	qc, err = client.New(q.Client(), &option)
+	qc, err := client.New(q.Client(), &option)
 	if err != nil {
 		t.Errorf("client.New() cause error %v", err)
 	}

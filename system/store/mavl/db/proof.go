@@ -14,14 +14,14 @@ import (
 
 //const proofLimit = 1 << 16 // 64 KB
 
-//merkle avl tree proof证明结构体
+// Proof merkle avl tree proof证明结构体
 type Proof struct {
 	LeafHash   []byte
 	InnerNodes []*types.InnerNode
 	RootHash   []byte
 }
 
-// key:value 的proof确认
+// Verify key:value 的proof确认
 func (proof *Proof) Verify(key []byte, value []byte, root []byte) bool {
 	if !bytes.Equal(proof.RootHash, root) {
 		return false
@@ -45,6 +45,7 @@ func (proof *Proof) Verify(key []byte, value []byte, root []byte) bool {
 	return bytes.Equal(proof.RootHash, hash)
 }
 
+// Root 证明节点的root hash
 func (proof *Proof) Root() []byte {
 	return proof.RootHash
 }
@@ -64,7 +65,7 @@ func ReadProof(roothash []byte, leafhash []byte, data []byte) (*Proof, error) {
 	return &merkleAvlProof, nil
 }
 
-//计算inner节点的hash
+// InnerNodeProofHash 计算inner节点的hash
 func InnerNodeProofHash(childHash []byte, branch *types.InnerNode) []byte {
 	var innernode types.InnerNode
 
@@ -88,41 +89,38 @@ func (node *Node) constructProof(t *Tree, key []byte, valuePtr *[]byte, proof *P
 			*valuePtr = node.value
 			proof.LeafHash = node.hash
 			return true
-		} else {
+		}
+		return false
+	}
+	if bytes.Compare(key, node.key) < 0 {
+		exists := node.getLeftNode(t).constructProof(t, key, valuePtr, proof)
+		if !exists {
 			return false
 		}
-	} else {
-		if bytes.Compare(key, node.key) < 0 {
-			exists := node.getLeftNode(t).constructProof(t, key, valuePtr, proof)
-			if !exists {
-				return false
-			}
-			branch := types.InnerNode{
-				Height:    node.height,
-				Size:      node.size,
-				LeftHash:  nil,
-				RightHash: node.getRightNode(t).hash,
-			}
-			proof.InnerNodes = append(proof.InnerNodes, &branch)
-			return true
-		} else {
-			exists := node.getRightNode(t).constructProof(t, key, valuePtr, proof)
-			if !exists {
-				return false
-			}
-			branch := types.InnerNode{
-				Height:    node.height,
-				Size:      node.size,
-				LeftHash:  node.getLeftNode(t).hash,
-				RightHash: nil,
-			}
-			proof.InnerNodes = append(proof.InnerNodes, &branch)
-			return true
+		branch := types.InnerNode{
+			Height:    node.height,
+			Size:      node.size,
+			LeftHash:  nil,
+			RightHash: node.getRightNode(t).hash,
 		}
+		proof.InnerNodes = append(proof.InnerNodes, &branch)
+		return true
 	}
+	exists = node.getRightNode(t).constructProof(t, key, valuePtr, proof)
+	if !exists {
+		return false
+	}
+	branch := types.InnerNode{
+		Height:    node.height,
+		Size:      node.size,
+		LeftHash:  node.getLeftNode(t).hash,
+		RightHash: nil,
+	}
+	proof.InnerNodes = append(proof.InnerNodes, &branch)
+	return true
 }
 
-// Returns nil, nil if key is not in tree.
+// ConstructProof Returns nil, nil if key is not in tree.
 func (t *Tree) ConstructProof(key []byte) (value []byte, proof *Proof) {
 	if t.root == nil {
 		return nil, nil
@@ -134,7 +132,6 @@ func (t *Tree) ConstructProof(key []byte) (value []byte, proof *Proof) {
 	exists := t.root.constructProof(t, key, &value, proof)
 	if exists {
 		return value, proof
-	} else {
-		return nil, nil
 	}
+	return nil, nil
 }
