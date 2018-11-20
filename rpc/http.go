@@ -28,9 +28,9 @@ type HTTPConn struct {
 	in  io.Reader
 	out io.Writer
 }
-
+// Read rewrite the read of http
 func (c *HTTPConn) Read(p []byte) (n int, err error) { return c.in.Read(p) }
-
+// Write rewrite the write of http
 func (c *HTTPConn) Write(d []byte) (n int, err error) { //添加支持gzip 发送
 
 	if strings.Contains(c.r.Header.Get("Accept-Encoding"), "gzip") {
@@ -40,9 +40,9 @@ func (c *HTTPConn) Write(d []byte) (n int, err error) { //添加支持gzip 发�
 	}
 	return c.out.Write(d)
 }
-
+// Close rewrite the close of http
 func (c *HTTPConn) Close() error { return nil }
-
+// Listen jsonsever listen
 func (j *JSONRPCServer) Listen() (int, error) {
 	listener, err := net.Listen("tcp", rpcCfg.JrpcBindAddr)
 	if err != nil {
@@ -126,7 +126,7 @@ func writeError(w http.ResponseWriter, r *http.Request, id uint64, errstr string
 	}
 	w.Write(resp)
 }
-
+// Listen grpcserver listen
 func (g *Grpcserver) Listen() (int, error) {
 	listener, err := net.Listen("tcp", rpcCfg.GrpcBindAddr)
 	if err != nil {
