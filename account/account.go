@@ -290,17 +290,20 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 		var err error
 		if len(in.StateHash) == 0 {
 			accounts, err = acc.LoadAccounts(api, exaddrs)
+			if err != nil {
+				log.Error("GetBalance", "err", err.Error())
+				return nil, err
+			}
 		} else {
 			hash, err := common.FromHex(in.StateHash)
 			if err != nil {
 				return nil, err
 			}
 			accounts, err = acc.loadAccountsHistory(api, exaddrs, hash)
-			_ = err
-		}
-		if err != nil {
-			log.Error("GetBalance", "err", err.Error())
-			return nil, err
+			if err != nil {
+				log.Error("GetBalance", "err", err.Error())
+				return nil, err
+			}
 		}
 		return accounts, nil
 	default:
@@ -312,18 +315,20 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 			var err error
 			if len(in.StateHash) == 0 {
 				account, err = acc.LoadExecAccountQueue(api, addr, execaddress)
-				_ = err
+				if err != nil {
+					log.Error("GetBalance", "err", err.Error())
+					continue
+				}
 			} else {
 				hash, err := common.FromHex(in.StateHash)
 				if err != nil {
 					return nil, err
 				}
 				account, err = acc.LoadExecAccountHistoryQueue(api, addr, execaddress, hash)
-				_ = err
-			}
-			if err != nil {
-				log.Error("GetBalance", "err", err.Error())
-				continue
+				if err != nil {
+					log.Error("GetBalance", "err", err.Error())
+					continue
+				}
 			}
 			accounts = append(accounts, account)
 		}
@@ -331,6 +336,7 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 	}
 }
 
+// GetExecBalance 通过account模块获取地址账户在合约中的余额
 func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecBalance) (reply *types.ReplyGetExecBalance, err error) {
 	req := types.StoreList{}
 	req.StateHash = in.StateHash
@@ -399,7 +405,7 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 	i := len(prefix) - 1
 	for i >= 0 {
 		if r[i] < 0xff {
-			r[i] += 1
+			r[i]++
 			break
 		} else {
 			i--
