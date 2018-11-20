@@ -7,6 +7,7 @@ package p2p
 import (
 	"time"
 )
+
 // time limit for timeout
 var (
 	UpdateState                 = 2 * time.Second
@@ -60,10 +61,12 @@ const (
 	addrkeyTag = "addrs"
 	privKeyTag = "privkey"
 )
+
 // P2pCacheTxSize p2pcache size of transaction
 const (
 	P2pCacheTxSize = 10240
 )
+
 // TestNetSeeds test seeds of net
 var TestNetSeeds = []string{
 	"114.55.101.159:13802",

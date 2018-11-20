@@ -30,6 +30,7 @@ type peerJob struct {
 	pbPeer *pb.Peer
 	limit  int32
 }
+
 // NewDownloadJob create a downloadjob object
 func NewDownloadJob(p2pcli *Cli, peers []*Peer) *downloadJob {
 	job := new(downloadJob)
@@ -73,6 +74,7 @@ func (d *downloadJob) setFreePeer(pid string) {
 		d.busyPeer[pid] = pjob
 	}
 }
+
 // GetFreePeer get free peer ,return peer
 func (d *downloadJob) GetFreePeer(joblimit int64) *Peer {
 	_, infos := d.p2pcli.network.node.GetActivePeers()
@@ -95,6 +97,7 @@ func (d *downloadJob) GetFreePeer(joblimit int64) *Peer {
 
 	return nil
 }
+
 // CancelJob cancel the downloadjob object
 func (d *downloadJob) CancelJob() {
 	atomic.StoreInt32(&d.canceljob, 1)
@@ -103,6 +106,7 @@ func (d *downloadJob) CancelJob() {
 func (d *downloadJob) isCancel() bool {
 	return atomic.LoadInt32(&d.canceljob) == 1
 }
+
 // DownloadBlock download the block
 func (d *downloadJob) DownloadBlock(invs []*pb.Inventory,
 	bchan chan *pb.BlockPid) []*pb.Inventory {
