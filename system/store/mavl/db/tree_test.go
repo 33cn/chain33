@@ -661,7 +661,6 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 	storeSet.StateHash = emptyRoot[:]
 	newhash, err := SetKVPair(db, &storeSet, true)
 	assert.Nil(t, err)
-	i = 0
 	for i = 0; i < total; i++ {
 		var keyvalue types.KeyValue
 

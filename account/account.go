@@ -148,10 +148,8 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 		Current: acc1,
 	}
 	acc.SaveAccount(acc1)
-	ty := int32(types.TyLogDeposit)
-	ty = types.TyLogDeposit
 	log1 := &types.ReceiptLog{
-		Ty:  ty,
+		Ty:  int32(types.TyLogDeposit),
 		Log: types.Encode(receiptBalance),
 	}
 	kv := acc.GetKVSet(acc1)
@@ -298,6 +296,7 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 				return nil, err
 			}
 			accounts, err = acc.loadAccountsHistory(api, exaddrs, hash)
+			_ = err
 		}
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
@@ -313,12 +312,14 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 			var err error
 			if len(in.StateHash) == 0 {
 				account, err = acc.LoadExecAccountQueue(api, addr, execaddress)
+				_ = err
 			} else {
 				hash, err := common.FromHex(in.StateHash)
 				if err != nil {
 					return nil, err
 				}
 				account, err = acc.LoadExecAccountHistoryQueue(api, addr, execaddress, hash)
+				_ = err
 			}
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
