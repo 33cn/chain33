@@ -169,7 +169,7 @@ func (c *Chain33) GetBlocks(in rpctypes.BlockParam, result *interface{}) error {
 			block.StateHash = common.ToHex(item.Block.GetStateHash())
 			block.TxHash = common.ToHex(item.Block.GetTxHash())
 			txs := item.Block.GetTxs()
-			if len(txs) != len(item.Receipts) {
+			if in.Isdetail && len(txs) != len(item.Receipts) { //只有获取详情时才需要校验txs和Receipts的数量是否相等CHAIN33-540
 				return types.ErrDecode
 			}
 			for _, tx := range txs {

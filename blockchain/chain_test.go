@@ -113,7 +113,7 @@ func TestBlockChain(t *testing.T) {
 
 	testDelBlock(t, blockchain)
 
-	//testLoadBlockBySequence(t, blockchain)
+	testLoadBlockBySequence(t, blockchain)
 
 	testProcDelParaChainBlockMsg(t, mock33, blockchain)
 
@@ -838,11 +838,12 @@ func testLoadBlockBySequence(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testLoadBlockBySequence begin ---------------------")
 
 	curheight := blockchain.GetBlockHeight()
-	block, err := blockchain.GetStore().LoadBlockBySequence(curheight)
+	lastseq, _ := blockchain.GetStore().LoadBlockLastSequence()
+	block, err := blockchain.GetStore().LoadBlockBySequence(lastseq)
 	require.NoError(t, err)
 
 	if block.Block.Height != curheight {
-		t.Error("testLoadBlockBySequence  block height check error")
+		t.Error("testLoadBlockBySequence", "curheight", curheight, "lastseq", lastseq, "Block.Height", block.Block.Height)
 	}
 	chainlog.Info("testLoadBlockBySequence end -------------------------")
 }
