@@ -37,13 +37,20 @@ func New(cfg *types.P2P) *P2p {
 	if cfg.Version == 0 {
 		if types.IsTestNet() {
 			cfg.Version = 119
-			cfg.VerMix = 118
+			cfg.VerMin = 118
 			cfg.VerMax = 128
 		} else {
 			cfg.Version = 10020
-			cfg.VerMix = 10020
+			cfg.VerMin = 10020
 			cfg.VerMax = 11000
 		}
+	}
+	if cfg.VerMin == 0 {
+		cfg.VerMin = cfg.Version
+	}
+
+	if cfg.VerMax == 0 {
+		cfg.VerMax = cfg.VerMin + 1
 	}
 
 	VERSION = cfg.Version

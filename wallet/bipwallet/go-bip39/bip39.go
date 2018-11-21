@@ -25,6 +25,7 @@ var (
 	BigTwo                  = big.NewInt(2)
 )
 
+// NewEntropy 新建
 func NewEntropy(bitSize int) ([]byte, error) {
 	err := validateEntropyBitSize(bitSize)
 	if err != nil {
@@ -36,7 +37,7 @@ func NewEntropy(bitSize int) ([]byte, error) {
 	return entropy, err
 }
 
-//lang=0 english word lang=1 chinese word
+// NewMnemonic lang=0 english word lang=1 chinese word
 func NewMnemonic(entropy []byte, lang int32) (string, error) {
 	// Compute some lengths for convenience
 	entropyBitLength := len(entropy) * 8
@@ -75,9 +76,9 @@ func NewMnemonic(entropy []byte, lang int32) (string, error) {
 
 		// Convert bytes to an index and add that word to the list
 		if lang == 0 {
-			words[i] = WordList[binary.BigEndian.Uint16(wordBytes)]
+			words[i] = wordList[binary.BigEndian.Uint16(wordBytes)]
 		} else {
-			words[i] = WordListCHN[binary.BigEndian.Uint16(wordBytes)]
+			words[i] = wordListCHN[binary.BigEndian.Uint16(wordBytes)]
 		}
 
 	}
@@ -85,6 +86,7 @@ func NewMnemonic(entropy []byte, lang int32) (string, error) {
 	return strings.Join(words, " "), nil
 }
 
+// MnemonicToByteArray 转换
 func MnemonicToByteArray(mnemonic string) ([]byte, error) {
 	//	if IsMnemonicValid(mnemonic) == false {
 	//		return nil, fmt.Errorf("Invalid mnemonic")
@@ -92,7 +94,7 @@ func MnemonicToByteArray(mnemonic string) ([]byte, error) {
 	mnemonicSlice := strings.Split(mnemonic, " ")
 	//lang=0 english word lang=1 chinese word
 	var lang int32
-	if _, found := ReverseWordMap[mnemonicSlice[0]]; !found {
+	if _, found := reverseWordMap[mnemonicSlice[0]]; !found {
 		lang = 1
 	}
 
@@ -109,12 +111,12 @@ func MnemonicToByteArray(mnemonic string) ([]byte, error) {
 		var index int
 		var found bool
 		if lang == 0 {
-			index, found = ReverseWordMap[v]
+			index, found = reverseWordMap[v]
 			if !found {
 				return nil, fmt.Errorf("Word `%v` not found in reverse map", v)
 			}
 		} else {
-			index, found = ReverseWordMapCHN[v]
+			index, found = reverseWordMapCHN[v]
 			if !found {
 				return nil, fmt.Errorf("Word `%v` not found in reverse map", v)
 			}
@@ -169,6 +171,7 @@ func padHexToSize(hex []byte, size int) []byte {
 	return hex
 }
 
+// NewSeedWithErrorChecking 带有错误检查的创建Seed
 func NewSeedWithErrorChecking(mnemonic string, password string) ([]byte, error) {
 	_, err := MnemonicToByteArray(mnemonic)
 	if err != nil {
@@ -177,6 +180,7 @@ func NewSeedWithErrorChecking(mnemonic string, password string) ([]byte, error) 
 	return NewSeed(mnemonic, password), nil
 }
 
+// NewSeed 新建Seed
 func NewSeed(mnemonic string, password string) []byte {
 	return pbkdf2.Key([]byte(mnemonic), []byte("mnemonic"+password), 2048, 64, sha512.New)
 }
@@ -229,6 +233,7 @@ func validateEntropyWithChecksumBitSize(bitSize int) error {
 	return nil
 }
 
+// IsMnemonicValid 检测有效性
 func IsMnemonicValid(mnemonic string) bool {
 	// Create a list of all the words in the mnemonic sentence
 	words := strings.Fields(mnemonic)
@@ -243,7 +248,7 @@ func IsMnemonicValid(mnemonic string) bool {
 
 	// Check if all words belong in the wordlist
 	for i := 0; i < numOfWords; i++ {
-		if !contains(WordList, words[i]) {
+		if !contains(wordList, words[i]) {
 			return false
 		}
 	}

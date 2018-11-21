@@ -589,7 +589,7 @@ func (s *P2pServer) CollectInPeers2(ctx context.Context, in *pb.P2PPing) (*pb.Pe
 
 func (s *P2pServer) checkVersion(version int32) bool {
 
-	if version < s.node.nodeInfo.cfg.VerMix || version > s.node.nodeInfo.cfg.VerMax {
+	if version < s.node.nodeInfo.cfg.VerMin || version > s.node.nodeInfo.cfg.VerMax {
 		//版本不支持
 		return false
 	}

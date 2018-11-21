@@ -13,15 +13,19 @@ import (
 	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 )
 
+// Purpose Purpose
 const Purpose uint32 = 0x8000002C
 
 //https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki
 //https://github.com/satoshilabs/slips/blob/master/slip-0044.md
 //https://github.com/FactomProject/FactomDocs/blob/master/wallet_info/wallet_test_vectors.md
 
+/*
 const (
-	TypeBitcoin               uint32 = 0x80000000
-	TypeTestnet               uint32 = 0x80000001
+	// TypeBitcoin 比特币类型
+	TypeBitcoin uint32 = 0x80000000
+	TypeTestnet uint32 = 0x80000001
+	// TypeLitecoin 莱特币类型
 	TypeLitecoin              uint32 = 0x80000002
 	TypeDogecoin              uint32 = 0x80000003
 	TypeReddcoin              uint32 = 0x80000004
@@ -72,49 +76,56 @@ const (
 	TypeSyscoin               uint32 = 0x80000039
 	TypeSolarcoin             uint32 = 0x8000003a
 	TypeSmileycoin            uint32 = 0x8000003b
-	TypeEther                 uint32 = 0x8000003c
-	TypeEtherClassic          uint32 = 0x8000003d
-	TypeOpenChain             uint32 = 0x80000040
-	TypeOKCash                uint32 = 0x80000045
-	TypeDogecoinDark          uint32 = 0x8000004d
-	TypeElectronicGulden      uint32 = 0x8000004e
-	TypeClubCoin              uint32 = 0x8000004f
-	TypeRichCoin              uint32 = 0x80000050
-	TypePotcoin               uint32 = 0x80000051
-	TypeQuarkcoin             uint32 = 0x80000052
-	TypeTerracoin             uint32 = 0x80000053
-	TypeGridcoin              uint32 = 0x80000054
-	TypeAuroracoin            uint32 = 0x80000055
-	TypeIXCoin                uint32 = 0x80000056
-	TypeGulden                uint32 = 0x80000057
-	TypeBitBean               uint32 = 0x80000058
-	TypeBata                  uint32 = 0x80000059
-	TypeMyriadcoin            uint32 = 0x8000005a
-	TypeBitSend               uint32 = 0x8000005b
-	TypeUnobtanium            uint32 = 0x8000005c
-	TypeMasterTrader          uint32 = 0x8000005d
-	TypeGoldBlocks            uint32 = 0x8000005e
-	TypeSaham                 uint32 = 0x8000005f
-	TypeChronos               uint32 = 0x80000060
-	TypeUbiquoin              uint32 = 0x80000061
-	TypeEvotion               uint32 = 0x80000062
-	TypeSaveTheOcean          uint32 = 0x80000063
-	TypeBigUp                 uint32 = 0x80000064
-	TypeGameCredits           uint32 = 0x80000065
-	TypeDollarcoins           uint32 = 0x80000066
-	TypeZayedcoin             uint32 = 0x80000067
-	TypeDubaicoin             uint32 = 0x80000068
-	TypeStratis               uint32 = 0x80000069
-	TypeShilling              uint32 = 0x8000006a
-	TypePiggyCoin             uint32 = 0x80000076
-	TypeMonero                uint32 = 0x80000080
-	TypeNavCoin               uint32 = 0x80000082
-	TypeFactomFactoids        uint32 = 0x80000083
-	TypeFactomEntryCredits    uint32 = 0x80000084
-	TypeZcash                 uint32 = 0x80000085
-	TypeLisk                  uint32 = 0x80000086
+	// TypeEther 以太坊类型
+	TypeEther uint32 = 0x8000003c
+	// TypeEtherClassic 经典以太坊
+	TypeEtherClassic     uint32 = 0x8000003d
+	TypeOpenChain        uint32 = 0x80000040
+	TypeOKCash           uint32 = 0x80000045
+	TypeDogecoinDark     uint32 = 0x8000004d
+	TypeElectronicGulden uint32 = 0x8000004e
+	TypeClubCoin         uint32 = 0x8000004f
+	TypeRichCoin         uint32 = 0x80000050
+	TypePotcoin          uint32 = 0x80000051
+	TypeQuarkcoin        uint32 = 0x80000052
+	TypeTerracoin        uint32 = 0x80000053
+	TypeGridcoin         uint32 = 0x80000054
+	TypeAuroracoin       uint32 = 0x80000055
+	TypeIXCoin           uint32 = 0x80000056
+	TypeGulden           uint32 = 0x80000057
+	TypeBitBean          uint32 = 0x80000058
+	TypeBata             uint32 = 0x80000059
+	TypeMyriadcoin       uint32 = 0x8000005a
+	TypeBitSend          uint32 = 0x8000005b
+	TypeUnobtanium       uint32 = 0x8000005c
+	TypeMasterTrader     uint32 = 0x8000005d
+	TypeGoldBlocks       uint32 = 0x8000005e
+	TypeSaham            uint32 = 0x8000005f
+	TypeChronos          uint32 = 0x80000060
+	TypeUbiquoin         uint32 = 0x80000061
+	TypeEvotion          uint32 = 0x80000062
+	TypeSaveTheOcean     uint32 = 0x80000063
+	TypeBigUp            uint32 = 0x80000064
+	TypeGameCredits      uint32 = 0x80000065
+	TypeDollarcoins      uint32 = 0x80000066
+	// TypeZayedcoin Zayed币
+	TypeZayedcoin uint32 = 0x80000067
+	TypeDubaicoin uint32 = 0x80000068
+	TypeStratis   uint32 = 0x80000069
+	TypeShilling  uint32 = 0x8000006a
+	TypePiggyCoin uint32 = 0x80000076
+	TypeMonero    uint32 = 0x80000080
+	TypeNavCoin   uint32 = 0x80000082
+	// TypeFactomFactoids FactomFactoids
+	TypeFactomFactoids uint32 = 0x80000083
+	// TypeFactomEntryCredits FactomEntryCredits
+	TypeFactomEntryCredits uint32 = 0x80000084
+	TypeZcash              uint32 = 0x80000085
+	TypeLisk               uint32 = 0x80000086
 )
+*/
 
+// NewKeyFromMnemonic 新建Key
 func NewKeyFromMnemonic(mnemonic string, coin, account, chain, address uint32) (*bip32.Key, error) {
 	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, "")
 	if err != nil {
@@ -129,6 +140,7 @@ func NewKeyFromMnemonic(mnemonic string, coin, account, chain, address uint32) (
 	return NewKeyFromMasterKey(masterKey, coin, account, chain, address)
 }
 
+// NewKeyFromMasterKey 新建Key
 func NewKeyFromMasterKey(masterKey *bip32.Key, coin, account, chain, address uint32) (*bip32.Key, error) {
 	child, err := masterKey.NewChildKey(Purpose)
 	if err != nil {

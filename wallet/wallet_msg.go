@@ -10,6 +10,7 @@ import (
 	wcom "github.com/33cn/chain33/wallet/common"
 )
 
+// ProcRecvMsg 处理消息循环
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
@@ -26,6 +27,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 	}
 }
 
+// On_WalletGetAccountList 响应获取账户列表
 func (wallet *Wallet) On_WalletGetAccountList(req *types.ReqAccountList) (types.Message, error) {
 	reply, err := wallet.ProcGetAccountList(req)
 	if err != nil {
@@ -34,6 +36,7 @@ func (wallet *Wallet) On_WalletGetAccountList(req *types.ReqAccountList) (types.
 	return reply, err
 }
 
+// On_NewAccount 响应新建账号
 func (wallet *Wallet) On_NewAccount(req *types.ReqNewAccount) (types.Message, error) {
 	reply, err := wallet.ProcCreateNewAccount(req)
 	if err != nil {
@@ -42,6 +45,7 @@ func (wallet *Wallet) On_NewAccount(req *types.ReqNewAccount) (types.Message, er
 	return reply, err
 }
 
+// On_WalletTransactionList 响应获取钱包交易列表
 func (wallet *Wallet) On_WalletTransactionList(req *types.ReqWalletTransactionList) (types.Message, error) {
 	reply, err := wallet.ProcWalletTxList(req)
 	if err != nil {
@@ -50,6 +54,7 @@ func (wallet *Wallet) On_WalletTransactionList(req *types.ReqWalletTransactionLi
 	return reply, err
 }
 
+// On_WalletImportPrivkey 响应导入私钥
 func (wallet *Wallet) On_WalletImportPrivkey(req *types.ReqWalletImportPrivkey) (types.Message, error) {
 	reply, err := wallet.ProcImportPrivKey(req)
 	if err != nil {
@@ -58,6 +63,7 @@ func (wallet *Wallet) On_WalletImportPrivkey(req *types.ReqWalletImportPrivkey) 
 	return reply, err
 }
 
+// On_WalletSendToAddress 响应钱包想地址转账
 func (wallet *Wallet) On_WalletSendToAddress(req *types.ReqWalletSendToAddress) (types.Message, error) {
 	reply, err := wallet.ProcSendToAddress(req)
 	if err != nil {
@@ -66,6 +72,7 @@ func (wallet *Wallet) On_WalletSendToAddress(req *types.ReqWalletSendToAddress) 
 	return reply, err
 }
 
+// On_WalletSetFee 响应设置钱包手续费
 func (wallet *Wallet) On_WalletSetFee(req *types.ReqWalletSetFee) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
@@ -79,6 +86,7 @@ func (wallet *Wallet) On_WalletSetFee(req *types.ReqWalletSetFee) (types.Message
 	return reply, err
 }
 
+// On_WalletSetLabel 处理钱包设置标签
 func (wallet *Wallet) On_WalletSetLabel(req *types.ReqWalletSetLabel) (types.Message, error) {
 	reply, err := wallet.ProcWalletSetLabel(req)
 	if err != nil {
@@ -87,6 +95,7 @@ func (wallet *Wallet) On_WalletSetLabel(req *types.ReqWalletSetLabel) (types.Mes
 	return reply, err
 }
 
+// On_WalletMergeBalance 响应钱包合并金额
 func (wallet *Wallet) On_WalletMergeBalance(req *types.ReqWalletMergeBalance) (types.Message, error) {
 	reply, err := wallet.ProcMergeBalance(req)
 	if err != nil {
@@ -95,6 +104,7 @@ func (wallet *Wallet) On_WalletMergeBalance(req *types.ReqWalletMergeBalance) (t
 	return reply, err
 }
 
+// On_WalletSetPasswd 处理钱包设置密码
 func (wallet *Wallet) On_WalletSetPasswd(req *types.ReqWalletSetPasswd) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
@@ -108,6 +118,7 @@ func (wallet *Wallet) On_WalletSetPasswd(req *types.ReqWalletSetPasswd) (types.M
 	return reply, nil
 }
 
+// On_WalletLock 处理钱包加锁
 func (wallet *Wallet) On_WalletLock(req *types.ReqNil) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
@@ -121,6 +132,7 @@ func (wallet *Wallet) On_WalletLock(req *types.ReqNil) (types.Message, error) {
 	return reply, err
 }
 
+// On_WalletUnLock 处理钱包解锁
 func (wallet *Wallet) On_WalletUnLock(req *types.WalletUnLock) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
@@ -134,18 +146,21 @@ func (wallet *Wallet) On_WalletUnLock(req *types.WalletUnLock) (types.Message, e
 	return reply, nil
 }
 
+// On_AddBlock 处理新增区块
 func (wallet *Wallet) On_AddBlock(block *types.BlockDetail) (types.Message, error) {
 	wallet.updateLastHeader(block, 1)
 	wallet.ProcWalletAddBlock(block)
 	return nil, nil
 }
 
+// On_DelBlock 处理删除区块
 func (wallet *Wallet) On_DelBlock(block *types.BlockDetail) (types.Message, error) {
 	wallet.updateLastHeader(block, -1)
 	wallet.ProcWalletDelBlock(block)
 	return nil, nil
 }
 
+// On_GenSeed 处理创建SEED
 func (wallet *Wallet) On_GenSeed(req *types.GenSeedLang) (types.Message, error) {
 	reply, err := wallet.genSeed(req.Lang)
 	if err != nil {
@@ -154,6 +169,7 @@ func (wallet *Wallet) On_GenSeed(req *types.GenSeedLang) (types.Message, error) 
 	return reply, err
 }
 
+// On_GetSeed 处理获取Seed
 func (wallet *Wallet) On_GetSeed(req *types.GetSeedByPw) (types.Message, error) {
 	reply := &types.ReplySeed{}
 	seed, err := wallet.getSeed(req.Passwd)
@@ -165,6 +181,7 @@ func (wallet *Wallet) On_GetSeed(req *types.GetSeedByPw) (types.Message, error) 
 	return reply, err
 }
 
+// On_SaveSeed 处理保存SEED
 func (wallet *Wallet) On_SaveSeed(req *types.SaveSeedByPw) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
@@ -178,11 +195,13 @@ func (wallet *Wallet) On_SaveSeed(req *types.SaveSeedByPw) (types.Message, error
 	return reply, nil
 }
 
+// On_GetWalletStatus 处理获取钱包状态
 func (wallet *Wallet) On_GetWalletStatus(req *types.ReqNil) (types.Message, error) {
 	reply := wallet.GetWalletStatus()
 	return reply, nil
 }
 
+// On_DumpPrivkey 处理到处私钥
 func (wallet *Wallet) On_DumpPrivkey(req *types.ReqString) (types.Message, error) {
 	reply := &types.ReplyString{}
 	privkey, err := wallet.ProcDumpPrivkey(req.Data)
@@ -194,6 +213,7 @@ func (wallet *Wallet) On_DumpPrivkey(req *types.ReqString) (types.Message, error
 	return reply, err
 }
 
+// On_SignRawTx 处理交易签名
 func (wallet *Wallet) On_SignRawTx(req *types.ReqSignRawTx) (types.Message, error) {
 	reply := &types.ReplySignRawTx{}
 	txhex, err := wallet.ProcSignRawTx(req)
@@ -205,12 +225,13 @@ func (wallet *Wallet) On_SignRawTx(req *types.ReqSignRawTx) (types.Message, erro
 	return reply, err
 }
 
+// On_ErrToFront 错误通知
 func (wallet *Wallet) On_ErrToFront(req *types.ReportErrEvent) (types.Message, error) {
 	wallet.setFatalFailure(req)
 	return nil, nil
 }
 
-// onFatalFailure 定时查询是否有致命性故障产生
+// On_FatalFailure 定时查询是否有致命性故障产生
 func (wallet *Wallet) On_FatalFailure(req *types.ReqNil) (types.Message, error) {
 	reply := &types.Int32{
 		Data: wallet.getFatalFailure(),
@@ -218,6 +239,7 @@ func (wallet *Wallet) On_FatalFailure(req *types.ReqNil) (types.Message, error) 
 	return reply, nil
 }
 
+// ExecWallet 执行钱包的功能
 func (wallet *Wallet) ExecWallet(msg *queue.Message) (types.Message, error) {
 	if param, ok := msg.Data.(*types.ChainExecutor); ok {
 		return wallet.execWallet(param, 0)
@@ -237,9 +259,9 @@ func (wallet *Wallet) ExecWallet(msg *queue.Message) (types.Message, error) {
 	return wallet.execWallet(param, msg.Ty)
 }
 
-func (wallet *Wallet) execWallet(param *types.ChainExecutor, eventId int64) (reply types.Message, err error) {
-	if param.FuncName == "" && eventId > 0 {
-		param.FuncName = types.GetEventName(int(eventId))
+func (wallet *Wallet) execWallet(param *types.ChainExecutor, eventID int64) (reply types.Message, err error) {
+	if param.FuncName == "" && eventID > 0 {
+		param.FuncName = types.GetEventName(int(eventID))
 		if len(param.FuncName) <= 5 {
 			return nil, types.ErrActionNotSupport
 		}

@@ -87,6 +87,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 
 	if cfg.Port != 0 && cfg.Port <= 65535 && cfg.Port > 1024 {
 		defaultPort = int(cfg.Port)
+
 	}
 
 	if cfg.InnerSeedEnable {
