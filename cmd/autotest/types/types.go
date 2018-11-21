@@ -7,9 +7,9 @@ package types
 import "reflect"
 
 var (
-	cliCmd        string                       //chain33 cli可执行文件名
-	checkTimeOut  int                          //用例check时超时次数
-	autoTestItems  = make(map[string]AutoTest) //保存注册的dapp测试类型
+	cliCmd        string                      //chain33 cli可执行文件名
+	checkTimeOut  int                         //用例check时超时次数
+	autoTestItems = make(map[string]AutoTest) //保存注册的dapp测试类型
 )
 
 //AutoTest dapp实现auto test的接口，需要提供每个dapp对应的测试配置类型，并注册

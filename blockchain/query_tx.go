@@ -7,9 +7,9 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/merkle"
+	"github.com/33cn/chain33/types"
 )
 
 /*ProcGetTransactionByAddr 获取地址对应的所有交易信息
