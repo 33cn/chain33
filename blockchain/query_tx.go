@@ -12,7 +12,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//获取地址对应的所有交易信息
+//ProcGetTransactionByAddr 获取地址对应的所有交易信息
 //存储格式key:addr:flag:height ,value:txhash
 //key=addr :获取本地参与的所有交易
 //key=addr:1 :获取本地作为from方的所有交易
@@ -46,6 +46,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	return txinfos.(*types.ReplyTxInfos), nil
 }
 
+//ProcGetTransactionByHashes 返回类型
 //type TransactionDetails struct {
 //	Txs []*Transaction
 //}
@@ -69,7 +70,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	return &txDetails, nil
 }
 
-//  获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
+//GetTransactionProofs 获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
 func GetTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, error) {
 	txlen := len(Txs)
 
@@ -86,7 +87,7 @@ func GetTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, erro
 	return proofs, nil
 }
 
-//通过txhash 从txindex db中获取tx信息
+//GetTxResultFromDb 通过txhash 从txindex db中获取tx信息
 //type TxResult struct {
 //	Height int64
 //	Index  int32
@@ -101,6 +102,7 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 	return txinfo, nil
 }
 
+//HasTx 是否包含该交易
 func (chain *BlockChain) HasTx(txhash []byte, onlyquerycache bool) (has bool, err error) {
 	has = chain.cache.HasCacheTx(txhash)
 	if has {
@@ -112,6 +114,7 @@ func (chain *BlockChain) HasTx(txhash []byte, onlyquerycache bool) (has bool, er
 	return chain.blockStore.HasTx(txhash)
 }
 
+//GetDuplicateTxHashList 获取重复的交易
 func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList, err error) {
 	var dupTxHashList types.TxHashList
 	onlyquerycache := false
@@ -139,8 +142,7 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 	return &dupTxHashList, nil
 }
 
-/* ProcQueryTxMsg
-函数功能：
+/*ProcQueryTxMsg 函数功能：
 EventQueryTx(types.ReqHash) : rpc模块会向 blockchain 模块 发送 EventQueryTx(types.ReqHash) 消息 ，
 查询交易的默克尔树，回复消息 EventTransactionDetail(types.TransactionDetail)
 结构体：
@@ -202,11 +204,11 @@ func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresul
 	}
 }
 
+//ProcGetAddrOverview 获取addrOverview
 //type  AddrOverview {
 //	int64 reciver = 1;
 //	int64 balance = 2;
 //	int64 txCount = 3;}
-//获取addrOverview
 func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOverview, error) {
 
 	if addr == nil || len(addr.Addr) == 0 {
