@@ -38,6 +38,7 @@ isRecordBlockSequence=false
 enableTxQuickIndex=false
 
 [p2p]
+port=13802
 seeds=[]
 enable=true
 isSeed=false

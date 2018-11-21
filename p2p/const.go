@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// time limit for timeout
 var (
 	UpdateState                 = 2 * time.Second
 	PingTimeout                 = 14 * time.Second
@@ -32,11 +33,11 @@ const (
 )
 
 var (
-	LocalAddr string
+	LocalAddr   string
+	defaultPort int = 13802
 )
 
 const (
-	defaultPort     = 13802
 	defalutNatPort  = 23802
 	maxOutBoundNum  = 25
 	stableBoundNum  = 15
@@ -61,10 +62,12 @@ const (
 	privKeyTag = "privkey"
 )
 
+// P2pCacheTxSize p2pcache size of transaction
 const (
 	P2pCacheTxSize = 10240
 )
 
+// TestNetSeeds test seeds of net
 var TestNetSeeds = []string{
 	"114.55.101.159:13802",
 	"47.104.125.151:13802",
@@ -72,7 +75,7 @@ var TestNetSeeds = []string{
 	"47.104.125.177:13802",
 }
 
-//内置seed 列表
+// built-in list of seed
 var InnerSeeds = []string{
 	"39.107.234.240:13802",
 	"39.105.88.66:13802",

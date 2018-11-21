@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// DecodeLog decode log
 func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 	var rTy string
 	switch rlog.Ty {
@@ -46,6 +47,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 	return rd, nil
 }
 
+// ConvertWalletTxDetailToJson conver the wallet tx detail to json
 func ConvertWalletTxDetailToJson(in *types.WalletTxDetails, out *WalletTxDetails) error {
 	if in == nil || out == nil {
 		return types.ErrInvalidParam
@@ -81,6 +83,7 @@ func ConvertWalletTxDetailToJson(in *types.WalletTxDetails, out *WalletTxDetails
 	return nil
 }
 
+// DecodeTx docode transaction
 func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	if tx == nil {
 		return nil, types.ErrEmpty

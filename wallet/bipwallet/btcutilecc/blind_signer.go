@@ -9,6 +9,7 @@ import "crypto/rand"
 import "fmt"
 import "math/big"
 
+// BlindSignerState blind signer state
 type BlindSignerState struct {
 	// secret stuff
 	d, k *big.Int
@@ -17,7 +18,7 @@ type BlindSignerState struct {
 	Q *ecdsa.PublicKey
 }
 
-// Request that the signer start a blind signature protocol.  Returns
+// BlindSession Request that the signer start a blind signature protocol.  Returns
 // the signer's public key and an EC point named R.
 func BlindSession(sState *BlindSignerState) (*ecdsa.PublicKey, *ecdsa.PublicKey) {
 
@@ -39,13 +40,13 @@ func BlindSession(sState *BlindSignerState) (*ecdsa.PublicKey, *ecdsa.PublicKey)
 	return sState.Q, R
 }
 
-// Signs a blinded message
+// BlindSign Signs a blinded message
 func BlindSign(sState *BlindSignerState, R *ecdsa.PublicKey, mHat *big.Int) *big.Int {
 	crv := Secp256k1().Params()
 
 	// verify that R matches our secret k
-	R_ := ScalarBaseMult(sState.k)
-	if !KeysEqual(R, R_) {
+	RSM := ScalarBaseMult(sState.k)
+	if !KeysEqual(R, RSM) {
 		panic("unknown R")
 	}
 

@@ -26,14 +26,15 @@ import (
 )
 
 var (
-	minFee            int64
-	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
+	minFee           int64
+	maxTxNumPerBlock int64 = types.MaxTxsPerBlock
+	// MaxTxHashsPerTime 每次处理的最大交易哈希数量
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
-	// 1；secp256k1，2：ed25519，3：sm2
-	SignType                = 1
-	accountdb   *account.DB = nil
-	accTokenMap             = make(map[string]*account.DB)
+	// SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
+	SignType    = 1
+	accountdb   *account.DB
+	accTokenMap = make(map[string]*account.DB)
 )
 
 func init() {
@@ -41,14 +42,16 @@ func init() {
 }
 
 const (
-	// 交易操作的方向
+	// AddTx 添加交易操作
 	AddTx int32 = 20001
+	// DelTx 删除交易操作
 	DelTx int32 = 20002
 	// 交易收发方向
 	sendTx int32 = 30001
 	recvTx int32 = 30002
 )
 
+// Wallet 钱包功能的实现类
 type Wallet struct {
 	client queue.Client
 	// 模块间通信的操作接口,建议用api代替client调用
@@ -71,21 +74,24 @@ type Wallet struct {
 	lastHeader         *types.Header
 }
 
+// SetLogLevel 设置日志登记
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
 }
 
+// DisableLog 禁用日志
 func DisableLog() {
 	walletlog.SetHandler(log.DiscardHandler())
 	storelog.SetHandler(log.DiscardHandler())
 }
 
+// New 创建一个钱包对象
 func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	//walletStore
 	accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
-	walletStore := NewStore(walletStoreDB)
+	walletStore := newStore(walletStoreDB)
 	minFee = cfg.MinFee
 	signType := types.GetSignType("", cfg.SignType)
 	if signType == types.Invalid {
@@ -110,6 +116,7 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	return wallet
 }
 
+// RegisterMineStatusReporter 向钱包注册状态回报
 func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) error {
 	if reporter == nil {
 		return types.ErrInvalidParam
@@ -121,66 +128,82 @@ func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport)
 	return nil
 }
 
+// GetConfig 获取钱包配置
 func (wallet *Wallet) GetConfig() *types.Wallet {
 	return wallet.cfg
 }
 
+// GetAPI 获取操作API
 func (wallet *Wallet) GetAPI() client.QueueProtocolAPI {
 	return wallet.api
 }
 
+// GetMutex 获取钱包互斥量
 func (wallet *Wallet) GetMutex() *sync.Mutex {
 	return &wallet.mtx
 }
 
+// GetDBStore 获取数据库存储对象操作接口
 func (wallet *Wallet) GetDBStore() dbm.DB {
 	return wallet.walletStore.GetDB()
 }
 
+// GetSignType 获取签名类型
 func (wallet *Wallet) GetSignType() int {
 	return SignType
 }
 
+// GetPassword 获取密码
 func (wallet *Wallet) GetPassword() string {
 	return wallet.Password
 }
 
+// Nonce 获取随机值
 func (wallet *Wallet) Nonce() int64 {
 	return wallet.random.Int63()
 }
 
+// AddWaitGroup 添加一个分组等待事件
 func (wallet *Wallet) AddWaitGroup(delta int) {
 	wallet.wg.Add(delta)
 }
 
+// WaitGroupDone 完成分组事件
 func (wallet *Wallet) WaitGroupDone() {
 	wallet.wg.Done()
 }
 
+// GetBlockHeight 获取区块高度
 func (wallet *Wallet) GetBlockHeight() int64 {
 	return wallet.GetHeight()
 }
 
+// GetRandom 获取随机值
 func (wallet *Wallet) GetRandom() *rand.Rand {
 	return wallet.random
 }
 
+// GetWalletDone 是否结束的通道
 func (wallet *Wallet) GetWalletDone() chan struct{} {
 	return wallet.done
 }
 
+// GetLastHeader 获取最新高度信息
 func (wallet *Wallet) GetLastHeader() *types.Header {
 	return wallet.lastHeader
 }
 
+// GetWaitGroup 获取等待互斥量
 func (wallet *Wallet) GetWaitGroup() *sync.WaitGroup {
 	return wallet.wg
 }
 
-func (ws *Wallet) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
-	return ws.walletStore.GetAccountByLabel(label)
+// GetAccountByLabel 根据标签获取账号
+func (wallet *Wallet) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
+	return wallet.walletStore.GetAccountByLabel(label)
 }
 
+// IsRescanUtxosFlagScaning 是否处于扫描UTXO状态
 func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
 	in := &types.ReqNil{}
 	flag := false
@@ -204,6 +227,7 @@ func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
 	return flag, nil
 }
 
+// Close 关闭钱包
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	//set close flag to isclosed == 1
@@ -219,19 +243,17 @@ func (wallet *Wallet) Close() {
 	walletlog.Info("wallet module closed")
 }
 
+// IsClose 检查是否处于关闭状态
 func (wallet *Wallet) IsClose() bool {
 	return atomic.LoadInt32(&wallet.isclosed) == 1
 }
 
-//返回钱包锁的状态
+// IsWalletLocked 返回钱包锁的状态
 func (wallet *Wallet) IsWalletLocked() bool {
-	if atomic.LoadInt32(&wallet.isWalletLocked) == 0 {
-		return false
-	} else {
-		return true
-	}
+	return atomic.LoadInt32(&wallet.isWalletLocked) != 0
 }
 
+// SetQueueClient 初始化客户端消息队列
 func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
@@ -243,14 +265,17 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	}
 }
 
+// GetAccountByAddr 根据地址获取账户
 func (wallet *Wallet) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
 	return wallet.walletStore.GetAccountByAddr(addr)
 }
 
+// SetWalletAccount 设置钱包账户
 func (wallet *Wallet) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
 	return wallet.walletStore.SetWalletAccount(update, addr, account)
 }
 
+// GetPrivKeyByAddr 根据地址获取私钥
 func (wallet *Wallet) GetPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	return wallet.getPrivKeyByAddr(addr)
 }
@@ -290,7 +315,7 @@ func (wallet *Wallet) getFee() int64 {
 	return wallet.FeeAmount
 }
 
-//地址对应的账户是否属于本钱包
+// AddrInWallet 地址对应的账户是否属于本钱包
 func (wallet *Wallet) AddrInWallet(addr string) bool {
 	if len(addr) == 0 {
 		return false
@@ -302,7 +327,7 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 	return false
 }
 
-//检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
+//IsTransfer 检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
 func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 
 	ok, err := wallet.CheckWalletStatus()
@@ -320,7 +345,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	return ok, err
 }
 
-//钱包状态检测函数,解锁状态，seed是否已保存
+//CheckWalletStatus 钱包状态检测函数,解锁状态，seed是否已保存
 func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	// 钱包锁定，ticket已经解锁，返回只解锁了ticket的错误
 	if wallet.IsWalletLocked() && !wallet.isTicketLocked() {
@@ -353,6 +378,7 @@ func (wallet *Wallet) isAutoMinning() bool {
 	return autoMining
 }
 
+// GetWalletStatus 获取钱包状态
 func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s := &types.WalletStatus{}
 	s.IsWalletLock = wallet.IsWalletLocked()
@@ -364,6 +390,7 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	return s
 }
 
+// GetWalletAccounts 获取账号列表
 //output:
 //type WalletAccountStore struct {
 //	Privkey   string  //加密后的私钥hex值

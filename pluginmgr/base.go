@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package pluginmgr manage module
 package pluginmgr
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// PluginBase plugin module base struct
 type PluginBase struct {
 	Name     string
 	ExecName string
@@ -19,14 +21,17 @@ type PluginBase struct {
 	Cmd      func() *cobra.Command
 }
 
+// GetName 获取整个插件的包名，用以计算唯一值、做前缀等
 func (p *PluginBase) GetName() string {
 	return p.Name
 }
 
+// GetExecutorName 获取插件中执行器名
 func (p *PluginBase) GetExecutorName() string {
 	return p.ExecName
 }
 
+// InitExec init exec
 func (p *PluginBase) InitExec(sub map[string][]byte) {
 	subcfg, ok := sub[p.ExecName]
 	if !ok {
@@ -35,6 +40,7 @@ func (p *PluginBase) InitExec(sub map[string][]byte) {
 	p.Exec(p.ExecName, subcfg)
 }
 
+// InitWallet init wallet plugin
 func (p *PluginBase) InitWallet(walletBiz wcom.WalletOperate, sub map[string][]byte) {
 	subcfg, ok := sub[p.ExecName]
 	if !ok {
@@ -43,6 +49,7 @@ func (p *PluginBase) InitWallet(walletBiz wcom.WalletOperate, sub map[string][]b
 	p.Wallet(walletBiz, subcfg)
 }
 
+// AddCmd add Command for plugin cli
 func (p *PluginBase) AddCmd(rootCmd *cobra.Command) {
 	if p.Cmd != nil {
 		cmd := p.Cmd()
@@ -53,6 +60,7 @@ func (p *PluginBase) AddCmd(rootCmd *cobra.Command) {
 	}
 }
 
+// AddRPC add Rpc for plugin
 func (p *PluginBase) AddRPC(c types.RPCServer) {
 	if p.RPC != nil {
 		p.RPC(p.GetExecutorName(), c)

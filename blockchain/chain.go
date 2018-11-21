@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-实现区块链模块，包含区块链存储
+Package blockchain 实现区块链模块，包含区块链存储
 */
 package blockchain
 
@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/golang-lru"
 )
 
+//var
 var (
 	//cache 存贮的block个数
 	DefCacheSize        int64 = 128
@@ -37,6 +38,7 @@ var (
 
 const maxFutureBlocks = 256
 
+//BlockChain 区块链结构体
 type BlockChain struct {
 	client queue.Client
 	cache  *BlockCache
@@ -99,6 +101,7 @@ type BlockChain struct {
 	forklock sync.Mutex
 }
 
+//New new
 func New(cfg *types.BlockChain) *BlockChain {
 	initConfig(cfg)
 	futureBlocks, _ := lru.New(maxFutureBlocks)
@@ -154,6 +157,7 @@ func initConfig(cfg *types.BlockChain) {
 	types.S("quickIndex", cfg.EnableTxQuickIndex)
 }
 
+//Close 关闭区块链
 func (chain *BlockChain) Close() {
 	//等待所有的写线程退出，防止数据库写到一半被暂停
 	atomic.StoreInt32(&chain.isclosed, 1)
@@ -179,6 +183,7 @@ func (chain *BlockChain) Close() {
 	chainlog.Info("blockchain module closed")
 }
 
+//SetQueueClient 设置队列
 func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client = client
 	chain.client.Sub("blockchain")
@@ -199,15 +204,17 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	go chain.ProcRecvMsg()
 }
 
-//only used for test
+//GetStore only used for test
 func (chain *BlockChain) GetStore() *BlockStore {
 	return chain.blockStore
 }
 
+//GetOrphanPool 获取孤儿链
 func (chain *BlockChain) GetOrphanPool() *OrphanPool {
 	return chain.orphanPool
 }
 
+//InitBlockChain 区块链初始化
 func (chain *BlockChain) InitBlockChain() {
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
@@ -249,7 +256,7 @@ func (chain *BlockChain) getStateHash() []byte {
 	return zeroHash[:]
 }
 
-//blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
+//SendAddBlockEvent blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
 func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
 		fmt.Println("chain client not bind message queue.")
@@ -277,7 +284,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	return nil
 }
 
-//blockchain模块广播此block到网络中
+//SendBlockBroadcast blockchain模块广播此block到网络中
 func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	if chain.client == nil {
 		fmt.Println("chain client not bind message queue.")
@@ -293,11 +300,12 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	chain.client.Send(msg, false)
 }
 
+//GetBlockHeight 获取区块高度
 func (chain *BlockChain) GetBlockHeight() int64 {
 	return chain.blockStore.Height()
 }
 
-//用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
+//GetBlock 用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
 func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err error) {
 	blockdetail := chain.cache.CheckcacheBlock(height)
 	if blockdetail != nil {
@@ -305,20 +313,20 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 			chainlog.Debug("GetBlock  CheckcacheBlock Receipts ==0", "height", height)
 		}
 		return blockdetail, nil
-	} else {
-		//从blockstore db中通过block height获取block
-		blockinfo, err := chain.blockStore.LoadBlockByHeight(height)
-		if blockinfo != nil {
-			if len(blockinfo.Receipts) == 0 && len(blockinfo.Block.Txs) != 0 {
-				chainlog.Debug("GetBlock  LoadBlock Receipts ==0", "height", height)
-			}
-			return blockinfo, nil
-		}
-		return nil, err
 	}
+	//从blockstore db中通过block height获取block
+	blockinfo, err := chain.blockStore.LoadBlockByHeight(height)
+	if blockinfo != nil {
+		if len(blockinfo.Receipts) == 0 && len(blockinfo.Block.Txs) != 0 {
+			chainlog.Debug("GetBlock  LoadBlock Receipts ==0", "height", height)
+		}
+		return blockinfo, nil
+	}
+	return nil, err
+
 }
 
-//blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
+//SendDelBlockEvent blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
 func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
 		fmt.Println("chain client not bind message queue.")
@@ -344,10 +352,12 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 	return nil
 }
 
+//GetDB 获取DB
 func (chain *BlockChain) GetDB() dbm.DB {
 	return chain.blockStore.db
 }
 
+//InitCache 初始化缓存
 func (chain *BlockChain) InitCache(height int64) {
 	if height < 0 {
 		return
@@ -364,7 +374,7 @@ func (chain *BlockChain) InitCache(height int64) {
 	}
 }
 
-// 第一次启动之后需要将数据库中最新的128个block的node添加到index和bestchain中
+//InitIndexAndBestView 第一次启动之后需要将数据库中最新的128个block的node添加到index和bestchain中
 // 主要是为了接下来分叉时的block处理，.........todo
 func (chain *BlockChain) InitIndexAndBestView() {
 	//获取lastblocks从数据库,创建bestviewtip节点
@@ -379,34 +389,34 @@ func (chain *BlockChain) InitIndexAndBestView() {
 		chain.bestChain = newChainView(node)
 		chain.index.AddNode(node)
 		return
+	}
+	if curheight >= InitBlockNum {
+		height = curheight - InitBlockNum
 	} else {
-		if curheight >= InitBlockNum {
-			height = curheight - InitBlockNum
-		} else {
-			height = 0
+		height = 0
+	}
+	for ; height <= curheight; height++ {
+		header, _ := chain.blockStore.GetBlockHeaderByHeight(height)
+		if header == nil {
+			return
 		}
-		for ; height <= curheight; height++ {
-			header, _ := chain.blockStore.GetBlockHeaderByHeight(height)
-			if header == nil {
-				return
-			}
 
-			newNode := newBlockNodeByHeader(false, header, "self", -1)
-			newNode.parent = prevNode
-			prevNode = newNode
+		newNode := newBlockNodeByHeader(false, header, "self", -1)
+		newNode.parent = prevNode
+		prevNode = newNode
 
-			chain.index.AddNode(newNode)
-			if !initflag {
-				chain.bestChain = newChainView(newNode)
-				initflag = true
-			} else {
-				chain.bestChain.SetTip(newNode)
-			}
+		chain.index.AddNode(newNode)
+		if !initflag {
+			chain.bestChain = newChainView(newNode)
+			initflag = true
+		} else {
+			chain.bestChain.SetTip(newNode)
 		}
 	}
+
 }
 
-//定时延时广播futureblock
+//UpdateRoutine 定时延时广播futureblock
 func (chain *BlockChain) UpdateRoutine() {
 	//1秒尝试检测一次futureblock，futureblock的time小于当前系统时间就广播此block
 	futureblockTicker := time.NewTicker(1 * time.Second)
@@ -422,7 +432,7 @@ func (chain *BlockChain) UpdateRoutine() {
 	}
 }
 
-//循环遍历所有futureblocks，当futureblock的block生成time小于当前系统时间就将此block广播出去
+//ProcFutureBlocks 循环遍历所有futureblocks，当futureblock的block生成time小于当前系统时间就将此block广播出去
 func (chain *BlockChain) ProcFutureBlocks() {
 	for _, hash := range chain.futureBlocks.Keys() {
 		if block, exist := chain.futureBlocks.Peek(hash); exist {
