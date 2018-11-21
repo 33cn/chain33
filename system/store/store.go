@@ -9,11 +9,13 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-type StoreCreate func(cfg *types.Store, sub []byte) queue.Module
+// Storecreate store queue module
+type Storecreate func(cfg *types.Store, sub []byte) queue.Module
 
-var regStore = make(map[string]StoreCreate)
+var regStore = make(map[string]Storecreate)
 
-func Reg(name string, create StoreCreate) {
+// Reg 注册 store driver
+func Reg(name string, create Storecreate) {
 	if create == nil {
 		panic("Store: Register driver is nil")
 	}
@@ -23,7 +25,8 @@ func Reg(name string, create StoreCreate) {
 	regStore[name] = create
 }
 
-func Load(name string) (create StoreCreate, err error) {
+// Load load StoreCreate by name
+func Load(name string) (create Storecreate, err error) {
 	if driver, ok := regStore[name]; ok {
 		return driver, nil
 	}

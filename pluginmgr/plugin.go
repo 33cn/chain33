@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//
+// Plugin plugin module struct
 type Plugin interface {
 	// 获取整个插件的包名，用以计算唯一值、做前缀等
 	GetName() string

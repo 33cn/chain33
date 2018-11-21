@@ -19,8 +19,10 @@ type RpcCtx struct {
 	cb     Callback
 }
 
+// Callback a callback function
 type Callback func(res interface{}) (interface{}, error)
 
+// NewRpcCtx produce a object of rpcctx
 func NewRpcCtx(laddr, method string, params, res interface{}) *RpcCtx {
 	return &RpcCtx{
 		Addr:   laddr,
@@ -30,10 +32,12 @@ func NewRpcCtx(laddr, method string, params, res interface{}) *RpcCtx {
 	}
 }
 
+// SetResultCb rpcctx callback
 func (c *RpcCtx) SetResultCb(cb Callback) {
 	c.cb = cb
 }
 
+// RunResult  format rpc result
 func (c *RpcCtx) RunResult() (interface{}, error) {
 	rpc, err := NewJSONClient(c.Addr)
 	if err != nil {
@@ -57,6 +61,7 @@ func (c *RpcCtx) RunResult() (interface{}, error) {
 	return result, nil
 }
 
+// Run rpcctx to runresult
 func (c *RpcCtx) Run() {
 	result, err := c.RunResult()
 	if err != nil {
@@ -71,6 +76,7 @@ func (c *RpcCtx) Run() {
 	fmt.Println(string(data))
 }
 
+// RunWithoutMarshal return source result of string
 func (c *RpcCtx) RunWithoutMarshal() {
 	var res string
 	rpc, err := NewJSONClient(c.Addr)

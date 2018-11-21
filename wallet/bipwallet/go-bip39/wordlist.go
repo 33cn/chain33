@@ -10,17 +10,17 @@ import (
 )
 
 // The wordlist to use
-var WordList = EnglishWordList
-var WordListCHN = ChineseWordList
-var ReverseWordMap map[string]int = map[string]int{}
-var ReverseWordMapCHN map[string]int = map[string]int{}
+var wordList = EnglishWordList
+var wordListCHN = ChineseWordList
+var reverseWordMap = map[string]int{}
+var reverseWordMapCHN = map[string]int{}
 
 func init() {
-	for i, v := range WordList {
-		ReverseWordMap[v] = i
+	for i, v := range wordList {
+		reverseWordMap[v] = i
 	}
-	for i, v := range WordListCHN {
-		ReverseWordMapCHN[v] = i
+	for i, v := range wordListCHN {
+		reverseWordMapCHN[v] = i
 	}
 	//	fmt.Println("xxxxxxxxxxxxxxxxxxxxx,CHNWorldNum", len(ReverseWordMapCHN))
 	//	fmt.Println("xxxxxxxxxxxxxxxxxxxxx,ENGWorldNum", len(ReverseWordMap))
@@ -28,7 +28,11 @@ func init() {
 }
 
 // Language-specific wordlists
+
+// EnglishWordList 英文单词列表
 var EnglishWordList = strings.Split(englishWordList, "\n")
+
+// ChineseWordList 中文单词列表
 var ChineseWordList = strings.Split(chineseWordList, "\n")
 var chineseWordList = `的
 一

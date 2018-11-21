@@ -37,7 +37,7 @@ func TestBipwallet(t *testing.T) {
 		fmt.Println("err:", err.Error())
 		return
 	}
-	var index uint32 = 0
+	var index uint32
 	//通过索引生成Key pair
 	priv, pub, err := wallet.NewKeyPair(index)
 	fmt.Println("privkey:", hex.EncodeToString(priv))

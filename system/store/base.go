@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package store store the world - state data
 package store
 
-//store package store the world - state data
 import (
 	dbm "github.com/33cn/chain33/common/db"
 	clog "github.com/33cn/chain33/common/log"
@@ -26,16 +26,21 @@ import (
 */
 
 var slog = log.New("module", "store")
+
+// EmptyRoot mavl树空的根hash
 var EmptyRoot [32]byte
 
+// SetLogLevel set log level
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
 }
 
+// DisableLog disable log
 func DisableLog() {
 	slog.SetHandler(log.DiscardHandler())
 }
 
+// SubStore  store db的操作接口
 type SubStore interface {
 	Set(datas *types.StoreSet, sync bool) ([]byte, error)
 	Get(datas *types.StoreGet) [][]byte
@@ -47,6 +52,7 @@ type SubStore interface {
 	ProcEvent(msg queue.Message)
 }
 
+// BaseStore 基础的store结构体
 type BaseStore struct {
 	db      dbm.DB
 	qclient queue.Client
@@ -54,8 +60,7 @@ type BaseStore struct {
 	child   SubStore
 }
 
-//driver
-//dbpath
+// NewBaseStore new base store struct
 func NewBaseStore(cfg *types.Store) *BaseStore {
 	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	db.SetCacheSize(102400)
@@ -65,6 +70,7 @@ func NewBaseStore(cfg *types.Store) *BaseStore {
 	return store
 }
 
+// SetQueueClient set client queue for recv msg
 func (store *BaseStore) SetQueueClient(c queue.Client) {
 	store.qclient = c
 	store.qclient.Sub("store")
@@ -143,10 +149,12 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 	}
 }
 
+// SetChild 设置BaseStore中的子存储参数
 func (store *BaseStore) SetChild(sub SubStore) {
 	store.child = sub
 }
 
+// Close 关闭BaseStore 相关资源包括数据库、client等
 func (store *BaseStore) Close() {
 	if store.qclient != nil {
 		store.qclient.Close()
@@ -155,10 +163,12 @@ func (store *BaseStore) Close() {
 	store.db.Close()
 }
 
+// GetDB 返回 store db
 func (store *BaseStore) GetDB() dbm.DB {
 	return store.db
 }
 
+// GetQueueClient 返回store模块的client
 func (store *BaseStore) GetQueueClient() queue.Client {
 	return store.qclient
 }
