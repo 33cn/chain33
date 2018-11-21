@@ -8,15 +8,15 @@ import "crypto/ecdsa"
 import "fmt"
 import "math/big"
 
-// Based on algorithm described in An Efficient Blind Signature Scheme
+// BlindSignature Based on algorithm described in An Efficient Blind Signature Scheme
 // Based on the Elliptic Curve Discrete Logarithm Problem by
 // Nikooghadam and Zakerolhosseini
-
 type BlindSignature struct {
 	M, S *big.Int // called m and s in the paper
 	F    *ecdsa.PublicKey
 }
 
+// BlindVerify 不清楚干嘛的
 func BlindVerify(Q *ecdsa.PublicKey, sig *BlindSignature) bool {
 	crv := Secp256k1().Params()
 

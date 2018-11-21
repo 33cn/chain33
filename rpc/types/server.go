@@ -13,12 +13,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+// RPCServer interface
 type RPCServer interface {
 	GetQueueClient() queue.Client
 	GRPC() *grpc.Server
 	JRPC() *rpc.Server
 }
 
+// ChannelClient interface
 type ChannelClient struct {
 	client.QueueProtocolAPI
 	accountdb *account.DB
@@ -26,6 +28,7 @@ type ChannelClient struct {
 	jrpc      interface{}
 }
 
+// Init init function
 func (c *ChannelClient) Init(name string, s RPCServer, jrpc, grpc interface{}) {
 	if c.QueueProtocolAPI == nil {
 		c.QueueProtocolAPI, _ = client.New(s.GetQueueClient(), nil)
@@ -38,6 +41,7 @@ func (c *ChannelClient) Init(name string, s RPCServer, jrpc, grpc interface{}) {
 	c.accountdb = account.NewCoinsAccount()
 }
 
+// GetCoinsAccountDB  return accountdb
 func (c *ChannelClient) GetCoinsAccountDB() *account.DB {
 	return c.accountdb
 }

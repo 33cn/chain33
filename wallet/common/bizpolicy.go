@@ -10,7 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-// WalletPolicy 细分钱包业务逻辑的街口
+// WalletBizPolicy 细分钱包业务逻辑的街口
 type WalletBizPolicy interface {
 	// Init 初始化钱包业务策略，在使用前调用
 	Init(walletBiz WalletOperate, sub []byte)
