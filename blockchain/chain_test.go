@@ -69,7 +69,7 @@ func TestBlockChain(t *testing.T) {
 	//等待共识模块增长10个区块
 	testProcAddBlockMsg(t, mock33, blockchain)
 
-	testGetBlock(t, blockchain)
+	curBlock := testGetBlock(t, blockchain)
 
 	testGetTx(t, blockchain)
 
@@ -111,14 +111,14 @@ func TestBlockChain(t *testing.T) {
 
 	testRemoveOrphanBlock(t, blockchain)
 
-	testDelBlock(t, blockchain)
-
 	testLoadBlockBySequence(t, blockchain)
 
 	testProcDelParaChainBlockMsg(t, mock33, blockchain)
 
 	testProcAddParaChainBlockMsg(t, mock33, blockchain)
 	testProcBlockChainFork(t, blockchain)
+	testDelBlock(t, blockchain, curBlock)
+
 }
 
 func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
@@ -147,7 +147,7 @@ func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain 
 	chainlog.Info("testProcAddBlockMsg end --------------------")
 }
 
-func testGetBlock(t *testing.T, blockchain *blockchain.BlockChain) {
+func testGetBlock(t *testing.T, blockchain *blockchain.BlockChain) *types.Block {
 	chainlog.Info("testGetBlock begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight)
@@ -156,6 +156,8 @@ func testGetBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 		t.Error("get block height error")
 	}
 	chainlog.Info("testGetBlock end --------------------")
+	return block.Block
+
 }
 
 func testGetTx(t *testing.T, blockchain *blockchain.BlockChain) {
@@ -819,16 +821,18 @@ func testRemoveOrphanBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testRemoveOrphanBlock end --------------------")
 }
 
-func testDelBlock(t *testing.T, blockchain *blockchain.BlockChain) {
+func testDelBlock(t *testing.T, blockchain *blockchain.BlockChain, curBlock *types.Block) {
 	chainlog.Info("testDelBlock begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight)
 	require.NoError(t, err)
-	//copy block, or may be data race
-	tmp := *block.Block
-	tmp.Difficulty = block.Block.Difficulty - 100
-	newblock := *block
-	newblock.Block = &tmp
+	if curBlock == nil {
+		t.Error("testDelBlock curBlock is nil")
+	}
+
+	curBlock.Difficulty = block.Block.Difficulty - 100
+	newblock := types.BlockDetail{}
+	newblock.Block = curBlock
 
 	blockchain.ProcessBlock(true, &newblock, "1", true, 0)
 	chainlog.Info("testDelBlock end --------------------")
