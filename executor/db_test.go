@@ -96,3 +96,24 @@ func TestStateDBTxGetOld(t *testing.T) {
 	//fork 之前有bug，这里读到了脏数据
 	assert.Equal(t, v, []byte("v11"))
 }
+
+func TestLocalDB(t *testing.T) {
+	db := NewLocalDB(nil)
+	err := db.Set([]byte("k1"), []byte("v1"))
+	assert.Nil(t, err)
+	v, err := db.Get([]byte("k1"))
+	assert.Nil(t, err)
+	assert.Equal(t, v, []byte("v1"))
+
+	err = db.Set([]byte("k1"), []byte("v11"))
+	assert.Nil(t, err)
+	v, err = db.Get([]byte("k1"))
+	assert.Nil(t, err)
+	assert.Equal(t, v, []byte("v11"))
+
+	//beigin and rollback not imp
+	db.Begin()
+	db.Rollback()
+	db.Commit()
+	db.List([]byte("a"), []byte("b"), 1, 1)
+}
