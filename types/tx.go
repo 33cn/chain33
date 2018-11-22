@@ -317,9 +317,9 @@ func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 		}
 		return &txs, nil
 	}
-		if tx.Next != nil || tx.Header != nil {
-			return nil, ErrNomalTx
-		}
+	if tx.Next != nil || tx.Header != nil {
+		return nil, ErrNomalTx
+	}
 	return nil, nil
 }
 
@@ -488,17 +488,17 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		return true // 过期
 
 	}
-		//EnableTxHeight 选项开启, 并且符合条件
-		if txHeight := GetTxHeight(valid, height); txHeight > 0 {
-			if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
-				return false
-			}
-			return true
-		}
-		// Expire大于1e9，为blockTime
-		if valid > blocktime { // 未过期
+	//EnableTxHeight 选项开启, 并且符合条件
+	if txHeight := GetTxHeight(valid, height); txHeight > 0 {
+		if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
 			return false
 		}
+		return true
+	}
+	// Expire大于1e9，为blockTime
+	if valid > blocktime { // 未过期
+		return false
+	}
 	return true // 过期
 }
 
