@@ -83,6 +83,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
 		case types.EventLocalPrefixCount:
 			go chain.processMsg(msg, reqnum, chain.localPrefixCount)
+		case types.EventAddBlockSeqCB:
+			go chain.processMsg(msg, reqnum, chain.addBlockSeqCB)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -91,6 +93,21 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 func (chain *BlockChain) unknowMsg(msg queue.Message) {
 	chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msg.Ty)
+}
+
+func (chain *BlockChain) addBlockSeqCB(msg queue.Message) {
+	if chain.blockStore.seqCBNum() >= MaxSeqCB {
+		msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, types.ErrTooManySeqCB))
+		return
+	}
+	cb := (msg.Data).(*types.BlockSeqCB)
+	err := chain.blockStore.addBlockSeqCB(cb)
+	if err != nil {
+		msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, err))
+		return
+	}
+	chain.pushseq.addTask(cb)
+	msg.ReplyErr("EventAddBlockSeqCB", nil)
 }
 
 func (chain *BlockChain) queryTx(msg queue.Message) {
