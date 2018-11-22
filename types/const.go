@@ -9,11 +9,13 @@ import (
 )
 
 var slash = []byte("-")
+
 //Debug 调试开关
 var Debug = false
 
 //LogErr log错误信息
 type LogErr []byte
+
 //LogReserved LogReserved信息
 type LogReserved []byte
 
@@ -147,6 +149,7 @@ var TxHeightFlag int64 = 1 << 62
 //也就是说，另外一笔相同的交易，只能被打包在这个区间(9910,10210)。
 //那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易不要重复就好了
 var HighAllowPackHeight int64 = 90
+
 //LowAllowPackHeight 允许打包的low区块高度
 var LowAllowPackHeight int64 = 30
 

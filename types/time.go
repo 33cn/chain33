@@ -10,6 +10,7 @@ import (
 )
 
 var deltaTime int64
+
 //NtpHosts ntp hosts
 var NtpHosts = []string{
 	"time.windows.com:123",
