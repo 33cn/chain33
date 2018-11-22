@@ -204,12 +204,7 @@ func (bs *BlockStore) addBlockSeqCB(cb *types.BlockSeqCB) error {
 	if len(cb.Name) > 128 || len(cb.URL) > 1024 {
 		return types.ErrInvalidParam
 	}
-	err := bs.db.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
-	if err != nil {
-		return err
-	}
-	//todo: notify pushseq
-	return nil
+	return bs.db.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
 }
 
 func (bs *BlockStore) listSeqCB() (cbs []*types.BlockSeqCB, err error) {
