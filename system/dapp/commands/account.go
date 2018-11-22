@@ -16,6 +16,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
+
 // AccountCmd account command
 func AccountCmd() *cobra.Command {
 	cmd := &cobra.Command{

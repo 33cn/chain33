@@ -13,6 +13,7 @@ import (
 )
 
 var driverName = "none"
+
 // Init register newnone
 func Init(name string, sub []byte) {
 	if name != driverName {
@@ -26,6 +27,7 @@ func Init(name string, sub []byte) {
 func GetName() string {
 	return newNone().GetName()
 }
+
 // None defines a none type
 type None struct {
 	drivers.DriverBase

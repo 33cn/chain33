@@ -9,6 +9,7 @@ import (
 
 	. "github.com/33cn/chain33/cmd/autotest/types"
 )
+
 // TransferCase transfer case
 type TransferCase struct {
 	BaseCase
@@ -16,15 +17,18 @@ type TransferCase struct {
 	To     string `toml:"to"`
 	Amount string `toml:"amount"`
 }
+
 // TransferPack transfer pack
 type TransferPack struct {
 	BaseCasePack
 }
+
 // SendCommand sed command
 func (testCase *TransferCase) SendCommand(packID string) (PackFunc, error) {
 
 	return DefaultSend(testCase, &TransferPack{}, packID)
 }
+
 // GetCheckHandlerMap get check handle for map
 func (pack *TransferPack) GetCheckHandlerMap() interface{} {
 

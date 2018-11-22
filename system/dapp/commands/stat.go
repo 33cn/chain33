@@ -23,6 +23,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
+
 // StatCmd stat command
 func StatCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -261,6 +262,7 @@ func ticketStat(cmd *cobra.Command, args []string) {
 
 	fmt.Println(string(data))
 }
+
 // GetTicketInfoCmd get a ticket information
 func GetTicketInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -330,6 +332,7 @@ func ticketInfo(cmd *cobra.Command, args []string) {
 
 	fmt.Println(string(data))
 }
+
 // GetTicketInfoListCmd get ticket information list
 func GetTicketInfoListCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -428,6 +431,7 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 
 	fmt.Println(string(data))
 }
+
 // GetMinerStatCmd get miner stat
 func GetMinerStatCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -609,7 +613,7 @@ diffListLoop:
 					}
 				}
 
-				resp.Actual ++
+				resp.Actual++
 			}
 		}
 
@@ -633,6 +637,7 @@ type difficultyRange struct {
 	bits      uint32
 	diff      *big.Int
 }
+
 // MinerResult defiles miner command
 type MinerResult struct {
 	Expect *big.Float

@@ -27,14 +27,17 @@ func init() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&Manage{}))
 }
+
 // Init resister a dirver
 func Init(name string, sub []byte) {
 	drivers.Register(GetName(), newManage, types.GetDappFork(driverName, "Enable"))
 }
+
 // GetName return manage name
 func GetName() string {
 	return newManage().GetName()
 }
+
 // Manage defines Manage object
 type Manage struct {
 	drivers.DriverBase
@@ -46,14 +49,17 @@ func newManage() drivers.Driver {
 	c.SetExecutorType(types.LoadExecutorType(driverName))
 	return c
 }
+
 // GetDriverName return a drivername
 func (c *Manage) GetDriverName() string {
 	return driverName
 }
+
 // CheckTx checkout transaction
 func (c *Manage) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
+
 // IsSuperManager is supper manager or not
 func IsSuperManager(addr string) bool {
 	for _, m := range conf.GStrList("superManager") {

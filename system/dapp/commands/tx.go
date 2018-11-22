@@ -19,6 +19,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
+
 // TxCmd transaction command
 func TxCmd() *cobra.Command {
 	cmd := &cobra.Command{

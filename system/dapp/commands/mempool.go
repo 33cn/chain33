@@ -10,6 +10,7 @@ import (
 	. "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/spf13/cobra"
 )
+
 // MempoolCmd mempool command
 func MempoolCmd() *cobra.Command {
 	cmd := &cobra.Command{

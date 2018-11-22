@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 )
+
 // NetCmd net command
 func NetCmd() *cobra.Command {
 	cmd := &cobra.Command{

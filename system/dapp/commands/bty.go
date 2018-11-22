@@ -22,6 +22,7 @@ import (
 const (
 	defaultPrivacyMixCount = 16
 )
+
 // BTYCmd bty command
 func BTYCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -40,6 +41,7 @@ func BTYCmd() *cobra.Command {
 	)
 	return cmd
 }
+
 // CoinsCmd coins command func
 func CoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -319,6 +321,7 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 	grouptx := hex.EncodeToString(types.Encode(newtx))
 	fmt.Println(grouptx)
 }
+
 // CreatePub2PrivTxCmd create a public to privacy transaction
 func CreatePub2PrivTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -375,6 +378,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
+
 // CreatePriv2PrivTxCmd create a privacy to privacy transaction
 func CreatePriv2PrivTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -436,6 +440,7 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
+
 // CreatePriv2PubTxCmd create a privacy to public transaction
 func CreatePriv2PubTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
