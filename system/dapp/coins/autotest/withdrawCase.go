@@ -10,21 +10,25 @@ import (
 	. "github.com/33cn/chain33/cmd/autotest/types"
 )
 
+// WithdrawCase defines the withdraw case
 type WithdrawCase struct {
 	BaseCase
 	Addr   string `toml:"addr"`
 	Amount string `toml:"amount"`
 }
 
+// WithdrawPack defines the withdraw pack
 type WithdrawPack struct {
 	BaseCasePack
 }
 
+// SendCommand send command of withdrawcase
 func (testCase *WithdrawCase) SendCommand(packID string) (PackFunc, error) {
 
 	return DefaultSend(testCase, &WithdrawPack{}, packID)
 }
 
+// GetCheckHandlerMap get check handler for map
 func (pack *WithdrawPack) GetCheckHandlerMap() interface{} {
 
 	funcMap := make(CheckHandlerMapDiscard, 1)

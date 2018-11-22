@@ -10,6 +10,8 @@ import (
 
 // chain33定义的错误类型
 var (
+	ErrTooManySeqCB            = errors.New("ErrTooManySeqCB")
+	ErrPushSeqPostData         = errors.New("ErrPushSeqPostData")
 	ErrMethodReturnType        = errors.New("ErrMethodReturnType")
 	ErrMethodNotFound          = errors.New("ErrMethodNotFound")
 	ErrExecBlockNil            = errors.New("ErrExecBlockNil")

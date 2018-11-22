@@ -427,6 +427,7 @@ func (chain *BlockChain) GetPeers() PeerInfoList {
 func (chain *BlockChain) IsFaultPeer(pid string) bool {
 	faultpeerlock.Lock()
 	defer faultpeerlock.Unlock()
+
 	return chain.faultPeerList[pid] != nil
 }
 

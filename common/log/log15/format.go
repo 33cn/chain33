@@ -123,16 +123,16 @@ func logfmt(buf *bytes.Buffer, ctx []interface{}, color int) {
 	buf.WriteByte('\n')
 }
 
-// JsonFormat formats log records as JSON objects separated by newlines.
-// It is the equivalent of JsonFormatEx(false, true).
-func JsonFormat() Format {
-	return JsonFormatEx(false, true)
+// JSONFormat formats log records as JSON objects separated by newlines.
+// It is the equivalent of JSONFormatEx(false, true).
+func JSONFormat() Format {
+	return JSONFormatEx(false, true)
 }
 
-// JsonFormatEx formats log records as JSON objects. If pretty is true,
+// JSONFormatEx formats log records as JSON objects. If pretty is true,
 // records will be pretty-printed. If lineSeparated is true, records
 // will be logged with a new line between each record.
-func JsonFormatEx(pretty, lineSeparated bool) Format {
+func JSONFormatEx(pretty, lineSeparated bool) Format {
 	jsonMarshal := json.Marshal
 	if pretty {
 		jsonMarshal = func(v interface{}) ([]byte, error) {

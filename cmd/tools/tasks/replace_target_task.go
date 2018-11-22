@@ -28,7 +28,8 @@ type ReplaceTargetTask struct {
 	ExecName    string
 }
 
-func (this *ReplaceTargetTask) GetName() string {
+//GetName 获取name
+func (r *ReplaceTargetTask) GetName() string {
 	return "ReplaceTargetTask"
 }
 
@@ -37,16 +38,16 @@ func (this *ReplaceTargetTask) GetName() string {
 // 2. 打开每一个文件，根据替换规则替换内部的所有标签
 // 3. 保存时查看文件名是否要替换，如果要则替换后保存，否则直接保存
 // 4. 一直到所有的文件都替换完毕
-func (this *ReplaceTargetTask) Execute() error {
+func (r *ReplaceTargetTask) Execute() error {
 	mlog.Info("Execute replace target task.")
-	err := filepath.Walk(this.OutputPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(r.OutputPath, func(path string, info os.FileInfo, err error) error {
 		if info == nil {
 			return err
 		}
 		if info.IsDir() {
 			return nil
 		}
-		if err := this.replaceTarget(path); err != nil {
+		if err := r.replaceTarget(path); err != nil {
 			mlog.Error("replaceTarget error", "error", err, "path", path)
 			return err
 		}
@@ -55,15 +56,15 @@ func (this *ReplaceTargetTask) Execute() error {
 	return err
 }
 
-func (this *ReplaceTargetTask) replaceTarget(file string) error {
+func (r *ReplaceTargetTask) replaceTarget(file string) error {
 	replacePairs := []struct {
 		src string
 		dst string
 	}{
-		{src: types.TagProjectName, dst: this.ProjectName},
-		{src: types.TagClassName, dst: this.ClassName},
-		{src: types.TagActionName, dst: this.ActionName},
-		{src: types.TagExecName, dst: this.ExecName},
+		{src: types.TagProjectName, dst: r.ProjectName},
+		{src: types.TagClassName, dst: r.ClassName},
+		{src: types.TagActionName, dst: r.ActionName},
+		{src: types.TagExecName, dst: r.ExecName},
 	}
 	bcontent, err := util.ReadFile(file)
 	if err != nil {

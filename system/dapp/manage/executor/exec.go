@@ -22,6 +22,7 @@ func (c *Manage) checkTxToAddress(tx *types.Transaction, index int) error {
 	return c.checkAddress(tx.GetRealToAddr())
 }
 
+// Exec_Modify modify exec
 func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("manage.Exec", "start index", index)
 	// 兼容在区块上没有To地址检查的交易数据
