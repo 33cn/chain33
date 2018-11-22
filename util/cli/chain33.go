@@ -153,6 +153,7 @@ func RunChain33(name string) {
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
+	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
 	chain.UpgradeChain()
 
 	log.Info("loading consensus module")

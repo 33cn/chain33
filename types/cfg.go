@@ -86,10 +86,11 @@ type Wallet struct {
 
 // Store 配置
 type Store struct {
-	Name    string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Driver  string `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
-	DbPath  string `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
-	DbCache int32  `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
+	Name           string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Driver         string `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
+	DbPath         string `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
+	DbCache        int32  `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
+	LocalDBVersion string `protobuf:"bytes,5,opt,name=localdbVersion" json:"localdbVersion,omitempty"`
 }
 
 // BlockChain 配置
