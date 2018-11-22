@@ -28,37 +28,43 @@ trade,
 
 */
 
+//TestCaseFile 测试用例文件
 type TestCaseFile struct {
 	Dapp     string `toml:"dapp"`
 	Filename string `toml:"filename"`
 }
 
+//TestCaseConfig 测试用例配置
 type TestCaseConfig struct {
 	CliCommand      string         `toml:"cliCmd"`
 	CheckTimeout    int            `toml:"checkTimeout"`
 	TestCaseFileArr []TestCaseFile `toml:"TestCaseFile"`
 }
 
-type autoTestResult struct {
+//AutoTestResult 自动测试结果
+type AutoTestResult struct {
 	dapp       string
 	totalCase  int
 	failCase   int
 	failCaseID []string
 }
 
+//var
 var (
 	configFile     string
-	resultChan     = make(chan *autoTestResult, 1)
-	testResultArr  = make([]*autoTestResult, 0)
+	resultChan     = make(chan *AutoTestResult, 1)
+	testResultArr  = make([]*AutoTestResult, 0)
 	autoTestConfig = &TestCaseConfig{}
 
 	checkSleepTime = 1 //second, s
 )
 
+//TestRunner 测试接口
 type TestRunner interface {
 	RunTest(tomlFile string, wg *sync.WaitGroup)
 }
 
+//InitFlowConfig 初始化配置
 func InitFlowConfig(conf string, log string) {
 
 	fileLog.SetHandler(log15.Must.FileHandler(log, types.AutoTestLogFormat()))
@@ -66,6 +72,7 @@ func InitFlowConfig(conf string, log string) {
 
 }
 
+//StartAutoTest 自动测试
 func StartAutoTest() bool {
 
 	stdLog.Info("[================================BeginAutoTest===============================]")

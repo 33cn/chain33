@@ -16,6 +16,7 @@ import (
 
 const ntpEpochOffset = 2208988800
 
+//ErrNetWorkDealy error
 var ErrNetWorkDealy = errors.New("ErrNetWorkDealy")
 
 // NTP packet format (v3 with optional v4 fields removed)
@@ -76,7 +77,8 @@ type packet struct {
    ---------------------------------------------------------
         t1                t4         t5                  t8
 */
-//利用服务器返回的 t2, t3, 和本地的 t1, t4 校准时间
+
+//GetNtpTime 利用服务器返回的 t2, t3, 和本地的 t1, t4 校准时间
 //delt = ((t2-t1)+(t3-t4))/2
 //current = t4 + delt
 func GetNtpTime(host string) (time.Time, error) {
@@ -138,6 +140,7 @@ func (s durationSlice) Len() int           { return len(s) }
 func (s durationSlice) Less(i, j int) bool { return s[i] < s[j] }
 func (s durationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
+//GetRealTime 获取实际时间
 func GetRealTime(hosts []string) time.Time {
 	q := len(hosts)/2 + 1
 	ch := make(chan time.Duration, len(hosts))
@@ -217,6 +220,7 @@ func maxSubList(list []time.Duration) (sub []time.Duration) {
 	return sub
 }
 
+//GetRealTimeRetry 重试获取实际时间
 func GetRealTimeRetry(hosts []string, retry int) time.Time {
 	for i := 0; i < retry; i++ {
 		t := GetRealTime(hosts)

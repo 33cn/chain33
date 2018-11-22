@@ -14,6 +14,7 @@ import (
 	"github.com/33cn/chain33/util"
 )
 
+//CopyTemplateToOutputTask ...
 type CopyTemplateToOutputTask struct {
 	TaskBase
 	TemplatePath string
@@ -22,30 +23,32 @@ type CopyTemplateToOutputTask struct {
 	ClassName    string
 }
 
-func (this *CopyTemplateToOutputTask) GetName() string {
+//GetName 获取name
+func (c *CopyTemplateToOutputTask) GetName() string {
 	return "CopyTemplateToOutputTask"
 }
 
-func (this *CopyTemplateToOutputTask) Execute() error {
+//Execute 执行
+func (c *CopyTemplateToOutputTask) Execute() error {
 	mlog.Info("Execute copy template task.")
-	err := filepath.Walk(this.TemplatePath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(c.TemplatePath, func(path string, info os.FileInfo, err error) error {
 		if info == nil {
 			return err
 		}
-		if this.TemplatePath == path {
+		if c.TemplatePath == path {
 			return nil
 		}
 		if info.IsDir() {
-			outFolder := fmt.Sprintf("%s/%s/", this.OutputPath, info.Name())
+			outFolder := fmt.Sprintf("%s/%s/", c.OutputPath, info.Name())
 			if err := util.MakeDir(outFolder); err != nil {
 				mlog.Error("MakeDir failed", "error", err, "outFolder", outFolder)
 				return err
 			}
 		} else {
 			srcFile := path
-			path = strings.Replace(path, types.TagClassName, this.ClassName, -1)
+			path = strings.Replace(path, types.TagClassName, c.ClassName, -1)
 			path = strings.Replace(path, ".tmp", "", -1)
-			dstFile := strings.Replace(path, this.TemplatePath, this.OutputPath, -1)
+			dstFile := strings.Replace(path, c.TemplatePath, c.OutputPath, -1)
 			if _, err := util.CopyFile(srcFile, dstFile); err != nil {
 				mlog.Error("CopyFile failed", "error", err, "srcFile", srcFile, "dstFile", dstFile)
 				return err

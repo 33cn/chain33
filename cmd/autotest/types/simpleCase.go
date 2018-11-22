@@ -11,14 +11,17 @@ import (
 
 //simple case just executes without checking, suitable for init situation
 
+//SimpleCase 简单用例
 type SimpleCase struct {
 	BaseCase
 }
 
+//SimplePack 简单pack
 type SimplePack struct {
 	BaseCasePack
 }
 
+//SendCommand 发送cmd
 func (testCase *SimpleCase) SendCommand(packID string) (PackFunc, error) {
 
 	output, err := RunChain33Cli(strings.Fields(testCase.GetCmd()))
@@ -36,7 +39,7 @@ func (testCase *SimpleCase) SendCommand(packID string) (PackFunc, error) {
 
 }
 
-//simple case needn't check
+//CheckResult simple case needn't check
 func (pack *SimplePack) CheckResult(handlerMap interface{}) (bCheck bool, bSuccess bool) {
 
 	bCheck = true

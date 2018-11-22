@@ -23,14 +23,14 @@ func init() {
 	//resetWithLogLevel("error")
 }
 
-// 设置控制台日志输出级别
+//SetLogLevel 设置控制台日志输出级别
 func SetLogLevel(logLevel string) {
 	handler := getConsoleLogHandler(logLevel)
 	(*handler).SetMaxLevel(int(getLevel(logLevel)))
 	log15.Root().SetHandler(*handler)
 }
 
-// 设置文件日志和控制台日志信息
+//SetFileLog 设置文件日志和控制台日志信息
 func SetFileLog(log *types.Log) {
 	if log == nil {
 		log = &types.Log{LogFile: "logs/chain33.log"}
@@ -121,10 +121,12 @@ func getLevel(lvlString string) log15.Lvl {
 	return lvl
 }
 
+//New new
 func New(ctx ...interface{}) log15.Logger {
 	return NewMain(ctx...)
 }
 
+//NewMain new
 func NewMain(ctx ...interface{}) log15.Logger {
 	return log15.Root().New(ctx...)
 }

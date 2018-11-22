@@ -1,6 +1,7 @@
 //Copyright Fuzamei Corp. 2018 All Rights Reserved.
 //Use of this source code is governed by a BSD-style
 //license that can be found in the LICENSE file.
+
 package strategy
 
 import (
@@ -32,35 +33,35 @@ type createPluginStrategy struct {
 
 }
 
-func (this *createPluginStrategy) Run() error {
+func (c *createPluginStrategy) Run() error {
 	fmt.Println("Begin run chain33 create plugin project mode.")
 	defer fmt.Println("Run chain33 create plugin project mode finish.")
-	if err := this.initMember(); err != nil {
+	if err := c.initMember(); err != nil {
 		return err
 	}
-	return this.rumImpl()
+	return c.rumImpl()
 }
 
-func (this *createPluginStrategy) initMember() error {
+func (c *createPluginStrategy) initMember() error {
 	gopath := os.Getenv("GOPATH")
 	if len(gopath) <= 0 {
 		return errors.New("Can't find GOPATH")
 	}
-	this.gopath = gopath
-	this.outRootPath = filepath.Join(gopath, "/src/github.com/33cn")
-	this.projName, _ = this.getParam(types.KeyProjectName)
-	this.execName, _ = this.getParam(types.KeyExecutorName)
-	this.className, _ = this.getParam(types.KeyClassName)
-	this.projectPath = fmt.Sprintf("%s/%s", this.outRootPath, this.projName)
-	this.execNameFB, _ = util.MakeStringToUpper(this.execName, 0, 1)
-	this.classTypeName = this.execNameFB + "Type"
-	this.classActionName = this.execNameFB + "Action"
+	c.gopath = gopath
+	c.outRootPath = filepath.Join(gopath, "/src/github.com/33cn")
+	c.projName, _ = c.getParam(types.KeyProjectName)
+	c.execName, _ = c.getParam(types.KeyExecutorName)
+	c.className, _ = c.getParam(types.KeyClassName)
+	c.projectPath = fmt.Sprintf("%s/%s", c.outRootPath, c.projName)
+	c.execNameFB, _ = util.MakeStringToUpper(c.execName, 0, 1)
+	c.classTypeName = c.execNameFB + "Type"
+	c.classActionName = c.execNameFB + "Action"
 	return nil
 }
 
-func (this *createPluginStrategy) rumImpl() error {
+func (c *createPluginStrategy) rumImpl() error {
 	var err error
-	tasks := this.buildTask()
+	tasks := c.buildTask()
 	for _, task := range tasks {
 		err = task.Execute()
 		if err != nil {
@@ -71,122 +72,122 @@ func (this *createPluginStrategy) rumImpl() error {
 	return err
 }
 
-func (this *createPluginStrategy) buildTask() []tasks.Task {
+func (c *createPluginStrategy) buildTask() []tasks.Task {
 	// 获取项目相对于gopath/src中的目录路径
-	goprojpath := strings.Replace(this.projectPath, this.gopath+"/src/", "", -1)
+	goprojpath := strings.Replace(c.projectPath, c.gopath+"/src/", "", -1)
 	taskSlice := make([]tasks.Task, 0)
 	taskSlice = append(taskSlice,
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_MAIN_GO,
-			OutputFile: fmt.Sprintf("%s/main.go", this.projectPath),
+			OutputFile: fmt.Sprintf("%s/main.go", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
+				types.TagProjectName: c.projName,
 				types.TagProjectPath: goprojpath,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_CFG_TOML,
-			OutputFile: fmt.Sprintf("%s/%s.toml", this.projectPath, this.projName),
+			OutputFile: fmt.Sprintf("%s/%s.toml", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
+				types.TagProjectName: c.projName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:     CPFT_RUNMAIN,
 			BlockStrBegin: CPFT_RUNMAIN_BLOCK + "`",
 			BlockStrEnd:   "`",
-			OutputFile:    fmt.Sprintf("%s/%s.go", this.projectPath, this.projName),
+			OutputFile:    fmt.Sprintf("%s/%s.go", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
+				types.TagProjectName: c.projName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_MAKEFILE,
-			OutputFile: fmt.Sprintf("%s/Makefile", this.projectPath),
+			OutputFile: fmt.Sprintf("%s/Makefile", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
+				types.TagProjectName: c.projName,
 				types.TagProjectPath: goprojpath,
-				types.TagGoPath:      this.gopath,
-				types.TagExecName:    this.execName,
+				types.TagGoPath:      c.gopath,
+				types.TagExecName:    c.execName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_TRAVIS_YML,
-			OutputFile: fmt.Sprintf("%s/.travis.yml", this.projectPath),
+			OutputFile: fmt.Sprintf("%s/.travis.yml", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
+				types.TagProjectName: c.projName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_PLUGIN_TOML,
-			OutputFile: fmt.Sprintf("%s/plugin/plugin.toml", this.projectPath),
+			OutputFile: fmt.Sprintf("%s/plugin/plugin.toml", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
+				types.TagProjectName: c.projName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_CLI_MAIN,
-			OutputFile: fmt.Sprintf("%s/cli/main.go", this.projectPath),
+			OutputFile: fmt.Sprintf("%s/cli/main.go", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
+				types.TagProjectName: c.projName,
 				types.TagProjectPath: goprojpath,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_DAPP_COMMANDS,
-			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/commands/cmd.go", this.projectPath, this.execName),
+			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/commands/cmd.go", c.projectPath, c.execName),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
+				types.TagProjectName: c.projName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_DAPP_PLUGIN,
-			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/plugin.go", this.projectPath, this.projName),
+			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/plugin.go", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
-				types.TagExecNameFB:  this.execNameFB,
+				types.TagProjectName: c.projName,
+				types.TagExecNameFB:  c.execNameFB,
 				types.TagProjectPath: goprojpath,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_DAPP_EXEC,
-			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/executor/%s.go", this.projectPath, this.projName, this.execName),
+			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/executor/%s.go", c.projectPath, c.projName, c.execName),
 			ReplaceKeyPairs: map[string]string{
-				types.TagProjectName: this.projName,
-				types.TagExecName:    this.execName,
-				types.TagClassName:   this.className,
+				types.TagProjectName: c.projName,
+				types.TagExecName:    c.execName,
+				types.TagClassName:   c.className,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:       CPFT_DAPP_CREATEPB,
-			OutputFile:      fmt.Sprintf("%s/plugin/dapp/%s/proto/create_protobuf.sh", this.projectPath, this.projName),
+			OutputFile:      fmt.Sprintf("%s/plugin/dapp/%s/proto/create_protobuf.sh", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:       CPFT_DAPP_MAKEFILE,
-			OutputFile:      fmt.Sprintf("%s/plugin/dapp/%s/proto/Makefile", this.projectPath, this.projName),
+			OutputFile:      fmt.Sprintf("%s/plugin/dapp/%s/proto/Makefile", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_DAPP_PROTO,
-			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/proto/%s.proto", this.projectPath, this.projName, this.execName),
+			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/proto/%s.proto", c.projectPath, c.projName, c.execName),
 			ReplaceKeyPairs: map[string]string{
-				types.TagActionName: this.classActionName,
+				types.TagActionName: c.classActionName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
 			SourceStr:  CPFT_DAPP_TYPEFILE,
-			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/types/types.go", this.projectPath, this.projName),
+			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/types/types.go", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{
-				types.TagExecNameFB:    this.execNameFB,
-				types.TagExecName:      this.execName,
-				types.TagClassTypeName: this.classTypeName,
-				types.TagActionName:    this.classActionName,
+				types.TagExecNameFB:    c.execNameFB,
+				types.TagExecName:      c.execName,
+				types.TagClassTypeName: c.classTypeName,
+				types.TagActionName:    c.classActionName,
 			},
 		},
 		// 需要将所有的go文件格式化以下
 		&tasks.FormatDappSourceTask{
-			OutputFolder: fmt.Sprintf("%s/%s/", this.outRootPath, this.projName),
+			OutputFolder: fmt.Sprintf("%s/%s/", c.outRootPath, c.projName),
 		},
 	)
 	return taskSlice
