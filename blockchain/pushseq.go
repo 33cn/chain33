@@ -79,6 +79,18 @@ func (p *pushseq) updateSeq(seq int64) {
 	}
 }
 
+func (p *pushseq) trigeRun(run chan struct{}, sleep time.Duration) {
+	go func() {
+		if sleep > 0 {
+			time.Sleep(sleep)
+		}
+		select {
+		case run <- struct{}{}:
+		default:
+		}
+	}()
+}
+
 func (p *pushseq) runTask(input pushNotify) {
 	go func(in pushNotify) {
 		var lastseq int64 = -1
@@ -91,49 +103,37 @@ func (p *pushseq) runTask(input pushNotify) {
 				if cb.URL == "" {
 					return
 				}
+				p.trigeRun(run, 0)
 			case maxseq = <-in.seq:
+				p.trigeRun(run, 0)
 			case <-run:
 				if cb == nil {
-					go func() {
-						time.Sleep(time.Second)
-						run <- struct{}{}
-					}()
+					p.trigeRun(run, time.Second)
 					continue
 				}
 				if lastseq == -1 {
 					lastseq = p.store.getSeqCBLastNum([]byte(cb.Name))
 				}
 				if lastseq >= maxseq {
-					go func() {
-						time.Sleep(100 * time.Millisecond)
-						run <- struct{}{}
-					}()
+					p.trigeRun(run, 100*time.Millisecond)
 					continue
 				}
 				data, err := p.getDataBySeq(lastseq + 1)
 				if err != nil {
 					chainlog.Error("getDataBySeq", "err", err)
-					go func() {
-						time.Sleep(1000 * time.Millisecond)
-						run <- struct{}{}
-					}()
+					p.trigeRun(run, 1000*time.Millisecond)
 					continue
 				}
 				err = p.postData(cb, data)
 				if err != nil {
 					chainlog.Error("postdata", "err", err)
 					//sleep 10s
-					go func() {
-						time.Sleep(10000 * time.Millisecond)
-						run <- struct{}{}
-					}()
+					p.trigeRun(run, 10000*time.Millisecond)
 					continue
 				}
 				//update seqid
 				lastseq = lastseq + 1
-				go func() {
-					run <- struct{}{}
-				}()
+				p.trigeRun(run, 0)
 			}
 		}
 	}(input)
