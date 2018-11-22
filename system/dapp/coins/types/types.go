@@ -21,7 +21,7 @@ const (
 
 var (
 	// CoinsX defines a global string
-	CoinsX      = "coins"
+	CoinsX = "coins"
 	// ExecerCoins execer coins
 	ExecerCoins = []byte(CoinsX)
 	actionName  = map[string]int32{
