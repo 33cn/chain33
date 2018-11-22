@@ -25,7 +25,7 @@ func TestErrLog(t *testing.T) {
 	defer mocker.Close()
 	mocker.Listen()
 
-	rpcCfg := mocker.GetCfg().Rpc
+	rpcCfg := mocker.GetCfg().RPC
 	jrpcClient, err := jsonclient.NewJSONClient(fmt.Sprintf("http://%s/", rpcCfg.JrpcBindAddr))
 	assert.NoError(t, err)
 	assert.NotNil(t, jrpcClient)

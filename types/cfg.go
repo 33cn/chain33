@@ -4,6 +4,7 @@
 
 package types
 
+// Config 配置信息
 type Config struct {
 	Title      string      `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
 	Log        *Log        `protobuf:"bytes,2,opt,name=log" json:"log,omitempty"`
@@ -13,7 +14,7 @@ type Config struct {
 	BlockChain *BlockChain `protobuf:"bytes,7,opt,name=blockChain" json:"blockChain,omitempty"`
 	Wallet     *Wallet     `protobuf:"bytes,8,opt,name=wallet" json:"wallet,omitempty"`
 	P2P        *P2P        `protobuf:"bytes,9,opt,name=p2p" json:"p2p,omitempty"`
-	Rpc        *Rpc        `protobuf:"bytes,10,opt,name=rpc" json:"rpc,omitempty"`
+	RPC        *RPC        `protobuf:"bytes,10,opt,name=rpc" json:"rpc,omitempty"`
 	Exec       *Exec       `protobuf:"bytes,11,opt,name=exec" json:"exec,omitempty"`
 	TestNet    bool        `protobuf:"varint,12,opt,name=testNet" json:"testNet,omitempty"`
 	FixTime    bool        `protobuf:"varint,13,opt,name=fixTime" json:"fixTime,omitempty"`
@@ -21,11 +22,13 @@ type Config struct {
 	Fork       *ForkList   `protobuf:"bytes,15,opt,name=fork" json:"fork,omitempty"`
 }
 
+// ForkList fork列表配置
 type ForkList struct {
 	System map[string]int64            `protobuf:"bytes,1,rep,name=system" json:"system,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
 	Sub    map[string]map[string]int64 `protobuf:"bytes,2,rep,name=sub" json:"sub,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
 }
 
+// Log 日志配置
 type Log struct {
 	// 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
 	Loglevel        string `protobuf:"bytes,1,opt,name=loglevel" json:"loglevel,omitempty"`
@@ -48,6 +51,7 @@ type Log struct {
 	CallerFunction bool `protobuf:"varint,10,opt,name=callerFunction" json:"callerFunction,omitempty"`
 }
 
+// MemPool 配置
 type MemPool struct {
 	PoolCacheSize      int64 `protobuf:"varint,1,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
 	MinTxFee           int64 `protobuf:"varint,2,opt,name=minTxFee" json:"minTxFee,omitempty"`
@@ -55,6 +59,7 @@ type MemPool struct {
 	MaxTxNumPerAccount int64 `protobuf:"varint,4,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
 }
 
+// Consensus 配置
 type Consensus struct {
 	Name                 string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
 	GenesisBlockTime     int64  `protobuf:"varint,2,opt,name=genesisBlockTime" json:"genesisBlockTime,omitempty"`
@@ -70,6 +75,7 @@ type Consensus struct {
 	WaitBlocks4CommitMsg int32  `protobuf:"varint,26,opt,name=waitBlocks4CommitMsg" json:"waitBlocks4CommitMsg,omitempty"`
 }
 
+// Wallet 配置
 type Wallet struct {
 	MinFee   int64  `protobuf:"varint,1,opt,name=minFee" json:"minFee,omitempty"`
 	Driver   string `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
@@ -78,6 +84,7 @@ type Wallet struct {
 	SignType string `protobuf:"bytes,5,opt,name=signType" json:"signType,omitempty"`
 }
 
+// Store 配置
 type Store struct {
 	Name    string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
 	Driver  string `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
@@ -85,6 +92,7 @@ type Store struct {
 	DbCache int32  `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
 }
 
+// BlockChain 配置
 type BlockChain struct {
 	DefCacheSize          int64  `protobuf:"varint,1,opt,name=defCacheSize" json:"defCacheSize,omitempty"`
 	MaxFetchBlockNum      int64  `protobuf:"varint,2,opt,name=maxFetchBlockNum" json:"maxFetchBlockNum,omitempty"`
@@ -101,6 +109,7 @@ type BlockChain struct {
 	EnableTxQuickIndex    bool   `protobuf:"varint,13,opt,name=enableTxQuickIndex" json:"enableTxQuickIndex,omitempty"`
 }
 
+// P2P 配置
 type P2P struct {
 	Port            int32    `protobuf:"varint,1,opt,name=port" json:"port,omitempty"`
 	Driver          string   `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
@@ -120,7 +129,8 @@ type P2P struct {
 	UseGithub       bool     `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
 }
 
-type Rpc struct {
+// RPC 配置
+type RPC struct {
 	JrpcBindAddr      string   `protobuf:"bytes,1,opt,name=jrpcBindAddr" json:"jrpcBindAddr,omitempty"`
 	GrpcBindAddr      string   `protobuf:"bytes,2,opt,name=grpcBindAddr" json:"grpcBindAddr,omitempty"`
 	Whitlist          []string `protobuf:"bytes,3,rep,name=whitlist" json:"whitlist,omitempty"`
@@ -132,6 +142,7 @@ type Rpc struct {
 	MainnetJrpcAddr   string   `protobuf:"bytes,9,opt,name=mainnetJrpcAddr" json:"mainnetJrpcAddr,omitempty"`
 }
 
+// Exec 配置
 type Exec struct {
 	MinExecFee       int64    `protobuf:"varint,1,opt,name=minExecFee" json:"minExecFee,omitempty"`
 	IsFree           bool     `protobuf:"varint,2,opt,name=isFree" json:"isFree,omitempty"`
@@ -142,6 +153,7 @@ type Exec struct {
 	SaveTokenTxList  bool     `protobuf:"varint,6,opt,name=saveTokenTxList" json:"saveTokenTxList,omitempty"`
 }
 
+// Pprof 配置
 type Pprof struct {
 	ListenAddr string `protobuf:"bytes,1,opt,name=listenAddr" json:"listenAddr,omitempty"`
 }
