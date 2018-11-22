@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
+
 // SeedCmd seed command
 func SeedCmd() *cobra.Command {
 	cmd := &cobra.Command{

@@ -22,6 +22,7 @@ import (
 
 // var clog = log.New("module", "execs.coins")
 var driverName = "coins"
+
 // Init defines a register function
 func Init(name string, sub []byte) {
 	if name != driverName {
@@ -35,10 +36,12 @@ func init() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&Coins{}))
 }
+
 // GetName return name string
 func GetName() string {
 	return newCoins().GetName()
 }
+
 // Coins defines coins
 type Coins struct {
 	drivers.DriverBase
@@ -50,10 +53,12 @@ func newCoins() drivers.Driver {
 	c.SetExecutorType(types.LoadExecutorType(driverName))
 	return c
 }
+
 // GetDriverName get drive name
 func (c *Coins) GetDriverName() string {
 	return driverName
 }
+
 // CheckTx check transaction
 func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
 	return nil

@@ -31,24 +31,29 @@ func init() {
 	types.RegisterDappFork(ManageX, "Enable", 120000)
 	types.RegisterDappFork(ManageX, "ForkManageExec", 400000)
 }
+
 // ManageType defines managetype
 type ManageType struct {
 	types.ExecTypeBase
 }
+
 // NewType new a managetype object
 func NewType() *ManageType {
 	c := &ManageType{}
 	c.SetChild(c)
 	return c
 }
+
 // GetPayload return manageaction
 func (at *ManageType) GetPayload() types.Message {
 	return &ManageAction{}
 }
+
 // ActionName return action a string name
 func (m ManageType) ActionName(tx *types.Transaction) string {
 	return "config"
 }
+
 // Amount amount
 func (m ManageType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
@@ -60,6 +65,7 @@ func (m ManageType) CreateTx(action string, message json.RawMessage) (*types.Tra
 	var tx *types.Transaction
 	return tx, nil
 }
+
 // GetLogMap  get log for map
 func (m *ManageType) GetLogMap() map[int64]*types.LogInfo {
 	return logmap
@@ -74,6 +80,7 @@ func (m ManageType) GetRealToAddr(tx *types.Transaction) string {
 	}
 	return tx.To
 }
+
 // GetTypeMap return typename of actionname
 func (m ManageType) GetTypeMap() map[string]int32 {
 	return actionName

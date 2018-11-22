@@ -9,12 +9,14 @@ import (
 	pty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
 )
+
 // Action attribute
 type Action struct {
 	db       dbm.KV
 	fromaddr string
 	height   int64
 }
+
 // NewAction new a action object
 func NewAction(m *Manage, tx *types.Transaction) *Action {
 	return &Action{db: m.GetStateDB(), fromaddr: tx.From(), height: m.GetHeight()}

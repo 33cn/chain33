@@ -13,6 +13,7 @@ const (
 const (
 	TyLogModifyConfig = 410
 )
+
 // ConfigItemArrayConfig config Item
 const (
 	ConfigItemArrayConfig = iota

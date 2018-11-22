@@ -21,6 +21,7 @@ func (c *Manage) checkAddress(addr string) error {
 func (c *Manage) checkTxToAddress(tx *types.Transaction, index int) error {
 	return c.checkAddress(tx.GetRealToAddr())
 }
+
 // Exec_Modify modify exec
 func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("manage.Exec", "start index", index)

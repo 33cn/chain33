@@ -9,6 +9,7 @@ import (
 
 	"github.com/33cn/chain33/types"
 )
+
 // AllowIsSame allow issame drivername
 func (d *DriverBase) AllowIsSame(execer []byte) bool {
 	execer = types.GetParaExec(execer)
@@ -52,6 +53,7 @@ func (d *DriverBase) Allow(tx *types.Transaction, index int) error {
 	}
 	return types.ErrNotAllow
 }
+
 // IsFriend defines a isfriend function
 func (d *DriverBase) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
 	return false

@@ -94,6 +94,7 @@ func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error
 	}
 	return &counts, nil
 }
+
 // Query defines query function
 func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, err error) {
 	funcmap := d.child.GetFuncMap()

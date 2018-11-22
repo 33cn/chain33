@@ -7,6 +7,7 @@ package executor
 import (
 	"github.com/33cn/chain33/types"
 )
+
 // ExecDelLocal_Transfer delete  transfer of local exec
 func (c *Coins) ExecDelLocal_Transfer(transfer *types.AssetsTransfer, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	kv, err := updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), transfer.Amount, false)
@@ -15,6 +16,7 @@ func (c *Coins) ExecDelLocal_Transfer(transfer *types.AssetsTransfer, tx *types.
 	}
 	return &types.LocalDBSet{KV: []*types.KeyValue{kv}}, nil
 }
+
 // ExecDelLocal_TransferToExec delete  transfer  of  local exec to exec
 func (c *Coins) ExecDelLocal_TransferToExec(transfer *types.AssetsTransferToExec, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	kv, err := updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), transfer.Amount, false)
@@ -23,6 +25,7 @@ func (c *Coins) ExecDelLocal_TransferToExec(transfer *types.AssetsTransferToExec
 	}
 	return &types.LocalDBSet{KV: []*types.KeyValue{kv}}, nil
 }
+
 // ExecDelLocal_Withdraw  delete withdraw of local exec
 func (c *Coins) ExecDelLocal_Withdraw(withdraw *types.AssetsWithdraw, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	from := tx.From()
