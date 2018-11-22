@@ -142,7 +142,7 @@ func (p *pushseq) runTask(input pushNotify) {
 func (p *pushseq) postData(cb *types.BlockSeqCB, data *types.BlockSeq) (err error) {
 	var postdata []byte
 	if cb.Encode == "json" {
-		postdata, err = types.PBToJson(data)
+		postdata, err = types.PBToJSON(data)
 		if err != nil {
 			return err
 		}
