@@ -46,7 +46,7 @@ func (d *DriverBase) AllowIsUserDot2(execer []byte) bool {
 	return false
 }
 
-// Allow default behavior: same name  or  parallel	to the chain
+// Allow default behavior: same name  or  parallel chain
 func (d *DriverBase) Allow(tx *types.Transaction, index int) error {
 	if d.AllowIsSame(tx.Execer) {
 		return nil
