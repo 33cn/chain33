@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/common/address"
 )
 
+// OneStepSend one step send
 func OneStepSend(args []string) {
 	name := args[0]
 	params := args[2:]

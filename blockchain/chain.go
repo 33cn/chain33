@@ -25,6 +25,7 @@ import (
 var (
 	//cache 存贮的block个数
 	DefCacheSize        int64 = 128
+	MaxSeqCB            int64 = 20
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
 	InitBlockNum        int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
@@ -44,6 +45,7 @@ type BlockChain struct {
 	cache  *BlockCache
 	// 永久存储数据到db中
 	blockStore *BlockStore
+	pushseq    *pushseq
 	//cache  缓存block方便快速查询
 	cfg      *types.BlockChain
 	task     *Task
@@ -193,13 +195,14 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
-
+	chain.pushseq = newpushseq(chain.blockStore)
 	//startTime
 	chain.startTime = types.Now()
 
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
 	chain.recvwg.Add(1)
 	//初始化blockchian模块
+	chain.pushseq.init()
 	chain.InitBlockChain()
 	go chain.ProcRecvMsg()
 }

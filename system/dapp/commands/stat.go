@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// StatCmd stat command
 func StatCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "stat",
@@ -43,7 +44,7 @@ func StatCmd() *cobra.Command {
 	return cmd
 }
 
-// get total coins
+// GetTotalCoinsCmd get total coins
 func GetTotalCoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "total_coins",
@@ -212,7 +213,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	fmt.Println(string(data))
 }
 
-// get ticket stat
+// GetTicketStatCmd get ticket stat
 func GetTicketStatCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ticket_stat",
@@ -262,6 +263,7 @@ func ticketStat(cmd *cobra.Command, args []string) {
 	fmt.Println(string(data))
 }
 
+// GetTicketInfoCmd get a ticket information
 func GetTicketInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ticket_info",
@@ -331,6 +333,7 @@ func ticketInfo(cmd *cobra.Command, args []string) {
 	fmt.Println(string(data))
 }
 
+// GetTicketInfoListCmd get ticket information list
 func GetTicketInfoListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ticket_info_list",
@@ -429,6 +432,7 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 	fmt.Println(string(data))
 }
 
+// GetMinerStatCmd get miner stat
 func GetMinerStatCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "miner",
@@ -609,7 +613,7 @@ diffListLoop:
 					}
 				}
 
-				resp.Actual += 1
+				resp.Actual++
 			}
 		}
 
@@ -634,12 +638,13 @@ type difficultyRange struct {
 	diff      *big.Int
 }
 
+// MinerResult defiles miner command
 type MinerResult struct {
 	Expect *big.Float
 	Actual int64
 }
 
-// get exec-addr balance of specific addr
+// GetExecBalanceCmd get exec-addr balance of specific addr
 func GetExecBalanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "exec_balance",

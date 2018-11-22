@@ -389,6 +389,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 			b.SendBlockBroadcast(blockdetail)
 		}
 	}
+	b.pushseq.updateSeq(node.sequence)
 	return blockdetail, nil
 }
 
@@ -422,7 +423,6 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
 		return err
 	}
-
 	//更新最新的高度和header为上一个块
 	b.blockStore.UpdateHeight()
 	b.blockStore.UpdateLastBlock(blockdetail.Block.ParentHash)
@@ -432,7 +432,6 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 
 	//通知共识，mempool和钱包删除block
 	b.SendDelBlockEvent(blockdetail)
-
 	b.query.updateStateHash(node.parent.statehash)
 
 	//确定node的父节点升级成tip节点
@@ -451,7 +450,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 
 	chainlog.Debug("disconnectBlock success", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
 	chainlog.Debug("disconnectBlock success", "newtipnode.hash", common.ToHex(newtipnode.hash), "delblock.parent.hash", common.ToHex(blockdetail.Block.GetParentHash()))
-
+	b.pushseq.updateSeq(node.sequence)
 	return nil
 }
 

@@ -23,10 +23,13 @@ import (
 var blog = log.New("module", "execs.base")
 
 const (
+	// TxIndexFrom transaction index from
 	TxIndexFrom = 1
-	TxIndexTo   = 2
+	// TxIndexTo transaction index to
+	TxIndexTo = 2
 )
 
+// Driver defines some interface
 type Driver interface {
 	SetStateDB(dbm.KV)
 	GetCoinsAccount() *account.DB
@@ -62,6 +65,7 @@ type Driver interface {
 	GetExecutorType() types.ExecutorType
 }
 
+// DriverBase defines driverbase type
 type DriverBase struct {
 	statedb      dbm.KV
 	localdb      dbm.KVDB
@@ -80,6 +84,7 @@ type DriverBase struct {
 	ety          types.ExecutorType
 }
 
+// GetPayloadValue define get payload func
 func (d *DriverBase) GetPayloadValue() types.Message {
 	if d.ety == nil {
 		return nil
@@ -87,10 +92,12 @@ func (d *DriverBase) GetPayloadValue() types.Message {
 	return d.ety.GetPayload()
 }
 
+// GetExecutorType defines get executortype func
 func (d *DriverBase) GetExecutorType() types.ExecutorType {
 	return d.ety
 }
 
+// GetFuncMap defines get execfuncmap func
 func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
 	if d.ety == nil {
 		return nil
@@ -98,37 +105,45 @@ func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
 	return d.ety.GetExecFuncMap()
 }
 
+// SetApi set queue protocol api
 func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
 	d.api = api
 }
 
+// GetApi return queue protocol api
 func (d *DriverBase) GetApi() client.QueueProtocolAPI {
 	return d.api
 }
 
+// SetEnv set env
 func (d *DriverBase) SetEnv(height, blocktime int64, difficulty uint64) {
 	d.height = height
 	d.blocktime = blocktime
 	d.difficulty = difficulty
 }
 
+// SetIsFree set isfree
 func (d *DriverBase) SetIsFree(isFree bool) {
 	d.isFree = isFree
 }
 
+// IsFree return isfree
 func (d *DriverBase) IsFree() bool {
 	return d.isFree
 }
 
+// SetExecutorType set exectortype
 func (d *DriverBase) SetExecutorType(e types.ExecutorType) {
 	d.ety = e
 }
 
+// SetChild set childvalue
 func (d *DriverBase) SetChild(e Driver) {
 	d.child = e
 	d.childValue = reflect.ValueOf(e)
 }
 
+// ExecLocal local exec
 func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	lset, err := d.callLocal("ExecLocal_", tx, receipt, index)
@@ -143,6 +158,7 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 	return &set, nil
 }
 
+// ExecDelLocal local execdel
 func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	lset, err := d.callLocal("ExecDelLocal_", tx, receipt, index)
@@ -202,6 +218,7 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 	return set, err
 }
 
+// CheckAddress check address
 func CheckAddress(addr string, height int64) error {
 	if IsDriverAddress(addr, height) {
 		return nil
@@ -209,7 +226,7 @@ func CheckAddress(addr string, height int64) error {
 	return address.CheckAddress(addr)
 }
 
-//调用子类的CheckTx, 也可以不调用，实现自己的CheckTx
+// Exec call the check exectx subclass, you can also do it without calling , implement your own checktx
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
 	if d.ety == nil {
 		return nil, nil
@@ -241,7 +258,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	if !types.IsOK(valueret, 2) {
 		return nil, types.ErrMethodReturnType
 	}
-	//参数1
+	//parameter 1
 	r1 := valueret[0].Interface()
 	if r1 != nil {
 		if r, ok := r1.(*types.Receipt); ok {
@@ -250,7 +267,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 			return nil, types.ErrMethodReturnType
 		}
 	}
-	//参数2
+	//parameter 2
 	r2 := valueret[1].Interface()
 	err = nil
 	if r2 != nil {
@@ -263,7 +280,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	return receipt, err
 }
 
-//默认情况下，tx.To 地址指向合约地址
+// CheckTx  default:，tx.To address points to the contract address
 func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	execer := string(tx.Execer)
 	if ExecAddress(execer) != tx.To {
@@ -272,6 +289,7 @@ func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
+// SetStateDB set db state
 func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
 		//log.Error("new CoinsAccount")
@@ -281,6 +299,7 @@ func (d *DriverBase) SetStateDB(db dbm.KV) {
 	d.coinsaccount.SetDB(db)
 }
 
+// GetTxGroup get txgroup
 func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
 	if len(d.txs) <= index {
 		return nil, types.ErrTxGroupIndex
@@ -303,38 +322,47 @@ func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
 	return nil, types.ErrTxGroupFormat
 }
 
+// GetReceipt return receipts
 func (d *DriverBase) GetReceipt() []*types.ReceiptData {
 	return d.receipts
 }
 
+// SetReceipt set receipt
 func (d *DriverBase) SetReceipt(receipts []*types.ReceiptData) {
 	d.receipts = receipts
 }
 
+// GetStateDB set statedb
 func (d *DriverBase) GetStateDB() dbm.KV {
 	return d.statedb
 }
 
+// SetLocalDB set localdb
 func (d *DriverBase) SetLocalDB(db dbm.KVDB) {
 	d.localdb = db
 }
 
+// GetLocalDB return localdb
 func (d *DriverBase) GetLocalDB() dbm.KVDB {
 	return d.localdb
 }
 
+// GetHeight return height
 func (d *DriverBase) GetHeight() int64 {
 	return d.height
 }
 
+// GetBlockTime return block time
 func (d *DriverBase) GetBlockTime() int64 {
 	return d.blocktime
 }
 
+// GetDifficulty return difficulty
 func (d *DriverBase) GetDifficulty() uint64 {
 	return d.difficulty
 }
 
+// GetName defines return name func
 func (d *DriverBase) GetName() string {
 	if d.name == "" {
 		return d.child.GetDriverName()
@@ -342,6 +370,7 @@ func (d *DriverBase) GetName() string {
 	return d.name
 }
 
+// GetCurrentExecName defines get current execname
 func (d *DriverBase) GetCurrentExecName() string {
 	if d.curname == "" {
 		return d.child.GetDriverName()
@@ -349,22 +378,27 @@ func (d *DriverBase) GetCurrentExecName() string {
 	return d.curname
 }
 
+// SetName set name
 func (d *DriverBase) SetName(name string) {
 	d.name = name
 }
 
+// SetCurrentExecName set current execname
 func (d *DriverBase) SetCurrentExecName(name string) {
 	d.curname = name
 }
 
+// GetActionName get action name
 func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
 }
 
+// CheckSignatureData check signature data
 func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 	return true
 }
 
+// GetCoinsAccount get coins account
 func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
@@ -373,10 +407,12 @@ func (d *DriverBase) GetCoinsAccount() *account.DB {
 	return d.coinsaccount
 }
 
+// GetTxs get transactions
 func (d *DriverBase) GetTxs() []*types.Transaction {
 	return d.txs
 }
 
+// SetTxs set transactions
 func (d *DriverBase) SetTxs(txs []*types.Transaction) {
 	d.txs = txs
 }

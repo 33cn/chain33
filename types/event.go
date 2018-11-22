@@ -91,6 +91,7 @@ const (
 	EventCheckTx             = 81
 	EventReceiptCheckTx      = 82
 	EventReplyQuery          = 84
+	EventAddBlockSeqCB       = 85
 	EventFetchBlockHeaders   = 86
 	EventAddBlockHeaders     = 87
 	EventReplyWalletStatus   = 89
