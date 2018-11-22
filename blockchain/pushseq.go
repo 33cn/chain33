@@ -84,6 +84,7 @@ func (p *pushseq) runTask(input pushNotify) {
 		var lastseq int64 = -1
 		var maxseq int64 = -1
 		var cb *types.BlockSeqCB
+		var run = make(chan struct{}, 10)
 		for {
 			select {
 			case cb = <-in.cb:
@@ -91,32 +92,48 @@ func (p *pushseq) runTask(input pushNotify) {
 					return
 				}
 			case maxseq = <-in.seq:
-			default:
+			case <-run:
 				if cb == nil {
-					time.Sleep(time.Second)
+					go func() {
+						time.Sleep(time.Second)
+						run <- struct{}{}
+					}()
 					continue
 				}
 				if lastseq == -1 {
 					lastseq = p.store.getSeqCBLastNum([]byte(cb.Name))
 				}
 				if lastseq >= maxseq {
-					time.Sleep(100 * time.Millisecond)
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						run <- struct{}{}
+					}()
 					continue
 				}
 				data, err := p.getDataBySeq(lastseq + 1)
 				if err != nil {
 					chainlog.Error("getDataBySeq", "err", err)
+					go func() {
+						time.Sleep(1000 * time.Millisecond)
+						run <- struct{}{}
+					}()
 					continue
 				}
 				err = p.postData(cb, data)
 				if err != nil {
 					chainlog.Error("postdata", "err", err)
 					//sleep 10s
-					time.Sleep(10 * time.Second)
+					go func() {
+						time.Sleep(10000 * time.Millisecond)
+						run <- struct{}{}
+					}()
 					continue
 				}
 				//update seqid
 				lastseq = lastseq + 1
+				go func() {
+					run <- struct{}{}
+				}()
 			}
 		}
 	}(input)
