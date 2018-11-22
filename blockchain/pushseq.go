@@ -33,11 +33,21 @@ func newpushseq(store *BlockStore) *pushseq {
 func (p *pushseq) init() {
 	cbs, err := p.store.listSeqCB()
 	if err != nil {
+		chainlog.Error("listSeqCB", "err", err)
 		return
 	}
 	for _, cb := range cbs {
 		p.addTask(cb)
 	}
+}
+
+func (p *pushseq) updateLastSeq() {
+	last, err := p.store.LoadBlockLastSequence()
+	if err != nil {
+		chainlog.Error("listSeqCB", "err", err)
+		return
+	}
+	p.updateSeq(last)
 }
 
 //每个name 有一个task
@@ -57,6 +67,8 @@ func (p *pushseq) addTask(cb *types.BlockSeqCB) {
 	}
 	p.cmds[cb.Name].cb <- cb
 	p.runTask(p.cmds[cb.Name])
+	//更新最新的seq
+	p.updateLastSeq()
 }
 
 func (p *pushseq) updateSeq(seq int64) {
