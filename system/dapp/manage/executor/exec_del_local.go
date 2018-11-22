@@ -14,7 +14,7 @@ import (
 func localKey(key string) []byte {
 	return []byte(fmt.Sprintf("LODB-manage-%s", key))
 }
-
+// ExecDelLocal_Modify defines  execdellocal modify func
 func (c *Manage) ExecDelLocal_Modify(transfer *types.ModifyConfig, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set := &types.LocalDBSet{}
 	if receipt.GetTy() != types.ExecOk {

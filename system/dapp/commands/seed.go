@@ -10,7 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
-
+// SeedCmd seed command
 func SeedCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "seed",
@@ -27,7 +27,7 @@ func SeedCmd() *cobra.Command {
 	return cmd
 }
 
-// generate seed
+// GenSeedCmd generate seed
 func GenSeedCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "generate",
@@ -54,7 +54,7 @@ func genSeed(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get seed
+// GetSeedCmd get seed
 func GetSeedCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
@@ -81,7 +81,7 @@ func getSeed(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// save seed
+// SaveSeedCmd save seed
 func SaveSeedCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "save",

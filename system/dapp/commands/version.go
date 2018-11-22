@@ -8,7 +8,7 @@ import (
 	"github.com/33cn/chain33/rpc/jsonclient"
 	"github.com/spf13/cobra"
 )
-
+// VersionCmd version command
 func VersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",

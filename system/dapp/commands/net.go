@@ -10,7 +10,7 @@ import (
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 )
-
+// NetCmd net command
 func NetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "net",
@@ -30,7 +30,7 @@ func NetCmd() *cobra.Command {
 	return cmd
 }
 
-// get peers connected info
+// GetPeerInfoCmd  get peers connected info
 func GetPeerInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "peer_info",
@@ -47,7 +47,7 @@ func peerInfo(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get ntp clock sync status
+// IsClockSyncCmd  get ntp clock sync status
 func IsClockSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "is_clock_sync",
@@ -64,7 +64,7 @@ func isClockSync(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get local db sync status
+// IsSyncCmd get local db sync status
 func IsSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "is_sync",
@@ -81,7 +81,7 @@ func isSync(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get net info
+// GetNetInfoCmd get net info
 func GetNetInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "info",
@@ -98,7 +98,7 @@ func netInfo(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get FatalFailure
+// GetFatalFailureCmd get FatalFailure
 func GetFatalFailureCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fault",
@@ -115,7 +115,7 @@ func fatalFailure(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get time status
+// GetTimeStausCmd get time status
 func GetTimeStausCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "time",
