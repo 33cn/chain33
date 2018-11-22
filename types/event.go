@@ -42,7 +42,6 @@ const (
 	EventGetTransactionByAddr = 34
 	EventGetTransactionByHash = 35
 	EventReplyTxInfo          = 36
-	//wallet event
 	EventWalletGetAccountList  = 37
 	EventWalletAccountList     = 38
 	EventNewAccount            = 39
@@ -75,14 +74,12 @@ const (
 	EventStoreRollback         = 67
 	EventStoreCommit           = 68
 	EventCheckBlock            = 69
-	//seed
 	EventGenSeed      = 70
 	EventReplyGenSeed = 71
 	EventSaveSeed     = 72
 	EventGetSeed      = 73
 	EventReplyGetSeed = 74
 	EventDelBlock     = 75
-	//local store
 	EventLocalGet            = 76
 	EventLocalReplyValue     = 77
 	EventLocalList           = 78

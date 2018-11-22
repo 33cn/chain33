@@ -20,7 +20,7 @@ import (
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowUserExec = [][]byte{ExecerNone}
-	//这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
+	//AllowDepositExec 这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
 	AllowDepositExec = [][]byte{[]byte("ticket")}
 	EmptyValue       = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 	title            string
@@ -57,6 +57,7 @@ func init() {
 	}
 }
 
+// ChainParam 结构体
 type ChainParam struct {
 	CoinDevFund              int64
 	CoinReward               int64
@@ -72,6 +73,7 @@ type ChainParam struct {
 	RetargetAdjustmentFactor int64
 }
 
+// GetP 获取ChainParam
 func GetP(height int64) *ChainParam {
 	conf := Conf("mver.consensus")
 	c := &ChainParam{}
@@ -90,6 +92,7 @@ func GetP(height int64) *ChainParam {
 	return c
 }
 
+// GetFundAddr 获取基金账户地址
 func GetFundAddr() string {
 	return MGStr("mver.consensus.fundKeyAddr", 0)
 }
@@ -107,12 +110,14 @@ func getChainConfig(key string) (value interface{}, err error) {
 	return nil, ErrNotFound
 }
 
+// G 获取ChainConfig中的配置
 func G(key string) (value interface{}, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 	return getChainConfig(key)
 }
 
+// MG 获取mver config中的配置
 func MG(key string, height int64) (value interface{}, err error) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -124,6 +129,7 @@ func MG(key string, height int64) (value interface{}, err error) {
 	return mymver.Get(key, height)
 }
 
+// GStr 获取ChainConfig中的字符串格式
 func GStr(name string) string {
 	value, err := G(name)
 	if err != nil {
@@ -135,6 +141,7 @@ func GStr(name string) string {
 	return ""
 }
 
+// MGStr 获取mver config 中的字符串格式
 func MGStr(name string, height int64) string {
 	value, err := MG(name, height)
 	if err != nil {
@@ -161,6 +168,7 @@ func parseInt(value interface{}) int64 {
 	return 0
 }
 
+// GInt 解析ChainConfig配置
 func GInt(name string) int64 {
 	value, err := G(name)
 	if err != nil {
@@ -169,6 +177,7 @@ func GInt(name string) int64 {
 	return parseInt(value)
 }
 
+// MGInt 解析mver config 配置
 func MGInt(name string, height int64) int64 {
 	value, err := MG(name, height)
 	if err != nil {
@@ -177,6 +186,7 @@ func MGInt(name string, height int64) int64 {
 	return parseInt(value)
 }
 
+// IsEnable 解析ChainConfig配置
 func IsEnable(name string) bool {
 	isenable, err := G(name)
 	if err == nil && isenable.(bool) {
@@ -185,6 +195,7 @@ func IsEnable(name string) bool {
 	return false
 }
 
+// MIsEnable 解析mver config 配置
 func MIsEnable(name string, height int64) bool {
 	isenable, err := MG(name, height)
 	if err == nil && isenable.(bool) {
@@ -193,6 +204,7 @@ func MIsEnable(name string, height int64) bool {
 	return false
 }
 
+// HasConf 解析chainConfig配置
 func HasConf(key string) bool {
 	mu.Lock()
 	defer mu.Unlock()
@@ -200,6 +212,7 @@ func HasConf(key string) bool {
 	return ok
 }
 
+// S 设置chainConfig配置
 func S(key string, value interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -212,6 +225,7 @@ func S(key string, value interface{}) {
 	setChainConfig(key, value)
 }
 
+// Init 初始化
 func Init(t string, cfg *Config) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -263,6 +277,7 @@ func Init(t string, cfg *Config) {
 	}
 }
 
+// GetTitle 获取title
 func GetTitle() string {
 	mu.Lock()
 	defer mu.Unlock()
@@ -273,12 +288,14 @@ func isLocal() bool {
 	return title == "local"
 }
 
+// IsLocal 是否locak title
 func IsLocal() bool {
 	mu.Lock()
 	defer mu.Unlock()
 	return isLocal()
 }
 
+// SetMinFee 设置最小费用
 func SetMinFee(fee int64) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -290,12 +307,14 @@ func isPara() bool {
 	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
 }
 
+// IsPara 是否平行链
 func IsPara() bool {
 	mu.Lock()
 	defer mu.Unlock()
 	return isPara()
 }
 
+// IsParaExecName 是否平行链执行器
 func IsParaExecName(name string) bool {
 	return strings.HasPrefix(name, ParaKeyX)
 }
@@ -309,6 +328,7 @@ func setTestNet(isTestNet bool) {
 	//const 初始化TestNet 的初始化参数
 }
 
+// IsTestNet 是否测试链
 func IsTestNet() bool {
 	return IsEnable("TestNet")
 }
@@ -321,6 +341,7 @@ func setMinFee(fee int64) {
 	setChainConfig("MinBalanceTransfer", fee*10)
 }
 
+// GetParaName 获取平行链name
 func GetParaName() string {
 	if IsPara() {
 		return GetTitle()
@@ -328,10 +349,12 @@ func GetParaName() string {
 	return ""
 }
 
+// FlagKV 获取kv对
 func FlagKV(key []byte, value int64) *KeyValue {
 	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
 }
 
+// MergeConfig Merge配置
 func MergeConfig(conf map[string]interface{}, def map[string]interface{}) string {
 	errstr := checkConfig("", conf, def)
 	if errstr != "" {
@@ -432,6 +455,7 @@ func initCfgString(cfgstring string) (*Config, error) {
 	return &cfg, nil
 }
 
+// InitCfg 初始化配置
 func InitCfg(path string) (*Config, *ConfigSubModule) {
 	return InitCfgString(readFile(path))
 }
@@ -460,6 +484,7 @@ func flatConfig(key string, conf map[string]interface{}, flat map[string]interfa
 	}
 }
 
+// FlatConfig Flat配置
 func FlatConfig(conf map[string]interface{}) map[string]interface{} {
 	flat := make(map[string]interface{})
 	flatConfig("", conf, flat)
@@ -472,6 +497,7 @@ func setMver(title string, cfgstring string) {
 	mver[title] = newMversion(title, cfgstring)
 }
 
+// InitCfgString 初始化配置
 func InitCfgString(cfgstring string) (*Config, *ConfigSubModule) {
 	cfgstring = mergeCfg(cfgstring)
 	setFlatConfig(cfgstring)
@@ -487,6 +513,7 @@ func InitCfgString(cfgstring string) (*Config, *ConfigSubModule) {
 	return cfg, sub
 }
 
+// subModule 子模块结构体
 type subModule struct {
 	Store     map[string]interface{}
 	Exec      map[string]interface{}
@@ -535,10 +562,12 @@ func parseItem(data map[string]interface{}) map[string][]byte {
 	return subconfig
 }
 
+// ConfQuery 结构体
 type ConfQuery struct {
 	prefix string
 }
 
+// Conf 配置
 func Conf(prefix string) *ConfQuery {
 	if prefix == "" || (!strings.HasPrefix(prefix, "config.") && !strings.HasPrefix(prefix, "mver.")) {
 		panic("ConfQuery must init buy prefix config. or mver.")
@@ -546,10 +575,12 @@ func Conf(prefix string) *ConfQuery {
 	return &ConfQuery{prefix}
 }
 
+// ConfSub 子模块配置
 func ConfSub(name string) *ConfQuery {
 	return Conf("config.exec.sub." + name)
 }
 
+// G 获取指定key的配置信息
 func (query *ConfQuery) G(key string) (interface{}, error) {
 	return G(getkey(query.prefix, key))
 }
@@ -567,6 +598,7 @@ func parseStrList(data interface{}) []string {
 	return list
 }
 
+// GStrList 解析字符串列表
 func (query *ConfQuery) GStrList(key string) []string {
 	data, err := query.G(key)
 	if err == nil {
@@ -575,30 +607,37 @@ func (query *ConfQuery) GStrList(key string) []string {
 	return []string{}
 }
 
+// GInt 解析int类型
 func (query *ConfQuery) GInt(key string) int64 {
 	return GInt(getkey(query.prefix, key))
 }
 
+// GStr 解析string类型
 func (query *ConfQuery) GStr(key string) string {
 	return GStr(getkey(query.prefix, key))
 }
 
+// IsEnable 解析bool类型
 func (query *ConfQuery) IsEnable(key string) bool {
 	return IsEnable(getkey(query.prefix, key))
 }
 
+// MG 解析mversion
 func (query *ConfQuery) MG(key string, height int64) (interface{}, error) {
 	return MG(getkey(query.prefix, key), height)
 }
 
+// MGInt 解析mversion int类型配置
 func (query *ConfQuery) MGInt(key string, height int64) int64 {
 	return MGInt(getkey(query.prefix, key), height)
 }
 
+// MGStr 解析mversion string类型配置
 func (query *ConfQuery) MGStr(key string, height int64) string {
 	return MGStr(getkey(query.prefix, key), height)
 }
 
+// MGStrList 解析mversion string list类型配置
 func (query *ConfQuery) MGStrList(key string, height int64) []string {
 	data, err := query.MG(key, height)
 	if err == nil {
@@ -607,6 +646,7 @@ func (query *ConfQuery) MGStrList(key string, height int64) []string {
 	return []string{}
 }
 
+// MIsEnable 解析mversion bool类型配置
 func (query *ConfQuery) MIsEnable(key string, height int64) bool {
 	return MIsEnable(getkey(query.prefix, key), height)
 }

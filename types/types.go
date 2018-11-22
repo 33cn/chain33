@@ -18,29 +18,33 @@ import (
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types/jsonpb"
 	"github.com/golang/protobuf/proto"
-
+	// 注册system的crypto 加密算法
 	_ "github.com/33cn/chain33/system/crypto/init"
 )
 
 var tlog = log.New("module", "types")
 
-const Size_1K_shiftlen uint = 10
+// Size1Kshiftlen tx消息大小1k
+const Size1Kshiftlen uint = 10
 
+// Message 声明proto.Message
 type Message proto.Message
 
+// Query4Cli cli命令行查询格式
 type Query4Cli struct {
 	Execer   string      `json:"execer"`
 	FuncName string      `json:"funcName"`
 	Payload  interface{} `json:"payload"`
 }
 
-//交易组的接口，Transactions 和 Transaction 都符合这个接口
+//TxGroup 交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
 	Tx() *Transaction
 	GetTxGroup() (*Transactions, error)
 	CheckSign() bool
 }
 
+//ExecName  执行器name
 func ExecName(name string) string {
 	if IsParaExecName(name) {
 		return name
@@ -51,7 +55,7 @@ func ExecName(name string) string {
 	return name
 }
 
-//默认的allow 规则->根据 GetRealExecName 来判断
+//IsAllowExecName 默认的allow 规则->根据 GetRealExecName 来判断
 //name 必须大于3 小于 100
 func IsAllowExecName(name []byte, execer []byte) bool {
 	// name长度不能超过系统限制
@@ -82,6 +86,7 @@ func IsAllowExecName(name []byte, execer []byte) bool {
 var bytesExec = []byte("exec-")
 var commonPrefix = []byte("mavl-")
 
+//GetExecKey  获取执行器key
 func GetExecKey(key []byte) (string, bool) {
 	n := 0
 	start := 0
@@ -113,6 +118,7 @@ func GetExecKey(key []byte) (string, bool) {
 	return "", false
 }
 
+//FindExecer  查找执行器
 func FindExecer(key []byte) (execer []byte, err error) {
 	if !bytes.HasPrefix(key, commonPrefix) {
 		return nil, ErrMavlKeyNotStartWithMavl
@@ -125,6 +131,7 @@ func FindExecer(key []byte) (execer []byte, err error) {
 	return nil, ErrNoExecerInMavlKey
 }
 
+//GetParaExec  获取平行链执行
 func GetParaExec(execer []byte) []byte {
 	//必须是平行链
 	if !IsPara() {
@@ -154,6 +161,7 @@ func getParaExecName(execer []byte) []byte {
 	return execer
 }
 
+//GetRealExecName  获取真实的执行器name
 func GetRealExecName(execer []byte) []byte {
 	//平行链执行器，获取真实执行器的规则
 	execer = getParaExecName(execer)
@@ -183,6 +191,7 @@ func GetRealExecName(execer []byte) []byte {
 	return execer
 }
 
+//Encode  编码
 func Encode(data proto.Message) []byte {
 	b, err := proto.Marshal(data)
 	if err != nil {
@@ -191,18 +200,22 @@ func Encode(data proto.Message) []byte {
 	return b
 }
 
+//Size  消息大小
 func Size(data proto.Message) int {
 	return proto.Size(data)
 }
 
+//Decode  解码
 func Decode(data []byte, msg proto.Message) error {
 	return proto.Unmarshal(data, msg)
 }
 
-func JsonToPB(data []byte, msg proto.Message) error {
+//JSONToPB  JSON格式转换成protobuffer格式
+func JSONToPB(data []byte, msg proto.Message) error {
 	return jsonpb.Unmarshal(bytes.NewReader(data), msg)
 }
 
+//Hash  计算叶子节点的hash
 func (leafnode *LeafNode) Hash() []byte {
 	data, err := proto.Marshal(leafnode)
 	if err != nil {
@@ -211,6 +224,7 @@ func (leafnode *LeafNode) Hash() []byte {
 	return common.Sha256(data)
 }
 
+//Hash  计算中间节点的hash
 func (innernode *InnerNode) Hash() []byte {
 	rightHash := innernode.RightHash
 	leftHash := innernode.LeftHash
@@ -230,12 +244,14 @@ func (innernode *InnerNode) Hash() []byte {
 	return common.Sha256(data)
 }
 
+//NewErrReceipt  new一个新的Receipt
 func NewErrReceipt(err error) *Receipt {
 	berr := err.Error()
 	errlog := &ReceiptLog{Ty: TyLogErr, Log: []byte(berr)}
 	return &Receipt{Ty: ExecErr, KV: nil, Logs: []*ReceiptLog{errlog}}
 }
 
+//CheckAmount  检测转账金额
 func CheckAmount(amount int64) bool {
 	if amount <= 0 || amount >= MaxCoin {
 		return false
@@ -243,6 +259,7 @@ func CheckAmount(amount int64) bool {
 	return true
 }
 
+//GetEventName  获取时间name通过事件id
 func GetEventName(event int) string {
 	name, ok := eventName[event]
 	if ok {
@@ -251,6 +268,7 @@ func GetEventName(event int) string {
 	return "unknow-event"
 }
 
+//GetSignName  获取签名类型
 func GetSignName(execer string, signType int) string {
 	//优先加载执行器的签名类型
 	if execer != "" {
@@ -266,6 +284,7 @@ func GetSignName(execer string, signType int) string {
 	return crypto.GetName(signType)
 }
 
+//GetSignType  获取签名类型
 func GetSignType(execer string, name string) int {
 	//优先加载执行器的签名类型
 	if execer != "" {
@@ -281,34 +300,39 @@ func GetSignType(execer string, name string) int {
 	return crypto.GetType(name)
 }
 
+// ConfigPrefix 配置前缀key
 var ConfigPrefix = "mavl-config-"
 
-// 原来实现有bug， 但生成的key在状态树里， 不可修改
-// mavl-config–{key}  key 前面两个-
+// ConfigKey 原来实现有bug， 但生成的key在状态树里， 不可修改
+// mavl-config–{key}  key 前面两个-
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }
 
+// ManagePrefix 超级管理员账户配置前缀key
 var ManagePrefix = "mavl-"
 
+//ManageKey 超级管理员账户key
 func ManageKey(key string) string {
 	return fmt.Sprintf("%s-%s", ManagePrefix+"manage", key)
 }
 
+//ManaeKeyWithHeigh 超级管理员账户key
 func ManaeKeyWithHeigh(key string, height int64) string {
 	if IsFork(height, "ForkExecKey") {
 		return ManageKey(key)
-	} else {
-		return ConfigKey(key)
 	}
+	return ConfigKey(key)
 }
 
+//ReceiptDataResult 回执数据
 type ReceiptDataResult struct {
 	Ty     int32               `json:"ty"`
 	TyName string              `json:"tyname"`
 	Logs   []*ReceiptLogResult `json:"logs"`
 }
 
+//ReceiptLogResult 回执log数据
 type ReceiptLogResult struct {
 	Ty     int32       `json:"ty"`
 	TyName string      `json:"tyname"`
@@ -316,6 +340,7 @@ type ReceiptLogResult struct {
 	RawLog string      `json:"rawlog"`
 }
 
+//DecodeReceiptLog 编码回执数据
 func (r *ReceiptData) DecodeReceiptLog(execer []byte) (*ReceiptDataResult, error) {
 	result := &ReceiptDataResult{Ty: r.GetTy()}
 	switch r.Ty {
@@ -352,6 +377,7 @@ func (r *ReceiptData) DecodeReceiptLog(execer []byte) (*ReceiptDataResult, error
 	return result, nil
 }
 
+//OutputReceiptDetails 输出回执数据详情
 func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
 	rds, err := r.DecodeReceiptLog(execer)
 	if err == nil {
@@ -364,6 +390,7 @@ func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
 	}
 }
 
+//IterateRangeByStateHash 迭代查找
 func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	fmt.Println("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key))
 	var acc Account
@@ -387,11 +414,13 @@ func GetTxTimeInterval() time.Duration {
 	return time.Second * 120
 }
 
+// ParaCrossTx 平行跨链交易
 type ParaCrossTx interface {
 	IsParaCrossTx() bool
 }
 
-func PBToJson(r Message) ([]byte, error) {
+// PBToJSON 消息类型转换
+func PBToJSON(r Message) ([]byte, error) {
 	encode := &jsonpb.Marshaler{EmitDefaults: true}
 	var buf bytes.Buffer
 	if err := encode.Marshal(&buf, r); err != nil {
@@ -400,6 +429,7 @@ func PBToJson(r Message) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// MustDecode 数据是否已经编码
 func MustDecode(data []byte, v interface{}) {
 	err := json.Unmarshal(data, v)
 	if err != nil {
@@ -407,6 +437,7 @@ func MustDecode(data []byte, v interface{}) {
 	}
 }
 
+// AddItem 添加item
 func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 	var acc Account
 	err := Decode(value, &acc)

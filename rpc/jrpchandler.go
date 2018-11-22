@@ -87,7 +87,7 @@ func (c *Chain33) SendRawTransaction(in rpctypes.SignedTx, result *interface{}) 
 // used only in parachain
 func forwardTranToMainNet(in rpctypes.RawParm, result *interface{}) error {
 	if rpcCfg.MainnetJrpcAddr == "" {
-		return types.ErrInvalidMainnetRpcAddr
+		return types.ErrInvalidMainnetRPCAddr
 	}
 	rpc, err := jsonclient.NewJSONClient(rpcCfg.MainnetJrpcAddr)
 
@@ -834,7 +834,7 @@ func (c *Chain33) ExecWallet(in *rpctypes.ChainExecutor, result *interface{}) er
 	if err != nil {
 		return err
 	}
-	param, err := wcom.QueryData.DecodeJson(in.Driver, in.FuncName, in.Payload)
+	param, err := wcom.QueryData.DecodeJSON(in.Driver, in.FuncName, in.Payload)
 	if err != nil {
 		return err
 	}
@@ -849,7 +849,7 @@ func (c *Chain33) ExecWallet(in *rpctypes.ChainExecutor, result *interface{}) er
 		return err
 	}
 	var jsonmsg json.RawMessage
-	jsonmsg, err = types.PBToJson(msg)
+	jsonmsg, err = types.PBToJSON(msg)
 	if err != nil {
 		return err
 	}
@@ -876,7 +876,7 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		return err
 	}
 	var jsonmsg json.RawMessage
-	jsonmsg, err = execty.QueryToJson(in.FuncName, resp)
+	jsonmsg, err = execty.QueryToJSON(in.FuncName, resp)
 	*result = jsonmsg
 	if err != nil {
 		log.Error("EventQuery3", "err", err.Error())

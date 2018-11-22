@@ -21,6 +21,7 @@ var (
 	withdraw = "withdraw"
 )
 
+// CreateTxGroup 创建组交易
 func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 	if len(txs) < 2 {
 		return nil, ErrTxGroupCountLessThanTwo
@@ -55,7 +56,7 @@ func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 	return txgroup, nil
 }
 
-//这比用于检查的交易，包含了所有的交易。
+//Tx 这比用于检查的交易，包含了所有的交易。
 //主要是为了兼容原来的设计
 func (txgroup *Transactions) Tx() *Transaction {
 	if len(txgroup.GetTxs()) < 2 {
@@ -70,10 +71,12 @@ func (txgroup *Transactions) Tx() *Transaction {
 	return &copytx
 }
 
+//GetTxGroup 获取交易组
 func (txgroup *Transactions) GetTxGroup() *Transactions {
 	return txgroup
 }
 
+//SignN 对交易组的第n笔交易签名
 func (txgroup *Transactions) SignN(n int, ty int32, priv crypto.PrivKey) error {
 	if n >= len(txgroup.GetTxs()) {
 		return ErrIndex
@@ -82,6 +85,7 @@ func (txgroup *Transactions) SignN(n int, ty int32, priv crypto.PrivKey) error {
 	return nil
 }
 
+//CheckSign 检测交易组的签名
 func (txgroup *Transactions) CheckSign() bool {
 	txs := txgroup.Txs
 	for i := 0; i < len(txs); i++ {
@@ -92,6 +96,7 @@ func (txgroup *Transactions) CheckSign() bool {
 	return true
 }
 
+//IsExpire 交易是否过期
 func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	txs := txgroup.Txs
 	for i := 0; i < len(txs); i++ {
@@ -102,7 +107,7 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	return false
 }
 
-//height == 0 的时候，不做检查
+//Check height == 0 的时候，不做检查
 func (txgroup *Transactions) Check(height int64, minfee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
@@ -179,6 +184,7 @@ func (txgroup *Transactions) Check(height int64, minfee int64) error {
 	return nil
 }
 
+//TransactionCache 交易缓存结构
 type TransactionCache struct {
 	*Transaction
 	txGroup *Transactions
@@ -189,10 +195,12 @@ type TransactionCache struct {
 	checked bool
 }
 
+//NewTransactionCache new交易缓存
 func NewTransactionCache(tx *Transaction) *TransactionCache {
 	return &TransactionCache{Transaction: tx}
 }
 
+//Hash 交易hash
 func (tx *TransactionCache) Hash() []byte {
 	if tx.hash == nil {
 		tx.hash = tx.Transaction.Hash()
@@ -200,6 +208,7 @@ func (tx *TransactionCache) Hash() []byte {
 	return tx.hash
 }
 
+//Size 交易缓存的大小
 func (tx *TransactionCache) Size() int {
 	if tx.size == 0 {
 		tx.size = Size(tx.Tx())
@@ -207,10 +216,12 @@ func (tx *TransactionCache) Size() int {
 	return tx.size
 }
 
+//Tx 交易缓存中tx信息
 func (tx *TransactionCache) Tx() *Transaction {
 	return tx.Transaction
 }
 
+//Check 交易缓存中交易组合费用的检测
 func (tx *TransactionCache) Check(height, minfee int64) error {
 	if !tx.checked {
 		tx.checked = true
@@ -228,6 +239,7 @@ func (tx *TransactionCache) Check(height, minfee int64) error {
 	return tx.checkok
 }
 
+//GetTxGroup 获取交易组
 func (tx *TransactionCache) GetTxGroup() (*Transactions, error) {
 	var err error
 	if tx.txGroup == nil {
@@ -239,6 +251,7 @@ func (tx *TransactionCache) GetTxGroup() (*Transactions, error) {
 	return tx.txGroup, nil
 }
 
+//CheckSign 检测签名
 func (tx *TransactionCache) CheckSign() bool {
 	if tx.signok == 0 {
 		tx.signok = 2
@@ -260,6 +273,7 @@ func (tx *TransactionCache) CheckSign() bool {
 	return tx.signok == 1
 }
 
+//TxsToCache 缓存交易信息
 func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
 	caches = make([]*TransactionCache, len(txs))
 	for i := 0; i < len(caches); i++ {
@@ -268,6 +282,7 @@ func TxsToCache(txs []*Transaction) (caches []*TransactionCache) {
 	return caches
 }
 
+//CacheToTxs 从缓存中获取交易信息
 func CacheToTxs(caches []*TransactionCache) (txs []*Transaction) {
 	txs = make([]*Transaction, len(caches))
 	for i := 0; i < len(caches); i++ {
@@ -276,7 +291,7 @@ func CacheToTxs(caches []*TransactionCache) (txs []*Transaction) {
 	return txs
 }
 
-//hash 不包含签名，用户通过修改签名无法重新发送交易
+//HashSign hash 不包含签名，用户通过修改签名无法重新发送交易
 func (tx *Transaction) HashSign() []byte {
 	copytx := *tx
 	copytx.Signature = nil
@@ -284,10 +299,12 @@ func (tx *Transaction) HashSign() []byte {
 	return common.Sha256(data)
 }
 
+//Tx 交易详情
 func (tx *Transaction) Tx() *Transaction {
 	return tx
 }
 
+//GetTxGroup 交易组装成交易组格式
 func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 	if tx.GroupCount < 0 || tx.GroupCount == 1 || tx.GroupCount > 20 {
 		return nil, ErrTxGroupCount
@@ -299,11 +316,10 @@ func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 			return nil, err
 		}
 		return &txs, nil
-	} else {
+	}
 		if tx.Next != nil || tx.Header != nil {
 			return nil, ErrNomalTx
 		}
-	}
 	return nil, nil
 }
 
@@ -332,10 +348,12 @@ func clone(tx *Transaction) *Transaction {
 	return copytx
 }
 
+//Size 交易大小
 func (tx *Transaction) Size() int {
 	return Size(tx)
 }
 
+//Sign 交易签名
 func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	tx.Signature = nil
 	data := Encode(tx)
@@ -348,7 +366,7 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	}
 }
 
-//tx 有些时候是一个交易组
+//CheckSign tx 有些时候是一个交易组
 func (tx *Transaction) CheckSign() bool {
 	return tx.checkSign()
 }
@@ -364,6 +382,7 @@ func (tx *Transaction) checkSign() bool {
 	return CheckSign(data, string(tx.Execer), tx.GetSignature())
 }
 
+//Check 交易检测
 func (tx *Transaction) Check(height, minfee int64) error {
 	group, err := tx.GetTxGroup()
 	if err != nil {
@@ -391,6 +410,7 @@ func (tx *Transaction) check(minfee int64) error {
 	return nil
 }
 
+//SetExpire 设置交易过期时间
 func (tx *Transaction) SetExpire(expire time.Duration) {
 	//Txheight处理
 	if IsEnable("TxHeight") && int64(expire) > TxHeightFlag {
@@ -409,6 +429,7 @@ func (tx *Transaction) SetExpire(expire time.Duration) {
 	}
 }
 
+//GetRealFee 获取交易真实费用
 func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	txSize := Size(tx)
 	//如果签名为空，那么加上签名的空间
@@ -423,6 +444,7 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	return realFee, nil
 }
 
+//SetRealFee 设置交易真实费用
 func (tx *Transaction) SetRealFee(minFee int64) error {
 	if tx.Fee == 0 {
 		fee, err := tx.GetRealFee(minFee)
@@ -434,8 +456,10 @@ func (tx *Transaction) SetRealFee(minFee int64) error {
 	return nil
 }
 
+//ExpireBound 交易过期边界值
 var ExpireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
+//IsExpire 交易是否过期
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	group, _ := tx.GetTxGroup()
 	if group == nil {
@@ -444,6 +468,7 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	return group.IsExpire(height, blocktime)
 }
 
+//From 交易from地址
 func (tx *Transaction) From() string {
 	return address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 }
@@ -459,10 +484,10 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		//Expire小于1e9，为height
 		if valid > height { // 未过期
 			return false
-		} else { // 过期
-			return true
 		}
-	} else {
+		return true // 过期
+
+	}
 		//EnableTxHeight 选项开启, 并且符合条件
 		if txHeight := GetTxHeight(valid, height); txHeight > 0 {
 			if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
@@ -473,12 +498,11 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		// Expire大于1e9，为blockTime
 		if valid > blocktime { // 未过期
 			return false
-		} else { // 过期
-			return true
 		}
-	}
+	return true // 过期
 }
 
+//GetTxHeight 获取交易高度
 func GetTxHeight(valid int64, height int64) int64 {
 	if IsEnableFork(height, "ForkTxHeight", IsEnable("TxHeight")) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
@@ -486,7 +510,8 @@ func GetTxHeight(valid int64, height int64) int64 {
 	return -1
 }
 
-func (tx *Transaction) Json() string {
+//JSON Transaction交易信息转成json结构体
+func (tx *Transaction) JSON() string {
 	type transaction struct {
 		Hash      string     `json:"hash,omitempty"`
 		Execer    string     `json:"execer,omitempty"`
@@ -522,7 +547,7 @@ func (tx *Transaction) Json() string {
 	return string(data)
 }
 
-//解析tx的payload获取amount值
+//Amount 解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
 	// TODO 原来有很多执行器 在这里没有代码， 用默认 0, nil 先
 	exec := LoadExecutorType(string(tx.Execer))
@@ -532,6 +557,7 @@ func (tx *Transaction) Amount() (int64, error) {
 	return exec.Amount(tx)
 }
 
+//Assets  获取交易中的资产
 func (tx *Transaction) Assets() ([]*Asset, error) {
 	exec := LoadExecutorType(string(tx.Execer))
 	if exec == nil {
@@ -540,7 +566,7 @@ func (tx *Transaction) Assets() ([]*Asset, error) {
 	return exec.GetAssets(tx)
 }
 
-//解析tx的payload获取real to值
+//GetRealToAddr 解析tx的payload获取real to值
 func (tx *Transaction) GetRealToAddr() string {
 	exec := LoadExecutorType(string(tx.Execer))
 	if exec == nil {
@@ -549,7 +575,7 @@ func (tx *Transaction) GetRealToAddr() string {
 	return exec.GetRealToAddr(tx)
 }
 
-//解析tx的payload获取view from to 值
+//GetViewFromToAddr 解析tx的payload获取view from to 值
 func (tx *Transaction) GetViewFromToAddr() (string, string) {
 	exec := LoadExecutorType(string(tx.Execer))
 	if exec == nil {
@@ -558,7 +584,7 @@ func (tx *Transaction) GetViewFromToAddr() (string, string) {
 	return exec.GetViewFromToAddr(tx)
 }
 
-//获取tx交易的Actionname
+//ActionName 获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
 	execName := string(tx.Execer)
 	exec := LoadExecutorType(execName)
@@ -573,7 +599,7 @@ func (tx *Transaction) ActionName() string {
 	return exec.ActionName(tx)
 }
 
-//判断交易是withdraw交易，需要做from和to地址的swap，方便上层客户理解
+//IsWithdraw 判断交易是withdraw交易，需要做from和to地址的swap，方便上层客户理解
 func (tx *Transaction) IsWithdraw() bool {
 	if bytes.Equal(tx.GetExecer(), bCoins) || bytes.Equal(tx.GetExecer(), bToken) {
 		if tx.ActionName() == withdraw {

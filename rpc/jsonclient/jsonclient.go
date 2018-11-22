@@ -100,7 +100,7 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 			if err != nil {
 				return err
 			}
-			return types.JsonToPB(b, msg)
+			return types.JSONToPB(b, msg)
 		}
 		return json.Unmarshal(*cresp.Result, resp)
 	}

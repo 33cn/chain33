@@ -22,7 +22,7 @@ import (
 
 var (
 	remoteIpWhitelist = make(map[string]bool)
-	rpcCfg            *types.Rpc
+	rpcCfg            *types.RPC
 	jrpcFuncWhitelist = make(map[string]bool)
 	grpcFuncWhitelist = make(map[string]bool)
 	jrpcFuncBlacklist = make(map[string]bool)
@@ -168,7 +168,7 @@ func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServe
 
 // RPC a type object
 type RPC struct {
-	cfg  *types.Rpc
+	cfg  *types.RPC
 	gapi *Grpcserver
 	japi *JSONRPCServer
 	c    queue.Client
@@ -176,7 +176,7 @@ type RPC struct {
 }
 
 // InitCfg  interfaces
-func InitCfg(cfg *types.Rpc) {
+func InitCfg(cfg *types.RPC) {
 	rpcCfg = cfg
 	InitIpWhitelist(cfg)
 	InitJrpcFuncWhitelist(cfg)
@@ -186,7 +186,7 @@ func InitCfg(cfg *types.Rpc) {
 }
 
 // New produce a rpc by cfg
-func New(cfg *types.Rpc) *RPC {
+func New(cfg *types.RPC) *RPC {
 	InitCfg(cfg)
 	return &RPC{cfg: cfg}
 }
@@ -267,7 +267,7 @@ func (rpc *RPC) Close() {
 }
 
 // InitIpWhitelist init ip whitelist
-func InitIpWhitelist(cfg *types.Rpc) {
+func InitIpWhitelist(cfg *types.RPC) {
 	if len(cfg.Whitelist) == 0 && len(cfg.Whitlist) == 0 {
 		remoteIpWhitelist["127.0.0.1"] = true
 		return
@@ -296,7 +296,7 @@ func InitIpWhitelist(cfg *types.Rpc) {
 }
 
 // InitJrpcFuncWhitelist init jrpc function whitelist
-func InitJrpcFuncWhitelist(cfg *types.Rpc) {
+func InitJrpcFuncWhitelist(cfg *types.RPC) {
 	if len(cfg.JrpcFuncWhitelist) == 0 {
 		jrpcFuncWhitelist["*"] = true
 		return
@@ -311,7 +311,7 @@ func InitJrpcFuncWhitelist(cfg *types.Rpc) {
 }
 
 // InitGrpcFuncWhitelist init grpc function whitelist
-func InitGrpcFuncWhitelist(cfg *types.Rpc) {
+func InitGrpcFuncWhitelist(cfg *types.RPC) {
 	if len(cfg.GrpcFuncWhitelist) == 0 {
 		grpcFuncWhitelist["*"] = true
 		return
@@ -326,7 +326,7 @@ func InitGrpcFuncWhitelist(cfg *types.Rpc) {
 }
 
 // InitJrpcFuncBlacklist init jrpc function blacklist
-func InitJrpcFuncBlacklist(cfg *types.Rpc) {
+func InitJrpcFuncBlacklist(cfg *types.RPC) {
 	if len(cfg.JrpcFuncBlacklist) == 0 {
 		jrpcFuncBlacklist["CloseQueue"] = true
 		return
@@ -338,7 +338,7 @@ func InitJrpcFuncBlacklist(cfg *types.Rpc) {
 }
 
 // InitGrpcFuncBlacklist init grpc function blacklist
-func InitGrpcFuncBlacklist(cfg *types.Rpc) {
+func InitGrpcFuncBlacklist(cfg *types.RPC) {
 	if len(cfg.GrpcFuncBlacklist) == 0 {
 		grpcFuncBlacklist["CloseQueue"] = true
 		return

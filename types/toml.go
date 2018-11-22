@@ -4,6 +4,7 @@
 
 package types
 
+//ConfigSubModule 子模块的配置
 type ConfigSubModule struct {
 	Store     map[string][]byte
 	Exec      map[string][]byte

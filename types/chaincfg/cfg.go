@@ -6,6 +6,7 @@ package chaincfg
 
 var configMap = make(map[string]string)
 
+// Register 注册配置
 func Register(name, cfg string) {
 	if _, ok := configMap[name]; ok {
 		panic("chain default config name " + name + " is exist")
@@ -13,10 +14,12 @@ func Register(name, cfg string) {
 	configMap[name] = cfg
 }
 
+// Load 加载指定配置项
 func Load(name string) string {
 	return configMap[name]
 }
 
+// LoadAll 加载所有配置项
 func LoadAll() map[string]string {
 	return configMap
 }
