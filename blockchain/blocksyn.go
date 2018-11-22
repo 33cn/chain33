@@ -428,11 +428,7 @@ func (chain *BlockChain) IsFaultPeer(pid string) bool {
 	faultpeerlock.Lock()
 	defer faultpeerlock.Unlock()
 
-	if chain.faultPeerList[pid] != nil {
-		return true
-	}
-	return false
-
+	return chain.faultPeerList[pid] != nil
 }
 
 //IsErrExecBlock 判断此block是否被记录在本节点执行错误。

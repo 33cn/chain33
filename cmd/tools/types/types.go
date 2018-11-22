@@ -4,6 +4,7 @@
 
 package types
 
+//const
 const (
 	// 通过使用 go vendor 工具，从三方代码库中下载对应的插件代码
 	KeyImportPackage            = "import_package"
