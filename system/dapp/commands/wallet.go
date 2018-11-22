@@ -344,7 +344,7 @@ func noBalanceTx(cmd *cobra.Command, args []string) {
 
 func parseTxHeight(expire string) error {
 	if len(expire) == 0 {
-		return errors.New("Expire string should not be empty.")
+		return errors.New("expire string should not be empty")
 	}
 
 	if expire[0] == 'H' && expire[1] == ':' {

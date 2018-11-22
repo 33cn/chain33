@@ -22,6 +22,7 @@ const (
 var (
 	// CoinsX defines a global string
 	CoinsX      = "coins"
+	// ExecerCoins execer coins
 	ExecerCoins = []byte(CoinsX)
 	actionName  = map[string]int32{
 		"Transfer":       CoinsActionTransfer,
@@ -52,17 +53,17 @@ func NewType() *CoinsType {
 }
 
 // GetPayload  return payload
-func (coins *CoinsType) GetPayload() types.Message {
+func (c *CoinsType) GetPayload() types.Message {
 	return &CoinsAction{}
 }
 
 // GetName  return coins string
-func (coins *CoinsType) GetName() string {
+func (c *CoinsType) GetName() string {
 	return CoinsX
 }
 
 // GetLogMap return log for map
-func (coins *CoinsType) GetLogMap() map[int64]*types.LogInfo {
+func (c *CoinsType) GetLogMap() map[int64]*types.LogInfo {
 	return logmap
 }
 

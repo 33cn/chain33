@@ -45,7 +45,7 @@ func NewType() *ManageType {
 }
 
 // GetPayload return manageaction
-func (at *ManageType) GetPayload() types.Message {
+func (m *ManageType) GetPayload() types.Message {
 	return &ManageAction{}
 }
 
