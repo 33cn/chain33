@@ -43,7 +43,9 @@ func GetLocalDBVersion() string {
 //SetLocalDBVersion only used for test
 //通过设置版本号，强制重建数据库
 func SetLocalDBVersion(version string) {
-	localversion = version
+	if version != "" {
+		localversion = version
+	}
 }
 
 //v0.1.2
