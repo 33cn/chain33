@@ -16,7 +16,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
-
+// AccountCmd account command
 func AccountCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "account",
@@ -36,7 +36,7 @@ func AccountCmd() *cobra.Command {
 	return cmd
 }
 
-// dump private key
+// DumpKeyCmd dump private key
 func DumpKeyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dump_key",
@@ -63,7 +63,7 @@ func dumpKey(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get accounts of the wallet
+// GetAccountListCmd get accounts of the wallet
 func GetAccountListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -98,7 +98,7 @@ func parseListAccountRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// get balance of an execer
+// GetBalanceCmd get balance of an execer
 func GetBalanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "balance",
@@ -213,7 +213,7 @@ func parseGetAllBalanceRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// import private key
+// ImportKeyCmd  import private key
 func ImportKeyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import_key",
@@ -256,7 +256,7 @@ func parseImportKeyRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// create an account
+// NewAccountCmd create an account
 func NewAccountCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -294,7 +294,7 @@ func parseCreateAccountRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// set label of an account
+// SetLabelCmd set label of an account
 func SetLabelCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set_label",

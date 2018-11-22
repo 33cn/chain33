@@ -18,7 +18,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
-
+// WalletCmd wallet command
 func WalletCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "wallet",
@@ -43,7 +43,7 @@ func WalletCmd() *cobra.Command {
 	return cmd
 }
 
-// lock the wallet
+// LockCmd lock the wallet
 func LockCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "lock",
@@ -60,7 +60,7 @@ func lock(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// unlock the wallet
+// UnlockCmd unlock the wallet
 func UnlockCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unlock",
@@ -105,7 +105,7 @@ func unLock(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get wallet status
+// WalletStatusCmd get wallet status
 func WalletStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -122,7 +122,7 @@ func walletStatus(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// set password
+// SetPwdCmd set password
 func SetPwdCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set_pwd",
@@ -154,7 +154,7 @@ func setPwd(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get wallet transactions
+// WalletListTxsCmd  get wallet transactions
 func WalletListTxsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list_txs",
@@ -212,7 +212,7 @@ func parseWalletTxListRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// merge all balance to an account
+// MergeBalanceCmd  merge all balance to an account
 func MergeBalanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "merge",
@@ -239,7 +239,7 @@ func mergeBalance(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// set auto mining: 为了兼容现在的命令行, 这个命令就放到wallet，实际上依赖 ticket
+// AutoMineCmd  set auto mining: 为了兼容现在的命令行, 这个命令就放到wallet，实际上依赖 ticket
 func AutoMineCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auto_mine",
@@ -272,7 +272,7 @@ func autoMine(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// sign raw tx
+// NoBalanceCmd sign raw tx
 func NoBalanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "nobalance",
@@ -291,7 +291,7 @@ func addNoBalanceFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
 }
 
-// sign raw tx
+// SignRawTxCmd sign raw tx
 func SignRawTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sign",
@@ -417,7 +417,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-// set tx fee
+// SetFeeCmd set tx fee
 func SetFeeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set_fee",
@@ -445,7 +445,7 @@ func setFee(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// send raw tx
+// SendTxCmd  send raw tx
 func SendTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "send",

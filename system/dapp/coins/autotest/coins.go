@@ -21,12 +21,12 @@ func init() {
 	RegisterAutoTest(coinsAutoTest{})
 
 }
-
+// GetName return name = "coins"
 func (config coinsAutoTest) GetName() string {
 
 	return "coins"
 }
-
+// GetTestConfigType return type of config
 func (config coinsAutoTest) GetTestConfigType() reflect.Type {
 
 	return reflect.TypeOf(config)

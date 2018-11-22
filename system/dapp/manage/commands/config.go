@@ -16,7 +16,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
-
+// ConfigCmd config command
 func ConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
@@ -32,7 +32,7 @@ func ConfigCmd() *cobra.Command {
 	return cmd
 }
 
-// config transaction
+// ConfigTxCmd config transaction
 func ConfigTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config_tx",
@@ -77,7 +77,7 @@ func configTx(cmd *cobra.Command, args []string) {
 	fmt.Println(hex.EncodeToString(txHex))
 }
 
-// query config
+// QueryConfigCmd  query config
 func QueryConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query_config",

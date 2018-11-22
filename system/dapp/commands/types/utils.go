@@ -22,7 +22,7 @@ import (
 	"encoding/hex"
 	"math"
 )
-
+// DecodeTransaction decode transaction function
 func DecodeTransaction(tx *rpctypes.Transaction) *TxResult {
 	result := &TxResult{
 		Execer:     tx.Execer,
@@ -41,7 +41,7 @@ func DecodeTransaction(tx *rpctypes.Transaction) *TxResult {
 	}
 	return result
 }
-
+// DecodeAccount decode account func
 func DecodeAccount(acc *types.Account, precision int64) *AccountResult {
 	balanceResult := strconv.FormatFloat(float64(acc.GetBalance())/float64(precision), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(acc.GetFrozen())/float64(precision), 'f', 4, 64)
@@ -53,7 +53,7 @@ func DecodeAccount(acc *types.Account, precision int64) *AccountResult {
 	}
 	return accResult
 }
-
+// SendToAddress send to address func
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
 	amt := amount
 	if isWithdraw {
@@ -71,7 +71,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx := jsonclient.NewRpcCtx(rpcAddr, "Chain33.SendToAddress", params, &res)
 	ctx.Run()
 }
-
+// CreateRawTx create rawtransaction func
 func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isWithdraw bool, tokenSymbol, execName string) (string, error) {
 	if amount < 0 {
 		return "", types.ErrAmount
@@ -113,7 +113,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	txHex := types.Encode(tx)
 	return hex.EncodeToString(txHex), nil
 }
-
+// GetExecAddr get exec address func
 func GetExecAddr(exec string) (string, error) {
 	if ok := types.IsAllowExecName([]byte(exec), []byte(exec)); !ok {
 		return "", types.ErrExecNameNotAllow
