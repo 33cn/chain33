@@ -21,6 +21,7 @@ var (
 	log = l.New("module", "p2p")
 )
 
+// P2p interface
 type P2p struct {
 	client       queue.Client
 	node         *Node
@@ -31,17 +32,25 @@ type P2p struct {
 	closed       int32
 }
 
+// New produce a p2p object
 func New(cfg *types.P2P) *P2p {
 	if cfg.Version == 0 {
 		if types.IsTestNet() {
 			cfg.Version = 119
-			cfg.VerMix = 118
+			cfg.VerMin = 118
 			cfg.VerMax = 128
 		} else {
 			cfg.Version = 10020
-			cfg.VerMix = 10020
+			cfg.VerMin = 10020
 			cfg.VerMax = 11000
 		}
+	}
+	if cfg.VerMin == 0 {
+		cfg.VerMin = cfg.Version
+	}
+
+	if cfg.VerMax == 0 {
+		cfg.VerMax = cfg.VerMin + 1
 	}
 
 	VERSION = cfg.Version
@@ -70,6 +79,7 @@ func (network *P2p) isClose() bool {
 	return atomic.LoadInt32(&network.closed) == 1
 }
 
+// Close network client
 func (network *P2p) Close() {
 	atomic.StoreInt32(&network.closed, 1)
 	log.Debug("close", "network", "ShowTaskCapcity done")
@@ -81,6 +91,7 @@ func (network *P2p) Close() {
 	network.node.pubsub.Shutdown()
 }
 
+// SetQueueClient set the queue
 func (network *P2p) SetQueueClient(client queue.Client) {
 	network.client = client
 	network.node.SetQueueClient(client)

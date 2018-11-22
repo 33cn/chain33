@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// TransParm transport parameter
 type TransParm struct {
 	Execer    string     `json:"execer"`
 	Payload   string     `json:"payload"`
@@ -17,6 +18,7 @@ type TransParm struct {
 	Fee       int64      `json:"fee"`
 }
 
+// SignedTx signature tx
 type SignedTx struct {
 	Unsign string `json:"unsignTx"`
 	Sign   string `json:"sign"`
@@ -24,21 +26,25 @@ type SignedTx struct {
 	Ty     int32  `json:"ty"`
 }
 
+// RawParm
 type RawParm struct {
 	Token string `json:"token"`
 	Data  string `json:"data"`
 }
 
+// Query parameter
 type QueryParm struct {
 	Hash string `json:"hash"`
 }
 
+// BlockParam block parameter
 type BlockParam struct {
 	Start    int64 `json:"start"`
 	End      int64 `json:"end"`
 	Isdetail bool  `json:"isDetail"`
 }
 
+// Header header parameter
 type Header struct {
 	Version    int64      `json:"version"`
 	ParentHash string     `json:"parentHash"`
@@ -52,12 +58,14 @@ type Header struct {
 	Signature  *Signature `json:"signature,omitempty"`
 }
 
+// Signature parameter
 type Signature struct {
 	Ty        int32  `json:"ty"`
 	Pubkey    string `json:"pubkey"`
 	Signature string `json:"signature"`
 }
 
+// Transaction parameter
 type Transaction struct {
 	Execer     string          `json:"execer"`
 	Payload    json.RawMessage `json:"payload"`
@@ -76,22 +84,26 @@ type Transaction struct {
 	Next       string          `json:"next,omitempty"`
 }
 
+// ReceiptLog
 type ReceiptLog struct {
 	Ty  int32  `json:"ty"`
 	Log string `json:"log"`
 }
 
+// ReceiptData
 type ReceiptData struct {
 	Ty   int32         `json:"ty"`
 	Logs []*ReceiptLog `json:"logs"`
 }
 
+// ReceiptDataResult receipt data result
 type ReceiptDataResult struct {
 	Ty     int32               `json:"ty"`
 	TyName string              `json:"tyName"`
 	Logs   []*ReceiptLogResult `json:"logs"`
 }
 
+// ReceiptLogRusult receipt log result
 type ReceiptLogResult struct {
 	Ty     int32           `json:"ty"`
 	TyName string          `json:"tyName"`
@@ -99,6 +111,7 @@ type ReceiptLogResult struct {
 	RawLog string          `json:"rawLog"`
 }
 
+// Block block information
 type Block struct {
 	Version    int64          `json:"version"`
 	ParentHash string         `json:"parentHash"`
@@ -109,15 +122,18 @@ type Block struct {
 	Txs        []*Transaction `json:"txs"`
 }
 
+// BlockDetail  block detail
 type BlockDetail struct {
 	Block    *Block               `json:"block"`
 	Receipts []*ReceiptDataResult `json:"recipts"`
 }
 
+// BlockDetails block details
 type BlockDetails struct {
 	Items []*BlockDetail `json:"items"`
 }
 
+// TransactionDetail transaction detail
 type TransactionDetail struct {
 	Tx         *Transaction       `json:"tx"`
 	Receipt    *ReceiptDataResult `json:"receipt"`
@@ -131,10 +147,12 @@ type TransactionDetail struct {
 	Assets     []*types.Asset     `json:"assets"`
 }
 
+// ReplyTxInfos reply tx infos
 type ReplyTxInfos struct {
 	TxInfos []*ReplyTxInfo `json:"txInfos"`
 }
 
+// ReplyTxInfo reply tx information
 type ReplyTxInfo struct {
 	Hash   string         `json:"hash"`
 	Height int64          `json:"height"`
@@ -142,25 +160,33 @@ type ReplyTxInfo struct {
 	Assets []*types.Asset `json:"assets"`
 }
 
+// TransactionDetails transaction details
 type TransactionDetails struct {
 	//Txs []*Transaction `json:"txs"`
 	Txs []*TransactionDetail `json:"txs"`
 }
 
+// ReplyTxList reply tx list
 type ReplyTxList struct {
 	Txs []*Transaction `json:"txs"`
 }
 
+// ReplyHash reply hash string json
 type ReplyHash struct {
 	Hash string `json:"hash"`
 }
 
+// ReplyHashes reply hashes
 type ReplyHashes struct {
 	Hashes []string `json:"hashes"`
 }
+
+// PeerList peer list
 type PeerList struct {
 	Peers []*Peer `json:"peers"`
 }
+
+// Peer  information
 type Peer struct {
 	Addr        string  `json:"addr"`
 	Port        int32   `json:"port"`
@@ -170,38 +196,48 @@ type Peer struct {
 	Header      *Header `json:"header"`
 }
 
-// Wallet Module
+// WalletAccounts Wallet Module
 type WalletAccounts struct {
 	Wallets []*WalletAccount `json:"wallets"`
 }
+
+// WalletAccount  wallet account
 type WalletAccount struct {
 	Acc   *Account `json:"acc"`
 	Label string   `json:"label"`
 }
 
+// Account account information
 type Account struct {
 	Currency int32  `json:"currency"`
 	Balance  int64  `json:"balance"`
 	Frozen   int64  `json:"frozen"`
 	Addr     string `json:"addr"`
 }
+
+// Reply info
 type Reply struct {
 	IsOk bool   `json:"isOK"`
 	Msg  string `json:"msg"`
 }
+
+// Headers
 type Headers struct {
 	Items []*Header `json:"items"`
 }
 
+// ReqAddr require address
 type ReqAddr struct {
 	Addr string `json:"addr"`
 }
 
+// ReqHashes require hashes
 type ReqHashes struct {
 	Hashes        []string `json:"hashes"`
 	DisableDetail bool     `json:"disableDetail"`
 }
 
+// ReqWalletTransactionList require wallet transaction list
 type ReqWalletTransactionList struct {
 	FromTx          string `json:"fromTx"`
 	Count           int32  `json:"count"`
@@ -212,10 +248,12 @@ type ReqWalletTransactionList struct {
 	TokenName       string `json:"tokenname,omitempty"`
 }
 
+// WalletTxDetails wallet tx details
 type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `json:"txDetails"`
 }
 
+// WalletTxDetail wallet tx detail
 type WalletTxDetail struct {
 	Tx         *Transaction       `json:"tx"`
 	Receipt    *ReceiptDataResult `json:"receipt"`
@@ -228,18 +266,21 @@ type WalletTxDetail struct {
 	ActionName string             `json:"actionName"`
 }
 
+// BlockOverview block overview
 type BlockOverview struct {
 	Head     *Header  `json:"head"`
 	TxCount  int64    `json:"txCount"`
 	TxHashes []string `json:"txHashes"`
 }
 
+// Query4Jrpc query jrpc
 type Query4Jrpc struct {
 	Execer   string          `json:"execer"`
 	FuncName string          `json:"funcName"`
 	Payload  json.RawMessage `json:"payload"`
 }
 
+// ChainExecutor chain executor
 type ChainExecutor struct {
 	Driver    string          `json:"execer"`
 	FuncName  string          `json:"funcName"`
@@ -247,6 +288,7 @@ type ChainExecutor struct {
 	Payload   json.RawMessage `json:"payload"`
 }
 
+// WalletStatus wallet status
 type WalletStatus struct {
 	IsWalletLock bool `json:"isWalletLock"`
 	IsAutoMining bool `json:"isAutoMining"`
@@ -254,6 +296,7 @@ type WalletStatus struct {
 	IsTicketLock bool `json:"isTicketLock"`
 }
 
+// NodeNetinfo node net info
 type NodeNetinfo struct {
 	Externaladdr string `json:"externalAddr"`
 	Localaddr    string `json:"localAddr"`
@@ -262,46 +305,56 @@ type NodeNetinfo struct {
 	Inbounds     int32  `json:"inbounds"`
 }
 
+// ReplyPrivacyPkPair   reply privekey pubkey pair
 type ReplyPrivacyPkPair struct {
 	ShowSuccessful bool   `json:"showSuccessful,omitempty"`
 	ViewPub        string `json:"viewPub,omitempty"`
 	SpendPub       string `json:"spendPub,omitempty"`
 }
 
+// ReplyCacheTxList reply cache tx list
 type ReplyCacheTxList struct {
 	Txs []*Transaction `json:"txs,omitempty"`
 }
 
+// TimeStatus time status
 type TimeStatus struct {
 	NtpTime   string `json:"ntpTime"`
 	LocalTime string `json:"localTime"`
 	Diff      int64  `json:"diff"`
 }
+
+// ReplyBlkSeqs reply block sequences
 type ReplyBlkSeqs struct {
 	BlkSeqInfos []*ReplyBlkSeq `json:"blkseqInfos"`
 }
 
+// ReplyBlkSeq reply block sequece
 type ReplyBlkSeq struct {
 	Hash string `json:"hash"`
 	Type int64  `json:"type"`
 }
 
+// CreateTxIn create tx input
 type CreateTxIn struct {
 	Execer     string          `json:"execer"`
 	ActionName string          `json:"actionName"`
 	Payload    json.RawMessage `json:"payload"`
 }
 
+// AllExecBalance all exec balance
 type AllExecBalance struct {
 	Addr        string         `json:"addr"`
 	ExecAccount []*ExecAccount `json:"execAccount"`
 }
 
+// ExecAccount exec account
 type ExecAccount struct {
 	Execer  string   `json:"execer"`
 	Account *Account `json:"account"`
 }
 
+// ExecNameParm exec name parameter
 type ExecNameParm struct {
 	ExecName string `json:"execname"`
 }

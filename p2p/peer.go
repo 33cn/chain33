@@ -18,11 +18,13 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+// Start peer start
 func (p *Peer) Start() {
 	log.Debug("Peer", "Start", p.Addr())
 	go p.heartBeat()
 }
 
+// Close peer close
 func (p *Peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
@@ -31,6 +33,7 @@ func (p *Peer) Close() {
 
 }
 
+// Peer object information
 type Peer struct {
 	mutx         sync.Mutex
 	node         *Node
@@ -47,6 +50,7 @@ type Peer struct {
 	IsMaxInbouds bool
 }
 
+// NewPeer produce a peer object
 func NewPeer(conn *grpc.ClientConn, node *Node, remote *NetAddress) *Peer {
 	p := &Peer{
 		conn: conn,
@@ -59,53 +63,62 @@ func NewPeer(conn *grpc.ClientConn, node *Node, remote *NetAddress) *Peer {
 	return p
 }
 
+// Version version object information
 type Version struct {
 	mtx            sync.Mutex
 	version        int32
 	versionSupport bool
 }
 
+// Stat object information
 type Stat struct {
 	mtx sync.Mutex
 	ok  bool
 }
 
+// Ok start is ok
 func (st *Stat) Ok() {
 	st.mtx.Lock()
 	defer st.mtx.Unlock()
 	st.ok = true
 }
 
+// NotOk start is not ok
 func (st *Stat) NotOk() {
 	st.mtx.Lock()
 	defer st.mtx.Unlock()
 	st.ok = false
 }
 
+// IsOk start is ok or not
 func (st *Stat) IsOk() bool {
 	st.mtx.Lock()
 	defer st.mtx.Unlock()
 	return st.ok
 }
 
+// SetSupport set support of version
 func (v *Version) SetSupport(ok bool) {
 	v.mtx.Lock()
 	defer v.mtx.Unlock()
 	v.versionSupport = ok
 }
 
+// IsSupport is support version
 func (v *Version) IsSupport() bool {
 	v.mtx.Lock()
 	defer v.mtx.Unlock()
 	return v.versionSupport
 }
 
+// SetVersion set version number
 func (v *Version) SetVersion(ver int32) {
 	v.mtx.Lock()
 	defer v.mtx.Unlock()
 	v.version = ver
 }
 
+// GetVersion get version number
 func (v *Version) GetVersion() int32 {
 	v.mtx.Lock()
 	defer v.mtx.Unlock()
@@ -153,10 +166,12 @@ func (p *Peer) heartBeat() {
 	}
 }
 
+// GetInBouns get inbounds of peer
 func (p *Peer) GetInBouns() int32 {
 	return atomic.LoadInt32(&p.inBounds)
 }
 
+// GetPeerInfo get peer information of peer
 func (p *Peer) GetPeerInfo(version int32) (*pb.P2PPeerInfo, error) {
 	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: version}, grpc.FailFast(true))
 }
@@ -379,6 +394,7 @@ func (p *Peer) readStream() {
 	}
 }
 
+// GetRunning get running ok or not
 func (p *Peer) GetRunning() bool {
 	return atomic.LoadInt32(&p.isclose) != 1
 
@@ -390,6 +406,7 @@ func (p *Peer) MakePersistent() {
 	p.persistent = true
 }
 
+// SetAddr set address of peer
 func (p *Peer) SetAddr(addr *NetAddress) {
 	p.peerAddr = addr
 }
@@ -404,6 +421,7 @@ func (p *Peer) IsPersistent() bool {
 	return p.persistent
 }
 
+// SetPeerName set name of peer
 func (p *Peer) SetPeerName(name string) {
 	p.mutx.Lock()
 	defer p.mutx.Unlock()
@@ -413,6 +431,7 @@ func (p *Peer) SetPeerName(name string) {
 	p.name = name
 }
 
+// GetPeerName get name of peer
 func (p *Peer) GetPeerName() string {
 	p.mutx.Lock()
 	defer p.mutx.Unlock()
