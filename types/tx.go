@@ -317,9 +317,9 @@ func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 		}
 		return &txs, nil
 	}
-		if tx.Next != nil || tx.Header != nil {
-			return nil, ErrNomalTx
-		}
+	if tx.Next != nil || tx.Header != nil {
+		return nil, ErrNomalTx
+	}
 	return nil, nil
 }
 
@@ -481,25 +481,18 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		return false
 	}
 	if valid <= ExpireBound {
-		//Expire小于1e9，为height
-		if valid > height { // 未过期
-			return false
-		}
-		return true // 过期
-
+		//Expire小于1e9，为height valid > height 未过期返回false else true过期
+		return valid <= height
 	}
-		//EnableTxHeight 选项开启, 并且符合条件
-		if txHeight := GetTxHeight(valid, height); txHeight > 0 {
-			if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
-				return false
-			}
-			return true
-		}
-		// Expire大于1e9，为blockTime
-		if valid > blocktime { // 未过期
+	//EnableTxHeight 选项开启, 并且符合条件
+	if txHeight := GetTxHeight(valid, height); txHeight > 0 {
+		if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
 			return false
 		}
-	return true // 过期
+		return true
+	}
+	// Expire大于1e9，为blockTime  valid > blocktime返回false 未过期 else true过期
+	return valid <= blocktime
 }
 
 //GetTxHeight 获取交易高度
