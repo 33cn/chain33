@@ -10,6 +10,9 @@ import (
 
 // ExecLocal_Transfer  transfer of local exec
 func (c *Coins) ExecLocal_Transfer(transfer *types.AssetsTransfer, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	if receipt.GetTy() != types.ExecOk {
+		return nil, nil
+	}
 	kv, err := updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), transfer.Amount, true)
 	if err != nil {
 		return nil, err
@@ -19,6 +22,9 @@ func (c *Coins) ExecLocal_Transfer(transfer *types.AssetsTransfer, tx *types.Tra
 
 // ExecLocal_TransferToExec  transfer of local exec to exec
 func (c *Coins) ExecLocal_TransferToExec(transfer *types.AssetsTransferToExec, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	if receipt.GetTy() != types.ExecOk {
+		return nil, nil
+	}
 	kv, err := updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), transfer.Amount, true)
 	if err != nil {
 		return nil, err
@@ -28,6 +34,9 @@ func (c *Coins) ExecLocal_TransferToExec(transfer *types.AssetsTransferToExec, t
 
 // ExecLocal_Withdraw  withdraw local exec
 func (c *Coins) ExecLocal_Withdraw(withdraw *types.AssetsWithdraw, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	if receipt.GetTy() != types.ExecOk {
+		return nil, nil
+	}
 	from := tx.From()
 	kv, err := updateAddrReciver(c.GetLocalDB(), from, withdraw.Amount, true)
 	if err != nil {
@@ -38,6 +47,9 @@ func (c *Coins) ExecLocal_Withdraw(withdraw *types.AssetsWithdraw, tx *types.Tra
 
 // ExecLocal_Genesis Genesis of local exec
 func (c *Coins) ExecLocal_Genesis(gen *types.AssetsGenesis, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	if receipt.GetTy() != types.ExecOk {
+		return nil, nil
+	}
 	kv, err := updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), gen.Amount, true)
 	if err != nil {
 		return nil, err
