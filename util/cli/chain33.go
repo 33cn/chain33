@@ -149,7 +149,7 @@ func RunChain33(name string) {
 	log.Info("loading store module")
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
-	
+
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
