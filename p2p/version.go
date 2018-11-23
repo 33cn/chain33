@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package p2p
+
 // VERSION number
 var VERSION int32 = 119
 
