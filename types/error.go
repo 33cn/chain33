@@ -8,7 +8,10 @@ import (
 	"errors"
 )
 
+// chain33定义的错误类型
 var (
+	ErrTooManySeqCB            = errors.New("ErrTooManySeqCB")
+	ErrPushSeqPostData         = errors.New("ErrPushSeqPostData")
 	ErrMethodReturnType        = errors.New("ErrMethodReturnType")
 	ErrMethodNotFound          = errors.New("ErrMethodNotFound")
 	ErrExecBlockNil            = errors.New("ErrExecBlockNil")
@@ -48,6 +51,7 @@ var (
 	ErrLogType                 = errors.New("ErrLogType")
 	ErrInvalidParam            = errors.New("ErrInvalidParam")
 	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
+	ErrNotInited               = errors.New("ErrNotInited")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
@@ -78,7 +82,7 @@ var (
 	ErrNotSync                    = errors.New("ErrNotSync")
 	ErrSize                       = errors.New("ErrSize")
 
-	// BlockChain Error Types
+	// ErrHashNotExist BlockChain Error Types
 	ErrHashNotExist           = errors.New("ErrHashNotExist")
 	ErrHeightNotExist         = errors.New("ErrHeightNotExist")
 	ErrTxNotExist             = errors.New("ErrTxNotExist")
@@ -98,7 +102,7 @@ var (
 	ErrDecode                 = errors.New("ErrDecode")
 	ErrNotRollBack            = errors.New("ErrNotRollBack")
 	ErrPeerInfoIsNil          = errors.New("ErrPeerInfoIsNil")
-	//wallet
+	//ErrWalletIsLocked wallet
 	ErrWalletIsLocked       = errors.New("ErrWalletIsLocked")
 	ErrSaveSeedFirst        = errors.New("ErrSaveSeedFirst")
 	ErrUnLockFirst          = errors.New("ErrUnLockFirst")
@@ -132,7 +136,7 @@ var (
 	ErrPrivKeyFromBytes   = errors.New("ErrFromHex")
 	ErrParentHash         = errors.New("ErrParentHash")
 
-	//p2p
+	//ErrPing p2p模块错误类型
 	ErrPing       = errors.New("ErrPingSignature")
 	ErrVersion    = errors.New("ErrVersionNoSupport")
 	ErrStreamPing = errors.New("ErrStreamPing")
@@ -159,8 +163,8 @@ var (
 	ErrIndex                      = errors.New("ErrIndex")
 	ErrTxGroupParaCount           = errors.New("ErrTxGroupParaCount")
 
-	//rpc
-	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
+	//ErrInvalidMainnetRPCAddr rpc模块的错误类型
+	ErrInvalidMainnetRPCAddr = errors.New("ErrInvalidMainnetRPCAddr")
 
 	ErrDBFlag      = errors.New("ErrDBFlag")
 	ErrLocalPrefix = errors.New("ErrLocalPrefix")

@@ -4,23 +4,27 @@
 
 package version
 
-const version = "5.3.0"
+const version = "6.0.1"
 
+//var
 var (
 	WalletVerKey     = []byte("WalletVerKey")
 	BlockChainVerKey = []byte("BlockChainVerKey")
 	LocalDBMeta      = []byte("LocalDBMeta")
 	MavlTreeVerKey   = []byte("MavlTreeVerKey")
 	localversion     = "1.0.0"
+	appversion       = "1.0.0"
 	GitCommit        string
 )
 
+//GetLocalDBKeyList 获取本地key列表
 func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
 		WalletVerKey, BlockChainVerKey, LocalDBMeta, MavlTreeVerKey,
 	}
 }
 
+//GetVersion 获取版本信息
 func GetVersion() string {
 	if GitCommit != "" {
 		return version + "-" + GitCommit
@@ -37,10 +41,23 @@ func GetLocalDBVersion() string {
 	return localversion
 }
 
-//SetLocalDBVersion only used for test
-//通过设置版本号，强制重建数据库
+//SetLocalDBVersion 通过设置版本号，强制重建数据库
 func SetLocalDBVersion(version string) {
-	localversion = version
+	if version != "" {
+		localversion = version
+	}
+}
+
+//GetAppVersion 获取应用 app 的版本
+func GetAppVersion() string {
+	return appversion
+}
+
+//SetAppVersion 设置饮用的版本
+func SetAppVersion(version string) {
+	if version != "" {
+		appversion = version
+	}
 }
 
 //v0.1.2

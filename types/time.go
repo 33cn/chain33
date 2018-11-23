@@ -10,6 +10,8 @@ import (
 )
 
 var deltaTime int64
+
+//NtpHosts ntp hosts
 var NtpHosts = []string{
 	"time.windows.com:123",
 	"ntp.ubuntu.com:123",
@@ -18,7 +20,7 @@ var NtpHosts = []string{
 	"time.apple.com:123",
 }
 
-//realtime - localtime
+//SetTimeDelta realtime - localtime
 //超过60s 不做修正
 //为了系统的安全，我们只做小范围时间错误的修复
 func SetTimeDelta(dt int64) {
@@ -28,11 +30,13 @@ func SetTimeDelta(dt int64) {
 	atomic.StoreInt64(&deltaTime, dt)
 }
 
+//Now 获取当前时间戳
 func Now() time.Time {
 	dt := time.Duration(atomic.LoadInt64(&deltaTime))
 	return time.Now().Add(dt)
 }
 
+//Since Since时间
 func Since(t time.Time) time.Duration {
 	return Now().Sub(t)
 }

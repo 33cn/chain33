@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// TxCmd transaction command
 func TxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tx",
@@ -39,7 +40,7 @@ func TxCmd() *cobra.Command {
 	return cmd
 }
 
-// get tx by address
+// QueryTxByAddrCmd get tx by address
 func QueryTxByAddrCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query_addr",
@@ -82,7 +83,7 @@ func queryTxByAddr(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// query tx by hash
+// QueryTxCmd  query tx by hash
 func QueryTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query",
@@ -132,7 +133,7 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// get transactions by hashes
+// QueryTxsByHashesCmd  get transactions by hashes
 func QueryTxsByHashesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query_hash",
@@ -187,7 +188,7 @@ func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// get raw transaction hex
+// GetRawTxCmd get raw transaction hex
 func GetRawTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get_hex",
@@ -214,7 +215,7 @@ func getTxHexByHash(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-// decode raw hex to transaction
+// DecodeTxCmd decode raw hex to transaction
 func DecodeTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "decode",
@@ -262,7 +263,7 @@ func decodeTx(cmd *cobra.Command, args []string) {
 	fmt.Println(string(result))
 }
 
-// get overview of an address
+// GetAddrOverviewCmd get overview of an address
 func GetAddrOverviewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "addr_overview",

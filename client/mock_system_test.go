@@ -28,9 +28,9 @@ func init() {
 	cfg, sub := types.InitCfg(*configPath)
 	println(sub)
 	// change rpc bind address
-	cfg.Rpc.JrpcBindAddr = jrpcaddr
-	cfg.Rpc.GrpcBindAddr = grpcaddr
-	rpc.InitCfg(cfg.Rpc)
+	cfg.RPC.JrpcBindAddr = jrpcaddr
+	cfg.RPC.GrpcBindAddr = grpcaddr
+	rpc.InitCfg(cfg.RPC)
 	log.SetLogLevel("crit")
 }
 

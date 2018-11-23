@@ -71,7 +71,7 @@ type Node struct {
 	pubsub     *pubsub.PubSub
 }
 
-// SetQueueClinet return client for nodeinfo
+// SetQueueClient return client for nodeinfo
 func (n *Node) SetQueueClient(client queue.Client) {
 	n.nodeInfo.client = client
 }
@@ -270,7 +270,7 @@ func (n *Node) GetRegisterPeer(paddr string) *Peer {
 	return nil
 }
 
-// GetRigisterPeers return peers
+// GetRegisterPeers return peers
 func (n *Node) GetRegisterPeers() []*Peer {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
@@ -285,7 +285,7 @@ func (n *Node) GetRegisterPeers() []*Peer {
 	return peers
 }
 
-// GetActivepeers return activities of the peers and infos
+// GetActivePeers return activities of the peers and infos
 func (n *Node) GetActivePeers() (map[string]*Peer, map[string]*types.Peer) {
 	regPeers := n.GetRegisterPeers()
 	infos := n.nodeInfo.peerInfos.GetPeerInfos()

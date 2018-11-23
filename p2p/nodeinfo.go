@@ -230,7 +230,7 @@ func (nf *NodeInfo) ServiceTy() int32 {
 
 // SetNetSide set net side
 func (nf *NodeInfo) SetNetSide(ok bool) {
-	var isoutside int32 = 0
+	var isoutside int32
 	if ok {
 		isoutside = 1
 	}

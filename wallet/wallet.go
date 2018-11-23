@@ -72,6 +72,7 @@ type Wallet struct {
 	done               chan struct{}
 	rescanwg           *sync.WaitGroup
 	lastHeader         *types.Header
+	initFlag           uint32 // 钱包模块是否初始化完毕的标记，默认为0，表示未初始化
 }
 
 // SetLogLevel 设置日志登记
@@ -109,6 +110,7 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 		done:             make(chan struct{}),
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
+		initFlag:         0,
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
@@ -118,6 +120,9 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 
 // RegisterMineStatusReporter 向钱包注册状态回报
 func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) error {
+	if !wallet.isInited() {
+		return types.ErrNotInited
+	}
 	if reporter == nil {
 		return types.ErrInvalidParam
 	}
@@ -263,6 +268,7 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	for _, policy := range wcom.PolicyContainer {
 		policy.OnSetQueueClient()
 	}
+	wallet.setInited(true)
 }
 
 // GetAccountByAddr 根据地址获取账户
@@ -277,6 +283,9 @@ func (wallet *Wallet) SetWalletAccount(update bool, addr string, account *types.
 
 // GetPrivKeyByAddr 根据地址获取私钥
 func (wallet *Wallet) GetPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
+	if !wallet.isInited() {
+		return nil, types.ErrNotInited
+	}
 	return wallet.getPrivKeyByAddr(addr)
 }
 
@@ -317,6 +326,9 @@ func (wallet *Wallet) getFee() int64 {
 
 // AddrInWallet 地址对应的账户是否属于本钱包
 func (wallet *Wallet) AddrInWallet(addr string) bool {
+	if !wallet.isInited() {
+		return false
+	}
 	if len(addr) == 0 {
 		return false
 	}
@@ -347,6 +359,9 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 
 //CheckWalletStatus 钱包状态检测函数,解锁状态，seed是否已保存
 func (wallet *Wallet) CheckWalletStatus() (bool, error) {
+	if !wallet.isInited() {
+		return false, types.ErrNotInited
+	}
 	// 钱包锁定，ticket已经解锁，返回只解锁了ticket的错误
 	if wallet.IsWalletLocked() && !wallet.isTicketLocked() {
 		return false, types.ErrOnlyTicketUnLocked
@@ -399,6 +414,9 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 //	TimeStamp string
 //获取钱包的所有账户地址列表，
 func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
+	if !wallet.isInited() {
+		return nil, types.ErrNotInited
+	}
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -433,4 +451,14 @@ func (wallet *Wallet) updateLastHeader(block *types.BlockDetail, mode int) error
 		wallet.lastHeader = header
 	}
 	return nil
+}
+
+func (wallet *Wallet) setInited(flag bool) {
+	if flag && !wallet.isInited() {
+		atomic.StoreUint32(&wallet.initFlag, 1)
+	}
+}
+
+func (wallet *Wallet) isInited() bool {
+	return atomic.LoadUint32(&wallet.initFlag) != 0
 }

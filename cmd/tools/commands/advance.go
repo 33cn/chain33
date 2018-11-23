@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//AdvanceCmd advance cmd
 func AdvanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "advance",

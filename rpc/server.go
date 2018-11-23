@@ -15,14 +15,13 @@ import (
 	"github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 
-	// register gzip
 	"google.golang.org/grpc"
-	_ "google.golang.org/grpc/encoding/gzip"
+	_ "google.golang.org/grpc/encoding/gzip" // register gzip
 )
 
 var (
 	remoteIpWhitelist = make(map[string]bool)
-	rpcCfg            *types.Rpc
+	rpcCfg            *types.RPC
 	jrpcFuncWhitelist = make(map[string]bool)
 	grpcFuncWhitelist = make(map[string]bool)
 	jrpcFuncBlacklist = make(map[string]bool)
@@ -168,7 +167,7 @@ func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServe
 
 // RPC a type object
 type RPC struct {
-	cfg  *types.Rpc
+	cfg  *types.RPC
 	gapi *Grpcserver
 	japi *JSONRPCServer
 	c    queue.Client
@@ -176,7 +175,7 @@ type RPC struct {
 }
 
 // InitCfg  interfaces
-func InitCfg(cfg *types.Rpc) {
+func InitCfg(cfg *types.RPC) {
 	rpcCfg = cfg
 	InitIpWhitelist(cfg)
 	InitJrpcFuncWhitelist(cfg)
@@ -186,7 +185,7 @@ func InitCfg(cfg *types.Rpc) {
 }
 
 // New produce a rpc by cfg
-func New(cfg *types.Rpc) *RPC {
+func New(cfg *types.RPC) *RPC {
 	InitCfg(cfg)
 	return &RPC{cfg: cfg}
 }
@@ -218,10 +217,10 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 }
 
 // Listen rpc listen
-func (rpc *RPC) Listen() (port1 int, port2 int) {
+func (r *RPC) Listen() (port1 int, port2 int) {
 	var err error
 	for i := 0; i < 10; i++ {
-		port1, err = rpc.gapi.Listen()
+		port1, err = r.gapi.Listen()
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -229,7 +228,7 @@ func (rpc *RPC) Listen() (port1 int, port2 int) {
 		break
 	}
 	for i := 0; i < 10; i++ {
-		port2, err = rpc.japi.Listen()
+		port2, err = r.japi.Listen()
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -242,32 +241,32 @@ func (rpc *RPC) Listen() (port1 int, port2 int) {
 }
 
 // GetQueueClient get queue client
-func (rpc *RPC) GetQueueClient() queue.Client {
-	return rpc.c
+func (r *RPC) GetQueueClient() queue.Client {
+	return r.c
 }
 
 // GRPC return grpc rpc
-func (rpc *RPC) GRPC() *grpc.Server {
-	return rpc.gapi.s
+func (r *RPC) GRPC() *grpc.Server {
+	return r.gapi.s
 }
 
 // JRPC return jrpc
-func (rpc *RPC) JRPC() *rpc.Server {
-	return rpc.japi.s
+func (r *RPC) JRPC() *rpc.Server {
+	return r.japi.s
 }
 
 // Close rpc close
-func (rpc *RPC) Close() {
-	if rpc.gapi != nil {
-		rpc.gapi.Close()
+func (r *RPC) Close() {
+	if r.gapi != nil {
+		r.gapi.Close()
 	}
-	if rpc.japi != nil {
-		rpc.japi.Close()
+	if r.japi != nil {
+		r.japi.Close()
 	}
 }
 
 // InitIpWhitelist init ip whitelist
-func InitIpWhitelist(cfg *types.Rpc) {
+func InitIpWhitelist(cfg *types.RPC) {
 	if len(cfg.Whitelist) == 0 && len(cfg.Whitlist) == 0 {
 		remoteIpWhitelist["127.0.0.1"] = true
 		return
@@ -296,7 +295,7 @@ func InitIpWhitelist(cfg *types.Rpc) {
 }
 
 // InitJrpcFuncWhitelist init jrpc function whitelist
-func InitJrpcFuncWhitelist(cfg *types.Rpc) {
+func InitJrpcFuncWhitelist(cfg *types.RPC) {
 	if len(cfg.JrpcFuncWhitelist) == 0 {
 		jrpcFuncWhitelist["*"] = true
 		return
@@ -311,7 +310,7 @@ func InitJrpcFuncWhitelist(cfg *types.Rpc) {
 }
 
 // InitGrpcFuncWhitelist init grpc function whitelist
-func InitGrpcFuncWhitelist(cfg *types.Rpc) {
+func InitGrpcFuncWhitelist(cfg *types.RPC) {
 	if len(cfg.GrpcFuncWhitelist) == 0 {
 		grpcFuncWhitelist["*"] = true
 		return
@@ -326,7 +325,7 @@ func InitGrpcFuncWhitelist(cfg *types.Rpc) {
 }
 
 // InitJrpcFuncBlacklist init jrpc function blacklist
-func InitJrpcFuncBlacklist(cfg *types.Rpc) {
+func InitJrpcFuncBlacklist(cfg *types.RPC) {
 	if len(cfg.JrpcFuncBlacklist) == 0 {
 		jrpcFuncBlacklist["CloseQueue"] = true
 		return
@@ -338,7 +337,7 @@ func InitJrpcFuncBlacklist(cfg *types.Rpc) {
 }
 
 // InitGrpcFuncBlacklist init grpc function blacklist
-func InitGrpcFuncBlacklist(cfg *types.Rpc) {
+func InitGrpcFuncBlacklist(cfg *types.RPC) {
 	if len(cfg.GrpcFuncBlacklist) == 0 {
 		grpcFuncBlacklist["CloseQueue"] = true
 		return

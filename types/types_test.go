@@ -186,7 +186,7 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 	i := len(prefix) - 1
 	for i >= 0 {
 		if r[i] < 0xff {
-			r[i] += 1
+			r[i]++
 			break
 		} else {
 			i--
@@ -216,13 +216,10 @@ func (t *StoreListReply) IterateCallBack(key, value []byte) bool {
 					t.NextKey = key
 					return true
 				}
-				return false
-			} else {
-				return false
 			}
-		} else {
 			return false
 		}
+		return false
 	} else {
 		fmt.Println("StoreListReply.IterateCallBack unsupported mode", "mode", t.Mode)
 		return true

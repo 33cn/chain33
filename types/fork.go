@@ -9,7 +9,7 @@ import (
 )
 
 /*
-出于forks 过程安全的考虑，比如代码更新，出现了新的fork，旧的链只要不明确指定 fork的高度，那么默认fork高度为 MaxHeight
+MaxHeight 出于forks 过程安全的考虑，比如代码更新，出现了新的fork，旧的链只要不明确指定 fork的高度，那么默认fork高度为 MaxHeight
 也就是新的代码默认不会被启用，知道使用的人明确指定了fork的高度
 */
 const MaxHeight = 10000000000000000
@@ -21,6 +21,7 @@ func init() {
 	SetTestNetFork()
 }
 
+//Forks fork分叉结构体
 type Forks struct {
 	forks map[string]map[string]int64
 }
@@ -31,21 +32,25 @@ func checkKey(key string) {
 	}
 }
 
+//SetFork 设置fork信息
 func (f *Forks) SetFork(title, key string, height int64) {
 	checkKey(key)
 	f.setFork(title, key, height)
 }
 
+//ReplaceFork 替换fork信息
 func (f *Forks) ReplaceFork(title, key string, height int64) {
 	checkKey(key)
 	f.replaceFork(title, key, height)
 }
 
+//SetDappFork 设置dapp的fork信息
 func (f *Forks) SetDappFork(title, dapp, key string, height int64) {
 	checkKey(key)
 	f.setFork(title, dapp+"."+key, height)
 }
 
+//ReplaceDappFork 替换dapp的fork信息
 func (f *Forks) ReplaceDappFork(title, dapp, key string, height int64) {
 	checkKey(key)
 	f.replaceFork(title, dapp+"."+key, height)
@@ -79,7 +84,7 @@ func (f *Forks) setFork(title, key string, height int64) {
 	f.forks[title][key] = height
 }
 
-//如果不存在，那么fork高度为0
+// GetFork 如果不存在，那么fork高度为0
 func (f *Forks) GetFork(title, key string) int64 {
 	forkitem, ok := f.forks[title]
 	if !ok {
@@ -102,6 +107,7 @@ func (f *Forks) GetFork(title, key string) int64 {
 	return height
 }
 
+// HasFork fork信息是否存在
 func (f *Forks) HasFork(title, key string) bool {
 	forkitem, ok := f.forks[title]
 	if !ok {
@@ -111,10 +117,12 @@ func (f *Forks) HasFork(title, key string) bool {
 	return ok
 }
 
+// GetDappFork 获取dapp fork信息
 func (f *Forks) GetDappFork(title, app string, key string) int64 {
 	return f.GetFork(title, app+"."+key)
 }
 
+// Clone fork信息拷贝
 func (f *Forks) Clone(from, to string) error {
 	forkitem, ok := f.forks[from]
 	if !ok {
@@ -131,6 +139,7 @@ func (f *Forks) Clone(from, to string) error {
 	return nil
 }
 
+// CloneZero fork信息拷贝并设置所有fork高度是0
 func (f *Forks) CloneZero(from, to string) error {
 	err := f.Clone(from, to)
 	if err != nil {
@@ -140,11 +149,13 @@ func (f *Forks) CloneZero(from, to string) error {
 	return nil
 }
 
+// CloneMaxHeight fork信息拷贝并设置所有fork高度MaxHeight
 func (f *Forks) CloneMaxHeight(from, to string) {
 	f.Clone(from, to)
 	f.SetAllFork(to, MaxHeight)
 }
 
+// SetAllFork 设置所有fork的高度
 func (f *Forks) SetAllFork(title string, height int64) {
 	forkitem, ok := f.forks[title]
 	if !ok {
@@ -155,6 +166,7 @@ func (f *Forks) SetAllFork(title string, height int64) {
 	}
 }
 
+// GetAll 获取所有fork信息
 func (f *Forks) GetAll(title string) map[string]int64 {
 	forkitem, ok := f.forks[title]
 	if !ok {
@@ -163,6 +175,7 @@ func (f *Forks) GetAll(title string) map[string]int64 {
 	return forkitem
 }
 
+// IsFork 是否fork高度
 func (f *Forks) IsFork(title string, height int64, fork string) bool {
 	ifork := f.GetFork(title, fork)
 	if height == -1 || height >= ifork {
@@ -171,11 +184,12 @@ func (f *Forks) IsFork(title string, height int64, fork string) bool {
 	return false
 }
 
+// IsDappFork 是否dapp fork高度
 func (f *Forks) IsDappFork(title string, height int64, dapp, fork string) bool {
 	return f.IsFork(title, height, dapp+"."+fork)
 }
 
-//bityuan test net fork
+//SetTestNetFork bityuan test net fork
 func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkChainParamV1", 110000)
 	systemFork.SetFork("chain33", "ForkChainParamV2", MaxHeight)
@@ -207,34 +221,42 @@ func setForkForPara(paraName string) {
 	systemFork.ReplaceFork(paraName, "ForkBlockHash", 1)
 }
 
+// IsFork 是否系统 fork高度
 func IsFork(height int64, fork string) bool {
 	return systemFork.IsFork(GetTitle(), height, fork)
 }
 
+// IsDappFork 是否dapp fork高度
 func IsDappFork(height int64, dapp, fork string) bool {
 	return systemFork.IsDappFork(GetTitle(), height, dapp, fork)
 }
 
+// GetDappFork 获取dapp fork高度
 func GetDappFork(dapp, fork string) int64 {
 	return systemFork.GetDappFork(GetTitle(), dapp, fork)
 }
 
+// SetDappFork 设置dapp fork高度
 func SetDappFork(title, dapp, fork string, height int64) {
 	systemFork.SetDappFork(title, dapp, fork, height)
 }
 
+// RegisterDappFork 注册dapp fork高度
 func RegisterDappFork(dapp, fork string, height int64) {
 	systemFork.SetDappFork("chain33", dapp, fork, height)
 }
 
+// GetFork 获取系统fork高度
 func GetFork(fork string) int64 {
 	return systemFork.GetFork(GetTitle(), fork)
 }
 
+// HasFork 是否有系统fork
 func HasFork(fork string) bool {
 	return systemFork.HasFork("chain33", fork)
 }
 
+// IsEnableFork 是否使能了fork
 func IsEnableFork(height int64, fork string, enable bool) bool {
 	if !enable {
 		return false

@@ -510,11 +510,11 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			getctx, ok := pr.FromContext(stream.Context())
 			if ok && s.node.Size() > 0 {
 				//peerIp := strings.Split(getctx.Addr.String(), ":")[0]
-				peerIp, _, err := net.SplitHostPort(getctx.Addr.String())
+				peerIP, _, err := net.SplitHostPort(getctx.Addr.String())
 				if err != nil {
 					return fmt.Errorf("ctx.Addr format err")
 				}
-				if peerIp != LocalAddr && peerIp != s.node.nodeInfo.GetExternalAddr().IP.String() {
+				if peerIP != LocalAddr && peerIP != s.node.nodeInfo.GetExternalAddr().IP.String() {
 					s.node.nodeInfo.SetServiceTy(Service)
 				}
 			}

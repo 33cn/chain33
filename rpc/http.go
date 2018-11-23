@@ -22,7 +22,7 @@ import (
 	pr "google.golang.org/grpc/peer"
 )
 
-// adapt HTTP connection to ReadWriteCloser
+// HTTPConn adapt HTTP connection to ReadWriteCloser
 type HTTPConn struct {
 	r   *http.Request
 	in  io.Reader
@@ -158,20 +158,20 @@ func auth(ctx context.Context, info *grpc.UnaryServerInfo) error {
 		//remoteaddr := strings.Split(getctx.Addr.String(), ":")[0]
 		ip, _, err := net.SplitHostPort(getctx.Addr.String())
 		if err != nil {
-			return fmt.Errorf("The %s Address is not authorized!", ip)
+			return fmt.Errorf("the %s Address is not authorized", ip)
 		}
 
 		if !checkIpWhitelist(ip) {
-			return fmt.Errorf("The %s Address is not authorized!", ip)
+			return fmt.Errorf("the %s Address is not authorized", ip)
 		}
 
 		funcName := strings.Split(info.FullMethod, "/")[len(strings.Split(info.FullMethod, "/"))-1]
 		if checkGrpcFuncBlacklist(funcName) || !checkGrpcFuncWhitelist(funcName) {
-			return fmt.Errorf("The %s method is not authorized!", funcName)
+			return fmt.Errorf("the %s method is not authorized", funcName)
 		}
 		return nil
 	}
-	return fmt.Errorf("Can't get remote ip!")
+	return fmt.Errorf("can't get remote ip")
 }
 
 type clientRequest struct {

@@ -125,7 +125,7 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 		newWalletRealize(mockapi)
 	}
 	mock.api = mockapi
-	server := rpc.New(cfg.Rpc)
+	server := rpc.New(cfg.RPC)
 	server.SetAPI(mock.api)
 	server.SetQueueClientNoListen(q.Client())
 	mock.rpc = server
@@ -151,13 +151,13 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 func (mock *Chain33Mock) Listen() {
 	pluginmgr.AddRPC(mock.rpc)
 	portgrpc, portjsonrpc := mock.rpc.Listen()
-	if strings.HasSuffix(mock.cfg.Rpc.JrpcBindAddr, ":0") {
-		l := len(mock.cfg.Rpc.JrpcBindAddr)
-		mock.cfg.Rpc.JrpcBindAddr = mock.cfg.Rpc.JrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portjsonrpc)
+	if strings.HasSuffix(mock.cfg.RPC.JrpcBindAddr, ":0") {
+		l := len(mock.cfg.RPC.JrpcBindAddr)
+		mock.cfg.RPC.JrpcBindAddr = mock.cfg.RPC.JrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portjsonrpc)
 	}
-	if strings.HasSuffix(mock.cfg.Rpc.GrpcBindAddr, ":0") {
-		l := len(mock.cfg.Rpc.GrpcBindAddr)
-		mock.cfg.Rpc.GrpcBindAddr = mock.cfg.Rpc.GrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portgrpc)
+	if strings.HasSuffix(mock.cfg.RPC.GrpcBindAddr, ":0") {
+		l := len(mock.cfg.RPC.GrpcBindAddr)
+		mock.cfg.RPC.GrpcBindAddr = mock.cfg.RPC.GrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portgrpc)
 	}
 }
 
@@ -177,7 +177,7 @@ func setFee(cfg *types.Config, fee int64) {
 
 //GetJSONC :
 func (mock *Chain33Mock) GetJSONC() *jsonclient.JSONClient {
-	jsonc, _ := jsonclient.NewJSONClient("http://" + mock.cfg.Rpc.JrpcBindAddr + "/")
+	jsonc, _ := jsonclient.NewJSONClient("http://" + mock.cfg.RPC.JrpcBindAddr + "/")
 	return jsonc
 }
 

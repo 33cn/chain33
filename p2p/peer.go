@@ -400,7 +400,7 @@ func (p *Peer) GetRunning() bool {
 
 }
 
-// makePersistent marks the peer as persistent.
+// MakePersistent marks the peer as persistent.
 func (p *Peer) MakePersistent() {
 
 	p.persistent = true

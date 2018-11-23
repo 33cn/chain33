@@ -14,7 +14,8 @@ import (
 	"github.com/tjfoc/gmsm/sm2"
 )
 
-type SM2Signature struct {
+//Signature 签名
+type Signature struct {
 	R, S *big.Int
 }
 
@@ -31,6 +32,7 @@ func canonicalizeInt(val *big.Int) []byte {
 	return b
 }
 
+//Serialize 序列化
 func Serialize(r, s *big.Int) []byte {
 	rb := canonicalizeInt(r)
 	sb := canonicalizeInt(s)
@@ -50,6 +52,7 @@ func Serialize(r, s *big.Int) []byte {
 	return b
 }
 
+//Deserialize 反序列化
 func Deserialize(sigStr []byte) (*big.Int, *big.Int, error) {
 	sig, err := btcec.ParseDERSignature(sigStr, sm2.P256Sm2())
 	if err != nil {
@@ -59,6 +62,7 @@ func Deserialize(sigStr []byte) (*big.Int, *big.Int, error) {
 	return sig.R, sig.S, nil
 }
 
+//ToLowS ...
 func ToLowS(k *sm2.PublicKey, s *big.Int) *big.Int {
 	lowS := IsLowS(s)
 	if !lowS && k.Curve != sm2.P256Sm2() {
@@ -70,6 +74,7 @@ func ToLowS(k *sm2.PublicKey, s *big.Int) *big.Int {
 	return s
 }
 
+//IsLowS ...
 func IsLowS(s *big.Int) bool {
 	return s.Cmp(new(big.Int).Rsh(sm2.P256Sm2().Params().N, 1)) != 1
 }
@@ -96,6 +101,7 @@ func parsePubKey(pubKeyStr []byte, curve elliptic.Curve) (key *sm2.PublicKey, er
 	return &pubkey, nil
 }
 
+//SerializePublicKey 公钥序列化
 func SerializePublicKey(p *sm2.PublicKey) []byte {
 	b := make([]byte, 0, SM2_PUBLICKEY_LENGTH)
 	b = append(b, 0x4)
@@ -103,6 +109,7 @@ func SerializePublicKey(p *sm2.PublicKey) []byte {
 	return paddedAppend(32, b, p.Y.Bytes())
 }
 
+//SerializePrivateKey 私钥序列化
 func SerializePrivateKey(p *sm2.PrivateKey) []byte {
 	b := make([]byte, 0, SM2_RPIVATEKEY_LENGTH)
 	return paddedAppend(SM2_RPIVATEKEY_LENGTH, b, p.D.Bytes())

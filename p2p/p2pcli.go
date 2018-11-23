@@ -342,7 +342,7 @@ func (m *Cli) GetPeerInfo(msg queue.Message, taskindex int64) {
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: peers}))
 }
 
-// GetHeadrs get headers information
+// GetHeaders get headers information
 func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory

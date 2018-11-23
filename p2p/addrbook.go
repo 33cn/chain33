@@ -292,8 +292,8 @@ out:
 	log.Info("Address handler done")
 }
 
-// NOTE: addr must not be nil
 // AddAddress add a address for ours
+// NOTE: addr must not be nil
 func (a *AddrBook) AddAddress(addr *NetAddress, ka *knownAddress) {
 
 	a.mtx.Lock()
@@ -381,7 +381,7 @@ func (a *AddrBook) setKey(privkey, pubkey string) {
 
 }
 
-// GetPrivPubkey return privkey and pubkey
+// GetPrivPubKey return privkey and pubkey
 func (a *AddrBook) GetPrivPubKey() (string, string) {
 	a.keymtx.Lock()
 	defer a.keymtx.Unlock()
