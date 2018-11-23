@@ -15,9 +15,8 @@ import (
 	"github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 
-	// register gzip
 	"google.golang.org/grpc"
-	_ "google.golang.org/grpc/encoding/gzip"
+	_ "google.golang.org/grpc/encoding/gzip"    // register gzip
 )
 
 var (
@@ -218,10 +217,10 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 }
 
 // Listen rpc listen
-func (rpc *RPC) Listen() (port1 int, port2 int) {
+func (r *RPC) Listen() (port1 int, port2 int) {
 	var err error
 	for i := 0; i < 10; i++ {
-		port1, err = rpc.gapi.Listen()
+		port1, err = r.gapi.Listen()
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -229,7 +228,7 @@ func (rpc *RPC) Listen() (port1 int, port2 int) {
 		break
 	}
 	for i := 0; i < 10; i++ {
-		port2, err = rpc.japi.Listen()
+		port2, err = r.japi.Listen()
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -242,27 +241,27 @@ func (rpc *RPC) Listen() (port1 int, port2 int) {
 }
 
 // GetQueueClient get queue client
-func (rpc *RPC) GetQueueClient() queue.Client {
-	return rpc.c
+func (r *RPC) GetQueueClient() queue.Client {
+	return r.c
 }
 
 // GRPC return grpc rpc
-func (rpc *RPC) GRPC() *grpc.Server {
-	return rpc.gapi.s
+func (r *RPC) GRPC() *grpc.Server {
+	return r.gapi.s
 }
 
 // JRPC return jrpc
-func (rpc *RPC) JRPC() *rpc.Server {
-	return rpc.japi.s
+func (r *RPC) JRPC() *rpc.Server {
+	return r.japi.s
 }
 
 // Close rpc close
-func (rpc *RPC) Close() {
-	if rpc.gapi != nil {
-		rpc.gapi.Close()
+func (r *RPC) Close() {
+	if r.gapi != nil {
+		r.gapi.Close()
 	}
-	if rpc.japi != nil {
-		rpc.japi.Close()
+	if r.japi != nil {
+		r.japi.Close()
 	}
 }
 

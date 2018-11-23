@@ -39,7 +39,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 			lTy = "unkownType"
 			logIns = nil
 		} else {
-			logIns, err = logType.JSON(lLog)
+			logIns, _ = logType.JSON(lLog)
 			lTy = logType.Name()
 		}
 		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})

@@ -66,9 +66,9 @@ func testCreateRawTransactionTo(t *testing.T) {
 	tx := types.CreateTx{ExecName: name, Amount: 1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
 
 	client := newTestChannelClient()
-	rawtx, err := client.CreateRawTransaction(&tx)
+	rawtx, _ := client.CreateRawTransaction(&tx)
 	var mytx types.Transaction
-	err = types.Decode(rawtx, &mytx)
+	err := types.Decode(rawtx, &mytx)
 	assert.Nil(t, err)
 	if types.IsPara() {
 		assert.Equal(t, address.ExecAddress(name), mytx.To)
