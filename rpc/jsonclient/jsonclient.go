@@ -16,7 +16,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-// JSONClinet a object of jsonclient
+// JSONClient a object of jsonclient
 type JSONClient struct {
 	url    string
 	prefix string
@@ -89,7 +89,7 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	}
 	if cresp.Result == nil {
 		return types.ErrEmpty
-	} else {
+	}
 		if msg, ok := resp.(proto.Message); ok {
 			var str json.RawMessage
 			err = json.Unmarshal(*cresp.Result, &str)
@@ -103,5 +103,5 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 			return types.JSONToPB(b, msg)
 		}
 		return json.Unmarshal(*cresp.Result, resp)
-	}
+
 }

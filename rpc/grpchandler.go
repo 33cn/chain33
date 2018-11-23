@@ -94,7 +94,7 @@ func (g *Grpc) GetLastHeader(ctx context.Context, in *pb.ReqNil) (*pb.Header, er
 	return g.cli.GetLastHeader()
 }
 
-// GetTransactionByaddr get transaction by address
+// GetTransactionByAddr get transaction by address
 func (g *Grpc) GetTransactionByAddr(ctx context.Context, in *pb.ReqAddr) (*pb.ReplyTxInfos, error) {
 	return g.cli.GetTransactionByAddr(in)
 }
@@ -143,7 +143,7 @@ func (g *Grpc) ImportPrivkey(ctx context.Context, in *pb.ReqWalletImportPrivkey)
 	return g.cli.WalletImportprivkey(in)
 }
 
-// SentToAddress send to address of coins
+// SendToAddress send to address of coins
 func (g *Grpc) SendToAddress(ctx context.Context, in *pb.ReqWalletSendToAddress) (*pb.ReplyHash, error) {
 	return g.cli.WalletSendToAddress(in)
 }
@@ -173,7 +173,7 @@ func (g *Grpc) Lock(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	return g.cli.WalletLock()
 }
 
-// Unlock wallet unlock
+// UnLock wallet unlock
 func (g *Grpc) UnLock(ctx context.Context, in *pb.WalletUnLock) (*pb.Reply, error) {
 	return g.cli.WalletUnLock(in)
 }
@@ -192,10 +192,8 @@ func (g *Grpc) GetHeaders(ctx context.Context, in *pb.ReqBlocks) (*pb.Headers, e
 func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
 	return g.cli.GetLastMempool()
 }
-
-// add by hyb
-// GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
 // GetBlockOverview get block overview
+// GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)   //add by hyb
 func (g *Grpc) GetBlockOverview(ctx context.Context, in *pb.ReqHash) (*pb.BlockOverview, error) {
 	return g.cli.GetBlockOverview(in)
 }
@@ -220,7 +218,7 @@ func (g *Grpc) GetSeed(ctx context.Context, in *pb.GetSeedByPw) (*pb.ReplySeed, 
 	return g.cli.GetSeed(in)
 }
 
-// Save save seed
+// SaveSeed save seed
 func (g *Grpc) SaveSeed(ctx context.Context, in *pb.SaveSeedByPw) (*pb.Reply, error) {
 	return g.cli.SaveSeed(in)
 }
@@ -280,7 +278,7 @@ func (g *Grpc) ExecWallet(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply,
 	return &reply, nil
 }
 
-// DumpPrivket dump Privkey
+// DumpPrivkey dump Privkey
 func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyString, error) {
 
 	return g.cli.DumpPrivkey(in)
