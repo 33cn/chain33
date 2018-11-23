@@ -127,6 +127,7 @@ name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 dbCache=128
+localdbVersion="1.0.0"
 
 [store.sub.mavl]
 enableMavlPrefix=false

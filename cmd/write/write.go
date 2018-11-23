@@ -26,18 +26,20 @@ import (
 )
 
 var (
-	configPath          = flag.String("f", "write.toml", "configfile")
-	receiveAddr         = "1MHkgR4uUg1ksssR5NFzU6zkzyCqxqjg2Z"
-	rpcAddr             = "http://localhost:8801"
-	currentHeight int64 = 0
-	currentIndex  int64 = 0
-	heightFile          = "height.txt"
+	configPath    = flag.String("f", "write.toml", "configfile")
+	receiveAddr   = "1MHkgR4uUg1ksssR5NFzU6zkzyCqxqjg2Z"
+	rpcAddr       = "http://localhost:8801"
+	currentHeight int64
+	currentIndex  int64
+	heightFile    = "height.txt"
 )
 
+//Config 配置
 type Config struct {
 	UserWriteConf *UserWriteConf
 }
 
+//UserWriteConf 用户配置
 type UserWriteConf struct {
 	ReceiveAddr   string
 	CurrentHeight int64

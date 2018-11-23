@@ -39,7 +39,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 			lTy = "unkownType"
 			logIns = nil
 		} else {
-			logIns, err = logType.Json(lLog)
+			logIns, _ = logType.JSON(lLog)
 			lTy = logType.Name()
 		}
 		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
@@ -103,7 +103,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	}
 	var pljson json.RawMessage
 	if pl != nil {
-		pljson, _ = types.PBToJson(pl)
+		pljson, _ = types.PBToJSON(pl)
 	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),

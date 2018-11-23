@@ -12,8 +12,8 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-//通过addr前缀查找本地址参与的所有交易
-//查询交易默认放到：coins 中查询
+// GetTxsByAddr find all transactions in this address by the addr prefix
+// query transaction are placed by default ：coins in the query
 func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	db := d.GetLocalDB()
 	var prefix []byte
@@ -66,7 +66,7 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	return &replyTxInfos, nil
 }
 
-//查询指定prefix的key数量，用于统计
+// GetPrefixCount query the number keys of the specified prefix, for statistical
 func (d *DriverBase) GetPrefixCount(key *types.ReqKey) (types.Message, error) {
 	var counts types.Int64
 	db := d.GetLocalDB()
@@ -74,7 +74,7 @@ func (d *DriverBase) GetPrefixCount(key *types.ReqKey) (types.Message, error) {
 	return &counts, nil
 }
 
-//查询指定地址参与的交易计数，用于统计
+// GetAddrTxsCount query the transaction count for the specified address ，for statistical
 func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error) {
 	var counts types.Int64
 	db := d.GetLocalDB()
@@ -95,6 +95,7 @@ func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error
 	return &counts, nil
 }
 
+// Query defines query function
 func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, err error) {
 	funcmap := d.child.GetFuncMap()
 	funcname = "Query_" + funcname

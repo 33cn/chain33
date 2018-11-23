@@ -10,6 +10,7 @@ import (
 	"os"
 )
 
+// RpcCtx rpc ctx interface
 // TODO: SetPostRunCb()
 type RpcCtx struct {
 	Addr   string

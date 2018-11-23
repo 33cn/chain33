@@ -354,7 +354,7 @@ func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.
 		return nil, err
 	}
 	for _, v := range deltx {
-		s, err := types.PBToJson(v)
+		s, err := types.PBToJSON(v)
 		if err != nil {
 			return nil, err
 		}

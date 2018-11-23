@@ -44,6 +44,18 @@ message Blocks {
     repeated Block items = 1;
 }
 
+message BlockSeqCB {
+    string name = 1;
+    string URL = 2;
+    string encode = 3;
+}
+
+message BlockSeq {
+    int64 num = 1;
+    BlockSequence seq = 2;
+    BlockDetail detail = 3;
+}
+
 //节点ID以及对应的Block
 message BlockPid {
     string pid   = 1;

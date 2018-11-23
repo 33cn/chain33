@@ -14,14 +14,17 @@ import (
 
 var elog = log.New("module", "execs")
 
+// SetLogLevel set log level
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
 }
 
+// DisableLog disable log
 func DisableLog() {
 	elog.SetHandler(log.DiscardHandler())
 }
 
+// DriverCreate defines a drivercreate function
 type DriverCreate func() Driver
 
 type driverWithHeight struct {
@@ -35,6 +38,7 @@ var (
 	registedExecDriver = make(map[string]*driverWithHeight)
 )
 
+// Register register dcriver height in name
 func Register(name string, create DriverCreate, height int64) {
 	if create == nil {
 		panic("Execute: Register driver is nil")
@@ -51,6 +55,7 @@ func Register(name string, create DriverCreate, height int64) {
 	execDrivers[ExecAddress(name)] = driverWithHeight
 }
 
+// LoadDriver load driver
 func LoadDriver(name string, height int64) (driver Driver, err error) {
 	// user.evm.xxxx 的交易，使用evm执行器
 	//   user.p.evm
@@ -66,6 +71,7 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 	return nil, types.ErrUnknowDriver
 }
 
+// LoadDriverAllow load driver allow
 func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Driver) {
 	exec, err := LoadDriver(string(tx.Execer), height)
 	if err == nil {
@@ -83,6 +89,7 @@ func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Dri
 	return exec
 }
 
+// IsDriverAddress whether or not execdrivers by address
 func IsDriverAddress(addr string, height int64) bool {
 	c, ok := execDrivers[addr]
 	if !ok {
@@ -102,6 +109,7 @@ func registerAddress(name string) {
 	execAddressNameMap[name] = addr
 }
 
+// ExecAddress return exec address
 func ExecAddress(name string) string {
 	if addr, ok := execAddressNameMap[name]; ok {
 		return addr

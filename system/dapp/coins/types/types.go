@@ -9,14 +9,20 @@ import (
 )
 
 const (
-	CoinsActionTransfer       = 1
-	CoinsActionGenesis        = 2
-	CoinsActionWithdraw       = 3
+	// CoinsActionTransfer defines const number
+	CoinsActionTransfer = 1
+	// CoinsActionGenesis  defines const coinsactiongenesis number
+	CoinsActionGenesis = 2
+	// CoinsActionWithdraw defines const number coinsactionwithdraw
+	CoinsActionWithdraw = 3
+	// CoinsActionTransferToExec defines const number coinsactiontransfertoExec
 	CoinsActionTransferToExec = 10
 )
 
 var (
-	CoinsX      = "coins"
+	// CoinsX defines a global string
+	CoinsX = "coins"
+	// ExecerCoins execer coins
 	ExecerCoins = []byte(CoinsX)
 	actionName  = map[string]int32{
 		"Transfer":       CoinsActionTransfer,
@@ -34,32 +40,39 @@ func init() {
 	types.RegisterDappFork(CoinsX, "Enable", 0)
 }
 
+// CoinsType defines exec type
 type CoinsType struct {
 	types.ExecTypeBase
 }
 
+// NewType new coinstype
 func NewType() *CoinsType {
 	c := &CoinsType{}
 	c.SetChild(c)
 	return c
 }
 
-func (coins *CoinsType) GetPayload() types.Message {
+// GetPayload  return payload
+func (c *CoinsType) GetPayload() types.Message {
 	return &CoinsAction{}
 }
 
-func (coins *CoinsType) GetName() string {
+// GetName  return coins string
+func (c *CoinsType) GetName() string {
 	return CoinsX
 }
 
-func (coins *CoinsType) GetLogMap() map[int64]*types.LogInfo {
+// GetLogMap return log for map
+func (c *CoinsType) GetLogMap() map[int64]*types.LogInfo {
 	return logmap
 }
 
+// GetTypeMap return actionname for map
 func (c *CoinsType) GetTypeMap() map[string]int32 {
 	return actionName
 }
 
+// RPC_Default_Process default process fo rpc
 func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.Transaction, error) {
 	var create *types.CreateTx
 	if _, ok := msg.(*types.CreateTx); !ok {
@@ -80,6 +93,7 @@ func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.
 	return tx, err
 }
 
+// GetAssets return asset list
 func (c *CoinsType) GetAssets(tx *types.Transaction) ([]*types.Asset, error) {
 	assetlist, err := c.ExecTypeBase.GetAssets(tx)
 	if err != nil || len(assetlist) == 0 {

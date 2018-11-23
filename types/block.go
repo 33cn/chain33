@@ -13,6 +13,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+// Hash 获取block的hash值
 func (block *Block) Hash() []byte {
 	data, err := proto.Marshal(block.GetHeader())
 	if err != nil {
@@ -21,10 +22,12 @@ func (block *Block) Hash() []byte {
 	return common.Sha256(data)
 }
 
+// Size 获取block的Size
 func (block *Block) Size() int {
 	return Size(block)
 }
 
+// GetHeader 获取block的Header信息
 func (block *Block) GetHeader() *Header {
 	head := &Header{}
 	head.Version = block.Version
@@ -40,6 +43,7 @@ func (block *Block) GetHeader() *Header {
 	return head
 }
 
+// CheckSign 检测block的签名
 func (block *Block) CheckSign() bool {
 	//检查区块的签名
 	if block.Signature != nil {
@@ -119,6 +123,7 @@ func checkAll(task []*Transaction, n int) bool {
 	return true
 }
 
+// CheckSign 检测签名
 func CheckSign(data []byte, execer string, sign *Signature) bool {
 	//GetDefaultSign: 系统内置钱包，非插件中的签名
 	c, err := crypto.New(GetSignName(execer, int(sign.Ty)))
