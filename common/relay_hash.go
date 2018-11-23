@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 )
 
-// String returns the Hash as the hexadecimal string of the byte-reversed hash.
+//Revers String returns the Hash as the hexadecimal string of the byte-reversed hash.
 func (h Hash) Revers() Hash {
 	for i := 0; i < hashLength/2; i++ {
 		h[i], h[hashLength-1-i] = h[hashLength-1-i], h[i]
@@ -17,7 +17,7 @@ func (h Hash) Revers() Hash {
 	return h
 }
 
-// String returns the Hash as the hexadecimal string of the byte-reversed hash.
+//ReversString String returns the Hash as the hexadecimal string of the byte-reversed hash.
 func (h Hash) ReversString() string {
 	for i := 0; i < hashLength/2; i++ {
 		h[i], h[hashLength-1-i] = h[hashLength-1-i], h[i]

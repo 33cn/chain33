@@ -28,6 +28,7 @@ var (
 	configPath = flag.String("f", "miner_accounts.toml", "configfile")
 )
 
+//HTTPConn http连接
 type HTTPConn struct {
 	in  io.Reader
 	out io.Writer
@@ -35,7 +36,9 @@ type HTTPConn struct {
 
 func (c *HTTPConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
 func (c *HTTPConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
-func (c *HTTPConn) Close() error                      { return nil }
+
+//Close 关闭连接
+func (c *HTTPConn) Close() error { return nil }
 
 func main() {
 	d, _ := os.Getwd()
@@ -95,6 +98,7 @@ func main() {
 
 }
 
+//InitCfg 初始化cfg
 func InitCfg(path string) *accounts.Config {
 	var cfg accounts.Config
 	if _, err := tml.DecodeFile(path, &cfg); err != nil {
@@ -105,6 +109,7 @@ func InitCfg(path string) *accounts.Config {
 	return &cfg
 }
 
+//InitWhiteList 初始化白名单
 func InitWhiteList(cfg *accounts.Config) map[string]bool {
 	whitelist := map[string]bool{}
 	if len(cfg.Whitelist) == 1 && cfg.Whitelist[0] == "*" {

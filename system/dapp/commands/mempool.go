@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// MempoolCmd mempool command
 func MempoolCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mempool",
@@ -26,7 +27,7 @@ func MempoolCmd() *cobra.Command {
 	return cmd
 }
 
-// get mempool
+// GetMempoolCmd get mempool
 func GetMempoolCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -53,7 +54,7 @@ func parseListMempoolTxsRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// get last 10 txs of mempool
+// GetLastMempoolCmd  get last 10 txs of mempool
 func GetLastMempoolCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "last_txs",

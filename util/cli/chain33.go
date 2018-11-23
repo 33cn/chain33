@@ -166,7 +166,7 @@ func RunChain33(name string) {
 		network.SetQueueClient(q.Client())
 	}
 	//jsonrpc, grpc, channel 三种模式
-	rpcapi := rpc.New(cfg.Rpc)
+	rpcapi := rpc.New(cfg.RPC)
 	rpcapi.SetQueueClient(q.Client())
 
 	log.Info("loading wallet module")

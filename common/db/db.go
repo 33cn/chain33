@@ -13,13 +13,16 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
+//ErrNotFoundInDb error
 var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 
+//Lister 列表接口
 type Lister interface {
 	List(prefix, key []byte, count, direction int32) ([][]byte, error)
 	PrefixCount(prefix []byte) int64
 }
 
+//KV kv
 type KV interface {
 	Get(key []byte) ([]byte, error)
 	BatchGet(keys [][]byte) (values [][]byte, err error)
@@ -29,11 +32,13 @@ type KV interface {
 	Commit()
 }
 
+//KVDB kvdb
 type KVDB interface {
 	KV
 	Lister
 }
 
+//DB db
 type DB interface {
 	KV
 	IteratorDB
@@ -49,11 +54,13 @@ type DB interface {
 	GetCache() *lru.ARCCache
 }
 
+//KVDBList list
 type KVDBList struct {
 	DB
 	list *ListHelper
 }
 
+//List 列表
 func (l *KVDBList) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
 	vals := l.list.List(prefix, key, count, direction)
 	if vals == nil {
@@ -62,14 +69,17 @@ func (l *KVDBList) List(prefix, key []byte, count, direction int32) ([][]byte, e
 	return vals, nil
 }
 
+//PrefixCount 前缀长度
 func (l *KVDBList) PrefixCount(prefix []byte) int64 {
 	return l.list.PrefixCount(prefix)
 }
 
+//NewKVDB new
 func NewKVDB(db DB) KVDB {
 	return &KVDBList{DB: db, list: NewListHelper(db)}
 }
 
+//Batch batch
 type Batch interface {
 	Set(key, value []byte)
 	Delete(key []byte)
@@ -78,12 +88,14 @@ type Batch interface {
 	Reset()         // Reset resets the batch for reuse
 }
 
+//IteratorSeeker ...
 type IteratorSeeker interface {
 	Rewind() bool
 	Seek(key []byte) bool
 	Next() bool
 }
 
+//Iterator 迭代器
 type Iterator interface {
 	IteratorSeeker
 	Valid() bool
@@ -115,10 +127,12 @@ func (it *itBase) checkKey(key []byte) bool {
 	return ok
 }
 
+//Prefix 前缀
 func (it *itBase) Prefix() []byte {
 	return nil
 }
 
+//IteratorDB 迭代
 type IteratorDB interface {
 	Iterator(start []byte, end []byte, reserver bool) Iterator
 }
@@ -158,6 +172,7 @@ func registerDBCreator(backend string, creator dbCreator, force bool) {
 	backends[backend] = creator
 }
 
+//NewDB new
 func NewDB(name string, backend string, dir string, cache int32) DB {
 	dbCreator, ok := backends[backend]
 	if !ok {
@@ -172,26 +187,32 @@ func NewDB(name string, backend string, dir string, cache int32) DB {
 	return db
 }
 
+//TransactionDB 交易缓存
 type TransactionDB struct {
 	cache *lru.ARCCache
 }
 
+//Begin 启动
 func (db *TransactionDB) Begin() {
 
 }
 
+//Rollback 回滚
 func (db *TransactionDB) Rollback() {
 
 }
 
+//Commit 提交
 func (db *TransactionDB) Commit() {
 
 }
 
+//GetCache 获取缓存
 func (db *TransactionDB) GetCache() *lru.ARCCache {
 	return db.cache
 }
 
+//SetCacheSize 设置缓存大小
 func (db *TransactionDB) SetCacheSize(size int) {
 	if db.cache != nil {
 		return

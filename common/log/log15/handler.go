@@ -227,6 +227,7 @@ func maxLevelHanldes(hs []Handler) int {
 	return maxLevel
 }
 
+//MultiHandler ...
 func MultiHandler(hs ...Handler) Handler {
 	return FuncHandler(maxLevelHanldes(hs), func(r *Record) error {
 		for _, h := range hs {
@@ -245,7 +246,7 @@ func MultiHandler(hs ...Handler) Handler {
 // standard out if the file write fails:
 //
 //     log.FailoverHandler(
-//         log.Must.NetHandler("tcp", ":9090", log.JsonFormat()),
+//         log.Must.NetHandler("tcp", ":9090", log.JSONFormat()),
 //         log.Must.FileHandler("/var/log/app.log", log.LogfmtFormat()),
 //         log.StdoutHandler)
 //

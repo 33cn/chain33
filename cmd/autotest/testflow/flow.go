@@ -11,23 +11,24 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/33cn/chain33/cmd/autotest/types"
+	"github.com/33cn/chain33/cmd/autotest/types"
 	"github.com/33cn/chain33/common/log/log15"
 )
 
 //test flow, Add=>HandleDepend=>Send=>Check
 
+//TestOperator 测试操作符
 type TestOperator struct {
 	addDone     chan bool
 	sendDone    chan bool
 	checkDone   chan bool
 	depEmpty    chan bool
-	sendBuf     chan CaseFunc
-	checkBuf    chan PackFunc
-	addDepBuf   chan CaseFunc
-	delDepBuf   chan PackFunc
-	depCaseMap  map[string][]CaseFunc //key:TestID, val: array of testCases depending on the key
-	depCountMap map[string]int        //key:TestID, val: dependency count
+	sendBuf     chan types.CaseFunc
+	checkBuf    chan types.PackFunc
+	addDepBuf   chan types.CaseFunc
+	delDepBuf   chan types.PackFunc
+	depCaseMap  map[string][]types.CaseFunc //key:TestID, val: array of testCases depending on the key
+	depCountMap map[string]int              //key:TestID, val: dependency count
 
 	fLog log15.Logger
 	tLog log15.Logger
@@ -38,6 +39,7 @@ type TestOperator struct {
 	failID    []string
 }
 
+//AddCaseArray 添加用例
 func (tester *TestOperator) AddCaseArray(caseArrayList ...interface{}) {
 
 	for i := range caseArrayList {
@@ -50,7 +52,7 @@ func (tester *TestOperator) AddCaseArray(caseArrayList ...interface{}) {
 
 		for j := 0; j < caseArray.Len(); j++ {
 
-			testCase := caseArray.Index(j).Addr().Interface().(CaseFunc)
+			testCase := caseArray.Index(j).Addr().Interface().(types.CaseFunc)
 			baseCase := testCase.GetBaseCase()
 
 			if len(baseCase.Dep) > 0 {
@@ -69,6 +71,7 @@ func (tester *TestOperator) AddCaseArray(caseArrayList ...interface{}) {
 
 }
 
+//HandleDependency 管理依赖
 func (tester *TestOperator) HandleDependency() {
 
 	keepLoop := true
@@ -139,6 +142,7 @@ func (tester *TestOperator) HandleDependency() {
 	}
 }
 
+//RunSendFlow send
 func (tester *TestOperator) RunSendFlow() {
 
 	depEmpty := false
@@ -177,7 +181,7 @@ func (tester *TestOperator) RunSendFlow() {
 				for e := c.Front(); e != nil; e = n {
 
 					n = e.Next()
-					testCase := e.Value.(CaseFunc)
+					testCase := e.Value.(types.CaseFunc)
 					c.Remove(e)
 					baseCase := testCase.GetBaseCase()
 
@@ -208,7 +212,7 @@ func (tester *TestOperator) RunSendFlow() {
 								fmt.Println(err.Error())
 							}
 							tester.fLog.Info("CommandResult", "TestID", packID, "Result", err.Error())
-							casePack := &BaseCasePack{}
+							casePack := &types.BaseCasePack{}
 							casePack.SetPackID(packID)
 							tester.delDepBuf <- casePack
 
@@ -233,6 +237,7 @@ func (tester *TestOperator) RunSendFlow() {
 	tester.sendDone <- true
 }
 
+//RunCheckFlow check
 func (tester *TestOperator) RunCheckFlow() {
 
 	checkList := (*list.List)(nil)
@@ -276,7 +281,7 @@ func (tester *TestOperator) RunCheckFlow() {
 
 					for e := c.Front(); e != nil; e = n {
 
-						casePack := e.Value.(PackFunc)
+						casePack := e.Value.(types.PackFunc)
 						checkOver, bSuccess := casePack.CheckResult(casePack.GetCheckHandlerMap())
 						n = e.Next()
 
@@ -320,10 +325,11 @@ func (tester *TestOperator) RunCheckFlow() {
 	tester.checkDone <- true
 }
 
-func (tester *TestOperator) WaitTest() *autoTestResult {
+//WaitTest 等待测试
+func (tester *TestOperator) WaitTest() *AutoTestResult {
 
 	<-tester.checkDone
-	return &autoTestResult{
+	return &AutoTestResult{
 		dapp:       tester.dapp,
 		totalCase:  tester.totalCase,
 		failCase:   tester.totalFail,
@@ -331,6 +337,7 @@ func (tester *TestOperator) WaitTest() *autoTestResult {
 	}
 }
 
+//NewTestOperator new
 func NewTestOperator(stdLog log15.Logger, fileLog log15.Logger, dapp string) (tester *TestOperator) {
 
 	tester = new(TestOperator)
@@ -339,11 +346,11 @@ func NewTestOperator(stdLog log15.Logger, fileLog log15.Logger, dapp string) (te
 	tester.sendDone = make(chan bool, 1)
 	tester.checkDone = make(chan bool, 1)
 	tester.depEmpty = make(chan bool, 1)
-	tester.addDepBuf = make(chan CaseFunc, 1)
-	tester.delDepBuf = make(chan PackFunc, 1)
-	tester.sendBuf = make(chan CaseFunc, 1)
-	tester.checkBuf = make(chan PackFunc, 1)
-	tester.depCaseMap = make(map[string][]CaseFunc)
+	tester.addDepBuf = make(chan types.CaseFunc, 1)
+	tester.delDepBuf = make(chan types.PackFunc, 1)
+	tester.sendBuf = make(chan types.CaseFunc, 1)
+	tester.checkBuf = make(chan types.PackFunc, 1)
+	tester.depCaseMap = make(map[string][]types.CaseFunc)
 	tester.depCountMap = make(map[string]int)
 	tester.fLog = fileLog.New("module", dapp)
 	tester.tLog = stdLog.New("module", dapp)

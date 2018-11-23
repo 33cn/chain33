@@ -53,6 +53,7 @@ type MVCCHelper struct {
 	db DB
 }
 
+//SimpleMVCC kvdb
 type SimpleMVCC struct {
 	kvdb KVDB
 }
@@ -64,6 +65,7 @@ func NewMVCC(db DB) *MVCCHelper {
 	return &MVCCHelper{SimpleMVCC: NewSimpleMVCC(NewKVDB(db)), db: db}
 }
 
+//PrintAll 打印全部
 func (m *MVCCHelper) PrintAll() {
 	println("--meta--")
 	it := m.db.Iterator(mvccMeta, nil, true)
@@ -168,6 +170,7 @@ func (m *MVCCHelper) DelV(key []byte, version int64) error {
 	return m.db.Delete(kv.Key)
 }
 
+//NewSimpleMVCC new
 func NewSimpleMVCC(db KVDB) *SimpleMVCC {
 	return &SimpleMVCC{db}
 }
@@ -193,6 +196,7 @@ func (m *SimpleMVCC) GetVersion(hash []byte) (int64, error) {
 	return data.GetData(), nil
 }
 
+//GetVersionHash 获取版本hash
 func (m *SimpleMVCC) GetVersionHash(version int64) ([]byte, error) {
 	key := getVersionKey(version)
 	value, err := m.kvdb.Get(key)
@@ -205,6 +209,7 @@ func (m *SimpleMVCC) GetVersionHash(version int64) ([]byte, error) {
 	return value, nil
 }
 
+//GetMaxVersion 获取最高版本
 func (m *SimpleMVCC) GetMaxVersion() (int64, error) {
 	vals, err := m.kvdb.List(mvccMetaVersion, nil, 1, ListDESC)
 	if err != nil {
@@ -232,6 +237,7 @@ func (m *SimpleMVCC) GetDelKV(key []byte, version int64) (*types.KeyValue, error
 	return &types.KeyValue{Key: k}, nil
 }
 
+//GetDelKVList 获取列表
 func (m *SimpleMVCC) GetDelKVList(version int64) ([]*types.KeyValue, error) {
 	k := getVersionKeyListKey(version)
 	data, err := m.kvdb.Get(k)
@@ -420,6 +426,7 @@ func pad(version int64) []byte {
 	return []byte(s)
 }
 
+//GetKeyPerfix 获取key前缀
 func GetKeyPerfix(key []byte) []byte {
 	b := append([]byte{}, mvccData...)
 	newkey := append(b, key...)
@@ -427,6 +434,7 @@ func GetKeyPerfix(key []byte) []byte {
 	return newkey
 }
 
+//GetKey 获取键
 func GetKey(key []byte, version int64) ([]byte, error) {
 	newkey := append(GetKeyPerfix(key), pad(version)...)
 	return newkey, nil

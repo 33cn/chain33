@@ -91,12 +91,12 @@ type Marshaler struct {
 // AnyResolver takes a type URL, present in an Any message, and resolves it into
 // an instance of the associated message.
 type AnyResolver interface {
-	Resolve(typeUrl string) (proto.Message, error)
+	Resolve(typeURL string) (proto.Message, error)
 }
 
-func defaultResolveAny(typeUrl string) (proto.Message, error) {
+func defaultResolveAny(typeURL string) (proto.Message, error) {
 	// Only the part of typeUrl after the last slash is relevant.
-	mname := typeUrl
+	mname := typeURL
 	if slash := strings.LastIndex(mname, "/"); slash >= 0 {
 		mname = mname[slash+1:]
 	}

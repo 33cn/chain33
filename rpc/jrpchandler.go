@@ -87,7 +87,7 @@ func (c *Chain33) SendRawTransaction(in rpctypes.SignedTx, result *interface{}) 
 // used only in parachain
 func forwardTranToMainNet(in rpctypes.RawParm, result *interface{}) error {
 	if rpcCfg.MainnetJrpcAddr == "" {
-		return types.ErrInvalidMainnetRpcAddr
+		return types.ErrInvalidMainnetRPCAddr
 	}
 	rpc, err := jsonclient.NewJSONClient(rpcCfg.MainnetJrpcAddr)
 
@@ -177,7 +177,7 @@ func (c *Chain33) GetBlocks(in rpctypes.BlockParam, result *interface{}) error {
 			block.StateHash = common.ToHex(item.Block.GetStateHash())
 			block.TxHash = common.ToHex(item.Block.GetTxHash())
 			txs := item.Block.GetTxs()
-			if len(txs) != len(item.Receipts) {
+			if in.Isdetail && len(txs) != len(item.Receipts) { //只有获取详情时才需要校验txs和Receipts的数量是否相等CHAIN33-540
 				return types.ErrDecode
 			}
 			for _, tx := range txs {
@@ -834,7 +834,7 @@ func (c *Chain33) ExecWallet(in *rpctypes.ChainExecutor, result *interface{}) er
 	if err != nil {
 		return err
 	}
-	param, err := wcom.QueryData.DecodeJson(in.Driver, in.FuncName, in.Payload)
+	param, err := wcom.QueryData.DecodeJSON(in.Driver, in.FuncName, in.Payload)
 	if err != nil {
 		return err
 	}
@@ -849,7 +849,7 @@ func (c *Chain33) ExecWallet(in *rpctypes.ChainExecutor, result *interface{}) er
 		return err
 	}
 	var jsonmsg json.RawMessage
-	jsonmsg, err = types.PBToJson(msg)
+	jsonmsg, err = types.PBToJSON(msg)
 	if err != nil {
 		return err
 	}
@@ -876,7 +876,7 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		return err
 	}
 	var jsonmsg json.RawMessage
-	jsonmsg, err = execty.QueryToJson(in.FuncName, resp)
+	jsonmsg, err = execty.QueryToJSON(in.FuncName, resp)
 	*result = jsonmsg
 	if err != nil {
 		log.Error("EventQuery3", "err", err.Error())

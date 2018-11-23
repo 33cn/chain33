@@ -225,6 +225,9 @@ func (l *LocalDB) get(key []byte) ([]byte, error) {
 	if value, ok := l.cache[string(key)]; ok {
 		return value, nil
 	}
+	if l.client == nil {
+		return nil, types.ErrNotFound
+	}
 	query := &types.LocalDBGet{Keys: [][]byte{key}}
 	msg := l.client.NewMessage("blockchain", types.EventLocalGet, query)
 	l.client.Send(msg, true)
@@ -266,6 +269,9 @@ func (l *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 
 // List 从数据库中查询数据列表，set 中的cache 更新不会影响这个list
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
+	if l.client == nil {
+		return nil, types.ErrNotFound
+	}
 	query := &types.LocalDBList{Prefix: prefix, Key: key, Count: count, Direction: direction}
 	msg := l.client.NewMessage("blockchain", types.EventLocalList, query)
 	l.client.Send(msg, true)
@@ -283,6 +289,9 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 
 // PrefixCount 从数据库中查询指定前缀的key的数量
 func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
+	if l.client == nil {
+		return 0
+	}
 	query := &types.ReqKey{Key: prefix}
 	msg := l.client.NewMessage("blockchain", types.EventLocalPrefixCount, query)
 	l.client.Send(msg, true)

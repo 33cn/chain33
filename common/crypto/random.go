@@ -20,7 +20,7 @@ func init() {
 	gRandInfo.MixEntropy(randBytes(32)) // Init
 }
 
-// Mix additional bytes of randomness, e.g. from hardware, user-input, etc.
+// MixEntropy Mix additional bytes of randomness, e.g. from hardware, user-input, etc.
 // It is OK to call it multiple times.  It does not diminish security.
 func MixEntropy(seedBytes []byte) {
 	gRandInfo.MixEntropy(seedBytes)
@@ -36,7 +36,7 @@ func randBytes(numBytes int) []byte {
 	return b
 }
 
-// This uses the OS and the Seed(s).
+// CRandBytes This uses the OS and the Seed(s).
 func CRandBytes(numBytes int) []byte {
 	b := make([]byte, numBytes)
 	_, err := gRandInfo.Read(b)
@@ -46,12 +46,12 @@ func CRandBytes(numBytes int) []byte {
 	return b
 }
 
-// RandHex(24) gives 96 bits of randomness, strong enough for most purposes.
+// CRandHex RandHex(24) gives 96 bits of randomness, strong enough for most purposes.
 func CRandHex(numDigits int) string {
 	return hex.EncodeToString(CRandBytes(numDigits / 2))
 }
 
-// Returns a crand.Reader mixed with user-supplied entropy
+// CReader Returns a crand.Reader mixed with user-supplied entropy
 func CReader() io.Reader {
 	return gRandInfo
 }
@@ -66,7 +66,7 @@ type randInfo struct {
 	reader       io.Reader
 }
 
-// You can call this as many times as you'd like.
+// MixEntropy You can call this as many times as you'd like.
 // XXX TODO review
 func (ri *randInfo) MixEntropy(seedBytes []byte) {
 	ri.mtx.Lock()

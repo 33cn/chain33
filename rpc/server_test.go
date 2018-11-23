@@ -38,7 +38,7 @@ func TestCheckIpWhitelist(t *testing.T) {
 }
 
 func TestJSONClient_Call(t *testing.T) {
-	rpcCfg = new(types.Rpc)
+	rpcCfg = new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
 	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
@@ -115,7 +115,7 @@ func TestJSONClient_Call(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, api)
 }
 func TestGrpc_Call(t *testing.T) {
-	rpcCfg = new(types.Rpc)
+	rpcCfg = new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
 	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr

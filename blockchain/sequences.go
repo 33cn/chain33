@@ -9,7 +9,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//通过记录的block序列号获取blockd序列存储的信息
+//GetBlockSequences 通过记录的block序列号获取blockd序列存储的信息
 func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*types.BlockSequences, error) {
 	blockLastSeq, _ := chain.blockStore.LoadBlockLastSequence()
 	if requestblock.Start > blockLastSeq {
@@ -43,7 +43,7 @@ func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*type
 	return &blockSequences, nil
 }
 
-//处理共识过来的删除block的消息，目前只提供给平行链使用
+//ProcDelParaChainBlockMsg 处理共识过来的删除block的消息，目前只提供给平行链使用
 func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (err error) {
 	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
 		chainlog.Error("ProcDelParaChainBlockMsg input block is null")
@@ -59,7 +59,7 @@ func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblock
 	return err
 }
 
-//处理共识过来的add block的消息，目前只提供给平行链使用
+//ProcAddParaChainBlockMsg 处理共识过来的add block的消息，目前只提供给平行链使用
 func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (*types.BlockDetail, error) {
 	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
 		chainlog.Error("ProcAddParaChainBlockMsg input block is null")
@@ -75,7 +75,7 @@ func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblock
 	return fullBlockDetail, err
 }
 
-//处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
+//ProcGetSeqByHash 处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
 func (chain *BlockChain) ProcGetSeqByHash(hash []byte) (int64, error) {
 	if len(hash) == 0 {
 		chainlog.Error("ProcGetSeqByHash input hash is null")

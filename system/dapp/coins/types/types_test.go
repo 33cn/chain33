@@ -16,7 +16,7 @@ func TestTypeReflact(t *testing.T) {
 	ty := NewType()
 	assert.NotNil(t, ty)
 	//创建一个json字符串
-	data, err := types.PBToJson(&types.AssetsTransfer{Amount: 10})
+	data, err := types.PBToJSON(&types.AssetsTransfer{Amount: 10})
 	assert.Nil(t, err)
 	raw := json.RawMessage(data)
 	tx, err := ty.CreateTx("Transfer", raw)

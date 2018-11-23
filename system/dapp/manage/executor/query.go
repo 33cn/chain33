@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// Query_GetConfigItem get config item
 func (c *Manage) Query_GetConfigItem(in *types.ReqString) (types.Message, error) {
 	// Load config from state db
 	value, err := c.GetStateDB().Get([]byte(types.ManageKey(in.Data)))

@@ -1,6 +1,7 @@
 //Copyright Fuzamei Corp. 2018 All Rights Reserved.
 //Use of this source code is governed by a BSD-style
 //license that can be found in the LICENSE file.
+
 package commands
 
 import (
@@ -11,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//CreatePluginCmd 构造插件命令
 func CreatePluginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "createplugin",

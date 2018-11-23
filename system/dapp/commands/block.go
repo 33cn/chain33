@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// BlockCmd block command
 func BlockCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "block",
@@ -39,7 +40,7 @@ func BlockCmd() *cobra.Command {
 	return cmd
 }
 
-// get blocks between start and end
+// GetBlocksCmd get blocks between start and end
 func GetBlocksCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
@@ -101,7 +102,7 @@ func parseBlockDetail(res interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// get hash of a block
+// GetBlockHashCmd get hash of a block
 func GetBlockHashCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "hash",
@@ -128,7 +129,7 @@ func blockHeightHash(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get overview of a block
+// GetBlockOverviewCmd get overview of a block
 func GetBlockOverviewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "view",
@@ -155,7 +156,7 @@ func blockViewByHash(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get block headers between start and end
+// GetHeadersCmd get block headers between start and end
 func GetHeadersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "headers",
@@ -196,7 +197,7 @@ func blockHeader(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get information of latest header
+// GetLastHeaderCmd get information of latest header
 func GetLastHeaderCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "last_header",
@@ -213,8 +214,7 @@ func lastHeader(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-//
-// get latest Sequence
+// GetLastBlockSequenceCmd get latest Sequence
 func GetLastBlockSequenceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "last_sequence",
@@ -231,7 +231,7 @@ func lastSequence(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// get block Sequences
+// GetBlockSequencesCmd  get block Sequences
 func GetBlockSequencesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sequences",
@@ -266,7 +266,7 @@ func blockSequencesCmdFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("end")
 }
 
-// get Block Details By block Hashs
+// GetBlockByHashsCmd get Block Details By block Hashs
 func GetBlockByHashsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query_hashs",

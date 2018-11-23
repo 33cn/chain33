@@ -4,9 +4,9 @@
 
 package executor
 
-//package none execer for unknow execer
-//all none transaction exec ok, execept nofee
-//nofee transaction will not pack into block
+// package none execer for unknow execer
+// all none transaction exec ok, execept nofee
+// nofee transaction will not pack into block
 
 import (
 	drivers "github.com/33cn/chain33/system/dapp"
@@ -14,6 +14,7 @@ import (
 
 var driverName = "none"
 
+// Init register newnone
 func Init(name string, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
@@ -22,11 +23,12 @@ func Init(name string, sub []byte) {
 	drivers.Register(name, newNone, 0)
 }
 
-//执行时候的名称
+// GetName return name at execution time
 func GetName() string {
 	return newNone().GetName()
 }
 
+// None defines a none type
 type None struct {
 	drivers.DriverBase
 }
@@ -37,7 +39,7 @@ func newNone() drivers.Driver {
 	return n
 }
 
-//驱动注册时候的名称
+// GetDriverName return dcrivername at register
 func (n *None) GetDriverName() string {
 	return driverName
 }

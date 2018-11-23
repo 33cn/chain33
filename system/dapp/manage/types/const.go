@@ -4,16 +4,17 @@
 
 package types
 
-// manager action
+// ManageActionModifyConfig manager action
 const (
 	ManageActionModifyConfig = iota
 )
 
-// log
+// TyLogModifyConfig log
 const (
 	TyLogModifyConfig = 410
 )
 
+// ConfigItemArrayConfig config Item
 const (
 	ConfigItemArrayConfig = iota
 )

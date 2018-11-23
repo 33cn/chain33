@@ -23,6 +23,7 @@ const (
 	defaultPrivacyMixCount = 16
 )
 
+// BTYCmd bty command
 func BTYCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bty",
@@ -41,6 +42,7 @@ func BTYCmd() *cobra.Command {
 	return cmd
 }
 
+// CoinsCmd coins command func
 func CoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "coins",
@@ -59,7 +61,7 @@ func CoinsCmd() *cobra.Command {
 	return cmd
 }
 
-// create raw transfer tx
+// CreateRawTransferCmd create raw transfer tx
 func CreateRawTransferCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transfer",
@@ -92,7 +94,7 @@ func createTransfer(cmd *cobra.Command, args []string) {
 	fmt.Println(txHex)
 }
 
-// create raw withdraw tx
+// CreateRawWithdrawCmd  create raw withdraw tx
 func CreateRawWithdrawCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw",
@@ -130,7 +132,7 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 	fmt.Println(txHex)
 }
 
-// create send to exec
+// CreateRawSendToExecCmd  create send to exec
 func CreateRawSendToExecCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "send_exec",
@@ -168,7 +170,7 @@ func sendToExec(cmd *cobra.Command, args []string) {
 	fmt.Println(txHex)
 }
 
-// send to address
+// TransferCmd send to address
 func TransferCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transfer",
@@ -202,7 +204,7 @@ func transfer(cmd *cobra.Command, args []string) {
 	SendToAddress(rpcLaddr, fromAddr, toAddr, amountInt64, note, false, "", false)
 }
 
-// withdraw from executor
+// WithdrawFromExecCmd withdraw from executor
 func WithdrawFromExecCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw",
@@ -241,7 +243,7 @@ func withdraw(cmd *cobra.Command, args []string) {
 	SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
 }
 
-// create tx group
+// CreateTxGroupCmd create tx group
 func CreateTxGroupCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "txgroup",
@@ -320,6 +322,7 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 	fmt.Println(grouptx)
 }
 
+// CreatePub2PrivTxCmd create a public to privacy transaction
 func CreatePub2PrivTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pub2priv",
@@ -376,6 +379,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
+// CreatePriv2PrivTxCmd create a privacy to privacy transaction
 func CreatePriv2PrivTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "priv2priv",
@@ -437,6 +441,7 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
+// CreatePriv2PubTxCmd create a privacy to public transaction
 func CreatePriv2PubTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "priv2pub",

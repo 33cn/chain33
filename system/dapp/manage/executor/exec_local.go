@@ -9,6 +9,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// ExecLocal_Modify defines execlocal modify func
 func (c *Manage) ExecLocal_Modify(transfer *types.ModifyConfig, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set := &types.LocalDBSet{}
 	if receipt.GetTy() != types.ExecOk {

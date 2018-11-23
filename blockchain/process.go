@@ -16,7 +16,7 @@ import (
 	"github.com/33cn/chain33/util"
 )
 
-// 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
+//ProcessBlock 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
 // 共识模块和peer广播过来的block需要广播出去
 //共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
 // 返回参数说明：是否主链，是否孤儿节点，具体err
@@ -389,6 +389,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 			b.SendBlockBroadcast(blockdetail)
 		}
 	}
+	b.pushseq.updateSeq(node.sequence)
 	return blockdetail, nil
 }
 
@@ -422,7 +423,6 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
 		return err
 	}
-
 	//更新最新的高度和header为上一个块
 	b.blockStore.UpdateHeight()
 	b.blockStore.UpdateLastBlock(blockdetail.Block.ParentHash)
@@ -432,7 +432,6 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 
 	//通知共识，mempool和钱包删除block
 	b.SendDelBlockEvent(blockdetail)
-
 	b.query.updateStateHash(node.parent.statehash)
 
 	//确定node的父节点升级成tip节点
@@ -451,7 +450,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 
 	chainlog.Debug("disconnectBlock success", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
 	chainlog.Debug("disconnectBlock success", "newtipnode.hash", common.ToHex(newtipnode.hash), "delblock.parent.hash", common.ToHex(blockdetail.Block.GetParentHash()))
-
+	b.pushseq.updateSeq(node.sequence)
 	return nil
 }
 
@@ -474,6 +473,7 @@ func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List
 	return detachNodes, attachNodes
 }
 
+//LoadBlockByHash 根据hash值从缓存中查询区块
 func (b *BlockChain) LoadBlockByHash(hash []byte) (block *types.BlockDetail, err error) {
 	block = b.cache.GetCacheBlock(hash)
 	if block == nil {
@@ -551,7 +551,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	return nil
 }
 
-//只能从 best chain tip节点开始删除，目前只提供给平行链使用
+//ProcessDelParaChainBlock 只能从 best chain tip节点开始删除，目前只提供给平行链使用
 func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
 
 	//获取当前的tip节点
