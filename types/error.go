@@ -51,6 +51,7 @@ var (
 	ErrLogType                 = errors.New("ErrLogType")
 	ErrInvalidParam            = errors.New("ErrInvalidParam")
 	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
+	ErrNotInited               = errors.New("ErrNotInited")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")

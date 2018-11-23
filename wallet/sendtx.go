@@ -23,6 +23,9 @@ func init() {
 
 // GetBalance 根据地址和执行器类型获取对应的金额
 func (wallet *Wallet) GetBalance(addr string, execer string) (*types.Account, error) {
+	if !wallet.isInited() {
+		return nil, types.ErrNotInited
+	}
 	return wallet.getBalance(addr, execer)
 }
 
@@ -37,6 +40,9 @@ func (wallet *Wallet) getBalance(addr string, execer string) (*types.Account, er
 
 // GetAllPrivKeys 获取所有私钥信息
 func (wallet *Wallet) GetAllPrivKeys() ([]crypto.PrivKey, error) {
+	if !wallet.isInited() {
+		return nil, types.ErrNotInited
+	}
 	return wallet.getAllPrivKeys()
 }
 
@@ -64,6 +70,9 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 
 // GetHeight 获取当前区块最新高度
 func (wallet *Wallet) GetHeight() int64 {
+	if !wallet.isInited() {
+		return 0
+	}
 	msg := wallet.client.NewMessage("blockchain", types.EventGetBlockHeight, nil)
 	wallet.client.Send(msg, true)
 	replyHeight, err := wallet.client.Wait(msg)
@@ -89,6 +98,9 @@ func (wallet *Wallet) sendTransactionWait(payload types.Message, execer []byte, 
 
 // SendTransaction 发送一笔交易
 func (wallet *Wallet) SendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
+	if !wallet.isInited() {
+		return nil, types.ErrNotInited
+	}
 	return wallet.sendTransaction(payload, execer, priv, to)
 }
 
@@ -299,6 +311,9 @@ func (wallet *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 
 // IsCaughtUp 检测当前区块是否已经同步完成
 func (wallet *Wallet) IsCaughtUp() bool {
+	if !wallet.isInited() {
+		return false
+	}
 	if wallet.client == nil {
 		panic("wallet client not bind message queue.")
 	}
