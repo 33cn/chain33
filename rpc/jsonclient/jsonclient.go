@@ -90,18 +90,18 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	if cresp.Result == nil {
 		return types.ErrEmpty
 	}
-		if msg, ok := resp.(proto.Message); ok {
-			var str json.RawMessage
-			err = json.Unmarshal(*cresp.Result, &str)
-			if err != nil {
-				return err
-			}
-			b, err := str.MarshalJSON()
-			if err != nil {
-				return err
-			}
-			return types.JSONToPB(b, msg)
+	if msg, ok := resp.(proto.Message); ok {
+		var str json.RawMessage
+		err = json.Unmarshal(*cresp.Result, &str)
+		if err != nil {
+			return err
 		}
-		return json.Unmarshal(*cresp.Result, resp)
+		b, err := str.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		return types.JSONToPB(b, msg)
+	}
+	return json.Unmarshal(*cresp.Result, resp)
 
 }

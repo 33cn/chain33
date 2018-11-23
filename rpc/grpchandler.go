@@ -192,6 +192,7 @@ func (g *Grpc) GetHeaders(ctx context.Context, in *pb.ReqBlocks) (*pb.Headers, e
 func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
 	return g.cli.GetLastMempool()
 }
+
 // GetBlockOverview get block overview
 // GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)   //add by hyb
 func (g *Grpc) GetBlockOverview(ctx context.Context, in *pb.ReqHash) (*pb.BlockOverview, error) {
