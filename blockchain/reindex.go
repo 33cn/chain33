@@ -73,7 +73,7 @@ func (chain *BlockChain) needReIndex(meta *types.UpgradeMeta) bool {
 }
 
 func (chain *BlockChain) reIndexOne(height int64) error {
-	newbatch := chain.blockStore.NewBatch(true)
+	newbatch := chain.blockStore.NewBatch(false)
 	blockdetail, err := chain.GetBlock(height)
 	if err != nil {
 		chainlog.Error("reindexone.GetBlock", "err", err)
