@@ -242,6 +242,7 @@ func (c *Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 
 	return nil
 }
+
 // GetTxByAddr get transaction by address
 // GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
 func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {

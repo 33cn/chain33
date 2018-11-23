@@ -16,7 +16,7 @@ import (
 	"golang.org/x/net/context"
 
 	"google.golang.org/grpc"
-	_ "google.golang.org/grpc/encoding/gzip"    // register gzip
+	_ "google.golang.org/grpc/encoding/gzip" // register gzip
 )
 
 var (
