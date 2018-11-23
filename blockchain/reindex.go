@@ -11,7 +11,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//UpgradeChain 升级链
+//UpgradeChain 升级localdb
 func (chain *BlockChain) UpgradeChain() {
 	meta, err := chain.blockStore.GetUpgradeMeta()
 	if err != nil {
