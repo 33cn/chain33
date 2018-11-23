@@ -174,7 +174,7 @@ func (p *pushseq) postData(cb *types.BlockSeqCB, data *types.BlockSeq) (err erro
 	if err != nil {
 		return err
 	}
-	if string(body) != "ok" || string(body) != "OK" {
+	if string(body) != "ok" && string(body) != "OK" {
 		return types.ErrPushSeqPostData
 	}
 	p.store.setSeqCBLastNum([]byte(cb.Name), data.Num)
