@@ -133,6 +133,7 @@ func RunChain33(name string) {
 	*/
 	//开始区块链模块加载
 	//channel, rabitmq 等
+	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
 	log.Info(cfg.Title + " " + version.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
@@ -148,12 +149,10 @@ func RunChain33(name string) {
 	log.Info("loading store module")
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
-
+	
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
-
-	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
 	chain.UpgradeChain()
 
 	log.Info("loading consensus module")
