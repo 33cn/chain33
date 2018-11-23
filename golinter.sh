@@ -15,7 +15,6 @@ function  filterLinter() {
 	    --enable=varcheck \
 	    --enable=structcheck \
 	    --enable=goimports \
-	    --enable=vet \
 	    --vendor ./...)
 #	    --enable=staticcheck \
 #	    --enable=gocyclo \
