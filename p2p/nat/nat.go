@@ -35,7 +35,7 @@ import (
 	"github.com/jackpal/go-nat-pmp"
 )
 
-// An implementation of nat.Interface can map local ports to ports
+// Interface An implementation of nat.Interface can map local ports to ports
 // accessible from the Internet.
 type Interface interface {
 	// These methods manage a mapping between a port on the local
@@ -267,9 +267,9 @@ func (n *autodisc) String() string {
 	defer n.mu.Unlock()
 	if n.found == nil {
 		return n.what
-	} else {
-		return n.found.String()
 	}
+	return n.found.String()
+
 }
 
 // wait blocks until auto-discovery has been performed.

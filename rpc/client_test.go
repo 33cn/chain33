@@ -67,6 +67,7 @@ func testCreateRawTransactionTo(t *testing.T) {
 
 	client := newTestChannelClient()
 	rawtx, err := client.CreateRawTransaction(&tx)
+	assert.Nil(t, err)
 	var mytx types.Transaction
 	err = types.Decode(rawtx, &mytx)
 	assert.Nil(t, err)

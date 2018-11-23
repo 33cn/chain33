@@ -26,13 +26,13 @@ type SignedTx struct {
 	Ty     int32  `json:"ty"`
 }
 
-// RawParm
+// RawParm defines raw parameter command
 type RawParm struct {
 	Token string `json:"token"`
 	Data  string `json:"data"`
 }
 
-// Query parameter
+// QueryParm Query parameter
 type QueryParm struct {
 	Hash string `json:"hash"`
 }
@@ -84,13 +84,13 @@ type Transaction struct {
 	Next       string          `json:"next,omitempty"`
 }
 
-// ReceiptLog
+// ReceiptLog defines receipt log command
 type ReceiptLog struct {
 	Ty  int32  `json:"ty"`
 	Log string `json:"log"`
 }
 
-// ReceiptData
+// ReceiptData defines receipt data rpc command
 type ReceiptData struct {
 	Ty   int32         `json:"ty"`
 	Logs []*ReceiptLog `json:"logs"`
@@ -103,7 +103,7 @@ type ReceiptDataResult struct {
 	Logs   []*ReceiptLogResult `json:"logs"`
 }
 
-// ReceiptLogRusult receipt log result
+// ReceiptLogResult receipt log result
 type ReceiptLogResult struct {
 	Ty     int32           `json:"ty"`
 	TyName string          `json:"tyName"`
@@ -221,7 +221,7 @@ type Reply struct {
 	Msg  string `json:"msg"`
 }
 
-// Headers
+// Headers defines headers rpc command
 type Headers struct {
 	Items []*Header `json:"items"`
 }

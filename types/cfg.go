@@ -7,6 +7,7 @@ package types
 // Config 配置信息
 type Config struct {
 	Title      string      `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Version    string      `protobuf:"bytes,1,opt,name=version" json:"version,omitempty"`
 	Log        *Log        `protobuf:"bytes,2,opt,name=log" json:"log,omitempty"`
 	Store      *Store      `protobuf:"bytes,3,opt,name=store" json:"store,omitempty"`
 	Consensus  *Consensus  `protobuf:"bytes,5,opt,name=consensus" json:"consensus,omitempty"`
@@ -86,10 +87,11 @@ type Wallet struct {
 
 // Store 配置
 type Store struct {
-	Name    string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Driver  string `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
-	DbPath  string `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
-	DbCache int32  `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
+	Name           string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Driver         string `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
+	DbPath         string `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
+	DbCache        int32  `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
+	LocalDBVersion string `protobuf:"bytes,5,opt,name=localdbVersion" json:"localdbVersion,omitempty"`
 }
 
 // BlockChain 配置

@@ -31,7 +31,7 @@ func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) 
 	return nil
 }
 
-// CreateRawGroup create rawtransaction with group
+// CreateRawTxGroup create rawtransaction with group
 func (c *Chain33) CreateRawTxGroup(in *types.CreateTransactionGroup, result *interface{}) error {
 	reply, err := c.cli.CreateRawTxGroup(in)
 	if err != nil {
@@ -79,9 +79,8 @@ func (c *Chain33) SendRawTransaction(in rpctypes.SignedTx, result *interface{}) 
 	if reply.IsOk {
 		*result = "0x" + hex.EncodeToString(reply.Msg)
 		return nil
-	} else {
-		return fmt.Errorf(string(reply.Msg))
 	}
+	return fmt.Errorf(string(reply.Msg))
 }
 
 // used only in parachain
@@ -244,8 +243,8 @@ func (c *Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-// GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
 // GetTxByAddr get transaction by address
+// GetTxByAddr(parm *types.ReqAddr) (*types.ReplyTxInfo, error)
 func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 	reply, err := c.cli.GetTransactionByAddr(&in)
 	if err != nil {
@@ -264,12 +263,12 @@ func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 	return nil
 }
 
+// GetTxByHashes get transaction by hashes
 /*
 GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
-	GetMempool() (*types.ReplyTxList, error)
-	GetAccounts() (*types.WalletAccounts, error)
+GetMempool() (*types.ReplyTxList, error)
+GetAccounts() (*types.WalletAccounts, error)
 */
-// GetTxByHashes get transaction by hashes
 func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) error {
 	log.Warn("GetTxByHashes", "hashes", in)
 	var parm types.ReqHashes
@@ -378,7 +377,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-// GetAccounts get accounts for version 2
+// GetAccountsV2 get accounts for version 2
 func (c *Chain33) GetAccountsV2(in *types.ReqNil, result *interface{}) error {
 	req := &types.ReqAccountList{WithoutBalance: false}
 	return c.GetAccounts(req, result)
@@ -496,13 +495,13 @@ func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interfa
 	return nil
 }
 
+// SetTxFee set tx fee
 /*
 	SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply, error)
 	SetLabl(parm *types.ReqWalletSetLabel) (*types.WalletAccount, error)
 	MergeBalance(parm *types.ReqWalletMergeBalance) (*types.ReplyHashes, error)
 	SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error)
 */
-// SetTxFee set tx fee
 func (c *Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error {
 	reply, err := c.cli.WalletSetFee(&in)
 	if err != nil {
@@ -557,12 +556,12 @@ func (c *Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) er
 	return nil
 }
 
+// Lock wallet lock
 /*
 	Lock() (*types.Reply, error)
 	UnLock(parm *types.WalletUnLock) (*types.Reply, error)
 	GetPeerInfo() (*types.PeerList, error)
 */
-// Lock wallet lock
 func (c *Chain33) Lock(in types.ReqNil, result *interface{}) error {
 	reply, err := c.cli.WalletLock()
 	if err != nil {
@@ -575,7 +574,7 @@ func (c *Chain33) Lock(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-// Unlock wallet unlock
+// UnLock wallet unlock
 func (c *Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 	reply, err := c.cli.WalletUnLock(&in)
 	if err != nil {
@@ -676,8 +675,8 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-// GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
 // GetBlockOverview get overview of block
+// GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
 func (c *Chain33) GetBlockOverview(in rpctypes.QueryParm, result *interface{}) error {
 	var data types.ReqHash
 	hash, err := common.FromHex(in.Hash)
@@ -1103,8 +1102,7 @@ func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) er
 	return nil
 }
 
-// GeBlockSequences get the block loading sequence number information for the specified interval
-// input information start and end
+// GetBlockSequences get the block loading sequence number information for the specified interval
 func (c *Chain33) GetBlockSequences(in rpctypes.BlockParam, result *interface{}) error {
 	resp, err := c.cli.GetBlockSequences(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
 	if err != nil {

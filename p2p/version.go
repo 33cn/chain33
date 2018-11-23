@@ -4,6 +4,7 @@
 
 package p2p
 
+// VERSION number
 var VERSION int32 = 119
 
 //更新内容：

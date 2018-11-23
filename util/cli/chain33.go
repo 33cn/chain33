@@ -122,18 +122,11 @@ func RunChain33(name string) {
 	go startTrace()
 	//set maxprocs
 	runtime.GOMAXPROCS(cpuNum)
-	//check mvcc switch，if use kvmvcc then cfg.Exec.EnableMVCC should be always false.
-	/*todo
-	if cfg.Store.Name == "kvmvcc" {
-		if cfg.Exec.EnableMVCC {
-			log.Error("store type is kvmvcc but enableMVCC is configured true.")
-			panic("store type is kvmvcc, configure item enableMVCC should be false.please check it.")
-		}
-	}
-	*/
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info(cfg.Title + " " + version.GetVersion())
+	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
+	version.SetAppVersion(cfg.Version)
+	log.Info(cfg.Title + "-app:" + version.GetAppVersion() + " chain33:" + version.GetVersion() + " localdb:" + version.GetLocalDBVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
@@ -152,7 +145,6 @@ func RunChain33(name string) {
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
-
 	chain.UpgradeChain()
 
 	log.Info("loading consensus module")
