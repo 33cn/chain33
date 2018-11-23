@@ -33,8 +33,9 @@ const (
 )
 
 var (
+	// LocalAddr local address
 	LocalAddr   string
-	defaultPort int = 13802
+	defaultPort  = 13802
 )
 
 const (
@@ -53,6 +54,7 @@ const (
 )
 
 const (
+	// Service service number
 	Service int32 = nodeBloom + nodeNetwork + nodeGetUTXO
 )
 
@@ -75,7 +77,7 @@ var TestNetSeeds = []string{
 	"47.104.125.177:13802",
 }
 
-// built-in list of seed
+// InnerSeeds built-in list of seed
 var InnerSeeds = []string{
 	"39.107.234.240:13802",
 	"39.105.88.66:13802",
