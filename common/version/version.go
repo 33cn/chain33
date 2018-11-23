@@ -4,7 +4,7 @@
 
 package version
 
-const version = "5.3.0"
+const version = "6.0.1"
 
 //var
 var (
