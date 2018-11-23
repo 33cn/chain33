@@ -13,6 +13,7 @@ var (
 	LocalDBMeta      = []byte("LocalDBMeta")
 	MavlTreeVerKey   = []byte("MavlTreeVerKey")
 	localversion     = "1.0.0"
+	appversion       = "1.0.0"
 	GitCommit        string
 )
 
@@ -40,11 +41,22 @@ func GetLocalDBVersion() string {
 	return localversion
 }
 
-//SetLocalDBVersion only used for test
-//通过设置版本号，强制重建数据库
+//SetLocalDBVersion 通过设置版本号，强制重建数据库
 func SetLocalDBVersion(version string) {
 	if version != "" {
 		localversion = version
+	}
+}
+
+//GetAppVersion 获取应用 app 的版本
+func GetAppVersion() string {
+	return appversion
+}
+
+//SetAppVersion 设置饮用的版本
+func SetAppVersion(version string) {
+	if version != "" {
+		appversion = version
 	}
 }
 

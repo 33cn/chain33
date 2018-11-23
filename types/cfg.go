@@ -7,6 +7,7 @@ package types
 // Config 配置信息
 type Config struct {
 	Title      string      `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Version    string      `protobuf:"bytes,1,opt,name=version" json:"version,omitempty"`
 	Log        *Log        `protobuf:"bytes,2,opt,name=log" json:"log,omitempty"`
 	Store      *Store      `protobuf:"bytes,3,opt,name=store" json:"store,omitempty"`
 	Consensus  *Consensus  `protobuf:"bytes,5,opt,name=consensus" json:"consensus,omitempty"`
