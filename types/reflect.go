@@ -92,17 +92,12 @@ func ListMethodByType(typ reflect.Type) map[string]reflect.Method {
 	return methods
 }
 
-// ExecutorAction 执行器的action
-type ExecutorAction interface {
-	GetTy() int32
-}
-
 var nilValue = reflect.ValueOf(nil)
 
 // GetActionValue 获取执行器的action value
 func GetActionValue(action interface{}, funclist map[string]reflect.Method) (string, int32, reflect.Value) {
 	var ty int32
-	if a, ok := action.(ExecutorAction); ok {
+	if a, ok := action.(execTypeGet); ok {
 		ty = a.GetTy()
 	}
 	value := reflect.ValueOf(action)
