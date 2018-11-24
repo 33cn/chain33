@@ -16,6 +16,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 
 典型案例: https://github.com/bityuan/bityuan
 
+chain33背后故事: [chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR_NFxfeuAA)
 ## Building from source
 
 环境要求: Go (version 1.9 or later)
