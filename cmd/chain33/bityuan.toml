@@ -53,6 +53,8 @@ maxTxNumPerAccount=100
 [store]
 dbPath="datadir/mavltree"
 dbCache=128
+
+[store.sub.mavl]
 enableMavlPrefix=false
 enableMVCC=false
 enableMavlPrune=false
