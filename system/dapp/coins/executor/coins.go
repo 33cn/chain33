@@ -59,8 +59,16 @@ func (c *Coins) GetDriverName() string {
 	return driverName
 }
 
-// CheckTx check transaction
+// CheckTx check transaction amount 必须不能为负数
 func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
+	ety := c.GetExecutorType()
+	amount, err := ety.Amount(tx)
+	if err != nil {
+		return err
+	}
+	if amount < 0 {
+		return types.ErrAmount
+	}
 	return nil
 }
 
