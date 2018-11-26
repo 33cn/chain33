@@ -22,18 +22,18 @@ import (
 
 func TestCheckIpWhitelist(t *testing.T) {
 	address := "127.0.0.1"
-	assert.True(t, checkIpWhitelist(address))
+	assert.True(t, checkIPWhitelist(address))
 
 	address = "::1"
-	assert.True(t, checkIpWhitelist(address))
+	assert.True(t, checkIPWhitelist(address))
 
 	address = "192.168.3.1"
-	remoteIpWhitelist[address] = true
-	assert.False(t, checkIpWhitelist("192.168.3.2"))
+	remoteIPWhitelist[address] = true
+	assert.False(t, checkIPWhitelist("192.168.3.2"))
 
-	remoteIpWhitelist["0.0.0.0"] = true
-	assert.True(t, checkIpWhitelist(address))
-	assert.True(t, checkIpWhitelist("192.168.3.2"))
+	remoteIPWhitelist["0.0.0.0"] = true
+	assert.True(t, checkIPWhitelist(address))
+	assert.True(t, checkIPWhitelist("192.168.3.2"))
 
 }
 
