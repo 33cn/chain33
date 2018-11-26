@@ -422,7 +422,7 @@ func (c *Chain33) WalletTxList(in rpctypes.ReqWalletTransactionList, result *int
 	}
 	{
 		var txdetails rpctypes.WalletTxDetails
-		rpctypes.ConvertWalletTxDetailToJson(reply, &txdetails)
+		rpctypes.ConvertWalletTxDetailToJSON(reply, &txdetails)
 		*result = &txdetails
 	}
 	return nil

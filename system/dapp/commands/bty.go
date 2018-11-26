@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/rpc/jsonclient"
-	. "github.com/33cn/chain33/system/dapp/commands/types"
+	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
@@ -86,7 +86,7 @@ func createTransfer(cmd *cobra.Command, args []string) {
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false, "", "")
+	txHex, err := commandtypes.CreateRawTx(cmd, toAddr, amount, note, false, "", "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -119,12 +119,12 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := GetExecAddr(exec)
+	execAddr, err := commandtypes.GetExecAddr(exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(cmd, execAddr, amount, note, true, "", exec)
+	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, true, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -157,12 +157,12 @@ func sendToExec(cmd *cobra.Command, args []string) {
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := GetExecAddr(exec)
+	execAddr, err := commandtypes.GetExecAddr(exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(cmd, execAddr, amount, note, false, "", exec)
+	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, false, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -201,7 +201,7 @@ func transfer(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
-	SendToAddress(rpcLaddr, fromAddr, toAddr, amountInt64, note, false, "", false)
+	commandtypes.SendToAddress(rpcLaddr, fromAddr, toAddr, amountInt64, note, false, "", false)
 }
 
 // WithdrawFromExecCmd withdraw from executor
@@ -234,13 +234,13 @@ func withdraw(cmd *cobra.Command, args []string) {
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := GetExecAddr(exec)
+	execAddr, err := commandtypes.GetExecAddr(exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
-	SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
+	commandtypes.SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
 }
 
 // CreateTxGroupCmd create tx group
@@ -348,7 +348,7 @@ func createPub2PrivTxFlags(cmd *cobra.Command) {
 func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
-	amount := GetAmountValue(cmd, "amount")
+	amount := commandtypes.GetAmountValue(cmd, "amount")
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
@@ -375,7 +375,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Pubkeypair: pubkeypair,
 		Expire:     expire,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -407,7 +407,7 @@ func createPriv2PrivTxFlags(cmd *cobra.Command) {
 func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
-	amount := GetAmountValue(cmd, "amount")
+	amount := commandtypes.GetAmountValue(cmd, "amount")
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
 	sender, _ := cmd.Flags().GetString("sender")
@@ -437,7 +437,7 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 		Mixcount:   defaultPrivacyMixCount,
 		Expire:     expire,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -468,7 +468,7 @@ func createPriv2PubTxFlags(cmd *cobra.Command) {
 
 func createPriv2PubTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	amount := GetAmountValue(cmd, "amount")
+	amount := commandtypes.GetAmountValue(cmd, "amount")
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	from, _ := cmd.Flags().GetString("from")
 	to, _ := cmd.Flags().GetString("to")
@@ -499,6 +499,6 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 		Mixcount:  defaultPrivacyMixCount,
 		Expire:    expire,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }

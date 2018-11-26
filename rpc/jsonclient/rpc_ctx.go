@@ -10,9 +10,9 @@ import (
 	"os"
 )
 
-// RpcCtx rpc ctx interface
+// RPCCtx rpc ctx interface
 // TODO: SetPostRunCb()
-type RpcCtx struct {
+type RPCCtx struct {
 	Addr   string
 	Method string
 	Params interface{}
@@ -23,9 +23,9 @@ type RpcCtx struct {
 // Callback a callback function
 type Callback func(res interface{}) (interface{}, error)
 
-// NewRpcCtx produce a object of rpcctx
-func NewRpcCtx(laddr, method string, params, res interface{}) *RpcCtx {
-	return &RpcCtx{
+// NewRPCCtx produce a object of rpcctx
+func NewRPCCtx(laddr, method string, params, res interface{}) *RPCCtx {
+	return &RPCCtx{
 		Addr:   laddr,
 		Method: method,
 		Params: params,
@@ -34,12 +34,12 @@ func NewRpcCtx(laddr, method string, params, res interface{}) *RpcCtx {
 }
 
 // SetResultCb rpcctx callback
-func (c *RpcCtx) SetResultCb(cb Callback) {
+func (c *RPCCtx) SetResultCb(cb Callback) {
 	c.cb = cb
 }
 
 // RunResult  format rpc result
-func (c *RpcCtx) RunResult() (interface{}, error) {
+func (c *RPCCtx) RunResult() (interface{}, error) {
 	rpc, err := NewJSONClient(c.Addr)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (c *RpcCtx) RunResult() (interface{}, error) {
 }
 
 // Run rpcctx to runresult
-func (c *RpcCtx) Run() {
+func (c *RPCCtx) Run() {
 	result, err := c.RunResult()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -78,7 +78,7 @@ func (c *RpcCtx) Run() {
 }
 
 // RunWithoutMarshal return source result of string
-func (c *RpcCtx) RunWithoutMarshal() {
+func (c *RPCCtx) RunWithoutMarshal() {
 	var res string
 	rpc, err := NewJSONClient(c.Addr)
 	if err != nil {
