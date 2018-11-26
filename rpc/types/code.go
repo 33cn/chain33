@@ -24,7 +24,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 	case 2:
 		rTy = "ExecOk"
 	default:
-		rTy = "Unkown"
+		rTy = "Unknown"
 	}
 	rd := &ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
 	for _, l := range rlog.Logs {
