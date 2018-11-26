@@ -76,7 +76,7 @@ func SetAppVersion(version string) {
 // blcokchain db
 //	ver=1:增加地址参与交易量的记录，
 // wallet db:
-//	ver=1:增加rescan的功能，自动将wallet账户相关的tx交易信息重新扫描从blockchian模块
+//	ver=1:增加rescan的功能，自动将wallet账户相关的tx交易信息重新扫描从blockchain模块
 // state mavltree db
 
 //v5.3.0
