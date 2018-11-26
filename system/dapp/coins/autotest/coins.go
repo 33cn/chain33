@@ -11,9 +11,9 @@ import (
 )
 
 type coinsAutoTest struct {
-	SimpleCaseArr   []types.SimpleCase   `toml:"SimpleCase,omitempty"`
-	TransferCaseArr []TransferCase `toml:"TransferCase,omitempty"`
-	WithdrawCaseArr []WithdrawCase `toml:"WithdrawCase,omitempty"`
+	SimpleCaseArr   []types.SimpleCase `toml:"SimpleCase,omitempty"`
+	TransferCaseArr []TransferCase     `toml:"TransferCase,omitempty"`
+	WithdrawCaseArr []WithdrawCase     `toml:"WithdrawCase,omitempty"`
 }
 
 func init() {
