@@ -640,7 +640,7 @@ func testGetSeqByHash(t *testing.T, blockchain *blockchain.BlockChain) {
 		}
 	}
 
-	seq, err := blockchain.ProcGetSeqByHash(hashes[0])
+	seq, _ := blockchain.ProcGetSeqByHash(hashes[0])
 	if seq != -1 {
 		t.Error("testGetSeqByHash only para chain GetSeqByHash ")
 	}

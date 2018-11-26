@@ -74,6 +74,7 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 		return err
 	}
 	hash = msg.GetData().(*types.ReplyHash).GetHash()
+	_ = hash
 	return nil
 }
 
@@ -87,6 +88,7 @@ func ExecKVSetRollback(client queue.Client, hash []byte) error {
 		return err
 	}
 	hash = msg.GetData().(*types.ReplyHash).GetHash()
+	_ = hash
 	return nil
 }
 

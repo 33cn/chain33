@@ -16,6 +16,7 @@ SRC_AUTOTEST := github.com/33cn/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "mocks"`
 PKG_LIST_VET := `go list ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15"`
+PKG_LIST_INEFFASSIGN= `go list -f {{.Dir}} ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15" | grep -v "common/ed25519"`
 PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "mocks"`
 BUILD_FLAGS = -ldflags "-X github.com/33cn/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
@@ -87,7 +88,7 @@ build_ci: depends ## Build the binary file for CI
 	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
-linter: ## Use gometalinter check code, ignore some unserious warning
+linter: vet ineffassign ## Use gometalinter check code, ignore some unserious warning
 	@./golinter.sh "filter"
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
@@ -100,6 +101,9 @@ race: ## Run data race detector
 
 vet:
 	@go vet ${PKG_LIST_VET}
+
+ineffassign:
+	@ineffassign -n ${PKG_LIST_INEFFASSIGN}
 
 test: ## Run unittests
 	@go test -race $(PKG_LIST)
