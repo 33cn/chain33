@@ -69,3 +69,8 @@ func IsSuperManager(addr string) bool {
 	}
 	return false
 }
+
+// CheckReceiptExecOk return true to check if receipt ty is ok
+func (c *Manage) CheckReceiptExecOk() bool {
+	return true
+}

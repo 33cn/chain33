@@ -12,10 +12,6 @@ import (
 // ExecLocal_Modify defines execlocal modify func
 func (c *Manage) ExecLocal_Modify(transfer *types.ModifyConfig, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set := &types.LocalDBSet{}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == pty.ManageActionModifyConfig {
