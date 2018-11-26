@@ -42,6 +42,7 @@ type AddrBook struct {
 	bookDb   db.DB
 	Quit     chan struct{}
 }
+
 // KnownAddress defines known address type
 type KnownAddress struct {
 	kmtx        sync.Mutex

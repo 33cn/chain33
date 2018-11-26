@@ -15,6 +15,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
+
 // DownloadJob defines download job type
 type DownloadJob struct {
 	wg            sync.WaitGroup
