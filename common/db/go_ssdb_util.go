@@ -116,7 +116,7 @@ func (c *SDBClient) Get(key string) (*Value, error) {
 	}
 
 	if len(resp) == 0 {
-		return nil, newError("ssdb respone error")
+		return nil, newError("ssdb response error")
 	}
 
 	if len(resp) == 2 && resp[0] == OK {
@@ -402,7 +402,7 @@ func (c *SDBClient) Close() error {
 //生成通过的错误信息，已经确定是有错误
 func makeError(resp []string, errKey ...interface{}) error {
 	if len(resp) < 1 {
-		return newError("ssdb respone error")
+		return newError("ssdb response error")
 	}
 	//正常返回的不存在不报错，如果要捕捉这个问题请使用exists
 	if resp[0] == NotFound {

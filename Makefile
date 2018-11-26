@@ -87,7 +87,7 @@ build_ci: depends ## Build the binary file for CI
 	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
-linter: vet ## Use gometalinter check code, ignore some unserious warning
+linter: ## Use gometalinter check code, ignore some unserious warning
 	@./golinter.sh "filter"
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 

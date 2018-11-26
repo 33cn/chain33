@@ -49,7 +49,7 @@ func main() {
 			return
 		}
 		w.WriteHeader(http.StatusBadRequest)
-		io.WriteString(w, `{"action":"unkown request event"}`)
+		io.WriteString(w, `{"action":"unknown request event"}`)
 	})
 	go webhooksProcess(qhook)
 	http.ListenAndServe(":3000", nil)

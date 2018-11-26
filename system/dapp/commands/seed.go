@@ -94,7 +94,7 @@ func SaveSeedCmd() *cobra.Command {
 }
 
 func addSaveSeedFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("seed", "s", "", "15 seed characters seperated by space")
+	cmd.Flags().StringP("seed", "s", "", "15 seed characters separated by space")
 	cmd.MarkFlagRequired("seed")
 
 	cmd.Flags().StringP("pwd", "p", "", "password used to encrypt seed")
