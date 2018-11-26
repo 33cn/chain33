@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	remoteIpWhitelist = make(map[string]bool)
+	remoteIPWhitelist = make(map[string]bool)
 	rpcCfg            *types.RPC
 	jrpcFuncWhitelist = make(map[string]bool)
 	grpcFuncWhitelist = make(map[string]bool)
@@ -67,7 +67,7 @@ func (s *JSONRPCServer) Close() {
 	}
 }
 
-func checkIpWhitelist(addr string) bool {
+func checkIPWhitelist(addr string) bool {
 	//回环网络直接允许
 	ip := net.ParseIP(addr)
 	if ip.IsLoopback() {
@@ -77,10 +77,10 @@ func checkIpWhitelist(addr string) bool {
 	if ipv4 != nil {
 		addr = ipv4.String()
 	}
-	if _, ok := remoteIpWhitelist["0.0.0.0"]; ok {
+	if _, ok := remoteIPWhitelist["0.0.0.0"]; ok {
 		return true
 	}
-	if _, ok := remoteIpWhitelist[addr]; ok {
+	if _, ok := remoteIPWhitelist[addr]; ok {
 		return true
 	}
 	return false
@@ -177,7 +177,7 @@ type RPC struct {
 // InitCfg  interfaces
 func InitCfg(cfg *types.RPC) {
 	rpcCfg = cfg
-	InitIpWhitelist(cfg)
+	InitIPWhitelist(cfg)
 	InitJrpcFuncWhitelist(cfg)
 	InitGrpcFuncWhitelist(cfg)
 	InitJrpcFuncBlacklist(cfg)
@@ -265,29 +265,29 @@ func (r *RPC) Close() {
 	}
 }
 
-// InitIpWhitelist init ip whitelist
-func InitIpWhitelist(cfg *types.RPC) {
+// InitIPWhitelist init ip whitelist
+func InitIPWhitelist(cfg *types.RPC) {
 	if len(cfg.Whitelist) == 0 && len(cfg.Whitlist) == 0 {
-		remoteIpWhitelist["127.0.0.1"] = true
+		remoteIPWhitelist["127.0.0.1"] = true
 		return
 	}
 	if len(cfg.Whitelist) == 1 && cfg.Whitelist[0] == "*" {
-		remoteIpWhitelist["0.0.0.0"] = true
+		remoteIPWhitelist["0.0.0.0"] = true
 		return
 	}
 	if len(cfg.Whitlist) == 1 && cfg.Whitlist[0] == "*" {
-		remoteIpWhitelist["0.0.0.0"] = true
+		remoteIPWhitelist["0.0.0.0"] = true
 		return
 	}
 	if len(cfg.Whitelist) != 0 {
 		for _, addr := range cfg.Whitelist {
-			remoteIpWhitelist[addr] = true
+			remoteIPWhitelist[addr] = true
 		}
 		return
 	}
 	if len(cfg.Whitlist) != 0 {
 		for _, addr := range cfg.Whitlist {
-			remoteIpWhitelist[addr] = true
+			remoteIPWhitelist[addr] = true
 		}
 		return
 	}

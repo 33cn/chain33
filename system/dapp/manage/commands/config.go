@@ -107,6 +107,6 @@ func queryConfig(cmd *cobra.Command, args []string) {
 	params.Payload = req
 
 	var res types.ReplyConfig
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.Run()
 }

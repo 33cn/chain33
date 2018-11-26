@@ -71,7 +71,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	}
 
 	var res rpctypes.ReplyHash
-	ctx := jsonclient.NewRpcCtx(rpcAddr, "Chain33.SendToAddress", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcAddr, "Chain33.SendToAddress", params, &res)
 	ctx.Run()
 }
 

@@ -7,7 +7,7 @@ package commands
 import (
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	. "github.com/33cn/chain33/system/dapp/commands/types"
+	"github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/spf13/cobra"
 )
 
@@ -40,16 +40,16 @@ func GetMempoolCmd() *cobra.Command {
 func listMempoolTxs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.ReplyTxList
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetMempool", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetMempool", nil, &res)
 	ctx.SetResultCb(parseListMempoolTxsRes)
 	ctx.Run()
 }
 
 func parseListMempoolTxsRes(arg interface{}) (interface{}, error) {
 	res := arg.(*rpctypes.ReplyTxList)
-	var result TxListResult
+	var result types.TxListResult
 	for _, v := range res.Txs {
-		result.Txs = append(result.Txs, DecodeTransaction(v))
+		result.Txs = append(result.Txs, types.DecodeTransaction(v))
 	}
 	return result, nil
 }
@@ -67,16 +67,16 @@ func GetLastMempoolCmd() *cobra.Command {
 func lastMempoolTxs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.ReplyTxList
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetLastMemPool", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetLastMemPool", nil, &res)
 	ctx.SetResultCb(parselastMempoolTxsRes)
 	ctx.Run()
 }
 
 func parselastMempoolTxsRes(arg interface{}) (interface{}, error) {
 	res := arg.(*rpctypes.ReplyTxList)
-	var result TxListResult
+	var result types.TxListResult
 	for _, v := range res.Txs {
-		result.Txs = append(result.Txs, DecodeTransaction(v))
+		result.Txs = append(result.Txs, types.DecodeTransaction(v))
 	}
 	return result, nil
 }

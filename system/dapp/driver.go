@@ -53,7 +53,7 @@ type Driver interface {
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
-	SetApi(client.QueueProtocolAPI)
+	SetAPI(client.QueueProtocolAPI)
 	SetTxs(txs []*types.Transaction)
 	SetReceipt(receipts []*types.ReceiptData)
 
@@ -105,13 +105,13 @@ func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
 	return d.ety.GetExecFuncMap()
 }
 
-// SetApi set queue protocol api
-func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
+// SetAPI set queue protocol api
+func (d *DriverBase) SetAPI(api client.QueueProtocolAPI) {
 	d.api = api
 }
 
-// GetApi return queue protocol api
-func (d *DriverBase) GetApi() client.QueueProtocolAPI {
+// GetAPI return queue protocol api
+func (d *DriverBase) GetAPI() client.QueueProtocolAPI {
 	return d.api
 }
 

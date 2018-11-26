@@ -156,7 +156,7 @@ type GetTicketStatisticResult struct {
 
 // GetTicketMinerInfoResult defines ticker minerinformation result rpc command
 type GetTicketMinerInfoResult struct {
-	TicketId     string `json:"ticketId"`
+	TicketID     string `json:"ticketId"`
 	Status       string `json:"status"`
 	PrevStatus   string `json:"prevStatus"`
 	IsGenesis    bool   `json:"isGenesis"`
@@ -256,7 +256,7 @@ type HashlockLockCLI struct {
 type TicketMinerCLI struct {
 	Bits     uint32 `json:"bits,omitempty"`
 	Reward   string `json:"reward,omitempty"`
-	TicketId string `json:"ticketId,omitempty"`
+	TicketID string `json:"ticketId,omitempty"`
 	Modify   []byte `json:"modify,omitempty"`
 }
 

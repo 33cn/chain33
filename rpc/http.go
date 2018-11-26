@@ -64,7 +64,7 @@ func (j *JSONRPCServer) Listen() (int, error) {
 			return
 		}
 
-		if !checkIpWhitelist(ip) {
+		if !checkIPWhitelist(ip) {
 			writeError(w, r, 0, fmt.Sprintf(`The %s Address is not authorized!`, ip))
 			return
 		}
@@ -75,7 +75,7 @@ func (j *JSONRPCServer) Listen() (int, error) {
 				return
 			}
 			//格式做一个检查
-			client, err := parseJsonRpcParams(data)
+			client, err := parseJSONRpcParams(data)
 			errstr := "nil"
 			if err != nil {
 				errstr = err.Error()
@@ -90,7 +90,7 @@ func (j *JSONRPCServer) Listen() (int, error) {
 			if !ipaddr.IsLoopback() {
 				funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
 				if checkJrpcFuncBlacklist(funcName) || !checkJrpcFuncWhitelist(funcName) {
-					writeError(w, r, client.Id, fmt.Sprintf(`The %s method is not authorized!`, funcName))
+					writeError(w, r, client.ID, fmt.Sprintf(`The %s method is not authorized!`, funcName))
 					return
 				}
 			}
@@ -114,7 +114,7 @@ func (j *JSONRPCServer) Listen() (int, error) {
 }
 
 type serverResponse struct {
-	Id     uint64      `json:"id"`
+	ID     uint64      `json:"id"`
 	Result interface{} `json:"result"`
 	Error  interface{} `json:"error"`
 }
@@ -161,7 +161,7 @@ func auth(ctx context.Context, info *grpc.UnaryServerInfo) error {
 			return fmt.Errorf("the %s Address is not authorized", ip)
 		}
 
-		if !checkIpWhitelist(ip) {
+		if !checkIPWhitelist(ip) {
 			return fmt.Errorf("the %s Address is not authorized", ip)
 		}
 
@@ -177,10 +177,10 @@ func auth(ctx context.Context, info *grpc.UnaryServerInfo) error {
 type clientRequest struct {
 	Method string         `json:"method"`
 	Params [1]interface{} `json:"params"`
-	Id     uint64         `json:"id"`
+	ID     uint64         `json:"id"`
 }
 
-func parseJsonRpcParams(data []byte) (*clientRequest, error) {
+func parseJSONRpcParams(data []byte) (*clientRequest, error) {
 	var req clientRequest
 	err := json.Unmarshal(data, &req)
 	if err != nil {

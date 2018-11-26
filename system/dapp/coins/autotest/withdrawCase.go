@@ -7,31 +7,31 @@ package autotest
 import (
 	"strconv"
 
-	. "github.com/33cn/chain33/cmd/autotest/types"
+	"github.com/33cn/chain33/cmd/autotest/types"
 )
 
 // WithdrawCase defines the withdraw case
 type WithdrawCase struct {
-	BaseCase
+	types.BaseCase
 	Addr   string `toml:"addr"`
 	Amount string `toml:"amount"`
 }
 
 // WithdrawPack defines the withdraw pack
 type WithdrawPack struct {
-	BaseCasePack
+	types.BaseCasePack
 }
 
 // SendCommand send command of withdrawcase
-func (testCase *WithdrawCase) SendCommand(packID string) (PackFunc, error) {
+func (testCase *WithdrawCase) SendCommand(packID string) (types.PackFunc, error) {
 
-	return DefaultSend(testCase, &WithdrawPack{}, packID)
+	return types.DefaultSend(testCase, &WithdrawPack{}, packID)
 }
 
 // GetCheckHandlerMap get check handler for map
 func (pack *WithdrawPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(CheckHandlerMapDiscard, 1)
+	funcMap := make(types.CheckHandlerMapDiscard, 1)
 	funcMap["balance"] = pack.checkBalance
 
 	return funcMap
@@ -62,8 +62,8 @@ func (pack *WithdrawPack) checkBalance(txInfo map[string]interface{}) bool {
 		"ToPrev", logRecv["prev"].(map[string]interface{})["balance"].(string),
 		"ToCurr", logRecv["current"].(map[string]interface{})["balance"].(string))
 
-	return CheckBalanceDeltaWithAddr(logFee, interCase.Addr, -fee) &&
-		CheckBalanceDeltaWithAddr(logWithdraw, interCase.Addr, -Amount) &&
-		CheckBalanceDeltaWithAddr(logSend, withdrawFrom, -Amount) &&
-		CheckBalanceDeltaWithAddr(logRecv, interCase.Addr, Amount)
+	return types.CheckBalanceDeltaWithAddr(logFee, interCase.Addr, -fee) &&
+		types.CheckBalanceDeltaWithAddr(logWithdraw, interCase.Addr, -Amount) &&
+		types.CheckBalanceDeltaWithAddr(logSend, withdrawFrom, -Amount) &&
+		types.CheckBalanceDeltaWithAddr(logRecv, interCase.Addr, Amount)
 }
