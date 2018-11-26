@@ -3,25 +3,57 @@
 
 package types
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	math "math"
+
+	proto "github.com/golang/protobuf/proto"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// 手续费
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
+//手续费
 type TotalFee struct {
-	Fee     int64 `protobuf:"varint,1,opt,name=fee" json:"fee,omitempty"`
-	TxCount int64 `protobuf:"varint,2,opt,name=txCount" json:"txCount,omitempty"`
+	Fee                  int64    `protobuf:"varint,1,opt,name=fee,proto3" json:"fee,omitempty"`
+	TxCount              int64    `protobuf:"varint,2,opt,name=txCount,proto3" json:"txCount,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *TotalFee) Reset()                    { *m = TotalFee{} }
-func (m *TotalFee) String() string            { return proto.CompactTextString(m) }
-func (*TotalFee) ProtoMessage()               {}
-func (*TotalFee) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{0} }
+func (m *TotalFee) Reset()         { *m = TotalFee{} }
+func (m *TotalFee) String() string { return proto.CompactTextString(m) }
+func (*TotalFee) ProtoMessage()    {}
+func (*TotalFee) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{0}
+}
+
+func (m *TotalFee) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TotalFee.Unmarshal(m, b)
+}
+func (m *TotalFee) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TotalFee.Marshal(b, m, deterministic)
+}
+func (m *TotalFee) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TotalFee.Merge(m, src)
+}
+func (m *TotalFee) XXX_Size() int {
+	return xxx_messageInfo_TotalFee.Size(m)
+}
+func (m *TotalFee) XXX_DiscardUnknown() {
+	xxx_messageInfo_TotalFee.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TotalFee proto.InternalMessageInfo
 
 func (m *TotalFee) GetFee() int64 {
 	if m != nil {
@@ -37,19 +69,42 @@ func (m *TotalFee) GetTxCount() int64 {
 	return 0
 }
 
-// 查询symbol代币总额
+//查询symbol代币总额
 type ReqGetTotalCoins struct {
-	Symbol    string `protobuf:"bytes,1,opt,name=symbol" json:"symbol,omitempty"`
-	StateHash []byte `protobuf:"bytes,2,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	StartKey  []byte `protobuf:"bytes,3,opt,name=startKey,proto3" json:"startKey,omitempty"`
-	Count     int64  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
-	Execer    string `protobuf:"bytes,5,opt,name=execer" json:"execer,omitempty"`
+	Symbol               string   `protobuf:"bytes,1,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	StateHash            []byte   `protobuf:"bytes,2,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	StartKey             []byte   `protobuf:"bytes,3,opt,name=startKey,proto3" json:"startKey,omitempty"`
+	Count                int64    `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
+	Execer               string   `protobuf:"bytes,5,opt,name=execer,proto3" json:"execer,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ReqGetTotalCoins) Reset()                    { *m = ReqGetTotalCoins{} }
-func (m *ReqGetTotalCoins) String() string            { return proto.CompactTextString(m) }
-func (*ReqGetTotalCoins) ProtoMessage()               {}
-func (*ReqGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{1} }
+func (m *ReqGetTotalCoins) Reset()         { *m = ReqGetTotalCoins{} }
+func (m *ReqGetTotalCoins) String() string { return proto.CompactTextString(m) }
+func (*ReqGetTotalCoins) ProtoMessage()    {}
+func (*ReqGetTotalCoins) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{1}
+}
+
+func (m *ReqGetTotalCoins) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReqGetTotalCoins.Unmarshal(m, b)
+}
+func (m *ReqGetTotalCoins) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReqGetTotalCoins.Marshal(b, m, deterministic)
+}
+func (m *ReqGetTotalCoins) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReqGetTotalCoins.Merge(m, src)
+}
+func (m *ReqGetTotalCoins) XXX_Size() int {
+	return xxx_messageInfo_ReqGetTotalCoins.Size(m)
+}
+func (m *ReqGetTotalCoins) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReqGetTotalCoins.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReqGetTotalCoins proto.InternalMessageInfo
 
 func (m *ReqGetTotalCoins) GetSymbol() string {
 	if m != nil {
@@ -86,18 +141,41 @@ func (m *ReqGetTotalCoins) GetExecer() string {
 	return ""
 }
 
-// 查询symbol代币总额应答
+//查询symbol代币总额应答
 type ReplyGetTotalCoins struct {
-	Count   int64  `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
-	Num     int64  `protobuf:"varint,2,opt,name=num" json:"num,omitempty"`
-	Amount  int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
-	NextKey []byte `protobuf:"bytes,4,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	Count                int64    `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+	Num                  int64    `protobuf:"varint,2,opt,name=num,proto3" json:"num,omitempty"`
+	Amount               int64    `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	NextKey              []byte   `protobuf:"bytes,4,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ReplyGetTotalCoins) Reset()                    { *m = ReplyGetTotalCoins{} }
-func (m *ReplyGetTotalCoins) String() string            { return proto.CompactTextString(m) }
-func (*ReplyGetTotalCoins) ProtoMessage()               {}
-func (*ReplyGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{2} }
+func (m *ReplyGetTotalCoins) Reset()         { *m = ReplyGetTotalCoins{} }
+func (m *ReplyGetTotalCoins) String() string { return proto.CompactTextString(m) }
+func (*ReplyGetTotalCoins) ProtoMessage()    {}
+func (*ReplyGetTotalCoins) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{2}
+}
+
+func (m *ReplyGetTotalCoins) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReplyGetTotalCoins.Unmarshal(m, b)
+}
+func (m *ReplyGetTotalCoins) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReplyGetTotalCoins.Marshal(b, m, deterministic)
+}
+func (m *ReplyGetTotalCoins) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReplyGetTotalCoins.Merge(m, src)
+}
+func (m *ReplyGetTotalCoins) XXX_Size() int {
+	return xxx_messageInfo_ReplyGetTotalCoins.Size(m)
+}
+func (m *ReplyGetTotalCoins) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReplyGetTotalCoins.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReplyGetTotalCoins proto.InternalMessageInfo
 
 func (m *ReplyGetTotalCoins) GetCount() int64 {
 	if m != nil {
@@ -127,18 +205,41 @@ func (m *ReplyGetTotalCoins) GetNextKey() []byte {
 	return nil
 }
 
-// 迭代查询symbol代币总额
+//迭代查询symbol代币总额
 type IterateRangeByStateHash struct {
-	StateHash []byte `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	Start     []byte `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
-	End       []byte `protobuf:"bytes,3,opt,name=end,proto3" json:"end,omitempty"`
-	Count     int64  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	StateHash            []byte   `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	Start                []byte   `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
+	End                  []byte   `protobuf:"bytes,3,opt,name=end,proto3" json:"end,omitempty"`
+	Count                int64    `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *IterateRangeByStateHash) Reset()                    { *m = IterateRangeByStateHash{} }
-func (m *IterateRangeByStateHash) String() string            { return proto.CompactTextString(m) }
-func (*IterateRangeByStateHash) ProtoMessage()               {}
-func (*IterateRangeByStateHash) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{3} }
+func (m *IterateRangeByStateHash) Reset()         { *m = IterateRangeByStateHash{} }
+func (m *IterateRangeByStateHash) String() string { return proto.CompactTextString(m) }
+func (*IterateRangeByStateHash) ProtoMessage()    {}
+func (*IterateRangeByStateHash) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{3}
+}
+
+func (m *IterateRangeByStateHash) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_IterateRangeByStateHash.Unmarshal(m, b)
+}
+func (m *IterateRangeByStateHash) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_IterateRangeByStateHash.Marshal(b, m, deterministic)
+}
+func (m *IterateRangeByStateHash) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IterateRangeByStateHash.Merge(m, src)
+}
+func (m *IterateRangeByStateHash) XXX_Size() int {
+	return xxx_messageInfo_IterateRangeByStateHash.Size(m)
+}
+func (m *IterateRangeByStateHash) XXX_DiscardUnknown() {
+	xxx_messageInfo_IterateRangeByStateHash.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_IterateRangeByStateHash proto.InternalMessageInfo
 
 func (m *IterateRangeByStateHash) GetStateHash() []byte {
 	if m != nil {
@@ -169,18 +270,41 @@ func (m *IterateRangeByStateHash) GetCount() int64 {
 }
 
 type TicketStatistic struct {
-	// 当前在挖的ticket
-	CurrentOpenCount int64 `protobuf:"varint,1,opt,name=currentOpenCount" json:"currentOpenCount,omitempty"`
-	// 一共挖到的ticket
-	TotalMinerCount int64 `protobuf:"varint,2,opt,name=totalMinerCount" json:"totalMinerCount,omitempty"`
-	// 一共取消的ticket
-	TotalCancleCount int64 `protobuf:"varint,3,opt,name=totalCancleCount" json:"totalCancleCount,omitempty"`
+	//当前在挖的ticket
+	CurrentOpenCount int64 `protobuf:"varint,1,opt,name=currentOpenCount,proto3" json:"currentOpenCount,omitempty"`
+	//一共挖到的ticket
+	TotalMinerCount int64 `protobuf:"varint,2,opt,name=totalMinerCount,proto3" json:"totalMinerCount,omitempty"`
+	//一共取消的ticket
+	TotalCancleCount     int64    `protobuf:"varint,3,opt,name=totalCancleCount,proto3" json:"totalCancleCount,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *TicketStatistic) Reset()                    { *m = TicketStatistic{} }
-func (m *TicketStatistic) String() string            { return proto.CompactTextString(m) }
-func (*TicketStatistic) ProtoMessage()               {}
-func (*TicketStatistic) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{4} }
+func (m *TicketStatistic) Reset()         { *m = TicketStatistic{} }
+func (m *TicketStatistic) String() string { return proto.CompactTextString(m) }
+func (*TicketStatistic) ProtoMessage()    {}
+func (*TicketStatistic) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{4}
+}
+
+func (m *TicketStatistic) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TicketStatistic.Unmarshal(m, b)
+}
+func (m *TicketStatistic) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TicketStatistic.Marshal(b, m, deterministic)
+}
+func (m *TicketStatistic) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TicketStatistic.Merge(m, src)
+}
+func (m *TicketStatistic) XXX_Size() int {
+	return xxx_messageInfo_TicketStatistic.Size(m)
+}
+func (m *TicketStatistic) XXX_DiscardUnknown() {
+	xxx_messageInfo_TicketStatistic.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TicketStatistic proto.InternalMessageInfo
 
 func (m *TicketStatistic) GetCurrentOpenCount() int64 {
 	if m != nil {
@@ -204,27 +328,50 @@ func (m *TicketStatistic) GetTotalCancleCount() int64 {
 }
 
 type TicketMinerInfo struct {
-	TicketId string `protobuf:"bytes,1,opt,name=ticketId" json:"ticketId,omitempty"`
+	TicketId string `protobuf:"bytes,1,opt,name=ticketId,proto3" json:"ticketId,omitempty"`
 	// 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
-	Status     int32 `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
-	PrevStatus int32 `protobuf:"varint,3,opt,name=prevStatus" json:"prevStatus,omitempty"`
+	Status     int32 `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
+	PrevStatus int32 `protobuf:"varint,3,opt,name=prevStatus,proto3" json:"prevStatus,omitempty"`
 	// genesis 创建的私钥比较特殊
-	IsGenesis bool `protobuf:"varint,4,opt,name=isGenesis" json:"isGenesis,omitempty"`
-	// 创建ticket时间
-	CreateTime int64 `protobuf:"varint,5,opt,name=createTime" json:"createTime,omitempty"`
+	IsGenesis bool `protobuf:"varint,4,opt,name=isGenesis,proto3" json:"isGenesis,omitempty"`
+	//创建ticket时间
+	CreateTime int64 `protobuf:"varint,5,opt,name=createTime,proto3" json:"createTime,omitempty"`
 	// ticket挖矿时间
-	MinerTime int64 `protobuf:"varint,6,opt,name=minerTime" json:"minerTime,omitempty"`
-	// 关闭ticket时间
-	CloseTime int64 `protobuf:"varint,7,opt,name=closeTime" json:"closeTime,omitempty"`
-	// 挖到的币的数目
-	MinerValue   int64  `protobuf:"varint,8,opt,name=minerValue" json:"minerValue,omitempty"`
-	MinerAddress string `protobuf:"bytes,9,opt,name=minerAddress" json:"minerAddress,omitempty"`
+	MinerTime int64 `protobuf:"varint,6,opt,name=minerTime,proto3" json:"minerTime,omitempty"`
+	//关闭ticket时间
+	CloseTime int64 `protobuf:"varint,7,opt,name=closeTime,proto3" json:"closeTime,omitempty"`
+	//挖到的币的数目
+	MinerValue           int64    `protobuf:"varint,8,opt,name=minerValue,proto3" json:"minerValue,omitempty"`
+	MinerAddress         string   `protobuf:"bytes,9,opt,name=minerAddress,proto3" json:"minerAddress,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *TicketMinerInfo) Reset()                    { *m = TicketMinerInfo{} }
-func (m *TicketMinerInfo) String() string            { return proto.CompactTextString(m) }
-func (*TicketMinerInfo) ProtoMessage()               {}
-func (*TicketMinerInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{5} }
+func (m *TicketMinerInfo) Reset()         { *m = TicketMinerInfo{} }
+func (m *TicketMinerInfo) String() string { return proto.CompactTextString(m) }
+func (*TicketMinerInfo) ProtoMessage()    {}
+func (*TicketMinerInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{5}
+}
+
+func (m *TicketMinerInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TicketMinerInfo.Unmarshal(m, b)
+}
+func (m *TicketMinerInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TicketMinerInfo.Marshal(b, m, deterministic)
+}
+func (m *TicketMinerInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TicketMinerInfo.Merge(m, src)
+}
+func (m *TicketMinerInfo) XXX_Size() int {
+	return xxx_messageInfo_TicketMinerInfo.Size(m)
+}
+func (m *TicketMinerInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_TicketMinerInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TicketMinerInfo proto.InternalMessageInfo
 
 func (m *TicketMinerInfo) GetTicketId() string {
 	if m != nil {
@@ -291,13 +438,36 @@ func (m *TicketMinerInfo) GetMinerAddress() string {
 
 type TotalAmount struct {
 	// 统计的总数
-	Total int64 `protobuf:"varint,1,opt,name=total" json:"total,omitempty"`
+	Total                int64    `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *TotalAmount) Reset()                    { *m = TotalAmount{} }
-func (m *TotalAmount) String() string            { return proto.CompactTextString(m) }
-func (*TotalAmount) ProtoMessage()               {}
-func (*TotalAmount) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{6} }
+func (m *TotalAmount) Reset()         { *m = TotalAmount{} }
+func (m *TotalAmount) String() string { return proto.CompactTextString(m) }
+func (*TotalAmount) ProtoMessage()    {}
+func (*TotalAmount) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{6}
+}
+
+func (m *TotalAmount) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TotalAmount.Unmarshal(m, b)
+}
+func (m *TotalAmount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TotalAmount.Marshal(b, m, deterministic)
+}
+func (m *TotalAmount) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TotalAmount.Merge(m, src)
+}
+func (m *TotalAmount) XXX_Size() int {
+	return xxx_messageInfo_TotalAmount.Size(m)
+}
+func (m *TotalAmount) XXX_DiscardUnknown() {
+	xxx_messageInfo_TotalAmount.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TotalAmount proto.InternalMessageInfo
 
 func (m *TotalAmount) GetTotal() int64 {
 	if m != nil {
@@ -306,21 +476,44 @@ func (m *TotalAmount) GetTotal() int64 {
 	return 0
 }
 
-// 查询symbol在合约中的代币总额，如果execAddr为空，则为查询symbol在所有合约中的代币总额
+//查询symbol在合约中的代币总额，如果execAddr为空，则为查询symbol在所有合约中的代币总额
 type ReqGetExecBalance struct {
-	Symbol    string `protobuf:"bytes,1,opt,name=symbol" json:"symbol,omitempty"`
-	StateHash []byte `protobuf:"bytes,2,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	Addr      []byte `protobuf:"bytes,3,opt,name=addr,proto3" json:"addr,omitempty"`
-	ExecAddr  []byte `protobuf:"bytes,4,opt,name=execAddr,proto3" json:"execAddr,omitempty"`
-	Execer    string `protobuf:"bytes,5,opt,name=execer" json:"execer,omitempty"`
-	Count     int64  `protobuf:"varint,6,opt,name=count" json:"count,omitempty"`
-	NextKey   []byte `protobuf:"bytes,7,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	Symbol               string   `protobuf:"bytes,1,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	StateHash            []byte   `protobuf:"bytes,2,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	Addr                 []byte   `protobuf:"bytes,3,opt,name=addr,proto3" json:"addr,omitempty"`
+	ExecAddr             []byte   `protobuf:"bytes,4,opt,name=execAddr,proto3" json:"execAddr,omitempty"`
+	Execer               string   `protobuf:"bytes,5,opt,name=execer,proto3" json:"execer,omitempty"`
+	Count                int64    `protobuf:"varint,6,opt,name=count,proto3" json:"count,omitempty"`
+	NextKey              []byte   `protobuf:"bytes,7,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ReqGetExecBalance) Reset()                    { *m = ReqGetExecBalance{} }
-func (m *ReqGetExecBalance) String() string            { return proto.CompactTextString(m) }
-func (*ReqGetExecBalance) ProtoMessage()               {}
-func (*ReqGetExecBalance) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{7} }
+func (m *ReqGetExecBalance) Reset()         { *m = ReqGetExecBalance{} }
+func (m *ReqGetExecBalance) String() string { return proto.CompactTextString(m) }
+func (*ReqGetExecBalance) ProtoMessage()    {}
+func (*ReqGetExecBalance) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{7}
+}
+
+func (m *ReqGetExecBalance) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReqGetExecBalance.Unmarshal(m, b)
+}
+func (m *ReqGetExecBalance) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReqGetExecBalance.Marshal(b, m, deterministic)
+}
+func (m *ReqGetExecBalance) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReqGetExecBalance.Merge(m, src)
+}
+func (m *ReqGetExecBalance) XXX_Size() int {
+	return xxx_messageInfo_ReqGetExecBalance.Size(m)
+}
+func (m *ReqGetExecBalance) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReqGetExecBalance.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReqGetExecBalance proto.InternalMessageInfo
 
 func (m *ReqGetExecBalance) GetSymbol() string {
 	if m != nil {
@@ -372,15 +565,38 @@ func (m *ReqGetExecBalance) GetNextKey() []byte {
 }
 
 type ExecBalanceItem struct {
-	ExecAddr []byte `protobuf:"bytes,1,opt,name=execAddr,proto3" json:"execAddr,omitempty"`
-	Frozen   int64  `protobuf:"varint,2,opt,name=frozen" json:"frozen,omitempty"`
-	Active   int64  `protobuf:"varint,3,opt,name=active" json:"active,omitempty"`
+	ExecAddr             []byte   `protobuf:"bytes,1,opt,name=execAddr,proto3" json:"execAddr,omitempty"`
+	Frozen               int64    `protobuf:"varint,2,opt,name=frozen,proto3" json:"frozen,omitempty"`
+	Active               int64    `protobuf:"varint,3,opt,name=active,proto3" json:"active,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ExecBalanceItem) Reset()                    { *m = ExecBalanceItem{} }
-func (m *ExecBalanceItem) String() string            { return proto.CompactTextString(m) }
-func (*ExecBalanceItem) ProtoMessage()               {}
-func (*ExecBalanceItem) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{8} }
+func (m *ExecBalanceItem) Reset()         { *m = ExecBalanceItem{} }
+func (m *ExecBalanceItem) String() string { return proto.CompactTextString(m) }
+func (*ExecBalanceItem) ProtoMessage()    {}
+func (*ExecBalanceItem) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{8}
+}
+
+func (m *ExecBalanceItem) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ExecBalanceItem.Unmarshal(m, b)
+}
+func (m *ExecBalanceItem) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ExecBalanceItem.Marshal(b, m, deterministic)
+}
+func (m *ExecBalanceItem) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ExecBalanceItem.Merge(m, src)
+}
+func (m *ExecBalanceItem) XXX_Size() int {
+	return xxx_messageInfo_ExecBalanceItem.Size(m)
+}
+func (m *ExecBalanceItem) XXX_DiscardUnknown() {
+	xxx_messageInfo_ExecBalanceItem.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ExecBalanceItem proto.InternalMessageInfo
 
 func (m *ExecBalanceItem) GetExecAddr() []byte {
 	if m != nil {
@@ -403,19 +619,42 @@ func (m *ExecBalanceItem) GetActive() int64 {
 	return 0
 }
 
-// 查询symbol在合约中的代币总额应答
+//查询symbol在合约中的代币总额应答
 type ReplyGetExecBalance struct {
-	Amount       int64              `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
-	AmountFrozen int64              `protobuf:"varint,2,opt,name=amountFrozen" json:"amountFrozen,omitempty"`
-	AmountActive int64              `protobuf:"varint,3,opt,name=amountActive" json:"amountActive,omitempty"`
-	NextKey      []byte             `protobuf:"bytes,4,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
-	Items        []*ExecBalanceItem `protobuf:"bytes,5,rep,name=items" json:"items,omitempty"`
+	Amount               int64              `protobuf:"varint,1,opt,name=amount,proto3" json:"amount,omitempty"`
+	AmountFrozen         int64              `protobuf:"varint,2,opt,name=amountFrozen,proto3" json:"amountFrozen,omitempty"`
+	AmountActive         int64              `protobuf:"varint,3,opt,name=amountActive,proto3" json:"amountActive,omitempty"`
+	NextKey              []byte             `protobuf:"bytes,4,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	Items                []*ExecBalanceItem `protobuf:"bytes,5,rep,name=items,proto3" json:"items,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
+	XXX_unrecognized     []byte             `json:"-"`
+	XXX_sizecache        int32              `json:"-"`
 }
 
-func (m *ReplyGetExecBalance) Reset()                    { *m = ReplyGetExecBalance{} }
-func (m *ReplyGetExecBalance) String() string            { return proto.CompactTextString(m) }
-func (*ReplyGetExecBalance) ProtoMessage()               {}
-func (*ReplyGetExecBalance) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{9} }
+func (m *ReplyGetExecBalance) Reset()         { *m = ReplyGetExecBalance{} }
+func (m *ReplyGetExecBalance) String() string { return proto.CompactTextString(m) }
+func (*ReplyGetExecBalance) ProtoMessage()    {}
+func (*ReplyGetExecBalance) Descriptor() ([]byte, []int) {
+	return fileDescriptor_405f6cee9ed2da7e, []int{9}
+}
+
+func (m *ReplyGetExecBalance) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReplyGetExecBalance.Unmarshal(m, b)
+}
+func (m *ReplyGetExecBalance) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReplyGetExecBalance.Marshal(b, m, deterministic)
+}
+func (m *ReplyGetExecBalance) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReplyGetExecBalance.Merge(m, src)
+}
+func (m *ReplyGetExecBalance) XXX_Size() int {
+	return xxx_messageInfo_ReplyGetExecBalance.Size(m)
+}
+func (m *ReplyGetExecBalance) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReplyGetExecBalance.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReplyGetExecBalance proto.InternalMessageInfo
 
 func (m *ReplyGetExecBalance) GetAmount() int64 {
 	if m != nil {
@@ -465,9 +704,9 @@ func init() {
 	proto.RegisterType((*ReplyGetExecBalance)(nil), "types.ReplyGetExecBalance")
 }
 
-func init() { proto.RegisterFile("statistic.proto", fileDescriptor8) }
+func init() { proto.RegisterFile("statistic.proto", fileDescriptor_405f6cee9ed2da7e) }
 
-var fileDescriptor8 = []byte{
+var fileDescriptor_405f6cee9ed2da7e = []byte{
 	// 637 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0xcd, 0x6e, 0xd3, 0x40,
 	0x10, 0x96, 0xeb, 0x3a, 0x4d, 0xa7, 0x95, 0x12, 0x96, 0xaa, 0x58, 0x88, 0x9f, 0xca, 0x5c, 0x2a,
