@@ -63,6 +63,7 @@ type Driver interface {
 	GetPayloadValue() types.Message
 	GetFuncMap() map[string]reflect.Method
 	GetExecutorType() types.ExecutorType
+	CheckReceiptExecOk() bool
 }
 
 // DriverBase defines driverbase type
@@ -177,6 +178,13 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 	if d.ety == nil {
 		return nil, types.ErrActionNotSupport
 	}
+
+	if d.child.CheckReceiptExecOk() {
+		if receipt.GetTy() != types.ExecOk {
+			return &types.LocalDBSet{}, nil
+		}
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			blog.Error("call localexec error", "prefix", prefix, "tx.exec", tx.Execer, "info", r)
@@ -415,4 +423,9 @@ func (d *DriverBase) GetTxs() []*types.Transaction {
 // SetTxs set transactions
 func (d *DriverBase) SetTxs(txs []*types.Transaction) {
 	d.txs = txs
+}
+
+// CheckReceiptExecOk default return true to check if receipt ty is ok, for specific plugin can overwrite it self
+func (d *DriverBase) CheckReceiptExecOk() bool {
+	return false
 }

@@ -84,3 +84,8 @@ func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bo
 	}
 	return false
 }
+
+// CheckReceiptExecOk return true to check if receipt ty is ok
+func (c *Coins) CheckReceiptExecOk() bool {
+	return true
+}
