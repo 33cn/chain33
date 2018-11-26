@@ -3,59 +3,27 @@
 
 package types
 
-import (
-	fmt "fmt"
-	math "math"
-
-	proto "github.com/golang/protobuf/proto"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
 // merkle avl tree
 type LeafNode struct {
-	Key                  []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value                []byte   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	Height               int32    `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
-	Size                 int32    `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Key    []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value  []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Height int32  `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
+	Size   int32  `protobuf:"varint,4,opt,name=size" json:"size,omitempty"`
 }
 
-func (m *LeafNode) Reset()         { *m = LeafNode{} }
-func (m *LeafNode) String() string { return proto.CompactTextString(m) }
-func (*LeafNode) ProtoMessage()    {}
-func (*LeafNode) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{0}
-}
-
-func (m *LeafNode) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_LeafNode.Unmarshal(m, b)
-}
-func (m *LeafNode) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_LeafNode.Marshal(b, m, deterministic)
-}
-func (m *LeafNode) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LeafNode.Merge(m, src)
-}
-func (m *LeafNode) XXX_Size() int {
-	return xxx_messageInfo_LeafNode.Size(m)
-}
-func (m *LeafNode) XXX_DiscardUnknown() {
-	xxx_messageInfo_LeafNode.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_LeafNode proto.InternalMessageInfo
+func (m *LeafNode) Reset()                    { *m = LeafNode{} }
+func (m *LeafNode) String() string            { return proto.CompactTextString(m) }
+func (*LeafNode) ProtoMessage()               {}
+func (*LeafNode) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{0} }
 
 func (m *LeafNode) GetKey() []byte {
 	if m != nil {
@@ -86,39 +54,16 @@ func (m *LeafNode) GetSize() int32 {
 }
 
 type InnerNode struct {
-	LeftHash             []byte   `protobuf:"bytes,1,opt,name=leftHash,proto3" json:"leftHash,omitempty"`
-	RightHash            []byte   `protobuf:"bytes,2,opt,name=rightHash,proto3" json:"rightHash,omitempty"`
-	Height               int32    `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
-	Size                 int32    `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	LeftHash  []byte `protobuf:"bytes,1,opt,name=leftHash,proto3" json:"leftHash,omitempty"`
+	RightHash []byte `protobuf:"bytes,2,opt,name=rightHash,proto3" json:"rightHash,omitempty"`
+	Height    int32  `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
+	Size      int32  `protobuf:"varint,4,opt,name=size" json:"size,omitempty"`
 }
 
-func (m *InnerNode) Reset()         { *m = InnerNode{} }
-func (m *InnerNode) String() string { return proto.CompactTextString(m) }
-func (*InnerNode) ProtoMessage()    {}
-func (*InnerNode) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{1}
-}
-
-func (m *InnerNode) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_InnerNode.Unmarshal(m, b)
-}
-func (m *InnerNode) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_InnerNode.Marshal(b, m, deterministic)
-}
-func (m *InnerNode) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_InnerNode.Merge(m, src)
-}
-func (m *InnerNode) XXX_Size() int {
-	return xxx_messageInfo_InnerNode.Size(m)
-}
-func (m *InnerNode) XXX_DiscardUnknown() {
-	xxx_messageInfo_InnerNode.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_InnerNode proto.InternalMessageInfo
+func (m *InnerNode) Reset()                    { *m = InnerNode{} }
+func (m *InnerNode) String() string            { return proto.CompactTextString(m) }
+func (*InnerNode) ProtoMessage()               {}
+func (*InnerNode) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{1} }
 
 func (m *InnerNode) GetLeftHash() []byte {
 	if m != nil {
@@ -149,38 +94,15 @@ func (m *InnerNode) GetSize() int32 {
 }
 
 type MAVLProof struct {
-	LeafHash             []byte       `protobuf:"bytes,1,opt,name=leafHash,proto3" json:"leafHash,omitempty"`
-	InnerNodes           []*InnerNode `protobuf:"bytes,2,rep,name=innerNodes,proto3" json:"innerNodes,omitempty"`
-	RootHash             []byte       `protobuf:"bytes,3,opt,name=rootHash,proto3" json:"rootHash,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+	LeafHash   []byte       `protobuf:"bytes,1,opt,name=leafHash,proto3" json:"leafHash,omitempty"`
+	InnerNodes []*InnerNode `protobuf:"bytes,2,rep,name=innerNodes" json:"innerNodes,omitempty"`
+	RootHash   []byte       `protobuf:"bytes,3,opt,name=rootHash,proto3" json:"rootHash,omitempty"`
 }
 
-func (m *MAVLProof) Reset()         { *m = MAVLProof{} }
-func (m *MAVLProof) String() string { return proto.CompactTextString(m) }
-func (*MAVLProof) ProtoMessage()    {}
-func (*MAVLProof) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{2}
-}
-
-func (m *MAVLProof) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MAVLProof.Unmarshal(m, b)
-}
-func (m *MAVLProof) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MAVLProof.Marshal(b, m, deterministic)
-}
-func (m *MAVLProof) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MAVLProof.Merge(m, src)
-}
-func (m *MAVLProof) XXX_Size() int {
-	return xxx_messageInfo_MAVLProof.Size(m)
-}
-func (m *MAVLProof) XXX_DiscardUnknown() {
-	xxx_messageInfo_MAVLProof.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_MAVLProof proto.InternalMessageInfo
+func (m *MAVLProof) Reset()                    { *m = MAVLProof{} }
+func (m *MAVLProof) String() string            { return proto.CompactTextString(m) }
+func (*MAVLProof) ProtoMessage()               {}
+func (*MAVLProof) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{2} }
 
 func (m *MAVLProof) GetLeafHash() []byte {
 	if m != nil {
@@ -204,42 +126,19 @@ func (m *MAVLProof) GetRootHash() []byte {
 }
 
 type StoreNode struct {
-	Key                  []byte   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value                []byte   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	LeftHash             []byte   `protobuf:"bytes,3,opt,name=leftHash,proto3" json:"leftHash,omitempty"`
-	RightHash            []byte   `protobuf:"bytes,4,opt,name=rightHash,proto3" json:"rightHash,omitempty"`
-	Height               int32    `protobuf:"varint,5,opt,name=height,proto3" json:"height,omitempty"`
-	Size                 int32    `protobuf:"varint,6,opt,name=size,proto3" json:"size,omitempty"`
-	ParentHash           []byte   `protobuf:"bytes,7,opt,name=parentHash,proto3" json:"parentHash,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Key        []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value      []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	LeftHash   []byte `protobuf:"bytes,3,opt,name=leftHash,proto3" json:"leftHash,omitempty"`
+	RightHash  []byte `protobuf:"bytes,4,opt,name=rightHash,proto3" json:"rightHash,omitempty"`
+	Height     int32  `protobuf:"varint,5,opt,name=height" json:"height,omitempty"`
+	Size       int32  `protobuf:"varint,6,opt,name=size" json:"size,omitempty"`
+	ParentHash []byte `protobuf:"bytes,7,opt,name=parentHash,proto3" json:"parentHash,omitempty"`
 }
 
-func (m *StoreNode) Reset()         { *m = StoreNode{} }
-func (m *StoreNode) String() string { return proto.CompactTextString(m) }
-func (*StoreNode) ProtoMessage()    {}
-func (*StoreNode) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{3}
-}
-
-func (m *StoreNode) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StoreNode.Unmarshal(m, b)
-}
-func (m *StoreNode) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StoreNode.Marshal(b, m, deterministic)
-}
-func (m *StoreNode) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoreNode.Merge(m, src)
-}
-func (m *StoreNode) XXX_Size() int {
-	return xxx_messageInfo_StoreNode.Size(m)
-}
-func (m *StoreNode) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoreNode.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoreNode proto.InternalMessageInfo
+func (m *StoreNode) Reset()                    { *m = StoreNode{} }
+func (m *StoreNode) String() string            { return proto.CompactTextString(m) }
+func (*StoreNode) ProtoMessage()               {}
+func (*StoreNode) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{3} }
 
 func (m *StoreNode) GetKey() []byte {
 	if m != nil {
@@ -291,36 +190,13 @@ func (m *StoreNode) GetParentHash() []byte {
 }
 
 type LocalDBSet struct {
-	KV                   []*KeyValue `protobuf:"bytes,2,rep,name=KV,proto3" json:"KV,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
-	XXX_unrecognized     []byte      `json:"-"`
-	XXX_sizecache        int32       `json:"-"`
+	KV []*KeyValue `protobuf:"bytes,2,rep,name=KV" json:"KV,omitempty"`
 }
 
-func (m *LocalDBSet) Reset()         { *m = LocalDBSet{} }
-func (m *LocalDBSet) String() string { return proto.CompactTextString(m) }
-func (*LocalDBSet) ProtoMessage()    {}
-func (*LocalDBSet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{4}
-}
-
-func (m *LocalDBSet) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_LocalDBSet.Unmarshal(m, b)
-}
-func (m *LocalDBSet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_LocalDBSet.Marshal(b, m, deterministic)
-}
-func (m *LocalDBSet) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LocalDBSet.Merge(m, src)
-}
-func (m *LocalDBSet) XXX_Size() int {
-	return xxx_messageInfo_LocalDBSet.Size(m)
-}
-func (m *LocalDBSet) XXX_DiscardUnknown() {
-	xxx_messageInfo_LocalDBSet.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_LocalDBSet proto.InternalMessageInfo
+func (m *LocalDBSet) Reset()                    { *m = LocalDBSet{} }
+func (m *LocalDBSet) String() string            { return proto.CompactTextString(m) }
+func (*LocalDBSet) ProtoMessage()               {}
+func (*LocalDBSet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{4} }
 
 func (m *LocalDBSet) GetKV() []*KeyValue {
 	if m != nil {
@@ -330,39 +206,16 @@ func (m *LocalDBSet) GetKV() []*KeyValue {
 }
 
 type LocalDBList struct {
-	Prefix               []byte   `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix,omitempty"`
-	Key                  []byte   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Direction            int32    `protobuf:"varint,3,opt,name=direction,proto3" json:"direction,omitempty"`
-	Count                int32    `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Prefix    []byte `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	Key       []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Direction int32  `protobuf:"varint,3,opt,name=direction" json:"direction,omitempty"`
+	Count     int32  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
 }
 
-func (m *LocalDBList) Reset()         { *m = LocalDBList{} }
-func (m *LocalDBList) String() string { return proto.CompactTextString(m) }
-func (*LocalDBList) ProtoMessage()    {}
-func (*LocalDBList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{5}
-}
-
-func (m *LocalDBList) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_LocalDBList.Unmarshal(m, b)
-}
-func (m *LocalDBList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_LocalDBList.Marshal(b, m, deterministic)
-}
-func (m *LocalDBList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LocalDBList.Merge(m, src)
-}
-func (m *LocalDBList) XXX_Size() int {
-	return xxx_messageInfo_LocalDBList.Size(m)
-}
-func (m *LocalDBList) XXX_DiscardUnknown() {
-	xxx_messageInfo_LocalDBList.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_LocalDBList proto.InternalMessageInfo
+func (m *LocalDBList) Reset()                    { *m = LocalDBList{} }
+func (m *LocalDBList) String() string            { return proto.CompactTextString(m) }
+func (*LocalDBList) ProtoMessage()               {}
+func (*LocalDBList) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{5} }
 
 func (m *LocalDBList) GetPrefix() []byte {
 	if m != nil {
@@ -393,36 +246,13 @@ func (m *LocalDBList) GetCount() int32 {
 }
 
 type LocalDBGet struct {
-	Keys                 [][]byte `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Keys [][]byte `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
 }
 
-func (m *LocalDBGet) Reset()         { *m = LocalDBGet{} }
-func (m *LocalDBGet) String() string { return proto.CompactTextString(m) }
-func (*LocalDBGet) ProtoMessage()    {}
-func (*LocalDBGet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{6}
-}
-
-func (m *LocalDBGet) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_LocalDBGet.Unmarshal(m, b)
-}
-func (m *LocalDBGet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_LocalDBGet.Marshal(b, m, deterministic)
-}
-func (m *LocalDBGet) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LocalDBGet.Merge(m, src)
-}
-func (m *LocalDBGet) XXX_Size() int {
-	return xxx_messageInfo_LocalDBGet.Size(m)
-}
-func (m *LocalDBGet) XXX_DiscardUnknown() {
-	xxx_messageInfo_LocalDBGet.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_LocalDBGet proto.InternalMessageInfo
+func (m *LocalDBGet) Reset()                    { *m = LocalDBGet{} }
+func (m *LocalDBGet) String() string            { return proto.CompactTextString(m) }
+func (*LocalDBGet) ProtoMessage()               {}
+func (*LocalDBGet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{6} }
 
 func (m *LocalDBGet) GetKeys() [][]byte {
 	if m != nil {
@@ -432,36 +262,13 @@ func (m *LocalDBGet) GetKeys() [][]byte {
 }
 
 type LocalReplyValue struct {
-	Values               [][]byte `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Values [][]byte `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
 }
 
-func (m *LocalReplyValue) Reset()         { *m = LocalReplyValue{} }
-func (m *LocalReplyValue) String() string { return proto.CompactTextString(m) }
-func (*LocalReplyValue) ProtoMessage()    {}
-func (*LocalReplyValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{7}
-}
-
-func (m *LocalReplyValue) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_LocalReplyValue.Unmarshal(m, b)
-}
-func (m *LocalReplyValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_LocalReplyValue.Marshal(b, m, deterministic)
-}
-func (m *LocalReplyValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LocalReplyValue.Merge(m, src)
-}
-func (m *LocalReplyValue) XXX_Size() int {
-	return xxx_messageInfo_LocalReplyValue.Size(m)
-}
-func (m *LocalReplyValue) XXX_DiscardUnknown() {
-	xxx_messageInfo_LocalReplyValue.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_LocalReplyValue proto.InternalMessageInfo
+func (m *LocalReplyValue) Reset()                    { *m = LocalReplyValue{} }
+func (m *LocalReplyValue) String() string            { return proto.CompactTextString(m) }
+func (*LocalReplyValue) ProtoMessage()               {}
+func (*LocalReplyValue) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{7} }
 
 func (m *LocalReplyValue) GetValues() [][]byte {
 	if m != nil {
@@ -471,38 +278,15 @@ func (m *LocalReplyValue) GetValues() [][]byte {
 }
 
 type StoreSet struct {
-	StateHash            []byte      `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	KV                   []*KeyValue `protobuf:"bytes,2,rep,name=KV,proto3" json:"KV,omitempty"`
-	Height               int64       `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
-	XXX_unrecognized     []byte      `json:"-"`
-	XXX_sizecache        int32       `json:"-"`
+	StateHash []byte      `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	KV        []*KeyValue `protobuf:"bytes,2,rep,name=KV" json:"KV,omitempty"`
+	Height    int64       `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
 }
 
-func (m *StoreSet) Reset()         { *m = StoreSet{} }
-func (m *StoreSet) String() string { return proto.CompactTextString(m) }
-func (*StoreSet) ProtoMessage()    {}
-func (*StoreSet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{8}
-}
-
-func (m *StoreSet) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StoreSet.Unmarshal(m, b)
-}
-func (m *StoreSet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StoreSet.Marshal(b, m, deterministic)
-}
-func (m *StoreSet) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoreSet.Merge(m, src)
-}
-func (m *StoreSet) XXX_Size() int {
-	return xxx_messageInfo_StoreSet.Size(m)
-}
-func (m *StoreSet) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoreSet.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoreSet proto.InternalMessageInfo
+func (m *StoreSet) Reset()                    { *m = StoreSet{} }
+func (m *StoreSet) String() string            { return proto.CompactTextString(m) }
+func (*StoreSet) ProtoMessage()               {}
+func (*StoreSet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{8} }
 
 func (m *StoreSet) GetStateHash() []byte {
 	if m != nil {
@@ -526,37 +310,14 @@ func (m *StoreSet) GetHeight() int64 {
 }
 
 type StoreDel struct {
-	StateHash            []byte   `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	Height               int64    `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	StateHash []byte `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	Height    int64  `protobuf:"varint,2,opt,name=height" json:"height,omitempty"`
 }
 
-func (m *StoreDel) Reset()         { *m = StoreDel{} }
-func (m *StoreDel) String() string { return proto.CompactTextString(m) }
-func (*StoreDel) ProtoMessage()    {}
-func (*StoreDel) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{9}
-}
-
-func (m *StoreDel) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StoreDel.Unmarshal(m, b)
-}
-func (m *StoreDel) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StoreDel.Marshal(b, m, deterministic)
-}
-func (m *StoreDel) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoreDel.Merge(m, src)
-}
-func (m *StoreDel) XXX_Size() int {
-	return xxx_messageInfo_StoreDel.Size(m)
-}
-func (m *StoreDel) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoreDel.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoreDel proto.InternalMessageInfo
+func (m *StoreDel) Reset()                    { *m = StoreDel{} }
+func (m *StoreDel) String() string            { return proto.CompactTextString(m) }
+func (*StoreDel) ProtoMessage()               {}
+func (*StoreDel) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{9} }
 
 func (m *StoreDel) GetStateHash() []byte {
 	if m != nil {
@@ -573,37 +334,14 @@ func (m *StoreDel) GetHeight() int64 {
 }
 
 type StoreSetWithSync struct {
-	Storeset             *StoreSet `protobuf:"bytes,1,opt,name=storeset,proto3" json:"storeset,omitempty"`
-	Sync                 bool      `protobuf:"varint,2,opt,name=sync,proto3" json:"sync,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
-	XXX_unrecognized     []byte    `json:"-"`
-	XXX_sizecache        int32     `json:"-"`
+	Storeset *StoreSet `protobuf:"bytes,1,opt,name=storeset" json:"storeset,omitempty"`
+	Sync     bool      `protobuf:"varint,2,opt,name=sync" json:"sync,omitempty"`
 }
 
-func (m *StoreSetWithSync) Reset()         { *m = StoreSetWithSync{} }
-func (m *StoreSetWithSync) String() string { return proto.CompactTextString(m) }
-func (*StoreSetWithSync) ProtoMessage()    {}
-func (*StoreSetWithSync) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{10}
-}
-
-func (m *StoreSetWithSync) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StoreSetWithSync.Unmarshal(m, b)
-}
-func (m *StoreSetWithSync) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StoreSetWithSync.Marshal(b, m, deterministic)
-}
-func (m *StoreSetWithSync) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoreSetWithSync.Merge(m, src)
-}
-func (m *StoreSetWithSync) XXX_Size() int {
-	return xxx_messageInfo_StoreSetWithSync.Size(m)
-}
-func (m *StoreSetWithSync) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoreSetWithSync.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoreSetWithSync proto.InternalMessageInfo
+func (m *StoreSetWithSync) Reset()                    { *m = StoreSetWithSync{} }
+func (m *StoreSetWithSync) String() string            { return proto.CompactTextString(m) }
+func (*StoreSetWithSync) ProtoMessage()               {}
+func (*StoreSetWithSync) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{10} }
 
 func (m *StoreSetWithSync) GetStoreset() *StoreSet {
 	if m != nil {
@@ -620,37 +358,14 @@ func (m *StoreSetWithSync) GetSync() bool {
 }
 
 type StoreGet struct {
-	StateHash            []byte   `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	Keys                 [][]byte `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	StateHash []byte   `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	Keys      [][]byte `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
 }
 
-func (m *StoreGet) Reset()         { *m = StoreGet{} }
-func (m *StoreGet) String() string { return proto.CompactTextString(m) }
-func (*StoreGet) ProtoMessage()    {}
-func (*StoreGet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{11}
-}
-
-func (m *StoreGet) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StoreGet.Unmarshal(m, b)
-}
-func (m *StoreGet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StoreGet.Marshal(b, m, deterministic)
-}
-func (m *StoreGet) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoreGet.Merge(m, src)
-}
-func (m *StoreGet) XXX_Size() int {
-	return xxx_messageInfo_StoreGet.Size(m)
-}
-func (m *StoreGet) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoreGet.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoreGet proto.InternalMessageInfo
+func (m *StoreGet) Reset()                    { *m = StoreGet{} }
+func (m *StoreGet) String() string            { return proto.CompactTextString(m) }
+func (*StoreGet) ProtoMessage()               {}
+func (*StoreGet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{11} }
 
 func (m *StoreGet) GetStateHash() []byte {
 	if m != nil {
@@ -667,36 +382,13 @@ func (m *StoreGet) GetKeys() [][]byte {
 }
 
 type StoreReplyValue struct {
-	Values               [][]byte `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Values [][]byte `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
 }
 
-func (m *StoreReplyValue) Reset()         { *m = StoreReplyValue{} }
-func (m *StoreReplyValue) String() string { return proto.CompactTextString(m) }
-func (*StoreReplyValue) ProtoMessage()    {}
-func (*StoreReplyValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{12}
-}
-
-func (m *StoreReplyValue) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StoreReplyValue.Unmarshal(m, b)
-}
-func (m *StoreReplyValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StoreReplyValue.Marshal(b, m, deterministic)
-}
-func (m *StoreReplyValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoreReplyValue.Merge(m, src)
-}
-func (m *StoreReplyValue) XXX_Size() int {
-	return xxx_messageInfo_StoreReplyValue.Size(m)
-}
-func (m *StoreReplyValue) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoreReplyValue.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoreReplyValue proto.InternalMessageInfo
+func (m *StoreReplyValue) Reset()                    { *m = StoreReplyValue{} }
+func (m *StoreReplyValue) String() string            { return proto.CompactTextString(m) }
+func (*StoreReplyValue) ProtoMessage()               {}
+func (*StoreReplyValue) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{12} }
 
 func (m *StoreReplyValue) GetValues() [][]byte {
 	if m != nil {
@@ -706,41 +398,18 @@ func (m *StoreReplyValue) GetValues() [][]byte {
 }
 
 type StoreList struct {
-	StateHash            []byte   `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	Start                []byte   `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
-	End                  []byte   `protobuf:"bytes,3,opt,name=end,proto3" json:"end,omitempty"`
-	Suffix               []byte   `protobuf:"bytes,4,opt,name=suffix,proto3" json:"suffix,omitempty"`
-	Count                int64    `protobuf:"varint,5,opt,name=count,proto3" json:"count,omitempty"`
-	Mode                 int64    `protobuf:"varint,6,opt,name=mode,proto3" json:"mode,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	StateHash []byte `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	Start     []byte `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
+	End       []byte `protobuf:"bytes,3,opt,name=end,proto3" json:"end,omitempty"`
+	Suffix    []byte `protobuf:"bytes,4,opt,name=suffix,proto3" json:"suffix,omitempty"`
+	Count     int64  `protobuf:"varint,5,opt,name=count" json:"count,omitempty"`
+	Mode      int64  `protobuf:"varint,6,opt,name=mode" json:"mode,omitempty"`
 }
 
-func (m *StoreList) Reset()         { *m = StoreList{} }
-func (m *StoreList) String() string { return proto.CompactTextString(m) }
-func (*StoreList) ProtoMessage()    {}
-func (*StoreList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{13}
-}
-
-func (m *StoreList) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StoreList.Unmarshal(m, b)
-}
-func (m *StoreList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StoreList.Marshal(b, m, deterministic)
-}
-func (m *StoreList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoreList.Merge(m, src)
-}
-func (m *StoreList) XXX_Size() int {
-	return xxx_messageInfo_StoreList.Size(m)
-}
-func (m *StoreList) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoreList.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoreList proto.InternalMessageInfo
+func (m *StoreList) Reset()                    { *m = StoreList{} }
+func (m *StoreList) String() string            { return proto.CompactTextString(m) }
+func (*StoreList) ProtoMessage()               {}
+func (*StoreList) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{13} }
 
 func (m *StoreList) GetStateHash() []byte {
 	if m != nil {
@@ -785,44 +454,21 @@ func (m *StoreList) GetMode() int64 {
 }
 
 type StoreListReply struct {
-	Start                []byte   `protobuf:"bytes,1,opt,name=start,proto3" json:"start,omitempty"`
-	End                  []byte   `protobuf:"bytes,2,opt,name=end,proto3" json:"end,omitempty"`
-	Suffix               []byte   `protobuf:"bytes,3,opt,name=suffix,proto3" json:"suffix,omitempty"`
-	Count                int64    `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
-	Num                  int64    `protobuf:"varint,5,opt,name=num,proto3" json:"num,omitempty"`
-	Mode                 int64    `protobuf:"varint,6,opt,name=mode,proto3" json:"mode,omitempty"`
-	NextKey              []byte   `protobuf:"bytes,7,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
-	Keys                 [][]byte `protobuf:"bytes,8,rep,name=keys,proto3" json:"keys,omitempty"`
-	Values               [][]byte `protobuf:"bytes,9,rep,name=values,proto3" json:"values,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Start   []byte   `protobuf:"bytes,1,opt,name=start,proto3" json:"start,omitempty"`
+	End     []byte   `protobuf:"bytes,2,opt,name=end,proto3" json:"end,omitempty"`
+	Suffix  []byte   `protobuf:"bytes,3,opt,name=suffix,proto3" json:"suffix,omitempty"`
+	Count   int64    `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	Num     int64    `protobuf:"varint,5,opt,name=num" json:"num,omitempty"`
+	Mode    int64    `protobuf:"varint,6,opt,name=mode" json:"mode,omitempty"`
+	NextKey []byte   `protobuf:"bytes,7,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	Keys    [][]byte `protobuf:"bytes,8,rep,name=keys,proto3" json:"keys,omitempty"`
+	Values  [][]byte `protobuf:"bytes,9,rep,name=values,proto3" json:"values,omitempty"`
 }
 
-func (m *StoreListReply) Reset()         { *m = StoreListReply{} }
-func (m *StoreListReply) String() string { return proto.CompactTextString(m) }
-func (*StoreListReply) ProtoMessage()    {}
-func (*StoreListReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{14}
-}
-
-func (m *StoreListReply) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StoreListReply.Unmarshal(m, b)
-}
-func (m *StoreListReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StoreListReply.Marshal(b, m, deterministic)
-}
-func (m *StoreListReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoreListReply.Merge(m, src)
-}
-func (m *StoreListReply) XXX_Size() int {
-	return xxx_messageInfo_StoreListReply.Size(m)
-}
-func (m *StoreListReply) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoreListReply.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoreListReply proto.InternalMessageInfo
+func (m *StoreListReply) Reset()                    { *m = StoreListReply{} }
+func (m *StoreListReply) String() string            { return proto.CompactTextString(m) }
+func (*StoreListReply) ProtoMessage()               {}
+func (*StoreListReply) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{14} }
 
 func (m *StoreListReply) GetStart() []byte {
 	if m != nil {
@@ -889,38 +535,15 @@ func (m *StoreListReply) GetValues() [][]byte {
 
 type PruneData struct {
 	// 对应keyHash下的区块高度
-	Height int64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	Height int64 `protobuf:"varint,1,opt,name=height" json:"height,omitempty"`
 	// hash+prefix的长度
-	Lenth                int32    `protobuf:"varint,2,opt,name=lenth,proto3" json:"lenth,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Lenth int32 `protobuf:"varint,2,opt,name=lenth" json:"lenth,omitempty"`
 }
 
-func (m *PruneData) Reset()         { *m = PruneData{} }
-func (m *PruneData) String() string { return proto.CompactTextString(m) }
-func (*PruneData) ProtoMessage()    {}
-func (*PruneData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{15}
-}
-
-func (m *PruneData) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_PruneData.Unmarshal(m, b)
-}
-func (m *PruneData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_PruneData.Marshal(b, m, deterministic)
-}
-func (m *PruneData) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PruneData.Merge(m, src)
-}
-func (m *PruneData) XXX_Size() int {
-	return xxx_messageInfo_PruneData.Size(m)
-}
-func (m *PruneData) XXX_DiscardUnknown() {
-	xxx_messageInfo_PruneData.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_PruneData proto.InternalMessageInfo
+func (m *PruneData) Reset()                    { *m = PruneData{} }
+func (m *PruneData) String() string            { return proto.CompactTextString(m) }
+func (*PruneData) ProtoMessage()               {}
+func (*PruneData) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{15} }
 
 func (m *PruneData) GetHeight() int64 {
 	if m != nil {
@@ -936,38 +559,15 @@ func (m *PruneData) GetLenth() int32 {
 	return 0
 }
 
-//用于存储db Pool数据的Value
+// 用于存储db Pool数据的Value
 type StoreValuePool struct {
-	Values               [][]byte `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Values [][]byte `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
 }
 
-func (m *StoreValuePool) Reset()         { *m = StoreValuePool{} }
-func (m *StoreValuePool) String() string { return proto.CompactTextString(m) }
-func (*StoreValuePool) ProtoMessage()    {}
-func (*StoreValuePool) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8817812184a13374, []int{16}
-}
-
-func (m *StoreValuePool) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StoreValuePool.Unmarshal(m, b)
-}
-func (m *StoreValuePool) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StoreValuePool.Marshal(b, m, deterministic)
-}
-func (m *StoreValuePool) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoreValuePool.Merge(m, src)
-}
-func (m *StoreValuePool) XXX_Size() int {
-	return xxx_messageInfo_StoreValuePool.Size(m)
-}
-func (m *StoreValuePool) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoreValuePool.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoreValuePool proto.InternalMessageInfo
+func (m *StoreValuePool) Reset()                    { *m = StoreValuePool{} }
+func (m *StoreValuePool) String() string            { return proto.CompactTextString(m) }
+func (*StoreValuePool) ProtoMessage()               {}
+func (*StoreValuePool) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{16} }
 
 func (m *StoreValuePool) GetValues() [][]byte {
 	if m != nil {
@@ -996,9 +596,9 @@ func init() {
 	proto.RegisterType((*StoreValuePool)(nil), "types.StoreValuePool")
 }
 
-func init() { proto.RegisterFile("db.proto", fileDescriptor_8817812184a13374) }
+func init() { proto.RegisterFile("db.proto", fileDescriptor3) }
 
-var fileDescriptor_8817812184a13374 = []byte{
+var fileDescriptor3 = []byte{
 	// 647 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x55, 0xdd, 0x6a, 0xdb, 0x4c,
 	0x10, 0x45, 0x92, 0x95, 0x48, 0x93, 0xf0, 0xc5, 0x88, 0xf0, 0x61, 0x42, 0xda, 0x18, 0x5d, 0xb9,
