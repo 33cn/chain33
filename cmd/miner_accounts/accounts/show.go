@@ -102,7 +102,6 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	miner = calcIncrease(miner, curAcc, lastAcc, header)
 	*out = &miner
 
-	seconds = seconds - statInterval
 	//}
 
 	return nil

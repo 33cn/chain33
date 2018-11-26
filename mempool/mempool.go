@@ -513,7 +513,7 @@ func (mem *Mempool) getSync() {
 			panic("client not bind message queue.")
 		}
 		msg := mem.client.NewMessage("blockchain", types.EventIsSync, nil)
-		err := mem.client.Send(msg, true)
+		mem.client.Send(msg, true)
 		resp, err := mem.client.Wait(msg)
 		if err != nil {
 			time.Sleep(time.Second)

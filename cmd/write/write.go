@@ -195,12 +195,12 @@ func scanWrite() {
 				Expire: "0",
 			}
 			var signed string
-			err = rpc.Call("Chain33.SignRawTx", paramsReqSignRawTx, &signed)
+			rpc.Call("Chain33.SignRawTx", paramsReqSignRawTx, &signed)
 			paramsRaw := rpctypes.RawParm{
 				Data: signed,
 			}
 			var sent string
-			err = rpc.Call("Chain33.SendTransaction", paramsRaw, &sent)
+			rpc.Call("Chain33.SendTransaction", paramsRaw, &sent)
 			f, _ := os.OpenFile(heightFile, os.O_RDWR, 0666)
 			height := strconv.FormatInt(currentHeight, 10)
 			index := strconv.FormatInt(currentIndex, 10)

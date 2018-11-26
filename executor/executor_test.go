@@ -184,5 +184,5 @@ func TestKeyLocalAllow(t *testing.T) {
 	assert.Equal(t, err, types.ErrLocalPrefix)
 	err = isAllowLocalKey([]byte("exec"), []byte("-exec------aa"))
 	assert.Equal(t, err, types.ErrLocalPrefix)
-	err = isAllowLocalKey([]byte("paracross"), []byte("LODB-user.p.para.paracross-xxxx"))
+	isAllowLocalKey([]byte("paracross"), []byte("LODB-user.p.para.paracross-xxxx"))
 }

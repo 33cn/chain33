@@ -190,8 +190,6 @@ func abs(t time.Duration) time.Duration {
 }
 
 func maxSubList(list []time.Duration) (sub []time.Duration) {
-	start := 0
-	end := 0
 	if len(list) == 0 {
 		return list
 	}
@@ -202,6 +200,8 @@ func maxSubList(list []time.Duration) (sub []time.Duration) {
 		} else {
 			nextheight = list[i+1]
 		}
+		var start int
+		var end int
 		if abs(nextheight-list[i]) > time.Millisecond*100 {
 			end = i + 1
 			if len(sub) < (end - start) {

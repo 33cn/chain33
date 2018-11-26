@@ -258,7 +258,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	}
 
 	//首先校验label是否已被使用
-	WalletAccStores, err := wallet.walletStore.GetAccountByLabel(Label.GetLabel())
+	WalletAccStores, _ := wallet.walletStore.GetAccountByLabel(Label.GetLabel())
 	if WalletAccStores != nil {
 		walletlog.Error("ProcCreateNewAccount Label is exist in wallet!")
 		return nil, types.ErrLabelHasUsed
@@ -310,7 +310,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 		}
 		//通过新生成的账户地址查询钱包数据库，如果查询返回的账户信息是空，
 		//说明新生成的账户没有被使用，否则继续使用下一个index生成私钥对
-		account, err := wallet.walletStore.GetAccountByAddr(addr)
+		account, _ := wallet.walletStore.GetAccountByAddr(addr)
 		if account == nil {
 			break
 		}
@@ -417,7 +417,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 	}
 
 	//校验label是否已经被使用
-	Account, err := wallet.walletStore.GetAccountByLabel(PrivKey.GetLabel())
+	Account, _ := wallet.walletStore.GetAccountByLabel(PrivKey.GetLabel())
 	if Account != nil {
 		walletlog.Error("ProcImportPrivKey Label is exist in wallet!")
 		return nil, types.ErrLabelHasUsed
@@ -453,7 +453,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 	Encryptered := wcom.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
 	Encrypteredstr := common.ToHex(Encryptered)
 	//校验PrivKey对应的addr是否已经存在钱包中
-	Account, err = wallet.walletStore.GetAccountByAddr(addr)
+	Account, _ = wallet.walletStore.GetAccountByAddr(addr)
 	if Account != nil {
 		if Account.Privkey == Encrypteredstr {
 			walletlog.Error("ProcImportPrivKey Privkey is exist in wallet!")
@@ -613,13 +613,13 @@ func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*ty
 		return nil, types.ErrInvalidParam
 	}
 	//校验label是否已经被使用
-	Account, err := wallet.walletStore.GetAccountByLabel(SetLabel.GetLabel())
+	Account, _ := wallet.walletStore.GetAccountByLabel(SetLabel.GetLabel())
 	if Account != nil {
 		walletlog.Error("ProcWalletSetLabel Label is exist in wallet!")
 		return nil, types.ErrLabelHasUsed
 	}
 	//获取地址对应的账户信息从钱包中,然后修改label
-	Account, err = wallet.walletStore.GetAccountByAddr(SetLabel.Addr)
+	Account, err := wallet.walletStore.GetAccountByAddr(SetLabel.Addr)
 	if err == nil && Account != nil {
 		oldLabel := Account.Label
 		Account.Label = SetLabel.GetLabel()
@@ -1177,7 +1177,7 @@ func (wallet *Wallet) SaveSeed(password string, seed string) (bool, error) {
 func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 
 	//首先需要判断钱包是否已经设置seed，如果已经设置提示不需要再设置，一个钱包只能保存一个seed
-	exit, err := wallet.walletStore.HasSeed()
+	exit, _ := wallet.walletStore.HasSeed()
 	if exit {
 		return false, types.ErrSeedExist
 	}

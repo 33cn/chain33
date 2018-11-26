@@ -369,7 +369,7 @@ func (r *ReceiptData) DecodeReceiptLog(execer []byte) (*ReceiptDataResult, error
 			return nil, ErrLogType
 		}
 
-		logIns, err = logType.Decode(lLog)
+		logIns, _ = logType.Decode(lLog)
 		lTy = logType.Name()
 
 		result.Logs = append(result.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: common.ToHex(l.GetLog())})

@@ -443,7 +443,7 @@ func mergeCfgString(cfgstring, cfgdefault string) string {
 		panic(errstr)
 	}
 	buf := new(bytes.Buffer)
-	err = tml.NewEncoder(buf).Encode(conf)
+	tml.NewEncoder(buf).Encode(conf)
 	return buf.String()
 }
 
