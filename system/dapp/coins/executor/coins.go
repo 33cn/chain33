@@ -17,6 +17,7 @@ EventTransfer -> 转移资产
 
 import (
 	drivers "github.com/33cn/chain33/system/dapp"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -59,8 +60,32 @@ func (c *Coins) GetDriverName() string {
 	return driverName
 }
 
-// CheckTx check transaction
+// CheckTx check transaction amount 必须不能为负数
 func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
+	var action cty.CoinsAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return err
+	}
+	var amount int64
+	if action.Ty == cty.CoinsActionTransfer && action.GetTransfer() != nil {
+		transfer := action.GetTransfer()
+		amount = transfer.GetAmount()
+	} else if action.Ty == cty.CoinsActionGenesis && action.GetGenesis() != nil {
+		transfer := action.GetGenesis()
+		amount = transfer.GetAmount()
+	} else if action.Ty == cty.CoinsActionWithdraw && action.GetWithdraw() != nil {
+		transfer := action.GetWithdraw()
+		amount = transfer.GetAmount()
+	} else if action.Ty == cty.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		transfer := action.GetTransferToExec()
+		amount = transfer.GetAmount()
+	} else {
+		return nil
+	}
+	if amount < 0 {
+		return types.ErrAmount
+	}
 	return nil
 }
 
