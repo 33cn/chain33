@@ -76,7 +76,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
-	if float64(types.MaxCoin / types.Coin) < amount {
+	if float64(types.MaxCoin/types.Coin) < amount {
 		return "", types.ErrAmount
 	}
 	paraName, _ := cmd.Flags().GetString("paraName")
