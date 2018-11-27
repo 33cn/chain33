@@ -897,7 +897,7 @@ func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 
 // Version version
 func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
-	*result = version.GetVersion()
+	*result = types.GetTitle() + "-app:" + version.GetAppVersion() + " chain33:" + version.GetVersion() + " localdb:" + version.GetLocalDBVersion()
 	return nil
 }
 
