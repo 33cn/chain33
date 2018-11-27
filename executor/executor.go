@@ -138,6 +138,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	db := NewStateDB(exec.client, data.StateHash, localdb, opt)
 	db.(*StateDB).enableMVCC()
 	driver.SetStateDB(db)
+	driver.SetAPI(exec.qclient)
 
 	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
 
