@@ -378,8 +378,7 @@ func (dbit *ssDBIt) findInPage(key string) int {
 
 func (dbit *ssDBIt) Seek(key []byte) bool {
 	keyStr := string(key)
-	pos := -1
-	pos = dbit.findInPage(keyStr)
+	pos := dbit.findInPage(keyStr)
 
 	// 如果第一页已经找到，不会走入此逻辑
 	for pos == -1 && dbit.nextPage {

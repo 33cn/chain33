@@ -372,8 +372,7 @@ func (dbit *PegasusIt) findInPage(key []byte) int {
 
 //Seek 查找
 func (dbit *PegasusIt) Seek(key []byte) bool {
-	pos := -1
-	pos = dbit.findInPage(key)
+	pos := dbit.findInPage(key)
 
 	// 如果第一页已经找到，不会走入此逻辑
 	for pos == -1 && dbit.nextPage {

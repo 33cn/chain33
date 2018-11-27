@@ -36,7 +36,7 @@ var closeCmd = &cobra.Command{
 		//		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
 		//		rpc.Call("Chain33.CloseQueue", nil, nil)
 		var res rpctypes.Reply
-		ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
 		ctx.Run()
 	},
 }

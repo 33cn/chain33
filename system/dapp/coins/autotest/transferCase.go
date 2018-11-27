@@ -7,12 +7,12 @@ package autotest
 import (
 	"strconv"
 
-	. "github.com/33cn/chain33/cmd/autotest/types"
+	"github.com/33cn/chain33/cmd/autotest/types"
 )
 
 // TransferCase transfer case
 type TransferCase struct {
-	BaseCase
+	types.BaseCase
 	From   string `toml:"from"`
 	To     string `toml:"to"`
 	Amount string `toml:"amount"`
@@ -20,19 +20,19 @@ type TransferCase struct {
 
 // TransferPack transfer pack
 type TransferPack struct {
-	BaseCasePack
+	types.BaseCasePack
 }
 
 // SendCommand sed command
-func (testCase *TransferCase) SendCommand(packID string) (PackFunc, error) {
+func (testCase *TransferCase) SendCommand(packID string) (types.PackFunc, error) {
 
-	return DefaultSend(testCase, &TransferPack{}, packID)
+	return types.DefaultSend(testCase, &TransferPack{}, packID)
 }
 
 // GetCheckHandlerMap get check handle for map
 func (pack *TransferPack) GetCheckHandlerMap() interface{} {
 
-	funcMap := make(CheckHandlerMapDiscard, 2)
+	funcMap := make(types.CheckHandlerMapDiscard, 2)
 	funcMap["balance"] = pack.checkBalance
 
 	return funcMap
@@ -61,10 +61,10 @@ func (pack *TransferPack) checkBalance(txInfo map[string]interface{}) bool {
 	//transfer to contract, deposit
 	if len(logArr) == 4 {
 		logDeposit := logArr[3].(map[string]interface{})["log"].(map[string]interface{})
-		depositCheck = CheckBalanceDeltaWithAddr(logDeposit, interCase.From, Amount)
+		depositCheck = types.CheckBalanceDeltaWithAddr(logDeposit, interCase.From, Amount)
 	}
 
-	return CheckBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
-		CheckBalanceDeltaWithAddr(logSend, interCase.From, -Amount) &&
-		CheckBalanceDeltaWithAddr(logRecv, interCase.To, Amount) && depositCheck
+	return types.CheckBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
+		types.CheckBalanceDeltaWithAddr(logSend, interCase.From, -Amount) &&
+		types.CheckBalanceDeltaWithAddr(logRecv, interCase.To, Amount) && depositCheck
 }

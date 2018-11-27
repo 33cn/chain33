@@ -44,7 +44,7 @@ func GetPeerInfoCmd() *cobra.Command {
 func peerInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.PeerList
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetPeerInfo", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetPeerInfo", nil, &res)
 	ctx.Run()
 }
 
@@ -61,7 +61,7 @@ func IsClockSyncCmd() *cobra.Command {
 func isClockSync(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res bool
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.IsNtpClockSync", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.IsNtpClockSync", nil, &res)
 	ctx.Run()
 }
 
@@ -78,7 +78,7 @@ func IsSyncCmd() *cobra.Command {
 func isSync(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res bool
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.IsSync", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.IsSync", nil, &res)
 	ctx.Run()
 }
 
@@ -95,7 +95,7 @@ func GetNetInfoCmd() *cobra.Command {
 func netInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.NodeNetinfo
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetNetInfo", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetNetInfo", nil, &res)
 	ctx.Run()
 }
 
@@ -112,7 +112,7 @@ func GetFatalFailureCmd() *cobra.Command {
 func fatalFailure(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res int64
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetFatalFailure", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetFatalFailure", nil, &res)
 	ctx.Run()
 }
 
@@ -129,6 +129,6 @@ func GetTimeStausCmd() *cobra.Command {
 func timestatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.TimeStatus
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetTimeStatus", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetTimeStatus", nil, &res)
 	ctx.Run()
 }

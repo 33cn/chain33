@@ -116,7 +116,7 @@ func (c *SDBClient) Get(key string) (*Value, error) {
 	}
 
 	if len(resp) == 0 {
-		return nil, newError("ssdb respone error")
+		return nil, newError("ssdb response error")
 	}
 
 	if len(resp) == 2 && resp[0] == OK {
@@ -336,7 +336,6 @@ func (c *SDBClient) send(args []interface{}) error {
 	return nil
 }
 func (c *SDBClient) recv() (resp []string, err error) {
-	bufSize := 0
 	packetBuf := []byte{}
 	//设置读取数据超时，
 	if err = c.sock.SetReadDeadline(time.Now().Add(time.Second * ReadTimeOut)); err != nil {
@@ -345,7 +344,7 @@ func (c *SDBClient) recv() (resp []string, err error) {
 	//数据包分解，发现长度，找到结尾，循环发现，发现空行，结束
 	readBuf := make([]byte, ReadBufSize)
 	for {
-		bufSize, err = c.sock.Read(readBuf)
+		bufSize, err := c.sock.Read(readBuf)
 		if err != nil {
 			return nil, newErrorf(err, "client socket read error")
 		}
@@ -359,7 +358,7 @@ func (c *SDBClient) recv() (resp []string, err error) {
 			if n == -1 {
 				break
 			} else if n == -2 {
-				return
+				return nil, newErrorf(err, "parse error")
 			} else {
 				resp = append(resp, rsp)
 				packetBuf = packetBuf[n+1:]
@@ -370,7 +369,6 @@ func (c *SDBClient) recv() (resp []string, err error) {
 
 func (c *SDBClient) parse(buf []byte) (resp string, size int) {
 	n := bytes.IndexByte(buf, ENDN)
-	blockSize := -1
 	size = -1
 	if n != -1 {
 		if n == 0 || n == 1 && buf[0] == ENDR { //空行，说明一个数据包结束
@@ -378,7 +376,7 @@ func (c *SDBClient) parse(buf []byte) (resp string, size int) {
 			return
 		}
 		//数据包开始，包长度解析
-		blockSize = ToNum(buf[:n])
+		blockSize := ToNum(buf[:n])
 		bufSize := len(buf)
 
 		if n+blockSize < bufSize {
@@ -402,7 +400,7 @@ func (c *SDBClient) Close() error {
 //生成通过的错误信息，已经确定是有错误
 func makeError(resp []string, errKey ...interface{}) error {
 	if len(resp) < 1 {
-		return newError("ssdb respone error")
+		return newError("ssdb response error")
 	}
 	//正常返回的不存在不报错，如果要捕捉这个问题请使用exists
 	if resp[0] == NotFound {

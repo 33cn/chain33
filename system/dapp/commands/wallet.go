@@ -14,7 +14,7 @@ import (
 
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	. "github.com/33cn/chain33/system/dapp/commands/types"
+	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
@@ -57,7 +57,7 @@ func LockCmd() *cobra.Command {
 func lock(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Lock", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Lock", nil, &res)
 	ctx.Run()
 }
 
@@ -102,7 +102,7 @@ func unLock(cmd *cobra.Command, args []string) {
 		WalletOrTicket: walletOrTicket,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.UnLock", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.UnLock", params, &res)
 	ctx.Run()
 }
 
@@ -119,7 +119,7 @@ func WalletStatusCmd() *cobra.Command {
 func walletStatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.WalletStatus
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetWalletStatus", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetWalletStatus", nil, &res)
 	ctx.Run()
 }
 
@@ -151,7 +151,7 @@ func setPwd(cmd *cobra.Command, args []string) {
 		NewPass: newPwd,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)
 	ctx.Run()
 }
 
@@ -187,18 +187,18 @@ func walletListTxs(cmd *cobra.Command, args []string) {
 		Direction: direction,
 	}
 	var res rpctypes.WalletTxDetails
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
 	ctx.SetResultCb(parseWalletTxListRes)
 	ctx.Run()
 }
 
 func parseWalletTxListRes(arg interface{}) (interface{}, error) {
 	res := arg.(*rpctypes.WalletTxDetails)
-	var result WalletTxDetailsResult
+	var result commandtypes.WalletTxDetailsResult
 	for _, v := range res.TxDetails {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
-		wtxd := &WalletTxDetailResult{
-			Tx:         DecodeTransaction(v.Tx),
+		wtxd := &commandtypes.WalletTxDetailResult{
+			Tx:         commandtypes.DecodeTransaction(v.Tx),
 			Receipt:    v.Receipt,
 			Height:     v.Height,
 			Index:      v.Index,
@@ -236,7 +236,7 @@ func mergeBalance(cmd *cobra.Command, args []string) {
 		To: toAddr,
 	}
 	var res rpctypes.ReplyHashes
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.MergeBalance", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.MergeBalance", params, &res)
 	ctx.Run()
 }
 
@@ -269,7 +269,7 @@ func autoMine(cmd *cobra.Command, args []string) {
 		Flag: flag,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "ticket.SetAutoMining", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "ticket.SetAutoMining", params, &res)
 	ctx.Run()
 }
 
@@ -338,7 +338,7 @@ func noBalanceTx(cmd *cobra.Command, args []string) {
 		Expire:  expire,
 		Privkey: privkey,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateNoBalanceTransaction", params, nil)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CreateNoBalanceTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -414,7 +414,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		Expire:  expire,
 		Index:   index,
 	}
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -442,7 +442,7 @@ func setFee(cmd *cobra.Command, args []string) {
 		Amount: amountInt64 * 1e4,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
 	ctx.Run()
 }
 
@@ -473,6 +473,6 @@ func sendTx(cmd *cobra.Command, args []string) {
 		Data:  data,
 	}
 
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }

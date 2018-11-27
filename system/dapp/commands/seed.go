@@ -51,7 +51,7 @@ func genSeed(cmd *cobra.Command, args []string) {
 		Lang: lang,
 	}
 	var res types.ReplySeed
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
 	ctx.Run()
 }
 
@@ -78,7 +78,7 @@ func getSeed(cmd *cobra.Command, args []string) {
 		Passwd: pwd,
 	}
 	var res types.ReplySeed
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetSeed", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetSeed", params, &res)
 	ctx.Run()
 }
 
@@ -94,7 +94,7 @@ func SaveSeedCmd() *cobra.Command {
 }
 
 func addSaveSeedFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("seed", "s", "", "15 seed characters seperated by space")
+	cmd.Flags().StringP("seed", "s", "", "15 seed characters separated by space")
 	cmd.MarkFlagRequired("seed")
 
 	cmd.Flags().StringP("pwd", "p", "", "password used to encrypt seed")
@@ -110,6 +110,6 @@ func saveSeed(cmd *cobra.Command, args []string) {
 		Passwd: pwd,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
 	ctx.Run()
 }

@@ -19,7 +19,7 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/difficulty"
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	. "github.com/33cn/chain33/system/dapp/commands/types"
+	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
@@ -111,7 +111,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 
 	// 查询高度哈希对应数据
 	var totalAmount int64
-	resp := GetTotalCoinsResult{}
+	resp := commandtypes.GetTotalCoinsResult{}
 
 	if symbol == "bty" {
 		//查询高度blockhash
@@ -249,7 +249,7 @@ func ticketStat(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var resp GetTicketStatisticResult
+	var resp commandtypes.GetTicketStatisticResult
 	resp.CurrentOpenCount = res.CurrentOpenCount
 	resp.TotalMinerCount = res.TotalMinerCount
 	resp.TotalCloseCount = res.TotalCancleCount
@@ -281,7 +281,7 @@ func addTicketInfoCmdFlags(cmd *cobra.Command) {
 
 func ticketInfo(cmd *cobra.Command, args []string) {
 	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
-	ticketId, _ := cmd.Flags().GetString("ticket_id")
+	ticketID, _ := cmd.Flags().GetString("ticket_id")
 
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
@@ -289,7 +289,7 @@ func ticketInfo(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	key := []byte("Statistics:TicketInfo:TicketId:" + ticketId)
+	key := []byte("Statistics:TicketInfo:TicketId:" + ticketID)
 	fmt.Println(string(key))
 	params := types.LocalDBGet{Keys: [][]byte{key}}
 	var res types.TicketMinerInfo
@@ -299,8 +299,8 @@ func ticketInfo(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var resp GetTicketMinerInfoResult
-	resp.TicketId = res.TicketId
+	var resp commandtypes.GetTicketMinerInfoResult
+	resp.TicketID = res.TicketId
 	switch res.Status {
 	case 1:
 		resp.Status = "openTicket"
@@ -360,7 +360,7 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 	count, _ := cmd.Flags().GetInt32("count")
 	direction, _ := cmd.Flags().GetInt32("direction")
 	createTime, _ := cmd.Flags().GetString("create_time")
-	ticketId, _ := cmd.Flags().GetString("ticket_id")
+	ticketID, _ := cmd.Flags().GetString("ticket_id")
 
 	if count <= 0 {
 		fmt.Fprintln(os.Stderr, fmt.Errorf("input err, count:%v", count))
@@ -375,8 +375,8 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 
 	var key []byte
 	prefix := []byte("Statistics:TicketInfoOrder:Addr:" + addr)
-	if ticketId != "" && createTime != "" {
-		key = []byte("Statistics:TicketInfoOrder:Addr:" + addr + ":CreateTime:" + createTime + ":TicketId:" + ticketId)
+	if ticketID != "" && createTime != "" {
+		key = []byte("Statistics:TicketInfoOrder:Addr:" + addr + ":CreateTime:" + createTime + ":TicketId:" + ticketID)
 	}
 	fmt.Println(string(prefix))
 	fmt.Println(string(key))
@@ -388,10 +388,10 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var resp []GetTicketMinerInfoResult
+	var resp []commandtypes.GetTicketMinerInfoResult
 	for _, v := range res {
-		var ticket GetTicketMinerInfoResult
-		ticket.TicketId = v.TicketId
+		var ticket commandtypes.GetTicketMinerInfoResult
+		ticket.TicketID = v.TicketId
 
 		switch v.Status {
 		case 1:
@@ -714,7 +714,7 @@ func execBalance(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	resp := GetExecBalanceResult{}
+	resp := commandtypes.GetExecBalanceResult{}
 
 	if symbol == "bty" {
 		exec = "coins"
@@ -787,13 +787,13 @@ func execBalance(cmd *cobra.Command, args []string) {
 	fmt.Println(string(data))
 }
 
-func convertReplyToResult(reply *types.ReplyGetExecBalance, result *GetExecBalanceResult, precision int64) {
+func convertReplyToResult(reply *types.ReplyGetExecBalance, result *commandtypes.GetExecBalanceResult, precision int64) {
 	result.Amount = strconv.FormatFloat(float64(reply.Amount)/float64(precision), 'f', 4, 64)
 	result.AmountFrozen = strconv.FormatFloat(float64(reply.AmountFrozen)/float64(precision), 'f', 4, 64)
 	result.AmountActive = strconv.FormatFloat(float64(reply.AmountActive)/float64(precision), 'f', 4, 64)
 
 	for i := 0; i < len(reply.Items); i++ {
-		item := &ExecBalance{}
+		item := &commandtypes.ExecBalance{}
 		item.ExecAddr = string(reply.Items[i].ExecAddr)
 		item.Frozen = strconv.FormatFloat(float64(reply.Items[i].Frozen)/float64(precision), 'f', 4, 64)
 		item.Active = strconv.FormatFloat(float64(reply.Items[i].Active)/float64(precision), 'f', 4, 64)

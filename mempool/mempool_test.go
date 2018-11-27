@@ -517,7 +517,7 @@ func TestAddBlockedTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	msg1, err = mem.client.Wait(msg1)
+	_, err = mem.client.Wait(msg1)
 	if err != nil {
 		t.Error(err)
 		return

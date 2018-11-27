@@ -29,7 +29,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	return errors.New(string(reply.GetMsg()))
 }
 
-//ExecTx : To send lists of txs within a block to exector for exection
+//ExecTx : To send lists of txs within a block to exector for execution
 func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	list := &types.ExecTxList{
 		StateHash:  prevStateRoot,
@@ -74,6 +74,7 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 		return err
 	}
 	hash = msg.GetData().(*types.ReplyHash).GetHash()
+	_ = hash
 	return nil
 }
 
@@ -87,6 +88,7 @@ func ExecKVSetRollback(client queue.Client, hash []byte) error {
 		return err
 	}
 	hash = msg.GetData().(*types.ReplyHash).GetHash()
+	_ = hash
 	return nil
 }
 

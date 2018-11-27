@@ -34,7 +34,7 @@ func (a *AddrBook) Close() {
 type AddrBook struct {
 	mtx      sync.Mutex
 	ourAddrs map[string]*NetAddress
-	addrPeer map[string]*knownAddress
+	addrPeer map[string]*KnownAddress
 	cfg      *types.P2P
 	keymtx   sync.Mutex
 	privkey  string
@@ -43,7 +43,8 @@ type AddrBook struct {
 	Quit     chan struct{}
 }
 
-type knownAddress struct {
+// KnownAddress defines known address type
+type KnownAddress struct {
 	kmtx        sync.Mutex
 	Addr        *NetAddress `json:"addr"`
 	Attempts    uint        `json:"attempts"`
@@ -52,7 +53,7 @@ type knownAddress struct {
 }
 
 // GetPeerStat get peer stat
-func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
+func (a *AddrBook) GetPeerStat(addr string) *KnownAddress {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {
@@ -62,7 +63,7 @@ func (a *AddrBook) GetPeerStat(addr string) *knownAddress {
 
 }
 
-func (a *AddrBook) setAddrStat(addr string, run bool) (*knownAddress, bool) {
+func (a *AddrBook) setAddrStat(addr string, run bool) (*KnownAddress, bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	if peer, ok := a.addrPeer[addr]; ok {
@@ -82,7 +83,7 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 	a := &AddrBook{
 
 		ourAddrs: make(map[string]*NetAddress),
-		addrPeer: make(map[string]*knownAddress),
+		addrPeer: make(map[string]*KnownAddress),
 		cfg:      cfg,
 		Quit:     make(chan struct{}, 1),
 	}
@@ -90,8 +91,8 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 	return a
 }
 
-func newKnownAddress(addr *NetAddress) *knownAddress {
-	return &knownAddress{
+func newKnownAddress(addr *NetAddress) *KnownAddress {
+	return &KnownAddress{
 		kmtx:        sync.Mutex{},
 		Addr:        addr,
 		Attempts:    0,
@@ -99,7 +100,7 @@ func newKnownAddress(addr *NetAddress) *knownAddress {
 	}
 }
 
-func (ka *knownAddress) markGood() {
+func (ka *KnownAddress) markGood() {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
 	now := types.Now()
@@ -109,10 +110,10 @@ func (ka *knownAddress) markGood() {
 }
 
 // Copy a KnownAddress
-func (ka *knownAddress) Copy() *knownAddress {
+func (ka *KnownAddress) Copy() *KnownAddress {
 	ka.kmtx.Lock()
 
-	ret := knownAddress{
+	ret := KnownAddress{
 		Addr:        ka.Addr.Copy(),
 		Attempts:    ka.Attempts,
 		LastAttempt: ka.LastAttempt,
@@ -122,7 +123,7 @@ func (ka *knownAddress) Copy() *knownAddress {
 	return &ret
 }
 
-func (ka *knownAddress) markAttempt() {
+func (ka *KnownAddress) markAttempt() {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
 
@@ -133,7 +134,7 @@ func (ka *knownAddress) markAttempt() {
 }
 
 // GetAttempts return attempts
-func (ka *knownAddress) GetAttempts() uint {
+func (ka *KnownAddress) GetAttempts() uint {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
 	return ka.Attempts
@@ -176,13 +177,13 @@ func (a *AddrBook) Size() int {
 }
 
 type addrBookJSON struct {
-	Addrs []*knownAddress `json:"addrs"`
+	Addrs []*KnownAddress `json:"addrs"`
 }
 
 func (a *AddrBook) saveToDb() {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	addrs := []*knownAddress{}
+	addrs := []*KnownAddress{}
 
 	seeds := a.cfg.Seeds
 	seedsMap := make(map[string]int)
@@ -294,7 +295,7 @@ out:
 
 // AddAddress add a address for ours
 // NOTE: addr must not be nil
-func (a *AddrBook) AddAddress(addr *NetAddress, ka *knownAddress) {
+func (a *AddrBook) AddAddress(addr *NetAddress, ka *KnownAddress) {
 
 	a.mtx.Lock()
 	defer a.mtx.Unlock()

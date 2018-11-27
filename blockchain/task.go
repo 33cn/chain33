@@ -82,7 +82,7 @@ func (t *Task) Start(start, end int64, cb func()) error {
 	t.Lock()
 	defer t.Unlock()
 	if t.isruning {
-		return errors.New("task is runing")
+		return errors.New("task is running")
 	}
 	if start > end {
 		return types.ErrStartBigThanEnd
@@ -114,7 +114,7 @@ func (t *Task) Done(height int64) {
 
 func (t *Task) stop(runcb bool) error {
 	if !t.isruning {
-		return errors.New("not runing")
+		return errors.New("not running")
 	}
 	t.isruning = false
 	if t.cb != nil && runcb {

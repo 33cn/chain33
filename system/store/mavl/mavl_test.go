@@ -252,6 +252,7 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 		KV:        accountdb.GetExecKVSet(execAddr1, acc),
 		Height:    0}
 	hash0, err := store.Set(datas, true)
+	assert.Nil(t, err)
 
 	execAddr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
@@ -259,6 +260,7 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 		KV:        accountdb.GetExecKVSet(execAddr2, acc),
 		Height:    1}
 	hash1, err := store.Set(datas, true)
+	assert.Nil(t, err)
 
 	execAddr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
@@ -393,6 +395,7 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 		KV:        accountdb.GetExecKVSet(execAddr1, acc),
 		Height:    0}
 	hash0, err := store.Set(datas, true)
+	assert.Nil(t, err)
 
 	execAddr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{
@@ -400,6 +403,7 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 		KV:        accountdb.GetExecKVSet(execAddr2, acc),
 		Height:    1}
 	hash1, err := store.Set(datas, true)
+	assert.Nil(t, err)
 
 	execAddr3 := "36htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	datas = &types.StoreSet{

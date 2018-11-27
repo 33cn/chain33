@@ -188,7 +188,7 @@ func (g *Grpc) GetHeaders(ctx context.Context, in *pb.ReqBlocks) (*pb.Headers, e
 	return g.cli.GetHeaders(in)
 }
 
-// GetLastMemPool return last mempool contens
+// GetLastMemPool return last mempool contents
 func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
 	return g.cli.GetLastMempool()
 }

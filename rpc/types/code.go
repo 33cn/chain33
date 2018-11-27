@@ -24,7 +24,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 	case 2:
 		rTy = "ExecOk"
 	default:
-		rTy = "Unkown"
+		rTy = "Unknown"
 	}
 	rd := &ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
 	for _, l := range rlog.Logs {
@@ -47,8 +47,8 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 	return rd, nil
 }
 
-// ConvertWalletTxDetailToJson conver the wallet tx detail to json
-func ConvertWalletTxDetailToJson(in *types.WalletTxDetails, out *WalletTxDetails) error {
+// ConvertWalletTxDetailToJSON conver the wallet tx detail to json
+func ConvertWalletTxDetailToJSON(in *types.WalletTxDetails, out *WalletTxDetails) error {
 	if in == nil || out == nil {
 		return types.ErrInvalidParam
 	}

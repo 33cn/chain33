@@ -90,6 +90,13 @@ func main() {
 		mavl.PruningTreePrintDB(db, []byte("_..md.._"))
 	}
 	a = 0
+	fmt.Println("是否需要查询二级叶子节点索引计数")
+	fmt.Fscan(stdin, &a)
+	stdin.ReadString('\n')
+	if a > 0 {
+		mavl.PruningTreePrintDB(db, []byte("..mok.."))
+	}
+	a = 0
 	fmt.Println("是否需要裁剪树,请输入最大裁剪数高度")
 	fmt.Fscan(stdin, &a)
 	stdin.ReadString('\n')

@@ -53,17 +53,17 @@ type Queue interface {
 }
 
 type queue struct {
-	chanSubs map[string]*chanSub
-	mu       sync.Mutex
-	done     chan struct{}
-	interupt chan struct{}
-	isClose  int32
-	name     string
+	chanSubs  map[string]*chanSub
+	mu        sync.Mutex
+	done      chan struct{}
+	interrupt chan struct{}
+	isClose   int32
+	name      string
 }
 
 // New new queue struct
 func New(name string) Queue {
-	q := &queue{chanSubs: make(map[string]*chanSub), name: name, done: make(chan struct{}, 1), interupt: make(chan struct{}, 1)}
+	q := &queue{chanSubs: make(map[string]*chanSub), name: name, done: make(chan struct{}, 1), interrupt: make(chan struct{}, 1)}
 	return q
 }
 
@@ -81,7 +81,7 @@ func (q *queue) Start() {
 	case <-q.done:
 		atomic.StoreInt32(&q.isClose, 1)
 		break
-	case <-q.interupt:
+	case <-q.interrupt:
 		fmt.Println("closing chain33")
 		//atomic.StoreInt32(&q.isClose, 1)
 		break
