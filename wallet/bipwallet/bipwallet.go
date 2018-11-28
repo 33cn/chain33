@@ -120,7 +120,7 @@ var CoinName = map[uint32]string{
 	TypeEtherClassic: "ETC",
 	TypeBitcoin:      "BTC",
 	TypeLitecoin:     "LTC",
-	TypeZayedcoin:    "ZEC",
+	TypeZcash:        "ZEC",
 	TypeBty:          "BTY",
 	TypeYcc:          "YCC",
 }
