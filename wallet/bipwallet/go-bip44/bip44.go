@@ -6,6 +6,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+// Package bip44 基于 BIP32 的系统，赋予树状结构中的各层特殊的意义。让同一个 seed 可以支援多币种、多帐户等。
 package bip44
 
 import (

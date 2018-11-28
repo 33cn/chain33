@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//转换基于比特币地址规则的币种
+// Package btcbase 转换基于比特币地址规则的币种
 //使用此规则的币种有：BTC、BCH、LTC、ZEC、USDT、 BTY
-
 package btcbase
 
 import (

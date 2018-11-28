@@ -9,6 +9,7 @@
 
 // +build !windows,!plan9
 
+// Package limits 实现设置进程打开文件资源数
 package limits
 
 import (

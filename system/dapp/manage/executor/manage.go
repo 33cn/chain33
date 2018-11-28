@@ -2,14 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package executor 管理插件执行器
 package executor
-
-/*
-manage 负责管理配置
- 1. 添加管理
- 1. 添加运营人员
- 1. （未来）修改某些配置项
-*/
 
 import (
 	log "github.com/33cn/chain33/common/log/log15"

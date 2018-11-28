@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package ed25519 ed25519系统加密包
 package ed25519
 
 import (

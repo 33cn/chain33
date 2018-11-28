@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package types rpc相关的一些结构体定义以及转化函数
 package types
 
 import (
