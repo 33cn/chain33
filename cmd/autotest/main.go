@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package 自动化系统回归测试工具，外部支持输入测试用例配置文件，
+// 输出测试用例执行结果并记录详细执行日志。
+// 内部代码支持用例扩展开发，继承并实现通用接口，即可自定义实现用例类型。
 package main
 
 import (

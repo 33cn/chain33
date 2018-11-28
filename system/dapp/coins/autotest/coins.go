@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package autotest 系统级coins dapp自动测试包
 package autotest
 
 import (

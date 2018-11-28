@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package types 开发者工具相关常量等的定义
 package types
 
 //const
