@@ -10,7 +10,7 @@ import (
 
 	"github.com/33cn/chain33/pluginmgr"
 	_ "github.com/33cn/chain33/system"
-
+	"github.com/33cn/chain33/"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -849,7 +849,7 @@ func testVersionGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	if err != nil {
 		t.Error("Call Version Failed.", err)
 	}
-	assert.Equal(t, "6.0.2", res.Chain33)
+	assert.Equal(t, version.GetVersion(), res.Chain33)
 }
 
 func testDumpPrivkeyGRPC(t *testing.T, rpc *mockGRPCSystem) {
