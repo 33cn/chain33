@@ -17,7 +17,6 @@ import (
 	"strings"
 )
 
-
 var d = flag.Int("d", 8, "数字小数点位数")
 var n = flag.Int("n", 4, "保留有效小数点位数")
 var js = flag.String("js", "", "输入js字符串")
