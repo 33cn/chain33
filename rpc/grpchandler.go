@@ -343,3 +343,12 @@ func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.Bloc
 func (g *Grpc) SignRawTx(ctx context.Context, in *pb.ReqSignRawTx) (*pb.ReplySignRawTx, error) {
 	return g.cli.SignRawTx(in)
 }
+
+// QueryRandNum query randHash from ticket
+func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqRandHash) (*pb.ReplyHash, error) {
+	reply, err := g.cli.Query(in.ExecName, "RandNumHash", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.ReplyHash), nil
+}
