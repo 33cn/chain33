@@ -760,7 +760,6 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 	return nil, err
 }
 
-
 // Version get the software version
 func (q *QueueProtocol) Version() (*types.VersionInfo, error) {
 	return &types.VersionInfo{

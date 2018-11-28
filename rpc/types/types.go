@@ -306,7 +306,6 @@ type NodeNetinfo struct {
 	Inbounds     int32  `json:"inbounds"`
 }
 
-
 // ReplyPrivacyPkPair   reply privekey pubkey pair
 type ReplyPrivacyPkPair struct {
 	ShowSuccessful bool   `json:"showSuccessful,omitempty"`

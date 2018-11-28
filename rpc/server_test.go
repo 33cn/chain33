@@ -76,7 +76,7 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, jsonClient)
 
-	ver := &types.VersionInfo{Chain33:"6.0.2"}
+	ver := &types.VersionInfo{Chain33: "6.0.2"}
 	api.On("Version").Return(ver, nil)
 	var nodeVersion types.VersionInfo
 	err = jsonClient.Call("Chain33.Version", nil, &nodeVersion)
