@@ -41,7 +41,7 @@ Run single node with below command on your development environment.
 $ chain33 -f chain33.toml
 ```
 
-##Notes when using chain33 plugins
+## Notes of when using chain33 plugins
 1.Don't use master branch, please use publish branch.
 2.Don't re-create vendor dependency, we will support download vender folder for yourself in the future, but currently not available.
 
