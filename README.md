@@ -4,20 +4,20 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 [![pipeline status](https://api.travis-ci.org/33cn/chain33.svg?branch=master)](https://travis-ci.org/33cn/chain33/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/33cn/chain33)](https://goreportcard.com/report/github.com/33cn/chain33)
  
-# Chain33 区块链开发框架
+# Chain33 Blockchain development framework
 
-高度模块化, 遵循 KISS原则的区块链开发框架
+A highly modularized blockchain development framework according to the KISS principle 
 
 Official website: https://chain.33.cn
 
-官方插件库: https://github.com/33cn/plugin
+Official plugin: https://github.com/33cn/plugin
 
 
 ## Building from source
 
-环境要求: Go (version 1.9 or later)
+Environment requirement: Go (version 1.9 or later)
 
-编译:
+Debug:
 
 ```shell
 git clone https://github.com/33cn/chain33.git $GOPATH/src/github.com/33cn/chain33
@@ -25,15 +25,16 @@ cd $GOPATH/src/github.com/33cn/chain33
 make
 ```
 
-测试：
+Testing：
 
 ```shell
 $ make test
 ```
 
-## 运行
+## Run:
 
-通过这个命令可以运行一个单节点到环境，可以用于开发测试
+
+Run single node with below command on your development environment.
 
 ```shell
 $ chain33 -f chain33.toml
