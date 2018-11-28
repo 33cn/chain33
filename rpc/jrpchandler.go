@@ -897,7 +897,12 @@ func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 
 // Version version
 func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
-	*result = version.GetVersion()
+	*result = &rpctypes.NodeVersion{
+		Title:   types.GetTitle(),
+		App:     version.GetAppVersion(),
+		Chain33: version.GetVersion(),
+		LocalDb: version.GetLocalDBVersion(),
+	}
 	return nil
 }
 

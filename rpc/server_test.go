@@ -75,9 +75,10 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, jsonClient)
 
-	err = jsonClient.Call("Chain33.Version", nil, &result)
+	var nodeVersion rpctypes.NodeVersion
+	err = jsonClient.Call("Chain33.Version", nil, &nodeVersion)
 	assert.Nil(t, err)
-	assert.NotEmpty(t, result)
+	assert.Equal(t, "6.0.2", nodeVersion.Chain33)
 
 	var isSnyc bool
 	err = jsonClient.Call("Chain33.IsSync", &types.ReqNil{}, &isSnyc)
