@@ -1123,7 +1123,7 @@ func (_m *Chain33Client) QueryConsensus(ctx context.Context, in *types.ChainExec
 }
 
 // QueryRandNum provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) QueryRandNum(ctx context.Context, in *types.ReqInt, opts ...grpc.CallOption) (*types.ReplyHash, error) {
+func (_m *Chain33Client) QueryRandNum(ctx context.Context, in *types.ReqRandHash, opts ...grpc.CallOption) (*types.ReplyHash, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -1134,7 +1134,7 @@ func (_m *Chain33Client) QueryRandNum(ctx context.Context, in *types.ReqInt, opt
 	ret := _m.Called(_ca...)
 
 	var r0 *types.ReplyHash
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqInt, ...grpc.CallOption) *types.ReplyHash); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqRandHash, ...grpc.CallOption) *types.ReplyHash); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1143,7 +1143,7 @@ func (_m *Chain33Client) QueryRandNum(ctx context.Context, in *types.ReqInt, opt
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqInt, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqRandHash, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
