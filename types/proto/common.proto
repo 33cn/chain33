@@ -64,3 +64,9 @@ message TimeStatus {
 message ReqKey {
     bytes key = 1;
 }
+
+message ReqRandHash {
+	string execName = 1;
+	int64 height = 2;
+	int64 blockNum = 3;
+}

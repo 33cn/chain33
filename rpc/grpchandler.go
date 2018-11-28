@@ -345,8 +345,8 @@ func (g *Grpc) SignRawTx(ctx context.Context, in *pb.ReqSignRawTx) (*pb.ReplySig
 }
 
 // QueryRandNum query randHash from ticket
-func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqInt) (*pb.ReplyHash, error) {
-	reply, err := g.cli.Query("ticket", "RandNumHash", in)
+func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqRandHash) (*pb.ReplyHash, error) {
+	reply, err := g.cli.Query(in.ExecName, "RandNumHash", in)
 	if err != nil {
 		return nil, err
 	}

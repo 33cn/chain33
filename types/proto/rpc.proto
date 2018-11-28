@@ -138,5 +138,5 @@ service chain33 {
     rpc CreateNoBalanceTransaction(NoBalanceTx) returns (ReplySignRawTx) {}
     
 	// 获取随机HASH
-    rpc QueryRandNum(ReqInt) returns(ReplyHash) {}
+    rpc QueryRandNum(ReqRandHash) returns(ReplyHash) {}
 }
