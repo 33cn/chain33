@@ -12,6 +12,7 @@ Official website: https://chain.33.cn
 
 Official plugin: https://github.com/33cn/plugin
 
+The growth of chain33:[chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR_NFxfeuAA)
 
 ## Building from source
 
@@ -40,6 +41,16 @@ Run single node with below command on your development environment.
 $ chain33 -f chain33.toml
 ```
 
+##Notes when using chain33 plugins
+1.Don't use master branch, please use publish branch.
+2.Don't re-create vendor dependency, we will support download vender folder for yourself in the future, but currently not available.
+
+## Contributions
+Below is detailed contribution procedure. This can be skipped and directly see our simplified contribution flow in second part.
+
+### 1. detail procedure
+1.If you have any suggetions or bug, please create issues and discuss with us.
+2.Please fork '33cn/chain' to your own branch, like 'vipwzw/chain33' via click 
 ## License
 
 ```
@@ -69,3 +80,5 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
+
+
