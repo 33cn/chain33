@@ -20,8 +20,8 @@ import (
 	pr "google.golang.org/grpc/peer"
 )
 
-// P2pServer object information
-type P2pServer struct {
+// P2pserver object information
+type P2pserver struct {
 	imtx         sync.Mutex //for inboundpeers
 	smtx         sync.Mutex
 	node         *Node
@@ -39,23 +39,23 @@ type innerpeer struct {
 }
 
 // Start p2pserver start
-func (s *P2pServer) Start() {
+func (s *P2pserver) Start() {
 	s.manageStream()
 }
 
 // Close p2pserver close
-func (s *P2pServer) Close() {
+func (s *P2pserver) Close() {
 	atomic.StoreInt32(&s.closed, 1)
 }
 
 // IsClose is p2pserver running
-func (s *P2pServer) IsClose() bool {
+func (s *P2pserver) IsClose() bool {
 	return atomic.LoadInt32(&s.closed) == 1
 }
 
 // NewP2pServer produce a p2pserver
-func NewP2pServer() *P2pServer {
-	return &P2pServer{
+func NewP2pServer() *P2pserver {
+	return &P2pserver{
 		streams:      make(map[pb.P2Pgservice_ServerStreamSendServer]chan interface{}),
 		deleteSChan:  make(chan pb.P2Pgservice_ServerStreamSendServer, 1024),
 		inboundpeers: make(map[string]*innerpeer),
@@ -64,7 +64,7 @@ func NewP2pServer() *P2pServer {
 }
 
 // Ping p2pserver ping
-func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
+func (s *P2pserver) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
 	log.Debug("ping")
 	if !P2pComm.CheckSign(in) {
 		log.Error("Ping", "p2p server", "check sig err")
@@ -95,7 +95,7 @@ func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 }
 
 // GetAddr get address
-func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
+func (s *P2pserver) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
 	log.Debug("GETADDR", "RECV ADDR", in, "OutBound Len", s.node.Size())
 	var addrlist []string
 	peers, _ := s.node.GetActivePeers()
@@ -107,7 +107,7 @@ func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 }
 
 // GetAddrList get address list , and height of address
-func (s *P2pServer) GetAddrList(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddrList, error) {
+func (s *P2pserver) GetAddrList(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddrList, error) {
 	_, infos := s.node.GetActivePeers()
 	var peerinfos []*pb.P2PPeerInfo
 
@@ -121,12 +121,12 @@ func (s *P2pServer) GetAddrList(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2P
 }
 
 // Version version
-func (s *P2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerAck, error) {
+func (s *P2pserver) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerAck, error) {
 	return &pb.P2PVerAck{Version: s.node.nodeInfo.cfg.Version, Service: 6, Nonce: in.Nonce}, nil
 }
 
 // Version2 p2pserver version
-func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
+func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
 	log.Debug("Version2")
 	var peerip string
 	var err error
@@ -163,7 +163,7 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 }
 
 // SoftVersion software version
-func (s *P2pServer) SoftVersion(ctx context.Context, in *pb.P2PPing) (*pb.Reply, error) {
+func (s *P2pserver) SoftVersion(ctx context.Context, in *pb.P2PPing) (*pb.Reply, error) {
 
 	if !P2pComm.CheckSign(in) {
 		log.Error("Ping", "p2p server", "check sig err")
@@ -175,7 +175,7 @@ func (s *P2pServer) SoftVersion(ctx context.Context, in *pb.P2PPing) (*pb.Reply,
 }
 
 // BroadCastTx broadcast transactions of p2pserver
-func (s *P2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
+func (s *P2pserver) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
@@ -184,7 +184,7 @@ func (s *P2pServer) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 }
 
 // GetBlocks get blocks of p2pserver
-func (s *P2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
+func (s *P2pserver) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
 
 	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
 	if !s.checkVersion(in.GetVersion()) {
@@ -215,7 +215,7 @@ func (s *P2pServer) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 }
 
 // GetMemPool p2pserver queries the local mempool
-func (s *P2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
+func (s *P2pserver) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
 	log.Debug("p2pServer Recv GetMempool", "version", in)
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
@@ -234,7 +234,7 @@ func (s *P2pServer) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P
 }
 
 // GetData get data of p2pserver
-func (s *P2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServer) error {
+func (s *P2pserver) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServer) error {
 	log.Debug("p2pServer Recv GetDataTx", "p2p version", in.GetVersion())
 	var p2pInvData = make([]*pb.InvData, 0)
 	var count = 0
@@ -306,7 +306,7 @@ func (s *P2pServer) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 }
 
 // GetHeaders ger headers of p2pServer
-func (s *P2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
+func (s *P2pserver) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
 	log.Debug("p2pServer GetHeaders", "p2p version", in.GetVersion())
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
@@ -333,7 +333,7 @@ func (s *P2pServer) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 }
 
 // GetPeerInfo get peer information of p2pServer
-func (s *P2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb.P2PPeerInfo, error) {
+func (s *P2pserver) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb.P2PPeerInfo, error) {
 	log.Debug("p2pServer GetPeerInfo", "p2p version", in.GetVersion())
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
@@ -381,7 +381,7 @@ func (s *P2pServer) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 }
 
 // BroadCastBlock broadcast block of p2pserver
-func (s *P2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
+func (s *P2pserver) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
 	log.Debug("BroadCastBlock")
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
@@ -394,7 +394,7 @@ func (s *P2pServer) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Re
 }
 
 // ServerStreamSend serverstream send of p2pserver
-func (s *P2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_ServerStreamSendServer) error {
+func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_ServerStreamSendServer) error {
 	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.InnerBounds) {
 		return fmt.Errorf("beyound max inbound num")
 	}
@@ -438,7 +438,7 @@ func (s *P2pServer) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 }
 
 // ServerStreamRead server stream read of p2pserver
-func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServer) error {
+func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServer) error {
 	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.InnerBounds) {
 		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.InnerBounds))
 	}
@@ -538,7 +538,7 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 }
 
 // CollectInPeers collect external network nodes of connect their own
-func (s *P2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.PeerList, error) {
+func (s *P2pserver) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.PeerList, error) {
 	log.Info("CollectInPeers")
 	if !P2pComm.CheckSign(in) {
 		log.Info("CollectInPeers", "ping", "signatrue err")
@@ -562,7 +562,7 @@ func (s *P2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 }
 
 // CollectInPeers2 collect external network nodes of connect their own
-func (s *P2pServer) CollectInPeers2(ctx context.Context, in *pb.P2PPing) (*pb.PeersReply, error) {
+func (s *P2pserver) CollectInPeers2(ctx context.Context, in *pb.P2PPing) (*pb.PeersReply, error) {
 	log.Info("CollectInPeers2")
 	if !P2pComm.CheckSign(in) {
 		log.Info("CollectInPeers", "ping", "signatrue err")
@@ -587,7 +587,7 @@ func (s *P2pServer) CollectInPeers2(ctx context.Context, in *pb.P2PPing) (*pb.Pe
 	return &pb.PeersReply{Peers: p2pPeers}, nil
 }
 
-func (s *P2pServer) checkVersion(version int32) bool {
+func (s *P2pserver) checkVersion(version int32) bool {
 
 	if version < s.node.nodeInfo.cfg.VerMin || version > s.node.nodeInfo.cfg.VerMax {
 		//版本不支持
@@ -596,7 +596,7 @@ func (s *P2pServer) checkVersion(version int32) bool {
 
 	return true
 }
-func (s *P2pServer) loadMempool() (map[string]*pb.Transaction, error) {
+func (s *P2pserver) loadMempool() (map[string]*pb.Transaction, error) {
 
 	var txmap = make(map[string]*pb.Transaction)
 	client := s.node.nodeInfo.client
@@ -620,7 +620,7 @@ func (s *P2pServer) loadMempool() (map[string]*pb.Transaction, error) {
 	return txmap, nil
 }
 
-func (s *P2pServer) manageStream() {
+func (s *P2pserver) manageStream() {
 	go s.deleteDisableStream()
 	go func() { //发送空的block stream ping
 		ticker := time.NewTicker(StreamPingTimeout)
@@ -645,7 +645,7 @@ func (s *P2pServer) manageStream() {
 	}()
 }
 
-func (s *P2pServer) addStreamHandler(stream pb.P2Pgservice_ServerStreamSendServer) chan interface{} {
+func (s *P2pserver) addStreamHandler(stream pb.P2Pgservice_ServerStreamSendServer) chan interface{} {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
 	s.streams[stream] = make(chan interface{}, 1024)
@@ -653,7 +653,7 @@ func (s *P2pServer) addStreamHandler(stream pb.P2Pgservice_ServerStreamSendServe
 
 }
 
-func (s *P2pServer) addStreamData(data interface{}) {
+func (s *P2pserver) addStreamData(data interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
 	timetikc := time.NewTicker(time.Second * 1)
@@ -674,32 +674,32 @@ func (s *P2pServer) addStreamData(data interface{}) {
 
 }
 
-func (s *P2pServer) deleteDisableStream() {
+func (s *P2pserver) deleteDisableStream() {
 	for stream := range s.deleteSChan {
 		s.deleteStream(stream)
 	}
 }
-func (s *P2pServer) deleteStream(stream pb.P2Pgservice_ServerStreamSendServer) {
+func (s *P2pserver) deleteStream(stream pb.P2Pgservice_ServerStreamSendServer) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
 	close(s.streams[stream])
 	delete(s.streams, stream)
 }
 
-func (s *P2pServer) addInBoundPeerInfo(peername string, info innerpeer) {
+func (s *P2pserver) addInBoundPeerInfo(peername string, info innerpeer) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
 	s.inboundpeers[peername] = &info
 }
 
-func (s *P2pServer) deleteInBoundPeerInfo(peername string) {
+func (s *P2pserver) deleteInBoundPeerInfo(peername string) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
 	delete(s.inboundpeers, peername)
 
 }
 
-func (s *P2pServer) getInBoundPeerInfo(peername string) *innerpeer {
+func (s *P2pserver) getInBoundPeerInfo(peername string) *innerpeer {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
 	if key, ok := s.inboundpeers[peername]; ok {
@@ -709,7 +709,7 @@ func (s *P2pServer) getInBoundPeerInfo(peername string) *innerpeer {
 	return nil
 }
 
-func (s *P2pServer) getInBoundPeers() []*innerpeer {
+func (s *P2pserver) getInBoundPeers() []*innerpeer {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
 	var peers []*innerpeer

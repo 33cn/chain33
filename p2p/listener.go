@@ -39,7 +39,7 @@ func (l *listener) Close() {
 type listener struct {
 	server      *grpc.Server
 	nodeInfo    *NodeInfo
-	p2pserver   *P2pServer
+	p2pserver   *P2pserver
 	node        *Node
 	netlistener net.Listener
 }

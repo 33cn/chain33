@@ -9,7 +9,7 @@ package strategy
 //const
 const (
 	// 創建main.go的文件模板
-	CPFTMAINGO = `package main
+	CpftMainGo = `package main
 
 import (
 	_ "github.com/33cn/chain33/system"
@@ -26,7 +26,7 @@ func main() {
 `
 
 	// 生成的配置文件模板 xxx.toml
-	CPFTCFGTOML = `
+	CpftCfgToml = `
 Title="${PROJECTNAME}"
 FixTime=false
 
@@ -102,14 +102,14 @@ enableMVCC=false
 saveTokenTxList=false
 `
 
-	CPFTRUNMAINBLOCK = `package main
+	CpftRunmainBlock = `package main
 
 var ${PROJECTNAME} = `
 
 	// 生成项目运行主程序的模板 xxx.go
 	// 顶部还需要加上package main
 	//var bityuan = `CPFT_RUNMAIN`
-	CPFTRUNMAIN = `TestNet=false
+	CpftRunMain = `TestNet=false
 [blockchain]
 defCacheSize=128
 maxFetchBlockNum=128
@@ -248,7 +248,7 @@ ForkTradeAsset= -1
 `
 
 	// 生成项目Makefile文件的模板 Makefile
-	CPFTMAKEFILE = `
+	CpftMakefile = `
 CHAIN33=github.com/33cn/chain33
 CHAIN33_PATH=vendor/${CHAIN33}
 all: vendor proto build
@@ -297,7 +297,7 @@ clean:
 `
 
 	// 生成 .travis.yml 文件模板
-	CPFTTRAVISYML = `
+	CpftTravisYml = `
 language: go
 
 go:
@@ -306,7 +306,7 @@ go:
 `
 
 	// 生成 plugin/plugin.toml的文件模板
-	CPFTPLUGINTOML = `
+	CpftPluginToml = `
 # type字段仅支持 consensus  dapp store
 [dapp-ticket]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/ticket"
@@ -327,7 +327,7 @@ gitrepo = "github.com/33cn/plugin/plugin/dapp/token"
 gitrepo = "github.com/33cn/plugin/plugin/dapp/trade"
 `
 	// 项目 cli/main.go 文件模板
-	CPFTCLIMAIN = `package main
+	CpftCliMain = `package main
 
 import (
 	_ "${PROJECTPATH}/plugin"
@@ -340,7 +340,7 @@ func main() {
 }
 `
 	// plugin/dapp/xxxx/commands/cmd.go文件的模板c
-	CPFTDAPPCOMMANDS = `package commands
+	CpftDappCommands = `package commands
 
 import (
 	"github.com/spf13/cobra"
@@ -351,7 +351,7 @@ func Cmd() *cobra.Command {
 }`
 
 	// plugin/dapp/xxxx/plugin.go文件的模板
-	CPFTDAPPPLUGIN = `package ${PROJECTNAME}
+	CpftDappPlugin = `package ${PROJECTNAME}
 
 import (
 	"github.com/33cn/chain33/pluginmgr"
@@ -372,7 +372,7 @@ func init() {
 `
 
 	// plugin/dapp/xxxx/executor/xxxx.go文件模板
-	CPFTDAPPEXEC = `package executor
+	CpftDappExec = `package executor
 
 import (
 	log "github.com/inconshreveable/log15"
@@ -425,17 +425,17 @@ func (this *${CLASSNAME}) CheckTx(tx *types.Transaction, index int) error {
 }
 `
 	// plugin/dapp/xxxx/proto/create_protobuf.sh文件模板
-	CPFTDAPPCREATEPB = `#!/bin/sh
+	CpftDappCreatepb = `#!/bin/sh
 protoc --go_out=plugins=grpc:../types ./*.proto --proto_path=. 
 `
 
 	// plugin/dapp/xxxx/proto/Makefile 文件模板
-	CPFTDAPPMAKEFILE = `all:
+	CpftDappMakefile = `all:
 	sh ./create_protobuf.sh
 `
 
 	// plugin/dapp/xxxx/proto/xxxx.proto的文件模板
-	CPFTDAPPPROTO = `syntax = "proto3";
+	CpftDappProto = `syntax = "proto3";
 package types;
 
 message ${ACTIONNAME} {
@@ -450,7 +450,7 @@ message ${ACTIONNAME}None {
 `
 
 	// plugin/dapp/xxxx/types/types.go的文件模板cd
-	CPFTDAPPTYPEFILE = `package types
+	CpftDappTypefile = `package types
 
 import (
 	"gitlab.33.cn/chain33/chain33/types"

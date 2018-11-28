@@ -78,7 +78,7 @@ func (c *createPluginStrategy) buildTask() []tasks.Task {
 	taskSlice := make([]tasks.Task, 0)
 	taskSlice = append(taskSlice,
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTMAINGO,
+			SourceStr:  CpftMainGo,
 			OutputFile: fmt.Sprintf("%s/main.go", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: c.projName,
@@ -86,15 +86,15 @@ func (c *createPluginStrategy) buildTask() []tasks.Task {
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTCFGTOML,
+			SourceStr:  CpftCfgToml,
 			OutputFile: fmt.Sprintf("%s/%s.toml", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: c.projName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:     CPFTRUNMAIN,
-			BlockStrBegin: CPFTRUNMAINBLOCK + "`",
+			SourceStr:     CpftRunMain,
+			BlockStrBegin: CpftRunmainBlock + "`",
 			BlockStrEnd:   "`",
 			OutputFile:    fmt.Sprintf("%s/%s.go", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{
@@ -102,7 +102,7 @@ func (c *createPluginStrategy) buildTask() []tasks.Task {
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTMAKEFILE,
+			SourceStr:  CpftMakefile,
 			OutputFile: fmt.Sprintf("%s/Makefile", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: c.projName,
@@ -112,21 +112,21 @@ func (c *createPluginStrategy) buildTask() []tasks.Task {
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTTRAVISYML,
+			SourceStr:  CpftTravisYml,
 			OutputFile: fmt.Sprintf("%s/.travis.yml", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: c.projName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTPLUGINTOML,
+			SourceStr:  CpftPluginToml,
 			OutputFile: fmt.Sprintf("%s/plugin/plugin.toml", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: c.projName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTCLIMAIN,
+			SourceStr:  CpftCliMain,
 			OutputFile: fmt.Sprintf("%s/cli/main.go", c.projectPath),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: c.projName,
@@ -134,14 +134,14 @@ func (c *createPluginStrategy) buildTask() []tasks.Task {
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTDAPPCOMMANDS,
+			SourceStr:  CpftDappCommands,
 			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/commands/cmd.go", c.projectPath, c.execName),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: c.projName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTDAPPPLUGIN,
+			SourceStr:  CpftDappPlugin,
 			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/plugin.go", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: c.projName,
@@ -150,7 +150,7 @@ func (c *createPluginStrategy) buildTask() []tasks.Task {
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTDAPPEXEC,
+			SourceStr:  CpftDappExec,
 			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/executor/%s.go", c.projectPath, c.projName, c.execName),
 			ReplaceKeyPairs: map[string]string{
 				types.TagProjectName: c.projName,
@@ -159,24 +159,24 @@ func (c *createPluginStrategy) buildTask() []tasks.Task {
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:       CPFTDAPPCREATEPB,
+			SourceStr:       CpftDappCreatepb,
 			OutputFile:      fmt.Sprintf("%s/plugin/dapp/%s/proto/create_protobuf.sh", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:       CPFTDAPPMAKEFILE,
+			SourceStr:       CpftDappMakefile,
 			OutputFile:      fmt.Sprintf("%s/plugin/dapp/%s/proto/Makefile", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTDAPPPROTO,
+			SourceStr:  CpftDappProto,
 			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/proto/%s.proto", c.projectPath, c.projName, c.execName),
 			ReplaceKeyPairs: map[string]string{
 				types.TagActionName: c.classActionName,
 			},
 		},
 		&tasks.CreateFileFromStrTemplateTask{
-			SourceStr:  CPFTDAPPTYPEFILE,
+			SourceStr:  CpftDappTypefile,
 			OutputFile: fmt.Sprintf("%s/plugin/dapp/%s/types/types.go", c.projectPath, c.projName),
 			ReplaceKeyPairs: map[string]string{
 				types.TagExecNameFB:    c.execNameFB,
