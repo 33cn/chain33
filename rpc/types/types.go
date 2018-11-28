@@ -305,6 +305,14 @@ type NodeNetinfo struct {
 	Inbounds     int32  `json:"inbounds"`
 }
 
+// NodeVersion node version
+type NodeVersion struct {
+	Title   string `json:"title"`
+	App     string `json:"app"`
+	Chain33 string `json:"chain33"`
+	LocalDb string `json:"localDb"`
+}
+
 // ReplyPrivacyPkPair   reply privekey pubkey pair
 type ReplyPrivacyPkPair struct {
 	ShowSuccessful bool   `json:"showSuccessful,omitempty"`
