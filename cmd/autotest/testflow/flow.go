@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package testflow test flow, Add=>HandleDepend=>Send=>Check
 package testflow
 
 import (
@@ -14,8 +15,6 @@ import (
 	"github.com/33cn/chain33/cmd/autotest/types"
 	"github.com/33cn/chain33/common/log/log15"
 )
-
-//test flow, Add=>HandleDepend=>Send=>Check
 
 //TestOperator 测试操作符
 type TestOperator struct {

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package strategy 实现开发者工具实现不同策略的功能
 package strategy
 
 import (
