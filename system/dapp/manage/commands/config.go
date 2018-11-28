@@ -12,6 +12,7 @@ import (
 	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/rpc/jsonclient"
+	rpctypes "github.com/33cn/chain33/rpc/types"
 	pty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
@@ -101,10 +102,10 @@ func queryConfig(cmd *cobra.Command, args []string) {
 	req := &types.ReqString{
 		Data: key,
 	}
-	var params types.Query4Cli
+	var params rpctypes.Query4Jrpc
 	params.Execer = util.GetParaExecName(paraName, "manage")
 	params.FuncName = "GetConfigItem"
-	params.Payload = req
+	params.Payload = types.MustPBToJSON(req)
 
 	var res types.ReplyConfig
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
