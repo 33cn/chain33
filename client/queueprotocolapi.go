@@ -11,7 +11,7 @@ import (
 
 // QueueProtocolAPI 消息通道交互API接口定义
 type QueueProtocolAPI interface {
-	Version() (*types.Reply, error)
+	Version() (*types.VersionInfo, error)
 	Close()
 	NewMessage(topic string, msgid int64, data interface{}) queue.Message
 	Notify(topic string, ty int64, data interface{}) (queue.Message, error)

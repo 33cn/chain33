@@ -294,7 +294,7 @@ func (c *GrpcCtx) Run() (err error) {
 	case "Version":
 		reply, err := rpc.Version(context.Background(), c.Params.(*types.ReqNil))
 		if err == nil {
-			*c.Res.(*types.Reply) = *reply
+			*c.Res.(*types.VersionInfo) = *reply
 		}
 		errRet = err
 	case "IsSync":

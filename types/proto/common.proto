@@ -70,3 +70,13 @@ message ReqRandHash {
 	int64 height = 2;
 	int64 blockNum = 3;
 }
+
+/**
+ *当前软件版本信息
+ */
+message VersionInfo {
+    string title        = 1;
+    string app          = 2;
+    string chain33      = 3;
+    string localDb      = 4;
+}
