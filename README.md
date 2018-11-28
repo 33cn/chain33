@@ -50,7 +50,12 @@ Below is detailed contribution procedure. This can be skipped and directly see o
 
 ### 1. detailed procedure
 1.If you have any suggetions or bug, please create issues and discuss with us.
-2.Please fork '33cn/chain' to your own branch, like 'vipwzw/chain33' via click 
+2.Please fork '33cn/chain' to your own branch, like 'vipwzw/chain33' via click up right 'fork' button.
+```
+git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33
+```
+Notice: Here you will need to clone to $GOPATH/src/github.com/33cn/chain33 or Go-lang package can't find the path.
+
 ## License
 
 ```
