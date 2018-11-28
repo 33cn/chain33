@@ -1147,7 +1147,7 @@ func TestChain33_Version(t *testing.T) {
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	in := &types.ReqNil{}
-	ver := &types.VersionInfo{Chain33:"6.0.2"}
+	ver := &types.VersionInfo{Chain33: "6.0.2"}
 	api.On("Version", mock.Anything).Return(ver, nil)
 	err := testChain33.Version(in, &testResult)
 	t.Log(err)

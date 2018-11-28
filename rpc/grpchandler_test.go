@@ -135,7 +135,7 @@ func TestSendTransaction(t *testing.T) {
 //}
 
 func testVersionOK(t *testing.T) {
-	reply := &types.VersionInfo{Chain33:"6.0.2"}
+	reply := &types.VersionInfo{Chain33: "6.0.2"}
 	qapi.On("Version").Return(reply, nil)
 	data, err := g.Version(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
