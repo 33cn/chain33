@@ -8,7 +8,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 
 高度模块化, 遵循 KISS原则的区块链开发框架
 
-官方网站 和 文档: https://chain.33.cn
+: https://chain.33.cn
 
 官方插件库: https://github.com/33cn/plugin
 
