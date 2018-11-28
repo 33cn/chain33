@@ -121,9 +121,6 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 
 // RegisterMineStatusReporter 向钱包注册状态回报
 func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) error {
-	if !wallet.isInited() {
-		return types.ErrNotInited
-	}
 	if reporter == nil {
 		return types.ErrInvalidParam
 	}
