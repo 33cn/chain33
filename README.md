@@ -55,9 +55,8 @@ Below is detailed contribution procedure. This can be skipped and directly see o
 git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33
 ```
 <br>
-Notice: Here you will need to clone to ``` $GOPATH/src/github.com/33cn/chain33 ``` or Go-lang package can't find the path.<br>
-3.Add remote branch ``` '33cn/chain33' ```:  ``` git remote add upstream https://github.com/33cn/chain33.git ``` <br>
-We have added 'Makefile' to this and command ```make addupstream ``` can be used.<br>
+Notice: Here you will need to clone to $GOPATH/src/github.com/33cn/chain33 or Go-lang package can't find the path.<br>
+3.Add remote branch '33cn/chain33': git remote add upstream https://github.com/33cn/chain33.git.We have added 'Makefile' to this and command `make addupstream` can be used.<br>
 
 ## License
 
