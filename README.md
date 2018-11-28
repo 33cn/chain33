@@ -41,14 +41,14 @@ Run single node with below command on your development environment.
 $ chain33 -f chain33.toml
 ```
 
-## Notes of when using chain33 plugins
+## Please aware of below when using chain33 plugins
 1.Don't use master branch, please use publish branch.
 2.Don't re-create vendor dependency, we will support download vender folder for yourself in the future, but currently not available.
 
 ## Contributions
 Below is detailed contribution procedure. This can be skipped and directly see our simplified contribution flow in second part.
 
-### 1. detail procedure
+### 1. detailed procedure
 1.If you have any suggetions or bug, please create issues and discuss with us.
 2.Please fork '33cn/chain' to your own branch, like 'vipwzw/chain33' via click 
 ## License
