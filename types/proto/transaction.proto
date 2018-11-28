@@ -14,7 +14,7 @@ message AssetsGenesis {
 message AssetsTransferToExec {
     string cointoken = 1;
     int64  amount    = 2;
-    string note      = 3;
+    bytes  note      = 3;
     string execName  = 4;
     string to        = 5;
 }
@@ -22,7 +22,7 @@ message AssetsTransferToExec {
 message AssetsWithdraw {
     string cointoken = 1;
     int64  amount    = 2;
-    string note      = 3;
+    bytes  note      = 3;
     string execName  = 4;
     string to        = 5;
 }
@@ -30,7 +30,7 @@ message AssetsWithdraw {
 message AssetsTransfer {
     string cointoken = 1;
     int64  amount    = 2;
-    string note      = 3;
+    bytes  note      = 3;
     string to        = 4;
 }
 
@@ -44,7 +44,7 @@ message CreateTx {
     string to          = 1;
     int64  amount      = 2;
     int64  fee         = 3;
-    string note        = 4;
+    bytes  note        = 4;
     bool   isWithdraw  = 5;
     bool   isToken     = 6;
     string tokenSymbol = 7;
