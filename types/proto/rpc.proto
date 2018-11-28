@@ -107,7 +107,7 @@ service chain33 {
     rpc DumpPrivkey(ReqString) returns (ReplyString) {}
 
     //获取程序版本
-    rpc Version(ReqNil) returns (Reply) {}
+    rpc Version(ReqNil) returns (VersionInfo) {}
 
     //是否同步
     rpc IsSync(ReqNil) returns (Reply) {}

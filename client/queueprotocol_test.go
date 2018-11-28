@@ -16,6 +16,7 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -843,11 +844,12 @@ func testIsSyncGRPC(t *testing.T, rpc *mockGRPCSystem) {
 }
 
 func testVersionGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
+	var res types.VersionInfo
 	err := rpc.newRpcCtx("Version", &types.ReqNil{}, &res)
 	if err != nil {
 		t.Error("Call Version Failed.", err)
 	}
+	assert.Equal(t, "6.0.2",res.Chain33)
 }
 
 func testDumpPrivkeyGRPC(t *testing.T, rpc *mockGRPCSystem) {

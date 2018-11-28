@@ -286,7 +286,7 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyStri
 }
 
 // Version version
-func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
+func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.VersionInfo, error) {
 
 	return g.cli.Version()
 }
