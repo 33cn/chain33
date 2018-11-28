@@ -201,7 +201,7 @@ func (im *importPackageStrategy) generateImportFile() error {
 	importStrs := map[string]string{}
 	for name, plugins := range im.items {
 		for _, item := range plugins {
-			importStrs[name] += fmt.Sprintf("\r\n_ \"%s\"", item.gitRepo)
+			importStrs[name] += fmt.Sprintf("\r\n_ \"%s\" //auto gen", item.gitRepo)
 		}
 	}
 	for key, value := range importStrs {
