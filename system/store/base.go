@@ -172,22 +172,26 @@ func (store *BaseStore) GetQueueClient() queue.Client {
 	return store.qclient
 }
 
+// NewStoreListQuery new store list query object
 func NewStoreListQuery(store SubStore, req *types.StoreList) *StoreListQuery {
 	reply := &types.StoreListReply{Start: req.Start, End: req.End, Suffix: req.Suffix, Count: req.Count, Mode: req.Mode}
 	return &StoreListQuery{StoreListReply: reply, req: req, store: store}
 }
 
+// StoreListQuery defines a type store list query
 type StoreListQuery struct {
 	store SubStore
 	req   *types.StoreList
 	*types.StoreListReply
 }
 
+// Run store list query
 func (t *StoreListQuery) Run() *types.StoreListReply {
 	t.store.IterateRangeByStateHash(t.req.StateHash, t.req.Start, t.req.End, true, t.IterateCallBack)
 	return t.StoreListReply
 }
 
+// IterateCallBack store list query iterate callback
 func (t *StoreListQuery) IterateCallBack(key, value []byte) bool {
 	if t.Mode == 1 { //[start, end)模式
 		if t.Num >= t.Count {
@@ -209,12 +213,12 @@ func (t *StoreListQuery) IterateCallBack(key, value []byte) bool {
 					return true
 				}
 				return false
-			} else {
-				return false
 			}
-		} else {
 			return false
+
 		}
+		return false
+
 	} else {
 		slog.Error("StoreListReply.IterateCallBack unsupported mode", "mode", t.Mode)
 		return true

@@ -188,7 +188,7 @@ func (client *client) isEnd(data Message, ok bool) bool {
 	if atomic.LoadInt32(&client.isClosed) == 1 {
 		return true
 	}
-	if data.Data == nil && data.Id == 0 && data.Ty == 0 {
+	if data.Data == nil && data.ID == 0 && data.Ty == 0 {
 		return true
 	}
 	return false

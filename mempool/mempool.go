@@ -600,7 +600,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 		defer mlog.Info("mempool message recv quit")
 		defer mem.wg.Done()
 		for msg := range mem.client.Recv() {
-			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool recv", "msgid", msg.ID, "msg", types.GetEventName(int(msg.Ty)))
 			beg := types.Now()
 			switch msg.Ty {
 			case types.EventTx:

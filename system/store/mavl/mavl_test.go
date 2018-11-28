@@ -214,7 +214,7 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 	i := len(prefix) - 1
 	for i >= 0 {
 		if r[i] < 0xff {
-			r[i] += 1
+			r[i]++
 			break
 		} else {
 			i--

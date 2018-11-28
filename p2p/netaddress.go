@@ -219,32 +219,33 @@ func (na *NetAddress) ReachabilityTo(o *NetAddress) int {
 			return Teredo
 		} else if o.IP.To4() != nil {
 			return Ipv4
-		} else { // ipv6
-			return Ipv6Weak
 		}
+		// ipv6
+		return Ipv6Weak
+
 	} else if na.IP.To4() != nil {
 		if o.Routable() && o.IP.To4() != nil {
 			return Ipv4
 		}
 		return Default
-	} else /* ipv6 */ {
-		var tunnelled bool
-		// Is our v6 is tunnelled?
-		if o.RFC3964() || o.RFC6052() || o.RFC6145() {
-			tunnelled = true
-		}
-		if !o.Routable() {
-			return Default
-		} else if o.RFC4380() {
-			return Teredo
-		} else if o.IP.To4() != nil {
-			return Ipv4
-		} else if tunnelled {
-			// only prioritise ipv6 if we aren't tunnelling it.
-			return Ipv6Weak
-		}
-		return Ipv6Strong
 	}
+	/* ipv6 */
+	var tunnelled bool
+	// Is our v6 is tunnelled?
+	if o.RFC3964() || o.RFC6052() || o.RFC6145() {
+		tunnelled = true
+	}
+	if !o.Routable() {
+		return Default
+	} else if o.RFC4380() {
+		return Teredo
+	} else if o.IP.To4() != nil {
+		return Ipv4
+	} else if tunnelled {
+		// only prioritise ipv6 if we aren't tunnelling it.
+		return Ipv6Weak
+	}
+	return Ipv6Strong
 }
 
 // RFC1918: IPv4 Private networks (10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12)
