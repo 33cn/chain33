@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package accounts 实现了挖矿监控账户相关的功能
 package accounts
 
 import (
