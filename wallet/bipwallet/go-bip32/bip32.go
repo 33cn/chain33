@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package bip32 A fully compliant implementation of the BIP0032 spec for Hierarchical Deterministic Bitcoin addresses
 package bip32
 
 import (

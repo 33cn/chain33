@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package pluginmgr manage module
+// Package pluginmgr 插件管理模块，负责插件初始化等功能
 package pluginmgr
 
 import (

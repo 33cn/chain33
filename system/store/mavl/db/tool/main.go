@@ -4,6 +4,7 @@
 
 // +build go1.8
 
+// package main 用于测试数据库中的MAVL节点数目
 package main
 
 import (

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package secp256k1 secp256k1系统加密包
 package secp256k1
 
 import (

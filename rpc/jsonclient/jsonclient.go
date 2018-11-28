@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package jsonclient 实现JSON rpc客户端请求功能
 package jsonclient
 
 import (

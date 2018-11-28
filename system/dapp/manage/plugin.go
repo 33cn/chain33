@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package manage manage负责管理配置的插件
+// 1. 添加管理
+// 2. 添加运营人员
+// 3. （未来）修改某些配置项
 package manage
 
 import (

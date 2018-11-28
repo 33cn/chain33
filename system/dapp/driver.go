@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package dapp 系统基础dapp包
 package dapp
 
 //package none execer for unknow execer

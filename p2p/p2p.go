@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package p2p 实现了chain33网络协议
 package p2p
 
 import (

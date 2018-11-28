@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package db 数据库操作底层接口定义以及实现包括：leveldb、
+// memdb、mvcc、badgerdb、pegasus、ssdb
 package db
 
 import (
