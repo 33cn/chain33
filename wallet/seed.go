@@ -156,7 +156,9 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 		}
 		index = backupindex + 1
 	}
-
+	if SignType != 1 && SignType != 2 {
+		return "", types.ErrNotSupport
+	}
 	//secp256k1
 	if SignType == 1 {
 
@@ -204,10 +206,6 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 		//seedlog.Error("GetPrivkeyBySeed", "index", index, "secretKey", secretKey, "publicKey", publicKey)
 
 		Hexsubprivkey = secretKey
-	} else if SignType == 3 { //sm2
-		return "", types.ErrNotSupport
-	} else {
-		return "", types.ErrNotSupport
 	}
 	// back up index in db
 	var pubkeyindex []byte

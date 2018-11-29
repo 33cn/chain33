@@ -229,14 +229,14 @@ func (q *queue) Client() Client {
 type Message struct {
 	Topic   string
 	Ty      int64
-	Id      int64
+	ID      int64
 	Data    interface{}
 	chReply chan Message
 }
 
 // NewMessage new message
 func NewMessage(id int64, topic string, ty int64, data interface{}) (msg Message) {
-	msg.Id = id
+	msg.ID = id
 	msg.Ty = ty
 	msg.Data = data
 	msg.Topic = topic
@@ -275,7 +275,7 @@ func (msg Message) Reply(replyMsg Message) {
 // String print the message information
 func (msg Message) String() string {
 	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v, Ch:%v}", msg.Topic,
-		types.GetEventName(int(msg.Ty)), msg.Id, msg.Err(), msg.chReply != nil)
+		types.GetEventName(int(msg.Ty)), msg.ID, msg.Err(), msg.chReply != nil)
 }
 
 // ReplyErr reply error

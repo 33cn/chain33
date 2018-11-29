@@ -458,10 +458,10 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 		if Account.Privkey == Encrypteredstr {
 			walletlog.Error("ProcImportPrivKey Privkey is exist in wallet!")
 			return nil, types.ErrPrivkeyExist
-		} else {
-			walletlog.Error("ProcImportPrivKey!", "Account.Privkey", Account.Privkey, "input Privkey", PrivKey.Privkey)
-			return nil, types.ErrPrivkey
 		}
+		walletlog.Error("ProcImportPrivKey!", "Account.Privkey", Account.Privkey, "input Privkey", PrivKey.Privkey)
+		return nil, types.ErrPrivkey
+
 	}
 
 	var walletaccount types.WalletAccount

@@ -172,23 +172,27 @@ func (store *BaseStore) GetQueueClient() queue.Client {
 	return store.qclient
 }
 
-func NewStoreListQuery(store SubStore, req *types.StoreList) *StoreListQuery {
+// NewStoreListQuery new store list query object
+func NewStoreListQuery(store SubStore, req *types.StoreList) *StorelistQuery {
 	reply := &types.StoreListReply{Start: req.Start, End: req.End, Suffix: req.Suffix, Count: req.Count, Mode: req.Mode}
-	return &StoreListQuery{StoreListReply: reply, req: req, store: store}
+	return &StorelistQuery{StoreListReply: reply, req: req, store: store}
 }
 
-type StoreListQuery struct {
+// StorelistQuery defines a type store list query
+type StorelistQuery struct {
 	store SubStore
 	req   *types.StoreList
 	*types.StoreListReply
 }
 
-func (t *StoreListQuery) Run() *types.StoreListReply {
+// Run store list query
+func (t *StorelistQuery) Run() *types.StoreListReply {
 	t.store.IterateRangeByStateHash(t.req.StateHash, t.req.Start, t.req.End, true, t.IterateCallBack)
 	return t.StoreListReply
 }
 
-func (t *StoreListQuery) IterateCallBack(key, value []byte) bool {
+// IterateCallBack store list query iterate callback
+func (t *StorelistQuery) IterateCallBack(key, value []byte) bool {
 	if t.Mode == 1 { //[start, end)模式
 		if t.Num >= t.Count {
 			t.NextKey = key
@@ -198,7 +202,8 @@ func (t *StoreListQuery) IterateCallBack(key, value []byte) bool {
 		t.Keys = append(t.Keys, cloneByte(key))
 		t.Values = append(t.Values, cloneByte(value))
 		return false
-	} else if t.Mode == 2 { //prefix + suffix模式，要对按prefix得到的数据key进行suffix的判断，符合条件的数据才是最终要的数据
+	}
+	if t.Mode == 2 { //prefix + suffix模式，要对按prefix得到的数据key进行suffix的判断，符合条件的数据才是最终要的数据
 		if len(key) > len(t.Suffix) {
 			if string(key[len(key)-len(t.Suffix):]) == string(t.Suffix) {
 				t.Num++
@@ -209,16 +214,16 @@ func (t *StoreListQuery) IterateCallBack(key, value []byte) bool {
 					return true
 				}
 				return false
-			} else {
-				return false
 			}
-		} else {
 			return false
+
 		}
-	} else {
-		slog.Error("StoreListReply.IterateCallBack unsupported mode", "mode", t.Mode)
-		return true
+		return false
+
 	}
+	slog.Error("StoreListReply.IterateCallBack unsupported mode", "mode", t.Mode)
+	return true
+
 }
 
 func cloneByte(v []byte) []byte {

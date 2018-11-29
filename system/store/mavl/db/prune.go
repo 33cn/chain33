@@ -658,6 +658,7 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, lastKey
 	pruningHashNode(db, delMp)
 }
 
+// PruningTreePrintDB pruning tree print db
 func PruningTreePrintDB(db dbm.DB, prefix []byte) {
 	it := db.Iterator(prefix, nil, true)
 	defer it.Close()

@@ -214,7 +214,7 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 	i := len(prefix) - 1
 	for i >= 0 {
 		if r[i] < 0xff {
-			r[i] += 1
+			r[i]++
 			break
 		} else {
 			i--
@@ -294,7 +294,7 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	resp1.Count = 5
 	resp1.Mode = 1
 
-	query = &drivers.StoreListQuery{StoreListReply: resp1}
+	query = &drivers.StorelistQuery{StoreListReply: resp1}
 	store.IterateRangeByStateHash(hash1, resp1.Start, resp1.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp1.Values)
@@ -314,7 +314,7 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	resp0.End = genPrefixEdge([]byte(prefix))
 	resp0.Count = 5
 	resp0.Mode = 1
-	query = &drivers.StoreListQuery{StoreListReply: resp0}
+	query = &drivers.StorelistQuery{StoreListReply: resp0}
 	store.IterateRangeByStateHash(hash0, resp0.Start, resp0.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp0.Values)
@@ -334,7 +334,7 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	resp.End = genPrefixEdge([]byte(prefix))
 	resp.Count = 1
 	resp.Mode = 1
-	query = &drivers.StoreListQuery{StoreListReply: resp}
+	query = &drivers.StorelistQuery{StoreListReply: resp}
 	store.IterateRangeByStateHash(hash2, resp.Start, resp.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp.Values)
@@ -354,7 +354,7 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	resp.End = genPrefixEdge([]byte(prefix))
 	resp.Count = 2
 	resp.Mode = 1
-	query = &drivers.StoreListQuery{StoreListReply: resp}
+	query = &drivers.StorelistQuery{StoreListReply: resp}
 	store.IterateRangeByStateHash(hash2, resp.Start, resp.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp.Values)
@@ -422,7 +422,7 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	resp2.Count = 5
 	resp2.Mode = 2
 
-	query := &drivers.StoreListQuery{StoreListReply: resp2}
+	query := &drivers.StorelistQuery{StoreListReply: resp2}
 	store.IterateRangeByStateHash(hash2, resp2.Start, nil, true, query.IterateCallBack)
 	tool := &StatTool{}
 	tool.AddItem(resp2.Values)
@@ -442,7 +442,7 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	resp1.End = genPrefixEdge([]byte(prefix))
 	resp1.Count = 5
 	resp1.Mode = 2
-	query = &drivers.StoreListQuery{StoreListReply: resp1}
+	query = &drivers.StorelistQuery{StoreListReply: resp1}
 	store.IterateRangeByStateHash(hash1, resp1.Start, resp1.End, true, query.IterateCallBack)
 
 	tool.AddItem(resp1.Values)
@@ -462,7 +462,7 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	resp0.End = genPrefixEdge([]byte(prefix))
 	resp0.Count = 5
 	resp0.Mode = 2
-	query = &drivers.StoreListQuery{StoreListReply: resp0}
+	query = &drivers.StorelistQuery{StoreListReply: resp0}
 	store.IterateRangeByStateHash(hash0, resp0.Start, nil, true, query.IterateCallBack)
 
 	tool.AddItem(resp0.Values)
@@ -482,7 +482,7 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	resp.End = genPrefixEdge([]byte(prefix))
 	resp.Count = 1
 	resp.Mode = 2
-	query = &drivers.StoreListQuery{StoreListReply: resp}
+	query = &drivers.StorelistQuery{StoreListReply: resp}
 	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, query.IterateCallBack)
 
 	tool.AddItem(resp.Values)
@@ -502,7 +502,7 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	resp.End = genPrefixEdge([]byte(prefix))
 	resp.Count = 2
 	resp.Mode = 2
-	query = &drivers.StoreListQuery{StoreListReply: resp}
+	query = &drivers.StorelistQuery{StoreListReply: resp}
 	store.IterateRangeByStateHash(hash2, resp.Start, nil, true, query.IterateCallBack)
 
 	tool.AddItem(resp.Values)
@@ -522,7 +522,7 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	resp.End = genPrefixEdge([]byte("mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:"))
 	resp.Count = 1
 	resp.Mode = 2
-	query = &drivers.StoreListQuery{StoreListReply: resp}
+	query = &drivers.StorelistQuery{StoreListReply: resp}
 	store.IterateRangeByStateHash(hash2, resp.Start, resp.End, true, query.IterateCallBack)
 	tool.AddItem(resp.Values)
 	assert.Equal(t, int64(1), resp.Num)

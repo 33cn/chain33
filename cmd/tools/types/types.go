@@ -21,7 +21,7 @@ const (
 	KeyUpdateInit               = "update_init"
 	KeyCreatePlugin             = "create_plugin"
 
-	DEF_CPM_CONFIGFILE = "chain33.cpm.toml"
+	DefCpmConfigfile = "chain33.cpm.toml"
 
 	TagGoPath          = "${GOPATH}"
 	TagProjectName     = "${PROJECTNAME}"   // 项目名称替换标签
