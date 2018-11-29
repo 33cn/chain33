@@ -391,7 +391,7 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 		To:          "qew",
 		Amount:      10,
 		Fee:         1,
-		Note:        "12312",
+		Note:        []byte("12312"),
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
