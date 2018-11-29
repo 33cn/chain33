@@ -20,8 +20,8 @@ import (
 
 //const
 const (
-	SM2RPIVATEKEYLENGTH = 32
-	SM2PUBLICKEYLENGTH  = 65
+	Sm2RpivatekeyLength = 32
+	Sm2PublickeyLength  = 65
 )
 
 //Driver 驱动
@@ -29,8 +29,8 @@ type Driver struct{}
 
 //GenKey 生成私钥
 func (d Driver) GenKey() (crypto.PrivKey, error) {
-	privKeyBytes := [SM2RPIVATEKEYLENGTH]byte{}
-	copy(privKeyBytes[:], crypto.CRandBytes(SM2RPIVATEKEYLENGTH))
+	privKeyBytes := [Sm2RpivatekeyLength]byte{}
+	copy(privKeyBytes[:], crypto.CRandBytes(Sm2RpivatekeyLength))
 	priv, _ := privKeyFromBytes(sm2.P256Sm2(), privKeyBytes[:])
 	copy(privKeyBytes[:], SerializePrivateKey(priv))
 	return PrivKeySM2(privKeyBytes), nil
@@ -38,11 +38,11 @@ func (d Driver) GenKey() (crypto.PrivKey, error) {
 
 //PrivKeyFromBytes 字节转为私钥
 func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
-	if len(b) != SM2RPIVATEKEYLENGTH {
+	if len(b) != Sm2RpivatekeyLength {
 		return nil, errors.New("invalid priv key byte")
 	}
-	privKeyBytes := new([SM2RPIVATEKEYLENGTH]byte)
-	copy(privKeyBytes[:], b[:SM2RPIVATEKEYLENGTH])
+	privKeyBytes := new([Sm2RpivatekeyLength]byte)
+	copy(privKeyBytes[:], b[:Sm2RpivatekeyLength])
 
 	priv, _ := privKeyFromBytes(sm2.P256Sm2(), privKeyBytes[:])
 
@@ -52,10 +52,10 @@ func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
 
 //PubKeyFromBytes 字节转为公钥
 func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
-	if len(b) != SM2PUBLICKEYLENGTH {
+	if len(b) != Sm2PublickeyLength {
 		return nil, errors.New("invalid pub key byte")
 	}
-	pubKeyBytes := new([SM2PUBLICKEYLENGTH]byte)
+	pubKeyBytes := new([Sm2PublickeyLength]byte)
 	copy(pubKeyBytes[:], b[:])
 	return PubKeySM2(*pubKeyBytes), nil
 }
@@ -76,11 +76,11 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 }
 
 //PrivKeySM2 私钥
-type PrivKeySM2 [SM2RPIVATEKEYLENGTH]byte
+type PrivKeySM2 [Sm2RpivatekeyLength]byte
 
 //Bytes 字节格式
 func (privKey PrivKeySM2) Bytes() []byte {
-	s := make([]byte, SM2RPIVATEKEYLENGTH)
+	s := make([]byte, Sm2RpivatekeyLength)
 	copy(s, privKey[:])
 	return s
 }
@@ -120,11 +120,11 @@ func (privKey PrivKeySM2) String() string {
 }
 
 //PubKeySM2 公钥
-type PubKeySM2 [SM2PUBLICKEYLENGTH]byte
+type PubKeySM2 [Sm2PublickeyLength]byte
 
 //Bytes 字节格式
 func (pubKey PubKeySM2) Bytes() []byte {
-	s := make([]byte, SM2PUBLICKEYLENGTH)
+	s := make([]byte, Sm2PublickeyLength)
 	copy(s, pubKey[:])
 	return s
 }
