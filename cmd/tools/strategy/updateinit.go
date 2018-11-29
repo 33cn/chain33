@@ -64,7 +64,7 @@ func mkdir(path string) {
 }
 
 func buildInit(path string, packname string) {
-	if packname == "" {
+	 if packname == "" {
 		return
 	}
 	path += "/init.go"
