@@ -411,7 +411,6 @@ func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 // Close 关闭Mempool
 func (mem *Mempool) Close() {
 	atomic.StoreInt32(&mem.isclose, 1)
-	close(mem.in)
 	close(mem.done)
 	mem.client.Close()
 	mem.removeBlockTicket.Stop()
@@ -609,7 +608,10 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
 				} else {
 					checkedMsg := mem.CheckTxs(msg)
-					mem.in <- checkedMsg
+					select {
+					case mem.in <- checkedMsg:
+					case <-mem.done:
+					}
 				}
 			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
