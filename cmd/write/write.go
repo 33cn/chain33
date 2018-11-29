@@ -158,7 +158,7 @@ func scanWrite() {
 				continue
 			}
 			var noteTx types.Transaction
-			txBytes, err := common.FromHex(action.GetTransfer().Note)
+			txBytes, err := common.FromHex(string(action.GetTransfer().Note))
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "not a user data tx")
 				continue

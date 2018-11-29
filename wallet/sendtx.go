@@ -202,7 +202,7 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 	create := &types.CreateTx{
 		To:          addrto,
 		Amount:      amount,
-		Note:        note,
+		Note:        []byte(note),
 		IsWithdraw:  isWithdraw,
 		IsToken:     Istoken,
 		TokenSymbol: tokenSymbol,
