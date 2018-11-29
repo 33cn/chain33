@@ -74,7 +74,7 @@ func init() {
 	}
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	queue.DisableLog()
-	DisableLog() // 不输出任何log
+	//  DisableLog() // 不输出任何log
 	//	SetLogLevel("debug") // 输出DBUG(含)以下log
 	//	SetLogLevel("info") // 输出INFO(含)以下log
 	SetLogLevel("info") // 输出WARN(含)以下log
