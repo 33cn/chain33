@@ -33,7 +33,7 @@ var (
 // coin conversation
 const (
 	Coin            int64 = 1e8
-	MaxCoin         int64 = 9e18
+	MaxCoin         int64 = 1e17
 	MaxTxSize             = 100000 //100K
 	MaxTxGroupSize  int32 = 20
 	MaxBlockSize          = 20000000 //20M
