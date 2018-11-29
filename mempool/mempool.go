@@ -410,6 +410,9 @@ func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 
 // Close 关闭Mempool
 func (mem *Mempool) Close() {
+	if mem.isClose() {
+		return
+	}
 	atomic.StoreInt32(&mem.isclose, 1)
 	close(mem.done)
 	mem.client.Close()
@@ -591,6 +594,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true}))
 			}
 		}
+		println("mem.out close")
 	}()
 	mem.wg.Add(1)
 	go mem.RemoveBlockedTxs()
@@ -598,6 +602,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 	go func() {
 		defer mlog.Info("mempool message recv quit")
 		defer mem.wg.Done()
+		defer close(mem.in)
 		for msg := range mem.client.Recv() {
 			mlog.Debug("mempool recv", "msgid", msg.ID, "msg", types.GetEventName(int(msg.Ty)))
 			beg := types.Now()
