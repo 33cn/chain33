@@ -199,11 +199,8 @@ func (bs *BlockStore) isSeqCBExist(name string) bool {
 	value, err := bs.db.Get(calcSeqCBKey([]byte(name)))
 	if err == nil {
 		var cb types.BlockSeqCB
-		err := types.Decode(value, &cb)
-		if err != nil {
-			return false
-		}
-		return true
+		err = types.Decode(value, &cb)
+		return err == nil
 	}
 	return false
 }
