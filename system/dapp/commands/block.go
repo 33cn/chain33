@@ -317,7 +317,7 @@ func addblockSeqCallBackCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("url", "u", "", "call back URL")
 	cmd.MarkFlagRequired("url")
 
-	cmd.Flags().StringP("encode", "e", "", "data encode type")
+	cmd.Flags().StringP("encode", "e", "", "data encode type,json or proto buff")
 	cmd.MarkFlagRequired("encode")
 }
 
