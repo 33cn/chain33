@@ -115,7 +115,6 @@ func (chain *BlockChain) addBlockSeqCB(msg queue.Message) {
 	}
 	chain.pushseq.addTask(cb)
 	msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
-	return
 }
 
 func (chain *BlockChain) listBlockSeqCB(msg queue.Message) {
@@ -126,7 +125,6 @@ func (chain *BlockChain) listBlockSeqCB(msg queue.Message) {
 		return
 	}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventListBlockSeqCB, cbs))
-	return
 }
 func (chain *BlockChain) getSeqCBLastNum(msg queue.Message) {
 	data := (msg.Data).(*types.ReqString)
@@ -134,8 +132,6 @@ func (chain *BlockChain) getSeqCBLastNum(msg queue.Message) {
 	num := chain.ProcGetSeqCBLastNum(data.Data)
 	lastNum := &types.Int64{Data: num}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqCBLastNum, lastNum))
-	return
-
 }
 
 func (chain *BlockChain) queryTx(msg queue.Message) {
