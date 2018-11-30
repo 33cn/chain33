@@ -33,6 +33,7 @@ func (_m *QueueProtocolAPI) AddSeqCallBack(param *types.BlockSeqCB) (*types.Repl
 
 	return r0, r1
 }
+
 // Close provides a mock function with given fields:
 func (_m *QueueProtocolAPI) Close() {
 	_m.Called()
@@ -497,6 +498,7 @@ func (_m *QueueProtocolAPI) GetSeqCallBackLastNum(param *types.ReqString) (*type
 
 	return r0, r1
 }
+
 // GetTransactionByAddr provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	ret := _m.Called(param)
@@ -657,6 +659,7 @@ func (_m *QueueProtocolAPI) ListSeqCallBack() (*types.BlockSeqCBs, error) {
 
 	return r0, r1
 }
+
 // LocalGet provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error) {
 	ret := _m.Called(param)
