@@ -50,6 +50,10 @@ message BlockSeqCB {
     string encode = 3;
 }
 
+message BlockSeqCBs {
+    repeated BlockSeqCB items = 1;
+}
+
 message BlockSeq {
     int64 num = 1;
     BlockSequence seq = 2;
