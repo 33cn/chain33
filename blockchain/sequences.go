@@ -112,9 +112,9 @@ func (chain *BlockChain) ProcListBlockSeqCB() (*types.BlockSeqCBs, error) {
 		return nil, err
 	}
 	var listSeqCBs types.BlockSeqCBs
-	for _, cb := range cbs {
-		listSeqCBs.Items = append(listSeqCBs.Items, cb)
-	}
+
+	listSeqCBs.Items = append(listSeqCBs.Items, cbs...)
+
 	return &listSeqCBs, nil
 }
 
