@@ -19,7 +19,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 	defer chain.recvwg.Done()
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.client.Recv() {
-		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.Id, "cap", len(reqnum))
+		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.ID, "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
 		atomic.AddInt32(&chain.runcount, 1)

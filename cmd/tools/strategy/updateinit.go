@@ -72,10 +72,10 @@ func buildInit(path string, packname string) {
 		var data = []byte(`package plugin
 
 import (
-	_ "${packname}/consensus/init"
-	_ "${packname}/crypto/init"
-	_ "${packname}/dapp/init"
-	_ "${packname}/store/init"
+	_ "${packname}/consensus/init" //consensus init
+	_ "${packname}/crypto/init"    //crypto init
+	_ "${packname}/dapp/init"      //dapp init
+	_ "${packname}/store/init"     //store init
 )`)
 		data = bytes.Replace(data, []byte("${packname}"), []byte(packname), -1)
 		ioutil.WriteFile(path, data, 0666)

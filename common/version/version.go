@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package version 软件版本号
 package version
 
-const version = "6.0.1"
+const version = "6.0.2"
 
 //var
 var (

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package chaincfg 实现chain33的基础配置相关功能
 package chaincfg
 
 var configMap = make(map[string]string)

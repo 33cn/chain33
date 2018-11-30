@@ -17,6 +17,9 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 典型案例: https://github.com/bityuan/bityuan
 
 chain33背后故事: [chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR_NFxfeuAA)
+
+视频教程: [视频教程](https://chain.33.cn/document/90)
+
 ## Building from source
 
 环境要求: Go (version 1.9 or later)
@@ -147,7 +150,7 @@ make pullpush name=libangzhu b=chain33-p2p-listenPort
 ## License
 
 ```
-BSD 2-Clause License
+BSD 3-Clause License
 
 Copyright (c) 2018, 33.cn
 All rights reserved.
@@ -161,6 +164,10 @@ modification, are permitted provided that the following conditions are met:
 * Redistributions in binary form must reproduce the above copyright notice,
   this list of conditions and the following disclaimer in the documentation
   and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE

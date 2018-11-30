@@ -145,11 +145,11 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	} else {
 		var req types.ReqString
 		req.Data = symbol
-		var params types.Query4Cli
+		var params rpctypes.Query4Jrpc
 		params.Execer = "token"
 		// 查询Token的总量
 		params.FuncName = "GetTotalAmount"
-		params.Payload = req
+		params.Payload = types.MustPBToJSON(&req)
 		var res types.TotalAmount
 
 		//查询Token总量

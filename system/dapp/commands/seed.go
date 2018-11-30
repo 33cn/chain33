@@ -5,6 +5,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
@@ -52,7 +54,12 @@ func genSeed(cmd *cobra.Command, args []string) {
 	}
 	var res types.ReplySeed
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
-	ctx.Run()
+	_, err := ctx.RunResult()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(res.Seed)
 }
 
 // GetSeedCmd get seed

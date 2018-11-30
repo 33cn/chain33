@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package crypto 加解密、签名接口定义
 package crypto
 
 import (

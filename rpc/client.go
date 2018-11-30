@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package rpc chain33 RPC模块包含JSONRpc以及grpc
 package rpc
 
 import (

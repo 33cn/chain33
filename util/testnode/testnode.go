@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// package testnode 提供一个通用的测试节点，用于单元测试和集成测试。
+
 package testnode
 
 import (
@@ -36,7 +38,6 @@ import (
 	"github.com/33cn/chain33/wallet"
 )
 
-//这个包提供一个通用的测试节点，用于单元测试和集成测试。
 func init() {
 	err := limits.SetLimits()
 	if err != nil {

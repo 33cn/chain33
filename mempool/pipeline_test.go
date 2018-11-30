@@ -16,31 +16,31 @@ import (
 func TestStep(t *testing.T) {
 	done := make(chan struct{})
 	in := make(chan queue.Message)
-	msg := queue.Message{Id: 0}
+	msg := queue.Message{ID: 0}
 	cb := func(in queue.Message) queue.Message {
-		in.Id++
+		in.ID++
 		time.Sleep(time.Microsecond)
 		return in
 	}
 	out := step(done, in, cb)
 	in <- msg
 	msg2 := <-out
-	assert.Equal(t, msg2.Id, int64(1))
+	assert.Equal(t, msg2.ID, int64(1))
 	close(done)
 }
 
 func TestMutiStep(t *testing.T) {
 	done := make(chan struct{})
 	in := make(chan queue.Message)
-	msg := queue.Message{Id: 0}
+	msg := queue.Message{ID: 0}
 	step1 := func(in queue.Message) queue.Message {
-		in.Id++
+		in.ID++
 		time.Sleep(time.Microsecond)
 		return in
 	}
 	out1 := step(done, in, step1)
 	step2 := func(in queue.Message) queue.Message {
-		in.Id++
+		in.ID++
 		time.Sleep(time.Microsecond)
 		return in
 	}
@@ -50,16 +50,16 @@ func TestMutiStep(t *testing.T) {
 	out3 := mergeList(done, out21, out22)
 	in <- msg
 	msg2 := <-out3
-	assert.Equal(t, msg2.Id, int64(2))
+	assert.Equal(t, msg2.ID, int64(2))
 	close(done)
 }
 
 func BenchmarkStep(b *testing.B) {
 	done := make(chan struct{})
 	in := make(chan queue.Message)
-	msg := queue.Message{Id: 0}
+	msg := queue.Message{ID: 0}
 	cb := func(in queue.Message) queue.Message {
-		in.Id++
+		in.ID++
 		time.Sleep(100 * time.Microsecond)
 		return in
 	}
@@ -71,7 +71,7 @@ func BenchmarkStep(b *testing.B) {
 	}()
 	for i := 0; i < b.N; i++ {
 		msg2 := <-out
-		assert.Equal(b, msg2.Id, int64(1))
+		assert.Equal(b, msg2.ID, int64(1))
 	}
 	close(done)
 }
@@ -79,9 +79,9 @@ func BenchmarkStep(b *testing.B) {
 func BenchmarkStepMerge(b *testing.B) {
 	done := make(chan struct{})
 	in := make(chan queue.Message)
-	msg := queue.Message{Id: 0}
+	msg := queue.Message{ID: 0}
 	cb := func(in queue.Message) queue.Message {
-		in.Id++
+		in.ID++
 		time.Sleep(100 * time.Microsecond)
 		return in
 	}
@@ -97,7 +97,7 @@ func BenchmarkStepMerge(b *testing.B) {
 	}()
 	for i := 0; i < b.N; i++ {
 		msg2 := <-out
-		assert.Equal(b, msg2.Id, int64(1))
+		assert.Equal(b, msg2.ID, int64(1))
 	}
 	close(done)
 }

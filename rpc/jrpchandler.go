@@ -12,7 +12,6 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
-	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	"github.com/33cn/chain33/types"
 	wcom "github.com/33cn/chain33/wallet/common"
@@ -895,9 +894,13 @@ func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 	return nil
 }
 
-// Version version
+// Version get software version
 func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
-	*result = version.GetVersion()
+	resp, err := c.cli.Version()
+	if err != nil {
+		return err
+	}
+	*result = resp
 	return nil
 }
 

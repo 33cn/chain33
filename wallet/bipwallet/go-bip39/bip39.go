@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package bip39 A golang implementation of the BIP0039 spec for mnemonic seeds
 package bip39
 
 import (

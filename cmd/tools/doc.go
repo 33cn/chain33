@@ -2,14 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/**
-chain33开发者工具，主要提供以下功能：
+/*
+Package main chain33开发者工具，主要提供以下功能：
 1. 通过chain33.cpm.toml配置，指定需要下载的包，从远程下载到本地 import
 2. 通过本地创建各种执行器工程，相关命令为 simple, advance
 3. 扫描本地插件信息，更新引用关系
-4. 通过本地创建完整的插件项目,可以选择simple模式和advance模式
+4. 通过本地创建完整的插件项目,可以选择simple模式和advance模式.
 
 目录介绍
 	1. config目录为tools工具使用的配置目录
@@ -54,3 +52,4 @@ chain33开发者工具，主要提供以下功能：
 			-p  --propfile 		导入执行器类型的proto3协议模板，如果不填默认为config/执行器名称.proto
 			-t  --templatepath 	生成执行器项目的模板文件，不填默认为config/template下的所有文件
 */
+package main

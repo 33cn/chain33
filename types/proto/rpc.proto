@@ -107,7 +107,7 @@ service chain33 {
     rpc DumpPrivkey(ReqString) returns (ReplyString) {}
 
     //获取程序版本
-    rpc Version(ReqNil) returns (Reply) {}
+    rpc Version(ReqNil) returns (VersionInfo) {}
 
     //是否同步
     rpc IsSync(ReqNil) returns (Reply) {}
@@ -136,4 +136,7 @@ service chain33 {
     rpc SignRawTx(ReqSignRawTx) returns (ReplySignRawTx) {}
 
     rpc CreateNoBalanceTransaction(NoBalanceTx) returns (ReplySignRawTx) {}
+    
+	// 获取随机HASH
+    rpc QueryRandNum(ReqRandHash) returns(ReplyHash) {}
 }

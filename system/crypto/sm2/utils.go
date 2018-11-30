@@ -103,7 +103,7 @@ func parsePubKey(pubKeyStr []byte, curve elliptic.Curve) (key *sm2.PublicKey, er
 
 //SerializePublicKey 公钥序列化
 func SerializePublicKey(p *sm2.PublicKey) []byte {
-	b := make([]byte, 0, SM2_PUBLICKEY_LENGTH)
+	b := make([]byte, 0, SM2PublicKeyLength)
 	b = append(b, 0x4)
 	b = paddedAppend(32, b, p.X.Bytes())
 	return paddedAppend(32, b, p.Y.Bytes())
@@ -111,8 +111,8 @@ func SerializePublicKey(p *sm2.PublicKey) []byte {
 
 //SerializePrivateKey 私钥序列化
 func SerializePrivateKey(p *sm2.PrivateKey) []byte {
-	b := make([]byte, 0, SM2_RPIVATEKEY_LENGTH)
-	return paddedAppend(SM2_RPIVATEKEY_LENGTH, b, p.D.Bytes())
+	b := make([]byte, 0, SM2PrivateKeyLength)
+	return paddedAppend(SM2PrivateKeyLength, b, p.D.Bytes())
 }
 
 func paddedAppend(size uint, dst, src []byte) []byte {

@@ -391,7 +391,7 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 		To:          "qew",
 		Amount:      10,
 		Fee:         1,
-		Note:        "12312",
+		Note:        []byte("12312"),
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
@@ -1147,8 +1147,11 @@ func TestChain33_Version(t *testing.T) {
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	in := &types.ReqNil{}
+	ver := &types.VersionInfo{Chain33: "6.0.2"}
+	api.On("Version", mock.Anything).Return(ver, nil)
 	err := testChain33.Version(in, &testResult)
 	t.Log(err)
+	t.Log(testResult)
 	assert.Equal(t, nil, err)
 	assert.NotNil(t, testResult)
 }

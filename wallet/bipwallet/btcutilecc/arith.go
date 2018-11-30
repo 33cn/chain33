@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package btcutil Utility functions for Bitcoin elliptic curve cryptography.
 package btcutil
 
 import "crypto/ecdsa"

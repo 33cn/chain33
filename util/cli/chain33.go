@@ -4,14 +4,13 @@
 
 // +build go1.8
 
-package cli
-
-//说明：
-//main 函数会加载各个模块，组合成区块链程序
+// package cli RunChain33函数会加载各个模块，组合成区块链程序
 //主循环由消息队列驱动。
 //消息队列本身可插拔，可以支持各种队列
 //同时共识模式也是可以插拔的。
 //rpc 服务也是可以插拔的
+
+package cli
 
 import (
 	"flag"

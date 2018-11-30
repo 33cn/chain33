@@ -8,13 +8,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/33cn/chain33/pluginmgr"
-	_ "github.com/33cn/chain33/system"
-
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common/version"
+	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/queue"
 	rpctypes "github.com/33cn/chain33/rpc/types"
+	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -435,7 +436,7 @@ func testWalletSendToAddress(t *testing.T, api client.QueueProtocolAPI) {
 	if err == nil {
 		t.Error("WalletSendToAddress(nil) need return error.")
 	}
-	_, err = api.WalletSendToAddress(&types.ReqWalletSendToAddress{Note: "case1"})
+	_, err = api.WalletSendToAddress(&types.ReqWalletSendToAddress{Note: []byte("case1")})
 	if err == nil {
 		t.Error("WalletSendToAddress(&types.ReqWalletSendToAddress{Note:\"case1\"}) need return error.")
 	}
@@ -843,11 +844,12 @@ func testIsSyncGRPC(t *testing.T, rpc *mockGRPCSystem) {
 }
 
 func testVersionGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
+	var res types.VersionInfo
 	err := rpc.newRpcCtx("Version", &types.ReqNil{}, &res)
 	if err != nil {
 		t.Error("Call Version Failed.", err)
 	}
+	assert.Equal(t, version.GetVersion(), res.Chain33)
 }
 
 func testDumpPrivkeyGRPC(t *testing.T, rpc *mockGRPCSystem) {

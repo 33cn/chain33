@@ -78,7 +78,7 @@ func GenNoneTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 func GenCoinsTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
-		txs = append(txs, CreateCoinsTx(priv, to, types.Coin*(n+1)))
+		txs = append(txs, CreateCoinsTx(priv, to, n+1))
 	}
 	return txs
 }
@@ -188,10 +188,21 @@ var zeroHash [32]byte
 // CreateNoneBlock : Create None Block
 func CreateNoneBlock(priv crypto.PrivKey, n int64) *types.Block {
 	newblock := &types.Block{}
-	newblock.Height = -1
+	newblock.Height = 1
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = GenNoneTxs(priv, n)
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	return newblock
+}
+
+//CreateCoinsBlock : create coins block, n size
+func CreateCoinsBlock(priv crypto.PrivKey, n int64) *types.Block {
+	newblock := &types.Block{}
+	newblock.Height = 1
+	newblock.BlockTime = types.Now().Unix()
+	newblock.ParentHash = zeroHash[:]
+	newblock.Txs = GenCoinsTxs(priv, n)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	return newblock
 }

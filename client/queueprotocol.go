@@ -761,8 +761,13 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 }
 
 // Version get the software version
-func (q *QueueProtocol) Version() (*types.Reply, error) {
-	return &types.Reply{IsOk: true, Msg: []byte(version.GetVersion())}, nil
+func (q *QueueProtocol) Version() (*types.VersionInfo, error) {
+	return &types.VersionInfo{
+		Title:   types.GetTitle(),
+		App:     version.GetAppVersion(),
+		Chain33: version.GetVersion(),
+		LocalDb: version.GetLocalDBVersion(),
+	}, nil
 }
 
 // GetNetInfo get the net information

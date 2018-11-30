@@ -62,7 +62,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	if isWithdraw {
 		amt = -amount
 	}
-	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amt, Note: note}
+	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amt, Note: []byte(note)}
 	if !isToken {
 		params.IsToken = false
 	} else {
@@ -80,6 +80,10 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
+	if float64(types.MaxCoin/types.Coin) < amount {
+		return "", types.ErrAmount
+	}
+
 	paraName, _ := cmd.Flags().GetString("paraName")
 	amountInt64 := int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4
 	initExecName := execName
@@ -91,16 +95,16 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	transfer := &cty.CoinsAction{}
 	if !isWithdraw {
 		if initExecName != "" {
-			v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName, To: to}}
+			v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, Note: []byte(note), ExecName: execName, To: to}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionTransferToExec
 		} else {
-			v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amountInt64, Note: note, To: to}}
+			v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amountInt64, Note: []byte(note), To: to}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionTransfer
 		}
 	} else {
-		v := &cty.CoinsAction_Withdraw{Withdraw: &types.AssetsWithdraw{Amount: amountInt64, Note: note, ExecName: execName}}
+		v := &cty.CoinsAction_Withdraw{Withdraw: &types.AssetsWithdraw{Amount: amountInt64, Note: []byte(note), ExecName: execName}}
 		transfer.Value = v
 		transfer.Ty = cty.CoinsActionWithdraw
 	}

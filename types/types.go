@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package types 实现了chain33基础结构体、接口、常量等的定义
 package types
 
 import (
@@ -18,6 +19,7 @@ import (
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types/jsonpb"
 	"github.com/golang/protobuf/proto"
+
 	// 注册system的crypto 加密算法
 	_ "github.com/33cn/chain33/system/crypto/init"
 )
@@ -29,13 +31,6 @@ const Size1Kshiftlen uint = 10
 
 // Message 声明proto.Message
 type Message proto.Message
-
-// Query4Cli cli命令行查询格式
-type Query4Cli struct {
-	Execer   string      `json:"execer"`
-	FuncName string      `json:"funcName"`
-	Payload  interface{} `json:"payload"`
-}
 
 //TxGroup 交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
@@ -427,6 +422,15 @@ func PBToJSON(r Message) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+//MustPBToJSON panic when error
+func MustPBToJSON(req Message) []byte {
+	data, err := PBToJSON(req)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
 
 // MustDecode 数据是否已经编码

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package types 开发者工具相关常量等的定义
 package types
 
 //const
@@ -20,7 +21,7 @@ const (
 	KeyUpdateInit               = "update_init"
 	KeyCreatePlugin             = "create_plugin"
 
-	DEF_CPM_CONFIGFILE = "chain33.cpm.toml"
+	DefCpmConfigfile = "chain33.cpm.toml"
 
 	TagGoPath          = "${GOPATH}"
 	TagProjectName     = "${PROJECTNAME}"   // 项目名称替换标签

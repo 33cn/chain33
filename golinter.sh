@@ -16,6 +16,7 @@ function filterLinter() {
         --enable=structcheck \
         --enable=goimports \
         --enable=misspell \
+        --enable=golint \
         --vendor ./...)
     #	    --enable=staticcheck \
     #	    --enable=gocyclo \

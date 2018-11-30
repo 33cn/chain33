@@ -62,6 +62,7 @@ func TestJSONClient_Call(t *testing.T) {
 	}
 	api.On("IsSync").Return(ret, nil)
 	api.On("Close").Return()
+
 	jsonClient, err := jsonclient.NewJSONClient("http://" + rpcCfg.JrpcBindAddr + "/root")
 	assert.Nil(t, err)
 	assert.NotNil(t, jsonClient)
@@ -75,9 +76,12 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, jsonClient)
 
-	err = jsonClient.Call("Chain33.Version", nil, &result)
+	ver := &types.VersionInfo{Chain33: "6.0.2"}
+	api.On("Version").Return(ver, nil)
+	var nodeVersion types.VersionInfo
+	err = jsonClient.Call("Chain33.Version", nil, &nodeVersion)
 	assert.Nil(t, err)
-	assert.NotEmpty(t, result)
+	assert.Equal(t, "6.0.2", nodeVersion.Chain33)
 
 	var isSnyc bool
 	err = jsonClient.Call("Chain33.IsSync", &types.ReqNil{}, &isSnyc)

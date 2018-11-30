@@ -53,7 +53,7 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventWalletSendToAddress:
 				if req, ok := msg.GetData().(*types.ReqWalletSendToAddress); ok {
-					if req.Note == "case1" {
+					if string(req.Note) == "case1" {
 						msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.Transaction{}))
 					} else {
 						msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHash{}))

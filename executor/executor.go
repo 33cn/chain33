@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package executor 实现执行器模块基类功能
 package executor
 
 //store package store the world - state data
@@ -138,6 +139,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	db := NewStateDB(exec.client, data.StateHash, localdb, opt)
 	db.(*StateDB).enableMVCC()
 	driver.SetStateDB(db)
+	driver.SetAPI(exec.qclient)
 
 	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
 

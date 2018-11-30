@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// package main js转换 ->
+// 1. 格式化
+// 2. 默认int 类型除以 8,保留4位小数
 package main
 
 import (
@@ -14,9 +17,6 @@ import (
 	"strings"
 )
 
-//js转换 ->
-//1. 格式化
-//2. 默认int 类型除以 8,保留4位小数
 var d = flag.Int("d", 8, "数字小数点位数")
 var n = flag.Int("n", 4, "保留有效小数点位数")
 var js = flag.String("js", "", "输入js字符串")
