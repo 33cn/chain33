@@ -112,7 +112,7 @@ func TestBlockChain(t *testing.T) {
 	testRemoveOrphanBlock(t, blockchain)
 
 	testLoadBlockBySequence(t, blockchain)
-
+	testAddBlockSeqCB(t, blockchain)
 	testProcDelParaChainBlockMsg(t, mock33, blockchain)
 
 	testProcAddParaChainBlockMsg(t, mock33, blockchain)
@@ -900,4 +900,34 @@ func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {
 	curheight := blockchain.GetBlockHeight()
 	blockchain.ProcBlockChainFork(curheight-1, curheight+256, "self")
 	chainlog.Info("testProcBlockChainFork end --------------------")
+}
+
+func testAddBlockSeqCB(t *testing.T, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testAddBlockSeqCB begin ---------------------")
+
+	cb := &types.BlockSeqCB{
+		Name:   "test",
+		URL:    "http://192.168.1.107:15760",
+		Encode: "json",
+	}
+
+	err := blockchain.ProcAddBlockSeqCB(cb)
+	require.NoError(t, err)
+
+	cbs, err := blockchain.ProcListBlockSeqCB()
+	require.NoError(t, err)
+	exist := false
+	for _, temcb := range cbs.Items {
+		if temcb.Name == cb.Name {
+			exist = true
+		}
+	}
+	if !exist {
+		t.Error("testAddBlockSeqCB  listSeqCB fail", "cb", cb, "cbs", cbs)
+	}
+	num := blockchain.ProcGetSeqCBLastNum(cb.Name)
+	if num != -1 {
+		t.Error("testAddBlockSeqCB  getSeqCBLastNum", "num", num, "name", cb.Name)
+	}
+	chainlog.Info("testAddBlockSeqCB end -------------------------")
 }

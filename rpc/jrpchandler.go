@@ -1174,3 +1174,38 @@ func (c *Chain33) GetExecBalance(in *types.ReqGetExecBalance, result *interface{
 	*result = hex.EncodeToString(types.Encode(resp))
 	return nil
 }
+
+// AddSeqCallBack  add Seq CallBack
+func (c *Chain33) AddSeqCallBack(in *types.BlockSeqCB, result *interface{}) error {
+	reply, err := c.cli.AddSeqCallBack(in)
+	log.Error("AddSeqCallBack", "err", err, "reply", reply)
+
+	if err != nil {
+		return err
+	}
+	var resp rpctypes.Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
+	return nil
+}
+
+// ListSeqCallBack  List Seq CallBack
+func (c *Chain33) ListSeqCallBack(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.ListSeqCallBack()
+	if err != nil {
+		return err
+	}
+	*result = resp
+	return nil
+}
+
+// GetSeqCallBackLastNum  Get Seq Call Back Last Num
+func (c *Chain33) GetSeqCallBackLastNum(in *types.ReqString, result *interface{}) error {
+	resp, err := c.cli.GetSeqCallBackLastNum(in)
+	if err != nil {
+		return err
+	}
+	*result = resp
+	return nil
+}

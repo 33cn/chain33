@@ -136,6 +136,9 @@ const (
 	EventWalletCreateTx          = 129
 	EventStoreList               = 130
 	EventStoreListReply          = 131
+	EventListBlockSeqCB          = 132
+	EventGetSeqCBLastNum         = 133
+
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213

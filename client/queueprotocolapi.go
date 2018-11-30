@@ -124,4 +124,11 @@ type QueueProtocolAPI interface {
 	// close chain33
 	CloseQueue() (*types.Reply, error)
 	// --------------- other interfaces end
+	// types.EventAddBlockSeqCB
+	AddSeqCallBack(param *types.BlockSeqCB) (*types.Reply, error)
+
+	// types.EventListBlockSeqCB
+	ListSeqCallBack() (*types.BlockSeqCBs, error)
+	// types.EventGetSeqCBLastNum
+	GetSeqCallBackLastNum(param *types.ReqString) (*types.Int64, error)
 }
