@@ -83,11 +83,13 @@ func (p *pushseq) updateSeq(seq int64) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for _, notify := range p.cmds {
+		//如果有seq, 那么先读一个出来
 		select {
 		case <-notify.seq:
 		default:
-			notify.seq <- seq
 		}
+		//再写入seq（一定不会block，因为加了lock，不存在两个同时写channel的情况）
+		notify.seq <- seq
 	}
 }
 
