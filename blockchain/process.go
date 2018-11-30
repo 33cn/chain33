@@ -292,7 +292,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 
 	var err error
-	var lastSequence int64 = -1
+	var lastSequence int64
 
 	block := blockdetail.Block
 	prevStateHash := b.bestChain.Tip().statehash
@@ -395,7 +395,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 //从主链中删除blocks
 func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDetail, sequence int64) error {
-	var lastSequence int64 = -1
+	var lastSequence int64
 	// 只能从 best chain tip节点开始删除
 	if !bytes.Equal(node.hash, b.bestChain.Tip().hash) {
 		chainlog.Error("disconnectBlock:", "height", blockdetail.Block.Height, "node.hash", common.ToHex(node.hash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
