@@ -349,7 +349,7 @@ func InitGrpcFuncBlacklist(cfg *types.RPC) {
 	}
 }
 
-// InitJrpcFilterFuncBlacklist rpc模块打印requet信息时需要过滤掉一些敏感接口的入参打印，比如钱包密码相关的
+// InitFilterFuncBlacklist rpc模块打印requet信息时需要过滤掉一些敏感接口的入参打印，比如钱包密码相关的
 func InitFilterFuncBlacklist() {
 	rpcFilterFuncBlacklist["UnLock"] = true
 	rpcFilterFuncBlacklist["SetPasswd"] = true

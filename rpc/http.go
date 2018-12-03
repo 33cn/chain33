@@ -191,8 +191,3 @@ func parseJSONRpcParams(data []byte) (*clientRequest, error) {
 	}
 	return &req, nil
 }
-
-//打印信息时需要过滤掉敏感接口参数的输出，必须钱包密码相关的接口
-func isFilterFuncName(funcName string) bool {
-	return funcName == "UnLock" || funcName == "SetPasswd" || funcName == "GetSeed" || funcName == "SaveSeed"
-}
