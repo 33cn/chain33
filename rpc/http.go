@@ -81,7 +81,7 @@ func (j *JSONRPCServer) Listen() (int, error) {
 				errstr = err.Error()
 			}
 			funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
-			if !checkFilterFuncBlacklist(funcName) {
+			if !checkFilterPrintFuncBlacklist(funcName) {
 				log.Debug("JSONRPCServer", "request", string(data), "err", errstr)
 			}
 			if err != nil {
