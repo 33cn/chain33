@@ -20,13 +20,13 @@ import (
 )
 
 var (
-	remoteIPWhitelist      = make(map[string]bool)
-	rpcCfg                 *types.RPC
-	jrpcFuncWhitelist      = make(map[string]bool)
-	grpcFuncWhitelist      = make(map[string]bool)
-	jrpcFuncBlacklist      = make(map[string]bool)
-	grpcFuncBlacklist      = make(map[string]bool)
-	rpcFilterFuncBlacklist = make(map[string]bool)
+	remoteIPWhitelist           = make(map[string]bool)
+	rpcCfg                      *types.RPC
+	jrpcFuncWhitelist           = make(map[string]bool)
+	grpcFuncWhitelist           = make(map[string]bool)
+	jrpcFuncBlacklist           = make(map[string]bool)
+	grpcFuncBlacklist           = make(map[string]bool)
+	rpcFilterPrintFuncBlacklist = make(map[string]bool)
 )
 
 // Chain33  a channel client
@@ -183,7 +183,7 @@ func InitCfg(cfg *types.RPC) {
 	InitGrpcFuncWhitelist(cfg)
 	InitJrpcFuncBlacklist(cfg)
 	InitGrpcFuncBlacklist(cfg)
-	InitFilterFuncBlacklist()
+	InitFilterPrintFuncBlacklist()
 }
 
 // New produce a rpc by cfg
@@ -349,17 +349,17 @@ func InitGrpcFuncBlacklist(cfg *types.RPC) {
 	}
 }
 
-// InitFilterFuncBlacklist rpc模块打印requet信息时需要过滤掉一些敏感接口的入参打印，比如钱包密码相关的
-func InitFilterFuncBlacklist() {
-	rpcFilterFuncBlacklist["UnLock"] = true
-	rpcFilterFuncBlacklist["SetPasswd"] = true
-	rpcFilterFuncBlacklist["GetSeed"] = true
-	rpcFilterFuncBlacklist["SaveSeed"] = true
-	rpcFilterFuncBlacklist["ImportPrivkey"] = true
+// InitFilterPrintFuncBlacklist rpc模块打印requet信息时需要过滤掉一些敏感接口的入参打印，比如钱包密码相关的
+func InitFilterPrintFuncBlacklist() {
+	rpcFilterPrintFuncBlacklist["UnLock"] = true
+	rpcFilterPrintFuncBlacklist["SetPasswd"] = true
+	rpcFilterPrintFuncBlacklist["GetSeed"] = true
+	rpcFilterPrintFuncBlacklist["SaveSeed"] = true
+	rpcFilterPrintFuncBlacklist["ImportPrivkey"] = true
 
 }
-func checkFilterFuncBlacklist(funcName string) bool {
-	if _, ok := rpcFilterFuncBlacklist[funcName]; ok {
+func checkFilterPrintFuncBlacklist(funcName string) bool {
+	if _, ok := rpcFilterPrintFuncBlacklist[funcName]; ok {
 		return true
 	}
 	return false
