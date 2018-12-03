@@ -11,6 +11,29 @@ type QueueProtocolAPI struct {
 	mock.Mock
 }
 
+// AddSeqCallBack provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) AddSeqCallBack(param *types.BlockSeqCB) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.BlockSeqCB) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.BlockSeqCB) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Close provides a mock function with given fields:
 func (_m *QueueProtocolAPI) Close() {
 	_m.Called()
@@ -453,6 +476,29 @@ func (_m *QueueProtocolAPI) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed,
 	return r0, r1
 }
 
+// GetSeqCallBackLastNum provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetSeqCallBackLastNum(param *types.ReqString) (*types.Int64, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Int64
+	if rf, ok := ret.Get(0).(func(*types.ReqString) *types.Int64); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Int64)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqString) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetTransactionByAddr provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	ret := _m.Called(param)
@@ -578,6 +624,29 @@ func (_m *QueueProtocolAPI) IsSync() (*types.Reply, error) {
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ListSeqCallBack provides a mock function with given fields:
+func (_m *QueueProtocolAPI) ListSeqCallBack() (*types.BlockSeqCBs, error) {
+	ret := _m.Called()
+
+	var r0 *types.BlockSeqCBs
+	if rf, ok := ret.Get(0).(func() *types.BlockSeqCBs); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.BlockSeqCBs)
 		}
 	}
 

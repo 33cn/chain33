@@ -85,6 +85,12 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.localPrefixCount)
 		case types.EventAddBlockSeqCB:
 			go chain.processMsg(msg, reqnum, chain.addBlockSeqCB)
+
+		case types.EventListBlockSeqCB:
+			go chain.processMsg(msg, reqnum, chain.listBlockSeqCB)
+
+		case types.EventGetSeqCBLastNum:
+			go chain.processMsg(msg, reqnum, chain.getSeqCBLastNum)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -96,18 +102,36 @@ func (chain *BlockChain) unknowMsg(msg queue.Message) {
 }
 
 func (chain *BlockChain) addBlockSeqCB(msg queue.Message) {
-	if chain.blockStore.seqCBNum() >= MaxSeqCB {
-		msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, types.ErrTooManySeqCB))
-		return
+	reply := &types.Reply{
+		IsOk: true,
 	}
 	cb := (msg.Data).(*types.BlockSeqCB)
-	err := chain.blockStore.addBlockSeqCB(cb)
+	err := chain.ProcAddBlockSeqCB(cb)
 	if err != nil {
-		msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, err))
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
 		return
 	}
 	chain.pushseq.addTask(cb)
-	msg.ReplyErr("EventAddBlockSeqCB", nil)
+	msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
+}
+
+func (chain *BlockChain) listBlockSeqCB(msg queue.Message) {
+	cbs, err := chain.ProcListBlockSeqCB()
+	if err != nil {
+		chainlog.Error("listBlockSeqCB", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventListBlockSeqCB, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventListBlockSeqCB, cbs))
+}
+func (chain *BlockChain) getSeqCBLastNum(msg queue.Message) {
+	data := (msg.Data).(*types.ReqString)
+
+	num := chain.ProcGetSeqCBLastNum(data.Data)
+	lastNum := &types.Int64{Data: num}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqCBLastNum, lastNum))
 }
 
 func (chain *BlockChain) queryTx(msg queue.Message) {

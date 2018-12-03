@@ -86,3 +86,40 @@ func (chain *BlockChain) ProcGetSeqByHash(hash []byte) (int64, error) {
 
 	return seq, err
 }
+
+//ProcAddBlockSeqCB 添加seq callback
+func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) error {
+	if cb == nil {
+		return types.ErrInvalidParam
+	}
+
+	if chain.blockStore.seqCBNum() >= MaxSeqCB && !chain.blockStore.isSeqCBExist(cb.Name) {
+		return types.ErrTooManySeqCB
+	}
+	err := chain.blockStore.addBlockSeqCB(cb)
+	if err != nil {
+		return err
+	}
+	chain.pushseq.addTask(cb)
+	return nil
+}
+
+//ProcListBlockSeqCB 列出所有已经设置的seq callback
+func (chain *BlockChain) ProcListBlockSeqCB() (*types.BlockSeqCBs, error) {
+	cbs, err := chain.blockStore.listSeqCB()
+	if err != nil {
+		chainlog.Error("ProcListBlockSeqCB", "err", err.Error())
+		return nil, err
+	}
+	var listSeqCBs types.BlockSeqCBs
+
+	listSeqCBs.Items = append(listSeqCBs.Items, cbs...)
+
+	return &listSeqCBs, nil
+}
+
+//ProcGetSeqCBLastNum 获取指定name的callback已经push的最新seq num
+func (chain *BlockChain) ProcGetSeqCBLastNum(name string) int64 {
+	num := chain.blockStore.getSeqCBLastNum([]byte(name))
+	return num
+}
