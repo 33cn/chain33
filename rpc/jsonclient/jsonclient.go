@@ -7,6 +7,7 @@ package jsonclient
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -63,7 +64,13 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 		return err
 	}
 	//println("request JsonStr", string(data), "")
-	postresp, err := http.Post(client.url, "application/json", bytes.NewBuffer(data))
+	httpcli := http.DefaultClient
+	if strings.Contains(client.url, "https") { //暂不校验tls证书
+		httpcli = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+
+	}
+
+	postresp, err := httpcli.Post(client.url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}

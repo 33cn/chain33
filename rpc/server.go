@@ -14,8 +14,8 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
-
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"     // 引入grpc认证包
 	_ "google.golang.org/grpc/encoding/gzip" // register gzip
 )
 
@@ -148,7 +148,18 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 		// Continue processing the request
 		return handler(ctx, req)
 	}
+
 	opts = append(opts, grpc.UnaryInterceptor(interceptor))
+	if rpcCfg.SslEnable {
+		creds, err := credentials.NewServerTLSFromFile(rpcCfg.SslCrt, rpcCfg.SslKey)
+		if err != nil {
+			log.Error("NewGRpcServer", "err", err.Error())
+			return nil
+		}
+		credsOps := grpc.Creds(creds)
+		opts = append(opts, credsOps)
+	}
+
 	server := grpc.NewServer(opts...)
 	s.s = server
 	types.RegisterChain33Server(server, s.grpc)

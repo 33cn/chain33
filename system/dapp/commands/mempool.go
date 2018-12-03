@@ -5,6 +5,8 @@
 package commands
 
 import (
+	"strings"
+
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/system/dapp/commands/types"
@@ -39,6 +41,10 @@ func GetMempoolCmd() *cobra.Command {
 
 func listMempoolTxs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res rpctypes.ReplyTxList
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetMempool", nil, &res)
 	ctx.SetResultCb(parseListMempoolTxsRes)
@@ -66,6 +72,10 @@ func GetLastMempoolCmd() *cobra.Command {
 
 func lastMempoolTxs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res rpctypes.ReplyTxList
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetLastMemPool", nil, &res)
 	ctx.SetResultCb(parselastMempoolTxsRes)

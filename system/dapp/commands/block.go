@@ -74,6 +74,10 @@ func blockBodyCmd(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	params := rpctypes.BlockParam{
 		Start:    startH,
 		End:      endH,
@@ -127,6 +131,10 @@ func blockHeightHash(cmd *cobra.Command, args []string) {
 	params := types.ReqInt{
 		Height: height,
 	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res rpctypes.ReplyHash
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockHash", params, &res)
 	ctx.Run()
@@ -153,6 +161,10 @@ func blockViewByHash(cmd *cobra.Command, args []string) {
 	blockHash, _ := cmd.Flags().GetString("hash")
 	params := rpctypes.QueryParm{
 		Hash: blockHash,
+	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
 	}
 	var res rpctypes.BlockOverview
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockOverview", params, &res)
@@ -190,6 +202,10 @@ func blockHeader(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	params := types.ReqBlocks{
 		Start:    startH,
 		End:      endH,
@@ -212,6 +228,10 @@ func GetLastHeaderCmd() *cobra.Command {
 
 func lastHeader(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res rpctypes.Header
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetLastHeader", nil, &res)
 	ctx.Run()
@@ -229,6 +249,10 @@ func GetLastBlockSequenceCmd() *cobra.Command {
 
 func lastSequence(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res int64
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetLastBlockSequence", nil, &res)
 	ctx.Run()
@@ -254,6 +278,10 @@ func getsequences(cmd *cobra.Command, args []string) {
 		Start:    startH,
 		End:      endH,
 		Isdetail: false,
+	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
 	}
 	var res rpctypes.ReplyBlkSeqs
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockSequences", params, &res)
@@ -292,7 +320,10 @@ func getblockbyhashs(cmd *cobra.Command, args []string) {
 	params := rpctypes.ReqHashes{
 		Hashes: hashesArr,
 	}
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res types.BlockDetails
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockByHashes", params, &res)
 	//ctx.SetResultCb(parseQueryTxsByHashesRes)
@@ -332,7 +363,10 @@ func addblockSeqCallBackCmd(cmd *cobra.Command, args []string) {
 		URL:    url,
 		Encode: encode,
 	}
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddSeqCallBack", params, &res)
 	ctx.Run()
@@ -350,7 +384,10 @@ func ListBlockSeqCallBackCmd() *cobra.Command {
 
 func listBlockSeqCallBackCmd(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res types.BlockSeqCBs
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ListSeqCallBack", nil, &res)
 	ctx.Run()
@@ -379,7 +416,10 @@ func getSeqCallBackLastNumCmd(cmd *cobra.Command, args []string) {
 	params := types.ReqString{
 		Data: name,
 	}
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res types.Int64
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetSeqCallBackLastNum", params, &res)
 	ctx.Run()

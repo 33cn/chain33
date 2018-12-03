@@ -200,6 +200,10 @@ func transfer(cmd *cobra.Command, args []string) {
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	commandtypes.SendToAddress(rpcLaddr, fromAddr, toAddr, amountInt64, note, false, "", false)
 }
@@ -238,6 +242,10 @@ func withdraw(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
+	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
 	}
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	commandtypes.SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
@@ -375,6 +383,10 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Pubkeypair: pubkeypair,
 		Expire:     expire,
 	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
@@ -437,6 +449,10 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 		Mixcount:   defaultPrivacyMixCount,
 		Expire:     expire,
 	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
@@ -498,6 +514,10 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 		To:        to,
 		Mixcount:  defaultPrivacyMixCount,
 		Expire:    expire,
+	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
 	}
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
 	ctx.RunWithoutMarshal()

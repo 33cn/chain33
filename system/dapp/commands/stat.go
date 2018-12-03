@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/33cn/chain33/common/address"
@@ -66,7 +67,10 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	symbol, _ := cmd.Flags().GetString("symbol")
 	height, _ := cmd.Flags().GetInt64("height")
 	actual, _ := cmd.Flags().GetString("actual")
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+	}
 	if height == -1 {
 		rpc, err := jsonclient.NewJSONClient(rpcAddr)
 		if err != nil {
@@ -232,7 +236,10 @@ func addTicketStatCmdFlags(cmd *cobra.Command) {
 func ticketStat(cmd *cobra.Command, args []string) {
 	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+	}
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -282,7 +289,10 @@ func addTicketInfoCmdFlags(cmd *cobra.Command) {
 func ticketInfo(cmd *cobra.Command, args []string) {
 	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ticketID, _ := cmd.Flags().GetString("ticket_id")
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+	}
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -361,7 +371,10 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 	direction, _ := cmd.Flags().GetInt32("direction")
 	createTime, _ := cmd.Flags().GetString("create_time")
 	ticketID, _ := cmd.Flags().GetString("ticket_id")
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+	}
 	if count <= 0 {
 		fmt.Fprintln(os.Stderr, fmt.Errorf("input err, count:%v", count))
 		return
@@ -455,7 +468,10 @@ func minerStat(cmd *cobra.Command, args []string) {
 	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
 	height, _ := cmd.Flags().GetInt64("height")
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+	}
 	if err := address.CheckAddress(addr); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -671,7 +687,10 @@ func execBalance(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	execAddr, _ := cmd.Flags().GetString("exec_addr")
 	height, _ := cmd.Flags().GetInt64("height")
-
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+	}
 	if height == -1 {
 		rpc, err := jsonclient.NewJSONClient(rpcAddr)
 		if err != nil {

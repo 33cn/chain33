@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+## [6.0.3]
+### Changed
+- add jrpc/grpc tls/ssl connect
+- add cli ssl opt.
 ## [6.0.2]
 ### Changed
 - changed cli version cmd return json format and added title app localdb version info

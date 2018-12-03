@@ -6,6 +6,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -52,6 +53,10 @@ func genSeed(cmd *cobra.Command, args []string) {
 	params := types.GenSeedLang{
 		Lang: lang,
 	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res types.ReplySeed
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
 	_, err := ctx.RunResult()
@@ -84,6 +89,10 @@ func getSeed(cmd *cobra.Command, args []string) {
 	params := types.GetSeedByPw{
 		Passwd: pwd,
 	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+	}
 	var res types.ReplySeed
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetSeed", params, &res)
 	ctx.Run()
@@ -115,6 +124,10 @@ func saveSeed(cmd *cobra.Command, args []string) {
 	params := types.SaveSeedByPw{
 		Seed:   seed,
 		Passwd: pwd,
+	}
+	ssl, _ := cmd.Flags().GetBool("ssl")
+	if ssl {
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
 	}
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)

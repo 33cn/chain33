@@ -141,6 +141,17 @@ func GStr(name string) string {
 	return ""
 }
 
+func GBool(name string) bool {
+	value, err := G(name)
+	if err != nil {
+		return false
+	}
+	if i, ok := value.(bool); ok {
+		return i
+	}
+	return false
+}
+
 // MGStr 获取mver config 中的字符串格式
 func MGStr(name string, height int64) string {
 	value, err := MG(name, height)

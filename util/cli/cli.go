@@ -7,6 +7,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	//	"strings"
 
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/pluginmgr"
@@ -61,21 +62,27 @@ func init() {
 }
 
 //Run :
-func Run(RPCAddr, ParaName string) {
+func Run(RPCAddr, ParaName string, Ssl bool) {
 	pluginmgr.AddCmd(rootCmd)
+
 	log.SetLogLevel("error")
+
 	types.S("RPCAddr", RPCAddr)
 	types.S("ParaName", ParaName)
+	types.S("Ssl", Ssl)
 	rootCmd.PersistentFlags().String("rpc_laddr", types.GStr("RPCAddr"), "http url")
 	rootCmd.PersistentFlags().String("paraName", types.GStr("ParaName"), "parachain")
+	rootCmd.PersistentFlags().Bool("ssl", false, "use ssl/tls opt.")
 	if len(os.Args) > 1 {
 		if os.Args[1] == "send" {
 			commands.OneStepSend(os.Args)
 			return
 		}
 	}
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
 }

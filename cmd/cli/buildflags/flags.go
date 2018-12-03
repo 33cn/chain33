@@ -9,4 +9,5 @@ package buildflags
 var (
 	ParaName string
 	RPCAddr  string
+	Ssl      bool
 )
