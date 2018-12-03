@@ -58,7 +58,7 @@ func dumpKey(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	addr, _ := cmd.Flags().GetString("addr")
 	params := types.ReqString{
@@ -83,7 +83,7 @@ func listAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.WalletAccounts
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAccounts", nil, &res)
@@ -147,7 +147,7 @@ func balance(cmd *cobra.Command, args []string) {
 	height, _ := cmd.Flags().GetInt("height")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	err := address.CheckAddress(addr)
 	if err != nil {
@@ -256,7 +256,7 @@ func importKey(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.WalletAccount
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkey", params, &res)
@@ -298,7 +298,7 @@ func createAccount(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.WalletAccount
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewAccount", params, &res)
@@ -345,7 +345,7 @@ func setLabel(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.WalletAccount
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetLabl", params, &res)

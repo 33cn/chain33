@@ -55,7 +55,7 @@ func genSeed(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.ReplySeed
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
@@ -91,7 +91,7 @@ func getSeed(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.ReplySeed
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetSeed", params, &res)
@@ -127,7 +127,7 @@ func saveSeed(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)

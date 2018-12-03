@@ -80,7 +80,7 @@ func queryTxByAddr(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.ReplyTxInfos
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
@@ -115,7 +115,7 @@ func queryTx(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.TransactionDetail
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.QueryTransaction", params, &res)
@@ -166,7 +166,7 @@ func getTxsByHashes(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.TransactionDetails
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetTxByHashes", params, &res)
@@ -223,7 +223,7 @@ func getTxHexByHash(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, nil)
 	ctx.RunWithoutMarshal()
@@ -301,7 +301,7 @@ func viewAddress(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.AddrOverview
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)

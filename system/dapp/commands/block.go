@@ -76,7 +76,7 @@ func blockBodyCmd(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	params := rpctypes.BlockParam{
 		Start:    startH,
@@ -133,7 +133,7 @@ func blockHeightHash(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.ReplyHash
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockHash", params, &res)
@@ -164,7 +164,7 @@ func blockViewByHash(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.BlockOverview
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockOverview", params, &res)
@@ -204,7 +204,7 @@ func blockHeader(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	params := types.ReqBlocks{
 		Start:    startH,
@@ -230,7 +230,7 @@ func lastHeader(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.Header
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetLastHeader", nil, &res)
@@ -251,7 +251,7 @@ func lastSequence(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res int64
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetLastBlockSequence", nil, &res)
@@ -281,7 +281,7 @@ func getsequences(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.ReplyBlkSeqs
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockSequences", params, &res)
@@ -322,7 +322,7 @@ func getblockbyhashs(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.BlockDetails
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockByHashes", params, &res)
@@ -365,7 +365,7 @@ func addblockSeqCallBackCmd(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddSeqCallBack", params, &res)
@@ -386,7 +386,7 @@ func listBlockSeqCallBackCmd(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.BlockSeqCBs
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ListSeqCallBack", nil, &res)
@@ -418,7 +418,7 @@ func getSeqCallBackLastNumCmd(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.Int64
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetSeqCallBackLastNum", params, &res)

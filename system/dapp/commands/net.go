@@ -46,7 +46,7 @@ func peerInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.PeerList
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetPeerInfo", nil, &res)
@@ -67,7 +67,7 @@ func isClockSync(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res bool
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.IsNtpClockSync", nil, &res)
@@ -88,7 +88,7 @@ func isSync(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res bool
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.IsSync", nil, &res)
@@ -109,7 +109,7 @@ func netInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.NodeNetinfo
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetNetInfo", nil, &res)
@@ -130,7 +130,7 @@ func fatalFailure(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res int64
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetFatalFailure", nil, &res)
@@ -151,7 +151,7 @@ func timestatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.TimeStatus
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetTimeStatus", nil, &res)

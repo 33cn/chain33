@@ -59,7 +59,7 @@ func lock(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Lock", nil, &res)
@@ -92,7 +92,7 @@ func unLock(cmd *cobra.Command, args []string) {
 	scope, _ := cmd.Flags().GetString("scope")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var walletOrTicket bool
 	switch scope {
@@ -129,7 +129,7 @@ func walletStatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.WalletStatus
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetWalletStatus", nil, &res)
@@ -165,7 +165,7 @@ func setPwd(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)
@@ -205,7 +205,7 @@ func walletListTxs(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.WalletTxDetails
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
@@ -259,7 +259,7 @@ func mergeBalance(cmd *cobra.Command, args []string) {
 
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.ReplyHashes
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.MergeBalance", params, &res)
@@ -297,7 +297,7 @@ func autoMine(cmd *cobra.Command, args []string) {
 
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "ticket.SetAutoMining", params, &res)
@@ -439,7 +439,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	params := types.ReqSignRawTx{
 		Addr:    addr,
@@ -477,7 +477,7 @@ func setFee(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
@@ -512,7 +512,7 @@ func sendTx(cmd *cobra.Command, args []string) {
 	}
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
 	ctx.RunWithoutMarshal()

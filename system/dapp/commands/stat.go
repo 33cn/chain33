@@ -69,7 +69,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	actual, _ := cmd.Flags().GetString("actual")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 1)
 	}
 	if height == -1 {
 		rpc, err := jsonclient.NewJSONClient(rpcAddr)
@@ -238,7 +238,7 @@ func ticketStat(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 1)
 	}
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
@@ -291,7 +291,7 @@ func ticketInfo(cmd *cobra.Command, args []string) {
 	ticketID, _ := cmd.Flags().GetString("ticket_id")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 1)
 	}
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
@@ -373,7 +373,7 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 	ticketID, _ := cmd.Flags().GetString("ticket_id")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 1)
 	}
 	if count <= 0 {
 		fmt.Fprintln(os.Stderr, fmt.Errorf("input err, count:%v", count))
@@ -470,7 +470,7 @@ func minerStat(cmd *cobra.Command, args []string) {
 	height, _ := cmd.Flags().GetInt64("height")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 1)
 	}
 	if err := address.CheckAddress(addr); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -689,7 +689,7 @@ func execBalance(cmd *cobra.Command, args []string) {
 	height, _ := cmd.Flags().GetInt64("height")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcAddr = strings.Replace(rpcAddr, "http", "https", 5)
+		rpcAddr = strings.Replace(rpcAddr, "http", "https", 1)
 	}
 	if height == -1 {
 		rpc, err := jsonclient.NewJSONClient(rpcAddr)

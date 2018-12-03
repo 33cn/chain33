@@ -28,7 +28,7 @@ func version(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ssl, _ := cmd.Flags().GetBool("ssl")
 	if ssl {
-		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 5)
+		rpcLaddr = strings.Replace(rpcLaddr, "http", "https", 1)
 	}
 	var res types.VersionInfo
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Version", nil, &res)
