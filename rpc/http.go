@@ -80,7 +80,10 @@ func (j *JSONRPCServer) Listen() (int, error) {
 			if err != nil {
 				errstr = err.Error()
 			}
-			log.Debug("JSONRPCServer", "request", string(data), "err", errstr)
+			funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
+			if !checkFilterFuncBlacklist(funcName) {
+				log.Debug("JSONRPCServer", "request", string(data), "err", errstr)
+			}
 			if err != nil {
 				writeError(w, r, 0, fmt.Sprintf(`parse request err %s`, err.Error()))
 				return
@@ -88,7 +91,7 @@ func (j *JSONRPCServer) Listen() (int, error) {
 			//Release local request
 			ipaddr := net.ParseIP(ip)
 			if !ipaddr.IsLoopback() {
-				funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
+				//funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
 				if checkJrpcFuncBlacklist(funcName) || !checkJrpcFuncWhitelist(funcName) {
 					writeError(w, r, client.ID, fmt.Sprintf(`The %s method is not authorized!`, funcName))
 					return
@@ -187,4 +190,9 @@ func parseJSONRpcParams(data []byte) (*clientRequest, error) {
 		return nil, err
 	}
 	return &req, nil
+}
+
+//打印信息时需要过滤掉敏感接口参数的输出，必须钱包密码相关的接口
+func isFilterFuncName(funcName string) bool {
+	return funcName == "UnLock" || funcName == "SetPasswd" || funcName == "GetSeed" || funcName == "SaveSeed"
 }
