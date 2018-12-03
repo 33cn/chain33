@@ -59,7 +59,7 @@ grpcBindAddr="localhost:8802"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
-sslEnable=true
+sslEnable=false
 sslCrt="server.crt"
 sslKey="server.key"
 

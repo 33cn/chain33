@@ -46,7 +46,9 @@ grpcBindAddr="localhost:8802"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
-
+sslEnable=false
+sslCrt="server.crt"
+sslKey="server.key"
 [mempool]
 maxTxNumPerAccount=100
 
