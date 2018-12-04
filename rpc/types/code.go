@@ -122,6 +122,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		GroupCount: tx.GroupCount,
 		Header:     common.ToHex(tx.Header),
 		Next:       common.ToHex(tx.Next),
+		Hash:       common.ToHex(tx.Hash()),
 	}
 	if result.Amount != 0 {
 		result.AmountFmt = strconv.FormatFloat(float64(result.Amount)/float64(types.Coin), 'f', 4, 64)

@@ -353,7 +353,7 @@ func parseTxHeight(expire string) error {
 			return err
 		}
 		if txHeight <= 0 {
-			fmt.Printf("txHeight should be grate to 0")
+			//fmt.Printf("txHeight should be grate to 0")
 			return errors.New("txHeight should be grate to 0")
 		}
 
