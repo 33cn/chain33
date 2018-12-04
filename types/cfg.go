@@ -142,6 +142,9 @@ type RPC struct {
 	JrpcFuncBlacklist []string `protobuf:"bytes,7,rep,name=jrpcFuncBlacklist" json:"jrpcFuncBlacklist,omitempty"`
 	GrpcFuncBlacklist []string `protobuf:"bytes,8,rep,name=grpcFuncBlacklist" json:"grpcFuncBlacklist,omitempty"`
 	MainnetJrpcAddr   string   `protobuf:"bytes,9,opt,name=mainnetJrpcAddr" json:"mainnetJrpcAddr,omitempty"`
+	EnableTLS         bool     `protobuf:"varint,10,opt,name=enableTLS" json:"enableTLS,omitempty"`
+	CertFile          string   `protobuf:"varint,11,opt,name=certFile" json:"certFile,omitempty"`
+	KeyFile           string   `protobuf:"varint,12,opt,name=keyFile" json:"keyFile,omitempty"`
 }
 
 // Exec 配置

@@ -6,7 +6,9 @@ package cli
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/pluginmgr"
@@ -43,6 +45,7 @@ var closeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(
+		commands.CertCmd(),
 		commands.AccountCmd(),
 		commands.BlockCmd(),
 		commands.BTYCmd(),
@@ -60,8 +63,34 @@ func init() {
 	)
 }
 
+func testTLS(RPCAddr string) string {
+	rpcaddr := RPCAddr
+	if strings.HasPrefix(rpcaddr, "https://") {
+		return RPCAddr
+	}
+	if !strings.HasPrefix(rpcaddr, "http://") {
+		return RPCAddr
+	}
+	//test tls ok
+	if rpcaddr[len(rpcaddr)-1] != '/' {
+		rpcaddr += "/"
+	}
+	rpcaddr += "test"
+	resp, err := http.Get(rpcaddr)
+	if err != nil {
+		return "https://" + RPCAddr[7:]
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == 200 {
+		return RPCAddr
+	}
+	return "https://" + RPCAddr[7:]
+}
+
 //Run :
 func Run(RPCAddr, ParaName string) {
+	//test tls is enable
+	RPCAddr = testTLS(RPCAddr)
 	pluginmgr.AddCmd(rootCmd)
 	log.SetLogLevel("error")
 	types.S("RPCAddr", RPCAddr)

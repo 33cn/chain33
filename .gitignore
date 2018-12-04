@@ -10,6 +10,8 @@ datadir*
 .idea
 .vscode
 cmd/chain33/chain33
+build/cert.pem
+build/key.pem
 build/chain33*
 build/datadir
 build/bityuan*
