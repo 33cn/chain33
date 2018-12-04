@@ -58,6 +58,7 @@ type TxResult struct {
 	GroupCount int32               `json:"groupCount,omitempty"`
 	Header     string              `json:"header,omitempty"`
 	Next       string              `json:"next,omitempty"`
+	Hash       string              `json:"hash,omitempty"`
 }
 
 // ReceiptAccountTransfer defines receipt account transfer

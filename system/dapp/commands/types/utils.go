@@ -39,6 +39,7 @@ func DecodeTransaction(tx *rpctypes.Transaction) *TxResult {
 		GroupCount: tx.GroupCount,
 		Header:     tx.Header,
 		Next:       tx.Next,
+		Hash:       tx.Hash,
 	}
 	return result
 }

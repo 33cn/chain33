@@ -30,15 +30,17 @@ func (wallet *Wallet) parseExpire(expire string) (int64, error) {
 	if len(expire) == 0 {
 		return 0, errors.New("Expire string should not be empty")
 	}
-
 	if expire[0] == 'H' && expire[1] == ':' {
 		txHeight, err := strconv.ParseInt(expire[2:], 10, 64)
 		if err != nil {
 			return 0, err
 		}
 		if txHeight <= 0 {
-			fmt.Printf("txHeight should be grate to 0")
+			//fmt.Printf("txHeight should be grate to 0")
 			return 0, errors.New("txHeight should be grate to 0")
+		}
+		if txHeight+types.TxHeightFlag < txHeight {
+			return 0, errors.New("txHeight overflow")
 		}
 
 		return txHeight + types.TxHeightFlag, nil
