@@ -112,7 +112,11 @@ func (j *JSONRPCServer) Listen() (int, error) {
 	})
 
 	handler = co.Handler(handler)
-	go http.Serve(listener, handler)
+	if !rpcCfg.EnableTLS {
+		go http.Serve(listener, handler)
+	} else {
+		go http.ServeTLS(listener, handler, rpcCfg.CertFile, rpcCfg.KeyFile)
+	}
 	return listener.Addr().(*net.TCPAddr).Port, nil
 }
 
