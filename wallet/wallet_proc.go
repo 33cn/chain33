@@ -540,16 +540,16 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	}
 	Balance := accounts[0].Balance
 	amount := SendToAddress.GetAmount()
+	//coins余额满足fee
+	if Balance < wallet.FeeAmount {
+		return nil, types.ErrInsufficientBalance
+	}
 	if !SendToAddress.IsToken {
-		if Balance < amount+wallet.FeeAmount {
+		if Balance < amount {
 			return nil, types.ErrInsufficientBalance
 		}
 	} else {
-		//如果是token转账，一方面需要保证coin的余额满足fee，另一方面则需要保证token的余额满足转账操作
-		if Balance < wallet.FeeAmount {
-			return nil, types.ErrInsufficientBalance
-		}
-
+		//如果是token转账，需要保证token的余额满足转账操作
 		if nil == accTokenMap[SendToAddress.TokenSymbol] {
 			tokenAccDB, err := account.NewAccountDB("token", SendToAddress.TokenSymbol, nil)
 			if err != nil {

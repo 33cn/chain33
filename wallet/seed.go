@@ -135,7 +135,8 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 	}
 	seed, err := AesgcmDecrypter([]byte(password), Encryptedseed)
 	if err != nil {
-		return "", err
+		seedlog.Error("GetSeed", "AesgcmDecrypter err", err)
+		return "", types.ErrInputPassword
 	}
 	return string(seed), nil
 }
