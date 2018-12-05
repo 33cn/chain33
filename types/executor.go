@@ -715,7 +715,7 @@ func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Tr
 	if tyid, ok := tymap[action]; ok {
 		field.Set(reflect.ValueOf(tyid))
 		tx := &Transaction{
-			Payload: Encode(data),
+			Payload: Encode(value),
 		}
 		//TODO you need to modify it so that the execName you get is not the same as the actual execName.
 		tx, err := FormatTx(ExecName(base.child.GetName()), tx)
