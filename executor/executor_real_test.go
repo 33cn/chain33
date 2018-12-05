@@ -215,6 +215,8 @@ func TestExecBlock2(t *testing.T) {
 	}
 }
 
+var zeroHash [32]byte
+
 func TestSameTx(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
