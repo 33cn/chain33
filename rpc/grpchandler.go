@@ -47,6 +47,11 @@ func (g *Grpc) CreateTransaction(ctx context.Context, in *pb.CreateTxIn) (*pb.Un
 	if err != nil {
 		return nil, err
 	}
+	//decode protocol buffer
+	err = pb.Decode(in.Payload, msg)
+	if err != nil {
+		return nil, err
+	}
 	reply, err := pb.CallCreateTx(string(in.Execer), in.ActionName, msg)
 	if err != nil {
 		return nil, err
