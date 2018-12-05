@@ -231,6 +231,16 @@ func TestSameTx(t *testing.T) {
 	assert.Equal(t, hash1, newblock.TxHash)
 	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true)
 	assert.Equal(t, types.ErrTxDup, err)
+
+	//情况2
+	//[tx1,xt2,tx3,tx4,tx5,tx6] and [tx1,xt2,tx3,tx4,tx5,tx6,tx5,tx6]
+	newblock.Txs = util.GenNoneTxs(mock33.GetGenesisKey(), 6)
+	hash1 = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.Txs = append(newblock.Txs, newblock.Txs[4:]...)
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	assert.Equal(t, hash1, newblock.TxHash)
+	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true)
+	assert.Equal(t, types.ErrTxDup, err)
 }
 
 func TestExecBlock(t *testing.T) {
