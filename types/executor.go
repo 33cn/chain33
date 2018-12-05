@@ -12,7 +12,7 @@ import (
 	"unicode"
 
 	"github.com/33cn/chain33/common/address"
-	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 func init() {
@@ -714,7 +714,15 @@ func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Tr
 	tymap := base.child.GetTypeMap()
 	if tyid, ok := tymap[action]; ok {
 		field.Set(reflect.ValueOf(tyid))
-		return &Transaction{Payload: Encode(value)}, nil
+		tx := &Transaction{
+			Payload: Encode(data),
+		}
+		//TODO you need to modify it so that the execName you get is not the same as the actual execName.
+		tx, err := FormatTx(ExecName(base.child.GetName()), tx)
+		if err != nil {
+			return nil, err
+		}
+		return tx, nil
 	}
 	return nil, ErrActionNotSupport
 }
