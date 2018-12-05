@@ -6,7 +6,6 @@
 package types
 
 import (
-	"encoding/json"
 	"reflect"
 
 	"github.com/33cn/chain33/common/address"
@@ -62,10 +61,10 @@ func (m ManageType) Amount(tx *types.Transaction) (int64, error) {
 
 // CreateTx create a tx
 // TODO not going to change the implementation, complete the reconfiguration of the structure first
-func (m ManageType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
-	var tx *types.Transaction
-	return tx, nil
-}
+//func (m ManageType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+//	var tx *types.Transaction
+//	return tx, nil
+//}
 
 // GetLogMap  get log for map
 func (m *ManageType) GetLogMap() map[int64]*types.LogInfo {
