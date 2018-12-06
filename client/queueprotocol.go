@@ -898,6 +898,25 @@ func (q *QueueProtocol) GetLastBlockSequence() (*types.Int64, error) {
 	return nil, types.ErrTypeAsset
 }
 
+// GetSequenceByHash 通过hash获取对应的执行序列号
+func (q *QueueProtocol) GetSequenceByHash(param *types.ReqHash) (*types.Int64, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetSequenceByHash", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(blockchainKey, types.EventGetSeqByHash, param)
+	if err != nil {
+		log.Error("GetSequenceByHash", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int64); ok {
+
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 // WalletCreateTx create transaction
 func (q *QueueProtocol) WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error) {
 	msg, err := q.query(walletKey, types.EventWalletCreateTx, param)

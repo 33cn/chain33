@@ -125,6 +125,9 @@ service chain33 {
     //获取指定区间的block加载序列号信息
     rpc GetBlockSequences(ReqBlocks) returns (BlockSequences) {}
 
+    //get add block's sequence by hash
+    rpc GetSequenceByHash(ReqHash) returns (Int64) {}
+
     //通过block hash 获取对应的blocks信息
     rpc GetBlockByHashes(ReqHashes) returns (BlockDetails) {}
     //关闭chain33
