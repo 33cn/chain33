@@ -1,10 +1,13 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package types
 
 import (
 	"encoding/json"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestLoadExecutorType(t *testing.T) {
@@ -69,6 +72,7 @@ func TestCallCreateTxJSON(t *testing.T) {
 	result, err = CallCreateTxJSON("xxxx", "xxx", data)
 	assert.NotEqual(t, err, nil)
 
+
 	modify = &ModifyConfig{
 		Key:   "token-finisher",
 		Value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -112,6 +116,8 @@ func TestCallCreateTx(t *testing.T) {
 
 	result, err = CallCreateTx("xxxx", "xxx", modify)
 	assert.NotEqual(t, err, nil)
+
+
 
 	modify = &ModifyConfig{
 		Key:   "token-finisher",
