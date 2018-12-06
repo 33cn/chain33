@@ -655,7 +655,7 @@ func (base *ExecTypeBase) GetAction(action string) (Message, error) {
 	return nil, ErrActionNotSupport
 }
 
-//CreateTx 构造tx交易重构完成后删除
+//CreateTx 通过json rpc 创建交易
 func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
 	data, err := base.GetAction(action)
 	if err != nil {
