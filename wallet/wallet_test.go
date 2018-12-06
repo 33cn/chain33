@@ -479,9 +479,11 @@ func testProcSendToAddress(t *testing.T, wallet *Wallet) {
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSendToAddress, withdraw)
 	wallet.client.Send(msg, true)
 	resp, err = wallet.client.Wait(msg)
-	require.NoError(t, err)
-	replyHash = resp.GetData().(*types.ReplyHash)
-	println("withdraw tx", "ReplyHash", common.ToHex(replyHash.Hash))
+	//返回ErrAmount错误
+	assert.Equal(t, string(err.Error()), types.ErrAmount.Error())
+	require.Error(t, err)
+	//replyHash = resp.GetData().(*types.ReplyHash)
+	//println("withdraw tx", "ReplyHash", common.ToHex(replyHash.Hash))
 	println("TestProcSendToAddress end")
 	println("--------------------------")
 }
