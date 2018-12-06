@@ -455,11 +455,13 @@ func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
 
 //parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
 func (chain *BlockChain) getSeqByHash(msg queue.Message) {
-	var sequence types.Int64
-
 	blockhash := (msg.Data).(*types.ReqHash)
-	sequence.Data, _ = chain.ProcGetSeqByHash(blockhash.Hash)
-	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqByHash, &sequence))
+	seq, err := chain.ProcGetSeqByHash(blockhash.Hash)
+	if err != nil {
+		chainlog.Error("getSeqByHash", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReply, err))
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqByHash, &types.Int64{Data: seq}))
 }
 
 //获取指定前缀key的数量

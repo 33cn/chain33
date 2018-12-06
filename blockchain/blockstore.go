@@ -943,7 +943,7 @@ func (bs *BlockStore) saveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 	storeBatch.Set(calcSequenceToHashKey(newSequence), BlockSequenceByte)
 
 	//parachain  hash->seq 只记录add block时的hash和seq对应关系
-	if Type == AddBlock && isParaChain {
+	if Type == AddBlock {
 		Sequencebytes := types.Encode(&types.Int64{Data: newSequence})
 		storeBatch.Set(calcHashToSequenceKey(hash), Sequencebytes)
 	}
