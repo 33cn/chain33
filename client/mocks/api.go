@@ -499,6 +499,29 @@ func (_m *QueueProtocolAPI) GetSeqCallBackLastNum(param *types.ReqString) (*type
 	return r0, r1
 }
 
+// GetSequenceByHash provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetSequenceByHash(param *types.ReqHash) (*types.Int64, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Int64
+	if rf, ok := ret.Get(0).(func(*types.ReqHash) *types.Int64); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Int64)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqHash) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetTransactionByAddr provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetTransactionByAddr(param *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	ret := _m.Called(param)
