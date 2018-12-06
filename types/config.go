@@ -315,8 +315,13 @@ func IsPara() bool {
 }
 
 // IsParaExecName 是否平行链执行器
-func IsParaExecName(name string) bool {
-	return strings.HasPrefix(name, ParaKeyX)
+func IsParaExecName(exec string) bool {
+	return strings.HasPrefix(exec, ParaKeyX)
+}
+
+//IsMyParaExecName 是否是我的para链的执行器
+func IsMyParaExecName(exec string) bool {
+	return IsParaExecName(exec) && strings.HasPrefix(exec, GetTitle())
 }
 
 func setTestNet(isTestNet bool) {
