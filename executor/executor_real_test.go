@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/merkle"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
@@ -212,6 +213,34 @@ func TestExecBlock2(t *testing.T) {
 	for n := 0; n < N; n++ {
 		<-done
 	}
+}
+
+var zeroHash [32]byte
+
+func TestSameTx(t *testing.T) {
+	mock33 := newMockNode()
+	defer mock33.Close()
+	newblock := &types.Block{}
+	newblock.Height = 1
+	newblock.BlockTime = types.Now().Unix()
+	newblock.ParentHash = zeroHash[:]
+	newblock.Txs = util.GenNoneTxs(mock33.GetGenesisKey(), 3)
+	hash1 := merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.Txs = append(newblock.Txs, newblock.Txs[2])
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	assert.Equal(t, hash1, newblock.TxHash)
+	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true)
+	assert.Equal(t, types.ErrTxDup, err)
+
+	//情况2
+	//[tx1,xt2,tx3,tx4,tx5,tx6] and [tx1,xt2,tx3,tx4,tx5,tx6,tx5,tx6]
+	newblock.Txs = util.GenNoneTxs(mock33.GetGenesisKey(), 6)
+	hash1 = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.Txs = append(newblock.Txs, newblock.Txs[4:]...)
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	assert.Equal(t, hash1, newblock.TxHash)
+	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true)
+	assert.Equal(t, types.ErrTxDup, err)
 }
 
 func TestExecBlock(t *testing.T) {
