@@ -2,9 +2,8 @@ package types
 
 import (
 	"encoding/json"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestLoadExecutorType(t *testing.T) {
@@ -53,21 +52,22 @@ func TestCallCreateTxJSON(t *testing.T) {
 	data, err := json.Marshal(modify)
 	assert.Equal(t, err, nil)
 
-	data, err = CallCreateTxJSON("manage", "Modify", data)
+	result, err := CallCreateTxJSON("manage", "Modify", data)
 	assert.Equal(t, err, nil)
-	assert.NotEqual(t, data, nil)
+	assert.NotEqual(t, result, nil)
 	var tx Transaction
-	err = Decode(data, &tx)
+	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
 	fee, _ := tx.GetRealFee(GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 
-	data, err = CallCreateTxJSON("coins", "Modify", data)
+	result, err = CallCreateTxJSON("coins", "Modify", data)
 	assert.NotEqual(t, err, nil)
 
-	data, err = CallCreateTxJSON("xxxx", "xxx", data)
+	result, err = CallCreateTxJSON("xxxx", "xxx", data)
 	assert.NotEqual(t, err, nil)
+
 
 	modify = &ModifyConfig{
 		Key:   "token-finisher",
@@ -78,10 +78,10 @@ func TestCallCreateTxJSON(t *testing.T) {
 	data, err = json.Marshal(modify)
 	assert.Equal(t, err, nil)
 
-	data, err = CallCreateTxJSON("manage", "Modify", data)
+	result, err = CallCreateTxJSON("manage", "Modify", data)
 	assert.Equal(t, err, nil)
-	assert.NotEqual(t, data, nil)
-	err = Decode(data, &tx)
+	assert.NotEqual(t, result, nil)
+	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
 	fee, _ = tx.GetRealFee(GInt("MinFee"))
@@ -97,22 +97,24 @@ func TestCallCreateTx(t *testing.T) {
 		Addr:  "",
 	}
 
-	data, err := CallCreateTx("manage", "Modify", modify)
+	result, err := CallCreateTx("manage", "Modify", modify)
 	assert.Equal(t, err, nil)
-	assert.NotEqual(t, data, nil)
+	assert.NotEqual(t, result, nil)
 	var tx Transaction
-	err = Decode(data, &tx)
+	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
 	fee, _ := tx.GetRealFee(GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 
-	data, err = CallCreateTx("coins", "Modify", modify)
+	result, err = CallCreateTx("coins", "Modify", modify)
 	assert.NotEqual(t, err, nil)
 
-	data, err = CallCreateTx("xxxx", "xxx", modify)
+	result, err = CallCreateTx("xxxx", "xxx", modify)
 	assert.NotEqual(t, err, nil)
 
+
+	
 	modify = &ModifyConfig{
 		Key:   "token-finisher",
 		Value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -120,10 +122,10 @@ func TestCallCreateTx(t *testing.T) {
 		Addr:  "",
 	}
 
-	data, err = CallCreateTx("manage", "Modify", modify)
+	result, err = CallCreateTx("manage", "Modify", modify)
 	assert.Equal(t, err, nil)
-	assert.NotEqual(t, data, nil)
-	err = Decode(data, &tx)
+	assert.NotEqual(t, result, nil)
+	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
 	fee, _ = tx.GetRealFee(GInt("MinFee"))
