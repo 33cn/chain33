@@ -319,6 +319,11 @@ func IsParaExecName(name string) bool {
 	return strings.HasPrefix(name, ParaKeyX)
 }
 
+// IsParaTitleTx 是否平行链具体title的交易
+func IsParaTitleTx(name string) bool {
+	return strings.HasPrefix(name, ParaKeyX) && strings.HasPrefix(name, title)
+}
+
 func setTestNet(isTestNet bool) {
 	if !isTestNet {
 		setChainConfig("TestNet", false)
