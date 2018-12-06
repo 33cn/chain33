@@ -67,10 +67,10 @@ func TestCallCreateTxJSON(t *testing.T) {
 	fee, _ := tx.GetRealFee(GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 
-	result, err = CallCreateTxJSON("coins", "Modify", data)
+	_, err = CallCreateTxJSON("coins", "Modify", data)
 	assert.NotEqual(t, err, nil)
 
-	result, err = CallCreateTxJSON("xxxx", "xxx", data)
+	_, err = CallCreateTxJSON("xxxx", "xxx", data)
 	assert.NotEqual(t, err, nil)
 
 	modify = &ModifyConfig{
@@ -111,10 +111,10 @@ func TestCallCreateTx(t *testing.T) {
 	fee, _ := tx.GetRealFee(GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 
-	result, err = CallCreateTx("coins", "Modify", modify)
+	_, err = CallCreateTx("coins", "Modify", modify)
 	assert.NotEqual(t, err, nil)
 
-	result, err = CallCreateTx("xxxx", "xxx", modify)
+	_, err = CallCreateTx("xxxx", "xxx", modify)
 	assert.NotEqual(t, err, nil)
 
 	modify = &ModifyConfig{
