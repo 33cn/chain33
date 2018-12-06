@@ -293,7 +293,7 @@ func getblockbyhashs(cmd *cobra.Command, args []string) {
 		Hashes: hashesArr,
 	}
 
-	var res types.BlockDetails
+	var res rpctypes.BlockDetails
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockByHashes", params, &res)
 	//ctx.SetResultCb(parseQueryTxsByHashesRes)
 	ctx.Run()
