@@ -6,8 +6,9 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadExecutorType(t *testing.T) {
@@ -72,7 +73,6 @@ func TestCallCreateTxJSON(t *testing.T) {
 	result, err = CallCreateTxJSON("xxxx", "xxx", data)
 	assert.NotEqual(t, err, nil)
 
-
 	modify = &ModifyConfig{
 		Key:   "token-finisher",
 		Value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -116,8 +116,6 @@ func TestCallCreateTx(t *testing.T) {
 
 	result, err = CallCreateTx("xxxx", "xxx", modify)
 	assert.NotEqual(t, err, nil)
-
-
 
 	modify = &ModifyConfig{
 		Key:   "token-finisher",
