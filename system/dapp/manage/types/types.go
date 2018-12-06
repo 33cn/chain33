@@ -78,3 +78,8 @@ func (m ManageType) GetRealToAddr(tx *types.Transaction) string {
 func (m ManageType) GetTypeMap() map[string]int32 {
 	return actionName
 }
+
+// GetName reset name
+func (m *ManageType) GetName() string {
+	return ManageX
+}
