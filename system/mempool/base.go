@@ -60,7 +60,7 @@ func (mem *BaseMempool) GetBaseCache() *BaseCache {
 
 func (mem *BaseMempool) SetBaseCache(b *BaseCache) {
 	mem.ProxyMtx.Lock()
-	mem.baseCache=b
+	mem.baseCache = b
 	mem.ProxyMtx.Unlock()
 }
 
