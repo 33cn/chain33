@@ -1120,16 +1120,11 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 	if in == nil {
 		return types.ErrInvalidParam
 	}
-	exec := types.LoadExecutorType(in.Execer)
-	if exec == nil {
-		return types.ErrExecNameNotAllow
-	}
-	tx, err := exec.CreateTx(in.ActionName, in.Payload)
+	btx, err := types.CallCreateTxJSON(in.Execer, in.ActionName, in.Payload)
 	if err != nil {
-		log.Error("CreateTransaction", "err", err.Error())
 		return err
 	}
-	*result = hex.EncodeToString(types.Encode(tx))
+	*result = hex.EncodeToString(btx)
 	return nil
 }
 

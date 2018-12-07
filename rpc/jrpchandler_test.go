@@ -1229,7 +1229,7 @@ func TestChain33_CreateTransaction(t *testing.T) {
 
 	in := &rpctypes.CreateTxIn{Execer: "notExist", ActionName: "x", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
-	assert.Equal(t, types.ErrExecNameNotAllow, err)
+	assert.Equal(t, types.ErrNotSupport, err)
 
 	in = &rpctypes.CreateTxIn{Execer: types.ExecName("coins"), ActionName: "notExist", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
