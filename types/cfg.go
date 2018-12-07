@@ -54,10 +54,11 @@ type Log struct {
 
 // MemPool 配置
 type MemPool struct {
-	PoolCacheSize      int64 `protobuf:"varint,1,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
-	MinTxFee           int64 `protobuf:"varint,2,opt,name=minTxFee" json:"minTxFee,omitempty"`
-	ForceAccept        bool  `protobuf:"varint,3,opt,name=forceAccept" json:"forceAccept,omitempty"`
-	MaxTxNumPerAccount int64 `protobuf:"varint,4,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
+	Name               string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	PoolCacheSize      int64  `protobuf:"varint,1,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
+	MinTxFee           int64  `protobuf:"varint,2,opt,name=minTxFee" json:"minTxFee,omitempty"`
+	ForceAccept        bool   `protobuf:"varint,3,opt,name=forceAccept" json:"forceAccept,omitempty"`
+	MaxTxNumPerAccount int64  `protobuf:"varint,4,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
 }
 
 // Consensus 配置

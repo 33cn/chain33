@@ -64,9 +64,23 @@ certFile="cert.pem"
 keyFile="key.pem"
 
 [mempool]
+name="timeline"
 poolCacheSize=10240
-minTxFee=1000000
+minTxFee=100000
 maxTxNumPerAccount=10000
+
+[mempool.sub.timeline]
+poolCacheSize=10240
+minTxFee=100000
+maxTxNumPerAccount=10000
+
+[mempool.sub.trade]
+poolCacheSize=10240
+minTxFee=100000
+maxTxNumPerAccount=10000
+timeParam=1      #时间占价格比例
+priceConstant=1  #一个合适的常量
+pricePower=0     #手续费占常量比例
 
 [consensus]
 name="solo"

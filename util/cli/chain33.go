@@ -130,7 +130,7 @@ func RunChain33(name string) {
 	q := queue.New("channel")
 
 	log.Info("loading mempool module")
-	mem := mempool.New(cfg.MemPool)
+	mem := mempool.New(cfg.MemPool, sub.MemPool)
 	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
