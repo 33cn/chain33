@@ -47,7 +47,7 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		return nil
 	}
 
-	if cache.txList.Len() >= cache.Size {
+	if cache.txList.Len() >= cache.GetSize() {
 		return types.ErrMemFull
 	}
 
