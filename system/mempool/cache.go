@@ -18,11 +18,11 @@ type Cache interface {
 }
 
 type BaseCache struct {
-	Size       int
+	size       int
 	TxFrontTen []*types.Transaction
 	AccMap     map[string][]*types.Transaction
 	TxMap      map[string]interface{}
-	Child      Cache
+	child      Cache
 }
 
 // Item 为Mempool中包装交易的数据结构
@@ -34,7 +34,7 @@ type Item struct {
 
 func NewBaseCache(cacheSize int64) *BaseCache {
 	return &BaseCache{
-		Size:       int(cacheSize),
+		size:       int(cacheSize),
 		TxFrontTen: make([]*types.Transaction, 0),
 		AccMap:     make(map[string][]*types.Transaction),
 		TxMap:      make(map[string]interface{}),
@@ -42,7 +42,7 @@ func NewBaseCache(cacheSize int64) *BaseCache {
 }
 
 func (cache *BaseCache) SetChild(c Cache) {
-	cache.Child = c
+	cache.child = c
 }
 
 // BaseCache.TxNumOfAccount返回账户在Mempool中交易数量
@@ -106,9 +106,9 @@ func (cache *BaseCache) Remove(hash []byte) {
 		return
 	}
 
-	cache.Child.Remove(value)
+	cache.child.Remove(value)
 	delete(cache.TxMap, string(hash))
-	item := cache.Child.Reflect(value)
+	item := cache.child.Reflect(value)
 	tx := item.Value
 	addr := tx.From()
 	if cache.TxNumOfAccount(addr) > 0 {
@@ -121,7 +121,7 @@ func (cache *BaseCache) RemoveBlockedTxs(dupTxs [][]byte, addedTxs *lru.Cache) {
 		txValue, exists := cache.TxMap[string(t)]
 		if exists {
 			addedTxs.Add(string(t), nil)
-			item := cache.Child.Reflect(txValue)
+			item := cache.child.Reflect(txValue)
 			cache.Remove(item.Value.Hash())
 		}
 	}
@@ -130,7 +130,7 @@ func (cache *BaseCache) RemoveBlockedTxs(dupTxs [][]byte, addedTxs *lru.Cache) {
 func (cache *BaseCache) RemoveExpiredTx(height, blockTime int64) []*types.Transaction {
 	var result []*types.Transaction
 	for _, v := range cache.TxMap {
-		item := cache.Child.Reflect(v)
+		item := cache.child.Reflect(v)
 		hash := item.Value.Hash()
 		if types.Now().Unix()-item.EnterTime >= mempoolExpiredInterval {
 			// 清理滞留mempool中超过10分钟的交易

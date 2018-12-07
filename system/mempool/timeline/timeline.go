@@ -30,7 +30,7 @@ func NewMempool(cfg *types.MemPool) *Mempool {
 	c := drivers.NewMempool(cfg)
 	initConfig(cfg)
 	pool := &Mempool{BaseMempool: c}
-	pool.BaseCache.SetChild(newTxCache(poolCacheSize, pool.BaseCache))
+	pool.GetBaseCache().SetChild(newTxCache(poolCacheSize, pool.GetBaseCache()))
 	return pool
 }
 
@@ -41,7 +41,7 @@ func init() {
 func New(cfg *types.MemPool, sub []byte) queue.Module {
 	c := drivers.NewMempool(cfg)
 	pool := &Mempool{BaseMempool: c}
-	pool.BaseCache.SetChild(newTxCache(poolCacheSize, pool.BaseCache))
+	pool.GetBaseCache().SetChild(newTxCache(poolCacheSize, pool.GetBaseCache()))
 	return pool
 }
 
@@ -57,7 +57,7 @@ func initConfig(Cfg *types.MemPool) {
 //Resize 设置mempool容量
 func (mem *Mempool) Resize(size int) {
 	mem.ProxyMtx.Lock()
-	mem.BaseCache = drivers.NewBaseCache(int64(size))
-	mem.BaseCache.SetChild(newTxCache(int64(size), mem.BaseCache))
+	mem.SetBaseCache(drivers.NewBaseCache(int64(size)))
+	mem.GetBaseCache().SetChild(newTxCache(int64(size), mem.GetBaseCache()))
 	mem.ProxyMtx.Unlock()
 }
