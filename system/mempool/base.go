@@ -31,7 +31,7 @@ type Mempool struct {
 	wg                sync.WaitGroup
 	done              chan struct{}
 	removeBlockTicket *time.Ticker
-	cache             *TxCache
+	cache             *txCache
 }
 
 //GetSync 判断是否mempool 同步
@@ -59,7 +59,7 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	pool.cfg = cfg
 	pool.poolHeader = make(chan struct{}, 2)
 	pool.removeBlockTicket = time.NewTicker(time.Minute)
-	pool.cache = NewTxCache(cfg.MaxTxNumPerAccount, cfg.MaxTxLast)
+	pool.cache = newCache(cfg.MaxTxNumPerAccount, cfg.MaxTxLast)
 	return pool
 }
 

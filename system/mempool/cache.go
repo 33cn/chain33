@@ -26,27 +26,27 @@ type Item struct {
 }
 
 //TxCache 管理交易cache 包括账户索引，最后的交易，排队策略缓存
-type TxCache struct {
+type txCache struct {
 	*AccountTxIndex
 	*LastTxCache
 	qcache QueueCache
 }
 
 //NewTxCache init accountIndex and last cache
-func NewTxCache(maxTxPerAccount int64, sizeLast int64) *TxCache {
-	return &TxCache{
+func newCache(maxTxPerAccount int64, sizeLast int64) *txCache {
+	return &txCache{
 		AccountTxIndex: NewAccountTxIndex(int(maxTxPerAccount)),
 		LastTxCache:    NewLastTxCache(int(sizeLast)),
 	}
 }
 
 //SetQueueCache set queue cache , 这个接口可以扩展
-func (cache *TxCache) SetQueueCache(qcache QueueCache) {
+func (cache *txCache) SetQueueCache(qcache QueueCache) {
 	cache.qcache = qcache
 }
 
 //Remove 移除txCache中给定tx
-func (cache *TxCache) Remove(hash string) {
+func (cache *txCache) Remove(hash string) {
 	item, err := cache.qcache.GetItem(hash)
 	if err != nil {
 		return
@@ -58,7 +58,7 @@ func (cache *TxCache) Remove(hash string) {
 }
 
 //Exist 是否存在
-func (cache *TxCache) Exist(hash string) bool {
+func (cache *txCache) Exist(hash string) bool {
 	if cache.qcache == nil {
 		return false
 	}
@@ -66,7 +66,7 @@ func (cache *TxCache) Exist(hash string) bool {
 }
 
 //Size cache tx num
-func (cache *TxCache) Size() int {
+func (cache *txCache) Size() int {
 	if cache.qcache == nil {
 		return 0
 	}
@@ -74,7 +74,7 @@ func (cache *TxCache) Size() int {
 }
 
 //Walk iter all txs
-func (cache *TxCache) Walk(count int, cb func(tx *Item) bool) {
+func (cache *txCache) Walk(count int, cb func(tx *Item) bool) {
 	if cache.qcache == nil {
 		return
 	}
@@ -82,14 +82,14 @@ func (cache *TxCache) Walk(count int, cb func(tx *Item) bool) {
 }
 
 //RemoveTxs 删除一组交易
-func (cache *TxCache) RemoveTxs(txs []string) {
+func (cache *txCache) RemoveTxs(txs []string) {
 	for _, t := range txs {
 		cache.Remove(t)
 	}
 }
 
 //Push 存入交易到cache 中
-func (cache *TxCache) Push(tx *types.Transaction) error {
+func (cache *txCache) Push(tx *types.Transaction) error {
 	if !cache.AccountTxIndex.CanPush(tx) {
 		return types.ErrManyTx
 	}
@@ -103,7 +103,7 @@ func (cache *TxCache) Push(tx *types.Transaction) error {
 	return nil
 }
 
-func (cache *TxCache) removeExpiredTx(height, blocktime int64) {
+func (cache *txCache) removeExpiredTx(height, blocktime int64) {
 	var txs []string
 	cache.qcache.Walk(0, func(tx *Item) bool {
 		if isExpired(tx, height, blocktime) {
