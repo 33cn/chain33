@@ -127,8 +127,6 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *MempoolBase) {
 	mem := NewMempool(cfg.MemPool)
 	mem.SetQueueCache(NewSimpleQueue(int(cfg.MemPool.PoolCacheSize)))
 	mem.SetQueueClient(q.Client())
-
-	mem.setSync(true)
 	mem.WaitPollLastHeader()
 	return q, chain, s, mem
 }
@@ -637,6 +635,23 @@ func TestCheckExpire2(t *testing.T) {
 	if len(txs) != 3 {
 		t.Error("TestCheckExpire failed", len(txs))
 	}
+}
+
+func TestCheckExpire3(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add tx
+	err := add4Tx(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
+	assert.Equal(t, mem.Size(), 4)
+	mem.removeExpired()
+	assert.Equal(t, mem.Size(), 3)
 }
 
 func TestWrongToAddr(t *testing.T) {
