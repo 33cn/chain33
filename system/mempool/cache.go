@@ -6,23 +6,16 @@ package mempool
 
 import (
 	"github.com/33cn/chain33/types"
-	"github.com/hashicorp/golang-lru"
 )
 
-type Cache interface {
-	Reflect(interface{}) *Item
-	Push(tx *types.Transaction) error
-	Remove(val interface{})
-	GetSize() int
-	GetTxList(minSize, height, blockTime int64, dupMap map[string]bool) []*types.Transaction
-}
-
-type BaseCache struct {
-	size       int
-	TxFrontTen []*types.Transaction
-	AccMap     map[string][]*types.Transaction
-	TxMap      map[string]interface{}
-	child      Cache
+//QueueCache 排队交易处理
+type QueueCache interface {
+	Exist(hash string) bool
+	GetItem(hash string) (*Item, error)
+	Push(tx *Item) error
+	Remove(hash string) error
+	Size() int
+	Walk(count int, filter func(tx *Item) bool)
 }
 
 // Item 为Mempool中包装交易的数据结构
@@ -32,115 +25,74 @@ type Item struct {
 	EnterTime int64
 }
 
-func NewBaseCache(cacheSize int64) *BaseCache {
-	return &BaseCache{
-		size:       int(cacheSize),
-		TxFrontTen: make([]*types.Transaction, 0),
-		AccMap:     make(map[string][]*types.Transaction),
-		TxMap:      make(map[string]interface{}),
+//TxCache 管理交易cache 包括账户索引，最后的交易，排队策略缓存
+type TxCache struct {
+	accountIndex *AccountTxIndex
+	last         *LastTxCache
+	qcache       QueueCache
+}
+
+//NewTxCache init accountIndex and last cache
+func NewTxCache(maxTxPerAccount int64, sizeLast int64) *TxCache {
+	return &TxCache{
+		accountIndex: NewAccountTxIndex(int(maxTxPerAccount)),
+		last:         NewLastTxCache(int(sizeLast)),
 	}
 }
 
-func (cache *BaseCache) SetChild(c Cache) {
-	cache.child = c
-}
-
-// BaseCache.TxNumOfAccount返回账户在Mempool中交易数量
-func (cache *BaseCache) TxNumOfAccount(addr string) int64 {
-	return int64(len(cache.AccMap[addr]))
-}
-
-// txCache.GetLatestTx返回最新十条加入到txCache的交易
-func (cache *BaseCache) GetLatestTx() []*types.Transaction {
-	return cache.TxFrontTen
-}
-
-// txCache.AccountTxNumDecrease根据交易哈希删除对应账户的对应交易
-func (cache *BaseCache) AccountTxNumDecrease(addr string, hash []byte) {
-	if value, ok := cache.AccMap[addr]; ok {
-		for i, t := range value {
-			if string(t.Hash()) == string(hash) {
-				cache.AccMap[addr] = append(cache.AccMap[addr][:i], cache.AccMap[addr][i+1:]...)
-				if len(cache.AccMap[addr]) == 0 {
-					delete(cache.AccMap, addr)
-				}
-				return
-			}
-		}
-	}
-}
-
-// txCache.GetAccTxs用来获取对应账户地址（列表）中的全部交易详细信息
-func (cache *BaseCache) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails {
-	res := &types.TransactionDetails{}
-	for _, addr := range addrs.Addrs {
-		if value, ok := cache.AccMap[addr]; ok {
-			for _, v := range value {
-				txAmount, err := v.Amount()
-				if err != nil {
-					// continue
-					txAmount = 0
-				}
-				res.Txs = append(res.Txs,
-					&types.TransactionDetail{
-						Tx:         v,
-						Amount:     txAmount,
-						Fromaddr:   addr,
-						ActionName: v.ActionName(),
-					})
-			}
-		}
-	}
-	return res
-}
-
-func (cache *BaseCache) Exists(hash []byte) bool {
-	_, exists := cache.TxMap[string(hash)]
-	return exists
-}
-
-// txCache.Remove移除txCache中给定tx
-func (cache *BaseCache) Remove(hash []byte) {
-	value := cache.TxMap[string(hash)]
-	if value == nil {
+//Remove 移除txCache中给定tx
+func (cache *TxCache) Remove(hash string) {
+	item, err := cache.qcache.GetItem(hash)
+	if err != nil {
 		return
 	}
-
-	cache.child.Remove(value)
-	delete(cache.TxMap, string(hash))
-	item := cache.child.Reflect(value)
 	tx := item.Value
-	addr := tx.From()
-	if cache.TxNumOfAccount(addr) > 0 {
-		cache.AccountTxNumDecrease(addr, hash)
+	cache.qcache.Remove(hash)
+	cache.accountIndex.Remove(tx)
+	cache.last.Remove(tx)
+}
+
+//RemoveTxs 删除一组交易
+func (cache *TxCache) RemoveTxs(txs []string) {
+	for _, t := range txs {
+		cache.Remove(t)
 	}
 }
 
-func (cache *BaseCache) RemoveBlockedTxs(dupTxs [][]byte, addedTxs *lru.Cache) {
-	for _, t := range dupTxs {
-		txValue, exists := cache.TxMap[string(t)]
-		if exists {
-			addedTxs.Add(string(t), nil)
-			item := cache.child.Reflect(txValue)
-			cache.Remove(item.Value.Hash())
-		}
+//Push 存入交易到cache 中
+func (cache *TxCache) Push(tx *types.Transaction) error {
+	if !cache.accountIndex.CanPush(tx) {
+		return types.ErrManyTx
 	}
+	newEnterTime := types.Now().Unix()
+	item := &Item{Value: tx, Priority: tx.Fee, EnterTime: newEnterTime}
+	err := cache.qcache.Push(item)
+	if err != nil {
+		return err
+	}
+	cache.accountIndex.Push(tx)
+	cache.last.Push(tx)
+	return nil
 }
 
-func (cache *BaseCache) RemoveExpiredTx(height, blockTime int64) []*types.Transaction {
-	var result []*types.Transaction
-	for _, v := range cache.TxMap {
-		item := cache.child.Reflect(v)
-		hash := item.Value.Hash()
-		if types.Now().Unix()-item.EnterTime >= mempoolExpiredInterval {
-			// 清理滞留mempool中超过10分钟的交易
-			cache.Remove(hash)
-		} else if item.Value.IsExpire(height, blockTime) {
-			// 清理过期的交易
-			cache.Remove(hash)
-		} else {
-			result = append(result, item.Value)
+func (cache *TxCache) removeExpiredTx(height, blocktime int64) {
+	var txs []string
+	cache.qcache.Walk(0, func(tx *Item) bool {
+		if isExpired(tx, height, blocktime) {
+			txs = append(txs, string(tx.Value.Hash()))
 		}
+		return true
+	})
+	cache.RemoveTxs(txs)
+}
+
+//判断交易是否过期
+func isExpired(item *Item, height, blockTime int64) bool {
+	if types.Now().Unix()-item.EnterTime >= mempoolExpiredInterval {
+		return true
 	}
-	return result
+	if item.Value.IsExpire(height, blockTime) {
+		return true
+	}
+	return false
 }

@@ -9,11 +9,13 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-type MempoolCreate func(cfg *types.MemPool, sub []byte) queue.Module
+//Create 创建一个mempool模块
+type Create func(cfg *types.MemPool, sub []byte) queue.Module
 
-var regMempool = make(map[string]MempoolCreate)
+var regMempool = make(map[string]Create)
 
-func Reg(name string, create MempoolCreate) {
+//Reg 注册一个create
+func Reg(name string, create Create) {
 	if create == nil {
 		panic("Mempool: Register driver is nil")
 	}
@@ -23,7 +25,8 @@ func Reg(name string, create MempoolCreate) {
 	regMempool[name] = create
 }
 
-func Load(name string) (create MempoolCreate, err error) {
+//Load 加载一个create
+func Load(name string) (create Create, err error) {
 	if driver, ok := regMempool[name]; ok {
 		return driver, nil
 	}

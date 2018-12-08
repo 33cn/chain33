@@ -14,6 +14,7 @@ var (
 	mempoolExpiredInterval int64 = 600    // mempool内交易过期时间，10分钟
 	mempoolAddedTxSize           = 102400 // 已添加过的交易缓存大小
 	maxTxNumPerAccount     int64 = 100    // TODO 每个账户在mempool中最大交易数量，10
+	maxTxLast              int64 = 10
 	processNum             int
 )
 

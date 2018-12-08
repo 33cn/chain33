@@ -59,6 +59,7 @@ type MemPool struct {
 	MinTxFee           int64  `protobuf:"varint,2,opt,name=minTxFee" json:"minTxFee,omitempty"`
 	ForceAccept        bool   `protobuf:"varint,3,opt,name=forceAccept" json:"forceAccept,omitempty"`
 	MaxTxNumPerAccount int64  `protobuf:"varint,4,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
+	MaxTxLast          int64  `protobuf:"varint,4,opt,name=maxTxLast" json:"maxTxLast,omitempty"`
 }
 
 // Consensus 配置

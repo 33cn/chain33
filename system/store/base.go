@@ -216,14 +216,11 @@ func (t *StorelistQuery) IterateCallBack(key, value []byte) bool {
 				return false
 			}
 			return false
-
 		}
 		return false
-
 	}
 	slog.Error("StoreListReply.IterateCallBack unsupported mode", "mode", t.Mode)
 	return true
-
 }
 
 func cloneByte(v []byte) []byte {
