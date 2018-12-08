@@ -84,7 +84,7 @@ git merge upstream/master
 git fetch upstream
 git checkout master
 git merge upstream/master
-git branch -a "fixbug_ci"
+git branch -b "fixbug_ci"
 ```
 
 * 开发完成后, push 到 `vipwzw/chain33`
