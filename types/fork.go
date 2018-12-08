@@ -91,7 +91,7 @@ func (f *Forks) GetFork(title, key string) int64 {
 		if title == "local" {
 			panic("title not exisit -> " + title)
 		} else {
-			tlog.Error("getfork title not exisit -> " + title)
+			tlog.Error("getfork title not exisit -> ", "title", title, "key", key)
 		}
 		return MaxHeight
 	}

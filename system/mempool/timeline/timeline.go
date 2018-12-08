@@ -21,6 +21,7 @@ type subConfig struct {
 	PoolCacheSize int64 `json:"poolCacheSize"`
 }
 
+//New 创建timeline cache 结构的 mempool
 func New(cfg *types.MemPool, sub []byte) queue.Module {
 	c := drivers.NewMempool(cfg)
 	var subcfg subConfig
@@ -28,6 +29,6 @@ func New(cfg *types.MemPool, sub []byte) queue.Module {
 	if subcfg.PoolCacheSize == 0 {
 		subcfg.PoolCacheSize = cfg.PoolCacheSize
 	}
-	c.SetQueueCache(newTxCache(int(subcfg.PoolCacheSize)))
+	c.SetQueueCache(drivers.NewSimpleQueue(int(subcfg.PoolCacheSize)))
 	return c
 }
