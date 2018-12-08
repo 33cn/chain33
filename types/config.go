@@ -243,7 +243,7 @@ func Init(t string, cfg *Config) {
 		} else {
 			setTestNet(cfg.TestNet)
 		}
-		if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
+		if cfg.Exec.MinExecFee > cfg.Mempool.MinTxFee || cfg.Mempool.MinTxFee > cfg.Wallet.MinFee {
 			panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
 		}
 		setMinFee(cfg.Exec.MinExecFee)
@@ -524,6 +524,7 @@ type subModule struct {
 	Exec      map[string]interface{}
 	Consensus map[string]interface{}
 	Wallet    map[string]interface{}
+	Mempool   map[string]interface{}
 }
 
 func readFile(path string) string {
@@ -548,6 +549,7 @@ func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
 	subcfg.Exec = parseItem(cfg.Exec)
 	subcfg.Consensus = parseItem(cfg.Consensus)
 	subcfg.Wallet = parseItem(cfg.Wallet)
+	subcfg.Mempool = parseItem(cfg.Mempool)
 	return &subcfg, nil
 }
 

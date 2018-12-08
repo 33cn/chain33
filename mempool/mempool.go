@@ -7,7 +7,7 @@ import (
 )
 
 // New new mempool queue module
-func New(cfg *types.MemPool, sub map[string][]byte) queue.Module {
+func New(cfg *types.Mempool, sub map[string][]byte) queue.Module {
 	con, err := mempool.Load(cfg.Name)
 	if err != nil {
 		panic("Unsupported mempool type:" + cfg.Name + " " + err.Error())

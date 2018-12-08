@@ -5,5 +5,5 @@
 package init
 
 import (
-	_ "github.com/33cn/chain33/system/mempool/timeline"
+	_ "github.com/33cn/chain33/system/mempool/timeline" //最简单的排队模式，按照时间
 )

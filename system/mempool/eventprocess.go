@@ -5,7 +5,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func (mem *MempoolBase) reply() {
+func (mem *Mempool) reply() {
 	defer mlog.Info("piple line quit")
 	defer mem.wg.Done()
 	for m := range mem.out {
@@ -19,7 +19,7 @@ func (mem *MempoolBase) reply() {
 	}
 }
 
-func (mem *MempoolBase) pipeLine() <-chan queue.Message {
+func (mem *Mempool) pipeLine() <-chan queue.Message {
 	//check sign
 	step1 := func(data queue.Message) queue.Message {
 		if data.Err() != nil {
@@ -48,7 +48,7 @@ func (mem *MempoolBase) pipeLine() <-chan queue.Message {
 }
 
 // 处理其他模块的消息
-func (mem *MempoolBase) eventProcess() {
+func (mem *Mempool) eventProcess() {
 	defer mem.wg.Done()
 	defer close(mem.in)
 	//event process
@@ -94,7 +94,7 @@ func (mem *MempoolBase) eventProcess() {
 }
 
 //EventTx 初步筛选后存入mempool
-func (mem *MempoolBase) eventTx(msg queue.Message) {
+func (mem *Mempool) eventTx(msg queue.Message) {
 	if !mem.getSync() {
 		msg.Reply(mem.client.NewMessage("", types.EventReply, &types.Reply{Msg: []byte(types.ErrNotSync.Error())}))
 		mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
@@ -108,13 +108,13 @@ func (mem *MempoolBase) eventTx(msg queue.Message) {
 }
 
 // EventGetMempool 获取Mempool内所有交易
-func (mem *MempoolBase) eventGetMempool(msg queue.Message) {
+func (mem *Mempool) eventGetMempool(msg queue.Message) {
 	msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
 		&types.ReplyTxList{Txs: mem.filterTxList(0, nil)}))
 }
 
 // EventDelTxList 获取Mempool中一定数量交易，并把这些交易从Mempool中删除
-func (mem *MempoolBase) eventDelTxList(msg queue.Message) {
+func (mem *Mempool) eventDelTxList(msg queue.Message) {
 	hashList := msg.GetData().(*types.TxHashList)
 	if len(hashList.GetHashes()) == 0 {
 		msg.ReplyErr("EventDelTxList", types.ErrSize)
@@ -125,7 +125,7 @@ func (mem *MempoolBase) eventDelTxList(msg queue.Message) {
 }
 
 // EventTxList 获取mempool中一定数量交易
-func (mem *MempoolBase) eventTxList(msg queue.Message) {
+func (mem *Mempool) eventTxList(msg queue.Message) {
 	hashList := msg.GetData().(*types.TxHashList)
 	if hashList.Count <= 0 {
 		msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, types.ErrSize))
@@ -137,7 +137,7 @@ func (mem *MempoolBase) eventTxList(msg queue.Message) {
 }
 
 // EventAddBlock 将添加到区块内的交易从mempool中删除
-func (mem *MempoolBase) eventAddBlock(msg queue.Message) {
+func (mem *Mempool) eventAddBlock(msg queue.Message) {
 	block := msg.GetData().(*types.BlockDetail).Block
 	if block.Height > mem.Height() || (block.Height == 0 && mem.Height() == 0) {
 		header := &types.Header{}
@@ -150,21 +150,21 @@ func (mem *MempoolBase) eventAddBlock(msg queue.Message) {
 }
 
 // EventGetMempoolSize 获取mempool大小
-func (mem *MempoolBase) eventGetMempoolSize(msg queue.Message) {
+func (mem *Mempool) eventGetMempoolSize(msg queue.Message) {
 	memSize := int64(mem.Size())
 	msg.Reply(mem.client.NewMessage("rpc", types.EventMempoolSize,
 		&types.MempoolSize{Size: memSize}))
 }
 
 // EventGetLastMempool 获取最新十条加入到mempool的交易
-func (mem *MempoolBase) eventGetLastMempool(msg queue.Message) {
+func (mem *Mempool) eventGetLastMempool(msg queue.Message) {
 	txList := mem.GetLatestTx()
 	msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
 		&types.ReplyTxList{Txs: txList}))
 }
 
 // EventDelBlock 回滚区块，把该区块内交易重新加回mempool
-func (mem *MempoolBase) eventDelBlock(msg queue.Message) {
+func (mem *Mempool) eventDelBlock(msg queue.Message) {
 	block := msg.GetData().(*types.BlockDetail).Block
 	if block.Height != mem.GetHeader().GetHeight() {
 		return
@@ -180,13 +180,13 @@ func (mem *MempoolBase) eventDelBlock(msg queue.Message) {
 }
 
 // eventGetAddrTxs 获取mempool中对应账户（组）所有交易
-func (mem *MempoolBase) eventGetAddrTxs(msg queue.Message) {
+func (mem *Mempool) eventGetAddrTxs(msg queue.Message) {
 	addrs := msg.GetData().(*types.ReqAddrs)
 	txlist := mem.GetAccTxs(addrs)
 	msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
 }
 
-func (mem *MempoolBase) checkSign(data queue.Message) queue.Message {
+func (mem *Mempool) checkSign(data queue.Message) queue.Message {
 	tx, ok := data.GetData().(types.TxGroup)
 	if ok && tx.CheckSign() {
 		return data

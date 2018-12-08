@@ -110,7 +110,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv3() (queue.Queue, queue.Module, queue.Module, *MempoolBase) {
+func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	var q = queue.New("channel")
 	cfg, sub := types.InitCfg("../../cmd/chain33/chain33.test.toml")
 	types.Init(cfg.Title, cfg)
@@ -124,30 +124,30 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *MempoolBase) {
 	types.SetMinFee(0)
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
-	mem := NewMempool(cfg.MemPool)
-	mem.SetQueueCache(NewSimpleQueue(int(cfg.MemPool.PoolCacheSize)))
+	mem := NewMempool(cfg.Mempool)
+	mem.SetQueueCache(NewSimpleQueue(int(cfg.Mempool.PoolCacheSize)))
 	mem.SetQueueClient(q.Client())
-	mem.WaitPollLastHeader()
+	mem.Wait()
 	return q, chain, s, mem
 }
 
-func initEnv2(size int) (queue.Queue, *MempoolBase) {
+func initEnv2(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
 	cfg, _ := types.InitCfg("../../cmd/chain33/chain33.test.toml")
 	types.Init(cfg.Title, cfg)
 	blockchainProcess(q)
 	execProcess(q)
-	cfg.MemPool.PoolCacheSize = int64(size)
-	mem := NewMempool(cfg.MemPool)
+	cfg.Mempool.PoolCacheSize = int64(size)
+	mem := NewMempool(cfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(size))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
 	mem.SetMinFee(0)
-	mem.WaitPollLastHeader()
+	mem.Wait()
 	return q, mem
 }
 
-func initEnv(size int) (queue.Queue, *MempoolBase) {
+func initEnv(size int) (queue.Queue, *Mempool) {
 	if size == 0 {
 		size = 100
 	}
@@ -156,13 +156,13 @@ func initEnv(size int) (queue.Queue, *MempoolBase) {
 	types.Init(cfg.Title, cfg)
 	blockchainProcess(q)
 	execProcess(q)
-	cfg.MemPool.PoolCacheSize = int64(size)
-	mem := NewMempool(cfg.MemPool)
+	cfg.Mempool.PoolCacheSize = int64(size)
+	mem := NewMempool(cfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(size))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
 	mem.SetMinFee(types.GInt("MinFee"))
-	mem.WaitPollLastHeader()
+	mem.Wait()
 	return q, mem
 }
 
@@ -434,8 +434,8 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 	mem.client.Send(msg5, true)
 	mem.client.Wait(msg5)
 
-	if mem.Size() != 4 || mem.cache.qcache.Exist(string(tx5.Hash())) {
-		t.Error("TestAddMoreTxThanPoolSize failed", mem.Size(), mem.cache.qcache.Exist(string(tx5.Hash())))
+	if mem.Size() != 4 || mem.cache.Exist(string(tx5.Hash())) {
+		t.Error("TestAddMoreTxThanPoolSize failed", mem.Size(), mem.cache.Exist(string(tx5.Hash())))
 	}
 }
 

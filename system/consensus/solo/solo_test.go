@@ -12,6 +12,7 @@ import (
 
 	//加载系统内置store, 不要依赖plugin
 	_ "github.com/33cn/chain33/system/dapp/init"
+	_ "github.com/33cn/chain33/system/mempool/init"
 	_ "github.com/33cn/chain33/system/store/init"
 )
 

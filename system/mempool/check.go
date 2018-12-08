@@ -11,7 +11,7 @@ import (
 )
 
 // CheckExpireValid 检查交易过期有效性，过期返回false，未过期返回true
-func (mem *MempoolBase) CheckExpireValid(msg queue.Message) (bool, error) {
+func (mem *Mempool) CheckExpireValid(msg queue.Message) (bool, error) {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	if mem.header == nil {
@@ -26,7 +26,7 @@ func (mem *MempoolBase) CheckExpireValid(msg queue.Message) (bool, error) {
 }
 
 // checkTxListRemote 发送消息给执行模块检查交易
-func (mem *MempoolBase) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptCheckTxList, error) {
+func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptCheckTxList, error) {
 	if mem.client == nil {
 		panic("client not bind message queue.")
 	}
@@ -43,7 +43,7 @@ func (mem *MempoolBase) checkTxListRemote(txlist *types.ExecTxList) (*types.Rece
 	return msg.GetData().(*types.ReceiptCheckTxList), nil
 }
 
-func (mem *MempoolBase) checkExpireValid(tx *types.Transaction) bool {
+func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 		return false
 	}
@@ -54,7 +54,7 @@ func (mem *MempoolBase) checkExpireValid(tx *types.Transaction) bool {
 }
 
 // CheckTx 初步检查并筛选交易消息
-func (mem *MempoolBase) checkTx(msg queue.Message) queue.Message {
+func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 	tx := msg.GetData().(types.TxGroup).Tx()
 	// 检查接收地址是否合法
 	if err := address.CheckAddress(tx.To); err != nil {
@@ -77,7 +77,7 @@ func (mem *MempoolBase) checkTx(msg queue.Message) queue.Message {
 }
 
 // CheckTxs 初步检查并筛选交易消息
-func (mem *MempoolBase) checkTxs(msg queue.Message) queue.Message {
+func (mem *Mempool) checkTxs(msg queue.Message) queue.Message {
 	// 判断消息是否含有nil交易
 	if msg.GetData() == nil {
 		msg.Data = types.ErrEmptyTx
@@ -115,7 +115,7 @@ func (mem *MempoolBase) checkTxs(msg queue.Message) queue.Message {
 }
 
 //checkTxList 检查账户余额是否足够，并加入到Mempool，成功则传入goodChan，若加入Mempool失败则传入badChan
-func (mem *MempoolBase) checkTxRemote(msg queue.Message) queue.Message {
+func (mem *Mempool) checkTxRemote(msg queue.Message) queue.Message {
 	tx := msg.GetData().(types.TxGroup)
 	txlist := &types.ExecTxList{}
 	txlist.Txs = append(txlist.Txs, tx.Tx())
