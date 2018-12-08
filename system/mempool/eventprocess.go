@@ -19,6 +19,34 @@ func (mem *MempoolBase) reply() {
 	}
 }
 
+func (mem *MempoolBase) pipeLine() <-chan queue.Message {
+	//check sign
+	step1 := func(data queue.Message) queue.Message {
+		if data.Err() != nil {
+			return data
+		}
+		return mem.checkSign(data)
+	}
+	chs := make([]<-chan queue.Message, processNum)
+	for i := 0; i < processNum; i++ {
+		chs[i] = step(mem.done, mem.in, step1)
+	}
+	out1 := merge(mem.done, chs)
+
+	//checktx remote
+	step2 := func(data queue.Message) queue.Message {
+		if data.Err() != nil {
+			return data
+		}
+		return mem.checkTxRemote(data)
+	}
+	chs2 := make([]<-chan queue.Message, processNum)
+	for i := 0; i < processNum; i++ {
+		chs2[i] = step(mem.done, out1, step2)
+	}
+	return merge(mem.done, chs2)
+}
+
 // 处理其他模块的消息
 func (mem *MempoolBase) eventProcess() {
 	defer mem.wg.Done()
@@ -156,4 +184,14 @@ func (mem *MempoolBase) eventGetAddrTxs(msg queue.Message) {
 	addrs := msg.GetData().(*types.ReqAddrs)
 	txlist := mem.GetAccTxs(addrs)
 	msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
+}
+
+func (mem *MempoolBase) checkSign(data queue.Message) queue.Message {
+	tx, ok := data.GetData().(types.TxGroup)
+	if ok && tx.CheckSign() {
+		return data
+	}
+	mlog.Error("wrong tx", "err", types.ErrSign)
+	data.Data = types.ErrSign
+	return data
 }
