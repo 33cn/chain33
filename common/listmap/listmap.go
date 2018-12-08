@@ -32,7 +32,7 @@ func (lm *ListMap) GetItem(key string) (interface{}, error) {
 	if !ok {
 		return nil, types.ErrNotFound
 	}
-	return item, nil
+	return item.Value, nil
 }
 
 func (lm *ListMap) Push(key string, value interface{}) {
@@ -55,8 +55,9 @@ func (lm *ListMap) GetTop() interface{} {
 
 func (lm *ListMap) Remove(key string) interface{} {
 	if elm, ok := lm.m[key]; ok {
-		lm.l.Remove(elm)
-		return elm.Value
+		value := lm.l.Remove(elm)
+		delete(lm.m, key)
+		return value
 	}
 	return nil
 }

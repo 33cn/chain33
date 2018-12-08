@@ -64,8 +64,7 @@ func (cache *TxCache) Push(tx *types.Transaction) error {
 	if !cache.accountIndex.CanPush(tx) {
 		return types.ErrManyTx
 	}
-	newEnterTime := types.Now().Unix()
-	item := &Item{Value: tx, Priority: tx.Fee, EnterTime: newEnterTime}
+	item := &Item{Value: tx, Priority: tx.Fee, EnterTime: types.Now().Unix()}
 	err := cache.qcache.Push(item)
 	if err != nil {
 		return err

@@ -5,6 +5,8 @@
 package timeline
 
 import (
+	"container/list"
+
 	"github.com/33cn/chain33/common/listmap"
 	"github.com/33cn/chain33/system/mempool"
 	"github.com/33cn/chain33/types"
@@ -31,10 +33,10 @@ func (cache *txCache) GetItem(hash string) (*mempool.Item, error) {
 	if err != nil {
 		return nil, err
 	}
-	return item.(*mempool.Item), nil
+	return item.(*list.Element).Value.(*mempool.Item), nil
 }
 
-// txCache.Push把给定tx添加到txCache；如果tx已经存在txCache中或Mempool已满则返回对应error
+// Push 把给定tx添加到txCache；如果tx已经存在txCache中或Mempool已满则返回对应error
 func (cache *txCache) Push(tx *mempool.Item) error {
 	hash := tx.Value.Hash()
 	if cache.Exist(string(hash)) {
