@@ -1,0 +1,844 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package mempool
+
+import (
+	"errors"
+	"math/rand"
+	"testing"
+
+	"github.com/33cn/chain33/blockchain"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/limits"
+	"github.com/33cn/chain33/executor"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/store"
+	_ "github.com/33cn/chain33/system/consensus/init"
+	_ "github.com/33cn/chain33/system/crypto/init"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
+	_ "github.com/33cn/chain33/system/dapp/init"
+	_ "github.com/33cn/chain33/system/store/init"
+	"github.com/33cn/chain33/types"
+)
+
+//----------------------------- data for testing ---------------------------------
+var (
+	c, _       = crypto.New(types.GetSignName("", types.SECP256K1))
+	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+	a, _       = common.FromHex(hex)
+	privKey, _ = c.PrivKeyFromBytes(a)
+	random     *rand.Rand
+	mainPriv   crypto.PrivKey
+	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	amount     = int64(1e8)
+	v          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
+	transfer   = &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
+	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: toAddr}
+	tx2        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+	tx3        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: toAddr}
+	tx4        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To: toAddr}
+	tx5        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0, To: toAddr}
+	tx6        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0, To: toAddr}
+	tx7        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0, To: toAddr}
+	tx8        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0, To: toAddr}
+	tx9        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0, To: toAddr}
+	tx10       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0, To: toAddr}
+	tx11       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To: toAddr}
+	tx12       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr}
+	tx13       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr}
+	tx14       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: "notaddress"}
+	tx15       = &types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+)
+
+//var privTo, _ = c.GenKey()
+//var ad = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+
+var blk = &types.Block{
+	Version:    1,
+	ParentHash: []byte("parent hash"),
+	TxHash:     []byte("tx hash"),
+	Height:     2,
+	BlockTime:  1,
+	Txs:        []*types.Transaction{tx3, tx5},
+}
+
+func init() {
+	err := limits.SetLimits()
+	if err != nil {
+		panic(err)
+	}
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
+	queue.DisableLog()
+	DisableLog() // 不输出任何log
+	//	SetLogLevel("debug") // 输出DBUG(含)以下log
+	//	SetLogLevel("info") // 输出INFO(含)以下log
+	SetLogLevel("info") // 输出WARN(含)以下log
+	//	SetLogLevel("eror") // 输出EROR(含)以下log
+	//	SetLogLevel("crit") // 输出CRIT(含)以下log
+	//	SetLogLevel("") // 输出所有log
+	//	maxTxNumPerAccount = 10000
+	mainPriv = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
+	tx1.Sign(types.SECP256K1, privKey)
+	tx2.Sign(types.SECP256K1, privKey)
+	tx3.Sign(types.SECP256K1, privKey)
+	tx4.Sign(types.SECP256K1, privKey)
+	tx5.Sign(types.SECP256K1, privKey)
+	tx6.Sign(types.SECP256K1, privKey)
+	tx7.Sign(types.SECP256K1, privKey)
+	tx8.Sign(types.SECP256K1, privKey)
+	tx9.Sign(types.SECP256K1, privKey)
+	tx10.Sign(types.SECP256K1, privKey)
+	tx11.Sign(types.SECP256K1, privKey)
+	tx12.Sign(types.SECP256K1, privKey)
+	tx13.Sign(types.SECP256K1, privKey)
+	tx14.Sign(types.SECP256K1, privKey)
+	tx15.Sign(types.SECP256K1, privKey)
+
+}
+
+func getprivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
+func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
+	var q = queue.New("channel")
+	cfg, sub := types.InitCfg("../../../cmd/chain33/chain33.test.toml")
+	cfg.Consensus.Minerstart = false
+	chain := blockchain.New(cfg.BlockChain)
+	chain.SetQueueClient(q.Client())
+
+	exec := executor.New(cfg.Exec, sub.Exec)
+	exec.SetQueueClient(q.Client())
+
+	types.SetMinFee(0)
+	s := store.New(cfg.Store, sub.Store)
+	s.SetQueueClient(q.Client())
+	mem := NewMempool(cfg.MemPool)
+	mem.SetQueueClient(q.Client())
+	mem.SetSync(true)
+	mem.WaitPollLastHeader()
+	return q, chain, s, mem
+}
+
+func initEnv2(size int) (queue.Queue, *Mempool) {
+	var q = queue.New("channel")
+	cfg, _ := types.InitCfg("../../../cmd/chain33/chain33.test.toml")
+	blockchainProcess(q)
+	execProcess(q)
+	mem := NewMempool(cfg.MemPool)
+	mem.SetQueueClient(q.Client())
+	mem.SetSync(true)
+	if size > 0 {
+		mem.Resize(size)
+	}
+	mem.SetMinFee(0)
+	mem.WaitPollLastHeader()
+	return q, mem
+}
+
+func initEnv(size int) (queue.Queue, *Mempool) {
+	var q = queue.New("channel")
+	cfg, _ := types.InitCfg("../../../cmd/chain33/chain33.test.toml")
+	blockchainProcess(q)
+	execProcess(q)
+	mem := NewMempool(cfg.MemPool)
+	if size > 0 {
+		mem.Resize(size)
+	}
+	mem.SetQueueClient(q.Client())
+	mem.SetSync(true)
+	mem.SetMinFee(types.GInt("MinFee"))
+	mem.WaitPollLastHeader()
+	return q, mem
+}
+
+func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+	v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	tx.Nonce = rand.Int63()
+	tx.Sign(types.SECP256K1, priv)
+	return tx
+}
+
+func genaddress() (string, crypto.PrivKey) {
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	privto, err := cr.GenKey()
+	if err != nil {
+		panic(err)
+	}
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
+	return addrto.String(), privto
+}
+
+func TestAddEmptyTx(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg := mem.Client.NewMessage("mempool", types.EventTx, nil)
+	mem.Client.Send(msg, true)
+	resp, err := mem.Client.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrEmptyTx.Error() {
+		t.Error("TestAddEmptyTx failed")
+	}
+}
+
+func TestAddTx(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg := mem.Client.NewMessage("mempool", types.EventTx, tx2)
+	mem.Client.Send(msg, true)
+	mem.Client.Wait(msg)
+
+	if mem.Size() != 1 {
+		t.Error("TestAddTx failed")
+	}
+}
+
+func TestAddDuplicatedTx(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg1 := mem.Client.NewMessage("mempool", types.EventTx, tx2)
+	err := mem.Client.Send(msg1, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	msg1, err = mem.Client.Wait(msg1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	reply := msg1.GetData().(*types.Reply)
+	err = checkReply(reply)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if mem.Size() != 1 {
+		t.Error("TestAddDuplicatedTx failed", "size", mem.Size())
+	}
+	msg2 := mem.Client.NewMessage("mempool", types.EventTx, tx2)
+	mem.Client.Send(msg2, true)
+	mem.Client.Wait(msg2)
+
+	if mem.Size() != 1 {
+		t.Error("TestAddDuplicatedTx failed", "size", mem.Size())
+	}
+}
+
+func checkReply(reply *types.Reply) error {
+	if !reply.GetIsOk() {
+		return errors.New(string(reply.GetMsg()))
+	}
+	return nil
+}
+
+func add4Tx(Client queue.Client) error {
+	msg1 := Client.NewMessage("mempool", types.EventTx, tx1)
+	msg2 := Client.NewMessage("mempool", types.EventTx, tx2)
+	msg3 := Client.NewMessage("mempool", types.EventTx, tx3)
+	msg4 := Client.NewMessage("mempool", types.EventTx, tx4)
+	Client.Send(msg1, true)
+	_, err := Client.Wait(msg1)
+	if err != nil {
+		return err
+	}
+
+	Client.Send(msg2, true)
+	_, err = Client.Wait(msg2)
+	if err != nil {
+		return err
+	}
+
+	Client.Send(msg3, true)
+	_, err = Client.Wait(msg3)
+	if err != nil {
+		return err
+	}
+
+	Client.Send(msg4, true)
+	_, err = Client.Wait(msg4)
+	return err
+}
+
+func add4TxHash(Client queue.Client) ([]string, error) {
+	msg1 := Client.NewMessage("mempool", types.EventTx, tx5)
+	msg2 := Client.NewMessage("mempool", types.EventTx, tx2)
+	msg3 := Client.NewMessage("mempool", types.EventTx, tx3)
+	msg4 := Client.NewMessage("mempool", types.EventTx, tx4)
+	hashList := []string{string(tx5.Hash()), string(tx2.Hash()), string(tx3.Hash()), string(tx4.Hash())}
+	Client.Send(msg1, true)
+	_, err := Client.Wait(msg1)
+	if err != nil {
+		return nil, err
+	}
+
+	Client.Send(msg2, true)
+	_, err = Client.Wait(msg2)
+	if err != nil {
+		return nil, err
+	}
+
+	Client.Send(msg3, true)
+	_, err = Client.Wait(msg3)
+	if err != nil {
+		return nil, err
+	}
+
+	Client.Send(msg4, true)
+	_, err = Client.Wait(msg4)
+	if err != nil {
+		return nil, err
+	}
+	return hashList, nil
+}
+
+func add10Tx(Client queue.Client) error {
+	err := add4Tx(Client)
+	if err != nil {
+		return err
+	}
+
+	msg5 := Client.NewMessage("mempool", types.EventTx, tx5)
+	msg6 := Client.NewMessage("mempool", types.EventTx, tx6)
+	msg7 := Client.NewMessage("mempool", types.EventTx, tx7)
+	msg8 := Client.NewMessage("mempool", types.EventTx, tx8)
+	msg9 := Client.NewMessage("mempool", types.EventTx, tx9)
+	msg10 := Client.NewMessage("mempool", types.EventTx, tx10)
+
+	Client.Send(msg5, true)
+	_, err = Client.Wait(msg5)
+	if err != nil {
+		return err
+	}
+
+	Client.Send(msg6, true)
+	_, err = Client.Wait(msg6)
+	if err != nil {
+		return err
+	}
+
+	Client.Send(msg7, true)
+	_, err = Client.Wait(msg7)
+	if err != nil {
+		return err
+	}
+
+	Client.Send(msg8, true)
+	_, err = Client.Wait(msg8)
+	if err != nil {
+		return err
+	}
+
+	Client.Send(msg9, true)
+	_, err = Client.Wait(msg9)
+	if err != nil {
+		return err
+	}
+
+	Client.Send(msg10, true)
+	_, err = Client.Wait(msg10)
+	return err
+}
+
+func TestGetTxList(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add tx
+	hashes, err := add4TxHash(mem.Client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	msg1 := mem.Client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 2, Hashes: nil})
+	mem.Client.Send(msg1, true)
+	data1, err := mem.Client.Wait(msg1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txs1 := data1.GetData().(*types.ReplyTxList).GetTxs()
+
+	if len(txs1) != 2 {
+		t.Error("get txlist number error")
+	}
+
+	var hashList [][]byte
+	for i, tx := range txs1 {
+		hashList = append(hashList, tx.Hash())
+		if hashes[i] != string(tx.Hash()) {
+			t.Error("gettxlist not in time order1")
+		}
+	}
+	msg2 := mem.Client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 1, Hashes: hashList})
+	mem.Client.Send(msg2, true)
+	data2, err := mem.Client.Wait(msg2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txs2 := data2.GetData().(*types.ReplyTxList).GetTxs()
+	for i, tx := range txs2 {
+		hashList = append(hashList, tx.Hash())
+		if hashes[2+i] != string(tx.Hash()) {
+			t.Error("gettxlist not in time order2")
+		}
+	}
+OutsideLoop:
+	for _, t1 := range txs1 {
+		for _, t2 := range txs2 {
+			if string(t1.Hash()) == string(t2.Hash()) {
+				t.Error("TestGetTxList failed")
+				break OutsideLoop
+			}
+		}
+	}
+}
+
+func TestEventDelTxList(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add tx
+	hashes, err := add4TxHash(mem.Client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	hashBytes := [][]byte{[]byte(hashes[0]), []byte(hashes[1])}
+	msg := mem.Client.NewMessage("mempool", types.EventDelTxList, &types.TxHashList{Count: 2, Hashes: hashBytes})
+	mem.Client.Send(msg, true)
+	_, err = mem.Client.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if mem.Size() != 2 {
+		t.Error("TestEventDelTxList failed")
+	}
+}
+
+func TestAddMoreTxThanPoolSize(t *testing.T) {
+	q, mem := initEnv(4)
+	defer q.Close()
+	defer mem.Close()
+
+	err := add4Tx(mem.Client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	msg5 := mem.Client.NewMessage("mempool", types.EventTx, tx5)
+	mem.Client.Send(msg5, true)
+	mem.Client.Wait(msg5)
+
+	if mem.Size() != 4 || mem.BaseCache.Exists(tx5.Hash()) {
+		t.Error("TestAddMoreTxThanPoolSize failed", mem.Size(), mem.BaseCache.Exists(tx5.Hash()))
+	}
+}
+
+func TestRemoveTxOfBlock(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	err := add4Tx(mem.Client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	blkDetail := &types.BlockDetail{Block: blk}
+	msg5 := mem.Client.NewMessage("mempool", types.EventAddBlock, blkDetail)
+	mem.Client.Send(msg5, false)
+
+	msg := mem.Client.NewMessage("mempool", types.EventGetMempoolSize, nil)
+	mem.Client.Send(msg, true)
+
+	reply, err := mem.Client.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if reply.GetData().(*types.MempoolSize).Size != 3 {
+		t.Error("TestGetMempoolSize failed")
+	}
+}
+
+func TestAddBlockedTx(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg1 := mem.Client.NewMessage("mempool", types.EventTx, tx3)
+	err := mem.Client.Send(msg1, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	msg1, err = mem.Client.Wait(msg1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	blkDetail := &types.BlockDetail{Block: blk}
+	msg2 := mem.Client.NewMessage("mempool", types.EventAddBlock, blkDetail)
+	mem.Client.Send(msg2, false)
+
+	msg3 := mem.Client.NewMessage("mempool", types.EventTx, tx3)
+	err = mem.Client.Send(msg3, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	resp, err := mem.Client.Wait(msg3)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrDupTx.Error() {
+		t.Error("TestAddBlockedTx failed")
+	}
+}
+
+func TestDuplicateMempool(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add 10 txs
+	err := add10Tx(mem.Client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	msg := mem.Client.NewMessage("mempool", types.EventGetMempool, nil)
+	mem.Client.Send(msg, true)
+
+	reply, err := mem.Client.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 10 {
+		t.Error("TestDuplicateMempool failed")
+	}
+}
+
+func TestGetLatestTx(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add 10 txs
+	err := add10Tx(mem.Client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	msg11 := mem.Client.NewMessage("mempool", types.EventTx, tx11)
+	mem.Client.Send(msg11, true)
+	mem.Client.Wait(msg11)
+
+	msg := mem.Client.NewMessage("mempool", types.EventGetLastMempool, nil)
+	mem.Client.Send(msg, true)
+
+	reply, err := mem.Client.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 11 {
+		t.Error("TestGetLatestTx failed", len(reply.GetData().(*types.ReplyTxList).GetTxs()), mem.Size())
+	}
+}
+
+func TestCheckLowFee(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	mem.SetMinFee(1000)
+	msg := mem.Client.NewMessage("mempool", types.EventTx, tx13)
+	mem.Client.Send(msg, true)
+	resp, _ := mem.Client.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxFeeTooLow.Error() {
+		t.Error("TestCheckLowFee failed")
+	}
+}
+
+func TestCheckSignature(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// make wrong signature
+	tx12.Signature.Signature = tx12.Signature.Signature[5:]
+
+	msg := mem.Client.NewMessage("mempool", types.EventTx, tx12)
+	mem.Client.Send(msg, true)
+	resp, _ := mem.Client.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrSign.Error() {
+		t.Error("TestCheckSignature failed", string(resp.GetData().(*types.Reply).GetMsg()))
+	}
+}
+
+func TestCheckExpire1(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+	mem.SetHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
+	ctx1 := *tx1
+	msg := mem.Client.NewMessage("mempool", types.EventTx, &ctx1)
+	mem.Client.Send(msg, true)
+	resp, _ := mem.Client.Wait(msg)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxExpire.Error() {
+		t.Error("TestCheckExpire failed", string(resp.GetData().(*types.Reply).GetMsg()))
+	}
+}
+
+func TestCheckExpire2(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add tx
+	err := add4Tx(mem.Client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+	mem.SetHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
+	msg := mem.Client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 100})
+	mem.Client.Send(msg, true)
+	data, err := mem.Client.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	txs := data.GetData().(*types.ReplyTxList).GetTxs()
+
+	if len(txs) != 3 {
+		t.Error("TestCheckExpire failed", len(txs))
+	}
+}
+
+func TestWrongToAddr(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg := mem.Client.NewMessage("mempool", types.EventTx, tx14)
+	mem.Client.Send(msg, true)
+	resp, _ := mem.Client.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrInvalidAddress.Error() {
+		t.Error("TestWrongToAddr failed")
+	}
+}
+
+func TestExecToAddrNotMatch(t *testing.T) {
+	q, chain, s, mem := initEnv3()
+	defer q.Close()
+	defer mem.Close()
+	defer chain.Close()
+	defer s.Close()
+
+	msg := mem.Client.NewMessage("mempool", types.EventTx, tx15)
+	mem.Client.Send(msg, true)
+	resp, _ := mem.Client.Wait(msg)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrToAddrNotSameToExecAddr.Error() {
+		t.Error("TestExecToAddrNotMatch failed", string(resp.GetData().(*types.Reply).GetMsg()))
+	}
+}
+
+func TestGetAddrTxs(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add tx
+	_, err := add4TxHash(mem.Client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	ad := address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	addrs := []string{ad}
+	msg := mem.Client.NewMessage("mempool", types.EventGetAddrTxs, &types.ReqAddrs{Addrs: addrs})
+	mem.Client.Send(msg, true)
+	data, err := mem.Client.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txsFact := data.GetData().(*types.TransactionDetails).Txs
+	txsExpect := mem.GetAccTxs(&types.ReqAddrs{Addrs: addrs}).Txs
+	if len(txsExpect) != len(txsFact) {
+		t.Error("TestGetAddrTxs failed", "length not match")
+	}
+	same := 0
+	for _, i := range txsExpect {
+		for _, j := range txsFact {
+			if j.Tx == i.Tx {
+				same++
+				break
+			}
+		}
+	}
+	if same != len(txsExpect) {
+		t.Error("TestGetAddrTxs failed", same)
+	}
+}
+
+func TestDelBlock(t *testing.T) {
+	//TODO:存在bug，可以考虑用 testnode 代替initEnv，先在测试中忽略
+	t.Skip()
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+	delBlock := blk
+	var blockDetail = &types.BlockDetail{Block: delBlock}
+
+	mem.SetHeader(&types.Header{Height: 2, BlockTime: 1e9 + 1})
+	msg1 := mem.Client.NewMessage("mempool", types.EventDelBlock, blockDetail)
+	mem.Client.Send(msg1, false)
+
+	msg2 := mem.Client.NewMessage("mempool", types.EventGetMempoolSize, nil)
+	mem.Client.Send(msg2, true)
+
+	reply, err := mem.Client.Wait(msg2)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if reply.GetData().(*types.MempoolSize).Size != 2 {
+		t.Error("TestDelBlock failed")
+	}
+}
+
+func TestAddTxGroup(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	//copytx
+
+	ctx2 := *tx2
+	ctx3 := *tx3
+	ctx4 := *tx4
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&ctx2, &ctx3, &ctx4})
+	tx := txGroup.Tx()
+	msg := mem.Client.NewMessage("mempool", types.EventTx, tx)
+	mem.Client.Send(msg, true)
+	_, err := mem.Client.Wait(msg)
+	if err != nil {
+		t.Error("TestAddTxGroup failed", err.Error())
+	}
+}
+
+func BenchmarkMempool(b *testing.B) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	maxTxNumPerAccount = 100000
+	for i := 0; i < b.N; i++ {
+		to, _ := genaddress()
+		tx := createTx(mainPriv, to, 10000)
+		msg := mem.Client.NewMessage("mempool", types.EventTx, tx)
+		err := mem.Client.Send(msg, true)
+		if err != nil {
+			println(err)
+		}
+	}
+	to0, _ := genaddress()
+	tx0 := createTx(mainPriv, to0, 10000)
+	msg := mem.Client.NewMessage("mempool", types.EventTx, tx0)
+	mem.Client.Send(msg, true)
+	mem.Client.Wait(msg)
+	println(mem.Size() == b.N+1)
+}
+
+func blockchainProcess(q queue.Queue) {
+	go func() {
+		Client := q.Client()
+		Client.Sub("blockchain")
+		for msg := range Client.Recv() {
+			if msg.Ty == types.EventGetLastHeader {
+				msg.Reply(Client.NewMessage("", types.EventHeader, &types.Header{Height: 1, BlockTime: 1}))
+			} else if msg.Ty == types.EventIsSync {
+				msg.Reply(Client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: true}))
+			}
+		}
+	}()
+}
+
+func execProcess(q queue.Queue) {
+	go func() {
+		Client := q.Client()
+		Client.Sub("execs")
+		for msg := range Client.Recv() {
+			if msg.Ty == types.EventCheckTx {
+				datas := msg.GetData().(*types.ExecTxList)
+				result := &types.ReceiptCheckTxList{}
+				for i := 0; i < len(datas.Txs); i++ {
+					result.Errs = append(result.Errs, "")
+				}
+				msg.Reply(Client.NewMessage("", types.EventReceiptCheckTx, result))
+			}
+		}
+	}()
+}
