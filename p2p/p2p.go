@@ -76,6 +76,9 @@ func New(cfg *types.P2P) *P2p {
 	return p2p
 }
 
+//Wait wait for ready
+func (network *P2p) Wait() {}
+
 func (network *P2p) isClose() bool {
 	return atomic.LoadInt32(&network.closed) == 1
 }

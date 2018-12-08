@@ -207,6 +207,9 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	go chain.ProcRecvMsg()
 }
 
+//Wait for ready
+func (chain *BlockChain) Wait() {}
+
 //GetStore only used for test
 func (chain *BlockChain) GetStore() *BlockStore {
 	return chain.blockStore

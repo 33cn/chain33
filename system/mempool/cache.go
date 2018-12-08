@@ -27,17 +27,22 @@ type Item struct {
 
 //TxCache 管理交易cache 包括账户索引，最后的交易，排队策略缓存
 type TxCache struct {
-	accountIndex *AccountTxIndex
-	last         *LastTxCache
-	qcache       QueueCache
+	*AccountTxIndex
+	*LastTxCache
+	qcache QueueCache
 }
 
 //NewTxCache init accountIndex and last cache
 func NewTxCache(maxTxPerAccount int64, sizeLast int64) *TxCache {
 	return &TxCache{
-		accountIndex: NewAccountTxIndex(int(maxTxPerAccount)),
-		last:         NewLastTxCache(int(sizeLast)),
+		AccountTxIndex: NewAccountTxIndex(int(maxTxPerAccount)),
+		LastTxCache:    NewLastTxCache(int(sizeLast)),
 	}
+}
+
+//SetQueueCache set queue cache , 这个接口可以扩展
+func (cache *TxCache) SetQueueCache(qcache QueueCache) {
+	cache.qcache = qcache
 }
 
 //Remove 移除txCache中给定tx
@@ -48,8 +53,32 @@ func (cache *TxCache) Remove(hash string) {
 	}
 	tx := item.Value
 	cache.qcache.Remove(hash)
-	cache.accountIndex.Remove(tx)
-	cache.last.Remove(tx)
+	cache.AccountTxIndex.Remove(tx)
+	cache.LastTxCache.Remove(tx)
+}
+
+//Exist 是否存在
+func (cache *TxCache) Exist(hash string) bool {
+	if cache.qcache == nil {
+		return false
+	}
+	return cache.qcache.Exist(hash)
+}
+
+//Size cache tx num
+func (cache *TxCache) Size() int {
+	if cache.qcache == nil {
+		return 0
+	}
+	return cache.qcache.Size()
+}
+
+//Walk iter all txs
+func (cache *TxCache) Walk(count int, cb func(tx *Item) bool) {
+	if cache.qcache == nil {
+		return
+	}
+	cache.qcache.Walk(count, cb)
 }
 
 //RemoveTxs 删除一组交易
@@ -61,7 +90,7 @@ func (cache *TxCache) RemoveTxs(txs []string) {
 
 //Push 存入交易到cache 中
 func (cache *TxCache) Push(tx *types.Transaction) error {
-	if !cache.accountIndex.CanPush(tx) {
+	if !cache.AccountTxIndex.CanPush(tx) {
 		return types.ErrManyTx
 	}
 	item := &Item{Value: tx, Priority: tx.Fee, EnterTime: types.Now().Unix()}
@@ -69,8 +98,8 @@ func (cache *TxCache) Push(tx *types.Transaction) error {
 	if err != nil {
 		return err
 	}
-	cache.accountIndex.Push(tx)
-	cache.last.Push(tx)
+	cache.AccountTxIndex.Push(tx)
+	cache.LastTxCache.Push(tx)
 	return nil
 }
 

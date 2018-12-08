@@ -435,6 +435,9 @@ func MustPBToJSON(req Message) []byte {
 
 // MustDecode 数据是否已经编码
 func MustDecode(data []byte, v interface{}) {
+	if data == nil {
+		return
+	}
 	err := json.Unmarshal(data, v)
 	if err != nil {
 		panic(err)

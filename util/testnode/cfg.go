@@ -68,6 +68,7 @@ jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
 
 [mempool]
+name="timeline"
 poolCacheSize=10240
 minTxFee=100000
 maxTxNumPerAccount=10000

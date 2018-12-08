@@ -84,6 +84,9 @@ func (store *BaseStore) SetQueueClient(c queue.Client) {
 	}()
 }
 
+//Wait wait for basestore ready
+func (store *BaseStore) Wait() {}
+
 func (store *BaseStore) processMessage(msg queue.Message) {
 	client := store.qclient
 	if msg.Ty == types.EventStoreSet {

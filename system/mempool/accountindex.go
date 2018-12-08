@@ -19,8 +19,8 @@ func NewAccountTxIndex(maxperaccount int) *AccountTxIndex {
 	}
 }
 
-// Size 返回账户在Mempool中交易数量
-func (cache *AccountTxIndex) Size(addr string) int {
+// TxNumOfAccount 返回账户在Mempool中交易数量
+func (cache *AccountTxIndex) TxNumOfAccount(addr string) int {
 	if _, ok := cache.accMap[addr]; ok {
 		return cache.accMap[addr].Size()
 	}
@@ -52,7 +52,7 @@ func (cache *AccountTxIndex) GetAccTxs(addrs *types.ReqAddrs) *types.Transaction
 	return res
 }
 
-// Reomve 根据交易哈希删除对应账户的对应交易
+//Remove 根据交易哈希删除对应账户的对应交易
 func (cache *AccountTxIndex) Remove(tx *types.Transaction) {
 	addr := tx.From()
 	if lm, ok := cache.accMap[addr]; ok {

@@ -10,5 +10,5 @@ type ConfigSubModule struct {
 	Exec      map[string][]byte
 	Consensus map[string][]byte
 	Wallet    map[string][]byte
-	MemPool   map[string][]byte
+	Mempool   map[string][]byte
 }

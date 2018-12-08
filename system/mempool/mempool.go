@@ -10,7 +10,7 @@ import (
 )
 
 //Create 创建一个mempool模块
-type Create func(cfg *types.MemPool, sub []byte) queue.Module
+type Create func(cfg *types.Mempool, sub []byte) queue.Module
 
 var regMempool = make(map[string]Create)
 

@@ -119,6 +119,9 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	return wallet
 }
 
+//Wait for wallet ready
+func (wallet *Wallet) Wait() {}
+
 // RegisterMineStatusReporter 向钱包注册状态回报
 func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) error {
 	if reporter == nil {
