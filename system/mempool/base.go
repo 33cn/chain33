@@ -357,6 +357,10 @@ func (mem *MempoolBase) checkSync() {
 		}
 		msg := mem.client.NewMessage("blockchain", types.EventIsSync, nil)
 		err := mem.client.Send(msg, true)
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
 		resp, err := mem.client.Wait(msg)
 		if err != nil {
 			time.Sleep(time.Second)

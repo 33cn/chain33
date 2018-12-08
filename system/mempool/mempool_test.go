@@ -476,30 +476,18 @@ func TestAddBlockedTx(t *testing.T) {
 
 	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx3)
 	err := mem.client.Send(msg1, true)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	msg1, err = mem.client.Wait(msg1)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.Nil(t, err)
+	_, err = mem.client.Wait(msg1)
+	assert.Nil(t, err)
 	blkDetail := &types.BlockDetail{Block: blk}
 	msg2 := mem.client.NewMessage("mempool", types.EventAddBlock, blkDetail)
 	mem.client.Send(msg2, false)
 
 	msg3 := mem.client.NewMessage("mempool", types.EventTx, tx3)
 	err = mem.client.Send(msg3, true)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.Nil(t, err)
 	resp, err := mem.client.Wait(msg3)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.Nil(t, err)
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrDupTx.Error() {
 		t.Error("TestAddBlockedTx failed")
 	}
