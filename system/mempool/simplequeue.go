@@ -69,9 +69,6 @@ func (cache *SimpleQueue) Walk(count int, cb func(value *Item) bool) {
 			return false
 		}
 		i++
-		if i == count {
-			return false
-		}
-		return true
+		return i != count
 	})
 }
