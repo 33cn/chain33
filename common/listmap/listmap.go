@@ -48,7 +48,6 @@ func (lm *ListMap) Push(key string, value interface{}) {
 	}
 	elm := lm.l.PushBack(value)
 	lm.m[key] = elm
-	return
 }
 
 //GetTop 获取队列头部的数据
