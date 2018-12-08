@@ -20,8 +20,11 @@ func NewAccountTxIndex(maxperaccount int) *AccountTxIndex {
 }
 
 // Size 返回账户在Mempool中交易数量
-func (cache *AccountTxIndex) Size(addr string) int64 {
-	return int64(cache.accMap[addr].Size())
+func (cache *AccountTxIndex) Size(addr string) int {
+	if _, ok := cache.accMap[addr]; ok {
+		return cache.accMap[addr].Size()
+	}
+	return 0
 }
 
 // GetAccTxs 用来获取对应账户地址（列表）中的全部交易详细信息

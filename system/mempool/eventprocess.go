@@ -5,9 +5,30 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-// 处理其他模块的消息
-func (mem *BaseMempool) eventProcess() {
+func (mem *MempoolBase) reply() {
+	defer mlog.Info("piple line quit")
 	defer mem.wg.Done()
+	for m := range mem.out {
+		if m.Err() != nil {
+			m.Reply(mem.client.NewMessage("rpc", types.EventReply,
+				&types.Reply{IsOk: false, Msg: []byte(m.Err().Error())}))
+		} else {
+			mem.sendTxToP2P(m.GetData().(types.TxGroup).Tx())
+			m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: nil}))
+		}
+	}
+}
+
+// 处理其他模块的消息
+func (mem *MempoolBase) eventProcess() {
+	defer mem.wg.Done()
+	defer close(mem.in)
+	//event process
+	mem.out = mem.pipeLine()
+	mlog.Info("mempool piple line start")
+	mem.wg.Add(1)
+	go mem.reply()
+
 	for msg := range mem.client.Recv() {
 		mlog.Debug("mempool recv", "msgid", msg.ID, "msg", types.GetEventName(int(msg.Ty)))
 		beg := types.Now()
@@ -45,24 +66,27 @@ func (mem *BaseMempool) eventProcess() {
 }
 
 //EventTx 初步筛选后存入mempool
-func (mem *BaseMempool) eventTx(msg queue.Message) {
-	if !mem.GetSync() {
+func (mem *MempoolBase) eventTx(msg queue.Message) {
+	if !mem.getSync() {
 		msg.Reply(mem.client.NewMessage("", types.EventReply, &types.Reply{Msg: []byte(types.ErrNotSync.Error())}))
 		mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
 	} else {
 		checkedMsg := mem.checkTxs(msg)
-		mem.in <- checkedMsg
+		select {
+		case mem.in <- checkedMsg:
+		case <-mem.done:
+		}
 	}
 }
 
 // EventGetMempool 获取Mempool内所有交易
-func (mem *BaseMempool) eventGetMempool(msg queue.Message) {
+func (mem *MempoolBase) eventGetMempool(msg queue.Message) {
 	msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
 		&types.ReplyTxList{Txs: mem.filterTxList(0, nil)}))
 }
 
 // EventDelTxList 获取Mempool中一定数量交易，并把这些交易从Mempool中删除
-func (mem *BaseMempool) eventDelTxList(msg queue.Message) {
+func (mem *MempoolBase) eventDelTxList(msg queue.Message) {
 	hashList := msg.GetData().(*types.TxHashList)
 	if len(hashList.GetHashes()) == 0 {
 		msg.ReplyErr("EventDelTxList", types.ErrSize)
@@ -73,7 +97,7 @@ func (mem *BaseMempool) eventDelTxList(msg queue.Message) {
 }
 
 // EventTxList 获取mempool中一定数量交易
-func (mem *BaseMempool) eventTxList(msg queue.Message) {
+func (mem *MempoolBase) eventTxList(msg queue.Message) {
 	hashList := msg.GetData().(*types.TxHashList)
 	if hashList.Count <= 0 {
 		msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, types.ErrSize))
@@ -85,7 +109,7 @@ func (mem *BaseMempool) eventTxList(msg queue.Message) {
 }
 
 // EventAddBlock 将添加到区块内的交易从mempool中删除
-func (mem *BaseMempool) eventAddBlock(msg queue.Message) {
+func (mem *MempoolBase) eventAddBlock(msg queue.Message) {
 	block := msg.GetData().(*types.BlockDetail).Block
 	if block.Height > mem.Height() || (block.Height == 0 && mem.Height() == 0) {
 		header := &types.Header{}
@@ -98,21 +122,21 @@ func (mem *BaseMempool) eventAddBlock(msg queue.Message) {
 }
 
 // EventGetMempoolSize 获取mempool大小
-func (mem *BaseMempool) eventGetMempoolSize(msg queue.Message) {
+func (mem *MempoolBase) eventGetMempoolSize(msg queue.Message) {
 	memSize := int64(mem.Size())
 	msg.Reply(mem.client.NewMessage("rpc", types.EventMempoolSize,
 		&types.MempoolSize{Size: memSize}))
 }
 
 // EventGetLastMempool 获取最新十条加入到mempool的交易
-func (mem *BaseMempool) eventGetLastMempool(msg queue.Message) {
+func (mem *MempoolBase) eventGetLastMempool(msg queue.Message) {
 	txList := mem.GetLatestTx()
 	msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
 		&types.ReplyTxList{Txs: txList}))
 }
 
 // EventDelBlock 回滚区块，把该区块内交易重新加回mempool
-func (mem *BaseMempool) eventDelBlock(msg queue.Message) {
+func (mem *MempoolBase) eventDelBlock(msg queue.Message) {
 	block := msg.GetData().(*types.BlockDetail).Block
 	if block.Height != mem.GetHeader().GetHeight() {
 		return
@@ -128,7 +152,7 @@ func (mem *BaseMempool) eventDelBlock(msg queue.Message) {
 }
 
 // eventGetAddrTxs 获取mempool中对应账户（组）所有交易
-func (mem *BaseMempool) eventGetAddrTxs(msg queue.Message) {
+func (mem *MempoolBase) eventGetAddrTxs(msg queue.Message) {
 	addrs := msg.GetData().(*types.ReqAddrs)
 	txlist := mem.GetAccTxs(addrs)
 	msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
