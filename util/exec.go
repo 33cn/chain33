@@ -105,6 +105,22 @@ func checkTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCac
 	return ret
 }
 
+//CheckDupTx : check use txs []*types.Transaction and not []*types.TransactionCache
+func CheckDupTx(client queue.Client, txs []*types.Transaction, height int64) (transactions []*types.Transaction, err error) {
+	txcache := make([]*types.TransactionCache, len(txs))
+	for i := 0; i < len(txcache); i++ {
+		txcache[i] = &types.TransactionCache{Transaction: txs[i]}
+	}
+	cache, err := CheckTxDup(client, txcache, height)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(cache); i++ {
+		transactions = append(transactions, cache[i].Transaction)
+	}
+	return transactions, nil
+}
+
 //CheckTxDup : check whether the tx is duplicated within the while chain
 func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList

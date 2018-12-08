@@ -19,10 +19,9 @@ import (
 	"github.com/33cn/chain33/store"
 	_ "github.com/33cn/chain33/system/consensus/init"
 	_ "github.com/33cn/chain33/system/crypto/init"
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	_ "github.com/33cn/chain33/system/dapp/init"
 	_ "github.com/33cn/chain33/system/store/init"
-	//_ "github.com/33cn/chain33/system"
-	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 )
 
