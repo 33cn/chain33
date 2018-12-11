@@ -101,3 +101,7 @@ func BenchmarkStepMerge(b *testing.B) {
 	}
 	close(done)
 }
+
+func mergeList(done <-chan struct{}, cs ...<-chan queue.Message) <-chan queue.Message {
+	return merge(done, cs)
+}

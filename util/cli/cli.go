@@ -26,7 +26,7 @@ var rootCmd = &cobra.Command{
 
 var sendCmd = &cobra.Command{
 	Use:   "send",
-	Short: "Send transaction in one move",
+	Short: "Send transaction in one step",
 	Run:   func(cmd *cobra.Command, args []string) {},
 }
 

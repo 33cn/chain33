@@ -43,6 +43,8 @@ type Client interface {
 // Module be used for module interface
 type Module interface {
 	SetQueueClient(client Client)
+	//wait for ready
+	Wait()
 	Close()
 }
 

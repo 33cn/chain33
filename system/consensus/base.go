@@ -105,6 +105,9 @@ func (bc *BaseClient) InitMiner() {
 	bc.once.Do(bc.minerstartCB)
 }
 
+//Wait wait for ready
+func (bc *BaseClient) Wait() {}
+
 //SetQueueClient 设置客户端队列
 func (bc *BaseClient) SetQueueClient(c queue.Client) {
 	bc.InitClient(c, func() {

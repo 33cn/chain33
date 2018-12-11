@@ -11,7 +11,7 @@ type Config struct {
 	Log        *Log        `protobuf:"bytes,2,opt,name=log" json:"log,omitempty"`
 	Store      *Store      `protobuf:"bytes,3,opt,name=store" json:"store,omitempty"`
 	Consensus  *Consensus  `protobuf:"bytes,5,opt,name=consensus" json:"consensus,omitempty"`
-	MemPool    *MemPool    `protobuf:"bytes,6,opt,name=memPool" json:"memPool,omitempty"`
+	Mempool    *Mempool    `protobuf:"bytes,6,opt,name=mempool" json:"memPool,omitempty"`
 	BlockChain *BlockChain `protobuf:"bytes,7,opt,name=blockChain" json:"blockChain,omitempty"`
 	Wallet     *Wallet     `protobuf:"bytes,8,opt,name=wallet" json:"wallet,omitempty"`
 	P2P        *P2P        `protobuf:"bytes,9,opt,name=p2p" json:"p2p,omitempty"`
@@ -52,12 +52,14 @@ type Log struct {
 	CallerFunction bool `protobuf:"varint,10,opt,name=callerFunction" json:"callerFunction,omitempty"`
 }
 
-// MemPool 配置
-type MemPool struct {
-	PoolCacheSize      int64 `protobuf:"varint,1,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
-	MinTxFee           int64 `protobuf:"varint,2,opt,name=minTxFee" json:"minTxFee,omitempty"`
-	ForceAccept        bool  `protobuf:"varint,3,opt,name=forceAccept" json:"forceAccept,omitempty"`
-	MaxTxNumPerAccount int64 `protobuf:"varint,4,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
+// Mempool 配置
+type Mempool struct {
+	Name               string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	PoolCacheSize      int64  `protobuf:"varint,1,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
+	MinTxFee           int64  `protobuf:"varint,2,opt,name=minTxFee" json:"minTxFee,omitempty"`
+	ForceAccept        bool   `protobuf:"varint,3,opt,name=forceAccept" json:"forceAccept,omitempty"`
+	MaxTxNumPerAccount int64  `protobuf:"varint,4,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
+	MaxTxLast          int64  `protobuf:"varint,4,opt,name=maxTxLast" json:"maxTxLast,omitempty"`
 }
 
 // Consensus 配置

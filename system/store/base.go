@@ -84,6 +84,9 @@ func (store *BaseStore) SetQueueClient(c queue.Client) {
 	}()
 }
 
+//Wait wait for basestore ready
+func (store *BaseStore) Wait() {}
+
 func (store *BaseStore) processMessage(msg queue.Message) {
 	client := store.qclient
 	if msg.Ty == types.EventStoreSet {
@@ -216,14 +219,11 @@ func (t *StorelistQuery) IterateCallBack(key, value []byte) bool {
 				return false
 			}
 			return false
-
 		}
 		return false
-
 	}
 	slog.Error("StoreListReply.IterateCallBack unsupported mode", "mode", t.Mode)
 	return true
-
 }
 
 func cloneByte(v []byte) []byte {

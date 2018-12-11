@@ -14,12 +14,17 @@ import (
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/limits"
+	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/executor"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/store"
-	_ "github.com/33cn/chain33/system"
+	_ "github.com/33cn/chain33/system/consensus/init"
+	_ "github.com/33cn/chain33/system/crypto/init"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
+	_ "github.com/33cn/chain33/system/dapp/init"
+	_ "github.com/33cn/chain33/system/store/init"
 	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/assert"
 )
 
 //----------------------------- data for testing ---------------------------------
@@ -63,10 +68,6 @@ var blk = &types.Block{
 	Txs:        []*types.Transaction{tx3, tx5},
 }
 
-func mergeList(done <-chan struct{}, cs ...<-chan queue.Message) <-chan queue.Message {
-	return merge(done, cs)
-}
-
 func init() {
 	err := limits.SetLimits()
 	if err != nil {
@@ -74,14 +75,7 @@ func init() {
 	}
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	queue.DisableLog()
-	//  DisableLog() // 不输出任何log
-	//	SetLogLevel("debug") // 输出DBUG(含)以下log
-	//	SetLogLevel("info") // 输出INFO(含)以下log
-	SetLogLevel("info") // 输出WARN(含)以下log
-	//	SetLogLevel("eror") // 输出EROR(含)以下log
-	//	SetLogLevel("crit") // 输出CRIT(含)以下log
-	//	SetLogLevel("") // 输出所有log
-	//	maxTxNumPerAccount = 10000
+	log.SetLogLevel("err") // 输出WARN(含)以下log
 	mainPriv = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	tx1.Sign(types.SECP256K1, privKey)
 	tx2.Sign(types.SECP256K1, privKey)
@@ -98,7 +92,6 @@ func init() {
 	tx13.Sign(types.SECP256K1, privKey)
 	tx14.Sign(types.SECP256K1, privKey)
 	tx15.Sign(types.SECP256K1, privKey)
-
 }
 
 func getprivkey(key string) crypto.PrivKey {
@@ -119,7 +112,8 @@ func getprivkey(key string) crypto.PrivKey {
 
 func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	var q = queue.New("channel")
-	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, sub := types.InitCfg("../../cmd/chain33/chain33.test.toml")
+	types.Init(cfg.Title, cfg)
 	cfg.Consensus.Minerstart = false
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
@@ -130,43 +124,45 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	types.SetMinFee(0)
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
-	mem := New(cfg.MemPool)
+	mem := NewMempool(cfg.Mempool)
+	mem.SetQueueCache(NewSimpleQueue(int(cfg.Mempool.PoolCacheSize)))
 	mem.SetQueueClient(q.Client())
-	mem.setSync(true)
-	mem.WaitPollLastHeader()
+	mem.Wait()
 	return q, chain, s, mem
 }
 
 func initEnv2(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
-	cfg, _ := types.InitCfg("../cmd/chain33/chain33.test.toml")
-
+	cfg, _ := types.InitCfg("../../cmd/chain33/chain33.test.toml")
+	types.Init(cfg.Title, cfg)
 	blockchainProcess(q)
 	execProcess(q)
-	mem := New(cfg.MemPool)
+	cfg.Mempool.PoolCacheSize = int64(size)
+	mem := NewMempool(cfg.Mempool)
+	mem.SetQueueCache(NewSimpleQueue(size))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-	if size > 0 {
-		mem.Resize(size)
-	}
 	mem.SetMinFee(0)
-	mem.WaitPollLastHeader()
+	mem.Wait()
 	return q, mem
 }
 
 func initEnv(size int) (queue.Queue, *Mempool) {
+	if size == 0 {
+		size = 100
+	}
 	var q = queue.New("channel")
-	cfg, _ := types.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg, _ := types.InitCfg("../../cmd/chain33/chain33.test.toml")
+	types.Init(cfg.Title, cfg)
 	blockchainProcess(q)
 	execProcess(q)
-	mem := New(cfg.MemPool)
+	cfg.Mempool.PoolCacheSize = int64(size)
+	mem := NewMempool(cfg.Mempool)
+	mem.SetQueueCache(NewSimpleQueue(size))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-	if size > 0 {
-		mem.Resize(size)
-	}
 	mem.SetMinFee(types.GInt("MinFee"))
-	mem.WaitPollLastHeader()
+	mem.Wait()
 	return q, mem
 }
 
@@ -211,21 +207,19 @@ func TestAddEmptyTx(t *testing.T) {
 }
 
 func TestAddTx(t *testing.T) {
-	q, mem := initEnv(0)
+	q, mem := initEnv(1)
 	defer q.Close()
 	defer mem.Close()
-
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx2)
 	mem.client.Send(msg, true)
 	mem.client.Wait(msg)
-
 	if mem.Size() != 1 {
 		t.Error("TestAddTx failed")
 	}
 }
 
 func TestAddDuplicatedTx(t *testing.T) {
-	q, mem := initEnv(0)
+	q, mem := initEnv(100)
 	defer q.Close()
 	defer mem.Close()
 
@@ -330,47 +324,16 @@ func add10Tx(client queue.Client) error {
 	if err != nil {
 		return err
 	}
-
-	msg5 := client.NewMessage("mempool", types.EventTx, tx5)
-	msg6 := client.NewMessage("mempool", types.EventTx, tx6)
-	msg7 := client.NewMessage("mempool", types.EventTx, tx7)
-	msg8 := client.NewMessage("mempool", types.EventTx, tx8)
-	msg9 := client.NewMessage("mempool", types.EventTx, tx9)
-	msg10 := client.NewMessage("mempool", types.EventTx, tx10)
-
-	client.Send(msg5, true)
-	_, err = client.Wait(msg5)
-	if err != nil {
-		return err
+	txs := []*types.Transaction{tx5, tx6, tx7, tx8, tx9, tx10}
+	for _, tx := range txs {
+		msg := client.NewMessage("mempool", types.EventTx, tx)
+		client.Send(msg, true)
+		_, err = client.Wait(msg)
+		if err != nil {
+			return err
+		}
 	}
-
-	client.Send(msg6, true)
-	_, err = client.Wait(msg6)
-	if err != nil {
-		return err
-	}
-
-	client.Send(msg7, true)
-	_, err = client.Wait(msg7)
-	if err != nil {
-		return err
-	}
-
-	client.Send(msg8, true)
-	_, err = client.Wait(msg8)
-	if err != nil {
-		return err
-	}
-
-	client.Send(msg9, true)
-	_, err = client.Wait(msg9)
-	if err != nil {
-		return err
-	}
-
-	client.Send(msg10, true)
-	_, err = client.Wait(msg10)
-	return err
+	return nil
 }
 
 func TestGetTxList(t *testing.T) {
@@ -471,8 +434,8 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 	mem.client.Send(msg5, true)
 	mem.client.Wait(msg5)
 
-	if mem.Size() != 4 || mem.cache.Exists(tx5.Hash()) {
-		t.Error("TestAddMoreTxThanPoolSize failed", mem.Size(), mem.cache.Exists(tx5.Hash()))
+	if mem.Size() != 4 || mem.cache.Exist(string(tx5.Hash())) {
+		t.Error("TestAddMoreTxThanPoolSize failed", mem.Size(), mem.cache.Exist(string(tx5.Hash())))
 	}
 }
 
@@ -513,30 +476,18 @@ func TestAddBlockedTx(t *testing.T) {
 
 	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx3)
 	err := mem.client.Send(msg1, true)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.Nil(t, err)
 	_, err = mem.client.Wait(msg1)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.Nil(t, err)
 	blkDetail := &types.BlockDetail{Block: blk}
 	msg2 := mem.client.NewMessage("mempool", types.EventAddBlock, blkDetail)
 	mem.client.Send(msg2, false)
 
 	msg3 := mem.client.NewMessage("mempool", types.EventTx, tx3)
 	err = mem.client.Send(msg3, true)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.Nil(t, err)
 	resp, err := mem.client.Wait(msg3)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.Nil(t, err)
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrDupTx.Error() {
 		t.Error("TestAddBlockedTx failed")
 	}
@@ -553,7 +504,7 @@ func TestDuplicateMempool(t *testing.T) {
 		t.Error("add tx error", err.Error())
 		return
 	}
-
+	assert.Equal(t, mem.Size(), 10)
 	msg := mem.client.NewMessage("mempool", types.EventGetMempool, nil)
 	mem.client.Send(msg, true)
 
@@ -674,6 +625,23 @@ func TestCheckExpire2(t *testing.T) {
 	}
 }
 
+func TestCheckExpire3(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add tx
+	err := add4Tx(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
+	assert.Equal(t, mem.Size(), 4)
+	mem.removeExpired()
+	assert.Equal(t, mem.Size(), 3)
+}
+
 func TestWrongToAddr(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
@@ -773,9 +741,7 @@ func TestAddTxGroup(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
-
 	//copytx
-
 	ctx2 := *tx2
 	ctx3 := *tx3
 	ctx4 := *tx4
@@ -790,10 +756,9 @@ func TestAddTxGroup(t *testing.T) {
 }
 
 func BenchmarkMempool(b *testing.B) {
-	q, mem := initEnv(0)
+	q, mem := initEnv(10240)
 	defer q.Close()
 	defer mem.Close()
-
 	maxTxNumPerAccount = 100000
 	for i := 0; i < b.N; i++ {
 		to, _ := genaddress()
@@ -813,6 +778,7 @@ func BenchmarkMempool(b *testing.B) {
 }
 
 func blockchainProcess(q queue.Queue) {
+	dup := make(map[string]bool)
 	go func() {
 		client := q.Client()
 		client.Sub("blockchain")
@@ -821,6 +787,17 @@ func blockchainProcess(q queue.Queue) {
 				msg.Reply(client.NewMessage("", types.EventHeader, &types.Header{Height: 1, BlockTime: 1}))
 			} else if msg.Ty == types.EventIsSync {
 				msg.Reply(client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: true}))
+			} else if msg.Ty == types.EventTxHashList {
+				txs := msg.Data.(*types.TxHashList)
+				var hashlist [][]byte
+				for _, hash := range txs.Hashes {
+					if dup[string(hash)] {
+						hashlist = append(hashlist, hash)
+						continue
+					}
+					dup[string(hash)] = true
+				}
+				msg.Reply(client.NewMessage("consensus", types.EventTxHashListReply, &types.TxHashList{Hashes: hashlist}))
 			}
 		}
 	}()

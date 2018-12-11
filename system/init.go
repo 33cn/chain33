@@ -9,5 +9,6 @@ import (
 	_ "github.com/33cn/chain33/system/consensus/init" //register consensus init package
 	_ "github.com/33cn/chain33/system/crypto/init"
 	_ "github.com/33cn/chain33/system/dapp/init"
+	_ "github.com/33cn/chain33/system/mempool/init"
 	_ "github.com/33cn/chain33/system/store/init"
 )
