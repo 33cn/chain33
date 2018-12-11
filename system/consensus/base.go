@@ -338,7 +338,8 @@ func buildHashList(deltx []*types.Transaction) *types.TxHashList {
 //WriteBlock 向blockchain写区块
 func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	//保存block的原始信息用于删除mempool中的错误交易
-	rawBlock := *block
+	rawBlock := make([]*types.Transaction, len(block.Txs))
+	copy(rawBlock, block.Txs)
 
 	blockdetail := &types.BlockDetail{Block: block}
 	msg := bc.client.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
@@ -349,7 +350,7 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	}
 	blockdetail = resp.GetData().(*types.BlockDetail)
 	//从mempool 中删除错误的交易
-	deltx := diffTx(rawBlock.Txs, blockdetail.Block.Txs)
+	deltx := diffTx(rawBlock, blockdetail.Block.Txs)
 	if len(deltx) > 0 {
 		bc.delMempoolTx(deltx)
 	}
