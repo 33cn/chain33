@@ -991,7 +991,7 @@ func (bs *BlockStore) GetSequenceByHash(hash []byte) (int64, error) {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("GetSequenceByHash", "error", err)
 		}
-		return -1, types.ErrHeightNotExist
+		return -1, types.ErrHashNotExist
 	}
 
 	err = types.Decode(seqbytes, &seq)

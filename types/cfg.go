@@ -76,6 +76,7 @@ type Consensus struct {
 	EmptyBlockInterval   int64  `protobuf:"varint,24,opt,name=emptyBlockInterval" json:"emptyBlockInterval,omitempty"`
 	AuthAccount          string `protobuf:"bytes,25,opt,name=authAccount" json:"authAccount,omitempty"`
 	WaitBlocks4CommitMsg int32  `protobuf:"varint,26,opt,name=waitBlocks4CommitMsg" json:"waitBlocks4CommitMsg,omitempty"`
+	SearchHashMatchedBlockDepth int32  `protobuf:"varint,27,opt,name=searchHashMatchedBlockDepth" json:"searchHashMatchedBlockDepth,omitempty"`
 }
 
 // Wallet 配置
