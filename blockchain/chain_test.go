@@ -634,6 +634,7 @@ func testGetSeqByHash(t *testing.T, blockchain *blockchain.BlockChain) {
 	reqBlock.IsDetail = true
 	hashes := make([][]byte, 1)
 	Sequences, err := blockchain.GetBlockSequences(&reqBlock)
+
 	if err == nil && Sequences != nil {
 		for index, sequence := range Sequences.Items {
 			hashes[index] = sequence.Hash
@@ -641,8 +642,8 @@ func testGetSeqByHash(t *testing.T, blockchain *blockchain.BlockChain) {
 	}
 
 	seq, _ := blockchain.ProcGetSeqByHash(hashes[0])
-	if seq != -1 {
-		t.Error("testGetSeqByHash only para chain GetSeqByHash ")
+	if seq == -1 {
+		t.Error(" GetSeqByHash err")
 	}
 
 	chainlog.Info("testGetSeqByHash end --------------------")
