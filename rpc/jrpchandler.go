@@ -21,6 +21,10 @@ import (
 
 // CreateRawTransaction create rawtransaction by jrpc
 func (c *Chain33) CreateRawTransaction(in *rpctypes.CreateTx, result *interface{}) error {
+	if in == nil {
+		log.Error("CreateRawTransaction", "Error", types.ErrInvalidParam)
+		return types.ErrInvalidParam
+	}
 	inpb := &types.CreateTx{
 		To:          in.To,
 		Amount:      in.Amount,
