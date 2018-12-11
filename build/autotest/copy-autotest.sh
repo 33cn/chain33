@@ -8,7 +8,7 @@ set -o pipefail
 # os: ubuntu16.04 x64
 
 #chain33 dapp autotest root directory
-declare -a Chain33AutoTestDirs=("system" "plugin" "vendor/github.com/33cn/chain33/system")
+declare -a Chain33AutoTestDirs=("system" "plugin" "vendor/github.com/33cn/chain33/system" "vendor/github.com/33cn/plugin/plugin")
 
 #copy auto test to specific directory
 # check args
