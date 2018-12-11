@@ -18,13 +18,24 @@ import (
 var addrSeed = []byte("address seed bytes for public key")
 var addressCache *lru.Cache
 var checkAddressCache *lru.Cache
+var multisignCache *lru.Cache
+var multiCheckAddressCache *lru.Cache
+var errVersion = errors.New("check version error")
 
 //MaxExecNameLength 执行器名最大长度
 const MaxExecNameLength = 100
 
+//NormalVer 普通地址的版本号
+const NormalVer byte = 0
+
+//MultiSignVer 多重签名地址的版本号
+const MultiSignVer byte = 5
+
 func init() {
+	multisignCache, _ = lru.New(10240)
 	addressCache, _ = lru.New(10240)
 	checkAddressCache, _ = lru.New(10240)
+	multiCheckAddressCache, _ = lru.New(10240)
 }
 
 //ExecPubKey 计算公钥
@@ -44,9 +55,20 @@ func ExecAddress(name string) string {
 	if value, ok := addressCache.Get(name); ok {
 		return value.(string)
 	}
-	addr := PubKeyToAddress(ExecPubkey(name))
+	addr := GetExecAddress(name)
 	addrstr := addr.String()
 	addressCache.Add(name, addrstr)
+	return addrstr
+}
+
+//MultiSignAddress create a multi sign address
+func MultiSignAddress(pubkey []byte) string {
+	if value, ok := multisignCache.Get(string(pubkey)); ok {
+		return value.(string)
+	}
+	addr := HashToAddress(MultiSignVer, pubkey)
+	addrstr := addr.String()
+	multisignCache.Add(string(pubkey), addrstr)
 	return addrstr
 }
 
@@ -64,35 +86,27 @@ func ExecPubkey(name string) []byte {
 
 //GetExecAddress 获取地址
 func GetExecAddress(name string) *Address {
-	if len(name) > MaxExecNameLength {
-		panic("name too long")
-	}
-	var bname [200]byte
-	buf := append(bname[:0], addrSeed...)
-	buf = append(buf, []byte(name)...)
-	hash := common.Sha2Sum(buf)
+	hash := ExecPubkey(name)
 	addr := PubKeyToAddress(hash[:])
 	return addr
 }
 
 //PubKeyToAddress 公钥转为地址
 func PubKeyToAddress(in []byte) *Address {
+	return HashToAddress(NormalVer, in)
+}
+
+//HashToAddress hash32 to address
+func HashToAddress(version byte, in []byte) *Address {
 	a := new(Address)
 	a.Pubkey = make([]byte, len(in))
 	copy(a.Pubkey[:], in[:])
-	a.Version = 0
+	a.Version = version
 	a.Hash160 = common.Rimp160AfterSha256(in)
 	return a
 }
 
-//CheckAddress 检查地址
-func CheckAddress(addr string) (e error) {
-	if value, ok := checkAddressCache.Get(addr); ok {
-		if value == nil {
-			return nil
-		}
-		return value.(error)
-	}
+func checkAddress(ver byte, addr string) (e error) {
 	dec := base58.Decode(addr)
 	if dec == nil {
 		e = errors.New("Cannot decode b58 string '" + addr + "'")
@@ -110,6 +124,34 @@ func CheckAddress(addr string) (e error) {
 			e = errors.New("Address Checksum error")
 		}
 	}
+	if dec[0] != ver {
+		e = errVersion
+	}
+	return e
+}
+
+//CheckMultiSignAddress 检查多重签名地址的有效性
+func CheckMultiSignAddress(addr string) (e error) {
+	if value, ok := multiCheckAddressCache.Get(addr); ok {
+		if value == nil {
+			return nil
+		}
+		return value.(error)
+	}
+	e = checkAddress(MultiSignVer, addr)
+	multiCheckAddressCache.Add(addr, e)
+	return
+}
+
+//CheckAddress 检查地址
+func CheckAddress(addr string) (e error) {
+	if value, ok := checkAddressCache.Get(addr); ok {
+		if value == nil {
+			return nil
+		}
+		return value.(error)
+	}
+	e = checkAddress(NormalVer, addr)
 	checkAddressCache.Add(addr, e)
 	return
 }
