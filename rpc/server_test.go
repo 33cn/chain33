@@ -115,15 +115,12 @@ func TestJSONClient_Call(t *testing.T) {
 	err = jsonClient.Call("Chain33.IsNtpClockSync", &types.ReqNil{}, &retNtp)
 	assert.Nil(t, err)
 	assert.True(t, retNtp)
-	testCreateTx(t)
+	testCreateTxCoins(t, jsonClient)
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
 }
 
-func testCreateTx(t *testing.T) {
-	jsonClient, err := jsonclient.NewJSONClient("http://" + rpcCfg.JrpcBindAddr)
-	assert.Nil(t, err)
-	assert.NotNil(t, jsonClient)
+func testCreateTxCoins(t *testing.T, jsonClient *jsonclient.JSONClient) {
 	req := &rpctypes.CreateTx{
 		To:          "184wj4nsgVxKyz2NhM3Yb5RK5Ap6AFRFq2",
 		Amount:      10,
@@ -135,7 +132,7 @@ func testCreateTx(t *testing.T) {
 		ExecName:    types.ExecName("coins"),
 	}
 	var res string
-	err = jsonClient.Call("Chain33.CreateRawTransaction", req, &res)
+	err := jsonClient.Call("Chain33.CreateRawTransaction", req, &res)
 	assert.Nil(t, err)
 	txbytes, err := hex.DecodeString(res)
 	assert.Nil(t, err)
@@ -144,6 +141,7 @@ func testCreateTx(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "184wj4nsgVxKyz2NhM3Yb5RK5Ap6AFRFq2", tx.To)
 }
+
 func TestGrpc_Call(t *testing.T) {
 	rpcCfg = new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"

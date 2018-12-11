@@ -88,23 +88,6 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 		Note:       []byte("note"),
 	}
 
-	//v := &cty.CoinsAction_Transfer{
-	//	Transfer:&cty.CoinsTransfer{
-	//		Amount:ctx.Amount,
-	//		Note:ctx.To,
-	//	},
-	//}
-	//transfer := &cty.CoinsAction{
-	//	Value:v,
-	//	Ty:cty.CoinsActionTransfer,
-	//}
-	//
-	//tx := &types.Transaction{
-	//	Execer:[]byte("coins"),
-	//	Payload:types.Encode(transfer),
-	//	To:ctx.To,
-	//}
-
 	client := newTestChannelClient()
 	txHex, err := client.CreateRawTransaction(&ctx)
 	assert.Nil(t, err)
