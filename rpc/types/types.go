@@ -360,3 +360,15 @@ type ExecAccount struct {
 type ExecNameParm struct {
 	ExecName string `json:"execname"`
 }
+
+//CreateTx 为了简化Note 的创建过程，在json rpc 中，note 采用string 格式
+type CreateTx struct {
+	To          string `json:"to,omitempty"`
+	Amount      int64  `json:"amount,omitempty"`
+	Fee         int64  `json:"fee,omitempty"`
+	Note        string `json:"note,omitempty"`
+	IsWithdraw  bool   `json:"isWithdraw,omitempty"`
+	IsToken     bool   `json:"isToken,omitempty"`
+	TokenSymbol string `json:"tokenSymbol,omitempty"`
+	ExecName    string `json:"execName,omitempty"`
+}

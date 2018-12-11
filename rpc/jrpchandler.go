@@ -20,12 +20,21 @@ import (
 )
 
 // CreateRawTransaction create rawtransaction by jrpc
-func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTransaction(in)
+func (c *Chain33) CreateRawTransaction(in *rpctypes.CreateTx, result *interface{}) error {
+	inpb := &types.CreateTx{
+		To:          in.To,
+		Amount:      in.Amount,
+		Fee:         in.Fee,
+		Note:        []byte(in.Note),
+		IsWithdraw:  in.IsWithdraw,
+		IsToken:     in.IsToken,
+		TokenSymbol: in.TokenSymbol,
+		ExecName:    in.ExecName,
+	}
+	reply, err := c.cli.CreateRawTransaction(inpb)
 	if err != nil {
 		return err
 	}
-
 	*result = hex.EncodeToString(reply)
 	return nil
 }
