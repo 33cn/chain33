@@ -93,6 +93,11 @@ func TestCallCreateTxJSON(t *testing.T) {
 
 }
 
+//how to create transafer for para
+func TestCallCreateTxPara(t *testing.T) {
+
+}
+
 func TestCallCreateTx(t *testing.T) {
 	modify := &ModifyConfig{
 		Key:   "token-finisher",
@@ -132,5 +137,4 @@ func TestCallCreateTx(t *testing.T) {
 	assert.Equal(t, tx.Execer, []byte("manage"))
 	fee, _ = tx.GetRealFee(GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
-
 }
