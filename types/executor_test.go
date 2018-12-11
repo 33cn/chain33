@@ -93,11 +93,6 @@ func TestCallCreateTxJSON(t *testing.T) {
 
 }
 
-//how to create transafer for para
-func TestCallCreateTxPara(t *testing.T) {
-
-}
-
 func TestCallCreateTx(t *testing.T) {
 	modify := &ModifyConfig{
 		Key:   "token-finisher",

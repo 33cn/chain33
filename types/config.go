@@ -225,6 +225,13 @@ func S(key string, value interface{}) {
 	setChainConfig(key, value)
 }
 
+//SetTitleOnlyForTest set title only for test use
+func SetTitleOnlyForTest(ti string) {
+	mu.Lock()
+	defer mu.Unlock()
+	title = ti
+}
+
 // Init 初始化
 func Init(t string, cfg *Config) {
 	mu.Lock()
@@ -303,7 +310,6 @@ func SetMinFee(fee int64) {
 }
 
 func isPara() bool {
-	//user.p.guodun.
 	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
 }
 

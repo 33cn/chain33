@@ -109,8 +109,8 @@ func CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 	return FormatTxEncode(execName, tx)
 }
 
-// CallCreateTx 构造交易信息
-func CallCreateTx(execName, action string, param Message) ([]byte, error) {
+//CallCreateTransaction 创建一个交易
+func CallCreateTransaction(execName, action string, param Message) (*Transaction, error) {
 	exec := LoadExecutorType(execName)
 	if exec == nil {
 		tlog.Error("CallCreateTx", "Error", "exec not found")
@@ -121,9 +121,13 @@ func CallCreateTx(execName, action string, param Message) ([]byte, error) {
 		tlog.Error("CallCreateTx", "Error", "param in nil")
 		return nil, ErrInvalidParam
 	}
-	tx, err := exec.Create(action, param)
+	return exec.Create(action, param)
+}
+
+// CallCreateTx 构造交易信息
+func CallCreateTx(execName, action string, param Message) ([]byte, error) {
+	tx, err := CallCreateTransaction(execName, action, param)
 	if err != nil {
-		tlog.Error("CallCreateTx", "Error", err)
 		return nil, err
 	}
 	return FormatTxEncode(execName, tx)
