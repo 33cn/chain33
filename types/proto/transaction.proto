@@ -49,6 +49,7 @@ message CreateTx {
     bool   isToken     = 6;
     string tokenSymbol = 7;
     string execName    = 8;
+    string execer      = 9;
 }
 
 message CreateTransactionGroup {

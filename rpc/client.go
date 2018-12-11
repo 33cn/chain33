@@ -47,6 +47,9 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	if param.IsToken {
 		execer = types.ExecName("token")
 	}
+	if param.Execer != "" {
+		execer = param.Execer
+	}
 	return types.CallCreateTx(execer, "", param)
 }
 

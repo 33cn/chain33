@@ -370,5 +370,6 @@ type CreateTx struct {
 	IsWithdraw  bool   `json:"isWithdraw,omitempty"`
 	IsToken     bool   `json:"isToken,omitempty"`
 	TokenSymbol string `json:"tokenSymbol,omitempty"`
-	ExecName    string `json:"execName,omitempty"`
+	ExecName    string `json:"execName,omitempty"` //TransferToExec and Withdraw 的执行器
+	Execer      string `json:"execer,omitempty"`   //执行器名称
 }

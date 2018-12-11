@@ -46,6 +46,12 @@ func TestAllowExecName(t *testing.T) {
 
 	isok = IsAllowExecName([]byte("coins"), []byte("user.p.guodun.user.coins"))
 	assert.Equal(t, isok, true)
+
+	isok = IsAllowExecName([]byte("#coins"), []byte("user.p.guodun.user.coins"))
+	assert.Equal(t, isok, false)
+
+	isok = IsAllowExecName([]byte("coins-"), []byte("user.p.guodun.user.coins"))
+	assert.Equal(t, isok, false)
 }
 
 func BenchmarkExecName(b *testing.B) {
