@@ -9,6 +9,7 @@ import (
 )
 
 var slash = []byte("-")
+var sharp = []byte("#")
 
 //Debug 调试开关
 var Debug = false

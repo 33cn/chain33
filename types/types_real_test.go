@@ -40,3 +40,13 @@ func TestCallCreateTxPara(t *testing.T) {
 	assert.Equal(t, "user.p.sto.coins", string(tx.Execer))
 	assert.Equal(t, address.ExecAddress("user.p.sto.coins"), tx.To)
 }
+
+func TestExecName(t *testing.T) {
+	assert.Equal(t, types.ExecName("coins"), "coins")
+	ti := types.GetTitle()
+	defer types.SetTitleOnlyForTest(ti)
+	types.SetTitleOnlyForTest("user.p.sto.")
+	assert.Equal(t, types.ExecName("coins"), "user.p.sto.coins")
+	//#在exec前面加一个 # 表示不重写执行器
+	assert.Equal(t, types.ExecName("#coins"), "coins")
+}
