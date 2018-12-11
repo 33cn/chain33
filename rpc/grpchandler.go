@@ -344,7 +344,7 @@ func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.Bloc
 	return g.cli.GetBlockByHashes(in)
 }
 
-// GetBlockSequences get block sequeces
+// GetSequenceByHash get block sequece by hash
 func (g *Grpc) GetSequenceByHash(ctx context.Context, in *pb.ReqHash) (*pb.Int64, error) {
 	return g.cli.GetSequenceByHash(in)
 }
