@@ -10,6 +10,7 @@ import (
 
 	"encoding/hex"
 
+	"github.com/33cn/chain33/queue"
 	_ "github.com/33cn/chain33/system"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
@@ -19,6 +20,11 @@ import (
 
 func init() {
 	types.Init("local", nil)
+}
+
+func TestIsModule(t *testing.T) {
+	var qmodule queue.Module = &Executor{}
+	assert.NotNil(t, qmodule)
 }
 
 func TestExecutorGetTxGroup(t *testing.T) {

@@ -89,6 +89,9 @@ func New(cfg *types.Exec, sub map[string][]byte) *Executor {
 	return exec
 }
 
+//Wait Executor ready
+func (exec *Executor) Wait() {}
+
 // SetQueueClient set client queue, for recv msg
 func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	exec.client = qcli
