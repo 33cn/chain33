@@ -6,7 +6,6 @@ package executor
 
 import (
 	"bytes"
-	"runtime/debug"
 
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
@@ -62,27 +61,35 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 }
 
 func isAllowLocalKey(execer []byte, key []byte) error {
-	execer = types.GetRealExecName(execer)
-	//println(string(execer), string(key))
+	if err := isAllowLocalKey2(execer, key); err != nil {
+		realexec := types.GetRealExecName(execer)
+		if bytes.Equal(realexec, execer) {
+			return err
+		}
+		return isAllowLocalKey2(realexec, key)
+	}
+	return nil
+}
+
+func isAllowLocalKey2(execer []byte, key []byte) error {
+	if len(execer) < 1 {
+		return types.ErrLocalPrefix
+	}
 	minkeylen := len(types.LocalPrefix) + len(execer) + 2
 	if len(key) <= minkeylen {
-		debug.PrintStack()
 		elog.Error("isAllowLocalKey too short", "key", string(key), "exec", string(execer))
 		return types.ErrLocalKeyLen
 	}
 	if key[minkeylen-1] != '-' {
-		debug.PrintStack()
 		elog.Error("isAllowLocalKey prefix last char is not '-'", "key", string(key), "exec", string(execer),
 			"minkeylen", minkeylen)
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key, types.LocalPrefix) {
-		debug.PrintStack()
 		elog.Error("isAllowLocalKey common prefix not match", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
 	if !bytes.HasPrefix(key[len(types.LocalPrefix)+1:], execer) {
-		debug.PrintStack()
 		elog.Error("isAllowLocalKey key prefix not match", "key", string(key), "exec", string(execer))
 		return types.ErrLocalPrefix
 	}
