@@ -806,6 +806,7 @@ func TestGRPC(t *testing.T) {
 	testGetBlockOverviewGRPC(t, &grpcMock)
 	testGetAddrOverviewGRPC(t, &grpcMock)
 	testGetBlockHashGRPC(t, &grpcMock)
+	testGetSequenceByHashGRPC(t, &grpcMock)
 	testGenSeedGRPC(t, &grpcMock)
 	testGetSeedGRPC(t, &grpcMock)
 	testSaveSeedGRPC(t, &grpcMock)
@@ -1129,5 +1130,13 @@ func testSendTxGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	err := rpc.newRpcCtx("SendTransaction", &types.Transaction{}, &res)
 	if err != nil {
 		t.Error("Call SendTransaction Failed.", err)
+	}
+}
+
+func testGetSequenceByHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Int64
+	err := rpc.newRpcCtx("GetSequenceByHash", &types.ReqHash{}, &res)
+	if err != nil {
+		t.Error("Call GetSequenceByHash Failed.", err)
 	}
 }

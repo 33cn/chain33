@@ -315,6 +315,12 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.NodeNetInfo) = *reply
 		}
 		errRet = err
+	case "GetSequenceByHash":
+		reply, err := rpc.GetSequenceByHash(context.Background(), c.Params.(*types.ReqHash))
+		if err == nil {
+			*c.Res.(*types.Int64) = *reply
+		}
+		errRet = err
 	default:
 		errRet = errors.New(fmt.Sprintf("Unsupport method %v", c.Method))
 	}
