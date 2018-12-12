@@ -103,7 +103,7 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				}
 
 			case types.EventGetSeqByHash:
-				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Int64{Data:1}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Int64{Data: 1}))
 			case types.EventIsSync:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyIsSync, &types.IsCaughtUp{}))
 			case types.EventIsNtpClockSync:
