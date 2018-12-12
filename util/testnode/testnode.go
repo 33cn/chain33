@@ -329,6 +329,14 @@ func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Accoun
 	return acc.LoadAccount(addr)
 }
 
+//GetExecAccount :get execer account info
+func (mock *Chain33Mock) GetExecAccount(stateHash []byte, execer, addr string) *types.Account {
+	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
+	acc := account.NewCoinsAccount()
+	acc.SetDB(statedb)
+	return acc.LoadExecAccount(addr, address.ExecAddress(execer))
+}
+
 //GetBlock :
 func (mock *Chain33Mock) GetBlock(height int64) *types.Block {
 	blocks, err := mock.api.GetBlocks(&types.ReqBlocks{Start: height, End: height})
