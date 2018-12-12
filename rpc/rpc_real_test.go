@@ -5,10 +5,10 @@
 package rpc_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
@@ -19,16 +19,18 @@ import (
 	_ "github.com/33cn/chain33/system"
 )
 
+func getRPCClient(t *testing.T, mocker *testnode.Chain33Mock) *jsonclient.JSONClient {
+	jrpcClient := mocker.GetJSONC()
+	assert.NotNil(t, jrpcClient)
+	return jrpcClient
+}
+
 func TestErrLog(t *testing.T) {
 	// 启动RPCmocker
 	mocker := testnode.New("--free--", nil)
 	defer mocker.Close()
 	mocker.Listen()
-
-	rpcCfg := mocker.GetCfg().RPC
-	jrpcClient, err := jsonclient.NewJSONClient(fmt.Sprintf("http://%s/", rpcCfg.JrpcBindAddr))
-	assert.NoError(t, err)
-	assert.NotNil(t, jrpcClient)
+	jrpcClient := getRPCClient(t, mocker)
 	gen := mocker.GetGenesisKey()
 	//发送交易到区块链
 	addr1, key1 := util.Genaddress()
@@ -54,4 +56,44 @@ func TestErrLog(t *testing.T) {
 	err = jrpcClient.Call("Chain33.QueryTransaction", req, &testResult)
 	assert.Nil(t, err)
 	assert.Equal(t, string(testResult.Receipt.Logs[0].Log), `"ErrNoBalance"`)
+}
+
+func getTx(t *testing.T, hex string) *types.Transaction {
+	data, err := common.FromHex(hex)
+	assert.Nil(t, err)
+	var tx types.Transaction
+	err = types.Decode(data, &tx)
+	assert.Nil(t, err)
+	return &tx
+}
+
+func TestSendToExec(t *testing.T) {
+	mocker := testnode.New("--free--", nil)
+	defer mocker.Close()
+	mocker.Listen()
+	jrpcClient := getRPCClient(t, mocker)
+	//1. 调用createrawtransaction 创建交易
+	req := &rpctypes.CreateTx{
+		To:          address.ExecAddress("user.f3d"),
+		Amount:      10,
+		Fee:         1,
+		Note:        "12312",
+		IsWithdraw:  false,
+		IsToken:     false,
+		TokenSymbol: "",
+		ExecName:    "user.f3d",
+	}
+	var res string
+	err := jrpcClient.Call("Chain33.CreateRawTransaction", req, &res)
+	assert.Nil(t, err)
+	gen := mocker.GetGenesisKey()
+	tx := getTx(t, res)
+	tx.Sign(types.SECP256K1, gen)
+	reply, err := mocker.GetAPI().SendTx(tx)
+	assert.Nil(t, err)
+	_, err = mocker.WaitTx(reply.GetMsg())
+	assert.Nil(t, err)
+	block := mocker.GetLastBlock()
+	balance := mocker.GetExecAccount(block.StateHash, "user.f3d", mocker.GetGenesisAddress()).Balance
+	assert.Equal(t, int64(10), balance)
 }
