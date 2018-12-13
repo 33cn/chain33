@@ -184,7 +184,9 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 	addr := in.Addr
 	err := address.CheckAddress(addr)
 	if err != nil {
-		return nil, types.ErrInvalidAddress
+		if err = address.CheckMultiSignAddress(addr); err != nil {
+			return nil, types.ErrInvalidAddress
+		}
 	}
 	var addrs []string
 	addrs = append(addrs, addr)
