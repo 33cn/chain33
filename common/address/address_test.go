@@ -42,7 +42,7 @@ func TestMultiSignAddress(t *testing.T) {
 	addr := MultiSignAddress(key.PubKey().Bytes())
 	assert.Equal(t, addr1, addr)
 	err := CheckAddress(addr)
-	assert.Equal(t, errVersion, err)
+	assert.Equal(t, ErrCheckVersion, err)
 	err = CheckMultiSignAddress(addr)
 	assert.Nil(t, err)
 	t.Log(addr)
