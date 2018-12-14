@@ -20,7 +20,11 @@ var addressCache *lru.Cache
 var checkAddressCache *lru.Cache
 var multisignCache *lru.Cache
 var multiCheckAddressCache *lru.Cache
+
+// ErrCheckVersion :
 var ErrCheckVersion = errors.New("check version error")
+
+//ErrCheckChecksum :
 var ErrCheckChecksum = errors.New("Address Checksum error")
 
 //MaxExecNameLength 执行器名最大长度
