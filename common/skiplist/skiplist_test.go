@@ -10,7 +10,6 @@ var (
 	s1 = &SkipValue{1, "111"}
 	s2 = &SkipValue{2, "222"}
 	s3 = &SkipValue{3, "333"}
-	s4 = &SkipValue{4, "444"}
 )
 
 func TestInsert(t *testing.T) {
