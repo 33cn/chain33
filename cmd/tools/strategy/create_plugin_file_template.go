@@ -220,6 +220,7 @@ ForkResetTx0= 200000
 ForkWithdraw= 200000
 ForkExecRollback= 450000
 ForkCheckBlockTime=1200000
+ForkMultiSignAddress=1500000
 ForkTxHeight= -1
 ForkTxGroupPara= -1
 ForkChainParamV2= -1
