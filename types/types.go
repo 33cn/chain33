@@ -142,7 +142,8 @@ func GetParaExec(execer []byte) []byte {
 	return execer[len(GetTitle()):]
 }
 
-func getParaExecName(execer []byte) []byte {
+//GetParaExecName 获取平行链上的执行器
+func GetParaExecName(execer []byte) []byte {
 	if !bytes.HasPrefix(execer, ParaKey) {
 		return execer
 	}
@@ -162,7 +163,7 @@ func getParaExecName(execer []byte) []byte {
 //GetRealExecName  获取真实的执行器name
 func GetRealExecName(execer []byte) []byte {
 	//平行链执行器，获取真实执行器的规则
-	execer = getParaExecName(execer)
+	execer = GetParaExecName(execer)
 	//平行链嵌套平行链是不被允许的
 	if bytes.HasPrefix(execer, ParaKey) {
 		return execer

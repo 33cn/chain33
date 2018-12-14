@@ -5,6 +5,7 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
 	"math/rand"
 	"reflect"
@@ -137,8 +138,14 @@ func CallCreateTx(execName, action string, param Message) ([]byte, error) {
 func CallCreateTxJSON(execName, action string, param json.RawMessage) ([]byte, error) {
 	exec := LoadExecutorType(execName)
 	if exec == nil {
+		execer := GetParaExecName([]byte(execName))
+		//找不到执行器，并且是user.xxx 的情况下
+		if bytes.HasPrefix(execer, UserKey) {
+			tx := &Transaction{Payload: param}
+			return FormatTxEncode(execName, tx)
+		}
 		tlog.Error("CallCreateTxJSON", "Error", "exec not found")
-		return nil, ErrNotSupport
+		return nil, ErrExecNotFound
 	}
 	// param is interface{type, var-nil}, check with nil always fail
 	if param == nil {

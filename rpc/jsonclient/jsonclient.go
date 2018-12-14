@@ -70,7 +70,7 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	req := &clientRequest{}
 	req.Method = method
 	req.Params[0] = params
-	data, err := json.MarshalIndent(req, "", "\t")
+	data, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}
@@ -116,5 +116,4 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 		return types.JSONToPB(b, msg)
 	}
 	return json.Unmarshal(*cresp.Result, resp)
-
 }

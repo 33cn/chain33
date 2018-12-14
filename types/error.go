@@ -59,6 +59,7 @@ var (
 	ErrEmpty                      = errors.New("ErrEmpty")
 	ErrSendSameToRecv             = errors.New("ErrSendSameToRecv")
 	ErrExecNameNotAllow           = errors.New("ErrExecNameNotAllow")
+	ErrExecNotFound               = errors.New("ErrExecNotFound")
 	ErrLocalDBPerfix              = errors.New("ErrLocalDBPerfix")
 	ErrTimeout                    = errors.New("ErrTimeout")
 	ErrBlockHeaderDifficulty      = errors.New("ErrBlockHeaderDifficulty")

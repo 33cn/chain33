@@ -5,6 +5,7 @@
 package rpc_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/33cn/chain33/common"
@@ -112,4 +113,24 @@ func TestGetAllExecBalance(t *testing.T) {
 	assert.Equal(t, addr, res.Addr)
 	assert.Nil(t, res.ExecAccount)
 	assert.Equal(t, 0, len(res.ExecAccount))
+}
+
+func TestCreateTransactionUserWrite(t *testing.T) {
+	mocker := testnode.New("--free--", nil)
+	defer mocker.Close()
+	mocker.Listen()
+	jrpcClient := getRPCClient(t, mocker)
+	req := &rpctypes.CreateTxIn{
+		Execer:     "user.write",
+		ActionName: "write",
+		Payload:    []byte(`{"key":"value"}`),
+	}
+	var res string
+	err := jrpcClient.Call("Chain33.CreateTransaction", req, &res)
+	assert.Nil(t, err)
+	tx := getTx(t, res)
+	assert.NotNil(t, tx)
+	fmt.Println(string(tx.Payload))
+	assert.Nil(t, err)
+	assert.Equal(t, `{"key":"value"}`, string(tx.Payload))
 }
