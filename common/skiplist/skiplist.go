@@ -39,14 +39,14 @@ type SkipList struct {
 	level        int
 }
 
-// SkipListIterator 跳跃表迭代器
-type SkipListIterator struct {
+// Iterator 跳跃表迭代器
+type Iterator struct {
 	list *SkipList
 	node *skipListNode
 }
 
 // First 获取第一个节点Value值
-func (sli *SkipListIterator) First() *SkipValue {
+func (sli *Iterator) First() *SkipValue {
 	if sli.list.header.next[0] == nil {
 		return nil
 	}
@@ -55,7 +55,7 @@ func (sli *SkipListIterator) First() *SkipValue {
 }
 
 // Last 获取最后一个节点Value值
-func (sli *SkipListIterator) Last() *SkipValue {
+func (sli *Iterator) Last() *SkipValue {
 	if sli.list.tail == nil {
 		return nil
 	}
@@ -80,7 +80,7 @@ func (node *skipListNode) Next() *skipListNode {
 }
 
 // Seek 迭代器在跳跃表中查找某个位置在传参后面或者与传参相等的SkipValue
-func (sli *SkipListIterator) Seek(value *SkipValue) *SkipValue {
+func (sli *Iterator) Seek(value *SkipValue) *SkipValue {
 	x := sli.list.find(value)
 	if x.next[0] == nil {
 		return nil
@@ -117,8 +117,8 @@ func randomLevel() int {
 }
 
 // GetIterator 获取迭代器
-func (sl *SkipList) GetIterator() *SkipListIterator {
-	it := &SkipListIterator{}
+func (sl *SkipList) GetIterator() *Iterator {
+	it := &Iterator{}
 	it.list = sl
 	it.First()
 	return it
