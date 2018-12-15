@@ -8,7 +8,6 @@ package db
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/33cn/chain33/types"
@@ -16,7 +15,7 @@ import (
 )
 
 //ErrNotFoundInDb error
-var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
+var ErrNotFoundInDb = types.ErrNotFound
 
 //Lister 列表接口
 type Lister interface {
@@ -37,6 +36,17 @@ type KV interface {
 //KVDB kvdb
 type KVDB interface {
 	KV
+	Lister
+}
+
+//ReadOnlyDB 只读数据库
+type ReadOnlyDB interface {
+	Get(key []byte) ([]byte, error)
+}
+
+//ReadOnlyListDB 只读数据库
+type ReadOnlyListDB interface {
+	Get(key []byte) ([]byte, error)
 	Lister
 }
 
