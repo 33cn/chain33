@@ -55,7 +55,6 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 			return db.IteratorScanFromFirst(prefix, count)
 		}
 		return db.IteratorScanFromLast(prefix, count)
-
 	}
 	if count == 1 && direction == ListSeek {
 		it := db.db.Iterator(prefix, nil, true)
