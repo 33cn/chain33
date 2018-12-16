@@ -200,6 +200,9 @@ func (table *Table) Add(data types.Message) error {
 	var primaryKey []byte
 	if table.opt.Primary == "auto" {
 		primaryKey, err = table.getPrimaryAuto()
+		if err != nil {
+			return err
+		}
 	} else {
 		err = table.meta.SetPayload(data)
 		if err != nil {
