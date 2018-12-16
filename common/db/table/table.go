@@ -45,8 +45,8 @@ const data = "#d#"
 
 //RowMeta 定义行的操作
 type RowMeta interface {
-	CreateRow() Row
-	SetPayload(types.Message)
+	CreateRow() *Row
+	SetPayload(types.Message) error
 	Get(key string) ([]byte, error)
 }
 
@@ -145,6 +145,7 @@ func NewTable(rowmeta RowMeta, kvdb db.ReadOnlyDB, opt *Option) (*Table, error) 
 	count := NewCount(opt.Prefix, opt.Name+"#autoinc#", kvdb)
 	return &Table{
 		meta:       rowmeta,
+		kvdb:       kvdb,
 		opt:        opt,
 		autoinc:    count,
 		dataprefix: dataprefix,
@@ -166,7 +167,10 @@ func getPrimaryKey(meta RowMeta, primary string) ([]byte, error) {
 }
 
 func (table *Table) checkIndex(data types.Message) error {
-	table.meta.SetPayload(data)
+	err := table.meta.SetPayload(data)
+	if err != nil {
+		return err
+	}
 	if _, err := getPrimaryKey(table.meta, table.opt.Primary); err != nil {
 		return err
 	}
@@ -197,7 +201,10 @@ func (table *Table) Add(data types.Message) error {
 	if table.opt.Primary == "auto" {
 		primaryKey, err = table.getPrimaryAuto()
 	} else {
-		table.meta.SetPayload(data)
+		err = table.meta.SetPayload(data)
+		if err != nil {
+			return err
+		}
 		primaryKey, err = getPrimaryKey(table.meta, table.opt.Primary)
 		if err != nil {
 			return err
@@ -253,24 +260,43 @@ func (table *Table) indexPrefix(indexName string) []byte {
 }
 
 func (table *Table) index(row *Row, indexName string) ([]byte, error) {
-	table.meta.SetPayload(row.Data)
+	err := table.meta.SetPayload(row.Data)
+	if err != nil {
+		return nil, err
+	}
 	return table.meta.Get(indexName)
 }
 
-//GetData 根据主键获取数据
-func (table *Table) GetData(primaryKey []byte) (*Row, error) {
+func (table *Table) getData(primaryKey []byte) ([]byte, error) {
 	key := table.getDataKey(primaryKey)
 	value, err := table.kvdb.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	row := table.meta.CreateRow()
-	err = types.Decode(value, row.Data)
+	return value, nil
+}
+
+//GetData 根据主键获取数据
+func (table *Table) GetData(primaryKey []byte) (*Row, error) {
+	value, err := table.getData(primaryKey)
 	if err != nil {
 		return nil, err
 	}
-	row.Primary = primaryKey
-	return &row, nil
+	return table.getRow(value)
+}
+
+func (table *Table) getRow(value []byte) (*Row, error) {
+	primary, data, err := DecodeRow(value)
+	if err != nil {
+		return nil, err
+	}
+	row := table.meta.CreateRow()
+	row.Primary = primary
+	err = types.Decode(data, row.Data)
+	if err != nil {
+		return nil, err
+	}
+	return row, nil
 }
 
 //Save 保存表格
