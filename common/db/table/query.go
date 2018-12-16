@@ -21,26 +21,30 @@ func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte
 	if indexName == "" {
 		return query.ListPrimary(prefix, primaryKey, count, direction)
 	}
-	var p, k []byte
+	p := query.table.indexPrefix(indexName)
+	var k []byte
 	if len(primaryKey) > 0 {
 		row, err := query.table.GetData(primaryKey)
 		if err != nil {
 			return nil, err
 		}
-		p = query.table.indexPrefix(indexName)
-		k, err = query.table.index(row, indexName)
+		key, err := query.table.index(row, indexName)
 		if err != nil {
 			return nil, err
 		}
+		//如果存在prefix
+		if prefix != nil {
+			p2 := commonPrefix(prefix, key)
+			if len(p2) != len(prefix) {
+				return nil, types.ErrNotFound
+			}
+			p = append(p, p2...)
+		}
+		k = query.table.getIndexKey(indexName, key, row.Primary)
 	} else {
-		p = query.table.indexPrefix(indexName)
+		//这个情况下 k == nil
+		p = append(p, prefix...)
 	}
-	p2 := commonPrefix(prefix, k)
-	if len(p2) != len(prefix) {
-		return nil, types.ErrNotFound
-	}
-	k = k[len(p2):]
-	p = append(p, p2...)
 	values, err := query.kvdb.List(p, k, count, direction)
 	if err != nil {
 		return nil, err
@@ -58,28 +62,29 @@ func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte
 //ListPrimary list primary data
 func (query *Query) ListPrimary(prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	p := query.table.primaryPrefix()
-	p2 := commonPrefix(prefix, primaryKey)
-	if len(p2) != len(prefix) {
-		return nil, types.ErrNotFound
+	var k []byte
+	if primaryKey != nil {
+		if prefix != nil {
+			p2 := commonPrefix(prefix, primaryKey)
+			if len(p2) != len(prefix) {
+				return nil, types.ErrNotFound
+			}
+			p = append(p, p2...)
+		}
+		k = append(p, primaryKey...)
+	} else {
+		p = append(p, prefix...)
 	}
-	primaryKey = primaryKey[len(p2):]
-	p = append(p, p2...)
-	values, err := query.kvdb.List(p, primaryKey, count, direction)
+	values, err := query.kvdb.List(p, k, count, direction)
 	if err != nil {
 		return nil, err
 	}
 	for _, value := range values {
-		primary, data, err := DecodeRow(value)
+		row, err := query.table.getRow(value)
 		if err != nil {
 			return nil, err
 		}
-		row := query.table.meta.CreateRow()
-		row.Primary = primary
-		err = types.Decode(data, row.Data)
-		if err != nil {
-			return nil, err
-		}
-		rows = append(rows, &row)
+		rows = append(rows, row)
 	}
 	return rows, nil
 }
@@ -93,7 +98,7 @@ func commonPrefix(key1, key2 []byte) []byte {
 			return key1[:i]
 		}
 	}
-	return nil
+	return key1[0:l]
 }
 
 func min(a, b int) int {

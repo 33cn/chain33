@@ -111,7 +111,9 @@ func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none")}
 	tx.To = address.ExecAddress(execer)
 	tx, _ = types.FormatTx(execer, tx)
-	tx.Sign(types.SECP256K1, priv)
+	if priv != nil {
+		tx.Sign(types.SECP256K1, priv)
+	}
 	return tx
 }
 
