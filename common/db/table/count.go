@@ -11,13 +11,13 @@ import (
 type Count struct {
 	prefix  string
 	name    string
-	kvdb    db.ReadOnlyDB
+	kvdb    db.KV
 	num     int64
 	keydata []byte
 }
 
 //NewCount 创建一个计数器
-func NewCount(prefix string, name string, kvdb db.ReadOnlyDB) *Count {
+func NewCount(prefix string, name string, kvdb db.KV) *Count {
 	keydata := []byte(prefix + "#" + name)
 	return &Count{
 		prefix:  prefix,

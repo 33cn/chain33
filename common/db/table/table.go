@@ -106,7 +106,8 @@ func DecodeRow(data []byte) ([]byte, []byte, error) {
 type Table struct {
 	meta       RowMeta
 	rows       []*Row
-	kvdb       db.ReadOnlyDB
+	rowmap     map[string]*Row
+	kvdb       db.KV
 	opt        *Option
 	autoinc    *Count
 	dataprefix string
@@ -124,7 +125,7 @@ type Option struct {
 //NewTable  新建一个表格
 //primary 可以为: auto, 由系统自动创建
 //index 可以为nil
-func NewTable(rowmeta RowMeta, kvdb db.ReadOnlyDB, opt *Option) (*Table, error) {
+func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 	if len(opt.Index) > 16 {
 		return nil, ErrTooManyIndex
 	}
@@ -146,6 +147,7 @@ func NewTable(rowmeta RowMeta, kvdb db.ReadOnlyDB, opt *Option) (*Table, error) 
 	return &Table{
 		meta:       rowmeta,
 		kvdb:       kvdb,
+		rowmap:     make(map[string]*Row),
 		opt:        opt,
 		autoinc:    count,
 		dataprefix: dataprefix,
@@ -164,6 +166,18 @@ func getPrimaryKey(meta RowMeta, primary string) ([]byte, error) {
 		return key, err
 	}
 	return nil, nil
+}
+
+func (table *Table) addRowCache(row *Row) {
+	table.rowmap[string(row.Primary)] = row
+	table.rows = append(table.rows, row)
+}
+
+func (table *Table) findRow(primary []byte) (*Row, error) {
+	if row, ok := table.rowmap[string(primary)]; ok {
+		return row, nil
+	}
+	return table.GetData(primary)
 }
 
 func (table *Table) checkIndex(data types.Message) error {
@@ -191,51 +205,115 @@ func (table *Table) getPrimaryAuto() ([]byte, error) {
 	return []byte(pad(i)), nil
 }
 
+//primaryKey 获取主键
+//1. auto 的情况下,只能自增。
+//2. 没有auto的情况下从数据中取
+func (table *Table) primaryKey(data types.Message) (primaryKey []byte, err error) {
+	if table.opt.Primary == "auto" {
+		primaryKey, err = table.getPrimaryAuto()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		primaryKey, err = table.getPrimaryFromData(data)
+	}
+	return
+}
+
+func (table *Table) getPrimaryFromData(data types.Message) (primaryKey []byte, err error) {
+	err = table.meta.SetPayload(data)
+	if err != nil {
+		return nil, err
+	}
+	primaryKey, err = getPrimaryKey(table.meta, table.opt.Primary)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+
+//Replace 如果有重复的，那么替换
+func (table *Table) Replace(data types.Message) error {
+	if err := table.checkIndex(data); err != nil {
+		return err
+	}
+	primaryKey, err := table.primaryKey(data)
+	if err != nil {
+		return err
+	}
+	//如果是auto的情况，一定是添加
+	if table.opt.Primary == "auto" {
+		table.addRowCache(&Row{Data: data, Primary: primaryKey, Ty: Add})
+		return nil
+	}
+	//如果没有找到行, 那么添加
+	row, err := table.findRow(primaryKey)
+	if err == types.ErrNotFound {
+		table.addRowCache(&Row{Data: data, Primary: primaryKey, Ty: Add})
+		return nil
+	}
+	//更新数据
+	delrow := *row
+	delrow.Ty = Del
+	//update 是一个del 和 update 的组合
+	table.addRowCache(&delrow)
+	table.addRowCache(&Row{Data: data, Primary: primaryKey, Ty: Add})
+	return nil
+}
+
 //Add 在表格中添加一行
 func (table *Table) Add(data types.Message) error {
 	if err := table.checkIndex(data); err != nil {
 		return err
 	}
-	var err error
-	var primaryKey []byte
-	if table.opt.Primary == "auto" {
-		primaryKey, err = table.getPrimaryAuto()
-		if err != nil {
-			return err
-		}
-	} else {
-		err = table.meta.SetPayload(data)
-		if err != nil {
-			return err
-		}
-		primaryKey, err = getPrimaryKey(table.meta, table.opt.Primary)
-		if err != nil {
-			return err
-		}
+	primaryKey, err := table.primaryKey(data)
+	if err != nil {
+		return err
 	}
-	table.rows = append(table.rows, &Row{Data: data, Primary: primaryKey, Ty: Add})
+	//find in cache + db
+	_, err = table.findRow(primaryKey)
+	if err != types.ErrNotFound {
+		return ErrDupPrimaryKey
+	}
+	//检查cache中是否有重复，有重复也返回错误
+	table.addRowCache(&Row{Data: data, Primary: primaryKey, Ty: Add})
+	return nil
+}
+
+//Update 更新数据库
+func (table *Table) Update(primaryKey []byte, newdata types.Message) (err error) {
+	if err := table.checkIndex(newdata); err != nil {
+		return err
+	}
+	p1, err := table.getPrimaryFromData(newdata)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(p1, primaryKey) {
+		return types.ErrInvalidParam
+	}
+	row, err := table.findRow(primaryKey)
+	//查询发生错误
+	if err != nil {
+		return err
+	}
+	delrow := *row
+	delrow.Ty = Del
+	//update 是一个del 和 update 的组合
+	table.addRowCache(&delrow)
+	table.addRowCache(&Row{Data: newdata, Primary: primaryKey, Ty: Add})
 	return nil
 }
 
 //Del 在表格中删除一行(包括删除索引)
-func (table *Table) Del(primaryKey []byte, data types.Message) error {
-	if err := table.checkIndex(data); err != nil {
-		return err
-	}
-	table.rows = append(table.rows, &Row{Data: data, Primary: primaryKey, Ty: Add})
-	return nil
-}
-
-//DelByPrimary 在表格中删除一行(包括删除索引)
-func (table *Table) DelByPrimary(primaryKey []byte) error {
-	row, err := table.GetData(primaryKey)
+func (table *Table) Del(primaryKey []byte) error {
+	row, err := table.findRow(primaryKey)
 	if err != nil {
 		return err
 	}
-	if err := table.checkIndex(row.Data); err != nil {
-		return err
-	}
-	table.rows = append(table.rows, &Row{Data: row.Data, Primary: primaryKey, Ty: Add})
+	delrow := *row
+	delrow.Ty = Del
+	table.addRowCache(&delrow)
 	return nil
 }
 
@@ -363,6 +441,6 @@ func (table *Table) addRow(row *Row) (kvs []*types.KeyValue, err error) {
 }
 
 //GetQuery 获取查询结构
-func (table *Table) GetQuery(kvdb db.ReadOnlyListDB) *Query {
+func (table *Table) GetQuery(kvdb db.KVDB) *Query {
 	return &Query{table: table, kvdb: kvdb}
 }
