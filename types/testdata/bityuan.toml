@@ -168,6 +168,7 @@ ForkExecRollback= 450000
 ForkTxHeight= -1
 ForkTxGroupPara= -1
 ForkCheckBlockTime=1200000
+ForkMultiSignAddress=1500000
 
 [fork.sub.coins]
 Enable=0

@@ -20,7 +20,12 @@ var addressCache *lru.Cache
 var checkAddressCache *lru.Cache
 var multisignCache *lru.Cache
 var multiCheckAddressCache *lru.Cache
-var errVersion = errors.New("check version error")
+
+// ErrCheckVersion :
+var ErrCheckVersion = errors.New("check version error")
+
+//ErrCheckChecksum :
+var ErrCheckChecksum = errors.New("Address Checksum error")
 
 //MaxExecNameLength 执行器名最大长度
 const MaxExecNameLength = 100
@@ -121,11 +126,11 @@ func checkAddress(ver byte, addr string) (e error) {
 	if len(dec) == 25 {
 		sh := common.Sha2Sum(dec[0:21])
 		if !bytes.Equal(sh[:4], dec[21:25]) {
-			e = errors.New("Address Checksum error")
+			e = ErrCheckChecksum
 		}
 	}
 	if dec[0] != ver {
-		e = errVersion
+		e = ErrCheckVersion
 	}
 	return e
 }
@@ -170,7 +175,7 @@ func NewAddrFromString(hs string) (a *Address, e error) {
 	if len(dec) == 25 {
 		sh := common.Sha2Sum(dec[0:21])
 		if !bytes.Equal(sh[:4], dec[21:25]) {
-			e = errors.New("Address Checksum error")
+			e = ErrCheckChecksum
 		} else {
 			a = new(Address)
 			a.Version = dec[0]

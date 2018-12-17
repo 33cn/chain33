@@ -6,9 +6,9 @@ dist: xenial
 
 notifications:
   email: false
-jobs:
+matrix:
   include:
-    - stage: check_fmt
+    - name: check_fmt
       sudo: require
       go:
         - "1.9"
@@ -23,13 +23,13 @@ jobs:
         - make checkgofmt && make fmt_go
         - make linter
 
-    - stage: unit-test
+    - name: unit-test
       go: "1.9.x"
       install: skip
       script:
         - make test
 
-    - stage: coverage
+    - name: coverage
       if: branch = master
       go:
         - "1.9.x"
@@ -41,7 +41,7 @@ jobs:
       after_success:
         - bash <(curl -s https://codecov.io/bash)
 
-    - stage: deploy
+    - name: deploy
       sudo: required
       services:
         - docker

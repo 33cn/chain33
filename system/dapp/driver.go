@@ -232,7 +232,12 @@ func CheckAddress(addr string, height int64) error {
 	if IsDriverAddress(addr, height) {
 		return nil
 	}
-	return address.CheckAddress(addr)
+	err := address.CheckAddress(addr)
+
+	if !types.IsFork(height, "ForkMultiSignAddress") && err == address.ErrCheckVersion {
+		return nil
+	}
+	return err
 }
 
 // Exec call the check exectx subclass, you can also do it without calling , implement your own checktx
