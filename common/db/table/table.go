@@ -1,3 +1,8 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//Package table 实现一个基于kv的关系型数据库的表格功能
 package table
 
 import (
