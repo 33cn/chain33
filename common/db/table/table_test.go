@@ -314,7 +314,6 @@ func printAllKey(db db.DB) {
 	for it.Rewind(); it.Valid(); it.Next() {
 		fmt.Println("db.allkey", string(it.Key()))
 	}
-	return
 }
 
 func TestUpdate(t *testing.T) {
