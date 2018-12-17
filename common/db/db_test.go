@@ -11,6 +11,7 @@ import (
 
 	"fmt"
 
+	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -233,4 +234,27 @@ func testDBIteratorDel(t *testing.T, db DB) {
 		batch.Delete(it.Key())
 		batch.Write()
 	}
+}
+
+func testLevelDBBatch(t *testing.T, db DB) {
+	batch := db.NewBatch(false)
+	batch.Set([]byte("hello"), []byte("world"))
+	err := batch.Write()
+	assert.Nil(t, err)
+	v, err := db.Get([]byte("hello"))
+	assert.Nil(t, err)
+	assert.Equal(t, v, []byte("world"))
+
+	//set and del
+	batch.Set([]byte("hello1"), []byte("world"))
+	batch.Set([]byte("hello2"), []byte("world"))
+	batch.Set([]byte("hello3"), []byte("world"))
+	batch.Set([]byte("hello4"), []byte("world"))
+	batch.Set([]byte("hello5"), []byte("world"))
+	batch.Delete([]byte("hello1"))
+	err = batch.Write()
+	assert.Nil(t, err)
+	v, err = db.Get([]byte("hello1"))
+	assert.Equal(t, err, types.ErrNotFound)
+	assert.Nil(t, v)
 }

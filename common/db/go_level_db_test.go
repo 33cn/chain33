@@ -43,6 +43,18 @@ func TestGoLevelDBIteratorDel(t *testing.T) {
 	testDBIteratorDel(t, leveldb)
 }
 
+func TestLevelDBBatch(t *testing.T) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	leveldb, err := NewGoLevelDB("goleveldb", dir, 128)
+	require.NoError(t, err)
+	defer leveldb.Close()
+
+	testLevelDBBatch(t, leveldb)
+}
+
 // leveldb边界测试
 func TestGoLevelDBBoundary(t *testing.T) {
 	dir, err := ioutil.TempDir("", "goleveldb")
