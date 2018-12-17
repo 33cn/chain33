@@ -229,6 +229,39 @@ func printAllKey(db db.DB) {
 	return
 }
 
+func TestUpdate(t *testing.T) {
+	dir, leveldb, kvdb := getdb()
+	defer dbclose(dir, leveldb)
+	opt := &Option{
+		Prefix:  "prefix",
+		Name:    "name",
+		Primary: "Hash",
+		Index:   []string{"From", "To"},
+	}
+	table, err := NewTable(NewTransactionRow(), kvdb, opt)
+	assert.Nil(t, err)
+	_, priv := util.Genaddress()
+	tx1 := util.CreateNoneTx(priv)
+	err = table.Add(tx1)
+	assert.Nil(t, err)
+
+	err = table.Update([]byte("hello"), tx1)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
+	tx1.Signature = nil
+	err = table.Update(tx1.Hash(), tx1)
+	assert.Nil(t, err)
+	kvs, err := table.Save()
+	assert.Nil(t, err)
+	assert.Equal(t, len(kvs), 9)
+	//save to database
+	setKV(leveldb, kvs)
+	query := table.GetQuery(kvdb)
+	rows, err := query.ListIndex("From", []byte(tx1.From()), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, rows[0].Data.(*types.Transaction).From(), tx1.From())
+}
+
 func TestReplace(t *testing.T) {
 	dir, leveldb, kvdb := getdb()
 	defer dbclose(dir, leveldb)
