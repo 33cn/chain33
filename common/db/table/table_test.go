@@ -220,6 +220,15 @@ func TestDel(t *testing.T) {
 	assert.Equal(t, 0, len(rows))
 }
 
+func printAllKey(db db.DB) {
+	it := db.Iterator(nil, nil, false)
+	defer it.Close()
+	for it.Rewind(); it.Valid(); it.Next() {
+		fmt.Println("db.allkey", string(it.Key()))
+	}
+	return
+}
+
 func TestReplace(t *testing.T) {
 	dir, leveldb, kvdb := getdb()
 	defer dbclose(dir, leveldb)
@@ -243,18 +252,19 @@ func TestReplace(t *testing.T) {
 	tx1.Signature = nil
 	err = table.Replace(tx1)
 	assert.Nil(t, err)
-
 	//save 然后从列表中读取
 	kvs, err := table.Save()
 	assert.Nil(t, err)
 	assert.Equal(t, len(kvs), 9)
 	//save to database
 	setKV(leveldb, kvs)
-	//printKV(kvs)
 	query := table.GetQuery(kvdb)
-	rows, err := query.ListIndex("From", []byte(addr1[0:10]), nil, 0, 0)
-	assert.Equal(t, types.ErrNotFound, err)
-	assert.Equal(t, 0, len(rows))
+	_, err = query.ListIndex("From", []byte(addr1[0:10]), nil, 0, 0)
+	assert.Equal(t, err, types.ErrNotFound)
+
+	rows, err := query.ListIndex("From", []byte(tx1.From()), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, rows[0].Data.(*types.Transaction).From(), tx1.From())
 }
 
 type TransactionRow struct {
