@@ -96,7 +96,7 @@ func TestTransactinList(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(kvs), 12)
 	//save to database
-	setKV(kvdb, kvs)
+	setKV(leveldb, kvs)
 	//测试查询
 	query := table.GetQuery(kvdb)
 
@@ -178,10 +178,16 @@ func TestTransactinList(t *testing.T) {
 	assert.Equal(t, 3, len(rows))
 }
 
-func setKV(kvdb db.KVDB, kvs []*types.KeyValue) {
+func setKV(kvdb db.DB, kvs []*types.KeyValue) {
+	batch := kvdb.NewBatch(true)
 	for i := 0; i < len(kvs); i++ {
-		kvdb.Set(kvs[i].Key, kvs[i].Value)
+		if kvs[i].Value == nil {
+			batch.Delete(kvs[i].Key)
+			continue
+		}
+		batch.Set(kvs[i].Key, kvs[i].Value)
 	}
+	batch.Write()
 }
 
 func printKV(kvs []*types.KeyValue) {
@@ -206,4 +212,41 @@ func TestRow(t *testing.T) {
 	err = types.Decode(protodata, &tx)
 	assert.Nil(t, err)
 	assert.Equal(t, proto.Equal(&tx, tx1), true)
+}
+
+func TestDel(t *testing.T) {
+	dir, leveldb, kvdb := getdb()
+	defer dbclose(dir, leveldb)
+	opt := &Option{
+		Prefix:  "prefix",
+		Name:    "name",
+		Primary: "Hash",
+		Index:   []string{"From", "To"},
+	}
+	table, err := NewTable(NewTransactionRow(), kvdb, opt)
+	assert.Nil(t, err)
+	addr1, priv := util.Genaddress()
+	tx1 := util.CreateNoneTx(priv)
+	err = table.Add(tx1)
+	assert.Nil(t, err)
+	tx2 := util.CreateNoneTx(priv)
+	err = table.Add(tx2)
+	assert.Nil(t, err)
+
+	//删除掉一个
+	err = table.Del(tx1.Hash())
+	assert.Nil(t, err)
+
+	//save 然后从列表中读取
+	kvs, err := table.Save()
+	assert.Nil(t, err)
+	assert.Equal(t, len(kvs), 9)
+	//save to database
+	setKV(leveldb, kvs)
+	printKV(kvs)
+	query := table.GetQuery(kvdb)
+	rows, err := query.ListIndex("From", []byte(addr1[0:10]), nil, 0, 0)
+	assert.Equal(t, types.ErrNotFound, err)
+	fmt.Println(rows[0].Data.(*types.Transaction).From(), addr1)
+	assert.Equal(t, 0, len(rows))
 }

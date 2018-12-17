@@ -39,17 +39,6 @@ type KVDB interface {
 	Lister
 }
 
-//ReadOnlyDB 只读数据库
-type ReadOnlyDB interface {
-	Get(key []byte) ([]byte, error)
-}
-
-//ReadOnlyListDB 只读数据库
-type ReadOnlyListDB interface {
-	Get(key []byte) ([]byte, error)
-	Lister
-}
-
 //DB db
 type DB interface {
 	KV

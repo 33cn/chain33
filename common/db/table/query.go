@@ -8,7 +8,7 @@ import (
 //Query 列表查询结构
 type Query struct {
 	table *Table
-	kvdb  db.ReadOnlyListDB
+	kvdb  db.KVDB
 }
 
 //ListIndex 根据索引查询列表
