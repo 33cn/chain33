@@ -394,6 +394,9 @@ func (table *Table) Save() (kvs []*types.KeyValue, err error) {
 		return nil, err
 	}
 	kvs = append(kvs, kvlist...)
+	//del cache
+	table.rowmap = make(map[string]*Row)
+	table.rows = nil
 	return kvs, nil
 }
 
