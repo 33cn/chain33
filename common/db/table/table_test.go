@@ -130,6 +130,94 @@ func TestTransactinList(t *testing.T) {
 	assert.Equal(t, 3, len(rows))
 }
 
+func TestTransactinListAuto(t *testing.T) {
+	dir, leveldb, kvdb := getdb()
+	defer dbclose(dir, leveldb)
+	opt := &Option{
+		Prefix:  "prefix",
+		Name:    "name",
+		Primary: "",
+		Index:   []string{"From", "To"},
+	}
+	table, err := NewTable(NewTransactionRow(), kvdb, opt)
+	assert.Nil(t, err)
+	addr1, priv := util.Genaddress()
+	tx1 := util.CreateNoneTx(priv)
+	err = table.Add(tx1)
+	assert.Nil(t, err)
+	tx2 := util.CreateNoneTx(priv)
+	err = table.Add(tx2)
+	assert.Nil(t, err)
+
+	addr2, priv := util.Genaddress()
+	tx3 := util.CreateNoneTx(priv)
+	err = table.Add(tx3)
+	assert.Nil(t, err)
+	tx4 := util.CreateNoneTx(priv)
+	err = table.Add(tx4)
+	assert.Nil(t, err)
+	//添加一个无效的类型
+	err = table.Add(nil)
+	assert.Equal(t, types.ErrTypeAsset, err)
+	kvs, err := table.Save()
+	assert.Nil(t, err)
+	assert.Equal(t, len(kvs), 13)
+	//save to database
+	setKV(leveldb, kvs)
+	//测试查询
+	query := table.GetQuery(kvdb)
+
+	rows, err := query.ListIndex("From", []byte(addr1), nil, 0, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(rows))
+	assert.Equal(t, true, proto.Equal(tx1, rows[0].Data))
+	assert.Equal(t, true, proto.Equal(tx2, rows[1].Data))
+	//prefix full
+	rows, err = query.ListIndex("From", []byte(addr2), nil, 0, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(rows))
+	assert.Equal(t, true, proto.Equal(tx3, rows[0].Data))
+	assert.Equal(t, true, proto.Equal(tx4, rows[1].Data))
+	//prefix part
+	rows, err = query.ListIndex("From", []byte(addr2[0:10]), nil, 0, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(rows))
+	assert.Equal(t, true, proto.Equal(tx3, rows[0].Data))
+	assert.Equal(t, true, proto.Equal(tx4, rows[1].Data))
+	//count
+	rows, err = query.ListIndex("From", []byte(addr2[0:10]), nil, 1, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+	assert.Equal(t, true, proto.Equal(tx3, rows[0].Data))
+	primary := rows[0].Primary
+	//primary
+	rows, err = query.ListIndex("From", nil, primary, 1, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+	assert.Equal(t, true, proto.Equal(tx4, rows[0].Data))
+	//prefix + primary
+	rows, err = query.ListIndex("From", []byte(addr2[0:10]), primary, 0, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+	assert.Equal(t, true, proto.Equal(tx4, rows[0].Data))
+	rows, err = query.ListIndex("From", []byte(addr1[0:10]), primary, 0, db.ListASC)
+	assert.Equal(t, types.ErrNotFound, err)
+	assert.Equal(t, 0, len(rows))
+	//ListPrimary all
+	rows, err = query.ListPrimary(nil, nil, 0, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 4, len(rows))
+
+	primary = rows[0].Primary
+	rows, err = query.ListPrimary(primary, nil, 0, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+
+	rows, err = query.ListPrimary(nil, primary, 0, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(rows))
+}
+
 func mergeDup(kvs []*types.KeyValue) (kvset []*types.KeyValue) {
 	maplist := make(map[string]*types.KeyValue)
 	for _, kv := range kvs {

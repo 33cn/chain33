@@ -24,4 +24,9 @@ func TestCount(t *testing.T) {
 	i, err = count.Get()
 	assert.Nil(t, err)
 	assert.Equal(t, i, int64(1))
+
+	count.Set(2)
+	i, err = count.Get()
+	assert.Nil(t, err)
+	assert.Equal(t, i, int64(2))
 }
