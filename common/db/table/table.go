@@ -134,6 +134,9 @@ func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 			return nil, ErrIndexKey
 		}
 	}
+	if opt.Primary == "" {
+		opt.Primary = "auto"
+	}
 	if _, err := getPrimaryKey(rowmeta, opt.Primary); err != nil {
 		return nil, err
 	}
