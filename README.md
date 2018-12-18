@@ -46,7 +46,7 @@ $ chain33 -f chain33.toml
 2.Don't re-create vendor dependency, we will support download vender folder for yourself in the future,
 but currently not available.
 
-## Contributions
+## Contributing to chain33
 Below is detailed contribution procedure. This can be skipped and directly see our 
 simplified contribution flow in second part.
 
