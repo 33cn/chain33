@@ -8,11 +8,11 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 
 A highly modularized blockchain development framework according to the KISS principle 
 
-Official website: https://chain.33.cn
-
-Official plugin: https://github.com/33cn/plugin
-
-The growth of chain33:[chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR_NFxfeuAA)
+* Official website: https://chain.33.cn
+* Official plugin: https://github.com/33cn/plugin
+* Typical applicaiton: https://github.com/bityuan/bityuan 
+* The growth of chain33:[chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR_NFxfeuAA)
+* instructive videos: [instructive videos](https://chain.33.cn/document/90)
 
 ## Building from source
 
