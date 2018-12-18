@@ -51,16 +51,50 @@ Below is detailed contribution procedure. This can be skipped and directly see o
 simplified contribution flow in second part.
 
 ### 1. detailed procedure
-* 1.If you have any suggetions or bug, please create issues and discuss with us.
+* If you have any suggetions or bug, please create issues and discuss with us.
 
-* 2.Please fork `33cn/chain` to your own branch, like `vipwzw/chain33` via click up right `fork` button.
+* Please fork `33cn/chain` to your own branch, like `vipwzw/chain33` via click up right `fork` button.
 ```
 git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33
 ```
 Notice: Here you will need to clone to $GOPATH/src/github.com/33cn/chain33 or Go-lang package can't find the path.
 
-* 3.Add remote branch `33cn/chain33`: `git remote add upstream https://github.com/33cn/chain33.git. `
+* Add remote branch `33cn/chain33`: `git remote add upstream https://github.com/33cn/chain33.git. `
 We have added `Makefile` to this and command `make addupstream` can be used.
+
+
+### 2. Simplified procedure
+#### Preparation
+* Please fork `33cn/chain` to your own branch, like `vipwzw/chain33` via click up right `fork` button.
+```
+git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33
+```
+Notice: Here you will need to clone to $GOPATH/src/github.com/33cn/chain33 or Go-lang package can't find the path.
+
+#### Development
+* you will need to name the branch
+```
+make branch b=mydevbranchname
+```
+#### Complete the development and `Push`
+```
+make push b=mydevbranchname m="explaining info regarding this push"
+```
+note: if  `m=` is not set, `git commit` will not execute.
+
+## Modify peer's `pull request`
+ Here is an example: <br>
+ I am to modify a `pull request` whose `name=libangzhu branch chain33-p2p-listenPort`
+ ### step 1: push request need to modify
+ ```
+ make pull name=libangzhu b=chain33-p2p-listenPort
+ ```
+Then correct code, commit after the correction. 
+### step 2: push 
+```
+make pullpush name=libangzhu b=chain33-p2p-listenPort
+```
+
 
 ## License
 
