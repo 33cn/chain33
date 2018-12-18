@@ -23,6 +23,7 @@ const (
 	consensusFolderName = "consensus"
 	storeFolderName     = "store"
 	cryptoFolderName    = "crypto"
+	mempoolFolderName   = "mempool"
 )
 
 type pluginConfigItem struct {
@@ -91,6 +92,7 @@ func (im *importPackageStrategy) initData() error {
 	consensusItems := make([]*pluginItem, 0)
 	storeItems := make([]*pluginItem, 0)
 	cryptoItems := make([]*pluginItem, 0)
+	mempoolItems := make([]*pluginItem, 0)
 
 	//read current plugin dir
 	//(分成两级，并且去掉了 init 目录)
@@ -141,6 +143,8 @@ func (im *importPackageStrategy) initData() error {
 			storeItems = append(storeItems, item)
 		case cryptoFolderName:
 			cryptoItems = append(cryptoItems, item)
+		case mempoolFolderName:
+			mempoolItems = append(mempoolItems, item)
 		default:
 			fmt.Printf("type %s is not supported.\n", cfgItem.Type)
 			return errors.New("config error")
@@ -150,6 +154,7 @@ func (im *importPackageStrategy) initData() error {
 	im.items[consensusFolderName] = consensusItems
 	im.items[storeFolderName] = storeItems
 	im.items[cryptoFolderName] = cryptoItems
+	im.items[mempoolFolderName] = mempoolItems
 	im.projRootPath = ""
 	im.projPluginPath, _ = im.getParam("path")
 	return nil

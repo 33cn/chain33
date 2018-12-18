@@ -76,7 +76,28 @@ jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
 
 [mempool]
-maxTxNumPerAccount=100
+name="timeline"
+poolCacheSize=10240
+minTxFee=100000
+maxTxNumPerAccount=10000
+
+[mempool.sub.timeline]
+poolCacheSize=10240
+minTxFee=100000
+maxTxNumPerAccount=10000
+
+[mempool.sub.score]
+poolCacheSize=10240
+minTxFee=100000
+maxTxNumPerAccount=10000
+timeParam=1      #时间占价格比例
+priceConstant=1544  #手续费相对于时间的一个合适的常量,取当前unxi时间戳前四位数,排序时手续费高1e-5~=快1s
+pricePower=1     #常量比例
+
+[mempool.sub.price]
+poolCacheSize=10240
+minTxFee=100000
+maxTxNumPerAccount=10000
 
 [store]
 dbPath="datadir/mavltree"
@@ -124,8 +145,25 @@ serverStart=true
 msgCacheSize=10240
 driver="leveldb"
 [mempool]
-poolCacheSize=102400
+name="timeline"
+poolCacheSize=10240
 minTxFee=100000
+maxTxNumPerAccount=10000
+[mempool.sub.timeline]
+poolCacheSize=10240
+minTxFee=100000
+maxTxNumPerAccount=10000
+[mempool.sub.score]
+poolCacheSize=10240
+minTxFee=100000
+maxTxNumPerAccount=10000
+timeParam=1      #时间占价格比例
+priceConstant=1544  #手续费相对于时间的一个合适的常量,取当前unxi时间戳前四位数,排序时手续费高1e-5~=快1s
+priceP
+[mempool.sub.price]
+poolCacheSize=10240
+minTxFee=100000
+maxTxNumPerAccount=10000
 [consensus]
 name="ticket"
 minerstart=true
@@ -308,7 +346,7 @@ go:
 
 	// 生成 plugin/plugin.toml的文件模板
 	CpftPluginToml = `
-# type字段仅支持 consensus  dapp store
+# type字段仅支持 consensus  dapp store mempool
 [dapp-ticket]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/ticket"
 

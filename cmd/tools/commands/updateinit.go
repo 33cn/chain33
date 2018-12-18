@@ -19,7 +19,7 @@ import (
 func UpdateInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "updateinit",
-		Short: "Update chain33 plugin consensus、dapp、store init.go file",
+		Short: "Update chain33 plugin consensus、dapp、store、mempool init.go file",
 		Run:   updateInit,
 	}
 	cmd.Flags().StringP("path", "p", "plugin", "path of plugin")
