@@ -85,12 +85,12 @@ note: if  `m=` is not set, `git commit` will not execute.
 ## Modify peer's `pull request`
  Here is an example: <br>
  I am to modify a `pull request` whose `name=libangzhu branch chain33-p2p-listenPort`
- ### step 1: push request need to modify
+ #### step 1: push request need to modify
  ```
  make pull name=libangzhu b=chain33-p2p-listenPort
  ```
-Then correct code, commit after the correction. 
-### step 2: push 
+Then correct code, and commit.
+#### step 2: push 
 ```
 make pullpush name=libangzhu b=chain33-p2p-listenPort
 ```
