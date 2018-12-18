@@ -51,14 +51,15 @@ Below is detailed contribution procedure. This can be skipped and directly see o
 simplified contribution flow in second part.
 
 ### 1. detailed procedure
-1.If you have any suggetions or bug, please create issues and discuss with us.
-2.Please fork `33cn/chain` to your own branch, like `vipwzw/chain33` via click up right `fork` button.
+*1.If you have any suggetions or bug, please create issues and discuss with us.
+
+*2.Please fork `33cn/chain` to your own branch, like `vipwzw/chain33` via click up right `fork` button.
 ```
 git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33
 ```
 Notice: Here you will need to clone to $GOPATH/src/github.com/33cn/chain33 or Go-lang package can't find the path.
 
-3.Add remote branch `33cn/chain33`: `git remote add upstream https://github.com/33cn/chain33.git. `
+*3.Add remote branch `33cn/chain33`: `git remote add upstream https://github.com/33cn/chain33.git. `
 We have added `Makefile` to this and command `make addupstream` can be used.
 
 ## License
