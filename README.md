@@ -11,7 +11,7 @@ A highly modularized blockchain development framework according to the KISS prin
 * Official website: https://chain.33.cn
 * Official plugin: https://github.com/33cn/plugin
 * Typical applicaiton: https://github.com/bityuan/bityuan 
-* The growth of chain33:[chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR_NFxfeuAA)
+* The birth of chain33: [the birth of chain33](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR_NFxfeuAA)
 * instructive videos: [instructive videos](https://chain.33.cn/document/90)
 
 ## Building from source
