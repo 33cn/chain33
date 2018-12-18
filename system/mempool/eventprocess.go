@@ -97,7 +97,7 @@ func (mem *Mempool) eventProcess() {
 func (mem *Mempool) eventTx(msg queue.Message) {
 	if !mem.getSync() {
 		msg.Reply(mem.client.NewMessage("", types.EventReply, &types.Reply{Msg: []byte(types.ErrNotSync.Error())}))
-		mlog.Error("wrong tx", "err", types.ErrNotSync.Error())
+		mlog.Debug("wrong tx", "err", types.ErrNotSync.Error())
 	} else {
 		checkedMsg := mem.checkTxs(msg)
 		select {
