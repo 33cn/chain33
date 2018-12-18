@@ -62,6 +62,33 @@ Notice: Here you will need to clone to $GOPATH/src/github.com/33cn/chain33 or Go
 * Add remote branch `33cn/chain33`: `git remote add upstream https://github.com/33cn/chain33.git. `
 We have added `Makefile` to this and command `make addupstream` can be used.
 
+* Synchronize `33cn/chain33` and `vipwzw/chain33 master` branch directly with `make sync`, or below commands:
+
+```
+git fetch upstream
+git checkout master
+git merge upstream/master
+```
+Notice: don't modify master branch, in this way `master` will in sync with `upstream/master` under any circumstances.
+* Create branch from latest `33cn/chain33` 
+```
+git fetch upstream
+git checkout master
+git merge upstream/master
+git branch -b "fixbug_ci"
+```
+
+* Push code to `vipwzw/chain33` 
+```
+git fetch upstream
+git checkout master
+git merge upstream/master
+git checkout fixbug_ci
+git merge master
+git push origin fixbug_ci
+```
+Then coding peers can access your updated code with `pull request` 
+
 
 ### 2. Simplified procedure
 #### Preparation
@@ -89,7 +116,7 @@ note: if  `m=` is not set, `git commit` will not execute.
  ```
  make pull name=libangzhu b=chain33-p2p-listenPort
  ```
-Then correct code, and commit.
+Then correct code, and commit on your local machine.
 #### step 2: push 
 ```
 make pullpush name=libangzhu b=chain33-p2p-listenPort
