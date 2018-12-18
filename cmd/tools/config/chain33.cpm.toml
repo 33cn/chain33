@@ -1,4 +1,4 @@
-# type字段仅支持 consensus  dapp store
+# type字段仅支持 consensus  dapp store mempool
 [blackwhite]
 type = "dapp"
 gitrepo = "gitlab.33.cn/sanghg/blackwhite"
