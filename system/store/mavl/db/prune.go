@@ -9,9 +9,12 @@ import (
 	"fmt"
 	"sync"
 
+	"runtime"
 	"sort"
 	"sync/atomic"
 	"time"
+
+	"runtime/debug"
 
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
@@ -36,7 +39,7 @@ const (
 	secondLevelPruningHeight = 1000000
 	//三级裁剪高度，达到此高度还没有裁剪，则不进行裁剪
 	threeLevelPruningHeight = 1500000
-	onceScanCount           = 100000
+	onceScanCount           = 1000
 )
 
 var (
@@ -52,13 +55,13 @@ var (
 	secLvlPruningH int64
 )
 
-func init() {
-	cache, err := lru.New(delNodeCacheSize)
-	if err != nil {
-		panic(fmt.Sprint("new delNodeCache lru fail", err))
-	}
-	delPoolCache = cache
-}
+//func init() {
+//	cache, err := lru.New(delNodeCacheSize)
+//	if err != nil {
+//		panic(fmt.Sprint("new delNodeCache lru fail", err))
+//	}
+//	delPoolCache = cache
+//}
 
 type delNodeValuePool struct {
 	delCache *lru.Cache
@@ -142,20 +145,20 @@ func genOldLeafCountKeyFromKey(hashk []byte) (oldhashk []byte) {
 	return oldhashk
 }
 
-func genDeletePoolKey(hash []byte) (key, value []byte) {
-	if len(hash) < 32 {
-		panic("genDeletePoolKey error hash len illegal")
-	}
-	hashLen := len(common.Hash{})
-	if len(hash) > hashLen {
-		value = hash[len(hash)-hashLen:]
-	} else {
-		value = hash
-	}
-	key = value[:1]
-	key = []byte(fmt.Sprintf("%s%s", delMapPoolPrefix, string(key)))
-	return key, value
-}
+//func genDeletePoolKey(hash []byte) (key, value []byte) {
+//	if len(hash) < 32 {
+//		panic("genDeletePoolKey error hash len illegal")
+//	}
+//	hashLen := len(common.Hash{})
+//	if len(hash) > hashLen {
+//		value = hash[len(hash)-hashLen:]
+//	} else {
+//		value = hash
+//	}
+//	key = value[:1]
+//	key = []byte(fmt.Sprintf("%s%s", delMapPoolPrefix, string(key)))
+//	return key, value
+//}
 
 func isPruning() bool {
 	return atomic.LoadInt32(&pruningState) == 1
@@ -212,13 +215,15 @@ func pruningFirstLevelNode(db dbm.DB, curHeight int64) {
 	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
 
-	mp := make(map[string][]hashData)
+	var mp map[string][]hashData
 	var kvs []*types.KeyValue
-	count := 0
 	for it.Rewind(); it.Valid(); it.Next() {
 		if quit {
 			//该处退出
 			return
+		}
+		if mp == nil {
+			mp = make(map[string][]hashData, onceScanCount)
 		}
 		//copy key
 		hashK := make([]byte, len(it.Key()))
@@ -232,32 +237,37 @@ func pruningFirstLevelNode(db dbm.DB, curHeight int64) {
 		}
 		var key []byte
 		if curHeight < pData.Height+secondLevelPruningHeight {
-			hashLen := int(pData.Lenth)
-			key, err = getKeyFromLeafCountKey(hashK, hashLen)
-			if err == nil {
-				data := hashData{
-					height: pData.Height,
-					hash:   hashK[len(hashK)-hashLen:],
+			if curHeight > pData.Height+int64(pruneHeight) {
+				hashLen := int(pData.Lenth)
+				key, err = getKeyFromLeafCountKey(hashK, hashLen)
+				if err == nil {
+					data := hashData{
+						height: pData.Height,
+						hash:   hashK[len(hashK)-hashLen:],
+					}
+					mp[string(key)] = append(mp[string(key)], data)
 				}
-				mp[string(key)] = append(mp[string(key)], data)
-				count++
 			}
 		} else {
 			value := make([]byte, len(it.Value()))
 			copy(value, it.Value())
 			kvs = append(kvs, &types.KeyValue{Key: hashK, Value: value})
 		}
-		if count >= onceScanCount {
+		if len(mp) >= onceScanCount-1 {
 			deleteNode(db, mp, curHeight, key)
-			count = 0
+			mp = nil
+			debug.FreeOSMemory()
 		}
-		if len(kvs) >= onceScanCount/2 {
+		if len(kvs) >= onceScanCount {
 			addLeafCountKeyToSecondLevel(db, kvs)
 			kvs = kvs[:0]
 		}
 	}
-	if count > 0 {
+	if len(mp) > 0 {
 		deleteNode(db, mp, curHeight, nil)
+		mp = nil
+		_ = mp
+		debug.FreeOSMemory()
 	}
 	if len(kvs) > 0 {
 		addLeafCountKeyToSecondLevel(db, kvs)
@@ -277,15 +287,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, lastKey []
 	if len(mp) == 0 {
 		return
 	}
-	var tmp []hashData
-	//del
-	if lastKey != nil {
-		if _, ok := mp[string(lastKey)]; ok {
-			tmp = mp[string(lastKey)]
-			delete(mp, string(lastKey))
-		}
-	}
-	delMp := make(map[string]bool)
+	delMp := make(map[string]bool, len(mp)/2)
 	batch := db.NewBatch(true)
 	for key, vals := range mp {
 		if len(vals) > 1 {
@@ -302,14 +304,10 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, lastKey []
 		delete(mp, key)
 	}
 	batch.Write()
-	//add
-	if lastKey != nil {
-		if _, ok := mp[string(lastKey)]; ok {
-			mp[string(lastKey)] = tmp
-		}
-	}
 	//裁剪hashNode
 	pruningHashNode(db, delMp)
+	delMp = nil
+	_ = delMp
 }
 
 func pruningHashNode(db dbm.DB, mp map[string]bool) {
@@ -331,24 +329,24 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 		}
 	}
 	//根据keyMap进行归类
-	mpAddDel := make(map[string][][]byte)
-	for _, s := range delNodeStrs {
-		key, hash := genDeletePoolKey([]byte(s))
-		mpAddDel[string(key)] = append(mpAddDel[string(key)], hash)
-	}
-
-	//更新pool数据
-	batch := db.NewBatch(true)
-	for mpk, mpV := range mpAddDel {
-		dep := ndb.getPool(mpk)
-		if dep != nil {
-			for _, aHsh := range mpV {
-				dep.delCache.Add(string(aHsh), true)
-			}
-			ndb.updateDelHash(batch, mpk, dep)
-		}
-	}
-	batch.Write()
+	//mpAddDel := make(map[string][][]byte)
+	//for _, s := range delNodeStrs {
+	//	key, hash := genDeletePoolKey([]byte(s))
+	//	mpAddDel[string(key)] = append(mpAddDel[string(key)], hash)
+	//}
+	//
+	////更新pool数据
+	//batch := db.NewBatch(true)
+	//for mpk, mpV := range mpAddDel {
+	//	dep := ndb.getPool(mpk)
+	//	if dep != nil {
+	//		for _, aHsh := range mpV {
+	//			dep.delCache.Add(string(aHsh), true)
+	//		}
+	//		ndb.updateDelHash(batch, mpk, dep)
+	//	}
+	//}
+	//batch.Write()
 
 	//加入要删除的hash节点
 	count1 := 0
@@ -357,7 +355,7 @@ func pruningHashNode(db dbm.DB, mp map[string]bool) {
 		count1++
 	}
 	count := 0
-	batch = db.NewBatch(true)
+	batch := db.NewBatch(true)
 	for key := range mp {
 		batch.Delete([]byte(key))
 		count++
@@ -522,13 +520,13 @@ func (ndb *markNodeDB) fetchNode(hash []byte) (*MarkNode, error) {
 	}
 	if mNode == nil {
 		// 先判断是否已经删除掉,如果删除掉查找比较耗时
-		key, hsh := genDeletePoolKey(hash)
-		mp := ndb.getPool(string(key))
-		if mp != nil {
-			if _, ok := mp.delCache.Get(string(hsh)); ok {
-				return nil, ErrNodeNotExist
-			}
-		}
+		//key, hsh := genDeletePoolKey(hash)
+		//mp := ndb.getPool(string(key))
+		//if mp != nil {
+		//	if _, ok := mp.delCache.Get(string(hsh)); ok {
+		//		return nil, ErrNodeNotExist
+		//	}
+		//}
 		var buf []byte
 		buf, err := ndb.db.Get(hash)
 		if len(buf) == 0 || err != nil {
@@ -574,12 +572,14 @@ func pruningSecondLevelNode(db dbm.DB, curHeight int64) {
 	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
 
-	mp := make(map[string][]hashData)
-	count := 0
+	var mp map[string][]hashData
 	for it.Rewind(); it.Valid(); it.Next() {
 		if quit {
 			//该处退出
 			return
+		}
+		if mp == nil {
+			mp = make(map[string][]hashData, onceScanCount)
 		}
 		//copy key
 		hashK := make([]byte, len(it.Key()))
@@ -599,15 +599,18 @@ func pruningSecondLevelNode(db dbm.DB, curHeight int64) {
 				hash:   hashK[len(hashK)-hashLen:],
 			}
 			mp[string(key)] = append(mp[string(key)], data)
-			count++
-			if count >= onceScanCount {
+			if len(mp) >= onceScanCount-1 {
 				deleteOldNode(db, mp, curHeight, key)
-				count = 0
+				mp = nil
+				debug.FreeOSMemory()
 			}
 		}
 	}
-	if count > 0 {
+	if len(mp) > 0 {
 		deleteOldNode(db, mp, curHeight, nil)
+		mp = nil
+		_ = mp
+		debug.FreeOSMemory()
 	}
 }
 
@@ -615,15 +618,7 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, lastKey
 	if len(mp) == 0 {
 		return
 	}
-	var tmp []hashData
-	//del
-	if lastKey != nil {
-		if _, ok := mp[string(lastKey)]; ok {
-			tmp = mp[string(lastKey)]
-			delete(mp, string(lastKey))
-		}
-	}
-	delMp := make(map[string]bool)
+	delMp := make(map[string]bool, len(mp)/2)
 	batch := db.NewBatch(true)
 	for key, vals := range mp {
 		if len(vals) > 1 {
@@ -648,14 +643,10 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, lastKey
 		delete(mp, key)
 	}
 	batch.Write()
-	//add
-	if lastKey != nil {
-		if _, ok := mp[string(lastKey)]; ok {
-			mp[string(lastKey)] = tmp
-		}
-	}
 	//裁剪hashNode
 	pruningHashNode(db, delMp)
+	delMp = nil
+	_ = delMp
 }
 
 // PruningTreePrintDB pruning tree print db
@@ -699,4 +690,11 @@ func PruningTreePrintDB(db dbm.DB, prefix []byte) {
 // PruningTree 裁剪树
 func PruningTree(db dbm.DB, curHeight int64) {
 	pruningTree(db, curHeight)
+}
+
+// PrintMemStats 打印内存使用情况
+func PrintMemStats(height int64) {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	treelog.Info("printMemStats:", "程序向系统申请", m.HeapSys/(1024*1024), "堆上目前分配Alloc:", m.HeapAlloc/(1024*1024), "堆上没有使用", m.HeapIdle/(1024*1024), "HeapReleased", m.HeapReleased/(1024*1024), "height", height)
 }
