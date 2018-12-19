@@ -117,7 +117,7 @@ fmt: fmt_proto fmt_shell ## go fmt
 
 .PHONY: fmt_proto fmt_shell
 fmt_proto: ## go fmt protobuf file
-	#@find . -name '*.proto' -not -path "./vendor/*" | xargs clang-format -i
+	@find . -name '*.proto' -not -path "./vendor/*" | xargs clang-format -i
 
 fmt_shell: ## check shell file
 	find . -name '*.sh' -not -path "./vendor/*" | xargs shfmt -w -s -i 4 -ci -bn
