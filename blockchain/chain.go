@@ -406,7 +406,6 @@ func (chain *BlockChain) InitIndexAndBestView() {
 		if header == nil {
 			chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
 			panic("InitIndexAndBestView fail!")
-			return
 		}
 
 		newNode := newBlockNodeByHeader(false, header, "self", -1)
