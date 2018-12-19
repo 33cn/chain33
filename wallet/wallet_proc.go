@@ -11,9 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"errors"
-	"strconv"
-
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -25,39 +22,6 @@ import (
 	wcom "github.com/33cn/chain33/wallet/common"
 	"github.com/golang/protobuf/proto"
 )
-
-func (wallet *Wallet) parseExpire(expire string) (int64, error) {
-	if len(expire) == 0 {
-		return 0, errors.New("Expire string should not be empty")
-	}
-	if expire[0] == 'H' && expire[1] == ':' {
-		txHeight, err := strconv.ParseInt(expire[2:], 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		if txHeight <= 0 {
-			//fmt.Printf("txHeight should be grate to 0")
-			return 0, errors.New("txHeight should be grate to 0")
-		}
-		if txHeight+types.TxHeightFlag < txHeight {
-			return 0, errors.New("txHeight overflow")
-		}
-
-		return txHeight + types.TxHeightFlag, nil
-	}
-
-	blockHeight, err := strconv.ParseInt(expire, 10, 64)
-	if err == nil {
-		return blockHeight, nil
-	}
-
-	expireTime, err := time.ParseDuration(expire)
-	if err == nil {
-		return int64(expireTime), nil
-	}
-
-	return 0, err
-}
 
 // ProcSignRawTx 用钱包对交易进行签名
 //input:
@@ -115,7 +79,18 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	expire, err := wallet.parseExpire(unsigned.GetExpire())
+
+	if unsigned.GetNewExecer() != nil {
+		tx.Execer = unsigned.NewExecer
+	}
+	if unsigned.NewToAddr != "" {
+		tx.To = unsigned.NewToAddr
+	}
+	if unsigned.Fee != 0 {
+		tx.Fee = unsigned.Fee
+	}
+
+	expire, err := types.ParseExpire(unsigned.GetExpire())
 	if err != nil {
 		return "", err
 	}

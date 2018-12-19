@@ -35,6 +35,7 @@ func TxCmd() *cobra.Command {
 		GetRawTxCmd(),
 		DecodeTxCmd(),
 		GetAddrOverviewCmd(),
+		ReWriteRawTxCmd(),
 	)
 
 	return cmd
@@ -302,4 +303,51 @@ func parseAddrOverview(view interface{}) (interface{}, error) {
 		TxCount:  res.GetTxCount(),
 	}
 	return addrOverview, nil
+}
+
+// ReWriteRawTxCmd re-write raw transaction hex
+func ReWriteRawTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "rewrite",
+		Short: "rewrite transaction parameters",
+		Run:   reWriteRawTx,
+	}
+	addReWriteRawTxFlags(cmd)
+	return cmd
+}
+
+func addReWriteRawTxFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("tx", "s", "", "transaction hex")
+	cmd.MarkFlagRequired("tx")
+
+	cmd.Flags().StringP("execer", "x", "", "transaction execer (optional)")
+	cmd.Flags().StringP("to", "t", "", "to addr (optional)")
+	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional)")
+	cmd.Flags().StringP("expire", "e", "120s", "expire time (optional)")
+}
+
+func reWriteRawTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	txHash, _ := cmd.Flags().GetString("tx")
+	execer, _ := cmd.Flags().GetString("execer")
+	to, _ := cmd.Flags().GetString("to")
+	fee, _ := cmd.Flags().GetFloat64("fee")
+	expire, _ := cmd.Flags().GetString("expire")
+	expire, err := commandtypes.CheckExpireOpt(expire)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	feeInt64 := int64(fee * 1e4)
+
+	params := rpctypes.ReWriteRawTx{
+		Tx:     txHash,
+		Execer: execer,
+		To:     to,
+		Fee:    feeInt64 * 1e4,
+		Expire: expire,
+	}
+
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ReWriteRawTx", params, nil)
+	ctx.RunWithoutMarshal()
 }

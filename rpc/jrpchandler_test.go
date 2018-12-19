@@ -403,6 +403,36 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestChain33_ReWriteRawTx(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+	txHex1 := "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"
+	//txHex2 := "0a05636f696e73122d18010a29108084af5f222231484c53426e7437486e486a7857797a636a6f573863663259745550663337594d6320a08d0630dbc4cbf6fbc4e1d0533a2231484c53426e7437486e486a7857797a636a6f573863663259745550663337594d63"
+
+	reTx := &rpctypes.ReWriteRawTx{
+		Tx:     txHex1,
+		Execer: "paracross",
+		Fee:    29977777777,
+		Expire: "130s",
+		To:     "aabbccdd",
+	}
+	var testResult interface{}
+	err := testChain33.ReWriteRawTx(reTx, &testResult)
+	assert.Nil(t, err)
+	assert.NotNil(t, testResult)
+	assert.NotEqual(t, txHex1, testResult)
+	txData, err := hex.DecodeString(testResult.(string))
+	assert.Nil(t, err)
+	tx := &types.Transaction{}
+	err = types.Decode(txData, tx)
+	assert.Nil(t, err)
+	assert.Equal(t, tx.Execer, []byte(reTx.Execer))
+	assert.Equal(t, tx.Fee, reTx.Fee)
+	assert.Equal(t, int64(130000000000), tx.Expire)
+	assert.Equal(t, reTx.To, tx.To)
+
+}
+
 func TestChain33_CreateTxGroup(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)

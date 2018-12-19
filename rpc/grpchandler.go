@@ -36,6 +36,15 @@ func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.U
 	return &pb.UnsignTx{Data: reply}, nil
 }
 
+// ReWriteRawTx re-write raw tx parameters of grpc
+func (g *Grpc) ReWriteRawTx(ctx context.Context, in *pb.ReWriteRawTx) (*pb.UnsignTx, error) {
+	reply, err := g.cli.ReWriteRawTx(in)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UnsignTx{Data: reply}, nil
+}
+
 // CreateTransaction create transaction of grpc
 func (g *Grpc) CreateTransaction(ctx context.Context, in *pb.CreateTxIn) (*pb.UnsignTx, error) {
 	execer := pb.ExecName(string(in.Execer))

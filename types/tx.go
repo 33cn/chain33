@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"strconv"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
@@ -600,4 +602,38 @@ func (tx *Transaction) IsWithdraw() bool {
 		}
 	}
 	return false
+}
+
+// ParseExpire parse expire to int from during or height
+func ParseExpire(expire string) (int64, error) {
+	if len(expire) == 0 {
+		return 0, ErrInvalidParam
+	}
+	if expire[0] == 'H' && expire[1] == ':' {
+		txHeight, err := strconv.ParseInt(expire[2:], 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		if txHeight <= 0 {
+			//fmt.Printf("txHeight should be grate to 0")
+			return 0, ErrHeightLessZero
+		}
+		if txHeight+TxHeightFlag < txHeight {
+			return 0, ErrHeightOverflow
+		}
+
+		return txHeight + TxHeightFlag, nil
+	}
+
+	blockHeight, err := strconv.ParseInt(expire, 10, 64)
+	if err == nil {
+		return blockHeight, nil
+	}
+
+	expireTime, err := time.ParseDuration(expire)
+	if err == nil {
+		return int64(expireTime), nil
+	}
+
+	return 0, err
 }
