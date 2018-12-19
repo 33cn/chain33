@@ -12,6 +12,7 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 
 	_ "github.com/33cn/chain33/system/crypto/init"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateGroupTx(t *testing.T) {
@@ -134,4 +135,29 @@ func BenchmarkTxHash(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		tx12.Hash()
 	}
+}
+
+func TestParseExpire(t *testing.T) {
+	expire := ""
+	_, err := ParseExpire(expire)
+	assert.Equal(t, ErrInvalidParam, err)
+
+	expire = "H:123"
+	exp, _ := ParseExpire(expire)
+	assert.Equal(t, int64(4611686018427388027), exp)
+
+	expire = "H:-2"
+	_, err = ParseExpire(expire)
+	assert.Equal(t, ErrHeightLessZero, err)
+
+	expire = "123"
+	exp, err = ParseExpire(expire)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(123), exp)
+
+	expire = "123s"
+	exp, err = ParseExpire(expire)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(123000000000), exp)
+
 }

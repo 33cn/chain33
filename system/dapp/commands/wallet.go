@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"errors"
-
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -311,6 +309,10 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("key", "k", "", "private key (optional)")
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
+	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional)")
+	cmd.Flags().StringP("execer", "x", "", "new transaction execer (optional)")
+	cmd.Flags().StringP("to", "t", "", "new to addr (optional)")
+
 	// A duration string is a possibly signed sequence of
 	// decimal numbers, each with optional fraction and a unit suffix,
 	// such as "300ms", "-1.5h" or "2h45m".
@@ -342,77 +344,31 @@ func noBalanceTx(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-func parseTxHeight(expire string) error {
-	if len(expire) == 0 {
-		return errors.New("expire string should not be empty")
-	}
-
-	if expire[0] == 'H' && expire[1] == ':' {
-		txHeight, err := strconv.Atoi(expire[2:])
-		if err != nil {
-			return err
-		}
-		if txHeight <= 0 {
-			//fmt.Printf("txHeight should be grate to 0")
-			return errors.New("txHeight should be grate to 0")
-		}
-
-		return nil
-	}
-
-	return errors.New("Invalid expire format. Should be one of {time:\"3600s/1min/1h\" block:\"123\" txHeight:\"H:123\"}")
-}
-
-func parseExpireOpt(expire string) (string, error) {
-	//时间格式123s/1m/1h
-	expireTime, err := time.ParseDuration(expire)
-	if err == nil {
-		if expireTime < time.Minute*2 && expireTime != time.Second*0 {
-			expire = "120s"
-			fmt.Println("expire time must longer than 2 minutes, changed expire time into 2 minutes")
-		}
-
-		return expire, nil
-	}
-
-	//区块高度格式，123
-	blockInt, err := strconv.Atoi(expire)
-	if err == nil {
-		if blockInt <= 0 {
-			fmt.Printf("block height should be grate to 0")
-			return "", errors.New("block height should be grate to 0")
-		}
-		return expire, nil
-	}
-
-	//Txheight格式，H:123
-	err = parseTxHeight(expire)
-	if err != nil {
-		return "", err
-	}
-
-	return expire, err
-}
-
 func signRawTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
 	key, _ := cmd.Flags().GetString("key")
 	addr, _ := cmd.Flags().GetString("addr")
 	index, _ := cmd.Flags().GetInt32("index")
+	execer, _ := cmd.Flags().GetString("execer")
+	to, _ := cmd.Flags().GetString("to")
+	fee, _ := cmd.Flags().GetFloat64("fee")
 	expire, _ := cmd.Flags().GetString("expire")
-	expire, err := parseExpireOpt(expire)
+	expire, err := commandtypes.CheckExpireOpt(expire)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-
+	feeInt64 := int64(fee * 1e4)
 	params := types.ReqSignRawTx{
-		Addr:    addr,
-		Privkey: key,
-		TxHex:   data,
-		Expire:  expire,
-		Index:   index,
+		Addr:      addr,
+		Privkey:   key,
+		TxHex:     data,
+		Expire:    expire,
+		Index:     index,
+		Fee:       feeInt64 * 1e4,
+		NewExecer: []byte(execer),
+		NewToAddr: to,
 	}
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
 	ctx.RunWithoutMarshal()

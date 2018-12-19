@@ -205,6 +205,10 @@ message ReqSignRawTx {
     // 1：隐私交易
     // int32  mode  = 6;
     string token = 7;
+    int64  fee         = 8;
+    bytes newExecer    = 9;
+    string newToAddr   = 10;
+
 }
 
 message ReplySignRawTx {
