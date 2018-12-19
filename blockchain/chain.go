@@ -402,8 +402,10 @@ func (chain *BlockChain) InitIndexAndBestView() {
 		height = 0
 	}
 	for ; height <= curheight; height++ {
-		header, _ := chain.blockStore.GetBlockHeaderByHeight(height)
+		header, err := chain.blockStore.GetBlockHeaderByHeight(height)
 		if header == nil {
+			chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
+			panic("InitIndexAndBestView fail!")
 			return
 		}
 
