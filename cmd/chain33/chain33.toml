@@ -59,7 +59,7 @@ grpcBindAddr="localhost:8802"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
-enableTLS=true
+enableTLS=false
 certFile="cert.pem"
 keyFile="key.pem"
 

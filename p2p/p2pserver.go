@@ -7,9 +7,9 @@ package p2p
 import (
 	"encoding/hex"
 	"fmt"
-	"io"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -443,20 +443,32 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.InnerBounds))
 	}
 	log.Debug("StreamRead")
+	//检查是否有较多同一IP连接的情况
+	var remoteIp string
+	var err error
+	getctx, ok := pr.FromContext(stream.Context())
+	if ok {
+		remoteIp, _, err = net.SplitHostPort(getctx.Addr.String())
+		if err != nil {
+			return fmt.Errorf("ctx.Addr format err")
+		}
+		if s.SameIpNum(remoteIp) > 20 {
+			return fmt.Errorf("the same ip max support 20 conns")
+		}
+	} else {
+		return fmt.Errorf("getctx err")
+	}
+
 	var hash [64]byte
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
 	var in = new(pb.BroadCastData)
-	var err error
+
 	for {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
 		}
 		in, err = stream.Recv()
-		if err == io.EOF {
-			log.Info("ServerStreamRead", "Recv", "EOF")
-			return err
-		}
 		if err != nil {
 			log.Error("ServerStreamRead", "Recv", err)
 			return err
@@ -501,25 +513,22 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
-
 			if !P2pComm.CheckSign(ping) {
 				log.Error("ServerStreamRead", "check stream", "check sig err")
 				return pb.ErrStreamPing
 			}
 
-			getctx, ok := pr.FromContext(stream.Context())
-			if ok && s.node.Size() > 0 {
-				//peerIp := strings.Split(getctx.Addr.String(), ":")[0]
-				peerIP, _, err := net.SplitHostPort(getctx.Addr.String())
+			if s.node.Size() > 0 {
+				remoteIp, _, err := net.SplitHostPort(getctx.Addr.String())
 				if err != nil {
 					return fmt.Errorf("ctx.Addr format err")
 				}
-				if peerIP != LocalAddr && peerIP != s.node.nodeInfo.GetExternalAddr().IP.String() {
+				if remoteIp != LocalAddr && remoteIp != s.node.nodeInfo.GetExternalAddr().IP.String() {
 					s.node.nodeInfo.SetServiceTy(Service)
 				}
 			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
-			peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
+			peeraddr = fmt.Sprintf("%s:%v", remoteIp, in.GetPing().GetPort())
 			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
 		} else if ver := in.GetVersion(); ver != nil {
 			//接收版本信息
@@ -531,6 +540,9 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				innerpeer.p2pversion = p2pversion
 				innerpeer.softversion = softversion
 				s.addInBoundPeerInfo(peername, *innerpeer)
+			} else {
+				//没有获取到peername 的信息，说明没有获取ping的消息包
+				return pb.ErrStreamPing
 			}
 
 		}
@@ -717,4 +729,18 @@ func (s *P2pserver) getInBoundPeers() []*innerpeer {
 		peers = append(peers, innerpeer)
 	}
 	return peers
+}
+
+func (s *P2pserver) SameIpNum(ip string) int64 {
+	s.imtx.Lock()
+	defer s.imtx.Unlock()
+	var count int64
+	for _, innerpeer := range s.inboundpeers {
+		peerip := strings.Split(innerpeer.addr, ":")[0]
+		if ip == peerip {
+			count++
+		}
+	}
+
+	return count
 }

@@ -218,7 +218,7 @@ func (p *Peer) sendStream() {
 		if err := resp.Send(p2pdata); err != nil {
 			resp.CloseSend()
 			cancel()
-			log.Error("sendStream", "sendping", err)
+			log.Error("sendStream", "sendversion", err)
 			time.Sleep(time.Second)
 			continue
 		}
