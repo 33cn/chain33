@@ -444,10 +444,6 @@ func (tx *TransactionRow) Get(key string) ([]byte, error) {
 	return nil, types.ErrNotFound
 }
 
-func (tx *TransactionRow) Prefix(indexName string) ([]byte, error) {
-	return nil, nil
-}
-
 func getdb() (string, db.DB, db.KVDB) {
 	dir, err := ioutil.TempDir("", "goleveldb")
 	if err != nil {
