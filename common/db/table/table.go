@@ -53,7 +53,6 @@ type RowMeta interface {
 	CreateRow() *Row
 	SetPayload(types.Message) error
 	Get(key string) ([]byte, error)
-	Prefix(indexName string) ([]byte, error)
 }
 
 //Row 行操作
