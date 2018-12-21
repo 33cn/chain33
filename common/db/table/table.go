@@ -53,6 +53,7 @@ type RowMeta interface {
 	CreateRow() *Row
 	SetPayload(types.Message) error
 	Get(key string) ([]byte, error)
+	Prefix(indexName string) ([]byte, error)
 }
 
 //Row 行操作
@@ -137,7 +138,7 @@ func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 		return nil, ErrTooManyIndex
 	}
 	for _, index := range opt.Index {
-		if strings.Contains(index, sep) {
+		if strings.Contains(index, sep) || strings.Contains(index, "primary") {
 			return nil, ErrIndexKey
 		}
 	}

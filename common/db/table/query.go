@@ -15,6 +15,28 @@ type Query struct {
 	kvdb  db.KVDB
 }
 
+//List 通过某个数据，查询
+func (query *Query) List(indexName string, data types.Message, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
+	var prefix []byte
+	if data != nil {
+		query.table.meta.SetPayload(data)
+		prefix, err = query.table.meta.Get(indexName)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return query.ListIndex(indexName, prefix, primaryKey, count, direction)
+}
+
+//ListOne 通过某个数据，查询一行
+func (query *Query) ListOne(indexName string, data types.Message, primaryKey []byte) (row *Row, err error) {
+	rows, err := query.List(indexName, data, primaryKey, 1, db.ListDESC)
+	if err != nil {
+		return nil, err
+	}
+	return rows[0], nil
+}
+
 //ListIndex 根据索引查询列表
 //index 用哪个index
 //prefix 必须要符合的前缀, 可以为空
@@ -22,8 +44,8 @@ type Query struct {
 //count 最多取的数量
 //direction 方向
 func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
-	if indexName == "" {
-		return query.ListPrimary(prefix, primaryKey, count, direction)
+	if indexName == "" || indexName == "auto" || indexName == "primary" {
+		return query.listPrimary(prefix, primaryKey, count, direction)
 	}
 	p := query.table.indexPrefix(indexName)
 	var k []byte
@@ -60,11 +82,14 @@ func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte
 		}
 		rows = append(rows, row)
 	}
+	if len(rows) == 0 {
+		return nil, types.ErrNotFound
+	}
 	return rows, nil
 }
 
 //ListPrimary list primary data
-func (query *Query) ListPrimary(prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
+func (query *Query) listPrimary(prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	p := query.table.primaryPrefix()
 	var k []byte
 	if primaryKey != nil {
@@ -89,6 +114,9 @@ func (query *Query) ListPrimary(prefix []byte, primaryKey []byte, count, directi
 			return nil, err
 		}
 		rows = append(rows, row)
+	}
+	if len(rows) == 0 {
+		return nil, types.ErrNotFound
 	}
 	return rows, nil
 }
