@@ -20,6 +20,9 @@ func (query *Query) List(indexName string, data types.Message, primaryKey []byte
 	var prefix []byte
 	if data != nil {
 		query.table.meta.SetPayload(data)
+		if isPrimaryIndex(indexName) {
+			indexName = query.table.opt.Primary
+		}
 		prefix, err = query.table.meta.Get(indexName)
 		if err != nil {
 			return nil, err
@@ -37,6 +40,10 @@ func (query *Query) ListOne(indexName string, data types.Message, primaryKey []b
 	return rows[0], nil
 }
 
+func isPrimaryIndex(indexName string) bool {
+	return indexName == "" || indexName == "auto" || indexName == "primary"
+}
+
 //ListIndex 根据索引查询列表
 //index 用哪个index
 //prefix 必须要符合的前缀, 可以为空
@@ -44,7 +51,7 @@ func (query *Query) ListOne(indexName string, data types.Message, primaryKey []b
 //count 最多取的数量
 //direction 方向
 func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
-	if indexName == "" || indexName == "auto" || indexName == "primary" {
+	if isPrimaryIndex(indexName) {
 		return query.listPrimary(prefix, primaryKey, count, direction)
 	}
 	p := query.table.indexPrefix(indexName)
