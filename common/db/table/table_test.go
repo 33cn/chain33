@@ -143,7 +143,11 @@ func TestTransactinList(t *testing.T) {
 	assert.Equal(t, row, rows[0])
 
 	primary = rows[0].Primary
-	rows, err = query.ListIndex("auto", primary[0:10], nil, 0, 0)
+	rows, err = query.ListIndex("auto", primary, nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+
+	rows, err = query.List("", rows[0].Data, nil, 0, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(rows))
 

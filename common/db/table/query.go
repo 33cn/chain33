@@ -20,10 +20,11 @@ func (query *Query) List(indexName string, data types.Message, primaryKey []byte
 	var prefix []byte
 	if data != nil {
 		query.table.meta.SetPayload(data)
+		querykey := indexName
 		if isPrimaryIndex(indexName) {
-			indexName = query.table.opt.Primary
+			querykey = query.table.opt.Primary
 		}
-		prefix, err = query.table.meta.Get(indexName)
+		prefix, err = query.table.meta.Get(querykey)
 		if err != nil {
 			return nil, err
 		}
