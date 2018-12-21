@@ -22,7 +22,7 @@ type Count struct {
 
 //NewCount 创建一个计数器
 func NewCount(prefix string, name string, kvdb db.KV) *Count {
-	keydata := []byte(prefix + "#" + name)
+	keydata := []byte(prefix + sep + name)
 	return &Count{
 		prefix:  prefix,
 		name:    name,
