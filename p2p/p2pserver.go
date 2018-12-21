@@ -519,10 +519,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			}
 
 			if s.node.Size() > 0 {
-				remoteIp, _, err := net.SplitHostPort(getctx.Addr.String())
-				if err != nil {
-					return fmt.Errorf("ctx.Addr format err")
-				}
+
 				if remoteIp != LocalAddr && remoteIp != s.node.nodeInfo.GetExternalAddr().IP.String() {
 					s.node.nodeInfo.SetServiceTy(Service)
 				}
