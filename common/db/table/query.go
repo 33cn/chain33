@@ -52,7 +52,7 @@ func isPrimaryIndex(indexName string) bool {
 //count 最多取的数量
 //direction 方向
 func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
-	if isPrimaryIndex(indexName) {
+	if isPrimaryIndex(indexName) || indexName == query.table.opt.Primary {
 		return query.listPrimary(prefix, primaryKey, count, direction)
 	}
 	p := query.table.indexPrefix(indexName)
