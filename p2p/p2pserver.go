@@ -444,15 +444,15 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 	}
 	log.Debug("StreamRead")
 	//检查是否有较多同一IP连接的情况
-	var remoteIp string
+	var remoteIP string
 	var err error
 	getctx, ok := pr.FromContext(stream.Context())
 	if ok {
-		remoteIp, _, err = net.SplitHostPort(getctx.Addr.String())
+		remoteIP, _, err = net.SplitHostPort(getctx.Addr.String())
 		if err != nil {
 			return fmt.Errorf("ctx.Addr format err")
 		}
-		if s.SameIpNum(remoteIp) > 20 {
+		if s.sameIPNum(remoteIP) > 20 {
 			return fmt.Errorf("the same ip max support 20 conns")
 		}
 	} else {
@@ -520,12 +520,12 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 			if s.node.Size() > 0 {
 
-				if remoteIp != LocalAddr && remoteIp != s.node.nodeInfo.GetExternalAddr().IP.String() {
+				if remoteIP != LocalAddr && remoteIP != s.node.nodeInfo.GetExternalAddr().IP.String() {
 					s.node.nodeInfo.SetServiceTy(Service)
 				}
 			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
-			peeraddr = fmt.Sprintf("%s:%v", remoteIp, in.GetPing().GetPort())
+			peeraddr = fmt.Sprintf("%s:%v", remoteIP, in.GetPing().GetPort())
 			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
 		} else if ver := in.GetVersion(); ver != nil {
 			//接收版本信息
@@ -728,7 +728,7 @@ func (s *P2pserver) getInBoundPeers() []*innerpeer {
 	return peers
 }
 
-func (s *P2pserver) SameIpNum(ip string) int64 {
+func (s *P2pserver) sameIPNum(ip string) int64 {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
 	var count int64
