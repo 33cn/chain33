@@ -6,6 +6,7 @@ package executor
 
 import (
 	"bytes"
+
 	"github.com/pkg/errors"
 
 	drivers "github.com/33cn/chain33/system/dapp"
