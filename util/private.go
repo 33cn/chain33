@@ -4,7 +4,6 @@
 
 package util
 
-
 import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
@@ -29,7 +28,7 @@ addr:1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF
 addr:1PUiGcbsccfxW3zuvHXZBJfznziph5miAo
 addr:1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa
 addr:1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX
- */
+*/
 var TestPrivkeyList = []crypto.PrivKey{
 	HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"),
 	HexToPrivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"),
