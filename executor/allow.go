@@ -62,7 +62,7 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 }
 
 func isAllowLocalKey(execer []byte, key []byte) error {
-	err := isAllowLocalKey2(execer, key);
+	err := isAllowLocalKey2(execer, key)
 	if err != nil {
 		realexec := types.GetRealExecName(execer)
 		if !bytes.Equal(realexec, execer) {
