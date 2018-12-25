@@ -77,9 +77,9 @@ func (up *UpdateInitFileTask) genInitFile() error {
 	}
 	var importStr, content string
 	for _, item := range up.itemDatas {
-		importStr += fmt.Sprintf("_ \"%s\"\r\n", item.path)
+		importStr += fmt.Sprintf("_ \"%s\"\n", item.path)
 	}
-	content = fmt.Sprintf("package init \r\n\r\nimport (\r\n%s)\r\n", importStr)
+	content = fmt.Sprintf("package init \n\nimport (\n%s)\n", importStr)
 
 	util.DeleteFile(up.initFile)
 	_, err := util.WriteStringToFile(up.initFile, content)
