@@ -45,8 +45,8 @@ message Blocks {
 }
 
 message BlockSeqCB {
-    string name = 1;
-    string URL = 2;
+    string name   = 1;
+    string URL    = 2;
     string encode = 3;
 }
 
@@ -55,9 +55,9 @@ message BlockSeqCBs {
 }
 
 message BlockSeq {
-    int64 num = 1;
-    BlockSequence seq = 2;
-    BlockDetail detail = 3;
+    int64         num    = 1;
+    BlockSequence seq    = 2;
+    BlockDetail   detail = 3;
 }
 
 //节点ID以及对应的Block

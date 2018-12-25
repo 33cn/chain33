@@ -125,7 +125,7 @@ service chain33 {
     //获取指定区间的block加载序列号信息
     rpc GetBlockSequences(ReqBlocks) returns (BlockSequences) {}
 
-    //get add block's sequence by hash
+    // get add block's sequence by hash
     rpc GetSequenceByHash(ReqHash) returns (Int64) {}
 
     //通过block hash 获取对应的blocks信息
@@ -139,7 +139,7 @@ service chain33 {
     rpc SignRawTx(ReqSignRawTx) returns (ReplySignRawTx) {}
 
     rpc CreateNoBalanceTransaction(NoBalanceTx) returns (ReplySignRawTx) {}
-    
-	// 获取随机HASH
-    rpc QueryRandNum(ReqRandHash) returns(ReplyHash) {}
+
+    // 获取随机HASH
+    rpc QueryRandNum(ReqRandHash) returns (ReplyHash) {}
 }
