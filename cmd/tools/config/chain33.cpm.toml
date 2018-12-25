@@ -1,5 +1,5 @@
 # type字段仅支持 consensus  dapp store mempool
-[blackwhite]
+[mempool-price]
 type = "mempool"
 gitrepo = "github.com/33cn/plugin/plugin/mempool/price"
 version=""

@@ -206,11 +206,11 @@ func (im *importPackageStrategy) generateImportFile() error {
 	importStrs := map[string]string{}
 	for name, plugins := range im.items {
 		for _, item := range plugins {
-			importStrs[name] += fmt.Sprintf("\r\n_ \"%s\" //auto gen", item.gitRepo)
+			importStrs[name] += fmt.Sprintf("\n_ \"%s\" //auto gen", item.gitRepo)
 		}
 	}
 	for key, value := range importStrs {
-		content := fmt.Sprintf("package init\r\n\r\nimport(%s\r\n)", value)
+		content := fmt.Sprintf("package init\n\nimport(%s\n)", value)
 		initFile := fmt.Sprintf("%s/%s/init/init.go", im.projPluginPath, key)
 		util.MakeDir(initFile)
 
