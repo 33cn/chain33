@@ -20,8 +20,8 @@ var TestPrivkeyHex = []string{
 	"2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989",
 }
 
-//TestPrivkeyList ：
 /*
+TestPrivkeyList: crypto.PrivKey list
 addr:12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv
 addr:14KEKbYtKKQm4wMthSK9J4La4nAiidGozt
 addr:1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF
