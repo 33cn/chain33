@@ -191,7 +191,7 @@ type Chain33Client interface {
 	GetLastBlockSequence(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Int64, error)
 	//获取指定区间的block加载序列号信息
 	GetBlockSequences(ctx context.Context, in *ReqBlocks, opts ...grpc.CallOption) (*BlockSequences, error)
-	//get add block's sequence by hash
+	// get add block's sequence by hash
 	GetSequenceByHash(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*Int64, error)
 	//通过block hash 获取对应的blocks信息
 	GetBlockByHashes(ctx context.Context, in *ReqHashes, opts ...grpc.CallOption) (*BlockDetails, error)
@@ -760,7 +760,7 @@ type Chain33Server interface {
 	GetLastBlockSequence(context.Context, *ReqNil) (*Int64, error)
 	//获取指定区间的block加载序列号信息
 	GetBlockSequences(context.Context, *ReqBlocks) (*BlockSequences, error)
-	//get add block's sequence by hash
+	// get add block's sequence by hash
 	GetSequenceByHash(context.Context, *ReqHash) (*Int64, error)
 	//通过block hash 获取对应的blocks信息
 	GetBlockByHashes(context.Context, *ReqHashes) (*BlockDetails, error)
