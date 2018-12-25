@@ -8,11 +8,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/33cn/chain33/cmd/tools/tasks"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/33cn/chain33/cmd/tools/tasks"
 )
 
 type updateInitStrategy struct {
