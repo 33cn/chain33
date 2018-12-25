@@ -63,9 +63,9 @@ func (up *UpdateInitFileTask) init() error {
 	}
 	// 获取所有文件
 	files, _ := ioutil.ReadDir(up.Folder)
-	for _,file := range files {
-		if file.IsDir() &&file.Name()!="init"{
-			up.itemDatas=append(up.itemDatas,&itemData{strings.Replace(up.Folder,gopath+"/src/","",1)+file.Name()})
+	for _, file := range files {
+		if file.IsDir() && file.Name() != "init" {
+			up.itemDatas = append(up.itemDatas, &itemData{strings.Replace(up.Folder, gopath+"/src/", "", 1) + file.Name()})
 		}
 	}
 	return nil
