@@ -76,28 +76,7 @@ jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
 
 [mempool]
-name="timeline"
-poolCacheSize=10240
-minTxFee=100000
-maxTxNumPerAccount=10000
-
-[mempool.sub.timeline]
-poolCacheSize=10240
-minTxFee=100000
-maxTxNumPerAccount=10000
-
-[mempool.sub.score]
-poolCacheSize=10240
-minTxFee=100000
-maxTxNumPerAccount=10000
-timeParam=1      #时间占价格比例
-priceConstant=1544  #手续费相对于时间的一个合适的常量,取当前unxi时间戳前四位数,排序时手续费高1e-5~=快1s
-pricePower=1     #常量比例
-
-[mempool.sub.price]
-poolCacheSize=10240
-minTxFee=100000
-maxTxNumPerAccount=10000
+maxTxNumPerAccount=100
 
 [store]
 dbPath="datadir/mavltree"
@@ -145,25 +124,8 @@ serverStart=true
 msgCacheSize=10240
 driver="leveldb"
 [mempool]
-name="timeline"
-poolCacheSize=10240
+poolCacheSize=102400
 minTxFee=100000
-maxTxNumPerAccount=10000
-[mempool.sub.timeline]
-poolCacheSize=10240
-minTxFee=100000
-maxTxNumPerAccount=10000
-[mempool.sub.score]
-poolCacheSize=10240
-minTxFee=100000
-maxTxNumPerAccount=10000
-timeParam=1      #时间占价格比例
-priceConstant=1544  #手续费相对于时间的一个合适的常量,取当前unxi时间戳前四位数,排序时手续费高1e-5~=快1s
-priceP
-[mempool.sub.price]
-poolCacheSize=10240
-minTxFee=100000
-maxTxNumPerAccount=10000
 [consensus]
 name="ticket"
 minerstart=true
@@ -333,6 +295,7 @@ clean:
 	@rm -rf plugin/dapp/init
 	@rm -rf plugin/crypto/init
 	@rm -rf plugin/store/init
+	@rm -rf plugin/mempool/init
 `
 
 	// 生成 .travis.yml 文件模板
@@ -364,6 +327,12 @@ gitrepo = "github.com/33cn/plugin/plugin/dapp/token"
 
 [dapp-trade]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/trade"
+
+[mempool-price]
+gitrepo = "github.com/33cn/plugin/plugin/mempool/price"
+
+[mempool-score]
+gitrepo = "github.com/33cn/plugin/plugin/mempool/score"
 `
 	// 项目 cli/main.go 文件模板
 	CpftCliMain = `package main

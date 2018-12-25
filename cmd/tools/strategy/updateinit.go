@@ -8,19 +8,19 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/33cn/chain33/cmd/tools/tasks"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/33cn/chain33/cmd/tools/tasks"
+	"strings"
 )
 
 type updateInitStrategy struct {
 	strategyBasic
-	consRootPath   string
-	dappRootPath   string
-	storeRootPath  string
-	cryptoRootPath string
+	consRootPath    string
+	dappRootPath    string
+	storeRootPath   string
+	cryptoRootPath  string
 	mempoolRootPath string
 }
 
@@ -36,11 +36,14 @@ func (up *updateInitStrategy) Run() error {
 func (up *updateInitStrategy) initMember() error {
 	path, err := up.getParam("path")
 	packname, _ := up.getParam("packname")
+	gopath := os.Getenv("GOPATH")
 	if err != nil || path == "" {
-		gopath := os.Getenv("GOPATH")
 		if len(gopath) > 0 {
 			path = filepath.Join(gopath, "/src/github.com/33cn/chain33/plugin/")
 		}
+	}
+	if packname==""{
+		packname=strings.Replace(path,gopath+"/src/","",1)
 	}
 	if len(path) == 0 {
 		return errors.New("Chain33 Plugin Not Existed")
@@ -80,7 +83,8 @@ import (
 	_ "${packname}/dapp/init"      //dapp init
 	_ "${packname}/store/init"     //store init
     _ "${packname}/mempool/init"   //mempool init
-)`)
+)
+`)
 		data = bytes.Replace(data, []byte("${packname}"), []byte(packname), -1)
 		ioutil.WriteFile(path, data, 0666)
 	}
