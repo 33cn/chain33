@@ -42,8 +42,8 @@ func (up *updateInitStrategy) initMember() error {
 			path = filepath.Join(gopath, "/src/github.com/33cn/chain33/plugin/")
 		}
 	}
-	if packname==""{
-		packname=strings.Replace(path,gopath+"/src/","",1)
+	if packname == "" {
+		packname = strings.Replace(path, gopath+"/src/", "", 1)
 	}
 	if len(path) == 0 {
 		return errors.New("Chain33 Plugin Not Existed")
