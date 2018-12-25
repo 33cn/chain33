@@ -93,6 +93,9 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) error {
 		return types.ErrInvalidParam
 	}
 
+	if !isRecordBlockSequence {
+		return types.ErrRecordBlockSequence
+	}
 	if chain.blockStore.seqCBNum() >= MaxSeqCB && !chain.blockStore.isSeqCBExist(cb.Name) {
 		return types.ErrTooManySeqCB
 	}
