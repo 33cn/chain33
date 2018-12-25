@@ -245,12 +245,13 @@ func (db *GoLevelDB) NewBatch(sync bool) Batch {
 
 func (mBatch *goLevelDBBatch) Set(key, value []byte) {
 	mBatch.batch.Put(key, value)
+	mBatch.size += len(key)
 	mBatch.size += len(value)
 }
 
 func (mBatch *goLevelDBBatch) Delete(key []byte) {
 	mBatch.batch.Delete(key)
-	mBatch.size++
+	mBatch.size += len(key)
 }
 
 func (mBatch *goLevelDBBatch) Write() error {

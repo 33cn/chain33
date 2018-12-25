@@ -19,6 +19,7 @@ import (
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/types"
+	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -874,150 +875,419 @@ func TestMaxLevalDbValue(t *testing.T) {
 	}
 }
 
-func TestPruningHashNode(t *testing.T) {
-	//开启前缀时候需要加入在叶子节点hash上加入：5f6d625f2d303030303030303030302d
-	/* 叶子节点对应hash值
-			k:abc     v:abc     hash:0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d
-		    k:fan     v:fan     hash:0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114
-		    k:foml    v:foml    hash:0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0
-		    k:foo     v:foo     hash:0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2
-		    k:foobang v:foobang hash:0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be
-			k:foobar  v:foobar  hash:0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93
-			k:foobaz  v:foobaz  hash:0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b
-		    k:food    v:food    hash:0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39
-		    k:good    v:good    hash:0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776
-		    k:low     v:low     hash:0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786
-
-	        height:0 hash:d95f left: right: parentHash:967b
-	        height:0 hash:3bf2 left: right: parentHash:cf1e
-			height:0 hash:0ac6 left: right: parentHash:cf1e
-			height:1 hash:cf1e left:3bf2 right:0ac6 parentHash:
-			height:2 hash:967b left:d95f right:cf1e parentHash:
-			height:0 hash:890d left: right: parentHash:c0bf
-			height:0 hash:6d46 left: right: parentHash:2f47
-			height:0 hash:5308 left: right: parentHash:2f47
-			height:1 hash:2f47 left:6d46 right:5308 parentHash:
-			height:2 hash:c0bf left:890d right:2f47 parentHash:
-			height:3 hash:d556 left:967b right:c0bf parentHash:
-			height:0 hash:cbcb left: right: parentHash:121e
-			height:0 hash:e508 left: right: parentHash:121e
-			height:1 hash:121e left:cbcb right:e508 parentHash:
-			height:0 hash:0c99 left: right: parentHash:00ab
-			height:0 hash:5a82 left: right: parentHash:00ab
-			height:1 hash:00ab left:0c99 right:5a82 parentHash:
-			height:2 hash:5202 left:121e right:00ab parentHash:
-			height:4 hash:1134 left:d556 right:5202 parentHash:
-	*/
-
+func TestPruningFirstLevelNode(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
 	t.Log(dir)
+	defer os.RemoveAll(dir)
 
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
-	EnablePrune(true)
-	defer EnablePrune(false)
-
-	db := db.NewDB("mavltree", "leveldb", dir, 100)
-	tree := NewTree(db, true)
-
-	type record struct {
-		key   string
-		value string
-	}
-	records := []record{
-		{"abc", "abc"},
-		{"low", "low"},
-		{"fan", "fan"},
-		{"foo", "foo"},
-		{"foobaz", "foobaz"},
-		{"good", "good"},
-		//{"foobang", "foobang"},
-		//{"foobar", "foobar"},
-		//{"food", "food"},
-		//{"foml", "foml"},
+	db1 := db.NewDB("mavltree", "leveldb", dir, 100)
+	//add node data
+	nodes1 := []Node{
+		{key: []byte("11111111"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"), height: 1},
+		{key: []byte("11111111"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44a"), height: 5000},
+		{key: []byte("11111111"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44b"), height: 10000},
+		{key: []byte("11111111"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44c"), height: 30000},
+		{key: []byte("11111111"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44e"), height: 40000},
+		{key: []byte("11111111"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44f"), height: 450000},
 	}
 
-	keys := make([]string, len(records))
-	for i, r := range records {
-		keys[i] = r.key
+	nodes2 := []Node{
+		{key: []byte("22222222"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc45d"), height: 1},
+		{key: []byte("22222222"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc45a"), height: 5000},
+		{key: []byte("22222222"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc45b"), height: 10000},
+		{key: []byte("22222222"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc45c"), height: 30000},
+		{key: []byte("22222222"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc45e"), height: 40000},
+		{key: []byte("22222222"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc45f"), height: 450000},
 	}
-	sort.Strings(keys)
 
-	for _, r := range records {
-		updated := tree.Set([]byte(r.key), []byte(r.value))
-		if updated {
-			t.Error("should have not been updated")
+	hashNodes1 := []types.PruneData{
+		{Hashs: [][]byte{[]byte("113"), []byte("114"), []byte("115"), []byte("116"), []byte("117"), []byte("118")}},
+		{Hashs: [][]byte{[]byte("123"), []byte("124"), []byte("125"), []byte("126"), []byte("127"), []byte("128")}},
+		{Hashs: [][]byte{[]byte("133"), []byte("134"), []byte("135"), []byte("136"), []byte("137"), []byte("138")}},
+		{Hashs: [][]byte{[]byte("143"), []byte("144"), []byte("145"), []byte("146"), []byte("147"), []byte("148")}},
+		{Hashs: [][]byte{[]byte("153"), []byte("154"), []byte("155"), []byte("156"), []byte("157"), []byte("158")}},
+		{Hashs: [][]byte{[]byte("163"), []byte("164"), []byte("165"), []byte("166"), []byte("167"), []byte("168")}},
+	}
+
+	hashNodes2 := []types.PruneData{
+		{Hashs: [][]byte{[]byte("213"), []byte("214"), []byte("215"), []byte("216"), []byte("217"), []byte("218")}},
+		{Hashs: [][]byte{[]byte("223"), []byte("224"), []byte("225"), []byte("226"), []byte("227"), []byte("228")}},
+		{Hashs: [][]byte{[]byte("233"), []byte("234"), []byte("235"), []byte("236"), []byte("237"), []byte("238")}},
+		{Hashs: [][]byte{[]byte("243"), []byte("244"), []byte("245"), []byte("246"), []byte("247"), []byte("248")}},
+		{Hashs: [][]byte{[]byte("253"), []byte("254"), []byte("255"), []byte("256"), []byte("257"), []byte("258")}},
+		{Hashs: [][]byte{[]byte("263"), []byte("264"), []byte("265"), []byte("266"), []byte("267"), []byte("268")}},
+	}
+
+	batch := db1.NewBatch(true)
+	for i, node := range nodes1 {
+		k := genLeafCountKey(node.key, node.hash, int64(node.height), len(node.hash))
+		data := &types.PruneData{
+			Hashs: hashNodes1[i].Hashs,
+		}
+		v, err := proto.Marshal(data)
+		if err != nil {
+			panic(err)
+		}
+		// 保存索引节点
+		batch.Set(k, v)
+		// 保存叶子节点
+		batch.Set(node.hash, node.key)
+		// 保存hash节点
+		for _, hash := range data.Hashs {
+			batch.Set(hash, hash)
 		}
 	}
-	hash := tree.Save()
+	for i, node := range nodes2 {
+		k := genLeafCountKey(node.key, node.hash, int64(node.height), len(node.hash))
+		data := &types.PruneData{
+			Hashs: hashNodes2[i].Hashs,
+		}
+		v, err := proto.Marshal(data)
+		if err != nil {
+			panic(err)
+		}
+		// 保存索引节点
+		batch.Set(k, v)
+		// 保存叶子节点
+		batch.Set(node.hash, node.key)
+		// 保存hash节点
+		for _, hash := range data.Hashs {
+			batch.Set(hash, hash)
+		}
+	}
+	batch.Write()
+	db1.Close()
 
-	tree1 := NewTree(db, true)
-	tree1.Load(hash)
-	records1 := []record{
-		{"abc", "abc1"},
-		{"low", "low1"},
-		{"fan", "fan1"},
-		{"foo", "foo1"},
-		//新增
-		{"foobang", "foobang"},
-		{"foobar", "foobar"},
-		{"food", "food"},
-		{"foml", "foml"},
-	}
-	for _, r := range records1 {
-		tree1.Set([]byte(r.key), []byte(r.value))
-	}
-	hash1 := tree1.Save()
+	SetPruneHeight(5000)
+	db2 := db.NewDB("mavltree", "leveldb", dir, 100)
 
-	//加入前缀的叶子节点
-	keyLeafs := []record{
-		{"abc", "0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"},
-		{"low", "0x5f6d625f2d303030303030303030302d5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
-		{"fan", "0x5f6d625f2d303030303030303030302d3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114"},
-		{"foo", "0x5f6d625f2d303030303030303030302d890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2"},
+	var existHashs [][]byte
+	var noExistHashs [][]byte
 
-		{"foml", "0x5f6d625f2d303030303030303030302d0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0"},
-		{"foobang", "0x5f6d625f2d303030303030303030302d6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be"},
-		{"foobar", "0x5f6d625f2d303030303030303030302d5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93"},
-		{"foobaz", "0x5f6d625f2d303030303030303030302dcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b"},
-		{"food", "0x5f6d625f2d303030303030303030302de5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39"},
-		{"good", "0x5f6d625f2d303030303030303030302d0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
+	//当前高度设置为10000,只能删除高度为1的节点
+	pruningFirstLevel(db2, 10000)
+
+	for i, node := range nodes1 {
+		if i >= 1 {
+			existHashs = append(existHashs, node.hash)
+			existHashs = append(existHashs, hashNodes1[i].Hashs...)
+		} else {
+			noExistHashs = append(noExistHashs, node.hash)
+			noExistHashs = append(noExistHashs, hashNodes1[i].Hashs...)
+		}
 	}
-	//删除
-	delLeafs := []record{
-		{keyLeafs[0].key, keyLeafs[0].value},
-		{keyLeafs[1].key, keyLeafs[1].value},
-		{keyLeafs[2].key, keyLeafs[2].value},
-		{keyLeafs[3].key, keyLeafs[3].value},
+	for i, node := range nodes2 {
+		if i >= 1 {
+			existHashs = append(existHashs, node.hash)
+			existHashs = append(existHashs, hashNodes1[i].Hashs...)
+		} else {
+			noExistHashs = append(noExistHashs, node.hash)
+			noExistHashs = append(noExistHashs, hashNodes1[i].Hashs...)
+		}
 	}
-	mpleafHash := make(map[string]bool)
-	for _, d := range delLeafs {
-		k, _ := FromHex(d.value)
-		mpleafHash[string(k)] = true
+	verifyNodeExist(t, db2, existHashs, noExistHashs)
+
+	//当前高度设置为20000, 删除高度为1000的
+	pruningFirstLevel(db2, 20000)
+
+	existHashs = existHashs[:0][:0]
+	existHashs = noExistHashs[:0][:0]
+	for i, node := range nodes1 {
+		if i >= 2 {
+			existHashs = append(existHashs, node.hash)
+			existHashs = append(existHashs, hashNodes1[i].Hashs...)
+		} else {
+			noExistHashs = append(noExistHashs, node.hash)
+			noExistHashs = append(noExistHashs, hashNodes1[i].Hashs...)
+		}
 	}
-	pruningHashNode(db, mpleafHash)
-	tree2 := NewTree(db, true)
-	err = tree2.Load(hash1)
+	for i, node := range nodes2 {
+		if i >= 2 {
+			existHashs = append(existHashs, node.hash)
+			existHashs = append(existHashs, hashNodes1[i].Hashs...)
+		} else {
+			noExistHashs = append(noExistHashs, node.hash)
+			noExistHashs = append(noExistHashs, hashNodes1[i].Hashs...)
+		}
+	}
+	verifyNodeExist(t, db2, existHashs, noExistHashs)
+
+	//目前还剩下 10000 30000 40000 450000
+	//当前高度设置为510001, 将高度为10000的加入二级节点,删除30000 40000节点
+	pruningFirstLevel(db2, 510001)
+	existHashs = existHashs[:0][:0]
+	existHashs = noExistHashs[:0][:0]
+	for i, node := range nodes1 {
+		if i >= 5 {
+			existHashs = append(existHashs, node.hash)
+			existHashs = append(existHashs, hashNodes1[i].Hashs...)
+		} else if i == 2 {
+
+		} else {
+			noExistHashs = append(noExistHashs, node.hash)
+			noExistHashs = append(noExistHashs, hashNodes1[i].Hashs...)
+		}
+	}
+	for i, node := range nodes2 {
+		if i >= 5 {
+			existHashs = append(existHashs, node.hash)
+			existHashs = append(existHashs, hashNodes1[i].Hashs...)
+		} else if i == 2 {
+
+		} else {
+			noExistHashs = append(noExistHashs, node.hash)
+			noExistHashs = append(noExistHashs, hashNodes1[i].Hashs...)
+		}
+	}
+	verifyNodeExist(t, db2, existHashs, noExistHashs)
+
+	//检查转换成二级裁剪高度的节点
+	var secLevelNodes []*Node
+	secLevelNodes = append(secLevelNodes, &nodes1[2])
+	secLevelNodes = append(secLevelNodes, &nodes2[2])
+	VerifySecLevelCountNodeExist(t, db2, secLevelNodes)
+}
+
+func verifyNodeExist(t *testing.T, dbm db.DB, existHashs [][]byte, noExistHashs [][]byte) {
+	for _, hash := range existHashs {
+		_, err := dbm.Get(hash)
+		if err != nil {
+			require.NoError(t, fmt.Errorf("this node should exist %s", string(hash)))
+		}
+	}
+
+	for _, hash := range noExistHashs {
+		v, err := dbm.Get(hash)
+		if err == nil || len(v) > 0 {
+			require.NoError(t, fmt.Errorf("this node should not exist %s", string(hash)))
+		}
+	}
+}
+
+func VerifySecLevelCountNodeExist(t *testing.T, dbm db.DB, nodes []*Node) {
+	for _, node := range nodes {
+		_, err := dbm.Get(genOldLeafCountKey(node.key, node.hash, int64(node.height), len(node.hash)))
+		if err != nil {
+			require.NoError(t, fmt.Errorf("this node should exist key: %s, hash: %s", string(node.key), string(node.hash)))
+		}
+	}
+}
+
+func TestPruningSecondLevelNode(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
-	upRecords := []record{
-		{"abc", "abc1"},
-		{"low", "low1"},
-		{"fan", "fan1"},
-		{"foo", "foo1"},
-		{"foobaz", "foobaz"},
-		{"good", "good"},
+	t.Log(dir)
+	defer os.RemoveAll(dir)
 
-		{"foobang", "foobang"},
-		{"foobar", "foobar"},
-		{"food", "food"},
-		{"foml", "foml"},
-	}
-	for _, k := range upRecords {
-		_, v, _ := tree2.Get([]byte(k.key))
-		assert.Equal(t, []byte(k.value), v)
+	db1 := db.NewDB("mavltree", "leveldb", dir, 100)
+	//add node data
+	nodes1 := []Node{
+		{key: []byte("11111111"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"), height: 1},
+		{key: []byte("11111111"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44a"), height: 5000},
+		{key: []byte("11111111"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44b"), height: 10000},
 	}
 
+	nodes2 := []Node{
+		{key: []byte("22222222"), hash: []byte("d95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc45d"), height: 1},
+	}
+
+	hashNodes1 := []types.PruneData{
+		{Hashs: [][]byte{[]byte("113"), []byte("114"), []byte("115"), []byte("116"), []byte("117"), []byte("118")}},
+		{Hashs: [][]byte{[]byte("123"), []byte("124"), []byte("125"), []byte("126"), []byte("127"), []byte("128")}},
+		{Hashs: [][]byte{[]byte("133"), []byte("134"), []byte("135"), []byte("136"), []byte("137"), []byte("138")}},
+	}
+
+	hashNodes2 := []types.PruneData{
+		{Hashs: [][]byte{[]byte("213"), []byte("214"), []byte("215"), []byte("216"), []byte("217"), []byte("218")}},
+	}
+
+	batch := db1.NewBatch(true)
+	for i, node := range nodes1 {
+		k := genOldLeafCountKey(node.key, node.hash, int64(node.height), len(node.hash))
+		data := &types.PruneData{
+			Hashs: hashNodes1[i].Hashs,
+		}
+		v, err := proto.Marshal(data)
+		if err != nil {
+			panic(err)
+		}
+		// 保存索引节点
+		batch.Set(k, v)
+		// 保存叶子节点
+		batch.Set(node.hash, node.key)
+		// 保存hash节点
+		for _, hash := range data.Hashs {
+			batch.Set(hash, hash)
+		}
+	}
+	for i, node := range nodes2 {
+		k := genOldLeafCountKey(node.key, node.hash, int64(node.height), len(node.hash))
+		data := &types.PruneData{
+			Hashs: hashNodes2[i].Hashs,
+		}
+		v, err := proto.Marshal(data)
+		if err != nil {
+			panic(err)
+		}
+		// 保存索引节点
+		batch.Set(k, v)
+		// 保存叶子节点
+		batch.Set(node.hash, node.key)
+		// 保存hash节点
+		for _, hash := range data.Hashs {
+			batch.Set(hash, hash)
+		}
+	}
+	batch.Write()
+	db1.Close()
+
+	SetPruneHeight(5000)
+	db2 := db.NewDB("mavltree", "leveldb", dir, 100)
+
+	var existHashs [][]byte
+	var noExistHashs [][]byte
+
+	//当前高度设置为1500010,只能删除高度为1的节点
+	pruningSecondLevel(db2, 1500010)
+
+	for i, node := range nodes1 {
+		if i >= 2 {
+			existHashs = append(existHashs, node.hash)
+			existHashs = append(existHashs, hashNodes1[i].Hashs...)
+		} else {
+			noExistHashs = append(noExistHashs, node.hash)
+			noExistHashs = append(noExistHashs, hashNodes1[i].Hashs...)
+		}
+	}
+	verifyNodeExist(t, db2, existHashs, noExistHashs)
+
+	//检查转换成二级裁剪高度的节点
+	var secLevelNodes []*Node
+	secLevelNodes = append(secLevelNodes, &nodes2[0])
+	VerifyThreeLevelCountNodeExist(t, db2, secLevelNodes)
+}
+
+func VerifyThreeLevelCountNodeExist(t *testing.T, dbm db.DB, nodes []*Node) {
+	for _, node := range nodes {
+		v, err := dbm.Get(genOldLeafCountKey(node.key, node.hash, int64(node.height), len(node.hash)))
+		if err == nil || len(v) > 0 {
+			require.NoError(t, fmt.Errorf("this node should not exist key:%s hash:%s", string(node.key), string(node.hash)))
+		}
+	}
+}
+
+func TestGetHashNode(t *testing.T) {
+	eHashs := [][]byte{
+		[]byte("h44"),
+		[]byte("h33"),
+		[]byte("h22"),
+		[]byte("h11"),
+		[]byte("h00"),
+	}
+
+	root := &Node{
+		key:        []byte("00"),
+		hash:       []byte("h00"),
+		parentNode: nil,
+	}
+
+	node1 := &Node{
+		key:        []byte("11"),
+		hash:       []byte("h11"),
+		parentNode: root,
+	}
+
+	node2 := &Node{
+		key:        []byte("22"),
+		hash:       []byte("h22"),
+		parentNode: node1,
+	}
+
+	node3 := &Node{
+		key:        []byte("33"),
+		hash:       []byte("h33"),
+		parentNode: node2,
+	}
+
+	node4 := &Node{
+		key:        []byte("44"),
+		hash:       []byte("h44"),
+		parentNode: node3,
+	}
+
+	leafN := &Node{
+		key:        []byte("55"),
+		hash:       []byte("h55"),
+		parentNode: node4,
+	}
+
+	hashs := getHashNode(leafN)
+	require.Equal(t, len(eHashs), len(hashs))
+	for _, hash := range hashs {
+		t.Log("hash is ", string(hash))
+		require.Contains(t, eHashs, hash)
+	}
+}
+
+func TestGetKeyHeightFromLeafCountKey(t *testing.T) {
+	key := []byte("123456")
+	hash, err := FromHex("0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d")
+	require.NoError(t, err)
+	height := 100001
+	hashLen := len(hash)
+	hashkey := genLeafCountKey(key, hash, int64(height), hashLen)
+
+	//1
+	key1, height1, hash1, err := getKeyHeightFromLeafCountKey(hashkey)
+	require.NoError(t, err)
+	require.Equal(t, key, key1)
+	require.Equal(t, height, height1)
+	require.Equal(t, hash, hash1)
+
+	//2
+	key = []byte("24525252626988973653")
+	hash, err = FromHex("0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d")
+	require.NoError(t, err)
+	height = 453
+	hashLen = len(hash)
+	hashkey = genLeafCountKey(key, hash, int64(height), hashLen)
+
+	key1, height1, hash1, err = getKeyHeightFromLeafCountKey(hashkey)
+	require.NoError(t, err)
+	require.Equal(t, key, key1)
+	require.Equal(t, height, height1)
+	require.Equal(t, hash, hash1)
+}
+
+func TestGetKeyHeightFromOldLeafCountKey(t *testing.T) {
+	key := []byte("123456")
+	hash, err := FromHex("0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d")
+	require.NoError(t, err)
+	height := 100001
+	hashLen := len(hash)
+	hashkey := genOldLeafCountKey(key, hash, int64(height), hashLen)
+
+	//1
+	key1, height1, hash1, err := getKeyHeightFromOldLeafCountKey(hashkey)
+	require.NoError(t, err)
+	require.Equal(t, key, key1)
+	require.Equal(t, height, height1)
+	require.Equal(t, hash, hash1)
+
+	//2
+	key = []byte("24525252626988973653")
+	hash, err = FromHex("0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d")
+	require.NoError(t, err)
+	height = 453
+	hashLen = len(hash)
+	hashkey = genOldLeafCountKey(key, hash, int64(height), hashLen)
+
+	key1, height1, hash1, err = getKeyHeightFromOldLeafCountKey(hashkey)
+	require.NoError(t, err)
+	require.Equal(t, key, key1)
+	require.Equal(t, height, height1)
+	require.Equal(t, hash, hash1)
 }
 
 func BenchmarkDBSet(b *testing.B) {

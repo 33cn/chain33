@@ -317,6 +317,23 @@ func (ndb *nodeDB) GetBatch(sync bool) *nodeBatch {
 	return &nodeBatch{ndb.db.NewBatch(sync)}
 }
 
+// 获取叶子节点的所有父节点
+func getHashNode(node *Node) (hashs [][]byte) {
+	for {
+		if node == nil {
+			return
+		}
+		parN := node.parentNode
+		if parN != nil {
+			hashs = append(hashs, parN.hash)
+			node = parN
+		} else {
+			break
+		}
+	}
+	return hashs
+}
+
 // SaveNode 保存节点
 func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	ndb.mtx.Lock()
@@ -333,10 +350,9 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	ndb.batch.Set(node.hash, storenode)
 	if enablePrune && node.height == 0 {
 		//save leafnode key&hash
-		k := genLeafCountKey(node.key, node.hash, t.blockHeight)
+		k := genLeafCountKey(node.key, node.hash, t.blockHeight, len(node.hash))
 		data := &types.PruneData{
-			Height: t.blockHeight,
-			Lenth:  int32(len(node.hash)),
+			Hashs: getHashNode(node),
 		}
 		v, err := proto.Marshal(data)
 		if err != nil {
