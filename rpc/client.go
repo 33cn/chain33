@@ -53,6 +53,36 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	return types.CallCreateTx(execer, "", param)
 }
 
+func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) {
+	if param == nil || param.Tx == "" {
+		log.Error("ReWriteRawTx", "Error", types.ErrInvalidParam)
+		return nil, types.ErrInvalidParam
+	}
+
+	tx, err := decodeTx(param.Tx)
+	if err != nil {
+		return nil, err
+	}
+	if param.Execer != nil {
+		tx.Execer = param.Execer
+	}
+	if param.To != "" {
+		tx.To = param.To
+	}
+	if param.Fee != 0 {
+		tx.Fee = param.Fee
+	}
+	if param.Expire != "" {
+		expire, err := types.ParseExpire(param.Expire)
+		if err != nil {
+			return nil, err
+		}
+		tx.Expire = expire
+	}
+
+	return types.FormatTxEncode(string(tx.Execer), tx)
+}
+
 // CreateRawTxGroup create rawtransaction for group
 func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([]byte, error) {
 	if param == nil || len(param.Txs) <= 1 {

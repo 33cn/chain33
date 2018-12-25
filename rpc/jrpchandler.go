@@ -44,6 +44,24 @@ func (c *Chain33) CreateRawTransaction(in *rpctypes.CreateTx, result *interface{
 	return nil
 }
 
+// ReWriteRawTx re-write raw tx by jrpc
+func (c *Chain33) ReWriteRawTx(in *rpctypes.ReWriteRawTx, result *interface{}) error {
+	inpb := &types.ReWriteRawTx{
+		Tx:     in.Tx,
+		Execer: []byte(in.Execer),
+		To:     in.To,
+		Fee:    in.Fee,
+		Expire: in.Expire,
+	}
+
+	reply, err := c.cli.ReWriteRawTx(inpb)
+	if err != nil {
+		return err
+	}
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
 // CreateRawTxGroup create rawtransaction with group
 func (c *Chain33) CreateRawTxGroup(in *types.CreateTransactionGroup, result *interface{}) error {
 	reply, err := c.cli.CreateRawTxGroup(in)

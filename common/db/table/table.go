@@ -45,8 +45,8 @@ const (
 )
 
 //meta key
-const meta = "#m#"
-const data = "#d#"
+const meta = sep + "m" + sep
+const data = sep + "d" + sep
 
 //RowMeta 定义行的操作
 type RowMeta interface {
@@ -127,6 +127,8 @@ type Option struct {
 	Index   []string
 }
 
+const sep = "-"
+
 //NewTable  新建一个表格
 //primary 可以为: auto, 由系统自动创建
 //index 可以为nil
@@ -135,7 +137,7 @@ func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 		return nil, ErrTooManyIndex
 	}
 	for _, index := range opt.Index {
-		if strings.Contains(index, "#") {
+		if strings.Contains(index, sep) || strings.Contains(index, "primary") {
 			return nil, ErrIndexKey
 		}
 	}
@@ -145,13 +147,13 @@ func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 	if _, err := getPrimaryKey(rowmeta, opt.Primary); err != nil {
 		return nil, err
 	}
-	//不允许有#
-	if strings.Contains(opt.Prefix, "#") || strings.Contains(opt.Name, "#") {
+	//不允许有-
+	if strings.Contains(opt.Prefix, sep) || strings.Contains(opt.Name, sep) {
 		return nil, ErrTablePrefixOrTableName
 	}
-	dataprefix := opt.Prefix + "#" + opt.Name + data
-	metaprefix := opt.Prefix + "#" + opt.Name + meta
-	count := NewCount(opt.Prefix, opt.Name+"#autoinc#", kvdb)
+	dataprefix := opt.Prefix + sep + opt.Name + data
+	metaprefix := opt.Prefix + sep + opt.Name + meta
+	count := NewCount(opt.Prefix, opt.Name+sep+"autoinc"+sep, kvdb)
 	return &Table{
 		meta:       rowmeta,
 		kvdb:       kvdb,
@@ -166,7 +168,7 @@ func getPrimaryKey(meta RowMeta, primary string) ([]byte, error) {
 	if primary == "" {
 		return nil, ErrEmptyPrimaryKey
 	}
-	if strings.Contains(primary, "#") {
+	if strings.Contains(primary, sep) {
 		return nil, ErrPrimaryKey
 	}
 	if primary != "auto" {
@@ -334,7 +336,7 @@ func (table *Table) getDataKey(primaryKey []byte) []byte {
 func (table *Table) getIndexKey(indexName string, index, primaryKey []byte) []byte {
 	key := table.indexPrefix(indexName)
 	key = append(key, index...)
-	key = append(key, []byte("#")...)
+	key = append(key, []byte(sep)...)
 	key = append(key, primaryKey...)
 	return key
 }
@@ -344,7 +346,7 @@ func (table *Table) primaryPrefix() []byte {
 }
 
 func (table *Table) indexPrefix(indexName string) []byte {
-	key := append([]byte(table.metaprefix), []byte(indexName+"#")...)
+	key := append([]byte(table.metaprefix), []byte(indexName+sep)...)
 	return key
 }
 

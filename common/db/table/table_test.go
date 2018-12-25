@@ -115,20 +115,43 @@ func TestTransactinList(t *testing.T) {
 	} else {
 		assert.Equal(t, true, proto.Equal(tx3, rows[0].Data))
 	}
+	//List data
+	rows, err = query.List("From", tx3, primary, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+	if bytes.Compare(tx3.Hash(), tx4.Hash()) > 0 {
+		assert.Equal(t, true, proto.Equal(tx4, rows[0].Data))
+	} else {
+		assert.Equal(t, true, proto.Equal(tx3, rows[0].Data))
+	}
+
 	rows, err = query.ListIndex("From", []byte(addr1[0:10]), primary, 0, 0)
 	assert.Equal(t, types.ErrNotFound, err)
 	assert.Equal(t, 0, len(rows))
 	//ListPrimary all
-	rows, err = query.ListPrimary(nil, nil, 0, 0)
+	rows, err = query.ListIndex("primary", nil, nil, 0, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(rows))
 
+	//ListPrimary all
+	rows, err = query.List("primary", nil, nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 4, len(rows))
+
+	row, err := query.ListOne("primary", nil, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, row, rows[0])
+
 	primary = rows[0].Primary
-	rows, err = query.ListPrimary(primary[0:10], nil, 0, 0)
+	rows, err = query.ListIndex("auto", primary, nil, 0, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(rows))
 
-	rows, err = query.ListPrimary(nil, primary, 0, 0)
+	rows, err = query.List("", rows[0].Data, nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+
+	rows, err = query.ListIndex("", nil, primary, 0, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(rows))
 }
@@ -207,16 +230,16 @@ func TestTransactinListAuto(t *testing.T) {
 	assert.Equal(t, types.ErrNotFound, err)
 	assert.Equal(t, 0, len(rows))
 	//ListPrimary all
-	rows, err = query.ListPrimary(nil, nil, 0, db.ListASC)
+	rows, err = query.ListIndex("", nil, nil, 0, db.ListASC)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(rows))
 
 	primary = rows[0].Primary
-	rows, err = query.ListPrimary(primary, nil, 0, db.ListASC)
+	rows, err = query.ListIndex("", primary, nil, 0, db.ListASC)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(rows))
 
-	rows, err = query.ListPrimary(nil, primary, 0, db.ListASC)
+	rows, err = query.ListIndex("", nil, primary, 0, db.ListASC)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(rows))
 }
