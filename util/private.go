@@ -21,7 +21,7 @@ var TestPrivkeyHex = []string{
 }
 
 /*
-TestPrivkeyList: crypto.PrivKey list
+TestPrivkeyList : crypto.PrivKey list
 addr:12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv
 addr:14KEKbYtKKQm4wMthSK9J4La4nAiidGozt
 addr:1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF
