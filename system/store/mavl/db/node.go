@@ -77,6 +77,7 @@ func (node *Node) _copy() *Node {
 		leftNode:  node.leftNode,
 		rightHash: node.rightHash,
 		rightNode: node.rightNode,
+		parentNode: node.parentNode,
 		persisted: false, // Going to be mutated, so it can't already be persisted.
 	}
 }
@@ -184,7 +185,7 @@ func (node *Node) Hash(t *Tree) []byte {
 
 		if enablePrune {
 			//加入parentNode
-			if node.leftNode != nil && node.leftNode.height != t.root.height { //只对倒数第二层做裁剪
+			if node.leftNode != nil && node.leftNode.height != t.root.height {
 				node.leftNode.parentNode = node
 			}
 			if node.rightNode != nil && node.rightNode.height != t.root.height {

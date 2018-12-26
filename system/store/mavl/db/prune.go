@@ -35,7 +35,7 @@ const (
 	//三级裁剪高度，达到此高度还没有裁剪，则不进行裁剪
 	threeLevelPruningHeight = 1500000
 	onceScanCount           = 10000 // 单次扫描数目
-	onceCount               = 1000  // 容器长度web
+	onceCount               = 1000  // 容器长度
 	batchDataSize           = 1024 * 1024 * 1
 )
 
