@@ -69,16 +69,16 @@ func (node *Node) _copy() *Node {
 		panic("Why are you copying a value node?")
 	}
 	return &Node{
-		key:       node.key,
-		height:    node.height,
-		size:      node.size,
-		hash:      nil, // Going to be mutated anyways.
-		leftHash:  node.leftHash,
-		leftNode:  node.leftNode,
-		rightHash: node.rightHash,
-		rightNode: node.rightNode,
+		key:        node.key,
+		height:     node.height,
+		size:       node.size,
+		hash:       nil, // Going to be mutated anyways.
+		leftHash:   node.leftHash,
+		leftNode:   node.leftNode,
+		rightHash:  node.rightHash,
+		rightNode:  node.rightNode,
 		parentNode: node.parentNode,
-		persisted: false, // Going to be mutated, so it can't already be persisted.
+		persisted:  false, // Going to be mutated, so it can't already be persisted.
 	}
 }
 
