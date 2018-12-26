@@ -175,6 +175,7 @@ var (
 	ErrCloneForkToExist   = errors.New("ErrCloneForkToExist")
 	ErrQueryThistIsNotSet = errors.New("ErrQueryThistIsNotSet")
 
-	ErrHeightLessZero = errors.New("ErrHeightLessZero")
-	ErrHeightOverflow = errors.New("ErrHeightOverflow")
+	ErrHeightLessZero      = errors.New("ErrHeightLessZero")
+	ErrHeightOverflow      = errors.New("ErrHeightOverflow")
+	ErrRecordBlockSequence = errors.New("ErrRecordBlockSequence")
 )

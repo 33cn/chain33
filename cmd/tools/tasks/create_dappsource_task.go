@@ -183,11 +183,11 @@ func (c *CreateDappSourceTask) createExecDelLocalFile() error {
 
 // 组成规则是 TyLog+ActionName + ActionMemberName
 func (c *CreateDappSourceTask) buildActionLogTypeText() (text string, err error) {
-	items := fmt.Sprintf("TyLog%sUnknown = iota\r\n", c.ExecuteName)
+	items := fmt.Sprintf("TyLog%sUnknown = iota\n", c.ExecuteName)
 	for _, info := range c.actionInfos {
-		items += fmt.Sprintf("TyLog%s%s\r\n", c.ExecuteName, info.memberName)
+		items += fmt.Sprintf("TyLog%s%s\n", c.ExecuteName, info.memberName)
 	}
-	text = fmt.Sprintf("const (\r\n%s)\r\n", items)
+	text = fmt.Sprintf("const (\n%s)\n", items)
 	return
 }
 
@@ -195,9 +195,9 @@ func (c *CreateDappSourceTask) buildActionLogTypeText() (text string, err error)
 func (c *CreateDappSourceTask) buildActionIDText() (text string, err error) {
 	var items string
 	for index, info := range c.actionInfos {
-		items += fmt.Sprintf("%sAction%s = %d\r\n", c.ExecuteName, info.memberName, index)
+		items += fmt.Sprintf("%sAction%s = %d\n", c.ExecuteName, info.memberName, index)
 	}
-	text = fmt.Sprintf("const (\r\n%s)\r\n", items)
+	text = fmt.Sprintf("const (\n%s)\n", items)
 	return
 }
 
@@ -205,15 +205,15 @@ func (c *CreateDappSourceTask) buildActionIDText() (text string, err error) {
 func (c *CreateDappSourceTask) buildLogMapText() (text string, err error) {
 	var items string
 	for _, info := range c.actionInfos {
-		items += fmt.Sprintf("\"%s\": %sAction%s,\r\n", info.memberName, c.ExecuteName, info.memberName)
+		items += fmt.Sprintf("\"%s\": %sAction%s,\n", info.memberName, c.ExecuteName, info.memberName)
 	}
-	text = fmt.Sprintf("map[string]int32{\r\n%s}", items)
+	text = fmt.Sprintf("map[string]int32{\n%s}", items)
 	return
 }
 
 // 返回 map[string]*types.LogInfo
 func (c *CreateDappSourceTask) buidTypeMapText() (text string, err error) {
-	text = fmt.Sprintf("map[int64]*types.LogInfo{\r\n}")
+	text = fmt.Sprintf("map[int64]*types.LogInfo{\n}")
 	return
 }
 
