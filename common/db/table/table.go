@@ -36,6 +36,7 @@ del:
 利用 primaryKey + index 删除所有的 数据 和 索引
 */
 
+//表关联设计
 //指出是 添加 还是 删除 行
 //primary key auto 的del 需要指定 primary key
 const (
