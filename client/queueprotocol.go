@@ -678,7 +678,13 @@ func (q *QueueProtocol) DumpPrivkey(param *types.ReqString) (*types.ReplyString,
 
 // IsSync query the blockchain sync state
 func (q *QueueProtocol) IsSync() (*types.Reply, error) {
-	msg, err := q.query(blockchainKey, types.EventIsSync, &types.ReqNil{})
+	var msg queue.Message
+	var err error
+	if types.IsPara() {
+		msg, err = q.query(consensusKey, types.EventIsSync, &types.ReqNil{})
+	} else {
+		msg, err = q.query(blockchainKey, types.EventIsSync, &types.ReqNil{})
+	}
 	if err != nil {
 		log.Error("IsSync", "Error", err.Error())
 		return nil, err

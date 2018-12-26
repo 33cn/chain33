@@ -216,6 +216,23 @@ func (bc *BaseClient) EventLoop() {
 				block := msg.GetData().(*types.BlockDetail)
 				err := bc.CheckBlock(block)
 				msg.ReplyErr("EventCheckBlock", err)
+			} else if msg.Ty == types.EventIsSync {
+				if types.IsPara() {
+					reply, err := QueryData.Call("para", "IsCaughtUp", &types.ReqNil{})
+					if err != nil {
+						msg.Reply(bc.api.NewMessage("", types.EventReplyIsSync, err))
+					} else {
+						if isCaughtUp, ok := reply.(*types.IsCaughtUp); ok {
+							msg.Reply(bc.api.NewMessage("", types.EventReplyIsSync, isCaughtUp))
+						} else {
+							err = types.ErrTypeAsset
+							msg.Reply(bc.api.NewMessage("", types.EventReplyIsSync, err))
+						}
+					}
+				} else {
+					msg.Reply(bc.api.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: bc.IsCaughtUp()}))
+				}
+
 			} else if msg.Ty == types.EventMinerStart {
 				if !atomic.CompareAndSwapInt32(&bc.minerStart, 0, 1) {
 					msg.ReplyErr("EventMinerStart", types.ErrMinerIsStared)
