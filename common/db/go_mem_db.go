@@ -295,6 +295,7 @@ func (b *memBatch) ValueSize() int {
 	return b.size
 }
 
+//ValueLen  batch数量
 func (b *memBatch) ValueLen() int {
 	return b.len
 }

@@ -563,6 +563,7 @@ func (db *PegasusBatch) ValueSize() int {
 	return db.size
 }
 
+//ValueLen  batch数量
 func (db *PegasusBatch) ValueLen() int {
 	return len(db.batchset)
 }

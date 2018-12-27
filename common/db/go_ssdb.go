@@ -514,6 +514,7 @@ func (db *ssDBBatch) ValueSize() int {
 	return db.size
 }
 
+//ValueLen  batch数量
 func (db *ssDBBatch) ValueLen() int {
 	return len(db.batchset)
 }

@@ -319,6 +319,7 @@ func (mBatch *GoBadgerDBBatch) ValueSize() int {
 	return mBatch.size
 }
 
+//ValueLen  batch数量
 func (mBatch *GoBadgerDBBatch) ValueLen() int {
 	return mBatch.len
 }

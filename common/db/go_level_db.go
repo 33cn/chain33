@@ -270,6 +270,7 @@ func (mBatch *goLevelDBBatch) ValueSize() int {
 	return mBatch.size
 }
 
+//ValueLen  batch数量
 func (mBatch *goLevelDBBatch) ValueLen() int {
 	return mBatch.len
 }
