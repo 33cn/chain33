@@ -335,9 +335,10 @@ func (msg *JoinData) String() string {
 
 //JoinMeta left right 合成的一个meta 结构
 type JoinMeta struct {
-	left  RowMeta
-	right RowMeta
-	data  *JoinData
+	left   RowMeta
+	right  RowMeta
+	data   *JoinData
+	hasnil bool
 }
 
 //CreateRow create a meta struct
