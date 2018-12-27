@@ -11,5 +11,6 @@ message Game {
 
 message GameAddr {
     string txhash = 1;
-    string addr = 2;
+    string gameID = 2;
+    string addr = 3;
 }

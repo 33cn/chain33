@@ -274,7 +274,7 @@ func setKV(kvdb db.DB, kvs []*types.KeyValue) {
 
 func printKV(kvs []*types.KeyValue) {
 	for i := 0; i < len(kvs); i++ {
-		fmt.Println("KV", i, string(kvs[i].Key), common.ToHex(kvs[i].Value))
+		fmt.Printf("KV %d %s(%s)\n", i, string(kvs[i].Key), common.ToHex(kvs[i].Value))
 	}
 }
 
