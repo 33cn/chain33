@@ -279,24 +279,28 @@ type GoBadgerDBBatch struct {
 	batch *badger.Txn
 	//wop   *opt.WriteOptions
 	size int
+	len  int
 }
 
 //NewBatch new
 func (db *GoBadgerDB) NewBatch(sync bool) Batch {
 	batch := db.db.NewTransaction(true)
-	return &GoBadgerDBBatch{db, batch, 0}
+	return &GoBadgerDBBatch{db, batch, 0, 0}
 }
 
 //Set set
 func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
 	mBatch.batch.Set(key, value)
 	mBatch.size += len(value)
+	mBatch.size += len(key)
+	mBatch.len += len(value)
 }
 
 //Delete 设置
 func (mBatch *GoBadgerDBBatch) Delete(key []byte) {
 	mBatch.batch.Delete(key)
-	mBatch.size++
+	mBatch.size += len(key)
+	mBatch.len++
 }
 
 //Write 写入
@@ -315,10 +319,16 @@ func (mBatch *GoBadgerDBBatch) ValueSize() int {
 	return mBatch.size
 }
 
+//ValueLen  batch数量
+func (mBatch *GoBadgerDBBatch) ValueLen() int {
+	return mBatch.len
+}
+
 //Reset 重置
 func (mBatch *GoBadgerDBBatch) Reset() {
 	if nil != mBatch.db && nil != mBatch.db.db {
 		mBatch.batch = mBatch.db.db.NewTransaction(true)
 	}
 	mBatch.size = 0
+	mBatch.len = 0
 }
