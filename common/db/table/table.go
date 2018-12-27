@@ -245,10 +245,7 @@ func (table *Table) canGet(name string) bool {
 		return false
 	}
 	_, err = table.meta.Get(name)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (table *Table) checkIndex(data types.Message) error {
