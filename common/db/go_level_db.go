@@ -248,7 +248,7 @@ func (mBatch *goLevelDBBatch) Set(key, value []byte) {
 	mBatch.batch.Put(key, value)
 	mBatch.size += len(key)
 	mBatch.size += len(value)
-	mBatch.len  += len(value)
+	mBatch.len += len(value)
 }
 
 func (mBatch *goLevelDBBatch) Delete(key []byte) {
@@ -276,6 +276,6 @@ func (mBatch *goLevelDBBatch) ValueLen() int {
 
 func (mBatch *goLevelDBBatch) Reset() {
 	mBatch.batch.Reset()
-	mBatch.len  = 0
+	mBatch.len = 0
 	mBatch.size = 0
 }

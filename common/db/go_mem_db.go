@@ -266,7 +266,7 @@ func (b *memBatch) Set(key, value []byte) {
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(value)})
 	b.size += len(value)
 	b.size += len(key)
-	b.len  += len(value)
+	b.len += len(value)
 }
 
 func (b *memBatch) Delete(key []byte) {

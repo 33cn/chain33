@@ -293,7 +293,7 @@ func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
 	mBatch.batch.Set(key, value)
 	mBatch.size += len(value)
 	mBatch.size += len(key)
-	mBatch.len  += len(value)
+	mBatch.len += len(value)
 }
 
 //Delete 设置
