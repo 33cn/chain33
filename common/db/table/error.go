@@ -14,4 +14,5 @@ var (
 	ErrTooManyIndex           = errors.New("ErrTooManyIndex")
 	ErrTablePrefixOrTableName = errors.New("ErrTablePrefixOrTableName")
 	ErrDupPrimaryKey          = errors.New("ErrDupPrimaryKey")
+	ErrNilValue               = errors.New("ErrNilValue")
 )

@@ -5,8 +5,11 @@ import (
 	"strings"
 
 	"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 )
+
+var tablelog = log15.New("module", "db.table")
 
 /*
 设计表的联查:
@@ -54,7 +57,9 @@ type JoinTable struct {
 	left  *Table
 	right *Table
 	*Table
-	Fk string
+	Fk         string
+	leftIndex  []string
+	rightIndex []string
 }
 
 //NewJoinTable 新建一个JoinTable
@@ -72,6 +77,7 @@ func NewJoinTable(left *Table, right *Table, indexes []string) (*JoinTable, erro
 	if !left.canGet(fk) {
 		return nil, errors.New("jointable: left must has right primary index")
 	}
+	join := &JoinTable{left: left, right: right, Fk: fk}
 	for _, index := range indexes {
 		joinindex := strings.Split(index, joinsep)
 		if len(joinindex) != 2 {
@@ -80,8 +86,14 @@ func NewJoinTable(left *Table, right *Table, indexes []string) (*JoinTable, erro
 		if joinindex[0] != "" && !left.canGet(joinindex[0]) {
 			return nil, errors.New("jointable: left table can not get: " + joinindex[0])
 		}
+		if joinindex[0] != "" {
+			join.leftIndex = append(join.leftIndex, joinindex[0])
+		}
 		if joinindex[1] == "" || !right.canGet(joinindex[1]) {
 			return nil, errors.New("jointable: left table can not get: " + joinindex[1])
+		}
+		if joinindex[1] != "" {
+			join.rightIndex = append(join.rightIndex, joinindex[1])
 		}
 	}
 	opt := &Option{
@@ -97,7 +109,8 @@ func NewJoinTable(left *Table, right *Table, indexes []string) (*JoinTable, erro
 	if err != nil {
 		return nil, err
 	}
-	return &JoinTable{left: left, right: right, Table: mytable, Fk: fk}, nil
+	join.Table = mytable
+	return join, nil
 }
 
 //GetLeft get left table
@@ -201,21 +214,63 @@ func (join *JoinTable) Save() (kvs []*types.KeyValue, err error) {
 		return nil, err
 	}
 	kvs = append(kvs, rightkvs...)
-	return kvs, nil
+	return deldupKey(kvs), nil
+}
+
+func (join *JoinTable) isLeftModify(row *Row) bool {
+	oldrow := &Row{Data: row.old}
+	for _, index := range join.leftIndex {
+		_, _, ismodify, err := join.left.getModify(row, oldrow, index)
+		if ismodify {
+			return true
+		}
+		if err != nil {
+			tablelog.Error("isLeftModify", "err", err)
+		}
+	}
+	return false
+}
+
+func (join *JoinTable) isRightModify(row *Row) bool {
+	oldrow := &Row{Data: row.old}
+	for _, index := range join.rightIndex {
+		_, _, ismodify, err := join.right.getModify(row, oldrow, index)
+		if ismodify {
+			return true
+		}
+		if err != nil {
+			tablelog.Error("isLeftModify", "err", err)
+		}
+	}
+	return false
 }
 
 func (join *JoinTable) saveLeft(row *Row) error {
+	if row.Ty == Update && !join.isLeftModify(row) {
+		return nil
+	}
+	olddata := &JoinData{}
 	rowjoin := join.meta.CreateRow()
 	rowjoin.Ty = row.Ty
 	rowjoin.Primary = row.Primary
 	rowjoin.Data.(*JoinData).Left = row.Data
+	olddata.Left = row.old
 	rightprimary, err := join.left.index(row, join.Fk)
 	if err != nil {
 		return err
 	}
-	rightrow, err := join.right.findRow(rightprimary)
+	rightrow, incache, err := join.right.findRow(rightprimary)
 	if err != nil {
 		return err
+	}
+	if incache && rightrow.Ty == Update {
+		olddata.Right = rightrow.old
+	} else {
+		olddata.Right = rightrow.Data
+	}
+	//只考虑 left 有变化, 那么就修改(如果right 也修改了，在right中处理)
+	if row.Ty == Update {
+		rowjoin.old = olddata
 	}
 	rowjoin.Data.(*JoinData).Right = rightrow.Data
 	join.addRowCache(rowjoin)
@@ -223,6 +278,9 @@ func (join *JoinTable) saveLeft(row *Row) error {
 }
 
 func (join *JoinTable) saveRight(row *Row) error {
+	if row.Ty == Update && !join.isRightModify(row) {
+		return nil
+	}
 	indexName := join.right.opt.Primary
 	indexValue := row.Primary
 	q := join.left.GetQuery(join.left.kvdb.(db.KVDB))
@@ -235,9 +293,16 @@ func (join *JoinTable) saveRight(row *Row) error {
 		return err
 	}
 	for _, onerow := range rows {
+		olddata := &JoinData{Right: row.old, Left: onerow.Data}
+		if onerow.Ty == Update {
+			olddata.Left = onerow.old
+		}
 		rowjoin := join.meta.CreateRow()
 		rowjoin.Ty = row.Ty
 		rowjoin.Primary = onerow.Primary
+		if row.Ty == Update {
+			rowjoin.old = olddata
+		}
 		rowjoin.Data.(*JoinData).Right = row.Data
 		rowjoin.Data.(*JoinData).Left = onerow.Data
 		join.addRowCache(rowjoin)
@@ -270,9 +335,10 @@ func (msg *JoinData) String() string {
 
 //JoinMeta left right 合成的一个meta 结构
 type JoinMeta struct {
-	left  RowMeta
-	right RowMeta
-	data  *JoinData
+	left   RowMeta
+	right  RowMeta
+	data   *JoinData
+	hasnil bool
 }
 
 //CreateRow create a meta struct
@@ -284,8 +350,10 @@ func (tx *JoinMeta) CreateRow() *Row {
 func (tx *JoinMeta) SetPayload(data types.Message) error {
 	if txdata, ok := data.(*JoinData); ok {
 		tx.data = txdata
-		tx.left.SetPayload(tx.data.Left)
-		tx.right.SetPayload(tx.data.Right)
+		if tx.data.Left != nil && tx.data.Right != nil {
+			tx.left.SetPayload(tx.data.Left)
+			tx.right.SetPayload(tx.data.Right)
+		}
 		return nil
 	}
 	return types.ErrTypeAsset
