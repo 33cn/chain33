@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "proto";
+
+message Game {
+    string gameID = 1;
+    int64  status = 2;
+}
+
+message GameAddr {
+    string txhash = 1;
+    string gameID = 2;
+    string addr   = 3;
+}

@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-/*
-Package commands 扫描chain33项目下plugin中所有的插件，根据扫描到的结果重新更新共识、执行器和数据操作的初始化文件 init.go
-*/
 package commands
 
 import (
@@ -19,7 +16,7 @@ import (
 func UpdateInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "updateinit",
-		Short: "Update chain33 plugin consensus、dapp、store init.go file",
+		Short: "Update chain33 plugin consensus、dapp、store、mempool init.go file",
 		Run:   updateInit,
 	}
 	cmd.Flags().StringP("path", "p", "plugin", "path of plugin")

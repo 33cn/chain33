@@ -69,6 +69,7 @@ message ReqRandHash {
     string execName = 1;
     int64  height   = 2;
     int64  blockNum = 3;
+    bytes  hash     = 4;
 }
 
 /**

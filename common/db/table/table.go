@@ -36,6 +36,7 @@ del:
 利用 primaryKey + index 删除所有的 数据 和 索引
 */
 
+//表关联设计
 //指出是 添加 还是 删除 行
 //primary key auto 的del 需要指定 primary key
 const (
@@ -124,10 +125,12 @@ type Option struct {
 	Prefix  string
 	Name    string
 	Primary string
+	Join    bool
 	Index   []string
 }
 
 const sep = "-"
+const joinsep = "#"
 
 //NewTable  新建一个表格
 //primary 可以为: auto, 由系统自动创建
@@ -137,7 +140,10 @@ func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 		return nil, ErrTooManyIndex
 	}
 	for _, index := range opt.Index {
-		if strings.Contains(index, sep) || strings.Contains(index, "primary") {
+		if strings.Contains(index, sep) || index == "primary" {
+			return nil, ErrIndexKey
+		}
+		if !opt.Join && strings.Contains(index, joinsep) {
 			return nil, ErrIndexKey
 		}
 	}
@@ -147,8 +153,12 @@ func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 	if _, err := getPrimaryKey(rowmeta, opt.Primary); err != nil {
 		return nil, err
 	}
-	//不允许有-
+	//不允许有 "-"
 	if strings.Contains(opt.Prefix, sep) || strings.Contains(opt.Name, sep) {
+		return nil, ErrTablePrefixOrTableName
+	}
+	//非jointable 不允许 "#"
+	if !opt.Join && strings.Contains(opt.Name, joinsep) {
 		return nil, ErrTablePrefixOrTableName
 	}
 	dataprefix := opt.Prefix + sep + opt.Name + data
@@ -179,8 +189,37 @@ func getPrimaryKey(meta RowMeta, primary string) ([]byte, error) {
 }
 
 func (table *Table) addRowCache(row *Row) {
-	table.rowmap[string(row.Primary)] = row
+	primary := string(row.Primary)
+	if row.Ty == Del {
+		delete(table.rowmap, primary)
+	} else if row.Ty == Add {
+		table.rowmap[primary] = row
+	}
 	table.rows = append(table.rows, row)
+}
+
+func (table *Table) mergeCache(rows []*Row, indexName string, indexValue []byte) ([]*Row, error) {
+	replaced := make(map[string]bool)
+	for i, row := range rows {
+		if cacherow, ok := table.rowmap[string(row.Primary)]; ok {
+			rows[i] = cacherow
+			replaced[string(row.Primary)] = true
+		}
+	}
+	//add not in db but in cache rows
+	for _, row := range table.rowmap {
+		if _, ok := replaced[string(row.Primary)]; ok {
+			continue
+		}
+		v, err := table.index(row, indexName)
+		if err != nil {
+			return nil, err
+		}
+		if bytes.Equal(v, indexValue) {
+			rows = append(rows, row)
+		}
+	}
+	return rows, nil
 }
 
 func (table *Table) findRow(primary []byte) (*Row, error) {
@@ -188,6 +227,25 @@ func (table *Table) findRow(primary []byte) (*Row, error) {
 		return row, nil
 	}
 	return table.GetData(primary)
+}
+
+func (table *Table) hasIndex(name string) bool {
+	for _, index := range table.opt.Index {
+		if index == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (table *Table) canGet(name string) bool {
+	row := table.meta.CreateRow()
+	err := table.meta.SetPayload(row.Data)
+	if err != nil {
+		return false
+	}
+	_, err = table.meta.Get(name)
+	return err == nil
 }
 
 func (table *Table) checkIndex(data types.Message) error {
@@ -257,6 +315,7 @@ func (table *Table) Replace(data types.Message) error {
 		return nil
 	}
 	//如果没有找到行, 那么添加
+	//TODO: 优化保存策略，不需要修改没有变化的index
 	row, err := table.findRow(primaryKey)
 	if err == types.ErrNotFound {
 		table.addRowCache(&Row{Data: data, Primary: primaryKey, Ty: Add})
@@ -422,8 +481,10 @@ func (table *Table) saveRow(row *Row) (kvs []*types.KeyValue, err error) {
 }
 
 func (table *Table) delRow(row *Row) (kvs []*types.KeyValue, err error) {
-	deldata := &types.KeyValue{Key: table.getDataKey(row.Primary)}
-	kvs = append(kvs, deldata)
+	if !table.opt.Join {
+		deldata := &types.KeyValue{Key: table.getDataKey(row.Primary)}
+		kvs = append(kvs, deldata)
+	}
 	for _, index := range table.opt.Index {
 		indexkey, err := table.index(row, index)
 		if err != nil {
@@ -436,12 +497,14 @@ func (table *Table) delRow(row *Row) (kvs []*types.KeyValue, err error) {
 }
 
 func (table *Table) addRow(row *Row) (kvs []*types.KeyValue, err error) {
-	data, err := row.Encode()
-	if err != nil {
-		return nil, err
+	if !table.opt.Join {
+		data, err := row.Encode()
+		if err != nil {
+			return nil, err
+		}
+		adddata := &types.KeyValue{Key: table.getDataKey(row.Primary), Value: data}
+		kvs = append(kvs, adddata)
 	}
-	adddata := &types.KeyValue{Key: table.getDataKey(row.Primary), Value: data}
-	kvs = append(kvs, adddata)
 	for _, index := range table.opt.Index {
 		indexkey, err := table.index(row, index)
 		if err != nil {
@@ -456,4 +519,12 @@ func (table *Table) addRow(row *Row) (kvs []*types.KeyValue, err error) {
 //GetQuery 获取查询结构
 func (table *Table) GetQuery(kvdb db.KVDB) *Query {
 	return &Query{table: table, kvdb: kvdb}
+}
+
+func (table *Table) getMeta() RowMeta {
+	return table.meta
+}
+
+func (table *Table) getOpt() *Option {
+	return table.opt
 }
