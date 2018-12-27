@@ -258,6 +258,7 @@ func mergeDup(kvs []*types.KeyValue) (kvset []*types.KeyValue) {
 }
 
 func setKV(kvdb db.DB, kvs []*types.KeyValue) {
+	//printKV(kvs)
 	batch := kvdb.NewBatch(true)
 	for i := 0; i < len(kvs); i++ {
 		if kvs[i].Value == nil {
@@ -324,7 +325,7 @@ func TestDel(t *testing.T) {
 	//save 然后从列表中读取
 	kvs, err := table.Save()
 	assert.Nil(t, err)
-	assert.Equal(t, len(kvs), 9)
+	assert.Equal(t, len(kvs), 6)
 	//save to database
 	setKV(leveldb, kvs)
 	//printKV(kvs)
@@ -366,7 +367,7 @@ func TestUpdate(t *testing.T) {
 	assert.Nil(t, err)
 	kvs, err := table.Save()
 	assert.Nil(t, err)
-	assert.Equal(t, len(kvs), 9)
+	assert.Equal(t, len(kvs), 3)
 	//save to database
 	setKV(leveldb, kvs)
 	query := table.GetQuery(kvdb)
@@ -395,22 +396,23 @@ func TestReplace(t *testing.T) {
 	assert.Equal(t, err, ErrDupPrimaryKey)
 
 	//不改变hash，改变签名
-	tx1.Signature = nil
-	err = table.Replace(tx1)
+	tx2 := *tx1
+	tx2.Signature = nil
+	err = table.Replace(&tx2)
 	assert.Nil(t, err)
 	//save 然后从列表中读取
 	kvs, err := table.Save()
 	assert.Nil(t, err)
-	assert.Equal(t, len(kvs), 9)
+	assert.Equal(t, 3, len(kvs))
 	//save to database
 	setKV(leveldb, kvs)
 	query := table.GetQuery(kvdb)
 	_, err = query.ListIndex("From", []byte(addr1[0:10]), nil, 0, 0)
 	assert.Equal(t, err, types.ErrNotFound)
 
-	rows, err := query.ListIndex("From", []byte(tx1.From()), nil, 0, 0)
+	rows, err := query.ListIndex("From", []byte(tx2.From()), nil, 0, 0)
 	assert.Nil(t, err)
-	assert.Equal(t, rows[0].Data.(*types.Transaction).From(), tx1.From())
+	assert.Equal(t, rows[0].Data.(*types.Transaction).From(), tx2.From())
 }
 
 type TransactionRow struct {

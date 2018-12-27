@@ -18,7 +18,7 @@ func TestJoin(t *testing.T) {
 	assert.Nil(t, err)
 	table2, err := NewTable(NewGameAddrRow(), kvdb, optgameaddr)
 	assert.Nil(t, err)
-	tablejoin, err := NewJoinTable(table2, table1, []string{"addr#status"})
+	tablejoin, err := NewJoinTable(table2, table1, []string{"addr#status", "#status"})
 	assert.Nil(t, err)
 	assert.Equal(t, tablejoin.GetLeft(), table2)                //table2
 	assert.Equal(t, tablejoin.GetRight(), table1)               //table1
@@ -37,6 +37,64 @@ func TestJoin(t *testing.T) {
 	//每个表的查询，用 tablejoin.MustGetTable("gameaddr")
 	//join query 用 tablejoin.Query
 	rows, err := tablejoin.ListIndex("addr#status", JoinKey([]byte("addr1"), []byte("1")), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Left, leftdata))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Right, rightdata))
+
+	rows, err = tablejoin.ListIndex("#status", JoinKey(nil, []byte("1")), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Left, leftdata))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Right, rightdata))
+
+	rightdata = &protodata.Game{GameID: "gameid1", Status: 2}
+	tablejoin.MustGetTable("game").Replace(rightdata)
+	kvs, err = tablejoin.Save()
+	assert.Nil(t, err)
+	assert.Equal(t, 7, len(kvs))
+	setKV(leveldb, kvs)
+	rows, err = tablejoin.ListIndex("addr#status", JoinKey([]byte("addr1"), []byte("2")), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Left, leftdata))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Right, rightdata))
+
+	rows, err = tablejoin.ListIndex("#status", JoinKey(nil, []byte("2")), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Left, leftdata))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Right, rightdata))
+
+	rightdata = &protodata.Game{GameID: "gameid1", Status: 2}
+	tablejoin.MustGetTable("game").Replace(rightdata)
+	kvs, err = tablejoin.Save()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(kvs))
+
+	leftdata = &protodata.GameAddr{GameID: "gameid1", Addr: "addr2", Txhash: "hash1"}
+	tablejoin.MustGetTable("gameaddr").Replace(leftdata)
+	kvs, err = tablejoin.Save()
+	assert.Nil(t, err)
+	assert.Equal(t, 5, len(kvs))
+	setKV(leveldb, kvs)
+
+	//改回到全部是1的情况
+	rightdata = &protodata.Game{GameID: "gameid1", Status: 1}
+	tablejoin.MustGetTable("game").Replace(rightdata)
+	leftdata = &protodata.GameAddr{GameID: "gameid1", Addr: "addr1", Txhash: "hash1"}
+	tablejoin.MustGetTable("gameaddr").Replace(leftdata)
+	kvs, err = tablejoin.Save()
+	assert.Nil(t, err)
+	assert.Equal(t, 10, len(kvs))
+	setKV(leveldb, kvs)
+	rows, err = tablejoin.ListIndex("addr#status", JoinKey([]byte("addr1"), []byte("1")), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(rows))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Left, leftdata))
+	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Right, rightdata))
+
+	rows, err = tablejoin.ListIndex("#status", JoinKey(nil, []byte("1")), nil, 0, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(rows))
 	assert.Equal(t, true, proto.Equal(rows[0].Data.(*JoinData).Left, leftdata))

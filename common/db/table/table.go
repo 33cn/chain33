@@ -8,11 +8,13 @@ package table
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
+	"github.com/golang/protobuf/proto"
 )
 
 //设计结构:
@@ -42,6 +44,7 @@ del:
 const (
 	None = iota
 	Add
+	Update
 	Del
 )
 
@@ -61,6 +64,7 @@ type Row struct {
 	Ty      int
 	Primary []byte
 	Data    types.Message
+	old     types.Message
 }
 
 func encodeInt64(p int64) ([]byte, error) {
@@ -192,10 +196,16 @@ func (table *Table) addRowCache(row *Row) {
 	primary := string(row.Primary)
 	if row.Ty == Del {
 		delete(table.rowmap, primary)
-	} else if row.Ty == Add {
+	} else if row.Ty == Add || row.Ty == Update {
 		table.rowmap[primary] = row
 	}
 	table.rows = append(table.rows, row)
+}
+
+func (table *Table) delRowCache(row *Row) {
+	row.Ty = None
+	primary := string(row.Primary)
+	delete(table.rowmap, primary)
 }
 
 func (table *Table) mergeCache(rows []*Row, indexName string, indexValue []byte) ([]*Row, error) {
@@ -222,11 +232,12 @@ func (table *Table) mergeCache(rows []*Row, indexName string, indexValue []byte)
 	return rows, nil
 }
 
-func (table *Table) findRow(primary []byte) (*Row, error) {
+func (table *Table) findRow(primary []byte) (*Row, bool, error) {
 	if row, ok := table.rowmap[string(primary)]; ok {
-		return row, nil
+		return row, true, nil
 	}
-	return table.GetData(primary)
+	row, err := table.GetData(primary)
+	return row, false, err
 }
 
 func (table *Table) hasIndex(name string) bool {
@@ -316,17 +327,18 @@ func (table *Table) Replace(data types.Message) error {
 	}
 	//如果没有找到行, 那么添加
 	//TODO: 优化保存策略，不需要修改没有变化的index
-	row, err := table.findRow(primaryKey)
+	row, incache, err := table.findRow(primaryKey)
 	if err == types.ErrNotFound {
 		table.addRowCache(&Row{Data: data, Primary: primaryKey, Ty: Add})
 		return nil
 	}
+	//update or add
+	if incache {
+		row.Data = data
+		return nil
+	}
 	//更新数据
-	delrow := *row
-	delrow.Ty = Del
-	//update 是一个del 和 update 的组合
-	table.addRowCache(&delrow)
-	table.addRowCache(&Row{Data: data, Primary: primaryKey, Ty: Add})
+	table.addRowCache(&Row{Data: data, Primary: primaryKey, Ty: Update, old: row.Data})
 	return nil
 }
 
@@ -340,7 +352,7 @@ func (table *Table) Add(data types.Message) error {
 		return err
 	}
 	//find in cache + db
-	_, err = table.findRow(primaryKey)
+	_, _, err = table.findRow(primaryKey)
 	if err != types.ErrNotFound {
 		return ErrDupPrimaryKey
 	}
@@ -361,25 +373,33 @@ func (table *Table) Update(primaryKey []byte, newdata types.Message) (err error)
 	if !bytes.Equal(p1, primaryKey) {
 		return types.ErrInvalidParam
 	}
-	row, err := table.findRow(primaryKey)
+	row, incache, err := table.findRow(primaryKey)
 	//查询发生错误
 	if err != nil {
 		return err
 	}
-	delrow := *row
-	delrow.Ty = Del
-	//update 是一个del 和 update 的组合
-	table.addRowCache(&delrow)
-	table.addRowCache(&Row{Data: newdata, Primary: primaryKey, Ty: Add})
+	//update and add
+	if incache {
+		row.Data = newdata
+		return nil
+	}
+	table.addRowCache(&Row{Data: newdata, Primary: primaryKey, Ty: Update, old: row.Data})
 	return nil
 }
 
 //Del 在表格中删除一行(包括删除索引)
 func (table *Table) Del(primaryKey []byte) error {
-	row, err := table.findRow(primaryKey)
+	row, incache, err := table.findRow(primaryKey)
 	if err != nil {
 		return err
 	}
+	if incache {
+		table.delRowCache(row)
+		if row.Ty == Add {
+			return nil
+		}
+	}
+	//copy row
 	delrow := *row
 	delrow.Ty = Del
 	table.addRowCache(&delrow)
@@ -466,7 +486,31 @@ func (table *Table) Save() (kvs []*types.KeyValue, err error) {
 	//del cache
 	table.rowmap = make(map[string]*Row)
 	table.rows = nil
-	return kvs, nil
+	return deldupKey(kvs), nil
+}
+
+func deldupKey(kvs []*types.KeyValue) []*types.KeyValue {
+	dupindex := make(map[string]int)
+	hasdup := false
+	for i, kv := range kvs {
+		if _, ok := dupindex[string(kv.Key)]; ok {
+			hasdup = true
+		}
+		dupindex[string(kv.Key)] = i
+	}
+	//没有重复的情况下，不需要重新处理
+	if !hasdup {
+		return kvs
+	}
+	index := 0
+	for i, kv := range kvs {
+		lastindex := dupindex[string(kv.Key)]
+		if i == lastindex {
+			kvs[index] = kv
+			index++
+		}
+	}
+	return kvs[0:index]
 }
 
 func pad(i int64) string {
@@ -476,8 +520,14 @@ func pad(i int64) string {
 func (table *Table) saveRow(row *Row) (kvs []*types.KeyValue, err error) {
 	if row.Ty == Del {
 		return table.delRow(row)
+	} else if row.Ty == Add {
+		return table.addRow(row)
+	} else if row.Ty == Update {
+		return table.updateRow(row)
+	} else if row.Ty == None {
+		return nil, nil
 	}
-	return table.addRow(row)
+	return nil, errors.New("save table unknow action")
 }
 
 func (table *Table) delRow(row *Row) (kvs []*types.KeyValue, err error) {
@@ -514,6 +564,55 @@ func (table *Table) addRow(row *Row) (kvs []*types.KeyValue, err error) {
 		kvs = append(kvs, addindex)
 	}
 	return kvs, nil
+}
+
+func (table *Table) updateRow(row *Row) (kvs []*types.KeyValue, err error) {
+	if proto.Equal(row.Data, row.old) {
+		return nil, nil
+	}
+	if !table.opt.Join {
+		data, err := row.Encode()
+		if err != nil {
+			return nil, err
+		}
+		adddata := &types.KeyValue{Key: table.getDataKey(row.Primary), Value: data}
+		kvs = append(kvs, adddata)
+	}
+	oldrow := &Row{Data: row.old}
+	for _, index := range table.opt.Index {
+		indexkey, oldkey, ismodify, err := table.getModify(row, oldrow, index)
+		if err != nil {
+			return nil, err
+		}
+		if !ismodify {
+			continue
+		}
+		//del old
+		delindex := &types.KeyValue{Key: table.getIndexKey(index, oldkey, row.Primary)}
+		kvs = append(kvs, delindex)
+		//add new
+		addindex := &types.KeyValue{Key: table.getIndexKey(index, indexkey, row.Primary), Value: row.Primary}
+		kvs = append(kvs, addindex)
+	}
+	return kvs, nil
+}
+
+func (table *Table) getModify(row, oldrow *Row, index string) ([]byte, []byte, bool, error) {
+	if oldrow.Data == nil {
+		return nil, nil, false, ErrNilValue
+	}
+	indexkey, err := table.index(row, index)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	oldkey, err := table.index(oldrow, index)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	if bytes.Equal(indexkey, oldkey) {
+		return indexkey, oldkey, false, nil
+	}
+	return indexkey, oldkey, true, nil
 }
 
 //GetQuery 获取查询结构
