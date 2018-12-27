@@ -3,11 +3,9 @@
 
 package proto
 
-import (
-	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -32,17 +30,16 @@ func (m *Game) Reset()         { *m = Game{} }
 func (m *Game) String() string { return proto.CompactTextString(m) }
 func (*Game) ProtoMessage()    {}
 func (*Game) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{0}
+	return fileDescriptor_game_c30dd93766b91ef0, []int{0}
 }
-
 func (m *Game) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Game.Unmarshal(m, b)
 }
 func (m *Game) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Game.Marshal(b, m, deterministic)
 }
-func (m *Game) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Game.Merge(m, src)
+func (dst *Game) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Game.Merge(dst, src)
 }
 func (m *Game) XXX_Size() int {
 	return xxx_messageInfo_Game.Size(m)
@@ -69,7 +66,8 @@ func (m *Game) GetStatus() int64 {
 
 type GameAddr struct {
 	Txhash               string   `protobuf:"bytes,1,opt,name=txhash,proto3" json:"txhash,omitempty"`
-	Addr                 string   `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
+	GameID               string   `protobuf:"bytes,2,opt,name=gameID,proto3" json:"gameID,omitempty"`
+	Addr                 string   `protobuf:"bytes,3,opt,name=addr,proto3" json:"addr,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -79,17 +77,16 @@ func (m *GameAddr) Reset()         { *m = GameAddr{} }
 func (m *GameAddr) String() string { return proto.CompactTextString(m) }
 func (*GameAddr) ProtoMessage()    {}
 func (*GameAddr) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{1}
+	return fileDescriptor_game_c30dd93766b91ef0, []int{1}
 }
-
 func (m *GameAddr) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GameAddr.Unmarshal(m, b)
 }
 func (m *GameAddr) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_GameAddr.Marshal(b, m, deterministic)
 }
-func (m *GameAddr) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GameAddr.Merge(m, src)
+func (dst *GameAddr) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GameAddr.Merge(dst, src)
 }
 func (m *GameAddr) XXX_Size() int {
 	return xxx_messageInfo_GameAddr.Size(m)
@@ -107,6 +104,13 @@ func (m *GameAddr) GetTxhash() string {
 	return ""
 }
 
+func (m *GameAddr) GetGameID() string {
+	if m != nil {
+		return m.GameID
+	}
+	return ""
+}
+
 func (m *GameAddr) GetAddr() string {
 	if m != nil {
 		return m.Addr
@@ -119,16 +123,17 @@ func init() {
 	proto.RegisterType((*GameAddr)(nil), "proto.GameAddr")
 }
 
-func init() { proto.RegisterFile("game.proto", fileDescriptor_38fc58335341d769) }
+func init() { proto.RegisterFile("game.proto", fileDescriptor_game_c30dd93766b91ef0) }
 
-var fileDescriptor_38fc58335341d769 = []byte{
-	// 126 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_game_c30dd93766b91ef0 = []byte{
+	// 131 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4a, 0x4f, 0xcc, 0x4d,
 	0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0x53, 0x4a, 0x66, 0x5c, 0x2c, 0xee, 0x89,
 	0xb9, 0xa9, 0x42, 0x62, 0x5c, 0x6c, 0x20, 0x49, 0x4f, 0x17, 0x09, 0x46, 0x05, 0x46, 0x0d, 0xce,
 	0x20, 0x28, 0x0f, 0x24, 0x5e, 0x5c, 0x92, 0x58, 0x52, 0x5a, 0x2c, 0xc1, 0xa4, 0xc0, 0xa8, 0xc1,
-	0x1c, 0x04, 0xe5, 0x29, 0x99, 0x71, 0x71, 0x80, 0xf4, 0x39, 0xa6, 0xa4, 0x14, 0x81, 0xd4, 0x94,
-	0x54, 0x64, 0x24, 0x16, 0x67, 0xc0, 0xf4, 0x42, 0x78, 0x42, 0x42, 0x5c, 0x2c, 0x89, 0x29, 0x29,
-	0x45, 0x60, 0x9d, 0x9c, 0x41, 0x60, 0xb6, 0x13, 0x7b, 0x14, 0xc4, 0xe2, 0x24, 0x36, 0x30, 0x65,
-	0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x66, 0xc0, 0xa8, 0xd1, 0x94, 0x00, 0x00, 0x00,
+	0x1c, 0x04, 0xe5, 0x29, 0xf9, 0x71, 0x71, 0x80, 0xf4, 0x39, 0xa6, 0xa4, 0x14, 0x81, 0xd4, 0x94,
+	0x54, 0x64, 0x24, 0x16, 0x67, 0xc0, 0xf4, 0x42, 0x78, 0x48, 0x66, 0x32, 0xa1, 0x98, 0x29, 0xc4,
+	0xc5, 0x92, 0x98, 0x92, 0x52, 0x24, 0xc1, 0x0c, 0x16, 0x05, 0xb3, 0x9d, 0xd8, 0xa3, 0x20, 0x0e,
+	0x4a, 0x62, 0x03, 0x53, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0xd5, 0x93, 0x12, 0xbb, 0xac,
+	0x00, 0x00, 0x00,
 }

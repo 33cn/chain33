@@ -9,9 +9,20 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+type tabler interface {
+	getMeta() RowMeta
+	getOpt() *Option
+	indexPrefix(string) []byte
+	GetData([]byte) (*Row, error)
+	index(*Row, string) ([]byte, error)
+	getIndexKey(string, []byte, []byte) []byte
+	primaryPrefix() []byte
+	getRow(value []byte) (*Row, error)
+}
+
 //Query 列表查询结构
 type Query struct {
-	table *Table
+	table tabler
 	kvdb  db.KVDB
 }
 
@@ -19,12 +30,12 @@ type Query struct {
 func (query *Query) List(indexName string, data types.Message, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	var prefix []byte
 	if data != nil {
-		query.table.meta.SetPayload(data)
+		query.table.getMeta().SetPayload(data)
 		querykey := indexName
 		if isPrimaryIndex(indexName) {
-			querykey = query.table.opt.Primary
+			querykey = query.table.getOpt().Primary
 		}
-		prefix, err = query.table.meta.Get(querykey)
+		prefix, err = query.table.getMeta().Get(querykey)
 		if err != nil {
 			return nil, err
 		}
@@ -52,7 +63,7 @@ func isPrimaryIndex(indexName string) bool {
 //count 最多取的数量
 //direction 方向
 func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
-	if isPrimaryIndex(indexName) || indexName == query.table.opt.Primary {
+	if isPrimaryIndex(indexName) || indexName == query.table.getOpt().Primary {
 		return query.listPrimary(prefix, primaryKey, count, direction)
 	}
 	p := query.table.indexPrefix(indexName)
