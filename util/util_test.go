@@ -7,6 +7,7 @@ package util
 import (
 	"testing"
 
+	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,4 +37,18 @@ func TestMakeStringLower(t *testing.T) {
 
 	_, err = MakeStringToLower(originStr, -1, 2)
 	assert.Error(t, err)
+}
+
+func TestResetDatadir(t *testing.T) {
+	cfg, _ := types.InitCfg("../cmd/chain33/chain33.toml")
+	datadir := ResetDatadir(cfg, "$TEMP/hello")
+	assert.Equal(t, datadir+"/datadir", cfg.BlockChain.DbPath)
+
+	cfg, _ = types.InitCfg("../cmd/chain33/chain33.toml")
+	datadir = ResetDatadir(cfg, "/TEMP/hello")
+	assert.Equal(t, "/TEMP/hello/datadir", cfg.BlockChain.DbPath)
+
+	cfg, _ = types.InitCfg("../cmd/chain33/chain33.toml")
+	datadir = ResetDatadir(cfg, "~/hello")
+	assert.Equal(t, datadir+"/datadir", cfg.BlockChain.DbPath)
 }
