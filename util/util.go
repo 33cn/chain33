@@ -243,7 +243,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	block.Txs = types.CacheToTxs(cacheTxs)
 
 	receipts := ExecTx(client, prevStateRoot, block)
-	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
 	var rdata []*types.ReceiptData //save to db receipt log
@@ -261,14 +260,10 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		//处理KV
 		kvs := receipt.KV
 		for _, kv := range kvs {
-			if item, ok := maplist[string(kv.Key)]; ok {
-				item.Value = kv.Value //更新item 的value
-			} else {
-				maplist[string(kv.Key)] = kv
-				kvset = append(kvset, kv)
-			}
+			kvset = append(kvset, kv)
 		}
 	}
+	kvset = DelDupKey(kvset)
 	//check TxHash
 	calcHash := merkle.CalcMerkleRoot(block.Txs)
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
@@ -291,11 +286,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 
 	var detail types.BlockDetail
-	//if kvset == nil {
-	//	calcHash = prevStateRoot
-	//} else {
 	calcHash = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
-	//}
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {
@@ -308,10 +299,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	block.StateHash = calcHash
 	detail.Block = block
 	detail.Receipts = rdata
-	//save to db
-	//if kvset != nil {
 	ExecKVSetCommit(client, block.StateHash)
-	//}
 	return &detail, deltx, nil
 }
 
