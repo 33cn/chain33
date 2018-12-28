@@ -11,7 +11,8 @@ import (
 
 	"github.com/33cn/chain33/cmd/tools/tasks"
 	"github.com/33cn/chain33/cmd/tools/types"
-	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/cmd/tools/util"
+	sysutil "github.com/33cn/chain33/util"
 	"github.com/pkg/errors"
 )
 
@@ -56,7 +57,7 @@ func (ad *advanceCreateExecProjStrategy) initMember() {
 		ad.execName = v
 	}
 	if v, err := ad.getParam(types.KeyActionName); err == nil {
-		ad.actionName, _ = util.MakeStringToUpper(v, 0, 1)
+		ad.actionName, _ = sysutil.MakeStringToUpper(v, 0, 1)
 	}
 	if v, err := ad.getParam(types.KeyProtobufFile); err == nil {
 		ad.propFile = v

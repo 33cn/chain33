@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/cmd/tools/util"
 )
 
 // CreateFileFromStrTemplateTask 从指定的模板字符串中创建目标文件的任务

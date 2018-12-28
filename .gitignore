@@ -10,6 +10,7 @@ datadir*
 .idea
 .vscode
 cmd/chain33/chain33
+cmd/tools/tools
 build/cert.pem
 build/key.pem
 build/chain33*
