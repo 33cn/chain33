@@ -174,6 +174,14 @@ func (t *Tree) Get(key []byte) (index int32, value []byte, exists bool) {
 	return t.root.get(t, key)
 }
 
+// GetHash 通过key获取leaf节点hash信息
+func (t *Tree) GetHash(key []byte) (index int32, hash []byte, exists bool) {
+	if t.root == nil {
+		return 0, nil, false
+	}
+	return t.root.getHash(t, key)
+}
+
 // GetByIndex 通过index获取leaf节点信息
 func (t *Tree) GetByIndex(index int32) (key []byte, value []byte) {
 	if t.root == nil {
@@ -217,6 +225,21 @@ func (t *Tree) Remove(key []byte) (value []byte, removed bool) {
 		t.root = newRoot
 	}
 	return value, true
+}
+
+// RemoveLeafCountKey 删除叶子节点的索引节点（防止裁剪时候回退产生的误删除）
+func (t *Tree) RemoveLeafCountKey(keys [][]byte, height int64) {
+	if t.root == nil {
+		return
+	}
+	batch := t.ndb.GetBatch(true)
+	for _, k := range keys {
+		_, hash, exits := t.GetHash(k)
+		if exits {
+			batch.batch.Delete(genLeafCountKey(k, hash, height, len(hash)))
+		}
+	}
+	batch.batch.Write()
 }
 
 // Iterate 依次迭代遍历树的所有键
@@ -471,6 +494,17 @@ func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte, error) {
 		}
 	}
 	return tree.Save(), values, nil
+}
+
+// DelKVPairLeafCount 回退时候用于删除叶子节点的索引节点
+func DelKVPairLeafCount(db dbm.DB, storeDel *types.StoreDelKeys) error {
+	tree := NewTree(db, true)
+	err := tree.Load(storeDel.StateHash)
+	if err != nil {
+		return err
+	}
+	tree.RemoveLeafCountKey(storeDel.Keys, storeDel.Height)
+	return nil
 }
 
 // VerifyKVPairProof 验证KVPair 的证明

@@ -115,6 +115,26 @@ func (node *Node) get(t *Tree, key []byte) (index int32, value []byte, exists bo
 	return index, value, exists
 }
 
+func (node *Node) getHash(t *Tree, key []byte) (index int32, hash []byte, exists bool) {
+	if node.height == 0 {
+		cmp := bytes.Compare(node.key, key)
+		if cmp == 0 {
+			return 0, node.hash, true
+		} else if cmp == -1 {
+			return 1, nil, false
+		} else {
+			return 0, nil, false
+		}
+	}
+	if bytes.Compare(key, node.key) < 0 {
+		return node.getLeftNode(t).getHash(t, key)
+	}
+	rightNode := node.getRightNode(t)
+	index, hash, exists = rightNode.getHash(t, key)
+	index += node.size - rightNode.size
+	return index, hash, exists
+}
+
 //通过index获取leaf节点信息
 func (node *Node) getByIndex(t *Tree, index int32) (key []byte, value []byte) {
 	if node.height == 0 {

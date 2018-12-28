@@ -65,6 +65,12 @@ message StoreDel {
     int64 height    = 2;
 }
 
+message StoreDelKeys {
+    bytes    stateHash    = 1;
+    repeated bytes keys   = 2;
+    int64          height = 3;
+}
+
 message StoreSetWithSync {
     StoreSet storeset = 1;
     bool     sync     = 2;
