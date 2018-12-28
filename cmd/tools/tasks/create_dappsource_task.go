@@ -10,7 +10,8 @@ import (
 	"strings"
 
 	"github.com/33cn/chain33/cmd/tools/types"
-	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/cmd/tools/util"
+	sysutil "github.com/33cn/chain33/util"
 )
 
 type actionInfoItem struct {
@@ -112,7 +113,7 @@ func (c *CreateDappSourceTask) readActionMemberNames() error {
 		memberType := strings.Replace(member[1], " ", "", -1)
 		memberName := strings.Replace(member[2], " ", "", -1)
 		// 根据proto生成pb.go的规则，成员变量首字母必须大写
-		memberName, _ = util.MakeStringToUpper(memberName, 0, 1)
+		memberName, _ = sysutil.MakeStringToUpper(memberName, 0, 1)
 		c.actionInfos = append(c.actionInfos, &actionInfoItem{
 			memberName: memberName,
 			memberType: memberType,
