@@ -42,7 +42,7 @@ func GetParaExecName(paraName string, name string) string {
 // MakeStringToUpper : 将给定的in字符串从pos开始一共count个转换为大写字母
 func MakeStringToUpper(in string, pos, count int) (out string, err error) {
 	l := len(in)
-	if pos < 0 || pos >= l || (pos+count) >= l {
+	if pos < 0 || pos >= l || (pos+count) >= l || count <= 0 {
 		err = fmt.Errorf("Invalid params. in=%s pos=%d count=%d", in, pos, count)
 		return
 	}
@@ -57,7 +57,7 @@ func MakeStringToUpper(in string, pos, count int) (out string, err error) {
 // MakeStringToLower : 将给定的in字符串从pos开始一共count个转换为小写字母
 func MakeStringToLower(in string, pos, count int) (out string, err error) {
 	l := len(in)
-	if pos < 0 || pos >= l || (pos+count) >= l {
+	if pos < 0 || pos >= l || (pos+count) >= l || count <= 0 {
 		err = fmt.Errorf("Invalid params. in=%s pos=%d count=%d", in, pos, count)
 		return
 	}
