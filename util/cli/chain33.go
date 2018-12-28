@@ -129,9 +129,13 @@ func RunChain33(name string) {
 	log.Info("loading queue")
 	q := queue.New("channel")
 
-	log.Info("loading mempool module")
-	mem := mempool.New(cfg.Mempool, sub.Mempool)
-	mem.SetQueueClient(q.Client())
+	//para not start mempool
+	var mem queue.Module
+	if !types.IsPara() {
+		log.Info("loading mempool module")
+		mem = mempool.New(cfg.Mempool, sub.Mempool)
+		mem.SetQueueClient(q.Client())
+	}
 
 	log.Info("loading execs module")
 	exec := executor.New(cfg.Exec, sub.Exec)
@@ -151,7 +155,8 @@ func RunChain33(name string) {
 	cs.SetQueueClient(q.Client())
 
 	var network *p2p.P2p
-	if cfg.P2P.Enable {
+	//para not start p2p
+	if cfg.P2P.Enable && !types.IsPara() {
 		log.Info("loading p2p module")
 		network = p2p.New(cfg.P2P)
 		network.SetQueueClient(q.Client())
@@ -167,11 +172,13 @@ func RunChain33(name string) {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
 		chain.Close()
-		log.Info("begin close mempool module")
-		mem.Close()
-		if cfg.P2P.Enable {
-			log.Info("begin close P2P module")
-			network.Close()
+		if !types.IsPara() {
+			log.Info("begin close mempool module")
+			mem.Close()
+			if cfg.P2P.Enable {
+				log.Info("begin close P2P module")
+				network.Close()
+			}
 		}
 		log.Info("begin close execs module")
 		exec.Close()
