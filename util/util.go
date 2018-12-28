@@ -257,11 +257,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			continue
 		}
 		rdata = append(rdata, &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs})
-		//处理KV
-		kvs := receipt.KV
-		for _, kv := range kvs {
-			kvset = append(kvset, kv)
-		}
+		kvset = append(kvset, receipt.KV...)
 	}
 	kvset = DelDupKey(kvset)
 	//check TxHash
