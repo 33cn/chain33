@@ -79,10 +79,10 @@ func TestUpperLower(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "Hello", out)
 
-	out, err = MakeStringToUpper("Hello", -1, 1)
+	_, err = MakeStringToUpper("Hello", -1, 1)
 	assert.NotNil(t, err)
 
-	out, err = MakeStringToUpper("Hello", 1, -1)
+	_, err = MakeStringToUpper("Hello", 1, -1)
 	assert.NotNil(t, err)
 
 	out, err = MakeStringToLower("hello", 0, 1)
@@ -93,10 +93,10 @@ func TestUpperLower(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "hello", out)
 
-	out, err = MakeStringToLower("Hello", -1, 1)
+	_, err = MakeStringToLower("Hello", -1, 1)
 	assert.NotNil(t, err)
 
-	out, err = MakeStringToLower("Hello", 1, -1)
+	_, err = MakeStringToLower("Hello", 1, -1)
 	assert.NotNil(t, err)
 }
 
