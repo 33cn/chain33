@@ -14,6 +14,7 @@ import (
 
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -486,31 +487,7 @@ func (table *Table) Save() (kvs []*types.KeyValue, err error) {
 	//del cache
 	table.rowmap = make(map[string]*Row)
 	table.rows = nil
-	return deldupKey(kvs), nil
-}
-
-func deldupKey(kvs []*types.KeyValue) []*types.KeyValue {
-	dupindex := make(map[string]int)
-	hasdup := false
-	for i, kv := range kvs {
-		if _, ok := dupindex[string(kv.Key)]; ok {
-			hasdup = true
-		}
-		dupindex[string(kv.Key)] = i
-	}
-	//没有重复的情况下，不需要重新处理
-	if !hasdup {
-		return kvs
-	}
-	index := 0
-	for i, kv := range kvs {
-		lastindex := dupindex[string(kv.Key)]
-		if i == lastindex {
-			kvs[index] = kv
-			index++
-		}
-	}
-	return kvs[0:index]
+	return util.DelDupKey(kvs), nil
 }
 
 func pad(i int64) string {

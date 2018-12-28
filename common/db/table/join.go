@@ -7,6 +7,7 @@ import (
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 )
 
 var tablelog = log15.New("module", "db.table")
@@ -214,7 +215,7 @@ func (join *JoinTable) Save() (kvs []*types.KeyValue, err error) {
 		return nil, err
 	}
 	kvs = append(kvs, rightkvs...)
-	return deldupKey(kvs), nil
+	return util.DelDupKey(kvs), nil
 }
 
 func (join *JoinTable) isLeftModify(row *Row) bool {

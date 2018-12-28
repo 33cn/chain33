@@ -11,6 +11,8 @@ import (
 
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
+
+	_ "github.com/33cn/chain33/system/dapp/coins/types"
 )
 
 func TestMakeStringUpper(t *testing.T) {
@@ -96,4 +98,82 @@ func TestUpperLower(t *testing.T) {
 
 	out, err = MakeStringToLower("Hello", 1, -1)
 	assert.NotNil(t, err)
+}
+
+func TestGenTx(t *testing.T) {
+	txs := GenNoneTxs(TestPrivkeyList[0], 2)
+	assert.Equal(t, 2, len(txs))
+	assert.Equal(t, "none", string(txs[0].Execer))
+	assert.Equal(t, "none", string(txs[1].Execer))
+
+	txs = GenCoinsTxs(TestPrivkeyList[0], 2)
+	assert.Equal(t, 2, len(txs))
+	assert.Equal(t, "coins", string(txs[0].Execer))
+	assert.Equal(t, "coins", string(txs[1].Execer))
+
+	txs = GenTxsTxHeigt(TestPrivkeyList[0], 2, 10)
+	assert.Equal(t, 2, len(txs))
+	assert.Equal(t, "coins", string(txs[0].Execer))
+	assert.Equal(t, "coins", string(txs[1].Execer))
+	assert.Equal(t, types.TxHeightFlag+10+20, txs[0].Expire)
+}
+
+func TestGenBlock(t *testing.T) {
+	block2 := CreateNoneBlock(TestPrivkeyList[0], 2)
+	assert.Equal(t, 2, len(block2.Txs))
+
+	block2 = CreateCoinsBlock(TestPrivkeyList[0], 2)
+	assert.Equal(t, 2, len(block2.Txs))
+
+	txs := GenNoneTxs(TestPrivkeyList[0], 2)
+	newblock := CreateNewBlock(block2, txs)
+	assert.Equal(t, newblock.Height, block2.Height+1)
+	assert.Equal(t, newblock.ParentHash, block2.Hash())
+}
+
+func TestDelDupKey(t *testing.T) {
+	kvs := []*types.KeyValue{
+		{Key: []byte("hello"), Value: []byte("world")},
+		{Key: []byte("hello1"), Value: []byte("world")},
+		{Key: []byte("hello"), Value: []byte("world2")},
+	}
+	result := []*types.KeyValue{
+		{Key: []byte("hello1"), Value: []byte("world")},
+		{Key: []byte("hello"), Value: []byte("world2")},
+	}
+	kvs = DelDupKey(kvs)
+	assert.Equal(t, kvs, result)
+
+	kvs = []*types.KeyValue{
+		{Key: []byte("hello1"), Value: []byte("world")},
+		{Key: []byte("hello"), Value: []byte("world")},
+		{Key: []byte("hello"), Value: []byte("world2")},
+	}
+	result = []*types.KeyValue{
+		{Key: []byte("hello1"), Value: []byte("world")},
+		{Key: []byte("hello"), Value: []byte("world2")},
+	}
+	kvs = DelDupKey(kvs)
+	assert.Equal(t, kvs, result)
+}
+
+func TestDelDupTx(t *testing.T) {
+	txs := GenNoneTxs(TestPrivkeyList[0], 2)
+	assert.Equal(t, 2, len(txs))
+	assert.Equal(t, "none", string(txs[0].Execer))
+	assert.Equal(t, "none", string(txs[1].Execer))
+	result := txs
+	txs = append(txs, txs...)
+	txcache := make([]*types.TransactionCache, len(txs))
+	for i := 0; i < len(txcache); i++ {
+		txcache[i] = &types.TransactionCache{Transaction: txs[i]}
+	}
+
+	txcacheresult := make([]*types.TransactionCache, len(result))
+	for i := 0; i < len(result); i++ {
+		txcacheresult[i] = &types.TransactionCache{Transaction: result[i]}
+		txcacheresult[i].Hash()
+	}
+	txcache = DelDupTx(txcache)
+	assert.Equal(t, txcache, txcacheresult)
 }
