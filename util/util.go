@@ -8,7 +8,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"os/user"
+	"path/filepath"
 	"strings"
 	"testing"
 	"unicode"
@@ -26,7 +29,7 @@ func init() {
 	rand.Seed(types.Now().UnixNano())
 }
 
-var chainlog = log15.New("module", "testnode")
+var chainlog = log15.New("module", "util")
 
 //GetParaExecName : 如果 name 没有 paraName 前缀，那么加上这个前缀
 func GetParaExecName(paraName string, name string) string {
@@ -395,4 +398,28 @@ func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.
 		}
 	}
 	return detail.Block, nil
+}
+
+//ResetDatadir 重写datadir
+func ResetDatadir(cfg *types.Config, datadir string) string {
+	// Check in case of paths like "/something/~/something/"
+	if datadir[:2] == "~/" {
+		usr, _ := user.Current()
+		dir := usr.HomeDir
+		datadir = filepath.Join(dir, datadir[2:])
+	}
+	if datadir[:6] == "$TEMP/" {
+		dir, err := ioutil.TempDir("", "chain33datadir-")
+		if err != nil {
+			panic(err)
+		}
+		datadir = filepath.Join(dir, datadir[6:])
+	}
+	chainlog.Info("current user data dir is ", "dir", datadir)
+	cfg.Log.LogFile = filepath.Join(datadir, cfg.Log.LogFile)
+	cfg.BlockChain.DbPath = filepath.Join(datadir, cfg.BlockChain.DbPath)
+	cfg.P2P.DbPath = filepath.Join(datadir, cfg.P2P.DbPath)
+	cfg.Wallet.DbPath = filepath.Join(datadir, cfg.Wallet.DbPath)
+	cfg.Store.DbPath = filepath.Join(datadir, cfg.Store.DbPath)
+	return datadir
 }
