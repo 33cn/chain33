@@ -158,7 +158,7 @@ func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 		return nil, err
 	}
 	//不允许有 "-"
-	if strings.Contains(opt.Prefix, sep) || strings.Contains(opt.Name, sep) {
+	if strings.Contains(opt.Name, sep) {
 		return nil, ErrTablePrefixOrTableName
 	}
 	//非jointable 不允许 "#"
