@@ -18,13 +18,13 @@ import (
 	"net/http"
 	_ "net/http/pprof" //
 	"os"
-	"os/user"
 	"path/filepath"
 	"runtime"
 
 	"time"
 
 	"github.com/33cn/chain33/blockchain"
+	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/limits"
@@ -79,7 +79,7 @@ func RunChain33(name string) {
 	//set config: bityuan 用 bityuan.toml 这个配置文件
 	cfg, sub := types.InitCfg(*configPath)
 	if *datadir != "" {
-		resetDatadir(cfg, *datadir)
+		util.ResetDatadir(cfg, *datadir)
 	}
 	if *fixtime {
 		cfg.FixTime = *fixtime
@@ -188,21 +188,6 @@ func RunChain33(name string) {
 
 	}()
 	q.Start()
-}
-
-func resetDatadir(cfg *types.Config, datadir string) {
-	// Check in case of paths like "/something/~/something/"
-	if datadir[:2] == "~/" {
-		usr, _ := user.Current()
-		dir := usr.HomeDir
-		datadir = filepath.Join(dir, datadir[2:])
-	}
-	log.Info("current user data dir is ", "dir", datadir)
-	cfg.Log.LogFile = filepath.Join(datadir, cfg.Log.LogFile)
-	cfg.BlockChain.DbPath = filepath.Join(datadir, cfg.BlockChain.DbPath)
-	cfg.P2P.DbPath = filepath.Join(datadir, cfg.P2P.DbPath)
-	cfg.Wallet.DbPath = filepath.Join(datadir, cfg.Wallet.DbPath)
-	cfg.Store.DbPath = filepath.Join(datadir, cfg.Store.DbPath)
 }
 
 // 开启trace
