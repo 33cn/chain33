@@ -236,6 +236,7 @@ func (t *Tree) RemoveLeafCountKey(keys [][]byte, height int64) {
 	for _, k := range keys {
 		_, hash, exits := t.GetHash(k)
 		if exits {
+			batch.batch.Delete(hash)
 			batch.batch.Delete(genLeafCountKey(k, hash, height, len(hash)))
 		}
 	}
