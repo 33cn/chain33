@@ -47,6 +47,7 @@ func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
 		blockLastHeight, bodyPerfix, LastSequence, headerPerfix, heightToHeaderPerfix,
 		hashPerfix, tdPerfix, heightToHashKeyPerfix, seqToHashKey, HashToSeqPerfix,
+		seqCBPrefix, seqCBLastNumPrefix,
 	}
 }
 
@@ -1056,4 +1057,50 @@ func (bs *BlockStore) SetUpgradeMeta(meta *types.UpgradeMeta) error {
 	verByte := types.Encode(meta)
 	storeLog.Info("SetUpgradeMeta", "meta", meta)
 	return bs.db.SetSync(version.LocalDBMeta, verByte)
+}
+
+//isRecordBlockSequence配置的合法性检测
+func (bs *BlockStore) isRecordBlockSequenceValid() {
+	storeLog.Error("isRecordBlockSequenceValid")
+
+	lastHeight := bs.Height()
+	lastSequence, err := bs.LoadBlockLastSequence()
+	if err != nil {
+		if err != types.ErrHeightNotExist {
+			storeLog.Error("isRecordBlockSequenceValid", "LoadBlockLastSequence err", err)
+			panic(err)
+		}
+	}
+	//使能isRecordBlockSequence时的检测
+	if isRecordBlockSequence {
+		//中途开启isRecordBlockSequence报错
+		if lastSequence == -1 && lastHeight != -1 {
+			storeLog.Error("isRecordBlockSequenceValid", "lastHeight", lastHeight, "lastSequence", lastSequence)
+			panic("isRecordBlockSequence is true must Synchronizing data from zero block")
+		}
+		//lastSequence 必须大于等于lastheight
+		if lastHeight > lastSequence {
+			storeLog.Error("isRecordBlockSequenceValid", "lastHeight", lastHeight, "lastSequence", lastSequence)
+			panic("lastSequence must greater than or equal to lastHeight")
+		}
+		//通过lastSequence获取对应的blockhash ！= lastHeader.hash 报错
+		if lastSequence != -1 {
+			blockSequence, err := bs.GetBlockSequence(lastSequence)
+			if err != nil {
+				storeLog.Error("isRecordBlockSequenceValid", "lastSequence", lastSequence, "GetBlockSequence err", err)
+				panic(err)
+			}
+			lastHeader := bs.LastHeader()
+			if !bytes.Equal(lastHeader.Hash, blockSequence.Hash) {
+				storeLog.Error("isRecordBlockSequenceValid:", "lastHeight", lastHeight, "lastSequence", lastSequence, "lastHeader.Hash", common.ToHex(lastHeader.Hash), "blockSequence.Hash", common.ToHex(blockSequence.Hash))
+				panic("The hash values of lastSequence and lastHeight are different.")
+			}
+		}
+		return
+	}
+	//去使能isRecordBlockSequence时的检测
+	if lastSequence != -1 {
+		storeLog.Error("isRecordBlockSequenceValid", "lastSequence", lastSequence)
+		panic("can not disable isRecordBlockSequence")
+	}
 }

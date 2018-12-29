@@ -253,6 +253,7 @@ type memBatch struct {
 	db     *GoMemDB
 	writes []kv
 	size   int
+	len    int
 }
 
 //NewBatch new
@@ -264,11 +265,14 @@ func (b *memBatch) Set(key, value []byte) {
 	//println("-b-", string(key)[0:4], common.ToHex(key))
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(value)})
 	b.size += len(value)
+	b.size += len(key)
+	b.len += len(value)
 }
 
 func (b *memBatch) Delete(key []byte) {
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(nil)})
-	b.size++
+	b.size += len(key)
+	b.len++
 }
 
 func (b *memBatch) Write() error {
@@ -291,7 +295,13 @@ func (b *memBatch) ValueSize() int {
 	return b.size
 }
 
+//ValueLen  batch数量
+func (b *memBatch) ValueLen() int {
+	return b.len
+}
+
 func (b *memBatch) Reset() {
 	b.writes = b.writes[:0]
 	b.size = 0
+	b.len = 0
 }

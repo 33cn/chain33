@@ -134,6 +134,8 @@ func TestKeyLocalAllow(t *testing.T) {
 	assert.Equal(t, err, types.ErrLocalPrefix)
 	err = isAllowLocalKey([]byte("user.p.para.paracross"), []byte("LODB-user.p.para.paracross-xxxx"))
 	assert.Nil(t, err)
+	err = isAllowLocalKey([]byte("user.p.para.user.wasm.abc"), []byte("LODB-user.p.para.user.wasm.abc-xxxx"))
+	assert.Nil(t, err)
 	err = isAllowLocalKey([]byte("user.p.para.paracross"), []byte("LODB-paracross-xxxx"))
 	assert.Nil(t, err)
 }

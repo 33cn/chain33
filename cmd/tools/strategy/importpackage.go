@@ -14,7 +14,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/cmd/tools/util"
 	"github.com/BurntSushi/toml"
 )
 
@@ -23,6 +23,7 @@ const (
 	consensusFolderName = "consensus"
 	storeFolderName     = "store"
 	cryptoFolderName    = "crypto"
+	mempoolFolderName   = "mempool"
 )
 
 type pluginConfigItem struct {
@@ -91,6 +92,7 @@ func (im *importPackageStrategy) initData() error {
 	consensusItems := make([]*pluginItem, 0)
 	storeItems := make([]*pluginItem, 0)
 	cryptoItems := make([]*pluginItem, 0)
+	mempoolItems := make([]*pluginItem, 0)
 
 	//read current plugin dir
 	//(分成两级，并且去掉了 init 目录)
@@ -141,6 +143,8 @@ func (im *importPackageStrategy) initData() error {
 			storeItems = append(storeItems, item)
 		case cryptoFolderName:
 			cryptoItems = append(cryptoItems, item)
+		case mempoolFolderName:
+			mempoolItems = append(mempoolItems, item)
 		default:
 			fmt.Printf("type %s is not supported.\n", cfgItem.Type)
 			return errors.New("config error")
@@ -150,6 +154,7 @@ func (im *importPackageStrategy) initData() error {
 	im.items[consensusFolderName] = consensusItems
 	im.items[storeFolderName] = storeItems
 	im.items[cryptoFolderName] = cryptoItems
+	im.items[mempoolFolderName] = mempoolItems
 	im.projRootPath = ""
 	im.projPluginPath, _ = im.getParam("path")
 	return nil
@@ -201,11 +206,11 @@ func (im *importPackageStrategy) generateImportFile() error {
 	importStrs := map[string]string{}
 	for name, plugins := range im.items {
 		for _, item := range plugins {
-			importStrs[name] += fmt.Sprintf("\r\n_ \"%s\" //auto gen", item.gitRepo)
+			importStrs[name] += fmt.Sprintf("\n_ \"%s\" //auto gen", item.gitRepo)
 		}
 	}
 	for key, value := range importStrs {
-		content := fmt.Sprintf("package init\r\n\r\nimport(%s\r\n)", value)
+		content := fmt.Sprintf("package init\n\nimport(%s\n)", value)
 		initFile := fmt.Sprintf("%s/%s/init/init.go", im.projPluginPath, key)
 		util.MakeDir(initFile)
 

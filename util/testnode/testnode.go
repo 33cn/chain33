@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -65,6 +66,7 @@ type Chain33Mock struct {
 	store    queue.Module
 	rpc      *rpc.RPC
 	cfg      *types.Config
+	datadir  string
 	lastsend []byte
 }
 
@@ -83,7 +85,8 @@ func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 	types.Init(cfg.Title, cfg)
 	q := queue.New("channel")
 	types.Debug = false
-	mock := &Chain33Mock{cfg: cfg, q: q}
+	datadir := util.ResetDatadir(cfg, "$TEMP/")
+	mock := &Chain33Mock{cfg: cfg, q: q, datadir: datadir}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 
 	mock.exec = executor.New(cfg.Exec, sub.Exec)
@@ -256,6 +259,7 @@ func (mock *Chain33Mock) Close() {
 	mock.network.Close()
 	mock.client.Close()
 	mock.rpc.Close()
+	os.RemoveAll(mock.datadir)
 	chain33globalLock.Unlock()
 }
 

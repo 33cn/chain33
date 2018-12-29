@@ -456,6 +456,7 @@ type PegasusBatch struct {
 	table    pegasus.TableConnector
 	batchset map[string][]byte
 	batchdel map[string][]byte
+	size     int
 }
 
 //NewBatch new
@@ -467,6 +468,8 @@ func (db *PegasusDB) NewBatch(sync bool) Batch {
 func (db *PegasusBatch) Set(key, value []byte) {
 	db.batchset[string(key)] = value
 	delete(db.batchdel, string(key))
+	db.size += len(value)
+	db.size += len(key)
 }
 
 //Delete 删除
@@ -474,6 +477,7 @@ func (db *PegasusBatch) Delete(key []byte) {
 	db.batchset[string(key)] = []byte("")
 	delete(db.batchset, string(key))
 	db.batchdel[string(key)] = key
+	db.size += len(key)
 }
 
 // 注意本方法的实现逻辑，因为ssdb没有提供删除和更新同时进行的批量操作；
@@ -556,6 +560,11 @@ func (db *PegasusBatch) Write() error {
 
 //ValueSize value批长度
 func (db *PegasusBatch) ValueSize() int {
+	return db.size
+}
+
+//ValueLen  batch数量
+func (db *PegasusBatch) ValueLen() int {
 	return len(db.batchset)
 }
 
@@ -563,6 +572,7 @@ func (db *PegasusBatch) ValueSize() int {
 func (db *PegasusBatch) Reset() {
 	db.batchset = make(map[string][]byte)
 	db.batchdel = make(map[string][]byte)
+	db.size = 0
 }
 
 func getHashKey(key []byte) []byte {

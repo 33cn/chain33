@@ -457,6 +457,7 @@ type ssDBBatch struct {
 	db       *GoSSDB
 	batchset map[string][]byte
 	batchdel map[string]bool
+	size     int
 }
 
 //NewBatch new
@@ -467,12 +468,15 @@ func (db *GoSSDB) NewBatch(sync bool) Batch {
 func (db *ssDBBatch) Set(key, value []byte) {
 	db.batchset[string(key)] = value
 	delete(db.batchdel, string(key))
+	db.size += len(value)
+	db.size += len(key)
 }
 
 func (db *ssDBBatch) Delete(key []byte) {
 	db.batchset[string(key)] = []byte{}
 	delete(db.batchset, string(key))
 	db.batchdel[string(key)] = true
+	db.size += len(key)
 }
 
 // 注意本方法的实现逻辑，因为ssdb没有提供删除和更新同时进行的批量操作；
@@ -507,10 +511,16 @@ func (db *ssDBBatch) Write() error {
 }
 
 func (db *ssDBBatch) ValueSize() int {
+	return db.size
+}
+
+//ValueLen  batch数量
+func (db *ssDBBatch) ValueLen() int {
 	return len(db.batchset)
 }
 
 func (db *ssDBBatch) Reset() {
 	db.batchset = make(map[string][]byte)
 	db.batchdel = make(map[string]bool)
+	db.size = 0
 }

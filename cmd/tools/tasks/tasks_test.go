@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/cmd/tools/util"
 )
 
 func TestReplaceTarget(t *testing.T) {
