@@ -73,8 +73,8 @@ message ReqGetExecBalance {
     bytes  addr      = 3;
     bytes  execAddr  = 4;
     string execer    = 5;
-    int64 count     = 6;
-    bytes nextKey   = 7;
+    int64  count     = 6;
+    bytes  nextKey   = 7;
 }
 
 message ExecBalanceItem {
