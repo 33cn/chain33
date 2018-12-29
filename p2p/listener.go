@@ -148,46 +148,29 @@ func (h *statshandler) HandleConn(ctx context.Context, s stats.ConnStats) {
 		fmt.Println("can not get conn tag")
 		return
 	}
-
 	ip, _, _ := net.SplitHostPort(tag.RemoteAddr.String())
 	connsMutex.Lock()
 	defer connsMutex.Unlock()
-	count, ok := conns[ip]
-
+	if _, ok := conns[ip]; !ok {
+		conns[ip] = 0
+	}
 	switch s.(type) {
 	case *stats.ConnBegin:
-		if ok {
-			count++
-			conns[ip] = count
-		} else {
-			conns[ip] = 1
-		}
-		log.Debug("begin conn", "remoteAddr", tag.RemoteAddr.String(), "localAddr:", tag.LocalAddr.String(), "diffIpNum", len(conns), "samipNum", conns[ip])
-
+		conns[ip] = conns[ip] + 1
+		log.Debug("ip connbeg", "ip", ip, "n", conns[ip])
 	case *stats.ConnEnd:
-
-		if ok {
-			count--
-			if count == 0 {
-				delete(conns, ip)
-			} else {
-				conns[ip] = count
-			}
-
-			log.Debug("end conn", "diffIpNum", len(conns), "remoteAddr", tag.RemoteAddr.String(), "samipNum", count)
-
+		conns[ip] = conns[ip] - 1
+		if conns[ip] <= 0 {
+			delete(conns, ip)
 		}
-
+		log.Debug("ip connend", "ip", ip, "n", conns[ip])
 	default:
 		log.Error("illegal ConnStats type\n")
 	}
-
 }
 
 // HandleRPC 为空.
-func (h *statshandler) HandleRPC(ctx context.Context, s stats.RPCStats) {
-
-}
+func (h *statshandler) HandleRPC(ctx context.Context, s stats.RPCStats) {}
 
 type connCtxKey struct{}
 
@@ -200,15 +183,14 @@ func getConnTagFromContext(ctx context.Context) (*stats.ConnTagInfo, bool) {
 	tag, ok := ctx.Value(connCtxKey{}).(*stats.ConnTagInfo)
 	return tag, ok
 }
+
 func auth(checkIP string) bool {
 	connsMutex.Lock()
 	defer connsMutex.Unlock()
-
 	count, ok := conns[checkIP]
-	if ok && count > MaxSamIPNum {
+	if ok && count > maxSamIPNum {
 		log.Error("AuthCheck", "sameIP num:", count, "checkIP:", checkIP, "diffIP num:", len(conns))
 		return false
 	}
-
 	return true
 }
