@@ -228,15 +228,28 @@ func (t *Tree) Remove(key []byte) (value []byte, removed bool) {
 }
 
 // RemoveLeafCountKey 删除叶子节点的索引节点（防止裁剪时候回退产生的误删除）
-func (t *Tree) RemoveLeafCountKey(keys [][]byte, height int64) {
-	if t.root == nil {
+func (t *Tree) RemoveLeafCountKey(height int64) {
+	if t.root == nil || t.ndb == nil {
 		return
 	}
+	prefix := genPrefixHashKey(&Node{}, height)
+	it := t.ndb.db.Iterator(prefix, nil, true)
+	defer it.Close()
+
+	var keys [][]byte
+	for it.Rewind(); it.Valid(); it.Next() {
+		value := it.Value()
+		pData := &types.StoreNode{}
+		err := proto.Unmarshal(value, pData)
+		if err == nil {
+			keys = append(keys, pData.Key)
+		}
+	}
+
 	batch := t.ndb.GetBatch(true)
 	for _, k := range keys {
 		_, hash, exits := t.GetHash(k)
 		if exits {
-			batch.batch.Delete(hash)
 			batch.batch.Delete(genLeafCountKey(k, hash, height, len(hash)))
 		}
 	}
@@ -497,14 +510,17 @@ func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte, error) {
 	return tree.Save(), values, nil
 }
 
-// DelKVPairLeafCount 回退时候用于删除叶子节点的索引节点
-func DelKVPairLeafCount(db dbm.DB, storeDel *types.StoreDelKeys) error {
+// DelLeafCountKV 回退时候用于删除叶子节点的索引节点
+func DelLeafCountKV(db dbm.DB, storeDel *types.StoreDel) error {
+	if storeDel == nil {
+		return fmt.Errorf("input nil param")
+	}
 	tree := NewTree(db, true)
 	err := tree.Load(storeDel.StateHash)
 	if err != nil {
 		return err
 	}
-	tree.RemoveLeafCountKey(storeDel.Keys, storeDel.Height)
+	tree.RemoveLeafCountKey(storeDel.Height)
 	return nil
 }
 

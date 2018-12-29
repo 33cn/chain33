@@ -80,7 +80,6 @@ It has these top-level messages:
 	LocalReplyValue
 	StoreSet
 	StoreDel
-	StoreDelKeys
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
