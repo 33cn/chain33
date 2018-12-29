@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/33cn/chain33/common/version"
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
+
 	pr "google.golang.org/grpc/peer"
 )
 
@@ -65,6 +65,7 @@ func NewP2pServer() *P2pserver {
 
 // Ping p2pserver ping
 func (s *P2pserver) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, error) {
+
 	log.Debug("ping")
 	if !P2pComm.CheckSign(in) {
 		log.Error("Ping", "p2p server", "check sig err")
@@ -96,6 +97,7 @@ func (s *P2pserver) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 
 // GetAddr get address
 func (s *P2pserver) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr, error) {
+
 	log.Debug("GETADDR", "RECV ADDR", in, "OutBound Len", s.node.Size())
 	var addrlist []string
 	peers, _ := s.node.GetActivePeers()
@@ -127,6 +129,7 @@ func (s *P2pserver) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 
 // Version2 p2pserver version
 func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
+
 	log.Debug("Version2")
 	var peerip string
 	var err error
@@ -177,6 +180,7 @@ func (s *P2pserver) SoftVersion(ctx context.Context, in *pb.P2PPing) (*pb.Reply,
 // BroadCastTx broadcast transactions of p2pserver
 func (s *P2pserver) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, error) {
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
+
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
 	client.Send(msg, false)
@@ -220,6 +224,7 @@ func (s *P2pserver) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
+
 	memtx, err := s.loadMempool()
 	if err != nil {
 		return nil, err
@@ -241,6 +246,7 @@ func (s *P2pserver) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 	if !s.checkVersion(in.GetVersion()) {
 		return pb.ErrVersion
 	}
+
 	invs := in.GetInvs()
 	client := s.node.nodeInfo.client
 	for _, inv := range invs { //过滤掉不需要的数据
@@ -311,6 +317,7 @@ func (s *P2pserver) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
+
 	if in.GetEndHeight()-in.GetStartHeight() > 2000 || in.GetEndHeight() < in.GetStartHeight() {
 		return nil, fmt.Errorf("out of range")
 	}
@@ -338,6 +345,7 @@ func (s *P2pserver) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 	if !s.checkVersion(in.GetVersion()) {
 		return nil, pb.ErrVersion
 	}
+
 	client := s.node.nodeInfo.client
 	log.Debug("GetPeerInfo", "GetMempoolSize", "befor")
 	msg := client.NewMessage("mempool", pb.EventGetMempoolSize, nil)
@@ -383,6 +391,7 @@ func (s *P2pserver) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb
 // BroadCastBlock broadcast block of p2pserver
 func (s *P2pserver) BroadCastBlock(ctx context.Context, in *pb.P2PBlock) (*pb.Reply, error) {
 	log.Debug("BroadCastBlock")
+
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventBroadcastAddBlock, in.GetBlock())
 	err := client.Send(msg, false)
@@ -398,6 +407,7 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 	if len(s.getInBoundPeers()) > int(s.node.nodeInfo.cfg.InnerBounds) {
 		return fmt.Errorf("beyound max inbound num")
 	}
+
 	log.Debug("ServerStreamSend")
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
 	dataChain := s.addStreamHandler(stream)
@@ -443,7 +453,6 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.InnerBounds))
 	}
 	log.Debug("StreamRead")
-	//检查是否有较多同一IP连接的情况
 	var remoteIP string
 	var err error
 	getctx, ok := pr.FromContext(stream.Context())
@@ -451,9 +460,6 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		remoteIP, _, err = net.SplitHostPort(getctx.Addr.String())
 		if err != nil {
 			return fmt.Errorf("ctx.Addr format err")
-		}
-		if s.sameIPNum(remoteIP) > 20 {
-			return fmt.Errorf("the same ip max support 20 conns")
 		}
 	} else {
 		return fmt.Errorf("getctx err")
@@ -726,18 +732,4 @@ func (s *P2pserver) getInBoundPeers() []*innerpeer {
 		peers = append(peers, innerpeer)
 	}
 	return peers
-}
-
-func (s *P2pserver) sameIPNum(ip string) int64 {
-	s.imtx.Lock()
-	defer s.imtx.Unlock()
-	var count int64
-	for _, innerpeer := range s.inboundpeers {
-		peerip := strings.Split(innerpeer.addr, ":")[0]
-		if ip == peerip {
-			count++
-		}
-	}
-
-	return count
 }

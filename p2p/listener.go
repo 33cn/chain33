@@ -7,11 +7,15 @@ package p2p
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	pb "github.com/33cn/chain33/types"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	pr "google.golang.org/grpc/peer"
+	"google.golang.org/grpc/stats"
 )
 
 // Listener the actions
@@ -62,6 +66,52 @@ func NewListener(protocol string, node *Node) Listener {
 	pServer := NewP2pServer()
 	pServer.node = dl.node
 
+	//一元拦截器 接口调用之前进行校验拦截
+	interceptor := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		//checkAuth
+		getctx, ok := pr.FromContext(ctx)
+		if !ok {
+			return nil, fmt.Errorf("")
+		}
+		ip, _, _ := net.SplitHostPort(getctx.Addr.String())
+
+		if pServer.node.nodeInfo.blacklist.Has(ip) {
+			return nil, fmt.Errorf("this %v is not authorized", ip)
+		}
+
+		if !auth(conns, ip) {
+			log.Error("interceptor", "auth faild", ip)
+			//把相应的IP地址加入黑名单中
+			pServer.node.nodeInfo.blacklist.Add(ip, int64(3600))
+			return nil, fmt.Errorf("this %v is not authorized", ip)
+
+		}
+		// Continue processing the request
+		return handler(ctx, req)
+	}
+	//流拦截器
+	interceptorStream := func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		getctx, ok := pr.FromContext(ss.Context())
+		if !ok {
+			log.Error("interceptorStream", "FromContext error", "")
+			return fmt.Errorf("stream Context err")
+		}
+		ip, _, _ := net.SplitHostPort(getctx.Addr.String())
+
+		if pServer.node.nodeInfo.blacklist.Has(ip) {
+			return fmt.Errorf("this %v is not authorized", ip)
+		}
+
+		if !auth(conns, ip) {
+			log.Error("interceptorStream", "auth faild", ip)
+			//把相应的IP地址加入黑名单中
+			pServer.node.nodeInfo.blacklist.Add(ip, int64(3600))
+			return fmt.Errorf("this %v is not authorized", ip)
+		}
+		return handler(srv, ss)
+	}
+	var opts []grpc.ServerOption
+	opts = append(opts, grpc.UnaryInterceptor(interceptor), grpc.StreamInterceptor(interceptorStream))
 	//区块最多10M
 	msgRecvOp := grpc.MaxMsgSize(11 * 1024 * 1024)     //设置最大接收数据大小位11M
 	msgSendOp := grpc.MaxSendMsgSize(11 * 1024 * 1024) //设置最大发送数据大小为11M
@@ -71,9 +121,80 @@ func NewListener(protocol string, node *Node) Listener {
 	keepparm.MaxConnectionIdle = 1 * time.Minute
 	maxStreams := grpc.MaxConcurrentStreams(1000)
 	keepOp := grpc.KeepaliveParams(keepparm)
-
-	dl.server = grpc.NewServer(msgRecvOp, msgSendOp, keepOp, maxStreams)
+	StatsOp := grpc.StatsHandler(&statshandler{})
+	opts = append(opts, msgRecvOp, msgSendOp, keepOp, maxStreams, StatsOp)
+	dl.server = grpc.NewServer(opts...)
 	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
 	return dl
+}
+
+type statshandler struct{}
+
+func (h *statshandler) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
+	return context.WithValue(ctx, connCtxKey{}, info)
+}
+
+func (h *statshandler) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
+	return ctx
+}
+
+func (h *statshandler) HandleConn(ctx context.Context, s stats.ConnStats) {
+	if ctx == nil {
+		return
+	}
+	tag, ok := getConnTagFromContext(ctx)
+	if !ok {
+		fmt.Println("can not get conn tag")
+		return
+	}
+	switch s.(type) {
+	case *stats.ConnBegin:
+		connsMutex.Lock()
+		defer connsMutex.Unlock()
+		ip, _, _ := net.SplitHostPort(tag.RemoteAddr.String())
+
+		conns[tag] = ip
+
+		log.Debug("begin conn", "tag =", tag, "connsNum:", len(conns), "remoteAddr", tag.RemoteAddr.String(), "localAddr:", tag.LocalAddr.String())
+	case *stats.ConnEnd:
+		connsMutex.Lock()
+		defer connsMutex.Unlock()
+		delete(conns, tag)
+		log.Debug("end conn", "tag:", tag, "connsNum:", len(conns), "remoteAddr", tag.RemoteAddr.String())
+	default:
+		log.Error("illegal ConnStats type\n")
+	}
+
+}
+
+// HandleRPC 为空.
+func (h *statshandler) HandleRPC(ctx context.Context, s stats.RPCStats) {
+
+}
+
+type connCtxKey struct{}
+
+var connsMutex sync.Mutex
+var conns map[*stats.ConnTagInfo]string = make(map[*stats.ConnTagInfo]string)
+
+func getConnTagFromContext(ctx context.Context) (*stats.ConnTagInfo, bool) {
+	tag, ok := ctx.Value(connCtxKey{}).(*stats.ConnTagInfo)
+	return tag, ok
+}
+func auth(conns map[*stats.ConnTagInfo]string, checkIP string) bool {
+	connsMutex.Lock()
+	defer connsMutex.Unlock()
+	var count int
+
+	for _, v := range conns {
+		if v == checkIP {
+			count++
+		}
+	}
+	if count > MaxSamIPNum {
+		log.Error("AuthCheck", "sameIP num:", count, "checkIP:", checkIP, "conns num:", len(conns))
+		return false
+	}
+	return true
 }

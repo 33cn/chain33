@@ -30,6 +30,7 @@ const (
 	msgTx           = 1
 	msgBlock        = 2
 	tryMapPortTimes = 20
+	MaxSamIPNum     = 20
 )
 
 var (
