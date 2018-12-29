@@ -22,7 +22,7 @@ func initP2p() *P2p {
 	cfg.Port = 33802
 	cfg.Enable = true
 	cfg.DbPath = "testdata"
-	cfg.DbCache = 10240
+	cfg.DbCache = 4
 	cfg.Version = 216
 	cfg.ServerStart = true
 	cfg.Driver = "leveldb"
