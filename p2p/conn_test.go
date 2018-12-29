@@ -13,8 +13,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-func initP2p() *P2p {
+func init() {
 	l.SetLogLevel("err")
+}
+
+func initP2p() *P2p {
 	cfg := new(pb.P2P)
 	cfg.Port = 33802
 	cfg.Enable = true
