@@ -191,5 +191,6 @@ func (mavls *Store) Del(req *types.StoreDel) ([]byte, error) {
 		delete(mavls.trees, string(req.StateHash))
 	}
 	mavl.DelLeafCountKV(mavls.GetDB(), req)
+	mlog.Debug("store mavl Del", "height", req.Height, "state hash", common.ToHex(req.StateHash))
 	return nil, nil
 }
