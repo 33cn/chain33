@@ -79,7 +79,7 @@ func NewListener(protocol string, node *Node) Listener {
 			return nil, fmt.Errorf("this %v is not authorized", ip)
 		}
 
-		if !auth(conns, ip) {
+		if !auth(ip) {
 			log.Error("interceptor", "auth faild", ip)
 			//把相应的IP地址加入黑名单中
 			pServer.node.nodeInfo.blacklist.Add(ip, int64(3600))
@@ -102,7 +102,7 @@ func NewListener(protocol string, node *Node) Listener {
 			return fmt.Errorf("this %v is not authorized", ip)
 		}
 
-		if !auth(conns, ip) {
+		if !auth(ip) {
 			log.Error("interceptorStream", "auth faild", ip)
 			//把相应的IP地址加入黑名单中
 			pServer.node.nodeInfo.blacklist.Add(ip, int64(3600))
@@ -148,20 +148,36 @@ func (h *statshandler) HandleConn(ctx context.Context, s stats.ConnStats) {
 		fmt.Println("can not get conn tag")
 		return
 	}
+
+	ip, _, _ := net.SplitHostPort(tag.RemoteAddr.String())
+	connsMutex.Lock()
+	defer connsMutex.Unlock()
+	count, ok := conns[ip]
+
 	switch s.(type) {
 	case *stats.ConnBegin:
-		connsMutex.Lock()
-		defer connsMutex.Unlock()
-		ip, _, _ := net.SplitHostPort(tag.RemoteAddr.String())
+		if ok {
+			count++
+			conns[ip] = count
+		} else {
+			conns[ip] = 1
+		}
+		log.Debug("begin conn", "remoteAddr", tag.RemoteAddr.String(), "localAddr:", tag.LocalAddr.String(), "diffIpNum", len(conns), "samipNum", conns[ip])
 
-		conns[tag] = ip
-
-		log.Debug("begin conn", "tag =", tag, "connsNum:", len(conns), "remoteAddr", tag.RemoteAddr.String(), "localAddr:", tag.LocalAddr.String())
 	case *stats.ConnEnd:
-		connsMutex.Lock()
-		defer connsMutex.Unlock()
-		delete(conns, tag)
-		log.Debug("end conn", "tag:", tag, "connsNum:", len(conns), "remoteAddr", tag.RemoteAddr.String())
+
+		if ok {
+			count--
+			if count == 0 {
+				delete(conns, ip)
+			} else {
+				conns[ip] = count
+			}
+
+			log.Debug("end conn", "diffIpNum", len(conns), "remoteAddr", tag.RemoteAddr.String(), "samipNum", count)
+
+		}
+
 	default:
 		log.Error("illegal ConnStats type\n")
 	}
@@ -176,25 +192,23 @@ func (h *statshandler) HandleRPC(ctx context.Context, s stats.RPCStats) {
 type connCtxKey struct{}
 
 var connsMutex sync.Mutex
-var conns map[*stats.ConnTagInfo]string = make(map[*stats.ConnTagInfo]string)
+
+//var conns map[*stats.ConnTagInfo]string = make(map[*stats.ConnTagInfo]string)
+var conns = make(map[string]uint)
 
 func getConnTagFromContext(ctx context.Context) (*stats.ConnTagInfo, bool) {
 	tag, ok := ctx.Value(connCtxKey{}).(*stats.ConnTagInfo)
 	return tag, ok
 }
-func auth(conns map[*stats.ConnTagInfo]string, checkIP string) bool {
+func auth(checkIP string) bool {
 	connsMutex.Lock()
 	defer connsMutex.Unlock()
-	var count int
 
-	for _, v := range conns {
-		if v == checkIP {
-			count++
-		}
-	}
-	if count > MaxSamIPNum {
-		log.Error("AuthCheck", "sameIP num:", count, "checkIP:", checkIP, "conns num:", len(conns))
+	count, ok := conns[checkIP]
+	if ok && count > MaxSamIPNum {
+		log.Error("AuthCheck", "sameIP num:", count, "checkIP:", checkIP, "diffIP num:", len(conns))
 		return false
 	}
+
 	return true
 }
