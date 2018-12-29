@@ -8,7 +8,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"os/user"
+	"path/filepath"
 	"strings"
 	"testing"
 	"unicode"
@@ -26,7 +29,7 @@ func init() {
 	rand.Seed(types.Now().UnixNano())
 }
 
-var chainlog = log15.New("module", "testnode")
+var chainlog = log15.New("module", "util")
 
 //GetParaExecName : 如果 name 没有 paraName 前缀，那么加上这个前缀
 func GetParaExecName(paraName string, name string) string {
@@ -39,7 +42,7 @@ func GetParaExecName(paraName string, name string) string {
 // MakeStringToUpper : 将给定的in字符串从pos开始一共count个转换为大写字母
 func MakeStringToUpper(in string, pos, count int) (out string, err error) {
 	l := len(in)
-	if pos < 0 || pos >= l || (pos+count) >= l {
+	if pos < 0 || pos >= l || (pos+count) >= l || count <= 0 {
 		err = fmt.Errorf("Invalid params. in=%s pos=%d count=%d", in, pos, count)
 		return
 	}
@@ -54,7 +57,7 @@ func MakeStringToUpper(in string, pos, count int) (out string, err error) {
 // MakeStringToLower : 将给定的in字符串从pos开始一共count个转换为小写字母
 func MakeStringToLower(in string, pos, count int) (out string, err error) {
 	l := len(in)
-	if pos < 0 || pos >= l || (pos+count) >= l {
+	if pos < 0 || pos >= l || (pos+count) >= l || count <= 0 {
 		err = fmt.Errorf("Invalid params. in=%s pos=%d count=%d", in, pos, count)
 		return
 	}
@@ -240,7 +243,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	block.Txs = types.CacheToTxs(cacheTxs)
 
 	receipts := ExecTx(client, prevStateRoot, block)
-	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
 	var rdata []*types.ReceiptData //save to db receipt log
@@ -255,17 +257,9 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			continue
 		}
 		rdata = append(rdata, &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs})
-		//处理KV
-		kvs := receipt.KV
-		for _, kv := range kvs {
-			if item, ok := maplist[string(kv.Key)]; ok {
-				item.Value = kv.Value //更新item 的value
-			} else {
-				maplist[string(kv.Key)] = kv
-				kvset = append(kvset, kv)
-			}
-		}
+		kvset = append(kvset, receipt.KV...)
 	}
+	kvset = DelDupKey(kvset)
 	//check TxHash
 	calcHash := merkle.CalcMerkleRoot(block.Txs)
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
@@ -288,11 +282,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 
 	var detail types.BlockDetail
-	//if kvset == nil {
-	//	calcHash = prevStateRoot
-	//} else {
 	calcHash = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
-	//}
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {
@@ -305,10 +295,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	block.StateHash = calcHash
 	detail.Block = block
 	detail.Receipts = rdata
-	//save to db
-	//if kvset != nil {
 	ExecKVSetCommit(client, block.StateHash)
-	//}
 	return &detail, deltx, nil
 }
 
@@ -395,4 +382,28 @@ func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.
 		}
 	}
 	return detail.Block, nil
+}
+
+//ResetDatadir 重写datadir
+func ResetDatadir(cfg *types.Config, datadir string) string {
+	// Check in case of paths like "/something/~/something/"
+	if datadir[:2] == "~/" {
+		usr, _ := user.Current()
+		dir := usr.HomeDir
+		datadir = filepath.Join(dir, datadir[2:])
+	}
+	if datadir[:6] == "$TEMP/" {
+		dir, err := ioutil.TempDir("", "chain33datadir-")
+		if err != nil {
+			panic(err)
+		}
+		datadir = filepath.Join(dir, datadir[6:])
+	}
+	chainlog.Info("current user data dir is ", "dir", datadir)
+	cfg.Log.LogFile = filepath.Join(datadir, cfg.Log.LogFile)
+	cfg.BlockChain.DbPath = filepath.Join(datadir, cfg.BlockChain.DbPath)
+	cfg.P2P.DbPath = filepath.Join(datadir, cfg.P2P.DbPath)
+	cfg.Wallet.DbPath = filepath.Join(datadir, cfg.Wallet.DbPath)
+	cfg.Store.DbPath = filepath.Join(datadir, cfg.Store.DbPath)
+	return datadir
 }

@@ -92,17 +92,29 @@ func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	return nil
 }
 
-func checkTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCache) {
-	dupMap := make(map[string]bool)
-	for _, tx := range txs {
-		hash := string(tx.Hash())
-		if _, ok := dupMap[hash]; ok {
-			continue
+//DelDupTx 删除重复的交易
+func DelDupTx(txs []*types.TransactionCache) (ret []*types.TransactionCache) {
+	dupindex := make(map[string]int)
+	hasdup := false
+	for i, tx := range txs {
+		if _, ok := dupindex[string(tx.Hash())]; ok {
+			hasdup = true
 		}
-		dupMap[hash] = true
-		ret = append(ret, tx)
+		dupindex[string(tx.Hash())] = i
 	}
-	return ret
+	//没有重复的情况下，不需要重新处理
+	if !hasdup {
+		return txs
+	}
+	index := 0
+	for i, tx := range txs {
+		lastindex := dupindex[string(tx.Hash())]
+		if i == lastindex {
+			txs[index] = tx
+			index++
+		}
+	}
+	return txs[0:index]
 }
 
 //CheckDupTx : check use txs []*types.Transaction and not []*types.TransactionCache
@@ -125,7 +137,7 @@ func CheckDupTx(client queue.Client, txs []*types.Transaction, height int64) (tr
 func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList
 	if types.IsFork(height, "ForkCheckTxDup") {
-		txs = checkTxDupInner(txs)
+		txs = DelDupTx(txs)
 	}
 	for _, tx := range txs {
 		checkHashList.Hashes = append(checkHashList.Hashes, tx.Hash())
@@ -170,4 +182,29 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	reportErrEvent.Error = err.Error()
 	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
 	client.Send(msg, false)
+}
+
+//DelDupKey 删除重复的key
+func DelDupKey(kvs []*types.KeyValue) []*types.KeyValue {
+	dupindex := make(map[string]int)
+	hasdup := false
+	for i, kv := range kvs {
+		if _, ok := dupindex[string(kv.Key)]; ok {
+			hasdup = true
+		}
+		dupindex[string(kv.Key)] = i
+	}
+	//没有重复的情况下，不需要重新处理
+	if !hasdup {
+		return kvs
+	}
+	index := 0
+	for i, kv := range kvs {
+		lastindex := dupindex[string(kv.Key)]
+		if i == lastindex {
+			kvs[index] = kv
+			index++
+		}
+	}
+	return kvs[0:index]
 }

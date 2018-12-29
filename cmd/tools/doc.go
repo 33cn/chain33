@@ -51,5 +51,11 @@ Package main chain33开发者工具，主要提供以下功能：
 			-n  --name    		执行器的项目名和类名，必填参数
 			-p  --propfile 		导入执行器类型的proto3协议模板，如果不填默认为config/执行器名称.proto
 			-t  --templatepath 	生成执行器项目的模板文件，不填默认为config/template下的所有文件
+
+更新初始化文件:
+	扫描指定path目录下所有的插件，根据扫描到的结果重新更新consensus、dapp和、store、mempool的初始化文件 init.go
+	使用方式：./tools updateinit -p $(YourPluginPath)
+	例子：./tools updateinit -p /GOPATH/src/github.com/33cn/chain33/cmd/tools/plugin
+
 */
 package main

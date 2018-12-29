@@ -66,17 +66,18 @@ message ReqKey {
 }
 
 message ReqRandHash {
-	string execName = 1;
-	int64 height = 2;
-	int64 blockNum = 3;
+    string execName = 1;
+    int64  height   = 2;
+    int64  blockNum = 3;
+    bytes  hash     = 4;
 }
 
 /**
  *当前软件版本信息
  */
 message VersionInfo {
-    string title        = 1;
-    string app          = 2;
-    string chain33      = 3;
-    string localDb      = 4;
+    string title   = 1;
+    string app     = 2;
+    string chain33 = 3;
+    string localDb = 4;
 }

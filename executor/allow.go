@@ -7,6 +7,8 @@ package executor
 import (
 	"bytes"
 
+	"github.com/pkg/errors"
+
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 )
@@ -61,37 +63,46 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 }
 
 func isAllowLocalKey(execer []byte, key []byte) error {
-	if err := isAllowLocalKey2(execer, key); err != nil {
+	err := isAllowLocalKey2(execer, key)
+	if err != nil {
 		realexec := types.GetRealExecName(execer)
-		if bytes.Equal(realexec, execer) {
-			return err
+		if !bytes.Equal(realexec, execer) {
+			err2 := isAllowLocalKey2(realexec, key)
+			err = errors.Wrapf(err2, "1st check err: %s. 2nd check err", err.Error())
 		}
-		return isAllowLocalKey2(realexec, key)
+		if err != nil {
+			elog.Error("isAllowLocalKey failed", "err", err.Error())
+			return errors.Cause(err)
+		}
+
 	}
 	return nil
 }
 
 func isAllowLocalKey2(execer []byte, key []byte) error {
 	if len(execer) < 1 {
-		return types.ErrLocalPrefix
+		return errors.Wrap(types.ErrLocalPrefix, "execer empty")
 	}
 	minkeylen := len(types.LocalPrefix) + len(execer) + 2
 	if len(key) <= minkeylen {
-		elog.Error("isAllowLocalKey too short", "key", string(key), "exec", string(execer))
-		return types.ErrLocalKeyLen
+		err := errors.Wrapf(types.ErrLocalKeyLen, "isAllowLocalKey too short. key=%s exec=%s", string(key), string(execer))
+		return err
 	}
 	if key[minkeylen-1] != '-' {
-		elog.Error("isAllowLocalKey prefix last char is not '-'", "key", string(key), "exec", string(execer),
-			"minkeylen", minkeylen)
-		return types.ErrLocalPrefix
+		err := errors.Wrapf(types.ErrLocalPrefix,
+			"isAllowLocalKey prefix last char is not '-'. key=%s exec=%s minkeylen=%d title=%s",
+			string(key), string(execer), minkeylen, types.GetTitle())
+		return err
 	}
 	if !bytes.HasPrefix(key, types.LocalPrefix) {
-		elog.Error("isAllowLocalKey common prefix not match", "key", string(key), "exec", string(execer))
-		return types.ErrLocalPrefix
+		err := errors.Wrapf(types.ErrLocalPrefix, "isAllowLocalKey common prefix not match. key=%s exec=%s",
+			string(key), string(execer))
+		return err
 	}
 	if !bytes.HasPrefix(key[len(types.LocalPrefix)+1:], execer) {
-		elog.Error("isAllowLocalKey key prefix not match", "key", string(key), "exec", string(execer))
-		return types.ErrLocalPrefix
+		err := errors.Wrapf(types.ErrLocalPrefix, "isAllowLocalKey key prefix not match. key=%s exec=%s",
+			string(key), string(execer))
+		return err
 	}
 	return nil
 }

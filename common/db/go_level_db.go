@@ -234,23 +234,27 @@ type goLevelDBBatch struct {
 	batch *leveldb.Batch
 	wop   *opt.WriteOptions
 	size  int
+	len   int
 }
 
 //NewBatch new
 func (db *GoLevelDB) NewBatch(sync bool) Batch {
 	batch := new(leveldb.Batch)
 	wop := &opt.WriteOptions{Sync: sync}
-	return &goLevelDBBatch{db, batch, wop, 0}
+	return &goLevelDBBatch{db, batch, wop, 0, 0}
 }
 
 func (mBatch *goLevelDBBatch) Set(key, value []byte) {
 	mBatch.batch.Put(key, value)
+	mBatch.size += len(key)
 	mBatch.size += len(value)
+	mBatch.len += len(value)
 }
 
 func (mBatch *goLevelDBBatch) Delete(key []byte) {
 	mBatch.batch.Delete(key)
-	mBatch.size++
+	mBatch.size += len(key)
+	mBatch.len++
 }
 
 func (mBatch *goLevelDBBatch) Write() error {
@@ -266,7 +270,13 @@ func (mBatch *goLevelDBBatch) ValueSize() int {
 	return mBatch.size
 }
 
+//ValueLen  batch数量
+func (mBatch *goLevelDBBatch) ValueLen() int {
+	return mBatch.len
+}
+
 func (mBatch *goLevelDBBatch) Reset() {
 	mBatch.batch.Reset()
+	mBatch.len = 0
 	mBatch.size = 0
 }

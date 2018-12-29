@@ -27,13 +27,12 @@ message MAVLProof {
 }
 
 message StoreNode {
-    bytes key        = 1;
-    bytes value      = 2;
-    bytes leftHash   = 3;
-    bytes rightHash  = 4;
-    int32 height     = 5;
-    int32 size       = 6;
-    bytes parentHash = 7;
+    bytes key       = 1;
+    bytes value     = 2;
+    bytes leftHash  = 3;
+    bytes rightHash = 4;
+    int32 height    = 5;
+    int32 size      = 6;
 }
 
 message LocalDBSet {
@@ -102,12 +101,8 @@ message StoreListReply {
 }
 
 message PruneData {
-    // 对应keyHash下的区块高度
-    int64 height = 1;
-    // hash+prefix的长度
-    int32 lenth = 2;
-    // 该叶子节点的roothash
-    // bytes rHash  = 3;
+    // 该叶子节点的所有父hash
+    repeated bytes hashs = 1;
 }
 
 //用于存储db Pool数据的Value

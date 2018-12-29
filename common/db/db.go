@@ -85,7 +85,8 @@ type Batch interface {
 	Set(key, value []byte)
 	Delete(key []byte)
 	Write() error
-	ValueSize() int // amount of data in the batch
+	ValueSize() int // size of data in the batch
+	ValueLen() int  // amount of data in the batch
 	Reset()         // Reset resets the batch for reuse
 }
 

@@ -11,16 +11,18 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/33cn/chain33/cmd/tools/tasks"
 )
 
 type updateInitStrategy struct {
 	strategyBasic
-	consRootPath   string
-	dappRootPath   string
-	storeRootPath  string
-	cryptoRootPath string
+	consRootPath    string
+	dappRootPath    string
+	storeRootPath   string
+	cryptoRootPath  string
+	mempoolRootPath string
 }
 
 func (up *updateInitStrategy) Run() error {
@@ -35,11 +37,14 @@ func (up *updateInitStrategy) Run() error {
 func (up *updateInitStrategy) initMember() error {
 	path, err := up.getParam("path")
 	packname, _ := up.getParam("packname")
+	gopath := os.Getenv("GOPATH")
 	if err != nil || path == "" {
-		gopath := os.Getenv("GOPATH")
 		if len(gopath) > 0 {
 			path = filepath.Join(gopath, "/src/github.com/33cn/chain33/plugin/")
 		}
+	}
+	if packname == "" {
+		packname = strings.Replace(path, gopath+"/src/", "", 1)
 	}
 	if len(path) == 0 {
 		return errors.New("Chain33 Plugin Not Existed")
@@ -48,10 +53,12 @@ func (up *updateInitStrategy) initMember() error {
 	up.dappRootPath = fmt.Sprintf("%s/dapp/", path)
 	up.storeRootPath = fmt.Sprintf("%s/store/", path)
 	up.cryptoRootPath = fmt.Sprintf("%s/crypto/", path)
+	up.mempoolRootPath = fmt.Sprintf("%s/mempool/", path)
 	mkdir(up.consRootPath)
 	mkdir(up.dappRootPath)
 	mkdir(up.storeRootPath)
 	mkdir(up.cryptoRootPath)
+	mkdir(up.mempoolRootPath)
 	buildInit(path, packname)
 	return nil
 }
@@ -76,7 +83,9 @@ import (
 	_ "${packname}/crypto/init"    //crypto init
 	_ "${packname}/dapp/init"      //dapp init
 	_ "${packname}/store/init"     //store init
-)`)
+    _ "${packname}/mempool/init"   //mempool init
+)
+`)
 		data = bytes.Replace(data, []byte("${packname}"), []byte(packname), -1)
 		ioutil.WriteFile(path, data, 0666)
 	}
@@ -113,6 +122,9 @@ func (up *updateInitStrategy) buildTask() tasks.Task {
 		},
 		&tasks.UpdateInitFileTask{
 			Folder: up.cryptoRootPath,
+		},
+		&tasks.UpdateInitFileTask{
+			Folder: up.mempoolRootPath,
 		},
 	)
 

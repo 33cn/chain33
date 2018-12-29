@@ -7,9 +7,12 @@ package tasks
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
+	"strings"
 
-	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/cmd/tools/util"
 )
 
 type itemData struct {
@@ -54,6 +57,17 @@ func (up *UpdateInitFileTask) Execute() error {
 func (up *UpdateInitFileTask) init() error {
 	up.initFile = fmt.Sprintf("%sinit/init.go", up.Folder)
 	up.itemDatas = make([]*itemData, 0)
+	gopath := os.Getenv("GOPATH")
+	if len(gopath) == 0 {
+		return errors.New("GOPATH Not Existed")
+	}
+	// 获取所有文件
+	files, _ := ioutil.ReadDir(up.Folder)
+	for _, file := range files {
+		if file.IsDir() && file.Name() != "init" {
+			up.itemDatas = append(up.itemDatas, &itemData{strings.Replace(up.Folder, gopath+"/src/", "", 1) + file.Name()})
+		}
+	}
 	return nil
 }
 
@@ -63,9 +77,9 @@ func (up *UpdateInitFileTask) genInitFile() error {
 	}
 	var importStr, content string
 	for _, item := range up.itemDatas {
-		importStr += fmt.Sprintf("_ \"%s\"\r\n", item.path)
+		importStr += fmt.Sprintf("_ \"%s\"\n", item.path)
 	}
-	content = fmt.Sprintf("package init \r\n\r\nimport (\r\n%s)", importStr)
+	content = fmt.Sprintf("package init \n\nimport (\n%s)\n", importStr)
 
 	util.DeleteFile(up.initFile)
 	_, err := util.WriteStringToFile(up.initFile, content)
