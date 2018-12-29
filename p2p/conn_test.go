@@ -2,23 +2,43 @@ package p2p
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/queue"
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
+var p2pcli *P2p
+
+func init() {
+	cfg := new(pb.P2P)
+	cfg.Port = 33802
+	cfg.Enable = true
+	cfg.DbPath = "testdata"
+	cfg.DbCache = 10240
+	cfg.Version = 216
+	cfg.ServerStart = true
+	cfg.Driver = "leveldb"
+	q := queue.New("channel")
+
+	p2pcli = New(cfg)
+	p2pcli.SetQueueClient(q.Client())
+
+}
 func TestGrpcConns(t *testing.T) {
+
 	var conn *grpc.ClientConn
 	var err error
 	for i := 0; i < 30; i++ {
 		fmt.Println("index:", i)
-		conn, err = grpc.Dial("localhost:13802", grpc.WithInsecure(),
+		conn, err = grpc.Dial("localhost:33802", grpc.WithInsecure(),
 			grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 		if err != nil {
-			fmt.Println("grpc DialCon", "did not connect", err)
+			t.Log("grpc DialCon", "did not connect", err)
 			return
 		}
 
@@ -27,7 +47,7 @@ func TestGrpcConns(t *testing.T) {
 		resp, err := cli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: 1002}, grpc.FailFast(true))
 
 		if err != nil {
-			fmt.Println("GetHeaders error:", err.Error())
+			t.Log("GetHeaders", "error:", err.Error())
 			continue
 
 		}
@@ -40,11 +60,15 @@ func TestGrpcConns(t *testing.T) {
 }
 
 func TestGrpcStreamConns(t *testing.T) {
+	defer func() {
+		p2pcli.Close()
+		os.RemoveAll("testdata")
+	}()
 	var conn *grpc.ClientConn
 	var err error
 	for i := 0; i < 30; i++ {
 		fmt.Println("index:", i)
-		conn, err = grpc.Dial("localhost:13802", grpc.WithInsecure(),
+		conn, err = grpc.Dial("localhost:33802", grpc.WithInsecure(),
 			grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 		if err != nil {
 			fmt.Println("grpc DialCon", "did not connect", err)
@@ -64,14 +88,15 @@ func TestGrpcStreamConns(t *testing.T) {
 
 		resp, err := cli.GetData(context.Background(), &p2pdata)
 		if err != nil {
-			log.Error("GetData", "err:", err.Error())
+			t.Log("GetData", "err:", err.Error())
 			continue
 		}
 		_, err = resp.Recv()
 		if err != nil {
-			log.Error("ServerStreamSend", "err:", err.Error())
+			t.Log("ServerStreamSend", "err:", err.Error())
 			continue
 		}
 
 	}
+
 }
