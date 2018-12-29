@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func mTestGrpcConns(t *testing.T) {
+func TestGrpcConns(t *testing.T) {
 	var conn *grpc.ClientConn
 	var err error
 	for i := 0; i < 30; i++ {
