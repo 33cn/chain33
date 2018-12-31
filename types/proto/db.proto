@@ -108,4 +108,4 @@ message PruneData {
 //用于存储db Pool数据的Value
 message StoreValuePool {
     repeated bytes values = 1;
-}
+} 
