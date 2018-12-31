@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
@@ -406,4 +408,23 @@ func ResetDatadir(cfg *types.Config, datadir string) string {
 	cfg.Wallet.DbPath = filepath.Join(datadir, cfg.Wallet.DbPath)
 	cfg.Store.DbPath = filepath.Join(datadir, cfg.Store.DbPath)
 	return datadir
+}
+
+//CreateTestDB 创建一个测试数据库
+func CreateTestDB() (string, db.DB, db.KVDB) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	if err != nil {
+		panic(err)
+	}
+	leveldb, err := db.NewGoLevelDB("goleveldb", dir, 128)
+	if err != nil {
+		panic(err)
+	}
+	return dir, leveldb, db.NewKVDB(leveldb)
+}
+
+//CloseTestDB 创建一个测试数据库
+func CloseTestDB(dir string, dbm db.DB) {
+	os.RemoveAll(dir)
+	dbm.Close()
 }
