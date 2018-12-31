@@ -45,3 +45,8 @@ func (c *KVCreator) Add(key, value []byte) *KVCreator {
 func (c *KVCreator) AddKV(key, value []byte) *KVCreator {
 	return c.add(key, value, false)
 }
+
+//KVList 读取所有的kv列表
+func (c *KVCreator) KVList() []*types.KeyValue {
+	return c.kvs
+}
