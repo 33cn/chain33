@@ -33,7 +33,7 @@ func TestJoin(t *testing.T) {
 	kvs, err := tablejoin.Save()
 	assert.Nil(t, err)
 	assert.Equal(t, 7, len(kvs))
-	setKV(ldb, kvs)
+	util.SaveKVList(ldb, kvs)
 	//query table
 	//每个表的查询，用 tablejoin.MustGetTable("gameaddr")
 	//join query 用 tablejoin.Query
@@ -54,7 +54,7 @@ func TestJoin(t *testing.T) {
 	kvs, err = tablejoin.Save()
 	assert.Nil(t, err)
 	assert.Equal(t, 7, len(kvs))
-	setKV(ldb, kvs)
+	util.SaveKVList(ldb, kvs)
 	rows, err = tablejoin.ListIndex("addr#status", JoinKey([]byte("addr1"), []byte("2")), nil, 0, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(rows))
@@ -78,7 +78,7 @@ func TestJoin(t *testing.T) {
 	kvs, err = tablejoin.Save()
 	assert.Nil(t, err)
 	assert.Equal(t, 5, len(kvs))
-	setKV(ldb, kvs)
+	util.SaveKVList(ldb, kvs)
 
 	//改回到全部是1的情况
 	rightdata = &protodata.Game{GameID: "gameid1", Status: 1}
@@ -88,7 +88,7 @@ func TestJoin(t *testing.T) {
 	kvs, err = tablejoin.Save()
 	assert.Nil(t, err)
 	assert.Equal(t, 10, len(kvs))
-	setKV(ldb, kvs)
+	util.SaveKVList(ldb, kvs)
 	rows, err = tablejoin.ListIndex("addr#status", JoinKey([]byte("addr1"), []byte("1")), nil, 0, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(rows))
