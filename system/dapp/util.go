@@ -41,6 +41,11 @@ func (c *KVCreator) Add(key, value []byte) *KVCreator {
 	return c.add(key, value, true)
 }
 
+//Get 从KV中获取 value
+func (c *KVCreator) Get(key []byte) ([]byte, error) {
+	return c.kvdb.Get(key)
+}
+
 //AddKV only add KV
 func (c *KVCreator) AddKV(key, value []byte) *KVCreator {
 	return c.add(key, value, false)
