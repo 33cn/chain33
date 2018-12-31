@@ -17,6 +17,7 @@ import (
 	"testing"
 	"unicode"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/db"
@@ -427,4 +428,28 @@ func CreateTestDB() (string, db.DB, db.KVDB) {
 func CloseTestDB(dir string, dbm db.DB) {
 	os.RemoveAll(dir)
 	dbm.Close()
+}
+
+//SaveKVList 保存kvs to database
+func SaveKVList(kvdb db.DB, kvs []*types.KeyValue) {
+	//printKV(kvs)
+	batch := kvdb.NewBatch(true)
+	for i := 0; i < len(kvs); i++ {
+		if kvs[i].Value == nil {
+			batch.Delete(kvs[i].Key)
+			continue
+		}
+		batch.Set(kvs[i].Key, kvs[i].Value)
+	}
+	err := batch.Write()
+	if err != nil {
+		panic(err)
+	}
+}
+
+//PrintKV 打印KVList
+func PrintKV(kvs []*types.KeyValue) {
+	for i := 0; i < len(kvs); i++ {
+		fmt.Printf("KV %d %s(%s)\n", i, string(kvs[i].Key), common.ToHex(kvs[i].Value))
+	}
 }

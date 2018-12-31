@@ -23,7 +23,7 @@ func TestCount(t *testing.T) {
 	assert.Equal(t, i, int64(1))
 	kvs, err := count.Save()
 	assert.Nil(t, err)
-	setKV(ldb, kvs)
+	util.SaveKVList(ldb, kvs)
 
 	count = NewCount("prefix", "name#hello", kvdb)
 	i, err = count.Get()
