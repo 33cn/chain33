@@ -177,3 +177,13 @@ func TestDelDupTx(t *testing.T) {
 	txcache = DelDupTx(txcache)
 	assert.Equal(t, txcache, txcacheresult)
 }
+
+func TestDB(t *testing.T) {
+	dir, db, kvdb := CreateTestDB()
+	defer CloseTestDB(dir, db)
+	err := kvdb.Set([]byte("a"), []byte("b"))
+	assert.Nil(t, err)
+	value, err := kvdb.Get([]byte("a"))
+	assert.Nil(t, err)
+	assert.Equal(t, value, []byte("b"))
+}

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	protodata "github.com/33cn/chain33/common/db/table/proto"
+	"github.com/33cn/chain33/util"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 
@@ -12,8 +13,8 @@ import (
 )
 
 func TestJoin(t *testing.T) {
-	dir, leveldb, kvdb := getdb()
-	defer dbclose(dir, leveldb)
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
 	table1, err := NewTable(NewGameRow(), kvdb, optgame)
 	assert.Nil(t, err)
 	table2, err := NewTable(NewGameAddrRow(), kvdb, optgameaddr)
@@ -32,7 +33,7 @@ func TestJoin(t *testing.T) {
 	kvs, err := tablejoin.Save()
 	assert.Nil(t, err)
 	assert.Equal(t, 7, len(kvs))
-	setKV(leveldb, kvs)
+	setKV(ldb, kvs)
 	//query table
 	//每个表的查询，用 tablejoin.MustGetTable("gameaddr")
 	//join query 用 tablejoin.Query
@@ -53,7 +54,7 @@ func TestJoin(t *testing.T) {
 	kvs, err = tablejoin.Save()
 	assert.Nil(t, err)
 	assert.Equal(t, 7, len(kvs))
-	setKV(leveldb, kvs)
+	setKV(ldb, kvs)
 	rows, err = tablejoin.ListIndex("addr#status", JoinKey([]byte("addr1"), []byte("2")), nil, 0, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(rows))
@@ -77,7 +78,7 @@ func TestJoin(t *testing.T) {
 	kvs, err = tablejoin.Save()
 	assert.Nil(t, err)
 	assert.Equal(t, 5, len(kvs))
-	setKV(leveldb, kvs)
+	setKV(ldb, kvs)
 
 	//改回到全部是1的情况
 	rightdata = &protodata.Game{GameID: "gameid1", Status: 1}
@@ -87,7 +88,7 @@ func TestJoin(t *testing.T) {
 	kvs, err = tablejoin.Save()
 	assert.Nil(t, err)
 	assert.Equal(t, 10, len(kvs))
-	setKV(leveldb, kvs)
+	setKV(ldb, kvs)
 	rows, err = tablejoin.ListIndex("addr#status", JoinKey([]byte("addr1"), []byte("1")), nil, 0, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(rows))
