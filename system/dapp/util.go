@@ -159,7 +159,15 @@ func (c *KVCreator) GetRollbackKVList() ([]*types.KeyValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return c.parseRollback(&rollbacklog)
+	kvs, err := c.parseRollback(&rollbacklog)
+	if err != nil {
+		return nil, err
+	}
+	//reverse kvs
+	for left, right := 0, len(kvs)-1; left < right; left, right = left+1, right-1 {
+		kvs[left], kvs[right] = kvs[right], kvs[left]
+	}
+	return kvs, nil
 }
 
 //rollbackLog rollback log
