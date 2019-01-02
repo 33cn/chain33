@@ -1518,6 +1518,108 @@ func TestGetKeyHeightFromOldLeafCountKey(t *testing.T) {
 	require.Equal(t, hash, hash1)
 }
 
+func TestPrintSameLeafKey(t *testing.T) {
+	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
+	EnablePrune(true)
+	defer EnablePrune(false)
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+	}
+
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	tree.Save()
+	PrintSameLeafKey(db, "abc")
+}
+
+func TestPrintLeafNodeParent(t *testing.T) {
+	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
+	EnablePrune(true)
+	defer EnablePrune(false)
+	blockHeight := int64(1000)
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+	}
+
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+	tree.SetBlockHeight(blockHeight)
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	tree.Save()
+	hash, _ := FromHex("0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d")
+	PrintLeafNodeParent(db, []byte("abc"), hash, blockHeight)
+}
+
+func TestPrintNodeDb(t *testing.T) {
+	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
+	EnablePrune(true)
+	defer EnablePrune(false)
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+	}
+
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	tree.Save()
+	hash, _ := FromHex("0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d")
+	PrintNodeDb(db, hash)
+}
+
 func BenchmarkDBSet(b *testing.B) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(b, err)
