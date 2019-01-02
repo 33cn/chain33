@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
@@ -251,6 +252,7 @@ func (t *Tree) RemoveLeafCountKey(height int64) {
 		_, hash, exits := t.GetHash(k)
 		if exits {
 			batch.batch.Delete(genLeafCountKey(k, hash, height, len(hash)))
+			treelog.Debug("RemoveLeafCountKey:", "height", height, "key:", string(k), "hash:", common.ToHex(hash))
 		}
 	}
 	batch.batch.Write()

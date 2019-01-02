@@ -7,6 +7,9 @@ package mavl
 import (
 	"bytes"
 
+	"fmt"
+
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
 )
@@ -329,7 +332,7 @@ func (node *Node) getLeftNode(t *Tree) *Node {
 	}
 	leftNode, err := t.ndb.GetNode(t, node.leftHash)
 	if err != nil {
-		panic(err) //数据库已经损坏
+		panic(fmt.Sprintln("left hash", common.ToHex(node.leftHash), err)) //数据库已经损坏
 	}
 	return leftNode
 }
@@ -340,7 +343,7 @@ func (node *Node) getRightNode(t *Tree) *Node {
 	}
 	rightNode, err := t.ndb.GetNode(t, node.rightHash)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintln("right hash", common.ToHex(node.rightHash), err))
 	}
 	return rightNode
 }
