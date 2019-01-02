@@ -395,8 +395,9 @@ func (table *Table) Del(primaryKey []byte) error {
 		return err
 	}
 	if incache {
+		rowty := row.Ty
 		table.delRowCache(row)
-		if row.Ty == Add {
+		if rowty == Add {
 			return nil
 		}
 	}
