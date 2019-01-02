@@ -482,7 +482,7 @@ func PrintLeafNodeParent(db dbm.DB, key, hash []byte, height int64) {
 		isHave = true
 	}
 
-	if isHave == false {
+	if !isHave {
 		oldLeafCountKey := genOldLeafCountKey(key, hash, height, len(hash))
 		value, err = db.Get(oldLeafCountKey)
 		if err == nil {
@@ -501,7 +501,7 @@ func PrintLeafNodeParent(db dbm.DB, key, hash []byte, height int64) {
 		}
 	}
 
-	if isHave == false {
+	if !isHave {
 		treelog.Info("err", "get db", "not exist in db")
 	}
 }
