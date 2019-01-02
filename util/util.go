@@ -396,3 +396,25 @@ func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.
 	}
 	return detail.Block, nil
 }
+
+// MockModule
+type MockModule struct {
+	Key string
+}
+
+// SetQueueClient
+func (m *MockModule) SetQueueClient(client queue.Client) {
+	go func() {
+		client.Sub(m.Key)
+		for msg := range client.Recv() {
+			msg.Reply(client.NewMessage(m.Key, types.EventReply, &types.Reply{IsOk: false,
+				Msg: []byte(fmt.Sprintf("mock %s module not handle message %v", m.Key, msg.Ty))}))
+		}
+	}()
+}
+
+// Wait for ready
+func (m *MockModule) Wait() {}
+
+// Close
+func (m *MockModule) Close() {}

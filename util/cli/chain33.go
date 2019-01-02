@@ -39,6 +39,7 @@ import (
 	"github.com/33cn/chain33/rpc"
 	"github.com/33cn/chain33/store"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
@@ -129,13 +130,14 @@ func RunChain33(name string) {
 	log.Info("loading queue")
 	q := queue.New("channel")
 
-	//para not start mempool
+	log.Info("loading mempool module")
 	var mem queue.Module
 	if !types.IsPara() {
-		log.Info("loading mempool module")
 		mem = mempool.New(cfg.Mempool, sub.Mempool)
-		mem.SetQueueClient(q.Client())
+	} else {
+		mem = &util.MockModule{Key: "mempool"}
 	}
+	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
 	exec := executor.New(cfg.Exec, sub.Exec)
@@ -154,13 +156,15 @@ func RunChain33(name string) {
 	cs := consensus.New(cfg.Consensus, sub.Consensus)
 	cs.SetQueueClient(q.Client())
 
-	var network *p2p.P2p
-	//para not start p2p
+	log.Info("loading p2p module")
+	var network queue.Module
 	if cfg.P2P.Enable && !types.IsPara() {
-		log.Info("loading p2p module")
 		network = p2p.New(cfg.P2P)
-		network.SetQueueClient(q.Client())
+	} else {
+		network = &util.MockModule{Key: "p2p"}
 	}
+	network.SetQueueClient(q.Client())
+
 	//jsonrpc, grpc, channel 三种模式
 	rpcapi := rpc.New(cfg.RPC)
 	rpcapi.SetQueueClient(q.Client())
@@ -172,14 +176,10 @@ func RunChain33(name string) {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
 		chain.Close()
-		if !types.IsPara() {
-			log.Info("begin close mempool module")
-			mem.Close()
-			if cfg.P2P.Enable {
-				log.Info("begin close P2P module")
-				network.Close()
-			}
-		}
+		log.Info("begin close mempool module")
+		mem.Close()
+		log.Info("begin close P2P module")
+		network.Close()
 		log.Info("begin close execs module")
 		exec.Close()
 		log.Info("begin close store module")
