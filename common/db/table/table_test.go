@@ -6,11 +6,8 @@ package table
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"testing"
 
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
@@ -19,8 +16,8 @@ import (
 )
 
 func TestTransactinList(t *testing.T) {
-	dir, leveldb, kvdb := getdb()
-	defer dbclose(dir, leveldb)
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
 	opt := &Option{
 		Prefix:  "prefix",
 		Name:    "name",
@@ -51,7 +48,7 @@ func TestTransactinList(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(kvs), 12)
 	//save to database
-	setKV(leveldb, kvs)
+	util.SaveKVList(ldb, kvs)
 	//测试查询
 	query := table.GetQuery(kvdb)
 
@@ -157,8 +154,8 @@ func TestTransactinList(t *testing.T) {
 }
 
 func TestTransactinListAuto(t *testing.T) {
-	dir, leveldb, kvdb := getdb()
-	defer dbclose(dir, leveldb)
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
 	opt := &Option{
 		Prefix:  "prefix",
 		Name:    "name",
@@ -189,7 +186,7 @@ func TestTransactinListAuto(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(kvs), 13)
 	//save to database
-	setKV(leveldb, kvs)
+	util.SaveKVList(ldb, kvs)
 	//测试查询
 	query := table.GetQuery(kvdb)
 
@@ -257,28 +254,6 @@ func mergeDup(kvs []*types.KeyValue) (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func setKV(kvdb db.DB, kvs []*types.KeyValue) {
-	//printKV(kvs)
-	batch := kvdb.NewBatch(true)
-	for i := 0; i < len(kvs); i++ {
-		if kvs[i].Value == nil {
-			batch.Delete(kvs[i].Key)
-			continue
-		}
-		batch.Set(kvs[i].Key, kvs[i].Value)
-	}
-	err := batch.Write()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func printKV(kvs []*types.KeyValue) {
-	for i := 0; i < len(kvs); i++ {
-		fmt.Printf("KV %d %s(%s)\n", i, string(kvs[i].Key), common.ToHex(kvs[i].Value))
-	}
-}
-
 func TestRow(t *testing.T) {
 	rowmeta := NewTransactionRow()
 	row := rowmeta.CreateRow()
@@ -298,8 +273,8 @@ func TestRow(t *testing.T) {
 }
 
 func TestDel(t *testing.T) {
-	dir, leveldb, kvdb := getdb()
-	defer dbclose(dir, leveldb)
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
 	opt := &Option{
 		Prefix:  "prefix",
 		Name:    "name",
@@ -327,7 +302,7 @@ func TestDel(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(kvs), 6)
 	//save to database
-	setKV(leveldb, kvs)
+	util.SaveKVList(ldb, kvs)
 	//printKV(kvs)
 	query := table.GetQuery(kvdb)
 	rows, err := query.ListIndex("From", []byte(addr1[0:10]), nil, 0, 0)
@@ -344,8 +319,8 @@ func printAllKey(db db.DB) {
 }
 
 func TestUpdate(t *testing.T) {
-	dir, leveldb, kvdb := getdb()
-	defer dbclose(dir, leveldb)
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
 	opt := &Option{
 		Prefix:  "prefix",
 		Name:    "name",
@@ -369,7 +344,7 @@ func TestUpdate(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(kvs), 3)
 	//save to database
-	setKV(leveldb, kvs)
+	util.SaveKVList(ldb, kvs)
 	query := table.GetQuery(kvdb)
 	rows, err := query.ListIndex("From", []byte(tx1.From()), nil, 0, 0)
 	assert.Nil(t, err)
@@ -377,8 +352,8 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestReplace(t *testing.T) {
-	dir, leveldb, kvdb := getdb()
-	defer dbclose(dir, leveldb)
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
 	opt := &Option{
 		Prefix:  "prefix",
 		Name:    "name",
@@ -405,7 +380,7 @@ func TestReplace(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(kvs))
 	//save to database
-	setKV(leveldb, kvs)
+	util.SaveKVList(ldb, kvs)
 	query := table.GetQuery(kvdb)
 	_, err = query.ListIndex("From", []byte(addr1[0:10]), nil, 0, 0)
 	assert.Equal(t, err, types.ErrNotFound)
@@ -444,21 +419,4 @@ func (tx *TransactionRow) Get(key string) ([]byte, error) {
 		return []byte(tx.To), nil
 	}
 	return nil, types.ErrNotFound
-}
-
-func getdb() (string, db.DB, db.KVDB) {
-	dir, err := ioutil.TempDir("", "goleveldb")
-	if err != nil {
-		panic(err)
-	}
-	leveldb, err := db.NewGoLevelDB("goleveldb", dir, 128)
-	if err != nil {
-		panic(err)
-	}
-	return dir, leveldb, db.NewKVDB(leveldb)
-}
-
-func dbclose(dir string, dbm db.DB) {
-	os.RemoveAll(dir)
-	dbm.Close()
 }

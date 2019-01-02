@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/33cn/chain33/cmd/tools/types"
-	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/cmd/tools/util"
 )
 
 //CopyTemplateToOutputTask ...
