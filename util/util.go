@@ -454,12 +454,12 @@ func PrintKV(kvs []*types.KeyValue) {
 	}
 }
 
-// MockModule
+// MockModule struct
 type MockModule struct {
 	Key string
 }
 
-// SetQueueClient
+// SetQueueClient method
 func (m *MockModule) SetQueueClient(client queue.Client) {
 	go func() {
 		client.Sub(m.Key)
@@ -473,5 +473,5 @@ func (m *MockModule) SetQueueClient(client queue.Client) {
 // Wait for ready
 func (m *MockModule) Wait() {}
 
-// Close
+// Close method
 func (m *MockModule) Close() {}
