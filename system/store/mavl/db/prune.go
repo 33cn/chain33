@@ -431,11 +431,11 @@ func PruningTreePrintDB(db dbm.DB, prefix []byte) {
 
 // PrintSameLeafKey 查询相同的叶子节点
 func PrintSameLeafKey(db dbm.DB, key string) {
-	printSameLeafKey(db, key, false)
-	printSameLeafKey(db, key, true)
+	printSameLeafKeyDB(db, key, false)
+	printSameLeafKeyDB(db, key, true)
 }
 
-func printSameLeafKey(db dbm.DB, key string, isold bool) {
+func printSameLeafKeyDB(db dbm.DB, key string, isold bool) {
 	var prifex string
 	if isold {
 		prifex = oldLeafKeyCountPrefix
