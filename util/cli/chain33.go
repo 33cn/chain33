@@ -171,6 +171,9 @@ func RunChain33(name string) {
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet, sub.Wallet)
 	walletm.SetQueueClient(q.Client())
+
+	health := util.NewHealthCheckServer(q.Client())
+	health.Start(cfg.Health)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
@@ -189,6 +192,8 @@ func RunChain33(name string) {
 		rpcapi.Close()
 		log.Info("begin close wallet module")
 		walletm.Close()
+		log.Info("begin close health module")
+		health.Close()
 		log.Info("begin close queue module")
 		q.Close()
 
