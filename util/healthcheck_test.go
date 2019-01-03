@@ -33,15 +33,15 @@ func TestStart(t *testing.T) {
 	health.Start(cfg.Health)
 	time.Sleep(time.Second * 3)
 	health.Close()
+	time.Sleep(time.Second * 1)
 }
 
 func TestGetHealth(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	reply := &types.Reply{IsOk: true}
 	api.On("IsSync").Return(reply, nil).Once()
-	peer1 := &types.Peer{Addr: "addr1"}
 	peer2 := &types.Peer{Addr: "addr2"}
-	peerlist := &types.PeerList{Peers: []*types.Peer{peer1, peer2}}
+	peerlist := &types.PeerList{Peers: []*types.Peer{ peer2}}
 	api.On("PeerInfo").Return(peerlist, nil).Once()
 
 	q := queue.New("channel")
@@ -49,6 +49,6 @@ func TestGetHealth(t *testing.T) {
 	health.api = api
 	ret, err := health.getHealth(true)
 	assert.Nil(t, err)
-	assert.Equal(t, true, ret)
+	assert.Equal(t, false, ret)
 
 }

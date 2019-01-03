@@ -24,19 +24,12 @@ var (
 type HealthCheckServer struct {
 	api  client.QueueProtocolAPI
 	l    net.Listener
-	quit bool
+	quit chan struct{}
 }
 
 // Close NewHealthCheckServer close
 func (s *HealthCheckServer) Close() {
-	if s.l != nil {
-		s.l.Close()
-	}
-	if s.api != nil {
-		s.api.Close()
-	}
-
-	s.quit = true
+	close(s.quit)
 }
 
 // NewHealthCheckServer new json rpcserver object
@@ -60,6 +53,7 @@ func (s *HealthCheckServer) Start(cfg *types.HealthCheck) {
 		}
 	}
 	log.Info("healthCheck start ", "addr", listenAddr, "inter", checkInterval, "times", unSyncMaxTimes)
+	s.quit = make(chan struct{})
 	go s.healthCheck()
 
 }
@@ -104,44 +98,53 @@ func (s *HealthCheckServer) getHealth(sync bool) (bool, error) {
 }
 
 func (s *HealthCheckServer) healthCheck() {
+	ticker := time.NewTicker(time.Second * time.Duration(checkInterval))
+	defer ticker.Stop()
+
 	var sync bool
 	var unSyncTimes uint32
 
 	for {
-		if s.quit {
+		select {
+		case <-s.quit:
+			if s.l != nil {
+				s.l.Close()
+			}
+			if s.api != nil {
+				s.api.Close()
+			}
 			log.Info("healthCheck quit")
 			return
-		}
-
-		health, err := s.getHealth(sync)
-		if err != nil {
-			continue
-		}
-
-		//sync
-		if health {
-			if !sync {
-				err = s.listen(true)
-				if err != nil {
-					continue
-				}
-				sync = true
+		case <-ticker.C:
+			health, err := s.getHealth(sync)
+			if err != nil {
+				continue
 			}
-			unSyncTimes = 0
-
-		} else {
-			if sync {
-				if unSyncTimes >= unSyncMaxTimes {
-					err = s.listen(false)
+			//sync
+			if health {
+				if !sync {
+					err = s.listen(true)
 					if err != nil {
+						log.Error("healthCheck ","listen open err",err.Error())
 						continue
 					}
-					sync = false
+					sync = true
 				}
-				unSyncTimes++
+				unSyncTimes = 0
+
+			} else {
+				if sync {
+					if unSyncTimes >= unSyncMaxTimes {
+						err = s.listen(false)
+						if err != nil {
+							log.Error("healthCheck ","listen close err",err.Error())
+							continue
+						}
+						sync = false
+					}
+					unSyncTimes++
+				}
 			}
 		}
-
-		time.Sleep(time.Second * time.Duration(checkInterval))
 	}
 }
