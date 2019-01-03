@@ -408,6 +408,15 @@ func (table *Table) Del(primaryKey []byte) error {
 	return nil
 }
 
+//DelRow 删除一行
+func (table *Table) DelRow(data types.Message) error {
+	primaryKey, err := table.primaryKey(data)
+	if err != nil {
+		return err
+	}
+	return table.Del(primaryKey)
+}
+
 //getDataKey data key 构造
 func (table *Table) getDataKey(primaryKey []byte) []byte {
 	return append([]byte(table.dataprefix), primaryKey...)
