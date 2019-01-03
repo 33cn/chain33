@@ -453,3 +453,25 @@ func PrintKV(kvs []*types.KeyValue) {
 		fmt.Printf("KV %d %s(%s)\n", i, string(kvs[i].Key), common.ToHex(kvs[i].Value))
 	}
 }
+
+// MockModule struct
+type MockModule struct {
+	Key string
+}
+
+// SetQueueClient method
+func (m *MockModule) SetQueueClient(client queue.Client) {
+	go func() {
+		client.Sub(m.Key)
+		for msg := range client.Recv() {
+			msg.Reply(client.NewMessage(m.Key, types.EventReply, &types.Reply{IsOk: false,
+				Msg: []byte(fmt.Sprintf("mock %s module not handle message %v", m.Key, msg.Ty))}))
+		}
+	}()
+}
+
+// Wait for ready
+func (m *MockModule) Wait() {}
+
+// Close method
+func (m *MockModule) Close() {}
