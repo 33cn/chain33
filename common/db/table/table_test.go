@@ -300,7 +300,7 @@ func TestDel(t *testing.T) {
 	//save 然后从列表中读取
 	kvs, err := table.Save()
 	assert.Nil(t, err)
-	assert.Equal(t, len(kvs), 6)
+	assert.Equal(t, 3, len(kvs))
 	//save to database
 	util.SaveKVList(ldb, kvs)
 	//printKV(kvs)

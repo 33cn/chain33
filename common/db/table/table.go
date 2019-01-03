@@ -395,8 +395,9 @@ func (table *Table) Del(primaryKey []byte) error {
 		return err
 	}
 	if incache {
+		rowty := row.Ty
 		table.delRowCache(row)
-		if row.Ty == Add {
+		if rowty == Add {
 			return nil
 		}
 	}
@@ -405,6 +406,15 @@ func (table *Table) Del(primaryKey []byte) error {
 	delrow.Ty = Del
 	table.addRowCache(&delrow)
 	return nil
+}
+
+//DelRow 删除一行
+func (table *Table) DelRow(data types.Message) error {
+	primaryKey, err := table.primaryKey(data)
+	if err != nil {
+		return err
+	}
+	return table.Del(primaryKey)
 }
 
 //getDataKey data key 构造
