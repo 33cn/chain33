@@ -28,15 +28,21 @@ func TestKVCreator(t *testing.T) {
 		{Key: []byte("l1"), Value: []byte("vl1")},
 		{Key: []byte("l2"), Value: []byte("vl2")},
 	})
+	creator.AddListNoPrefix([]*types.KeyValue{
+		{Key: []byte("l1"), Value: []byte("vl1")},
+		{Key: []byte("l2"), Value: []byte("vl2")},
+	})
 	creator.Add([]byte("c1"), nil)
 	creator.Add([]byte("l2"), nil)
 	creator.AddRollbackKV()
-	assert.Equal(t, 7, len(creator.KVList()))
+	assert.Equal(t, 9, len(creator.KVList()))
 	util.SaveKVList(ldb, creator.KVList())
 	kvs, err := creator.GetRollbackKVList()
 	assert.Nil(t, err)
-	assert.Equal(t, 6, len(kvs))
-	assert.Equal(t, []byte("b"), kvs[5].Value)
+	assert.Equal(t, 8, len(kvs))
+	assert.Equal(t, []byte("b"), kvs[7].Value)
+	assert.Equal(t, []byte(nil), kvs[6].Value)
+	assert.Equal(t, []byte(nil), kvs[5].Value)
 	assert.Equal(t, []byte(nil), kvs[4].Value)
 	assert.Equal(t, []byte(nil), kvs[3].Value)
 	assert.Equal(t, []byte(nil), kvs[2].Value)

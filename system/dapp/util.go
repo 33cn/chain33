@@ -105,6 +105,14 @@ func (c *KVCreator) AddNoPrefix(key, value []byte) *KVCreator {
 	return c.addnoprefix(key, value, true)
 }
 
+//AddListNoPrefix only add KVList
+func (c *KVCreator) AddListNoPrefix(list []*types.KeyValue) *KVCreator {
+	for _, kv := range list {
+		c.addnoprefix(kv.Key, kv.Value, true)
+	}
+	return c
+}
+
 //AddList only add KVList
 func (c *KVCreator) AddList(list []*types.KeyValue) *KVCreator {
 	for _, kv := range list {
