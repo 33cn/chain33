@@ -41,7 +41,7 @@ func TestGetHealth(t *testing.T) {
 	reply := &types.Reply{IsOk: true}
 	api.On("IsSync").Return(reply, nil).Once()
 	peer2 := &types.Peer{Addr: "addr2"}
-	peerlist := &types.PeerList{Peers: []*types.Peer{ peer2}}
+	peerlist := &types.PeerList{Peers: []*types.Peer{peer2}}
 	api.On("PeerInfo").Return(peerlist, nil).Once()
 
 	q := queue.New("channel")

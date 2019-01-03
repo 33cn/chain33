@@ -36,6 +36,7 @@ func (s *HealthCheckServer) Close() {
 func NewHealthCheckServer(c queue.Client) *HealthCheckServer {
 	h := &HealthCheckServer{}
 	h.api, _ = client.New(c, nil)
+	h.quit = make(chan struct{})
 	return h
 }
 
@@ -53,7 +54,6 @@ func (s *HealthCheckServer) Start(cfg *types.HealthCheck) {
 		}
 	}
 	log.Info("healthCheck start ", "addr", listenAddr, "inter", checkInterval, "times", unSyncMaxTimes)
-	s.quit = make(chan struct{})
 	go s.healthCheck()
 
 }
@@ -125,7 +125,7 @@ func (s *HealthCheckServer) healthCheck() {
 				if !sync {
 					err = s.listen(true)
 					if err != nil {
-						log.Error("healthCheck ","listen open err",err.Error())
+						log.Error("healthCheck ", "listen open err", err.Error())
 						continue
 					}
 					sync = true
@@ -137,7 +137,7 @@ func (s *HealthCheckServer) healthCheck() {
 					if unSyncTimes >= unSyncMaxTimes {
 						err = s.listen(false)
 						if err != nil {
-							log.Error("healthCheck ","listen close err",err.Error())
+							log.Error("healthCheck ", "listen close err", err.Error())
 							continue
 						}
 						sync = false
