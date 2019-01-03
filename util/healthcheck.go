@@ -8,6 +8,8 @@ import (
 	"net"
 	"time"
 
+	"sync"
+
 	"github.com/33cn/chain33/client"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -25,11 +27,14 @@ type HealthCheckServer struct {
 	api  client.QueueProtocolAPI
 	l    net.Listener
 	quit chan struct{}
+	wg   sync.WaitGroup
 }
 
 // Close NewHealthCheckServer close
 func (s *HealthCheckServer) Close() {
 	close(s.quit)
+	s.wg.Wait()
+	log.Info("healthCheck quit")
 }
 
 // NewHealthCheckServer new json rpcserver object
@@ -54,6 +59,7 @@ func (s *HealthCheckServer) Start(cfg *types.HealthCheck) {
 		}
 	}
 	log.Info("healthCheck start ", "addr", listenAddr, "inter", checkInterval, "times", unSyncMaxTimes)
+	s.wg.Add(1)
 	go s.healthCheck()
 
 }
@@ -100,6 +106,7 @@ func (s *HealthCheckServer) getHealth(sync bool) (bool, error) {
 func (s *HealthCheckServer) healthCheck() {
 	ticker := time.NewTicker(time.Second * time.Duration(checkInterval))
 	defer ticker.Stop()
+	defer s.wg.Done()
 
 	var sync bool
 	var unSyncTimes uint32
@@ -113,7 +120,6 @@ func (s *HealthCheckServer) healthCheck() {
 			if s.api != nil {
 				s.api.Close()
 			}
-			log.Info("healthCheck quit")
 			return
 		case <-ticker.C:
 			health, err := s.getHealth(sync)
