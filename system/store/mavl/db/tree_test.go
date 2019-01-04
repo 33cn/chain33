@@ -1103,6 +1103,101 @@ func TestRemoveLeafCountKey(t *testing.T) {
 	}
 }
 
+func TestDelLeafCountKV(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+		{"foo", "foo"},
+		{"foobaz", "foobaz"},
+	}
+	//开启前缀
+	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
+	EnablePrune(true)
+	defer EnablePrune(false)
+
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+
+	blockHeight := int64(1000)
+	tree := NewTree(dbm, true)
+	tree.SetBlockHeight(blockHeight)
+	for _, r := range records {
+		tree.Set([]byte(r.key), []byte(r.value))
+	}
+	hash := tree.Save()
+
+	var countKeys [][]byte
+	prefix := []byte(leafKeyCountPrefix)
+	it := dbm.Iterator(prefix, nil, true)
+	for it.Rewind(); it.Valid(); it.Next() {
+		k := make([]byte, len(it.Key()))
+		copy(k, it.Key())
+		countKeys = append(countKeys, k)
+	}
+	it.Close()
+
+	// 在blockHeight + 100高度在插入另外
+	tree1 := NewTree(dbm, true)
+	tree1.Load(hash)
+	tree1.SetBlockHeight(blockHeight + 100)
+	records1 := []record{
+		{"abc", "abc1"},
+		{"good", "good"},
+		{"foobang", "foobang"},
+		{"foobar", "foobar"},
+		{"food", "food"},
+		{"foml", "foml"},
+	}
+	for _, r := range records1 {
+		tree1.Set([]byte(r.key), []byte(r.value))
+	}
+	hash1 := tree1.Save()
+
+	mpAllKeys := make(map[string]bool)
+	it = dbm.Iterator(prefix, nil, true)
+	for it.Rewind(); it.Valid(); it.Next() {
+		mpAllKeys[string(it.Key())] = true
+	}
+	it.Close()
+
+	// check
+	storeDel := &types.StoreDel{
+		StateHash: hash1,
+		Height:    blockHeight,
+	}
+	// del leaf count key
+	err = DelLeafCountKV(dbm, storeDel)
+	require.NoError(t, err)
+
+	for _, key := range countKeys {
+		_, err := dbm.Get(key)
+		if err == nil {
+			require.Error(t, fmt.Errorf("this kv should not exist"))
+		}
+	}
+	// leave key
+	for _, key := range countKeys {
+		delete(mpAllKeys, string(key))
+	}
+	// check leave key
+	for key := range mpAllKeys {
+		_, err := dbm.Get([]byte(key))
+		if err != nil {
+			require.Error(t, fmt.Errorf("this kv should exist"))
+		}
+	}
+}
+
 func TestPruningFirstLevelNode(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)

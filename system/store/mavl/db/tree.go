@@ -142,6 +142,7 @@ func (t *Tree) Save() []byte {
 		}
 		// 该线程应只允许一个
 		if enablePrune && !isPruning() &&
+			pruneHeight != 0 &&
 			t.blockHeight%int64(pruneHeight) == 0 &&
 			t.blockHeight/int64(pruneHeight) > 1 {
 			go pruningTree(t.ndb.db, t.blockHeight)
