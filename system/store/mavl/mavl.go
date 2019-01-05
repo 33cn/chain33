@@ -13,7 +13,6 @@ import (
 	drivers "github.com/33cn/chain33/system/store"
 	mavl "github.com/33cn/chain33/system/store/mavl/db"
 	"github.com/33cn/chain33/types"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 var mlog = log.New("module", "mavl")
@@ -32,7 +31,6 @@ func DisableLog() {
 type Store struct {
 	*drivers.BaseStore
 	trees            map[string]*mavl.Tree
-	cache            *lru.Cache
 	enableMavlPrefix bool
 	enableMVCC       bool
 	enableMavlPrune  bool
@@ -57,10 +55,7 @@ func New(cfg *types.Store, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
-	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, subcfg.EnableMavlPrefix, subcfg.EnableMVCC, subcfg.EnableMavlPrune, subcfg.PruneHeight}
-	mavls.cache, _ = lru.New(10)
-	//使能前缀mavl以及MVCC
-
+	mavls := &Store{bs, make(map[string]*mavl.Tree), subcfg.EnableMavlPrefix, subcfg.EnableMVCC, subcfg.EnableMavlPrune, subcfg.PruneHeight}
 	mavls.enableMavlPrefix = subcfg.EnableMavlPrefix
 	mavls.enableMVCC = subcfg.EnableMVCC
 	mavls.enableMavlPrune = subcfg.EnableMavlPrune
@@ -91,18 +86,13 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 	var err error
 	values := make([][]byte, len(datas.Keys))
 	search := string(datas.StateHash)
-	if data, ok := mavls.cache.Get(search); ok {
-		tree = data.(*mavl.Tree)
-	} else if data, ok := mavls.trees[search]; ok {
+	if data, ok := mavls.trees[search]; ok {
 		tree = data
 	} else {
 		tree = mavl.NewTree(mavls.GetDB(), true)
 		//get接口也应该传入高度
 		//tree.SetBlockHeight(datas.Height)
 		err = tree.Load(datas.StateHash)
-		if err == nil {
-			mavls.cache.Add(search, tree)
-		}
 		mlog.Debug("store mavl get tree", "err", err, "StateHash", common.ToHex(datas.StateHash))
 	}
 	if err == nil {
@@ -118,6 +108,10 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 
 // MemSet set keys values to memcory mavl, return root hash and error
 func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
+	beg := types.Now()
+	defer func() {
+		mlog.Info("MemSet", "cost", types.Since(beg))
+	}()
 	if len(datas.KV) == 0 {
 		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
 		mavls.trees[string(datas.StateHash)] = nil
@@ -142,18 +136,20 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 
 // Commit convert memcory mavl to storage db
 func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
+	beg := types.Now()
+	defer func() {
+		mlog.Info("Commit", "cost", types.Since(beg))
+	}()
 	tree, ok := mavls.trees[string(req.Hash)]
 	if !ok {
 		mlog.Error("store mavl commit", "err", types.ErrHashNotFound)
 		return nil, types.ErrHashNotFound
 	}
-
 	if tree == nil {
 		mlog.Info("store mavl commit,do nothing for kvset is null")
 		delete(mavls.trees, string(req.Hash))
 		return req.Hash, nil
 	}
-
 	hash := tree.Save()
 	if hash == nil {
 		mlog.Error("store mavl commit", "err", types.ErrHashNotFound)
@@ -165,6 +161,10 @@ func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 
 // Rollback 回退将缓存的mavl树删除掉
 func (mavls *Store) Rollback(req *types.ReqHash) ([]byte, error) {
+	beg := types.Now()
+	defer func() {
+		mlog.Info("Rollback", "cost", types.Since(beg))
+	}()
 	_, ok := mavls.trees[string(req.Hash)]
 	if !ok {
 		mlog.Error("store mavl rollback", "err", types.ErrHashNotFound)
