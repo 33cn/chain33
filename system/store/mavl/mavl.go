@@ -116,7 +116,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	}()
 	if len(datas.KV) == 0 {
 		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
-		mavls.trees.Delete(string(datas.StateHash))
+		mavls.trees.Store(string(datas.StateHash), nil)
 		return datas.StateHash, nil
 	}
 	tree := mavl.NewTree(mavls.GetDB(), sync)
