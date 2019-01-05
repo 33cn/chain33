@@ -21,7 +21,6 @@ import (
 
 //批量读
 2. EventStoreGet(stateHash, k1,k2,k3)
-
 */
 
 var slog = log.New("module", "store")
