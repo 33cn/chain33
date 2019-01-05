@@ -6,6 +6,8 @@
 package mavl
 
 import (
+	"sync"
+
 	"github.com/33cn/chain33/common"
 	clog "github.com/33cn/chain33/common/log"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -30,7 +32,7 @@ func DisableLog() {
 // Store mavl store struct
 type Store struct {
 	*drivers.BaseStore
-	trees            map[string]*mavl.Tree
+	trees            *sync.Map
 	enableMavlPrefix bool
 	enableMVCC       bool
 	enableMavlPrune  bool
@@ -55,7 +57,7 @@ func New(cfg *types.Store, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
-	mavls := &Store{bs, make(map[string]*mavl.Tree), subcfg.EnableMavlPrefix, subcfg.EnableMVCC, subcfg.EnableMavlPrune, subcfg.PruneHeight}
+	mavls := &Store{bs, &sync.Map{}, subcfg.EnableMavlPrefix, subcfg.EnableMVCC, subcfg.EnableMavlPrune, subcfg.PruneHeight}
 	mavls.enableMavlPrefix = subcfg.EnableMavlPrefix
 	mavls.enableMVCC = subcfg.EnableMVCC
 	mavls.enableMavlPrune = subcfg.EnableMavlPrune
@@ -86,8 +88,8 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 	var err error
 	values := make([][]byte, len(datas.Keys))
 	search := string(datas.StateHash)
-	if data, ok := mavls.trees[search]; ok {
-		tree = data
+	if data, ok := mavls.trees.Load(search); ok {
+		tree = data.(*mavl.Tree)
 	} else {
 		tree = mavl.NewTree(mavls.GetDB(), true)
 		//get接口也应该传入高度
@@ -114,7 +116,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	}()
 	if len(datas.KV) == 0 {
 		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
-		mavls.trees[string(datas.StateHash)] = nil
+		mavls.trees.Delete(string(datas.StateHash))
 		return datas.StateHash, nil
 	}
 	tree := mavl.NewTree(mavls.GetDB(), sync)
@@ -127,10 +129,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 		tree.Set(datas.KV[i].Key, datas.KV[i].Value)
 	}
 	hash := tree.Hash()
-	mavls.trees[string(hash)] = tree
-	if len(mavls.trees) > 1000 {
-		mlog.Error("too many trees in cache")
-	}
+	mavls.trees.Store(string(hash), tree)
 	return hash, nil
 }
 
@@ -140,22 +139,22 @@ func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 	defer func() {
 		mlog.Info("Commit", "cost", types.Since(beg))
 	}()
-	tree, ok := mavls.trees[string(req.Hash)]
+	tree, ok := mavls.trees.Load(string(req.Hash))
 	if !ok {
 		mlog.Error("store mavl commit", "err", types.ErrHashNotFound)
 		return nil, types.ErrHashNotFound
 	}
 	if tree == nil {
 		mlog.Info("store mavl commit,do nothing for kvset is null")
-		delete(mavls.trees, string(req.Hash))
+		mavls.trees.Delete(string(req.Hash))
 		return req.Hash, nil
 	}
-	hash := tree.Save()
+	hash := tree.(*mavl.Tree).Save()
 	if hash == nil {
 		mlog.Error("store mavl commit", "err", types.ErrHashNotFound)
 		return nil, types.ErrDataBaseDamage
 	}
-	delete(mavls.trees, string(req.Hash))
+	mavls.trees.Delete(string(req.Hash))
 	return req.Hash, nil
 }
 
@@ -165,12 +164,12 @@ func (mavls *Store) Rollback(req *types.ReqHash) ([]byte, error) {
 	defer func() {
 		mlog.Info("Rollback", "cost", types.Since(beg))
 	}()
-	_, ok := mavls.trees[string(req.Hash)]
+	_, ok := mavls.trees.Load(string(req.Hash))
 	if !ok {
 		mlog.Error("store mavl rollback", "err", types.ErrHashNotFound)
 		return nil, types.ErrHashNotFound
 	}
-	delete(mavls.trees, string(req.Hash))
+	mavls.trees.Delete(string(req.Hash))
 	return req.Hash, nil
 }
 
