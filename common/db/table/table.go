@@ -14,6 +14,7 @@ import (
 
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -158,7 +159,7 @@ func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 		return nil, err
 	}
 	//不允许有 "-"
-	if strings.Contains(opt.Prefix, sep) || strings.Contains(opt.Name, sep) {
+	if strings.Contains(opt.Name, sep) {
 		return nil, ErrTablePrefixOrTableName
 	}
 	//非jointable 不允许 "#"
@@ -394,8 +395,9 @@ func (table *Table) Del(primaryKey []byte) error {
 		return err
 	}
 	if incache {
+		rowty := row.Ty
 		table.delRowCache(row)
-		if row.Ty == Add {
+		if rowty == Add {
 			return nil
 		}
 	}
@@ -404,6 +406,15 @@ func (table *Table) Del(primaryKey []byte) error {
 	delrow.Ty = Del
 	table.addRowCache(&delrow)
 	return nil
+}
+
+//DelRow 删除一行
+func (table *Table) DelRow(data types.Message) error {
+	primaryKey, err := table.primaryKey(data)
+	if err != nil {
+		return err
+	}
+	return table.Del(primaryKey)
 }
 
 //getDataKey data key 构造
@@ -486,31 +497,7 @@ func (table *Table) Save() (kvs []*types.KeyValue, err error) {
 	//del cache
 	table.rowmap = make(map[string]*Row)
 	table.rows = nil
-	return deldupKey(kvs), nil
-}
-
-func deldupKey(kvs []*types.KeyValue) []*types.KeyValue {
-	dupindex := make(map[string]int)
-	hasdup := false
-	for i, kv := range kvs {
-		if _, ok := dupindex[string(kv.Key)]; ok {
-			hasdup = true
-		}
-		dupindex[string(kv.Key)] = i
-	}
-	//没有重复的情况下，不需要重新处理
-	if !hasdup {
-		return kvs
-	}
-	index := 0
-	for i, kv := range kvs {
-		lastindex := dupindex[string(kv.Key)]
-		if i == lastindex {
-			kvs[index] = kv
-			index++
-		}
-	}
-	return kvs[0:index]
+	return util.DelDupKey(kvs), nil
 }
 
 func pad(i int64) string {

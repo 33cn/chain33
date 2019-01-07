@@ -100,6 +100,7 @@ const (
 	TyLogExecActive      = 10
 	TyLogGenesisTransfer = 11
 	TyLogGenesisDeposit  = 12
+	TyLogRollback        = 13
 )
 
 //SystemLog 系统log日志
@@ -116,6 +117,7 @@ var SystemLog = map[int64]*LogInfo{
 	TyLogExecActive:      {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecActive"},
 	TyLogGenesisTransfer: {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisTransfer"},
 	TyLogGenesisDeposit:  {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
+	TyLogRollback:        {reflect.TypeOf(LocalDBSet{}), "LogRollback"},
 }
 
 //exec type

@@ -18,13 +18,13 @@ import (
 	"net/http"
 	_ "net/http/pprof" //
 	"os"
-	"os/user"
 	"path/filepath"
 	"runtime"
 
 	"time"
 
 	"github.com/33cn/chain33/blockchain"
+	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/limits"
@@ -79,7 +79,7 @@ func RunChain33(name string) {
 	//set config: bityuan 用 bityuan.toml 这个配置文件
 	cfg, sub := types.InitCfg(*configPath)
 	if *datadir != "" {
-		resetDatadir(cfg, *datadir)
+		util.ResetDatadir(cfg, *datadir)
 	}
 	if *fixtime {
 		cfg.FixTime = *fixtime
@@ -130,7 +130,12 @@ func RunChain33(name string) {
 	q := queue.New("channel")
 
 	log.Info("loading mempool module")
-	mem := mempool.New(cfg.Mempool, sub.Mempool)
+	var mem queue.Module
+	if !types.IsPara() {
+		mem = mempool.New(cfg.Mempool, sub.Mempool)
+	} else {
+		mem = &util.MockModule{Key: "mempool"}
+	}
 	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
@@ -150,12 +155,15 @@ func RunChain33(name string) {
 	cs := consensus.New(cfg.Consensus, sub.Consensus)
 	cs.SetQueueClient(q.Client())
 
-	var network *p2p.P2p
-	if cfg.P2P.Enable {
-		log.Info("loading p2p module")
+	log.Info("loading p2p module")
+	var network queue.Module
+	if cfg.P2P.Enable && !types.IsPara() {
 		network = p2p.New(cfg.P2P)
-		network.SetQueueClient(q.Client())
+	} else {
+		network = &util.MockModule{Key: "p2p"}
 	}
+	network.SetQueueClient(q.Client())
+
 	//jsonrpc, grpc, channel 三种模式
 	rpcapi := rpc.New(cfg.RPC)
 	rpcapi.SetQueueClient(q.Client())
@@ -163,16 +171,17 @@ func RunChain33(name string) {
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet, sub.Wallet)
 	walletm.SetQueueClient(q.Client())
+
+	health := util.NewHealthCheckServer(q.Client())
+	health.Start(cfg.Health)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
 		chain.Close()
 		log.Info("begin close mempool module")
 		mem.Close()
-		if cfg.P2P.Enable {
-			log.Info("begin close P2P module")
-			network.Close()
-		}
+		log.Info("begin close P2P module")
+		network.Close()
 		log.Info("begin close execs module")
 		exec.Close()
 		log.Info("begin close store module")
@@ -183,26 +192,13 @@ func RunChain33(name string) {
 		rpcapi.Close()
 		log.Info("begin close wallet module")
 		walletm.Close()
+		log.Info("begin close health module")
+		health.Close()
 		log.Info("begin close queue module")
 		q.Close()
 
 	}()
 	q.Start()
-}
-
-func resetDatadir(cfg *types.Config, datadir string) {
-	// Check in case of paths like "/something/~/something/"
-	if datadir[:2] == "~/" {
-		usr, _ := user.Current()
-		dir := usr.HomeDir
-		datadir = filepath.Join(dir, datadir[2:])
-	}
-	log.Info("current user data dir is ", "dir", datadir)
-	cfg.Log.LogFile = filepath.Join(datadir, cfg.Log.LogFile)
-	cfg.BlockChain.DbPath = filepath.Join(datadir, cfg.BlockChain.DbPath)
-	cfg.P2P.DbPath = filepath.Join(datadir, cfg.P2P.DbPath)
-	cfg.Wallet.DbPath = filepath.Join(datadir, cfg.Wallet.DbPath)
-	cfg.Store.DbPath = filepath.Join(datadir, cfg.Store.DbPath)
 }
 
 // 开启trace

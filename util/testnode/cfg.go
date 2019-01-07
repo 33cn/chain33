@@ -36,7 +36,7 @@ defCacheSize=128
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
-driver="memdb"
+driver="leveldb"
 dbPath="datadir"
 dbCache=64
 isStrongConsistency=false
@@ -55,7 +55,7 @@ innerSeedEnable=true
 useGithub=true
 innerBounds=300
 msgCacheSize=10240
-driver="memdb"
+driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
@@ -126,7 +126,7 @@ count=10000
 
 [store]
 name="mavl"
-driver="memdb"
+driver="leveldb"
 dbPath="datadir/mavltree"
 dbCache=128
 
@@ -136,7 +136,7 @@ enableMVCC=false
 
 [wallet]
 minFee=100000
-driver="memdb"
+driver="leveldb"
 dbPath="wallet"
 dbCache=16
 signType="secp256k1"
