@@ -10,12 +10,37 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/golang/protobuf/proto"
+	proto "github.com/golang/protobuf/proto"
 )
 
 // Hash 获取block的hash值
 func (block *Block) Hash() []byte {
-	data, err := proto.Marshal(block.GetHeader())
+	if IsFork(block.Height, "ForkBlockHash") {
+		return block.HashNew()
+	}
+	return block.HashOld()
+}
+
+//HashByForkHeight hash 通过自己设置的fork 高度计算 hash
+func (block *Block) HashByForkHeight(forkheight int64) []byte {
+	if block.Height >= forkheight {
+		return block.HashNew()
+	}
+	return block.HashOld()
+}
+
+//HashNew 新版本的Hash
+func (block *Block) HashNew() []byte {
+	data, err := proto.Marshal(block.getHeaderHashNew())
+	if err != nil {
+		panic(err)
+	}
+	return common.Sha256(data)
+}
+
+//HashOld 老版本的hash
+func (block *Block) HashOld() []byte {
+	data, err := proto.Marshal(block.getHeaderHashOld())
 	if err != nil {
 		panic(err)
 	}
@@ -35,11 +60,32 @@ func (block *Block) GetHeader() *Header {
 	head.TxHash = block.TxHash
 	head.BlockTime = block.BlockTime
 	head.Height = block.Height
-	if IsFork(head.Height, "ForkBlockHash") {
-		head.Difficulty = block.Difficulty
-		head.StateHash = block.StateHash
-		head.TxCount = int64(len(block.Txs))
-	}
+	head.Difficulty = block.Difficulty
+	head.StateHash = block.StateHash
+	head.TxCount = int64(len(block.Txs))
+	return head
+}
+
+func (block *Block) getHeaderHashOld() *Header {
+	head := &Header{}
+	head.Version = block.Version
+	head.ParentHash = block.ParentHash
+	head.TxHash = block.TxHash
+	head.BlockTime = block.BlockTime
+	head.Height = block.Height
+	return head
+}
+
+func (block *Block) getHeaderHashNew() *Header {
+	head := &Header{}
+	head.Version = block.Version
+	head.ParentHash = block.ParentHash
+	head.TxHash = block.TxHash
+	head.BlockTime = block.BlockTime
+	head.Height = block.Height
+	head.Difficulty = block.Difficulty
+	head.StateHash = block.StateHash
+	head.TxCount = int64(len(block.Txs))
 	return head
 }
 

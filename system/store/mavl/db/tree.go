@@ -51,9 +51,8 @@ func EnableMVCC(enable bool) {
 
 // Tree merkle avl tree
 type Tree struct {
-	root *Node
-	ndb  *nodeDB
-	//batch *nodeBatch
+	root        *Node
+	ndb         *nodeDB
 	blockHeight int64
 }
 
@@ -373,10 +372,6 @@ type nodeDB struct {
 	orphans map[string]struct{}
 }
 
-type nodeBatch struct {
-	batch dbm.Batch
-}
-
 func newNodeDB(db dbm.DB, sync bool) *nodeDB {
 	ndb := &nodeDB{
 		cache:   db.GetCache(),
@@ -415,11 +410,6 @@ func (ndb *nodeDB) GetNode(t *Tree, hash []byte) (*Node, error) {
 	node.persisted = true
 	ndb.cacheNode(node)
 	return node, nil
-}
-
-// GetBatch get db batch handle
-func (ndb *nodeDB) GetBatch(sync bool) *nodeBatch {
-	return &nodeBatch{ndb.db.NewBatch(sync)}
 }
 
 // 获取叶子节点的所有父节点
