@@ -359,13 +359,6 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 	msg = chain.client.NewMessage("wallet", types.EventDelBlock, block)
 	chain.client.Send(msg, false)
 
-	store := &types.StoreDel{
-		StateHash: block.Block.StateHash,
-		Height:    block.Block.Height,
-	}
-	msg = chain.client.NewMessage("store", types.EventStoreDel, store)
-	chain.client.Send(msg, false)
-
 	return nil
 }
 

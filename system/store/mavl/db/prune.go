@@ -174,9 +174,12 @@ func setSecLvlPruningHeight(db dbm.DB, height int64) error {
 	return db.Set([]byte(secLvlPruningHeightKey), value)
 }
 
+func pruning(db dbm.DB, curHeight int64) {
+	defer wg.Done()
+	pruningTree(db, curHeight)
+}
+
 func pruningTree(db dbm.DB, curHeight int64) {
-	wg.Add(1)
-	defer wg.Add(-1)
 	setPruning(pruningStateStart)
 	// 一级遍历
 	pruningFirstLevel(db, curHeight)

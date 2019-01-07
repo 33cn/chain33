@@ -15,6 +15,8 @@ import (
 
 	"os"
 
+	"sync"
+
 	. "github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log"
@@ -1030,9 +1032,7 @@ func TestRemoveLeafCountKey(t *testing.T) {
 		{"foo", "foo"},
 		{"foobaz", "foobaz"},
 	}
-	//开启前缀
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
+	//开启裁剪
 	EnablePrune(true)
 	defer EnablePrune(false)
 
@@ -1103,6 +1103,71 @@ func TestRemoveLeafCountKey(t *testing.T) {
 	}
 }
 
+func TestIsRemoveLeafCountKey(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	maxBlockHeight = 0
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(dbm, true)
+	tree.SetBlockHeight(1000)
+	isRe := tree.isRemoveLeafCountKey()
+	require.Equal(t, false, isRe)
+	tree.SetBlockHeight(990)
+	isRe = tree.isRemoveLeafCountKey()
+	require.Equal(t, true, isRe)
+	tree.SetBlockHeight(1000)
+	isRe = tree.isRemoveLeafCountKey()
+	require.Equal(t, true, isRe)
+	tree.SetBlockHeight(1010)
+	isRe = tree.isRemoveLeafCountKey()
+	require.Equal(t, false, isRe)
+	tree.ndb.Commit()
+	require.Equal(t, int64(1010), tree.getMaxBlockHeight())
+
+	var swg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		swg.Add(1)
+		go func(i int, pwg *sync.WaitGroup, dbn db.DB) {
+			defer swg.Done()
+			tree := NewTree(dbm, true)
+			tree.SetBlockHeight(int64(800 + i))
+			require.Equal(t, true, tree.isRemoveLeafCountKey())
+		}(i, &swg, dbm)
+	}
+	swg.Wait()
+}
+
+func TestGetRootHash(t *testing.T) {
+	hashstr := "0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"
+	hash, err := FromHex(hashstr)
+	require.NoError(t, err)
+	height := 999
+	hashkey := genRootHashHeight(int64(height), hash)
+	actHash, err := getRootHash(hashkey)
+	require.NoError(t, err)
+	require.Equal(t, hash, actHash)
+}
+
+func TestSaveRootHash(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	EnablePrune(true)
+	defer EnablePrune(false)
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(dbm, true)
+	tree.SetBlockHeight(1010)
+	tree.Set([]byte("key:111"), []byte("value:111"))
+	hash := tree.Save()
+	_, err = dbm.Get(genRootHashHeight(1010, hash))
+	require.NoError(t, err)
+}
+
 func TestDelLeafCountKV(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -1120,9 +1185,7 @@ func TestDelLeafCountKV(t *testing.T) {
 		{"foo", "foo"},
 		{"foobaz", "foobaz"},
 	}
-	//开启前缀
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
+	//开启裁剪
 	EnablePrune(true)
 	defer EnablePrune(false)
 
@@ -1161,7 +1224,7 @@ func TestDelLeafCountKV(t *testing.T) {
 	for _, r := range records1 {
 		tree1.Set([]byte(r.key), []byte(r.value))
 	}
-	hash1 := tree1.Save()
+	tree1.Save()
 
 	mpAllKeys := make(map[string]bool)
 	it = dbm.Iterator(prefix, nil, true)
@@ -1171,12 +1234,8 @@ func TestDelLeafCountKV(t *testing.T) {
 	it.Close()
 
 	// check
-	storeDel := &types.StoreDel{
-		StateHash: hash1,
-		Height:    blockHeight,
-	}
 	// del leaf count key
-	err = DelLeafCountKV(dbm, storeDel)
+	err = DelLeafCountKV(dbm, blockHeight)
 	require.NoError(t, err)
 
 	for _, key := range countKeys {

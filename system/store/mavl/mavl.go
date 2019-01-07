@@ -184,13 +184,8 @@ func (mavls *Store) ProcEvent(msg queue.Message) {
 	msg.ReplyErr("Store", types.ErrActionNotSupport)
 }
 
-// Del 删除分叉回退时的叶子节点索引
+// Del ...
 func (mavls *Store) Del(req *types.StoreDel) ([]byte, error) {
-	_, ok := mavls.trees[string(req.StateHash)]
-	if ok {
-		delete(mavls.trees, string(req.StateHash))
-	}
-	mavl.DelLeafCountKV(mavls.GetDB(), req)
-	mlog.Debug("store mavl Del", "height", req.Height, "state hash", common.ToHex(req.StateHash))
+	//not support
 	return nil, nil
 }

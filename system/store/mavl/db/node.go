@@ -246,6 +246,21 @@ func (node *Node) save(t *Tree) int64 {
 	return leftsaveNodeNo + rightsaveNodeNo + 1
 }
 
+// 保存root节点hash以及区块高度
+func (node *Node) saveRootHash(t *Tree) (err error) {
+	if node.hash == nil || t.ndb == nil || t.ndb.db == nil {
+		return
+	}
+	h := &types.Int64{}
+	h.Data = t.blockHeight
+	value, err := proto.Marshal(h)
+	if err != nil {
+		return err
+	}
+	t.ndb.batch.Set(genRootHashHeight(t.blockHeight, node.hash), value)
+	return nil
+}
+
 //将内存中的node转换成存储到db中的格式
 func (node *Node) storeNode(t *Tree) []byte {
 	var storeNode types.StoreNode

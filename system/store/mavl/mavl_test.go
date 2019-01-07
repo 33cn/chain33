@@ -18,7 +18,6 @@ import (
 	mavldb "github.com/33cn/chain33/system/store/mavl/db"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const MaxKeylenth int = 64
@@ -177,94 +176,6 @@ func TestKvdbIterate(t *testing.T) {
 	assert.Len(t, checkKVResult, 2)
 	assert.Equal(t, []byte("v1"), checkKVResult[0].Value)
 	assert.Equal(t, []byte("v2"), checkKVResult[1].Value)
-
-}
-
-func TestDel(t *testing.T) {
-	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir) // clean up
-	os.RemoveAll(dir)       //删除已存在目录
-
-	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
-	assert.NotNil(t, store)
-	mavldb.EnablePrune(true)
-	defer mavldb.EnablePrune(false)
-
-	var kvs []*types.KeyValue
-	kvs = append(kvs, &types.KeyValue{Key: []byte("k1"), Value: []byte("v1")})
-	kvs = append(kvs, &types.KeyValue{Key: []byte("k2"), Value: []byte("v2")})
-	datas := &types.StoreSet{
-		StateHash: drivers.EmptyRoot[:],
-		KV:        kvs,
-		Height:    1000,
-	}
-	hash, err := store.Set(datas, true)
-	assert.Nil(t, err)
-	kvs = append(kvs, &types.KeyValue{Key: []byte("k3"), Value: []byte("v3")})
-	kvs = append(kvs, &types.KeyValue{Key: []byte("k4"), Value: []byte("v4")})
-	datas = &types.StoreSet{
-		StateHash: hash,
-		KV:        kvs[2:],
-		Height:    2000,
-	}
-	hash, err = store.Set(datas, true)
-	assert.Nil(t, err)
-
-	reqDel := &types.StoreDel{
-		StateHash: hash,
-		Height:    2000,
-	}
-	_, err = store.Del(reqDel)
-	assert.Nil(t, err)
-
-	//check
-	dbm := store.GetDB()
-	//k1
-	prefix := []byte("..mk..k1")
-	it := dbm.Iterator(prefix, nil, true)
-	var isExit bool
-	for it.Rewind(); it.Valid(); it.Next() {
-		isExit = true
-	}
-	it.Close()
-	require.Equal(t, true, isExit)
-	//k2
-	prefix = []byte("..mk..k2")
-	it = dbm.Iterator(prefix, nil, true)
-	isExit = false
-	for it.Rewind(); it.Valid(); it.Next() {
-		isExit = true
-	}
-	it.Close()
-	require.Equal(t, true, isExit)
-	//k3
-	prefix = []byte("..mk..k3")
-	it = dbm.Iterator(prefix, nil, true)
-	isExit = false
-	for it.Rewind(); it.Valid(); it.Next() {
-		isExit = true
-	}
-	it.Close()
-	require.Equal(t, false, isExit)
-	//k4
-	prefix = []byte("..mk..k4")
-	it = dbm.Iterator(prefix, nil, true)
-	isExit = false
-	for it.Rewind(); it.Valid(); it.Next() {
-		isExit = true
-	}
-	it.Close()
-	require.Equal(t, false, isExit)
-
-	for _, kv := range kvs {
-		var keys [][]byte
-		get := &types.StoreGet{StateHash: hash, Keys: append(keys, kv.Key)}
-		values := store.Get(get)
-		assert.Len(t, values, 1)
-		assert.Equal(t, kv.Value, values[0])
-	}
 }
 
 type StatTool struct {

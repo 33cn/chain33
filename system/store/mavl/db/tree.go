@@ -20,8 +20,10 @@ import (
 )
 
 const (
-	hashNodePrefix = "_mh_"
-	leafNodePrefix = "_mb_"
+	hashNodePrefix       = "_mh_"
+	leafNodePrefix       = "_mb_"
+	curMaxBlockHeight    = "_..mcmbh.._"
+	rootHashHeightPrefix = "_mrhp_"
 )
 
 var (
@@ -32,6 +34,9 @@ var (
 	enableMavlPrefix bool
 	// 是否开启MVCC
 	enableMvcc bool
+	// 当前树的最大高度
+	maxBlockHeight int64
+	heightMtx      sync.Mutex
 )
 
 // EnableMavlPrefix 使能mavl加前缀
@@ -134,8 +139,16 @@ func (t *Tree) Save() []byte {
 		return nil
 	}
 	if t.ndb != nil {
+		if t.isRemoveLeafCountKey() {
+			//DelLeafCountKV 需要先提前将leafcoutkey删除,这里需先于t.ndb.Commit()
+			DelLeafCountKV(t.ndb.db, t.blockHeight)
+		}
 		saveNodeNo := t.root.save(t)
 		treelog.Debug("Tree.Save", "saveNodeNo", saveNodeNo, "tree height", t.blockHeight)
+		// 保存每个高度的roothash
+		if enablePrune {
+			t.root.saveRootHash(t)
+		}
 		err := t.ndb.Commit()
 		if err != nil {
 			return nil
@@ -145,7 +158,8 @@ func (t *Tree) Save() []byte {
 			pruneHeight != 0 &&
 			t.blockHeight%int64(pruneHeight) == 0 &&
 			t.blockHeight/int64(pruneHeight) > 1 {
-			go pruningTree(t.ndb.db, t.blockHeight)
+			wg.Add(1)
+			go pruning(t.ndb.db, t.blockHeight)
 		}
 	}
 	return t.root.hash
@@ -229,6 +243,54 @@ func (t *Tree) Remove(key []byte) (value []byte, removed bool) {
 	return value, true
 }
 
+func (t *Tree) getMaxBlockHeight() int64 {
+	if t.ndb == nil || t.ndb.db == nil {
+		return 0
+	}
+	value, err := t.ndb.db.Get([]byte(curMaxBlockHeight))
+	if len(value) == 0 || err != nil {
+		return 0
+	}
+	h := &types.Int64{}
+	err = proto.Unmarshal(value, h)
+	if err != nil {
+		return 0
+	}
+	return h.Data
+}
+
+func (t *Tree) setMaxBlockHeight(height int64) error {
+	if t.ndb == nil || t.ndb.batch == nil {
+		return fmt.Errorf("ndb is nil")
+	}
+	h := &types.Int64{}
+	h.Data = height
+	value, err := proto.Marshal(h)
+	if err != nil {
+		return err
+	}
+	t.ndb.batch.Set([]byte(curMaxBlockHeight), value)
+	return nil
+}
+
+func (t *Tree) isRemoveLeafCountKey() bool {
+	if t.ndb == nil || t.ndb.db == nil {
+		return false
+	}
+	heightMtx.Lock()
+	defer heightMtx.Unlock()
+
+	if maxBlockHeight == 0 {
+		maxBlockHeight = t.getMaxBlockHeight()
+	}
+	if t.blockHeight > maxBlockHeight {
+		t.setMaxBlockHeight(t.blockHeight)
+		maxBlockHeight = t.blockHeight
+		return false
+	}
+	return true
+}
+
 // RemoveLeafCountKey 删除叶子节点的索引节点（防止裁剪时候回退产生的误删除）
 func (t *Tree) RemoveLeafCountKey(height int64) {
 	if t.root == nil || t.ndb == nil {
@@ -240,7 +302,8 @@ func (t *Tree) RemoveLeafCountKey(height int64) {
 
 	var keys [][]byte
 	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.Value()
+		value := make([]byte, len(it.Value()))
+		copy(value, it.Value())
 		pData := &types.StoreNode{}
 		err := proto.Unmarshal(value, pData)
 		if err == nil {
@@ -514,16 +577,20 @@ func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte, error) {
 }
 
 // DelLeafCountKV 回退时候用于删除叶子节点的索引节点
-func DelLeafCountKV(db dbm.DB, storeDel *types.StoreDel) error {
-	if storeDel == nil {
-		return fmt.Errorf("input nil param")
+func DelLeafCountKV(db dbm.DB, blockHeight int64) error {
+	prefix := genRootHashPrefix(blockHeight)
+	it := db.Iterator(prefix, nil, true)
+	defer it.Close()
+	for it.Rewind(); it.Valid(); it.Next() {
+		hash, err := getRootHash(it.Key())
+		if err == nil {
+			tree := NewTree(db, true)
+			err := tree.Load(hash)
+			if err == nil {
+				tree.RemoveLeafCountKey(blockHeight)
+			}
+		}
 	}
-	tree := NewTree(db, true)
-	err := tree.Load(storeDel.StateHash)
-	if err != nil {
-		return err
-	}
-	tree.RemoveLeafCountKey(storeDel.Height)
 	return nil
 }
 
@@ -577,4 +644,25 @@ func genPrefixHashKey(node *Node, blockHeight int64) (key []byte) {
 		key = []byte(fmt.Sprintf("%s-%010d-", hashNodePrefix, blockHeight))
 	}
 	return key
+}
+
+func genRootHashPrefix(blockHeight int64) (key []byte) {
+	key = []byte(fmt.Sprintf("%s%010d", rootHashHeightPrefix, blockHeight))
+	return key
+}
+
+func genRootHashHeight(blockHeight int64, hash []byte) (key []byte) {
+	key = []byte(fmt.Sprintf("%s%010d%s", rootHashHeightPrefix, blockHeight, string(hash)))
+	return key
+}
+
+func getRootHash(hashKey []byte) (hash []byte, err error) {
+	if len(hashKey) < len(rootHashHeightPrefix)+blockHeightStrLen+len(common.Hash{}) {
+		return nil, types.ErrSize
+	}
+	if !bytes.Contains(hashKey, []byte(rootHashHeightPrefix)) {
+		return nil, types.ErrSize
+	}
+	hash = hashKey[len(hashKey)-len(common.Hash{}):]
+	return hash, nil
 }
