@@ -312,15 +312,15 @@ func (t *Tree) RemoveLeafCountKey(height int64) {
 		}
 	}
 
-	batch := t.ndb.GetBatch(true)
+	batch := t.ndb.db.NewBatch(true)
 	for _, k := range keys {
 		_, hash, exits := t.GetHash(k)
 		if exits {
-			batch.batch.Delete(genLeafCountKey(k, hash, height, len(hash)))
+			batch.Delete(genLeafCountKey(k, hash, height, len(hash)))
 			treelog.Debug("RemoveLeafCountKey:", "height", height, "key:", string(k), "hash:", common.ToHex(hash))
 		}
 	}
-	batch.batch.Write()
+	batch.Write()
 }
 
 // Iterate 依次迭代遍历树的所有键
