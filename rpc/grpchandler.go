@@ -375,5 +375,5 @@ func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqRandHash) (*pb.ReplyH
 
 // IsFork
 func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
-	return &pb.Int64{Data:pb.GetFork(string(in.Key))},nil
+	return &pb.Int64{Data: pb.GetFork(string(in.Key))}, nil
 }
