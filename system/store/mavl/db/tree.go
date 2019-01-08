@@ -570,6 +570,7 @@ func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte, error) {
 
 // DelLeafCountKV 回退时候用于删除叶子节点的索引节点
 func DelLeafCountKV(db dbm.DB, blockHeight int64) error {
+	treelog.Debug("RemoveLeafCountKey:", "height", blockHeight)
 	prefix := genRootHashPrefix(blockHeight)
 	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
@@ -579,6 +580,7 @@ func DelLeafCountKV(db dbm.DB, blockHeight int64) error {
 			tree := NewTree(db, true)
 			err := tree.Load(hash)
 			if err == nil {
+				treelog.Debug("RemoveLeafCountKey:", "height", blockHeight, "root hash:", common.ToHex(hash))
 				tree.RemoveLeafCountKey(blockHeight)
 			}
 		}
