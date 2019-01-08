@@ -552,6 +552,36 @@ func (_m *Chain33Client) GetFatalFailure(ctx context.Context, in *types.ReqNil, 
 	return r0, r1
 }
 
+// GetFork provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetFork(ctx context.Context, in *types.ReqKey, opts ...grpc.CallOption) (*types.Int64, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.Int64
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqKey, ...grpc.CallOption) *types.Int64); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Int64)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqKey, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetHexTxByHash provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetHexTxByHash(ctx context.Context, in *types.ReqHash, opts ...grpc.CallOption) (*types.HexTx, error) {
 	_va := make([]interface{}, len(opts))
@@ -904,36 +934,6 @@ func (_m *Chain33Client) ImportPrivkey(ctx context.Context, in *types.ReqWalletI
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqWalletImportPrivkey, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// IsFork provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) IsFork(ctx context.Context, in *types.ReqForkData, opts ...grpc.CallOption) (*types.Reply, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqForkData, ...grpc.CallOption) *types.Reply); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqForkData, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

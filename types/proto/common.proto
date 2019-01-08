@@ -81,4 +81,3 @@ message VersionInfo {
     string chain33 = 3;
     string localDb = 4;
 }
-
