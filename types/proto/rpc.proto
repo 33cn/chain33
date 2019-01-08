@@ -144,5 +144,5 @@ service chain33 {
     rpc QueryRandNum(ReqRandHash) returns (ReplyHash) {}
 
     // 获取是否达到fork高度
-    rpc IsFork(ReqForkData) returns (Reply) {}
+    rpc GetFork(ReqKey) returns (Int64) {}
 }
