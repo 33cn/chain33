@@ -81,3 +81,8 @@ message VersionInfo {
     string chain33 = 3;
     string localDb = 4;
 }
+
+message ReqForkData {
+    int64   height   = 1;
+    string  forkKey  = 2;
+}
