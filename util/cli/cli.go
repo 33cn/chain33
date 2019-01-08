@@ -60,6 +60,7 @@ func init() {
 		commands.VersionCmd(),
 		sendCmd,
 		closeCmd,
+		commands.AssetCmd(),
 	)
 }
 
