@@ -83,6 +83,6 @@ message VersionInfo {
 }
 
 message ReqForkData {
-    int64   height   = 1;
-    string  forkKey  = 2;
+    int64  height  = 1;
+    string forkKey = 2;
 }
