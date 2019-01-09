@@ -276,8 +276,7 @@ func (acc *DB) loadAccountsHistory(api client.QueueProtocolAPI, addrs []string, 
 
 // GetBalance 获取某个状态下账户余额
 func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]*types.Account, error) {
-	switch in.GetExecer() {
-	case types.ExecName("coins"):
+	if "coins" == in.Execer {
 		addrs := in.GetAddresses()
 		var exaddrs []string
 		for _, addr := range addrs {
@@ -306,7 +305,7 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 			}
 		}
 		return accounts, nil
-	default:
+	} else {
 		execaddress := address.ExecAddress(in.GetExecer())
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
