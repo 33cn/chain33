@@ -312,6 +312,16 @@ func (table *Table) getPrimaryFromData(data types.Message) (primaryKey []byte, e
 	return
 }
 
+//ListIndex  list table index
+func (table *Table) ListIndex(indexName string, prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
+	kvdb, ok := table.kvdb.(db.KVDB)
+	if !ok {
+		return nil, errors.New("list only support KVDB interface")
+	}
+	query := &Query{table: table, kvdb: kvdb}
+	return query.ListIndex(indexName, prefix, primaryKey, count, direction)
+}
+
 //Replace 如果有重复的，那么替换
 func (table *Table) Replace(data types.Message) error {
 	if err := table.checkIndex(data); err != nil {
@@ -602,13 +612,25 @@ func (table *Table) getModify(row, oldrow *Row, index string) ([]byte, []byte, b
 	return indexkey, oldkey, true, nil
 }
 
-//GetQuery 获取查询结构
+//GetQuery 获取查询结构(允许传入 kvdb 为nil)
 func (table *Table) GetQuery(kvdb db.KVDB) *Query {
+	if kvdb == nil {
+		var ok bool
+		kvdb, ok = table.kvdb.(db.KVDB)
+		if !ok {
+			return nil
+		}
+	}
 	return &Query{table: table, kvdb: kvdb}
 }
 
 func (table *Table) getMeta() RowMeta {
 	return table.meta
+}
+
+//GetMeta 获取meta
+func (table *Table) GetMeta() RowMeta {
+	return table.getMeta()
 }
 
 func (table *Table) getOpt() *Option {
