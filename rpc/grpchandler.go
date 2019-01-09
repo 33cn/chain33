@@ -359,6 +359,11 @@ func (g *Grpc) GetSequenceByHash(ctx context.Context, in *pb.ReqHash) (*pb.Int64
 	return g.cli.GetSequenceByHash(in)
 }
 
+// GetBlockBySeq get block with hash by seq
+func (g *Grpc) GetBlockBySeq(ctx context.Context, in *pb.Int64) (*pb.BlockSeq, error) {
+	return g.cli.GetBlockBySeq(in)
+}
+
 // SignRawTx signature rawtransaction
 func (g *Grpc) SignRawTx(ctx context.Context, in *pb.ReqSignRawTx) (*pb.ReplySignRawTx, error) {
 	return g.cli.SignRawTx(in)

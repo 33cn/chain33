@@ -73,6 +73,9 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventGetBlockByHashes:
 			go chain.processMsg(msg, reqnum, chain.getBlockByHashes)
 
+		case types.EventGetBlockBySeq:
+			go chain.processMsg(msg, reqnum, chain.getBlockBySeq)
+
 		case types.EventDelParaChainBlockDetail:
 			go chain.processMsg(msg, reqnum, chain.delParaChainBlockDetail)
 
@@ -416,6 +419,32 @@ func (chain *BlockChain) getBlockByHashes(msg queue.Message) {
 	} else {
 		msg.Reply(chain.client.NewMessage("rpc", types.EventBlocks, BlockDetails))
 	}
+}
+
+func (chain *BlockChain) getBlockBySeq(msg queue.Message) {
+	seq := (msg.Data).(*types.Int64)
+	req := &types.ReqBlocks{Start: seq.Data, End: seq.Data, IsDetail: false, Pid: []string{}}
+	sequences, err := chain.GetBlockSequences(req)
+	if err != nil {
+		chainlog.Error("getBlockBySeq", "seq err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventGetBlockBySeq, err))
+		return
+	}
+	reqHashes := &types.ReqHashes{Hashes: [][]byte{sequences.Items[0].Hash}}
+	blocks, err := chain.GetBlockByHashes(reqHashes.Hashes)
+	if err != nil {
+		chainlog.Error("getBlockBySeq", "hash err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventGetBlockBySeq, err))
+		return
+	}
+
+	blockSeq := &types.BlockSeq{
+		Num:    seq.Data,
+		Seq:    sequences.Items[0],
+		Detail: blocks.Items[0],
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventGetBlockBySeq, blockSeq))
+
 }
 
 //平行链del block的处理
