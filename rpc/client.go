@@ -206,10 +206,19 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 
 // GetBalance get balance
 func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
+	// in.AssetExec & in.AssetSymbol 新增参数，
+	// 不填时兼容原来的调用
 	if in.AssetExec == "" || in.AssetSymbol == "" {
+		in.AssetSymbol = "bty"
+		in.AssetExec = "coins"
 		return c.accountdb.GetBalance(c.QueueProtocolAPI, in)
 	}
-	return c.GetAssetBalance(in)
+
+	acc, err := account.NewAccountDB(in.AssetExec, in.AssetSymbol, nil)
+	if err != nil {
+		return nil, err
+	}
+	return acc.GetBalance(c.QueueProtocolAPI, in)
 }
 
 // GetAllExecBalance get balance of exec
