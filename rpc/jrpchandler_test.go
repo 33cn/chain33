@@ -10,6 +10,7 @@ import (
 
 	"encoding/hex"
 
+	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -19,7 +20,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/33cn/chain33/account"
 )
 
 func TestDecodeLogErr(t *testing.T) {
@@ -374,7 +374,7 @@ func newTestChain33(api *mocks.QueueProtocolAPI) *Chain33 {
 	return &Chain33{
 		cli: channelClient{
 			QueueProtocolAPI: api,
-			accountdb: account.NewCoinsAccount(),
+			accountdb:        account.NewCoinsAccount(),
 		},
 	}
 }
@@ -1300,31 +1300,31 @@ func TestChain33_GetBalance(t *testing.T) {
 	var addrs = []string{"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt"}
 	cases := []struct {
 		In types.ReqBalance
-		} {
-			{ In:types.ReqBalance{
-				Execer:      types.ExecName("coins"),
-				Addresses:   addrs,
-			}},
-		{ In:types.ReqBalance{
-				Execer:      types.ExecName("ticket"),
-				Addresses:   addrs,
-			}},
+	}{
+		{In: types.ReqBalance{
+			Execer:    types.ExecName("coins"),
+			Addresses: addrs,
+		}},
+		{In: types.ReqBalance{
+			Execer:    types.ExecName("ticket"),
+			Addresses: addrs,
+		}},
 
-		{ In:types.ReqBalance{
-				AssetSymbol: "bty",
-				AssetExec:   "coins",
-				Execer:      types.ExecName("ticket"),
-				Addresses:   addrs,
-			}},
-		{ In:types.ReqBalance{
-				AssetSymbol: "bty",
-				AssetExec:   "coins",
-				Execer:      types.ExecName("coins"),
-				Addresses:   addrs,
-			}},
+		{In: types.ReqBalance{
+			AssetSymbol: "bty",
+			AssetExec:   "coins",
+			Execer:      types.ExecName("ticket"),
+			Addresses:   addrs,
+		}},
+		{In: types.ReqBalance{
+			AssetSymbol: "bty",
+			AssetExec:   "coins",
+			Execer:      types.ExecName("coins"),
+			Addresses:   addrs,
+		}},
 	}
 
-	for _, c := range  cases {
+	for _, c := range cases {
 		c := c
 		t.Run("test GetBalance", func(t *testing.T) {
 			head := &types.Header{StateHash: []byte("sdfadasds")}
@@ -1335,7 +1335,6 @@ func TestChain33_GetBalance(t *testing.T) {
 			storevalue := &types.StoreReplyValue{}
 			storevalue.Values = append(storevalue.Values, accv)
 			api.On("StoreGet", mock.Anything).Return(storevalue, nil)
-
 
 			var data interface{}
 			err := client.GetBalance(c.In, &data)
