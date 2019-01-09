@@ -950,6 +950,25 @@ func (q *QueueProtocol) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDe
 	return nil, err
 }
 
+func (q *QueueProtocol) GetBlockBySeq(param *types.Int64) (*types.BlockSeq, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetBlockBySeq", "Error", err)
+		return nil, err
+	}
+	msg,err := q.query(blockchainKey, types.EventGetBlockBySeq, param)
+	if err != nil{
+		log.Error("GetBlockBySeq", "Error", err.Error())
+		return nil, err
+	}
+	if reply,ok := msg.GetData().(*types.BlockSeq); ok{
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("GetBlockBySeq", "Error", err.Error())
+	return nil, err
+}
+
 // GetBlockSequences block执行序列号
 func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error) {
 	if param == nil {

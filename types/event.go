@@ -138,6 +138,7 @@ const (
 	EventStoreListReply          = 131
 	EventListBlockSeqCB          = 132
 	EventGetSeqCBLastNum         = 133
+	EventGetBlockBySeq           = 134
 
 	//exec
 	EventBlockChainQuery = 212
@@ -276,4 +277,6 @@ var eventName = map[int]string{
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 	EventConsensusQuery:  "EventConsensusQuery",
+
+	EventGetBlockBySeq: "EventGetBlockBySeq",
 }
