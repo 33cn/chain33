@@ -28,10 +28,12 @@ chain33背后故事: [chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR
 
 我们会对bug 评价4个等级(不会奖励人民币，等值虚拟资产)。
 
+```
 L0 1000
 L1 3000
 L2 10000
 L3 20000
+```
 
 ## Building from source
 
