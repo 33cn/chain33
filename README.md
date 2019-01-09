@@ -24,6 +24,14 @@ chain33背后故事: [chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR
 
 [腾讯玄武实验室](https://github.com/33cn/chain33/issues?utf8=%E2%9C%93&q=label%3A%E8%85%BE%E8%AE%AF%E7%8E%84%E6%AD%A6%E5%AE%9E%E9%AA%8C%E5%AE%A4)
 
+# bug 奖励
+
+我们会对bug 评价4个等级(不会奖励人民币，等值虚拟资产)。
+
+L0 1000
+L1 3000
+L2 10000
+L3 20000
 
 ## Building from source
 
