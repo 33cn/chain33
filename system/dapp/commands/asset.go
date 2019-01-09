@@ -85,7 +85,7 @@ func assetBalance(cmd *cobra.Command, args []string) {
 		AssetSymbol: asset_symbol,
 	}
 	var res []*rpcTypes.Account
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAssetBalance", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
 	ctx.SetResultCb(parseGetBalanceRes)
 	ctx.Run()
 }
