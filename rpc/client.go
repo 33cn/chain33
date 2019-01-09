@@ -206,7 +206,10 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 
 // GetBalance get balance
 func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
-	return c.accountdb.GetBalance(c.QueueProtocolAPI, in)
+	if in.AssetExec == "" || in.AssetSymbol == "" {
+		return c.accountdb.GetBalance(c.QueueProtocolAPI, in)
+	}
+	return c.GetAssetBalance(in)
 }
 
 // GetAllExecBalance get balance of exec

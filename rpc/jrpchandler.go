@@ -1203,16 +1203,6 @@ func convertBlockDetails(details []*types.BlockDetail, retDetails *rpctypes.Bloc
 	return nil
 }
 
-// GetAssetBalance get asset balance
-func (c *Chain33) GetAssetBalance(in types.ReqBalance, result *interface{}) error {
-	balances, err := c.cli.GetAssetBalance(&in)
-	if err != nil {
-		return err
-	}
-	*result = fmtAccount(balances)
-	return nil
-}
-
 func fmtAccount(balances []*types.Account) []*rpctypes.Account {
 	var accounts []*rpctypes.Account
 	for _, balance := range balances {
