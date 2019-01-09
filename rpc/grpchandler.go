@@ -378,7 +378,7 @@ func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqRandHash) (*pb.ReplyH
 	return reply.(*pb.ReplyHash), nil
 }
 
-// IsFork
+// GetFork get fork height by fork key
 func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
 	return &pb.Int64{Data: pb.GetFork(string(in.Key))}, nil
 }

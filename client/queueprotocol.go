@@ -950,6 +950,7 @@ func (q *QueueProtocol) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDe
 	return nil, err
 }
 
+// GetBlockBySeq get block detail and hash by seq
 func (q *QueueProtocol) GetBlockBySeq(param *types.Int64) (*types.BlockSeq, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
