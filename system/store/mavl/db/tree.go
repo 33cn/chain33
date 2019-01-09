@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
@@ -19,8 +20,10 @@ import (
 )
 
 const (
-	hashNodePrefix = "_mh_"
-	leafNodePrefix = "_mb_"
+	hashNodePrefix       = "_mh_"
+	leafNodePrefix       = "_mb_"
+	curMaxBlockHeight    = "_..mcmbh.._"
+	rootHashHeightPrefix = "_mrhp_"
 )
 
 var (
@@ -31,6 +34,9 @@ var (
 	enableMavlPrefix bool
 	// 是否开启MVCC
 	enableMvcc bool
+	// 当前树的最大高度
+	maxBlockHeight int64
+	heightMtx      sync.Mutex
 )
 
 // EnableMavlPrefix 使能mavl加前缀
@@ -132,8 +138,16 @@ func (t *Tree) Save() []byte {
 		return nil
 	}
 	if t.ndb != nil {
+		if t.isRemoveLeafCountKey() {
+			//DelLeafCountKV 需要先提前将leafcoutkey删除,这里需先于t.ndb.Commit()
+			DelLeafCountKV(t.ndb.db, t.blockHeight)
+		}
 		saveNodeNo := t.root.save(t)
 		treelog.Debug("Tree.Save", "saveNodeNo", saveNodeNo, "tree height", t.blockHeight)
+		// 保存每个高度的roothash
+		if enablePrune {
+			t.root.saveRootHash(t)
+		}
 		beg := types.Now()
 		err := t.ndb.Commit()
 		treelog.Info("tree.commit", "cost", types.Since(beg))
@@ -142,9 +156,11 @@ func (t *Tree) Save() []byte {
 		}
 		// 该线程应只允许一个
 		if enablePrune && !isPruning() &&
+			pruneHeight != 0 &&
 			t.blockHeight%int64(pruneHeight) == 0 &&
 			t.blockHeight/int64(pruneHeight) > 1 {
-			go pruningTree(t.ndb.db, t.blockHeight)
+			wg.Add(1)
+			go pruning(t.ndb.db, t.blockHeight)
 		}
 	}
 	return t.root.hash
@@ -173,6 +189,14 @@ func (t *Tree) Get(key []byte) (index int32, value []byte, exists bool) {
 		return 0, nil, false
 	}
 	return t.root.get(t, key)
+}
+
+// GetHash 通过key获取leaf节点hash信息
+func (t *Tree) GetHash(key []byte) (index int32, hash []byte, exists bool) {
+	if t.root == nil {
+		return 0, nil, false
+	}
+	return t.root.getHash(t, key)
 }
 
 // GetByIndex 通过index获取leaf节点信息
@@ -218,6 +242,85 @@ func (t *Tree) Remove(key []byte) (value []byte, removed bool) {
 		t.root = newRoot
 	}
 	return value, true
+}
+
+func (t *Tree) getMaxBlockHeight() int64 {
+	if t.ndb == nil || t.ndb.db == nil {
+		return 0
+	}
+	value, err := t.ndb.db.Get([]byte(curMaxBlockHeight))
+	if len(value) == 0 || err != nil {
+		return 0
+	}
+	h := &types.Int64{}
+	err = proto.Unmarshal(value, h)
+	if err != nil {
+		return 0
+	}
+	return h.Data
+}
+
+func (t *Tree) setMaxBlockHeight(height int64) error {
+	if t.ndb == nil || t.ndb.batch == nil {
+		return fmt.Errorf("ndb is nil")
+	}
+	h := &types.Int64{}
+	h.Data = height
+	value, err := proto.Marshal(h)
+	if err != nil {
+		return err
+	}
+	t.ndb.batch.Set([]byte(curMaxBlockHeight), value)
+	return nil
+}
+
+func (t *Tree) isRemoveLeafCountKey() bool {
+	if t.ndb == nil || t.ndb.db == nil {
+		return false
+	}
+	heightMtx.Lock()
+	defer heightMtx.Unlock()
+
+	if maxBlockHeight == 0 {
+		maxBlockHeight = t.getMaxBlockHeight()
+	}
+	if t.blockHeight > maxBlockHeight {
+		t.setMaxBlockHeight(t.blockHeight)
+		maxBlockHeight = t.blockHeight
+		return false
+	}
+	return true
+}
+
+// RemoveLeafCountKey 删除叶子节点的索引节点（防止裁剪时候回退产生的误删除）
+func (t *Tree) RemoveLeafCountKey(height int64) {
+	if t.root == nil || t.ndb == nil {
+		return
+	}
+	prefix := genPrefixHashKey(&Node{}, height)
+	it := t.ndb.db.Iterator(prefix, nil, true)
+	defer it.Close()
+
+	var keys [][]byte
+	for it.Rewind(); it.Valid(); it.Next() {
+		value := make([]byte, len(it.Value()))
+		copy(value, it.Value())
+		pData := &types.StoreNode{}
+		err := proto.Unmarshal(value, pData)
+		if err == nil {
+			keys = append(keys, pData.Key)
+		}
+	}
+
+	batch := t.ndb.db.NewBatch(true)
+	for _, k := range keys {
+		_, hash, exits := t.GetHash(k)
+		if exits {
+			batch.Delete(genLeafCountKey(k, hash, height, len(hash)))
+			treelog.Debug("RemoveLeafCountKey:", "height", height, "key:", string(k), "hash:", common.ToHex(hash))
+		}
+	}
+	batch.Write()
 }
 
 // Iterate 依次迭代遍历树的所有键
@@ -465,6 +568,26 @@ func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte, error) {
 	return tree.Save(), values, nil
 }
 
+// DelLeafCountKV 回退时候用于删除叶子节点的索引节点
+func DelLeafCountKV(db dbm.DB, blockHeight int64) error {
+	treelog.Debug("RemoveLeafCountKey:", "height", blockHeight)
+	prefix := genRootHashPrefix(blockHeight)
+	it := db.Iterator(prefix, nil, true)
+	defer it.Close()
+	for it.Rewind(); it.Valid(); it.Next() {
+		hash, err := getRootHash(it.Key())
+		if err == nil {
+			tree := NewTree(db, true)
+			err := tree.Load(hash)
+			if err == nil {
+				treelog.Debug("RemoveLeafCountKey:", "height", blockHeight, "root hash:", common.ToHex(hash))
+				tree.RemoveLeafCountKey(blockHeight)
+			}
+		}
+	}
+	return nil
+}
+
 // VerifyKVPairProof 验证KVPair 的证明
 func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proof []byte) bool {
 
@@ -515,4 +638,25 @@ func genPrefixHashKey(node *Node, blockHeight int64) (key []byte) {
 		key = []byte(fmt.Sprintf("%s-%010d-", hashNodePrefix, blockHeight))
 	}
 	return key
+}
+
+func genRootHashPrefix(blockHeight int64) (key []byte) {
+	key = []byte(fmt.Sprintf("%s%010d", rootHashHeightPrefix, blockHeight))
+	return key
+}
+
+func genRootHashHeight(blockHeight int64, hash []byte) (key []byte) {
+	key = []byte(fmt.Sprintf("%s%010d%s", rootHashHeightPrefix, blockHeight, string(hash)))
+	return key
+}
+
+func getRootHash(hashKey []byte) (hash []byte, err error) {
+	if len(hashKey) < len(rootHashHeightPrefix)+blockHeightStrLen+len(common.Hash{}) {
+		return nil, types.ErrSize
+	}
+	if !bytes.Contains(hashKey, []byte(rootHashHeightPrefix)) {
+		return nil, types.ErrSize
+	}
+	hash = hashKey[len(hashKey)-len(common.Hash{}):]
+	return hash, nil
 }

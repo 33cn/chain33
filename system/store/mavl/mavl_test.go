@@ -176,7 +176,6 @@ func TestKvdbIterate(t *testing.T) {
 	assert.Len(t, checkKVResult, 2)
 	assert.Equal(t, []byte("v1"), checkKVResult[0].Value)
 	assert.Equal(t, []byte("v2"), checkKVResult[1].Value)
-
 }
 
 type StatTool struct {

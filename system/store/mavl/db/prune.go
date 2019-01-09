@@ -25,7 +25,6 @@ const (
 	leafKeyCountPrefix     = "..mk.."
 	oldLeafKeyCountPrefix  = "..mok.."
 	secLvlPruningHeightKey = "_..mslphk.._"
-	delMapPoolPrefix       = "_..md.._"
 	blockHeightStrLen      = 10
 	hashLenStr             = 3
 	pruningStateStart      = 1
@@ -175,9 +174,12 @@ func setSecLvlPruningHeight(db dbm.DB, height int64) error {
 	return db.Set([]byte(secLvlPruningHeightKey), value)
 }
 
+func pruning(db dbm.DB, curHeight int64) {
+	defer wg.Done()
+	pruningTree(db, curHeight)
+}
+
 func pruningTree(db dbm.DB, curHeight int64) {
-	wg.Add(1)
-	defer wg.Add(-1)
 	setPruning(pruningStateStart)
 	// 一级遍历
 	pruningFirstLevel(db, curHeight)
@@ -423,20 +425,140 @@ func PruningTreePrintDB(db dbm.DB, prefix []byte) {
 			treelog.Debug("pruningTree:", "key:", string(it.Key()))
 		} else if bytes.Equal(prefix, []byte(leafNodePrefix)) {
 			treelog.Debug("pruningTree:", "key:", string(it.Key()))
-		} else if bytes.Equal(prefix, []byte(delMapPoolPrefix)) {
-			value := it.Value()
-			var pData types.StoreValuePool
-			err := proto.Unmarshal(value, &pData)
-			if err == nil {
-				for _, k := range pData.Values {
-					treelog.Debug("delMapPool value ", "hash:", common.Bytes2Hex(k[:2]))
-				}
-			}
 		}
 		count++
 	}
 	fmt.Printf("prefix %s All count:%d \n", string(prefix), count)
 	treelog.Info("pruningTree:", "prefix:", string(prefix), "All count", count)
+}
+
+// PrintSameLeafKey 查询相同的叶子节点
+func PrintSameLeafKey(db dbm.DB, key string) {
+	printSameLeafKeyDB(db, key, false)
+	printSameLeafKeyDB(db, key, true)
+}
+
+func printSameLeafKeyDB(db dbm.DB, key string, isold bool) {
+	var prifex string
+	if isold {
+		prifex = oldLeafKeyCountPrefix
+	} else {
+		prifex = leafKeyCountPrefix
+	}
+	priKey := []byte(fmt.Sprintf("%s%s", prifex, key))
+
+	it := db.Iterator(priKey, nil, true)
+	defer it.Close()
+
+	for it.Rewind(); it.Valid(); it.Next() {
+		hashK := make([]byte, len(it.Key()))
+		copy(hashK, it.Key())
+
+		key, height, hash, err := getKeyHeightFromLeafCountKey(hashK)
+		if err == nil {
+			pri := ""
+			if len(hash) > 32 {
+				pri = string(hash[:16])
+			}
+			treelog.Info("leaf node", "height", height, "pri", pri, "hash", common.Bytes2Hex(hash), "key", string(key))
+		}
+	}
+}
+
+// PrintLeafNodeParent 查询叶子节点的父节点
+func PrintLeafNodeParent(db dbm.DB, key, hash []byte, height int64) {
+	var isHave bool
+	leafCountKey := genLeafCountKey(key, hash, height, len(hash))
+	value, err := db.Get(leafCountKey)
+	if err == nil {
+		var pData types.PruneData
+		err := proto.Unmarshal(value, &pData)
+		if err == nil {
+			for _, hash := range pData.Hashs {
+				var pri string
+				if len(hash) > 32 {
+					pri = string(hash[:16])
+				}
+				treelog.Info("hash node", "hash pri", pri, "hash", common.Bytes2Hex(hash))
+			}
+		}
+		isHave = true
+	}
+
+	if !isHave {
+		oldLeafCountKey := genOldLeafCountKey(key, hash, height, len(hash))
+		value, err = db.Get(oldLeafCountKey)
+		if err == nil {
+			var pData types.PruneData
+			err := proto.Unmarshal(value, &pData)
+			if err == nil {
+				for _, hash := range pData.Hashs {
+					var pri string
+					if len(hash) > 32 {
+						pri = string(hash[:16])
+					}
+					treelog.Info("hash node", "hash pri", pri, "hash", common.Bytes2Hex(hash))
+				}
+			}
+			isHave = true
+		}
+	}
+
+	if !isHave {
+		treelog.Info("err", "get db", "not exist in db")
+	}
+}
+
+// PrintNodeDb 查询hash节点以及其子节点
+func PrintNodeDb(db dbm.DB, hash []byte) {
+	nDb := newNodeDB(db, true)
+	node, err := nDb.GetNode(nil, hash)
+	if err != nil {
+		fmt.Println("err", err)
+		return
+	}
+	pri := ""
+	if len(node.hash) > 32 {
+		pri = string(node.hash[:16])
+	}
+	treelog.Info("hash node", "hash pri", pri, "hash", common.Bytes2Hex(node.hash), "height", node.height)
+	node.printNodeInfo(nDb)
+}
+
+func (node *Node) printNodeInfo(db *nodeDB) {
+	if node.height == 0 {
+		pri := ""
+		if len(node.hash) > 32 {
+			pri = string(node.hash[:16])
+		}
+		treelog.Info("leaf node", "hash pri", pri, "hash", common.Bytes2Hex(node.hash), "key", string(node.key))
+		return
+	}
+	if node.leftHash != nil {
+		left, err := db.GetNode(nil, node.leftHash)
+		if err != nil {
+			return
+		}
+		pri := ""
+		if len(left.hash) > 32 {
+			pri = string(left.hash[:16])
+		}
+		treelog.Debug("hash node", "hash pri", pri, "hash", common.Bytes2Hex(left.hash), "height", left.height)
+		left.printNodeInfo(db)
+	}
+
+	if node.rightHash != nil {
+		right, err := db.GetNode(nil, node.rightHash)
+		if err != nil {
+			return
+		}
+		pri := ""
+		if len(right.hash) > 32 {
+			pri = string(right.hash[:16])
+		}
+		treelog.Debug("hash node", "hash pri", pri, "hash", common.Bytes2Hex(right.hash), "height", right.height)
+		right.printNodeInfo(db)
+	}
 }
 
 // PruningTree 裁剪树
