@@ -50,6 +50,7 @@ func addAssetBalanceFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("asset_exec")
 	cmd.Flags().StringP("asset_symbol", "", "bty", "the asset symbol")
 	cmd.MarkFlagRequired("asset_symbol")
+	cmd.Flags().IntP("height", "", -1, "block height")
 }
 
 func assetBalance(cmd *cobra.Command, args []string) {
@@ -58,6 +59,7 @@ func assetBalance(cmd *cobra.Command, args []string) {
 	execer, _ := cmd.Flags().GetString("exec")
 	asset_symbol, _ := cmd.Flags().GetString("asset_symbol")
 	asset_exec, _ := cmd.Flags().GetString("asset_exec")
+	height, _ := cmd.Flags().GetInt("height")
 
 	err := address.CheckAddress(addr)
 	if err != nil {
@@ -75,12 +77,30 @@ func assetBalance(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	stateHash := ""
+	if height >= 0 {
+		params := types.ReqBlocks{
+			Start:    int64(height),
+			End:      int64(height),
+			IsDetail: false,
+		}
+		var res rpcTypes.Headers
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+		_, err := ctx.RunResult()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		h := res.Items[0]
+		stateHash = h.StateHash
+	}
+
 	var addrs []string
 	addrs = append(addrs, addr)
 	params := types.ReqBalance{
 		Addresses:   addrs,
 		Execer:      execer,
-		StateHash:   "",
+		StateHash:   stateHash,
 		AssetExec:   asset_exec,
 		AssetSymbol: asset_symbol,
 	}
