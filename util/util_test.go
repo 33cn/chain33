@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/common/address"
-
+	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 
@@ -176,4 +176,31 @@ func TestDelDupTx(t *testing.T) {
 	}
 	txcache = DelDupTx(txcache)
 	assert.Equal(t, txcache, txcacheresult)
+}
+
+func TestDB(t *testing.T) {
+	dir, db, kvdb := CreateTestDB()
+	defer CloseTestDB(dir, db)
+	err := kvdb.Set([]byte("a"), []byte("b"))
+	assert.Nil(t, err)
+	value, err := kvdb.Get([]byte("a"))
+	assert.Nil(t, err)
+	assert.Equal(t, value, []byte("b"))
+}
+
+func TestMockModule(t *testing.T) {
+	q := queue.New("channel")
+	client := q.Client()
+	memKey := "mempool"
+	mem := &MockModule{Key: memKey}
+	mem.SetQueueClient(client)
+
+	msg := client.NewMessage(memKey, types.EventTx, &types.Transaction{})
+	client.Send(msg, true)
+	resp, err := client.Wait(msg)
+	assert.Nil(t, err)
+	reply, ok := resp.GetData().(*types.Reply)
+	assert.Equal(t, ok, true)
+	assert.Equal(t, reply.GetIsOk(), false)
+	assert.Equal(t, reply.GetMsg(), []byte("mock mempool module not handle message 1"))
 }

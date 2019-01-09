@@ -206,7 +206,20 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 
 // GetBalance get balance
 func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
-	return c.accountdb.GetBalance(c.QueueProtocolAPI, in)
+	// in.AssetExec & in.AssetSymbol 新增参数，
+	// 不填时兼容原来的调用
+	if in.AssetExec == "" || in.AssetSymbol == "" {
+		in.AssetSymbol = "bty"
+		in.AssetExec = "coins"
+		return c.accountdb.GetBalance(c.QueueProtocolAPI, in)
+	}
+
+	acc, err := account.NewAccountDB(in.AssetExec, in.AssetSymbol, nil)
+	if err != nil {
+		log.Error("GetBalance", "Error", err.Error())
+		return nil, err
+	}
+	return acc.GetBalance(c.QueueProtocolAPI, in)
 }
 
 // GetAllExecBalance get balance of exec
@@ -287,4 +300,50 @@ func (c *channelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.Repl
 		return nil, err
 	}
 	return resp, nil
+}
+
+// GetAssetBalance 通用的获得资产的接口
+func (c *channelClient) GetAssetBalance(in *types.ReqBalance) ([]*types.Account, error) {
+	if in.AssetSymbol == "" || in.AssetExec == "" {
+		return nil, types.ErrInvalidParam
+	}
+	acc, err := account.NewAccountDB(in.AssetExec, in.AssetSymbol, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// load balance
+	if in.AssetExec == in.Execer || in.Execer == "" {
+		addrs := in.GetAddresses()
+		var queryAddrs []string
+		for _, addr := range addrs {
+			if err := address.CheckAddress(addr); err != nil {
+				addr = string(acc.AccountKey(addr))
+			}
+			queryAddrs = append(queryAddrs, addr)
+		}
+
+		accounts, err := acc.LoadAccounts(c.QueueProtocolAPI, queryAddrs)
+		if err != nil {
+			log.Error("GetAssetBalance", "err", err.Error(), "exec", in.AssetExec, "symbol", in.AssetSymbol,
+				"address", queryAddrs)
+			return nil, err
+		}
+		return accounts, nil
+	}
+
+	// load exec balance
+	execaddress := address.ExecAddress(in.GetExecer())
+	addrs := in.GetAddresses()
+	var accounts []*types.Account
+	for _, addr := range addrs {
+		acc, err := acc.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
+		if err != nil {
+			log.Error("GetAssetBalance for exector", "err", err.Error(), "exec", in.AssetExec,
+				"symbol", in.AssetSymbol, "address", addr, "where", in.Execer)
+			continue
+		}
+		accounts = append(accounts, acc)
+	}
+	return accounts, nil
 }

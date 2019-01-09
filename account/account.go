@@ -276,8 +276,8 @@ func (acc *DB) loadAccountsHistory(api client.QueueProtocolAPI, addrs []string, 
 
 // GetBalance 获取某个状态下账户余额
 func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]*types.Account, error) {
-	switch in.GetExecer() {
-	case types.ExecName("coins"):
+	// load account
+	if in.AssetExec == in.Execer || "" == in.Execer {
 		addrs := in.GetAddresses()
 		var exaddrs []string
 		for _, addr := range addrs {
@@ -306,34 +306,35 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 			}
 		}
 		return accounts, nil
-	default:
-		execaddress := address.ExecAddress(in.GetExecer())
-		addrs := in.GetAddresses()
-		var accounts []*types.Account
-		for _, addr := range addrs {
-			var account *types.Account
-			var err error
-			if len(in.StateHash) == 0 {
-				account, err = acc.LoadExecAccountQueue(api, addr, execaddress)
-				if err != nil {
-					log.Error("GetBalance", "err", err.Error())
-					continue
-				}
-			} else {
-				hash, err := common.FromHex(in.StateHash)
-				if err != nil {
-					return nil, err
-				}
-				account, err = acc.LoadExecAccountHistoryQueue(api, addr, execaddress, hash)
-				if err != nil {
-					log.Error("GetBalance", "err", err.Error())
-					continue
-				}
-			}
-			accounts = append(accounts, account)
-		}
-		return accounts, nil
 	}
+
+	// load exec account
+	execaddress := address.ExecAddress(in.GetExecer())
+	addrs := in.GetAddresses()
+	var accounts []*types.Account
+	for _, addr := range addrs {
+		var account *types.Account
+		var err error
+		if len(in.StateHash) == 0 {
+			account, err = acc.LoadExecAccountQueue(api, addr, execaddress)
+			if err != nil {
+				log.Error("GetBalance", "err", err.Error())
+				continue
+			}
+		} else {
+			hash, err := common.FromHex(in.StateHash)
+			if err != nil {
+				return nil, err
+			}
+			account, err = acc.LoadExecAccountHistoryQueue(api, addr, execaddress, hash)
+			if err != nil {
+				log.Error("GetBalance", "err", err.Error())
+				continue
+			}
+		}
+		accounts = append(accounts, account)
+	}
+	return accounts, nil
 }
 
 // GetExecBalance 通过account模块获取地址账户在合约中的余额

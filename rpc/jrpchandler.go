@@ -741,19 +741,12 @@ func (c *Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 
 // GetBalance get balance
 func (c *Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
-
 	balances, err := c.cli.GetBalance(&in)
 	if err != nil {
 		return err
 	}
-	var accounts []*rpctypes.Account
-	for _, balance := range balances {
-		accounts = append(accounts, &rpctypes.Account{Addr: balance.GetAddr(),
-			Balance:  balance.GetBalance(),
-			Currency: balance.GetCurrency(),
-			Frozen:   balance.GetFrozen()})
-	}
-	*result = accounts
+
+	*result = fmtAccount(balances)
 	return nil
 }
 
@@ -1208,4 +1201,15 @@ func convertBlockDetails(details []*types.BlockDetail, retDetails *rpctypes.Bloc
 		retDetails.Items = append(retDetails.Items, &bdtl)
 	}
 	return nil
+}
+
+func fmtAccount(balances []*types.Account) []*rpctypes.Account {
+	var accounts []*rpctypes.Account
+	for _, balance := range balances {
+		accounts = append(accounts, &rpctypes.Account{Addr: balance.GetAddr(),
+			Balance:  balance.GetBalance(),
+			Currency: balance.GetCurrency(),
+			Frozen:   balance.GetFrozen()})
+	}
+	return accounts
 }

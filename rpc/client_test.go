@@ -361,3 +361,66 @@ func TestChannelClient_GetBalance(t *testing.T) {
 // 	assert.NotNil(t, data)
 // 	assert.Nil(t, err)
 // }
+
+func testChannelClient_GetAssetBalanceCoin(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	db := new(account.DB)
+	client := &channelClient{
+		QueueProtocolAPI: api,
+		accountdb:        db,
+	}
+
+	head := &types.Header{StateHash: []byte("sdfadasds")}
+	api.On("GetLastHeader").Return(head, nil)
+
+	var acc = &types.Account{Addr: "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt", Balance: 100}
+	accv := types.Encode(acc)
+	storevalue := &types.StoreReplyValue{}
+	storevalue.Values = append(storevalue.Values, accv)
+	api.On("StoreGet", mock.Anything).Return(storevalue, nil)
+
+	var addrs = []string{"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt"}
+	var in = &types.ReqBalance{
+		AssetSymbol: "bty",
+		AssetExec:   "coins",
+		Execer:      "coins",
+		Addresses:   addrs,
+	}
+	data, err := client.GetAssetBalance(in)
+	assert.Nil(t, err)
+	assert.Equal(t, acc.Addr, data[0].Addr)
+}
+
+func testChannelClient_GetAssetBalanceOther(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	db := new(account.DB)
+	client := &channelClient{
+		QueueProtocolAPI: api,
+		accountdb:        db,
+	}
+
+	head := &types.Header{StateHash: []byte("sdfadasds")}
+	api.On("GetLastHeader").Return(head, nil)
+
+	var acc = &types.Account{Addr: "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt", Balance: 100}
+	accv := types.Encode(acc)
+	storevalue := &types.StoreReplyValue{}
+	storevalue.Values = append(storevalue.Values, accv)
+	api.On("StoreGet", mock.Anything).Return(storevalue, nil)
+
+	var addrs = []string{"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt"}
+	var in = &types.ReqBalance{
+		AssetSymbol: "bty",
+		AssetExec:   "coins",
+		Execer:      types.ExecName("ticket"),
+		Addresses:   addrs,
+	}
+	data, err := client.GetAssetBalance(in)
+	assert.Nil(t, err)
+	assert.Equal(t, acc.Addr, data[0].Addr)
+}
+
+func TestChannelClient_GetAssetBalance(t *testing.T) {
+	testChannelClient_GetAssetBalanceCoin(t)
+	testChannelClient_GetAssetBalanceOther(t)
+}

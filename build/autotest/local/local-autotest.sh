@@ -121,21 +121,24 @@ function start_chain33() {
 
     echo "=========== #transfer to miner addr ============="
     hash=$(${CLI} send coins transfer -a 10000 -n test -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
-
+    echo "${hash}"
     sleep ${chain33BlockTime}
-    txs=$(${CLI} tx query_hash -s "${hash}" | jq ".txs")
-    if [ "${txs}" == "null" ]; then
-        echo "transferTokenAdmin cannot find tx"
+    result=$(${CLI} tx query -s "${hash}" | jq '.receipt.tyName')
+    if [[ ${result} != '"ExecOk"' ]]; then
+        echo "Failed"
+        ${CLI} tx query -s "${hash}" | jq '.' | cat
         exit 1
     fi
 
     echo "=========== #transfer to token amdin ============="
     hash=$(${CLI} send coins transfer -a 10 -n test -t 1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
 
+    echo "${hash}"
     sleep ${chain33BlockTime}
-    txs=$(${CLI} tx query_hash -s "${hash}" | jq ".txs")
-    if [ "${txs}" == "null" ]; then
-        echo "transferTokenAdmin cannot find tx"
+    result=$(${CLI} tx query -s "${hash}" | jq '.receipt.tyName')
+    if [[ ${result} != '"ExecOk"' ]]; then
+        echo "Failed"
+        ${CLI} tx query -s "${hash}" | jq '.' | cat
         exit 1
     fi
 
@@ -144,10 +147,12 @@ function start_chain33() {
     signData=$(${CLI} wallet sign -d "${rawData}" -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc)
     hash=$(${CLI} wallet send -d "${signData}")
 
+    echo "${hash}"
     sleep ${chain33BlockTime}
-    txs=$(${CLI} tx query_hash -s "${hash}" | jq ".txs")
-    if [ "${txs}" == "null" ]; then
-        echo "transferTokenAdmin cannot find tx"
+    result=$(${CLI} tx query -s "${hash}" | jq '.receipt.tyName')
+    if [[ ${result} != '"ExecOk"' ]]; then
+        echo "Failed"
+        ${CLI} tx query -s "${hash}" | jq '.' | cat
         exit 1
     fi
 

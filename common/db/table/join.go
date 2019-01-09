@@ -91,7 +91,7 @@ func NewJoinTable(left *Table, right *Table, indexes []string) (*JoinTable, erro
 			join.leftIndex = append(join.leftIndex, joinindex[0])
 		}
 		if joinindex[1] == "" || !right.canGet(joinindex[1]) {
-			return nil, errors.New("jointable: left table can not get: " + joinindex[1])
+			return nil, errors.New("jointable: right table can not get: " + joinindex[1])
 		}
 		if joinindex[1] != "" {
 			join.rightIndex = append(join.rightIndex, joinindex[1])
@@ -160,6 +160,7 @@ func (join *JoinTable) GetData(primaryKey []byte) (*Row, error) {
 	}
 	rowjoin := join.meta.CreateRow()
 	rowjoin.Ty = None
+	rowjoin.Primary = leftrow.Primary
 	rowjoin.Data.(*JoinData).Left = leftrow.Data
 	rowjoin.Data.(*JoinData).Right = rightrow.Data
 	return rowjoin, nil

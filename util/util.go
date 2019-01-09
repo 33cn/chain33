@@ -10,14 +10,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 	"testing"
 	"unicode"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
@@ -407,3 +410,68 @@ func ResetDatadir(cfg *types.Config, datadir string) string {
 	cfg.Store.DbPath = filepath.Join(datadir, cfg.Store.DbPath)
 	return datadir
 }
+
+//CreateTestDB 创建一个测试数据库
+func CreateTestDB() (string, db.DB, db.KVDB) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	if err != nil {
+		panic(err)
+	}
+	leveldb, err := db.NewGoLevelDB("goleveldb", dir, 128)
+	if err != nil {
+		panic(err)
+	}
+	return dir, leveldb, db.NewKVDB(leveldb)
+}
+
+//CloseTestDB 创建一个测试数据库
+func CloseTestDB(dir string, dbm db.DB) {
+	os.RemoveAll(dir)
+	dbm.Close()
+}
+
+//SaveKVList 保存kvs to database
+func SaveKVList(kvdb db.DB, kvs []*types.KeyValue) {
+	//printKV(kvs)
+	batch := kvdb.NewBatch(true)
+	for i := 0; i < len(kvs); i++ {
+		if kvs[i].Value == nil {
+			batch.Delete(kvs[i].Key)
+			continue
+		}
+		batch.Set(kvs[i].Key, kvs[i].Value)
+	}
+	err := batch.Write()
+	if err != nil {
+		panic(err)
+	}
+}
+
+//PrintKV 打印KVList
+func PrintKV(kvs []*types.KeyValue) {
+	for i := 0; i < len(kvs); i++ {
+		fmt.Printf("KV %d %s(%s)\n", i, string(kvs[i].Key), common.ToHex(kvs[i].Value))
+	}
+}
+
+// MockModule struct
+type MockModule struct {
+	Key string
+}
+
+// SetQueueClient method
+func (m *MockModule) SetQueueClient(client queue.Client) {
+	go func() {
+		client.Sub(m.Key)
+		for msg := range client.Recv() {
+			msg.Reply(client.NewMessage(m.Key, types.EventReply, &types.Reply{IsOk: false,
+				Msg: []byte(fmt.Sprintf("mock %s module not handle message %v", m.Key, msg.Ty))}))
+		}
+	}()
+}
+
+// Wait for ready
+func (m *MockModule) Wait() {}
+
+// Close method
+func (m *MockModule) Close() {}

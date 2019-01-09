@@ -7,12 +7,13 @@ package table
 import (
 	"testing"
 
+	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCount(t *testing.T) {
-	dir, leveldb, kvdb := getdb()
-	defer dbclose(dir, leveldb)
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
 	count := NewCount("prefix", "name#hello", kvdb)
 	count.Inc()
 	count.Dec()
@@ -22,7 +23,7 @@ func TestCount(t *testing.T) {
 	assert.Equal(t, i, int64(1))
 	kvs, err := count.Save()
 	assert.Nil(t, err)
-	setKV(leveldb, kvs)
+	util.SaveKVList(ldb, kvs)
 
 	count = NewCount("prefix", "name#hello", kvdb)
 	i, err = count.Get()

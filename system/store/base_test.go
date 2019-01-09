@@ -144,4 +144,13 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventGetTotalCoinsReply), resp.Ty)
 
+	del := &types.StoreDel{StateHash: EmptyRoot[:], Height: 0}
+	msg = queueClinet.NewMessage("store", types.EventStoreDel, del)
+	err = queueClinet.Send(msg, true)
+	assert.Nil(t, err)
+	resp, err = queueClinet.Wait(msg)
+	assert.Nil(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, int64(types.EventStoreDel), resp.Ty)
+
 }

@@ -15,6 +15,8 @@ import (
 
 	"os"
 
+	"sync"
+
 	. "github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log"
@@ -875,6 +877,386 @@ func TestMaxLevalDbValue(t *testing.T) {
 	}
 }
 
+func TestGetHash(t *testing.T) {
+	//开启前缀时候需要加入在叶子节点hash上加入：5f6d625f2d303030303030303030302d
+	/* 叶子节点对应hash值
+			k:abc     v:abc     hash:0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d
+		    k:fan     v:fan     hash:0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114
+		    k:foml    v:foml    hash:0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0
+		    k:foo     v:foo     hash:0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2
+		    k:foobang v:foobang hash:0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be
+			k:foobar  v:foobar  hash:0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93
+			k:foobaz  v:foobaz  hash:0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b
+		    k:food    v:food    hash:0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39
+		    k:good    v:good    hash:0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776
+		    k:low     v:low     hash:0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786
+	        height:0 hash:d95f left: right: parentHash:967b
+	        height:0 hash:3bf2 left: right: parentHash:cf1e
+			height:0 hash:0ac6 left: right: parentHash:cf1e
+			height:1 hash:cf1e left:3bf2 right:0ac6 parentHash:
+			height:2 hash:967b left:d95f right:cf1e parentHash:
+			height:0 hash:890d left: right: parentHash:c0bf
+			height:0 hash:6d46 left: right: parentHash:2f47
+			height:0 hash:5308 left: right: parentHash:2f47
+			height:1 hash:2f47 left:6d46 right:5308 parentHash:
+			height:2 hash:c0bf left:890d right:2f47 parentHash:
+			height:3 hash:d556 left:967b right:c0bf parentHash:
+			height:0 hash:cbcb left: right: parentHash:121e
+			height:0 hash:e508 left: right: parentHash:121e
+			height:1 hash:121e left:cbcb right:e508 parentHash:
+			height:0 hash:0c99 left: right: parentHash:00ab
+			height:0 hash:5a82 left: right: parentHash:00ab
+			height:1 hash:00ab left:0c99 right:5a82 parentHash:
+			height:2 hash:5202 left:121e right:00ab parentHash:
+			height:4 hash:1134 left:d556 right:5202 parentHash:
+	*/
+
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+		{"foo", "foo"},
+		{"foobaz", "foobaz"},
+		{"good", "good"},
+		{"foobang", "foobang"},
+		{"foobar", "foobar"},
+		{"food", "food"},
+		{"foml", "foml"},
+	}
+
+	keys := make([]string, len(records))
+	for i, r := range records {
+		keys[i] = r.key
+	}
+	sort.Strings(keys)
+
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	hash := tree.Save()
+	//加入前缀的叶子节点
+	expecteds := []record{
+		{"abc", "0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"},
+		{"low", "0x5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
+		{"fan", "0x3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114"},
+		{"foo", "0x890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2"},
+
+		{"foml", "0x0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0"},
+		{"foobang", "0x6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be"},
+		{"foobar", "0x5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93"},
+		{"foobaz", "0xcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b"},
+		{"food", "0xe5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39"},
+		{"good", "0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
+	}
+
+	tr := NewTree(db, true)
+	tr.Load(hash)
+	for _, val := range expecteds {
+		_, hash, exists := tr.GetHash([]byte(val.key))
+		if exists {
+			require.Equal(t, ToHex(hash), val.value)
+		}
+	}
+	for _, val := range expecteds {
+		val.value = "1111"
+	}
+
+	//开启前缀
+	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
+	EnablePrune(true)
+	defer EnablePrune(false)
+
+	tree1 := NewTree(db, true)
+	for _, r := range records {
+		updated := tree1.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	hash1 := tree1.Save()
+
+	expecteds = []record{
+		{"abc", "0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"},
+		{"low", "0x5f6d625f2d303030303030303030302d5a82d9685c0627c94ac5ba13e819c60e05b577bf6512062cf3dc2b5d9b381786"},
+		{"fan", "0x5f6d625f2d303030303030303030302d3bf26d01cb0752bcfd60b72348a8fde671f32f51ec276606cd5f35658c172114"},
+		{"foo", "0x5f6d625f2d303030303030303030302d890d4f4450d5ea213b8e63aae98fae548f210b5c8d3486b685cfa86adde16ec2"},
+
+		{"foml", "0x5f6d625f2d303030303030303030302d0ac69b0f4ceee514d09f2816e387cda870c06be28b50bf416de5c0ba90cdfbc0"},
+		{"foobang", "0x5f6d625f2d303030303030303030302d6d46d71882171840bcb61f2b60b69c904a4c30435bf03e63f4ec36bfa47ab2be"},
+		{"foobar", "0x5f6d625f2d303030303030303030302d5308d1f9b60e831a5df663babbf2a2636ecaf4da3bffed52447faf5ab172cf93"},
+		{"foobaz", "0x5f6d625f2d303030303030303030302dcbcb48848f0ce209cfccdf3ddf80740915c9bdede3cb11d0378690ad8b85a68b"},
+		{"food", "0x5f6d625f2d303030303030303030302de5080908c794168285a090088ae892793d549f3e7069f4feae3677bf3a28ad39"},
+		{"good", "0x5f6d625f2d303030303030303030302d0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
+	}
+
+	tr1 := NewTree(db, true)
+	tr1.Load(hash1)
+	for _, val := range expecteds {
+		_, hash, exists := tr1.GetHash([]byte(val.key))
+		if exists {
+			require.Equal(t, ToHex(hash), val.value)
+		}
+	}
+}
+
+func TestRemoveLeafCountKey(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+		{"foo", "foo"},
+		{"foobaz", "foobaz"},
+	}
+	//开启裁剪
+	EnablePrune(true)
+	defer EnablePrune(false)
+
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+
+	blockHeight := int64(1000)
+	tree := NewTree(dbm, true)
+	tree.SetBlockHeight(blockHeight)
+	for _, r := range records {
+		tree.Set([]byte(r.key), []byte(r.value))
+	}
+	hash := tree.Save()
+
+	var countKeys [][]byte
+	prefix := []byte(leafKeyCountPrefix)
+	it := dbm.Iterator(prefix, nil, true)
+	for it.Rewind(); it.Valid(); it.Next() {
+		k := make([]byte, len(it.Key()))
+		copy(k, it.Key())
+		countKeys = append(countKeys, k)
+	}
+	it.Close()
+
+	// 在blockHeight + 100高度在插入另外
+	tree1 := NewTree(dbm, true)
+	tree1.Load(hash)
+	tree1.SetBlockHeight(blockHeight + 100)
+	records1 := []record{
+		{"abc", "abc1"},
+		{"good", "good"},
+		{"foobang", "foobang"},
+		{"foobar", "foobar"},
+		{"food", "food"},
+		{"foml", "foml"},
+	}
+	for _, r := range records1 {
+		tree1.Set([]byte(r.key), []byte(r.value))
+	}
+	hash1 := tree1.Save()
+
+	mpAllKeys := make(map[string]bool)
+	it = dbm.Iterator(prefix, nil, true)
+	for it.Rewind(); it.Valid(); it.Next() {
+		mpAllKeys[string(it.Key())] = true
+	}
+	it.Close()
+
+	// check
+	tr1 := NewTree(dbm, true)
+	tr1.Load(hash1)
+	tr1.RemoveLeafCountKey(blockHeight)
+	for _, key := range countKeys {
+		_, err := dbm.Get(key)
+		if err == nil {
+			require.Error(t, fmt.Errorf("this kv should not exist"))
+		}
+	}
+	// leave key
+	for _, key := range countKeys {
+		delete(mpAllKeys, string(key))
+	}
+	// check leave key
+	for key := range mpAllKeys {
+		_, err := dbm.Get([]byte(key))
+		if err != nil {
+			require.Error(t, fmt.Errorf("this kv should exist"))
+		}
+	}
+}
+
+func TestIsRemoveLeafCountKey(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	maxBlockHeight = 0
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(dbm, true)
+	tree.SetBlockHeight(1000)
+	isRe := tree.isRemoveLeafCountKey()
+	require.Equal(t, false, isRe)
+	tree.SetBlockHeight(990)
+	isRe = tree.isRemoveLeafCountKey()
+	require.Equal(t, true, isRe)
+	tree.SetBlockHeight(1000)
+	isRe = tree.isRemoveLeafCountKey()
+	require.Equal(t, true, isRe)
+	tree.SetBlockHeight(1010)
+	isRe = tree.isRemoveLeafCountKey()
+	require.Equal(t, false, isRe)
+	tree.ndb.Commit()
+	require.Equal(t, int64(1010), tree.getMaxBlockHeight())
+
+	var swg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		swg.Add(1)
+		go func(i int, pwg *sync.WaitGroup, dbn db.DB) {
+			defer swg.Done()
+			tree := NewTree(dbm, true)
+			tree.SetBlockHeight(int64(800 + i))
+			require.Equal(t, true, tree.isRemoveLeafCountKey())
+		}(i, &swg, dbm)
+	}
+	swg.Wait()
+}
+
+func TestGetRootHash(t *testing.T) {
+	hashstr := "0xd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d"
+	hash, err := FromHex(hashstr)
+	require.NoError(t, err)
+	height := 999
+	hashkey := genRootHashHeight(int64(height), hash)
+	actHash, err := getRootHash(hashkey)
+	require.NoError(t, err)
+	require.Equal(t, hash, actHash)
+}
+
+func TestSaveRootHash(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	EnablePrune(true)
+	defer EnablePrune(false)
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(dbm, true)
+	tree.SetBlockHeight(1010)
+	tree.Set([]byte("key:111"), []byte("value:111"))
+	hash := tree.Save()
+	_, err = dbm.Get(genRootHashHeight(1010, hash))
+	require.NoError(t, err)
+}
+
+func TestDelLeafCountKV(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+		{"foo", "foo"},
+		{"foobaz", "foobaz"},
+	}
+	//开启裁剪
+	EnablePrune(true)
+	defer EnablePrune(false)
+
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+
+	blockHeight := int64(1000)
+	tree := NewTree(dbm, true)
+	tree.SetBlockHeight(blockHeight)
+	for _, r := range records {
+		tree.Set([]byte(r.key), []byte(r.value))
+	}
+	hash := tree.Save()
+
+	var countKeys [][]byte
+	prefix := []byte(leafKeyCountPrefix)
+	it := dbm.Iterator(prefix, nil, true)
+	for it.Rewind(); it.Valid(); it.Next() {
+		k := make([]byte, len(it.Key()))
+		copy(k, it.Key())
+		countKeys = append(countKeys, k)
+	}
+	it.Close()
+
+	// 在blockHeight + 100高度在插入另外
+	tree1 := NewTree(dbm, true)
+	tree1.Load(hash)
+	tree1.SetBlockHeight(blockHeight + 100)
+	records1 := []record{
+		{"abc", "abc1"},
+		{"good", "good"},
+		{"foobang", "foobang"},
+		{"foobar", "foobar"},
+		{"food", "food"},
+		{"foml", "foml"},
+	}
+	for _, r := range records1 {
+		tree1.Set([]byte(r.key), []byte(r.value))
+	}
+	tree1.Save()
+
+	mpAllKeys := make(map[string]bool)
+	it = dbm.Iterator(prefix, nil, true)
+	for it.Rewind(); it.Valid(); it.Next() {
+		mpAllKeys[string(it.Key())] = true
+	}
+	it.Close()
+
+	// check
+	// del leaf count key
+	err = DelLeafCountKV(dbm, blockHeight)
+	require.NoError(t, err)
+
+	for _, key := range countKeys {
+		_, err := dbm.Get(key)
+		if err == nil {
+			require.Error(t, fmt.Errorf("this kv should not exist"))
+		}
+	}
+	// leave key
+	for _, key := range countKeys {
+		delete(mpAllKeys, string(key))
+	}
+	// check leave key
+	for key := range mpAllKeys {
+		_, err := dbm.Get([]byte(key))
+		if err != nil {
+			require.Error(t, fmt.Errorf("this kv should exist"))
+		}
+	}
+}
+
 func TestPruningFirstLevelNode(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -1288,6 +1670,108 @@ func TestGetKeyHeightFromOldLeafCountKey(t *testing.T) {
 	require.Equal(t, key, key1)
 	require.Equal(t, height, height1)
 	require.Equal(t, hash, hash1)
+}
+
+func TestPrintSameLeafKey(t *testing.T) {
+	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
+	EnablePrune(true)
+	defer EnablePrune(false)
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+	}
+
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	tree.Save()
+	PrintSameLeafKey(db, "abc")
+}
+
+func TestPrintLeafNodeParent(t *testing.T) {
+	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
+	EnablePrune(true)
+	defer EnablePrune(false)
+	blockHeight := int64(1000)
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+	}
+
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+	tree.SetBlockHeight(blockHeight)
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	tree.Save()
+	hash, _ := FromHex("0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d")
+	PrintLeafNodeParent(db, []byte("abc"), hash, blockHeight)
+}
+
+func TestPrintNodeDb(t *testing.T) {
+	EnableMavlPrefix(true)
+	defer EnableMavlPrefix(false)
+	EnablePrune(true)
+	defer EnablePrune(false)
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+	}
+
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	tree.Save()
+	hash, _ := FromHex("0x5f6d625f2d303030303030303030302dd95f1027b1ecf9013a1cf870a85d967ca828e8faca366a290ec43adcecfbc44d")
+	PrintNodeDb(db, hash)
 }
 
 func BenchmarkDBSet(b *testing.B) {

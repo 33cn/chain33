@@ -80,7 +80,7 @@ func (chain *BlockChain) reIndexOne(height int64) error {
 		panic(err)
 	}
 	if height%1000 == 0 {
-		chainlog.Info("reindex -> ", "height", height)
+		chainlog.Info("reindex -> ", "height", height, "lastheight", chain.GetBlockHeight())
 	}
 	//保存tx信息到db中(newbatch, blockdetail)
 	err = chain.blockStore.AddTxs(newbatch, blockdetail)

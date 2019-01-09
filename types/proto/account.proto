@@ -38,8 +38,10 @@ message ReqBalance {
     //地址列表
     repeated string addresses = 1;
     //执行器名称
-    string execer    = 2;
-    string stateHash = 3;
+    string execer       = 2;
+    string stateHash    = 3;
+    string asset_exec   = 4;
+    string asset_symbol = 5;
 }
 
 // Account 的列表
