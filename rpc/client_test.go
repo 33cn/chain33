@@ -379,8 +379,7 @@ func testChannelClient_GetAssetBalanceCoin(t *testing.T) {
 	storevalue.Values = append(storevalue.Values, accv)
 	api.On("StoreGet", mock.Anything).Return(storevalue, nil)
 
-	var addrs = make([]string, 1)
-	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
+	var addrs = []string{"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt"}
 	var in = &types.ReqBalance{
 		AssetSymbol: "bty",
 		AssetExec:   "coins",
@@ -409,8 +408,7 @@ func testChannelClient_GetAssetBalanceOther(t *testing.T) {
 	storevalue.Values = append(storevalue.Values, accv)
 	api.On("StoreGet", mock.Anything).Return(storevalue, nil)
 
-	var addrs = make([]string, 1)
-	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
+	var addrs = []string{"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt"}
 	var in = &types.ReqBalance{
 		AssetSymbol: "bty",
 		AssetExec:   "coins",
