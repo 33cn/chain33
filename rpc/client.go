@@ -216,6 +216,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 	acc, err := account.NewAccountDB(in.AssetExec, in.AssetSymbol, nil)
 	if err != nil {
+		log.Error("GetBalance", "Error", err.Error())
 		return nil, err
 	}
 	return acc.GetBalance(c.QueueProtocolAPI, in)
