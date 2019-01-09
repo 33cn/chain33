@@ -205,6 +205,27 @@ func (mock *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte,
 	return reply.GetMsg(), nil
 }
 
+//SendAndSignNonce 用外部传入的nonce 重写nonce
+func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, nonce int64) ([]byte, error) {
+	txbytes, err := hex.DecodeString(hextx)
+	if err != nil {
+		return nil, err
+	}
+	tx := &types.Transaction{}
+	err = types.Decode(txbytes, tx)
+	if err != nil {
+		return nil, err
+	}
+	tx.Nonce = nonce
+	tx.Fee = 1e6
+	tx.Sign(types.SECP256K1, priv)
+	reply, err := mock.api.SendTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	return reply.GetMsg(), nil
+}
+
 func newWalletRealize(qAPI client.QueueProtocolAPI) {
 	seed := &types.SaveSeedByPw{
 		Seed:   "subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant",
