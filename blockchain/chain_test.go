@@ -116,6 +116,7 @@ func TestBlockChain(t *testing.T) {
 	testProcDelParaChainBlockMsg(t, mock33, blockchain)
 
 	testProcAddParaChainBlockMsg(t, mock33, blockchain)
+	testProcGetBlockBySeqMsg(t, mock33, blockchain)
 	testProcBlockChainFork(t, blockchain)
 	testDelBlock(t, blockchain, curBlock)
 
@@ -893,6 +894,28 @@ func testProcAddParaChainBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, bl
 		//t.Error("testProcAddParaChainBlockMsg  only in parachain ")
 	}
 	chainlog.Info("testProcAddParaChainBlockMsg end --------------------")
+}
+
+func testProcGetBlockBySeqMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testProcGetBlockBySeqMsg begin --------------------")
+
+	seq, err := blockchain.GetStore().LoadBlockLastSequence()
+	assert.Nil(t, err)
+
+	//block, err := blockchain.GetBlock(curheight)
+	//require.NoError(t, err)
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventGetBlockBySeq, &types.Int64{Data: seq})
+
+	mock33.GetClient().Send(msgGen, true)
+	msg, err := mock33.GetClient().Wait(msgGen)
+	if err != nil {
+		t.Log(err)
+		//t.Error("testProcAddParaChainBlockMsg  only in parachain ")
+	}
+	blockseq := msg.Data.(*types.BlockSeq)
+	assert.Equal(t, seq, blockseq.Num)
+	chainlog.Info("testProcGetBlockBySeqMsg end --------------------")
 }
 
 func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {

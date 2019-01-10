@@ -807,7 +807,7 @@ func TestGRPC(t *testing.T) {
 	testGetAddrOverviewGRPC(t, &grpcMock)
 	testGetBlockHashGRPC(t, &grpcMock)
 	testGetSequenceByHashGRPC(t, &grpcMock)
-	testGetBlockBySeqGRPC(t,&grpcMock)
+	testGetBlockBySeqGRPC(t, &grpcMock)
 	testGenSeedGRPC(t, &grpcMock)
 	testGetSeedGRPC(t, &grpcMock)
 	testSaveSeedGRPC(t, &grpcMock)
@@ -1143,10 +1143,10 @@ func testGetSequenceByHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	}
 }
 
-func testGetBlockBySeqGRPC(t *testing.T, rpc *mockGRPCSystem){
+func testGetBlockBySeqGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.BlockSeq
-	err := rpc.newRpcCtx("GetBlockBySeq", &types.Int64{Data:1}, &res)
-	if err != nil{
+	err := rpc.newRpcCtx("GetBlockBySeq", &types.Int64{Data: 1}, &res)
+	if err != nil {
 		t.Error("Call GetBlockBySeq Failed.", err)
 	}
 
