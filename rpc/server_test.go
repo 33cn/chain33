@@ -175,15 +175,14 @@ func TestGrpc_Call(t *testing.T) {
 	assert.Equal(t, ret.IsOk, result.IsOk)
 	assert.Equal(t, ret.Msg, result.Msg)
 
-	rst, err := client.GetFork(ctx, &types.ReqKey{Key:[]byte("ForkBlockHash")})
-	assert.Nil(t,err)
+	rst, err := client.GetFork(ctx, &types.ReqKey{Key: []byte("ForkBlockHash")})
+	assert.Nil(t, err)
 	assert.Equal(t, int64(1), rst.Data)
 
-	api.On("GetBlockBySeq", mock.Anything).Return(&types.BlockSeq{},nil)
-	blockSeq, err := client.GetBlockBySeq(ctx, &types.Int64{Data:1})
-	assert.Nil(t,err)
+	api.On("GetBlockBySeq", mock.Anything).Return(&types.BlockSeq{}, nil)
+	blockSeq, err := client.GetBlockBySeq(ctx, &types.Int64{Data: 1})
+	assert.Nil(t, err)
 	assert.Equal(t, &types.BlockSeq{}, blockSeq)
-
 
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
