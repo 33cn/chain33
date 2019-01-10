@@ -176,6 +176,8 @@ func RunChain33(name string) {
 	health.Start(cfg.Health)
 	defer func() {
 		//close all module,clean some resource
+		log.Info("begin close health module")
+		health.Close()
 		log.Info("begin close blockchain module")
 		chain.Close()
 		log.Info("begin close mempool module")
@@ -192,8 +194,6 @@ func RunChain33(name string) {
 		rpcapi.Close()
 		log.Info("begin close wallet module")
 		walletm.Close()
-		log.Info("begin close health module")
-		health.Close()
 		log.Info("begin close queue module")
 		q.Close()
 

@@ -53,7 +53,7 @@ type client struct {
 	recv       chan Message
 	done       chan struct{}
 	wg         *sync.WaitGroup
-	topic      string
+	topic      unsafe.Pointer
 	isClosed   int32
 	isCloseing int32
 }
@@ -140,13 +140,11 @@ func (client *client) Recv() chan Message {
 }
 
 func (client *client) getTopic() string {
-	address := unsafe.Pointer(&(client.topic))
-	return *(*string)(atomic.LoadPointer(&address))
+	return *(*string)(atomic.LoadPointer(&client.topic))
 }
 
 func (client *client) setTopic(topic string) {
-	address := unsafe.Pointer(&(client.topic))
-	atomic.StorePointer(&address, unsafe.Pointer(&topic))
+	atomic.StorePointer(&client.topic, unsafe.Pointer(&topic))
 }
 
 func (client *client) isClose() bool {
@@ -159,7 +157,7 @@ func (client *client) isInClose() bool {
 
 // Close 关闭client
 func (client *client) Close() {
-	if atomic.LoadInt32(&client.isClosed) == 1 {
+	if atomic.LoadInt32(&client.isClosed) == 1 || client.topic == nil {
 		return
 	}
 	topic := client.getTopic()
