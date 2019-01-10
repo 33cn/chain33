@@ -321,6 +321,12 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.Int64) = *reply
 		}
 		errRet = err
+	case "GetBlockBySeq":
+		reply, err := rpc.GetBlockBySeq(context.Background(), c.Params.(*types.Int64))
+		if err == nil {
+			*c.Res.(*types.BlockSeq) = *reply
+		}
+		errRet = err
 	default:
 		errRet = errors.New(fmt.Sprintf("Unsupport method %v", c.Method))
 	}

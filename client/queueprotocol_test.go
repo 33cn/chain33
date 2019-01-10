@@ -807,6 +807,7 @@ func TestGRPC(t *testing.T) {
 	testGetAddrOverviewGRPC(t, &grpcMock)
 	testGetBlockHashGRPC(t, &grpcMock)
 	testGetSequenceByHashGRPC(t, &grpcMock)
+	testGetBlockBySeqGRPC(t,&grpcMock)
 	testGenSeedGRPC(t, &grpcMock)
 	testGetSeedGRPC(t, &grpcMock)
 	testSaveSeedGRPC(t, &grpcMock)
@@ -818,6 +819,7 @@ func TestGRPC(t *testing.T) {
 	testIsSyncGRPC(t, &grpcMock)
 	testIsNtpClockSyncGRPC(t, &grpcMock)
 	testNetInfoGRPC(t, &grpcMock)
+
 }
 
 func testNetInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
@@ -1139,4 +1141,13 @@ func testGetSequenceByHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	if err != nil {
 		t.Error("Call GetSequenceByHash Failed.", err)
 	}
+}
+
+func testGetBlockBySeqGRPC(t *testing.T, rpc *mockGRPCSystem){
+	var res types.BlockSeq
+	err := rpc.newRpcCtx("GetBlockBySeq", &types.Int64{Data:1}, &res)
+	if err != nil{
+		t.Error("Call GetBlockBySeq Failed.", err)
+	}
+
 }
