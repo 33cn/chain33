@@ -11,8 +11,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-
-	_ "github.com/33cn/chain33/system"
 )
 
 func TestAPI(t *testing.T) {
