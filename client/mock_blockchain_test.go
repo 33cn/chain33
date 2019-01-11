@@ -105,7 +105,13 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 			case types.EventGetSeqByHash:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Int64{Data: 1}))
 			case types.EventGetBlockBySeq:
-				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.BlockSeq{Num: 1}))
+				if req, ok := msg.GetData().(*types.Int64); ok {
+					// just for cover
+					if req.Data == 10 {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Reply{IsOk: false, Msg: []byte("not support")}))
+					}
+					msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.BlockSeq{Num: 1}))
+				}
 			case types.EventIsSync:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyIsSync, &types.IsCaughtUp{}))
 			case types.EventIsNtpClockSync:

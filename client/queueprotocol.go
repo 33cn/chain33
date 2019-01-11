@@ -965,9 +965,7 @@ func (q *QueueProtocol) GetBlockBySeq(param *types.Int64) (*types.BlockSeq, erro
 	if reply, ok := msg.GetData().(*types.BlockSeq); ok {
 		return reply, nil
 	}
-	err = types.ErrTypeAsset
-	log.Error("GetBlockBySeq", "Error", err.Error())
-	return nil, err
+	return nil, types.ErrTypeAsset
 }
 
 // GetBlockSequences block执行序列号
