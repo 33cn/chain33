@@ -21,6 +21,7 @@ var q queue.Queue
 func init() {
 	l.SetLogLevel("err")
 	q = queue.New("channel")
+	go q.Start()
 }
 
 //初始化p2p模块
