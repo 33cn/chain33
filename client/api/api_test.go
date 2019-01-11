@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -38,7 +39,7 @@ func TestAPI(t *testing.T) {
 	types.SetTitleOnlyForTest("user.p.wzw.")
 	//testnode setup
 	rpcCfg := new(types.RPC)
-	rpcCfg.GrpcBindAddr = "127.0.0.1:8002"
+	rpcCfg.GrpcBindAddr = "127.0.0.1:8003"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8001"
 	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
@@ -51,8 +52,14 @@ func TestAPI(t *testing.T) {
 	time.Sleep(time.Second)
 
 	eapi = New(api, "")
+	_, err = eapi.GetBlockByHashes(param)
+	assert.Equal(t, true, IsGrpcError(err))
+	assert.Equal(t, false, IsGrpcError(nil))
+	assert.Equal(t, false, IsGrpcError(errors.New("xxxx")))
+
+	eapi = New(api, "127.0.0.1:8003")
 	detail, err = eapi.GetBlockByHashes(param)
-	assert.Nil(t, err)
+	assert.Equal(t, err, nil)
 	assert.Equal(t, detail, &types.BlockDetails{})
 	randhash, err = eapi.GetRandNum(param2)
 	assert.Nil(t, err)

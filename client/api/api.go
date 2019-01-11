@@ -8,6 +8,7 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/types"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 )
 
 /*
@@ -90,4 +91,15 @@ func (api *paraChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
 
 func (api *paraChainAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
 	return api.grpcClient.GetBlockByHashes(context.Background(), param)
+}
+
+//IsGrpcError 判断系统api 错误，还是 rpc 本身的错误
+func IsGrpcError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if grpc.Code(err) == codes.Unknown {
+		return false
+	}
+	return true
 }
