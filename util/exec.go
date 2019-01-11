@@ -33,6 +33,8 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	list := &types.ExecTxList{
 		StateHash:  prevStateRoot,
+		ParentHash: block.ParentHash,
+		MainHash:   block.MainHash,
 		Txs:        block.Txs,
 		BlockTime:  block.BlockTime,
 		Height:     block.Height,

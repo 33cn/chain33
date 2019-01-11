@@ -21,9 +21,9 @@ type executor struct {
 	stateDB      dbm.KV
 	localDB      dbm.KVDB
 	coinsAccount *account.DB
+	ctx          *executorCtx
 	height       int64
 	blocktime    int64
-
 	// 增加区块的难度值，后面的执行器逻辑需要这些属性
 	difficulty uint64
 	txs        []*types.Transaction
@@ -31,19 +31,28 @@ type executor struct {
 	receipts   []*types.ReceiptData
 }
 
-func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64,
-	txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
+type executorCtx struct {
+	stateHash  []byte
+	height     int64
+	blocktime  int64
+	difficulty uint64
+	parentHash []byte
+	mainHash   []byte
+}
+
+func newExecutor(ctx *executorCtx, exec *Executor, txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
 	client := exec.client
 	enableMVCC := exec.pluginEnable["mvcc"]
-	opt := &StateDBOption{EnableMVCC: enableMVCC, Height: height}
+	opt := &StateDBOption{EnableMVCC: enableMVCC, Height: ctx.height}
 	localdb := NewLocalDB(client)
 	e := &executor{
-		stateDB:      NewStateDB(client, stateHash, localdb, opt),
+		stateDB:      NewStateDB(client, ctx.stateHash, localdb, opt),
 		localDB:      localdb,
 		coinsAccount: account.NewCoinsAccount(),
-		height:       height,
-		blocktime:    blocktime,
-		difficulty:   difficulty,
+		height:       ctx.height,
+		blocktime:    ctx.blocktime,
+		difficulty:   ctx.difficulty,
+		ctx:          ctx,
 		txs:          txs,
 		receipts:     receipts,
 	}
@@ -135,7 +144,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetStateDB(e.stateDB)
 	exec.SetLocalDB(e.localDB)
-	exec.SetEnv(e.height, e.blocktime, e.difficulty)
+	exec.SetEnv(e.height, e.blocktime, e.difficulty, e.ctx.parentHash, e.ctx.mainHash)
 	exec.SetAPI(e.api)
 	exec.SetTxs(e.txs)
 	exec.SetReceipt(e.receipts)
