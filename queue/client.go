@@ -76,7 +76,7 @@ func (client *client) Send(msg Message, waitReply bool) (err error) {
 		timeout = time.Minute
 	}
 	err = client.SendTimeout(msg, waitReply, timeout)
-	if err == types.ErrTimeout {
+	if err == types.ErrQueueTimeout {
 		panic(err)
 	}
 	return err
@@ -85,7 +85,7 @@ func (client *client) Send(msg Message, waitReply bool) (err error) {
 // SendTimeout 超时发送， msg 消息 ,waitReply 是否等待回应， timeout 超时时间
 func (client *client) SendTimeout(msg Message, waitReply bool, timeout time.Duration) (err error) {
 	if client.isClose() {
-		return types.ErrIsClosed
+		return types.ErrIsQueueClosed
 	}
 	if !waitReply {
 		msg.chReply = nil
@@ -115,9 +115,9 @@ func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, 
 	case msg = <-msg.chReply:
 		return msg, msg.Err()
 	case <-client.done:
-		return Message{}, errors.New("client is closed")
+		return Message{}, types.ErrIsQueueClosed
 	case <-t.C:
-		return Message{}, types.ErrTimeout
+		return Message{}, types.ErrQueueTimeout
 	}
 }
 
@@ -128,7 +128,7 @@ func (client *client) Wait(msg Message) (Message, error) {
 		timeout = 5 * time.Minute
 	}
 	msg, err := client.WaitTimeout(msg, timeout)
-	if err == types.ErrTimeout {
+	if err == types.ErrQueueTimeout {
 		panic(err)
 	}
 	return msg, err

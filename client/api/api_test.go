@@ -62,4 +62,10 @@ func TestAPI(t *testing.T) {
 	randhash, err = eapi.GetRandNum(param2)
 	assert.Nil(t, err)
 	assert.Equal(t, randhash, []byte("hello"))
+
+	//queue err
+	assert.Equal(t, false, IsQueueError(nil))
+	assert.Equal(t, false, IsQueueError(errors.New("xxxx")))
+	assert.Equal(t, true, IsQueueError(types.ErrQueueTimeout))
+	assert.Equal(t, true, IsQueueError(types.ErrIsQueueClosed))
 }

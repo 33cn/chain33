@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client/api"
 	clog "github.com/33cn/chain33/common/log"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/pluginmgr"
@@ -209,6 +210,9 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		}
 		if tx.GroupCount == 0 {
 			receipt, err := execute.execTx(tx, index)
+			if api.IsGrpcError(err) || api.IsQueueError(err) {
+
+			}
 			if err != nil {
 				receipts = append(receipts, types.NewErrReceipt(err))
 				continue
