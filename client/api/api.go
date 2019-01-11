@@ -28,7 +28,6 @@ import (
 //因为合约是主链和平行链通用的，所以，主链和平行链都可以调用这套接口
 type ExecutorAPI interface {
 	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
-	GetLastBlockHash() ([]byte, error)
 	GetRandNum(param *types.ReqRandHash) ([]byte, error)
 }
 
@@ -37,15 +36,15 @@ type mainChainAPI struct {
 }
 
 //New 新建接口
-func New(api client.QueueProtocolAPI) ExecutorAPI {
+func New(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 	if types.IsPara() {
-		return newParaChainAPI(api)
+		return newParaChainAPI(api, grpcaddr)
 	}
 	return &mainChainAPI{api: api}
 }
 
 func (api *mainChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
-	msg, err := api.api.Query("ticket", "RandNumHash", param)
+	msg, err := api.api.Query(param.ExecName, "RandNumHash", param)
 	if err != nil {
 		return nil, err
 	}
@@ -54,14 +53,6 @@ func (api *mainChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
 		return nil, types.ErrTypeAsset
 	}
 	return reply.Hash, nil
-}
-
-func (api *mainChainAPI) GetLastBlockHash() ([]byte, error) {
-	header, err := api.api.GetLastHeader()
-	if err != nil {
-		return nil, err
-	}
-	return header.GetHash(), nil
 }
 
 func (api *mainChainAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
@@ -73,9 +64,15 @@ type paraChainAPI struct {
 	grpcClient types.Chain33Client
 }
 
-func newParaChainAPI(api client.QueueProtocolAPI) ExecutorAPI {
+func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 	paraRemoteGrpcClient := types.Conf("config.consensus").GStr("ParaRemoteGrpcClient")
-	conn, err := grpc.Dial(paraRemoteGrpcClient, grpc.WithInsecure(), nil)
+	if grpcaddr != "" {
+		paraRemoteGrpcClient = grpcaddr
+	}
+	if paraRemoteGrpcClient == "" {
+		paraRemoteGrpcClient = "127.0.0.1:8002"
+	}
+	conn, err := grpc.Dial(paraRemoteGrpcClient, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
 	}
@@ -84,27 +81,11 @@ func newParaChainAPI(api client.QueueProtocolAPI) ExecutorAPI {
 }
 
 func (api *paraChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
-	msg, err := api.api.Query("ticket", "RandNumHash", param)
+	reply, err := api.grpcClient.QueryRandNum(context.Background(), param)
 	if err != nil {
 		return nil, err
-	}
-	reply, ok := msg.(*types.ReplyHash)
-	if !ok {
-		return nil, types.ErrTypeAsset
 	}
 	return reply.Hash, nil
-}
-
-func (api *paraChainAPI) GetLastBlockHash() ([]byte, error) {
-	msg, err := api.api.Query("paracross", "GetMainBlockHash", txs[0])
-	if err != nil {
-		return nil, err
-	}
-	queryReply, ok := msg.(*types.ReplyHash)
-	if !ok {
-		return nil, types.ErrTypeAsset
-	}
-	return queryReply.Hash, nil
 }
 
 func (api *paraChainAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {

@@ -11,6 +11,8 @@ message Genesis {
 
 message ExecTxList {
     bytes    stateHash              = 1;
+    bytes    parentHash             = 7;
+    bytes    mainHash               = 8;
     repeated Transaction txs        = 2;
     int64                blockTime  = 3;
     int64                height     = 4;

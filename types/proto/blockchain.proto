@@ -28,6 +28,7 @@ message Header {
     Signature signature  = 8;
 }
 //  参考Header解释
+// mainHash 平行链上使用的字段，代表这个区块的主链hash
 message Block {
     int64     version        = 1;
     bytes     parentHash     = 2;
@@ -36,6 +37,7 @@ message Block {
     int64     height         = 5;
     int64     blockTime      = 6;
     uint32    difficulty     = 11;
+    bytes     mainHash       = 12;
     Signature signature      = 8;
     repeated Transaction txs = 7;
 }
