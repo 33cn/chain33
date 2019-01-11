@@ -57,6 +57,7 @@ var (
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
 	ErrTypeAsset                  = errors.New("ErrTypeAsset")
 	ErrEmpty                      = errors.New("ErrEmpty")
+	ErrIsClosed                   = errors.New("ErrIsClosed")
 	ErrSendSameToRecv             = errors.New("ErrSendSameToRecv")
 	ErrExecNameNotAllow           = errors.New("ErrExecNameNotAllow")
 	ErrExecNotFound               = errors.New("ErrExecNotFound")
