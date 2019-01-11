@@ -245,7 +245,10 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
 	block.Txs = types.CacheToTxs(cacheTxs)
 
-	receipts := ExecTx(client, prevStateRoot, block)
+	receipts, err := ExecTx(client, prevStateRoot, block)
+	if err != nil {
+		return nil, nil, err
+	}
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
 	var rdata []*types.ReceiptData //save to db receipt log
@@ -285,7 +288,10 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 
 	var detail types.BlockDetail
-	calcHash = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+	calcHash, err = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+	if err != nil {
+		return nil, nil, err
+	}
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {

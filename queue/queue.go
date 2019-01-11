@@ -171,7 +171,7 @@ func (q *queue) send(msg Message, timeout time.Duration) (err error) {
 	case sub.high <- msg:
 	case <-t.C:
 		qlog.Debug("send timeout", "msg", msg, "topic", msg.Topic, "sub", sub)
-		return types.ErrTimeout
+		return types.ErrQueueTimeout
 	}
 	if msg.Topic != "store" {
 		qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
@@ -216,7 +216,7 @@ func (q *queue) sendLowTimeout(msg Message, timeout time.Duration) error {
 		return nil
 	case <-t.C:
 		qlog.Error("send asyn timeout", "msg", msg)
-		return types.ErrTimeout
+		return types.ErrQueueTimeout
 	}
 }
 

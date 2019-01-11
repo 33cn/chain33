@@ -103,3 +103,14 @@ func IsGrpcError(err error) bool {
 	}
 	return true
 }
+
+//IsQueueError 是否是队列错误
+func IsQueueError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if err == types.ErrQueueTimeout || err == types.ErrIsQueueClosed {
+		return true
+	}
+	return false
+}
