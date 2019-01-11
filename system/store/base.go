@@ -109,7 +109,6 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		go func() {
 			datas := msg.GetData().(*types.StoreSetWithSync)
 			hash, err := store.child.MemSet(datas.Storeset, datas.Sync)
-			println("EventStoreMemSet", string(hash))
 			if err != nil {
 				msg.Reply(client.NewMessage("", types.EventStoreSetReply, err))
 				return
@@ -119,7 +118,6 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 	} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
 		go func() {
 			req := msg.GetData().(*types.ReqHash)
-			println("EventStoreCommit", string(req.Hash))
 			hash, err := store.child.Commit(req)
 			if hash == nil {
 				msg.Reply(client.NewMessage("", types.EventStoreCommit, types.ErrHashNotFound))
