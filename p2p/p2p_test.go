@@ -58,7 +58,8 @@ func initP2p(port int32, dbpath string) *P2p {
 
 				msg.Reply(client.NewMessage("p2p", types.EventHeader, &types.Header{Height: 2019}))
 			case types.EventGetBlockHeight:
-				msg.Reply(client.NewMessage("p2p", types.EventReplyBlockHeight, &types.ReplyBlockHeight{}))
+
+				msg.Reply(client.NewMessage("p2p", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 2019}))
 
 			}
 		}
@@ -212,8 +213,8 @@ func TestPeer(t *testing.T) {
 
 func TestP2PEvent(t *testing.T) {
 
-	p2pModule := initP2p(33802, "testdata")
-	time.Sleep(time.Second * 5)
+	p2pModule := initP2p(43802, "testdata")
+	time.Sleep(time.Second * 10)
 	defer os.RemoveAll("testdata")
 	defer p2pModule.Close()
 
@@ -276,5 +277,5 @@ func TestFilter(t *testing.T) {
 	Filter.RemoveRecvData("key")
 	assert.Equal(t, false, Filter.QueryRecvData("key"))
 	Filter.Close()
-
+	q.Close()
 }
