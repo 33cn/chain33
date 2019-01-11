@@ -34,7 +34,7 @@ func TestAPI(t *testing.T) {
 	randhash, err := eapi.GetRandNum(param2)
 	assert.Nil(t, err)
 	assert.Equal(t, randhash, []byte("hello"))
-
+	assert.Equal(t, false, eapi.IsErr())
 	types.SetTitleOnlyForTest("user.p.wzw.")
 	//testnode setup
 	rpcCfg := new(types.RPC)
@@ -55,7 +55,7 @@ func TestAPI(t *testing.T) {
 	assert.Equal(t, true, IsGrpcError(err))
 	assert.Equal(t, false, IsGrpcError(nil))
 	assert.Equal(t, false, IsGrpcError(errors.New("xxxx")))
-
+	assert.Equal(t, true, eapi.IsErr())
 	eapi = New(api, "127.0.0.1:8003")
 	detail, err = eapi.GetBlockByHashes(param)
 	assert.Equal(t, err, nil)
@@ -63,7 +63,7 @@ func TestAPI(t *testing.T) {
 	randhash, err = eapi.GetRandNum(param2)
 	assert.Nil(t, err)
 	assert.Equal(t, randhash, []byte("hello"))
-
+	assert.Equal(t, false, eapi.IsErr())
 	//queue err
 	assert.Equal(t, false, IsQueueError(nil))
 	assert.Equal(t, false, IsQueueError(errors.New("xxxx")))
