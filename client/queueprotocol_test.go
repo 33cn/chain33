@@ -1145,9 +1145,18 @@ func testGetSequenceByHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testGetBlockBySeqGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.BlockSeq
+	//just for coverage
 	err := rpc.newRpcCtx("GetBlockBySeq", &types.Int64{Data: 1}, &res)
-	if err != nil {
-		t.Error("Call GetBlockBySeq Failed.", err)
-	}
+	assert.Nil(t, err)
+
+	err = rpc.newRpcCtx("GetBlockBySeq", &types.Int64{Data: 10}, &res)
+	assert.NotNil(t, err)
+
+}
+
+func TestGetBlockBySeq(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.GetBlockBySeq(nil)
+	assert.NotNil(t, err)
 
 }
