@@ -43,14 +43,14 @@ func TestTimeout(t *testing.T) {
 
 	//再发送一个交易返回chain full
 	err := client.SendTimeout(msg, true, 0)
-	if err != types.ErrChannelFull {
+	if err != ErrQueueChannelFull {
 		t.Error(err)
 		return
 	}
 
 	//发送一个交易返回返回timeout
 	err = client.SendTimeout(msg, true, time.Millisecond)
-	if err != types.ErrTimeout {
+	if err != ErrQueueTimeout {
 		t.Error(err)
 		return
 	}

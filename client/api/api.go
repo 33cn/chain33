@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -109,7 +110,9 @@ func IsQueueError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if err == types.ErrQueueTimeout || err == types.ErrIsQueueClosed {
+	if err == queue.ErrQueueTimeout ||
+		err == queue.ErrQueueChannelFull ||
+		err == queue.ErrIsQueueClosed {
 		return true
 	}
 	return false

@@ -6,6 +6,7 @@
 package queue
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -30,6 +31,13 @@ var qlog = log.New("module", "queue")
 const (
 	defaultChanBuffer    = 64
 	defaultLowChanBuffer = 40960
+)
+
+//消息队列的错误
+var (
+	ErrIsQueueClosed    = errors.New("ErrIsQueueClosed")
+	ErrQueueTimeout     = errors.New("ErrQueueTimeout")
+	ErrQueueChannelFull = errors.New("ErrQueueChannelFull")
 )
 
 // DisableLog disable log
@@ -162,7 +170,7 @@ func (q *queue) send(msg Message, timeout time.Duration) (err error) {
 			return nil
 		default:
 			qlog.Debug("send chainfull", "msg", msg, "topic", msg.Topic, "sub", sub)
-			return types.ErrChannelFull
+			return ErrQueueChannelFull
 		}
 	}
 	t := time.NewTimer(timeout)
@@ -171,7 +179,7 @@ func (q *queue) send(msg Message, timeout time.Duration) (err error) {
 	case sub.high <- msg:
 	case <-t.C:
 		qlog.Debug("send timeout", "msg", msg, "topic", msg.Topic, "sub", sub)
-		return types.ErrQueueTimeout
+		return ErrQueueTimeout
 	}
 	if msg.Topic != "store" {
 		qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
@@ -192,8 +200,8 @@ func (q *queue) sendAsyn(msg Message) error {
 		qlog.Debug("send asyn ok", "msg", msg)
 		return nil
 	default:
-		qlog.Error("send asyn err", "msg", msg, "err", types.ErrChannelFull)
-		return types.ErrChannelFull
+		qlog.Error("send asyn err", "msg", msg, "err", ErrQueueChannelFull)
+		return ErrQueueChannelFull
 	}
 }
 
@@ -216,7 +224,7 @@ func (q *queue) sendLowTimeout(msg Message, timeout time.Duration) error {
 		return nil
 	case <-t.C:
 		qlog.Error("send asyn timeout", "msg", msg)
-		return types.ErrQueueTimeout
+		return ErrQueueTimeout
 	}
 }
 
