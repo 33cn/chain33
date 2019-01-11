@@ -344,10 +344,7 @@ func (g *Grpc) GetLastBlockSequence(ctx context.Context, in *pb.ReqNil) (*pb.Int
 	return g.cli.GetLastBlockSequence()
 }
 
-// GetBlockSequences get block sequeces
-func (g *Grpc) GetBlockSequences(ctx context.Context, in *pb.ReqBlocks) (*pb.BlockSequences, error) {
-	return g.cli.GetBlockSequences(in)
-}
+
 
 // GetBlockByHashes get block by hashes
 func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.BlockDetails, error) {
