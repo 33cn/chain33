@@ -21,11 +21,6 @@ var q queue.Queue
 func init() {
 	l.SetLogLevel("err")
 	q = queue.New("channel")
-	go q.Start()
-}
-
-//初始化p2p模块
-func initP2p(port int32, dbpath string) *P2p {
 
 	go func() {
 		blockchainKey := "blockchain"
@@ -78,6 +73,14 @@ func initP2p(port int32, dbpath string) *P2p {
 			}
 		}
 	}()
+
+	go q.Start()
+
+}
+
+//初始化p2p模块
+func initP2p(port int32, dbpath string) *P2p {
+
 	cfg := new(types.P2P)
 	cfg.Port = port
 	cfg.Enable = true
@@ -214,7 +217,7 @@ func TestPeer(t *testing.T) {
 
 func TestP2PEvent(t *testing.T) {
 
-	p2pModule := initP2p(43802, "testdata")
+	p2pModule := initP2p(53802, "testdata")
 	time.Sleep(time.Second * 10)
 	defer os.RemoveAll("testdata")
 	defer p2pModule.Close()
@@ -245,6 +248,7 @@ func TestP2PEvent(t *testing.T) {
 	msg = qcli.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{})
 	err = qcli.Send(msg, false)
 	assert.Nil(t, err)
+
 }
 
 func TestP2pComm(t *testing.T) {
@@ -278,5 +282,5 @@ func TestFilter(t *testing.T) {
 	Filter.RemoveRecvData("key")
 	assert.Equal(t, false, Filter.QueryRecvData("key"))
 	Filter.Close()
-	q.Close()
+
 }
