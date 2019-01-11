@@ -1058,7 +1058,6 @@ func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) er
 	return nil
 }
 
-
 // GetBlockByHashes get block information by hashes
 func (c *Chain33) GetBlockByHashes(in rpctypes.ReqHashes, result *interface{}) error {
 	log.Warn("GetBlockByHashes", "hashes", in)

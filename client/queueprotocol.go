@@ -968,8 +968,6 @@ func (q *QueueProtocol) GetBlockBySeq(param *types.Int64) (*types.BlockSeq, erro
 	return nil, types.ErrTypeAsset
 }
 
-
-
 // QueryChain query chain
 func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, error) {
 	if param == nil {

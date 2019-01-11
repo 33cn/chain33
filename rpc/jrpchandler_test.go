@@ -1212,7 +1212,6 @@ func TestChain33_GetLastBlockSequence(t *testing.T) {
 	assert.Equal(t, int64(1), result2)
 }
 
-
 func TestChain33_GetBlockByHashes(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
