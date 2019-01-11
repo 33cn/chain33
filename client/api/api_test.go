@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/queue"
 	qmocks "github.com/33cn/chain33/queue/mocks"
 	"github.com/33cn/chain33/rpc"
 	"github.com/33cn/chain33/types"
@@ -66,6 +67,6 @@ func TestAPI(t *testing.T) {
 	//queue err
 	assert.Equal(t, false, IsQueueError(nil))
 	assert.Equal(t, false, IsQueueError(errors.New("xxxx")))
-	assert.Equal(t, true, IsQueueError(types.ErrQueueTimeout))
-	assert.Equal(t, true, IsQueueError(types.ErrIsQueueClosed))
+	assert.Equal(t, true, IsQueueError(queue.ErrQueueTimeout))
+	assert.Equal(t, true, IsQueueError(queue.ErrIsQueueClosed))
 }
