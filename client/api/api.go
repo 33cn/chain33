@@ -4,6 +4,8 @@ package api
 
 import (
 	"context"
+	"errors"
+	"sync/atomic"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
@@ -26,15 +28,19 @@ import (
 3. GetRandNum
 */
 
+var ErrAPIEnv = errors.New("ErrAPIEnv")
+
 //ExecutorAPI 提供给执行器使用的接口
 //因为合约是主链和平行链通用的，所以，主链和平行链都可以调用这套接口
 type ExecutorAPI interface {
 	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
 	GetRandNum(param *types.ReqRandHash) ([]byte, error)
+	IsErr() bool
 }
 
 type mainChainAPI struct {
-	api client.QueueProtocolAPI
+	api     client.QueueProtocolAPI
+	errflag int32
 }
 
 //New 新建接口
@@ -45,10 +51,14 @@ func New(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 	return &mainChainAPI{api: api}
 }
 
+func (api *mainChainAPI) IsErr() bool {
+	return atomic.LoadInt32(&api.errflag) == 1
+}
+
 func (api *mainChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
 	msg, err := api.api.Query(param.ExecName, "RandNumHash", param)
 	if err != nil {
-		return nil, err
+		return nil, seterr(err, &api.errflag)
 	}
 	reply, ok := msg.(*types.ReplyHash)
 	if !ok {
@@ -58,12 +68,14 @@ func (api *mainChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
 }
 
 func (api *mainChainAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
-	return api.api.GetBlockByHashes(param)
+	data, err := api.api.GetBlockByHashes(param)
+	return data, seterr(err, &api.errflag)
 }
 
 type paraChainAPI struct {
 	api        client.QueueProtocolAPI
 	grpcClient types.Chain33Client
+	errflag    int32
 }
 
 func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
@@ -82,22 +94,37 @@ func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 	return &paraChainAPI{api: api, grpcClient: grpcClient}
 }
 
+func (api *paraChainAPI) IsErr() bool {
+	return atomic.LoadInt32(&api.errflag) == 1
+}
+
 func (api *paraChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
 	reply, err := api.grpcClient.QueryRandNum(context.Background(), param)
 	if err != nil {
-		return nil, err
+		return nil, seterr(err, &api.errflag)
 	}
 	return reply.Hash, nil
 }
 
 func (api *paraChainAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
-	return api.grpcClient.GetBlockByHashes(context.Background(), param)
+	data, err := api.grpcClient.GetBlockByHashes(context.Background(), param)
+	return data, seterr(err, &api.errflag)
+}
+
+func seterr(err error, flag *int32) error {
+	if IsGrpcError(err) || IsQueueError(err) {
+		atomic.StoreInt32(flag, 1)
+	}
+	return err
 }
 
 //IsGrpcError 判断系统api 错误，还是 rpc 本身的错误
 func IsGrpcError(err error) bool {
 	if err == nil {
 		return false
+	}
+	if err == ErrAPIEnv {
+		return true
 	}
 	if grpc.Code(err) == codes.Unknown {
 		return false
@@ -109,6 +136,9 @@ func IsGrpcError(err error) bool {
 func IsQueueError(err error) bool {
 	if err == nil {
 		return false
+	}
+	if err == ErrAPIEnv {
+		return true
 	}
 	if err == queue.ErrQueueTimeout ||
 		err == queue.ErrQueueChannelFull ||
