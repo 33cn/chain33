@@ -122,9 +122,6 @@ service chain33 {
     rpc GetFatalFailure(types.ReqNil) returns (Int32) {}
     rpc GetLastBlockSequence(ReqNil) returns (Int64) {}
 
-    //获取指定区间的block加载序列号信息
-    rpc GetBlockSequences(ReqBlocks) returns (BlockSequences) {}
-
     // get add block's sequence by hash
     rpc GetSequenceByHash(ReqHash) returns (Int64) {}
 

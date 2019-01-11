@@ -107,8 +107,7 @@ type QueueProtocolAPI interface {
 
 	//types.EventGetLastBlockSequence:
 	GetLastBlockSequence() (*types.Int64, error)
-	//types.EventGetBlockSequences:
-	GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error)
+
 	//types.EventGetBlockByHashes:
 	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
 	//types.EventGetBlockBySeq:

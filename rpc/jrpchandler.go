@@ -1058,21 +1058,6 @@ func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) er
 	return nil
 }
 
-// GetBlockSequences get the block loading sequence number information for the specified interval
-func (c *Chain33) GetBlockSequences(in rpctypes.BlockParam, result *interface{}) error {
-	resp, err := c.cli.GetBlockSequences(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
-	if err != nil {
-		return err
-	}
-	var BlkSeqs rpctypes.ReplyBlkSeqs
-	items := resp.GetItems()
-	for _, item := range items {
-		BlkSeqs.BlkSeqInfos = append(BlkSeqs.BlkSeqInfos, &rpctypes.ReplyBlkSeq{Hash: common.ToHex(item.GetHash()),
-			Type: item.GetType()})
-	}
-	*result = &BlkSeqs
-	return nil
-}
 
 // GetBlockByHashes get block information by hashes
 func (c *Chain33) GetBlockByHashes(in rpctypes.ReqHashes, result *interface{}) error {
