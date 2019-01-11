@@ -211,7 +211,8 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		if tx.GroupCount == 0 {
 			receipt, err := execute.execTx(tx, index)
 			if api.IsGrpcError(err) || api.IsQueueError(err) {
-
+				msg.Reply(exec.client.NewMessage("", types.EventReceipts, err))
+				return
 			}
 			if err != nil {
 				receipts = append(receipts, types.NewErrReceipt(err))

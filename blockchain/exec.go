@@ -43,7 +43,10 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
 	block.Txs = types.CacheToTxs(cacheTxs)
 	//println("1")
-	receipts := util.ExecTx(client, prevStateRoot, block)
+	receipts, err := util.ExecTx(client, prevStateRoot, block)
+	if err != nil {
+		return nil, nil, err
+	}
 	var maplist = make(map[string]*types.KeyValue)
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
@@ -94,7 +97,10 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 
 	var detail types.BlockDetail
 
-	calcHash = util.ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+	calcHash, err = util.ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+	if err != nil {
+		return nil, nil, err
+	}
 	//println("2")
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		util.ExecKVSetRollback(client, calcHash)
