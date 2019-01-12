@@ -68,4 +68,5 @@ func TestAPI(t *testing.T) {
 	assert.Equal(t, false, IsQueueError(errors.New("xxxx")))
 	assert.Equal(t, true, IsQueueError(queue.ErrQueueTimeout))
 	assert.Equal(t, true, IsQueueError(queue.ErrIsQueueClosed))
+	assert.Equal(t, false, IsQueueError(errors.New("ErrIsQueueClosed")))
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	drivers "github.com/33cn/chain33/system/dapp"
@@ -28,6 +29,7 @@ type executor struct {
 	difficulty uint64
 	txs        []*types.Transaction
 	api        client.QueueProtocolAPI
+	execapi    api.ExecutorAPI
 	receipts   []*types.ReceiptData
 }
 
@@ -146,6 +148,7 @@ func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime, e.difficulty, e.ctx.parentHash, e.ctx.mainHash)
 	exec.SetAPI(e.api)
+	e.execapi = exec.GetExecutorAPI()
 	exec.SetTxs(e.txs)
 	exec.SetReceipt(e.receipts)
 }
