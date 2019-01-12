@@ -238,6 +238,10 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			panic("len(receiptlist) must be equal tx.GroupCount")
 		}
 		if err != nil {
+			if api.IsGrpcError(err) || api.IsQueueError(err) {
+				msg.Reply(exec.client.NewMessage("", types.EventReceipts, err))
+				return
+			}
 			for n := 0; n < int(tx.GroupCount); n++ {
 				receipts = append(receipts, types.NewErrReceipt(err))
 			}
