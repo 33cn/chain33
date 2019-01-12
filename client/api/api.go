@@ -80,7 +80,7 @@ type paraChainAPI struct {
 }
 
 func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
-	paraRemoteGrpcClient := types.Conf("config.consensus").GStr("ParaRemoteGrpcClient")
+	paraRemoteGrpcClient := types.Conf("config.consensus.sub.para").GStr("ParaRemoteGrpcClient")
 	if grpcaddr != "" {
 		paraRemoteGrpcClient = grpcaddr
 	}
