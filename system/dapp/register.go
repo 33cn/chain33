@@ -7,22 +7,11 @@ package dapp
 //store package store the world - state data
 import (
 	"github.com/33cn/chain33/common/address"
-	clog "github.com/33cn/chain33/common/log"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 )
 
 var elog = log.New("module", "execs")
-
-// SetLogLevel set log level
-func SetLogLevel(level string) {
-	clog.SetLogLevel(level)
-}
-
-// DisableLog disable log
-func DisableLog() {
-	elog.SetHandler(log.DiscardHandler())
-}
 
 // DriverCreate defines a drivercreate function
 type DriverCreate func() Driver

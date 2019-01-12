@@ -15,6 +15,7 @@ import (
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -41,8 +42,7 @@ type Driver interface {
 	GetDriverName() string
 	//执行器的别名(一个驱动(code),允许创建多个执行器，类似evm一份代码可以创建多个合约）
 	GetName() string
-	GetLastHash() []byte
-	GetParentHash() []byte
+	GetExecutorAPI() api.ExecutorAPI
 	//设置执行器的真实名称
 	SetName(string)
 	SetCurrentExecName(string)
@@ -84,6 +84,7 @@ type DriverBase struct {
 	isFree               bool
 	difficulty           uint64
 	api                  client.QueueProtocolAPI
+	execapi              api.ExecutorAPI
 	txs                  []*types.Transaction
 	receipts             []*types.ReceiptData
 	ety                  types.ExecutorType
@@ -124,13 +125,19 @@ func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
 }
 
 // SetAPI set queue protocol api
-func (d *DriverBase) SetAPI(api client.QueueProtocolAPI) {
-	d.api = api
+func (d *DriverBase) SetAPI(queueapi client.QueueProtocolAPI) {
+	d.api = queueapi
+	d.execapi = api.New(queueapi, "")
 }
 
 // GetAPI return queue protocol api
 func (d *DriverBase) GetAPI() client.QueueProtocolAPI {
 	return d.api
+}
+
+// GetExecutorAPI return executor api
+func (d *DriverBase) GetExecutorAPI() api.ExecutorAPI {
+	return d.execapi
 }
 
 // SetEnv set env
