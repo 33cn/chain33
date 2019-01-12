@@ -24,7 +24,6 @@ func TestAPI(t *testing.T) {
 	detail, err := eapi.GetBlockByHashes(param)
 	assert.Nil(t, err)
 	assert.Equal(t, detail, &types.BlockDetails{})
-
 	param2 := &types.ReqRandHash{
 		ExecName: "ticket",
 		BlockNum: 5,
@@ -39,7 +38,7 @@ func TestAPI(t *testing.T) {
 	//testnode setup
 	rpcCfg := new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8003"
-	rpcCfg.JrpcBindAddr = "127.0.0.1:8001"
+	rpcCfg.JrpcBindAddr = "127.0.0.1:8004"
 	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}

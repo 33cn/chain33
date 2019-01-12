@@ -28,6 +28,7 @@ import (
 3. GetRandNum
 */
 
+//ErrAPIEnv api的执行环境出问题，区块执行的时候，遇到这一个的错误需要retry
 var ErrAPIEnv = errors.New("ErrAPIEnv")
 
 //ExecutorAPI 提供给执行器使用的接口
