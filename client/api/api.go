@@ -93,7 +93,6 @@ func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 	if paraRemoteGrpcClient == "" {
 		paraRemoteGrpcClient = "127.0.0.1:8002"
 	}
-	println("------", paraRemoteGrpcClient)
 	conn, err := grpc.Dial(paraRemoteGrpcClient, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
