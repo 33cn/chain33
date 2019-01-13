@@ -35,6 +35,7 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 		StateHash:  prevStateRoot,
 		ParentHash: block.ParentHash,
 		MainHash:   block.MainHash,
+		MainHeight: block.MainHeight,
 		Txs:        block.Txs,
 		BlockTime:  block.BlockTime,
 		Height:     block.Height,

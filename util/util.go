@@ -130,7 +130,11 @@ func JSONPrint(t *testing.T, input interface{}) {
 		t.Error(err)
 		return
 	}
-	t.Log(string(data))
+	if t == nil {
+		fmt.Println(string(data))
+	} else {
+		t.Log(string(data))
+	}
 }
 
 // CreateManageTx : Create Manage Tx

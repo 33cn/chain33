@@ -163,6 +163,7 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 		blocktime:  datas.BlockTime,
 		difficulty: datas.Difficulty,
 		mainHash:   datas.MainHash,
+		mainHeight: datas.MainHeight,
 		parentHash: datas.ParentHash,
 	}
 	execute := newExecutor(ctx, exec, datas.Txs, nil)
@@ -194,6 +195,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		blocktime:  datas.BlockTime,
 		difficulty: datas.Difficulty,
 		mainHash:   datas.MainHash,
+		mainHeight: datas.MainHeight,
 		parentHash: datas.ParentHash,
 	}
 	execute := newExecutor(ctx, exec, datas.Txs, nil)
@@ -263,6 +265,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 		blocktime:  b.BlockTime,
 		difficulty: uint64(b.Difficulty),
 		mainHash:   b.MainHash,
+		mainHeight: b.MainHeight,
 		parentHash: b.ParentHash,
 	}
 	execute := newExecutor(ctx, exec, b.Txs, datas.Receipts)
@@ -323,6 +326,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		blocktime:  b.BlockTime,
 		difficulty: uint64(b.Difficulty),
 		mainHash:   b.MainHash,
+		mainHeight: b.MainHeight,
 		parentHash: b.ParentHash,
 	}
 	execute := newExecutor(ctx, exec, b.Txs, nil)

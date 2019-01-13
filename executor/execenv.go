@@ -40,6 +40,7 @@ type executorCtx struct {
 	difficulty uint64
 	parentHash []byte
 	mainHash   []byte
+	mainHeight int64
 }
 
 func newExecutor(ctx *executorCtx, exec *Executor, txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
@@ -146,7 +147,8 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetStateDB(e.stateDB)
 	exec.SetLocalDB(e.localDB)
-	exec.SetEnv(e.height, e.blocktime, e.difficulty, e.ctx.parentHash, e.ctx.mainHash)
+	exec.SetEnv(e.height, e.blocktime, e.difficulty)
+	exec.SetBlockInfo(e.ctx.parentHash, e.ctx.mainHash, e.ctx.mainHeight)
 	exec.SetAPI(e.api)
 	e.execapi = exec.GetExecutorAPI()
 	exec.SetTxs(e.txs)

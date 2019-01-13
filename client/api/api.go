@@ -36,6 +36,7 @@ var ErrAPIEnv = errors.New("ErrAPIEnv")
 type ExecutorAPI interface {
 	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
 	GetRandNum(param *types.ReqRandHash) ([]byte, error)
+	QueryTx(param *types.ReqHash) (*types.TransactionDetail, error)
 	IsErr() bool
 }
 
@@ -50,6 +51,11 @@ func New(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 		return newParaChainAPI(api, grpcaddr)
 	}
 	return &mainChainAPI{api: api}
+}
+
+func (api *mainChainAPI) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
+	data, err := api.api.QueryTx(param)
+	return data, seterr(err, &api.errflag)
 }
 
 func (api *mainChainAPI) IsErr() bool {
@@ -87,6 +93,7 @@ func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 	if paraRemoteGrpcClient == "" {
 		paraRemoteGrpcClient = "127.0.0.1:8002"
 	}
+	println("------", paraRemoteGrpcClient)
 	conn, err := grpc.Dial(paraRemoteGrpcClient, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
@@ -97,6 +104,11 @@ func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 
 func (api *paraChainAPI) IsErr() bool {
 	return atomic.LoadInt32(&api.errflag) == 1
+}
+
+func (api *paraChainAPI) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
+	data, err := api.grpcClient.QueryTransaction(context.Background(), param)
+	return data, seterr(err, &api.errflag)
 }
 
 func (api *paraChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
