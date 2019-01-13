@@ -66,6 +66,7 @@ type Chain33Mock struct {
 	store    queue.Module
 	rpc      *rpc.RPC
 	cfg      *types.Config
+	sub      *types.ConfigSubModule
 	datadir  string
 	lastsend []byte
 }
@@ -82,11 +83,15 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 
 func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	chain33globalLock.Lock()
+	return newWithConfigNoLock(cfg, sub, mockapi)
+}
+
+func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	types.Init(cfg.Title, cfg)
 	q := queue.New("channel")
 	types.Debug = false
 	datadir := util.ResetDatadir(cfg, "$TEMP/")
-	mock := &Chain33Mock{cfg: cfg, q: q, datadir: datadir}
+	mock := &Chain33Mock{cfg: cfg, sub: sub, q: q, datadir: datadir}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 
 	mock.exec = executor.New(cfg.Exec, sub.Exec)
@@ -162,6 +167,14 @@ func (mock *Chain33Mock) Listen() {
 	if strings.HasSuffix(mock.cfg.RPC.GrpcBindAddr, ":0") {
 		l := len(mock.cfg.RPC.GrpcBindAddr)
 		mock.cfg.RPC.GrpcBindAddr = mock.cfg.RPC.GrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portgrpc)
+	}
+	if mock.sub.Consensus["para"] != nil {
+		data, err := types.ModifySubConfig(mock.sub.Consensus["para"], "ParaRemoteGrpcClient", mock.cfg.RPC.GrpcBindAddr)
+		if err != nil {
+			panic(err)
+		}
+		mock.sub.Consensus["para"] = data
+		types.S("config.consensus.sub.para.ParaRemoteGrpcClient", mock.cfg.RPC.GrpcBindAddr)
 	}
 }
 
@@ -271,6 +284,11 @@ func (mock *Chain33Mock) GetCfg() *types.Config {
 
 //Close :
 func (mock *Chain33Mock) Close() {
+	mock.closeNoLock()
+	chain33globalLock.Unlock()
+}
+
+func (mock *Chain33Mock) closeNoLock() {
 	mock.chain.Close()
 	mock.store.Close()
 	mock.mem.Close()
@@ -281,7 +299,6 @@ func (mock *Chain33Mock) Close() {
 	mock.client.Close()
 	mock.rpc.Close()
 	os.RemoveAll(mock.datadir)
-	chain33globalLock.Unlock()
 }
 
 //WaitHeight :

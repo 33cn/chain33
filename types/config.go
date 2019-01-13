@@ -217,8 +217,10 @@ func S(key string, value interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
 	if strings.HasPrefix(key, "config.") {
-		if isLocal() {
+		if !isLocal() { //only local can modify for test
 			panic("prefix config. is readonly")
+		} else {
+			tlog.Error("modify " + key + " is only for test")
 		}
 		return
 	}
@@ -557,6 +559,17 @@ func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
 	subcfg.Wallet = parseItem(cfg.Wallet)
 	subcfg.Mempool = parseItem(cfg.Mempool)
 	return &subcfg, nil
+}
+
+//ModifySubConfig json data modify
+func ModifySubConfig(sub []byte, key string, value interface{}) ([]byte, error) {
+	var data map[string]interface{}
+	err := json.Unmarshal(sub, &data)
+	if err != nil {
+		return nil, err
+	}
+	data[key] = value
+	return json.Marshal(data)
 }
 
 func parseItem(data map[string]interface{}) map[string][]byte {

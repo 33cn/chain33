@@ -49,7 +49,8 @@ type Driver interface {
 	Allow(tx *types.Transaction, index int) error
 	IsFriend(myexec []byte, writekey []byte, othertx *types.Transaction) bool
 	GetActionName(tx *types.Transaction) string
-	SetEnv(height, blocktime int64, difficulty uint64, parentHash, mainHash []byte)
+	SetEnv(height, blocktime int64, difficulty uint64)
+	SetBlockInfo([]byte, []byte, int64)
 	CheckTx(tx *types.Transaction, index int) error
 	Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
@@ -77,6 +78,7 @@ type DriverBase struct {
 	height               int64
 	blocktime            int64
 	parentHash, mainHash []byte
+	mainHeight           int64
 	name                 string
 	curname              string
 	child                Driver
@@ -141,12 +143,17 @@ func (d *DriverBase) GetExecutorAPI() api.ExecutorAPI {
 }
 
 // SetEnv set env
-func (d *DriverBase) SetEnv(height, blocktime int64, difficulty uint64, parentHash, mainHash []byte) {
+func (d *DriverBase) SetEnv(height, blocktime int64, difficulty uint64) {
 	d.height = height
 	d.blocktime = blocktime
 	d.difficulty = difficulty
+}
+
+//SetBlockInfo 设置区块的信息
+func (d *DriverBase) SetBlockInfo(parentHash, mainHash []byte, mainHeight int64) {
 	d.parentHash = parentHash
 	d.mainHash = mainHash
+	d.mainHeight = mainHeight
 }
 
 // SetIsFree set isfree
@@ -389,6 +396,11 @@ func (d *DriverBase) GetLocalDB() dbm.KVDB {
 // GetHeight return height
 func (d *DriverBase) GetHeight() int64 {
 	return d.height
+}
+
+// GetMainHeight return height
+func (d *DriverBase) GetMainHeight() int64 {
+	return d.mainHeight
 }
 
 // GetBlockTime return block time

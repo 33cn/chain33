@@ -38,6 +38,7 @@ message Block {
     int64     blockTime      = 6;
     uint32    difficulty     = 11;
     bytes     mainHash       = 12;
+    int64     mainHeight     = 13;
     Signature signature      = 8;
     repeated Transaction txs = 7;
 }
