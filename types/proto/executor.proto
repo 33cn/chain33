@@ -10,15 +10,15 @@ message Genesis {
 }
 
 message ExecTxList {
-    bytes    stateHash              = 1;
-    bytes    parentHash             = 7;
-    bytes    mainHash               = 8;
-    int64    mainHeight             = 9;
-    int64                blockTime  = 3;
-    int64                height     = 4;
-    uint64               difficulty = 5;
-    bool                 isMempool  = 6;
-    repeated Transaction txs        = 2;
+    bytes    stateHash       = 1;
+    bytes    parentHash      = 7;
+    bytes    mainHash        = 8;
+    int64    mainHeight      = 9;
+    int64    blockTime       = 3;
+    int64    height          = 4;
+    uint64   difficulty      = 5;
+    bool     isMempool       = 6;
+    repeated Transaction txs = 2;
 }
 
 message Query {
