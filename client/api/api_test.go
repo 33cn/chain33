@@ -34,6 +34,11 @@ func TestAPI(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, randhash, []byte("hello"))
 	assert.Equal(t, false, eapi.IsErr())
+	api.On("QueryTx", mock.Anything).Return(&types.TransactionDetail{Height: 1}, nil)
+	param3 := &types.ReqHash{Hash: []byte("hash")}
+	txdetail, err := eapi.QueryTx(param3)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), txdetail.Height)
 	types.SetTitleOnlyForTest("user.p.wzw.")
 	//testnode setup
 	rpcCfg := new(types.RPC)
@@ -63,6 +68,10 @@ func TestAPI(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, randhash, []byte("hello"))
 	assert.Equal(t, false, eapi.IsErr())
+	param3 = &types.ReqHash{Hash: []byte("hash")}
+	txdetail, err = eapi.QueryTx(param3)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), txdetail.Height)
 	//queue err
 	assert.Equal(t, false, IsQueueError(nil))
 	assert.Equal(t, false, IsQueueError(errors.New("xxxx")))
