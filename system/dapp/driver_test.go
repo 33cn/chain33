@@ -89,7 +89,7 @@ func TestDriverAPI(t *testing.T) {
 	types.SetTitleOnlyForTest("user.p.wzw.")
 	assert.Equal(t, "parentHash", string(demo.GetParentHash()))
 	assert.Equal(t, "mainHash", string(demo.GetLastHash()))
-
+	assert.Equal(t, int64(1), demo.GetMainHeight())
 	assert.Equal(t, true, IsDriverAddress(ExecAddress("none"), 0))
 	assert.Equal(t, false, IsDriverAddress(ExecAddress("demo"), 0))
 	assert.Equal(t, true, IsDriverAddress(ExecAddress("demo"), 1))
