@@ -76,7 +76,7 @@ func TestDriverAPI(t *testing.T) {
 	demo := LoadDriverAllow(tx, 0, 1).(*demoApp)
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
-	demo.SetEnv(1, time.Now().Unix(), 1, []byte("parentHash"), []byte("mainHash"))
+	demo.SetEnv(1, time.Now().Unix(), 1)
 	demo.SetLocalDB(kvdb)
 	demo.SetStateDB(kvdb)
 	demo.SetAPI(&mocks.QueueProtocolAPI{})
