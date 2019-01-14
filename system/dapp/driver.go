@@ -400,7 +400,10 @@ func (d *DriverBase) GetHeight() int64 {
 
 // GetMainHeight return height
 func (d *DriverBase) GetMainHeight() int64 {
-	return d.mainHeight
+	if types.IsPara() {
+		return d.mainHeight
+	}
+	return d.height
 }
 
 // GetBlockTime return block time
