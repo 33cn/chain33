@@ -147,7 +147,7 @@ message ReqWalletSendToAddress {
     string from        = 1;
     string to          = 2;
     int64  amount      = 3;
-    bytes  note        = 4;
+    string note        = 4;
     bool   isToken     = 5;
     string tokenSymbol = 6;
 }
