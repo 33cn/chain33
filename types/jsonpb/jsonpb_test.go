@@ -832,6 +832,7 @@ var unmarshalingTests = []struct {
 			},
 		}},
 	{"BytesValue", Unmarshaler{}, `{"bytes":"0x776f77"}`, &pb.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("wow")}}},
+	{"BytesValue", Unmarshaler{}, `{"bytes":"776f77"}`, &pb.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("776f77")}}},
 	{"BytesValue", Unmarshaler{}, `{"bytes":"wow"}`, &pb.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("wow")}}},
 
 	// Ensure that `null` as a value ends up with a nil pointer instead of a [type]Value struct.
