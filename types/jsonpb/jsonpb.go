@@ -1041,6 +1041,11 @@ func (u *Unmarshaler) unmarshalValue(target reflect.Value, inputValue json.RawMe
 		if err != nil {
 			return err
 		}
+		//hex格式的字符串必须0x开头
+		if hexstr[0:2] != "0x" && hexstr[0:2] != "0X" {
+			target.SetBytes([]byte(hexstr))
+			return nil
+		}
 		b, err := common.FromHex(hexstr)
 		if err != nil {
 			//不是hex，默认解析成原始格式
