@@ -464,7 +464,7 @@ func testProcSendToAddress(t *testing.T, wallet *Wallet) {
 	transfer := &types.ReqWalletSendToAddress{
 		Amount: 1000,
 		From:   FromAddr,
-		Note:   []byte("test"),
+		Note:   "test",
 		To:     "1L1zEgVcjqdM2KkQixENd7SZTaudKkcyDu",
 	}
 	msg := wallet.client.NewMessage("wallet", types.EventWalletSendToAddress, transfer)
@@ -476,7 +476,7 @@ func testProcSendToAddress(t *testing.T, wallet *Wallet) {
 	withdraw := &types.ReqWalletSendToAddress{
 		Amount: -1000,
 		From:   FromAddr,
-		Note:   []byte("test"),
+		Note:   "test",
 		To:     "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp",
 	}
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSendToAddress, withdraw)
@@ -597,7 +597,7 @@ func testProcWalletLock(t *testing.T, wallet *Wallet) {
 	transfer := &types.ReqWalletSendToAddress{
 		Amount: 1000,
 		From:   FromAddr,
-		Note:   []byte("test"),
+		Note:   "test",
 		To:     "1L1zEgVcjqdM2KkQixENd7SZTaudKkcyDu",
 	}
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSendToAddress, transfer)
