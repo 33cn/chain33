@@ -230,8 +230,7 @@ func (chain *BlockChain) getLastHeader(msg queue.Message) {
 func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 	blockDetail := msg.Data.(*types.BlockDetail)
 	Height := blockDetail.Block.Height
-	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "parent", common.ToHex(blockDetail.Block.ParentHash))
-	//首先判断共识过来的block的parenthash是否是当前bestchain链的tip区块，如果不是就直接返回错误给共识模块
+	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "blockhash", common.ToHex(blockDetail.Block.Hash()), "parent", common.ToHex(blockDetail.Block.ParentHash))
 	blockDetail, err := chain.ProcAddBlockMsg(true, blockDetail, "self")
 	if err != nil {
 		chainlog.Error("addBlockDetail", "err", err.Error())
@@ -244,7 +243,6 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
 		return
 	}
-	//获取此高度区块执行后的区块详情blockdetail返回给共识模块
 	chainlog.Debug("addBlockDetail success ", "Height", Height, "hash", common.HashHex(blockDetail.Block.Hash()))
 	msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, blockDetail))
 }

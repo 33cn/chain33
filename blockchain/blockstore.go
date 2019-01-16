@@ -1061,8 +1061,6 @@ func (bs *BlockStore) SetUpgradeMeta(meta *types.UpgradeMeta) error {
 
 //isRecordBlockSequence配置的合法性检测
 func (bs *BlockStore) isRecordBlockSequenceValid() {
-	storeLog.Error("isRecordBlockSequenceValid")
-
 	lastHeight := bs.Height()
 	lastSequence, err := bs.LoadBlockLastSequence()
 	if err != nil {

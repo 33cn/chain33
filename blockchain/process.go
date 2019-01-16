@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/difficulty"
 	"github.com/33cn/chain33/types"
@@ -296,14 +297,19 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	block := blockdetail.Block
 	prevStateHash := b.bestChain.Tip().statehash
-	//广播或者同步过来的blcok需要调用执行模块
 	errReturn := (node.pid != "self")
-	//println("--exec before--")
 	blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync)
-	//println("--exec end--")
-	if err != nil && err != types.ErrFutureBlock {
-		//记录执行出错的block信息,需要过滤掉ErrFutureBlock错误的block，不计入故障中，尝试再次执行
-		b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
+	if err != nil {
+		//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
+		if IsRecordFaultErr(err) {
+			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
+		} else if node.pid == "self" {
+			// 本节点产生的block由于api或者queue导致执行失败需要删除block在index中的记录，
+			// 返回错误信息给共识模块，由共识模块尝试再次发起block的执行
+			// 同步或者广播过来的情况会再下了一个区块过来后重新触发此block的执行
+			chainlog.Debug("connectBlock DelNode!", "height", block.Height, "node.hash", common.ToHex(node.hash), "err", err)
+			b.index.DelNode(node.hash)
+		}
 		chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 		return nil, err
 	}
@@ -577,4 +583,9 @@ func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types
 	b.index.DelNode(blockHash)
 
 	return nil, true, false, nil
+}
+
+// IsRecordFaultErr 检测此错误是否要记录到故障错误中
+func IsRecordFaultErr(err error) bool {
+	return err != types.ErrFutureBlock && !api.IsGrpcError(err) && !api.IsQueueError(err)
 }
