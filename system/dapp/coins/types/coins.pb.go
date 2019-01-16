@@ -5,10 +5,9 @@ package types
 
 import (
 	fmt "fmt"
-	math "math"
-
 	types "github.com/33cn/chain33/types"
 	proto "github.com/golang/protobuf/proto"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
