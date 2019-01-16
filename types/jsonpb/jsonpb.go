@@ -1041,16 +1041,9 @@ func (u *Unmarshaler) unmarshalValue(target reflect.Value, inputValue json.RawMe
 		if err != nil {
 			return err
 		}
-		//hex格式的字符串必须0x开头
-		if len(hexstr) < 2 || hexstr[0:2] != "0x" && hexstr[0:2] != "0X" {
-			target.SetBytes([]byte(hexstr))
-			return nil
-		}
-		b, err := common.FromHex(hexstr)
+		b, err := parseBytes(hexstr)
 		if err != nil {
-			//不是hex，默认解析成原始格式
-			target.SetBytes([]byte(hexstr))
-			return nil
+			return err
 		}
 		target.SetBytes(b)
 		return nil
@@ -1319,4 +1312,20 @@ func checkRequiredFieldsInValue(v reflect.Value) error {
 		return checkRequiredFields(pm)
 	}
 	return nil
+}
+
+//ErrBytesFormat 错误的bytes 类型
+var ErrBytesFormat = errors.New("ErrBytesFormat")
+
+func parseBytes(jsonstr string) ([]byte, error) {
+	if jsonstr == "" {
+		return []byte{}, nil
+	}
+	if strings.HasPrefix(jsonstr, "str://") {
+		return []byte(jsonstr[len("str://"):]), nil
+	}
+	if strings.HasPrefix(jsonstr, "0x") || strings.HasPrefix(jsonstr, "0X") {
+		return common.FromHex(jsonstr)
+	}
+	return nil, ErrBytesFormat
 }

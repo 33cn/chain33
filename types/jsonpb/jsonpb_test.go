@@ -832,9 +832,9 @@ var unmarshalingTests = []struct {
 			},
 		}},
 	{"BytesValue", Unmarshaler{}, `{"bytes":"0x776f77"}`, &pb.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("wow")}}},
-	{"BytesValue", Unmarshaler{}, `{"bytes":"776f77"}`, &pb.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("776f77")}}},
-	{"BytesValue", Unmarshaler{}, `{"bytes":"wow"}`, &pb.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("wow")}}},
-
+	{"BytesValue", Unmarshaler{}, `{"bytes":"0X776f77"}`, &pb.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("wow")}}},
+	{"BytesValue", Unmarshaler{}, `{"bytes":"str://wow"}`, &pb.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("wow")}}},
+	{"BytesValue", Unmarshaler{}, `{"bytes":"str://"}`, &pb.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("")}}},
 	// Ensure that `null` as a value ends up with a nil pointer instead of a [type]Value struct.
 	{"null DoubleValue", Unmarshaler{}, `{"dbl":null}`, &pb.KnownTypes{Dbl: nil}},
 	{"null FloatValue", Unmarshaler{}, `{"flt":null}`, &pb.KnownTypes{Flt: nil}},
