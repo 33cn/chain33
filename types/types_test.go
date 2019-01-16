@@ -124,18 +124,17 @@ func TestProtoToJson(t *testing.T) {
 	assert.Equal(t, dr.Msg, []byte("OK"))
 
 	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"4f4b"}`, &dr)
-	assert.Nil(t, err)
-	assert.Equal(t, dr.Msg, []byte("4f4b"))
+	assert.Equal(t, err, jsonpb.ErrBytesFormat)
 
 	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"0x"}`, &dr)
 	assert.Nil(t, err)
 	assert.Equal(t, dr.Msg, []byte(""))
 
-	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"OK"}`, &dr)
+	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"str://OK"}`, &dr)
 	assert.Nil(t, err)
 	assert.Equal(t, dr.Msg, []byte("OK"))
 
-	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"0"}`, &dr)
+	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"str://0"}`, &dr)
 	assert.Nil(t, err)
 	assert.Equal(t, dr.Msg, []byte("0"))
 
