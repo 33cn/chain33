@@ -250,6 +250,11 @@ func (r *RPC) Listen() (port1 int, port2 int) {
 	return port1, port2
 }
 
+// GetJRpcAPI get json rpc api
+func (r *RPC) GetJRpcAPI() *Chain33 {
+	return r.japi.jrpc
+}
+
 // GetQueueClient get queue client
 func (r *RPC) GetQueueClient() queue.Client {
 	return r.c

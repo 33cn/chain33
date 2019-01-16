@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/rpc"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
@@ -57,6 +59,7 @@ type Wallet struct {
 	client queue.Client
 	// 模块间通信的操作接口,建议用api代替client调用
 	api                client.QueueProtocolAPI
+	rpc                *rpc.RPC
 	mtx                sync.Mutex
 	timeout            *time.Timer
 	mineStatusReporter wcom.MineStatusReport
@@ -142,6 +145,11 @@ func (wallet *Wallet) GetConfig() *types.Wallet {
 // GetAPI 获取操作API
 func (wallet *Wallet) GetAPI() client.QueueProtocolAPI {
 	return wallet.api
+}
+
+// SetChain33RPC 设置chain33 rpc
+func (wallet *Wallet) SetChain33RPC(rpc *rpc.RPC) {
+	wallet.rpc = rpc
 }
 
 // GetMutex 获取钱包互斥量

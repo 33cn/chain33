@@ -11,8 +11,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/common"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
+	rpctypes "github.com/33cn/chain33/rpc/types"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 )
@@ -125,6 +128,31 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 		return nil, errors.New(string(reply.GetMsg()))
 	}
 	return tx.Hash(), nil
+}
+
+// SendTx 通过钱包模块转发交易到rpc
+func (wallet *Wallet) SendTx(tx *types.Transaction) (*types.Reply, error) {
+
+	if !types.IsPara() {
+		return wallet.sendTx(tx)
+	}
+	var result interface{}
+
+	err := wallet.rpc.GetJRpcAPI().SendTransaction(rpctypes.RawParm{Data: hex.EncodeToString(types.Encode(tx))}, &result)
+	if err != nil {
+		walletlog.Error("wallet sendTx", "err", err.Error())
+		return nil, err
+	}
+
+	reply := &types.Reply{}
+	err = errors.New("InvaildRpcResult")
+	if hash, ok := result.(string); ok {
+		data, _ := common.FromHex(hash)
+		reply.Msg = data
+		reply.IsOk = true
+		err = nil
+	}
+	return reply, err
 }
 
 func (wallet *Wallet) sendTx(tx *types.Transaction) (*types.Reply, error) {

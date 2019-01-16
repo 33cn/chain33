@@ -171,6 +171,7 @@ func RunChain33(name string) {
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet, sub.Wallet)
 	walletm.SetQueueClient(q.Client())
+	walletm.SetChain33RPC(rpcapi)
 
 	health := util.NewHealthCheckServer(q.Client())
 	health.Start(cfg.Health)
