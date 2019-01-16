@@ -552,7 +552,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	if err != nil {
 		return nil, err
 	}
-	return wallet.sendToAddress(priv, addrto, amount, string(note), SendToAddress.IsToken, SendToAddress.TokenSymbol)
+	return wallet.sendToAddress(priv, addrto, amount, note, SendToAddress.IsToken, SendToAddress.TokenSymbol)
 }
 
 // ProcWalletSetFee 处理设置手续费
