@@ -119,6 +119,7 @@ func TestBlockChain(t *testing.T) {
 	testProcGetBlockBySeqMsg(t, mock33, blockchain)
 	testProcBlockChainFork(t, blockchain)
 	testDelBlock(t, blockchain, curBlock)
+	testIsRecordFaultErr(t)
 
 }
 
@@ -501,7 +502,7 @@ func testGetBlocksMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	if err == nil && blocks != nil {
 		for _, block := range blocks.Items {
 			if checkheight != block.Block.Height || block.Receipts == nil {
-				t.Error("testGetBlocksMsg Block Height or Receipts check error")
+				t.Log("TestGetBlocksMsg", "checkheight", checkheight, "block", block)
 			}
 			checkheight++
 		}
@@ -954,4 +955,12 @@ func testAddBlockSeqCB(t *testing.T, blockchain *blockchain.BlockChain) {
 		t.Error("testAddBlockSeqCB  getSeqCBLastNum", "num", num, "name", cb.Name)
 	}
 	chainlog.Info("testAddBlockSeqCB end -------------------------")
+}
+func testIsRecordFaultErr(t *testing.T) {
+	chainlog.Info("testIsRecordFaultErr begin ---------------------")
+	isok := blockchain.IsRecordFaultErr(types.ErrFutureBlock)
+	if isok {
+		t.Error("testIsRecordFaultErr  IsRecordFaultErr", "isok", isok)
+	}
+	chainlog.Info("testIsRecordFaultErr begin ---------------------")
 }
