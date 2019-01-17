@@ -242,7 +242,7 @@ func (c *SDBClient) Keys(keyStart, keyEnd string, limit int64) ([]string, error)
 	resp, err := c.Do("keys", keyStart, keyEnd, limit)
 
 	if err != nil {
-		return nil, newErrorf(err, "Keys %s error", keyStart, keyEnd, limit)
+		return nil, newErrorf(err, "Keys [%s,%s] %d error", keyStart, keyEnd, limit)
 	}
 	if len(resp) > 0 && resp[0] == OK {
 		return resp[1:], nil
@@ -261,7 +261,7 @@ func (c *SDBClient) Rkeys(keyStart, keyEnd string, limit int64) ([]string, error
 	resp, err := c.Do("rkeys", keyStart, keyEnd, limit)
 
 	if err != nil {
-		return nil, newErrorf(err, "Rkeys %s error", keyStart, keyEnd, limit)
+		return nil, newErrorf(err, "Rkeys [%s,%s] %d error", keyStart, keyEnd, limit)
 	}
 	if len(resp) > 0 && resp[0] == OK {
 		return resp[1:], nil
