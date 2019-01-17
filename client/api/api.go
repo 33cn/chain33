@@ -12,6 +12,8 @@ import (
 	"github.com/33cn/chain33/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"strings"
+	"github.com/33cn/chain33/rpc/grpcclient"
 )
 
 /*
@@ -93,9 +95,20 @@ func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 	if paraRemoteGrpcClient == "" {
 		paraRemoteGrpcClient = "127.0.0.1:8002"
 	}
-	conn, err := grpc.Dial(paraRemoteGrpcClient, grpc.WithInsecure())
-	if err != nil {
-		panic(err)
+
+	var conn *grpc.ClientConn
+	var err error
+	if len(strings.Split(paraRemoteGrpcClient, ",")) > 1 {
+		url := grpcclient.MultiPleHostsBalancerPrefix + paraRemoteGrpcClient
+		conn, err = grpc.Dial(url, grpc.WithInsecure(),  grpc.WithBalancerName(grpcclient.SwitchBalancer))
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		conn, err = grpc.Dial(paraRemoteGrpcClient, grpc.WithInsecure())
+		if err != nil {
+			panic(err)
+		}
 	}
 	grpcClient := types.NewChain33Client(conn)
 	return &paraChainAPI{api: api, grpcClient: grpcClient}
