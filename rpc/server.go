@@ -12,12 +12,12 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/queue"
+	_ "github.com/33cn/chain33/rpc/grpcclient" // register switch balancer
 	"github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // register gzip
-	_ "github.com/33cn/chain33/rpc/grpcclient" // register switch balancer
 )
 
 var (

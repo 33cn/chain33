@@ -7,13 +7,14 @@ import (
 	"errors"
 	"sync/atomic"
 
+	"strings"
+
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/33cn/chain33/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"strings"
-	"github.com/33cn/chain33/rpc/grpcclient"
 )
 
 /*
@@ -100,7 +101,7 @@ func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 	var err error
 	if len(strings.Split(paraRemoteGrpcClient, ",")) > 1 {
 		url := grpcclient.MultiPleHostsBalancerPrefix + paraRemoteGrpcClient
-		conn, err = grpc.Dial(url, grpc.WithInsecure(),  grpc.WithBalancerName(grpcclient.SwitchBalancer))
+		conn, err = grpc.Dial(url, grpc.WithInsecure(), grpc.WithBalancerName(grpcclient.SwitchBalancer))
 		if err != nil {
 			panic(err)
 		}

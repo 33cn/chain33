@@ -1,15 +1,17 @@
 package grpcclient
 
 import (
+	"fmt"
+
+	log "github.com/33cn/chain33/common/log/log15"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
 	"google.golang.org/grpc/resolver"
-	"golang.org/x/net/context"
-	log "github.com/33cn/chain33/common/log/log15"
-	"fmt"
 )
 
 var glog = log.New("module", "grpcclient")
+
 const SwitchBalancer = "switch"
 
 func newBuilder() balancer.Builder {
@@ -20,13 +22,13 @@ func init() {
 	balancer.Register(newBuilder())
 }
 
-type swPickerBuilder struct{
+type swPickerBuilder struct {
 	masterAddr string
 }
 
 func (sw *swPickerBuilder) Build(readySCs map[resolver.Address]balancer.SubConn) balancer.Picker {
 	glog.Debug(fmt.Sprintf("switchPicker: newPicker called with readySCs: %v", readySCs))
-	var offset,step int
+	var offset, step int
 	var scs []balancer.SubConn
 	var addrs []string
 	for addr, sc := range readySCs {
@@ -45,13 +47,13 @@ func (sw *swPickerBuilder) Build(readySCs map[resolver.Address]balancer.SubConn)
 	glog.Debug(fmt.Sprintf("master address:%s offset:%d", sw.masterAddr, offset))
 	return &swPicker{
 		subConns: scs,
-        offset:offset,
+		offset:   offset,
 	}
 }
 
 type swPicker struct {
 	subConns []balancer.SubConn
-	offset int
+	offset   int
 }
 
 func (p *swPicker) Pick(ctx context.Context, opts balancer.PickOptions) (balancer.SubConn, func(balancer.DoneInfo), error) {
@@ -62,4 +64,3 @@ func (p *swPicker) Pick(ctx context.Context, opts balancer.PickOptions) (balance
 	glog.Debug(fmt.Sprintf("offset:%d", p.offset))
 	return p.subConns[p.offset], nil, nil
 }
-
