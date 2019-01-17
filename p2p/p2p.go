@@ -212,6 +212,7 @@ func (network *P2p) subP2pMsg() {
 				}
 			}
 			switch msg.Ty {
+
 			case types.EventTxBroadcast: //广播tx
 				go network.p2pCli.BroadCastTx(msg, taskIndex)
 			case types.EventBlockBroadcast: //广播block
