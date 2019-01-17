@@ -62,7 +62,7 @@ func init() {
 			}
 
 		}
-		fmt.Println("endDDDDDDDDDDDDDDDDDDDDDDDDDD")
+
 	}()
 
 	go func() {
@@ -223,6 +223,7 @@ func TestPeer(t *testing.T) {
 	t.Log(respIns)
 }
 
+/*
 func TestP2PEvent(t *testing.T) {
 
 	qcli := q.Client()
@@ -252,7 +253,7 @@ func TestP2PEvent(t *testing.T) {
 	err = qcli.Send(msg, false)
 	assert.Nil(t, err)
 
-}
+}*/
 
 func TestP2pComm(t *testing.T) {
 	p2pModule := initP2p(33802, dataDir)
