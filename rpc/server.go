@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // register gzip
+	_ "github.com/33cn/chain33/rpc/grpcclient" // register switch balancer
 )
 
 var (
