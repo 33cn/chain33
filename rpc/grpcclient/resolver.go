@@ -1,16 +1,17 @@
 package grpcclient
 
 import (
-	"google.golang.org/grpc/resolver"
-	"net"
-	"fmt"
 	"errors"
+	"fmt"
+	"net"
 	"strings"
+
+	"google.golang.org/grpc/resolver"
 )
 
 const Scheme = "multiple"
 const Separator = ":///"
-const MultiPleHostsBalancerPrefix = Scheme+Separator
+const MultiPleHostsBalancerPrefix = Scheme + Separator
 const defaultGrpcPort = "8802"
 
 func parseTarget(target, defaultPort string) (host, port string, err error) {
@@ -48,7 +49,7 @@ func (*multipleBuilder) Build(target resolver.Target, cc resolver.ClientConn, op
 		return nil, fmt.Errorf("invalid target address %v", target)
 	}
 
-	for _,url := range urls {
+	for _, url := range urls {
 		host, port, err := parseTarget(url, defaultGrpcPort)
 		if err != nil {
 			return nil, err
