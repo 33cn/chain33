@@ -9,9 +9,13 @@ import (
 	"google.golang.org/grpc/resolver"
 )
 
+// Scheme 自定义grpc负载局衡名
 const Scheme = "multiple"
+// Separator url分隔符
 const Separator = ":///"
+// MultiPleHostsBalancerPrefix url前缀
 const MultiPleHostsBalancerPrefix = Scheme + Separator
+// defaultGrpcPort 默认grpc端口
 const defaultGrpcPort = "8802"
 
 func parseTarget(target, defaultPort string) (host, port string, err error) {
