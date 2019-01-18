@@ -62,14 +62,15 @@ func (api *mainChainAPI) IsErr() bool {
 	return atomic.LoadInt32(&api.errflag) == 1
 }
 
+//任何GetRandNum的出错，都应该终止区块的执行
 func (api *mainChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
 	msg, err := api.api.Query(param.ExecName, "RandNumHash", param)
 	if err != nil {
-		return nil, seterr(err, &api.errflag)
+		return nil, ErrAPIEnv
 	}
 	reply, ok := msg.(*types.ReplyHash)
 	if !ok {
-		return nil, types.ErrTypeAsset
+		return nil, ErrAPIEnv
 	}
 	return reply.Hash, nil
 }
@@ -107,20 +108,26 @@ func (api *paraChainAPI) IsErr() bool {
 
 func (api *paraChainAPI) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
 	data, err := api.grpcClient.QueryTransaction(context.Background(), param)
-	return data, seterr(err, &api.errflag)
+	if err != nil {
+		return nil, ErrAPIEnv
+	}
+	return data, nil
 }
 
 func (api *paraChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
 	reply, err := api.grpcClient.QueryRandNum(context.Background(), param)
 	if err != nil {
-		return nil, seterr(err, &api.errflag)
+		return nil, ErrAPIEnv
 	}
 	return reply.Hash, nil
 }
 
 func (api *paraChainAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
 	data, err := api.grpcClient.GetBlockByHashes(context.Background(), param)
-	return data, seterr(err, &api.errflag)
+	if err != nil {
+		return nil, ErrAPIEnv
+	}
+	return data, nil
 }
 
 func seterr(err error, flag *int32) error {
