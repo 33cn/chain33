@@ -52,6 +52,8 @@ const (
 	PrivacyMaturityDegree         = 12
 	TxGroupMaxCount               = 20
 	MinerAction                   = "miner"
+	Int1E4                int64   = 10000
+	Float1E4              float64 = 10000.0
 )
 
 //全局账户私钥/公钥
