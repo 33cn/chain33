@@ -51,7 +51,7 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 	name = string(types.GetRealExecName([]byte(name)))
 	c, ok := registedExecDriver[name]
 	if !ok {
-		elog.Error("LoadDriver", "driver", name)
+		elog.Debug("LoadDriver", "driver", name)
 		return nil, types.ErrUnRegistedDriver
 	}
 	if height >= c.height || height == -1 {
