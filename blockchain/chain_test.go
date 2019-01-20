@@ -37,7 +37,7 @@ var chainlog = log15.New("module", "chain_test")
 
 func addTx(priv crypto.PrivKey, api client.QueueProtocolAPI) ([]*types.Transaction, string, error) {
 	txs := util.GenCoinsTxs(priv, 1)
-	hash := common.Bytes2Hex(txs[0].Hash())
+	hash := common.ToHex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
 		return nil, hash, err
@@ -50,7 +50,7 @@ func addTx(priv crypto.PrivKey, api client.QueueProtocolAPI) ([]*types.Transacti
 
 func addTxTxHeigt(priv crypto.PrivKey, api client.QueueProtocolAPI, height int64) ([]*types.Transaction, string, error) {
 	txs := util.GenTxsTxHeigt(priv, 1, height+TxHeightOffset)
-	hash := common.Bytes2Hex(txs[0].Hash())
+	hash := common.ToHex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
 		return nil, hash, err

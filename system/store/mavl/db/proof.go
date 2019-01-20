@@ -7,7 +7,6 @@ package mavl
 import (
 	"bytes"
 
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
 )
@@ -21,6 +20,8 @@ type Proof struct {
 	RootHash   []byte
 }
 
+var sha256Len = 32
+
 // Verify key:value 的proof确认
 func (proof *Proof) Verify(key []byte, value []byte, root []byte) bool {
 	if !bytes.Equal(proof.RootHash, root) {
@@ -29,7 +30,7 @@ func (proof *Proof) Verify(key []byte, value []byte, root []byte) bool {
 	leafNode := types.LeafNode{Key: key, Value: value, Height: 0, Size: 1}
 	leafHash := leafNode.Hash()
 
-	hashLen := len(common.Hash{})
+	hashLen := sha256Len
 	if len(proof.LeafHash) > hashLen {
 		proof.LeafHash = proof.LeafHash[len(proof.LeafHash)-hashLen:]
 	}

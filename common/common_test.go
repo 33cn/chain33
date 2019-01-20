@@ -31,3 +31,42 @@ func TestGetRandPrintString(t *testing.T) {
 		t.Error("rand str len")
 	}
 }
+
+func TestMinMax(t *testing.T) {
+	assert.Equal(t, MinInt32(1, 2), int32(1))
+	assert.Equal(t, MaxInt32(1, 2), int32(2))
+}
+
+func TestHex(t *testing.T) {
+	var data [Sha256Len]byte
+	assert.Equal(t, "0000000000000000000000000000000000000000000000000000000000000000", HashHex(data[:]))
+	assert.Equal(t, 64, len(HashHex(data[:])))
+	assert.Equal(t, "0x0000000000000000000000000000000000000000000000000000000000000000", ToHex(data[:]))
+	bdata, err := FromHex("0x0000000000000000000000000000000000000000000000000000000000000000")
+	assert.Nil(t, err)
+	assert.Equal(t, bdata, data[:])
+
+	bdata, err = FromHex("0X0000000000000000000000000000000000000000000000000000000000000000")
+	assert.Nil(t, err)
+	assert.Equal(t, bdata, data[:])
+
+	bdata, err = FromHex("0000000000000000000000000000000000000000000000000000000000000000")
+	assert.Nil(t, err)
+	assert.Equal(t, bdata, data[:])
+
+	data2 := CopyBytes(data[:])
+	data[0] = 1
+	assert.Equal(t, data2[0], uint8(0))
+
+	assert.Equal(t, false, IsHex("0x"))
+	assert.Equal(t, false, IsHex("0x0"))
+	assert.Equal(t, true, IsHex("0x00"))
+}
+
+func TestHash(t *testing.T) {
+	var data [Sha256Len]byte
+	assert.Equal(t, "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925", ToHex(Sha256(data[:])))
+	assert.Equal(t, "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563", ToHex(Sha3(data[:])))
+	assert.Equal(t, "0x2b32db6c2c0a6235fb1397e8225ea85e0f0e6e8c7b126d0016ccbde0e667151e", ToHex(Sha2Sum(data[:])))
+	assert.Equal(t, "0xb8bcb07f6344b42ab04250c86a6e8b75d3fdbbc6", ToHex(Rimp160(data[:])))
+}

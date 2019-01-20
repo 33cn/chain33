@@ -81,7 +81,7 @@ func genLeafCountKey(key, hash []byte, height int64, hashLen int) (hashkey []byt
 }
 
 func getKeyHeightFromLeafCountKey(hashkey []byte) (key []byte, height int, hash []byte, err error) {
-	if len(hashkey) < len(leafKeyCountPrefix)+blockHeightStrLen+len(common.Hash{})+hashLenStr {
+	if len(hashkey) < len(leafKeyCountPrefix)+blockHeightStrLen+sha256Len+hashLenStr {
 		return nil, 0, nil, types.ErrSize
 	}
 	if !bytes.Contains(hashkey, []byte(leafKeyCountPrefix)) {
@@ -111,7 +111,7 @@ func genOldLeafCountKey(key, hash []byte, height int64, hashLen int) (hashkey []
 }
 
 func getKeyHeightFromOldLeafCountKey(hashkey []byte) (key []byte, height int, hash []byte, err error) {
-	if len(hashkey) < len(oldLeafKeyCountPrefix)+blockHeightStrLen+len(common.Hash{})+hashLenStr {
+	if len(hashkey) < len(oldLeafKeyCountPrefix)+blockHeightStrLen+sha256Len+hashLenStr {
 		return nil, 0, nil, types.ErrSize
 	}
 	if !bytes.Contains(hashkey, []byte(oldLeafKeyCountPrefix)) {
@@ -460,7 +460,7 @@ func printSameLeafKeyDB(db dbm.DB, key string, isold bool) {
 			if len(hash) > 32 {
 				pri = string(hash[:16])
 			}
-			treelog.Info("leaf node", "height", height, "pri", pri, "hash", common.Bytes2Hex(hash), "key", string(key))
+			treelog.Info("leaf node", "height", height, "pri", pri, "hash", common.ToHex(hash), "key", string(key))
 		}
 	}
 }
@@ -479,7 +479,7 @@ func PrintLeafNodeParent(db dbm.DB, key, hash []byte, height int64) {
 				if len(hash) > 32 {
 					pri = string(hash[:16])
 				}
-				treelog.Info("hash node", "hash pri", pri, "hash", common.Bytes2Hex(hash))
+				treelog.Info("hash node", "hash pri", pri, "hash", common.ToHex(hash))
 			}
 		}
 		isHave = true
@@ -497,7 +497,7 @@ func PrintLeafNodeParent(db dbm.DB, key, hash []byte, height int64) {
 					if len(hash) > 32 {
 						pri = string(hash[:16])
 					}
-					treelog.Info("hash node", "hash pri", pri, "hash", common.Bytes2Hex(hash))
+					treelog.Info("hash node", "hash pri", pri, "hash", common.ToHex(hash))
 				}
 			}
 			isHave = true
@@ -521,7 +521,7 @@ func PrintNodeDb(db dbm.DB, hash []byte) {
 	if len(node.hash) > 32 {
 		pri = string(node.hash[:16])
 	}
-	treelog.Info("hash node", "hash pri", pri, "hash", common.Bytes2Hex(node.hash), "height", node.height)
+	treelog.Info("hash node", "hash pri", pri, "hash", common.ToHex(node.hash), "height", node.height)
 	node.printNodeInfo(nDb)
 }
 
@@ -531,7 +531,7 @@ func (node *Node) printNodeInfo(db *nodeDB) {
 		if len(node.hash) > 32 {
 			pri = string(node.hash[:16])
 		}
-		treelog.Info("leaf node", "hash pri", pri, "hash", common.Bytes2Hex(node.hash), "key", string(node.key))
+		treelog.Info("leaf node", "hash pri", pri, "hash", common.ToHex(node.hash), "key", string(node.key))
 		return
 	}
 	if node.leftHash != nil {
@@ -543,7 +543,7 @@ func (node *Node) printNodeInfo(db *nodeDB) {
 		if len(left.hash) > 32 {
 			pri = string(left.hash[:16])
 		}
-		treelog.Debug("hash node", "hash pri", pri, "hash", common.Bytes2Hex(left.hash), "height", left.height)
+		treelog.Debug("hash node", "hash pri", pri, "hash", common.ToHex(left.hash), "height", left.height)
 		left.printNodeInfo(db)
 	}
 
@@ -556,7 +556,7 @@ func (node *Node) printNodeInfo(db *nodeDB) {
 		if len(right.hash) > 32 {
 			pri = string(right.hash[:16])
 		}
-		treelog.Debug("hash node", "hash pri", pri, "hash", common.Bytes2Hex(right.hash), "height", right.height)
+		treelog.Debug("hash node", "hash pri", pri, "hash", common.ToHex(right.hash), "height", right.height)
 		right.printNodeInfo(db)
 	}
 }
