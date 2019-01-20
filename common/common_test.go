@@ -31,3 +31,8 @@ func TestGetRandPrintString(t *testing.T) {
 		t.Error("rand str len")
 	}
 }
+
+func TestMinMax(t *testing.T) {
+	assert.Equal(t, MinInt32(1, 2), int32(1))
+	assert.Equal(t, MaxInt32(1, 2), int32(2))
+}

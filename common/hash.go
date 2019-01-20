@@ -5,93 +5,12 @@
 package common
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
-	"io"
-	"math/big"
 
 	"github.com/33cn/chain33/common/crypto/sha3"
 	"golang.org/x/crypto/ripemd160"
 )
-
-const (
-	hashLength = 32
-)
-
-//Hash hash
-type Hash [hashLength]byte
-
-//BytesToHash []byte -> hash
-func BytesToHash(b []byte) Hash {
-	var h Hash
-	h.SetBytes(b)
-	return h
-}
-
-//StringToHash string -> hash
-func StringToHash(s string) Hash { return BytesToHash([]byte(s)) }
-
-//BigToHash *big.Int -> hash
-func BigToHash(b *big.Int) Hash { return BytesToHash(b.Bytes()) }
-
-//HexToHash hex -> hash
-func HexToHash(s string) Hash {
-	b, _ := FromHex(s)
-	return BytesToHash(b)
-}
-
-//Str Get the string representation of the underlying hash
-func (h Hash) Str() string { return string(h[:]) }
-
-//Bytes Get the []byte representation of the underlying hash
-func (h Hash) Bytes() []byte { return h[:] }
-
-//Hex Get the hex representation of the underlying hash
-func (h Hash) Hex() string { return hexEncode(h[:]) }
-
-// TerminalString implements log.TerminalStringer, formatting a string for console
-// output during logging.
-func (h Hash) TerminalString() string {
-	return fmt.Sprintf("%x…%x", h[:3], h[29:])
-}
-
-// String implements the stringer interface and is used also by the logger when
-// doing full logging into a file.
-func (h Hash) String() string {
-	return h.Hex()
-}
-
-// Format implements fmt.Formatter, forcing the byte slice to be formatted as is,
-// without going through the stringer interface used for logging.
-func (h Hash) Format(s fmt.State, c rune) {
-	fmt.Fprintf(s, "%"+string(c), h[:])
-}
-
-//SetBytes Sets the hash to the value of b. If b is larger than len(h), 'b' will be cropped (from the left).
-func (h *Hash) SetBytes(b []byte) {
-	if len(b) > len(h) {
-		b = b[len(b)-hashLength:]
-	}
-
-	copy(h[hashLength-len(b):], b)
-}
-
-//SetString Set string `s` to h. If s is larger than len(h) s will be cropped (from left) to fit.
-func (h *Hash) SetString(s string) { h.SetBytes([]byte(s)) }
-
-//Set Sets h to other
-func (h *Hash) Set(other Hash) {
-	for i, v := range other {
-		h[i] = v
-	}
-}
-
-//EmptyHash hash是否为空
-func EmptyHash(h Hash) bool {
-	return h == Hash{}
-}
 
 func hexEncode(b []byte) string {
 	enc := make([]byte, len(b)*2+2)
@@ -204,14 +123,5 @@ func rimpHash(in []byte, out []byte) {
 // Where possible, using RimpHash() should be a bit faster
 func Rimp160AfterSha256(b []byte) (out [20]byte) {
 	rimpHash(b, out[:])
-	return
-}
-
-//RandKey 随机key
-func RandKey() (ret [32]byte) {
-	_, err := io.ReadFull(rand.Reader, ret[:])
-	if err != nil {
-		panic(err)
-	}
 	return
 }

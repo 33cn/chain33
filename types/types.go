@@ -223,11 +223,13 @@ func (leafnode *LeafNode) Hash() []byte {
 	return common.Sha256(data)
 }
 
+var sha256Len = 32
+
 //Hash  计算中间节点的hash
 func (innernode *InnerNode) Hash() []byte {
 	rightHash := innernode.RightHash
 	leftHash := innernode.LeftHash
-	hashLen := len(common.Hash{})
+	hashLen := sha256Len
 	if len(innernode.RightHash) > hashLen {
 		innernode.RightHash = innernode.RightHash[len(innernode.RightHash)-hashLen:]
 	}

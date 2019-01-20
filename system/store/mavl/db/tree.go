@@ -651,12 +651,12 @@ func genRootHashHeight(blockHeight int64, hash []byte) (key []byte) {
 }
 
 func getRootHash(hashKey []byte) (hash []byte, err error) {
-	if len(hashKey) < len(rootHashHeightPrefix)+blockHeightStrLen+len(common.Hash{}) {
+	if len(hashKey) < len(rootHashHeightPrefix)+blockHeightStrLen+sha256Len {
 		return nil, types.ErrSize
 	}
 	if !bytes.Contains(hashKey, []byte(rootHashHeightPrefix)) {
 		return nil, types.ErrSize
 	}
-	hash = hashKey[len(hashKey)-len(common.Hash{}):]
+	hash = hashKey[len(hashKey)-sha256Len:]
 	return hash, nil
 }

@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/difficulty"
 	"github.com/33cn/chain33/types"
 )
@@ -67,12 +66,14 @@ func newBlockNodeByHeader(broadcast bool, header *types.Header, pid string, sequ
 	return node
 }
 
+var sha256Len = 32
+
 func newPreGenBlockNode() *blockNode {
 	node := &blockNode{
-		hash:       common.Hash{}.Bytes(),
+		hash:       make([]byte, sha256Len),
 		Difficulty: big.NewInt(-1),
 		height:     -1,
-		statehash:  common.Hash{}.Bytes(),
+		statehash:  make([]byte, sha256Len),
 		broadcast:  false,
 		pid:        "self",
 	}

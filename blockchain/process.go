@@ -76,7 +76,7 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	prevHash := block.Block.GetParentHash()
 	//创世块0需要做一些特殊的判断
 	if 0 == block.Block.GetHeight() {
-		if bytes.Equal(prevHash, common.Hash{}.Bytes()) {
+		if bytes.Equal(prevHash, make([]byte, sha256Len)) {
 			prevHashExists = true
 		}
 	} else {

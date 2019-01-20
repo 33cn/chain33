@@ -81,7 +81,7 @@ func genLeafCountKey(key, hash []byte, height int64, hashLen int) (hashkey []byt
 }
 
 func getKeyHeightFromLeafCountKey(hashkey []byte) (key []byte, height int, hash []byte, err error) {
-	if len(hashkey) < len(leafKeyCountPrefix)+blockHeightStrLen+len(common.Hash{})+hashLenStr {
+	if len(hashkey) < len(leafKeyCountPrefix)+blockHeightStrLen+sha256Len+hashLenStr {
 		return nil, 0, nil, types.ErrSize
 	}
 	if !bytes.Contains(hashkey, []byte(leafKeyCountPrefix)) {
@@ -111,7 +111,7 @@ func genOldLeafCountKey(key, hash []byte, height int64, hashLen int) (hashkey []
 }
 
 func getKeyHeightFromOldLeafCountKey(hashkey []byte) (key []byte, height int, hash []byte, err error) {
-	if len(hashkey) < len(oldLeafKeyCountPrefix)+blockHeightStrLen+len(common.Hash{})+hashLenStr {
+	if len(hashkey) < len(oldLeafKeyCountPrefix)+blockHeightStrLen+sha256Len+hashLenStr {
 		return nil, 0, nil, types.ErrSize
 	}
 	if !bytes.Contains(hashkey, []byte(oldLeafKeyCountPrefix)) {
