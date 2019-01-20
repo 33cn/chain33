@@ -10,12 +10,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"sort"
-	"testing"
-
 	"os"
-
+	"sort"
 	"sync"
+	"testing"
 
 	. "github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
@@ -264,7 +262,7 @@ func TestHashSame2(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		prevHash, err = saveBlock(db1, int64(i), prevHash, 1000, false)
 		assert.Nil(t, err)
-		str := Bytes2Hex(prevHash)
+		str := ToHex(prevHash)
 		fmt.Println("unable", str)
 		strs1[str] = true
 	}
@@ -278,7 +276,7 @@ func TestHashSame2(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		prevHash, err = saveBlock(db2, int64(i), prevHash, 1000, false)
 		assert.Nil(t, err)
-		str := Bytes2Hex(prevHash)
+		str := ToHex(prevHash)
 		fmt.Println("enable", str)
 		if ok := strs1[str]; !ok {
 			t.Error("enable Prefix have a different hash")
