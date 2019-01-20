@@ -745,7 +745,7 @@ func execBalance(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		data, err := common.Hex2Bytes(str)
+		data, err := common.FromHex(str)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
