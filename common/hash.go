@@ -12,16 +12,12 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
-func hexEncode(b []byte) string {
-	enc := make([]byte, len(b)*2+2)
-	copy(enc, "0x")
-	hex.Encode(enc[2:], b)
-	return string(enc)
-}
+//Sha256Len sha256 bytes len
+const Sha256Len = 32
 
 //ToHex []byte -> hex
 func ToHex(b []byte) string {
-	hex := Bytes2Hex(b)
+	hex := hex.EncodeToString(b)
 	// Prefer output of "0x0" instead of "0x"
 	if len(hex) == 0 {
 		return ""
@@ -31,7 +27,7 @@ func ToHex(b []byte) string {
 
 //HashHex []byte -> hex
 func HashHex(d []byte) string {
-	var buf [64]byte
+	var buf [Sha256Len * 2]byte
 	hex.Encode(buf[:], d)
 	return string(buf[:])
 }
@@ -45,7 +41,7 @@ func FromHex(s string) ([]byte, error) {
 		if len(s)%2 == 1 {
 			s = "0" + s
 		}
-		return Hex2Bytes(s)
+		return hex.DecodeString(s)
 	}
 	return []byte{}, nil
 }
@@ -61,21 +57,10 @@ func CopyBytes(b []byte) (copiedBytes []byte) {
 	return
 }
 
-//HasHexPrefix 是否包含0x前缀
-func HasHexPrefix(str string) bool {
-	l := len(str)
-	return l >= 2 && str[0:2] == "0x"
-}
-
 //IsHex 是否是hex字符串
 func IsHex(str string) bool {
 	l := len(str)
 	return l >= 4 && l%2 == 0 && str[0:2] == "0x"
-}
-
-//Bytes2Hex []byte -> hex
-func Bytes2Hex(d []byte) string {
-	return hex.EncodeToString(d)
 }
 
 //Sha256 加密
@@ -84,15 +69,10 @@ func Sha256(b []byte) []byte {
 	return data[:]
 }
 
-//ShaKeccak256 加密
-func ShaKeccak256(b []byte) []byte {
+//Sha3 加密
+func Sha3(b []byte) []byte {
 	data := sha3.KeccakSum256(b)
 	return data[:]
-}
-
-//Hex2Bytes hex -> []byte
-func Hex2Bytes(str string) ([]byte, error) {
-	return hex.DecodeString(str)
 }
 
 func sha2Hash(b []byte, out []byte) {
@@ -106,9 +86,10 @@ func sha2Hash(b []byte, out []byte) {
 
 // Sha2Sum Returns hash: SHA256( SHA256( data ) )
 // Where possible, using ShaHash() should be a bit faster
-func Sha2Sum(b []byte) (out [32]byte) {
+func Sha2Sum(b []byte) []byte {
+	out := make([]byte, 32)
 	sha2Hash(b, out[:])
-	return
+	return out[:]
 }
 
 func rimpHash(in []byte, out []byte) {
@@ -119,9 +100,10 @@ func rimpHash(in []byte, out []byte) {
 	copy(out, rim.Sum(nil))
 }
 
-// Rimp160AfterSha256 Returns hash: RIMP160( SHA256( data ) )
+// Rimp160 Returns hash: RIMP160( SHA256( data ) )
 // Where possible, using RimpHash() should be a bit faster
-func Rimp160AfterSha256(b []byte) (out [20]byte) {
+func Rimp160(b []byte) []byte {
+	out := make([]byte, 20)
 	rimpHash(b, out[:])
-	return
+	return out[:]
 }
