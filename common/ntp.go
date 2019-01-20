@@ -137,17 +137,18 @@ func GetNtpTime(host string) (time.Time, error) {
 type durationSlice []time.Duration
 
 func (s durationSlice) Len() int           { return len(s) }
-func (s durationSlice) Less(i, j int) bool { return s[i] < s[j] }
+func (s durationSlice) Less(i, j int) bool { return abs(s[i]) < abs(s[j]) }
 func (s durationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 //GetRealTime 获取实际时间
 func GetRealTime(hosts []string) time.Time {
 	q := len(hosts)/2 + 1
+	//q := 5
 	ch := make(chan time.Duration, len(hosts))
 	for i := 0; i < len(hosts); i++ {
 		go func(host string) {
-			ntptime, _ := getTimeRetry(host, 10)
-			if ntptime.IsZero() {
+			ntptime, err := getTimeRetry(host, 10)
+			if ntptime.IsZero() || err != nil {
 				ch <- time.Duration(math.MaxInt64)
 			} else {
 				dt := time.Until(ntptime)
@@ -163,7 +164,6 @@ func GetRealTime(hosts []string) time.Time {
 			continue
 		}
 		dtlist = append(dtlist, t)
-		fmt.Println(dtlist)
 		if len(dtlist) >= q {
 			calclist := make([]time.Duration, len(dtlist))
 			copy(calclist, dtlist)
@@ -203,19 +203,15 @@ func maxSubList(list []time.Duration) (sub []time.Duration) {
 		var start int
 		var end int
 		if abs(nextheight-list[i]) > time.Millisecond*100 {
-			end = i + 1
+			end = i
 			if len(sub) < (end - start) {
 				sub = list[start:end]
 			}
-			start = i + 1
-			end = i + 1
+			start = i
+			end = i
 		} else {
 			end = i + 1
 		}
-	}
-	//只有一个节点，那么取差最小的节点
-	if len(sub) <= 1 {
-		return list[0:1]
 	}
 	return sub
 }

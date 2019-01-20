@@ -1007,15 +1007,12 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	timeStatus := &rpctypes.TimeStatus{
 		NtpTime:   reply.NtpTime,
 		LocalTime: reply.LocalTime,
 		Diff:      reply.Diff,
 	}
-
 	*result = timeStatus
-
 	return nil
 }
 
