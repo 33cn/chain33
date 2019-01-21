@@ -29,8 +29,10 @@ func TestGetRealTime(t *testing.T) {
 	if nettime.IsZero() {
 		return
 	}
-	//nettime 获取和本地时间应该
-	local := time.Now()
-	t.Log(nettime.Sub(local))
-	assert.Equal(t, int(local.Sub(nettime)/time.Second), 0)
+	nettime2 := GetRealTimeRetry(hosts, 10)
+	//get nettime error, ignore
+	if nettime2.IsZero() {
+		return
+	}
+	assert.Equal(t, int(nettime2.Sub(nettime)/time.Second), 0)
 }

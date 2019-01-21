@@ -107,7 +107,7 @@ func HashToAddress(version byte, in []byte) *Address {
 	a.Pubkey = make([]byte, len(in))
 	copy(a.Pubkey[:], in[:])
 	a.Version = version
-	a.Hash160 = common.Rimp160(in)
+	a.SetBytes(common.Rimp160(in))
 	return a
 }
 
@@ -191,10 +191,15 @@ func NewAddrFromString(hs string) (a *Address, e error) {
 //Address 地址
 type Address struct {
 	Version  byte
-	Hash160  []byte // For a stealth address: it's HASH160
-	Checksum []byte // Unused for a stealth address
-	Pubkey   []byte // Unused for a stealth address
+	Hash160  [20]byte // For a stealth address: it's HASH160
+	Checksum []byte   // Unused for a stealth address
+	Pubkey   []byte   // Unused for a stealth address
 	Enc58str string
+}
+
+//SetBytes 设置地址的bytes
+func (a *Address) SetBytes(b []byte) {
+	copy(a.Hash160[:], b)
 }
 
 func (a *Address) String() string {
