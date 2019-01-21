@@ -10,13 +10,13 @@ import (
 )
 
 // Scheme 自定义grpc负载局衡名
-const Scheme = "multiple"
+const scheme = "multiple"
 
 // Separator url分隔符
-const Separator = ":///"
+const separator = ":///"
 
 // MultiPleHostsBalancerPrefix url前缀
-const MultiPleHostsBalancerPrefix = Scheme + Separator
+const multiPleHostsBalancerPrefix = scheme + separator
 
 // defaultGrpcPort 默认grpc端口
 const defaultGrpcPort = "8802"
@@ -71,7 +71,7 @@ func (*multipleBuilder) Build(target resolver.Target, cc resolver.ClientConn, op
 }
 
 func (*multipleBuilder) Scheme() string {
-	return Scheme
+	return scheme
 }
 
 type multipleResolver struct {
@@ -90,4 +90,9 @@ func (*multipleResolver) Close() {}
 
 func init() {
 	resolver.Register(&multipleBuilder{})
+}
+
+//NewMultipleURL 创建url
+func NewMultipleURL(url string) string {
+	return multiPleHostsBalancerPrefix + url
 }
