@@ -7,8 +7,6 @@ import (
 	"errors"
 	"sync/atomic"
 
-	"strings"
-
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/rpc/grpcclient"
@@ -97,20 +95,11 @@ func newParaChainAPI(api client.QueueProtocolAPI, grpcaddr string) ExecutorAPI {
 		paraRemoteGrpcClient = "127.0.0.1:8002"
 	}
 
-	var conn *grpc.ClientConn
-	var err error
-	if len(strings.Split(paraRemoteGrpcClient, ",")) > 1 {
-		url := grpcclient.MultiPleHostsBalancerPrefix + paraRemoteGrpcClient
-		conn, err = grpc.Dial(url, grpc.WithInsecure(), grpc.WithBalancerName(grpcclient.SwitchBalancer))
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		conn, err = grpc.Dial(paraRemoteGrpcClient, grpc.WithInsecure())
-		if err != nil {
-			panic(err)
-		}
+	conn, err := grpc.Dial(grpcclient.MultiPleHostsBalancerPrefix + paraRemoteGrpcClient, grpc.WithInsecure())
+	if err != nil {
+		panic(err)
 	}
+
 	grpcClient := types.NewChain33Client(conn)
 	return &paraChainAPI{api: api, grpcClient: grpcClient}
 }
