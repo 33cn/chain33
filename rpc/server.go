@@ -12,7 +12,7 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/queue"
-	_ "github.com/33cn/chain33/rpc/grpcclient" // register switch balancer
+	_ "github.com/33cn/chain33/rpc/grpcclient" // register grpc multiple resolver
 	"github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
