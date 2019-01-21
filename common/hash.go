@@ -15,6 +15,36 @@ import (
 //Sha256Len sha256 bytes len
 const Sha256Len = 32
 
+//Hash type
+type Hash [Sha256Len]byte
+
+//BytesToHash []byte -> hash
+func BytesToHash(b []byte) Hash {
+	var h Hash
+	h.SetBytes(b)
+	return h
+}
+
+//HexToHash hex -> hash
+func HexToHash(s string) Hash {
+	b, err := FromHex(s)
+	if err != nil {
+		panic(err)
+	}
+	return BytesToHash(b)
+}
+
+//Bytes Get the []byte representation of the underlying hash
+func (h Hash) Bytes() []byte { return h[:] }
+
+//SetBytes Sets the hash to the value of b. If b is larger than len(h), 'b' will be cropped (from the left).
+func (h *Hash) SetBytes(b []byte) {
+	if len(b) > len(h) {
+		b = b[len(b)-Sha256Len:]
+	}
+	copy(h[Sha256Len-len(b):], b)
+}
+
 //ToHex []byte -> hex
 func ToHex(b []byte) string {
 	hex := hex.EncodeToString(b)
