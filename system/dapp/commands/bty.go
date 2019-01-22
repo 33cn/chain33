@@ -8,12 +8,13 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
-	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
-	"github.com/33cn/chain33/types"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"strings"
+
+	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
+	"github.com/33cn/chain33/types"
+	"github.com/spf13/cobra"
 )
 
 const (
