@@ -15,6 +15,7 @@ import (
 	clog "github.com/33cn/chain33/common/log"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/pluginmgr"
+	"github.com/33cn/chain33/rpc/grpcclient"
 	drivers "github.com/33cn/chain33/system/dapp"
 
 	// register drivers
@@ -40,6 +41,7 @@ func DisableLog() {
 type Executor struct {
 	client       queue.Client
 	qclient      client.QueueProtocolAPI
+	grpccli      types.Chain33Client
 	pluginEnable map[string]bool
 	alias        map[string]string
 }
@@ -102,6 +104,10 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	if err != nil {
 		panic(err)
 	}
+	exec.grpccli, err = grpcclient.NewMainChainClient("")
+	if err != nil {
+		panic(err)
+	}
 	//recv 消息的处理
 	go func() {
 		for msg := range exec.client.Recv() {
@@ -144,7 +150,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	db.(*StateDB).enableMVCC()
 	driver.SetStateDB(db)
 	driver.SetAPI(exec.qclient)
-
+	driver.SetExecutorAPI(exec.qclient, exec.grpccli)
 	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
 
 	ret, err := driver.Query(data.FuncName, data.Param)
@@ -168,7 +174,6 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	}
 	execute := newExecutor(ctx, exec, datas.Txs, nil)
 	execute.enableMVCC()
-	execute.api = exec.qclient
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
@@ -200,7 +205,6 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 	}
 	execute := newExecutor(ctx, exec, datas.Txs, nil)
 	execute.enableMVCC()
-	execute.api = exec.qclient
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
@@ -270,7 +274,6 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	}
 	execute := newExecutor(ctx, exec, b.Txs, datas.Receipts)
 	execute.enableMVCC()
-	execute.api = exec.qclient
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
 		execute.stateDB.Set(kv.Key, kv.Value)
@@ -331,7 +334,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	}
 	execute := newExecutor(ctx, exec, b.Txs, nil)
 	execute.enableMVCC()
-	execute.api = exec.qclient
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
 		execute.stateDB.Set(kv.Key, kv.Value)

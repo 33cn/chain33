@@ -29,6 +29,7 @@ type executor struct {
 	difficulty uint64
 	txs        []*types.Transaction
 	api        client.QueueProtocolAPI
+	gcli       types.Chain33Client
 	execapi    api.ExecutorAPI
 	receipts   []*types.ReceiptData
 }
@@ -58,6 +59,8 @@ func newExecutor(ctx *executorCtx, exec *Executor, txs []*types.Transaction, rec
 		ctx:          ctx,
 		txs:          txs,
 		receipts:     receipts,
+		api:          exec.qclient,
+		gcli:         exec.grpccli,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -150,6 +153,7 @@ func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetBlockInfo(e.ctx.parentHash, e.ctx.mainHash, e.ctx.mainHeight)
 	exec.SetAPI(e.api)
+	exec.SetExecutorAPI(e.api, e.gcli)
 	e.execapi = exec.GetExecutorAPI()
 	exec.SetTxs(e.txs)
 	exec.SetReceipt(e.receipts)
