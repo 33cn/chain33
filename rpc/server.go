@@ -198,6 +198,9 @@ func InitCfg(cfg *types.RPC) {
 // New produce a rpc by cfg
 func New(cfg *types.RPC) *RPC {
 	InitCfg(cfg)
+	if cfg.EnableTrace {
+		grpc.EnableTracing = true
+	}
 	return &RPC{cfg: cfg}
 }
 
