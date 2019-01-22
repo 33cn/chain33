@@ -40,8 +40,6 @@ import (
 	"github.com/33cn/chain33/store"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet"
-	"golang.org/x/net/trace"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
 
@@ -116,9 +114,6 @@ func RunChain33(name string) {
 			http.ListenAndServe("localhost:6060", nil)
 		}
 	}()
-	//set trace
-	grpc.EnableTracing = true
-	go startTrace()
 	//set maxprocs
 	runtime.GOMAXPROCS(cpuNum)
 	//开始区块链模块加载
@@ -199,16 +194,6 @@ func RunChain33(name string) {
 
 	}()
 	q.Start()
-}
-
-// 开启trace
-
-func startTrace() {
-	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
-		return true, true
-	}
-	go http.ListenAndServe("localhost:50051", nil)
-	log.Info("Trace listen on localhost:50051")
 }
 
 func createFile(filename string) (*os.File, error) {
