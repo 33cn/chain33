@@ -58,6 +58,7 @@ type Driver interface {
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
 	SetAPI(client.QueueProtocolAPI)
+	SetExecutorAPI(queueapi client.QueueProtocolAPI, chain33api types.Chain33Client)
 	SetTxs(txs []*types.Transaction)
 	SetReceipt(receipts []*types.ReceiptData)
 
@@ -129,7 +130,11 @@ func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
 // SetAPI set queue protocol api
 func (d *DriverBase) SetAPI(queueapi client.QueueProtocolAPI) {
 	d.api = queueapi
-	d.execapi = api.New(queueapi, "")
+}
+
+// SetExecutorAPI set queue protocol api
+func (d *DriverBase) SetExecutorAPI(queueapi client.QueueProtocolAPI, chain33api types.Chain33Client) {
+	d.execapi = api.New(queueapi, chain33api)
 }
 
 // GetAPI return queue protocol api
