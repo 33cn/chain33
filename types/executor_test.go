@@ -133,3 +133,10 @@ func TestCallCreateTx(t *testing.T) {
 	fee, _ = tx.GetRealFee(GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 }
+
+func TestIsAssetsTransfer(t *testing.T) {
+	assert.Equal(t, true, IsAssetsTransfer(&AssetsTransfer{}))
+	assert.Equal(t, true, IsAssetsTransfer(&AssetsWithdraw{}))
+	assert.Equal(t, true, IsAssetsTransfer(&AssetsTransferToExec{}))
+	assert.Equal(t, false, IsAssetsTransfer(&Transaction{}))
+}

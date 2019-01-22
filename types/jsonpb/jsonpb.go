@@ -54,6 +54,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/33cn/chain33/common"
 	"github.com/golang/protobuf/proto"
@@ -71,6 +72,9 @@ type Marshaler struct {
 
 	// Whether to render fields with zero values.
 	EmitDefaults bool
+
+	//Enable utf8 bytes to string
+	EnableUTF8BytesToString bool
 
 	// A string to indent each level by. The presence of this field will
 	// also cause a space to appear between the field separator and
@@ -532,7 +536,13 @@ func (m *Marshaler) marshalValue(out *errWriter, prop *proto.Properties, v refle
 			return out.err
 		}
 		out.write(`"`)
-		out.write(common.ToHex(v.Interface().([]byte)))
+		data := v.Interface().([]byte)
+		//开启这个选项后，会把utf8的字符串转化成string,而不会弄成hex
+		if m.EnableUTF8BytesToString && utf8.Valid(data) {
+			out.write(string(data))
+		} else {
+			out.write(common.ToHex(data))
+		}
 		out.write(`"`)
 		return out.err
 	}
@@ -671,6 +681,9 @@ type Unmarshaler struct {
 	// Whether to allow messages to contain unknown fields, as opposed to
 	// failing to unmarshal.
 	AllowUnknownFields bool
+
+	//Enable utf8 bytes to string
+	EnableUTF8BytesToString bool
 
 	// A custom URL resolver to use when unmarshaling Any messages from JSON.
 	// If unset, the default resolution strategy is to extract the
@@ -1041,7 +1054,7 @@ func (u *Unmarshaler) unmarshalValue(target reflect.Value, inputValue json.RawMe
 		if err != nil {
 			return err
 		}
-		b, err := parseBytes(hexstr)
+		b, err := parseBytes(hexstr, u.EnableUTF8BytesToString)
 		if err != nil {
 			return err
 		}
@@ -1317,7 +1330,7 @@ func checkRequiredFieldsInValue(v reflect.Value) error {
 //ErrBytesFormat 错误的bytes 类型
 var ErrBytesFormat = errors.New("ErrBytesFormat")
 
-func parseBytes(jsonstr string) ([]byte, error) {
+func parseBytes(jsonstr string, enableUTF8BytesToString bool) ([]byte, error) {
 	if jsonstr == "" {
 		return []byte{}, nil
 	}
@@ -1326,6 +1339,11 @@ func parseBytes(jsonstr string) ([]byte, error) {
 	}
 	if strings.HasPrefix(jsonstr, "0x") || strings.HasPrefix(jsonstr, "0X") {
 		return common.FromHex(jsonstr)
+	}
+	//字符串不是 hex 格式， 也不是 str:// 格式，但是是一个普通的utf8 字符串
+	//那么强制转化为bytes, 注意这个选项默认不开启.
+	if utf8.ValidString(jsonstr) && enableUTF8BytesToString {
+		return []byte(jsonstr), nil
 	}
 	return nil, ErrBytesFormat
 }
