@@ -5,6 +5,7 @@
 package common
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,14 +26,17 @@ var NtpHosts = []string{
 func TestGetRealTime(t *testing.T) {
 	hosts := NtpHosts
 	nettime := GetRealTimeRetry(hosts, 10)
+	now := time.Now()
 	//get nettime error, ignore
 	if nettime.IsZero() {
 		return
 	}
 	nettime2 := GetRealTimeRetry(hosts, 10)
 	//get nettime error, ignore
+	delt := time.Since(now)
 	if nettime2.IsZero() {
 		return
 	}
-	assert.Equal(t, int(nettime2.Sub(nettime)/time.Second), 0)
+	fmt.Println(nettime, nettime2)
+	assert.Equal(t, nettime2.Sub(nettime)/time.Second, delt/time.Second)
 }
