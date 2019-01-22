@@ -153,6 +153,30 @@ func TestProtoToJson(t *testing.T) {
 	assert.Equal(t, dr.Msg, []byte{})
 }
 
+func TestJsonpbUTF8(t *testing.T) {
+	r := &Reply{Msg: []byte("OK")}
+	b, err := PBToJSONUTF8(r)
+	assert.Nil(t, err)
+	assert.Equal(t, b, []byte(`{"isOk":false,"msg":"OK"}`))
+
+	var newreply Reply
+	err = JSONToPBUTF8(b, &newreply)
+	assert.Nil(t, err)
+	assert.Equal(t, r, &newreply)
+}
+
+func TestJsonpb(t *testing.T) {
+	r := &Reply{Msg: []byte("OK")}
+	b, err := PBToJSON(r)
+	assert.Nil(t, err)
+	assert.Equal(t, b, []byte(`{"isOk":false,"msg":"0x4f4b"}`))
+
+	var newreply Reply
+	err = JSONToPB(b, &newreply)
+	assert.Nil(t, err)
+	assert.Equal(t, r, &newreply)
+}
+
 func TestHex(t *testing.T) {
 	s := "0x4f4b"
 	b, err := common.FromHex(s)

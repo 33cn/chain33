@@ -447,6 +447,20 @@ func getTo(payload interface{}) (string, bool) {
 	return "", false
 }
 
+//IsAssetsTransfer 是否是资产转移相关的交易
+func IsAssetsTransfer(payload interface{}) bool {
+	if _, ok := payload.(*AssetsTransfer); ok {
+		return true
+	}
+	if _, ok := payload.(*AssetsWithdraw); ok {
+		return true
+	}
+	if _, ok := payload.(*AssetsTransferToExec); ok {
+		return true
+	}
+	return false
+}
+
 //Amounter 转账金额
 type Amounter interface {
 	GetAmount() int64
