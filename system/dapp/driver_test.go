@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
@@ -81,6 +82,9 @@ func TestDriverAPI(t *testing.T) {
 	demo.SetLocalDB(kvdb)
 	demo.SetStateDB(kvdb)
 	demo.SetAPI(&mocks.QueueProtocolAPI{})
+	gcli, err := grpcclient.NewMainChainClient("")
+	assert.Nil(t, err)
+	demo.SetExecutorAPI(&mocks.QueueProtocolAPI{}, gcli)
 	assert.NotNil(t, demo.GetAPI())
 	assert.NotNil(t, demo.GetExecutorAPI())
 	types.SetTitleOnlyForTest("chain33")

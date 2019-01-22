@@ -9,6 +9,7 @@ import (
 	"github.com/33cn/chain33/queue"
 	qmocks "github.com/33cn/chain33/queue/mocks"
 	"github.com/33cn/chain33/rpc"
+	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -16,7 +17,9 @@ import (
 
 func TestAPI(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	eapi := New(api, "")
+	gapi, err := grpcclient.NewMainChainClient("")
+	assert.Nil(t, err)
+	eapi := New(api, gapi)
 	param := &types.ReqHashes{
 		Hashes: [][]byte{[]byte("hello")},
 	}
@@ -54,13 +57,16 @@ func TestAPI(t *testing.T) {
 	go server.Listen()
 	time.Sleep(time.Second)
 
-	eapi = New(api, "")
+	eapi = New(api, gapi)
 	_, err = eapi.GetBlockByHashes(param)
 	assert.Equal(t, true, IsGrpcError(err))
 	assert.Equal(t, false, IsGrpcError(nil))
 	assert.Equal(t, false, IsGrpcError(errors.New("xxxx")))
 	assert.Equal(t, true, eapi.IsErr())
-	eapi = New(api, "127.0.0.1:8003")
+
+	gapi2, err := grpcclient.NewMainChainClient("127.0.0.1:8003")
+	assert.Nil(t, err)
+	eapi = New(api, gapi2)
 	detail, err = eapi.GetBlockByHashes(param)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, detail, &types.BlockDetails{})
