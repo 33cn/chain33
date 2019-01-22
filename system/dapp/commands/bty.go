@@ -17,10 +17,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	defaultPrivacyMixCount = 16
-)
-
 // BTYCmd bty command
 func BTYCmd() *cobra.Command {
 	cmd := &cobra.Command{
