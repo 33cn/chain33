@@ -130,6 +130,8 @@ func TestKeyAllow_evm(t *testing.T) {
 func TestKeyLocalAllow(t *testing.T) {
 	err := isAllowLocalKey([]byte("token"), []byte("LODB-token-"))
 	assert.Equal(t, err, types.ErrLocalKeyLen)
+	err = isAllowLocalKey([]byte("token"), []byte("LODB_token-a"))
+	assert.Error(t, err, types.ErrLocalPrefix)
 	err = isAllowLocalKey([]byte("token"), []byte("LODB-token-a"))
 	assert.Nil(t, err)
 	err = isAllowLocalKey([]byte(""), []byte("LODB--a"))
