@@ -88,9 +88,9 @@ func isAllowLocalKey2(execer []byte, key []byte) error {
 		err := errors.Wrapf(types.ErrLocalKeyLen, "isAllowLocalKey too short. key=%s exec=%s", string(key), string(execer))
 		return err
 	}
-	if key[minkeylen-1] != '-' {
+	if key[minkeylen-1] != '-' || key[len(types.LocalPrefix)] != '-' {
 		err := errors.Wrapf(types.ErrLocalPrefix,
-			"isAllowLocalKey prefix last char is not '-'. key=%s exec=%s minkeylen=%d title=%s",
+			"isAllowLocalKey prefix last char or separator is not '-'. key=%s exec=%s minkeylen=%d title=%s",
 			string(key), string(execer), minkeylen, types.GetTitle())
 		return err
 	}
