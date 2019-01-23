@@ -62,7 +62,7 @@ func (*multipleBuilder) Build(target resolver.Target, cc resolver.ClientConn, op
 			return nil, err
 		}
 
-		if net.ParseIP(host) != nil {
+		if host != "" {
 			r.addrs = append(r.addrs, resolver.Address{Addr: host + ":" + port})
 		}
 	}
