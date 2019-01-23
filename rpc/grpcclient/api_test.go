@@ -46,6 +46,37 @@ func TestMultipleGRPC(t *testing.T) {
 	assert.Equal(t, reply.Hash, []byte("hello"))
 }
 
+func TestMultipleGRPCLocalhost(t *testing.T) {
+	qapi := new(mocks.QueueProtocolAPI)
+	qapi.On("Query", "ticket", "RandNumHash", mock.Anything).Return(&types.ReplyHash{Hash: []byte("hello")}, nil)
+	//testnode setup
+	rpcCfg := new(types.RPC)
+	rpcCfg.GrpcBindAddr = "localhost:8003"
+	rpcCfg.JrpcBindAddr = "localhost:8004"
+	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
+	rpcCfg.Whitelist = []string{"localhost", "0.0.0.0"}
+	rpcCfg.JrpcFuncWhitelist = []string{"*"}
+	rpcCfg.GrpcFuncWhitelist = []string{"*"}
+	rpc.InitCfg(rpcCfg)
+	server := rpc.NewGRpcServer(&qmocks.Client{}, qapi)
+	assert.NotNil(t, server)
+	go server.Listen()
+	time.Sleep(time.Second)
+	//一个IP 有效，一个IP 无效
+	paraRemoteGrpcClient := "localhost:8004,localhost:8003,localhost"
+	conn, err := grpc.Dial(grpcclient.NewMultipleURL(paraRemoteGrpcClient), grpc.WithInsecure())
+	assert.Nil(t, err)
+	grpcClient := types.NewChain33Client(conn)
+	param := &types.ReqRandHash{
+		ExecName: "ticket",
+		BlockNum: 5,
+		Hash:     []byte("hello"),
+	}
+	reply, err := grpcClient.QueryRandNum(context.Background(), param)
+	assert.Nil(t, err)
+	assert.Equal(t, reply.Hash, []byte("hello"))
+}
+
 func TestNewParaClient(t *testing.T) {
 	qapi := new(mocks.QueueProtocolAPI)
 	qapi.On("Query", "ticket", "RandNumHash", mock.Anything).Return(&types.ReplyHash{Hash: []byte("hello")}, nil)
