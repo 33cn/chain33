@@ -5,8 +5,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-// paraChainGrpcRecSize 平行链receive最大30M
-const paraChainGrpcRecSize = 30 * 1024 * 1024
+// paraChainGrpcRecSize 平行链receive最大100M
+const paraChainGrpcRecSize = 100 * 1024 * 1024
 
 //NewMainChainClient 创建一个平行链的 主链 grpc chain33 客户端
 func NewMainChainClient(grpcaddr string) (types.Chain33Client, error) {
