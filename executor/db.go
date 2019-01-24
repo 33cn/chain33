@@ -51,10 +51,13 @@ func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *Sta
 	return db
 }
 
-func (s *StateDB) enableMVCC() {
+func (s *StateDB) enableMVCC(hash []byte) {
 	opt := s.opt
 	if opt.EnableMVCC {
-		v, err := s.local.GetVersion(s.stateHash)
+		if hash == nil {
+			hash = s.stateHash
+		}
+		v, err := s.local.GetVersion(hash)
 		if err == nil && v >= 0 {
 			s.version = v
 		} else if s.height > 0 {

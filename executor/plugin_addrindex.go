@@ -15,7 +15,7 @@ func init() {
 }
 
 type addrindexPlugin struct {
-	*pluginBase
+	pluginBase
 }
 
 func (p *addrindexPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {

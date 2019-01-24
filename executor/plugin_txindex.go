@@ -16,7 +16,7 @@ func init() {
 }
 
 type txindexPlugin struct {
-	*pluginBase
+	pluginBase
 }
 
 func (p *txindexPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {
