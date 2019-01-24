@@ -151,6 +151,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	driver.SetStateDB(db)
 	driver.SetAPI(exec.qclient)
 	driver.SetExecutorAPI(exec.qclient, exec.grpccli)
+	driver.SetEnv(header.GetHeight(), 0, 0)
 	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
 
 	ret, err := driver.Query(data.FuncName, data.Param)
