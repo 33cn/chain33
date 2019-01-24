@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
-	"github.com/33cn/chain33/rpc/jsonclient"
 	"github.com/33cn/chain33/types"
 	wcom "github.com/33cn/chain33/wallet/common"
 
@@ -114,26 +114,8 @@ func (c *Chain33) SendRawTransaction(in rpctypes.SignedTx, result *interface{}) 
 	return fmt.Errorf(string(reply.Msg))
 }
 
-// used only in parachain
-func forwardTranToMainNet(in rpctypes.RawParm, result *interface{}) error {
-	if rpcCfg.MainnetJrpcAddr == "" {
-		return types.ErrInvalidMainnetRPCAddr
-	}
-	rpc, err := jsonclient.NewJSONClient(rpcCfg.MainnetJrpcAddr)
-
-	if err != nil {
-		return err
-	}
-
-	err = rpc.Call("Chain33.SendTransaction", in, result)
-	return err
-}
-
 // SendTransaction send transaction
 func (c *Chain33) SendTransaction(in rpctypes.RawParm, result *interface{}) error {
-	if types.IsPara() {
-		return forwardTranToMainNet(in, result)
-	}
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
@@ -141,7 +123,15 @@ func (c *Chain33) SendTransaction(in rpctypes.RawParm, result *interface{}) erro
 	}
 	types.Decode(data, &parm)
 	log.Debug("SendTransaction", "parm", parm)
-	reply, err := c.cli.SendTx(&parm)
+
+	var reply *types.Reply
+	//para chain, forward to main chain
+	if types.IsPara() {
+		reply, err = c.mainGrpcCli.SendTransaction(context.Background(), &parm)
+	} else {
+		reply, err = c.cli.SendTx(&parm)
+	}
+
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
 	}
@@ -1045,6 +1035,22 @@ func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) er
 		return err
 	}
 	*result = resp.GetData()
+	return nil
+}
+
+// GetBlockSequences get the block loading sequence number information for the specified interval
+func (c *Chain33) GetBlockSequences(in rpctypes.BlockParam, result *interface{}) error {
+	resp, err := c.cli.GetBlockSequences(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
+	if err != nil {
+		return err
+	}
+	var BlkSeqs rpctypes.ReplyBlkSeqs
+	items := resp.GetItems()
+	for _, item := range items {
+		BlkSeqs.BlkSeqInfos = append(BlkSeqs.BlkSeqInfos, &rpctypes.ReplyBlkSeq{Hash: common.ToHex(item.GetHash()),
+			Type: item.GetType()})
+	}
+	*result = &BlkSeqs
 	return nil
 }
 

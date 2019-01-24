@@ -12,7 +12,7 @@ func NewMainChainClient(grpcaddr string) (types.Chain33Client, error) {
 		paraRemoteGrpcClient = grpcaddr
 	}
 	if paraRemoteGrpcClient == "" {
-		paraRemoteGrpcClient = "127.0.0.1:8002"
+		paraRemoteGrpcClient = "127.0.0.1:8802"
 	}
 	conn, err := grpc.Dial(NewMultipleURL(paraRemoteGrpcClient), grpc.WithInsecure())
 	if err != nil {
