@@ -47,7 +47,6 @@ func TestAPI(t *testing.T) {
 	rpcCfg := new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8003"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8004"
-	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}

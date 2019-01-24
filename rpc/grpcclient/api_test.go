@@ -22,7 +22,6 @@ func TestMultipleGRPC(t *testing.T) {
 	rpcCfg := new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8003"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8004"
-	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
@@ -53,7 +52,6 @@ func TestMultipleGRPCLocalhost(t *testing.T) {
 	rpcCfg := new(types.RPC)
 	rpcCfg.GrpcBindAddr = "localhost:8003"
 	rpcCfg.JrpcBindAddr = "localhost:8004"
-	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
 	rpcCfg.Whitelist = []string{"localhost", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
@@ -84,7 +82,6 @@ func TestNewParaClient(t *testing.T) {
 	rpcCfg := new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8003"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8004"
-	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
