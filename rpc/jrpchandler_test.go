@@ -1214,6 +1214,26 @@ func TestChain33_GetLastBlockSequence(t *testing.T) {
 	assert.Equal(t, int64(1), result2)
 }
 
+func TestChain33_GetBlockSequences(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+	var result interface{}
+	api.On("GetBlockSequences", mock.Anything).Return(nil, types.ErrInvalidParam)
+	err := client.GetBlockSequences(rpctypes.BlockParam{}, &result)
+	assert.NotNil(t, err)
+
+	api = new(mocks.QueueProtocolAPI)
+	client = newTestChain33(api)
+	var result2 interface{}
+	blocks := types.BlockSequences{}
+	blocks.Items = make([]*types.BlockSequence, 0)
+	blocks.Items = append(blocks.Items, &types.BlockSequence{Hash: []byte("h1"), Type: 1})
+	api.On("GetBlockSequences", mock.Anything).Return(&blocks, nil)
+	err = client.GetBlockSequences(rpctypes.BlockParam{}, &result2)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(result2.(*rpctypes.ReplyBlkSeqs).BlkSeqInfos))
+}
+
 func TestChain33_GetBlockByHashes(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)

@@ -968,6 +968,26 @@ func (q *QueueProtocol) GetBlockBySeq(param *types.Int64) (*types.BlockSeq, erro
 	return nil, types.ErrTypeAsset
 }
 
+// GetBlockSequences block执行序列号
+func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetBlockSequences", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(blockchainKey, types.EventGetBlockSequences, param)
+	if err != nil {
+		log.Error("GetBlockSequences", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.BlockSequences); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("GetBlockSequences", "Error", err)
+	return nil, err
+}
+
 // QueryChain query chain
 func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, error) {
 	if param == nil {
