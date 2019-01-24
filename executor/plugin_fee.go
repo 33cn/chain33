@@ -11,7 +11,7 @@ func init() {
 }
 
 type feePlugin struct {
-	*pluginBase
+	pluginBase
 	fee types.TotalFee
 }
 

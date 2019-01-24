@@ -66,8 +66,8 @@ func newExecutor(ctx *executorCtx, exec *Executor, txs []*types.Transaction, rec
 	return e
 }
 
-func (e *executor) enableMVCC() {
-	e.stateDB.(*StateDB).enableMVCC()
+func (e *executor) enableMVCC(hash []byte) {
+	e.stateDB.(*StateDB).enableMVCC(hash)
 }
 
 // AddMVCC convert key value to mvcc kv data
