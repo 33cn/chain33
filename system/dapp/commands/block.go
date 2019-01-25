@@ -288,7 +288,8 @@ func addBlockByHashsFlags(cmd *cobra.Command) {
 func getblockbyhashs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	hashes, _ := cmd.Flags().GetString("hashes")
-	hashesArr := strings.Split(hashes, " ")
+	hashesArr := strings.Fields(hashes)
+
 	params := rpctypes.ReqHashes{
 		Hashes: hashesArr,
 	}
