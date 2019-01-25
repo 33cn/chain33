@@ -873,6 +873,9 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 
 // QueryTotalFee query total fee
 func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error {
+	if in == nil || len(in.Keys) > 1 {
+		return types.ErrInvalidParam
+	}
 	reply, err := c.cli.LocalGet(in)
 	if err != nil {
 		return err
