@@ -53,8 +53,8 @@ message CreateTx {
 }
 
 message ReWriteRawTx {
-    string tx     = 1;
-    bytes  execer = 2;
+    string tx = 1;
+    // bytes  execer = 2;
     string to     = 3;
     string expire = 4;
     int64  fee    = 5;
