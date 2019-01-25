@@ -157,8 +157,7 @@ func TestTokenFinisher(t *testing.T) {
 	mocker.Listen()
 	err := mocker.SendHot()
 	assert.Nil(t, err)
-	//创建黑名单
-	// -o add -v BTY
+	//添加发币审核地址
 	create := &types.ModifyConfig{
 		Key:   "token-finisher",
 		Op:    "add",
