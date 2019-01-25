@@ -149,3 +149,60 @@ func TestManageConfig(t *testing.T) {
 	assert.Equal(t, reply.Key, "token-blacklist")
 	assert.Equal(t, reply.Value, "[BTY YCC]")
 }
+
+func TestTokenFinisher(t *testing.T) {
+	cfg, sub := testnode.GetDefaultConfig()
+	mocker := testnode.NewWithConfig(cfg, sub, nil)
+	defer mocker.Close()
+	mocker.Listen()
+	err := mocker.SendHot()
+	assert.Nil(t, err)
+	//创建黑名单
+	// -o add -v BTY
+	create := &types.ModifyConfig{
+		Key:   "token-finisher",
+		Op:    "add",
+		Value: "1FCX9XJTZXvZteagTrefJEBPZMt8BFmdoi",
+		Addr:  "",
+	}
+	jsondata := types.MustPBToJSON(create)
+	/*
+	  {
+	  		"execer": "manage",
+	  		"actionName": "Modify",
+	  		"payload": {
+	  			"key": "token-finisher",
+	  			"value": "1FCX9XJTZXvZteagTrefJEBPZMt8BFmdoi",
+	  			"op": "add",
+	  			"addr": ""
+	  		}
+	  	}
+	*/
+	req := &rpctypes.CreateTxIn{
+		Execer:     "manage",
+		ActionName: "Modify",
+		Payload:    jsondata,
+	}
+	var txhex string
+	err = mocker.GetJSONC().Call("Chain33.CreateTransaction", req, &txhex)
+	assert.Nil(t, err)
+	hash, err := mocker.SendAndSign(mocker.GetHotKey(), txhex)
+	assert.Nil(t, err)
+	txinfo, err := mocker.WaitTx(hash)
+	assert.Nil(t, err)
+	assert.Equal(t, txinfo.Receipt.Ty, int32(2))
+
+	queryreq := &types.ReqString{
+		Data: "token-finisher",
+	}
+	query := &rpctypes.Query4Jrpc{
+		Execer:   "manage",
+		FuncName: "GetConfigItem",
+		Payload:  types.MustPBToJSON(queryreq),
+	}
+	var reply types.ReplyConfig
+	err = mocker.GetJSONC().Call("Chain33.Query", query, &reply)
+	assert.Nil(t, err)
+	assert.Equal(t, reply.Key, "token-finisher")
+	assert.Equal(t, reply.Value, "[1FCX9XJTZXvZteagTrefJEBPZMt8BFmdoi]")
+}
