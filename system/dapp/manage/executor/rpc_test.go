@@ -52,6 +52,37 @@ func TestManageConfig(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, txinfo.Receipt.Ty, int32(2))
 
+	create = &types.ModifyConfig{
+		Key:   "token-blacklist",
+		Op:    "add",
+		Value: "YCC",
+		Addr:  "",
+	}
+	jsondata = types.MustPBToJSON(create)
+	/*
+	  {
+	  		"execer": "manage",
+	  		"actionName": "Modify",
+	  		"payload": {
+	  			"key": "token-blacklist",
+	  			"value": "BTY",
+	  			"op": "add",
+	  			"addr": ""
+	  		}
+	  	}
+	*/
+	req = &rpctypes.CreateTxIn{
+		Execer:     "manage",
+		ActionName: "Modify",
+		Payload:    jsondata,
+	}
+	err = mocker.GetJSONC().Call("Chain33.CreateTransaction", req, &txhex)
+	assert.Nil(t, err)
+	hash, err = mocker.SendAndSign(mocker.GetHotKey(), txhex)
+	assert.Nil(t, err)
+	txinfo, err = mocker.WaitTx(hash)
+	assert.Nil(t, err)
+	assert.Equal(t, txinfo.Receipt.Ty, int32(2))
 	//做一个查询
 	/*
 		{
@@ -75,5 +106,5 @@ func TestManageConfig(t *testing.T) {
 	err = mocker.GetJSONC().Call("Chain33.Query", query, &reply)
 	assert.Nil(t, err)
 	assert.Equal(t, reply.Key, "token-blacklist")
-	assert.Equal(t, reply.Value, "[BTY]")
+	assert.Equal(t, reply.Value, "[BTY YCC]")
 }
