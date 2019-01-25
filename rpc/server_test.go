@@ -104,11 +104,6 @@ func TestJSONClient_Call(t *testing.T) {
 	err = jsonClient.Call("Chain33.QueryTotalFee", &types.ReqSignRawTx{}, &fee)
 	assert.NotNil(t, err)
 
-	var ticket []types.TicketMinerInfo
-	api.On("LocalList", mock.Anything).Return(nil, errors.New("error value"))
-	err = jsonClient.Call("Chain33.QueryTicketInfoList", &types.ReqSignRawTx{}, &ticket)
-	assert.NotNil(t, err)
-
 	var retNtp bool
 	api.On("IsNtpClockSync", mock.Anything).Return(&types.Reply{IsOk: true, Msg: []byte("yes")}, nil)
 	err = jsonClient.Call("Chain33.IsNtpClockSync", &types.ReqNil{}, &retNtp)
