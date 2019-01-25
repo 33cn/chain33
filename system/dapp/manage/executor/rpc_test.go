@@ -59,18 +59,26 @@ func TestManageConfig(t *testing.T) {
 		Addr:  "",
 	}
 	jsondata = types.MustPBToJSON(create)
-	/*
-	  {
-	  		"execer": "manage",
-	  		"actionName": "Modify",
-	  		"payload": {
-	  			"key": "token-blacklist",
-	  			"value": "BTY",
-	  			"op": "add",
-	  			"addr": ""
-	  		}
-	  	}
-	*/
+	req = &rpctypes.CreateTxIn{
+		Execer:     "manage",
+		ActionName: "Modify",
+		Payload:    jsondata,
+	}
+	err = mocker.GetJSONC().Call("Chain33.CreateTransaction", req, &txhex)
+	assert.Nil(t, err)
+	hash, err = mocker.SendAndSign(mocker.GetHotKey(), txhex)
+	assert.Nil(t, err)
+	txinfo, err = mocker.WaitTx(hash)
+	assert.Nil(t, err)
+	assert.Equal(t, txinfo.Receipt.Ty, int32(2))
+
+	create = &types.ModifyConfig{
+		Key:   "token-blacklist",
+		Op:    "add",
+		Value: "TTT",
+		Addr:  "",
+	}
+	jsondata = types.MustPBToJSON(create)
 	req = &rpctypes.CreateTxIn{
 		Execer:     "manage",
 		ActionName: "Modify",
@@ -101,8 +109,41 @@ func TestManageConfig(t *testing.T) {
 		FuncName: "GetConfigItem",
 		Payload:  types.MustPBToJSON(queryreq),
 	}
-	util.JSONPrint(t, query)
 	var reply types.ReplyConfig
+	err = mocker.GetJSONC().Call("Chain33.Query", query, &reply)
+	assert.Nil(t, err)
+	assert.Equal(t, reply.Key, "token-blacklist")
+	assert.Equal(t, reply.Value, "[BTY YCC TTT]")
+
+	create = &types.ModifyConfig{
+		Key:   "token-blacklist",
+		Op:    "delete",
+		Value: "TTT",
+		Addr:  "",
+	}
+	jsondata = types.MustPBToJSON(create)
+	req = &rpctypes.CreateTxIn{
+		Execer:     "manage",
+		ActionName: "Modify",
+		Payload:    jsondata,
+	}
+	err = mocker.GetJSONC().Call("Chain33.CreateTransaction", req, &txhex)
+	assert.Nil(t, err)
+	hash, err = mocker.SendAndSign(mocker.GetHotKey(), txhex)
+	assert.Nil(t, err)
+	txinfo, err = mocker.WaitTx(hash)
+	assert.Nil(t, err)
+	util.JSONPrint(t, txinfo)
+	assert.Equal(t, txinfo.Receipt.Ty, int32(2))
+
+	queryreq = &types.ReqString{
+		Data: "token-blacklist",
+	}
+	query = &rpctypes.Query4Jrpc{
+		Execer:   "manage",
+		FuncName: "GetConfigItem",
+		Payload:  types.MustPBToJSON(queryreq),
+	}
 	err = mocker.GetJSONC().Call("Chain33.Query", query, &reply)
 	assert.Nil(t, err)
 	assert.Equal(t, reply.Key, "token-blacklist")
