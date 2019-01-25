@@ -1051,7 +1051,6 @@ func TestReWriteRawTx(t *testing.T) {
 	txHex1 := "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"
 	in := &types.ReWriteRawTx{
 		Tx:     txHex1,
-		Execer: []byte("paracross"),
 		Fee:    29977777777,
 		Expire: "130s",
 		To:     "aabbccdd",
@@ -1066,7 +1065,6 @@ func TestReWriteRawTx(t *testing.T) {
 	tx := &types.Transaction{}
 	err = types.Decode(data.Data, tx)
 	assert.Nil(t, err)
-	assert.Equal(t, tx.Execer, []byte(in.Execer))
 	assert.Equal(t, tx.Fee, in.Fee)
 	assert.Equal(t, int64(130000000000), tx.Expire)
 	assert.Equal(t, in.To, tx.To)

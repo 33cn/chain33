@@ -413,7 +413,6 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 
 	reTx := &rpctypes.ReWriteRawTx{
 		Tx:     txHex1,
-		Execer: "paracross",
 		Fee:    29977777777,
 		Expire: "130s",
 		To:     "aabbccdd",
@@ -428,7 +427,6 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 	tx := &types.Transaction{}
 	err = types.Decode(txData, tx)
 	assert.Nil(t, err)
-	assert.Equal(t, tx.Execer, []byte(reTx.Execer))
 	assert.Equal(t, tx.Fee, reTx.Fee)
 	assert.Equal(t, int64(130000000000), tx.Expire)
 	assert.Equal(t, reTx.To, tx.To)

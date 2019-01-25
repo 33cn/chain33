@@ -48,7 +48,6 @@ func (c *Chain33) CreateRawTransaction(in *rpctypes.CreateTx, result *interface{
 func (c *Chain33) ReWriteRawTx(in *rpctypes.ReWriteRawTx, result *interface{}) error {
 	inpb := &types.ReWriteRawTx{
 		Tx:     in.Tx,
-		Execer: []byte(in.Execer),
 		To:     in.To,
 		Fee:    in.Fee,
 		Expire: in.Expire,

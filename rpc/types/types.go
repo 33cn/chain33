@@ -377,7 +377,6 @@ type CreateTx struct {
 // ReWriteRawTx parameter
 type ReWriteRawTx struct {
 	Tx     string `json:"tx"`
-	Execer string `json:"execer"`
 	To     string `json:"to"`
 	Fee    int64  `json:"fee"`
 	Expire string `json:"expire"`

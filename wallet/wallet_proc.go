@@ -80,9 +80,6 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", err
 	}
 
-	if unsigned.GetNewExecer() != nil {
-		tx.Execer = unsigned.NewExecer
-	}
 	if unsigned.NewToAddr != "" {
 		tx.To = unsigned.NewToAddr
 	}

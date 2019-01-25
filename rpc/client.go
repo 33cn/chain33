@@ -63,9 +63,6 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	if param.Execer != nil {
-		tx.Execer = param.Execer
-	}
 	if param.To != "" {
 		tx.To = param.To
 	}
