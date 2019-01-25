@@ -924,58 +924,6 @@ func (c *Chain33) GetFatalFailure(in *types.ReqNil, result *interface{}) error {
 
 }
 
-// QueryTicketStat quert stat of ticket
-func (c *Chain33) QueryTicketStat(in *types.LocalDBGet, result *interface{}) error {
-	reply, err := c.cli.LocalGet(in)
-	if err != nil {
-		return err
-	}
-
-	var ticketStat types.TicketStatistic
-	err = types.Decode(reply.Values[0], &ticketStat)
-	if err != nil {
-		return err
-	}
-	*result = ticketStat
-	return nil
-}
-
-// QueryTicketInfo query ticket information
-func (c *Chain33) QueryTicketInfo(in *types.LocalDBGet, result *interface{}) error {
-	reply, err := c.cli.LocalGet(in)
-	if err != nil {
-		return err
-	}
-
-	var ticketInfo types.TicketMinerInfo
-	err = types.Decode(reply.Values[0], &ticketInfo)
-	if err != nil {
-		return err
-	}
-	*result = ticketInfo
-	return nil
-}
-
-// QueryTicketInfoList query ticket list information
-func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}) error {
-	reply, err := c.cli.LocalList(in)
-	if err != nil {
-		return err
-	}
-
-	var ticketInfo types.TicketMinerInfo
-	var ticketList []types.TicketMinerInfo
-	for _, v := range reply.Values {
-		err = types.Decode(v, &ticketInfo)
-		if err != nil {
-			return err
-		}
-		ticketList = append(ticketList, ticketInfo)
-	}
-	*result = ticketList
-	return nil
-}
-
 // DecodeRawTransaction decode rawtransaction
 func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
 	reply, err := c.cli.DecodeRawTransaction(in)
