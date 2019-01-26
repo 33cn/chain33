@@ -234,9 +234,11 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.A
 	for _, exec := range types.AllowUserExec {
 		execer := types.ExecName(string(exec))
 		params := &types.ReqBalance{
-			Addresses: addrs,
-			Execer:    execer,
-			StateHash: in.StateHash,
+			Addresses:   addrs,
+			Execer:      execer,
+			StateHash:   in.StateHash,
+			AssetExec:   in.AssetExec,
+			AssetSymbol: in.AssetSymbol,
 		}
 		res, err := c.GetBalance(params)
 		if err != nil {
