@@ -220,7 +220,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 }
 
 // GetAllExecBalance get balance of exec
-func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBalance, error) {
+func (c *channelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.AllExecBalance, error) {
 	addr := in.Addr
 	err := address.CheckAddress(addr)
 	if err != nil {
@@ -236,6 +236,7 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 		params := &types.ReqBalance{
 			Addresses: addrs,
 			Execer:    execer,
+			StateHash: in.StateHash,
 		}
 		res, err := c.GetBalance(params)
 		if err != nil {

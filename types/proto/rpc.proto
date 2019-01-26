@@ -135,7 +135,7 @@ service chain33 {
     rpc CloseQueue(ReqNil) returns (Reply) {}
 
     //获取地址所以合约下的余额
-    rpc GetAllExecBalance(ReqAddr) returns (AllExecBalance) {}
+    rpc GetAllExecBalance(ReqAllExecBalance) returns (AllExecBalance) {}
     //签名交易
     rpc SignRawTx(ReqSignRawTx) returns (ReplySignRawTx) {}
 

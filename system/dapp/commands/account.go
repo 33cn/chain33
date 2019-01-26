@@ -143,18 +143,15 @@ func balance(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
-	if execer == "" {
-		req := types.ReqAddr{Addr: addr}
+	if execer == "" && height == -1 {
+		req := types.ReqAllExecBalance{Addr: addr}
 		var res rpctypes.AllExecBalance
 		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
 		ctx.SetResultCb(parseGetAllBalanceRes)
 		ctx.Run()
 		return
 	}
-	if ok := types.IsAllowExecName([]byte(execer), []byte(execer)); !ok {
-		fmt.Fprintln(os.Stderr, types.ErrExecNameNotAllow)
-		return
-	}
+
 	stateHash := ""
 	if height >= 0 {
 		params := types.ReqBlocks{
@@ -171,6 +168,20 @@ func balance(cmd *cobra.Command, args []string) {
 		}
 		h := res.Items[0]
 		stateHash = h.StateHash
+	}
+
+	if execer == "" {
+		req := types.ReqAllExecBalance{Addr: addr, StateHash: stateHash}
+		var res rpctypes.AllExecBalance
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
+		ctx.SetResultCb(parseGetAllBalanceRes)
+		ctx.Run()
+		return
+	}
+
+	if ok := types.IsAllowExecName([]byte(execer), []byte(execer)); !ok {
+		fmt.Fprintln(os.Stderr, types.ErrExecNameNotAllow)
+		return
 	}
 
 	var addrs []string
