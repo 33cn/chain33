@@ -61,7 +61,7 @@ message AllExecBalance {
 
 message ReqAllExecBalance {
     //地址列表
-    string addr         = 1;
+    string addr = 1;
     //执行器名称
     string execer       = 2;
     string stateHash    = 3;
