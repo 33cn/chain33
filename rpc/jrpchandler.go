@@ -740,7 +740,7 @@ func (c *Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 }
 
 // GetAllExecBalance get all balance of exec
-func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error {
+func (c *Chain33) GetAllExecBalance(in types.ReqAllExecBalance, result *interface{}) error {
 	balance, err := c.cli.GetAllExecBalance(&in)
 	if err != nil {
 		return err

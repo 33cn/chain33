@@ -254,7 +254,7 @@ func (g *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts,
 }
 
 // GetAllExecBalance get balance of exec
-func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAddr) (*pb.AllExecBalance, error) {
+func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAllExecBalance) (*pb.AllExecBalance, error) {
 	return g.cli.GetAllExecBalance(in)
 }
 
