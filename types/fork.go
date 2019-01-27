@@ -205,7 +205,7 @@ func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkTxHeight", 806578)
 	systemFork.SetFork("chain33", "ForkTxGroupPara", 806578)
 	systemFork.SetFork("chain33", "ForkCheckBlockTime", 1200000)
-	systemFork.SetFork("chain33", "ForkMultiSignAddress", 1500000)
+	systemFork.SetFork("chain33", "ForkMultiSignAddress", 1298600)
 
 }
 
