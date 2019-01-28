@@ -47,7 +47,7 @@ func HasExec(name string) bool {
 // Register Register plugin
 func Register(p Plugin) {
 	if p == nil {
-		panic("plugin param is nil" + p.GetName())
+		panic("plugin param is nil")
 	}
 	packageName := p.GetName()
 	if len(packageName) == 0 {
