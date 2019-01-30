@@ -10,6 +10,7 @@ import (
 
 	"encoding/hex"
 
+	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/queue"
 	_ "github.com/33cn/chain33/system"
 	drivers "github.com/33cn/chain33/system/dapp"
@@ -148,4 +149,54 @@ func TestKeyLocalAllow(t *testing.T) {
 	assert.Nil(t, err)
 	err = isAllowLocalKey([]byte("user.p.para.paracross"), []byte("LODB-paracross-xxxx"))
 	assert.Nil(t, err)
+}
+
+func init() {
+	drivers.Register("demo", newdemoApp, 1)
+	types.AllowUserExec = append(types.AllowUserExec, []byte("demo"))
+}
+
+//ErrEnvAPI 测试
+type demoApp struct {
+	*drivers.DriverBase
+}
+
+func newdemoApp() drivers.Driver {
+	demo := &demoApp{DriverBase: &drivers.DriverBase{}}
+	demo.SetChild(demo)
+	return demo
+}
+
+func (demo *demoApp) GetDriverName() string {
+	return "demo"
+}
+
+func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
+	return nil, queue.ErrQueueTimeout
+}
+
+func TestExecutorErrAPIEnv(t *testing.T) {
+	minfee := types.GInt("MinFee")
+	types.SetMinFee(0)
+	defer types.SetMinFee(minfee)
+	q := queue.New("channel")
+	exec := &Executor{client: q.Client()}
+	execInit(nil)
+	var txs []*types.Transaction
+	genkey := util.TestPrivkeyList[0]
+	txs = append(txs, util.CreateTxWithExecer(genkey, "demo"))
+	txlist := &types.ExecTxList{
+		StateHash:  nil,
+		Height:     1,
+		BlockTime:  time.Now().Unix(),
+		Difficulty: 1,
+		MainHash:   nil,
+		MainHeight: 1,
+		ParentHash: nil,
+		Txs:        txs,
+	}
+	msg := queue.NewMessage(0, "", 1, txlist)
+	exec.procExecTxList(msg)
+	_, err := exec.client.WaitTimeout(msg, 100*time.Second)
+	assert.Equal(t, true, api.IsAPIEnvError(err))
 }

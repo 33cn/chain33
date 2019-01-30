@@ -29,7 +29,7 @@ import (
 */
 
 //ErrAPIEnv api的执行环境出问题，区块执行的时候，遇到这一个的错误需要retry
-var ErrAPIEnv = errors.New("ErrAPIEnv")
+var errAPIEnv = errors.New("ErrAPIEnv")
 
 //ExecutorAPI 提供给执行器使用的接口
 //因为合约是主链和平行链通用的，所以，主链和平行链都可以调用这套接口
@@ -96,7 +96,7 @@ func (api *paraChainAPI) IsErr() bool {
 func (api *paraChainAPI) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
 	data, err := api.grpcClient.QueryTransaction(context.Background(), param)
 	if err != nil {
-		err = ErrAPIEnv
+		err = errAPIEnv
 	}
 	return data, seterr(err, &api.errflag)
 }
@@ -104,7 +104,7 @@ func (api *paraChainAPI) QueryTx(param *types.ReqHash) (*types.TransactionDetail
 func (api *paraChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
 	reply, err := api.grpcClient.QueryRandNum(context.Background(), param)
 	if err != nil {
-		err = ErrAPIEnv
+		err = errAPIEnv
 		return nil, seterr(err, &api.errflag)
 	}
 	return reply.Hash, nil
@@ -113,7 +113,7 @@ func (api *paraChainAPI) GetRandNum(param *types.ReqRandHash) ([]byte, error) {
 func (api *paraChainAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
 	data, err := api.grpcClient.GetBlockByHashes(context.Background(), param)
 	if err != nil {
-		err = ErrAPIEnv
+		err = errAPIEnv
 	}
 	return data, seterr(err, &api.errflag)
 }
@@ -130,7 +130,7 @@ func IsGrpcError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if err == ErrAPIEnv {
+	if err == errAPIEnv {
 		return true
 	}
 	if grpc.Code(err) == codes.Unknown {
@@ -144,7 +144,7 @@ func IsQueueError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if err == ErrAPIEnv {
+	if err == errAPIEnv {
 		return true
 	}
 	if err == queue.ErrQueueTimeout ||
@@ -153,4 +153,9 @@ func IsQueueError(err error) bool {
 		return true
 	}
 	return false
+}
+
+//IsAPIEnvError 是否是api执行环境的错误
+func IsAPIEnvError(err error) bool {
+	return IsGrpcError(err) || IsQueueError(err)
 }
