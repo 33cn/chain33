@@ -217,7 +217,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		}
 		if tx.GroupCount == 0 {
 			receipt, err := execute.execTx(tx, index)
-			if api.IsGrpcError(err) || api.IsQueueError(err) {
+			if api.IsAPIEnvError(err) {
 				msg.Reply(exec.client.NewMessage("", types.EventReceipts, err))
 				return
 			}
@@ -245,7 +245,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			panic("len(receiptlist) must be equal tx.GroupCount")
 		}
 		if err != nil {
-			if api.IsGrpcError(err) || api.IsQueueError(err) {
+			if api.IsAPIEnvError(err) {
 				msg.Reply(exec.client.NewMessage("", types.EventReceipts, err))
 				return
 			}
