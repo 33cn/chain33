@@ -27,14 +27,15 @@ type Lister interface {
 type TxKV interface {
 	KV
 	IteratorDB
-	Commit() error
-	Rollback()
 }
 
 //KV kv
 type KV interface {
 	Get(key []byte) ([]byte, error)
 	Set(key []byte, value []byte) (err error)
+	Beigin()
+	Commit() error
+	Rollback()
 }
 
 //KVDB kvdb
@@ -210,6 +211,21 @@ func (db *BaseDB) SetCacheSize(size int) {
 		return
 	}
 	db.cache, _ = lru.NewARC(size)
+}
+
+//Beigin call panic when Beigin not rewrite
+func (db *BaseDB) Beigin() {
+	panic("Beigin not impl")
+}
+
+//Commit call panic when Commit not rewrite
+func (db *BaseDB) Commit() error {
+	panic("Commit not impl")
+}
+
+//Rollback call panic when Rollback not rewrite
+func (db *BaseDB) Rollback() {
+	panic("Rollback not impl")
 }
 
 //BeginTx call panic when BeginTx not rewrite
