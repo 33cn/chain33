@@ -232,4 +232,3 @@ func (db *BaseDB) Rollback() {
 func (db *BaseDB) BeginTx() (TxKV, error) {
 	panic("BeginTx not impl")
 }
-
