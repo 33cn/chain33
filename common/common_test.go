@@ -5,6 +5,7 @@
 package common
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,24 @@ func TestRandString(t *testing.T) {
 	str := GetRandString(10)
 	t.Log(str)
 	assert.Len(t, str, 10)
+}
+
+func TestInt64Add(t *testing.T) {
+	i := math.MaxInt64
+	assert.Equal(t, i+1, -9223372036854775808)
+	assert.Equal(t, i+2, -9223372036854775807)
+}
+
+func TestPointer(t *testing.T) {
+	id := StorePointer(0)
+	assert.Equal(t, int64(1), id)
+	data, err := GetPointer(id)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, data)
+
+	RemovePointer(id)
+	_, err = GetPointer(id)
+	assert.Equal(t, ErrPointerNotFound, err)
 }
 
 func TestRandStringLen(t *testing.T) {
