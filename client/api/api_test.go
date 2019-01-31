@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc/codes"
+
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/queue"
 	qmocks "github.com/33cn/chain33/queue/mocks"
@@ -13,6 +15,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc/status"
 )
 
 func TestAPI(t *testing.T) {
@@ -59,6 +62,7 @@ func TestAPI(t *testing.T) {
 	eapi = New(api, gapi)
 	_, err = eapi.GetBlockByHashes(param)
 	assert.Equal(t, true, IsGrpcError(err))
+	assert.Equal(t, true, IsGrpcError(status.New(codes.Aborted, "operation is abort").Err()))
 	assert.Equal(t, false, IsGrpcError(nil))
 	assert.Equal(t, false, IsGrpcError(errors.New("xxxx")))
 	assert.Equal(t, true, eapi.IsErr())
