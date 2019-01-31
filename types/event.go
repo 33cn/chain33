@@ -82,10 +82,11 @@ const (
 	EventReplyGetSeed = 74
 	EventDelBlock     = 75
 	//local store
-	EventLocalGet                = 76
-	EventLocalReplyValue         = 77
-	EventLocalList               = 78
-	EventLocalSet                = 79
+	EventLocalGet        = 76
+	EventLocalReplyValue = 77
+	EventLocalList       = 78
+	EventLocalSet        = 79
+
 	EventGetWalletStatus         = 80
 	EventCheckTx                 = 81
 	EventReceiptCheckTx          = 82
@@ -140,6 +141,9 @@ const (
 	EventGetSeqCBLastNum         = 133
 	EventGetBlockBySeq           = 134
 
+	EventLocalBegin    = 135
+	EventLocalCommit   = 136
+	EventLocalRollback = 137
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
