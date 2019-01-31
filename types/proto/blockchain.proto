@@ -161,8 +161,10 @@ message ReplyBlockHeight {
 // 	 txs : 区块上所有交易列表
 //	 receipts :区块上所有交易的收据信息列表
 message BlockBody {
-    repeated Transaction txs      = 1;
-    repeated ReceiptData receipts = 2;
+    repeated Transaction txs        = 1;
+    repeated ReceiptData receipts   = 2;
+    bytes                mainHash   = 3;
+    int64                mainHeight = 4;
 }
 //  区块追赶主链状态，用于判断本节点区块是否已经同步好
 message IsCaughtUp {

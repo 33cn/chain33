@@ -465,6 +465,8 @@ func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
 	block.Signature = blockheader.Signature
 	block.Difficulty = blockheader.Difficulty
 	block.Txs = blockbody.Txs
+	block.MainHeight = blockbody.MainHeight
+	block.MainHash = blockbody.MainHash
 
 	blockdetail.Receipts = blockbody.Receipts
 	blockdetail.Block = &block
@@ -487,6 +489,12 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	var blockbody types.BlockBody
 	blockbody.Txs = blockdetail.Block.Txs
 	blockbody.Receipts = blockdetail.Receipts
+	blockbody.MainHash = hash
+	blockbody.MainHeight = height
+	if types.IsPara() {
+		blockbody.MainHash = blockdetail.Block.MainHash
+		blockbody.MainHeight = blockdetail.Block.MainHeight
+	}
 
 	body, err := proto.Marshal(&blockbody)
 	if err != nil {
@@ -807,6 +815,12 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	var blockbody types.BlockBody
 	blockbody.Txs = blockdetail.Block.Txs
 	blockbody.Receipts = blockdetail.Receipts
+	blockbody.MainHash = hash
+	blockbody.MainHeight = height
+	if types.IsPara() {
+		blockbody.MainHash = blockdetail.Block.MainHash
+		blockbody.MainHeight = blockdetail.Block.MainHeight
+	}
 
 	body, err := proto.Marshal(&blockbody)
 	if err != nil {
