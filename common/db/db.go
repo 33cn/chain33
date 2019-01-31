@@ -233,19 +233,3 @@ func (db *BaseDB) BeginTx() (TxKV, error) {
 	panic("BeginTx not impl")
 }
 
-//MultiGet 多个key 一起返回 values
-//如果有notfound 的key，那么value 为 nil
-func MultiGet(db KV, keys [][]byte) (values [][]byte, err error) {
-	values = make([][]byte, len(keys))
-	for i := 0; i < len(keys); i++ {
-		values[i], err = db.Get(keys[i])
-		if err == types.ErrNotFound {
-			values[i] = nil
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-	}
-	return values, nil
-}
