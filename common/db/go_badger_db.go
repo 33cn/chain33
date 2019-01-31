@@ -17,7 +17,7 @@ var blog = log.New("module", "db.gobadgerdb")
 
 //GoBadgerDB db
 type GoBadgerDB struct {
-	TransactionDB
+	BaseDB
 	db *badger.DB
 }
 
@@ -201,12 +201,6 @@ func (db *GoBadgerDB) Iterator(start, end []byte, reverse bool) Iterator {
 		it.Seek(start)
 	}
 	return &goBadgerDBIt{it, itBase{start, end, reverse}, txn, nil}
-}
-
-//BatchGet 批量获取
-func (db *GoBadgerDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	blog.Error("BatchGet", "Need to implement")
-	return nil, nil
 }
 
 type goBadgerDBIt struct {

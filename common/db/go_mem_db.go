@@ -28,7 +28,7 @@ func init() {
 
 //GoMemDB db
 type GoMemDB struct {
-	TransactionDB
+	BaseDB
 	db   map[string][]byte
 	lock sync.RWMutex
 }
@@ -153,12 +153,6 @@ func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	sort.Strings(keys)
 	var index int
 	return &goMemDBIt{base, index, keys, db}
-}
-
-//BatchGet 批量获取
-func (db *GoMemDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	mlog.Error("BatchGet", "Need to implement")
-	return nil, nil
 }
 
 type goMemDBIt struct {

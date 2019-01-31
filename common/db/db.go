@@ -23,14 +23,18 @@ type Lister interface {
 	PrefixCount(prefix []byte) int64
 }
 
+//TxKV transaction Key Value
+type TxKV interface {
+	KV
+	IteratorDB
+	Commit() error
+	Rollback()
+}
+
 //KV kv
 type KV interface {
 	Get(key []byte) ([]byte, error)
-	BatchGet(keys [][]byte) (values [][]byte, err error)
 	Set(key []byte, value []byte) (err error)
-	Begin()
-	Rollback()
-	Commit()
 }
 
 //KVDB kvdb
@@ -48,6 +52,7 @@ type DB interface {
 	DeleteSync([]byte) error
 	Close()
 	NewBatch(sync bool) Batch
+	BeginTx() (TxKV, error)
 	// For debugging
 	Print()
 	Stats() map[string]string
@@ -189,35 +194,42 @@ func NewDB(name string, backend string, dir string, cache int32) DB {
 	return db
 }
 
-//TransactionDB 交易缓存
-type TransactionDB struct {
+//BaseDB 交易缓存
+type BaseDB struct {
 	cache *lru.ARCCache
 }
 
-//Begin 启动
-func (db *TransactionDB) Begin() {
-
-}
-
-//Rollback 回滚
-func (db *TransactionDB) Rollback() {
-
-}
-
-//Commit 提交
-func (db *TransactionDB) Commit() {
-
-}
-
 //GetCache 获取缓存
-func (db *TransactionDB) GetCache() *lru.ARCCache {
+func (db *BaseDB) GetCache() *lru.ARCCache {
 	return db.cache
 }
 
 //SetCacheSize 设置缓存大小
-func (db *TransactionDB) SetCacheSize(size int) {
+func (db *BaseDB) SetCacheSize(size int) {
 	if db.cache != nil {
 		return
 	}
 	db.cache, _ = lru.NewARC(size)
+}
+
+//BeginTx call panic when BeginTx not rewrite
+func (db *BaseDB) BeginTx() (TxKV, error) {
+	panic("BeginTx not impl")
+}
+
+//MultiGet 多个key 一起返回 values
+//如果有notfound 的key，那么value 为 nil
+func MultiGet(db KV, keys [][]byte) (values [][]byte, err error) {
+	values = make([][]byte, len(keys))
+	for i := 0; i < len(keys); i++ {
+		values[i], err = db.Get(keys[i])
+		if err == types.ErrNotFound {
+			values[i] = nil
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return values, nil
 }
