@@ -8,7 +8,6 @@ import (
 
 // LocalDB local db for store key value in local
 type LocalDB struct {
-	db.TransactionDB
 	cache   map[string][]byte
 	txcache map[string][]byte
 	keys    []string
@@ -77,18 +76,6 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-// BatchGet batch get values from local db
-func (l *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
-	for _, key := range keys {
-		v, err := l.Get(key)
-		if err != nil && err != types.ErrNotFound {
-			return nil, err
-		}
-		values = append(values, v)
-	}
-	return values, nil
-}
-
 // List 从数据库中查询数据列表，set 中的cache 更新不会影响这个list
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
 	if l.client == nil {
@@ -138,11 +125,12 @@ func (l *LocalDB) Rollback() {
 }
 
 // Commit canche tx
-func (l *LocalDB) Commit() {
+func (l *LocalDB) Commit() error {
 	for k, v := range l.txcache {
 		l.cache[k] = v
 	}
 	l.resetTx()
+	return nil
 }
 
 func (l *LocalDB) resetTx() {

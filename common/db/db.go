@@ -33,7 +33,7 @@ type TxKV interface {
 type KV interface {
 	Get(key []byte) ([]byte, error)
 	Set(key []byte, value []byte) (err error)
-	Beigin()
+	Begin()
 	Commit() error
 	Rollback()
 }
@@ -213,9 +213,9 @@ func (db *BaseDB) SetCacheSize(size int) {
 	db.cache, _ = lru.NewARC(size)
 }
 
-//Beigin call panic when Beigin not rewrite
-func (db *BaseDB) Beigin() {
-	panic("Beigin not impl")
+//Begin call panic when Begin not rewrite
+func (db *BaseDB) Begin() {
+	panic("Begin not impl")
 }
 
 //Commit call panic when Commit not rewrite
