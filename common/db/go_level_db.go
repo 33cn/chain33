@@ -332,7 +332,7 @@ func (db *goLevelDBTx) Iterator(start []byte, end []byte, reverse bool) Iterator
 	return &goLevelDBIt{it, itBase{start, end, reverse}}
 }
 
-//Beigin call panic when Beigin not rewrite
-func (db *goLevelDBTx) Beigin() {
-	panic("Beigin not impl")
+//Begin call panic when Begin not rewrite
+func (db *goLevelDBTx) Begin() {
+	panic("Begin not impl")
 }
