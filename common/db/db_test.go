@@ -236,11 +236,13 @@ func testDBIteratorDel(t *testing.T, db DB) {
 	}
 }
 
-func testLevelDBBatch(t *testing.T, db DB) {
+func testBatch(t *testing.T, db DB) {
 	batch := db.NewBatch(false)
 	batch.Set([]byte("hello"), []byte("world"))
 	err := batch.Write()
 	assert.Nil(t, err)
+
+	batch = db.NewBatch(false)
 	v, err := db.Get([]byte("hello"))
 	assert.Nil(t, err)
 	assert.Equal(t, v, []byte("world"))
@@ -257,4 +259,29 @@ func testLevelDBBatch(t *testing.T, db DB) {
 	v, err = db.Get([]byte("hello1"))
 	assert.Equal(t, err, types.ErrNotFound)
 	assert.Nil(t, v)
+}
+
+func testTransaction(t *testing.T, db DB) {
+	tx, err := db.BeginTx()
+	assert.Nil(t, err)
+	tx.Set([]byte("hello1"), []byte("world1"))
+	value, err := tx.Get([]byte("hello1"))
+	assert.Nil(t, err)
+	assert.Equal(t, "world1", string(value))
+	tx.Rollback()
+	value, err = db.Get([]byte("hello1"))
+	assert.Equal(t, types.ErrNotFound, err)
+	assert.Equal(t, []byte(nil), value)
+
+	tx, err = db.BeginTx()
+	assert.Nil(t, err)
+	tx.Set([]byte("hello2"), []byte("world2"))
+	value, err = tx.Get([]byte("hello2"))
+	assert.Nil(t, err)
+	assert.Equal(t, "world2", string(value))
+	err = tx.Commit()
+	assert.Nil(t, err)
+	value, err = db.Get([]byte("hello2"))
+	assert.Nil(t, err)
+	assert.Equal(t, "world2", string(value))
 }
