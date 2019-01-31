@@ -9,6 +9,25 @@ type KV struct {
 	mock.Mock
 }
 
+// Begin provides a mock function with given fields:
+func (_m *KV) Begin() {
+	_m.Called()
+}
+
+// Commit provides a mock function with given fields:
+func (_m *KV) Commit() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Get provides a mock function with given fields: key
 func (_m *KV) Get(key []byte) ([]byte, error) {
 	ret := _m.Called(key)
@@ -30,6 +49,11 @@ func (_m *KV) Get(key []byte) ([]byte, error) {
 	}
 
 	return r0, r1
+}
+
+// Rollback provides a mock function with given fields:
+func (_m *KV) Rollback() {
+	_m.Called()
 }
 
 // Set provides a mock function with given fields: key, value
