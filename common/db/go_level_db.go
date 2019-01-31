@@ -331,3 +331,8 @@ func (db *goLevelDBTx) Iterator(start []byte, end []byte, reverse bool) Iterator
 	it := db.tx.NewIterator(r, nil)
 	return &goLevelDBIt{it, itBase{start, end, reverse}}
 }
+
+//Beigin call panic when Beigin not rewrite
+func (db *goLevelDBTx) Beigin() {
+	panic("Beigin not impl")
+}
