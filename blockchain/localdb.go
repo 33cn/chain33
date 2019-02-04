@@ -1,6 +1,8 @@
 package blockchain
 
 import (
+	"errors"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
@@ -26,8 +28,33 @@ func (chain *BlockChain) procLocalDB(msgtype int64, msg queue.Message, reqnum ch
 
 func (chain *BlockChain) localGet(msg queue.Message) {
 	keys := (msg.Data).(*types.LocalDBGet)
-	values := chain.blockStore.Get(keys)
-	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, values))
+	if keys.Txid == 0 {
+		values := chain.blockStore.Get(keys)
+		msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, values))
+		return
+	}
+}
+
+//只允许设置 通过 transaction 来 set 信息
+func (chain *BlockChain) localSet(msg queue.Message) {
+	kvs := (msg.Data).(*types.LocalDBSet)
+	if kvs.Txid == 0 {
+		err := errors.New("can not set kvs not in transaction")
+		msg.Reply(chain.client.NewMessage("", types.EventLocalSet, err))
+		return
+	}
+	txp, err := common.GetPointer(kvs.Txid)
+	if err != nil {
+		msg.Reply(chain.client.NewMessage("", types.EventLocalSet, err))
+		return
+	}
+	common.RemovePointer(kvs.Txid)
+	tx := txp.(db.TxKV)
+	for i := 0; i < len(kvs.KV); i++ {
+		tx.Set(kvs.KV[i].Key, kvs.KV[i].Value)
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventLocalSet, nil))
+	return
 }
 
 func (chain *BlockChain) localBegin(msg queue.Message) {

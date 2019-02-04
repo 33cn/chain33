@@ -726,6 +726,64 @@ func (q *QueueProtocol) LocalGet(param *types.LocalDBGet) (*types.LocalReplyValu
 	return nil, types.ErrTypeAsset
 }
 
+// LocalSet set key value in local db
+func (q *QueueProtocol) LocalSet(param *types.LocalDBSet) error {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("LocalSet", "Error", err)
+		return err
+	}
+	_, err := q.query(blockchainKey, types.EventLocalSet, param)
+	if err != nil {
+		log.Error("LocalSet", "Error", err.Error())
+		return err
+	}
+	return nil
+}
+
+//LocalBegin begin a transaction
+func (q *QueueProtocol) LocalBegin(param *types.ReqNil) (*types.Int64, error) {
+	msg, err := q.query(blockchainKey, types.EventLocalBegin, nil)
+	if err != nil {
+		log.Error("LocalBegin", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int64); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+//LocalCommit commit a transaction
+func (q *QueueProtocol) LocalCommit(param *types.Int64) error {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("LocalCommit", "Error", err)
+		return err
+	}
+	_, err := q.query(blockchainKey, types.EventLocalCommit, param)
+	if err != nil {
+		log.Error("LocalCommit", "Error", err.Error())
+		return err
+	}
+	return nil
+}
+
+//LocalRollback rollback a transaction
+func (q *QueueProtocol) LocalRollback(param *types.Int64) error {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("LocalRollback", "Error", err)
+		return err
+	}
+	_, err := q.query(blockchainKey, types.EventLocalRollback, param)
+	if err != nil {
+		log.Error("LocalRollback", "Error", err.Error())
+		return err
+	}
+	return nil
+}
+
 // LocalList get value list from local db by key list
 func (q *QueueProtocol) LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error) {
 	if param == nil {
@@ -733,7 +791,6 @@ func (q *QueueProtocol) LocalList(param *types.LocalDBList) (*types.LocalReplyVa
 		log.Error("LocalList", "Error", err)
 		return nil, err
 	}
-
 	msg, err := q.query(blockchainKey, types.EventLocalList, param)
 	if err != nil {
 		log.Error("LocalList", "Error", err.Error())
