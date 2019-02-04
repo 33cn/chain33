@@ -17,6 +17,7 @@ var globalPointerMap = make(map[int64]interface{})
 var globalPointerID int64
 var gloabalMu sync.Mutex
 
+//ErrPointerNotFound 指针没有找到
 var ErrPointerNotFound = errors.New("ErrPointerNotFound")
 
 func init() {
