@@ -74,7 +74,7 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	if err != nil {
 		return err
 	}
-	println("request JsonStr", string(data), "")
+	//println("request JsonStr", string(data), "")
 	postresp, err := client.client.Post(client.url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	if err != nil {
 		return err
 	}
-	println("response", string(b), "")
+	//println("response", string(b), "")
 	cresp := &clientResponse{}
 	err = json.Unmarshal(b, &cresp)
 	if err != nil {
