@@ -51,7 +51,10 @@ func (chain *BlockChain) localGet(msg queue.Message) {
 	var reply types.LocalReplyValue
 	for i := 0; i < len(keys.Keys); i++ {
 		key := keys.Keys[i]
-		value, _ := tx.(db.TxKV).Get(key)
+		value, err := tx.(db.TxKV).Get(key)
+		if err != nil {
+			chainlog.Debug("localGet", "i", i, "key", string(key), "err", err)
+		}
 		reply.Values = append(reply.Values, value)
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, &reply))
@@ -71,7 +74,10 @@ func (chain *BlockChain) localSet(msg queue.Message) {
 	}
 	tx := txp.(db.TxKV)
 	for i := 0; i < len(kvs.KV); i++ {
-		tx.Set(kvs.KV[i].Key, kvs.KV[i].Value)
+		err := tx.Set(kvs.KV[i].Key, kvs.KV[i].Value)
+		if err != nil {
+			chainlog.Error("localSet", "i", i, "key", string(kvs.KV[i].Key), "err", err)
+		}
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventLocalSet, nil))
 }
