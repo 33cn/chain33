@@ -1,23 +1,34 @@
 package blockchain
 
 import (
-	"errors"
-
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
 
+var intransaction bool
+
 func (chain *BlockChain) procLocalDB(msgtype int64, msg queue.Message, reqnum chan struct{}) {
 	switch msgtype {
 	case types.EventLocalGet:
 		go chain.processMsg(msg, reqnum, chain.localGet)
+	case types.EventLocalSet:
+		go chain.processMsg(msg, reqnum, chain.localSet)
 	case types.EventLocalBegin:
+		if intransaction {
+			go chain.processMsg(msg, reqnum, func(msg queue.Message) {
+				msg.Reply(chain.client.NewMessage("", types.EventLocalBegin, types.ErrLocalDBTxDupOpen))
+			})
+			return
+		}
+		intransaction = true
 		go chain.processMsg(msg, reqnum, chain.localBegin)
 	case types.EventLocalCommit:
+		intransaction = false
 		go chain.processMsg(msg, reqnum, chain.localCommit)
 	case types.EventLocalRollback:
+		intransaction = false
 		go chain.processMsg(msg, reqnum, chain.localRollback)
 	case types.EventLocalList:
 		go chain.processMsg(msg, reqnum, chain.localList)
@@ -33,14 +44,24 @@ func (chain *BlockChain) localGet(msg queue.Message) {
 		msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, values))
 		return
 	}
+	tx, err := common.GetPointer(keys.Txid)
+	if err != nil {
+		msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, err))
+	}
+	var reply types.LocalReplyValue
+	for i := 0; i < len(keys.Keys); i++ {
+		key := keys.Keys[i]
+		value, _ := tx.(db.TxKV).Get(key)
+		reply.Values = append(reply.Values, value)
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, &reply))
 }
 
 //只允许设置 通过 transaction 来 set 信息
 func (chain *BlockChain) localSet(msg queue.Message) {
 	kvs := (msg.Data).(*types.LocalDBSet)
 	if kvs.Txid == 0 {
-		err := errors.New("can not set kvs not in transaction")
-		msg.Reply(chain.client.NewMessage("", types.EventLocalSet, err))
+		msg.Reply(chain.client.NewMessage("", types.EventLocalSet, types.ErrNotSetInTransaction))
 		return
 	}
 	txp, err := common.GetPointer(kvs.Txid)
@@ -48,7 +69,6 @@ func (chain *BlockChain) localSet(msg queue.Message) {
 		msg.Reply(chain.client.NewMessage("", types.EventLocalSet, err))
 		return
 	}
-	common.RemovePointer(kvs.Txid)
 	tx := txp.(db.TxKV)
 	for i := 0; i < len(kvs.KV); i++ {
 		tx.Set(kvs.KV[i].Key, kvs.KV[i].Value)

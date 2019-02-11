@@ -168,6 +168,9 @@ var (
 	ErrDBFlag      = errors.New("ErrDBFlag")
 	ErrLocalPrefix = errors.New("ErrLocalPrefix")
 	ErrLocalKeyLen = errors.New("ErrLocalKeyLen")
+	//ErrNotSetInTransaction 必须set 在 事务 中
+	ErrNotSetInTransaction = errors.New("can not set kvs not in transaction")
+	ErrLocalDBTxDupOpen    = errors.New("ErrLocalDBTxDupOpen")
 
 	ErrCloneForkFrom      = errors.New("ErrCloneForkFrom")
 	ErrCloneForkToExist   = errors.New("ErrCloneForkToExist")

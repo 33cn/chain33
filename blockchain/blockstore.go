@@ -821,7 +821,6 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 		blockbody.MainHash = blockdetail.Block.MainHash
 		blockbody.MainHeight = blockdetail.Block.MainHeight
 	}
-
 	body, err := proto.Marshal(&blockbody)
 	if err != nil {
 		storeLog.Error("dbMaybeStoreBlock Marshal blockbody", "height", height, "hash", common.ToHex(hash), "error", err)
