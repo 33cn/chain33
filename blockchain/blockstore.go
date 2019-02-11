@@ -335,7 +335,11 @@ func (bs *BlockStore) Height() int64 {
 
 //UpdateHeight 更新db中的block高度到BlockStore.Height
 func (bs *BlockStore) UpdateHeight() {
-	height, _ := LoadBlockStoreHeight(bs.db)
+	height, err := LoadBlockStoreHeight(bs.db)
+	if err != nil && err != types.ErrHeightNotExist {
+		storeLog.Error("UpdateHeight", "LoadBlockStoreHeight err", err)
+		return
+	}
 	atomic.StoreInt64(&bs.height, height)
 	storeLog.Debug("UpdateHeight", "curblockheight", height)
 }
@@ -407,7 +411,10 @@ func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
 	var reply types.LocalReplyValue
 	for i := 0; i < len(keys.Keys); i++ {
 		key := keys.Keys[i]
-		value, _ := bs.db.Get(key)
+		value, err := bs.db.Get(key)
+		if err != nil {
+			storeLog.Error("Get", "error", err)
+		}
 		reply.Values = append(reply.Values, value)
 	}
 	return &reply
@@ -708,7 +715,10 @@ func (bs *BlockStore) GetBlockHeaderByHeight(height int64) (*types.Header, error
 		return nil, err
 	}
 	if flagFoundInOldDB {
-		bs.db.Set(calcHeightToBlockHeaderKey(height), blockheader)
+		err = bs.db.Set(calcHeightToBlockHeaderKey(height), blockheader)
+		if err != nil {
+			storeLog.Error("GetBlockHeaderByHeight Set ", "height", height, "err", err)
+		}
 	}
 	return &header, nil
 }
@@ -737,7 +747,10 @@ func (bs *BlockStore) getLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, 
 		panic("client not bind message queue.")
 	}
 	msg := bs.client.NewMessage("execs", types.EventAddBlock, detail)
-	bs.client.Send(msg, true)
+	err := bs.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := bs.client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -751,7 +764,10 @@ func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSe
 		panic("client not bind message queue.")
 	}
 	msg := bs.client.NewMessage("execs", types.EventDelBlock, detail)
-	bs.client.Send(msg, true)
+	err := bs.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := bs.client.Wait(msg)
 	if err != nil {
 		return nil, err

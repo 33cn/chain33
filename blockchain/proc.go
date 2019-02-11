@@ -374,7 +374,11 @@ func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb 
 //获取最新的block执行序列号
 func (chain *BlockChain) getLastBlockSequence(msg queue.Message) {
 	var lastSequence types.Int64
-	lastSequence.Data, _ = chain.blockStore.LoadBlockLastSequence()
+	var err error
+	lastSequence.Data, err = chain.blockStore.LoadBlockLastSequence()
+	if err != nil {
+		chainlog.Debug("getLastBlockSequence", "err", err)
+	}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventReplyLastBlockSequence, &lastSequence))
 }
 

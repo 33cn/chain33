@@ -146,7 +146,10 @@ func (t *Task) done(height int64) {
 		}
 		if t.start > t.end {
 			chainlog.Debug("----task is done----")
-			t.stop(true)
+			err := t.stop(true)
+			if err != nil {
+				chainlog.Debug("----task stop error ----", "err", err)
+			}
 		}
 	}
 	t.donelist[height] = struct{}{}

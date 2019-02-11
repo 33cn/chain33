@@ -24,8 +24,12 @@ type Query struct {
 
 //NewQuery new
 func NewQuery(db dbm.DB, qclient queue.Client, stateHash []byte) *Query {
+	var err error
 	query := &Query{db: db, client: qclient, stateHash: stateHash}
-	query.api, _ = client.New(qclient, nil)
+	query.api, err = client.New(qclient, nil)
+	if err != nil {
+		panic("NewQuery client.New err")
+	}
 	return query
 }
 

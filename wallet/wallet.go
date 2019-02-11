@@ -261,9 +261,13 @@ func (wallet *Wallet) IsWalletLocked() bool {
 
 // SetQueueClient 初始化客户端消息队列
 func (wallet *Wallet) SetQueueClient(cli queue.Client) {
+	var err error
 	wallet.client = cli
 	wallet.client.Sub("wallet")
-	wallet.api, _ = client.New(cli, nil)
+	wallet.api, err = client.New(cli, nil)
+	if err != nil {
+		panic("SetQueueClient client.New err")
+	}
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 	for _, policy := range wcom.PolicyContainer {
@@ -371,8 +375,8 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	}
 
 	//判断钱包是否已保存seed
-	has, _ := wallet.walletStore.HasSeed()
-	if !has {
+	has, err := wallet.walletStore.HasSeed()
+	if !has || err != nil {
 		return false, types.ErrSaveSeedFirst
 	}
 	return true, nil
@@ -396,12 +400,15 @@ func (wallet *Wallet) isAutoMinning() bool {
 
 // GetWalletStatus 获取钱包状态
 func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
+	var err error
 	s := &types.WalletStatus{}
 	s.IsWalletLock = wallet.IsWalletLocked()
-	s.IsHasSeed, _ = wallet.walletStore.HasSeed()
+	s.IsHasSeed, err = wallet.walletStore.HasSeed()
 	s.IsAutoMining = wallet.isAutoMinning()
 	s.IsTicketLock = wallet.isTicketLocked()
-
+	if err != nil {
+		walletlog.Debug("GetWalletStatus HasSeed ", "err", err)
+	}
 	walletlog.Debug("GetWalletStatus", "walletstatus", s)
 	return s
 }
