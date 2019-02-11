@@ -9,37 +9,23 @@ type KVDB struct {
 	mock.Mock
 }
 
-// BatchGet provides a mock function with given fields: keys
-func (_m *KVDB) BatchGet(keys [][]byte) ([][]byte, error) {
-	ret := _m.Called(keys)
-
-	var r0 [][]byte
-	if rf, ok := ret.Get(0).(func([][]byte) [][]byte); ok {
-		r0 = rf(keys)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([][]byte)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func([][]byte) error); ok {
-		r1 = rf(keys)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // Begin provides a mock function with given fields:
 func (_m *KVDB) Begin() {
 	_m.Called()
 }
 
 // Commit provides a mock function with given fields:
-func (_m *KVDB) Commit() {
-	_m.Called()
+func (_m *KVDB) Commit() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // Get provides a mock function with given fields: key

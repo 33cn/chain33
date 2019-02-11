@@ -23,14 +23,19 @@ type Lister interface {
 	PrefixCount(prefix []byte) int64
 }
 
+//TxKV transaction Key Value
+type TxKV interface {
+	KV
+	IteratorDB
+}
+
 //KV kv
 type KV interface {
 	Get(key []byte) ([]byte, error)
-	BatchGet(keys [][]byte) (values [][]byte, err error)
 	Set(key []byte, value []byte) (err error)
 	Begin()
+	Commit() error
 	Rollback()
-	Commit()
 }
 
 //KVDB kvdb
@@ -48,6 +53,7 @@ type DB interface {
 	DeleteSync([]byte) error
 	Close()
 	NewBatch(sync bool) Batch
+	BeginTx() (TxKV, error)
 	// For debugging
 	Print()
 	Stats() map[string]string
@@ -189,35 +195,40 @@ func NewDB(name string, backend string, dir string, cache int32) DB {
 	return db
 }
 
-//TransactionDB 交易缓存
-type TransactionDB struct {
+//BaseDB 交易缓存
+type BaseDB struct {
 	cache *lru.ARCCache
 }
 
-//Begin 启动
-func (db *TransactionDB) Begin() {
-
-}
-
-//Rollback 回滚
-func (db *TransactionDB) Rollback() {
-
-}
-
-//Commit 提交
-func (db *TransactionDB) Commit() {
-
-}
-
 //GetCache 获取缓存
-func (db *TransactionDB) GetCache() *lru.ARCCache {
+func (db *BaseDB) GetCache() *lru.ARCCache {
 	return db.cache
 }
 
 //SetCacheSize 设置缓存大小
-func (db *TransactionDB) SetCacheSize(size int) {
+func (db *BaseDB) SetCacheSize(size int) {
 	if db.cache != nil {
 		return
 	}
 	db.cache, _ = lru.NewARC(size)
+}
+
+//Begin call panic when Begin not rewrite
+func (db *BaseDB) Begin() {
+	panic("Begin not impl")
+}
+
+//Commit call panic when Commit not rewrite
+func (db *BaseDB) Commit() error {
+	panic("Commit not impl")
+}
+
+//Rollback call panic when Rollback not rewrite
+func (db *BaseDB) Rollback() {
+	panic("Rollback not impl")
+}
+
+//BeginTx call panic when BeginTx not rewrite
+func (db *BaseDB) BeginTx() (TxKV, error) {
+	panic("BeginTx not impl")
 }

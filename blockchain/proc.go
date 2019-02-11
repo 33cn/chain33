@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 
 	"github.com/33cn/chain33/common"
-	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
@@ -23,11 +22,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
 		atomic.AddInt32(&chain.runcount, 1)
+		chain.procLocalDB(msgtype, msg, reqnum)
 		switch msgtype {
-		case types.EventLocalGet:
-			go chain.processMsg(msg, reqnum, chain.localGet)
-		case types.EventLocalList:
-			go chain.processMsg(msg, reqnum, chain.localList)
 		case types.EventQueryTx:
 			go chain.processMsg(msg, reqnum, chain.queryTx)
 		case types.EventGetBlocks:
@@ -84,8 +80,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetSeqByHash:
 			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
-		case types.EventLocalPrefixCount:
-			go chain.processMsg(msg, reqnum, chain.localPrefixCount)
 		case types.EventAddBlockSeqCB:
 			go chain.processMsg(msg, reqnum, chain.addBlockSeqCB)
 
@@ -334,18 +328,6 @@ func (chain *BlockChain) getBlockHash(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) localGet(msg queue.Message) {
-	keys := (msg.Data).(*types.LocalDBGet)
-	values := chain.blockStore.Get(keys)
-	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, values))
-}
-
-func (chain *BlockChain) localList(msg queue.Message) {
-	q := (msg.Data).(*types.LocalDBList)
-	values := db.NewListHelper(chain.blockStore.db).List(q.Prefix, q.Key, q.Count, q.Direction)
-	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.LocalReplyValue{Values: values}))
-}
-
 func (chain *BlockChain) addBlockHeaders(msg queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
@@ -493,13 +475,6 @@ func (chain *BlockChain) getSeqByHash(msg queue.Message) {
 		msg.Reply(chain.client.NewMessage("rpc", types.EventReply, err))
 	}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqByHash, &types.Int64{Data: seq}))
-}
-
-//获取指定前缀key的数量
-func (chain *BlockChain) localPrefixCount(msg queue.Message) {
-	Prefix := (msg.Data).(*types.ReqKey)
-	counts := db.NewListHelper(chain.blockStore.db).PrefixCount(Prefix.Key)
-	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
 }
 
 //获取指定地址参与的tx交易计数

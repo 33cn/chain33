@@ -245,6 +245,10 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 	}
 	receipts[0], err = e.execTxOne(feelog, txs[0], index)
 	if err != nil {
+		//接口临时错误，取消执行
+		if api.IsAPIEnvError(err) {
+			return nil, err
+		}
 		//状态数据库回滚
 		if types.IsFork(e.height, "ForkExecRollback") {
 			e.stateDB.Rollback()
@@ -256,6 +260,9 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 		receipts[i], err = e.execTxOne(receipts[i], txs[i], index+i)
 		if err != nil {
 			//reset other exec , and break!
+			if api.IsAPIEnvError(err) {
+				return nil, err
+			}
 			for k := 1; k < i; k++ {
 				receipts[k] = &types.Receipt{Ty: types.ExecPack}
 			}
@@ -427,6 +434,9 @@ func (e *executor) execTx(tx *types.Transaction, index int) (*types.Receipt, err
 		}
 	}
 	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
+	if api.IsAPIEnvError(err) {
+		return nil, err
+	}
 	return feelog, nil
 }
 

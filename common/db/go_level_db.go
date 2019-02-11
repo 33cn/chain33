@@ -30,7 +30,7 @@ func init() {
 
 //GoLevelDB db
 type GoLevelDB struct {
-	TransactionDB
+	BaseDB
 	db *leveldb.DB
 }
 
@@ -178,10 +178,13 @@ func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	return &goLevelDBIt{it, itBase{start, end, reverse}}
 }
 
-//BatchGet 批量获取
-func (db *GoLevelDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	llog.Error("BatchGet", "Need to implement")
-	return nil, nil
+//BeginTx call panic when BeginTx not rewrite
+func (db *GoLevelDB) BeginTx() (TxKV, error) {
+	tx, err := db.db.OpenTransaction()
+	if err != nil {
+		return nil, err
+	}
+	return &goLevelDBTx{tx: tx}, nil
 }
 
 type goLevelDBIt struct {
@@ -279,4 +282,57 @@ func (mBatch *goLevelDBBatch) Reset() {
 	mBatch.batch.Reset()
 	mBatch.len = 0
 	mBatch.size = 0
+}
+
+type goLevelDBTx struct {
+	tx *leveldb.Transaction
+}
+
+func (db *goLevelDBTx) Commit() error {
+	return db.tx.Commit()
+}
+
+func (db *goLevelDBTx) Rollback() {
+	db.tx.Discard()
+}
+
+//Get get in transaction
+func (db *goLevelDBTx) Get(key []byte) ([]byte, error) {
+	res, err := db.tx.Get(key, nil)
+	if err != nil {
+		if err == errors.ErrNotFound {
+			return nil, ErrNotFoundInDb
+		}
+		llog.Error("tx Get", "error", err)
+		return nil, err
+	}
+	return res, nil
+}
+
+//Set set in transaction
+func (db *goLevelDBTx) Set(key []byte, value []byte) error {
+	err := db.tx.Put(key, value, nil)
+	if err != nil {
+		llog.Error("tx Set", "error", err)
+		return err
+	}
+	return nil
+}
+
+//Iterator 迭代器 in transaction
+func (db *goLevelDBTx) Iterator(start []byte, end []byte, reverse bool) Iterator {
+	if end == nil {
+		end = bytesPrefix(start)
+	}
+	if bytes.Equal(end, types.EmptyValue) {
+		end = nil
+	}
+	r := &util.Range{Start: start, Limit: end}
+	it := db.tx.NewIterator(r, nil)
+	return &goLevelDBIt{it, itBase{start, end, reverse}}
+}
+
+//Begin call panic when Begin not rewrite
+func (db *goLevelDBTx) Begin() {
+	panic("Begin not impl")
 }

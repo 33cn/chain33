@@ -111,3 +111,14 @@ func TestBadgerBatchDB(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, string(value), "111")
 }
+
+func TestBadgerBatch(t *testing.T) {
+	dir, err := ioutil.TempDir("", "badger1212")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db, err := NewGoBadgerDB("gobadgerdb", dir, 128)
+	require.NoError(t, err)
+	defer db.Close()
+	testBatch(t, db)
+}

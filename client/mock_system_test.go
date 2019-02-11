@@ -193,7 +193,10 @@ func (mock *mockJRPCSystem) OnStartup(m *mockSystem) {
 	ch := make(chan struct{}, 1)
 	go func() {
 		ch <- struct{}{}
-		mock.japi.Listen()
+		_, err := mock.japi.Listen()
+		if err != nil {
+			panic(err)
+		}
 	}()
 	<-ch
 	time.Sleep(time.Millisecond)
@@ -225,7 +228,10 @@ func (mock *mockGRPCSystem) OnStartup(m *mockSystem) {
 	ch := make(chan struct{}, 1)
 	go func() {
 		ch <- struct{}{}
-		mock.gapi.Listen()
+		_, err := mock.gapi.Listen()
+		if err != nil {
+			panic(err)
+		}
 	}()
 	<-ch
 	time.Sleep(time.Millisecond)
