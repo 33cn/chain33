@@ -74,7 +74,6 @@ func (chain *BlockChain) localSet(msg queue.Message) {
 		tx.Set(kvs.KV[i].Key, kvs.KV[i].Value)
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventLocalSet, nil))
-	return
 }
 
 func (chain *BlockChain) localBegin(msg queue.Message) {

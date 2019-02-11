@@ -4,14 +4,12 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/common"
-	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLocalDBRollback(t *testing.T) {
-	log.SetLogLevel("crit")
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 
@@ -98,7 +96,6 @@ func TestLocalDBRollback(t *testing.T) {
 }
 
 func TestLocalDBCommit(t *testing.T) {
-	log.SetLogLevel("crit")
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 
