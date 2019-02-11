@@ -175,7 +175,6 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 	debugAccount("==set==", key, value)
 	skey := string(key)
 	if s.intx {
-		println("set intx")
 		if s.txcache == nil {
 			s.txcache = make(map[string][]byte)
 		}
