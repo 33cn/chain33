@@ -58,11 +58,14 @@ func TestLocalDBRollback(t *testing.T) {
 
 	param.Txid = id.Data
 	param.Keys = append(param.Keys, []byte("hello2"))
+	param.Keys = append(param.Keys, []byte("hello3"))
+
 	values, err = api.LocalGet(param)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, 2, len(values.Values))
+	assert.Equal(t, 3, len(values.Values))
 	assert.Equal(t, []byte("world"), values.Values[0])
 	assert.Equal(t, []byte("world2"), values.Values[1])
+	assert.Nil(t, values.Values[2])
 
 	list := &types.LocalDBList{
 		Txid:      id.Data,
