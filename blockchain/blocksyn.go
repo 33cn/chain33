@@ -250,7 +250,10 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 //如果没有收到广播block就主动向p2p模块发送请求
 func (chain *BlockChain) FetchPeerList() {
 	defer chain.tickerwg.Done()
-	chain.fetchPeerList()
+	err := chain.fetchPeerList()
+	if err != nil {
+		synlog.Error("FetchPeerList.", "err", err)
+	}
 }
 
 func (chain *BlockChain) fetchPeerList() error {
@@ -474,8 +477,10 @@ func (chain *BlockChain) RecoveryFaultPeer() {
 			}
 		}
 
-		chain.FetchBlockHeaders(faultpeer.FaultHeight, faultpeer.FaultHeight, pid)
-		chain.faultPeerList[pid].ReqFlag = true
+		err = chain.FetchBlockHeaders(faultpeer.FaultHeight, faultpeer.FaultHeight, pid)
+		if err == nil {
+			chain.faultPeerList[pid].ReqFlag = true
+		}
 		synlog.Debug("RecoveryFaultPeer", "pid", faultpeer.Peer.Name, "FaultHeight", faultpeer.FaultHeight, "FaultHash", common.ToHex(faultpeer.FaultHash), "Err", faultpeer.ErrInfo)
 	}
 }
@@ -569,7 +574,10 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		synlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 		pids := chain.GetBestChainPids()
 		if pids != nil {
-			chain.FetchBlock(curheight+1, peerMaxBlkHeight, pids, false)
+			err := chain.FetchBlock(curheight+1, peerMaxBlkHeight, pids, false)
+			if err != nil {
+				synlog.Error("SynBlocksFromPeers FetchBlock", "err", err)
+			}
 		} else {
 			synlog.Info("SynBlocksFromPeers GetBestChainPids is nil")
 		}
@@ -610,13 +618,16 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 	}
 	peermaxheight := maxpeer.Height
 	pid := maxpeer.Name
-
+	var err error
 	if peermaxheight > tipheight && (peermaxheight-tipheight) > BackwardBlockNum {
 		//从指定peer 请求BackBlockNum个blockheaders
 		if tipheight > BackBlockNum {
-			chain.FetchBlockHeaders(tipheight-BackBlockNum, tipheight, pid)
+			err = chain.FetchBlockHeaders(tipheight-BackBlockNum, tipheight, pid)
 		} else {
-			chain.FetchBlockHeaders(0, tipheight, pid)
+			err = chain.FetchBlockHeaders(0, tipheight, pid)
+		}
+		if err != nil {
+			synlog.Error("CheckHeightNoIncrease FetchBlockHeaders", "err", err)
 		}
 	}
 }
@@ -684,9 +695,12 @@ func (chain *BlockChain) ProcBlockHeader(headers *types.Headers, peerid string) 
 		synlog.Info("ProcBlockHeader hash no equal", "height", height, "self hash", common.ToHex(header.Hash), "peer hash", common.ToHex(headers.Items[0].Hash))
 
 		if height > BackBlockNum {
-			chain.FetchBlockHeaders(height-BackBlockNum, height, peerid)
+			err = chain.FetchBlockHeaders(height-BackBlockNum, height, peerid)
 		} else if height != 0 {
-			chain.FetchBlockHeaders(0, height, peerid)
+			err = chain.FetchBlockHeaders(0, height, peerid)
+		}
+		if err != nil {
+			synlog.Info("ProcBlockHeader FetchBlockHeaders", "err", err)
 		}
 	}
 	return nil
@@ -696,6 +710,7 @@ func (chain *BlockChain) ProcBlockHeader(headers *types.Headers, peerid string) 
 func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) error {
 	var ForkHeight int64 = -1
 	var forkhash []byte
+	var err error
 	count := len(headers.Items)
 	tipheight := chain.bestChain.Height()
 
@@ -722,9 +737,12 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 		//继续向后取指定数量的headers
 		height := headers.Items[0].Height
 		if height > BackBlockNum {
-			chain.FetchBlockHeaders(height-BackBlockNum, height, pid)
+			err = chain.FetchBlockHeaders(height-BackBlockNum, height, pid)
 		} else {
-			chain.FetchBlockHeaders(0, height, pid)
+			err = chain.FetchBlockHeaders(0, height, pid)
+		}
+		if err != nil {
+			synlog.Info("ProcBlockHeaders FetchBlockHeaders", "err", err)
 		}
 		return types.ErrContinueBack
 	}
@@ -808,7 +826,10 @@ func (chain *BlockChain) ReqForkBlocks() {
 	forkinfo := chain.GetForkInfo()
 	if forkinfo.ForkStartHeight != -1 && forkinfo.ForkEndHeight != -1 && forkinfo.ForkPid != "" {
 		synlog.Info("ReqForkBlocks", "ForkStartHeight", forkinfo.ForkStartHeight, "ForkEndHeight", forkinfo.ForkEndHeight, "pid", forkinfo.ForkPid)
-		chain.FetchBlock(forkinfo.ForkStartHeight, forkinfo.ForkEndHeight, []string{forkinfo.ForkPid}, true)
+		err := chain.FetchBlock(forkinfo.ForkStartHeight, forkinfo.ForkEndHeight, []string{forkinfo.ForkPid}, true)
+		if err != nil {
+			synlog.Error("ReqForkBlocks FetchBlock ", "err", err)
+		}
 	}
 }
 
@@ -852,21 +873,21 @@ func (chain *BlockChain) CheckTipBlockHash() {
 	peermaxheight := maxpeer.Height
 	pid := maxpeer.Name
 	peerhash := maxpeer.Hash
-
+	var Err error
 	//和最高的peer做tip block hash的校验
 	if peermaxheight > tipheight {
 		//从指定peer 请求BackBlockNum个blockheaders
 		synlog.Debug("CheckTipBlockHash >", "peermaxheight", peermaxheight, "tipheight", tipheight)
-		chain.FetchBlockHeaders(tipheight, tipheight, pid)
+		Err = chain.FetchBlockHeaders(tipheight, tipheight, pid)
 	} else if peermaxheight == tipheight {
 		// 直接tip block hash比较,如果不相等需要从peer向后去指定的headers，尝试寻找分叉点
 		if !bytes.Equal(tiphash, peerhash) {
 			if tipheight > BackBlockNum {
 				synlog.Debug("CheckTipBlockHash ==", "peermaxheight", peermaxheight, "tipheight", tipheight)
-				chain.FetchBlockHeaders(tipheight-BackBlockNum, tipheight, pid)
+				Err = chain.FetchBlockHeaders(tipheight-BackBlockNum, tipheight, pid)
 			} else {
 				synlog.Debug("CheckTipBlockHash !=", "peermaxheight", peermaxheight, "tipheight", tipheight)
-				chain.FetchBlockHeaders(1, tipheight, pid)
+				Err = chain.FetchBlockHeaders(1, tipheight, pid)
 			}
 		}
 	} else {
@@ -878,12 +899,15 @@ func (chain *BlockChain) CheckTipBlockHash() {
 		if !bytes.Equal(header.Hash, peerhash) {
 			if peermaxheight > BackBlockNum {
 				synlog.Debug("CheckTipBlockHash<!=", "peermaxheight", peermaxheight, "tipheight", tipheight)
-				chain.FetchBlockHeaders(peermaxheight-BackBlockNum, peermaxheight, pid)
+				Err = chain.FetchBlockHeaders(peermaxheight-BackBlockNum, peermaxheight, pid)
 			} else {
 				synlog.Debug("CheckTipBlockHash<!=", "peermaxheight", peermaxheight, "tipheight", tipheight)
-				chain.FetchBlockHeaders(1, peermaxheight, pid)
+				Err = chain.FetchBlockHeaders(1, peermaxheight, pid)
 			}
 		}
+	}
+	if Err != nil {
+		synlog.Error("CheckTipBlockHash FetchBlockHeaders", "err", Err)
 	}
 }
 
@@ -975,7 +999,10 @@ func (chain *BlockChain) CheckBestChain(isFirst bool) {
 			chain.bestChainPeerList[peer.Name] = &newbestpeer
 		}
 		synlog.Debug("CheckBestChain FetchBlockHeaders", "height", tipheight, "pid", peer.Name)
-		chain.FetchBlockHeaders(tipheight, tipheight, peer.Name)
+		err := chain.FetchBlockHeaders(tipheight, tipheight, peer.Name)
+		if err != nil {
+			synlog.Error("CheckBestChain FetchBlockHeaders", "height", tipheight, "pid", peer.Name)
+		}
 	}
 }
 

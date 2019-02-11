@@ -216,8 +216,11 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 		return "", types.ErrMarshal
 	}
 
-	db.SetSync([]byte(BACKUPKEYINDEX), pubkeyindex)
-	//seedlog.Info("GetPrivkeyBySeed", "Hexsubprivkey", Hexsubprivkey, "index", index)
+	err = db.SetSync([]byte(BACKUPKEYINDEX), pubkeyindex)
+	if err != nil {
+		seedlog.Error("GetPrivkeyBySeed", "SetSync err ", err)
+		return "", err
+	}
 	return Hexsubprivkey, nil
 }
 

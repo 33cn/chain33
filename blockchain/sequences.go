@@ -11,7 +11,10 @@ import (
 
 //GetBlockSequences 通过记录的block序列号获取blockd序列存储的信息
 func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*types.BlockSequences, error) {
-	blockLastSeq, _ := chain.blockStore.LoadBlockLastSequence()
+	blockLastSeq, err := chain.blockStore.LoadBlockLastSequence()
+	if err != nil {
+		chainlog.Debug("GetBlockSequences LoadBlockLastSequence", "blockLastSeq", blockLastSeq, "err", err)
+	}
 	if requestblock.Start > blockLastSeq {
 		chainlog.Error("GetBlockSequences StartSeq err", "startSeq", requestblock.Start, "lastSeq", blockLastSeq)
 		return nil, types.ErrStartHeight

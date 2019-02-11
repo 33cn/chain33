@@ -32,7 +32,11 @@ func (ws *walletStore) SetFeeAmount(FeeAmount int64) error {
 		return types.ErrMarshal
 	}
 
-	ws.GetDB().SetSync(CalcWalletPassKey(), FeeAmountbytes)
+	err = ws.GetDB().SetSync(CalcWalletPassKey(), FeeAmountbytes)
+	if err != nil {
+		storelog.Error("SetFeeAmount", "SetSync error", err)
+		return err
+	}
 	return nil
 }
 
@@ -54,7 +58,10 @@ func (ws *walletStore) GetFeeAmount(minFee int64) int64 {
 
 // SetWalletPassword 设置钱包的密码
 func (ws *walletStore) SetWalletPassword(newpass string) {
-	ws.GetDB().SetSync(CalcWalletPassKey(), []byte(newpass))
+	err := ws.GetDB().SetSync(CalcWalletPassKey(), []byte(newpass))
+	if err != nil {
+		storelog.Error("SetWalletPassword", "SetSync error", err)
+	}
 }
 
 // GetWalletPassword 获取钱包的密码

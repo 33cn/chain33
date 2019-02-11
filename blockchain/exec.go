@@ -103,7 +103,10 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 	//println("2")
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
-		util.ExecKVSetRollback(client, calcHash)
+		err = util.ExecKVSetRollback(client, calcHash)
+		if err != nil {
+			chainlog.Error("execBlock-->ExecKVSetRollback", "err", err)
+		}
 		if len(rdata) > 0 {
 			for i, rd := range rdata {
 				rd.OutputReceiptDetails(block.Txs[i].Execer, chainlog)

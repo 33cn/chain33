@@ -148,14 +148,20 @@ func (wallet *Wallet) On_WalletUnLock(req *types.WalletUnLock) (types.Message, e
 
 // On_AddBlock 处理新增区块
 func (wallet *Wallet) On_AddBlock(block *types.BlockDetail) (types.Message, error) {
-	wallet.updateLastHeader(block, 1)
+	err := wallet.updateLastHeader(block, 1)
+	if err != nil {
+		walletlog.Error("On_AddBlock updateLastHeader", "height", block.Block.Height, "err", err)
+	}
 	wallet.ProcWalletAddBlock(block)
 	return nil, nil
 }
 
 // On_DelBlock 处理删除区块
 func (wallet *Wallet) On_DelBlock(block *types.BlockDetail) (types.Message, error) {
-	wallet.updateLastHeader(block, -1)
+	err := wallet.updateLastHeader(block, -1)
+	if err != nil {
+		walletlog.Error("On_DelBlock updateLastHeader", "height", block.Block.Height, "err", err)
+	}
 	wallet.ProcWalletDelBlock(block)
 	return nil, nil
 }
