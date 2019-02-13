@@ -6,13 +6,13 @@ package db
 
 import (
 	"bytes"
-	"sync"
-
-	"sort"
-	"strings"
 
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
+	"github.com/syndtr/goleveldb/leveldb/comparer"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/memdb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 var mlog = log.New("module", "db.memdb")
@@ -29,15 +29,13 @@ func init() {
 //GoMemDB db
 type GoMemDB struct {
 	BaseDB
-	db   map[string][]byte
-	lock sync.RWMutex
+	db *memdb.DB
 }
 
 //NewGoMemDB new
 func NewGoMemDB(name string, dir string, cache int) (*GoMemDB, error) {
-	// memdb 不需要创建文件，后续考虑增加缓存数目
 	return &GoMemDB{
-		db: make(map[string][]byte),
+		db: memdb.New(comparer.DefaultComparer, 0),
 	}, nil
 }
 
@@ -56,73 +54,67 @@ func CopyBytes(b []byte) (copiedBytes []byte) {
 
 //Get get
 func (db *GoMemDB) Get(key []byte) ([]byte, error) {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
-
-	if entry, ok := db.db[string(key)]; ok {
-		return CopyBytes(entry), nil
+	v, err := db.db.Get(key)
+	if err != nil {
+		return nil, ErrNotFoundInDb
 	}
-	return nil, ErrNotFoundInDb
+	return CopyBytes(v), nil
 }
 
 //Set set
 func (db *GoMemDB) Set(key []byte, value []byte) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-	//debug.PrintStack()
-	//println("--", string(key)[0:4], common.ToHex(key))
-	db.db[string(key)] = CopyBytes(value)
-	if db.db[string(key)] == nil {
-		mlog.Error("Set", "error have no mem")
+	err := db.db.Put(key, value)
+	if err != nil {
+		llog.Error("Set", "error", err)
+		return err
 	}
 	return nil
 }
 
 //SetSync 设置同步
 func (db *GoMemDB) SetSync(key []byte, value []byte) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-	//debug.PrintStack()
-	//println("--", string(key)[0:4], common.ToHex(key))
-	db.db[string(key)] = CopyBytes(value)
-	if db.db[string(key)] == nil {
-		mlog.Error("Set", "error have no mem")
+	err := db.db.Put(key, value)
+	if err != nil {
+		llog.Error("SetSync", "error", err)
+		return err
 	}
 	return nil
 }
 
 //Delete 删除
 func (db *GoMemDB) Delete(key []byte) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-
-	delete(db.db, string(key))
+	err := db.db.Delete(key)
+	if err != nil {
+		llog.Error("Delete", "error", err)
+		return err
+	}
 	return nil
 }
 
 //DeleteSync 删除同步
 func (db *GoMemDB) DeleteSync(key []byte) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-
-	delete(db.db, string(key))
+	err := db.db.Delete(key)
+	if err != nil {
+		llog.Error("DeleteSync", "error", err)
+		return err
+	}
 	return nil
 }
 
 //DB db
-func (db *GoMemDB) DB() map[string][]byte {
+func (db *GoMemDB) DB() *memdb.DB {
 	return db.db
 }
 
 //Close 关闭
 func (db *GoMemDB) Close() {
-
 }
 
 //Print 打印
 func (db *GoMemDB) Print() {
-	for key, value := range db.db {
-		mlog.Info("Print", "key", key, "value", string(value))
+	it := db.db.NewIterator(nil)
+	for it.Next() {
+		mlog.Info("Print", "key", string(it.Key()), "value", string(it.Value()))
 	}
 }
 
@@ -134,107 +126,67 @@ func (db *GoMemDB) Stats() map[string]string {
 
 //Iterator 迭代器
 func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
 	if end == nil {
 		end = bytesPrefix(start)
 	}
 	if bytes.Equal(end, types.EmptyValue) {
 		end = nil
 	}
+	r := &util.Range{Start: start, Limit: end}
+	it := db.db.NewIterator(r)
 	base := itBase{start, end, reverse}
-
-	var keys []string
-	for k := range db.db {
-		if base.checkKey([]byte(k)) {
-			keys = append(keys, k)
-		}
-	}
-	sort.Strings(keys)
-	var index int
-	return &goMemDBIt{base, index, keys, db}
+	return &goMemDBIt{it, base}
 }
 
 type goMemDBIt struct {
+	iterator.Iterator
 	itBase
-	index   int      // 记录当前索引
-	keys    []string // 记录所有keys值
-	goMemDb *GoMemDB
 }
 
 //Seek 查找
 func (dbit *goMemDBIt) Seek(key []byte) bool { //指向当前的index值
-	for i, k := range dbit.keys {
-		if 0 == strings.Compare(k, string(key)) {
-			dbit.index = i
-			return true
-		}
-	}
-	return false
+	return dbit.Iterator.Seek(key)
 }
 
 //Close 关闭
 func (dbit *goMemDBIt) Close() {
-	dbit.goMemDb.Close()
+
 }
 
 //Next next
 func (dbit *goMemDBIt) Next() bool {
-	if dbit.reverse { // 反向
-		dbit.index-- //将当前key值指向前一个
-		return dbit.Valid()
+	if dbit.reverse {
+		return dbit.Iterator.Prev() && dbit.Valid()
 	}
-	// 正向
-	dbit.index++ //将当前key值指向后一个
-	return dbit.Valid()
+	return dbit.Iterator.Next() && dbit.Valid()
 
 }
 
 //Rewind ...
 func (dbit *goMemDBIt) Rewind() bool {
-	if dbit.reverse { // 反向
-		if (len(dbit.keys) > 0) && dbit.Valid() {
-			dbit.index = len(dbit.keys) - 1 // 将当前key值指向最后一个
-			return true
-		}
-		return false
+	if dbit.reverse {
+		return dbit.Iterator.Last() && dbit.Valid()
 	}
-	// 正向
-	if dbit.Valid() {
-		dbit.index = 0 // 将当前key值指向第一个
-		return true
-	}
-	return false
+	return dbit.Iterator.First() && dbit.Valid()
 }
 
 //Key key
 func (dbit *goMemDBIt) Key() []byte {
-	return []byte(dbit.keys[dbit.index])
+	return dbit.Iterator.Key()
 }
 
 //Value value
 func (dbit *goMemDBIt) Value() []byte {
-	value, _ := dbit.goMemDb.Get([]byte(dbit.keys[dbit.index]))
-	return value
+	return dbit.Iterator.Value()
 }
 
 func (dbit *goMemDBIt) ValueCopy() []byte {
-	v, _ := dbit.goMemDb.Get([]byte(dbit.keys[dbit.index]))
-	value := make([]byte, len(v))
-	copy(value, v)
-	return value
+	v := dbit.Iterator.Value()
+	return cloneByte(v)
 }
 
 func (dbit *goMemDBIt) Valid() bool {
-
-	if (dbit.goMemDb == nil) && (len(dbit.keys) == 0) {
-		return false
-	}
-
-	if len(dbit.keys) > dbit.index && dbit.index >= 0 {
-		return true
-	}
-	return false
+	return dbit.Iterator.Valid() && dbit.checkKey(dbit.Key())
 
 }
 
@@ -256,7 +208,6 @@ func (db *GoMemDB) NewBatch(sync bool) Batch {
 }
 
 func (b *memBatch) Set(key, value []byte) {
-	//println("-b-", string(key)[0:4], common.ToHex(key))
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(value)})
 	b.size += len(value)
 	b.size += len(key)
@@ -264,22 +215,17 @@ func (b *memBatch) Set(key, value []byte) {
 }
 
 func (b *memBatch) Delete(key []byte) {
-	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(nil)})
+	b.writes = append(b.writes, kv{CopyBytes(key), nil})
 	b.size += len(key)
 	b.len++
 }
 
 func (b *memBatch) Write() error {
-	b.db.lock.Lock()
-	defer b.db.lock.Unlock()
-
 	for _, kv := range b.writes {
 		if kv.v == nil {
-			//println("[d]", string(kv.k))
-			delete(b.db.db, string(kv.k))
+			b.db.Delete(kv.k)
 		} else {
-			//println("[i]", string(kv.k))
-			b.db.db[string(kv.k)] = kv.v
+			b.db.Set(kv.k, kv.v)
 		}
 	}
 	return nil
@@ -295,7 +241,7 @@ func (b *memBatch) ValueLen() int {
 }
 
 func (b *memBatch) Reset() {
-	b.writes = b.writes[:0]
+	b.db.db.Reset()
 	b.size = 0
 	b.len = 0
 }
