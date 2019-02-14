@@ -10,7 +10,6 @@ import (
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	"github.com/syndtr/goleveldb/leveldb/comparer"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -135,63 +134,7 @@ func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	r := &util.Range{Start: start, Limit: end}
 	it := db.db.NewIterator(r)
 	base := itBase{start, end, reverse}
-	return &goMemDBIt{it, base}
-}
-
-type goMemDBIt struct {
-	iterator.Iterator
-	itBase
-}
-
-//Seek 查找
-func (dbit *goMemDBIt) Seek(key []byte) bool { //指向当前的index值
-	return dbit.Iterator.Seek(key)
-}
-
-//Close 关闭
-func (dbit *goMemDBIt) Close() {
-
-}
-
-//Next next
-func (dbit *goMemDBIt) Next() bool {
-	if dbit.reverse {
-		return dbit.Iterator.Prev() && dbit.Valid()
-	}
-	return dbit.Iterator.Next() && dbit.Valid()
-
-}
-
-//Rewind ...
-func (dbit *goMemDBIt) Rewind() bool {
-	if dbit.reverse {
-		return dbit.Iterator.Last() && dbit.Valid()
-	}
-	return dbit.Iterator.First() && dbit.Valid()
-}
-
-//Key key
-func (dbit *goMemDBIt) Key() []byte {
-	return dbit.Iterator.Key()
-}
-
-//Value value
-func (dbit *goMemDBIt) Value() []byte {
-	return dbit.Iterator.Value()
-}
-
-func (dbit *goMemDBIt) ValueCopy() []byte {
-	v := dbit.Iterator.Value()
-	return cloneByte(v)
-}
-
-func (dbit *goMemDBIt) Valid() bool {
-	return dbit.Iterator.Valid() && dbit.checkKey(dbit.Key())
-
-}
-
-func (dbit *goMemDBIt) Error() error {
-	return nil
+	return &goLevelDBIt{it, base}
 }
 
 type kv struct{ k, v []byte }
