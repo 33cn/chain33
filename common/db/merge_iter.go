@@ -14,7 +14,6 @@ const (
 	dirReleased dir = iota - 1
 	dirSOI
 	dirEOI
-	dirBackward
 	dirForward
 )
 
@@ -30,6 +29,7 @@ type mergedIterator struct {
 	strict  bool
 	reverse bool
 	keys    [][]byte
+	prevKey []byte
 	index   int
 	dir     dir
 	err     error
@@ -101,6 +101,12 @@ func (i *mergedIterator) Seek(key []byte) bool {
 }
 
 func (i *mergedIterator) compare(tkey []byte, key []byte) int {
+	if tkey == nil && key != nil {
+		return 1
+	}
+	if tkey != nil && key == nil {
+		return -1
+	}
 	result := i.cmp.Compare(tkey, key)
 	if i.reverse {
 		return -result
@@ -110,9 +116,6 @@ func (i *mergedIterator) compare(tkey []byte, key []byte) int {
 
 func (i *mergedIterator) next() bool {
 	var key []byte
-	if i.dir == dirForward {
-		key = i.keys[i.index]
-	}
 	for x, tkey := range i.keys {
 		if tkey != nil && (key == nil || i.compare(tkey, key) < 0) {
 			key = tkey
@@ -123,11 +126,24 @@ func (i *mergedIterator) next() bool {
 		i.dir = dirEOI
 		return false
 	}
+	if i.dir == dirSOI {
+		i.prevKey = key
+	}
 	i.dir = dirForward
 	return true
 }
 
 func (i *mergedIterator) Next() bool {
+	for i.nextInternal() {
+		if i.compare(i.Key(), i.prevKey) != 0 {
+			i.prevKey = cloneByte(i.Key())
+			return true
+		}
+	}
+	return false
+}
+
+func (i *mergedIterator) nextInternal() bool {
 	if i.dir == dirEOI || i.err != nil {
 		return false
 	} else if i.dir == dirReleased {
@@ -138,12 +154,6 @@ func (i *mergedIterator) Next() bool {
 	switch i.dir {
 	case dirSOI:
 		return i.Rewind()
-	case dirBackward:
-		key := append([]byte{}, i.keys[i.index]...)
-		if !i.Seek(key) {
-			return false
-		}
-		return i.Next()
 	}
 
 	x := i.index
