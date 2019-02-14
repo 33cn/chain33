@@ -25,14 +25,14 @@ var (
 
 type mergedIterator struct {
 	itBase
-	cmp    comparer.Comparer
-	iters  []Iterator
-	strict bool
-
-	keys  [][]byte
-	index int
-	dir   dir
-	err   error
+	cmp     comparer.Comparer
+	iters   []Iterator
+	strict  bool
+	reverse bool
+	keys    [][]byte
+	index   int
+	dir     dir
+	err     error
 }
 
 func assertKey(key []byte) []byte {
@@ -100,13 +100,21 @@ func (i *mergedIterator) Seek(key []byte) bool {
 	return i.next()
 }
 
+func (i *mergedIterator) compare(tkey []byte, key []byte) int {
+	result := i.cmp.Compare(tkey, key)
+	if i.reverse {
+		return -result
+	}
+	return result
+}
+
 func (i *mergedIterator) next() bool {
 	var key []byte
 	if i.dir == dirForward {
 		key = i.keys[i.index]
 	}
 	for x, tkey := range i.keys {
-		if tkey != nil && (key == nil || i.cmp.Compare(tkey, key) < 0) {
+		if tkey != nil && (key == nil || i.compare(tkey, key) < 0) {
 			key = tkey
 			i.index = x
 		}
@@ -199,10 +207,37 @@ func (i *mergedIterator) Error() error {
 // won't be ignored and will halt 'merged iterator', otherwise the iterator will
 // continue to the next 'input iterator'.
 func NewMergedIterator(iters []Iterator) Iterator {
-	return &mergedIterator{
-		iters:  iters,
-		cmp:    comparer.DefaultComparer,
-		strict: true,
-		keys:   make([][]byte, len(iters)),
+	reverse := true
+	if len(iters) >= 2 {
+		reverse = iters[0].IsReverse()
+		for i := 1; i < len(iters); i++ {
+			if reverse != iters[i].IsReverse() {
+				panic("merge iter not support diff reverse flag")
+			}
+		}
 	}
+	return &mergedIterator{
+		iters:   iters,
+		reverse: reverse,
+		cmp:     comparer.DefaultComparer,
+		strict:  true,
+		keys:    make([][]byte, len(iters)),
+	}
+}
+
+type mergedIteratorDB struct {
+	iters []IteratorDB
+}
+
+//NewMergedIteratorDB 合并两个迭代数据库
+func NewMergedIteratorDB(iters []IteratorDB) IteratorDB {
+	return &mergedIteratorDB{iters: iters}
+}
+
+func (merge *mergedIteratorDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
+	iters := make([]Iterator, len(merge.iters))
+	for i := 0; i < len(merge.iters); i++ {
+		iters[i] = merge.iters[i].Iterator(start, end, reverse)
+	}
+	return NewMergedIterator(iters)
 }
