@@ -112,6 +112,7 @@ type Iterator interface {
 	ValueCopy() []byte
 	Error() error
 	Prefix() []byte
+	IsReverse() bool
 	Close()
 }
 
@@ -138,6 +139,10 @@ func (it *itBase) checkKey(key []byte) bool {
 //Prefix 前缀
 func (it *itBase) Prefix() []byte {
 	return nil
+}
+
+func (it *itBase) IsReverse() bool {
+	return it.reverse
 }
 
 //IteratorDB 迭代
