@@ -282,6 +282,10 @@ func (l *LocalDB) Rollback() {
 func (l *LocalDB) Commit() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.txcache == nil {
+		l.resetTx()
+		return nil
+	}
 	it := l.txcache.Iterator(nil, nil, false)
 	for it.Next() {
 		l.cache.Set(it.Key(), it.Value())

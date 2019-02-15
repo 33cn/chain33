@@ -12,6 +12,7 @@ import (
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/api"
+	dbm "github.com/33cn/chain33/common/db"
 	clog "github.com/33cn/chain33/common/log"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/pluginmgr"
@@ -39,6 +40,7 @@ func DisableLog() {
 
 // Executor executor struct
 type Executor struct {
+	disableLocal bool
 	client       queue.Client
 	qclient      client.QueueProtocolAPI
 	grpccli      types.Chain33Client
@@ -142,9 +144,12 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	if data.StateHash == nil {
 		data.StateHash = header.StateHash
 	}
-	localdb := NewLocalDB(exec.client)
-	defer localdb.(*LocalDB).Close()
-	driver.SetLocalDB(localdb)
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+		driver.SetLocalDB(localdb)
+	}
 	opt := &StateDBOption{EnableMVCC: exec.pluginEnable["mvcc"], Height: header.GetHeight()}
 
 	db := NewStateDB(exec.client, data.StateHash, localdb, opt)
@@ -174,8 +179,11 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 		mainHeight: datas.MainHeight,
 		parentHash: datas.ParentHash,
 	}
-	localdb := NewLocalDB(exec.client)
-	defer localdb.(*LocalDB).Close()
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+	}
 	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
 	execute.enableMVCC(nil)
 	//返回一个列表表示成功还是失败
@@ -207,8 +215,11 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		mainHeight: datas.MainHeight,
 		parentHash: datas.ParentHash,
 	}
-	localdb := NewLocalDB(exec.client)
-	defer localdb.(*LocalDB).Close()
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+	}
 	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
 	execute.enableMVCC(nil)
 	var receipts []*types.Receipt
@@ -278,8 +289,11 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 		mainHeight: b.MainHeight,
 		parentHash: b.ParentHash,
 	}
-	localdb := NewLocalDB(exec.client)
-	defer localdb.(*LocalDB).Close()
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+	}
 	execute := newExecutor(ctx, exec, localdb, b.Txs, datas.Receipts)
 	//因为mvcc 还没有写入，所以目前的mvcc版本是前一个区块的版本
 	execute.enableMVCC(datas.PrevStatusHash)
@@ -347,8 +361,11 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		mainHeight: b.MainHeight,
 		parentHash: b.ParentHash,
 	}
-	localdb := NewLocalDB(exec.client)
-	defer localdb.(*LocalDB).Close()
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+	}
 	execute := newExecutor(ctx, exec, localdb, b.Txs, nil)
 	execute.enableMVCC(nil)
 	var kvset types.LocalDBSet
