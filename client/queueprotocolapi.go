@@ -43,8 +43,12 @@ type QueueProtocolAPI interface {
 	// +++++++++++++++ wallet interfaces begin
 	// types.EventLocalGet
 	LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error)
+	// types.EventLocalNew
+	LocalNew(param *types.ReqNil) (*types.Int64, error)
+	// types.EventLocalClose
+	LocalClose(param *types.Int64) error
 	// types.EventLocalBeign
-	LocalBegin(param *types.ReqNil) (*types.Int64, error)
+	LocalBegin(param *types.Int64) error
 	// types.EventLocalCommit
 	LocalCommit(param *types.Int64) error
 	// types.EventLocalRollback

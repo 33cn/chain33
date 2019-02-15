@@ -12,7 +12,6 @@ import (
 func TestLocalDBRollback(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-
 	//测试localdb
 	api := mock33.GetAPI()
 	param := &types.LocalDBGet{}
@@ -28,12 +27,19 @@ func TestLocalDBRollback(t *testing.T) {
 	assert.Equal(t, err, types.ErrNotSetInTransaction)
 
 	//set in transaction
-	id, err := api.LocalBegin(nil)
+	id, err := api.LocalNew(nil)
 	assert.Nil(t, err)
 	assert.True(t, id.Data > 0)
 
-	_, err = api.LocalBegin(nil)
-	assert.Equal(t, err, types.ErrLocalDBTxDupOpen)
+	err = api.LocalClose(id)
+	assert.Nil(t, err)
+
+	id, err = api.LocalNew(nil)
+	assert.Nil(t, err)
+	assert.True(t, id.Data > 0)
+
+	err = api.LocalBegin(id)
+	assert.Nil(t, err)
 
 	param2 = &types.LocalDBSet{Txid: id.Data}
 	param2.KV = append(param2.KV, &types.KeyValue{Key: []byte("hello"), Value: []byte("world")})
@@ -87,7 +93,7 @@ func TestLocalDBRollback(t *testing.T) {
 		Direction: 1,
 	}
 	_, err = api.LocalList(list)
-	assert.Equal(t, err, common.ErrPointerNotFound)
+	assert.Nil(t, err)
 
 	list = &types.LocalDBList{
 		Prefix:    []byte("hello"),
@@ -117,12 +123,12 @@ func TestLocalDBCommit(t *testing.T) {
 	assert.Equal(t, err, types.ErrNotSetInTransaction)
 
 	//set in transaction
-	id, err := api.LocalBegin(nil)
+	id, err := api.LocalNew(nil)
 	assert.Nil(t, err)
 	assert.True(t, id.Data > 0)
 
-	_, err = api.LocalBegin(nil)
-	assert.Equal(t, err, types.ErrLocalDBTxDupOpen)
+	err = api.LocalBegin(id)
+	assert.Nil(t, err)
 
 	param2 = &types.LocalDBSet{Txid: id.Data}
 	param2.KV = append(param2.KV, &types.KeyValue{Key: []byte("hello"), Value: []byte("world")})
@@ -167,6 +173,9 @@ func TestLocalDBCommit(t *testing.T) {
 	err = api.LocalCommit(id)
 	assert.Nil(t, err)
 
+	err = api.LocalClose(id)
+	assert.Nil(t, err)
+
 	list = &types.LocalDBList{
 		Txid:      id.Data,
 		Prefix:    []byte("hello"),
@@ -175,13 +184,12 @@ func TestLocalDBCommit(t *testing.T) {
 	_, err = api.LocalList(list)
 	assert.Equal(t, err, common.ErrPointerNotFound)
 
+	//系统只读，无法写入数据
 	list = &types.LocalDBList{
 		Prefix:    []byte("hello"),
 		Direction: 1,
 	}
 	values, err = api.LocalList(list)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, 2, len(values.Values))
-	assert.Equal(t, []byte("world"), values.Values[0])
-	assert.Equal(t, []byte("world2"), values.Values[1])
+	assert.Equal(t, 0, len(values.Values))
 }

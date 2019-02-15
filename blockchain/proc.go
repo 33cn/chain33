@@ -22,7 +22,9 @@ func (chain *BlockChain) ProcRecvMsg() {
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
 		atomic.AddInt32(&chain.runcount, 1)
-		chain.procLocalDB(msgtype, msg, reqnum)
+		if chain.procLocalDB(msgtype, msg, reqnum) {
+			continue
+		}
 		switch msgtype {
 		case types.EventQueryTx:
 			go chain.processMsg(msg, reqnum, chain.queryTx)

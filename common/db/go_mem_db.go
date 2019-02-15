@@ -38,26 +38,13 @@ func NewGoMemDB(name string, dir string, cache int) (*GoMemDB, error) {
 	}, nil
 }
 
-//CopyBytes 复制字节
-func CopyBytes(b []byte) (copiedBytes []byte) {
-	/* 兼容leveldb
-	if b == nil {
-		return nil
-	}
-	*/
-	copiedBytes = make([]byte, len(b))
-	copy(copiedBytes, b)
-
-	return copiedBytes
-}
-
 //Get get
 func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	v, err := db.db.Get(key)
 	if err != nil {
 		return nil, ErrNotFoundInDb
 	}
-	return CopyBytes(v), nil
+	return cloneByte(v), nil
 }
 
 //Set set
@@ -151,14 +138,14 @@ func (db *GoMemDB) NewBatch(sync bool) Batch {
 }
 
 func (b *memBatch) Set(key, value []byte) {
-	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(value)})
+	b.writes = append(b.writes, kv{cloneByte(key), cloneByte(value)})
 	b.size += len(value)
 	b.size += len(key)
 	b.len += len(value)
 }
 
 func (b *memBatch) Delete(key []byte) {
-	b.writes = append(b.writes, kv{CopyBytes(key), nil})
+	b.writes = append(b.writes, kv{cloneByte(key), nil})
 	b.size += len(key)
 	b.len++
 }

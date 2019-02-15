@@ -741,17 +741,37 @@ func (q *QueueProtocol) LocalSet(param *types.LocalDBSet) error {
 	return nil
 }
 
-//LocalBegin begin a transaction
-func (q *QueueProtocol) LocalBegin(param *types.ReqNil) (*types.Int64, error) {
-	msg, err := q.query(blockchainKey, types.EventLocalBegin, nil)
+//LocalNew new a localdb object
+func (q *QueueProtocol) LocalNew(param *types.ReqNil) (*types.Int64, error) {
+	msg, err := q.query(blockchainKey, types.EventLocalNew, nil)
 	if err != nil {
-		log.Error("LocalBegin", "Error", err.Error())
+		log.Error("LocalNew", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Int64); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
+}
+
+//LocalBegin begin a transaction
+func (q *QueueProtocol) LocalBegin(param *types.Int64) error {
+	_, err := q.query(blockchainKey, types.EventLocalBegin, param)
+	if err != nil {
+		log.Error("LocalBegin", "Error", err.Error())
+		return err
+	}
+	return nil
+}
+
+//LocalClose begin a transaction
+func (q *QueueProtocol) LocalClose(param *types.Int64) error {
+	_, err := q.query(blockchainKey, types.EventLocalClose, param)
+	if err != nil {
+		log.Error("LocalClose", "Error", err.Error())
+		return err
+	}
+	return nil
 }
 
 //LocalCommit commit a transaction

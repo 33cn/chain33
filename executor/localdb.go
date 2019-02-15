@@ -1,33 +1,91 @@
 package executor
 
 import (
+	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
 
-// LocalDB local db for store key value in local
+//LocalDB 本地数据库，类似localdb，不加入区块链的状态。
+//数据库只读，不能落盘
+//数据的get set 主要经过 cache
+//如果需要进行list, 那么把get set 的内容加入到 后端数据库
 type LocalDB struct {
-	txcache db.DB
-	cache   db.DB
+	cache   map[string][]byte
+	txcache map[string][]byte
 	keys    []string
 	intx    bool
+	kvs     []*types.KeyValue
+	txid    *types.Int64
 	client  queue.Client
+	api     client.QueueProtocolAPI
 }
 
-// NewLocalDB new local db
-func NewLocalDB(client queue.Client) db.KVDB {
-	return &LocalDB{cache: make(map[string][]byte), client: client}
+//NewLocalDB 创建一个新的LocalDB
+func NewLocalDB(cli queue.Client) db.KVDB {
+	api, err := client.New(cli, nil)
+	if err != nil {
+		panic(err)
+	}
+	txid, err := api.LocalNew(nil)
+	if err != nil {
+		panic(err)
+	}
+	return &LocalDB{
+		cache:  make(map[string][]byte),
+		txid:   txid,
+		client: cli,
+		api:    api,
+	}
 }
 
-// Get get value from local db
+func (l *LocalDB) resetTx() {
+	l.intx = false
+	l.txcache = nil
+	l.keys = nil
+}
+
+//Begin 开始一个事务
+func (l *LocalDB) Begin() {
+	l.intx = true
+	l.keys = nil
+	l.txcache = nil
+	err := l.api.LocalBegin(l.txid)
+	if err != nil {
+		panic(err)
+	}
+}
+
+//Commit 提交一个事务
+func (l *LocalDB) Commit() error {
+	for k, v := range l.txcache {
+		l.cache[k] = v
+	}
+	l.resetTx()
+	err := l.api.LocalCommit(l.txid)
+	return err
+}
+
+//Close 提交一个事务
+func (l *LocalDB) Close() error {
+	l.cache = nil
+	l.resetTx()
+	err := l.api.LocalClose(l.txid)
+	return err
+}
+
+//Rollback 回滚修改
+func (l *LocalDB) Rollback() {
+	l.resetTx()
+	err := l.api.LocalRollback(l.txid)
+	if err != nil {
+		panic(err)
+	}
+}
+
+//Get 获取key
 func (l *LocalDB) Get(key []byte) ([]byte, error) {
-	value, err := l.get(key)
-	debugAccount("==lget==", key, value)
-	return value, err
-}
-
-func (l *LocalDB) get(key []byte) ([]byte, error) {
 	skey := string(key)
 	if l.intx && l.txcache != nil {
 		if value, ok := l.txcache[skey]; ok {
@@ -35,34 +93,31 @@ func (l *LocalDB) get(key []byte) ([]byte, error) {
 		}
 	}
 	if value, ok := l.cache[skey]; ok {
+		if value == nil {
+			return nil, types.ErrNotFound
+		}
 		return value, nil
 	}
-	if l.client == nil {
-		return nil, types.ErrNotFound
-	}
-	query := &types.LocalDBGet{Keys: [][]byte{key}}
-	msg := l.client.NewMessage("blockchain", types.EventLocalGet, query)
-	l.client.Send(msg, true)
-	resp, err := l.client.Wait(msg)
-
+	query := &types.LocalDBGet{Txid: l.txid.Data, Keys: [][]byte{key}}
+	resp, err := l.api.LocalGet(query)
 	if err != nil {
 		panic(err) //no happen for ever
 	}
-	if nil == resp.GetData().(*types.LocalReplyValue).Values {
+	if nil == resp.Values {
+		l.cache[string(key)] = nil
 		return nil, types.ErrNotFound
 	}
-	value := resp.GetData().(*types.LocalReplyValue).Values[0]
+	value := resp.Values[0]
 	if value == nil {
-		//panic(string(key))
+		l.cache[string(key)] = nil
 		return nil, types.ErrNotFound
 	}
 	l.cache[string(key)] = value
 	return value, nil
 }
 
-// Set set key value to local db
+//Set 获取key
 func (l *LocalDB) Set(key []byte, value []byte) error {
-	debugAccount("==lset==", key, value)
 	skey := string(key)
 	if l.intx {
 		if l.txcache == nil {
@@ -73,22 +128,26 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 	} else {
 		setmap(l.cache, skey, value)
 	}
+	l.kvs = append(l.kvs, &types.KeyValue{Key: key, Value: value})
 	return nil
 }
 
-// List 从数据库中查询数据列表，set 中的cache 更新不会影响这个list
+// List 从数据库中查询数据列表
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
-	if l.client == nil {
-		return nil, types.ErrNotFound
+	if l.kvs != nil {
+		param := &types.LocalDBSet{Txid: l.txid.Data}
+		param.KV = l.kvs
+		err := l.api.LocalSet(param)
+		if err != nil {
+			return nil, err
+		}
 	}
 	query := &types.LocalDBList{Prefix: prefix, Key: key, Count: count, Direction: direction}
-	msg := l.client.NewMessage("blockchain", types.EventLocalList, query)
-	l.client.Send(msg, true)
-	resp, err := l.client.Wait(msg)
+	resp, err := l.api.LocalList(query)
 	if err != nil {
 		panic(err) //no happen for ever
 	}
-	values := resp.GetData().(*types.LocalReplyValue).Values
+	values := resp.Values
 	if values == nil {
 		//panic(string(key))
 		return nil, types.ErrNotFound
@@ -98,43 +157,5 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 
 // PrefixCount 从数据库中查询指定前缀的key的数量
 func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
-	if l.client == nil {
-		return 0
-	}
-	query := &types.ReqKey{Key: prefix}
-	msg := l.client.NewMessage("blockchain", types.EventLocalPrefixCount, query)
-	l.client.Send(msg, true)
-	resp, err := l.client.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
-	}
-	count = resp.GetData().(*types.Int64).Data
-	return
-}
-
-//Begin 开启内存事务处理
-func (l *LocalDB) Begin() {
-	l.intx = true
-	l.keys = nil
-	l.txcache = nil
-}
-
-// Rollback reset tx
-func (l *LocalDB) Rollback() {
-	l.resetTx()
-}
-
-// Commit canche tx
-func (l *LocalDB) Commit() error {
-	for k, v := range l.txcache {
-		l.cache[k] = v
-	}
-	l.resetTx()
-	return nil
-}
-
-func (l *LocalDB) resetTx() {
-	l.intx = false
-	l.txcache = nil
-	l.keys = nil
+	panic("localdb not support PrefixCount")
 }

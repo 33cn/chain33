@@ -44,11 +44,10 @@ type executorCtx struct {
 	mainHeight int64
 }
 
-func newExecutor(ctx *executorCtx, exec *Executor, txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
+func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
 	client := exec.client
 	enableMVCC := exec.pluginEnable["mvcc"]
 	opt := &StateDBOption{EnableMVCC: enableMVCC, Height: ctx.height}
-	localdb := NewLocalDB(client)
 	e := &executor{
 		stateDB:      NewStateDB(client, ctx.stateHash, localdb, opt),
 		localDB:      localdb,

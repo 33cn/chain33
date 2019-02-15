@@ -138,8 +138,16 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				} else {
 					msg.ReplyErr("Do not support", types.ErrInvalidParam)
 				}
+			case types.EventLocalNew:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventLocalNew, &types.Int64{Data: 9999}))
+			case types.EventLocalClose:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventLocalClose, nil))
 			case types.EventLocalBegin:
-				msg.Reply(client.NewMessage(blockchainKey, types.EventLocalBegin, &types.Int64{Data: 9999}))
+				if req, ok := msg.GetData().(*types.Int64); ok && req.Data == 9999 {
+					msg.Reply(client.NewMessage(blockchainKey, types.EventLocalBegin, nil))
+				} else {
+					msg.ReplyErr("transaction id must 9999", types.ErrInvalidParam)
+				}
 			case types.EventLocalCommit:
 				if req, ok := msg.GetData().(*types.Int64); ok && req.Data == 9999 {
 					msg.Reply(client.NewMessage(blockchainKey, types.EventLocalCommit, nil))
