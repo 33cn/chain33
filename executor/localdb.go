@@ -8,8 +8,8 @@ import (
 
 // LocalDB local db for store key value in local
 type LocalDB struct {
-	cache   map[string][]byte
-	txcache map[string][]byte
+	txcache db.DB
+	cache   db.DB
 	keys    []string
 	intx    bool
 	client  queue.Client
