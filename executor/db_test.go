@@ -20,11 +20,6 @@ func TestStateDBGet(t *testing.T) {
 	testDBGet(t, db)
 }
 
-func TestLocalDBGet(t *testing.T) {
-	db := NewLocalDB(nil)
-	testDBGet(t, db)
-}
-
 func testDBGet(t *testing.T, db dbm.KV) {
 	err := db.Set([]byte("k1"), []byte("v1"))
 	assert.Nil(t, err)
@@ -83,16 +78,6 @@ func TestStateDBTxGetOld(t *testing.T) {
 	db.Commit()
 }
 
-func TestStateDBTxGet(t *testing.T) {
-	db := newStateDbForTest(types.GetFork("ForkExecRollback"))
-	testTxGet(t, db)
-}
-
-func TestLocalDBTxGet(t *testing.T) {
-	db := NewLocalDB(nil)
-	testTxGet(t, db)
-}
-
 func testTxGet(t *testing.T, db dbm.KV) {
 	//新版本
 	db.Begin()
@@ -128,23 +113,7 @@ func testTxGet(t *testing.T, db dbm.KV) {
 	assert.Equal(t, v, []byte("v11"))
 }
 
-func TestLocalDB(t *testing.T) {
-	db := NewLocalDB(nil)
-	err := db.Set([]byte("k1"), []byte("v1"))
-	assert.Nil(t, err)
-	v, err := db.Get([]byte("k1"))
-	assert.Nil(t, err)
-	assert.Equal(t, v, []byte("v1"))
-
-	err = db.Set([]byte("k1"), []byte("v11"))
-	assert.Nil(t, err)
-	v, err = db.Get([]byte("k1"))
-	assert.Nil(t, err)
-	assert.Equal(t, v, []byte("v11"))
-
-	//beigin and rollback not imp
-	db.Begin()
-	db.Rollback()
-	db.Commit()
-	db.List([]byte("a"), []byte("b"), 1, 1)
+func TestStateDBTxGet(t *testing.T) {
+	db := newStateDbForTest(types.GetFork("ForkExecRollback"))
+	testTxGet(t, db)
 }

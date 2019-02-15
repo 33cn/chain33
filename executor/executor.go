@@ -143,6 +143,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 		data.StateHash = header.StateHash
 	}
 	localdb := NewLocalDB(exec.client)
+	defer localdb.(*LocalDB).Close()
 	driver.SetLocalDB(localdb)
 	opt := &StateDBOption{EnableMVCC: exec.pluginEnable["mvcc"], Height: header.GetHeight()}
 
@@ -173,7 +174,9 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 		mainHeight: datas.MainHeight,
 		parentHash: datas.ParentHash,
 	}
-	execute := newExecutor(ctx, exec, datas.Txs, nil)
+	localdb := NewLocalDB(exec.client)
+	defer localdb.(*LocalDB).Close()
+	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
 	execute.enableMVCC(nil)
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
@@ -204,7 +207,9 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		mainHeight: datas.MainHeight,
 		parentHash: datas.ParentHash,
 	}
-	execute := newExecutor(ctx, exec, datas.Txs, nil)
+	localdb := NewLocalDB(exec.client)
+	defer localdb.(*LocalDB).Close()
+	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
 	execute.enableMVCC(nil)
 	var receipts []*types.Receipt
 	index := 0
@@ -273,7 +278,9 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 		mainHeight: b.MainHeight,
 		parentHash: b.ParentHash,
 	}
-	execute := newExecutor(ctx, exec, b.Txs, datas.Receipts)
+	localdb := NewLocalDB(exec.client)
+	defer localdb.(*LocalDB).Close()
+	execute := newExecutor(ctx, exec, localdb, b.Txs, datas.Receipts)
 	//因为mvcc 还没有写入，所以目前的mvcc版本是前一个区块的版本
 	execute.enableMVCC(datas.PrevStatusHash)
 	var kvset types.LocalDBSet
@@ -340,7 +347,9 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		mainHeight: b.MainHeight,
 		parentHash: b.ParentHash,
 	}
-	execute := newExecutor(ctx, exec, b.Txs, nil)
+	localdb := NewLocalDB(exec.client)
+	defer localdb.(*LocalDB).Close()
+	execute := newExecutor(ctx, exec, localdb, b.Txs, nil)
 	execute.enableMVCC(nil)
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {

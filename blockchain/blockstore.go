@@ -412,7 +412,7 @@ func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
 	for i := 0; i < len(keys.Keys); i++ {
 		key := keys.Keys[i]
 		value, err := bs.db.Get(key)
-		if err != nil {
+		if err != nil && err != types.ErrNotFound {
 			storeLog.Error("Get", "error", err)
 		}
 		reply.Values = append(reply.Values, value)

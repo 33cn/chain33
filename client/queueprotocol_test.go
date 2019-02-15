@@ -192,15 +192,19 @@ func testLocalList(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testLocalTransaction(t *testing.T, api client.QueueProtocolAPI) {
-	txid, err := api.LocalBegin(nil)
+	txid, err := api.LocalNew(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, txid.Data, int64(9999))
+	err = api.LocalBegin(txid)
+	assert.Nil(t, err)
 	err = api.LocalCommit(txid)
 	assert.Nil(t, err)
 	err = api.LocalRollback(txid)
 	assert.Nil(t, err)
 	param := &types.LocalDBSet{Txid: txid.Data}
 	err = api.LocalSet(param)
+	assert.Nil(t, err)
+	err = api.LocalClose(txid)
 	assert.Nil(t, err)
 }
 

@@ -707,26 +707,31 @@ func (_m *QueueProtocolAPI) ListSeqCallBack() (*types.BlockSeqCBs, error) {
 }
 
 // LocalBegin provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) LocalBegin(param *types.ReqNil) (*types.Int64, error) {
+func (_m *QueueProtocolAPI) LocalBegin(param *types.Int64) error {
 	ret := _m.Called(param)
 
-	var r0 *types.Int64
-	if rf, ok := ret.Get(0).(func(*types.ReqNil) *types.Int64); ok {
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.Int64) error); ok {
 		r0 = rf(param)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Int64)
-		}
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqNil) error); ok {
-		r1 = rf(param)
+	return r0
+}
+
+// LocalClose provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) LocalClose(param *types.Int64) error {
+	ret := _m.Called(param)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.Int64) error); ok {
+		r0 = rf(param)
 	} else {
-		r1 = ret.Error(1)
+		r0 = ret.Error(0)
 	}
 
-	return r0, r1
+	return r0
 }
 
 // LocalCommit provides a mock function with given fields: param
@@ -781,6 +786,29 @@ func (_m *QueueProtocolAPI) LocalList(param *types.LocalDBList) (*types.LocalRep
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.LocalDBList) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// LocalNew provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) LocalNew(param *types.ReqNil) (*types.Int64, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Int64
+	if rf, ok := ret.Get(0).(func(*types.ReqNil) *types.Int64); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Int64)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqNil) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)

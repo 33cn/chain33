@@ -58,7 +58,9 @@ func TestExecutorGetTxGroup(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	execute := newExecutor(ctx, exec, txs, nil)
+	localdb := NewLocalDB(exec.client)
+	defer localdb.(*LocalDB).Close()
+	execute := newExecutor(ctx, exec, localdb, txs, nil)
 	e := execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	txs2 := e.GetTxs()
@@ -73,7 +75,9 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 	//err tx group list
 	txs[0].Header = nil
-	execute = newExecutor(ctx, exec, txs, nil)
+	localdb2 := NewLocalDB(exec.client)
+	defer localdb2.(*LocalDB).Close()
+	execute = newExecutor(ctx, exec, localdb2, txs, nil)
 	e = execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	_, err = e.GetTxGroup(len(txs) - 1)
