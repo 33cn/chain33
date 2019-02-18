@@ -390,8 +390,6 @@ func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.
 			if err := cb(i, detail.Receipts[index]); err != nil {
 				return nil, err
 			}
-		} else {
-			panic("never happen")
 		}
 	}
 	return detail.Block, nil

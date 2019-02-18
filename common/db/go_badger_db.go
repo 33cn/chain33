@@ -284,7 +284,10 @@ func (db *GoBadgerDB) NewBatch(sync bool) Batch {
 
 //Set set
 func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
-	mBatch.batch.Set(key, value)
+	err := mBatch.batch.Set(key, value)
+	if err != nil {
+		blog.Error("Set", "error", err)
+	}
 	mBatch.size += len(value)
 	mBatch.size += len(key)
 	mBatch.len += len(value)
@@ -292,7 +295,10 @@ func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
 
 //Delete 设置
 func (mBatch *GoBadgerDBBatch) Delete(key []byte) {
-	mBatch.batch.Delete(key)
+	err := mBatch.batch.Delete(key)
+	if err != nil {
+		blog.Error("Delete", "error", err)
+	}
 	mBatch.size += len(key)
 	mBatch.len++
 }

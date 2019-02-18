@@ -258,7 +258,10 @@ func autoMine(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	flag, _ := cmd.Flags().GetInt32("flag")
 	if flag != 0 && flag != 1 {
-		cmd.UsageFunc()(cmd)
+		err := cmd.UsageFunc()(cmd)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		return
 	}
 	params := struct {
