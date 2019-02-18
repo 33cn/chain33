@@ -47,14 +47,12 @@ func (l *LocalDB) resetTx() {
 	l.intx = false
 	l.txcache = nil
 	l.keys = nil
-	l.kvs = nil
 }
 
 //Begin 开始一个事务
 func (l *LocalDB) Begin() {
 	l.intx = true
 	l.keys = nil
-	l.kvs = nil
 	l.txcache = nil
 	err := l.api.LocalBegin(l.txid)
 	if err != nil {
