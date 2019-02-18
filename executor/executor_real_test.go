@@ -6,13 +6,16 @@ package executor_test
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"testing"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/merkle"
 	_ "github.com/33cn/chain33/system"
+	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
@@ -270,4 +273,68 @@ func BenchmarkExecBlock(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true)
 	}
+}
+
+/*
+ExecLocalSameTime test
+*/
+type demoApp struct {
+	*drivers.DriverBase
+}
+
+func newdemoApp() drivers.Driver {
+	demo := &demoApp{DriverBase: &drivers.DriverBase{}}
+	demo.SetChild(demo)
+	return demo
+}
+
+func (demo *demoApp) GetDriverName() string {
+	return "demo"
+}
+
+func (demo *demoApp) ExecutorOrder() int64 {
+	return drivers.ExecLocalSameTime
+}
+
+func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
+	addr := tx.From()
+	id := common.ToHex(tx.Hash())
+	values, err := demo.GetLocalDB().List(demoCalcLocalKey(addr, ""), nil, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	demo.GetStateDB().Set(demoCalcStateKey(addr, id), []byte(fmt.Sprint(len(values))))
+	receipt = &types.Receipt{Ty: types.ExecOk}
+	receipt.KV = append(receipt.KV, &types.KeyValue{
+		Key:   demoCalcStateKey(addr, id),
+		Value: []byte(fmt.Sprint(len(values))),
+	})
+	return receipt, nil
+}
+
+func (demo *demoApp) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (localkv *types.LocalDBSet, err error) {
+	localkv = &types.LocalDBSet{}
+	addr := tx.From()
+	id := common.ToHex(tx.Hash())
+	localkv.KV = append(localkv.KV, &types.KeyValue{
+		Key:   demoCalcLocalKey(addr, id),
+		Value: tx.Hash(),
+	})
+	return localkv, nil
+}
+
+func demoCalcStateKey(addr string, id string) []byte {
+	key := append([]byte("mavl-demo-"), []byte(addr)...)
+	key = append(key, []byte(":")...)
+	key = append(key, []byte(id)...)
+	return key
+}
+
+func demoCalcLocalKey(addr string, id string) []byte {
+	key := append([]byte("LODB-demo-"), []byte(addr)...)
+	key = append(key, []byte(":")...)
+	if len(id) > 0 {
+		key = append(key, []byte(id)...)
+	}
+	return key
 }
