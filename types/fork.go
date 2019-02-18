@@ -150,9 +150,13 @@ func (f *Forks) CloneZero(from, to string) error {
 }
 
 // CloneMaxHeight fork信息拷贝并设置所有fork高度MaxHeight
-func (f *Forks) CloneMaxHeight(from, to string) {
-	f.Clone(from, to)
+func (f *Forks) CloneMaxHeight(from, to string) error {
+	err := f.Clone(from, to)
+	if err != nil {
+		return err
+	}
 	f.SetAllFork(to, MaxHeight)
+	return nil
 }
 
 // SetAllFork 设置所有fork的高度
@@ -219,7 +223,10 @@ func setLocalFork() {
 
 //paraName not used currently
 func setForkForPara(paraName string) {
-	systemFork.CloneZero("chain33", paraName)
+	err := systemFork.CloneZero("chain33", paraName)
+	if err != nil {
+		tlog.Error("setForkForPara", "error", err)
+	}
 	systemFork.ReplaceFork(paraName, "ForkBlockHash", 1)
 }
 
