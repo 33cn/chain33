@@ -44,6 +44,8 @@ func TestGetHealth(t *testing.T) {
 	peerlist := &types.PeerList{Peers: []*types.Peer{peer2}}
 	api.On("PeerInfo").Return(peerlist, nil).Once()
 
+	healthNil := NewHealthCheckServer(nil)
+	assert.Nil(t, healthNil)
 	q := queue.New("channel")
 	health := NewHealthCheckServer(q.Client())
 	health.api = api
