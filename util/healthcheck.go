@@ -39,6 +39,9 @@ func (s *HealthCheckServer) Close() {
 
 // NewHealthCheckServer new json rpcserver object
 func NewHealthCheckServer(c queue.Client) *HealthCheckServer {
+	if c == nil {
+		return nil
+	}
 	h := &HealthCheckServer{}
 	h.api, _ = client.New(c, nil)
 	h.quit = make(chan struct{})
