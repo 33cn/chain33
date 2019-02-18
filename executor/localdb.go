@@ -26,7 +26,6 @@ type LocalDB struct {
 
 //NewLocalDB 创建一个新的LocalDB
 func NewLocalDB(cli queue.Client) db.KVDB {
-	fmt.Println("new localdb")
 	api, err := client.New(cli, nil)
 	if err != nil {
 		panic(err)
