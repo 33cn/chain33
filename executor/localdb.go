@@ -62,7 +62,6 @@ func (l *LocalDB) Begin() {
 
 func (l *LocalDB) save() error {
 	if l.kvs != nil {
-		fmt.Println("save--->", l.kvs)
 		param := &types.LocalDBSet{Txid: l.txid.Data}
 		param.KV = l.kvs
 		err := l.api.LocalSet(param)
@@ -159,7 +158,6 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("list--->", string(prefix), l.txid.Data)
 	query := &types.LocalDBList{Txid: l.txid.Data, Prefix: prefix, Key: key, Count: count, Direction: direction}
 	resp, err := l.api.LocalList(query)
 	if err != nil {
