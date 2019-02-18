@@ -282,10 +282,12 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 func (exec *Executor) execLocalSameTime(execute *executor, tx *types.Transaction, receipt *types.Receipt, index int) {
 	e := execute.loadDriver(tx, index)
 	if e.ExecutorOrder() == drivers.ExecLocalSameTime {
-		_, err := exec.execLocalTx(execute, tx, &types.ReceiptData{
-			Ty:   receipt.Ty,
-			Logs: receipt.Logs,
-		}, index)
+		var r = &types.ReceiptData{}
+		if receipt != nil {
+			r.Ty = receipt.Ty
+			r.Logs = receipt.Logs
+		}
+		_, err := exec.execLocalTx(execute, tx, r, index)
 		//ignore err, only print err
 		if err != nil {
 			elog.Debug("ExecLocal Same Time", "err", err)
