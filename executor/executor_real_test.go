@@ -303,7 +303,6 @@ func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	if err != nil {
 		return nil, err
 	}
-	demo.GetStateDB().Set(demoCalcStateKey(addr, id), []byte(fmt.Sprint(len(values))))
 	receipt = &types.Receipt{Ty: types.ExecOk}
 	receipt.KV = append(receipt.KV, &types.KeyValue{
 		Key:   demoCalcStateKey(addr, id),
