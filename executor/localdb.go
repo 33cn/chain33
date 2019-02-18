@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"fmt"
+
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
@@ -24,6 +26,7 @@ type LocalDB struct {
 
 //NewLocalDB 创建一个新的LocalDB
 func NewLocalDB(cli queue.Client) db.KVDB {
+	fmt.Println("new localdb")
 	api, err := client.New(cli, nil)
 	if err != nil {
 		panic(err)
@@ -44,12 +47,14 @@ func (l *LocalDB) resetTx() {
 	l.intx = false
 	l.txcache = nil
 	l.keys = nil
+	l.kvs = nil
 }
 
 //Begin 开始一个事务
 func (l *LocalDB) Begin() {
 	l.intx = true
 	l.keys = nil
+	l.kvs = nil
 	l.txcache = nil
 	err := l.api.LocalBegin(l.txid)
 	if err != nil {
@@ -57,13 +62,31 @@ func (l *LocalDB) Begin() {
 	}
 }
 
+func (l *LocalDB) save() error {
+	if l.kvs != nil {
+		fmt.Println("save--->", l.kvs)
+		param := &types.LocalDBSet{Txid: l.txid.Data}
+		param.KV = l.kvs
+		err := l.api.LocalSet(param)
+		if err != nil {
+			return err
+		}
+		l.kvs = nil
+	}
+	return nil
+}
+
 //Commit 提交一个事务
 func (l *LocalDB) Commit() error {
 	for k, v := range l.txcache {
 		l.cache[k] = v
 	}
+	err := l.save()
+	if err != nil {
+		return err
+	}
 	l.resetTx()
-	err := l.api.LocalCommit(l.txid)
+	err = l.api.LocalCommit(l.txid)
 	return err
 }
 
@@ -134,15 +157,12 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 
 // List 从数据库中查询数据列表
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
-	if l.kvs != nil {
-		param := &types.LocalDBSet{Txid: l.txid.Data}
-		param.KV = l.kvs
-		err := l.api.LocalSet(param)
-		if err != nil {
-			return nil, err
-		}
+	err := l.save()
+	if err != nil {
+		return nil, err
 	}
-	query := &types.LocalDBList{Prefix: prefix, Key: key, Count: count, Direction: direction}
+	fmt.Println("list--->", string(prefix), l.txid.Data)
+	query := &types.LocalDBList{Txid: l.txid.Data, Prefix: prefix, Key: key, Count: count, Direction: direction}
 	resp, err := l.api.LocalList(query)
 	if err != nil {
 		panic(err) //no happen for ever
