@@ -127,6 +127,7 @@ func TestLocalDB(t *testing.T) {
 	assert.Equal(t, string(values[0]), "v2")
 	assert.Equal(t, string(values[1]), "v11")
 	err = db.Commit()
+	assert.Nil(t, err)
 	//get
 	v, err = db.Get([]byte("k2"))
 	assert.Nil(t, err)
