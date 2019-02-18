@@ -29,6 +29,9 @@ const (
 	TxIndexFrom = 1
 	// TxIndexTo transaction index to
 	TxIndexTo = 2
+
+	//ExecLocalSameTime Exec 的时候 同时执行 ExecLocal
+	ExecLocalSameTime = int64(1)
 )
 
 // Driver defines some interface
@@ -69,6 +72,7 @@ type Driver interface {
 	GetFuncMap() map[string]reflect.Method
 	GetExecutorType() types.ExecutorType
 	CheckReceiptExecOk() bool
+	ExecutorOrder() int64
 }
 
 // DriverBase defines driverbase type
@@ -104,6 +108,12 @@ func (d *DriverBase) GetPayloadValue() types.Message {
 // GetExecutorType defines get executortype func
 func (d *DriverBase) GetExecutorType() types.ExecutorType {
 	return d.ety
+}
+
+//ExecutorOrder 执行顺序, 如果要使用 ExecLocalSameTime
+//那么会同时执行 ExecLocal
+func (d *DriverBase) ExecutorOrder() int64 {
+	return 0
 }
 
 //GetLastHash 获取最后区块的hash，主链和平行链不同
