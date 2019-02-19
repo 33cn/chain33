@@ -106,7 +106,10 @@ type BlockChain struct {
 //New new
 func New(cfg *types.BlockChain) *BlockChain {
 	initConfig(cfg)
-	futureBlocks, _ := lru.New(maxFutureBlocks)
+	futureBlocks, err := lru.New(maxFutureBlocks)
+	if err != nil {
+		panic("when New BlockChain lru.New return err")
+	}
 	blockchain := &BlockChain{
 		cache:              NewBlockCache(DefCacheSize),
 		rcvLastBlockHeight: -1,
