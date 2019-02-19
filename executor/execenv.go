@@ -349,8 +349,10 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 	//1. statedb 中 Set的 key 必须是 在 receipt.GetKV() 这个集合中
 	//2. receipt.GetKV() 中的 key, 必须符合权限控制要求
 	memkvset := e.stateDB.(*StateDB).GetSetKeys()
-	feelog, err = e.checkKV(feelog, memkvset, receipt.GetKV())
+	err = e.checkKV(memkvset, receipt.GetKV())
 	if err != nil {
+		errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(err.Error())}
+		feelog.Logs = append(feelog.Logs, errlog)
 		return feelog, err
 	}
 	feelog, err = e.checkKeyAllow(feelog, tx, index, receipt.GetKV())
@@ -365,7 +367,7 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 	return feelog, nil
 }
 
-func (e *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*types.KeyValue) (*types.Receipt, error) {
+func (e *executor) checkKV(memset []string, kvs []*types.KeyValue) error {
 	keys := make(map[string]bool)
 	for _, kv := range kvs {
 		k := kv.GetKey()
@@ -375,12 +377,10 @@ func (e *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*types.
 		if _, ok := keys[key]; !ok {
 			elog.Error("err memset key", "key", key)
 			//非法的receipt，交易执行失败
-			errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(types.ErrNotAllowMemSetKey.Error())}
-			feelog.Logs = append(feelog.Logs, errlog)
-			return feelog, types.ErrNotAllowMemSetKey
+			return types.ErrNotAllowMemSetKey
 		}
 	}
-	return feelog, nil
+	return nil
 }
 
 func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, index int, kvs []*types.KeyValue) (*types.Receipt, error) {

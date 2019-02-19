@@ -357,6 +357,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 }
 
 func (exec *Executor) execLocalTx(execute *executor, tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	execute.localDB.(*LocalDB).StartTx()
 	kv, err := execute.execLocal(tx, r, index)
 	if err == types.ErrActionNotSupport {
 		return nil, nil
@@ -364,13 +365,23 @@ func (exec *Executor) execLocalTx(execute *executor, tx *types.Transaction, r *t
 	if err != nil {
 		return nil, err
 	}
+	memkvset := execute.localDB.(*LocalDB).GetSetKeys()
 	if kv != nil && kv.KV != nil {
-		err := exec.checkPrefix(tx.Execer, kv.KV)
+		err := execute.checkKV(memkvset, kv.KV)
+		if err != nil {
+			println("==== err ===", err)
+			return nil, err
+		}
+		err = exec.checkPrefix(tx.Execer, kv.KV)
 		if err != nil {
 			return nil, err
 		}
 		for _, kv := range kv.KV {
 			execute.localDB.Set(kv.Key, kv.Value)
+		}
+	} else {
+		if len(memkvset) > 0 {
+			return nil, types.ErrNotAllowMemSetKey
 		}
 	}
 	return kv, nil
