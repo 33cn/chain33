@@ -25,7 +25,10 @@ func init() {
 	go func() {
 		for {
 			time.Sleep(60 * time.Second)
-			if len(globalPointerMap) > 10 {
+			gloabalMu.Lock()
+			pointerLen := len(globalPointerMap)
+			gloabalMu.Unlock()
+			if pointerLen > 10 {
 				println("<==>global pointer count = ", len(globalPointerMap))
 			}
 		}
