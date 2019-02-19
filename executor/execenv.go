@@ -224,7 +224,7 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 	return exec
 }
 
-func (e *executor) execTxGroup(exec *Executor, txs []*types.Transaction, index int) ([]*types.Receipt, error) {
+func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Receipt, error) {
 	txgroup := &types.Transactions{Txs: txs}
 	err := e.checkTxGroup(txgroup, index)
 	if err != nil {
@@ -237,8 +237,7 @@ func (e *executor) execTxGroup(exec *Executor, txs []*types.Transaction, index i
 	//开启内存事务处理，假设系统只有一个thread 执行
 	//如果系统执行失败，回滚到这个状态
 	rollbackLog := copyReceipt(feelog)
-	e.stateDB.Begin()
-	e.localDB.Begin()
+	e.begin()
 	receipts := make([]*types.Receipt, len(txs))
 	for i := 1; i < len(txs); i++ {
 		receipts[i] = &types.Receipt{Ty: types.ExecPack}
@@ -251,12 +250,10 @@ func (e *executor) execTxGroup(exec *Executor, txs []*types.Transaction, index i
 		}
 		//状态数据库回滚
 		if types.IsFork(e.height, "ForkExecRollback") {
-			e.stateDB.Rollback()
+			e.rollback()
 		}
-		e.localDB.Rollback()
 		return receipts, nil
 	}
-	exec.execLocalSameTime(e, txs[0], receipts[0], index)
 	for i := 1; i < len(txs); i++ {
 		//如果有一笔执行失败了，那么全部回滚
 		receipts[i], err = e.execTxOne(receipts[i], txs[i], index+i)
@@ -273,14 +270,11 @@ func (e *executor) execTxGroup(exec *Executor, txs []*types.Transaction, index i
 				receipts[0] = rollbackLog
 			}
 			//撤销所有的数据库更新
-			e.stateDB.Rollback()
-			e.localDB.Rollback()
+			e.rollback()
 			return receipts, nil
 		}
-		exec.execLocalSameTime(e, txs[i], receipts[i], index+i)
 	}
-	e.stateDB.Commit()
-	e.localDB.Commit()
+	e.commit()
 	return receipts, nil
 }
 
@@ -336,6 +330,7 @@ func copyReceipt(feelog *types.Receipt) *types.Receipt {
 func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index int) (*types.Receipt, error) {
 	//只有到pack级别的，才会增加index
 	e.stateDB.(*StateDB).StartTx()
+	e.localDB.(*LocalDB).StartTx()
 	receipt, err := e.Exec(tx, index)
 	if err != nil {
 		elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
@@ -359,10 +354,22 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 	if err != nil {
 		return feelog, err
 	}
+	err = e.execLocalSameTime(tx, feelog, index)
+	if err != nil {
+		elog.Error("execLocalSameTime", "err", err)
+		errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(err.Error())}
+		feelog.Logs = append(feelog.Logs, errlog)
+		return feelog, err
+	}
 	if receipt != nil {
 		feelog.KV = append(feelog.KV, receipt.KV...)
 		feelog.Logs = append(feelog.Logs, receipt.Logs...)
 		feelog.Ty = receipt.Ty
+	}
+	if types.IsFork(e.height, "ForkStateDBSet") {
+		for _, v := range feelog.KV {
+			e.stateDB.Set(v.Key, v.Value)
+		}
 	}
 	return feelog, nil
 }
@@ -398,7 +405,31 @@ func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, i
 	return feelog, nil
 }
 
-func (e *executor) execTx(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (e *executor) begin() {
+	matchfork := types.IsFork(e.height, "ForkExecRollback")
+	if matchfork {
+		e.stateDB.Begin()
+		e.localDB.Begin()
+	}
+}
+
+func (e *executor) commit() {
+	matchfork := types.IsFork(e.height, "ForkExecRollback")
+	if matchfork {
+		e.stateDB.Commit()
+		e.localDB.Commit()
+	}
+}
+
+func (e *executor) rollback() {
+	matchfork := types.IsFork(e.height, "ForkExecRollback")
+	if matchfork {
+		e.stateDB.Rollback()
+		e.localDB.Rollback()
+	}
+}
+
+func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if e.height == 0 { //genesis block 不检查手续费
 		receipt, err := e.Exec(tx, index)
 		if err != nil {
@@ -424,19 +455,12 @@ func (e *executor) execTx(tx *types.Transaction, index int) (*types.Receipt, err
 		return nil, err
 	}
 	//ignore err
-	matchfork := types.IsFork(e.height, "ForkExecRollback")
-	if matchfork {
-		e.stateDB.Begin()
-	}
+	e.begin()
 	feelog, err = e.execTxOne(feelog, tx, index)
 	if err != nil {
-		if matchfork {
-			e.stateDB.Rollback()
-		}
+		e.rollback()
 	} else {
-		if matchfork {
-			e.stateDB.Commit()
-		}
+		e.commit()
 	}
 	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
 	if api.IsAPIEnvError(err) {
@@ -458,4 +482,63 @@ func (e *executor) isAllowExec(key []byte, tx *types.Transaction, index int) boo
 	realExecer := e.getRealExecName(tx, index)
 	height := e.height
 	return isAllowKeyWrite(key, realExecer, tx, height)
+}
+
+func (e *executor) isExecLocalSameTime(tx *types.Transaction, index int) bool {
+	exec := e.loadDriver(tx, index)
+	return exec.ExecutorOrder() == drivers.ExecLocalSameTime
+}
+
+func (e *executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
+	for i := 0; i < len(kvs); i++ {
+		err := isAllowLocalKey(execer, kvs[i].Key)
+		if err != nil {
+			//测试的情况下，先panic，实际情况下会删除返回错误
+			panic(err)
+			//return err
+		}
+	}
+	return nil
+}
+
+func (e *executor) execLocalSameTime(tx *types.Transaction, receipt *types.Receipt, index int) error {
+	if e.isExecLocalSameTime(tx, index) {
+		var r = &types.ReceiptData{}
+		if receipt != nil {
+			r.Ty = receipt.Ty
+			r.Logs = receipt.Logs
+		}
+		_, err := e.execLocalTx(tx, r, index)
+		return err
+	}
+	return nil
+}
+
+func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	kv, err := e.execLocal(tx, r, index)
+	if err == types.ErrActionNotSupport {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	memkvset := e.localDB.(*LocalDB).GetSetKeys()
+	if kv != nil && kv.KV != nil {
+		err := e.checkKV(memkvset, kv.KV)
+		if err != nil {
+			return nil, types.ErrNotAllowMemSetLocalKey
+		}
+		err = e.checkPrefix(tx.Execer, kv.KV)
+		if err != nil {
+			return nil, err
+		}
+		for _, kv := range kv.KV {
+			e.localDB.Set(kv.Key, kv.Value)
+		}
+	} else {
+		if len(memkvset) > 0 {
+			return nil, types.ErrNotAllowMemSetLocalKey
+		}
+	}
+	return kv, nil
 }
