@@ -329,8 +329,7 @@ func copyReceipt(feelog *types.Receipt) *types.Receipt {
 
 func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index int) (*types.Receipt, error) {
 	//只有到pack级别的，才会增加index
-	e.stateDB.(*StateDB).StartTx()
-	e.localDB.(*LocalDB).StartTx()
+	e.startTx()
 	receipt, err := e.Exec(tx, index)
 	if err != nil {
 		elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
@@ -408,24 +407,45 @@ func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, i
 func (e *executor) begin() {
 	matchfork := types.IsFork(e.height, "ForkExecRollback")
 	if matchfork {
-		e.stateDB.Begin()
-		e.localDB.Begin()
+		if e.stateDB != nil {
+			e.stateDB.Begin()
+		}
+		if e.localDB != nil {
+			e.localDB.Begin()
+		}
 	}
 }
 
 func (e *executor) commit() {
 	matchfork := types.IsFork(e.height, "ForkExecRollback")
 	if matchfork {
-		e.stateDB.Commit()
-		e.localDB.Commit()
+		if e.stateDB != nil {
+			e.stateDB.Commit()
+		}
+		if e.localDB != nil {
+			e.localDB.Commit()
+		}
+	}
+}
+
+func (e *executor) startTx() {
+	if e.stateDB != nil {
+		e.stateDB.(*StateDB).StartTx()
+	}
+	if e.localDB != nil {
+		e.localDB.(*LocalDB).StartTx()
 	}
 }
 
 func (e *executor) rollback() {
 	matchfork := types.IsFork(e.height, "ForkExecRollback")
 	if matchfork {
-		e.stateDB.Rollback()
-		e.localDB.Rollback()
+		if e.stateDB != nil {
+			e.stateDB.Rollback()
+		}
+		if e.localDB != nil {
+			e.localDB.Rollback()
+		}
 	}
 }
 
