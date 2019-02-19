@@ -203,6 +203,7 @@ superManager=[
 #但是我们可以替换
 [fork.system]
 ForkChainParamV1= 0
+ForkStateDBSet=-1
 ForkCheckTxDup=0
 ForkBlockHash= 1
 ForkMinerTime= 0

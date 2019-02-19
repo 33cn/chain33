@@ -147,6 +147,7 @@ ForkV16Withdraw= 480000
 ForkV22ExecRollback= 706531
 ForkV23TxHeight= 806578
 ForkV24TxGroupPara= 806578
+ForkStateDBSet=-1
 
 [fork.sub.manage]
 Enable=120000
