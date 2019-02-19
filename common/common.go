@@ -22,6 +22,14 @@ var ErrPointerNotFound = errors.New("ErrPointerNotFound")
 
 func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	go func() {
+		for {
+			time.Sleep(60 * time.Second)
+			if len(globalPointerMap) > 10 {
+				println("<==>global pointer count = ", len(globalPointerMap))
+			}
+		}
+	}()
 }
 
 //StorePointer 保存指针返回int64

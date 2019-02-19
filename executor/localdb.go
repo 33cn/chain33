@@ -57,13 +57,30 @@ func (l *LocalDB) Begin() {
 	}
 }
 
+func (l *LocalDB) save() error {
+	if l.kvs != nil {
+		param := &types.LocalDBSet{Txid: l.txid.Data}
+		param.KV = l.kvs
+		err := l.api.LocalSet(param)
+		if err != nil {
+			return err
+		}
+		l.kvs = nil
+	}
+	return nil
+}
+
 //Commit 提交一个事务
 func (l *LocalDB) Commit() error {
 	for k, v := range l.txcache {
 		l.cache[k] = v
 	}
+	err := l.save()
+	if err != nil {
+		return err
+	}
 	l.resetTx()
-	err := l.api.LocalCommit(l.txid)
+	err = l.api.LocalCommit(l.txid)
 	return err
 }
 
@@ -134,15 +151,11 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 
 // List 从数据库中查询数据列表
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
-	if l.kvs != nil {
-		param := &types.LocalDBSet{Txid: l.txid.Data}
-		param.KV = l.kvs
-		err := l.api.LocalSet(param)
-		if err != nil {
-			return nil, err
-		}
+	err := l.save()
+	if err != nil {
+		return nil, err
 	}
-	query := &types.LocalDBList{Prefix: prefix, Key: key, Count: count, Direction: direction}
+	query := &types.LocalDBList{Txid: l.txid.Data, Prefix: prefix, Key: key, Count: count, Direction: direction}
 	resp, err := l.api.LocalList(query)
 	if err != nil {
 		panic(err) //no happen for ever

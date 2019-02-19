@@ -5,6 +5,7 @@ import (
 
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/executor"
+	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,6 +14,7 @@ func TestLocalDBGet(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	db := executor.NewLocalDB(mock33.GetClient())
+	defer db.(*executor.LocalDB).Close()
 	testDBGet(t, db)
 }
 
@@ -20,6 +22,8 @@ func BenchmarkLocalDBGet(b *testing.B) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	db := executor.NewLocalDB(mock33.GetClient())
+	defer db.(*executor.LocalDB).Close()
+
 	err := db.Set([]byte("k1"), []byte("v1"))
 	assert.Nil(b, err)
 	b.StartTimer()
@@ -90,6 +94,7 @@ func TestLocalDB(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	db := executor.NewLocalDB(mock33.GetClient())
+	defer db.(*executor.LocalDB).Close()
 	err := db.Set([]byte("k1"), []byte("v1"))
 	assert.Nil(t, err)
 	v, err := db.Get([]byte("k1"))
@@ -104,7 +109,33 @@ func TestLocalDB(t *testing.T) {
 
 	//beigin and rollback not imp
 	db.Begin()
+	err = db.Set([]byte("k2"), []byte("v2"))
+	assert.Nil(t, err)
 	db.Rollback()
-	db.Commit()
-	db.List([]byte("a"), []byte("b"), 1, 1)
+	_, err = db.Get([]byte("k2"))
+	assert.Equal(t, err, types.ErrNotFound)
+	err = db.Set([]byte("k2"), []byte("v2"))
+	assert.Nil(t, err)
+	//get
+	v, err = db.Get([]byte("k2"))
+	assert.Nil(t, err)
+	assert.Equal(t, v, []byte("v2"))
+	//list
+	values, err := db.List([]byte("k"), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, len(values), 2)
+	assert.Equal(t, string(values[0]), "v2")
+	assert.Equal(t, string(values[1]), "v11")
+	err = db.Commit()
+	assert.Nil(t, err)
+	//get
+	v, err = db.Get([]byte("k2"))
+	assert.Nil(t, err)
+	assert.Equal(t, v, []byte("v2"))
+	//list
+	values, err = db.List([]byte("k"), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, len(values), 2)
+	assert.Equal(t, string(values[0]), "v2")
+	assert.Equal(t, string(values[1]), "v11")
 }

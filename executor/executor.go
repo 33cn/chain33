@@ -241,6 +241,8 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 				receipts = append(receipts, types.NewErrReceipt(err))
 				continue
 			}
+			//update local
+			exec.execLocalSameTime(execute, tx, receipt, index)
 			receipts = append(receipts, receipt)
 			index++
 			continue
@@ -255,7 +257,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupCount))
 			continue
 		}
-		receiptlist, err := execute.execTxGroup(datas.Txs[i:i+int(tx.GroupCount)], index)
+		receiptlist, err := execute.execTxGroup(exec, datas.Txs[i:i+int(tx.GroupCount)], index)
 		i = i + int(tx.GroupCount) - 1
 		if len(receiptlist) > 0 && len(receiptlist) != int(tx.GroupCount) {
 			panic("len(receiptlist) must be equal tx.GroupCount")
@@ -275,6 +277,22 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventReceipts,
 		&types.Receipts{Receipts: receipts}))
+}
+
+func (exec *Executor) execLocalSameTime(execute *executor, tx *types.Transaction, receipt *types.Receipt, index int) {
+	e := execute.loadDriver(tx, index)
+	if e.ExecutorOrder() == drivers.ExecLocalSameTime {
+		var r = &types.ReceiptData{}
+		if receipt != nil {
+			r.Ty = receipt.Ty
+			r.Logs = receipt.Logs
+		}
+		_, err := exec.execLocalTx(execute, tx, r, index)
+		//ignore err, only print err
+		if err != nil {
+			elog.Debug("ExecLocal Same Time", "err", err)
+		}
+	}
 }
 
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
@@ -326,27 +344,36 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	}
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
-		if err == types.ErrActionNotSupport {
-			continue
-		}
+		kv, err := exec.execLocalTx(execute, tx, datas.Receipts[i], i)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 			return
 		}
 		if kv != nil && kv.KV != nil {
-			err := exec.checkPrefix(tx.Execer, kv.KV)
-			if err != nil {
-				msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-				return
-			}
 			kvset.KV = append(kvset.KV, kv.KV...)
-			for _, kv := range kv.KV {
-				execute.localDB.Set(kv.Key, kv.Value)
-			}
 		}
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
+}
+
+func (exec *Executor) execLocalTx(execute *executor, tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	kv, err := execute.execLocal(tx, r, index)
+	if err == types.ErrActionNotSupport {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if kv != nil && kv.KV != nil {
+		err := exec.checkPrefix(tx.Execer, kv.KV)
+		if err != nil {
+			return nil, err
+		}
+		for _, kv := range kv.KV {
+			execute.localDB.Set(kv.Key, kv.Value)
+		}
+	}
+	return kv, nil
 }
 
 func (exec *Executor) procExecDelBlock(msg queue.Message) {

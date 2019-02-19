@@ -224,7 +224,7 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 	return exec
 }
 
-func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Receipt, error) {
+func (e *executor) execTxGroup(exec *Executor, txs []*types.Transaction, index int) ([]*types.Receipt, error) {
 	txgroup := &types.Transactions{Txs: txs}
 	err := e.checkTxGroup(txgroup, index)
 	if err != nil {
@@ -238,6 +238,7 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 	//如果系统执行失败，回滚到这个状态
 	rollbackLog := copyReceipt(feelog)
 	e.stateDB.Begin()
+	e.localDB.Begin()
 	receipts := make([]*types.Receipt, len(txs))
 	for i := 1; i < len(txs); i++ {
 		receipts[i] = &types.Receipt{Ty: types.ExecPack}
@@ -252,8 +253,10 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 		if types.IsFork(e.height, "ForkExecRollback") {
 			e.stateDB.Rollback()
 		}
+		e.localDB.Rollback()
 		return receipts, nil
 	}
+	exec.execLocalSameTime(e, txs[0], receipts[0], index)
 	for i := 1; i < len(txs); i++ {
 		//如果有一笔执行失败了，那么全部回滚
 		receipts[i], err = e.execTxOne(receipts[i], txs[i], index+i)
@@ -271,10 +274,13 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 			}
 			//撤销所有的数据库更新
 			e.stateDB.Rollback()
+			e.localDB.Rollback()
 			return receipts, nil
 		}
+		exec.execLocalSameTime(e, txs[i], receipts[i], index+i)
 	}
 	e.stateDB.Commit()
+	e.localDB.Commit()
 	return receipts, nil
 }
 
