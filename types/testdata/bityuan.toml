@@ -156,6 +156,7 @@ saveTokenTxList=false
 [fork.system]
 ForkChainParamV1= 0
 ForkChainParamV2= -1
+ForkStateDBSet=-1
 ForkCheckTxDup=0
 ForkBlockHash= 1
 ForkMinerTime= 0
