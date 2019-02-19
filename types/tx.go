@@ -30,12 +30,21 @@ func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 	}
 	txgroup := &Transactions{}
 	txgroup.Txs = txs
-	var header []byte
 	totalfee := int64(0)
 	minfee := int64(0)
+	header := txs[0].Hash()
 	for i := len(txs) - 1; i >= 0; i-- {
 		txs[i].GroupCount = int32(len(txs))
 		totalfee += txs[i].GetFee()
+		// Header和Fee设置是为了GetRealFee里面Size的计算，Fee是否为0和不同大小，size也是有差别的，header是否为空差别是common.Sha256Len+2
+		// 这里直接设置Header兼容性更好， Next不需要，已经设置过了，唯一不同的是，txs[0].fee会跟实际计算有差别，这里设置一个超大值只做计算
+		txs[i].Header = header
+		if i == 0 {
+			//对txs[0].fee设置一个超大值，大于后面实际计算出的fee，也就>=check时候计算出的fee， 对size影响10个字节，在1000临界值时候有差别
+			txs[i].Fee = 1 << 62
+		} else {
+			txs[i].Fee = 0
+		}
 		realfee, err := txs[i].GetRealFee(GInt("MinFee"))
 		if err != nil {
 			return nil, err
@@ -46,7 +55,7 @@ func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 				totalfee = minfee
 			}
 			txs[0].Fee = totalfee
-			header = txs[i].Hash()
+			header = txs[0].Hash()
 		} else {
 			txs[i].Fee = 0
 			txs[i-1].Next = txs[i].Hash()
@@ -438,6 +447,7 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	if tx.Signature == nil {
 		txSize += 300
 	}
+	tlog.Info("getreal", "size", txSize)
 	if txSize > int(MaxTxSize) {
 		return 0, ErrTxMsgSizeTooBig
 	}
