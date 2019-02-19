@@ -447,7 +447,6 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	if tx.Signature == nil {
 		txSize += 300
 	}
-	tlog.Info("getreal", "size", txSize)
 	if txSize > int(MaxTxSize) {
 		return 0, ErrTxMsgSizeTooBig
 	}
