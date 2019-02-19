@@ -46,6 +46,16 @@ func (l *LocalDB) resetTx() {
 	l.keys = nil
 }
 
+// StartTx reset state db keys
+func (l *LocalDB) StartTx() {
+	l.keys = nil
+}
+
+// GetSetKeys  get state db set keys
+func (l *LocalDB) GetSetKeys() (keys []string) {
+	return l.keys
+}
+
 //Begin 开始一个事务
 func (l *LocalDB) Begin() {
 	l.intx = true
