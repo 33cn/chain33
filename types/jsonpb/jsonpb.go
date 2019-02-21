@@ -535,15 +535,20 @@ func (m *Marshaler) marshalValue(out *errWriter, prop *proto.Properties, v refle
 			out.write("null")
 			return out.err
 		}
-		out.write(`"`)
 		data := v.Interface().([]byte)
 		//开启这个选项后，会把utf8的字符串转化成string,而不会弄成hex
 		if m.EnableUTF8BytesToString && utf8.Valid(data) {
-			out.write(string(data))
+			s := string(data)
+			b, err := json.Marshal(s)
+			if err != nil {
+				return err
+			}
+			out.write(string(b))
 		} else {
+			out.write(`"`)
 			out.write(common.ToHex(data))
+			out.write(`"`)
 		}
-		out.write(`"`)
 		return out.err
 	}
 

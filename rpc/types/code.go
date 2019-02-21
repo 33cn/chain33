@@ -11,6 +11,8 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
+
+	_ "github.com/33cn/chain33/system/dapp/coins/types" //load system plugin
 )
 
 // DecodeLog decode log
