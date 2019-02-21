@@ -421,5 +421,5 @@ func TestJsonpbUTF8Tx(t *testing.T) {
 	assert.NotNil(t, pl)
 	pljson, err = PBToJSONUTF8(pl)
 	assert.Nil(t, err)
-	assert.Equal(t, string(pljson), "{\"transfer\":{\"cointoken\":\"\",\"amount\":\"200000000\",\"note\":\"1\n2\n3\",\"to\":\"\"},\"ty\":1}")
+	assert.Equal(t, string(pljson), `{"transfer":{"cointoken":"","amount":"200000000","note":"1\n2\n3","to":""},"ty":1}`)
 }
