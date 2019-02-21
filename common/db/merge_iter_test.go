@@ -118,6 +118,48 @@ func TestMergeIterDup3(t *testing.T) {
 	assert.Equal(t, "db1-key-3", string(list0[2]))
 }
 
+func TestMergeIter3(t *testing.T) {
+	db1 := newGoMemDB(t)
+	db2 := newGoMemDB(t)
+	db3 := newGoMemDB(t)
+	db3.Set([]byte("key-1"), []byte("db3-key-1"))
+	db3.Set([]byte("key-2"), []byte("db3-key-2"))
+	db3.Set([]byte("key-3"), []byte("db3-key-3"))
+
+	//合并以后:
+	db := NewMergedIteratorDB([]IteratorDB{db1, db2, db3})
+	it0 := NewListHelper(db)
+	list0 := it0.List([]byte("key-"), nil, 0, 0)
+	for k, v := range list0 {
+		println(k, string(v))
+	}
+	assert.Equal(t, 3, len(list0))
+	assert.Equal(t, "db3-key-3", string(list0[0]))
+	assert.Equal(t, "db3-key-2", string(list0[1]))
+	assert.Equal(t, "db3-key-1", string(list0[2]))
+}
+
+func TestMergeIter1(t *testing.T) {
+	db1 := newGoMemDB(t)
+	db2 := newGoMemDB(t)
+	db3 := newGoMemDB(t)
+	db1.Set([]byte("key-1"), []byte("db1-key-1"))
+	db1.Set([]byte("key-2"), []byte("db1-key-2"))
+	db1.Set([]byte("key-3"), []byte("db1-key-3"))
+
+	//合并以后:
+	db := NewMergedIteratorDB([]IteratorDB{db1, db2, db3})
+	it0 := NewListHelper(db)
+	list0 := it0.List(nil, nil, 100, 0)
+	for k, v := range list0 {
+		println(k, string(v))
+	}
+	assert.Equal(t, 3, len(list0))
+	assert.Equal(t, "db1-key-3", string(list0[0]))
+	assert.Equal(t, "db1-key-2", string(list0[1]))
+	assert.Equal(t, "db1-key-1", string(list0[2]))
+}
+
 func TestMergeIterSearch(t *testing.T) {
 	db1 := newGoMemDB(t)
 	db2 := newGoMemDB(t)

@@ -127,7 +127,7 @@ func (i *mergedIterator) next() bool {
 		return false
 	}
 	if i.dir == dirSOI {
-		i.prevKey = key
+		i.prevKey = cloneByte(key)
 	}
 	i.dir = dirForward
 	return true
