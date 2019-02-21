@@ -5,7 +5,6 @@
 package common
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -37,6 +36,19 @@ func TestGetRealTime(t *testing.T) {
 	if nettime2.IsZero() {
 		return
 	}
-	fmt.Println(nettime, nettime2)
 	assert.Equal(t, nettime2.Sub(nettime)/time.Second, delt/time.Second)
+}
+
+func TestSubList(t *testing.T) {
+	sub := maxSubList([]time.Duration{1, 2, 3, 10, 21, 22, 23, 24, 35}, time.Duration(10))
+	assert.Equal(t, len(sub), 4)
+	assert.Equal(t, sub[0], time.Duration(1))
+
+	sub = maxSubList([]time.Duration{2, 3, 10, 21, 22, 23, 24, 35}, time.Duration(10))
+	assert.Equal(t, len(sub), 4)
+	assert.Equal(t, sub[0], time.Duration(21))
+
+	sub = maxSubList([]time.Duration{2, 3, 10, 21, 22, 23, 24}, time.Duration(10))
+	assert.Equal(t, len(sub), 4)
+	assert.Equal(t, sub[0], time.Duration(21))
 }

@@ -157,8 +157,9 @@ func GetRealTime(hosts []string) time.Time {
 	ch := make(chan time.Duration, len(hosts))
 	for i := 0; i < len(hosts); i++ {
 		go func(host string) {
-			ntptime, err := getTimeRetry(host, 10)
+			ntptime, err := getTimeRetry(host, 1)
 			if ntptime.IsZero() || err != nil {
+				println("getTimeRetry", err.Error())
 				ch <- time.Duration(math.MaxInt64)
 			} else {
 				dt := time.Until(ntptime)
@@ -178,7 +179,7 @@ func GetRealTime(hosts []string) time.Time {
 			calclist := make([]time.Duration, len(dtlist))
 			copy(calclist, dtlist)
 			sort.Sort(durationSlice(calclist))
-			calclist = maxSubList(calclist)
+			calclist = maxSubList(calclist, time.Millisecond*100)
 			if len(calclist) < q {
 				continue
 			}
@@ -199,23 +200,21 @@ func abs(t time.Duration) time.Duration {
 	return t
 }
 
-func maxSubList(list []time.Duration) (sub []time.Duration) {
+func maxSubList(list []time.Duration, dt time.Duration) (sub []time.Duration) {
 	if len(list) == 0 {
 		return list
 	}
-
 	var start int
 	var next int
 	for i := 0; i < len(list); i++ {
-		var nextheight time.Duration
+		var nextTime time.Duration
 		next = i + 1
 		if next == len(list) {
-			nextheight = math.MaxInt64
+			nextTime = math.MaxInt64
 		} else {
-			nextheight = list[next]
+			nextTime = list[next]
 		}
-
-		if abs(nextheight-list[i]) > time.Millisecond*100 {
+		if abs(nextTime-list[i]) > dt {
 			if len(sub) < (next-start) && (next-start) > 1 {
 				sub = list[start:next]
 			}
