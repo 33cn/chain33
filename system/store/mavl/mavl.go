@@ -88,7 +88,7 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 	var err error
 	values := make([][]byte, len(datas.Keys))
 	search := string(datas.StateHash)
-	if data, ok := mavls.trees.Load(search); ok {
+	if data, ok := mavls.trees.Load(search); ok && data != nil {
 		tree = data.(*mavl.Tree)
 	} else {
 		tree = mavl.NewTree(mavls.GetDB(), true)
