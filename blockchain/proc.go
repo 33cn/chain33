@@ -96,11 +96,11 @@ func (chain *BlockChain) ProcRecvMsg() {
 	}
 }
 
-func (chain *BlockChain) unknowMsg(msg queue.Message) {
+func (chain *BlockChain) unknowMsg(msg *queue.Message) {
 	chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msg.Ty)
 }
 
-func (chain *BlockChain) addBlockSeqCB(msg queue.Message) {
+func (chain *BlockChain) addBlockSeqCB(msg *queue.Message) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
@@ -116,7 +116,7 @@ func (chain *BlockChain) addBlockSeqCB(msg queue.Message) {
 	msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
 }
 
-func (chain *BlockChain) listBlockSeqCB(msg queue.Message) {
+func (chain *BlockChain) listBlockSeqCB(msg *queue.Message) {
 	cbs, err := chain.ProcListBlockSeqCB()
 	if err != nil {
 		chainlog.Error("listBlockSeqCB", "err", err.Error())
@@ -125,7 +125,7 @@ func (chain *BlockChain) listBlockSeqCB(msg queue.Message) {
 	}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventListBlockSeqCB, cbs))
 }
-func (chain *BlockChain) getSeqCBLastNum(msg queue.Message) {
+func (chain *BlockChain) getSeqCBLastNum(msg *queue.Message) {
 	data := (msg.Data).(*types.ReqString)
 
 	num := chain.ProcGetSeqCBLastNum(data.Data)
@@ -133,7 +133,7 @@ func (chain *BlockChain) getSeqCBLastNum(msg queue.Message) {
 	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqCBLastNum, lastNum))
 }
 
-func (chain *BlockChain) queryTx(msg queue.Message) {
+func (chain *BlockChain) queryTx(msg *queue.Message) {
 	txhash := (msg.Data).(*types.ReqHash)
 	TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
 	if err != nil {
@@ -145,7 +145,7 @@ func (chain *BlockChain) queryTx(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) getBlocks(msg queue.Message) {
+func (chain *BlockChain) getBlocks(msg *queue.Message) {
 	requestblocks := (msg.Data).(*types.ReqBlocks)
 	blocks, err := chain.ProcGetBlockDetailsMsg(requestblocks)
 	if err != nil {
@@ -157,7 +157,7 @@ func (chain *BlockChain) getBlocks(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) addBlock(msg queue.Message) {
+func (chain *BlockChain) addBlock(msg *queue.Message) {
 	//var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
@@ -174,14 +174,14 @@ func (chain *BlockChain) addBlock(msg queue.Message) {
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 
-func (chain *BlockChain) getBlockHeight(msg queue.Message) {
+func (chain *BlockChain) getBlockHeight(msg *queue.Message) {
 	var replyBlockHeight types.ReplyBlockHeight
 	replyBlockHeight.Height = chain.GetBlockHeight()
 	//chainlog.Debug("EventGetBlockHeight", "success", "ok")
 	msg.Reply(chain.client.NewMessage("consensus", types.EventReplyBlockHeight, &replyBlockHeight))
 }
 
-func (chain *BlockChain) txHashList(msg queue.Message) {
+func (chain *BlockChain) txHashList(msg *queue.Message) {
 	txhashlist := (msg.Data).(*types.TxHashList)
 	duptxhashlist, err := chain.GetDuplicateTxHashList(txhashlist)
 	if err != nil {
@@ -193,7 +193,7 @@ func (chain *BlockChain) txHashList(msg queue.Message) {
 	msg.Reply(chain.client.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 }
 
-func (chain *BlockChain) getHeaders(msg queue.Message) {
+func (chain *BlockChain) getHeaders(msg *queue.Message) {
 	requestblocks := (msg.Data).(*types.ReqBlocks)
 	headers, err := chain.ProcGetHeadersMsg(requestblocks)
 	if err != nil {
@@ -205,12 +205,12 @@ func (chain *BlockChain) getHeaders(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) isSync(msg queue.Message) {
+func (chain *BlockChain) isSync(msg *queue.Message) {
 	ok := chain.IsCaughtUp()
 	msg.Reply(chain.client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: ok}))
 }
 
-func (chain *BlockChain) getLastHeader(msg queue.Message) {
+func (chain *BlockChain) getLastHeader(msg *queue.Message) {
 	header, err := chain.ProcGetLastHeaderMsg()
 	if err != nil {
 		chainlog.Error("ProcGetLastHeaderMsg", "err", err.Error())
@@ -223,7 +223,7 @@ func (chain *BlockChain) getLastHeader(msg queue.Message) {
 
 //共识过来的block是没有被执行的，首先判断此block的parent block是否是当前best链的tip
 //在blockchain执行时需要做tx的去重处理，所以在执行成功之后需要将最新区块详情返回给共识模块
-func (chain *BlockChain) addBlockDetail(msg queue.Message) {
+func (chain *BlockChain) addBlockDetail(msg *queue.Message) {
 	blockDetail := msg.Data.(*types.BlockDetail)
 	Height := blockDetail.Block.Height
 	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "parent", common.ToHex(blockDetail.Block.ParentHash))
@@ -243,7 +243,7 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 	msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, blockDetail))
 }
 
-func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
+func (chain *BlockChain) broadcastAddBlock(msg *queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
 	blockwithpid := msg.Data.(*types.BlockPid)
@@ -268,7 +268,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 }
 
-func (chain *BlockChain) getTransactionByAddr(msg queue.Message) {
+func (chain *BlockChain) getTransactionByAddr(msg *queue.Message) {
 	addr := (msg.Data).(*types.ReqAddr)
 	//chainlog.Warn("EventGetTransactionByAddr", "req", addr)
 	replyTxInfos, err := chain.ProcGetTransactionByAddr(addr)
@@ -281,7 +281,7 @@ func (chain *BlockChain) getTransactionByAddr(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) getTransactionByHashes(msg queue.Message) {
+func (chain *BlockChain) getTransactionByHashes(msg *queue.Message) {
 	txhashs := (msg.Data).(*types.ReqHashes)
 	//chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
 	TransactionDetails, err := chain.ProcGetTransactionByHashes(txhashs.Hashes)
@@ -294,7 +294,7 @@ func (chain *BlockChain) getTransactionByHashes(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) getBlockOverview(msg queue.Message) {
+func (chain *BlockChain) getBlockOverview(msg *queue.Message) {
 	ReqHash := (msg.Data).(*types.ReqHash)
 	BlockOverview, err := chain.ProcGetBlockOverview(ReqHash)
 	if err != nil {
@@ -306,7 +306,7 @@ func (chain *BlockChain) getBlockOverview(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) getAddrOverview(msg queue.Message) {
+func (chain *BlockChain) getAddrOverview(msg *queue.Message) {
 	addr := (msg.Data).(*types.ReqAddr)
 	AddrOverview, err := chain.ProcGetAddrOverview(addr)
 	if err != nil {
@@ -318,7 +318,7 @@ func (chain *BlockChain) getAddrOverview(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) getBlockHash(msg queue.Message) {
+func (chain *BlockChain) getBlockHash(msg *queue.Message) {
 	height := (msg.Data).(*types.ReqInt)
 	replyhash, err := chain.ProcGetBlockHash(height)
 	if err != nil {
@@ -330,7 +330,7 @@ func (chain *BlockChain) getBlockHash(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) addBlockHeaders(msg queue.Message) {
+func (chain *BlockChain) addBlockHeaders(msg *queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
 	headerspid := msg.Data.(*types.HeadersPid)
@@ -345,7 +345,7 @@ func (chain *BlockChain) addBlockHeaders(msg queue.Message) {
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 
-func (chain *BlockChain) getLastBlock(msg queue.Message) {
+func (chain *BlockChain) getLastBlock(msg *queue.Message) {
 	block, err := chain.ProcGetLastBlockMsg()
 	if err != nil {
 		chainlog.Error("ProcGetLastBlockMsg", "err", err.Error())
@@ -356,14 +356,14 @@ func (chain *BlockChain) getLastBlock(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) isNtpClockSync(msg queue.Message) {
+func (chain *BlockChain) isNtpClockSync(msg *queue.Message) {
 	ok := GetNtpClockSyncStatus()
 	msg.Reply(chain.client.NewMessage("", types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{Isntpclocksync: ok}))
 }
 
-type funcProcess func(msg queue.Message)
+type funcProcess func(msg *queue.Message)
 
-func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb funcProcess) {
+func (chain *BlockChain) processMsg(msg *queue.Message, reqnum chan struct{}, cb funcProcess) {
 	beg := types.Now()
 	defer func() {
 		<-reqnum
@@ -374,7 +374,7 @@ func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb 
 }
 
 //获取最新的block执行序列号
-func (chain *BlockChain) getLastBlockSequence(msg queue.Message) {
+func (chain *BlockChain) getLastBlockSequence(msg *queue.Message) {
 	var lastSequence types.Int64
 	var err error
 	lastSequence.Data, err = chain.blockStore.LoadBlockLastSequence()
@@ -385,7 +385,7 @@ func (chain *BlockChain) getLastBlockSequence(msg queue.Message) {
 }
 
 //获取指定区间的block执行序列信息，包含blockhash和操作类型：add/del
-func (chain *BlockChain) getBlockSequences(msg queue.Message) {
+func (chain *BlockChain) getBlockSequences(msg *queue.Message) {
 	requestSequences := (msg.Data).(*types.ReqBlocks)
 	BlockSequences, err := chain.GetBlockSequences(requestSequences)
 	if err != nil {
@@ -396,7 +396,7 @@ func (chain *BlockChain) getBlockSequences(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) getBlockByHashes(msg queue.Message) {
+func (chain *BlockChain) getBlockByHashes(msg *queue.Message) {
 	blockhashes := (msg.Data).(*types.ReqHashes)
 	BlockDetails, err := chain.GetBlockByHashes(blockhashes.Hashes)
 	if err != nil {
@@ -407,7 +407,7 @@ func (chain *BlockChain) getBlockByHashes(msg queue.Message) {
 	}
 }
 
-func (chain *BlockChain) getBlockBySeq(msg queue.Message) {
+func (chain *BlockChain) getBlockBySeq(msg *queue.Message) {
 	seq := (msg.Data).(*types.Int64)
 	req := &types.ReqBlocks{Start: seq.Data, End: seq.Data, IsDetail: false, Pid: []string{}}
 	sequences, err := chain.GetBlockSequences(req)
@@ -434,7 +434,7 @@ func (chain *BlockChain) getBlockBySeq(msg queue.Message) {
 }
 
 //平行链del block的处理
-func (chain *BlockChain) delParaChainBlockDetail(msg queue.Message) {
+func (chain *BlockChain) delParaChainBlockDetail(msg *queue.Message) {
 	var parablockDetail *types.ParaChainBlockDetail
 	var reply types.Reply
 	reply.IsOk = true
@@ -454,7 +454,7 @@ func (chain *BlockChain) delParaChainBlockDetail(msg queue.Message) {
 }
 
 //平行链add block的处理
-func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
+func (chain *BlockChain) addParaChainBlockDetail(msg *queue.Message) {
 	parablockDetail := msg.Data.(*types.ParaChainBlockDetail)
 
 	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
@@ -469,7 +469,7 @@ func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
 }
 
 //parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
-func (chain *BlockChain) getSeqByHash(msg queue.Message) {
+func (chain *BlockChain) getSeqByHash(msg *queue.Message) {
 	blockhash := (msg.Data).(*types.ReqHash)
 	seq, err := chain.ProcGetSeqByHash(blockhash.Hash)
 	if err != nil {
@@ -480,7 +480,7 @@ func (chain *BlockChain) getSeqByHash(msg queue.Message) {
 }
 
 //获取指定地址参与的tx交易计数
-func (chain *BlockChain) localAddrTxCount(msg queue.Message) {
+func (chain *BlockChain) localAddrTxCount(msg *queue.Message) {
 	reqkey := (msg.Data).(*types.ReqKey)
 
 	count := types.Int64{}

@@ -37,7 +37,7 @@ type Miner interface {
 	GetGenesisBlockTime() int64
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
-	ProcEvent(msg queue.Message) bool
+	ProcEvent(msg *queue.Message) bool
 }
 
 //BaseClient ...
