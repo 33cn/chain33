@@ -56,26 +56,26 @@ type mockClient struct {
 	c queue.Client
 }
 
-func (mock *mockClient) Send(msg queue.Message, waitReply bool) error {
+func (mock *mockClient) Send(msg *queue.Message, waitReply bool) error {
 	if msg.Topic == "error" {
 		return types.ErrInvalidParam
 	}
 	return mock.c.Send(msg, waitReply)
 }
 
-func (mock *mockClient) SendTimeout(msg queue.Message, waitReply bool, timeout time.Duration) error {
+func (mock *mockClient) SendTimeout(msg *queue.Message, waitReply bool, timeout time.Duration) error {
 	return mock.c.SendTimeout(msg, waitReply, timeout)
 }
 
-func (mock *mockClient) Wait(msg queue.Message) (queue.Message, error) {
+func (mock *mockClient) Wait(msg *queue.Message) (*queue.Message, error) {
 	return mock.c.Wait(msg)
 }
 
-func (mock *mockClient) WaitTimeout(msg queue.Message, timeout time.Duration) (queue.Message, error) {
+func (mock *mockClient) WaitTimeout(msg *queue.Message, timeout time.Duration) (*queue.Message, error) {
 	return mock.c.WaitTimeout(msg, timeout)
 }
 
-func (mock *mockClient) Recv() chan queue.Message {
+func (mock *mockClient) Recv() chan *queue.Message {
 	return mock.c.Recv()
 }
 
@@ -92,7 +92,7 @@ func (mock *mockClient) CloseQueue() (*types.Reply, error) {
 	return &types.Reply{IsOk: true, Msg: []byte("Ok")}, nil
 }
 
-func (mock *mockClient) NewMessage(topic string, ty int64, data interface{}) queue.Message {
+func (mock *mockClient) NewMessage(topic string, ty int64, data interface{}) *queue.Message {
 	return mock.c.NewMessage(topic, ty, data)
 }
 

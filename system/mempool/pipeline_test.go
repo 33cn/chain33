@@ -15,9 +15,9 @@ import (
 
 func TestStep(t *testing.T) {
 	done := make(chan struct{})
-	in := make(chan queue.Message)
-	msg := queue.Message{ID: 0}
-	cb := func(in queue.Message) queue.Message {
+	in := make(chan *queue.Message)
+	msg := &queue.Message{ID: 0}
+	cb := func(in *queue.Message) *queue.Message {
 		in.ID++
 		time.Sleep(time.Microsecond)
 		return in
@@ -31,15 +31,15 @@ func TestStep(t *testing.T) {
 
 func TestMutiStep(t *testing.T) {
 	done := make(chan struct{})
-	in := make(chan queue.Message)
-	msg := queue.Message{ID: 0}
-	step1 := func(in queue.Message) queue.Message {
+	in := make(chan *queue.Message)
+	msg := &queue.Message{ID: 0}
+	step1 := func(in *queue.Message) *queue.Message {
 		in.ID++
 		time.Sleep(time.Microsecond)
 		return in
 	}
 	out1 := step(done, in, step1)
-	step2 := func(in queue.Message) queue.Message {
+	step2 := func(in *queue.Message) *queue.Message {
 		in.ID++
 		time.Sleep(time.Microsecond)
 		return in
@@ -56,9 +56,9 @@ func TestMutiStep(t *testing.T) {
 
 func BenchmarkStep(b *testing.B) {
 	done := make(chan struct{})
-	in := make(chan queue.Message)
-	msg := queue.Message{ID: 0}
-	cb := func(in queue.Message) queue.Message {
+	in := make(chan *queue.Message)
+	msg := &queue.Message{ID: 0}
+	cb := func(in *queue.Message) *queue.Message {
 		in.ID++
 		time.Sleep(100 * time.Microsecond)
 		return in
@@ -78,14 +78,14 @@ func BenchmarkStep(b *testing.B) {
 
 func BenchmarkStepMerge(b *testing.B) {
 	done := make(chan struct{})
-	in := make(chan queue.Message)
-	msg := queue.Message{ID: 0}
-	cb := func(in queue.Message) queue.Message {
+	in := make(chan *queue.Message)
+	msg := &queue.Message{ID: 0}
+	cb := func(in *queue.Message) *queue.Message {
 		in.ID++
 		time.Sleep(100 * time.Microsecond)
 		return in
 	}
-	chs := make([]<-chan queue.Message, runtime.NumCPU())
+	chs := make([]<-chan *queue.Message, runtime.NumCPU())
 	for i := 0; i < runtime.NumCPU(); i++ {
 		chs[i] = step(done, in, cb)
 	}
@@ -102,6 +102,6 @@ func BenchmarkStepMerge(b *testing.B) {
 	close(done)
 }
 
-func mergeList(done <-chan struct{}, cs ...<-chan queue.Message) <-chan queue.Message {
+func mergeList(done <-chan struct{}, cs ...<-chan *queue.Message) <-chan *queue.Message {
 	return merge(done, cs)
 }
