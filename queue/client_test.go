@@ -16,5 +16,4 @@ func TestSetTopic(t *testing.T) {
 	client.setTopic(hi)
 	ret := client.getTopic()
 	assert.Equal(t, hi, ret)
-
 }

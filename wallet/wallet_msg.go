@@ -16,7 +16,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.ID)
 		beg := types.Now()
-		reply, err := wallet.ExecWallet(&msg)
+		reply, err := wallet.ExecWallet(msg)
 		if err != nil {
 			//only for test ,del when test end
 			msg.Reply(wallet.api.NewMessage("", 0, err))

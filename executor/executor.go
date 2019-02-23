@@ -129,7 +129,7 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	}()
 }
 
-func (exec *Executor) procExecQuery(msg queue.Message) {
+func (exec *Executor) procExecQuery(msg *queue.Message) {
 	header, err := exec.qclient.GetLastHeader()
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
@@ -168,7 +168,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, ret))
 }
 
-func (exec *Executor) procExecCheckTx(msg queue.Message) {
+func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	ctx := &executorCtx{
 		stateHash:  datas.StateHash,
@@ -204,7 +204,7 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
-func (exec *Executor) procExecTxList(msg queue.Message) {
+func (exec *Executor) procExecTxList(msg *queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	ctx := &executorCtx{
 		stateHash:  datas.StateHash,
@@ -278,7 +278,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{Receipts: receipts}))
 }
 
-func (exec *Executor) procExecAddBlock(msg queue.Message) {
+func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	ctx := &executorCtx{
@@ -340,7 +340,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func (exec *Executor) procExecDelBlock(msg queue.Message) {
+func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	ctx := &executorCtx{

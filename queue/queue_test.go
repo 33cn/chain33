@@ -210,3 +210,70 @@ func TestPrintMessage(t *testing.T) {
 	msg := client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")})
 	t.Log(msg)
 }
+
+func BenchmarkSendMessage(b *testing.B) {
+	q := New("channel")
+	//mempool
+	go func() {
+		client := q.Client()
+		client.Sub("mempool")
+		defer client.Close()
+		for msg := range client.Recv() {
+			if msg.Ty == types.EventTx {
+				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
+			}
+		}
+	}()
+	go q.Start()
+	client := q.Client()
+	//high 优先级
+	for i := 0; i < b.N; i++ {
+		msg := client.NewMessage("mempool", types.EventTx, "hello")
+		err := client.Send(msg, true)
+		if err != nil {
+			b.Error(err)
+			return
+		}
+		_, err = client.Wait(msg)
+		if err != nil {
+			b.Error(err)
+			return
+		}
+	}
+}
+
+func BenchmarkStructChan(b *testing.B) {
+	ch := make(chan struct{})
+	go func() {
+		for {
+			<-ch
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		ch <- struct{}{}
+	}
+}
+
+func BenchmarkBoolChan(b *testing.B) {
+	ch := make(chan bool)
+	go func() {
+		for {
+			<-ch
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		ch <- true
+	}
+}
+
+func BenchmarkIntChan(b *testing.B) {
+	ch := make(chan int)
+	go func() {
+		for {
+			<-ch
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		ch <- 1
+	}
+}

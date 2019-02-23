@@ -20,8 +20,8 @@ var mlog = log.New("module", "mempool.base")
 //Mempool mempool 基础类
 type Mempool struct {
 	proxyMtx          sync.Mutex
-	in                chan queue.Message
-	out               <-chan queue.Message
+	in                chan *queue.Message
+	out               <-chan *queue.Message
 	client            queue.Client
 	header            *types.Header
 	sync              bool
@@ -53,8 +53,8 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	if cfg.PoolCacheSize == 0 {
 		cfg.PoolCacheSize = poolCacheSize
 	}
-	pool.in = make(chan queue.Message)
-	pool.out = make(<-chan queue.Message)
+	pool.in = make(chan *queue.Message)
+	pool.out = make(<-chan *queue.Message)
 	pool.done = make(chan struct{})
 	pool.cfg = cfg
 	pool.poolHeader = make(chan struct{}, 2)
@@ -235,7 +235,7 @@ func (mem *Mempool) pollLastHeader() {
 			time.Sleep(time.Second)
 			continue
 		}
-		h := lastHeader.(queue.Message).Data.(*types.Header)
+		h := lastHeader.(*queue.Message).Data.(*types.Header)
 		mem.setHeader(h)
 		return
 	}

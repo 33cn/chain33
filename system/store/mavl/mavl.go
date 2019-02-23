@@ -179,7 +179,7 @@ func (mavls *Store) IterateRangeByStateHash(statehash []byte, start []byte, end 
 }
 
 // ProcEvent not support message
-func (mavls *Store) ProcEvent(msg queue.Message) {
+func (mavls *Store) ProcEvent(msg *queue.Message) {
 	msg.ReplyErr("Store", types.ErrActionNotSupport)
 }
 

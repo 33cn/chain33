@@ -13,8 +13,8 @@ import (
 type QueueProtocolAPI interface {
 	Version() (*types.VersionInfo, error)
 	Close()
-	NewMessage(topic string, msgid int64, data interface{}) queue.Message
-	Notify(topic string, ty int64, data interface{}) (queue.Message, error)
+	NewMessage(topic string, msgid int64, data interface{}) *queue.Message
+	Notify(topic string, ty int64, data interface{}) (*queue.Message, error)
 	// +++++++++++++++ mempool interfaces begin
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
 	SendTx(param *types.Transaction) (*types.Reply, error)
