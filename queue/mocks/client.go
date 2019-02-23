@@ -41,29 +41,31 @@ func (_m *Client) CloseQueue() (*types.Reply, error) {
 }
 
 // NewMessage provides a mock function with given fields: topic, ty, data
-func (_m *Client) NewMessage(topic string, ty int64, data interface{}) queue.Message {
+func (_m *Client) NewMessage(topic string, ty int64, data interface{}) *queue.Message {
 	ret := _m.Called(topic, ty, data)
 
-	var r0 queue.Message
-	if rf, ok := ret.Get(0).(func(string, int64, interface{}) queue.Message); ok {
+	var r0 *queue.Message
+	if rf, ok := ret.Get(0).(func(string, int64, interface{}) *queue.Message); ok {
 		r0 = rf(topic, ty, data)
 	} else {
-		r0 = ret.Get(0).(queue.Message)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*queue.Message)
+		}
 	}
 
 	return r0
 }
 
 // Recv provides a mock function with given fields:
-func (_m *Client) Recv() chan queue.Message {
+func (_m *Client) Recv() chan *queue.Message {
 	ret := _m.Called()
 
-	var r0 chan queue.Message
-	if rf, ok := ret.Get(0).(func() chan queue.Message); ok {
+	var r0 chan *queue.Message
+	if rf, ok := ret.Get(0).(func() chan *queue.Message); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan queue.Message)
+			r0 = ret.Get(0).(chan *queue.Message)
 		}
 	}
 
@@ -71,11 +73,11 @@ func (_m *Client) Recv() chan queue.Message {
 }
 
 // Send provides a mock function with given fields: msg, waitReply
-func (_m *Client) Send(msg queue.Message, waitReply bool) error {
+func (_m *Client) Send(msg *queue.Message, waitReply bool) error {
 	ret := _m.Called(msg, waitReply)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(queue.Message, bool) error); ok {
+	if rf, ok := ret.Get(0).(func(*queue.Message, bool) error); ok {
 		r0 = rf(msg, waitReply)
 	} else {
 		r0 = ret.Error(0)
@@ -85,11 +87,11 @@ func (_m *Client) Send(msg queue.Message, waitReply bool) error {
 }
 
 // SendTimeout provides a mock function with given fields: msg, waitReply, timeout
-func (_m *Client) SendTimeout(msg queue.Message, waitReply bool, timeout time.Duration) error {
+func (_m *Client) SendTimeout(msg *queue.Message, waitReply bool, timeout time.Duration) error {
 	ret := _m.Called(msg, waitReply, timeout)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(queue.Message, bool, time.Duration) error); ok {
+	if rf, ok := ret.Get(0).(func(*queue.Message, bool, time.Duration) error); ok {
 		r0 = rf(msg, waitReply, timeout)
 	} else {
 		r0 = ret.Error(0)
@@ -104,18 +106,20 @@ func (_m *Client) Sub(topic string) {
 }
 
 // Wait provides a mock function with given fields: msg
-func (_m *Client) Wait(msg queue.Message) (queue.Message, error) {
+func (_m *Client) Wait(msg *queue.Message) (*queue.Message, error) {
 	ret := _m.Called(msg)
 
-	var r0 queue.Message
-	if rf, ok := ret.Get(0).(func(queue.Message) queue.Message); ok {
+	var r0 *queue.Message
+	if rf, ok := ret.Get(0).(func(*queue.Message) *queue.Message); ok {
 		r0 = rf(msg)
 	} else {
-		r0 = ret.Get(0).(queue.Message)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*queue.Message)
+		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(queue.Message) error); ok {
+	if rf, ok := ret.Get(1).(func(*queue.Message) error); ok {
 		r1 = rf(msg)
 	} else {
 		r1 = ret.Error(1)
@@ -125,18 +129,20 @@ func (_m *Client) Wait(msg queue.Message) (queue.Message, error) {
 }
 
 // WaitTimeout provides a mock function with given fields: msg, timeout
-func (_m *Client) WaitTimeout(msg queue.Message, timeout time.Duration) (queue.Message, error) {
+func (_m *Client) WaitTimeout(msg *queue.Message, timeout time.Duration) (*queue.Message, error) {
 	ret := _m.Called(msg, timeout)
 
-	var r0 queue.Message
-	if rf, ok := ret.Get(0).(func(queue.Message, time.Duration) queue.Message); ok {
+	var r0 *queue.Message
+	if rf, ok := ret.Get(0).(func(*queue.Message, time.Duration) *queue.Message); ok {
 		r0 = rf(msg, timeout)
 	} else {
-		r0 = ret.Get(0).(queue.Message)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*queue.Message)
+		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(queue.Message, time.Duration) error); ok {
+	if rf, ok := ret.Get(1).(func(*queue.Message, time.Duration) error); ok {
 		r1 = rf(msg, timeout)
 	} else {
 		r1 = ret.Error(1)
