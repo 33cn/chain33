@@ -5,6 +5,7 @@
 package queue
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -132,6 +133,7 @@ func TestHighLow(t *testing.T) {
 			msg := client.NewMessage("mempool", types.EventTx, "hello")
 			err := client.SendTimeout(msg, false, 0)
 			if err != nil {
+				fmt.Println(err)
 				break
 			}
 		}
@@ -209,6 +211,29 @@ func TestPrintMessage(t *testing.T) {
 	client := q.Client()
 	msg := client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")})
 	t.Log(msg)
+}
+
+func TestChanSubCallback(t *testing.T) {
+	q := New("channel")
+	client := q.Client()
+	client.Sub("hello")
+	done := make(chan struct{}, 1025)
+	go func() {
+		for i := 0; i < 1025; i++ {
+			sub := q.(*queue).chanSub("hello")
+			msg := NewMessageCallback(1, "", 0, nil, func(msg *Message) {
+				done <- struct{}{}
+			})
+			sub.high <- msg
+		}
+	}()
+	for i := 0; i < 1025; i++ {
+		msg := <-client.Recv()
+		client.Reply(msg)
+	}
+	for i := 0; i < 1025; i++ {
+		<-done
+	}
 }
 
 func BenchmarkSendMessage(b *testing.B) {
@@ -350,5 +375,30 @@ func BenchmarkChanSub4(b *testing.B) {
 	}()
 	for i := 0; i < b.N; i++ {
 		<-client.Recv()
+	}
+}
+
+func BenchmarkChanSubCallback(b *testing.B) {
+	q := New("channel")
+	client := q.Client()
+	client.Sub("hello")
+	done := make(chan struct{}, 1024)
+	go func() {
+		for i := 0; i < b.N; i++ {
+			sub := q.(*queue).chanSub("hello")
+			msg := NewMessageCallback(1, "", 0, nil, func(msg *Message) {
+				done <- struct{}{}
+			})
+			sub.high <- msg
+		}
+	}()
+	go func() {
+		for i := 0; i < b.N; i++ {
+			msg := <-client.Recv()
+			client.Reply(msg)
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		<-done
 	}
 }
