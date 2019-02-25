@@ -402,3 +402,24 @@ func BenchmarkChanSubCallback(b *testing.B) {
 		<-done
 	}
 }
+
+func BenchmarkChanSubCallback2(b *testing.B) {
+	q := New("channel")
+	client := q.Client()
+	client.Sub("hello")
+	go func() {
+		for i := 0; i < b.N; i++ {
+			sub := q.(*queue).chanSub("hello")
+			done := make(chan struct{}, 1)
+			msg := NewMessageCallback(1, "", 0, nil, func(msg *Message) {
+				done <- struct{}{}
+			})
+			sub.high <- msg
+			<-done
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		msg := <-client.Recv()
+		client.Reply(msg)
+	}
+}
