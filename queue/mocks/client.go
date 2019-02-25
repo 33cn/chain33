@@ -72,6 +72,11 @@ func (_m *Client) Recv() chan *queue.Message {
 	return r0
 }
 
+// Reply provides a mock function with given fields: msg
+func (_m *Client) Reply(msg *queue.Message) {
+	_m.Called(msg)
+}
+
 // Send provides a mock function with given fields: msg, waitReply
 func (_m *Client) Send(msg *queue.Message, waitReply bool) error {
 	ret := _m.Called(msg, waitReply)
