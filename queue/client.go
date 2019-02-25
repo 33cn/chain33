@@ -34,6 +34,7 @@ type Client interface {
 	Wait(msg *Message) (*Message, error)                               //等待消息处理完成
 	WaitTimeout(msg *Message, timeout time.Duration) (*Message, error) //等待消息处理完成
 	Recv() chan *Message
+	Reply(msg *Message)
 	Sub(topic string) //订阅消息
 	Close()
 	CloseQueue() (*types.Reply, error)
@@ -61,7 +62,7 @@ type client struct {
 func newClient(q *queue) Client {
 	client := &client{}
 	client.q = q
-	client.recv = make(chan *Message, 1024)
+	client.recv = make(chan *Message, 5)
 	client.done = make(chan struct{}, 1)
 	client.wg = &sync.WaitGroup{}
 	return client
@@ -99,6 +100,16 @@ func (client *client) SendTimeout(msg *Message, waitReply bool, timeout time.Dur
 func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg *Message) {
 	id := atomic.AddInt64(&gid, 1)
 	return NewMessage(id, topic, ty, data)
+}
+
+func (client *client) Reply(msg *Message) {
+	if msg.chReply != nil {
+		msg.Reply(msg)
+		return
+	}
+	if msg.callback != nil {
+		client.q.callback <- msg
+	}
 }
 
 // WaitTimeout 等待时间 msg 消息 timeout 超时时间
