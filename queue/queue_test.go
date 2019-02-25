@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/types"
+	"fmt"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -209,4 +211,42 @@ func TestPrintMessage(t *testing.T) {
 	client := q.Client()
 	msg := client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")})
 	t.Log(msg)
+}
+
+func TestMessage_ReplyErr(t *testing.T) {
+	q := New("channel")
+	assert.Equal(t, "channel", q.Name())
+	//接收消息
+	go func() {
+		client := q.Client()
+		client.Sub("mempool")
+		for msg := range client.Recv() {
+			if msg.Data == nil {
+				msg.ReplyErr("test", fmt.Errorf("test error"))
+				break
+			}
+			msg.Reply(NewMessage(0, "mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("test ok")}))
+		}
+	}()
+
+	//发送消息
+	go func() {
+		client := q.Client()
+		msg := client.NewMessage("mempool", types.EventTx, "hello")
+		err := client.Send(msg, true)
+		if err != nil { //chan is closed
+			t.Error(err)
+			return
+		}
+
+		msg = client.NewMessage("mempool", types.EventTx, nil)
+		err = client.Send(msg, true)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		client.CloseQueue()
+	}()
+
+	q.Start()
 }
