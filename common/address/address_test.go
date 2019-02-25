@@ -105,3 +105,8 @@ func BenchmarkExecAddress(b *testing.B) {
 	duration = end - start
 	fmt.Println("duration without cache:", strconv.FormatInt(duration, 10))
 }
+
+func TestExecPubKey(t *testing.T) {
+	pubkey := ExecPubKey("test")
+	assert.True(t, len(pubkey)==32)
+}
