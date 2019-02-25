@@ -61,7 +61,7 @@ type client struct {
 func newClient(q *queue) Client {
 	client := &client{}
 	client.q = q
-	client.recv = make(chan *Message, 5)
+	client.recv = make(chan *Message, 1024)
 	client.done = make(chan struct{}, 1)
 	client.wg = &sync.WaitGroup{}
 	return client
@@ -183,10 +183,10 @@ func (client *client) isEnd(data *Message, ok bool) bool {
 	if !ok {
 		return true
 	}
-	if atomic.LoadInt32(&client.isClosed) == 1 {
+	if data.Data == nil && data.ID == 0 && data.Ty == 0 {
 		return true
 	}
-	if data.Data == nil && data.ID == 0 && data.Ty == 0 {
+	if atomic.LoadInt32(&client.isClosed) == 1 {
 		return true
 	}
 	return false

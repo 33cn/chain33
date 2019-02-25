@@ -214,21 +214,24 @@ func TestPrintMessage(t *testing.T) {
 func BenchmarkSendMessage(b *testing.B) {
 	q := New("channel")
 	//mempool
+	b.ReportAllocs()
 	go func() {
 		client := q.Client()
 		client.Sub("mempool")
 		defer client.Close()
 		for msg := range client.Recv() {
-			if msg.Ty == types.EventTx {
-				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
-			}
+			go func(msg *Message) {
+				if msg.Ty == types.EventTx {
+					msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
+				}
+			}(msg)
 		}
 	}()
 	go q.Start()
 	client := q.Client()
 	//high 优先级
+	msg := client.NewMessage("mempool", types.EventTx, "hello")
 	for i := 0; i < b.N; i++ {
-		msg := client.NewMessage("mempool", types.EventTx, "hello")
 		err := client.Send(msg, true)
 		if err != nil {
 			b.Error(err)
@@ -275,5 +278,77 @@ func BenchmarkIntChan(b *testing.B) {
 	}()
 	for i := 0; i < b.N; i++ {
 		ch <- 1
+	}
+}
+
+func BenchmarkChanSub(b *testing.B) {
+	q := New("channel")
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < b.N; i++ {
+			q.(*queue).chanSub("hello")
+		}
+		done <- struct{}{}
+	}()
+	for i := 0; i < b.N; i++ {
+		q.(*queue).chanSub("hello")
+	}
+	<-done
+}
+
+func BenchmarkChanSub2(b *testing.B) {
+	q := New("channel")
+	client := q.Client()
+	client.Sub("hello")
+
+	go func() {
+		for i := 0; i < b.N; i++ {
+			sub := q.(*queue).chanSub("hello")
+			msg := NewMessage(1, "", 0, nil)
+			sub.high <- msg
+			_, err := client.Wait(msg)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		msg := <-client.Recv()
+		msg.Reply(msg)
+	}
+}
+
+func BenchmarkChanSub3(b *testing.B) {
+	q := New("channel")
+	client := q.Client()
+	client.Sub("hello")
+
+	go func() {
+		for i := 0; i < b.N; i++ {
+			sub := q.(*queue).chanSub("hello")
+			msg := NewMessage(1, "", 0, nil)
+			sub.high <- msg
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		msg := <-client.Recv()
+		msg.Reply(msg)
+	}
+}
+
+func BenchmarkChanSub4(b *testing.B) {
+	q := New("channel")
+	client := q.Client()
+	client.Sub("hello")
+
+	go func() {
+		for i := 0; i < b.N; i++ {
+			sub := q.(*queue).chanSub("hello")
+			msg := &Message{ID: 1}
+			sub.high <- msg
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		<-client.Recv()
 	}
 }

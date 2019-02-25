@@ -130,7 +130,11 @@ func (q *queue) chanSub(topic string) *chanSub {
 	defer q.mu.Unlock()
 	_, ok := q.chanSubs[topic]
 	if !ok {
-		q.chanSubs[topic] = &chanSub{make(chan *Message, defaultChanBuffer), make(chan *Message, defaultLowChanBuffer), 0}
+		q.chanSubs[topic] = &chanSub{
+			high:    make(chan *Message, defaultChanBuffer),
+			low:     make(chan *Message, defaultLowChanBuffer),
+			isClose: 0,
+		}
 	}
 	return q.chanSubs[topic]
 }
@@ -157,6 +161,10 @@ func (q *queue) send(msg *Message, timeout time.Duration) (err error) {
 	if sub.isClose == 1 {
 		return types.ErrChannelClosed
 	}
+	if timeout == -1 {
+		sub.high <- msg
+		return nil
+	}
 	defer func() {
 		res := recover()
 		if res != nil {
@@ -171,10 +179,6 @@ func (q *queue) send(msg *Message, timeout time.Duration) (err error) {
 			qlog.Error("send chainfull", "msg", msg, "topic", msg.Topic, "sub", sub)
 			return ErrQueueChannelFull
 		}
-	}
-	if timeout == -1 {
-		sub.high <- msg
-		return nil
 	}
 	t := time.NewTimer(timeout)
 	defer t.Stop()
@@ -212,12 +216,12 @@ func (q *queue) sendLowTimeout(msg *Message, timeout time.Duration) error {
 	if sub.isClose == 1 {
 		return types.ErrChannelClosed
 	}
-	if timeout == 0 {
-		return q.sendAsyn(msg)
-	}
 	if timeout == -1 {
 		sub.low <- msg
 		return nil
+	}
+	if timeout == 0 {
+		return q.sendAsyn(msg)
 	}
 	t := time.NewTimer(timeout)
 	defer t.Stop()
