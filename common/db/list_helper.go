@@ -61,7 +61,7 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 		defer it.Close()
 		flag := it.Seek(key)
 		//判断是否相等
-		if flag == false || !bytes.Equal(key, it.Key()) {
+		if !flag || !bytes.Equal(key, it.Key()) {
 			it.Next()
 			if !it.Valid() {
 				return nil
