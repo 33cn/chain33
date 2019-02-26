@@ -2,6 +2,7 @@ package db
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,6 +35,41 @@ func TestMergeIter(t *testing.T) {
 	assert.Equal(t, 2, len(list0))
 	assert.Equal(t, "1", string(list0[0]))
 	assert.Equal(t, "2", string(list0[1]))
+}
+
+func newGoLevelDB(t *testing.T) (DB, string) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	assert.Nil(t, err)
+	db, err := NewGoLevelDB("test", dir, 16)
+	assert.Nil(t, err)
+	return db, dir
+}
+
+func TestMergeIterSeek1(t *testing.T) {
+	db1 := newGoMemDB(t)
+	db1.Set([]byte("1"), []byte("1"))
+
+	it0 := NewListHelper(db1)
+	list0 := it0.List(nil, []byte("2"), 1, ListSeek)
+	assert.Equal(t, 2, len(list0))
+	assert.Equal(t, "1", string(list0[0]))
+}
+
+func TestMergeIterSeek(t *testing.T) {
+	db1 := newGoMemDB(t)
+	db2 := newGoMemDB(t)
+	db3, dir := newGoLevelDB(t)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	db1.Set([]byte("1"), []byte("1"))
+	db2.Set([]byte("3"), []byte("3"))
+	db3.Set([]byte("5"), []byte("5"))
+	//合并以后:
+	db := NewMergedIteratorDB([]IteratorDB{db1, db2, db3})
+	it0 := NewListHelper(db)
+	list0 := it0.List(nil, []byte("2"), 1, ListSeek)
+	assert.Equal(t, 2, len(list0))
+	assert.Equal(t, "1", string(list0[0]))
 }
 
 func TestMergeIterDup1(t *testing.T) {

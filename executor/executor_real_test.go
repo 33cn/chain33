@@ -271,7 +271,7 @@ func BenchmarkExecBlock(b *testing.B) {
 	block0 := mock33.GetBlock(0)
 	account := mock33.GetAccount(block0.StateHash, mock33.GetGenesisAddress())
 	assert.Equal(b, int64(10000000000000000), account.Balance)
-	b.StartTimer()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true)
 	}
