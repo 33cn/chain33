@@ -15,6 +15,7 @@ const (
 	dirSOI
 	dirEOI
 	dirForward
+	dirSeek
 )
 
 //合并错误列表
@@ -75,7 +76,7 @@ func (i *mergedIterator) Rewind() bool {
 		}
 	}
 	i.dir = dirSOI
-	return i.next()
+	return i.next(false)
 }
 
 func (i *mergedIterator) Seek(key []byte) bool {
@@ -97,10 +98,17 @@ func (i *mergedIterator) Seek(key []byte) bool {
 		}
 	}
 	i.dir = dirSOI
-	return i.next()
+	if i.next(true) {
+		i.dir = dirSeek
+		return true
+	}
+	return false
 }
 
-func (i *mergedIterator) compare(tkey []byte, key []byte) int {
+func (i *mergedIterator) compare(tkey []byte, key []byte, ignoreReverse bool) int {
+	if ignoreReverse {
+		return i.cmp.Compare(tkey, key)
+	}
 	if tkey == nil && key != nil {
 		return 1
 	}
@@ -114,10 +122,10 @@ func (i *mergedIterator) compare(tkey []byte, key []byte) int {
 	return result
 }
 
-func (i *mergedIterator) next() bool {
+func (i *mergedIterator) next(ignoreReverse bool) bool {
 	var key []byte
 	for x, tkey := range i.keys {
-		if tkey != nil && (key == nil || i.compare(tkey, key) < 0) {
+		if tkey != nil && (key == nil || i.compare(tkey, key, ignoreReverse) < 0) {
 			key = tkey
 			i.index = x
 		}
@@ -135,7 +143,7 @@ func (i *mergedIterator) next() bool {
 
 func (i *mergedIterator) Next() bool {
 	for i.nextInternal() {
-		if i.compare(i.Key(), i.prevKey) != 0 {
+		if i.compare(i.Key(), i.prevKey, true) != 0 {
 			i.prevKey = cloneByte(i.Key())
 			return true
 		}
@@ -150,12 +158,30 @@ func (i *mergedIterator) nextInternal() bool {
 		i.err = ErrIterReleased
 		return false
 	}
-
 	switch i.dir {
 	case dirSOI:
 		return i.Rewind()
+	case dirSeek:
+		if !i.reverse {
+			break
+		}
+		key := append([]byte{}, i.keys[i.index]...)
+		for x, iter := range i.iters {
+			if x == i.index {
+				continue
+			}
+			seek := iter.Seek(key)
+			println(x, string(key), seek)
+			switch {
+			case seek && iter.Next(), !seek && iter.Rewind():
+				i.keys[x] = assertKey(iter.Key())
+			case i.iterErr(iter):
+				return false
+			default:
+				i.keys[x] = nil
+			}
+		}
 	}
-
 	x := i.index
 	iter := i.iters[x]
 	switch {
@@ -166,7 +192,7 @@ func (i *mergedIterator) nextInternal() bool {
 	default:
 		i.keys[x] = nil
 	}
-	return i.next()
+	return i.next(false)
 }
 
 func (i *mergedIterator) Key() []byte {
