@@ -86,7 +86,6 @@ func (i *mergedIterator) Seek(key []byte) bool {
 		i.err = ErrIterReleased
 		return false
 	}
-
 	for x, iter := range i.iters {
 		switch {
 		case iter.Seek(key):
@@ -102,6 +101,7 @@ func (i *mergedIterator) Seek(key []byte) bool {
 		i.dir = dirSeek
 		return true
 	}
+	i.dir = dirSOI
 	return false
 }
 
@@ -142,7 +142,14 @@ func (i *mergedIterator) next(ignoreReverse bool) bool {
 }
 
 func (i *mergedIterator) Next() bool {
-	for i.nextInternal() {
+	for {
+		ok, isrewind := i.nextInternal()
+		if !ok {
+			break
+		}
+		if isrewind {
+			return true
+		}
 		if i.compare(i.Key(), i.prevKey, true) != 0 {
 			i.prevKey = cloneByte(i.Key())
 			return true
@@ -151,16 +158,16 @@ func (i *mergedIterator) Next() bool {
 	return false
 }
 
-func (i *mergedIterator) nextInternal() bool {
+func (i *mergedIterator) nextInternal() (bool, bool) {
 	if i.dir == dirEOI || i.err != nil {
-		return false
+		return false, false
 	} else if i.dir == dirReleased {
 		i.err = ErrIterReleased
-		return false
+		return false, false
 	}
 	switch i.dir {
 	case dirSOI:
-		return i.Rewind()
+		return i.Rewind(), true
 	case dirSeek:
 		if !i.reverse {
 			break
@@ -171,12 +178,11 @@ func (i *mergedIterator) nextInternal() bool {
 				continue
 			}
 			seek := iter.Seek(key)
-			println(x, string(key), seek)
 			switch {
 			case seek && iter.Next(), !seek && iter.Rewind():
 				i.keys[x] = assertKey(iter.Key())
 			case i.iterErr(iter):
-				return false
+				return false, false
 			default:
 				i.keys[x] = nil
 			}
@@ -188,11 +194,11 @@ func (i *mergedIterator) nextInternal() bool {
 	case iter.Next():
 		i.keys[x] = assertKey(iter.Key())
 	case i.iterErr(iter):
-		return false
+		return false, false
 	default:
 		i.keys[x] = nil
 	}
-	return i.next(false)
+	return i.next(false), false
 }
 
 func (i *mergedIterator) Key() []byte {
