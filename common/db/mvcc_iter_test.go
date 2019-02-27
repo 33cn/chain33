@@ -204,22 +204,30 @@ func TestSimpleMVCCLocalDB(t *testing.T) {
 
 	values, err := kvdb.List([]byte(".-mvcc-.d.mavl-coins-bty-"), nil, 100, 1)
 	assert.Nil(t, err)
+	assert.Equal(t, 6, len(values))
 	assert.Equal(t, "3", string(values[0]))
 	assert.Equal(t, "2", string(values[1]))
 	assert.Equal(t, "4", string(values[2]))
 	assert.Equal(t, "6", string(values[3]))
-	assert.Equal(t, "5", string(values[4]))
+	assert.Equal(t, "1", string(values[4]))
+	assert.Equal(t, "5", string(values[5]))
 
-	kvlist, err = m.DelMVCC(hashN(2), 2, true)
+	v, err := m.GetV([]byte("mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"), 0)
 	assert.Nil(t, err)
-	setKVList(kvdb, kvlist)
-	values, err = kvdb.List([]byte(".-mvcc-.d.mavl-coins-bty-"), nil, 0, 1)
+	assert.Equal(t, "1", string(v))
+
+	v, err = m.GetV([]byte("mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"), 1)
 	assert.Nil(t, err)
-	assert.Equal(t, 4, len(values))
-	assert.Equal(t, "3", string(values[0]))
-	assert.Equal(t, "2", string(values[1]))
-	assert.Equal(t, "4", string(values[2]))
-	assert.Equal(t, "1", string(values[3]))
+	assert.Equal(t, "1", string(v))
+
+	v, err = m.GetV([]byte("mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"), 2)
+	assert.Nil(t, err)
+	assert.Equal(t, "5", string(v))
+
+	v, err = m.GetV([]byte("mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"), 3)
+	assert.Nil(t, err)
+	assert.Equal(t, "5", string(v))
+
 }
 
 func setKVList(db KVDB, kvlist []*types.KeyValue) {
