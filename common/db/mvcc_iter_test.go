@@ -202,7 +202,7 @@ func TestSimpleMVCCLocalDB(t *testing.T) {
 	assert.Nil(t, err)
 	setKVList(kvdb, kvlist)
 
-	values, err := kvdb.List([]byte("mavl-coins-bty-"), nil, 100, 1)
+	values, err := kvdb.List([]byte(".-mvcc-.d.mavl-coins-bty-"), nil, 100, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, "3", string(values[0]))
 	assert.Equal(t, "2", string(values[1]))
@@ -213,7 +213,7 @@ func TestSimpleMVCCLocalDB(t *testing.T) {
 	kvlist, err = m.DelMVCC(hashN(2), 2, true)
 	assert.Nil(t, err)
 	setKVList(kvdb, kvlist)
-	values, err = kvdb.List(nil, nil, 0, 1)
+	values, err = kvdb.List([]byte(".-mvcc-.d.mavl-coins-bty-"), nil, 0, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(values))
 	assert.Equal(t, "3", string(values[0]))
