@@ -117,7 +117,7 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 			values = nil
 			return
 		}
-		//println(string(it.Key()))
+		//println(string(it.Key()), string(value))
 		values = append(values, value)
 		i++
 		if i == count {
