@@ -451,7 +451,7 @@ func TestAddMoreTxThanMaxAccountTx(t *testing.T) {
 		return
 	}
 	if mem.Size() != 2 {
-		t.Error("TestAddMaxAccountTx failed", "size", mem.Size())
+		t.Error("TestAddMoreTxThanMaxAccountTx failed", "size", mem.Size())
 	}
 }
 
