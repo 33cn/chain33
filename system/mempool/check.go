@@ -63,7 +63,7 @@ func (mem *Mempool) checkTx(msg *queue.Message) *queue.Message {
 	}
 	// 检查交易账户在mempool中是否存在过多交易
 	from := tx.From()
-	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
+	if mem.TxNumOfAccount(from) >= mem.cfg.MaxTxNumPerAccount {
 		msg.Data = types.ErrManyTx
 		return msg
 	}
