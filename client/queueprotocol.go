@@ -171,12 +171,12 @@ func (q *QueueProtocol) GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, 
 func (q *QueueProtocol) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
-		log.Error("QueryTx", "Error", err)
+		log.Debug("QueryTx", "Error", err)
 		return nil, err
 	}
 	msg, err := q.query(blockchainKey, types.EventQueryTx, param)
 	if err != nil {
-		log.Error("QueryTx", "Error", err.Error())
+		log.Debug("QueryTx", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.TransactionDetail); ok {
