@@ -137,10 +137,9 @@ func (chain *BlockChain) queryTx(msg *queue.Message) {
 	txhash := (msg.Data).(*types.ReqHash)
 	TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
 	if err != nil {
-		chainlog.Error("ProcQueryTxMsg", "err", err.Error())
+		chainlog.Debug("ProcQueryTxMsg", "err", err.Error())
 		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetail, err))
 	} else {
-		//chainlog.Debug("ProcQueryTxMsg", "success", "ok")
 		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetail, TransactionDetail))
 	}
 }
