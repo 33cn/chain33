@@ -130,7 +130,10 @@ func (db *GoLevelDB) Close() {
 
 //Print 打印
 func (db *GoLevelDB) Print() {
-	str, _ := db.db.GetProperty("leveldb.stats")
+	str, err := db.db.GetProperty("leveldb.stats")
+	if err != nil {
+		return
+	}
 	llog.Info("Print", "stats", str)
 
 	iter := db.db.NewIterator(nil, nil)

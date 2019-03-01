@@ -215,7 +215,11 @@ func (db *BaseDB) SetCacheSize(size int) {
 	if db.cache != nil {
 		return
 	}
-	db.cache, _ = lru.NewARC(size)
+	var err error
+	db.cache, err = lru.NewARC(size)
+	if err != nil {
+		panic(err)
+	}
 }
 
 //Begin call panic when Begin not rewrite

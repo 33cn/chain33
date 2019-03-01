@@ -107,10 +107,16 @@ func Sha3(b []byte) []byte {
 
 func sha2Hash(b []byte, out []byte) {
 	s := sha256.New()
-	s.Write(b[:])
+	_, err := s.Write(b[:])
+	if err != nil {
+		return
+	}
 	tmp := s.Sum(nil)
 	s.Reset()
-	s.Write(tmp)
+	_, err = s.Write(tmp)
+	if err != nil {
+		return
+	}
 	copy(out[:], s.Sum(nil))
 }
 
@@ -124,9 +130,15 @@ func Sha2Sum(b []byte) []byte {
 
 func rimpHash(in []byte, out []byte) {
 	sha := sha256.New()
-	sha.Write(in)
+	_, err := sha.Write(in)
+	if err != nil {
+		return
+	}
 	rim := ripemd160.New()
-	rim.Write(sha.Sum(nil)[:])
+	_, err = rim.Write(sha.Sum(nil)[:])
+	if err != nil {
+		return
+	}
 	copy(out, rim.Sum(nil))
 }
 

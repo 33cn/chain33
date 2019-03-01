@@ -60,7 +60,7 @@ func NewPegasusDB(name string, dir string, cache int) (*PegasusDB, error) {
 	tb, err := database.client.OpenTable(context.Background(), database.name)
 	if err != nil {
 		slog.Error("connect to pegasus error!", "pegasus", database.cfg, "error", err)
-		database.client.Close()
+		err = database.client.Close()
 		return nil, types.ErrDataBaseDamage
 	}
 	database.table = tb

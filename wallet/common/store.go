@@ -100,8 +100,7 @@ func (store *Store) SetWalletAccount(update bool, addr string, account *types.Wa
 	newbatch.Set(CalcAccountKey(account.TimeStamp, addr), accountbyte)
 	newbatch.Set(CalcAddrKey(addr), accountbyte)
 	newbatch.Set(CalcLabelKey(account.GetLabel()), accountbyte)
-	newbatch.Write()
-	return nil
+	return newbatch.Write()
 }
 
 // SetWalletAccountInBatch 保存钱包账号信息
@@ -305,7 +304,10 @@ func (store *Store) VerifyPasswordHash(password string) bool {
 
 // DelAccountByLabel 根据标签名称，删除对应的账号信息
 func (store *Store) DelAccountByLabel(label string) {
-	store.GetDB().DeleteSync(CalcLabelKey(label))
+	err := store.GetDB().DeleteSync(CalcLabelKey(label))
+	if err != nil {
+		storelog.Error("DelAccountByLabel", "err", err)
+	}
 }
 
 //SetWalletVersion 升级数据库的版本号
@@ -315,9 +317,7 @@ func (store *Store) SetWalletVersion(ver int64) error {
 		storelog.Error("SetWalletVerKey marshal version", "err", err)
 		return types.ErrMarshal
 	}
-
-	store.GetDB().SetSync(version.WalletVerKey, data)
-	return nil
+	return store.GetDB().SetSync(version.WalletVerKey, data)
 }
 
 // GetWalletVersion 获取wallet数据库的版本号

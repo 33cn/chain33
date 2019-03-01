@@ -2,7 +2,7 @@ package skiplist
 
 import (
 	"fmt"
-	"math/rand"
+	"crypto/rand"
 )
 
 const maxLevel = 32

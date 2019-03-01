@@ -66,7 +66,8 @@ func (pool *SDBPool) get() *SDBClient {
 }
 func (pool *SDBPool) close() {
 	for _, v := range pool.clients {
-		v.Close()
+		err := v.Close()
+		dlog.Error("ssdb close ", "error", err)
 	}
 }
 
