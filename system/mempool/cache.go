@@ -52,7 +52,7 @@ func (cache *txCache) Remove(hash string) {
 		return
 	}
 	tx := item.Value
-	cache.qcache.Remove(hash)
+	err = cache.qcache.Remove(hash)
 	cache.AccountTxIndex.Remove(tx)
 	cache.LastTxCache.Remove(tx)
 }
@@ -98,7 +98,10 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 	if err != nil {
 		return err
 	}
-	cache.AccountTxIndex.Push(tx)
+	err = cache.AccountTxIndex.Push(tx)
+	if err != nil {
+		return err
+	}
 	cache.LastTxCache.Push(tx)
 	return nil
 }

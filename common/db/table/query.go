@@ -30,7 +30,10 @@ type Query struct {
 func (query *Query) List(indexName string, data types.Message, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	var prefix []byte
 	if data != nil {
-		query.table.getMeta().SetPayload(data)
+		err := query.table.getMeta().SetPayload(data)
+		if err != nil {
+			return nil, err
+		}
 		querykey := indexName
 		if isPrimaryIndex(indexName) {
 			querykey = query.table.getOpt().Primary

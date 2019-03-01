@@ -164,7 +164,7 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	if err != nil && !isCompressSupport(err) {
 		//compress not support
 		log.Error("compress not supprot , rollback to uncompress version", "addr", na.String())
-		conn.Close()
+		err = conn.Close()
 		ch2 := make(chan grpc.ServiceConfig, 1)
 		ch2 <- P2pComm.GrpcConfig()
 		log.Debug("NetAddress", "Dial with unCompressor", na.String())
@@ -174,7 +174,7 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	if err != nil {
 		log.Debug("grpc DialCon Uncompressor", "did not connect", err)
 		if conn != nil {
-			conn.Close()
+			err = conn.Close()
 		}
 		return nil, err
 	}

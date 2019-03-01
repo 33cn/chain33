@@ -140,13 +140,19 @@ func (t *Tree) Save() []byte {
 	if t.ndb != nil {
 		if t.isRemoveLeafCountKey() {
 			//DelLeafCountKV 需要先提前将leafcoutkey删除,这里需先于t.ndb.Commit()
-			DelLeafCountKV(t.ndb.db, t.blockHeight)
+			err := DelLeafCountKV(t.ndb.db, t.blockHeight)
+			if err != nil {
+				treelog.Error("Tree.Save", "DelLeafCountKV err", err)
+			}
 		}
 		saveNodeNo := t.root.save(t)
 		treelog.Debug("Tree.Save", "saveNodeNo", saveNodeNo, "tree height", t.blockHeight)
 		// 保存每个高度的roothash
 		if enablePrune {
-			t.root.saveRootHash(t)
+			err := t.root.saveRootHash(t)
+			if err != nil {
+				treelog.Error("Tree.Save", "saveRootHash err", err)
+			}
 		}
 		beg := types.Now()
 		err := t.ndb.Commit()
@@ -285,7 +291,10 @@ func (t *Tree) isRemoveLeafCountKey() bool {
 		maxBlockHeight = t.getMaxBlockHeight()
 	}
 	if t.blockHeight > maxBlockHeight {
-		t.setMaxBlockHeight(t.blockHeight)
+		err := t.setMaxBlockHeight(t.blockHeight)
+		if err != nil {
+			panic(err)
+		}
 		maxBlockHeight = t.blockHeight
 		return false
 	}
@@ -320,7 +329,9 @@ func (t *Tree) RemoveLeafCountKey(height int64) {
 			treelog.Debug("RemoveLeafCountKey:", "height", height, "key:", string(k), "hash:", common.ToHex(hash))
 		}
 	}
-	batch.Write()
+	if err := batch.Write(); err != nil {
+		return
+	}
 }
 
 // Iterate 依次迭代遍历树的所有键
@@ -609,7 +620,10 @@ func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proo
 // PrintTreeLeaf 通过roothash打印所有叶子节点
 func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 	tree := NewTree(db, true)
-	tree.Load(roothash)
+	err := tree.Load(roothash)
+	if err != nil {
+		return
+	}
 	var i int32
 	if tree.root != nil {
 		leafs := tree.root.size
@@ -624,7 +638,10 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte) {
 // IterateRangeByStateHash 在start和end之间的键进行迭代回调[start, end)
 func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending bool, fn func([]byte, []byte) bool) {
 	tree := NewTree(db, true)
-	tree.Load(statehash)
+	err := tree.Load(statehash)
+	if err != nil {
+		return
+	}
 	//treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
 
 	tree.IterateRange(start, end, ascending, fn)

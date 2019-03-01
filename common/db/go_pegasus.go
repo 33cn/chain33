@@ -137,7 +137,10 @@ func (db *PegasusDB) DeleteSync(key []byte) error {
 //Close 同步
 func (db *PegasusDB) Close() {
 	db.table.Close()
-	db.client.Close()
+	err := db.client.Close()
+	if err != nil {
+		llog.Error("Close", "client error", err)
+	}
 }
 
 //Print 打印

@@ -29,7 +29,11 @@ type channelClient struct {
 // Init channel client
 func (c *channelClient) Init(q queue.Client, api client.QueueProtocolAPI) {
 	if api == nil {
-		api, _ = client.New(q, nil)
+		var err error
+		api, err = client.New(q, nil)
+		if err != nil {
+			panic(err)
+		}
 	}
 	c.QueueProtocolAPI = api
 	c.accountdb = account.NewCoinsAccount()

@@ -43,7 +43,10 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 		IsMempool:  false,
 	}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("send", "to execs EventExecTxList msg err", err)
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -58,7 +61,10 @@ func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset
 	setwithsync := &types.StoreSetWithSync{Storeset: set, Sync: sync}
 
 	msg := client.NewMessage("store", types.EventStoreMemSet, setwithsync)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("send", "to store EventStoreMemSet msg err", err)
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -71,8 +77,11 @@ func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset
 func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreCommit, req)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("send", "to store EventStoreCommit msg err", err)
+	}
+	msg, err = client.Wait(msg)
 	if err != nil {
 		return err
 	}
@@ -85,8 +94,11 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreRollback, req)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("send", "to blockchain EventTxHashList msg err", err)
+	}
+	msg, err = client.Wait(msg)
 	if err != nil {
 		return err
 	}
@@ -148,7 +160,10 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	}
 	checkHashList.Count = height
 	hashList := client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-	client.Send(hashList, true)
+	err = client.Send(hashList, true)
+	if err != nil {
+		log.Error("send", "to blockchain EventTxHashList msg err", err)
+	}
 	dupTxList, err := client.Wait(hashList)
 	if err != nil {
 		return nil, err
@@ -184,7 +199,10 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	reportErrEvent.Tomodule = tomodule
 	reportErrEvent.Error = err.Error()
 	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
-	client.Send(msg, false)
+	err = client.Send(msg, false)
+	if err != nil {
+		log.Error("send", "EventErrToFront msg err", err)
+	}
 }
 
 //DelDupKey 删除重复的key

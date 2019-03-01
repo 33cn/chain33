@@ -65,7 +65,10 @@ type JSONRPCServer struct {
 // Close json rpcserver close
 func (s *JSONRPCServer) Close() {
 	if s.l != nil {
-		s.l.Close()
+		err := s.l.Close()
+		if err != nil {
+			log.Error("JSONRPCServer close", "err", err)
+		}
 	}
 	if s.jrpc != nil {
 		s.jrpc.cli.Close()
@@ -132,7 +135,10 @@ func (j *Grpcserver) Close() {
 		return
 	}
 	if j.l != nil {
-		j.l.Close()
+		err := j.l.Close()
+		if err != nil {
+			log.Error("Grpcserver close", "err", err)
+		}
 	}
 	if j.grpc != nil {
 		j.grpc.cli.Close()
@@ -179,7 +185,10 @@ func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServe
 	j.jrpc.mainGrpcCli = grpcCli
 	server := rpc.NewServer()
 	j.s = server
-	server.RegisterName("Chain33", j.jrpc)
+	err = server.RegisterName("Chain33", j.jrpc)
+	if err != nil {
+		return nil
+	}
 	return j
 }
 

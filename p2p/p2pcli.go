@@ -131,14 +131,14 @@ func (m *Cli) GetMemPool(msg *queue.Message, taskindex int64) {
 		invdatas, recerr := datacli.Recv()
 		if recerr != nil && recerr != io.EOF {
 			log.Error("GetMemPool", "err", recerr.Error())
-			datacli.CloseSend()
+			err = datacli.CloseSend()
 			continue
 		}
 
 		for _, invdata := range invdatas.Items {
 			Txs = append(Txs, invdata.GetTx())
 		}
-		datacli.CloseSend()
+		err = datacli.CloseSend()
 		break
 	}
 	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
@@ -380,7 +380,10 @@ func (m *Cli) GetHeaders(msg *queue.Message, taskindex int64) {
 
 				client := m.network.node.nodeInfo.client
 				msg := client.NewMessage("blockchain", pb.EventAddBlockHeaders, &pb.HeadersPid{Pid: pid[0], Headers: &pb.Headers{Items: headers.GetHeaders()}})
-				client.Send(msg, false)
+				err = client.Send(msg, false)
+				if err != nil {
+					log.Error("send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
+				}
 			}
 		}
 	}
@@ -531,7 +534,10 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 			return
 		case blockpid := <-bChan:
 			newmsg := m.network.node.nodeInfo.client.NewMessage("blockchain", pb.EventSyncBlock, blockpid)
-			m.network.node.nodeInfo.client.SendTimeout(newmsg, false, 60*time.Second)
+			err := m.network.node.nodeInfo.client.SendTimeout(newmsg, false, 60*time.Second)
+			if err != nil {
+				log.Error("send", "to blockchain EventSyncBlock msg err", err)
+			}
 			i++
 			if i == len(MaxInvs.GetInvs()) {
 				return

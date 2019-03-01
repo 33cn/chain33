@@ -43,7 +43,11 @@ func NewHealthCheckServer(c queue.Client) *HealthCheckServer {
 		return nil
 	}
 	h := &HealthCheckServer{}
-	h.api, _ = client.New(c, nil)
+	var err error
+	h.api, err = client.New(c, nil)
+	if err != nil {
+		return nil
+	}
 	h.quit = make(chan struct{})
 	return h
 }
@@ -119,7 +123,10 @@ func (s *HealthCheckServer) healthCheck() {
 		select {
 		case <-s.quit:
 			if s.l != nil {
-				s.l.Close()
+				err := s.l.Close()
+				if err != nil {
+					log.Error("healthCheck ", "close err ", err)
+				}
 			}
 			if s.api != nil {
 				s.api.Close()

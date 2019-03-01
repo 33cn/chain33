@@ -333,7 +333,10 @@ func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, e
 func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	go func() {
 		time.Sleep(time.Millisecond * 100)
-		g.cli.CloseQueue()
+		_, err := g.cli.CloseQueue()
+		if err != nil {
+			log.Error("CloseQueue", "Error", err)
+		}
 	}()
 
 	return &pb.Reply{IsOk: true}, nil

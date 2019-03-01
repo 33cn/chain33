@@ -195,7 +195,7 @@ func (p *Peer) sendStream() {
 		//send ping package
 		ping, err := P2pComm.NewPingData(p.node.nodeInfo)
 		if err != nil {
-			resp.CloseSend()
+			err = resp.CloseSend()
 			cancel()
 			time.Sleep(time.Second)
 			continue
@@ -203,7 +203,7 @@ func (p *Peer) sendStream() {
 		p2pdata := new(pb.BroadCastData)
 		p2pdata.Value = &pb.BroadCastData_Ping{Ping: ping}
 		if err := resp.Send(p2pdata); err != nil {
-			resp.CloseSend()
+			err = resp.CloseSend()
 			cancel()
 			log.Error("sendStream", "sendping", err)
 			time.Sleep(time.Second)
@@ -216,7 +216,7 @@ func (p *Peer) sendStream() {
 			Softversion: v.GetVersion(), Peername: peername}}
 
 		if err := resp.Send(p2pdata); err != nil {
-			resp.CloseSend()
+			err = resp.CloseSend()
 			cancel()
 			log.Error("sendStream", "sendping", err)
 			time.Sleep(time.Second)
@@ -231,7 +231,7 @@ func (p *Peer) sendStream() {
 			select {
 			case task := <-p.taskChan:
 				if !p.GetRunning() {
-					resp.CloseSend()
+					err = resp.CloseSend()
 					cancel()
 					log.Error("sendStream peer is not running")
 					return
@@ -270,7 +270,7 @@ func (p *Peer) sendStream() {
 						p.node.nodeInfo.blacklist.Add(p.Addr(), 3600)
 					}
 					time.Sleep(time.Second) //have a rest
-					resp.CloseSend()
+					err = resp.CloseSend()
 					cancel()
 
 					break SEND_LOOP //下一次外循环重新获取stream
@@ -280,7 +280,7 @@ func (p *Peer) sendStream() {
 			case <-timeout.C:
 				if !p.GetRunning() {
 					log.Error("sendStream timeout")
-					resp.CloseSend()
+					err = resp.CloseSend()
 					cancel()
 					return
 				}
@@ -318,14 +318,14 @@ func (p *Peer) readStream() {
 		var hash [64]byte
 		for {
 			if !p.GetRunning() {
-				resp.CloseSend()
+				err = resp.CloseSend()
 				return
 			}
 			data, err := resp.Recv()
 			P2pComm.CollectPeerStat(err, p)
 			if err != nil {
 				log.Error("readStream", "recv,err:", err.Error())
-				resp.CloseSend()
+				err = resp.CloseSend()
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 					p.node.nodeInfo.blacklist.Add(p.Addr(), 3600)
 				}
@@ -386,7 +386,10 @@ func (p *Peer) readStream() {
 					Filter.RegRecvData(txhash)
 					Filter.ReleaseLock()
 					msg := p.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
-					p.node.nodeInfo.client.Send(msg, false)
+					err = p.node.nodeInfo.client.Send(msg, false)
+					if err != nil {
+						log.Error("send", "to mempool EventTx msg Error", err.Error())
+					}
 					//Filter.RegRecvData(txhash) //登记
 				}
 			}
