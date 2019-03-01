@@ -33,12 +33,10 @@ func Init(name string, sub []byte) {
 }
 
 // the initialization process is relatively heavyweight, lots of reflact, so it's global
-var gcoins drivers.Driver
 
 func init() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&Coins{}))
-	gcoins = newCoins()
 }
 
 // GetName return name string
@@ -52,9 +50,6 @@ type Coins struct {
 }
 
 func newCoins() drivers.Driver {
-	if gcoins != nil {
-		return gcoins
-	}
 	c := &Coins{}
 	c.SetChild(c)
 	c.SetExecutorType(types.LoadExecutorType(driverName))
