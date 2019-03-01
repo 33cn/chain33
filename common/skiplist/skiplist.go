@@ -1,8 +1,8 @@
 package skiplist
 
 import (
-	"fmt"
 	"crypto/rand"
+	"fmt"
 )
 
 const maxLevel = 32
