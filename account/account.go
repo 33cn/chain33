@@ -16,7 +16,6 @@ package account
 //8. gen a private key -> private key to address (bitcoin likes)
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/33cn/chain33/client"
@@ -224,11 +223,11 @@ func (acc *DB) AccountKey(address string) (key []byte) {
 }
 
 func symbolPrefix(execer string, symbol string) string {
-	return fmt.Sprintf("mavl-%s-%s-", execer, symbol)
+	return "mavl-" + execer + "-" + symbol + "-"
 }
 
 func symbolExecPrefix(execer string, symbol string) string {
-	return fmt.Sprintf("mavl-%s-%s-exec", execer, symbol)
+	return "mavl-" + execer + "-" + symbol + "-exec"
 }
 
 // GetTotalCoins 获取代币总量

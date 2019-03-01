@@ -264,6 +264,7 @@ func TestExecBlock(t *testing.T) {
 
 //区块执行新能测试
 func BenchmarkExecBlock(b *testing.B) {
+	b.ReportAllocs()
 	mock33 := newMockNode()
 	defer mock33.Close()
 	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 10000)

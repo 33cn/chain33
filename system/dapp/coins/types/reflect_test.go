@@ -42,8 +42,11 @@ func TestListType(t *testing.T) {
 func BenchmarkGetActionValue(b *testing.B) {
 	action := &CoinsAction{Value: &CoinsAction_Transfer{Transfer: &types.AssetsTransfer{}}}
 	funclist := types.ListMethod(action)
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, v := types.GetActionValue(action, funclist)
-		assert.NotNil(b, v)
+		action, ty, _ := types.GetActionValue(action, funclist)
+		if action != "Transfer" || ty != 0 {
+			b.Fatal(action)
+		}
 	}
 }
