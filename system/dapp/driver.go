@@ -350,13 +350,11 @@ func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-var gacc = account.NewCoinsAccount()
-
 // SetStateDB set db state
 func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
 		//log.Error("new CoinsAccount")
-		d.coinsaccount = gacc
+		d.coinsaccount = account.NewCoinsAccount()
 	}
 	d.statedb = db
 	d.coinsaccount.SetDB(db)
