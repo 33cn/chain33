@@ -32,6 +32,7 @@ type executor struct {
 	gcli       types.Chain33Client
 	execapi    api.ExecutorAPI
 	receipts   []*types.ReceiptData
+	execCache  map[string]drivers.Driver
 }
 
 type executorCtx struct {
@@ -60,6 +61,7 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 		receipts:     receipts,
 		api:          exec.qclient,
 		gcli:         exec.grpccli,
+		execCache:    make(map[string]drivers.Driver),
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -190,7 +192,6 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 	}
-	e.setEnv(exec)
 	return exec.CheckTx(tx, index)
 }
 
@@ -219,8 +220,14 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
-	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	ename := string(tx.Execer)
+	exec, ok := e.execCache[ename]
+	if ok {
+		return exec
+	}
+	exec = drivers.LoadDriverAllow(tx, index, e.height)
 	e.setEnv(exec)
+	e.execCache[ename] = exec
 	return exec
 }
 
@@ -297,7 +304,6 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	execer := string(tx.Execer)
 	ex := e.loadDriver(tx, index)
-	e.setEnv(ex)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
 	if bytes.Equal(address.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {
