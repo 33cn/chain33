@@ -212,27 +212,3 @@ func DelDupKey(kvs []*types.KeyValue) []*types.KeyValue {
 	}
 	return kvs[0:index]
 }
-
-func delDupKey(kvs []*types.KeyValue) []*types.KeyValue {
-	dupindex := make(map[string]int)
-	hasdup := false
-	for i, kv := range kvs {
-		if _, ok := dupindex[string(kv.Key)]; ok {
-			hasdup = true
-		}
-		dupindex[string(kv.Key)] = i
-	}
-	//没有重复的情况下，不需要重新处理
-	if !hasdup {
-		return kvs
-	}
-	index := 0
-	for i, kv := range kvs {
-		lastindex := dupindex[string(kv.Key)]
-		if i == lastindex {
-			kvs[index] = kv
-			index++
-		}
-	}
-	return kvs[0:index]
-}
