@@ -105,17 +105,18 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 		copyfrom := *accFrom
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
 		receiptBalance := &types.ReceiptAccountTransfer{Prev: &copyfrom, Current: accFrom}
-		e.coinsAccount.SaveAccount(accFrom)
-		return e.cutFeeReceipt(accFrom, receiptBalance), nil
+		set := e.coinsAccount.GetKVSet(accFrom)
+		e.coinsAccount.SaveKVSet(set)
+		return e.cutFeeReceipt(set, receiptBalance), nil
 	}
 	return nil, types.ErrNoBalance
 }
 
-func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
+func (e *executor) cutFeeReceipt(kvset []*types.KeyValue, receiptBalance proto.Message) *types.Receipt {
 	feelog := &types.ReceiptLog{Ty: types.TyLogFee, Log: types.Encode(receiptBalance)}
 	return &types.Receipt{
 		Ty:   types.ExecPack,
-		KV:   e.coinsAccount.GetKVSet(acc),
+		KV:   kvset,
 		Logs: append([]*types.ReceiptLog{}, feelog),
 	}
 }
