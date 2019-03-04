@@ -290,10 +290,13 @@ func getHashFromTwoHash(left []byte, right []byte) []byte {
 //优化办法:
 //1. 减少内存分配
 //2. 改进算法
+
+var benchlen = 100000
+
 func BenchmarkGetMerkelRoot(b *testing.B) {
 	b.ReportAllocs()
 	var hashlist [][]byte
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < benchlen; i++ {
 		key := common.GetRandBytes(32, 32)
 		hashlist = append(hashlist, key)
 	}
@@ -312,7 +315,7 @@ func BenchmarkGetMerkelRoot(b *testing.B) {
 func BenchmarkGetMerkelRoot2(b *testing.B) {
 	b.ReportAllocs()
 	var hashlist [][]byte
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < benchlen; i++ {
 		key := common.GetRandBytes(32, 32)
 		hashlist = append(hashlist, key)
 	}
