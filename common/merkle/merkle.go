@@ -7,6 +7,7 @@ package merkle
 
 import (
 	"bytes"
+	"runtime"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
@@ -73,7 +74,7 @@ func getMerkleRoot(hashes [][]byte) []byte {
 
 func log2(data int) int {
 	level := 1
-	if data == 0 {
+	if data <= 0 {
 		return 0
 	}
 	for {
@@ -83,6 +84,17 @@ func log2(data int) int {
 		}
 		level++
 	}
+}
+
+func pow2(d int) (p int) {
+	if d <= 0 {
+		return 1
+	}
+	p = 1
+	for i := 0; i < d; i++ {
+		p *= 2
+	}
+	return p
 }
 
 func getMerkleRootPad(hashes [][]byte, step int) []byte {
@@ -101,12 +113,21 @@ type childstate struct {
 	index int
 }
 
-var step = 256
-
 //GetMerkleRoot 256构成一个组，进行计算
+// n * step = hashes
+// (hashes / n)
 func GetMerkleRoot(hashes [][]byte) []byte {
-	if len(hashes) < 2*step {
+	ncpu := runtime.NumCPU()
+	if len(hashes) <= 80 || ncpu <= 1 {
 		return getMerkleRoot(hashes)
+	}
+	step := log2(len(hashes) / ncpu)
+	if step < 1 {
+		step = 1
+	}
+	step = pow2(step)
+	if step > 256 {
+		step = 256
 	}
 	ch := make(chan *childstate, 10)
 	//pad to step
