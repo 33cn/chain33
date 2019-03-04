@@ -7,9 +7,11 @@ package merkle
 import (
 	"bytes"
 	"crypto/sha256"
+	"fmt"
 	"testing"
 
 	"github.com/33cn/chain33/common"
+	"github.com/stretchr/testify/assert"
 )
 
 //测试两个交易的roothash以及branch.获取bitcoin的99997 block作为验证
@@ -265,8 +267,9 @@ func BenchmarkHashTwo2(b *testing.B) {
 	b.ReportAllocs()
 	left := common.GetRandBytes(32, 32)
 	right := common.GetRandBytes(32, 32)
+	cache := make([]byte, 64)
 	for i := 0; i < b.N; i++ {
-		GetHashFromTwoHash(left, right)
+		GetHashFromTwoHash(cache, left, right)
 	}
 }
 
@@ -296,10 +299,71 @@ func BenchmarkGetMerkelRoot(b *testing.B) {
 	}
 	var prevroot []byte
 	for i := 0; i < b.N; i++ {
-		newroot := GetMerkleRoot(hashlist)
+		calc := make([][]byte, len(hashlist))
+		copy(calc, hashlist)
+		newroot := GetMerkleRoot(calc)
 		if prevroot != nil && !bytes.Equal(prevroot, newroot) {
 			b.Error("root is not the same")
 		}
 		prevroot = newroot
 	}
+}
+
+func BenchmarkGetMerkelRoot2(b *testing.B) {
+	b.ReportAllocs()
+	var hashlist [][]byte
+	for i := 0; i < 10000; i++ {
+		key := common.GetRandBytes(32, 32)
+		hashlist = append(hashlist, key)
+	}
+	var prevroot []byte
+	for i := 0; i < b.N; i++ {
+		calc := make([][]byte, len(hashlist))
+		copy(calc, hashlist)
+		newroot, _, _ := Computation(calc, 1, 0)
+		if prevroot != nil && !bytes.Equal(prevroot, newroot) {
+			b.Error("root is not the same")
+		}
+		prevroot = newroot
+	}
+}
+
+var testlen = 14
+
+func TestGetMerkelRoot1(t *testing.T) {
+	var hashlist [][]byte
+	for i := 0; i < testlen; i++ {
+		key := sha256.Sum256([]byte(fmt.Sprint(i)))
+		hashlist = append(hashlist, key[:])
+	}
+	hash1 := GetMerkleRoot(hashlist)
+
+	hashlist = nil
+	for i := 0; i < testlen; i++ {
+		key := sha256.Sum256([]byte(fmt.Sprint(i)))
+		hashlist = append(hashlist, key[:])
+	}
+	hash2 := getMerkleRoot(hashlist)
+	assert.Equal(t, hash1, hash2)
+
+	hashlist = nil
+	for i := 0; i < testlen; i++ {
+		key := sha256.Sum256([]byte(fmt.Sprint(i)))
+		hashlist = append(hashlist, key[:])
+	}
+	hash3, _, _ := Computation(hashlist, 1, 0)
+	assert.Equal(t, hash1, hash3)
+}
+
+func TestLog2(t *testing.T) {
+	assert.Equal(t, log2(0), 0)
+	assert.Equal(t, log2(1), 1)
+	assert.Equal(t, log2(2), 1)
+	assert.Equal(t, log2(3), 1)
+	assert.Equal(t, log2(4), 2)
+	assert.Equal(t, log2(5), 2)
+	assert.Equal(t, log2(6), 2)
+	assert.Equal(t, log2(7), 2)
+	assert.Equal(t, log2(8), 3)
+	assert.Equal(t, log2(256), 8)
 }
