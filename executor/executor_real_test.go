@@ -251,7 +251,7 @@ func TestSameTx(t *testing.T) {
 func TestExecBlock(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
-	block := util.CreateNoneBlock(mock33.GetGenesisKey(), 10)
+	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 1)
 	util.ExecBlock(mock33.GetClient(), nil, block, false, true)
 }
 
