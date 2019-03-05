@@ -39,7 +39,7 @@ func (acc *DB) SaveExecAccount(execaddr string, acc1 *types.Account) {
 	for i := 0; i < len(set); i++ {
 		err := acc.db.Set(set[i].GetKey(), set[i].Value)
 		if err != nil {
-			return
+			panic(err)
 		}
 	}
 }
