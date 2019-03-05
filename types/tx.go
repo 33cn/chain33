@@ -8,7 +8,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"reflect"
 	"time"
+
+	"github.com/hashicorp/golang-lru"
 
 	"strconv"
 
@@ -21,7 +24,34 @@ var (
 	bCoins   = []byte("coins")
 	bToken   = []byte("token")
 	withdraw = "withdraw"
+	txCache  *lru.Cache
 )
+
+func init() {
+	var err error
+	txCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+}
+
+//TxCacheGet 某些交易的cache 加入缓存中，防止重复进行解析或者计算
+func TxCacheGet(tx *Transaction) (*TransactionCache, bool) {
+	txc, ok := txCache.Get(tx)
+	if !ok {
+		return nil, ok
+	}
+	return txc.(*TransactionCache), ok
+}
+
+//TxCacheSet 设置 cache
+func TxCacheSet(tx *Transaction, txc *TransactionCache) {
+	if txc == nil {
+		txCache.Remove(tx)
+		return
+	}
+	txCache.Add(tx, txc)
+}
 
 // CreateTxGroup 创建组交易
 func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
@@ -204,6 +234,9 @@ type TransactionCache struct {
 	signok  int   //init 0, ok 1, err 2
 	checkok error //init 0, ok 1, err 2
 	checked bool
+	payload reflect.Value
+	plname  string
+	plerr   error
 }
 
 //NewTransactionCache new交易缓存
@@ -217,6 +250,28 @@ func (tx *TransactionCache) Hash() []byte {
 		tx.hash = tx.Transaction.Hash()
 	}
 	return tx.hash
+}
+
+//SetPayloadValue 设置payload 的cache
+func (tx *TransactionCache) SetPayloadValue(plname string, payload reflect.Value, plerr error) {
+	tx.payload = payload
+	tx.plerr = plerr
+	tx.plname = plname
+}
+
+//GetPayloadValue 设置payload 的cache
+func (tx *TransactionCache) GetPayloadValue() (plname string, payload reflect.Value, plerr error) {
+	if tx.plerr != nil || tx.plname != "" {
+		return tx.plname, tx.payload, tx.plerr
+	}
+	exec := LoadExecutorType(string(tx.Execer))
+	if exec == nil {
+		tx.SetPayloadValue("", reflect.ValueOf(nil), ErrExecNotFound)
+		return "", reflect.ValueOf(nil), ErrExecNotFound
+	}
+	plname, payload, plerr = exec.DecodePayloadValue(tx.Tx())
+	tx.SetPayloadValue(plname, payload, plerr)
+	return
 }
 
 //Size 交易缓存的大小
