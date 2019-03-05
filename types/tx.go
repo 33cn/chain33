@@ -481,7 +481,7 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 
 //From 交易from地址
 func (tx *Transaction) From() string {
-	return address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	return address.PubKeyToAddr(tx.GetSignature().GetPubkey())
 }
 
 //检查交易是否过期，过期返回true，未过期返回false

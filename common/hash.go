@@ -105,27 +105,12 @@ func Sha3(b []byte) []byte {
 	return data[:]
 }
 
-func sha2Hash(b []byte, out []byte) {
-	s := sha256.New()
-	_, err := s.Write(b[:])
-	if err != nil {
-		return
-	}
-	tmp := s.Sum(nil)
-	s.Reset()
-	_, err = s.Write(tmp)
-	if err != nil {
-		return
-	}
-	copy(out[:], s.Sum(nil))
-}
-
 // Sha2Sum Returns hash: SHA256( SHA256( data ) )
 // Where possible, using ShaHash() should be a bit faster
 func Sha2Sum(b []byte) []byte {
-	out := make([]byte, 32)
-	sha2Hash(b, out[:])
-	return out[:]
+	tmp := sha256.Sum256(b)
+	tmp = sha256.Sum256(tmp[:])
+	return tmp[:]
 }
 
 func rimpHash(in []byte, out []byte) {

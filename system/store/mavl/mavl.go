@@ -44,10 +44,13 @@ func init() {
 }
 
 type subConfig struct {
-	EnableMavlPrefix bool  `json:"enableMavlPrefix"`
-	EnableMVCC       bool  `json:"enableMVCC"`
-	EnableMavlPrune  bool  `json:"enableMavlPrune"`
-	PruneHeight      int32 `json:"pruneHeight"`
+	// 是否使能mavl加前缀
+	EnableMavlPrefix bool `json:"enableMavlPrefix"`
+	EnableMVCC       bool `json:"enableMVCC"`
+	// 是否使能mavl数据裁剪
+	EnableMavlPrune bool `json:"enableMavlPrune"`
+	// 裁剪高度间隔
+	PruneHeight int32 `json:"pruneHeight"`
 }
 
 // New new mavl store module

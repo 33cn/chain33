@@ -113,8 +113,9 @@ func getChainConfig(key string) (value interface{}, err error) {
 // G 获取ChainConfig中的配置
 func G(key string) (value interface{}, err error) {
 	mu.Lock()
-	defer mu.Unlock()
-	return getChainConfig(key)
+	value, err = getChainConfig(key)
+	mu.Unlock()
+	return
 }
 
 // MG 获取mver config中的配置
@@ -230,8 +231,8 @@ func S(key string, value interface{}) {
 //SetTitleOnlyForTest set title only for test use
 func SetTitleOnlyForTest(ti string) {
 	mu.Lock()
-	defer mu.Unlock()
 	title = ti
+	mu.Unlock()
 }
 
 // Init 初始化
@@ -289,8 +290,9 @@ func Init(t string, cfg *Config) {
 // GetTitle 获取title
 func GetTitle() string {
 	mu.Lock()
-	defer mu.Unlock()
-	return title
+	s := title
+	mu.Unlock()
+	return s
 }
 
 func isLocal() bool {
@@ -300,15 +302,16 @@ func isLocal() bool {
 // IsLocal 是否locak title
 func IsLocal() bool {
 	mu.Lock()
-	defer mu.Unlock()
-	return isLocal()
+	is := isLocal()
+	mu.Unlock()
+	return is
 }
 
 // SetMinFee 设置最小费用
 func SetMinFee(fee int64) {
 	mu.Lock()
-	defer mu.Unlock()
 	setMinFee(fee)
+	mu.Unlock()
 }
 
 func isPara() bool {
@@ -318,8 +321,9 @@ func isPara() bool {
 // IsPara 是否平行链
 func IsPara() bool {
 	mu.Lock()
-	defer mu.Unlock()
-	return isPara()
+	is := isPara()
+	mu.Unlock()
+	return is
 }
 
 // IsParaExecName 是否平行链执行器
@@ -475,7 +479,6 @@ func InitCfg(path string) (*Config, *ConfigSubModule) {
 
 func setFlatConfig(cfgstring string) {
 	mu.Lock()
-	defer mu.Unlock()
 	cfg := make(map[string]interface{})
 	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
 		panic(err)
@@ -484,6 +487,7 @@ func setFlatConfig(cfgstring string) {
 	for k, v := range flat {
 		setChainConfig("config."+k, v)
 	}
+	mu.Unlock()
 }
 
 func flatConfig(key string, conf map[string]interface{}, flat map[string]interface{}) {
@@ -506,8 +510,8 @@ func FlatConfig(conf map[string]interface{}) map[string]interface{} {
 
 func setMver(title string, cfgstring string) {
 	mu.Lock()
-	defer mu.Unlock()
 	mver[title] = newMversion(title, cfgstring)
+	mu.Unlock()
 }
 
 // InitCfgString 初始化配置
