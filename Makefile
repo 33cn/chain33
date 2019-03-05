@@ -89,7 +89,7 @@ build_ci: depends ## Build the binary file for CI
 	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
-linter: vet ineffassign ## Use gometalinter check code, ignore some unserious warning
+linter: vet ineffassign gosec ## Use gometalinter check code, ignore some unserious warning
 	@./golinter.sh "filter"
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
@@ -98,7 +98,7 @@ linter_test: ## Use gometalinter check code, for local test
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 gosec:
-	@gosec -nosec=true -exclude=G107,G402 ${PKG_LIST_GOSEC}
+	@gosec -quiet=true -exclude=G107,G402,G302 ${PKG_LIST_GOSEC}
 
 race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)

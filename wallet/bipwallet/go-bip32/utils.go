@@ -12,10 +12,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"io"
+
 	"github.com/33cn/chain33/wallet/bipwallet/basen"
 	"github.com/33cn/chain33/wallet/bipwallet/btcutilecc"
 	"golang.org/x/crypto/ripemd160"
-	"io"
 )
 
 var (
@@ -131,8 +132,10 @@ func expandPublicKey(key []byte) (*big.Int, *big.Int) {
 	x := big.NewInt(0).SetBytes(key[1:33])
 	y := big.NewInt(0).SetBytes(key[:1])
 	beta := big.NewInt(0)
+	// #nosec
 	beta.Exp(x, big.NewInt(3), nil)
 	beta.Add(beta, big.NewInt(7))
+	// #nosec
 	beta.Exp(beta, exp, params.P)
 	if y.Add(beta, y).Mod(y, big.NewInt(2)).Int64() == 0 {
 		y = beta

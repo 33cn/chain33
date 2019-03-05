@@ -181,7 +181,7 @@ func (bc *BaseClient) IsCaughtUp() bool {
 	msg := bc.client.NewMessage("blockchain", types.EventIsSync, nil)
 	err := bc.client.Send(msg, true)
 	if err != nil {
-		return err
+		return false
 	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {

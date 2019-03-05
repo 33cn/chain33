@@ -196,6 +196,9 @@ func (p *Peer) sendStream() {
 		ping, err := P2pComm.NewPingData(p.node.nodeInfo)
 		if err != nil {
 			err = resp.CloseSend()
+			if err != nil {
+				log.Error("CloseSend", "err", err)
+			}
 			cancel()
 			time.Sleep(time.Second)
 			continue
@@ -217,6 +220,9 @@ func (p *Peer) sendStream() {
 
 		if err := resp.Send(p2pdata); err != nil {
 			err = resp.CloseSend()
+			if err != nil {
+				log.Error("CloseSend", "err", err)
+			}
 			cancel()
 			log.Error("sendStream", "sendping", err)
 			time.Sleep(time.Second)
@@ -232,6 +238,9 @@ func (p *Peer) sendStream() {
 			case task := <-p.taskChan:
 				if !p.GetRunning() {
 					err = resp.CloseSend()
+					if err != nil {
+						log.Error("CloseSend", "err", err)
+					}
 					cancel()
 					log.Error("sendStream peer is not running")
 					return
@@ -271,6 +280,9 @@ func (p *Peer) sendStream() {
 					}
 					time.Sleep(time.Second) //have a rest
 					err = resp.CloseSend()
+					if err != nil {
+						log.Error("CloseSend", "err", err)
+					}
 					cancel()
 
 					break SEND_LOOP //下一次外循环重新获取stream
@@ -281,6 +293,9 @@ func (p *Peer) sendStream() {
 				if !p.GetRunning() {
 					log.Error("sendStream timeout")
 					err = resp.CloseSend()
+					if err != nil {
+						log.Error("CloseSend", "err", err)
+					}
 					cancel()
 					return
 				}

@@ -367,7 +367,10 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	execute.enableMVCC(nil)
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
-		execute.stateDB.Set(kv.Key, kv.Value)
+		err := execute.stateDB.Set(kv.Key, kv.Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	for name, plugin := range globalPlugins {
 		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])

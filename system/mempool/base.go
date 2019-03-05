@@ -308,6 +308,9 @@ func (mem *Mempool) delBlock(block *types.Block) {
 			continue
 		}
 		err = mem.PushTx(tx)
+		if err != nil {
+			mlog.Error("mem", "push tx err", err)
+		}
 	}
 }
 

@@ -132,6 +132,9 @@ func (m *Cli) GetMemPool(msg *queue.Message, taskindex int64) {
 		if recerr != nil && recerr != io.EOF {
 			log.Error("GetMemPool", "err", recerr.Error())
 			err = datacli.CloseSend()
+			if err != nil {
+				log.Error("datacli", "close err", err)
+			}
 			continue
 		}
 
@@ -139,6 +142,9 @@ func (m *Cli) GetMemPool(msg *queue.Message, taskindex int64) {
 			Txs = append(Txs, invdata.GetTx())
 		}
 		err = datacli.CloseSend()
+		if err != nil {
+			log.Error("datacli", "CloseSend err", err)
+		}
 		break
 	}
 	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))

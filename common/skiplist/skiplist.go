@@ -2,7 +2,7 @@ package skiplist
 
 import (
 	"fmt"
-	"crypto/rand"
+	"math/rand"
 )
 
 const maxLevel = 32
@@ -107,6 +107,7 @@ func NewSkipList(min *SkipValue) *SkipList {
 func randomLevel() int {
 	level := 1
 	t := prob * 0xFFFF
+	// #nosec
 	for rand.Int()&0xFFFF < int(t) {
 		level++
 		if level == maxLevel {

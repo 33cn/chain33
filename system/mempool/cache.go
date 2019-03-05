@@ -53,6 +53,9 @@ func (cache *txCache) Remove(hash string) {
 	}
 	tx := item.Value
 	err = cache.qcache.Remove(hash)
+	if err != nil {
+		mlog.Error("Remove", "cache Remove err", err)
+	}
 	cache.AccountTxIndex.Remove(tx)
 	cache.LastTxCache.Remove(tx)
 }

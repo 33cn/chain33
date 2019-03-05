@@ -17,7 +17,10 @@ import (
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	req := block
 	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		return err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return err
@@ -46,6 +49,7 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 	err := client.Send(msg, true)
 	if err != nil {
 		log.Error("send", "to execs EventExecTxList msg err", err)
+		return nil, err
 	}
 	resp, err := client.Wait(msg)
 	if err != nil {
@@ -64,6 +68,7 @@ func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset
 	err := client.Send(msg, true)
 	if err != nil {
 		log.Error("send", "to store EventStoreMemSet msg err", err)
+		return nil, err
 	}
 	resp, err := client.Wait(msg)
 	if err != nil {
@@ -80,6 +85,7 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	err := client.Send(msg, true)
 	if err != nil {
 		log.Error("send", "to store EventStoreCommit msg err", err)
+		return err
 	}
 	msg, err = client.Wait(msg)
 	if err != nil {
@@ -97,6 +103,7 @@ func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	err := client.Send(msg, true)
 	if err != nil {
 		log.Error("send", "to blockchain EventTxHashList msg err", err)
+		return err
 	}
 	msg, err = client.Wait(msg)
 	if err != nil {
@@ -163,6 +170,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	err = client.Send(hashList, true)
 	if err != nil {
 		log.Error("send", "to blockchain EventTxHashList msg err", err)
+		return nil, err
 	}
 	dupTxList, err := client.Wait(hashList)
 	if err != nil {
