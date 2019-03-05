@@ -21,7 +21,7 @@ func NewFilter() *Filterdata {
 	filter := new(Filterdata)
 	var err error
 	filter.regRData, err = lru.New(P2pCacheTxSize)
-	if err == nil {
+	if err != nil {
 		panic(err)
 	}
 	return filter
