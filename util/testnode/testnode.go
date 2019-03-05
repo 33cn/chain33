@@ -130,7 +130,8 @@ func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi 
 	mock.wallet.SetQueueClient(cli)
 	lognode.Info("init wallet")
 	if mockapi == nil {
-		mockapi, err := client.New(q.Client(), nil)
+		var err error
+		mockapi, err = client.New(q.Client(), nil)
 		if err != nil {
 			return nil
 		}
