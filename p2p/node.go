@@ -369,10 +369,13 @@ func (n *Node) detectNodeAddr() {
 			externalPort = defaultPort
 		} else {
 			exportBytes, err := n.nodeInfo.addrBook.bookDb.Get([]byte(externalPortTag))
-			if len(exportBytes) != 0 && err == nil {
+			if len(exportBytes) != 0 {
 				externalPort = int(P2pComm.BytesToInt32(exportBytes))
 			} else {
 				externalPort = defalutNatPort
+			}
+			if err != nil {
+				log.Error("bookDb Get", "externalPortTag fail err:", err)
 			}
 		}
 

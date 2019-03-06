@@ -177,7 +177,10 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	if err != nil {
 		log.Debug("grpc DialCon Uncompressor", "did not connect", err)
 		if conn != nil {
-			err = conn.Close()
+			errs := conn.Close()
+			if errs != nil {
+				log.Error("conn", "close err", errs)
+			}
 		}
 		return nil, err
 	}
