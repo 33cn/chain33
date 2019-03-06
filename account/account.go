@@ -435,6 +435,7 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 	return r
 }
 
+// Mint 铸币
 func (acc *DB) Mint(addr string, amount int64) (*types.Receipt, error) {
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
@@ -455,7 +456,7 @@ func (acc *DB) Mint(addr string, amount int64) (*types.Receipt, error) {
 	}
 	kv := acc.GetKVSet(accTo)
 	acc.SaveKVSet(kv)
-	return acc.mintReceipt(kv,  receipt), nil
+	return acc.mintReceipt(kv, receipt), nil
 }
 
 func (acc *DB) mintReceipt(kv []*types.KeyValue, receipt proto.Message) *types.Receipt {
