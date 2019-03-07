@@ -223,6 +223,7 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 func (exec *Executor) procExecTxList(msg *queue.Message) {
 	//panic 处理
 	defer func() {
+		types.BufferReset()
 		if r := recover(); r != nil {
 			elog.Error("panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))

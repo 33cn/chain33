@@ -269,7 +269,7 @@ func BenchmarkExecBlock(b *testing.B) {
 	b.ReportAllocs()
 	mock33 := newMockNode()
 	defer mock33.Close()
-	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 100000)
+	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 10000)
 	mock33.WaitHeight(0)
 	block0 := mock33.GetBlock(0)
 	account := mock33.GetAccount(block0.StateHash, mock33.GetGenesisAddress())

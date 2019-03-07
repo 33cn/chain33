@@ -64,7 +64,7 @@ func NewAccountDB(execer string, symbol string, db dbm.KV) (*DB, error) {
 func newAccountDB(prefix string) *DB {
 	acc := &DB{}
 	acc.accountKeyPerfix = []byte(prefix)
-	acc.accountKeyBuffer = make([]byte, 0, len(acc.accountKeyPerfix)+64)
+	acc.accountKeyBuffer = types.BufferAllocCap(len(acc.accountKeyPerfix) + 64)
 	acc.accountKeyBuffer = append(acc.accountKeyBuffer, acc.accountKeyPerfix...)
 	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)
 	//alog.Warn("NewAccountDB", "prefix", prefix, "key1", string(acc.accountKeyPerfix), "key2", string(acc.execAccountKeyPerfix))
@@ -236,7 +236,7 @@ func (acc *DB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error)
 
 // AccountKey return the key of address in DB
 func (acc *DB) AccountKey(address string) (key []byte) {
-	key = make([]byte, 0, len(acc.accountKeyPerfix)+len(address))
+	key = types.BufferAllocCap(len(acc.accountKeyPerfix) + len(address))
 	key = append(key, acc.accountKeyPerfix...)
 	key = append(key, []byte(address)...)
 	return key
