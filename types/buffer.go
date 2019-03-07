@@ -2,6 +2,7 @@ package types
 
 var gbuffer *buffer
 
+//系统并非线程安全
 func init() {
 	gbuffer = newBuffer(20 * 1024 * 1024)
 }
