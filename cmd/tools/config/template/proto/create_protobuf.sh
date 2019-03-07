@@ -1,2 +1,2 @@
 #!/bin/sh
-protoc --go_out=plugins=grpc:../ptypes ./*.proto
+protoc --go_out=plugins=grpc:../types ./*.proto

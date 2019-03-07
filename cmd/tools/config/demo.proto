@@ -12,7 +12,7 @@ message DemoAction {
 }
 
 message DemoCreate {
-    [ consensus - ticket ] string name = 1;
+    string name = 1;
 }
 
 message DemoRun {
