@@ -12,6 +12,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 
+	_ "github.com/33cn/chain33/system/crypto/secp256k1"
 	_ "github.com/33cn/chain33/system/dapp/coins/types"
 )
 
@@ -203,4 +204,8 @@ func TestMockModule(t *testing.T) {
 	assert.Equal(t, ok, true)
 	assert.Equal(t, reply.GetIsOk(), false)
 	assert.Equal(t, reply.GetMsg(), []byte("mock mempool module not handle message 1"))
+}
+
+func TestJSONPrint(t *testing.T) {
+	JSONPrint(t, &types.Reply{})
 }

@@ -32,6 +32,11 @@ func testDBGet(t *testing.T, db dbm.KV) {
 	v, err = db.Get([]byte("k1"))
 	assert.Nil(t, err)
 	assert.Equal(t, v, []byte("v11"))
+
+	stateDb := db.(*StateDB)
+	vs, err := stateDb.BatchGet([][]byte{[]byte("k1")})
+	assert.NoError(t, err)
+	assert.Equal(t, [][]byte{[]byte("v11")}, vs)
 }
 
 func TestStateDBTxGetOld(t *testing.T) {
