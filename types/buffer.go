@@ -25,7 +25,7 @@ func BufferReset() {
 //BufferAlloc 部分空间
 func BufferAlloc(size int) []byte {
 	if gbuffer.offset+size > 0 {
-		return make([]byte, size, size)
+		return make([]byte, size)
 	}
 	b := gbuffer.data[gbuffer.offset : gbuffer.offset+size]
 	gbuffer.offset += size
