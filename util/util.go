@@ -306,8 +306,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	ulog.Info("ExecBlock", "deltxlist", types.Since(beg))
 	beg = types.Now()
 	//检查block的txhash值
-	var calcHash []byte
-	calcHash = merkle.CalcMerkleRootCache(cacheTxs)
+	calcHash := merkle.CalcMerkleRootCache(cacheTxs)
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}

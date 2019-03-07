@@ -253,7 +253,7 @@ func TestExecBlock(t *testing.T) {
 	defer mock33.Close()
 	mock33.WaitHeight(0)
 	block0 := mock33.GetBlock(0)
-	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 100000)
+	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 10)
 	util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true, false)
 }
 
