@@ -207,3 +207,10 @@ func TestParseExpire(t *testing.T) {
 	assert.Equal(t, int64(123000000000), exp)
 
 }
+
+func BenchmarkHash(b *testing.B) {
+	tx := &Transaction{Payload: []byte("xxxxxxxxxxxxdggrgrgrgrgrgrgrrhthththhth"), Execer: []byte("hello")}
+	for i := 0; i < b.N; i++ {
+		tx.Hash()
+	}
+}
