@@ -36,4 +36,13 @@ const (
 	TagLogMapText      = "${LOGMAPTEXT}"
 	TagTypeMapText     = "${TYPEMAPTEXT}"
 	TagTypeName        = "${TYPENAME}"
+
+	//Tag proto file
+	TagProtoFileContent = "${PROTOFILECONTENT}"
+	TagProtoFileAppend = "${PROTOFILEAPPEND}"
+
+	//Tag exec.go file
+	TagExecFileContent = "${EXECFILECONTENT}"
+	TagExecLocalFileContent = "${EXECLOCALFILECONTENT}"
+	TagExecDelLocalFileContent = "${EXECDELLOCALFILECONTENT}"
 )
