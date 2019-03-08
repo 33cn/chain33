@@ -48,7 +48,7 @@ type SubStore interface {
 	Rollback(req *types.ReqHash) ([]byte, error)
 	Del(req *types.StoreDel) ([]byte, error)
 	IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool)
-	ProcEvent(msg queue.Message)
+	ProcEvent(msg *queue.Message)
 }
 
 // BaseStore 基础的store结构体
@@ -87,7 +87,7 @@ func (store *BaseStore) SetQueueClient(c queue.Client) {
 //Wait wait for basestore ready
 func (store *BaseStore) Wait() {}
 
-func (store *BaseStore) processMessage(msg queue.Message) {
+func (store *BaseStore) processMessage(msg *queue.Message) {
 	client := store.qclient
 	if msg.Ty == types.EventStoreSet {
 		go func() {

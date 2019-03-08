@@ -49,7 +49,7 @@ func (s *storeChild) IterateRangeByStateHash(statehash []byte, start []byte, end
 
 }
 
-func (s *storeChild) ProcEvent(msg queue.Message) {}
+func (s *storeChild) ProcEvent(msg *queue.Message) {}
 
 func init() {
 	log.SetLogLevel("error")

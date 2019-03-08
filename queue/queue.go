@@ -46,8 +46,8 @@ func DisableLog() {
 }
 
 type chanSub struct {
-	high    chan Message
-	low     chan Message
+	high    chan *Message
+	low     chan *Message
 	isClose int32
 }
 
@@ -66,13 +66,33 @@ type queue struct {
 	mu        sync.Mutex
 	done      chan struct{}
 	interrupt chan struct{}
+	callback  chan *Message
 	isClose   int32
 	name      string
 }
 
 // New new queue struct
 func New(name string) Queue {
-	q := &queue{chanSubs: make(map[string]*chanSub), name: name, done: make(chan struct{}, 1), interrupt: make(chan struct{}, 1)}
+	q := &queue{
+		chanSubs:  make(map[string]*chanSub),
+		name:      name,
+		done:      make(chan struct{}, 1),
+		interrupt: make(chan struct{}, 1),
+		callback:  make(chan *Message, 1024),
+	}
+	go func() {
+		for {
+			select {
+			case <-q.done:
+				fmt.Println("closing chain33 callback")
+				return
+			case msg := <-q.callback:
+				if msg.callback != nil {
+					msg.callback(msg)
+				}
+			}
+		}
+	}()
 	return q
 }
 
@@ -88,7 +108,8 @@ func (q *queue) Start() {
 	// Block until a signal is received.
 	select {
 	case <-q.done:
-		atomic.StoreInt32(&q.isClose, 1)
+		fmt.Println("closing chain33 done")
+		//atomic.StoreInt32(&q.isClose, 1)
 		break
 	case <-q.interrupt:
 		fmt.Println("closing chain33")
@@ -113,8 +134,8 @@ func (q *queue) Close() {
 	q.mu.Lock()
 	for topic, ch := range q.chanSubs {
 		if ch.isClose == 0 {
-			ch.high <- Message{}
-			ch.low <- Message{}
+			ch.high <- &Message{}
+			ch.low <- &Message{}
 			q.chanSubs[topic] = &chanSub{isClose: 1}
 		}
 	}
@@ -130,7 +151,11 @@ func (q *queue) chanSub(topic string) *chanSub {
 	defer q.mu.Unlock()
 	_, ok := q.chanSubs[topic]
 	if !ok {
-		q.chanSubs[topic] = &chanSub{make(chan Message, defaultChanBuffer), make(chan Message, defaultLowChanBuffer), 0}
+		q.chanSubs[topic] = &chanSub{
+			high:    make(chan *Message, defaultChanBuffer),
+			low:     make(chan *Message, defaultLowChanBuffer),
+			isClose: 0,
+		}
 	}
 	return q.chanSubs[topic]
 }
@@ -143,19 +168,23 @@ func (q *queue) closeTopic(topic string) {
 		return
 	}
 	if sub.isClose == 0 {
-		sub.high <- Message{}
-		sub.low <- Message{}
+		sub.high <- &Message{}
+		sub.low <- &Message{}
 	}
 	q.chanSubs[topic] = &chanSub{isClose: 1}
 }
 
-func (q *queue) send(msg Message, timeout time.Duration) (err error) {
+func (q *queue) send(msg *Message, timeout time.Duration) (err error) {
 	if q.isClosed() {
 		return types.ErrChannelClosed
 	}
 	sub := q.chanSub(msg.Topic)
 	if sub.isClose == 1 {
 		return types.ErrChannelClosed
+	}
+	if timeout == -1 {
+		sub.high <- msg
+		return nil
 	}
 	defer func() {
 		res := recover()
@@ -166,10 +195,9 @@ func (q *queue) send(msg Message, timeout time.Duration) (err error) {
 	if timeout == 0 {
 		select {
 		case sub.high <- msg:
-			qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
 			return nil
 		default:
-			qlog.Debug("send chainfull", "msg", msg, "topic", msg.Topic, "sub", sub)
+			qlog.Error("send chainfull", "msg", msg, "topic", msg.Topic, "sub", sub)
 			return ErrQueueChannelFull
 		}
 	}
@@ -178,16 +206,13 @@ func (q *queue) send(msg Message, timeout time.Duration) (err error) {
 	select {
 	case sub.high <- msg:
 	case <-t.C:
-		qlog.Debug("send timeout", "msg", msg, "topic", msg.Topic, "sub", sub)
+		qlog.Error("send timeout", "msg", msg, "topic", msg.Topic, "sub", sub)
 		return ErrQueueTimeout
-	}
-	if msg.Topic != "store" {
-		qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
 	}
 	return nil
 }
 
-func (q *queue) sendAsyn(msg Message) error {
+func (q *queue) sendAsyn(msg *Message) error {
 	if q.isClosed() {
 		return types.ErrChannelClosed
 	}
@@ -197,7 +222,6 @@ func (q *queue) sendAsyn(msg Message) error {
 	}
 	select {
 	case sub.low <- msg:
-		qlog.Debug("send asyn ok", "msg", msg)
 		return nil
 	default:
 		qlog.Error("send asyn err", "msg", msg, "err", ErrQueueChannelFull)
@@ -205,13 +229,17 @@ func (q *queue) sendAsyn(msg Message) error {
 	}
 }
 
-func (q *queue) sendLowTimeout(msg Message, timeout time.Duration) error {
+func (q *queue) sendLowTimeout(msg *Message, timeout time.Duration) error {
 	if q.isClosed() {
 		return types.ErrChannelClosed
 	}
 	sub := q.chanSub(msg.Topic)
 	if sub.isClose == 1 {
 		return types.ErrChannelClosed
+	}
+	if timeout == -1 {
+		sub.low <- msg
+		return nil
 	}
 	if timeout == 0 {
 		return q.sendAsyn(msg)
@@ -220,7 +248,6 @@ func (q *queue) sendLowTimeout(msg Message, timeout time.Duration) error {
 	defer t.Stop()
 	select {
 	case sub.low <- msg:
-		qlog.Debug("send asyn ok", "msg", msg)
 		return nil
 	case <-t.C:
 		qlog.Error("send asyn timeout", "msg", msg)
@@ -235,25 +262,38 @@ func (q *queue) Client() Client {
 
 // Message message struct
 type Message struct {
-	Topic   string
-	Ty      int64
-	ID      int64
-	Data    interface{}
-	chReply chan Message
+	Topic    string
+	Ty       int64
+	ID       int64
+	Data     interface{}
+	chReply  chan *Message
+	callback func(msg *Message)
 }
 
 // NewMessage new message
-func NewMessage(id int64, topic string, ty int64, data interface{}) (msg Message) {
+func NewMessage(id int64, topic string, ty int64, data interface{}) (msg *Message) {
+	msg = &Message{}
 	msg.ID = id
 	msg.Ty = ty
 	msg.Data = data
 	msg.Topic = topic
-	msg.chReply = make(chan Message, 1)
+	msg.chReply = make(chan *Message, 1)
+	return msg
+}
+
+// NewMessageCallback reply block
+func NewMessageCallback(id int64, topic string, ty int64, data interface{}, callback func(msg *Message)) (msg *Message) {
+	msg = &Message{}
+	msg.ID = id
+	msg.Ty = ty
+	msg.Data = data
+	msg.Topic = topic
+	msg.callback = callback
 	return msg
 }
 
 // GetData get message data
-func (msg Message) GetData() interface{} {
+func (msg *Message) GetData() interface{} {
 	if _, ok := msg.Data.(error); ok {
 		return nil
 	}
@@ -261,7 +301,7 @@ func (msg Message) GetData() interface{} {
 }
 
 // Err if err return error msg, or return nil
-func (msg Message) Err() error {
+func (msg *Message) Err() error {
 	if err, ok := msg.Data.(error); ok {
 		return err
 	}
@@ -269,7 +309,7 @@ func (msg Message) Err() error {
 }
 
 // Reply reply message to reply chan
-func (msg Message) Reply(replyMsg Message) {
+func (msg *Message) Reply(replyMsg *Message) {
 	if msg.chReply == nil {
 		qlog.Debug("reply a empty chreply", "msg", msg)
 		return
@@ -281,13 +321,13 @@ func (msg Message) Reply(replyMsg Message) {
 }
 
 // String print the message information
-func (msg Message) String() string {
+func (msg *Message) String() string {
 	return fmt.Sprintf("{topic:%s, Ty:%s, Id:%d, Err:%v, Ch:%v}", msg.Topic,
 		types.GetEventName(int(msg.Ty)), msg.ID, msg.Err(), msg.chReply != nil)
 }
 
 // ReplyErr reply error
-func (msg Message) ReplyErr(title string, err error) {
+func (msg *Message) ReplyErr(title string, err error) {
 	var reply types.Reply
 	if err != nil {
 		qlog.Error(title, "reply.err", err.Error())

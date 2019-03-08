@@ -29,15 +29,16 @@ var gid int64
 
 // Client 消息队列的接口，每个模块都需要一个发送接受client
 type Client interface {
-	Send(msg Message, waitReply bool) (err error) //同步发送消息
-	SendTimeout(msg Message, waitReply bool, timeout time.Duration) (err error)
-	Wait(msg Message) (Message, error)                               //等待消息处理完成
-	WaitTimeout(msg Message, timeout time.Duration) (Message, error) //等待消息处理完成
-	Recv() chan Message
+	Send(msg *Message, waitReply bool) (err error) //同步发送消息
+	SendTimeout(msg *Message, waitReply bool, timeout time.Duration) (err error)
+	Wait(msg *Message) (*Message, error)                               //等待消息处理完成
+	WaitTimeout(msg *Message, timeout time.Duration) (*Message, error) //等待消息处理完成
+	Recv() chan *Message
+	Reply(msg *Message)
 	Sub(topic string) //订阅消息
 	Close()
 	CloseQueue() (*types.Reply, error)
-	NewMessage(topic string, ty int64, data interface{}) (msg Message)
+	NewMessage(topic string, ty int64, data interface{}) (msg *Message)
 }
 
 // Module be used for module interface
@@ -50,7 +51,7 @@ type Module interface {
 
 type client struct {
 	q          *queue
-	recv       chan Message
+	recv       chan *Message
 	done       chan struct{}
 	wg         *sync.WaitGroup
 	topic      unsafe.Pointer
@@ -61,7 +62,7 @@ type client struct {
 func newClient(q *queue) Client {
 	client := &client{}
 	client.q = q
-	client.recv = make(chan Message, 5)
+	client.recv = make(chan *Message, 5)
 	client.done = make(chan struct{}, 1)
 	client.wg = &sync.WaitGroup{}
 	return client
@@ -70,11 +71,8 @@ func newClient(q *queue) Client {
 // Send 发送消息,msg 消息 ,waitReply 是否等待回应
 //1. 系统保证send出去的消息就是成功了，除非系统崩溃
 //2. 系统保证每个消息都有对应的 response 消息
-func (client *client) Send(msg Message, waitReply bool) (err error) {
-	timeout := 10 * time.Minute
-	if types.IsTestNet() {
-		timeout = time.Minute
-	}
+func (client *client) Send(msg *Message, waitReply bool) (err error) {
+	timeout := time.Duration(-1)
 	err = client.SendTimeout(msg, waitReply, timeout)
 	if err == ErrQueueTimeout {
 		panic(err)
@@ -83,7 +81,7 @@ func (client *client) Send(msg Message, waitReply bool) (err error) {
 }
 
 // SendTimeout 超时发送， msg 消息 ,waitReply 是否等待回应， timeout 超时时间
-func (client *client) SendTimeout(msg Message, waitReply bool, timeout time.Duration) (err error) {
+func (client *client) SendTimeout(msg *Message, waitReply bool, timeout time.Duration) (err error) {
 	if client.isClose() {
 		return ErrIsQueueClosed
 	}
@@ -99,15 +97,29 @@ func (client *client) SendTimeout(msg Message, waitReply bool, timeout time.Dura
 //2. Send 高优先级别的发送消息
 
 // NewMessage 新建消息 topic模块名称 ty消息类型 data 数据
-func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg Message) {
+func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg *Message) {
 	id := atomic.AddInt64(&gid, 1)
 	return NewMessage(id, topic, ty, data)
 }
 
+func (client *client) Reply(msg *Message) {
+	if msg.chReply != nil {
+		msg.Reply(msg)
+		return
+	}
+	if msg.callback != nil {
+		client.q.callback <- msg
+	}
+}
+
 // WaitTimeout 等待时间 msg 消息 timeout 超时时间
-func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, error) {
+func (client *client) WaitTimeout(msg *Message, timeout time.Duration) (*Message, error) {
 	if msg.chReply == nil {
-		return Message{}, errors.New("empty wait channel")
+		return &Message{}, errors.New("empty wait channel")
+	}
+	if timeout == -1 {
+		msg = <-msg.chReply
+		return msg, msg.Err()
 	}
 	t := time.NewTimer(timeout)
 	defer t.Stop()
@@ -115,18 +127,15 @@ func (client *client) WaitTimeout(msg Message, timeout time.Duration) (Message, 
 	case msg = <-msg.chReply:
 		return msg, msg.Err()
 	case <-client.done:
-		return Message{}, ErrIsQueueClosed
+		return &Message{}, ErrIsQueueClosed
 	case <-t.C:
-		return Message{}, ErrQueueTimeout
+		return &Message{}, ErrQueueTimeout
 	}
 }
 
 // Wait 等待时间
-func (client *client) Wait(msg Message) (Message, error) {
-	timeout := 10 * time.Minute
-	if types.IsTestNet() {
-		timeout = 5 * time.Minute
-	}
+func (client *client) Wait(msg *Message) (*Message, error) {
+	timeout := time.Duration(-1)
 	msg, err := client.WaitTimeout(msg, timeout)
 	if err == ErrQueueTimeout {
 		panic(err)
@@ -135,7 +144,7 @@ func (client *client) Wait(msg Message) (Message, error) {
 }
 
 // Recv 获取接受消息通道
-func (client *client) Recv() chan Message {
+func (client *client) Recv() chan *Message {
 	return client.recv
 }
 
@@ -181,14 +190,14 @@ func (client *client) CloseQueue() (*types.Reply, error) {
 	return &types.Reply{IsOk: true}, nil
 }
 
-func (client *client) isEnd(data Message, ok bool) bool {
+func (client *client) isEnd(data *Message, ok bool) bool {
 	if !ok {
 		return true
 	}
-	if atomic.LoadInt32(&client.isClosed) == 1 {
+	if data.Data == nil && data.ID == 0 && data.Ty == 0 {
 		return true
 	}
-	if data.Data == nil && data.ID == 0 && data.Ty == 0 {
+	if atomic.LoadInt32(&client.isClosed) == 1 {
 		return true
 	}
 	return false

@@ -158,6 +158,7 @@ var (
 	ErrTxGroupNotSupport          = errors.New("ErrTxGroupNotSupport")
 	ErrNotAllowKey                = errors.New("ErrNotAllowKey")
 	ErrNotAllowMemSetKey          = errors.New("ErrNotAllowMemSetKey")
+	ErrNotAllowMemSetLocalKey     = errors.New("ErrNotAllowMemSetLocalKey")
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
 	ErrTxGroupParaCount           = errors.New("ErrTxGroupParaCount")
@@ -179,4 +180,5 @@ var (
 	ErrHeightLessZero      = errors.New("ErrHeightLessZero")
 	ErrHeightOverflow      = errors.New("ErrHeightOverflow")
 	ErrRecordBlockSequence = errors.New("ErrRecordBlockSequence")
+	ErrExecPanic           = errors.New("ErrExecPanic")
 )

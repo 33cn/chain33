@@ -55,34 +55,34 @@ func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, er
 	if option != nil {
 		q.option = *option
 	} else {
-		q.option.SendTimeout = 600 * time.Second
-		q.option.WaitTimeout = 600 * time.Second
+		q.option.SendTimeout = time.Duration(-1)
+		q.option.WaitTimeout = time.Duration(-1)
 	}
 	return q, nil
 }
 
-func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (queue.Message, error) {
+func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (*queue.Message, error) {
 	client := q.client
 	msg := client.NewMessage(topic, ty, data)
 	err := client.SendTimeout(msg, true, q.option.SendTimeout)
 	if err != nil {
-		return queue.Message{}, err
+		return &queue.Message{}, err
 	}
 	return client.WaitTimeout(msg, q.option.WaitTimeout)
 }
 
-func (q *QueueProtocol) notify(topic string, ty int64, data interface{}) (queue.Message, error) {
+func (q *QueueProtocol) notify(topic string, ty int64, data interface{}) (*queue.Message, error) {
 	client := q.client
 	msg := client.NewMessage(topic, ty, data)
 	err := client.SendTimeout(msg, false, q.option.SendTimeout)
 	if err != nil {
-		return queue.Message{}, err
+		return &queue.Message{}, err
 	}
 	return msg, err
 }
 
 // Notify new and send client message
-func (q *QueueProtocol) Notify(topic string, ty int64, data interface{}) (queue.Message, error) {
+func (q *QueueProtocol) Notify(topic string, ty int64, data interface{}) (*queue.Message, error) {
 	return q.notify(topic, ty, data)
 }
 
@@ -92,7 +92,7 @@ func (q *QueueProtocol) Close() {
 }
 
 // NewMessage new message
-func (q *QueueProtocol) NewMessage(topic string, msgid int64, data interface{}) queue.Message {
+func (q *QueueProtocol) NewMessage(topic string, msgid int64, data interface{}) *queue.Message {
 	return q.client.NewMessage(topic, msgid, data)
 }
 
@@ -171,12 +171,12 @@ func (q *QueueProtocol) GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, 
 func (q *QueueProtocol) QueryTx(param *types.ReqHash) (*types.TransactionDetail, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
-		log.Error("QueryTx", "Error", err)
+		log.Debug("QueryTx", "Error", err)
 		return nil, err
 	}
 	msg, err := q.query(blockchainKey, types.EventQueryTx, param)
 	if err != nil {
-		log.Error("QueryTx", "Error", err.Error())
+		log.Debug("QueryTx", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.TransactionDetail); ok {

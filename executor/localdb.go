@@ -12,14 +12,15 @@ import (
 //数据的get set 主要经过 cache
 //如果需要进行list, 那么把get set 的内容加入到 后端数据库
 type LocalDB struct {
-	cache   map[string][]byte
-	txcache map[string][]byte
-	keys    []string
-	intx    bool
-	kvs     []*types.KeyValue
-	txid    *types.Int64
-	client  queue.Client
-	api     client.QueueProtocolAPI
+	cache    map[string][]byte
+	txcache  map[string][]byte
+	keys     []string
+	intx     bool
+	hasbegin bool
+	kvs      []*types.KeyValue
+	txid     *types.Int64
+	client   queue.Client
+	api      client.QueueProtocolAPI
 }
 
 //NewLocalDB 创建一个新的LocalDB
@@ -44,6 +45,17 @@ func (l *LocalDB) resetTx() {
 	l.intx = false
 	l.txcache = nil
 	l.keys = nil
+	l.hasbegin = false
+}
+
+// StartTx reset state db keys
+func (l *LocalDB) StartTx() {
+	l.keys = nil
+}
+
+// GetSetKeys  get state db set keys
+func (l *LocalDB) GetSetKeys() (keys []string) {
+	return l.keys
 }
 
 //Begin 开始一个事务
@@ -51,14 +63,23 @@ func (l *LocalDB) Begin() {
 	l.intx = true
 	l.keys = nil
 	l.txcache = nil
+	l.hasbegin = false
+}
+
+func (l *LocalDB) begin() {
 	err := l.api.LocalBegin(l.txid)
 	if err != nil {
 		panic(err)
 	}
 }
 
+//第一次save 的时候，远程做一个 begin 操作，开始事务
 func (l *LocalDB) save() error {
 	if l.kvs != nil {
+		if !l.hasbegin {
+			l.begin()
+			l.hasbegin = true
+		}
 		param := &types.LocalDBSet{Txid: l.txid.Data}
 		param.KV = l.kvs
 		err := l.api.LocalSet(param)
@@ -79,8 +100,10 @@ func (l *LocalDB) Commit() error {
 	if err != nil {
 		return err
 	}
+	if l.hasbegin {
+		err = l.api.LocalCommit(l.txid)
+	}
 	l.resetTx()
-	err = l.api.LocalCommit(l.txid)
 	return err
 }
 
@@ -94,11 +117,13 @@ func (l *LocalDB) Close() error {
 
 //Rollback 回滚修改
 func (l *LocalDB) Rollback() {
-	l.resetTx()
-	err := l.api.LocalRollback(l.txid)
-	if err != nil {
-		panic(err)
+	if l.hasbegin {
+		err := l.api.LocalRollback(l.txid)
+		if err != nil {
+			panic(err)
+		}
 	}
+	l.resetTx()
 }
 
 //Get 获取key

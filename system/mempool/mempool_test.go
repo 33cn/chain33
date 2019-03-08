@@ -439,6 +439,22 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 	}
 }
 
+func TestAddMoreTxThanMaxAccountTx(t *testing.T) {
+	q, mem := initEnv(4)
+	mem.cfg.MaxTxNumPerAccount = 2
+	defer q.Close()
+	defer mem.Close()
+
+	err := add4Tx(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+	if mem.Size() != 2 {
+		t.Error("TestAddMoreTxThanMaxAccountTx failed", "size", mem.Size())
+	}
+}
+
 func TestRemoveTxOfBlock(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()

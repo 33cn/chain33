@@ -33,6 +33,7 @@ func Init(name string, sub []byte) {
 }
 
 // the initialization process is relatively heavyweight, lots of reflact, so it's global
+
 func init() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&Coins{}))

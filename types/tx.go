@@ -8,7 +8,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"reflect"
 	"time"
+
+	"github.com/hashicorp/golang-lru"
 
 	"strconv"
 
@@ -21,7 +24,34 @@ var (
 	bCoins   = []byte("coins")
 	bToken   = []byte("token")
 	withdraw = "withdraw"
+	txCache  *lru.Cache
 )
+
+func init() {
+	var err error
+	txCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+}
+
+//TxCacheGet 某些交易的cache 加入缓存中，防止重复进行解析或者计算
+func TxCacheGet(tx *Transaction) (*TransactionCache, bool) {
+	txc, ok := txCache.Get(tx)
+	if !ok {
+		return nil, ok
+	}
+	return txc.(*TransactionCache), ok
+}
+
+//TxCacheSet 设置 cache
+func TxCacheSet(tx *Transaction, txc *TransactionCache) {
+	if txc == nil {
+		txCache.Remove(tx)
+		return
+	}
+	txCache.Add(tx, txc)
+}
 
 // CreateTxGroup 创建组交易
 func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
@@ -30,12 +60,21 @@ func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 	}
 	txgroup := &Transactions{}
 	txgroup.Txs = txs
-	var header []byte
 	totalfee := int64(0)
 	minfee := int64(0)
+	header := txs[0].Hash()
 	for i := len(txs) - 1; i >= 0; i-- {
 		txs[i].GroupCount = int32(len(txs))
 		totalfee += txs[i].GetFee()
+		// Header和Fee设置是为了GetRealFee里面Size的计算，Fee是否为0和不同大小，size也是有差别的，header是否为空差别是common.Sha256Len+2
+		// 这里直接设置Header兼容性更好， Next不需要，已经设置过了，唯一不同的是，txs[0].fee会跟实际计算有差别，这里设置一个超大值只做计算
+		txs[i].Header = header
+		if i == 0 {
+			//对txs[0].fee设置一个超大值，大于后面实际计算出的fee，也就>=check时候计算出的fee， 对size影响10个字节，在1000临界值时候有差别
+			txs[i].Fee = 1 << 62
+		} else {
+			txs[i].Fee = 0
+		}
 		realfee, err := txs[i].GetRealFee(GInt("MinFee"))
 		if err != nil {
 			return nil, err
@@ -46,7 +85,7 @@ func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 				totalfee = minfee
 			}
 			txs[0].Fee = totalfee
-			header = txs[i].Hash()
+			header = txs[0].Hash()
 		} else {
 			txs[i].Fee = 0
 			txs[i-1].Next = txs[i].Hash()
@@ -195,6 +234,9 @@ type TransactionCache struct {
 	signok  int   //init 0, ok 1, err 2
 	checkok error //init 0, ok 1, err 2
 	checked bool
+	payload reflect.Value
+	plname  string
+	plerr   error
 }
 
 //NewTransactionCache new交易缓存
@@ -208,6 +250,28 @@ func (tx *TransactionCache) Hash() []byte {
 		tx.hash = tx.Transaction.Hash()
 	}
 	return tx.hash
+}
+
+//SetPayloadValue 设置payload 的cache
+func (tx *TransactionCache) SetPayloadValue(plname string, payload reflect.Value, plerr error) {
+	tx.payload = payload
+	tx.plerr = plerr
+	tx.plname = plname
+}
+
+//GetPayloadValue 设置payload 的cache
+func (tx *TransactionCache) GetPayloadValue() (plname string, payload reflect.Value, plerr error) {
+	if tx.plerr != nil || tx.plname != "" {
+		return tx.plname, tx.payload, tx.plerr
+	}
+	exec := LoadExecutorType(string(tx.Execer))
+	if exec == nil {
+		tx.SetPayloadValue("", reflect.ValueOf(nil), ErrExecNotFound)
+		return "", reflect.ValueOf(nil), ErrExecNotFound
+	}
+	plname, payload, plerr = exec.DecodePayloadValue(tx.Tx())
+	tx.SetPayloadValue(plname, payload, plerr)
+	return
 }
 
 //Size 交易缓存的大小
@@ -472,7 +536,7 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 
 //From 交易from地址
 func (tx *Transaction) From() string {
-	return address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	return address.PubKeyToAddr(tx.GetSignature().GetPubkey())
 }
 
 //检查交易是否过期，过期返回true，未过期返回false

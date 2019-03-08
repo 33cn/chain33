@@ -129,7 +129,15 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	}()
 }
 
-func (exec *Executor) procExecQuery(msg queue.Message) {
+func (exec *Executor) procExecQuery(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	header, err := exec.qclient.GetLastHeader()
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
@@ -168,7 +176,15 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, ret))
 }
 
-func (exec *Executor) procExecCheckTx(msg queue.Message) {
+func (exec *Executor) procExecCheckTx(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.ExecTxList)
 	ctx := &executorCtx{
 		stateHash:  datas.StateHash,
@@ -204,7 +220,15 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
-func (exec *Executor) procExecTxList(msg queue.Message) {
+func (exec *Executor) procExecTxList(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.ExecTxList)
 	ctx := &executorCtx{
 		stateHash:  datas.StateHash,
@@ -232,7 +256,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			continue
 		}
 		if tx.GroupCount == 0 {
-			receipt, err := execute.execTx(tx, index)
+			receipt, err := execute.execTx(exec, tx, index)
 			if api.IsAPIEnvError(err) {
 				msg.Reply(exec.client.NewMessage("", types.EventReceipts, err))
 				return
@@ -242,7 +266,6 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 				continue
 			}
 			//update local
-			exec.execLocalSameTime(execute, tx, receipt, index)
 			receipts = append(receipts, receipt)
 			index++
 			continue
@@ -257,7 +280,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupCount))
 			continue
 		}
-		receiptlist, err := execute.execTxGroup(exec, datas.Txs[i:i+int(tx.GroupCount)], index)
+		receiptlist, err := execute.execTxGroup(datas.Txs[i:i+int(tx.GroupCount)], index)
 		i = i + int(tx.GroupCount) - 1
 		if len(receiptlist) > 0 && len(receiptlist) != int(tx.GroupCount) {
 			panic("len(receiptlist) must be equal tx.GroupCount")
@@ -279,23 +302,15 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{Receipts: receipts}))
 }
 
-func (exec *Executor) execLocalSameTime(execute *executor, tx *types.Transaction, receipt *types.Receipt, index int) {
-	e := execute.loadDriver(tx, index)
-	if e.ExecutorOrder() == drivers.ExecLocalSameTime {
-		var r = &types.ReceiptData{}
-		if receipt != nil {
-			r.Ty = receipt.Ty
-			r.Logs = receipt.Logs
+func (exec *Executor) procExecAddBlock(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
 		}
-		_, err := exec.execLocalTx(execute, tx, r, index)
-		//ignore err, only print err
-		if err != nil {
-			elog.Debug("ExecLocal Same Time", "err", err)
-		}
-	}
-}
-
-func (exec *Executor) procExecAddBlock(msg queue.Message) {
+	}()
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	ctx := &executorCtx{
@@ -344,7 +359,8 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	}
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		kv, err := exec.execLocalTx(execute, tx, datas.Receipts[i], i)
+		execute.localDB.(*LocalDB).StartTx()
+		kv, err := execute.execLocalTx(tx, datas.Receipts[i], i)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 			return
@@ -356,27 +372,15 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func (exec *Executor) execLocalTx(execute *executor, tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := execute.execLocal(tx, r, index)
-	if err == types.ErrActionNotSupport {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	if kv != nil && kv.KV != nil {
-		err := exec.checkPrefix(tx.Execer, kv.KV)
-		if err != nil {
-			return nil, err
+func (exec *Executor) procExecDelBlock(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
 		}
-		for _, kv := range kv.KV {
-			execute.localDB.Set(kv.Key, kv.Value)
-		}
-	}
-	return kv, nil
-}
-
-func (exec *Executor) procExecDelBlock(msg queue.Message) {
+	}()
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	ctx := &executorCtx{
@@ -430,7 +434,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			return
 		}
 		if kv != nil && kv.KV != nil {
-			err := exec.checkPrefix(tx.Execer, kv.KV)
+			err := execute.checkPrefix(tx.Execer, kv.KV)
 			if err != nil {
 				msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 				return
@@ -439,18 +443,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		}
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventDelBlock, &kvset))
-}
-
-func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
-	for i := 0; i < len(kvs); i++ {
-		err := isAllowLocalKey(execer, kvs[i].Key)
-		if err != nil {
-			//测试的情况下，先panic，实际情况下会删除返回错误
-			panic(err)
-			//return err
-		}
-	}
-	return nil
 }
 
 // Close close executor

@@ -33,6 +33,14 @@ message ReceiptAccountTransfer {
     Account current = 2;
 }
 
+//铸币账户余额增加
+message ReceiptAccountMint {
+    //铸币前
+    Account prev = 1;
+    //铸币后
+    Account current = 2;
+}
+
 //查询一个地址列表在某个执行器中余额
 message ReqBalance {
     //地址列表

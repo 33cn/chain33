@@ -32,6 +32,7 @@ type executor struct {
 	gcli       types.Chain33Client
 	execapi    api.ExecutorAPI
 	receipts   []*types.ReceiptData
+	execCache  map[string]drivers.Driver
 }
 
 type executorCtx struct {
@@ -60,6 +61,7 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 		receipts:     receipts,
 		api:          exec.qclient,
 		gcli:         exec.grpccli,
+		execCache:    make(map[string]drivers.Driver),
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -103,17 +105,18 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 		copyfrom := *accFrom
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
 		receiptBalance := &types.ReceiptAccountTransfer{Prev: &copyfrom, Current: accFrom}
-		e.coinsAccount.SaveAccount(accFrom)
-		return e.cutFeeReceipt(accFrom, receiptBalance), nil
+		set := e.coinsAccount.GetKVSet(accFrom)
+		e.coinsAccount.SaveKVSet(set)
+		return e.cutFeeReceipt(set, receiptBalance), nil
 	}
 	return nil, types.ErrNoBalance
 }
 
-func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
+func (e *executor) cutFeeReceipt(kvset []*types.KeyValue, receiptBalance proto.Message) *types.Receipt {
 	feelog := &types.ReceiptLog{Ty: types.TyLogFee, Log: types.Encode(receiptBalance)}
 	return &types.Receipt{
 		Ty:   types.ExecPack,
-		KV:   e.coinsAccount.GetKVSet(acc),
+		KV:   kvset,
 		Logs: append([]*types.ReceiptLog{}, feelog),
 	}
 }
@@ -190,7 +193,6 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 	}
-	e.setEnv(exec)
 	return exec.CheckTx(tx, index)
 }
 
@@ -219,12 +221,18 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
-	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	ename := string(tx.Execer)
+	exec, ok := e.execCache[ename]
+	if ok {
+		return exec
+	}
+	exec = drivers.LoadDriverAllow(tx, index, e.height)
 	e.setEnv(exec)
+	e.execCache[ename] = exec
 	return exec
 }
 
-func (e *executor) execTxGroup(exec *Executor, txs []*types.Transaction, index int) ([]*types.Receipt, error) {
+func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Receipt, error) {
 	txgroup := &types.Transactions{Txs: txs}
 	err := e.checkTxGroup(txgroup, index)
 	if err != nil {
@@ -237,8 +245,7 @@ func (e *executor) execTxGroup(exec *Executor, txs []*types.Transaction, index i
 	//开启内存事务处理，假设系统只有一个thread 执行
 	//如果系统执行失败，回滚到这个状态
 	rollbackLog := copyReceipt(feelog)
-	e.stateDB.Begin()
-	e.localDB.Begin()
+	e.begin()
 	receipts := make([]*types.Receipt, len(txs))
 	for i := 1; i < len(txs); i++ {
 		receipts[i] = &types.Receipt{Ty: types.ExecPack}
@@ -251,12 +258,10 @@ func (e *executor) execTxGroup(exec *Executor, txs []*types.Transaction, index i
 		}
 		//状态数据库回滚
 		if types.IsFork(e.height, "ForkExecRollback") {
-			e.stateDB.Rollback()
+			e.rollback()
 		}
-		e.localDB.Rollback()
 		return receipts, nil
 	}
-	exec.execLocalSameTime(e, txs[0], receipts[0], index)
 	for i := 1; i < len(txs); i++ {
 		//如果有一笔执行失败了，那么全部回滚
 		receipts[i], err = e.execTxOne(receipts[i], txs[i], index+i)
@@ -273,14 +278,11 @@ func (e *executor) execTxGroup(exec *Executor, txs []*types.Transaction, index i
 				receipts[0] = rollbackLog
 			}
 			//撤销所有的数据库更新
-			e.stateDB.Rollback()
-			e.localDB.Rollback()
+			e.rollback()
 			return receipts, nil
 		}
-		exec.execLocalSameTime(e, txs[i], receipts[i], index+i)
 	}
-	e.stateDB.Commit()
-	e.localDB.Commit()
+	e.commit()
 	return receipts, nil
 }
 
@@ -303,7 +305,6 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	execer := string(tx.Execer)
 	ex := e.loadDriver(tx, index)
-	e.setEnv(ex)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
 	if bytes.Equal(address.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {
@@ -335,7 +336,7 @@ func copyReceipt(feelog *types.Receipt) *types.Receipt {
 
 func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index int) (*types.Receipt, error) {
 	//只有到pack级别的，才会增加index
-	e.stateDB.(*StateDB).StartTx()
+	e.startTx()
 	receipt, err := e.Exec(tx, index)
 	if err != nil {
 		elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
@@ -349,12 +350,21 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 	//1. statedb 中 Set的 key 必须是 在 receipt.GetKV() 这个集合中
 	//2. receipt.GetKV() 中的 key, 必须符合权限控制要求
 	memkvset := e.stateDB.(*StateDB).GetSetKeys()
-	feelog, err = e.checkKV(feelog, memkvset, receipt.GetKV())
+	err = e.checkKV(memkvset, receipt.GetKV())
 	if err != nil {
+		errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(err.Error())}
+		feelog.Logs = append(feelog.Logs, errlog)
 		return feelog, err
 	}
 	feelog, err = e.checkKeyAllow(feelog, tx, index, receipt.GetKV())
 	if err != nil {
+		return feelog, err
+	}
+	err = e.execLocalSameTime(tx, feelog, index)
+	if err != nil {
+		elog.Error("execLocalSameTime", "err", err)
+		errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(err.Error())}
+		feelog.Logs = append(feelog.Logs, errlog)
 		return feelog, err
 	}
 	if receipt != nil {
@@ -362,10 +372,15 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 		feelog.Logs = append(feelog.Logs, receipt.Logs...)
 		feelog.Ty = receipt.Ty
 	}
+	if types.IsFork(e.height, "ForkStateDBSet") {
+		for _, v := range feelog.KV {
+			e.stateDB.Set(v.Key, v.Value)
+		}
+	}
 	return feelog, nil
 }
 
-func (e *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*types.KeyValue) (*types.Receipt, error) {
+func (e *executor) checkKV(memset []string, kvs []*types.KeyValue) error {
 	keys := make(map[string]bool)
 	for _, kv := range kvs {
 		k := kv.GetKey()
@@ -375,12 +390,10 @@ func (e *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*types.
 		if _, ok := keys[key]; !ok {
 			elog.Error("err memset key", "key", key)
 			//非法的receipt，交易执行失败
-			errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(types.ErrNotAllowMemSetKey.Error())}
-			feelog.Logs = append(feelog.Logs, errlog)
-			return feelog, types.ErrNotAllowMemSetKey
+			return types.ErrNotAllowMemSetKey
 		}
 	}
-	return feelog, nil
+	return nil
 }
 
 func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, index int, kvs []*types.KeyValue) (*types.Receipt, error) {
@@ -398,7 +411,52 @@ func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, i
 	return feelog, nil
 }
 
-func (e *executor) execTx(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (e *executor) begin() {
+	matchfork := types.IsFork(e.height, "ForkExecRollback")
+	if matchfork {
+		if e.stateDB != nil {
+			e.stateDB.Begin()
+		}
+		if e.localDB != nil {
+			e.localDB.Begin()
+		}
+	}
+}
+
+func (e *executor) commit() {
+	matchfork := types.IsFork(e.height, "ForkExecRollback")
+	if matchfork {
+		if e.stateDB != nil {
+			e.stateDB.Commit()
+		}
+		if e.localDB != nil {
+			e.localDB.Commit()
+		}
+	}
+}
+
+func (e *executor) startTx() {
+	if e.stateDB != nil {
+		e.stateDB.(*StateDB).StartTx()
+	}
+	if e.localDB != nil {
+		e.localDB.(*LocalDB).StartTx()
+	}
+}
+
+func (e *executor) rollback() {
+	matchfork := types.IsFork(e.height, "ForkExecRollback")
+	if matchfork {
+		if e.stateDB != nil {
+			e.stateDB.Rollback()
+		}
+		if e.localDB != nil {
+			e.localDB.Rollback()
+		}
+	}
+}
+
+func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if e.height == 0 { //genesis block 不检查手续费
 		receipt, err := e.Exec(tx, index)
 		if err != nil {
@@ -424,19 +482,12 @@ func (e *executor) execTx(tx *types.Transaction, index int) (*types.Receipt, err
 		return nil, err
 	}
 	//ignore err
-	matchfork := types.IsFork(e.height, "ForkExecRollback")
-	if matchfork {
-		e.stateDB.Begin()
-	}
+	e.begin()
 	feelog, err = e.execTxOne(feelog, tx, index)
 	if err != nil {
-		if matchfork {
-			e.stateDB.Rollback()
-		}
+		e.rollback()
 	} else {
-		if matchfork {
-			e.stateDB.Commit()
-		}
+		e.commit()
 	}
 	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
 	if api.IsAPIEnvError(err) {
@@ -458,4 +509,63 @@ func (e *executor) isAllowExec(key []byte, tx *types.Transaction, index int) boo
 	realExecer := e.getRealExecName(tx, index)
 	height := e.height
 	return isAllowKeyWrite(key, realExecer, tx, height)
+}
+
+func (e *executor) isExecLocalSameTime(tx *types.Transaction, index int) bool {
+	exec := e.loadDriver(tx, index)
+	return exec.ExecutorOrder() == drivers.ExecLocalSameTime
+}
+
+func (e *executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
+	for i := 0; i < len(kvs); i++ {
+		err := isAllowLocalKey(execer, kvs[i].Key)
+		if err != nil {
+			//测试的情况下，先panic，实际情况下会删除返回错误
+			panic(err)
+			//return err
+		}
+	}
+	return nil
+}
+
+func (e *executor) execLocalSameTime(tx *types.Transaction, receipt *types.Receipt, index int) error {
+	if e.isExecLocalSameTime(tx, index) {
+		var r = &types.ReceiptData{}
+		if receipt != nil {
+			r.Ty = receipt.Ty
+			r.Logs = receipt.Logs
+		}
+		_, err := e.execLocalTx(tx, r, index)
+		return err
+	}
+	return nil
+}
+
+func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	kv, err := e.execLocal(tx, r, index)
+	if err == types.ErrActionNotSupport {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	memkvset := e.localDB.(*LocalDB).GetSetKeys()
+	if kv != nil && kv.KV != nil {
+		err := e.checkKV(memkvset, kv.KV)
+		if err != nil {
+			return nil, types.ErrNotAllowMemSetLocalKey
+		}
+		err = e.checkPrefix(tx.Execer, kv.KV)
+		if err != nil {
+			return nil, err
+		}
+		for _, kv := range kv.KV {
+			e.localDB.Set(kv.Key, kv.Value)
+		}
+	} else {
+		if len(memkvset) > 0 {
+			return nil, types.ErrNotAllowMemSetLocalKey
+		}
+	}
+	return kv, nil
 }

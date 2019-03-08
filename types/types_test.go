@@ -402,3 +402,24 @@ func TestIterateCallBack_PrefixWithExecAddr(t *testing.T) {
 	assert.Equal(t, int64(3), reply.Num)
 	assert.Equal(t, len(key), len(reply.NextKey))
 }
+
+func TestJsonpbUTF8Tx(t *testing.T) {
+	bdata, err := common.FromHex("0a05636f696e73121018010a0c108084af5f1a05310a320a3320e8b31b30b9b69483d7f9d3f04c3a22314b67453376617969715a4b6866684d66744e3776743267447639486f4d6b393431")
+	assert.Nil(t, err)
+	var r Transaction
+	err = Decode(bdata, &r)
+	assert.Nil(t, err)
+	plType := LoadExecutorType("coins")
+	var pl Message
+	if plType != nil {
+		pl, err = plType.DecodePayload(&r)
+		if err != nil {
+			pl = nil
+		}
+	}
+	var pljson json.RawMessage
+	assert.NotNil(t, pl)
+	pljson, err = PBToJSONUTF8(pl)
+	assert.Nil(t, err)
+	assert.Equal(t, string(pljson), `{"transfer":{"cointoken":"","amount":"200000000","note":"1\n2\n3","to":""},"ty":1}`)
+}

@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -161,6 +162,26 @@ func TestDelDupKey(t *testing.T) {
 	}
 	kvs = DelDupKey(kvs)
 	assert.Equal(t, kvs, result)
+}
+
+func BenchmarkDelDupKey(b *testing.B) {
+	var kvs []*types.KeyValue
+	for i := 0; i < 1000; i++ {
+		key := common.GetRandBytes(20, 40)
+		value := common.GetRandBytes(40, 60)
+		kvs = append(kvs, &types.KeyValue{Key: key, Value: value})
+		if i%10 == 0 {
+			kvs = append(kvs, &types.KeyValue{Key: key, Value: value})
+		}
+	}
+	for i := 0; i < b.N; i++ {
+		testkv := make([]*types.KeyValue, len(kvs))
+		copy(testkv, kvs)
+		newkvs := DelDupKey(testkv)
+		if newkvs[len(newkvs)-1] == nil {
+			assert.NotNil(b, newkvs[len(newkvs)-1])
+		}
+	}
 }
 
 func TestDelDupTx(t *testing.T) {
