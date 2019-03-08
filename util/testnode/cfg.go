@@ -43,7 +43,7 @@ singleMode=true
 batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
-enableTxQuickIndex=false
+enableTxQuickIndex=true
 
 [p2p]
 seeds=[]
@@ -68,9 +68,9 @@ grpcFuncWhitelist=["*"]
 
 [mempool]
 name="timeline"
-poolCacheSize=10240
+poolCacheSize=102400
 minTxFee=100000
-maxTxNumPerAccount=10000
+maxTxNumPerAccount=100000
 
 [consensus]
 name="solo"
@@ -89,7 +89,7 @@ futureBlockTime = 16
 ticketFrozenTime = 5
 ticketWithdrawTime = 10
 ticketMinerWaitTime = 2
-maxTxNumber = 1600
+maxTxNumber = 10000
 targetTimespan = 2304
 targetTimePerBlock = 16
 
