@@ -103,6 +103,7 @@ const (
 	TyLogGenesisTransfer = 11
 	TyLogGenesisDeposit  = 12
 	TyLogRollback        = 13
+	TyLogMint            = 14
 )
 
 //SystemLog 系统log日志

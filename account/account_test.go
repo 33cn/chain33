@@ -561,6 +561,6 @@ func TestDB_Mint(t *testing.T) {
 
 	_, err := tokenCoin.Mint(addr1, 10*1e8)
 	require.NoError(t, err)
-	t.Logf("Token mintto addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
+	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
 	require.Equal(t, int64(1000*1e8+10*1e8), tokenCoin.LoadAccount(addr1).Balance)
 }
