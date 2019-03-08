@@ -7,10 +7,10 @@ package types
 import (
 	"testing"
 
-	"github.com/33cn/chain33/types"
-	"github.com/stretchr/testify/assert"
 	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckExpireOpt(t *testing.T) {
@@ -60,9 +60,9 @@ func TestDecodeAccount(t *testing.T) {
 	precision := int64(1e8)
 	acc := &types.Account{
 		Currency: 2,
-		Balance: 3*precision,
-		Frozen: 4*precision,
-		Addr: "0x123",
+		Balance:  3 * precision,
+		Frozen:   4 * precision,
+		Addr:     "0x123",
 	}
 	accResult := DecodeAccount(acc, precision)
 	assert.Equal(t, &AccountResult{2, "3.0000", "4.0000", "0x123"}, accResult)

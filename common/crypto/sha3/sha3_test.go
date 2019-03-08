@@ -24,6 +24,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -345,20 +346,20 @@ func Example_mac() {
 
 func TestNew(t *testing.T) {
 	d28 := Sum224(nil)
-	assert.True(t, len(d28)==28)
+	assert.True(t, len(d28) == 28)
 
 	d32 := Sum256(nil)
-	assert.True(t, len(d32)==32)
+	assert.True(t, len(d32) == 32)
 
 	d48 := Sum384(nil)
-	assert.True(t, len(d48)==48)
+	assert.True(t, len(d48) == 48)
 
 	d64 := Sum512(nil)
-	assert.True(t, len(d64)==64)
+	assert.True(t, len(d64) == 64)
 
 	d32 = KeccakSum256(nil)
-	assert.True(t, len(d32)==32)
+	assert.True(t, len(d32) == 32)
 
 	d32 = KeccakSum512(nil)
-	assert.True(t, len(d32)==32)
+	assert.True(t, len(d32) == 32)
 }

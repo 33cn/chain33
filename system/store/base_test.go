@@ -153,7 +153,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreDel), resp.Ty)
 
-	list := &types.StoreList{StateHash:EmptyRoot[:]}
+	list := &types.StoreList{StateHash: EmptyRoot[:]}
 	msg = queueClinet.NewMessage("store", types.EventStoreList, list)
 	err = queueClinet.Send(msg, true)
 	assert.Nil(t, err)

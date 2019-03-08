@@ -9,6 +9,8 @@ import (
 
 	"fmt"
 
+	"encoding/hex"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common/address"
@@ -19,7 +21,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"encoding/hex"
 )
 
 func init() {

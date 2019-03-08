@@ -661,7 +661,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 
 func TestChain33_GetBlocks(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	api.On("GetBlocks", &types.ReqBlocks{Pid: []string{""}}).Return(&types.BlockDetails{Items: []*types.BlockDetail{&types.BlockDetail{}}}, nil)
+	api.On("GetBlocks", &types.ReqBlocks{Pid: []string{""}}).Return(&types.BlockDetails{Items: []*types.BlockDetail{{}}}, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	data := rpctypes.BlockParam{}
@@ -690,7 +690,7 @@ func TestChain33_GetTxByAddr(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	api.On("GetTransactionByAddr", mock.Anything).Return(&types.ReplyTxInfos{TxInfos:[]*types.ReplyTxInfo{&types.ReplyTxInfo{}}}, nil)
+	api.On("GetTransactionByAddr", mock.Anything).Return(&types.ReplyTxInfos{TxInfos: []*types.ReplyTxInfo{{}}}, nil)
 	var testResult interface{}
 	data := types.ReqAddr{}
 	err := testChain33.GetTxByAddr(data, &testResult)
@@ -721,7 +721,7 @@ func TestChain33_GetMempool(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	api.On("GetMempool").Return(&types.ReplyTxList{Txs: []*types.Transaction{&types.Transaction{}}}, nil)
+	api.On("GetMempool").Return(&types.ReplyTxList{Txs: []*types.Transaction{{}}}, nil)
 	var testResult interface{}
 	data := &types.ReqNil{}
 	err := testChain33.GetMempool(data, &testResult)
@@ -736,7 +736,7 @@ func TestChain33_GetAccountsV2(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	api.On("WalletGetAccountList", mock.Anything).Return(&types.WalletAccounts{Wallets:[]*types.WalletAccount{&types.WalletAccount{}}}, nil)
+	api.On("WalletGetAccountList", mock.Anything).Return(&types.WalletAccounts{Wallets: []*types.WalletAccount{{}}}, nil)
 	var testResult interface{}
 	err := testChain33.GetAccountsV2(nil, &testResult)
 	t.Log(err)
@@ -1360,7 +1360,7 @@ func TestChain33_CreateNoBalanceTransaction(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	chain33 := newTestChain33(api)
 	var result string
-	err := chain33.CreateNoBalanceTransaction(&types.NoBalanceTx{TxHex:"0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"}, &result)
+	err := chain33.CreateNoBalanceTransaction(&types.NoBalanceTx{TxHex: "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"}, &result)
 	assert.NoError(t, err)
 }
 
@@ -1378,7 +1378,7 @@ func TestChain33_Query(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
 	var testResult interface{}
-	in := rpctypes.Query4Jrpc{Execer:"coins"}
+	in := rpctypes.Query4Jrpc{Execer: "coins"}
 	api.On("Query", mock.Anything).Return(nil, nil)
 	err := client.Query(in, &testResult)
 	assert.NotNil(t, err)
@@ -1416,7 +1416,7 @@ func TestChain33_DecodeRawTransaction(t *testing.T) {
 	client := newTestChain33(api)
 	var testResult interface{}
 	//api.On("GetFatalFailure", mock.Anything).Return(&types.Int32{}, nil)
-	err := client.DecodeRawTransaction(&types.ReqDecodeRawTransaction{TxHex:"0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"}, &testResult)
+	err := client.DecodeRawTransaction(&types.ReqDecodeRawTransaction{TxHex: "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"}, &testResult)
 	assert.NoError(t, err)
 }
 
@@ -1470,6 +1470,6 @@ func TestChain33_ConvertExectoAddr(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
 	var testResult string
-	err := client.ConvertExectoAddr(rpctypes.ExecNameParm{ExecName:"coins"}, &testResult)
+	err := client.ConvertExectoAddr(rpctypes.ExecNameParm{ExecName: "coins"}, &testResult)
 	assert.NoError(t, err)
 }

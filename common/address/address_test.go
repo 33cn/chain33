@@ -108,5 +108,5 @@ func BenchmarkExecAddress(b *testing.B) {
 
 func TestExecPubKey(t *testing.T) {
 	pubkey := ExecPubKey("test")
-	assert.True(t, len(pubkey)==32)
+	assert.True(t, len(pubkey) == 32)
 }

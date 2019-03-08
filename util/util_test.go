@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"errors"
+
 	_ "github.com/33cn/chain33/system/crypto/secp256k1"
 	_ "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/stretchr/testify/mock"
@@ -252,7 +253,7 @@ func (t *TestClient) Wait(in queue.Message) (queue.Message, error) {
 	case types.EventTxHashList:
 		return queue.Message{Data: &types.TxHashList{}}, nil
 	case types.EventExecTxList:
-		return queue.Message{Data: &types.Receipts{Receipts: []*types.Receipt{&types.Receipt{Ty: 2}, &types.Receipt{Ty: types.ExecErr}}}}, nil
+		return queue.Message{Data: &types.Receipts{Receipts: []*types.Receipt{{Ty: 2}, {Ty: types.ExecErr}}}}, nil
 	case types.EventStoreMemSet:
 		return queue.Message{Data: &types.ReplyHash{}}, nil
 	case types.EventStoreRollback:
