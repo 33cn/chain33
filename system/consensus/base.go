@@ -172,7 +172,10 @@ func (bc *BaseClient) IsCaughtUp() bool {
 		panic("bc not bind message queue.")
 	}
 	msg := bc.client.NewMessage("blockchain", types.EventIsSync, nil)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return false
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return false
@@ -273,7 +276,10 @@ func (bc *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.Tran
 		panic("bc not bind message queue.")
 	}
 	msg := bc.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Hashes: txHashList, Count: int64(listSize)})
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil
@@ -288,7 +294,10 @@ func (bc *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 	}
 	reqblock := &types.ReqBlocks{Start: start, End: start, IsDetail: false, Pid: []string{""}}
 	msg := bc.client.NewMessage("blockchain", types.EventGetBlocks, reqblock)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -303,7 +312,10 @@ func (bc *BaseClient) RequestLastBlock() (*types.Block, error) {
 		panic("client not bind message queue.")
 	}
 	msg := bc.client.NewMessage("blockchain", types.EventGetLastBlock, nil)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -316,7 +328,10 @@ func (bc *BaseClient) RequestLastBlock() (*types.Block, error) {
 func (bc *BaseClient) delMempoolTx(deltx []*types.Transaction) error {
 	hashList := buildHashList(deltx)
 	msg := bc.client.NewMessage("mempool", types.EventDelTxList, hashList)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return err
@@ -343,7 +358,10 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 
 	blockdetail := &types.BlockDetail{Block: block}
 	msg := bc.client.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return err
