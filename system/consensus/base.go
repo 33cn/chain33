@@ -45,6 +45,7 @@ type BaseClient struct {
 	client       queue.Client
 	api          client.QueueProtocolAPI
 	minerStart   int32
+	isclosed     int32
 	once         sync.Once
 	Cfg          *types.Consensus
 	currentBlock *types.Block
@@ -146,8 +147,14 @@ func (bc *BaseClient) InitBlock() {
 //Close 关闭
 func (bc *BaseClient) Close() {
 	atomic.StoreInt32(&bc.minerStart, 0)
+	atomic.StoreInt32(&bc.isclosed, 1)
 	bc.client.Close()
 	log.Info("consensus base closed")
+}
+
+//IsClosed 是否已经关闭
+func (bc *BaseClient) IsClosed() bool {
+	return atomic.LoadInt32(&bc.isclosed) == 1
 }
 
 //CheckTxDup 为了不引起交易检查时候产生的无序
