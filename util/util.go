@@ -233,14 +233,10 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
 	}
-	ulog.Info("ExecBlock", "CheckSign", types.Since(beg))
-	beg = types.Now()
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
 	oldtxscount := len(cacheTxs)
 	var err error
-	ulog.Info("ExecBlock", "TxsToCache", types.Since(beg))
-	beg = types.Now()
 	cacheTxs, err = CheckTxDup(client, cacheTxs, block.Height)
 	if err != nil {
 		return nil, nil, err
@@ -254,8 +250,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	ulog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
 	block.Txs = types.CacheToTxs(cacheTxs)
 	//println("1")
-	ulog.Info("ExecBlock", "CacheToTxs", types.Since(beg))
-	beg = types.Now()
 	receipts, err := ExecTx(client, prevStateRoot, block)
 	if err != nil {
 		return nil, nil, err
@@ -278,11 +272,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		rdata = append(rdata, &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs})
 		kvset = append(kvset, receipt.KV...)
 	}
-	ulog.Info("ExecBlock", "kvset", types.Since(beg))
-	beg = types.Now()
 	kvset = DelDupKey(kvset)
-	ulog.Info("ExecBlock", "DelDupKey", types.Since(beg))
-	beg = types.Now()
 	//删除无效的交易
 	var deltx []*types.Transaction
 	if len(deltxlist) > 0 {
@@ -303,8 +293,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if len(deltx) > 0 && errReturn {
 		return nil, nil, types.ErrCheckTxHash
 	}
-	ulog.Info("ExecBlock", "deltxlist", types.Since(beg))
-	beg = types.Now()
 	//检查block的txhash值
 	calcHash := merkle.CalcMerkleRootCache(cacheTxs)
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
@@ -318,8 +306,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Info("ExecBlock", "ExecKVMemSet", types.Since(beg))
-	beg = types.Now()
 	//println("2")
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		err = ExecKVSetRollback(client, calcHash)
@@ -333,8 +319,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		}
 		return nil, nil, types.ErrCheckStateHash
 	}
-	ulog.Info("ExecBlock", "ExecKVSetRollback", types.Since(beg))
-	beg = types.Now()
 	block.StateHash = calcHash
 	detail.Block = block
 	detail.Receipts = rdata
@@ -352,8 +336,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Info("ExecBlock", "ExecKVSetCommit", types.Since(beg))
-	beg = types.Now()
 	detail.KV = kvset
 	detail.PrevStatusHash = prevStateRoot
 	return &detail, deltx, nil

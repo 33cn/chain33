@@ -129,5 +129,6 @@ func (client *Client) CreateBlock() {
 			issleep = true
 			continue
 		}
+		time.Sleep(client.sleepTime)
 	}
 }
