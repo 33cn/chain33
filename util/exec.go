@@ -17,7 +17,10 @@ import (
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	req := block
 	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		return err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return err
@@ -43,7 +46,10 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 		IsMempool:  false,
 	}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -58,7 +64,10 @@ func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset
 	setwithsync := &types.StoreSetWithSync{Storeset: set, Sync: sync}
 
 	msg := client.NewMessage("store", types.EventStoreMemSet, setwithsync)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -71,8 +80,11 @@ func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset
 func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreCommit, req)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
+	err := client.Send(msg, true)
+	if err != nil {
+		return err
+	}
+	msg, err = client.Wait(msg)
 	if err != nil {
 		return err
 	}
@@ -85,8 +97,11 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreRollback, req)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
+	err := client.Send(msg, true)
+	if err != nil {
+		return err
+	}
+	msg, err = client.Wait(msg)
 	if err != nil {
 		return err
 	}
