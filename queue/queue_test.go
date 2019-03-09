@@ -423,3 +423,50 @@ func BenchmarkChanSubCallback2(b *testing.B) {
 		client.Reply(msg)
 	}
 }
+
+func TestChannelClose(t *testing.T) {
+	//send timeout and recv timeout
+	q := New("channel")
+
+	//mempool
+	done := make(chan struct{}, 1)
+	go func() {
+		client := q.Client()
+		client.Sub("mempool")
+		for {
+			select {
+			case msg := <-client.Recv():
+				if msg == nil {
+					return
+				}
+				if msg.Ty == types.EventTx {
+					msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
+				}
+			case <-done:
+				client.Close()
+				return
+			}
+		}
+	}()
+	client := q.Client()
+	go q.Start()
+	//rpc 模块 会向其他模块发送消息，自己本身不需要订阅消息
+	go func() {
+		done <- struct{}{}
+	}()
+	for i := 0; i < 10000; i++ {
+		msg := client.NewMessage("mempool", types.EventTx, "hello")
+		err := client.SendTimeout(msg, true, 0)
+		if err == types.ErrChannelClosed {
+			return
+		}
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		_, err = client.Wait(msg)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+}
