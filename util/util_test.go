@@ -144,8 +144,8 @@ func TestDelDupKey(t *testing.T) {
 		{Key: []byte("hello"), Value: []byte("world2")},
 	}
 	result := []*types.KeyValue{
-		{Key: []byte("hello1"), Value: []byte("world")},
 		{Key: []byte("hello"), Value: []byte("world2")},
+		{Key: []byte("hello1"), Value: []byte("world")},
 	}
 	kvs = DelDupKey(kvs)
 	assert.Equal(t, kvs, result)
@@ -173,6 +173,7 @@ func BenchmarkDelDupKey(b *testing.B) {
 			kvs = append(kvs, &types.KeyValue{Key: key, Value: value})
 		}
 	}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		testkv := make([]*types.KeyValue, len(kvs))
 		copy(testkv, kvs)
