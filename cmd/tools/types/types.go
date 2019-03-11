@@ -20,6 +20,8 @@ const (
 	KeyTemplateFilePath         = "template_file_path"
 	KeyUpdateInit               = "update_init"
 	KeyCreatePlugin             = "create_plugin"
+	KeyGenDapp					= "generate_dapp"
+	KeyDappOutDir				= "generate_dapp_out_dir"
 
 	DefCpmConfigfile = "chain33.cpm.toml"
 

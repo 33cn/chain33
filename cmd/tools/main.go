@@ -29,6 +29,7 @@ func addCommands(rootCmd *cobra.Command) {
 		commands.ImportCmd(),
 		commands.UpdateInitCmd(),
 		commands.CreatePluginCmd(),
+		commands.GenDappCmd(),
 	)
 }
 
