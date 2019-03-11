@@ -187,11 +187,17 @@ func TestClientClose(t *testing.T) {
 				}()
 				msg := client.NewMessage("mempool", types.EventTx, "hello")
 				err := client.Send(msg, true)
+				if err == types.ErrChannelClosed {
+					return
+				}
 				if err != nil { //chan is closed
 					t.Error(err)
 					return
 				}
 				_, err = client.Wait(msg)
+				if err == types.ErrChannelClosed {
+					return
+				}
 				if err != nil {
 					t.Error(err)
 					return
@@ -465,6 +471,9 @@ func TestChannelClose(t *testing.T) {
 			return
 		}
 		_, err = client.Wait(msg)
+		if err == types.ErrChannelClosed {
+			return
+		}
 		if err != nil {
 			t.Error(err)
 		}
