@@ -591,3 +591,13 @@ func TestDB_Mint(t *testing.T) {
 	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
 	require.Equal(t, int64(1000*1e8+10*1e8), tokenCoin.LoadAccount(addr1).Balance)
 }
+
+func TestDB_Burn(t *testing.T) {
+	_, tokenCoin := GenerAccDb()
+	tokenCoin.GenerAccData()
+
+	_, err := tokenCoin.Burn(addr1, 10*1e8)
+	require.NoError(t, err)
+	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, int64(1000*1e8-10*1e8), tokenCoin.LoadAccount(addr1).Balance)
+}
