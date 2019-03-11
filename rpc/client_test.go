@@ -5,9 +5,9 @@
 package rpc
 
 import (
-	"testing"
-
+	"encoding/hex"
 	"fmt"
+	"testing"
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/mocks"
@@ -19,7 +19,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"encoding/hex"
 )
 
 func init() {
@@ -68,6 +67,7 @@ func testCreateRawTransactionTo(t *testing.T) {
 
 	client := newTestChannelClient()
 	rawtx, err := client.CreateRawTransaction(&tx)
+	assert.NoError(t, err)
 
 	reqDecode := &types.ReqDecodeRawTransaction{TxHex: hex.EncodeToString(rawtx)}
 	_, err = client.DecodeRawTransaction(reqDecode)

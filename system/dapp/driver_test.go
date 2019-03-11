@@ -153,9 +153,9 @@ func TestDriverBase(t *testing.T) {
 	demo.SetLocalDB(nil)
 	assert.Nil(t, demo.GetLocalDB())
 	assert.Nil(t, demo.GetStateDB())
-	assert.True(t, demo.GetHeight()==0)
-	assert.True(t, demo.GetBlockTime()==0)
-	assert.True(t, demo.GetDifficulty()==0)
+	assert.True(t, demo.GetHeight() == 0)
+	assert.True(t, demo.GetBlockTime() == 0)
+	assert.True(t, demo.GetDifficulty() == 0)
 	assert.Equal(t, "demo", demo.GetName())
 	assert.Equal(t, "demo", demo.GetCurrentExecName())
 
@@ -174,7 +174,7 @@ func TestDriverBase_Query(t *testing.T) {
 	defer util.CloseTestDB(dir, ldb)
 	demo := newdemoApp().(*demoApp)
 	demo.SetLocalDB(kvdb)
-	addr := &types.ReqAddr{Addr:"1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", Count:1, Direction:1}
+	addr := &types.ReqAddr{Addr: "1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", Count: 1, Direction: 1}
 	kvdb.Set(types.CalcTxAddrHashKey(addr.GetAddr(), ""), types.Encode(&types.ReplyTxInfo{}))
 	_, err := demo.GetTxsByAddr(addr)
 	assert.Equal(t, types.ErrNotFound, err)

@@ -1,11 +1,12 @@
 package executor
 
 import (
+	"testing"
+	"time"
+
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestPlugin(t *testing.T) {
@@ -28,7 +29,7 @@ func TestPlugin(t *testing.T) {
 	for _, plugin := range globalPlugins {
 		detail := &types.BlockDetail{
 			Block:    &types.Block{Txs: txs},
-			Receipts: []*types.ReceiptData{&types.ReceiptData{}},
+			Receipts: []*types.ReceiptData{{}},
 		}
 		executor := newExecutor(ctx, &Executor{}, kvdb, txs, nil)
 		_, _, err := plugin.CheckEnable(executor, false)
@@ -50,7 +51,7 @@ func TestPluginBase(t *testing.T) {
 	defer util.CloseTestDB(dir, ldb)
 	ctx := &executorCtx{
 		stateHash:  nil,
-		height:     1,
+		height:     0,
 		blocktime:  time.Now().Unix(),
 		difficulty: 1,
 		mainHash:   nil,

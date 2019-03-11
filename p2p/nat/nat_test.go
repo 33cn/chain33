@@ -24,7 +24,6 @@ import (
 	"net"
 	"testing"
 	"time"
-	"github.com/stretchr/testify/assert"
 )
 
 // This test checks that autodisc doesn't hang and returns
@@ -65,32 +64,4 @@ func TestAutoDiscRace(t *testing.T) {
 			}
 		}
 	}
-}
-
-func TestInterface(t *testing.T) {
-	face, err := Parse("any")
-	assert.NoError(t, err)
-	t.Log(face, err)
-	c := make(chan struct{}, 0)
-	close(c)
-	Map(face, c, "tcp", 80, 80, "test")
-
-	face, err = Parse("extip:77.12.33.4")
-	assert.NoError(t, err)
-	t.Log(face, err)
-	Map(face, c, "tcp", 80, 80, "test")
-
-	face, err = Parse("pmp:192.168.0.1")
-	assert.NoError(t, err)
-	t.Log(face, err)
-	Map(face, c, "tcp", 80, 80, "test")
-	_, err = face.ExternalIP()
-	assert.NoError(t, err)
-
-	face, err = Parse("upnp")
-	assert.NoError(t, err)
-	t.Log(face, err)
-	Map(face, c, "tcp", 80, 80, "test")
-	_, err = face.ExternalIP()
-	assert.NoError(t, err)
 }

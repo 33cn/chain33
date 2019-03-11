@@ -1081,7 +1081,7 @@ func TestGrpc_CreateRawTransaction(t *testing.T) {
 }
 
 func TestGrpc_CreateTransaction(t *testing.T) {
-	_, err := g.CreateTransaction(getOkCtx(), &pb.CreateTxIn{Execer:[]byte("coins")})
+	_, err := g.CreateTransaction(getOkCtx(), &pb.CreateTxIn{Execer: []byte("coins")})
 	assert.Equal(t, err, types.ErrActionNotSupport)
 }
 
@@ -1161,8 +1161,7 @@ func TestGrpc_SignRawTx(t *testing.T) {
 }
 
 func TestGrpc_QueryRandNum(t *testing.T) {
-	qapi.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&pb.ReplyHash{Hash:[]byte("test")}, nil)
+	qapi.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&pb.ReplyHash{Hash: []byte("test")}, nil)
 	_, err := g.QueryRandNum(getOkCtx(), &pb.ReqRandHash{})
 	assert.NoError(t, err)
 }
-

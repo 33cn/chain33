@@ -184,12 +184,12 @@ func TestGrpc_Call(t *testing.T) {
 
 func TestRPC(t *testing.T) {
 	cfg := &types.RPC{
-		JrpcBindAddr: "8801",
-		GrpcBindAddr: "8802",
-		Whitlist: []string{"127.0.0.1"},
+		JrpcBindAddr:      "8801",
+		GrpcBindAddr:      "8802",
+		Whitlist:          []string{"127.0.0.1"},
 		JrpcFuncBlacklist: []string{"CloseQueue"},
 		GrpcFuncBlacklist: []string{"CloseQueue"},
-		EnableTrace: true,
+		EnableTrace:       true,
 	}
 	InitCfg(cfg)
 	rpc := New(cfg)

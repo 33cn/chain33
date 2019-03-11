@@ -5,6 +5,7 @@
 package util
 
 import (
+	"errors"
 	"sync/atomic"
 	"testing"
 
@@ -13,12 +14,10 @@ import (
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	qmocks "github.com/33cn/chain33/queue/mocks"
-	"github.com/33cn/chain33/types"
-	"github.com/stretchr/testify/assert"
-
-	"errors"
 	_ "github.com/33cn/chain33/system/crypto/secp256k1"
 	_ "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -236,50 +235,50 @@ func TestJSONPrint(t *testing.T) {
 	JSONPrint(t, &types.Reply{})
 }
 
-type TestClient struct {
+type testClient struct {
 	qmocks.Client
 }
 
 var gid int64
 
-func (t *TestClient) NewMessage(topic string, ty int64, data interface{}) queue.Message {
+func (t *testClient) NewMessage(topic string, ty int64, data interface{}) *queue.Message {
 	id := atomic.AddInt64(&gid, 1)
 	return queue.NewMessage(id, topic, ty, data)
 }
 
-func (t *TestClient) Wait(in queue.Message) (queue.Message, error) {
+func (t *testClient) Wait(in *queue.Message) (*queue.Message, error) {
 	switch in.Ty {
 	case types.EventTxHashList:
-		return queue.Message{Data: &types.TxHashList{}}, nil
+		return &queue.Message{Data: &types.TxHashList{}}, nil
 	case types.EventExecTxList:
-		return queue.Message{Data: &types.Receipts{Receipts: []*types.Receipt{&types.Receipt{Ty: 2}, &types.Receipt{Ty: types.ExecErr}}}}, nil
+		return &queue.Message{Data: &types.Receipts{Receipts: []*types.Receipt{{Ty: 2}, {Ty: types.ExecErr}}}}, nil
 	case types.EventStoreMemSet:
-		return queue.Message{Data: &types.ReplyHash{}}, nil
+		return &queue.Message{Data: &types.ReplyHash{}}, nil
 	case types.EventStoreRollback:
-		return queue.Message{Data: &types.ReplyHash{}}, nil
+		return &queue.Message{Data: &types.ReplyHash{}}, nil
 	case types.EventStoreCommit:
-		return queue.Message{Data: &types.ReplyHash{}}, nil
+		return &queue.Message{Data: &types.ReplyHash{}}, nil
 	case types.EventCheckBlock:
-		return queue.Message{Data: &types.Reply{IsOk: true}}, nil
+		return &queue.Message{Data: &types.Reply{IsOk: true}}, nil
 	}
 
-	return queue.Message{}, nil
+	return &queue.Message{}, nil
 }
 
 func TestExecBlock(t *testing.T) {
-	client := &TestClient{}
+	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	var txs []*types.Transaction
 	addr, priv := Genaddress()
 	tx := CreateCoinsTx(priv, addr, types.Coin)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
-	_, _, err := ExecBlock(client, nil, &types.Block{Txs: txs}, false, true)
+	_, _, err := ExecBlock(client, nil, &types.Block{Txs: txs}, false, true, false)
 	assert.NoError(t, err)
 }
 
 func TestExecAndCheckBlock(t *testing.T) {
-	client := &TestClient{}
+	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	_, err := ExecAndCheckBlock(client, &types.Block{}, nil, 0)
 	assert.NoError(t, err)
@@ -288,21 +287,21 @@ func TestExecAndCheckBlock(t *testing.T) {
 }
 
 func TestCheckBlock(t *testing.T) {
-	client := &TestClient{}
+	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	err := CheckBlock(client, nil)
 	assert.NoError(t, err)
 }
 
 func TestExecKVSetRollback(t *testing.T) {
-	client := &TestClient{}
+	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	err := ExecKVSetRollback(client, nil)
 	assert.NoError(t, err)
 }
 
 func TestCheckDupTx(t *testing.T) {
-	client := &TestClient{}
+	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	var txs []*types.Transaction
 	addr, priv := Genaddress()
@@ -315,7 +314,7 @@ func TestCheckDupTx(t *testing.T) {
 
 func TestReportErrEventToFront(t *testing.T) {
 	logger := log.New("test")
-	client := &TestClient{}
+	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	ReportErrEventToFront(logger, client, "from", "to", errors.New("test"))
 }
