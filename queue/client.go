@@ -177,7 +177,7 @@ func (client *client) Close() {
 	atomic.StoreInt32(&client.isClosed, 1)
 	close(client.Recv())
 	for msg := range client.Recv() {
-		msg.ReplyErr("client.close", types.ErrChannelClosed)
+		msg.Reply(client.NewMessage(msg.Topic, msg.Ty, types.ErrChannelClosed))
 	}
 }
 
