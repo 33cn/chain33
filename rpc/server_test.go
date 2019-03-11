@@ -145,6 +145,7 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
 	api := new(mocks.QueueProtocolAPI)
+	_ = NewGrpcServer()
 	server := NewGRpcServer(&qmocks.Client{}, api)
 	assert.NotNil(t, server)
 	go server.Listen()
@@ -179,4 +180,55 @@ func TestGrpc_Call(t *testing.T) {
 
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
+}
+
+func TestRPC(t *testing.T) {
+	cfg := &types.RPC{
+		JrpcBindAddr:      "8801",
+		GrpcBindAddr:      "8802",
+		Whitlist:          []string{"127.0.0.1"},
+		JrpcFuncBlacklist: []string{"CloseQueue"},
+		GrpcFuncBlacklist: []string{"CloseQueue"},
+		EnableTrace:       true,
+	}
+	InitCfg(cfg)
+	rpc := New(cfg)
+	client := &qmocks.Client{}
+	rpc.SetQueueClient(client)
+
+	assert.Equal(t, client, rpc.GetQueueClient())
+	assert.NotNil(t, rpc.GRPC())
+	assert.NotNil(t, rpc.JRPC())
+}
+
+func TestCheckFuncList(t *testing.T) {
+	funcName := "abc"
+	jrpcFuncWhitelist = make(map[string]bool)
+	assert.False(t, checkJrpcFuncWhitelist(funcName))
+	jrpcFuncWhitelist["*"] = true
+	assert.True(t, checkJrpcFuncWhitelist(funcName))
+
+	delete(jrpcFuncWhitelist, "*")
+	jrpcFuncWhitelist[funcName] = true
+	assert.True(t, checkJrpcFuncWhitelist(funcName))
+
+	grpcFuncWhitelist = make(map[string]bool)
+	assert.False(t, checkGrpcFuncWhitelist(funcName))
+	grpcFuncWhitelist["*"] = true
+	assert.True(t, checkGrpcFuncWhitelist(funcName))
+
+	delete(grpcFuncWhitelist, "*")
+	grpcFuncWhitelist[funcName] = true
+	assert.True(t, checkGrpcFuncWhitelist(funcName))
+
+	jrpcFuncBlacklist = make(map[string]bool)
+	assert.False(t, checkJrpcFuncBlacklist(funcName))
+	jrpcFuncBlacklist[funcName] = true
+	assert.True(t, checkJrpcFuncBlacklist(funcName))
+
+	grpcFuncBlacklist = make(map[string]bool)
+	assert.False(t, checkGrpcFuncBlacklist(funcName))
+	grpcFuncBlacklist[funcName] = true
+	assert.True(t, checkGrpcFuncBlacklist(funcName))
+
 }

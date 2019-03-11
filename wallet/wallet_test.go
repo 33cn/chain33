@@ -14,12 +14,12 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/store"
+	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
+	wcom "github.com/33cn/chain33/wallet/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	_ "github.com/33cn/chain33/system"
 )
 
 func init() {
@@ -47,6 +47,8 @@ var (
 	ToAddr1     string
 	ToAddr2     string
 	AddrPrivKey string
+	addr        string
+	priv        crypto.PrivKey
 )
 
 func blockchainModProc(q queue.Queue) {
@@ -93,12 +95,14 @@ func blockchainModProc(q queue.Queue) {
 				msg.Reply(client.NewMessage("", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 1}))
 			} else if msg.Ty == types.EventIsSync {
 				msg.Reply(client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: true}))
+			} else if msg.Ty == types.EventQueryTx {
+				msg.Reply(client.NewMessage("", types.EventTransactionDetail, &types.TransactionDetail{Receipt: &types.ReceiptData{Ty: types.ExecOk}}))
 			}
 		}
 	}()
 	go func() {
 		client := q.Client()
-		client.Sub("execs")
+		client.Sub("exec")
 		for msg := range client.Recv() {
 			walletlog.Error("execs", "msg.Ty", msg.Ty)
 			if msg.Ty == types.EventBlockChainQuery {
@@ -181,6 +185,9 @@ func TestWallet(t *testing.T) {
 	testSignRawTx(t, wallet)
 	testsetFatalFailure(t, wallet)
 	testgetFatalFailure(t, wallet)
+
+	testWallet(t, wallet)
+	testSendTx(t, wallet)
 }
 
 //ProcWalletLock
@@ -736,4 +743,76 @@ func testgetFatalFailure(t *testing.T, wallet *Wallet) {
 	require.NoError(t, err)
 	println("testgetFatalFailure end")
 	println("--------------------------")
+}
+
+func testWallet(t *testing.T, wallet *Wallet) {
+	println("test wallet begin")
+	addr, priv = util.Genaddress()
+	bpriv := wcom.CBCEncrypterPrivkey([]byte(wallet.Password), priv.Bytes())
+	was := &types.WalletAccountStore{Privkey: common.ToHex(bpriv), Label: "test", Addr: addr, TimeStamp: time.Now().String()}
+	err := wallet.SetWalletAccount(false, addr, was)
+	assert.NoError(t, err)
+	was1, err := wallet.GetAccountByAddr(addr)
+	assert.NoError(t, err)
+	assert.Equal(t, was.Privkey, was1.Privkey)
+	was2, err := wallet.GetAccountByLabel("test")
+	assert.NoError(t, err)
+	assert.Equal(t, was.Privkey, was2.Privkey)
+	priv2, err := wallet.GetPrivKeyByAddr(addr)
+	assert.NoError(t, err)
+	assert.Equal(t, priv, priv2)
+	_, err = wallet.GetWalletAccounts()
+	assert.NoError(t, err)
+	t.Log("password:", wallet.Password)
+
+	wallet.walletStore.SetWalletPassword("Newpass2")
+	assert.Equal(t, "Newpass2", wallet.walletStore.GetWalletPassword())
+
+	err = wallet.walletStore.SetFeeAmount(1e5)
+	assert.NoError(t, err)
+	fee := wallet.walletStore.GetFeeAmount(1e4)
+	assert.Equal(t, int64(1e5), fee)
+
+	println("test wallet end")
+
+	wallet.GetConfig()
+	wallet.GetMutex()
+	wallet.GetDBStore()
+	wallet.GetSignType()
+	wallet.GetPassword()
+	wallet.Nonce()
+	wallet.GetRandom()
+	wallet.GetBlockHeight()
+	wallet.GetWalletDone()
+	wallet.GetLastHeader()
+	wallet.IsClose()
+	wallet.AddWaitGroup(1)
+	wallet.WaitGroupDone()
+	wallet.RegisterMineStatusReporter(nil)
+}
+
+func testSendTx(t *testing.T, wallet *Wallet) {
+	ok := wallet.IsCaughtUp()
+	assert.True(t, ok)
+
+	_, err := wallet.GetBalance(addr, "coins")
+	assert.NoError(t, err)
+
+	_, err = wallet.GetAllPrivKeys()
+	assert.NoError(t, err)
+	hash, err := wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("coins"), priv, ToAddr1)
+	assert.NoError(t, err)
+
+	//wallet.WaitTx(hash)
+	wallet.WaitTxs([][]byte{hash})
+	hash, err = wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
+	assert.NoError(t, err)
+	t.Log(string(hash))
+
+	err = wallet.sendTransactionWait(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
+	assert.NoError(t, err)
+
+	_, err = wallet.getMinerColdAddr(addr)
+	assert.Equal(t, types.ErrActionNotSupport, err)
+
 }

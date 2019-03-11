@@ -11,6 +11,7 @@ import (
 	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
 	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 	. "github.com/33cn/chain33/wallet/bipwallet/go-bip44"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewKeyFromMnemonic(t *testing.T) {
@@ -30,6 +31,10 @@ func TestNewKeyFromMnemonic(t *testing.T) {
 	if ecKey.String() != "xprvA2ziNegvZRfAAUtDsjeS9LvCP1TFXfR3hUzMcJw7oYAhdPqZyiJTMf1ByyLRxvQmGvgbPcG6Q569m26ixWsmgTR3d3PwicrG7hGD7C7seJA" {
 		t.Errorf("Invalid EC key - %v", ecKey.String())
 	}
+
+	mnemonic = "aaaaaa"
+	_, err = NewKeyFromMnemonic(mnemonic, bipwallet.TypeFactomFactoids, bip32.FirstHardenedChild, 0, 0)
+	assert.NotNil(t, err)
 }
 
 func TestNewKeyFromMasterKey(t *testing.T) {
@@ -60,6 +65,9 @@ func TestNewKeyFromMasterKey(t *testing.T) {
 	if ecKey.String() != "xprvA2ziNegvZRfAAUtDsjeS9LvCP1TFXfR3hUzMcJw7oYAhdPqZyiJTMf1ByyLRxvQmGvgbPcG6Q569m26ixWsmgTR3d3PwicrG7hGD7C7seJA" {
 		t.Errorf("Invalid EC key - %v", ecKey.String())
 	}
+
+	_, err = NewKeyFromMasterKey(&bip32.Key{}, bipwallet.TypeFactomFactoids, bip32.FirstHardenedChild, 0, 0)
+	assert.NotNil(t, err)
 }
 
 /*

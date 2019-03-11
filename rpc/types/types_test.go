@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,34 @@ func TestDecodeTx(t *testing.T) {
 	data, err = DecodeTx(&tx)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
+}
+
+func TestDecodeLog(t *testing.T) {
+	execer := []byte("coins")
+	log := &ReceiptLog{}
+	receipt := &ReceiptData{Ty: 2, Logs: []*ReceiptLog{log}}
+	_, err := DecodeLog(execer, receipt)
+	assert.NoError(t, err)
+}
+
+func TestConvertWalletTxDetailToJSON(t *testing.T) {
+
+	tx := &types.Transaction{Execer: []byte("coins")}
+	log := &types.ReceiptLog{Ty: 0, Log: []byte("test")}
+	receipt := &types.ReceiptData{Ty: 0, Logs: []*types.ReceiptLog{log}}
+	detail := &types.WalletTxDetail{Tx: tx, Receipt: receipt}
+	in := &types.WalletTxDetails{TxDetails: []*types.WalletTxDetail{detail}}
+	out := &WalletTxDetails{}
+	err := ConvertWalletTxDetailToJSON(in, out)
+	assert.NoError(t, err)
+}
+
+func TestServer(t *testing.T) {
+	api := &mocks.QueueProtocolAPI{}
+	ch := ChannelClient{QueueProtocolAPI: api}
+	ch.Init("test", nil, nil, nil)
+	db := ch.GetCoinsAccountDB()
+	assert.NotNil(t, db)
 }
 
 func TestDecodeTx2(t *testing.T) {
