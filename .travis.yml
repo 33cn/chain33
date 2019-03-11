@@ -11,7 +11,7 @@ matrix:
     - name: check_fmt
       sudo: require
       go:
-        - "1.9"
+        - "1.11.x"
         - master
       install:
         - go get -u golang.org/x/tools/cmd/goimports
