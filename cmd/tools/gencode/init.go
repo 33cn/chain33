@@ -4,6 +4,19 @@
 package gencode
 
 import (
+	"github.com/33cn/chain33/cmd/tools/gencode/base"
 	_ "github.com/33cn/chain33/cmd/tools/gencode/dappcode"
 )
 
+
+
+
+func GetCodeFilesWithType(typeName string) []base.ICodeFile {
+
+	if fileArr, ok := base.CodeFileManager[typeName]; ok {
+
+		return fileArr
+	}
+
+	return nil
+}

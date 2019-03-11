@@ -30,17 +30,6 @@ func RegisterCodeFile(filer ICodeFile) {
 }
 
 
-func GetCodeFilesWithType(typeName string) []ICodeFile {
-
-	if fileArr, ok := CodeFileManager[typeName]; ok {
-
-		return fileArr
-	}
-
-	return nil
-}
-
-
 type BaseCodeFile struct {
 	
 }
