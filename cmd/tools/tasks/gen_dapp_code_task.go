@@ -23,7 +23,6 @@ type GenDappCodeTask struct {
 	DappName     string
 	DappDir      string
 	ProtoFile    string
-	actionInfos  []*actionInfoItem
 	replacePairs map[string]string
 }
 

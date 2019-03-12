@@ -5,6 +5,7 @@
 package gencode
 
 const (
+	//ProtoFileAppendService proto文件service
 	ProtoFileAppendService = `
 service ${EXECNAME} {
 

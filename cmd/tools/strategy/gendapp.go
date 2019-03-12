@@ -53,8 +53,10 @@ func (ad *genDappStrategy) initMember() bool {
 		goPath := os.Getenv("GOPATH")
 		if goPath == "" {
 			outDir = "gendappcode"
+		} else {
+			outDir = filepath.Join(goPath, "src", "github.com", "33cn", "plugin", "plugin", "dapp")
 		}
-		outDir = filepath.Join(goPath, "src", "github.com", "33cn", "plugin", "plugin", "dapp")
+
 	}
 
 	dappRootDir := filepath.Join(outDir, dappName)

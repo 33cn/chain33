@@ -5,9 +5,11 @@
 package base
 
 var (
+	//CodeFileManager 类型文件
 	CodeFileManager = map[string][]ICodeFile{}
 )
 
+// ICodeFile code file interface
 type ICodeFile interface {
 	GetCodeType() string
 	GetDirName() string
@@ -15,6 +17,7 @@ type ICodeFile interface {
 	GetReplaceTags() []string
 }
 
+//RegisterCodeFile regeister code file
 func RegisterCodeFile(filer ICodeFile) {
 
 	codeType := filer.GetCodeType()
@@ -23,24 +26,29 @@ func RegisterCodeFile(filer ICodeFile) {
 	CodeFileManager[codeType] = fileArr
 }
 
-type BaseCodeFile struct {
+// CodeFile 基础类
+type CodeFile struct {
 }
 
-func (BaseCodeFile) GetCodeType() string {
+//GetCodeType get cody type
+func (CodeFile) GetCodeType() string {
 	return ""
 }
 
-func (BaseCodeFile) GetDirName() string {
+//GetDirName get directory name
+func (CodeFile) GetDirName() string {
 
 	return ""
 }
 
-func (BaseCodeFile) GetFiles() map[string]string {
+//GetFiles get files
+func (CodeFile) GetFiles() map[string]string {
 
 	return nil
 }
 
-func (BaseCodeFile) GetReplaceTags() []string {
+//GetReplaceTags get replace tags
+func (CodeFile) GetReplaceTags() []string {
 
 	return nil
 }
