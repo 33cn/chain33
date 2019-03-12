@@ -5,9 +5,9 @@
 package rpc
 
 import (
-	"testing"
-
+	"encoding/hex"
 	"fmt"
+	"testing"
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/mocks"
@@ -67,6 +67,12 @@ func testCreateRawTransactionTo(t *testing.T) {
 
 	client := newTestChannelClient()
 	rawtx, err := client.CreateRawTransaction(&tx)
+	assert.NoError(t, err)
+
+	reqDecode := &types.ReqDecodeRawTransaction{TxHex: hex.EncodeToString(rawtx)}
+	_, err = client.DecodeRawTransaction(reqDecode)
+	assert.NoError(t, err)
+
 	assert.Nil(t, err)
 	var mytx types.Transaction
 	err = types.Decode(rawtx, &mytx)
@@ -343,21 +349,30 @@ func TestChannelClient_GetBalance(t *testing.T) {
 	testChannelClient_GetBalanceOther(t)
 }
 
-// func TestChannelClient_GetTotalCoins(t *testing.T) {
-// 	client := newTestChannelClient()
-// 	data, err := client.GetTotalCoins(nil)
-// 	assert.NotNil(t, err)
-// 	assert.Nil(t, data)
-//
-// 	// accountdb =
-// 	token := &types.ReqGetTotalCoins{
-// 		Symbol:    "CNY",
-// 		StateHash: []byte("1234"),
-// 		StartKey:  []byte("sad"),
-// 		Count:     1,
-// 		Execer:    "coin",
-// 	}
-// 	data, err = client.GetTotalCoins(token)
-// 	assert.NotNil(t, data)
-// 	assert.Nil(t, err)
-// }
+func TestChannelClient_GetTotalCoins(t *testing.T) {
+	client := new(channelClient)
+	api := new(mocks.QueueProtocolAPI)
+	client.Init(&qmock.Client{}, api)
+	api.On("StoreGetTotalCoins", mock.Anything).Return(&types.ReplyGetTotalCoins{}, nil)
+	_, err := client.GetTotalCoins(&types.ReqGetTotalCoins{})
+	assert.NoError(t, err)
+
+	// accountdb =
+	//token := &types.ReqGetTotalCoins{
+	//	Symbol:    "CNY",
+	//	StateHash: []byte("1234"),
+	//	StartKey:  []byte("sad"),
+	//	Count:     1,
+	//	Execer:    "coin",
+	//}
+	//data, err = client.GetTotalCoins(token)
+	//assert.NotNil(t, data)
+	//assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
+	client := new(channelClient)
+	in := &types.NoBalanceTx{}
+	_, err := client.CreateNoBalanceTransaction(in)
+	assert.NoError(t, err)
+}

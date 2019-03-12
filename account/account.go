@@ -434,3 +434,78 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 
 	return r
 }
+
+// Mint 铸币
+func (acc *DB) Mint(addr string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+
+	accTo := acc.LoadAccount(addr)
+	balance, err := safeAdd(accTo.Balance, amount)
+	if err != nil {
+		return nil, err
+	}
+
+	copyAcc := *accTo
+	accTo.Balance = balance
+
+	receipt := &types.ReceiptAccountMint{
+		Prev:    &copyAcc,
+		Current: accTo,
+	}
+	kv := acc.GetKVSet(accTo)
+	acc.SaveKVSet(kv)
+	return acc.mintReceipt(kv, receipt), nil
+}
+
+func (acc *DB) mintReceipt(kv []*types.KeyValue, receipt proto.Message) *types.Receipt {
+	ty := int32(types.TyLogMint)
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receipt),
+	}
+
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1},
+	}
+}
+
+// Burn 然收
+func (acc *DB) Burn(addr string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+
+	accTo := acc.LoadAccount(addr)
+	if accTo.Balance < amount {
+		return nil, types.ErrNoBalance
+	}
+
+	copyAcc := *accTo
+	accTo.Balance = accTo.Balance - amount
+
+	receipt := &types.ReceiptAccountBurn{
+		Prev:    &copyAcc,
+		Current: accTo,
+	}
+	kv := acc.GetKVSet(accTo)
+	acc.SaveKVSet(kv)
+	return acc.burnReceipt(kv, receipt), nil
+}
+
+func (acc *DB) burnReceipt(kv []*types.KeyValue, receipt proto.Message) *types.Receipt {
+	ty := int32(types.TyLogBurn)
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receipt),
+	}
+
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1},
+	}
+}

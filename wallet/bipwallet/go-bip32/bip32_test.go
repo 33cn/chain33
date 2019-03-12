@@ -124,4 +124,8 @@ func testVectorKeyPairs(t *testing.T, vector testMasterKey) {
 		assert.Equal(t, testChildKey.privKey, privKey.String())
 		assert.Equal(t, testChildKey.pubKey, pubKey.String())
 	}
+
+	childPubkey, err := pubKey.NewChildKey(0)
+	assert.NoError(t, err)
+	assert.NotNil(t, childPubkey)
 }

@@ -210,6 +210,10 @@ enableMVCC=false
 enableMavlPrune=false
 # 裁剪高度间隔
 pruneHeight=10000
+# 是否使能mavl数据载入内存
+enableMemTree=false
+# 是否使能mavl叶子节点数据载入内存
+enableMemVal=false
 
 [wallet]
 # 交易发送最低手续费，单位0.00000001BTY(1e-8),默认100000，即0.001BTY

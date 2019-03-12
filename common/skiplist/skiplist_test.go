@@ -75,5 +75,6 @@ func TestWalk(t *testing.T) {
 	assert.Equal(t, "222", iter.First().Value.(string))
 	assert.Equal(t, int64(1), iter.Last().Score)
 	assert.Equal(t, "111", iter.Last().Value.(string))
+	l.Print()
 
 }

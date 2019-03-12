@@ -331,9 +331,17 @@ func BenchmarkGetMerkelRoot2(b *testing.B) {
 	}
 }
 
-var testlen = 14
-
 func TestGetMerkelRoot1(t *testing.T) {
+	for i := 0; i < 2000; i++ {
+		ok := testGetMerkelRoot1(t, i)
+		if !ok {
+			t.Error("calc merkel root error", i)
+			return
+		}
+	}
+}
+
+func testGetMerkelRoot1(t *testing.T, testlen int) bool {
 	var hashlist [][]byte
 	for i := 0; i < testlen; i++ {
 		key := sha256.Sum256([]byte(fmt.Sprint(i)))
@@ -347,7 +355,10 @@ func TestGetMerkelRoot1(t *testing.T) {
 		hashlist = append(hashlist, key[:])
 	}
 	hash2 := getMerkleRoot(hashlist)
-	assert.Equal(t, hash1, hash2)
+	if !bytes.Equal(hash1, hash2) {
+		println("failed1")
+		return false
+	}
 
 	hashlist = nil
 	for i := 0; i < testlen; i++ {
@@ -355,7 +366,11 @@ func TestGetMerkelRoot1(t *testing.T) {
 		hashlist = append(hashlist, key[:])
 	}
 	hash3, _, _ := Computation(hashlist, 1, 0)
-	assert.Equal(t, hash1, hash3)
+	if !bytes.Equal(hash1, hash3) {
+		println("failed2")
+		return false
+	}
+	return true
 }
 
 func TestLog2(t *testing.T) {

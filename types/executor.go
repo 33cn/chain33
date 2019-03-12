@@ -508,13 +508,7 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 
 //DecodePayloadValue 解析tx交易中的payload具体Value值
 func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
-	if txc, ok := txCache.Get(tx); ok {
-		return txc.(*TransactionCache).GetPayloadValue()
-	}
-	txc := NewTransactionCache(tx)
 	name, value, err := base.decodePayloadValue(tx)
-	txc.SetPayloadValue(name, value, err)
-	txCache.Add(tx, txc)
 	return name, value, err
 }
 

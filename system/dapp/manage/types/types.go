@@ -20,7 +20,7 @@ var (
 	}
 	logmap = map[int64]*types.LogInfo{
 		// 这里reflect.TypeOf类型必须是proto.Message类型，且是交易的回持结构
-		TyLogModifyConfig: {reflect.TypeOf(types.ReceiptConfig{}), "LogModifyConfig"},
+		TyLogModifyConfig: {Ty: reflect.TypeOf(types.ReceiptConfig{}), Name: "LogModifyConfig"},
 	}
 )
 

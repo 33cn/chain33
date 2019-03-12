@@ -554,3 +554,50 @@ func TestGetExecBalance2(t *testing.T) {
 		assert.Equal(t, 1, len(reply.Items))
 	*/
 }
+
+func TestGetBalance(t *testing.T) {
+	accCoin := NewCoinsAccount()
+	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+
+	fmt.Println("-------------TestGetExecBalance2---test case1---")
+	api := new(mocks.QueueProtocolAPI)
+	in := &types.ReqBalance{}
+	in.Addresses = append(in.Addresses, addr)
+	api.On("StoreList", mock.Anything).Return(&types.StoreListReply{}, nil)
+	api.On("GetLastHeader", mock.Anything).Return(&types.Header{StateHash: []byte("111111111111111111111")}, nil)
+	api.On("StoreGet", mock.Anything).Return(&types.StoreReplyValue{Values: make([][]byte, 1)}, nil)
+	_, err := accCoin.GetBalance(api, in)
+	assert.Nil(t, err)
+
+	fmt.Println("-------------TestGetExecBalance2---test case2---")
+	in.StateHash = "111111111111111111111"
+	_, err = accCoin.GetBalance(api, in)
+	assert.Nil(t, err)
+
+	fmt.Println("-------------TestGetExecBalance2---test case3---")
+	in.Execer = "coins"
+	//api.On("StoreList", mock.Anything).Return(nil, types.ErrInvalidParam)
+	_, err = accCoin.GetBalance(api, in)
+	t.Log(err)
+	assert.Nil(t, err)
+}
+
+func TestDB_Mint(t *testing.T) {
+	_, tokenCoin := GenerAccDb()
+	tokenCoin.GenerAccData()
+
+	_, err := tokenCoin.Mint(addr1, 10*1e8)
+	require.NoError(t, err)
+	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, int64(1000*1e8+10*1e8), tokenCoin.LoadAccount(addr1).Balance)
+}
+
+func TestDB_Burn(t *testing.T) {
+	_, tokenCoin := GenerAccDb()
+	tokenCoin.GenerAccData()
+
+	_, err := tokenCoin.Burn(addr1, 10*1e8)
+	require.NoError(t, err)
+	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, int64(1000*1e8-10*1e8), tokenCoin.LoadAccount(addr1).Balance)
+}
