@@ -4,10 +4,12 @@
 
 package base
 
+// DappCodeFile dapp code source
 type DappCodeFile struct {
-	BaseCodeFile
+	CodeFile
 }
 
+// GetCodeType get code type
 func (DappCodeFile) GetCodeType() string {
 	return "dapp"
 }
