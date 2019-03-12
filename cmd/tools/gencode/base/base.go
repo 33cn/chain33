@@ -4,22 +4,16 @@
 
 package base
 
-
 var (
 	CodeFileManager = map[string][]ICodeFile{}
 )
 
-
-
 type ICodeFile interface {
-
 	GetCodeType() string
 	GetDirName() string
-	GetFiles() map[string]string		//key:filename, val:file content
+	GetFiles() map[string]string //key:filename, val:file content
 	GetReplaceTags() []string
-
 }
-
 
 func RegisterCodeFile(filer ICodeFile) {
 
@@ -29,27 +23,22 @@ func RegisterCodeFile(filer ICodeFile) {
 	CodeFileManager[codeType] = fileArr
 }
 
-
 type BaseCodeFile struct {
-	
 }
 
-func (BaseCodeFile)GetCodeType() string {
+func (BaseCodeFile) GetCodeType() string {
 	return ""
 }
 
-
-func (BaseCodeFile)GetDirName() string {
+func (BaseCodeFile) GetDirName() string {
 
 	return ""
 }
 
-
-func (BaseCodeFile)GetFiles() map[string]string {
+func (BaseCodeFile) GetFiles() map[string]string {
 
 	return nil
 }
-
 
 func (BaseCodeFile) GetReplaceTags() []string {
 

@@ -15,19 +15,16 @@ func init() {
 	base.RegisterCodeFile(protoFile{})
 }
 
-
 type protoBase struct {
 	base.DappCodeFile
 }
 
-
-func (protoBase)GetDirName() string {
+func (protoBase) GetDirName() string {
 
 	return "proto"
 }
 
-
-func (protoBase)GetFiles() map[string]string {
+func (protoBase) GetFiles() map[string]string {
 
 	return map[string]string{
 		protoShellName: protoShellContent,
@@ -39,34 +36,28 @@ type protoFile struct {
 	protoBase
 }
 
-func (protoFile)GetFiles() map[string]string {
-	return map[string]string {
-		protoFileName:protoFileContent,
+func (protoFile) GetFiles() map[string]string {
+	return map[string]string{
+		protoFileName: protoFileContent,
 	}
 }
 
-func (protoFile)GetReplaceTags() []string {
-	return []string {types.TagProtoFileContent, types.TagProtoFileAppend, types.TagExecName}
+func (protoFile) GetReplaceTags() []string {
+	return []string{types.TagProtoFileContent, types.TagProtoFileAppend, types.TagExecName}
 }
 
-
 var (
-
-
 	protoShellName    = "create_protobuf.sh"
-	protoShellContent =
-`#!/bin/sh
-protoc --go_out=plugins=grpc:../code ./*.proto
+	protoShellContent = `#!/bin/sh
+protoc --go_out=plugins=grpc:../types ./*.proto
 `
 
-	makeName = "Makefile"
-	makeContent =
-`all:
+	makeName    = "Makefile"
+	makeContent = `all:
 	./create_protobuf.sh
 `
 
-	protoFileName = "${EXECNAME}.proto"
-	protoFileContent =
-`${PROTOFILECONTENT}
+	protoFileName    = "${EXECNAME}.proto"
+	protoFileContent = `${PROTOFILECONTENT}
 ${PROTOFILEAPPEND}`
 )

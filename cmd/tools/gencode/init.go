@@ -8,9 +8,6 @@ import (
 	_ "github.com/33cn/chain33/cmd/tools/gencode/dappcode"
 )
 
-
-
-
 func GetCodeFilesWithType(typeName string) []base.ICodeFile {
 
 	if fileArr, ok := base.CodeFileManager[typeName]; ok {

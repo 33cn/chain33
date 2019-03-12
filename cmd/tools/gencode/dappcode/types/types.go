@@ -14,25 +14,21 @@ func init() {
 	base.RegisterCodeFile(typesCode{})
 }
 
-
 type typesCode struct {
 	base.DappCodeFile
 }
 
-
-func (c typesCode)GetDirName() string {
+func (c typesCode) GetDirName() string {
 
 	return "types"
 }
 
-
-func (c typesCode)GetFiles() map[string]string {
+func (c typesCode) GetFiles() map[string]string {
 
 	return map[string]string{
 		typesName: typesContent,
 	}
 }
-
 
 func (c typesCode) GetReplaceTags() []string {
 
@@ -41,13 +37,9 @@ func (c typesCode) GetReplaceTags() []string {
 		types.TagLogMapText, types.TagTypeMapText}
 }
 
-
-
 var (
-
-	typesName = "${EXECNAME}.go"
-	typesContent =
-`package types
+	typesName    = "${EXECNAME}.go"
+	typesContent = `package types
 
 import (
 "github.com/33cn/chain33/types"

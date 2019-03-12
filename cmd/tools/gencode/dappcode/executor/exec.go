@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-
 package executor
 
 import (
@@ -10,8 +9,7 @@ import (
 	"github.com/33cn/chain33/cmd/tools/types"
 )
 
-
-func init(){
+func init() {
 	base.RegisterCodeFile(execCode{})
 	base.RegisterCodeFile(execLocalCode{})
 	base.RegisterCodeFile(execDelLocalCode{})
@@ -21,62 +19,53 @@ type execCode struct {
 	executorCodeFile
 }
 
-
-func (execCode)GetFiles() map[string]string {
+func (execCode) GetFiles() map[string]string {
 
 	return map[string]string{
 		execName: execContent,
 	}
 }
 
-func (execCode)GetReplaceTags() []string {
+func (execCode) GetReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagClassName, types.TagExecFileContent}
 }
-
 
 type execLocalCode struct {
 	executorCodeFile
 }
 
-func (execLocalCode)GetFiles() map[string]string {
+func (execLocalCode) GetFiles() map[string]string {
 
 	return map[string]string{
-		execLocalName:execLocalContent,
+		execLocalName: execLocalContent,
 	}
 }
 
-func (execLocalCode)GetReplaceTags() []string {
+func (execLocalCode) GetReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagExecLocalFileContent}
 }
-
 
 type execDelLocalCode struct {
 	executorCodeFile
 }
 
-func (execDelLocalCode)GetFiles() map[string]string {
+func (execDelLocalCode) GetFiles() map[string]string {
 
 	return map[string]string{
-		execDelName:execDelContent,
+		execDelName: execDelContent,
 	}
 }
 
-func (execDelLocalCode)GetReplaceTags() []string {
+func (execDelLocalCode) GetReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagExecDelLocalFileContent}
 }
 
-
-
-
-
 var (
-
-	execName = "exec.go"
-	execContent =
-`package executor
+	execName    = "exec.go"
+	execContent = `package executor
 
 import (
 	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
@@ -85,9 +74,8 @@ import (
 
 ${EXECFILECONTENT}`
 
-	execLocalName = "exec_local.go"
-	execLocalContent =
-`package executor
+	execLocalName    = "exec_local.go"
+	execLocalContent = `package executor
 
 import (
 	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
@@ -96,10 +84,8 @@ import (
 
 ${EXECLOCALFILECONTENT}`
 
-
-	execDelName = "exec_del_local.go"
-	execDelContent =
-`package executor
+	execDelName    = "exec_del_local.go"
+	execDelContent = `package executor
 
 import (
 	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
@@ -107,6 +93,4 @@ import (
 )
 
 ${EXECDELLOCALFILECONTENT}`
-
-
 )

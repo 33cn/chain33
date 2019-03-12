@@ -17,7 +17,6 @@ type actionInfoItem struct {
 	memberType string
 }
 
-
 /**
 通过正则获取Action的成员变量名和类型，其具体操作步骤如下：
 1. 读取需要解析的proto文件
@@ -26,7 +25,7 @@ type actionInfoItem struct {
 4. 使用正则解析oneof Value中的内容，获取变量名和类型名
 5. 将获取到的变量名去除空格，并将首字母大写
 */
-func readDappActionFromProto(protoContent , actionName string) ([]*actionInfoItem, error) {
+func readDappActionFromProto(protoContent, actionName string) ([]*actionInfoItem, error) {
 
 	// 如果文件中含有与ActionName部分匹配的文字，则会造成搜索到多个
 	index := strings.Index(protoContent, actionName)
@@ -57,7 +56,6 @@ func readDappActionFromProto(protoContent , actionName string) ([]*actionInfoIte
 	}
 	return actionInfos, nil
 }
-
 
 func formatExecContent(infos []*actionInfoItem, dappName string) string {
 
@@ -104,9 +102,6 @@ func formatExecDelLocalContent(infos []*actionInfoItem, dappName string) string 
 	return content
 }
 
-
-
-
 // 组成规则是 TyLog+ActionName + ActionMemberName
 func buildActionLogTypeText(infos []*actionInfoItem, className string) (text string) {
 	items := fmt.Sprintf("TyLog%sUnknown = iota\n", className)
@@ -128,7 +123,7 @@ func buildActionIDText(infos []*actionInfoItem, className string) (text string) 
 }
 
 // 返回 map[string]int32
-func  buildTypeMapText(infos []*actionInfoItem, className string) (text string) {
+func buildTypeMapText(infos []*actionInfoItem, className string) (text string) {
 	var items string
 	for _, info := range infos {
 		items += fmt.Sprintf("\"%s\": %sAction%s,\n", info.memberName, className, info.memberName)
@@ -138,7 +133,7 @@ func  buildTypeMapText(infos []*actionInfoItem, className string) (text string) 
 }
 
 // 返回 map[string]*types.LogInfo
-func  buildLogMapText() (text string) {
+func buildLogMapText() (text string) {
 	text = fmt.Sprintf("map[int64]*types.LogInfo{\n}")
 	return
 }
