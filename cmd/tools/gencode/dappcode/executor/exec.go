@@ -25,13 +25,13 @@ type execCode struct {
 func (execCode)GetFiles() map[string]string {
 
 	return map[string]string{
-		execName: executorContent,
+		execName: execContent,
 	}
 }
 
 func (execCode)GetReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagExecFileContent}
+	return []string{types.TagExecName, types.TagClassName, types.TagExecFileContent}
 }
 
 

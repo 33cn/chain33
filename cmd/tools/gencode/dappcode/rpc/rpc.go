@@ -53,13 +53,12 @@ var (
 `package rpc
 
 import (
-	pcode "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/code"
-	rpccode "github.com/33cn/chain33/rpc/code"
-	"github.com/33cn/chain33/code"
+	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
+	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
 type channelClient struct {
-	rpccode.ChannelClient
+	rpctypes.ChannelClient
 }
 
 type Jrpc struct {
@@ -70,11 +69,11 @@ type Grpc struct {
 	*channelClient
 }
 
-func Init(name string, s rpccode.RPCServer) {
+func Init(name string, s rpctypes.RPCServer) {
 	cli := &channelClient{}
 	grpc := &Grpc{channelClient: cli}
 	cli.Init(name, s, &Jrpc{cli: cli}, grpc)
 	//存在grpc service时注册grpc server，需要生成对应的pb.go文件
-	pcode.Register${CLASSNAME}Server(s.GRPC(), grpc)
+	ptypes.Register${CLASSNAME}Server(s.GRPC(), grpc)
 }`
 )

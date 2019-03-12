@@ -6,6 +6,7 @@ package commands
 
 import (
 	"github.com/33cn/chain33/cmd/tools/gencode/base"
+	"github.com/33cn/chain33/cmd/tools/types"
 )
 
 func init() {
@@ -32,6 +33,10 @@ func (c commandsCodeFile)GetFiles() map[string]string {
 	}
 }
 
+func (c commandsCodeFile)GetReplaceTags() []string {
+	return []string{types.TagExecName}
+}
+
 
 
 
@@ -45,7 +50,15 @@ package commands
 import "github.com/spf13/cobra"
 
 func Cmd() *cobra.Command {
-	return &cobra.Command{}
+	cmd := &cobra.Command{
+		Use:	"${EXECNAME}",
+		Short:	"${EXECNAME} command",
+		Args:	cobra.MinimumNArgs(1),
+	}
+	cmd.AddCommand(
+		//add sub command
+	)
+	return cmd
 }
 `
 )

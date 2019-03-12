@@ -10,6 +10,7 @@ import (
 	_ "github.com/33cn/chain33/cmd/tools/gencode/dappcode/executor"
 	_ "github.com/33cn/chain33/cmd/tools/gencode/dappcode/proto"
 	_ "github.com/33cn/chain33/cmd/tools/gencode/dappcode/rpc"
+	_ "github.com/33cn/chain33/cmd/tools/gencode/dappcode/types"
 )
 
 
