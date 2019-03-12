@@ -14,38 +14,30 @@ func init() {
 	base.RegisterCodeFile(executorCodeFile{})
 }
 
-
 type executorCodeFile struct {
 	base.DappCodeFile
 }
 
-
-func (c executorCodeFile)GetDirName() string {
+func (c executorCodeFile) GetDirName() string {
 
 	return "executor"
 }
 
-
-func (c executorCodeFile)GetFiles() map[string]string {
+func (c executorCodeFile) GetFiles() map[string]string {
 
 	return map[string]string{
 		executorName: executorContent,
 	}
 }
 
-
 func (c executorCodeFile) GetReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagClassName}
 }
 
-
-
 var (
-
-	executorName = "${EXECNAME}.go"
-	executorContent =
-`package executor
+	executorName    = "${EXECNAME}.go"
+	executorContent = `package executor
 
 import (
 	log "github.com/33cn/chain33/common/log/log15"

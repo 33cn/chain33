@@ -12,8 +12,6 @@ import (
 	"github.com/33cn/chain33/cmd/tools/util"
 )
 
-
-
 // CreateDappSourceTask 通过生成好的pb.go和预先设计的模板，生成反射程序源码
 type CreateDappSourceTask struct {
 	TaskBase
@@ -76,20 +74,15 @@ func (c *CreateDappSourceTask) init() error {
 	return nil
 }
 
-
-
-
 func (c *CreateDappSourceTask) readActionMemberNames() error {
 	var err error
 	pbContext, err := util.ReadFile(c.ProtoFile)
 	if err != nil {
-		return  err
+		return err
 	}
 	c.actionInfos, err = readDappActionFromProto(string(pbContext), c.ActionName)
 	return err
 }
-
-
 
 func (c *CreateDappSourceTask) createExecFile() error {
 
@@ -130,8 +123,6 @@ func (c *CreateDappSourceTask) createExecDelLocalFile() error {
 	return nil
 }
 
-
-
 /**
 createTypeExecuteFile 根据自己的需求，创建一个types中与执行器同名的Type对照关系
 需要处理的内容：
@@ -148,7 +139,6 @@ func (c *CreateDappSourceTask) createTypeExecuteFile() error {
 	logMapText := buildLogMapText() // ${LOGMAPTEXT}
 
 	typeMapText := buildTypeMapText(c.actionInfos, c.ExecuteName) // ${TYPEMAPTEXT}
-
 
 	replacePairs := []struct {
 		src string

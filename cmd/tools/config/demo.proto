@@ -10,8 +10,7 @@ message DemoAction {
     int32 ty = 3;
 }
 
-message DemoHello {
-}
+message DemoHello {}
 
 message DemoEcho {
     string data = 1;

@@ -4,15 +4,9 @@
 
 package gencode
 
-
-
 const (
-
-
 	ProtoFileAppendService = `
 service ${EXECNAME} {
 
 }`
-
-
 )

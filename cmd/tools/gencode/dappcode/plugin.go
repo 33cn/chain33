@@ -9,38 +9,29 @@ import (
 	"github.com/33cn/chain33/cmd/tools/types"
 )
 
-
 func init() {
 
 	base.RegisterCodeFile(pluginCodeFile{})
 }
 
-
 type pluginCodeFile struct {
 	base.DappCodeFile
 }
 
-
-
-func (c pluginCodeFile)GetFiles() map[string]string {
+func (c pluginCodeFile) GetFiles() map[string]string {
 
 	return map[string]string{
 		pluginName: pluginContent,
 	}
 }
 
-
 func (c pluginCodeFile) GetReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagClassName}
 }
 
-
-
-
 var (
-
-	pluginName = "plugin.go"
+	pluginName    = "plugin.go"
 	pluginContent = `
 package ${EXECNAME}
 
@@ -61,6 +52,4 @@ func init() {
 		RPC:      rpc.Init,
 	})
 }`
-
-
 )

@@ -14,43 +14,34 @@ func init() {
 	base.RegisterCodeFile(rpcCodeFile{})
 }
 
-
 type rpcCodeFile struct {
 	base.DappCodeFile
 }
 
-
-func (c rpcCodeFile)GetDirName() string {
+func (c rpcCodeFile) GetDirName() string {
 
 	return "rpc"
 }
 
-
-func (c rpcCodeFile)GetFiles() map[string]string {
+func (c rpcCodeFile) GetFiles() map[string]string {
 
 	return map[string]string{
-		rpcName: rpcContent,
+		rpcName:   rpcContent,
 		typesName: typesContent,
 	}
 }
-
 
 func (c rpcCodeFile) GetReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagClassName}
 }
 
-
 var (
+	rpcName    = "rpc.go"
+	rpcContent = `package rpc`
 
-	rpcName = "rpc.go"
-	rpcContent =
-`package rpc`
-
-
-	typesName = "types.go"
-	typesContent =
-`package rpc
+	typesName    = "types.go"
+	typesContent = `package rpc
 
 import (
 	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"

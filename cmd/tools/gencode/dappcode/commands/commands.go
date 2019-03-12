@@ -14,37 +14,29 @@ func init() {
 	base.RegisterCodeFile(commandsCodeFile{})
 }
 
-
 type commandsCodeFile struct {
 	base.DappCodeFile
 }
 
-
-func (c commandsCodeFile)GetDirName() string {
+func (c commandsCodeFile) GetDirName() string {
 
 	return "commands"
 }
 
-
-func (c commandsCodeFile)GetFiles() map[string]string {
+func (c commandsCodeFile) GetFiles() map[string]string {
 
 	return map[string]string{
 		commandsFileName: commandsFileContent,
 	}
 }
 
-func (c commandsCodeFile)GetReplaceTags() []string {
+func (c commandsCodeFile) GetReplaceTags() []string {
 	return []string{types.TagExecName}
 }
 
-
-
-
 var (
-
-	commandsFileName = "commands.go"
-	commandsFileContent =
-`/* package commands, implement dapp client commands*/
+	commandsFileName    = "commands.go"
+	commandsFileContent = `/* package commands, implement dapp client commands*/
 package commands
 
 import "github.com/spf13/cobra"

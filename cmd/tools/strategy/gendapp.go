@@ -18,8 +18,8 @@ import (
 type genDappStrategy struct {
 	strategyBasic
 
-	dappName string
-	dappDir	string
+	dappName  string
+	dappDir   string
 	dappProto string
 }
 
@@ -37,8 +37,7 @@ func (ad *genDappStrategy) checkParamValid() bool {
 	return true
 }
 
-func (ad *genDappStrategy) initMember() bool{
-
+func (ad *genDappStrategy) initMember() bool {
 
 	dappName, _ := ad.getParam(types.KeyExecutorName)
 	outDir, _ := ad.getParam(types.KeyDappOutDir)
@@ -55,7 +54,7 @@ func (ad *genDappStrategy) initMember() bool{
 		if goPath == "" {
 			outDir = "gendappcode"
 		}
-		outDir = filepath.Join(goPath,  "src", "github.com", "33cn", "plugin", "plugin", "dapp")
+		outDir = filepath.Join(goPath, "src", "github.com", "33cn", "plugin", "plugin", "dapp")
 	}
 
 	dappRootDir := filepath.Join(outDir, dappName)
@@ -106,9 +105,9 @@ func (ad *genDappStrategy) buildTask() []tasks.Task {
 	taskSlice = append(taskSlice,
 
 		&tasks.GenDappCodeTask{
-			DappName:       ad.dappName,
-			DappDir:         ad.dappDir,
-			ProtoFile:        ad.dappProto,
+			DappName:  ad.dappName,
+			DappDir:   ad.dappDir,
+			ProtoFile: ad.dappProto,
 		},
 		&tasks.FormatDappSourceTask{
 			OutputFolder: ad.dappDir,

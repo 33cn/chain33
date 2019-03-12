@@ -6,12 +6,13 @@ package tasks
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/cmd/tools/gencode"
-	"github.com/33cn/chain33/cmd/tools/types"
-	util2 "github.com/33cn/chain33/util"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/33cn/chain33/cmd/tools/gencode"
+	"github.com/33cn/chain33/cmd/tools/types"
+	util2 "github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/cmd/tools/util"
 )
@@ -19,10 +20,10 @@ import (
 // GenDappCodeTask 通过生成好的pb.go和预先设计的模板，生成反射程序源码
 type GenDappCodeTask struct {
 	TaskBase
-	DappName string
-	DappDir string
-	ProtoFile string
-	actionInfos []*actionInfoItem
+	DappName     string
+	DappDir      string
+	ProtoFile    string
+	actionInfos  []*actionInfoItem
 	replacePairs map[string]string
 }
 
@@ -39,7 +40,7 @@ func (c *GenDappCodeTask) Execute() error {
 	pbContext, err := util.ReadFile(c.ProtoFile)
 	if err != nil {
 		mlog.Error("ReadProtoFile", "Err", err.Error(), "proto", c.ProtoFile)
-		return  fmt.Errorf("ReadProtoFileErr:%s", err.Error())
+		return fmt.Errorf("ReadProtoFileErr:%s", err.Error())
 	}
 
 	pbContent := string(pbContext)
@@ -55,7 +56,6 @@ func (c *GenDappCodeTask) Execute() error {
 
 	return err
 }
-
 
 func (c *GenDappCodeTask) calcReplacePairs(pbContent string) error {
 
@@ -90,11 +90,9 @@ func (c *GenDappCodeTask) calcReplacePairs(pbContent string) error {
 	c.replacePairs[types.TagLogMapText] = buildLogMapText()
 	c.replacePairs[types.TagTypeMapText] = buildTypeMapText(actionInfos, className)
 
-
 	return nil
 
 }
-
 
 func (c *GenDappCodeTask) genDappCode() error {
 
