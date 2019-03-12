@@ -145,9 +145,9 @@ func (c *CreateDappSourceTask) createTypeExecuteFile() error {
 
 	actionIDText := buildActionIDText(c.actionInfos, c.ExecuteName) // ${ACTIONIDTEXT}
 
-	logMapText := buildLogMapText(c.actionInfos, c.ExecuteName) // ${LOGMAPTEXT}
+	logMapText := buildLogMapText() // ${LOGMAPTEXT}
 
-	typeMapText := buidTypeMapText() // ${TYPEMAPTEXT}
+	typeMapText := buildTypeMapText(c.actionInfos, c.ExecuteName) // ${TYPEMAPTEXT}
 
 
 	replacePairs := []struct {

@@ -41,7 +41,7 @@ func runCommands() {
 	addCommands(rootCmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		mlog.Error("Execute command failed.", "error", err)
+		//mlog.Error("Execute command failed.", "error", err)
 		os.Exit(1)
 	}
 }

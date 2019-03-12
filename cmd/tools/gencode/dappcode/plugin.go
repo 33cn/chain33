@@ -21,11 +21,6 @@ type pluginCodeFile struct {
 }
 
 
-func (c pluginCodeFile)GetDirName() string {
-
-	return "rpc"
-}
-
 
 func (c pluginCodeFile)GetFiles() map[string]string {
 
@@ -39,8 +34,6 @@ func (c pluginCodeFile) GetReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagClassName}
 }
-
-
 
 
 
@@ -65,7 +58,7 @@ func init() {
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
 		Cmd:      commands.Cmd,
-		RPC:      rpc.Init(),
+		RPC:      rpc.Init,
 	})
 }`
 

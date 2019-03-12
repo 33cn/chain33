@@ -16,7 +16,7 @@ import (
 func GenDappCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gendapp",
-		Short: "auto generate chain33 dapp base code",
+		Short: "Auto generate dapp basic code",
 		Run:   genDapp,
 	}
 	addGenDappFlag(cmd)
@@ -26,8 +26,10 @@ func GenDappCmd() *cobra.Command {
 func addGenDappFlag(cmd *cobra.Command) {
 	cmd.Flags().StringP("name", "n", "", "dapp name")
 	cmd.MarkFlagRequired("name")
-	cmd.Flags().StringP("output", "o", "", "output directory for new dapp, default is $GOPATH/src/github.com/33cn/plugin/plugin/dapp/")
-	cmd.Flags().StringP("proto", "p", "", "dapp protobuf file")
+	cmd.Flags().StringP("proto", "p", "", "dapp protobuf file path")
+	cmd.MarkFlagRequired("proto")
+	cmd.Flags().StringP("output", "o", "", "output directory.(default $GOPATH/src/github.com/33cn/plugin/plugin/dapp/)")
+
 }
 
 func genDapp(cmd *cobra.Command, args []string) {

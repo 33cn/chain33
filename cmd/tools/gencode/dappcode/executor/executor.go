@@ -48,12 +48,10 @@ var (
 `package executor
 
 import (
-	"fmt"
-
 	log "github.com/33cn/chain33/common/log/log15"
-	ptypes "github.com/33cn/chain33/plugin/dapp/${EXECNAME}/types"
+	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
 	drivers "github.com/33cn/chain33/system/dapp"
-	"github.com/33cn/chain33/code"
+	"github.com/33cn/chain33/types"
 )
 
 var (
@@ -63,12 +61,12 @@ var (
 var driverName = ptypes.${CLASSNAME}X
 
 func init() {
-	ety := code.LoadExecutorType(driverName)
-	ety.InitFuncList(code.ListMethod(&${EXECNAME}{}))
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&${EXECNAME}{}))
 }
 
-func Init(name string) {
-	drivers.Register(GetName(), new${CLASSNAME}, 0)
+func Init(name string, sub []byte) {
+	drivers.Register(GetName(), new${CLASSNAME}, types.GetDappFork(driverName, "Enable"))
 }
 
 type ${EXECNAME} struct {
@@ -78,12 +76,12 @@ type ${EXECNAME} struct {
 func new${CLASSNAME}() drivers.Driver {
 	t := &${EXECNAME}{}
 	t.SetChild(t)
-	t.SetExecutorType(code.LoadExecutorType(driverName))
+	t.SetExecutorType(types.LoadExecutorType(driverName))
 	return t
 }
 
 func GetName() string {
-	return newDriver().GetName()
+	return new${CLASSNAME}().GetName()
 }
 
 func (*${EXECNAME}) GetDriverName() string {

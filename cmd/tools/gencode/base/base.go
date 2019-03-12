@@ -6,7 +6,7 @@ package base
 
 
 var (
-	CodeFileManager map[string][]ICodeFile
+	CodeFileManager = map[string][]ICodeFile{}
 )
 
 

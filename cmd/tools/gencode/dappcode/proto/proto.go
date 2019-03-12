@@ -46,7 +46,7 @@ func (protoFile)GetFiles() map[string]string {
 }
 
 func (protoFile)GetReplaceTags() []string {
-	return []string {types.TagExecName, types.TagProtoFileContent, types.TagProtoFileAppend}
+	return []string {types.TagProtoFileContent, types.TagProtoFileAppend, types.TagExecName}
 }
 
 

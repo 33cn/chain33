@@ -9,7 +9,7 @@ package gencode
 const (
 
 
-	protoFileAppendService = `
+	ProtoFileAppendService = `
 service ${EXECNAME} {
 
 }`

@@ -66,7 +66,7 @@ var (
 )
 
 func init() {
-    types.AllowUserExec = append(types.AllowUserExec, []byte(${EXECNAME}))
+    types.AllowUserExec = append(types.AllowUserExec, []byte(${CLASSNAME}X))
     types.RegistorExecutor(${CLASSNAME}X, newType())
 }
 
@@ -81,7 +81,7 @@ func newType() *${EXECNAME}Type {
 }
 
 func (t *${EXECNAME}Type) GetPayload() types.Message {
-    return &${EXECNAME}Action{}
+    return &${CLASSNAME}Action{}
 }
 
 func (t *${EXECNAME}Type) GetTypeMap() map[string]int32 {

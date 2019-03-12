@@ -9,8 +9,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/33cn/chain33/cmd/tools/util"
-
 	sysutil "github.com/33cn/chain33/util"
 )
 
@@ -30,15 +28,14 @@ type actionInfoItem struct {
 */
 func readDappActionFromProto(protoContent , actionName string) ([]*actionInfoItem, error) {
 
-	context := protoContent
 	// 如果文件中含有与ActionName部分匹配的文字，则会造成搜索到多个
-	index := strings.Index(context, actionName)
+	index := strings.Index(protoContent, actionName)
 	if index < 0 {
 		return nil, fmt.Errorf("action %s Not Existed", actionName)
 	}
 	expr := fmt.Sprintf(`\s*oneof\s+value\s*{\s+([\w\s=;]*)\}`)
 	reg := regexp.MustCompile(expr)
-	oneOfValueStrs := reg.FindAllStringSubmatch(string(pbContext), index)
+	oneOfValueStrs := reg.FindAllStringSubmatch(protoContent, index)
 
 	expr = fmt.Sprintf(`\s+(\w+)([\s\w]+)=\s+(\d+);`)
 	reg = regexp.MustCompile(expr)
@@ -130,8 +127,8 @@ func buildActionIDText(infos []*actionInfoItem, className string) (text string) 
 	return
 }
 
-// 返回 map[int64]*types.LogInfo
-func  buildLogMapText(infos []*actionInfoItem, className string) (text string) {
+// 返回 map[string]int32
+func  buildTypeMapText(infos []*actionInfoItem, className string) (text string) {
 	var items string
 	for _, info := range infos {
 		items += fmt.Sprintf("\"%s\": %sAction%s,\n", info.memberName, className, info.memberName)
@@ -141,7 +138,7 @@ func  buildLogMapText(infos []*actionInfoItem, className string) (text string) {
 }
 
 // 返回 map[string]*types.LogInfo
-func  buidTypeMapText() (text string) {
+func  buildLogMapText() (text string) {
 	text = fmt.Sprintf("map[int64]*types.LogInfo{\n}")
 	return
 }
