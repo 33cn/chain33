@@ -8,6 +8,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"strings"
+
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 )
@@ -375,5 +377,9 @@ func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqRandHash) (*pb.ReplyH
 
 // GetFork get fork height by fork key
 func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
+	keys := strings.Split(string(in.Key), "-")
+	if len(keys) == 2 {
+		return &pb.Int64{Data: pb.GetDappFork(keys[0], keys[1])}, nil
+	}
 	return &pb.Int64{Data: pb.GetFork(string(in.Key))}, nil
 }
