@@ -60,6 +60,7 @@ func readDappActionFromProto(protoContent, actionName string) ([]*actionInfoItem
 func formatExecContent(infos []*actionInfoItem, dappName string) string {
 
 	fnFmtStr := `func (c *%s) Exec_%s(payload *ptypes.%s, tx *types.Transaction, index int) (*types.Receipt, error) {
+	//implement code
 	return &types.Receipt{}, nil
 }
 
@@ -75,6 +76,7 @@ func formatExecContent(infos []*actionInfoItem, dappName string) string {
 func formatExecLocalContent(infos []*actionInfoItem, dappName string) string {
 
 	fnFmtStr := `func (c *%s) ExecLocal_%s(payload *ptypes.%s, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	//implement code
 	return &types.LocalDBSet{}, nil
 }
 
@@ -90,6 +92,7 @@ func formatExecLocalContent(infos []*actionInfoItem, dappName string) string {
 func formatExecDelLocalContent(infos []*actionInfoItem, dappName string) string {
 
 	fnFmtStr := `func (c *%s) ExecDelLocal_%s(payload *ptypes.%s, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	//implement code
 	return &types.LocalDBSet{}, nil
 }
 
@@ -134,6 +137,6 @@ func buildTypeMapText(infos []*actionInfoItem, className string) (text string) {
 
 // 返回 map[string]*types.LogInfo
 func buildLogMapText() (text string) {
-	text = fmt.Sprintf("map[int64]*types.LogInfo{\n}")
+	text = fmt.Sprintf("map[int64]*types.LogInfo{\n\t//pseudo code\n\t//LogID:	{Ty: refelct.TypeOf(LogStruct), Name: LogName},\n}")
 	return
 }

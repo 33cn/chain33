@@ -72,6 +72,11 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+/*
+ * 实现交易的链上执行接口
+ * 关键数据上链（statedb）并生成交易回执（log）
+*/
+
 ${EXECFILECONTENT}`
 
 	execLocalName    = "exec_local.go"
@@ -82,6 +87,11 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+/*
+ * 实现交易相关数据本地执行，数据不上链
+ * 非关键数据，本地存储(localDB), 用于辅助查询，效率高
+*/
+
 ${EXECLOCALFILECONTENT}`
 
 	execDelName    = "exec_del_local.go"
@@ -91,6 +101,10 @@ import (
 	ptypes "${IMPORTPATH}/${EXECNAME}/types"
 	"github.com/33cn/chain33/types"
 )
+
+/* 
+ * 实现区块回退时本地执行的数据清除
+*/
 
 ${EXECDELLOCALFILECONTENT}`
 )

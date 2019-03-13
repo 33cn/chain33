@@ -43,6 +43,10 @@ import (
 	"github.com/33cn/chain33/pluginmgr"
 )
 
+/*  
+ * 初始化dapp相关的组件
+*/
+
 func init() {
 	pluginmgr.Register(&pluginmgr.PluginBase{
 		Name:     types.${CLASSNAME}X,

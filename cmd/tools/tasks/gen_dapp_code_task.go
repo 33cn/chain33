@@ -23,7 +23,7 @@ type GenDappCodeTask struct {
 	DappName     string
 	DappDir      string
 	ProtoFile    string
-	PackagePath	 string
+	PackagePath  string
 	replacePairs map[string]string
 }
 

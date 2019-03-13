@@ -38,7 +38,16 @@ func (c rpcCodeFile) GetReplaceTags() []string {
 
 var (
 	rpcName    = "rpc.go"
-	rpcContent = `package rpc`
+	rpcContent = `package rpc
+
+
+/* 
+ * 实现json rpc和grpc service接口
+ * json rpc用Jrpc结构作为接收实例
+ * grpc使用channelClient结构作为接收实例
+*/
+
+`
 
 	typesName    = "types.go"
 	typesContent = `package rpc
@@ -48,18 +57,26 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
+/* 
+ * rpc相关结构定义和初始化
+*/
+
+// 实现grpc的service接口
 type channelClient struct {
 	rpctypes.ChannelClient
 }
 
+// Jrpc 实现json rpc调用实例
 type Jrpc struct {
 	cli *channelClient
 }
 
+// Grpc grpc
 type Grpc struct {
 	*channelClient
 }
 
+// Init init rpc
 func Init(name string, s rpctypes.RPCServer) {
 	cli := &channelClient{}
 	grpc := &Grpc{channelClient: cli}
