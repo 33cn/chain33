@@ -80,7 +80,11 @@ type TreeARC struct {
 // NewTreeARC new lru mem tree
 func NewTreeARC(size int) *TreeARC {
 	ma := &TreeARC{}
-	ma.arcCache, _ = lru.NewARC(size)
+	var err error
+	ma.arcCache, err = lru.NewARC(size)
+	if err != nil {
+		panic("New tree lru fail")
+	}
 	return ma
 }
 

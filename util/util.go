@@ -477,7 +477,7 @@ func CreateTestDB() (string, db.DB, db.KVDB) {
 func CloseTestDB(dir string, dbm db.DB) {
 	err := os.RemoveAll(dir)
 	if err != nil {
-		chainlog.Info("RemoveAll ", "dir", dir, "err", err)
+		ulog.Info("RemoveAll ", "dir", dir, "err", err)
 	}
 	dbm.Close()
 }
