@@ -17,6 +17,7 @@ import (
 
 var addrSeed = []byte("address seed bytes for public key")
 var addressCache *lru.Cache
+var pubkeyCache *lru.Cache
 var checkAddressCache *lru.Cache
 var multisignCache *lru.Cache
 var multiCheckAddressCache *lru.Cache
@@ -38,6 +39,7 @@ const MultiSignVer byte = 5
 
 func init() {
 	multisignCache, _ = lru.New(10240)
+	pubkeyCache, _ = lru.New(10240)
 	addressCache, _ = lru.New(10240)
 	checkAddressCache, _ = lru.New(10240)
 	multiCheckAddressCache, _ = lru.New(10240)
@@ -99,6 +101,16 @@ func GetExecAddress(name string) *Address {
 //PubKeyToAddress 公钥转为地址
 func PubKeyToAddress(in []byte) *Address {
 	return HashToAddress(NormalVer, in)
+}
+
+//PubKeyToAddr 公钥转为地址
+func PubKeyToAddr(in []byte) string {
+	if value, ok := pubkeyCache.Get(string(in)); ok {
+		return value.(string)
+	}
+	addr := HashToAddress(NormalVer, in).String()
+	pubkeyCache.Add(string(in), addr)
+	return addr
 }
 
 //HashToAddress hash32 to address

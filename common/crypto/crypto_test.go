@@ -13,11 +13,37 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestGet(t *testing.T) {
+	require := require.New(t)
+
+	name := crypto.GetName(1)
+	require.Equal("secp256k1", name)
+	name = crypto.GetName(2)
+	require.Equal("ed25519", name)
+	name = crypto.GetName(3)
+	require.Equal("sm2", name)
+
+	ty := crypto.GetType("secp256k1")
+	require.True(ty == 1)
+	ty = crypto.GetType("ed25519")
+	require.True(ty == 2)
+	ty = crypto.GetType("sm2")
+	require.True(ty == 3)
+}
+
+func TestRipemd160(t *testing.T) {
+	require := require.New(t)
+	b := crypto.Ripemd160([]byte("test"))
+	require.NotNil(b)
+}
+
 func TestAll(t *testing.T) {
 	testCrypto(t, "ed25519")
 	testFromBytes(t, "ed25519")
 	testCrypto(t, "secp256k1")
 	testFromBytes(t, "secp256k1")
+	testCrypto(t, "sm2")
+	testFromBytes(t, "sm2")
 }
 
 func testFromBytes(t *testing.T, name string) {

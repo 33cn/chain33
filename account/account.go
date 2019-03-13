@@ -16,7 +16,6 @@ package account
 //8. gen a private key -> private key to address (bitcoin likes)
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/33cn/chain33/client"
@@ -37,6 +36,7 @@ type DB struct {
 	execAccountKeyPerfix []byte
 	execer               string
 	symbol               string
+	accountKeyBuffer     []byte
 }
 
 // NewCoinsAccount 新建账户
@@ -64,6 +64,8 @@ func NewAccountDB(execer string, symbol string, db dbm.KV) (*DB, error) {
 func newAccountDB(prefix string) *DB {
 	acc := &DB{}
 	acc.accountKeyPerfix = []byte(prefix)
+	acc.accountKeyBuffer = make([]byte, 0, len(acc.accountKeyPerfix)+64)
+	acc.accountKeyBuffer = append(acc.accountKeyBuffer, acc.accountKeyPerfix...)
 	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)
 	//alog.Warn("NewAccountDB", "prefix", prefix, "key1", string(acc.accountKeyPerfix), "key2", string(acc.execAccountKeyPerfix))
 	return acc
@@ -75,9 +77,15 @@ func (acc *DB) SetDB(db dbm.KV) *DB {
 	return acc
 }
 
+func (acc *DB) accountReadKey(addr string) []byte {
+	acc.accountKeyBuffer = acc.accountKeyBuffer[0:len(acc.accountKeyPerfix)]
+	acc.accountKeyBuffer = append(acc.accountKeyBuffer, []byte(addr)...)
+	return acc.accountKeyBuffer
+}
+
 // LoadAccount 根据地址载入账户
 func (acc *DB) LoadAccount(addr string) *types.Account {
-	value, err := acc.db.Get(acc.AccountKey(addr))
+	value, err := acc.db.Get(acc.accountReadKey(addr))
 	if err != nil {
 		return &types.Account{Addr: addr}
 	}
@@ -127,10 +135,11 @@ func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 			Prev:    &copyto,
 			Current: accTo,
 		}
-
-		acc.SaveAccount(accFrom)
-		acc.SaveAccount(accTo)
-		return acc.transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
+		fromkv := acc.GetKVSet(accFrom)
+		tokv := acc.GetKVSet(accTo)
+		acc.SaveKVSet(fromkv)
+		acc.SaveKVSet(tokv)
+		return acc.transferReceipt(fromkv, tokv, receiptBalanceFrom, receiptBalanceTo), nil
 	}
 
 	return nil, types.ErrNoBalance
@@ -147,12 +156,12 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 		Prev:    &copyacc,
 		Current: acc1,
 	}
-	acc.SaveAccount(acc1)
+	kv := acc.GetKVSet(acc1)
+	acc.SaveKVSet(kv)
 	log1 := &types.ReceiptLog{
 		Ty:  int32(types.TyLogDeposit),
 		Log: types.Encode(receiptBalance),
 	}
-	kv := acc.GetKVSet(acc1)
 	return &types.Receipt{
 		Ty:   types.ExecOk,
 		KV:   kv,
@@ -160,7 +169,7 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 	}, nil
 }
 
-func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo proto.Message) *types.Receipt {
+func (acc *DB) transferReceipt(fromkv, tokv []*types.KeyValue, receiptFrom, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogTransfer)
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
@@ -170,8 +179,9 @@ func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, recei
 		Ty:  ty,
 		Log: types.Encode(receiptTo),
 	}
-	kv := acc.GetKVSet(accFrom)
-	kv = append(kv, acc.GetKVSet(accTo)...)
+	kv := make([]*types.KeyValue, 0, len(fromkv)+len(tokv))
+	kv = append(kv, fromkv...)
+	kv = append(kv, tokv...)
 	return &types.Receipt{
 		Ty:   types.ExecOk,
 		KV:   kv,
@@ -187,13 +197,21 @@ func (acc *DB) SaveAccount(acc1 *types.Account) {
 	}
 }
 
+//SaveKVSet 保存Key Value set
+func (acc *DB) SaveKVSet(set []*types.KeyValue) {
+	for i := 0; i < len(set); i++ {
+		acc.db.Set(set[i].GetKey(), set[i].Value)
+	}
+}
+
 // GetKVSet 将账户数据转为数据库存储kv
 func (acc *DB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
 	value := types.Encode(acc1)
-	kvset = append(kvset, &types.KeyValue{
+	kvset = make([]*types.KeyValue, 1)
+	kvset[0] = &types.KeyValue{
 		Key:   acc.AccountKey(acc1.Addr),
 		Value: value,
-	})
+	}
 	return kvset
 }
 
@@ -218,17 +236,18 @@ func (acc *DB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error)
 
 // AccountKey return the key of address in DB
 func (acc *DB) AccountKey(address string) (key []byte) {
+	key = make([]byte, 0, len(acc.accountKeyPerfix)+len(address))
 	key = append(key, acc.accountKeyPerfix...)
 	key = append(key, []byte(address)...)
 	return key
 }
 
 func symbolPrefix(execer string, symbol string) string {
-	return fmt.Sprintf("mavl-%s-%s-", execer, symbol)
+	return "mavl-" + execer + "-" + symbol + "-"
 }
 
 func symbolExecPrefix(execer string, symbol string) string {
-	return fmt.Sprintf("mavl-%s-%s-exec", execer, symbol)
+	return "mavl-" + execer + "-" + symbol + "-exec"
 }
 
 // GetTotalCoins 获取代币总量
@@ -414,4 +433,79 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 	}
 
 	return r
+}
+
+// Mint 铸币
+func (acc *DB) Mint(addr string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+
+	accTo := acc.LoadAccount(addr)
+	balance, err := safeAdd(accTo.Balance, amount)
+	if err != nil {
+		return nil, err
+	}
+
+	copyAcc := *accTo
+	accTo.Balance = balance
+
+	receipt := &types.ReceiptAccountMint{
+		Prev:    &copyAcc,
+		Current: accTo,
+	}
+	kv := acc.GetKVSet(accTo)
+	acc.SaveKVSet(kv)
+	return acc.mintReceipt(kv, receipt), nil
+}
+
+func (acc *DB) mintReceipt(kv []*types.KeyValue, receipt proto.Message) *types.Receipt {
+	ty := int32(types.TyLogMint)
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receipt),
+	}
+
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1},
+	}
+}
+
+// Burn 然收
+func (acc *DB) Burn(addr string, amount int64) (*types.Receipt, error) {
+	if !types.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
+
+	accTo := acc.LoadAccount(addr)
+	if accTo.Balance < amount {
+		return nil, types.ErrNoBalance
+	}
+
+	copyAcc := *accTo
+	accTo.Balance = accTo.Balance - amount
+
+	receipt := &types.ReceiptAccountBurn{
+		Prev:    &copyAcc,
+		Current: accTo,
+	}
+	kv := acc.GetKVSet(accTo)
+	acc.SaveKVSet(kv)
+	return acc.burnReceipt(kv, receipt), nil
+}
+
+func (acc *DB) burnReceipt(kv []*types.KeyValue, receipt proto.Message) *types.Receipt {
+	ty := int32(types.TyLogBurn)
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receipt),
+	}
+
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1},
+	}
 }

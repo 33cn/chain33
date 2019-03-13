@@ -37,6 +37,8 @@ type Store struct {
 	enableMVCC       bool
 	enableMavlPrune  bool
 	pruneHeight      int32
+	enableMemTree    bool
+	enableMemVal     bool
 }
 
 func init() {
@@ -44,10 +46,17 @@ func init() {
 }
 
 type subConfig struct {
-	EnableMavlPrefix bool  `json:"enableMavlPrefix"`
-	EnableMVCC       bool  `json:"enableMVCC"`
-	EnableMavlPrune  bool  `json:"enableMavlPrune"`
-	PruneHeight      int32 `json:"pruneHeight"`
+	// 是否使能mavl加前缀
+	EnableMavlPrefix bool `json:"enableMavlPrefix"`
+	EnableMVCC       bool `json:"enableMVCC"`
+	// 是否使能mavl数据裁剪
+	EnableMavlPrune bool `json:"enableMavlPrune"`
+	// 裁剪高度间隔
+	PruneHeight int32 `json:"pruneHeight"`
+	// 是否使能内存树
+	EnableMemTree bool `json:"enableMemTree"`
+	// 是否使能内存树中叶子节点
+	EnableMemVal bool `json:"enableMemVal"`
 }
 
 // New new mavl store module
@@ -57,15 +66,20 @@ func New(cfg *types.Store, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
-	mavls := &Store{bs, &sync.Map{}, subcfg.EnableMavlPrefix, subcfg.EnableMVCC, subcfg.EnableMavlPrune, subcfg.PruneHeight}
+	mavls := &Store{bs, &sync.Map{}, subcfg.EnableMavlPrefix, subcfg.EnableMVCC,
+		subcfg.EnableMavlPrune, subcfg.PruneHeight, subcfg.EnableMemTree, subcfg.EnableMemVal}
 	mavls.enableMavlPrefix = subcfg.EnableMavlPrefix
 	mavls.enableMVCC = subcfg.EnableMVCC
 	mavls.enableMavlPrune = subcfg.EnableMavlPrune
 	mavls.pruneHeight = subcfg.PruneHeight
+	mavls.enableMemTree = subcfg.EnableMemTree
+	mavls.enableMemVal = subcfg.EnableMemVal
 	mavl.EnableMavlPrefix(mavls.enableMavlPrefix)
 	mavl.EnableMVCC(mavls.enableMVCC)
 	mavl.EnablePrune(mavls.enableMavlPrune)
 	mavl.SetPruneHeight(int(mavls.pruneHeight))
+	mavl.EnableMemTree(mavls.enableMemTree)
+	mavl.EnableMemVal(mavls.enableMemVal)
 	bs.SetChild(mavls)
 	return mavls
 }

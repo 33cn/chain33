@@ -15,6 +15,8 @@ import (
 	"sync"
 	"testing"
 
+	"unsafe"
+
 	. "github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log"
@@ -1255,6 +1257,89 @@ func TestDelLeafCountKV(t *testing.T) {
 	}
 }
 
+func TestGetObsoleteNode(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	defer os.Remove(dir)
+
+	EnableMemTree(true)
+	EnableMemVal(true)
+	defer EnableMemTree(false)
+	defer EnableMemVal(false)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+
+	type record struct {
+		key   string
+		value string
+	}
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+	}
+
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+	hash := tree.Save()
+	obs := tree.getObsoleteNode()
+	require.Equal(t, 0, len(obs))
+	mp := make(map[uint64]struct{})
+	LoadTree2MemDb(db, hash, mp)
+
+	tree1 := NewTree(db, true)
+	tree1.Load(hash)
+	records1 := []record{
+		{"abc", "abc1"},
+		{"low", "low1"},
+		{"fan", "fan1"},
+	}
+
+	for _, r := range records1 {
+		tree1.Set([]byte(r.key), []byte(r.value))
+	}
+	hash1 := tree1.Save()
+	obs = tree1.getObsoleteNode()
+	mp1 := make(map[uint64]struct{})
+	LoadTree2MemDb(db, hash1, mp1)
+	require.Equal(t, len(mp), len(obs)) //做了全部更新，因此旧节点全部删除
+	for ob := range obs {
+		_, ok := mp[uint64(ob)]
+		if !ok {
+			require.Error(t, fmt.Errorf("should exist"))
+		}
+	}
+
+	tree2 := NewTree(db, true)
+	tree2.Load(hash)
+	records2 := []record{
+		{"fan", "fan1"},
+		{"foo", "foo"},
+		{"foobaz", "foobaz"},
+		{"good", "good"},
+	}
+	for _, r := range records2 {
+		tree2.Set([]byte(r.key), []byte(r.value))
+	}
+	hash2 := tree2.Save()
+	obs = tree2.getObsoleteNode()
+	mp2 := make(map[uint64]struct{})
+	LoadTree2MemDb(db, hash2, mp2)
+	//require.Equal(t, 0, len(obs))
+	for ob := range obs {
+		_, ok := mp[uint64(ob)]
+		if !ok {
+			require.Error(t, fmt.Errorf("should exist"))
+		}
+	}
+}
+
 func TestPruningFirstLevelNode(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -1898,4 +1983,65 @@ func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool) (newH
 		}
 	}
 	return newHash, nil
+}
+
+func TestSize1(t *testing.T) {
+	type storeNode struct {
+		Key       []byte
+		Value     []byte
+		LeftHash  []byte
+		RightHash []byte
+		Height    int32
+		Size      int32
+	}
+	type storeNode1 struct {
+		Key    [][]byte
+		Height int32
+		Size   int32
+	}
+	a := types.StoreNode{}
+	b := storeNode{}
+	var c []byte
+	d := storeNode1{}
+
+	//arcmp := NewTreeMap(350 * 10000)
+	//if arcmp == nil {
+	//	return
+	//}
+
+	//for i := 0; i < 300*10000; i++ {
+	//	data := &storeNode{
+	//		Key: []byte("12345678901234567890123456789012"),
+	//		Value: []byte("12345678901234567890123456789012"),
+	//		LeftHash: []byte("12345678901234567890123456789012"),
+	//		RightHash: []byte("12345678901234567890123456789012"),
+	//		//Key: copyBytes([]byte("12345678901234567890123456789012")),
+	//		//Value: copyBytes([]byte("12345678901234567890123456789012")),
+	//		//LeftHash: copyBytes([]byte("12345678901234567890123456789012")),
+	//		//RightHash: copyBytes([]byte("12345678901234567890123456789012")),
+	//		Height: 123,
+	//		Size: 123,
+	//	}
+	//	arcmp.Add(int64(i), data)
+	//}
+
+	//for i := 0; i < 100*10000; i++ {
+	//	data := &storeNode1{}
+	//	data.Height = 123
+	//	data.Size = 123
+	//	d.Key = make([][]byte, 4)
+	//	//d.Key[0] = []byte("12345678901234567890123456789012")
+	//	//d.Key[1] = []byte("12345678901234567890123456789012")
+	//	//d.Key[2] = []byte("12345678901234567890123456789012")
+	//	//d.Key[3] = []byte("12345678901234567890123456789012")
+	//
+	//	d.Key[0] = copyBytes([]byte("12345678901234567890123456789012"))
+	//	d.Key[1] = copyBytes([]byte("12345678901234567890123456789012"))
+	//	d.Key[2] = copyBytes([]byte("12345678901234567890123456789012"))
+	//	d.Key[3] = copyBytes([]byte("12345678901234567890123456789012"))
+	//	arcmp.Add(int64(i), data)
+	//}
+
+	PrintMemStats(1)
+	fmt.Println(unsafe.Sizeof(a), unsafe.Sizeof(b), unsafe.Sizeof(c), unsafe.Sizeof(d), len(d.Key), cap(d.Key))
 }

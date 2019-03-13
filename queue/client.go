@@ -176,6 +176,9 @@ func (client *client) Close() {
 	client.wg.Wait()
 	atomic.StoreInt32(&client.isClosed, 1)
 	close(client.Recv())
+	for msg := range client.Recv() {
+		msg.Reply(client.NewMessage(msg.Topic, msg.Ty, types.ErrChannelClosed))
+	}
 }
 
 // CloseQueue 关闭消息队列

@@ -32,7 +32,7 @@ func init() {
 	rand.Seed(types.Now().UnixNano())
 }
 
-var chainlog = log15.New("module", "util")
+var ulog = log15.New("module", "util")
 
 //GetParaExecName : 如果 name 没有 paraName 前缀，那么加上这个前缀
 func GetParaExecName(paraName string, name string) string {
@@ -220,15 +220,16 @@ func CreateCoinsBlock(priv crypto.PrivKey, n int64) *types.Block {
 }
 
 // ExecBlock : just exec block
-func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
+func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
-	ulog := chainlog
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := types.Now()
+	beg2 := beg
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg2))
 	}()
+
 	if errReturn && block.Height > 0 && !block.CheckSign() {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
@@ -241,18 +242,21 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if err != nil {
 		return nil, nil, err
 	}
+	ulog.Info("ExecBlock", "CheckTxDup", types.Since(beg))
+	beg = types.Now()
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
 	}
 	ulog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
-	block.TxHash = merkle.CalcMerkleRootCache(cacheTxs)
 	block.Txs = types.CacheToTxs(cacheTxs)
-
+	//println("1")
 	receipts, err := ExecTx(client, prevStateRoot, block)
 	if err != nil {
 		return nil, nil, err
 	}
+	ulog.Info("ExecBlock", "ExecTx", types.Since(beg))
+	beg = types.Now()
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
 	var rdata []*types.ReceiptData //save to db receipt log
@@ -270,34 +274,45 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		kvset = append(kvset, receipt.KV...)
 	}
 	kvset = DelDupKey(kvset)
-	//check TxHash
-	calcHash := merkle.CalcMerkleRoot(block.Txs)
-	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
-		return nil, nil, types.ErrCheckTxHash
-	}
-	block.TxHash = calcHash
 	//删除无效的交易
 	var deltx []*types.Transaction
 	if len(deltxlist) > 0 {
-		var newtx []*types.Transaction
+		index := 0
 		for i := 0; i < len(block.Txs); i++ {
 			if deltxlist[i] {
 				deltx = append(deltx, block.Txs[i])
-			} else {
-				newtx = append(newtx, block.Txs[i])
+				continue
 			}
+			block.Txs[index] = block.Txs[i]
+			cacheTxs[index] = cacheTxs[i]
+			index++
 		}
-		block.Txs = newtx
-		block.TxHash = merkle.CalcMerkleRoot(block.Txs)
+		block.Txs = block.Txs[0:index]
+		cacheTxs = cacheTxs[0:index]
 	}
-
+	//交易有执行不成功的，报错(TxHash一定不同)
+	if len(deltx) > 0 && errReturn {
+		return nil, nil, types.ErrCheckTxHash
+	}
+	//检查block的txhash值
+	calcHash := merkle.CalcMerkleRootCache(cacheTxs)
+	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
+		return nil, nil, types.ErrCheckTxHash
+	}
+	ulog.Info("ExecBlock", "CalcMerkleRootCache", types.Since(beg))
+	beg = types.Now()
+	block.TxHash = calcHash
 	var detail types.BlockDetail
 	calcHash, err = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
 	if err != nil {
 		return nil, nil, err
 	}
+	//println("2")
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
-		ExecKVSetRollback(client, calcHash)
+		err = ExecKVSetRollback(client, calcHash)
+		if err != nil {
+			ulog.Error("execBlock-->ExecKVSetRollback", "err", err)
+		}
 		if len(rdata) > 0 {
 			for i, rd := range rdata {
 				rd.OutputReceiptDetails(block.Txs[i].Execer, ulog)
@@ -308,7 +323,21 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	block.StateHash = calcHash
 	detail.Block = block
 	detail.Receipts = rdata
-	ExecKVSetCommit(client, block.StateHash)
+	if detail.Block.Height > 0 && checkblock {
+		err := CheckBlock(client, &detail)
+		if err != nil {
+			ulog.Debug("CheckBlock-->", "err=", err)
+			return nil, deltx, err
+		}
+	}
+	ulog.Info("ExecBlock", "CheckBlock", types.Since(beg))
+	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
+	err = ExecKVSetCommit(client, block.StateHash)
+	if err != nil {
+		return nil, nil, err
+	}
+	detail.KV = kvset
+	detail.PrevStatusHash = prevStateRoot
 	return &detail, deltx, nil
 }
 
@@ -362,7 +391,7 @@ func ExecAndCheckBlock2(qclient queue.Client, block *types.Block, txs []*types.T
 //ExecAndCheckBlockCB :
 func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.Transaction, cb func(int, *types.ReceiptData) error) (*types.Block, error) {
 	block2 := CreateNewBlock(block, txs)
-	detail, deltx, err := ExecBlock(qclient, block.StateHash, block2, false, true)
+	detail, deltx, err := ExecBlock(qclient, block.StateHash, block2, false, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -410,7 +439,7 @@ func ResetDatadir(cfg *types.Config, datadir string) string {
 		}
 		datadir = filepath.Join(dir, datadir[6:])
 	}
-	chainlog.Info("current user data dir is ", "dir", datadir)
+	ulog.Info("current user data dir is ", "dir", datadir)
 	cfg.Log.LogFile = filepath.Join(datadir, cfg.Log.LogFile)
 	cfg.BlockChain.DbPath = filepath.Join(datadir, cfg.BlockChain.DbPath)
 	cfg.P2P.DbPath = filepath.Join(datadir, cfg.P2P.DbPath)

@@ -130,6 +130,14 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 }
 
 func (exec *Executor) procExecQuery(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	header, err := exec.qclient.GetLastHeader()
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
@@ -169,6 +177,14 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 }
 
 func (exec *Executor) procExecCheckTx(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.ExecTxList)
 	ctx := &executorCtx{
 		stateHash:  datas.StateHash,
@@ -205,6 +221,14 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 }
 
 func (exec *Executor) procExecTxList(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.ExecTxList)
 	ctx := &executorCtx{
 		stateHash:  datas.StateHash,
@@ -279,6 +303,14 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 }
 
 func (exec *Executor) procExecAddBlock(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	ctx := &executorCtx{
@@ -341,6 +373,14 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 }
 
 func (exec *Executor) procExecDelBlock(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	ctx := &executorCtx{
@@ -408,4 +448,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 // Close close executor
 func (exec *Executor) Close() {
 	elog.Info("exec module closed")
+	if exec.client != nil {
+		exec.client.Close()
+	}
 }

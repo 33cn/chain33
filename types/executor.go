@@ -422,7 +422,7 @@ func (base *ExecTypeBase) GetRealToAddr(tx *Transaction) string {
 		return tx.To
 	}
 	//平行链中的处理方式
-	_, v, err := base.DecodePayloadValue(tx)
+	_, v, err := base.child.DecodePayloadValue(tx)
 	if err != nil {
 		return tx.To
 	}
@@ -468,7 +468,7 @@ type Amounter interface {
 
 //Amount 获取tx交易中的转账金额
 func (base *ExecTypeBase) Amount(tx *Transaction) (int64, error) {
-	_, v, err := base.DecodePayloadValue(tx)
+	_, v, err := base.child.DecodePayloadValue(tx)
 	if err != nil {
 		return 0, err
 	}
@@ -503,14 +503,16 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	if IsNilP(payload) {
-		return nil, ErrDecode
-	}
 	return payload, nil
 }
 
 //DecodePayloadValue 解析tx交易中的payload具体Value值
 func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
+	name, value, err := base.decodePayloadValue(tx)
+	return name, value, err
+}
+
+func (base *ExecTypeBase) decodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
 	if base.child == nil {
 		return "", nilValue, ErrActionNotSupport
 	}
@@ -519,10 +521,9 @@ func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.V
 		tlog.Error("DecodePayload", "err", err, "exec", string(tx.Execer))
 		return "", nilValue, err
 	}
-	name, ty, val := GetActionValue(action, base.child.GetFuncMap())
-	if IsNil(val) {
-		tlog.Error("GetActionValue is nil")
-		return "", nilValue, ErrActionNotSupport
+	name, ty, val, err := GetActionValue(action, base.child.GetFuncMap())
+	if err != nil {
+		return "", nilValue, err
 	}
 	typemap := base.child.GetTypeMap()
 	//check types is ok
@@ -769,7 +770,7 @@ func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Tr
 
 // GetAssets 获取资产信息
 func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
-	_, v, err := base.DecodePayloadValue(tx)
+	_, v, err := base.child.DecodePayloadValue(tx)
 	if err != nil {
 		return nil, err
 	}

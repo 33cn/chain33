@@ -24,55 +24,91 @@ callerFile = false
 callerFunction = false
 
 [blockchain]
+# 缓存区块的个数
 defCacheSize=128
+# 同步区块时一次最多申请获取的区块个数
 maxFetchBlockNum=128
+# 向对端节点请求同步区块的时间间隔
 timeoutSeconds=5
 batchBlockNum=128
+# 使用的数据库类型
 driver="leveldb"
+# 数据库文件目录
 dbPath="datadir"
+# 数据库缓存大小
 dbCache=64
 isStrongConsistency=false
+# 是否为单节点
 singleMode=true
+# 同步区块批量写数据库时，是否需要立即写磁盘，非固态硬盘的电脑可以设置为false，以提高性能
 batchsync=false
+# 是否记录添加或者删除区块的序列，若节点作为主链节点，为平行链节点提供服务，需要设置为true
 isRecordBlockSequence=true
+# 是否为平行链节点
 isParaChain=false
 enableTxQuickIndex=false
 
 [p2p]
+# P2P服务监听端口号
 port=13802
+# 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=["10.0.0.1:13802","10.0.0.2:13802","10.0.0.3:13802"]
 seeds=[]
+# 是否启动P2P服务
 enable=true
+# 是否为种子节点
 isSeed=false
+# 是否作为服务端，对外提供服务
 serverStart=true
+# 是否使用内置的种子节点
 innerSeedEnable=true
+# 是否使用Github获取种子节点
 useGithub=true
+# 最多的接入节点个数
 innerBounds=300
 msgCacheSize=10240
+# 使用的数据库类型
 driver="leveldb"
+# 使用的数据库类型
 dbPath="datadir/addrbook"
+# 数据库缓存大小
 dbCache=4
+# GRPC请求日志文件
 grpcLogFile="grpc33.log"
 
 [rpc]
+# jrpc绑定地址
 jrpcBindAddr="localhost:8801"
+# grpc绑定地址
 grpcBindAddr="localhost:8802"
+# 白名单列表，允许访问的IP地址，默认是“*”，允许所有IP访问
 whitelist=["127.0.0.1"]
+# jrpc方法请求白名单，默认是“*”，允许访问所有RPC方法
 jrpcFuncWhitelist=["*"]
+# grpc方法请求白名单，默认是“*”，允许访问所有RPC方法
 grpcFuncWhitelist=["*"]
+# 是否开启https
 enableTLS=true
+# 证书文件，证书和私钥文件可以用cli工具生成
 certFile="cert.pem"
+# 私钥文件
 keyFile="key.pem"
 
 [mempool]
+# mempool队列名称，可配，timeline，score，price
 name="timeline"
+# mempool缓存容量大小，默认10240
 poolCacheSize=10240
+# 最小得交易手续费用，这个没有默认值，必填，一般是100000
 minTxFee=100000
+# 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
 
 [mempool.sub.timeline]
+# mempool缓存容量大小，默认10240
 poolCacheSize=10240
 
 [mempool.sub.score]
+# mempool缓存容量大小，默认10240
 poolCacheSize=10240
 timeParam=1      #时间占价格比例
 priceConstant=1544  #手续费相对于时间的一个合适的常量,取当前unxi时间戳前四位数,排序时手续费高1e-5~=快1s
@@ -82,24 +118,39 @@ pricePower=1     #常量比例
 poolCacheSize=10240
 
 [consensus]
+#共识名,可选项有solo,ticket,raft,tendermint,para
 name="solo"
+#是否开启挖矿,开启挖矿才能创建区块
 minerstart=true
+#创世区块时间(UTC时间)
 genesisBlockTime=1514533394
+#创世交易地址
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [mver.consensus]
+#基金账户地址
 fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+#用户回报
 coinReward = 18
+#发展基金回报
 coinDevFund = 12
+#ticket价格
 ticketPrice = 10000
+#挖矿难度
 powLimitBits = "0x1f00ffff"
+#每次调整难度的最大的范围，如果设置成 4 的话，范围是 (1/4 - 4)，一次不能增加 4倍以上的难度，或者难度减少为 原来的 1/4 ，这个参数，是为了难度不会突然爆增加或者减少
 retargetAdjustmentFactor = 4
+#表示如果区块时间大于当前时间 16s ，那么区块就会判定为无效区块。
 futureBlockTime = 16
+#ticket冻结时长
 ticketFrozenTime = 5    #5s only for test
 ticketWithdrawTime = 10 #10s only for test
 ticketMinerWaitTime = 2 #2s only for test
+#区块包含最多交易数
 maxTxNumber = 1600      #160
+#调整挖矿难度的间隔，(ps:难度不是每个区块都调整的，而是每隔 targetTimespan / targetTimePerBlock 块调整一次)
 targetTimespan = 2304
+#每个区块打包的目标时间
 targetTimePerBlock = 16
 
 [mver.consensus.ForkChainParamV1]
@@ -139,38 +190,64 @@ returnAddr="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
 count=10000
 
 [store]
+# 数据存储格式名称，目前支持mavl,kvdb,kvmvcc,mpt
 name="mavl"
+# 数据存储驱动类别，目前支持leveldb,goleveldb,memdb,gobadgerdb,ssdb,pegasus
 driver="leveldb"
+# 数据文件存储路径
 dbPath="datadir/mavltree"
+# Cache大小
 dbCache=128
+# 数据库版本
 localdbVersion="1.0.0"
 
 [store.sub.mavl]
+# 是否使能mavl加前缀
 enableMavlPrefix=false
+# 是否使能MVCC,如果mavl中enableMVCC为true此处必须为true
 enableMVCC=false
+# 是否使能mavl数据裁剪
 enableMavlPrune=false
+# 裁剪高度间隔
 pruneHeight=10000
+# 是否使能mavl数据载入内存
+enableMemTree=false
+# 是否使能mavl叶子节点数据载入内存
+enableMemVal=false
 
 [wallet]
+# 交易发送最低手续费，单位0.00000001BTY(1e-8),默认100000，即0.001BTY
 minFee=100000
+# walletdb驱动名，支持leveldb/memdb/gobadgerdb/ssdb/pegasus
 driver="leveldb"
+# walletdb路径
 dbPath="wallet"
+# walletdb缓存大小
 dbCache=16
+# 钱包发送交易签名方式
 signType="secp256k1"
 
 [wallet.sub.ticket]
+# 是否关闭ticket自动挖矿，默认false
 minerdisable=false
+# 允许购买ticket挖矿的白名单地址，默认配置“*”，允许所有地址购买
 minerwhitelist=["*"]
 
 [exec]
+#执行器执行是否免费
 isFree=false
+#执行器执行所需最小费用,低于Mempool和Wallet设置的MinFee,在minExecFee = 0 的情况下，isFree = true才会生效
 minExecFee=100000
+#是否开启stat插件
 enableStat=false
+#是否开启MVCC插件
 enableMVCC=false
 alias=["token1:token","token2:token","token3:token"]
 
 [exec.sub.token]
+#是否保存token交易信息
 saveTokenTxList=true
+#token审批人地址
 tokenApprs = [
 	"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
 	"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
@@ -189,9 +266,11 @@ cryptoPath="authdir/crypto"
 signType="auth_ecdsa"
 
 [exec.sub.relay]
+#relay执行器保存BTC头执行权限地址
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [exec.sub.manage]
+#manage执行器超级管理员地址
 superManager=[
     "1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", 
     "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 

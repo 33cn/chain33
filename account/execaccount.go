@@ -52,6 +52,7 @@ func (acc *DB) GetExecKVSet(execaddr string, acc1 *types.Account) (kvset []*type
 }
 
 func (acc *DB) execAccountKey(address, execaddr string) (key []byte) {
+	key = make([]byte, 0, len(acc.execAccountKeyPerfix)+len(execaddr)+len(address)+1)
 	key = append(key, acc.execAccountKeyPerfix...)
 	key = append(key, []byte(execaddr)...)
 	key = append(key, []byte(":")...)

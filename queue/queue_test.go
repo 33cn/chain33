@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -187,11 +188,17 @@ func TestClientClose(t *testing.T) {
 				}()
 				msg := client.NewMessage("mempool", types.EventTx, "hello")
 				err := client.Send(msg, true)
+				if err == types.ErrChannelClosed {
+					return
+				}
 				if err != nil { //chan is closed
 					t.Error(err)
 					return
 				}
 				_, err = client.Wait(msg)
+				if err == types.ErrChannelClosed {
+					return
+				}
 				if err != nil {
 					t.Error(err)
 					return
@@ -211,6 +218,44 @@ func TestPrintMessage(t *testing.T) {
 	client := q.Client()
 	msg := client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")})
 	t.Log(msg)
+}
+
+func TestMessage_ReplyErr(t *testing.T) {
+	q := New("channel")
+	assert.Equal(t, "channel", q.Name())
+	//接收消息
+	go func() {
+		client := q.Client()
+		client.Sub("mempool")
+		for msg := range client.Recv() {
+			if msg.Data == nil {
+				msg.ReplyErr("test", fmt.Errorf("test error"))
+				break
+			}
+			msg.Reply(NewMessage(0, "mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("test ok")}))
+		}
+	}()
+
+	//发送消息
+	go func() {
+		client := q.Client()
+		msg := client.NewMessage("mempool", types.EventTx, "hello")
+		err := client.Send(msg, true)
+		if err != nil { //chan is closed
+			t.Error(err)
+			return
+		}
+
+		msg = client.NewMessage("mempool", types.EventTx, nil)
+		err = client.Send(msg, true)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		client.CloseQueue()
+	}()
+
+	q.Start()
 }
 
 func TestChanSubCallback(t *testing.T) {
@@ -421,5 +466,55 @@ func BenchmarkChanSubCallback2(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		msg := <-client.Recv()
 		client.Reply(msg)
+	}
+}
+
+func TestChannelClose(t *testing.T) {
+	//send timeout and recv timeout
+	q := New("channel")
+
+	//mempool
+	done := make(chan struct{}, 1)
+	go func() {
+		client := q.Client()
+		client.Sub("mempool")
+		for {
+			select {
+			case msg := <-client.Recv():
+				if msg == nil {
+					return
+				}
+				if msg.Ty == types.EventTx {
+					msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
+				}
+			case <-done:
+				client.Close()
+				return
+			}
+		}
+	}()
+	client := q.Client()
+	go q.Start()
+	//rpc 模块 会向其他模块发送消息，自己本身不需要订阅消息
+	go func() {
+		done <- struct{}{}
+	}()
+	for i := 0; i < 10000; i++ {
+		msg := client.NewMessage("mempool", types.EventTx, "hello")
+		err := client.SendTimeout(msg, true, 0)
+		if err == types.ErrChannelClosed {
+			return
+		}
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		_, err = client.Wait(msg)
+		if err == types.ErrChannelClosed {
+			return
+		}
+		if err != nil {
+			t.Error(err)
+		}
 	}
 }

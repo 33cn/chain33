@@ -5,6 +5,7 @@
 package executor
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -198,5 +199,6 @@ func TestExecutorErrAPIEnv(t *testing.T) {
 	msg := queue.NewMessage(0, "", 1, txlist)
 	exec.procExecTxList(msg)
 	_, err := exec.client.WaitTimeout(msg, 100*time.Second)
+	fmt.Println(err)
 	assert.Equal(t, true, api.IsAPIEnvError(err))
 }

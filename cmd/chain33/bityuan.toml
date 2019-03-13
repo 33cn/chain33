@@ -23,57 +23,96 @@ callerFile = false
 callerFunction = false
 
 [blockchain]
+# 数据库文件目录
 dbPath="datadir"
+# 数据库缓存大小
 dbCache=64
+# 同步区块批量写数据库时，是否需要立即写磁盘，非固态硬盘的电脑可以设置为false，以提高性能
 batchsync=false
+# 是否记录添加或者删除区块的序列，若节点作为主链节点，为平行链节点提供服务，需要设置为true
 isRecordBlockSequence=false
 enableTxQuickIndex=false
 
 [p2p]
+# P2P服务监听端口号
 port=13802
+# 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=["10.0.0.1:13802","10.0.0.2:13802","10.0.0.3:13802"]
 seeds=[]
+# 是否为种子节点
 isSeed=false
+# 是否使用内置的种子节点
 innerSeedEnable=true
+# 是否使用Github获取种子节点
 useGithub=true
+# 最多的接入节点个数
 innerBounds=300
+# 数据库文件目录
 dbPath="datadir/addrbook"
+# 数据库缓存大小
 dbCache=4
+# GRPC请求日志文件
 grpcLogFile="grpc33.log"
 
 [rpc]
+# jrpc绑定地址
 jrpcBindAddr="localhost:8801"
+# grpc绑定地址
 grpcBindAddr="localhost:8802"
+# 白名单列表，允许访问的IP地址，默认是“*”，允许所有IP访问
 whitelist=["127.0.0.1"]
+# jrpc方法请求白名单，默认是“*”，允许访问所有RPC方法
 jrpcFuncWhitelist=["*"]
+# grpc方法请求白名单，默认是“*”，允许访问所有RPC方法
 grpcFuncWhitelist=["*"]
+# 是否开启https
 enableTLS=false
+# 证书文件，证书和私钥文件可以用cli工具生成
 certFile="cert.pem"
+# 私钥文件
 keyFile="key.pem"
 
 [mempool]
+# 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
 
 [store]
+# 数据文件存储路径
 dbPath="datadir/mavltree"
+# Cache大小
 dbCache=128
 
 [store.sub.mavl]
+# 是否使能mavl加前缀
 enableMavlPrefix=false
+# 是否使能MVCC,如果mavl中enableMVCC为true此处必须为true
 enableMVCC=false
+# 是否使能mavl数据裁剪
 enableMavlPrune=false
+# 裁剪高度间隔
 pruneHeight=10000
+# 是否使能mavl数据载入内存
+enableMemTree=false
+# 是否使能mavl叶子节点数据载入内存
+enableMemVal=false
 
 [wallet]
+# walletdb路径
 dbPath="wallet"
+# walletdb缓存大小
 dbCache=16
 
 [wallet.sub.ticket]
+# 是否关闭ticket自动挖矿，默认false
 minerdisable=false
+# 允许购买ticket挖矿的白名单地址，默认配置“*”，允许所有地址购买
 minerwhitelist=["*"]
 
 [exec]
+#是否开启stat插件
 enableStat=false
+#是否开启MVCC插件
 enableMVCC=false
 
 [exec.sub.token]
+#是否保存token交易信息
 saveTokenTxList=false

@@ -95,40 +95,40 @@ func ListMethodByType(typ reflect.Type) map[string]reflect.Method {
 var nilValue = reflect.ValueOf(nil)
 
 // GetActionValue 获取执行器的action value
-func GetActionValue(action interface{}, funclist map[string]reflect.Method) (string, int32, reflect.Value) {
+func GetActionValue(action interface{}, funclist map[string]reflect.Method) (vname string, vty int32, v reflect.Value, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			vname = ""
+			vty = 0
+			v = nilValue
+			err = ErrDecode
+		}
+	}()
 	var ty int32
 	if a, ok := action.(execTypeGet); ok {
 		ty = a.GetTy()
 	}
 	value := reflect.ValueOf(action)
 	if _, ok := funclist["GetValue"]; !ok {
-		return "", 0, nilValue
+		return "", 0, nilValue, ErrDecode
 	}
 	rcvr := funclist["GetValue"].Func.Call([]reflect.Value{value})
-	if !IsOK(rcvr, 1) || IsNil(rcvr[0]) {
-		return "", 0, nilValue
-	}
-	if rcvr[0].Kind() != reflect.Ptr && rcvr[0].Kind() != reflect.Interface {
-		return "", 0, nilValue
-	}
 	elem := rcvr[0].Elem()
-	if IsNil(elem) {
-		return "", 0, nilValue
-	}
 	sname := elem.Type().String()
-	datas := strings.Split(sname, "_")
-	if len(datas) != 2 {
-		return "", 0, nilValue
+	index := strings.LastIndex(sname, "_")
+	if index == -1 || index == (len(sname)-1) {
+		return "", 0, nilValue, ErrDecode
 	}
-	funcname := "Get" + datas[1]
+	tyname := sname[index+1:]
+	funcname := "Get" + tyname
 	if _, ok := funclist[funcname]; !ok {
-		return "", 0, nilValue
+		return "", 0, nilValue, ErrDecode
 	}
 	val := funclist[funcname].Func.Call([]reflect.Value{value})
-	if !IsOK(val, 1) || IsNil(val[0]) {
-		return "", 0, nilValue
+	if len(val) == 0 || val[0].IsNil() {
+		return "", 0, nilValue, ErrDecode
 	}
-	return datas[1], ty, val[0]
+	return tyname, ty, val[0], nil
 }
 
 // IsOK 是否存在

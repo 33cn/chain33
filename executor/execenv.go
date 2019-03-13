@@ -32,6 +32,7 @@ type executor struct {
 	gcli       types.Chain33Client
 	execapi    api.ExecutorAPI
 	receipts   []*types.ReceiptData
+	execCache  map[string]drivers.Driver
 }
 
 type executorCtx struct {
@@ -60,6 +61,7 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 		receipts:     receipts,
 		api:          exec.qclient,
 		gcli:         exec.grpccli,
+		execCache:    make(map[string]drivers.Driver),
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -103,17 +105,18 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 		copyfrom := *accFrom
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
 		receiptBalance := &types.ReceiptAccountTransfer{Prev: &copyfrom, Current: accFrom}
-		e.coinsAccount.SaveAccount(accFrom)
-		return e.cutFeeReceipt(accFrom, receiptBalance), nil
+		set := e.coinsAccount.GetKVSet(accFrom)
+		e.coinsAccount.SaveKVSet(set)
+		return e.cutFeeReceipt(set, receiptBalance), nil
 	}
 	return nil, types.ErrNoBalance
 }
 
-func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Message) *types.Receipt {
+func (e *executor) cutFeeReceipt(kvset []*types.KeyValue, receiptBalance proto.Message) *types.Receipt {
 	feelog := &types.ReceiptLog{Ty: types.TyLogFee, Log: types.Encode(receiptBalance)}
 	return &types.Receipt{
 		Ty:   types.ExecPack,
-		KV:   e.coinsAccount.GetKVSet(acc),
+		KV:   kvset,
 		Logs: append([]*types.ReceiptLog{}, feelog),
 	}
 }
@@ -190,7 +193,6 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 	}
-	e.setEnv(exec)
 	return exec.CheckTx(tx, index)
 }
 
@@ -201,11 +203,24 @@ func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	if err := drivers.CheckAddress(tx.GetRealToAddr(), e.height); err != nil {
 		return nil, err
 	}
+	if e.localDB != nil {
+		e.localDB.(*LocalDB).DisableWrite()
+		if exec.ExecutorOrder() != drivers.ExecLocalSameTime {
+			e.localDB.(*LocalDB).DisableRead()
+		}
+		defer func() {
+			e.localDB.(*LocalDB).EnableWrite()
+			if exec.ExecutorOrder() != drivers.ExecLocalSameTime {
+				e.localDB.(*LocalDB).EnableRead()
+			}
+		}()
+	}
 	//第一步先检查 CheckTx
 	if err := exec.CheckTx(tx, index); err != nil {
 		return nil, err
 	}
-	return exec.Exec(tx, index)
+	r, err := exec.Exec(tx, index)
+	return r, err
 }
 
 func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
@@ -219,8 +234,14 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
-	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	ename := string(tx.Execer)
+	exec, ok := e.execCache[ename]
+	if ok {
+		return exec
+	}
+	exec = drivers.LoadDriverAllow(tx, index, e.height)
 	e.setEnv(exec)
+	e.execCache[ename] = exec
 	return exec
 }
 
@@ -297,7 +318,6 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	execer := string(tx.Execer)
 	ex := e.loadDriver(tx, index)
-	e.setEnv(ex)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
 	if bytes.Equal(address.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {

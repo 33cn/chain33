@@ -180,4 +180,8 @@ var (
 	ErrHeightLessZero      = errors.New("ErrHeightLessZero")
 	ErrHeightOverflow      = errors.New("ErrHeightOverflow")
 	ErrRecordBlockSequence = errors.New("ErrRecordBlockSequence")
+	ErrExecPanic           = errors.New("ErrExecPanic")
+
+	ErrDisableWrite = errors.New("ErrDisableWrite")
+	ErrDisableRead  = errors.New("ErrDisableRead")
 )
