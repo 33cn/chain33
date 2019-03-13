@@ -203,16 +203,18 @@ func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	if err := drivers.CheckAddress(tx.GetRealToAddr(), e.height); err != nil {
 		return nil, err
 	}
-	e.localDB.(*LocalDB).DisableWrite()
-	if exec.ExecutorOrder() != drivers.ExecLocalSameTime {
-		e.localDB.(*LocalDB).DisableRead()
-	}
-	defer func() {
-		e.localDB.(*LocalDB).EnableWrite()
+	if e.localDB != nil {
+		e.localDB.(*LocalDB).DisableWrite()
 		if exec.ExecutorOrder() != drivers.ExecLocalSameTime {
-			e.localDB.(*LocalDB).EnableRead()
+			e.localDB.(*LocalDB).DisableRead()
 		}
-	}()
+		defer func() {
+			e.localDB.(*LocalDB).EnableWrite()
+			if exec.ExecutorOrder() != drivers.ExecLocalSameTime {
+				e.localDB.(*LocalDB).EnableRead()
+			}
+		}()
+	}
 	//第一步先检查 CheckTx
 	if err := exec.CheckTx(tx, index); err != nil {
 		return nil, err
