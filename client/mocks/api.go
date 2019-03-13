@@ -453,6 +453,29 @@ func (_m *QueueProtocolAPI) GetMempool() (*types.ReplyTxList, error) {
 	return r0, r1
 }
 
+// GetProperFee provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetProperFee() (*types.ReplyProperFee, error) {
+	ret := _m.Called()
+
+	var r0 *types.ReplyProperFee
+	if rf, ok := ret.Get(0).(func() *types.ReplyProperFee); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyProperFee)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetNetInfo provides a mock function with given fields:
 func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 	ret := _m.Called()

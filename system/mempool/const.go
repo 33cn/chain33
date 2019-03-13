@@ -14,6 +14,7 @@ var (
 	mempoolExpiredInterval int64 = 600   // mempool内交易过期时间，10分钟
 	maxTxNumPerAccount     int64 = 100   // TODO 每个账户在mempool中最大交易数量，10
 	maxTxLast              int64 = 10
+	ProperFee			   int64 = 100000// 合适的手续费,默认为0.001
 	processNum             int
 )
 

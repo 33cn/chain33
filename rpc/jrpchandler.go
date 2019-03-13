@@ -616,6 +616,19 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
+// GetProperFee get  contents in proper fee
+func (c *Chain33) GetProperFee(in types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.GetProperFee()
+	if err != nil {
+		return err
+	}
+	var properFee rpctypes.ReplyProperFee
+	properFee.ProperFee = reply.GetProperFee()
+	*result = &properFee
+	return nil
+}
+
+
 // GetBlockOverview get overview of block
 // GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
 func (c *Chain33) GetBlockOverview(in rpctypes.QueryParm, result *interface{}) error {

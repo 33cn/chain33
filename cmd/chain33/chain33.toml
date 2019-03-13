@@ -102,10 +102,14 @@ poolCacheSize=10240
 minTxFee=100000
 # 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
+# 合适的手续费,默认100000
+properFee=100000
 
 [mempool.sub.timeline]
 # mempool缓存容量大小，默认10240
 poolCacheSize=10240
+# 合适的手续费,默认100000
+properFee=100000
 
 [mempool.sub.score]
 # mempool缓存容量大小，默认10240

@@ -68,6 +68,7 @@ name="timeline"
 poolCacheSize=10240
 minTxFee=100000
 maxTxNumPerAccount=100
+properFee=100000
 
 [mempool.sub.timeline]
 poolCacheSize=10240

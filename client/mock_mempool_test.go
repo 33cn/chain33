@@ -47,6 +47,8 @@ func (m *mockMempool) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(mempoolKey, types.EventReplyTxList, &types.ReplyTxList{}))
 			case types.EventGetLastMempool:
 				msg.Reply(client.NewMessage(mempoolKey, types.EventReplyTxList, &types.ReplyTxList{}))
+			case types.EventGetProperFee:
+				msg.Reply(client.NewMessage(mempoolKey, types.EventReplyProperFee, &types.ReplyProperFee{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}

@@ -468,6 +468,19 @@ func (q *QueueProtocol) GetLastMempool() (*types.ReplyTxList, error) {
 	return nil, types.ErrTypeAsset
 }
 
+// GetProperFee get proper fee from mempool
+func (q *QueueProtocol) GetProperFee() (*types.ReplyProperFee, error) {
+	msg, err := q.query(mempoolKey, types.EventGetProperFee, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetProperFee", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyProperFee); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 // GetBlockOverview get block head detil by hash
 func (q *QueueProtocol) GetBlockOverview(param *types.ReqHash) (*types.BlockOverview, error) {
 	if param == nil {
