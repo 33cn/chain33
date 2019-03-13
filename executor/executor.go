@@ -457,4 +457,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 // Close close executor
 func (exec *Executor) Close() {
 	elog.Info("exec module closed")
+	if exec.client != nil {
+		exec.client.Close()
+	}
 }

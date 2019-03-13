@@ -5,15 +5,20 @@
 package util
 
 import (
+	"errors"
+	"sync/atomic"
 	"testing"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
+	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
+	qmocks "github.com/33cn/chain33/queue/mocks"
+	_ "github.com/33cn/chain33/system/crypto/secp256k1"
+	_ "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
-
-	_ "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestMakeStringUpper(t *testing.T) {
@@ -139,8 +144,8 @@ func TestDelDupKey(t *testing.T) {
 		{Key: []byte("hello"), Value: []byte("world2")},
 	}
 	result := []*types.KeyValue{
-		{Key: []byte("hello1"), Value: []byte("world")},
 		{Key: []byte("hello"), Value: []byte("world2")},
+		{Key: []byte("hello1"), Value: []byte("world")},
 	}
 	kvs = DelDupKey(kvs)
 	assert.Equal(t, kvs, result)
@@ -168,6 +173,7 @@ func BenchmarkDelDupKey(b *testing.B) {
 			kvs = append(kvs, &types.KeyValue{Key: key, Value: value})
 		}
 	}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		testkv := make([]*types.KeyValue, len(kvs))
 		copy(testkv, kvs)
@@ -224,4 +230,92 @@ func TestMockModule(t *testing.T) {
 	assert.Equal(t, ok, true)
 	assert.Equal(t, reply.GetIsOk(), false)
 	assert.Equal(t, reply.GetMsg(), []byte("mock mempool module not handle message 1"))
+}
+
+func TestJSONPrint(t *testing.T) {
+	JSONPrint(t, &types.Reply{})
+}
+
+type testClient struct {
+	qmocks.Client
+}
+
+var gid int64
+
+func (t *testClient) NewMessage(topic string, ty int64, data interface{}) *queue.Message {
+	id := atomic.AddInt64(&gid, 1)
+	return queue.NewMessage(id, topic, ty, data)
+}
+
+func (t *testClient) Wait(in *queue.Message) (*queue.Message, error) {
+	switch in.Ty {
+	case types.EventTxHashList:
+		return &queue.Message{Data: &types.TxHashList{}}, nil
+	case types.EventExecTxList:
+		return &queue.Message{Data: &types.Receipts{Receipts: []*types.Receipt{{Ty: 2}, {Ty: types.ExecErr}}}}, nil
+	case types.EventStoreMemSet:
+		return &queue.Message{Data: &types.ReplyHash{}}, nil
+	case types.EventStoreRollback:
+		return &queue.Message{Data: &types.ReplyHash{}}, nil
+	case types.EventStoreCommit:
+		return &queue.Message{Data: &types.ReplyHash{}}, nil
+	case types.EventCheckBlock:
+		return &queue.Message{Data: &types.Reply{IsOk: true}}, nil
+	}
+
+	return &queue.Message{}, nil
+}
+
+func TestExecBlock(t *testing.T) {
+	client := &testClient{}
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	var txs []*types.Transaction
+	addr, priv := Genaddress()
+	tx := CreateCoinsTx(priv, addr, types.Coin)
+	tx.Sign(types.SECP256K1, priv)
+	txs = append(txs, tx)
+	_, _, err := ExecBlock(client, nil, &types.Block{Txs: txs}, false, true, false)
+	assert.NoError(t, err)
+}
+
+func TestExecAndCheckBlock(t *testing.T) {
+	client := &testClient{}
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	_, err := ExecAndCheckBlock(client, &types.Block{}, nil, 0)
+	assert.NoError(t, err)
+	_, err = ExecAndCheckBlock2(client, &types.Block{}, nil, nil)
+	assert.NoError(t, err)
+}
+
+func TestCheckBlock(t *testing.T) {
+	client := &testClient{}
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	err := CheckBlock(client, nil)
+	assert.NoError(t, err)
+}
+
+func TestExecKVSetRollback(t *testing.T) {
+	client := &testClient{}
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	err := ExecKVSetRollback(client, nil)
+	assert.NoError(t, err)
+}
+
+func TestCheckDupTx(t *testing.T) {
+	client := &testClient{}
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	var txs []*types.Transaction
+	addr, priv := Genaddress()
+	tx := CreateCoinsTx(priv, addr, types.Coin)
+	tx.Sign(types.SECP256K1, priv)
+	txs = append(txs, tx)
+	_, err := CheckDupTx(client, txs, 1)
+	assert.NoError(t, err)
+}
+
+func TestReportErrEventToFront(t *testing.T) {
+	logger := log.New("test")
+	client := &testClient{}
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	ReportErrEventToFront(logger, client, "from", "to", errors.New("test"))
 }

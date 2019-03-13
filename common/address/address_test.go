@@ -12,10 +12,9 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/common/crypto"
+	_ "github.com/33cn/chain33/system/crypto/init"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	_ "github.com/33cn/chain33/system/crypto/init"
 )
 
 func genkey() crypto.PrivKey {
@@ -104,4 +103,9 @@ func BenchmarkExecAddress(b *testing.B) {
 	fmt.Println(end)
 	duration = end - start
 	fmt.Println("duration without cache:", strconv.FormatInt(duration, 10))
+}
+
+func TestExecPubKey(t *testing.T) {
+	pubkey := ExecPubKey("test")
+	assert.True(t, len(pubkey) == 32)
 }

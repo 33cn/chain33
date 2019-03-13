@@ -48,7 +48,6 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	err := client.Send(msg, true)
 	if err != nil {
-		log.Error("send", "to execs EventExecTxList msg err", err)
 		return nil, err
 	}
 	resp, err := client.Wait(msg)
@@ -67,7 +66,6 @@ func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset
 	msg := client.NewMessage("store", types.EventStoreMemSet, setwithsync)
 	err := client.Send(msg, true)
 	if err != nil {
-		log.Error("send", "to store EventStoreMemSet msg err", err)
 		return nil, err
 	}
 	resp, err := client.Wait(msg)
@@ -84,7 +82,6 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	msg := client.NewMessage("store", types.EventStoreCommit, req)
 	err := client.Send(msg, true)
 	if err != nil {
-		log.Error("send", "to store EventStoreCommit msg err", err)
 		return err
 	}
 	msg, err = client.Wait(msg)
@@ -102,7 +99,6 @@ func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	msg := client.NewMessage("store", types.EventStoreRollback, req)
 	err := client.Send(msg, true)
 	if err != nil {
-		log.Error("send", "to blockchain EventTxHashList msg err", err)
 		return err
 	}
 	msg, err = client.Wait(msg)
@@ -216,25 +212,17 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 //DelDupKey 删除重复的key
 func DelDupKey(kvs []*types.KeyValue) []*types.KeyValue {
 	dupindex := make(map[string]int)
-	hasdup := false
-	for i, kv := range kvs {
+	n := 0
+	for _, kv := range kvs {
 		skey := string(kv.Key)
 		if index, ok := dupindex[skey]; ok {
-			hasdup = true
-			kvs[index] = nil
-		}
-		dupindex[skey] = i
-	}
-	//没有重复的情况下，不需要重新处理
-	if !hasdup {
-		return kvs
-	}
-	index := 0
-	for _, kv := range kvs {
-		if kv != nil {
+			//重复的key 替换老的key
 			kvs[index] = kv
-			index++
+		} else {
+			dupindex[skey] = n
+			kvs[n] = kv
+			n++
 		}
 	}
-	return kvs[0:index]
+	return kvs[0:n]
 }

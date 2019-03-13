@@ -32,6 +32,9 @@ func TestStart(t *testing.T) {
 	cfg, _ := types.InitCfg("../cmd/chain33/chain33.test.toml")
 	health.Start(cfg.Health)
 	time.Sleep(time.Second * 3)
+	api.On("IsSync").Return(&types.Reply{IsOk: false}, nil)
+	health.Start(cfg.Health)
+	time.Sleep(time.Second * 3)
 	health.Close()
 	time.Sleep(time.Second * 1)
 }

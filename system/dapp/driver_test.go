@@ -120,3 +120,76 @@ func TestAllow(t *testing.T) {
 	assert.Equal(t, types.ErrNotAllow, demo.Allow(tx, 0))
 	assert.Equal(t, false, demo.IsFriend(nil, nil, nil))
 }
+
+func TestDriverBase(t *testing.T) {
+	demo := newdemoApp().(*demoApp)
+	demo.SetExecutorType(nil)
+	assert.Nil(t, demo.GetPayloadValue())
+	assert.Nil(t, demo.GetExecutorType())
+	assert.True(t, demo.ExecutorOrder() == 0)
+	assert.Nil(t, demo.GetFuncMap())
+	demo.SetIsFree(false)
+	assert.False(t, demo.IsFree())
+
+	tx := &types.Transaction{Execer: []byte("demo"), To: ExecAddress("demo"), GroupCount: 1}
+	t.Log("addr:", ExecAddress("demo"))
+	_, err := demo.ExecLocal(tx, nil, 0)
+	assert.NoError(t, err)
+	_, err = demo.ExecDelLocal(tx, nil, 0)
+	assert.NoError(t, err)
+	_, err = demo.Exec(tx, 0)
+	assert.NoError(t, err)
+	err = demo.CheckTx(tx, 0)
+	assert.NoError(t, err)
+
+	txs := []*types.Transaction{tx}
+	demo.SetTxs(txs)
+	assert.Equal(t, txs, demo.GetTxs())
+	_, err = demo.GetTxGroup(0)
+	assert.Equal(t, types.ErrTxGroupFormat, err)
+
+	demo.SetReceipt(nil)
+	assert.Nil(t, demo.GetReceipt())
+	demo.SetLocalDB(nil)
+	assert.Nil(t, demo.GetLocalDB())
+	assert.Nil(t, demo.GetStateDB())
+	assert.True(t, demo.GetHeight() == 0)
+	assert.True(t, demo.GetBlockTime() == 0)
+	assert.True(t, demo.GetDifficulty() == 0)
+	assert.Equal(t, "demo", demo.GetName())
+	assert.Equal(t, "demo", demo.GetCurrentExecName())
+
+	name := demo.GetActionName(tx)
+	assert.Equal(t, "unknown", name)
+	assert.True(t, demo.CheckSignatureData(tx, 0))
+	assert.NotNil(t, demo.GetCoinsAccount())
+	assert.False(t, demo.CheckReceiptExecOk())
+
+	err = CheckAddress("1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", 0)
+	assert.NoError(t, err)
+}
+
+func TestDriverBase_Query(t *testing.T) {
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
+	demo := newdemoApp().(*demoApp)
+	demo.SetLocalDB(kvdb)
+	addr := &types.ReqAddr{Addr: "1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", Count: 1, Direction: 1}
+	kvdb.Set(types.CalcTxAddrHashKey(addr.GetAddr(), ""), types.Encode(&types.ReplyTxInfo{}))
+	_, err := demo.GetTxsByAddr(addr)
+	assert.Equal(t, types.ErrNotFound, err)
+
+	addr.Height = -1
+	_, err = demo.GetTxsByAddr(addr)
+	assert.NoError(t, err)
+
+	c, err := demo.GetPrefixCount(&types.ReqKey{Key: types.CalcTxAddrHashKey(addr.GetAddr(), "")})
+	assert.NoError(t, err)
+	assert.True(t, c.(*types.Int64).Data == 1)
+
+	_, err = demo.GetAddrTxsCount(&types.ReqKey{Key: types.CalcTxAddrHashKey(addr.GetAddr(), "")})
+	assert.NoError(t, err)
+
+	_, err = demo.Query("", nil)
+	assert.Equal(t, types.ErrActionNotSupport, err)
+}
