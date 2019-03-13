@@ -32,7 +32,7 @@ func (c executorCodeFile) GetFiles() map[string]string {
 
 func (c executorCodeFile) GetReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagClassName}
+	return []string{types.TagExecName, types.TagImportPath, types.TagClassName}
 }
 
 var (
@@ -41,13 +41,13 @@ var (
 
 import (
 	log "github.com/33cn/chain33/common/log/log15"
-	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 )
 
 var (
-	ptylog = log.New("module", "execs.${EXECNAME}")
+	elog = log.New("module", "execs.${EXECNAME}")
 )
 
 var driverName = ptypes.${CLASSNAME}X

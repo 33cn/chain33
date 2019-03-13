@@ -28,7 +28,7 @@ func (execCode) GetFiles() map[string]string {
 
 func (execCode) GetReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagClassName, types.TagExecFileContent}
+	return []string{types.TagExecName, types.TagImportPath, types.TagClassName, types.TagExecFileContent}
 }
 
 type execLocalCode struct {
@@ -44,7 +44,7 @@ func (execLocalCode) GetFiles() map[string]string {
 
 func (execLocalCode) GetReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagExecLocalFileContent}
+	return []string{types.TagExecName, types.TagImportPath, types.TagExecLocalFileContent}
 }
 
 type execDelLocalCode struct {
@@ -60,7 +60,7 @@ func (execDelLocalCode) GetFiles() map[string]string {
 
 func (execDelLocalCode) GetReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagExecDelLocalFileContent}
+	return []string{types.TagExecName, types.TagImportPath, types.TagExecDelLocalFileContent}
 }
 
 var (
@@ -68,7 +68,7 @@ var (
 	execContent = `package executor
 
 import (
-	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -78,7 +78,7 @@ ${EXECFILECONTENT}`
 	execLocalContent = `package executor
 
 import (
-	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -88,7 +88,7 @@ ${EXECLOCALFILECONTENT}`
 	execDelContent = `package executor
 
 import (
-	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types"
 	"github.com/33cn/chain33/types"
 )
 

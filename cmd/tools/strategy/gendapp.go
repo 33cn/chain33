@@ -21,6 +21,7 @@ type genDappStrategy struct {
 	dappName  string
 	dappDir   string
 	dappProto string
+	packagePath string
 }
 
 func (ad *genDappStrategy) Run() error {
@@ -42,24 +43,28 @@ func (ad *genDappStrategy) initMember() bool {
 	dappName, _ := ad.getParam(types.KeyExecutorName)
 	outDir, _ := ad.getParam(types.KeyDappOutDir)
 	protoPath, _ := ad.getParam(types.KeyProtobufFile)
+	//统一转为小写字母
+	dappName = strings.ToLower(dappName)
 
 	if strings.Contains(dappName, " ") {
 		mlog.Error("InitGenDapp", "Err", "invalid dapp name", "name", dappName)
 		return false
 	}
 
-	// 默认输出到plugin项目的plugin/dapp/目录下
-	if outDir == "" {
-		goPath := os.Getenv("GOPATH")
-		if goPath == "" {
-			outDir = "gendappcode"
-		} else {
-			outDir = filepath.Join(goPath, "src", "github.com", "33cn", "plugin", "plugin", "dapp")
-		}
-
+	goPath := os.Getenv("GOPATH")
+	if goPath == "" {
+		mlog.Error("InitGenDapp", "Err", "$GOPATH not exist")
+		return false
 	}
 
-	dappRootDir := filepath.Join(outDir, dappName)
+	// 默认输出到plugin项目的plugin/dapp/目录下
+	if outDir == "" {
+		outDir = filepath.Join("github.com", "33cn", "plugin", "plugin", "dapp")
+	}
+	//兼容win 反斜杠路径
+	packPath := strings.Replace(filepath.Join(outDir), string(filepath.Separator), "/", -1)
+	//绝对路径
+	dappRootDir := filepath.Join(goPath, "src", outDir, dappName)
 	//check dapp output directory exist
 	if util.CheckPathExisted(dappRootDir) {
 		mlog.Error("InitGenDapp", "Err", "generate dapp directory exist", "Dir", dappRootDir)
@@ -84,6 +89,7 @@ func (ad *genDappStrategy) initMember() bool {
 	ad.dappName = dappName
 	ad.dappDir = dappRootDir
 	ad.dappProto = protoPath
+	ad.packagePath = packPath
 
 	return true
 }
@@ -110,6 +116,7 @@ func (ad *genDappStrategy) buildTask() []tasks.Task {
 			DappName:  ad.dappName,
 			DappDir:   ad.dappDir,
 			ProtoFile: ad.dappProto,
+			PackagePath: ad.packagePath,
 		},
 		&tasks.FormatDappSourceTask{
 			OutputFolder: ad.dappDir,

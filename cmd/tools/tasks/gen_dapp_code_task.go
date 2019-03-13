@@ -23,6 +23,7 @@ type GenDappCodeTask struct {
 	DappName     string
 	DappDir      string
 	ProtoFile    string
+	PackagePath	 string
 	replacePairs map[string]string
 }
 
@@ -62,6 +63,7 @@ func (c *GenDappCodeTask) calcReplacePairs(pbContent string) error {
 	className, _ := util2.MakeStringToUpper(dapp, 0, 1)
 	c.replacePairs[types.TagExecName] = dapp
 	c.replacePairs[types.TagClassName] = className
+	c.replacePairs[types.TagImportPath] = c.PackagePath
 
 	pbAppend := gencode.ProtoFileAppendService
 	if strings.Contains(pbContent, "service") {
