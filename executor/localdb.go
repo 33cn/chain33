@@ -48,17 +48,17 @@ func (l *LocalDB) DisableRead() {
 	l.disableread = true
 }
 
-//DisableWrite 禁止读取LocalDB数据库
+//DisableWrite 禁止写LocalDB数据库
 func (l *LocalDB) DisableWrite() {
 	l.disablewrite = true
 }
 
-//EnableRead 禁止读取LocalDB数据库
+//EnableRead 启动读取LocalDB数据库
 func (l *LocalDB) EnableRead() {
 	l.disableread = false
 }
 
-//EnableWrite 禁止读取LocalDB数据库
+//EnableWrite 启动写LocalDB数据库
 func (l *LocalDB) EnableWrite() {
 	l.disablewrite = false
 }
