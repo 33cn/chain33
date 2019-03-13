@@ -312,7 +312,10 @@ func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	}
 	if seterrkey {
 		println("set err key value")
-		demo.GetLocalDB().Set([]byte("key1"), []byte("value1"))
+		err = demo.GetLocalDB().Set([]byte("key1"), []byte("value1"))
+		if err != nil {
+			return nil, err
+		}
 	}
 	receipt = &types.Receipt{Ty: types.ExecOk}
 	receipt.KV = append(receipt.KV, &types.KeyValue{
@@ -401,11 +404,14 @@ func TestExecLocalSameTime0(t *testing.T) {
 		return
 	}
 	for i, receipt := range detail.Receipts {
-		assert.Equal(t, receipt.GetTy(), int32(2), fmt.Sprint(i))
+		if i == 0 {
+			assert.Equal(t, receipt.GetTy(), int32(2), fmt.Sprint(i))
+		}
 		if i >= 1 {
+			assert.Equal(t, receipt.GetTy(), int32(1), fmt.Sprint(i))
 			fmt.Println(receipt)
 			assert.Equal(t, len(receipt.Logs), 2)
-			assert.Equal(t, receipt.Logs[1].Ty, int32(0))
+			assert.Equal(t, receipt.Logs[1].Ty, int32(1))
 		}
 	}
 }
