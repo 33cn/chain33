@@ -19,7 +19,7 @@ environment:
 install:
   # Install the specific Go version.
   - rmdir c:\go /s /q
-  - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.msi
+  - appveyor DownloadFile https://dl.google.com/go/go1.9.7.windows-amd64.msi
   - msiexec /i go%GOVERSION%.windows-amd64.msi /q
  # - choco install bzr
   - set Path=c:\go\bin;c:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial\%Path%
