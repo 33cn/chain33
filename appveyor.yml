@@ -13,7 +13,6 @@ environment:
 
 #init:
 #  - git config --global core.autocrlf input
-
 # Build
 
 install:
