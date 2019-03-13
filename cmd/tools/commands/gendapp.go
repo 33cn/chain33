@@ -28,7 +28,7 @@ func addGenDappFlag(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("name")
 	cmd.Flags().StringP("proto", "p", "", "dapp protobuf file path")
 	cmd.MarkFlagRequired("proto")
-	cmd.Flags().StringP("output", "o", "", "output directory.(default $GOPATH/src/github.com/33cn/plugin/plugin/dapp/)")
+	cmd.Flags().StringP("output", "o", "", "go package for output (default github.com/33cn/plugin/plugin/dapp/)")
 
 }
 

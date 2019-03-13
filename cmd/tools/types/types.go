@@ -39,6 +39,9 @@ const (
 	TagTypeMapText     = "${TYPEMAPTEXT}"
 	TagTypeName        = "${TYPENAME}"
 
+	//TagImport
+	TagImportPath = "${IMPORTPATH}"
+
 	//Tag proto file
 	TagProtoFileContent = "${PROTOFILECONTENT}"
 	TagProtoFileAppend  = "${PROTOFILEAPPEND}"

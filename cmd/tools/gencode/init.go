@@ -6,8 +6,7 @@ package gencode
 
 import (
 	"github.com/33cn/chain33/cmd/tools/gencode/base"
-	//init dapp code register
-	_ "github.com/33cn/chain33/cmd/tools/gencode/dappcode"
+	_ "github.com/33cn/chain33/cmd/tools/gencode/dappcode"	//init dapp code
 )
 
 //GetCodeFilesWithType get code file with type

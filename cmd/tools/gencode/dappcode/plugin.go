@@ -27,7 +27,7 @@ func (c pluginCodeFile) GetFiles() map[string]string {
 
 func (c pluginCodeFile) GetReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagClassName}
+	return []string{types.TagExecName, types.TagImportPath, types.TagClassName}
 }
 
 var (
@@ -36,10 +36,10 @@ var (
 package ${EXECNAME}
 
 import (
-	"github.com/33cn/plugin/plugin/dapp/${EXECNAME}/commands"
-	"github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
-	"github.com/33cn/plugin/plugin/dapp/${EXECNAME}/executor"
-	"github.com/33cn/plugin/plugin/dapp/${EXECNAME}/rpc"
+	"${IMPORTPATH}/${EXECNAME}/commands"
+	"${IMPORTPATH}/${EXECNAME}/types"
+	"${IMPORTPATH}/${EXECNAME}/executor"
+	"${IMPORTPATH}/${EXECNAME}/rpc"
 	"github.com/33cn/chain33/pluginmgr"
 )
 

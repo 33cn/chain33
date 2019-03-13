@@ -33,7 +33,7 @@ func (c rpcCodeFile) GetFiles() map[string]string {
 
 func (c rpcCodeFile) GetReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagClassName}
+	return []string{types.TagExecName, types.TagImportPath, types.TagClassName}
 }
 
 var (
@@ -44,7 +44,7 @@ var (
 	typesContent = `package rpc
 
 import (
-	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
