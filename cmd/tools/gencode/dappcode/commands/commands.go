@@ -36,11 +36,16 @@ func (c commandsCodeFile) GetReplaceTags() []string {
 
 var (
 	commandsFileName    = "commands.go"
-	commandsFileContent = `/* package commands, implement dapp client commands*/
+	commandsFileContent = `/*Package commands implement dapp client commands*/
 package commands
 
 import "github.com/spf13/cobra"
 
+/* 
+ * 实现合约对应客户端
+*/
+
+// Cmd ${EXECNAME} client command
 func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:	"${EXECNAME}",

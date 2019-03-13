@@ -18,9 +18,9 @@ import (
 type genDappStrategy struct {
 	strategyBasic
 
-	dappName  string
-	dappDir   string
-	dappProto string
+	dappName    string
+	dappDir     string
+	dappProto   string
 	packagePath string
 }
 
@@ -113,9 +113,9 @@ func (ad *genDappStrategy) buildTask() []tasks.Task {
 	taskSlice = append(taskSlice,
 
 		&tasks.GenDappCodeTask{
-			DappName:  ad.dappName,
-			DappDir:   ad.dappDir,
-			ProtoFile: ad.dappProto,
+			DappName:    ad.dappName,
+			DappDir:     ad.dappDir,
+			ProtoFile:   ad.dappProto,
 			PackagePath: ad.packagePath,
 		},
 		&tasks.FormatDappSourceTask{

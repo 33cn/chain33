@@ -27,6 +27,7 @@ func (c executorCodeFile) GetFiles() map[string]string {
 
 	return map[string]string{
 		executorName: executorContent,
+		kvName:       kvContent,
 	}
 }
 
@@ -46,7 +47,14 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+/* 
+ * 执行器相关定义
+ * 重载基类相关接口
+*/ 
+
+
 var (
+	//日志
 	elog = log.New("module", "execs.${EXECNAME}")
 )
 
@@ -57,6 +65,7 @@ func init() {
 	ety.InitFuncList(types.ListMethod(&${EXECNAME}{}))
 }
 
+// Init register dapp
 func Init(name string, sub []byte) {
 	drivers.Register(GetName(), new${CLASSNAME}, types.GetDappFork(driverName, "Enable"))
 }
@@ -72,6 +81,7 @@ func new${CLASSNAME}() drivers.Driver {
 	return t
 }
 
+// GetName get driver name
 func GetName() string {
 	return new${CLASSNAME}().GetName()
 }
@@ -80,5 +90,28 @@ func (*${EXECNAME}) GetDriverName() string {
 	return driverName
 }
 
+// CheckTx 实现自定义检验交易接口，供框架调用
+func (*${EXECNAME}) CheckTx(tx *types.Transaction, index int) error {
+	// implement code
+	return nil
+}
+
+`
+
+	kvName    = "kv.go"
+	kvContent = `package executor
+
+/*
+ * 用户合约存取kv数据时，key值前缀需要满足一定规范
+ * 即key = keyPrefix + userKey
+ * 需要字段前缀查询时，使用’-‘作为分割符号
+*/
+
+var (
+	//KeyPrefixStateDB state db key必须前缀
+	KeyPrefixStateDB = "mavl-${EXECNAME}-"
+	//KeyPrefixLocalDB local db的key必须前缀
+	KeyPrefixLocalDB = "LODB-${EXECNAME}-"
+)
 `
 )
