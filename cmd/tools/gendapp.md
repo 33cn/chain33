@@ -4,7 +4,7 @@
 
 ### 编译
 ```
-//本地存在chain33，忽略该步骤
+//本地存在chain33代码，该步骤可省略
 $ git clone https://github.com/33cn/chain33.git $GOPATH/src/github.com/33cn/chain33
 //编译chain33 tools
 $ go build -i -o $GOPATH/bin/chain33-tool github.com/33cn/chain33/cmd/tools
