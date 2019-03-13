@@ -225,8 +225,9 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//通过consensus module 再次检查
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := types.Now()
+	beg2 := beg
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg2))
 	}()
 
 	if errReturn && block.Height > 0 && !block.CheckSign() {
