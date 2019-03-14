@@ -35,6 +35,9 @@ $ chain33-tool gendapp -n demo -p ./demo.proto
 
 // 指定输出包路径
 $ chain33-tool gendapp -n demo -p ./demo.proto -o github.com/33cn/chain33/plugin/dapp/
+
+//生成proto
+cd proto && chmod +x ./create_protobuf.sh && make
 ```
 ### proto规范
 * 定义合约交易行为结构，采用**oneof value**形式，且名称必须为**NameAction**格式，
