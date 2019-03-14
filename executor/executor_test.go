@@ -109,7 +109,8 @@ func TestKeyAllow(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
+	c := drivers.LoadDriverAllow(&tx12, 0, int64(1))
+	if !isAllowKeyWrite(c, key, exec, &tx12, int64(1)) {
 		t.Error("retrieve can modify exec")
 	}
 }
@@ -123,7 +124,8 @@ func TestKeyAllow_evm(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
+	c := drivers.LoadDriverAllow(&tx12, 0, int64(1))
+	if !isAllowKeyWrite(c, key, exec, &tx12, int64(1)) {
 		t.Error("user.evm.hash can modify exec")
 	}
 	//assert.Nil(t, t)
