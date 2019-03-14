@@ -9,6 +9,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// SubConfig 配置信息
 type SubConfig struct {
 	PoolCacheSize int64 `json:"poolCacheSize"`
 	ProperFee     int64 `json:"properFee"`
