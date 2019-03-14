@@ -33,7 +33,7 @@ func NewMainChainClient(grpcaddr string) (types.Chain33Client, error) {
 	kp := keepalive.ClientParameters{
 		Time:                time.Second * 5,
 		Timeout:             time.Second * 20,
-		PermitWithoutStream: false,
+		PermitWithoutStream: true,
 	}
 	conn, err := grpc.Dial(NewMultipleURL(paraRemoteGrpcClient), grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(paraChainGrpcRecSize)),
