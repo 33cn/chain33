@@ -191,7 +191,10 @@ func NewSeed(mnemonic string, password string) []byte {
 func addChecksum(data []byte) []byte {
 	// Get first byte of sha256
 	hasher := sha256.New()
-	hasher.Write(data)
+	_, err := hasher.Write(data)
+	if err != nil {
+		return nil
+	}
 	hash := hasher.Sum(nil)
 	firstChecksumByte := hash[0]
 

@@ -153,6 +153,7 @@ func (client *client) getTopic() string {
 }
 
 func (client *client) setTopic(topic string) {
+	// #nosec
 	atomic.StorePointer(&client.topic, unsafe.Pointer(&topic))
 }
 

@@ -125,7 +125,10 @@ func (m *MVCCHelper) Trash(version int64) error {
 			continue
 		}
 		if v <= version {
-			m.db.Delete(it.Key())
+			err := m.db.Delete(it.Key())
+			if err != nil {
+				mvcclog.Error("Trash Delete verson", "err", err)
+			}
 		}
 	}
 	return nil

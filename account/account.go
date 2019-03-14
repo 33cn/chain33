@@ -193,14 +193,20 @@ func (acc *DB) transferReceipt(fromkv, tokv []*types.KeyValue, receiptFrom, rece
 func (acc *DB) SaveAccount(acc1 *types.Account) {
 	set := acc.GetKVSet(acc1)
 	for i := 0; i < len(set); i++ {
-		acc.db.Set(set[i].GetKey(), set[i].Value)
+		err := acc.db.Set(set[i].GetKey(), set[i].Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
 //SaveKVSet 保存Key Value set
 func (acc *DB) SaveKVSet(set []*types.KeyValue) {
 	for i := 0; i < len(set); i++ {
-		acc.db.Set(set[i].GetKey(), set[i].Value)
+		err := acc.db.Set(set[i].GetKey(), set[i].Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

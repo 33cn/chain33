@@ -179,7 +179,10 @@ func (s *P2pserver) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 	log.Debug("p2pServer RECV TRANSACTION", "in", in)
 	client := s.node.nodeInfo.client
 	msg := client.NewMessage("mempool", pb.EventTx, in.Tx)
-	client.Send(msg, false)
+	err := client.Send(msg, false)
+	if err != nil {
+		return nil, err
+	}
 	return &pb.Reply{IsOk: true, Msg: []byte("ok")}, nil
 }
 
@@ -479,7 +482,10 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash", blockhash)
 			if block.GetBlock() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{Pid: peername, Block: block.GetBlock()})
-				s.node.nodeInfo.client.Send(msg, false)
+				err := s.node.nodeInfo.client.Send(msg, false)
+				if err != nil {
+					log.Error("send", "to blockchain EventBroadcastAddBlock msg err", err)
+				}
 			}
 
 		} else if tx := in.GetTx(); tx != nil {
@@ -495,7 +501,10 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			Filter.ReleaseLock()
 			if tx.GetTx() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
-				s.node.nodeInfo.client.Send(msg, false)
+				err := s.node.nodeInfo.client.Send(msg, false)
+				if err != nil {
+					log.Error("send", "to mempool EventTx msg err", err)
+				}
 			}
 			//Filter.RegRecvData(txhash)
 

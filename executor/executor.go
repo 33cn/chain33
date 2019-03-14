@@ -332,7 +332,10 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	execute.enableMVCC(datas.PrevStatusHash)
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
-		execute.stateDB.Set(kv.Key, kv.Value)
+		err := execute.stateDB.Set(kv.Key, kv.Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	for name, plugin := range globalPlugins {
 		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])
@@ -353,7 +356,10 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 		if len(kvs) > 0 {
 			kvset.KV = append(kvset.KV, kvs...)
 			for _, kv := range kvs {
-				execute.localDB.Set(kv.Key, kv.Value)
+				err := execute.localDB.Set(kv.Key, kv.Value)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -401,7 +407,10 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	execute.enableMVCC(nil)
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
-		execute.stateDB.Set(kv.Key, kv.Value)
+		err := execute.stateDB.Set(kv.Key, kv.Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	for name, plugin := range globalPlugins {
 		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])

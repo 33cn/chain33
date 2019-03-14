@@ -163,7 +163,11 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	}
 	checkHashList.Count = height
 	hashList := client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-	client.Send(hashList, true)
+	err = client.Send(hashList, true)
+	if err != nil {
+		log.Error("send", "to blockchain EventTxHashList msg err", err)
+		return nil, err
+	}
 	dupTxList, err := client.Wait(hashList)
 	if err != nil {
 		return nil, err
@@ -199,7 +203,10 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	reportErrEvent.Tomodule = tomodule
 	reportErrEvent.Error = err.Error()
 	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
-	client.Send(msg, false)
+	err = client.Send(msg, false)
+	if err != nil {
+		log.Error("send", "EventErrToFront msg err", err)
+	}
 }
 
 //DelDupKey 删除重复的key

@@ -60,7 +60,10 @@ func NewPegasusDB(name string, dir string, cache int) (*PegasusDB, error) {
 	tb, err := database.client.OpenTable(context.Background(), database.name)
 	if err != nil {
 		slog.Error("connect to pegasus error!", "pegasus", database.cfg, "error", err)
-		database.client.Close()
+		err = database.client.Close()
+		if err != nil {
+			slog.Error("database.client", "close err", err)
+		}
 		return nil, types.ErrDataBaseDamage
 	}
 	database.table = tb
@@ -136,8 +139,14 @@ func (db *PegasusDB) DeleteSync(key []byte) error {
 
 //Close 同步
 func (db *PegasusDB) Close() {
-	db.table.Close()
-	db.client.Close()
+	err := db.table.Close()
+	if err != nil {
+		llog.Error("Close", "db table error", err)
+	}
+	err = db.client.Close()
+	if err != nil {
+		llog.Error("Close", "client error", err)
+	}
 }
 
 //Print 打印
