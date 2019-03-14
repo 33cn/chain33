@@ -29,7 +29,10 @@ func (l *listener) Start() {
 
 // Close listener close
 func (l *listener) Close() {
-	l.netlistener.Close()
+	err := l.netlistener.Close()
+	if err != nil {
+		log.Error("Close", "netlistener.Close() err", err)
+	}
 	go l.server.Stop()
 	l.p2pserver.Close()
 	log.Info("stop", "listener", "close")

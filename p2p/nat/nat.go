@@ -112,7 +112,10 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 
 		refresh.Stop()
 		log.Println("Deleting port mapping")
-		m.DeleteMapping(protocol, extport, intport)
+		err := m.DeleteMapping(protocol, extport, intport)
+		if err != nil {
+			return
+		}
 	}()
 	if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
 		log.Println("Couldn't add port mapping", "err", err)

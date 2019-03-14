@@ -130,7 +130,11 @@ func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi 
 	mock.wallet.SetQueueClient(cli)
 	lognode.Info("init wallet")
 	if mockapi == nil {
-		mockapi, _ = client.New(q.Client(), nil)
+		var err error
+		mockapi, err = client.New(q.Client(), nil)
+		if err != nil {
+			return nil
+		}
 		newWalletRealize(mockapi)
 	}
 	mock.api = mockapi
@@ -194,7 +198,10 @@ func setFee(cfg *types.Config, fee int64) {
 
 //GetJSONC :
 func (mock *Chain33Mock) GetJSONC() *jsonclient.JSONClient {
-	jsonc, _ := jsonclient.NewJSONClient("http://" + mock.cfg.RPC.JrpcBindAddr + "/")
+	jsonc, err := jsonclient.NewJSONClient("http://" + mock.cfg.RPC.JrpcBindAddr + "/")
+	if err != nil {
+		return nil
+	}
 	return jsonc
 }
 
@@ -307,7 +314,10 @@ func (mock *Chain33Mock) closeNoLock() {
 	mock.store.Close()
 	lognode.Info("store close")
 	mock.client.Close()
-	os.RemoveAll(mock.datadir)
+	err := os.RemoveAll(mock.datadir)
+	if err != nil {
+		return
+	}
 }
 
 //WaitHeight :

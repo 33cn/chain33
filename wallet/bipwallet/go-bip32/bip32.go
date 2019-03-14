@@ -43,7 +43,10 @@ type Key struct {
 func NewMasterKey(seed []byte) (*Key, error) {
 	// Generate key and chaincode
 	hmac := hmac.New(sha512.New, []byte("Bitcoin seed"))
-	hmac.Write(seed)
+	_, err := hmac.Write(seed)
+	if err != nil {
+		return nil, err
+	}
 	intermediary := hmac.Sum(nil)
 
 	// Split it into our key and chain code
@@ -51,7 +54,7 @@ func NewMasterKey(seed []byte) (*Key, error) {
 	chainCode := intermediary[32:]
 
 	// Validate key
-	err := validatePrivateKey(keyBytes)
+	err = validatePrivateKey(keyBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +97,10 @@ func (key *Key) NewChildKey(childIdx uint32) (*Key, error) {
 	data = append(data, childIndexBytes...)
 
 	hmac := hmac.New(sha512.New, key.ChainCode)
-	hmac.Write(data)
+	_, err := hmac.Write(data)
+	if err != nil {
+		return nil, err
+	}
 	intermediary := hmac.Sum(nil)
 
 	// Create child Key with data common to all both scenarios
@@ -162,12 +168,30 @@ func (key *Key) Serialize() []byte {
 
 	// Write fields to buffer in order
 	buffer := new(bytes.Buffer)
-	buffer.Write(key.Version)
-	buffer.WriteByte(key.Depth)
-	buffer.Write(key.FingerPrint)
-	buffer.Write(key.ChildNumber)
-	buffer.Write(key.ChainCode)
-	buffer.Write(keyBytes)
+	_, err := buffer.Write(key.Version)
+	if err != nil {
+		return nil
+	}
+	err = buffer.WriteByte(key.Depth)
+	if err != nil {
+		return nil
+	}
+	_, err = buffer.Write(key.FingerPrint)
+	if err != nil {
+		return nil
+	}
+	_, err = buffer.Write(key.ChildNumber)
+	if err != nil {
+		return nil
+	}
+	_, err = buffer.Write(key.ChainCode)
+	if err != nil {
+		return nil
+	}
+	_, err = buffer.Write(keyBytes)
+	if err != nil {
+		return nil
+	}
 
 	// Append the standard doublesha256 checksum
 	serializedKey := addChecksumToBytes(buffer.Bytes())

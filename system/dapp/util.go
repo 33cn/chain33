@@ -76,7 +76,10 @@ func (c *KVCreator) addnoprefix(key, value []byte, set bool) *KVCreator {
 	}
 	c.kvs = append(c.kvs, &types.KeyValue{Key: key, Value: value})
 	if set {
-		c.kvdb.Set(key, value)
+		err := c.kvdb.Set(key, value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return c
 }

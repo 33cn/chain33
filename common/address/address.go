@@ -38,11 +38,27 @@ const NormalVer byte = 0
 const MultiSignVer byte = 5
 
 func init() {
-	multisignCache, _ = lru.New(10240)
-	pubkeyCache, _ = lru.New(10240)
-	addressCache, _ = lru.New(10240)
-	checkAddressCache, _ = lru.New(10240)
-	multiCheckAddressCache, _ = lru.New(10240)
+	var err error
+	multisignCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	pubkeyCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	addressCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	checkAddressCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	multiCheckAddressCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
 }
 
 //ExecPubKey 计算公钥

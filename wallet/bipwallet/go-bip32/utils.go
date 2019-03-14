@@ -10,11 +10,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 
+	"io"
+
 	"github.com/33cn/chain33/wallet/bipwallet/basen"
-	btcutil "github.com/33cn/chain33/wallet/bipwallet/btcutilecc"
+	"github.com/33cn/chain33/wallet/bipwallet/btcutilecc"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -30,7 +31,10 @@ var (
 
 func hashSha256(data []byte) []byte {
 	hasher := sha256.New()
-	hasher.Write(data)
+	_, err := hasher.Write(data)
+	if err != nil {
+		return nil
+	}
 	return hasher.Sum(nil)
 }
 
@@ -40,7 +44,10 @@ func hashDoubleSha256(data []byte) []byte {
 
 func hashRipeMD160(data []byte) []byte {
 	hasher := ripemd160.New()
-	io.WriteString(hasher, string(data))
+	_, err := io.WriteString(hasher, string(data))
+	if err != nil {
+		return nil
+	}
 	return hasher.Sum(nil)
 }
 
@@ -97,15 +104,23 @@ func compressPublicKey(x *big.Int, y *big.Int) []byte {
 	var key bytes.Buffer
 
 	// Write header; 0x2 for even y value; 0x3 for odd
-	key.WriteByte(byte(0x2) + byte(y.Bit(0)))
+	err := key.WriteByte(byte(0x2) + byte(y.Bit(0)))
+	if err != nil {
+		return nil
+	}
 
 	// Write X coord; Pad the key so x is aligned with the LSB. Pad size is key length - header size (1) - xBytes size
 	xBytes := x.Bytes()
 	for i := 0; i < (PublicKeyCompressedLength - 1 - len(xBytes)); i++ {
-		key.WriteByte(0x0)
+		err := key.WriteByte(0x0)
+		if err != nil {
+			return nil
+		}
 	}
-	key.Write(xBytes)
-
+	_, err = key.Write(xBytes)
+	if err != nil {
+		return nil
+	}
 	return key.Bytes()
 }
 
@@ -117,8 +132,10 @@ func expandPublicKey(key []byte) (*big.Int, *big.Int) {
 	x := big.NewInt(0).SetBytes(key[1:33])
 	y := big.NewInt(0).SetBytes(key[:1])
 	beta := big.NewInt(0)
+	// #nosec
 	beta.Exp(x, big.NewInt(3), nil)
 	beta.Add(beta, big.NewInt(7))
+	// #nosec
 	beta.Exp(beta, exp, params.P)
 	if y.Add(beta, y).Mod(y, big.NewInt(2)).Int64() == 0 {
 		y = beta

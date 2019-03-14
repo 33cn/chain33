@@ -1177,3 +1177,14 @@ func TestGrpc_QueryRandNum(t *testing.T) {
 	_, err := g.QueryRandNum(getOkCtx(), &pb.ReqRandHash{})
 	assert.NoError(t, err)
 }
+
+func TestGrpc_GetFork(t *testing.T) {
+	pb.SetDappFork("local", "para", "fork100", 100)
+	val, err := g.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("para-fork100")})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(100), val.Data)
+
+	val, err = g.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("ForkBlockHash")})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), val.Data)
+}

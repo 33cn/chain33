@@ -120,7 +120,10 @@ func (c *Chain33) SendTransaction(in rpctypes.RawParm, result *interface{}) erro
 	if err != nil {
 		return err
 	}
-	types.Decode(data, &parm)
+	err = types.Decode(data, &parm)
+	if err != nil {
+		return err
+	}
 	log.Debug("SendTransaction", "parm", parm)
 
 	var reply *types.Reply
@@ -277,7 +280,10 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	var txdetails rpctypes.TransactionDetails
 	if 0 != len(txs) {
 		for _, tx := range txs {
-			txDetail, _ := fmtTxDetail(tx, in.DisableDetail)
+			txDetail, err := fmtTxDetail(tx, in.DisableDetail)
+			if err != nil {
+				return err
+			}
 			txdetails.Txs = append(txdetails.Txs, txDetail)
 		}
 	}
@@ -407,7 +413,10 @@ func (c *Chain33) WalletTxList(in rpctypes.ReqWalletTransactionList, result *int
 	}
 	{
 		var txdetails rpctypes.WalletTxDetails
-		rpctypes.ConvertWalletTxDetailToJSON(reply, &txdetails)
+		err := rpctypes.ConvertWalletTxDetailToJSON(reply, &txdetails)
+		if err != nil {
+			return err
+		}
 		*result = &txdetails
 	}
 	return nil
@@ -863,7 +872,10 @@ func (c *Chain33) GetTotalCoins(in *types.ReqGetTotalCoins, result *interface{})
 
 // IsSync is sync or not
 func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
-	reply, _ := c.cli.IsSync()
+	reply, err := c.cli.IsSync()
+	if err != nil {
+		return err
+	}
 	ret := false
 	if reply != nil {
 		ret = reply.IsOk
@@ -874,7 +886,10 @@ func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
 
 // IsNtpClockSync  is ntp clock sync
 func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
-	reply, _ := c.cli.IsNtpClockSync()
+	reply, err := c.cli.IsNtpClockSync()
+	if err != nil {
+		return err
+	}
 	ret := false
 	if reply != nil {
 		ret = reply.IsOk
@@ -983,7 +998,10 @@ func (c *Chain33) WalletCreateTx(in types.ReqCreateTransaction, result *interfac
 func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
 	go func() {
 		time.Sleep(time.Millisecond * 100)
-		c.cli.CloseQueue()
+		_, err := c.cli.CloseQueue()
+		if err != nil {
+			return
+		}
 	}()
 
 	*result = &types.Reply{IsOk: true}
