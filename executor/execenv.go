@@ -534,7 +534,8 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 func (e *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
 	realExecer := e.getRealExecName(tx, index)
 	height := e.height
-	return isAllowKeyWrite(key, realExecer, tx, height)
+	exec := e.loadDriver(tx, index)
+	return isAllowKeyWrite(exec, key, realExecer, tx, height)
 }
 
 func (e *executor) isExecLocalSameTime(tx *types.Transaction, index int) bool {

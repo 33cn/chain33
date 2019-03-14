@@ -13,7 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64) bool {
+func isAllowKeyWrite(c drivers.Driver, key, realExecer []byte, tx *types.Transaction, height int64) bool {
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer))
@@ -53,13 +53,8 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
-	d, err := drivers.LoadDriver(string(execdriver), height)
-	if err != nil {
-		elog.Error("load drivers error", "err", err, "execdriver", string(execdriver), "height", height)
-		return false
-	}
 	//交给 -> friend 来判定
-	return d.IsFriend(execdriver, key, tx)
+	return c.IsFriend(execdriver, key, tx)
 }
 
 func isAllowLocalKey(execer []byte, key []byte) error {
