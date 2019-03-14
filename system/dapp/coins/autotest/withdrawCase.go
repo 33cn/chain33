@@ -50,8 +50,14 @@ func (pack *WithdrawPack) checkBalance(txInfo map[string]interface{}) bool {
 	logWithdraw := logArr[1].(map[string]interface{})["log"].(map[string]interface{})
 	logSend := logArr[2].(map[string]interface{})["log"].(map[string]interface{})
 	logRecv := logArr[3].(map[string]interface{})["log"].(map[string]interface{})
-	fee, _ := strconv.ParseFloat(feeStr, 64)
-	Amount, _ := strconv.ParseFloat(interCase.Amount, 64)
+	fee, err := strconv.ParseFloat(feeStr, 64)
+	if err != nil {
+		return false
+	}
+	Amount, err := strconv.ParseFloat(interCase.Amount, 64)
+	if err != nil {
+		return false
+	}
 
 	pack.FLog.Info("WithdrawBalanceDetails", "TestID", pack.PackID,
 		"Fee", feeStr, "Amount", Amount, "Addr", interCase.Addr, "ExecAddr", withdrawFrom,

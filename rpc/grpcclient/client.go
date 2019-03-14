@@ -2,9 +2,11 @@ package grpcclient
 
 import (
 	"sync"
+	"time"
 
 	"github.com/33cn/chain33/types"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 // paraChainGrpcRecSize 平行链receive最大100M
@@ -28,9 +30,14 @@ func NewMainChainClient(grpcaddr string) (types.Chain33Client, error) {
 	if paraRemoteGrpcClient == "" {
 		paraRemoteGrpcClient = "127.0.0.1:8802"
 	}
-
+	kp := keepalive.ClientParameters{
+		Time:                time.Second * 5,
+		Timeout:             time.Second * 20,
+		PermitWithoutStream: true,
+	}
 	conn, err := grpc.Dial(NewMultipleURL(paraRemoteGrpcClient), grpc.WithInsecure(),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(paraChainGrpcRecSize)))
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(paraChainGrpcRecSize)),
+		grpc.WithKeepaliveParams(kp))
 	if err != nil {
 		return nil, err
 	}

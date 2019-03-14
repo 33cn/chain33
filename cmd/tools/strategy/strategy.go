@@ -56,6 +56,12 @@ func New(name string) Strategy {
 				params: make(map[string]string),
 			},
 		}
+	case types.KeyGenDapp:
+		return &genDappStrategy{
+			strategyBasic: strategyBasic{
+				params: make(map[string]string),
+			},
+		}
 	}
 	return nil
 }

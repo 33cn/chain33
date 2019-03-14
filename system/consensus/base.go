@@ -87,7 +87,11 @@ func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	log.Info("Enter SetQueueClient method of consensus")
 	bc.client = c
 	bc.minerstartCB = minerstartCB
-	bc.api, _ = client.New(c, nil)
+	var err error
+	bc.api, err = client.New(c, nil)
+	if err != nil {
+		panic(err)
+	}
 	bc.InitMiner()
 }
 
@@ -138,7 +142,10 @@ func (bc *BaseClient) InitBlock() {
 		if newblock.Height == 0 {
 			newblock.Difficulty = types.GetP(0).PowLimitBits
 		}
-		bc.WriteBlock(zeroHash[:], newblock)
+		err := bc.WriteBlock(zeroHash[:], newblock)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		bc.SetCurrentBlock(block)
 	}
@@ -377,7 +384,10 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	//从mempool 中删除错误的交易
 	deltx := diffTx(rawtxs, blockdetail.Block.Txs)
 	if len(deltx) > 0 {
-		bc.delMempoolTx(deltx)
+		err := bc.delMempoolTx(deltx)
+		if err != nil {
+			return err
+		}
 	}
 	if blockdetail != nil {
 		bc.SetCurrentBlock(blockdetail.Block)

@@ -307,7 +307,10 @@ func (mem *Mempool) delBlock(block *types.Block) {
 		if !mem.checkExpireValid(tx) {
 			continue
 		}
-		mem.PushTx(tx)
+		err = mem.PushTx(tx)
+		if err != nil {
+			mlog.Error("mem", "push tx err", err)
+		}
 	}
 }
 
@@ -334,7 +337,11 @@ func (mem *Mempool) sendTxToP2P(tx *types.Transaction) {
 		panic("client not bind message queue.")
 	}
 	msg := mem.client.NewMessage("p2p", types.EventTxBroadcast, tx)
-	mem.client.Send(msg, false)
+	err := mem.client.Send(msg, false)
+	if err != nil {
+		mlog.Error("tx sent to p2p", "tx.Hash", common.ToHex(tx.Hash()))
+		return
+	}
 	mlog.Debug("tx sent to p2p", "tx.Hash", common.ToHex(tx.Hash()))
 }
 

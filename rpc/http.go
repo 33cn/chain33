@@ -135,7 +135,11 @@ func writeError(w http.ResponseWriter, r *http.Request, id uint64, errstr string
 		log.Debug("json marshal error, nerver happen")
 		return
 	}
-	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		log.Debug("Write", "err", err)
+		return
+	}
 }
 
 // Listen grpcserver listen

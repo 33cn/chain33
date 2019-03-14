@@ -39,7 +39,10 @@ func (Comm) AddrRouteble(addrs []string) []string {
 			//log.Error("AddrRouteble", "DialTimeout", err.Error())
 			continue
 		}
-		conn.Close()
+		err = conn.Close()
+		if err != nil {
+			log.Error("AddrRouteble", "conn.Close err", err.Error())
+		}
 		enableAddrs = append(enableAddrs, addr)
 	}
 	return enableAddrs
@@ -81,7 +84,7 @@ func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, node *Node)
 
 	peer, err := c.newPeerFromConn(conn, addr, node)
 	if err != nil {
-		conn.Close()
+		err = conn.Close()
 		return nil, err
 	}
 	peer.SetAddr(addr)
@@ -261,7 +264,11 @@ func (c Comm) reportPeerStat(peer *Peer) {
 func (c Comm) BytesToInt32(b []byte) int32 {
 	bytesBuffer := bytes.NewBuffer(b)
 	var tmp int32
-	binary.Read(bytesBuffer, binary.LittleEndian, &tmp)
+	err := binary.Read(bytesBuffer, binary.LittleEndian, &tmp)
+	if err != nil {
+		log.Error("BytesToInt32", "binary.Read err", err.Error())
+		return tmp
+	}
 	return tmp
 }
 
@@ -269,7 +276,10 @@ func (c Comm) BytesToInt32(b []byte) int32 {
 func (c Comm) Int32ToBytes(n int32) []byte {
 	tmp := n
 	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.LittleEndian, tmp)
+	err := binary.Write(bytesBuffer, binary.LittleEndian, tmp)
+	if err != nil {
+		return nil
+	}
 	return bytesBuffer.Bytes()
 }
 
