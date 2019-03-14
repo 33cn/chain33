@@ -64,6 +64,7 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Driver) {
 	exec, err := LoadDriver(string(tx.Execer), height)
 	if err == nil {
+		exec.SetEnv(height, 0, 0)
 		err = exec.Allow(tx, index)
 	}
 	if err != nil {
