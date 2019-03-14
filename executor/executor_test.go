@@ -30,7 +30,6 @@ func TestIsModule(t *testing.T) {
 }
 
 func TestExecutorGetTxGroup(t *testing.T) {
-	exec := &Executor{}
 	execInit(nil)
 	var txs []*types.Transaction
 	addr2, priv2 := util.Genaddress()
@@ -59,7 +58,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	execute := newExecutor(ctx, exec, nil, txs, nil)
+	execute := newExecutor(ctx, &Executor{}, nil, txs, nil)
 	e := execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	txs2 := e.GetTxs()
@@ -74,7 +73,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 	//err tx group list
 	txs[0].Header = nil
-	execute = newExecutor(ctx, exec, nil, txs, nil)
+	execute = newExecutor(ctx, &Executor{}, nil, txs, nil)
 	e = execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	_, err = e.GetTxGroup(len(txs) - 1)
@@ -109,8 +108,16 @@ func TestKeyAllow(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	c := drivers.LoadDriverAllow(&tx12, 0, int64(1))
-	if !isAllowKeyWrite(c, key, exec, &tx12, int64(1)) {
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     1,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("retrieve can modify exec")
 	}
 }
@@ -124,8 +131,16 @@ func TestKeyAllow_evm(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	c := drivers.LoadDriverAllow(&tx12, 0, int64(1))
-	if !isAllowKeyWrite(c, key, exec, &tx12, int64(1)) {
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     1,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("user.evm.hash can modify exec")
 	}
 	//assert.Nil(t, t)
