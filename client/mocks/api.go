@@ -453,16 +453,16 @@ func (_m *QueueProtocolAPI) GetMempool() (*types.ReplyTxList, error) {
 	return r0, r1
 }
 
-// GetProperFee provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetProperFee() (*types.ReplyProperFee, error) {
+// GetNetInfo provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 	ret := _m.Called()
 
-	var r0 *types.ReplyProperFee
-	if rf, ok := ret.Get(0).(func() *types.ReplyProperFee); ok {
+	var r0 *types.NodeNetInfo
+	if rf, ok := ret.Get(0).(func() *types.NodeNetInfo); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyProperFee)
+			r0 = ret.Get(0).(*types.NodeNetInfo)
 		}
 	}
 
@@ -476,16 +476,16 @@ func (_m *QueueProtocolAPI) GetProperFee() (*types.ReplyProperFee, error) {
 	return r0, r1
 }
 
-// GetNetInfo provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
+// GetProperFee provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetProperFee() (*types.ReplyProperFee, error) {
 	ret := _m.Called()
 
-	var r0 *types.NodeNetInfo
-	if rf, ok := ret.Get(0).(func() *types.NodeNetInfo); ok {
+	var r0 *types.ReplyProperFee
+	if rf, ok := ret.Get(0).(func() *types.ReplyProperFee); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.NodeNetInfo)
+			r0 = ret.Get(0).(*types.ReplyProperFee)
 		}
 	}
 
