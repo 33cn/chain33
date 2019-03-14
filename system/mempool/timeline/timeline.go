@@ -23,7 +23,7 @@ func New(cfg *types.Mempool, sub []byte) queue.Module {
 		subcfg.PoolCacheSize = cfg.PoolCacheSize
 	}
 	if subcfg.ProperFee == 0 {
-		subcfg.ProperFee = cfg.ProperFee
+		subcfg.ProperFee = cfg.MinTxFee
 	}
 	c.SetQueueCache(drivers.NewSimpleQueue(subcfg))
 	return c

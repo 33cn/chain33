@@ -212,6 +212,7 @@ func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxLi
 func (g *Grpc) GetProperFee(ctx context.Context, in *pb.ReqNil) (*pb.ReplyProperFee, error) {
 	return g.cli.GetProperFee()
 }
+
 // GetBlockOverview get block overview
 // GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)   //add by hyb
 func (g *Grpc) GetBlockOverview(ctx context.Context, in *pb.ReqHash) (*pb.BlockOverview, error) {

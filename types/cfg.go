@@ -65,7 +65,6 @@ type Mempool struct {
 	// 每个账户在mempool中得最大交易数量，默认100
 	MaxTxNumPerAccount int64 `protobuf:"varint,5,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
 	MaxTxLast          int64 `protobuf:"varint,6,opt,name=maxTxLast" json:"maxTxLast,omitempty"`
-	ProperFee          int64 `protobuf:"varint,6,opt,name=properFee" json:"properFee,omitempty"`
 }
 
 // Consensus 配置

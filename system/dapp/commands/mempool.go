@@ -94,17 +94,8 @@ func GetProperFeeCmd() *cobra.Command {
 
 func properFee(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res rpctypes.ReplyTxList
+	var res rpctypes.ReplyProperFee
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetProperFee", nil, &res)
-	ctx.SetResultCb(parseProperFee)
+	ctx.SetResultCb(nil)
 	ctx.Run()
-}
-
-func parseProperFee(arg interface{}) (interface{}, error) {
-	res := arg.(*rpctypes.ReplyProperFee)
-	//var result types.TxListResult
-	//for _, v := range res.Txs {
-	//	result.Txs = append(result.Txs, types.DecodeTransaction(v))
-	//}
-	return res, nil
 }

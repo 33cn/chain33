@@ -148,8 +148,8 @@ const (
 	EventLocalClose    = 139
 
 	//mempool
-	EventGetProperFee	=	140
-	EventReplyProperFee	=	141
+	EventGetProperFee   = 140
+	EventReplyProperFee = 141
 
 	//exec
 	EventBlockChainQuery = 212
@@ -297,6 +297,6 @@ var eventName = map[int]string{
 	EventLocalClose:    "EventLocalClose",
 
 	//mempool
-	EventGetProperFee: "EventGetProperFee",
+	EventGetProperFee:   "EventGetProperFee",
 	EventReplyProperFee: "EventReplyProperFee",
 }

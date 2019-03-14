@@ -53,9 +53,6 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	if cfg.PoolCacheSize == 0 {
 		cfg.PoolCacheSize = poolCacheSize
 	}
-	if cfg.ProperFee == 0 {
-		cfg.ProperFee = ProperFee
-	}
 	pool.in = make(chan *queue.Message)
 	pool.out = make(<-chan *queue.Message)
 	pool.done = make(chan struct{})

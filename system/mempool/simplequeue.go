@@ -16,14 +16,14 @@ type SubConfig struct {
 
 //SimpleQueue 简单队列模式(默认提供一个队列，便于测试)
 type SimpleQueue struct {
-	txList  *listmap.ListMap
+	txList    *listmap.ListMap
 	subConfig SubConfig
 }
 
 //NewSimpleQueue 创建队列
 func NewSimpleQueue(subConfig SubConfig) *SimpleQueue {
 	return &SimpleQueue{
-		txList:  listmap.New(),
+		txList:    listmap.New(),
 		subConfig: subConfig,
 	}
 }
@@ -79,6 +79,6 @@ func (cache *SimpleQueue) Walk(count int, cb func(value *Item) bool) {
 }
 
 // GetProperFee 获取合适的手续费
-func (cache *SimpleQueue) GetProperFee()int64 {
+func (cache *SimpleQueue) GetProperFee() int64 {
 	return cache.subConfig.ProperFee
 }

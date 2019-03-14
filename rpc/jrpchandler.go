@@ -628,7 +628,6 @@ func (c *Chain33) GetProperFee(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-
 // GetBlockOverview get overview of block
 // GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
 func (c *Chain33) GetBlockOverview(in rpctypes.QueryParm, result *interface{}) error {

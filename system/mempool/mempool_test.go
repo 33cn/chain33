@@ -124,7 +124,7 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	types.SetMinFee(0)
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
-	subConfig:=SubConfig{cfg.Mempool.PoolCacheSize,cfg.Mempool.ProperFee}
+	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
 	mem := NewMempool(cfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
@@ -139,7 +139,7 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 	blockchainProcess(q)
 	execProcess(q)
 	cfg.Mempool.PoolCacheSize = int64(size)
-	subConfig:=SubConfig{cfg.Mempool.PoolCacheSize,cfg.Mempool.ProperFee}
+	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
 	mem := NewMempool(cfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
@@ -159,7 +159,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	blockchainProcess(q)
 	execProcess(q)
 	cfg.Mempool.PoolCacheSize = int64(size)
-	subConfig:=SubConfig{cfg.Mempool.PoolCacheSize,cfg.Mempool.ProperFee}
+	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
 	mem := NewMempool(cfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
@@ -596,8 +596,8 @@ func TestGetProperFee(t *testing.T) {
 		return
 	}
 
-	if reply.GetData().(*types.ReplyProperFee).GetProperFee() !=  mem.cfg.ProperFee{
-		t.Error("TestGetProperFee failed", reply.GetData().(*types.ReplyProperFee).GetProperFee(), mem.cfg.ProperFee)
+	if reply.GetData().(*types.ReplyProperFee).GetProperFee() != mem.cfg.MinTxFee {
+		t.Error("TestGetProperFee failed", reply.GetData().(*types.ReplyProperFee).GetProperFee(), mem.cfg.MinTxFee)
 	}
 }
 

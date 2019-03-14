@@ -202,7 +202,6 @@ func TestGetLastMemPool(t *testing.T) {
 	testGetLastMemPoolOK(t)
 }
 
-
 func testGetProperFeeOK(t *testing.T) {
 	qapi.On("GetProperFee").Return(nil, nil)
 	data, err := g.GetProperFee(getOkCtx(), nil)
@@ -214,6 +213,7 @@ func testGetProperFeeOK(t *testing.T) {
 func TestGetProperFee(t *testing.T) {
 	testGetProperFeeOK(t)
 }
+
 //func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) {
 //	if !g.checkWhitlist(ctx) {
 //		return nil, fmt.Errorf("reject")

@@ -12,7 +12,7 @@ import (
 )
 
 func TestCache(t *testing.T) {
-	subConfig:=SubConfig{1,100000}
+	subConfig := SubConfig{1, 100000}
 	cache := NewSimpleQueue(subConfig)
 	tx := &types.Transaction{Payload: []byte("123")}
 	hash := string(tx.Hash())
@@ -39,7 +39,7 @@ func TestCache(t *testing.T) {
 	cache.Remove(hash)
 	assert.Equal(t, 0, cache.Size())
 	//push to item
-	subConfig=SubConfig{2,100000}
+	subConfig = SubConfig{2, 100000}
 	cache = NewSimpleQueue(subConfig)
 	cache.Push(item1)
 	cache.Push(item2)
