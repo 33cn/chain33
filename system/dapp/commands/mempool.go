@@ -22,6 +22,7 @@ func MempoolCmd() *cobra.Command {
 	cmd.AddCommand(
 		GetMempoolCmd(),
 		GetLastMempoolCmd(),
+		GetProperFeeCmd(),
 	)
 
 	return cmd
@@ -79,4 +80,22 @@ func parselastMempoolTxsRes(arg interface{}) (interface{}, error) {
 		result.Txs = append(result.Txs, types.DecodeTransaction(v))
 	}
 	return result, nil
+}
+
+// GetProperFeeCmd  get last proper fee
+func GetProperFeeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "proper_fee",
+		Short: "Get latest proper fee",
+		Run:   properFee,
+	}
+	return cmd
+}
+
+func properFee(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res rpctypes.ReplyProperFee
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetProperFee", nil, &res)
+	ctx.SetResultCb(nil)
+	ctx.Run()
 }

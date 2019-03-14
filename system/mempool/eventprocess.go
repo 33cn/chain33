@@ -87,6 +87,9 @@ func (mem *Mempool) eventProcess() {
 		case types.EventGetAddrTxs:
 			// 获取mempool中对应账户（组）所有交易
 			mem.eventGetAddrTxs(msg)
+		case types.EventGetProperFee:
+			// 获取对应排队策略中合适的手续费
+			mem.eventGetProperFee(msg)
 		default:
 		}
 		mlog.Debug("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
@@ -184,6 +187,13 @@ func (mem *Mempool) eventGetAddrTxs(msg *queue.Message) {
 	addrs := msg.GetData().(*types.ReqAddrs)
 	txlist := mem.GetAccTxs(addrs)
 	msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
+}
+
+// eventGetProperFee 获取排队策略中合适的手续费
+func (mem *Mempool) eventGetProperFee(msg *queue.Message) {
+	properFee := mem.cache.qcache.GetProperFee()
+	msg.Reply(mem.client.NewMessage("rpc", types.EventReplyProperFee,
+		&types.ReplyProperFee{ProperFee: properFee}))
 }
 
 func (mem *Mempool) checkSign(data *queue.Message) *queue.Message {

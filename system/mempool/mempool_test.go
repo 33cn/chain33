@@ -124,8 +124,9 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	types.SetMinFee(0)
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
+	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
 	mem := NewMempool(cfg.Mempool)
-	mem.SetQueueCache(NewSimpleQueue(int(cfg.Mempool.PoolCacheSize)))
+	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
 	mem.Wait()
 	return q, chain, s, mem
@@ -138,8 +139,9 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 	blockchainProcess(q)
 	execProcess(q)
 	cfg.Mempool.PoolCacheSize = int64(size)
+	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
 	mem := NewMempool(cfg.Mempool)
-	mem.SetQueueCache(NewSimpleQueue(size))
+	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
 	mem.SetMinFee(0)
@@ -157,8 +159,9 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	blockchainProcess(q)
 	execProcess(q)
 	cfg.Mempool.PoolCacheSize = int64(size)
+	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
 	mem := NewMempool(cfg.Mempool)
-	mem.SetQueueCache(NewSimpleQueue(size))
+	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
 	mem.SetMinFee(types.GInt("MinFee"))
@@ -564,6 +567,37 @@ func TestGetLatestTx(t *testing.T) {
 
 	if len(reply.GetData().(*types.ReplyTxList).GetTxs()) != 10 || mem.Size() != 11 {
 		t.Error("TestGetLatestTx failed", len(reply.GetData().(*types.ReplyTxList).GetTxs()), mem.Size())
+	}
+}
+
+func TestGetProperFee(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add 10 txs
+	err := add10Tx(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+
+	msg11 := mem.client.NewMessage("mempool", types.EventTx, tx11)
+	mem.client.Send(msg11, true)
+	mem.client.Wait(msg11)
+
+	msg := mem.client.NewMessage("mempool", types.EventGetProperFee, nil)
+	mem.client.Send(msg, true)
+
+	reply, err := mem.client.Wait(msg)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if reply.GetData().(*types.ReplyProperFee).GetProperFee() != mem.cfg.MinTxFee {
+		t.Error("TestGetProperFee failed", reply.GetData().(*types.ReplyProperFee).GetProperFee(), mem.cfg.MinTxFee)
 	}
 }
 

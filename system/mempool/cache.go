@@ -16,6 +16,7 @@ type QueueCache interface {
 	Remove(hash string) error
 	Size() int
 	Walk(count int, cb func(tx *Item) bool)
+	GetProperFee() int64
 }
 
 // Item 为Mempool中包装交易的数据结构

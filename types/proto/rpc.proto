@@ -76,6 +76,9 @@ service chain33 {
     //获取最新的Mempool
     rpc GetLastMemPool(ReqNil) returns (ReplyTxList) {}
 
+    //获取最新的ProperFee
+    rpc GetProperFee(ReqNil) returns (ReplyProperFee) {}
+
     // 获取钱包状态
     rpc GetWalletStatus(ReqNil) returns (WalletStatus) {}
     //区块浏览器接口
