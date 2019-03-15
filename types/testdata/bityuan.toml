@@ -170,6 +170,7 @@ ForkTxHeight= -1
 ForkTxGroupPara= -1
 ForkCheckBlockTime=1200000
 ForkMultiSignAddress=1298600
+ForkBlockCheck=1725000
 
 [fork.sub.coins]
 Enable=0
