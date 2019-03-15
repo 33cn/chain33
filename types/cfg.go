@@ -61,6 +61,7 @@ type Mempool struct {
 	PoolCacheSize int64 `protobuf:"varint,2,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
 	// 最小得交易手续费用，这个没有默认值，必填，一般是100000
 	MinTxFee    int64 `protobuf:"varint,3,opt,name=minTxFee" json:"minTxFee,omitempty"`
+	MaxTxFee    int64 `protobuf:"varint,3,opt,name=maxTxFee" json:"maxTxFee,omitempty"`
 	ForceAccept bool  `protobuf:"varint,4,opt,name=forceAccept" json:"forceAccept,omitempty"`
 	// 每个账户在mempool中得最大交易数量，默认100
 	MaxTxNumPerAccount int64 `protobuf:"varint,5,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
