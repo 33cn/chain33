@@ -486,11 +486,9 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 			continue
 		}
 		if txGroup == nil {
-			if currentCount+1 > maxTx {
+			currentCount++
+			if currentCount > maxTx {
 				return addedTx
-			}
-			if types.IsFork(block.Height, "ForkBlockCheck") {
-				currentCount++
 			}
 			size += txs[i].Size()
 			if size > max {
@@ -499,11 +497,9 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 			addedTx = append(addedTx, txs[i])
 			block.Txs = append(block.Txs, txs[i])
 		} else {
-			if currentCount+int64(len(txGroup.Txs)) > maxTx {
+			currentCount += int64(len(txGroup.Txs))
+			if currentCount > maxTx {
 				return addedTx
-			}
-			if types.IsFork(block.Height, "ForkBlockCheck") {
-				currentCount += int64(len(txGroup.Txs))
 			}
 			for i := 0; i < len(txGroup.Txs); i++ {
 				size += txGroup.Txs[i].Size()
