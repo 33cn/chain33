@@ -47,7 +47,7 @@ type BlockChain struct {
 	blockStore *BlockStore
 	pushseq    *pushseq
 	//cache  缓存block方便快速查询
-	cfg      *types.BlockChain
+	cfg          *types.BlockChain
 	syncTask     *Task
 	downLoadTask *Task
 
