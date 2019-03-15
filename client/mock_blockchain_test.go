@@ -104,6 +104,14 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 
 			case types.EventGetSeqByHash:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Int64{Data: 1}))
+			case types.EventGetBlockBySeq:
+				if req, ok := msg.GetData().(*types.Int64); ok {
+					// just for cover
+					if req.Data == 10 {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Reply{IsOk: false, Msg: []byte("not support")}))
+					}
+					msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.BlockSeq{Num: 1}))
+				}
 			case types.EventIsSync:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyIsSync, &types.IsCaughtUp{}))
 			case types.EventIsNtpClockSync:
@@ -129,6 +137,34 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 					}
 				} else {
 					msg.ReplyErr("Do not support", types.ErrInvalidParam)
+				}
+			case types.EventLocalNew:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventLocalNew, &types.Int64{Data: 9999}))
+			case types.EventLocalClose:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventLocalClose, nil))
+			case types.EventLocalBegin:
+				if req, ok := msg.GetData().(*types.Int64); ok && req.Data == 9999 {
+					msg.Reply(client.NewMessage(blockchainKey, types.EventLocalBegin, nil))
+				} else {
+					msg.ReplyErr("transaction id must 9999", types.ErrInvalidParam)
+				}
+			case types.EventLocalCommit:
+				if req, ok := msg.GetData().(*types.Int64); ok && req.Data == 9999 {
+					msg.Reply(client.NewMessage(blockchainKey, types.EventLocalCommit, nil))
+				} else {
+					msg.ReplyErr("transaction id must 9999", types.ErrInvalidParam)
+				}
+			case types.EventLocalRollback:
+				if req, ok := msg.GetData().(*types.Int64); ok && req.Data == 9999 {
+					msg.Reply(client.NewMessage(blockchainKey, types.EventLocalRollback, nil))
+				} else {
+					msg.ReplyErr("transaction id must 9999", types.ErrInvalidParam)
+				}
+			case types.EventLocalSet:
+				if req, ok := msg.GetData().(*types.LocalDBSet); ok && req.Txid == 9999 {
+					msg.Reply(client.NewMessage(blockchainKey, types.EventLocalSet, nil))
+				} else {
+					msg.ReplyErr("transaction id must 9999", types.ErrInvalidParam)
 				}
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)

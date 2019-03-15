@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
-	"github.com/33cn/chain33/rpc/jsonclient"
 	"github.com/33cn/chain33/types"
 	wcom "github.com/33cn/chain33/wallet/common"
 
@@ -48,7 +48,6 @@ func (c *Chain33) CreateRawTransaction(in *rpctypes.CreateTx, result *interface{
 func (c *Chain33) ReWriteRawTx(in *rpctypes.ReWriteRawTx, result *interface{}) error {
 	inpb := &types.ReWriteRawTx{
 		Tx:     in.Tx,
-		Execer: []byte(in.Execer),
 		To:     in.To,
 		Fee:    in.Fee,
 		Expire: in.Expire,
@@ -114,34 +113,27 @@ func (c *Chain33) SendRawTransaction(in rpctypes.SignedTx, result *interface{}) 
 	return fmt.Errorf(string(reply.Msg))
 }
 
-// used only in parachain
-func forwardTranToMainNet(in rpctypes.RawParm, result *interface{}) error {
-	if rpcCfg.MainnetJrpcAddr == "" {
-		return types.ErrInvalidMainnetRPCAddr
-	}
-	rpc, err := jsonclient.NewJSONClient(rpcCfg.MainnetJrpcAddr)
-
-	if err != nil {
-		return err
-	}
-
-	err = rpc.Call("Chain33.SendTransaction", in, result)
-	return err
-}
-
 // SendTransaction send transaction
 func (c *Chain33) SendTransaction(in rpctypes.RawParm, result *interface{}) error {
-	if types.IsPara() {
-		return forwardTranToMainNet(in, result)
-	}
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
 		return err
 	}
-	types.Decode(data, &parm)
+	err = types.Decode(data, &parm)
+	if err != nil {
+		return err
+	}
 	log.Debug("SendTransaction", "parm", parm)
-	reply, err := c.cli.SendTx(&parm)
+
+	var reply *types.Reply
+	//para chain, forward to main chain
+	if types.IsPara() {
+		reply, err = c.mainGrpcCli.SendTransaction(context.Background(), &parm)
+	} else {
+		reply, err = c.cli.SendTx(&parm)
+	}
+
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
 	}
@@ -288,7 +280,10 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	var txdetails rpctypes.TransactionDetails
 	if 0 != len(txs) {
 		for _, tx := range txs {
-			txDetail, _ := fmtTxDetail(tx, in.DisableDetail)
+			txDetail, err := fmtTxDetail(tx, in.DisableDetail)
+			if err != nil {
+				return err
+			}
 			txdetails.Txs = append(txdetails.Txs, txDetail)
 		}
 	}
@@ -418,7 +413,10 @@ func (c *Chain33) WalletTxList(in rpctypes.ReqWalletTransactionList, result *int
 	}
 	{
 		var txdetails rpctypes.WalletTxDetails
-		rpctypes.ConvertWalletTxDetailToJSON(reply, &txdetails)
+		err := rpctypes.ConvertWalletTxDetailToJSON(reply, &txdetails)
+		if err != nil {
+			return err
+		}
 		*result = &txdetails
 	}
 	return nil
@@ -627,6 +625,18 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
+// GetProperFee get  contents in proper fee
+func (c *Chain33) GetProperFee(in types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.GetProperFee()
+	if err != nil {
+		return err
+	}
+	var properFee rpctypes.ReplyProperFee
+	properFee.ProperFee = reply.GetProperFee()
+	*result = &properFee
+	return nil
+}
+
 // GetBlockOverview get overview of block
 // GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)
 func (c *Chain33) GetBlockOverview(in rpctypes.QueryParm, result *interface{}) error {
@@ -751,7 +761,7 @@ func (c *Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 }
 
 // GetAllExecBalance get all balance of exec
-func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error {
+func (c *Chain33) GetAllExecBalance(in types.ReqAllExecBalance, result *interface{}) error {
 	balance, err := c.cli.GetAllExecBalance(&in)
 	if err != nil {
 		return err
@@ -862,7 +872,10 @@ func (c *Chain33) GetTotalCoins(in *types.ReqGetTotalCoins, result *interface{})
 
 // IsSync is sync or not
 func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
-	reply, _ := c.cli.IsSync()
+	reply, err := c.cli.IsSync()
+	if err != nil {
+		return err
+	}
 	ret := false
 	if reply != nil {
 		ret = reply.IsOk
@@ -873,7 +886,10 @@ func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
 
 // IsNtpClockSync  is ntp clock sync
 func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
-	reply, _ := c.cli.IsNtpClockSync()
+	reply, err := c.cli.IsNtpClockSync()
+	if err != nil {
+		return err
+	}
 	ret := false
 	if reply != nil {
 		ret = reply.IsOk
@@ -884,6 +900,9 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 
 // QueryTotalFee query total fee
 func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error {
+	if in == nil || len(in.Keys) > 1 {
+		return types.ErrInvalidParam
+	}
 	reply, err := c.cli.LocalGet(in)
 	if err != nil {
 		return err
@@ -935,58 +954,6 @@ func (c *Chain33) GetFatalFailure(in *types.ReqNil, result *interface{}) error {
 
 }
 
-// QueryTicketStat quert stat of ticket
-func (c *Chain33) QueryTicketStat(in *types.LocalDBGet, result *interface{}) error {
-	reply, err := c.cli.LocalGet(in)
-	if err != nil {
-		return err
-	}
-
-	var ticketStat types.TicketStatistic
-	err = types.Decode(reply.Values[0], &ticketStat)
-	if err != nil {
-		return err
-	}
-	*result = ticketStat
-	return nil
-}
-
-// QueryTicketInfo query ticket information
-func (c *Chain33) QueryTicketInfo(in *types.LocalDBGet, result *interface{}) error {
-	reply, err := c.cli.LocalGet(in)
-	if err != nil {
-		return err
-	}
-
-	var ticketInfo types.TicketMinerInfo
-	err = types.Decode(reply.Values[0], &ticketInfo)
-	if err != nil {
-		return err
-	}
-	*result = ticketInfo
-	return nil
-}
-
-// QueryTicketInfoList query ticket list information
-func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}) error {
-	reply, err := c.cli.LocalList(in)
-	if err != nil {
-		return err
-	}
-
-	var ticketInfo types.TicketMinerInfo
-	var ticketList []types.TicketMinerInfo
-	for _, v := range reply.Values {
-		err = types.Decode(v, &ticketInfo)
-		if err != nil {
-			return err
-		}
-		ticketList = append(ticketList, ticketInfo)
-	}
-	*result = ticketList
-	return nil
-}
-
 // DecodeRawTransaction decode rawtransaction
 func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
 	reply, err := c.cli.DecodeRawTransaction(in)
@@ -1007,15 +974,12 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	timeStatus := &rpctypes.TimeStatus{
 		NtpTime:   reply.NtpTime,
 		LocalTime: reply.LocalTime,
 		Diff:      reply.Diff,
 	}
-
 	*result = timeStatus
-
 	return nil
 }
 
@@ -1034,7 +998,10 @@ func (c *Chain33) WalletCreateTx(in types.ReqCreateTransaction, result *interfac
 func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
 	go func() {
 		time.Sleep(time.Millisecond * 100)
-		c.cli.CloseQueue()
+		_, err := c.cli.CloseQueue()
+		if err != nil {
+			return
+		}
 	}()
 
 	*result = &types.Reply{IsOk: true}
@@ -1165,6 +1132,10 @@ func convertBlockDetails(details []*types.BlockDetail, retDetails *rpctypes.Bloc
 	for _, item := range details {
 		var bdtl rpctypes.BlockDetail
 		var block rpctypes.Block
+		if item == nil {
+			retDetails.Items = append(retDetails.Items, nil)
+			continue
+		}
 		block.BlockTime = item.Block.GetBlockTime()
 		block.Height = item.Block.GetHeight()
 		block.Version = item.Block.GetVersion()

@@ -48,10 +48,16 @@ func (t btcBaseTransformer) PrivKeyToPub(priv []byte) (pub []byte, err error) {
 //checksum: first four bytes of double-SHA256.
 func checksum(input []byte) (cksum [4]byte) {
 	h := sha256.New()
-	h.Write(input)
+	_, err := h.Write(input)
+	if err != nil {
+		return
+	}
 	intermediateHash := h.Sum(nil)
 	h.Reset()
-	h.Write(intermediateHash)
+	_, err = h.Write(intermediateHash)
+	if err != nil {
+		return
+	}
 	finalHash := h.Sum(nil)
 	copy(cksum[:], finalHash[:])
 	return
@@ -65,10 +71,16 @@ func (t btcBaseTransformer) PubKeyToAddress(pub []byte) (addr string, err error)
 	}
 
 	sha256h := sha256.New()
-	sha256h.Write(pub)
+	_, err = sha256h.Write(pub)
+	if err != nil {
+		return "", err
+	}
 	//160hash
 	ripemd160h := ripemd160.New()
-	ripemd160h.Write(sha256h.Sum([]byte("")))
+	_, err = ripemd160h.Write(sha256h.Sum([]byte("")))
+	if err != nil {
+		return "", err
+	}
 	//添加版本号
 	hash160res := append(t.prefix, ripemd160h.Sum([]byte(""))...)
 

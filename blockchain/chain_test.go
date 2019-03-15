@@ -37,7 +37,7 @@ var chainlog = log15.New("module", "chain_test")
 
 func addTx(priv crypto.PrivKey, api client.QueueProtocolAPI) ([]*types.Transaction, string, error) {
 	txs := util.GenCoinsTxs(priv, 1)
-	hash := common.Bytes2Hex(txs[0].Hash())
+	hash := common.ToHex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
 		return nil, hash, err
@@ -50,7 +50,7 @@ func addTx(priv crypto.PrivKey, api client.QueueProtocolAPI) ([]*types.Transacti
 
 func addTxTxHeigt(priv crypto.PrivKey, api client.QueueProtocolAPI, height int64) ([]*types.Transaction, string, error) {
 	txs := util.GenTxsTxHeigt(priv, 1, height+TxHeightOffset)
-	hash := common.Bytes2Hex(txs[0].Hash())
+	hash := common.ToHex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
 		return nil, hash, err
@@ -116,8 +116,10 @@ func TestBlockChain(t *testing.T) {
 	testProcDelParaChainBlockMsg(t, mock33, blockchain)
 
 	testProcAddParaChainBlockMsg(t, mock33, blockchain)
+	testProcGetBlockBySeqMsg(t, mock33, blockchain)
 	testProcBlockChainFork(t, blockchain)
 	testDelBlock(t, blockchain, curBlock)
+	testIsRecordFaultErr(t)
 
 }
 
@@ -500,7 +502,7 @@ func testGetBlocksMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	if err == nil && blocks != nil {
 		for _, block := range blocks.Items {
 			if checkheight != block.Block.Height || block.Receipts == nil {
-				t.Error("testGetBlocksMsg Block Height or Receipts check error")
+				t.Error("TestGetBlocksMsg", "checkheight", checkheight, "block", block)
 			}
 			checkheight++
 		}
@@ -895,6 +897,28 @@ func testProcAddParaChainBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, bl
 	chainlog.Info("testProcAddParaChainBlockMsg end --------------------")
 }
 
+func testProcGetBlockBySeqMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testProcGetBlockBySeqMsg begin --------------------")
+
+	seq, err := blockchain.GetStore().LoadBlockLastSequence()
+	assert.Nil(t, err)
+
+	//block, err := blockchain.GetBlock(curheight)
+	//require.NoError(t, err)
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventGetBlockBySeq, &types.Int64{Data: seq})
+
+	mock33.GetClient().Send(msgGen, true)
+	msg, err := mock33.GetClient().Wait(msgGen)
+	if err != nil {
+		t.Log(err)
+		//t.Error("testProcAddParaChainBlockMsg  only in parachain ")
+	}
+	blockseq := msg.Data.(*types.BlockSeq)
+	assert.Equal(t, seq, blockseq.Num)
+	chainlog.Info("testProcGetBlockBySeqMsg end --------------------")
+}
+
 func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testProcBlockChainFork begin --------------------")
 
@@ -931,4 +955,12 @@ func testAddBlockSeqCB(t *testing.T, blockchain *blockchain.BlockChain) {
 		t.Error("testAddBlockSeqCB  getSeqCBLastNum", "num", num, "name", cb.Name)
 	}
 	chainlog.Info("testAddBlockSeqCB end -------------------------")
+}
+func testIsRecordFaultErr(t *testing.T) {
+	chainlog.Info("testIsRecordFaultErr begin ---------------------")
+	isok := blockchain.IsRecordFaultErr(types.ErrFutureBlock)
+	if isok {
+		t.Error("testIsRecordFaultErr  IsRecordFaultErr", "isok", isok)
+	}
+	chainlog.Info("testIsRecordFaultErr begin ---------------------")
 }

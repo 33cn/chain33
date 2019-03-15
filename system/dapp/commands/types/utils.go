@@ -66,7 +66,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	if isWithdraw {
 		amt = -amount
 	}
-	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amt, Note: []byte(note)}
+	params := types.ReqWalletSendToAddress{From: from, To: to, Amount: amt, Note: note}
 	if !isToken {
 		params.IsToken = false
 	} else {

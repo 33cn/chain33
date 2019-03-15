@@ -164,13 +164,8 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	if err != nil {
 		return nil, err
 	}
-
 	TransactionDetail.Proofs = proofs
-	chainlog.Debug("ProcQueryTxMsg", "proofs", TransactionDetail.Proofs)
-
 	setTxDetailFromTxResult(&TransactionDetail, txresult)
-	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
-
 	return &TransactionDetail, nil
 }
 

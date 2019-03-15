@@ -106,8 +106,10 @@ type BlockChain struct {
 //New new
 func New(cfg *types.BlockChain) *BlockChain {
 	initConfig(cfg)
-	futureBlocks, _ := lru.New(maxFutureBlocks)
-
+	futureBlocks, err := lru.New(maxFutureBlocks)
+	if err != nil {
+		panic("when New BlockChain lru.New return err")
+	}
 	blockchain := &BlockChain{
 		cache:              NewBlockCache(DefCacheSize),
 		rcvLastBlockHeight: -1,
@@ -240,7 +242,12 @@ func (chain *BlockChain) InitBlockChain() {
 	curdbver := chain.blockStore.GetDbVersion()
 	if curdbver == 0 && curheight == -1 {
 		curdbver = 1
-		chain.blockStore.SetDbVersion(curdbver)
+		err := chain.blockStore.SetDbVersion(curdbver)
+		//设置失败后恢复成原来的值保持和types.S("dbversion", curdbver)设置的版本一致
+		if err != nil {
+			curdbver = 0
+			chainlog.Error("InitIndexAndBestView SetDbVersion ", "err", err)
+		}
 	}
 	types.S("dbversion", curdbver)
 	if !chain.cfg.IsParaChain {
@@ -280,17 +287,23 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 
 	chainlog.Debug("SendAddBlockEvent -->>mempool")
 	msg := chain.client.NewMessage("mempool", types.EventAddBlock, block)
-	chain.client.Send(msg, false)
-
+	Err := chain.client.Send(msg, false)
+	if Err != nil {
+		chainlog.Error("SendAddBlockEvent -->>mempool", "err", Err)
+	}
 	chainlog.Debug("SendAddBlockEvent -->>consensus")
 
 	msg = chain.client.NewMessage("consensus", types.EventAddBlock, block)
-	chain.client.Send(msg, false)
-
+	Err = chain.client.Send(msg, false)
+	if Err != nil {
+		chainlog.Error("SendAddBlockEvent -->>consensus", "err", Err)
+	}
 	chainlog.Debug("SendAddBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
 	msg = chain.client.NewMessage("wallet", types.EventAddBlock, block)
-	chain.client.Send(msg, false)
-
+	Err = chain.client.Send(msg, false)
+	if Err != nil {
+		chainlog.Error("SendAddBlockEvent -->>wallet", "err", Err)
+	}
 	return nil
 }
 
@@ -307,7 +320,10 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	chainlog.Debug("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
 
 	msg := chain.client.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
-	chain.client.Send(msg, false)
+	err := chain.client.Send(msg, false)
+	if err != nil {
+		chainlog.Error("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()), "err", err)
+	}
 }
 
 //GetBlockHeight 获取区块高度
@@ -351,14 +367,20 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 	chainlog.Debug("SendDelBlockEvent -->>mempool&consensus&wallet", "height", block.GetBlock().GetHeight())
 
 	msg := chain.client.NewMessage("consensus", types.EventDelBlock, block)
-	chain.client.Send(msg, false)
-
+	Err := chain.client.Send(msg, false)
+	if Err != nil {
+		chainlog.Debug("SendDelBlockEvent -->>consensus", "err", err)
+	}
 	msg = chain.client.NewMessage("mempool", types.EventDelBlock, block)
-	chain.client.Send(msg, false)
-
+	Err = chain.client.Send(msg, false)
+	if Err != nil {
+		chainlog.Debug("SendDelBlockEvent -->>mempool", "err", err)
+	}
 	msg = chain.client.NewMessage("wallet", types.EventDelBlock, block)
-	chain.client.Send(msg, false)
-
+	Err = chain.client.Send(msg, false)
+	if Err != nil {
+		chainlog.Debug("SendDelBlockEvent -->>wallet", "err", err)
+	}
 	return nil
 }
 

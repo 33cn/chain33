@@ -23,13 +23,13 @@ import (
 
 // EventInterface p2p subscribe to the event hander interface
 type EventInterface interface {
-	BroadCastTx(msg queue.Message, taskindex int64)
-	GetMemPool(msg queue.Message, taskindex int64)
-	GetPeerInfo(msg queue.Message, taskindex int64)
-	GetHeaders(msg queue.Message, taskindex int64)
-	GetBlocks(msg queue.Message, taskindex int64)
-	BlockBroadcast(msg queue.Message, taskindex int64)
-	GetNetInfo(msg queue.Message, taskindex int64)
+	BroadCastTx(msg *queue.Message, taskindex int64)
+	GetMemPool(msg *queue.Message, taskindex int64)
+	GetPeerInfo(msg *queue.Message, taskindex int64)
+	GetHeaders(msg *queue.Message, taskindex int64)
+	GetBlocks(msg *queue.Message, taskindex int64)
+	BlockBroadcast(msg *queue.Message, taskindex int64)
+	GetNetInfo(msg *queue.Message, taskindex int64)
 }
 
 // NormalInterface subscribe to the event hander interface
@@ -67,7 +67,7 @@ func NewNormalP2PCli() NormalInterface {
 }
 
 // BroadCastTx broadcast transactions
-func (m *Cli) BroadCastTx(msg queue.Message, taskindex int64) {
+func (m *Cli) BroadCastTx(msg *queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.txFactory
 		atomic.AddInt32(&m.network.txCapcity, 1)
@@ -78,7 +78,7 @@ func (m *Cli) BroadCastTx(msg queue.Message, taskindex int64) {
 }
 
 // GetMemPool get mempool contents
-func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
+func (m *Cli) GetMemPool(msg *queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
 		log.Debug("GetMemPool", "task complete:", taskindex)
@@ -131,14 +131,20 @@ func (m *Cli) GetMemPool(msg queue.Message, taskindex int64) {
 		invdatas, recerr := datacli.Recv()
 		if recerr != nil && recerr != io.EOF {
 			log.Error("GetMemPool", "err", recerr.Error())
-			datacli.CloseSend()
+			err = datacli.CloseSend()
+			if err != nil {
+				log.Error("datacli", "close err", err)
+			}
 			continue
 		}
 
 		for _, invdata := range invdatas.Items {
 			Txs = append(Txs, invdata.GetTx())
 		}
-		datacli.CloseSend()
+		err = datacli.CloseSend()
+		if err != nil {
+			log.Error("datacli", "CloseSend err", err)
+		}
 		break
 	}
 	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReplyTxList, &pb.ReplyTxList{Txs: Txs}))
@@ -198,8 +204,7 @@ func (m *Cli) GetAddrList(peer *Peer) (map[string]int64, error) {
 		log.Error("getLocalPeerInfo blockchain", "Error", err.Error())
 		return addrlist, err
 	}
-	var respmsg queue.Message
-	respmsg, err = client.WaitTimeout(msg, time.Second*30)
+	respmsg, err := client.WaitTimeout(msg, time.Second*30)
 	if err != nil {
 		return addrlist, err
 	}
@@ -318,7 +323,7 @@ func (m *Cli) GetBlockHeight(nodeinfo *NodeInfo) (int64, error) {
 }
 
 // GetPeerInfo return peer information
-func (m *Cli) GetPeerInfo(msg queue.Message, taskindex int64) {
+func (m *Cli) GetPeerInfo(msg *queue.Message, taskindex int64) {
 	defer func() {
 		log.Debug("GetPeerInfo", "task complete:", taskindex)
 	}()
@@ -343,7 +348,7 @@ func (m *Cli) GetPeerInfo(msg queue.Message, taskindex int64) {
 }
 
 // GetHeaders get headers information
-func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
+func (m *Cli) GetHeaders(msg *queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
 		log.Debug("GetHeaders", "task complete:", taskindex)
@@ -381,14 +386,17 @@ func (m *Cli) GetHeaders(msg queue.Message, taskindex int64) {
 
 				client := m.network.node.nodeInfo.client
 				msg := client.NewMessage("blockchain", pb.EventAddBlockHeaders, &pb.HeadersPid{Pid: pid[0], Headers: &pb.Headers{Items: headers.GetHeaders()}})
-				client.Send(msg, false)
+				err = client.Send(msg, false)
+				if err != nil {
+					log.Error("send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
+				}
 			}
 		}
 	}
 }
 
 // GetBlocks get blocks information
-func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
+func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
 		log.Debug("GetBlocks", "task complete:", taskindex)
@@ -540,7 +548,10 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 			return
 		case blockpid := <-bChan:
 			newmsg := m.network.node.nodeInfo.client.NewMessage("blockchain", pb.EventSyncBlock, blockpid)
-			m.network.node.nodeInfo.client.SendTimeout(newmsg, false, 60*time.Second)
+			err := m.network.node.nodeInfo.client.SendTimeout(newmsg, false, 60*time.Second)
+			if err != nil {
+				log.Error("send", "to blockchain EventSyncBlock msg err", err)
+			}
 			i++
 			if i == len(MaxInvs.GetInvs()) {
 				return
@@ -554,7 +565,7 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 }
 
 // BlockBroadcast block broadcast
-func (m *Cli) BlockBroadcast(msg queue.Message, taskindex int64) {
+func (m *Cli) BlockBroadcast(msg *queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
 		log.Debug("BlockBroadcast", "task complete:", taskindex)
@@ -563,7 +574,7 @@ func (m *Cli) BlockBroadcast(msg queue.Message, taskindex int64) {
 }
 
 // GetNetInfo get network information
-func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {
+func (m *Cli) GetNetInfo(msg *queue.Message, taskindex int64) {
 	defer func() {
 		<-m.network.otherFactory
 		log.Debug("GetNetInfo", "task complete:", taskindex)

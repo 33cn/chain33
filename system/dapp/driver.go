@@ -15,6 +15,7 @@ import (
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -28,6 +29,9 @@ const (
 	TxIndexFrom = 1
 	// TxIndexTo transaction index to
 	TxIndexTo = 2
+
+	//ExecLocalSameTime Exec 的时候 同时执行 ExecLocal
+	ExecLocalSameTime = int64(1)
 )
 
 // Driver defines some interface
@@ -41,6 +45,7 @@ type Driver interface {
 	GetDriverName() string
 	//执行器的别名(一个驱动(code),允许创建多个执行器，类似evm一份代码可以创建多个合约）
 	GetName() string
+	GetExecutorAPI() api.ExecutorAPI
 	//设置执行器的真实名称
 	SetName(string)
 	SetCurrentExecName(string)
@@ -48,6 +53,7 @@ type Driver interface {
 	IsFriend(myexec []byte, writekey []byte, othertx *types.Transaction) bool
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64, difficulty uint64)
+	SetBlockInfo([]byte, []byte, int64)
 	CheckTx(tx *types.Transaction, index int) error
 	Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
@@ -55,6 +61,7 @@ type Driver interface {
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
 	SetAPI(client.QueueProtocolAPI)
+	SetExecutorAPI(queueapi client.QueueProtocolAPI, chain33api types.Chain33Client)
 	SetTxs(txs []*types.Transaction)
 	SetReceipt(receipts []*types.ReceiptData)
 
@@ -65,25 +72,29 @@ type Driver interface {
 	GetFuncMap() map[string]reflect.Method
 	GetExecutorType() types.ExecutorType
 	CheckReceiptExecOk() bool
+	ExecutorOrder() int64
 }
 
 // DriverBase defines driverbase type
 type DriverBase struct {
-	statedb      dbm.KV
-	localdb      dbm.KVDB
-	coinsaccount *account.DB
-	height       int64
-	blocktime    int64
-	name         string
-	curname      string
-	child        Driver
-	childValue   reflect.Value
-	isFree       bool
-	difficulty   uint64
-	api          client.QueueProtocolAPI
-	txs          []*types.Transaction
-	receipts     []*types.ReceiptData
-	ety          types.ExecutorType
+	statedb              dbm.KV
+	localdb              dbm.KVDB
+	coinsaccount         *account.DB
+	height               int64
+	blocktime            int64
+	parentHash, mainHash []byte
+	mainHeight           int64
+	name                 string
+	curname              string
+	child                Driver
+	childValue           reflect.Value
+	isFree               bool
+	difficulty           uint64
+	api                  client.QueueProtocolAPI
+	execapi              api.ExecutorAPI
+	txs                  []*types.Transaction
+	receipts             []*types.ReceiptData
+	ety                  types.ExecutorType
 }
 
 // GetPayloadValue define get payload func
@@ -99,6 +110,25 @@ func (d *DriverBase) GetExecutorType() types.ExecutorType {
 	return d.ety
 }
 
+//ExecutorOrder 执行顺序, 如果要使用 ExecLocalSameTime
+//那么会同时执行 ExecLocal
+func (d *DriverBase) ExecutorOrder() int64 {
+	return 0
+}
+
+//GetLastHash 获取最后区块的hash，主链和平行链不同
+func (d *DriverBase) GetLastHash() []byte {
+	if types.IsPara() {
+		return d.mainHash
+	}
+	return d.parentHash
+}
+
+//GetParentHash 获取上一个区块的hash
+func (d *DriverBase) GetParentHash() []byte {
+	return d.parentHash
+}
+
 // GetFuncMap defines get execfuncmap func
 func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
 	if d.ety == nil {
@@ -108,8 +138,13 @@ func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
 }
 
 // SetAPI set queue protocol api
-func (d *DriverBase) SetAPI(api client.QueueProtocolAPI) {
-	d.api = api
+func (d *DriverBase) SetAPI(queueapi client.QueueProtocolAPI) {
+	d.api = queueapi
+}
+
+// SetExecutorAPI set queue protocol api
+func (d *DriverBase) SetExecutorAPI(queueapi client.QueueProtocolAPI, chain33api types.Chain33Client) {
+	d.execapi = api.New(queueapi, chain33api)
 }
 
 // GetAPI return queue protocol api
@@ -117,11 +152,23 @@ func (d *DriverBase) GetAPI() client.QueueProtocolAPI {
 	return d.api
 }
 
+// GetExecutorAPI return executor api
+func (d *DriverBase) GetExecutorAPI() api.ExecutorAPI {
+	return d.execapi
+}
+
 // SetEnv set env
 func (d *DriverBase) SetEnv(height, blocktime int64, difficulty uint64) {
 	d.height = height
 	d.blocktime = blocktime
 	d.difficulty = difficulty
+}
+
+//SetBlockInfo 设置区块的信息
+func (d *DriverBase) SetBlockInfo(parentHash, mainHash []byte, mainHeight int64) {
+	d.parentHash = parentHash
+	d.mainHash = mainHash
+	d.mainHeight = mainHeight
 }
 
 // SetIsFree set isfree
@@ -363,6 +410,14 @@ func (d *DriverBase) GetLocalDB() dbm.KVDB {
 
 // GetHeight return height
 func (d *DriverBase) GetHeight() int64 {
+	return d.height
+}
+
+// GetMainHeight return height
+func (d *DriverBase) GetMainHeight() int64 {
+	if types.IsPara() {
+		return d.mainHeight
+	}
 	return d.height
 }
 

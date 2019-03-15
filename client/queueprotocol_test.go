@@ -79,6 +79,7 @@ func TestQueueProtocol(t *testing.T) {
 	testPeerInfo(t, api)
 	testGetHeaders(t, api)
 	testGetLastMempool(t, api)
+	testGetProperFee(t, api)
 	testGetBlockOverview(t, api)
 	testGetAddrOverview(t, api)
 	testGetBlockHash(t, api)
@@ -90,6 +91,7 @@ func TestQueueProtocol(t *testing.T) {
 	testIsSync(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
+	testLocalTransaction(t, api)
 	testLocalList(t, api)
 	testGetLastHeader(t, api)
 	testSignRawTx(t, api)
@@ -188,6 +190,23 @@ func testLocalList(t *testing.T, api client.QueueProtocolAPI) {
 	if nil != err {
 		t.Error("Call LocalList Failed.", err)
 	}
+}
+
+func testLocalTransaction(t *testing.T, api client.QueueProtocolAPI) {
+	txid, err := api.LocalNew(nil)
+	assert.Nil(t, err)
+	assert.Equal(t, txid.Data, int64(9999))
+	err = api.LocalBegin(txid)
+	assert.Nil(t, err)
+	err = api.LocalCommit(txid)
+	assert.Nil(t, err)
+	err = api.LocalRollback(txid)
+	assert.Nil(t, err)
+	param := &types.LocalDBSet{Txid: txid.Data}
+	err = api.LocalSet(param)
+	assert.Nil(t, err)
+	err = api.LocalClose(txid)
+	assert.Nil(t, err)
 }
 
 func testIsNtpClockSync(t *testing.T, api client.QueueProtocolAPI) {
@@ -323,6 +342,13 @@ func testGetLastMempool(t *testing.T, api client.QueueProtocolAPI) {
 	}
 }
 
+func testGetProperFee(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.GetProperFee()
+	if err != nil {
+		t.Error("Call GetProperFee Failed.", err)
+	}
+}
+
 func testGetHeaders(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.GetHeaders(&types.ReqBlocks{})
 	if err != nil {
@@ -436,7 +462,7 @@ func testWalletSendToAddress(t *testing.T, api client.QueueProtocolAPI) {
 	if err == nil {
 		t.Error("WalletSendToAddress(nil) need return error.")
 	}
-	_, err = api.WalletSendToAddress(&types.ReqWalletSendToAddress{Note: []byte("case1")})
+	_, err = api.WalletSendToAddress(&types.ReqWalletSendToAddress{Note: "case1"})
 	if err == nil {
 		t.Error("WalletSendToAddress(&types.ReqWalletSendToAddress{Note:\"case1\"}) need return error.")
 	}
@@ -609,6 +635,7 @@ func TestJsonRPC(t *testing.T) {
 	testGetLastHeaderJsonRPC(t, &jrpc)
 	testGetMempoolJsonRPC(t, &jrpc)
 	testGetLastMemPoolJsonRPC(t, &jrpc)
+	testGetProperFeeJsonRPC(t, &jrpc)
 	testGenSeedsonRPC(t, &jrpc)
 	testGetPeerInfoJsonRPC(t, &jrpc)
 	testIsNtpClockSyncJsonRPC(t, &jrpc)
@@ -702,6 +729,15 @@ func testGetLastMemPoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 		nil, &res)
 	if err != nil {
 		t.Error("testGetLastMemPoolJsonRPC failed. Error", err)
+	}
+}
+
+func testGetProperFeeJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res rpctypes.ReplyProperFee
+	err := rpc.newRpcCtx("Chain33.GetProperFee",
+		nil, &res)
+	if err != nil {
+		t.Error("testGetProperFeeJsonRPC failed. Error", err)
 	}
 }
 
@@ -802,11 +838,13 @@ func TestGRPC(t *testing.T) {
 	testUnLockGRPC(t, &grpcMock)
 	testGetPeerInfoGRPC(t, &grpcMock)
 	testGetLastMemPoolGRPC(t, &grpcMock)
+	testGetProperFeeGRPC(t, &grpcMock)
 	testGetWalletStatusGRPC(t, &grpcMock)
 	testGetBlockOverviewGRPC(t, &grpcMock)
 	testGetAddrOverviewGRPC(t, &grpcMock)
 	testGetBlockHashGRPC(t, &grpcMock)
 	testGetSequenceByHashGRPC(t, &grpcMock)
+	testGetBlockBySeqGRPC(t, &grpcMock)
 	testGenSeedGRPC(t, &grpcMock)
 	testGetSeedGRPC(t, &grpcMock)
 	testSaveSeedGRPC(t, &grpcMock)
@@ -818,6 +856,7 @@ func TestGRPC(t *testing.T) {
 	testIsSyncGRPC(t, &grpcMock)
 	testIsNtpClockSyncGRPC(t, &grpcMock)
 	testNetInfoGRPC(t, &grpcMock)
+
 }
 
 func testNetInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
@@ -946,6 +985,14 @@ func testGetLastMemPoolGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	err := rpc.newRpcCtx("GetLastMemPool", &types.ReqNil{}, &res)
 	if err != nil {
 		t.Error("Call GetLastMemPool Failed.", err)
+	}
+}
+
+func testGetProperFeeGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyProperFee
+	err := rpc.newRpcCtx("GetProperFee", &types.ReqNil{}, &res)
+	if err != nil {
+		t.Error("Call GetProperFee Failed.", err)
 	}
 }
 
@@ -1139,4 +1186,22 @@ func testGetSequenceByHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	if err != nil {
 		t.Error("Call GetSequenceByHash Failed.", err)
 	}
+}
+
+func testGetBlockBySeqGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.BlockSeq
+	//just for coverage
+	err := rpc.newRpcCtx("GetBlockBySeq", &types.Int64{Data: 1}, &res)
+	assert.Nil(t, err)
+
+	err = rpc.newRpcCtx("GetBlockBySeq", &types.Int64{Data: 10}, &res)
+	assert.NotNil(t, err)
+
+}
+
+func TestGetBlockBySeq(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.GetBlockBySeq(nil)
+	assert.NotNil(t, err)
+
 }

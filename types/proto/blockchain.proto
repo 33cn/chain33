@@ -28,6 +28,7 @@ message Header {
     Signature signature  = 8;
 }
 //  参考Header解释
+// mainHash 平行链上使用的字段，代表这个区块的主链hash
 message Block {
     int64     version        = 1;
     bytes     parentHash     = 2;
@@ -36,6 +37,8 @@ message Block {
     int64     height         = 5;
     int64     blockTime      = 6;
     uint32    difficulty     = 11;
+    bytes     mainHash       = 12;
+    int64     mainHeight     = 13;
     Signature signature      = 8;
     repeated Transaction txs = 7;
 }
@@ -158,8 +161,10 @@ message ReplyBlockHeight {
 // 	 txs : 区块上所有交易列表
 //	 receipts :区块上所有交易的收据信息列表
 message BlockBody {
-    repeated Transaction txs      = 1;
-    repeated ReceiptData receipts = 2;
+    repeated Transaction txs        = 1;
+    repeated ReceiptData receipts   = 2;
+    bytes                mainHash   = 3;
+    int64                mainHeight = 4;
 }
 //  区块追赶主链状态，用于判断本节点区块是否已经同步好
 message IsCaughtUp {

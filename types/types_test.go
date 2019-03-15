@@ -124,8 +124,19 @@ func TestProtoToJson(t *testing.T) {
 	assert.Equal(t, dr.Msg, []byte("OK"))
 
 	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"4f4b"}`, &dr)
+	assert.Equal(t, err, jsonpb.ErrBytesFormat)
+
+	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"0x"}`, &dr)
+	assert.Nil(t, err)
+	assert.Equal(t, dr.Msg, []byte(""))
+
+	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"str://OK"}`, &dr)
 	assert.Nil(t, err)
 	assert.Equal(t, dr.Msg, []byte("OK"))
+
+	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"str://0"}`, &dr)
+	assert.Nil(t, err)
+	assert.Equal(t, dr.Msg, []byte("0"))
 
 	r = &Reply{Msg: []byte{}}
 	b, err = json.Marshal(r)
@@ -140,6 +151,30 @@ func TestProtoToJson(t *testing.T) {
 	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":""}`, &dr)
 	assert.Nil(t, err)
 	assert.Equal(t, dr.Msg, []byte{})
+}
+
+func TestJsonpbUTF8(t *testing.T) {
+	r := &Reply{Msg: []byte("OK")}
+	b, err := PBToJSONUTF8(r)
+	assert.Nil(t, err)
+	assert.Equal(t, b, []byte(`{"isOk":false,"msg":"OK"}`))
+
+	var newreply Reply
+	err = JSONToPBUTF8(b, &newreply)
+	assert.Nil(t, err)
+	assert.Equal(t, r, &newreply)
+}
+
+func TestJsonpb(t *testing.T) {
+	r := &Reply{Msg: []byte("OK")}
+	b, err := PBToJSON(r)
+	assert.Nil(t, err)
+	assert.Equal(t, b, []byte(`{"isOk":false,"msg":"0x4f4b"}`))
+
+	var newreply Reply
+	err = JSONToPB(b, &newreply)
+	assert.Nil(t, err)
+	assert.Equal(t, r, &newreply)
 }
 
 func TestHex(t *testing.T) {
@@ -366,4 +401,25 @@ func TestIterateCallBack_PrefixWithExecAddr(t *testing.T) {
 	assert.Equal(t, 3, len(reply.Values))
 	assert.Equal(t, int64(3), reply.Num)
 	assert.Equal(t, len(key), len(reply.NextKey))
+}
+
+func TestJsonpbUTF8Tx(t *testing.T) {
+	bdata, err := common.FromHex("0a05636f696e73121018010a0c108084af5f1a05310a320a3320e8b31b30b9b69483d7f9d3f04c3a22314b67453376617969715a4b6866684d66744e3776743267447639486f4d6b393431")
+	assert.Nil(t, err)
+	var r Transaction
+	err = Decode(bdata, &r)
+	assert.Nil(t, err)
+	plType := LoadExecutorType("coins")
+	var pl Message
+	if plType != nil {
+		pl, err = plType.DecodePayload(&r)
+		if err != nil {
+			pl = nil
+		}
+	}
+	var pljson json.RawMessage
+	assert.NotNil(t, pl)
+	pljson, err = PBToJSONUTF8(pl)
+	assert.Nil(t, err)
+	assert.Equal(t, string(pljson), `{"transfer":{"cointoken":"","amount":"200000000","note":"1\n2\n3","to":""},"ty":1}`)
 }

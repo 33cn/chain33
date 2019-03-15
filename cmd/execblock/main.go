@@ -78,7 +78,10 @@ func main() {
 	log.Info("execblock", "block height", *height)
 	prevState := blocks.Items[0].Block.StateHash
 	block := blocks.Items[1].Block
-	receipt := util.ExecTx(q.Client(), prevState, block)
+	receipt, err := util.ExecTx(q.Client(), prevState, block)
+	if err != nil {
+		panic(err)
+	}
 	for i, r := range receipt.GetReceipts() {
 		println("=======================")
 		println("tx index ", i)

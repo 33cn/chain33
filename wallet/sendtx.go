@@ -74,7 +74,10 @@ func (wallet *Wallet) GetHeight() int64 {
 		return 0
 	}
 	msg := wallet.client.NewMessage("blockchain", types.EventGetBlockHeight, nil)
-	wallet.client.Send(msg, true)
+	err := wallet.client.Send(msg, true)
+	if err != nil {
+		return 0
+	}
 	replyHeight, err := wallet.client.Wait(msg)
 	h := replyHeight.GetData().(*types.ReplyBlockHeight).Height
 	walletlog.Debug("getheight = ", "height", h)
@@ -300,7 +303,10 @@ func (wallet *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	}
 
 	msg := wallet.client.NewMessage("exec", types.EventBlockChainQuery, &req)
-	wallet.client.Send(msg, true)
+	err := wallet.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := wallet.client.Wait(msg)
 	if err != nil {
 		return nil, err

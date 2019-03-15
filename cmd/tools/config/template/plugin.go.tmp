@@ -1,15 +1,15 @@
 package unfreeze
 
 import (
-	"github.com/33cn/chain33/plugin/dapp/${CLASSNAME}/commands"
-	"github.com/33cn/chain33/plugin/dapp/${CLASSNAME}/ptypes"
-	"github.com/33cn/chain33/plugin/dapp/${CLASSNAME}/executor"
+	"github.com/33cn/plugin/plugin/dapp/${CLASSNAME}/commands"
+	"github.com/33cn/plugin/plugin/dapp/${CLASSNAME}/types"
+	"github.com/33cn/plugin/plugin/dapp/${CLASSNAME}/executor"
 	"github.com/33cn/chain33/pluginmgr"
 )
 
 func init() {
 	pluginmgr.Register(&pluginmgr.PluginBase{
-		Name:     ptyoes.PackageName,
+		Name:     types.PackageName,
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
 		Cmd:      commands.Cmd,

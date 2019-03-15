@@ -9,7 +9,6 @@ Title="local"
 TestNet=true
 FixTime=false
 
-
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
 loglevel = "debug"
@@ -44,7 +43,7 @@ singleMode=true
 batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
-enableTxQuickIndex=false
+enableTxQuickIndex=true
 
 [p2p]
 seeds=[]
@@ -69,9 +68,9 @@ grpcFuncWhitelist=["*"]
 
 [mempool]
 name="timeline"
-poolCacheSize=10240
+poolCacheSize=102400
 minTxFee=100000
-maxTxNumPerAccount=10000
+maxTxNumPerAccount=100000
 
 [consensus]
 name="solo"
@@ -90,7 +89,7 @@ futureBlockTime = 16
 ticketFrozenTime = 5
 ticketWithdrawTime = 10
 ticketMinerWaitTime = 2
-maxTxNumber = 1600
+maxTxNumber = 10000
 targetTimespan = 2304
 targetTimePerBlock = 16
 
@@ -101,6 +100,20 @@ targetTimePerBlock = 2
 
 [mver.consensus.ForkChainParamV2]
 powLimitBits = "0x1f2fffff"
+
+[consensus.sub.para]
+ParaRemoteGrpcClient="localhost:8802"
+#主链指定高度的区块开始同步
+startHeight=345850
+#打包时间间隔，单位秒
+writeBlockSeconds=2
+#主链每隔几个没有相关交易的区块，平行链上打包空区块
+emptyBlockInterval=50
+#验证账户，验证节点需要配置自己的账户，并且钱包导入对应种子，非验证节点留空
+authAccount=""
+#等待平行链共识消息在主链上链并成功的块数，超出会重发共识消息，最小是2
+waitBlocks4CommitMsg=2
+searchHashMatchedBlockDepth=100
 
 [consensus.sub.solo]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
@@ -117,12 +130,12 @@ count=10000
 [[consensus.sub.ticket.genesis]]
 minerAddr="1PUiGcbsccfxW3zuvHXZBJfznziph5miAo"
 returnAddr="1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
-count=10000
+count=1000
 
 [[consensus.sub.ticket.genesis]]
 minerAddr="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
 returnAddr="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
-count=10000
+count=1000
 
 [store]
 name="mavl"

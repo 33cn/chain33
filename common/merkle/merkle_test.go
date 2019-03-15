@@ -6,7 +6,12 @@ package merkle
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"fmt"
 	"testing"
+
+	"github.com/33cn/chain33/common"
+	"github.com/stretchr/testify/assert"
 )
 
 //测试两个交易的roothash以及branch.获取bitcoin的99997 block作为验证
@@ -247,4 +252,136 @@ func Test_SixTxMerkle(t *testing.T) {
 			t.Logf("Test_SixTxMerkle bitroothash == brroothash :%d", txindex)
 		}
 	}
+}
+
+func BenchmarkHashTwo(b *testing.B) {
+	b.ReportAllocs()
+	left := common.GetRandBytes(32, 32)
+	right := common.GetRandBytes(32, 32)
+	for i := 0; i < b.N; i++ {
+		getHashFromTwoHash(left, right)
+	}
+}
+
+func BenchmarkHashTwo2(b *testing.B) {
+	b.ReportAllocs()
+	left := common.GetRandBytes(32, 32)
+	right := common.GetRandBytes(32, 32)
+	cache := make([]byte, 64)
+	for i := 0; i < b.N; i++ {
+		GetHashFromTwoHash(cache, left, right)
+	}
+}
+
+//原来的版本更快，这个方案只是做一个性能测试的对比
+func getHashFromTwoHash(left []byte, right []byte) []byte {
+	if left == nil || right == nil {
+		return nil
+	}
+	h := sha256.New()
+	h.Write(left)
+	h.Write(right)
+	hash1 := h.Sum(nil)
+	h.Reset()
+	h.Write(hash1)
+	return h.Sum(nil)
+}
+
+//优化办法:
+//1. 减少内存分配
+//2. 改进算法
+
+var benchlen = 100000
+
+func BenchmarkGetMerkelRoot(b *testing.B) {
+	b.ReportAllocs()
+	var hashlist [][]byte
+	for i := 0; i < benchlen; i++ {
+		key := common.GetRandBytes(32, 32)
+		hashlist = append(hashlist, key)
+	}
+	var prevroot []byte
+	for i := 0; i < b.N; i++ {
+		calc := make([][]byte, len(hashlist))
+		copy(calc, hashlist)
+		newroot := GetMerkleRoot(calc)
+		if prevroot != nil && !bytes.Equal(prevroot, newroot) {
+			b.Error("root is not the same")
+		}
+		prevroot = newroot
+	}
+}
+
+func BenchmarkGetMerkelRoot2(b *testing.B) {
+	b.ReportAllocs()
+	var hashlist [][]byte
+	for i := 0; i < benchlen; i++ {
+		key := common.GetRandBytes(32, 32)
+		hashlist = append(hashlist, key)
+	}
+	var prevroot []byte
+	for i := 0; i < b.N; i++ {
+		calc := make([][]byte, len(hashlist))
+		copy(calc, hashlist)
+		newroot, _, _ := Computation(calc, 1, 0)
+		if prevroot != nil && !bytes.Equal(prevroot, newroot) {
+			b.Error("root is not the same")
+		}
+		prevroot = newroot
+	}
+}
+
+func TestGetMerkelRoot1(t *testing.T) {
+	for i := 0; i < 2000; i++ {
+		ok := testGetMerkelRoot1(t, i)
+		if !ok {
+			t.Error("calc merkel root error", i)
+			return
+		}
+	}
+}
+
+func testGetMerkelRoot1(t *testing.T, testlen int) bool {
+	var hashlist [][]byte
+	for i := 0; i < testlen; i++ {
+		key := sha256.Sum256([]byte(fmt.Sprint(i)))
+		hashlist = append(hashlist, key[:])
+	}
+	hash1 := GetMerkleRoot(hashlist)
+
+	hashlist = nil
+	for i := 0; i < testlen; i++ {
+		key := sha256.Sum256([]byte(fmt.Sprint(i)))
+		hashlist = append(hashlist, key[:])
+	}
+	hash2 := getMerkleRoot(hashlist)
+	if !bytes.Equal(hash1, hash2) {
+		println("failed1")
+		return false
+	}
+
+	hashlist = nil
+	for i := 0; i < testlen; i++ {
+		key := sha256.Sum256([]byte(fmt.Sprint(i)))
+		hashlist = append(hashlist, key[:])
+	}
+	hash3, _, _ := Computation(hashlist, 1, 0)
+	if !bytes.Equal(hash1, hash3) {
+		println("failed2")
+		return false
+	}
+	return true
+}
+
+func TestLog2(t *testing.T) {
+	assert.Equal(t, log2(0), 0)
+	assert.Equal(t, log2(1), 1)
+	assert.Equal(t, log2(2), 1)
+	assert.Equal(t, log2(3), 1)
+	assert.Equal(t, log2(4), 2)
+	assert.Equal(t, log2(5), 2)
+	assert.Equal(t, log2(6), 2)
+	assert.Equal(t, log2(7), 2)
+	assert.Equal(t, log2(8), 3)
+	assert.Equal(t, log2(256), 8)
 }

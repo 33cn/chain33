@@ -20,8 +20,8 @@ var mlog = log.New("module", "mempool.base")
 //Mempool mempool 基础类
 type Mempool struct {
 	proxyMtx          sync.Mutex
-	in                chan queue.Message
-	out               <-chan queue.Message
+	in                chan *queue.Message
+	out               <-chan *queue.Message
 	client            queue.Client
 	header            *types.Header
 	sync              bool
@@ -53,8 +53,8 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	if cfg.PoolCacheSize == 0 {
 		cfg.PoolCacheSize = poolCacheSize
 	}
-	pool.in = make(chan queue.Message)
-	pool.out = make(<-chan queue.Message)
+	pool.in = make(chan *queue.Message)
+	pool.out = make(<-chan *queue.Message)
 	pool.done = make(chan struct{})
 	pool.cfg = cfg
 	pool.poolHeader = make(chan struct{}, 2)
@@ -235,7 +235,7 @@ func (mem *Mempool) pollLastHeader() {
 			time.Sleep(time.Second)
 			continue
 		}
-		h := lastHeader.(queue.Message).Data.(*types.Header)
+		h := lastHeader.(*queue.Message).Data.(*types.Header)
 		mem.setHeader(h)
 		return
 	}
@@ -307,7 +307,10 @@ func (mem *Mempool) delBlock(block *types.Block) {
 		if !mem.checkExpireValid(tx) {
 			continue
 		}
-		mem.PushTx(tx)
+		err = mem.PushTx(tx)
+		if err != nil {
+			mlog.Error("mem", "push tx err", err)
+		}
 	}
 }
 
@@ -334,7 +337,11 @@ func (mem *Mempool) sendTxToP2P(tx *types.Transaction) {
 		panic("client not bind message queue.")
 	}
 	msg := mem.client.NewMessage("p2p", types.EventTxBroadcast, tx)
-	mem.client.Send(msg, false)
+	err := mem.client.Send(msg, false)
+	if err != nil {
+		mlog.Error("tx sent to p2p", "tx.Hash", common.ToHex(tx.Hash()))
+		return
+	}
 	mlog.Debug("tx sent to p2p", "tx.Hash", common.ToHex(tx.Hash()))
 }
 

@@ -9,17 +9,23 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// SubConfig 配置信息
+type SubConfig struct {
+	PoolCacheSize int64 `json:"poolCacheSize"`
+	ProperFee     int64 `json:"properFee"`
+}
+
 //SimpleQueue 简单队列模式(默认提供一个队列，便于测试)
 type SimpleQueue struct {
-	txList  *listmap.ListMap
-	maxsize int
+	txList    *listmap.ListMap
+	subConfig SubConfig
 }
 
 //NewSimpleQueue 创建队列
-func NewSimpleQueue(cacheSize int) *SimpleQueue {
+func NewSimpleQueue(subConfig SubConfig) *SimpleQueue {
 	return &SimpleQueue{
-		txList:  listmap.New(),
-		maxsize: cacheSize,
+		txList:    listmap.New(),
+		subConfig: subConfig,
 	}
 }
 
@@ -43,7 +49,7 @@ func (cache *SimpleQueue) Push(tx *Item) error {
 	if cache.Exist(string(hash)) {
 		return types.ErrTxExist
 	}
-	if cache.txList.Size() >= cache.maxsize {
+	if cache.txList.Size() >= int(cache.subConfig.PoolCacheSize) {
 		return types.ErrMemFull
 	}
 	cache.txList.Push(string(hash), tx)
@@ -71,4 +77,9 @@ func (cache *SimpleQueue) Walk(count int, cb func(value *Item) bool) {
 		i++
 		return i != count
 	})
+}
+
+// GetProperFee 获取合适的手续费
+func (cache *SimpleQueue) GetProperFee() int64 {
+	return cache.subConfig.ProperFee
 }

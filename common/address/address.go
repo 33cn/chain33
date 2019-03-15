@@ -17,6 +17,7 @@ import (
 
 var addrSeed = []byte("address seed bytes for public key")
 var addressCache *lru.Cache
+var pubkeyCache *lru.Cache
 var checkAddressCache *lru.Cache
 var multisignCache *lru.Cache
 var multiCheckAddressCache *lru.Cache
@@ -37,10 +38,27 @@ const NormalVer byte = 0
 const MultiSignVer byte = 5
 
 func init() {
-	multisignCache, _ = lru.New(10240)
-	addressCache, _ = lru.New(10240)
-	checkAddressCache, _ = lru.New(10240)
-	multiCheckAddressCache, _ = lru.New(10240)
+	var err error
+	multisignCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	pubkeyCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	addressCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	checkAddressCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	multiCheckAddressCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
 }
 
 //ExecPubKey 计算公钥
@@ -101,13 +119,23 @@ func PubKeyToAddress(in []byte) *Address {
 	return HashToAddress(NormalVer, in)
 }
 
+//PubKeyToAddr 公钥转为地址
+func PubKeyToAddr(in []byte) string {
+	if value, ok := pubkeyCache.Get(string(in)); ok {
+		return value.(string)
+	}
+	addr := HashToAddress(NormalVer, in).String()
+	pubkeyCache.Add(string(in), addr)
+	return addr
+}
+
 //HashToAddress hash32 to address
 func HashToAddress(version byte, in []byte) *Address {
 	a := new(Address)
 	a.Pubkey = make([]byte, len(in))
 	copy(a.Pubkey[:], in[:])
 	a.Version = version
-	a.Hash160 = common.Rimp160AfterSha256(in)
+	a.SetBytes(common.Rimp160(in))
 	return a
 }
 
@@ -195,6 +223,11 @@ type Address struct {
 	Checksum []byte   // Unused for a stealth address
 	Pubkey   []byte   // Unused for a stealth address
 	Enc58str string
+}
+
+//SetBytes 设置地址的bytes
+func (a *Address) SetBytes(b []byte) {
+	copy(a.Hash160[:], b)
 }
 
 func (a *Address) String() string {

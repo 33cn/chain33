@@ -6,13 +6,16 @@ package executor_test
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"testing"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/merkle"
 	_ "github.com/33cn/chain33/system"
+	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
@@ -20,6 +23,8 @@ import (
 )
 
 func init() {
+	drivers.Register("demo2", newdemoApp, 1)
+	types.AllowUserExec = append(types.AllowUserExec, []byte("demo2"))
 	go func() {
 		http.ListenAndServe("localhost:6060", nil)
 	}()
@@ -183,7 +188,7 @@ func TestExecBlock2(t *testing.T) {
 	txs := util.GenCoinsTxs(genkey, 2)
 
 	block2 := util.CreateNewBlock(block, txs)
-	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
 	if err != nil {
 		t.Error(err)
 		return
@@ -200,7 +205,7 @@ func TestExecBlock2(t *testing.T) {
 		go func() {
 			txs := util.GenCoinsTxs(genkey, 2)
 			block3 := util.CreateNewBlock(block2, txs)
-			detail, _, err := util.ExecBlock(mock33.GetClient(), block2.StateHash, block3, false, true)
+			detail, _, err := util.ExecBlock(mock33.GetClient(), block2.StateHash, block3, false, true, false)
 			assert.Nil(t, err)
 			for _, Receipt := range detail.Receipts {
 				if Receipt.GetTy() != 2 {
@@ -229,7 +234,7 @@ func TestSameTx(t *testing.T) {
 	newblock.Txs = append(newblock.Txs, newblock.Txs[2])
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
-	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true)
+	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
 	assert.Equal(t, types.ErrTxDup, err)
 
 	//情况2
@@ -239,15 +244,17 @@ func TestSameTx(t *testing.T) {
 	newblock.Txs = append(newblock.Txs, newblock.Txs[4:]...)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
-	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true)
+	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
 	assert.Equal(t, types.ErrTxDup, err)
 }
 
 func TestExecBlock(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
-	block := util.CreateNoneBlock(mock33.GetGenesisKey(), 10)
-	util.ExecBlock(mock33.GetClient(), nil, block, false, true)
+	mock33.WaitHeight(0)
+	block0 := mock33.GetBlock(0)
+	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 10)
+	util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true, false)
 }
 
 //区块执行性能更好的一个测试
@@ -259,6 +266,7 @@ func TestExecBlock(t *testing.T) {
 
 //区块执行新能测试
 func BenchmarkExecBlock(b *testing.B) {
+	b.ReportAllocs()
 	mock33 := newMockNode()
 	defer mock33.Close()
 	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 10000)
@@ -266,8 +274,179 @@ func BenchmarkExecBlock(b *testing.B) {
 	block0 := mock33.GetBlock(0)
 	account := mock33.GetAccount(block0.StateHash, mock33.GetGenesisAddress())
 	assert.Equal(b, int64(10000000000000000), account.Balance)
-	b.StartTimer()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true)
+		util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true, false)
+	}
+}
+
+/*
+ExecLocalSameTime test
+*/
+type demoApp struct {
+	*drivers.DriverBase
+}
+
+func newdemoApp() drivers.Driver {
+	demo := &demoApp{DriverBase: &drivers.DriverBase{}}
+	demo.SetChild(demo)
+	return demo
+}
+
+func (demo *demoApp) GetDriverName() string {
+	return "demo2"
+}
+
+var orderflag = drivers.ExecLocalSameTime
+
+func (demo *demoApp) ExecutorOrder() int64 {
+	return orderflag
+}
+
+func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
+	addr := tx.From()
+	id := common.ToHex(tx.Hash())
+	values, err := demo.GetLocalDB().List(demoCalcLocalKey(addr, ""), nil, 0, 0)
+	if err != nil && err != types.ErrNotFound {
+		return nil, err
+	}
+	if seterrkey {
+		println("set err key value")
+		err = demo.GetLocalDB().Set([]byte("key1"), []byte("value1"))
+		if err != nil {
+			return nil, err
+		}
+	}
+	receipt = &types.Receipt{Ty: types.ExecOk}
+	receipt.KV = append(receipt.KV, &types.KeyValue{
+		Key:   demoCalcStateKey(addr, id),
+		Value: []byte(fmt.Sprint(len(values))),
+	})
+	receipt.Logs = append(receipt.Logs, &types.ReceiptLog{Ty: int32(len(values))})
+	return receipt, nil
+}
+
+func (demo *demoApp) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (localkv *types.LocalDBSet, err error) {
+	localkv = &types.LocalDBSet{}
+	addr := tx.From()
+	id := common.ToHex(tx.Hash())
+	localkv.KV = append(localkv.KV, &types.KeyValue{
+		Key:   demoCalcLocalKey(addr, id),
+		Value: tx.Hash(),
+	})
+	return localkv, nil
+}
+
+func demoCalcStateKey(addr string, id string) []byte {
+	key := append([]byte("mavl-demo2-"), []byte(addr)...)
+	key = append(key, []byte(":")...)
+	key = append(key, []byte(id)...)
+	return key
+}
+
+func demoCalcLocalKey(addr string, id string) []byte {
+	key := append([]byte("LODB-demo2-"), []byte(addr)...)
+	key = append(key, []byte(":")...)
+	if len(id) > 0 {
+		key = append(key, []byte(id)...)
+	}
+	return key
+}
+
+func TestExecLocalSameTime1(t *testing.T) {
+	mock33 := newMockNode()
+	defer mock33.Close()
+	orderflag = 1
+	genkey := mock33.GetGenesisKey()
+	genaddr := mock33.GetGenesisAddress()
+	mock33.WaitHeight(0)
+	block := mock33.GetBlock(0)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.Coin)
+	var txs []*types.Transaction
+	addr1, priv1 := util.Genaddress()
+	txs = append(txs, util.CreateCoinsTx(genkey, addr1, 1e8))
+	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
+	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
+	block2 := util.CreateNewBlock(block, txs)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for i, receipt := range detail.Receipts {
+		assert.Equal(t, receipt.GetTy(), int32(2), fmt.Sprint(i))
+		if i >= 1 {
+			fmt.Println(receipt)
+			assert.Equal(t, len(receipt.Logs), 2)
+			assert.Equal(t, receipt.Logs[1].Ty, int32(i)-1)
+		}
+	}
+}
+
+func TestExecLocalSameTime0(t *testing.T) {
+	mock33 := newMockNode()
+	defer mock33.Close()
+	orderflag = 0
+	genkey := mock33.GetGenesisKey()
+	genaddr := mock33.GetGenesisAddress()
+	mock33.WaitHeight(0)
+	block := mock33.GetBlock(0)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.Coin)
+	var txs []*types.Transaction
+	addr1, priv1 := util.Genaddress()
+	txs = append(txs, util.CreateCoinsTx(genkey, addr1, 1e8))
+	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
+	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
+	block2 := util.CreateNewBlock(block, txs)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for i, receipt := range detail.Receipts {
+		if i == 0 {
+			assert.Equal(t, receipt.GetTy(), int32(2), fmt.Sprint(i))
+		}
+		if i >= 1 {
+			assert.Equal(t, receipt.GetTy(), int32(1), fmt.Sprint(i))
+			fmt.Println(receipt)
+			assert.Equal(t, len(receipt.Logs), 2)
+			assert.Equal(t, receipt.Logs[1].Ty, int32(1))
+		}
+	}
+}
+
+var seterrkey = false
+
+func TestExecLocalSameTimeSetErrKey(t *testing.T) {
+	mock33 := newMockNode()
+	defer mock33.Close()
+	orderflag = 1
+	seterrkey = true
+	genkey := mock33.GetGenesisKey()
+	genaddr := mock33.GetGenesisAddress()
+	mock33.WaitHeight(0)
+	block := mock33.GetBlock(0)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.Coin)
+	var txs []*types.Transaction
+	addr1, priv1 := util.Genaddress()
+	txs = append(txs, util.CreateCoinsTx(genkey, addr1, 1e8))
+	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
+	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
+	block2 := util.CreateNewBlock(block, txs)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for i, receipt := range detail.Receipts {
+		if i == 0 {
+			assert.Equal(t, receipt.GetTy(), int32(2))
+		}
+		if i >= 1 {
+			assert.Equal(t, receipt.GetTy(), int32(1))
+			assert.Equal(t, len(receipt.Logs), 2)
+			assert.Equal(t, receipt.Logs[1].Ty, int32(1))
+		}
 	}
 }

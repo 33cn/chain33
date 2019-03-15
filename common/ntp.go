@@ -12,9 +12,14 @@ import (
 	"net"
 	"sort"
 	"time"
+
+	log "github.com/33cn/chain33/common/log/log15"
 )
 
 const ntpEpochOffset = 2208988800
+
+// 如果获取的ntp时间和自己时间相差太大，超过阈值，保守起见，不采用
+const safeDeltaScope = 300 * 1000 * int64(time.Millisecond)
 
 //ErrNetWorkDealy error
 var ErrNetWorkDealy = errors.New("ErrNetWorkDealy")
@@ -129,6 +134,11 @@ func GetNtpTime(host string) (time.Time, error) {
 	d1 := t2.Sub(t1)
 	d2 := t3.Sub(t4)
 	delt := (d1 + d2) / 2
+	if delt > time.Duration(safeDeltaScope) || delt < time.Duration(-safeDeltaScope) {
+		log.Error("GetNtpTime", "host", host, "delt", delt, "RxSec", rsp.RxTimeSec, "RxNs", rsp.RxTimeFrac, "TxSec", rsp.TxTimeSec, "TxNs", rsp.TxTimeFrac)
+		log.Error("GetNtpTime", "delt", delt, "t1", t1, "t2", t2, "t3", t3, "now", t4, "d1", d1, "d2", d2)
+		return time.Time{}, errors.New("WrongNtpDelteTime")
+	}
 	return t4.Add(delt), nil
 }
 
@@ -137,17 +147,19 @@ func GetNtpTime(host string) (time.Time, error) {
 type durationSlice []time.Duration
 
 func (s durationSlice) Len() int           { return len(s) }
-func (s durationSlice) Less(i, j int) bool { return s[i] < s[j] }
+func (s durationSlice) Less(i, j int) bool { return abs(s[i]) < abs(s[j]) }
 func (s durationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 //GetRealTime 获取实际时间
 func GetRealTime(hosts []string) time.Time {
 	q := len(hosts)/2 + 1
+	//q := 5
 	ch := make(chan time.Duration, len(hosts))
 	for i := 0; i < len(hosts); i++ {
 		go func(host string) {
-			ntptime, _ := getTimeRetry(host, 10)
-			if ntptime.IsZero() {
+			ntptime, err := getTimeRetry(host, 1)
+			if ntptime.IsZero() || err != nil {
+				println("getTimeRetry", err.Error())
 				ch <- time.Duration(math.MaxInt64)
 			} else {
 				dt := time.Until(ntptime)
@@ -163,12 +175,11 @@ func GetRealTime(hosts []string) time.Time {
 			continue
 		}
 		dtlist = append(dtlist, t)
-		fmt.Println(dtlist)
 		if len(dtlist) >= q {
 			calclist := make([]time.Duration, len(dtlist))
 			copy(calclist, dtlist)
 			sort.Sort(durationSlice(calclist))
-			calclist = maxSubList(calclist)
+			calclist = maxSubList(calclist, time.Millisecond*100)
 			if len(calclist) < q {
 				continue
 			}
@@ -189,33 +200,26 @@ func abs(t time.Duration) time.Duration {
 	return t
 }
 
-func maxSubList(list []time.Duration) (sub []time.Duration) {
+func maxSubList(list []time.Duration, dt time.Duration) (sub []time.Duration) {
 	if len(list) == 0 {
 		return list
 	}
+	var start int
+	var next int
 	for i := 0; i < len(list); i++ {
-		var nextheight time.Duration
-		if i+1 == len(list) {
-			nextheight = math.MaxInt64
+		var nextTime time.Duration
+		next = i + 1
+		if next == len(list) {
+			nextTime = math.MaxInt64
 		} else {
-			nextheight = list[i+1]
+			nextTime = list[next]
 		}
-		var start int
-		var end int
-		if abs(nextheight-list[i]) > time.Millisecond*100 {
-			end = i + 1
-			if len(sub) < (end - start) {
-				sub = list[start:end]
+		if abs(nextTime-list[i]) > dt {
+			if len(sub) < (next-start) && (next-start) > 1 {
+				sub = list[start:next]
 			}
-			start = i + 1
-			end = i + 1
-		} else {
-			end = i + 1
+			start = next
 		}
-	}
-	//只有一个节点，那么取差最小的节点
-	if len(sub) <= 1 {
-		return list[0:1]
 	}
 	return sub
 }

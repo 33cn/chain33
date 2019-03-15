@@ -16,7 +16,7 @@ func init() {
 }
 
 type txindexPlugin struct {
-	*pluginBase
+	pluginBase
 }
 
 func (p *txindexPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {
@@ -83,7 +83,11 @@ func getTxIndex(executor *executor, tx *types.Transaction, receipt *types.Receip
 	ety := types.LoadExecutorType(string(tx.Execer))
 	// none exec has not execType
 	if ety != nil {
-		txinf.Assets, _ = ety.GetAssets(tx)
+		var err error
+		txinf.Assets, err = ety.GetAssets(tx)
+		if err != nil {
+			elog.Error("getTxIndex ", "GetAssets err", err)
+		}
 	}
 
 	txIndexInfo.index = &txinf

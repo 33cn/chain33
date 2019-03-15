@@ -54,6 +54,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/33cn/chain33/common"
 	"github.com/golang/protobuf/proto"
@@ -71,6 +72,9 @@ type Marshaler struct {
 
 	// Whether to render fields with zero values.
 	EmitDefaults bool
+
+	//Enable utf8 bytes to string
+	EnableUTF8BytesToString bool
 
 	// A string to indent each level by. The presence of this field will
 	// also cause a space to appear between the field separator and
@@ -521,15 +525,30 @@ func (m *Marshaler) marshalValue(out *errWriter, prop *proto.Properties, v refle
 		return out.err
 	}
 
-	//[]byte
+	//[]byte 写bytes 的情况，默认情况下，转化成 hex
+	//为什么不用base64:
+	//1. 我们的数据都经过压缩(base64带来的字节数的减少有限)
+	//2. hex 是一种最容易解析的格式
+	//3. 我们的hash 默认是 bytes，而且转化成hex
 	if v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8 {
 		if v.IsNil() {
 			out.write("null")
 			return out.err
 		}
-		out.write(`"`)
-		out.write(common.ToHex(v.Interface().([]byte)))
-		out.write(`"`)
+		data := v.Interface().([]byte)
+		//开启这个选项后，会把utf8的字符串转化成string,而不会弄成hex
+		if m.EnableUTF8BytesToString && utf8.Valid(data) {
+			s := string(data)
+			b, err := json.Marshal(s)
+			if err != nil {
+				return err
+			}
+			out.write(string(b))
+		} else {
+			out.write(`"`)
+			out.write(common.ToHex(data))
+			out.write(`"`)
+		}
 		return out.err
 	}
 
@@ -667,6 +686,9 @@ type Unmarshaler struct {
 	// Whether to allow messages to contain unknown fields, as opposed to
 	// failing to unmarshal.
 	AllowUnknownFields bool
+
+	//Enable utf8 bytes to string
+	EnableUTF8BytesToString bool
 
 	// A custom URL resolver to use when unmarshaling Any messages from JSON.
 	// If unset, the default resolution strategy is to extract the
@@ -1037,7 +1059,7 @@ func (u *Unmarshaler) unmarshalValue(target reflect.Value, inputValue json.RawMe
 		if err != nil {
 			return err
 		}
-		b, err := common.FromHex(hexstr)
+		b, err := parseBytes(hexstr, u.EnableUTF8BytesToString)
 		if err != nil {
 			return err
 		}
@@ -1308,4 +1330,25 @@ func checkRequiredFieldsInValue(v reflect.Value) error {
 		return checkRequiredFields(pm)
 	}
 	return nil
+}
+
+//ErrBytesFormat 错误的bytes 类型
+var ErrBytesFormat = errors.New("ErrBytesFormat")
+
+func parseBytes(jsonstr string, enableUTF8BytesToString bool) ([]byte, error) {
+	if jsonstr == "" {
+		return []byte{}, nil
+	}
+	if strings.HasPrefix(jsonstr, "str://") {
+		return []byte(jsonstr[len("str://"):]), nil
+	}
+	if strings.HasPrefix(jsonstr, "0x") || strings.HasPrefix(jsonstr, "0X") {
+		return common.FromHex(jsonstr)
+	}
+	//字符串不是 hex 格式， 也不是 str:// 格式，但是是一个普通的utf8 字符串
+	//那么强制转化为bytes, 注意这个选项默认不开启.
+	if utf8.ValidString(jsonstr) && enableUTF8BytesToString {
+		return []byte(jsonstr), nil
+	}
+	return nil, ErrBytesFormat
 }

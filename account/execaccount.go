@@ -37,7 +37,10 @@ func (acc *DB) LoadExecAccountQueue(api client.QueueProtocolAPI, addr, execaddr 
 func (acc *DB) SaveExecAccount(execaddr string, acc1 *types.Account) {
 	set := acc.GetExecKVSet(execaddr, acc1)
 	for i := 0; i < len(set); i++ {
-		acc.db.Set(set[i].GetKey(), set[i].Value)
+		err := acc.db.Set(set[i].GetKey(), set[i].Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -52,6 +55,7 @@ func (acc *DB) GetExecKVSet(execaddr string, acc1 *types.Account) (kvset []*type
 }
 
 func (acc *DB) execAccountKey(address, execaddr string) (key []byte) {
+	key = make([]byte, 0, len(acc.execAccountKeyPerfix)+len(execaddr)+len(address)+1)
 	key = append(key, acc.execAccountKeyPerfix...)
 	key = append(key, []byte(execaddr)...)
 	key = append(key, []byte(":")...)

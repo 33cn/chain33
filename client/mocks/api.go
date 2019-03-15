@@ -200,6 +200,29 @@ func (_m *QueueProtocolAPI) GetBlockByHashes(param *types.ReqHashes) (*types.Blo
 	return r0, r1
 }
 
+// GetBlockBySeq provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetBlockBySeq(param *types.Int64) (*types.BlockSeq, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.BlockSeq
+	if rf, ok := ret.Get(0).(func(*types.Int64) *types.BlockSeq); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.BlockSeq)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.Int64) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetBlockHash provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error) {
 	ret := _m.Called(param)
@@ -453,6 +476,29 @@ func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 	return r0, r1
 }
 
+// GetProperFee provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetProperFee() (*types.ReplyProperFee, error) {
+	ret := _m.Called()
+
+	var r0 *types.ReplyProperFee
+	if rf, ok := ret.Get(0).(func() *types.ReplyProperFee); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyProperFee)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetSeed provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error) {
 	ret := _m.Called(param)
@@ -683,6 +729,48 @@ func (_m *QueueProtocolAPI) ListSeqCallBack() (*types.BlockSeqCBs, error) {
 	return r0, r1
 }
 
+// LocalBegin provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) LocalBegin(param *types.Int64) error {
+	ret := _m.Called(param)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.Int64) error); ok {
+		r0 = rf(param)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// LocalClose provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) LocalClose(param *types.Int64) error {
+	ret := _m.Called(param)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.Int64) error); ok {
+		r0 = rf(param)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// LocalCommit provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) LocalCommit(param *types.Int64) error {
+	ret := _m.Called(param)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.Int64) error); ok {
+		r0 = rf(param)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // LocalGet provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error) {
 	ret := _m.Called(param)
@@ -729,6 +817,57 @@ func (_m *QueueProtocolAPI) LocalList(param *types.LocalDBList) (*types.LocalRep
 	return r0, r1
 }
 
+// LocalNew provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) LocalNew(param *types.ReqNil) (*types.Int64, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Int64
+	if rf, ok := ret.Get(0).(func(*types.ReqNil) *types.Int64); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Int64)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqNil) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// LocalRollback provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) LocalRollback(param *types.Int64) error {
+	ret := _m.Called(param)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.Int64) error); ok {
+		r0 = rf(param)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// LocalSet provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) LocalSet(param *types.LocalDBSet) error {
+	ret := _m.Called(param)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.LocalDBSet) error); ok {
+		r0 = rf(param)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // NewAccount provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) NewAccount(param *types.ReqNewAccount) (*types.WalletAccount, error) {
 	ret := _m.Called(param)
@@ -753,28 +892,32 @@ func (_m *QueueProtocolAPI) NewAccount(param *types.ReqNewAccount) (*types.Walle
 }
 
 // NewMessage provides a mock function with given fields: topic, msgid, data
-func (_m *QueueProtocolAPI) NewMessage(topic string, msgid int64, data interface{}) queue.Message {
+func (_m *QueueProtocolAPI) NewMessage(topic string, msgid int64, data interface{}) *queue.Message {
 	ret := _m.Called(topic, msgid, data)
 
-	var r0 queue.Message
-	if rf, ok := ret.Get(0).(func(string, int64, interface{}) queue.Message); ok {
+	var r0 *queue.Message
+	if rf, ok := ret.Get(0).(func(string, int64, interface{}) *queue.Message); ok {
 		r0 = rf(topic, msgid, data)
 	} else {
-		r0 = ret.Get(0).(queue.Message)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*queue.Message)
+		}
 	}
 
 	return r0
 }
 
 // Notify provides a mock function with given fields: topic, ty, data
-func (_m *QueueProtocolAPI) Notify(topic string, ty int64, data interface{}) (queue.Message, error) {
+func (_m *QueueProtocolAPI) Notify(topic string, ty int64, data interface{}) (*queue.Message, error) {
 	ret := _m.Called(topic, ty, data)
 
-	var r0 queue.Message
-	if rf, ok := ret.Get(0).(func(string, int64, interface{}) queue.Message); ok {
+	var r0 *queue.Message
+	if rf, ok := ret.Get(0).(func(string, int64, interface{}) *queue.Message); ok {
 		r0 = rf(topic, ty, data)
 	} else {
-		r0 = ret.Get(0).(queue.Message)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*queue.Message)
+		}
 	}
 
 	var r1 error

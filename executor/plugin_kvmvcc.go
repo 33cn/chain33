@@ -4,14 +4,16 @@
 
 package executor
 
-import "github.com/33cn/chain33/types"
+import (
+	"github.com/33cn/chain33/types"
+)
 
 func init() {
 	RegisterPlugin("mvcc", &mvccPlugin{})
 }
 
 type mvccPlugin struct {
-	*pluginBase
+	pluginBase
 }
 
 func (p *mvccPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {
@@ -24,9 +26,6 @@ func (p *mvccPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.
 
 func (p *mvccPlugin) ExecLocal(executor *executor, data *types.BlockDetail) (kvs []*types.KeyValue, err error) {
 	kvs = AddMVCC(executor.localDB, data)
-	for _, kv := range kvs {
-		executor.localDB.Set(kv.Key, kv.Value)
-	}
 	return kvs, nil
 }
 

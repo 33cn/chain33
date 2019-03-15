@@ -36,7 +36,8 @@ message StoreNode {
 }
 
 message LocalDBSet {
-    repeated KeyValue KV = 2;
+    repeated KeyValue KV   = 2;
+    int64             txid = 5;
 }
 
 message LocalDBList {
@@ -44,10 +45,12 @@ message LocalDBList {
     bytes key       = 2;
     int32 direction = 3;
     int32 count     = 4;
+    int64 txid      = 5;
 }
 
 message LocalDBGet {
     repeated bytes keys = 2;
+    int64          txid = 5;
 }
 
 message LocalReplyValue {

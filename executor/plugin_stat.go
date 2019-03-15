@@ -13,7 +13,7 @@ func init() {
 }
 
 type statPlugin struct {
-	*pluginBase
+	pluginBase
 }
 
 func (p *statPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {
@@ -39,8 +39,10 @@ func countInfo(ex *executor, b *types.BlockDetail) ([]*types.KeyValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	kvset.KV = append(kvset.KV, ticketkv.KV...)
-
+	if ticketkv == nil {
+		return nil, nil
+	}
+	kvset.KV = ticketkv.KV
 	return kvset.KV, nil
 }
 
@@ -51,8 +53,10 @@ func delCountInfo(ex *executor, b *types.BlockDetail) ([]*types.KeyValue, error)
 	if err != nil {
 		return nil, err
 	}
-	kvset.KV = append(kvset.KV, ticketkv.KV...)
-
+	if ticketkv == nil {
+		return nil, nil
+	}
+	kvset.KV = ticketkv.KV
 	return kvset.KV, nil
 }
 

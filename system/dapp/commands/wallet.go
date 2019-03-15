@@ -258,7 +258,10 @@ func autoMine(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	flag, _ := cmd.Flags().GetInt32("flag")
 	if flag != 0 && flag != 1 {
-		cmd.UsageFunc()(cmd)
+		err := cmd.UsageFunc()(cmd)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		return
 	}
 	params := struct {
@@ -310,7 +313,6 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional)")
-	cmd.Flags().StringP("execer", "x", "", "new transaction execer (optional)")
 	cmd.Flags().StringP("to", "t", "", "new to addr (optional)")
 
 	// A duration string is a possibly signed sequence of
@@ -350,7 +352,6 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	key, _ := cmd.Flags().GetString("key")
 	addr, _ := cmd.Flags().GetString("addr")
 	index, _ := cmd.Flags().GetInt32("index")
-	execer, _ := cmd.Flags().GetString("execer")
 	to, _ := cmd.Flags().GetString("to")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	expire, _ := cmd.Flags().GetString("expire")
@@ -367,7 +368,6 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		Expire:    expire,
 		Index:     index,
 		Fee:       feeInt64 * 1e4,
-		NewExecer: []byte(execer),
 		NewToAddr: to,
 	}
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)

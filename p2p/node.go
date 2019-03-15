@@ -370,11 +370,14 @@ func (n *Node) detectNodeAddr() {
 		if cfg.IsSeed {
 			externalPort = n.listenPort
 		} else {
-			exportBytes, _ := n.nodeInfo.addrBook.bookDb.Get([]byte(externalPortTag))
+			exportBytes, err := n.nodeInfo.addrBook.bookDb.Get([]byte(externalPortTag))
 			if len(exportBytes) != 0 {
 				externalPort = int(P2pComm.BytesToInt32(exportBytes))
 			} else {
 				externalPort = defalutNatPort
+			}
+			if err != nil {
+				log.Error("bookDb Get", "externalPortTag fail err:", err)
 			}
 		}
 
@@ -446,8 +449,11 @@ func (n *Node) natMapPort() {
 		return
 	}
 
-	n.nodeInfo.addrBook.bookDb.Set([]byte(externalPortTag),
+	err = n.nodeInfo.addrBook.bookDb.Set([]byte(externalPortTag),
 		P2pComm.Int32ToBytes(int32(n.nodeInfo.GetExternalAddr().Port))) //把映射成功的端口信息刷入db
+	if err != nil {
+		panic(err)
+	}
 	log.Info("natMapPort", "export insert into db", n.nodeInfo.GetExternalAddr().Port)
 	n.nodeInfo.natResultChain <- true
 	refresh := time.NewTimer(mapUpdateInterval)
@@ -472,8 +478,10 @@ func (n *Node) deleteNatMapPort() {
 	if n.nodeInfo.OutSide() {
 		return
 	}
+
 	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), n.listenPort)
 
+	
 }
 
 func (n *Node) natNotice() {

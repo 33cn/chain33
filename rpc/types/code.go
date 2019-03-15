@@ -11,6 +11,8 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
+
+	_ "github.com/33cn/chain33/system/dapp/coins/types" //load system plugin
 )
 
 // DecodeLog decode log
@@ -103,7 +105,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	}
 	var pljson json.RawMessage
 	if pl != nil {
-		pljson, _ = types.PBToJSON(pl)
+		pljson, _ = types.PBToJSONUTF8(pl)
 	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),

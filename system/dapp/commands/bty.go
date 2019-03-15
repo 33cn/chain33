@@ -11,16 +11,10 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
-	"github.com/33cn/chain33/rpc/jsonclient"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
-)
-
-const (
-	defaultPrivacyMixCount = 16
 )
 
 // BTYCmd bty command
@@ -35,9 +29,6 @@ func BTYCmd() *cobra.Command {
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
 		CreateTxGroupCmd(),
-		CreatePub2PrivTxCmd(),
-		CreatePriv2PrivTxCmd(),
-		CreatePriv2PubTxCmd(),
 	)
 	return cmd
 }
@@ -54,9 +45,6 @@ func CoinsCmd() *cobra.Command {
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
 		CreateTxGroupCmd(),
-		CreatePub2PrivTxCmd(),
-		CreatePriv2PrivTxCmd(),
-		CreatePriv2PubTxCmd(),
 	)
 	return cmd
 }
@@ -320,185 +308,4 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 	newtx := group.Tx()
 	grouptx := hex.EncodeToString(types.Encode(newtx))
 	fmt.Println(grouptx)
-}
-
-// CreatePub2PrivTxCmd create a public to privacy transaction
-func CreatePub2PrivTxCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "pub2priv",
-		Short: "Create a public to privacy transaction",
-		Run:   createPub2PrivTx,
-	}
-	createPub2PrivTxFlags(cmd)
-	return cmd
-}
-
-func createPub2PrivTxFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("pubkeypair", "p", "", "public key pair")
-	cmd.MarkFlagRequired("pubkeypair")
-	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
-	cmd.MarkFlagRequired("amount")
-
-	cmd.Flags().StringP("tokenname", "", "BTY", "token name")
-	cmd.Flags().StringP("note", "n", "", "note for transaction")
-	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
-	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
-}
-
-func createPub2PrivTx(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
-	amount := commandtypes.GetAmountValue(cmd, "amount")
-	tokenname, _ := cmd.Flags().GetString("tokenname")
-	note, _ := cmd.Flags().GetString("note")
-	expire, _ := cmd.Flags().GetInt64("expire")
-	expiretype, _ := cmd.Flags().GetInt("expiretype")
-	if expiretype == 0 {
-		if expire <= 0 {
-			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
-			return
-		}
-	} else if expiretype == 1 {
-		if expire <= 0 {
-			expire = int64(time.Hour / time.Second)
-		}
-	} else {
-		fmt.Println("Invalid expiretype", expiretype)
-		return
-	}
-
-	params := types.ReqCreateTransaction{
-		Tokenname:  tokenname,
-		Type:       types.PrivacyTypePublic2Privacy,
-		Amount:     amount,
-		Note:       []byte(note),
-		Pubkeypair: pubkeypair,
-		Expire:     expire,
-	}
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
-	ctx.RunWithoutMarshal()
-}
-
-// CreatePriv2PrivTxCmd create a privacy to privacy transaction
-func CreatePriv2PrivTxCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "priv2priv",
-		Short: "Create a privacy to privacy transaction",
-		Run:   createPriv2PrivTx,
-	}
-	createPriv2PrivTxFlags(cmd)
-	return cmd
-}
-
-func createPriv2PrivTxFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("pubkeypair", "p", "", "public key pair")
-	cmd.MarkFlagRequired("pubkeypair")
-	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
-	cmd.MarkFlagRequired("amount")
-	cmd.Flags().StringP("sender", "s", "", "account address")
-	cmd.MarkFlagRequired("sender")
-
-	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
-	cmd.Flags().StringP("note", "n", "", "note for transaction")
-	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
-	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
-}
-
-func createPriv2PrivTx(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
-	amount := commandtypes.GetAmountValue(cmd, "amount")
-	tokenname, _ := cmd.Flags().GetString("tokenname")
-	note, _ := cmd.Flags().GetString("note")
-	sender, _ := cmd.Flags().GetString("sender")
-	expire, _ := cmd.Flags().GetInt64("expire")
-	expiretype, _ := cmd.Flags().GetInt("expiretype")
-	if expiretype == 0 {
-		if expire <= 0 {
-			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
-			return
-		}
-	} else if expiretype == 1 {
-		if expire <= 0 {
-			expire = int64(time.Hour / time.Second)
-		}
-	} else {
-		fmt.Println("Invalid expiretype", expiretype)
-		return
-	}
-
-	params := types.ReqCreateTransaction{
-		Tokenname:  tokenname,
-		Type:       types.PrivacyTypePrivacy2Privacy,
-		Amount:     amount,
-		Note:       []byte(note),
-		Pubkeypair: pubkeypair,
-		From:       sender,
-		Mixcount:   defaultPrivacyMixCount,
-		Expire:     expire,
-	}
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
-	ctx.RunWithoutMarshal()
-}
-
-// CreatePriv2PubTxCmd create a privacy to public transaction
-func CreatePriv2PubTxCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "priv2pub",
-		Short: "Create a privacy to public transaction",
-		Run:   createPriv2PubTx,
-	}
-	createPriv2PubTxFlags(cmd)
-	return cmd
-}
-
-func createPriv2PubTxFlags(cmd *cobra.Command) {
-	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
-	cmd.MarkFlagRequired("amount")
-	cmd.Flags().StringP("from", "f", "", "from account address")
-	cmd.MarkFlagRequired("from")
-	cmd.Flags().StringP("to", "o", "", "to account address")
-	cmd.MarkFlagRequired("to")
-
-	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
-	cmd.Flags().StringP("note", "n", "", "note for transaction")
-	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
-	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
-}
-
-func createPriv2PubTx(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	amount := commandtypes.GetAmountValue(cmd, "amount")
-	tokenname, _ := cmd.Flags().GetString("tokenname")
-	from, _ := cmd.Flags().GetString("from")
-	to, _ := cmd.Flags().GetString("to")
-	note, _ := cmd.Flags().GetString("note")
-	expire, _ := cmd.Flags().GetInt64("expire")
-	expiretype, _ := cmd.Flags().GetInt("expiretype")
-	if expiretype == 0 {
-		if expire <= 0 {
-			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
-			return
-		}
-	} else if expiretype == 1 {
-		if expire <= 0 {
-			expire = int64(time.Hour / time.Second)
-		}
-	} else {
-		fmt.Println("Invalid expiretype", expiretype)
-		return
-	}
-
-	params := types.ReqCreateTransaction{
-		Tokenname: tokenname,
-		Type:      types.PrivacyTypePrivacy2Public,
-		Amount:    amount,
-		Note:      []byte(note),
-		From:      from,
-		To:        to,
-		Mixcount:  defaultPrivacyMixCount,
-		Expire:    expire,
-	}
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "privacy.CreateRawTransaction", params, nil)
-	ctx.RunWithoutMarshal()
 }

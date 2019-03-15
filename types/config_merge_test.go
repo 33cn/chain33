@@ -203,6 +203,7 @@ superManager=[
 #但是我们可以替换
 [fork.system]
 ForkChainParamV1= 0
+ForkStateDBSet=-1
 ForkCheckTxDup=0
 ForkBlockHash= 1
 ForkMinerTime= 0
@@ -213,7 +214,7 @@ ForkResetTx0= 200000
 ForkWithdraw= 200000
 ForkExecRollback= 450000
 ForkCheckBlockTime=1200000
-ForkMultiSignAddress=1500000
+ForkMultiSignAddress=1298600
 ForkTxHeight= -1
 ForkTxGroupPara= -1
 ForkChainParamV2= -1

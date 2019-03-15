@@ -7,22 +7,11 @@ package dapp
 //store package store the world - state data
 import (
 	"github.com/33cn/chain33/common/address"
-	clog "github.com/33cn/chain33/common/log"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 )
 
 var elog = log.New("module", "execs")
-
-// SetLogLevel set log level
-func SetLogLevel(level string) {
-	clog.SetLogLevel(level)
-}
-
-// DisableLog disable log
-func DisableLog() {
-	elog.SetHandler(log.DiscardHandler())
-}
 
 // DriverCreate defines a drivercreate function
 type DriverCreate func() Driver
@@ -62,7 +51,7 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 	name = string(types.GetRealExecName([]byte(name)))
 	c, ok := registedExecDriver[name]
 	if !ok {
-		elog.Error("LoadDriver", "driver", name)
+		elog.Debug("LoadDriver", "driver", name)
 		return nil, types.ErrUnRegistedDriver
 	}
 	if height >= c.height || height == -1 {
@@ -75,6 +64,7 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Driver) {
 	exec, err := LoadDriver(string(tx.Execer), height)
 	if err == nil {
+		exec.SetEnv(height, 0, 0)
 		err = exec.Allow(tx, index)
 	}
 	if err != nil {

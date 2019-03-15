@@ -49,7 +49,7 @@ type SsdbNode struct {
 
 //GoSSDB db
 type GoSSDB struct {
-	TransactionDB
+	BaseDB
 	pool  *SDBPool
 	nodes []*SsdbNode
 }
@@ -139,29 +139,6 @@ func (db *GoSSDB) Get(key []byte) ([]byte, error) {
 
 	sdbBench.read(1, time.Since(start))
 	return value.Bytes(), nil
-}
-
-//BatchGet 批量获取
-func (db *GoSSDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
-	start := time.Now()
-	var keylist = []string{}
-	for _, v := range keys {
-		keylist = append(keylist, string(v))
-	}
-	vals, err := db.pool.get().MultiGet(keylist...)
-	if err != nil {
-		//dlog.Error("Get value error", "error", err, "key", key, "keyhex", hex.EncodeToString(key), "keystr", string(key))
-		return nil, err
-	}
-	if vals == nil {
-		return nil, ErrNotFoundInDb
-	}
-
-	for _, v := range vals {
-		values = append(values, v.Bytes())
-	}
-	sdbBench.read(1, time.Since(start))
-	return values, nil
 }
 
 //Set 设置

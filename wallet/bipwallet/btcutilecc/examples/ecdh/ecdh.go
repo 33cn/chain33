@@ -10,8 +10,14 @@ import btcutil "github.com/33cn/chain33/wallet/bipwallet/btcutilecc"
 
 func main() {
 	// generate keys for Alice and Bob
-	alice, _ := btcutil.GenerateKey(rand.Reader)
-	bob, _ := btcutil.GenerateKey(rand.Reader)
+	alice, err := btcutil.GenerateKey(rand.Reader)
+	if err != nil {
+		fmt.Println("Generate alice Key err", err)
+	}
+	bob, err := btcutil.GenerateKey(rand.Reader)
+	if err != nil {
+		fmt.Println("Generate bob Key err", err)
+	}
 	fmt.Printf("Alice:\t%x\n\t%x\n", alice.D, alice.PublicKey.X)
 	fmt.Printf("Bob:\t%x\n\t%x\n", bob.D, bob.PublicKey.X)
 	fmt.Println("")

@@ -17,7 +17,10 @@ import (
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	req := block
 	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		return err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
 		return err
@@ -30,9 +33,12 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 }
 
 //ExecTx : To send lists of txs within a block to exector for execution
-func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
+func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*types.Receipts, error) {
 	list := &types.ExecTxList{
 		StateHash:  prevStateRoot,
+		ParentHash: block.ParentHash,
+		MainHash:   block.MainHash,
+		MainHeight: block.MainHeight,
 		Txs:        block.Txs,
 		BlockTime:  block.BlockTime,
 		Height:     block.Height,
@@ -40,36 +46,45 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *type
 		IsMempool:  false,
 	}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	receipts := resp.GetData().(*types.Receipts)
-	return receipts
+	return receipts, nil
 }
 
 //ExecKVMemSet : send kv values to memory store and set it in db
-func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset []*types.KeyValue, sync bool) []byte {
+func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset []*types.KeyValue, sync bool) ([]byte, error) {
 	set := &types.StoreSet{StateHash: prevStateRoot, KV: kvset, Height: height}
 	setwithsync := &types.StoreSetWithSync{Storeset: set, Sync: sync}
 
 	msg := client.NewMessage("store", types.EventStoreMemSet, setwithsync)
-	client.Send(msg, true)
+	err := client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := client.Wait(msg)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	hash := resp.GetData().(*types.ReplyHash)
-	return hash.GetHash()
+	return hash.GetHash(), nil
 }
 
 //ExecKVSetCommit : commit the data set opetation to db
 func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreCommit, req)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
+	err := client.Send(msg, true)
+	if err != nil {
+		return err
+	}
+	msg, err = client.Wait(msg)
 	if err != nil {
 		return err
 	}
@@ -82,8 +97,11 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreRollback, req)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
+	err := client.Send(msg, true)
+	if err != nil {
+		return err
+	}
+	msg, err = client.Wait(msg)
 	if err != nil {
 		return err
 	}
@@ -145,7 +163,11 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	}
 	checkHashList.Count = height
 	hashList := client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-	client.Send(hashList, true)
+	err = client.Send(hashList, true)
+	if err != nil {
+		log.Error("send", "to blockchain EventTxHashList msg err", err)
+		return nil, err
+	}
 	dupTxList, err := client.Wait(hashList)
 	if err != nil {
 		return nil, err
@@ -181,30 +203,26 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	reportErrEvent.Tomodule = tomodule
 	reportErrEvent.Error = err.Error()
 	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
-	client.Send(msg, false)
+	err = client.Send(msg, false)
+	if err != nil {
+		log.Error("send", "EventErrToFront msg err", err)
+	}
 }
 
 //DelDupKey 删除重复的key
 func DelDupKey(kvs []*types.KeyValue) []*types.KeyValue {
 	dupindex := make(map[string]int)
-	hasdup := false
-	for i, kv := range kvs {
-		if _, ok := dupindex[string(kv.Key)]; ok {
-			hasdup = true
-		}
-		dupindex[string(kv.Key)] = i
-	}
-	//没有重复的情况下，不需要重新处理
-	if !hasdup {
-		return kvs
-	}
-	index := 0
-	for i, kv := range kvs {
-		lastindex := dupindex[string(kv.Key)]
-		if i == lastindex {
+	n := 0
+	for _, kv := range kvs {
+		skey := string(kv.Key)
+		if index, ok := dupindex[skey]; ok {
+			//重复的key 替换老的key
 			kvs[index] = kv
-			index++
+		} else {
+			dupindex[skey] = n
+			kvs[n] = kv
+			n++
 		}
 	}
-	return kvs[0:index]
+	return kvs[0:n]
 }

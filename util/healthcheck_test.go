@@ -32,6 +32,9 @@ func TestStart(t *testing.T) {
 	cfg, _ := types.InitCfg("../cmd/chain33/chain33.test.toml")
 	health.Start(cfg.Health)
 	time.Sleep(time.Second * 3)
+	api.On("IsSync").Return(&types.Reply{IsOk: false}, nil)
+	health.Start(cfg.Health)
+	time.Sleep(time.Second * 3)
 	health.Close()
 	time.Sleep(time.Second * 1)
 }
@@ -44,6 +47,8 @@ func TestGetHealth(t *testing.T) {
 	peerlist := &types.PeerList{Peers: []*types.Peer{peer2}}
 	api.On("PeerInfo").Return(peerlist, nil).Once()
 
+	healthNil := NewHealthCheckServer(nil)
+	assert.Nil(t, healthNil)
 	q := queue.New("channel")
 	health := NewHealthCheckServer(q.Client())
 	health.api = api

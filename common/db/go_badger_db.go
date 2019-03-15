@@ -17,7 +17,7 @@ var blog = log.New("module", "db.gobadgerdb")
 
 //GoBadgerDB db
 type GoBadgerDB struct {
-	TransactionDB
+	BaseDB
 	db *badger.DB
 }
 
@@ -149,7 +149,10 @@ func (db *GoBadgerDB) DB() *badger.DB {
 
 //Close 关闭
 func (db *GoBadgerDB) Close() {
-	db.db.Close()
+	err := db.db.Close()
+	if err != nil {
+		return
+	}
 }
 
 //Print 打印
@@ -201,12 +204,6 @@ func (db *GoBadgerDB) Iterator(start, end []byte, reverse bool) Iterator {
 		it.Seek(start)
 	}
 	return &goBadgerDBIt{it, itBase{start, end, reverse}, txn, nil}
-}
-
-//BatchGet 批量获取
-func (db *GoBadgerDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	blog.Error("BatchGet", "Need to implement")
-	return nil, nil
 }
 
 type goBadgerDBIt struct {
@@ -290,7 +287,10 @@ func (db *GoBadgerDB) NewBatch(sync bool) Batch {
 
 //Set set
 func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
-	mBatch.batch.Set(key, value)
+	err := mBatch.batch.Set(key, value)
+	if err != nil {
+		blog.Error("Set", "error", err)
+	}
 	mBatch.size += len(value)
 	mBatch.size += len(key)
 	mBatch.len += len(value)
@@ -298,7 +298,10 @@ func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
 
 //Delete 设置
 func (mBatch *GoBadgerDBBatch) Delete(key []byte) {
-	mBatch.batch.Delete(key)
+	err := mBatch.batch.Delete(key)
+	if err != nil {
+		blog.Error("Delete", "error", err)
+	}
 	mBatch.size += len(key)
 	mBatch.len++
 }

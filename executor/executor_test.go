@@ -5,11 +5,13 @@
 package executor
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"encoding/hex"
 
+	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/queue"
 	_ "github.com/33cn/chain33/system"
 	drivers "github.com/33cn/chain33/system/dapp"
@@ -28,7 +30,6 @@ func TestIsModule(t *testing.T) {
 }
 
 func TestExecutorGetTxGroup(t *testing.T) {
-	exec := &Executor{}
 	execInit(nil)
 	var txs []*types.Transaction
 	addr2, priv2 := util.Genaddress()
@@ -49,7 +50,15 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	txgroup.SignN(1, types.SECP256K1, priv2)
 	txgroup.SignN(2, types.SECP256K1, priv3)
 	txs = txgroup.GetTxs()
-	execute := newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs, nil)
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     1,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, &Executor{}, nil, txs, nil)
 	e := execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	txs2 := e.GetTxs()
@@ -64,7 +73,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 	//err tx group list
 	txs[0].Header = nil
-	execute = newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs, nil)
+	execute = newExecutor(ctx, &Executor{}, nil, txs, nil)
 	e = execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	_, err = e.GetTxGroup(len(txs) - 1)
@@ -99,7 +108,16 @@ func TestKeyAllow(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     1,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("retrieve can modify exec")
 	}
 }
@@ -113,7 +131,16 @@ func TestKeyAllow_evm(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     1,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("user.evm.hash can modify exec")
 	}
 	//assert.Nil(t, t)
@@ -122,6 +149,8 @@ func TestKeyAllow_evm(t *testing.T) {
 func TestKeyLocalAllow(t *testing.T) {
 	err := isAllowLocalKey([]byte("token"), []byte("LODB-token-"))
 	assert.Equal(t, err, types.ErrLocalKeyLen)
+	err = isAllowLocalKey([]byte("token"), []byte("LODB_token-a"))
+	assert.Equal(t, err, types.ErrLocalPrefix)
 	err = isAllowLocalKey([]byte("token"), []byte("LODB-token-a"))
 	assert.Nil(t, err)
 	err = isAllowLocalKey([]byte(""), []byte("LODB--a"))
@@ -138,4 +167,55 @@ func TestKeyLocalAllow(t *testing.T) {
 	assert.Nil(t, err)
 	err = isAllowLocalKey([]byte("user.p.para.paracross"), []byte("LODB-paracross-xxxx"))
 	assert.Nil(t, err)
+}
+
+func init() {
+	drivers.Register("demo", newdemoApp, 1)
+	types.AllowUserExec = append(types.AllowUserExec, []byte("demo"))
+}
+
+//ErrEnvAPI 测试
+type demoApp struct {
+	*drivers.DriverBase
+}
+
+func newdemoApp() drivers.Driver {
+	demo := &demoApp{DriverBase: &drivers.DriverBase{}}
+	demo.SetChild(demo)
+	return demo
+}
+
+func (demo *demoApp) GetDriverName() string {
+	return "demo"
+}
+
+func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
+	return nil, queue.ErrQueueTimeout
+}
+
+func TestExecutorErrAPIEnv(t *testing.T) {
+	minfee := types.GInt("MinFee")
+	types.SetMinFee(0)
+	defer types.SetMinFee(minfee)
+	q := queue.New("channel")
+	exec := &Executor{client: q.Client(), disableLocal: true}
+	execInit(nil)
+	var txs []*types.Transaction
+	genkey := util.TestPrivkeyList[0]
+	txs = append(txs, util.CreateTxWithExecer(genkey, "demo"))
+	txlist := &types.ExecTxList{
+		StateHash:  nil,
+		Height:     1,
+		BlockTime:  time.Now().Unix(),
+		Difficulty: 1,
+		MainHash:   nil,
+		MainHeight: 1,
+		ParentHash: nil,
+		Txs:        txs,
+	}
+	msg := queue.NewMessage(0, "", 1, txlist)
+	exec.procExecTxList(msg)
+	_, err := exec.client.WaitTimeout(msg, 100*time.Second)
+	fmt.Println(err)
+	assert.Equal(t, true, api.IsAPIEnvError(err))
 }

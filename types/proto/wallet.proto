@@ -147,7 +147,7 @@ message ReqWalletSendToAddress {
     string from        = 1;
     string to          = 2;
     int64  amount      = 3;
-    bytes  note        = 4;
+    string note        = 4;
     bool   isToken     = 5;
     string tokenSymbol = 6;
 }
@@ -204,9 +204,9 @@ message ReqSignRawTx {
     // 0：普通交易
     // 1：隐私交易
     // int32  mode  = 6;
-    string token     = 7;
-    int64  fee       = 8;
-    bytes  newExecer = 9;
+    string token = 7;
+    int64  fee   = 8;
+    // bytes  newExecer = 9;
     string newToAddr = 10;
 }
 
@@ -232,9 +232,9 @@ message ReqCreateTransaction {
     // 1：隐私交易 公开->隐私
     // 2：隐私交易 隐私->隐私
     // 3：隐私交易 隐私->公开
-    int32 type   = 2;
-    int64 amount = 3;
-    bytes note   = 4;
+    int32  type   = 2;
+    int64  amount = 3;
+    string note   = 4;
     // 普通交易的发送方
     string from = 5;
     // 普通交易的接收方

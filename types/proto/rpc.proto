@@ -76,6 +76,9 @@ service chain33 {
     //获取最新的Mempool
     rpc GetLastMemPool(ReqNil) returns (ReplyTxList) {}
 
+    //获取最新的ProperFee
+    rpc GetProperFee(ReqNil) returns (ReplyProperFee) {}
+
     // 获取钱包状态
     rpc GetWalletStatus(ReqNil) returns (WalletStatus) {}
     //区块浏览器接口
@@ -122,19 +125,20 @@ service chain33 {
     rpc GetFatalFailure(types.ReqNil) returns (Int32) {}
     rpc GetLastBlockSequence(ReqNil) returns (Int64) {}
 
-    //获取指定区间的block加载序列号信息
-    rpc GetBlockSequences(ReqBlocks) returns (BlockSequences) {}
-
     // get add block's sequence by hash
     rpc GetSequenceByHash(ReqHash) returns (Int64) {}
 
     //通过block hash 获取对应的blocks信息
     rpc GetBlockByHashes(ReqHashes) returns (BlockDetails) {}
+
+    //通过block seq 获取对应的blocks hash 信息
+    rpc GetBlockBySeq(Int64) returns (BlockSeq) {}
+
     //关闭chain33
     rpc CloseQueue(ReqNil) returns (Reply) {}
 
     //获取地址所以合约下的余额
-    rpc GetAllExecBalance(ReqAddr) returns (AllExecBalance) {}
+    rpc GetAllExecBalance(ReqAllExecBalance) returns (AllExecBalance) {}
     //签名交易
     rpc SignRawTx(ReqSignRawTx) returns (ReplySignRawTx) {}
 
@@ -142,4 +146,7 @@ service chain33 {
 
     // 获取随机HASH
     rpc QueryRandNum(ReqRandHash) returns (ReplyHash) {}
+
+    // 获取是否达到fork高度
+    rpc GetFork(ReqKey) returns (Int64) {}
 }

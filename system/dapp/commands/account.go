@@ -86,8 +86,8 @@ func parseListAccountRes(arg interface{}) (interface{}, error) {
 	res := arg.(*rpctypes.WalletAccounts)
 	var result commandtypes.AccountsResult
 	for _, r := range res.Wallets {
-		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance)/float64(types.Coin), 'f', 4, 64)
-		frozenResult := strconv.FormatFloat(float64(r.Acc.Frozen)/float64(types.Coin), 'f', 4, 64)
+		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance/types.Int1E4)/types.Float1E4, 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(r.Acc.Frozen/types.Int1E4)/types.Float1E4, 'f', 4, 64)
 		accResult := &commandtypes.AccountResult{
 			Currency: r.Acc.Currency,
 			Addr:     r.Acc.Addr,
@@ -143,18 +143,15 @@ func balance(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
-	if execer == "" {
-		req := types.ReqAddr{Addr: addr}
+	if execer == "" && height == -1 {
+		req := types.ReqAllExecBalance{Addr: addr}
 		var res rpctypes.AllExecBalance
 		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
 		ctx.SetResultCb(parseGetAllBalanceRes)
 		ctx.Run()
 		return
 	}
-	if ok := types.IsAllowExecName([]byte(execer), []byte(execer)); !ok {
-		fmt.Fprintln(os.Stderr, types.ErrExecNameNotAllow)
-		return
-	}
+
 	stateHash := ""
 	if height >= 0 {
 		params := types.ReqBlocks{
@@ -173,6 +170,20 @@ func balance(cmd *cobra.Command, args []string) {
 		stateHash = h.StateHash
 	}
 
+	if execer == "" {
+		req := types.ReqAllExecBalance{Addr: addr, StateHash: stateHash}
+		var res rpctypes.AllExecBalance
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
+		ctx.SetResultCb(parseGetAllBalanceRes)
+		ctx.Run()
+		return
+	}
+
+	if ok := types.IsAllowExecName([]byte(execer), []byte(execer)); !ok {
+		fmt.Fprintln(os.Stderr, types.ErrExecNameNotAllow)
+		return
+	}
+
 	var addrs []string
 	addrs = append(addrs, addr)
 	params := types.ReqBalance{
@@ -188,8 +199,8 @@ func balance(cmd *cobra.Command, args []string) {
 
 func parseGetBalanceRes(arg interface{}) (interface{}, error) {
 	res := *arg.(*[]*rpctypes.Account)
-	balanceResult := strconv.FormatFloat(float64(res[0].Balance)/float64(types.Coin), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res[0].Frozen)/float64(types.Coin), 'f', 4, 64)
+	balanceResult := strconv.FormatFloat(float64(res[0].Balance/types.Int1E4)/types.Float1E4, 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res[0].Frozen/types.Int1E4)/types.Float1E4, 'f', 4, 64)
 	result := &commandtypes.AccountResult{
 		Addr:     res[0].Addr,
 		Currency: res[0].Currency,
@@ -204,8 +215,8 @@ func parseGetAllBalanceRes(arg interface{}) (interface{}, error) {
 	accs := res.ExecAccount
 	result := commandtypes.AllExecBalance{Addr: res.Addr}
 	for _, acc := range accs {
-		balanceResult := strconv.FormatFloat(float64(acc.Account.Balance)/float64(types.Coin), 'f', 4, 64)
-		frozenResult := strconv.FormatFloat(float64(acc.Account.Frozen)/float64(types.Coin), 'f', 4, 64)
+		balanceResult := strconv.FormatFloat(float64(acc.Account.Balance/types.Int1E4)/types.Float1E4, 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(acc.Account.Frozen/types.Int1E4)/types.Float1E4, 'f', 4, 64)
 		ar := &commandtypes.AccountResult{
 			Currency: acc.Account.Currency,
 			Balance:  balanceResult,

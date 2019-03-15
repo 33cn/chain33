@@ -12,8 +12,8 @@ import (
 
 //pipeline 适用于 一个问题，分成很多步完成，每步的输出作为下一步的输入
 
-func step(done <-chan struct{}, in <-chan queue.Message, cb func(queue.Message) queue.Message) <-chan queue.Message {
-	out := make(chan queue.Message)
+func step(done <-chan struct{}, in <-chan *queue.Message, cb func(*queue.Message) *queue.Message) <-chan *queue.Message {
+	out := make(chan *queue.Message)
 	go func() {
 		defer close(out)
 		for n := range in {
@@ -27,10 +27,10 @@ func step(done <-chan struct{}, in <-chan queue.Message, cb func(queue.Message) 
 	return out
 }
 
-func merge(done <-chan struct{}, cs []<-chan queue.Message) <-chan queue.Message {
+func merge(done <-chan struct{}, cs []<-chan *queue.Message) <-chan *queue.Message {
 	var wg sync.WaitGroup
-	out := make(chan queue.Message)
-	output := func(c <-chan queue.Message) {
+	out := make(chan *queue.Message)
+	output := func(c <-chan *queue.Message) {
 		defer wg.Done()
 		for n := range c {
 			select {

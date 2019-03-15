@@ -52,6 +52,8 @@ const (
 	PrivacyMaturityDegree         = 12
 	TxGroupMaxCount               = 20
 	MinerAction                   = "miner"
+	Int1E4                int64   = 10000
+	Float1E4              float64 = 10000.0
 )
 
 //全局账户私钥/公钥
@@ -101,6 +103,8 @@ const (
 	TyLogGenesisTransfer = 11
 	TyLogGenesisDeposit  = 12
 	TyLogRollback        = 13
+	TyLogMint            = 14
+	TyLogBurn            = 15
 )
 
 //SystemLog 系统log日志
@@ -118,6 +122,8 @@ var SystemLog = map[int64]*LogInfo{
 	TyLogGenesisTransfer: {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisTransfer"},
 	TyLogGenesisDeposit:  {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
 	TyLogRollback:        {reflect.TypeOf(LocalDBSet{}), "LogRollback"},
+	TyLogMint:            {reflect.TypeOf(ReceiptAccountMint{}), "LogMint"},
+	TyLogBurn:            {reflect.TypeOf(ReceiptAccountBurn{}), "LogBurn"},
 }
 
 //exec type

@@ -11,7 +11,7 @@ import (
 )
 
 // CheckExpireValid 检查交易过期有效性，过期返回false，未过期返回true
-func (mem *Mempool) CheckExpireValid(msg queue.Message) (bool, error) {
+func (mem *Mempool) CheckExpireValid(msg *queue.Message) (bool, error) {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	if mem.header == nil {
@@ -54,7 +54,7 @@ func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 }
 
 // CheckTx 初步检查并筛选交易消息
-func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
+func (mem *Mempool) checkTx(msg *queue.Message) *queue.Message {
 	tx := msg.GetData().(types.TxGroup).Tx()
 	// 检查接收地址是否合法
 	if err := address.CheckAddress(tx.To); err != nil {
@@ -63,7 +63,7 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 	}
 	// 检查交易账户在mempool中是否存在过多交易
 	from := tx.From()
-	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
+	if mem.TxNumOfAccount(from) >= mem.cfg.MaxTxNumPerAccount {
 		msg.Data = types.ErrManyTx
 		return msg
 	}
@@ -77,7 +77,7 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 }
 
 // CheckTxs 初步检查并筛选交易消息
-func (mem *Mempool) checkTxs(msg queue.Message) queue.Message {
+func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 	// 判断消息是否含有nil交易
 	if msg.GetData() == nil {
 		msg.Data = types.ErrEmptyTx
@@ -105,7 +105,7 @@ func (mem *Mempool) checkTxs(msg queue.Message) queue.Message {
 	}
 	//txgroup 的交易
 	for i := 0; i < len(txs.Txs); i++ {
-		msgitem := mem.checkTx(queue.Message{Data: txs.Txs[i]})
+		msgitem := mem.checkTx(&queue.Message{Data: txs.Txs[i]})
 		if msgitem.Err() != nil {
 			msg.Data = msgitem.Err()
 			return msg
@@ -115,7 +115,7 @@ func (mem *Mempool) checkTxs(msg queue.Message) queue.Message {
 }
 
 //checkTxList 检查账户余额是否足够，并加入到Mempool，成功则传入goodChan，若加入Mempool失败则传入badChan
-func (mem *Mempool) checkTxRemote(msg queue.Message) queue.Message {
+func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 	tx := msg.GetData().(types.TxGroup)
 	txlist := &types.ExecTxList{}
 	txlist.Txs = append(txlist.Txs, tx.Tx())

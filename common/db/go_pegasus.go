@@ -31,8 +31,7 @@ func init() {
 
 //PegasusDB db
 type PegasusDB struct {
-	TransactionDB
-
+	BaseDB
 	cfg    *pegasus.Config
 	name   string
 	client pegasus.Client
@@ -61,7 +60,10 @@ func NewPegasusDB(name string, dir string, cache int) (*PegasusDB, error) {
 	tb, err := database.client.OpenTable(context.Background(), database.name)
 	if err != nil {
 		slog.Error("connect to pegasus error!", "pegasus", database.cfg, "error", err)
-		database.client.Close()
+		err = database.client.Close()
+		if err != nil {
+			slog.Error("database.client", "close err", err)
+		}
 		return nil, types.ErrDataBaseDamage
 	}
 	database.table = tb
@@ -97,72 +99,6 @@ func (db *PegasusDB) Get(key []byte) ([]byte, error) {
 
 	pdbBench.read(1, time.Since(start))
 	return value, nil
-}
-
-//BatchGet 批量获取
-func (db *PegasusDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
-	start := time.Now()
-	defer pdbBench.read(len(keys), time.Since(start))
-
-	var (
-		keyMap  map[int][]byte
-		hashMap map[string][][]byte
-		valMap  map[string][]byte
-		hashKey []byte
-	)
-	keyMap = make(map[int][]byte)
-	hashMap = make(map[string][][]byte)
-	valMap = make(map[string][]byte)
-
-	// 这里其实也需要对hashKey进行分别计算，然后分组查询，最后汇总结果
-
-	// 首先，记录查询key的顺序，并对keys进行哈希分组
-	for i, v := range keys {
-		keyMap[i] = v
-		hashKey = getHashKey(v)
-		if value, ok := hashMap[string(hashKey)]; ok {
-			hashMap[string(hashKey)] = append(value, v)
-		} else {
-			hashMap[string(hashKey)] = [][]byte{v}
-		}
-	}
-
-	// 然后，使用hashKey进行分组查询
-	for k, v := range hashMap {
-		vals, err := db.batchGet([]byte(k), v)
-		if err != nil {
-			return nil, err
-		}
-		for i := 0; i < len(v); i++ {
-			valMap[string(v[i])] = vals[i]
-		}
-	}
-
-	// 最后，按照查询顺序，从新组装结果
-	for i := 0; i < len(keys); i++ {
-		if v, ok := valMap[string(keyMap[i])]; ok {
-			values = append(values, v)
-		} else {
-			return nil, ErrNotFoundInDb
-		}
-	}
-
-	return values, nil
-}
-
-func (db *PegasusDB) batchGet(hashKey []byte, keys [][]byte) (values [][]byte, err error) {
-	vals, _, err := db.table.MultiGet(context.Background(), hashKey, keys)
-	if err != nil {
-		//slog.Error("Get value error", "error", err, "key", key, "keyhex", hex.EncodeToString(key), "keystr", string(key))
-		return nil, err
-	}
-	if vals == nil {
-		return nil, ErrNotFoundInDb
-	}
-	for _, v := range vals {
-		values = append(values, v.Value)
-	}
-	return values, nil
 }
 
 //Set set
@@ -203,8 +139,14 @@ func (db *PegasusDB) DeleteSync(key []byte) error {
 
 //Close 同步
 func (db *PegasusDB) Close() {
-	db.table.Close()
-	db.client.Close()
+	err := db.table.Close()
+	if err != nil {
+		llog.Error("Close", "db table error", err)
+	}
+	err = db.client.Close()
+	if err != nil {
+		llog.Error("Close", "client error", err)
+	}
 }
 
 //Print 打印

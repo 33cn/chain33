@@ -82,10 +82,11 @@ const (
 	EventReplyGetSeed = 74
 	EventDelBlock     = 75
 	//local store
-	EventLocalGet                = 76
-	EventLocalReplyValue         = 77
-	EventLocalList               = 78
-	EventLocalSet                = 79
+	EventLocalGet        = 76
+	EventLocalReplyValue = 77
+	EventLocalList       = 78
+	EventLocalSet        = 79
+
 	EventGetWalletStatus         = 80
 	EventCheckTx                 = 81
 	EventReceiptCheckTx          = 82
@@ -138,6 +139,17 @@ const (
 	EventStoreListReply          = 131
 	EventListBlockSeqCB          = 132
 	EventGetSeqCBLastNum         = 133
+	EventGetBlockBySeq           = 134
+
+	EventLocalBegin    = 135
+	EventLocalCommit   = 136
+	EventLocalRollback = 137
+	EventLocalNew      = 138
+	EventLocalClose    = 139
+
+	//mempool
+	EventGetProperFee   = 140
+	EventReplyProperFee = 141
 
 	//exec
 	EventBlockChainQuery = 212
@@ -276,4 +288,15 @@ var eventName = map[int]string{
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 	EventConsensusQuery:  "EventConsensusQuery",
+	EventGetBlockBySeq:   "EventGetBlockBySeq",
+
+	EventLocalBegin:    "EventLocalBegin",
+	EventLocalCommit:   "EventLocalCommit",
+	EventLocalRollback: "EventLocalRollback",
+	EventLocalNew:      "EventLocalNew",
+	EventLocalClose:    "EventLocalClose",
+
+	//mempool
+	EventGetProperFee:   "EventGetProperFee",
+	EventReplyProperFee: "EventReplyProperFee",
 }

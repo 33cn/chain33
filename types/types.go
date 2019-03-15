@@ -214,6 +214,12 @@ func JSONToPB(data []byte, msg proto.Message) error {
 	return jsonpb.Unmarshal(bytes.NewReader(data), msg)
 }
 
+//JSONToPBUTF8 默认解码utf8的字符串成bytes
+func JSONToPBUTF8(data []byte, msg proto.Message) error {
+	decode := &jsonpb.Unmarshaler{EnableUTF8BytesToString: true}
+	return decode.Unmarshal(bytes.NewReader(data), msg)
+}
+
 //Hash  计算叶子节点的hash
 func (leafnode *LeafNode) Hash() []byte {
 	data, err := proto.Marshal(leafnode)
@@ -223,11 +229,13 @@ func (leafnode *LeafNode) Hash() []byte {
 	return common.Sha256(data)
 }
 
+var sha256Len = 32
+
 //Hash  计算中间节点的hash
 func (innernode *InnerNode) Hash() []byte {
 	rightHash := innernode.RightHash
 	leftHash := innernode.LeftHash
-	hashLen := len(common.Hash{})
+	hashLen := sha256Len
 	if len(innernode.RightHash) > hashLen {
 		innernode.RightHash = innernode.RightHash[len(innernode.RightHash)-hashLen:]
 	}
@@ -421,6 +429,16 @@ type ParaCrossTx interface {
 // PBToJSON 消息类型转换
 func PBToJSON(r Message) ([]byte, error) {
 	encode := &jsonpb.Marshaler{EmitDefaults: true}
+	var buf bytes.Buffer
+	if err := encode.Marshal(&buf, r); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// PBToJSONUTF8 消息类型转换
+func PBToJSONUTF8(r Message) ([]byte, error) {
+	encode := &jsonpb.Marshaler{EmitDefaults: true, EnableUTF8BytesToString: true}
 	var buf bytes.Buffer
 	if err := encode.Marshal(&buf, r); err != nil {
 		return nil, err

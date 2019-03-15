@@ -355,7 +355,7 @@ func TestReplace(t *testing.T) {
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
 	opt := &Option{
-		Prefix:  "prefix",
+		Prefix:  "prefix-hello",
 		Name:    "name",
 		Primary: "Hash",
 		Index:   []string{"From", "To"},

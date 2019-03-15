@@ -35,23 +35,6 @@ func TestPegasusDB_Get(t *testing.T) {
 	tbl.AssertExpectations(t)
 }
 
-func TestPegasusDB_BatchGet(t *testing.T) {
-	key1 := []byte("abcdefghijk_11111")
-	key2 := []byte("lmnopqrstuv_22222")
-	val1 := []byte("val1")
-	val2 := []byte("val2")
-
-	db := new(PegasusDB)
-	tbl := new(MyTable)
-	tbl.On("MultiGet", context.Background(), getHashKey(key1), [][]byte{key1}).Return([]*pegasus.KeyValue{{key1, val1}}, true, nil)
-	tbl.On("MultiGet", context.Background(), getHashKey(key2), [][]byte{key2}).Return([]*pegasus.KeyValue{{key2, val2}}, true, nil)
-	db.table = tbl
-
-	db.BatchGet([][]byte{key1, key2})
-
-	tbl.AssertExpectations(t)
-}
-
 type MyTable struct {
 	pegasus.TableConnector
 	mock.Mock

@@ -37,7 +37,7 @@ type Miner interface {
 	GetGenesisBlockTime() int64
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
-	ProcEvent(msg queue.Message) bool
+	ProcEvent(msg *queue.Message) bool
 }
 
 //BaseClient ...
@@ -45,6 +45,7 @@ type BaseClient struct {
 	client       queue.Client
 	api          client.QueueProtocolAPI
 	minerStart   int32
+	isclosed     int32
 	once         sync.Once
 	Cfg          *types.Consensus
 	currentBlock *types.Block
@@ -86,7 +87,11 @@ func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	log.Info("Enter SetQueueClient method of consensus")
 	bc.client = c
 	bc.minerstartCB = minerstartCB
-	bc.api, _ = client.New(c, nil)
+	var err error
+	bc.api, err = client.New(c, nil)
+	if err != nil {
+		panic(err)
+	}
 	bc.InitMiner()
 }
 
@@ -137,7 +142,10 @@ func (bc *BaseClient) InitBlock() {
 		if newblock.Height == 0 {
 			newblock.Difficulty = types.GetP(0).PowLimitBits
 		}
-		bc.WriteBlock(zeroHash[:], newblock)
+		err := bc.WriteBlock(zeroHash[:], newblock)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		bc.SetCurrentBlock(block)
 	}
@@ -146,8 +154,14 @@ func (bc *BaseClient) InitBlock() {
 //Close 关闭
 func (bc *BaseClient) Close() {
 	atomic.StoreInt32(&bc.minerStart, 0)
+	atomic.StoreInt32(&bc.isclosed, 1)
 	bc.client.Close()
 	log.Info("consensus base closed")
+}
+
+//IsClosed 是否已经关闭
+func (bc *BaseClient) IsClosed() bool {
+	return atomic.LoadInt32(&bc.isclosed) == 1
 }
 
 //CheckTxDup 为了不引起交易检查时候产生的无序
@@ -172,7 +186,10 @@ func (bc *BaseClient) IsCaughtUp() bool {
 		panic("bc not bind message queue.")
 	}
 	msg := bc.client.NewMessage("blockchain", types.EventIsSync, nil)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return false
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return false
@@ -273,7 +290,10 @@ func (bc *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.Tran
 		panic("bc not bind message queue.")
 	}
 	msg := bc.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Hashes: txHashList, Count: int64(listSize)})
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil
@@ -288,7 +308,10 @@ func (bc *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 	}
 	reqblock := &types.ReqBlocks{Start: start, End: start, IsDetail: false, Pid: []string{""}}
 	msg := bc.client.NewMessage("blockchain", types.EventGetBlocks, reqblock)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -303,7 +326,10 @@ func (bc *BaseClient) RequestLastBlock() (*types.Block, error) {
 		panic("client not bind message queue.")
 	}
 	msg := bc.client.NewMessage("blockchain", types.EventGetLastBlock, nil)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -316,7 +342,10 @@ func (bc *BaseClient) RequestLastBlock() (*types.Block, error) {
 func (bc *BaseClient) delMempoolTx(deltx []*types.Transaction) error {
 	hashList := buildHashList(deltx)
 	msg := bc.client.NewMessage("mempool", types.EventDelTxList, hashList)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return err
@@ -343,7 +372,10 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 
 	blockdetail := &types.BlockDetail{Block: block}
 	msg := bc.client.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return err
@@ -352,7 +384,10 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	//从mempool 中删除错误的交易
 	deltx := diffTx(rawtxs, blockdetail.Block.Txs)
 	if len(deltx) > 0 {
-		bc.delMempoolTx(deltx)
+		err := bc.delMempoolTx(deltx)
+		if err != nil {
+			return err
+		}
 	}
 	if blockdetail != nil {
 		bc.SetCurrentBlock(blockdetail.Block)

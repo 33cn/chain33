@@ -320,7 +320,6 @@ func addReWriteRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("tx", "s", "", "transaction hex")
 	cmd.MarkFlagRequired("tx")
 
-	cmd.Flags().StringP("execer", "x", "", "transaction execer (optional)")
 	cmd.Flags().StringP("to", "t", "", "to addr (optional)")
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "expire time (optional)")
@@ -329,7 +328,6 @@ func addReWriteRawTxFlags(cmd *cobra.Command) {
 func reWriteRawTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	txHash, _ := cmd.Flags().GetString("tx")
-	execer, _ := cmd.Flags().GetString("execer")
 	to, _ := cmd.Flags().GetString("to")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	expire, _ := cmd.Flags().GetString("expire")
@@ -342,7 +340,6 @@ func reWriteRawTx(cmd *cobra.Command, args []string) {
 
 	params := rpctypes.ReWriteRawTx{
 		Tx:     txHash,
-		Execer: execer,
 		To:     to,
 		Fee:    feeInt64 * 1e4,
 		Expire: expire,

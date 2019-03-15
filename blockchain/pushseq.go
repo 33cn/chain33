@@ -196,8 +196,7 @@ func (p *pushseq) postData(cb *types.BlockSeqCB, data *types.BlockSeq) (err erro
 		return types.ErrPushSeqPostData
 	}
 	chainlog.Debug("postData success", "cb.name", cb.Name, "SeqNum", data.Num)
-	p.store.setSeqCBLastNum([]byte(cb.Name), data.Num)
-	return nil
+	return p.store.setSeqCBLastNum([]byte(cb.Name), data.Num)
 }
 
 func (p *pushseq) getDataBySeq(seq int64) (*types.BlockSeq, error) {

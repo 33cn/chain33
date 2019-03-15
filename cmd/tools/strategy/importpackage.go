@@ -253,7 +253,10 @@ func (im *importPackageStrategy) fetchPlugin(gitrepo, version string) error {
 func (im *importPackageStrategy) fetchPluginPackage() error {
 	mlog.Info("下载插件源码包")
 	pwd := util.Pwd()
-	os.Chdir(im.projRootPath)
+	err := os.Chdir(im.projRootPath)
+	if err != nil {
+		return err
+	}
 	defer os.Chdir(pwd)
 	for _, plugins := range im.items {
 		for _, plugin := range plugins {

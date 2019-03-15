@@ -8,6 +8,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"strings"
+
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 )
@@ -208,6 +210,11 @@ func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxLi
 	return g.cli.GetLastMempool()
 }
 
+// GetProperFee return last mempool proper fee
+func (g *Grpc) GetProperFee(ctx context.Context, in *pb.ReqNil) (*pb.ReplyProperFee, error) {
+	return g.cli.GetProperFee()
+}
+
 // GetBlockOverview get block overview
 // GetBlockOverview(parm *types.ReqHash) (*types.BlockOverview, error)   //add by hyb
 func (g *Grpc) GetBlockOverview(ctx context.Context, in *pb.ReqHash) (*pb.BlockOverview, error) {
@@ -254,7 +261,7 @@ func (g *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts,
 }
 
 // GetAllExecBalance get balance of exec
-func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAddr) (*pb.AllExecBalance, error) {
+func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAllExecBalance) (*pb.AllExecBalance, error) {
 	return g.cli.GetAllExecBalance(in)
 }
 
@@ -333,7 +340,10 @@ func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, e
 func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	go func() {
 		time.Sleep(time.Millisecond * 100)
-		g.cli.CloseQueue()
+		_, err := g.cli.CloseQueue()
+		if err != nil {
+			log.Error("CloseQueue", "Error", err)
+		}
 	}()
 
 	return &pb.Reply{IsOk: true}, nil
@@ -344,11 +354,6 @@ func (g *Grpc) GetLastBlockSequence(ctx context.Context, in *pb.ReqNil) (*pb.Int
 	return g.cli.GetLastBlockSequence()
 }
 
-// GetBlockSequences get block sequeces
-func (g *Grpc) GetBlockSequences(ctx context.Context, in *pb.ReqBlocks) (*pb.BlockSequences, error) {
-	return g.cli.GetBlockSequences(in)
-}
-
 // GetBlockByHashes get block by hashes
 func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.BlockDetails, error) {
 	return g.cli.GetBlockByHashes(in)
@@ -357,6 +362,11 @@ func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.Bloc
 // GetSequenceByHash get block sequece by hash
 func (g *Grpc) GetSequenceByHash(ctx context.Context, in *pb.ReqHash) (*pb.Int64, error) {
 	return g.cli.GetSequenceByHash(in)
+}
+
+// GetBlockBySeq get block with hash by seq
+func (g *Grpc) GetBlockBySeq(ctx context.Context, in *pb.Int64) (*pb.BlockSeq, error) {
+	return g.cli.GetBlockBySeq(in)
 }
 
 // SignRawTx signature rawtransaction
@@ -371,4 +381,13 @@ func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqRandHash) (*pb.ReplyH
 		return nil, err
 	}
 	return reply.(*pb.ReplyHash), nil
+}
+
+// GetFork get fork height by fork key
+func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
+	keys := strings.Split(string(in.Key), "-")
+	if len(keys) == 2 {
+		return &pb.Int64{Data: pb.GetDappFork(keys[0], keys[1])}, nil
+	}
+	return &pb.Int64{Data: pb.GetFork(string(in.Key))}, nil
 }

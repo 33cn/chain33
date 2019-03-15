@@ -29,7 +29,11 @@ type channelClient struct {
 // Init channel client
 func (c *channelClient) Init(q queue.Client, api client.QueueProtocolAPI) {
 	if api == nil {
-		api, _ = client.New(q, nil)
+		var err error
+		api, err = client.New(q, nil)
+		if err != nil {
+			panic(err)
+		}
 	}
 	c.QueueProtocolAPI = api
 	c.accountdb = account.NewCoinsAccount()
@@ -62,9 +66,6 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 	tx, err := decodeTx(param.Tx)
 	if err != nil {
 		return nil, err
-	}
-	if param.Execer != nil {
-		tx.Execer = param.Execer
 	}
 	if param.To != "" {
 		tx.To = param.To
@@ -223,7 +224,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 }
 
 // GetAllExecBalance get balance of exec
-func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBalance, error) {
+func (c *channelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.AllExecBalance, error) {
 	addr := in.Addr
 	err := address.CheckAddress(addr)
 	if err != nil {
@@ -237,8 +238,11 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 	for _, exec := range types.AllowUserExec {
 		execer := types.ExecName(string(exec))
 		params := &types.ReqBalance{
-			Addresses: addrs,
-			Execer:    execer,
+			Addresses:   addrs,
+			Execer:      execer,
+			StateHash:   in.StateHash,
+			AssetExec:   in.AssetExec,
+			AssetSymbol: in.AssetSymbol,
 		}
 		res, err := c.GetBalance(params)
 		if err != nil {
@@ -300,50 +304,4 @@ func (c *channelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.Repl
 		return nil, err
 	}
 	return resp, nil
-}
-
-// GetAssetBalance 通用的获得资产的接口
-func (c *channelClient) GetAssetBalance(in *types.ReqBalance) ([]*types.Account, error) {
-	if in.AssetSymbol == "" || in.AssetExec == "" {
-		return nil, types.ErrInvalidParam
-	}
-	acc, err := account.NewAccountDB(in.AssetExec, in.AssetSymbol, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// load balance
-	if in.AssetExec == in.Execer || in.Execer == "" {
-		addrs := in.GetAddresses()
-		var queryAddrs []string
-		for _, addr := range addrs {
-			if err := address.CheckAddress(addr); err != nil {
-				addr = string(acc.AccountKey(addr))
-			}
-			queryAddrs = append(queryAddrs, addr)
-		}
-
-		accounts, err := acc.LoadAccounts(c.QueueProtocolAPI, queryAddrs)
-		if err != nil {
-			log.Error("GetAssetBalance", "err", err.Error(), "exec", in.AssetExec, "symbol", in.AssetSymbol,
-				"address", queryAddrs)
-			return nil, err
-		}
-		return accounts, nil
-	}
-
-	// load exec balance
-	execaddress := address.ExecAddress(in.GetExecer())
-	addrs := in.GetAddresses()
-	var accounts []*types.Account
-	for _, addr := range addrs {
-		acc, err := acc.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
-		if err != nil {
-			log.Error("GetAssetBalance for exector", "err", err.Error(), "exec", in.AssetExec,
-				"symbol", in.AssetSymbol, "address", addr, "where", in.Execer)
-			continue
-		}
-		accounts = append(accounts, acc)
-	}
-	return accounts, nil
 }

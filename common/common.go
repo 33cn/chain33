@@ -6,14 +6,63 @@
 package common
 
 import (
+	"errors"
 	"math/rand"
+	"sync"
 	"time"
 )
 
 var random *rand.Rand
+var globalPointerMap = make(map[int64]interface{})
+var globalPointerID int64
+var gloabalMu sync.Mutex
+
+//ErrPointerNotFound 指针没有找到
+var ErrPointerNotFound = errors.New("ErrPointerNotFound")
 
 func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	go func() {
+		for {
+			time.Sleep(60 * time.Second)
+			gloabalMu.Lock()
+			pointerLen := len(globalPointerMap)
+			gloabalMu.Unlock()
+			if pointerLen > 10 {
+				println("<==>global pointer count = ", len(globalPointerMap))
+			}
+		}
+	}()
+}
+
+//StorePointer 保存指针返回int64
+func StorePointer(p interface{}) int64 {
+	gloabalMu.Lock()
+	defer gloabalMu.Unlock()
+	globalPointerID++
+	for globalPointerMap[globalPointerID] != nil {
+		globalPointerID++
+	}
+	globalPointerMap[globalPointerID] = p
+	return globalPointerID
+}
+
+//RemovePointer 删除指针
+func RemovePointer(id int64) {
+	gloabalMu.Lock()
+	defer gloabalMu.Unlock()
+	delete(globalPointerMap, id)
+}
+
+//GetPointer 删除指针
+func GetPointer(id int64) (interface{}, error) {
+	gloabalMu.Lock()
+	defer gloabalMu.Unlock()
+	p, ok := globalPointerMap[id]
+	if !ok {
+		return nil, ErrPointerNotFound
+	}
+	return p, nil
 }
 
 //MinInt32 min

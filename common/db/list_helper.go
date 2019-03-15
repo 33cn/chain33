@@ -59,9 +59,9 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 	if count == 1 && direction == ListSeek {
 		it := db.db.Iterator(prefix, nil, true)
 		defer it.Close()
-		it.Seek(key)
+		flag := it.Seek(key)
 		//判断是否相等
-		if !bytes.Equal(key, it.Key()) {
+		if !flag || !bytes.Equal(key, it.Key()) {
 			it.Next()
 			if !it.Valid() {
 				return nil
@@ -117,7 +117,7 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 			values = nil
 			return
 		}
-		//println(string(it.Key()))
+		//println(string(it.Key()), string(value))
 		values = append(values, value)
 		i++
 		if i == count {

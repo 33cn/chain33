@@ -81,7 +81,7 @@ func genLeafCountKey(key, hash []byte, height int64, hashLen int) (hashkey []byt
 }
 
 func getKeyHeightFromLeafCountKey(hashkey []byte) (key []byte, height int, hash []byte, err error) {
-	if len(hashkey) < len(leafKeyCountPrefix)+blockHeightStrLen+len(common.Hash{})+hashLenStr {
+	if len(hashkey) < len(leafKeyCountPrefix)+blockHeightStrLen+sha256Len+hashLenStr {
 		return nil, 0, nil, types.ErrSize
 	}
 	if !bytes.Contains(hashkey, []byte(leafKeyCountPrefix)) {
@@ -111,7 +111,7 @@ func genOldLeafCountKey(key, hash []byte, height int64, hashLen int) (hashkey []
 }
 
 func getKeyHeightFromOldLeafCountKey(hashkey []byte) (key []byte, height int, hash []byte, err error) {
-	if len(hashkey) < len(oldLeafKeyCountPrefix)+blockHeightStrLen+len(common.Hash{})+hashLenStr {
+	if len(hashkey) < len(oldLeafKeyCountPrefix)+blockHeightStrLen+sha256Len+hashLenStr {
 		return nil, 0, nil, types.ErrSize
 	}
 	if !bytes.Contains(hashkey, []byte(oldLeafKeyCountPrefix)) {
@@ -256,22 +256,28 @@ func pruningFirstLevelNode(db dbm.DB, curHeight int64) {
 }
 
 func addLeafCountKeyToSecondLevel(db dbm.DB, kvs []*types.KeyValue, batch dbm.Batch) {
+	var err error
 	batch.Reset()
 	for _, kv := range kvs {
 		batch.Delete(kv.Key)
 		batch.Set(genOldLeafCountKeyFromKey(kv.Key), kv.Value)
 		if batch.ValueSize() > batchDataSize {
-			batch.Write()
+			if err = batch.Write(); err != nil {
+				return
+			}
 			batch.Reset()
 		}
 	}
-	batch.Write()
+	if err = batch.Write(); err != nil {
+		return
+	}
 }
 
 func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.Batch) {
 	if len(mp) == 0 {
 		return
 	}
+	var err error
 	batch.Reset()
 	for key, vals := range mp {
 		if len(vals) > 1 && vals[1].height != vals[0].height { //防止相同高度时候出现的误删除
@@ -291,7 +297,9 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 					batch.Delete(leafCountKey) // 叶子计数节点
 					batch.Delete(val.hash)     // 叶子节点hash值
 					if batch.ValueSize() > batchDataSize {
-						batch.Write()
+						if err = batch.Write(); err != nil {
+							return
+						}
 						batch.Reset()
 					}
 				}
@@ -299,7 +307,9 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 		}
 		delete(mp, key)
 	}
-	batch.Write()
+	if err = batch.Write(); err != nil {
+		return
+	}
 }
 
 func pruningSecondLevel(db dbm.DB, curHeight int64) {
@@ -313,7 +323,10 @@ func pruningSecondLevel(db dbm.DB, curHeight int64) {
 		pruningSecondLevelNode(db, curHeight)
 		end := time.Now()
 		treelog.Info("pruningTree pruningSecondLevel", "curHeight:", curHeight, "pruning leafNode cost time:", end.Sub(start))
-		setSecLvlPruningHeight(db, curHeight)
+		err := setSecLvlPruningHeight(db, curHeight)
+		if err != nil {
+			return
+		}
 		secLvlPruningH = curHeight
 	}
 }
@@ -363,6 +376,7 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch d
 	if len(mp) == 0 {
 		return
 	}
+	var err error
 	batch.Reset()
 	for key, vals := range mp {
 		if len(vals) > 1 {
@@ -397,11 +411,15 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch d
 		}
 		delete(mp, key)
 		if batch.ValueSize() > batchDataSize {
-			batch.Write()
+			if err = batch.Write(); err != nil {
+				return
+			}
 			batch.Reset()
 		}
 	}
-	batch.Write()
+	if err = batch.Write(); err != nil {
+		return
+	}
 }
 
 // PruningTreePrintDB pruning tree print db
@@ -460,7 +478,7 @@ func printSameLeafKeyDB(db dbm.DB, key string, isold bool) {
 			if len(hash) > 32 {
 				pri = string(hash[:16])
 			}
-			treelog.Info("leaf node", "height", height, "pri", pri, "hash", common.Bytes2Hex(hash), "key", string(key))
+			treelog.Info("leaf node", "height", height, "pri", pri, "hash", common.ToHex(hash), "key", string(key))
 		}
 	}
 }
@@ -479,7 +497,7 @@ func PrintLeafNodeParent(db dbm.DB, key, hash []byte, height int64) {
 				if len(hash) > 32 {
 					pri = string(hash[:16])
 				}
-				treelog.Info("hash node", "hash pri", pri, "hash", common.Bytes2Hex(hash))
+				treelog.Info("hash node", "hash pri", pri, "hash", common.ToHex(hash))
 			}
 		}
 		isHave = true
@@ -497,7 +515,7 @@ func PrintLeafNodeParent(db dbm.DB, key, hash []byte, height int64) {
 					if len(hash) > 32 {
 						pri = string(hash[:16])
 					}
-					treelog.Info("hash node", "hash pri", pri, "hash", common.Bytes2Hex(hash))
+					treelog.Info("hash node", "hash pri", pri, "hash", common.ToHex(hash))
 				}
 			}
 			isHave = true
@@ -521,7 +539,7 @@ func PrintNodeDb(db dbm.DB, hash []byte) {
 	if len(node.hash) > 32 {
 		pri = string(node.hash[:16])
 	}
-	treelog.Info("hash node", "hash pri", pri, "hash", common.Bytes2Hex(node.hash), "height", node.height)
+	treelog.Info("hash node", "hash pri", pri, "hash", common.ToHex(node.hash), "height", node.height)
 	node.printNodeInfo(nDb)
 }
 
@@ -531,7 +549,7 @@ func (node *Node) printNodeInfo(db *nodeDB) {
 		if len(node.hash) > 32 {
 			pri = string(node.hash[:16])
 		}
-		treelog.Info("leaf node", "hash pri", pri, "hash", common.Bytes2Hex(node.hash), "key", string(node.key))
+		treelog.Info("leaf node", "hash pri", pri, "hash", common.ToHex(node.hash), "key", string(node.key))
 		return
 	}
 	if node.leftHash != nil {
@@ -543,7 +561,7 @@ func (node *Node) printNodeInfo(db *nodeDB) {
 		if len(left.hash) > 32 {
 			pri = string(left.hash[:16])
 		}
-		treelog.Debug("hash node", "hash pri", pri, "hash", common.Bytes2Hex(left.hash), "height", left.height)
+		treelog.Debug("hash node", "hash pri", pri, "hash", common.ToHex(left.hash), "height", left.height)
 		left.printNodeInfo(db)
 	}
 
@@ -556,7 +574,7 @@ func (node *Node) printNodeInfo(db *nodeDB) {
 		if len(right.hash) > 32 {
 			pri = string(right.hash[:16])
 		}
-		treelog.Debug("hash node", "hash pri", pri, "hash", common.Bytes2Hex(right.hash), "height", right.height)
+		treelog.Debug("hash node", "hash pri", pri, "hash", common.ToHex(right.hash), "height", right.height)
 		right.printNodeInfo(db)
 	}
 }

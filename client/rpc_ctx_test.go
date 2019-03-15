@@ -225,6 +225,12 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.ReplyTxList) = *reply
 		}
 		errRet = err
+	case "GetProperFee":
+		reply, err := rpc.GetProperFee(context.Background(), c.Params.(*types.ReqNil))
+		if err == nil {
+			*c.Res.(*types.ReplyProperFee) = *reply
+		}
+		errRet = err
 	case "GetWalletStatus":
 		reply, err := rpc.GetWalletStatus(context.Background(), c.Params.(*types.ReqNil))
 		if err == nil {
@@ -319,6 +325,12 @@ func (c *GrpcCtx) Run() (err error) {
 		reply, err := rpc.GetSequenceByHash(context.Background(), c.Params.(*types.ReqHash))
 		if err == nil {
 			*c.Res.(*types.Int64) = *reply
+		}
+		errRet = err
+	case "GetBlockBySeq":
+		reply, err := rpc.GetBlockBySeq(context.Background(), c.Params.(*types.Int64))
+		if err == nil {
+			*c.Res.(*types.BlockSeq) = *reply
 		}
 		errRet = err
 	default:

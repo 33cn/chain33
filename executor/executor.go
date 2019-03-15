@@ -11,9 +11,12 @@ import (
 	"sync"
 
 	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client/api"
+	dbm "github.com/33cn/chain33/common/db"
 	clog "github.com/33cn/chain33/common/log"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/pluginmgr"
+	"github.com/33cn/chain33/rpc/grpcclient"
 	drivers "github.com/33cn/chain33/system/dapp"
 
 	// register drivers
@@ -37,8 +40,10 @@ func DisableLog() {
 
 // Executor executor struct
 type Executor struct {
+	disableLocal bool
 	client       queue.Client
 	qclient      client.QueueProtocolAPI
+	grpccli      types.Chain33Client
 	pluginEnable map[string]bool
 	alias        map[string]string
 }
@@ -101,6 +106,10 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	if err != nil {
 		panic(err)
 	}
+	exec.grpccli, err = grpcclient.NewMainChainClient("")
+	if err != nil {
+		panic(err)
+	}
 	//recv 消息的处理
 	go func() {
 		for msg := range exec.client.Recv() {
@@ -120,7 +129,15 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	}()
 }
 
-func (exec *Executor) procExecQuery(msg queue.Message) {
+func (exec *Executor) procExecQuery(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	header, err := exec.qclient.GetLastHeader()
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
@@ -135,15 +152,20 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	if data.StateHash == nil {
 		data.StateHash = header.StateHash
 	}
-	localdb := NewLocalDB(exec.client)
-	driver.SetLocalDB(localdb)
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+		driver.SetLocalDB(localdb)
+	}
 	opt := &StateDBOption{EnableMVCC: exec.pluginEnable["mvcc"], Height: header.GetHeight()}
 
 	db := NewStateDB(exec.client, data.StateHash, localdb, opt)
-	db.(*StateDB).enableMVCC()
+	db.(*StateDB).enableMVCC(nil)
 	driver.SetStateDB(db)
 	driver.SetAPI(exec.qclient)
-
+	driver.SetExecutorAPI(exec.qclient, exec.grpccli)
+	driver.SetEnv(header.GetHeight(), header.GetBlockTime(), uint64(header.GetDifficulty()))
 	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
 
 	ret, err := driver.Query(data.FuncName, data.Param)
@@ -154,11 +176,32 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, ret))
 }
 
-func (exec *Executor) procExecCheckTx(msg queue.Message) {
+func (exec *Executor) procExecCheckTx(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs, nil)
-	execute.enableMVCC()
-	execute.api = exec.qclient
+	ctx := &executorCtx{
+		stateHash:  datas.StateHash,
+		height:     datas.Height,
+		blocktime:  datas.BlockTime,
+		difficulty: datas.Difficulty,
+		mainHash:   datas.MainHash,
+		mainHeight: datas.MainHeight,
+		parentHash: datas.ParentHash,
+	}
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+	}
+	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
+	execute.enableMVCC(nil)
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
@@ -177,11 +220,32 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
-func (exec *Executor) procExecTxList(msg queue.Message) {
+func (exec *Executor) procExecTxList(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs, nil)
-	execute.enableMVCC()
-	execute.api = exec.qclient
+	ctx := &executorCtx{
+		stateHash:  datas.StateHash,
+		height:     datas.Height,
+		blocktime:  datas.BlockTime,
+		difficulty: datas.Difficulty,
+		mainHash:   datas.MainHash,
+		mainHeight: datas.MainHeight,
+		parentHash: datas.ParentHash,
+	}
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+	}
+	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
+	execute.enableMVCC(nil)
 	var receipts []*types.Receipt
 	index := 0
 	for i := 0; i < len(datas.Txs); i++ {
@@ -192,11 +256,16 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			continue
 		}
 		if tx.GroupCount == 0 {
-			receipt, err := execute.execTx(tx, index)
+			receipt, err := execute.execTx(exec, tx, index)
+			if api.IsAPIEnvError(err) {
+				msg.Reply(exec.client.NewMessage("", types.EventReceipts, err))
+				return
+			}
 			if err != nil {
 				receipts = append(receipts, types.NewErrReceipt(err))
 				continue
 			}
+			//update local
 			receipts = append(receipts, receipt)
 			index++
 			continue
@@ -217,6 +286,10 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 			panic("len(receiptlist) must be equal tx.GroupCount")
 		}
 		if err != nil {
+			if api.IsAPIEnvError(err) {
+				msg.Reply(exec.client.NewMessage("", types.EventReceipts, err))
+				return
+			}
 			for n := 0; n < int(tx.GroupCount); n++ {
 				receipts = append(receipts, types.NewErrReceipt(err))
 			}
@@ -229,15 +302,40 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{Receipts: receipts}))
 }
 
-func (exec *Executor) procExecAddBlock(msg queue.Message) {
+func (exec *Executor) procExecAddBlock(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs, datas.Receipts)
-	execute.enableMVCC()
-	execute.api = exec.qclient
+	ctx := &executorCtx{
+		stateHash:  b.StateHash,
+		height:     b.Height,
+		blocktime:  b.BlockTime,
+		difficulty: uint64(b.Difficulty),
+		mainHash:   b.MainHash,
+		mainHeight: b.MainHeight,
+		parentHash: b.ParentHash,
+	}
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+	}
+	execute := newExecutor(ctx, exec, localdb, b.Txs, datas.Receipts)
+	//因为mvcc 还没有写入，所以目前的mvcc版本是前一个区块的版本
+	execute.enableMVCC(datas.PrevStatusHash)
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
-		execute.stateDB.Set(kv.Key, kv.Value)
+		err := execute.stateDB.Set(kv.Key, kv.Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	for name, plugin := range globalPlugins {
 		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])
@@ -257,39 +355,62 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 		}
 		if len(kvs) > 0 {
 			kvset.KV = append(kvset.KV, kvs...)
+			for _, kv := range kvs {
+				err := execute.localDB.Set(kv.Key, kv.Value)
+				if err != nil {
+					panic(err)
+				}
+			}
 		}
 	}
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		kv, err := execute.execLocal(tx, datas.Receipts[i], i)
-		if err == types.ErrActionNotSupport {
-			continue
-		}
+		execute.localDB.(*LocalDB).StartTx()
+		kv, err := execute.execLocalTx(tx, datas.Receipts[i], i)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 			return
 		}
 		if kv != nil && kv.KV != nil {
-			err := exec.checkPrefix(tx.Execer, kv.KV)
-			if err != nil {
-				msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-				return
-			}
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func (exec *Executor) procExecDelBlock(msg queue.Message) {
+func (exec *Executor) procExecDelBlock(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs, nil)
-	execute.enableMVCC()
-	execute.api = exec.qclient
+	ctx := &executorCtx{
+		stateHash:  b.StateHash,
+		height:     b.Height,
+		blocktime:  b.BlockTime,
+		difficulty: uint64(b.Difficulty),
+		mainHash:   b.MainHash,
+		mainHeight: b.MainHeight,
+		parentHash: b.ParentHash,
+	}
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+	}
+	execute := newExecutor(ctx, exec, localdb, b.Txs, nil)
+	execute.enableMVCC(nil)
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
-		execute.stateDB.Set(kv.Key, kv.Value)
+		err := execute.stateDB.Set(kv.Key, kv.Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	for name, plugin := range globalPlugins {
 		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])
@@ -322,7 +443,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			return
 		}
 		if kv != nil && kv.KV != nil {
-			err := exec.checkPrefix(tx.Execer, kv.KV)
+			err := execute.checkPrefix(tx.Execer, kv.KV)
 			if err != nil {
 				msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 				return
@@ -333,19 +454,10 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventDelBlock, &kvset))
 }
 
-func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
-	for i := 0; i < len(kvs); i++ {
-		err := isAllowLocalKey(execer, kvs[i].Key)
-		if err != nil {
-			//测试的情况下，先panic，实际情况下会删除返回错误
-			panic(err)
-			//return err
-		}
-	}
-	return nil
-}
-
 // Close close executor
 func (exec *Executor) Close() {
 	elog.Info("exec module closed")
+	if exec.client != nil {
+		exec.client.Close()
+	}
 }

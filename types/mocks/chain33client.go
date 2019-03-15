@@ -313,7 +313,7 @@ func (_m *Chain33Client) GetAddrOverview(ctx context.Context, in *types.ReqAddr,
 }
 
 // GetAllExecBalance provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) GetAllExecBalance(ctx context.Context, in *types.ReqAddr, opts ...grpc.CallOption) (*types.AllExecBalance, error) {
+func (_m *Chain33Client) GetAllExecBalance(ctx context.Context, in *types.ReqAllExecBalance, opts ...grpc.CallOption) (*types.AllExecBalance, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -324,7 +324,7 @@ func (_m *Chain33Client) GetAllExecBalance(ctx context.Context, in *types.ReqAdd
 	ret := _m.Called(_ca...)
 
 	var r0 *types.AllExecBalance
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqAddr, ...grpc.CallOption) *types.AllExecBalance); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqAllExecBalance, ...grpc.CallOption) *types.AllExecBalance); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -333,7 +333,7 @@ func (_m *Chain33Client) GetAllExecBalance(ctx context.Context, in *types.ReqAdd
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqAddr, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqAllExecBalance, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -402,6 +402,36 @@ func (_m *Chain33Client) GetBlockByHashes(ctx context.Context, in *types.ReqHash
 	return r0, r1
 }
 
+// GetBlockBySeq provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetBlockBySeq(ctx context.Context, in *types.Int64, opts ...grpc.CallOption) (*types.BlockSeq, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.BlockSeq
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Int64, ...grpc.CallOption) *types.BlockSeq); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.BlockSeq)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.Int64, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetBlockHash provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetBlockHash(ctx context.Context, in *types.ReqInt, opts ...grpc.CallOption) (*types.ReplyHash, error) {
 	_va := make([]interface{}, len(opts))
@@ -462,36 +492,6 @@ func (_m *Chain33Client) GetBlockOverview(ctx context.Context, in *types.ReqHash
 	return r0, r1
 }
 
-// GetBlockSequences provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) GetBlockSequences(ctx context.Context, in *types.ReqBlocks, opts ...grpc.CallOption) (*types.BlockSequences, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.BlockSequences
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqBlocks, ...grpc.CallOption) *types.BlockSequences); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.BlockSequences)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqBlocks, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetBlocks provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetBlocks(ctx context.Context, in *types.ReqBlocks, opts ...grpc.CallOption) (*types.Reply, error) {
 	_va := make([]interface{}, len(opts))
@@ -544,6 +544,36 @@ func (_m *Chain33Client) GetFatalFailure(ctx context.Context, in *types.ReqNil, 
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetFork provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetFork(ctx context.Context, in *types.ReqKey, opts ...grpc.CallOption) (*types.Int64, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.Int64
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqKey, ...grpc.CallOption) *types.Int64); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Int64)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqKey, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -719,6 +749,36 @@ func (_m *Chain33Client) GetPeerInfo(ctx context.Context, in *types.ReqNil, opts
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.PeerList)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetProperFee provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetProperFee(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.ReplyProperFee, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.ReplyProperFee
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqNil, ...grpc.CallOption) *types.ReplyProperFee); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyProperFee)
 		}
 	}
 
