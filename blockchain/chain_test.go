@@ -975,8 +975,21 @@ func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
 	chainlog.Info("WriteBlockToDbTemp begin ---------------------")
 	curheight := chain.GetBlockHeight()
 	block, err := chain.GetBlock(curheight)
-	block.Block.Height = curheight + 1
-	err = chain.WriteBlockToDbTemp(block.Block)
+	if err != nil {
+		t.Error("testWriteBlockToDbTemp", "err", err)
+	}
+	var rawblock types.Block
+	rawblock.Version = block.Block.Version
+	rawblock.ParentHash = block.Block.ParentHash
+	rawblock.TxHash = block.Block.TxHash
+	rawblock.StateHash = block.Block.StateHash
+	rawblock.BlockTime = block.Block.BlockTime
+	rawblock.Difficulty = block.Block.Difficulty
+	rawblock.MainHash = block.Block.MainHash
+	rawblock.MainHeight = block.Block.MainHeight
+
+	rawblock.Height = block.Block.Height + 1
+	err = chain.WriteBlockToDbTemp(&rawblock)
 	if err != nil {
 		t.Error("testWriteBlockToDbTemp", "err", err)
 	}
