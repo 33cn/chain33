@@ -300,7 +300,7 @@ func (mem *Mempool) delBlock(block *types.Block) {
 			tx = group.Tx()
 			i = i + groupCount - 1
 		}
-		err := tx.Check(header.GetHeight(), mem.cfg.MinTxFee)
+		err := tx.Check(header.GetHeight(), mem.cfg.MinTxFee, mem.cfg.MaxTxFee)
 		if err != nil {
 			continue
 		}
