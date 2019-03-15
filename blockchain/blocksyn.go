@@ -42,13 +42,6 @@ var (
 	synlog = chainlog.New("submodule", "syn")
 )
 
-//ForkInfo blockchain模块fork处理结构体
-type ForkInfo struct {
-	ForkStartHeight int64
-	ForkEndHeight   int64
-	ForkPid         string
-}
-
 //PeerInfo blockchain模块需要保存的peerinfo
 type PeerInfo struct {
 	Name       string
@@ -128,6 +121,9 @@ func (chain *BlockChain) SynRoutine() {
 	//2分钟尝试检测一次最优链，确保本节点在最优链
 	checkBestChainTicker := time.NewTicker(120 * time.Second)
 
+	//节点启动后首先尝试开启快速下载模式
+	chain.tickerwg.Add(1)
+	go chain.FastDownLoadBlocks()
 	for {
 		select {
 		case <-chain.quit:
@@ -135,9 +131,9 @@ func (chain *BlockChain) SynRoutine() {
 			return
 		case <-blockSynTicker.C:
 			//synlog.Info("blockSynTicker")
-			//SynBlocksFromPeers在task任务中也会go线程调用
-			//WaitGroup不太好处理，暂时不加入WaitGroup中
-			go chain.SynBlocksFromPeers()
+			if !GetDownloadSyncStatus() {
+				go chain.SynBlocksFromPeers()
+			}
 
 		case <-fetchPeerListTicker.C:
 			//synlog.Info("blockUpdateTicker")
@@ -207,15 +203,19 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 	var cb func()
 	if syncOrfork {
 		//还有区块需要请求，挂接钩子回调函数
-		if requestblock.End < chain.forkInfo.ForkEndHeight {
+		if requestblock.End < chain.downLoadInfo.EndHeight {
 			cb = func() {
-				chain.ReqForkBlocks()
+				chain.ReqDownLoadBlocks()
 			}
-			chain.UpdateForkStartHeight(requestblock.End + 1)
-		} else { // 所有fork block已请求结束，恢复forkinfo为默认值
-			chain.DefaultForkInfo()
+			chain.UpdateDownLoadStartHeight(requestblock.End + 1)
+			//快速下载时需要及时更新bestpeer，防止下载侧链的block
+			if GetDownloadSyncStatus() {
+				chain.UpdateDownLoadPids()
+			}
+		} else { // 所有DownLoad block已请求结束，恢复DownLoadInfo为默认值
+			chain.DefaultDownLoadInfo()
 		}
-		err = chain.forktask.Start(requestblock.Start, requestblock.End, cb)
+		err = chain.downLoadTask.Start(requestblock.Start, requestblock.End, cb)
 		if err != nil {
 			return err
 		}
@@ -225,13 +225,13 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 				chain.SynBlocksFromPeers()
 			}
 		}
-		err = chain.task.Start(requestblock.Start, requestblock.End, cb)
+		err = chain.syncTask.Start(requestblock.Start, requestblock.End, cb)
 		if err != nil {
 			return err
 		}
 	}
 
-	synlog.Debug("FetchBlock", "Start", requestblock.Start, "End", requestblock.End)
+	synlog.Info("FetchBlock", "Start", requestblock.Start, "End", requestblock.End)
 	msg := chain.client.NewMessage("p2p", types.EventFetchBlocks, &requestblock)
 	Err := chain.client.Send(msg, true)
 	if Err != nil {
@@ -426,6 +426,19 @@ func (chain *BlockChain) GetPeers() PeerInfoList {
 	return peers
 }
 
+//GetPeersMap 获取peers的map列表方便查找
+func (chain *BlockChain) GetPeersMap() map[string]bool {
+	peerMaxBlklock.Lock()
+	defer peerMaxBlklock.Unlock()
+	peersmap := make(map[string]bool)
+
+	if chain.peerList != nil {
+		for _, peer := range chain.peerList {
+			peersmap[peer.Name] = true
+		}
+	}
+	return peersmap
+}
 //IsFaultPeer 判断指定pid是否在故障faultPeerList中
 func (chain *BlockChain) IsFaultPeer(pid string) bool {
 	faultpeerlock.Lock()
@@ -562,11 +575,10 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	} else {
 		atomic.CompareAndSwapInt32(&chain.isbatchsync, 0, 1)
 	}
-	//synlog.Info("SynBlocksFromPeers", "isbatchsync", chain.isbatchsync)
 
 	//如果任务正常，那么不重复启动任务
-	if chain.task.InProgress() {
-		synlog.Info("chain task InProgress")
+	if chain.syncTask.InProgress() {
+		synlog.Info("chain syncTask InProgress")
 		return
 	}
 	//获取peers的最新高度.处理没有收到广播block的情况
@@ -759,78 +771,15 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	peermaxheight := peerinfo.Height
 
 	//启动一个线程在后台获取分叉的blcok
-	if chain.forktask.InProgress() {
-		synlog.Info("ProcBlockHeaders forktask.InProgress")
+	if chain.downLoadTask.InProgress() {
+		synlog.Info("ProcBlockHeaders downLoadTask.InProgress")
 		return nil
 	}
-	go chain.ProcBlockChainFork(ForkHeight, peermaxheight, pid)
+	//在快速下载block阶段不处理fork的处理
+	if !GetDownloadSyncStatus() {
+		go chain.ProcDownLoadBlocks(ForkHeight, peermaxheight, []string{pid})
+	}
 	return nil
-}
-
-//ProcBlockChainFork 处理从peer获取的headers消息
-func (chain *BlockChain) ProcBlockChainFork(forkStartHeight int64, forkEndHeight int64, pid string) {
-	forkinfo := chain.GetForkInfo()
-
-	//可能存在上次fork 处理过程中下载区块超时，forktask任务退出，但forkinfo没有恢复成默认值
-	if forkinfo.ForkStartHeight != -1 || forkinfo.ForkEndHeight != -1 {
-		synlog.Error("ProcBlockChainFork Fork processing", "pid", forkinfo.ForkPid, "ForkStartHeight", forkinfo.ForkStartHeight, "ForkEndHeight", forkinfo.ForkEndHeight)
-	}
-
-	chain.DefaultForkInfo()
-	chain.InitForkInfo(forkStartHeight, forkEndHeight, pid)
-	chain.ReqForkBlocks()
-}
-
-//InitForkInfo 开始新的fork处理
-func (chain *BlockChain) InitForkInfo(forkStartHeight int64, forkEndHeight int64, pid string) {
-	chain.forklock.Lock()
-	defer chain.forklock.Unlock()
-
-	chain.forkInfo.ForkStartHeight = forkStartHeight
-	chain.forkInfo.ForkEndHeight = forkEndHeight
-	chain.forkInfo.ForkPid = pid
-	synlog.Debug("InitForkInfo Fork process begin", "ForkStartHeight", forkStartHeight, "ForkEndHeight", forkEndHeight, "pid", pid)
-
-}
-
-//DefaultForkInfo 将forkinfo恢复成默认值
-func (chain *BlockChain) DefaultForkInfo() {
-	chain.forklock.Lock()
-	defer chain.forklock.Unlock()
-
-	chain.forkInfo.ForkStartHeight = -1
-	chain.forkInfo.ForkEndHeight = -1
-	chain.forkInfo.ForkPid = ""
-	synlog.Debug("DefaultForkInfo")
-}
-
-//GetForkInfo 获取forkinfo
-func (chain *BlockChain) GetForkInfo() *ForkInfo {
-	chain.forklock.Lock()
-	defer chain.forklock.Unlock()
-
-	return chain.forkInfo
-}
-
-//UpdateForkStartHeight 更新fork 请求的起始block高度
-func (chain *BlockChain) UpdateForkStartHeight(forkStartHeight int64) {
-	chain.forklock.Lock()
-	defer chain.forklock.Unlock()
-
-	chain.forkInfo.ForkStartHeight = forkStartHeight
-	synlog.Debug("UpdateForkStartHeight", "ForkStartHeight", chain.forkInfo.ForkStartHeight, "ForkEndHeight", chain.forkInfo.ForkEndHeight, "pid", chain.forkInfo.ForkPid)
-}
-
-//ReqForkBlocks 请求fork处理的blocks
-func (chain *BlockChain) ReqForkBlocks() {
-	forkinfo := chain.GetForkInfo()
-	if forkinfo.ForkStartHeight != -1 && forkinfo.ForkEndHeight != -1 && forkinfo.ForkPid != "" {
-		synlog.Info("ReqForkBlocks", "ForkStartHeight", forkinfo.ForkStartHeight, "ForkEndHeight", forkinfo.ForkEndHeight, "pid", forkinfo.ForkPid)
-		err := chain.FetchBlock(forkinfo.ForkStartHeight, forkinfo.ForkEndHeight, []string{forkinfo.ForkPid}, true)
-		if err != nil {
-			synlog.Error("ReqForkBlocks FetchBlock ", "err", err)
-		}
-	}
 }
 
 //ProcAddBlockHeadersMsg 处理从peer获取的headers消息
@@ -1019,7 +968,13 @@ func (chain *BlockChain) GetBestChainPids() []string {
 	bestpeerlock.Lock()
 	defer bestpeerlock.Unlock()
 
+	peersmap := chain.GetPeersMap()
 	for key, value := range chain.bestChainPeerList {
+		if !peersmap[value.Peer.Name] {
+			delete(chain.bestChainPeerList, value.Peer.Name)
+			synlog.Debug("GetBestChainPids:delete", "peer", value.Peer.Name)
+			continue
+		}
 		if value.IsBestChain {
 			ok := chain.IsFaultPeer(value.Peer.Name)
 			if !ok {
@@ -1027,7 +982,7 @@ func (chain *BlockChain) GetBestChainPids() []string {
 			}
 		}
 	}
-	synlog.Debug("GetBestChainPids ", "pids", PeerPids)
+	synlog.Debug("GetBestChainPids", "pids", PeerPids)
 	return PeerPids
 }
 
