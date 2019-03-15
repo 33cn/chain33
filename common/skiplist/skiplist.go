@@ -63,6 +63,23 @@ func (sli *Iterator) Last() *SkipValue {
 	return sli.node.Value
 }
 
+// Prev 获取迭代器的上一个节点
+func (sli *Iterator) Prev() *Iterator {
+	sli.node = sli.node.Prev()
+	return sli
+}
+
+// Next 获取迭代器的下一个节点
+func (sli *Iterator) Next() *Iterator {
+	sli.node = sli.node.Next()
+	return sli
+}
+
+// Value 获取迭代器当前的Value
+func (sli *Iterator) Value() *SkipValue {
+	return sli.node.Value
+}
+
 // Prev 获取上一个节点
 func (node *skipListNode) Prev() *skipListNode {
 	if node == nil || node.prev == nil {
@@ -107,6 +124,7 @@ func NewSkipList(min *SkipValue) *SkipList {
 func randomLevel() int {
 	level := 1
 	t := prob * 0xFFFF
+	// #nosec
 	for rand.Int()&0xFFFF < int(t) {
 		level++
 		if level == maxLevel {
@@ -259,13 +277,25 @@ func (sl *SkipList) Print() {
 	}
 }
 
-//Walk 遍历整个结构，如果cb 返回false 那么停止遍历
+//Walk 遍历整个结构中SkipValue的Value,如果cb 返回false 那么停止遍历
 func (sl *SkipList) Walk(cb func(value interface{}) bool) {
 	for e := sl.header.Next(); e != nil; e = e.Next() {
 		if cb == nil {
 			return
 		}
 		if !cb(e.Value.Value) {
+			return
+		}
+	}
+}
+
+//WalkS 遍历整个结构中的SkipValue,如果cb 返回false 那么停止遍历
+func (sl *SkipList) WalkS(cb func(value interface{}) bool) {
+	for e := sl.header.Next(); e != nil; e = e.Next() {
+		if cb == nil {
+			return
+		}
+		if !cb(e.Value) {
 			return
 		}
 	}

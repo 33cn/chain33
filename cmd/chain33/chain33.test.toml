@@ -144,6 +144,10 @@ enableMavlPrefix=false
 enableMVCC=false
 enableMavlPrune=false
 pruneHeight=10000
+# 是否使能mavl数据载入内存
+enableMemTree=false
+# 是否使能mavl叶子节点数据载入内存
+enableMemVal=false
 
 [wallet]
 minFee=1000000

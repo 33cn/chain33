@@ -97,11 +97,31 @@ func pow2(d int) (p int) {
 	return p
 }
 
+func calcLevel(n int) int {
+	if n == 1 {
+		return 1
+	}
+	level := 0
+	for n > 1 {
+		if n&1 != 0 {
+			n++
+		}
+		n = n / 2
+		level++
+	}
+	return level
+}
+
 func getMerkleRootPad(hashes [][]byte, step int) []byte {
-	level1 := log2(len(hashes))
+	level1 := calcLevel(len(hashes))
 	level2 := log2(step)
-	root := getMerkleRoot(hashes)
+	var root []byte
 	cache := make([]byte, 64)
+	if len(hashes) == 1 {
+		root = GetHashFromTwoHash(cache, hashes[0], hashes[0])
+	} else {
+		root = getMerkleRoot(hashes)
+	}
 	for i := 0; i < level2-level1; i++ {
 		root = GetHashFromTwoHash(cache, root, root)
 	}

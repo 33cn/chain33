@@ -95,12 +95,13 @@ func ListMethodByType(typ reflect.Type) map[string]reflect.Method {
 var nilValue = reflect.ValueOf(nil)
 
 // GetActionValue 获取执行器的action value
-func GetActionValue(action interface{}, funclist map[string]reflect.Method) (vname string, vty int32, v reflect.Value) {
+func GetActionValue(action interface{}, funclist map[string]reflect.Method) (vname string, vty int32, v reflect.Value, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			vname = ""
 			vty = 0
 			v = nilValue
+			err = ErrDecode
 		}
 	}()
 	var ty int32
@@ -109,22 +110,25 @@ func GetActionValue(action interface{}, funclist map[string]reflect.Method) (vna
 	}
 	value := reflect.ValueOf(action)
 	if _, ok := funclist["GetValue"]; !ok {
-		return "", 0, nilValue
+		return "", 0, nilValue, ErrDecode
 	}
 	rcvr := funclist["GetValue"].Func.Call([]reflect.Value{value})
 	elem := rcvr[0].Elem()
 	sname := elem.Type().String()
 	index := strings.LastIndex(sname, "_")
 	if index == -1 || index == (len(sname)-1) {
-		return "", 0, nilValue
+		return "", 0, nilValue, ErrDecode
 	}
 	tyname := sname[index+1:]
 	funcname := "Get" + tyname
 	if _, ok := funclist[funcname]; !ok {
-		return "", 0, nilValue
+		return "", 0, nilValue, ErrDecode
 	}
 	val := funclist[funcname].Func.Call([]reflect.Value{value})
-	return tyname, ty, val[0]
+	if len(val) == 0 || val[0].IsNil() {
+		return "", 0, nilValue, ErrDecode
+	}
+	return tyname, ty, val[0], nil
 }
 
 // IsOK 是否存在

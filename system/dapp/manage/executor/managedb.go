@@ -106,7 +106,10 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	var kv []*types.KeyValue
 	key := types.ManaeKeyWithHeigh(modify.Key, m.height)
 	valueSave := types.Encode(&item)
-	m.db.Set([]byte(key), valueSave)
+	err = m.db.Set([]byte(key), valueSave)
+	if err != nil {
+		return nil, err
+	}
 	kv = append(kv, &types.KeyValue{Key: []byte(key), Value: valueSave})
 	log := types.ReceiptConfig{Prev: &copyItem, Current: &item}
 	logs = append(logs, &types.ReceiptLog{Ty: pty.TyLogModifyConfig, Log: types.Encode(&log)})

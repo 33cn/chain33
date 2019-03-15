@@ -171,6 +171,10 @@ message ReplyTxList {
     repeated Transaction txs = 1;
 }
 
+message ReplyProperFee {
+    int64 properFee = 1;
+}
+
 message TxHashList {
     repeated bytes hashes = 1;
     int64          count  = 2;

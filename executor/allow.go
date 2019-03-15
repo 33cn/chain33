@@ -13,7 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64) bool {
+func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction, index int) bool {
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer))
@@ -29,7 +29,7 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 	// 历史原因做只针对对bityuan的fork特殊化处理一下
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
-	if !types.IsFork(height, "ForkExecKey") {
+	if !types.IsFork(e.height, "ForkExecKey") {
 		if bytes.Equal(exec, []byte("manage")) && bytes.Equal(keyExecer, []byte("config")) {
 			return true
 		}
@@ -53,13 +53,9 @@ func isAllowKeyWrite(key, realExecer []byte, tx *types.Transaction, height int64
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
-	d, err := drivers.LoadDriver(string(execdriver), height)
-	if err != nil {
-		elog.Error("load drivers error", "err", err, "execdriver", string(execdriver), "height", height)
-		return false
-	}
+	c := e.loadDriver(&types.Transaction{Execer: execdriver}, index)
 	//交给 -> friend 来判定
-	return d.IsFriend(execdriver, key, tx)
+	return c.IsFriend(execdriver, key, tx)
 }
 
 func isAllowLocalKey(execer []byte, key []byte) error {

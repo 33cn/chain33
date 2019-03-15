@@ -129,7 +129,10 @@ func updateAddrTxsCount(cachedb dbm.KVDB, addr string, amount int64, isadd bool)
 	} else {
 		txscount -= amount
 	}
-	setAddrTxsCount(cachedb, addr, txscount)
+	err = setAddrTxsCount(cachedb, addr, txscount)
+	if err != nil {
+		return nil, err
+	}
 	//keyvalue
 	return getAddrTxsCountKV(addr, txscount), nil
 }

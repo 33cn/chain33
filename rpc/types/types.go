@@ -173,6 +173,11 @@ type ReplyTxList struct {
 	Txs []*Transaction `json:"txs"`
 }
 
+// ReplyProperFee reply proper fee
+type ReplyProperFee struct {
+	ProperFee int64 `json:"properFee"`
+}
+
 // ReplyHash reply hash string json
 type ReplyHash struct {
 	Hash string `json:"hash"`

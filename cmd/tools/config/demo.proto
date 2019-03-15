@@ -1,24 +1,17 @@
 syntax = "proto3";
 
-package accounts;
+package types;
 
 message DemoAction {
     oneof value {
-        DemoCreate create = 1;
-        DemoRun    play   = 2;
-        DemoClose  show   = 3;
+        DemoHello hello = 1;
+        DemoEcho  echo  = 2;
     }
-    int32 ty = 6;
+    int32 ty = 3;
 }
 
-message DemoCreate {
-    [ consensus - ticket ] string name = 1;
-}
+message DemoHello {}
 
-message DemoRun {
-    string name = 1;
-}
-
-message DemoClose {
-    string name = 1;
+message DemoEcho {
+    string data = 1;
 }

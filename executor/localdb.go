@@ -12,15 +12,17 @@ import (
 //数据的get set 主要经过 cache
 //如果需要进行list, 那么把get set 的内容加入到 后端数据库
 type LocalDB struct {
-	cache    map[string][]byte
-	txcache  map[string][]byte
-	keys     []string
-	intx     bool
-	hasbegin bool
-	kvs      []*types.KeyValue
-	txid     *types.Int64
-	client   queue.Client
-	api      client.QueueProtocolAPI
+	cache        map[string][]byte
+	txcache      map[string][]byte
+	keys         []string
+	intx         bool
+	hasbegin     bool
+	kvs          []*types.KeyValue
+	txid         *types.Int64
+	client       queue.Client
+	api          client.QueueProtocolAPI
+	disableread  bool
+	disablewrite bool
 }
 
 //NewLocalDB 创建一个新的LocalDB
@@ -39,6 +41,26 @@ func NewLocalDB(cli queue.Client) db.KVDB {
 		client: cli,
 		api:    api,
 	}
+}
+
+//DisableRead 禁止读取LocalDB数据库
+func (l *LocalDB) DisableRead() {
+	l.disableread = true
+}
+
+//DisableWrite 禁止写LocalDB数据库
+func (l *LocalDB) DisableWrite() {
+	l.disablewrite = true
+}
+
+//EnableRead 启动读取LocalDB数据库
+func (l *LocalDB) EnableRead() {
+	l.disableread = false
+}
+
+//EnableWrite 启动写LocalDB数据库
+func (l *LocalDB) EnableWrite() {
+	l.disablewrite = false
 }
 
 func (l *LocalDB) resetTx() {
@@ -128,6 +150,9 @@ func (l *LocalDB) Rollback() {
 
 //Get 获取key
 func (l *LocalDB) Get(key []byte) ([]byte, error) {
+	if l.disableread {
+		return nil, types.ErrDisableRead
+	}
 	skey := string(key)
 	if l.intx && l.txcache != nil {
 		if value, ok := l.txcache[skey]; ok {
@@ -160,6 +185,9 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 
 //Set 获取key
 func (l *LocalDB) Set(key []byte, value []byte) error {
+	if l.disablewrite {
+		return types.ErrDisableWrite
+	}
 	skey := string(key)
 	if l.intx {
 		if l.txcache == nil {
@@ -176,6 +204,9 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 
 // List 从数据库中查询数据列表
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
+	if l.disableread {
+		return nil, types.ErrDisableRead
+	}
 	err := l.save()
 	if err != nil {
 		return nil, err

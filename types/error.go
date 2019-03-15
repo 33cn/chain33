@@ -75,6 +75,7 @@ var (
 	ErrFeeTooLow                  = errors.New("ErrFeeTooLow")
 	ErrEmptyTx                    = errors.New("ErrEmptyTx")
 	ErrTxFeeTooLow                = errors.New("ErrTxFeeTooLow")
+	ErrTxFeeTooHigh               = errors.New("ErrTxFeeTooHigh")
 	ErrTxMsgSizeTooBig            = errors.New("ErrTxMsgSizeTooBig")
 	ErrFutureBlock                = errors.New("ErrFutureBlock")
 	ErrHashNotFound               = errors.New("ErrHashNotFound")
@@ -181,4 +182,7 @@ var (
 	ErrHeightOverflow      = errors.New("ErrHeightOverflow")
 	ErrRecordBlockSequence = errors.New("ErrRecordBlockSequence")
 	ErrExecPanic           = errors.New("ErrExecPanic")
+
+	ErrDisableWrite = errors.New("ErrDisableWrite")
+	ErrDisableRead  = errors.New("ErrDisableRead")
 )

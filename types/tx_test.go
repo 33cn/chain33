@@ -34,7 +34,7 @@ func TestCreateGroupTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = group.Check(0, GInt("MinFee"))
+	err = group.Check(0, GInt("MinFee"), GInt("MaxTxFee"))
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -80,7 +80,7 @@ func TestCreateGroupTxWithSize(t *testing.T) {
 		return
 	}
 
-	err = group.Check(0, GInt("MinFee"))
+	err = group.Check(0, GInt("MinFee"), GInt("MaxTxFee"))
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -163,7 +163,7 @@ func TestSignGroupTx(t *testing.T) {
 			return
 		}
 	}
-	err = group.Check(0, GInt("MinFee"))
+	err = group.Check(0, GInt("MinFee"), GInt("MaxTxFee"))
 	if err != nil {
 		t.Error(err)
 		return
@@ -206,4 +206,11 @@ func TestParseExpire(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(123000000000), exp)
 
+}
+
+func BenchmarkHash(b *testing.B) {
+	tx := &Transaction{Payload: []byte("xxxxxxxxxxxxdggrgrgrgrgrgrgrrhthththhth"), Execer: []byte("hello")}
+	for i := 0; i < b.N; i++ {
+		tx.Hash()
+	}
 }

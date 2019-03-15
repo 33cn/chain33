@@ -79,6 +79,7 @@ func TestQueueProtocol(t *testing.T) {
 	testPeerInfo(t, api)
 	testGetHeaders(t, api)
 	testGetLastMempool(t, api)
+	testGetProperFee(t, api)
 	testGetBlockOverview(t, api)
 	testGetAddrOverview(t, api)
 	testGetBlockHash(t, api)
@@ -338,6 +339,13 @@ func testGetLastMempool(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.GetLastMempool()
 	if err != nil {
 		t.Error("Call GetLastMempool Failed.", err)
+	}
+}
+
+func testGetProperFee(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.GetProperFee()
+	if err != nil {
+		t.Error("Call GetProperFee Failed.", err)
 	}
 }
 
@@ -627,6 +635,7 @@ func TestJsonRPC(t *testing.T) {
 	testGetLastHeaderJsonRPC(t, &jrpc)
 	testGetMempoolJsonRPC(t, &jrpc)
 	testGetLastMemPoolJsonRPC(t, &jrpc)
+	testGetProperFeeJsonRPC(t, &jrpc)
 	testGenSeedsonRPC(t, &jrpc)
 	testGetPeerInfoJsonRPC(t, &jrpc)
 	testIsNtpClockSyncJsonRPC(t, &jrpc)
@@ -720,6 +729,15 @@ func testGetLastMemPoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 		nil, &res)
 	if err != nil {
 		t.Error("testGetLastMemPoolJsonRPC failed. Error", err)
+	}
+}
+
+func testGetProperFeeJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res rpctypes.ReplyProperFee
+	err := rpc.newRpcCtx("Chain33.GetProperFee",
+		nil, &res)
+	if err != nil {
+		t.Error("testGetProperFeeJsonRPC failed. Error", err)
 	}
 }
 
@@ -820,6 +838,7 @@ func TestGRPC(t *testing.T) {
 	testUnLockGRPC(t, &grpcMock)
 	testGetPeerInfoGRPC(t, &grpcMock)
 	testGetLastMemPoolGRPC(t, &grpcMock)
+	testGetProperFeeGRPC(t, &grpcMock)
 	testGetWalletStatusGRPC(t, &grpcMock)
 	testGetBlockOverviewGRPC(t, &grpcMock)
 	testGetAddrOverviewGRPC(t, &grpcMock)
@@ -966,6 +985,14 @@ func testGetLastMemPoolGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	err := rpc.newRpcCtx("GetLastMemPool", &types.ReqNil{}, &res)
 	if err != nil {
 		t.Error("Call GetLastMemPool Failed.", err)
+	}
+}
+
+func testGetProperFeeGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyProperFee
+	err := rpc.newRpcCtx("GetProperFee", &types.ReqNil{}, &res)
+	if err != nil {
+		t.Error("Call GetProperFee Failed.", err)
 	}
 }
 

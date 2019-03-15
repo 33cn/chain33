@@ -103,7 +103,10 @@ func (network *P2p) SetQueueClient(client queue.Client) {
 		log.Info("p2p", "setqueuecliet", "ok")
 		network.node.Start()
 		network.subP2pMsg()
-		network.loadP2PPrivKeyToWallet()
+		err := network.loadP2PPrivKeyToWallet()
+		if err != nil {
+			return
+		}
 	}()
 }
 

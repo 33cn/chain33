@@ -75,6 +75,11 @@ func TestKVCreator(t *testing.T) {
 	assert.Equal(t, types.ErrNotFound, err)
 	_, err = creator.Get([]byte("c1"))
 	assert.Equal(t, types.ErrNotFound, err)
+
+	creator = NewKVCreator(kvdb, []byte("prefix-"), nil)
+	creator.AddKVListOnly([]*types.KeyValue{{Key: []byte("k"), Value: []byte("v")}})
+	creator.DelRollbackKV()
+	creator.AddToLogs(nil)
 }
 
 func TestHeightIndexStr(t *testing.T) {

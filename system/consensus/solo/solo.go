@@ -96,6 +96,9 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 func (client *Client) CreateBlock() {
 	issleep := true
 	for {
+		if client.IsClosed() {
+			break
+		}
 		if !client.IsMining() || !client.IsCaughtUp() {
 			time.Sleep(client.sleepTime)
 			continue

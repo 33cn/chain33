@@ -128,7 +128,10 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 	}
 	query := &types.StoreGet{StateHash: s.stateHash, Keys: [][]byte{key}}
 	msg := s.client.NewMessage("store", types.EventStoreGet, query)
-	s.client.Send(msg, true)
+	err := s.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := s.client.Wait(msg)
 	if err != nil {
 		panic(err) //no happen for ever

@@ -66,7 +66,8 @@ func (pool *SDBPool) get() *SDBClient {
 }
 func (pool *SDBPool) close() {
 	for _, v := range pool.clients {
-		v.Close()
+		err := v.Close()
+		dlog.Error("ssdb close ", "error", err)
 	}
 }
 
@@ -286,43 +287,80 @@ func (c *SDBClient) Do(args ...interface{}) ([]string, error) {
 
 func (c *SDBClient) send(args []interface{}) error {
 	var packetBuf bytes.Buffer
+	var err error
 	for _, arg := range args {
 		switch arg := arg.(type) {
 		case string:
-			packetBuf.Write(strconv.AppendInt(nil, int64(len(arg)), 10))
-			packetBuf.WriteByte(ENDN)
-			packetBuf.WriteString(arg)
+			if _, err = packetBuf.Write(strconv.AppendInt(nil, int64(len(arg)), 10)); err != nil {
+				return err
+			}
+			if err = packetBuf.WriteByte(ENDN); err != nil {
+				return err
+			}
+			if _, err = packetBuf.WriteString(arg); err != nil {
+				return err
+			}
 		case []string:
 			for _, a := range arg {
-				packetBuf.Write(strconv.AppendInt(nil, int64(len(a)), 10))
-				packetBuf.WriteByte(ENDN)
-				packetBuf.WriteString(a)
-				packetBuf.WriteByte(ENDN)
+				if _, err = packetBuf.Write(strconv.AppendInt(nil, int64(len(a)), 10)); err != nil {
+					return err
+				}
+				if err = packetBuf.WriteByte(ENDN); err != nil {
+					return err
+				}
+				if _, err = packetBuf.WriteString(a); err != nil {
+					return err
+				}
+				if err = packetBuf.WriteByte(ENDN); err != nil {
+					return err
+				}
 			}
 			continue
 		case []byte:
-			packetBuf.Write(strconv.AppendInt(nil, int64(len(arg)), 10))
-			packetBuf.WriteByte(ENDN)
-			packetBuf.Write(arg)
+			if _, err = packetBuf.Write(strconv.AppendInt(nil, int64(len(arg)), 10)); err != nil {
+				return err
+			}
+			if err = packetBuf.WriteByte(ENDN); err != nil {
+				return err
+			}
+			if _, err = packetBuf.Write(arg); err != nil {
+				return err
+			}
 		case int64:
 			bs := strconv.AppendInt(nil, arg, 10)
-			packetBuf.Write(strconv.AppendInt(nil, int64(len(bs)), 10))
-			packetBuf.WriteByte(ENDN)
-			packetBuf.Write(bs)
+			if _, err = packetBuf.Write(strconv.AppendInt(nil, int64(len(bs)), 10)); err != nil {
+				return err
+			}
+			if err = packetBuf.WriteByte(ENDN); err != nil {
+				return err
+			}
+			if _, err = packetBuf.Write(bs); err != nil {
+				return err
+			}
 		case nil:
-			packetBuf.WriteByte(0)
-			packetBuf.WriteByte(ENDN)
-			packetBuf.WriteString("")
+			if err = packetBuf.WriteByte(0); err != nil {
+				return err
+			}
+			if err = packetBuf.WriteByte(ENDN); err != nil {
+				return err
+			}
+			if _, err = packetBuf.WriteString(""); err != nil {
+				return err
+			}
 		default:
 			return fmt.Errorf("bad arguments type")
 		}
-		packetBuf.WriteByte(ENDN)
+		if err = packetBuf.WriteByte(ENDN); err != nil {
+			return err
+		}
 	}
-	packetBuf.WriteByte(ENDN)
-	if err := c.sock.SetWriteDeadline(time.Now().Add(time.Second * WriteTimeOut)); err != nil {
+	if err = packetBuf.WriteByte(ENDN); err != nil {
 		return err
 	}
-	for _, err := packetBuf.WriteTo(c.sock); packetBuf.Len() > 0; {
+	if err = c.sock.SetWriteDeadline(time.Now().Add(time.Second * WriteTimeOut)); err != nil {
+		return err
+	}
+	for _, err = packetBuf.WriteTo(c.sock); packetBuf.Len() > 0; {
 		if err != nil {
 			packetBuf.Reset()
 			return newErrorf(err, "client socket write error")

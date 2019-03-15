@@ -18,6 +18,7 @@ PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "mocks"`
 PKG_LIST_VET := `go list ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15"`
 PKG_LIST_INEFFASSIGN= `go list -f {{.Dir}} ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15" | grep -v "common/ed25519"`
 PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "mocks"`
+PKG_LIST_GOSEC := `go list ./... | grep -v "vendor" | grep -v "mocks" | grep -v "cmd" | grep -v "types" | grep -v "commands" | grep -v "log15" | grep -v "ed25519" | grep -v "crypto"`
 BUILD_FLAGS = -ldflags "-X github.com/33cn/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
@@ -88,13 +89,16 @@ build_ci: depends ## Build the binary file for CI
 	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
-linter: vet ineffassign ## Use gometalinter check code, ignore some unserious warning
+linter: vet ineffassign gosec ## Use gometalinter check code, ignore some unserious warning
 	@./golinter.sh "filter"
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 linter_test: ## Use gometalinter check code, for local test
 	@./golinter.sh "test" "${p}"
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
+
+gosec:
+	@gosec -quiet=true -exclude=G107,G402,G302 ${PKG_LIST_GOSEC}
 
 race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)

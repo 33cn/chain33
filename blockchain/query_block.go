@@ -226,6 +226,10 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 
 //ProcAddBlockMsg 处理从peer对端同步过来的block消息
 func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail, pid string) (*types.BlockDetail, error) {
+	beg := types.Now()
+	defer func() {
+		chainlog.Info("ProcAddBlockMsg", "cost", types.Since(beg))
+	}()
 	block := blockdetail.Block
 	if block == nil {
 		chainlog.Error("ProcAddBlockMsg input block is null")

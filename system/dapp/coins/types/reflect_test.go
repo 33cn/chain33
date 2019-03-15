@@ -14,7 +14,8 @@ import (
 func TestMethodCall(t *testing.T) {
 	action := &CoinsAction{Value: &CoinsAction_Transfer{Transfer: &types.AssetsTransfer{}}}
 	funclist := types.ListMethod(action)
-	name, ty, v := types.GetActionValue(action, funclist)
+	name, ty, v, err := types.GetActionValue(action, funclist)
+	assert.Nil(t, err)
 	assert.Equal(t, int32(0), ty)
 	assert.Equal(t, "Transfer", name)
 	assert.Equal(t, &types.AssetsTransfer{}, v.Interface())
@@ -44,9 +45,31 @@ func BenchmarkGetActionValue(b *testing.B) {
 	funclist := types.ListMethod(action)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		action, ty, _ := types.GetActionValue(action, funclist)
+		action, ty, _, _ := types.GetActionValue(action, funclist)
 		if action != "Transfer" || ty != 0 {
 			b.Fatal(action)
 		}
+	}
+}
+func BenchmarkDecodePayload(b *testing.B) {
+	action := &CoinsAction{Value: &CoinsAction_Transfer{Transfer: &types.AssetsTransfer{}}}
+	payload := types.Encode(action)
+	tx := &types.Transaction{Payload: payload}
+	ty := NewType()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ty.DecodePayload(tx)
+	}
+}
+
+func BenchmarkDecodePayloadValue(b *testing.B) {
+	b.ReportAllocs()
+	action := &CoinsAction{Value: &CoinsAction_Transfer{Transfer: &types.AssetsTransfer{}}, Ty: CoinsActionTransfer}
+	payload := types.Encode(action)
+	tx := &types.Transaction{Payload: payload}
+	ty := NewType()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ty.DecodePayloadValue(tx)
 	}
 }

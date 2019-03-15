@@ -18,6 +18,34 @@ func TestLocalDBGet(t *testing.T) {
 	testDBGet(t, db)
 }
 
+func TestLocalDBEnable(t *testing.T) {
+	mock33 := testnode.New("", nil)
+	defer mock33.Close()
+	db := executor.NewLocalDB(mock33.GetClient())
+	ldb := db.(*executor.LocalDB)
+	defer ldb.Close()
+	_, err := ldb.Get([]byte("hello"))
+	assert.Equal(t, err, types.ErrNotFound)
+	ldb.DisableRead()
+	_, err = ldb.Get([]byte("hello"))
+
+	assert.Equal(t, err, types.ErrDisableRead)
+	_, err = ldb.List(nil, nil, 0, 0)
+	assert.Equal(t, err, types.ErrDisableRead)
+	ldb.EnableRead()
+	_, err = ldb.Get([]byte("hello"))
+	assert.Equal(t, err, types.ErrNotFound)
+	_, err = ldb.List(nil, nil, 0, 0)
+	assert.Equal(t, err, nil)
+	ldb.DisableWrite()
+	err = ldb.Set([]byte("hello"), nil)
+	assert.Equal(t, err, types.ErrDisableWrite)
+	ldb.EnableWrite()
+	err = ldb.Set([]byte("hello"), nil)
+	assert.Equal(t, err, nil)
+
+}
+
 func BenchmarkLocalDBGet(b *testing.B) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
