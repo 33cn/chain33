@@ -107,10 +107,13 @@ func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, node
 func (c Comm) dialPeer(addr *NetAddress, node *Node) (*Peer, error) {
 	log.Debug("dialPeer", "will connect", addr.String())
 	var persistent bool
-	for _, seed := range node.nodeInfo.cfg.Seeds { //TODO待优化
+	/*for _, seed := range node.nodeInfo.cfg.Seeds { //TODO待优化
 		if seed == addr.String() {
 			persistent = true //种子节点要一直连接
 		}
+	}*/
+	if _, ok := node.cfgSeeds.Load(addr.String()); ok {
+		persistent = true
 	}
 	peer, err := c.dialPeerWithAddress(addr, persistent, node)
 	if err != nil {

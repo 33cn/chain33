@@ -67,8 +67,9 @@ type Node struct {
 	cacheBound map[string]*Peer
 	outBound   map[string]*Peer
 	listener   Listener
-		listenPort int
-
+	listenPort int
+	innerSeeds sync.Map
+	cfgSeeds   sync.Map
 	closed     int32
 	pubsub     *pubsub.PubSub
 }
@@ -86,21 +87,24 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		cacheBound: make(map[string]*Peer),
 		pubsub:     pubsub.NewPubSub(10200),
 	}
-node.listenPort=13802
+	node.listenPort = 13802
 	if cfg.Port != 0 && cfg.Port <= 65535 && cfg.Port > 1024 {
 		node.listenPort = int(cfg.Port)
 
 	}
 
-	if cfg.InnerSeedEnable {
-		if types.IsTestNet() {
-			cfg.Seeds = append(cfg.Seeds, TestNetSeeds...)
-		} else {
-			cfg.Seeds = append(cfg.Seeds, InnerSeeds...)
-		}
-
+	var seeds []string = MainNetSeeds
+	if types.IsTestNet() {
+		seeds = TestNetSeeds
 	}
 
+	for _, seed := range seeds {
+		node.innerSeeds.Store(seed, "inner")
+	}
+
+	for _, seed := range cfg.Seeds {
+		node.cfgSeeds.Store(seed, "cfg")
+	}
 	node.nodeInfo = NewNodeInfo(cfg)
 	if cfg.ServerStart {
 		node.listener = NewListener(protocol, node)
@@ -331,6 +335,7 @@ func (n *Node) monitor() {
 	go n.monitorFilter()
 	go n.monitorPeers()
 	go n.nodeReBalance()
+	go n.monitorCfgSeeds()
 }
 
 func (n *Node) needMore() bool {
@@ -481,7 +486,6 @@ func (n *Node) deleteNatMapPort() {
 
 	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), n.listenPort)
 
-	
 }
 
 func (n *Node) natNotice() {
