@@ -504,7 +504,7 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 	invs := MaxInvs.GetInvs()
 	job := NewDownloadJob(m, downloadPeers)
 	var jobcancel int32
-	var maxDownloadRetryCount = 100
+	//var maxDownloadRetryCount = 100
 	go func(cancel *int32, invs []*pb.Inventory) {
 		for {
 			if atomic.LoadInt32(cancel) == 1 {
@@ -515,18 +515,26 @@ func (m *Cli) GetBlocks(msg queue.Message, taskindex int64) {
 			if len(invs) == 0 {
 				return
 			}
-			maxDownloadRetryCount--
-			if maxDownloadRetryCount < 0 {
+			//			maxDownloadRetryCount--
+			//			if maxDownloadRetryCount < 0 {
+			//				return
+			//			}
+			if job.AvalidPeersNum() <= 0 {
+				job.CancelJob()
 				return
 			}
 		}
 	}(&jobcancel, invs)
+
 	i := 0
 	for {
-		timeout := time.NewTimer(time.Minute)
+		if job.IsCancel() {
+			return
+		}
+		timeout := time.NewTimer(time.Minute * 6)
 		select {
 		case <-timeout.C:
-			atomic.StoreInt32(&jobcancel, 1)
+			//atomic.StoreInt32(&jobcancel, 1)
 			job.CancelJob()
 			log.Error("download timeout")
 			return
@@ -653,7 +661,7 @@ func (m *Cli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
 	localpeerinfo.MempoolSize = int32(meminfo.GetSize())
 	if m.network.node.nodeInfo.GetExternalAddr().IP == nil {
 		localpeerinfo.Addr = LocalAddr
-		localpeerinfo.Port = int32(defaultPort)
+		localpeerinfo.Port = int32(m.network.node.listenPort)
 	} else {
 		localpeerinfo.Addr = m.network.node.nodeInfo.GetExternalAddr().IP.String()
 		localpeerinfo.Port = int32(m.network.node.nodeInfo.GetExternalAddr().Port)

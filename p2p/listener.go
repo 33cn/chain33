@@ -50,8 +50,8 @@ type listener struct {
 
 // NewListener produce a listener object
 func NewListener(protocol string, node *Node) Listener {
-	log.Debug("NewListener", "localPort", defaultPort)
-	l, err := net.Listen(protocol, fmt.Sprintf(":%v", defaultPort))
+	log.Debug("NewListener", "localPort", node.listenPort)
+	l, err := net.Listen(protocol, fmt.Sprintf(":%v", node.listenPort))
 	if err != nil {
 		log.Crit("Failed to listen", "Error", err.Error())
 		return nil
@@ -76,14 +76,14 @@ func NewListener(protocol string, node *Node) Listener {
 		ip, _, _ := net.SplitHostPort(getctx.Addr.String())
 
 		if pServer.node.nodeInfo.blacklist.Has(ip) {
-			return nil, fmt.Errorf("this %v is not authorized", ip)
+			return nil, fmt.Errorf("blacklist %v no authorized", ip)
 		}
 
 		if !auth(ip) {
 			log.Error("interceptor", "auth faild", ip)
 			//把相应的IP地址加入黑名单中
 			pServer.node.nodeInfo.blacklist.Add(ip, int64(3600))
-			return nil, fmt.Errorf("this %v is not authorized", ip)
+			return nil, fmt.Errorf("auth faild %v  no authorized", ip)
 
 		}
 		// Continue processing the request
@@ -99,14 +99,14 @@ func NewListener(protocol string, node *Node) Listener {
 		ip, _, _ := net.SplitHostPort(getctx.Addr.String())
 
 		if pServer.node.nodeInfo.blacklist.Has(ip) {
-			return fmt.Errorf("this %v is not authorized", ip)
+			return fmt.Errorf("blacklist %v  no authorized", ip)
 		}
 
 		if !auth(ip) {
 			log.Error("interceptorStream", "auth faild", ip)
 			//把相应的IP地址加入黑名单中
 			pServer.node.nodeInfo.blacklist.Add(ip, int64(3600))
-			return fmt.Errorf("this %v is not authorized", ip)
+			return fmt.Errorf("auth faild  %v  no authorized", ip)
 		}
 		return handler(srv, ss)
 	}
@@ -158,7 +158,6 @@ func (h *statshandler) HandleConn(ctx context.Context, s stats.ConnStats) {
 	switch s.(type) {
 	case *stats.ConnBegin:
 		conns[ip] = conns[ip] + 1
-		log.Debug("ip connbeg", "ip", ip, "n", conns[ip])
 	case *stats.ConnEnd:
 		conns[ip] = conns[ip] - 1
 		if conns[ip] <= 0 {

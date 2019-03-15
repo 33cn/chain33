@@ -67,6 +67,8 @@ type Node struct {
 	cacheBound map[string]*Peer
 	outBound   map[string]*Peer
 	listener   Listener
+		listenPort int
+
 	closed     int32
 	pubsub     *pubsub.PubSub
 }
@@ -84,9 +86,9 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		cacheBound: make(map[string]*Peer),
 		pubsub:     pubsub.NewPubSub(10200),
 	}
-
+node.listenPort=13802
 	if cfg.Port != 0 && cfg.Port <= 65535 && cfg.Port > 1024 {
-		defaultPort = int(cfg.Port)
+		node.listenPort = int(cfg.Port)
 
 	}
 
@@ -133,7 +135,7 @@ func (n *Node) doNat() {
 		}
 		time.Sleep(time.Second)
 	}
-	testExaddr := fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), defaultPort)
+	testExaddr := fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), n.listenPort)
 	log.Info("TestNetAddr", "testExaddr", testExaddr)
 	if len(P2pComm.AddrRouteble([]string{testExaddr})) != 0 {
 		log.Info("node outside")
@@ -162,7 +164,7 @@ func (n *Node) doNat() {
 			p2pcli := NewNormalP2PCli()
 			//测试映射后的端口能否连通或者外网+本地端口
 			if p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String()) ||
-				p2pcli.CheckPeerNatOk(fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), defaultPort)) {
+				p2pcli.CheckPeerNatOk(fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), n.listenPort)) {
 
 				n.nodeInfo.SetServiceTy(Service)
 				log.Info("doNat", "NatOk", "Support Service")
@@ -366,7 +368,7 @@ func (n *Node) detectNodeAddr() {
 		var externalPort int
 
 		if cfg.IsSeed {
-			externalPort = defaultPort
+			externalPort = n.listenPort
 		} else {
 			exportBytes, _ := n.nodeInfo.addrBook.bookDb.Get([]byte(externalPortTag))
 			if len(exportBytes) != 0 {
@@ -387,7 +389,7 @@ func (n *Node) detectNodeAddr() {
 			log.Error("DetectionNodeAddr", "error", err.Error())
 		}
 
-		if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", laddr, defaultPort)); err == nil {
+		if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", laddr, n.listenPort)); err == nil {
 			n.nodeInfo.SetListenAddr(listaddr)
 			n.nodeInfo.addrBook.AddOurAddress(listaddr)
 		}
@@ -414,7 +416,7 @@ func (n *Node) natMapPort() {
 		ok := p2pcli.CheckSelf(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
 		if !ok {
 			log.Info("natMapPort", "port is used", n.nodeInfo.GetExternalAddr().String())
-			n.flushNodePort(uint16(defaultPort), uint16(rand.Intn(64512)+1023))
+			n.flushNodePort(uint16(n.listenPort), uint16(rand.Intn(64512)+1023))
 		}
 
 	}
@@ -422,11 +424,11 @@ func (n *Node) natMapPort() {
 	log.Info("natMapPort", "netport", n.nodeInfo.GetExternalAddr().Port)
 	for i := 0; i < tryMapPortTimes; i++ {
 		//映射事件持续约48小时
-		err = nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort, nodename[:8], time.Hour*48)
+		err = nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), n.listenPort, nodename[:8], time.Hour*48)
 		if err != nil {
 			if i > tryMapPortTimes/2 { //如果连续失败次数超过最大限制次数的二分之一则切换为随机端口映射
 				log.Error("NatMapPort", "err", err.Error())
-				n.flushNodePort(uint16(defaultPort), uint16(rand.Intn(64512)+1023))
+				n.flushNodePort(uint16(n.listenPort), uint16(rand.Intn(64512)+1023))
 
 			}
 			log.Info("NatMapPort", "External Port", n.nodeInfo.GetExternalAddr().Port)
@@ -439,7 +441,7 @@ func (n *Node) natMapPort() {
 	if err != nil {
 		//映射失败
 		log.Warn("NatMapPort", "Nat", "Faild")
-		n.flushNodePort(uint16(defaultPort), uint16(defaultPort))
+		n.flushNodePort(uint16(n.listenPort), uint16(n.listenPort))
 		n.nodeInfo.natResultChain <- false
 		return
 	}
@@ -454,7 +456,7 @@ func (n *Node) natMapPort() {
 		<-refresh.C
 		log.Info("NatWorkRefresh")
 		for {
-			if err := nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort, nodename[:8], time.Hour*48); err != nil {
+			if err := nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), n.listenPort, nodename[:8], time.Hour*48); err != nil {
 				log.Error("NatMapPort update", "err", err.Error())
 				time.Sleep(time.Second)
 				continue
@@ -470,7 +472,7 @@ func (n *Node) deleteNatMapPort() {
 	if n.nodeInfo.OutSide() {
 		return
 	}
-	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), defaultPort)
+	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), n.listenPort)
 
 }
 

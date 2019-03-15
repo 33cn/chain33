@@ -28,8 +28,8 @@ type DownloadJob struct {
 }
 
 type peerJob struct {
-	pbPeer *pb.Peer
-	limit  int32
+	//pbPeer *pb.Peer
+	limit int32
 }
 
 // NewDownloadJob create a downloadjob object
@@ -46,23 +46,44 @@ func (d *DownloadJob) isBusyPeer(pid string) bool {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if pjob, ok := d.busyPeer[pid]; ok {
-		return atomic.LoadInt32(&pjob.limit) > 10 //每个节点最多同时接受10个下载任务
+		return atomic.LoadInt32(&pjob.limit) >= 1 //每个节点最多同时接受10个下载任务
 	}
 	return false
 }
 
-func (d *DownloadJob) setBusyPeer(peer *pb.Peer) {
+func (d *DownloadJob) setBusyPeer(pid string) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	if pjob, ok := d.busyPeer[peer.GetName()]; ok {
+	if pjob, ok := d.busyPeer[pid]; ok {
 		atomic.AddInt32(&pjob.limit, 1)
-		d.busyPeer[peer.GetName()] = pjob
+		d.busyPeer[pid] = pjob
 		return
 	}
 
-	d.busyPeer[peer.GetName()] = &peerJob{peer, 1}
+	d.busyPeer[pid] = &peerJob{1}
 }
 
+func (d *DownloadJob) RemovePeer(pid string) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	for i, pr := range d.downloadPeers {
+		if pr.GetPeerName() == pid {
+			if i != len(d.downloadPeers)-1 {
+				d.downloadPeers = append(d.downloadPeers[:i], d.downloadPeers[i+1:]...)
+				return
+			}
+
+			d.downloadPeers = d.downloadPeers[:i]
+			return
+		}
+	}
+}
+
+func (d *DownloadJob) AvalidPeersNum() int {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	return len(d.downloadPeers)
+}
 func (d *DownloadJob) setFreePeer(pid string) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
@@ -90,7 +111,7 @@ func (d *DownloadJob) GetFreePeer(joblimit int64) *Peer {
 				if d.isBusyPeer(pbpeer.GetName()) {
 					continue
 				}
-				d.setBusyPeer(pbpeer)
+				d.setBusyPeer(pbpeer.GetName())
 				return peer
 			}
 		}
@@ -104,7 +125,7 @@ func (d *DownloadJob) CancelJob() {
 	atomic.StoreInt32(&d.canceljob, 1)
 }
 
-func (d *DownloadJob) isCancel() bool {
+func (d *DownloadJob) IsCancel() bool {
 	return atomic.LoadInt32(&d.canceljob) == 1
 }
 
@@ -112,7 +133,7 @@ func (d *DownloadJob) isCancel() bool {
 func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 	bchan chan *pb.BlockPid) []*pb.Inventory {
 	var errinvs []*pb.Inventory
-	if d.isCancel() {
+	if d.IsCancel() {
 		return errinvs
 	}
 
@@ -129,6 +150,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 			defer d.wg.Done()
 			err := d.syncDownloadBlock(peer, inv, bchan)
 			if err != nil {
+				d.RemovePeer(peer.GetPeerName())
 				d.retryList.PushBack(inv) //失败的下载，放在下一轮ReDownload进行下载
 			} else {
 				d.setFreePeer(peer.GetPeerName())
@@ -143,7 +165,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 
 func (d *DownloadJob) restOfInvs(bchan chan *pb.BlockPid) []*pb.Inventory {
 	var errinvs []*pb.Inventory
-	if d.isCancel() {
+	if d.IsCancel() {
 		return errinvs
 	}
 
@@ -157,7 +179,7 @@ func (d *DownloadJob) restOfInvs(bchan chan *pb.BlockPid) []*pb.Inventory {
 		if e.Value == nil {
 			continue
 		}
-		log.Debug("restofInvs", "inv", e.Value.(*pb.Inventory).GetHeight())
+		log.Debug("resetofInvs", "inv", e.Value.(*pb.Inventory).GetHeight())
 		invs = append(invs, e.Value.(*pb.Inventory)) //把下载遗漏的区块，重新组合进行下载
 		next := e.Next()
 		d.retryList.Remove(e)

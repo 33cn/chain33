@@ -21,9 +21,13 @@ var p2pModule *P2p
 var dataDir = "testdata"
 
 func init() {
+
 	l.SetLogLevel("err")
 	q = queue.New("channel")
 	go q.Start()
+
+	p2pModule = initP2p(33802, dataDir)
+
 	go func() {
 		blockchainKey := "blockchain"
 		client := q.Client()
@@ -97,69 +101,54 @@ func initP2p(port int32, dbpath string) *P2p {
 
 //测试grpc 多连接
 func TestGrpcConns(t *testing.T) {
-	p2pModule := initP2p(33802, dataDir)
-	time.Sleep(time.Second * 5)
-	defer os.RemoveAll(dataDir)
-	defer p2pModule.Close()
+	var conns []*grpc.ClientConn
 
 	for i := 0; i < maxSamIPNum; i++ {
 		conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
 			grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 		assert.Nil(t, err)
-		defer conn.Close()
+
 		cli := types.NewP2PgserviceClient(conn)
 		_, err = cli.GetHeaders(context.Background(), &types.P2PGetHeaders{
 			StartHeight: 0, EndHeight: 0, Version: 1002}, grpc.FailFast(true))
-		assert.Equal(t, false, strings.Contains(err.Error(), "not authorized"))
+		assert.Equal(t, false, strings.Contains(err.Error(), "no authorized"))
+		conns = append(conns, conn)
 	}
+	
 	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
-	defer conn.Close()
 	cli := types.NewP2PgserviceClient(conn)
 	_, err = cli.GetHeaders(context.Background(), &types.P2PGetHeaders{
 		StartHeight: 0, EndHeight: 0, Version: 1002}, grpc.FailFast(true))
-	assert.Equal(t, true, strings.Contains(err.Error(), "not authorized"))
+	assert.Equal(t, true, strings.Contains(err.Error(), "no authorized"))
+
+	conn.Close()
+	for _, conn := range conns {
+		conn.Close()
+	}
+
 }
 
 //测试grpc 流多连接
 func TestGrpcStreamConns(t *testing.T) {
-
-	p2pModule := initP2p(43802, dataDir)
-	time.Sleep(time.Second * 5)
-	defer os.RemoveAll(dataDir)
-	defer p2pModule.Close()
-
-	for i := 0; i < maxSamIPNum; i++ {
-		conn, err := grpc.Dial("localhost:43802", grpc.WithInsecure(),
-			grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
-		assert.Nil(t, err)
-		defer conn.Close()
-		cli := types.NewP2PgserviceClient(conn)
-		var p2pdata types.P2PGetData
-		resp, err := cli.GetData(context.Background(), &p2pdata)
-		assert.Nil(t, err)
-		_, err = resp.Recv()
-		assert.Equal(t, false, strings.Contains(err.Error(), "not authorized"))
-	}
-	conn, err := grpc.Dial("localhost:43802", grpc.WithInsecure(),
+	
+	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
-	defer conn.Close()
 	cli := types.NewP2PgserviceClient(conn)
 	var p2pdata types.P2PGetData
 	resp, err := cli.GetData(context.Background(), &p2pdata)
 	assert.Nil(t, err)
 	_, err = resp.Recv()
-	assert.Equal(t, true, strings.Contains(err.Error(), "not authorized"))
+	assert.Equal(t, true, strings.Contains(err.Error(), "no authorized"))
+	conn.Close()
+	
+
 }
 
 //测试Peer
 func TestPeer(t *testing.T) {
-	p2pModule := initP2p(33802, dataDir)
-	time.Sleep(time.Second * 5)
-	defer os.RemoveAll(dataDir)
-	defer p2pModule.Close()
 
 	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
@@ -220,9 +209,10 @@ func TestPeer(t *testing.T) {
 	var bChan = make(chan *types.BlockPid, 256)
 	respIns := job.DownloadBlock(ins, bChan)
 	t.Log(respIns)
+	os.Remove(dataDir)
 }
 
-/*
+
 func TestP2PEvent(t *testing.T) {
 
 	qcli := q.Client()
@@ -252,13 +242,10 @@ func TestP2PEvent(t *testing.T) {
 	err = qcli.Send(msg, false)
 	assert.Nil(t, err)
 
-}*/
+}
 
 func TestP2pComm(t *testing.T) {
-	p2pModule := initP2p(33802, dataDir)
-	time.Sleep(time.Second * 5)
-	defer os.RemoveAll("testdata")
-	defer p2pModule.Close()
+	
 
 	addrs := P2pComm.AddrRouteble([]string{"localhost:33802"})
 	t.Log(addrs)
@@ -285,5 +272,5 @@ func TestFilter(t *testing.T) {
 	assert.Equal(t, true, Filter.QueryRecvData("key"))
 	Filter.RemoveRecvData("key")
 	assert.Equal(t, false, Filter.QueryRecvData("key"))
-
+	os.RemoveAll(dataDir)
 }
