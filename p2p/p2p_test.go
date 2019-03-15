@@ -212,6 +212,7 @@ func TestPeer(t *testing.T) {
 	os.Remove(dataDir)
 }
 
+
 //func TestP2PEvent(t *testing.T) {
 
 //	qcli := q.Client()
