@@ -439,6 +439,7 @@ func (chain *BlockChain) GetPeersMap() map[string]bool {
 	}
 	return peersmap
 }
+
 //IsFaultPeer 判断指定pid是否在故障faultPeerList中
 func (chain *BlockChain) IsFaultPeer(pid string) bool {
 	faultpeerlock.Lock()
