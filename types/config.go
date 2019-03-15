@@ -71,6 +71,7 @@ type ChainParam struct {
 	TargetTimespan           time.Duration
 	TargetTimePerBlock       time.Duration
 	RetargetAdjustmentFactor int64
+	MaxTxFee                 int64
 }
 
 // GetP 获取ChainParam
@@ -89,6 +90,7 @@ func GetP(height int64) *ChainParam {
 	c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
 	c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
 	c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
+	c.MaxTxFee = 10 * Coin
 	return c
 }
 
