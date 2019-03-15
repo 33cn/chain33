@@ -157,19 +157,30 @@ func (chain *BlockChain) getBlocks(msg *queue.Message) {
 }
 
 func (chain *BlockChain) addBlock(msg *queue.Message) {
-	//var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
 	blockpid := msg.Data.(*types.BlockPid)
+	//chainlog.Error("addBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid)
+	if GetDownloadSyncStatus() {
+		//downLoadTask 运行时设置对应的blockdone
+		if chain.downLoadTask.InProgress() {
+			chain.downLoadTask.Done(blockpid.Block.GetHeight())
+		}
+		err := chain.WriteBlockToDbTemp(blockpid.Block)
+		if err != nil {
+			chainlog.Error("WriteBlockToDbTemp", "height", blockpid.Block.Height, "err", err.Error())
+			reply.IsOk = false
+			reply.Msg = []byte(err.Error())
+		}
+	} else {
 	_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
-	} else {
-		//chain.notifySync()
 	}
 	chainlog.Debug("EventAddBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid, "success", "ok")
+	}
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 

@@ -47,7 +47,7 @@ func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
 		blockLastHeight, bodyPerfix, LastSequence, headerPerfix, heightToHeaderPerfix,
 		hashPerfix, tdPerfix, heightToHashKeyPerfix, seqToHashKey, HashToSeqPerfix,
-		seqCBPrefix, seqCBLastNumPrefix,
+		seqCBPrefix, seqCBLastNumPrefix, tempBlockKey, lastTempBlockKey,
 	}
 }
 

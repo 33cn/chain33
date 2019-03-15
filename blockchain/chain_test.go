@@ -120,7 +120,8 @@ func TestBlockChain(t *testing.T) {
 	testProcBlockChainFork(t, blockchain)
 	testDelBlock(t, blockchain, curBlock)
 	testIsRecordFaultErr(t)
-
+	testWriteBlockToDbTemp(t, blockchain)
+	testReadBlockToExec(t, blockchain)
 }
 
 func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
@@ -923,7 +924,7 @@ func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testProcBlockChainFork begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
-	blockchain.ProcBlockChainFork(curheight-1, curheight+256, "self")
+	blockchain.ProcDownLoadBlocks(curheight-1, curheight+256, []string{"self"})
 	chainlog.Info("testProcBlockChainFork end --------------------")
 }
 
@@ -962,5 +963,22 @@ func testIsRecordFaultErr(t *testing.T) {
 	if isok {
 		t.Error("testIsRecordFaultErr  IsRecordFaultErr", "isok", isok)
 	}
-	chainlog.Info("testIsRecordFaultErr begin ---------------------")
+	chainlog.Info("testIsRecordFaultErr end ---------------------")
+}
+func testReadBlockToExec(t *testing.T, chain *blockchain.BlockChain) {
+	chainlog.Info("testReadBlockToExec begin ---------------------")
+	curheight := chain.GetBlockHeight()
+	chain.ReadBlockToExec(curheight+1, false)
+	chainlog.Info("testReadBlockToExec end ---------------------")
+}
+func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
+	chainlog.Info("WriteBlockToDbTemp begin ---------------------")
+	curheight := chain.GetBlockHeight()
+	block, err := chain.GetBlock(curheight)
+	block.Block.Height = curheight + 1
+	err = chain.WriteBlockToDbTemp(block.Block)
+	if err != nil {
+		t.Error("testWriteBlockToDbTemp", "err", err)
+	}
+	chainlog.Info("WriteBlockToDbTemp end ---------------------")
 }

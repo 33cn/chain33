@@ -48,8 +48,8 @@ type BlockChain struct {
 	pushseq    *pushseq
 	//cache  缓存block方便快速查询
 	cfg      *types.BlockChain
-	task     *Task
-	forktask *Task
+	syncTask     *Task
+	downLoadTask *Task
 
 	query *Query
 
@@ -98,9 +98,9 @@ type BlockChain struct {
 	//记录futureblocks
 	futureBlocks *lru.Cache // future blocks are broadcast later processing
 
-	//fork block req
-	forkInfo *ForkInfo
-	forklock sync.Mutex
+	//downLoad block info
+	downLoadInfo *DownLoadInfo
+	downLoadlock sync.Mutex
 }
 
 //New new
@@ -119,8 +119,8 @@ func New(cfg *types.BlockChain) *BlockChain {
 		recvwg:             &sync.WaitGroup{},
 		tickerwg:           &sync.WaitGroup{},
 
-		task:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
-		forktask: newTask(300 * time.Second),
+		syncTask:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
+		downLoadTask: newTask(300 * time.Second),
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
@@ -133,7 +133,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		faultPeerList:       make(map[string]*FaultPeerInfo),
 		bestChainPeerList:   make(map[string]*BestPeerInfo),
 		futureBlocks:        futureBlocks,
-		forkInfo:            &ForkInfo{},
+		downLoadInfo:        &DownLoadInfo{},
 	}
 
 	return blockchain
@@ -257,8 +257,8 @@ func (chain *BlockChain) InitBlockChain() {
 		// 定时处理futureblock
 		go chain.UpdateRoutine()
 	}
-	//初始化默认forkinfo
-	chain.DefaultForkInfo()
+	//初始化默认DownLoadInfo
+	chain.DefaultDownLoadInfo()
 }
 
 func (chain *BlockChain) getStateHash() []byte {

@@ -389,7 +389,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		chainlog.Debug("connectBlock SendAddBlockEvent", "err", err)
 	}
 	// 通知此block已经处理完，主要处理孤儿节点时需要设置
-	b.task.Done(blockdetail.Block.GetHeight())
+	b.syncTask.Done(blockdetail.Block.GetHeight())
 
 	//广播此block到全网络
 	if node.broadcast {
