@@ -146,7 +146,6 @@ func TestGrpcStreamConns(t *testing.T) {
 
 }
 
-
 //测试Peer
 func TestPeer(t *testing.T) {
 
@@ -212,7 +211,6 @@ func TestPeer(t *testing.T) {
 	os.Remove(dataDir)
 }
 
-
 //func TestP2PEvent(t *testing.T) {
 
 //	qcli := q.Client()
@@ -271,10 +269,10 @@ func TestFilter(t *testing.T) {
 	assert.Equal(t, true, Filter.QueryRecvData("key"))
 	Filter.RemoveRecvData("key")
 	assert.Equal(t, false, Filter.QueryRecvData("key"))
-	
+
 }
 
-func TestP2pClose(t *testing.T){
+func TestP2pClose(t *testing.T) {
 	p2pModule.Close()
 	os.RemoveAll(dataDir)
 }

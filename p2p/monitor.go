@@ -176,11 +176,11 @@ func (n *Node) getAddrFromOnline() {
 								continue
 							}
 							//随机删除连接的一个种子
-						
+
 							n.innerSeeds.Range(func(k, v interface{}) bool {
 								if n.Has(k.(string)) {
 									//不能包含在cfgseed中
-									if _,ok:=n.cfgSeeds.Load(k.(string));ok{
+									if _, ok := n.cfgSeeds.Load(k.(string)); ok {
 										return true
 									}
 									n.remove(k.(string))
@@ -568,7 +568,7 @@ func (n *Node) monitorCfgSeeds() {
 
 			if !n.Has(k.(string)) {
 				//尝试连接此节点
-				if n.needMore() {//如果需要更多的节点
+				if n.needMore() { //如果需要更多的节点
 					n.pubsub.FIFOPub(k.(string), "addr")
 				} else {
 					//腾笼换鸟
@@ -587,7 +587,7 @@ func (n *Node) monitorCfgSeeds() {
 					n.pubsub.FIFOPub(k.(string), "addr")
 
 				}
-				
+
 			}
 			return true
 		})
