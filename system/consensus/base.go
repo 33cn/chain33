@@ -490,7 +490,7 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 				return addedTx
 			}
 			if types.IsFork(block.Height, "ForkBlockCheck") {
-				currentCount += 1
+				currentCount++
 			}
 			size += txs[i].Size()
 			if size > max {
