@@ -72,7 +72,6 @@ type Node struct {
 	cfgSeeds   sync.Map
 	closed     int32
 	pubsub     *pubsub.PubSub
-
 }
 
 // SetQueueClient return client for nodeinfo

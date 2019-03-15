@@ -5,13 +5,13 @@
 package p2p
 
 import (
-	"time"
 	"container/list"
 	"fmt"
 	"io"
 	"sort"
 	"sync"
 	"sync/atomic"
+	"time"
 	//"time"
 
 	pb "github.com/33cn/chain33/types"
@@ -188,7 +188,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 	REGET:
 		freePeer := d.GetFreePeer(inv.GetHeight()) //获取当前任务数最少的节点，相当于 下载速度最快的节点
 		if freePeer == nil {
-			 time.Sleep(time.Millisecond*100)
+			time.Sleep(time.Millisecond * 100)
 			goto REGET
 		}
 
@@ -200,7 +200,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 				d.RemovePeer(peer.GetPeerName())
 				log.Error("DownloadBlock:syncDownloadBlock", "height", inv.GetHeight(), "peer", peer.GetPeerName(), "err", err)
 				d.retryList.PushFront(inv) //失败的下载，放在下一轮ReDownload进行下载
-				
+
 			} else {
 				d.setFreePeer(peer.GetPeerName())
 			}
@@ -211,7 +211,6 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 
 	return d.restOfInvs(bchan)
 }
-
 
 func (d *DownloadJob) restOfInvs(bchan chan *pb.BlockPid) []*pb.Inventory {
 	var errinvs []*pb.Inventory
