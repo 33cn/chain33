@@ -279,6 +279,15 @@ func (bc *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	if string(block.Block.GetParentHash()) != string(parent.Hash()) {
 		return types.ErrParentHash
 	}
+	//check block size and tx count
+	if types.IsFork(block.Block.Height, "ForkBlockCheck") {
+		if block.Block.Size() > types.MaxBlockSize {
+			return types.ErrBlockSize
+		}
+		if int64(len(block.Block.Txs)) > types.GetP(block.Block.Height).MaxTxNumber {
+			return types.ErrManyTx
+		}
+	}
 	//check by drivers
 	err = bc.child.CheckBlock(parent, block)
 	return err
@@ -481,7 +490,7 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 				return addedTx
 			}
 			if types.IsFork(block.Height, "ForkBlockCheck") {
-				currentCount+=1
+				currentCount += 1
 			}
 			size += txs[i].Size()
 			if size > max {
@@ -494,7 +503,7 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 				return addedTx
 			}
 			if types.IsFork(block.Height, "ForkBlockCheck") {
-				currentCount+=int64(len(txGroup.Txs))
+				currentCount += int64(len(txGroup.Txs))
 			}
 			for i := 0; i < len(txGroup.Txs); i++ {
 				size += txGroup.Txs[i].Size()
