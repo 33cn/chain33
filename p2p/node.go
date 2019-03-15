@@ -67,10 +67,10 @@ type Node struct {
 	cacheBound map[string]*Peer
 	outBound   map[string]*Peer
 	listener   Listener
-		listenPort int
+	listenPort int
 
-	closed     int32
-	pubsub     *pubsub.PubSub
+	closed int32
+	pubsub *pubsub.PubSub
 }
 
 // SetQueueClient return client for nodeinfo
@@ -86,7 +86,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		cacheBound: make(map[string]*Peer),
 		pubsub:     pubsub.NewPubSub(10200),
 	}
-node.listenPort=13802
+	node.listenPort = 13802
 	if cfg.Port != 0 && cfg.Port <= 65535 && cfg.Port > 1024 {
 		node.listenPort = int(cfg.Port)
 
@@ -481,7 +481,6 @@ func (n *Node) deleteNatMapPort() {
 
 	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), n.listenPort)
 
-	
 }
 
 func (n *Node) natNotice() {

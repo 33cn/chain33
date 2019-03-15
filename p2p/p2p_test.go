@@ -114,7 +114,7 @@ func TestGrpcConns(t *testing.T) {
 		assert.Equal(t, false, strings.Contains(err.Error(), "no authorized"))
 		conns = append(conns, conn)
 	}
-	
+
 	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
@@ -132,7 +132,7 @@ func TestGrpcConns(t *testing.T) {
 
 //测试grpc 流多连接
 func TestGrpcStreamConns(t *testing.T) {
-	
+
 	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
@@ -143,7 +143,6 @@ func TestGrpcStreamConns(t *testing.T) {
 	_, err = resp.Recv()
 	assert.Equal(t, true, strings.Contains(err.Error(), "no authorized"))
 	conn.Close()
-	
 
 }
 
@@ -212,7 +211,6 @@ func TestPeer(t *testing.T) {
 	os.Remove(dataDir)
 }
 
-
 func TestP2PEvent(t *testing.T) {
 
 	qcli := q.Client()
@@ -245,7 +243,6 @@ func TestP2PEvent(t *testing.T) {
 }
 
 func TestP2pComm(t *testing.T) {
-	
 
 	addrs := P2pComm.AddrRouteble([]string{"localhost:33802"})
 	t.Log(addrs)

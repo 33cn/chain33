@@ -35,7 +35,7 @@ const (
 
 var (
 	// LocalAddr local address
-	LocalAddr   string
+	LocalAddr string
 	//defaultPort = 13802
 )
 
