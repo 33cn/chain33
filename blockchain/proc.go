@@ -173,13 +173,13 @@ func (chain *BlockChain) addBlock(msg *queue.Message) {
 			reply.Msg = []byte(err.Error())
 		}
 	} else {
-	_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
-	if err != nil {
-		chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
-		reply.IsOk = false
-		reply.Msg = []byte(err.Error())
-	}
-	chainlog.Debug("EventAddBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid, "success", "ok")
+		_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
+		if err != nil {
+			chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
+			reply.IsOk = false
+			reply.Msg = []byte(err.Error())
+		}
+		chainlog.Debug("EventAddBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid, "success", "ok")
 	}
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
