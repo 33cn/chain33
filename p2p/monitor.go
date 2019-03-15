@@ -175,6 +175,7 @@ func (n *Node) getAddrFromOnline() {
 							if _, ok := seedsMap[addr]; ok {
 								continue
 							}
+
 							//随机删除连接的一个种子
 
 							n.innerSeeds.Range(func(k, v interface{}) bool {

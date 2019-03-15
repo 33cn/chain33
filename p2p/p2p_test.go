@@ -148,7 +148,8 @@ func TestGrpcStreamConns(t *testing.T) {
 
 //测试Peer
 func TestPeer(t *testing.T) {
-
+	p2pModule.Close()
+	p2pModule = initP2p(33802, dataDir)
 	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
