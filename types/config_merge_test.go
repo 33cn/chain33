@@ -218,6 +218,7 @@ ForkMultiSignAddress=1298600
 ForkTxHeight= -1
 ForkTxGroupPara= -1
 ForkChainParamV2= -1
+ForkBlockCheck=1725000
 
 [fork.sub.coins]
 Enable=0
