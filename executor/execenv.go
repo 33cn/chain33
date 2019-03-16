@@ -138,7 +138,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(e.height, types.GInt("MinFee"), types.GInt("MaxFee")); err != nil {
+	if err := tx.Check(e.height, types.GInt("MinFee"), types.GInt("MaxTxFee")); err != nil {
 		return err
 	}
 	//允许重写的情况
