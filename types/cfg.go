@@ -200,6 +200,8 @@ type RPC struct {
 type Exec struct {
 	// 执行器执行所需最小费用,低于Mempool和Wallet设置的MinFee,在minExecFee = 0 的情况下，isFree = true才会生效
 	MinExecFee int64 `protobuf:"varint,1,opt,name=minExecFee" json:"minExecFee,omitempty"`
+	// 执行器执行所需最大费用,这个值必须大于mempool 和 wallet 的值
+	MaxExecFee int64 `protobuf:"varint,1,opt,name=maxExecFee" json:"maxExecFee,omitempty"`
 	// 执行器执行是否免费
 	IsFree bool `protobuf:"varint,2,opt,name=isFree" json:"isFree,omitempty"`
 	// 是否开启stat插件

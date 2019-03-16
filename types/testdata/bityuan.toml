@@ -66,6 +66,7 @@ keyFile="key.pem"
 poolCacheSize=102400
 minTxFee=100000
 maxTxNumPerAccount=100
+maxTxFee=1000000000
 
 [consensus]
 name="ticket"
@@ -145,6 +146,7 @@ minerwhitelist=["*"]
 [exec]
 isFree=false
 minExecFee=100000
+maxExecFee=1000000000
 enableStat=false
 enableMVCC=false
 
