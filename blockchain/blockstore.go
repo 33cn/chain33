@@ -156,7 +156,7 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 //如果没有，那么进行下面的步骤
 //1. 先把hash 都给改成 TX:hash
 //2. 把所有的 Tx:hash 都加一个 8字节的index
-//3. 10000个区块 处理一次，并且打印进度
+//3. 2000个交易处理一次，并且打印进度
 //4. 全部处理完成了,添加quickIndex 的标记
 func (bs *BlockStore) initQuickIndex(height int64) {
 	batch := bs.db.NewBatch(true)
@@ -176,13 +176,13 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 			batch.Set(types.CalcTxKey(hash), txresult)
 			batch.Set(types.CalcTxShortKey(hash), []byte("1"))
 		}
-		if count > 100000 {
+		if count > 2000 {
 			storeLog.Info("initQuickIndex", "height", i)
 			err := batch.Write()
 			if err != nil {
 				panic(err)
 			}
-			batch = bs.db.NewBatch(true)
+			batch.Reset()
 			count = 0
 		}
 	}
