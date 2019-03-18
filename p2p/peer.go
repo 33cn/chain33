@@ -227,7 +227,7 @@ func (p *Peer) sendStream() {
 				log.Error("CloseSend", "err", errs)
 			}
 			cancel()
-			log.Error("sendStream", "sendping", err)
+			log.Error("sendStream", "sendversion", err)
 			time.Sleep(time.Second)
 			continue
 		}
