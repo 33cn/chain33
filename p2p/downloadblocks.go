@@ -19,17 +19,17 @@ import (
 	"google.golang.org/grpc"
 )
 
-type Invs []*pb.Inventory
+type invs []*pb.Inventory
 
-func (i Invs) Len() int {
+func (i invs) Len() int {
 	return len(i)
 }
 
-func (i Invs) Less(a, b int) bool {
+func (i invs) Less(a, b int) bool {
 	return i[a].GetHeight() < i[b].GetHeight()
 }
 
-func (i Invs) Swap(a, b int) {
+func (i invs) Swap(a, b int) {
 	i[a], i[b] = i[b], i[a]
 }
 
@@ -95,7 +95,7 @@ func (d *DownloadJob) setBusyPeer(pid string) {
 	d.busyPeer[pid] = &peerJob{1}
 }
 
-func (d *DownloadJob) RemovePeer(pid string) {
+func (d *DownloadJob) removePeer(pid string) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	for i, pr := range d.downloadPeers {
@@ -111,13 +111,13 @@ func (d *DownloadJob) RemovePeer(pid string) {
 	}
 }
 
-func (d *DownloadJob) ResetDownloadPeers(peers []*Peer) {
+func (d *DownloadJob) resetDownloadPeers(peers []*Peer) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	copy(d.downloadPeers, peers)
 }
 
-func (d *DownloadJob) AvalidPeersNum() int {
+func (d *DownloadJob) avalidPeersNum() int {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return len(d.downloadPeers)
@@ -172,7 +172,7 @@ func (d *DownloadJob) CancelJob() {
 	atomic.StoreInt32(&d.canceljob, 1)
 }
 
-func (d *DownloadJob) IsCancel() bool {
+func (d *DownloadJob) isCancel() bool {
 	return atomic.LoadInt32(&d.canceljob) == 1
 }
 
@@ -180,7 +180,7 @@ func (d *DownloadJob) IsCancel() bool {
 func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 	bchan chan *pb.BlockPid) []*pb.Inventory {
 	var errinvs []*pb.Inventory
-	if d.IsCancel() {
+	if d.isCancel() {
 		return errinvs
 	}
 
@@ -197,7 +197,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 			defer d.wg.Done()
 			err := d.syncDownloadBlock(peer, inv, bchan)
 			if err != nil {
-				d.RemovePeer(peer.GetPeerName())
+				d.removePeer(peer.GetPeerName())
 				log.Error("DownloadBlock:syncDownloadBlock", "height", inv.GetHeight(), "peer", peer.GetPeerName(), "err", err)
 				d.retryList.PushFront(inv) //失败的下载，放在下一轮ReDownload进行下载
 
@@ -214,7 +214,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 
 func (d *DownloadJob) restOfInvs(bchan chan *pb.BlockPid) []*pb.Inventory {
 	var errinvs []*pb.Inventory
-	if d.IsCancel() {
+	if d.isCancel() {
 		return errinvs
 	}
 
@@ -223,21 +223,21 @@ func (d *DownloadJob) restOfInvs(bchan chan *pb.BlockPid) []*pb.Inventory {
 		return errinvs
 	}
 
-	var invs Invs
+	var invsArr invs
 	for e := d.retryList.Front(); e != nil; {
 		if e.Value == nil {
 			continue
 		}
 		log.Debug("resetofInvs", "inv", e.Value.(*pb.Inventory).GetHeight())
-		invs = append(invs, e.Value.(*pb.Inventory)) //把下载遗漏的区块，重新组合进行下载
+		invsArr = append(invsArr, e.Value.(*pb.Inventory)) //把下载遗漏的区块，重新组合进行下载
 		next := e.Next()
 		d.retryList.Remove(e)
 		e = next
 	}
 	//Sort
-	sort.Sort(invs)
+	sort.Sort(invsArr)
 	//log.Info("resetOfInvs", "sorted:", invs)
-	return invs
+	return invsArr
 }
 
 func (d *DownloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan chan *pb.BlockPid) error {

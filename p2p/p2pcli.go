@@ -479,12 +479,12 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 				return
 			}
 
-			if job.AvalidPeersNum() <= 0 {
-				job.ResetDownloadPeers(downloadPeers)
+			if job.avalidPeersNum() <= 0 {
+				job.resetDownloadPeers(downloadPeers)
 				continue
 			}
 
-			if job.IsCancel() {
+			if job.isCancel() {
 				return
 			}
 
@@ -493,7 +493,7 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 
 	i := 0
 	for {
-		if job.IsCancel() {
+		if job.isCancel() {
 			return
 		}
 		timeout := time.NewTimer(time.Minute * 10)

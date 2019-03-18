@@ -93,7 +93,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 
 	}
 
-	var seeds []string = MainNetSeeds
+	seeds := MainNetSeeds
 	if types.IsTestNet() {
 		seeds = TestNetSeeds
 	}
