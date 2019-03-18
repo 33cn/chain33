@@ -484,7 +484,10 @@ func (n *Node) deleteNatMapPort() {
 		return
 	}
 
-	nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), n.listenPort)
+	err := nat.Any().DeleteMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), n.listenPort)
+	if err != nil {
+		log.Error("deleteNatMapPort", "DeleteMapping err", err.Error())
+	}
 
 }
 

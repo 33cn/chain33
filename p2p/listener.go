@@ -76,8 +76,10 @@ func NewListener(protocol string, node *Node) Listener {
 		if !ok {
 			return nil, fmt.Errorf("")
 		}
-		ip, _, _ := net.SplitHostPort(getctx.Addr.String())
-
+		ip, _, err := net.SplitHostPort(getctx.Addr.String())
+		if err != nil {
+			return nil, err
+		}
 		if pServer.node.nodeInfo.blacklist.Has(ip) {
 			return nil, fmt.Errorf("blacklist %v no authorized", ip)
 		}
@@ -152,7 +154,10 @@ func (h *statshandler) HandleConn(ctx context.Context, s stats.ConnStats) {
 		return
 	}
 
-	ip, _, _ := net.SplitHostPort(tag.RemoteAddr.String())
+	ip, _, err := net.SplitHostPort(tag.RemoteAddr.String())
+	if err != nil {
+		return
+	}
 	connsMutex.Lock()
 	defer connsMutex.Unlock()
 	if _, ok := conns[ip]; !ok {
