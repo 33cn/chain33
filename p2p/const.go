@@ -79,7 +79,7 @@ var TestNetSeeds = []string{
 	"47.104.125.177:13802",
 }
 
-// InnerSeeds built-in list of seed
+// MainNetSeeds built-in list of seed
 var MainNetSeeds = []string{
 	"39.107.234.240:13802",
 	"39.105.88.66:13802",

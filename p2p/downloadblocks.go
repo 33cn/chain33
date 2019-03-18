@@ -19,17 +19,21 @@ import (
 	"google.golang.org/grpc"
 )
 
-type invs []*pb.Inventory
+// Invs datastruct
+type Invs []*pb.Inventory
 
-func (i invs) Len() int {
+//Len size of the Invs data
+func (i Invs) Len() int {
 	return len(i)
 }
 
-func (i invs) Less(a, b int) bool {
+//Less Sort from low to high
+func (i Invs) Less(a, b int) bool {
 	return i[a].GetHeight() < i[b].GetHeight()
 }
 
-func (i invs) Swap(a, b int) {
+//Swap  the param
+func (i Invs) Swap(a, b int) {
 	i[a], i[b] = i[b], i[a]
 }
 
@@ -111,7 +115,8 @@ func (d *DownloadJob) removePeer(pid string) {
 	}
 }
 
-func (d *DownloadJob) resetDownloadPeers(peers []*Peer) {
+// ResetDownloadPeers reset download peers
+func (d *DownloadJob) ResetDownloadPeers(peers []*Peer) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	copy(d.downloadPeers, peers)
@@ -223,7 +228,7 @@ func (d *DownloadJob) restOfInvs(bchan chan *pb.BlockPid) []*pb.Inventory {
 		return errinvs
 	}
 
-	var invsArr invs
+	var invsArr Invs
 	for e := d.retryList.Front(); e != nil; {
 		if e.Value == nil {
 			continue

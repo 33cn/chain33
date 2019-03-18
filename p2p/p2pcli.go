@@ -480,7 +480,7 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 			}
 
 			if job.avalidPeersNum() <= 0 {
-				job.resetDownloadPeers(downloadPeers)
+				job.ResetDownloadPeers(downloadPeers)
 				continue
 			}
 
