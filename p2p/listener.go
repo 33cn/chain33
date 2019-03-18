@@ -101,8 +101,10 @@ func NewListener(protocol string, node *Node) Listener {
 			log.Error("interceptorStream", "FromContext error", "")
 			return fmt.Errorf("stream Context err")
 		}
-		ip, _, _ := net.SplitHostPort(getctx.Addr.String())
-
+		ip, _, err := net.SplitHostPort(getctx.Addr.String())
+		if err != nil {
+			return err
+		}
 		if pServer.node.nodeInfo.blacklist.Has(ip) {
 			return fmt.Errorf("blacklist %v  no authorized", ip)
 		}
