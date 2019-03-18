@@ -93,6 +93,7 @@ func (network *P2p) Close() {
 		network.client.Close()
 	}
 	network.node.pubsub.Shutdown()
+
 }
 
 // SetQueueClient set the queue

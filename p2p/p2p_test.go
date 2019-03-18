@@ -93,63 +93,14 @@ func initP2p(port int32, dbpath string) *P2p {
 	cfg.Version = 216
 	cfg.ServerStart = true
 	cfg.Driver = "leveldb"
-
 	p2pcli := New(cfg)
 	p2pcli.SetQueueClient(q.Client())
 	return p2pcli
 }
 
-//测试grpc 多连接
-func TestGrpcConns(t *testing.T) {
-	var conns []*grpc.ClientConn
-
-	for i := 0; i < maxSamIPNum; i++ {
-		conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
-			grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
-		assert.Nil(t, err)
-
-		cli := types.NewP2PgserviceClient(conn)
-		_, err = cli.GetHeaders(context.Background(), &types.P2PGetHeaders{
-			StartHeight: 0, EndHeight: 0, Version: 1002}, grpc.FailFast(true))
-		assert.Equal(t, false, strings.Contains(err.Error(), "no authorized"))
-		conns = append(conns, conn)
-	}
-
-	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
-		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
-	assert.Nil(t, err)
-	cli := types.NewP2PgserviceClient(conn)
-	_, err = cli.GetHeaders(context.Background(), &types.P2PGetHeaders{
-		StartHeight: 0, EndHeight: 0, Version: 1002}, grpc.FailFast(true))
-	assert.Equal(t, true, strings.Contains(err.Error(), "no authorized"))
-
-	conn.Close()
-	for _, conn := range conns {
-		conn.Close()
-	}
-
-}
-
-//测试grpc 流多连接
-func TestGrpcStreamConns(t *testing.T) {
-
-	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
-		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
-	assert.Nil(t, err)
-	cli := types.NewP2PgserviceClient(conn)
-	var p2pdata types.P2PGetData
-	resp, err := cli.GetData(context.Background(), &p2pdata)
-	assert.Nil(t, err)
-	_, err = resp.Recv()
-	assert.Equal(t, true, strings.Contains(err.Error(), "no authorized"))
-	conn.Close()
-
-}
-
 //测试Peer
 func TestPeer(t *testing.T) {
-	p2pModule.Close()
-	p2pModule = initP2p(33802, dataDir)
+
 	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
@@ -212,36 +163,83 @@ func TestPeer(t *testing.T) {
 	os.Remove(dataDir)
 }
 
-//func TestP2PEvent(t *testing.T) {
+//测试grpc 多连接
+func TestGrpcConns(t *testing.T) {
+	var conns []*grpc.ClientConn
 
-//	qcli := q.Client()
-//	msg := qcli.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{})
-//	err := qcli.Send(msg, false)
-//	assert.Nil(t, err)
-//	msg = qcli.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{})
-//	err = qcli.Send(msg, false)
-//	assert.Nil(t, err)
+	for i := 0; i < maxSamIPNum; i++ {
+		conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
+			grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
+		assert.Nil(t, err)
 
-//	msg = qcli.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{})
-//	err = qcli.Send(msg, false)
-//	assert.Nil(t, err)
+		cli := types.NewP2PgserviceClient(conn)
+		_, err = cli.GetHeaders(context.Background(), &types.P2PGetHeaders{
+			StartHeight: 0, EndHeight: 0, Version: 1002}, grpc.FailFast(true))
+		assert.Equal(t, false, strings.Contains(err.Error(), "no authorized"))
+		conns = append(conns, conn)
+	}
 
-//	msg = qcli.NewMessage("p2p", types.EventGetMempool, nil)
-//	err = qcli.Send(msg, false)
-//	assert.Nil(t, err)
+	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
+	assert.Nil(t, err)
+	cli := types.NewP2PgserviceClient(conn)
+	_, err = cli.GetHeaders(context.Background(), &types.P2PGetHeaders{
+		StartHeight: 0, EndHeight: 0, Version: 1002}, grpc.FailFast(true))
+	assert.Equal(t, true, strings.Contains(err.Error(), "no authorized"))
 
-//	msg = qcli.NewMessage("p2p", types.EventPeerInfo, nil)
-//	err = qcli.Send(msg, false)
-//	assert.Nil(t, err)
-//	msg = qcli.NewMessage("p2p", types.EventGetNetInfo, nil)
-//	err = qcli.Send(msg, false)
-//	assert.Nil(t, err)
+	conn.Close()
+	for _, conn := range conns {
+		conn.Close()
+	}
 
-//	msg = qcli.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{})
-//	err = qcli.Send(msg, false)
-//	assert.Nil(t, err)
+}
 
-//}
+//测试grpc 流多连接
+func TestGrpcStreamConns(t *testing.T) {
+
+	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
+	assert.Nil(t, err)
+	cli := types.NewP2PgserviceClient(conn)
+	var p2pdata types.P2PGetData
+	resp, err := cli.GetData(context.Background(), &p2pdata)
+	assert.Nil(t, err)
+	_, err = resp.Recv()
+	assert.Equal(t, true, strings.Contains(err.Error(), "no authorized"))
+	conn.Close()
+
+}
+
+/*func TestP2PEvent(t *testing.T) {
+
+	qcli := q.Client()
+	msg := qcli.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{})
+	err := qcli.Send(msg, false)
+	assert.Nil(t, err)
+	msg = qcli.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{})
+	err = qcli.Send(msg, false)
+	assert.Nil(t, err)
+
+	msg = qcli.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{})
+	err = qcli.Send(msg, false)
+	assert.Nil(t, err)
+
+	msg = qcli.NewMessage("p2p", types.EventGetMempool, nil)
+	err = qcli.Send(msg, false)
+	assert.Nil(t, err)
+
+	msg = qcli.NewMessage("p2p", types.EventPeerInfo, nil)
+	err = qcli.Send(msg, false)
+	assert.Nil(t, err)
+	msg = qcli.NewMessage("p2p", types.EventGetNetInfo, nil)
+	err = qcli.Send(msg, false)
+	assert.Nil(t, err)
+
+	msg = qcli.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{})
+	err = qcli.Send(msg, false)
+	assert.Nil(t, err)
+
+}*/
 
 func TestP2pComm(t *testing.T) {
 
