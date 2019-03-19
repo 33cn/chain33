@@ -78,7 +78,7 @@ service calculator {
 
 
 ### 代码生成
-###### 生成基本代码
+##### 生成基本代码
 >使用chain33-tool，工具使用参考文档github.com/33cn/chain33/cmd/tools/doc/gendpp.md
 ```
 //本例默认将calculator生成至官方plugin项目dapp目录下
@@ -95,7 +95,7 @@ $ tree -d
 └── types   //类型模块
 ```
 
-###### 生成pb.go文件
+##### 生成pb.go文件
 ```
 //进入生成合约的目录
 $ cd $GOPATH/src/github.com/33cn/plugin/plugin/dapp/calculator
@@ -107,7 +107,7 @@ $ cd proto && chmod +x ./create_protobuf.sh && make
 以下将以模块为顺序，依次介绍
 #### types类型模块
 此目录统一归纳合约类型相关的代码
-###### 交易的action和log(types/calculator.go)
+##### 交易的action和log(types/calculator.go)
 > 每一种交易通常有交易请求(action），交易结果日志(log)，
 目前框架要求合约开发者自定义aciton和log的id及name，
 已经自动生成了这些常量，可以根据需要修改
@@ -152,13 +152,13 @@ const (
 		TyDivLog: {Ty:reflect.TypeOf(DivideLog{}), Name: "DivideLog"},
 	}
 ```
-###### 注册dapp启用高度(types/calculator.go)
+##### 注册dapp启用高度(types/calculator.go)
 > 默认生成的代码，启用高度设为0，可以自定义修改
 ```go
 types.RegisterDappFork(CalculatorX, "Enable", 0)
 ```
 
-###### 实现CreateTx接口(types/calculator.go)
+##### 实现CreateTx接口(types/calculator.go)
 > CreateTx即根据不同action name创建交易，隶属于框架ExcutorType接口。
 合约的CreateTx功能可以通过框架相关接口调用，将在rpc模块开发进行演示，
 本例中简单实现了加法和除法的创建逻辑，其余类似
@@ -206,7 +206,7 @@ func (t *calculatorType) CreateTx(action string, message json.RawMessage) (*type
 
 #### executor执行模块
 此目录归纳了交易执行逻辑实现代码
-###### 实现CheckTx接口(executor/calculator.go)
+##### 实现CheckTx接口(executor/calculator.go)
 > CheckTx即检查交易合法性，隶属于框架Driver接口，将在交易执行前被框架调用，
 本例简单实现除法非零检测
 ```go
@@ -232,7 +232,7 @@ func (*calculator) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 ```
-###### Key常量(executor/kv.go)
+##### Key常量(executor/kv.go)
 >目前合约进行存取框架KV数据库(stateDB或localDB)时，
 其Key的前缀必须满足框架要求规范，已经以常量形式自动生成在代码中
 ```
@@ -243,7 +243,7 @@ var (
 	KeyPrefixLocalDB = "LODB-calculator-"
 )
 ```
-###### 实现Exec类接口(executor/exec.go)
+##### 实现Exec类接口(executor/exec.go)
 >Exec类接口是交易链上执行的函数，实现交易执行的业务逻辑，
 数据上链也是此部分完成(生成stateDB KV对)，以及生成交易日志，以Add交易为例
 ```go
@@ -262,7 +262,7 @@ func (c *calculator) Exec_Add(payload *ptypes.Add, tx *types.Transaction, index 
 	return receipt, nil
 }
 ```
-###### 实现ExecLocal类接口(executor/exec_local.go)
+##### 实现ExecLocal类接口(executor/exec_local.go)
 >ExecLocal类接口是交易执行成功后本地执行，
 主要目的是将辅助性数据进行localDB存取,方便前端查询，
 以Add为例，在localDB中存入加法运算的次数，
@@ -286,7 +286,7 @@ func (c *calculator) ExecLocal_Add(payload *ptypes.Add, tx *types.Transaction, r
 	return dbSet, nil
 }
 ```
-###### 实现ExecDelLocal类接口(executor/exec_del_local.go)
+##### 实现ExecDelLocal类接口(executor/exec_del_local.go)
 >ExecDelLocal类接口可以理解为ExecLocal的逆过程，在区块回退时候被调用
 ```go
 func (c *calculator) ExecDelLocal_Add(payload *ptypes.Add, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
@@ -310,7 +310,7 @@ func (c *calculator) ExecDelLocal_Add(payload *ptypes.Add, tx *types.Transaction
 	return dbSet, nil
 }
 ```
-###### 实现Query类接口(executor/calculator.go)
+##### 实现Query类接口(executor/calculator.go)
 > Query类接口主要实现查询相关业务逻辑，如访问合约数据库，
 Query类接口需要满足框架规范(固定格式函数名称和签名)，才能被框架注册和使用，
 具体调用方法将在rpc模块介绍，本例实现查询运算符计算次数的接口
@@ -333,7 +333,7 @@ func (c *calculator) Query_CalcCount(in *ptypes.ReqQueryCalcCount) (types.Messag
 ```
 #### rpc模块
 此目录归纳了rpc相关类型和具体调用服务端实现的代码
-###### 类型(rpc/types.go)
+##### 类型(rpc/types.go)
 >定义了rpc相关结构和初始化，此部分代码已经自动生成
 ```go
 // 实现grpc的service接口
@@ -345,7 +345,7 @@ type Jrpc struct {  //实现json rpc接口的类
 	cli *channelClient
 }
 ```
-###### grpc接口(rpc/rpc.go)
+##### grpc接口(rpc/rpc.go)
 >grpc即实现proto文件中service声明的rpc接口，本例中即查询计算次数的rpc。
 此处通过框架Query接口，间接调用之前实现的Query_CalcCount接口
 ```go
@@ -362,7 +362,7 @@ func (c *channelClient)QueryCalcCount(ctx context.Context, in *ptypes.ReqQueryCa
 }
 ```
 
-###### json rpc相关接口
+##### json rpc相关接口
 >json rpc主要给前端相关平台产品调用，本例子涉及创建Add交易和查询计算次数接口。
 其中创建交易通过框架的CallCreateTx接口间接调用之前实现的CreateTx接口
 ```go
@@ -389,7 +389,7 @@ func (j *Jrpc)QueryCalcCount(in *ptypes.ReqQueryCalcCount, result *interface{}) 
 }
 ```
 
-###### rpc说明
+##### rpc说明
 >本例子中涉及的CreateTx和Query类rpc都可以通过框架自有的rpc去调用，
 分别是chain33.CreateTransaction和Chain33.Query，即以上代码可以不用实现，
 而直接调用框架的rpc，当然也支持进行个性化包装，两种调用方式将在commands模块介绍
@@ -397,7 +397,7 @@ func (j *Jrpc)QueryCalcCount(in *ptypes.ReqQueryCalcCount, result *interface{}) 
 #### commands命令行模块
 如果需要支持命令行交互式访问区块节点，开发者需要实现具体合约的命令，
 框架的命令行基于cobra开源库
-###### Import路径(commands/commands.go)
+##### Import路径(commands/commands.go)
 >涉及框架基础库使用，包括相关类型和网络组件
 ```go
 import (
@@ -409,7 +409,7 @@ import (
 	ptypes "github.com/33cn/plugin/plugin/dapp/calculator/types"
 )
 ```
-###### 创建交易命令(commands/commands.go)
+##### 创建交易命令(commands/commands.go)
 >前端输入相关参数，调用rpc实现创建原始交易的功能
 ```go
 func createAddCmd() *cobra.Command {
@@ -449,7 +449,7 @@ func createAdd(cmd *cobra.Command, args []string) {
 }
 ```
 
-###### 查询计算次数(commands/commands.go)
+##### 查询计算次数(commands/commands.go)
 ```go
  func queryCalcCountCmd() *cobra.Command {
 
@@ -485,7 +485,7 @@ func createAdd(cmd *cobra.Command, args []string) {
  	ctx.Run()
  }
  ```
-###### 添加到主命令(commands/commands.go)
+##### 添加到主命令(commands/commands.go)
 ```go
 func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -503,14 +503,14 @@ func Cmd() *cobra.Command {
 ```
 #### 合约集成
  开发者可以借助官方pugin项目进行合约调试，但需要显示初始化合约
-###### 初始化（dapp/init/init.go)
+##### 初始化（dapp/init/init.go)
 >需要在此文件import目录，新增calculator包导入
 ```go
  import (
  	_ "github.com/33cn/plugin/plugin/dapp/calculator" //auto gen
  ```
 
-###### 编译
+##### 编译
 >直接通过官方makefile文件
 ```
 $ cd $GOPATH/src/github.com/33cn/plugin && make
