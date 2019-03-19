@@ -248,9 +248,7 @@ func Init(t string, cfg *Config) {
 	}
 	titles[t] = true
 	title = t
-	if cfg.CoinSymbol != "" {
-		coinSymbol = cfg.CoinSymbol
-	}
+
 	if cfg != nil {
 		if isLocal() {
 			setTestNet(true)
@@ -262,6 +260,9 @@ func Init(t string, cfg *Config) {
 		}
 		setMinFee(cfg.Exec.MinExecFee)
 		setChainConfig("FixTime", cfg.FixTime)
+		if cfg.CoinSymbol != "" {
+			coinSymbol = cfg.CoinSymbol
+		}
 	}
 	//local 只用于单元测试
 	if isLocal() {
