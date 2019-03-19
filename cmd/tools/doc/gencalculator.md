@@ -177,6 +177,7 @@ func (t *calculatorType) CreateTx(action string, message json.RawMessage) (*type
 			Execer: []byte(types.ExecName(CalculatorX)),
 			Payload: types.Encode(&CalculatorAction{Ty:TyAddAction, Value:&CalculatorAction_Add{Add:param}}),
 			Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+			//"github.com/33cn/chain33/common/address"
 			To:  address.ExecAddress(types.ExecName(CalculatorX)),
 		}
 		return tx, nil
@@ -484,6 +485,22 @@ func createAdd(cmd *cobra.Command, args []string) {
  	ctx.Run()
  }
  ```
+###### 添加到主命令(commands/commands.go)
+```go
+func Cmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "calculator",
+		Short: "calculator command",
+		Args:  cobra.MinimumNArgs(1),
+	}
+	cmd.AddCommand(
+		//add sub command
+		createAddCmd(),
+		queryCalcCountCmd(),
+	)
+	return cmd
+}
+```
 #### 合约集成
  开发者可以借助官方pugin项目进行合约调试，但需要显示初始化合约
 ###### 初始化（dapp/init/init.go)
