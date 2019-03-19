@@ -5,7 +5,7 @@
 ### 编译
 ```
 //本地存在chain33代码，该步骤可省略
-$ go get github.com/33cn/chain33.git
+$ go get github.com/33cn/chain33
 //编译chain33 tools
 $ go build -i -o $GOPATH/bin/chain33-tool github.com/33cn/chain33/cmd/tools
 ```
