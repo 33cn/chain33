@@ -961,10 +961,15 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 		t.Error("testAddBlockSeqCB  getSeqCBLastNum", "num", num, "name", cb.Name)
 	}
 
-	cb.Name = "test1"
-	err = chain.ProcAddBlockSeqCB(cb)
+	cb2 := &types.BlockSeqCB{
+		Name:   "test1",
+		URL:    "http://192.168.1.107:15760",
+		Encode: "json",
+	}
+
+	err = chain.ProcAddBlockSeqCB(cb2)
 	if err != types.ErrTooManySeqCB {
-		t.Error("testAddBlockSeqCB", "cb", cb, "err", err)
+		t.Error("testAddBlockSeqCB", "cb", cb2, "err", err)
 	}
 
 	chainlog.Info("testAddBlockSeqCB end -------------------------")
