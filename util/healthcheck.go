@@ -105,7 +105,7 @@ func (s *HealthCheckServer) getHealth(sync bool) (bool, error) {
 		return false, err
 	}
 
-	log.Info("healthCheck tick", "peers", len(peerList.Peers), "isCaughtUp", reply.IsOk,
+	log.Debug("healthCheck tick", "peers", len(peerList.Peers), "isCaughtUp", reply.IsOk,
 		"health", len(peerList.Peers) > 1 && reply.IsOk, "listen", sync)
 
 	return len(peerList.Peers) > 1 && reply.IsOk, nil
