@@ -279,6 +279,15 @@ func (bc *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	if string(block.Block.GetParentHash()) != string(parent.Hash()) {
 		return types.ErrParentHash
 	}
+	//check block size and tx count
+	if types.IsFork(block.Block.Height, "ForkBlockCheck") {
+		if block.Block.Size() > types.MaxBlockSize {
+			return types.ErrBlockSize
+		}
+		if int64(len(block.Block.Txs)) > types.GetP(block.Block.Height).MaxTxNumber {
+			return types.ErrManyTx
+		}
+	}
 	//check by drivers
 	err = bc.child.CheckBlock(parent, block)
 	return err
@@ -468,16 +477,17 @@ func (bc *BaseClient) ConsensusTicketMiner(iscaughtup *types.IsCaughtUp) {
 func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction) []*types.Transaction {
 	size := block.Size()
 	max := types.MaxBlockSize - 100000 //留下100K空间，添加其他的交易
-	currentcount := int64(len(block.Txs))
+	currentCount := int64(len(block.Txs))
 	maxTx := types.GetP(block.Height).MaxTxNumber
 	addedTx := make([]*types.Transaction, 0, len(txs))
 	for i := 0; i < len(txs); i++ {
-		txgroup, err := txs[i].GetTxGroup()
+		txGroup, err := txs[i].GetTxGroup()
 		if err != nil {
 			continue
 		}
-		if txgroup == nil {
-			if currentcount+1 > maxTx {
+		if txGroup == nil {
+			currentCount++
+			if currentCount > maxTx {
 				return addedTx
 			}
 			size += txs[i].Size()
@@ -487,17 +497,18 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 			addedTx = append(addedTx, txs[i])
 			block.Txs = append(block.Txs, txs[i])
 		} else {
-			if currentcount+int64(len(txgroup.Txs)) > maxTx {
+			currentCount += int64(len(txGroup.Txs))
+			if currentCount > maxTx {
 				return addedTx
 			}
-			for i := 0; i < len(txgroup.Txs); i++ {
-				size += txgroup.Txs[i].Size()
+			for i := 0; i < len(txGroup.Txs); i++ {
+				size += txGroup.Txs[i].Size()
 			}
 			if size > max {
 				return addedTx
 			}
-			addedTx = append(addedTx, txgroup.Txs...)
-			block.Txs = append(block.Txs, txgroup.Txs...)
+			addedTx = append(addedTx, txGroup.Txs...)
+			block.Txs = append(block.Txs, txGroup.Txs...)
 		}
 	}
 	return addedTx

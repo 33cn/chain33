@@ -138,7 +138,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(e.height, types.GInt("MinFee")); err != nil {
+	if err := tx.Check(e.height, types.GInt("MinFee"), types.GInt("MaxFee")); err != nil {
 		return err
 	}
 	//允许重写的情况
@@ -166,7 +166,7 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(e.height, types.GInt("MinFee")); err != nil {
+	if err := txgroup.Check(e.height, types.GInt("MinFee"), types.GInt("MaxFee")); err != nil {
 		return err
 	}
 	return nil

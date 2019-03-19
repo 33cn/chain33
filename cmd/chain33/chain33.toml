@@ -102,6 +102,7 @@ poolCacheSize=10240
 minTxFee=100000
 # 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
+maxTxFee=1000000000
 
 [mempool.sub.timeline]
 # mempool缓存容量大小，默认10240
@@ -238,6 +239,7 @@ minerwhitelist=["*"]
 isFree=false
 #执行器执行所需最小费用,低于Mempool和Wallet设置的MinFee,在minExecFee = 0 的情况下，isFree = true才会生效
 minExecFee=100000
+maxExecFee=1000000000
 #是否开启stat插件
 enableStat=false
 #是否开启MVCC插件

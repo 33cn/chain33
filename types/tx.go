@@ -149,7 +149,7 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 }
 
 //Check height == 0 的时候，不做检查
-func (txgroup *Transactions) Check(height int64, minfee int64) error {
+func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
@@ -159,7 +159,7 @@ func (txgroup *Transactions) Check(height int64, minfee int64) error {
 		if txs[i] == nil {
 			return ErrTxGroupEmpty
 		}
-		err := txs[i].check(0)
+		err := txs[i].check(height, 0, maxFee)
 		if err != nil {
 			return err
 		}
@@ -191,6 +191,9 @@ func (txgroup *Transactions) Check(height int64, minfee int64) error {
 	}
 	if txs[0].Fee < totalfee {
 		return ErrTxFeeTooLow
+	}
+	if txs[0].Fee > maxFee && maxFee > 0 && IsFork(height, "ForkBlockCheck") {
+		return ErrTxFeeTooHigh
 	}
 	//检查hash是否符合要求
 	for i := 0; i < len(txs); i++ {
@@ -288,7 +291,7 @@ func (tx *TransactionCache) Tx() *Transaction {
 }
 
 //Check 交易缓存中交易组合费用的检测
-func (tx *TransactionCache) Check(height, minfee int64) error {
+func (tx *TransactionCache) Check(height, minfee, maxFee int64) error {
 	if !tx.checked {
 		tx.checked = true
 		txs, err := tx.GetTxGroup()
@@ -297,9 +300,9 @@ func (tx *TransactionCache) Check(height, minfee int64) error {
 			return err
 		}
 		if txs == nil {
-			tx.checkok = tx.check(minfee)
+			tx.checkok = tx.check(height, minfee, maxFee)
 		} else {
-			tx.checkok = txs.Check(height, minfee)
+			tx.checkok = txs.Check(height, minfee, maxFee)
 		}
 	}
 	return tx.checkok
@@ -449,18 +452,18 @@ func (tx *Transaction) checkSign() bool {
 }
 
 //Check 交易检测
-func (tx *Transaction) Check(height, minfee int64) error {
+func (tx *Transaction) Check(height, minfee, maxFee int64) error {
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return err
 	}
 	if group == nil {
-		return tx.check(minfee)
+		return tx.check(height, minfee, maxFee)
 	}
-	return group.Check(height, minfee)
+	return group.Check(height, minfee, maxFee)
 }
 
-func (tx *Transaction) check(minfee int64) error {
+func (tx *Transaction) check(height, minfee, maxFee int64) error {
 	txSize := Size(tx)
 	if txSize > int(MaxTxSize) {
 		return ErrTxMsgSizeTooBig
@@ -472,6 +475,9 @@ func (tx *Transaction) check(minfee int64) error {
 	realFee := int64(txSize/1000+1) * minfee
 	if tx.Fee < realFee {
 		return ErrTxFeeTooLow
+	}
+	if tx.Fee > maxFee && maxFee > 0 && IsFork(height, "ForkBlockCheck") {
+		return ErrTxFeeTooHigh
 	}
 	return nil
 }

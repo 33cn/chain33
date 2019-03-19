@@ -373,7 +373,7 @@ func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
 	for i := index; i >= 0 && i >= index-c; i-- {
 		if bytes.Equal(d.txs[i].Header, d.txs[i].Hash()) { //find header
 			txgroup := types.Transactions{Txs: d.txs[i : i+c]}
-			err := txgroup.Check(d.GetHeight(), types.GInt("MinFee"))
+			err := txgroup.Check(d.GetHeight(), types.GInt("MinFee"), types.GInt("MaxFee"))
 			if err != nil {
 				return nil, err
 			}

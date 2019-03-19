@@ -256,8 +256,14 @@ func Init(t string, cfg *Config) {
 		if cfg.Exec.MinExecFee > cfg.Mempool.MinTxFee || cfg.Mempool.MinTxFee > cfg.Wallet.MinFee {
 			panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
 		}
+		if cfg.Exec.MaxExecFee < cfg.Mempool.MaxTxFee {
+			panic("config must meet: mempool.maxTxFee <= exec.maxExecFee")
+		}
 		setMinFee(cfg.Exec.MinExecFee)
 		setChainConfig("FixTime", cfg.FixTime)
+		if cfg.Exec.MaxExecFee > 0 {
+			setChainConfig("MaxFee", cfg.Exec.MaxExecFee)
+		}
 	}
 	//local 只用于单元测试
 	if isLocal() {
@@ -355,6 +361,7 @@ func setMinFee(fee int64) {
 		panic("fee less than zero")
 	}
 	setChainConfig("MinFee", fee)
+	setChainConfig("MaxFee", fee*10000)
 	setChainConfig("MinBalanceTransfer", fee*10)
 }
 

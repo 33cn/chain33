@@ -100,6 +100,7 @@ driver="leveldb"
 [mempool]
 poolCacheSize=102400
 minTxFee=100000
+maxTxFee=1000000000
 
 [consensus]
 name="ticket"
@@ -186,6 +187,7 @@ signType="secp256k1"
 [exec]
 isFree=false
 minExecFee=100000
+maxExecFee=1000000000
 
 [exec.sub.token]
 #配置一个空值，防止配置文件被覆盖
@@ -218,6 +220,7 @@ ForkMultiSignAddress=1298600
 ForkTxHeight= -1
 ForkTxGroupPara= -1
 ForkChainParamV2= -1
+ForkBlockCheck=1725000
 
 [fork.sub.coins]
 Enable=0
