@@ -267,6 +267,9 @@ func Init(t string, cfg *Config) {
 			setChainConfig("MaxFee", cfg.Exec.MaxExecFee)
 		}
 		if cfg.CoinSymbol != "" {
+			if strings.Contains(cfg.CoinSymbol, "-") {
+				panic("config CoinSymbol must without '-'")
+			}
 			coinSymbol = cfg.CoinSymbol
 		}
 	}
