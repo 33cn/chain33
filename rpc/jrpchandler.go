@@ -1184,3 +1184,12 @@ func fmtAccount(balances []*types.Account) []*rpctypes.Account {
 	}
 	return accounts
 }
+
+// GetCoinSymbol get coin symbol
+func (c *Chain33) GetCoinSymbol(in types.ReqNil, result *interface{}) error {
+	symbol := types.GetCoinSymbol()
+	resp := types.ReplyString{Data: symbol}
+	log.Warn("GetCoinSymbol", "Symbol", symbol)
+	*result = &resp
+	return nil
+}
