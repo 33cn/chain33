@@ -140,7 +140,7 @@ func (c *CoinsType) GetAssets(tx *types.Transaction) ([]*types.Asset, error) {
 		return nil, err
 	}
 	if assetlist[0].Symbol == "" {
-		assetlist[0].Symbol = types.BTY
+		assetlist[0].Symbol = types.GetCoinSymbol()
 	}
 	return assetlist, nil
 }
