@@ -311,7 +311,10 @@ func GetTitle() string {
 
 // GetCoinSymbol 获取 coin symbol
 func GetCoinSymbol() string {
-	return coinSymbol
+	mu.Lock()
+	s := coinSymbol
+	mu.Unlock()
+	return s
 }
 
 func isLocal() bool {
