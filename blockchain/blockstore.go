@@ -160,7 +160,8 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 //4. 全部处理完成了,添加quickIndex 的标记
 func (bs *BlockStore) initQuickIndex(height int64) {
 	batch := bs.db.NewBatch(true)
-	var count int
+	var maxsize = 100 * 1024 * 1024
+	var count = 0
 	for i := int64(0); i <= height; i++ {
 		blockdetail, err := bs.LoadBlockByHeight(i)
 		if err != nil {
@@ -172,11 +173,11 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 			if err != nil {
 				panic(err)
 			}
-			count++
+			count += len(txresult)
 			batch.Set(types.CalcTxKey(hash), txresult)
 			batch.Set(types.CalcTxShortKey(hash), []byte("1"))
 		}
-		if count > 2000 {
+		if count > maxsize {
 			storeLog.Info("initQuickIndex", "height", i)
 			err := batch.Write()
 			if err != nil {
@@ -192,6 +193,8 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 			panic(err)
 		}
 		storeLog.Info("initQuickIndex", "height", height)
+		batch.Reset()
+		count = 0
 	}
 	bs.saveQuickIndexFlag()
 }
