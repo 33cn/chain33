@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/api"
 	dbm "github.com/33cn/chain33/common/db"
 	clog "github.com/33cn/chain33/common/log"
@@ -26,7 +25,7 @@ import (
 )
 
 var elog = log.New("module", "execs")
-var coinsAccount = account.NewCoinsAccount()
+var coinsAccount *dbm.DB
 
 // SetLogLevel set log level
 func SetLogLevel(level string) {

@@ -28,6 +28,7 @@ var (
 	titles           = map[string]bool{}
 	chainConfig      = make(map[string]interface{})
 	mver             = make(map[string]*mversion)
+	coinSymbol       = "bty"
 )
 
 // coin conversation
@@ -247,6 +248,7 @@ func Init(t string, cfg *Config) {
 	}
 	titles[t] = true
 	title = t
+
 	if cfg != nil {
 		if isLocal() {
 			setTestNet(true)
@@ -263,6 +265,12 @@ func Init(t string, cfg *Config) {
 		setChainConfig("FixTime", cfg.FixTime)
 		if cfg.Exec.MaxExecFee > 0 {
 			setChainConfig("MaxFee", cfg.Exec.MaxExecFee)
+		}
+		if cfg.CoinSymbol != "" {
+			if strings.Contains(cfg.CoinSymbol, "-") {
+				panic("config CoinSymbol must without '-'")
+			}
+			coinSymbol = cfg.CoinSymbol
 		}
 	}
 	//local 只用于单元测试
@@ -297,6 +305,14 @@ func Init(t string, cfg *Config) {
 func GetTitle() string {
 	mu.Lock()
 	s := title
+	mu.Unlock()
+	return s
+}
+
+// GetCoinSymbol 获取 coin symbol
+func GetCoinSymbol() string {
+	mu.Lock()
+	s := coinSymbol
 	mu.Unlock()
 	return s
 }

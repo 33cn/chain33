@@ -22,6 +22,7 @@ type Config struct {
 	Pprof      *Pprof       `protobuf:"bytes,14,opt,name=pprof" json:"pprof,omitempty"`
 	Fork       *ForkList    `protobuf:"bytes,15,opt,name=fork" json:"fork,omitempty"`
 	Health     *HealthCheck `protobuf:"bytes,16,opt,name=health" json:"health,omitempty"`
+	CoinSymbol string       `protobuf:"bytes,16,opt,name=coinSymbol" json:"coinSymbol,omitempty"`
 }
 
 // ForkList fork列表配置
