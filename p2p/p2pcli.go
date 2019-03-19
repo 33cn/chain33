@@ -407,12 +407,20 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{Msg: []byte("no peers")}))
 		return
 	}
-	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("downloading...")}))
 
 	req := msg.GetData().(*pb.ReqBlocks)
 	log.Info("GetBlocks", "start", req.GetStart(), "end", req.GetEnd())
 	pids := req.GetPid()
-	var MaxInvs = new(pb.P2PInv)
+	var Inventorys = make([]*pb.Inventory, 0)
+	for i := req.GetStart(); i <= req.GetEnd(); i++ {
+		var inv pb.Inventory
+		inv.Ty = msgBlock
+		inv.Height = i
+		Inventorys = append(Inventorys, &inv)
+	}
+
+	MaxInvs := &pb.P2PInv{Invs: Inventorys}
+
 	var downloadPeers []*Peer
 	peers, infos := m.network.node.GetActivePeers()
 	if len(pids) > 0 && pids[0] != "" { //指定Pid 下载数据
@@ -427,21 +435,6 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 				peer, ok := peers[paddr]
 				if ok && peer != nil {
 					downloadPeers = append(downloadPeers, peer)
-					//获取Invs
-					if len(MaxInvs.GetInvs()) != int(req.GetEnd()-req.GetStart())+1 {
-						var err error
-						MaxInvs, err = peer.mconn.gcli.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
-							Version: m.network.node.nodeInfo.cfg.Version}, grpc.FailFast(true))
-						P2pComm.CollectPeerStat(err, peer)
-						if err != nil {
-							log.Error("GetBlocks", "Err", err.Error())
-							if err == pb.ErrVersion {
-								peer.version.SetSupport(false)
-								P2pComm.CollectPeerStat(err, peer)
-							}
-							continue
-						}
-					}
 
 				}
 			}
@@ -449,45 +442,6 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 
 	} else {
 		log.Info("fetch from all peers in pids")
-
-		for _, peer := range peers { //限制对peer 的高频次调用
-			log.Info("peer", "addr", peer.Addr(), "start", req.GetStart(), "end", req.GetEnd())
-			peerinfo, ok := infos[peer.Addr()]
-			if !ok {
-				continue
-			}
-			var pr pb.Peer
-			pr.Addr = peerinfo.GetAddr()
-			pr.Port = peerinfo.GetPort()
-			pr.Name = peerinfo.GetName()
-			pr.MempoolSize = peerinfo.GetMempoolSize()
-			pr.Header = peerinfo.GetHeader()
-
-			if peerinfo.GetHeader().GetHeight() < req.GetEnd() {
-				continue
-			}
-
-			invs, err := peer.mconn.gcli.GetBlocks(context.Background(), &pb.P2PGetBlocks{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
-				Version: m.network.node.nodeInfo.cfg.Version}, grpc.FailFast(true))
-			P2pComm.CollectPeerStat(err, peer)
-			if err != nil {
-				log.Error("GetBlocks", "Err", err.Error())
-				if err == pb.ErrVersion {
-					peer.version.SetSupport(false)
-					P2pComm.CollectPeerStat(err, peer)
-				}
-				continue
-			}
-
-			if len(invs.Invs) > len(MaxInvs.Invs) {
-				MaxInvs = invs
-				if len(MaxInvs.GetInvs()) == int(req.GetEnd()-req.GetStart())+1 {
-					break
-				}
-			}
-
-		}
-
 		for _, peer := range peers {
 			peerinfo, ok := infos[peer.Addr()]
 			if !ok {
@@ -501,18 +455,19 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 		}
 	}
 
-	log.Debug("Invs", "Invs show", MaxInvs.GetInvs())
-	if len(MaxInvs.GetInvs()) == 0 {
-		log.Error("GetBlocks", "getInvs", 0)
+	if len(downloadPeers) == 0 {
+		log.Error("GetBlocks", "downloadPeers", 0)
+		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{Msg: []byte("no downloadPeers")}))
 		return
 	}
 
+	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("downloading...")}))
+
 	//使用新的下载模式进行下载
-	var bChan = make(chan *pb.BlockPid, 256)
+	var bChan = make(chan *pb.BlockPid, 512)
 	invs := MaxInvs.GetInvs()
 	job := NewDownloadJob(m, downloadPeers)
 	var jobcancel int32
-	var maxDownloadRetryCount = 100
 	go func(cancel *int32, invs []*pb.Inventory) {
 		for {
 			if atomic.LoadInt32(cancel) == 1 {
@@ -523,15 +478,25 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 			if len(invs) == 0 {
 				return
 			}
-			maxDownloadRetryCount--
-			if maxDownloadRetryCount < 0 {
+
+			if job.avalidPeersNum() <= 0 {
+				job.ResetDownloadPeers(downloadPeers)
+				continue
+			}
+
+			if job.isCancel() {
 				return
 			}
+
 		}
 	}(&jobcancel, invs)
+
 	i := 0
 	for {
-		timeout := time.NewTimer(time.Minute)
+		if job.isCancel() {
+			return
+		}
+		timeout := time.NewTimer(time.Minute * 10)
 		select {
 		case <-timeout.C:
 			atomic.StoreInt32(&jobcancel, 1)
@@ -664,7 +629,7 @@ func (m *Cli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
 	localpeerinfo.MempoolSize = int32(meminfo.GetSize())
 	if m.network.node.nodeInfo.GetExternalAddr().IP == nil {
 		localpeerinfo.Addr = LocalAddr
-		localpeerinfo.Port = int32(defaultPort)
+		localpeerinfo.Port = int32(m.network.node.listenPort)
 	} else {
 		localpeerinfo.Addr = m.network.node.nodeInfo.GetExternalAddr().IP.String()
 		localpeerinfo.Port = int32(m.network.node.nodeInfo.GetExternalAddr().Port)

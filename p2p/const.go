@@ -18,24 +18,26 @@ var (
 	StreamPingTimeout           = 20 * time.Second
 	MonitorPeerInfoInterval     = 10 * time.Second
 	MonitorPeerNumInterval      = 30 * time.Second
-	MonitorReBalanceInterval    = 2 * time.Minute
+	MonitorReBalanceInterval    = 15 * time.Minute
 	GetAddrFromAddrBookInterval = 5 * time.Second
 	GetAddrFromOnlineInterval   = 5 * time.Second
 	GetAddrFromGitHubInterval   = 5 * time.Minute
 	CheckActivePeersInterVal    = 5 * time.Second
 	CheckBlackListInterVal      = 30 * time.Second
+	CheckCfgSeedsInterVal       = 1 * time.Minute
 )
 
 const (
 	msgTx           = 1
 	msgBlock        = 2
 	tryMapPortTimes = 20
+	maxSamIPNum     = 20
 )
 
 var (
 	// LocalAddr local address
-	LocalAddr   string
-	defaultPort = 13802
+	LocalAddr string
+	//defaultPort = 13802
 )
 
 const (
@@ -77,8 +79,8 @@ var TestNetSeeds = []string{
 	"47.104.125.177:13802",
 }
 
-// InnerSeeds built-in list of seed
-var InnerSeeds = []string{
+// MainNetSeeds built-in list of seed
+var MainNetSeeds = []string{
 	"39.107.234.240:13802",
 	"39.105.88.66:13802",
 	"39.105.87.114:13802",
