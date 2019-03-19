@@ -107,11 +107,7 @@ func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, node
 func (c Comm) dialPeer(addr *NetAddress, node *Node) (*Peer, error) {
 	log.Debug("dialPeer", "will connect", addr.String())
 	var persistent bool
-	/*for _, seed := range node.nodeInfo.cfg.Seeds { //TODO待优化
-		if seed == addr.String() {
-			persistent = true //种子节点要一直连接
-		}
-	}*/
+
 	if _, ok := node.cfgSeeds.Load(addr.String()); ok {
 		persistent = true
 	}
@@ -166,7 +162,7 @@ func (c Comm) Pubkey(key string) (string, error) {
 
 // NewPingData get ping node ,return p2pping
 func (c Comm) NewPingData(nodeInfo *NodeInfo) (*types.P2PPing, error) {
-	randNonce := rand.Int31n(102040)
+	randNonce := rand.New(rand.NewSource(time.Now().UnixNano())).Int63()
 	ping := &types.P2PPing{Nonce: int64(randNonce), Addr: nodeInfo.GetExternalAddr().IP.String(), Port: int32(nodeInfo.GetExternalAddr().Port)}
 	var err error
 	p2pPrivKey, _ := nodeInfo.addrBook.GetPrivPubKey()

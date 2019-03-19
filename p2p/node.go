@@ -402,8 +402,6 @@ func (n *Node) detectNodeAddr() {
 			n.nodeInfo.addrBook.AddOurAddress(listaddr)
 		}
 
-		//log.Info("DetectionNodeAddr", "ExternalIp", externalIP, "LocalAddr", LocalAddr, "IsOutSide", n.nodeInfo.OutSide())
-
 		break
 	}
 }

@@ -28,7 +28,7 @@ func (n *Node) monitorErrPeer() {
 		peer := <-n.nodeInfo.monitorChan
 		if !peer.version.IsSupport() {
 			//如果版本不支持,直接删除节点
-			log.Debug("VersoinMonitor", "NotSupport,addr", peer.Addr())
+			log.Info("VersoinMonitor", "NotSupport,addr", peer.Addr())
 			n.destroyPeer(peer)
 			//加入黑名单12小时
 			n.nodeInfo.blacklist.Add(peer.Addr(), int64(3600*12))
@@ -399,8 +399,6 @@ func (n *Node) monitorPeers() {
 				//删除节点数过低的节点
 				n.remove(paddr)
 				n.nodeInfo.addrBook.RemoveAddr(paddr)
-				//短暂加入黑名单5分钟
-				//n.nodeInfo.blacklist.Add(paddr, int64(60*5))
 			}
 
 		}
@@ -561,9 +559,16 @@ func (n *Node) monitorFilter() {
 //独立goroutine 监控配置的
 
 func (n *Node) monitorCfgSeeds() {
+
 	ticker := time.NewTicker(CheckCfgSeedsInterVal)
+	defer ticker.Stop()
 
 	for {
+		if n.isClose() {
+			log.Info("monitorCfgSeeds", "loop", "done")
+			return
+		}
+
 		<-ticker.C
 		n.cfgSeeds.Range(func(k, v interface{}) bool {
 

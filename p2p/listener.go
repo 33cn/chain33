@@ -186,7 +186,6 @@ type connCtxKey struct{}
 
 var connsMutex sync.Mutex
 
-//var conns map[*stats.ConnTagInfo]string = make(map[*stats.ConnTagInfo]string)
 var conns = make(map[string]uint)
 
 func getConnTagFromContext(ctx context.Context) (*stats.ConnTagInfo, bool) {
