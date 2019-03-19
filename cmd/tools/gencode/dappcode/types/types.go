@@ -43,7 +43,7 @@ var (
 
 import (
 "encoding/json"
-
+log "github.com/33cn/chain33/common/log/log15"
 "github.com/33cn/chain33/types"
 )
 
@@ -54,7 +54,7 @@ import (
 */
 
 
-// action类型id值
+// action类型id和name，这些常量可以自定义修改
 ${ACTIONIDTEXT}
 
 // log类型id值
@@ -63,15 +63,18 @@ ${TYLOGACTIONTYPE}
 var (
     //${CLASSNAME}X 执行器名称定义
 	${CLASSNAME}X = "${EXECNAME}"
-	//定义action的name和id
+	//定义actionMap
 	actionMap = ${TYPEMAPTEXT}
 	//定义log的id和具体log类型及名称，填入具体自定义log类型
 	logMap = ${LOGMAPTEXT}
+	tlog = log.New("module", "${EXECNAME}.types")
 )
 
 func init() {
     types.AllowUserExec = append(types.AllowUserExec, []byte(${CLASSNAME}X))
     types.RegistorExecutor(${CLASSNAME}X, newType())
+	//注册合约启用高度
+	types.RegisterDappFork(${CLASSNAME}X, "Enable", 0)
 }
 
 type ${EXECNAME}Type struct {
@@ -102,7 +105,6 @@ func (t *${EXECNAME}Type) GetLogMap() map[int64]*types.LogInfo {
 // CreateTx 重载基类接口，实现本合约交易创建，供框架调用
 func (t *${EXECNAME}Type) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
-	// pseudo code
 	//if action == someAction
 		//return new tx
 	return tx, types.ErrNotSupport

@@ -60,8 +60,9 @@ func readDappActionFromProto(protoContent, actionName string) ([]*actionInfoItem
 func formatExecContent(infos []*actionInfoItem, dappName string) string {
 
 	fnFmtStr := `func (c *%s) Exec_%s(payload *ptypes.%s, tx *types.Transaction, index int) (*types.Receipt, error) {
+	var receipt *types.Receipt
 	//implement code
-	return &types.Receipt{}, nil
+	return receipt, nil
 }
 
 `
@@ -76,8 +77,9 @@ func formatExecContent(infos []*actionInfoItem, dappName string) string {
 func formatExecLocalContent(infos []*actionInfoItem, dappName string) string {
 
 	fnFmtStr := `func (c *%s) ExecLocal_%s(payload *ptypes.%s, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	var dbSet *types.LocalDBSet
 	//implement code
-	return &types.LocalDBSet{}, nil
+	return dbSet, nil
 }
 
 `
@@ -92,8 +94,9 @@ func formatExecLocalContent(infos []*actionInfoItem, dappName string) string {
 func formatExecDelLocalContent(infos []*actionInfoItem, dappName string) string {
 
 	fnFmtStr := `func (c *%s) ExecDelLocal_%s(payload *ptypes.%s, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	var dbSet *types.LocalDBSet
 	//implement code
-	return &types.LocalDBSet{}, nil
+	return dbSet, nil
 }
 
 `
@@ -107,9 +110,9 @@ func formatExecDelLocalContent(infos []*actionInfoItem, dappName string) string 
 
 // 组成规则是 TyLog+ActionName + ActionMemberName
 func buildActionLogTypeText(infos []*actionInfoItem, className string) (text string) {
-	items := fmt.Sprintf("TyLog%sUnknown = iota\n", className)
+	items := fmt.Sprintf("TyUnknownLog = iota + 100\n")
 	for _, info := range infos {
-		items += fmt.Sprintf("TyLog%s%s\n", className, info.memberName)
+		items += fmt.Sprintf("Ty%sLog\n", info.memberName)
 	}
 	text = fmt.Sprintf("const (\n%s)\n", items)
 	return
@@ -117,10 +120,16 @@ func buildActionLogTypeText(infos []*actionInfoItem, className string) (text str
 
 // 组成规则是 ActionName + ActionMemberName
 func buildActionIDText(infos []*actionInfoItem, className string) (text string) {
-	var items string
-	for index, info := range infos {
-		items += fmt.Sprintf("%sAction%s = %d\n", className, info.memberName, index)
+
+	items := fmt.Sprintf("TyUnknowAction = iota + 100\n")
+	for _, info := range infos {
+		items += fmt.Sprintf("Ty%sAction\n", info.memberName)
 	}
+	items += "\n"
+	for _, info := range infos {
+		items += fmt.Sprintf("Name%sAction = \"%s\"\n", info.memberName, info.memberName)
+	}
+
 	text = fmt.Sprintf("const (\n%s)\n", items)
 	return
 }
@@ -129,7 +138,7 @@ func buildActionIDText(infos []*actionInfoItem, className string) (text string) 
 func buildTypeMapText(infos []*actionInfoItem, className string) (text string) {
 	var items string
 	for _, info := range infos {
-		items += fmt.Sprintf("\"%s\": %sAction%s,\n", info.memberName, className, info.memberName)
+		items += fmt.Sprintf("Name%sAction: Ty%sAction,\n", info.memberName, info.memberName)
 	}
 	text = fmt.Sprintf("map[string]int32{\n%s}", items)
 	return
@@ -137,6 +146,6 @@ func buildTypeMapText(infos []*actionInfoItem, className string) (text string) {
 
 // 返回 map[string]*types.LogInfo
 func buildLogMapText() (text string) {
-	text = fmt.Sprintf("map[int64]*types.LogInfo{\n\t//pseudo code\n\t//LogID:	{Ty: refelct.TypeOf(LogStruct), Name: LogName},\n}")
+	text = fmt.Sprintf("map[int64]*types.LogInfo{\n\t//LogID:	{Ty: reflect.TypeOf(LogStruct), Name: LogName},\n}")
 	return
 }

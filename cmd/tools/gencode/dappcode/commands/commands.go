@@ -39,7 +39,9 @@ var (
 	commandsFileContent = `/*Package commands implement dapp client commands*/
 package commands
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 /* 
  * 实现合约对应客户端
