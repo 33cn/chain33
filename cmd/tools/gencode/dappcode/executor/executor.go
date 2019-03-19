@@ -55,7 +55,7 @@ import (
 
 var (
 	//日志
-	elog = log.New("module", "execs.${EXECNAME}")
+	elog = log.New("module", "${EXECNAME}.executor")
 )
 
 var driverName = ptypes.${CLASSNAME}X
