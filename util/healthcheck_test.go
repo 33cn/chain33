@@ -20,8 +20,8 @@ func TestStart(t *testing.T) {
 	health := NewHealthCheckServer(q.Client())
 
 	api := new(mocks.QueueProtocolAPI)
-	reply := &types.Reply{IsOk: true}
-	api.On("IsSync").Return(reply, nil)
+	api.On("IsSync").Return(&types.Reply{IsOk: true}, nil).Times(2)
+	api.On("IsSync").Return(&types.Reply{IsOk: false}, nil)
 	peer1 := &types.Peer{Addr: "addr1"}
 	peer2 := &types.Peer{Addr: "addr2"}
 	peers := &types.PeerList{Peers: []*types.Peer{peer1, peer2}}
@@ -31,12 +31,11 @@ func TestStart(t *testing.T) {
 
 	cfg, _ := types.InitCfg("../cmd/chain33/chain33.test.toml")
 	health.Start(cfg.Health)
-	time.Sleep(time.Second * 3)
-	api.On("IsSync").Return(&types.Reply{IsOk: false}, nil)
-	health.Start(cfg.Health)
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 6)
+
 	health.Close()
 	time.Sleep(time.Second * 1)
+
 }
 
 func TestGetHealth(t *testing.T) {

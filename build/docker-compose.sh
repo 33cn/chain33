@@ -300,11 +300,23 @@ function transfer() {
     done
 
     ${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e coins
-    balance=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e coins | jq -r ".balance")
-    if [ "${balance}" != "10.0000" ]; then
-        echo "wrong balance=$balance, should not be 10.0000"
-        exit 1
-    fi
+
+    local times=100
+    while true; do
+        balance=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e coins | jq -r ".balance")
+        echo "account balance is ${balance}, expect 10.0000 "
+        if [ "${balance}" != "10.0000" ]; then
+            block_wait 2
+            times=$((times - 1))
+            if [ $times -le 0 ]; then
+                echo "account balance transfer failed"
+                exit 1
+            fi
+        else
+            echo "account balance transfer success"
+            break
+        fi
+    done
 
 }
 
