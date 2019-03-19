@@ -28,6 +28,7 @@ var (
 	titles           = map[string]bool{}
 	chainConfig      = make(map[string]interface{})
 	mver             = make(map[string]*mversion)
+	coinSymbol       = "bty"
 )
 
 // coin conversation
@@ -247,6 +248,9 @@ func Init(t string, cfg *Config) {
 	}
 	titles[t] = true
 	title = t
+	if cfg.CoinSymbol != "" {
+		coinSymbol = cfg.CoinSymbol
+	}
 	if cfg != nil {
 		if isLocal() {
 			setTestNet(true)
@@ -293,6 +297,11 @@ func GetTitle() string {
 	s := title
 	mu.Unlock()
 	return s
+}
+
+// GetCoinSymbol 获取 coin symbol
+func GetCoinSymbol() string {
+	return coinSymbol
 }
 
 func isLocal() bool {
