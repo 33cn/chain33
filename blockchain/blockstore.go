@@ -194,7 +194,6 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 		}
 		storeLog.Info("initQuickIndex", "height", height)
 		batch.Reset()
-		count = 0
 	}
 	bs.saveQuickIndexFlag()
 }
