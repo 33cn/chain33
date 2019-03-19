@@ -210,37 +210,6 @@ func TestGrpcStreamConns(t *testing.T) {
 
 }
 
-/*func TestP2PEvent(t *testing.T) {
-
-	qcli := q.Client()
-	msg := qcli.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{})
-	err := qcli.Send(msg, false)
-	assert.Nil(t, err)
-	msg = qcli.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{})
-	err = qcli.Send(msg, false)
-	assert.Nil(t, err)
-
-	msg = qcli.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{})
-	err = qcli.Send(msg, false)
-	assert.Nil(t, err)
-
-	msg = qcli.NewMessage("p2p", types.EventGetMempool, nil)
-	err = qcli.Send(msg, false)
-	assert.Nil(t, err)
-
-	msg = qcli.NewMessage("p2p", types.EventPeerInfo, nil)
-	err = qcli.Send(msg, false)
-	assert.Nil(t, err)
-	msg = qcli.NewMessage("p2p", types.EventGetNetInfo, nil)
-	err = qcli.Send(msg, false)
-	assert.Nil(t, err)
-
-	msg = qcli.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{})
-	err = qcli.Send(msg, false)
-	assert.Nil(t, err)
-
-}*/
-
 func TestP2pComm(t *testing.T) {
 
 	addrs := P2pComm.AddrRouteble([]string{"localhost:33802"})

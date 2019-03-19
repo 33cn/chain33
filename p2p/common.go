@@ -163,7 +163,7 @@ func (c Comm) Pubkey(key string) (string, error) {
 // NewPingData get ping node ,return p2pping
 func (c Comm) NewPingData(nodeInfo *NodeInfo) (*types.P2PPing, error) {
 	randNonce := rand.New(rand.NewSource(time.Now().UnixNano())).Int63()
-	ping := &types.P2PPing{Nonce: int64(randNonce), Addr: nodeInfo.GetExternalAddr().IP.String(), Port: int32(nodeInfo.GetExternalAddr().Port)}
+	ping := &types.P2PPing{Nonce: randNonce, Addr: nodeInfo.GetExternalAddr().IP.String(), Port: int32(nodeInfo.GetExternalAddr().Port)}
 	var err error
 	p2pPrivKey, _ := nodeInfo.addrBook.GetPrivPubKey()
 	ping, err = c.Signature(p2pPrivKey, ping)
