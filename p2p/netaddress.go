@@ -172,6 +172,7 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 		ch2 <- P2pComm.GrpcConfig()
 		log.Debug("NetAddress", "Dial with unCompressor", na.String())
 		conn, err = grpc.Dial(na.String(), grpc.WithInsecure(), grpc.WithServiceConfig(ch2), keepaliveOp, timeoutOp)
+
 	}
 
 	if err != nil {
@@ -184,6 +185,9 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 		}
 		return nil, err
 	}
+
+	//p2p version check
+
 	return conn, nil
 }
 

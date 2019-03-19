@@ -93,6 +93,7 @@ func (network *P2p) Close() {
 		network.client.Close()
 	}
 	network.node.pubsub.Shutdown()
+
 }
 
 // SetQueueClient set the queue
@@ -215,6 +216,7 @@ func (network *P2p) subP2pMsg() {
 				}
 			}
 			switch msg.Ty {
+
 			case types.EventTxBroadcast: //广播tx
 				go network.p2pCli.BroadCastTx(msg, taskIndex)
 			case types.EventBlockBroadcast: //广播block
