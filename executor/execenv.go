@@ -203,7 +203,7 @@ func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	if err := drivers.CheckAddress(tx.GetRealToAddr(), e.height); err != nil {
 		return nil, err
 	}
-	if e.localDB != nil {
+	if e.localDB != nil && types.IsFork(e.height, "ForkLocalDBAccess") {
 		e.localDB.(*LocalDB).DisableWrite()
 		if exec.ExecutorOrder() != drivers.ExecLocalSameTime {
 			e.localDB.(*LocalDB).DisableRead()
