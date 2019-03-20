@@ -26,7 +26,7 @@ func (execCode) GetFiles() map[string]string {
 	}
 }
 
-func (execCode) GetReplaceTags() []string {
+func (execCode) GetFileReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagImportPath, types.TagClassName, types.TagExecFileContent}
 }
@@ -42,7 +42,7 @@ func (execLocalCode) GetFiles() map[string]string {
 	}
 }
 
-func (execLocalCode) GetReplaceTags() []string {
+func (execLocalCode) GetFileReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagImportPath, types.TagExecLocalFileContent}
 }
@@ -58,7 +58,7 @@ func (execDelLocalCode) GetFiles() map[string]string {
 	}
 }
 
-func (execDelLocalCode) GetReplaceTags() []string {
+func (execDelLocalCode) GetFileReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagImportPath, types.TagExecDelLocalFileContent}
 }
@@ -68,7 +68,7 @@ var (
 	execContent = `package executor
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
 	"github.com/33cn/chain33/types"
 )
 
@@ -83,7 +83,7 @@ ${EXECFILECONTENT}`
 	execLocalContent = `package executor
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
 	"github.com/33cn/chain33/types"
 )
 
@@ -98,7 +98,7 @@ ${EXECLOCALFILECONTENT}`
 	execDelContent = `package executor
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
 	"github.com/33cn/chain33/types"
 )
 

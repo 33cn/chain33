@@ -31,7 +31,7 @@ func (c executorCodeFile) GetFiles() map[string]string {
 	}
 }
 
-func (c executorCodeFile) GetReplaceTags() []string {
+func (c executorCodeFile) GetFileReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagImportPath, types.TagClassName}
 }
@@ -42,7 +42,7 @@ var (
 
 import (
 	log "github.com/33cn/chain33/common/log/log15"
-	ptypes "${IMPORTPATH}/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 )

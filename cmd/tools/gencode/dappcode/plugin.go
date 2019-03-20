@@ -25,7 +25,7 @@ func (c pluginCodeFile) GetFiles() map[string]string {
 	}
 }
 
-func (c pluginCodeFile) GetReplaceTags() []string {
+func (c pluginCodeFile) GetFileReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagImportPath, types.TagClassName}
 }
@@ -37,7 +37,7 @@ package ${EXECNAME}
 
 import (
 	"${IMPORTPATH}/${EXECNAME}/commands"
-	"${IMPORTPATH}/${EXECNAME}/types"
+	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
 	"${IMPORTPATH}/${EXECNAME}/executor"
 	"${IMPORTPATH}/${EXECNAME}/rpc"
 	"github.com/33cn/chain33/pluginmgr"
@@ -49,7 +49,7 @@ import (
 
 func init() {
 	pluginmgr.Register(&pluginmgr.PluginBase{
-		Name:     types.${CLASSNAME}X,
+		Name:     ptypes.${CLASSNAME}X,
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
 		Cmd:      commands.Cmd,
