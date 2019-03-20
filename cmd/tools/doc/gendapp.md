@@ -49,9 +49,9 @@ message DemoAction {
     int32 ty = 3;
 }
 ``` 
-* package name设为types，适配后续生成目录结构
+* package name设为合约名，适配后续生成目录结构
 ```
-package types;
+package demo;
 ```
 
 * 定义service，直接以合约名作为名称
@@ -87,7 +87,8 @@ demo
 │   ├── rpc.go
 │   └── types.go
 └── types           //类型模块
-    └── demo.go
+    └── demo
+        └── demo.go
 
 ```
 ##### 生成pb.go文件
@@ -97,11 +98,7 @@ $ cd proto && chmod +x ./create_protobuf.sh && make
 ```
 
 ##### 后续开发   
-在生成代码基础上，需要实现交易创建，执行，及所需rpc服务，初次开发可以参考官方计算器开发完整步骤
->github.com/33cn/chain33/cmd/tools/doc/gencalculator.md
+在生成代码基础上，需要实现交易创建，执行，及所需rpc服务<br/>
+初次开发可以参考官方简单计算器合约
+[开发步骤](https://github.com/33cn/chain33/blob/master/cmd/tools/doc/gencalculator.md)
 
-##### 相关问题
-* proto类型冲突<br/>
-原因：由于合约统一将pb.go文件放在types目录下，
-不同合约存在相同类型名称时，会导致proto类型注册失败<br/>
-解决方法：修改types文件夹名称或修改类型名称
