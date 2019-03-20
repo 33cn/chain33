@@ -142,8 +142,9 @@ func (p *Peer) heartBeat() {
 			go p.readStream()
 			break
 		} else {
-			time.Sleep(time.Second * 5)
-			continue
+			//版本不对，直接关掉
+			p.Close()
+			return
 		}
 	}
 
@@ -206,6 +207,7 @@ func (p *Peer) sendStream() {
 		p2pdata := new(pb.BroadCastData)
 		p2pdata.Value = &pb.BroadCastData_Ping{Ping: ping}
 		if err := resp.Send(p2pdata); err != nil {
+			P2pComm.CollectPeerStat(err,p)
 			errs := resp.CloseSend()
 			if errs != nil {
 				log.Error("CloseSend", "err", errs)
@@ -222,13 +224,13 @@ func (p *Peer) sendStream() {
 			Softversion: v.GetVersion(), Peername: peername}}
 
 		if err := resp.Send(p2pdata); err != nil {
+			P2pComm.CollectPeerStat(err,p)
 			errs := resp.CloseSend()
 			if errs != nil {
 				log.Error("CloseSend", "err", errs)
 			}
 			cancel()
 			log.Error("sendStream", "sendversion", err)
-			time.Sleep(time.Second)
 			continue
 		}
 		timeout := time.NewTimer(time.Second * 2)
