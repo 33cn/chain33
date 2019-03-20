@@ -14,7 +14,8 @@ type ICodeFile interface {
 	GetCodeType() string
 	GetDirName() string
 	GetFiles() map[string]string //key:filename, val:file content
-	GetReplaceTags() []string
+	GetDirReplaceTags() []string
+	GetFileReplaceTags() []string
 }
 
 //RegisterCodeFile regeister code file
@@ -47,8 +48,14 @@ func (CodeFile) GetFiles() map[string]string {
 	return nil
 }
 
-//GetReplaceTags get replace tags
-func (CodeFile) GetReplaceTags() []string {
+//GetDirReplaceTags get directory replace tags
+func (CodeFile) GetDirReplaceTags() []string {
+
+	return nil
+}
+
+//GetFileReplaceTags get file replace tags
+func (CodeFile) GetFileReplaceTags() []string {
 
 	return nil
 }

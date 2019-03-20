@@ -32,6 +32,10 @@ func (protoBase) GetFiles() map[string]string {
 	}
 }
 
+func (protoBase) GetFileReplaceTags() []string {
+	return []string{types.TagExecName}
+}
+
 type protoFile struct {
 	protoBase
 }
@@ -42,15 +46,15 @@ func (protoFile) GetFiles() map[string]string {
 	}
 }
 
-func (protoFile) GetReplaceTags() []string {
+func (protoFile) GetFileReplaceTags() []string {
 	return []string{types.TagProtoFileContent, types.TagProtoFileAppend, types.TagExecName}
 }
 
 var (
 	protoShellName    = "create_protobuf.sh"
 	protoShellContent = `#!/bin/sh
-# proto生成命令，将pb.go文件生成到types目录下
-protoc --go_out=plugins=grpc:../types ./*.proto
+# proto生成命令，将pb.go文件生成到types/${EXECNAME}目录下
+protoc --go_out=plugins=grpc:../types/${EXECNAME} ./*.proto
 `
 
 	makeName    = "Makefile"

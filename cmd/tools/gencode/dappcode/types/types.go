@@ -5,6 +5,8 @@
 package types
 
 import (
+	"os"
+
 	"github.com/33cn/chain33/cmd/tools/gencode/base"
 	"github.com/33cn/chain33/cmd/tools/types"
 )
@@ -20,7 +22,7 @@ type typesCode struct {
 
 func (c typesCode) GetDirName() string {
 
-	return "types"
+	return "types" + string(os.PathSeparator) + "${EXECNAME}"
 }
 
 func (c typesCode) GetFiles() map[string]string {
@@ -30,7 +32,11 @@ func (c typesCode) GetFiles() map[string]string {
 	}
 }
 
-func (c typesCode) GetReplaceTags() []string {
+func (c typesCode) GetDirReplaceTags() []string {
+	return []string{types.TagExecName}
+}
+
+func (c typesCode) GetFileReplaceTags() []string {
 
 	return []string{types.TagExecName, types.TagClassName,
 		types.TagActionIDText, types.TagTyLogActionType,
@@ -39,7 +45,7 @@ func (c typesCode) GetReplaceTags() []string {
 
 var (
 	typesName    = "${EXECNAME}.go"
-	typesContent = `package types
+	typesContent = `package ${EXECNAME}
 
 import (
 "encoding/json"

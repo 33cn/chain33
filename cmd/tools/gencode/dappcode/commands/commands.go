@@ -30,7 +30,7 @@ func (c commandsCodeFile) GetFiles() map[string]string {
 	}
 }
 
-func (c commandsCodeFile) GetReplaceTags() []string {
+func (c commandsCodeFile) GetFileReplaceTags() []string {
 	return []string{types.TagExecName}
 }
 

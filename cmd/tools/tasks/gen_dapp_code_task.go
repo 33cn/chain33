@@ -101,10 +101,18 @@ func (c *GenDappCodeTask) genDappCode() error {
 
 	for _, code := range codeTypes {
 
-		dirPath := filepath.Join(c.DappDir, code.GetDirName())
-		_ = os.Mkdir(dirPath, os.ModePerm)
+		dirName := code.GetDirName()
+		for _, tag := range code.GetDirReplaceTags() {
+			dirName = strings.Replace(dirName, tag, c.replacePairs[tag], -1)
+		}
+		dirPath := filepath.Join(c.DappDir, dirName)
+		err := os.MkdirAll(dirPath, os.ModePerm)
+		if err != nil {
+			mlog.Error("MakeCodeDir", "Err", err.Error(), "DirPath", dirPath)
+			return err
+		}
 		files := code.GetFiles()
-		tags := code.GetReplaceTags()
+		tags := code.GetFileReplaceTags()
 
 		for name, content := range files {
 
@@ -113,7 +121,7 @@ func (c *GenDappCodeTask) genDappCode() error {
 				content = strings.Replace(content, tag, c.replacePairs[tag], -1)
 			}
 
-			_, err := util.WriteStringToFile(filepath.Join(dirPath, name), content)
+			_, err = util.WriteStringToFile(filepath.Join(dirPath, name), content)
 
 			if err != nil {
 				mlog.Error("GenNewCodeFile", "Err", err.Error(), "CodeFile", filepath.Join(dirPath, name))
