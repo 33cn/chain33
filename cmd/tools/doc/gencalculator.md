@@ -1,5 +1,5 @@
 # calculator generate
-基于gendapp自动生成合约命令，介绍一个calculator合约完整开发步骤
+基于gendapp自动生成合约命令，介绍合约的完整开发步骤
 
 ### 简介
 calculator合约支持在区块链上进行整数加减乘除交易操作，同时方便演示
@@ -10,7 +10,7 @@ calculator合约支持在区块链上进行整数加减乘除交易操作，同�
 ```proto
 syntax = "proto3";
 
-package types;
+package calculator;
 //calculator 合约交易行为总类型
 message CalculatorAction {
     oneof value {
@@ -71,15 +71,14 @@ service calculator {
 主要有以下几个部分：
 * 定义交易行为总结构，CalculatorAction，包含加减乘除
 * 分别定义涉及的交易行为结构， Add，Sub等
-* 定义交易涉及到的日志结构，每种运算除了有对应结果日志，还需要一个记录当天运算序号的日志，
-以辅助后续查询当天的运算序号
+* 定义交易涉及到的日志结构，每种运算除均有对应结果日志
 * 如果需要grpc服务，定义service结构，如本例增加了查询次数的rpc
 * 定义查询中涉及的request，reply结构
 
 
 ### 代码生成
 ##### 生成基本代码
->使用chain33-tool，工具使用参考文档github.com/33cn/chain33/cmd/tools/doc/gendpp.md
+>使用chain33-tool，工具使用参考[文档]([开发步骤](https://github.com/33cn/chain33/blob/master/cmd/tools/doc/gendapp.md))
 ```
 //本例默认将calculator生成至官方plugin项目dapp目录下
 $ chain33-tool gendapp -n calculator -p calculator.proto
@@ -93,6 +92,7 @@ $ tree -d
 ├── proto   //proto脚本模块
 ├── rpc     //rpc模块
 └── types   //类型模块
+    └── calculator
 ```
 
 ##### 生成pb.go文件
@@ -107,7 +107,7 @@ $ cd proto && chmod +x ./create_protobuf.sh && make
 以下将以模块为顺序，依次介绍
 #### types类型模块
 此目录统一归纳合约类型相关的代码
-##### 交易的action和log(types/calculator.go)
+##### 交易的action和log(types/calculator/calculator.go)
 > 每一种交易通常有交易请求(action），交易结果日志(log)，
 目前框架要求合约开发者自定义aciton和log的id及name，
 已经自动生成了这些常量，可以根据需要修改
@@ -152,13 +152,13 @@ const (
 		TyDivLog: {Ty:reflect.TypeOf(DivideLog{}), Name: "DivideLog"},
 	}
 ```
-##### 注册dapp启用高度(types/calculator.go)
+##### 注册dapp启用高度(types/calculator/calculator.go)
 > 默认生成的代码，启用高度设为0，可以自定义修改
 ```go
 types.RegisterDappFork(CalculatorX, "Enable", 0)
 ```
 
-##### 实现CreateTx接口(types/calculator.go)
+##### 实现CreateTx接口(types/calculator/calculator.go)
 > CreateTx即根据不同action name创建交易，隶属于框架ExcutorType接口。
 合约的CreateTx功能可以通过框架相关接口调用，将在rpc模块开发进行演示，
 本例中简单实现了加法和除法的创建逻辑，其余类似
@@ -232,7 +232,7 @@ func (*calculator) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 ```
-##### Key常量(executor/kv.go)
+##### KV常量(executor/kv.go)
 >目前合约进行存取框架KV数据库(stateDB或localDB)时，
 其Key的前缀必须满足框架要求规范，已经以常量形式自动生成在代码中
 ```
@@ -391,13 +391,14 @@ func (j *Jrpc)QueryCalcCount(in *ptypes.ReqQueryCalcCount, result *interface{}) 
 
 ##### rpc说明
 >本例子中涉及的CreateTx和Query类rpc都可以通过框架自有的rpc去调用，
-分别是chain33.CreateTransaction和Chain33.Query，即以上代码可以不用实现，
+分别是Chain33.CreateTransaction和Chain33.Query，上述代码只是示例如何开发rpc接口，
+实际开发中，这两类接口可以不用实现，
 而直接调用框架的rpc，当然也支持进行个性化包装，两种调用方式将在commands模块介绍
 
 #### commands命令行模块
 如果需要支持命令行交互式访问区块节点，开发者需要实现具体合约的命令，
 框架的命令行基于cobra开源库
-##### Import路径(commands/commands.go)
+##### import路径(commands/commands.go)
 >涉及框架基础库使用，包括相关类型和网络组件
 ```go
 import (
@@ -406,7 +407,7 @@ import (
 	"github.com/spf13/cobra"
 
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	ptypes "github.com/33cn/plugin/plugin/dapp/calculator/types"
+	ptypes "github.com/33cn/plugin/plugin/dapp/calculator/types/calculator"
 )
 ```
 ##### 创建交易命令(commands/commands.go)
