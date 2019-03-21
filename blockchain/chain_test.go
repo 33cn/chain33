@@ -507,7 +507,7 @@ func testGetBlocksMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	blocks, err := blockchain.ProcGetBlockDetailsMsg(&reqBlock)
 	if err == nil && blocks != nil {
 		for _, block := range blocks.Items {
-			if checkheight != block.Block.Height || block.Receipts == nil {
+			if checkheight != block.Block.Height {
 				t.Error("TestGetBlocksMsg", "checkheight", checkheight, "block", block)
 			}
 			checkheight++
