@@ -162,15 +162,16 @@ func (chain *BlockChain) addBlock(msg *queue.Message) {
 	blockpid := msg.Data.(*types.BlockPid)
 	//chainlog.Error("addBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid)
 	if GetDownloadSyncStatus() {
-		//downLoadTask 运行时设置对应的blockdone
-		if chain.downLoadTask.InProgress() {
-			chain.downLoadTask.Done(blockpid.Block.GetHeight())
-		}
+
 		err := chain.WriteBlockToDbTemp(blockpid.Block)
 		if err != nil {
 			chainlog.Error("WriteBlockToDbTemp", "height", blockpid.Block.Height, "err", err.Error())
 			reply.IsOk = false
 			reply.Msg = []byte(err.Error())
+		}
+		//downLoadTask 运行时设置对应的blockdone
+		if chain.downLoadTask.InProgress() {
+			chain.downLoadTask.Done(blockpid.Block.GetHeight())
 		}
 	} else {
 		_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)

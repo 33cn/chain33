@@ -71,7 +71,6 @@ func UpdateDownloadSyncStatus(Sync bool) {
 
 //FastDownLoadBlocks 开启快速下载区块的模式
 func (chain *BlockChain) FastDownLoadBlocks() {
-	defer chain.tickerwg.Done()
 	curHeight := chain.GetBlockHeight()
 	lastTempHight := chain.GetLastTempBlockHeight()
 
@@ -222,7 +221,7 @@ func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block) error {
 	defer func() {
 		chainlog.Debug("WriteBlockToDbTemp", "height", block.Height, "sync", sync, "cost", types.Since(beg))
 	}()
-	newbatch := chain.blockStore.NewBatch(false)
+	newbatch := chain.blockStore.NewBatch(sync)
 
 	blockByte, err := proto.Marshal(block)
 	if err != nil {
