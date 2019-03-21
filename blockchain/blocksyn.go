@@ -121,9 +121,10 @@ func (chain *BlockChain) SynRoutine() {
 	//2分钟尝试检测一次最优链，确保本节点在最优链
 	checkBestChainTicker := time.NewTicker(120 * time.Second)
 
-	//节点启动后首先尝试开启快速下载模式
-	chain.tickerwg.Add(1)
-	go chain.FastDownLoadBlocks()
+	//节点启动后首先尝试开启快速下载模式,目前默认开启
+	if GetDownloadSyncStatus() {
+		go chain.FastDownLoadBlocks()
+	}
 	for {
 		select {
 		case <-chain.quit:
