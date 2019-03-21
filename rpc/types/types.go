@@ -7,8 +7,6 @@ package types
 
 import (
 	"encoding/json"
-
-	"github.com/33cn/chain33/types"
 )
 
 // TransParm transport parameter
@@ -135,6 +133,13 @@ type BlockDetails struct {
 	Items []*BlockDetail `json:"items"`
 }
 
+// Asset asset
+type Asset struct {
+	Exec   string `json:"exec"`
+	Symbol string `json:"symbol"`
+	Amount int64  `json:"amount"`
+}
+
 // TransactionDetail transaction detail
 type TransactionDetail struct {
 	Tx         *Transaction       `json:"tx"`
@@ -146,7 +151,7 @@ type TransactionDetail struct {
 	Amount     int64              `json:"amount"`
 	Fromaddr   string             `json:"fromAddr"`
 	ActionName string             `json:"actionName"`
-	Assets     []*types.Asset     `json:"assets"`
+	Assets     []*Asset           `json:"assets"`
 }
 
 // ReplyTxInfos reply tx infos
@@ -156,10 +161,10 @@ type ReplyTxInfos struct {
 
 // ReplyTxInfo reply tx information
 type ReplyTxInfo struct {
-	Hash   string         `json:"hash"`
-	Height int64          `json:"height"`
-	Index  int64          `json:"index"`
-	Assets []*types.Asset `json:"assets"`
+	Hash   string   `json:"hash"`
+	Height int64    `json:"height"`
+	Index  int64    `json:"index"`
+	Assets []*Asset `json:"assets"`
 }
 
 // TransactionDetails transaction details

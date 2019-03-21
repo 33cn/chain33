@@ -243,7 +243,7 @@ func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 		infos := reply.GetTxInfos()
 		for _, info := range infos {
 			txinfos.TxInfos = append(txinfos.TxInfos, &rpctypes.ReplyTxInfo{Hash: common.ToHex(info.GetHash()),
-				Height: info.GetHeight(), Index: info.GetIndex(), Assets: info.Assets})
+				Height: info.GetHeight(), Index: info.GetIndex(), Assets: fmtAsssets(info.Assets)})
 		}
 		*result = &txinfos
 	}
@@ -336,8 +336,21 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		Amount:     tx.GetAmount(),
 		Fromaddr:   tx.GetFromaddr(),
 		ActionName: tx.GetActionName(),
-		Assets:     tx.GetAssets(),
+		Assets:     fmtAsssets(tx.GetAssets()),
 	}, nil
+}
+
+func fmtAsssets(assets []*types.Asset) []*rpctypes.Asset {
+	var result []*rpctypes.Asset
+	for _, a := range assets {
+		asset := &rpctypes.Asset{
+			Exec:   a.Exec,
+			Symbol: a.Symbol,
+			Amount: a.Amount,
+		}
+		result = append(result, asset)
+	}
+	return result
 }
 
 // GetMempool get mempool information
