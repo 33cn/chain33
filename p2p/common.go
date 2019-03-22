@@ -239,8 +239,8 @@ func (c Comm) CheckSign(in *types.P2PPing) bool {
 // CollectPeerStat collect peer stat and report
 func (c Comm) CollectPeerStat(err error, peer *Peer) {
 	if err != nil {
-		if err==types.ErrVersion{
-			peer.version.SetSupport(false) 
+		if err == types.ErrVersion {
+			peer.version.SetSupport(false)
 		}
 		peer.peerStat.NotOk()
 	} else {

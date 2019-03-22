@@ -56,7 +56,7 @@ func New(cfg *types.P2P) *P2p {
 
 	VERSION = cfg.Version
 	log.Info("p2p", "Version", VERSION)
-
+	fmt.Println("VERSOIN:", VERSION, types.IsTestNet())
 	if cfg.InnerBounds == 0 {
 		cfg.InnerBounds = 500
 	}
