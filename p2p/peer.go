@@ -207,7 +207,7 @@ func (p *Peer) sendStream() {
 		p2pdata := new(pb.BroadCastData)
 		p2pdata.Value = &pb.BroadCastData_Ping{Ping: ping}
 		if err := resp.Send(p2pdata); err != nil {
-			P2pComm.CollectPeerStat(err,p)
+			P2pComm.CollectPeerStat(err, p)
 			errs := resp.CloseSend()
 			if errs != nil {
 				log.Error("CloseSend", "err", errs)
@@ -224,7 +224,7 @@ func (p *Peer) sendStream() {
 			Softversion: v.GetVersion(), Peername: peername}}
 
 		if err := resp.Send(p2pdata); err != nil {
-			P2pComm.CollectPeerStat(err,p)
+			P2pComm.CollectPeerStat(err, p)
 			errs := resp.CloseSend()
 			if errs != nil {
 				log.Error("CloseSend", "err", errs)

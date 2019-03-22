@@ -93,7 +93,7 @@ func initP2p(port int32, dbpath string) *P2p {
 	cfg.Enable = true
 	cfg.DbPath = dbpath
 	cfg.DbCache = 4
-	cfg.Version = 216
+	cfg.Version = 119
 	cfg.ServerStart = true
 	cfg.Driver = "leveldb"
 	p2pcli := New(cfg)
@@ -129,7 +129,6 @@ func TestNetInfo(t *testing.T) {
 	p2pModule.node.nodeInfo.IsNatDone()
 	p2pModule.node.nodeInfo.SetNatDone()
 	p2pModule.node.nodeInfo.Get()
-
 }
 
 //测试Peer
@@ -155,14 +154,14 @@ func TestPeer(t *testing.T) {
 	assert.Nil(t, err)
 	defer peer.Close()
 	peer.MakePersistent()
-	peer.Start()
+	localP2P.node.addPeer(peer)
 	time.Sleep(time.Second * 5)
 	t.Log(peer.GetInBouns())
 	t.Log(peer.version.GetVersion())
 	assert.IsType(t, "string", peer.GetPeerName())
 
 	localP2P.node.AddCachePeer(peer)
-	localP2P.node.addPeer(peer)
+	//
 	localP2P.node.natOk()
 	localP2P.node.flushNodePort(43803, 43802)
 	p2pcli := NewNormalP2PCli()
@@ -178,7 +177,7 @@ func TestPeer(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, pnum)
 
-	_, err = peer.GetPeerInfo(216)
+	_, err = peer.GetPeerInfo(VERSION)
 	assert.Nil(t, err)
 	//获取节点列表
 	_, err = p2pcli.GetAddrList(peer)
@@ -200,8 +199,8 @@ func TestPeer(t *testing.T) {
 	//测试下载
 	job := NewDownloadJob(NewP2PCli(localP2P).(*Cli), []*Peer{peer})
 
-	freePeer := job.GetFreePeer(1)
-	t.Log(freePeer)
+	job.GetFreePeer(1)
+
 	var ins []*types.Inventory
 	var bChan = make(chan *types.BlockPid, 256)
 	respIns := job.DownloadBlock(ins, bChan)
