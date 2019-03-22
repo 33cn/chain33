@@ -137,7 +137,7 @@ func (c Comm) GenPrivPubkey() ([]byte, []byte, error) {
 	return key.Bytes(), key.PubKey().Bytes(), nil
 }
 
-// Pubkey get pubkey by key
+// Pubkey get pubkey by priv key
 func (c Comm) Pubkey(key string) (string, error) {
 
 	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
