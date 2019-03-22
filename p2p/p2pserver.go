@@ -549,6 +549,9 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			p2pversion := ver.GetP2Pversion()
 			innerpeer := s.getInBoundPeerInfo(peername)
 			if innerpeer != nil {
+			if 	!s.checkVersion(p2pversion){
+				return pb.ErrVersion
+			}
 				innerpeer.p2pversion = p2pversion
 				innerpeer.softversion = softversion
 				s.addInBoundPeerInfo(peername, *innerpeer)
