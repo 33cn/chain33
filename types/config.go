@@ -224,7 +224,6 @@ func S(key string, value interface{}) {
 		} else {
 			tlog.Error("modify " + key + " is only for test")
 		}
-		return
 	}
 	setChainConfig(key, value)
 }

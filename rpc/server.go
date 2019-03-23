@@ -178,14 +178,16 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServer {
 	j := &JSONRPCServer{jrpc: &Chain33{}}
 	j.jrpc.cli.Init(c, api)
-	grpcCli, err := grpcclient.NewMainChainClient("")
-	if err != nil {
-		panic(err)
+	if types.IsPara() {
+		grpcCli, err := grpcclient.NewMainChainClient("")
+		if err != nil {
+			panic(err)
+		}
+		j.jrpc.mainGrpcCli = grpcCli
 	}
-	j.jrpc.mainGrpcCli = grpcCli
 	server := rpc.NewServer()
 	j.s = server
-	err = server.RegisterName("Chain33", j.jrpc)
+	err := server.RegisterName("Chain33", j.jrpc)
 	if err != nil {
 		return nil
 	}

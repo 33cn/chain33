@@ -6,7 +6,6 @@ package blockchain
 
 import (
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,10 +16,8 @@ import (
 
 //var
 var (
-	tempBlockKey        = []byte("TB:")
-	lastTempBlockKey    = []byte("LTB:")
-	isFastDownloadSync  = true //当本节点落后很多时，可以先下载区块到db，启动单独的goroutine去执行block
-	fastDownLoadSynLock sync.Mutex
+	tempBlockKey     = []byte("TB:")
+	lastTempBlockKey = []byte("LTB:")
 )
 
 //const
@@ -56,17 +53,17 @@ func calcLastTempBlockHeightKey() []byte {
 }
 
 //GetDownloadSyncStatus 获取下载区块的同步模式
-func GetDownloadSyncStatus() bool {
-	fastDownLoadSynLock.Lock()
-	defer fastDownLoadSynLock.Unlock()
-	return isFastDownloadSync
+func (chain *BlockChain) GetDownloadSyncStatus() bool {
+	chain.fastDownLoadSynLock.Lock()
+	defer chain.fastDownLoadSynLock.Unlock()
+	return chain.isFastDownloadSync
 }
 
 //UpdateDownloadSyncStatus 更新下载区块的同步模式
-func UpdateDownloadSyncStatus(Sync bool) {
-	fastDownLoadSynLock.Lock()
-	defer fastDownLoadSynLock.Unlock()
-	isFastDownloadSync = Sync
+func (chain *BlockChain) UpdateDownloadSyncStatus(Sync bool) {
+	chain.fastDownLoadSynLock.Lock()
+	defer chain.fastDownLoadSynLock.Unlock()
+	chain.isFastDownloadSync = Sync
 }
 
 //FastDownLoadBlocks 开启快速下载区块的模式
@@ -92,7 +89,7 @@ func (chain *BlockChain) FastDownLoadBlocks() {
 		pids := chain.GetBestChainPids()
 		//节点启动时只有落后最优链batchsyncblocknum个区块时才开启这种下载模式
 		if pids != nil && peerMaxBlkHeight != -1 && curheight+batchsyncblocknum >= peerMaxBlkHeight {
-			UpdateDownloadSyncStatus(false)
+			chain.UpdateDownloadSyncStatus(false)
 			synlog.Info("FastDownLoadBlocks:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight)
 			break
 		} else if curheight+batchsyncblocknum < peerMaxBlkHeight && len(pids) >= bestPeerCount {
@@ -101,7 +98,7 @@ func (chain *BlockChain) FastDownLoadBlocks() {
 			go chain.ReadBlockToExec(peerMaxBlkHeight, true)
 			break
 		} else if types.Since(startTime) > waitTimeDownLoad*time.Second || chain.cfg.SingleMode {
-			UpdateDownloadSyncStatus(false)
+			chain.UpdateDownloadSyncStatus(false)
 			synlog.Info("FastDownLoadBlocks:waitTimeDownLoad:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight, "pids", pids)
 			break
 		} else {
@@ -182,7 +179,7 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 //CancelFastDownLoadFlag 清除快速下载模式的一些标志
 func (chain *BlockChain) cancelFastDownLoadFlag(isNewStart bool) {
 	if isNewStart {
-		UpdateDownloadSyncStatus(false)
+		chain.UpdateDownloadSyncStatus(false)
 	}
 	chain.DelLastTempBlockHeight()
 	synlog.Info("cancelFastDownLoadFlag", "isNewStart", isNewStart)

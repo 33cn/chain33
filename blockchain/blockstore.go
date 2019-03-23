@@ -24,20 +24,19 @@ import (
 
 //var
 var (
-	blockLastHeight       = []byte("blockLastHeight")
-	bodyPerfix            = []byte("Body:")
-	LastSequence          = []byte("LastSequence")
-	headerPerfix          = []byte("Header:")
-	heightToHeaderPerfix  = []byte("HH:")
-	hashPerfix            = []byte("Hash:")
-	tdPerfix              = []byte("TD:")
-	heightToHashKeyPerfix = []byte("Height:")
-	seqToHashKey          = []byte("Seq:")
-	HashToSeqPerfix       = []byte("HashToSeq:")
-	seqCBPrefix           = []byte("SCB:")
-	seqCBLastNumPrefix    = []byte("SCBL:")
-	storeLog              = chainlog.New("submodule", "store")
-	lastheaderlock        sync.Mutex
+	blockLastHeight             = []byte("blockLastHeight")
+	bodyPerfix                  = []byte("Body:")
+	LastSequence                = []byte("LastSequence")
+	headerPerfix                = []byte("Header:")
+	heightToHeaderPerfix        = []byte("HH:")
+	hashPerfix                  = []byte("Hash:")
+	tdPerfix                    = []byte("TD:")
+	heightToHashKeyPerfix       = []byte("Height:")
+	seqToHashKey                = []byte("Seq:")
+	HashToSeqPerfix             = []byte("HashToSeq:")
+	seqCBPrefix                 = []byte("SCB:")
+	seqCBLastNumPrefix          = []byte("SCBL:")
+	storeLog                    = chainlog.New("submodule", "store")
 	AddBlock              int64 = 1
 	DelBlock              int64 = 2
 )
@@ -102,14 +101,16 @@ func calcHashToSequenceKey(hash []byte) []byte {
 
 //BlockStore 区块存储
 type BlockStore struct {
-	db        dbm.DB
-	client    queue.Client
-	height    int64
-	lastBlock *types.Block
+	db             dbm.DB
+	client         queue.Client
+	height         int64
+	lastBlock      *types.Block
+	lastheaderlock sync.Mutex
+	chain          *BlockChain
 }
 
 //NewBlockStore new
-func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
+func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStore {
 	height, err := LoadBlockStoreHeight(db)
 	if err != nil {
 		chainlog.Info("init::LoadBlockStoreHeight::database may be crash", "err", err.Error())
@@ -121,6 +122,7 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 		height: height,
 		db:     db,
 		client: client,
+		chain:  chain,
 	}
 	if height == -1 {
 		chainlog.Info("load block height error, may be init database", "height", height)
@@ -354,8 +356,8 @@ func (bs *BlockStore) UpdateHeight2(height int64) {
 
 //LastHeader 返回BlockStore保存的当前blockheader
 func (bs *BlockStore) LastHeader() *types.Header {
-	lastheaderlock.Lock()
-	defer lastheaderlock.Unlock()
+	bs.lastheaderlock.Lock()
+	defer bs.lastheaderlock.Unlock()
 
 	// 通过lastBlock获取lastheader
 	var blockheader = types.Header{}
@@ -382,8 +384,8 @@ func (bs *BlockStore) UpdateLastBlock(hash []byte) {
 		storeLog.Error("UpdateLastBlock", "hash", common.ToHex(hash), "error", err)
 		return
 	}
-	lastheaderlock.Lock()
-	defer lastheaderlock.Unlock()
+	bs.lastheaderlock.Lock()
+	defer bs.lastheaderlock.Unlock()
 	if blockdetail != nil {
 		bs.lastBlock = blockdetail.Block
 	}
@@ -392,16 +394,16 @@ func (bs *BlockStore) UpdateLastBlock(hash []byte) {
 
 //UpdateLastBlock2 更新LastBlock到缓存中
 func (bs *BlockStore) UpdateLastBlock2(block *types.Block) {
-	lastheaderlock.Lock()
-	defer lastheaderlock.Unlock()
+	bs.lastheaderlock.Lock()
+	defer bs.lastheaderlock.Unlock()
 	bs.lastBlock = block
 	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", block.Height, "LastHederhash", common.ToHex(block.Hash()))
 }
 
 //LastBlock 获取最新的block信息
 func (bs *BlockStore) LastBlock() *types.Block {
-	lastheaderlock.Lock()
-	defer lastheaderlock.Unlock()
+	bs.lastheaderlock.Lock()
+	defer bs.lastheaderlock.Unlock()
 	if bs.lastBlock != nil {
 		return bs.lastBlock
 	}
@@ -545,7 +547,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	//存储block height和block hash的对应关系，便于通过height查询block
 	storeBatch.Set(calcHeightToHashKey(height), hash)
 
-	if isRecordBlockSequence || isParaChain {
+	if bs.chain.isRecordBlockSequence || bs.chain.isParaChain {
 		//存储记录block序列执行的type add
 		lastSequence, err = bs.saveBlockSequence(storeBatch, hash, height, AddBlock, sequence)
 		if err != nil {
@@ -574,7 +576,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 	storeBatch.Delete(calcHeightToHashKey(height))
 	storeBatch.Delete(calcHeightToBlockHeaderKey(height))
 
-	if isRecordBlockSequence || isParaChain {
+	if bs.chain.isRecordBlockSequence || bs.chain.isParaChain {
 		//存储记录block序列执行的type del
 		lastSequence, err := bs.saveBlockSequence(storeBatch, hash, height, DelBlock, sequence)
 		if err != nil {
@@ -944,7 +946,7 @@ func (bs *BlockStore) saveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 	var blockSequence types.BlockSequence
 	var newSequence int64
 
-	if isRecordBlockSequence {
+	if bs.chain.isRecordBlockSequence {
 		Sequence, err := bs.LoadBlockLastSequence()
 		if err != nil {
 			storeLog.Error("SaveBlockSequence", "LoadBlockLastSequence err", err)
@@ -959,7 +961,7 @@ func (bs *BlockStore) saveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 			storeLog.Error("isRecordBlockSequence is true must Synchronizing data from zero block", "height", height)
 			panic(errors.New("isRecordBlockSequence is true must Synchronizing data from zero block"))
 		}
-	} else if isParaChain {
+	} else if bs.chain.isParaChain {
 		newSequence = sequence
 	}
 	blockSequence.Hash = hash
@@ -1091,7 +1093,7 @@ func (bs *BlockStore) SetUpgradeMeta(meta *types.UpgradeMeta) error {
 }
 
 //isRecordBlockSequence配置的合法性检测
-func (bs *BlockStore) isRecordBlockSequenceValid() {
+func (bs *BlockStore) isRecordBlockSequenceValid(chain *BlockChain) {
 	lastHeight := bs.Height()
 	lastSequence, err := bs.LoadBlockLastSequence()
 	if err != nil {
@@ -1101,7 +1103,7 @@ func (bs *BlockStore) isRecordBlockSequenceValid() {
 		}
 	}
 	//使能isRecordBlockSequence时的检测
-	if isRecordBlockSequence {
+	if chain.isRecordBlockSequence {
 		//中途开启isRecordBlockSequence报错
 		if lastSequence == -1 && lastHeight != -1 {
 			storeLog.Error("isRecordBlockSequenceValid", "lastHeight", lastHeight, "lastSequence", lastSequence)
