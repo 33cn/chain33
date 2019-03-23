@@ -21,12 +21,11 @@ const (
 
 var (
 	ntpLog = chainlog.New("submodule", "ntp")
-	failed int32
 )
 
 // checkClockDrift queries an NTP server for clock drifts and warns the user if
 // one large enough is detected.
-func checkClockDrift() {
+func (chain *BlockChain) checkClockDrift() {
 	realnow := common.GetRealTimeRetry(types.NtpHosts, 10)
 	if realnow.IsZero() {
 		ntpLog.Info("checkClockDrift", "sntpDrift err", "get ntptime error")
@@ -42,14 +41,14 @@ func checkClockDrift() {
 		ntpLog.Warn(fmt.Sprint(warning))
 		ntpLog.Warn(fmt.Sprint(howtofix))
 		ntpLog.Warn(fmt.Sprint(separator))
-		atomic.AddInt32(&failed, 1)
-		if atomic.LoadInt32(&failed) == ntpChecks {
+		atomic.AddInt32(&chain.failed, 1)
+		if atomic.LoadInt32(&chain.failed) == ntpChecks {
 			ntpLog.Error("System clock seems ERROR")
-			UpdateNtpClockSyncStatus(false)
+			chain.UpdateNtpClockSyncStatus(false)
 		}
 	} else {
-		atomic.StoreInt32(&failed, 0)
-		UpdateNtpClockSyncStatus(true)
+		atomic.StoreInt32(&chain.failed, 0)
+		chain.UpdateNtpClockSyncStatus(true)
 		ntpLog.Info(fmt.Sprintf("Sanity NTP check reported %v drift, all ok", drift))
 	}
 }

@@ -105,9 +105,11 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	if err != nil {
 		panic(err)
 	}
-	exec.grpccli, err = grpcclient.NewMainChainClient("")
-	if err != nil {
-		panic(err)
+	if types.IsPara() {
+		exec.grpccli, err = grpcclient.NewMainChainClient("")
+		if err != nil {
+			panic(err)
+		}
 	}
 	//recv 消息的处理
 	go func() {

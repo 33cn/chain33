@@ -7,6 +7,7 @@ package types
 
 import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/types"
 )
 
 // AccountsResult defines accountsresult command
@@ -84,7 +85,7 @@ type TxDetailResult struct {
 	Amount     string                      `json:"amount"`
 	Fromaddr   string                      `json:"fromaddr"`
 	ActionName string                      `json:"actionname"`
-	Assets     []*rpctypes.Asset           `json:"assets"`
+	Assets     []*types.Asset              `json:"assets"`
 }
 
 // TxDetailsResult defines txdetails result command

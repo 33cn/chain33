@@ -6,7 +6,6 @@ package mavl
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -27,7 +26,6 @@ type MemTreeOpera interface {
 // TreeMap map形式memtree
 type TreeMap struct {
 	mpCache map[interface{}]interface{}
-	lock    sync.RWMutex
 }
 
 // NewTreeMap new mem tree
@@ -39,8 +37,6 @@ func NewTreeMap(size int) *TreeMap {
 
 // Add 添加元素
 func (tm *TreeMap) Add(key, value interface{}) {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
 	if _, ok := tm.mpCache[key]; ok {
 		delete(tm.mpCache, key)
 		return
@@ -50,8 +46,6 @@ func (tm *TreeMap) Add(key, value interface{}) {
 
 // Get 获取元素
 func (tm *TreeMap) Get(key interface{}) (value interface{}, ok bool) {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
 	if value, ok := tm.mpCache[key]; ok {
 		return value, ok
 	}
@@ -60,8 +54,6 @@ func (tm *TreeMap) Get(key interface{}) (value interface{}, ok bool) {
 
 // Delete 删除元素
 func (tm *TreeMap) Delete(key interface{}) {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
 	if _, ok := tm.mpCache[key]; ok {
 		delete(tm.mpCache, key)
 	}
@@ -69,8 +61,6 @@ func (tm *TreeMap) Delete(key interface{}) {
 
 // Contains 查看是否包含元素
 func (tm *TreeMap) Contains(key interface{}) bool {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
 	if _, ok := tm.mpCache[key]; ok {
 		return true
 	}
@@ -79,8 +69,6 @@ func (tm *TreeMap) Contains(key interface{}) bool {
 
 // Len 元素长度
 func (tm *TreeMap) Len() int {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
 	return len(tm.mpCache)
 }
 
