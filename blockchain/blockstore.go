@@ -22,7 +22,6 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-//var
 var (
 	blockLastHeight             = []byte("blockLastHeight")
 	bodyPerfix                  = []byte("Body:")
