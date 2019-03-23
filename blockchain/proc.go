@@ -61,7 +61,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventIsSync:
 			go chain.processMsg(msg, reqnum, chain.isSync)
 		case types.EventIsNtpClockSync:
-			go chain.processMsg(msg, reqnum, chain.isNtpClockSync)
+			go chain.processMsg(msg, reqnum, chain.isNtpClockSyncFunc)
 		case types.EventGetLastBlockSequence:
 			go chain.processMsg(msg, reqnum, chain.getLastBlockSequence)
 
@@ -161,8 +161,7 @@ func (chain *BlockChain) addBlock(msg *queue.Message) {
 	reply.IsOk = true
 	blockpid := msg.Data.(*types.BlockPid)
 	//chainlog.Error("addBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid)
-	if GetDownloadSyncStatus() {
-
+	if chain.GetDownloadSyncStatus() {
 		err := chain.WriteBlockToDbTemp(blockpid.Block)
 		if err != nil {
 			chainlog.Error("WriteBlockToDbTemp", "height", blockpid.Block.Height, "err", err.Error())
@@ -367,8 +366,8 @@ func (chain *BlockChain) getLastBlock(msg *queue.Message) {
 	}
 }
 
-func (chain *BlockChain) isNtpClockSync(msg *queue.Message) {
-	ok := GetNtpClockSyncStatus()
+func (chain *BlockChain) isNtpClockSyncFunc(msg *queue.Message) {
+	ok := chain.GetNtpClockSyncStatus()
 	msg.Reply(chain.client.NewMessage("", types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{Isntpclocksync: ok}))
 }
 
