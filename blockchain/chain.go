@@ -100,7 +100,6 @@ type BlockChain struct {
 	isParaChain           bool //是否是平行链。平行链需要记录Sequence信息
 	isStrongConsistency   bool
 	//lock
-	cachelock           sync.Mutex
 	synBlocklock        sync.Mutex
 	peerMaxBlklock      sync.Mutex
 	castlock            sync.Mutex
