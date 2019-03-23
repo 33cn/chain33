@@ -18,7 +18,7 @@ PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "mocks"`
 PKG_LIST_VET := `go list ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15"`
 PKG_LIST_INEFFASSIGN= `go list -f {{.Dir}} ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15" | grep -v "common/ed25519"`
 PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "mocks"`
-PKG_LIST_GOSEC := `go list ./... | grep -v "vendor" | grep -v "mocks" | grep -v "cmd" | grep -v "types" | grep -v "commands" | grep -v "log15" | grep -v "ed25519" | grep -v "crypto"`
+PKG_LIST_GOSEC := `go list -f "${GOPATH}/src/{{.ImportPath}}" ./... | grep -v "vendor" | grep -v "mocks" | grep -v "cmd" | grep -v "types" | grep -v "commands" | grep -v "log15" | grep -v "ed25519" | grep -v "crypto"`
 BUILD_FLAGS = -ldflags "-X github.com/33cn/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
