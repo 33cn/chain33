@@ -172,54 +172,6 @@ func TestChannelClient_CreateRawTransaction(t *testing.T) {
 	testCreateRawTransactionCoinWithdraw(t)
 }
 
-func testSendRawTransactionNil(t *testing.T) {
-	client := newTestChannelClient()
-	_, err := client.SendRawTransaction(nil)
-	assert.Equal(t, types.ErrInvalidParam, err)
-}
-
-func testSendRawTransactionErr(t *testing.T) {
-	var param = types.SignedTx{
-		Unsign: []byte("123"),
-		Sign:   []byte("123"),
-		Pubkey: []byte("123"),
-		Ty:     1,
-	}
-
-	client := newTestChannelClient()
-	_, err := client.SendRawTransaction(&param)
-	assert.NotEmpty(t, err)
-}
-
-func testSendRawTransactionOk(t *testing.T) {
-	transfer := &types.Transaction{
-		Execer: []byte(types.ExecName("ticket")),
-	}
-	payload := types.Encode(transfer)
-
-	api := new(mocks.QueueProtocolAPI)
-	client := &channelClient{
-		QueueProtocolAPI: api,
-	}
-	api.On("SendTx", mock.Anything).Return(nil, nil)
-
-	var param = types.SignedTx{
-		Unsign: payload,
-		Sign:   []byte("123"),
-		Pubkey: []byte("123"),
-		Ty:     1,
-	}
-
-	_, err := client.SendRawTransaction(&param)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_SendRawTransaction(t *testing.T) {
-	testSendRawTransactionNil(t)
-	testSendRawTransactionOk(t)
-	testSendRawTransactionErr(t)
-}
-
 func testChannelClientGetAddrOverviewNil(t *testing.T) {
 	parm := &types.ReqAddr{
 		Addr: "abcde",

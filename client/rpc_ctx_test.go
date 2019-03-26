@@ -114,12 +114,6 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.UnsignTx) = *reply
 		}
 		errRet = err
-	case "SendRawTransaction":
-		reply, err := rpc.SendRawTransaction(context.Background(), c.Params.(*types.SignedTx))
-		if err == nil {
-			*c.Res.(*types.Reply) = *reply
-		}
-		errRet = err
 	case "QueryTransaction":
 		reply, err := rpc.QueryTransaction(context.Background(), c.Params.(*types.ReqHash))
 		if err == nil {

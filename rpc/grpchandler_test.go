@@ -988,17 +988,6 @@ func TestGetLastHeader(t *testing.T) {
 //	testCreateRawTransactionOk(t)
 //}
 
-//func testSendRawTransactionReject(t *testing.T) {
-//	var in *pb.SignedTx
-//
-//	_, err := g.SendRawTransaction(getNokCtx(), in)
-//	assert.EqualError(t, err, "reject", "the erros should be reject")
-//}
-
-//func TestSendRawTransaction(t *testing.T) {
-//	testSendRawTransactionReject(t)
-//}
-
 //func testQueryTransactionReject(t *testing.T) {
 //	var in *pb.ReqHash
 //
@@ -1100,24 +1089,6 @@ func TestGrpc_CreateTransaction(t *testing.T) {
 func TestGrpc_CreateRawTxGroup(t *testing.T) {
 	_, err := g.CreateRawTxGroup(getOkCtx(), &pb.CreateTransactionGroup{})
 	assert.Equal(t, types.ErrTxGroupCountLessThanTwo, err)
-}
-
-func TestGrpc_SendRawTransaction(t *testing.T) {
-	transfer := &types.Transaction{
-		Execer: []byte(types.ExecName("ticket")),
-	}
-	payload := types.Encode(transfer)
-
-	qapi.On("SendTx", mock.Anything).Return(nil, nil)
-
-	var param = &types.SignedTx{
-		Unsign: payload,
-		Sign:   []byte("123"),
-		Pubkey: []byte("123"),
-		Ty:     1,
-	}
-	_, err := g.SendRawTransaction(getOkCtx(), param)
-	assert.NoError(t, err)
 }
 
 func TestGrpc_GetAddrOverview(t *testing.T) {

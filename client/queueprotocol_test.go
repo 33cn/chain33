@@ -819,7 +819,6 @@ func TestGRPC(t *testing.T) {
 	testGetBlocksGRPC(t, &grpcMock)
 	testGetLastHeaderGRPC(t, &grpcMock)
 	testCreateRawTransactionGRPC(t, &grpcMock)
-	testSendRawTransactionGRPC(t, &grpcMock)
 	testQueryTransactionGRPC(t, &grpcMock)
 	testSendTransactionGRPC(t, &grpcMock)
 	testGetTransactionByAddrGRPC(t, &grpcMock)
@@ -1129,14 +1128,6 @@ func testQueryTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	err := rpc.newRpcCtx("QueryTransaction", &types.ReqHash{}, &res)
 	if err != nil {
 		t.Error("Call QueryTransaction Failed.", err)
-	}
-}
-
-func testSendRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Reply
-	err := rpc.newRpcCtx("SendRawTransaction", &types.SignedTx{}, &res)
-	if err != nil {
-		t.Error("Call SendRawTransaction Failed.", err)
 	}
 }
 
