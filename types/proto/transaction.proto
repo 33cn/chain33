@@ -76,7 +76,6 @@ message NoBalanceTx {
     string expire  = 4;
 }
 
-
 message Transaction {
     bytes     execer    = 1;
     bytes     payload   = 2;
