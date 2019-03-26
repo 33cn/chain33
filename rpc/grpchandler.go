@@ -80,11 +80,6 @@ func (g *Grpc) CreateRawTxGroup(ctx context.Context, in *pb.CreateTransactionGro
 	return &pb.UnsignTx{Data: reply}, nil
 }
 
-// SendRawTransaction send rawtransaction
-func (g *Grpc) SendRawTransaction(ctx context.Context, in *pb.SignedTx) (*pb.Reply, error) {
-	return g.cli.SendRawTransaction(in)
-}
-
 // QueryTransaction query transaction by grpc
 func (g *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.TransactionDetail, error) {
 	return g.cli.QueryTx(in)

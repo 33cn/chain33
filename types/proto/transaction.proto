@@ -76,12 +76,6 @@ message NoBalanceTx {
     string expire  = 4;
 }
 
-message SignedTx {
-    bytes unsign = 1;
-    bytes sign   = 2;
-    bytes pubkey = 3;
-    int32 ty     = 4;
-}
 
 message Transaction {
     bytes     execer    = 1;

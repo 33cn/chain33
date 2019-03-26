@@ -160,26 +160,6 @@ func decodeTx(hexstr string) (*types.Transaction, error) {
 	return &tx, nil
 }
 
-// SendRawTransaction send rawtransaction by p2p
-func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("SendRawTransaction", "Error", err)
-		return nil, err
-	}
-	var tx types.Transaction
-	err := types.Decode(param.GetUnsign(), &tx)
-	if err == nil {
-		tx.Signature = &types.Signature{
-			Ty:        param.GetTy(),
-			Pubkey:    param.GetPubkey(),
-			Signature: param.GetSign(),
-		}
-		return c.SendTx(&tx)
-	}
-	return nil, err
-}
-
 // GetAddrOverview get overview of address
 func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
 	err := address.CheckAddress(parm.Addr)
