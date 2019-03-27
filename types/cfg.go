@@ -81,6 +81,8 @@ type Consensus struct {
 	Genesis     string `protobuf:"bytes,4,opt,name=genesis" json:"genesis,omitempty"`
 	HotkeyAddr  string `protobuf:"bytes,5,opt,name=hotkeyAddr" json:"hotkeyAddr,omitempty"`
 	ForceMining bool   `protobuf:"varint,6,opt,name=forceMining" json:"forceMining,omitempty"`
+	// 配置挖矿的合约名单
+	MinerExecs []string `protobuf:"bytes,7,rep,name=minerExecs" json:"minerExecs,omitempty"`
 }
 
 // Wallet 配置

@@ -223,16 +223,15 @@ func (acc *DB) ExecAddress(name string) string {
 	return address.ExecAddress(name)
 }
 
-// ExecDepositFrozen 执行
+// ExecDepositFrozen 执行增发coins
 func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
 	//这个函数只有挖矿的合约才能调用
-	list := types.AllowDepositExec
 	allow := false
-	for _, exec := range list {
-		if acc.ExecAddress(string(exec)) == execaddr {
+	for _, exec := range types.GetMinerExecs() {
+		if acc.ExecAddress(exec) == execaddr {
 			allow = true
 			break
 		}
