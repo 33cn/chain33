@@ -20,15 +20,15 @@ import (
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowUserExec = [][]byte{ExecerNone}
-	//AllowDepositExec 这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
-	AllowDepositExec = [][]byte{[]byte("ticket")}
-	EmptyValue       = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	title            string
-	mu               sync.Mutex
-	titles           = map[string]bool{}
-	chainConfig      = make(map[string]interface{})
-	mver             = make(map[string]*mversion)
-	coinSymbol       = "bty"
+	//挖矿的合约名单，适配旧配置，默认ticket
+	minerExecs  = []string{"ticket"}
+	EmptyValue  = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	title       string
+	mu          sync.Mutex
+	titles      = map[string]bool{}
+	chainConfig = make(map[string]interface{})
+	mver        = make(map[string]*mversion)
+	coinSymbol  = "bty"
 )
 
 // coin conversation
@@ -91,6 +91,17 @@ func GetP(height int64) *ChainParam {
 	c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
 	c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
 	return c
+}
+
+// GetMinerExecs 获取挖矿的合约名单
+func GetMinerExecs() []string {
+	return minerExecs
+}
+
+func setMinerExecs(execs []string) {
+	if len(execs) > 0 {
+		minerExecs = execs
+	}
 }
 
 // GetFundAddr 获取基金账户地址
@@ -260,6 +271,7 @@ func Init(t string, cfg *Config) {
 		if cfg.Exec.MaxExecFee < cfg.Mempool.MaxTxFee {
 			panic("config must meet: mempool.maxTxFee <= exec.maxExecFee")
 		}
+		setMinerExecs(cfg.Consensus.MinerExecs)
 		setMinFee(cfg.Exec.MinExecFee)
 		setChainConfig("FixTime", cfg.FixTime)
 		if cfg.Exec.MaxExecFee > 0 {
