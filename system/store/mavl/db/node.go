@@ -218,6 +218,9 @@ func (node *Node) Hash(t *Tree) []byte {
 		}
 	}
 
+	if enableMemTree {
+		updateLocalMemTree(t, node)
+	}
 	return node.hash
 }
 

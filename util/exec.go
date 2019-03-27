@@ -93,6 +93,41 @@ func ExecKVSetCommit(client queue.Client, hash []byte) error {
 	return nil
 }
 
+//ExecKVMemSetEx : send kv values to memory store and set it in db
+func ExecKVMemSetEx(client queue.Client, prevStateRoot []byte, height int64, kvset []*types.KeyValue, sync bool) ([]byte, error) {
+	set := &types.StoreSet{StateHash: prevStateRoot, KV: kvset, Height: height}
+	setwithsync := &types.StoreSetWithSync{Storeset: set, Sync: sync}
+
+	msg := client.NewMessage("store", types.EventStoreMemSetEx, setwithsync)
+	err := client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	hash := resp.GetData().(*types.ReplyHash)
+	return hash.GetHash(), nil
+}
+
+//ExecKVSetCommitEx : commit the data set opetation to db
+func ExecKVSetCommitEx(client queue.Client, hash []byte) error {
+	req := &types.ReqHash{Hash: hash}
+	msg := client.NewMessage("store", types.EventStoreCommitEx, req)
+	err := client.Send(msg, true)
+	if err != nil {
+		return err
+	}
+	msg, err = client.Wait(msg)
+	if err != nil {
+		return err
+	}
+	hash = msg.GetData().(*types.ReplyHash).GetHash()
+	_ = hash
+	return nil
+}
+
 //ExecKVSetRollback : do the db's roll back operation
 func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}

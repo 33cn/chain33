@@ -90,6 +90,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetSeqCBLastNum:
 			go chain.processMsg(msg, reqnum, chain.getSeqCBLastNum)
+		case types.EventReExecBlock:
+			go chain.processMsg(msg, reqnum, chain.reExecBlock)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -131,6 +133,17 @@ func (chain *BlockChain) getSeqCBLastNum(msg *queue.Message) {
 	num := chain.ProcGetSeqCBLastNum(data.Data)
 	lastNum := &types.Int64{Data: num}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqCBLastNum, lastNum))
+}
+
+func (chain *BlockChain) reExecBlock(msg *queue.Message) {
+	data := (msg.Data).(*types.ReqInt)
+	curHeight := chain.GetBlockHeight()
+	if curHeight < data.Height {
+		msg.Reply(chain.client.NewMessage("store", types.EventReExecBlock, &types.ReplyString{Data: "none"}))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("store", types.EventReExecBlock, &types.ReplyString{Data: "need"}))
+	chain.ProcessReExecBlock(data.Height, curHeight)
 }
 
 func (chain *BlockChain) queryTx(msg *queue.Message) {
