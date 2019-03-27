@@ -350,6 +350,53 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	return &detail, deltx, nil
 }
 
+// ExecBlockEx : just exec block
+func ExecBlockEx(client queue.Client, prevStateRoot []byte, block *types.Block, sync bool) error {
+	//发送执行交易给execs模块
+	//通过consensus module 再次检查
+	ulog.Debug("ExecBlockEx", "height------->", block.Height, "ntx", len(block.Txs))
+	beg := types.Now()
+	beg1 := beg
+	defer func() {
+		ulog.Info("ExecBlockEx", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg1))
+	}()
+
+	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
+	cacheTxs := types.TxsToCache(block.Txs)
+	var err error
+	block.Txs = types.CacheToTxs(cacheTxs)
+	//println("1")
+	receipts, err := ExecTx(client, prevStateRoot, block)
+	if err != nil {
+		return err
+	}
+	ulog.Info("ExecBlockEx", "ExecTx", types.Since(beg))
+	beg = types.Now()
+	var kvset []*types.KeyValue
+	for i := 0; i < len(receipts.Receipts); i++ {
+		receipt := receipts.Receipts[i]
+		if receipt.Ty == types.ExecErr {
+			ulog.Error("exec tx err", "err", receipt)
+			//认为这个是一个错误的区块
+			return types.ErrBlockExec
+		}
+		kvset = append(kvset, receipt.KV...)
+	}
+	kvset = DelDupKey(kvset)
+	calcHash, err := ExecKVMemSetEx(client, prevStateRoot, block.Height, kvset, sync)
+	if err != nil {
+		return err
+	}
+	//println("2")
+	if !bytes.Equal(block.StateHash, calcHash) {
+		return types.ErrCheckStateHash
+	}
+	ulog.Info("ExecBlockEx", "CheckBlock", types.Since(beg))
+	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
+	err = ExecKVSetCommitEx(client, calcHash)
+	return err
+}
+
 //CreateNewBlock : Create a New Block
 func CreateNewBlock(parent *types.Block, txs []*types.Transaction) *types.Block {
 	newblock := &types.Block{}

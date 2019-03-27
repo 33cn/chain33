@@ -14,3 +14,8 @@ import (
 func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
 	return util.ExecBlock(client, prevStateRoot, block, errReturn, sync, true)
 }
+
+//从本地执行区块
+func execBlockEx(client queue.Client, prevStateRoot []byte, block *types.Block, sync bool) error {
+	return util.ExecBlockEx(client, prevStateRoot, block, sync)
+}
