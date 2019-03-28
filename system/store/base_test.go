@@ -36,11 +36,11 @@ func (s *storeChild) Commit(hash *types.ReqHash) ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (s *storeChild) MemSetEx(datas *types.StoreSet, sync bool) ([]byte, error) {
+func (s *storeChild) MemSetUpgrade(datas *types.StoreSet, sync bool) ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (s *storeChild) CommitEx(req *types.ReqHash) ([]byte, error) {
+func (s *storeChild) CommitUpgrade(req *types.ReqHash) ([]byte, error) {
 	return []byte{}, nil
 }
 
