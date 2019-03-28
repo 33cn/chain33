@@ -127,6 +127,7 @@ func TestBlockChain(t *testing.T) {
 	testCheckBlock(t, blockchain)
 	testWriteBlockToDbTemp(t, blockchain)
 	testReadBlockToExec(t, blockchain)
+	testReExecBlock(t, blockchain)
 }
 
 func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
@@ -1108,4 +1109,11 @@ func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
 		t.Error("testWriteBlockToDbTemp", "err", err)
 	}
 	chainlog.Info("WriteBlockToDbTemp end ---------------------")
+}
+
+func testReExecBlock(t *testing.T, chain *blockchain.BlockChain) {
+	chainlog.Info("ReExecBlock begin ---------------------")
+	curheight := chain.GetBlockHeight()
+	chain.ProcessReExecBlock(0, curheight)
+	chainlog.Info("ReExecBlock end ---------------------")
 }

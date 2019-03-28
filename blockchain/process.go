@@ -617,7 +617,7 @@ func (b *BlockChain) ProcessReExecBlock(startHeight, curHeight int64) {
 			panic(fmt.Sprintf("get height=%d err, this not allow fail", i))
 		}
 		block := blockdetail.Block
-		err = execBlockEx(b.client, prevStateHash, block, false)
+		err = execBlockUpgrade(b.client, prevStateHash, block, false)
 		if err != nil {
 			panic(fmt.Sprintf("execBlockEx height=%d err=%s, this not allow fail", i, err.Error()))
 		}
