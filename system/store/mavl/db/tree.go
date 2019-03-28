@@ -14,6 +14,7 @@ import (
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
+	ty "github.com/33cn/chain33/system/store/mavl/db/types"
 	"github.com/33cn/chain33/types"
 	farm "github.com/dgryski/go-farm"
 	"github.com/golang/protobuf/proto"
@@ -574,6 +575,13 @@ func updateGlobalMemTree(node *Node) {
 		Size:   node.size,
 	}
 	if node.height == 0 {
+		if bytes.HasPrefix(node.key, ty.TicketPrefix) {
+			ticket := &ty.Ticket{}
+			err := proto.Unmarshal(node.value, ticket)
+			if err == nil && ticket.Status == ty.StatusCloseTicket { //ticket为close状态下不做存储
+				return
+			}
+		}
 		memN.data = make([][]byte, 4)
 		memN.data[3] = node.value
 	} else {
@@ -599,6 +607,13 @@ func updateLocalMemTree(t *Tree, node *Node) {
 			Size:   node.size,
 		}
 		if node.height == 0 {
+			if bytes.HasPrefix(node.key, ty.TicketPrefix) {
+				ticket := &ty.Ticket{}
+				err := proto.Unmarshal(node.value, ticket)
+				if err == nil && ticket.Status == ty.StatusCloseTicket { //ticket为close状态下不做存储
+					return
+				}
+			}
 			memN.data = make([][]byte, 4)
 			memN.data[3] = node.value
 		} else {
