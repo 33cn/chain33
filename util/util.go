@@ -354,11 +354,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Block, sync bool) error {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
-	ulog.Debug("ExecBlockEx", "height------->", block.Height, "ntx", len(block.Txs))
+	ulog.Debug("ExecBlockUpgrade", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := types.Now()
 	beg1 := beg
 	defer func() {
-		ulog.Info("ExecBlockEx", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg1))
+		ulog.Info("ExecBlockUpgrade", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg1))
 	}()
 
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
@@ -370,7 +370,7 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 	if err != nil {
 		return err
 	}
-	ulog.Info("ExecBlockEx", "ExecTx", types.Since(beg))
+	ulog.Info("ExecBlockUpgrade", "ExecTx", types.Since(beg))
 	beg = types.Now()
 	var kvset []*types.KeyValue
 	for i := 0; i < len(receipts.Receipts); i++ {
@@ -391,7 +391,7 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 	if !bytes.Equal(block.StateHash, calcHash) {
 		return types.ErrCheckStateHash
 	}
-	ulog.Info("ExecBlockEx", "CheckBlock", types.Since(beg))
+	ulog.Info("ExecBlockUpgrade", "CheckBlock", types.Since(beg))
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
 	err = ExecKVSetCommit(client, calcHash, true)
 	return err

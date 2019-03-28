@@ -278,6 +278,18 @@ func TestExecBlock(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestExecBlockUpgrade(t *testing.T) {
+	client := &testClient{}
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	var txs []*types.Transaction
+	addr, priv := Genaddress()
+	tx := CreateCoinsTx(priv, addr, types.Coin)
+	tx.Sign(types.SECP256K1, priv)
+	txs = append(txs, tx)
+	err := ExecBlockUpgrade(client, nil, &types.Block{Txs: txs}, false)
+	assert.Error(t, err, types.ErrBlockExec)
+}
+
 func TestExecAndCheckBlock(t *testing.T) {
 	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
