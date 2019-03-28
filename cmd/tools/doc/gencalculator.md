@@ -11,55 +11,54 @@ calculator合约支持在区块链上进行整数加减乘除交易操作，同�
 syntax = "proto3";
 
 package calculator;
-//calculator 合约交易行为总类型
+// calculator 合约交易行为总类型
 message CalculatorAction {
     oneof value {
-        Add         add = 1;
-        Subtract    sub  = 2;
-        Multiply    mul = 3;
-        Divide      div = 4;
-
+        Add      add = 1;
+        Subtract sub = 2;
+        Multiply mul = 3;
+        Divide   div = 4;
     }
     int32 ty = 5;
 }
 
-message Add {   //加法action类型
-    int32 summand = 1;  //被加数
-    int32 addend = 2;   //加数
+message Add {
+    int32 summand = 1; //被加数
+    int32 addend  = 2; //加数
 }
-message AddLog {    //加法log类型
-    int32 sum = 1;  //和
+message AddLog {
+    int32 sum = 1; //和
 }
 
 message Subtract {
-    int32 minuend = 1;  //被减数
-    int32 subtrahend = 2;   //减数
+    int32 minuend    = 1; //被减数
+    int32 subtrahend = 2; //减数
 }
 message SubLog {
-    int32 remainder = 1;    //差
+    int32 remainder = 1; //差
 }
 
 message Multiply {
-    int32 faciend = 1;  //被乘数
-    int32 multiplier = 2;   //乘数
+    int32 faciend    = 1; //被乘数
+    int32 multiplier = 2; //乘数
 }
 message MultiplyLog {
-    int32 product = 1;  //积
+    int32 product = 1; //积
 }
 
 message Divide {
     int32 dividend = 1; //被除数
-    int32 divisor = 2;  //除数
+    int32 divisor  = 2; //除数
 }
 message DivideLog {
     int32 quotient = 1; //商
-    int32 remain = 2;   //余数
+    int32 remain   = 2; //余数
 }
 
-message ReqQueryCalcCount { //查询计算次数请求结构
+message ReqQueryCalcCount {
     string action = 1;
 }
-message ReplyQueryCalcCount {   //查询计算次数响应结构
+message ReplyQueryCalcCount {
     int32 count = 1;
 }
 
@@ -78,7 +77,7 @@ service calculator {
 
 ### 代码生成
 ##### 生成基本代码
->使用chain33-tool，工具使用参考[文档]([开发步骤](https://github.com/33cn/chain33/blob/master/cmd/tools/doc/gendapp.md))
+>使用chain33-tool，工具使用参考[文档](https://github.com/33cn/chain33/blob/master/cmd/tools/doc/gendapp.md)
 ```
 //本例默认将calculator生成至官方plugin项目dapp目录下
 $ chain33-tool gendapp -n calculator -p calculator.proto
