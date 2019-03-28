@@ -151,9 +151,7 @@ const (
 	EventGetProperFee   = 140
 	EventReplyProperFee = 141
 
-	EventReExecBlock   = 150
-	EventStoreMemSetEx = 151
-	EventStoreCommitEx = 152
+	EventReExecBlock = 142
 
 	//exec
 	EventBlockChainQuery = 212

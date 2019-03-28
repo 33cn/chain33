@@ -16,6 +16,6 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 }
 
 //从本地执行区块
-func execBlockEx(client queue.Client, prevStateRoot []byte, block *types.Block, sync bool) error {
-	return util.ExecBlockEx(client, prevStateRoot, block, sync)
+func execBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Block, sync bool) error {
+	return util.ExecBlockUpgrade(client, prevStateRoot, block, sync)
 }

@@ -71,6 +71,7 @@ message StoreDel {
 message StoreSetWithSync {
     StoreSet storeset = 1;
     bool     sync     = 2;
+    bool     upgrade  = 3;
 }
 
 message StoreGet {

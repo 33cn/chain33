@@ -50,9 +50,9 @@ type SubStore interface {
 	IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool)
 	ProcEvent(msg *queue.Message)
 
-	//用本地交易构建store
-	MemSetEx(datas *types.StoreSet, sync bool) ([]byte, error)
-	CommitEx(hash *types.ReqHash) ([]byte, error)
+	//用升级本地交易构建store
+	MemSetUpgrade(datas *types.StoreSet, sync bool) ([]byte, error)
+	CommitUpgrade(hash *types.ReqHash) ([]byte, error)
 }
 
 // BaseStore 基础的store结构体
@@ -115,7 +115,13 @@ func (store *BaseStore) processMessage(msg *queue.Message) {
 	} else if msg.Ty == types.EventStoreMemSet { //只是在内存中set 一下，并不改变状态
 		go func() {
 			datas := msg.GetData().(*types.StoreSetWithSync)
-			hash, err := store.child.MemSet(datas.Storeset, datas.Sync)
+			var hash []byte
+			var err error
+			if datas.Upgrade {
+				hash, err = store.child.MemSetUpgrade(datas.Storeset, datas.Sync)
+			} else {
+				hash, err = store.child.MemSet(datas.Storeset, datas.Sync)
+			}
 			if err != nil {
 				msg.Reply(client.NewMessage("", types.EventStoreSetReply, err))
 				return
@@ -125,7 +131,13 @@ func (store *BaseStore) processMessage(msg *queue.Message) {
 	} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
 		go func() {
 			req := msg.GetData().(*types.ReqHash)
-			hash, err := store.child.Commit(req)
+			var hash []byte
+			var err error
+			if req.Upgrade {
+				hash, err = store.child.CommitUpgrade(req)
+			} else {
+				hash, err = store.child.Commit(req)
+			}
 			if hash == nil {
 				msg.Reply(client.NewMessage("", types.EventStoreCommit, types.ErrHashNotFound))
 				if err == types.ErrDataBaseDamage { //如果是数据库写失败，需要上报给用户
@@ -168,29 +180,6 @@ func (store *BaseStore) processMessage(msg *queue.Message) {
 			req := msg.GetData().(*types.StoreList)
 			query := NewStoreListQuery(store.child, req)
 			msg.Reply(client.NewMessage("", types.EventStoreListReply, query.Run()))
-		}()
-	} else if msg.Ty == types.EventStoreMemSetEx { //只是在内存中set 一下，并不改变状态
-		go func() {
-			datas := msg.GetData().(*types.StoreSetWithSync)
-			hash, err := store.child.MemSetEx(datas.Storeset, datas.Sync)
-			if err != nil {
-				msg.Reply(client.NewMessage("", types.EventStoreMemSetEx, err))
-				return
-			}
-			msg.Reply(client.NewMessage("", types.EventStoreMemSetEx, &types.ReplyHash{Hash: hash}))
-		}()
-	} else if msg.Ty == types.EventStoreCommitEx { //把内存中set 的交易 commit
-		go func() {
-			req := msg.GetData().(*types.ReqHash)
-			hash, err := store.child.CommitEx(req)
-			if hash == nil {
-				msg.Reply(client.NewMessage("", types.EventStoreCommitEx, types.ErrHashNotFound))
-				if err == types.ErrDataBaseDamage { //如果是数据库写失败，需要上报给用户
-					go util.ReportErrEventToFront(slog, client, "store", "wallet", err)
-				}
-			} else {
-				msg.Reply(client.NewMessage("", types.EventStoreCommitEx, &types.ReplyHash{Hash: hash}))
-			}
 		}()
 	} else {
 		go store.child.ProcEvent(msg)

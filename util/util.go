@@ -312,7 +312,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	beg = types.Now()
 	block.TxHash = calcHash
 	var detail types.BlockDetail
-	calcHash, err = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+	calcHash, err = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -341,7 +341,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 	ulog.Info("ExecBlock", "CheckBlock", types.Since(beg))
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
-	err = ExecKVSetCommit(client, block.StateHash)
+	err = ExecKVSetCommit(client, block.StateHash, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -350,8 +350,8 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	return &detail, deltx, nil
 }
 
-// ExecBlockEx : just exec block
-func ExecBlockEx(client queue.Client, prevStateRoot []byte, block *types.Block, sync bool) error {
+// ExecBlockUpgrade : just exec block
+func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Block, sync bool) error {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	ulog.Debug("ExecBlockEx", "height------->", block.Height, "ntx", len(block.Txs))
@@ -383,7 +383,7 @@ func ExecBlockEx(client queue.Client, prevStateRoot []byte, block *types.Block, 
 		kvset = append(kvset, receipt.KV...)
 	}
 	kvset = DelDupKey(kvset)
-	calcHash, err := ExecKVMemSetEx(client, prevStateRoot, block.Height, kvset, sync)
+	calcHash, err := ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync, true)
 	if err != nil {
 		return err
 	}
@@ -393,7 +393,7 @@ func ExecBlockEx(client queue.Client, prevStateRoot []byte, block *types.Block, 
 	}
 	ulog.Info("ExecBlockEx", "CheckBlock", types.Since(beg))
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
-	err = ExecKVSetCommitEx(client, calcHash)
+	err = ExecKVSetCommit(client, calcHash, true)
 	return err
 }
 
