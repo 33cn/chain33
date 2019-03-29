@@ -1122,7 +1122,7 @@ func testReExecBlock(t *testing.T, chain *blockchain.BlockChain) {
 func testReExecBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, chain *blockchain.BlockChain) {
 	var err error
 	client := mock33.GetClient()
-	msg1 := client.NewMessage("blockchain", types.EventReExecBlock, &types.ReqInt{Height: 0})
+	msg1 := client.NewMessage("blockchain", types.EventReExecBlock, &types.ReqInt{Height: 8})
 	err = client.Send(msg1, true)
 	require.NoError(t, err)
 	_, err = client.Wait(msg1)
