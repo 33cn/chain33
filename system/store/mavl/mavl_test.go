@@ -14,6 +14,7 @@ import (
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/store"
 	mavldb "github.com/33cn/chain33/system/store/mavl/db"
 	"github.com/33cn/chain33/types"
@@ -116,6 +117,35 @@ func TestKvdbMemSet(t *testing.T) {
 	assert.Nil(t, notExistHash)
 }
 
+func TestKvdbMemSetUpgrade(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var storeCfg = newStoreCfg(dir)
+	store := New(storeCfg, nil).(*Store)
+	assert.NotNil(t, store)
+
+	var kv []*types.KeyValue
+	kv = append(kv, &types.KeyValue{Key: []byte("mk1"), Value: []byte("v1")})
+	kv = append(kv, &types.KeyValue{Key: []byte("mk2"), Value: []byte("v2")})
+	datas := &types.StoreSet{
+		StateHash: drivers.EmptyRoot[:],
+		KV:        kv,
+	}
+	hash, err := store.MemSetUpgrade(datas, true)
+	assert.Nil(t, err)
+	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
+	get1 := &types.StoreGet{StateHash: hash, Keys: keys}
+
+	values := store.Get(get1)
+	assert.Len(t, values, 2)
+
+	hash1, err := store.CommitUpgrade(&types.ReqHash{Hash: hash})
+	assert.Nil(t, err)
+	assert.Equal(t, hash, hash1)
+}
+
 func TestKvdbRollback(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
@@ -144,6 +174,31 @@ func TestKvdbRollback(t *testing.T) {
 
 	notExistHash, _ := store.Rollback(&types.ReqHash{Hash: drivers.EmptyRoot[:]})
 	assert.Nil(t, notExistHash)
+}
+
+func TestProcEvent(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var storeCfg = newStoreCfg(dir)
+	store := New(storeCfg, nil).(*Store)
+	assert.NotNil(t, store)
+
+	store.ProcEvent(nil)
+	store.ProcEvent(&queue.Message{})
+}
+
+func TestDel(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var storeCfg = newStoreCfg(dir)
+	store := New(storeCfg, nil).(*Store)
+	assert.NotNil(t, store)
+
+	store.Del(nil)
 }
 
 var checkKVResult []*types.KeyValue
