@@ -32,18 +32,6 @@ func New(name string) Strategy {
 				params: make(map[string]string),
 			},
 		}
-	case types.KeyCreateSimpleExecProject:
-		return &simpleCreateExecProjStrategy{
-			strategyBasic: strategyBasic{
-				params: make(map[string]string),
-			},
-		}
-	case types.KeyCreateAdvanceExecProject:
-		return &advanceCreateExecProjStrategy{
-			strategyBasic: strategyBasic{
-				params: make(map[string]string),
-			},
-		}
 	case types.KeyUpdateInit:
 		return &updateInitStrategy{
 			strategyBasic: strategyBasic{
