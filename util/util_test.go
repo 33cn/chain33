@@ -287,7 +287,7 @@ func TestExecBlockUpgrade(t *testing.T) {
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 	err := ExecBlockUpgrade(client, nil, &types.Block{Txs: txs}, false)
-	assert.Error(t, err, types.ErrBlockExec)
+	assert.NoError(t, err)
 }
 
 func TestExecAndCheckBlock(t *testing.T) {
