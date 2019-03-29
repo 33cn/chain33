@@ -82,6 +82,11 @@ func (bc *BaseClient) GetAPI() client.QueueProtocolAPI {
 	return bc.api
 }
 
+//SetAPI 获取api
+func (bc *BaseClient) SetAPI(api client.QueueProtocolAPI) {
+	bc.api = api
+}
+
 //InitClient 初始化
 func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	log.Info("Enter SetQueueClient method of consensus")
