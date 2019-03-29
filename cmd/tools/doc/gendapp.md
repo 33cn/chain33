@@ -40,7 +40,7 @@ $ chain33-tool gendapp -n demo -p ./demo.proto -o github.com/33cn/chain33/plugin
 ### proto规范
 * 定义合约交易行为结构，采用**oneof value**形式，且名称必须为**NameAction**格式，
 如demo合约，定义echo和hello两种交易行为
-```
+```proto
 message DemoAction {
     oneof value {
         DemoHello hello = 1;
@@ -50,12 +50,12 @@ message DemoAction {
 }
 ``` 
 * package name设为合约名，适配后续生成目录结构
-```
+```proto
 package demo;
 ```
 
 * 定义service，直接以合约名作为名称
-```
+```proto
 service demo {
 }
 ```
