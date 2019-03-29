@@ -338,6 +338,29 @@ func (_m *QueueProtocolAPI) GetFatalFailure() (*types.Int32, error) {
 	return r0, r1
 }
 
+// GetForwardDelBlock provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetForwardDelBlock(param *types.ReqHash) (*types.BlockSeq, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.BlockSeq
+	if rf, ok := ret.Get(0).(func(*types.ReqHash) *types.BlockSeq); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.BlockSeq)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqHash) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetHeaders provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetHeaders(param *types.ReqBlocks) (*types.Headers, error) {
 	ret := _m.Called(param)

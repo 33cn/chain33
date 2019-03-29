@@ -582,6 +582,36 @@ func (_m *Chain33Client) GetFork(ctx context.Context, in *types.ReqKey, opts ...
 	return r0, r1
 }
 
+// GetForwardDelBlock provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetForwardDelBlock(ctx context.Context, in *types.ReqHash, opts ...grpc.CallOption) (*types.BlockSeq, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.BlockSeq
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqHash, ...grpc.CallOption) *types.BlockSeq); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.BlockSeq)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqHash, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetHexTxByHash provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetHexTxByHash(ctx context.Context, in *types.ReqHash, opts ...grpc.CallOption) (*types.HexTx, error) {
 	_va := make([]interface{}, len(opts))
