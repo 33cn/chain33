@@ -1058,6 +1058,23 @@ func (q *QueueProtocol) GetBlockBySeq(param *types.Int64) (*types.BlockSeq, erro
 	return nil, types.ErrTypeAsset
 }
 
+func (q *QueueProtocol) GetForwardDelBlock(param *types.ReqHash) (*types.BlockSeq, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetForwardBlock", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(blockchainKey, types.EventGetForwardDelBlock, param)
+	if err != nil {
+		log.Error("GetBlockBySeq", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.BlockSeq); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 // GetBlockSequences block执行序列号
 func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error) {
 	if param == nil {

@@ -73,6 +73,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetBlockBySeq:
 			go chain.processMsg(msg, reqnum, chain.getBlockBySeq)
+		case types.EventGetForwardDelBlock:
+			go chain.processMsg(msg, reqnum, chain.getForwardDelBlock)
 
 		case types.EventDelParaChainBlockDetail:
 			go chain.processMsg(msg, reqnum, chain.delParaChainBlockDetail)
@@ -453,6 +455,36 @@ func (chain *BlockChain) getBlockBySeq(msg *queue.Message) {
 		Detail: blocks.Items[0],
 	}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventGetBlockBySeq, blockSeq))
+
+}
+
+func (chain *BlockChain) getForwardDelBlock(msg *queue.Message) {
+	reqHash := (msg.Data).(*types.ReqHash)
+	block, err := chain.LoadBlockByHash(reqHash.Hash)
+	if err != nil {
+		chainlog.Error("getForwardDelBlock getblock", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, err))
+		return
+	}
+	seq, err := chain.ProcGetSeqByHash(reqHash.Hash)
+	if err != nil {
+		chainlog.Error("getForwardDelBlock getSeqByHash", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, err))
+		return
+	}
+	delSeq, seqHash, err := chain.GetDelBlockSeq(seq, reqHash)
+	if err != nil {
+		chainlog.Error("getForwardDelBlock getDelBlock", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, err))
+		return
+	}
+
+	blockSeq := &types.BlockSeq{
+		Num:    delSeq,
+		Seq:    seqHash,
+		Detail: block,
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, blockSeq))
 
 }
 

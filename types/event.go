@@ -156,6 +156,8 @@ const (
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
+
+	EventGetForwardDelBlock = 230
 )
 
 var eventName = map[int]string{
@@ -301,4 +303,6 @@ var eventName = map[int]string{
 	//mempool
 	EventGetProperFee:   "EventGetProperFee",
 	EventReplyProperFee: "EventReplyProperFee",
+
+	EventGetForwardDelBlock: "EventGetForwardDelBlock",
 }

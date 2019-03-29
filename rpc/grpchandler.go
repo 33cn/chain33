@@ -364,6 +364,10 @@ func (g *Grpc) GetBlockBySeq(ctx context.Context, in *pb.Int64) (*pb.BlockSeq, e
 	return g.cli.GetBlockBySeq(in)
 }
 
+func (g *Grpc) GetForwardDelBlock(ctx context.Context, in *pb.ReqHash) (*pb.BlockSeq, error) {
+	return g.cli.GetForwardDelBlock(in)
+}
+
 // SignRawTx signature rawtransaction
 func (g *Grpc) SignRawTx(ctx context.Context, in *pb.ReqSignRawTx) (*pb.ReplySignRawTx, error) {
 	return g.cli.SignRawTx(in)

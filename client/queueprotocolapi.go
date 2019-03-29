@@ -127,6 +127,8 @@ type QueueProtocolAPI interface {
 	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
 	//types.EventGetBlockBySeq:
 	GetBlockBySeq(param *types.Int64) (*types.BlockSeq, error)
+
+	GetForwardDelBlock(param *types.ReqHash) (*types.BlockSeq, error)
 	//types.EventGetSequenceByHash:
 	GetSequenceByHash(param *types.ReqHash) (*types.Int64, error)
 

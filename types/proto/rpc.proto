@@ -132,6 +132,9 @@ service chain33 {
     //通过block seq 获取对应的blocks hash 信息
     rpc GetBlockBySeq(Int64) returns (BlockSeq) {}
 
+    //通过block seq 获取对应的blocks hash 信息
+    rpc GetForwardDelBlock(ReqHash) returns (BlockSeq) {}
+
     //关闭chain33
     rpc CloseQueue(ReqNil) returns (Reply) {}
 

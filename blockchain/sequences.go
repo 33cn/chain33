@@ -5,6 +5,8 @@
 package blockchain
 
 import (
+	"bytes"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 )
@@ -44,6 +46,26 @@ func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*type
 		}
 	}
 	return &blockSequences, nil
+}
+
+func (chain *BlockChain) GetDelBlockSeq(startSeq int64, reqHash *types.ReqHash) (int64, *types.BlockSequence, error) {
+	blockLastSeq, err := chain.blockStore.LoadBlockLastSequence()
+	if err != nil {
+		chainlog.Debug("GetBlockSequences LoadBlockLastSequence", "blockLastSeq", blockLastSeq, "err", err)
+		return -2, nil, err
+	}
+
+	for i := startSeq + 1; i <= blockLastSeq; i++ {
+		blockSequence, err := chain.blockStore.GetBlockSequence(i)
+		if err != nil {
+			return -2, nil, err
+		}
+		if bytes.Equal(blockSequence.Hash, reqHash.Hash) && blockSequence.Type == DelBlock {
+			return i, blockSequence, nil
+		}
+	}
+	return -2, nil, types.ErrNotFound
+
 }
 
 //ProcDelParaChainBlockMsg 处理共识过来的删除block的消息，目前只提供给平行链使用
