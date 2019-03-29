@@ -23,8 +23,6 @@ func main() {
 
 func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(
-		commands.SimpleCmd(),
-		commands.AdvanceCmd(),
 		commands.ImportCmd(),
 		commands.UpdateInitCmd(),
 		commands.CreatePluginCmd(),

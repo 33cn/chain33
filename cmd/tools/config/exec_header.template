@@ -1,6 +1,0 @@
-package executor
-
-import (
-	ptypes "github.com/33cn/plugin/plugin/dapp/${EXECNAME}/types"
-	"github.com/33cn/chain33/types"
-)
