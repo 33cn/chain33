@@ -200,8 +200,10 @@ driver="leveldb"
 dbPath="datadir/mavltree"
 # Cache大小
 dbCache=128
-# 数据库版本
+# local数据库版本
 localdbVersion="1.0.0"
+# store数据库版本
+storedbVersion="1.0.0"
 
 [store.sub.mavl]
 # 是否使能mavl加前缀

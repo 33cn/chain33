@@ -134,6 +134,7 @@ func RunChain33(name string) {
 	//开始区块链模块加载
 	//channel, rabitmq 等
 	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
+	version.SetStoreDBVersion(cfg.Store.StoreDBVersion)
 	version.SetAppVersion(cfg.Version)
 	log.Info(cfg.Title + "-app:" + version.GetAppVersion() + " chain33:" + version.GetVersion() + " localdb:" + version.GetLocalDBVersion())
 	log.Info("loading queue")
