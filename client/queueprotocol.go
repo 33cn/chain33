@@ -1062,12 +1062,12 @@ func (q *QueueProtocol) GetBlockBySeq(param *types.Int64) (*types.BlockSeq, erro
 func (q *QueueProtocol) GetForwardDelBlock(param *types.ReqHash) (*types.BlockSeq, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
-		log.Error("GetForwardBlock", "Error", err)
+		log.Error("GetForwardDelBlock", "Error", err)
 		return nil, err
 	}
 	msg, err := q.query(blockchainKey, types.EventGetForwardDelBlock, param)
 	if err != nil {
-		log.Error("GetBlockBySeq", "Error", err.Error())
+		log.Error("GetForwardDelBlock", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.BlockSeq); ok {
