@@ -1058,6 +1058,7 @@ func (q *QueueProtocol) GetBlockBySeq(param *types.Int64) (*types.BlockSeq, erro
 	return nil, types.ErrTypeAsset
 }
 
+// GetForwardDelBlock get possible forward del type block based on add type block
 func (q *QueueProtocol) GetForwardDelBlock(param *types.ReqHash) (*types.BlockSeq, error) {
 	if param == nil {
 		err := types.ErrInvalidParam

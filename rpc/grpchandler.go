@@ -364,6 +364,7 @@ func (g *Grpc) GetBlockBySeq(ctx context.Context, in *pb.Int64) (*pb.BlockSeq, e
 	return g.cli.GetBlockBySeq(in)
 }
 
+// GetForwardDelBlock get possible forward del type block based on add type block
 func (g *Grpc) GetForwardDelBlock(ctx context.Context, in *pb.ReqHash) (*pb.BlockSeq, error) {
 	return g.cli.GetForwardDelBlock(in)
 }

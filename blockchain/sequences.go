@@ -48,10 +48,17 @@ func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*type
 	return &blockSequences, nil
 }
 
-func (chain *BlockChain) GetDelBlockSeq(startSeq int64, reqHash *types.ReqHash) (int64, *types.BlockSequence, error) {
+// GetDelBlockSeq get possible del type block based on add type block
+func (chain *BlockChain) GetDelBlockSeq(reqHash *types.ReqHash) (int64, *types.BlockSequence, error) {
+	startSeq, err := chain.ProcGetSeqByHash(reqHash.Hash)
+	if err != nil {
+		chainlog.Error("GetDelBlockSeq hash", "reqHash", common.ToHex(reqHash.Hash), "err", err.Error())
+		return -2, nil, err
+	}
+
 	blockLastSeq, err := chain.blockStore.LoadBlockLastSequence()
 	if err != nil {
-		chainlog.Debug("GetBlockSequences LoadBlockLastSequence", "blockLastSeq", blockLastSeq, "err", err)
+		chainlog.Error("GetBlockSequences LoadBlockLastSequence", "blockLastSeq", blockLastSeq, "err", err)
 		return -2, nil, err
 	}
 

@@ -466,13 +466,8 @@ func (chain *BlockChain) getForwardDelBlock(msg *queue.Message) {
 		msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, err))
 		return
 	}
-	seq, err := chain.ProcGetSeqByHash(reqHash.Hash)
-	if err != nil {
-		chainlog.Error("getForwardDelBlock getSeqByHash", "err", err.Error())
-		msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, err))
-		return
-	}
-	delSeq, seqHash, err := chain.GetDelBlockSeq(seq, reqHash)
+
+	delSeq, seqHash, err := chain.GetDelBlockSeq(reqHash)
 	if err != nil {
 		chainlog.Error("getForwardDelBlock getDelBlock", "err", err.Error())
 		msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, err))
