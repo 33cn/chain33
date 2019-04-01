@@ -73,6 +73,7 @@ func (s *HealthCheckServer) Start(cfg *types.HealthCheck) {
 
 func (s *HealthCheckServer) listen(on bool) error {
 	if on {
+		/* #nosec */
 		listener, err := net.Listen("tcp", listenAddr)
 		if err != nil {
 			return err
