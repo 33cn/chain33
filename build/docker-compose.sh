@@ -315,11 +315,13 @@ function transfer() {
             times=$((times - 1))
             if [ $times -le 0 ]; then
                 echo "account balance transfer failed, all tx list below:"
-                echo "all tx list below:"
                 for ((i = 0; i < ${#hashes[*]}; i++)); do
                     echo "------the $i tx=${hashes[$i]}----------"
                     ${CLI} tx query_hash -s "${hashes[$i]}"
                 done
+                echo "----------block info------------------"
+                ${CLI} block get -s 0 -e 20 -d 1
+
                 exit 1
             fi
         else
