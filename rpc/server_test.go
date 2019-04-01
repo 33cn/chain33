@@ -178,6 +178,11 @@ func TestGrpc_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, &types.BlockSeq{}, blockSeq)
 
+	api.On("GetForwardDelBlock", mock.Anything).Return(&types.BlockSeq{}, nil)
+	blockSeq, err = client.GetForwardDelBlock(ctx, &types.BlockSeq{Num: 1})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.BlockSeq{}, blockSeq)
+
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
 }
