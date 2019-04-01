@@ -155,11 +155,12 @@ func RunChain33(name string) {
 	log.Info("loading blockchain module")
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
-	chain.UpgradeChain()
 
 	log.Info("loading store module")
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
+
+	chain.Upgrade()
 
 	log.Info("loading consensus module")
 	cs := consensus.New(cfg.Consensus, sub.Consensus)

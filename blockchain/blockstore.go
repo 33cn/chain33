@@ -1092,6 +1092,31 @@ func (bs *BlockStore) SetUpgradeMeta(meta *types.UpgradeMeta) error {
 	return bs.db.SetSync(version.LocalDBMeta, verByte)
 }
 
+//SetStoreUpgradeMeta 获取存在blockchain中的Store的数据库版本号
+func (bs *BlockStore) GetStoreUpgradeMeta() (*types.UpgradeMeta, error) {
+	ver := types.UpgradeMeta{}
+	version, err := bs.db.Get(version.StoreDBMeta)
+	if err != nil && err != dbm.ErrNotFoundInDb {
+		return nil, err
+	}
+	if len(version) == 0 {
+		return &types.UpgradeMeta{Version: "0.0.0"}, nil
+	}
+	err = types.Decode(version, &ver)
+	if err != nil {
+		return nil, err
+	}
+	storeLog.Info("GetStoreUpgradeMeta", "blockchain db version", ver)
+	return &ver, nil
+}
+
+//SetStoreUpgradeMeta 设置blockchain中的Store的数据库版本号
+func (bs *BlockStore) SetStoreUpgradeMeta(meta *types.UpgradeMeta) error {
+	verByte := types.Encode(meta)
+	storeLog.Info("SetStoreUpgradeMeta", "meta", meta)
+	return bs.db.SetSync(version.StoreDBMeta, verByte)
+}
+
 //isRecordBlockSequence配置的合法性检测
 func (bs *BlockStore) isRecordBlockSequenceValid(chain *BlockChain) {
 	lastHeight := bs.Height()

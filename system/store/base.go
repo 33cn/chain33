@@ -86,9 +86,6 @@ func (store *BaseStore) SetQueueClient(c queue.Client) {
 		}
 		store.done <- struct{}{}
 	}()
-	if store.child != nil {
-		store.child.ProcEvent(nil)
-	}
 }
 
 //Wait wait for basestore ready
