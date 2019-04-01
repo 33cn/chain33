@@ -29,7 +29,7 @@ func (chain *BlockChain) UpgradeChain() {
 	}
 	if chain.needReIndex(meta) {
 		//如果没有开始重建index，那么先del all keys
-		if !meta.Indexing {
+		if !meta.Starting {
 			chainlog.Info("begin del all keys")
 			chain.blockStore.delAllKeys()
 			chainlog.Info("end del all keys")
@@ -38,7 +38,7 @@ func (chain *BlockChain) UpgradeChain() {
 		//reindex 的过程中，会每个高度都去更新meta
 		chain.reIndex(start, curheight)
 		meta := &types.UpgradeMeta{
-			Indexing: false,
+			Starting: false,
 			Version:  version.GetLocalDBVersion(),
 			Height:   0,
 		}
@@ -59,7 +59,7 @@ func (chain *BlockChain) reIndex(start, end int64) {
 }
 
 func (chain *BlockChain) needReIndex(meta *types.UpgradeMeta) bool {
-	if meta.Indexing { //正在index
+	if meta.Starting { //正在index
 		return true
 	}
 	v1 := meta.Version
@@ -89,7 +89,7 @@ func (chain *BlockChain) reIndexOne(height int64) error {
 		panic(err)
 	}
 	meta := &types.UpgradeMeta{
-		Indexing: true,
+		Starting: true,
 		Version:  version.GetLocalDBVersion(),
 		Height:   height + 1,
 	}

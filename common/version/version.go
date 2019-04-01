@@ -12,8 +12,10 @@ var (
 	WalletVerKey     = []byte("WalletVerKey")
 	BlockChainVerKey = []byte("BlockChainVerKey")
 	LocalDBMeta      = []byte("LocalDBMeta")
+	StoreDBMeta      = []byte("StoreDBMeta")
 	MavlTreeVerKey   = []byte("MavlTreeVerKey")
 	localversion     = "1.0.0"
+	storeversion     = "1.0.0"
 	appversion       = "1.0.0"
 	GitCommit        string
 )
@@ -44,6 +46,22 @@ func GetLocalDBVersion() string {
 
 //SetLocalDBVersion 通过设置版本号，强制重建数据库
 func SetLocalDBVersion(version string) {
+	if version != "" {
+		localversion = version
+	}
+}
+
+//GetStoreDBVersion 数据库版本解析
+/*
+格式: v1.v2.v3
+如果: v1 升级了， 那么意味着localdb 需要 重新 reindex
+*/
+func GetStoreDBVersion() string {
+	return localversion
+}
+
+//SetStoreDBVersion 通过设置版本号，强制重建数据库
+func SetStoreDBVersion(version string) {
 	if version != "" {
 		localversion = version
 	}
