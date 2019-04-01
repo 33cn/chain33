@@ -112,6 +112,8 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 					}
 					msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.BlockSeq{Num: 1}))
 				}
+			case types.EventGetForwardDelBlock:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.BlockSeq{Num: 1}))
 			case types.EventIsSync:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyIsSync, &types.IsCaughtUp{}))
 			case types.EventIsNtpClockSync:

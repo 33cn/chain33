@@ -129,6 +129,7 @@ func TestBlockChain(t *testing.T) {
 	testReadBlockToExec(t, blockchain)
 	testReExecBlock(t, blockchain)
 	testReExecBlockMsg(t, mock33, blockchain)
+	testProcGetForwardDelBlockMsg(t, mock33, blockchain)
 }
 
 func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
@@ -926,6 +927,63 @@ func testProcGetBlockBySeqMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockc
 	assert.Equal(t, seq, blockseq.Num)
 	chainlog.Info("testProcGetBlockBySeqMsg end --------------------")
 }
+
+func testProcGetForwardDelBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testProcGetForwardDelBlockMsg begin --------------------")
+
+	blockSeq, err:=blockchain.GetStore().GetBlockSequence(1)
+	assert.Nil(t, err)
+	reqBlockSeq := &types.BlockSeq{
+		Num:1,
+		Seq:blockSeq,
+	}
+	msgGen := mock33.GetClient().NewMessage("blockchain",	types.EventGetForwardDelBlock, reqBlockSeq)
+
+	mock33.GetClient().Send(msgGen, true)
+	_, err = mock33.GetClient().Wait(msgGen)
+	if err != nil {
+		t.Log(err)
+	}
+
+	lastSeq, err := blockchain.GetStore().LoadBlockLastSequence()
+	assert.Nil(t, err)
+
+	var i int64
+	var delHash []byte
+	hashSeq := make(map[int64]string)
+	for i=0;i<=lastSeq;i++{
+		blockSeq, err:=blockchain.GetStore().GetBlockSequence(i)
+		assert.Nil(t, err)
+		hashSeq[i] = common.ToHex(blockSeq.Hash)
+		if blockSeq.Type == int64(2){
+			delHash = blockSeq.Hash
+			break
+		}
+	}
+
+	for i=0;i<=lastSeq;i++{
+		if hashSeq[i] == common.ToHex(delHash){
+			break
+		}
+	}
+
+	reqBlockSeq.Num = i
+	reqBlockSeq.Seq.Hash = delHash
+	chainlog.Info("testProcGetForwardDelBlockMsg","reqHash",common.ToHex(delHash),"seq",reqBlockSeq.Num)
+	msgGen = mock33.GetClient().NewMessage("blockchain",types.EventGetForwardDelBlock, reqBlockSeq)
+
+	mock33.GetClient().Send(msgGen, true)
+	msg, err := mock33.GetClient().Wait(msgGen)
+	if err != nil {
+		t.Log(err)
+		//t.Error("testProcAddParaChainBlockMsg  only in parachain ")
+	}
+	blockseq := msg.Data.(*types.BlockSeq)
+	assert.Equal(t, delHash, blockseq.Seq.Hash)
+	assert.Equal(t, int64(2), blockseq.Seq.Type)
+	chainlog.Info("testProcGetBlockBySeqMsg end --------------------")
+}
+
 
 func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testProcBlockChainFork begin --------------------")

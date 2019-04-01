@@ -844,6 +844,7 @@ func TestGRPC(t *testing.T) {
 	testGetBlockHashGRPC(t, &grpcMock)
 	testGetSequenceByHashGRPC(t, &grpcMock)
 	testGetBlockBySeqGRPC(t, &grpcMock)
+	testGetForwardDelBlockGRPC(t, &grpcMock)
 	testGenSeedGRPC(t, &grpcMock)
 	testGetSeedGRPC(t, &grpcMock)
 	testSaveSeedGRPC(t, &grpcMock)
@@ -1196,3 +1197,17 @@ func TestGetBlockBySeq(t *testing.T) {
 	assert.NotNil(t, err)
 
 }
+
+func testGetForwardDelBlockGRPC(t *testing.T, rpc *mockGRPCSystem)   {
+	var res types.BlockSeq
+	err := rpc.newRpcCtx("GetForwardDelBlock", &types.BlockSeq{Num:1}, &res)
+	assert.Nil(t, err)
+}
+
+func TestGetForwardDelBlock(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.GetForwardDelBlock(nil)
+	assert.NotNil(t, err)
+
+}
+

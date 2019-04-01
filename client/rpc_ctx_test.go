@@ -327,6 +327,12 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.BlockSeq) = *reply
 		}
 		errRet = err
+	case "GetForwardDelBlock":
+		reply, err := rpc.GetForwardDelBlock(context.Background(),c.Params.(*types.BlockSeq))
+		if err ==nil{
+			*c.Res.(*types.BlockSeq) = *reply
+		}
+		errRet = err
 	default:
 		errRet = errors.New(fmt.Sprintf("Unsupport method %v", c.Method))
 	}
