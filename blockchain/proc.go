@@ -8,10 +8,11 @@ package blockchain
 import (
 	"sync/atomic"
 
+	"bytes"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"bytes"
 )
 
 //ProcRecvMsg blockchain模块的消息接收处理
@@ -459,23 +460,22 @@ func (chain *BlockChain) getBlockBySeq(msg *queue.Message) {
 
 }
 
-
 func (chain *BlockChain) getForwardDelBlock(msg *queue.Message) {
 	reqBlock := (msg.Data).(*types.BlockSeq)
 	chainSeq, err := chain.blockStore.GetBlockSequence(reqBlock.Num)
-	if err != nil{
+	if err != nil {
 		msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, err))
 		return
 	}
 	// 请求seq和实际chain 对应相同AddType block的seq要一致，不然不是同一条链，返回的seq也不是期望的
-	if !bytes.Equal(chainSeq.Hash, reqBlock.Seq.Hash){
+	if !bytes.Equal(chainSeq.Hash, reqBlock.Seq.Hash) {
 		chainlog.Error("getForwardDelBlock hash not equal", "seq", reqBlock.Num,
-			"chainHash",common.ToHex(chainSeq.Hash),"reqHash",common.ToHex(reqBlock.Seq.Hash))
+			"chainHash", common.ToHex(chainSeq.Hash), "reqHash", common.ToHex(reqBlock.Seq.Hash))
 		msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, types.ErrNotFound))
 		return
 	}
 
-	delSeq, seqHash, err := chain.GetDelBlockSeq(reqBlock.Num,reqBlock.Seq.Hash)
+	delSeq, seqHash, err := chain.GetDelBlockSeq(reqBlock.Num, reqBlock.Seq.Hash)
 	if err != nil {
 		chainlog.Error("getForwardDelBlock getDelBlockSeq", "err", err.Error())
 		msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, err))
@@ -483,8 +483,8 @@ func (chain *BlockChain) getForwardDelBlock(msg *queue.Message) {
 	}
 
 	blockSeq := &types.BlockSeq{
-		Num:    delSeq,
-		Seq:    seqHash,
+		Num: delSeq,
+		Seq: seqHash,
 	}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventGetForwardDelBlock, blockSeq))
 }

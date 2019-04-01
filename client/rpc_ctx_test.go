@@ -328,8 +328,8 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "GetForwardDelBlock":
-		reply, err := rpc.GetForwardDelBlock(context.Background(),c.Params.(*types.BlockSeq))
-		if err ==nil{
+		reply, err := rpc.GetForwardDelBlock(context.Background(), c.Params.(*types.BlockSeq))
+		if err == nil {
 			*c.Res.(*types.BlockSeq) = *reply
 		}
 		errRet = err

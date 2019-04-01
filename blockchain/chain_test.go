@@ -931,13 +931,13 @@ func testProcGetBlockBySeqMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockc
 func testProcGetForwardDelBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testProcGetForwardDelBlockMsg begin --------------------")
 
-	blockSeq, err:=blockchain.GetStore().GetBlockSequence(1)
+	blockSeq, err := blockchain.GetStore().GetBlockSequence(1)
 	assert.Nil(t, err)
 	reqBlockSeq := &types.BlockSeq{
-		Num:1,
-		Seq:blockSeq,
+		Num: 1,
+		Seq: blockSeq,
 	}
-	msgGen := mock33.GetClient().NewMessage("blockchain",	types.EventGetForwardDelBlock, reqBlockSeq)
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventGetForwardDelBlock, reqBlockSeq)
 
 	mock33.GetClient().Send(msgGen, true)
 	_, err = mock33.GetClient().Wait(msgGen)
@@ -951,26 +951,26 @@ func testProcGetForwardDelBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, b
 	var i int64
 	var delHash []byte
 	hashSeq := make(map[int64]string)
-	for i=0;i<=lastSeq;i++{
-		blockSeq, err:=blockchain.GetStore().GetBlockSequence(i)
+	for i = 0; i <= lastSeq; i++ {
+		blockSeq, err := blockchain.GetStore().GetBlockSequence(i)
 		assert.Nil(t, err)
 		hashSeq[i] = common.ToHex(blockSeq.Hash)
-		if blockSeq.Type == int64(2){
+		if blockSeq.Type == int64(2) {
 			delHash = blockSeq.Hash
 			break
 		}
 	}
 
-	for i=0;i<=lastSeq;i++{
-		if hashSeq[i] == common.ToHex(delHash){
+	for i = 0; i <= lastSeq; i++ {
+		if hashSeq[i] == common.ToHex(delHash) {
 			break
 		}
 	}
 
 	reqBlockSeq.Num = i
 	reqBlockSeq.Seq.Hash = delHash
-	chainlog.Info("testProcGetForwardDelBlockMsg","reqHash",common.ToHex(delHash),"seq",reqBlockSeq.Num)
-	msgGen = mock33.GetClient().NewMessage("blockchain",types.EventGetForwardDelBlock, reqBlockSeq)
+	chainlog.Info("testProcGetForwardDelBlockMsg", "reqHash", common.ToHex(delHash), "seq", reqBlockSeq.Num)
+	msgGen = mock33.GetClient().NewMessage("blockchain", types.EventGetForwardDelBlock, reqBlockSeq)
 
 	mock33.GetClient().Send(msgGen, true)
 	msg, err := mock33.GetClient().Wait(msgGen)
@@ -983,7 +983,6 @@ func testProcGetForwardDelBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, b
 	assert.Equal(t, int64(2), blockseq.Seq.Type)
 	chainlog.Info("testProcGetBlockBySeqMsg end --------------------")
 }
-
 
 func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testProcBlockChainFork begin --------------------")

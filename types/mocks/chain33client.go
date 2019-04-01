@@ -583,7 +583,7 @@ func (_m *Chain33Client) GetFork(ctx context.Context, in *types.ReqKey, opts ...
 }
 
 // GetForwardDelBlock provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) GetForwardDelBlock(ctx context.Context, in *types.ReqHash, opts ...grpc.CallOption) (*types.BlockSeq, error) {
+func (_m *Chain33Client) GetForwardDelBlock(ctx context.Context, in *types.BlockSeq, opts ...grpc.CallOption) (*types.BlockSeq, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -594,7 +594,7 @@ func (_m *Chain33Client) GetForwardDelBlock(ctx context.Context, in *types.ReqHa
 	ret := _m.Called(_ca...)
 
 	var r0 *types.BlockSeq
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqHash, ...grpc.CallOption) *types.BlockSeq); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.BlockSeq, ...grpc.CallOption) *types.BlockSeq); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -603,7 +603,7 @@ func (_m *Chain33Client) GetForwardDelBlock(ctx context.Context, in *types.ReqHa
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqHash, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.BlockSeq, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

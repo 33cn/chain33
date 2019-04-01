@@ -1198,9 +1198,9 @@ func TestGetBlockBySeq(t *testing.T) {
 
 }
 
-func testGetForwardDelBlockGRPC(t *testing.T, rpc *mockGRPCSystem)   {
+func testGetForwardDelBlockGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.BlockSeq
-	err := rpc.newRpcCtx("GetForwardDelBlock", &types.BlockSeq{Num:1}, &res)
+	err := rpc.newRpcCtx("GetForwardDelBlock", &types.BlockSeq{Num: 1}, &res)
 	assert.Nil(t, err)
 }
 
@@ -1210,4 +1210,3 @@ func TestGetForwardDelBlock(t *testing.T) {
 	assert.NotNil(t, err)
 
 }
-
