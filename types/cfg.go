@@ -111,6 +111,8 @@ type Store struct {
 	DbCache int32 `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
 	// 数据库版本
 	LocalDBVersion string `protobuf:"bytes,5,opt,name=localdbVersion" json:"localdbVersion,omitempty"`
+	// 数据库版本
+	StoreDBVersion string `protobuf:"bytes,5,opt,name=storedbVersion" json:"storedbVersion,omitempty"`
 }
 
 // BlockChain 配置

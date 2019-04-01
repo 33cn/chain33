@@ -1092,7 +1092,7 @@ func (bs *BlockStore) SetUpgradeMeta(meta *types.UpgradeMeta) error {
 	return bs.db.SetSync(version.LocalDBMeta, verByte)
 }
 
-//SetStoreUpgradeMeta 获取存在blockchain中的Store的数据库版本号
+//GetStoreUpgradeMeta 获取存在blockchain中的Store的数据库版本号
 func (bs *BlockStore) GetStoreUpgradeMeta() (*types.UpgradeMeta, error) {
 	ver := types.UpgradeMeta{}
 	version, err := bs.db.Get(version.StoreDBMeta)

@@ -54,16 +54,16 @@ func SetLocalDBVersion(version string) {
 //GetStoreDBVersion 数据库版本解析
 /*
 格式: v1.v2.v3
-如果: v1 升级了， 那么意味着localdb 需要 重新 reindex
+如果: v1 升级了， 那么意味着storedb 需要升级
 */
 func GetStoreDBVersion() string {
-	return localversion
+	return storeversion
 }
 
 //SetStoreDBVersion 通过设置版本号，强制重建数据库
 func SetStoreDBVersion(version string) {
 	if version != "" {
-		localversion = version
+		storeversion = version
 	}
 }
 
