@@ -3,23 +3,55 @@
 
 package types
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	math "math"
+
+	proto "github.com/golang/protobuf/proto"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 type Operation struct {
-	Value *Block `protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
+	Value                *Block   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Operation) Reset()                    { *m = Operation{} }
-func (m *Operation) String() string            { return proto.CompactTextString(m) }
-func (*Operation) ProtoMessage()               {}
-func (*Operation) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{0} }
+func (m *Operation) Reset()         { *m = Operation{} }
+func (m *Operation) String() string { return proto.CompactTextString(m) }
+func (*Operation) ProtoMessage()    {}
+func (*Operation) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{0}
+}
+
+func (m *Operation) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Operation.Unmarshal(m, b)
+}
+func (m *Operation) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Operation.Marshal(b, m, deterministic)
+}
+func (m *Operation) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Operation.Merge(m, src)
+}
+func (m *Operation) XXX_Size() int {
+	return xxx_messageInfo_Operation.Size(m)
+}
+func (m *Operation) XXX_DiscardUnknown() {
+	xxx_messageInfo_Operation.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Operation proto.InternalMessageInfo
 
 func (m *Operation) GetValue() *Block {
 	if m != nil {
@@ -29,14 +61,37 @@ func (m *Operation) GetValue() *Block {
 }
 
 type Checkpoint struct {
-	Sequence uint32 `protobuf:"varint,1,opt,name=sequence" json:"sequence,omitempty"`
-	Digest   []byte `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
+	Sequence             uint32   `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Digest               []byte   `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Checkpoint) Reset()                    { *m = Checkpoint{} }
-func (m *Checkpoint) String() string            { return proto.CompactTextString(m) }
-func (*Checkpoint) ProtoMessage()               {}
-func (*Checkpoint) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{1} }
+func (m *Checkpoint) Reset()         { *m = Checkpoint{} }
+func (m *Checkpoint) String() string { return proto.CompactTextString(m) }
+func (*Checkpoint) ProtoMessage()    {}
+func (*Checkpoint) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{1}
+}
+
+func (m *Checkpoint) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Checkpoint.Unmarshal(m, b)
+}
+func (m *Checkpoint) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Checkpoint.Marshal(b, m, deterministic)
+}
+func (m *Checkpoint) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Checkpoint.Merge(m, src)
+}
+func (m *Checkpoint) XXX_Size() int {
+	return xxx_messageInfo_Checkpoint.Size(m)
+}
+func (m *Checkpoint) XXX_DiscardUnknown() {
+	xxx_messageInfo_Checkpoint.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Checkpoint proto.InternalMessageInfo
 
 func (m *Checkpoint) GetSequence() uint32 {
 	if m != nil {
@@ -53,15 +108,38 @@ func (m *Checkpoint) GetDigest() []byte {
 }
 
 type Entry struct {
-	Sequence uint32 `protobuf:"varint,1,opt,name=sequence" json:"sequence,omitempty"`
-	Digest   []byte `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
-	View     uint32 `protobuf:"varint,3,opt,name=view" json:"view,omitempty"`
+	Sequence             uint32   `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Digest               []byte   `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
+	View                 uint32   `protobuf:"varint,3,opt,name=view,proto3" json:"view,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Entry) Reset()                    { *m = Entry{} }
-func (m *Entry) String() string            { return proto.CompactTextString(m) }
-func (*Entry) ProtoMessage()               {}
-func (*Entry) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{2} }
+func (m *Entry) Reset()         { *m = Entry{} }
+func (m *Entry) String() string { return proto.CompactTextString(m) }
+func (*Entry) ProtoMessage()    {}
+func (*Entry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{2}
+}
+
+func (m *Entry) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Entry.Unmarshal(m, b)
+}
+func (m *Entry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Entry.Marshal(b, m, deterministic)
+}
+func (m *Entry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Entry.Merge(m, src)
+}
+func (m *Entry) XXX_Size() int {
+	return xxx_messageInfo_Entry.Size(m)
+}
+func (m *Entry) XXX_DiscardUnknown() {
+	xxx_messageInfo_Entry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Entry proto.InternalMessageInfo
 
 func (m *Entry) GetSequence() uint32 {
 	if m != nil {
@@ -85,14 +163,37 @@ func (m *Entry) GetView() uint32 {
 }
 
 type ViewChange struct {
-	Viewchanger uint32 `protobuf:"varint,1,opt,name=viewchanger" json:"viewchanger,omitempty"`
-	Digest      []byte `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
+	Viewchanger          uint32   `protobuf:"varint,1,opt,name=viewchanger,proto3" json:"viewchanger,omitempty"`
+	Digest               []byte   `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ViewChange) Reset()                    { *m = ViewChange{} }
-func (m *ViewChange) String() string            { return proto.CompactTextString(m) }
-func (*ViewChange) ProtoMessage()               {}
-func (*ViewChange) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{3} }
+func (m *ViewChange) Reset()         { *m = ViewChange{} }
+func (m *ViewChange) String() string { return proto.CompactTextString(m) }
+func (*ViewChange) ProtoMessage()    {}
+func (*ViewChange) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{3}
+}
+
+func (m *ViewChange) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ViewChange.Unmarshal(m, b)
+}
+func (m *ViewChange) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ViewChange.Marshal(b, m, deterministic)
+}
+func (m *ViewChange) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ViewChange.Merge(m, src)
+}
+func (m *ViewChange) XXX_Size() int {
+	return xxx_messageInfo_ViewChange.Size(m)
+}
+func (m *ViewChange) XXX_DiscardUnknown() {
+	xxx_messageInfo_ViewChange.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ViewChange proto.InternalMessageInfo
 
 func (m *ViewChange) GetViewchanger() uint32 {
 	if m != nil {
@@ -109,14 +210,37 @@ func (m *ViewChange) GetDigest() []byte {
 }
 
 type Summary struct {
-	Sequence uint32 `protobuf:"varint,1,opt,name=sequence" json:"sequence,omitempty"`
-	Digest   []byte `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
+	Sequence             uint32   `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Digest               []byte   `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Summary) Reset()                    { *m = Summary{} }
-func (m *Summary) String() string            { return proto.CompactTextString(m) }
-func (*Summary) ProtoMessage()               {}
-func (*Summary) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{4} }
+func (m *Summary) Reset()         { *m = Summary{} }
+func (m *Summary) String() string { return proto.CompactTextString(m) }
+func (*Summary) ProtoMessage()    {}
+func (*Summary) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{4}
+}
+
+func (m *Summary) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Summary.Unmarshal(m, b)
+}
+func (m *Summary) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Summary.Marshal(b, m, deterministic)
+}
+func (m *Summary) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Summary.Merge(m, src)
+}
+func (m *Summary) XXX_Size() int {
+	return xxx_messageInfo_Summary.Size(m)
+}
+func (m *Summary) XXX_DiscardUnknown() {
+	xxx_messageInfo_Summary.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Summary proto.InternalMessageInfo
 
 func (m *Summary) GetSequence() uint32 {
 	if m != nil {
@@ -133,13 +257,36 @@ func (m *Summary) GetDigest() []byte {
 }
 
 type Result struct {
-	Value *Block `protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
+	Value                *Block   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Result) Reset()                    { *m = Result{} }
-func (m *Result) String() string            { return proto.CompactTextString(m) }
-func (*Result) ProtoMessage()               {}
-func (*Result) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{5} }
+func (m *Result) Reset()         { *m = Result{} }
+func (m *Result) String() string { return proto.CompactTextString(m) }
+func (*Result) ProtoMessage()    {}
+func (*Result) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{5}
+}
+
+func (m *Result) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Result.Unmarshal(m, b)
+}
+func (m *Result) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Result.Marshal(b, m, deterministic)
+}
+func (m *Result) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Result.Merge(m, src)
+}
+func (m *Result) XXX_Size() int {
+	return xxx_messageInfo_Result.Size(m)
+}
+func (m *Result) XXX_DiscardUnknown() {
+	xxx_messageInfo_Result.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Result proto.InternalMessageInfo
 
 func (m *Result) GetValue() *Block {
 	if m != nil {
@@ -158,51 +305,88 @@ type Request struct {
 	//	*Request_Viewchange
 	//	*Request_Ack
 	//	*Request_Newview
-	Value isRequest_Value `protobuf_oneof:"value"`
+	Value                isRequest_Value `protobuf_oneof:"value"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
 }
 
-func (m *Request) Reset()                    { *m = Request{} }
-func (m *Request) String() string            { return proto.CompactTextString(m) }
-func (*Request) ProtoMessage()               {}
-func (*Request) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{6} }
+func (m *Request) Reset()         { *m = Request{} }
+func (m *Request) String() string { return proto.CompactTextString(m) }
+func (*Request) ProtoMessage()    {}
+func (*Request) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{6}
+}
+
+func (m *Request) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Request.Unmarshal(m, b)
+}
+func (m *Request) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Request.Marshal(b, m, deterministic)
+}
+func (m *Request) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Request.Merge(m, src)
+}
+func (m *Request) XXX_Size() int {
+	return xxx_messageInfo_Request.Size(m)
+}
+func (m *Request) XXX_DiscardUnknown() {
+	xxx_messageInfo_Request.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Request proto.InternalMessageInfo
 
 type isRequest_Value interface {
 	isRequest_Value()
 }
 
 type Request_Client struct {
-	Client *RequestClient `protobuf:"bytes,1,opt,name=client,oneof"`
-}
-type Request_Preprepare struct {
-	Preprepare *RequestPrePrepare `protobuf:"bytes,2,opt,name=preprepare,oneof"`
-}
-type Request_Prepare struct {
-	Prepare *RequestPrepare `protobuf:"bytes,3,opt,name=prepare,oneof"`
-}
-type Request_Commit struct {
-	Commit *RequestCommit `protobuf:"bytes,4,opt,name=commit,oneof"`
-}
-type Request_Checkpoint struct {
-	Checkpoint *RequestCheckpoint `protobuf:"bytes,5,opt,name=checkpoint,oneof"`
-}
-type Request_Viewchange struct {
-	Viewchange *RequestViewChange `protobuf:"bytes,6,opt,name=viewchange,oneof"`
-}
-type Request_Ack struct {
-	Ack *RequestAck `protobuf:"bytes,7,opt,name=ack,oneof"`
-}
-type Request_Newview struct {
-	Newview *RequestNewView `protobuf:"bytes,8,opt,name=newview,oneof"`
+	Client *RequestClient `protobuf:"bytes,1,opt,name=client,proto3,oneof"`
 }
 
-func (*Request_Client) isRequest_Value()     {}
+type Request_Preprepare struct {
+	Preprepare *RequestPrePrepare `protobuf:"bytes,2,opt,name=preprepare,proto3,oneof"`
+}
+
+type Request_Prepare struct {
+	Prepare *RequestPrepare `protobuf:"bytes,3,opt,name=prepare,proto3,oneof"`
+}
+
+type Request_Commit struct {
+	Commit *RequestCommit `protobuf:"bytes,4,opt,name=commit,proto3,oneof"`
+}
+
+type Request_Checkpoint struct {
+	Checkpoint *RequestCheckpoint `protobuf:"bytes,5,opt,name=checkpoint,proto3,oneof"`
+}
+
+type Request_Viewchange struct {
+	Viewchange *RequestViewChange `protobuf:"bytes,6,opt,name=viewchange,proto3,oneof"`
+}
+
+type Request_Ack struct {
+	Ack *RequestAck `protobuf:"bytes,7,opt,name=ack,proto3,oneof"`
+}
+
+type Request_Newview struct {
+	Newview *RequestNewView `protobuf:"bytes,8,opt,name=newview,proto3,oneof"`
+}
+
+func (*Request_Client) isRequest_Value() {}
+
 func (*Request_Preprepare) isRequest_Value() {}
-func (*Request_Prepare) isRequest_Value()    {}
-func (*Request_Commit) isRequest_Value()     {}
+
+func (*Request_Prepare) isRequest_Value() {}
+
+func (*Request_Commit) isRequest_Value() {}
+
 func (*Request_Checkpoint) isRequest_Value() {}
+
 func (*Request_Viewchange) isRequest_Value() {}
-func (*Request_Ack) isRequest_Value()        {}
-func (*Request_Newview) isRequest_Value()    {}
+
+func (*Request_Ack) isRequest_Value() {}
+
+func (*Request_Newview) isRequest_Value() {}
 
 func (m *Request) GetValue() isRequest_Value {
 	if m != nil {
@@ -410,42 +594,42 @@ func _Request_OneofSizer(msg proto.Message) (n int) {
 	switch x := m.Value.(type) {
 	case *Request_Client:
 		s := proto.Size(x.Client)
-		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Request_Preprepare:
 		s := proto.Size(x.Preprepare)
-		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Request_Prepare:
 		s := proto.Size(x.Prepare)
-		n += proto.SizeVarint(3<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Request_Commit:
 		s := proto.Size(x.Commit)
-		n += proto.SizeVarint(4<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Request_Checkpoint:
 		s := proto.Size(x.Checkpoint)
-		n += proto.SizeVarint(5<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Request_Viewchange:
 		s := proto.Size(x.Viewchange)
-		n += proto.SizeVarint(6<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Request_Ack:
 		s := proto.Size(x.Ack)
-		n += proto.SizeVarint(7<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Request_Newview:
 		s := proto.Size(x.Newview)
-		n += proto.SizeVarint(8<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -456,15 +640,38 @@ func _Request_OneofSizer(msg proto.Message) (n int) {
 }
 
 type RequestClient struct {
-	Op        *Operation `protobuf:"bytes,1,opt,name=op" json:"op,omitempty"`
-	Timestamp string     `protobuf:"bytes,2,opt,name=timestamp" json:"timestamp,omitempty"`
-	Client    string     `protobuf:"bytes,3,opt,name=client" json:"client,omitempty"`
+	Op                   *Operation `protobuf:"bytes,1,opt,name=op,proto3" json:"op,omitempty"`
+	Timestamp            string     `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Client               string     `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
 }
 
-func (m *RequestClient) Reset()                    { *m = RequestClient{} }
-func (m *RequestClient) String() string            { return proto.CompactTextString(m) }
-func (*RequestClient) ProtoMessage()               {}
-func (*RequestClient) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{7} }
+func (m *RequestClient) Reset()         { *m = RequestClient{} }
+func (m *RequestClient) String() string { return proto.CompactTextString(m) }
+func (*RequestClient) ProtoMessage()    {}
+func (*RequestClient) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{7}
+}
+
+func (m *RequestClient) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RequestClient.Unmarshal(m, b)
+}
+func (m *RequestClient) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RequestClient.Marshal(b, m, deterministic)
+}
+func (m *RequestClient) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestClient.Merge(m, src)
+}
+func (m *RequestClient) XXX_Size() int {
+	return xxx_messageInfo_RequestClient.Size(m)
+}
+func (m *RequestClient) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestClient.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RequestClient proto.InternalMessageInfo
 
 func (m *RequestClient) GetOp() *Operation {
 	if m != nil {
@@ -488,16 +695,39 @@ func (m *RequestClient) GetClient() string {
 }
 
 type RequestPrePrepare struct {
-	View     uint32 `protobuf:"varint,1,opt,name=view" json:"view,omitempty"`
-	Sequence uint32 `protobuf:"varint,2,opt,name=sequence" json:"sequence,omitempty"`
-	Digest   []byte `protobuf:"bytes,3,opt,name=digest,proto3" json:"digest,omitempty"`
-	Replica  uint32 `protobuf:"varint,4,opt,name=replica" json:"replica,omitempty"`
+	View                 uint32   `protobuf:"varint,1,opt,name=view,proto3" json:"view,omitempty"`
+	Sequence             uint32   `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Digest               []byte   `protobuf:"bytes,3,opt,name=digest,proto3" json:"digest,omitempty"`
+	Replica              uint32   `protobuf:"varint,4,opt,name=replica,proto3" json:"replica,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RequestPrePrepare) Reset()                    { *m = RequestPrePrepare{} }
-func (m *RequestPrePrepare) String() string            { return proto.CompactTextString(m) }
-func (*RequestPrePrepare) ProtoMessage()               {}
-func (*RequestPrePrepare) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{8} }
+func (m *RequestPrePrepare) Reset()         { *m = RequestPrePrepare{} }
+func (m *RequestPrePrepare) String() string { return proto.CompactTextString(m) }
+func (*RequestPrePrepare) ProtoMessage()    {}
+func (*RequestPrePrepare) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{8}
+}
+
+func (m *RequestPrePrepare) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RequestPrePrepare.Unmarshal(m, b)
+}
+func (m *RequestPrePrepare) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RequestPrePrepare.Marshal(b, m, deterministic)
+}
+func (m *RequestPrePrepare) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestPrePrepare.Merge(m, src)
+}
+func (m *RequestPrePrepare) XXX_Size() int {
+	return xxx_messageInfo_RequestPrePrepare.Size(m)
+}
+func (m *RequestPrePrepare) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestPrePrepare.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RequestPrePrepare proto.InternalMessageInfo
 
 func (m *RequestPrePrepare) GetView() uint32 {
 	if m != nil {
@@ -528,16 +758,39 @@ func (m *RequestPrePrepare) GetReplica() uint32 {
 }
 
 type RequestPrepare struct {
-	View     uint32 `protobuf:"varint,1,opt,name=view" json:"view,omitempty"`
-	Sequence uint32 `protobuf:"varint,2,opt,name=sequence" json:"sequence,omitempty"`
-	Digest   []byte `protobuf:"bytes,3,opt,name=digest,proto3" json:"digest,omitempty"`
-	Replica  uint32 `protobuf:"varint,4,opt,name=replica" json:"replica,omitempty"`
+	View                 uint32   `protobuf:"varint,1,opt,name=view,proto3" json:"view,omitempty"`
+	Sequence             uint32   `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Digest               []byte   `protobuf:"bytes,3,opt,name=digest,proto3" json:"digest,omitempty"`
+	Replica              uint32   `protobuf:"varint,4,opt,name=replica,proto3" json:"replica,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RequestPrepare) Reset()                    { *m = RequestPrepare{} }
-func (m *RequestPrepare) String() string            { return proto.CompactTextString(m) }
-func (*RequestPrepare) ProtoMessage()               {}
-func (*RequestPrepare) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{9} }
+func (m *RequestPrepare) Reset()         { *m = RequestPrepare{} }
+func (m *RequestPrepare) String() string { return proto.CompactTextString(m) }
+func (*RequestPrepare) ProtoMessage()    {}
+func (*RequestPrepare) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{9}
+}
+
+func (m *RequestPrepare) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RequestPrepare.Unmarshal(m, b)
+}
+func (m *RequestPrepare) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RequestPrepare.Marshal(b, m, deterministic)
+}
+func (m *RequestPrepare) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestPrepare.Merge(m, src)
+}
+func (m *RequestPrepare) XXX_Size() int {
+	return xxx_messageInfo_RequestPrepare.Size(m)
+}
+func (m *RequestPrepare) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestPrepare.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RequestPrepare proto.InternalMessageInfo
 
 func (m *RequestPrepare) GetView() uint32 {
 	if m != nil {
@@ -568,15 +821,38 @@ func (m *RequestPrepare) GetReplica() uint32 {
 }
 
 type RequestCommit struct {
-	View     uint32 `protobuf:"varint,1,opt,name=view" json:"view,omitempty"`
-	Sequence uint32 `protobuf:"varint,2,opt,name=sequence" json:"sequence,omitempty"`
-	Replica  uint32 `protobuf:"varint,3,opt,name=replica" json:"replica,omitempty"`
+	View                 uint32   `protobuf:"varint,1,opt,name=view,proto3" json:"view,omitempty"`
+	Sequence             uint32   `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Replica              uint32   `protobuf:"varint,3,opt,name=replica,proto3" json:"replica,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RequestCommit) Reset()                    { *m = RequestCommit{} }
-func (m *RequestCommit) String() string            { return proto.CompactTextString(m) }
-func (*RequestCommit) ProtoMessage()               {}
-func (*RequestCommit) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{10} }
+func (m *RequestCommit) Reset()         { *m = RequestCommit{} }
+func (m *RequestCommit) String() string { return proto.CompactTextString(m) }
+func (*RequestCommit) ProtoMessage()    {}
+func (*RequestCommit) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{10}
+}
+
+func (m *RequestCommit) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RequestCommit.Unmarshal(m, b)
+}
+func (m *RequestCommit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RequestCommit.Marshal(b, m, deterministic)
+}
+func (m *RequestCommit) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestCommit.Merge(m, src)
+}
+func (m *RequestCommit) XXX_Size() int {
+	return xxx_messageInfo_RequestCommit.Size(m)
+}
+func (m *RequestCommit) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestCommit.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RequestCommit proto.InternalMessageInfo
 
 func (m *RequestCommit) GetView() uint32 {
 	if m != nil {
@@ -600,15 +876,38 @@ func (m *RequestCommit) GetReplica() uint32 {
 }
 
 type RequestCheckpoint struct {
-	Sequence uint32 `protobuf:"varint,1,opt,name=sequence" json:"sequence,omitempty"`
-	Digest   []byte `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
-	Replica  uint32 `protobuf:"varint,3,opt,name=replica" json:"replica,omitempty"`
+	Sequence             uint32   `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Digest               []byte   `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
+	Replica              uint32   `protobuf:"varint,3,opt,name=replica,proto3" json:"replica,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RequestCheckpoint) Reset()                    { *m = RequestCheckpoint{} }
-func (m *RequestCheckpoint) String() string            { return proto.CompactTextString(m) }
-func (*RequestCheckpoint) ProtoMessage()               {}
-func (*RequestCheckpoint) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{11} }
+func (m *RequestCheckpoint) Reset()         { *m = RequestCheckpoint{} }
+func (m *RequestCheckpoint) String() string { return proto.CompactTextString(m) }
+func (*RequestCheckpoint) ProtoMessage()    {}
+func (*RequestCheckpoint) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{11}
+}
+
+func (m *RequestCheckpoint) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RequestCheckpoint.Unmarshal(m, b)
+}
+func (m *RequestCheckpoint) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RequestCheckpoint.Marshal(b, m, deterministic)
+}
+func (m *RequestCheckpoint) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestCheckpoint.Merge(m, src)
+}
+func (m *RequestCheckpoint) XXX_Size() int {
+	return xxx_messageInfo_RequestCheckpoint.Size(m)
+}
+func (m *RequestCheckpoint) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestCheckpoint.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RequestCheckpoint proto.InternalMessageInfo
 
 func (m *RequestCheckpoint) GetSequence() uint32 {
 	if m != nil {
@@ -632,18 +931,41 @@ func (m *RequestCheckpoint) GetReplica() uint32 {
 }
 
 type RequestViewChange struct {
-	View        uint32        `protobuf:"varint,1,opt,name=view" json:"view,omitempty"`
-	Sequence    uint32        `protobuf:"varint,2,opt,name=sequence" json:"sequence,omitempty"`
-	Checkpoints []*Checkpoint `protobuf:"bytes,3,rep,name=checkpoints" json:"checkpoints,omitempty"`
-	Preps       []*Entry      `protobuf:"bytes,4,rep,name=preps" json:"preps,omitempty"`
-	Prepreps    []*Entry      `protobuf:"bytes,5,rep,name=prepreps" json:"prepreps,omitempty"`
-	Replica     uint32        `protobuf:"varint,6,opt,name=replica" json:"replica,omitempty"`
+	View                 uint32        `protobuf:"varint,1,opt,name=view,proto3" json:"view,omitempty"`
+	Sequence             uint32        `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Checkpoints          []*Checkpoint `protobuf:"bytes,3,rep,name=checkpoints,proto3" json:"checkpoints,omitempty"`
+	Preps                []*Entry      `protobuf:"bytes,4,rep,name=preps,proto3" json:"preps,omitempty"`
+	Prepreps             []*Entry      `protobuf:"bytes,5,rep,name=prepreps,proto3" json:"prepreps,omitempty"`
+	Replica              uint32        `protobuf:"varint,6,opt,name=replica,proto3" json:"replica,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
 }
 
-func (m *RequestViewChange) Reset()                    { *m = RequestViewChange{} }
-func (m *RequestViewChange) String() string            { return proto.CompactTextString(m) }
-func (*RequestViewChange) ProtoMessage()               {}
-func (*RequestViewChange) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{12} }
+func (m *RequestViewChange) Reset()         { *m = RequestViewChange{} }
+func (m *RequestViewChange) String() string { return proto.CompactTextString(m) }
+func (*RequestViewChange) ProtoMessage()    {}
+func (*RequestViewChange) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{12}
+}
+
+func (m *RequestViewChange) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RequestViewChange.Unmarshal(m, b)
+}
+func (m *RequestViewChange) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RequestViewChange.Marshal(b, m, deterministic)
+}
+func (m *RequestViewChange) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestViewChange.Merge(m, src)
+}
+func (m *RequestViewChange) XXX_Size() int {
+	return xxx_messageInfo_RequestViewChange.Size(m)
+}
+func (m *RequestViewChange) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestViewChange.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RequestViewChange proto.InternalMessageInfo
 
 func (m *RequestViewChange) GetView() uint32 {
 	if m != nil {
@@ -688,16 +1010,39 @@ func (m *RequestViewChange) GetReplica() uint32 {
 }
 
 type RequestAck struct {
-	View        uint32 `protobuf:"varint,1,opt,name=view" json:"view,omitempty"`
-	Replica     uint32 `protobuf:"varint,2,opt,name=replica" json:"replica,omitempty"`
-	Viewchanger uint32 `protobuf:"varint,3,opt,name=viewchanger" json:"viewchanger,omitempty"`
-	Digest      []byte `protobuf:"bytes,4,opt,name=digest,proto3" json:"digest,omitempty"`
+	View                 uint32   `protobuf:"varint,1,opt,name=view,proto3" json:"view,omitempty"`
+	Replica              uint32   `protobuf:"varint,2,opt,name=replica,proto3" json:"replica,omitempty"`
+	Viewchanger          uint32   `protobuf:"varint,3,opt,name=viewchanger,proto3" json:"viewchanger,omitempty"`
+	Digest               []byte   `protobuf:"bytes,4,opt,name=digest,proto3" json:"digest,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RequestAck) Reset()                    { *m = RequestAck{} }
-func (m *RequestAck) String() string            { return proto.CompactTextString(m) }
-func (*RequestAck) ProtoMessage()               {}
-func (*RequestAck) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{13} }
+func (m *RequestAck) Reset()         { *m = RequestAck{} }
+func (m *RequestAck) String() string { return proto.CompactTextString(m) }
+func (*RequestAck) ProtoMessage()    {}
+func (*RequestAck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{13}
+}
+
+func (m *RequestAck) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RequestAck.Unmarshal(m, b)
+}
+func (m *RequestAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RequestAck.Marshal(b, m, deterministic)
+}
+func (m *RequestAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestAck.Merge(m, src)
+}
+func (m *RequestAck) XXX_Size() int {
+	return xxx_messageInfo_RequestAck.Size(m)
+}
+func (m *RequestAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestAck.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RequestAck proto.InternalMessageInfo
 
 func (m *RequestAck) GetView() uint32 {
 	if m != nil {
@@ -728,16 +1073,39 @@ func (m *RequestAck) GetDigest() []byte {
 }
 
 type RequestNewView struct {
-	View        uint32        `protobuf:"varint,1,opt,name=view" json:"view,omitempty"`
-	Viewchanges []*ViewChange `protobuf:"bytes,2,rep,name=viewchanges" json:"viewchanges,omitempty"`
-	Summaries   []*Summary    `protobuf:"bytes,4,rep,name=summaries" json:"summaries,omitempty"`
-	Replica     uint32        `protobuf:"varint,5,opt,name=replica" json:"replica,omitempty"`
+	View                 uint32        `protobuf:"varint,1,opt,name=view,proto3" json:"view,omitempty"`
+	Viewchanges          []*ViewChange `protobuf:"bytes,2,rep,name=viewchanges,proto3" json:"viewchanges,omitempty"`
+	Summaries            []*Summary    `protobuf:"bytes,4,rep,name=summaries,proto3" json:"summaries,omitempty"`
+	Replica              uint32        `protobuf:"varint,5,opt,name=replica,proto3" json:"replica,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
 }
 
-func (m *RequestNewView) Reset()                    { *m = RequestNewView{} }
-func (m *RequestNewView) String() string            { return proto.CompactTextString(m) }
-func (*RequestNewView) ProtoMessage()               {}
-func (*RequestNewView) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{14} }
+func (m *RequestNewView) Reset()         { *m = RequestNewView{} }
+func (m *RequestNewView) String() string { return proto.CompactTextString(m) }
+func (*RequestNewView) ProtoMessage()    {}
+func (*RequestNewView) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{14}
+}
+
+func (m *RequestNewView) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RequestNewView.Unmarshal(m, b)
+}
+func (m *RequestNewView) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RequestNewView.Marshal(b, m, deterministic)
+}
+func (m *RequestNewView) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestNewView.Merge(m, src)
+}
+func (m *RequestNewView) XXX_Size() int {
+	return xxx_messageInfo_RequestNewView.Size(m)
+}
+func (m *RequestNewView) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestNewView.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RequestNewView proto.InternalMessageInfo
 
 func (m *RequestNewView) GetView() uint32 {
 	if m != nil {
@@ -768,17 +1136,40 @@ func (m *RequestNewView) GetReplica() uint32 {
 }
 
 type ClientReply struct {
-	View      uint32  `protobuf:"varint,1,opt,name=view" json:"view,omitempty"`
-	Timestamp string  `protobuf:"bytes,2,opt,name=timestamp" json:"timestamp,omitempty"`
-	Client    string  `protobuf:"bytes,3,opt,name=client" json:"client,omitempty"`
-	Replica   uint32  `protobuf:"varint,4,opt,name=replica" json:"replica,omitempty"`
-	Result    *Result `protobuf:"bytes,5,opt,name=result" json:"result,omitempty"`
+	View                 uint32   `protobuf:"varint,1,opt,name=view,proto3" json:"view,omitempty"`
+	Timestamp            string   `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Client               string   `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
+	Replica              uint32   `protobuf:"varint,4,opt,name=replica,proto3" json:"replica,omitempty"`
+	Result               *Result  `protobuf:"bytes,5,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ClientReply) Reset()                    { *m = ClientReply{} }
-func (m *ClientReply) String() string            { return proto.CompactTextString(m) }
-func (*ClientReply) ProtoMessage()               {}
-func (*ClientReply) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{15} }
+func (m *ClientReply) Reset()         { *m = ClientReply{} }
+func (m *ClientReply) String() string { return proto.CompactTextString(m) }
+func (*ClientReply) ProtoMessage()    {}
+func (*ClientReply) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6cc19f28ccff0670, []int{15}
+}
+
+func (m *ClientReply) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ClientReply.Unmarshal(m, b)
+}
+func (m *ClientReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ClientReply.Marshal(b, m, deterministic)
+}
+func (m *ClientReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClientReply.Merge(m, src)
+}
+func (m *ClientReply) XXX_Size() int {
+	return xxx_messageInfo_ClientReply.Size(m)
+}
+func (m *ClientReply) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClientReply.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClientReply proto.InternalMessageInfo
 
 func (m *ClientReply) GetView() uint32 {
 	if m != nil {
@@ -834,9 +1225,9 @@ func init() {
 	proto.RegisterType((*ClientReply)(nil), "types.ClientReply")
 }
 
-func init() { proto.RegisterFile("pbft.proto", fileDescriptor6) }
+func init() { proto.RegisterFile("pbft.proto", fileDescriptor_6cc19f28ccff0670) }
 
-var fileDescriptor6 = []byte{
+var fileDescriptor_6cc19f28ccff0670 = []byte{
 	// 677 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0x5f, 0x6b, 0xdb, 0x30,
 	0x10, 0xaf, 0xe3, 0xc4, 0x69, 0x2e, 0x4d, 0x69, 0xc5, 0x36, 0x44, 0xd9, 0x58, 0x30, 0x14, 0xfa,
