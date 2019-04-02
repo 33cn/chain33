@@ -93,13 +93,15 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 
 	}
 
-	seeds := MainNetSeeds
-	if types.IsTestNet() {
-		seeds = TestNetSeeds
-	}
+	if cfg.InnerSeedEnable {
+		seeds := MainNetSeeds
+		if types.IsTestNet() {
+			seeds = TestNetSeeds
+		}
 
-	for _, seed := range seeds {
-		node.innerSeeds.Store(seed, "inner")
+		for _, seed := range seeds {
+			node.innerSeeds.Store(seed, "inner")
+		}
 	}
 
 	for _, seed := range cfg.Seeds {

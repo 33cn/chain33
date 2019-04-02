@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
 	//"time"
 
 	pb "github.com/33cn/chain33/types"
@@ -61,7 +62,7 @@ func NewDownloadJob(p2pcli *Cli, peers []*Peer) *DownloadJob {
 	job.busyPeer = make(map[string]*peerJob)
 	job.downloadPeers = peers
 
-	job.MaxJob = 2
+	job.MaxJob = 5
 	if len(peers) < 5 {
 		job.MaxJob = 10
 	}
