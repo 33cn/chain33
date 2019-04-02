@@ -274,12 +274,15 @@ function sync() {
 
 function transfer() {
     echo "=========== # transfer ============="
+    ${CLI} account balance -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -e coins
+    prebalance=$(${CLI} account balance -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -e coins | jq -r ".balance")
+
     ${CLI} block last_header
     curHeight=$(${CLI} block last_header | jq ".height")
     echo "curheight=$curHeight"
     hashes=()
     for ((i = 0; i < 10; i++)); do
-        hash=$(${CLI} send coins transfer -a 1 -n test -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
+        hash=$(${CLI} send coins transfer -a 1 -n test -t 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
         echo "$hash"
         hashes=("${hashes[@]}" "$hash")
     done
@@ -299,17 +302,27 @@ function transfer() {
         fi
     done
 
-    ${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e coins
+    ${CLI} account balance -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -e coins
 
     local times=100
     while true; do
-        balance=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e coins | jq -r ".balance")
-        echo "account balance is ${balance}, expect 10.0000 "
+        newbalance=$(${CLI} account balance -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -e coins | jq -r ".balance")
+        echo "newbalance balance is ${newbalance}"
+        balance=$(echo "$newbalance - $prebalance" | bc)
+        echo "account added balance is ${balance}, expect 10.0000 "
         if [ "${balance}" != "10.0000" ]; then
             block_wait 2
             times=$((times - 1))
             if [ $times -le 0 ]; then
-                echo "account balance transfer failed"
+                echo "account balance transfer failed, all tx list below:"
+                for ((i = 0; i < ${#hashes[*]}; i++)); do
+                    echo "------the $i tx=${hashes[$i]}----------"
+                    ${CLI} tx query_hash -s "${hashes[$i]}"
+                done
+                echo "----------block info------------------"
+                lastheight=$(${CLI} block last_header | jq -r ".height")
+                ${CLI} block get -s 1 -e "${lastheight}" -d 1
+
                 exit 1
             fi
         else
