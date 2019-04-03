@@ -136,7 +136,7 @@ func RunChain33(name string) {
 	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
 	version.SetStoreDBVersion(cfg.Store.StoreDBVersion)
 	version.SetAppVersion(cfg.Version)
-	log.Info(cfg.Title + "-app:" + version.GetAppVersion() + " chain33:" + version.GetVersion() + " localdb:" + version.GetLocalDBVersion())
+	log.Info(cfg.Title + "-app:" + version.GetAppVersion() + " chain33:" + version.GetVersion() + " localdb:" + version.GetLocalDBVersion() + " storedb:" + version.GetStoreDBVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
