@@ -73,7 +73,7 @@ func (chain *BlockChain) ReExecBlock(startHeight, curHeight int64) {
 		}
 		prevStateHash = block.StateHash
 		//更新高度
-		err = chain.upgradeMeta(startHeight)
+		err = chain.upgradeMeta(i)
 		if err != nil {
 			panic(err)
 		}
