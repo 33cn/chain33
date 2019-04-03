@@ -414,7 +414,7 @@ func (p *Peer) readStream() {
 					msg := p.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
 					errs := p.node.nodeInfo.client.Send(msg, false)
 					if errs != nil {
-						log.Error("send", "to mempool EventTx msg Error", err.Error())
+						log.Error("send", "to mempool EventTx msg Error", errs.Error())
 					}
 					//Filter.RegRecvData(txhash) //登记
 				}

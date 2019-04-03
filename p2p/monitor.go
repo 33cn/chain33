@@ -48,7 +48,10 @@ func (n *Node) monitorErrPeer() {
 				log.Debug("monitorErrPeer", "over maxattamps", pstat.GetAttempts())
 				n.destroyPeer(peer)
 			}
+		} else {
+			log.Debug("addrBook", "setAddrStat no this peerAddr", peer.Addr())
 		}
+
 	}
 }
 
@@ -345,6 +348,8 @@ func (n *Node) nodeReBalance() {
 			if localBlockHeight-peerBlockHeight < 2048 {
 				log.Info("noReBalance", "Repalce node new node", MinCacheInBoundPeer.Addr(), "old node", MaxInBoundPeer.Addr())
 				n.addPeer(MinCacheInBoundPeer)
+				n.nodeInfo.addrBook.AddAddress(MinCacheInBoundPeer.peerAddr(), nil)
+
 				n.remove(MaxInBoundPeer.Addr())
 				n.RemoveCachePeer(MinCacheInBoundPeer.Addr())
 			}
