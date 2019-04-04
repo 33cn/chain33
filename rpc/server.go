@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // register gzip
+	"google.golang.org/grpc/keepalive"
 )
 
 var (
@@ -168,6 +169,13 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 		credsOps := grpc.Creds(creds)
 		opts = append(opts, credsOps)
 	}
+
+	kp := keepalive.EnforcementPolicy{
+		MinTime:             10 * time.Second,
+		PermitWithoutStream: true,
+	}
+	opts = append(opts, grpc.KeepaliveEnforcementPolicy(kp))
+
 	server := grpc.NewServer(opts...)
 	s.s = server
 	types.RegisterChain33Server(server, s.grpc)
