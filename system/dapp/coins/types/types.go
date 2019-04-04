@@ -135,12 +135,15 @@ func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.
 
 // GetAssets return asset list
 func (c *CoinsType) GetAssets(tx *types.Transaction) ([]*types.Asset, error) {
-	assetlist, err := c.ExecTypeBase.GetAssets(tx)
-	if err != nil || len(assetlist) == 0 {
+	assets, err := c.ExecTypeBase.GetAssets(tx)
+	if err != nil || len(assets) == 0 {
 		return nil, err
 	}
-	if assetlist[0].Symbol == "" {
-		assetlist[0].Symbol = types.GetCoinSymbol()
+	if assets[0].Symbol == "" {
+		assets[0].Symbol = types.GetCoinSymbol()
 	}
-	return assetlist, nil
+	if assets[0].Symbol == "bty" {
+		assets[0].Symbol = "BTY"
+	}
+	return assets, nil
 }
