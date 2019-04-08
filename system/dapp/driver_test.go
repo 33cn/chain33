@@ -193,9 +193,6 @@ func TestDriverBase(t *testing.T) {
 	data := types.Encode(&types.LocalDBSet{KV: rollbackkvs})
 	assert.Equal(t, string(newkvs[1].Value), string(types.Encode(&types.ReceiptLog{Ty: types.TyLogRollback, Log: data})))
 
-	_, err = demo.DelRollbackKV(tx, []byte(execer))
-	assert.Equal(t, err, types.ErrNotFound)
-
 	kvdb.Set(newkvs[1].Key, newkvs[1].Value)
 	newkvs, err = demo.DelRollbackKV(tx, []byte(execer))
 	assert.Nil(t, err)

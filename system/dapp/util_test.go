@@ -84,12 +84,12 @@ func TestKVCreator(t *testing.T) {
 	creator = NewKVCreator(kvdb, []byte("prefix-"), []byte("emptyrollback"))
 	creator.AddListNoPrefix(nil)
 	creator.AddRollbackKV()
-	assert.Equal(t, 0, len(creator.kvs))
+	assert.Zero(t, len(creator.kvs))
 	kvs, err = creator.GetRollbackKVList()
-	assert.Equal(t, 0, len(kvs))
-	assert.Equal(t, nil, err)
+	assert.Zero(t, len(kvs))
+	assert.Nil(t, err)
 	creator.DelRollbackKV()
-	assert.Equal(t, 0, len(creator.kvs))
+	assert.Zero(t, len(creator.kvs))
 }
 
 func TestHeightIndexStr(t *testing.T) {
