@@ -173,7 +173,7 @@ func TestDriverBase(t *testing.T) {
 	demo.SetLocalDB(kvdb)
 	execer := "user.p.guodun.demo"
 	kvs := []*types.KeyValue{
-		&types.KeyValue{
+		{
 			Key:   []byte("hello"),
 			Value: []byte("world"),
 		},
@@ -185,7 +185,7 @@ func TestDriverBase(t *testing.T) {
 	assert.Equal(t, string(newkvs[1].Key), string(append([]byte("LODB-demo-rollback-"), tx.Hash()...)))
 
 	rollbackkvs := []*types.KeyValue{
-		&types.KeyValue{
+		{
 			Key:   []byte("hello"),
 			Value: nil,
 		},
