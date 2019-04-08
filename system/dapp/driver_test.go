@@ -122,6 +122,8 @@ func TestAllow(t *testing.T) {
 }
 
 func TestDriverBase(t *testing.T) {
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
 	demo := newdemoApp().(*demoApp)
 	demo.SetExecutorType(nil)
 	assert.Nil(t, demo.GetPayloadValue())
@@ -167,6 +169,29 @@ func TestDriverBase(t *testing.T) {
 
 	err = CheckAddress("1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", 0)
 	assert.NoError(t, err)
+
+	demo.SetLocalDB(kvdb)
+	execer := "user.p.guodun.demo"
+	kvs := []*types.KeyValue{
+		&types.KeyValue{
+			Key:   []byte("hello"),
+			Value: []byte("world"),
+		},
+	}
+	newkvs := demo.AddRollbackKV(tx, []byte(execer), kvs)
+	assert.Equal(t, 2, len(newkvs))
+	assert.Equal(t, string(newkvs[0].Key), "hello")
+	assert.Equal(t, string(newkvs[0].Value), "world")
+	assert.Equal(t, string(newkvs[1].Key), string(append([]byte("LODB-demo-rollback-"), tx.Hash()...)))
+
+	rollbackkvs := []*types.KeyValue{
+		&types.KeyValue{
+			Key:   []byte("hello"),
+			Value: nil,
+		},
+	}
+	data := types.Encode(&types.LocalDBSet{KV: rollbackkvs})
+	assert.Equal(t, string(newkvs[1].Value), string(types.Encode(&types.ReceiptLog{Ty: types.TyLogRollback, Log: data})))
 }
 
 func TestDriverBase_Query(t *testing.T) {

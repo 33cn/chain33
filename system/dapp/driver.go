@@ -490,3 +490,27 @@ func (d *DriverBase) SetTxs(txs []*types.Transaction) {
 func (d *DriverBase) CheckReceiptExecOk() bool {
 	return false
 }
+
+//AddRollbackKV add rollback kv
+func (d *DriverBase) AddRollbackKV(tx *types.Transaction, execer []byte, kvs []*types.KeyValue) []*types.KeyValue {
+	k := types.CalcRollbackKey(types.GetRealExecName(execer), tx.Hash())
+	kvc := NewKVCreator(d.GetLocalDB(), types.CalcLocalPrefix(execer), k)
+	kvc.AddListNoPrefix(kvs)
+	kvc.AddRollbackKV()
+	return kvc.KVList()
+}
+
+//DelRollbackKV del rollback kv when exec_del_local
+func (d *DriverBase) DelRollbackKV(tx *types.Transaction, execer []byte) ([]*types.KeyValue, error) {
+	krollback := types.CalcRollbackKey(types.GetRealExecName(execer), tx.Hash())
+	kvc := NewKVCreator(d.GetLocalDB(), types.CalcLocalPrefix(execer), krollback)
+	kvs, err := kvc.GetRollbackKVList()
+	if err != nil {
+		return nil, err
+	}
+	for _, kv := range kvs {
+		kvc.AddNoPrefix(kv.Key, kv.Value)
+	}
+	kvc.DelRollbackKV()
+	return kvc.KVList(), nil
+}

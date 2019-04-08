@@ -6,7 +6,6 @@ package types
 
 import (
 	"fmt"
-	"time"
 )
 
 // 定义key值
@@ -63,23 +62,30 @@ func StatisticFlag() []byte {
 	return []byte("Statistics:Flag")
 }
 
-//StatisticTicketInfoKey 统计ticket的key
-func StatisticTicketInfoKey(ticketID string) []byte {
-	return []byte("Statistics:TicketInfo:TicketId:" + ticketID)
-}
-
-//StatisticTicketInfoOrderKey 统计ticket的key
-func StatisticTicketInfoOrderKey(minerAddr string, createTime int64, ticketID string) []byte {
-	return []byte("Statistics:TicketInfoOrder:Addr:" + minerAddr + ":CreateTime:" + time.Unix(createTime, 0).Format("20060102150405") + ":TicketId:" + ticketID)
-}
-
-//StatisticTicketKey 统计ticket的key
-func StatisticTicketKey(minerAddr string) []byte {
-	return []byte("Statistics:TicketStat:Addr:" + minerAddr)
-}
-
 //TotalFeeKey 统计所有费用的key
 func TotalFeeKey(hash []byte) []byte {
 	key := []byte("TotalFeeKey:")
 	return append(key, hash...)
+}
+
+//CalcLocalPrefix 计算localdb key
+func CalcLocalPrefix(execer []byte) []byte {
+	s := append([]byte("LODB-"), execer...)
+	s = append(s, byte('-'))
+	return s
+}
+
+//CalcStatePrefix 计算localdb key
+func CalcStatePrefix(execer []byte) []byte {
+	s := append([]byte("mavl-"), execer...)
+	s = append(s, byte('-'))
+	return s
+}
+
+//CalcRollbackKey 计算回滚的key
+func CalcRollbackKey(execer []byte, hash []byte) []byte {
+	prefix := CalcLocalPrefix(execer)
+	key := append(prefix, []byte("rollback-")...)
+	key = append(key, hash...)
+	return key
 }
