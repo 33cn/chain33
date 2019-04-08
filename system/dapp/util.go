@@ -195,7 +195,7 @@ func (c *KVCreator) rollbackLog() *types.ReceiptLog {
 	if len(c.rollbackkvs) == 0 {
 		return nil
 	}
-		data := types.Encode(&types.LocalDBSet{KV: c.rollbackkvs})
+	data := types.Encode(&types.LocalDBSet{KV: c.rollbackkvs})
 	return &types.ReceiptLog{Ty: types.TyLogRollback, Log: data}
 }
 
