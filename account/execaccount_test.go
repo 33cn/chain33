@@ -180,10 +180,16 @@ func TestExecIssueCoins(t *testing.T) {
 	q := initEnv()
 	blockchainProcess(q)
 	storeProcess(q)
-
-	execaddress := address.ExecAddress("ticket")
 	accCoin, _ := GenerAccDb()
+	execaddress := address.ExecAddress("token")
 	_, err := accCoin.ExecIssueCoins(execaddress, 25*1e8)
+	require.Equal(t, types.ErrNotAllowDeposit, err)
+	require.Zero(t, accCoin.LoadAccount(execaddress).Balance)
+	execaddress = address.ExecAddress("user.p.para.ticket")
+	_, err = accCoin.ExecIssueCoins(execaddress, 25*1e8)
+	require.Equal(t, types.ErrNotAllowDeposit, err)
+	execaddress = address.ExecAddress("ticket")
+	_, err = accCoin.ExecIssueCoins(execaddress, 25*1e8)
 	require.NoError(t, err)
 	t.Logf("ExecIssueCoins [%d]",
 		accCoin.LoadAccount(execaddress).Balance)
