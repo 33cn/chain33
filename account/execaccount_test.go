@@ -174,3 +174,18 @@ func TestExecDepositFrozen(t *testing.T) {
 		accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 	require.Equal(t, int64(20*1e8+25*1e8), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 }
+
+func TestExecIssueCoins(t *testing.T) {
+
+	q := initEnv()
+	blockchainProcess(q)
+	storeProcess(q)
+
+	execaddress := address.ExecAddress("ticket")
+	accCoin, _ := GenerAccDb()
+	_, err := accCoin.ExecIssueCoins(execaddress, 25*1e8)
+	require.NoError(t, err)
+	t.Logf("ExecIssueCoins [%d]",
+		accCoin.LoadAccount(execaddress).Balance)
+	require.Equal(t, int64(25*1e8), accCoin.LoadAccount(execaddress).Balance)
+}
