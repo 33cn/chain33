@@ -540,6 +540,15 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	return group.IsExpire(height, blocktime)
 }
 
+//GetTxFee 获取交易的费用，区分单笔交易和交易组
+func (tx *Transaction) GetTxFee() int64 {
+	group, _ := tx.GetTxGroup()
+	if group == nil {
+		return tx.Fee
+	}
+	return group.Txs[0].Fee
+}
+
 //From 交易from地址
 func (tx *Transaction) From() string {
 	return address.PubKeyToAddr(tx.GetSignature().GetPubkey())

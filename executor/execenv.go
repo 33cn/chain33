@@ -188,10 +188,18 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	if !exec.IsFree() && types.GInt("MinFee") > 0 {
 		from := tx.From()
 		accFrom := e.coinsAccount.LoadAccount(from)
+
+		//余额少于手续费时直接返回错误
+		if accFrom.GetBalance() < tx.GetTxFee() {
+			elog.Error("execCheckTx", "ispara", types.IsPara(), "exec", string(tx.Execer), "Balance", accFrom.GetBalance(), "TxFee", tx.GetTxFee())
+			return types.ErrNoBalance
+		}
+
 		if accFrom.GetBalance() < types.GInt("MinBalanceTransfer") {
-			elog.Error("execCheckTx", "ispara", types.IsPara(), "exec", string(tx.Execer), "nonce", tx.Nonce)
+			elog.Error("execCheckTx", "ispara", types.IsPara(), "exec", string(tx.Execer), "nonce", tx.Nonce, "Balance", accFrom.GetBalance())
 			return types.ErrBalanceLessThanTenTimesFee
 		}
+
 	}
 	return exec.CheckTx(tx, index)
 }
