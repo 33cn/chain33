@@ -13,6 +13,7 @@ import (
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+
 	//"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
@@ -129,6 +130,7 @@ func TestNetInfo(t *testing.T) {
 	p2pModule.node.nodeInfo.IsNatDone()
 	p2pModule.node.nodeInfo.SetNatDone()
 	p2pModule.node.nodeInfo.Get()
+	p2pModule.node.nodeInfo.Set(p2pModule.node.nodeInfo)
 }
 
 //测试Peer
@@ -269,6 +271,19 @@ func TestGrpcStreamConns(t *testing.T) {
 	assert.Nil(t, err)
 	_, err = resp.Recv()
 	assert.Equal(t, true, strings.Contains(err.Error(), "no authorized"))
+
+	ping, err := P2pComm.NewPingData(p2pModule.node.nodeInfo)
+	assert.Nil(t, err)
+
+	_, err = cli.ServerStreamSend(context.Background(), ping)
+	assert.Nil(t, err)
+	_, err = cli.ServerStreamRead(context.Background())
+	assert.Nil(t, err)
+	var emptyBlock types.P2PBlock
+
+	_, err = cli.BroadCastBlock(context.Background(), &emptyBlock)
+	assert.Equal(t, true, strings.Contains(err.Error(), "no authorized"))
+
 	conn.Close()
 
 }
@@ -367,6 +382,17 @@ func TestNetAddress(t *testing.T) {
 
 }
 
+func TestP2pListen(t *testing.T) {
+	var node Node
+	node.listenPort = 3333
+	listen1 := NewListener("tcp", &node)
+	assert.Equal(t, true, listen1 != nil)
+	listen2 := NewListener("tcp", &node)
+	assert.Equal(t, true, listen2 != nil)
+
+	listen1.Close()
+	listen2.Close()
+}
 func TestP2pClose(t *testing.T) {
 	p2pModule.Wait()
 	p2pModule.Close()
