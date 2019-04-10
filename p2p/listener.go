@@ -6,6 +6,7 @@ package p2p
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -53,11 +54,21 @@ type listener struct {
 
 // NewListener produce a listener object
 func NewListener(protocol string, node *Node) Listener {
-	log.Debug("NewListener", "localPort", node.listenPort)
+Retry:
+	log.Info("NewListener", "localPort", node.listenPort)
 	l, err := net.Listen(protocol, fmt.Sprintf(":%v", node.listenPort))
 	if err != nil {
-		log.Crit("Failed to listen", "Error", err.Error())
-		return nil
+		log.Error("Failed to listen", "Error", err.Error())
+		for {
+			randPort := rand.New(rand.NewSource(time.Now().UnixNano())).Int31n(65535)
+			if int(randPort) == node.listenPort || randPort < 2048 {
+				continue
+			}
+			node.listenPort = int(randPort)
+			break
+		}
+		log.Info("Flush Listen Port", "RandPort", node.listenPort)
+		goto Retry
 	}
 
 	dl := &listener{
