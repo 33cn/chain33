@@ -41,7 +41,7 @@ function showPrivacyBalance() {
 function init() {
     echo "=========== # start set wallet 1 ============="
     echo "=========== # save seed to wallet ============="
-    result=$(./chain33-cli seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+    result=$(./chain33-cli seed save -p 1314fuzamei -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "save seed to wallet error seed, result: ${result}"
         exit 1
@@ -50,7 +50,7 @@ function init() {
     sleep 2
 
     echo "=========== # unlock wallet ============="
-    result=$(./chain33-cli wallet unlock -p 1314 -t 0 | jq ".isok")
+    result=$(./chain33-cli wallet unlock -p 1314fuzamei -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         exit 1
     fi
