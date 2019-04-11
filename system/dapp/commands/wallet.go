@@ -136,7 +136,7 @@ func addSetPwdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("old", "o", "", "old password")
 	cmd.MarkFlagRequired("old")
 
-	cmd.Flags().StringP("new", "n", "", "new password")
+	cmd.Flags().StringP("new", "n", "", "new password,[8-30]letter and digit")
 	cmd.MarkFlagRequired("new")
 }
 

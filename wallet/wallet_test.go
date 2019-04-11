@@ -199,7 +199,7 @@ func testSeed(t *testing.T, wallet *Wallet) {
 	seed := seedRes.GetData().(*types.ReplySeed).Seed
 	println("seed: ", seed)
 
-	password := "password"
+	password := "password123"
 	saveSeedByPw := &types.SaveSeedByPw{Seed: "", Passwd: ""}
 	msgSaveEmpty := wallet.client.NewMessage("wallet", types.EventSaveSeed, saveSeedByPw)
 	wallet.client.Send(msgSaveEmpty, true)
@@ -575,7 +575,7 @@ func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletSetPasswd begin")
 	passwd := &types.ReqWalletSetPasswd{
 		OldPass: "wrongpassword",
-		NewPass: "Newpass",
+		NewPass: "Newpass123",
 	}
 	msg := wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
 	wallet.client.Send(msg, true)
@@ -584,7 +584,7 @@ func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 		t.Error("testProcWalletSetPasswd failed")
 	}
 
-	passwd.OldPass = "password"
+	passwd.OldPass = "password123"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
 	wallet.client.Send(msg, true)
 	_, err := wallet.client.Wait(msg)
@@ -628,12 +628,12 @@ func testProcWalletLock(t *testing.T, wallet *Wallet) {
 		t.Error("test input wrong password failed")
 	}
 
-	walletUnLock.Passwd = "Newpass"
+	walletUnLock.Passwd = "Newpass123"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletUnLock, walletUnLock)
 	wallet.client.Send(msg, true)
 	wallet.client.Wait(msg)
 
-	msgGetSeed := wallet.client.NewMessage("wallet", types.EventGetSeed, &types.GetSeedByPw{Passwd: "Newpass"})
+	msgGetSeed := wallet.client.NewMessage("wallet", types.EventGetSeed, &types.GetSeedByPw{Passwd: "Newpass123"})
 	wallet.client.Send(msgGetSeed, true)
 	resp, _ = wallet.client.Wait(msgGetSeed)
 	println("seed:", resp.GetData().(*types.ReplySeed).Seed)
