@@ -5,14 +5,15 @@
 package executor
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
 
-	"encoding/hex"
-
 	"github.com/33cn/chain33/client/api"
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/store"
 	_ "github.com/33cn/chain33/system"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
@@ -218,4 +219,38 @@ func TestExecutorErrAPIEnv(t *testing.T) {
 	_, err := exec.client.WaitTimeout(msg, 100*time.Second)
 	fmt.Println(err)
 	assert.Equal(t, true, api.IsAPIEnvError(err))
+}
+func TestCheckTx(t *testing.T) {
+	prev := types.GInt("MinFee")
+	types.SetMinFee(100000)
+	defer types.SetMinFee(prev)
+
+	q := queue.New("channel")
+
+	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
+	store := store.New(cfg.Store, sub.Store)
+	store.SetQueueClient(q.Client())
+	defer store.Close()
+
+	addr, priv := util.Genaddress()
+
+	tx := util.CreateCoinsTx(priv, addr, types.Coin)
+	tx.Execer = []byte("user.xxx")
+	tx.To = address.ExecAddress("user.xxx")
+	tx.Fee = 2 * types.Coin
+	tx.Sign(types.SECP256K1, priv)
+
+	var txs []*types.Transaction
+	txs = append(txs, tx)
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     0,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, &Executor{}, nil, txs, nil)
+	err := execute.execCheckTx(tx, 0)
+	assert.Equal(t, err, types.ErrNoBalance)
 }
