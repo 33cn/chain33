@@ -135,7 +135,7 @@ var (
 	ErrFromHex            = errors.New("ErrFromHex")
 	ErrPrivKeyFromBytes   = errors.New("ErrFromHex")
 	ErrParentHash         = errors.New("ErrParentHash")
-
+	ErrInvalidPassWord    = errors.New("ErrInvalidPassWord")
 	//ErrPing p2p模块错误类型
 	ErrPing       = errors.New("ErrPingSignature")
 	ErrVersion    = errors.New("ErrVersionNoSupport")
