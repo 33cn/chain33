@@ -107,12 +107,14 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := commandtypes.GetExecAddr(exec)
+	paraName, _ := cmd.Flags().GetString("paraName")
+	realExec := getRealExecName(paraName, exec)
+	execAddr, err := commandtypes.GetExecAddr(realExec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, true, "", exec)
+	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, true, "", realExec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -145,12 +147,14 @@ func sendToExec(cmd *cobra.Command, args []string) {
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := commandtypes.GetExecAddr(exec)
+	paraName, _ := cmd.Flags().GetString("paraName")
+	realExec := getRealExecName(paraName, exec)
+	execAddr, err := commandtypes.GetExecAddr(realExec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, false, "", exec)
+	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, false, "", realExec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
