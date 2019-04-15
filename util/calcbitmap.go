@@ -13,16 +13,16 @@ import (
 
 //CalcBitMap big-end mode,    that is bytes [0]      [1]
 // 				   tx index:     fedcba98 76543210
-//cur is subset of ori, receipts are align with cur txs,
-// if the tx ty is OK in cur, find the tx in ori and set the index to 1, this function return ori's bitmap
+//receipts are align with subs txs,
+// if the tx ty is OK in subs, find the tx in base and set the index to 1, this function return base's bitmap
 //if all tx failed, the setBit will normalize result and just return nil slice
-func CalcBitMap(ori, cur [][]byte, data []*types.ReceiptData) []byte {
+func CalcBitMap(bases, subs [][]byte, subData []*types.ReceiptData) []byte {
 	rst := big.NewInt(0)
 
-	for i, curHash := range cur {
-		for index, ori := range ori {
-			if bytes.Equal(ori, curHash) {
-				if data[i].Ty == types.ExecOk {
+	for index, base := range bases {
+		for i, sub := range subs {
+			if bytes.Equal(base, sub) {
+				if subData[i].Ty == types.ExecOk {
 					rst.SetBit(rst, index, 1)
 				}
 			}

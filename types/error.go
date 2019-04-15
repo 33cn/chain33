@@ -163,6 +163,7 @@ var (
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
 	ErrTxGroupParaCount           = errors.New("ErrTxGroupParaCount")
+	ErrTxGroupParaMainMixed       = errors.New("ErrTxGroupParaCount")
 
 	//ErrInvalidMainnetRPCAddr rpc模块的错误类型
 	ErrInvalidMainnetRPCAddr = errors.New("ErrInvalidMainnetRPCAddr")

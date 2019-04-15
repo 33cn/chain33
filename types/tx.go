@@ -175,6 +175,18 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 			return ErrTxGroupParaCount
 		}
 	}
+	// 如果是平行链group，只允许全部是平行链tx
+	if IsEnableFork(height, "ForkV25TxGroupPara", EnableTxGroupParaFork) {
+		if len(para) > 0 {
+			for _, tx := range txs {
+				if !IsParaExecName(string(tx.Execer)) {
+					tlog.Error("para txgroup has main chain transaction")
+					return ErrTxGroupParaMainMixed
+				}
+			}
+		}
+	}
+
 	for i := 1; i < len(txs); i++ {
 		if txs[i].Fee != 0 {
 			return ErrTxGroupFeeNotZero
