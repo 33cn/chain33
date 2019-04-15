@@ -252,6 +252,10 @@ func SetDappFork(title, dapp, fork string, height int64) {
 	systemFork.SetDappFork(title, dapp, fork, height)
 }
 
+//ReplaceDappFork 替换dapp fork 高度
+func ReplaceDappFork(title, dapp, fork string, height int64){
+	systemFork.ReplaceDappFork(title,dapp,fork, height)
+}
 // RegisterDappFork 注册dapp fork高度
 func RegisterDappFork(dapp, fork string, height int64) {
 	systemFork.SetDappFork("chain33", dapp, fork, height)

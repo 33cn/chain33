@@ -230,7 +230,7 @@ func S(key string, value interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
 	if strings.HasPrefix(key, "config.") {
-		if !isLocal() { //only local can modify for test
+		if !isLocal() && !isTestPara() { //only local and test para can modify for test
 			panic("prefix config. is readonly")
 		} else {
 			tlog.Error("modify " + key + " is only for test")
@@ -349,6 +349,10 @@ func SetMinFee(fee int64) {
 
 func isPara() bool {
 	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
+}
+
+func isTestPara() bool {
+	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX) && strings.HasSuffix(title, "test.")
 }
 
 // IsPara 是否平行链
@@ -652,6 +656,11 @@ func ConfSub(name string) *ConfQuery {
 // G 获取指定key的配置信息
 func (query *ConfQuery) G(key string) (interface{}, error) {
 	return G(getkey(query.prefix, key))
+}
+
+// S 获取指定key的配置信息
+func (query *ConfQuery) S(key string, value interface{})  {
+	S(getkey(query.prefix, key), value)
 }
 
 func parseStrList(data interface{}) []string {

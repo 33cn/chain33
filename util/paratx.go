@@ -153,7 +153,7 @@ func crossTxGroupProc(title string, txs []*types.Transaction, index int) ([]*typ
 func FilterParaMainCrossTxHashes(title string, txs []*types.Transaction) [][]byte {
 	var crossTxHashs [][]byte
 	//跨链tx 必须是paracross合约且user.p.打头， user.p.xx.的非paracross合约不是跨链
-	for i := 1; i < len(txs); i++ {
+	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		if tx.GroupCount > 1 {
 			groupTxs, end := crossTxGroupProc(title, txs, i)
