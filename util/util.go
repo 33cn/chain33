@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"strings"
 	"testing"
 	"unicode"
 
@@ -33,14 +32,6 @@ func init() {
 }
 
 var ulog = log15.New("module", "util")
-
-//GetParaExecName : 如果 name 没有 paraName 前缀，那么加上这个前缀
-func GetParaExecName(paraName string, name string) string {
-	if strings.HasPrefix(name, "user.p.") {
-		return name
-	}
-	return paraName + name
-}
 
 // MakeStringToUpper : 将给定的in字符串从pos开始一共count个转换为大写字母
 func MakeStringToUpper(in string, pos, count int) (out string, err error) {

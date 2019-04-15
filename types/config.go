@@ -369,6 +369,11 @@ func IsMyParaExecName(exec string) bool {
 	return IsParaExecName(exec) && strings.HasPrefix(exec, GetTitle())
 }
 
+//IsSpecificParaExecName 是否是某一个平行链的执行器
+func IsSpecificParaExecName(title, exec string) bool {
+	return IsParaExecName(exec) && strings.HasPrefix(exec, title)
+}
+
 func setTestNet(isTestNet bool) {
 	if !isTestNet {
 		setChainConfig("TestNet", false)
