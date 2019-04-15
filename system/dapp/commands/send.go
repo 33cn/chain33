@@ -127,5 +127,5 @@ func OneStepSend(args []string) {
 
 func loadHelp() {
 	fmt.Println("Use similarly as bty/token/trade/bind_miner raw transaction creation, in addition to the parameter of private key or from address input following \"-k\".")
-	fmt.Println("e.g.: cli send bty transfer -a 1 -n note -t toAddr -k privKey/fromAddr")
+	fmt.Println("e.g.: cli send coins transfer -a 1 -n note -t toAddr -k privKey/fromAddr")
 }

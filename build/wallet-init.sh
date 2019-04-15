@@ -6,8 +6,8 @@ function SendToPrivacyExec() {
     execAdd=$3
     note=$4
     amount=$5
-    #sudo docker exec -it $name ./chain33-cli send bty transfer -k $fromAdd -t $execAdd -n $note -a $amount
-    result=$($name send bty transfer -k "${fromAdd}" -t "${execAdd}" -n "${note}" -a "${amount}")
+    #sudo docker exec -it $name ./chain33-cli send coins transfer -k $fromAdd -t $execAdd -n $note -a $amount
+    result=$($name send coins transfer -k "${fromAdd}" -t "${execAdd}" -n "${note}" -a "${amount}")
     echo "hash : $result"
 }
 
