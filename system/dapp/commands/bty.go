@@ -17,22 +17,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// BTYCmd bty command
-func BTYCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "bty",
-		Short: "Construct BTY transactions",
-		Args:  cobra.MinimumNArgs(1),
-	}
-	cmd.AddCommand(
-		CreateRawTransferCmd(),
-		CreateRawWithdrawCmd(),
-		CreateRawSendToExecCmd(),
-		CreateTxGroupCmd(),
-	)
-	return cmd
-}
-
 // CoinsCmd coins command func
 func CoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
