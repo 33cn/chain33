@@ -205,7 +205,7 @@ func (t *Tree) Save() []byte {
 		return nil
 	}
 	if t.ndb != nil {
-		if t.isRemoveLeafCountKey() {
+		if enablePrune && t.isRemoveLeafCountKey() {
 			//DelLeafCountKV 需要先提前将leafcoutkey删除,这里需先于t.ndb.Commit()
 			err := DelLeafCountKV(t.ndb.db, t.blockHeight)
 			if err != nil {
