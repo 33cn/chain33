@@ -66,6 +66,7 @@ func EnableMemVal(enable bool) {
 	enableMemVal = enable
 }
 
+// ReleaseGlobalMem 释放全局缓存
 func ReleaseGlobalMem() {
 	if memTree != nil {
 		memTree = nil
