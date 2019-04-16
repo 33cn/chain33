@@ -10,9 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//CalcBitMap big-end mode,    that is bytes [0]      [1]
-// 				   tx index:     fedcba98 76543210
-//receipts are align with subs txs,
+//CalcBitMap subs are align with subData,get the bases' tx's bitmap from subs result
 // if the tx ty is OK in subs, find the tx in base and set the index to 1, this function return base's bitmap
 //if all tx failed, the setBit will normalize result and just return nil slice
 func CalcBitMap(bases, subs [][]byte, subData []*types.ReceiptData) []byte {
