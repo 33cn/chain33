@@ -658,7 +658,6 @@ func (query *ConfQuery) G(key string) (interface{}, error) {
 	return G(getkey(query.prefix, key))
 }
 
-
 func parseStrList(data interface{}) []string {
 	var list []string
 	if item, ok := data.([]interface{}); ok {
