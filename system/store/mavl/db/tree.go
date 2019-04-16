@@ -623,7 +623,7 @@ func updateGlobalMemTree(node *Node) {
 	memN.data[0] = node.leftHash
 	memN.data[1] = node.rightHash
 	memN.data[2] = node.key
-	if(isTkCloseNode) {
+	if isTkCloseNode {
 		tkCloseCache.Add(uintkey(farm.Hash64(node.hash)), memN)
 	} else {
 		memTree.Add(uintkey(farm.Hash64(node.hash)), memN)
@@ -660,7 +660,7 @@ func updateLocalMemTree(t *Tree, node *Node) {
 		memN.data[0] = node.leftHash
 		memN.data[1] = node.rightHash
 		memN.data[2] = node.key
-		if(isTkCloseNode) {
+		if isTkCloseNode {
 			t.tkCloseNode[uintkey(farm.Hash64(node.hash))] = memN
 		} else {
 			t.updateNode[uintkey(farm.Hash64(node.hash))] = memN
