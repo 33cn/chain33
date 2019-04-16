@@ -12,7 +12,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-const ParaX = "paracross"
+const paraX = "paracross"
 
 //GetParaExecName : 如果 name 没有 paraName 前缀，那么加上这个前缀
 func GetParaExecName(paraName string, name string) string {
@@ -89,7 +89,7 @@ func FilterTxsForPara(title string, main *types.BlockDetail) []*types.Transactio
 				continue
 			}
 			//单独的paracross跨链合约 如果主链执行失败也要排除
-			if bytes.HasSuffix(tx.Execer, []byte(ParaX)) && !checkReceiptExecOk(main.Receipts[i]) {
+			if bytes.HasSuffix(tx.Execer, []byte(paraX)) && !checkReceiptExecOk(main.Receipts[i]) {
 				continue
 			}
 
@@ -103,7 +103,7 @@ func FilterTxsForPara(title string, main *types.BlockDetail) []*types.Transactio
 func FilterParaCrossTxHashes(title string, txs []*types.Transaction) [][]byte {
 	var txHashs [][]byte
 	for _, tx := range txs {
-		if types.IsSpecificParaExecName(title, string(tx.Execer)) && bytes.HasSuffix(tx.Execer, []byte(ParaX)) {
+		if types.IsSpecificParaExecName(title, string(tx.Execer)) && bytes.HasSuffix(tx.Execer, []byte(paraX)) {
 			txHashs = append(txHashs, tx.Hash())
 		}
 	}
@@ -128,19 +128,19 @@ func crossTxGroupProc(title string, txs []*types.Transaction, index int) ([]*typ
 			break
 		}
 	}
-	//cross mix tx, contain main and para tx, main prefix with pt.ParaX
+	//cross mix tx, contain main and para tx, main prefix with pt.paraX
 	//最初设计是主链平行链跨链交换，都在paracross合约处理，平行链在主链共识结束后主链做unfreeze操作，但是那样出错时候回滚不好处理
 	//目前只设计跨链转移场景，转移到平行链通过trade交换
 	endIdx = headIdx + txs[index].GroupCount
 	for i := headIdx; i < endIdx; i++ {
-		if bytes.HasPrefix(txs[i].Execer, []byte(ParaX)) {
+		if bytes.HasPrefix(txs[i].Execer, []byte(paraX)) {
 			return txs[headIdx:endIdx], endIdx
 		}
 	}
 	//cross asset transfer in tx group
 	var transfers []*types.Transaction
 	for i := headIdx; i < endIdx; i++ {
-		if types.IsSpecificParaExecName(title, string(txs[i].Execer)) && bytes.HasSuffix(txs[i].Execer, []byte(ParaX)) {
+		if types.IsSpecificParaExecName(title, string(txs[i].Execer)) && bytes.HasSuffix(txs[i].Execer, []byte(paraX)) {
 			transfers = append(transfers, txs[i])
 
 		}
@@ -164,7 +164,7 @@ func FilterParaMainCrossTxHashes(title string, txs []*types.Transaction) [][]byt
 			i = int(end) - 1
 			continue
 		}
-		if types.IsSpecificParaExecName(title, string(tx.Execer)) && bytes.HasSuffix(tx.Execer, []byte(ParaX)) {
+		if types.IsSpecificParaExecName(title, string(tx.Execer)) && bytes.HasSuffix(tx.Execer, []byte(paraX)) {
 			crossTxHashs = append(crossTxHashs, tx.Hash())
 		}
 	}
