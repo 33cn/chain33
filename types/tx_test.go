@@ -65,7 +65,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 	tx22.Execer = []byte("token")
 	tx32.Execer = []byte("user.p.test.token")
 
-	SetFork("","ForkTxGroupPara",0)
+	SetFork("", "ForkTxGroupPara", 0)
 	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
 	if err != nil {
 		t.Error(err)
@@ -79,7 +79,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 		//t.Error(err)
 
 	}
-	assert.Equal(t,ErrTxGroupParaMainMixed,err)
+	assert.Equal(t, ErrTxGroupParaMainMixed, err)
 
 	tx22.Execer = []byte("user.p.para.token")
 	group, err = CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
@@ -88,7 +88,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 		return
 	}
 	err = group.Check(10, GInt("MinFee"), GInt("MaxFee"))
-	assert.Equal(t,ErrTxGroupParaCount,err)
+	assert.Equal(t, ErrTxGroupParaCount, err)
 
 	tx22.Execer = []byte("user.p.test.token")
 	group, err = CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
@@ -97,13 +97,11 @@ func TestCreateParaGroupTx(t *testing.T) {
 		return
 	}
 	err = group.Check(10, GInt("MinFee"), GInt("MaxFee"))
-	assert.Nil(t,err)
+	assert.Nil(t, err)
 	newtx := group.Tx()
 	grouptx := hex.EncodeToString(Encode(newtx))
 	t.Log(grouptx)
 }
-
-
 
 func TestCreateGroupTxWithSize(t *testing.T) {
 	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
