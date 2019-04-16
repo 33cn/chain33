@@ -16,6 +16,8 @@ import (
 	"testing"
 	"unicode"
 
+	"strings"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
@@ -25,7 +27,6 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 func init() {
