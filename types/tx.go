@@ -169,7 +169,7 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 		}
 	}
 	//txgroup 只允许一条平行链的交易, 且平行链txgroup须全部是平行链tx
-	if IsFork(height, "ForkTxGroupPara"){
+	if IsFork(height, "ForkTxGroupPara") {
 		if len(para) > 1 {
 			tlog.Info("txgroup has multi para transaction")
 			return ErrTxGroupParaCount
