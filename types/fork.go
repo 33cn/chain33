@@ -242,6 +242,7 @@ func SetFork(title, fork string, height int64) {
 	systemFork.SetFork(title, fork, height)
 }
 
+//ReplaceFork 替换fork高度
 func ReplaceFork(title, fork string, height int64) {
 	systemFork.replaceFork(title, fork, height)
 }
