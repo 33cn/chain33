@@ -7,9 +7,9 @@ package util
 import (
 	"testing"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/33cn/chain33/common"
 )
 
 func TestCalcByteBitMap(t *testing.T) {
@@ -63,7 +63,7 @@ func TestCalcSubBitMap(t *testing.T) {
 	d9 := &types.ReceiptData{Ty: types.ExecPack}
 	data := []*types.ReceiptData{d0, d1, d2, d3, d4, d5, d6, d7, d8, d9}
 
-	rst := CalcBitMap(sub,ori, data)
+	rst := CalcBitMap(sub, ori, data)
 	//t.Log(rst)
 	check := []byte{0x17}
 	assert.Equal(t, check, rst)
