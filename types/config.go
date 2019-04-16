@@ -658,10 +658,6 @@ func (query *ConfQuery) G(key string) (interface{}, error) {
 	return G(getkey(query.prefix, key))
 }
 
-// S 获取指定key的配置信息
-func (query *ConfQuery) S(key string, value interface{}) {
-	S(getkey(query.prefix, key), value)
-}
 
 func parseStrList(data interface{}) []string {
 	var list []string
