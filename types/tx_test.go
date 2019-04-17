@@ -13,6 +13,7 @@ import (
 
 	_ "github.com/33cn/chain33/system/crypto/init"
 	"github.com/stretchr/testify/assert"
+	"github.com/33cn/chain33_with_autoci/types"
 )
 
 func TestCreateGroupTx(t *testing.T) {
@@ -48,6 +49,8 @@ func TestCreateGroupTx(t *testing.T) {
 }
 
 func TestCreateParaGroupTx(t *testing.T) {
+	tempTitle := types.GetTitle()
+	SetTitleOnlyForTest("")
 	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
 	tx2 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630de92c3828ad194b26d3a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
 	tx3 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630b0d6c895c4d28efe5d3a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
@@ -101,6 +104,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 	newtx := group.Tx()
 	grouptx := hex.EncodeToString(Encode(newtx))
 	t.Log(grouptx)
+	SetTitleOnlyForTest(tempTitle)
 }
 
 func TestCreateGroupTxWithSize(t *testing.T) {
