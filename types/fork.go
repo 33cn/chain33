@@ -237,7 +237,6 @@ func IsFork(height int64, fork string) bool {
 	return systemFork.IsFork(GetTitle(), height, fork)
 }
 
-
 // IsDappFork 是否dapp fork高度
 func IsDappFork(height int64, dapp, fork string) bool {
 	return systemFork.IsDappFork(GetTitle(), height, dapp, fork)
@@ -252,7 +251,6 @@ func GetDappFork(dapp, fork string) int64 {
 func SetDappFork(title, dapp, fork string, height int64) {
 	systemFork.SetDappFork(title, dapp, fork, height)
 }
-
 
 // RegisterDappFork 注册dapp fork高度
 func RegisterDappFork(dapp, fork string, height int64) {
