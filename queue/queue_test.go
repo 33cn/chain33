@@ -60,17 +60,6 @@ func TestTimeout(t *testing.T) {
 
 func TestClient_WaitTimeout(t *testing.T) {
 	q := New("channel")
-	//mempool
-	go func() {
-		client := q.Client()
-		client.Sub("mempool")
-		for msg := range client.Recv() {
-			if msg.Ty == types.EventTx {
-				time.Sleep(time.Second)
-				msg.Reply(client.NewMessage("mempool", types.EventReply, types.Reply{IsOk: true, Msg: []byte("word")}))
-			}
-		}
-	}()
 	client := q.Client()
 	msg := client.NewMessage("mempool", types.EventTx, "hello")
 	err := client.SendTimeout(msg, true, 0)
@@ -78,10 +67,9 @@ func TestClient_WaitTimeout(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	_, err = client.WaitTimeout(msg, time.Minute)
-	if err != nil {
-		t.Error(err)
-	}
+
+	_, err = client.WaitTimeout(msg, time.Second*5)
+	assert.Equal(t, ErrQueueTimeout, err)
 
 }
 
