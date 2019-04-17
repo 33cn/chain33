@@ -66,7 +66,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 
 	tx12.Execer = []byte("user.p.test.token")
 	tx22.Execer = []byte("token")
-	tx32.Execer = []byte("user.p.test.token")
+	tx32.Execer = []byte("user.p.test.ticket")
 
 	//SetFork("", "ForkTxGroupPara", 0)
 	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
@@ -93,7 +93,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 	err = group.Check(testHeight, GInt("MinFee"), GInt("MaxFee"))
 	assert.Equal(t, ErrTxGroupParaCount, err)
 
-	tx22.Execer = []byte("user.p.test.token")
+	tx22.Execer = []byte("user.p.test.paracross")
 	group, err = CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
 	if err != nil {
 		t.Error(err)

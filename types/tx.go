@@ -163,9 +163,8 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 		if err != nil {
 			return err
 		}
-		name := string(txs[i].Execer)
-		if IsParaExecName(name) {
-			para[name] = true
+		if title, ok := GetParaExecTitleName(string(txs[i].Execer)); ok {
+			para[title] = true
 		}
 	}
 	//txgroup 只允许一条平行链的交易, 且平行链txgroup须全部是平行链tx
