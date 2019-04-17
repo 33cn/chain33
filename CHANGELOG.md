@@ -11,5 +11,7 @@ All notable changes to this project will be documented in this file.
 - Update configuration files from p2p/verMix to p2p/verMin from[@libangzhu](https://github.com/libangzhu).
 - Update p2p version Logic(if you do not fill in the range of p2p version,then verMin=version,verMax=verMin+1) from[@libangzhu](https://github.com/libangzhu).
 
-
+# [6.2]
+### Changed
+- Update dapp coins command line name, 'bty' not supported any more, 'coins' recommended 
 
