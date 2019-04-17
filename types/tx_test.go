@@ -12,8 +12,8 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 
 	_ "github.com/33cn/chain33/system/crypto/init"
-	"github.com/stretchr/testify/assert"
 	"github.com/33cn/chain33_with_autoci/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateGroupTx(t *testing.T) {
