@@ -117,18 +117,19 @@ func (client *client) WaitTimeout(msg *Message, timeout time.Duration) (*Message
 	if msg.chReply == nil {
 		return &Message{}, errors.New("empty wait channel")
 	}
-	if timeout == -1 {
-		msg = <-msg.chReply
-		return msg, msg.Err()
+
+	var t <-chan time.Time
+	if timeout > 0 {
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+		t = timer.C
 	}
-	t := time.NewTimer(timeout)
-	defer t.Stop()
 	select {
 	case msg = <-msg.chReply:
 		return msg, msg.Err()
 	case <-client.done:
 		return &Message{}, ErrIsQueueClosed
-	case <-t.C:
+	case <-t:
 		return &Message{}, ErrQueueTimeout
 	}
 }

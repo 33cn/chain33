@@ -41,8 +41,9 @@ var (
 	heightMtx      sync.Mutex
 	//
 	enableMemTree bool
-	memTree       MemTreeOpera
 	enableMemVal  bool
+	memTree       MemTreeOpera
+	tkCloseCache  MemTreeOpera
 )
 
 // EnableMavlPrefix 使能mavl加前缀
@@ -65,6 +66,16 @@ func EnableMemVal(enable bool) {
 	enableMemVal = enable
 }
 
+// ReleaseGlobalMem 释放全局缓存
+func ReleaseGlobalMem() {
+	if memTree != nil {
+		memTree = nil
+	}
+	if tkCloseCache != nil {
+		tkCloseCache = nil
+	}
+}
+
 type memNode struct {
 	data   [][]byte //顺序为lefthash, righthash, key, value
 	Height int32
@@ -81,6 +92,7 @@ type Tree struct {
 	// 树更新之后，废弃的节点(更新缓存中节点先对旧节点进行删除然后再更新)
 	obsoleteNode map[uintkey]struct{}
 	updateNode   map[uintkey]*memNode
+	tkCloseNode  map[uintkey]*memNode
 }
 
 // NewTree 新建一个merkle avl 树
@@ -90,6 +102,7 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 		return &Tree{
 			obsoleteNode: make(map[uintkey]struct{}),
 			updateNode:   make(map[uintkey]*memNode),
+			tkCloseNode:  make(map[uintkey]*memNode),
 		}
 	}
 	// Persistent IAVLTree
@@ -97,11 +110,13 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 	// 使能情况下非空创建当前整tree的缓存
 	if enableMemTree && memTree == nil {
 		memTree = NewTreeMap(50 * 10000)
+		tkCloseCache = NewTreeARC(10 * 10000)
 	}
 	return &Tree{
 		ndb:          ndb,
 		obsoleteNode: make(map[uintkey]struct{}),
 		updateNode:   make(map[uintkey]*memNode),
+		tkCloseNode:  make(map[uintkey]*memNode),
 	}
 }
 
@@ -170,14 +185,17 @@ func (t *Tree) Hash() []byte {
 	}
 	hash := t.root.Hash(t)
 	// 更新memTree
-	if enableMemTree && memTree != nil {
+	if enableMemTree && memTree != nil && tkCloseCache != nil {
 		for k := range t.obsoleteNode {
 			memTree.Delete(k)
 		}
 		for k, v := range t.updateNode {
 			memTree.Add(k, v)
 		}
-		treelog.Debug("Tree.Hash", "memTree len", memTree.Len(), "tree height", t.blockHeight)
+		for k, v := range t.tkCloseNode {
+			tkCloseCache.Add(k, v)
+		}
+		treelog.Debug("Tree.Hash", "memTree len", memTree.Len(), "tkCloseCache len", tkCloseCache.Len(), "tree height", t.blockHeight)
 	}
 	return hash
 }
@@ -188,7 +206,7 @@ func (t *Tree) Save() []byte {
 		return nil
 	}
 	if t.ndb != nil {
-		if t.isRemoveLeafCountKey() {
+		if enablePrune && t.isRemoveLeafCountKey() {
 			//DelLeafCountKV 需要先提前将leafcoutkey删除,这里需先于t.ndb.Commit()
 			err := DelLeafCountKV(t.ndb.db, t.blockHeight)
 			if err != nil {
@@ -459,7 +477,7 @@ func (ndb *nodeDB) GetNode(t *Tree, hash []byte) (*Node, error) {
 	}
 	//从memtree中获取
 	if enableMemTree {
-		node, err := getNode4MemTree(hash)
+		node, err := getNodeMemTree(hash)
 		if err == nil {
 			return node, nil
 		}
@@ -533,33 +551,53 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	delete(ndb.orphans, string(node.hash))
 }
 
-func getNode4MemTree(hash []byte) (*Node, error) {
-	if memTree == nil {
-		return nil, ErrNodeNotExist
+func getNodeMemTree(hash []byte) (*Node, error) {
+	if memTree != nil {
+		elem, ok := memTree.Get(uintkey(farm.Hash64(hash)))
+		if ok {
+			sn := elem.(*memNode)
+			node := &Node{
+				height:    sn.Height,
+				size:      sn.Size,
+				hash:      hash,
+				persisted: true,
+			}
+			node.leftHash = sn.data[0]
+			node.rightHash = sn.data[1]
+			node.key = sn.data[2]
+			if len(sn.data) == 4 {
+				node.value = sn.data[3]
+			}
+			return node, nil
+		}
 	}
-	elem, ok := memTree.Get(uintkey(farm.Hash64(hash)))
-	if ok {
-		sn := elem.(*memNode)
-		node := &Node{
-			height:    sn.Height,
-			size:      sn.Size,
-			hash:      hash,
-			persisted: true,
+
+	if tkCloseCache != nil {
+		// 从tkCloseCache缓存中获取
+		elem, ok := tkCloseCache.Get(uintkey(farm.Hash64(hash)))
+		if ok {
+			sn := elem.(*memNode)
+			node := &Node{
+				height:    sn.Height,
+				size:      sn.Size,
+				hash:      hash,
+				persisted: true,
+			}
+			node.leftHash = sn.data[0]
+			node.rightHash = sn.data[1]
+			node.key = sn.data[2]
+			if len(sn.data) == 4 {
+				node.value = sn.data[3]
+			}
+			return node, nil
 		}
-		node.leftHash = sn.data[0]
-		node.rightHash = sn.data[1]
-		node.key = sn.data[2]
-		if len(sn.data) == 4 {
-			node.value = sn.data[3]
-		}
-		return node, nil
 	}
 	return nil, ErrNodeNotExist
 }
 
 // Save node hashInt64 to memTree
 func updateGlobalMemTree(node *Node) {
-	if node == nil || memTree == nil {
+	if node == nil || memTree == nil || tkCloseCache == nil {
 		return
 	}
 	if !enableMemVal && node.height == 0 {
@@ -569,12 +607,13 @@ func updateGlobalMemTree(node *Node) {
 		Height: node.height,
 		Size:   node.size,
 	}
+	var isTkCloseNode bool
 	if node.height == 0 {
 		if bytes.HasPrefix(node.key, ticket.TicketPrefix) {
 			tk := &ticket.Ticket{}
 			err := proto.Unmarshal(node.value, tk)
 			if err == nil && tk.Status == ticket.StatusCloseTicket { //ticket为close状态下不做存储
-				return
+				isTkCloseNode = true
 			}
 		}
 		memN.data = make([][]byte, 4)
@@ -585,7 +624,11 @@ func updateGlobalMemTree(node *Node) {
 	memN.data[0] = node.leftHash
 	memN.data[1] = node.rightHash
 	memN.data[2] = node.key
-	memTree.Add(uintkey(farm.Hash64(node.hash)), memN)
+	if isTkCloseNode {
+		tkCloseCache.Add(uintkey(farm.Hash64(node.hash)), memN)
+	} else {
+		memTree.Add(uintkey(farm.Hash64(node.hash)), memN)
+	}
 }
 
 // Save node hashInt64 to localmem
@@ -596,17 +639,18 @@ func updateLocalMemTree(t *Tree, node *Node) {
 	if !enableMemVal && node.height == 0 {
 		return
 	}
-	if t.updateNode != nil {
+	if t.updateNode != nil && t.tkCloseNode != nil {
 		memN := &memNode{
 			Height: node.height,
 			Size:   node.size,
 		}
+		var isTkCloseNode bool
 		if node.height == 0 {
 			if bytes.HasPrefix(node.key, ticket.TicketPrefix) {
 				tk := &ticket.Ticket{}
 				err := proto.Unmarshal(node.value, tk)
 				if err == nil && tk.Status == ticket.StatusCloseTicket { //ticket为close状态下不做存储
-					return
+					isTkCloseNode = true
 				}
 			}
 			memN.data = make([][]byte, 4)
@@ -617,7 +661,11 @@ func updateLocalMemTree(t *Tree, node *Node) {
 		memN.data[0] = node.leftHash
 		memN.data[1] = node.rightHash
 		memN.data[2] = node.key
-		t.updateNode[uintkey(farm.Hash64(node.hash))] = memN
+		if isTkCloseNode {
+			t.tkCloseNode[uintkey(farm.Hash64(node.hash))] = memN
+		} else {
+			t.updateNode[uintkey(farm.Hash64(node.hash))] = memN
+		}
 		//treelog.Debug("Tree.SaveNode", "store struct size", unsafe.Sizeof(store), "byte size", len(storenode), "height", node.height)
 	}
 }

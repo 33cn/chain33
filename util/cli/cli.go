@@ -51,7 +51,6 @@ func init() {
 		commands.CertCmd(),
 		commands.AccountCmd(),
 		commands.BlockCmd(),
-		commands.BTYCmd(),
 		commands.CoinsCmd(),
 		commands.ExecCmd(),
 		commands.MempoolCmd(),

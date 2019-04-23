@@ -250,13 +250,13 @@ func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, non
 func newWalletRealize(qAPI client.QueueProtocolAPI) {
 	seed := &types.SaveSeedByPw{
 		Seed:   "subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant",
-		Passwd: "123456",
+		Passwd: "123456fuzamei",
 	}
 	reply, err := qAPI.SaveSeed(seed)
 	if !reply.IsOk && err != nil {
 		panic(err)
 	}
-	reply, err = qAPI.WalletUnLock(&types.WalletUnLock{Passwd: "123456"})
+	reply, err = qAPI.WalletUnLock(&types.WalletUnLock{Passwd: "123456fuzamei"})
 	if !reply.IsOk && err != nil {
 		panic(err)
 	}

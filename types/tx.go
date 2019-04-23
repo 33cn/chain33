@@ -163,18 +163,26 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 		if err != nil {
 			return err
 		}
-		name := string(txs[i].Execer)
-		if IsParaExecName(name) {
-			para[name] = true
+		if title, ok := GetParaExecTitleName(string(txs[i].Execer)); ok {
+			para[title] = true
 		}
 	}
-	//txgroup 只允许一条平行链的交易
-	if IsEnableFork(height, "ForkV24TxGroupPara", EnableTxGroupParaFork) {
+	//txgroup 只允许一条平行链的交易, 且平行链txgroup须全部是平行链tx
+	if IsFork(height, "ForkTxGroupPara") {
 		if len(para) > 1 {
 			tlog.Info("txgroup has multi para transaction")
 			return ErrTxGroupParaCount
 		}
+		if len(para) > 0 {
+			for _, tx := range txs {
+				if !IsParaExecName(string(tx.Execer)) {
+					tlog.Error("para txgroup has main chain transaction")
+					return ErrTxGroupParaMainMixed
+				}
+			}
+		}
 	}
+
 	for i := 1; i < len(txs); i++ {
 		if txs[i].Fee != 0 {
 			return ErrTxGroupFeeNotZero

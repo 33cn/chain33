@@ -230,7 +230,7 @@ func S(key string, value interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
 	if strings.HasPrefix(key, "config.") {
-		if !isLocal() { //only local can modify for test
+		if !isLocal() && !isTestPara() { //only local and test para can modify for test
 			panic("prefix config. is readonly")
 		} else {
 			tlog.Error("modify " + key + " is only for test")
@@ -351,6 +351,10 @@ func isPara() bool {
 	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
 }
 
+func isTestPara() bool {
+	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX) && strings.HasSuffix(title, "test.")
+}
+
 // IsPara 是否平行链
 func IsPara() bool {
 	mu.Lock()
@@ -367,6 +371,23 @@ func IsParaExecName(exec string) bool {
 //IsMyParaExecName 是否是我的para链的执行器
 func IsMyParaExecName(exec string) bool {
 	return IsParaExecName(exec) && strings.HasPrefix(exec, GetTitle())
+}
+
+//IsSpecificParaExecName 是否是某一个平行链的执行器
+func IsSpecificParaExecName(title, exec string) bool {
+	return IsParaExecName(exec) && strings.HasPrefix(exec, title)
+}
+
+//GetParaExecTitleName 如果是平行链执行器，获取对应title
+func GetParaExecTitleName(exec string) (string, bool) {
+	if IsParaExecName(exec) {
+		for i := len(ParaKey); i < len(exec); i++ {
+			if exec[i] == '.' {
+				return exec[:i+1], true
+			}
+		}
+	}
+	return "", false
 }
 
 func setTestNet(isTestNet bool) {

@@ -17,22 +17,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// BTYCmd bty command
-func BTYCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "bty",
-		Short: "Construct BTY transactions",
-		Args:  cobra.MinimumNArgs(1),
-	}
-	cmd.AddCommand(
-		CreateRawTransferCmd(),
-		CreateRawWithdrawCmd(),
-		CreateRawSendToExecCmd(),
-		CreateTxGroupCmd(),
-	)
-	return cmd
-}
-
 // CoinsCmd coins command func
 func CoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -107,12 +91,14 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := commandtypes.GetExecAddr(exec)
+	paraName, _ := cmd.Flags().GetString("paraName")
+	realExec := getRealExecName(paraName, exec)
+	execAddr, err := commandtypes.GetExecAddr(realExec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, true, "", exec)
+	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, true, "", realExec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -145,90 +131,19 @@ func sendToExec(cmd *cobra.Command, args []string) {
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := commandtypes.GetExecAddr(exec)
+	paraName, _ := cmd.Flags().GetString("paraName")
+	realExec := getRealExecName(paraName, exec)
+	execAddr, err := commandtypes.GetExecAddr(realExec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, false, "", exec)
+	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, false, "", realExec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	fmt.Println(txHex)
-}
-
-// TransferCmd send to address
-func TransferCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "transfer",
-		Short: "Send coins to address",
-		Run:   transfer,
-	}
-	addTransferFlags(cmd)
-	return cmd
-}
-
-func addTransferFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("from", "f", "", "sender account address")
-	cmd.MarkFlagRequired("from")
-
-	cmd.Flags().StringP("to", "t", "", "receiver account address")
-	cmd.MarkFlagRequired("to")
-
-	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
-	cmd.MarkFlagRequired("amount")
-
-	cmd.Flags().StringP("note", "n", "", "transaction note info")
-}
-
-func transfer(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	fromAddr, _ := cmd.Flags().GetString("from")
-	toAddr, _ := cmd.Flags().GetString("to")
-	amount, _ := cmd.Flags().GetFloat64("amount")
-	note, _ := cmd.Flags().GetString("note")
-	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
-	commandtypes.SendToAddress(rpcLaddr, fromAddr, toAddr, amountInt64, note, false, "", false)
-}
-
-// WithdrawFromExecCmd withdraw from executor
-func WithdrawFromExecCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "withdraw",
-		Short: "Withdraw coin from executor",
-		Run:   withdraw,
-	}
-	addWithdrawFlags(cmd)
-	return cmd
-}
-
-func addWithdrawFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "t", "", "withdraw account address")
-	cmd.MarkFlagRequired("addr")
-
-	cmd.Flags().StringP("exec", "e", "", "execer withdrawn from")
-	cmd.MarkFlagRequired("exec")
-
-	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
-	cmd.MarkFlagRequired("amount")
-
-	cmd.Flags().StringP("note", "n", "", "transaction note info")
-}
-
-func withdraw(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-	exec, _ := cmd.Flags().GetString("exec")
-	amount, _ := cmd.Flags().GetFloat64("amount")
-	note, _ := cmd.Flags().GetString("note")
-	execAddr, err := commandtypes.GetExecAddr(exec)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
-	commandtypes.SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
 }
 
 // CreateTxGroupCmd create tx group

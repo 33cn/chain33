@@ -47,3 +47,19 @@ func TestBityuanInit(t *testing.T) {
 	assert.Equal(t, int64(0), cfg.Fork.Sub["token"]["Enable"])
 	assert.Nil(t, err)
 }
+
+func TestGetParaExecTitleName(t *testing.T) {
+	_, exist := GetParaExecTitleName("token")
+	assert.Equal(t, false, exist)
+
+	_, exist = GetParaExecTitleName("user.p.para")
+	assert.Equal(t, false, exist)
+
+	title, exist := GetParaExecTitleName("user.p.para.")
+	assert.Equal(t, true, exist)
+	assert.Equal(t, "user.p.para.", title)
+
+	title, exist = GetParaExecTitleName("user.p.guodux.token")
+	assert.Equal(t, true, exist)
+	assert.Equal(t, "user.p.guodux.", title)
+}

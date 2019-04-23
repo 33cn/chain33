@@ -135,7 +135,7 @@ var (
 	ErrFromHex            = errors.New("ErrFromHex")
 	ErrPrivKeyFromBytes   = errors.New("ErrFromHex")
 	ErrParentHash         = errors.New("ErrParentHash")
-
+	ErrInvalidPassWord    = errors.New("ErrInvalidPassWord")
 	//ErrPing p2p模块错误类型
 	ErrPing       = errors.New("ErrPingSignature")
 	ErrVersion    = errors.New("ErrVersionNoSupport")
@@ -163,6 +163,7 @@ var (
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
 	ErrTxGroupParaCount           = errors.New("ErrTxGroupParaCount")
+	ErrTxGroupParaMainMixed       = errors.New("ErrTxGroupParaMainMixed")
 
 	//ErrInvalidMainnetRPCAddr rpc模块的错误类型
 	ErrInvalidMainnetRPCAddr = errors.New("ErrInvalidMainnetRPCAddr")

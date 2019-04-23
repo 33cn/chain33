@@ -58,6 +58,21 @@ func TestTimeout(t *testing.T) {
 	}
 }
 
+func TestClient_WaitTimeout(t *testing.T) {
+	q := New("channel")
+	client := q.Client()
+	msg := client.NewMessage("mempool", types.EventTx, "hello")
+	err := client.SendTimeout(msg, true, 0)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	_, err = client.WaitTimeout(msg, time.Second*5)
+	assert.Equal(t, ErrQueueTimeout, err)
+
+}
+
 func TestMultiTopic(t *testing.T) {
 	q := New("channel")
 

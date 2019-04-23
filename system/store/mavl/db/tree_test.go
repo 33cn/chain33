@@ -2004,12 +2004,12 @@ func TestSize1(t *testing.T) {
 	var c []byte
 	d := storeNode1{}
 
-	//arcmp := NewTreeMap(350 * 10000)
+	//arcmp := NewTreeARC(10 * 10000)
 	//if arcmp == nil {
 	//	return
 	//}
-
-	//for i := 0; i < 300*10000; i++ {
+	//
+	//for i := 0; i < 10*10000; i++ {
 	//	data := &storeNode{
 	//		Key: []byte("12345678901234567890123456789012"),
 	//		Value: []byte("12345678901234567890123456789012"),
@@ -2019,7 +2019,7 @@ func TestSize1(t *testing.T) {
 	//		//Value: copyBytes([]byte("12345678901234567890123456789012")),
 	//		//LeftHash: copyBytes([]byte("12345678901234567890123456789012")),
 	//		//RightHash: copyBytes([]byte("12345678901234567890123456789012")),
-	//		Height: 123,
+	//		Height: 1,
 	//		Size: 123,
 	//	}
 	//	arcmp.Add(int64(i), data)

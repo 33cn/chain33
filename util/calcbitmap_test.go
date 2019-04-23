@@ -7,6 +7,7 @@ package util
 import (
 	"testing"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,12 +15,12 @@ import (
 func TestCalcByteBitMap(t *testing.T) {
 	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17}
 	for i := 0; i < 18; i++ {
-		ori = append(ori, []byte{byte(i)})
+		ori = append(ori, common.Sha256([]byte(string(i))))
 	}
 	cur := [][]byte{}
 	arry := []byte{3, 7, 8, 11, 15, 17}
 	for _, v := range arry {
-		cur = append(cur, []byte{byte(v)})
+		cur = append(cur, common.Sha256([]byte(string(v))))
 	}
 
 	d0 := &types.ReceiptData{Ty: types.ExecOk}
@@ -42,12 +43,12 @@ func TestCalcByteBitMap(t *testing.T) {
 func TestCalcSubBitMap(t *testing.T) {
 	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9}
 	for i := 0; i < 10; i++ {
-		ori = append(ori, []byte{byte(i)})
+		ori = append(ori, common.Sha256([]byte(string(i))))
 	}
 	sub := [][]byte{}
 	arry := []byte{0, 2, 4, 6, 7, 9}
 	for _, v := range arry {
-		sub = append(sub, []byte{byte(v)})
+		sub = append(sub, common.Sha256([]byte(string(v))))
 	}
 
 	d0 := &types.ReceiptData{Ty: types.ExecOk}
@@ -62,7 +63,7 @@ func TestCalcSubBitMap(t *testing.T) {
 	d9 := &types.ReceiptData{Ty: types.ExecPack}
 	data := []*types.ReceiptData{d0, d1, d2, d3, d4, d5, d6, d7, d8, d9}
 
-	rst := CalcSubBitMap(ori, sub, data)
+	rst := CalcBitMap(sub, ori, data)
 	//t.Log(rst)
 	check := []byte{0x17}
 	assert.Equal(t, check, rst)
