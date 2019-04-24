@@ -82,7 +82,7 @@ func (bc *BaseClient) GetAPI() client.QueueProtocolAPI {
 	return bc.api
 }
 
-//SetAPI
+//SetAPI ...
 func (bc *BaseClient) SetAPI(api client.QueueProtocolAPI) {
 	bc.api = api
 }
