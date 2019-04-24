@@ -61,6 +61,7 @@ func (chain *BlockChain) ReExecBlock(startHeight, curHeight int64) {
 		}
 		prevStateHash = blockdetail.Block.StateHash
 	}
+
 	for i := startHeight; i <= curHeight; i++ {
 		blockdetail, err := chain.GetBlock(i)
 		if err != nil {
@@ -71,6 +72,20 @@ func (chain *BlockChain) ReExecBlock(startHeight, curHeight int64) {
 		if err != nil {
 			panic(fmt.Sprintf("execBlockEx height=%d err=%s, this not allow fail", i, err.Error()))
 		}
+
+		if chain.cfg.EnableReExecLocal {
+			// 保存tx信息到db中
+			newbatch := chain.blockStore.NewBatch(false)
+			err = chain.blockStore.AddTxs(newbatch, blockdetail)
+			if err != nil {
+				panic(fmt.Sprintf("execBlockEx connectBlock readd Txs fail height=%d err=%s, this not allow fail", i, err.Error()))
+			}
+			err = newbatch.Write()
+			if err != nil {
+				panic(err)
+			}
+		}
+
 		prevStateHash = block.StateHash
 		//更新高度
 		err = chain.upgradeMeta(i)
