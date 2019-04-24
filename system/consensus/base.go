@@ -83,10 +83,9 @@ func (bc *BaseClient) GetAPI() client.QueueProtocolAPI {
 }
 
 //SetAPI
-func (bc *BaseClient) SetAPI(api client.QueueProtocolAPI)  {
+func (bc *BaseClient) SetAPI(api client.QueueProtocolAPI) {
 	bc.api = api
 }
-
 
 //InitClient 初始化
 func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
