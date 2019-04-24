@@ -16,4 +16,6 @@ message Ticket {
     string minerAddress = 6;
     // return wallet
     string returnAddress = 7;
+    //miner Price
+    int64 price = 9;
 }
