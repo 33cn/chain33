@@ -237,6 +237,12 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 	if len(tx.Execer) == 0 {
 		tx.Execer = []byte(exec)
 	}
+
+	if types.IsPara() {
+		tx.Execer = []byte(types.GetTitle() + string(tx.Execer))
+		tx.To = address.ExecAddress(string(tx.Execer))
+	}
+
 	tx.Nonce = rand.Int63()
 	return tx, nil
 }
