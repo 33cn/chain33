@@ -48,6 +48,8 @@ isRecordBlockSequence=true
 # 是否为平行链节点
 isParaChain=false
 enableTxQuickIndex=false
+# 升级storedb是否重新执行localdb
+enableReExecLocal=false
 
 [p2p]
 # P2P服务监听端口号

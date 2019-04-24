@@ -140,6 +140,8 @@ type BlockChain struct {
 	// 是否为平行链节点
 	IsParaChain        bool `protobuf:"varint,12,opt,name=isParaChain" json:"isParaChain,omitempty"`
 	EnableTxQuickIndex bool `protobuf:"varint,13,opt,name=enableTxQuickIndex" json:"enableTxQuickIndex,omitempty"`
+	// 升级storedb是否重新执行localdb
+	EnableReExecLocal  bool `protobuf:"varint,13,opt,name=enableReExecLocal" json:"enableReExecLocal,omitempty"`
 }
 
 // P2P 配置

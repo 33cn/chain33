@@ -32,6 +32,8 @@ batchsync=false
 # 是否记录添加或者删除区块的序列，若节点作为主链节点，为平行链节点提供服务，需要设置为true
 isRecordBlockSequence=false
 enableTxQuickIndex=false
+# 升级storedb是否重新执行localdb
+enableReExecLocal=false
 
 [p2p]
 # P2P服务监听端口号
