@@ -5,14 +5,11 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
-
 	"strings"
 
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -233,35 +230,26 @@ func addDecodeTxFlags(cmd *cobra.Command) {
 }
 
 func decodeTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
-	var tx types.Transaction
-	bytes, err := common.FromHex(data)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	params := types.ReqDecodeRawTransaction{
+		TxHex: data,
 	}
 
-	err = types.Decode(bytes, &tx)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	var res rpctypes.ReplyTxList
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DecodeRawTransaction", params, &res)
+	ctx.SetResultCb(parseReplyTxList)
+	ctx.Run()
+}
+
+func parseReplyTxList(view interface{}) (interface{}, error) {
+	replyTxList := view.(*rpctypes.ReplyTxList)
+	var commandtxs commandtypes.TxListResult
+	for _, cmdtx := range replyTxList.Txs {
+		txResult := commandtypes.DecodeTransaction(cmdtx)
+		commandtxs.Txs = append(commandtxs.Txs, txResult)
 	}
-
-	res, err := rpctypes.DecodeTx(&tx)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	txResult := commandtypes.DecodeTransaction(res)
-
-	result, err := json.MarshalIndent(txResult, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(result))
+	return &commandtxs, nil
 }
 
 // GetAddrOverviewCmd get overview of an address
