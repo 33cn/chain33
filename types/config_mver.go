@@ -111,8 +111,14 @@ func (v *versionList) addItem(forkid int64, key, forkname string) error {
 	if len(v.forkname) == 0 {
 		v.forkname = make(map[int64]string)
 	}
+	//这里要允许替换: 有时候会有相同的fork高度
 	if _, ok := v.forkname[forkid]; ok {
-		return fmt.Errorf(key + " same fork height is set: old name is '" + v.forkname[forkid] + "' new name is '" + forkname + "'")
+		//以字母顺序替换
+		if strings.Compare(forkname, v.forkname[forkid]) > 0 {
+			tlog.Warn(key + " same fork height is set: old name is '" + v.forkname[forkid] + "' new name is '" + forkname + "'")
+			v.forkname[forkid] = forkname
+		}
+		return nil
 	}
 	v.forkname[forkid] = forkname
 	v.data = append(v.data, forkid)

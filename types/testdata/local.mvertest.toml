@@ -82,6 +82,12 @@ name2="ticket-bityuan"
 [mver.consensus.ForkMinerTime]
 name2="ticket-bityuanv5"
 
+[mver.consensus.ForkChainParamV1]
+name2="ticket-bityuanv1"
+
+[mver.consensus.ForkChainParamV2]
+name2="ticket-bityuanv2"
+
 [consensus.sub.ticket]
 genesisBlockTime=1526486816
 [[consensus.sub.ticket.genesis]]
