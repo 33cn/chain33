@@ -712,24 +712,17 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 			continue
 		}
 		amount = amount - wallet.FeeAmount
-		var v = &cty.CoinsAction_Transfer{}
-		if !types.IsPara() {
-			v = &cty.CoinsAction_Transfer{
-				Transfer: &types.AssetsTransfer{Amount: amount, Note: []byte(note)},
-			}
-		} else {
-			v = &cty.CoinsAction_Transfer{
-				Transfer: &types.AssetsTransfer{Amount: amount, Note: []byte(note), To: MergeBalance.GetTo()},
-			}
+		v := &cty.CoinsAction_Transfer{
+			Transfer: &types.AssetsTransfer{Amount: amount, Note: []byte(note)},
+		}
+		if types.IsPara() {
+			v.Transfer.To = MergeBalance.GetTo()
 		}
 		transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 		//初始化随机数
-		var exec []byte
-		var toAddr string
-		if !types.IsPara() {
-			exec = []byte("coins")
-			toAddr = addrto
-		} else {
+		exec := []byte("coins")
+		toAddr := addrto
+		if types.IsPara() {
 			exec = []byte(types.GetTitle() + "coins")
 			toAddr = address.ExecAddress(string(exec))
 		}
