@@ -161,6 +161,7 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 //3. 2000个交易处理一次，并且打印进度
 //4. 全部处理完成了,添加quickIndex 的标记
 func (bs *BlockStore) initQuickIndex(height int64) {
+	storeLog.Info("quickIndex upgrade start", "current height", height)
 	batch := bs.db.NewBatch(true)
 	var maxsize = 100 * 1024 * 1024
 	var count = 0
