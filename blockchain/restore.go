@@ -15,7 +15,9 @@ import (
 
 // Upgrade 升级localDB和storeDB
 func (chain *BlockChain) Upgrade() {
+	chainlog.Info("chain upgrade start")
 	chain.UpgradeChain()
+	chainlog.Info("storedb upgrade start")
 	chain.UpgradeStore()
 }
 
