@@ -137,6 +137,30 @@ func (txgroup *Transactions) CheckSign() bool {
 	return true
 }
 
+//RebuiltGroup 交易内容有变化时需要重新构建交易组
+func (txgroup *Transactions) RebuiltGroup() {
+	header := txgroup.Txs[0].Hash()
+	for i := len(txgroup.Txs) - 1; i >= 0; i-- {
+		txgroup.Txs[i].Header = header
+		if i == 0 {
+			header = txgroup.Txs[0].Hash()
+		} else {
+			txgroup.Txs[i-1].Next = txgroup.Txs[i].Hash()
+		}
+	}
+	for i := 0; i < len(txgroup.Txs); i++ {
+		txgroup.Txs[i].Header = header
+	}
+}
+
+//SetExpire 设置交易组中交易的过期时间
+func (txgroup *Transactions) SetExpire(n int, expire time.Duration) {
+	if n >= len(txgroup.GetTxs()) {
+		return
+	}
+	txgroup.GetTxs()[n].SetExpire(expire)
+}
+
 //IsExpire 交易是否过期
 func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	txs := txgroup.Txs

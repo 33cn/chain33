@@ -50,6 +50,7 @@ func (c *Chain33) ReWriteRawTx(in *rpctypes.ReWriteRawTx, result *interface{}) e
 		To:     in.To,
 		Fee:    in.Fee,
 		Expire: in.Expire,
+		Index:  in.Index,
 	}
 
 	reply, err := c.cli.ReWriteRawTx(inpb)

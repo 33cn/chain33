@@ -1055,6 +1055,7 @@ func TestReWriteRawTx(t *testing.T) {
 		Fee:    29977777777,
 		Expire: "130s",
 		To:     "aabbccdd",
+		Index:  0,
 	}
 
 	data, err := g.ReWriteRawTx(getOkCtx(), in)
@@ -1067,7 +1068,6 @@ func TestReWriteRawTx(t *testing.T) {
 	err = types.Decode(data.Data, tx)
 	assert.Nil(t, err)
 	assert.Equal(t, tx.Fee, in.Fee)
-	assert.Equal(t, int64(130000000000), tx.Expire)
 	assert.Equal(t, in.To, tx.To)
 }
 
