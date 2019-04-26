@@ -307,30 +307,37 @@ func ReWriteRawTxCmd() *cobra.Command {
 func addReWriteRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("tx", "s", "", "transaction hex")
 	cmd.MarkFlagRequired("tx")
-
 	cmd.Flags().StringP("to", "t", "", "to addr (optional)")
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional)")
-	cmd.Flags().StringP("expire", "e", "120s", "expire time (optional)")
+	cmd.Flags().StringP("expire", "e", "", "expire time (optional)")
+	cmd.Flags().Int32P("index", "i", 0, "transaction index to be signed")
 }
 
 func reWriteRawTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	txHash, _ := cmd.Flags().GetString("tx")
+	txHex, _ := cmd.Flags().GetString("tx")
 	to, _ := cmd.Flags().GetString("to")
 	fee, _ := cmd.Flags().GetFloat64("fee")
+	index, _ := cmd.Flags().GetInt32("index")
 	expire, _ := cmd.Flags().GetString("expire")
-	expire, err := commandtypes.CheckExpireOpt(expire)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+
+	var err error
+	if expire != "" {
+		expire, err = commandtypes.CheckExpireOpt(expire)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
 	}
+
 	feeInt64 := int64(fee * 1e4)
 
 	params := rpctypes.ReWriteRawTx{
-		Tx:     txHash,
+		Tx:     txHex,
 		To:     to,
 		Fee:    feeInt64 * 1e4,
 		Expire: expire,
+		Index:  index,
 	}
 
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ReWriteRawTx", params, nil)

@@ -390,4 +390,5 @@ type ReWriteRawTx struct {
 	To     string `json:"to"`
 	Fee    int64  `json:"fee"`
 	Expire string `json:"expire"`
+	Index  int32  `json:"index"`
 }

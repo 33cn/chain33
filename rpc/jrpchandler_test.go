@@ -416,6 +416,7 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 		Fee:    29977777777,
 		Expire: "130s",
 		To:     "aabbccdd",
+		Index:  0,
 	}
 	var testResult interface{}
 	err := testChain33.ReWriteRawTx(reTx, &testResult)
@@ -428,7 +429,6 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 	err = types.Decode(txData, tx)
 	assert.Nil(t, err)
 	assert.Equal(t, tx.Fee, reTx.Fee)
-	assert.Equal(t, int64(130000000000), tx.Expire)
 	assert.Equal(t, reTx.To, tx.To)
 
 }

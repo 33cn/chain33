@@ -70,18 +70,61 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 	if param.To != "" {
 		tx.To = param.To
 	}
-	if param.Fee != 0 {
+	if param.Fee != 0 && param.Fee > tx.Fee {
 		tx.Fee = param.Fee
 	}
+	var expire int64
 	if param.Expire != "" {
-		expire, err := types.ParseExpire(param.Expire)
+		expire, err = types.ParseExpire(param.Expire)
 		if err != nil {
 			return nil, err
 		}
-		tx.Expire = expire
+		tx.SetExpire(time.Duration(expire))
+	}
+	group, err := tx.GetTxGroup()
+	if err != nil {
+		return nil, err
 	}
 
-	return types.FormatTxEncode(string(tx.Execer), tx)
+	//单笔交易直接返回
+	if group == nil {
+		txHex := types.Encode(tx)
+		return txHex, nil
+	}
+
+	//交易组的处理
+	index := param.Index
+	if int(index) > len(group.GetTxs()) {
+		return nil, types.ErrIndex
+	}
+
+	//修改交易组中所有成员交易
+	if index <= 0 {
+		if param.Fee != 0 && param.Fee > group.Txs[0].Fee {
+			group.Txs[0].Fee = param.Fee
+		}
+		if param.Expire != "" {
+			for i := 0; i < len(group.Txs); i++ {
+				group.SetExpire(i, time.Duration(expire))
+			}
+		}
+		group.RebuiltGroup()
+		grouptx := group.Tx()
+		txHex := types.Encode(grouptx)
+		return txHex, nil
+	}
+	//修改交易组中指定成员交易
+	index--
+	if param.Fee != 0 && index == 0 && param.Fee > group.Txs[0].Fee {
+		group.Txs[0].Fee = param.Fee
+	}
+	if param.Expire != "" {
+		group.SetExpire(int(index), time.Duration(expire))
+	}
+	group.RebuiltGroup()
+	grouptx := group.Tx()
+	txHex := types.Encode(grouptx)
+	return txHex, nil
 }
 
 // CreateRawTxGroup create rawtransaction for group
