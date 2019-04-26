@@ -344,9 +344,10 @@ func TestClientReWriteRawTx(t *testing.T) {
 	client := newTestChannelClient()
 
 	txHex, err := client.ReWriteRawTx(&ctx)
+	assert.Nil(t, err)
 	rtTx := hex.EncodeToString(txHex)
 	txData, err := hex.DecodeString(rtTx)
-
+	assert.Nil(t, err)
 	tx := &types.Transaction{}
 	err = types.Decode(txData, tx)
 	assert.Nil(t, err)
@@ -361,12 +362,12 @@ func TestClientReWriteRawTx(t *testing.T) {
 		Index:  2,
 	}
 	txHex22, err := client.ReWriteRawTx(&ctx2)
+	assert.Nil(t, err)
 	rtTx22 := hex.EncodeToString(txHex22)
 	txData22, err := hex.DecodeString(rtTx22)
-
+	assert.Nil(t, err)
 	tx22 := &types.Transaction{}
 	err = types.Decode(txData22, tx22)
-
 	assert.Nil(t, err)
 	group22, err := tx22.GetTxGroup()
 	assert.Nil(t, err)
