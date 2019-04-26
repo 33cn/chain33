@@ -1246,7 +1246,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 		return false, err
 	}
 
-	ok, err := SaveSeedInBatch(wallet.walletStore.GetDB(), seed, password, newBatch)
+	ok, err := SaveSeedInBatch(wallet.walletStore.GetDB(), newseed, password, newBatch)
 	if !ok {
 		walletlog.Error("saveSeed", "SaveSeed err", err)
 		return false, err
