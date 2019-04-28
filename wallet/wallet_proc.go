@@ -1082,7 +1082,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 				continue
 			}
 			//toaddr
-			toaddr := tx.GetTo()
+			toaddr := tx.GetRealToAddr()
 			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
 				newbatch.Delete(wcom.CalcTxKey(heightstr))
 			}
