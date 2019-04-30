@@ -5,8 +5,9 @@
 package p256
 
 import (
-	"github.com/33cn/chain33/common/vrf"
 	"testing"
+
+	"github.com/33cn/chain33/common/vrf"
 
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/types"
