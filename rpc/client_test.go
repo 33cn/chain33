@@ -90,7 +90,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: false,
-		To:         "to",
+		To:         "1JkbMq5yNMZHtokjg5XxkC3RZbqjoPJm84",
 		Note:       []byte("note"),
 	}
 
@@ -113,7 +113,7 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: false,
-		To:         "to",
+		To:         "1JkbMq5yNMZHtokjg5XxkC3RZbqjoPJm84",
 		Note:       []byte("note"),
 	}
 
@@ -140,7 +140,7 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: true,
-		To:         "to",
+		To:         "1JkbMq5yNMZHtokjg5XxkC3RZbqjoPJm84",
 		Note:       []byte("note"),
 	}
 

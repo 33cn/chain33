@@ -213,6 +213,8 @@ func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkBlockCheck", 1560000)
 	systemFork.SetFork("chain33", "ForkLocalDBAccess", 1572391)
 	systemFork.SetFork("chain33", "ForkTxGroupPara", 1687250)
+	systemFork.SetFork("chain33", "ForkBase58AddressCheck", 1800000)
+
 }
 
 func setLocalFork() {

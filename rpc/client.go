@@ -45,6 +45,12 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		log.Error("CreateRawTransaction", "Error", types.ErrInvalidParam)
 		return nil, types.ErrInvalidParam
 	}
+	//构建交易时to地址不为空时需要检测地址的合法性
+	if param.GetTo() != "" {
+		if err := address.CheckAddress(param.GetTo()); err != nil {
+			return nil, types.ErrInvalidAddress
+		}
+	}
 	//因为历史原因，这里还是有部分token 的字段，但是没有依赖token dapp
 	//未来这个调用可能会被废弃
 	execer := types.ExecName(ety.CoinsX)
