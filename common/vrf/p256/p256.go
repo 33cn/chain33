@@ -56,8 +56,12 @@ func H1(m []byte) (x, y *big.Int) {
 	for x == nil && i < 100 {
 		// TODO: Use a NIST specified DRBG.
 		h.Reset()
-		binary.Write(h, binary.BigEndian, i)
-		h.Write(m)
+		if err := binary.Write(h, binary.BigEndian, i); err != nil {
+			panic(err)
+		}
+		if _, err := h.Write(m); err != nil {
+			panic(err)
+		}
 		r := []byte{2} // Set point encoding to "compressed", y=0.
 		r = h.Sum(r)
 		x, y = Unmarshal(curve, r[:byteLen+1])
@@ -76,8 +80,12 @@ func H2(m []byte) *big.Int {
 	for i := uint32(0); ; i++ {
 		// TODO: Use a NIST specified DRBG.
 		h.Reset()
-		binary.Write(h, binary.BigEndian, i)
-		h.Write(m)
+		if err := binary.Write(h, binary.BigEndian, i); err != nil {
+			panic(err)
+		}
+		if _, err := h.Write(m); err != nil {
+			panic(err)
+		}
 		b := h.Sum(nil)
 		k := new(big.Int).SetBytes(b[:byteLen])
 		if k.Cmp(new(big.Int).Sub(params.N, one)) == -1 {
@@ -108,12 +116,24 @@ func (k PrivateKey) Evaluate(m []byte) (index [32]byte, proof []byte) {
 	rGx, rGy := params.ScalarBaseMult(r)
 	rHx, rHy := params.ScalarMult(Hx, Hy, r)
 	var b bytes.Buffer
-	b.Write(elliptic.Marshal(curve, params.Gx, params.Gy))
-	b.Write(elliptic.Marshal(curve, Hx, Hy))
-	b.Write(elliptic.Marshal(curve, k.PublicKey.X, k.PublicKey.Y))
-	b.Write(vrf)
-	b.Write(elliptic.Marshal(curve, rGx, rGy))
-	b.Write(elliptic.Marshal(curve, rHx, rHy))
+	if _, err := b.Write(elliptic.Marshal(curve, params.Gx, params.Gy)); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(elliptic.Marshal(curve, Hx, Hy)); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(elliptic.Marshal(curve, k.PublicKey.X, k.PublicKey.Y)); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(vrf); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(elliptic.Marshal(curve, rGx, rGy)); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(elliptic.Marshal(curve, rHx, rHy)); err != nil {
+		panic(err)
+	}
 	s := H2(b.Bytes())
 
 	// t = r−s*k mod N
@@ -126,11 +146,21 @@ func (k PrivateKey) Evaluate(m []byte) (index [32]byte, proof []byte) {
 	// Write s, t, and vrf to a proof blob. Also write leading zeros before s and t
 	// if needed.
 	var buf bytes.Buffer
-	buf.Write(make([]byte, 32-len(s.Bytes())))
-	buf.Write(s.Bytes())
-	buf.Write(make([]byte, 32-len(t.Bytes())))
-	buf.Write(t.Bytes())
-	buf.Write(vrf)
+	if _, err := buf.Write(make([]byte, 32-len(s.Bytes()))); err != nil {
+		panic(err)
+	}
+	if _, err := buf.Write(s.Bytes()); err != nil {
+		panic(err)
+	}
+	if _, err := buf.Write(make([]byte, 32-len(t.Bytes()))); err != nil {
+		panic(err)
+	}
+	if _, err := buf.Write(t.Bytes()); err != nil {
+		panic(err)
+	}
+	if _, err := buf.Write(vrf); err != nil {
+		panic(err)
+	}
 
 	return index, buf.Bytes()
 }
@@ -169,19 +199,35 @@ func (pk *PublicKey) ProofToHash(m, proof []byte) (index [32]byte, err error) {
 	// = H2(G, H, [k]G, VRF, [t+ks]G, [t+ks]H)
 	// = H2(G, H, [k]G, VRF, [r]G, [r]H)
 	var b bytes.Buffer
-	b.Write(elliptic.Marshal(curve, params.Gx, params.Gy))
-	b.Write(elliptic.Marshal(curve, Hx, Hy))
-	b.Write(elliptic.Marshal(curve, pk.X, pk.Y))
-	b.Write(vrf)
-	b.Write(elliptic.Marshal(curve, tksGx, tksGy))
-	b.Write(elliptic.Marshal(curve, tksHx, tksHy))
+	if _, err := b.Write(elliptic.Marshal(curve, params.Gx, params.Gy)); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(elliptic.Marshal(curve, Hx, Hy)); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(elliptic.Marshal(curve, pk.X, pk.Y)); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(vrf); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(elliptic.Marshal(curve, tksGx, tksGy)); err != nil {
+		panic(err)
+	}
+	if _, err := b.Write(elliptic.Marshal(curve, tksHx, tksHy)); err != nil {
+		panic(err)
+	}
 	h2 := H2(b.Bytes())
 
 	// Left pad h2 with zeros if needed. This will ensure that h2 is padded
 	// the same way s is.
 	var buf bytes.Buffer
-	buf.Write(make([]byte, 32-len(h2.Bytes())))
-	buf.Write(h2.Bytes())
+	if _, err := buf.Write(make([]byte, 32-len(h2.Bytes()))); err != nil {
+		panic(err)
+	}
+	if _, err := buf.Write(h2.Bytes()); err != nil {
+		panic(err)
+	}
 
 	if !hmac.Equal(s, buf.Bytes()) {
 		return nilIndex, ErrInvalidVRF
