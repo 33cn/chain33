@@ -977,8 +977,8 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress)
 				continue
 			}
-			//toaddr
-			toaddr := tx.GetTo()
+			//toaddr获取交易中真实的接收地址，主要是针对para
+			toaddr := tx.GetRealToAddr()
 			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
 				param.sendRecvFlag = recvTx
 				wallet.buildAndStoreWalletTxDetail(param)
@@ -1082,7 +1082,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 				continue
 			}
 			//toaddr
-			toaddr := tx.GetTo()
+			toaddr := tx.GetRealToAddr()
 			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
 				newbatch.Delete(wcom.CalcTxKey(heightstr))
 			}
