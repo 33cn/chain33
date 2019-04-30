@@ -7,6 +7,7 @@ package address
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 
@@ -27,6 +28,9 @@ var ErrCheckVersion = errors.New("check version error")
 
 //ErrCheckChecksum :
 var ErrCheckChecksum = errors.New("Address Checksum error")
+
+//ErrAddressChecksum :
+var ErrAddressChecksum = errors.New("Address Checksum error!")
 
 //MaxExecNameLength 执行器名最大长度
 const MaxExecNameLength = 100
@@ -139,28 +143,46 @@ func HashToAddress(version byte, in []byte) *Address {
 	return a
 }
 
+func checksum(input []byte) (cksum [4]byte) {
+	h := sha256.Sum256(input)
+	h2 := sha256.Sum256(h[:])
+	copy(cksum[:], h2[:4])
+	return
+}
+
 func checkAddress(ver byte, addr string) (e error) {
+
 	dec := base58.Decode(addr)
 	if dec == nil {
 		e = errors.New("Cannot decode b58 string '" + addr + "'")
 		checkAddressCache.Add(addr, e)
 		return
 	}
-	if len(dec) < 25 {
+	if len(dec) < 20 {
 		e = errors.New("Address too short " + hex.EncodeToString(dec))
 		checkAddressCache.Add(addr, e)
 		return
 	}
+	//需要兼容以前的错误
 	if len(dec) == 25 {
 		sh := common.Sha2Sum(dec[0:21])
 		if !bytes.Equal(sh[:4], dec[21:25]) {
 			e = ErrCheckChecksum
+			return
 		}
 	}
+
+	var cksum [4]byte
+	copy(cksum[:], dec[len(dec)-4:])
+	if checksum(dec[:len(dec)-4]) != cksum {
+		e = ErrAddressChecksum
+	}
+
 	if dec[0] != ver {
 		e = ErrCheckVersion
 	}
 	return e
+
 }
 
 //CheckMultiSignAddress 检查多重签名地址的有效性
