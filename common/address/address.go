@@ -30,7 +30,7 @@ var ErrCheckVersion = errors.New("check version error")
 var ErrCheckChecksum = errors.New("Address Checksum error")
 
 //ErrAddressChecksum :
-var ErrAddressChecksum = errors.New("Address Checksum error!")
+var ErrAddressChecksum = errors.New("address checksum error")
 
 //MaxExecNameLength 执行器名最大长度
 const MaxExecNameLength = 100
