@@ -17,6 +17,7 @@ import (
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/wallet/bipwallet"
 	wcom "github.com/33cn/chain33/wallet/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -188,6 +189,8 @@ func TestWallet(t *testing.T) {
 
 	testWallet(t, wallet)
 	testSendTx(t, wallet)
+	testCreateNewAccountByIndex(t, wallet)
+
 }
 
 //ProcWalletLock
@@ -807,7 +810,7 @@ func testSendTx(t *testing.T, wallet *Wallet) {
 	wallet.WaitTxs([][]byte{hash})
 	hash, err = wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
 	assert.NoError(t, err)
-	t.Log(string(hash))
+	t.Log(common.ToHex(hash))
 
 	err = wallet.sendTransactionWait(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
 	assert.NoError(t, err)
@@ -815,4 +818,79 @@ func testSendTx(t *testing.T, wallet *Wallet) {
 	_, err = wallet.getMinerColdAddr(addr)
 	assert.Equal(t, types.ErrActionNotSupport, err)
 
+}
+
+func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
+	println("testCreateNewAccountByIndex begin")
+
+	//首先创建一个airdropaddr标签的账户
+	reqNewAccount := &types.ReqNewAccount{Label: "airdropaddr"}
+	msg := wallet.client.NewMessage("wallet", types.EventNewAccount, reqNewAccount)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	walletAcc := resp.GetData().(*types.WalletAccount)
+	addrtmp := walletAcc.GetAcc().Addr
+	if walletAcc.GetLabel() != "airdropaddr" {
+		t.Error("testCreateNewAccountByIndex", "walletAcc.GetLabel()", walletAcc.GetLabel(), "Label", "airdropaddr")
+	}
+
+	//index参数的校验。目前只支持10000000
+	reqIndex := &types.Int32{Data: 0}
+	msg = wallet.client.NewMessage("wallet", types.EventNewAccountByIndex, reqIndex)
+	wallet.client.Send(msg, true)
+	resp, err = wallet.client.Wait(msg)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	//创建一个空投地址
+	reqIndex = &types.Int32{Data: 10000000}
+	msg = wallet.client.NewMessage("wallet", types.EventNewAccountByIndex, reqIndex)
+	wallet.client.Send(msg, true)
+	resp1, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	pubkey := resp1.GetData().(*types.ReplyString)
+
+	//通过pubkey换算成addr然后获取账户信息
+	pub, err := common.FromHex(pubkey.Data)
+	addr, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub)
+	if addr != "" {
+		//测试ProcGetAccountList函数
+		msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
+		wallet.client.Send(msgGetAccList, true)
+		resp, err := wallet.client.Wait(msgGetAccList)
+		assert.Nil(t, err)
+		accountlist := resp.GetData().(*types.WalletAccounts)
+		for _, acc := range accountlist.Wallets {
+			if addr == acc.Acc.Addr && addr != addrtmp {
+				if acc.GetLabel() != ("airdropaddr" + fmt.Sprintf("%d", 1)) {
+					t.Error("testCreateNewAccountByIndex", "addr", addr, "acc.GetLabel()", acc.GetLabel())
+				}
+			}
+		}
+	}
+
+	//已经存在，和上一次获取的地址是一致的
+	reqIndex = &types.Int32{Data: 10000000}
+	msg = wallet.client.NewMessage("wallet", types.EventNewAccountByIndex, reqIndex)
+	wallet.client.Send(msg, true)
+	resp, err = wallet.client.Wait(msg)
+	require.NoError(t, err)
+	pubkey = resp.GetData().(*types.ReplyString)
+
+	//通过pubkey换算成addr然后获取账户信息
+	pub2, err := common.FromHex(pubkey.Data)
+	addr2, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub2)
+
+	if addr != addr2 {
+		t.Error("TestProcCreateNewAccount", "addr", addr, "addr2", addr2)
+	}
+
+	pubstr := "02983e51caa6cca6733788f5bcd6b66319328123c473f669414e8c20743ecb0bb1"
+	pub3, err := common.FromHex(pubstr)
+	addr3, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub3)
+	if addr3 != "17GFwymTr8JkHweTr99HMvCoXnAVVDCdgN" {
+		t.Error("TestProcCreateNewAccount", "addr3", addr3, "pubstr", pubstr)
+	}
+	println("TestProcCreateNewAccount end")
+	println("--------------------------")
 }

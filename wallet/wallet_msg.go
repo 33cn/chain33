@@ -285,3 +285,12 @@ func (wallet *Wallet) execWallet(param *types.ChainExecutor, eventID int64) (rep
 	//这里不判断类型是否可以调用，直接按照名字调用，如果发生panic，用recover 恢复
 	return wcom.QueryData.Call(param.Driver, param.FuncName, paramIn)
 }
+
+// On_WalletGetPubKey 获取指定index的公私钥，返回公钥的hex字符串ReqString
+func (wallet *Wallet) On_NewAccountByIndex(req *types.Int32) (types.Message, error) {
+	reply, err := wallet.CreateNewAccountByIndex(uint32(req.Data))
+	if err != nil {
+		walletlog.Error("On_WalletGetPubKey", "err", err.Error())
+	}
+	return &types.ReplyString{Data: reply}, err
+}
