@@ -158,12 +158,17 @@ func checkAddress(ver byte, addr string) (e error) {
 		checkAddressCache.Add(addr, e)
 		return
 	}
-	if len(dec) < 20 {
+	if len(dec) < 25 {
 		e = errors.New("Address too short " + hex.EncodeToString(dec))
 		checkAddressCache.Add(addr, e)
 		return
 	}
-	//需要兼容以前的错误
+	//version 的错误优先
+	if dec[0] != ver {
+		e = ErrCheckVersion
+		return
+	}
+	//需要兼容以前的错误(以前的错误，是一种特殊的情况)
 	if len(dec) == 25 {
 		sh := common.Sha2Sum(dec[0:21])
 		if !bytes.Equal(sh[:4], dec[21:25]) {
@@ -171,18 +176,13 @@ func checkAddress(ver byte, addr string) (e error) {
 			return
 		}
 	}
-
 	var cksum [4]byte
 	copy(cksum[:], dec[len(dec)-4:])
+	//新的错误: 这个错误用一种新的错误标记
 	if checksum(dec[:len(dec)-4]) != cksum {
 		e = ErrAddressChecksum
 	}
-
-	if dec[0] != ver {
-		e = ErrCheckVersion
-	}
 	return e
-
 }
 
 //CheckMultiSignAddress 检查多重签名地址的有效性
