@@ -33,9 +33,10 @@ var (
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
 	// SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
-	SignType    = 1
-	accountdb   *account.DB
-	accTokenMap = make(map[string]*account.DB)
+	SignType     = 1
+	accountdb    *account.DB
+	accTokenMap         = make(map[string]*account.DB)
+	airDropIndex uint32 = 10000000 //通过钱包的seed生成一个空投地址，index索引暂定一千万
 )
 
 func init() {
