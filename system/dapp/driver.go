@@ -284,6 +284,10 @@ func CheckAddress(addr string, height int64) error {
 	if !types.IsFork(height, "ForkMultiSignAddress") && err == address.ErrCheckVersion {
 		return nil
 	}
+	if !types.IsFork(height, "ForkBase58AddressCheck") && err == address.ErrAddressChecksum {
+		return nil
+	}
+
 	return err
 }
 

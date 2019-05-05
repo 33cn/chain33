@@ -73,6 +73,9 @@ func TestCheckAddress(t *testing.T) {
 	addr := PubKeyToAddress(key.PubKey().Bytes())
 	err = CheckAddress(addr.String())
 	require.NoError(t, err)
+
+	err = CheckAddress(addr.String() + addr.String())
+	require.Equal(t, err, ErrAddressChecksum)
 }
 
 func TestExecAddress(t *testing.T) {
