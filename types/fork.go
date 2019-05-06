@@ -283,6 +283,7 @@ func initForkConfig(title string, forks *ForkList) {
 	if title == "chain33" { //chain33 fork is default set in code
 		return
 	}
+	println(title)
 	chain33fork := systemFork.GetAll("chain33")
 	if chain33fork == nil {
 		panic("chain33 fork not init")
