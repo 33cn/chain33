@@ -183,3 +183,6 @@ Enable=0
 Enable=0
 ForkManageExec=100000
 
+[fork.sub.store-kvmvccmavl]
+ForkKvmvccmavl=1
+

@@ -271,8 +271,12 @@ func Init(t string, cfg *Config) {
 		if cfg.Exec.MaxExecFee < cfg.Mempool.MaxTxFee {
 			panic("config must meet: mempool.maxTxFee <= exec.maxExecFee")
 		}
-		setMinerExecs(cfg.Consensus.MinerExecs)
-		setMinFee(cfg.Exec.MinExecFee)
+		if cfg.Consensus != nil {
+			setMinerExecs(cfg.Consensus.MinerExecs)
+		}
+		if cfg.Exec != nil {
+			setMinFee(cfg.Exec.MinExecFee)
+		}
 		setChainConfig("FixTime", cfg.FixTime)
 		if cfg.Exec.MaxExecFee > 0 {
 			setChainConfig("MaxFee", cfg.Exec.MaxExecFee)
