@@ -156,8 +156,6 @@ const (
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
-
-	EventNewAccountByIndex = 214
 )
 
 var eventName = map[int]string{
@@ -301,7 +299,6 @@ var eventName = map[int]string{
 	EventLocalClose:    "EventLocalClose",
 
 	//mempool
-	EventGetProperFee:      "EventGetProperFee",
-	EventReplyProperFee:    "EventReplyProperFee",
-	EventNewAccountByIndex: "EventNewAccountByIndex",
+	EventGetProperFee:   "EventGetProperFee",
+	EventReplyProperFee: "EventReplyProperFee",
 }

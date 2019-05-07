@@ -33,10 +33,9 @@ var (
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
 	// SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
-	SignType     = 1
-	accountdb    *account.DB
-	accTokenMap         = make(map[string]*account.DB)
-	airDropIndex uint32 = 10000000 //通过钱包的seed生成一个空投地址，index索引暂定一千万
+	SignType    = 1
+	accountdb   *account.DB
+	accTokenMap = make(map[string]*account.DB)
 )
 
 func init() {
@@ -299,14 +298,14 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	//获取指定地址在钱包里的账户信息
 	Accountstor, err := wallet.walletStore.GetAccountByAddr(addr)
 	if err != nil {
-		walletlog.Error("ProcSendToAddress", "GetAccountByAddr err:", err)
+		walletlog.Error("getPrivKeyByAddr", "GetAccountByAddr err:", err)
 		return nil, err
 	}
 
 	//通过password解密存储的私钥
 	prikeybyte, err := common.FromHex(Accountstor.GetPrivkey())
 	if err != nil || len(prikeybyte) == 0 {
-		walletlog.Error("ProcSendToAddress", "FromHex err", err)
+		walletlog.Error("getPrivKeyByAddr", "FromHex err", err)
 		return nil, err
 	}
 
@@ -314,12 +313,12 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignName("", SignType))
 	if err != nil {
-		walletlog.Error("ProcSendToAddress", "err", err)
+		walletlog.Error("getPrivKeyByAddr", "err", err)
 		return nil, err
 	}
 	priv, err := cr.PrivKeyFromBytes(privkey)
 	if err != nil {
-		walletlog.Error("ProcSendToAddress", "PrivKeyFromBytes err", err)
+		walletlog.Error("getPrivKeyByAddr", "PrivKeyFromBytes err", err)
 		return nil, err
 	}
 	return priv, nil

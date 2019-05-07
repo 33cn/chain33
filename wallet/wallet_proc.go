@@ -1319,7 +1319,7 @@ func isValidPassWord(password string) bool {
 }
 
 // CreateNewAccountByIndex 指定index创建公私钥对，主要用于空投地址。目前暂定一千万
-func (wallet *Wallet) CreateNewAccountByIndex(index uint32) (string, error) {
+func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -1328,15 +1328,19 @@ func (wallet *Wallet) CreateNewAccountByIndex(index uint32) (string, error) {
 		return "", err
 	}
 
-	if index != airDropIndex {
-		walletlog.Error("CreateNewAccountByIndex index err", "index", index)
+	if !isValidIndex(index) {
+		walletlog.Error("createNewAccountByIndex index err", "index", index)
 		return "", types.ErrInvalidParam
 	}
 
 	//空投地址是否已经存在，存在就直接返回存储的值即可
 	airDropAddr, err := wallet.walletStore.GetAirDropIndex()
 	if airDropAddr != "" && err == nil {
-		return airDropAddr, nil
+		priv, err := wallet.getPrivKeyByAddr(airDropAddr)
+		if err != nil {
+			return "", err
+		}
+		return common.ToHex(priv.Bytes()), nil
 	}
 
 	var cointype uint32
@@ -1356,25 +1360,25 @@ func (wallet *Wallet) CreateNewAccountByIndex(index uint32) (string, error) {
 	//通过seed获取私钥, 首先通过钱包密码解锁seed然后通过seed生成私钥
 	seed, err := wallet.getSeed(wallet.Password)
 	if err != nil {
-		walletlog.Error("CreateNewAccountByIndex", "getSeed err", err)
+		walletlog.Error("createNewAccountByIndex", "getSeed err", err)
 		return "", err
 	}
 
 	// 通过指定index生成公私钥对，并存入数据库中，如果账户已经存在就直接返回账户信息即可
 	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed, index)
 	if err != nil {
-		walletlog.Error("CreateNewAccountByIndex", "GetPrivkeyBySeed err", err)
+		walletlog.Error("createNewAccountByIndex", "GetPrivkeyBySeed err", err)
 		return "", err
 	}
 	privkeybyte, err = common.FromHex(privkeyhex)
 	if err != nil || len(privkeybyte) == 0 {
-		walletlog.Error("CreateNewAccountByIndex", "FromHex err", err)
+		walletlog.Error("createNewAccountByIndex", "FromHex err", err)
 		return "", err
 	}
 
 	pub, err := bipwallet.PrivkeyToPub(cointype, privkeybyte)
 	if err != nil {
-		seedlog.Error("ProcCreateNewAccount PrivkeyToPub", "err", err)
+		seedlog.Error("createNewAccountByIndex PrivkeyToPub", "err", err)
 		return "", types.ErrPrivkeyToPub
 	}
 
@@ -1382,7 +1386,7 @@ func (wallet *Wallet) CreateNewAccountByIndex(index uint32) (string, error) {
 
 	addr, err = bipwallet.PubToAddress(cointype, pub)
 	if err != nil {
-		seedlog.Error("CreateNewAccountByIndex PubToAddress", "err", err)
+		seedlog.Error("createNewAccountByIndex PubToAddress", "err", err)
 		return "", types.ErrPrivkeyToPub
 	}
 	//通过新生成的账户地址查询钱包数据库，如果查询返回的账户信息不为空，
@@ -1406,7 +1410,7 @@ func (wallet *Wallet) CreateNewAccountByIndex(index uint32) (string, error) {
 			i := 0
 			WalletAccStores, err := wallet.walletStore.GetAccountByLabel(Label)
 			if WalletAccStores != nil && err == nil {
-				walletlog.Debug("ProcCreateNewAccount Label is exist in wallet!", "WalletAccStores", WalletAccStores)
+				walletlog.Debug("createNewAccountByIndex Label is exist in wallet!", "WalletAccStores", WalletAccStores)
 				i++
 				Label = Label + fmt.Sprintf("%d", i)
 			} else {
@@ -1438,7 +1442,7 @@ func (wallet *Wallet) CreateNewAccountByIndex(index uint32) (string, error) {
 		addrs[0] = addr
 		accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
 		if err != nil {
-			walletlog.Error("CreateNewAccountByIndex", "LoadAccounts err", err)
+			walletlog.Error("createNewAccountByIndex", "LoadAccounts err", err)
 			return "", err
 		}
 		// 本账户是首次创建
@@ -1459,5 +1463,13 @@ func (wallet *Wallet) CreateNewAccountByIndex(index uint32) (string, error) {
 		Pubkey: HexPubkey,
 	}
 	wallet.walletStore.SetAirDropIndex(airfrop)
-	return HexPubkey, nil
+	return privkeyhex, nil
+}
+
+//isValidIndex校验index的合法性
+func isValidIndex(index uint32) bool {
+	if types.AirDropMinIndex <= index && index <= types.AirDropMaxIndex {
+		return true
+	}
+	return false
 }

@@ -5,6 +5,7 @@
 package wallet
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
@@ -825,11 +826,11 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 
 	//首先创建一个airdropaddr标签的账户
 	reqNewAccount := &types.ReqNewAccount{Label: "airdropaddr"}
-	msg := wallet.client.NewMessage("wallet", types.EventNewAccount, reqNewAccount)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	msg1 := wallet.client.NewMessage("wallet", types.EventNewAccount, reqNewAccount)
+	wallet.client.Send(msg1, true)
+	respp, err := wallet.client.Wait(msg1)
 	require.NoError(t, err)
-	walletAcc := resp.GetData().(*types.WalletAccount)
+	walletAcc := respp.GetData().(*types.WalletAccount)
 	addrtmp := walletAcc.GetAcc().Addr
 	if walletAcc.GetLabel() != "airdropaddr" {
 		t.Error("testCreateNewAccountByIndex", "walletAcc.GetLabel()", walletAcc.GetLabel(), "Label", "airdropaddr")
@@ -837,21 +838,22 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 
 	//index参数的校验。目前只支持10000000
 	reqIndex := &types.Int32{Data: 0}
-	msg = wallet.client.NewMessage("wallet", types.EventNewAccountByIndex, reqIndex)
-	wallet.client.Send(msg, true)
-	resp, err = wallet.client.Wait(msg)
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
 	assert.Equal(t, types.ErrInvalidParam, err)
 
 	//创建一个空投地址
-	reqIndex = &types.Int32{Data: 10000000}
-	msg = wallet.client.NewMessage("wallet", types.EventNewAccountByIndex, reqIndex)
-	wallet.client.Send(msg, true)
-	resp1, err := wallet.client.Wait(msg)
+	reqIndex = &types.Int32{Data: 100000000}
+	resp1, err := wallet.GetAPI().ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+
 	require.NoError(t, err)
-	pubkey := resp1.GetData().(*types.ReplyString)
+	pubkey := resp1.(*types.ReplyString)
 
 	//通过pubkey换算成addr然后获取账户信息
-	pub, err := common.FromHex(pubkey.Data)
+	privkeybyte, err := common.FromHex(pubkey.Data)
+	require.NoError(t, err)
+	pub, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	require.NoError(t, err)
+
 	addr, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub)
 	if addr != "" {
 		//测试ProcGetAccountList函数
@@ -870,26 +872,38 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 	}
 
 	//已经存在，和上一次获取的地址是一致的
-	reqIndex = &types.Int32{Data: 10000000}
-	msg = wallet.client.NewMessage("wallet", types.EventNewAccountByIndex, reqIndex)
-	wallet.client.Send(msg, true)
-	resp, err = wallet.client.Wait(msg)
+	reqIndex = &types.Int32{Data: 100000000}
+	resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+
 	require.NoError(t, err)
-	pubkey = resp.GetData().(*types.ReplyString)
+	pubkey = resp.(*types.ReplyString)
 
 	//通过pubkey换算成addr然后获取账户信息
-	pub2, err := common.FromHex(pubkey.Data)
+	privkeybyte, err = common.FromHex(pubkey.Data)
+	require.NoError(t, err)
+	pub2, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	require.NoError(t, err)
 	addr2, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub2)
-
+	require.NoError(t, err)
 	if addr != addr2 {
 		t.Error("TestProcCreateNewAccount", "addr", addr, "addr2", addr2)
 	}
 
-	pubstr := "02983e51caa6cca6733788f5bcd6b66319328123c473f669414e8c20743ecb0bb1"
-	pub3, err := common.FromHex(pubstr)
+	privstr := "0x78a8c993abf85d2a452233033c19fac6b3bd4fe2c805615b337ef75dacd86ac9"
+	pubstr := "0277786ddef164b594f7db40d9a563f1ef1733cf34f1592f4c3bf1b344bd8f059b"
+	addrstr := "19QtNuUS9UN4hQPLrnYr3UhJsQYy4z4TMT"
+	privkeybyte, err = common.FromHex(privstr)
+	require.NoError(t, err)
+	pub3, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	require.NoError(t, err)
+	pubtmp := hex.EncodeToString(pub3)
+	if pubtmp != pubstr {
+		t.Error("TestProcCreateNewAccount", "pubtmp", pubtmp, "pubstr", pubstr)
+	}
 	addr3, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub3)
-	if addr3 != "17GFwymTr8JkHweTr99HMvCoXnAVVDCdgN" {
-		t.Error("TestProcCreateNewAccount", "addr3", addr3, "pubstr", pubstr)
+	require.NoError(t, err)
+	if addr3 != addrstr {
+		t.Error("TestProcCreateNewAccount", "addr3", addr3, "addrstr", addrstr)
 	}
 	println("TestProcCreateNewAccount end")
 	println("--------------------------")
