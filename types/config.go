@@ -302,7 +302,9 @@ func Init(t string, cfg *Config) {
 	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
 	if isPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
 		//keep superManager same with mainnet
-		setForkForPara(title)
+		if !cfg.EnableParaFork {
+			setForkForParaZero(title)
+		}
 		if mver[title] != nil {
 			mver[title].UpdateFork()
 		}
