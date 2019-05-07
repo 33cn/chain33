@@ -11,6 +11,10 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+const (
+	pushMaxSeq = 100
+	pushMaxTs = 10000
+)
 //pushNotify push Notify
 type pushNotify struct {
 	cb  chan *types.BlockSeqCB
@@ -132,9 +136,13 @@ func (p *pushseq) runTask(input pushNotify) {
 					p.trigeRun(run, 100*time.Millisecond)
 					continue
 				}
-				data, err := p.getDataBySeq(lastseq + 1)
+				seqCount := pushMaxSeq
+				if lastseq + int64(seqCount) > maxseq {
+					seqCount = 1
+				}
+				data, err := p.getSeqs(lastseq + 1, seqCount, pushMaxTs)
 				if err != nil {
-					chainlog.Error("getDataBySeq", "err", err)
+					chainlog.Error("getDataBySeq", "err", err, "seq", lastseq + 1, "maxSeq",  seqCount)
 					p.trigeRun(run, 1000*time.Millisecond)
 					continue
 				}
@@ -146,14 +154,14 @@ func (p *pushseq) runTask(input pushNotify) {
 					continue
 				}
 				//update seqid
-				lastseq = lastseq + 1
+				lastseq = lastseq + int64(seqCount)
 				p.trigeRun(run, 0)
 			}
 		}
 	}(input)
 }
 
-func (p *pushseq) postData(cb *types.BlockSeqCB, data *types.BlockSeq) (err error) {
+func (p *pushseq) postData(cb *types.BlockSeqCB, data *types.BlockSeqs) (err error) {
 	var postdata []byte
 
 	if cb.Encode == "json" {
@@ -195,8 +203,8 @@ func (p *pushseq) postData(cb *types.BlockSeqCB, data *types.BlockSeq) (err erro
 		chainlog.Error("postData fail", "cb.name", cb.Name, "body", string(body))
 		return types.ErrPushSeqPostData
 	}
-	chainlog.Debug("postData success", "cb.name", cb.Name, "SeqNum", data.Num)
-	return p.store.setSeqCBLastNum([]byte(cb.Name), data.Num)
+	chainlog.Debug("postData success", "cb.name", cb.Name, "SeqNum", data.Seqs[0].Num, "seqCount", len(data.Seqs))
+	return p.store.setSeqCBLastNum([]byte(cb.Name), data.Seqs[0].Num+int64(len(data.Seqs))-1)
 }
 
 func (p *pushseq) getDataBySeq(seq int64) (*types.BlockSeq, error) {
@@ -209,4 +217,23 @@ func (p *pushseq) getDataBySeq(seq int64) (*types.BlockSeq, error) {
 		return nil, err
 	}
 	return &types.BlockSeq{Num: seq, Seq: seqdata, Detail: detail}, nil
+}
+
+// 为什么用交易数和区块数： 准确计算大小需需要考虑压缩和编码
+func (p *pushseq) getSeqs(seq int64, seqCount, txCount int) (*types.BlockSeqs, error) {
+	seqs := &types.BlockSeqs{}
+	totalTx := 0
+	for i := 0; i < seqCount; i++ {
+		seq, err := p.getDataBySeq(seq + int64(i))
+		if err != nil {
+			return nil, err
+		}
+		if totalTx == 0 || totalTx + len(seq.Detail.Block.Txs) < txCount {
+			seqs.Seqs = append(seqs.Seqs, seq)
+			totalTx += len(seq.Detail.Block.Txs)
+		} else {
+			break
+		}
+	}
+	return seqs, nil
 }
