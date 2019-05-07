@@ -98,10 +98,10 @@ func (p *pushseq) updateSeq(seq int64) {
 }
 
 func (p *pushseq) trigeRun(run chan struct{}, sleep time.Duration) {
+	if sleep > 0 {
+		time.Sleep(sleep)
+	}
 	go func() {
-		if sleep > 0 {
-			time.Sleep(sleep)
-		}
 		select {
 		case run <- struct{}{}:
 		default:
