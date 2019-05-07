@@ -855,6 +855,7 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 	require.NoError(t, err)
 
 	addr, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub)
+	require.NoError(t, err)
 	if addr != "" {
 		//测试ProcGetAccountList函数
 		msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
