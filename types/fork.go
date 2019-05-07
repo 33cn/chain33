@@ -226,7 +226,7 @@ func setLocalFork() {
 }
 
 //paraName not used currently
-func setForkForPara(paraName string) {
+func setForkForParaZero(paraName string) {
 	err := systemFork.CloneZero("chain33", paraName)
 	if err != nil {
 		tlog.Error("setForkForPara", "error", err)
