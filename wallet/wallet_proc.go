@@ -1462,7 +1462,10 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 		Addr:   addr,
 		Pubkey: HexPubkey,
 	}
-	wallet.walletStore.SetAirDropIndex(airfrop)
+	err = wallet.walletStore.SetAirDropIndex(airfrop)
+	if err != nil {
+		walletlog.Error("createNewAccountByIndex", "SetAirDropIndex err", err)
+	}
 	return privkeyhex, nil
 }
 
