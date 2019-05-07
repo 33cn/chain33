@@ -351,7 +351,7 @@ func (store *Store) HasSeed() (bool, error) {
 	return true, nil
 }
 
-// GetAirDropIndex 获取指定index的空投地址信息
+// GetAirDropIndex 获取指定index的空投地址
 func (store *Store) GetAirDropIndex() (string, error) {
 	var airDrop AddrInfo
 	data, err := store.Get(CalcAirDropIndex())
@@ -366,8 +366,8 @@ func (store *Store) GetAirDropIndex() (string, error) {
 		storelog.Error("GetWalletVersion unmarshal", "err", err)
 		return "", err
 	}
-	storelog.Info("GetAirDropIndex ", "airDrop", airDrop)
-	return airDrop.Pubkey, nil
+	storelog.Debug("GetAirDropIndex ", "airDrop", airDrop)
+	return airDrop.Addr, nil
 }
 
 // SetAirDropIndex 存储指定index的空投地址信息
@@ -378,6 +378,6 @@ func (store *Store) SetAirDropIndex(airDropIndex *AddrInfo) error {
 		return err
 	}
 
-	storelog.Info("SetAirDropIndex ", "airDropIndex", airDropIndex)
+	storelog.Debug("SetAirDropIndex ", "airDropIndex", airDropIndex)
 	return store.GetDB().SetSync(CalcAirDropIndex(), data)
 }
