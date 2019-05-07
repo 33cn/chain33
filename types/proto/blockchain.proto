@@ -63,6 +63,10 @@ message BlockSeq {
     BlockDetail   detail = 3;
 }
 
+message BlockSeqs {
+    repeated BlockSeq seqs = 1;
+}
+
 //节点ID以及对应的Block
 message BlockPid {
     string pid   = 1;
