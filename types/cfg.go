@@ -4,7 +4,7 @@
 
 package types
 
-// Config 配置信息
+// Config 配置信息 
 type Config struct {
 	Title          string       `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
 	Version        string       `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
