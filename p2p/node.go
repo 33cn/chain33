@@ -33,6 +33,7 @@ func (n *Node) Start() {
 	}
 	n.detectNodeAddr()
 	n.monitor()
+	atomic.StoreInt32(&n.closed, 0)
 	go n.doNat()
 
 }
@@ -45,12 +46,14 @@ func (n *Node) Close() {
 	}
 	log.Debug("stop", "listen", "closed")
 	n.nodeInfo.addrBook.Close()
+	n.nodeInfo.monitorChan <- nil
 	log.Debug("stop", "addrBook", "closed")
 	n.removeAll()
 	if Filter != nil {
 		Filter.Close()
 	}
 	n.deleteNatMapPort()
+
 	log.Info("stop", "PeerRemoeAll", "closed")
 
 }

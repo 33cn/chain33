@@ -89,7 +89,6 @@ func (s *P2pserver) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 		}
 
 	}
-
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
 	return &pb.P2PPong{Nonce: in.GetNonce()}, nil
 
@@ -413,11 +412,28 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 
 	log.Debug("ServerStreamSend")
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
+
+	defer s.deleteInBoundPeerInfo(peername)
+	defer func() { s.deleteSChan <- stream }()
 	dataChain := s.addStreamHandler(stream)
 	for data := range dataChain {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
 		}
+
+		innerpeer := s.getInBoundPeerInfo(peername)
+		if innerpeer != nil {
+			if !s.checkVersion(innerpeer.p2pversion) {
+				log.Error("ServerStreamSend CheckVersion", "version", innerpeer.p2pversion)
+				if innerpeer.p2pversion == 0 {
+					return fmt.Errorf("version empty")
+				}
+				return pb.ErrVersion
+			}
+		} else {
+			return fmt.Errorf("no peer info")
+		}
+
 		p2pdata := new(pb.BroadCastData)
 		if block, ok := data.(*pb.P2PBlock); ok {
 			if block.GetBlock() != nil {
@@ -441,8 +457,8 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 
 		err := stream.Send(p2pdata)
 		if err != nil {
-			s.deleteSChan <- stream
-			s.deleteInBoundPeerInfo(peername)
+			//s.deleteSChan <- stream
+			//s.deleteInBoundPeerInfo(peername)
 			return err
 		}
 	}
@@ -465,12 +481,15 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			return fmt.Errorf("ctx.Addr format err")
 		}
 	} else {
+
 		return fmt.Errorf("getctx err")
 	}
 
 	var hash [64]byte
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
+	defer stream.SendAndClose(&pb.ReqNil{})
+
 	var in = new(pb.BroadCastData)
 
 	for {
@@ -484,6 +503,17 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		}
 
 		if block := in.GetBlock(); block != nil {
+			innerpeer := s.getInBoundPeerInfo(peername)
+			if innerpeer != nil {
+				log.Error("ServerStreamRead CheckVersion", "version", innerpeer.p2pversion, "ip", remoteIP)
+				if !s.checkVersion(innerpeer.p2pversion) {
+					return pb.ErrVersion
+				}
+			} else {
+				log.Error("ServerStreamRead", "no peer info", "")
+				return fmt.Errorf("no peer info")
+			}
+
 			hex.Encode(hash[:], block.GetBlock().Hash())
 			blockhash := string(hash[:])
 
@@ -507,6 +537,15 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			}
 
 		} else if tx := in.GetTx(); tx != nil {
+			innerpeer := s.getInBoundPeerInfo(peername)
+			if innerpeer != nil {
+				if !s.checkVersion(innerpeer.p2pversion) {
+					return pb.ErrVersion
+				}
+			} else {
+				return fmt.Errorf("no peer info")
+			}
+
 			hex.Encode(hash[:], tx.GetTx().Hash())
 			txhash := string(hash[:])
 			log.Debug("ServerStreamRead", "txhash:", txhash)
