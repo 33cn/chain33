@@ -364,6 +364,7 @@ func (m *Cli) GetHeaders(msg *queue.Message, taskindex int64) {
 		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{Msg: []byte("no pid")}))
 		return
 	}
+
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
 	peers, infos := m.network.node.GetActivePeers()
 	for paddr, info := range infos {
@@ -411,6 +412,7 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 	req := msg.GetData().(*pb.ReqBlocks)
 	log.Info("GetBlocks", "start", req.GetStart(), "end", req.GetEnd())
 	pids := req.GetPid()
+	log.Info("GetBlocks", "pids", pids)
 	var Inventorys = make([]*pb.Inventory, 0)
 	for i := req.GetStart(); i <= req.GetEnd(); i++ {
 		var inv pb.Inventory
@@ -424,7 +426,7 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 	var downloadPeers []*Peer
 	peers, infos := m.network.node.GetActivePeers()
 	if len(pids) > 0 && pids[0] != "" { //指定Pid 下载数据
-		log.Info("fetch from peer in pids")
+		log.Info("fetch from peer in pids", "pids", pids)
 		var pidmap = make(map[string]bool)
 		for _, pid := range pids {
 			pidmap[pid] = true

@@ -250,10 +250,10 @@ func (a *AddrBook) loadDb() bool {
 		if err != nil {
 			panic(err)
 		}
-		return false
-	}
 
-	a.setKey(string(privkey), a.genPubkey(string(privkey)))
+	} else {
+		a.setKey(string(privkey), a.genPubkey(string(privkey)))
+	}
 
 	iteror := a.bookDb.Iterator(nil, nil, false)
 	for iteror.Next() {
@@ -389,6 +389,18 @@ func (a *AddrBook) setKey(privkey, pubkey string) {
 	a.privkey = privkey
 	a.pubkey = pubkey
 
+}
+
+//ResetPeerkey reset priv,pub key
+func (a *AddrBook) ResetPeerkey(privkey, pubkey string) {
+	a.keymtx.Lock()
+	defer a.keymtx.Unlock()
+	a.privkey = privkey
+	a.pubkey = pubkey
+	err := a.bookDb.Set([]byte(privKeyTag), []byte(privkey))
+	if err != nil {
+		panic(err)
+	}
 }
 
 // GetPrivPubKey return privkey and pubkey
