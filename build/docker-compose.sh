@@ -56,6 +56,11 @@ if [ -n "${DAPP}" ]; then
 
 fi
 
+if [ -z "$DAPP" ]; then
+    # shellcheck source=/dev/null
+    source system-test-rpc.sh
+fi
+
 echo "=========== # env setting ============="
 echo "DAPP=$DAPP"
 echo "DAPP_TEST_FILE=$DAPP_TEST_FILE"
@@ -338,9 +343,15 @@ function base_config() {
     transfer
 }
 
+function base_test() {
+    if [ "$DAPP" == "" ]; then
+        system_test_rpc "${1}"
+    fi
+
+}
 function dapp_run() {
     if [ -e "$DAPP_TEST_FILE" ]; then
-        ${DAPP} "${CLI}" "${1}"
+        ${DAPP} "${CLI}" "${1}" "${2}"
     fi
 
 }
@@ -358,7 +369,9 @@ function main() {
     dapp_run config
 
     ### test cases ###
-    dapp_run test
+    ip=$(${CLI} net info | jq -r ".externalAddr[0:10]")
+    base_test "${ip}"
+    dapp_run test "${ip}"
 
     ### finish ###
     check_docker_container
