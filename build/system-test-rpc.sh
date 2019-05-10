@@ -267,7 +267,6 @@ chain33_GetBlockSequences() {
     echo_rst "$FUNCNAME" "$rst"
 }
 
-
 chain33_GetBlockByHashes() {
     hash0=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[0].hash")
     hash1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[1].hash")
