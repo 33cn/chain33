@@ -292,6 +292,10 @@ function transfer() {
         hashes=("${hashes[@]}" "$hash")
     done
 
+    #send from 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt for test
+    hash=$(${CLI} send coins transfer -a 10000 -n test -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
+    echo "${hash}"
+
     block_wait_by_height "$curHeight", 1
 
     echo "len: ${#hashes[@]}"
@@ -345,7 +349,7 @@ function base_config() {
 
 function base_test() {
     if [ "$DAPP" == "" ]; then
-        system_test_rpc "${1}"
+        system_test_rpc "https://${1}:8801"
     fi
 
 }
