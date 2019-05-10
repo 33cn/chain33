@@ -198,6 +198,156 @@ chain33_MergeBalance() {
     echo_rst "$FUNCNAME" "$?"
 }
 
+
+chain33_QueryTotalFee() {
+    local height=1
+    hash=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockHash","params":[{"height":'$height'}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.hash")
+    if [ -z "$hash" ]; then
+        echo "hash is null"
+        echo_rst "$FUNCNAME" 1
+    fi
+    prefixhash_base64=$(echo -n "TotalFeeKey:" | base64)
+    blockhash_base64=$(echo -n "$hash" | cut -d " " -f 1 | xxd -r -p | base64)
+    base64_hash="$prefixhash_base64$blockhash_base64"
+    # echo "prefix=$base64_hash"
+    # curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.QueryTotalFee","params":[{"keys":["'$base64_hash'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP}
+    txs=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.QueryTotalFee","params":[{"keys":["'$base64_hash'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.txCount")
+    [ "$txs" -ge 0 ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_GetNetInfo() {
+    method="GetNetInfo"
+    addr=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.'$method'","params":[]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.externalAddr")
+    service=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetNetInfo","params":[]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.service")
+    [ "$addr" != "null" ] && [ "$service" == "true" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_GetFatalFailure() {
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetFatalFailure","params":[]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result")
+    error=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetFatalFailure","params":[]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".error")
+    [ "$r1" -eq 0 ] && [ "$error" == null ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_DecodeRawTransaction() {
+    tx="0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.txs[0].execer")
+    [ "$r1" == "coins" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_GetTimeStatus() {
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTimeStatus","params":[]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.localTime")
+    if [ -z "$r1" ]; then
+        curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTimeStatus","params":[]}' -H 'content-type:text/plain;' ${MAIN_HTTP}
+    fi
+    [ -n "$r1" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_GetLastBlockSequence() {
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetLastBlockSequence","params":[]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result")
+    [ "$r1" -ge 0 ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_GetBlockSequences() {
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[2].hash")
+    [ -n "$r1" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_GetBlockByHashes() {
+    hash0=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[0].hash")
+    hash1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[1].hash")
+    hash2=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[2].hash")
+
+    # curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP}
+    p1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.items[0].block.parentHash")
+    p2=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.items[1].block.parentHash")
+    [ "$p1" == "$hash0" ] && [ "$p2" == "$hash1" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_ConvertExectoAddr() {
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.ConvertExectoAddr","params":[{"execname":"coins"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result")
+    [ "$r1" == "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_GetExecBalance() {
+    local height=6802
+    statehash=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlocks","params":[{"start":'$height',"end":'$height',"isDetail":false}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.items[0].block.stateHash")
+    state_base64=$(echo -n "$statehash" | cut -d " " -f 1 | xxd -r -p | base64)
+    addr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+    addr_base64=$(echo -n "$addr" | base64)
+    # curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetExecBalance","params":[{"symbol":"bty","stateHash":"'$state_base64'","addr":"'$addr_base64'","execer":"coins","count":100}]}' -H 'content-type:text/plain;' ${MAIN_HTTP}
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetExecBalance","params":[{"symbol":"bty","stateHash":"'$stathash_base64'","addr":"'$addr_base64'","execer":"coins","count":100}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".error")
+    [ "$r1" == "null" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_AddSeqCallBack() {
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.AddSeqCallBack","params":[{"name":"test","url":"http://test","encode":"json"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.isOK")
+    [ "$r1" == "true" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_ListSeqCallBack() {
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.ListSeqCallBack","params":[]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.items[0].name")
+    [ "$r1" == "test" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_GetSeqCallBackLastNum() {
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetSeqCallBackLastNum","params":[{"data":"test"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.data")
+    [ "$r1" == "-1" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_GetCoinSymbol() {
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetCoinSymbol","params":[]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.data")
+    [ "$r1" == "bty" ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+
+run_testcases() {
+    chain33_lock
+    chain33_unlock
+    chain33_QueryTotalFee
+    chain33_GetNetInfo
+    chain33_GetFatalFailure
+    chain33_DecodeRawTransaction
+    chain33_GetTimeStatus
+    chain33_GetLastBlockSequence
+    chain33_GetBlockSequences
+    chain33_GetBlockByHashes
+    chain33_ConvertExectoAddr
+    chain33_GetExecBalance
+    chain33_AddSeqCallBack
+    chain33_ListSeqCallBack
+    chain33_GetSeqCallBackLastNum
+    chain33_GetCoinSymbol
+}
+
+
 function system_test_rpc() {
     local ip=$1
     MAIN_HTTP=$1

@@ -374,7 +374,7 @@ function main() {
 
     ### test cases ###
     ip=$(${CLI} net info | jq -r ".externalAddr[0:10]")
-    base_test "${ip}"
+    base_test "https://${ip}"
     dapp_run test "${ip}"
 
     ### finish ###
