@@ -523,28 +523,46 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 //CheckTxExpire 此时的tx交易组都是展开的，过滤掉已经过期的tx交易，目前只有ticket共识需要在updateBlock时调用
 func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, blocktime int64) (transactions []*types.Transaction) {
 	var txlist types.Transactions
+	var hashTxExpire bool
+
 	for i := 0; i < len(txs); i++ {
-		tx := txs[i]
-		if tx.GroupCount == 0 {
-			if !isExpire([]*types.Transaction{tx}, height, blocktime) {
-				txlist.Txs = append(txlist.Txs, tx)
+
+		GroupCount := txs[i].GroupCount
+		if GroupCount == 0 {
+			if isExpire(txs[i:i+1], height, blocktime) {
+				txs[i] = nil
+				hashTxExpire = true
 			}
 			continue
 		}
 
 		//判断GroupCount 是否会产生越界
-		if i+int(tx.GroupCount) > len(txs) {
+		if i+int(GroupCount) > len(txs) {
 			continue
 		}
 
-		grouptxs := txs[i : i+int(tx.GroupCount)]
-		if !isExpire(grouptxs, height, blocktime) {
-			txlist.Txs = append(txlist.Txs, grouptxs...)
+		//交易组有过期交易时需要将整个交易组都删除
+		grouptxs := txs[i : i+int(GroupCount)]
+		if isExpire(grouptxs, height, blocktime) {
+			for j := i; j < i+int(GroupCount); j++ {
+				txs[j] = nil
+				hashTxExpire = true
+			}
 		}
-		i = i + int(tx.GroupCount) - 1
+		i = i + int(GroupCount) - 1
 	}
 
-	return txlist.GetTxs()
+	//有过期交易时需要重新组装交易
+	if hashTxExpire {
+		for _, tx := range txs {
+			if tx != nil {
+				txlist.Txs = append(txlist.Txs, tx)
+			}
+		}
+		return txlist.GetTxs()
+	}
+
+	return txs
 }
 
 //检测交易数组是否过期，只要有一个过期就认为整个交易组过期
