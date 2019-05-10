@@ -9,7 +9,6 @@ RED='\033[1;31m'
 GRE='\033[1;32m'
 NOC='\033[0m'
 
-
 # $2=0 means true, other false
 echo_rst() {
     if [ "$2" -eq 0 ]; then
@@ -204,7 +203,7 @@ function system_test_rpc() {
     MAIN_HTTP=$1
     echo "=========== # system rpc test ============="
     echo "ip=$MAIN_HTTP"
-#    set -x
+    #    set -x
     set +e
     chain33_lock
     chain33_unlock
