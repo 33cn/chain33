@@ -211,6 +211,7 @@ chain33_QueryTotalFee() {
     base64_hash="$prefixhash_base64$blockhash_base64"
     # echo "prefix=$base64_hash"
     # curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.QueryTotalFee","params":[{"keys":["'$base64_hash'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP}
+    # shellcheck disable=SC2086
     txs=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.QueryTotalFee","params":[{"keys":["'$base64_hash'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.txCount")
     [ "$txs" -ge 0 ]
     rst=$?
@@ -266,13 +267,16 @@ chain33_GetBlockSequences() {
     echo_rst "$FUNCNAME" "$rst"
 }
 
+
 chain33_GetBlockByHashes() {
     hash0=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[0].hash")
     hash1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[1].hash")
     hash2=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[2].hash")
 
     # curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP}
+    # shellcheck disable=SC2086
     p1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.items[0].block.parentHash")
+    # shellcheck disable=SC2086
     p2=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.items[1].block.parentHash")
     [ "$p1" == "$hash0" ] && [ "$p2" == "$hash1" ]
     rst=$?
@@ -293,7 +297,8 @@ chain33_GetExecBalance() {
     addr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
     addr_base64=$(echo -n "$addr" | base64)
     # curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetExecBalance","params":[{"symbol":"bty","stateHash":"'$state_base64'","addr":"'$addr_base64'","execer":"coins","count":100}]}' -H 'content-type:text/plain;' ${MAIN_HTTP}
-    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetExecBalance","params":[{"symbol":"bty","stateHash":"'$stathash_base64'","addr":"'$addr_base64'","execer":"coins","count":100}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".error")
+    # shellcheck disable=SC2086
+    r1=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetExecBalance","params":[{"symbol":"bty","stateHash":"'$state_base64'","addr":"'$addr_base64'","execer":"coins","count":100}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".error")
     [ "$r1" == "null" ]
     rst=$?
     echo_rst "$FUNCNAME" "$rst"
