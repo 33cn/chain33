@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
@@ -517,4 +518,60 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 		}
 	}
 	return addedTx
+}
+
+//CheckTxExpire 此时的tx交易组都是展开的，过滤掉已经过期的tx交易，目前只有ticket共识需要在updateBlock时调用
+func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, blocktime int64) (transactions []*types.Transaction) {
+	var txlist types.Transactions
+	var hasTxExpire bool
+
+	for i := 0; i < len(txs); i++ {
+
+		groupCount := txs[i].GroupCount
+		if groupCount == 0 {
+			if isExpire(txs[i:i+1], height, blocktime) {
+				txs[i] = nil
+				hasTxExpire = true
+			}
+			continue
+		}
+
+		//判断GroupCount 是否会产生越界
+		if i+int(groupCount) > len(txs) {
+			continue
+		}
+
+		//交易组有过期交易时需要将整个交易组都删除
+		grouptxs := txs[i : i+int(groupCount)]
+		if isExpire(grouptxs, height, blocktime) {
+			for j := i; j < i+int(groupCount); j++ {
+				txs[j] = nil
+				hasTxExpire = true
+			}
+		}
+		i = i + int(groupCount) - 1
+	}
+
+	//有过期交易时需要重新组装交易
+	if hasTxExpire {
+		for _, tx := range txs {
+			if tx != nil {
+				txlist.Txs = append(txlist.Txs, tx)
+			}
+		}
+		return txlist.GetTxs()
+	}
+
+	return txs
+}
+
+//检测交易数组是否过期，只要有一个过期就认为整个交易组过期
+func isExpire(txs []*types.Transaction, height int64, blocktime int64) bool {
+	for _, tx := range txs {
+		if height > 0 && blocktime > 0 && tx.IsExpire(height, blocktime) {
+			log.Debug("isExpire", "height", height, "blocktime", blocktime, "hash", common.ToHex(tx.Hash()), "Expire", tx.Expire)
+			return true
+		}
+	}
+	return false
 }
