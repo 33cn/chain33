@@ -228,7 +228,7 @@ func (p *pushseq) getSeqs(seq int64, seqCount, maxSize int) (*types.BlockSeqs, e
 		if err != nil {
 			return nil, err
 		}
-		if totalSize == 0 || totalSize + size < maxSize {
+		if totalSize == 0 || totalSize+size < maxSize {
 			seqs.Seqs = append(seqs.Seqs, seq)
 			totalSize += size
 		} else {

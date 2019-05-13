@@ -459,7 +459,7 @@ func (bs *BlockStore) loadBlockByHash(hash []byte) (*types.BlockDetail, int, err
 	err = proto.Unmarshal(header, &blockheader)
 	if err != nil {
 		storeLog.Error("LoadBlockByHash", "err", err)
-		return nil, blockSize,  err
+		return nil, blockSize, err
 	}
 	blockSize += len(header)
 
