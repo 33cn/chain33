@@ -514,6 +514,17 @@ chain33_CreateNoBalanceTransaction() {
     echo_rst "$FUNCNAME" "$rst"
 }
 
+chain33_GetBlockHash() {
+    set -x
+    req='{"method":"Chain33.GetBlockHash", "params":[{"height":1}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("hash"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+    set +x
+}
+
 run_testcases() {
     #    set -x
     set +e
@@ -560,6 +571,7 @@ run_testcases() {
     chain33_GetAccounts
     chain33_NewAccount
 
+
     chain33_CreateRawTransaction
     chain33_CreateTransaction
     chain33_ReWriteRawTx
@@ -567,6 +579,9 @@ run_testcases() {
     chain33_SignRawTx
     chain33_SendTransaction
     chain33_CreateNoBalanceTransaction
+
+    chain33_GetBlockHash
+
     #这两个测试放在最后
     chain33_SetPasswd "$1"
     chain33_MergeBalance "$1"
