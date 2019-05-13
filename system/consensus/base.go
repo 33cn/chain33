@@ -523,37 +523,37 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 //CheckTxExpire 此时的tx交易组都是展开的，过滤掉已经过期的tx交易，目前只有ticket共识需要在updateBlock时调用
 func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, blocktime int64) (transactions []*types.Transaction) {
 	var txlist types.Transactions
-	var hashTxExpire bool
+	var hasTxExpire bool
 
 	for i := 0; i < len(txs); i++ {
 
-		GroupCount := txs[i].GroupCount
-		if GroupCount == 0 {
+		groupCount := txs[i].GroupCount
+		if groupCount == 0 {
 			if isExpire(txs[i:i+1], height, blocktime) {
 				txs[i] = nil
-				hashTxExpire = true
+				hasTxExpire = true
 			}
 			continue
 		}
 
 		//判断GroupCount 是否会产生越界
-		if i+int(GroupCount) > len(txs) {
+		if i+int(groupCount) > len(txs) {
 			continue
 		}
 
 		//交易组有过期交易时需要将整个交易组都删除
-		grouptxs := txs[i : i+int(GroupCount)]
+		grouptxs := txs[i : i+int(groupCount)]
 		if isExpire(grouptxs, height, blocktime) {
-			for j := i; j < i+int(GroupCount); j++ {
+			for j := i; j < i+int(groupCount); j++ {
 				txs[j] = nil
-				hashTxExpire = true
+				hasTxExpire = true
 			}
 		}
-		i = i + int(GroupCount) - 1
+		i = i + int(groupCount) - 1
 	}
 
 	//有过期交易时需要重新组装交易
-	if hashTxExpire {
+	if hasTxExpire {
 		for _, tx := range txs {
 			if tx != nil {
 				txlist.Txs = append(txlist.Txs, tx)
