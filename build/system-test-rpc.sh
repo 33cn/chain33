@@ -371,4 +371,4 @@ function system_test_rpc() {
     fi
 }
 
-system_test_rpc $1
+#system_test_rpc $1
