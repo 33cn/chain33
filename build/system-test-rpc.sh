@@ -334,7 +334,7 @@ run_testcases() {
     chain33_GetBlockOverview "$1"
     chain33_GetAddrOverview "$1"
 
-    chain33_QueryTotalFee "$1"
+    chain33_QueryTotalFee
     chain33_GetNetInfo
     chain33_GetFatalFailure
     chain33_DecodeRawTransaction
