@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	pushMaxSeq = 100
-	pushMaxTs  = 10000
+	pushMaxSeq  = 100
+	pushMaxSize = 100 * 1024 * 1024
 )
 
 //pushNotify push Notify
@@ -141,7 +141,7 @@ func (p *pushseq) runTask(input pushNotify) {
 				if lastseq+int64(seqCount) > maxseq {
 					seqCount = 1
 				}
-				data, err := p.getSeqs(lastseq+1, seqCount, pushMaxTs)
+				data, err := p.getSeqs(lastseq+1, seqCount, pushMaxSize)
 				if err != nil {
 					chainlog.Error("getDataBySeq", "err", err, "seq", lastseq+1, "maxSeq", seqCount)
 					p.trigeRun(run, 1000*time.Millisecond)
@@ -208,30 +208,29 @@ func (p *pushseq) postData(cb *types.BlockSeqCB, data *types.BlockSeqs) (err err
 	return p.store.setSeqCBLastNum([]byte(cb.Name), data.Seqs[0].Num+int64(len(data.Seqs))-1)
 }
 
-func (p *pushseq) getDataBySeq(seq int64) (*types.BlockSeq, error) {
+func (p *pushseq) getDataBySeq(seq int64) (*types.BlockSeq, int, error) {
 	seqdata, err := p.store.GetBlockSequence(seq)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	detail, err := p.store.LoadBlockBySequence(seq)
+	detail, blockSize, err := p.store.LoadBlockBySequence(seq)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return &types.BlockSeq{Num: seq, Seq: seqdata, Detail: detail}, nil
+	return &types.BlockSeq{Num: seq, Seq: seqdata, Detail: detail}, blockSize, nil
 }
 
-// 为什么用交易数和区块数： 准确计算大小需需要考虑压缩和编码
-func (p *pushseq) getSeqs(seq int64, seqCount, txCount int) (*types.BlockSeqs, error) {
+func (p *pushseq) getSeqs(seq int64, seqCount, maxSize int) (*types.BlockSeqs, error) {
 	seqs := &types.BlockSeqs{}
-	totalTx := 0
+	totalSize := 0
 	for i := 0; i < seqCount; i++ {
-		seq, err := p.getDataBySeq(seq + int64(i))
+		seq, size, err := p.getDataBySeq(seq + int64(i))
 		if err != nil {
 			return nil, err
 		}
-		if totalTx == 0 || totalTx+len(seq.Detail.Block.Txs) < txCount {
+		if totalSize == 0 || totalSize + size < maxSize {
 			seqs.Seqs = append(seqs.Seqs, seq)
-			totalTx += len(seq.Detail.Block.Txs)
+			totalSize += size
 		} else {
 			break
 		}
