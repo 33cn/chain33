@@ -34,7 +34,7 @@ chain33_GetHexTxByHash() {
     #先获取一笔交易
     reHash=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r '.result.txInfos[0].hash')
     #查询交易
-    resp=$(curl -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetHexTxByHash","params":[{"hash":"'$reHash'","upgrade":false}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetHexTxByHash","params":[{"hash":"'${reHash}'","upgrade":false}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result != null)' <<<"$resp")
 	[ "$ok" == true ]
     rst=$?
@@ -45,7 +45,7 @@ chain33_QueryTransaction() {
     #先获取一笔交易
     reHash=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r '.result.txInfos[0].hash')
     #查询交易
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.QueryTransaction","params":[{"hash":"'$reHash'","upgrade":false}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.QueryTransaction","params":[{"hash":"'${reHash}'","upgrade":false}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.receipt.tyName == "ExecOk") and (.result.height >= 0) and (.result.index >= 0) and (.result.amount >= 0)' <<<"$resp")
 	[ "$ok" == true ]
     rst=$?
