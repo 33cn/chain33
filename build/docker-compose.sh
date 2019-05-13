@@ -351,7 +351,9 @@ function base_test() {
     if [ "$DAPP" == "" ]; then
         system_test_rpc "https://${1}:8801"
     fi
-
+    if [ "$DAPP" == "paracross" ]; then
+        system_test_rpc "https://${1}:8901"
+    fi
 }
 function dapp_run() {
     if [ -e "$DAPP_TEST_FILE" ]; then
