@@ -399,6 +399,17 @@ chain33_NewAccount() {
     echo_rst "$FUNCNAME" "$rst"
 }
 
+chain33_GetBlockHash() {
+    set -x
+    req='{"method":"Chain33.GetBlockHash", "params":[{"height":1}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("hash"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+    set +x
+}
+
 run_testcases() {
     #    set -x
     set +e
@@ -444,6 +455,8 @@ run_testcases() {
     chain33_GetAccountsV2
     chain33_GetAccounts
     chain33_NewAccount
+
+    chain33_GetBlockHash
 
     #这两个测试放在最后
     chain33_SetPasswd "$1"
