@@ -13,8 +13,9 @@ import (
 
 const (
 	pushMaxSeq = 100
-	pushMaxTs = 10000
+	pushMaxTs  = 10000
 )
+
 //pushNotify push Notify
 type pushNotify struct {
 	cb  chan *types.BlockSeqCB
@@ -137,12 +138,12 @@ func (p *pushseq) runTask(input pushNotify) {
 					continue
 				}
 				seqCount := pushMaxSeq
-				if lastseq + int64(seqCount) > maxseq {
+				if lastseq+int64(seqCount) > maxseq {
 					seqCount = 1
 				}
-				data, err := p.getSeqs(lastseq + 1, seqCount, pushMaxTs)
+				data, err := p.getSeqs(lastseq+1, seqCount, pushMaxTs)
 				if err != nil {
-					chainlog.Error("getDataBySeq", "err", err, "seq", lastseq + 1, "maxSeq",  seqCount)
+					chainlog.Error("getDataBySeq", "err", err, "seq", lastseq+1, "maxSeq", seqCount)
 					p.trigeRun(run, 1000*time.Millisecond)
 					continue
 				}
@@ -228,7 +229,7 @@ func (p *pushseq) getSeqs(seq int64, seqCount, txCount int) (*types.BlockSeqs, e
 		if err != nil {
 			return nil, err
 		}
-		if totalTx == 0 || totalTx + len(seq.Detail.Block.Txs) < txCount {
+		if totalTx == 0 || totalTx+len(seq.Detail.Block.Txs) < txCount {
 			seqs.Seqs = append(seqs.Seqs, seq)
 			totalTx += len(seq.Detail.Block.Txs)
 		} else {
