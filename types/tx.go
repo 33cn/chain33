@@ -546,6 +546,13 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	}
 	// 检查交易费是否小于最低值
 	realFee := int64(txSize/1000+1) * minFee
+	//wasm的交易统一收0.05个币的手续费
+	if bytes.Contains(tx.Execer, []byte("user.wasm.")) { //wasmtypes.UserWasmX
+		wasmFee := int64(5000000) //0.05个币 wasmtypes.MinWasmFee
+		if realFee < wasmFee {
+			realFee = wasmFee
+		}
+	}
 	return realFee, nil
 }
 
