@@ -135,11 +135,11 @@ const (
 	EventGetSeqByHash            = 127
 	EventLocalPrefixCount        = 128
 	//EventWalletCreateTx          = 129
-	EventStoreList               = 130
-	EventStoreListReply          = 131
-	EventListBlockSeqCB          = 132
-	EventGetSeqCBLastNum         = 133
-	EventGetBlockBySeq           = 134
+	EventStoreList       = 130
+	EventStoreListReply  = 131
+	EventListBlockSeqCB  = 132
+	EventGetSeqCBLastNum = 133
+	EventGetBlockBySeq   = 134
 
 	EventLocalBegin    = 135
 	EventLocalCommit   = 136
