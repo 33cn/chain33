@@ -443,6 +443,37 @@ chain33_testSeed() {
     chain33_GetSeed
 }
 
+chain33_GetWalletStatus() {
+    req='{"method":"Chain33.GetWalletStatus", "params":[{}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| [has("isWalletLock", "isAutoMining", "isHasSeed", "isTicketLock"), true] | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_GetBalance() {
+    req='{"method":"Chain33.GetBalance", "params":[{"addresses" : ["14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"], "execer" : "coins"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result[0] | [has("balance", "frozen"), true] | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_GetAllExecBalance() {
+    set -x
+    req='{"method":"Chain33.GetAllExecBalance", "params":[{"addr" : "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| [has("addr", "execAccount"), true] | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    ok=$(jq '(.result.execAccount |  [map(has("execer", "account")), true] | flatten | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    ok=$(jq '(.result.execAccount[].account |  [.] | [map(has("balance", "frozen")), true] | flatten | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
 
 run_testcases() {
     #    set -x
@@ -492,6 +523,9 @@ run_testcases() {
 
     chain33_GetBlockHash
     chain33_testSeed
+    chain33_GetWalletStatus
+    chain33_GetBalance
+    chain33_GetAllExecBalance
 
     #这两个测试放在最后
     chain33_SetPasswd "$1"
