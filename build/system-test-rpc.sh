@@ -405,14 +405,12 @@ chain33_CreateRawTransaction() {
     local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
     local exec="coins"
     local amount=10000000
-    local fee=1000000
-
-    tx=$(curl -ksd '{"method":"Chain33.CreateRawTransaction","params":[{"to":"'$to'","amount":'$amount',"fee":'$fee'}]}' ${MAIN_HTTP} | jq -r ".result")
+    tx=$(curl -ksd '{"method":"Chain33.CreateRawTransaction","params":[{"to":"'$to'","amount":'$amount'}]}' ${MAIN_HTTP} | jq -r ".result")
 
  	echo "#CreateRawTransaction:tx: $tx"
 
     data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
-    ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].payload.transfer.amount == '$amount') and (.result.txs[0].fee == '$fee')' <<<"$data")
+    ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].payload.transfer.amount == '$amount')' <<<"$data")
 	echo "#CreateRawTransaction:data: $data"
     [ "$ok" == true ]
     rst=$?
@@ -427,7 +425,7 @@ chain33_CreateTransaction() {
     tx=$(curl -ksd '{"method":"Chain33.CreateTransaction","params":[{"execer":"coins","actionName":"Transfer","payload":{"to":"'$to'", "amount":'$amount'}}]}' ${MAIN_HTTP} | jq -r ".result")
 
     data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
-    ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].payload.transfer.amount == '$amount')' <<<"$data")
+    ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].payload.transfer.to == "'$to'") and (.result.txs[0].payload.transfer.amount == '$amount')' <<<"$data")
 
     [ "$ok" == true ]
     rst=$?
