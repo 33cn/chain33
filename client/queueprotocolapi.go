@@ -94,8 +94,6 @@ type QueueProtocolAPI interface {
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
-	// types.EventCreateTransaction 由服务器协助创建一个交易
-	WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error)
 	// types.EventGetBlocks
 	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
 	// types.EventQueryTx
