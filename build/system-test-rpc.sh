@@ -515,15 +515,49 @@ chain33_CreateNoBalanceTransaction() {
 }
 
 chain33_GetBlockHash() {
-    set -x
     req='{"method":"Chain33.GetBlockHash", "params":[{"height":1}]}'
     resp=$(curl -ksd "$req" "${MAIN_HTTP}")
     #    echo "#response: $resp"
     ok=$(jq '(.error|not) and (.result| has("hash"))' <<<"$resp")
     [ "$ok" == true ]
     echo_rst "$FUNCNAME" "$?"
-    set +x
 }
+
+chain33_GenSeed() {
+    req='{"method":"Chain33.GenSeed", "params":[{"lang":0}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("seed"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+    seed=$(jq '(.result.seed)' <<<"$resp")
+}
+
+chain33_SaveSeed() {
+    req='{"method":"Chain33.SaveSeed", "params":[{"seed":'"$seed"', "passwd": "1314fuzamei"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("isOK"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_GetSeed() {
+    req='{"method":"Chain33.GetSeed", "params":[{"passwd": "1314fuzamei"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("seed"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_testSeed() {
+    seed=""
+    chain33_GenSeed
+    chain33_SaveSeed
+    chain33_GetSeed
+}
+
 
 run_testcases() {
     #    set -x
@@ -581,6 +615,7 @@ run_testcases() {
     chain33_CreateNoBalanceTransaction
 
     chain33_GetBlockHash
+    chain33_testSeed
 
     #这两个测试放在最后
     chain33_SetPasswd "$1"
