@@ -409,9 +409,11 @@ chain33_CreateRawTransaction() {
 
     tx=$(curl -ksd '{"method":"Chain33.CreateRawTransaction","params":[{"to":"'$to'","amount":'$amount',"fee":'$fee'}]}' ${MAIN_HTTP} | jq -r ".result")
 
-    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP})
-    ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].payload.transfer.amount == '$amount') and (.result.txs[0].fee == '$fee')' <<<"$data")
+ 	echo "#CreateRawTransaction:tx: $tx"
 
+    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
+    ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].payload.transfer.amount == '$amount') and (.result.txs[0].fee == '$fee')' <<<"$data")
+	echo "#CreateRawTransaction:data: $data"
     [ "$ok" == true ]
     rst=$?
     echo_rst "$FUNCNAME" "$rst"
@@ -424,7 +426,7 @@ chain33_CreateTransaction() {
 
     tx=$(curl -ksd '{"method":"Chain33.CreateTransaction","params":[{"execer":"coins","actionName":"Transfer","payload":{"to":"'$to'", "amount":'$amount'}}]}' ${MAIN_HTTP} | jq -r ".result")
 
-    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP})
+    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].payload.transfer.amount == '$amount')' <<<"$data")
 
     [ "$ok" == true ]
@@ -434,10 +436,12 @@ chain33_CreateTransaction() {
 
 chain33_ReWriteRawTx() {
     local fee=1000000
+    local exec="coins"
+    local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
     local tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
     tx=$(curl -ksd '{"method":"Chain33.ReWriteRawTx","params":[{"expire":"120s","fee":'$fee',"tx":"'$tx1'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
-    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP})
+    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].fee == '$fee')' <<<"$data")
 
     [ "$ok" == true ]
@@ -449,14 +453,13 @@ chain33_CreateRawTxGroup() {
     local to="1DNaSDRG9RD19s59meAoeN4a2F6RH97fSo"
     local exec="user.write"
     local groupCount=2
-    local header="0xbb25bacc2df3dfe322f1aee656ae468ae8cb61dabeac2852703f45c00decda22"
 
     fee=1000000
     tx1="0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720a08d0630a0b7b1b1dda2f4c5743a2231444e615344524739524431397335396d65416f654e34613246365248393766536f"
     tx2="0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720a08d0630c5838f94e2f49acb4b3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f"
     tx=$(curl -ksd '{"method":"Chain33.CreateRawTxGroup","params":[{"txs":["'$tx1'","'$tx2'"]}]}' ${MAIN_HTTP} | jq -r ".result")
 
-    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP})
+    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].groupCount == '$groupCount') and (.result.txs[1].execer == "'$exec'") and (.result.txs[1].to == "'$to'") and (.result.txs[1].groupCount == '$groupCount')' <<<"$data")
 
     [ "$ok" == true ]
@@ -474,7 +477,7 @@ chain33_SignRawTx() {
     tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0628e1ddcae60530f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
     tx=$(curl -ksd '{"method":"Chain33.SignRawTx","params":[{"expire":"120s","fee":'$fee',"privkey":"'$privkey'","txHex":"'$tx1'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
-    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP})
+    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].fee == '$fee') and (.result.txs[0].from == "'$from'")' <<<"$data")
 
     [ "$ok" == true ]
@@ -493,7 +496,7 @@ chain33_SendTransaction() {
     tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0628e1ddcae60530f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
     tx=$(curl -ksd '{"method":"Chain33.SignRawTx","params":[{"expire":"120s","fee":'$fee',"privkey":"'$privkey'","txHex":"'$tx1'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
-    data=$(curl -ksd '{"method":"Chain33.SendTransaction","params":[{"data":"'$tx'"}]}' ${MAIN_HTTP})
+    data=$(curl -ksd '{"method":"Chain33.SendTransaction","params":[{"data":"'"$tx"'"}]}' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result != null)' <<<"$data")
 
     [ "$ok" == true ]
@@ -507,7 +510,7 @@ chain33_CreateNoBalanceTransaction() {
 
     tx=$(curl -ksd '{"method":"Chain33.CreateNoBalanceTransaction","params":[{"txHex":"'$txHex'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
-    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP})
+    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.txs[0].execer == "none") and (.result.txs[0].groupCount == 2) and (.result.txs[1].execer == "coins") and (.result.txs[1].groupCount == 2) and (.result.txs[1].to == "'$to'")' <<<"$data")
 
     [ "$ok" == true ]
