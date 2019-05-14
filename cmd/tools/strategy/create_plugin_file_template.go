@@ -224,6 +224,7 @@ ForkMultiSignAddress=1298600
 ForkTxHeight= -1
 ForkTxGroupPara= -1
 ForkChainParamV2= -1
+ForkBase58AddressCheck=1800000
 [fork.sub.coins]
 Enable=0
 [fork.sub.ticket]

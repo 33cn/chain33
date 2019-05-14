@@ -5,6 +5,7 @@
 package wallet
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/wallet/bipwallet"
 	wcom "github.com/33cn/chain33/wallet/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -188,6 +190,8 @@ func TestWallet(t *testing.T) {
 
 	testWallet(t, wallet)
 	testSendTx(t, wallet)
+	testCreateNewAccountByIndex(t, wallet)
+
 }
 
 //ProcWalletLock
@@ -807,7 +811,7 @@ func testSendTx(t *testing.T, wallet *Wallet) {
 	wallet.WaitTxs([][]byte{hash})
 	hash, err = wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
 	assert.NoError(t, err)
-	t.Log(string(hash))
+	t.Log(common.ToHex(hash))
 
 	err = wallet.sendTransactionWait(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
 	assert.NoError(t, err)
@@ -815,4 +819,93 @@ func testSendTx(t *testing.T, wallet *Wallet) {
 	_, err = wallet.getMinerColdAddr(addr)
 	assert.Equal(t, types.ErrActionNotSupport, err)
 
+}
+
+func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
+	println("testCreateNewAccountByIndex begin")
+
+	//首先创建一个airdropaddr标签的账户
+	reqNewAccount := &types.ReqNewAccount{Label: "airdropaddr"}
+	msg1 := wallet.client.NewMessage("wallet", types.EventNewAccount, reqNewAccount)
+	wallet.client.Send(msg1, true)
+	respp, err := wallet.client.Wait(msg1)
+	require.NoError(t, err)
+	walletAcc := respp.GetData().(*types.WalletAccount)
+	addrtmp := walletAcc.GetAcc().Addr
+	if walletAcc.GetLabel() != "airdropaddr" {
+		t.Error("testCreateNewAccountByIndex", "walletAcc.GetLabel()", walletAcc.GetLabel(), "Label", "airdropaddr")
+	}
+
+	//index参数的校验。目前只支持10000000
+	reqIndex := &types.Int32{Data: 0}
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	//创建一个空投地址
+	reqIndex = &types.Int32{Data: 100000000}
+	resp1, err := wallet.GetAPI().ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+
+	require.NoError(t, err)
+	pubkey := resp1.(*types.ReplyString)
+
+	//通过pubkey换算成addr然后获取账户信息
+	privkeybyte, err := common.FromHex(pubkey.Data)
+	require.NoError(t, err)
+	pub, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	require.NoError(t, err)
+
+	addr, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub)
+	require.NoError(t, err)
+	if addr != "" {
+		//测试ProcGetAccountList函数
+		msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
+		wallet.client.Send(msgGetAccList, true)
+		resp, err := wallet.client.Wait(msgGetAccList)
+		assert.Nil(t, err)
+		accountlist := resp.GetData().(*types.WalletAccounts)
+		for _, acc := range accountlist.Wallets {
+			if addr == acc.Acc.Addr && addr != addrtmp {
+				if acc.GetLabel() != ("airdropaddr" + fmt.Sprintf("%d", 1)) {
+					t.Error("testCreateNewAccountByIndex", "addr", addr, "acc.GetLabel()", acc.GetLabel())
+				}
+			}
+		}
+	}
+
+	//已经存在，和上一次获取的地址是一致的
+	reqIndex = &types.Int32{Data: 100000000}
+	resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+
+	require.NoError(t, err)
+	pubkey = resp.(*types.ReplyString)
+
+	//通过pubkey换算成addr然后获取账户信息
+	privkeybyte, err = common.FromHex(pubkey.Data)
+	require.NoError(t, err)
+	pub2, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	require.NoError(t, err)
+	addr2, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub2)
+	require.NoError(t, err)
+	if addr != addr2 {
+		t.Error("TestProcCreateNewAccount", "addr", addr, "addr2", addr2)
+	}
+
+	privstr := "0x78a8c993abf85d2a452233033c19fac6b3bd4fe2c805615b337ef75dacd86ac9"
+	pubstr := "0277786ddef164b594f7db40d9a563f1ef1733cf34f1592f4c3bf1b344bd8f059b"
+	addrstr := "19QtNuUS9UN4hQPLrnYr3UhJsQYy4z4TMT"
+	privkeybyte, err = common.FromHex(privstr)
+	require.NoError(t, err)
+	pub3, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	require.NoError(t, err)
+	pubtmp := hex.EncodeToString(pub3)
+	if pubtmp != pubstr {
+		t.Error("TestProcCreateNewAccount", "pubtmp", pubtmp, "pubstr", pubstr)
+	}
+	addr3, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub3)
+	require.NoError(t, err)
+	if addr3 != addrstr {
+		t.Error("TestProcCreateNewAccount", "addr3", addr3, "addrstr", addrstr)
+	}
+	println("TestProcCreateNewAccount end")
+	println("--------------------------")
 }

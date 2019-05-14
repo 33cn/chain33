@@ -115,6 +115,11 @@ func (client *Client) CreateBlock() {
 		issleep = false
 		//check dup
 		txs = client.CheckTxDup(txs)
+		//没有交易时不出块
+		if len(txs) == 0 {
+			issleep = true
+			continue
+		}
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1

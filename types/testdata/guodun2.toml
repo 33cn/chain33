@@ -1,13 +1,7 @@
-Title="testtilte"
+Title="user.p.guodun2."
 TestNet=false
 FixTime=false
-
-[mver]
-hello="world"
-nofork="nofork"
-
-[mver.ForkMinerTime]
-hello="forkworld"
+EnableParaFork=false
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -45,6 +39,7 @@ isRecordBlockSequence=false
 enableTxQuickIndex=false
 
 [p2p]
+port=13802
 seeds=[]
 enable=true
 isSeed=false
@@ -64,29 +59,21 @@ grpcBindAddr="localhost:8802"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
+enableTLS=false
+certFile="cert.pem"
+keyFile="key.pem"
 
 [mempool]
 poolCacheSize=102400
 minTxFee=100000
 maxTxNumPerAccount=100
+maxTxFee=1000000000
 
 [consensus]
 name="ticket"
 minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-
-[mver.consensus]
-name2="ticket-bityuan"
-
-[mver.consensus.ForkMinerTime]
-name2="ticket-bityuanv5"
-
-[mver.consensus.ForkChainParamV1]
-name2="ticket-bityuanv1"
-
-[mver.consensus.ForkChainParamV2]
-name2="ticket-bityuanv2"
 
 [consensus.sub.ticket]
 genesisBlockTime=1526486816
@@ -160,49 +147,11 @@ minerwhitelist=["*"]
 [exec]
 isFree=false
 minExecFee=100000
+maxExecFee=1000000000
 enableStat=false
 enableMVCC=false
 
 [exec.sub.token]
 saveTokenTxList=false
 
-[mver.exec.sub.coins]
-name2="ticket-bityuan"
 
-[mver.exec.sub.coins.ForkMinerTime]
-name2="ticket-bityuanv5"
-
-[mver.exec.sub.coins.Enable]
-name2="ticket-bityuanv5-enable"
-
-#系统中所有的fork,默认用chain33的测试网络的
-#但是我们可以替换
-[fork.system]
-ForkChainParamV1= 10
-ForkChainParamV2= 10
-ForkStateDBSet=-1
-ForkCheckTxDup=0
-ForkBlockHash= 1
-ForkMinerTime= 10
-ForkTransferExec= 100000
-ForkExecKey= 200000
-ForkTxGroup= 200000
-ForkResetTx0= 200000
-ForkWithdraw= 200000
-ForkExecRollback= 450000
-ForkTxHeight= -1
-ForkTxGroupPara= -1
-ForkCheckBlockTime=1200000
-ForkMultiSignAddress=1298600
-ForkBlockCheck=1
-ForkLocalDBAccess=0
-ForkBase58AddressCheck=1800000
-[fork.sub.coins]
-Enable=0
-
-[fork.sub.manage]
-Enable=0
-ForkManageExec=100000
-
-[fork.sub.store-kvmvccmavl]
-ForkKvmvccmavl=1

@@ -6,23 +6,24 @@ package types
 
 // Config 配置信息
 type Config struct {
-	Title      string       `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
-	Version    string       `protobuf:"bytes,1,opt,name=version" json:"version,omitempty"`
-	Log        *Log         `protobuf:"bytes,2,opt,name=log" json:"log,omitempty"`
-	Store      *Store       `protobuf:"bytes,3,opt,name=store" json:"store,omitempty"`
-	Consensus  *Consensus   `protobuf:"bytes,5,opt,name=consensus" json:"consensus,omitempty"`
-	Mempool    *Mempool     `protobuf:"bytes,6,opt,name=mempool" json:"memPool,omitempty"`
-	BlockChain *BlockChain  `protobuf:"bytes,7,opt,name=blockChain" json:"blockChain,omitempty"`
-	Wallet     *Wallet      `protobuf:"bytes,8,opt,name=wallet" json:"wallet,omitempty"`
-	P2P        *P2P         `protobuf:"bytes,9,opt,name=p2p" json:"p2p,omitempty"`
-	RPC        *RPC         `protobuf:"bytes,10,opt,name=rpc" json:"rpc,omitempty"`
-	Exec       *Exec        `protobuf:"bytes,11,opt,name=exec" json:"exec,omitempty"`
-	TestNet    bool         `protobuf:"varint,12,opt,name=testNet" json:"testNet,omitempty"`
-	FixTime    bool         `protobuf:"varint,13,opt,name=fixTime" json:"fixTime,omitempty"`
-	Pprof      *Pprof       `protobuf:"bytes,14,opt,name=pprof" json:"pprof,omitempty"`
-	Fork       *ForkList    `protobuf:"bytes,15,opt,name=fork" json:"fork,omitempty"`
-	Health     *HealthCheck `protobuf:"bytes,16,opt,name=health" json:"health,omitempty"`
-	CoinSymbol string       `protobuf:"bytes,16,opt,name=coinSymbol" json:"coinSymbol,omitempty"`
+	Title          string       `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Version        string       `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	Log            *Log         `protobuf:"bytes,3,opt,name=log" json:"log,omitempty"`
+	Store          *Store       `protobuf:"bytes,4,opt,name=store" json:"store,omitempty"`
+	Consensus      *Consensus   `protobuf:"bytes,5,opt,name=consensus" json:"consensus,omitempty"`
+	Mempool        *Mempool     `protobuf:"bytes,6,opt,name=mempool" json:"memPool,omitempty"`
+	BlockChain     *BlockChain  `protobuf:"bytes,7,opt,name=blockChain" json:"blockChain,omitempty"`
+	Wallet         *Wallet      `protobuf:"bytes,8,opt,name=wallet" json:"wallet,omitempty"`
+	P2P            *P2P         `protobuf:"bytes,9,opt,name=p2p" json:"p2p,omitempty"`
+	RPC            *RPC         `protobuf:"bytes,10,opt,name=rpc" json:"rpc,omitempty"`
+	Exec           *Exec        `protobuf:"bytes,11,opt,name=exec" json:"exec,omitempty"`
+	TestNet        bool         `protobuf:"varint,12,opt,name=testNet" json:"testNet,omitempty"`
+	FixTime        bool         `protobuf:"varint,13,opt,name=fixTime" json:"fixTime,omitempty"`
+	Pprof          *Pprof       `protobuf:"bytes,14,opt,name=pprof" json:"pprof,omitempty"`
+	Fork           *ForkList    `protobuf:"bytes,15,opt,name=fork" json:"fork,omitempty"`
+	Health         *HealthCheck `protobuf:"bytes,16,opt,name=health" json:"health,omitempty"`
+	CoinSymbol     string       `protobuf:"bytes,17,opt,name=coinSymbol" json:"coinSymbol,omitempty"`
+	EnableParaFork bool         `protobuf:"bytes,18,opt,name=enableParaFork" json:"enableParaFork,omitempty"`
 }
 
 // ForkList fork列表配置

@@ -24,6 +24,7 @@ func TestConfigFlat(t *testing.T) {
 }
 
 func TestConfigMverInit(t *testing.T) {
+	RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", MaxHeight)
 	cfg, _ := InitCfg("testdata/local.mvertest.toml")
 	Init(cfg.Title, cfg)
 	assert.Equal(t, MGStr("mver.consensus.name2", 0), "ticket-bityuan")
@@ -39,6 +40,7 @@ func TestConfigMverInit(t *testing.T) {
 	assert.Equal(t, MGStr("mver.exec.sub.coins.name2", 9), "ticket-bityuanv5-enable")
 	assert.Equal(t, MGStr("mver.exec.sub.coins.name2", 10), "ticket-bityuanv5")
 	assert.Equal(t, MGStr("mver.exec.sub.coins.name2", 11), "ticket-bityuanv5")
+	assert.Equal(t, int64(1), GetDappFork("store-kvmvccmavl", "ForkKvmvccmavl"))
 }
 
 var chainBaseParam *ChainParam
@@ -101,8 +103,4 @@ func TestInitChainParam(t *testing.T) {
 		"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
 		"1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK",
 	})
-	cfg, _ = InitCfg("../cmd/chain33/bityuan.toml")
-	Init(cfg.Title, cfg)
-	assert.Equal(t, GetFundAddr(), "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP")
-
 }
