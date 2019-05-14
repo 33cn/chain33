@@ -480,7 +480,7 @@ chain33_SignRawTx() {
     [ "$ok" == true ]
     rst=$?
     echo_rst "$FUNCNAME" "$rst"
-   
+
 }
 
 chain33_SendTransaction() {
@@ -495,6 +495,20 @@ chain33_SendTransaction() {
 
     data=$(curl -ksd '{"method":"Chain33.SendTransaction","params":[{"data":"'$tx'"}]}' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result != null)' <<<"$data")
+
+    [ "$ok" == true ]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+chain33_CreateNoBalanceTransaction() {
+	local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
+	local txHex="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630a1938af2e88e97fb0d3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
+
+    tx=$(curl -ksd '{"method":"Chain33.CreateNoBalanceTransaction","params":[{"txHex":"'$txHex'"}]}' ${MAIN_HTTP} | jq -r ".result")
+
+    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP})
+    ok=$(jq '(.error|not) and (.result.txs[0].execer == "none") and (.result.txs[0].groupCount == 2) and (.result.txs[1].execer == "coins") and (.result.txs[1].groupCount == 2) and (.result.txs[1].to == "'$to'")' <<<"$data")
 
     [ "$ok" == true ]
     rst=$?
@@ -553,6 +567,7 @@ run_testcases() {
 	chain33_CreateRawTxGroup
 	chain33_SignRawTx
 	chain33_SendTransaction
+	chain33_CreateNoBalanceTransaction
     #这两个测试放在最后
     chain33_SetPasswd "$1"
     chain33_MergeBalance "$1"
