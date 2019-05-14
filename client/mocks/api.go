@@ -1229,29 +1229,6 @@ func (_m *QueueProtocolAPI) Version() (*types.VersionInfo, error) {
 	return r0, r1
 }
 
-// WalletCreateTx provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Transaction
-	if rf, ok := ret.Get(0).(func(*types.ReqCreateTransaction) *types.Transaction); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Transaction)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqCreateTransaction) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // WalletGetAccountList provides a mock function with given fields: req
 func (_m *QueueProtocolAPI) WalletGetAccountList(req *types.ReqAccountList) (*types.WalletAccounts, error) {
 	ret := _m.Called(req)

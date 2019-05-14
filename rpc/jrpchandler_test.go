@@ -1343,15 +1343,6 @@ func TestChain33_DecodeRawTransaction(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestChain33_WalletCreateTx(t *testing.T) {
-	api := new(mocks.QueueProtocolAPI)
-	client := newTestChain33(api)
-	var testResult interface{}
-	api.On("WalletCreateTx", mock.Anything).Return(&types.Transaction{}, nil)
-	err := client.WalletCreateTx(types.ReqCreateTransaction{}, &testResult)
-	assert.NoError(t, err)
-}
-
 func TestChain33_CloseQueue(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)

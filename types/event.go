@@ -134,7 +134,7 @@ const (
 	EventAddParaChainBlockDetail = 126
 	EventGetSeqByHash            = 127
 	EventLocalPrefixCount        = 128
-	EventWalletCreateTx          = 129
+	//EventWalletCreateTx          = 129
 	EventStoreList               = 130
 	EventStoreListReply          = 131
 	EventListBlockSeqCB          = 132
@@ -284,7 +284,7 @@ var eventName = map[int]string{
 	127: "EventGetSeqByHash",
 	128: "EventLocalPrefixCount",
 	//todo: 这个可能后面会删除
-	EventWalletCreateTx: "EventWalletCreateTx",
+	//EventWalletCreateTx: "EventWalletCreateTx",
 	EventStoreList:      "EventStoreList",
 	EventStoreListReply: "EventStoreListReply",
 	// Token
