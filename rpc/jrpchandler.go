@@ -728,7 +728,13 @@ func (c *Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply
+	status := rpctypes.WalletStatus{
+		IsWalletLock: reply.IsWalletLock,
+		IsAutoMining: reply.IsAutoMining,
+		IsHasSeed:    reply.IsHasSeed,
+		IsTicketLock: reply.IsTicketLock,
+	}
+	*result = &status
 	return nil
 }
 
