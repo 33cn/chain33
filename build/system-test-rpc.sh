@@ -577,7 +577,6 @@ chain33_GetBalance() {
 }
 
 chain33_GetAllExecBalance() {
-    set -x
     req='{"method":"Chain33.GetAllExecBalance", "params":[{"addr" : "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"}]}'
     resp=$(curl -ksd "$req" "${MAIN_HTTP}")
     #    echo "#response: $resp"
