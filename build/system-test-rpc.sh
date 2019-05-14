@@ -407,8 +407,8 @@ chain33_CreateRawTransaction() {
     local amount=10000000
     tx=$(curl -ksd '{"method":"Chain33.CreateRawTransaction","params":[{"to":"'$to'","amount":'$amount'}]}' ${MAIN_HTTP} | jq -r ".result")
 
-    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
-    ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and ((.result.txs[0].payload.transfer.amount) == '$amount')' <<<"$data")
+    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP} | jq -r ".result.txs[0]")
+    ok=$(jq '(.execer == "'$exec'") and (.to == "'$to'") and ((.payload.transfer.amount) == '$amount')' <<<"$data")
     [ "$ok" == true ]
     rst=$?
     echo_rst "$FUNCNAME" "$rst"
@@ -421,8 +421,8 @@ chain33_CreateTransaction() {
 
     tx=$(curl -ksd '{"method":"Chain33.CreateTransaction","params":[{"execer":"coins","actionName":"Transfer","payload":{"to":"'$to'", "amount":'$amount'}}]}' ${MAIN_HTTP} | jq -r ".result")
 
-    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
-    ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and ((.result.txs[0].payload.transfer.to) == "'$to'") and ((.result.txs[0].payload.transfer.amount) == '$amount')' <<<"$data")
+    data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP} | jq -r ".result.txs[0]")
+    ok=$(jq '(.execer == "'$exec'") and ((.payload.transfer.to) == "'$to'") and ((.payload.transfer.amount) == '$amount')' <<<"$data")
 
     [ "$ok" == true ]
     rst=$?
