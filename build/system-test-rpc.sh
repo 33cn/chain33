@@ -409,11 +409,11 @@ chain33_CreateRawTransaction() {
 
     tx=$(curl -ksd '{"method":"Chain33.CreateRawTransaction","params":[{"to":"'$to'","amount":'$amount',"fee":'$fee'}]}' ${MAIN_HTTP} | jq -r ".result")
 
- 	echo "#CreateRawTransaction:tx: $tx"
+    echo "#CreateRawTransaction:tx: $tx"
 
     data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].to == "'$to'") and (.result.txs[0].payload.transfer.amount == '$amount') and (.result.txs[0].fee == '$fee')' <<<"$data")
-	echo "#CreateRawTransaction:data: $data"
+    echo "#CreateRawTransaction:data: $data"
     [ "$ok" == true ]
     rst=$?
     echo_rst "$FUNCNAME" "$rst"
