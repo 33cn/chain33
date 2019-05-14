@@ -402,10 +402,10 @@ chain33_NewAccount() {
 # hyb
 
 chain33_CreateRawTransaction() {
-	local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
-	local exec="coins"
-	local amount=10000000
-	local fee=1000000
+    local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
+    local exec="coins"
+    local amount=10000000
+    local fee=1000000
 
     tx=$(curl -ksd '{"method":"Chain33.CreateRawTransaction","params":[{"to":"'$to'","amount":'$amount',"fee":'$fee'}]}' ${MAIN_HTTP} | jq -r ".result")
 
@@ -418,9 +418,9 @@ chain33_CreateRawTransaction() {
 }
 
 chain33_CreateTransaction() {
-	local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
-	local exec="coins"
-	local amount=10000000
+    local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
+    local exec="coins"
+    local amount=10000000
 
     tx=$(curl -ksd '{"method":"Chain33.CreateTransaction","params":[{"execer":"coins","actionName":"Transfer","payload":{"to":"'$to'", "amount":'$amount'}}]}' ${MAIN_HTTP} | jq -r ".result")
 
@@ -433,8 +433,8 @@ chain33_CreateTransaction() {
 }
 
 chain33_ReWriteRawTx() {
-	local fee=1000000
-	local tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
+    local fee=1000000
+    local tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
     tx=$(curl -ksd '{"method":"Chain33.ReWriteRawTx","params":[{"expire":"120s","fee":'$fee',"tx":"'$tx1'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
     data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP})
@@ -446,13 +446,13 @@ chain33_ReWriteRawTx() {
 }
 
 chain33_CreateRawTxGroup() {
-	local to="1DNaSDRG9RD19s59meAoeN4a2F6RH97fSo"
-	local exec="user.write"
-	local groupCount=2
-	local header="0xbb25bacc2df3dfe322f1aee656ae468ae8cb61dabeac2852703f45c00decda22"
-	
-	fee=1000000
-	tx1="0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720a08d0630a0b7b1b1dda2f4c5743a2231444e615344524739524431397335396d65416f654e34613246365248393766536f"
+    local to="1DNaSDRG9RD19s59meAoeN4a2F6RH97fSo"
+    local exec="user.write"
+    local groupCount=2
+    local header="0xbb25bacc2df3dfe322f1aee656ae468ae8cb61dabeac2852703f45c00decda22"
+
+    fee=1000000
+    tx1="0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720a08d0630a0b7b1b1dda2f4c5743a2231444e615344524739524431397335396d65416f654e34613246365248393766536f"
     tx2="0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720a08d0630c5838f94e2f49acb4b3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f"
     tx=$(curl -ksd '{"method":"Chain33.CreateRawTxGroup","params":[{"txs":["'$tx1'","'$tx2'"]}]}' ${MAIN_HTTP} | jq -r ".result")
 
@@ -465,13 +465,13 @@ chain33_CreateRawTxGroup() {
 }
 
 chain33_SignRawTx() {
-	local fee=1000000
-	local exec="coins"
-	local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
-	local from="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	local privkey="CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-	
-	tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0628e1ddcae60530f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
+    local fee=1000000
+    local exec="coins"
+    local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
+    local from="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+    local privkey="CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+
+    tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0628e1ddcae60530f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
     tx=$(curl -ksd '{"method":"Chain33.SignRawTx","params":[{"expire":"120s","fee":'$fee',"privkey":"'$privkey'","txHex":"'$tx1'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
     data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP})
@@ -484,13 +484,13 @@ chain33_SignRawTx() {
 }
 
 chain33_SendTransaction() {
-	local fee=1000000
-	local exec="coins"
-	local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
-	local from="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-	local privkey="CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-	
-	tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0628e1ddcae60530f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
+    local fee=1000000
+    local exec="coins"
+    local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
+    local from="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+    local privkey="CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+
+    tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0628e1ddcae60530f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
     tx=$(curl -ksd '{"method":"Chain33.SignRawTx","params":[{"expire":"120s","fee":'$fee',"privkey":"'$privkey'","txHex":"'$tx1'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
     data=$(curl -ksd '{"method":"Chain33.SendTransaction","params":[{"data":"'$tx'"}]}' ${MAIN_HTTP})
@@ -502,8 +502,8 @@ chain33_SendTransaction() {
 }
 
 chain33_CreateNoBalanceTransaction() {
-	local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
-	local txHex="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630a1938af2e88e97fb0d3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
+    local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
+    local txHex="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630a1938af2e88e97fb0d3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
 
     tx=$(curl -ksd '{"method":"Chain33.CreateNoBalanceTransaction","params":[{"txHex":"'$txHex'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
@@ -561,13 +561,13 @@ run_testcases() {
     chain33_GetAccounts
     chain33_NewAccount
 
-	chain33_CreateRawTransaction
-	chain33_CreateTransaction
-	chain33_ReWriteRawTx
-	chain33_CreateRawTxGroup
-	chain33_SignRawTx
-	chain33_SendTransaction
-	chain33_CreateNoBalanceTransaction
+    chain33_CreateRawTransaction
+    chain33_CreateTransaction
+    chain33_ReWriteRawTx
+    chain33_CreateRawTxGroup
+    chain33_SignRawTx
+    chain33_SendTransaction
+    chain33_CreateNoBalanceTransaction
     #这两个测试放在最后
     chain33_SetPasswd "$1"
     chain33_MergeBalance "$1"
