@@ -1007,19 +1007,6 @@ func (q *QueueProtocol) GetSequenceByHash(param *types.ReqHash) (*types.Int64, e
 	return nil, types.ErrTypeAsset
 }
 
-// WalletCreateTx create transaction
-func (q *QueueProtocol) WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error) {
-	msg, err := q.query(walletKey, types.EventWalletCreateTx, param)
-	if err != nil {
-		log.Error("CreateTrasaction", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Transaction); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 // GetBlockByHashes get block detail list by hash list
 func (q *QueueProtocol) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
 	if param == nil {

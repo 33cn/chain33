@@ -988,17 +988,6 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-// WalletCreateTx wallet create tx
-func (c *Chain33) WalletCreateTx(in types.ReqCreateTransaction, result *interface{}) error {
-	reply, err := c.cli.WalletCreateTx(&in)
-	if err != nil {
-		return err
-	}
-	txHex := types.Encode(reply)
-	*result = hex.EncodeToString(txHex)
-	return nil
-}
-
 // CloseQueue close queue
 func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
 	go func() {
