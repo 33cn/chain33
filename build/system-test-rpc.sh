@@ -708,7 +708,7 @@ run_testcases() {
     chain33_SignRawTx
     chain33_SendTransaction
     chain33_CreateNoBalanceTransaction
-    
+
     #这两个测试放在最后
     chain33_SetPasswd "$1"
     chain33_MergeBalance "$1"
