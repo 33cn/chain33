@@ -792,11 +792,16 @@ func TestAddTxGroup(t *testing.T) {
 	defer q.Close()
 	defer mem.Close()
 	//copytx
-	ctx2 := *tx2
-	ctx3 := *tx3
-	ctx4 := *tx4
-	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&ctx2, &ctx3, &ctx4})
+	crouptx1 := types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr}
+	crouptx2 := types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr}
+	crouptx3 := types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: "notaddress"}
+	crouptx4 := types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&crouptx1, &crouptx2, &crouptx3, &crouptx4})
+	txGroup.SignN(0, types.SECP256K1, mainPriv)
+
 	tx := txGroup.Tx()
+
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx)
 	mem.client.Send(msg, true)
 	_, err := mem.client.Wait(msg)
