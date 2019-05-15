@@ -1073,8 +1073,7 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	// expected := &types.GetSeedByPw{}
-	api.On("GetWalletStatus").Return(nil, errors.New("error value"))
+	api.On("GetWalletStatus").Return(nil, errors.New("error value")).Once()
 
 	var testResult interface{}
 	actual := types.ReqNil{}
@@ -1082,6 +1081,25 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
+
+	expect := types.WalletStatus{
+		IsWalletLock: true,
+		IsAutoMining: true,
+		IsHasSeed:    false,
+		IsTicketLock: false,
+	}
+	api.On("GetWalletStatus").Return(&expect, nil).Once()
+	err = testChain33.GetWalletStatus(actual, &testResult)
+	t.Log(err)
+	assert.Nil(t, err)
+	stauts, ok := testResult.(*rpctypes.WalletStatus)
+	if !ok {
+		t.Error("GetWalletStatus type error")
+	}
+	assert.Equal(t, expect.IsWalletLock, stauts.IsWalletLock)
+	assert.Equal(t, expect.IsAutoMining, stauts.IsAutoMining)
+	assert.Equal(t, expect.IsHasSeed, stauts.IsHasSeed)
+	assert.Equal(t, expect.IsTicketLock, stauts.IsTicketLock)
 
 	mock.AssertExpectationsForObjects(t, api)
 }
