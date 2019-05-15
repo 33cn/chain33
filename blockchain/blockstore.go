@@ -437,10 +437,16 @@ func (bs *BlockStore) LoadBlockByHeight(height int64) (*types.BlockDetail, error
 
 //LoadBlockByHash 通过hash获取BlockDetail信息
 func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
+	block, _, err := bs.loadBlockByHash(hash)
+	return block, err
+}
+
+func (bs *BlockStore) loadBlockByHash(hash []byte) (*types.BlockDetail, int, error) {
 	var blockdetail types.BlockDetail
 	var blockheader types.Header
 	var blockbody types.BlockBody
 	var block types.Block
+	var blockSize int
 
 	//通过hash获取blockheader
 	header, err := bs.db.Get(calcHashToBlockHeaderKey(hash))
@@ -448,26 +454,30 @@ func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("LoadBlockByHash calcHashToBlockHeaderKey", "hash", common.ToHex(hash), "err", err)
 		}
-		return nil, types.ErrHashNotExist
+		return nil, blockSize, types.ErrHashNotExist
 	}
 	err = proto.Unmarshal(header, &blockheader)
 	if err != nil {
 		storeLog.Error("LoadBlockByHash", "err", err)
-		return nil, err
+		return nil, blockSize, err
 	}
+	blockSize += len(header)
+
 	//通过hash获取blockbody
 	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
 	if body == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("LoadBlockByHash calcHashToBlockBodyKey ", "err", err)
 		}
-		return nil, types.ErrHashNotExist
+		return nil, blockSize, types.ErrHashNotExist
 	}
 	err = proto.Unmarshal(body, &blockbody)
 	if err != nil {
 		storeLog.Error("LoadBlockByHash", "err", err)
-		return nil, err
+		return nil, blockSize, err
 	}
+	blockSize += len(body)
+
 	block.Version = blockheader.Version
 	block.ParentHash = blockheader.ParentHash
 	block.TxHash = blockheader.TxHash
@@ -485,7 +495,7 @@ func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
 
 	//storeLog.Info("LoadBlockByHash", "Height", block.Height, "Difficulty", blockdetail.Block.Difficulty)
 
-	return &blockdetail, nil
+	return &blockdetail, blockSize, nil
 }
 
 //SaveBlock 批量保存blocks信息到db数据库中,并返回最新的sequence值
@@ -989,13 +999,13 @@ func (bs *BlockStore) saveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 }
 
 //LoadBlockBySequence 通过seq高度获取BlockDetail信息
-func (bs *BlockStore) LoadBlockBySequence(Sequence int64) (*types.BlockDetail, error) {
+func (bs *BlockStore) LoadBlockBySequence(Sequence int64) (*types.BlockDetail, int, error) {
 	//首先通过Sequence序列号获取对应的blockhash和操作类型从db中
 	BlockSequence, err := bs.GetBlockSequence(Sequence)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return bs.LoadBlockByHash(BlockSequence.Hash)
+	return bs.loadBlockByHash(BlockSequence.Hash)
 }
 
 //GetBlockSequence 从db数据库中获取指定Sequence对应的block序列操作信息

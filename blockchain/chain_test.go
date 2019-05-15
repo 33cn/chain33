@@ -854,7 +854,7 @@ func testLoadBlockBySequence(t *testing.T, blockchain *blockchain.BlockChain) {
 
 	curheight := blockchain.GetBlockHeight()
 	lastseq, _ := blockchain.GetStore().LoadBlockLastSequence()
-	block, err := blockchain.GetStore().LoadBlockBySequence(lastseq)
+	block, _, err := blockchain.GetStore().LoadBlockBySequence(lastseq)
 	require.NoError(t, err)
 
 	if block.Block.Height != curheight {
