@@ -689,7 +689,6 @@ run_testcases() {
     chain33_GetAccounts
     chain33_NewAccount
 
-
     chain33_CreateRawTransaction
     chain33_CreateTransaction
     chain33_ReWriteRawTx
