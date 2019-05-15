@@ -1092,14 +1092,14 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 	err = testChain33.GetWalletStatus(actual, &testResult)
 	t.Log(err)
 	assert.Nil(t, err)
-	stauts, ok := testResult.(*rpctypes.WalletStatus)
+	status, ok := testResult.(*rpctypes.WalletStatus)
 	if !ok {
 		t.Error("GetWalletStatus type error")
 	}
-	assert.Equal(t, expect.IsWalletLock, stauts.IsWalletLock)
-	assert.Equal(t, expect.IsAutoMining, stauts.IsAutoMining)
-	assert.Equal(t, expect.IsHasSeed, stauts.IsHasSeed)
-	assert.Equal(t, expect.IsTicketLock, stauts.IsTicketLock)
+	assert.Equal(t, expect.IsWalletLock, status.IsWalletLock)
+	assert.Equal(t, expect.IsAutoMining, status.IsAutoMining)
+	assert.Equal(t, expect.IsHasSeed, status.IsHasSeed)
+	assert.Equal(t, expect.IsTicketLock, status.IsTicketLock)
 
 	mock.AssertExpectationsForObjects(t, api)
 }
