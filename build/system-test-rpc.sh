@@ -589,6 +589,60 @@ chain33_GetAllExecBalance() {
     echo_rst "$FUNCNAME" "$?"
 }
 
+chain33_ExecWallet() {
+    req='{"method":"Chain33.ExecWallet", "params":[{"funcName" : "NewAccountByIndex", "payload" : {"data" : 100000009}, "stateHash" : "", "execer" : "wallet" }]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result | has("data"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_Query() {
+    req='{"method":"Chain33.Query", "params":[{ "execer":"coins", "funcName": "GetTxsByAddr", "payload" : {"addr" : "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"}}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(. | has("result"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_Version() {
+    req='{"method":"Chain33.Version", "params":[{}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result)' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_GetTotalCoins() {
+    req='{"method":"Chain33.GetTotalCoins", "params":[{"symbol" : "bty", "stateHash":"", "startKey":"", "count":2, "execer":"coins"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("count"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_IsSync() {
+    req='{"method":"Chain33.IsSync", "params":[{}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (. | has("result"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_IsNtpClockSync() {
+    req='{"method":"Chain33.IsNtpClockSync", "params":[{}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (. | has("result"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
 run_testcases() {
     #    set -x
     set +e
@@ -649,6 +703,12 @@ run_testcases() {
     chain33_GetWalletStatus
     chain33_GetBalance
     chain33_GetAllExecBalance
+    chain33_ExecWallet
+    chain33_Query
+    chain33_Version
+    chain33_GetTotalCoins
+    chain33_IsSync
+    chain33_IsNtpClockSync
 
     #这两个测试放在最后
     chain33_SetPasswd "$1"
