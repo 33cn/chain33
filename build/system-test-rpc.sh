@@ -2,6 +2,7 @@
 # shellcheck disable=SC2128
 
 MAIN_HTTP=""
+IS_PARA=false
 CASE_ERR=""
 
 #color
@@ -13,6 +14,8 @@ NOC='\033[0m'
 echo_rst() {
     if [ "$2" -eq 0 ]; then
         echo -e "${GRE}$1 ok${NOC}"
+    elif [ "$2" -eq 2 ]; then
+        echo -e "${GRE}$1 not support${NOC}"
     else
         echo -e "${RED}$1 fail${NOC}"
         CASE_ERR="err"
@@ -106,14 +109,18 @@ chain33_SetLabl() {
 
 chain33_GetPeerInfo() {
 
-    req='"method":"Chain33.GetPeerInfo", "params":[{}]'
-    echo "#request: $req"
-    resp=$(curl -ksd "{$req}" "$1")
-    #    echo "#response: $resp"
-    ok=$(jq '(.error|not) and (.result.peers|length >= 1) and (.result.peers[0] |
-    [has("addr", "port", "name", "mempoolSize", "self", "header"), true] | unique | length == 1)' <<<"$resp")
-    [ "$ok" == true ]
-    echo_rst "$FUNCNAME" "$?"
+    if [ "$IS_PARA" == true ];then
+        echo_rst "$FUNCNAME" 2
+    else
+        req='"method":"Chain33.GetPeerInfo", "params":[{}]'
+        echo "#request: $req"
+        resp=$(curl -ksd "{$req}" "$1")
+        #    echo "#response: $resp"
+        ok=$(jq '(.error|not) and (.result.peers|length >= 1) and (.result.peers[0] |
+        [has("addr", "port", "name", "mempoolSize", "self", "header"), true] | unique | length == 1)' <<<"$resp")
+        [ "$ok" == true ]
+        echo_rst "$FUNCNAME" "$?"
+    fi
 }
 
 chain33_GetHeaders() {
@@ -215,11 +222,15 @@ chain33_QueryTotalFee() {
 }
 
 chain33_GetNetInfo() {
-    method="GetNetInfo"
-    addr=$(curl -ksd '{"method":"Chain33.'$method'","params":[]}' ${MAIN_HTTP} | jq -r ".result.externalAddr")
-    service=$(curl -ksd '{"method":"Chain33.GetNetInfo","params":[]}' ${MAIN_HTTP} | jq -r ".result.service")
-    [ "$addr" != "null" ] && [ "$service" == "true" ]
-    echo_rst "$FUNCNAME" "$?"
+    if [ "$IS_PARA" == true ];then
+        echo_rst "$FUNCNAME" 2
+    else
+        method="GetNetInfo"
+        addr=$(curl -ksd '{"method":"Chain33.'"$method"'","params":[]}' ${MAIN_HTTP} | jq -r ".result.externalAddr")
+        service=$(curl -ksd '{"method":"Chain33.GetNetInfo","params":[]}' ${MAIN_HTTP} | jq -r ".result.service")
+        [ "$addr" != "null" ] && [ "$service" == "true" ]
+        echo_rst "$FUNCNAME" "$?"
+    fi
 }
 
 chain33_GetFatalFailure() {
@@ -252,23 +263,30 @@ chain33_GetLastBlockSequence() {
 }
 
 chain33_GetBlockSequences() {
-    r1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[2].hash")
-    [ -n "$r1" ]
+    r1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq  ".result.blkseqInfos|length==3")
+    [ "$r1" == true ]
     echo_rst "$FUNCNAME" "$?"
 }
 
 chain33_GetBlockByHashes() {
-    hash0=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[0].hash")
-    hash1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[1].hash")
-    hash2=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[2].hash")
+    if [ "$IS_PARA" == true ];then
+        geneis="0x97162f9d4a888121fdba2fb1ab402596acdbcb602121bd12284adb739d85f225"
+        statehash=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$geneis"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.stateHash")
+        [ "$statehash" == "0x2863c8dbc7fe3146c8d4e7acf2b8bbe4666264d658356e299e240f462a382a51" ]
+        echo_rst "$FUNCNAME" "$?"
+    else
+        hash0=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[0].hash")
+        hash1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[1].hash")
+        hash2=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[2].hash")
 
-    # curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}'  ${MAIN_HTTP}
-    # shellcheck disable=SC2086
-    p1=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.parentHash")
-    # shellcheck disable=SC2086
-    p2=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[1].block.parentHash")
-    [ "$p1" == "$hash0" ] && [ "$p2" == "$hash1" ]
-    echo_rst "$FUNCNAME" "$?"
+        # curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'$hash1'","'$hash2'"]}]}'  ${MAIN_HTTP}
+        # shellcheck disable=SC2086
+        p1=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$hash1"'","'"$hash2"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.parentHash")
+        # shellcheck disable=SC2086
+        p2=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$hash1"'","'"$hash2"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[1].block.parentHash")
+        [ "$p1" == "$hash0" ] && [ "$p2" == "$hash1" ]
+        echo_rst "$FUNCNAME" "$?"
+    fi
 }
 
 chain33_ConvertExectoAddr() {
@@ -291,15 +309,23 @@ chain33_GetExecBalance() {
 }
 
 chain33_AddSeqCallBack() {
-    r1=$(curl -ksd '{"method":"Chain33.AddSeqCallBack","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} | jq -r ".result.isOK")
-    [ "$r1" == "true" ]
-    echo_rst "$FUNCNAME" "$?"
+    if [ "$IS_PARA" == true ];then
+        echo_rst "$FUNCNAME" 2
+    else
+        r1=$(curl -ksd '{"method":"Chain33.AddSeqCallBack","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} | jq -r ".result.isOK")
+        [ "$r1" == "true" ]
+        echo_rst "$FUNCNAME" "$?"
+    fi
 }
 
 chain33_ListSeqCallBack() {
-    r1=$(curl -ksd '{"method":"Chain33.ListSeqCallBack","params":[]}' ${MAIN_HTTP} | jq -r ".result.items[0].name")
-    [ "$r1" == "test" ]
-    echo_rst "$FUNCNAME" "$?"
+    if [ "$IS_PARA" == true ];then
+        echo_rst "$FUNCNAME" 2
+    else
+        r1=$(curl -ksd '{"method":"Chain33.ListSeqCallBack","params":[]}' ${MAIN_HTTP} | jq -r ".result.items[0].name")
+        [ "$r1" == "test" ]
+        echo_rst "$FUNCNAME" "$?"
+    fi
 }
 
 chain33_GetSeqCallBackLastNum() {
@@ -646,6 +672,8 @@ chain33_IsNtpClockSync() {
 run_testcases() {
     #    set -x
     set +e
+    IS_PARA=$(echo '"'"${1}"'"' | jq '.|contains("8901")')
+    echo "ipara=$IS_PARA"
 
     chain33_lock
     chain33_unlock
