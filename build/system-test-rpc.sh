@@ -109,7 +109,7 @@ chain33_SetLabl() {
 
 chain33_GetPeerInfo() {
 
-    if [ "$IS_PARA" == true ];then
+    if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
         req='"method":"Chain33.GetPeerInfo", "params":[{}]'
@@ -222,7 +222,7 @@ chain33_QueryTotalFee() {
 }
 
 chain33_GetNetInfo() {
-    if [ "$IS_PARA" == true ];then
+    if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
         method="GetNetInfo"
@@ -263,13 +263,13 @@ chain33_GetLastBlockSequence() {
 }
 
 chain33_GetBlockSequences() {
-    r1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq  ".result.blkseqInfos|length==3")
+    r1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq ".result.blkseqInfos|length==3")
     [ "$r1" == true ]
     echo_rst "$FUNCNAME" "$?"
 }
 
 chain33_GetBlockByHashes() {
-    if [ "$IS_PARA" == true ];then
+    if [ "$IS_PARA" == true ]; then
         geneis="0x97162f9d4a888121fdba2fb1ab402596acdbcb602121bd12284adb739d85f225"
         statehash=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$geneis"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.stateHash")
         [ "$statehash" == "0x2863c8dbc7fe3146c8d4e7acf2b8bbe4666264d658356e299e240f462a382a51" ]
@@ -309,7 +309,7 @@ chain33_GetExecBalance() {
 }
 
 chain33_AddSeqCallBack() {
-    if [ "$IS_PARA" == true ];then
+    if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
         r1=$(curl -ksd '{"method":"Chain33.AddSeqCallBack","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} | jq -r ".result.isOK")
@@ -319,7 +319,7 @@ chain33_AddSeqCallBack() {
 }
 
 chain33_ListSeqCallBack() {
-    if [ "$IS_PARA" == true ];then
+    if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
         r1=$(curl -ksd '{"method":"Chain33.ListSeqCallBack","params":[]}' ${MAIN_HTTP} | jq -r ".result.items[0].name")
