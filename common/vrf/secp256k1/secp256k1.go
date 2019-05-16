@@ -2,8 +2,22 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package p256 implements a verifiable random function using curve p256.
-package p256
+// Copyright 2016 Google Inc. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package secp256k1 implements a verifiable random function using curve secp256k1.
+package secp256k1
 
 import (
 	"bytes"
@@ -19,11 +33,11 @@ import (
 	"math/big"
 
 	vrfp "github.com/33cn/chain33/common/vrf"
+	"github.com/btcsuite/btcd/btcec"
 )
 
 var (
-	curve  = elliptic.P256()
-	params = curve.Params()
+	curve = btcec.S256()
 	// ErrInvalidVRF err
 	ErrInvalidVRF = errors.New("invalid VRF proof")
 )
@@ -52,7 +66,7 @@ func GenerateKey() (vrfp.PrivateKey, vrfp.PublicKey) {
 func H1(m []byte) (x, y *big.Int) {
 	h := sha512.New()
 	var i uint32
-	byteLen := (params.BitSize + 7) >> 3
+	byteLen := (curve.BitSize + 7) >> 3
 	for x == nil && i < 100 {
 		// TODO: Use a NIST specified DRBG.
 		h.Reset()
@@ -75,7 +89,7 @@ var one = big.NewInt(1)
 // H2 hashes to an integer [1,N-1]
 func H2(m []byte) *big.Int {
 	// NIST SP 800-90A § A.5.1: Simple discard method.
-	byteLen := (params.BitSize + 7) >> 3
+	byteLen := (curve.BitSize + 7) >> 3
 	h := sha512.New()
 	for i := uint32(0); ; i++ {
 		// TODO: Use a NIST specified DRBG.
@@ -88,7 +102,7 @@ func H2(m []byte) *big.Int {
 		}
 		b := h.Sum(nil)
 		k := new(big.Int).SetBytes(b[:byteLen])
-		if k.Cmp(new(big.Int).Sub(params.N, one)) == -1 {
+		if k.Cmp(new(big.Int).Sub(curve.N, one)) == -1 {
 			return k.Add(k, one)
 		}
 	}
@@ -108,15 +122,15 @@ func (k PrivateKey) Evaluate(m []byte) (index [32]byte, proof []byte) {
 	Hx, Hy := H1(m)
 
 	// VRF_k(m) = [k]H
-	sHx, sHy := params.ScalarMult(Hx, Hy, k.D.Bytes())
+	sHx, sHy := curve.ScalarMult(Hx, Hy, k.D.Bytes())
 	vrf := elliptic.Marshal(curve, sHx, sHy) // 65 bytes.
 
 	// G is the base point
 	// s = H2(G, H, [k]G, VRF, [r]G, [r]H)
-	rGx, rGy := params.ScalarBaseMult(r)
-	rHx, rHy := params.ScalarMult(Hx, Hy, r)
+	rGx, rGy := curve.ScalarBaseMult(r)
+	rHx, rHy := curve.ScalarMult(Hx, Hy, r)
 	var b bytes.Buffer
-	if _, err := b.Write(elliptic.Marshal(curve, params.Gx, params.Gy)); err != nil {
+	if _, err := b.Write(elliptic.Marshal(curve, curve.Gx, curve.Gy)); err != nil {
 		panic(err)
 	}
 	if _, err := b.Write(elliptic.Marshal(curve, Hx, Hy)); err != nil {
@@ -138,7 +152,7 @@ func (k PrivateKey) Evaluate(m []byte) (index [32]byte, proof []byte) {
 
 	// t = r−s*k mod N
 	t := new(big.Int).Sub(ri, new(big.Int).Mul(s, k.D))
-	t.Mod(t, params.N)
+	t.Mod(t, curve.N)
 
 	// Index = H(vrf)
 	index = sha256.Sum256(vrf)
@@ -184,22 +198,22 @@ func (pk *PublicKey) ProofToHash(m, proof []byte) (index [32]byte, err error) {
 	}
 
 	// [t]G + [s]([k]G) = [t+ks]G
-	tGx, tGy := params.ScalarBaseMult(t)
-	ksGx, ksGy := params.ScalarMult(pk.X, pk.Y, s)
-	tksGx, tksGy := params.Add(tGx, tGy, ksGx, ksGy)
+	tGx, tGy := curve.ScalarBaseMult(t)
+	ksGx, ksGy := curve.ScalarMult(pk.X, pk.Y, s)
+	tksGx, tksGy := curve.Add(tGx, tGy, ksGx, ksGy)
 
 	// H = H1(m)
 	// [t]H + [s]VRF = [t+ks]H
 	Hx, Hy := H1(m)
-	tHx, tHy := params.ScalarMult(Hx, Hy, t)
-	sHx, sHy := params.ScalarMult(uHx, uHy, s)
-	tksHx, tksHy := params.Add(tHx, tHy, sHx, sHy)
+	tHx, tHy := curve.ScalarMult(Hx, Hy, t)
+	sHx, sHy := curve.ScalarMult(uHx, uHy, s)
+	tksHx, tksHy := curve.Add(tHx, tHy, sHx, sHy)
 
 	//   H2(G, H, [k]G, VRF, [t]G + [s]([k]G), [t]H + [s]VRF)
 	// = H2(G, H, [k]G, VRF, [t+ks]G, [t+ks]H)
 	// = H2(G, H, [k]G, VRF, [r]G, [r]H)
 	var b bytes.Buffer
-	if _, err := b.Write(elliptic.Marshal(curve, params.Gx, params.Gy)); err != nil {
+	if _, err := b.Write(elliptic.Marshal(curve, curve.Gx, curve.Gy)); err != nil {
 		panic(err)
 	}
 	if _, err := b.Write(elliptic.Marshal(curve, Hx, Hy)); err != nil {
