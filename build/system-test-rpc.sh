@@ -316,9 +316,9 @@ chain33_GetCoinSymbol() {
 
 chain33_GetHexTxByHash() {
     #先获取一笔交易
-    reHash=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r '.result.txInfos[0].hash')
+    reHash=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r '.result.txInfos[0].hash')
     #查询交易
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetHexTxByHash","params":[{"hash":"'"$reHash"'","upgrade":false}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetHexTxByHash","params":[{"hash":"'"$reHash"'","upgrade":false}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result != null)' <<<"$resp")
     [ "$ok" == true ]
     rst=$?
@@ -327,9 +327,9 @@ chain33_GetHexTxByHash() {
 
 chain33_QueryTransaction() {
     #先获取一笔交易
-    reHash=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r '.result.txInfos[0].hash')
+    reHash=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r '.result.txInfos[0].hash')
     #查询交易
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.QueryTransaction","params":[{"hash":"'"$reHash"'","upgrade":false}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.QueryTransaction","params":[{"hash":"'"$reHash"'","upgrade":false}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.receipt.tyName == "ExecOk") and (.result.height >= 0) and (.result.index >= 0) and (.result.amount >= 0)' <<<"$resp")
     [ "$ok" == true ]
     rst=$?
@@ -337,14 +337,14 @@ chain33_QueryTransaction() {
 }
 
 chain33_GetBlocks() {
-    result=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlocks","params":[{"start":1,"end":2}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.items[1].block.height")
+    result=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetBlocks","params":[{"start":1,"end":2}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r ".result.items[1].block.height")
     [ "$result" -eq 2 ]
     rst=$?
     echo_rst "$FUNCNAME" "$rst"
 }
 
 chain33_GetLastHeader() {
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetLastHeader","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetLastHeader","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.height >= 0) and (.result | [has("version","parentHash", "txHash", "stateHash", "height", "blockTime", "txCount", "hash", "difficulty"),true] | unique | length == 1)' <<<"$resp")
     [ "$ok" == true ]
     rst=$?
@@ -352,7 +352,7 @@ chain33_GetLastHeader() {
 }
 
 chain33_GetTxByAddr() {
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.txInfos[0].index >= 0) and (.result.txInfos[0] | [has("hash", "height", "index", "assets"),true] | unique | length == 1)' <<<"$resp")
     [ "$ok" == true ]
     rst=$?
@@ -360,7 +360,7 @@ chain33_GetTxByAddr() {
 }
 
 chain33_GetTxByHashes() {
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByHashes","params":[{"hashes":["0x8040109d3859827d0f0c80ce91cc4ec80c496c45250f5e5755064b6da60842ab","0x501b910fd85d13d1ab7d776bce41a462f27c4bfeceb561dc47f0a11b10f452e4"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByHashes","params":[{"hashes":["0x8040109d3859827d0f0c80ce91cc4ec80c496c45250f5e5755064b6da60842ab","0x501b910fd85d13d1ab7d776bce41a462f27c4bfeceb561dc47f0a11b10f452e4"]}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.txs|length == 2)' <<<"$resp")
     [ "$ok" == true ]
     rst=$?
@@ -368,7 +368,7 @@ chain33_GetTxByHashes() {
 }
 
 chain33_GetMempool() {
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetMempool","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetMempool","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.txs|length >= 0)' <<<"$resp")
     [ "$ok" == true ]
     rst=$?
@@ -376,7 +376,7 @@ chain33_GetMempool() {
 }
 
 chain33_GetAccountsV2() {
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetAccountsV2","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetAccountsV2","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.wallets|length >= 0)' <<<"$resp")
     [ "$ok" == true ]
     rst=$?
@@ -384,7 +384,7 @@ chain33_GetAccountsV2() {
 }
 
 chain33_GetAccounts() {
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetAccounts","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetAccounts","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.wallets|length >= 0)' <<<"$resp")
     [ "$ok" == true ]
     rst=$?
@@ -392,7 +392,7 @@ chain33_GetAccounts() {
 }
 
 chain33_NewAccount() {
-    resp=$(curl -k -s --data-binary '{"jsonrpc":"2.0","id":2,"method":"Chain33.NewAccount","params":[{"label":"test169"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.NewAccount","params":[{"label":"test169"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
     ok=$(jq '(.error|not) and (.result.label == "test169") and (.result.acc | [has("addr"),true] | unique | length == 1)' <<<"$resp")
     [ "$ok" == true ]
     rst=$?
@@ -514,6 +514,135 @@ chain33_CreateNoBalanceTransaction() {
     echo_rst "$FUNCNAME" "$rst"
 }
 
+chain33_GetBlockHash() {
+    req='{"method":"Chain33.GetBlockHash", "params":[{"height":1}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("hash"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_GenSeed() {
+    req='{"method":"Chain33.GenSeed", "params":[{"lang":0}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("seed"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+    seed=$(jq '(.result.seed)' <<<"$resp")
+}
+
+chain33_SaveSeed() {
+    req='{"method":"Chain33.SaveSeed", "params":[{"seed":'"$seed"', "passwd": "1314fuzamei"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("isOK"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_GetSeed() {
+    req='{"method":"Chain33.GetSeed", "params":[{"passwd": "1314fuzamei"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("seed"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_testSeed() {
+    seed=""
+    chain33_GenSeed
+    chain33_SaveSeed
+    chain33_GetSeed
+}
+
+chain33_GetWalletStatus() {
+    req='{"method":"Chain33.GetWalletStatus", "params":[{}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| [has("isWalletLock", "isAutoMining", "isHasSeed", "isTicketLock"), true] | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_GetBalance() {
+    req='{"method":"Chain33.GetBalance", "params":[{"addresses" : ["14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"], "execer" : "coins"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result[0] | [has("balance", "frozen"), true] | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_GetAllExecBalance() {
+    req='{"method":"Chain33.GetAllExecBalance", "params":[{"addr" : "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| [has("addr", "execAccount"), true] | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    ok=$(jq '(.result.execAccount |  [map(has("execer", "account")), true] | flatten | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    ok=$(jq '(.result.execAccount[].account |  [.] | [map(has("balance", "frozen")), true] | flatten | unique | length == 1)' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_ExecWallet() {
+    req='{"method":"Chain33.ExecWallet", "params":[{"funcName" : "NewAccountByIndex", "payload" : {"data" : 100000009}, "stateHash" : "", "execer" : "wallet" }]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result | has("data"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_Query() {
+    req='{"method":"Chain33.Query", "params":[{ "execer":"coins", "funcName": "GetTxsByAddr", "payload" : {"addr" : "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"}}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(. | has("result"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_Version() {
+    req='{"method":"Chain33.Version", "params":[{}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result)' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_GetTotalCoins() {
+    req='{"method":"Chain33.GetTotalCoins", "params":[{"symbol" : "bty", "stateHash":"", "startKey":"", "count":2, "execer":"coins"}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (.result| has("count"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_IsSync() {
+    req='{"method":"Chain33.IsSync", "params":[{}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (. | has("result"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
+chain33_IsNtpClockSync() {
+    req='{"method":"Chain33.IsNtpClockSync", "params":[{}]}'
+    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+    #    echo "#response: $resp"
+    ok=$(jq '(.error|not) and (. | has("result"))' <<<"$resp")
+    [ "$ok" == true ]
+    echo_rst "$FUNCNAME" "$?"
+}
+
 run_testcases() {
     #    set -x
     set +e
@@ -567,6 +696,19 @@ run_testcases() {
     chain33_SignRawTx
     chain33_SendTransaction
     chain33_CreateNoBalanceTransaction
+
+    chain33_GetBlockHash
+    chain33_testSeed
+    chain33_GetWalletStatus
+    chain33_GetBalance
+    chain33_GetAllExecBalance
+    chain33_ExecWallet
+    chain33_Query
+    chain33_Version
+    chain33_GetTotalCoins
+    chain33_IsSync
+    chain33_IsNtpClockSync
+
     #这两个测试放在最后
     chain33_SetPasswd "$1"
     chain33_MergeBalance "$1"

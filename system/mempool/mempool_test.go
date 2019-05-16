@@ -807,8 +807,8 @@ func TestAddTxGroup(t *testing.T) {
 			t.Error("TestAddTxGroup SignNfailed ", err.Error())
 		}
 	}
-
 	tx := txGroup.Tx()
+
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx)
 	mem.client.Send(msg, true)
 	resp, err := mem.client.Wait(msg)
