@@ -610,7 +610,7 @@ chain33_GetAllExecBalance() {
     [ "$ok" == true ]
     ok=$(jq '(.result.execAccount |  [map(has("execer", "account")), true] | flatten | unique | length == 1)' <<<"$resp")
     [ "$ok" == true ]
-    ok=$(jq '(.result.execAccount[].account |  [.] | [map(has("balance", "frozen")), true] | flatten | unique | length == 1)' <<<"$resp")
+    ok=$(jq '([.result.execAccount[].account] | [map(has("balance", "frozen")), true] | flatten | unique | length == 1)' <<<"$resp")
     [ "$ok" == true ]
     echo_rst "$FUNCNAME" "$?"
 }
