@@ -108,7 +108,10 @@ poolCacheSize=10240
 minTxFee=100000
 # 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
+# 最大得交易手续费用，这个没有默认值，必填，一般是100000
 maxTxFee=1000000000
+# 是否开启阶梯手续费
+isLevelFee=false
 
 [mempool.sub.timeline]
 # mempool缓存容量大小，默认10240
