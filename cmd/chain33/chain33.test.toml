@@ -69,6 +69,7 @@ name="timeline"
 poolCacheSize=10240
 minTxFee=100000
 maxTxNumPerAccount=100
+isLevelFee=false
 
 [mempool.sub.timeline]
 poolCacheSize=10240
@@ -163,6 +164,7 @@ minerwhitelist=["*"]
 [exec]
 isFree=false
 minExecFee=100000
+maxExecFee=1000000000
 enableStat=false
 enableMVCC=false
 

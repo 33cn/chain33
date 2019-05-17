@@ -805,6 +805,49 @@ func TestAddTxGroup(t *testing.T) {
 	}
 }
 
+func TestLevelFee(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	mem.cfg.IsLevelFee = true
+
+	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx5)
+	mem.client.Send(msg1, true)
+	_, err := mem.client.Wait(msg1)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	msg2 := mem.client.NewMessage("mempool", types.EventTx, tx1)
+	mem.client.Send(msg2, true)
+	resp2, _ := mem.client.Wait(msg2)
+	if string(resp2.GetData().(*types.Reply).GetMsg()) != types.ErrTxFeeTooLow.Error() {
+		t.Error(string(resp2.GetData().(*types.Reply).GetMsg()))
+	}
+
+	msg3 := mem.client.NewMessage("mempool", types.EventTx, tx6)
+	mem.client.Send(msg3, true)
+	resp3, _ := mem.client.Wait(msg3)
+	if string(resp3.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp3.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//因为交易组出现签名错误，这里暂时未加交易组的阶梯手续费测试
+	//ctx2 := *tx2
+	//ctx3 := *tx3
+	//ctx4 := *tx4
+	//txGroup, _ := types.CreateTxGroup([]*types.Transaction{&ctx2, &ctx3, &ctx4})
+	//tx := txGroup.Tx()
+	//msg4 := mem.client.NewMessage("mempool", types.EventTx, tx)
+	//mem.client.Send(msg4, true)
+	//resp4, _ := mem.client.Wait(msg4)
+	//
+	//if string(resp4.GetData().(*types.Reply).GetMsg()) != "" {
+	//	t.Error(string(resp4.GetData().(*types.Reply).GetMsg()) )
+	//}
+}
+
 func BenchmarkMempool(b *testing.B) {
 	q, mem := initEnv(10240)
 	defer q.Close()

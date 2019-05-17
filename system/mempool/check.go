@@ -92,6 +92,13 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 		msg.Data = err
 		return msg
 	}
+	if mem.cfg.IsLevelFee {
+		err = mem.checkLevelFee(tx, mem.cfg.MinTxFee)
+		if err != nil {
+			msg.Data = err
+			return msg
+		}
+	}
 	//检查txgroup 中的每个交易
 	txs, err := tx.GetTxGroup()
 	if err != nil {
@@ -112,6 +119,36 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 		}
 	}
 	return msg
+}
+
+// checkLevelFee 检查阶梯手续费
+func (mem *Mempool) checkLevelFee(tx *types.TransactionCache, minfee int64) error {
+	//获取mempool里所有交易手续费总和
+	var sumFee int64
+	mem.cache.Walk(mem.Size(), func(it *Item) bool {
+		sumFee += it.Value.Fee
+		return true
+	})
+	var feeRate int64
+	switch {
+	case sumFee < 10000000:
+		return nil
+	case sumFee > 10000000 && sumFee < 100000000:
+		feeRate = 10 * minfee
+	case sumFee > 100000000:
+		feeRate = 100 * minfee
+	}
+	if feeRate > 10000000 {
+		feeRate = 10000000
+	}
+	totalfee, err := tx.GetTotalFee(feeRate)
+	if err != nil {
+		return err
+	}
+	if tx.Fee < totalfee {
+		return types.ErrTxFeeTooLow
+	}
+	return nil
 }
 
 //checkTxList 检查账户余额是否足够，并加入到Mempool，成功则传入goodChan，若加入Mempool失败则传入badChan
