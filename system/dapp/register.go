@@ -40,6 +40,13 @@ func Register(name string, create DriverCreate, height int64) {
 		height: height,
 	}
 	registedExecDriver[name] = driverWithHeight
+	if types.IsPara() {
+		//平行链的合约地址是通过user.p.x.name计算的
+		paraDriverName := types.ExecName(name)
+		registerAddress(paraDriverName)
+		execDrivers[ExecAddress(paraDriverName)] = driverWithHeight
+	}
+	//考虑到前期平行链兼容性和防止误操作(平行链下转账到一个主链合约)，也会注册主链合约(不带前缀)的地址
 	registerAddress(name)
 	execDrivers[ExecAddress(name)] = driverWithHeight
 }
