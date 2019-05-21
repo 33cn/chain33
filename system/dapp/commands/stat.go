@@ -7,11 +7,11 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/33cn/chain33/rpc/jsonclient"
 	"os"
 	"strconv"
 
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
