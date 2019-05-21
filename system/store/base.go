@@ -11,6 +11,7 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
+	"sync"
 )
 
 /*
@@ -61,6 +62,7 @@ type BaseStore struct {
 	qclient queue.Client
 	done    chan struct{}
 	child   SubStore
+	wg      sync.WaitGroup
 }
 
 // NewBaseStore new base store struct
@@ -94,7 +96,9 @@ func (store *BaseStore) Wait() {}
 func (store *BaseStore) processMessage(msg *queue.Message) {
 	client := store.qclient
 	if msg.Ty == types.EventStoreSet {
+		store.wg.Add(1)
 		go func() {
+			defer store.wg.Done()
 			datas := msg.GetData().(*types.StoreSetWithSync)
 			hash, err := store.child.Set(datas.Storeset, datas.Sync)
 			if err != nil {
@@ -104,13 +108,17 @@ func (store *BaseStore) processMessage(msg *queue.Message) {
 			msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{Hash: hash}))
 		}()
 	} else if msg.Ty == types.EventStoreGet {
+		store.wg.Add(1)
 		go func() {
+			defer store.wg.Done()
 			datas := msg.GetData().(*types.StoreGet)
 			values := store.child.Get(datas)
 			msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{Values: values}))
 		}()
 	} else if msg.Ty == types.EventStoreMemSet { //只是在内存中set 一下，并不改变状态
+		store.wg.Add(1)
 		go func() {
+			defer store.wg.Done()
 			datas := msg.GetData().(*types.StoreSetWithSync)
 			var hash []byte
 			var err error
@@ -126,7 +134,9 @@ func (store *BaseStore) processMessage(msg *queue.Message) {
 			msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{Hash: hash}))
 		}()
 	} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
+		store.wg.Add(1)
 		go func() {
+			defer store.wg.Done()
 			req := msg.GetData().(*types.ReqHash)
 			var hash []byte
 			var err error
@@ -145,7 +155,9 @@ func (store *BaseStore) processMessage(msg *queue.Message) {
 			}
 		}()
 	} else if msg.Ty == types.EventStoreRollback {
+		store.wg.Add(1)
 		go func() {
+			defer store.wg.Done()
 			req := msg.GetData().(*types.ReqHash)
 			hash, err := store.child.Rollback(req)
 			if err != nil {
@@ -155,7 +167,9 @@ func (store *BaseStore) processMessage(msg *queue.Message) {
 			}
 		}()
 	} else if msg.Ty == types.EventStoreGetTotalCoins {
+		store.wg.Add(1)
 		go func() {
+			defer store.wg.Done()
 			req := msg.GetData().(*types.IterateRangeByStateHash)
 			resp := &types.ReplyGetTotalCoins{}
 			resp.Count = req.Count
@@ -163,7 +177,9 @@ func (store *BaseStore) processMessage(msg *queue.Message) {
 			msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, resp))
 		}()
 	} else if msg.Ty == types.EventStoreDel {
+		store.wg.Add(1)
 		go func() {
+			defer store.wg.Done()
 			req := msg.GetData().(*types.StoreDel)
 			hash, err := store.child.Del(req)
 			if err != nil {
@@ -173,13 +189,19 @@ func (store *BaseStore) processMessage(msg *queue.Message) {
 			}
 		}()
 	} else if msg.Ty == types.EventStoreList {
+		store.wg.Add(1)
 		go func() {
+			defer store.wg.Done()
 			req := msg.GetData().(*types.StoreList)
 			query := NewStoreListQuery(store.child, req)
 			msg.Reply(client.NewMessage("", types.EventStoreListReply, query.Run()))
 		}()
 	} else {
-		go store.child.ProcEvent(msg)
+		store.wg.Add(1)
+		go func() {
+			defer store.wg.Done()
+			store.child.ProcEvent(msg)
+		}()
 	}
 }
 
@@ -193,6 +215,7 @@ func (store *BaseStore) Close() {
 	if store.qclient != nil {
 		store.qclient.Close()
 		<-store.done
+		store.wg.Wait()
 	}
 	store.db.Close()
 }
