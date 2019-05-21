@@ -148,26 +148,6 @@ type GetTotalCoinsResult struct {
 	DifferenceAmount string `json:"differenceAmount,omitempty"`
 }
 
-// GetTicketStatisticResult defines ticketstatistic result rpc command
-type GetTicketStatisticResult struct {
-	CurrentOpenCount int64 `json:"currentOpenCount"`
-	TotalMinerCount  int64 `json:"totalMinerCount"`
-	TotalCloseCount  int64 `json:"totalCloseCount"`
-}
-
-// GetTicketMinerInfoResult defines ticker minerinformation result rpc command
-type GetTicketMinerInfoResult struct {
-	TicketID     string `json:"ticketId"`
-	Status       string `json:"status"`
-	PrevStatus   string `json:"prevStatus"`
-	IsGenesis    bool   `json:"isGenesis"`
-	CreateTime   string `json:"createTime"`
-	MinerTime    string `json:"minerTime"`
-	CloseTime    string `json:"closeTime"`
-	MinerValue   int64  `json:"minerValue,omitempty"`
-	MinerAddress string `json:"minerAddress,omitempty"`
-}
-
 // UTXOGlobalIndex defines  utxo globalindex command
 type UTXOGlobalIndex struct {
 	// Height   int64  `json:"height,omitempty"`
