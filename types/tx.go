@@ -172,6 +172,7 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	return false
 }
 
+//CheckWithFork 和fork 无关的有个检查函数
 func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, minfee, maxFee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
