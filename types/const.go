@@ -33,6 +33,12 @@ const (
 	NoneX    = "none"
 )
 
+//DefaultCoinsSymbol 默认的主币名称
+const (
+	DefaultCoinsSymbol        = "bty"
+	DefaultCoinsSymbolForPara = "para"
+)
+
 //UserKeyX 用户自定义执行器前缀byte类型
 var (
 	UserKey    = []byte(UserKeyX)
