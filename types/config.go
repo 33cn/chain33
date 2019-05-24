@@ -288,7 +288,7 @@ func Init(t string, cfg *Config) {
 			coinSymbol = cfg.CoinSymbol
 		} else {
 			if isPara() {
-				coinSymbol = DefaultCoinsSymbolForPara
+				panic("must config CoinSymbol in para chain")
 			} else {
 				coinSymbol = DefaultCoinsSymbol
 			}
