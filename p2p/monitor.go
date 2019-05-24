@@ -26,6 +26,10 @@ func (n *Node) destroyPeer(peer *Peer) {
 func (n *Node) monitorErrPeer() {
 	for {
 		peer := <-n.nodeInfo.monitorChan
+		if peer == nil {
+			log.Info("monitorChan close")
+			return
+		}
 		if !peer.version.IsSupport() {
 			//如果版本不支持,直接删除节点
 			log.Info("VersoinMonitor", "NotSupport,addr", peer.Addr())
@@ -260,6 +264,10 @@ func (n *Node) nodeReBalance() {
 	defer ticker.Stop()
 
 	for {
+		if n.isClose() {
+			log.Debug("nodeReBalance", "loop", "done")
+			return
+		}
 
 		<-ticker.C
 		log.Info("nodeReBalance", "cacheSize", n.CacheBoundsSize())
@@ -362,7 +370,10 @@ func (n *Node) monitorPeers() {
 	defer ticker.Stop()
 	_, selfName := n.nodeInfo.addrBook.GetPrivPubKey()
 	for {
-
+		if n.isClose() {
+			log.Debug("monitorPeers", "loop", "done")
+			return
+		}
 		<-ticker.C
 		localBlockHeight, err := p2pcli.GetBlockHeight(n.nodeInfo)
 		if err != nil {

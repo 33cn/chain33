@@ -197,6 +197,7 @@ ForkMultiSignAddress=1298600
 ForkBlockCheck=1
 ForkLocalDBAccess=0
 ForkBase58AddressCheck=1800000
+ForkEnableParaRegExec=0
 [fork.sub.coins]
 Enable=0
 

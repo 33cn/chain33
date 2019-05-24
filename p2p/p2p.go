@@ -7,9 +7,11 @@ package p2p
 
 import (
 	"fmt"
+	"math/rand"
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -24,13 +26,17 @@ var (
 
 // P2p interface
 type P2p struct {
+	api          client.QueueProtocolAPI
 	client       queue.Client
 	node         *Node
 	p2pCli       EventInterface
 	txCapcity    int32
 	txFactory    chan struct{}
 	otherFactory chan struct{}
+	waitRestart  chan struct{}
 	closed       int32
+	restart      int32
+	cfg          *types.P2P
 }
 
 // New produce a p2p object
@@ -71,7 +77,9 @@ func New(cfg *types.P2P) *P2p {
 	p2p.p2pCli = NewP2PCli(p2p)
 	p2p.txFactory = make(chan struct{}, 1000)    // 1000 task
 	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
+	p2p.waitRestart = make(chan struct{}, 1)
 	p2p.txCapcity = 1000
+	p2p.cfg = cfg
 	return p2p
 }
 
@@ -82,6 +90,10 @@ func (network *P2p) isClose() bool {
 	return atomic.LoadInt32(&network.closed) == 1
 }
 
+func (network *P2p) isRestart() bool {
+	return atomic.LoadInt32(&network.restart) == 1
+}
+
 // Close network client
 func (network *P2p) Close() {
 	atomic.StoreInt32(&network.closed, 1)
@@ -89,25 +101,48 @@ func (network *P2p) Close() {
 	network.node.Close()
 	log.Debug("close", "node", "done")
 	if network.client != nil {
-		network.client.Close()
+		if !network.isRestart() {
+			network.client.Close()
+
+		}
 	}
+
 	network.node.pubsub.Shutdown()
 
 }
 
 // SetQueueClient set the queue
-func (network *P2p) SetQueueClient(client queue.Client) {
-	network.client = client
-	network.node.SetQueueClient(client)
-	go func() {
-		log.Info("p2p", "setqueuecliet", "ok")
-		network.node.Start()
-		network.subP2pMsg()
-		err := network.loadP2PPrivKeyToWallet()
-		if err != nil {
-			return
+func (network *P2p) SetQueueClient(cli queue.Client) {
+	var err error
+	if network.client == nil {
+		network.client = cli
+
+	}
+	network.api, err = client.New(cli, nil)
+	if err != nil {
+		panic("SetQueueClient client.New err")
+	}
+	network.node.SetQueueClient(cli)
+
+	go func(p2p *P2p) {
+
+		p2p.node.Start()
+		if p2p.isRestart() {
+			//reset
+			atomic.StoreInt32(&p2p.closed, 0)
+			atomic.StoreInt32(&p2p.restart, 0)
+			network.waitRestart <- struct{}{}
+		} else {
+			p2p.subP2pMsg()
+			go p2p.loadP2PPrivKeyToWallet()
+			go p2p.genAirDropKeyFromWallet()
+
 		}
-	}()
+
+		log.Debug("SetQueueClient gorountine ret")
+
+	}(network)
+
 }
 
 func (network *P2p) showTaskCapcity() {
@@ -124,6 +159,93 @@ func (network *P2p) showTaskCapcity() {
 	}
 }
 
+func (network *P2p) genAirDropKeyFromWallet() error {
+
+	for {
+		if network.isClose() {
+			return nil
+		}
+		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
+		err := network.client.SendTimeout(msg, true, time.Minute)
+		if err != nil {
+			log.Error("genAirDropKeyFromWallet", "Error", err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+
+		resp, err := network.client.WaitTimeout(msg, time.Minute)
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if !resp.GetData().(*types.WalletStatus).GetIsHasSeed() { //无种子
+			time.Sleep(time.Second)
+			continue
+		}
+
+		break
+	}
+
+	r := rand.New(rand.NewSource(types.Now().Unix()))
+	var minIndex int32 = 100000000
+	randIndex := minIndex + r.Int31n(1000000)
+	reqIndex := &types.Int32{Data: randIndex}
+	msg, err := network.api.ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+	if err != nil {
+		log.Error("genAirDropKeyFromWallet", "err", err)
+		return err
+	}
+	var hexPrivkey string
+	if reply, ok := msg.(*types.ReplyString); !ok {
+		log.Error("genAirDropKeyFromWallet", "wrong format data", "")
+		panic(err)
+
+	} else {
+		hexPrivkey = reply.GetData()
+	}
+	log.Info("genAirDropKeyFromWallet", "hexprivkey", hexPrivkey)
+	if hexPrivkey[:2] == "0x" {
+		hexPrivkey = hexPrivkey[2:]
+	}
+
+	hexPubkey, err := P2pComm.Pubkey(hexPrivkey)
+	if err != nil {
+		log.Error("genAirDropKeyFromWallet", "gen pub error", err)
+		panic(err)
+	}
+
+	log.Info("genAirDropKeyFromWallet", "pubkey", hexPubkey)
+
+	_, pub := network.node.nodeInfo.addrBook.GetPrivPubKey()
+	if pub == hexPubkey {
+		return nil
+	}
+	//覆盖addrbook 中的公私钥对
+	network.node.nodeInfo.addrBook.ResetPeerkey(hexPrivkey, hexPubkey)
+	//重启p2p模块
+	log.Info("genAirDropKeyFromWallet", "p2p will Restart....")
+	network.ReStart()
+	return nil
+}
+
+// ReStart p2p
+func (network *P2p) ReStart() {
+	atomic.StoreInt32(&network.restart, 1)
+	network.Close()
+	node, err := NewNode(network.cfg) //创建新的node节点
+	if err != nil {
+		panic(err.Error())
+	}
+
+	network.node = node
+	network.SetQueueClient(network.client)
+
+}
 func (network *P2p) loadP2PPrivKeyToWallet() error {
 
 	for {
@@ -193,15 +315,23 @@ func (network *P2p) subP2pMsg() {
 
 	go network.showTaskCapcity()
 	go func() {
-		defer func() {
-			close(network.otherFactory)
-			close(network.txFactory)
-		}()
+
 		var taskIndex int64
 		network.client.Sub("p2p")
 		for msg := range network.client.Recv() {
+
+			if network.isRestart() {
+
+				//wait for restart
+				log.Info("waitp2p restart....")
+				<-network.waitRestart
+				log.Info("p2p restart ok....")
+			}
+
 			if network.isClose() {
 				log.Debug("subP2pMsg", "loop", "done")
+				close(network.otherFactory)
+				close(network.txFactory)
 				return
 			}
 			taskIndex++

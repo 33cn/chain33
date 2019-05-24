@@ -13,6 +13,7 @@ import (
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/wallet"
 
 	//"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,36 @@ func init() {
 
 	p2pModule = initP2p(33802, dataDir)
 	p2pModule.Wait()
+	go func() {
+
+		cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
+		wcli := wallet.New(cfg.Wallet, sub.Wallet)
+		client := q.Client()
+		wcli.SetQueueClient(client)
+		//导入种子，解锁钱包
+		password := "a12345678"
+		seed := "cushion canal bitter result harvest sentence ability time steel basket useful ask depth sorry area course purpose search exile chapter mountain project ranch buffalo"
+		saveSeedByPw := &types.SaveSeedByPw{Seed: seed, Passwd: password}
+		msgSaveEmpty := client.NewMessage("wallet", types.EventSaveSeed, saveSeedByPw)
+		client.Send(msgSaveEmpty, true)
+		_, err := client.Wait(msgSaveEmpty)
+		if err != nil {
+			return
+		}
+		walletUnLock := &types.WalletUnLock{
+			Passwd:         password,
+			Timeout:        0,
+			WalletOrTicket: false,
+		}
+		msgUnlock := client.NewMessage("wallet", types.EventWalletUnLock, walletUnLock)
+		client.Send(msgUnlock, true)
+		_, err = client.Wait(msgUnlock)
+		if err != nil {
+			return
+		}
+
+	}()
+
 	go func() {
 		blockchainKey := "blockchain"
 		client := q.Client()
@@ -163,7 +194,7 @@ func TestPeer(t *testing.T) {
 	assert.IsType(t, "string", peer.GetPeerName())
 
 	localP2P.node.AddCachePeer(peer)
-	//
+	peer.GetRunning()
 	localP2P.node.natOk()
 	localP2P.node.flushNodePort(43803, 43802)
 	p2pcli := NewNormalP2PCli()
@@ -193,6 +224,8 @@ func TestPeer(t *testing.T) {
 	_, err = p2pcli.GetAddr(peer)
 	assert.Nil(t, err)
 
+	localP2P.node.pubsub.FIFOPub(&types.P2PTx{Tx: &types.Transaction{}}, "tx")
+	localP2P.node.pubsub.FIFOPub(&types.P2PBlock{Block: &types.Block{}}, "block")
 	//	//测试获取高度
 	height, err := p2pcli.GetBlockHeight(localP2P.node.nodeInfo)
 	assert.Nil(t, err)
@@ -204,7 +237,12 @@ func TestPeer(t *testing.T) {
 	job.GetFreePeer(1)
 
 	var ins []*types.Inventory
+	var inv types.Inventory
+	inv.Ty = msgBlock
+	inv.Height = 2
+	ins = append(ins, &inv)
 	var bChan = make(chan *types.BlockPid, 256)
+	job.syncDownloadBlock(peer, ins[0], bChan)
 	respIns := job.DownloadBlock(ins, bChan)
 	t.Log(respIns)
 	job.ResetDownloadPeers([]*Peer{peer})
@@ -277,6 +315,7 @@ func TestGrpcStreamConns(t *testing.T) {
 
 	_, err = cli.ServerStreamSend(context.Background(), ping)
 	assert.Nil(t, err)
+
 	_, err = cli.ServerStreamRead(context.Background())
 	assert.Nil(t, err)
 	var emptyBlock types.P2PBlock
@@ -359,6 +398,7 @@ func TestAddrBook(t *testing.T) {
 	assert.Equal(t, addrBook.genPubkey(hex.EncodeToString(prv)), pubstr)
 	addrBook.Save()
 	addrBook.GetAddrs()
+	addrBook.ResetPeerkey(hex.EncodeToString(prv), pubstr)
 }
 
 func TestBytesToInt32(t *testing.T) {
@@ -393,8 +433,15 @@ func TestP2pListen(t *testing.T) {
 	listen1.Close()
 	listen2.Close()
 }
+
+func TestP2pRestart(t *testing.T) {
+
+	assert.Equal(t, false, p2pModule.isClose())
+	assert.Equal(t, false, p2pModule.isRestart())
+	p2pModule.ReStart()
+}
+
 func TestP2pClose(t *testing.T) {
-	p2pModule.Wait()
 	p2pModule.Close()
 	os.RemoveAll(dataDir)
 }

@@ -2,6 +2,7 @@ Title="user.p.guodun."
 TestNet=false
 FixTime=false
 EnableParaFork=true
+CoinSymbol="gd"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -176,6 +177,7 @@ ForkMultiSignAddress=1298600
 ForkBlockCheck=1725000
 ForkLocalDBAccess=1
 ForkBase58AddressCheck=1800000
+ForkEnableParaRegExec=0
 
 [fork.sub.coins]
 Enable=0

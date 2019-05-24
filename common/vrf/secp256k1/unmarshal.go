@@ -2,7 +2,21 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p256
+// Copyright 2016 Google Inc. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package secp256k1
 
 import (
 	"crypto/elliptic"
@@ -42,17 +56,17 @@ func Unmarshal(curve elliptic.Curve, data []byte) (x, y *big.Int) {
 }
 
 // Use the curve equation to calculate y² given x.
-// only applies to curves of the form y² = x³ - 3x + b.
+// only applies to curves of the form y² = x³ + b.
 func y2(curve *elliptic.CurveParams, x *big.Int) *big.Int {
 
-	// y² = x³ - 3x + b
+	// y² = x³ + b
 	x3 := new(big.Int).Mul(x, x)
 	x3.Mul(x3, x)
 
-	threeX := new(big.Int).Lsh(x, 1)
-	threeX.Add(threeX, x)
-
-	x3.Sub(x3, threeX)
+	//threeX := new(big.Int).Lsh(x, 1)
+	//threeX.Add(threeX, x)
+	//
+	//x3.Sub(x3, threeX)
 	x3.Add(x3, curve.B)
 	x3.Mod(x3, curve.P)
 	return x3

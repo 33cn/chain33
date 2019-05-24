@@ -158,6 +158,8 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 		log.Debug("grpc DialCon", "did not connect", err, "addr", na.String())
 		return nil, err
 	}
+	//p2p version check 通过版本协议，获取通信session
+
 	//判断是否对方是否支持压缩
 	cli := pb.NewP2PgserviceClient(conn)
 	_, err = cli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: 0, EndHeight: 0, Version: version}, grpc.FailFast(true))
@@ -185,8 +187,6 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 		}
 		return nil, err
 	}
-
-	//p2p version check
 
 	return conn, nil
 }

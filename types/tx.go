@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 
 	"strconv"
 
@@ -172,8 +172,8 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	return false
 }
 
-//Check height == 0 的时候，不做检查
-func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
+//CheckWithFork 和fork 无关的有个检查函数
+func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, minfee, maxFee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
@@ -193,7 +193,7 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 	}
 	//txgroup 只允许一条平行链的交易, 且平行链txgroup须全部是平行链tx
 	//如果平行链已经在主链分叉高度前运行了一段时间且有跨链交易，平行链需要自己设置这个fork
-	if IsFork(height, "ForkTxGroupPara") {
+	if paraFork {
 		if len(para) > 1 {
 			tlog.Info("txgroup has multi para transaction")
 			return ErrTxGroupParaCount
@@ -225,7 +225,7 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 	if txs[0].Fee < totalfee {
 		return ErrTxFeeTooLow
 	}
-	if txs[0].Fee > maxFee && maxFee > 0 && IsFork(height, "ForkBlockCheck") {
+	if txs[0].Fee > maxFee && maxFee > 0 && checkFork {
 		return ErrTxFeeTooHigh
 	}
 	//检查hash是否符合要求
@@ -259,6 +259,13 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 		}
 	}
 	return nil
+}
+
+//Check height == 0 的时候，不做检查
+func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
+	paraFork := IsFork(height, "ForkTxGroupPara")
+	checkFork := IsFork(height, "ForkBlockCheck")
+	return txgroup.CheckWithFork(checkFork, paraFork, height, minfee, maxFee)
 }
 
 //TransactionCache 交易缓存结构

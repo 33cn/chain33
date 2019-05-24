@@ -215,7 +215,7 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	err = group.Check(0, types.GInt("MinFee"), types.GInt("MaxFee"))
+	err = group.CheckWithFork(true, true, 0, types.GInt("MinFee"), types.GInt("MaxFee"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

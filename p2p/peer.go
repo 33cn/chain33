@@ -181,7 +181,7 @@ func (p *Peer) sendStream() {
 	//Stream Send data
 	for {
 		if !p.GetRunning() {
-			log.Info("sendStream peer is not running")
+			log.Info("sendStream peer connect closed", "peerid", p.GetPeerName())
 			return
 		}
 		ctx, cancel := context.WithCancel(context.Background())
@@ -239,6 +239,9 @@ func (p *Peer) sendStream() {
 	SEND_LOOP:
 		for {
 
+			if !p.GetRunning() {
+				return
+			}
 			select {
 			case task := <-p.taskChan:
 				if !p.GetRunning() {
@@ -247,7 +250,7 @@ func (p *Peer) sendStream() {
 						log.Error("CloseSend", "err", errs)
 					}
 					cancel()
-					log.Error("sendStream peer is not running")
+					log.Error("sendStream peer connect closed", "peerName", p.GetPeerName())
 					return
 				}
 				p2pdata := new(pb.BroadCastData)
@@ -263,6 +266,7 @@ func (p *Peer) sendStream() {
 							log.Debug("sendStream", "find peer height>this broadblock ,send process", "break")
 							continue
 						}
+
 					}
 
 					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
@@ -344,6 +348,7 @@ func (p *Peer) readStream() {
 				}
 				return
 			}
+
 			data, err := resp.Recv()
 			P2pComm.CollectPeerStat(err, p)
 			if err != nil {
@@ -425,6 +430,10 @@ func (p *Peer) readStream() {
 
 // GetRunning get running ok or not
 func (p *Peer) GetRunning() bool {
+	if p.node.isClose() {
+		return false
+	}
+
 	return atomic.LoadInt32(&p.isclose) != 1
 
 }

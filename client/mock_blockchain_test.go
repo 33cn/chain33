@@ -129,12 +129,8 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 					msg.ReplyErr("Do not support", types.ErrInvalidParam)
 				}
 			case types.EventLocalList:
-				if req, ok := msg.GetData().(*types.LocalDBList); ok {
-					if len(req.Key) > 0 && bytes.Equal(req.Key, []byte("Statistics:TicketInfoOrder:Addr:case1")) {
-						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.TicketMinerInfo{}))
-					} else {
-						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.LocalReplyValue{}))
-					}
+				if _, ok := msg.GetData().(*types.LocalDBList); ok {
+					msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.LocalReplyValue{}))
 				} else {
 					msg.ReplyErr("Do not support", types.ErrInvalidParam)
 				}
