@@ -54,6 +54,8 @@ var (
 	tx13       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr}
 	tx14       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: "notaddress"}
 	tx15       = &types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+	tx16       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 3, To: toAddr}
+	tx17       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 4, To: toAddr}
 )
 
 //var privTo, _ = c.GenKey()
@@ -92,6 +94,8 @@ func init() {
 	tx13.Sign(types.SECP256K1, privKey)
 	tx14.Sign(types.SECP256K1, privKey)
 	tx15.Sign(types.SECP256K1, privKey)
+	tx16.Sign(types.SECP256K1, privKey)
+	tx17.Sign(types.SECP256K1, privKey)
 }
 
 func getprivkey(key string) crypto.PrivKey {
@@ -825,8 +829,25 @@ func TestLevelFee(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
-
+	defer func() {
+		mem.cfg.IsLevelFee = false
+	}()
 	mem.cfg.IsLevelFee = true
+	mem.SetMinFee(800000)
+
+	msg0 := mem.client.NewMessage("mempool", types.EventTx, tx16)
+	mem.client.Send(msg0, true)
+	resp0, _ := mem.client.Wait(msg0)
+	if string(resp0.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp0.GetData().(*types.Reply).GetMsg()))
+	}
+
+	msg00 := mem.client.NewMessage("mempool", types.EventTx, tx17)
+	mem.client.Send(msg00, true)
+	resp00, _ := mem.client.Wait(msg00)
+	if string(resp00.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp00.GetData().(*types.Reply).GetMsg()))
+	}
 
 	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx5)
 	mem.client.Send(msg1, true)
@@ -835,6 +856,7 @@ func TestLevelFee(t *testing.T) {
 		t.Error(err.Error())
 	}
 
+	//test low fee
 	msg2 := mem.client.NewMessage("mempool", types.EventTx, tx1)
 	mem.client.Send(msg2, true)
 	resp2, _ := mem.client.Wait(msg2)
@@ -842,6 +864,7 @@ func TestLevelFee(t *testing.T) {
 		t.Error(string(resp2.GetData().(*types.Reply).GetMsg()))
 	}
 
+	//test high fee
 	msg3 := mem.client.NewMessage("mempool", types.EventTx, tx6)
 	mem.client.Send(msg3, true)
 	resp3, _ := mem.client.Wait(msg3)
@@ -849,19 +872,49 @@ func TestLevelFee(t *testing.T) {
 		t.Error(string(resp3.GetData().(*types.Reply).GetMsg()))
 	}
 
-	//因为交易组出现签名错误，这里暂时未加交易组的阶梯手续费测试
-	//ctx2 := *tx2
-	//ctx3 := *tx3
-	//ctx4 := *tx4
-	//txGroup, _ := types.CreateTxGroup([]*types.Transaction{&ctx2, &ctx3, &ctx4})
-	//tx := txGroup.Tx()
-	//msg4 := mem.client.NewMessage("mempool", types.EventTx, tx)
-	//mem.client.Send(msg4, true)
-	//resp4, _ := mem.client.Wait(msg4)
-	//
-	//if string(resp4.GetData().(*types.Reply).GetMsg()) != "" {
-	//	t.Error(string(resp4.GetData().(*types.Reply).GetMsg()) )
-	//}
+	//交易组的阶梯手续费测试
+	//toAddr := "1PjMi9yGTjA9bbqUZa1Sj7dAUKyLA8KqE1"
+	//test group high fee
+	crouptx1 := types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr}
+	crouptx2 := types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr}
+	crouptx3 := types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+	crouptx4 := types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&crouptx1, &crouptx2, &crouptx3, &crouptx4})
+	for i := range txGroup.Txs {
+		err := txGroup.SignN(i, types.SECP256K1, mainPriv)
+		if err != nil {
+			t.Error("TestAddTxGroup SignNfailed ", err.Error())
+		}
+	}
+	txa := txGroup.Tx()
+	msg4 := mem.client.NewMessage("mempool", types.EventTx, txa)
+	mem.client.Send(msg4, true)
+	resp4, _ := mem.client.Wait(msg4)
+
+	if string(resp4.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp4.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test group low fee
+	crouptx5 := types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 0, To: toAddr}
+	crouptx6 := types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 0, To: toAddr}
+
+	txGroup2, _ := types.CreateTxGroup([]*types.Transaction{&crouptx5, &crouptx6})
+	for i := range txGroup2.Txs {
+		err := txGroup2.SignN(i, types.SECP256K1, mainPriv)
+		if err != nil {
+			t.Error("TestAddTxGroup SignNfailed ", err.Error())
+		}
+	}
+	txb := txGroup2.Tx()
+	msg5 := mem.client.NewMessage("mempool", types.EventTx, txb)
+	mem.client.Send(msg5, true)
+	resp5, _ := mem.client.Wait(msg5)
+
+	if string(resp5.GetData().(*types.Reply).GetMsg()) != types.ErrTxFeeTooLow.Error() {
+		t.Error(string(resp5.GetData().(*types.Reply).GetMsg()))
+	}
 }
 
 func BenchmarkMempool(b *testing.B) {
