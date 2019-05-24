@@ -2,6 +2,7 @@ Title="user.p.guodun2."
 TestNet=false
 FixTime=false
 EnableParaFork=false
+CoinSymbol="gd2"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
