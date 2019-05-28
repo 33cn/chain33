@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/hex"
+	//"fmt"
 	"net"
 	"os"
 	"sort"
@@ -31,8 +32,6 @@ func init() {
 	q = queue.New("channel")
 	go q.Start()
 
-	p2pModule = initP2p(33802, dataDir)
-	p2pModule.Wait()
 	go func() {
 
 		cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
@@ -115,6 +114,9 @@ func init() {
 			}
 		}
 	}()
+	time.Sleep(time.Second)
+	p2pModule = initP2p(33802, dataDir)
+	p2pModule.Wait()
 
 }
 
@@ -128,9 +130,14 @@ func initP2p(port int32, dbpath string) *P2p {
 	cfg.Version = 119
 	cfg.ServerStart = true
 	cfg.Driver = "leveldb"
+
 	p2pcli := New(cfg)
-	p2pcli.SetQueueClient(q.Client())
+	p2pcli.node.nodeInfo.addrBook.initKey()
+	privkey, _ := p2pcli.node.nodeInfo.addrBook.GetPrivPubKey()
+	p2pcli.node.nodeInfo.addrBook.bookDb.Set([]byte(privKeyTag), []byte(privkey))
 	p2pcli.node.nodeInfo.SetServiceTy(7)
+	p2pcli.SetQueueClient(q.Client())
+
 	return p2pcli
 }
 
