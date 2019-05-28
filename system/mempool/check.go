@@ -123,12 +123,11 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 
 // checkLevelFee 检查阶梯手续费
 func (mem *Mempool) checkLevelFee(tx *types.TransactionCache, minfee int64) error {
+	if int64(mem.Size()) < mem.cfg.PoolCacheSize/100 {
+		return nil
+	}
 	//获取mempool里所有交易手续费总和
-	var sumFee int64
-	mem.cache.Walk(mem.Size(), func(it *Item) bool {
-		sumFee += it.Value.Fee
-		return true
-	})
+	sumFee := mem.cache.TotalFee()
 	var feeRate int64
 	switch {
 	case sumFee < 10000000:
