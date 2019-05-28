@@ -15,6 +15,7 @@ type QueueCache interface {
 	Push(tx *Item) error
 	Remove(hash string) error
 	Size() int
+	TotalFee() int64
 	Walk(count int, cb func(tx *Item) bool)
 	GetProperFee() int64
 }
@@ -75,6 +76,14 @@ func (cache *txCache) Size() int {
 		return 0
 	}
 	return cache.qcache.Size()
+}
+
+//Size cache tx num
+func (cache *txCache) TotalFee() int64 {
+	if cache.qcache == nil {
+		return 0
+	}
+	return cache.qcache.TotalFee()
 }
 
 //Walk iter all txs
