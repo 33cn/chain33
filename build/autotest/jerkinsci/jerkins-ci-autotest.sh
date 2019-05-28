@@ -49,14 +49,6 @@ function config_chain33() {
     else
         sed -i $sedfix '/^Title/a TestNet=true' ${chain33Config}
     fi
-
-    #update fee
-    sed -i $sedfix 's/Fee=.*/Fee=100000/' ${chain33Config}
-
-    #update block time
-
-    #update wallet store driver
-    sed -i $sedfix '/^\[wallet\]/,/^\[wallet./ s/^driver.*/driver="leveldb"/' ${chain33Config}
 }
 
 function config_autotest() {

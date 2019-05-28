@@ -58,6 +58,6 @@ matrix:
         - sudo mv docker-compose /usr/local/bin
       script:
         - make build_ci
-        - make autotest_ci
+        - make autotest dapp=all
         - make docker-compose && make docker-compose-down
 
