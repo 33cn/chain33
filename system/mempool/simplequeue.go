@@ -74,7 +74,7 @@ func (cache *SimpleQueue) Size() int {
 	return cache.txList.Size()
 }
 
-// Size 数据总数
+// TotalFee 总手续费
 func (cache *SimpleQueue) TotalFee() int64 {
 	return cache.totalFee
 }
