@@ -169,6 +169,8 @@ func TestNetInfo(t *testing.T) {
 	p2pModule.node.nodeInfo.SetNatDone()
 	p2pModule.node.nodeInfo.Get()
 	p2pModule.node.nodeInfo.Set(p2pModule.node.nodeInfo)
+	assert.NotNil(t, p2pModule.node.nodeInfo.GetListenAddr())
+	assert.NotNil(t, p2pModule.node.nodeInfo.GetExternalAddr())
 }
 
 //测试Peer
