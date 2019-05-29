@@ -115,7 +115,7 @@ func init() {
 		}
 	}()
 	time.Sleep(time.Second)
-	p2pModule = initP2p(33802, dataDir)
+	p2pModule = initP2p(53802, dataDir)
 	p2pModule.Wait()
 
 }
@@ -176,12 +176,12 @@ func TestNetInfo(t *testing.T) {
 //测试Peer
 func TestPeer(t *testing.T) {
 
-	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
+	conn, err := grpc.Dial("localhost:53802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
 	defer conn.Close()
 
-	remote, err := NewNetAddressString("127.0.0.1:33802")
+	remote, err := NewNetAddressString("127.0.0.1:53802")
 	assert.Nil(t, err)
 
 	localP2P := initP2p(43802, "testdata2")
@@ -228,7 +228,7 @@ func TestPeer(t *testing.T) {
 	_, err = p2pcli.SendVersion(peer, localP2P.node.nodeInfo)
 	assert.Nil(t, err)
 
-	t.Log(p2pcli.CheckPeerNatOk("localhost:33802"))
+	t.Log(p2pcli.CheckPeerNatOk("localhost:53802"))
 	t.Log("checkself:", p2pcli.CheckSelf("loadhost:43803", localP2P.node.nodeInfo))
 	_, err = p2pcli.GetAddr(peer)
 	assert.Nil(t, err)
@@ -239,7 +239,7 @@ func TestPeer(t *testing.T) {
 	height, err := p2pcli.GetBlockHeight(localP2P.node.nodeInfo)
 	assert.Nil(t, err)
 	assert.Equal(t, int(height), 2019)
-	assert.Equal(t, false, p2pcli.CheckSelf("localhost:33802", localP2P.node.nodeInfo))
+	assert.Equal(t, false, p2pcli.CheckSelf("localhost:53802", localP2P.node.nodeInfo))
 	//测试下载
 	job := NewDownloadJob(NewP2PCli(localP2P).(*Cli), []*Peer{peer})
 
@@ -280,7 +280,7 @@ func TestGrpcConns(t *testing.T) {
 	var conns []*grpc.ClientConn
 
 	for i := 0; i < maxSamIPNum; i++ {
-		conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
+		conn, err := grpc.Dial("localhost:53802", grpc.WithInsecure(),
 			grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 		assert.Nil(t, err)
 
@@ -291,7 +291,7 @@ func TestGrpcConns(t *testing.T) {
 		conns = append(conns, conn)
 	}
 
-	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
+	conn, err := grpc.Dial("localhost:53802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
 	cli := types.NewP2PgserviceClient(conn)
@@ -309,7 +309,7 @@ func TestGrpcConns(t *testing.T) {
 //测试grpc 流多连接
 func TestGrpcStreamConns(t *testing.T) {
 
-	conn, err := grpc.Dial("localhost:33802", grpc.WithInsecure(),
+	conn, err := grpc.Dial("localhost:53802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
 	cli := types.NewP2PgserviceClient(conn)
@@ -338,7 +338,7 @@ func TestGrpcStreamConns(t *testing.T) {
 
 func TestP2pComm(t *testing.T) {
 
-	addrs := P2pComm.AddrRouteble([]string{"localhost:33802"})
+	addrs := P2pComm.AddrRouteble([]string{"localhost:53802"})
 	t.Log(addrs)
 
 	i32 := P2pComm.BytesToInt32([]byte{0xff})
