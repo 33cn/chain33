@@ -34,12 +34,6 @@ const (
 	maxSamIPNum     = 20
 )
 
-var (
-	// LocalAddr local address
-	LocalAddr string
-	//defaultPort = 13802
-)
-
 const (
 	defalutNatPort  = 23802
 	maxOutBoundNum  = 25

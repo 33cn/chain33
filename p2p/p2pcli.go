@@ -630,8 +630,8 @@ func (m *Cli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
 	localpeerinfo.Name = pub
 	localpeerinfo.MempoolSize = int32(meminfo.GetSize())
 	if m.network.node.nodeInfo.GetExternalAddr().IP == nil {
-		localpeerinfo.Addr = LocalAddr
-		localpeerinfo.Port = int32(m.network.node.listenPort)
+		localpeerinfo.Addr = m.network.node.nodeInfo.GetListenAddr().IP.String()
+		localpeerinfo.Port = int32(m.network.node.nodeInfo.GetListenAddr().Port)
 	} else {
 		localpeerinfo.Addr = m.network.node.nodeInfo.GetExternalAddr().IP.String()
 		localpeerinfo.Port = int32(m.network.node.nodeInfo.GetExternalAddr().Port)

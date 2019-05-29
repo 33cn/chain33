@@ -123,7 +123,8 @@ func (n *Node) flushNodePort(localport, export uint16) {
 		n.nodeInfo.SetExternalAddr(exaddr)
 		n.nodeInfo.addrBook.AddOurAddress(exaddr)
 	}
-	if listenAddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, localport)); err == nil {
+
+	if listenAddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", n.nodeInfo.GetListenAddr().IP.String(), localport)); err == nil {
 		n.nodeInfo.SetListenAddr(listenAddr)
 		n.nodeInfo.addrBook.AddOurAddress(listenAddr)
 	}
@@ -354,9 +355,9 @@ func (n *Node) detectNodeAddr() {
 	for {
 		cfg := n.nodeInfo.cfg
 		laddr := P2pComm.GetLocalAddr()
-		LocalAddr = laddr
+		//LocalAddr = laddr
 		log.Info("DetectNodeAddr", "addr:", laddr)
-		if len(LocalAddr) == 0 {
+		if laddr == "" {
 			log.Error("DetectNodeAddr", "NetWork Disable p2p Disable", "Retry until Network enable")
 			time.Sleep(time.Second * 5)
 			continue
