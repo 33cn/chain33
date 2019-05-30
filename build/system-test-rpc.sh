@@ -138,13 +138,17 @@ chain33_GetHeaders() {
 
 chain33_GetLastMemPool() {
 
-    req='"method":"Chain33.GetLastMemPool", "params":[{}]'
-    echo "#request: $req"
-    resp=$(curl -ksd "{$req}" "$1")
-    #    echo "#response: $resp"
-    ok=$(jq '(.error|not) and (.result.txs|length >= 0)' <<<"$resp")
-    [ "$ok" == true ]
-    echo_rst "$FUNCNAME" "$?"
+    if [ "$IS_PARA" == true ]; then
+        echo_rst "$FUNCNAME" 2
+    else
+        req='"method":"Chain33.GetLastMemPool", "params":[{}]'
+        echo "#request: $req"
+        resp=$(curl -ksd "{$req}" "$1")
+        #echo "#response: $resp"
+        ok=$(jq '(.error|not) and (.result.txs|length >= 0)' <<<"$resp")
+        [ "$ok" == true ]
+        echo_rst "$FUNCNAME" "$?"
+    fi
 }
 
 chain33_GetProperFee() {
@@ -394,11 +398,16 @@ chain33_GetTxByHashes() {
 }
 
 chain33_GetMempool() {
-    resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetMempool","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
-    ok=$(jq '(.error|not) and (.result.txs|length >= 0)' <<<"$resp")
-    [ "$ok" == true ]
-    rst=$?
-    echo_rst "$FUNCNAME" "$rst"
+
+    if [ "$IS_PARA" == true ]; then
+        echo_rst "$FUNCNAME" 2
+    else
+        resp=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetMempool","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+        ok=$(jq '(.error|not) and (.result.txs|length >= 0)' <<<"$resp")
+        [ "$ok" == true ]
+        rst=$?
+        echo_rst "$FUNCNAME" "$rst"
+    fi
 }
 
 chain33_GetAccountsV2() {
