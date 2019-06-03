@@ -19,6 +19,7 @@ import (
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/merkle"
+	"github.com/33cn/chain33/queue"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
@@ -129,6 +130,8 @@ func TestBlockChain(t *testing.T) {
 	testReadBlockToExec(t, blockchain)
 	testReExecBlock(t, blockchain)
 	testUpgradeStore(t, blockchain)
+
+	testProcMainSeqMsg(t, blockchain)
 }
 
 func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
@@ -1123,4 +1126,18 @@ func testUpgradeStore(t *testing.T, chain *blockchain.BlockChain) {
 	chainlog.Info("UpgradeStore begin ---------------------")
 	chain.UpgradeStore()
 	chainlog.Info("UpgradeStore end ---------------------")
+}
+
+func testProcMainSeqMsg(t *testing.T, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testProcMainSeqMsg begin -------------------")
+
+	msg := queue.NewMessage(1, "blockchain", types.EventGetLastBlockMainSequence, nil)
+	blockchain.GetLastBlockMainSequence(msg)
+	assert.Equal(t, int64(types.EventGetLastBlockMainSequence), msg.Ty)
+
+	msg = queue.NewMessage(1, "blockchain", types.EventGetMainSeqByHash, &types.ReqHash{Hash: []byte("hash")})
+	blockchain.GetMainSeqByHash(msg)
+	assert.Equal(t, int64(types.EventGetMainSeqByHash), msg.Ty)
+
+	chainlog.Info("testProcMainSeqMsg end --------------------")
 }

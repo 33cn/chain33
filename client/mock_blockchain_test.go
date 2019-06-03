@@ -162,6 +162,18 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				} else {
 					msg.ReplyErr("transaction id must 9999", types.ErrInvalidParam)
 				}
+			case types.EventGetMainSeqByHash:
+				if req, ok := msg.GetData().(*types.ReqHash); ok && string(req.Hash) == "exist-hash" {
+					msg.Reply(client.NewMessage(blockchainKey, types.EventReplyMainSeqByHash, &types.Int64{Data: 9999}))
+				} else {
+					msg.ReplyErr("transaction hash is not exist-hash", types.ErrInvalidParam)
+				}
+			case types.EventGetLastBlockMainSequence:
+				if _, ok := msg.GetData().(*types.ReqNil); ok {
+					msg.Reply(client.NewMessage(blockchainKey, types.EventReplyLastBlockMainSequence, &types.Int64{Data: 9999}))
+				} else {
+					msg.ReplyErr("request must be nil", types.ErrInvalidParam)
+				}
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
