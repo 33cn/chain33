@@ -393,10 +393,13 @@ func (a *AddrBook) setKey(privkey, pubkey string) {
 
 //ResetPeerkey reset priv,pub key
 func (a *AddrBook) ResetPeerkey(privkey, pubkey string) {
-	a.keymtx.Lock()
-	defer a.keymtx.Unlock()
-	a.privkey = privkey
-	a.pubkey = pubkey
+
+	if privkey == "" || pubkey == "" {
+		a.initKey()
+		privkey, pubkey = a.GetPrivPubKey()
+	}
+
+	a.setKey(privkey, pubkey)
 	err := a.bookDb.Set([]byte(privKeyTag), []byte(privkey))
 	if err != nil {
 		panic(err)
