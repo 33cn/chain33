@@ -75,33 +75,3 @@ func TestCache(t *testing.T) {
 	//test timeline GetProperFee
 	assert.Equal(t, int64(100000), cache.GetProperFee())
 }
-
-func TestSimpleQueue_TotalFee(t *testing.T) {
-	subConfig := SubConfig{10, 100000}
-	cache := NewSimpleQueue(subConfig)
-	tx := &types.Transaction{Payload: []byte("123"), Fee: 100000}
-	item1 := &Item{Value: tx, Priority: tx.Fee, EnterTime: types.Now().Unix()}
-	cache.Push(item1)
-
-	tx2 := &types.Transaction{Payload: []byte("1234"), Fee: 100000}
-	item2 := &Item{Value: tx2, Priority: tx2.Fee, EnterTime: types.Now().Unix()}
-	cache.Push(item2)
-
-	var sumFee int64
-	cache.Walk(cache.Size(), func(it *Item) bool {
-		sumFee += it.Value.Fee
-		return true
-	})
-	assert.Equal(t, sumFee, cache.TotalFee())
-	assert.Equal(t, sumFee, int64(200000))
-
-	cache.Remove(string(tx2.Hash()))
-
-	var sumFee2 int64
-	cache.Walk(cache.Size(), func(it *Item) bool {
-		sumFee2 += it.Value.Fee
-		return true
-	})
-	assert.Equal(t, sumFee2, cache.TotalFee())
-	assert.Equal(t, sumFee2, int64(100000))
-}

@@ -93,7 +93,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 		return msg
 	}
 	if mem.cfg.IsLevelFee {
-		err = mem.checkLevelFee(tx, mem.cfg.MinTxFee)
+		err = mem.checkLevelFee(tx)
 		if err != nil {
 			msg.Data = err
 			return msg
@@ -122,24 +122,9 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 }
 
 // checkLevelFee 检查阶梯手续费
-func (mem *Mempool) checkLevelFee(tx *types.TransactionCache, minfee int64) error {
-	if int64(mem.Size()) < mem.cfg.PoolCacheSize/100 {
-		return nil
-	}
+func (mem *Mempool) checkLevelFee(tx *types.TransactionCache) error {
 	//获取mempool里所有交易手续费总和
-	sumFee := mem.cache.TotalFee()
-	var feeRate int64
-	switch {
-	case sumFee < 10000000:
-		return nil
-	case sumFee > 10000000 && sumFee < 100000000:
-		feeRate = 10 * minfee
-	case sumFee > 100000000:
-		feeRate = 100 * minfee
-	}
-	if feeRate > 10000000 {
-		feeRate = 10000000
-	}
+	feeRate := mem.GetProperFeeRate()
 	totalfee, err := tx.GetTotalFee(feeRate)
 	if err != nil {
 		return err
@@ -150,7 +135,36 @@ func (mem *Mempool) checkLevelFee(tx *types.TransactionCache, minfee int64) erro
 	return nil
 }
 
-//checkTxList 检查账户余额是否足够，并加入到Mempool，成功则传入goodChan，若加入Mempool失败则传入badChan
+// GetProperFeeRate 获取合适的手续费率
+func (mem *Mempool) GetProperFeeRate() int64 {
+	baseFeeRate := mem.cache.GetProperFee()
+	if mem.cfg.IsLevelFee {
+		return mem.getLevelFeeRate(baseFeeRate)
+	}
+	return baseFeeRate
+}
+
+// getLevelFeeRate 获取合适的阶梯手续费率
+func (mem *Mempool) getLevelFeeRate(baseFeeRate int64) int64 {
+	var feeRate int64
+	sumByte := mem.cache.TotalByte()
+	maxTxNumber := types.GetP(mem.Height()).MaxTxNumber
+	switch {
+	case (sumByte > int64(types.MaxBlockSize/100) && sumByte < int64(types.MaxBlockSize/20)) ||
+		(int64(mem.Size()) >= maxTxNumber/10 && int64(mem.Size()) < maxTxNumber/2):
+		feeRate = 10 * baseFeeRate
+	case sumByte >= int64(types.MaxBlockSize/20) || int64(mem.Size()) >= maxTxNumber/2:
+		feeRate = 100 * baseFeeRate
+	default:
+		return baseFeeRate
+	}
+	if feeRate > 10000000 {
+		feeRate = 10000000
+	}
+	return feeRate
+}
+
+//checkTxRemote 检查账户余额是否足够，并加入到Mempool，成功则传入goodChan，若加入Mempool失败则传入badChan
 func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 	tx := msg.GetData().(types.TxGroup)
 	lastheader := mem.GetHeader()
