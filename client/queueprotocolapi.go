@@ -128,6 +128,12 @@ type QueueProtocolAPI interface {
 	//types.EventGetSequenceByHash:
 	GetSequenceByHash(param *types.ReqHash) (*types.Int64, error)
 
+	// 在平行链上获得主链Sequence相关的接口
+	//types.EventGetLastBlockSequence:
+	GetLastBlockMainSequence() (*types.Int64, error)
+	//types.EventGetSequenceByHash:
+	GetMainSequenceByHash(param *types.ReqHash) (*types.Int64, error)
+
 	// --------------- blockchain interfaces end
 
 	// +++++++++++++++ store interfaces begin

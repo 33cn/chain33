@@ -1196,3 +1196,26 @@ func TestGetBlockBySeq(t *testing.T) {
 	assert.NotNil(t, err)
 
 }
+
+func TestGetMainSeq(t *testing.T) {
+	net := queue.New("test-seq-api")
+	defer net.Close()
+
+	chain := &mockBlockChain{}
+	chain.SetQueueClient(net)
+	defer chain.Close()
+
+	api, err := client.New(net.Client(), nil)
+	assert.Nil(t, err)
+
+	seq, err := api.GetMainSequenceByHash(&types.ReqHash{Hash: []byte("exist-hash")})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(9999), seq.Data)
+
+	seq, err = api.GetMainSequenceByHash(&types.ReqHash{Hash: []byte("")})
+	assert.NotNil(t, err)
+
+	seq1, err := api.GetLastBlockMainSequence()
+	assert.Nil(t, err)
+	assert.Equal(t, int64(9999), seq1.Data)
+}

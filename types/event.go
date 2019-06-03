@@ -156,6 +156,12 @@ const (
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
+
+	// BlockChain 接收的事件
+	EventGetLastBlockMainSequence   = 300
+	EventReplyLastBlockMainSequence = 301
+	EventGetMainSeqByHash           = 302
+	EventReplyMainSeqByHash         = 303
 )
 
 var eventName = map[int]string{
@@ -301,5 +307,10 @@ var eventName = map[int]string{
 	//mempool
 	EventGetProperFee:   "EventGetProperFee",
 	EventReplyProperFee: "EventReplyProperFee",
-	EventTxListByHash:   "EventTxListByHash",
+    EventTxListByHash:   "EventTxListByHash",
+	// block chain
+	EventGetLastBlockMainSequence:   "EventGetLastBlockMainSequence",
+	EventReplyLastBlockMainSequence: "EventReplyLastBlockMainSequence",
+	EventGetMainSeqByHash:           "EventGetMainSeqByHash",
+	EventReplyMainSeqByHash:         "EventReplyMainSeqByHash",
 }
