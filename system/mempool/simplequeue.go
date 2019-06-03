@@ -18,7 +18,6 @@ type SubConfig struct {
 //SimpleQueue 简单队列模式(默认提供一个队列，便于测试)
 type SimpleQueue struct {
 	txList    *listmap.ListMap
-	totalFee  int64
 	subConfig SubConfig
 }
 
@@ -54,29 +53,22 @@ func (cache *SimpleQueue) Push(tx *Item) error {
 		return types.ErrMemFull
 	}
 	cache.txList.Push(string(hash), tx)
-	cache.totalFee += tx.Value.Fee
 	return nil
 }
 
 // Remove 删除数据
 func (cache *SimpleQueue) Remove(hash string) error {
-	value, err := cache.GetItem(hash)
+	_, err := cache.GetItem(hash)
 	if err != nil {
 		return err
 	}
 	cache.txList.Remove(hash)
-	cache.totalFee -= value.Value.Fee
 	return nil
 }
 
 // Size 数据总数
 func (cache *SimpleQueue) Size() int {
 	return cache.txList.Size()
-}
-
-// TotalFee 总手续费
-func (cache *SimpleQueue) TotalFee() int64 {
-	return cache.totalFee
 }
 
 // Walk 遍历整个队列
