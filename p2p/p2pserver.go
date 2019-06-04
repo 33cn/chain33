@@ -411,6 +411,7 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 	log.Debug("ServerStreamSend")
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
 	dataChain := s.addStreamHandler(peername)
+	defer s.deleteStream(peername, dataChain)
 	for data := range dataChain {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
@@ -452,8 +453,6 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 
 		err := stream.Send(p2pdata)
 		if err != nil {
-			//s.deleteSChan <- stream
-			//s.deleteInBoundPeerInfo(peername)
 			return err
 		}
 	}
@@ -736,7 +735,7 @@ func (s *P2pserver) pubToAllStream(data interface{}) {
 func (s *P2pserver) pubToStream(peerName string, data interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
-	ticker := time.NewTicker(time.Millisecond * 10)
+	ticker := time.NewTicker(time.Millisecond * 100)
 	defer ticker.Stop()
 	if dataChan, ok := s.streams[peerName]; ok {
 		select {
@@ -748,11 +747,13 @@ func (s *P2pserver) pubToStream(peerName string, data interface{}) {
 	}
 }
 
-func (s *P2pserver) deleteStream(peerName string) {
+func (s *P2pserver) deleteStream(peerName string, delChan chan interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
-	close(s.streams[peerName])
-	delete(s.streams, peerName)
+	if dataChan, ok := s.streams[peerName]; ok && dataChan == delChan {
+		close(s.streams[peerName])
+		delete(s.streams, peerName)
+	}
 }
 
 func (s *P2pserver) addInBoundPeerInfo(peername string, info innerpeer) {
@@ -765,10 +766,6 @@ func (s *P2pserver) deleteInBoundPeerInfo(peername string) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
 	delete(s.inboundpeers, peername)
-
-	//删除peer时,如果存在send流, 统一移除相关资源
-	s.deleteStream(peername)
-
 }
 
 func (s *P2pserver) getInBoundPeerInfo(peername string) *innerpeer {
