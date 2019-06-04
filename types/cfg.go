@@ -176,6 +176,8 @@ type P2P struct {
 	InnerBounds int32 `protobuf:"varint,15,opt,name=innerBounds" json:"innerBounds,omitempty"`
 	// 是否使用Github获取种子节点
 	UseGithub bool `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
+	//是否等待Pid
+	WaitPid bool `protobuf:"varint,17,opt,name=waitPid" json:"waitPid,omitempty"`
 }
 
 // RPC 配置

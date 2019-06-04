@@ -49,6 +49,7 @@ var (
 	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
 	versionCmd = flag.Bool("v", false, "version")
 	fixtime    = flag.Bool("fixtime", false, "fix time")
+	waitPid    = flag.Bool("waitpid", false, "p2p stuck until seed save info wallet & wallet unlock")
 )
 
 //RunChain33 : run Chain33
@@ -90,6 +91,9 @@ func RunChain33(name string) {
 	}
 	if *fixtime {
 		cfg.FixTime = *fixtime
+	}
+	if *waitPid {
+		cfg.P2P.WaitPid = *waitPid
 	}
 	//set test net flag
 	types.Init(cfg.Title, cfg)

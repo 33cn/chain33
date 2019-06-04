@@ -6,7 +6,6 @@
 package p2p
 
 import (
-	"flag"
 	"fmt"
 	"math/rand"
 	"sync/atomic"
@@ -22,8 +21,7 @@ import (
 )
 
 var (
-	log     = l.New("module", "p2p")
-	waitPid = flag.Bool("waitpid", false, "waitpid")
+	log = l.New("module", "p2p")
 )
 
 // P2p interface
@@ -140,12 +138,12 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 		p2p.subP2pMsg()
 		key, pub := p2p.node.nodeInfo.addrBook.GetPrivPubKey()
 		log.Debug("key pub:", pub, "")
-		if key == "" && *waitPid { //key为空，则为初始钱包，阻塞模式，一直等到钱包导入助记词，解锁
+		if key == "" && p2p.cfg.WaitPid { //key为空，则为初始钱包，阻塞模式，一直等到钱包导入助记词，解锁
 			if p2p.genAirDropKeyFromWallet() != nil {
 				return
 			}
 
-		} else if key == "" && !*waitPid {
+		} else if key == "" && !p2p.cfg.WaitPid {
 			//创建随机Pid
 			p2p.node.nodeInfo.addrBook.ResetPeerkey(key, pub)
 			go p2p.genAirDropKeyFromWallet()
