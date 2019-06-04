@@ -37,29 +37,29 @@ var (
 	privKey, _ = c.PrivKeyFromBytes(a)
 	random     *rand.Rand
 	mainPriv   crypto.PrivKey
-	toAddr            = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
-	amount            = int64(1e8)
-	v                 = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
-	bigByte    []byte = make([]byte, 99510)
-	transfer          = &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
-	tx1               = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: toAddr}
-	tx2               = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
-	tx3               = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: toAddr}
-	tx4               = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To: toAddr}
-	tx5               = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0, To: toAddr}
-	tx6               = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0, To: toAddr}
-	tx7               = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0, To: toAddr}
-	tx8               = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0, To: toAddr}
-	tx9               = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0, To: toAddr}
-	tx10              = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0, To: toAddr}
-	tx11              = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To: toAddr}
-	tx12              = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr}
-	tx13              = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr}
-	tx14              = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: "notaddress"}
-	tx15              = &types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
-	tx16              = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000, Expire: 3, To: toAddr}
-	tx17              = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000, Expire: 4, To: toAddr}
-	tx18              = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 4000000, Expire: 4, To: toAddr}
+	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	amount     = int64(1e8)
+	v          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
+	bigByte    = make([]byte, 99510)
+	transfer   = &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
+	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: toAddr}
+	tx2        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+	tx3        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: toAddr}
+	tx4        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To: toAddr}
+	tx5        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0, To: toAddr}
+	tx6        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0, To: toAddr}
+	tx7        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0, To: toAddr}
+	tx8        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0, To: toAddr}
+	tx9        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0, To: toAddr}
+	tx10       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0, To: toAddr}
+	tx11       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To: toAddr}
+	tx12       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr}
+	tx13       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr}
+	tx14       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: "notaddress"}
+	tx15       = &types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+	tx16       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000, Expire: 3, To: toAddr}
+	tx17       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000, Expire: 4, To: toAddr}
+	tx18       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 4000000, Expire: 4, To: toAddr}
 
 	bigTx1  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 100100000, Expire: 0, To: toAddr}
 	bigTx2  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 100100000, Expire: 11, To: toAddr}
@@ -72,7 +72,6 @@ var (
 	bigTx9  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 17, To: toAddr}
 	bigTx10 = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 18, To: toAddr}
 	bigTx11 = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 19, To: toAddr}
-	bigTx12 = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 10010000000, Expire: 19, To: toAddr}
 )
 
 //var privTo, _ = c.GenKey()
