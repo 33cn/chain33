@@ -242,8 +242,8 @@ func (a *AddrBook) genPubkey(privkey string) string {
 
 func (a *AddrBook) loadDb() bool {
 	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
-	privkey, _ := a.bookDb.Get([]byte(privKeyTag))
-	if len(privkey) != 0 {
+	privkey, err := a.bookDb.Get([]byte(privKeyTag))
+	if len(privkey) != 0 && err == nil {
 		a.setKey(string(privkey), a.genPubkey(string(privkey)))
 	}
 
