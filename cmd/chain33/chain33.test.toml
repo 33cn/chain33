@@ -54,7 +54,7 @@ version=216
 verMix=216
 verMax=217
 #waitPid 等待seed导入
-waitPid=true
+waitPid=false
 
 [rpc]
 jrpcBindAddr="localhost:8801"
