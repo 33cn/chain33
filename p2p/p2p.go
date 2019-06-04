@@ -138,15 +138,16 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 		p2p.subP2pMsg()
 		key, pub := p2p.node.nodeInfo.addrBook.GetPrivPubKey()
 		log.Debug("key pub:", pub, "")
-		if key == "" && p2p.cfg.WaitPid { //key为空，则为初始钱包，阻塞模式，一直等到钱包导入助记词，解锁
-			if p2p.genAirDropKeyFromWallet() != nil {
-				return
+		if key == "" {
+			if p2p.cfg.WaitPid { //key为空，则为初始钱包，阻塞模式，一直等到钱包导入助记词，解锁
+				if p2p.genAirDropKeyFromWallet() != nil {
+					return
+				}
+			} else {
+				//创建随机Pid,会同时出现node award ,airdropaddr
+				p2p.node.nodeInfo.addrBook.ResetPeerkey(key, pub)
+				go p2p.genAirDropKeyFromWallet()
 			}
-
-		} else if key == "" && !p2p.cfg.WaitPid {
-			//创建随机Pid
-			p2p.node.nodeInfo.addrBook.ResetPeerkey(key, pub)
-			go p2p.genAirDropKeyFromWallet()
 
 		} else {
 			//key 有两种可能，老版本的随机key,也有可能是seed的key, 非阻塞模式
