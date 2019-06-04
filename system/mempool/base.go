@@ -281,6 +281,35 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	return true
 }
 
+// GetProperFeeRate 获取合适的手续费率
+func (mem *Mempool) GetProperFeeRate() int64 {
+	baseFeeRate := mem.cache.GetProperFee()
+	if mem.cfg.IsLevelFee {
+		return mem.getLevelFeeRate(baseFeeRate)
+	}
+	return baseFeeRate
+}
+
+// getLevelFeeRate 获取合适的阶梯手续费率
+func (mem *Mempool) getLevelFeeRate(baseFeeRate int64) int64 {
+	var feeRate int64
+	sumByte := mem.cache.TotalByte()
+	maxTxNumber := types.GetP(mem.Height()).MaxTxNumber
+	switch {
+	case (sumByte > int64(types.MaxBlockSize/100) && sumByte < int64(types.MaxBlockSize/20)) ||
+		(int64(mem.Size()) >= maxTxNumber/10 && int64(mem.Size()) < maxTxNumber/2):
+		feeRate = 10 * baseFeeRate
+	case sumByte >= int64(types.MaxBlockSize/20) || int64(mem.Size()) >= maxTxNumber/2:
+		feeRate = 100 * baseFeeRate
+	default:
+		return baseFeeRate
+	}
+	if feeRate > 10000000 {
+		feeRate = 10000000
+	}
+	return feeRate
+}
+
 // Mempool.DelBlock将回退的区块内的交易重新加入mempool中
 func (mem *Mempool) delBlock(block *types.Block) {
 	if len(block.Txs) <= 0 {
