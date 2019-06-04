@@ -25,9 +25,8 @@ type P2pserver struct {
 	imtx         sync.Mutex //for inboundpeers
 	smtx         sync.Mutex
 	node         *Node
-	streams      map[pb.P2Pgservice_ServerStreamSendServer]chan interface{}
+	streams      map[string]chan interface{}
 	inboundpeers map[string]*innerpeer
-	deleteSChan  chan pb.P2Pgservice_ServerStreamSendServer
 	closed       int32
 }
 type innerpeer struct {
@@ -56,8 +55,7 @@ func (s *P2pserver) IsClose() bool {
 // NewP2pServer produce a p2pserver
 func NewP2pServer() *P2pserver {
 	return &P2pserver{
-		streams:      make(map[pb.P2Pgservice_ServerStreamSendServer]chan interface{}),
-		deleteSChan:  make(chan pb.P2Pgservice_ServerStreamSendServer, 1024),
+		streams:      make(map[string]chan interface{}),
 		inboundpeers: make(map[string]*innerpeer),
 	}
 
@@ -412,10 +410,7 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 
 	log.Debug("ServerStreamSend")
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
-
-	defer s.deleteInBoundPeerInfo(peername)
-	defer func() { s.deleteSChan <- stream }()
-	dataChain := s.addStreamHandler(stream)
+	dataChain := s.addStreamHandler(peername)
 	for data := range dataChain {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
@@ -687,7 +682,7 @@ func (s *P2pserver) loadMempool() (map[string]*pb.Transaction, error) {
 }
 
 func (s *P2pserver) manageStream() {
-	go s.deleteDisableStream()
+
 	go func() { //发送空的block stream ping
 		ticker := time.NewTicker(StreamPingTimeout)
 		defer ticker.Stop()
@@ -696,7 +691,7 @@ func (s *P2pserver) manageStream() {
 				return
 			}
 			<-ticker.C
-			s.addStreamData(&pb.P2PBlock{})
+			s.pubToAllStream(&pb.P2PBlock{})
 		}
 	}()
 	go func() {
@@ -705,51 +700,59 @@ func (s *P2pserver) manageStream() {
 			if s.IsClose() {
 				return
 			}
-			s.addStreamData(data)
+			s.pubToAllStream(data)
 		}
 		log.Info("p2pserver", "manageStream", "close")
 	}()
 }
 
-func (s *P2pserver) addStreamHandler(stream pb.P2Pgservice_ServerStreamSendServer) chan interface{} {
+func (s *P2pserver) addStreamHandler(peerName string) chan interface{} {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
-	s.streams[stream] = make(chan interface{}, 1024)
-	return s.streams[stream]
+	if dataChan, ok := s.streams[peerName]; ok {
+		//一个节点对应一个流, 重复打开两个流, 关闭老的数据管道
+		close(dataChan)
+	}
 
+	s.streams[peerName] = make(chan interface{}, 1024)
+	return s.streams[peerName]
 }
-
-func (s *P2pserver) addStreamData(data interface{}) {
+//发布数据到所有服务流
+func (s *P2pserver) pubToAllStream(data interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
-	timetikc := time.NewTicker(time.Second * 1)
-	defer timetikc.Stop()
-	for stream := range s.streams {
-		if _, ok := s.streams[stream]; !ok {
-			log.Error("AddStreamBLock", "No this Stream", "++++++")
-			continue
-		}
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for _,dataChan := range s.streams {
 		select {
-		case s.streams[stream] <- data:
+		case dataChan <- data:
 
-		case <-timetikc.C:
+		case <-ticker.C:
 			continue
 		}
-
-	}
-
-}
-
-func (s *P2pserver) deleteDisableStream() {
-	for stream := range s.deleteSChan {
-		s.deleteStream(stream)
 	}
 }
-func (s *P2pserver) deleteStream(stream pb.P2Pgservice_ServerStreamSendServer) {
+//发布数据到指定流
+func (s *P2pserver) pubToStream(peerName string, data interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
-	close(s.streams[stream])
-	delete(s.streams, stream)
+	ticker := time.NewTicker(time.Millisecond * 10)
+	defer ticker.Stop()
+	if dataChan, ok := s.streams[peerName]; ok {
+		select {
+		case dataChan <- data:
+
+		case <-ticker.C:
+			return
+		}
+	}
+}
+
+func (s *P2pserver) deleteStream(peerName string) {
+	s.smtx.Lock()
+	defer s.smtx.Unlock()
+	close(s.streams[peerName])
+	delete(s.streams, peerName)
 }
 
 func (s *P2pserver) addInBoundPeerInfo(peername string, info innerpeer) {
@@ -762,6 +765,9 @@ func (s *P2pserver) deleteInBoundPeerInfo(peername string) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
 	delete(s.inboundpeers, peername)
+
+	//删除peer时,如果存在send流, 统一移除相关资源
+	s.deleteStream(peername)
 
 }
 
