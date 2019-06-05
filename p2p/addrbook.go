@@ -390,7 +390,6 @@ func (a *AddrBook) ResetPeerkey(privkey, pubkey string) {
 		a.initKey()
 		privkey, pubkey = a.GetPrivPubKey()
 	}
-
 	a.setKey(privkey, pubkey)
 	err := a.bookDb.Set([]byte(privKeyTag), []byte(privkey))
 	if err != nil {
