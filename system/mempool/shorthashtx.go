@@ -54,7 +54,6 @@ func (cache *SHashTxCache) Push(tx *types.Transaction) {
 	}
 	cache.l.Push(shash, tx)
 	shashlog.Debug("SHashTxCache:Push", "shash", shash, "txhash", common.ToHex(tx.Hash()))
-	return
 }
 
 //Exist 是否存在
