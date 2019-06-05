@@ -270,14 +270,14 @@ func (p *Peer) sendStream() {
 					}
 
 					p2pdata.Value = &pb.BroadCastData_Block{Block: block}
-					Filter.RegRecvData(blockhash)
+					blockHashFilter.RegRecvData(blockhash)
 
 				} else if tx, ok := task.(*pb.P2PTx); ok {
 					hex.Encode(hash[:], tx.GetTx().Hash())
 					txhash := string(hash[:])
 					log.Debug("sendStream", "will send tx", txhash)
 					p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
-					Filter.RegRecvData(txhash)
+					txHashFilter.RegRecvData(txhash)
 				}
 
 				err := resp.Send(p2pdata)
@@ -375,13 +375,13 @@ func (p *Peer) readStream() {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
 					hex.Encode(hash[:], block.GetBlock().Hash())
 					blockhash := string(hash[:])
-					Filter.GetLock()
-					if Filter.QueryRecvData(blockhash) {
-						Filter.ReleaseLock()
+					blockHashFilter.GetLock()
+					if blockHashFilter.QueryRecvData(blockhash) {
+						blockHashFilter.ReleaseLock()
 						continue
 					}
-					Filter.RegRecvData(blockhash)
-					Filter.ReleaseLock()
+					blockHashFilter.RegRecvData(blockhash)
+					blockHashFilter.ReleaseLock()
 					//判断比自己低的区块，则不发送给blockchain
 
 					height, err := pcli.GetBlockHeight(p.node.nodeInfo)
@@ -409,13 +409,13 @@ func (p *Peer) readStream() {
 					hex.Encode(hash[:], tx.Tx.Hash())
 					txhash := string(hash[:])
 					log.Debug("readStream", "tx", txhash)
-					Filter.GetLock()
-					if Filter.QueryRecvData(txhash) {
-						Filter.ReleaseLock()
+					txHashFilter.GetLock()
+					if txHashFilter.QueryRecvData(txhash) {
+						txHashFilter.ReleaseLock()
 						continue //处理方式同上
 					}
-					Filter.RegRecvData(txhash)
-					Filter.ReleaseLock()
+					txHashFilter.RegRecvData(txhash)
+					txHashFilter.ReleaseLock()
 					msg := p.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
 					errs := p.node.nodeInfo.client.Send(msg, false)
 					if errs != nil {

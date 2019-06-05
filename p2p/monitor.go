@@ -200,7 +200,7 @@ func (n *Node) getAddrFromOnline() {
 					continue
 				}
 
-				if !n.nodeInfo.blacklist.Has(addr) || !Filter.QueryRecvData(addr) {
+				if !n.nodeInfo.blacklist.Has(addr) || !peerAddrFilter.QueryRecvData(addr) {
 					if ticktimes < 10 {
 						//如果连接了其他节点，优先不连接种子节点
 						if _, ok := n.innerSeeds.Load(addr); !ok {
@@ -448,7 +448,7 @@ func (n *Node) monitorDialPeers() {
 			log.Info("monitorDialPeers", "loop", "done")
 			return
 		}
-		if Filter.QueryRecvData(addr.(string)) {
+		if peerAddrFilter.QueryRecvData(addr.(string)) {
 			//先查询有没有注册进去，避免同时重复连接相同的地址
 			continue
 		}
@@ -485,10 +485,10 @@ func (n *Node) monitorDialPeers() {
 		}
 		dialCount++
 		//把待连接的节点增加到过滤容器中
-		Filter.RegRecvData(addr.(string))
+		peerAddrFilter.RegRecvData(addr.(string))
 		log.Info("monitorDialPeer", "dialCount", dialCount)
 		go func(netAddr *NetAddress) {
-			defer Filter.RemoveRecvData(netAddr.String())
+			defer peerAddrFilter.RemoveRecvData(netAddr.String())
 			peer, err := P2pComm.dialPeer(netAddr, n)
 			if err != nil {
 				//连接失败后
@@ -565,8 +565,8 @@ func (n *Node) monitorBlackList() {
 	}
 }
 
-func (n *Node) monitorFilter() {
-	Filter.ManageRecvFilter()
+func (n *Node) monitorpeerAddrFilter() {
+	peerAddrFilter.ManageRecvpeerAddrFilter()
 }
 
 //独立goroutine 监控配置的

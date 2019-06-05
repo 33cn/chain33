@@ -511,14 +511,14 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			hex.Encode(hash[:], block.GetBlock().Hash())
 			blockhash := string(hash[:])
 
-			Filter.GetLock()                     //通过锁的形式，确保原子操作
-			if Filter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
-				Filter.ReleaseLock() //释放锁
+			blockHashFilter.GetLock()                     //通过锁的形式，确保原子操作
+			if blockHashFilter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
+				blockHashFilter.ReleaseLock() //释放锁
 				continue
 			}
 
-			Filter.RegRecvData(blockhash) //注册已经收到的区块
-			Filter.ReleaseLock()          //释放锁
+			blockHashFilter.RegRecvData(blockhash) //注册已经收到的区块
+			blockHashFilter.ReleaseLock()          //释放锁
 
 			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(),
 				"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash", blockhash)
@@ -543,13 +543,13 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			hex.Encode(hash[:], tx.GetTx().Hash())
 			txhash := string(hash[:])
 			log.Debug("ServerStreamRead", "txhash:", txhash)
-			Filter.GetLock()
-			if Filter.QueryRecvData(txhash) { //同上
-				Filter.ReleaseLock()
+			txHashFilter.GetLock()
+			if txHashFilter.QueryRecvData(txhash) { //同上
+				txHashFilter.ReleaseLock()
 				continue
 			}
-			Filter.RegRecvData(txhash)
-			Filter.ReleaseLock()
+			txHashFilter.RegRecvData(txhash)
+			txHashFilter.ReleaseLock()
 			if tx.GetTx() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
 				err := s.node.nodeInfo.client.Send(msg, false)
