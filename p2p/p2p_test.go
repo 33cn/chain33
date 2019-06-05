@@ -407,7 +407,13 @@ func TestAddrBook(t *testing.T) {
 	assert.Equal(t, addrBook.genPubkey(hex.EncodeToString(prv)), pubstr)
 	addrBook.Save()
 	addrBook.GetAddrs()
+	addrBook.ResetPeerkey("", "")
+	privkey, _ := addrBook.GetPrivPubKey()
+	assert.NotEmpty(t, privkey)
 	addrBook.ResetPeerkey(hex.EncodeToString(prv), pubstr)
+	resetkey, _ := addrBook.GetPrivPubKey()
+	assert.NotEqual(t, resetkey, privkey)
+
 }
 
 func TestBytesToInt32(t *testing.T) {
