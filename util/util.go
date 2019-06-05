@@ -575,4 +575,3 @@ func (m *MockModule) Wait() {}
 
 // Close method
 func (m *MockModule) Close() {}
-
