@@ -31,13 +31,15 @@ type txCache struct {
 	*AccountTxIndex
 	*LastTxCache
 	qcache QueueCache
+	*SHashTxCache
 }
 
 //NewTxCache init accountIndex and last cache
-func newCache(maxTxPerAccount int64, sizeLast int64) *txCache {
+func newCache(maxTxPerAccount int64, sizeLast int64, poolCacheSize int64) *txCache {
 	return &txCache{
 		AccountTxIndex: NewAccountTxIndex(int(maxTxPerAccount)),
 		LastTxCache:    NewLastTxCache(int(sizeLast)),
+		SHashTxCache:   NewSHashTxCache(int(poolCacheSize)),
 	}
 }
 
@@ -59,6 +61,7 @@ func (cache *txCache) Remove(hash string) {
 	}
 	cache.AccountTxIndex.Remove(tx)
 	cache.LastTxCache.Remove(tx)
+	cache.SHashTxCache.Remove(tx)
 }
 
 //Exist 是否存在
@@ -107,6 +110,7 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		return err
 	}
 	cache.LastTxCache.Push(tx)
+	cache.SHashTxCache.Push(tx)
 	return nil
 }
 
@@ -130,4 +134,13 @@ func isExpired(item *Item, height, blockTime int64) bool {
 		return true
 	}
 	return false
+}
+
+//getTxByHash 通过交易hash获取tx交易信息
+func (cache *txCache) getTxByHash(hash string) *types.Transaction {
+	item, err := cache.qcache.GetItem(hash)
+	if err != nil {
+		return nil
+	}
+	return item.Value
 }

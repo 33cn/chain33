@@ -885,3 +885,37 @@ func execProcess(q queue.Queue) {
 		}
 	}()
 }
+
+func TestTx(t *testing.T) {
+	subConfig := SubConfig{10240, 10000}
+	cache := newCache(10240, 10, 10240)
+	cache.SetQueueCache(NewSimpleQueue(subConfig))
+	tx := &types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+
+	var replyTxList types.ReplyTxList
+	var sHastList types.ReqTxHashList
+	var hastList types.ReqTxHashList
+	for i := 1; i <= 10240; i++ {
+		tx.Expire = int64(i)
+		cache.Push(tx)
+		sHastList.Hashes = append(sHastList.Hashes, types.CalcTxShortHash(tx.Hash()))
+		hastList.Hashes = append(hastList.Hashes, string(tx.Hash()))
+	}
+
+	for i := 1; i <= 1600; i++ {
+		Tx := cache.GetSHashTxCache(sHastList.Hashes[i])
+		if Tx == nil {
+			panic("TestTx:GetSHashTxCache is nil")
+		}
+		replyTxList.Txs = append(replyTxList.Txs, Tx)
+	}
+
+	for i := 1; i <= 1600; i++ {
+		Tx := cache.getTxByHash(hastList.Hashes[i])
+		if Tx == nil {
+			panic("TestTx:getTxByHash is nil")
+		}
+		replyTxList.Txs = append(replyTxList.Txs, Tx)
+	}
+
+}
