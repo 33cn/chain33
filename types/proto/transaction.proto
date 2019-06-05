@@ -245,6 +245,6 @@ message UpgradeMeta {
 
 //通过交易hash获取交易列表，需要区分是短hash还是全hash值
 message ReqTxHashList {
-    repeated string hashes        = 1;
-    bool            isShortHash   = 2;
+    repeated string hashes      = 1;
+    bool            isShortHash = 2;
 }
