@@ -1025,7 +1025,7 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 		txdetail.Index = int64(param.index)
 		txdetail.Receipt = param.block.Receipts[param.index]
 		txdetail.Blocktime = param.block.Block.BlockTime
-
+		txdetail.Txhash = param.tx.Hash()
 		txdetail.ActionName = txdetail.Tx.ActionName()
 		txdetail.Amount, Err = param.tx.Amount()
 		if Err != nil {
@@ -1134,13 +1134,6 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		txdetail.Amount = txdetal.GetAmount()
 		txdetail.Fromaddr = txdetal.GetFromaddr()
 		txdetail.ActionName = txdetal.GetTx().ActionName()
-
-		//由于Withdraw的交易在blockchain模块已经做了from和to地址的swap的操作。
-		//所以在此需要swap恢复回去。通过钱包的GetTxDetailByIter接口上送给前端时再做from和to地址的swap
-		//确保保存在数据库中是的最原始的数据，提供给上层显示时可以做swap方便客户理解
-		if txdetail.GetTx().IsWithdraw() {
-			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
-		}
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {

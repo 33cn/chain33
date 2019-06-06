@@ -76,6 +76,17 @@ func TestConvertWalletTxDetailToJSON(t *testing.T) {
 	out := &WalletTxDetails{}
 	err := ConvertWalletTxDetailToJSON(in, out)
 	assert.NoError(t, err)
+
+	//test withdraw swap from to
+	detail.Fromaddr = "from"
+	detail.Tx.Payload, err = common.FromHex("0x180322301080c2d72f2205636f696e732a22314761485970576d71414a7371527772706f4e6342385676674b7453776a63487174")
+	assert.NoError(t, err)
+	tx.To = "to"
+	out = &WalletTxDetails{}
+	err = ConvertWalletTxDetailToJSON(in, out)
+	assert.NoError(t, err)
+	assert.Equal(t, "to", out.TxDetails[0].FromAddr)
+	assert.Equal(t, "from", detail.Tx.To)
 }
 
 func TestServer(t *testing.T) {
