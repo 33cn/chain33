@@ -285,7 +285,10 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 func (mem *Mempool) GetProperFeeRate() int64 {
 	baseFeeRate := mem.cache.GetProperFee()
 	if mem.cfg.IsLevelFee {
-		return mem.getLevelFeeRate(baseFeeRate)
+		levelFeeRate := mem.getLevelFeeRate(mem.cfg.MinTxFee)
+		if levelFeeRate > baseFeeRate {
+			return levelFeeRate
+		}
 	}
 	return baseFeeRate
 }
