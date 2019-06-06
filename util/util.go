@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"testing"
 	"unicode"
 
 	"strings"
@@ -127,8 +126,14 @@ func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 	return tx
 }
 
+//TestingT 测试类型
+type TestingT interface {
+	Error(args ...interface{})
+	Log(args ...interface{})
+}
+
 // JSONPrint : print in json format
-func JSONPrint(t *testing.T, input interface{}) {
+func JSONPrint(t TestingT, input interface{}) {
 	data, err := json.MarshalIndent(input, "", "\t")
 	if err != nil {
 		t.Error(err)

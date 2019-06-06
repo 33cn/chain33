@@ -9,6 +9,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/golang/protobuf/proto"
+
 	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -38,6 +40,7 @@ var (
 	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	amount     = int64(1e8)
 	v          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
+	bigByte    = make([]byte, 99510)
 	transfer   = &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: toAddr}
 	tx2        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
@@ -54,6 +57,21 @@ var (
 	tx13       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr}
 	tx14       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: "notaddress"}
 	tx15       = &types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+	tx16       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000, Expire: 3, To: toAddr}
+	tx17       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000, Expire: 4, To: toAddr}
+	tx18       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 4000000, Expire: 4, To: toAddr}
+
+	bigTx1  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 100100000, Expire: 0, To: toAddr}
+	bigTx2  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 100100000, Expire: 11, To: toAddr}
+	bigTx3  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 11, To: toAddr}
+	bigTx4  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 12, To: toAddr}
+	bigTx5  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 13, To: toAddr}
+	bigTx6  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 14, To: toAddr}
+	bigTx7  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 15, To: toAddr}
+	bigTx8  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 16, To: toAddr}
+	bigTx9  = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 17, To: toAddr}
+	bigTx10 = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 18, To: toAddr}
+	bigTx11 = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 19, To: toAddr}
 )
 
 //var privTo, _ = c.GenKey()
@@ -92,6 +110,21 @@ func init() {
 	tx13.Sign(types.SECP256K1, privKey)
 	tx14.Sign(types.SECP256K1, privKey)
 	tx15.Sign(types.SECP256K1, privKey)
+	tx16.Sign(types.SECP256K1, privKey)
+	tx17.Sign(types.SECP256K1, privKey)
+	tx18.Sign(types.SECP256K1, privKey)
+	bigTx1.Sign(types.SECP256K1, privKey)
+	bigTx2.Sign(types.SECP256K1, privKey)
+	bigTx3.Sign(types.SECP256K1, privKey)
+	bigTx4.Sign(types.SECP256K1, privKey)
+	bigTx5.Sign(types.SECP256K1, privKey)
+	bigTx6.Sign(types.SECP256K1, privKey)
+	bigTx7.Sign(types.SECP256K1, privKey)
+	bigTx8.Sign(types.SECP256K1, privKey)
+	bigTx9.Sign(types.SECP256K1, privKey)
+	bigTx10.Sign(types.SECP256K1, privKey)
+	bigTx11.Sign(types.SECP256K1, privKey)
+
 }
 
 func getprivkey(key string) crypto.PrivKey {
@@ -155,6 +188,27 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	}
 	var q = queue.New("channel")
 	cfg, _ := types.InitCfg("../../cmd/chain33/chain33.test.toml")
+	types.Init(cfg.Title, cfg)
+	blockchainProcess(q)
+	execProcess(q)
+	cfg.Mempool.PoolCacheSize = int64(size)
+	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
+	mem := NewMempool(cfg.Mempool)
+	mem.SetQueueCache(NewSimpleQueue(subConfig))
+	mem.SetQueueClient(q.Client())
+	mem.setSync(true)
+	mem.SetMinFee(types.GInt("MinFee"))
+	mem.Wait()
+	return q, mem
+}
+
+func initEnv4(size int) (queue.Queue, *Mempool) {
+	if size == 0 {
+		size = 100
+	}
+	var q = queue.New("channel")
+	cfg, _ := types.InitCfg("testdata/chain33.test.toml")
+
 	types.Init(cfg.Title, cfg)
 	blockchainProcess(q)
 	execProcess(q)
@@ -819,6 +873,211 @@ func TestAddTxGroup(t *testing.T) {
 	if !reply.GetIsOk() {
 		t.Error("TestAddTxGroup failed", string(reply.GetMsg()))
 	}
+}
+
+func TestLevelFeeBigByte(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+	defer func() {
+		mem.cfg.IsLevelFee = false
+	}()
+	mem.cfg.IsLevelFee = true
+	mem.SetMinFee(100000)
+	msg0 := mem.client.NewMessage("mempool", types.EventTx, tx1)
+	mem.client.Send(msg0, true)
+	resp0, _ := mem.client.Wait(msg0)
+	if string(resp0.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp0.GetData().(*types.Reply).GetMsg()))
+	}
+
+	msg00 := mem.client.NewMessage("mempool", types.EventTx, tx17)
+	mem.client.Send(msg00, true)
+	resp00, _ := mem.client.Wait(msg00)
+	if string(resp00.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp00.GetData().(*types.Reply).GetMsg()))
+	}
+
+	msgBig1 := mem.client.NewMessage("mempool", types.EventTx, bigTx1)
+	mem.client.Send(msgBig1, true)
+	respBig1, _ := mem.client.Wait(msgBig1)
+	if string(respBig1.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(respBig1.GetData().(*types.Reply).GetMsg()))
+	}
+
+	msgBig2 := mem.client.NewMessage("mempool", types.EventTx, bigTx2)
+	mem.client.Send(msgBig2, true)
+	respBig2, _ := mem.client.Wait(msgBig2)
+	if string(respBig2.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(respBig2.GetData().(*types.Reply).GetMsg()))
+	}
+
+	msgBig3 := mem.client.NewMessage("mempool", types.EventTx, bigTx3)
+	mem.client.Send(msgBig3, true)
+	respBig3, _ := mem.client.Wait(msgBig3)
+	if string(respBig3.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(respBig3.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test low fee , feeRate = 10 * minfee
+	msg2 := mem.client.NewMessage("mempool", types.EventTx, tx16)
+	mem.client.Send(msg2, true)
+	resp2, _ := mem.client.Wait(msg2)
+	if string(resp2.GetData().(*types.Reply).GetMsg()) != types.ErrTxFeeTooLow.Error() {
+		t.Error(string(resp2.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test high fee , feeRate = 10 * minfee
+	msg3 := mem.client.NewMessage("mempool", types.EventTx, tx6)
+	mem.client.Send(msg3, true)
+	resp3, _ := mem.client.Wait(msg3)
+	if string(resp3.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp3.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test group high fee , feeRate = 10 * minfee
+	txGroup, err := types.CreateTxGroup([]*types.Transaction{bigTx4, bigTx5, bigTx6, bigTx7, bigTx8, bigTx9, bigTx10, bigTx11})
+	if err != nil {
+		t.Error("CreateTxGroup err ", err.Error())
+	}
+	for i := range txGroup.Txs {
+		err := txGroup.SignN(i, types.SECP256K1, mainPriv)
+		if err != nil {
+			t.Error("TestAddTxGroup SignNfailed ", err.Error())
+		}
+	}
+	bigtxGroup := txGroup.Tx()
+
+	msgBigG := mem.client.NewMessage("mempool", types.EventTx, bigtxGroup)
+	mem.client.Send(msgBigG, true)
+	respBigG, _ := mem.client.Wait(msgBigG)
+	if string(respBigG.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(respBigG.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test low fee , feeRate = 100 * minfee
+	msg4 := mem.client.NewMessage("mempool", types.EventTx, tx18)
+	mem.client.Send(msg4, true)
+	resp4, _ := mem.client.Wait(msg4)
+	if string(resp4.GetData().(*types.Reply).GetMsg()) != types.ErrTxFeeTooLow.Error() {
+		t.Error(string(resp4.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test high fee , feeRate = 100 * minfee
+	msg5 := mem.client.NewMessage("mempool", types.EventTx, tx8)
+	mem.client.Send(msg5, true)
+	resp5, _ := mem.client.Wait(msg5)
+	if string(resp5.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp5.GetData().(*types.Reply).GetMsg()))
+	}
+}
+func TestLevelFeeTxNum(t *testing.T) {
+	q, mem := initEnv4(0)
+	defer q.Close()
+	defer mem.Close()
+	defer func() {
+		mem.cfg.IsLevelFee = false
+	}()
+	mem.cfg.IsLevelFee = true
+	mem.SetMinFee(100000)
+
+	//test low fee , feeRate = 10 * minfee
+	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx16)
+	mem.client.Send(msg1, true)
+	resp1, _ := mem.client.Wait(msg1)
+	if string(resp1.GetData().(*types.Reply).GetMsg()) != types.ErrTxFeeTooLow.Error() {
+		t.Error(string(resp1.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test high fee , feeRate = 10 * minfee
+	msg2 := mem.client.NewMessage("mempool", types.EventTx, tx6)
+	mem.client.Send(msg2, true)
+	resp2, _ := mem.client.Wait(msg2)
+	if string(resp2.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp2.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test high fee , feeRate = 10 * minfee
+	msg3 := mem.client.NewMessage("mempool", types.EventTx, tx7)
+	mem.client.Send(msg3, true)
+	resp3, _ := mem.client.Wait(msg3)
+	if string(resp3.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp3.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test low fee , feeRate = 100 * minfee
+	msg4 := mem.client.NewMessage("mempool", types.EventTx, tx18)
+	mem.client.Send(msg4, true)
+	resp4, _ := mem.client.Wait(msg4)
+	if string(resp4.GetData().(*types.Reply).GetMsg()) != types.ErrTxFeeTooLow.Error() {
+		t.Error(string(resp4.GetData().(*types.Reply).GetMsg()))
+	}
+
+	//test high fee , feeRate = 100 * minfee
+	msg5 := mem.client.NewMessage("mempool", types.EventTx, tx8)
+	mem.client.Send(msg5, true)
+	resp5, _ := mem.client.Wait(msg5)
+	if string(resp5.GetData().(*types.Reply).GetMsg()) != "" {
+		t.Error(string(resp5.GetData().(*types.Reply).GetMsg()))
+	}
+}
+
+func TestSimpleQueue_TotalFee(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+	txa := &types.Transaction{Payload: []byte("123"), Fee: 100000}
+	mem.cache.Push(txa)
+
+	txb := &types.Transaction{Payload: []byte("1234"), Fee: 100000}
+	mem.cache.Push(txb)
+
+	var sumFee int64
+	mem.cache.Walk(mem.cache.Size(), func(it *Item) bool {
+		sumFee += it.Value.Fee
+		return true
+	})
+	assert.Equal(t, sumFee, mem.cache.TotalFee())
+	assert.Equal(t, sumFee, int64(200000))
+
+	mem.cache.Remove(string(txb.Hash()))
+
+	var sumFee2 int64
+	mem.cache.Walk(mem.cache.Size(), func(it *Item) bool {
+		sumFee2 += it.Value.Fee
+		return true
+	})
+	assert.Equal(t, sumFee2, mem.cache.TotalFee())
+	assert.Equal(t, sumFee2, int64(100000))
+}
+
+func TestSimpleQueue_TotalByte(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+	txa := &types.Transaction{Payload: []byte("123"), Fee: 100000}
+	mem.cache.Push(txa)
+
+	txb := &types.Transaction{Payload: []byte("1234"), Fee: 100000}
+	mem.cache.Push(txb)
+
+	var sumByte int64
+	mem.cache.Walk(mem.cache.Size(), func(it *Item) bool {
+		sumByte += int64(proto.Size(it.Value))
+		return true
+	})
+	assert.Equal(t, sumByte, mem.cache.TotalByte())
+	assert.Equal(t, sumByte, int64(19))
+
+	mem.cache.Remove(string(txb.Hash()))
+
+	var sumByte2 int64
+	mem.cache.Walk(mem.cache.Size(), func(it *Item) bool {
+		sumByte2 += int64(proto.Size(it.Value))
+		return true
+	})
+	assert.Equal(t, sumByte2, mem.cache.TotalByte())
+	assert.Equal(t, sumByte2, int64(9))
 }
 
 func BenchmarkMempool(b *testing.B) {

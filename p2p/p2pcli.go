@@ -361,18 +361,21 @@ func (m *Cli) GetHeaders(msg *queue.Message, taskindex int64) {
 	req := msg.GetData().(*pb.ReqBlocks)
 	pid := req.GetPid()
 	if len(pid) == 0 {
+		log.Debug("GetHeaders:pid is nil")
 		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{Msg: []byte("no pid")}))
 		return
 	}
 
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
 	peers, infos := m.network.node.GetActivePeers()
+	var pidIsActivePeer bool
+
 	for paddr, info := range infos {
 		if info.GetName() == pid[0] { //匹配成功
 			peer, ok := peers[paddr]
 			if ok && peer != nil {
 				var err error
-
+				pidIsActivePeer = true
 				headers, err := peer.mconn.gcli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
 					Version: m.network.node.nodeInfo.cfg.Version}, grpc.FailFast(true))
 				P2pComm.CollectPeerStat(err, peer)
@@ -393,6 +396,10 @@ func (m *Cli) GetHeaders(msg *queue.Message, taskindex int64) {
 				}
 			}
 		}
+	}
+	//当请求的pid不是ActivePeer时需要打印日志方便问题定位
+	if !pidIsActivePeer {
+		log.Debug("GetHeaders", "pid", pid[0], "ActivePeers", peers, "infos", infos)
 	}
 }
 
@@ -458,7 +465,7 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 	}
 
 	if len(downloadPeers) == 0 {
-		log.Error("GetBlocks", "downloadPeers", 0)
+		log.Error("GetBlocks", "downloadPeers", 0, "peers", peers, "infos", infos)
 		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{Msg: []byte("no downloadPeers")}))
 		return
 	}

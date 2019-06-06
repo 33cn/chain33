@@ -348,6 +348,28 @@ func (tx *TransactionCache) Check(height, minfee, maxFee int64) error {
 	return tx.checkok
 }
 
+//GetTotalFee 获取交易真实费用
+func (tx *TransactionCache) GetTotalFee(minFee int64) (int64, error) {
+	txgroup, err := tx.GetTxGroup()
+	if err != nil {
+		tx.checkok = err
+		return 0, err
+	}
+	var totalfee int64
+	if txgroup == nil {
+		return tx.GetRealFee(minFee)
+	}
+	txs := txgroup.Txs
+	for i := 0; i < len(txs); i++ {
+		fee, err := txs[i].GetRealFee(minFee)
+		if err != nil {
+			return 0, err
+		}
+		totalfee += fee
+	}
+	return totalfee, nil
+}
+
 //GetTxGroup 获取交易组
 func (tx *TransactionCache) GetTxGroup() (*Transactions, error) {
 	var err error

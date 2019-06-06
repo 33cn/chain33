@@ -286,6 +286,12 @@ func Init(t string, cfg *Config) {
 				panic("config CoinSymbol must without '-'")
 			}
 			coinSymbol = cfg.CoinSymbol
+		} else {
+			if isPara() {
+				panic("must config CoinSymbol in para chain")
+			} else {
+				coinSymbol = DefaultCoinsSymbol
+			}
 		}
 	}
 	//local 只用于单元测试

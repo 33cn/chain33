@@ -58,6 +58,10 @@ func (cache *SimpleQueue) Push(tx *Item) error {
 
 // Remove 删除数据
 func (cache *SimpleQueue) Remove(hash string) error {
+	_, err := cache.GetItem(hash)
+	if err != nil {
+		return err
+	}
 	cache.txList.Remove(hash)
 	return nil
 }
