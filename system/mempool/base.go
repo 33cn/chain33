@@ -301,7 +301,7 @@ func (mem *Mempool) getLevelFeeRate(baseFeeRate int64) int64 {
 	case sumByte >= int64(types.MaxBlockSize/100)|| int64(mem.Size()) >= maxTxNumber/10:
 		feeRate = 10 * baseFeeRate
 	default:
-		return baseFeeRate
+		feeRate = baseFeeRate
 	}
 	if feeRate > 10000000 {
 		feeRate = 10000000
