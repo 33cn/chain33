@@ -225,7 +225,7 @@ func (t *Tree) Save() []byte {
 
 		beg := types.Now()
 		err := t.ndb.Commit()
-		treelog.Info("tree.commit", "cost", types.Since(beg))
+		treelog.Debug("tree.commit", "cost", types.Since(beg))
 		if err != nil {
 			return nil
 		}

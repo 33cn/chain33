@@ -1124,7 +1124,7 @@ func (bs *BlockStore) GetStoreUpgradeMeta() (*types.UpgradeMeta, error) {
 //SetStoreUpgradeMeta 设置blockchain中的Store的数据库版本号
 func (bs *BlockStore) SetStoreUpgradeMeta(meta *types.UpgradeMeta) error {
 	verByte := types.Encode(meta)
-	storeLog.Info("SetStoreUpgradeMeta", "meta", meta)
+	storeLog.Debug("SetStoreUpgradeMeta", "meta", meta)
 	return bs.db.SetSync(version.StoreDBMeta, verByte)
 }
 

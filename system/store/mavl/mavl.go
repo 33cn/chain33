@@ -126,7 +126,7 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		mlog.Info("MemSet", "cost", types.Since(beg))
+		mlog.Debug("MemSet", "cost", types.Since(beg))
 	}()
 	if len(datas.KV) == 0 {
 		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
@@ -151,7 +151,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		mlog.Info("Commit", "cost", types.Since(beg))
+		mlog.Debug("Commit", "cost", types.Since(beg))
 	}()
 	tree, ok := mavls.trees.Load(string(req.Hash))
 	if !ok {
@@ -176,7 +176,7 @@ func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 func (mavls *Store) MemSetUpgrade(datas *types.StoreSet, sync bool) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		mlog.Info("MemSet", "cost", types.Since(beg))
+		mlog.Debug("MemSet", "cost", types.Since(beg))
 	}()
 	if len(datas.KV) == 0 {
 		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
@@ -205,7 +205,7 @@ func (mavls *Store) CommitUpgrade(req *types.ReqHash) ([]byte, error) {
 func (mavls *Store) Rollback(req *types.ReqHash) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		mlog.Info("Rollback", "cost", types.Since(beg))
+		mlog.Debug("Rollback", "cost", types.Since(beg))
 	}()
 	_, ok := mavls.trees.Load(string(req.Hash))
 	if !ok {
