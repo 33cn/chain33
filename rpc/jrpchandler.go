@@ -298,7 +298,8 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 	}
 	// swap from with to
 	if tx.GetTx().IsWithdraw() {
-		tx.Fromaddr, tran.To = tran.To, tx.Fromaddr
+		tx.Fromaddr, tx.Tx.To = tx.Tx.To, tx.Fromaddr
+		tran.To = tx.Tx.GetRealToAddr()
 	}
 	return &rpctypes.TransactionDetail{
 		Tx:         tran,

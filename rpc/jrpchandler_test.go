@@ -1405,3 +1405,21 @@ func TestChain33_ConvertExectoAddr(t *testing.T) {
 	err := client.ConvertExectoAddr(rpctypes.ExecNameParm{ExecName: "coins"}, &testResult)
 	assert.NoError(t, err)
 }
+
+func Test_fmtTxDetail(t *testing.T) {
+
+	tx := &types.Transaction{Execer: []byte("coins")}
+	log := &types.ReceiptLog{Ty: 0, Log: []byte("test")}
+	receipt := &types.ReceiptData{Ty: 0, Logs: []*types.ReceiptLog{log}}
+	detail := &types.TransactionDetail{Tx: tx, Receipt: receipt}
+	var err error
+	//test withdraw swap from to
+	detail.Fromaddr = "from"
+	detail.Tx.Payload, err = common.FromHex("0x180322301080c2d72f2205636f696e732a22314761485970576d71414a7371527772706f4e6342385676674b7453776a63487174")
+	assert.NoError(t, err)
+	tx.To = "to"
+	tran, err := fmtTxDetail(detail, false)
+	assert.NoError(t, err)
+	assert.Equal(t, "to", tran.Fromaddr)
+	assert.Equal(t, "from", tx.To)
+}
