@@ -243,7 +243,6 @@ message UpgradeMeta {
     int64  height   = 3;
 }
 
-
 //通过交易hash获取交易列表，需要区分是短hash还是全hash值
 message ReqTxHashList {
     repeated string hashes      = 1;
