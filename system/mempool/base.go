@@ -59,7 +59,7 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	pool.cfg = cfg
 	pool.poolHeader = make(chan struct{}, 2)
 	pool.removeBlockTicket = time.NewTicker(time.Minute)
-	pool.cache = newCache(cfg.MaxTxNumPerAccount, cfg.MaxTxLast)
+	pool.cache = newCache(cfg.MaxTxNumPerAccount, cfg.MaxTxLast, cfg.PoolCacheSize)
 	return pool
 }
 
@@ -420,4 +420,27 @@ func (mem *Mempool) setSync(status bool) {
 	mem.proxyMtx.Lock()
 	mem.sync = status
 	mem.proxyMtx.Unlock()
+}
+
+// getTxListByHash 从qcache或者SHashTxCache中获取hash对应的tx交易列表
+func (mem *Mempool) getTxListByHash(hashList *types.ReqTxHashList) *types.ReplyTxList {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+
+	var replyTxList types.ReplyTxList
+
+	//通过短hash来获取tx交易
+	if hashList.GetIsShortHash() {
+		for _, sHash := range hashList.GetHashes() {
+			tx := mem.cache.GetSHashTxCache(sHash)
+			replyTxList.Txs = append(replyTxList.Txs, tx)
+		}
+		return &replyTxList
+	}
+	//通过hash来获取tx交易
+	for _, hash := range hashList.GetHashes() {
+		tx := mem.cache.getTxByHash(hash)
+		replyTxList.Txs = append(replyTxList.Txs, tx)
+	}
+	return &replyTxList
 }
