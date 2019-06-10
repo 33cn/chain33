@@ -103,4 +103,3 @@ func SetAppVersion(version string) {
 
 //v6.2.0
 //性能加速+mempool 阶梯手续费防止大区块攻击
-
