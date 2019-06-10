@@ -119,4 +119,12 @@ func saveSeed(cmd *cobra.Command, args []string) {
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
 	ctx.Run()
+	//钱包解锁60s
+	params1 := types.WalletUnLock{
+		Passwd:         pwd,
+		Timeout:        60,
+		WalletOrTicket: false,
+	}
+	var res1 rpctypes.Reply
+	jsonclient.NewRPCCtx(rpcLaddr, "Chain33.UnLock", params1, &res1)
 }
