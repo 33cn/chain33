@@ -1144,3 +1144,94 @@ func execProcess(q queue.Queue) {
 		}
 	}()
 }
+func TestTx(t *testing.T) {
+	subConfig := SubConfig{10240, 10000}
+	cache := newCache(10240, 10, 10240)
+	cache.SetQueueCache(NewSimpleQueue(subConfig))
+	tx := &types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+
+	var replyTxList types.ReplyTxList
+	var sHastList types.ReqTxHashList
+	var hastList types.ReqTxHashList
+	for i := 1; i <= 10240; i++ {
+		tx.Expire = int64(i)
+		cache.Push(tx)
+		sHastList.Hashes = append(sHastList.Hashes, types.CalcTxShortHash(tx.Hash()))
+		hastList.Hashes = append(hastList.Hashes, string(tx.Hash()))
+	}
+
+	for i := 1; i <= 1600; i++ {
+		Tx := cache.GetSHashTxCache(sHastList.Hashes[i])
+		if Tx == nil {
+			panic("TestTx:GetSHashTxCache is nil")
+		}
+		replyTxList.Txs = append(replyTxList.Txs, Tx)
+	}
+
+	for i := 1; i <= 1600; i++ {
+		Tx := cache.getTxByHash(hastList.Hashes[i])
+		if Tx == nil {
+			panic("TestTx:getTxByHash is nil")
+		}
+		replyTxList.Txs = append(replyTxList.Txs, Tx)
+	}
+}
+
+func TestEventTxListByHash(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	// add tx
+	hashes, err := add4TxHash(mem.client)
+	if err != nil {
+		t.Error("add tx error", err.Error())
+		return
+	}
+	//通过交易hash获取交易信息
+	reqTxHashList := types.ReqTxHashList{
+		Hashes:      hashes,
+		IsShortHash: false,
+	}
+	msg1 := mem.client.NewMessage("mempool", types.EventTxListByHash, &reqTxHashList)
+	mem.client.Send(msg1, true)
+	data1, err := mem.client.Wait(msg1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	txs1 := data1.GetData().(*types.ReplyTxList).GetTxs()
+
+	if len(txs1) != 4 {
+		t.Error("TestEventTxListByHash:get txlist number error")
+	}
+
+	for i, tx := range txs1 {
+		if hashes[i] != string(tx.Hash()) {
+			t.Error("TestEventTxListByHash:hash mismatch")
+		}
+	}
+
+	//通过短hash获取tx交易
+	var shashes []string
+	for _, hash := range hashes {
+		shashes = append(shashes, types.CalcTxShortHash([]byte(hash)))
+	}
+	reqTxHashList.Hashes = shashes
+	reqTxHashList.IsShortHash = true
+
+	msg2 := mem.client.NewMessage("mempool", types.EventTxListByHash, &reqTxHashList)
+	mem.client.Send(msg2, true)
+	data2, err := mem.client.Wait(msg2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txs2 := data2.GetData().(*types.ReplyTxList).GetTxs()
+	for i, tx := range txs2 {
+		if hashes[i] != string(tx.Hash()) {
+			t.Error("TestEventTxListByHash:shash mismatch")
+		}
+	}
+}

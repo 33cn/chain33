@@ -778,3 +778,11 @@ func ParseExpire(expire string) (int64, error) {
 
 	return 0, err
 }
+
+//CalcTxShortHash 取txhash的前指定字节，目前默认5
+func CalcTxShortHash(hash []byte) string {
+	if len(hash) >= 5 {
+		return hex.EncodeToString(hash[0:5])
+	}
+	return ""
+}

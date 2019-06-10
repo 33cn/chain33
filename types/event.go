@@ -151,8 +151,8 @@ const (
 	EventGetProperFee   = 140
 	EventReplyProperFee = 141
 
-	EventReExecBlock = 142
-
+	EventReExecBlock  = 142
+	EventTxListByHash = 143
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
@@ -301,4 +301,5 @@ var eventName = map[int]string{
 	//mempool
 	EventGetProperFee:   "EventGetProperFee",
 	EventReplyProperFee: "EventReplyProperFee",
+	EventTxListByHash:   "EventTxListByHash",
 }
