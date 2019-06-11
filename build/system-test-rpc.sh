@@ -438,12 +438,11 @@ chain33_NewAccount() {
 
 chain33_CreateRawTransaction() {
     local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
-    local exec="coins"
     local amount=10000000
     tx=$(curl -ksd '{"method":"Chain33.CreateRawTransaction","params":[{"to":"'$to'","amount":'$amount'}]}' ${MAIN_HTTP} | jq -r ".result")
 
     data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP} | jq -r ".result.txs[0]")
-    ok=$(jq '(.execer == "'$exec'") and (.to == "'$to'")' <<<"$data")
+    ok=$(jq '(.payload.transfer.amount == "'$amount'") and (.to == "'$to'")' <<<"$data")
 
     [ "$ok" == true ]
     rst=$?
@@ -452,13 +451,18 @@ chain33_CreateRawTransaction() {
 
 chain33_CreateTransaction() {
     local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
-    local exec="coins"
     local amount=10000000
+    local exec=""
+    if [ "$IS_PARA" == true ]; then
+        exec="user.p.para.coins"
+    else
+        exec="coins"
+    fi
 
-    tx=$(curl -ksd '{"method":"Chain33.CreateTransaction","params":[{"execer":"coins","actionName":"Transfer","payload":{"to":"'$to'", "amount":'$amount'}}]}' ${MAIN_HTTP} | jq -r ".result")
+    tx=$(curl -ksd '{"method":"Chain33.CreateTransaction","params":[{"execer":"'$exec'","actionName":"Transfer","payload":{"to":"'$to'", "amount":'$amount'}}]}' ${MAIN_HTTP} | jq -r ".result")
 
     data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP} | jq -r ".result.txs[0]")
-    ok=$(jq '(.execer == "'$exec'") and ((.payload.transfer.to) == "'$to'")' <<<"$data")
+    ok=$(jq '(.payload.transfer.amount == "'$amount'") and ((.payload.transfer.to) == "'$to'")' <<<"$data")
 
     [ "$ok" == true ]
     rst=$?
@@ -537,12 +541,25 @@ chain33_SendTransaction() {
 
 chain33_CreateNoBalanceTransaction() {
     local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
-    local txHex="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630a1938af2e88e97fb0d3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
+    local txHex=""
+    local exec=""
+    local coinexec=""
+
+    if [ "$IS_PARA" == true ]; then
+        exec="user.p.para.none"
+        coinexec="user.p.para.coins"
+        txHex="0a11757365722e702e706172612e636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630e6cbfbf1a7bafcb8263a2231415662506538776f524a7a7072507a4575707735554262433259507331344a4354"
+
+    else
+        exec="none"
+        coinexec="coins"
+        txHex="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630a1938af2e88e97fb0d3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
+    fi
 
     tx=$(curl -ksd '{"method":"Chain33.CreateNoBalanceTransaction","params":[{"txHex":"'$txHex'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
     data=$(curl -ksd '{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}' ${MAIN_HTTP})
-    ok=$(jq '(.error|not) and (.result.txs[0].execer == "none") and (.result.txs[0].groupCount == 2) and (.result.txs[1].execer == "coins") and (.result.txs[1].groupCount == 2) and (.result.txs[1].to == "'$to'")' <<<"$data")
+    ok=$(jq '(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].groupCount == 2) and (.result.txs[1].execer == "'$coinexec'") and (.result.txs[1].groupCount == 2) and (.result.txs[1].to == "'$to'")' <<<"$data")
 
     [ "$ok" == true ]
     rst=$?
