@@ -227,6 +227,7 @@ func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*
 			storelog.Error("GetTxDetailByIter", "proto.Unmarshal err:", err)
 			return nil, types.ErrUnmarshal
 		}
+		txdetail.Txhash = txdetail.GetTx().Hash()
 		txDetails.TxDetails[index] = &txdetail
 	}
 	return &txDetails, nil
