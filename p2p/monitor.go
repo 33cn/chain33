@@ -565,8 +565,8 @@ func (n *Node) monitorBlackList() {
 	}
 }
 
-func (n *Node) monitorpeerAddrFilter() {
-	peerAddrFilter.ManageRecvpeerAddrFilter()
+func (n *Node) monitorFilter() {
+	peerAddrFilter.ManageRecvFilter()
 }
 
 //独立goroutine 监控配置的

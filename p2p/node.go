@@ -49,8 +49,8 @@ func (n *Node) Close() {
 	n.nodeInfo.monitorChan <- nil
 	log.Debug("stop", "addrBook", "closed")
 	n.removeAll()
-	if Filter != nil {
-		Filter.Close()
+	if peerAddrFilter != nil {
+		peerAddrFilter.Close()
 	}
 	n.deleteNatMapPort()
 

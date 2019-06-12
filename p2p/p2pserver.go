@@ -416,47 +416,31 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 		if s.IsClose() {
 			return fmt.Errorf("node close")
 		}
-
-		innerpeer := s.getInBoundPeerInfo(peername)
-		if innerpeer != nil {
-			if !s.checkVersion(innerpeer.p2pversion) {
-				log.Error("ServerStreamSend CheckVersion", "version", innerpeer.p2pversion)
-				if innerpeer.p2pversion == 0 {
+		peerInfo := s.getInBoundPeerInfo(peername)
+		if peerInfo != nil {
+			if !s.checkVersion(peerInfo.p2pversion) {
+				log.Error("ServerStreamSend CheckVersion", "version", peerInfo.p2pversion)
+				if peerInfo.p2pversion == 0 {
 					return fmt.Errorf("version empty")
 				}
 				return pb.ErrVersion
 			}
+			//增加过滤，如果自己连接了远程节点，则不需要通过stream send 重复发送数据给这个节点
+			if s.node.Has(peerInfo.addr){
+				continue
+			}
 		} else {
 			return fmt.Errorf("no peer info")
 		}
-
-		p2pdata := new(pb.BroadCastData)
-		if block, ok := data.(*pb.P2PBlock); ok {
-			if block.GetBlock() != nil {
-				log.Debug("ServerStreamSend", "blockhash", hex.EncodeToString(block.GetBlock().GetTxHash()))
-			}
-
-			p2pdata.Value = &pb.BroadCastData_Block{Block: block}
-		} else if tx, ok := data.(*pb.P2PTx); ok {
-			log.Debug("ServerStreamSend", "txhash", hex.EncodeToString(tx.GetTx().Hash()))
-			p2pdata.Value = &pb.BroadCastData_Tx{Tx: tx}
-		} else {
-			log.Error("RoutChate", "Convert error", data)
+		sendData, doSend := s.node.processSendP2P(data, peerInfo.p2pversion)
+		if !doSend {
 			continue
 		}
-		//增加过滤，如果自己连接了远程节点，则不需要通过stream send 重复发送数据给这个节点
-		if peerinfo := s.getInBoundPeerInfo(peername); peerinfo != nil {
-			if s.node.Has(peerinfo.addr) {
-				continue
-			}
-		}
-
-		err := stream.Send(p2pdata)
+		err := stream.Send(sendData)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -479,105 +463,26 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		return fmt.Errorf("getctx err")
 	}
 
-	var hash [64]byte
+
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
 	defer stream.SendAndClose(&pb.ReqNil{})
-
-	var in = new(pb.BroadCastData)
 
 	for {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
 		}
-		in, err = stream.Recv()
+		in, err := stream.Recv()
 		if err != nil {
 			log.Error("ServerStreamRead", "Recv", err)
 			return err
 		}
 
-		if block := in.GetBlock(); block != nil {
-			innerpeer := s.getInBoundPeerInfo(peername)
-			if innerpeer != nil {
-				log.Error("ServerStreamRead CheckVersion", "version", innerpeer.p2pversion, "ip", remoteIP)
-				if !s.checkVersion(innerpeer.p2pversion) {
-					return pb.ErrVersion
-				}
-			} else {
-				log.Error("ServerStreamRead", "no peer info", "")
-				return fmt.Errorf("no peer info")
-			}
+		if s.node.processRecvP2P(in, peername, s.pubToStream){
 
-			hex.Encode(hash[:], block.GetBlock().Hash())
-			blockhash := string(hash[:])
-
-			blockHashFilter.GetLock()                     //通过锁的形式，确保原子操作
-			if blockHashFilter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
-				blockHashFilter.ReleaseLock() //释放锁
-				continue
-			}
-
-			blockHashFilter.RegRecvData(blockhash) //注册已经收到的区块
-			blockHashFilter.ReleaseLock()          //释放锁
-
-			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(),
-				"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash", blockhash)
-			if block.GetBlock() != nil {
-				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{Pid: peername, Block: block.GetBlock()})
-				err := s.node.nodeInfo.client.Send(msg, false)
-				if err != nil {
-					log.Error("send", "to blockchain EventBroadcastAddBlock msg err", err)
-				}
-			}
-
-		} else if tx := in.GetTx(); tx != nil {
-			innerpeer := s.getInBoundPeerInfo(peername)
-			if innerpeer != nil {
-				if !s.checkVersion(innerpeer.p2pversion) {
-					return pb.ErrVersion
-				}
-			} else {
-				return fmt.Errorf("no peer info")
-			}
-
-			hex.Encode(hash[:], tx.GetTx().Hash())
-			txhash := string(hash[:])
-			log.Debug("ServerStreamRead", "txhash:", txhash)
-			txHashFilter.GetLock()
-			if txHashFilter.QueryRecvData(txhash) { //同上
-				txHashFilter.ReleaseLock()
-				continue
-			}
-			txHashFilter.RegRecvData(txhash)
-			txHashFilter.ReleaseLock()
-			if tx.GetTx() != nil {
-				msg := s.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
-				err := s.node.nodeInfo.client.Send(msg, false)
-				if err != nil {
-					log.Error("send", "to mempool EventTx msg err", err)
-				}
-			}
-			//Filter.RegRecvData(txhash)
-
-		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
-			//Ping package
-			if !P2pComm.CheckSign(ping) {
-				log.Error("ServerStreamRead", "check stream", "check sig err")
-				return pb.ErrStreamPing
-			}
-
-			if s.node.Size() > 0 {
-
-				if remoteIP != LocalAddr && remoteIP != s.node.nodeInfo.GetExternalAddr().IP.String() {
-					s.node.nodeInfo.SetServiceTy(Service)
-				}
-			}
-			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
-			peeraddr = fmt.Sprintf("%s:%v", remoteIP, in.GetPing().GetPort())
-			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
-		} else if ver := in.GetVersion(); ver != nil {
+		}else if ver := in.GetVersion(); ver != nil {
 			//接收版本信息
-			peername := ver.GetPeername()
+			peername = ver.GetPeername()
 			softversion := ver.GetSoftversion()
 			p2pversion := ver.GetP2Pversion()
 			innerpeer := s.getInBoundPeerInfo(peername)
@@ -593,6 +498,22 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				return pb.ErrStreamPing
 			}
 
+		}else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
+			//Ping package
+			if !P2pComm.CheckSign(ping) {
+				log.Error("ServerStreamRead", "check stream", "check sig err")
+				return pb.ErrStreamPing
+			}
+
+			if s.node.Size() > 0 {
+
+				if remoteIP != LocalAddr && remoteIP != s.node.nodeInfo.GetExternalAddr().IP.String() {
+					s.node.nodeInfo.SetServiceTy(Service)
+				}
+			}
+			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
+			peeraddr = fmt.Sprintf("%s:%v", remoteIP, in.GetPing().GetPort())
+			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
 		}
 	}
 }
@@ -732,7 +653,7 @@ func (s *P2pserver) pubToAllStream(data interface{}) {
 	}
 }
 //发布数据到指定流
-func (s *P2pserver) pubToStream(peerName string, data interface{}) {
+func (s *P2pserver) pubToStream(data interface{}, peerName string) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
 	ticker := time.NewTicker(time.Millisecond * 100)

@@ -13,3 +13,8 @@ var VERSION int32
 //2018-3-26 更新内容
 // 1. p2p 过滤重复数据，改用blockhash 提换block height
 // 2. 增加p2p私钥自动导入到钱包功能
+
+var (
+	//广播区块内交易短哈希版本, 即轻广播版本
+	LightBroadCastVersion = int32(10030)
+)

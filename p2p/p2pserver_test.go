@@ -1,9 +1,6 @@
 package p2p
 
-
-
 import (
-
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -33,4 +30,8 @@ func Test_AddDelStream(t *testing.T) {
 
 	_, ok = s.streams[peerName]
 	assert.False(t, ok)
+}
+
+func Test_PubStream(t *testing.T) {
+
 }

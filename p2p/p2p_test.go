@@ -348,15 +348,16 @@ func TestP2pComm(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	go Filter.ManageRecvFilter()
-	defer Filter.Close()
-	Filter.GetLock()
+	filter := NewFilter(10)
+	go filter.ManageRecvFilter()
+	defer filter.Close()
+	filter.GetLock()
 
-	assert.Equal(t, true, Filter.RegRecvData("key"))
-	assert.Equal(t, true, Filter.QueryRecvData("key"))
-	Filter.RemoveRecvData("key")
-	assert.Equal(t, false, Filter.QueryRecvData("key"))
-	Filter.ReleaseLock()
+	assert.Equal(t, true, filter.RegRecvData("key"))
+	assert.Equal(t, true, filter.QueryRecvData("key"))
+	filter.RemoveRecvData("key")
+	assert.Equal(t, false, filter.QueryRecvData("key"))
+	filter.ReleaseLock()
 
 }
 
@@ -444,4 +445,24 @@ func TestP2pRestart(t *testing.T) {
 func TestP2pClose(t *testing.T) {
 	p2pModule.Close()
 	os.RemoveAll(dataDir)
+}
+
+
+func Test_spaceLimitCache(t *testing.T) {
+
+	c := newSpaceLimitCache(3, 10)
+	assert.True(t, c.add(1, 1, 1))
+	assert.True(t, c.add(1, 1, 1))
+	assert.False(t, c.add(2, 2, 20))
+	assert.Nil(t, c.get(2))
+	assert.True(t, c.add(2, 1, 10))
+	c.add(3, 2, 2)
+	c.add(4, 2, 2)
+	c.add(5, 2, 2)
+	c.add(6, 2, 2)
+	assert.False(t, c.contains(2))
+	assert.Equal(t, 3, c.data.Len())
+	assert.True(t, c.add(7, 7, 10))
+	assert.True(t, c.contains(7))
+	assert.Equal(t, 1, c.data.Len())
 }

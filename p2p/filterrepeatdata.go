@@ -15,7 +15,7 @@ import (
 
 // Filter  a Filter object
 var (
-	addrFilter = NewFilter(PeerAddrCacheNum)
+	peerAddrFilter = NewFilter(PeerAddrCacheNum)
 	txHashFilter = NewFilter(TxHashCacheNum)
 	blockHashFilter = NewFilter(BlockHashCacheNum)
 )

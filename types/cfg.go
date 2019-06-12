@@ -176,6 +176,10 @@ type P2P struct {
 	InnerBounds int32 `protobuf:"varint,15,opt,name=innerBounds" json:"innerBounds,omitempty"`
 	// 是否使用Github获取种子节点
 	UseGithub bool `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
+	// 交易开始采用哈希广播的ttl
+	StartLightTxTTL int32 `protobuf:"varint,17,opt,name=innerBounds" json:"startLightTxTTL,omitempty"`
+	// 最大传播ttl, ttl达到该值将停止继续向外发送
+	MaxTTL int32 `protobuf:"varint,18,opt,name=innerBounds" json:"maxTTL,omitempty"`
 }
 
 // RPC 配置
