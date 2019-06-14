@@ -11,7 +11,7 @@ import (
 var (
 
 	totalBlockCache = newSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
-	ltBlockCache = newSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize)
+	ltBlockCache = newSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
 )
 
 

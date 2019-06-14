@@ -28,6 +28,6 @@ const (
 
 
 // VERSION number
-const VERSION = minP2PVersion
+const VERSION = lightBroadCastVersion
 
 

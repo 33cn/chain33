@@ -71,8 +71,8 @@ const (
 	PeerAddrCacheNum = 1000
 	TxHashCacheNum = 10240
 	BlockHashCacheNum = 100
-	BlockCacheNum = 20
-	MaxBlockCacheByteSize = 50 * 1024 * 1024
+	BlockCacheNum = 10
+	MaxBlockCacheByteSize = 20 * 1024 * 1024
 )
 
 // TestNetSeeds test seeds of net

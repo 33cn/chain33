@@ -125,7 +125,7 @@ func (n *Node)sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion 
 	byteHash := tx.GetTx().Hash()
 	txHash := hex.EncodeToString(byteHash)
 	tx.Route = &types.P2PRoute{}
-	if oldInfo, ok := txHashFilter.Get(txHash).(types.P2PRoute);ok {
+	if oldInfo, ok := txHashFilter.Get(txHash).(*types.P2PRoute);ok {
 		tx.Route.TTL = oldInfo.TTL + 1
 	}else {
 		//本节点发起的交易, 记录哈希
