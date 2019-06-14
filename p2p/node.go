@@ -388,7 +388,7 @@ func (n *Node) detectNodeAddr() {
 				externalPort = defalutNatPort
 			}
 			if err != nil {
-				log.Error("bookDb Get", "externalPortTag fail err:", err)
+				log.Error("bookDb Get", "nodePort", n.listenPort, "externalPortTag fail err:", err)
 			}
 		}
 

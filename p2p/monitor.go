@@ -493,7 +493,7 @@ func (n *Node) monitorDialPeers() {
 			if err != nil {
 				//连接失败后
 				n.nodeInfo.addrBook.RemoveAddr(netAddr.String())
-				log.Error("monitorDialPeers", "Err", err.Error())
+				log.Error("monitorDialPeers", "peerAddr", netAddr.str, "Err", err.Error())
 				if err == types.ErrVersion { //版本不支持，加入黑名单12小时
 					peer.version.SetSupport(false)
 					P2pComm.CollectPeerStat(err, peer)

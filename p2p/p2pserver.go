@@ -611,7 +611,7 @@ func (s *P2pserver) manageStream() {
 				return
 			}
 			<-ticker.C
-			s.pubToAllStream(&pb.P2PBlock{})
+			s.pubToAllStream(&pb.P2PPing{})
 		}
 	}()
 	go func() {

@@ -4,8 +4,7 @@
 
 package p2p
 
-// VERSION number
-var VERSION int32
+
 
 //更新内容：
 // 1.p2p 修改为在nat结束后，在启动peer的stream，ping,version 等功能
@@ -14,7 +13,21 @@ var VERSION int32
 // 1. p2p 过滤重复数据，改用blockhash 提换block height
 // 2. 增加p2p私钥自动导入到钱包功能
 
-var (
-	//广播区块内交易短哈希版本, 即轻广播版本
-	LightBroadCastVersion = int32(10030)
+//p2p版本区间
+const (
+	minP2PVersion = 10020
+	maxP2PVersion = 11000
 )
+
+
+//历史版本
+const (
+	//p2p广播交易哈希而非完整区块数据
+	lightBroadCastVersion = 10030
+)
+
+
+// VERSION number
+const VERSION = minP2PVersion
+
+

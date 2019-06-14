@@ -11,11 +11,17 @@ import (
 type pubFuncType func(interface{}, string)
 
 func (n *Node)pubToPeer(data interface{}, pid string) {
-	n.pubsub.Pub(data, pid)
+	n.pubsub.FIFOPub(data, pid)
 }
 
 func (n *Node)processSendP2P(rawData interface{}, peerVersion int32) (sendData *types.BroadCastData, doSend bool){
-
+	//出错处理
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("processSendP2P_Panic", "recoverErr", r)
+			doSend = false
+		}
+	}()
 	sendData = &types.BroadCastData{}
 	doSend = false
 	if tx, ok := rawData.(*types.P2PTx); ok {
@@ -26,6 +32,9 @@ func (n *Node)processSendP2P(rawData interface{}, peerVersion int32) (sendData *
 		doSend = n.sendQueryData(query, sendData)
 	}else if rep, ok := rawData.(*types.P2PBlockTxReply); ok {
 		doSend = n.sendQueryReply(rep, sendData)
+	}else if ping, ok := rawData.(*types.P2PPing); ok {
+		doSend = true
+		sendData.Value = &types.BroadCastData_Ping{Ping:ping}
 	}
 
 	return
@@ -33,7 +42,13 @@ func (n *Node)processSendP2P(rawData interface{}, peerVersion int32) (sendData *
 
 func (n *Node)processRecvP2P(data *types.BroadCastData, pid string, pubPeerFunc pubFuncType) (handled bool){
 
-	//TODO: 网络接收数据不可靠, 有必要统一recovery异常
+	//接收网络数据不可靠
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("processRecvP2P_Panic", "recoverErr", r)
+		}
+	}()
+
 	if pid == "" {
 		return false
 	}
@@ -58,10 +73,13 @@ func (n *Node)processRecvP2P(data *types.BroadCastData, pid string, pubPeerFunc 
 
 func (n *Node)sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, peerVersion int32) (doSend bool) {
 
+	if block.Block == nil {
+		return false
+	}
 	byteHash := block.Block.Hash()
 	blockHash := hex.EncodeToString(byteHash)
 	log.Debug("sendStream", "will send block", blockHash)
-	if peerVersion >= LightBroadCastVersion {
+	if peerVersion >= lightBroadCastVersion {
 
 		if len(block.Block.Txs) < 1 {
 			return false
@@ -73,8 +91,8 @@ func (n *Node)sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pee
 		ltBlock.Header.Signature = block.Block.Signature
 		ltBlock.MinerTx = block.Block.Txs[0]
 		for _, tx := range block.Block.Txs[1:] {
-			//TODO: replace with short hash
-			ltBlock.STxHashes = append(ltBlock.STxHashes, hex.EncodeToString(tx.Hash()))
+			//tx short hash
+			ltBlock.STxHashes = append(ltBlock.STxHashes, types.CalcTxShortHash(tx.Hash()))
 		}
 
 		// cache block
@@ -101,6 +119,9 @@ func (n *Node)sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCas
 
 func (n *Node)sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion int32) (doSend bool){
 
+	if tx.GetTx() == nil {
+		return false
+	}
 	byteHash := tx.GetTx().Hash()
 	txHash := hex.EncodeToString(byteHash)
 	tx.Route = &types.P2PRoute{}
@@ -118,7 +139,7 @@ func (n *Node)sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion 
 	}
 
 	//新版本且ttl达到设定值
-	if peerVersion >= LightBroadCastVersion && tx.Route.TTL >= n.nodeInfo.cfg.StartLightTxTTL{
+	if peerVersion >= lightBroadCastVersion && tx.Route.TTL >= n.nodeInfo.cfg.StartLightTxTTL{
 		p2pData.Value = &types.BroadCastData_LtTx{
 			LtTx: &types.LightTx{
 				TxHash: byteHash,
@@ -141,7 +162,6 @@ func (n *Node)recvTx(tx *types.P2PTx) {
 	}
 	log.Debug("recvTx", "tx", txHash)
 	txHashFilter.Add(txHash, tx.Route)
-	txHashFilter.ReleaseLock()
 
 	msg := n.nodeInfo.client.NewMessage("mempool", types.EventTx, tx.GetTx())
 	errs := n.nodeInfo.client.Send(msg, false)
@@ -210,22 +230,40 @@ func (n *Node)recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pub
 	//add miner tx
 	block.Txs = append(block.Txs, ltBlock.MinerTx)
 
-	//get tx list from mempool, TODO:
-	resp, err := n.queryMempool(0, ltBlock.STxHashes)
+	//get tx list from mempool
+	resp, err := n.queryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes:ltBlock.STxHashes, IsShortHash:true})
 	if err != nil {
 		log.Error("queryMempoolTxWithHash", "err", err)
 		return
 	}
 
-	txList := resp.([]*types.Transaction)
+	txList, ok := resp.(*types.ReplyTxList)
+	if !ok {
+		log.Error("recvLtBlock", "queryMemPool", "nilReplyTxList")
+		txList = &types.ReplyTxList{}
+	}
 	nilTxIndices := make([]int32, 0)
-	for i, tx := range txList {
+	for i := 0; ok && i < len(txList.Txs); i++{
+		tx := txList.Txs[i]
 		if tx == nil {
 			//tx not exist in mempool
 			nilTxIndices = append(nilTxIndices, int32(i+1))
-		} else if tx.GroupCount > 0{
+		} else if tx.GetGroupCount() > 0{
 
-			//TODO
+			group, err := tx.GetTxGroup()
+			if err != nil {
+				log.Error("recvLtBlock", "getTxGroupErr", err)
+				//触发请求所有
+				nilTxIndices = nilTxIndices[:0]
+				break
+			}
+
+			for _, gtx := range group.Txs {
+				block.Txs = append(block.Txs, gtx)
+			}
+			//跳过遍历
+			i += len(group.Txs) - 1
+			continue
 		}
 
 
@@ -233,7 +271,7 @@ func (n *Node)recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pub
 	}
 
 	//需要比较交易根哈希是否一致, 不一致需要请求区块内所有的交易
-	if len(nilTxIndices) == 0 && bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)){
+	if len(block.Txs) == int(ltBlock.Header.TxCount) && bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)){
 
 		log.Info("recvBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer",
 			"block size(KB)", float32(ltBlock.Size)/1024, "blockHash", blockHash)
@@ -244,7 +282,15 @@ func (n *Node)recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pub
 
 		return
 	}
-	// query not exist txs, TODO:增加是否请求整个block判定逻辑
+
+	nilTxLen := len(nilTxIndices)
+	// 缺失的交易个数大于总数1/3 或者缺失数据大小大于2/3, 触发请求区块所有交易数据
+	if nilTxLen > 0 && (float32(nilTxLen) > float32(ltBlock.Header.TxCount)/3 ||
+		float32(block.Size()) < float32(ltBlock.Size)/3){
+		nilTxIndices = nilTxIndices[:0]
+	}
+
+	// query not exist txs
 	query := &types.P2PQueryData{
 		Value: &types.P2PQueryData_BlockTxReq{
 			BlockTxReq: &types.P2PBlockTxReq{
@@ -266,17 +312,19 @@ func (n *Node)recvQueryData(query *types.P2PQueryData, pid string, pubPeerFunc p
 		txHash := hex.EncodeToString(txReq.TxHash)
 		log.Debug("recvQueryTx", "txHash", txHash)
 		//向mempool请求交易
-		//get tx from mempool, TODO:
-		resp, err := n.queryMempool(0, txReq.TxHash)
+		//get tx from mempool
+		resp, err := n.queryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes:[]string{string(txReq.TxHash)}})
 		if err != nil {
 			log.Error("queryMempoolTxWithHash", "err", err)
 			return
 		}
 
 		p2pTx := &types.P2PTx{}
+
+		txList, ok := resp.(*types.ReplyTxList)
 		//返回的交易数组实际大小只有一个, for循环能省略空值等情况判断
-		for _, tx := range resp.([]*types.Transaction) {
-			p2pTx.Tx = tx
+		for i := 0; ok && i < len(txList.Txs); i++ {
+			p2pTx.Tx = txList.Txs[i]
 		}
 
 		if p2pTx.GetTx() == nil {
@@ -288,21 +336,21 @@ func (n *Node)recvQueryData(query *types.P2PQueryData, pid string, pubPeerFunc p
 			info.TTL = -1
 		}
 
-		n.pubsub.Pub(p2pTx, pid)
+		pubPeerFunc(p2pTx, pid)
 
 	}else if blcReq := query.GetBlockTxReq(); blcReq != nil {
 
 		log.Debug("recvQueryBlockTx", "blockHash", blcReq.BlockHash, "queryTxCount", len(blcReq.TxIndices))
-		if block, ok := blockHashFilter.Get(blcReq.BlockHash).(*types.Block); ok {
+		if block, ok := totalBlockCache.get(blcReq.BlockHash).(*types.Block); ok {
 
 			blockRep := &types.P2PBlockTxReply{BlockHash:blcReq.BlockHash}
 
-			for i, idx := range blcReq.TxIndices {
-				blockRep.TxIndices[i] = idx
+			blockRep.TxIndices = blcReq.TxIndices
+			for _, idx := range blcReq.TxIndices {
 				blockRep.Txs = append(blockRep.Txs, block.Txs[idx])
 			}
 			//请求所有的交易
-			if len(blockRep.Txs) == 0 {
+			if len(blockRep.TxIndices) == 0 {
 				blockRep.Txs = block.Txs
 			}
 			pubPeerFunc(blockRep, pid)

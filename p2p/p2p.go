@@ -42,17 +42,8 @@ type P2p struct {
 
 // New produce a p2p object
 func New(cfg *types.P2P) *P2p {
-	if cfg.Version == 0 {
-		if types.IsTestNet() {
-			cfg.Version = 119
-			cfg.VerMin = 118
-			cfg.VerMax = 128
-		} else {
-			cfg.Version = 10020
-			cfg.VerMin = 10020
-			cfg.VerMax = 11000
-		}
-	}
+
+	//TODO: p2p版本管理需要重新设计, 代码版本应该是不可配置的
 	if cfg.VerMin == 0 {
 		cfg.VerMin = cfg.Version
 	}
@@ -61,7 +52,25 @@ func New(cfg *types.P2P) *P2p {
 		cfg.VerMax = cfg.VerMin + 1
 	}
 
-	VERSION = cfg.Version
+	if cfg.Version == 0 {
+		if types.IsTestNet() {
+			cfg.Version = 119
+			cfg.VerMin = 118
+			cfg.VerMax = 128
+		} else {
+			cfg.Version = VERSION
+			cfg.VerMin = 10020
+			cfg.VerMax = 11000
+		}
+	}
+
+	if cfg.StartLightTxTTL <= 0 {
+		cfg.StartLightTxTTL = DefaultLtTxBroadCastTTl
+	}
+	if cfg.MaxTTL <= 0{
+		cfg.MaxTTL = DefaultMaxTxBroadCastTTL
+	}
+
 	log.Info("p2p", "Version", VERSION, "IsTest", types.IsTestNet())
 	if cfg.InnerBounds == 0 {
 		cfg.InnerBounds = 500
