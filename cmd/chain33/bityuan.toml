@@ -54,6 +54,8 @@ dbPath="datadir/addrbook"
 dbCache=4
 # GRPC请求日志文件
 grpcLogFile="grpc33.log"
+#waitPid 等待seed导入
+waitPid=false
 
 [rpc]
 # jrpc绑定地址

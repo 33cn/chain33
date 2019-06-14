@@ -1139,3 +1139,36 @@ func (q *QueueProtocol) GetSeqCallBackLastNum(param *types.ReqString) (*types.In
 	}
 	return nil, types.ErrTypeAsset
 }
+
+// GetLastBlockMainSequence 获取最新的block执行序列号
+func (q *QueueProtocol) GetLastBlockMainSequence() (*types.Int64, error) {
+	msg, err := q.query(blockchainKey, types.EventGetLastBlockMainSequence, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetLastBlockMainSequence", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int64); ok {
+
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+// GetMainSequenceByHash 通过hash获取对应的执行序列号
+func (q *QueueProtocol) GetMainSequenceByHash(param *types.ReqHash) (*types.Int64, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetMainSequenceByHash", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(blockchainKey, types.EventGetMainSeqByHash, param)
+	if err != nil {
+		log.Error("GetMainSequenceByHash", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int64); ok {
+
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}

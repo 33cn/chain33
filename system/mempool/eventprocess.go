@@ -90,6 +90,9 @@ func (mem *Mempool) eventProcess() {
 		case types.EventGetProperFee:
 			// 获取对应排队策略中合适的手续费
 			mem.eventGetProperFee(msg)
+			// 消息类型EventTxListByHash：通过hash获取对应的tx列表
+		case types.EventTxListByHash:
+			mem.eventTxListByHash(msg)
 		default:
 		}
 		mlog.Debug("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
@@ -189,9 +192,9 @@ func (mem *Mempool) eventGetAddrTxs(msg *queue.Message) {
 	msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
 }
 
-// eventGetProperFee 获取排队策略中合适的手续费
+// eventGetProperFee 获取排队策略中合适的手续费率
 func (mem *Mempool) eventGetProperFee(msg *queue.Message) {
-	properFee := mem.cache.qcache.GetProperFee()
+	properFee := mem.GetProperFeeRate()
 	msg.Reply(mem.client.NewMessage("rpc", types.EventReplyProperFee,
 		&types.ReplyProperFee{ProperFee: properFee}))
 }
@@ -204,4 +207,11 @@ func (mem *Mempool) checkSign(data *queue.Message) *queue.Message {
 	mlog.Error("wrong tx", "err", types.ErrSign)
 	data.Data = types.ErrSign
 	return data
+}
+
+// eventTxListByHash 通过hash获取tx列表
+func (mem *Mempool) eventTxListByHash(msg *queue.Message) {
+	shashList := msg.GetData().(*types.ReqTxHashList)
+	replytxList := mem.getTxListByHash(shashList)
+	msg.Reply(mem.client.NewMessage("", types.EventReplyTxList, replytxList))
 }

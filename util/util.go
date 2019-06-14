@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"testing"
 	"unicode"
 
 	"strings"
@@ -127,8 +126,14 @@ func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 	return tx
 }
 
+//TestingT 测试类型
+type TestingT interface {
+	Error(args ...interface{})
+	Log(args ...interface{})
+}
+
 // JSONPrint : print in json format
-func JSONPrint(t *testing.T, input interface{}) {
+func JSONPrint(t TestingT, input interface{}) {
 	data, err := json.MarshalIndent(input, "", "\t")
 	if err != nil {
 		t.Error(err)
@@ -252,7 +257,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Info("ExecBlock", "CheckTxDup", types.Since(beg))
+	ulog.Debug("ExecBlock", "CheckTxDup", types.Since(beg))
 	beg = types.Now()
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
@@ -265,7 +270,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Info("ExecBlock", "ExecTx", types.Since(beg))
+	ulog.Debug("ExecBlock", "ExecTx", types.Since(beg))
 	beg = types.Now()
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
@@ -309,7 +314,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}
-	ulog.Info("ExecBlock", "CalcMerkleRootCache", types.Since(beg))
+	ulog.Debug("ExecBlock", "CalcMerkleRootCache", types.Since(beg))
 	beg = types.Now()
 	block.TxHash = calcHash
 	var detail types.BlockDetail
@@ -340,7 +345,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			return nil, deltx, err
 		}
 	}
-	ulog.Info("ExecBlock", "CheckBlock", types.Since(beg))
+	ulog.Debug("ExecBlock", "CheckBlock", types.Since(beg))
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
 	err = ExecKVSetCommit(client, block.StateHash, false)
 	if err != nil {
@@ -371,7 +376,7 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 	if err != nil {
 		return err
 	}
-	ulog.Info("ExecBlockUpgrade", "ExecTx", types.Since(beg))
+	ulog.Debug("ExecBlockUpgrade", "ExecTx", types.Since(beg))
 	beg = types.Now()
 	var kvset []*types.KeyValue
 	for i := 0; i < len(receipts.Receipts); i++ {
@@ -387,7 +392,7 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 	if !bytes.Equal(block.StateHash, calcHash) {
 		return types.ErrCheckStateHash
 	}
-	ulog.Info("ExecBlockUpgrade", "CheckBlock", types.Since(beg))
+	ulog.Debug("ExecBlockUpgrade", "CheckBlock", types.Since(beg))
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
 	err = ExecKVSetCommit(client, calcHash, true)
 	return err

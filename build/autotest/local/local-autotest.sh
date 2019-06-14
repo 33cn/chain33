@@ -40,12 +40,10 @@ function config_chain33() {
     fi
 
     #update fee
-    sed -i $sedfix 's/Fee=.*/Fee=100000/' ${chain33Config}
-
-    #update block time
+    #    sed -i $sedfix 's/Fee=.*/Fee=100000/' ${chain33Config}
 
     #update wallet store driver
-    sed -i $sedfix '/^\[wallet\]/,/^\[wallet./ s/^driver.*/driver="leveldb"/' ${chain33Config}
+    #    sed -i $sedfix '/^\[wallet\]/,/^\[wallet./ s/^driver.*/driver="leveldb"/' ${chain33Config}
 }
 
 autotestConfig="autotest.toml"

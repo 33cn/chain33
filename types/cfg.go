@@ -68,6 +68,7 @@ type Mempool struct {
 	// 每个账户在mempool中得最大交易数量，默认100
 	MaxTxNumPerAccount int64 `protobuf:"varint,5,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
 	MaxTxLast          int64 `protobuf:"varint,6,opt,name=maxTxLast" json:"maxTxLast,omitempty"`
+	IsLevelFee         bool  `protobuf:"varint,7,opt,name=isLevelFee" json:"isLevelFee,omitempty"`
 }
 
 // Consensus 配置
@@ -176,10 +177,12 @@ type P2P struct {
 	InnerBounds int32 `protobuf:"varint,15,opt,name=innerBounds" json:"innerBounds,omitempty"`
 	// 是否使用Github获取种子节点
 	UseGithub bool `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
+	//是否等待Pid
+	WaitPid bool `protobuf:"varint,17,opt,name=waitPid" json:"waitPid,omitempty"`
 	// 交易开始采用哈希广播的ttl
-	StartLightTxTTL int32 `protobuf:"varint,17,opt,name=innerBounds" json:"startLightTxTTL,omitempty"`
+	StartLightTxTTL int32 `protobuf:"varint,18,opt,name=innerBounds" json:"startLightTxTTL,omitempty"`
 	// 最大传播ttl, ttl达到该值将停止继续向外发送
-	MaxTTL int32 `protobuf:"varint,18,opt,name=innerBounds" json:"maxTTL,omitempty"`
+	MaxTTL int32 `protobuf:"varint,19,opt,name=innerBounds" json:"maxTTL,omitempty"`
 }
 
 // RPC 配置

@@ -243,15 +243,7 @@ func (a *AddrBook) genPubkey(privkey string) string {
 func (a *AddrBook) loadDb() bool {
 	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
 	privkey, err := a.bookDb.Get([]byte(privKeyTag))
-	if len(privkey) == 0 || err != nil {
-		a.initKey()
-		privkey, _ := a.GetPrivPubKey()
-		err := a.bookDb.Set([]byte(privKeyTag), []byte(privkey))
-		if err != nil {
-			panic(err)
-		}
-
-	} else {
+	if len(privkey) != 0 && err == nil {
 		a.setKey(string(privkey), a.genPubkey(string(privkey)))
 	}
 
@@ -393,10 +385,12 @@ func (a *AddrBook) setKey(privkey, pubkey string) {
 
 //ResetPeerkey reset priv,pub key
 func (a *AddrBook) ResetPeerkey(privkey, pubkey string) {
-	a.keymtx.Lock()
-	defer a.keymtx.Unlock()
-	a.privkey = privkey
-	a.pubkey = pubkey
+
+	if privkey == "" || pubkey == "" {
+		a.initKey()
+		privkey, pubkey = a.GetPrivPubKey()
+	}
+	a.setKey(privkey, pubkey)
 	err := a.bookDb.Set([]byte(privKeyTag), []byte(privkey))
 	if err != nil {
 		panic(err)

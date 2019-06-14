@@ -296,6 +296,11 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)
 		return nil, err
 	}
+	// swap from with to
+	if tx.GetTx().IsWithdraw() {
+		tx.Fromaddr, tx.Tx.To = tx.Tx.To, tx.Fromaddr
+		tran.To = tx.Tx.GetRealToAddr()
+	}
 	return &rpctypes.TransactionDetail{
 		Tx:         tran,
 		Height:     tx.GetHeight(),

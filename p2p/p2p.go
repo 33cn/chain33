@@ -34,9 +34,10 @@ type P2p struct {
 	txFactory    chan struct{}
 	otherFactory chan struct{}
 	waitRestart  chan struct{}
-	closed       int32
-	restart      int32
-	cfg          *types.P2P
+
+	closed  int32
+	restart int32
+	cfg     *types.P2P
 }
 
 // New produce a p2p object
@@ -96,15 +97,15 @@ func (network *P2p) isRestart() bool {
 
 // Close network client
 func (network *P2p) Close() {
+	log.Info("p2p network start shutdown")
 	atomic.StoreInt32(&network.closed, 1)
-	log.Debug("close", "network", "ShowTaskCapcity done")
 	network.node.Close()
-	log.Debug("close", "node", "done")
 	if network.client != nil {
 		if !network.isRestart() {
 			network.client.Close()
 
 		}
+
 	}
 
 	network.node.pubsub.Shutdown()
@@ -126,160 +127,46 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 
 	go func(p2p *P2p) {
 
-		p2p.node.Start()
 		if p2p.isRestart() {
-			//reset
+			p2p.node.Start()
 			atomic.StoreInt32(&p2p.closed, 0)
 			atomic.StoreInt32(&p2p.restart, 0)
 			network.waitRestart <- struct{}{}
+			return
+		}
+
+		p2p.subP2pMsg()
+		key, pub := p2p.node.nodeInfo.addrBook.GetPrivPubKey()
+		log.Debug("key pub:", pub, "")
+		if key == "" {
+			if p2p.cfg.WaitPid { //key为空，则为初始钱包，阻塞模式，一直等到钱包导入助记词，解锁
+				if p2p.genAirDropKeyFromWallet() != nil {
+					return
+				}
+			} else {
+				//创建随机Pid,会同时出现node award ,airdropaddr
+				p2p.node.nodeInfo.addrBook.ResetPeerkey(key, pub)
+				go p2p.genAirDropKeyFromWallet()
+			}
+
 		} else {
-			p2p.subP2pMsg()
-			go p2p.loadP2PPrivKeyToWallet()
+			//key 有两种可能，老版本的随机key,也有可能是seed的key, 非阻塞模式
 			go p2p.genAirDropKeyFromWallet()
 
 		}
-
+		p2p.node.Start()
 		log.Debug("SetQueueClient gorountine ret")
 
 	}(network)
 
 }
 
-func (network *P2p) showTaskCapcity() {
-	ticker := time.NewTicker(time.Second * 5)
-	log.Info("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
-	defer ticker.Stop()
-	for {
-		if network.isClose() {
-			log.Debug("ShowTaskCapcity", "loop", "done")
-			return
-		}
-		<-ticker.C
-		log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
-	}
-}
-
-func (network *P2p) genAirDropKeyFromWallet() error {
-
-	for {
-		if network.isClose() {
-			return nil
-		}
-		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
-		err := network.client.SendTimeout(msg, true, time.Minute)
-		if err != nil {
-			log.Error("genAirDropKeyFromWallet", "Error", err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-
-		resp, err := network.client.WaitTimeout(msg, time.Minute)
-		if err != nil {
-			time.Sleep(time.Second)
-			continue
-		}
-		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
-			time.Sleep(time.Second)
-			continue
-		}
-
-		if !resp.GetData().(*types.WalletStatus).GetIsHasSeed() { //无种子
-			time.Sleep(time.Second)
-			continue
-		}
-
-		break
-	}
-
-	r := rand.New(rand.NewSource(types.Now().Unix()))
-	var minIndex int32 = 100000000
-	randIndex := minIndex + r.Int31n(1000000)
-	reqIndex := &types.Int32{Data: randIndex}
-	msg, err := network.api.ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
-	if err != nil {
-		log.Error("genAirDropKeyFromWallet", "err", err)
-		return err
-	}
-	var hexPrivkey string
-	if reply, ok := msg.(*types.ReplyString); !ok {
-		log.Error("genAirDropKeyFromWallet", "wrong format data", "")
-		panic(err)
-
-	} else {
-		hexPrivkey = reply.GetData()
-	}
-	log.Info("genAirDropKeyFromWallet", "hexprivkey", hexPrivkey)
-	if hexPrivkey[:2] == "0x" {
-		hexPrivkey = hexPrivkey[2:]
-	}
-
-	hexPubkey, err := P2pComm.Pubkey(hexPrivkey)
-	if err != nil {
-		log.Error("genAirDropKeyFromWallet", "gen pub error", err)
-		panic(err)
-	}
-
-	log.Info("genAirDropKeyFromWallet", "pubkey", hexPubkey)
-
-	_, pub := network.node.nodeInfo.addrBook.GetPrivPubKey()
-	if pub == hexPubkey {
-		return nil
-	}
-	//覆盖addrbook 中的公私钥对
-	network.node.nodeInfo.addrBook.ResetPeerkey(hexPrivkey, hexPubkey)
-	//重启p2p模块
-	log.Info("genAirDropKeyFromWallet", "p2p will Restart....")
-	network.ReStart()
-	return nil
-}
-
-// ReStart p2p
-func (network *P2p) ReStart() {
-	atomic.StoreInt32(&network.restart, 1)
-	network.Close()
-	node, err := NewNode(network.cfg) //创建新的node节点
-	if err != nil {
-		panic(err.Error())
-	}
-
-	network.node = node
-	network.SetQueueClient(network.client)
-
-}
 func (network *P2p) loadP2PPrivKeyToWallet() error {
 
-	for {
-		if network.isClose() {
-			return nil
-		}
-		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
-		err := network.client.SendTimeout(msg, true, time.Minute)
-		if err != nil {
-			log.Error("GetWalletStatus", "Error", err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-
-		resp, err := network.client.WaitTimeout(msg, time.Minute)
-		if err != nil {
-			time.Sleep(time.Second)
-			continue
-		}
-		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
-			time.Sleep(time.Second)
-			continue
-		}
-
-		if !resp.GetData().(*types.WalletStatus).GetIsHasSeed() { //无种子
-			time.Sleep(time.Second)
-			continue
-		}
-
-		break
-	}
 	var parm types.ReqWalletImportPrivkey
 	parm.Privkey, _ = network.node.nodeInfo.addrBook.GetPrivPubKey()
 	parm.Label = "node award"
+
 ReTry:
 	msg := network.client.NewMessage("wallet", types.EventWalletImportPrivkey, &parm)
 	err := network.client.SendTimeout(msg, true, time.Minute)
@@ -305,6 +192,127 @@ ReTry:
 
 	log.Debug("loadP2PPrivKeyToWallet", "resp", resp.GetData())
 	return nil
+
+}
+
+func (network *P2p) showTaskCapcity() {
+	ticker := time.NewTicker(time.Second * 5)
+	log.Info("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
+	defer ticker.Stop()
+	for {
+		if network.isClose() {
+			log.Debug("ShowTaskCapcity", "loop", "done")
+			return
+		}
+		<-ticker.C
+		log.Debug("ShowTaskCapcity", "Capcity", atomic.LoadInt32(&network.txCapcity))
+	}
+}
+
+func (network *P2p) genAirDropKeyFromWallet() error {
+	_, savePub := network.node.nodeInfo.addrBook.GetPrivPubKey()
+	for {
+		if network.isClose() {
+			log.Error("genAirDropKeyFromWallet", "p2p closed", "")
+			return fmt.Errorf("p2p closed")
+		}
+		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
+		err := network.client.SendTimeout(msg, true, time.Minute)
+		if err != nil {
+			log.Error("genAirDropKeyFromWallet", "Error", err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
+
+		resp, err := network.client.WaitTimeout(msg, time.Minute)
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
+			if savePub == "" {
+				log.Warn("P2P Stuck ! Wallet must be unlock and save with mnemonics")
+
+			}
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if !resp.GetData().(*types.WalletStatus).GetIsHasSeed() { //无种子
+			if savePub == "" {
+				log.Warn("P2P Stuck ! Wallet must be imported with mnemonics")
+
+			}
+			time.Sleep(time.Second * 5)
+			continue
+		}
+
+		break
+	}
+
+	r := rand.New(rand.NewSource(types.Now().Unix()))
+	var minIndex int32 = 100000000
+	randIndex := minIndex + r.Int31n(1000000)
+	reqIndex := &types.Int32{Data: randIndex}
+	msg, err := network.api.ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+	if err != nil {
+		log.Error("genAirDropKeyFromWallet", "err", err)
+		return err
+	}
+	var hexPrivkey string
+	if reply, ok := msg.(*types.ReplyString); !ok {
+		log.Error("genAirDropKeyFromWallet", "wrong format data", "")
+		panic(err)
+
+	} else {
+		hexPrivkey = reply.GetData()
+	}
+	if hexPrivkey[:2] == "0x" {
+		hexPrivkey = hexPrivkey[2:]
+	}
+
+	hexPubkey, err := P2pComm.Pubkey(hexPrivkey)
+	if err != nil {
+		log.Error("genAirDropKeyFromWallet", "gen pub error", err)
+		panic(err)
+	}
+
+	log.Info("genAirDropKeyFromWallet", "pubkey", hexPubkey)
+
+	if savePub == hexPubkey {
+		return nil
+	}
+
+	if savePub != "" {
+		//priv,pub是随机公私钥对，兼容老版本，先对其进行导入钱包处理
+		err = network.loadP2PPrivKeyToWallet()
+		if err != nil {
+			log.Error("genAirDropKeyFromWallet", "loadP2PPrivKeyToWallet error", err)
+			panic(err)
+		}
+		network.node.nodeInfo.addrBook.ResetPeerkey(hexPrivkey, hexPubkey)
+		//重启p2p模块
+		log.Info("genAirDropKeyFromWallet", "p2p will Restart....")
+		network.ReStart()
+		return nil
+	}
+	//覆盖addrbook 中的公私钥对
+	network.node.nodeInfo.addrBook.ResetPeerkey(hexPrivkey, hexPubkey)
+
+	return nil
+}
+
+//ReStart p2p
+func (network *P2p) ReStart() {
+	atomic.StoreInt32(&network.restart, 1)
+	network.Close()
+	node, err := NewNode(network.cfg) //创建新的node节点
+	if err != nil {
+		panic(err.Error())
+	}
+
+	network.node = node
+	network.SetQueueClient(network.client)
 
 }
 

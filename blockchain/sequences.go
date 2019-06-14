@@ -90,6 +90,18 @@ func (chain *BlockChain) ProcGetSeqByHash(hash []byte) (int64, error) {
 	return seq, err
 }
 
+//ProcGetMainSeqByHash 处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
+func (chain *BlockChain) ProcGetMainSeqByHash(hash []byte) (int64, error) {
+	if len(hash) == 0 {
+		chainlog.Error("ProcGetMainSeqByHash input hash is null")
+		return -1, types.ErrInvalidParam
+	}
+	seq, err := chain.blockStore.GetMainSequenceByHash(hash)
+	chainlog.Debug("ProcGetMainSeqByHash", "blockhash", common.ToHex(hash), "seq", seq, "err", err)
+
+	return seq, err
+}
+
 //ProcAddBlockSeqCB 添加seq callback
 func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) error {
 	if cb == nil {

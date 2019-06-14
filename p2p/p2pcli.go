@@ -361,18 +361,21 @@ func (m *Cli) GetHeaders(msg *queue.Message, taskindex int64) {
 	req := msg.GetData().(*pb.ReqBlocks)
 	pid := req.GetPid()
 	if len(pid) == 0 {
+		log.Debug("GetHeaders:pid is nil")
 		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{Msg: []byte("no pid")}))
 		return
 	}
 
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
 	peers, infos := m.network.node.GetActivePeers()
+	var pidIsActivePeer bool
+
 	for paddr, info := range infos {
 		if info.GetName() == pid[0] { //匹配成功
 			peer, ok := peers[paddr]
 			if ok && peer != nil {
 				var err error
-
+				pidIsActivePeer = true
 				headers, err := peer.mconn.gcli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
 					Version: m.network.node.nodeInfo.cfg.Version}, grpc.FailFast(true))
 				P2pComm.CollectPeerStat(err, peer)
@@ -394,6 +397,10 @@ func (m *Cli) GetHeaders(msg *queue.Message, taskindex int64) {
 			}
 		}
 	}
+	//当请求的pid不是ActivePeer时需要打印日志方便问题定位
+	if !pidIsActivePeer {
+		log.Debug("GetHeaders", "pid", pid[0], "ActivePeers", peers, "infos", infos)
+	}
 }
 
 // GetBlocks get blocks information
@@ -410,9 +417,9 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 	}
 
 	req := msg.GetData().(*pb.ReqBlocks)
-	log.Info("GetBlocks", "start", req.GetStart(), "end", req.GetEnd())
+	log.Debug("GetBlocks", "start", req.GetStart(), "end", req.GetEnd())
 	pids := req.GetPid()
-	log.Info("GetBlocks", "pids", pids)
+	log.Debug("GetBlocks", "pids", pids)
 	var Inventorys = make([]*pb.Inventory, 0)
 	for i := req.GetStart(); i <= req.GetEnd(); i++ {
 		var inv pb.Inventory
@@ -426,7 +433,7 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 	var downloadPeers []*Peer
 	peers, infos := m.network.node.GetActivePeers()
 	if len(pids) > 0 && pids[0] != "" { //指定Pid 下载数据
-		log.Info("fetch from peer in pids", "pids", pids)
+		log.Debug("fetch from peer in pids", "pids", pids)
 		var pidmap = make(map[string]bool)
 		for _, pid := range pids {
 			pidmap[pid] = true
@@ -443,7 +450,7 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 		}
 
 	} else {
-		log.Info("fetch from all peers in pids")
+		log.Debug("fetch from all peers in pids")
 		for _, peer := range peers {
 			peerinfo, ok := infos[peer.Addr()]
 			if !ok {
@@ -458,7 +465,7 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 	}
 
 	if len(downloadPeers) == 0 {
-		log.Error("GetBlocks", "downloadPeers", 0)
+		log.Error("GetBlocks", "downloadPeers", 0, "peers", peers, "infos", infos)
 		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{Msg: []byte("no downloadPeers")}))
 		return
 	}
@@ -630,8 +637,8 @@ func (m *Cli) getLocalPeerInfo() (*pb.P2PPeerInfo, error) {
 	localpeerinfo.Name = pub
 	localpeerinfo.MempoolSize = int32(meminfo.GetSize())
 	if m.network.node.nodeInfo.GetExternalAddr().IP == nil {
-		localpeerinfo.Addr = LocalAddr
-		localpeerinfo.Port = int32(m.network.node.listenPort)
+		localpeerinfo.Addr = m.network.node.nodeInfo.GetListenAddr().IP.String()
+		localpeerinfo.Port = int32(m.network.node.nodeInfo.GetListenAddr().Port)
 	} else {
 		localpeerinfo.Addr = m.network.node.nodeInfo.GetExternalAddr().IP.String()
 		localpeerinfo.Port = int32(m.network.node.nodeInfo.GetExternalAddr().Port)

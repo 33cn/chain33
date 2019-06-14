@@ -70,7 +70,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetBlockByHashes:
 			go chain.processMsg(msg, reqnum, chain.getBlockByHashes)
-
 		case types.EventGetBlockBySeq:
 			go chain.processMsg(msg, reqnum, chain.getBlockBySeq)
 
@@ -90,6 +89,12 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetSeqCBLastNum:
 			go chain.processMsg(msg, reqnum, chain.getSeqCBLastNum)
+
+		case types.EventGetLastBlockMainSequence:
+			go chain.processMsg(msg, reqnum, chain.GetLastBlockMainSequence)
+		case types.EventGetMainSeqByHash:
+			go chain.processMsg(msg, reqnum, chain.GetMainSeqByHash)
+
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -518,4 +523,29 @@ func (chain *BlockChain) localAddrTxCount(msg *queue.Message) {
 	}
 	counts = count.Data
 	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+}
+
+//GetLastBlockMainSequence 获取最新的block执行序列号
+func (chain *BlockChain) GetLastBlockMainSequence(msg *queue.Message) {
+	var lastSequence types.Int64
+	var err error
+	lastSequence.Data, err = chain.blockStore.LoadBlockLastMainSequence()
+	if err != nil {
+		chainlog.Debug("GetLastBlockMainSequence", "err", err)
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyLastBlockMainSequence, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventReplyLastBlockMainSequence, &lastSequence))
+}
+
+//GetMainSeqByHash parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
+func (chain *BlockChain) GetMainSeqByHash(msg *queue.Message) {
+	blockhash := (msg.Data).(*types.ReqHash)
+	seq, err := chain.ProcGetMainSeqByHash(blockhash.Hash)
+	if err != nil {
+		chainlog.Error("GetMainSeqByHash", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyMainSeqByHash, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventReplyMainSeqByHash, &types.Int64{Data: seq}))
 }

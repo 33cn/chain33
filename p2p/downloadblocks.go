@@ -147,6 +147,7 @@ func (d *DownloadJob) GetFreePeer(blockHeight int64) *Peer {
 	var jobNum int32 = 10
 	var bestPeer *Peer
 	for _, peer := range d.downloadPeers {
+
 		pbpeer, ok := infos[peer.Addr()]
 		if ok {
 			if len(peer.GetPeerName()) == 0 {
@@ -194,6 +195,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 	REGET:
 		freePeer := d.GetFreePeer(inv.GetHeight()) //获取当前任务数最少的节点，相当于 下载速度最快的节点
 		if freePeer == nil {
+			log.Debug("no free peer")
 			time.Sleep(time.Millisecond * 100)
 			goto REGET
 		}
