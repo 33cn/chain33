@@ -507,7 +507,7 @@ func Test_processP2P(t *testing.T) {
 	pid := "testPid"
 	sendChan := make(chan interface{}, 1)
 	recvChan := make(chan *types.BroadCastData, 1)
-	testDone := make(chan struct{}, 0)
+	testDone := make(chan struct{})
 
 	payload := []byte("testpayload")
 	minerTx := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 14600, Expire: 200}

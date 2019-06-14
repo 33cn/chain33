@@ -258,10 +258,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pu
 				nilTxIndices = nilTxIndices[:0]
 				break
 			}
-
-			for _, gtx := range group.Txs {
-				block.Txs = append(block.Txs, gtx)
-			}
+			block.Txs = append(block.Txs, group.Txs...)
 			//跳过遍历
 			i += len(group.Txs) - 1
 			continue
@@ -356,7 +353,6 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid string, pubPeerFunc 
 			pubPeerFunc(blockRep, pid)
 		}
 	}
-	return
 }
 
 func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid string, pubPeerFunc pubFuncType) {
@@ -400,9 +396,6 @@ func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid string, pubPeerFun
 		block.Txs = nil
 		ltBlockCache.add(rep.BlockHash, block, int64(block.Size()))
 	}
-
-	return
-
 }
 
 func (n *Node) queryMempool(ty int64, data interface{}) (interface{}, error) {

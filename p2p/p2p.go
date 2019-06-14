@@ -59,13 +59,13 @@ func New(cfg *types.P2P) *P2p {
 			cfg.VerMax = 128
 		} else {
 			cfg.Version = VERSION
-			cfg.VerMin = 10020
-			cfg.VerMax = 11000
+			cfg.VerMin = minP2PVersion
+			cfg.VerMax = maxP2PVersion
 		}
 	}
 
 	if cfg.StartLightTxTTL <= 0 {
-		cfg.StartLightTxTTL = DefaultLtTxBroadCastTTl
+		cfg.StartLightTxTTL = DefaultLtTxBroadCastTTL
 	}
 	if cfg.MaxTTL <= 0 {
 		cfg.MaxTTL = DefaultMaxTxBroadCastTTL

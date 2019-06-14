@@ -62,7 +62,7 @@ const (
 
 //TTL
 const (
-	DefaultLtTxBroadCastTTl  = 2
+	DefaultLtTxBroadCastTTL  = 2
 	DefaultMaxTxBroadCastTTL = 15
 )
 
