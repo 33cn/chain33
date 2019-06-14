@@ -307,7 +307,7 @@ var eventName = map[int]string{
 	//mempool
 	EventGetProperFee:   "EventGetProperFee",
 	EventReplyProperFee: "EventReplyProperFee",
-    EventTxListByHash:   "EventTxListByHash",
+	EventTxListByHash:   "EventTxListByHash",
 	// block chain
 	EventGetLastBlockMainSequence:   "EventGetLastBlockMainSequence",
 	EventReplyLastBlockMainSequence: "EventReplyLastBlockMainSequence",
