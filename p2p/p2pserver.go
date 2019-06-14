@@ -426,7 +426,7 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 				return pb.ErrVersion
 			}
 			//增加过滤，如果自己连接了远程节点，则不需要通过stream send 重复发送数据给这个节点
-			if s.node.Has(peerInfo.addr){
+			if s.node.Has(peerInfo.addr) {
 				continue
 			}
 		} else {
@@ -463,7 +463,6 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		return fmt.Errorf("getctx err")
 	}
 
-
 	var peeraddr, peername string
 	defer s.deleteInBoundPeerInfo(peername)
 	defer stream.SendAndClose(&pb.ReqNil{})
@@ -478,9 +477,9 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			return err
 		}
 
-		if s.node.processRecvP2P(in, peername, s.pubToStream){
+		if s.node.processRecvP2P(in, peername, s.pubToStream) {
 
-		}else if ver := in.GetVersion(); ver != nil {
+		} else if ver := in.GetVersion(); ver != nil {
 			//接收版本信息
 			peername = ver.GetPeername()
 			softversion := ver.GetSoftversion()
@@ -498,7 +497,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				return pb.ErrStreamPing
 			}
 
-		}else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
+		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package
 			if !P2pComm.CheckSign(ping) {
 				log.Error("ServerStreamRead", "check stream", "check sig err")
@@ -637,13 +636,14 @@ func (s *P2pserver) addStreamHandler(peerName string) chan interface{} {
 	s.streams[peerName] = make(chan interface{}, 1024)
 	return s.streams[peerName]
 }
+
 //发布数据到所有服务流
 func (s *P2pserver) pubToAllStream(data interface{}) {
 	s.smtx.Lock()
 	defer s.smtx.Unlock()
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
-	for _,dataChan := range s.streams {
+	for _, dataChan := range s.streams {
 		select {
 		case dataChan <- data:
 
@@ -652,6 +652,7 @@ func (s *P2pserver) pubToAllStream(data interface{}) {
 		}
 	}
 }
+
 //发布数据到指定流
 func (s *P2pserver) pubToStream(data interface{}, peerName string) {
 	s.smtx.Lock()

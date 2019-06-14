@@ -4,8 +4,6 @@
 
 package p2p
 
-
-
 //更新内容：
 // 1.p2p 修改为在nat结束后，在启动peer的stream，ping,version 等功能
 
@@ -19,15 +17,11 @@ const (
 	maxP2PVersion = 11000
 )
 
-
 //历史版本
 const (
 	//p2p广播交易哈希而非完整区块数据
 	lightBroadCastVersion = 10030
 )
 
-
 // VERSION number
 const VERSION = lightBroadCastVersion
-
-

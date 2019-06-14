@@ -212,8 +212,8 @@ message P2PRoute {
  * p2p 发送交易协议
  */
 message P2PTx {
-    Transaction tx = 1;
-    P2PRoute route = 2;
+    Transaction tx    = 1;
+    P2PRoute    route = 2;
 }
 
 /**
@@ -228,16 +228,16 @@ message P2PBlock {
  */
 message LightBlock {
 
-    int64 size = 1;
-    Header header = 2;
-    Transaction minerTx = 3;
+    int64       size          = 1;
+    Header      header        = 2;
+    Transaction minerTx       = 3;
     repeated string sTxHashes = 4;
 }
 
 // 轻量级交易广播
 message LightTx {
-    bytes txHash = 1;
-    P2PRoute route = 2;
+    bytes    txHash = 1;
+    P2PRoute route  = 2;
 }
 
 // 请求完整交易数据
@@ -247,13 +247,13 @@ message P2PTxReq {
 
 // 请求区块内交易数据
 message P2PBlockTxReq {
-    string blockHash = 1;
+    string   blockHash       = 1;
     repeated int32 txIndices = 2;
 }
 
 // 区块交易数据返回
 message P2PBlockTxReply {
-    string blockHash = 1;
+    string   blockHash       = 1;
     repeated int32 txIndices = 2;
     repeated Transaction txs = 3;
 }
@@ -264,7 +264,7 @@ message P2PBlockTxReply {
  */
 message P2PQueryData {
     oneof value {
-        P2PTxReq txReq = 1;
+        P2PTxReq      txReq      = 1;
         P2PBlockTxReq blockTxReq = 2;
     }
 }
@@ -282,13 +282,13 @@ message Versions {
  */
 message BroadCastData {
     oneof value {
-        P2PTx    tx      = 1;
-        P2PBlock block   = 2;
-        P2PPing  ping    = 3;
-        Versions version = 4;
-        LightTx ltTx = 5;
-        LightBlock ltBlock = 6;
-        P2PQueryData query = 7;
+        P2PTx           tx       = 1;
+        P2PBlock        block    = 2;
+        P2PPing         ping     = 3;
+        Versions        version  = 4;
+        LightTx         ltTx     = 5;
+        LightBlock      ltBlock  = 6;
+        P2PQueryData    query    = 7;
         P2PBlockTxReply blockRep = 8;
     }
 }

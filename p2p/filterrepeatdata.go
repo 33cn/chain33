@@ -15,10 +15,11 @@ import (
 
 // Filter  a Filter object
 var (
-	peerAddrFilter = NewFilter(PeerAddrCacheNum)
-	txHashFilter = NewFilter(TxHashCacheNum)
+	peerAddrFilter  = NewFilter(PeerAddrCacheNum)
+	txHashFilter    = NewFilter(TxHashCacheNum)
 	blockHashFilter = NewFilter(BlockHashCacheNum)
 )
+
 // NewFilter produce a filter object
 func NewFilter(num int) *Filterdata {
 	filter := new(Filterdata)
@@ -99,14 +100,15 @@ func (f *Filterdata) ManageRecvFilter() {
 		}
 	}
 }
+
 // Add add val
-func (f *Filterdata)Add(key string, val interface{}) bool{
+func (f *Filterdata) Add(key string, val interface{}) bool {
 
 	return f.regRData.Add(key, val)
 }
 
 // Get get val
-func (f *Filterdata)Get(key string) interface{} {
+func (f *Filterdata) Get(key string) interface{} {
 	val, _ := f.regRData.Get(key)
 	return val
 }

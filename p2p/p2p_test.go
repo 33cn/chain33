@@ -3,6 +3,7 @@ package p2p
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/33cn/chain33/common/merkle"
 
 	//"fmt"
@@ -26,13 +27,12 @@ import (
 )
 
 var (
-	q queue.Queue
+	q         queue.Queue
 	p2pModule *P2p
-	dataDir = "testdata"
-	testVer = int32(119)
+	dataDir   = "testdata"
+	testVer   = int32(119)
 	memTxList []*types.Transaction
 )
-
 
 func init() {
 	l.SetLogLevel("err")
@@ -119,13 +119,13 @@ func init() {
 				msg.Reply(client.NewMessage("p2p", types.EventMempoolSize, &types.MempoolSize{Size: 0}))
 			case types.EventTxListByHash:
 				query := msg.Data.(*types.ReqTxHashList)
-				txs := make([]*types.Transaction, 0)
+				var txs []*types.Transaction
 				if !query.IsShortHash {
 					txs = memTxList[:1]
-				}else {
+				} else {
 					txs = memTxList
 				}
-				msg.Reply(client.NewMessage("p2p", types.EventTxListByHash, &types.ReplyTxList{Txs:txs}))
+				msg.Reply(client.NewMessage("p2p", types.EventTxListByHash, &types.ReplyTxList{Txs: txs}))
 			}
 		}
 	}()
@@ -477,7 +477,6 @@ func TestP2pClose(t *testing.T) {
 	os.RemoveAll(dataDir)
 }
 
-
 func Test_spaceLimitCache(t *testing.T) {
 
 	c := newSpaceLimitCache(3, 10)
@@ -496,7 +495,6 @@ func Test_spaceLimitCache(t *testing.T) {
 	assert.True(t, c.contains(7))
 	assert.Equal(t, 1, c.data.Len())
 }
-
 
 type versionData struct {
 	rawData interface{}
@@ -522,9 +520,9 @@ func Test_processP2P(t *testing.T) {
 	memTxList = append([]*types.Transaction{}, tx, gtx)
 
 	block := &types.Block{
-		TxHash:[]byte("123"),
-		Height:10,
-		Txs:txList,
+		TxHash: []byte("123"),
+		Height: 10,
+		Txs:    txList,
 	}
 	txHash := hex.EncodeToString(tx.Hash())
 	blockHash := hex.EncodeToString(block.Hash())
@@ -532,7 +530,7 @@ func Test_processP2P(t *testing.T) {
 
 	//测试发送
 	go func() {
-		for  data := range sendChan{
+		for data := range sendChan {
 			verData, ok := data.(*versionData)
 			assert.True(t, ok)
 			sendData, doSend := node.processSendP2P(verData.rawData, verData.version)
@@ -544,7 +542,7 @@ func Test_processP2P(t *testing.T) {
 	}()
 	//测试接收
 	go func() {
-		for data := range recvChan{
+		for data := range recvChan {
 			txHashFilter.regRData.Remove(txHash)
 			blockHashFilter.regRData.Remove(blockHash)
 			handled := node.processRecvP2P(data, pid, node.pubToPeer)
@@ -555,57 +553,58 @@ func Test_processP2P(t *testing.T) {
 	//data test
 	go func() {
 		//normal
-		sendChan <- &versionData{rawData:&types.P2PTx{Tx:tx}, version:lightBroadCastVersion-1}
-		sendChan <- &versionData{rawData:&types.P2PBlock{Block:block}, version:lightBroadCastVersion - 1}
+		sendChan <- &versionData{rawData: &types.P2PTx{Tx: tx}, version: lightBroadCastVersion - 1}
+		sendChan <- &versionData{rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion - 1}
 		//light broadcast
 		node.nodeInfo.cfg.StartLightTxTTL = 0
-		sendChan <- &versionData{rawData:&types.P2PTx{Tx:tx}, version:lightBroadCastVersion}
-		sendChan <- &versionData{rawData:&types.P2PBlock{Block:block}, version:lightBroadCastVersion}
+		sendChan <- &versionData{rawData: &types.P2PTx{Tx: tx}, version: lightBroadCastVersion}
+		sendChan <- &versionData{rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion}
 
-		for !ltBlockCache.contains(blockHash){}
+		for !ltBlockCache.contains(blockHash) {
+		}
 		ltBlock := ltBlockCache.get(blockHash).(*types.Block)
 		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(ltBlock.Txs)))
 
 		//query
 		subChan := node.pubsub.Sub(pid)
-		sendChan <- &versionData{rawData:&types.P2PQueryData{Value:&types.P2PQueryData_TxReq{TxReq:&types.P2PTxReq{TxHash:tx.Hash()}}}}
-		_, ok := (<- subChan).(*types.P2PTx)
+		sendChan <- &versionData{rawData: &types.P2PQueryData{Value: &types.P2PQueryData_TxReq{TxReq: &types.P2PTxReq{TxHash: tx.Hash()}}}}
+		_, ok := (<-subChan).(*types.P2PTx)
 		assert.True(t, ok)
-		sendChan <- &versionData{rawData:&types.P2PQueryData{Value:&types.P2PQueryData_BlockTxReq{BlockTxReq:&types.P2PBlockTxReq{
-			BlockHash:blockHash,
-			TxIndices:[]int32{1,2},
+		sendChan <- &versionData{rawData: &types.P2PQueryData{Value: &types.P2PQueryData_BlockTxReq{BlockTxReq: &types.P2PBlockTxReq{
+			BlockHash: blockHash,
+			TxIndices: []int32{1, 2},
 		}}}}
-		rep, ok := (<- subChan).(*types.P2PBlockTxReply)
+		rep, ok := (<-subChan).(*types.P2PBlockTxReply)
 		assert.True(t, ok)
 		assert.Equal(t, 2, int(rep.TxIndices[1]))
-		sendChan <- &versionData{rawData:&types.P2PQueryData{Value:&types.P2PQueryData_BlockTxReq{BlockTxReq:&types.P2PBlockTxReq{
-			BlockHash:blockHash,
-			TxIndices:nil,
+		sendChan <- &versionData{rawData: &types.P2PQueryData{Value: &types.P2PQueryData_BlockTxReq{BlockTxReq: &types.P2PBlockTxReq{
+			BlockHash: blockHash,
+			TxIndices: nil,
 		}}}}
-		rep, ok = (<- subChan).(*types.P2PBlockTxReply)
+		rep, ok = (<-subChan).(*types.P2PBlockTxReply)
 		assert.True(t, ok)
 		assert.Nil(t, rep.TxIndices)
 
 		//query reply
-		sendChan <- &versionData{rawData:&types.P2PBlockTxReply{
-			BlockHash:blockHash,
-			TxIndices:[]int32{1},
-			Txs:txList[1:2],
+		sendChan <- &versionData{rawData: &types.P2PBlockTxReply{
+			BlockHash: blockHash,
+			TxIndices: []int32{1},
+			Txs:       txList[1:2],
 		}}
 		<-subChan
 		assert.True(t, ltBlockCache.contains(blockHash))
 		assert.Nil(t, ltBlock.Txs)
 
 		ltBlock.TxHash = rootHash
-		subChan = node.pubsub.Sub("blockchain")
-		sendChan <- &versionData{rawData:&types.P2PBlockTxReply{
-			BlockHash:blockHash,
-			Txs:txList[0:],
+		sendChan <- &versionData{rawData: &types.P2PBlockTxReply{
+			BlockHash: blockHash,
+			Txs:       txList[0:],
 		}}
-		for ltBlockCache.contains(blockHash){}
+		for ltBlockCache.contains(blockHash) {
+		}
 		//max ttl
 		node.nodeInfo.cfg.MaxTTL = 0
-		_, doSend := node.processSendP2P(&types.P2PTx{Tx:tx}, lightBroadCastVersion)
+		_, doSend := node.processSendP2P(&types.P2PTx{Tx: tx}, lightBroadCastVersion)
 		assert.True(t, doSend)
 		close(testDone)
 	}()

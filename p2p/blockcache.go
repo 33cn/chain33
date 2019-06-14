@@ -1,34 +1,28 @@
 package p2p
 
-
 import (
+	"sync"
 
 	lru "github.com/hashicorp/golang-lru"
-	"sync"
 )
-
 
 var (
-
 	totalBlockCache = newSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
-	ltBlockCache = newSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
+	ltBlockCache    = newSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
 )
-
 
 // lru缓存封装, 控制占用空间大小
 type spaceLimitCache struct {
-
-	maxSize int64
+	maxSize  int64
 	currSize int64
-	sizeMap map[interface{}]int64
-	data *lru.Cache
-	lock *sync.RWMutex
+	sizeMap  map[interface{}]int64
+	data     *lru.Cache
+	lock     *sync.RWMutex
 }
 
+func newSpaceLimitCache(num int, maxByteSize int64) *spaceLimitCache {
 
-func newSpaceLimitCache(num int, maxByteSize int64) *spaceLimitCache{
-
-	cache := &spaceLimitCache{maxSize:maxByteSize}
+	cache := &spaceLimitCache{maxSize: maxByteSize}
 	cache.sizeMap = make(map[interface{}]int64)
 	cache.lock = &sync.RWMutex{}
 	var err error
@@ -39,8 +33,7 @@ func newSpaceLimitCache(num int, maxByteSize int64) *spaceLimitCache{
 	return cache
 }
 
-
-func (c *spaceLimitCache)add(key interface{}, val interface{}, size int64) bool{
+func (c *spaceLimitCache) add(key interface{}, val interface{}, size int64) bool {
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -60,7 +53,7 @@ func (c *spaceLimitCache)add(key interface{}, val interface{}, size int64) bool{
 	keys := c.data.Keys()
 
 	//超过最大大小, 移除最早的值
-	for i := 0; i < len(keys) && c.currSize > c.maxSize; i++{
+	for i := 0; i < len(keys) && c.currSize > c.maxSize; i++ {
 		c.currSize -= c.sizeMap[keys[i]]
 		c.data.RemoveOldest()
 		delete(c.sizeMap, keys[i])
@@ -76,12 +69,12 @@ func (c *spaceLimitCache)add(key interface{}, val interface{}, size int64) bool{
 	return true
 }
 
-func (c *spaceLimitCache)get(key interface{}) interface{} {
+func (c *spaceLimitCache) get(key interface{}) interface{} {
 	v, _ := c.data.Get(key)
 	return v
 }
 
-func (c *spaceLimitCache)del(key interface{}) bool {
+func (c *spaceLimitCache) del(key interface{}) bool {
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -91,7 +84,7 @@ func (c *spaceLimitCache)del(key interface{}) bool {
 	return true
 }
 
-func (c *spaceLimitCache)contains(key interface{}) bool {
+func (c *spaceLimitCache) contains(key interface{}) bool {
 
 	return c.data.Contains(key)
 }

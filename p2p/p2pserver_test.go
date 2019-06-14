@@ -1,14 +1,12 @@
 package p2p
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-
-
 func Test_AddDelStream(t *testing.T) {
-
 
 	s := NewP2pServer()
 	peerName := "testpeer"
@@ -16,7 +14,7 @@ func Test_AddDelStream(t *testing.T) {
 	//replace
 	dataChan := s.addStreamHandler(peerName)
 
-	_, ok := <- delChan
+	_, ok := <-delChan
 	assert.False(t, ok)
 
 	//del old

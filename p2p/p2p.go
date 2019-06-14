@@ -67,7 +67,7 @@ func New(cfg *types.P2P) *P2p {
 	if cfg.StartLightTxTTL <= 0 {
 		cfg.StartLightTxTTL = DefaultLtTxBroadCastTTl
 	}
-	if cfg.MaxTTL <= 0{
+	if cfg.MaxTTL <= 0 {
 		cfg.MaxTTL = DefaultMaxTxBroadCastTTL
 	}
 
