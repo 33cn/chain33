@@ -322,11 +322,11 @@ func (m *SimpleMVCC) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte
 			return nil, types.ErrPrevVersion
 		}
 		prevVersion := version - 1
-		v, err := m.GetVersion(prevHash)
+		vhash, err := m.GetVersionHash(prevVersion)
 		if err != nil {
 			return nil, err
 		}
-		if v != prevVersion {
+		if !bytes.Equal(vhash, prevHash) {
 			return nil, types.ErrPrevVersion
 		}
 	}
