@@ -195,8 +195,9 @@ func TestAddDelMVCC(t *testing.T) {
 	_, err = m.AddMVCC(genkv(2), hashN(2), hashN(1), 1)
 	assert.Equal(t, err, types.ErrPrevVersion)
 
+	//hash 2 还不存在
 	_, err = m.AddMVCC(genkv(2), hashN(2), hashN(0), 3)
-	assert.Equal(t, err, types.ErrPrevVersion)
+	assert.Equal(t, err, types.ErrNotFound)
 
 	_, err = m.AddMVCC(genkv(2), hashN(2), hashN(3), 3)
 	assert.Equal(t, err, types.ErrNotFound)
