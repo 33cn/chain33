@@ -472,11 +472,6 @@ func TestP2pRestart(t *testing.T) {
 	p2pModule.ReStart()
 }
 
-func TestP2pClose(t *testing.T) {
-	p2pModule.Close()
-	os.RemoveAll(dataDir)
-}
-
 func Test_spaceLimitCache(t *testing.T) {
 
 	c := newSpaceLimitCache(3, 10)
@@ -620,4 +615,9 @@ func Test_processP2P(t *testing.T) {
 			return
 		}
 	}
+}
+
+func TestP2pClose(t *testing.T) {
+	p2pModule.Close()
+	os.RemoveAll(dataDir)
 }

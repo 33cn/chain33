@@ -419,7 +419,7 @@ func (n *Node) postBlockChain(block *types.Block, pid string) error {
 	msg := n.nodeInfo.client.NewMessage("blockchain", types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
 	err := n.nodeInfo.client.Send(msg, false)
 	if err != nil {
-		log.Error("recvBlock", "send to blockchain Error", err.Error())
+		log.Error("postBlockChain", "send to blockchain Error", err.Error())
 		return err
 	}
 	return nil
