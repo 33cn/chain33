@@ -35,6 +35,7 @@ func main() {
 	if *lang == 0 {
 		wordlist = wallet.EnglishSeedCache
 	}
+	checkseed(*seed)
 	for k := range wordlist {
 		log.Println("change ", k, int(100*(float64(n)/float64(2048))))
 		n++
