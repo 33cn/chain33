@@ -11,20 +11,30 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet"
 	"github.com/33cn/chain33/wallet/bipwallet"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var seed = flag.String("seed", "", "source seed")
 var targetaddr = flag.String("addr", "", "address of target")
+var lang = flag.Int("lang", 1, "lang: 0 englist, 1 chinese")
+var oldseed = flag.Bool("oldseed", false, "is seed old")
 
 func main() {
 	flag.Parse()
 	wallet.InitSeedLibrary()
 	log.Println("seed", *seed)
 	log.Println("target", *targetaddr)
+	go http.ListenAndServe("localhost:6060", nil)
 	seedlist := strings.Split(*seed, " ")
 	//第一种情况，用户写错一个字
 	n := 0
-	for k := range wallet.ChineseSeedCache {
+	wordlist := wallet.ChineseSeedCache
+	if *lang == 0 {
+		wordlist = wallet.EnglishSeedCache
+	}
+	for k := range wordlist {
 		log.Println("change ", k, int(100*(float64(n)/float64(2048))))
 		n++
 		var seeds []string
@@ -64,13 +74,23 @@ func checkseed(newseed string) {
 	}
 }
 func genaddrlist(seed string) (map[string]bool, error) {
-	wallet, err := bipwallet.NewWalletFromMnemonic(bipwallet.TypeBty, seed)
-	if err != nil {
-		//log.Println("GetPrivkeyBySeed NewWalletFromMnemonic", "err", err)
+	var wallet *bipwallet.HDWallet
+	var err error
+	if *oldseed {
 		wallet, err = bipwallet.NewWalletFromSeed(bipwallet.TypeBty, []byte(seed))
 		if err != nil {
 			log.Println("GetPrivkeyBySeed NewWalletFromSeed", "err", err)
 			return nil, types.ErrNewWalletFromSeed
+		}
+	} else {
+		wallet, err = bipwallet.NewWalletFromMnemonic(bipwallet.TypeBty, seed)
+		if err != nil {
+			//log.Println("GetPrivkeyBySeed NewWalletFromMnemonic", "err", err)
+			wallet, err = bipwallet.NewWalletFromSeed(bipwallet.TypeBty, []byte(seed))
+			if err != nil {
+				log.Println("GetPrivkeyBySeed NewWalletFromSeed", "err", err)
+				return nil, types.ErrNewWalletFromSeed
+			}
 		}
 	}
 	addrlist := make(map[string]bool)
