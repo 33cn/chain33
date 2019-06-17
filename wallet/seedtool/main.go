@@ -98,7 +98,7 @@ func genaddrlist(seed string) (map[string]bool, error) {
 	addrlist := make(map[string]bool)
 	for index := 0; index <= *accountnum; index++ {
 		//通过索引生成Key pair
-		_, pub, err := wallet.NewKeyPair(uint32(index))
+		_, pub, err := childkey(wallet, uint32(index))
 		if err != nil {
 			log.Println("GetPrivkeyBySeed NewKeyPair", "err", err)
 			return nil, types.ErrNewKeyPair
@@ -107,4 +107,15 @@ func genaddrlist(seed string) (map[string]bool, error) {
 		addrlist[addr.String()] = true
 	}
 	return addrlist, err
+}
+
+func childkey(w *bipwallet.HDWallet, index uint32) (priv, pub []byte, err error) {
+	if *oldseed {
+		key, err := w.MasterKey.NewChildKey(index)
+		if err != nil {
+			return nil, nil, err
+		}
+		return key.Key, key.PublicKey().Key, err
+	}
+	return w.NewKeyPair(index)
 }
