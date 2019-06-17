@@ -20,6 +20,7 @@ var seed = flag.String("seed", "", "source seed")
 var targetaddr = flag.String("addr", "", "address of target")
 var lang = flag.Int("lang", 1, "lang: 0 englist, 1 chinese")
 var oldseed = flag.Bool("oldseed", false, "is seed old")
+var accountnum = flag.Int("nacc", 5, "gen account count")
 
 func main() {
 	flag.Parse()
@@ -94,7 +95,7 @@ func genaddrlist(seed string) (map[string]bool, error) {
 		}
 	}
 	addrlist := make(map[string]bool)
-	for index := 0; index <= 5; index++ {
+	for index := 0; index <= *accountnum; index++ {
 		//通过索引生成Key pair
 		_, pub, err := wallet.NewKeyPair(uint32(index))
 		if err != nil {
