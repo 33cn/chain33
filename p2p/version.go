@@ -11,11 +11,7 @@ package p2p
 // 1. p2p 过滤重复数据，改用blockhash 提换block height
 // 2. 增加p2p私钥自动导入到钱包功能
 
-//p2p版本区间
-const (
-	minP2PVersion = 10020
-	maxP2PVersion = 11000
-)
+//p2p版本区间 10020, 11000
 
 //历史版本
 const (
