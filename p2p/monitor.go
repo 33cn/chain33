@@ -339,7 +339,7 @@ func (n *Node) nodeReBalance() {
 		}
 
 		if MinCacheInBoundPeer != nil {
-			info, err := MinCacheInBoundPeer.GetPeerInfo(VERSION)
+			info, err := MinCacheInBoundPeer.GetPeerInfo()
 			if err != nil {
 				n.RemoveCachePeer(MinCacheInBoundPeer.Addr())
 				MinCacheInBoundPeer.Close()

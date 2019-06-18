@@ -375,7 +375,7 @@ func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid string, pubPeerFun
 	//计算的root hash是否一致
 	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
-		log.Info("recvBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer",
+		log.Info("recvBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer", pid,
 			"block size(KB)", float32(block.Size())/1024, "blockHash", rep.BlockHash)
 		//发送至blockchain执行
 		if err := n.postBlockChain(block, pid); err != nil {

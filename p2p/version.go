@@ -25,3 +25,21 @@ const (
 
 // VERSION number
 const VERSION = lightBroadCastVersion
+
+// MainNet Channel = 0x0000
+
+const (
+	defaultTestNetChannel = 256
+	versionMask           = 0xFFFF
+)
+
+// channelVersion = channel << 16 + version
+func calcChannelVersion(channel int32) int32 {
+	return channel<<16 + VERSION
+}
+
+func decodeChannelVersion(channelVersion int32) (int32, int32) {
+	channel := channelVersion >> 16
+	version := channelVersion & versionMask
+	return channel, version
+}

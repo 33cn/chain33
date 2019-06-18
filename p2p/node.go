@@ -498,3 +498,7 @@ func (n *Node) deleteNatMapPort() {
 func (n *Node) natNotice() {
 	<-n.nodeInfo.natNoticeChain
 }
+
+func (n *Node) verifyP2PChannel(channel int32) bool {
+	return channel == n.nodeInfo.cfg.Channel
+}

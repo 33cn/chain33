@@ -121,13 +121,14 @@ func (s *P2pserver) GetAddrList(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2P
 
 // Version version
 func (s *P2pserver) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerAck, error) {
-	return &pb.P2PVerAck{Version: s.node.nodeInfo.cfg.Version, Service: 6, Nonce: in.Nonce}, nil
+	return &pb.P2PVerAck{Version: s.node.nodeInfo.channelVersion, Service: 6, Nonce: in.Nonce}, nil
 }
 
 // Version2 p2pserver version
 func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
 
-	log.Debug("Version2")
+	channel, ver := decodeChannelVersion(in.GetVersion())
+	log.Debug("p2pServer Version2", "p2pChannel", channel, "p2p version", ver)
 	var peerip string
 	var err error
 	getctx, ok := pr.FromContext(ctx)
@@ -138,8 +139,8 @@ func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		}
 	}
 
-	if !s.checkVersion(in.GetVersion()) {
-		return nil, pb.ErrVersion
+	if !s.node.verifyP2PChannel(channel) {
+		return nil, pb.ErrP2PChannel
 	}
 
 	log.Debug("Version2", "before", "GetPrivPubKey")
@@ -157,7 +158,7 @@ func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		}
 	}
 
-	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.Version, Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
+	return &pb.P2PVersion{Version: s.node.nodeInfo.channelVersion, Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerip, port), UserAgent: pub}, nil
 
 }
@@ -190,9 +191,10 @@ func (s *P2pserver) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 // GetBlocks get blocks of p2pserver
 func (s *P2pserver) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
 
-	log.Debug("p2pServer GetBlocks", "P2P Recv", in)
-	if !s.checkVersion(in.GetVersion()) {
-		return nil, pb.ErrVersion
+	channel, ver := decodeChannelVersion(in.GetVersion())
+	log.Debug("p2pServer GetBlocks", "p2pChannel", channel, "p2p version", ver)
+	if !s.node.verifyP2PChannel(channel) {
+		return nil, pb.ErrP2PChannel
 	}
 
 	client := s.node.nodeInfo.client
@@ -220,9 +222,10 @@ func (s *P2pserver) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 
 // GetMemPool p2pserver queries the local mempool
 func (s *P2pserver) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
-	log.Debug("p2pServer Recv GetMempool", "version", in)
-	if !s.checkVersion(in.GetVersion()) {
-		return nil, pb.ErrVersion
+	channel, ver := decodeChannelVersion(in.GetVersion())
+	log.Debug("p2pServer GetMemPool", "p2pChannel", channel, "p2p version", ver)
+	if !s.node.verifyP2PChannel(channel) {
+		return nil, pb.ErrP2PChannel
 	}
 
 	memtx, err := s.loadMempool()
@@ -240,12 +243,14 @@ func (s *P2pserver) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P
 
 // GetData get data of p2pserver
 func (s *P2pserver) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServer) error {
-	log.Debug("p2pServer Recv GetDataTx", "p2p version", in.GetVersion())
+
+	channel, ver := decodeChannelVersion(in.GetVersion())
+	log.Debug("p2pServer Recv GetDataTx", "p2pChannel", channel, "p2p version", ver)
+	if !s.node.verifyP2PChannel(channel) {
+		return pb.ErrP2PChannel
+	}
 	var p2pInvData = make([]*pb.InvData, 0)
 	var count = 0
-	if !s.checkVersion(in.GetVersion()) {
-		return pb.ErrVersion
-	}
 
 	invs := in.GetInvs()
 	client := s.node.nodeInfo.client
@@ -313,9 +318,11 @@ func (s *P2pserver) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 
 // GetHeaders ger headers of p2pServer
 func (s *P2pserver) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
-	log.Debug("p2pServer GetHeaders", "p2p version", in.GetVersion())
-	if !s.checkVersion(in.GetVersion()) {
-		return nil, pb.ErrVersion
+
+	channel, ver := decodeChannelVersion(in.GetVersion())
+	log.Debug("p2pServer GetHeaders", "p2pChannel", channel, "p2p version", ver)
+	if !s.node.verifyP2PChannel(channel) {
+		return nil, pb.ErrP2PChannel
 	}
 
 	if in.GetEndHeight()-in.GetStartHeight() > 2000 || in.GetEndHeight() < in.GetStartHeight() {
@@ -341,9 +348,10 @@ func (s *P2pserver) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 
 // GetPeerInfo get peer information of p2pServer
 func (s *P2pserver) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb.P2PPeerInfo, error) {
-	log.Debug("p2pServer GetPeerInfo", "p2p version", in.GetVersion())
-	if !s.checkVersion(in.GetVersion()) {
-		return nil, pb.ErrVersion
+	channel, ver := decodeChannelVersion(in.GetVersion())
+	log.Debug("p2pServer GetPeerInfo", "p2pChannel", channel, "p2p version", ver)
+	if !s.node.verifyP2PChannel(channel) {
+		return nil, pb.ErrP2PChannel
 	}
 
 	client := s.node.nodeInfo.client
@@ -418,12 +426,8 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 		}
 		peerInfo := s.getInBoundPeerInfo(peername)
 		if peerInfo != nil {
-			if !s.checkVersion(peerInfo.p2pversion) {
-				log.Error("ServerStreamSend CheckVersion", "version", peerInfo.p2pversion)
-				if peerInfo.p2pversion == 0 {
-					return fmt.Errorf("version empty")
-				}
-				return pb.ErrVersion
+			if peerInfo.p2pversion == 0 {
+				return fmt.Errorf("version empty")
 			}
 			//增加过滤，如果自己连接了远程节点，则不需要通过stream send 重复发送数据给这个节点
 			if s.node.Has(peerInfo.addr) {
@@ -483,15 +487,17 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			//接收版本信息
 			peername = ver.GetPeername()
 			softversion := ver.GetSoftversion()
-			p2pversion := ver.GetP2Pversion()
 			innerpeer := s.getInBoundPeerInfo(peername)
+			channel, p2pVersion := decodeChannelVersion(ver.GetP2Pversion())
+			if !s.node.verifyP2PChannel(channel) {
+				return pb.ErrP2PChannel
+			}
 			if innerpeer != nil {
-				if !s.checkVersion(p2pversion) {
-					return pb.ErrVersion
-				}
-				innerpeer.p2pversion = p2pversion
-				innerpeer.softversion = softversion
-				s.addInBoundPeerInfo(peername, *innerpeer)
+				//这里如果直接修改原值, 可能data race
+				info := *innerpeer
+				info.p2pversion = p2pVersion
+				info.softversion = softversion
+				s.addInBoundPeerInfo(peername, info)
 			} else {
 				//没有获取到peername 的信息，说明没有获取ping的消息包
 				return pb.ErrStreamPing
@@ -567,15 +573,6 @@ func (s *P2pserver) CollectInPeers2(ctx context.Context, in *pb.P2PPing) (*pb.Pe
 	return &pb.PeersReply{Peers: p2pPeers}, nil
 }
 
-func (s *P2pserver) checkVersion(version int32) bool {
-
-	if version < s.node.nodeInfo.cfg.VerMin || version > s.node.nodeInfo.cfg.VerMax {
-		//版本不支持
-		return false
-	}
-
-	return true
-}
 func (s *P2pserver) loadMempool() (map[string]*pb.Transaction, error) {
 
 	var txmap = make(map[string]*pb.Transaction)

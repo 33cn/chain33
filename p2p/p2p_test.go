@@ -27,11 +27,11 @@ import (
 )
 
 var (
-	q         queue.Queue
-	p2pModule *P2p
-	dataDir   = "testdata"
-	testVer   = int32(119)
-	memTxList []*types.Transaction
+	q           queue.Queue
+	p2pModule   *P2p
+	dataDir     = "testdata"
+	testChannel = int32(119)
+	memTxList   []*types.Transaction
 )
 
 func init() {
@@ -142,7 +142,7 @@ func initP2p(port int32, dbpath string) *P2p {
 	cfg.Enable = true
 	cfg.DbPath = dbpath
 	cfg.DbCache = 4
-	cfg.Version = 119
+	cfg.Channel = testChannel
 	cfg.ServerStart = true
 	cfg.Driver = "leveldb"
 
@@ -234,7 +234,7 @@ func TestPeer(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, pnum)
 
-	_, err = peer.GetPeerInfo(testVer)
+	_, err = peer.GetPeerInfo()
 	assert.Nil(t, err)
 	//获取节点列表
 	_, err = p2pcli.GetAddrList(peer)
@@ -470,25 +470,6 @@ func TestP2pRestart(t *testing.T) {
 	assert.Equal(t, false, p2pModule.isClose())
 	assert.Equal(t, false, p2pModule.isRestart())
 	p2pModule.ReStart()
-}
-
-func Test_spaceLimitCache(t *testing.T) {
-
-	c := newSpaceLimitCache(3, 10)
-	assert.True(t, c.add(1, 1, 1))
-	assert.True(t, c.add(1, 1, 1))
-	assert.False(t, c.add(2, 2, 20))
-	assert.Nil(t, c.get(2))
-	assert.True(t, c.add(2, 1, 10))
-	c.add(3, 2, 2)
-	c.add(4, 2, 2)
-	c.add(5, 2, 2)
-	c.add(6, 2, 2)
-	assert.False(t, c.contains(2))
-	assert.Equal(t, 3, c.data.Len())
-	assert.True(t, c.add(7, 7, 10))
-	assert.True(t, c.contains(7))
-	assert.Equal(t, 1, c.data.Len())
 }
 
 type versionData struct {
