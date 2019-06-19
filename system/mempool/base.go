@@ -283,8 +283,8 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 
 // GetProperFeeRate 获取合适的手续费率
 func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
-	if req == nil || req.TxCount == 0{
-		req = &types.ReqProperFee{TxCount:20}
+	if req == nil || req.TxCount == 0 {
+		req = &types.ReqProperFee{TxCount: 20}
 	}
 	if req.TxSize == 0 {
 		req.TxSize = 10240
