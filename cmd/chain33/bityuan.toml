@@ -98,6 +98,8 @@ pruneHeight=10000
 enableMemTree=false
 # 是否使能mavl叶子节点数据载入内存
 enableMemVal=false
+# 缓存close ticket数目，该缓存越大同步速度越快，最大设置到1500000
+tkCloseCacheLen=100000
 
 [wallet]
 # walletdb路径

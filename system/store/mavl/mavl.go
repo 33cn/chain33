@@ -39,6 +39,7 @@ type Store struct {
 	pruneHeight      int32
 	enableMemTree    bool
 	enableMemVal     bool
+	tkCloseCacheLen  int32
 }
 
 func init() {
@@ -57,6 +58,8 @@ type subConfig struct {
 	EnableMemTree bool `json:"enableMemTree"`
 	// 是否使能内存树中叶子节点
 	EnableMemVal bool `json:"enableMemVal"`
+	// 缓存close ticket数目
+	TkCloseCacheLen int32 `json:"tkCloseCacheLen"`
 }
 
 // New new mavl store module
@@ -67,19 +70,21 @@ func New(cfg *types.Store, sub []byte) queue.Module {
 		types.MustDecode(sub, &subcfg)
 	}
 	mavls := &Store{bs, &sync.Map{}, subcfg.EnableMavlPrefix, subcfg.EnableMVCC,
-		subcfg.EnableMavlPrune, subcfg.PruneHeight, subcfg.EnableMemTree, subcfg.EnableMemVal}
+		subcfg.EnableMavlPrune, subcfg.PruneHeight, subcfg.EnableMemTree, subcfg.EnableMemVal, subcfg.TkCloseCacheLen}
 	mavls.enableMavlPrefix = subcfg.EnableMavlPrefix
 	mavls.enableMVCC = subcfg.EnableMVCC
 	mavls.enableMavlPrune = subcfg.EnableMavlPrune
 	mavls.pruneHeight = subcfg.PruneHeight
 	mavls.enableMemTree = subcfg.EnableMemTree
 	mavls.enableMemVal = subcfg.EnableMemVal
+	mavls.tkCloseCacheLen = subcfg.TkCloseCacheLen
 	mavl.EnableMavlPrefix(mavls.enableMavlPrefix)
 	mavl.EnableMVCC(mavls.enableMVCC)
 	mavl.EnablePrune(mavls.enableMavlPrune)
 	mavl.SetPruneHeight(int(mavls.pruneHeight))
 	mavl.EnableMemTree(mavls.enableMemTree)
 	mavl.EnableMemVal(mavls.enableMemVal)
+	mavl.TkCloseCacheLen(mavls.tkCloseCacheLen)
 	bs.SetChild(mavls)
 	return mavls
 }
