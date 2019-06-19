@@ -993,7 +993,7 @@ func testGetLastMemPoolGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testGetProperFeeGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.ReplyProperFee
-	err := rpc.newRpcCtx("GetProperFee", &types.ReqNil{}, &res)
+	err := rpc.newRpcCtx("GetProperFee", &types.ReqProperFee{}, &res)
 	if err != nil {
 		t.Error("Call GetProperFee Failed.", err)
 	}
