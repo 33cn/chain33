@@ -469,8 +469,8 @@ func (q *QueueProtocol) GetLastMempool() (*types.ReplyTxList, error) {
 }
 
 // GetProperFee get proper fee from mempool
-func (q *QueueProtocol) GetProperFee() (*types.ReplyProperFee, error) {
-	msg, err := q.query(mempoolKey, types.EventGetProperFee, &types.ReqNil{})
+func (q *QueueProtocol) GetProperFee(req *types.ReqProperFee) (*types.ReplyProperFee, error) {
+	msg, err := q.query(mempoolKey, types.EventGetProperFee, req)
 	if err != nil {
 		log.Error("GetProperFee", "Error", err.Error())
 		return nil, err

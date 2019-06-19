@@ -25,7 +25,7 @@ type QueueProtocolAPI interface {
 	// types.EventGetLastMempool
 	GetLastMempool() (*types.ReplyTxList, error)
 	// types.EventGetProperFee
-	GetProperFee() (*types.ReplyProperFee, error)
+	GetProperFee(*types.ReqProperFee) (*types.ReplyProperFee, error)
 	// +++++++++++++++ execs interfaces begin
 	// types.EventBlockChainQuery
 	Query(driver, funcname string, param types.Message) (types.Message, error)

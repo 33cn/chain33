@@ -614,8 +614,8 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 }
 
 // GetProperFee get  contents in proper fee
-func (c *Chain33) GetProperFee(in types.ReqNil, result *interface{}) error {
-	reply, err := c.cli.GetProperFee()
+func (c *Chain33) GetProperFee(in types.ReqProperFee, result *interface{}) error {
+	reply, err := c.cli.GetProperFee(&in)
 	if err != nil {
 		return err
 	}

@@ -194,7 +194,8 @@ func (mem *Mempool) eventGetAddrTxs(msg *queue.Message) {
 
 // eventGetProperFee 获取排队策略中合适的手续费率
 func (mem *Mempool) eventGetProperFee(msg *queue.Message) {
-	properFee := mem.GetProperFeeRate()
+	req := msg.GetData().(*types.ReqProperFee)
+	properFee := mem.GetProperFeeRate(req)
 	msg.Reply(mem.client.NewMessage("rpc", types.EventReplyProperFee,
 		&types.ReplyProperFee{ProperFee: properFee}))
 }

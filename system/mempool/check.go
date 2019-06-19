@@ -124,7 +124,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 // checkLevelFee 检查阶梯手续费
 func (mem *Mempool) checkLevelFee(tx *types.TransactionCache) error {
 	//获取mempool里所有交易手续费总和
-	feeRate := mem.getLevelFeeRate(mem.cfg.MinTxFee)
+	feeRate := mem.getLevelFeeRate(mem.cfg.MinTxFee, 0, 0)
 	totalfee, err := tx.GetTotalFee(feeRate)
 	if err != nil {
 		return err

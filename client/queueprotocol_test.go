@@ -343,7 +343,11 @@ func testGetLastMempool(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testGetProperFee(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.GetProperFee()
+	_, err := api.GetProperFee(nil)
+	if err != nil {
+		t.Error("Call GetProperFee Failed.", err)
+	}
+	_, err = api.GetProperFee(&types.ReqProperFee{})
 	if err != nil {
 		t.Error("Call GetProperFee Failed.", err)
 	}
