@@ -220,7 +220,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "GetProperFee":
-		reply, err := rpc.GetProperFee(context.Background(), c.Params.(*types.ReqNil))
+		reply, err := rpc.GetProperFee(context.Background(), c.Params.(*types.ReqProperFee))
 		if err == nil {
 			*c.Res.(*types.ReplyProperFee) = *reply
 		}
