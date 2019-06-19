@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
 	//"log"
 	"net"
 	"strings"
@@ -32,7 +33,7 @@ import (
 	"time"
 
 	//"github.com/ethereum/go-ethereum/log"
-	"github.com/jackpal/go-nat-pmp"
+	natpmp "github.com/jackpal/go-nat-pmp"
 )
 
 // Interface An implementation of nat.Interface can map local ports to ports

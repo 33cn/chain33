@@ -17,7 +17,7 @@ import (
 	dbm "github.com/33cn/chain33/common/db"
 	clog "github.com/33cn/chain33/common/log"
 	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/system/store/mavl/db"
+	mavl "github.com/33cn/chain33/system/store/mavl/db"
 	"github.com/33cn/chain33/types"
 )
 
