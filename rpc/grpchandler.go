@@ -206,8 +206,8 @@ func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxLi
 }
 
 // GetProperFee return last mempool proper fee
-func (g *Grpc) GetProperFee(ctx context.Context, in *pb.ReqNil) (*pb.ReplyProperFee, error) {
-	return g.cli.GetProperFee()
+func (g *Grpc) GetProperFee(ctx context.Context, in *pb.ReqProperFee) (*pb.ReplyProperFee, error) {
+	return g.cli.GetProperFee(in)
 }
 
 // GetBlockOverview get block overview

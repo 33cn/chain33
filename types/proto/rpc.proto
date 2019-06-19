@@ -75,7 +75,7 @@ service chain33 {
     rpc GetLastMemPool(ReqNil) returns (ReplyTxList) {}
 
     //获取最新的ProperFee
-    rpc GetProperFee(ReqNil) returns (ReplyProperFee) {}
+    rpc GetProperFee(ReqProperFee) returns (ReplyProperFee) {}
 
     // 获取钱包状态
     rpc GetWalletStatus(ReqNil) returns (WalletStatus) {}
