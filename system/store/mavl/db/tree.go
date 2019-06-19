@@ -44,6 +44,7 @@ var (
 	enableMemVal  bool
 	memTree       MemTreeOpera
 	tkCloseCache  MemTreeOpera
+	tkCloseCacheLen int32 = 10*10000
 )
 
 // EnableMavlPrefix 使能mavl加前缀
@@ -64,6 +65,11 @@ func EnableMemTree(enable bool) {
 // EnableMemVal 使能mavl叶子节点数据载入内存
 func EnableMemVal(enable bool) {
 	enableMemVal = enable
+}
+
+// TkCloseCacheLen 设置缓存close ticket数目
+func TkCloseCacheLen(len int32) {
+	tkCloseCacheLen = len
 }
 
 // ReleaseGlobalMem 释放全局缓存
@@ -110,7 +116,7 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 	// 使能情况下非空创建当前整tree的缓存
 	if enableMemTree && memTree == nil {
 		memTree = NewTreeMap(50 * 10000)
-		tkCloseCache = NewTreeARC(10 * 10000)
+		tkCloseCache = NewTreeARC(int(tkCloseCacheLen))
 	}
 	return &Tree{
 		ndb:          ndb,
