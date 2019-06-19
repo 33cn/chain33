@@ -933,8 +933,7 @@ func TestChain33_GetProperFee(t *testing.T) {
 	api.On("GetProperFee").Return(nil, errors.New("error value"))
 
 	var testResult interface{}
-	actual := types.ReqNil{}
-	err := testChain33.GetProperFee(actual, &testResult)
+	err := testChain33.GetProperFee(types.ReqProperFee{}, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
