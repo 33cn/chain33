@@ -40,11 +40,11 @@ var (
 	maxBlockHeight int64
 	heightMtx      sync.Mutex
 	//
-	enableMemTree bool
-	enableMemVal  bool
-	memTree       MemTreeOpera
-	tkCloseCache  MemTreeOpera
-	tkCloseCacheLen int32 = 10*10000
+	enableMemTree   bool
+	enableMemVal    bool
+	memTree         MemTreeOpera
+	tkCloseCache    MemTreeOpera
+	tkCloseCacheLen int32 = 10 * 10000
 )
 
 // EnableMavlPrefix 使能mavl加前缀
