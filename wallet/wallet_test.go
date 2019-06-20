@@ -35,7 +35,6 @@ func initEnv() (*Wallet, queue.Module, queue.Queue) {
 
 	wallet := New(cfg.Wallet, sub.Wallet)
 	wallet.SetQueueClient(q.Client())
-
 	store := store.New(cfg.Store, sub.Store)
 	store.SetQueueClient(q.Client())
 
@@ -133,6 +132,8 @@ func mempoolModProc(q queue.Queue) {
 			//walletlog.Info("mempool", "msg.Ty", msg.Ty)
 			if msg.Ty == types.EventTx {
 				msg.Reply(client.NewMessage("wallet", types.EventReply, &types.Reply{IsOk: true}))
+			} else if msg.Ty == types.EventGetProperFee {
+				msg.Reply(client.NewMessage("wallet", types.EventReply, &types.ReplyProperFee{ProperFee:1000000}))
 			}
 		}
 	}()
