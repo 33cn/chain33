@@ -6,11 +6,12 @@ import (
 	"io/ioutil"
 	"os"
 
+	"fmt"
+
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"fmt"
 )
 
 func TestGetStoreUpgradeMeta(t *testing.T) {
@@ -172,9 +173,9 @@ func TestSeqCreateAndDelete(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), seq)
 
- 	seq, err = blockStore.GetSequenceByHash([]byte("0"))
- 	assert.Nil(t, err)
- 	assert.Equal(t, int64(0), seq)
+	seq, err = blockStore.GetSequenceByHash([]byte("0"))
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), seq)
 
 	blockStore.saveSequence = false
 	blockStore.DeleteSequences(10)
