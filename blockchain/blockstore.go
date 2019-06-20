@@ -1239,13 +1239,13 @@ func (bs *BlockStore) SetStoreUpgradeMeta(meta *types.UpgradeMeta) error {
 	return bs.db.SetSync(version.StoreDBMeta, verByte)
 }
 
-//SequenceMustValid 配置的合法性检测
-func (bs *BlockStore) SequenceMustValid(recordSequence bool) {
+//CheckSequenceStatus 配置的合法性检测
+func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) {
 	lastHeight := bs.Height()
 	lastSequence, err := bs.LoadBlockLastSequence()
 	if err != nil {
 		if err != types.ErrHeightNotExist {
-			storeLog.Error("SequenceMustValid", "LoadBlockLastSequence err", err)
+			storeLog.Error("CheckSequenceStatus", "LoadBlockLastSequence err", err)
 			panic(err)
 		}
 	}
@@ -1253,24 +1253,24 @@ func (bs *BlockStore) SequenceMustValid(recordSequence bool) {
 	if recordSequence {
 		//中途开启isRecordBlockSequence报错
 		if lastSequence == -1 && lastHeight != -1 {
-			storeLog.Error("SequenceMustValid", "lastHeight", lastHeight, "lastSequence", lastSequence)
+			storeLog.Error("CheckSequenceStatus", "lastHeight", lastHeight, "lastSequence", lastSequence)
 			panic("isRecordBlockSequence is true must Synchronizing data from zero block")
 		}
 		//lastSequence 必须大于等于lastheight
 		if lastHeight > lastSequence {
-			storeLog.Error("SequenceMustValid", "lastHeight", lastHeight, "lastSequence", lastSequence)
+			storeLog.Error("CheckSequenceStatus", "lastHeight", lastHeight, "lastSequence", lastSequence)
 			panic("lastSequence must greater than or equal to lastHeight")
 		}
 		//通过lastSequence获取对应的blockhash ！= lastHeader.hash 报错
 		if lastSequence != -1 {
 			blockSequence, err := bs.GetBlockSequence(lastSequence)
 			if err != nil {
-				storeLog.Error("SequenceMustValid", "lastSequence", lastSequence, "GetBlockSequence err", err)
+				storeLog.Error("CheckSequenceStatus", "lastSequence", lastSequence, "GetBlockSequence err", err)
 				panic(err)
 			}
 			lastHeader := bs.LastHeader()
 			if !bytes.Equal(lastHeader.Hash, blockSequence.Hash) {
-				storeLog.Error("SequenceMustValid:", "lastHeight", lastHeight, "lastSequence", lastSequence, "lastHeader.Hash", common.ToHex(lastHeader.Hash), "blockSequence.Hash", common.ToHex(blockSequence.Hash))
+				storeLog.Error("CheckSequenceStatus:", "lastHeight", lastHeight, "lastSequence", lastSequence, "lastHeader.Hash", common.ToHex(lastHeader.Hash), "blockSequence.Hash", common.ToHex(blockSequence.Hash))
 				panic("The hash values of lastSequence and lastHeight are different.")
 			}
 		}
@@ -1278,7 +1278,7 @@ func (bs *BlockStore) SequenceMustValid(recordSequence bool) {
 	}
 	//去使能isRecordBlockSequence时的检测
 	if lastSequence != -1 {
-		storeLog.Error("SequenceMustValid", "lastSequence", lastSequence)
+		storeLog.Error("CheckSequenceStatus", "lastSequence", lastSequence)
 		panic("can not disable isRecordBlockSequence")
 	}
 }
