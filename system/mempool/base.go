@@ -302,12 +302,12 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 // getLevelFeeRate 获取合适的阶梯手续费率, 可以外部传入count, size进行前瞻性估计
 func (mem *Mempool) getLevelFeeRate(baseFeeRate int64, appendCount, appendSize int32) int64 {
 	var feeRate int64
-	sumByte := mem.cache.TotalByte()
+	sumByte := mem.cache.TotalByte() + int64(appendSize)
 	maxTxNumber := types.GetP(mem.Height()).MaxTxNumber
 	switch {
-	case sumByte >= int64(types.MaxBlockSize/20) || int64(mem.Size()) >= maxTxNumber/2:
+	case sumByte >= int64(types.MaxBlockSize/20) || int64(mem.Size() + int(appendCount)) >= maxTxNumber/2:
 		feeRate = 100 * baseFeeRate
-	case sumByte >= int64(types.MaxBlockSize/100) || int64(mem.Size()) >= maxTxNumber/10:
+	case sumByte >= int64(types.MaxBlockSize/100) || int64(mem.Size() + int(appendCount)) >= maxTxNumber/10:
 		feeRate = 10 * baseFeeRate
 	default:
 		feeRate = baseFeeRate
