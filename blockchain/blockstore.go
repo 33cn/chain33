@@ -1290,6 +1290,7 @@ func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) int {
 	return seqStatusOk
 }
 
+//CreateSequences 根据高度生成sequence记录
 func (bs *BlockStore) CreateSequences(batchSize int64) {
 	lastSeq, err := bs.LoadBlockLastSequence()
 	if err != nil {
@@ -1348,6 +1349,7 @@ func (bs *BlockStore) CreateSequences(batchSize int64) {
 	storeLog.Info("CreateSequences done")
 }
 
+//DeleteSequences 删除本地数据库里的sequence记录
 func (bs *BlockStore) DeleteSequences(batchSize int64) {
 	lastSeq, err := bs.LoadBlockLastSequence()
 	if err != nil {
