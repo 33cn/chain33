@@ -1316,7 +1316,7 @@ func (bs *BlockStore) CreateSequences() {
 		// hash -> seq
 		sequenceBytes := types.Encode(&types.Int64{Data: seq})
 		newBatch.Set(calcHashToSequenceKey(header.Hash, bs.isParaChain), sequenceBytes)
-		if i % 1000 == 0 {
+		if i%1000 == 0 {
 			storeLog.Debug("CreateSequences ", "height", i)
 		}
 	}
@@ -1324,7 +1324,7 @@ func (bs *BlockStore) CreateSequences() {
 	newBatch.Set(calcLastSeqKey(bs.isParaChain), types.Encode(&types.Int64{Data: lastHeight}))
 	err := newBatch.Write()
 	if err != nil {
-		storeLog.Error("CreateSequences newBatch.Write","error", err)
+		storeLog.Error("CreateSequences newBatch.Write", "error", err)
 		panic("CreateSequences newBatch.Write" + err.Error())
 	}
 	storeLog.Info("CreateSequences done")
@@ -1346,7 +1346,7 @@ func (bs *BlockStore) DeleteSequences() {
 		newBatch.Delete(calcSequenceToHashKey(seq, bs.isParaChain))
 		// hash -> seq
 		newBatch.Delete(calcHashToSequenceKey(header.Hash, bs.isParaChain))
-		if i % 1000 == 0 {
+		if i%1000 == 0 {
 			storeLog.Debug("DeleteSequences ", "height", i)
 		}
 	}
@@ -1354,7 +1354,7 @@ func (bs *BlockStore) DeleteSequences() {
 	newBatch.Delete(calcLastSeqKey(bs.isParaChain))
 	err := newBatch.Write()
 	if err != nil {
-		storeLog.Error("DeleteSequences newBatch.Write","error", err)
+		storeLog.Error("DeleteSequences newBatch.Write", "error", err)
 		panic("DeleteSequences newBatch.Write" + err.Error())
 	}
 	storeLog.Info("DeleteSequences done")
