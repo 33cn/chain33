@@ -624,10 +624,26 @@ func TestGetLatestTx(t *testing.T) {
 	}
 }
 
+func testProperFee(t *testing.T, client queue.Client, req *types.ReqProperFee, expectFee int64) int64{
+	msg := client.NewMessage("mempool", types.EventGetProperFee, req)
+	client.Send(msg, true)
+	reply, err := client.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return 0
+	}
+	fee := reply.GetData().(*types.ReplyProperFee).GetProperFee()
+	assert.Equal(t, expectFee, fee)
+	return fee
+}
+
 func TestGetProperFee(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
+	defer func() {
+		mem.cfg.IsLevelFee = false
+	}()
 
 	// add 10 txs
 	err := add10Tx(mem.client)
@@ -635,24 +651,24 @@ func TestGetProperFee(t *testing.T) {
 		t.Error("add tx error", err.Error())
 		return
 	}
-
+	maxTxNum := types.GetP(mem.Height()).MaxTxNumber
+	maxSize := types.MaxBlockSize
 	msg11 := mem.client.NewMessage("mempool", types.EventTx, tx11)
 	mem.client.Send(msg11, true)
 	mem.client.Wait(msg11)
 
-	msg := mem.client.NewMessage("mempool", types.EventGetProperFee, nil)
-	mem.client.Send(msg, true)
-
-	reply, err := mem.client.Wait(msg)
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	if reply.GetData().(*types.ReplyProperFee).GetProperFee() != mem.cfg.MinTxFee {
-		t.Error("TestGetProperFee failed", reply.GetData().(*types.ReplyProperFee).GetProperFee(), mem.cfg.MinTxFee)
-	}
+	baseFee := testProperFee(t, mem.client, nil, mem.cfg.MinTxFee)
+	mem.cfg.IsLevelFee = true
+	testProperFee(t, mem.client, &types.ReqProperFee{}, baseFee)
+	testProperFee(t, mem.client, &types.ReqProperFee{}, baseFee)
+	//more than 1/2 max num
+	testProperFee(t, mem.client, &types.ReqProperFee{TxCount:int32(maxTxNum/2)}, 100 * baseFee)
+	//more than 1/10 max num
+	testProperFee(t, mem.client, &types.ReqProperFee{TxCount:int32(maxTxNum/10)}, 10 * baseFee)
+	//more than 1/20 max size
+	testProperFee(t, mem.client, &types.ReqProperFee{TxCount:1, TxSize:int32(maxSize/20)}, 100 * baseFee)
+	//more than 1/100 max size
+	testProperFee(t, mem.client, &types.ReqProperFee{TxCount:1, TxSize:int32(maxSize/100)}, 10 * baseFee)
 }
 
 func TestCheckLowFee(t *testing.T) {
