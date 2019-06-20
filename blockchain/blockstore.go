@@ -1291,7 +1291,13 @@ func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) int {
 }
 
 func (bs *BlockStore) CreateSequences(batchSize int64) {
-	lastSeq, _ := bs.LoadBlockLastSequence()
+	lastSeq, err := bs.LoadBlockLastSequence()
+	if err != nil {
+		if err != types.ErrHeightNotExist {
+			storeLog.Error("CreateSequences LoadBlockLastSequence", "error", err)
+			panic("CreateSequences LoadBlockLastSequence" + err.Error())
+		}
+	}
 	storeLog.Info("CreateSequences LoadBlockLastSequence", "start", lastSeq)
 
 	newBatch := bs.NewBatch(true)
@@ -1334,7 +1340,7 @@ func (bs *BlockStore) CreateSequences(batchSize int64) {
 	}
 	// last seq
 	newBatch.Set(calcLastSeqKey(bs.isParaChain), types.Encode(&types.Int64{Data: lastHeight}))
-	err := newBatch.Write()
+	err = newBatch.Write()
 	if err != nil {
 		storeLog.Error("CreateSequences newBatch.Write", "error", err)
 		panic("CreateSequences newBatch.Write" + err.Error())
@@ -1343,7 +1349,13 @@ func (bs *BlockStore) CreateSequences(batchSize int64) {
 }
 
 func (bs *BlockStore) DeleteSequences(batchSize int64) {
-	lastSeq, _ := bs.LoadBlockLastSequence()
+	lastSeq, err := bs.LoadBlockLastSequence()
+	if err != nil {
+		if err != types.ErrHeightNotExist {
+			storeLog.Error("DeleteSequences LoadBlockLastSequence", "error", err)
+			panic("DeleteSequences LoadBlockLastSequence" + err.Error())
+		}
+	}
 	storeLog.Info("DeleteSequences LoadBlockLastSequence", "start", lastSeq)
 
 	newBatch := bs.NewBatch(true)
@@ -1375,7 +1387,7 @@ func (bs *BlockStore) DeleteSequences(batchSize int64) {
 	}
 	// last seq
 	newBatch.Delete(calcLastSeqKey(bs.isParaChain))
-	err := newBatch.Write()
+	err = newBatch.Write()
 	if err != nil {
 		storeLog.Error("DeleteSequences newBatch.Write", "error", err)
 		panic("DeleteSequences newBatch.Write" + err.Error())
