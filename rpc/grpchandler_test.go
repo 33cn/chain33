@@ -203,11 +203,11 @@ func TestGetLastMemPool(t *testing.T) {
 }
 
 func testGetProperFeeOK(t *testing.T) {
-	qapi.On("GetProperFee").Return(nil, nil)
-	data, err := g.GetProperFee(getOkCtx(), nil)
+	var in *types.ReqProperFee
+	qapi.On("GetProperFee", in).Return(nil, nil)
+	data, err := g.GetProperFee(getOkCtx(), in)
 	assert.Nil(t, err, "the error should be nil")
 	assert.Nil(t, data)
-
 }
 
 func TestGetProperFee(t *testing.T) {

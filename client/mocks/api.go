@@ -522,13 +522,13 @@ func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 	return r0, r1
 }
 
-// GetProperFee provides a mock function with given fields: _a0
-func (_m *QueueProtocolAPI) GetProperFee(_a0 *types.ReqProperFee) (*types.ReplyProperFee, error) {
-	ret := _m.Called(_a0)
+// GetProperFee provides a mock function with given fields: req
+func (_m *QueueProtocolAPI) GetProperFee(req *types.ReqProperFee) (*types.ReplyProperFee, error) {
+	ret := _m.Called(req)
 
 	var r0 *types.ReplyProperFee
 	if rf, ok := ret.Get(0).(func(*types.ReqProperFee) *types.ReplyProperFee); ok {
-		r0 = rf(_a0)
+		r0 = rf(req)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.ReplyProperFee)
@@ -537,7 +537,7 @@ func (_m *QueueProtocolAPI) GetProperFee(_a0 *types.ReqProperFee) (*types.ReplyP
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.ReqProperFee) error); ok {
-		r1 = rf(_a0)
+		r1 = rf(req)
 	} else {
 		r1 = ret.Error(1)
 	}

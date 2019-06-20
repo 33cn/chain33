@@ -929,11 +929,11 @@ func TestChain33_GetProperFee(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	// expected := &types.ReqBlocks{}
-	api.On("GetProperFee").Return(nil, errors.New("error value"))
+	expected := types.ReqProperFee{}
+	api.On("GetProperFee", &expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
-	err := testChain33.GetProperFee(types.ReqProperFee{}, &testResult)
+	err := testChain33.GetProperFee(expected, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
