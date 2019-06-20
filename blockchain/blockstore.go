@@ -1294,7 +1294,7 @@ func (bs *BlockStore) CreateSequences() {
 	newBatch := bs.NewBatch(true)
 
 	lastHeight := bs.Height()
-	for i := int64(0); i < lastHeight; i++ {
+	for i := int64(0); i <= lastHeight; i++ {
 		seq := i
 		header, err := bs.GetBlockHeaderByHeight(i)
 		if err != nil {
@@ -1334,7 +1334,7 @@ func (bs *BlockStore) DeleteSequences() {
 	newBatch := bs.NewBatch(true)
 
 	lastHeight := bs.Height()
-	for i := int64(0); i < lastHeight; i++ {
+	for i := int64(0); i <= lastHeight; i++ {
 		seq := i
 		header, err := bs.GetBlockHeaderByHeight(i)
 		if err != nil {
