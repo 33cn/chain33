@@ -659,7 +659,7 @@ func TestGetProperFee(t *testing.T) {
 
 	baseFee := testProperFee(t, mem.client, nil, mem.cfg.MinTxFee)
 	mem.cfg.IsLevelFee = true
-	testProperFee(t, mem.client, &types.ReqProperFee{}, baseFee)
+	testProperFee(t, mem.client, nil, baseFee)
 	testProperFee(t, mem.client, &types.ReqProperFee{}, baseFee)
 	//more than 1/2 max num
 	testProperFee(t, mem.client, &types.ReqProperFee{TxCount: int32(maxTxNum / 2)}, 100*baseFee)
