@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"fmt"
 )
 
 func TestGetStoreUpgradeMeta(t *testing.T) {
@@ -151,35 +152,32 @@ func TestSeqCreateAndDelete(t *testing.T) {
 	blockStore.isParaChain = true
 
 	batch := blockStore.NewBatch(true)
-	var header types.Header
-	h0 := calcHeightToBlockHeaderKey(0)
-	header.Hash = []byte("00")
-	types.Encode(&header)
-	batch.Set(h0, types.Encode(&header))
-
-	h1 := calcHeightToBlockHeaderKey(1)
-	header.Hash = []byte("11")
-	batch.Set(h1, types.Encode(&header))
+	for i := 0; i <= 100; i++ {
+		var header types.Header
+		h0 := calcHeightToBlockHeaderKey(int64(i))
+		header.Hash = []byte(fmt.Sprintf("%d", i))
+		types.Encode(&header)
+		batch.Set(h0, types.Encode(&header))
+	}
+	blockStore.height = 100
 	batch.Write()
 
-	blockStore.height = 1
-
 	blockStore.saveSequence = true
-	blockStore.CreateSequences()
+	blockStore.CreateSequences(10)
 	seq, err := blockStore.LoadBlockLastSequence()
 	assert.Nil(t, err)
-	assert.Equal(t, int64(1), seq)
+	assert.Equal(t, int64(100), seq)
 
-	seq, err = blockStore.GetSequenceByHash([]byte("11"))
+	seq, err = blockStore.GetSequenceByHash([]byte("1"))
 	assert.Nil(t, err)
  	assert.Equal(t, int64(1), seq)
 
- 	seq, err = blockStore.GetSequenceByHash([]byte("00"))
+ 	seq, err = blockStore.GetSequenceByHash([]byte("0"))
  	assert.Nil(t, err)
  	assert.Equal(t, int64(0), seq)
 
 	blockStore.saveSequence = false
-	blockStore.DeleteSequences()
+	blockStore.DeleteSequences(10)
 	seq, err = blockStore.LoadBlockLastSequence()
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(-1), seq)
