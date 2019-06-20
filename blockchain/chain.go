@@ -245,7 +245,12 @@ func (chain *BlockChain) GetOrphanPool() *OrphanPool {
 //InitBlockChain 区块链初始化
 func (chain *BlockChain) InitBlockChain() {
 	//isRecordBlockSequence配置的合法性检测
-	chain.blockStore.CheckSequenceStatus(chain.isRecordBlockSequence)
+	seqStatus := chain.blockStore.CheckSequenceStatus(chain.isRecordBlockSequence)
+	if seqStatus == seqStatusNeedCreate {
+		// TODO to create
+	} else if seqStatus == seqStatusNeedDelete {
+		// TODO to delete
+	}
 
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()

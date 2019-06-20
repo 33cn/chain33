@@ -1239,8 +1239,14 @@ func (bs *BlockStore) SetStoreUpgradeMeta(meta *types.UpgradeMeta) error {
 	return bs.db.SetSync(version.StoreDBMeta, verByte)
 }
 
+const (
+	seqStatusOk = iota
+	seqStatusNeedCreate
+	seqStatusNeedDelete
+)
+
 //CheckSequenceStatus 配置的合法性检测
-func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) {
+func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) int {
 	lastHeight := bs.Height()
 	lastSequence, err := bs.LoadBlockLastSequence()
 	if err != nil {
@@ -1254,7 +1260,7 @@ func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) {
 		//中途开启isRecordBlockSequence报错
 		if lastSequence == -1 && lastHeight != -1 {
 			storeLog.Error("CheckSequenceStatus", "lastHeight", lastHeight, "lastSequence", lastSequence)
-			panic("isRecordBlockSequence is true must Synchronizing data from zero block")
+			return seqStatusNeedCreate
 		}
 		//lastSequence 必须大于等于lastheight
 		if lastHeight > lastSequence {
@@ -1271,14 +1277,15 @@ func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) {
 			lastHeader := bs.LastHeader()
 			if !bytes.Equal(lastHeader.Hash, blockSequence.Hash) {
 				storeLog.Error("CheckSequenceStatus:", "lastHeight", lastHeight, "lastSequence", lastSequence, "lastHeader.Hash", common.ToHex(lastHeader.Hash), "blockSequence.Hash", common.ToHex(blockSequence.Hash))
-				panic("The hash values of lastSequence and lastHeight are different.")
+				return seqStatusNeedCreate
 			}
 		}
-		return
+		return seqStatusOk
 	}
 	//去使能isRecordBlockSequence时的检测
 	if lastSequence != -1 {
 		storeLog.Error("CheckSequenceStatus", "lastSequence", lastSequence)
-		panic("can not disable isRecordBlockSequence")
+		return seqStatusNeedDelete
 	}
+	return seqStatusOk
 }
