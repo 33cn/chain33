@@ -1289,3 +1289,69 @@ func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) int {
 	}
 	return seqStatusOk
 }
+
+func (bs *BlockStore) CreateSequences() {
+	newBatch := bs.NewBatch(true)
+
+	lastHeight := bs.Height()
+	for i := int64(0); i < lastHeight; i++ {
+		seq := i
+		header, err := bs.GetBlockHeaderByHeight(i)
+		if err != nil {
+			storeLog.Error("CreateSequences GetBlockHeaderByHeight", "height", i, "error", err)
+			panic("CreateSequences GetBlockHeaderByHeight" + err.Error())
+		}
+
+		// seq->hash
+		var blockSequence types.BlockSequence
+		blockSequence.Hash = header.Hash
+		blockSequence.Type = AddBlock
+		BlockSequenceByte, err := proto.Marshal(&blockSequence)
+		if err != nil {
+			storeLog.Error("CreateSequences Marshal BlockSequence", "hash", common.ToHex(header.Hash), "error", err)
+			panic("CreateSequences Marshal BlockSequence" + err.Error())
+		}
+		newBatch.Set(calcSequenceToHashKey(seq, bs.isParaChain), BlockSequenceByte)
+
+		// hash -> seq
+		sequenceBytes := types.Encode(&types.Int64{Data: seq})
+		newBatch.Set(calcHashToSequenceKey(header.Hash, bs.isParaChain), sequenceBytes)
+		storeLog.Debug("CreateSequences ", "height", i)
+	}
+	// last seq
+	newBatch.Set(calcLastSeqKey(bs.isParaChain), types.Encode(&types.Int64{Data: lastHeight}))
+	err := newBatch.Write()
+	if err != nil {
+		storeLog.Error("CreateSequences newBatch.Write","error", err)
+		panic("CreateSequences newBatch.Write" + err.Error())
+	}
+	storeLog.Info("CreateSequences done")
+}
+
+func (bs *BlockStore) DeleteSequences() {
+	newBatch := bs.NewBatch(true)
+
+	lastHeight := bs.Height()
+	for i := int64(0); i < lastHeight; i++ {
+		seq := i
+		header, err := bs.GetBlockHeaderByHeight(i)
+		if err != nil {
+			storeLog.Error("DeleteSequences GetBlockHeaderByHeight", "height", i, "error", err)
+			panic("DeleteSequences GetBlockHeaderByHeight" + err.Error())
+		}
+
+		// seq->hash
+		newBatch.Delete(calcSequenceToHashKey(seq, bs.isParaChain))
+		// hash -> seq
+		newBatch.Delete(calcHashToSequenceKey(header.Hash, bs.isParaChain))
+		storeLog.Debug("DeleteSequences ", "height", i)
+	}
+	// last seq
+	newBatch.Delete(calcLastSeqKey(bs.isParaChain))
+	err := newBatch.Write()
+	if err != nil {
+		storeLog.Error("DeleteSequences newBatch.Write","error", err)
+		panic("DeleteSequences newBatch.Write" + err.Error())
+	}
+	storeLog.Info("DeleteSequences done")
+}

@@ -247,9 +247,9 @@ func (chain *BlockChain) InitBlockChain() {
 	//isRecordBlockSequence配置的合法性检测
 	seqStatus := chain.blockStore.CheckSequenceStatus(chain.isRecordBlockSequence)
 	if seqStatus == seqStatusNeedCreate {
-		// TODO to create
+		chain.blockStore.CreateSequences()
 	} else if seqStatus == seqStatusNeedDelete {
-		// TODO to delete
+		chain.blockStore.DeleteSequences()
 	}
 
 	//先缓存最新的128个block信息到cache中
