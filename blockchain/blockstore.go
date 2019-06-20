@@ -1316,7 +1316,9 @@ func (bs *BlockStore) CreateSequences() {
 		// hash -> seq
 		sequenceBytes := types.Encode(&types.Int64{Data: seq})
 		newBatch.Set(calcHashToSequenceKey(header.Hash, bs.isParaChain), sequenceBytes)
-		storeLog.Debug("CreateSequences ", "height", i)
+		if i % 1000 == 0 {
+			storeLog.Debug("CreateSequences ", "height", i)
+		}
 	}
 	// last seq
 	newBatch.Set(calcLastSeqKey(bs.isParaChain), types.Encode(&types.Int64{Data: lastHeight}))
@@ -1344,7 +1346,9 @@ func (bs *BlockStore) DeleteSequences() {
 		newBatch.Delete(calcSequenceToHashKey(seq, bs.isParaChain))
 		// hash -> seq
 		newBatch.Delete(calcHashToSequenceKey(header.Hash, bs.isParaChain))
-		storeLog.Debug("DeleteSequences ", "height", i)
+		if i % 1000 == 0 {
+			storeLog.Debug("DeleteSequences ", "height", i)
+		}
 	}
 	// last seq
 	newBatch.Delete(calcLastSeqKey(bs.isParaChain))
