@@ -133,7 +133,7 @@ func mempoolModProc(q queue.Queue) {
 			if msg.Ty == types.EventTx {
 				msg.Reply(client.NewMessage("wallet", types.EventReply, &types.Reply{IsOk: true}))
 			} else if msg.Ty == types.EventGetProperFee {
-				msg.Reply(client.NewMessage("wallet", types.EventReply, &types.ReplyProperFee{ProperFee:1000000}))
+				msg.Reply(client.NewMessage("wallet", types.EventReply, &types.ReplyProperFee{ProperFee: 1000000}))
 			}
 		}
 	}()
