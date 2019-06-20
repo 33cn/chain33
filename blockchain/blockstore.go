@@ -1265,7 +1265,7 @@ func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) int {
 		//lastSequence 必须大于等于lastheight
 		if lastHeight > lastSequence {
 			storeLog.Error("CheckSequenceStatus", "lastHeight", lastHeight, "lastSequence", lastSequence)
-			panic("lastSequence must greater than or equal to lastHeight")
+			return seqStatusNeedCreate
 		}
 		//通过lastSequence获取对应的blockhash ！= lastHeader.hash 报错
 		if lastSequence != -1 {
