@@ -624,7 +624,7 @@ func TestGetLatestTx(t *testing.T) {
 	}
 }
 
-func testProperFee(t *testing.T, client queue.Client, req *types.ReqProperFee, expectFee int64) int64{
+func testProperFee(t *testing.T, client queue.Client, req *types.ReqProperFee, expectFee int64) int64 {
 	msg := client.NewMessage("mempool", types.EventGetProperFee, req)
 	client.Send(msg, true)
 	reply, err := client.Wait(msg)
@@ -662,13 +662,13 @@ func TestGetProperFee(t *testing.T) {
 	testProperFee(t, mem.client, &types.ReqProperFee{}, baseFee)
 	testProperFee(t, mem.client, &types.ReqProperFee{}, baseFee)
 	//more than 1/2 max num
-	testProperFee(t, mem.client, &types.ReqProperFee{TxCount:int32(maxTxNum/2)}, 100 * baseFee)
+	testProperFee(t, mem.client, &types.ReqProperFee{TxCount: int32(maxTxNum / 2)}, 100*baseFee)
 	//more than 1/10 max num
-	testProperFee(t, mem.client, &types.ReqProperFee{TxCount:int32(maxTxNum/10)}, 10 * baseFee)
+	testProperFee(t, mem.client, &types.ReqProperFee{TxCount: int32(maxTxNum / 10)}, 10*baseFee)
 	//more than 1/20 max size
-	testProperFee(t, mem.client, &types.ReqProperFee{TxCount:1, TxSize:int32(maxSize/20)}, 100 * baseFee)
+	testProperFee(t, mem.client, &types.ReqProperFee{TxCount: 1, TxSize: int32(maxSize / 20)}, 100*baseFee)
 	//more than 1/100 max size
-	testProperFee(t, mem.client, &types.ReqProperFee{TxCount:1, TxSize:int32(maxSize/100)}, 10 * baseFee)
+	testProperFee(t, mem.client, &types.ReqProperFee{TxCount: 1, TxSize: int32(maxSize / 100)}, 10*baseFee)
 }
 
 func TestCheckLowFee(t *testing.T) {
