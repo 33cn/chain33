@@ -7,9 +7,9 @@ import (
 	"os"
 
 	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/33cn/chain33/types"
 )
 
 func TestGetStoreUpgradeMeta(t *testing.T) {
