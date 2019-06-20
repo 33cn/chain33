@@ -6,7 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	"fmt"
+
 	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -134,4 +137,49 @@ func TestParaSeqSaveAndGet(t *testing.T) {
 
 	_, err = chain.ProcGetMainSeqByHash([]byte("s0-not-exist"))
 	assert.NotNil(t, err)
+}
+
+func TestSeqCreateAndDelete(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+
+	blockStore := NewBlockStore(nil, blockStoreDB, nil)
+	assert.NotNil(t, blockStore)
+	blockStore.saveSequence = false
+	blockStore.isParaChain = true
+
+	batch := blockStore.NewBatch(true)
+	for i := 0; i <= 100; i++ {
+		var header types.Header
+		h0 := calcHeightToBlockHeaderKey(int64(i))
+		header.Hash = []byte(fmt.Sprintf("%d", i))
+		types.Encode(&header)
+		batch.Set(h0, types.Encode(&header))
+	}
+	blockStore.height = 100
+	batch.Write()
+
+	blockStore.saveSequence = true
+	blockStore.CreateSequences(10)
+	seq, err := blockStore.LoadBlockLastSequence()
+	assert.Nil(t, err)
+	assert.Equal(t, int64(100), seq)
+
+	seq, err = blockStore.GetSequenceByHash([]byte("1"))
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), seq)
+
+	seq, err = blockStore.GetSequenceByHash([]byte("0"))
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), seq)
+
+	blockStore.saveSequence = false
+	blockStore.DeleteSequences(10)
+	seq, err = blockStore.LoadBlockLastSequence()
+	assert.NotNil(t, err)
+	assert.Equal(t, int64(-1), seq)
 }

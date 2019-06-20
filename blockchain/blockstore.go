@@ -1239,13 +1239,19 @@ func (bs *BlockStore) SetStoreUpgradeMeta(meta *types.UpgradeMeta) error {
 	return bs.db.SetSync(version.StoreDBMeta, verByte)
 }
 
-//SequenceMustValid 配置的合法性检测
-func (bs *BlockStore) SequenceMustValid(recordSequence bool) {
+const (
+	seqStatusOk = iota
+	seqStatusNeedCreate
+	seqStatusNeedDelete
+)
+
+//CheckSequenceStatus 配置的合法性检测
+func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) int {
 	lastHeight := bs.Height()
 	lastSequence, err := bs.LoadBlockLastSequence()
 	if err != nil {
 		if err != types.ErrHeightNotExist {
-			storeLog.Error("SequenceMustValid", "LoadBlockLastSequence err", err)
+			storeLog.Error("CheckSequenceStatus", "LoadBlockLastSequence err", err)
 			panic(err)
 		}
 	}
@@ -1253,32 +1259,140 @@ func (bs *BlockStore) SequenceMustValid(recordSequence bool) {
 	if recordSequence {
 		//中途开启isRecordBlockSequence报错
 		if lastSequence == -1 && lastHeight != -1 {
-			storeLog.Error("SequenceMustValid", "lastHeight", lastHeight, "lastSequence", lastSequence)
-			panic("isRecordBlockSequence is true must Synchronizing data from zero block")
+			storeLog.Error("CheckSequenceStatus", "lastHeight", lastHeight, "lastSequence", lastSequence)
+			return seqStatusNeedCreate
 		}
 		//lastSequence 必须大于等于lastheight
 		if lastHeight > lastSequence {
-			storeLog.Error("SequenceMustValid", "lastHeight", lastHeight, "lastSequence", lastSequence)
-			panic("lastSequence must greater than or equal to lastHeight")
+			storeLog.Error("CheckSequenceStatus", "lastHeight", lastHeight, "lastSequence", lastSequence)
+			return seqStatusNeedCreate
 		}
 		//通过lastSequence获取对应的blockhash ！= lastHeader.hash 报错
 		if lastSequence != -1 {
 			blockSequence, err := bs.GetBlockSequence(lastSequence)
 			if err != nil {
-				storeLog.Error("SequenceMustValid", "lastSequence", lastSequence, "GetBlockSequence err", err)
+				storeLog.Error("CheckSequenceStatus", "lastSequence", lastSequence, "GetBlockSequence err", err)
 				panic(err)
 			}
 			lastHeader := bs.LastHeader()
 			if !bytes.Equal(lastHeader.Hash, blockSequence.Hash) {
-				storeLog.Error("SequenceMustValid:", "lastHeight", lastHeight, "lastSequence", lastSequence, "lastHeader.Hash", common.ToHex(lastHeader.Hash), "blockSequence.Hash", common.ToHex(blockSequence.Hash))
-				panic("The hash values of lastSequence and lastHeight are different.")
+				storeLog.Error("CheckSequenceStatus:", "lastHeight", lastHeight, "lastSequence", lastSequence, "lastHeader.Hash", common.ToHex(lastHeader.Hash), "blockSequence.Hash", common.ToHex(blockSequence.Hash))
+				return seqStatusNeedCreate
 			}
 		}
-		return
+		return seqStatusOk
 	}
 	//去使能isRecordBlockSequence时的检测
 	if lastSequence != -1 {
-		storeLog.Error("SequenceMustValid", "lastSequence", lastSequence)
-		panic("can not disable isRecordBlockSequence")
+		storeLog.Error("CheckSequenceStatus", "lastSequence", lastSequence)
+		return seqStatusNeedDelete
 	}
+	return seqStatusOk
+}
+
+//CreateSequences 根据高度生成sequence记录
+func (bs *BlockStore) CreateSequences(batchSize int64) {
+	lastSeq, err := bs.LoadBlockLastSequence()
+	if err != nil {
+		if err != types.ErrHeightNotExist {
+			storeLog.Error("CreateSequences LoadBlockLastSequence", "error", err)
+			panic("CreateSequences LoadBlockLastSequence" + err.Error())
+		}
+	}
+	storeLog.Info("CreateSequences LoadBlockLastSequence", "start", lastSeq)
+
+	newBatch := bs.NewBatch(true)
+	lastHeight := bs.Height()
+
+	for i := lastSeq + 1; i <= lastHeight; i++ {
+		seq := i
+		header, err := bs.GetBlockHeaderByHeight(i)
+		if err != nil {
+			storeLog.Error("CreateSequences GetBlockHeaderByHeight", "height", i, "error", err)
+			panic("CreateSequences GetBlockHeaderByHeight" + err.Error())
+		}
+
+		// seq->hash
+		var blockSequence types.BlockSequence
+		blockSequence.Hash = header.Hash
+		blockSequence.Type = AddBlock
+		BlockSequenceByte, err := proto.Marshal(&blockSequence)
+		if err != nil {
+			storeLog.Error("CreateSequences Marshal BlockSequence", "height", i, "hash", common.ToHex(header.Hash), "error", err)
+			panic("CreateSequences Marshal BlockSequence" + err.Error())
+		}
+		newBatch.Set(calcSequenceToHashKey(seq, bs.isParaChain), BlockSequenceByte)
+
+		// hash -> seq
+		sequenceBytes := types.Encode(&types.Int64{Data: seq})
+		newBatch.Set(calcHashToSequenceKey(header.Hash, bs.isParaChain), sequenceBytes)
+
+		if i-lastSeq == batchSize {
+			storeLog.Info("CreateSequences ", "height", i)
+			newBatch.Set(calcLastSeqKey(bs.isParaChain), types.Encode(&types.Int64{Data: i}))
+			err = newBatch.Write()
+			if err != nil {
+				storeLog.Error("CreateSequences newBatch.Write", "error", err)
+				panic("CreateSequences newBatch.Write" + err.Error())
+			}
+			lastSeq = i
+			newBatch.Reset()
+		}
+	}
+	// last seq
+	newBatch.Set(calcLastSeqKey(bs.isParaChain), types.Encode(&types.Int64{Data: lastHeight}))
+	err = newBatch.Write()
+	if err != nil {
+		storeLog.Error("CreateSequences newBatch.Write", "error", err)
+		panic("CreateSequences newBatch.Write" + err.Error())
+	}
+	storeLog.Info("CreateSequences done")
+}
+
+//DeleteSequences 删除本地数据库里的sequence记录
+func (bs *BlockStore) DeleteSequences(batchSize int64) {
+	lastSeq, err := bs.LoadBlockLastSequence()
+	if err != nil {
+		if err != types.ErrHeightNotExist {
+			storeLog.Error("DeleteSequences LoadBlockLastSequence", "error", err)
+			panic("DeleteSequences LoadBlockLastSequence" + err.Error())
+		}
+	}
+	storeLog.Info("DeleteSequences LoadBlockLastSequence", "start", lastSeq)
+
+	newBatch := bs.NewBatch(true)
+
+	for i := lastSeq; i >= 0; i-- {
+		seq := i
+		header, err := bs.GetBlockHeaderByHeight(i)
+		if err != nil {
+			storeLog.Error("DeleteSequences GetBlockHeaderByHeight", "height", i, "error", err)
+			panic("DeleteSequences GetBlockHeaderByHeight" + err.Error())
+		}
+
+		// seq->hash
+		newBatch.Delete(calcSequenceToHashKey(seq, bs.isParaChain))
+		// hash -> seq
+		newBatch.Delete(calcHashToSequenceKey(header.Hash, bs.isParaChain))
+
+		if lastSeq-i == batchSize {
+			storeLog.Info("DeleteSequences ", "height", i)
+			newBatch.Set(calcLastSeqKey(bs.isParaChain), types.Encode(&types.Int64{Data: i - 1}))
+			err = newBatch.Write()
+			if err != nil {
+				storeLog.Error("DeleteSequences newBatch.Write", "error", err)
+				panic("DeleteSequences newBatch.Write" + err.Error())
+			}
+			lastSeq = i - 1
+			newBatch.Reset()
+		}
+	}
+	// last seq
+	newBatch.Delete(calcLastSeqKey(bs.isParaChain))
+	err = newBatch.Write()
+	if err != nil {
+		storeLog.Error("DeleteSequences newBatch.Write", "error", err)
+		panic("DeleteSequences newBatch.Write" + err.Error())
+	}
+	storeLog.Info("DeleteSequences done")
 }
