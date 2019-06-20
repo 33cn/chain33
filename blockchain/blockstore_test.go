@@ -9,6 +9,7 @@ import (
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/33cn/chain33/types"
 )
 
 func TestGetStoreUpgradeMeta(t *testing.T) {
@@ -134,4 +135,44 @@ func TestParaSeqSaveAndGet(t *testing.T) {
 
 	_, err = chain.ProcGetMainSeqByHash([]byte("s0-not-exist"))
 	assert.NotNil(t, err)
+}
+
+func TestSeqCreateAndDelete(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+
+	blockStore := NewBlockStore(nil, blockStoreDB, nil)
+	assert.NotNil(t, blockStore)
+	blockStore.saveSequence = false
+	blockStore.isParaChain = true
+
+	batch := blockStore.NewBatch(true)
+	var header types.Header
+	h0 := calcHeightToBlockHeaderKey(0)
+	header.Hash = []byte("00")
+	types.Encode(&header)
+	batch.Set(h0, types.Encode(&header))
+
+	h1 := calcHeightToBlockHeaderKey(1)
+	header.Hash = []byte("11")
+	batch.Set(h1, types.Encode(&header))
+	batch.Write()
+
+	blockStore.height = 1
+
+	blockStore.saveSequence = true
+	blockStore.CreateSequences()
+	seq, err := blockStore.LoadBlockLastSequence()
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), seq)
+
+	blockStore.saveSequence = false
+	blockStore.DeleteSequences()
+	seq, err = blockStore.LoadBlockLastSequence()
+	assert.NotNil(t, err)
+	assert.Equal(t, int64(-1), seq)
 }
