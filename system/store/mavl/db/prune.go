@@ -263,13 +263,13 @@ func addLeafCountKeyToSecondLevel(db dbm.DB, kvs []*types.KeyValue, batch dbm.Ba
 		batch.Set(genOldLeafCountKeyFromKey(kv.Key), kv.Value)
 		if batch.ValueSize() > batchDataSize {
 			if err = batch.Write(); err != nil {
-				return
+				panic(fmt.Sprint("batch write err", err))
 			}
 			batch.Reset()
 		}
 	}
 	if err = batch.Write(); err != nil {
-		return
+		panic(fmt.Sprint("batch write err", err))
 	}
 }
 
@@ -298,7 +298,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 					batch.Delete(val.hash)     // 叶子节点hash值
 					if batch.ValueSize() > batchDataSize {
 						if err = batch.Write(); err != nil {
-							return
+							panic(fmt.Sprint("batch write err", err))
 						}
 						batch.Reset()
 					}
@@ -308,7 +308,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 		delete(mp, key)
 	}
 	if err = batch.Write(); err != nil {
-		return
+		panic(fmt.Sprint("batch write err", err))
 	}
 }
 
@@ -412,13 +412,13 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch d
 		delete(mp, key)
 		if batch.ValueSize() > batchDataSize {
 			if err = batch.Write(); err != nil {
-				return
+				panic(fmt.Sprint("batch write err", err))
 			}
 			batch.Reset()
 		}
 	}
 	if err = batch.Write(); err != nil {
-		return
+		panic(fmt.Sprint("batch write err", err))
 	}
 }
 
