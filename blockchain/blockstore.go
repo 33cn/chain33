@@ -1267,25 +1267,12 @@ func (bs *BlockStore) CheckSequenceStatus(recordSequence bool) int {
 			storeLog.Error("CheckSequenceStatus", "lastHeight", lastHeight, "lastSequence", lastSequence)
 			return seqStatusNeedCreate
 		}
-		//通过lastSequence获取对应的blockhash ！= lastHeader.hash 报错
-		if lastSequence != -1 {
-			blockSequence, err := bs.GetBlockSequence(lastSequence)
-			if err != nil {
-				storeLog.Error("CheckSequenceStatus", "lastSequence", lastSequence, "GetBlockSequence err", err)
-				panic(err)
-			}
-			lastHeader := bs.LastHeader()
-			if !bytes.Equal(lastHeader.Hash, blockSequence.Hash) {
-				storeLog.Error("CheckSequenceStatus:", "lastHeight", lastHeight, "lastSequence", lastSequence, "lastHeader.Hash", common.ToHex(lastHeader.Hash), "blockSequence.Hash", common.ToHex(blockSequence.Hash))
-				return seqStatusNeedCreate
-			}
-		}
 		return seqStatusOk
 	}
 	//去使能isRecordBlockSequence时的检测
 	if lastSequence != -1 {
 		storeLog.Error("CheckSequenceStatus", "lastSequence", lastSequence)
-		return seqStatusNeedDelete
+		panic("can not disable isRecordBlockSequence")
 	}
 	return seqStatusOk
 }
