@@ -176,10 +176,4 @@ func TestSeqCreateAndDelete(t *testing.T) {
 	seq, err = blockStore.GetSequenceByHash([]byte("0"))
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), seq)
-
-	blockStore.saveSequence = false
-	blockStore.DeleteSequences(10)
-	seq, err = blockStore.LoadBlockLastSequence()
-	assert.NotNil(t, err)
-	assert.Equal(t, int64(-1), seq)
 }

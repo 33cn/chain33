@@ -1242,7 +1242,6 @@ func (bs *BlockStore) SetStoreUpgradeMeta(meta *types.UpgradeMeta) error {
 const (
 	seqStatusOk = iota
 	seqStatusNeedCreate
-	seqStatusNeedDelete
 )
 
 //CheckSequenceStatus 配置的合法性检测
@@ -1334,52 +1333,4 @@ func (bs *BlockStore) CreateSequences(batchSize int64) {
 		panic("CreateSequences newBatch.Write" + err.Error())
 	}
 	storeLog.Info("CreateSequences done")
-}
-
-//DeleteSequences 删除本地数据库里的sequence记录
-func (bs *BlockStore) DeleteSequences(batchSize int64) {
-	lastSeq, err := bs.LoadBlockLastSequence()
-	if err != nil {
-		if err != types.ErrHeightNotExist {
-			storeLog.Error("DeleteSequences LoadBlockLastSequence", "error", err)
-			panic("DeleteSequences LoadBlockLastSequence" + err.Error())
-		}
-	}
-	storeLog.Info("DeleteSequences LoadBlockLastSequence", "start", lastSeq)
-
-	newBatch := bs.NewBatch(true)
-
-	for i := lastSeq; i >= 0; i-- {
-		seq := i
-		header, err := bs.GetBlockHeaderByHeight(i)
-		if err != nil {
-			storeLog.Error("DeleteSequences GetBlockHeaderByHeight", "height", i, "error", err)
-			panic("DeleteSequences GetBlockHeaderByHeight" + err.Error())
-		}
-
-		// seq->hash
-		newBatch.Delete(calcSequenceToHashKey(seq, bs.isParaChain))
-		// hash -> seq
-		newBatch.Delete(calcHashToSequenceKey(header.Hash, bs.isParaChain))
-
-		if lastSeq-i == batchSize {
-			storeLog.Info("DeleteSequences ", "height", i)
-			newBatch.Set(calcLastSeqKey(bs.isParaChain), types.Encode(&types.Int64{Data: i - 1}))
-			err = newBatch.Write()
-			if err != nil {
-				storeLog.Error("DeleteSequences newBatch.Write", "error", err)
-				panic("DeleteSequences newBatch.Write" + err.Error())
-			}
-			lastSeq = i - 1
-			newBatch.Reset()
-		}
-	}
-	// last seq
-	newBatch.Delete(calcLastSeqKey(bs.isParaChain))
-	err = newBatch.Write()
-	if err != nil {
-		storeLog.Error("DeleteSequences newBatch.Write", "error", err)
-		panic("DeleteSequences newBatch.Write" + err.Error())
-	}
-	storeLog.Info("DeleteSequences done")
 }
