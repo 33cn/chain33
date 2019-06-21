@@ -312,7 +312,7 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("key", "k", "", "private key (optional)")
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
-	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional)")
+	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional), auto set proper fee if not set or zero fee")
 	cmd.Flags().StringP("to", "t", "", "new to addr (optional)")
 
 	// A duration string is a possibly signed sequence of
