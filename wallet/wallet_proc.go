@@ -86,7 +86,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	}
 	if unsigned.Fee != 0 {
 		tx.Fee = unsigned.Fee
-	}else {
+	} else {
 		//get proper fee if not set
 		proper, err := wallet.api.GetProperFee(nil)
 		if err != nil {
