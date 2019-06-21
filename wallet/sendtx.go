@@ -117,7 +117,11 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	if err != nil {
 		return nil, err
 	}
-	tx.Fee = proper.ProperFee
+	fee, err := tx.GetRealFee(proper.ProperFee)
+	if err != nil {
+		return nil, err
+	}
+	tx.Fee = fee
 	tx.SetExpire(time.Second * 120)
 	tx.Sign(int32(SignType), priv)
 	reply, err := wallet.sendTx(tx)
@@ -231,7 +235,11 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 	if err != nil {
 		return nil, err
 	}
-	tx.Fee = proper.ProperFee
+	fee, err := tx.GetRealFee(proper.ProperFee)
+	if err != nil {
+		return nil, err
+	}
+	tx.Fee = fee
 	if tx.To == "" {
 		tx.To = addrto
 	}

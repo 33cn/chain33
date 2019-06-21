@@ -92,7 +92,11 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		if err != nil {
 			return "", err
 		}
-		tx.Fee = proper.ProperFee
+		fee, err := tx.GetRealFee(proper.ProperFee)
+		if err != nil {
+			return "", err
+		}
+		tx.Fee = fee
 	}
 
 	expire, err := types.ParseExpire(unsigned.GetExpire())
