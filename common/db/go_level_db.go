@@ -267,6 +267,10 @@ func (mBatch *goLevelDBBatch) Delete(key []byte) {
 }
 
 func (mBatch *goLevelDBBatch) Write() error {
+	if mBatch.batch.Len() == 0 {
+		llog.Info("Write", "len", len)
+		return nil
+	}
 	err := mBatch.db.db.Write(mBatch.batch, mBatch.wop)
 	if err != nil {
 		llog.Error("Write", "error", err)
