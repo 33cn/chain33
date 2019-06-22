@@ -713,8 +713,8 @@ func (ndb *nodeDB) Commit() error {
 	// Write saves
 	err := ndb.batch.Write()
 	if err != nil {
-		panic(fmt.Sprint("batch write err", err))
 		treelog.Error("Commit batch.Write err", "err", err)
+		panic(fmt.Sprint("batch write err", err))
 	}
 
 	ndb.batch = nil
