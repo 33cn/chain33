@@ -366,7 +366,6 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch d
 	if len(mp) == 0 {
 		return
 	}
-	var err error
 	batch.Reset()
 	for key, vals := range mp {
 		if len(vals) > 1 {
