@@ -11,6 +11,7 @@ import (
 
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/types"
+	dbm "github.com/33cn/chain33/common/db"
 )
 
 // Upgrade 升级localDB和storeDB
@@ -82,10 +83,7 @@ func (chain *BlockChain) ReExecBlock(startHeight, curHeight int64) {
 			if err != nil {
 				panic(fmt.Sprintf("execBlockEx connectBlock readd Txs fail height=%d err=%s, this not allow fail", i, err.Error()))
 			}
-			err = newbatch.Write()
-			if err != nil {
-				panic(err)
-			}
+			dbm.MustWrite(newbatch)
 		}
 
 		prevStateHash = block.StateHash
