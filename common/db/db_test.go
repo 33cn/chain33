@@ -72,7 +72,6 @@ func testDBIteratorAllKey(t *testing.T, db DB) {
 	it = db.Iterator([]byte("bb1"), types.EmptyValue, false)
 	i = 3
 	for it.Rewind(); it.Valid(); it.Next() {
-		println(i, string(it.Key()))
 		assert.Equal(t, it.Key(), datas[i])
 		i++
 	}
