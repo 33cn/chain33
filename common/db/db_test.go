@@ -59,22 +59,37 @@ func testDBIteratorAllKey(t *testing.T, db DB) {
 	i := 0
 	for it.Rewind(); it.Valid(); it.Next() {
 		assert.Equal(t, it.Key(), datas[i])
+		db.Delete(it.Key())
 		i++
+		if i == 2 {
+			break
+		}
 	}
-	//从第二个开始遍历
+	it.Close()
+	//从第3个开始遍历
 	it = db.Iterator([]byte("aa1"), types.EmptyValue, false)
-	i = 1
+	i = 2
 	for it.Rewind(); it.Valid(); it.Next() {
 		assert.Equal(t, it.Key(), datas[i])
+		db.Delete(it.Key())
 		i++
+		if i == 4 {
+			break
+		}
 	}
-	//从第四个开始遍历
+	it.Close()
+	//从第5个开始遍历
 	it = db.Iterator([]byte("bb1"), types.EmptyValue, false)
-	i = 3
+	i = 4
 	for it.Rewind(); it.Valid(); it.Next() {
 		assert.Equal(t, it.Key(), datas[i])
+		db.Delete(it.Key())
 		i++
+		if i == 6 {
+			break
+		}
 	}
+	it.Close()
 }
 
 // 迭代测试
