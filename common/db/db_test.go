@@ -47,6 +47,37 @@ MAIN_LOOP:
 	return string(chars)
 }
 
+func testDBIteratorAllKey(t *testing.T, db DB) {
+	var datas = [][]byte{
+		[]byte("aa0"), []byte("aa1"), []byte("bb0"), []byte("bb1"), []byte("cc0"), []byte("cc1"),
+	}
+	for _, v := range datas {
+		db.Set(v, v)
+	}
+	//一次遍历
+	it := db.Iterator(nil, types.EmptyValue, false)
+	i := 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		i++
+	}
+	//从第二个开始遍历
+	it = db.Iterator([]byte("aa1"), types.EmptyValue, false)
+	i = 1
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		i++
+	}
+	//从第四个开始遍历
+	it = db.Iterator([]byte("bb1"), types.EmptyValue, false)
+	i = 3
+	for it.Rewind(); it.Valid(); it.Next() {
+		println(i, string(it.Key()))
+		assert.Equal(t, it.Key(), datas[i])
+		i++
+	}
+}
+
 // 迭代测试
 func testDBIterator(t *testing.T, db DB) {
 	t.Log("test Set")
