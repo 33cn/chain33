@@ -14,14 +14,21 @@ type SkipValue struct {
 	Value interface{}
 }
 
+//Compare Const
+const (
+	Big   = -1
+	Small = 1
+	Equal = 0
+)
+
 // Compare 比较函数,这样的比较排序是从大到小
 func (v *SkipValue) Compare(value *SkipValue) int {
 	if v.Score > value.Score {
-		return -1
+		return Big
 	} else if v.Score == value.Score {
-		return 0
+		return Equal
 	}
-	return 1
+	return Small
 }
 
 // skipListNode 跳跃表节点
