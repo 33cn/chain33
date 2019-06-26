@@ -105,9 +105,8 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 	return
 }
 
-//IteratorScanFromFirst 从头迭代
-func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values [][]byte) {
-	it := db.db.Iterator(prefix, nil, false)
+func (db *ListHelper) iteratorScan(prefix []byte, count int32, reverse bool) (values [][]byte) {
+	it := db.db.Iterator(prefix, nil, reverse)
 	defer it.Close()
 	var i int32
 	for it.Rewind(); it.Valid(); it.Next() {
@@ -127,27 +126,14 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 	return
 }
 
+//IteratorScanFromFirst 从头迭代
+func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values [][]byte) {
+	return db.iteratorScan(prefix, count, false)
+}
+
 //IteratorScanFromLast 从尾迭代
 func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [][]byte) {
-	it := db.db.Iterator(prefix, nil, true)
-	defer it.Close()
-
-	var i int32
-	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.ValueCopy()
-		if it.Error() != nil {
-			listlog.Error("PrefixScan it.Value()", "error", it.Error())
-			values = nil
-			return
-		}
-		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
-		values = append(values, value)
-		i++
-		if i == count {
-			break
-		}
-	}
-	return
+	return db.iteratorScan(prefix, count, true)
 }
 
 //PrefixCount 前缀数量
