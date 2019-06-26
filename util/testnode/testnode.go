@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/33cn/chain33/account"
@@ -67,6 +68,7 @@ type Chain33Mock struct {
 	sub      *types.ConfigSubModule
 	datadir  string
 	lastsend []byte
+	mu       sync.Mutex
 }
 
 //GetDefaultConfig :
@@ -369,8 +371,15 @@ func (mock *Chain33Mock) SendTx(tx *types.Transaction) []byte {
 	if err != nil {
 		panic(err)
 	}
-	mock.lastsend = reply.GetMsg()
+	mock.SetLastSend(reply.GetMsg())
 	return reply.GetMsg()
+}
+
+//SetLastSend :
+func (mock *Chain33Mock) SetLastSend(hash []byte) {
+	mock.mu.Lock()
+	mock.lastsend = hash
+	mock.mu.Unlock()
 }
 
 //SendTxRPC :
