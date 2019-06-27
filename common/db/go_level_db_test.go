@@ -39,6 +39,26 @@ func TestGoLevelDBIteratorAll(t *testing.T) {
 	testDBIteratorAllKey(t, leveldb)
 }
 
+func TestGoLevelDBIteratorReserverAll(t *testing.T) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	require.NoError(t, err)
+	t.Log(dir)
+	leveldb, err := NewGoLevelDB("goleveldb", dir, 128)
+	require.NoError(t, err)
+	defer leveldb.Close()
+	testDBIteratorReserverAllKey(t, leveldb)
+}
+
+func TestGoLevelDBIteratorAllReserver(t *testing.T) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	require.NoError(t, err)
+	t.Log(dir)
+	leveldb, err := NewGoLevelDB("goleveldb", dir, 128)
+	require.NoError(t, err)
+	defer leveldb.Close()
+	testDBIteratorReserver(t, leveldb)
+}
+
 func TestGoLevelDBIteratorDel(t *testing.T) {
 	dir, err := ioutil.TempDir("", "goleveldb")
 	require.NoError(t, err)

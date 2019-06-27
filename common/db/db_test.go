@@ -91,6 +91,151 @@ func testDBIteratorAllKey(t *testing.T, db DB) {
 	}
 	it.Close()
 }
+func testDBIteratorReserverAllKey(t *testing.T, db DB) {
+	var datas = [][]byte{
+		[]byte("aa0"), []byte("aa1"), []byte("bb0"), []byte("bb1"), []byte("cc0"), []byte("cc1"),
+	}
+	for _, v := range datas {
+		db.Set(v, v)
+	}
+	//一次遍历
+	it := db.Iterator(nil, types.EmptyValue, true)
+	i := 5
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		db.Delete(it.Key())
+		i--
+		if i == 3 {
+			break
+		}
+	}
+	it.Close()
+	//从倒数第3个开始遍历
+	it = db.Iterator([]byte("bb1"), types.EmptyValue, true)
+	i = 3
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		db.Delete(it.Key())
+		i--
+		if i == 2 {
+			break
+		}
+	}
+	it.Close()
+	//从倒数第4个开始遍历
+	it = db.Iterator([]byte("bb0"), types.EmptyValue, true)
+	i = 2
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(string(it.Key()))
+		db.Delete(it.Key())
+		i--
+		if i == 0 {
+			break
+		}
+	}
+	it.Close()
+}
+
+func testDBIteratorReserver(t *testing.T, db DB) {
+	var datas = [][]byte{
+		[]byte("aa0"), []byte("aa1"), []byte("bb0"), []byte("bb1"), []byte("bc"),
+		[]byte("bc0"), []byte("cc0"), []byte("cc1"), []byte("dd1"),
+	}
+	for _, v := range datas {
+		db.Set(v, v)
+	}
+	// 1、 输出 cc1 cc0
+	it := db.Iterator([]byte("cc"), nil, true)
+	i := 7
+	j := 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+		j++
+	}
+	assert.Equal(t, j, 2)
+	it.Close()
+
+	// 2、 输出bc0 bc
+	it = db.Iterator([]byte("bc"), nil, true)
+	i = 5
+	j = 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+		j++
+	}
+	assert.Equal(t, j, 2)
+	it.Close()
+
+	// 3、输出 bc0 bc bb1 bb0 aa1 aa0
+	it = db.Iterator([]byte("bc"), types.EmptyValue, true)
+	i = 5
+	j = 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+		j++
+	}
+	assert.Equal(t, j, 6)
+	it.Close()
+
+	// 4、 输出 bb1 bb0 aa1 aa0
+	it = db.Iterator([]byte("bb1"), types.EmptyValue, true)
+	i = 3
+	j = 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+		j++
+	}
+	assert.Equal(t, j, 4)
+	it.Close()
+
+	// 5、输出bb1 bb0
+	it = db.Iterator([]byte("bb1"), []byte("bb0"), true)
+	i = 3
+	j = 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+		j++
+	}
+	assert.Equal(t, j, 2)
+	it.Close()
+	// 6、 输出 bb1
+	it = db.Iterator([]byte("bb1"), []byte("bb1"), true)
+	i = 3
+	j = 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+		j++
+	}
+	assert.Equal(t, j, 1)
+	it.Close()
+	// 7、 全部输出 dd1 cc1 cc0 bc0 bc bb1 bb0 aa1 aa0
+	it = db.Iterator(nil, types.EmptyValue,  true)
+	i = 8
+	j = 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+		j++
+	}
+	assert.Equal(t, j, 9)
+	it.Close()
+}
 
 // 迭代测试
 func testDBIterator(t *testing.T, db DB) {

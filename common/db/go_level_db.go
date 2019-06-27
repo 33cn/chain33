@@ -173,15 +173,29 @@ func (db *GoLevelDB) Stats() map[string]string {
 
 //Iterator 迭代器
 func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
-	if end == nil {
-		end = bytesPrefix(start)
+	var st []byte
+	var en []byte
+	if reverse {
+		if end == nil {
+			st = start
+		} else if bytes.Equal(end, types.EmptyValue) {
+			st = nil
+		} else {
+			st = end
+		}
+		en = bytesPrefix(start) //由于底层在迭代时候右值不包括所以这里加1
+	} else {
+		if end == nil {
+			end = bytesPrefix(start)
+		} else if bytes.Equal(end, types.EmptyValue) {
+			end = nil
+		}
+		st = start
+		en = end
 	}
-	if bytes.Equal(end, types.EmptyValue) {
-		end = nil
-	}
-	r := &util.Range{Start: start, Limit: end}
+	r := &util.Range{Start: st, Limit: en}
 	it := db.db.NewIterator(r, nil)
-	return &goLevelDBIt{it, itBase{start, end, reverse}}
+	return &goLevelDBIt{it, itBase{st, en, reverse}}
 }
 
 //BeginTx call panic when BeginTx not rewrite
