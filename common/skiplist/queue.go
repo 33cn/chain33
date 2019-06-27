@@ -91,7 +91,7 @@ func (cache *Queue) Insert(hash string, item Scorer) error {
 	return nil
 }
 
-// Push 把给定tx添加到Queue；如果tx已经存在Queue中或Mempool已满则返回对应error
+// Push item 到队列中，如果插入的数据优先级比队列中更大，那么弹出优先级最小的，然后插入这个数据，否则报错
 func (cache *Queue) Push(item Scorer) error {
 	hash := item.Hash()
 	if cache.Exist(string(hash)) {
@@ -101,13 +101,13 @@ func (cache *Queue) Push(item Scorer) error {
 	if int64(cache.Size()) >= cache.maxsize {
 		tail := cache.Last()
 		lasthash := string(tail.Hash())
-		//价格高存留
 		switch sv.Compare(cache.CreateSkipValue(tail)) {
 		case Big:
+			//优先级高的插入队列
 			cache.Remove(lasthash)
 		case Equal:
 			//再score 相同的情况下，item 之间的比较方法
-			//权重大的留下来
+			//优先级大的插入队列
 			if item.Compare(tail) == Big {
 				cache.Remove(lasthash)
 				break
@@ -129,11 +129,12 @@ func (cache *Queue) Remove(hash string) error {
 	if !ok {
 		return types.ErrNotFound
 	}
+	//保证txMap中先删除，这个用于计数
+	delete(cache.txMap, hash)
 	err := cache.deleteSkipValue(elm)
 	if err != nil {
 		return err
 	}
-	delete(cache.txMap, hash)
 	return nil
 }
 
