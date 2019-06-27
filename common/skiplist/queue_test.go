@@ -1,6 +1,7 @@
 package skiplist
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/33cn/chain33/types"
@@ -101,4 +102,51 @@ func TestQueueWalk(t *testing.T) {
 	})
 	assert.Equal(t, data2[0], "222")
 	assert.Equal(t, data2[1], "")
+
+	i = 0
+	q.Walk(0, func(value Scorer) bool {
+		data2[i] = string(value.Hash())
+		i++
+		if i == 2 {
+			return false
+		}
+		return true
+	})
+	assert.Equal(t, data2[0], "222")
+	assert.Equal(t, data2[1], "111")
+}
+
+type scoreint struct {
+	data int64
+}
+
+func (s *scoreint) GetScore() int64 {
+	return s.data
+}
+
+func (s *scoreint) Hash() []byte {
+	return []byte(fmt.Sprint(s.data))
+}
+
+func (s *scoreint) Compare(b Scorer) int {
+	return Big
+}
+
+func TestQueue(t *testing.T) {
+	queue := NewQueue(10)
+	for i := 0; i < 11; i++ {
+		err := queue.Push(&scoreint{data: int64(i)})
+		assert.Nil(t, err)
+	}
+	assert.Equal(t, int64(10), queue.MaxSize())
+	err := queue.Push(&scoreint{data: int64(0)})
+	assert.Equal(t, err, types.ErrMemFull)
+	err = queue.Push(&scoreint{data: int64(1)})
+	assert.Equal(t, err, types.ErrTxExist)
+	assert.Equal(t, int64(10), queue.MaxSize())
+
+	item := &scoreint{data: int64(1)}
+	item2, err := queue.GetItem(string(item.Hash()))
+	assert.Nil(t, err)
+	assert.Equal(t, item.Hash(), item2.Hash())
 }

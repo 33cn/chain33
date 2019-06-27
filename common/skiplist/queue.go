@@ -71,6 +71,11 @@ func (cache *Queue) CreateSkipValue(item Scorer) *SkipValue {
 	return skvalue
 }
 
+//MaxSize 最大的cache数量
+func (cache *Queue) MaxSize() int64 {
+	return cache.maxsize
+}
+
 //Exist 是否存在
 func (cache *Queue) Exist(hash string) bool {
 	_, exists := cache.txMap[hash]
