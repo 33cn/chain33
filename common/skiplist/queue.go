@@ -14,7 +14,7 @@ type Scorer interface {
 	Compare(Scorer) int
 }
 
-// Queue 价格队列模式(价格=手续费/交易字节数,价格高者优先,同价则时间早优先)
+// Queue skiplist 实现的一个 按照score 排序的队列，score相同的按照元素到的先后排序
 type Queue struct {
 	txMap   map[string]*list.Element
 	txList  *SkipList
