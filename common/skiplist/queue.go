@@ -87,7 +87,7 @@ func (cache *Queue) GetItem(hash string) (Scorer, error) {
 
 //Insert Scorer item to queue
 func (cache *Queue) Insert(hash string, item Scorer) {
-	cache.txMap[string(hash)] = cache.insertSkipValue(item)
+	cache.txMap[hash] = cache.insertSkipValue(item)
 }
 
 // Push item 到队列中，如果插入的数据优先级比队列中更大，那么弹出优先级最小的，然后插入这个数据，否则报错
