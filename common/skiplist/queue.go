@@ -101,21 +101,13 @@ func (cache *Queue) Push(item Scorer) error {
 	if int64(cache.Size()) >= cache.maxsize {
 		tail := cache.Last()
 		lasthash := string(tail.Hash())
-		switch sv.Compare(cache.CreateSkipValue(tail)) {
-		case Big:
-			//优先级高的插入队列
-			cache.Remove(lasthash)
-		case Equal:
-			//再score 相同的情况下，item 之间的比较方法
-			//优先级大的插入队列
-			if item.Compare(tail) == Big {
-				cache.Remove(lasthash)
-				break
+		cmp := sv.Compare(cache.CreateSkipValue(tail))
+		if cmp == Big || (cmp == Equal && item.Compare(tail) == Big) {
+			err := cache.Remove(lasthash)
+			if err != nil {
+				return err
 			}
-			return types.ErrMemFull
-		case Small:
-			return types.ErrMemFull
-		default:
+		} else {
 			return types.ErrMemFull
 		}
 	}
