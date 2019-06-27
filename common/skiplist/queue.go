@@ -133,6 +133,7 @@ func (cache *Queue) Remove(hash string) error {
 	delete(cache.txMap, hash)
 	err := cache.deleteSkipValue(elm)
 	if err != nil {
+		println("queue_data_crash")
 		return err
 	}
 	return nil
