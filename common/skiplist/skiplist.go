@@ -234,6 +234,9 @@ func (sl *SkipList) Insert(value *SkipValue) int {
 
 // Delete 删除节点
 func (sl *SkipList) Delete(value *SkipValue) int {
+	if value == nil {
+		return -1
+	}
 	var update [maxLevel]*skipListNode
 	x := sl.header
 	for i := sl.level - 1; i >= 0; i-- {
