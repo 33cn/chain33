@@ -224,7 +224,7 @@ func testDBIteratorReserver(t *testing.T, db DB) {
 	assert.Equal(t, j, 1)
 	it.Close()
 	// 7、 全部输出 dd1 cc1 cc0 bc0 bc bb1 bb0 aa1 aa0
-	it = db.Iterator(nil, types.EmptyValue,  true)
+	it = db.Iterator(nil, types.EmptyValue, true)
 	i = 8
 	j = 0
 	for it.Rewind(); it.Valid(); it.Next() {
