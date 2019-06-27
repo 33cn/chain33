@@ -107,10 +107,7 @@ func TestQueueWalk(t *testing.T) {
 	q.Walk(0, func(value Scorer) bool {
 		data2[i] = string(value.Hash())
 		i++
-		if i == 2 {
-			return false
-		}
-		return true
+		return !(i == 2)
 	})
 	assert.Equal(t, data2[0], "222")
 	assert.Equal(t, data2[1], "111")
