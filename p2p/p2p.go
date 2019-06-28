@@ -337,7 +337,7 @@ func (network *P2p) subP2pMsg() {
 				//检测到重启标志，停止业务处理，并等待重启
 				<-network.waitRestart
 				log.Info("stop p2p process message, wait for restart....")
-				network.waitRestart<- struct{}{}
+				network.waitRestart <- struct{}{}
 				log.Info("restart p2p process message ok....")
 			}
 
