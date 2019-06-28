@@ -1,7 +1,11 @@
 package p2p
 
 import (
+	"bytes"
 	"encoding/hex"
+
+	"github.com/33cn/chain33/common/merkle"
+
 	//"fmt"
 	"net"
 	"os"
@@ -22,12 +26,15 @@ import (
 	"google.golang.org/grpc"
 )
 
-var q queue.Queue
-var p2pModule *P2p
-var dataDir = "testdata"
+var (
+	q           queue.Queue
+	p2pModule   *P2p
+	dataDir     = "testdata"
+	testChannel = int32(119)
+	memTxList   []*types.Transaction
+)
 
 func init() {
-	VERSION = 119
 	l.SetLogLevel("err")
 	q = queue.New("channel")
 	go q.Start()
@@ -110,7 +117,15 @@ func init() {
 			switch msg.Ty {
 			case types.EventGetMempoolSize:
 				msg.Reply(client.NewMessage("p2p", types.EventMempoolSize, &types.MempoolSize{Size: 0}))
-
+			case types.EventTxListByHash:
+				query := msg.Data.(*types.ReqTxHashList)
+				var txs []*types.Transaction
+				if !query.IsShortHash {
+					txs = memTxList[:1]
+				} else {
+					txs = memTxList
+				}
+				msg.Reply(client.NewMessage("p2p", types.EventTxListByHash, &types.ReplyTxList{Txs: txs}))
 			}
 		}
 	}()
@@ -127,7 +142,7 @@ func initP2p(port int32, dbpath string) *P2p {
 	cfg.Enable = true
 	cfg.DbPath = dbpath
 	cfg.DbCache = 4
-	cfg.Version = 119
+	cfg.Channel = testChannel
 	cfg.ServerStart = true
 	cfg.Driver = "leveldb"
 
@@ -219,7 +234,7 @@ func TestPeer(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, pnum)
 
-	_, err = peer.GetPeerInfo(VERSION)
+	_, err = peer.GetPeerInfo()
 	assert.Nil(t, err)
 	//获取节点列表
 	_, err = p2pcli.GetAddrList(peer)
@@ -357,15 +372,16 @@ func TestP2pComm(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	go Filter.ManageRecvFilter()
-	defer Filter.Close()
-	Filter.GetLock()
+	filter := NewFilter(10)
+	go filter.ManageRecvFilter()
+	defer filter.Close()
+	filter.GetLock()
 
-	assert.Equal(t, true, Filter.RegRecvData("key"))
-	assert.Equal(t, true, Filter.QueryRecvData("key"))
-	Filter.RemoveRecvData("key")
-	assert.Equal(t, false, Filter.QueryRecvData("key"))
-	Filter.ReleaseLock()
+	assert.Equal(t, true, filter.RegRecvData("key"))
+	assert.Equal(t, true, filter.QueryRecvData("key"))
+	filter.RemoveRecvData("key")
+	assert.Equal(t, false, filter.QueryRecvData("key"))
+	filter.ReleaseLock()
 
 }
 
@@ -454,6 +470,132 @@ func TestP2pRestart(t *testing.T) {
 	assert.Equal(t, false, p2pModule.isClose())
 	assert.Equal(t, false, p2pModule.isRestart())
 	p2pModule.ReStart()
+}
+
+type versionData struct {
+	rawData interface{}
+	version int32
+}
+
+func Test_processP2P(t *testing.T) {
+
+	node := p2pModule.node
+	pid := "testPid"
+	sendChan := make(chan interface{}, 1)
+	recvChan := make(chan *types.BroadCastData, 1)
+	testDone := make(chan struct{})
+
+	payload := []byte("testpayload")
+	minerTx := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 14600, Expire: 200}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 4600, Expire: 2}
+	tx1 := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 460000000, Expire: 0}
+	tx2 := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 100, Expire: 1}
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2})
+	gtx := txGroup.Tx()
+	txList := append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
+	memTxList = append([]*types.Transaction{}, tx, gtx)
+
+	block := &types.Block{
+		TxHash: []byte("123"),
+		Height: 10,
+		Txs:    txList,
+	}
+	txHash := hex.EncodeToString(tx.Hash())
+	blockHash := hex.EncodeToString(block.Hash())
+	rootHash := merkle.CalcMerkleRoot(txList)
+
+	//测试发送
+	go func() {
+		for data := range sendChan {
+			verData, ok := data.(*versionData)
+			assert.True(t, ok)
+			sendData, doSend := node.processSendP2P(verData.rawData, verData.version)
+			txHashFilter.regRData.Remove(txHash)
+			blockHashFilter.regRData.Remove(blockHash)
+			assert.True(t, doSend)
+			recvChan <- sendData
+		}
+	}()
+	//测试接收
+	go func() {
+		for data := range recvChan {
+			txHashFilter.regRData.Remove(txHash)
+			blockHashFilter.regRData.Remove(blockHash)
+			handled := node.processRecvP2P(data, pid, node.pubToPeer)
+			assert.True(t, handled)
+		}
+	}()
+
+	//data test
+	go func() {
+		//normal
+		sendChan <- &versionData{rawData: &types.P2PTx{Tx: tx}, version: lightBroadCastVersion - 1}
+		sendChan <- &versionData{rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion - 1}
+		//light broadcast
+		node.nodeInfo.cfg.StartLightTxTTL = 0
+		sendChan <- &versionData{rawData: &types.P2PTx{Tx: tx}, version: lightBroadCastVersion}
+		sendChan <- &versionData{rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion}
+
+		for !ltBlockCache.contains(blockHash) {
+		}
+		ltBlock := ltBlockCache.get(blockHash).(*types.Block)
+		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(ltBlock.Txs)))
+
+		//query
+		subChan := node.pubsub.Sub(pid)
+		sendChan <- &versionData{rawData: &types.P2PQueryData{Value: &types.P2PQueryData_TxReq{TxReq: &types.P2PTxReq{TxHash: tx.Hash()}}}}
+		_, ok := (<-subChan).(*types.P2PTx)
+		assert.True(t, ok)
+		sendChan <- &versionData{rawData: &types.P2PQueryData{Value: &types.P2PQueryData_BlockTxReq{BlockTxReq: &types.P2PBlockTxReq{
+			BlockHash: blockHash,
+			TxIndices: []int32{1, 2},
+		}}}}
+		rep, ok := (<-subChan).(*types.P2PBlockTxReply)
+		assert.True(t, ok)
+		assert.Equal(t, 2, int(rep.TxIndices[1]))
+		sendChan <- &versionData{rawData: &types.P2PQueryData{Value: &types.P2PQueryData_BlockTxReq{BlockTxReq: &types.P2PBlockTxReq{
+			BlockHash: blockHash,
+			TxIndices: nil,
+		}}}}
+		rep, ok = (<-subChan).(*types.P2PBlockTxReply)
+		assert.True(t, ok)
+		assert.Nil(t, rep.TxIndices)
+
+		//query reply
+		sendChan <- &versionData{rawData: &types.P2PBlockTxReply{
+			BlockHash: blockHash,
+			TxIndices: []int32{1},
+			Txs:       txList[1:2],
+		}}
+		<-subChan
+		assert.True(t, ltBlockCache.contains(blockHash))
+		assert.Nil(t, ltBlock.Txs)
+
+		ltBlock.TxHash = rootHash
+		sendChan <- &versionData{rawData: &types.P2PBlockTxReply{
+			BlockHash: blockHash,
+			Txs:       txList[0:],
+		}}
+		for ltBlockCache.contains(blockHash) {
+		}
+		//max ttl
+		node.nodeInfo.cfg.MaxTTL = 0
+		_, doSend := node.processSendP2P(&types.P2PTx{Tx: tx}, lightBroadCastVersion)
+		assert.True(t, doSend)
+		close(testDone)
+	}()
+
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-testDone:
+			return
+		case <-ticker.C:
+			t.Error("TestP2PProcessTimeout")
+			return
+		}
+	}
 }
 
 func TestP2pClose(t *testing.T) {

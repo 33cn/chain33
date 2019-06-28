@@ -167,10 +167,6 @@ type P2P struct {
 	// 是否启动P2P服务
 	Enable       bool  `protobuf:"varint,9,opt,name=enable" json:"enable,omitempty"`
 	MsgCacheSize int32 `protobuf:"varint,10,opt,name=msgCacheSize" json:"msgCacheSize,omitempty"`
-	// 版本号
-	Version int32 `protobuf:"varint,11,opt,name=version" json:"version,omitempty"`
-	VerMin  int32 `protobuf:"varint,12,opt,name=verMin" json:"verMin,omitempty"`
-	VerMax  int32 `protobuf:"varint,13,opt,name=verMax" json:"verMax,omitempty"`
 	// 是否使用内置的种子节点
 	InnerSeedEnable bool `protobuf:"varint,14,opt,name=innerSeedEnable" json:"innerSeedEnable,omitempty"`
 	// 最多的接入节点个数
@@ -179,6 +175,12 @@ type P2P struct {
 	UseGithub bool `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
 	//是否等待Pid
 	WaitPid bool `protobuf:"varint,17,opt,name=waitPid" json:"waitPid,omitempty"`
+	// 交易开始采用哈希广播的ttl
+	StartLightTxTTL int32 `protobuf:"varint,18,opt,name=startLightTxTTL" json:"startLightTxTTL,omitempty"`
+	// 最大传播ttl, ttl达到该值将停止继续向外发送
+	MaxTTL int32 `protobuf:"varint,19,opt,name=maxTTL" json:"maxTTL,omitempty"`
+	// p2p网络频道,用于区分主网/测试网/其他网络
+	Channel int32 `protobuf:"varint,20,opt,name=channel" json:"channel,omitempty"`
 }
 
 // RPC 配置
