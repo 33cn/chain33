@@ -8,6 +8,7 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -34,6 +35,7 @@ type P2p struct {
 	txFactory    chan struct{}
 	otherFactory chan struct{}
 	waitRestart  chan struct{}
+	taskGroup *sync.WaitGroup
 
 	closed  int32
 	restart int32
@@ -74,6 +76,7 @@ func New(cfg *types.P2P) *P2p {
 	p2p.waitRestart = make(chan struct{}, 1)
 	p2p.txCapcity = 1000
 	p2p.cfg = cfg
+	p2p.taskGroup = &sync.WaitGroup{}
 	return p2p
 }
 
@@ -91,12 +94,13 @@ func (network *P2p) isRestart() bool {
 // Close network client
 func (network *P2p) Close() {
 	log.Info("p2p network start shutdown")
+	//等待业务协程停止
+	network.waitTaskDone()
 	atomic.StoreInt32(&network.closed, 1)
 	network.node.Close()
 	if network.client != nil {
 		if !network.isRestart() {
 			network.client.Close()
-
 		}
 
 	}
@@ -125,8 +129,7 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 			atomic.StoreInt32(&p2p.closed, 0)
 			atomic.StoreInt32(&p2p.restart, 0)
 			//开启业务处理协程
-			log.Info("restart p2p message process")
-			<-network.waitRestart
+			network.waitRestart <- struct{}{}
 			return
 		}
 
@@ -301,8 +304,6 @@ func (network *P2p) genAirDropKeyFromWallet() error {
 func (network *P2p) ReStart() {
 	atomic.StoreInt32(&network.restart, 1)
 	log.Info("p2p network restart, wait for p2p message process stop")
-	//先等待业务携程停止，再进行相关重启逻辑
-	network.waitRestart <- struct{}{}
 	network.Close()
 	node, err := NewNode(network.cfg) //创建新的node节点
 	if err != nil {
@@ -327,11 +328,10 @@ func (network *P2p) subP2pMsg() {
 		for msg := range network.client.Recv() {
 
 			if network.isRestart() {
-				//检测到重启标志，停止业务处理，并等待重启
+				//检测到重启标志，停止分发事件，需要等待重启
+				log.Info("wait for p2p restart....")
 				<-network.waitRestart
-				log.Info("stop p2p process message, wait for restart....")
-				network.waitRestart <- struct{}{}
-				log.Info("restart p2p process message ok....")
+				log.Info("p2p restart ok....")
 			}
 
 			if network.isClose() {
@@ -353,19 +353,19 @@ func (network *P2p) subP2pMsg() {
 			switch msg.Ty {
 
 			case types.EventTxBroadcast: //广播tx
-				go network.p2pCli.BroadCastTx(msg, taskIndex)
+				network.processEvent(msg, taskIndex, network.p2pCli.BroadCastTx)
 			case types.EventBlockBroadcast: //广播block
-				go network.p2pCli.BlockBroadcast(msg, taskIndex)
+				network.processEvent(msg, taskIndex, network.p2pCli.BlockBroadcast)
 			case types.EventFetchBlocks:
-				go network.p2pCli.GetBlocks(msg, taskIndex)
+				network.processEvent(msg, taskIndex, network.p2pCli.GetBlocks)
 			case types.EventGetMempool:
-				go network.p2pCli.GetMemPool(msg, taskIndex)
+				network.processEvent(msg, taskIndex, network.p2pCli.GetMemPool)
 			case types.EventPeerInfo:
-				go network.p2pCli.GetPeerInfo(msg, taskIndex)
+				network.processEvent(msg, taskIndex, network.p2pCli.GetPeerInfo)
 			case types.EventFetchBlockHeaders:
-				go network.p2pCli.GetHeaders(msg, taskIndex)
+				network.processEvent(msg, taskIndex, network.p2pCli.GetHeaders)
 			case types.EventGetNetInfo:
-				go network.p2pCli.GetNetInfo(msg, taskIndex)
+				network.processEvent(msg, taskIndex, network.p2pCli.GetNetInfo)
 			default:
 				log.Warn("unknown msgtype", "msg", msg)
 				msg.Reply(network.client.NewMessage("", msg.Ty, types.Reply{Msg: []byte("unknown msgtype")}))
@@ -377,4 +377,29 @@ func (network *P2p) subP2pMsg() {
 
 	}()
 
+}
+
+
+func (network *P2p)processEvent(msg *queue.Message, taskIdx int64, eventFunc p2pEventFunc) {
+
+	network.taskGroup.Add(1)
+	go func(){
+		defer network.taskGroup.Done()
+		eventFunc(msg, taskIdx)
+	}()
+}
+
+
+func (network *P2p)waitTaskDone() {
+
+	waitDone := make(chan struct{})
+	go func() {
+		defer close(waitDone)
+		network.taskGroup.Wait()
+	}()
+	select {
+	case <-waitDone:
+	case <-time.After(time.Second * 20):
+		log.Error("P2pWaitTaskDone", "err", "20s timeout")
+	}
 }
