@@ -131,7 +131,9 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 			p2p.node.Start()
 			atomic.StoreInt32(&p2p.closed, 0)
 			atomic.StoreInt32(&p2p.restart, 0)
-			network.waitRestart <- struct{}{}
+			//开启业务处理协程
+			log.Info("restart p2p message process")
+			<-network.waitRestart
 			return
 		}
 
@@ -305,6 +307,9 @@ func (network *P2p) genAirDropKeyFromWallet() error {
 //ReStart p2p
 func (network *P2p) ReStart() {
 	atomic.StoreInt32(&network.restart, 1)
+	log.Info("p2p network restart, wait for p2p message process stop")
+	//先等待业务携程停止，再进行相关重启逻辑
+	network.waitRestart <- struct{}{}
 	network.Close()
 	node, err := NewNode(network.cfg) //创建新的node节点
 	if err != nil {
@@ -329,11 +334,11 @@ func (network *P2p) subP2pMsg() {
 		for msg := range network.client.Recv() {
 
 			if network.isRestart() {
-
-				//wait for restart
-				log.Info("waitp2p restart....")
+				//检测到重启标志，停止业务处理，并等待重启
 				<-network.waitRestart
-				log.Info("p2p restart ok....")
+				log.Info("stop p2p process message, wait for restart....")
+				network.waitRestart<- struct{}{}
+				log.Info("restart p2p process message ok....")
 			}
 
 			if network.isClose() {
