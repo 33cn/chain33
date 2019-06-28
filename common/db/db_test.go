@@ -126,7 +126,7 @@ func testDBIteratorReserverExample(t *testing.T, db DB) {
 	i = 3
 	for it.Rewind(); it.Valid(); it.Next() {
 		assert.Equal(t, it.Key(), datas[i])
-		//fmt.Println(string(it.Key()))
+		// fmt.Println(string(it.Key()))
 		i--
 	}
 	it.Close()
