@@ -42,27 +42,20 @@ type P2p struct {
 
 // New produce a p2p object
 func New(cfg *types.P2P) *P2p {
-	if cfg.Version == 0 {
-		if types.IsTestNet() {
-			cfg.Version = 119
-			cfg.VerMin = 118
-			cfg.VerMax = 128
-		} else {
-			cfg.Version = 10020
-			cfg.VerMin = 10020
-			cfg.VerMax = 11000
-		}
-	}
-	if cfg.VerMin == 0 {
-		cfg.VerMin = cfg.Version
+
+	//主网的channel默认设为0, 测试网未配置时设为默认
+	if types.IsTestNet() && cfg.Channel == 0 {
+		cfg.Channel = defaultTestNetChannel
 	}
 
-	if cfg.VerMax == 0 {
-		cfg.VerMax = cfg.VerMin + 1
+	if cfg.StartLightTxTTL <= 0 {
+		cfg.StartLightTxTTL = DefaultLtTxBroadCastTTL
+	}
+	if cfg.MaxTTL <= 0 {
+		cfg.MaxTTL = DefaultMaxTxBroadCastTTL
 	}
 
-	VERSION = cfg.Version
-	log.Info("p2p", "Version", VERSION, "IsTest", types.IsTestNet())
+	log.Info("p2p", "Channel", cfg.Channel, "Version", VERSION, "IsTest", types.IsTestNet())
 	if cfg.InnerBounds == 0 {
 		cfg.InnerBounds = 500
 	}

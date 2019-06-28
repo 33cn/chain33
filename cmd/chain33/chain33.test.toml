@@ -50,9 +50,7 @@ driver="memdb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-version=216
-verMix=216
-verMax=217
+channel=216
 #waitPid 等待seed导入
 waitPid=false
 
