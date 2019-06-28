@@ -35,7 +35,7 @@ type P2p struct {
 	txFactory    chan struct{}
 	otherFactory chan struct{}
 	waitRestart  chan struct{}
-	taskGroup *sync.WaitGroup
+	taskGroup    *sync.WaitGroup
 
 	closed  int32
 	restart int32
@@ -379,18 +379,16 @@ func (network *P2p) subP2pMsg() {
 
 }
 
-
-func (network *P2p)processEvent(msg *queue.Message, taskIdx int64, eventFunc p2pEventFunc) {
+func (network *P2p) processEvent(msg *queue.Message, taskIdx int64, eventFunc p2pEventFunc) {
 
 	network.taskGroup.Add(1)
-	go func(){
+	go func() {
 		defer network.taskGroup.Done()
 		eventFunc(msg, taskIdx)
 	}()
 }
 
-
-func (network *P2p)waitTaskDone() {
+func (network *P2p) waitTaskDone() {
 
 	waitDone := make(chan struct{})
 	go func() {
