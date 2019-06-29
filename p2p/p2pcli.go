@@ -8,9 +8,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"net"
-
 	"math/rand"
+	"net"
 
 	"sync/atomic"
 	"time"
@@ -20,6 +19,8 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
+
+type p2pEventFunc func(message *queue.Message, taskIndex int64)
 
 // EventInterface p2p subscribe to the event hander interface
 type EventInterface interface {

@@ -469,6 +469,13 @@ func TestP2pRestart(t *testing.T) {
 
 	assert.Equal(t, false, p2pModule.isClose())
 	assert.Equal(t, false, p2pModule.isRestart())
+
+	for i := 0; i < 100; i++ {
+		client := p2pModule.client
+		msg := client.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{})
+		client.Send(msg, false)
+	}
+
 	p2pModule.ReStart()
 }
 
