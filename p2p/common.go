@@ -25,7 +25,7 @@ var P2pComm Comm
 type Comm struct{}
 
 // AddrRouteble address router ,return enbale address
-func (Comm) AddrRouteble(addrs []string) []string {
+func (Comm) AddrRouteble(addrs []string, version int32) []string {
 	var enableAddrs []string
 
 	for _, addr := range addrs {
@@ -34,7 +34,7 @@ func (Comm) AddrRouteble(addrs []string) []string {
 			log.Error("AddrRouteble", "NewNetAddressString", err.Error())
 			continue
 		}
-		conn, err := netaddr.DialTimeout(VERSION)
+		conn, err := netaddr.DialTimeout(version)
 		if err != nil {
 			//log.Error("AddrRouteble", "DialTimeout", err.Error())
 			continue
