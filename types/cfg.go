@@ -181,6 +181,8 @@ type P2P struct {
 	MaxTTL int32 `protobuf:"varint,19,opt,name=maxTTL" json:"maxTTL,omitempty"`
 	// p2p网络频道,用于区分主网/测试网/其他网络
 	Channel int32 `protobuf:"varint,20,opt,name=channel" json:"channel,omitempty"`
+	//固定连接节点，只连接配置项seeds中的节点
+	FixedSeed bool `protobuf:"varint,21,opt,name=fixedSeed" json:"fixedSeed,omitempty"`
 }
 
 // RPC 配置
