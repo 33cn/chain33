@@ -297,8 +297,9 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 		}
 	}
 	//控制精度
-	if feeRate%mem.cfg.MinTxFee > 0 {
-		feeRate = (feeRate/mem.cfg.MinTxFee + 1) * mem.cfg.MinTxFee
+	minFee := types.GInt("MinFee")
+	if minFee != 0 && feeRate%minFee > 0 {
+		feeRate = (feeRate/minFee + 1) * minFee
 	}
 	return feeRate
 }
