@@ -53,6 +53,8 @@ grpcLogFile="grpc33.log"
 channel=216
 #waitPid 等待seed导入
 waitPid=false
+#是否固定只连接seeds中配置的节点
+fixedSeed=false
 
 [rpc]
 jrpcBindAddr="localhost:8801"
