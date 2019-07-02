@@ -243,7 +243,7 @@ func TestPeer(t *testing.T) {
 	_, err = p2pcli.SendVersion(peer, localP2P.node.nodeInfo)
 	assert.Nil(t, err)
 
-	t.Log(p2pcli.CheckPeerNatOk("localhost:53802"))
+	t.Log(p2pcli.CheckPeerNatOk("localhost:53802", localP2P.node.nodeInfo))
 	t.Log("checkself:", p2pcli.CheckSelf("loadhost:43803", localP2P.node.nodeInfo))
 	_, err = p2pcli.GetAddr(peer)
 	assert.Nil(t, err)
@@ -353,7 +353,7 @@ func TestGrpcStreamConns(t *testing.T) {
 
 func TestP2pComm(t *testing.T) {
 
-	addrs := P2pComm.AddrRouteble([]string{"localhost:53802"})
+	addrs := P2pComm.AddrRouteble([]string{"localhost:53802"}, calcChannelVersion(testChannel))
 	t.Log(addrs)
 
 	i32 := P2pComm.BytesToInt32([]byte{0xff})
@@ -386,7 +386,7 @@ func TestFilter(t *testing.T) {
 }
 
 func TestAddrRouteble(t *testing.T) {
-	resp := P2pComm.AddrRouteble([]string{"114.55.101.159:13802"})
+	resp := P2pComm.AddrRouteble([]string{"114.55.101.159:13802"}, calcChannelVersion(testChannel))
 	t.Log(resp)
 }
 

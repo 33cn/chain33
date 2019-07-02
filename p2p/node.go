@@ -147,7 +147,7 @@ func (n *Node) doNat() {
 	}
 	testExaddr := fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), n.listenPort)
 	log.Info("TestNetAddr", "testExaddr", testExaddr)
-	if len(P2pComm.AddrRouteble([]string{testExaddr})) != 0 {
+	if len(P2pComm.AddrRouteble([]string{testExaddr}, n.nodeInfo.channelVersion)) != 0 {
 		log.Info("node outside")
 		n.nodeInfo.SetNetSide(true)
 		if netexaddr, err := NewNetAddressString(testExaddr); err == nil {
@@ -173,9 +173,8 @@ func (n *Node) doNat() {
 
 			p2pcli := NewNormalP2PCli()
 			//测试映射后的端口能否连通或者外网+本地端口
-			if p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String()) ||
-				p2pcli.CheckPeerNatOk(fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), n.listenPort)) {
-
+			if p2pcli.CheckPeerNatOk(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo) ||
+				p2pcli.CheckPeerNatOk(fmt.Sprintf("%v:%v", n.nodeInfo.GetExternalAddr().IP.String(), n.listenPort), n.nodeInfo) {
 				n.nodeInfo.SetServiceTy(Service)
 				log.Info("doNat", "NatOk", "Support Service")
 			} else {
@@ -422,7 +421,7 @@ func (n *Node) natMapPort() {
 		time.Sleep(time.Second)
 	}
 	var err error
-	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()})) != 0 { //判断能否连通要映射的端口
+	if len(P2pComm.AddrRouteble([]string{n.nodeInfo.GetExternalAddr().String()}, n.nodeInfo.channelVersion)) != 0 { //判断能否连通要映射的端口
 		log.Info("natMapPort", "addr", "routeble")
 		p2pcli := NewNormalP2PCli() //检查要映射的IP地址是否已经被映射成功
 		ok := p2pcli.CheckSelf(n.nodeInfo.GetExternalAddr().String(), n.nodeInfo)
