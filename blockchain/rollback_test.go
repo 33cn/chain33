@@ -14,6 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+func init() {
+	types.SetDappFork("local", "store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
+}
 
 func TestRollbackblock(t *testing.T) {
 	cfg, sub := testnode.GetDefaultConfig()
@@ -56,7 +59,6 @@ func TestRollbackblock(t *testing.T) {
 	mock33.WaitHeight(4)
 	time.Sleep(time.Second)
 
-	types.SetDappFork("local", "store-kvmvccmavl", "ForkKvmvccmavl", 1)
 	chain.Rollbackblock()
 }
 
@@ -75,7 +77,6 @@ func TestNeedRollback(t *testing.T) {
 	ok = chain.NeedRollback(curHeight, rollHeight)
 	require.Equal(t, false, ok)
 
-	types.SetDappFork("local", "store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
 	curHeight = int64(10 * 10000)
 	rollHeight = int64(5 * 10000)
 	ok = chain.NeedRollback(curHeight, rollHeight)
