@@ -5,11 +5,12 @@
 package blockchain
 
 import (
-	"github.com/33cn/chain33/common"
 	"fmt"
 	"syscall"
-	"github.com/33cn/chain33/types"
+
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
 )
 
 // Rollbackblock chain Rollbackblock
@@ -21,7 +22,7 @@ func (chain *BlockChain) Rollbackblock() {
 	}
 	if chain.cfg.RollbackBlock > 0 {
 		kvmvccMavlFork := types.GetDappFork("store-kvmvccmavl", "ForkKvmvccmavl")
-		if tipnode.height >= kvmvccMavlFork + 10000 && chain.cfg.RollbackBlock <= kvmvccMavlFork {
+		if tipnode.height >= kvmvccMavlFork+10000 && chain.cfg.RollbackBlock <= kvmvccMavlFork {
 			panic(fmt.Sprintln("current height not support rollback to ", chain.cfg.RollbackBlock))
 		}
 
@@ -52,11 +53,11 @@ func (chain *BlockChain) Rollback() {
 		}
 		err = chain.disBlock(blockdetail, sequence)
 		if err != nil {
-			panic(fmt.Sprintln("rollback block fail ","height", blockdetail.Block.Height, "blockHash:", common.ToHex(blockdetail.Block.Hash())))
+			panic(fmt.Sprintln("rollback block fail ", "height", blockdetail.Block.Height, "blockHash:", common.ToHex(blockdetail.Block.Hash())))
 		}
 		// 删除storedb中的状态高度
 		chain.sendDelStore(blockdetail.Block.StateHash, blockdetail.Block.Height)
-		chainlog.Info("chain rollback ", "height: ", i, "blockheight", blockdetail.Block.Height,"hash", common.ToHex(blockdetail.Block.Hash()), "state hash", common.ToHex(blockdetail.Block.StateHash))
+		chainlog.Info("chain rollback ", "height: ", i, "blockheight", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "state hash", common.ToHex(blockdetail.Block.StateHash))
 	}
 }
 
@@ -101,9 +102,10 @@ func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64
 	}
 	return nil
 }
+
 // 通知store删除区块，主要针对kvmvcc
 func (chain *BlockChain) sendDelStore(hash []byte, height int64) {
-	storeDel := &types.StoreDel{StateHash:hash, Height:height}
+	storeDel := &types.StoreDel{StateHash: hash, Height: height}
 	msg := chain.client.NewMessage("store", types.EventStoreDel, storeDel)
 	err := chain.client.Send(msg, true)
 	if err != nil {
