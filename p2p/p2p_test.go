@@ -3,6 +3,7 @@ package p2p
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/33cn/chain33/common/merkle"
 
 	//"fmt"
