@@ -175,8 +175,8 @@ type P2P struct {
 	UseGithub bool `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
 	//是否等待Pid
 	WaitPid bool `protobuf:"varint,17,opt,name=waitPid" json:"waitPid,omitempty"`
-	// 交易开始采用哈希广播的ttl
-	StartLightTxTTL int32 `protobuf:"varint,18,opt,name=startLightTxTTL" json:"startLightTxTTL,omitempty"`
+	//交易开始采用哈希广播的ttl
+	LightTxTTL int32 `protobuf:"varint,18,opt,name=lightTxTTL" json:"lightTxTTL,omitempty"`
 	// 最大传播ttl, ttl达到该值将停止继续向外发送
 	MaxTTL int32 `protobuf:"varint,19,opt,name=maxTTL" json:"maxTTL,omitempty"`
 	// p2p网络频道,用于区分主网/测试网/其他网络
