@@ -26,6 +26,7 @@ func (chain *BlockChain) Rollbackblock() {
 	}
 }
 
+// NeedRollback need Rollback
 func (chain *BlockChain) NeedRollback(curHeight, rollHeight int64) bool {
 	if curHeight <= rollHeight {
 		chainlog.Info("curHeight is small than rollback height, no need rollback")
