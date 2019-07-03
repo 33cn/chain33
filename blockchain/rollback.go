@@ -16,21 +16,27 @@ import (
 // Rollbackblock chain Rollbackblock
 func (chain *BlockChain) Rollbackblock() {
 	tipnode := chain.bestChain.Tip()
-	if tipnode == nil {
-		chainlog.Error("chain rollback get best chain tip fail")
-		return
-	}
 	if chain.cfg.RollbackBlock > 0 {
-		kvmvccMavlFork := types.GetDappFork("store-kvmvccmavl", "ForkKvmvccmavl")
-		if tipnode.height >= kvmvccMavlFork+10000 && chain.cfg.RollbackBlock <= kvmvccMavlFork {
-			panic(fmt.Sprintln("current height not support rollback to ", chain.cfg.RollbackBlock))
+		if chain.NeedRollback(tipnode.height, chain.cfg.RollbackBlock) {
+			chainlog.Info("chain rollback start")
+			chain.Rollback()
+			chainlog.Info("chain rollback end")
 		}
-
-		chainlog.Info("chain rollback start")
-		chain.Rollback()
-		chainlog.Info("chain rollback end")
 		syscall.Exit(0)
 	}
+}
+
+func (chain *BlockChain) NeedRollback(curHeight, rollHeight int64) bool {
+	if curHeight <= rollHeight {
+		chainlog.Info("curHeight is small than rollback height, no need rollback")
+		return false
+	}
+	kvmvccMavlFork := types.GetDappFork("store-kvmvccmavl", "ForkKvmvccmavl")
+	if curHeight >= kvmvccMavlFork+10000 && rollHeight <= kvmvccMavlFork {
+		chainlog.Info("because ForkKvmvccmavl", "current height", curHeight, "not support rollback to", rollHeight)
+		return false
+	}
+	return true
 }
 
 // Rollback chain Rollback
@@ -111,9 +117,4 @@ func (chain *BlockChain) sendDelStore(hash []byte, height int64) {
 	if err != nil {
 		chainlog.Debug("sendDelStoreEvent -->>store", "err", err)
 	}
-}
-
-// SetRollbackBlockHeight for SetRollbackBlockHeight
-func (chain *BlockChain) SetRollbackBlockHeight(height int64) {
-	chain.cfg.RollbackBlock = height
 }
