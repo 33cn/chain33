@@ -14,13 +14,17 @@ import (
 )
 
 // Filter  a Filter object
-var Filter = NewFilter()
+var (
+	peerAddrFilter  = NewFilter(PeerAddrCacheNum)
+	txHashFilter    = NewFilter(TxHashCacheNum)
+	blockHashFilter = NewFilter(BlockHashCacheNum)
+)
 
 // NewFilter produce a filter object
-func NewFilter() *Filterdata {
+func NewFilter(num int) *Filterdata {
 	filter := new(Filterdata)
 	var err error
-	filter.regRData, err = lru.New(P2pCacheTxSize)
+	filter.regRData, err = lru.New(num)
 	if err != nil {
 		panic(err)
 	}
@@ -95,4 +99,16 @@ func (f *Filterdata) ManageRecvFilter() {
 			return
 		}
 	}
+}
+
+// Add add val
+func (f *Filterdata) Add(key string, val interface{}) bool {
+
+	return f.regRData.Add(key, val)
+}
+
+// Get get val
+func (f *Filterdata) Get(key string) interface{} {
+	val, _ := f.regRData.Get(key)
+	return val
 }

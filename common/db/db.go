@@ -96,6 +96,14 @@ type Batch interface {
 	Reset()         // Reset resets the batch for reuse
 }
 
+// MustWrite must write correct
+func MustWrite(batch Batch) {
+	err := batch.Write()
+	if err != nil {
+		panic(fmt.Sprint("batch write err", err))
+	}
+}
+
 //IteratorSeeker ...
 type IteratorSeeker interface {
 	Rewind() bool

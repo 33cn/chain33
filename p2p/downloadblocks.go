@@ -258,7 +258,7 @@ func (d *DownloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan cha
 		return fmt.Errorf("peer not running")
 	}
 	var p2pdata pb.P2PGetData
-	p2pdata.Version = d.p2pcli.network.node.nodeInfo.cfg.Version
+	p2pdata.Version = d.p2pcli.network.node.nodeInfo.channelVersion
 	p2pdata.Invs = []*pb.Inventory{inv}
 	beg := pb.Now()
 	resp, err := peer.mconn.gcli.GetData(context.Background(), &p2pdata, grpc.FailFast(true))

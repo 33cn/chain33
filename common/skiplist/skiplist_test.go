@@ -39,9 +39,10 @@ func TestDelete(t *testing.T) {
 	l := NewSkipList(nil)
 	l.Insert(s1)
 	l.Insert(s2)
-	l.Delete(s1)
-	assert.Equal(t, 1, l.Len())
-	assert.Equal(t, (*SkipValue)(nil), l.Find(s1))
+	l.Insert(s3)
+	l.Delete(s3)
+	assert.Equal(t, 2, l.Len())
+	assert.Equal(t, (*SkipValue)(nil), l.Find(s3))
 	assert.Equal(t, s2, l.Find(s2))
 }
 

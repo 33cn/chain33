@@ -47,6 +47,92 @@ MAIN_LOOP:
 	return string(chars)
 }
 
+func testDBIteratorAllKey(t *testing.T, db DB) {
+	var datas = [][]byte{
+		[]byte("aa0"), []byte("aa1"), []byte("bb0"), []byte("bb1"), []byte("cc0"), []byte("cc1"),
+	}
+	for _, v := range datas {
+		db.Set(v, v)
+	}
+	//一次遍历
+	it := db.Iterator(nil, types.EmptyValue, false)
+	i := 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		db.Delete(it.Key())
+		i++
+		if i == 2 {
+			break
+		}
+	}
+	it.Close()
+	//从第3个开始遍历
+	it = db.Iterator([]byte("aa1"), types.EmptyValue, false)
+	i = 2
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		db.Delete(it.Key())
+		i++
+		if i == 4 {
+			break
+		}
+	}
+	it.Close()
+	//从第5个开始遍历
+	it = db.Iterator([]byte("bb1"), types.EmptyValue, false)
+	i = 4
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		db.Delete(it.Key())
+		i++
+		if i == 6 {
+			break
+		}
+	}
+	it.Close()
+}
+
+func testDBIteratorReserverExample(t *testing.T, db DB) {
+	var datas = [][]byte{
+		[]byte("aa0"), []byte("aa1"), []byte("bb0"), []byte("bb1"), []byte("cc0"), []byte("cc1"),
+	}
+	for _, v := range datas {
+		db.Set(v, v)
+	}
+	// 从尾部到头一次遍历
+	it := db.Iterator(nil, types.EmptyValue, true)
+	i := 5
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+	}
+	it.Close()
+	assert.Equal(t, i, -1)
+
+	// 从bb0开始从后到前遍历,end需要填入bb0的下一个，才可以遍历到bb0
+	it = db.Iterator(nil, []byte("bb1"), true)
+	i = 2
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+	}
+	it.Close()
+	assert.Equal(t, i, -1)
+
+	// 反向前缀查找
+	it = db.Iterator([]byte("bb"), nil, true)
+	i = 3
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		// fmt.Println(string(it.Key()))
+		i--
+	}
+	it.Close()
+	assert.Equal(t, i, 1)
+}
+
 // 迭代测试
 func testDBIterator(t *testing.T, db DB) {
 	t.Log("test Set")

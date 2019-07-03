@@ -256,28 +256,22 @@ func pruningFirstLevelNode(db dbm.DB, curHeight int64) {
 }
 
 func addLeafCountKeyToSecondLevel(db dbm.DB, kvs []*types.KeyValue, batch dbm.Batch) {
-	var err error
 	batch.Reset()
 	for _, kv := range kvs {
 		batch.Delete(kv.Key)
 		batch.Set(genOldLeafCountKeyFromKey(kv.Key), kv.Value)
 		if batch.ValueSize() > batchDataSize {
-			if err = batch.Write(); err != nil {
-				return
-			}
+			dbm.MustWrite(batch)
 			batch.Reset()
 		}
 	}
-	if err = batch.Write(); err != nil {
-		return
-	}
+	dbm.MustWrite(batch)
 }
 
 func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.Batch) {
 	if len(mp) == 0 {
 		return
 	}
-	var err error
 	batch.Reset()
 	for key, vals := range mp {
 		if len(vals) > 1 && vals[1].height != vals[0].height { //防止相同高度时候出现的误删除
@@ -297,9 +291,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 					batch.Delete(leafCountKey) // 叶子计数节点
 					batch.Delete(val.hash)     // 叶子节点hash值
 					if batch.ValueSize() > batchDataSize {
-						if err = batch.Write(); err != nil {
-							return
-						}
+						dbm.MustWrite(batch)
 						batch.Reset()
 					}
 				}
@@ -307,9 +299,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 		}
 		delete(mp, key)
 	}
-	if err = batch.Write(); err != nil {
-		return
-	}
+	dbm.MustWrite(batch)
 }
 
 func pruningSecondLevel(db dbm.DB, curHeight int64) {
@@ -376,7 +366,6 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch d
 	if len(mp) == 0 {
 		return
 	}
-	var err error
 	batch.Reset()
 	for key, vals := range mp {
 		if len(vals) > 1 {
@@ -411,15 +400,11 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch d
 		}
 		delete(mp, key)
 		if batch.ValueSize() > batchDataSize {
-			if err = batch.Write(); err != nil {
-				return
-			}
+			dbm.MustWrite(batch)
 			batch.Reset()
 		}
 	}
-	if err = batch.Write(); err != nil {
-		return
-	}
+	dbm.MustWrite(batch)
 }
 
 // PruningTreePrintDB pruning tree print db

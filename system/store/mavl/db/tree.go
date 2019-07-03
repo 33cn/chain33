@@ -404,9 +404,7 @@ func (t *Tree) RemoveLeafCountKey(height int64) {
 			treelog.Debug("RemoveLeafCountKey:", "height", height, "key:", string(k), "hash:", common.ToHex(hash))
 		}
 	}
-	if err := batch.Write(); err != nil {
-		return
-	}
+	dbm.MustWrite(batch)
 }
 
 // Iterate 依次迭代遍历树的所有键
@@ -711,14 +709,11 @@ func (ndb *nodeDB) Commit() error {
 	defer ndb.mtx.Unlock()
 
 	// Write saves
-	err := ndb.batch.Write()
-	if err != nil {
-		treelog.Error("Commit batch.Write err", "err", err)
-	}
+	dbm.MustWrite(ndb.batch)
 
 	ndb.batch = nil
 	ndb.orphans = make(map[string]struct{})
-	return err
+	return nil
 }
 
 // SetKVPair 设置kv对外接口
