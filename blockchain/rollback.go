@@ -110,3 +110,7 @@ func (chain *BlockChain) sendDelStore(hash []byte, height int64) {
 		chainlog.Debug("sendDelStoreEvent -->>store", "err", err)
 	}
 }
+
+func (chain *BlockChain) SetRollbackBlockHeight(height int64) {
+	chain.cfg.RollbackBlock = height
+}
