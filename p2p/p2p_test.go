@@ -540,10 +540,7 @@ func Test_processP2P(t *testing.T) {
 			sendData, doSend := node.processSendP2P(verData.rawData, verData.version, "testIP:port")
 			txHashFilter.regRData.Remove(txHash)
 			blockHashFilter.regRData.Remove(blockHash)
-			if doSend == false {
-				t.Error("sendData:", verData.rawData)
-			}
-			assert.True(t, doSend)
+			assert.True(t, doSend, "sendData:", verData)
 			recvChan <- sendData
 		}
 	}()
