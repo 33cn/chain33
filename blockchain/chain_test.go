@@ -130,6 +130,7 @@ func TestBlockChain(t *testing.T) {
 	testReadBlockToExec(t, blockchain)
 	testReExecBlock(t, blockchain)
 	testUpgradeStore(t, blockchain)
+	testRollback(t, blockchain)
 
 	testProcMainSeqMsg(t, blockchain)
 }
@@ -1126,6 +1127,12 @@ func testUpgradeStore(t *testing.T, chain *blockchain.BlockChain) {
 	chainlog.Info("UpgradeStore begin ---------------------")
 	chain.UpgradeStore()
 	chainlog.Info("UpgradeStore end ---------------------")
+}
+
+func testRollback(t *testing.T, chain *blockchain.BlockChain) {
+	chainlog.Info("Rollback begin ---------------------")
+	chain.Rollback()
+	chainlog.Info("Rollback end ---------------------")
 }
 
 func testProcMainSeqMsg(t *testing.T, blockchain *blockchain.BlockChain) {
