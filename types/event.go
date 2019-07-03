@@ -162,6 +162,9 @@ const (
 	EventReplyLastBlockMainSequence = 301
 	EventGetMainSeqByHash           = 302
 	EventReplyMainSeqByHash         = 303
+	//其他模块读写blockchain db事件
+	EventSetValueByKey = 304
+	EventGetValueByKey = 305
 )
 
 var eventName = map[int]string{
@@ -313,4 +316,6 @@ var eventName = map[int]string{
 	EventReplyLastBlockMainSequence: "EventReplyLastBlockMainSequence",
 	EventGetMainSeqByHash:           "EventGetMainSeqByHash",
 	EventReplyMainSeqByHash:         "EventReplyMainSeqByHash",
+	EventSetValueByKey:              "EventSetValueByKey",
+	EventGetValueByKey:              "EventGetValueByKey",
 }
