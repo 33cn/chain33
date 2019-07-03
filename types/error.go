@@ -187,4 +187,6 @@ var (
 
 	ErrDisableWrite = errors.New("ErrDisableWrite")
 	ErrDisableRead  = errors.New("ErrDisableRead")
+
+	ErrConsensusHashErr = errors.New("ErrConsensusHashErr")
 )
