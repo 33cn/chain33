@@ -1439,9 +1439,9 @@ func TestChain33_QueryTotalFee(t *testing.T) {
 	total := &types.TotalFee{TxCount: 1, Fee: 10000}
 	api.On("LocalGet", mock.Anything).Return(&types.LocalReplyValue{Values: [][]byte{types.Encode(total)}}, nil)
 	req := &types.LocalDBGet{Keys: [][]byte{types.TotalFeeKey([]byte("testHash"))}}
-	req2 := &types.LocalDBGet{Keys: [][]byte{[]byte("testHash")}}
+	req1 := &types.LocalDBGet{Keys: [][]byte{[]byte("testHash")}}
 
 	assert.Equal(t, total.Fee, queryTotalFee(client, req, t))
-	assert.Equal(t, total.Fee, queryTotalFee(client, req2, t))
-	assert.True(t, bytes.Equal(req.Keys[0], req2.Keys[0]))
+	assert.Equal(t, total.Fee, queryTotalFee(client, req1, t))
+	assert.True(t, bytes.Equal(req.Keys[0], req1.Keys[0]))
 }
