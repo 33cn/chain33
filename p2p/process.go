@@ -341,12 +341,12 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid string, pubPeerFunc 
 }
 
 func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid string, pubPeerFunc pubFuncType) {
-	block := ltBlockCache.get(rep.BlockHash).(*types.Block)
-	//not exist in cache
-	if block == nil {
+	val, exist := ltBlockCache.del(rep.BlockHash)
+	block, _ := val.(*types.Block)
+	//not exist in cache or nil block
+	if !exist || block == nil {
 		return
 	}
-
 	for i, idx := range rep.TxIndices {
 		block.Txs[idx] = rep.Txs[i]
 	}
@@ -356,7 +356,6 @@ func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid string, pubPeerFun
 		block.Txs = rep.Txs
 	}
 
-	ltBlockCache.del(rep.BlockHash)
 	//计算的root hash是否一致
 	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
