@@ -130,7 +130,14 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		}
 
 		resp.TxCount = res2.TxCount
-		totalAmount = (317430000+30*height)*types.Coin - res2.Fee
+		var issueCoins int64
+		//只适用bty主网计算
+		if height < 2270000 {
+			issueCoins = 30 * height
+		} else { //挖矿产量降低30->8
+			issueCoins = 22*2269999 + height*8
+		}
+		totalAmount = (317430000+issueCoins)*types.Coin - res2.Fee
 		resp.TotalAmount = strconv.FormatFloat(float64(totalAmount)/float64(types.Coin), 'f', 4, 64)
 	} else {
 		var req types.ReqString
