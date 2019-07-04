@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -1421,4 +1422,26 @@ func Test_fmtTxDetail(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "to", tran.Fromaddr)
 	assert.Equal(t, "from", tx.To)
+}
+
+func queryTotalFee(client *Chain33, req *types.LocalDBGet, t *testing.T) int64 {
+	var testResult interface{}
+	err := client.QueryTotalFee(req, &testResult)
+	assert.NoError(t, err)
+	fee, _ := testResult.(types.TotalFee)
+	return fee.Fee
+}
+
+func TestChain33_QueryTotalFee(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+
+	total := &types.TotalFee{TxCount: 1, Fee: 10000}
+	api.On("LocalGet", mock.Anything).Return(&types.LocalReplyValue{Values: [][]byte{types.Encode(total)}}, nil)
+	req := &types.LocalDBGet{Keys: [][]byte{types.TotalFeeKey([]byte("testHash"))}}
+	req2 := &types.LocalDBGet{Keys: [][]byte{[]byte("testHash")}}
+
+	assert.Equal(t, total.Fee, queryTotalFee(client, req, t))
+	assert.Equal(t, total.Fee, queryTotalFee(client, req2, t))
+	assert.True(t, bytes.Equal(req.Keys[0], req2.Keys[0]))
 }
