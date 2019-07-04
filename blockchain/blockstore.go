@@ -1335,8 +1335,8 @@ func (bs *BlockStore) CreateSequences(batchSize int64) {
 	storeLog.Info("CreateSequences done")
 }
 
-//Set 设置kv到数据库,当value是空时需要delete操作
-func (bs *BlockStore) Set(kvs *types.LocalDBSet) error {
+//SetConsensusPara 设置kv到数据库,当value是空时需要delete操作
+func (bs *BlockStore) SetConsensusPara(kvs *types.LocalDBSet) error {
 	var isSync bool
 	if kvs.GetTxid() != 0 {
 		isSync = true

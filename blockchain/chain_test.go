@@ -1155,7 +1155,7 @@ func TestSetValueByKey(t *testing.T) {
 	var kvs types.LocalDBSet
 	var kv types.KeyValue
 	//ConsensusParaTxsPrefix = []byte("LODB:Consensus:Para:")
-	key_1 := []byte("LODB:Consensus:Parakey-1")
+	key_1 := []byte("LODBP:Consensus:Parakey-1")
 	value_1 := []byte("value-1")
 	kv.Key = key_1
 	kv.Value = value_1
@@ -1167,7 +1167,7 @@ func TestSetValueByKey(t *testing.T) {
 	}
 	//读取数据为空
 	var keys types.LocalDBGet
-	key := []byte("LODB:Consensus:Parakey-1")
+	key := []byte("LODBP:Consensus:Parakey-1")
 	keys.Keys = append(keys.Keys, key)
 	values := blockchain.GetValueByKey(&keys)
 	for _, value := range values.Values {

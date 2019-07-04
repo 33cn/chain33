@@ -506,7 +506,7 @@ func (chain *BlockChain) ProcFutureBlocks() {
 
 //SetValueByKey 设置kv对到blockchain数据库
 func (chain *BlockChain) SetValueByKey(kvs *types.LocalDBSet) error {
-	return chain.blockStore.Set(kvs)
+	return chain.blockStore.SetConsensusPara(kvs)
 }
 
 //GetValueByKey 通过key值从blockchain数据库中获取value值

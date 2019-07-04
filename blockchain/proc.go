@@ -560,7 +560,12 @@ func (chain *BlockChain) GetMainSeqByHash(msg *queue.Message) {
 func (chain *BlockChain) setValueByKey(msg *queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
+	if !chain.isParaChain {
+		reply.IsOk = false
+		reply.Msg = []byte("Must Para Chain Support!")
+		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 
+	}
 	kvs := (msg.Data).(*types.LocalDBSet)
 	err := chain.SetValueByKey(kvs)
 	if err != nil {
@@ -573,6 +578,9 @@ func (chain *BlockChain) setValueByKey(msg *queue.Message) {
 
 //GetValueByKey 获取value通过key从blockchain db中
 func (chain *BlockChain) getValueByKey(msg *queue.Message) {
+	if !chain.isParaChain {
+		msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, nil))
+	}
 	keys := (msg.Data).(*types.LocalDBGet)
 	values := chain.GetValueByKey(keys)
 	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, values))

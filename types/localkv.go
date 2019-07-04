@@ -19,7 +19,7 @@ var (
 	TxAddrHash             = []byte("TxAddrHash:")
 	TxAddrDirHash          = []byte("TxAddrDirHash:")
 	AddrTxsCount           = []byte("AddrTxsCount:")
-	ConsensusParaTxsPrefix = []byte("LODB:Consensus:Para:") //存贮para共识模块从主链拉取的平行链交易
+	ConsensusParaTxsPrefix = []byte("LODBP:Consensus:Para:") //存贮para共识模块从主链拉取的平行链交易
 )
 
 // GetLocalDBKeyList 获取localdb的key列表
