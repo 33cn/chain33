@@ -74,8 +74,18 @@ func (m *Cli) BroadCastTx(msg *queue.Message, taskindex int64) {
 		atomic.AddInt32(&m.network.txCapcity, 1)
 		log.Debug("BroadCastTx", "task complete:", taskindex)
 	}()
-	m.network.node.pubsub.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, "tx")
-	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
+
+	if tx, ok := msg.GetData().(*pb.Transaction); ok {
+		txHash := hex.EncodeToString(tx.Hash())
+		//此处使用新分配结构，避免重复修改已保存的ttl
+		route := &pb.P2PRoute{TTL: 1}
+		//是否已存在记录，不存在表示本节点发起的交易
+		if ttl, exist := txHashFilter.Get(txHash).(*pb.P2PRoute); exist {
+			route.TTL = ttl.TTL + 1
+		}
+		m.network.node.pubsub.FIFOPub(&pb.P2PTx{Tx: tx, Route: route}, "tx")
+		msg.Reply(m.network.client.NewMessage("mempool", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
+	}
 }
 
 // GetMemPool get mempool contents

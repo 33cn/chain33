@@ -34,8 +34,8 @@ func calcChannelVersion(channel int32) int32 {
 	return channel<<16 + VERSION
 }
 
-func decodeChannelVersion(channelVersion int32) (int32, int32) {
-	channel := channelVersion >> 16
-	version := channelVersion & versionMask
-	return channel, version
+func decodeChannelVersion(channelVersion int32) (channel int32, version int32) {
+	channel = channelVersion >> 16
+	version = channelVersion & versionMask
+	return
 }

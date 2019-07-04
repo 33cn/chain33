@@ -332,15 +332,18 @@ func (n *Node) removeAll() {
 
 func (n *Node) monitor() {
 	go n.monitorErrPeer()
-	go n.getAddrFromOnline()
-	go n.getAddrFromAddrBook()
+	//固定模式, 只连接seeds配置节点
+	go n.monitorCfgSeeds()
+	if !n.nodeInfo.cfg.FixedSeed {
+		go n.getAddrFromOnline()
+		go n.getAddrFromAddrBook()
+	}
 	go n.monitorPeerInfo()
 	go n.monitorDialPeers()
 	go n.monitorBlackList()
 	go n.monitorFilter()
 	go n.monitorPeers()
 	go n.nodeReBalance()
-	go n.monitorCfgSeeds()
 }
 
 func (n *Node) needMore() bool {

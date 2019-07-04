@@ -49,9 +49,9 @@ func New(cfg *types.P2P) *P2p {
 	if types.IsTestNet() && cfg.Channel == 0 {
 		cfg.Channel = defaultTestNetChannel
 	}
-
-	if cfg.StartLightTxTTL <= 0 {
-		cfg.StartLightTxTTL = DefaultLtTxBroadCastTTL
+	//ttl至少设为2
+	if cfg.LightTxTTL <= 1 {
+		cfg.LightTxTTL = DefaultLtTxBroadCastTTL
 	}
 	if cfg.MaxTTL <= 0 {
 		cfg.MaxTTL = DefaultMaxTxBroadCastTTL

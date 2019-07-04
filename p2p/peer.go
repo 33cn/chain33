@@ -251,8 +251,7 @@ func (p *Peer) sendStream() {
 					log.Error("sendStream peer connect closed", "peerName", p.GetPeerName())
 					return
 				}
-
-				sendData, doSend := p.node.processSendP2P(task, p.version.GetVersion())
+				sendData, doSend := p.node.processSendP2P(task, p.version.GetVersion(), p.Addr())
 				if !doSend {
 					continue
 				}
@@ -341,7 +340,7 @@ func (p *Peer) readStream() {
 				break
 			}
 
-			p.node.processRecvP2P(data, p.GetPeerName(), p.node.pubToPeer)
+			p.node.processRecvP2P(data, p.GetPeerName(), p.node.pubToPeer, p.Addr())
 		}
 	}
 }
