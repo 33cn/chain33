@@ -47,6 +47,10 @@ func Test_spaceLimitCache(t *testing.T) {
 	assert.True(t, c.add(7, 7, 10))
 	assert.True(t, c.contains(7))
 	assert.Equal(t, 1, c.data.Len())
+	_, exist := c.del(7)
+	assert.True(t, exist)
+	_, exist = c.del(6)
+	assert.False(t, exist)
 }
 
 func testChannelVersion(t *testing.T, channel int32) {
