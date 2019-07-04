@@ -327,13 +327,6 @@ func (network *P2p) subP2pMsg() {
 		network.client.Sub("p2p")
 		for msg := range network.client.Recv() {
 
-			if network.isRestart() {
-				//检测到重启标志，停止分发事件，需要等待重启
-				log.Info("wait for p2p restart....")
-				<-network.waitRestart
-				log.Info("p2p restart ok....")
-			}
-
 			if network.isClose() {
 				log.Debug("subP2pMsg", "loop", "done")
 				close(network.otherFactory)
@@ -381,6 +374,12 @@ func (network *P2p) subP2pMsg() {
 
 func (network *P2p) processEvent(msg *queue.Message, taskIdx int64, eventFunc p2pEventFunc) {
 
+	//检测重启标志，停止分发事件，需要等待重启
+	if network.isRestart() {
+		log.Info("wait for p2p restart....")
+		<-network.waitRestart
+		log.Info("p2p restart ok....")
+	}
 	network.taskGroup.Add(1)
 	go func() {
 		defer network.taskGroup.Done()
