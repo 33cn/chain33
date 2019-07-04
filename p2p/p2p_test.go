@@ -576,7 +576,6 @@ func Test_processP2P(t *testing.T) {
 		}}
 		<-subChan
 		assert.True(t, ltBlockCache.contains(blockHash))
-		assert.Nil(t, ltBlock.Txs)
 
 		ltBlock.TxHash = rootHash
 		sendChan <- &versionData{rawData: &types.P2PBlockTxReply{
