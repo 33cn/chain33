@@ -101,7 +101,7 @@ func TestJSONClient_Call(t *testing.T) {
 
 	var fee types.TotalFee
 	api.On("LocalGet", mock.Anything).Return(nil, errors.New("error value"))
-	err = jsonClient.Call("Chain33.QueryTotalFee", &types.ReqSignRawTx{}, &fee)
+	err = jsonClient.Call("Chain33.QueryTotalFee", &types.LocalDBGet{Keys: [][]byte{[]byte("test")}}, &fee)
 	assert.NotNil(t, err)
 
 	var retNtp bool
