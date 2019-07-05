@@ -526,7 +526,8 @@ func testWalletGetAccountList(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testGetMempool(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.GetMempool()
+	req := types.ReqGetMempool{IsAll: false}
+	_, err := api.GetMempool(&req)
 	if err != nil {
 		t.Error("Call GetMempool Failed.", err)
 	}
