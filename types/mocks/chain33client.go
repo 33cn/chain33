@@ -714,7 +714,7 @@ func (_m *Chain33Client) GetMemPool(ctx context.Context, in *types.ReqGetMempool
 	ret := _m.Called(_ca...)
 
 	var r0 *types.ReplyTxList
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqNil, ...grpc.CallOption) *types.ReplyTxList); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqGetMempool, ...grpc.CallOption) *types.ReplyTxList); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -723,7 +723,7 @@ func (_m *Chain33Client) GetMemPool(ctx context.Context, in *types.ReqGetMempool
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqGetMempool, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
