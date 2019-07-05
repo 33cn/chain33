@@ -1098,7 +1098,7 @@ func testGetAccountsGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testGetMemPoolGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.ReplyTxList
-	err := rpc.newRpcCtx("GetMemPool", &types.ReqNil{}, &res)
+	err := rpc.newRpcCtx("GetMemPool", &types.ReqGetMempool{}, &res)
 	if err != nil {
 		t.Error("Call GetMemPool Failed.", err)
 	}
