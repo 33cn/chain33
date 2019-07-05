@@ -629,7 +629,7 @@ func TestChain33_GetMempool(t *testing.T) {
 
 	api.On("GetMempool").Return(&types.ReplyTxList{Txs: []*types.Transaction{{}}}, nil)
 	var testResult interface{}
-	data := &types.ReqNil{}
+	data := &types.ReqGetMempool{}
 	err := testChain33.GetMempool(data, &testResult)
 	t.Log(err)
 	assert.NotNil(t, testResult)
