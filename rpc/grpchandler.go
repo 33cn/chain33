@@ -130,8 +130,8 @@ func (g *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*p
 }
 
 // GetMemPool get mempool contents
-func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
-	return g.cli.GetMempool()
+func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqGetMempool) (*pb.ReplyTxList, error) {
+	return g.cli.GetMempool(in)
 }
 
 // GetAccounts get  accounts

@@ -138,7 +138,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "GetMemPool":
-		reply, err := rpc.GetMemPool(context.Background(), c.Params.(*types.ReqNil))
+		reply, err := rpc.GetMemPool(context.Background(), c.Params.(*types.ReqGetMempool))
 		if err == nil {
 			*c.Res.(*types.ReplyTxList) = *reply
 		}

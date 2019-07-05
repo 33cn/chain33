@@ -165,9 +165,13 @@ message ReplyTxList {
     repeated Transaction txs = 1;
 }
 
+message ReqGetMempool {
+    bool isAll = 1;
+}
+
 message ReqProperFee {
-    int32 txCount = 1;
-    int32 txSize  = 2;
+     int32 txCount = 1;
+     int32 txSize  = 2;
 }
 
 message ReplyProperFee {

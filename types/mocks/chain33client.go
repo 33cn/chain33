@@ -703,7 +703,7 @@ func (_m *Chain33Client) GetLastMemPool(ctx context.Context, in *types.ReqNil, o
 }
 
 // GetMemPool provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) GetMemPool(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.ReplyTxList, error) {
+func (_m *Chain33Client) GetMemPool(ctx context.Context, in *types.ReqGetMempool, opts ...grpc.CallOption) (*types.ReplyTxList, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]

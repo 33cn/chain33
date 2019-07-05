@@ -329,9 +329,8 @@ func fmtAsssets(assets []*types.Asset) []*rpctypes.Asset {
 }
 
 // GetMempool get mempool information
-func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
-
-	reply, err := c.cli.GetMempool()
+func (c *Chain33) GetMempool(in *types.ReqGetMempool, result *interface{}) error {
+	reply, err := c.cli.GetMempool(in)
 	if err != nil {
 		return err
 	}

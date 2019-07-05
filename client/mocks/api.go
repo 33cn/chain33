@@ -477,12 +477,12 @@ func (_m *QueueProtocolAPI) GetMainSequenceByHash(param *types.ReqHash) (*types.
 }
 
 // GetMempool provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetMempool() (*types.ReplyTxList, error) {
-	ret := _m.Called()
+func (_m *QueueProtocolAPI) GetMempool(req *types.ReqGetMempool) (*types.ReplyTxList, error) {
+	ret := _m.Called(req)
 
 	var r0 *types.ReplyTxList
 	if rf, ok := ret.Get(0).(func() *types.ReplyTxList); ok {
-		r0 = rf()
+		r0 = rf(req)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.ReplyTxList)
@@ -491,7 +491,7 @@ func (_m *QueueProtocolAPI) GetMempool() (*types.ReplyTxList, error) {
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+		r1 = rf(req)
 	} else {
 		r1 = ret.Error(1)
 	}

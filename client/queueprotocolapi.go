@@ -21,7 +21,7 @@ type QueueProtocolAPI interface {
 	// types.EventTxList
 	GetTxList(param *types.TxHashList) (*types.ReplyTxList, error)
 	// types.EventGetMempool
-	GetMempool() (*types.ReplyTxList, error)
+	GetMempool(req *types.ReqGetMempool) (*types.ReplyTxList, error)
 	// types.EventGetLastMempool
 	GetLastMempool() (*types.ReplyTxList, error)
 	// types.EventGetProperFee

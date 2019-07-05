@@ -125,7 +125,7 @@ type Chain33Client interface {
 	//通过哈希数组获取对应的交易
 	GetTransactionByHashes(ctx context.Context, in *ReqHashes, opts ...grpc.CallOption) (*TransactionDetails, error)
 	//缓存接口
-	GetMemPool(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyTxList, error)
+	GetMemPool(ctx context.Context, in *ReqGetMempool, opts ...grpc.CallOption) (*ReplyTxList, error)
 	//钱包接口
 	//获取钱包账户信息
 	GetAccounts(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*WalletAccounts, error)
@@ -290,7 +290,7 @@ func (c *chain33Client) GetTransactionByHashes(ctx context.Context, in *ReqHashe
 	return out, nil
 }
 
-func (c *chain33Client) GetMemPool(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyTxList, error) {
+func (c *chain33Client) GetMemPool(ctx context.Context, in *ReqGetMempool, opts ...grpc.CallOption) (*ReplyTxList, error) {
 	out := new(ReplyTxList)
 	err := c.cc.Invoke(ctx, "/types.chain33/GetMemPool", in, out, opts...)
 	if err != nil {
@@ -705,7 +705,7 @@ type Chain33Server interface {
 	//通过哈希数组获取对应的交易
 	GetTransactionByHashes(context.Context, *ReqHashes) (*TransactionDetails, error)
 	//缓存接口
-	GetMemPool(context.Context, *ReqNil) (*ReplyTxList, error)
+	GetMemPool(context.Context, *ReqGetMempool) (*ReplyTxList, error)
 	//钱包接口
 	//获取钱包账户信息
 	GetAccounts(context.Context, *ReqNil) (*WalletAccounts, error)
@@ -939,7 +939,7 @@ func _Chain33_GetTransactionByHashes_Handler(srv interface{}, ctx context.Contex
 }
 
 func _Chain33_GetMemPool_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReqNil)
+	in := new(ReqGetMempool)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -951,7 +951,7 @@ func _Chain33_GetMemPool_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: "/types.chain33/GetMemPool",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(Chain33Server).GetMemPool(ctx, req.(*ReqNil))
+		return srv.(Chain33Server).GetMemPool(ctx, req.(*ReqGetMempool))
 	}
 	return interceptor(ctx, in, info, handler)
 }
