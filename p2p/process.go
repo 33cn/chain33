@@ -259,7 +259,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pu
 	//需要比较交易根哈希是否一致, 不一致需要请求区块内所有的交易
 	if len(block.Txs) == int(ltBlock.Header.TxCount) && bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
-		log.Info("recvBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer",
+		log.Info("recvBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer", pid,
 			"block size(KB)", float32(ltBlock.Size)/1024, "blockHash", blockHash)
 		//发送至blockchain执行
 		if err = n.postBlockChain(block, pid); err != nil {
