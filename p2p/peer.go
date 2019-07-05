@@ -133,10 +133,10 @@ func (p *Peer) heartBeat() {
 		}
 		peername, err := pcli.SendVersion(p, p.node.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
-		if err == nil {
+		if err == nil || peername == "" {
 			log.Debug("sendVersion", "peer name", peername)
 			p.SetPeerName(peername) //设置连接的远程节点的节点名称
-			p.taskChan = p.node.pubsub.Sub("block", "tx", "peername")
+			p.taskChan = p.node.pubsub.Sub("block", "tx", peername)
 			go p.sendStream()
 			go p.readStream()
 			break
