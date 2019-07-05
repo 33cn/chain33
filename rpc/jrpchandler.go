@@ -52,10 +52,11 @@ func (c *Chain33) CreateRawTransaction(in *rpctypes.CreateTx, result *interface{
 		if err != nil {
 			return err
 		}
-		tx.Fee, err = tx.GetRealFee(proper.ProperFee)
+		fee, err := tx.GetRealFee(proper.ProperFee)
 		if err != nil {
 			return err
 		}
+		tx.Fee = fee
 	}
 	*result = hex.EncodeToString(types.Encode(tx))
 	return nil

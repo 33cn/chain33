@@ -109,9 +109,19 @@ func TestJSONClient_Call(t *testing.T) {
 	err = jsonClient.Call("Chain33.IsNtpClockSync", &types.ReqNil{}, &retNtp)
 	assert.Nil(t, err)
 	assert.True(t, retNtp)
+	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 2}, nil)
 	testCreateTxCoins(t, jsonClient)
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
+}
+
+func testDecodeTxHex(t *testing.T, txHex string) *types.Transaction {
+	txbytes, err := hex.DecodeString(txHex)
+	assert.Nil(t, err)
+	var tx types.Transaction
+	err = types.Decode(txbytes, &tx)
+	assert.Nil(t, err)
+	return &tx
 }
 
 func testCreateTxCoins(t *testing.T, jsonClient *jsonclient.JSONClient) {
@@ -128,12 +138,15 @@ func testCreateTxCoins(t *testing.T, jsonClient *jsonclient.JSONClient) {
 	var res string
 	err := jsonClient.Call("Chain33.CreateRawTransaction", req, &res)
 	assert.Nil(t, err)
-	txbytes, err := hex.DecodeString(res)
-	assert.Nil(t, err)
-	var tx types.Transaction
-	err = types.Decode(txbytes, &tx)
-	assert.Nil(t, err)
+	tx := testDecodeTxHex(t, res)
 	assert.Equal(t, "184wj4nsgVxKyz2NhM3Yb5RK5Ap6AFRFq2", tx.To)
+	assert.Equal(t, int64(1), tx.Fee)
+	req.Fee = 0
+	err = jsonClient.Call("Chain33.CreateRawTransaction", req, &res)
+	assert.Nil(t, err)
+	tx = testDecodeTxHex(t, res)
+	fee, _ := tx.GetRealFee(2)
+	assert.Equal(t, fee, tx.Fee)
 }
 
 func TestGrpc_Call(t *testing.T) {
