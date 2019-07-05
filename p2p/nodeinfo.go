@@ -29,6 +29,7 @@ type NodeInfo struct {
 	natDone        int32
 	outSide        int32
 	ServiceType    int32
+	channelVersion int32
 }
 
 // NewNodeInfo new a node object
@@ -44,6 +45,7 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
 	nodeInfo.addrBook = NewAddrBook(cfg)
+	nodeInfo.channelVersion = calcChannelVersion(cfg.Channel)
 	return nodeInfo
 }
 
@@ -131,7 +133,7 @@ func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 		if peer.Addr() == n.nodeInfo.GetExternalAddr().String() { //fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort())
 			continue
 		}
-		peerinfo, err := peer.GetPeerInfo(nf.cfg.Version)
+		peerinfo, err := peer.GetPeerInfo()
 		if err != nil {
 			if err == types.ErrVersion {
 				peer.version.SetSupport(false)

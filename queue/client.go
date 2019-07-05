@@ -168,7 +168,7 @@ func (client *client) isInClose() bool {
 
 // Close 关闭client
 func (client *client) Close() {
-	if atomic.LoadInt32(&client.isClosed) == 1 || client.topic == nil {
+	if atomic.LoadInt32(&client.isClosed) == 1 || atomic.LoadPointer(&client.topic) == nil {
 		return
 	}
 	topic := client.getTopic()

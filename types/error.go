@@ -141,6 +141,7 @@ var (
 	ErrVersion    = errors.New("ErrVersionNoSupport")
 	ErrStreamPing = errors.New("ErrStreamPing")
 	ErrPeerStop   = errors.New("ErrPeerStop")
+	ErrP2PChannel = errors.New("ErrIllegalP2PChannel")
 
 	ErrBlockSize                  = errors.New("ErrBlockSize")
 	ErrTxGroupIndex               = errors.New("ErrTxGroupIndex")
@@ -186,4 +187,6 @@ var (
 
 	ErrDisableWrite = errors.New("ErrDisableWrite")
 	ErrDisableRead  = errors.New("ErrDisableRead")
+
+	ErrConsensusHashErr = errors.New("ErrConsensusHashErr")
 )

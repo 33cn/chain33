@@ -50,11 +50,15 @@ driver="memdb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-version=216
-verMix=216
-verMax=217
+channel=216
 #waitPid 等待seed导入
 waitPid=false
+#交易开始采用哈希传播的ttl
+lightTxTTL=3
+#最大交易传播ttl
+maxTTL=20
+#是否固定只连接seeds中配置的节点
+fixedSeed=false
 
 [rpc]
 jrpcBindAddr="localhost:8801"

@@ -60,9 +60,19 @@ const (
 	privKeyTag = "privkey"
 )
 
+//TTL
+const (
+	DefaultLtTxBroadCastTTL  = 3
+	DefaultMaxTxBroadCastTTL = 25
+)
+
 // P2pCacheTxSize p2pcache size of transaction
 const (
-	P2pCacheTxSize = 10240
+	PeerAddrCacheNum      = 1000
+	TxHashCacheNum        = 10240
+	BlockHashCacheNum     = 100
+	BlockCacheNum         = 10
+	MaxBlockCacheByteSize = 100 * 1024 * 1024
 )
 
 // TestNetSeeds test seeds of net

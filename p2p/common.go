@@ -25,7 +25,7 @@ var P2pComm Comm
 type Comm struct{}
 
 // AddrRouteble address router ,return enbale address
-func (Comm) AddrRouteble(addrs []string) []string {
+func (Comm) AddrRouteble(addrs []string, version int32) []string {
 	var enableAddrs []string
 
 	for _, addr := range addrs {
@@ -34,7 +34,7 @@ func (Comm) AddrRouteble(addrs []string) []string {
 			log.Error("AddrRouteble", "NewNetAddressString", err.Error())
 			continue
 		}
-		conn, err := netaddr.DialTimeout(VERSION)
+		conn, err := netaddr.DialTimeout(version)
 		if err != nil {
 			//log.Error("AddrRouteble", "DialTimeout", err.Error())
 			continue
@@ -77,7 +77,7 @@ func (c Comm) GetLocalAddr() string {
 
 func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, node *Node) (*Peer, error) {
 	log.Info("dialPeerWithAddress")
-	conn, err := addr.DialTimeout(node.nodeInfo.cfg.Version)
+	conn, err := addr.DialTimeout(node.nodeInfo.channelVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (c Comm) dialPeer(addr *NetAddress, node *Node) (*Peer, error) {
 	}
 	peer, err := c.dialPeerWithAddress(addr, persistent, node)
 	if err != nil {
-		log.Error("dialPeer", "dial peer err:", err.Error())
+		log.Error("dialPeer", "nodeListenAddr", node.nodeInfo.listenAddr.str, "peerAddr", addr.str, "dial peer err:", err.Error())
 		return nil, err
 	}
 	//获取远程节点的信息 peer
@@ -239,7 +239,7 @@ func (c Comm) CheckSign(in *types.P2PPing) bool {
 // CollectPeerStat collect peer stat and report
 func (c Comm) CollectPeerStat(err error, peer *Peer) {
 	if err != nil {
-		if err == types.ErrVersion {
+		if err == types.ErrVersion || err == types.ErrP2PChannel {
 			peer.version.SetSupport(false)
 		}
 		peer.peerStat.NotOk()
