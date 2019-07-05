@@ -94,19 +94,13 @@ func (network *P2p) isRestart() bool {
 // Close network client
 func (network *P2p) Close() {
 	log.Info("p2p network start shutdown")
+	atomic.StoreInt32(&network.closed, 1)
 	//等待业务协程停止
 	network.waitTaskDone()
-	atomic.StoreInt32(&network.closed, 1)
 	network.node.Close()
 	if network.client != nil {
-		if !network.isRestart() {
-			network.client.Close()
-		}
-
+		network.client.Close()
 	}
-
-	network.node.pubsub.Shutdown()
-
 }
 
 // SetQueueClient set the queue
@@ -126,7 +120,6 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 
 		if p2p.isRestart() {
 			p2p.node.Start()
-			atomic.StoreInt32(&p2p.closed, 0)
 			atomic.StoreInt32(&p2p.restart, 0)
 			//开启业务处理协程
 			network.waitRestart <- struct{}{}
@@ -302,14 +295,17 @@ func (network *P2p) genAirDropKeyFromWallet() error {
 
 //ReStart p2p
 func (network *P2p) ReStart() {
-	atomic.StoreInt32(&network.restart, 1)
-	log.Info("p2p network restart, wait for p2p message process stop")
-	network.Close()
+	//避免重复
+	if !atomic.CompareAndSwapInt32(&network.restart, 0, 1) {
+		return
+	}
+	log.Info("p2p restart, wait p2p task done")
+	network.waitTaskDone()
+	network.node.Close()
 	node, err := NewNode(network.cfg) //创建新的node节点
 	if err != nil {
 		panic(err.Error())
 	}
-
 	network.node = node
 	network.SetQueueClient(network.client)
 

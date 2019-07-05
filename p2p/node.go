@@ -40,7 +40,10 @@ func (n *Node) Start() {
 
 // Close node listener
 func (n *Node) Close() {
-	atomic.StoreInt32(&n.closed, 1)
+	//避免重复
+	if !atomic.CompareAndSwapInt32(&n.closed, 0, 1) {
+		return
+	}
 	if n.listener != nil {
 		n.listener.Close()
 	}
@@ -53,7 +56,7 @@ func (n *Node) Close() {
 		peerAddrFilter.Close()
 	}
 	n.deleteNatMapPort()
-
+	n.pubsub.Shutdown()
 	log.Info("stop", "PeerRemoeAll", "closed")
 
 }
