@@ -19,8 +19,8 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
-const secondsPerBlock = 15
-const btyPreBlock = 18
+const secondsPerBlock = 5
+const btyPreBlock = 5
 const statInterval = 3600
 const monitorBtyLowLimit = 3 * 1e7 * types.Coin
 
