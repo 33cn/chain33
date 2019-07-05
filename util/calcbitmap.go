@@ -32,6 +32,40 @@ func CalcBitMap(bases, subs [][]byte, subData []*types.ReceiptData) []byte {
 	return rst.Bytes()
 }
 
+//CalcSingleBitMap calc bitmap to bases by data
+func CalcSingleBitMap(bases [][]byte, data []*types.ReceiptData) []byte {
+	rst := big.NewInt(0)
+
+	for i := range bases {
+		if data[i].Ty == types.ExecOk {
+			rst.SetBit(rst, i, 1)
+		}
+	}
+
+	return rst.Bytes()
+}
+
+//CalcBitMapByBitMap bitmap align with subs
+func CalcBitMapByBitMap(bases, subs [][]byte, bitmap []byte) []byte {
+	rst := big.NewInt(0)
+	bit := big.NewInt(0).SetBytes(bitmap)
+
+	subMap := make(map[string]bool)
+	for i, sub := range subs {
+		if bit.Bit(int(i)) == uint(0x1) {
+			subMap[string(sub)] = true
+		}
+	}
+
+	for i, base := range bases {
+		if _, exist := subMap[string(base)]; exist {
+			rst.SetBit(rst, i, 1)
+		}
+	}
+
+	return rst.Bytes()
+}
+
 //BitMapBit :index begin from 0, find the index bit, 1 or 0
 func BitMapBit(bitmap []byte, index uint32) bool {
 	rst := big.NewInt(0).SetBytes(bitmap)

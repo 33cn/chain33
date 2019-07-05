@@ -89,3 +89,46 @@ func TestDecodeByteBitMap(t *testing.T) {
 	ret = BitMapBit(rst, i)
 	assert.False(t, ret)
 }
+
+func TestCalcSingleBitMap(t *testing.T) {
+	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9}
+	for i := 0; i < 10; i++ {
+		ori = append(ori, common.Sha256([]byte(string(i))))
+	}
+
+	d0 := &types.ReceiptData{Ty: types.ExecOk}
+	d1 := &types.ReceiptData{Ty: types.ExecPack}
+	d2 := &types.ReceiptData{Ty: types.ExecOk}
+	d3 := &types.ReceiptData{Ty: types.ExecPack}
+	d4 := &types.ReceiptData{Ty: types.ExecOk}
+	d5 := &types.ReceiptData{Ty: types.ExecOk}
+	d6 := &types.ReceiptData{Ty: types.ExecPack}
+	d7 := &types.ReceiptData{Ty: types.ExecOk}
+	d8 := &types.ReceiptData{Ty: types.ExecPack}
+	d9 := &types.ReceiptData{Ty: types.ExecPack}
+	data := []*types.ReceiptData{d0, d1, d2, d3, d4, d5, d6, d7, d8, d9}
+
+	rst := CalcSingleBitMap(ori, data)
+	//t.Log(rst)
+	check := []byte{0xb5}
+	assert.Equal(t, check, rst)
+
+}
+
+func TestCalcBitMapByBitMap(t *testing.T) {
+	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9}
+	for i := 0; i < 10; i++ {
+		ori = append(ori, common.Sha256([]byte(string(i))))
+	}
+	sub := [][]byte{}
+	arry := []byte{0, 2, 4, 6, 7, 9}
+	for _, v := range arry {
+		sub = append(sub, common.Sha256([]byte(string(v))))
+	}
+
+	bitmap := []byte{0x97}
+	rst := CalcBitMapByBitMap(sub, ori, bitmap)
+	//t.Log(rst)
+	check := []byte{0x17}
+	assert.Equal(t, check, rst)
+}
