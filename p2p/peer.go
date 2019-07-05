@@ -133,10 +133,10 @@ func (p *Peer) heartBeat() {
 		}
 		peername, err := pcli.SendVersion(p, p.node.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
-		if err == nil {
+		if err == nil || peername == "" {
 			log.Debug("sendVersion", "peer name", peername)
 			p.SetPeerName(peername) //设置连接的远程节点的节点名称
-			p.taskChan = p.node.pubsub.Sub("block", "tx", "peername")
+			p.taskChan = p.node.pubsub.Sub("block", "tx", peername)
 			go p.sendStream()
 			go p.readStream()
 			break
@@ -251,8 +251,7 @@ func (p *Peer) sendStream() {
 					log.Error("sendStream peer connect closed", "peerName", p.GetPeerName())
 					return
 				}
-
-				sendData, doSend := p.node.processSendP2P(task, p.version.GetVersion())
+				sendData, doSend := p.node.processSendP2P(task, p.version.GetVersion(), p.Addr())
 				if !doSend {
 					continue
 				}
@@ -341,7 +340,7 @@ func (p *Peer) readStream() {
 				break
 			}
 
-			p.node.processRecvP2P(data, p.GetPeerName(), p.node.pubToPeer)
+			p.node.processRecvP2P(data, p.GetPeerName(), p.node.pubToPeer, p.Addr())
 		}
 	}
 }

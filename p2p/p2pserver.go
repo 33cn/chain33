@@ -436,7 +436,7 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 		} else {
 			return fmt.Errorf("no peer info")
 		}
-		sendData, doSend := s.node.processSendP2P(data, peerInfo.p2pversion)
+		sendData, doSend := s.node.processSendP2P(data, peerInfo.p2pversion, peerInfo.addr)
 		if !doSend {
 			continue
 		}
@@ -481,7 +481,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			return err
 		}
 
-		if s.node.processRecvP2P(in, peername, s.pubToStream) {
+		if s.node.processRecvP2P(in, peername, s.pubToStream, peeraddr) {
 
 		} else if ver := in.GetVersion(); ver != nil {
 			//接收版本信息

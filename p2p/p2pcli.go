@@ -39,7 +39,7 @@ type NormalInterface interface {
 	SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error)
 	SendPing(peer *Peer, nodeinfo *NodeInfo) error
 	GetBlockHeight(nodeinfo *NodeInfo) (int64, error)
-	CheckPeerNatOk(addr string) bool
+	CheckPeerNatOk(addr string, nodeInfo *NodeInfo) bool
 	GetAddrList(peer *Peer) (map[string]int64, error)
 	GetInPeersNum(peer *Peer) (int, error)
 	CheckSelf(addr string, nodeinfo *NodeInfo) bool
@@ -74,8 +74,18 @@ func (m *Cli) BroadCastTx(msg *queue.Message, taskindex int64) {
 		atomic.AddInt32(&m.network.txCapcity, 1)
 		log.Debug("BroadCastTx", "task complete:", taskindex)
 	}()
-	m.network.node.pubsub.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, "tx")
-	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
+
+	if tx, ok := msg.GetData().(*pb.Transaction); ok {
+		txHash := hex.EncodeToString(tx.Hash())
+		//此处使用新分配结构，避免重复修改已保存的ttl
+		route := &pb.P2PRoute{TTL: 1}
+		//是否已存在记录，不存在表示本节点发起的交易
+		if ttl, exist := txHashFilter.Get(txHash).(*pb.P2PRoute); exist {
+			route.TTL = ttl.TTL + 1
+		}
+		m.network.node.pubsub.FIFOPub(&pb.P2PTx{Tx: tx, Route: route}, "tx")
+		msg.Reply(m.network.client.NewMessage("mempool", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
+	}
 }
 
 // GetMemPool get mempool contents
@@ -559,9 +569,9 @@ func (m *Cli) GetNetInfo(msg *queue.Message, taskindex int64) {
 }
 
 // CheckPeerNatOk check peer is ok or not
-func (m *Cli) CheckPeerNatOk(addr string) bool {
+func (m *Cli) CheckPeerNatOk(addr string, info *NodeInfo) bool {
 	//连接自己的地址信息做测试
-	return !(len(P2pComm.AddrRouteble([]string{addr})) == 0)
+	return !(len(P2pComm.AddrRouteble([]string{addr}, info.channelVersion)) == 0)
 
 }
 
@@ -572,14 +582,15 @@ func (m *Cli) CheckSelf(addr string, nodeinfo *NodeInfo) bool {
 		log.Error("AddrRouteble", "NewNetAddressString", err.Error())
 		return false
 	}
-	conn, err := netaddr.DialTimeout(VERSION)
+	conn, err := netaddr.DialTimeout(nodeinfo.channelVersion)
 	if err != nil {
 		return false
 	}
 	defer conn.Close()
 
 	cli := pb.NewP2PgserviceClient(conn)
-	resp, err := cli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: VERSION}, grpc.FailFast(true))
+	resp, err := cli.GetPeerInfo(context.Background(),
+		&pb.P2PGetPeerInfo{Version: nodeinfo.channelVersion}, grpc.FailFast(true))
 	if err != nil {
 		return false
 	}
