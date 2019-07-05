@@ -163,7 +163,8 @@ func TestVersion(t *testing.T) {
 //}
 
 func testGetMemPoolOK(t *testing.T) {
-	qapi.On("GetMempool").Return(nil, nil)
+	var in *types.ReqGetMempool
+	qapi.On("GetMempool", in).Return(nil, nil)
 	data, err := g.GetMemPool(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
 	assert.Nil(t, data)
