@@ -1,8 +1,10 @@
 package p2p
 
 import (
+	"sort"
 	"testing"
 
+	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,4 +67,39 @@ func Test_ChannelVersion(t *testing.T) {
 
 	testChannelVersion(t, 0)
 	testChannelVersion(t, 128)
+}
+
+func TestRandStr(t *testing.T) {
+	t.Log(P2pComm.RandStr(5))
+}
+
+func TestBytesToInt32(t *testing.T) {
+
+	t.Log(P2pComm.BytesToInt32([]byte{0xff}))
+	t.Log(P2pComm.Int32ToBytes(255))
+}
+
+func TestSortArr(t *testing.T) {
+	var Inventorys = make(Invs, 0)
+	for i := 100; i >= 0; i-- {
+		var inv types.Inventory
+		inv.Ty = 111
+		inv.Height = int64(i)
+		Inventorys = append(Inventorys, &inv)
+	}
+	sort.Sort(Inventorys)
+}
+
+func TestFilter(t *testing.T) {
+	filter := NewFilter(10)
+	go filter.ManageRecvFilter()
+	defer filter.Close()
+	filter.GetLock()
+
+	assert.Equal(t, true, filter.RegRecvData("key"))
+	assert.Equal(t, true, filter.QueryRecvData("key"))
+	filter.RemoveRecvData("key")
+	assert.Equal(t, false, filter.QueryRecvData("key"))
+	filter.ReleaseLock()
+
 }
