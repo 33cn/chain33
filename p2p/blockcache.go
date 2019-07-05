@@ -74,14 +74,17 @@ func (c *spaceLimitCache) get(key interface{}) interface{} {
 	return v
 }
 
-func (c *spaceLimitCache) del(key interface{}) bool {
+func (c *spaceLimitCache) del(key interface{}) (interface{}, bool) {
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.data.Remove(key)
-	c.currSize -= c.sizeMap[key]
-	delete(c.sizeMap, key)
-	return true
+	val, exist := c.data.Get(key)
+	if exist {
+		c.data.Remove(key)
+		c.currSize -= c.sizeMap[key]
+		delete(c.sizeMap, key)
+	}
+	return val, exist
 }
 
 func (c *spaceLimitCache) contains(key interface{}) bool {
