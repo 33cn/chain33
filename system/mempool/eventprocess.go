@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	"fmt"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
@@ -116,9 +115,14 @@ func (mem *Mempool) eventTx(msg *queue.Message) {
 
 // EventGetMempool 获取Mempool内所有交易
 func (mem *Mempool) eventGetMempool(msg *queue.Message) {
-	isAll := msg.GetData().(*types.ReqGetMempool).GetIsAll()
+	var isAll bool
+	if msg.GetData() == nil {
+		isAll = false
+	} else {
+		isAll = msg.GetData().(*types.ReqGetMempool).GetIsAll()
+	}
 	msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
-		&types.ReplyTxList{Txs: mem.filterTxList(0, nil, msg.GetData().(*types.ReqGetMempool).GetIsAll())}))
+		&types.ReplyTxList{Txs: mem.filterTxList(0, nil, isAll)}))
 }
 
 // EventDelTxList 获取Mempool中一定数量交易，并把这些交易从Mempool中删除
