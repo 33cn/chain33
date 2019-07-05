@@ -564,7 +564,7 @@ func (chain *BlockChain) setValueByKey(msg *queue.Message) {
 		reply.IsOk = false
 		reply.Msg = []byte("Must Para Chain Support!")
 		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
-
+		return
 	}
 	kvs := (msg.Data).(*types.LocalDBSet)
 	err := chain.SetValueByKey(kvs)
@@ -580,6 +580,7 @@ func (chain *BlockChain) setValueByKey(msg *queue.Message) {
 func (chain *BlockChain) getValueByKey(msg *queue.Message) {
 	if !chain.isParaChain {
 		msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, nil))
+		return
 	}
 	keys := (msg.Data).(*types.LocalDBGet)
 	values := chain.GetValueByKey(keys)
