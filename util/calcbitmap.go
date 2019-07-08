@@ -52,7 +52,7 @@ func CalcBitMapByBitMap(bases, subs [][]byte, bitmap []byte) []byte {
 
 	subMap := make(map[string]bool)
 	for i, sub := range subs {
-		if bit.Bit(int(i)) == uint(0x1) {
+		if bit.Bit(i) == uint(0x1) {
 			subMap[string(sub)] = true
 		}
 	}
