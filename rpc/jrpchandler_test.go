@@ -627,7 +627,7 @@ func TestChain33_GetMempool(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	api.On("GetMempool").Return(&types.ReplyTxList{Txs: []*types.Transaction{{}}}, nil)
+	api.On("GetMempool", &types.ReqGetMempool{}).Return(&types.ReplyTxList{Txs: []*types.Transaction{{}}}, nil)
 	var testResult interface{}
 	data := &types.ReqGetMempool{IsAll: false}
 	err := testChain33.GetMempool(data, &testResult)
