@@ -1141,3 +1141,125 @@ func testProcMainSeqMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 
 	chainlog.Info("testProcMainSeqMsg end --------------------")
 }
+
+//测试kv对的读写
+func TestSetValueByKey(t *testing.T) {
+	mock33 := testnode.New("", nil)
+	defer func() {
+		defer mock33.Close()
+	}()
+	chainlog.Info("TestSetValueByKey begin --------------------")
+	blockchain := mock33.GetBlockChain()
+
+	//设置kv对到数据库，key的前缀错误
+	var kvs types.LocalDBSet
+	var kv types.KeyValue
+	//ConsensusParaTxsPrefix = []byte("LODB:Consensus:Para:")
+	key_1 := []byte("LODBP:Consensus:Parakey-1")
+	value_1 := []byte("value-1")
+	kv.Key = key_1
+	kv.Value = value_1
+	kvs.KV = append(kvs.KV, &kv)
+
+	err := blockchain.SetValueByKey(&kvs)
+	if err != nil {
+		t.Error("TestSetValueByKey:SetValueByKey1", "err", err)
+	}
+	//读取数据为空
+	var keys types.LocalDBGet
+	key := []byte("LODBP:Consensus:Parakey-1")
+	keys.Keys = append(keys.Keys, key)
+	values := blockchain.GetValueByKey(&keys)
+	for _, value := range values.Values {
+		if bytes.Equal(value, value_1) {
+			t.Error("TestSetValueByKey:GetValueByKey1", "value", string(value))
+		}
+	}
+	//设置kv对到数据库
+	var kvs2 types.LocalDBSet
+	var kv2 types.KeyValue
+	key_1 = types.CalcConsensusParaTxsKey([]byte("key-1"))
+	kv2.Key = key_1
+	kv2.Value = value_1
+	kvs2.KV = append(kvs2.KV, &kv2)
+
+	err = blockchain.SetValueByKey(&kvs2)
+	if err != nil {
+		t.Error("TestSetValueByKey:SetValueByKey2", "err", err)
+	}
+	//读取数据ok
+	var keys2 types.LocalDBGet
+	var key_1_exist bool
+	keys2.Keys = append(keys2.Keys, key_1)
+	values = blockchain.GetValueByKey(&keys2)
+	for _, value := range values.Values {
+		if bytes.Equal(value, value_1) {
+			key_1_exist = true
+		} else {
+			t.Error("TestSetValueByKey:GetValueByKey", "value", string(value))
+		}
+	}
+	if !key_1_exist {
+		t.Error("TestSetValueByKey:GetValueByKey:key_1", "key_1", string(key_1))
+	}
+
+	//删除key_1对应的数据,set时设置key_1对应的value为nil
+	for _, kv := range kvs2.KV {
+		if bytes.Equal(kv.GetKey(), key_1) {
+			kv.Value = nil
+		}
+	}
+	err = blockchain.SetValueByKey(&kvs2)
+	if err != nil {
+		t.Error("TestSetValueByKey:SetValueByKey3", "err", err)
+	}
+	values = blockchain.GetValueByKey(&keys2)
+	for _, value := range values.Values {
+		if bytes.Equal(value, value_1) {
+			t.Error("TestSetValueByKey:GetValueByKey4", "value", string(value))
+		}
+	}
+
+	//插入多个kv对到数据库并获取
+	var kvs3 types.LocalDBSet
+	var kv3 types.KeyValue
+	key_1 = types.CalcConsensusParaTxsKey([]byte("key-1"))
+	value_1 = []byte("test-1")
+	key_2 := types.CalcConsensusParaTxsKey([]byte("key-2"))
+	value_2 := []byte("test-2")
+	key_3 := types.CalcConsensusParaTxsKey([]byte("key-3"))
+	value_3 := []byte("test-3")
+
+	kv.Key = key_1
+	kv.Value = value_1
+	kv2.Key = key_2
+	kv2.Value = value_2
+	kv3.Key = key_3
+	kv3.Value = value_3
+
+	kvs3.KV = append(kvs2.KV, &kv, &kv2, &kv3)
+
+	err = blockchain.SetValueByKey(&kvs3)
+	if err != nil {
+		t.Error("TestSetValueByKey:SetValueByKey4", "err", err)
+	}
+	//读取数据ok
+	var keys3 types.LocalDBGet
+	count := 0
+	for _, kv := range kvs3.GetKV() {
+		keys3.Keys = append(keys3.Keys, kv.GetKey())
+	}
+	values = blockchain.GetValueByKey(&keys3)
+	for i, value := range values.Values {
+		if bytes.Equal(value, kvs3.GetKV()[i].GetValue()) {
+			count++
+		} else {
+			t.Error("TestSetValueByKey:GetValueByKey", "value", string(value))
+		}
+	}
+	if count < 3 {
+		t.Error("TestSetValueByKey:GetValueByKey:fail")
+	}
+	chainlog.Info("TestSetValueByKey end --------------------")
+
+}

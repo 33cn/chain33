@@ -5,19 +5,21 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 )
 
 // 定义key值
 var (
-	LocalPrefix       = []byte("LODB")
-	FlagTxQuickIndex  = []byte("FLAG:FlagTxQuickIndex")
-	FlagKeyMVCC       = []byte("FLAG:keyMVCCFlag")
-	TxHashPerfix      = []byte("TX:")
-	TxShortHashPerfix = []byte("STX:")
-	TxAddrHash        = []byte("TxAddrHash:")
-	TxAddrDirHash     = []byte("TxAddrDirHash:")
-	AddrTxsCount      = []byte("AddrTxsCount:")
+	LocalPrefix            = []byte("LODB")
+	FlagTxQuickIndex       = []byte("FLAG:FlagTxQuickIndex")
+	FlagKeyMVCC            = []byte("FLAG:keyMVCCFlag")
+	TxHashPerfix           = []byte("TX:")
+	TxShortHashPerfix      = []byte("STX:")
+	TxAddrHash             = []byte("TxAddrHash:")
+	TxAddrDirHash          = []byte("TxAddrDirHash:")
+	AddrTxsCount           = []byte("AddrTxsCount:")
+	ConsensusParaTxsPrefix = []byte("LODBP:Consensus:Para:") //存贮para共识模块从主链拉取的平行链交易
 )
 
 // GetLocalDBKeyList 获取localdb的key列表
@@ -88,4 +90,14 @@ func CalcRollbackKey(execer []byte, hash []byte) []byte {
 	key := append(prefix, []byte("rollback-")...)
 	key = append(key, hash...)
 	return key
+}
+
+//CalcConsensusParaTxsKey 平行链localdb中保存的平行链title对应的交易
+func CalcConsensusParaTxsKey(key []byte) []byte {
+	return append(ConsensusParaTxsPrefix, key...)
+}
+
+//CheckConsensusParaTxsKey 检测para共识模块需要操作的平行链交易的key值
+func CheckConsensusParaTxsKey(key []byte) bool {
+	return bytes.HasPrefix(key, ConsensusParaTxsPrefix)
 }

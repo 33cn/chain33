@@ -95,6 +95,12 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventGetMainSeqByHash:
 			go chain.processMsg(msg, reqnum, chain.GetMainSeqByHash)
 
+		//para共识模块操作blockchain db的事件
+		case types.EventSetValueByKey:
+			go chain.processMsg(msg, reqnum, chain.setValueByKey)
+		case types.EventGetValueByKey:
+			go chain.processMsg(msg, reqnum, chain.getValueByKey)
+
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -548,4 +554,35 @@ func (chain *BlockChain) GetMainSeqByHash(msg *queue.Message) {
 		return
 	}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventReplyMainSeqByHash, &types.Int64{Data: seq}))
+}
+
+//setValueByKey 设置kv对到blockchain db中
+func (chain *BlockChain) setValueByKey(msg *queue.Message) {
+	var reply types.Reply
+	reply.IsOk = true
+	if !chain.isParaChain {
+		reply.IsOk = false
+		reply.Msg = []byte("Must Para Chain Support!")
+		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
+		return
+	}
+	kvs := (msg.Data).(*types.LocalDBSet)
+	err := chain.SetValueByKey(kvs)
+	if err != nil {
+		chainlog.Error("setValueByKey", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
+}
+
+//GetValueByKey 获取value通过key从blockchain db中
+func (chain *BlockChain) getValueByKey(msg *queue.Message) {
+	if !chain.isParaChain {
+		msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, nil))
+		return
+	}
+	keys := (msg.Data).(*types.LocalDBGet)
+	values := chain.GetValueByKey(keys)
+	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, values))
 }
