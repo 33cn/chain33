@@ -32,7 +32,7 @@ service chain33 {
     rpc GetTransactionByHashes(ReqHashes) returns (TransactionDetails) {}
 
     //缓存接口
-    rpc GetMemPool(ReqNil) returns (ReplyTxList) {}
+    rpc GetMemPool(ReqGetMempool) returns (ReplyTxList) {}
 
     //钱包接口
     //获取钱包账户信息

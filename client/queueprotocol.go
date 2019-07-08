@@ -224,8 +224,8 @@ func (q *QueueProtocol) GetTransactionByHash(param *types.ReqHashes) (*types.Tra
 }
 
 // GetMempool get transactions from mempool
-func (q *QueueProtocol) GetMempool() (*types.ReplyTxList, error) {
-	msg, err := q.query(mempoolKey, types.EventGetMempool, &types.ReqNil{})
+func (q *QueueProtocol) GetMempool(req *types.ReqGetMempool) (*types.ReplyTxList, error) {
+	msg, err := q.query(mempoolKey, types.EventGetMempool, req)
 	if err != nil {
 		log.Error("GetMempool", "Error", err.Error())
 		return nil, err

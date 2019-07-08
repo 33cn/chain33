@@ -703,7 +703,7 @@ func (_m *Chain33Client) GetLastMemPool(ctx context.Context, in *types.ReqNil, o
 }
 
 // GetMemPool provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) GetMemPool(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.ReplyTxList, error) {
+func (_m *Chain33Client) GetMemPool(ctx context.Context, in *types.ReqGetMempool, opts ...grpc.CallOption) (*types.ReplyTxList, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -714,7 +714,7 @@ func (_m *Chain33Client) GetMemPool(ctx context.Context, in *types.ReqNil, opts 
 	ret := _m.Called(_ca...)
 
 	var r0 *types.ReplyTxList
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqNil, ...grpc.CallOption) *types.ReplyTxList); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqGetMempool, ...grpc.CallOption) *types.ReplyTxList); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -723,7 +723,7 @@ func (_m *Chain33Client) GetMemPool(ctx context.Context, in *types.ReqNil, opts 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqGetMempool, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

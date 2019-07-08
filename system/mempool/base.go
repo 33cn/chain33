@@ -122,10 +122,10 @@ func (mem *Mempool) getTxList(filterList *types.TxHashList) (txs []*types.Transa
 	for i := 0; i < len(filterList.GetHashes()); i++ {
 		dupMap[string(filterList.GetHashes()[i])] = true
 	}
-	return mem.filterTxList(count, dupMap)
+	return mem.filterTxList(count, dupMap, false)
 }
 
-func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool) (txs []*types.Transaction) {
+func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool) (txs []*types.Transaction) {
 	height := mem.header.GetHeight()
 	blocktime := mem.header.GetBlockTime()
 	mem.cache.Walk(int(count), func(tx *Item) bool {
@@ -134,7 +134,7 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool) (txs []*ty
 				return true
 			}
 		}
-		if isExpired(tx, height, blocktime) {
+		if isExpired(tx, height, blocktime) && !isAll {
 			return true
 		}
 		txs = append(txs, tx.Value)
