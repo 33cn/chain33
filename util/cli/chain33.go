@@ -50,6 +50,7 @@ var (
 	versionCmd = flag.Bool("v", false, "version")
 	fixtime    = flag.Bool("fixtime", false, "fix time")
 	waitPid    = flag.Bool("waitpid", false, "p2p stuck until seed save info wallet & wallet unlock")
+	rollback   = flag.Int64("rollback", 0, "rollback block")
 )
 
 //RunChain33 : run Chain33
@@ -153,6 +154,7 @@ func RunChain33(name string) {
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading blockchain module")
+	cfg.BlockChain.RollbackBlock = *rollback
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
@@ -166,6 +168,16 @@ func RunChain33(name string) {
 	cs := consensus.New(cfg.Consensus, sub.Consensus)
 	cs.SetQueueClient(q.Client())
 
+	//jsonrpc, grpc, channel 三种模式
+	rpcapi := rpc.New(cfg.RPC)
+	rpcapi.SetQueueClient(q.Client())
+
+	log.Info("loading wallet module")
+	walletm := wallet.New(cfg.Wallet, sub.Wallet)
+	walletm.SetQueueClient(q.Client())
+
+	chain.Rollbackblock()
+
 	log.Info("loading p2p module")
 	var network queue.Module
 	if cfg.P2P.Enable && !types.IsPara() {
@@ -174,14 +186,6 @@ func RunChain33(name string) {
 		network = &util.MockModule{Key: "p2p"}
 	}
 	network.SetQueueClient(q.Client())
-
-	//jsonrpc, grpc, channel 三种模式
-	rpcapi := rpc.New(cfg.RPC)
-	rpcapi.SetQueueClient(q.Client())
-
-	log.Info("loading wallet module")
-	walletm := wallet.New(cfg.Wallet, sub.Wallet)
-	walletm.SetQueueClient(q.Client())
 
 	health := util.NewHealthCheckServer(q.Client())
 	health.Start(cfg.Health)

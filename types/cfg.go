@@ -143,7 +143,9 @@ type BlockChain struct {
 	IsParaChain        bool `protobuf:"varint,12,opt,name=isParaChain" json:"isParaChain,omitempty"`
 	EnableTxQuickIndex bool `protobuf:"varint,13,opt,name=enableTxQuickIndex" json:"enableTxQuickIndex,omitempty"`
 	// 升级storedb是否重新执行localdb
-	EnableReExecLocal bool `protobuf:"varint,13,opt,name=enableReExecLocal" json:"enableReExecLocal,omitempty"`
+	EnableReExecLocal bool `protobuf:"varint,14,opt,name=enableReExecLocal" json:"enableReExecLocal,omitempty"`
+	// 区块回退
+	RollbackBlock int64 `protobuf:"varint,15,opt,name=rollbackBlock" json:"rollbackBlock,omitempty"`
 }
 
 // P2P 配置
