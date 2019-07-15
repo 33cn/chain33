@@ -141,6 +141,13 @@ func (d *DownloadJob) setFreePeer(pid string) {
 	}
 }
 
+//加入到重试队列, 需要并发保护
+func (d *DownloadJob) pushRetryList(inv *pb.Inventory) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	d.retryList.PushBack(inv)
+}
+
 // GetFreePeer get free peer ,return peer
 func (d *DownloadJob) GetFreePeer(blockHeight int64) *Peer {
 	_, infos := d.p2pcli.network.node.GetActivePeers()
@@ -207,7 +214,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 			if err != nil {
 				d.removePeer(peer.GetPeerName())
 				log.Error("DownloadBlock:syncDownloadBlock", "height", inv.GetHeight(), "peer", peer.GetPeerName(), "err", err)
-				d.retryList.PushFront(inv) //失败的下载，放在下一轮ReDownload进行下载
+				d.pushRetryList(inv) //失败的下载，放在下一轮ReDownload进行下载
 
 			} else {
 				d.setFreePeer(peer.GetPeerName())
