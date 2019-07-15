@@ -270,23 +270,18 @@ func (d *DownloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan cha
 	defer func() {
 		log.Debug("download", "frompeer", peer.Addr(), "blockheight", inv.GetHeight(), "downloadcost", pb.Since(beg))
 	}()
-	defer resp.CloseSend()
-	for {
-		invdatas, err := resp.Recv()
-		if err != nil {
-			if err == io.EOF {
-				if invdatas == nil {
-					return nil
-				}
-				goto RECV
-			}
-			log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
-			return err
-		}
-	RECV:
-		for _, item := range invdatas.Items {
-			bchan <- &pb.BlockPid{Pid: peer.GetPeerName(), Block: item.GetBlock()} //下载完成后插入bchan
-			log.Debug("download", "frompeer", peer.Addr(), "blockheight", inv.GetHeight(), "Blocksize", item.GetBlock().Size())
-		}
+
+	invData, err := resp.Recv()
+	if err != nil && err != io.EOF {
+		return err
 	}
+	//返回单个数据条目
+	if invData == nil || len(invData.Items) != 1 {
+		return fmt.Errorf("InvalidRecvData")
+	}
+
+	block := invData.Items[0].GetBlock()
+	bchan <- &pb.BlockPid{Pid: peer.GetPeerName(), Block: block} //下载完成后插入bchan
+	log.Debug("download", "frompeer", peer.Addr(), "blockheight", inv.GetHeight(), "Blocksize", block.Size())
+	return nil
 }
