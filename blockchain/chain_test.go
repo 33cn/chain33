@@ -115,7 +115,6 @@ func TestBlockChain(t *testing.T) {
 	testLoadBlockBySequence(t, blockchain)
 	testAddBlockSeqCB(t, blockchain)
 	testProcDelParaChainBlockMsg(t, mock33, blockchain)
-	testReExecBlock(t, blockchain)
 
 	testProcAddParaChainBlockMsg(t, mock33, blockchain)
 	testProcGetBlockBySeqMsg(t, mock33, blockchain)
@@ -127,10 +126,10 @@ func TestBlockChain(t *testing.T) {
 	testProcDelChainBlockMsg(t, mock33, blockchain)
 	testFaultPeer(t, blockchain)
 	testCheckBlock(t, blockchain)
-
+	testReExecBlock(t, blockchain)
+	testUpgradeStore(t, blockchain)
 	testWriteBlockToDbTemp(t, blockchain)
 	testReadBlockToExec(t, blockchain)
-	testUpgradeStore(t, blockchain)
 
 	testProcMainSeqMsg(t, blockchain)
 }
