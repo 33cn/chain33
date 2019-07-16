@@ -780,8 +780,8 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	//需要暂定同步解决分叉回滚之后再继续开启普通同步
 	if !chain.GetDownloadSyncStatus() {
 		if chain.syncTask.InProgress() {
-			chain.syncTask.Cancel()
-			synlog.Info("ProcBlockHeaders: cancel syncTask start fork process downLoadTask!")
+			err = chain.syncTask.Cancel()
+			synlog.Info("ProcBlockHeaders: cancel syncTask start fork process downLoadTask!", "err", err)
 		}
 		go chain.ProcDownLoadBlocks(ForkHeight, peermaxheight, []string{pid})
 	}
@@ -978,6 +978,7 @@ func (chain *BlockChain) isBestChainPeer(pid string) bool {
 	}
 	return false
 }
+
 //GetBestChainPids 定时确保本节点在最优链上,定时向peer请求指定高度的header
 func (chain *BlockChain) GetBestChainPids() []string {
 	var PeerPids []string
