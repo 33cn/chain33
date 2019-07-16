@@ -48,9 +48,8 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	if !addBlock {
 		if b.isParaChain {
 			return b.ProcessDelParaChainBlock(broadcast, block, pid, sequence)
-		} else {
-			return nil, false, false, types.ErrNotSupport
 		}
+		return nil, false, false, types.ErrNotSupport
 	}
 	//判断本block是否已经存在主链或者侧链中
 	//如果此block已经存在，并且已经被记录执行不过，
