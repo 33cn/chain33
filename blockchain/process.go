@@ -44,9 +44,13 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	blockHash := block.Block.Hash()
 	chainlog.Debug("ProcessBlock Processing block", "height", block.Block.Height, "blockHash", common.ToHex(blockHash))
 
-	//目前只支持删除平行链的block处理
+	//目前只支持删除平行链的block处理,主链不支持删除block的操作
 	if !addBlock {
-		return b.ProcessDelParaChainBlock(broadcast, block, pid, sequence)
+		if b.isParaChain {
+			return b.ProcessDelParaChainBlock(broadcast, block, pid, sequence)
+		} else {
+			return nil, false, false, types.ErrNotSupport
+		}
 	}
 	//判断本block是否已经存在主链或者侧链中
 	//如果此block已经存在，并且已经被记录执行不过，

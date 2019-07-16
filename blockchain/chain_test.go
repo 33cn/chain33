@@ -126,11 +126,10 @@ func TestBlockChain(t *testing.T) {
 	testProcDelChainBlockMsg(t, mock33, blockchain)
 	testFaultPeer(t, blockchain)
 	testCheckBlock(t, blockchain)
-	testReExecBlock(t, blockchain)
-	testUpgradeStore(t, blockchain)
 	testWriteBlockToDbTemp(t, blockchain)
 	testReadBlockToExec(t, blockchain)
-
+	testReExecBlock(t, blockchain)
+	testUpgradeStore(t, blockchain)
 	testProcMainSeqMsg(t, blockchain)
 }
 
