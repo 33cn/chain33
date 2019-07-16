@@ -95,6 +95,12 @@ func TestQueueProtocol(t *testing.T) {
 	testLocalList(t, api)
 	testGetLastHeader(t, api)
 	testSignRawTx(t, api)
+	testStoreSet(t, api)
+	testStoreGet(t, api)
+	testStoreMemSet(t, api)
+	testStoreCommit(t, api)
+	testStoreRollback(t, api)
+	testStoreDel(t, api)
 	testStoreGetTotalCoins(t, api)
 	testStoreList(t, api)
 	testBlockChainQuery(t, api)
@@ -118,6 +124,78 @@ func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
 		res, err := api.QueryChain(test.param)
 		require.Equalf(t, err, test.actualErr, "testBlockChainQuery case index %d", index)
 		require.Equalf(t, res, test.actualRes, "testBlockChainQuery case index %d", index)
+	}
+}
+
+func testStoreSet(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.StoreSet(&types.StoreSetWithSync{})
+	if err != nil {
+		t.Error("Call StoreSet Failed.", err)
+	}
+
+	_, err = api.StoreSet(nil)
+	if err == nil {
+		t.Error("StoreSet(nil) need return error.")
+	}
+}
+
+func testStoreGet(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.StoreGet(&types.StoreGet{})
+	if err != nil {
+		t.Error("Call StoreGet Failed.", err)
+	}
+
+	_, err = api.StoreGet(nil)
+	if err == nil {
+		t.Error("StoreGet(nil) need return error.")
+	}
+}
+
+func testStoreMemSet(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.StoreMemSet(&types.StoreSetWithSync{})
+	if err != nil {
+		t.Error("Call StoreMemSet Failed.", err)
+	}
+
+	_, err = api.StoreMemSet(nil)
+	if err == nil {
+		t.Error("StoreMemSet(nil) need return error.")
+	}
+}
+
+func testStoreCommit(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.StoreCommit(&types.ReqHash{})
+	if err != nil {
+		t.Error("Call StoreCommit Failed.", err)
+	}
+
+	_, err = api.StoreCommit(nil)
+	if err == nil {
+		t.Error("StoreCommit(nil) need return error.")
+	}
+}
+
+func testStoreRollback(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.StoreRollback(&types.ReqHash{})
+	if err != nil {
+		t.Error("Call StoreRollback Failed.", err)
+	}
+
+	_, err = api.StoreRollback(nil)
+	if err == nil {
+		t.Error("StoreRollback(nil) need return error.")
+	}
+}
+
+func testStoreDel(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.StoreDel(&types.StoreDel{})
+	if err != nil {
+		t.Error("Call StoreDel Failed.", err)
+	}
+
+	_, err = api.StoreDel(nil)
+	if err == nil {
+		t.Error("StoreDel(nil) need return error.")
 	}
 }
 
