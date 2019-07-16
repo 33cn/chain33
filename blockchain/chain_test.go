@@ -1120,7 +1120,7 @@ func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
 func testReExecBlock(t *testing.T, chain *blockchain.BlockChain) {
 	chainlog.Info("ReExecBlock begin ---------------------")
 	curheight := chain.GetBlockHeight()
-	chain.ReExecBlock(0, curheight-1)
+	chain.ReExecBlock(0, curheight)
 	chainlog.Info("ReExecBlock end ---------------------")
 }
 
