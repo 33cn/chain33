@@ -978,6 +978,7 @@ func (chain *BlockChain) isBestChainPeer(pid string) bool {
 	}
 	return false
 }
+
 //GetBestChainPids 定时确保本节点在最优链上,定时向peer请求指定高度的header
 func (chain *BlockChain) GetBestChainPids() []string {
 	var PeerPids []string

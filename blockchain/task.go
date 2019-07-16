@@ -15,14 +15,14 @@ import (
 //Task 任务
 type Task struct {
 	sync.Mutex
-	cond     *sync.Cond
-	start    int64
-	end      int64
-	isruning bool
-	ticker   *time.Timer
-	timeout  time.Duration
-	cb       func()
-	donelist map[int64]struct{}
+	cond      *sync.Cond
+	start     int64
+	end       int64
+	isruning  bool
+	ticker    *time.Timer
+	timeout   time.Duration
+	cb        func()
+	donelist  map[int64]struct{}
 	timeoutcb func(height int64)
 }
 
