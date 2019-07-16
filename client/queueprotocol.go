@@ -896,6 +896,27 @@ func (q *QueueProtocol) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRa
 	return nil, err
 }
 
+// StoreSet set value by statehash and key to statedb
+func (q *QueueProtocol) StoreSet(param *types.StoreSetWithSync) (*types.ReplyHash, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreSet", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(storeKey, types.EventStoreSet, param)
+	if err != nil {
+		log.Error("StoreSet", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreSet", "Error", err.Error())
+	return nil, err
+}
+
 // StoreGet get value by statehash and key from statedb
 func (q *QueueProtocol) StoreGet(param *types.StoreGet) (*types.StoreReplyValue, error) {
 	if param == nil {
@@ -914,6 +935,90 @@ func (q *QueueProtocol) StoreGet(param *types.StoreGet) (*types.StoreReplyValue,
 	}
 	err = types.ErrTypeAsset
 	log.Error("StoreGet", "Error", err.Error())
+	return nil, err
+}
+
+// StoreMemSet Memset kvs by statehash to statedb
+func (q *QueueProtocol) StoreMemSet(param *types.StoreSetWithSync) (*types.ReplyHash, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreMemSet", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(storeKey, types.EventStoreMemSet, param)
+	if err != nil {
+		log.Error("StoreMemSet", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreMemSet", "Error", err.Error())
+	return nil, err
+}
+
+// StoreCommit commit kvs by statehash to statedb
+func (q *QueueProtocol) StoreCommit(param *types.ReqHash) (*types.ReplyHash, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreCommit", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(storeKey, types.EventStoreCommit, param)
+	if err != nil {
+		log.Error("StoreCommit", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreCommit", "Error", err.Error())
+	return nil, err
+}
+
+// StoreRollback rollback kvs by statehash to statedb
+func (q *QueueProtocol) StoreRollback(param *types.ReqHash) (*types.ReplyHash, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreRollback", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(storeKey, types.EventStoreRollback, param)
+	if err != nil {
+		log.Error("StoreRollback", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreRollback", "Error", err.Error())
+	return nil, err
+}
+
+// StoreDel del kvs by statehash to statedb
+func (q *QueueProtocol) StoreDel(param *types.StoreDel) (*types.ReplyHash, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("StoreDel", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(storeKey, types.EventStoreDel, param)
+	if err != nil {
+		log.Error("StoreDel", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyHash); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("StoreDel", "Error", err.Error())
 	return nil, err
 }
 
