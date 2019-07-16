@@ -121,14 +121,15 @@ func TestBlockChain(t *testing.T) {
 	testProcBlockChainFork(t, blockchain)
 	testDelBlock(t, blockchain, curBlock)
 	testIsRecordFaultErr(t)
+	testReExecBlock(t, blockchain)
 
 	testGetsynBlkHeight(t, blockchain)
 	testProcDelChainBlockMsg(t, mock33, blockchain)
 	testFaultPeer(t, blockchain)
 	testCheckBlock(t, blockchain)
+
 	testWriteBlockToDbTemp(t, blockchain)
 	testReadBlockToExec(t, blockchain)
-	testReExecBlock(t, blockchain)
 	testUpgradeStore(t, blockchain)
 
 	testProcMainSeqMsg(t, blockchain)
@@ -1088,6 +1089,8 @@ func testReadBlockToExec(t *testing.T, chain *blockchain.BlockChain) {
 	chainlog.Info("testReadBlockToExec begin ---------------------")
 	curheight := chain.GetBlockHeight()
 	chain.ReadBlockToExec(curheight+1, false)
+	chain.DownLoadTimeOutProc(curheight - 1)
+
 	chainlog.Info("testReadBlockToExec end ---------------------")
 }
 func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {

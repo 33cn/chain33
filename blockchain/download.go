@@ -331,3 +331,22 @@ func (chain *BlockChain) ReqDownLoadBlocks() {
 		}
 	}
 }
+
+//DownLoadTimeOutProc 快速下载模式下载区块超时的处理函数
+func (chain *BlockChain) DownLoadTimeOutProc(height int64) {
+	info := chain.GetDownLoadInfo()
+	synlog.Info("DownLoadTimeOutProc", "timeoutheight", height, "StartHeight", info.StartHeight, "EndHeight", info.EndHeight)
+
+	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {
+		//从超时的高度继续下载区块
+		if info.StartHeight > height {
+			chain.UpdateDownLoadStartHeight(height)
+			info.StartHeight = height
+		}
+		synlog.Info("DownLoadTimeOutProc:FetchBlock", "StartHeight", info.StartHeight, "EndHeight", info.EndHeight, "pids", len(info.Pids))
+		err := chain.FetchBlock(info.StartHeight, info.EndHeight, info.Pids, true)
+		if err != nil {
+			synlog.Error("DownLoadTimeOutProc:FetchBlock", "err", err)
+		}
+	}
+}

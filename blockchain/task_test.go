@@ -17,7 +17,7 @@ func TestTask(t *testing.T) {
 		t.Log("task not start")
 		return
 	}
-	task.Start(1, 10, nil)
+	task.Start(1, 10, nil, nil)
 	perm := rand.Perm(10)
 	for i := 0; i < len(perm); i++ {
 		time.Sleep(time.Millisecond * 5)
@@ -43,7 +43,7 @@ func TestTasks(t *testing.T) {
 			t.Log("task not start")
 			return
 		}
-		task.Start(1, 10, nil)
+		task.Start(1, 10, nil, nil)
 		perm := rand.Perm(10)
 		for i := 0; i < len(perm); i++ {
 			time.Sleep(time.Millisecond / 10)

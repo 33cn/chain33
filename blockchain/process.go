@@ -23,8 +23,6 @@ import (
 // 返回参数说明：是否主链，是否孤儿节点，具体err
 func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addBlock bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
 
-	b.chainLock.Lock()
-	defer b.chainLock.Unlock()
 	//blockchain close 时不再处理block
 	if atomic.LoadInt32(&b.isclosed) == 1 {
 		return nil, false, false, types.ErrIsClosed
@@ -50,10 +48,11 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	if !addBlock {
 		return b.ProcessDelParaChainBlock(broadcast, block, pid, sequence)
 	}
-	// 判断本block是否已经存在主链或者侧链中
+	//判断本block是否已经存在主链或者侧链中
+	//如果此block已经存在，并且已经被记录执行不过，
+	//将此block的源peer节点添加到故障peerlist中
 	exists := b.blockExists(blockHash)
 	if exists {
-		//如果此block已经存在，并且已经被记录执行不过，将此block的源peer节点添加到故障peerlist中
 		is, err := b.IsErrExecBlock(block.Block.Height, blockHash)
 		if is {
 			b.RecordFaultPeer(pid, block.Block.Height, blockHash, err)
@@ -69,12 +68,10 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 		return nil, false, false, types.ErrBlockExist
 	}
 
-	//checkpoint 的处理流程，block的时间必须晚于上一次的checkpoint点，以后再增加处理
-
-	// 判断本block的父block是否存在，如果不存在就将此block添加到孤儿链中
+	//判断本block的父block是否存在，如果不存在就将此block添加到孤儿链中
+	//创世块0需要做一些特殊的判断
 	var prevHashExists bool
 	prevHash := block.Block.GetParentHash()
-	//创世块0需要做一些特殊的判断
 	if 0 == block.Block.GetHeight() {
 		if bytes.Equal(prevHash, make([]byte, sha256Len)) {
 			prevHashExists = true
@@ -88,7 +85,19 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 		return nil, false, true, nil
 	}
 
-	// 尝试将此block添加到主链上
+	// 基本检测通过之后尝试添加block到主链上
+	return b.maybeAddBestChain(broadcast, block, pid, sequence)
+}
+
+//基本检测通过之后尝试将此block添加到主链上
+func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
+
+	b.chainLock.Lock()
+	defer b.chainLock.Unlock()
+
+	blockHash := block.Block.Hash()
+	chainlog.Debug("maybeAddBestChain", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
+
 	block, isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid, sequence)
 	if err != nil {
 		return nil, false, false, err
@@ -99,8 +108,7 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 		return nil, false, false, err
 	}
 
-	chainlog.Debug("ProcessBlock", "Accepted block", common.ToHex(blockHash))
-
+	chainlog.Debug("maybeAddBestChain", "Accepted block", common.ToHex(blockHash))
 	return block, isMainChain, false, nil
 }
 
@@ -146,7 +154,6 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 				chainlog.Debug("processOrphans", "Found a nil entry at index", i, "orphan dependency list for block", common.ToHex([]byte(processHash)))
 				continue
 			}
-			//chainlog.Debug("processOrphans", "orphan.block.height", orphan.block.Height)
 
 			// 从孤儿池中删除此孤儿节点
 			orphanHash := orphan.block.Hash()
@@ -160,8 +167,6 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 				return err
 			}
 			processHashes = append(processHashes, string(orphanHash))
-			///chainlog.Debug("processOrphans", "orphanHash", common.ToHex(orphanHash))
-			//chainlog.Debug("processOrphans", "processHashes[0]", common.ToHex([]byte(processHashes[0])))
 		}
 	}
 	return nil
@@ -211,11 +216,6 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, 
 		return nil, false, err
 	}
 
-	// Notify the caller that the new block was accepted into the block
-	// chain.  The caller would typically want to react by relaying the
-	// inventory to other peers.
-
-	//b.sendNotification(NTBlockAccepted, block)
 	return block, isMainChain, nil
 }
 
