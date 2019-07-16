@@ -220,17 +220,20 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pu
 	//add miner tx
 	block.Txs = append(block.Txs, ltBlock.MinerTx)
 
+	txList := &types.ReplyTxList{}
+	ok := false
 	//get tx list from mempool
-	resp, err := n.queryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: ltBlock.STxHashes, IsShortHash: true})
-	if err != nil {
-		log.Error("queryMempoolTxWithHash", "err", err)
-		return
-	}
-
-	txList, ok := resp.(*types.ReplyTxList)
-	if !ok {
-		log.Error("recvLtBlock", "queryMemPool", "nilReplyTxList")
-		txList = &types.ReplyTxList{}
+	if len(ltBlock.STxHashes) > 0 {
+		resp, err := n.queryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: ltBlock.STxHashes, IsShortHash: true})
+		if err != nil {
+			log.Error("queryMempoolTxWithHash", "err", err)
+			return
+		}else {
+			txList, ok = resp.(*types.ReplyTxList)
+			if !ok {
+				log.Error("recvLtBlock", "queryMemPool", "nilReplyTxList")
+			}
+		}
 	}
 	nilTxIndices := make([]int32, 0)
 	for i := 0; ok && i < len(txList.Txs); i++ {
@@ -238,7 +241,8 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pu
 		if tx == nil {
 			//tx not exist in mempool
 			nilTxIndices = append(nilTxIndices, int32(i+1))
-		} else if tx.GetGroupCount() > 0 {
+			tx = &types.Transaction{}
+		} else if count := tx.GetGroupCount(); count > 0 {
 
 			group, err := tx.GetTxGroup()
 			if err != nil {
@@ -255,21 +259,21 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pu
 
 		block.Txs = append(block.Txs, tx)
 	}
-
+	nilTxLen := len(nilTxIndices)
 	//需要比较交易根哈希是否一致, 不一致需要请求区块内所有的交易
-	if len(block.Txs) == int(ltBlock.Header.TxCount) && bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
+	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) &&
+		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
 		log.Info("recvBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer", pid,
 			"block size(KB)", float32(ltBlock.Size)/1024, "blockHash", blockHash)
 		//发送至blockchain执行
-		if err = n.postBlockChain(block, pid); err != nil {
+		if err := n.postBlockChain(block, pid); err != nil {
 			log.Error("recvBlock", "send block to blockchain Error", err.Error())
 		}
 
 		return
 	}
 
-	nilTxLen := len(nilTxIndices)
 	// 缺失的交易个数大于总数1/3 或者缺失数据大小大于2/3, 触发请求区块所有交易数据
 	if nilTxLen > 0 && (float32(nilTxLen) > float32(ltBlock.Header.TxCount)/3 ||
 		float32(block.Size()) < float32(ltBlock.Size)/3) {
