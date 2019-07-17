@@ -243,7 +243,6 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 
 // 结果和合约的具体类型有关
 // 1. 缓存时带上具体合约类型， 实现需要较大改动。 在后续单区块中交易变多的情况下有益. key 默认用合约名， 需要的合约重写.
-//    出于性能上的考虑， DriverKey 需要的driver 时返回， 因为需要的时候， 都需要 decode transfer， 分开调用需要decode两次
 //	  k := tx.DriverKey() or DriverKey(tx)
 //    ...
 //    cache(k) = exec
