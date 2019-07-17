@@ -89,15 +89,13 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	}
 
 	// 基本检测通过之后尝试添加block到主链上
-	b.chainLock.Lock()
-	defer b.chainLock.Unlock()
-
 	return b.maybeAddBestChain(broadcast, block, pid, sequence)
 }
 
 //基本检测通过之后尝试将此block添加到主链上
 func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
-
+	b.chainLock.Lock()
+	defer b.chainLock.Unlock()
 	blockHash := block.Block.Hash()
 	chainlog.Debug("maybeAddBestChain", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
 

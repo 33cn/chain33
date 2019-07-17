@@ -72,7 +72,7 @@ type BlockChain struct {
 	//当前主链
 	bestChain *chainView
 
-	chainLock sync.RWMutex
+	chainLock sync.Mutex
 	//blockchain的启动时间
 	startTime time.Time
 

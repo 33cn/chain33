@@ -65,6 +65,7 @@ func (c *chainView) setTip(node *blockNode) {
 
 		if node.parent != c.tip() {
 			chainlog.Error("setTip err", "node.height", node.height, "node.hash", common.ToHex(node.hash))
+			chainlog.Error("setTip err", "parent.height", node.parent.height, "parent.hash", common.ToHex(node.parent.hash))
 			chainlog.Error("setTip err", "c.tip().height", c.tip().height, "c.tip().hash", common.ToHex(c.tip().hash))
 			return
 		}
