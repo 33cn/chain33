@@ -330,8 +330,9 @@ function transfer() {
                 done
                 echo "----------block info------------------"
                 lastheight=$(${CLI} block last_header | jq -r ".height")
+                echo "lastheight is ${lastheight}"
                 ${CLI} block get -s 1 -e "${lastheight}" -d 1
-
+                docer exec build_chain33_1 tail -10000 /root/logs/chain33.log
                 exit 1
             fi
         else

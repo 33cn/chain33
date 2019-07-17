@@ -78,8 +78,8 @@ func (chain *BlockCache) cacheBlock(blockdetail *types.BlockDetail) {
 		}
 	}
 	chain.maxHeight = blockdetail.Block.Height
-	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
-		chainlog.Debug("cacheBlock  Receipts == 0", "height", blockdetail.Block.GetHeight())
+	if len(blockdetail.Receipts) == 0 || len(blockdetail.Block.Txs) == 0 {
+		chainlog.Error("cacheBlock  Receipts == 0", "height", blockdetail.Block.GetHeight(), "Receipts", blockdetail.Receipts, "Txs", blockdetail.Block.Txs)
 	}
 	chain.addCacheBlock(blockdetail)
 
