@@ -241,7 +241,29 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 	return exec.ExecDelLocal(tx, r, index)
 }
 
+// 结果和合约的具体类型有关
+// 1. 缓存时带上具体合约类型， 实现需要较大改动。 在后续单区块中交易变多的情况下有益. key 默认用合约名， 需要的合约重写.
+//    出于性能上的考虑， DriverKey 需要的driver 时返回， 因为需要的时候， 都需要 decode transfer， 分开调用需要decode两次
+//	  k := tx.DriverKey() or DriverKey(tx)
+//    ...
+//    cache(k) = exec
+// 2. 在单个交易中cache， exec 后， exec_local/exec_del_local 用， 用 txIndex 做下标
+// 3. 去掉 cache
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
+	if types.IsFork(e.height, "ForkCacheDriver") {
+		return e.loadDriverNoCache(tx, index)
+	}
+	return e.loadDriverWithCache(tx, index)
+}
+
+func (e *executor) loadDriverNoCache(tx *types.Transaction, index int) (c drivers.Driver) {
+	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	e.setEnv(exec)
+	return exec
+}
+
+// cache exec name bug: 部分执行是否可以执行依赖于合约里的具体操作， 而不是只依赖执行器名字
+func (e *executor) loadDriverWithCache(tx *types.Transaction, index int) (c drivers.Driver) {
 	ename := string(tx.Execer)
 	exec, ok := e.execCache[ename]
 	if ok {
