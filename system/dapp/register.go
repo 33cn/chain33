@@ -121,3 +121,17 @@ func ExecAddress(name string) string {
 	}
 	return address.ExecAddress(name)
 }
+
+// GetDriverKey get driver key
+func GetDriverKey(tx *types.Transaction, height int64) string {
+	var key string
+	exec, err := LoadDriver(string(tx.Execer), height)
+	if err == nil {
+		exec.SetEnv(height, 0, 0)
+		key, err = exec.GetDriverKey(tx, height)
+	}
+	if err != nil {
+		key = "none"
+	}
+	return key
+}

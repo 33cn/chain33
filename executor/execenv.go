@@ -252,7 +252,7 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 	if types.IsFork(e.height, "ForkCacheDriver") {
 		return e.loadDriverNoCache(tx, index)
 	}
-	return e.loadDriverWithCache(tx, index)
+	return e.loadDriverWithCacheExec(tx, index)
 }
 
 func (e *executor) loadDriverNoCache(tx *types.Transaction, index int) (c drivers.Driver) {
@@ -261,8 +261,21 @@ func (e *executor) loadDriverNoCache(tx *types.Transaction, index int) (c driver
 	return exec
 }
 
+// 缓存 driver key
+func (e *executor) loadDriverCacheKey1(tx *types.Transaction, index int) (c drivers.Driver) {
+	key := drivers.GetDriverKey(tx, e.height)
+	exec, ok := e.execCache[key]
+	if ok {
+		return exec
+	}
+	exec = drivers.LoadDriverAllow(tx, index, e.height)
+	e.setEnv(exec)
+	e.execCache[key] = exec
+	return exec
+}
+
 // cache exec name bug: 部分执行是否可以执行依赖于合约里的具体操作， 而不是只依赖执行器名字
-func (e *executor) loadDriverWithCache(tx *types.Transaction, index int) (c drivers.Driver) {
+func (e *executor) loadDriverWithCacheExec(tx *types.Transaction, index int) (c drivers.Driver) {
 	ename := string(tx.Execer)
 	exec, ok := e.execCache[ename]
 	if ok {

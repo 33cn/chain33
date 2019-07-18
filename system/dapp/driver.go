@@ -73,6 +73,9 @@ type Driver interface {
 	GetExecutorType() types.ExecutorType
 	CheckReceiptExecOk() bool
 	ExecutorOrder() int64
+
+	//GetDriverKey return cache key for executor
+	GetDriverKey(tx *types.Transaction, height int64) (string, error)
 }
 
 // DriverBase defines driverbase type
@@ -517,4 +520,9 @@ func (d *DriverBase) DelRollbackKV(tx *types.Transaction, execer []byte) ([]*typ
 	}
 	kvc.DelRollbackKV()
 	return kvc.KVList(), nil
+}
+
+//GetDriverKey impl
+func (d *DriverBase) GetDriverKey(tx *types.Transaction, height int64) (string, error) {
+	return string(tx.Execer), nil
 }
