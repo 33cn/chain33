@@ -228,7 +228,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pu
 		if err != nil {
 			log.Error("queryMempoolTxWithHash", "err", err)
 			return
-		}else {
+		} else {
 			txList, ok = resp.(*types.ReplyTxList)
 			if !ok {
 				log.Error("recvLtBlock", "queryMemPool", "nilReplyTxList")
