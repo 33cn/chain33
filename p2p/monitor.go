@@ -381,11 +381,12 @@ func (n *Node) monitorPeers() {
 		}
 
 		peers, infos := n.GetActivePeers()
-		for paddr, pinfo := range infos {
+		for name, pinfo := range infos {
 			peerheight := pinfo.GetHeader().GetHeight()
-			if pinfo.GetName() == selfName && !pinfo.GetSelf() { //发现连接到自己，立即删除
+			paddr := pinfo.GetAddr()
+			if name == selfName && !pinfo.GetSelf() { //发现连接到自己，立即删除
 				//删除节点数过低的节点
-				n.remove(paddr)
+				n.remove(pinfo.GetAddr())
 				n.nodeInfo.addrBook.RemoveAddr(paddr)
 				n.nodeInfo.blacklist.Add(paddr, 0)
 			}
@@ -595,7 +596,7 @@ func (n *Node) monitorCfgSeeds() {
 					peers, _ := n.GetActivePeers()
 					//选出当前连接的节点中，负载最大的节点
 					var MaxInBounds int32
-					var MaxInBoundPeer *Peer
+					MaxInBoundPeer := &Peer{}
 					for _, peer := range peers {
 						if peer.GetInBouns() > MaxInBounds {
 							MaxInBounds = peer.GetInBouns()

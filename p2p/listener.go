@@ -52,10 +52,10 @@ type listener struct {
 	netlistener net.Listener
 }
 
-// NewListener produce a server object
-func NewListener(protocol string, node *Node) *listener {
+// newListener produce a server object
+func newListener(protocol string, node *Node) *listener {
 Retry:
-	log.Info("NewListener", "localPort", node.listenPort)
+	log.Info("newListener", "localPort", node.listenPort)
 	l, err := net.Listen(protocol, fmt.Sprintf(":%v", node.listenPort))
 	if err != nil {
 		log.Error("Failed to listen", "Error", err.Error())

@@ -115,7 +115,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	}
 	node.nodeInfo = NewNodeInfo(cfg)
 	if cfg.ServerStart {
-		node.server = NewListener(protocol, node)
+		node.server = newListener(protocol, node)
 	}
 	return node, nil
 }
@@ -307,9 +307,10 @@ func (n *Node) GetActivePeers() (map[string]*Peer, map[string]*types.Peer) {
 
 	var peers = make(map[string]*Peer)
 	for _, peer := range regPeers {
-		if _, ok := infos[peer.Addr()]; ok {
+		name := peer.GetPeerName()
+		if _, ok := infos[name]; ok {
 
-			peers[peer.Addr()] = peer
+			peers[name] = peer
 		}
 	}
 	return peers, infos

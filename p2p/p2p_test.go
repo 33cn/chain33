@@ -3,11 +3,11 @@ package p2p
 import (
 	"encoding/hex"
 	"sync/atomic"
+	"time"
 
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	l "github.com/33cn/chain33/common/log"
 
@@ -197,14 +197,18 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	defer peer.Close()
 	peer.MakePersistent()
 	localP2P.node.addPeer(peer)
-	time.Sleep(time.Second * 5)
+	for peer.GetPeerName() == "" {
+		time.Sleep(time.Millisecond * 10)
+	}
 	t.Log(peer.GetInBouns())
 	t.Log(peer.version.GetVersion())
 	assert.IsType(t, "string", peer.GetPeerName())
 
 	localP2P.node.AddCachePeer(peer)
 	peer.GetRunning()
-	localP2P.node.natOk()
+	localP2P.node.nodeInfo.FetchPeerInfo(localP2P.node)
+	peers, infos := localP2P.node.GetActivePeers()
+	assert.Equal(t, len(peers), len(infos))
 	localP2P.node.flushNodePort(43803, 43802)
 	p2pcli := NewNormalP2PCli()
 	localP2P.node.nodeInfo.peerInfos.SetPeerInfo(nil)
