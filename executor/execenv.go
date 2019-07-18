@@ -241,13 +241,6 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 	return exec.ExecDelLocal(tx, r, index)
 }
 
-// 结果和合约的具体类型有关
-// 1. 缓存时带上具体合约类型， 实现需要较大改动。 在后续单区块中交易变多的情况下有益. key 默认用合约名， 需要的合约重写.
-//	  k := tx.DriverKey() or DriverKey(tx)
-//    ...
-//    cache(k) = exec
-// 2. 在单个交易中cache， exec 后， exec_local/exec_del_local 用， 用 txIndex 做下标
-// 3. 去掉 cache
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
 	if types.IsFork(e.height, "ForkCacheDriver") {
 		return e.loadDriverNoCache(tx, index)
