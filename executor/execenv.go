@@ -274,6 +274,21 @@ func (e *executor) loadDriverCacheKey1(tx *types.Transaction, index int) (c driv
 	return exec
 }
 
+// 缓存 driver key
+func (e *executor) loadDriverCacheKey2(tx *types.Transaction, index int) (c drivers.Driver) {
+	ename := string(tx.Execer)
+	exec, ok := e.execCache[ename]
+	if ok {
+		return exec
+	}
+	exec = drivers.LoadDriverAllow(tx, index, e.height)
+	e.setEnv(exec)
+	if exec.CanCache(tx, e.height) {
+		e.execCache[ename] = exec
+	}
+	return exec
+}
+
 // cache exec name bug: 部分执行是否可以执行依赖于合约里的具体操作， 而不是只依赖执行器名字
 func (e *executor) loadDriverWithCacheExec(tx *types.Transaction, index int) (c drivers.Driver) {
 	ename := string(tx.Execer)

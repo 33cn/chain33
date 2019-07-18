@@ -76,6 +76,7 @@ type Driver interface {
 
 	//GetDriverKey return cache key for executor
 	GetDriverKey(tx *types.Transaction, height int64) (string, error)
+	CanCache(tx *types.Transaction, height int64) bool
 }
 
 // DriverBase defines driverbase type
@@ -525,4 +526,9 @@ func (d *DriverBase) DelRollbackKV(tx *types.Transaction, execer []byte) ([]*typ
 //GetDriverKey impl
 func (d *DriverBase) GetDriverKey(tx *types.Transaction, height int64) (string, error) {
 	return string(tx.Execer), nil
+}
+
+//CanCache impl
+func (d *DriverBase) CanCache(tx *types.Transaction, height int64) bool {
+	return true
 }
