@@ -5,7 +5,6 @@
 package p2p
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -51,7 +50,8 @@ func NewNodeInfo(cfg *types.P2P) *NodeInfo {
 
 // PeerInfos encapsulation peer information
 type PeerInfos struct {
-	mtx   sync.Mutex
+	mtx sync.Mutex
+	//key:peerName
 	infos map[string]*types.Peer
 }
 
@@ -72,7 +72,7 @@ func (p *PeerInfos) FlushPeerInfos(in []*types.Peer) {
 	}
 
 	for _, peer := range in {
-		p.infos[fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())] = peer
+		p.infos[peer.GetName()] = peer
 	}
 }
 
@@ -91,16 +91,18 @@ func (p *PeerInfos) GetPeerInfos() map[string]*types.Peer {
 func (p *PeerInfos) SetPeerInfo(peer *types.Peer) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
-	key := fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())
-	p.infos[key] = peer
+	if peer.GetName() == "" {
+		return
+	}
+	p.infos[peer.GetName()] = peer
 }
 
 // GetPeerInfo return a infos by key
-func (p *PeerInfos) GetPeerInfo(key string) *types.Peer {
+func (p *PeerInfos) GetPeerInfo(peerName string) *types.Peer {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
-	if _, ok := p.infos[key]; ok {
-		return p.infos[key]
+	if peer, ok := p.infos[peerName]; ok {
+		return peer
 	}
 	return nil
 }
@@ -130,27 +132,24 @@ func (nf *NodeInfo) latestPeerInfo(n *Node) map[string]*types.Peer {
 	log.Debug("latestPeerInfo", "register peer num", len(peers))
 	for _, peer := range peers {
 
-		if peer.Addr() == n.nodeInfo.GetExternalAddr().String() { //fmt.Sprintf("%v:%v", ExternalIp, m.network.node.GetExterPort())
+		if !peer.GetRunning() || peer.Addr() == n.nodeInfo.GetExternalAddr().String() {
+			n.remove(peer.Addr())
 			continue
 		}
-		peerinfo, err := peer.GetPeerInfo()
-		if err != nil {
-			if err == types.ErrVersion {
-				peer.version.SetSupport(false)
-				P2pComm.CollectPeerStat(err, peer)
-				log.Error("latestPeerInfo", "Err", err.Error(), "peer", peer.Addr())
 
-			}
+		peerinfo, err := peer.GetPeerInfo()
+		if err != nil || peerinfo.GetName() == "" {
+			P2pComm.CollectPeerStat(err, peer)
+			log.Error("latestPeerInfo", "Err", err, "peer", peer.Addr())
 			continue
 		}
-		P2pComm.CollectPeerStat(err, peer)
 		var pr types.Peer
 		pr.Addr = peerinfo.GetAddr()
 		pr.Port = peerinfo.GetPort()
 		pr.Name = peerinfo.GetName()
 		pr.MempoolSize = peerinfo.GetMempoolSize()
 		pr.Header = peerinfo.GetHeader()
-		peerlist[fmt.Sprintf("%v:%v", peerinfo.Addr, peerinfo.Port)] = &pr
+		peerlist[pr.Name] = &pr
 	}
 	return peerlist
 }

@@ -70,13 +70,13 @@ func (s *P2pserver) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 		return nil, pb.ErrPing
 	}
 
-	peerIp, _, err := resolveClientNetAddr(ctx)
+	peerIP, _, err := resolveClientNetAddr(ctx)
 	if err != nil {
 		log.Error("Ping", "get grpc peer addr err", err)
 		return nil, fmt.Errorf("get grpc peer addr err:%s", err.Error())
 	}
 
-	peeraddr := fmt.Sprintf("%s:%v", peerIp, in.Port)
+	peeraddr := fmt.Sprintf("%s:%v", peerIP, in.Port)
 	remoteNetwork, err := NewNetAddressString(peeraddr)
 	if err == nil {
 		if !s.node.nodeInfo.blacklist.Has(peeraddr) {
@@ -134,7 +134,7 @@ func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	log.Debug("Version2", "before", "GetPrivPubKey")
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 	log.Debug("Version2", "after", "GetPrivPubKey")
-	peerIp, _, err := resolveClientNetAddr(ctx)
+	peerIP, _, err := resolveClientNetAddr(ctx)
 	if err != nil {
 		log.Error("Version2", "get grpc peer addr err", err)
 		return nil, fmt.Errorf("get grpc peer addr err:%s", err.Error())
@@ -145,7 +145,7 @@ func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 		return nil, fmt.Errorf("AddrFrom format err")
 	}
 
-	peerAddr := fmt.Sprintf("%v:%v", peerIp, port)
+	peerAddr := fmt.Sprintf("%v:%v", peerIP, port)
 	//注册inBoundInfo
 	timeNano := pb.Now().UnixNano()
 	s.addInBoundPeerInfo(peerAddr, innerpeer{addr: peerAddr, name: in.GetUserAgent(), timestamp: timeNano})
@@ -159,7 +159,7 @@ func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 	return &pb.P2PVersion{Version: s.node.nodeInfo.channelVersion,
 		Service: int64(s.node.nodeInfo.ServiceTy()), Timestamp: timeNano, Nonce: in.Nonce,
-		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerIp, port), UserAgent: pub}, nil
+		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerIP, port), UserAgent: pub}, nil
 }
 
 // SoftVersion software version
@@ -415,12 +415,12 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 		return fmt.Errorf("beyound max inbound num")
 	}
 
-	peerIp, _, err := resolveClientNetAddr(stream.Context())
+	peerIP, _, err := resolveClientNetAddr(stream.Context())
 	if err != nil {
 		log.Error("ServerStreamSend", "get grpc peer addr err", err)
 		return fmt.Errorf("get grpc peer addr err:%s", err.Error())
 	}
-	peerAddr := fmt.Sprintf("%s:%v", peerIp, in.GetPort())
+	peerAddr := fmt.Sprintf("%s:%v", peerIP, in.GetPort())
 	//等待ReadStream接收节点version信息
 	var peerInfo *innerpeer
 	for peerInfo = s.getInBoundPeerInfo(peerAddr); peerInfo == nil || peerInfo.p2pversion == 0; {
@@ -452,7 +452,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.InnerBounds))
 	}
 	log.Debug("StreamRead")
-	peerIp, _, err := resolveClientNetAddr(stream.Context())
+	peerIP, _, err := resolveClientNetAddr(stream.Context())
 	if err != nil {
 		log.Error("ServerStreamRead", "get grpc peer addr err", err)
 		return fmt.Errorf("get grpc peer addr err:%s", err.Error())
@@ -504,12 +504,12 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 			if s.node.Size() > 0 {
 
-				if peerIp != s.node.nodeInfo.GetListenAddr().IP.String() && peerIp != s.node.nodeInfo.GetExternalAddr().IP.String() {
+				if peerIP != s.node.nodeInfo.GetListenAddr().IP.String() && peerIP != s.node.nodeInfo.GetExternalAddr().IP.String() {
 					s.node.nodeInfo.SetServiceTy(Service)
 				}
 			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
-			peeraddr = fmt.Sprintf("%s:%v", peerIp, ping.GetPort())
+			peeraddr = fmt.Sprintf("%s:%v", peerIP, ping.GetPort())
 		}
 	}
 }
@@ -703,7 +703,7 @@ func resolveClientNetAddr(ctx context.Context) (host, port string, err error) {
 	grpcPeer, ok := pr.FromContext(ctx)
 	if ok {
 		return net.SplitHostPort(grpcPeer.Addr.String())
-	} else {
-		return "", "", fmt.Errorf("get grpc peer from ctx err")
 	}
+
+	return "", "", fmt.Errorf("get grpc peer from ctx err")
 }

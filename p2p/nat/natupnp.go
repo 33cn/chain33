@@ -65,7 +65,7 @@ func (n *upnp) AddMapping(protocol string, extport, intport int, desc string, li
 	if err != nil {
 		return nil
 	}
-	fmt.Println("internalAddress:", ip)
+	//fmt.Println("internalAddress:", ip)
 	protocol = strings.ToUpper(protocol)
 	lifetimeS := uint32(lifetime / time.Second)
 	err = n.DeleteMapping(protocol, extport, intport)
