@@ -285,7 +285,7 @@ func (s *P2pserver) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 			resp, err := client.WaitTimeout(msg, time.Second*20)
 			if err != nil {
 				log.Error("GetBlocks Err", "Err", err.Error())
-				continue
+				return err
 			}
 
 			blocks := resp.Data.(*pb.BlockDetails)

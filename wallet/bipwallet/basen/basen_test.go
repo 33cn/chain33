@@ -83,11 +83,14 @@ func TestBase58(t *testing.T) {
 
 	b, err := basen.Base58.DecodeString(s)
 	assert.NoError(t, err)
-	assert.True(t, len(b) == 10)
-
+	assert.True(t, len(b) <= 10)
+	s = basen.Base58.EncodeToString([]byte{0, 1, 2, 3, 4, 5})
+	b, err = basen.Base58.DecodeString(s)
+	assert.NoError(t, err)
+	assert.Equal(t, 5, len(b))
 	b, err = basen.Base58.DecodeStringN(s, 12)
 	assert.NoError(t, err)
-	assert.True(t, len(b) == 12)
+	assert.Equal(t, 12, len(b))
 
 	assert.True(t, basen.Base58.Base() == 58)
 }

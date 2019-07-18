@@ -118,4 +118,8 @@ func (chain *BlockChain) sendDelStore(hash []byte, height int64) {
 	if err != nil {
 		chainlog.Debug("sendDelStoreEvent -->>store", "err", err)
 	}
+	_, err = chain.client.Wait(msg)
+	if err != nil {
+		panic(fmt.Sprintln("sendDelStore", err))
+	}
 }
