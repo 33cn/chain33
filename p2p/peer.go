@@ -47,6 +47,7 @@ type Peer struct {
 	taskChan     chan interface{} //tx block
 	inBounds     int32            //连接此节点的客户端节点数量
 	IsMaxInbouds bool
+	timestamp    int64 //建立连接的unix时间戳 纳秒
 }
 
 // NewPeer produce a peer object
@@ -155,12 +156,18 @@ func (p *Peer) heartBeat() {
 		}
 
 		<-ticker.C
-		err := pcli.SendPing(p, p.node.nodeInfo)
-		P2pComm.CollectPeerStat(err, p)
-		peernum, err := pcli.GetInPeersNum(p)
-		P2pComm.CollectPeerStat(err, p)
+		peerNum, err := pcli.GetInPeersNum(p)
 		if err == nil {
-			atomic.StoreInt32(&p.inBounds, int32(peernum))
+			atomic.StoreInt32(&p.inBounds, int32(peerNum))
+		}
+		err = pcli.SendPing(p, p.node.nodeInfo)
+
+		//在双方同时段进行连接时, 节点间也可能存在两个连接
+		if info := p.node.getInBoundInfo(p.peerAddr.String()); info != nil &&
+			p.timestamp <= info.timestamp { //主动断开更早的连接, 同时兼容了兼容老版本
+			log.Info("PeerHeartBeat duplicate connection", "peerAddr", p.peerAddr.String())
+			p.Close()
+			return
 		}
 
 	}

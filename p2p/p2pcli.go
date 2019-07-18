@@ -276,6 +276,7 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
 	_, ver := decodeChannelVersion(resp.GetVersion())
 	peer.version.SetVersion(ver)
+	peer.timestamp = resp.Timestamp
 
 	ip, _, err := net.SplitHostPort(resp.GetAddrRecv())
 	if err == nil {
@@ -563,7 +564,7 @@ func (m *Cli) GetNetInfo(msg *queue.Message, taskindex int64) {
 	netinfo.Localaddr = m.network.node.nodeInfo.GetListenAddr().String()
 	netinfo.Service = m.network.node.nodeInfo.IsOutService()
 	netinfo.Outbounds = int32(m.network.node.Size())
-	netinfo.Inbounds = int32(len(m.network.node.listener.(interface{}).(*listener).p2pserver.getInBoundPeers()))
+	netinfo.Inbounds = int32(len(m.network.node.server.p2pserver.getInBoundPeers()))
 	msg.Reply(m.network.client.NewMessage("rpc", pb.EventReplyNetInfo, &netinfo))
 
 }

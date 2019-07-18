@@ -26,10 +26,10 @@ import (
 // 3.启动端口映射
 // 4.启动监控模块，进行节点管理
 
-// Start Node listener
+// Start Node server
 func (n *Node) Start() {
-	if n.listener != nil {
-		n.listener.Start()
+	if n.server != nil {
+		n.server.Start()
 	}
 	n.detectNodeAddr()
 	n.monitor()
@@ -38,14 +38,14 @@ func (n *Node) Start() {
 
 }
 
-// Close node listener
+// Close node server
 func (n *Node) Close() {
 	//避免重复
 	if !atomic.CompareAndSwapInt32(&n.closed, 0, 1) {
 		return
 	}
-	if n.listener != nil {
-		n.listener.Close()
+	if n.server != nil {
+		n.server.Close()
 	}
 	log.Debug("stop", "listen", "closed")
 	n.nodeInfo.addrBook.Close()
@@ -72,7 +72,7 @@ type Node struct {
 	cmtx       sync.Mutex
 	cacheBound map[string]*Peer
 	outBound   map[string]*Peer
-	listener   Listener
+	server     *listener
 	listenPort int
 	innerSeeds sync.Map
 	cfgSeeds   sync.Map
@@ -115,7 +115,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	}
 	node.nodeInfo = NewNodeInfo(cfg)
 	if cfg.ServerStart {
-		node.listener = NewListener(protocol, node)
+		node.server = NewListener(protocol, node)
 	}
 	return node, nil
 }
@@ -172,6 +172,7 @@ func (n *Node) doNat() {
 				if n.Size() > 0 {
 					break
 				}
+				time.Sleep(time.Millisecond * 100)
 			}
 
 			p2pcli := NewNormalP2PCli()
@@ -444,7 +445,7 @@ func (n *Node) natMapPort() {
 		err = nat.Any().AddMapping("TCP", int(n.nodeInfo.GetExternalAddr().Port), n.listenPort, nodename[:8], time.Hour*48)
 		if err != nil {
 			if i > tryMapPortTimes/2 { //如果连续失败次数超过最大限制次数的二分之一则切换为随机端口映射
-				log.Error("NatMapPort", "err", err.Error())
+				log.Warn("TryNatMapPortFailed", "tryTimes", i, "err", err.Error())
 				n.flushNodePort(uint16(n.listenPort), uint16(rand.Intn(64512)+1023))
 
 			}
@@ -506,4 +507,12 @@ func (n *Node) natNotice() {
 
 func (n *Node) verifyP2PChannel(channel int32) bool {
 	return channel == n.nodeInfo.cfg.Channel
+}
+
+func (n *Node) getInBoundInfo(peerAddr string) *innerpeer {
+
+	if n.server == nil || n.server.p2pserver == nil {
+		return nil
+	}
+	return n.server.p2pserver.getInBoundPeerInfo(peerAddr)
 }

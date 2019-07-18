@@ -69,17 +69,14 @@ func (s *P2pserver) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 		log.Error("Ping", "p2p server", "check sig err")
 		return nil, pb.ErrPing
 	}
-	var peerip string
-	var err error
-	getctx, ok := pr.FromContext(ctx)
-	if ok {
-		peerip, _, err = net.SplitHostPort(getctx.Addr.String())
-		if err != nil {
-			return nil, fmt.Errorf("ctx.Addr format err")
-		}
+
+	peerIp, _, err := resolveClientNetAddr(ctx)
+	if err != nil {
+		log.Error("Ping", "get grpc peer addr err", err)
+		return nil, fmt.Errorf("get grpc peer addr err:%s", err.Error())
 	}
 
-	peeraddr := fmt.Sprintf("%s:%v", peerip, in.Port)
+	peeraddr := fmt.Sprintf("%s:%v", peerIp, in.Port)
 	remoteNetwork, err := NewNetAddressString(peeraddr)
 	if err == nil {
 		if !s.node.nodeInfo.blacklist.Has(peeraddr) {
@@ -129,15 +126,6 @@ func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 	channel, ver := decodeChannelVersion(in.GetVersion())
 	log.Debug("p2pServer Version2", "p2pChannel", channel, "p2p version", ver)
-	var peerip string
-	var err error
-	getctx, ok := pr.FromContext(ctx)
-	if ok {
-		peerip, _, err = net.SplitHostPort(getctx.Addr.String())
-		if err != nil {
-			return nil, fmt.Errorf("ctx.Addr format err")
-		}
-	}
 
 	if !s.node.verifyP2PChannel(channel) {
 		return nil, pb.ErrP2PChannel
@@ -146,21 +134,32 @@ func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	log.Debug("Version2", "before", "GetPrivPubKey")
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 	log.Debug("Version2", "after", "GetPrivPubKey")
-	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
+	peerIp, _, err := resolveClientNetAddr(ctx)
+	if err != nil {
+		log.Error("Version2", "get grpc peer addr err", err)
+		return nil, fmt.Errorf("get grpc peer addr err:%s", err.Error())
+	}
+	//addrFrom:表示发送方外网地址，addrRecv:表示接收方外网地址
 	_, port, err := net.SplitHostPort(in.AddrFrom)
 	if err != nil {
 		return nil, fmt.Errorf("AddrFrom format err")
 	}
-	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peerip, port))
+
+	peerAddr := fmt.Sprintf("%v:%v", peerIp, port)
+	//注册inBoundInfo
+	timeNano := pb.Now().UnixNano()
+	s.addInBoundPeerInfo(peerAddr, innerpeer{addr: peerAddr, name: in.GetUserAgent(), timestamp: timeNano})
+
+	remoteNetwork, err := NewNetAddressString(peerAddr)
 	if err == nil {
 		if !s.node.nodeInfo.blacklist.Has(remoteNetwork.String()) {
 			s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
 		}
 	}
 
-	return &pb.P2PVersion{Version: s.node.nodeInfo.channelVersion, Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
-		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerip, port), UserAgent: pub}, nil
-
+	return &pb.P2PVersion{Version: s.node.nodeInfo.channelVersion,
+		Service: int64(s.node.nodeInfo.ServiceTy()), Timestamp: timeNano, Nonce: in.Nonce,
+		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerIp, port), UserAgent: pub}, nil
 }
 
 // SoftVersion software version
@@ -416,6 +415,17 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 		return fmt.Errorf("beyound max inbound num")
 	}
 
+	peerIp, _, err := resolveClientNetAddr(stream.Context())
+	if err != nil {
+		log.Error("ServerStreamSend", "get grpc peer addr err", err)
+		return fmt.Errorf("get grpc peer addr err:%s", err.Error())
+	}
+	peerAddr := fmt.Sprintf("%s:%v", peerIp, in.GetPort())
+	//等待ReadStream接收节点version信息
+	var peerInfo *innerpeer
+	for peerInfo = s.getInBoundPeerInfo(peerAddr); peerInfo == nil || peerInfo.p2pversion == 0; {
+		time.Sleep(time.Second)
+	}
 	log.Debug("ServerStreamSend")
 	peername := hex.EncodeToString(in.GetSign().GetPubkey())
 	dataChain := s.addStreamHandler(peername)
@@ -423,18 +433,6 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 	for data := range dataChain {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
-		}
-		peerInfo := s.getInBoundPeerInfo(peername)
-		if peerInfo != nil {
-			if peerInfo.p2pversion == 0 {
-				return fmt.Errorf("version empty")
-			}
-			//增加过滤，如果自己连接了远程节点，则不需要通过stream send 重复发送数据给这个节点
-			if s.node.Has(peerInfo.addr) {
-				continue
-			}
-		} else {
-			return fmt.Errorf("no peer info")
 		}
 		sendData, doSend := s.node.processSendP2P(data, peerInfo.p2pversion, peerInfo.addr)
 		if !doSend {
@@ -454,21 +452,15 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		return fmt.Errorf("beyound max inbound num:%v>%v", len(s.getInBoundPeers()), int(s.node.nodeInfo.cfg.InnerBounds))
 	}
 	log.Debug("StreamRead")
-	var remoteIP string
-	var err error
-	getctx, ok := pr.FromContext(stream.Context())
-	if ok {
-		remoteIP, _, err = net.SplitHostPort(getctx.Addr.String())
-		if err != nil {
-			return fmt.Errorf("ctx.Addr format err")
-		}
-	} else {
-
-		return fmt.Errorf("getctx err")
+	peerIp, _, err := resolveClientNetAddr(stream.Context())
+	if err != nil {
+		log.Error("ServerStreamRead", "get grpc peer addr err", err)
+		return fmt.Errorf("get grpc peer addr err:%s", err.Error())
 	}
 
 	var peeraddr, peername string
-	defer s.deleteInBoundPeerInfo(peername)
+	//此处delete是defer调用, 提前绑定变量,需要传入指针, peeraddr的值才能被获取
+	defer s.deleteInBoundPeerInfo(&peeraddr)
 	defer stream.SendAndClose(&pb.ReqNil{})
 
 	for {
@@ -487,7 +479,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			//接收版本信息
 			peername = ver.GetPeername()
 			softversion := ver.GetSoftversion()
-			innerpeer := s.getInBoundPeerInfo(peername)
+			innerpeer := s.getInBoundPeerInfo(peeraddr)
 			channel, p2pVersion := decodeChannelVersion(ver.GetP2Pversion())
 			if !s.node.verifyP2PChannel(channel) {
 				return pb.ErrP2PChannel
@@ -497,9 +489,9 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				info := *innerpeer
 				info.p2pversion = p2pVersion
 				info.softversion = softversion
-				s.addInBoundPeerInfo(peername, info)
+				s.addInBoundPeerInfo(innerpeer.addr, info)
 			} else {
-				//没有获取到peername 的信息，说明没有获取ping的消息包
+				//没有获取到peer 的信息，说明没有获取ping的消息包
 				return pb.ErrStreamPing
 			}
 
@@ -512,13 +504,12 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 			if s.node.Size() > 0 {
 
-				if remoteIP != s.node.nodeInfo.GetListenAddr().IP.String() && remoteIP != s.node.nodeInfo.GetExternalAddr().IP.String() {
+				if peerIp != s.node.nodeInfo.GetListenAddr().IP.String() && peerIp != s.node.nodeInfo.GetExternalAddr().IP.String() {
 					s.node.nodeInfo.SetServiceTy(Service)
 				}
 			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
-			peeraddr = fmt.Sprintf("%s:%v", remoteIP, in.GetPing().GetPort())
-			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
+			peeraddr = fmt.Sprintf("%s:%v", peerIp, ping.GetPort())
 		}
 	}
 }
@@ -675,22 +666,22 @@ func (s *P2pserver) deleteStream(peerName string, delChan chan interface{}) {
 	}
 }
 
-func (s *P2pserver) addInBoundPeerInfo(peername string, info innerpeer) {
+func (s *P2pserver) addInBoundPeerInfo(peerAddr string, info innerpeer) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
-	s.inboundpeers[peername] = &info
+	s.inboundpeers[peerAddr] = &info
 }
 
-func (s *P2pserver) deleteInBoundPeerInfo(peername string) {
+func (s *P2pserver) deleteInBoundPeerInfo(peerAddr *string) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
-	delete(s.inboundpeers, peername)
+	delete(s.inboundpeers, *peerAddr)
 }
 
-func (s *P2pserver) getInBoundPeerInfo(peername string) *innerpeer {
+func (s *P2pserver) getInBoundPeerInfo(peerAddr string) *innerpeer {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
-	if key, ok := s.inboundpeers[peername]; ok {
+	if key, ok := s.inboundpeers[peerAddr]; ok {
 		return key
 	}
 
@@ -705,4 +696,14 @@ func (s *P2pserver) getInBoundPeers() []*innerpeer {
 		peers = append(peers, innerpeer)
 	}
 	return peers
+}
+
+func resolveClientNetAddr(ctx context.Context) (host, port string, err error) {
+
+	grpcPeer, ok := pr.FromContext(ctx)
+	if ok {
+		return net.SplitHostPort(grpcPeer.Addr.String())
+	} else {
+		return "", "", fmt.Errorf("get grpc peer from ctx err")
+	}
 }
