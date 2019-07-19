@@ -158,14 +158,6 @@ func (p *Peer) heartBeat() {
 		if !p.GetRunning() {
 			return
 		}
-
-		//在双方同时段进行连接时, 节点间也可能存在两个连接
-		if info := p.node.getInBoundInfo(p.peerAddr.String()); info != nil &&
-			p.timestamp <= info.timestamp { //主动断开更早的连接, 同时兼容了兼容老版本
-			log.Info("PeerHeartBeat duplicate connection", "peerAddr", p.peerAddr.String())
-			p.Close()
-			return
-		}
 		<-ticker.C
 		peerNum, err := pcli.GetInPeersNum(p)
 		if err == nil {
