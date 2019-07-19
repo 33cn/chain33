@@ -510,10 +510,13 @@ func (n *Node) verifyP2PChannel(channel int32) bool {
 	return channel == n.nodeInfo.cfg.Channel
 }
 
-func (n *Node) getInBoundInfo(peerAddr string) *innerpeer {
+//检测该节点地址是否作为客户端连入, 此时需要维护双向连接, 增加了节点间的连接冗余
+func (n *Node) isInBoundPeer(peerAddr string) (bool, *innerpeer) {
 
 	if n.server == nil || n.server.p2pserver == nil {
-		return nil
+		return false, nil
 	}
-	return n.server.p2pserver.getInBoundPeerInfo(peerAddr)
+	//查询连入的客户端
+	info := n.server.p2pserver.getInBoundPeerInfo(peerAddr)
+	return info == nil, info
 }

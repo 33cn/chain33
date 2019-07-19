@@ -200,6 +200,8 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	for peer.GetPeerName() == "" {
 		time.Sleep(time.Millisecond * 10)
 	}
+	exist, _ := p2p.node.isInBoundPeer("127.0.0.1:43802")
+	assert.True(t, exist)
 	t.Log(peer.GetInBouns())
 	t.Log(peer.version.GetVersion())
 	assert.IsType(t, "string", peer.GetPeerName())
