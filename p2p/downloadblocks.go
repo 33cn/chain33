@@ -158,12 +158,9 @@ func (d *DownloadJob) GetFreePeer(blockHeight int64) *Peer {
 			continue
 		}
 
-		info, ok := infos[peerName]
-		peerJob := d.getJobNum(peerName)
-		if ok && info.GetHeader().GetHeight() >= blockHeight &&
-			d.getJobNum(peerName) < minJobNum {
-
-			minJobNum = peerJob
+		if jobNum := d.getJobNum(peerName); jobNum < minJobNum &&
+			infos[peerName].GetHeader().GetHeight() >= blockHeight {
+			minJobNum = jobNum
 			bestPeer = peer
 		}
 	}
