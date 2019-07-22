@@ -276,7 +276,6 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
 	_, ver := decodeChannelVersion(resp.GetVersion())
 	peer.version.SetVersion(ver)
-	peer.timestamp = resp.Timestamp
 
 	ip, _, err := net.SplitHostPort(resp.GetAddrRecv())
 	if err == nil {

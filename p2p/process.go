@@ -150,7 +150,7 @@ func (n *Node) recvTx(tx *types.P2PTx) {
 	if n.checkAndRegFilterAtomic(txHashFilter, txHash) {
 		return
 	}
-	log.Debug("recvTx", "tx", txHash)
+	log.Debug("recvTx", "tx", txHash, "ttl", tx.GetRoute().GetTTL())
 	txHashFilter.Add(txHash, tx.Route)
 
 	msg := n.nodeInfo.client.NewMessage("mempool", types.EventTx, tx.GetTx())
@@ -164,7 +164,7 @@ func (n *Node) recvTx(tx *types.P2PTx) {
 func (n *Node) recvLtTx(tx *types.LightTx, pid string, pubPeerFunc pubFuncType) {
 
 	txHash := hex.EncodeToString(tx.TxHash)
-	log.Debug("recvLtTx", "peerID", pid, "txHash", txHash)
+	log.Debug("recvLtTx", "peerID", pid, "txHash", txHash, "ttl", tx.GetRoute().GetTTL())
 	//本地不存在, 需要向对端节点发起完整交易请求. 如果存在则表示本地已经接收过此交易, 不做任何操作
 	if !txHashFilter.QueryRecvData(txHash) {
 
@@ -206,7 +206,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pu
 	if n.checkAndRegFilterAtomic(blockHashFilter, blockHash) {
 		return
 	}
-	log.Debug("recvLtBlock", "blockHash", blockHash)
+	log.Debug("recvLtBlock", "blockHash", blockHash, "blockHeight", ltBlock.GetHeader().GetHeight())
 	//组装block
 	block := &types.Block{}
 	block.TxHash = ltBlock.Header.TxHash
@@ -226,7 +226,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pu
 	if len(ltBlock.STxHashes) > 0 {
 		resp, err := n.queryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: ltBlock.STxHashes, IsShortHash: true})
 		if err != nil {
-			log.Error("queryMempoolTxWithHash", "err", err)
+			log.Error("recvLtBlock", "queryTxListByHashErr", err)
 			return
 		}
 
@@ -264,16 +264,16 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pu
 	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) &&
 		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
-		log.Info("recvBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer", pid,
+		log.Info("recvLtBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer", pid,
 			"block size(KB)", float32(ltBlock.Size)/1024, "blockHash", blockHash)
 		//发送至blockchain执行
 		if err := n.postBlockChain(block, pid); err != nil {
-			log.Error("recvBlock", "send block to blockchain Error", err.Error())
+			log.Error("recvLtBlock", "send block to blockchain Error", err.Error())
 		}
 
 		return
 	}
-
+	log.Debug("recvLtBlockQueryBlock", "Hash", blockHash, "height", ltBlock.GetHeader().GetHeight(), "queryTxs", nilTxIndices, "pid", pid)
 	// 缺失的交易个数大于总数1/3 或者缺失数据大小大于2/3, 触发请求区块所有交易数据
 	if nilTxLen > 0 && (float32(nilTxLen) > float32(ltBlock.Header.TxCount)/3 ||
 		float32(block.Size()) < float32(ltBlock.Size)/3) {
@@ -345,6 +345,8 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid string, pubPeerFunc 
 }
 
 func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid string, pubPeerFunc pubFuncType) {
+
+	log.Debug("recvQueryReplyBlock", "Hash", rep.GetBlockHash(), "queryTxs", rep.GetTxIndices(), "pid", pid)
 	val, exist := ltBlockCache.del(rep.BlockHash)
 	block, _ := val.(*types.Block)
 	//not exist in cache or nil block
@@ -363,11 +365,11 @@ func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid string, pubPeerFun
 	//计算的root hash是否一致
 	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
-		log.Info("recvBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer", pid,
+		log.Info("recvQueryReplyBlock", "block==+======+====+=>Height", block.GetHeight(), "fromPeer", pid,
 			"block size(KB)", float32(block.Size())/1024, "blockHash", rep.BlockHash)
 		//发送至blockchain执行
 		if err := n.postBlockChain(block, pid); err != nil {
-			log.Error("recvBlock", "send block to blockchain Error", err.Error())
+			log.Error("recvQueryReplyBlock", "send block to blockchain Error", err.Error())
 		}
 	} else if len(rep.TxIndices) != 0 {
 		//不一致尝试请求整个区块的交易, 且判定是否已经请求过完整交易

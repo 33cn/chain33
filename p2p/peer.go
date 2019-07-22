@@ -50,7 +50,6 @@ type Peer struct {
 	taskChan     chan interface{} //tx block
 	inBounds     int32            //连接此节点的客户端节点数量
 	IsMaxInbouds bool
-	timestamp    int64 //建立连接的unix时间戳 纳秒
 }
 
 // NewPeer produce a peer object
