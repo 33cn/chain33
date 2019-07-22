@@ -146,9 +146,6 @@ func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	}
 
 	peerAddr := fmt.Sprintf("%v:%v", peerIP, port)
-	//注册inBoundInfo
-	timeNano := pb.Now().UnixNano()
-	s.addInBoundPeerInfo(peerAddr, innerpeer{addr: peerAddr, name: in.GetUserAgent(), timestamp: timeNano})
 
 	remoteNetwork, err := NewNetAddressString(peerAddr)
 	if err == nil {
@@ -158,7 +155,7 @@ func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	}
 
 	return &pb.P2PVersion{Version: s.node.nodeInfo.channelVersion,
-		Service: int64(s.node.nodeInfo.ServiceTy()), Timestamp: timeNano, Nonce: in.Nonce,
+		Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
 		AddrFrom: in.AddrRecv, AddrRecv: fmt.Sprintf("%v:%v", peerIP, port), UserAgent: pub}, nil
 }
 
@@ -423,7 +420,7 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 	peerAddr := fmt.Sprintf("%s:%v", peerIP, in.GetPort())
 	//等待ReadStream接收节点version信息
 	var peerInfo *innerpeer
-	for peerInfo = s.getInBoundPeerInfo(peerAddr); peerInfo == nil || peerInfo.p2pversion == 0; {
+	for ; peerInfo == nil || peerInfo.p2pversion == 0; peerInfo = s.getInBoundPeerInfo(peerAddr) {
 		time.Sleep(time.Second)
 	}
 	log.Debug("ServerStreamSend")
@@ -510,6 +507,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", peerIP, ping.GetPort())
+			s.addInBoundPeerInfo(peeraddr, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
 		}
 	}
 }
