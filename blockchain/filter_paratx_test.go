@@ -105,7 +105,7 @@ func addGroupParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI, haveMainTx
 }
 
 func TestGetParaTxByTitle(t *testing.T) {
-	log.SetLogLevel("crit")
+	//log.SetLogLevel("crit")
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	blockchain := mock33.GetBlockChain()
@@ -140,15 +140,6 @@ func TestGetParaTxByTitle(t *testing.T) {
 			break
 		}
 		time.Sleep(sendTxWait)
-	}
-
-	//打印block的信息
-	var height int64
-	for height = 0; height <= curheight; height++ {
-		blockdetail, err := blockchain.GetBlock(height)
-		require.NoError(t, err)
-		blockdetail = blockdetail
-		//chainlog.Info("TestGetParaTxByTitle", "height", height, "block", blockdetail)
 	}
 	var req types.ReqParaTxByTitle
 	req.Start = 0
