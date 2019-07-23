@@ -101,6 +101,9 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventGetValueByKey:
 			go chain.processMsg(msg, reqnum, chain.getValueByKey)
 
+		//通过平行链title获取平行链的交易
+		case types.EventGetParaTxByTitle:
+			go chain.processMsg(msg, reqnum, chain.getParaTxByTitle)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -585,4 +588,16 @@ func (chain *BlockChain) getValueByKey(msg *queue.Message) {
 	keys := (msg.Data).(*types.LocalDBGet)
 	values := chain.GetValueByKey(keys)
 	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, values))
+}
+
+//getParaTxByTitle //通过平行链title获取平行链的交易
+func (chain *BlockChain) getParaTxByTitle(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqParaTxByTitle)
+	reply, err := chain.GetParaTxByTitle(req)
+	if err != nil {
+		chainlog.Error("getParaTxByTitle", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
 }

@@ -386,3 +386,8 @@ func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
 	}
 	return &pb.Int64{Data: pb.GetFork(string(in.Key))}, nil
 }
+
+// GetParaTxByTitle 通过seq以及title获取对应平行连的交易
+func (g *Grpc) GetParaTxByTitle(ctx context.Context, in *pb.ReqParaTxByTitle) (*pb.ParaTxDetails, error) {
+	return g.cli.GetParaTxByTitle(in)
+}
