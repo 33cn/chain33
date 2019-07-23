@@ -196,14 +196,14 @@ func (op *OrphanPool) getChildOrphan(hash string, index int) *orphanBlock {
 	return op.prevOrphans[hash][index]
 }
 
-//GetChildOrphan 获取子孤儿连
+/*//GetChildOrphan 获取子孤儿连
 func (op *OrphanPool) GetChildOrphan(hash string, index int) *orphanBlock {
 	op.orphanLock.RLock()
 	defer op.orphanLock.RUnlock()
 
 	return op.getChildOrphan(hash, index)
 }
-
+*/
 func (op *OrphanPool) printorphan() {
 	for _, oBlock := range op.orphans {
 		// 打印孤儿block

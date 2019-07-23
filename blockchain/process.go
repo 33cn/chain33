@@ -98,6 +98,7 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
+
 	blockHash := block.Block.Hash()
 	chainlog.Debug("maybeAddBestChain", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
 
