@@ -137,7 +137,12 @@ type QueueProtocolAPI interface {
 	// --------------- blockchain interfaces end
 
 	// +++++++++++++++ store interfaces begin
+	StoreSet(param *types.StoreSetWithSync) (*types.ReplyHash, error)
 	StoreGet(*types.StoreGet) (*types.StoreReplyValue, error)
+	StoreMemSet(param *types.StoreSetWithSync) (*types.ReplyHash, error)
+	StoreCommit(param *types.ReqHash) (*types.ReplyHash, error)
+	StoreRollback(param *types.ReqHash) (*types.ReplyHash, error)
+	StoreDel(param *types.StoreDel) (*types.ReplyHash, error)
 	StoreGetTotalCoins(*types.IterateRangeByStateHash) (*types.ReplyGetTotalCoins, error)
 	StoreList(param *types.StoreList) (*types.StoreListReply, error)
 	// --------------- store interfaces end
