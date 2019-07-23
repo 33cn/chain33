@@ -70,7 +70,7 @@ func TestBlockChain(t *testing.T) {
 	//等待共识模块增长10个区块
 	testProcAddBlockMsg(t, mock33, blockchain)
 
-	curBlock := testGetBlock(t, blockchain)
+	//curBlock := testGetBlock(t, blockchain)
 
 	testGetTx(t, blockchain)
 
@@ -119,7 +119,7 @@ func TestBlockChain(t *testing.T) {
 	testProcAddParaChainBlockMsg(t, mock33, blockchain)
 	testProcGetBlockBySeqMsg(t, mock33, blockchain)
 	testProcBlockChainFork(t, blockchain)
-	testDelBlock(t, blockchain, curBlock)
+	testDelBlock(t, blockchain)
 	testIsRecordFaultErr(t)
 
 	testGetsynBlkHeight(t, blockchain)
@@ -835,15 +835,11 @@ func testRemoveOrphanBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testRemoveOrphanBlock end --------------------")
 }
 
-func testDelBlock(t *testing.T, blockchain *blockchain.BlockChain, curBlock *types.Block) {
+func testDelBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testDelBlock begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight)
 	require.NoError(t, err)
-	if curBlock == nil {
-		t.Error("testDelBlock curBlock is nil")
-	}
-	curBlock = curBlock
 	block.Block.Difficulty = block.Block.Difficulty - 100
 	newblock := types.BlockDetail{}
 	newblock.Block = block.Block
