@@ -1285,7 +1285,7 @@ func (q *QueueProtocol) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.
 		log.Error("GetParaTxByTitle", "Error", err)
 		return nil, err
 	}
-	msg, err := q.query(blockchainKey, types.EventGetParaTxByTitle, param)
+	msg, err := q.send(blockchainKey, types.EventGetParaTxByTitle, param)
 	if err != nil {
 		log.Error("GetParaTxByTitle", "Error", err.Error())
 		return nil, err
