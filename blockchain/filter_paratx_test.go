@@ -15,7 +15,6 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/common/merkle"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
