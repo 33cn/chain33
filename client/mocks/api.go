@@ -522,6 +522,29 @@ func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 	return r0, r1
 }
 
+// GetParaTxByTitle provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.ParaTxDetails, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ParaTxDetails
+	if rf, ok := ret.Get(0).(func(*types.ReqParaTxByTitle) *types.ParaTxDetails); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ParaTxDetails)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqParaTxByTitle) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetProperFee provides a mock function with given fields: req
 func (_m *QueueProtocolAPI) GetProperFee(req *types.ReqProperFee) (*types.ReplyProperFee, error) {
 	ret := _m.Called(req)

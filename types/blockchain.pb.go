@@ -5,8 +5,9 @@ package types
 
 import (
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
 	math "math"
+
+	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1617,9 +1618,9 @@ func (m *ParaTxDetails) GetItems() []*ParaTxDetail {
 	return nil
 }
 
-//type:平行链交易所在区块add/del操作，方便平行链回滚
-//header:平行链交易所在区块头信息
-//txDetails:本区块中指定title平行链的所有交易
+// type:平行链交易所在区块add/del操作，方便平行链回滚
+// header:平行链交易所在区块头信息
+// txDetails:本区块中指定title平行链的所有交易
 type ParaTxDetail struct {
 	Type                 int64       `protobuf:"varint,1,opt,name=type,proto3" json:"type,omitempty"`
 	Header               *Header     `protobuf:"bytes,2,opt,name=header,proto3" json:"header,omitempty"`
@@ -1676,10 +1677,10 @@ func (m *ParaTxDetail) GetTxDetails() []*TxDetail {
 }
 
 //交易的详情：
-//index:本交易在block中索引值，用于proof的证明
-//tx:本交易内容
-//receipt:本交易在主链的执行回执
-//proofs:本交易hash在block中merkel中的路径
+// index:本交易在block中索引值，用于proof的证明
+// tx:本交易内容
+// receipt:本交易在主链的执行回执
+// proofs:本交易hash在block中merkel中的路径
 type TxDetail struct {
 	Index                uint32       `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
 	Tx                   *Transaction `protobuf:"bytes,2,opt,name=tx,proto3" json:"tx,omitempty"`
