@@ -90,7 +90,6 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 
 	// 基本检测通过之后尝试添加block到主链上
 	chainlog.Debug("maybeAddBestChain:begin", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
-
 	return b.maybeAddBestChain(broadcast, block, pid, sequence)
 }
 
@@ -99,10 +98,15 @@ func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail,
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
 
-	blockHash := block.Block.Hash()
-	chainlog.Debug("maybeAddBestChain", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
+	tempbroadcast := broadcast
+	tempblock := block
+	temppid := pid
+	tempsequence := sequence
 
-	block, isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid, sequence)
+	blockHash := block.Block.Hash()
+	chainlog.Debug("maybeAddBestChain", "height", tempblock.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
+
+	blockdetail, isMainChain, err := b.maybeAcceptBlock(tempbroadcast, tempblock, temppid, tempsequence)
 
 	if err != nil {
 		return nil, false, false, err
@@ -114,7 +118,7 @@ func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail,
 	}
 
 	chainlog.Debug("maybeAddBestChain", "Accepted block", common.ToHex(blockHash))
-	return block, isMainChain, false, nil
+	return blockdetail, isMainChain, false, nil
 }
 
 //检查block是否已经存在index或者数据库中

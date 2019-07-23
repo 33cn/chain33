@@ -843,10 +843,10 @@ func testDelBlock(t *testing.T, blockchain *blockchain.BlockChain, curBlock *typ
 	if curBlock == nil {
 		t.Error("testDelBlock curBlock is nil")
 	}
-
-	curBlock.Difficulty = block.Block.Difficulty - 100
+	curBlock = curBlock
+	block.Block.Difficulty = block.Block.Difficulty - 100
 	newblock := types.BlockDetail{}
-	newblock.Block = curBlock
+	newblock.Block = block.Block
 
 	blockchain.ProcessBlock(true, &newblock, "1", true, 0)
 	chainlog.Info("testDelBlock end --------------------")
