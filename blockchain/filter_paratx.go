@@ -28,7 +28,7 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 	req := &types.ReqBlocks{Start: seq.Start, End: seq.End, IsDetail: false, Pid: []string{}}
 	sequences, err := chain.GetBlockSequences(req)
 	if err != nil {
-		chainlog.Error("GetParaTxByTitle:GetBlockSequences", "err", err.Error())
+		filterlog.Error("GetParaTxByTitle:GetBlockSequences", "err", err.Error())
 		return nil, err
 	}
 
@@ -42,7 +42,7 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 
 	blocks, err := chain.GetBlockByHashes(reqHashes.Hashes)
 	if err != nil {
-		chainlog.Error("GetParaTxByTitle:GetBlockByHashes", "err", err)
+		filterlog.Error("GetParaTxByTitle:GetBlockByHashes", "err", err)
 		return nil, err
 	}
 
@@ -67,7 +67,7 @@ func (chain *BlockChain) checkInputParam(seq *types.ReqParaTxByTitle) error {
 	//入参数校验
 	blockLastSeq, err := chain.blockStore.LoadBlockLastSequence()
 	if err != nil || seq.End > blockLastSeq || blockLastSeq < 0 || !strings.HasPrefix(seq.Title, types.ParaKeyX) {
-		chainlog.Error("checkInputParam", "blockLastSeq", blockLastSeq, "seq", seq, "err", err)
+		filterlog.Error("checkInputParam", "blockLastSeq", blockLastSeq, "seq", seq, "err", err)
 		return types.ErrInvalidParam
 	}
 	return nil
