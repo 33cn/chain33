@@ -122,18 +122,19 @@ func (n *Node) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCa
 
 func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion int32) (doSend bool) {
 
-	log.Debug("P2PSendStream", "will send tx", hex.EncodeToString(tx.Tx.Hash()), "ttl", tx.Route.TTL)
+	ttl := tx.GetRoute().GetTTL()
+	log.Debug("P2PSendStream", "will send tx", hex.EncodeToString(tx.Tx.Hash()), "ttl", ttl)
 	//超过最大的ttl, 不再发送
-	if tx.Route.TTL > n.nodeInfo.cfg.MaxTTL {
+	if ttl > n.nodeInfo.cfg.MaxTTL {
 		return false
 	}
 
 	//新版本且ttl达到设定值
-	if peerVersion >= lightBroadCastVersion && tx.Route.TTL >= n.nodeInfo.cfg.LightTxTTL {
+	if peerVersion >= lightBroadCastVersion && ttl >= n.nodeInfo.cfg.LightTxTTL {
 		p2pData.Value = &types.BroadCastData_LtTx{
 			LtTx: &types.LightTx{
 				TxHash: tx.Tx.Hash(),
-				Route:  tx.Route,
+				Route:  tx.GetRoute(),
 			},
 		}
 	} else {
