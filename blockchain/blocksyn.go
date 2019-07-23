@@ -189,11 +189,15 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 		requestblock.End = end
 	}
 	var cb func()
+	var timeoutcb func(height int64)
 	if syncOrfork {
 		//还有区块需要请求，挂接钩子回调函数
 		if requestblock.End < chain.downLoadInfo.EndHeight {
 			cb = func() {
 				chain.ReqDownLoadBlocks()
+			}
+			timeoutcb = func(height int64) {
+				chain.DownLoadTimeOutProc(height)
 			}
 			chain.UpdateDownLoadStartHeight(requestblock.End + 1)
 			//快速下载时需要及时更新bestpeer，防止下载侧链的block
@@ -203,7 +207,7 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 		} else { // 所有DownLoad block已请求结束，恢复DownLoadInfo为默认值
 			chain.DefaultDownLoadInfo()
 		}
-		err = chain.downLoadTask.Start(requestblock.Start, requestblock.End, cb)
+		err = chain.downLoadTask.Start(requestblock.Start, requestblock.End, cb, timeoutcb)
 		if err != nil {
 			return err
 		}
@@ -213,7 +217,7 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 				chain.SynBlocksFromPeers()
 			}
 		}
-		err = chain.syncTask.Start(requestblock.Start, requestblock.End, cb)
+		err = chain.syncTask.Start(requestblock.Start, requestblock.End, cb, timeoutcb)
 		if err != nil {
 			return err
 		}
@@ -570,6 +574,12 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		synlog.Info("chain syncTask InProgress")
 		return
 	}
+	//如果此时系统正在处理回滚，不启动同步的任务。
+	//等分叉回滚处理结束之后再启动同步任务继续同步
+	if chain.downLoadTask.InProgress() {
+		synlog.Info("chain downLoadTask InProgress")
+		return
+	}
 	//获取peers的最新高度.处理没有收到广播block的情况
 	if curheight+1 < peerMaxBlkHeight {
 		synlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
@@ -590,7 +600,6 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 //请求bestchain.Height -BackBlockNum -- bestchain.Height的header
 //需要考虑收不到分叉之后的第一个广播block，这样就会导致后面的广播block都在孤儿节点中了。
 func (chain *BlockChain) CheckHeightNoIncrease() {
-	synlog.Debug("CheckHeightNoIncrease")
 	defer chain.tickerwg.Done()
 
 	//获取当前主链的最新高度
@@ -609,8 +618,9 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 		chain.UpdatesynBlkHeight(tipheight)
 		return
 	}
-	//一个检测周期bestchain的tip高度没有变化。并且远远落后于peer的最新高度
-	//本节点可能在侧链上，需要从最新的peer上向后取BackBlockNum个headers
+	//一个检测周期发现本节点bestchain的tip高度没有变化。
+	//远远落后于高度的peer节点并且最高peer节点不是最优链，本节点可能在侧链上，
+	//需要从最新的peer上向后取BackBlockNum个headers
 
 	maxpeer := chain.GetMaxPeerInfo()
 	if maxpeer == nil {
@@ -620,8 +630,9 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 	peermaxheight := maxpeer.Height
 	pid := maxpeer.Name
 	var err error
-	if peermaxheight > tipheight && (peermaxheight-tipheight) > BackwardBlockNum {
-		//从指定peer 请求BackBlockNum个blockheaders
+	if peermaxheight > tipheight && (peermaxheight-tipheight) > BackwardBlockNum && !chain.isBestChainPeer(pid) {
+		//从指定peer向后请求BackBlockNum个blockheaders
+		synlog.Debug("CheckHeightNoIncrease", "tipheight", tipheight, "pid", pid)
 		if tipheight > BackBlockNum {
 			err = chain.FetchBlockHeaders(tipheight-BackBlockNum, tipheight, pid)
 		} else {
@@ -765,7 +776,13 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 		return nil
 	}
 	//在快速下载block阶段不处理fork的处理
+	//如果在普通同步阶段出现了分叉
+	//需要暂定同步解决分叉回滚之后再继续开启普通同步
 	if !chain.GetDownloadSyncStatus() {
+		if chain.syncTask.InProgress() {
+			err = chain.syncTask.Cancel()
+			synlog.Info("ProcBlockHeaders: cancel syncTask start fork process downLoadTask!", "err", err)
+		}
 		go chain.ProcDownLoadBlocks(ForkHeight, peermaxheight, []string{pid})
 	}
 	return nil
@@ -949,6 +966,17 @@ func (chain *BlockChain) GetBestChainPeer(pid string) *BestPeerInfo {
 	chain.bestpeerlock.Lock()
 	defer chain.bestpeerlock.Unlock()
 	return chain.bestChainPeerList[pid]
+}
+
+//isBestChainPeer 指定peer是不是最优链
+func (chain *BlockChain) isBestChainPeer(pid string) bool {
+	chain.bestpeerlock.Lock()
+	defer chain.bestpeerlock.Unlock()
+	peer := chain.bestChainPeerList[pid]
+	if peer != nil && peer.IsBestChain {
+		return true
+	}
+	return false
 }
 
 //GetBestChainPids 定时确保本节点在最优链上,定时向peer请求指定高度的header
