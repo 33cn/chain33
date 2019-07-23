@@ -392,7 +392,7 @@ func (n *Node) detectNodeAddr() {
 			if len(exportBytes) != 0 {
 				externalPort = int(P2pComm.BytesToInt32(exportBytes))
 			} else {
-				externalPort = defalutNatPort
+				externalPort = n.listenPort
 			}
 			if err != nil {
 				log.Error("bookDb Get", "nodePort", n.listenPort, "externalPortTag fail err:", err)
