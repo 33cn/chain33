@@ -204,7 +204,7 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 		time.Sleep(time.Millisecond * 10)
 		info = p2p.node.server.p2pserver.getInBoundPeerInfo("127.0.0.1:43802")
 	}
-	t.Log("WaitRegisterPeerStop...")
+	t.Log("WaitRegisterPeerStop")
 	p2pcli := NewNormalP2PCli()
 	num, err := p2pcli.GetInPeersNum(peer)
 	assert.Equal(t, 1, num)
@@ -213,7 +213,7 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	tx2 := &types.Transaction{Execer: []byte("testTx2")}
 	localP2P.node.pubToPeer(&types.P2PTx{Tx: tx1}, peer.GetPeerName())
 	p2p.node.server.p2pserver.pubToStream(&types.P2PTx{Tx: tx2}, info.name)
-	t.Log("WaitRegisterTxFilterStart...")
+	t.Log("WaitRegisterTxFilterStart")
 	for !(txHashFilter.QueryRecvData(hex.EncodeToString(tx1.Hash())) &&
 		txHashFilter.QueryRecvData(hex.EncodeToString(tx1.Hash()))) {
 		time.Sleep(time.Millisecond * 10)
