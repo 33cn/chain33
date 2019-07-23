@@ -15,8 +15,6 @@ import (
 	"sync"
 	"testing"
 
-	"unsafe"
-
 	. "github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log"
@@ -1983,65 +1981,4 @@ func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool) (newH
 		}
 	}
 	return newHash, nil
-}
-
-func TestSize1(t *testing.T) {
-	type storeNode struct {
-		Key       []byte
-		Value     []byte
-		LeftHash  []byte
-		RightHash []byte
-		Height    int32
-		Size      int32
-	}
-	type storeNode1 struct {
-		Key    [][]byte
-		Height int32
-		Size   int32
-	}
-	a := types.StoreNode{}
-	b := storeNode{}
-	var c []byte
-	d := storeNode1{}
-
-	//arcmp := NewTreeARC(10 * 10000)
-	//if arcmp == nil {
-	//	return
-	//}
-	//
-	//for i := 0; i < 10*10000; i++ {
-	//	data := &storeNode{
-	//		Key: []byte("12345678901234567890123456789012"),
-	//		Value: []byte("12345678901234567890123456789012"),
-	//		LeftHash: []byte("12345678901234567890123456789012"),
-	//		RightHash: []byte("12345678901234567890123456789012"),
-	//		//Key: copyBytes([]byte("12345678901234567890123456789012")),
-	//		//Value: copyBytes([]byte("12345678901234567890123456789012")),
-	//		//LeftHash: copyBytes([]byte("12345678901234567890123456789012")),
-	//		//RightHash: copyBytes([]byte("12345678901234567890123456789012")),
-	//		Height: 1,
-	//		Size: 123,
-	//	}
-	//	arcmp.Add(int64(i), data)
-	//}
-
-	//for i := 0; i < 100*10000; i++ {
-	//	data := &storeNode1{}
-	//	data.Height = 123
-	//	data.Size = 123
-	//	d.Key = make([][]byte, 4)
-	//	//d.Key[0] = []byte("12345678901234567890123456789012")
-	//	//d.Key[1] = []byte("12345678901234567890123456789012")
-	//	//d.Key[2] = []byte("12345678901234567890123456789012")
-	//	//d.Key[3] = []byte("12345678901234567890123456789012")
-	//
-	//	d.Key[0] = copyBytes([]byte("12345678901234567890123456789012"))
-	//	d.Key[1] = copyBytes([]byte("12345678901234567890123456789012"))
-	//	d.Key[2] = copyBytes([]byte("12345678901234567890123456789012"))
-	//	d.Key[3] = copyBytes([]byte("12345678901234567890123456789012"))
-	//	arcmp.Add(int64(i), data)
-	//}
-
-	PrintMemStats(1)
-	fmt.Println(unsafe.Sizeof(a), unsafe.Sizeof(b), unsafe.Sizeof(c), unsafe.Sizeof(d), len(d.Key), cap(d.Key))
 }
