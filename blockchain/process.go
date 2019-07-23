@@ -98,10 +98,13 @@ func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail,
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
 
+	detailBlocks := make([]*types.BlockDetail, 0, 1)
+	detailBlocks = append(detailBlocks, block)
+
 	blockHash := block.Block.Hash()
 	chainlog.Debug("maybeAddBestChain", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
 
-	blockdetail, isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid, sequence)
+	blockdetail, isMainChain, err := b.maybeAcceptBlock(broadcast, detailBlocks[0], pid, sequence)
 
 	if err != nil {
 		return nil, false, false, err
