@@ -242,6 +242,20 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
+	if types.IsFork(e.height, "ForkCacheDriver") {
+		return e.loadDriverNoCache(tx, index)
+	}
+	return e.loadDriverWithCache(tx, index)
+}
+
+func (e *executor) loadDriverNoCache(tx *types.Transaction, index int) (c drivers.Driver) {
+	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	e.setEnv(exec)
+	return exec
+}
+
+// cache exec name bug: 部分执行是否可以执行依赖于合约里的具体操作， 而不是只依赖执行器名字
+func (e *executor) loadDriverWithCache(tx *types.Transaction, index int) (c drivers.Driver) {
 	ename := string(tx.Execer)
 	exec, ok := e.execCache[ename]
 	if ok {

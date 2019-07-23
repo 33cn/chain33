@@ -178,6 +178,7 @@ ForkBlockCheck=1725000
 ForkLocalDBAccess=1
 ForkBase58AddressCheck=1800000
 ForkEnableParaRegExec=0
+ForkCacheDriver=0
 
 [fork.sub.coins]
 Enable=0

@@ -1183,6 +1183,52 @@ func (_m *QueueProtocolAPI) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySi
 	return r0, r1
 }
 
+// StoreCommit provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) StoreCommit(param *types.ReqHash) (*types.ReplyHash, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyHash
+	if rf, ok := ret.Get(0).(func(*types.ReqHash) *types.ReplyHash); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyHash)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqHash) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// StoreDel provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) StoreDel(param *types.StoreDel) (*types.ReplyHash, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyHash
+	if rf, ok := ret.Get(0).(func(*types.StoreDel) *types.ReplyHash); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyHash)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.StoreDel) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // StoreGet provides a mock function with given fields: _a0
 func (_m *QueueProtocolAPI) StoreGet(_a0 *types.StoreGet) (*types.StoreReplyValue, error) {
 	ret := _m.Called(_a0)
@@ -1244,6 +1290,75 @@ func (_m *QueueProtocolAPI) StoreList(param *types.StoreList) (*types.StoreListR
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.StoreList) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// StoreMemSet provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) StoreMemSet(param *types.StoreSetWithSync) (*types.ReplyHash, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyHash
+	if rf, ok := ret.Get(0).(func(*types.StoreSetWithSync) *types.ReplyHash); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyHash)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.StoreSetWithSync) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// StoreRollback provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) StoreRollback(param *types.ReqHash) (*types.ReplyHash, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyHash
+	if rf, ok := ret.Get(0).(func(*types.ReqHash) *types.ReplyHash); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyHash)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqHash) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// StoreSet provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) StoreSet(param *types.StoreSetWithSync) (*types.ReplyHash, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyHash
+	if rf, ok := ret.Get(0).(func(*types.StoreSetWithSync) *types.ReplyHash); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyHash)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.StoreSetWithSync) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)

@@ -18,8 +18,18 @@ func (m *mockStore) SetQueueClient(q queue.Queue) {
 		client.Sub("store")
 		for msg := range client.Recv() {
 			switch msg.Ty {
+			case types.EventStoreSet:
+				msg.Reply(client.NewMessage("store", types.EventStoreSetReply, &types.ReplyHash{}))
 			case types.EventStoreGet:
 				msg.Reply(client.NewMessage("store", types.EventStoreGetReply, &types.StoreReplyValue{}))
+			case types.EventStoreMemSet:
+				msg.Reply(client.NewMessage("store", types.EventStoreSetReply, &types.ReplyHash{}))
+			case types.EventStoreCommit:
+				msg.Reply(client.NewMessage("store", types.EventStoreCommit, &types.ReplyHash{}))
+			case types.EventStoreRollback:
+				msg.Reply(client.NewMessage("store", types.EventStoreRollback, &types.ReplyHash{}))
+			case types.EventStoreDel:
+				msg.Reply(client.NewMessage("store", types.EventStoreDel, &types.ReplyHash{}))
 			case types.EventStoreGetTotalCoins:
 				if req, ok := msg.GetData().(*types.IterateRangeByStateHash); ok {
 					if req.Count == 10 {

@@ -5,7 +5,6 @@
 package p2p
 
 import (
-	"container/list"
 	"fmt"
 	"io"
 	"sort"
@@ -41,13 +40,13 @@ func (i Invs) Swap(a, b int) {
 // DownloadJob defines download job type
 type DownloadJob struct {
 	wg            sync.WaitGroup
-	retryList     *list.List
 	p2pcli        *Cli
 	canceljob     int32
 	mtx           sync.Mutex
 	busyPeer      map[string]*peerJob
 	downloadPeers []*Peer
 	MaxJob        int32
+	retryItems    Invs
 }
 
 type peerJob struct {
@@ -57,11 +56,10 @@ type peerJob struct {
 // NewDownloadJob create a downloadjob object
 func NewDownloadJob(p2pcli *Cli, peers []*Peer) *DownloadJob {
 	job := new(DownloadJob)
-	job.retryList = list.New()
 	job.p2pcli = p2pcli
 	job.busyPeer = make(map[string]*peerJob)
 	job.downloadPeers = peers
-
+	job.retryItems = make([]*pb.Inventory, 0)
 	job.MaxJob = 5
 	if len(peers) < 5 {
 		job.MaxJob = 10
@@ -141,6 +139,13 @@ func (d *DownloadJob) setFreePeer(pid string) {
 	}
 }
 
+//加入到重试数组
+func (d *DownloadJob) appendRetryItem(item *pb.Inventory) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	d.retryItems = append(d.retryItems, item)
+}
+
 // GetFreePeer get free peer ,return peer
 func (d *DownloadJob) GetFreePeer(blockHeight int64) *Peer {
 	_, infos := d.p2pcli.network.node.GetActivePeers()
@@ -186,18 +191,18 @@ func (d *DownloadJob) isCancel() bool {
 // DownloadBlock download the block
 func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 	bchan chan *pb.BlockPid) []*pb.Inventory {
-	var errinvs []*pb.Inventory
 	if d.isCancel() {
-		return errinvs
+		return nil
 	}
 
 	for _, inv := range invs { //让一个节点一次下载一个区块，下载失败区块，交给下一轮下载
-	REGET:
-		freePeer := d.GetFreePeer(inv.GetHeight()) //获取当前任务数最少的节点，相当于 下载速度最快的节点
-		if freePeer == nil {
+
+		//获取当前任务数最少的节点，相当于 下载速度最快的节点
+		freePeer := d.GetFreePeer(inv.GetHeight())
+		for freePeer == nil {
 			log.Debug("no free peer")
 			time.Sleep(time.Millisecond * 100)
-			goto REGET
+			freePeer = d.GetFreePeer(inv.GetHeight())
 		}
 
 		d.wg.Add(1)
@@ -207,7 +212,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 			if err != nil {
 				d.removePeer(peer.GetPeerName())
 				log.Error("DownloadBlock:syncDownloadBlock", "height", inv.GetHeight(), "peer", peer.GetPeerName(), "err", err)
-				d.retryList.PushFront(inv) //失败的下载，放在下一轮ReDownload进行下载
+				d.appendRetryItem(inv) //失败的下载，放在下一轮ReDownload进行下载
 
 			} else {
 				d.setFreePeer(peer.GetPeerName())
@@ -217,35 +222,15 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 
 	}
 
-	return d.restOfInvs(bchan)
-}
-
-func (d *DownloadJob) restOfInvs(bchan chan *pb.BlockPid) []*pb.Inventory {
-	var errinvs []*pb.Inventory
-	if d.isCancel() {
-		return errinvs
-	}
-
+	//等待下载任务
 	d.wg.Wait()
-	if d.retryList.Len() == 0 {
-		return errinvs
+	retryInvs := d.retryItems
+	//存在重试项
+	if retryInvs.Len() > 0 {
+		d.retryItems = make([]*pb.Inventory, 0)
+		sort.Sort(retryInvs)
 	}
-
-	var invsArr Invs
-	for e := d.retryList.Front(); e != nil; {
-		if e.Value == nil {
-			continue
-		}
-		log.Debug("resetofInvs", "inv", e.Value.(*pb.Inventory).GetHeight())
-		invsArr = append(invsArr, e.Value.(*pb.Inventory)) //把下载遗漏的区块，重新组合进行下载
-		next := e.Next()
-		d.retryList.Remove(e)
-		e = next
-	}
-	//Sort
-	sort.Sort(invsArr)
-	//log.Info("resetOfInvs", "sorted:", invs)
-	return invsArr
+	return retryInvs
 }
 
 func (d *DownloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan chan *pb.BlockPid) error {
@@ -270,23 +255,19 @@ func (d *DownloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan cha
 	defer func() {
 		log.Debug("download", "frompeer", peer.Addr(), "blockheight", inv.GetHeight(), "downloadcost", pb.Since(beg))
 	}()
-	defer resp.CloseSend()
-	for {
-		invdatas, err := resp.Recv()
-		if err != nil {
-			if err == io.EOF {
-				if invdatas == nil {
-					return nil
-				}
-				goto RECV
-			}
-			log.Error("download", "resp,Recv err", err.Error(), "download from", peer.Addr())
-			return err
-		}
-	RECV:
-		for _, item := range invdatas.Items {
-			bchan <- &pb.BlockPid{Pid: peer.GetPeerName(), Block: item.GetBlock()} //下载完成后插入bchan
-			log.Debug("download", "frompeer", peer.Addr(), "blockheight", inv.GetHeight(), "Blocksize", item.GetBlock().Size())
-		}
+
+	invData, err := resp.Recv()
+	if err != nil && err != io.EOF {
+		log.Error("syncDownloadBlock", "RecvData err", err.Error())
+		return err
 	}
+	//返回单个数据条目
+	if invData == nil || len(invData.Items) != 1 {
+		return fmt.Errorf("InvalidRecvData")
+	}
+
+	block := invData.Items[0].GetBlock()
+	bchan <- &pb.BlockPid{Pid: peer.GetPeerName(), Block: block} //加入到输出通道
+	log.Debug("download", "frompeer", peer.Addr(), "blockheight", inv.GetHeight(), "blockSize", block.Size())
+	return nil
 }
