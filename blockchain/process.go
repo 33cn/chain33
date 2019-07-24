@@ -24,7 +24,7 @@ import (
 func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addBlock bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
-	chainlog.Debug("ProcessBlock:Processing", "height", block.Block.Height, "blockHash", common.ToHex(blockHash))
+	chainlog.Debug("ProcessBlock:Processing", "height", block.Block.Height, "blockHash", common.ToHex(block.Block.Hash()))
 
 	//blockchain close 时不再处理block
 	if atomic.LoadInt32(&b.isclosed) == 1 {
