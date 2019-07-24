@@ -340,6 +340,7 @@ function transfer() {
                 exit 1
             fi
         else
+        	docker exec build_chain33_1 tail -1000000 /root/logs/chain33.log
             echo "account balance transfer success"
             break
         fi

@@ -22,6 +22,9 @@ import (
 //共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
 // 返回参数说明：是否主链，是否孤儿节点，具体err
 func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addBlock bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
+	b.chainLock.Lock()
+	defer b.chainLock.Unlock()
+	chainlog.Debug("ProcessBlock:Processing", "height", block.Block.Height, "blockHash", common.ToHex(blockHash))
 
 	//blockchain close 时不再处理block
 	if atomic.LoadInt32(&b.isclosed) == 1 {
@@ -100,8 +103,8 @@ func (b *BlockChain) MaybeAddBestChain(broadcast bool, block *types.BlockDetail,
 
 //基本检测通过之后尝试将此block添加到主链上
 func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
-	b.chainLock.Lock()
-	defer b.chainLock.Unlock()
+	//b.chainLock.Lock()
+	//defer b.chainLock.Unlock()
 
 	blockHash := block.Block.Hash()
 	chainlog.Debug("maybeAddBestChain", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
