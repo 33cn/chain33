@@ -161,6 +161,45 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 	return txHex, nil
 }
 
+// CreateNoBalanceTransactions create the transaction with no balance
+func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Transaction, error) {
+	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
+	txNone.To = address.ExecAddress(string(txNone.Execer))
+	txNone, err := types.FormatTx(types.ExecName(types.NoneX), txNone)
+	if err != nil {
+		return nil, err
+	}
+	transactions := []*types.Transaction{txNone}
+	for _, txhex := range in.TxHexs {
+		tx, err := decodeTx(txhex)
+		if err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, tx)
+	}
+
+	group, err := types.CreateTxGroup(transactions)
+	if err != nil {
+		return nil, err
+	}
+	err = group.Check(0, types.GInt("MinFee"), types.GInt("MaxFee"))
+	if err != nil {
+		return nil, err
+	}
+	newtx := group.Tx()
+	//如果可能要做签名
+	if in.PayAddr != "" || in.Privkey != "" {
+		rawTx := hex.EncodeToString(types.Encode(newtx))
+		req := &types.ReqSignRawTx{Addr: in.PayAddr, Privkey: in.Privkey, Expire: in.Expire, TxHex: rawTx, Index: 1}
+		signedTx, err := c.SignRawTx(req)
+		if err != nil {
+			return nil, err
+		}
+		return decodeTx(signedTx.TxHex)
+	}
+	return newtx, nil
+}
+
 // CreateNoBalanceTransaction create the transaction with no balance
 func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*types.Transaction, error) {
 	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
