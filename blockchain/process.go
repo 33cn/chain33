@@ -7,6 +7,7 @@ package blockchain
 import (
 	"bytes"
 	"container/list"
+	"fmt"
 	"math/big"
 	"sync/atomic"
 
@@ -22,9 +23,8 @@ import (
 //共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
 // 返回参数说明：是否主链，是否孤儿节点，具体err
 func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addBlock bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
-	b.chainLock.Lock()
-	defer b.chainLock.Unlock()
 	chainlog.Debug("ProcessBlock:Processing", "height", block.Block.Height, "blockHash", common.ToHex(block.Block.Hash()))
+	fmt.Sprintln("ProcessBlock:hash", common.ToHex(block.Block.Hash()))
 
 	//blockchain close 时不再处理block
 	if atomic.LoadInt32(&b.isclosed) == 1 {
@@ -93,6 +93,8 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 
 	// 基本检测通过之后尝试添加block到主链上
 	chainlog.Debug("MaybeAddBestChain:begin", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
+	fmt.Sprintln("ProcessBlock:MaybeAddBestChain:hash", common.ToHex(blockHash))
+
 	return b.MaybeAddBestChain(broadcast, block, pid, sequence)
 }
 
@@ -103,11 +105,12 @@ func (b *BlockChain) MaybeAddBestChain(broadcast bool, block *types.BlockDetail,
 
 //基本检测通过之后尝试将此block添加到主链上
 func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
-	//b.chainLock.Lock()
-	//defer b.chainLock.Unlock()
+	b.chainLock.Lock()
+	defer b.chainLock.Unlock()
 
 	blockHash := block.Block.Hash()
 	chainlog.Debug("maybeAddBestChain", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
+	fmt.Sprintln("maybeAddBestChain:hash", common.ToHex(blockHash))
 
 	blockdetail, isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid, sequence)
 
@@ -385,7 +388,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
 		return nil, err
 	}
-	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", types.Since(beg))
+	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", types.Since(beg), "hash", common.ToHex(blockdetail.Block.Hash()))
 
 	// 更新最新的高度和header
 	b.blockStore.UpdateHeight2(blockdetail.GetBlock().GetHeight())

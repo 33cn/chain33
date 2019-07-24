@@ -597,6 +597,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 		}
 	}
 	storeLog.Debug("SaveBlock success", "blockheight", height, "hash", common.ToHex(hash))
+	fmt.Sprintln("SaveBlock:success:hash", common.ToHex(hash))
 	return lastSequence, nil
 }
 

@@ -238,11 +238,12 @@ func CreateCoinsBlock(priv crypto.PrivKey, n int64) *types.Block {
 func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
-	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
+	tempblockhash := block.Hash()
+	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs), "hash", common.ToHex(tempblockhash))
 	beg := types.Now()
 	beg2 := beg
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg2))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg2), "hash", common.ToHex(block.Hash()))
 	}()
 
 	if errReturn && block.Height > 0 && !block.CheckSign() {
@@ -257,20 +258,20 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Debug("ExecBlock", "CheckTxDup", types.Since(beg))
+	ulog.Debug("ExecBlock", "CheckTxDup", types.Since(beg), "hash", common.ToHex(block.Hash()))
 	beg = types.Now()
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
 	}
-	ulog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
+	ulog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount, "hash", common.ToHex(block.Hash()))
 	block.Txs = types.CacheToTxs(cacheTxs)
 	//println("1")
 	receipts, err := ExecTx(client, prevStateRoot, block)
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Debug("ExecBlock", "ExecTx", types.Since(beg))
+	ulog.Debug("ExecBlock", "ExecTx", types.Since(beg), "hash", common.ToHex(block.Hash()))
 	beg = types.Now()
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
@@ -314,7 +315,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}
-	ulog.Debug("ExecBlock", "CalcMerkleRootCache", types.Since(beg))
+	ulog.Debug("ExecBlock", "CalcMerkleRootCache", types.Since(beg), "hash", common.ToHex(block.Hash()))
 	beg = types.Now()
 	block.TxHash = calcHash
 	var detail types.BlockDetail
@@ -345,7 +346,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			return nil, deltx, err
 		}
 	}
-	ulog.Debug("ExecBlock", "CheckBlock", types.Since(beg))
+	ulog.Debug("ExecBlock", "CheckBlock", types.Since(beg), "hash", common.ToHex(detail.Block.Hash()))
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
 	err = ExecKVSetCommit(client, block.StateHash, false)
 	if err != nil {
