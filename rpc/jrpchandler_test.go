@@ -1300,6 +1300,7 @@ func TestChain33_GetBalance(t *testing.T) {
 func TestChain33_CreateNoBalanceTransaction(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	chain33 := newTestChain33(api)
+	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 1000000}, nil)
 	var result string
 	err := chain33.CreateNoBalanceTransaction(&types.NoBalanceTx{TxHex: "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"}, &result)
 	assert.NoError(t, err)

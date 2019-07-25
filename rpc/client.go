@@ -78,7 +78,7 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		if err != nil {
 			return nil, err
 		}
-		fee, err := tx.GetRealFee(proper.ProperFee)
+		fee, err := tx.GetRealFee(proper.GetProperFee())
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +211,7 @@ func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*type
 	}
 	//先获取实际交易, 通过实际交易获取计算交易费
 	copyTx := group.Tx()
-	realFee, err := copyTx.GetRealFee(proper.ProperFee)
+	realFee, err := copyTx.GetRealFee(proper.GetProperFee())
 	if err != nil {
 		log.Error("CreateNoBalance", "GetRealFeeErr", err)
 		return nil, err
