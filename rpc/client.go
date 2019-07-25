@@ -60,7 +60,32 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	if param.Execer != "" {
 		execer = param.Execer
 	}
-	return types.CallCreateTx(execer, "", param)
+	reply, err := types.CallCreateTx(execer, "", param)
+	if err != nil {
+		return nil, err
+	}
+
+	//add tx fee setting
+	tx := &types.Transaction{}
+	err = types.Decode(reply, tx)
+	if err != nil {
+		return nil, err
+	}
+	tx.Fee = param.Fee
+	//set proper fee if zero fee
+	if tx.Fee <= 0 {
+		proper, err := c.GetProperFee(nil)
+		if err != nil {
+			return nil, err
+		}
+		fee, err := tx.GetRealFee(proper.ProperFee)
+		if err != nil {
+			return nil, err
+		}
+		tx.Fee = fee
+	}
+
+	return types.Encode(tx), nil
 }
 
 func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) {
