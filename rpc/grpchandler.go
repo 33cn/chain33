@@ -19,7 +19,7 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	return g.cli.SendTx(in)
 }
 
-// CreateNoBalanceTransactions create muti transaction with no balance
+// CreateNoBalanceTxs create multiple transaction with no balance
 func (g *Grpc) CreateNoBalanceTxs(ctx context.Context, in *pb.NoBalanceTxs) (*pb.ReplySignRawTx, error) {
 	reply, err := g.cli.CreateNoBalanceTxs(in)
 	if err != nil {

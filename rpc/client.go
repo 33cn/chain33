@@ -161,7 +161,7 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 	return txHex, nil
 }
 
-// CreateNoBalanceTransactions create the transaction with no balance
+// CreateNoBalanceTxs create the multiple transaction with no balance
 func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Transaction, error) {
 	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))

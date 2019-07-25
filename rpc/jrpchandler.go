@@ -92,7 +92,7 @@ func (c *Chain33) CreateRawTxGroup(in *types.CreateTransactionGroup, result *int
 	return nil
 }
 
-// CreateNoBlanaceTransactions create muti transaction with no balance
+// CreateNoBlanaceTxs create multiple transaction with no balance
 func (c *Chain33) CreateNoBlanaceTxs(in *types.NoBalanceTxs, result *string) error {
 	tx, err := c.cli.CreateNoBalanceTxs(in)
 	if err != nil {
