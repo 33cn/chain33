@@ -1077,6 +1077,11 @@ func TestGrpc_CreateNoBalanceTransaction(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestGrpc_CreateNoBalanceTxs(t *testing.T) {
+	_, err := g.CreateNoBalanceTxs(getOkCtx(), &pb.NoBalanceTxs{})
+	assert.NoError(t, err)
+}
+
 func TestGrpc_CreateRawTransaction(t *testing.T) {
 	_, err := g.CreateRawTransaction(getOkCtx(), &pb.CreateTx{})
 	assert.NoError(t, err)
