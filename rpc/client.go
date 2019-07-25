@@ -178,10 +178,27 @@ func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*type
 	if err != nil {
 		return nil, err
 	}
+	//set proper fee
+	proper, err := c.GetProperFee(nil)
+	if err != nil {
+		log.Error("CreateNoBalance", "GetProperFeeErr", err)
+		return nil, err
+	}
+	//先获取实际交易, 通过实际交易获取计算交易费
+	copyTx := group.Tx()
+	realFee, err := copyTx.GetRealFee(proper.ProperFee)
+	if err != nil {
+		log.Error("CreateNoBalance", "GetRealFeeErr", err)
+		return nil, err
+	}
+	//设置交易费并重组
+	group.Txs[0].Fee = realFee
+	group.RebuiltGroup()
 	err = group.Check(0, types.GInt("MinFee"), types.GInt("MaxFee"))
 	if err != nil {
 		return nil, err
 	}
+
 	newtx := group.Tx()
 	//如果可能要做签名
 	if in.PayAddr != "" || in.Privkey != "" {

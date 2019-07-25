@@ -324,9 +324,15 @@ func TestChannelClient_GetTotalCoins(t *testing.T) {
 
 func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	client := new(channelClient)
+	api := new(mocks.QueueProtocolAPI)
+	client.Init(&qmock.Client{}, api)
+	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 2000000}, nil)
 	in := &types.NoBalanceTx{}
-	_, err := client.CreateNoBalanceTransaction(in)
+	tx, err := client.CreateNoBalanceTransaction(in)
 	assert.NoError(t, err)
+	fee, err := tx.GetRealFee(2000000)
+	assert.NoError(t, err)
+	assert.Equal(t, fee, tx.Fee)
 }
 
 func TestClientReWriteRawTx(t *testing.T) {
