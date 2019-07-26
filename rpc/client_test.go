@@ -329,13 +329,14 @@ func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	client := new(channelClient)
 	api := new(mocks.QueueProtocolAPI)
 	client.Init(&qmock.Client{}, api)
-	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 2000000}, nil)
+	fee := types.GInt("MinFee") * 2
+	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: fee}, nil)
 	in := &types.NoBalanceTx{}
 	tx, err := client.CreateNoBalanceTransaction(in)
 	assert.NoError(t, err)
-	fee, err := tx.GetRealFee(2000000)
+	gtx, _ := tx.GetTxGroup()
+	assert.NoError(t, gtx.Check(0, fee, types.GInt("MaxFee")))
 	assert.NoError(t, err)
-	assert.Equal(t, fee, tx.Fee)
 }
 
 func TestClientReWriteRawTx(t *testing.T) {

@@ -36,7 +36,7 @@ func Test_processP2P(t *testing.T) {
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 4600, Expire: 2}
 	tx1 := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 460000000, Expire: 0}
 	tx2 := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 100, Expire: 1}
-	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2})
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, types.GInt("MinFee"))
 	gtx := txGroup.Tx()
 	txList := append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
 	memTxList := append([]*types.Transaction{}, tx, gtx)

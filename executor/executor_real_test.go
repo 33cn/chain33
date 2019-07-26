@@ -65,7 +65,8 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(priv2, addr3, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(priv3, addr4, types.Coin))
 	//执行三笔交易: 全部正确
-	txgroup, err := types.CreateTxGroup(txs)
+	feeRate := types.GInt("MinFee")
+	txgroup, err := types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, genkey)
@@ -85,7 +86,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(genkey, addr4, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(genkey, addr4, types.Coin))
 
-	txgroup, err = types.CreateTxGroup(txs)
+	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, priv2)
@@ -100,7 +101,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(priv2, addr4, 2*types.Coin))
 	txs = append(txs, util.CreateCoinsTx(genkey, addr4, types.Coin))
 
-	txgroup, err = types.CreateTxGroup(txs)
+	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, genkey)
@@ -115,7 +116,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(genkey, addr4, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(priv2, addr4, 10*types.Coin))
 
-	txgroup, err = types.CreateTxGroup(txs)
+	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, genkey)
@@ -131,7 +132,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(priv2, addr4, 10*types.Coin))
 	txs[2].Execer = []byte("user.xxx")
 	txs[2].To = address.ExecAddress("user.xxx")
-	txgroup, err = types.CreateTxGroup(txs)
+	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, genkey)
