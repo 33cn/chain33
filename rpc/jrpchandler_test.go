@@ -438,6 +438,7 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
+	api.On("GetProperFee", mock.Anything).Return(nil, nil)
 	err := testChain33.CreateRawTxGroup(nil, &testResult)
 	assert.Nil(t, testResult)
 	assert.NotNil(t, err)

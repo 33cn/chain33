@@ -176,7 +176,17 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 		}
 		transactions = append(transactions, &transaction)
 	}
-	group, err := types.CreateTxGroup(transactions)
+	feeRate := types.GInt("MinFee")
+	//get proper fee rate
+	proper, err := c.GetProperFee(nil)
+	if err != nil {
+		log.Error("CreateNoBalance", "GetProperFeeErr", err)
+		return nil, err
+	}
+	if proper.GetProperFee() > feeRate {
+		feeRate = proper.ProperFee
+	}
+	group, err := types.CreateTxGroup(transactions, feeRate)
 	if err != nil {
 		return nil, err
 	}
@@ -199,27 +209,22 @@ func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*type
 		return nil, err
 	}
 	transactions := []*types.Transaction{txNone, tx}
-	group, err := types.CreateTxGroup(transactions)
-	if err != nil {
-		return nil, err
-	}
-	//set proper fee
+	feeRate := types.GInt("MinFee")
+	//get proper fee rate
 	proper, err := c.GetProperFee(nil)
 	if err != nil {
 		log.Error("CreateNoBalance", "GetProperFeeErr", err)
 		return nil, err
 	}
-	//先获取实际交易, 通过实际交易获取计算交易费
-	copyTx := group.Tx()
-	realFee, err := copyTx.GetRealFee(proper.GetProperFee())
+	if proper.GetProperFee() > feeRate {
+		feeRate = proper.ProperFee
+	}
+	group, err := types.CreateTxGroup(transactions, feeRate)
 	if err != nil {
-		log.Error("CreateNoBalance", "GetRealFeeErr", err)
 		return nil, err
 	}
-	//设置交易费并重组
-	group.Txs[0].Fee = realFee
-	group.RebuiltGroup()
-	err = group.Check(0, types.GInt("MinFee"), types.GInt("MaxFee"))
+
+	err = group.Check(0, feeRate, types.GInt("MaxFee"))
 	if err != nil {
 		return nil, err
 	}
