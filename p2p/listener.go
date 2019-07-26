@@ -21,18 +21,18 @@ import (
 
 // Listener the actions
 type Listener interface {
-	Close()
+	Close1()
 	Start()
 }
 
-// Start listener start
+// Start server start
 func (l *listener) Start() {
 	l.p2pserver.Start()
 	go l.server.Serve(l.netlistener)
 
 }
 
-// Close listener close
+// Close server close
 func (l *listener) Close() {
 	err := l.netlistener.Close()
 	if err != nil {
@@ -40,7 +40,7 @@ func (l *listener) Close() {
 	}
 	go l.server.Stop()
 	l.p2pserver.Close()
-	log.Info("stop", "listener", "close")
+	log.Info("stop", "server", "close")
 
 }
 
@@ -52,10 +52,10 @@ type listener struct {
 	netlistener net.Listener
 }
 
-// NewListener produce a listener object
-func NewListener(protocol string, node *Node) Listener {
+// newListener produce a server object
+func newListener(protocol string, node *Node) *listener {
 Retry:
-	log.Info("NewListener", "localPort", node.listenPort)
+	log.Info("newListener", "localPort", node.listenPort)
 	l, err := net.Listen(protocol, fmt.Sprintf(":%v", node.listenPort))
 	if err != nil {
 		log.Error("Failed to listen", "Error", err.Error())
@@ -131,7 +131,7 @@ Retry:
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.UnaryInterceptor(interceptor), grpc.StreamInterceptor(interceptorStream))
 	//区块最多10M
-	msgRecvOp := grpc.MaxMsgSize(11 * 1024 * 1024)     //设置最大接收数据大小位11M
+	msgRecvOp := grpc.MaxRecvMsgSize(11 * 1024 * 1024) //设置最大接收数据大小位11M
 	msgSendOp := grpc.MaxSendMsgSize(11 * 1024 * 1024) //设置最大发送数据大小为11M
 	var keepparm keepalive.ServerParameters
 	keepparm.Time = 5 * time.Minute

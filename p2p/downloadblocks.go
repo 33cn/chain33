@@ -148,33 +148,21 @@ func (d *DownloadJob) appendRetryItem(item *pb.Inventory) {
 
 // GetFreePeer get free peer ,return peer
 func (d *DownloadJob) GetFreePeer(blockHeight int64) *Peer {
-	_, infos := d.p2pcli.network.node.GetActivePeers()
-	var jobNum int32 = 10
+	infos := d.p2pcli.network.node.nodeInfo.peerInfos.GetPeerInfos()
+	var minJobNum int32 = 10
 	var bestPeer *Peer
 	for _, peer := range d.downloadPeers {
 
-		pbpeer, ok := infos[peer.Addr()]
-		if ok {
-			if len(peer.GetPeerName()) == 0 {
-				peer.SetPeerName(pbpeer.GetName())
-			}
-
-			if pbpeer.GetHeader().GetHeight() >= blockHeight {
-				if d.isBusyPeer(pbpeer.GetName()) {
-					continue
-				}
-				peerJopNum := d.getJobNum(pbpeer.GetName())
-				if jobNum > peerJopNum {
-					jobNum = peerJopNum
-					bestPeer = peer
-				}
-			}
+		peerName := peer.GetPeerName()
+		if d.isBusyPeer(peerName) {
+			continue
 		}
-	}
 
-	if bestPeer != nil {
-		d.setBusyPeer(bestPeer.GetPeerName())
-
+		if jobNum := d.getJobNum(peerName); jobNum < minJobNum &&
+			infos[peerName].GetHeader().GetHeight() >= blockHeight {
+			minJobNum = jobNum
+			bestPeer = peer
+		}
 	}
 	return bestPeer
 }
@@ -204,7 +192,7 @@ func (d *DownloadJob) DownloadBlock(invs []*pb.Inventory,
 			time.Sleep(time.Millisecond * 100)
 			freePeer = d.GetFreePeer(inv.GetHeight())
 		}
-
+		d.setBusyPeer(freePeer.GetPeerName())
 		d.wg.Add(1)
 		go func(peer *Peer, inv *pb.Inventory) {
 			defer d.wg.Done()

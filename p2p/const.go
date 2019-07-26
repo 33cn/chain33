@@ -35,7 +35,7 @@ const (
 )
 
 const (
-	defalutNatPort  = 23802
+	//defalutNatPort  = 23802
 	maxOutBoundNum  = 25
 	stableBoundNum  = 15
 	maxAttemps      = 5

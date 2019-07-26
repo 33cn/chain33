@@ -380,39 +380,32 @@ func (m *Cli) GetHeaders(msg *queue.Message, taskindex int64) {
 
 	msg.Reply(m.network.client.NewMessage("blockchain", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
 	peers, infos := m.network.node.GetActivePeers()
-	var pidIsActivePeer bool
 
-	for paddr, info := range infos {
-		if info.GetName() == pid[0] { //匹配成功
-			peer, ok := peers[paddr]
-			if ok && peer != nil {
-				var err error
-				pidIsActivePeer = true
-				headers, err := peer.mconn.gcli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
-					Version: m.network.node.nodeInfo.channelVersion}, grpc.FailFast(true))
-				P2pComm.CollectPeerStat(err, peer)
-				if err != nil {
-					log.Error("GetBlocks", "Err", err.Error())
-					if err == pb.ErrVersion {
-						peer.version.SetSupport(false)
-						P2pComm.CollectPeerStat(err, peer) //把no support 消息传递过去
-					}
-					return
-				}
-
-				client := m.network.node.nodeInfo.client
-				msg := client.NewMessage("blockchain", pb.EventAddBlockHeaders, &pb.HeadersPid{Pid: pid[0], Headers: &pb.Headers{Items: headers.GetHeaders()}})
-				err = client.Send(msg, false)
-				if err != nil {
-					log.Error("send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
-				}
+	if peer, ok := peers[pid[0]]; ok && peer != nil {
+		var err error
+		headers, err := peer.mconn.gcli.GetHeaders(context.Background(), &pb.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
+			Version: m.network.node.nodeInfo.channelVersion}, grpc.FailFast(true))
+		P2pComm.CollectPeerStat(err, peer)
+		if err != nil {
+			log.Error("GetBlocks", "Err", err.Error())
+			if err == pb.ErrVersion {
+				peer.version.SetSupport(false)
+				P2pComm.CollectPeerStat(err, peer) //把no support 消息传递过去
 			}
+			return
 		}
-	}
-	//当请求的pid不是ActivePeer时需要打印日志方便问题定位
-	if !pidIsActivePeer {
+
+		client := m.network.node.nodeInfo.client
+		msg := client.NewMessage("blockchain", pb.EventAddBlockHeaders, &pb.HeadersPid{Pid: pid[0], Headers: &pb.Headers{Items: headers.GetHeaders()}})
+		err = client.Send(msg, false)
+		if err != nil {
+			log.Error("send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
+		}
+	} else {
+		//当请求的pid不是ActivePeer时需要打印日志方便问题定位
 		log.Debug("GetHeaders", "pid", pid[0], "ActivePeers", peers, "infos", infos)
 	}
+
 }
 
 // GetBlocks get blocks information
@@ -446,32 +439,19 @@ func (m *Cli) GetBlocks(msg *queue.Message, taskindex int64) {
 	peers, infos := m.network.node.GetActivePeers()
 	if len(pids) > 0 && pids[0] != "" { //指定Pid 下载数据
 		log.Debug("fetch from peer in pids", "pids", pids)
-		var pidmap = make(map[string]bool)
 		for _, pid := range pids {
-			pidmap[pid] = true
-		}
-		for paddr, info := range infos {
-			if _, ok := pidmap[info.GetName()]; ok { //匹配成功
-
-				peer, ok := peers[paddr]
-				if ok && peer != nil {
-					downloadPeers = append(downloadPeers, peer)
-
-				}
+			if peer, ok := peers[pid]; ok && peer != nil {
+				downloadPeers = append(downloadPeers, peer)
 			}
 		}
 
 	} else {
 		log.Debug("fetch from all peers in pids")
-		for _, peer := range peers {
-			peerinfo, ok := infos[peer.Addr()]
-			if !ok {
+		for name, peer := range peers {
+			info, ok := infos[name]
+			if !ok || info.GetHeader().GetHeight() < req.GetStart() { //高度不符合要求
 				continue
 			}
-			if peerinfo.GetHeader().GetHeight() < req.GetStart() { //高度不符合要求
-				continue
-			}
-
 			downloadPeers = append(downloadPeers, peer)
 		}
 	}
@@ -563,7 +543,7 @@ func (m *Cli) GetNetInfo(msg *queue.Message, taskindex int64) {
 	netinfo.Localaddr = m.network.node.nodeInfo.GetListenAddr().String()
 	netinfo.Service = m.network.node.nodeInfo.IsOutService()
 	netinfo.Outbounds = int32(m.network.node.Size())
-	netinfo.Inbounds = int32(len(m.network.node.listener.(interface{}).(*listener).p2pserver.getInBoundPeers()))
+	netinfo.Inbounds = int32(len(m.network.node.server.p2pserver.getInBoundPeers()))
 	msg.Reply(m.network.client.NewMessage("rpc", pb.EventReplyNetInfo, &netinfo))
 
 }
