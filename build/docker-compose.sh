@@ -70,6 +70,7 @@ echo "CLI=$CLI"
 ####################
 
 testtoml=chain33.toml
+testtomlsolo=chain33-solo.toml
 
 function base_init() {
 
@@ -93,6 +94,7 @@ function base_init() {
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' ${testtoml}
 
+    cp ${testtoml} ${testtomlsolo}
     #consens
     consens_init "solo"
 
@@ -103,6 +105,9 @@ function consens_init() {
     if [ "$1" == "solo" ]; then
         sed -i $sedfix 's/^name="ticket"/name="solo"/g' ${testtoml}
         sed -i $sedfix 's/^singleMode=false/singleMode=true/g' ${testtoml}
+
+        # only one node miner for solo miner
+        sed -i $sedfix 's/^minerstart=true/minerstart=false/g' ${testtomlsolo}
     fi
 
 }
