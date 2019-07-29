@@ -60,7 +60,32 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	if param.Execer != "" {
 		execer = param.Execer
 	}
-	return types.CallCreateTx(execer, "", param)
+	reply, err := types.CallCreateTx(execer, "", param)
+	if err != nil {
+		return nil, err
+	}
+
+	//add tx fee setting
+	tx := &types.Transaction{}
+	err = types.Decode(reply, tx)
+	if err != nil {
+		return nil, err
+	}
+	tx.Fee = param.Fee
+	//set proper fee if zero fee
+	if tx.Fee <= 0 {
+		proper, err := c.GetProperFee(nil)
+		if err != nil {
+			return nil, err
+		}
+		fee, err := tx.GetRealFee(proper.GetProperFee())
+		if err != nil {
+			return nil, err
+		}
+		tx.Fee = fee
+	}
+
+	return types.Encode(tx), nil
 }
 
 func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) {
@@ -151,7 +176,17 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 		}
 		transactions = append(transactions, &transaction)
 	}
-	group, err := types.CreateTxGroup(transactions)
+	feeRate := types.GInt("MinFee")
+	//get proper fee rate
+	proper, err := c.GetProperFee(nil)
+	if err != nil {
+		log.Error("CreateNoBalance", "GetProperFeeErr", err)
+		return nil, err
+	}
+	if proper.GetProperFee() > feeRate {
+		feeRate = proper.ProperFee
+	}
+	group, err := types.CreateTxGroup(transactions, feeRate)
 	if err != nil {
 		return nil, err
 	}
@@ -174,14 +209,26 @@ func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*type
 		return nil, err
 	}
 	transactions := []*types.Transaction{txNone, tx}
-	group, err := types.CreateTxGroup(transactions)
+	feeRate := types.GInt("MinFee")
+	//get proper fee rate
+	proper, err := c.GetProperFee(nil)
+	if err != nil {
+		log.Error("CreateNoBalance", "GetProperFeeErr", err)
+		return nil, err
+	}
+	if proper.GetProperFee() > feeRate {
+		feeRate = proper.ProperFee
+	}
+	group, err := types.CreateTxGroup(transactions, feeRate)
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(0, types.GInt("MinFee"), types.GInt("MaxFee"))
+
+	err = group.Check(0, feeRate, types.GInt("MaxFee"))
 	if err != nil {
 		return nil, err
 	}
+
 	newtx := group.Tx()
 	//如果可能要做签名
 	if in.PayAddr != "" || in.Privkey != "" {

@@ -40,26 +40,7 @@ func (c *Chain33) CreateRawTransaction(in *rpctypes.CreateTx, result *interface{
 	if err != nil {
 		return err
 	}
-	//add tx fee setting
-	tx := &types.Transaction{}
-	err = types.Decode(reply, tx)
-	if err != nil {
-		return err
-	}
-	tx.Fee = inpb.Fee
-	//set proper fee if zero fee
-	if tx.Fee <= 0 {
-		proper, err := c.cli.GetProperFee(nil)
-		if err != nil {
-			return err
-		}
-		fee, err := tx.GetRealFee(proper.ProperFee)
-		if err != nil {
-			return err
-		}
-		tx.Fee = fee
-	}
-	*result = hex.EncodeToString(types.Encode(tx))
+	*result = hex.EncodeToString(reply)
 	return nil
 }
 
