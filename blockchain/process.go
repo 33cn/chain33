@@ -7,7 +7,6 @@ package blockchain
 import (
 	"bytes"
 	"container/list"
-	"fmt"
 	"math/big"
 	"sync/atomic"
 
