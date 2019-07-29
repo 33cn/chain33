@@ -75,7 +75,8 @@ func addGroupParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI, haveMainTx
 	txs.Txs = append(txs.Txs, tx2)
 	txs.Txs = append(txs.Txs, tx3)
 	txs.Txs = append(txs.Txs, tx4)
-	group, err := types.CreateTxGroup(txs.Txs)
+	feeRate := types.GInt("MinFee")
+	group, err := types.CreateTxGroup(txs.Txs, feeRate)
 	if err != nil {
 		chainlog.Error("addGroupParaTx", "err", err.Error())
 		return "", nil, err
