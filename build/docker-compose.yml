@@ -8,19 +8,24 @@ services:
   chain32:
     build:
       context: .
+    command: ["/root/chain33", "-f", "/root/chain33-solo.toml"]
 
   chain31:
     build:
       context: .
+    command: ["/root/chain33", "-f", "/root/chain33-solo.toml"]
 
   chain30:
     build:
       context: .
+    command: ["/root/chain33", "-f", "/root/chain33-solo.toml"]
 
   chain29:
     build:
       context: .
+    command: ["/root/chain33", "-f", "/root/chain33-solo.toml"]
 
   chain28:
     build:
       context: .
+    command: ["/root/chain33", "-f", "/root/chain33-solo.toml"]
