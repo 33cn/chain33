@@ -56,7 +56,7 @@ func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblock
 	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
 	sequence := ParaChainblockdetail.GetSequence()
 
-	_, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, false, sequence)
+	_, ismain, isorphan, err := chain.ProcessBlock(broadcast, *blockdetail, pid, false, sequence)
 	chainlog.Debug("ProcDelParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
 
 	return err
@@ -72,7 +72,7 @@ func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblock
 	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
 	sequence := ParaChainblockdetail.GetSequence()
 
-	fullBlockDetail, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, sequence)
+	fullBlockDetail, ismain, isorphan, err := chain.ProcessBlock(broadcast, *blockdetail, pid, true, sequence)
 	chainlog.Debug("ProcAddParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
 
 	return fullBlockDetail, err

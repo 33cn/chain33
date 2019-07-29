@@ -158,7 +158,7 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 				break
 			}
 		}
-		_, ismain, isorphan, err := chain.ProcessBlock(false, &types.BlockDetail{Block: block}, "download", true, -1)
+		_, ismain, isorphan, err := chain.ProcessBlock(false, types.BlockDetail{Block: block}, "download", true, -1)
 		if err != nil {
 			//执行失败强制结束快速下载模式并切换到普通下载模式
 			if isNewStart && chain.downLoadTask.InProgress() {
