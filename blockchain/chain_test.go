@@ -844,7 +844,7 @@ func testDelBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 	newblock := types.BlockDetail{}
 	newblock.Block = block.Block
 
-	blockchain.ProcessBlock(true, newblock, "1", true, 0)
+	blockchain.ProcessBlock(true, &newblock, "1", true, 0)
 	chainlog.Info("testDelBlock end --------------------")
 }
 

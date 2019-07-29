@@ -92,8 +92,6 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 
 	// 基本检测通过之后尝试添加block到主链上
 	chainlog.Debug("MaybeAddBestChain:begin", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
-	fmt.Sprintln("ProcessBlock:MaybeAddBestChain:hash", common.ToHex(blockHash))
-
 	return b.maybeAddBestChain(broadcast, block, pid, sequence)
 }
 
@@ -103,6 +101,10 @@ func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail,
 	defer b.chainLock.Unlock()
 
 	blockHash := block.Block.Hash()
+	exists := b.blockExists(blockHash)
+	if exists {
+		return nil, false, false, types.ErrBlockExist
+	}
 	chainlog.Debug("maybeAddBestChain", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
 	blockdetail, isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid, sequence)
 
