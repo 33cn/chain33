@@ -213,7 +213,17 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 		transactions = append(transactions, tx)
 	}
 
-	group, err := types.CreateTxGroup(transactions)
+	feeRate := types.GInt("MinFee")
+	//get proper fee rate
+	proper, err := c.GetProperFee(nil)
+	if err != nil {
+		log.Error("CreateNoBalance", "GetProperFeeErr", err)
+		return nil, err
+	}
+	if proper.GetProperFee() > feeRate {
+		feeRate = proper.ProperFee
+	}
+	group, err := types.CreateTxGroup(transactions, feeRate)
 	if err != nil {
 		return nil, err
 	}
@@ -221,6 +231,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	if err != nil {
 		return nil, err
 	}
+
 	newtx := group.Tx()
 	//如果可能要做签名
 	if in.PayAddr != "" || in.Privkey != "" {
