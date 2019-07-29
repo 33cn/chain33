@@ -315,6 +315,8 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}
+	ulog.Error("ExecBlock", "calcHash", common.ToHex(calcHash), "block.TxHash", common.ToHex(block.TxHash))
+
 	ulog.Debug("ExecBlock", "CalcMerkleRootCache", types.Since(beg), "hash", common.ToHex(block.Hash()))
 	beg = types.Now()
 	block.TxHash = calcHash

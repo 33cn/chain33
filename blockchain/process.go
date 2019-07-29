@@ -22,9 +22,8 @@ import (
 // 共识模块和peer广播过来的block需要广播出去
 //共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
 // 返回参数说明：是否主链，是否孤儿节点，具体err
-func (b *BlockChain) ProcessBlock(broadcast bool, block types.BlockDetail, pid string, addBlock bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
+func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addBlock bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
 	chainlog.Debug("ProcessBlock:Processing", "height", block.Block.Height, "blockHash", common.ToHex(block.Block.Hash()))
-	fmt.Sprintln("ProcessBlock:hash", common.ToHex(block.Block.Hash()))
 
 	//blockchain close 时不再处理block
 	if atomic.LoadInt32(&b.isclosed) == 1 {
@@ -95,24 +94,17 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block types.BlockDetail, pid s
 	chainlog.Debug("MaybeAddBestChain:begin", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
 	fmt.Sprintln("ProcessBlock:MaybeAddBestChain:hash", common.ToHex(blockHash))
 
-	return b.MaybeAddBestChain(broadcast, block, pid, sequence)
-}
-
-//MaybeAddBestChain 基本检测通过之后尝试将此block添加到主链上
-func (b *BlockChain) MaybeAddBestChain(broadcast bool, block types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
 	return b.maybeAddBestChain(broadcast, block, pid, sequence)
 }
 
 //基本检测通过之后尝试将此block添加到主链上
-func (b *BlockChain) maybeAddBestChain(broadcast bool, block types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
+func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
 
 	blockHash := block.Block.Hash()
 	chainlog.Debug("maybeAddBestChain", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
-	fmt.Sprintln("maybeAddBestChain:hash", common.ToHex(blockHash))
-
-	blockdetail, isMainChain, err := b.maybeAcceptBlock(broadcast, &block, pid, sequence)
+	blockdetail, isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid, sequence)
 
 	if err != nil {
 		return nil, false, false, err
@@ -592,7 +584,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 }
 
 //ProcessDelParaChainBlock 只能从 best chain tip节点开始删除，目前只提供给平行链使用
-func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
+func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
 
 	//获取当前的tip节点
 	tipnode := b.bestChain.Tip()
@@ -602,7 +594,7 @@ func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail types.
 		chainlog.Error("ProcessDelParaChainBlock:", "delblockheight", blockdetail.Block.Height, "delblockHash", common.ToHex(blockHash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
 		return nil, false, false, types.ErrBlockHashNoMatch
 	}
-	err := b.disconnectBlock(tipnode, &blockdetail, sequence)
+	err := b.disconnectBlock(tipnode, blockdetail, sequence)
 	if err != nil {
 		return nil, false, false, err
 	}
