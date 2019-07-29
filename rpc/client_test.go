@@ -63,7 +63,7 @@ func testCreateRawTransactionAmoutErr(t *testing.T) {
 
 func testCreateRawTransactionTo(t *testing.T) {
 	name := types.ExecName(cty.CoinsX)
-	tx := types.CreateTx{ExecName: name, Amount: 1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
+	tx := types.CreateTx{ExecName: name, Amount: 1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32", Fee: 1}
 
 	client := newTestChannelClient()
 	rawtx, err := client.CreateRawTransaction(&tx)
@@ -92,6 +92,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 		IsWithdraw: false,
 		To:         "1JkbMq5yNMZHtokjg5XxkC3RZbqjoPJm84",
 		Note:       []byte("note"),
+		Fee:        1,
 	}
 
 	client := newTestChannelClient()
@@ -115,6 +116,7 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 		IsWithdraw: false,
 		To:         "1JkbMq5yNMZHtokjg5XxkC3RZbqjoPJm84",
 		Note:       []byte("note"),
+		Fee:        1,
 	}
 
 	client := newTestChannelClient()
@@ -142,6 +144,7 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 		IsWithdraw: true,
 		To:         "1JkbMq5yNMZHtokjg5XxkC3RZbqjoPJm84",
 		Note:       []byte("note"),
+		Fee:        1,
 	}
 
 	client := newTestChannelClient()
@@ -324,8 +327,15 @@ func TestChannelClient_GetTotalCoins(t *testing.T) {
 
 func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	client := new(channelClient)
+	api := new(mocks.QueueProtocolAPI)
+	client.Init(&qmock.Client{}, api)
+	fee := types.GInt("MinFee") * 2
+	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: fee}, nil)
 	in := &types.NoBalanceTx{}
-	_, err := client.CreateNoBalanceTransaction(in)
+	tx, err := client.CreateNoBalanceTransaction(in)
+	assert.NoError(t, err)
+	gtx, _ := tx.GetTxGroup()
+	assert.NoError(t, gtx.Check(0, fee, types.GInt("MaxFee")))
 	assert.NoError(t, err)
 }
 

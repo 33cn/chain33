@@ -25,7 +25,10 @@ func (p *Peer) Start() {
 
 // Close peer close
 func (p *Peer) Close() {
-	atomic.StoreInt32(&p.isclose, 1)
+	//避免重复关闭
+	if !atomic.CompareAndSwapInt32(&p.isclose, 0, 1) {
+		return
+	}
 	p.mconn.Close()
 	p.node.pubsub.Unsub(p.taskChan, "block", "tx")
 	log.Info("Peer", "closed", p.Addr())
@@ -133,18 +136,19 @@ func (p *Peer) heartBeat() {
 		}
 		peername, err := pcli.SendVersion(p, p.node.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
-		if err == nil || peername == "" {
-			log.Debug("sendVersion", "peer name", peername)
-			p.SetPeerName(peername) //设置连接的远程节点的节点名称
-			p.taskChan = p.node.pubsub.Sub("block", "tx", peername)
-			go p.sendStream()
-			go p.readStream()
-			break
-		} else {
+		if err != nil || peername == "" {
 			//版本不对，直接关掉
+			log.Error("PeerHeartBeatSendVersion", "peerName", peername, "err", err)
 			p.Close()
 			return
 		}
+
+		log.Debug("sendVersion", "peer name", peername)
+		p.SetPeerName(peername) //设置连接的远程节点的节点名称
+		p.taskChan = p.node.pubsub.Sub("block", "tx", peername)
+		go p.sendStream()
+		go p.readStream()
+		break
 	}
 
 	ticker := time.NewTicker(PingTimeout)
@@ -153,16 +157,15 @@ func (p *Peer) heartBeat() {
 		if !p.GetRunning() {
 			return
 		}
-
 		<-ticker.C
-		err := pcli.SendPing(p, p.node.nodeInfo)
-		P2pComm.CollectPeerStat(err, p)
-		peernum, err := pcli.GetInPeersNum(p)
-		P2pComm.CollectPeerStat(err, p)
+		peerNum, err := pcli.GetInPeersNum(p)
 		if err == nil {
-			atomic.StoreInt32(&p.inBounds, int32(peernum))
+			atomic.StoreInt32(&p.inBounds, int32(peerNum))
 		}
-
+		err = pcli.SendPing(p, p.node.nodeInfo)
+		if err != nil {
+			log.Error("SendPeerPing", "peer", p.Addr(), "err", err)
+		}
 	}
 }
 

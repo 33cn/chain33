@@ -30,7 +30,7 @@ func TestCreateGroupTx(t *testing.T) {
 	var tx32 Transaction
 	Decode(tx31, &tx32)
 
-	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
+	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, GInt("MinFee"))
 	if err != nil {
 		t.Error(err)
 		return
@@ -69,8 +69,9 @@ func TestCreateParaGroupTx(t *testing.T) {
 	tx22.Execer = []byte("token")
 	tx32.Execer = []byte("user.p.test.ticket")
 
+	feeRate := GInt("MinFee")
 	//SetFork("", "ForkTxGroupPara", 0)
-	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
+	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, feeRate)
 	if err != nil {
 		t.Error(err)
 		return
@@ -86,7 +87,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 	assert.Equal(t, ErrTxGroupParaMainMixed, err)
 
 	tx22.Execer = []byte("user.p.para.token")
-	group, err = CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
+	group, err = CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, feeRate)
 	if err != nil {
 		t.Error(err)
 		return
@@ -95,7 +96,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 	assert.Equal(t, ErrTxGroupParaCount, err)
 
 	tx22.Execer = []byte("user.p.test.paracross")
-	group, err = CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
+	group, err = CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, feeRate)
 	if err != nil {
 		t.Error(err)
 		return
@@ -135,7 +136,7 @@ func TestCreateGroupTxWithSize(t *testing.T) {
 	var tx32 Transaction
 	Decode(tx31, &tx32)
 
-	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
+	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, GInt("MinFee"))
 	if err != nil {
 		t.Error(err)
 		return
