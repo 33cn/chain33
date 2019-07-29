@@ -242,7 +242,6 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		chainlog.Error("ProcAddBlockMsg input block is null")
 		return nil, types.ErrInvalidParam
 	}
-	chainlog.Info("ProcAddBlockMsg", "hash", common.ToHex(blockdetail.Block.Hash()), "broadcast", broadcast, "pid", pid, "blockdetail", blockdetail)
 	b, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
 	if b != nil {
 		blockdetail = b
