@@ -64,6 +64,7 @@ func (block *Block) GetHeader() *Header {
 	head.Difficulty = block.Difficulty
 	head.StateHash = block.StateHash
 	head.TxCount = int64(len(block.Txs))
+	head.Hash = block.Hash()
 	return head
 }
 
