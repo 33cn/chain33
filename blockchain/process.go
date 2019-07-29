@@ -44,7 +44,6 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 		}
 	}
 	blockHash := block.Block.Hash()
-	chainlog.Debug("ProcessBlock Processing block", "height", block.Block.Height, "blockHash", common.ToHex(blockHash))
 
 	//目前只支持删除平行链的block处理,主链不支持删除block的操作
 	if !addBlock {
@@ -91,7 +90,6 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	}
 
 	// 基本检测通过之后尝试添加block到主链上
-	chainlog.Debug("MaybeAddBestChain:begin", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash))
 	return b.maybeAddBestChain(broadcast, block, pid, sequence)
 }
 
@@ -116,8 +114,6 @@ func (b *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail,
 	if err != nil {
 		return nil, false, false, err
 	}
-
-	chainlog.Debug("maybeAddBestChain", "Accepted block", common.ToHex(blockHash))
 	return blockdetail, isMainChain, false, nil
 }
 
@@ -139,46 +135,6 @@ func (b *BlockChain) blockExists(hash []byte) bool {
 		return false
 	}
 	return height != -1
-}
-
-//孤儿链的处理,将本hash对应的子block插入chain中
-func (b *BlockChain) processOrphans(hash []byte) error {
-	chainlog.Debug("processOrphans parent", "hash", common.ToHex(hash))
-
-	processHashes := make([]string, 0, 100)
-	processHashes = append(processHashes, string(hash))
-	for len(processHashes) > 0 {
-		// Pop the first hash to process from the slice.
-		processHash := processHashes[0]
-		//chainlog.Debug("processOrphans", "processHash", common.ToHex([]byte(processHash)))
-
-		processHashes[0] = "" // Prevent GC leak.
-		processHashes = processHashes[1:]
-
-		//  处理以processHash为父hash的所有子block
-		count := b.orphanPool.getChildOrphanCount(processHash)
-		for i := 0; i < count; i++ {
-			orphan := b.orphanPool.getChildOrphan(processHash, i)
-			if orphan == nil {
-				chainlog.Debug("processOrphans", "Found a nil entry at index", i, "orphan dependency list for block", common.ToHex([]byte(processHash)))
-				continue
-			}
-
-			// 从孤儿池中删除此孤儿节点
-			orphanHash := orphan.block.Hash()
-			b.orphanPool.removeOrphanBlock(orphan)
-			i--
-
-			chainlog.Debug("processOrphans  maybeAcceptBlock", "height", orphan.block.GetHeight(), "hash", common.ToHex(orphan.block.Hash()))
-			// 尝试将此孤儿节点添加到主链
-			_, _, err := b.maybeAcceptBlock(orphan.broadcast, &types.BlockDetail{Block: orphan.block}, orphan.pid, orphan.sequence)
-			if err != nil {
-				return err
-			}
-			processHashes = append(processHashes, string(orphanHash))
-		}
-	}
-	return nil
 }
 
 // 尝试接受此block

@@ -331,11 +331,9 @@ function transfer() {
                 echo "----------block info------------------"
                 lastheight=$(${CLI} block last_header | jq -r ".height")
                 ${CLI} block get -s 1 -e "${lastheight}" -d 1
-                docker exec build_chain33_1 tail -1000000 /root/logs/chain33.log
                 exit 1
             fi
         else
-            docker exec build_chain33_1 tail -1000000 /root/logs/chain33.log
             echo "account balance transfer success"
             break
         fi
