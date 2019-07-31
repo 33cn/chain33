@@ -165,6 +165,9 @@ const (
 	//其他模块读写blockchain db事件
 	EventSetValueByKey = 304
 	EventGetValueByKey = 305
+	//通过平行链title获取平行链的交易
+	EventGetParaTxByTitle   = 306
+	EventReplyParaTxByTitle = 307
 )
 
 var eventName = map[int]string{
@@ -318,4 +321,6 @@ var eventName = map[int]string{
 	EventReplyMainSeqByHash:         "EventReplyMainSeqByHash",
 	EventSetValueByKey:              "EventSetValueByKey",
 	EventGetValueByKey:              "EventGetValueByKey",
+	EventGetParaTxByTitle:           "EventGetParaTxByTitle",
+	EventReplyParaTxByTitle:         "EventReplyParaTxByTitle",
 }
