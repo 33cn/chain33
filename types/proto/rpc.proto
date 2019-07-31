@@ -147,6 +147,9 @@ service chain33 {
 
     // 获取是否达到fork高度
     rpc GetFork(ReqKey) returns (Int64) {}
+
+    rpc CreateNoBalanceTxs(NoBalanceTxs) returns (ReplySignRawTx) {}
+
     //通过seq以及title获取对应平行连的交易
     rpc GetParaTxByTitle(ReqParaTxByTitle) returns (ParaTxDetails) {}
 }

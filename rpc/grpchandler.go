@@ -19,6 +19,16 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	return g.cli.SendTx(in)
 }
 
+// CreateNoBalanceTxs create multiple transaction with no balance
+func (g *Grpc) CreateNoBalanceTxs(ctx context.Context, in *pb.NoBalanceTxs) (*pb.ReplySignRawTx, error) {
+	reply, err := g.cli.CreateNoBalanceTxs(in)
+	if err != nil {
+		return nil, err
+	}
+	tx := pb.Encode(reply)
+	return &pb.ReplySignRawTx{TxHex: hex.EncodeToString(tx)}, nil
+}
+
 // CreateNoBalanceTransaction create transaction with no balance
 func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceTx) (*pb.ReplySignRawTx, error) {
 	reply, err := g.cli.CreateNoBalanceTransaction(in)

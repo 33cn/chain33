@@ -73,6 +73,17 @@ func (c *Chain33) CreateRawTxGroup(in *types.CreateTransactionGroup, result *int
 	return nil
 }
 
+// CreateNoBlanaceTxs create multiple transaction with no balance
+func (c *Chain33) CreateNoBlanaceTxs(in *types.NoBalanceTxs, result *string) error {
+	tx, err := c.cli.CreateNoBalanceTxs(in)
+	if err != nil {
+		return err
+	}
+	grouptx := hex.EncodeToString(types.Encode(tx))
+	*result = grouptx
+	return nil
+}
+
 // CreateNoBalanceTransaction create transaction with no balance
 func (c *Chain33) CreateNoBalanceTransaction(in *types.NoBalanceTx, result *string) error {
 	tx, err := c.cli.CreateNoBalanceTransaction(in)
