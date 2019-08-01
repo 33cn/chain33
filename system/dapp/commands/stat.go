@@ -5,6 +5,7 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -27,15 +28,16 @@ func StatCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		GetTotalCoinsCmd(),
-		GetExecBalanceCmd(),
+		getTotalCoinsCmd(),
+		getExecBalanceCmd(),
+		totalFeeCmd(),
 	)
 
 	return cmd
 }
 
-// GetTotalCoinsCmd get total coins
-func GetTotalCoinsCmd() *cobra.Command {
+// getTotalCoinsCmd get total coins
+func getTotalCoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "total_coins",
 		Short: "Get total amount of a token (default: bty of current height)",
@@ -210,8 +212,8 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	fmt.Println(string(data))
 }
 
-// GetExecBalanceCmd get exec-addr balance of specific addr
-func GetExecBalanceCmd() *cobra.Command {
+// getExecBalanceCmd get exec-addr balance of specific addr
+func getExecBalanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "exec_balance",
 		Short: "Get the exec amount of a token of one address (default: all exec-addr bty of current height of one addr)",
@@ -365,4 +367,135 @@ func convertReplyToResult(reply *types.ReplyGetExecBalance, result *commandtypes
 		item.Active = strconv.FormatFloat(float64(reply.Items[i].Active)/float64(precision), 'f', 4, 64)
 		result.ExecBalances = append(result.ExecBalances, item)
 	}
+}
+
+// totalFeeCmd query total fee command
+func totalFeeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "total_fee",
+		Short: "query total transaction fee, support specific block height interval [start, end]",
+		Run:   totalFee,
+	}
+	cmd.Flags().Int64P("start_height", "s", 0, "start block height, default 0")
+	cmd.Flags().Int64P("end_height", "e", -1, "end block height, default current block height")
+	return cmd
+}
+
+func totalFee(cmd *cobra.Command, args []string) {
+	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
+	start, _ := cmd.Flags().GetInt64("start_height")
+	end, _ := cmd.Flags().GetInt64("end_height")
+
+	var startFeeAmount, endFeeAmount int64
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "NewJsonClientErr:%s", err.Error())
+		return
+	}
+	if start < 0 {
+		start = 0
+	}
+
+	if start > 0 {
+		totalFee, err := queryTotalFeeWithHeight(start-1, rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "QueryStartFeeErr:%s", err.Error())
+			return
+		}
+		startFeeAmount = totalFee.Fee
+	}
+
+	if end < 0 {
+		//last block fee
+		currentHeight, totalFee, err := queryCurrentTotalFee(rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "QueryCurrentTotalFeeErr:%s", err.Error())
+			return
+		}
+		endFeeAmount = totalFee.Fee
+		end = currentHeight
+	} else {
+		totalFee, err := queryTotalFeeWithHeight(end, rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "QueryEndFeeErr:%s", err.Error())
+			return
+		}
+		endFeeAmount = totalFee.Fee
+	}
+
+	fee := endFeeAmount - startFeeAmount
+	if fee < 0 {
+		fee = 0
+	}
+	resp := fmt.Sprintf(`{"startHeight":%d,"endHeight":%d, "totalFee":%s}`, start, end, commandtypes.FormatAmountValue2Display(fee))
+	buf := &bytes.Buffer{}
+	err = json.Indent(buf, []byte(resp), "", "    ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "JsonIndentResultErr:%s", err.Error())
+		return
+	}
+
+	fmt.Println(string(buf.Bytes()))
+}
+
+func getLastBlock(rpc *jsonclient.JSONClient) (*rpctypes.Header, error) {
+
+	res := &rpctypes.Header{}
+	err := rpc.Call("Chain33.GetLastHeader", nil, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func getBlockHash(height int64, rpc *jsonclient.JSONClient) (string, error) {
+
+	params := types.ReqInt{Height: height}
+	var res rpctypes.ReplyHash
+	err := rpc.Call("Chain33.GetBlockHash", params, &res)
+	if err != nil {
+		return "", err
+	}
+	return res.Hash, nil
+}
+
+func queryCurrentTotalFee(rpc *jsonclient.JSONClient) (int64, *types.TotalFee, error) {
+	header, err := getLastBlock(rpc)
+	if err != nil {
+		return 0, nil, err
+	}
+	fee, err := queryTotalFeeWithHash(header.Hash, rpc)
+	if err != nil {
+		return 0, nil, err
+	}
+	return header.Height, fee, nil
+}
+
+func queryTotalFeeWithHeight(height int64, rpc *jsonclient.JSONClient) (*types.TotalFee, error) {
+	hash, err := getBlockHash(height, rpc)
+	if err != nil {
+		return nil, err
+	}
+	fee, err := queryTotalFeeWithHash(hash, rpc)
+	if err != nil {
+		return nil, err
+	}
+	return fee, nil
+}
+
+func queryTotalFeeWithHash(blockHash string, rpc *jsonclient.JSONClient) (*types.TotalFee, error) {
+
+	hash, err := common.FromHex(blockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	//查询手续费
+	params := types.LocalDBGet{Keys: [][]byte{hash[:]}}
+	res := &types.TotalFee{}
+	err = rpc.Call("Chain33.QueryTotalFee", params, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
