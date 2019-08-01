@@ -146,6 +146,8 @@ type BlockChain struct {
 	EnableReExecLocal bool `protobuf:"varint,14,opt,name=enableReExecLocal" json:"enableReExecLocal,omitempty"`
 	// 区块回退
 	RollbackBlock int64 `protobuf:"varint,15,opt,name=rollbackBlock" json:"rollbackBlock,omitempty"`
+	// 回退是否保存区块
+	RollbackSave bool `protobuf:"varint,16,opt,name=rollbackSave" json:"rollbackSave,omitempty"`
 }
 
 // P2P 配置
