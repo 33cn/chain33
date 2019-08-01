@@ -5,6 +5,7 @@
 package blockchain
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -91,5 +92,5 @@ func TestTaskTimeOut(t *testing.T) {
 }
 
 func timeOutProc(height int64) {
-	chainlog.Info("timeOutProc", "height", height)
+	fmt.Println("timeOutProc:height", height)
 }
