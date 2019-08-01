@@ -224,7 +224,6 @@ func execBalance(cmd *cobra.Command, args []string) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		height = header.Height
 		stateHashHex = header.StateHash
 	} else {
 		blocks, err := getBlocks(height, height, rpc)
@@ -347,7 +346,7 @@ func totalFee(cmd *cobra.Command, args []string) {
 	var startFeeAmount, endFeeAmount int64
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "NewJsonClientErr:%s", err.Error())
+		fmt.Fprintf(os.Stderr, "NewJsonClientErr:%s\n", err.Error())
 		return
 	}
 	if start < 0 {
@@ -357,7 +356,7 @@ func totalFee(cmd *cobra.Command, args []string) {
 	if start > 0 {
 		totalFee, err := queryTotalFeeWithHeight(start-1, rpc)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "QueryStartFeeErr:%s", err.Error())
+			fmt.Fprintf(os.Stderr, "QueryStartFeeErr:%s\n", err.Error())
 			return
 		}
 		startFeeAmount = totalFee.Fee
@@ -367,7 +366,7 @@ func totalFee(cmd *cobra.Command, args []string) {
 		//last block fee
 		currentHeight, totalFee, err := queryCurrentTotalFee(rpc)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "QueryCurrentTotalFeeErr:%s", err.Error())
+			fmt.Fprintf(os.Stderr, "QueryCurrentTotalFeeErr:%s\n", err.Error())
 			return
 		}
 		endFeeAmount = totalFee.Fee
@@ -375,7 +374,7 @@ func totalFee(cmd *cobra.Command, args []string) {
 	} else {
 		totalFee, err := queryTotalFeeWithHeight(end, rpc)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "QueryEndFeeErr:%s", err.Error())
+			fmt.Fprintf(os.Stderr, "QueryEndFeeErr:%s\n", err.Error())
 			return
 		}
 		endFeeAmount = totalFee.Fee
@@ -389,11 +388,11 @@ func totalFee(cmd *cobra.Command, args []string) {
 	buf := &bytes.Buffer{}
 	err = json.Indent(buf, []byte(resp), "", "    ")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "JsonIndentResultErr:%s", err.Error())
+		fmt.Fprintf(os.Stderr, "JsonIndentResultErr:%s\n", err.Error())
 		return
 	}
 
-	fmt.Println(string(buf.Bytes()))
+	fmt.Println(buf.String())
 }
 
 //get last block header
