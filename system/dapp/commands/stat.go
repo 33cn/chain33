@@ -59,43 +59,32 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	height, _ := cmd.Flags().GetInt64("height")
 	actual, _ := cmd.Flags().GetString("actual")
 
-	if height == -1 {
-		rpc, err := jsonclient.NewJSONClient(rpcAddr)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		var res rpctypes.Header
-		err = rpc.Call("Chain33.GetLastHeader", nil, &res)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		height = res.Height
-	}
-
-	// 获取高度statehash
-	params := rpctypes.BlockParam{
-		Start: height,
-		End:   height,
-		//Isdetail: false,
-		Isdetail: true,
-	}
-
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	var res rpctypes.BlockDetails
-	err = rpc.Call("Chain33.GetBlocks", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	var stateHashHex string
+	if height < 0 {
+
+		header, err := getLastBlock(rpc)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		height = header.Height
+		stateHashHex = header.StateHash
+	} else {
+		blocks, err := getBlocks(height, height, rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "GetBlocksErr:%s", err.Error())
+			return
+		}
+		stateHashHex = blocks.Items[0].Block.StateHash
 	}
 
-	stateHash, err := common.FromHex(res.Items[0].Block.StateHash)
+	stateHash, err := common.FromHex(stateHashHex)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -106,32 +95,14 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	resp := commandtypes.GetTotalCoinsResult{}
 
 	if symbol == "bty" {
-		//查询高度blockhash
-		params := types.ReqInt{Height: height}
-		var res1 rpctypes.ReplyHash
-		err = rpc.Call("Chain33.GetBlockHash", params, &res1)
+		//查询历史总手续费
+		fee, err := queryTotalFeeWithHeight(height, rpc)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
 
-		blockHash, err := common.FromHex(res1.Hash)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-
-		//查询手续费
-		key := append([]byte("TotalFeeKey:"), blockHash...)
-		params2 := types.LocalDBGet{Keys: [][]byte{key}}
-		var res2 types.TotalFee
-		err = rpc.Call("Chain33.QueryTotalFee", params2, &res2)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-
-		resp.TxCount = res2.TxCount
+		resp.TxCount = fee.TxCount
 		var issueCoins int64
 		//只适用bty主网计算
 		if height < 2270000 {
@@ -139,7 +110,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		} else { //挖矿产量降低30->8
 			issueCoins = 22*2269999 + height*8
 		}
-		totalAmount = (317430000+issueCoins)*types.Coin - res2.Fee
+		totalAmount = (317430000+issueCoins)*types.Coin - fee.Fee
 		resp.TotalAmount = strconv.FormatFloat(float64(totalAmount)/float64(types.Coin), 'f', 4, 64)
 	} else {
 		var req types.ReqString
@@ -240,43 +211,31 @@ func execBalance(cmd *cobra.Command, args []string) {
 	execAddr, _ := cmd.Flags().GetString("exec_addr")
 	height, _ := cmd.Flags().GetInt64("height")
 
-	if height == -1 {
-		rpc, err := jsonclient.NewJSONClient(rpcAddr)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		var res rpctypes.Header
-		err = rpc.Call("Chain33.GetLastHeader", nil, &res)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		height = res.Height
-	}
-
-	// 获取高度statehash
-	params := rpctypes.BlockParam{
-		Start: height,
-		End:   height,
-		//Isdetail: false,
-		Isdetail: true,
-	}
-
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	var stateHashHex string
+	if height < 0 {
 
-	var res rpctypes.BlockDetails
-	err = rpc.Call("Chain33.GetBlocks", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+		header, err := getLastBlock(rpc)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		height = header.Height
+		stateHashHex = header.StateHash
+	} else {
+		blocks, err := getBlocks(height, height, rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "GetBlocksErr:%s", err.Error())
+			return
+		}
+		stateHashHex = blocks.Items[0].Block.StateHash
 	}
 
-	stateHash, err := common.FromHex(res.Items[0].Block.StateHash)
+	stateHash, err := common.FromHex(stateHashHex)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -295,7 +254,6 @@ func execBalance(cmd *cobra.Command, args []string) {
 		ExecAddr:  []byte(execAddr),
 		Execer:    exec,
 	}
-	reqParam.StateHash = stateHash
 
 	if len(execAddr) > 0 {
 		reqParam.Count = 1 //由于精确匹配一条记录，所以这里设定为1
@@ -438,6 +396,7 @@ func totalFee(cmd *cobra.Command, args []string) {
 	fmt.Println(string(buf.Bytes()))
 }
 
+//get last block header
 func getLastBlock(rpc *jsonclient.JSONClient) (*rpctypes.Header, error) {
 
 	res := &rpctypes.Header{}
@@ -448,6 +407,7 @@ func getLastBlock(rpc *jsonclient.JSONClient) (*rpctypes.Header, error) {
 	return res, nil
 }
 
+//get block hash with height
 func getBlockHash(height int64, rpc *jsonclient.JSONClient) (string, error) {
 
 	params := types.ReqInt{Height: height}
@@ -494,6 +454,22 @@ func queryTotalFeeWithHash(blockHash string, rpc *jsonclient.JSONClient) (*types
 	params := types.LocalDBGet{Keys: [][]byte{hash[:]}}
 	res := &types.TotalFee{}
 	err = rpc.Call("Chain33.QueryTotalFee", params, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func getBlocks(start, end int64, rpc *jsonclient.JSONClient) (*rpctypes.BlockDetails, error) {
+	// 获取blocks
+	params := rpctypes.BlockParam{
+		Start: start,
+		End:   end,
+		//Isdetail: false,
+		Isdetail: true,
+	}
+	res := &rpctypes.BlockDetails{}
+	err := rpc.Call("Chain33.GetBlocks", params, &res)
 	if err != nil {
 		return nil, err
 	}
