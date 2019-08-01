@@ -1109,7 +1109,7 @@ func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
 	rawblock.MainHeight = block.Block.MainHeight
 
 	rawblock.Height = block.Block.Height + 1
-	err = chain.WriteBlockToDbTemp(&rawblock)
+	err = chain.WriteBlockToDbTemp(&rawblock, true)
 	if err != nil {
 		t.Error("testWriteBlockToDbTemp", "err", err)
 	}

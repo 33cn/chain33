@@ -206,7 +206,7 @@ func (chain *BlockChain) ReadBlockByHeight(height int64) (*types.Block, error) {
 }
 
 //WriteBlockToDbTemp 快速下载的block临时存贮到数据库
-func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block) error {
+func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block, lastHeightSave bool) error {
 	if block == nil {
 		panic("WriteBlockToDbTemp block is nil")
 	}
@@ -225,8 +225,10 @@ func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block) error {
 		chainlog.Error("WriteBlockToDbTemp:Marshal", "height", block.Height)
 	}
 	newbatch.Set(calcHeightToTempBlockKey(block.Height), blockByte)
-	heightbytes := types.Encode(&types.Int64{Data: block.Height})
-	newbatch.Set(calcLastTempBlockHeightKey(), heightbytes)
+	if lastHeightSave {
+		heightbytes := types.Encode(&types.Int64{Data: block.Height})
+		newbatch.Set(calcLastTempBlockHeightKey(), heightbytes)
+	}
 	return newbatch.Write()
 }
 
