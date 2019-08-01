@@ -72,6 +72,36 @@ func (_m *Chain33Client) CreateNoBalanceTransaction(ctx context.Context, in *typ
 	return r0, r1
 }
 
+// CreateNoBalanceTxs provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) CreateNoBalanceTxs(ctx context.Context, in *types.NoBalanceTxs, opts ...grpc.CallOption) (*types.ReplySignRawTx, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.ReplySignRawTx
+	if rf, ok := ret.Get(0).(func(context.Context, *types.NoBalanceTxs, ...grpc.CallOption) *types.ReplySignRawTx); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplySignRawTx)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.NoBalanceTxs, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CreateRawTransaction provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) CreateRawTransaction(ctx context.Context, in *types.CreateTx, opts ...grpc.CallOption) (*types.UnsignTx, error) {
 	_va := make([]interface{}, len(opts))

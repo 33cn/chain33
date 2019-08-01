@@ -69,6 +69,14 @@ message UnsignTx {
     bytes data = 1;
 }
 
+// 支持构造多笔nobalance的交易 payAddr 可以支持 1. 地址 2. 私钥
+message NoBalanceTxs {
+    repeated string txHexs  = 1;
+    string          payAddr = 2;
+    string          privkey = 3;
+    string          expire  = 4;
+}
+
 // payAddr 可以支持 1. 地址 2. 私钥
 message NoBalanceTx {
     string txHex   = 1;
