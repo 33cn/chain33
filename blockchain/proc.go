@@ -176,7 +176,7 @@ func (chain *BlockChain) addBlock(msg *queue.Message) {
 	blockpid := msg.Data.(*types.BlockPid)
 	//chainlog.Error("addBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid)
 	if chain.GetDownloadSyncStatus() {
-		err := chain.WriteBlockToDbTemp(blockpid.Block)
+		err := chain.WriteBlockToDbTemp(blockpid.Block, true)
 		if err != nil {
 			chainlog.Error("WriteBlockToDbTemp", "height", blockpid.Block.Height, "err", err.Error())
 			reply.IsOk = false

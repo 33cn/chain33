@@ -51,6 +51,7 @@ var (
 	fixtime    = flag.Bool("fixtime", false, "fix time")
 	waitPid    = flag.Bool("waitpid", false, "p2p stuck until seed save info wallet & wallet unlock")
 	rollback   = flag.Int64("rollback", 0, "rollback block")
+	save       = flag.Bool("save", false, "rollback save temporary block")
 )
 
 //RunChain33 : run Chain33
@@ -155,6 +156,7 @@ func RunChain33(name string) {
 
 	log.Info("loading blockchain module")
 	cfg.BlockChain.RollbackBlock = *rollback
+	cfg.BlockChain.RollbackSave = *save
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
