@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"fmt"
+
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"fmt"
 )
 
 func init() {
@@ -110,7 +111,7 @@ func TestRollbackSave(t *testing.T) {
 
 	// check
 	require.Equal(t, int64(2), chain.GetBlockHeight())
-	for i := height; i > 2; i--  {
+	for i := height; i > 2; i-- {
 		key := []byte(fmt.Sprintf("TB:%012d", i))
 		_, err := chain.GetDB().Get(key)
 		assert.NoError(t, err)
@@ -123,8 +124,6 @@ func TestRollbackSave(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, height, h.Data)
 }
-
-
 
 func TestRollbackPara(t *testing.T) {
 	cfg, sub := testnode.GetDefaultConfig()
@@ -141,8 +140,7 @@ func TestRollbackPara(t *testing.T) {
 	require.Equal(t, int64(2), chain.GetBlockHeight())
 }
 
-
-func testMockSendTx(t *testing.T, mock33 *testnode. Chain33Mock) {
+func testMockSendTx(t *testing.T, mock33 *testnode.Chain33Mock) {
 	txs := util.GenCoinsTxs(mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
