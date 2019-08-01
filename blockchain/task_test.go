@@ -5,9 +5,12 @@
 package blockchain
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTask(t *testing.T) {
@@ -69,27 +72,18 @@ func TestTaskTimeOut(t *testing.T) {
 		t.Log("task not start")
 		return
 	}
+	defer task.Cancel()
+	timeoutHeight := make(chan int64, 1)
+
 	timeoutcb := func(height int64) {
-		timeOutProc(height)
+		fmt.Println("timeout:height", height)
+		timeoutHeight <- height
 	}
-	task.Start(1, 10, nil, timeoutcb)
+	task.Start(1, 11, nil, timeoutcb)
 	perm := rand.Perm(10)
 	for i := 0; i < len(perm); i++ {
-		time.Sleep(time.Millisecond * 10)
 		task.Done(int64(perm[i]) + 1)
-		if i < len(perm)-1 && !task.InProgress() {
-			task.Cancel()
-			t.Log("task not done, but InProgress is false")
-			return
-		}
-		if i == len(perm)-1 && task.InProgress() {
-			task.Cancel()
-			t.Log("task is done, but InProgress is true")
-			return
-		}
 	}
-}
-
-func timeOutProc(height int64) {
-	chainlog.Info("timeOutProc", "height", height)
+	h := <-timeoutHeight
+	assert.Equal(t, h, int64(11))
 }
