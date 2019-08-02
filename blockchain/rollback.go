@@ -50,6 +50,16 @@ func (chain *BlockChain) Rollback() {
 		if err != nil {
 			panic(fmt.Sprintln("rollback LoadBlockByHeight err :", err))
 		}
+		if chain.cfg.RollbackSave {//本地保存临时区块
+			lastHeightSave := false
+			if i == startHeight {
+				lastHeightSave = true
+			}
+			err = chain.WriteBlockToDbTemp(blockdetail.Block, lastHeightSave)
+			if err != nil {
+				panic(fmt.Sprintln("rollback WriteBlockToDbTemp fail", "height", blockdetail.Block.Height, "error ", err))
+			}
+		}
 		sequence := int64(-1)
 		if chain.isParaChain {
 			// 获取平行链的seq
@@ -64,17 +74,6 @@ func (chain *BlockChain) Rollback() {
 		}
 		// 删除storedb中的状态高度
 		chain.sendDelStore(blockdetail.Block.StateHash, blockdetail.Block.Height)
-		// 删除之后，本地保存临时区块
-		if chain.cfg.RollbackSave {
-			lastHeightSave := false
-			if i == startHeight {
-				lastHeightSave = true
-			}
-			err = chain.WriteBlockToDbTemp(blockdetail.Block, lastHeightSave)
-			if err != nil {
-				panic(fmt.Sprintln("rollback WriteBlockToDbTemp fail", "height", blockdetail.Block.Height, "error ", err))
-			}
-		}
 		chainlog.Info("chain rollback ", "height: ", i, "blockheight", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "state hash", common.ToHex(blockdetail.Block.StateHash))
 	}
 }
