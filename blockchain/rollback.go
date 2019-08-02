@@ -50,7 +50,7 @@ func (chain *BlockChain) Rollback() {
 		if err != nil {
 			panic(fmt.Sprintln("rollback LoadBlockByHeight err :", err))
 		}
-		if chain.cfg.RollbackSave {//本地保存临时区块
+		if chain.cfg.RollbackSave { //本地保存临时区块
 			lastHeightSave := false
 			if i == startHeight {
 				lastHeightSave = true
