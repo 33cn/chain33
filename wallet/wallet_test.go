@@ -415,9 +415,11 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 
 func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletTxList begin")
+
+	//倒序获取最新的三笔交易
 	txList := &types.ReqWalletTransactionList{
 		Count:     3,
-		Direction: 1,
+		Direction: 0,
 		FromTx:    []byte(""),
 	}
 	msg := wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
@@ -427,13 +429,25 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	walletTxDetails := resp.GetData().(*types.WalletTxDetails)
 
 	var FromTxstr string
+	index := make([]int64, 3)
+
 	if len(walletTxDetails.TxDetails) != 3 {
 		t.Error("testProcWalletTxList failed")
 	}
 	println("TestProcWalletTxList dir last-------")
-	for _, walletTxDetail := range walletTxDetails.TxDetails {
+	for i, walletTxDetail := range walletTxDetails.TxDetails {
 		println("TestProcWalletTxList", "Direction", txList.Direction, "WalletTxDetail", walletTxDetail.String())
+		index[i] = walletTxDetail.GetHeight()*100000 + walletTxDetail.GetIndex()
 		FromTxstr = fmt.Sprintf("%018d", walletTxDetail.GetHeight()*100000+walletTxDetail.GetIndex())
+	}
+	//倒序index值的判断，index[0]>index[1]>index[2]
+	if index[0] <= index[1] {
+		println("TestProcWalletTxList", "index[0]", index[0], "index[1]", index[1])
+		t.Error("testProcWalletTxList:Reverse check fail!")
+	}
+	if index[1] <= index[2] {
+		println("TestProcWalletTxList", "index[1]", index[1], "index[2]", index[2])
+		t.Error("testProcWalletTxList:Reverse check fail!")
 	}
 
 	txList.Direction = 1
@@ -465,6 +479,34 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	}
 	for _, walletTxDetail := range walletTxDetails.TxDetails {
 		println("TestProcWalletTxList", "Direction", txList.Direction, "WalletTxDetail", walletTxDetail.String())
+	}
+
+	//正序获取最早的三笔交易
+	txList = &types.ReqWalletTransactionList{
+		Count:     3,
+		Direction: 1,
+		FromTx:    []byte(""),
+	}
+	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
+	wallet.client.Send(msg, true)
+	resp, err = wallet.client.Wait(msg)
+	require.NoError(t, err)
+	walletTxDetails = resp.GetData().(*types.WalletTxDetails)
+
+	if len(walletTxDetails.TxDetails) != 3 {
+		t.Error("testProcWalletTxList failed")
+	}
+	for i, walletTxDetail := range walletTxDetails.TxDetails {
+		index[i] = walletTxDetail.GetHeight()*100000 + walletTxDetail.GetIndex()
+	}
+	//正序index值的判断，index[0]<index[1]<index[2]
+	if index[0] >= index[1] {
+		println("TestProcWalletTxList", "index[0]", index[0], "index[1]", index[1])
+		t.Error("testProcWalletTxList:positive check fail!")
+	}
+	if index[1] >= index[2] {
+		println("TestProcWalletTxList", "index[1]", index[1], "index[2]", index[2])
+		t.Error("testProcWalletTxList:positive check fail!")
 	}
 	println("TestProcWalletTxList end")
 	println("--------------------------")
