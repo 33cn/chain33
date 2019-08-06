@@ -1084,6 +1084,7 @@ func testReadBlockToExec(t *testing.T, chain *blockchain.BlockChain) {
 	chainlog.Info("testReadBlockToExec begin ---------------------")
 	curheight := chain.GetBlockHeight()
 	chain.ReadBlockToExec(curheight+1, false)
+	chain.DownLoadTimeOutProc(curheight - 1)
 	chainlog.Info("testReadBlockToExec end ---------------------")
 }
 func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
@@ -1104,7 +1105,7 @@ func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
 	rawblock.MainHeight = block.Block.MainHeight
 
 	rawblock.Height = block.Block.Height + 1
-	err = chain.WriteBlockToDbTemp(&rawblock)
+	err = chain.WriteBlockToDbTemp(&rawblock, true)
 	if err != nil {
 		t.Error("testWriteBlockToDbTemp", "err", err)
 	}

@@ -1307,6 +1307,15 @@ func TestChain33_CreateNoBalanceTransaction(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestChain33_CreateNoBalanceTxs(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	chain33 := newTestChain33(api)
+	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 1000000}, nil)
+	var result string
+	err := chain33.CreateNoBlanaceTxs(&types.NoBalanceTxs{TxHexs: []string{"0a05746f6b656e12413804223d0a0443434e5910a09c011a0d74657374207472616e73666572222231333559774e715367694551787577586650626d526d48325935334564673864343820a08d0630969a9fe6c4b9c7ba5d3a2231333559774e715367694551787577586650626d526d483259353345646738643438", "0a05746f6b656e12413804223d0a0443434e5910b0ea011a0d74657374207472616e73666572222231333559774e715367694551787577586650626d526d48325935334564673864343820a08d0630bca0a2dbc0f182e06f3a2231333559774e715367694551787577586650626d526d483259353345646738643438"}}, &result)
+	assert.NoError(t, err)
+}
+
 func TestChain33_ExecWallet(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)

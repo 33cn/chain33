@@ -116,8 +116,8 @@ func Test_processP2P(t *testing.T) {
 		<-subChan //query block
 		for !ltBlockCache.contains(blockHash) {
 		}
-		ltBlock := ltBlockCache.get(blockHash).(*types.Block)
-		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(ltBlock.Txs)))
+		cpBlock := *ltBlockCache.get(blockHash).(*types.Block)
+		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(cpBlock.Txs)))
 
 		//query tx
 		sendChan <- &versionData{rawData: &types.P2PQueryData{Value: &types.P2PQueryData_TxReq{TxReq: &types.P2PTxReq{TxHash: tx.Hash()}}}}
@@ -147,7 +147,7 @@ func Test_processP2P(t *testing.T) {
 		<-subChan
 		assert.True(t, ltBlockCache.contains(blockHash))
 
-		ltBlock.TxHash = rootHash
+		cpBlock.TxHash = rootHash
 		sendChan <- &versionData{rawData: &types.P2PBlockTxReply{
 			BlockHash: blockHash,
 			Txs:       txList[0:],

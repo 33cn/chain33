@@ -233,8 +233,11 @@ func (d *DownloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan cha
 	var p2pdata pb.P2PGetData
 	p2pdata.Version = d.p2pcli.network.node.nodeInfo.channelVersion
 	p2pdata.Invs = []*pb.Inventory{inv}
+	ctx, cancel := context.WithCancel(context.Background())
+	//主动取消grpc流, 即时释放资源
+	defer cancel()
 	beg := pb.Now()
-	resp, err := peer.mconn.gcli.GetData(context.Background(), &p2pdata, grpc.FailFast(true))
+	resp, err := peer.mconn.gcli.GetData(ctx, &p2pdata, grpc.FailFast(true))
 	P2pComm.CollectPeerStat(err, peer)
 	if err != nil {
 		log.Error("syncDownloadBlock", "GetData err", err.Error())

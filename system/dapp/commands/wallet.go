@@ -171,14 +171,14 @@ func addWalletListTxsFlags(cmd *cobra.Command) {
 	cmd.Flags().Int32P("count", "c", 0, "number of transactions")
 	cmd.MarkFlagRequired("count")
 
-	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page)")
+	cmd.Flags().Int32P("direction", "d", 0, "query direction (0: pre page, 1: next page)")
 }
 
 func walletListTxs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	txHash, _ := cmd.Flags().GetString("from")
 	count, _ := cmd.Flags().GetInt32("count")
-	direction, _ := cmd.Flags().GetInt32("dir")
+	direction, _ := cmd.Flags().GetInt32("direction")
 	params := rpctypes.ReqWalletTransactionList{
 		FromTx:    txHash,
 		Count:     count,

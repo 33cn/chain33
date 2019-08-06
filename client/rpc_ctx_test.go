@@ -327,6 +327,13 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.BlockSeq) = *reply
 		}
 		errRet = err
+	case "GetParaTxByTitle":
+		reply, err := rpc.GetParaTxByTitle(context.Background(), c.Params.(*types.ReqParaTxByTitle))
+		if err == nil {
+			*c.Res.(*types.ParaTxDetails) = *reply
+		}
+		errRet = err
+
 	default:
 		errRet = errors.New(fmt.Sprintf("Unsupport method %v", c.Method))
 	}

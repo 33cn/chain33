@@ -272,7 +272,7 @@ func (chain *BlockChain) InitBlockChain() {
 		}
 	}
 	types.S("dbversion", curdbver)
-	if !chain.cfg.IsParaChain {
+	if !chain.cfg.IsParaChain && chain.cfg.RollbackBlock <= 0 {
 		// 定时检测/同步block
 		go chain.SynRoutine()
 

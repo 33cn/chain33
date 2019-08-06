@@ -206,7 +206,7 @@ func (chain *BlockChain) ReadBlockByHeight(height int64) (*types.Block, error) {
 }
 
 //WriteBlockToDbTemp 快速下载的block临时存贮到数据库
-func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block) error {
+func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block, lastHeightSave bool) error {
 	if block == nil {
 		panic("WriteBlockToDbTemp block is nil")
 	}
@@ -225,8 +225,10 @@ func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block) error {
 		chainlog.Error("WriteBlockToDbTemp:Marshal", "height", block.Height)
 	}
 	newbatch.Set(calcHeightToTempBlockKey(block.Height), blockByte)
-	heightbytes := types.Encode(&types.Int64{Data: block.Height})
-	newbatch.Set(calcLastTempBlockHeightKey(), heightbytes)
+	if lastHeightSave {
+		heightbytes := types.Encode(&types.Int64{Data: block.Height})
+		newbatch.Set(calcLastTempBlockHeightKey(), heightbytes)
+	}
 	return newbatch.Write()
 }
 
@@ -328,6 +330,25 @@ func (chain *BlockChain) ReqDownLoadBlocks() {
 		err := chain.FetchBlock(info.StartHeight, info.EndHeight, info.Pids, true)
 		if err != nil {
 			synlog.Error("ReqDownLoadBlocks:FetchBlock", "err", err)
+		}
+	}
+}
+
+//DownLoadTimeOutProc 快速下载模式下载区块超时的处理函数
+func (chain *BlockChain) DownLoadTimeOutProc(height int64) {
+	info := chain.GetDownLoadInfo()
+	synlog.Info("DownLoadTimeOutProc", "timeoutheight", height, "StartHeight", info.StartHeight, "EndHeight", info.EndHeight)
+
+	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {
+		//从超时的高度继续下载区块
+		if info.StartHeight > height {
+			chain.UpdateDownLoadStartHeight(height)
+			info.StartHeight = height
+		}
+		synlog.Info("DownLoadTimeOutProc:FetchBlock", "StartHeight", info.StartHeight, "EndHeight", info.EndHeight, "pids", len(info.Pids))
+		err := chain.FetchBlock(info.StartHeight, info.EndHeight, info.Pids, true)
+		if err != nil {
+			synlog.Error("DownLoadTimeOutProc:FetchBlock", "err", err)
 		}
 	}
 }

@@ -158,4 +158,6 @@ type QueueProtocolAPI interface {
 	ListSeqCallBack() (*types.BlockSeqCBs, error)
 	// types.EventGetSeqCBLastNum
 	GetSeqCallBackLastNum(param *types.ReqString) (*types.Int64, error)
+	// types.EventGetParaTxByTitle
+	GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.ParaTxDetails, error)
 }

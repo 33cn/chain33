@@ -202,10 +202,16 @@ func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*
 	}
 
 	var txbytes [][]byte
-	//FromTx是空字符串时。默认从最新的交易开始取count个
+	//FromTx是空字符串时，
+	//Direction == 0从最新的交易开始倒序取count个
+	//Direction == 1从最早的交易开始正序取count个
 	if len(TxList.FromTx) == 0 {
 		list := store.NewListHelper()
-		txbytes = list.IteratorScanFromLast(CalcTxKey(""), TxList.Count)
+		if TxList.Direction == 0 {
+			txbytes = list.IteratorScanFromLast(CalcTxKey(""), TxList.Count)
+		} else {
+			txbytes = list.IteratorScanFromFirst(CalcTxKey(""), TxList.Count)
+		}
 		if len(txbytes) == 0 {
 			storelog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
 			return nil, types.ErrTxNotExist

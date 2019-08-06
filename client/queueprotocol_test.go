@@ -938,6 +938,7 @@ func TestGRPC(t *testing.T) {
 	testIsSyncGRPC(t, &grpcMock)
 	testIsNtpClockSyncGRPC(t, &grpcMock)
 	testNetInfoGRPC(t, &grpcMock)
+	testGetParaTxByTitleGRPC(t, &grpcMock)
 
 }
 
@@ -1301,4 +1302,26 @@ func TestGetMainSeq(t *testing.T) {
 	seq1, err := api.GetLastBlockMainSequence()
 	assert.Nil(t, err)
 	assert.Equal(t, int64(9999), seq1.Data)
+}
+
+func testGetParaTxByTitleGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ParaTxDetails
+	var req types.ReqParaTxByTitle
+	req.Start = 0
+	req.End = 0
+	req.Title = "user"
+	err := rpc.newRpcCtx("GetParaTxByTitle", &req, &res)
+	assert.NotNil(t, err)
+
+	req.Title = "user.p.para."
+	err = rpc.newRpcCtx("GetParaTxByTitle", &req, &res)
+	assert.Nil(t, err)
+
+}
+
+func TestGetParaTxByTitle(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.GetParaTxByTitle(nil)
+	assert.NotNil(t, err)
+
 }

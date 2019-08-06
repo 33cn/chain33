@@ -1277,3 +1277,22 @@ func (q *QueueProtocol) GetMainSequenceByHash(param *types.ReqHash) (*types.Int6
 	}
 	return nil, types.ErrTypeAsset
 }
+
+//GetParaTxByTitle 通过seq以及title获取对应平行连的交易
+func (q *QueueProtocol) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.ParaTxDetails, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetParaTxByTitle", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(blockchainKey, types.EventGetParaTxByTitle, param)
+	if err != nil {
+		log.Error("GetParaTxByTitle", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ParaTxDetails); ok {
+
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}

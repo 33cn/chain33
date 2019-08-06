@@ -207,3 +207,36 @@ message ParaChainBlockDetail {
     BlockDetail blockdetail = 1;
     int64       sequence    = 2;
 }
+
+// 定义para交易结构
+message ParaTxDetails {
+    repeated ParaTxDetail items = 1;
+}
+
+// type:平行链交易所在区块add/del操作，方便平行链回滚
+// header:平行链交易所在区块头信息
+// txDetails:本区块中指定title平行链的所有交易
+message ParaTxDetail {
+    int64    type               = 1;
+    Header   header             = 2;
+    repeated TxDetail txDetails = 3;
+}
+
+//交易的详情：
+// index:本交易在block中索引值，用于proof的证明
+// tx:本交易内容
+// receipt:本交易在主链的执行回执
+// proofs:本交易hash在block中merkel中的路径
+message TxDetail {
+    uint32      index     = 1;
+    Transaction tx        = 2;
+    ReceiptData receipt   = 3;
+    repeated bytes proofs = 4;
+}
+
+//通过seq区间和title请求平行链的交易
+message ReqParaTxByTitle {
+    int64  start = 1;
+    int64  end   = 2;
+    string title = 3;
+}

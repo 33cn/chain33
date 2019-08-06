@@ -50,6 +50,16 @@ func (chain *BlockChain) Rollback() {
 		if err != nil {
 			panic(fmt.Sprintln("rollback LoadBlockByHeight err :", err))
 		}
+		if chain.cfg.RollbackSave { //本地保存临时区块
+			lastHeightSave := false
+			if i == startHeight {
+				lastHeightSave = true
+			}
+			err = chain.WriteBlockToDbTemp(blockdetail.Block, lastHeightSave)
+			if err != nil {
+				panic(fmt.Sprintln("rollback WriteBlockToDbTemp fail", "height", blockdetail.Block.Height, "error ", err))
+			}
+		}
 		sequence := int64(-1)
 		if chain.isParaChain {
 			// 获取平行链的seq
