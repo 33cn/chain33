@@ -831,6 +831,7 @@ func testRemoveOrphanBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 	block.Block.ParentHash = ParentHashNotexist
 
 	blockchain.GetOrphanPool().RemoveOrphanBlock2(block.Block, time.Time{}, false, "123", 0)
+	blockchain.GetOrphanPool().RemoveOrphanBlockByHash(block.Block.Hash())
 
 	chainlog.Info("testRemoveOrphanBlock end --------------------")
 }
