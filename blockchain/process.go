@@ -64,11 +64,19 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 		return nil, false, false, types.ErrBlockExist
 	}
 
-	// 判断本节点是否已经存在孤儿链中
+	// 判断本区块是否已经存在孤儿链中
 	exists = b.orphanPool.IsKnownOrphan(blockHash)
 	if exists {
-		chainlog.Debug("ProcessBlock already have block(orphan)", "blockHash", common.ToHex(blockHash))
-		return nil, false, false, types.ErrBlockExist
+		//本区块已经存在孤儿链中，但是自己的父区块也已经存在主链中
+		//此时可能是上次加载父区块的过程中，刚好子区块过来导致子区块被存入到孤儿链中了没有及时处理
+		//本次需要删除孤儿连中本区块的信息，尝试将此区块添加到主链上
+		if b.blockExists(block.Block.GetParentHash()) {
+			b.orphanPool.RemoveOrphanBlockByHash(blockHash)
+			chainlog.Debug("ProcessBlock:maybe Accept Orphan Block", "blockHash", common.ToHex(blockHash))
+		} else {
+			chainlog.Debug("ProcessBlock already have block(orphan)", "blockHash", common.ToHex(blockHash))
+			return nil, false, false, types.ErrBlockExist
+		}
 	}
 
 	//判断本block的父block是否存在，如果不存在就将此block添加到孤儿链中

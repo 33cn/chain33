@@ -74,6 +74,19 @@ func (op *OrphanPool) GetOrphanRoot(hash []byte) []byte {
 	return orphanRoot
 }
 
+//RemoveOrphanBlockByHash 通过指定的区块hash
+//删除孤儿区块从OrphanPool中，以及prevOrphans中的index.
+func (op *OrphanPool) RemoveOrphanBlockByHash(hash []byte) {
+	op.orphanLock.Lock()
+	defer op.orphanLock.Unlock()
+
+	orphan, exists := op.orphans[string(hash)]
+	if exists && orphan != nil {
+		chainlog.Debug("RemoveOrphanBlockByHash:", "height", orphan.block.Height, "hash", common.ToHex(orphan.block.Hash()))
+		op.removeOrphanBlock(orphan)
+	}
+}
+
 //RemoveOrphanBlock 删除孤儿节点从OrphanPool中，以及prevOrphans中的index
 func (op *OrphanPool) RemoveOrphanBlock(orphan *orphanBlock) {
 	op.orphanLock.Lock()
