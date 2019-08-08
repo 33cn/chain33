@@ -5,8 +5,9 @@ package types
 
 import (
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
 	math "math"
+
+	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1528,9 +1529,9 @@ func (m *BlockSequences) GetItems() []*BlockSequence {
 }
 
 //平行链区块详细信息
-//blockdetail : 区块详细信息
-//sequence :区块序列号
-//isSync:写数据库时是否需要刷盘
+// 	 blockdetail : 区块详细信息
+//	 sequence :区块序列号
+//   isSync:写数据库时是否需要刷盘
 type ParaChainBlockDetail struct {
 	Blockdetail          *BlockDetail `protobuf:"bytes,1,opt,name=blockdetail,proto3" json:"blockdetail,omitempty"`
 	Sequence             int64        `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
