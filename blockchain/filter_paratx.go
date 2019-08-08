@@ -18,8 +18,7 @@ var (
 func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.ParaTxDetails, error) {
 
 	//入参数校验
-	var err error
-	err = chain.checkInputParam(seq)
+	err := chain.checkInputParam(seq)
 	if err != nil {
 		return nil, err
 	}
