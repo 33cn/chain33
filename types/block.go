@@ -244,3 +244,8 @@ func (blockDetail *BlockDetail) filterParaTxGroup(tx *Transaction, index int) ([
 	}
 	return txDetails, endIdx
 }
+
+// Size 获取blockDetail的Size
+func (blockDetail *BlockDetail) Size() int {
+	return Size(blockDetail)
+}

@@ -481,6 +481,14 @@ func (chain *BlockChain) delParaChainBlockDetail(msg *queue.Message) {
 func (chain *BlockChain) addParaChainBlockDetail(msg *queue.Message) {
 	parablockDetail := msg.Data.(*types.ParaChainBlockDetail)
 
+	//根据配置chain.cfgBatchSync和parablockDetail.IsSync
+	//来决定写数据库时是否需要刷盘,主要是为了同步阶段提高执行区块的效率
+	if !parablockDetail.IsSync && !chain.cfgBatchSync {
+		atomic.CompareAndSwapInt32(&chain.isbatchsync, 1, 0)
+	} else {
+		atomic.CompareAndSwapInt32(&chain.isbatchsync, 0, 1)
+	}
+
 	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
 	// 平行链上P2P模块关闭，不用广播区块
 	blockDetail, err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
