@@ -203,9 +203,11 @@ message BlockSequences {
 //平行链区块详细信息
 // 	 blockdetail : 区块详细信息
 //	 sequence :区块序列号
+//   isSync:写数据库时是否需要刷盘
 message ParaChainBlockDetail {
     BlockDetail blockdetail = 1;
     int64       sequence    = 2;
+    bool        isSync      = 3;
 }
 
 // 定义para交易结构
@@ -239,4 +241,5 @@ message ReqParaTxByTitle {
     int64  start = 1;
     int64  end   = 2;
     string title = 3;
+    bool   isSeq = 4;
 }

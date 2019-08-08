@@ -142,17 +142,36 @@ func TestGetParaTxByTitle(t *testing.T) {
 		time.Sleep(sendTxWait)
 	}
 	var req types.ReqParaTxByTitle
+	//通过seq获取para交易
 	req.Start = 0
 	req.End = curheight
 	req.Title = "user.p.hyb."
-	testgetParaTxByTitle(t, blockchain, &req, false, false, nil)
+	req.IsSeq = true
+	testgetParaTxByTitle(t, blockchain, &req, 0)
 
+	//通过height获取para交易
+	req.IsSeq = false
+	testgetParaTxByTitle(t, blockchain, &req, 0)
+
+	//通过height获取para交易
+	req.IsSeq = false
+	req.End = curheight + 1
+	testgetParaTxByTitle(t, blockchain, &req, 1)
 	chainlog.Info("TestGetParaTxByTitle end --------------------")
 
 }
-func testgetParaTxByTitle(t *testing.T, blockchain *blockchain.BlockChain, req *types.ReqParaTxByTitle, isGroup bool, haveMainTx bool, hashs []string) {
+func testgetParaTxByTitle(t *testing.T, blockchain *blockchain.BlockChain, req *types.ReqParaTxByTitle, flag int) {
+	count := req.End - req.Start + 1
 	ParaTxDetails, err := blockchain.GetParaTxByTitle(req)
-	require.NoError(t, err)
+	if flag == 0 {
+		require.NoError(t, err)
+	}
+	if flag == 1 {
+		assert.Equal(t, err, types.ErrInvalidParam)
+		return
+	}
+	itemsLen := len(ParaTxDetails.Items)
+	assert.Equal(t, count, int64(itemsLen))
 
 	for i, txDetail := range ParaTxDetails.Items {
 		if txDetail != nil {
