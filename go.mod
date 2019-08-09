@@ -9,6 +9,7 @@ replace (
 	golang.org/x/image => github.com/golang/image v0.0.0-20190227222117-0694c2d4d067
 	golang.org/x/lint => github.com/golang/lint v0.0.0-20190409202823-959b441ac422
 	golang.org/x/mobile => github.com/golang/mobile v0.0.0-20190312151609-d3739f865fa6
+	golang.org/x/mod => github.com/golang/mod v0.1.0
 	golang.org/x/net => github.com/golang/net v0.0.0-20190318221613-d196dffd7c2b
 	golang.org/x/oauth2 => github.com/golang/oauth2 v0.0.0-20190523182746-aaccbc9213b0
 	golang.org/x/sync => github.com/golang/sync v0.0.0-20190227155943-e225da77a7e6
