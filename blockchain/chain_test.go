@@ -601,7 +601,7 @@ func testGetBlockSequences(t *testing.T, chain *blockchain.BlockChain) {
 	Sequences, err := chain.GetBlockSequences(&reqBlock)
 	if err == nil && Sequences != nil {
 		for _, sequence := range Sequences.Items {
-			if sequence.Type != blockchain.AddBlock {
+			if sequence.Type != types.AddBlock {
 				t.Error("testGetBlockSequences sequence type check error")
 			}
 		}

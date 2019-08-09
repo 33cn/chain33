@@ -61,7 +61,7 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 			if seq.IsSeq {
 				paraTx.Type = sequences.Items[i].GetType()
 			} else {
-				paraTx.Type = AddBlock
+				paraTx.Type = types.AddBlock
 			}
 		} else {
 			paraTx = nil
