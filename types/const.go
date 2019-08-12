@@ -61,7 +61,10 @@ const (
 	Float1E4              float64 = 10000.0
 	AirDropMinIndex       uint32  = 100000000 //通过钱包的seed生成一个空投地址，最小index索引
 	AirDropMaxIndex       uint32  = 101000000 //通过钱包的seed生成一个空投地址，最大index索引
-
+	MaxBlockCountPerTime  int64   = 1000      //从数据库中一次性获取block的最大数 1000个
+	MaxBlockSizePerTime           = 100000000 //从数据库中一次性获取block的最大size100M
+	AddBlock              int64   = 1
+	DelBlock              int64   = 2
 )
 
 //全局账户私钥/公钥

@@ -24,24 +24,22 @@ import (
 
 //var
 var (
-	blockLastHeight             = []byte("blockLastHeight")
-	bodyPrefix                  = []byte("Body:")
-	LastSequence                = []byte("LastSequence")
-	headerPrefix                = []byte("Header:")
-	heightToHeaderPrefix        = []byte("HH:")
-	hashPrefix                  = []byte("Hash:")
-	tdPrefix                    = []byte("TD:")
-	heightToHashKeyPrefix       = []byte("Height:")
-	seqToHashKey                = []byte("Seq:")
-	HashToSeqPrefix             = []byte("HashToSeq:")
-	seqCBPrefix                 = []byte("SCB:")
-	seqCBLastNumPrefix          = []byte("SCBL:")
-	paraSeqToHashKey            = []byte("ParaSeq:")
-	HashToParaSeqPrefix         = []byte("HashToParaSeq:")
-	LastParaSequence            = []byte("LastParaSequence")
-	storeLog                    = chainlog.New("submodule", "store")
-	AddBlock              int64 = 1
-	DelBlock              int64 = 2
+	blockLastHeight       = []byte("blockLastHeight")
+	bodyPrefix            = []byte("Body:")
+	LastSequence          = []byte("LastSequence")
+	headerPrefix          = []byte("Header:")
+	heightToHeaderPrefix  = []byte("HH:")
+	hashPrefix            = []byte("Hash:")
+	tdPrefix              = []byte("TD:")
+	heightToHashKeyPrefix = []byte("Height:")
+	seqToHashKey          = []byte("Seq:")
+	HashToSeqPrefix       = []byte("HashToSeq:")
+	seqCBPrefix           = []byte("SCB:")
+	seqCBLastNumPrefix    = []byte("SCBL:")
+	paraSeqToHashKey      = []byte("ParaSeq:")
+	HashToParaSeqPrefix   = []byte("HashToParaSeq:")
+	LastParaSequence      = []byte("LastParaSequence")
+	storeLog              = chainlog.New("submodule", "store")
 )
 
 //GetLocalDBKeyList 获取本地键值列表
@@ -590,7 +588,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 
 	if bs.saveSequence || bs.isParaChain {
 		//存储记录block序列执行的type add
-		lastSequence, err = bs.saveBlockSequence(storeBatch, hash, height, AddBlock, sequence)
+		lastSequence, err = bs.saveBlockSequence(storeBatch, hash, height, types.AddBlock, sequence)
 		if err != nil {
 			storeLog.Error("SaveBlock SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "error", err)
 			return lastSequence, err
@@ -619,7 +617,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 
 	if bs.saveSequence || bs.isParaChain {
 		//存储记录block序列执行的type del
-		lastSequence, err := bs.saveBlockSequence(storeBatch, hash, height, DelBlock, sequence)
+		lastSequence, err := bs.saveBlockSequence(storeBatch, hash, height, types.DelBlock, sequence)
 		if err != nil {
 			storeLog.Error("DelBlock SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "error", err)
 			return lastSequence, err
@@ -1029,7 +1027,7 @@ func (bs *BlockStore) saveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 
 		sequenceBytes := types.Encode(&types.Int64{Data: newSequence})
 		// hash->seq 只记录add block时的hash和seq对应关系
-		if Type == AddBlock {
+		if Type == types.AddBlock {
 			storeBatch.Set(calcHashToSequenceKey(hash, bs.isParaChain), sequenceBytes)
 		}
 
@@ -1054,7 +1052,7 @@ func (bs *BlockStore) saveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 
 	// hash->seq 只记录add block时的hash和seq对应关系
 	sequenceBytes := types.Encode(&types.Int64{Data: mainSeq})
-	if Type == AddBlock {
+	if Type == types.AddBlock {
 		storeBatch.Set(calcHashToMainSequenceKey(hash), sequenceBytes)
 	}
 	storeBatch.Set(LastSequence, sequenceBytes)
@@ -1301,7 +1299,7 @@ func (bs *BlockStore) CreateSequences(batchSize int64) {
 		// seq->hash
 		var blockSequence types.BlockSequence
 		blockSequence.Hash = header.Hash
-		blockSequence.Type = AddBlock
+		blockSequence.Type = types.AddBlock
 		BlockSequenceByte, err := proto.Marshal(&blockSequence)
 		if err != nil {
 			storeLog.Error("CreateSequences Marshal BlockSequence", "height", i, "hash", common.ToHex(header.Hash), "error", err)
