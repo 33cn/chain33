@@ -205,7 +205,7 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 // ExecDelLocal local execdel
 func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	lset, err := d.callLocal("ExecDelLocal_", tx, receipt, index)
-	if err != nil || lset == nil {// 不能向上层返回LocalDBSet为nil, 以及error
+	if err != nil || lset == nil { // 不能向上层返回LocalDBSet为nil, 以及error
 		blog.Error("call ExecDelLocal", "execer", string(tx.Execer), "err", err)
 		return &types.LocalDBSet{}, nil
 	}
