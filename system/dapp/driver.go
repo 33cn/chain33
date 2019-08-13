@@ -197,7 +197,7 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 	lset, err := d.callLocal("ExecLocal_", tx, receipt, index)
 	if err != nil {
 		blog.Debug("call ExecLocal", "tx.Execer", string(tx.Execer), "err", err)
-		return lset, err
+		return lset, nil
 	}
 	return lset, nil
 }
@@ -207,7 +207,7 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	lset, err := d.callLocal("ExecDelLocal_", tx, receipt, index)
 	if err != nil {
 		blog.Error("call ExecDelLocal", "execer", string(tx.Execer), "err", err)
-		return lset, err
+		return lset, nil
 	}
 	return lset, nil
 }
