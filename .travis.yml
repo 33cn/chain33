@@ -13,6 +13,8 @@ matrix:
       go:
         - "1.12.x"
         - master
+      env:
+        - GO111MODULE=on
       install:
         - go get -u golang.org/x/tools/cmd/goimports
         - go get -u gopkg.in/alecthomas/gometalinter.v2
@@ -25,6 +27,9 @@ matrix:
 
     - name: unit-test
       go: "1.12.x"
+      env:
+        - GO111MODULE=on
+
       install: skip
       script:
         - make test
@@ -33,6 +38,8 @@ matrix:
       if: branch = master
       go:
         - "1.12.x"
+      env:
+        - GO111MODULE=on
       before_install:
         - go get -t -v ./...
       install: skip
@@ -43,10 +50,13 @@ matrix:
 
     - name: deploy
       sudo: required
+      go: 
+        - "1.12.x" 
       services:
         - docker
       env:
         - DOCKER_COMPOSE_VERSION=1.21.2
+        - GO111MODULE=on
       install:
         - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
