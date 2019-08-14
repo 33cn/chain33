@@ -1,4 +1,4 @@
-# golang1.9 or latest
+# golang1.12 or latest
 # 1. make help
 # 2. make dep
 # 3. make build
