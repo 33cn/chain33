@@ -11,7 +11,7 @@ matrix:
     - name: check_fmt
       sudo: require
       go:
-        - "1.11.x"
+        - "1.12.x"
         - master
       install:
         - go get -u golang.org/x/tools/cmd/goimports
@@ -24,7 +24,7 @@ matrix:
         - make linter
 
     - name: unit-test
-      go: "1.9.x"
+      go: "1.12.x"
       install: skip
       script:
         - make test
@@ -32,7 +32,7 @@ matrix:
     - name: coverage
       if: branch = master
       go:
-        - "1.9.x"
+        - "1.12.x"
       before_install:
         - go get -t -v ./...
       install: skip
