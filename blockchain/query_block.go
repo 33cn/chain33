@@ -246,11 +246,9 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	if b != nil {
 		blockdetail = b
 	}
-	//非孤儿block或者已经存在的block
+	//syncTask 运行时设置对应的blockdone
 	if chain.syncTask.InProgress() {
-		if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
-			chain.syncTask.Done(blockdetail.Block.GetHeight())
-		}
+		chain.syncTask.Done(blockdetail.Block.GetHeight())
 	}
 	//downLoadTask 运行时设置对应的blockdone
 	if chain.downLoadTask.InProgress() {
