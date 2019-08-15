@@ -210,7 +210,7 @@ func (mock *mockJRPCSystem) OnStop() {
 	mock.japi.Close()
 }
 
-func (mock *mockJRPCSystem) newRpcCtx(methed string, params, res interface{}) error {
+func (mock *mockJRPCSystem) newRPCCtx(methed string, params, res interface{}) error {
 	if mock.ctx == nil {
 		mock.ctx = NewJsonRpcCtx(methed, params, res)
 	} else {
@@ -245,7 +245,7 @@ func (mock *mockGRPCSystem) OnStop() {
 	mock.gapi.Close()
 }
 
-func (mock *mockGRPCSystem) newRpcCtx(method string, param, res interface{}) error {
+func (mock *mockGRPCSystem) newRPCCtx(method string, param, res interface{}) error {
 	if mock.ctx == nil {
 		mock.ctx = NewGRpcCtx(method, param, res)
 	} else {

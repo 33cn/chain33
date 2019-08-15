@@ -32,7 +32,7 @@ func init() {
 	types.Init("local", nil)
 }
 
-var TxHeightOffset int64 = 0
+var TxHeightOffset int64
 var sendTxWait = time.Millisecond * 5
 var chainlog = log15.New("module", "chain_test")
 

@@ -158,9 +158,9 @@ func TestVersionSetAndGet(t *testing.T) {
 	assert.Equal(t, v, []byte("v3"))
 }
 
-func randBytes() []byte {
-	return hashN(rand.Int())
-}
+// func randBytes() []byte {
+// 	return hashN(rand.Int())
+// }
 
 func hashN(n int) []byte {
 	s := fmt.Sprint(n)

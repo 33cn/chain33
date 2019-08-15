@@ -711,59 +711,59 @@ func testSendTx(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func TestJsonRPC(t *testing.T) {
-	testGetBlocksJsonRPC(t, &jrpc)
-	testGetBlockOverviewJsonRPC(t, &jrpc)
-	testGetBlockHashJsonRPC(t, &jrpc)
-	testGetHeadersCmdJsonRPC(t, &jrpc)
-	testGetLastHeaderJsonRPC(t, &jrpc)
-	testGetMempoolJsonRPC(t, &jrpc)
-	testGetLastMemPoolJsonRPC(t, &jrpc)
-	testGetProperFeeJsonRPC(t, &jrpc)
-	testGenSeedsonRPC(t, &jrpc)
-	testGetPeerInfoJsonRPC(t, &jrpc)
-	testIsNtpClockSyncJsonRPC(t, &jrpc)
-	testIsSyncJsonRPC(t, &jrpc)
-	testGetNetInfoJsonRPC(t, &jrpc)
-	testGetWalletStatusJsonRPC(t, &jrpc)
-	testDumpPrivkeyJsonRPC(t, &jrpc)
-	testGetAccountsJsonRPC(t, &jrpc)
+	testGetBlocksJSONRPC(t, &jrpc)
+	testGetBlockOverviewJSONRPC(t, &jrpc)
+	testGetBlockHashJSONRPC(t, &jrpc)
+	testGetHeadersCmdJSONRPC(t, &jrpc)
+	testGetLastHeaderJSONRPC(t, &jrpc)
+	testGetMempoolJSONRPC(t, &jrpc)
+	testGetLastMemPoolJSONRPC(t, &jrpc)
+	testGetProperFeeJSONRPC(t, &jrpc)
+	testGenSeedJSONRPC(t, &jrpc)
+	testGetPeerInfoJSONRPC(t, &jrpc)
+	testIsNtpClockSyncJSONRPC(t, &jrpc)
+	testIsSyncJSONRPC(t, &jrpc)
+	testGetNetInfoJSONRPC(t, &jrpc)
+	testGetWalletStatusJSONRPC(t, &jrpc)
+	testDumpPrivkeyJSONRPC(t, &jrpc)
+	testGetAccountsJSONRPC(t, &jrpc)
 }
 
-func testGetAccountsJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetAccountsJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res rpctypes.WalletAccounts
 	err := rpc.newRpcCtx("Chain33.GetAccounts", &types.ReqNil{}, &res)
 	if err != nil {
-		t.Error("testGetAccountsJsonRPC Failed.", err)
+		t.Error("testGetAccountsJSONRPC Failed.", err)
 	}
 }
 
-func testDumpPrivkeyJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testDumpPrivkeyJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res types.ReplyString
 	err := rpc.newRpcCtx("Chain33.DumpPrivkey", &types.ReqString{}, &res)
 	if err != nil {
-		t.Error("testDumpPrivkeyJsonRPC Failed.", err)
+		t.Error("testDumpPrivkeyJSONRPC Failed.", err)
 	}
 }
 
-func testGetWalletStatusJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetWalletStatusJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res rpctypes.WalletStatus
 	err := rpc.newRpcCtx("Chain33.GetWalletStatus", &types.ReqNil{}, &res)
 	if err != nil {
-		t.Error("testGetWalletStatusJsonRPC Failed.", err)
+		t.Error("testGetWalletStatusJSONRPC Failed.", err)
 	} else {
 		if res.IsTicketLock || res.IsAutoMining || !res.IsHasSeed || !res.IsWalletLock {
-			t.Error("testGetWalletStatusJsonRPC return type error.")
+			t.Error("testGetWalletStatusJSONRPC return type error.")
 
 		}
 	}
 }
 
-func testGetNetInfoJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetNetInfoJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res rpctypes.NodeNetinfo
 	err := rpc.newRpcCtx("Chain33.GetNetInfo",
 		nil, &res)
 	if err != nil {
-		t.Error("testGetNetInfoJsonRPC failed. Error", err)
+		t.Error("testGetNetInfoJSONRPC failed. Error", err)
 	}
 }
 
@@ -815,34 +815,34 @@ func testGetLastMemPoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	}
 }
 
-func testGetProperFeeJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetProperFeeJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res rpctypes.ReplyProperFee
 	err := rpc.newRpcCtx("Chain33.GetProperFee",
 		nil, &res)
 	if err != nil {
-		t.Error("testGetProperFeeJsonRPC failed. Error", err)
+		t.Error("testGetProperFeeJSONRPC failed. Error", err)
 	}
 }
 
-func testGetMempoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetMempoolJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res rpctypes.ReplyTxList
 	err := rpc.newRpcCtx("Chain33.GetMempool",
 		nil, &res)
 	if err != nil {
-		t.Error("testGetMempoolJsonRPC failed. Error", err)
+		t.Error("testGetMempoolJSONRPC failed. Error", err)
 	}
 }
 
-func testGetLastHeaderJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetLastHeaderJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res rpctypes.Header
 	err := rpc.newRpcCtx("Chain33.GetLastHeader",
 		nil, &res)
 	if err != nil {
-		t.Error("testGetLastHeaderJsonRPC failed. Error", err)
+		t.Error("testGetLastHeaderJSONRPC failed. Error", err)
 	}
 }
 
-func testGetHeadersCmdJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetHeadersCmdJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	params := types.ReqBlocks{
 		Start:    1,
 		End:      1,
@@ -853,11 +853,11 @@ func testGetHeadersCmdJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	err := rpc.newRpcCtx("Chain33.GetHeaders",
 		params, &res)
 	if err != nil {
-		t.Error("testGetHeadersCmdJsonRPC failed. Error", err)
+		t.Error("testGetHeadersCmdJSONRPC failed. Error", err)
 	}
 }
 
-func testGetBlockOverviewJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetBlockOverviewJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	params := rpctypes.QueryParm{
 		Hash: "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6",
 	}
@@ -866,11 +866,11 @@ func testGetBlockOverviewJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	err := rpc.newRpcCtx("Chain33.GetBlockOverview",
 		params, &res)
 	if err != nil {
-		t.Error("testGetBlockOverviewJsonRPC failed. Error", err)
+		t.Error("testGetBlockOverviewJSONRPC failed. Error", err)
 	}
 }
 
-func testGetBlocksJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetBlocksJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	params := rpctypes.BlockParam{
 		Start:    100,
 		End:      1000,
@@ -881,11 +881,11 @@ func testGetBlocksJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	err := rpc.newRpcCtx("Chain33.GetBlocks",
 		params, &res)
 	if err != nil {
-		t.Error("testGetBlocksJsonRPC failed. Error", err)
+		t.Error("testGetBlocksJSONRPC failed. Error", err)
 	}
 }
 
-func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
+func testGetBlockHashJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	params := types.ReqInt{
 		Height: 100,
 	}
@@ -893,7 +893,7 @@ func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	err := rpc.newRpcCtx("Chain33.GetBlockHash",
 		params, &res)
 	if err != nil {
-		t.Error("testGetBlockHashJsonRPC failed. Error", err)
+		t.Error("testGetBlockHashJSONRPC failed. Error", err)
 	}
 }
 

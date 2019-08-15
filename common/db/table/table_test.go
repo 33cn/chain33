@@ -241,18 +241,18 @@ func TestTransactinListAuto(t *testing.T) {
 	assert.Equal(t, 3, len(rows))
 }
 
-func mergeDup(kvs []*types.KeyValue) (kvset []*types.KeyValue) {
-	maplist := make(map[string]*types.KeyValue)
-	for _, kv := range kvs {
-		if item, ok := maplist[string(kv.Key)]; ok {
-			item.Value = kv.Value //更新item 的value
-		} else {
-			maplist[string(kv.Key)] = kv
-			kvset = append(kvset, kv)
-		}
-	}
-	return kvset
-}
+// func mergeDup(kvs []*types.KeyValue) (kvset []*types.KeyValue) {
+// 	maplist := make(map[string]*types.KeyValue)
+// 	for _, kv := range kvs {
+// 		if item, ok := maplist[string(kv.Key)]; ok {
+// 			item.Value = kv.Value //更新item 的value
+// 		} else {
+// 			maplist[string(kv.Key)] = kv
+// 			kvset = append(kvset, kv)
+// 		}
+// 	}
+// 	return kvset
+// }
 
 func TestRow(t *testing.T) {
 	rowmeta := NewTransactionRow()
@@ -310,7 +310,7 @@ func TestDel(t *testing.T) {
 	assert.Equal(t, 0, len(rows))
 }
 
-func printAllKey(db db.DB) {
+func printAllKey(db db.Iterator) {
 	it := db.Iterator(nil, nil, false)
 	defer it.Close()
 	for it.Rewind(); it.Valid(); it.Next() {

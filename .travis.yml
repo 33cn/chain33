@@ -13,14 +13,13 @@ matrix:
       go:
         - "1.12.x"
         - master
-      install:
-        - go get -u golang.org/x/tools/cmd/goimports
-        - go get -u gopkg.in/alecthomas/gometalinter.v2
-        - gometalinter.v2 -i
-        - go get -u mvdan.cc/sh/cmd/shfmt
-        - go get -u mvdan.cc/sh/cmd/gosh
       env:
         - GO111MODULE=on
+      install:
+        - go get -u golang.org/x/tools/cmd/goimports
+        - go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
+        - go get -u mvdan.cc/sh/cmd/shfmt
+        - go get -u mvdan.cc/sh/cmd/gosh
       script:
         - make checkgofmt && make fmt_go
         - make linter
