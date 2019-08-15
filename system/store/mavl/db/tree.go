@@ -116,6 +116,9 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 	// 使能情况下非空创建当前整tree的缓存
 	if enableMemTree && memTree == nil {
 		memTree = NewTreeMap(50 * 10000)
+		if tkCloseCacheLen == 0 {
+			tkCloseCacheLen = 10 * 10000
+		}
 		tkCloseCache = NewTreeARC(int(tkCloseCacheLen))
 	}
 	return &Tree{

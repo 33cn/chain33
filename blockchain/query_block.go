@@ -10,11 +10,18 @@ import (
 )
 
 //GetBlockByHashes 通过blockhash 获取对应的block信息
+//从数据库获取区块不能太多，防止内存异常。一次最多获取100M区块数据从数据库
 func (chain *BlockChain) GetBlockByHashes(hashes [][]byte) (respblocks *types.BlockDetails, err error) {
 	var blocks types.BlockDetails
+	size := 0
 	for _, hash := range hashes {
 		block, err := chain.LoadBlockByHash(hash)
 		if err == nil && block != nil {
+			size += block.Size()
+			if size > types.MaxBlockSizePerTime {
+				chainlog.Error("GetBlockByHashes:overflow", "MaxBlockSizePerTime", types.MaxBlockSizePerTime)
+				return &blocks, nil
+			}
 			blocks.Items = append(blocks.Items, block)
 		} else {
 			blocks.Items = append(blocks.Items, nil)
@@ -263,4 +270,19 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	}
 	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
 	return blockdetail, err
+}
+
+//getBlockHashes 获取指定height区间对应的blockhashes
+func (chain *BlockChain) getBlockHashes(startheight, endheight int64) types.ReqHashes {
+	var reqHashes types.ReqHashes
+	for i := startheight; i <= endheight; i++ {
+		hash, err := chain.blockStore.GetBlockHashByHeight(i)
+		if hash == nil || err != nil {
+			storeLog.Error("getBlockHashesByHeight", "height", i, "error", err)
+			reqHashes.Hashes = append(reqHashes.Hashes, nil)
+		} else {
+			reqHashes.Hashes = append(reqHashes.Hashes, hash)
+		}
+	}
+	return reqHashes
 }

@@ -23,22 +23,29 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 		return nil, err
 	}
 
-	//获取区块的seq信息
-	req := &types.ReqBlocks{Start: seq.Start, End: seq.End, IsDetail: false, Pid: []string{}}
-	sequences, err := chain.GetBlockSequences(req)
-	if err != nil {
-		filterlog.Error("GetParaTxByTitle:GetBlockSequences", "err", err.Error())
-		return nil, err
+	//对获取区块的起始和结束值做校验,最多一次取1000个区块，防止取的数据过大导致内存异常
+	if seq.End > seq.Start && (seq.End-seq.Start > types.MaxBlockCountPerTime) {
+		seq.End = seq.Start + types.MaxBlockCountPerTime - 1
+	}
+	var reqHashes types.ReqHashes
+	var sequences *types.BlockSequences
+	if seq.IsSeq {
+		req := &types.ReqBlocks{Start: seq.Start, End: seq.End, IsDetail: false, Pid: []string{}}
+		sequences, err = chain.GetBlockSequences(req)
+		if err != nil {
+			filterlog.Error("GetParaTxByTitle:GetBlockSequences", "err", err.Error())
+			return nil, err
+		}
+		for _, item := range sequences.Items {
+			if item != nil {
+				reqHashes.Hashes = append(reqHashes.Hashes, item.GetHash())
+			}
+		}
+	} else {
+		reqHashes = chain.getBlockHashes(seq.Start, seq.End)
 	}
 
 	//通过区块hash获取区块信息
-	var reqHashes types.ReqHashes
-	for _, item := range sequences.Items {
-		if item != nil {
-			reqHashes.Hashes = append(reqHashes.Hashes, item.GetHash())
-		}
-	}
-
 	blocks, err := chain.GetBlockByHashes(reqHashes.Hashes)
 	if err != nil {
 		filterlog.Error("GetParaTxByTitle:GetBlockByHashes", "err", err)
@@ -51,7 +58,11 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 	for i, block := range blocks.Items {
 		if block != nil {
 			paraTx = block.FilterParaTxsByTitle(seq.Title)
-			paraTx.Type = sequences.Items[i].GetType()
+			if seq.IsSeq {
+				paraTx.Type = sequences.Items[i].GetType()
+			} else {
+				paraTx.Type = types.AddBlock
+			}
 		} else {
 			paraTx = nil
 		}
@@ -60,13 +71,24 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 	return &paraTxs, err
 }
 
-//checkInputParam 入参检测，主要检测seq的end的值已经title是否合法
-func (chain *BlockChain) checkInputParam(seq *types.ReqParaTxByTitle) error {
+//checkInputParam 入参检测，主要检测req的end的值以及title是否合法
+func (chain *BlockChain) checkInputParam(req *types.ReqParaTxByTitle) error {
+	var err error
+	var lastblock int64
 
-	//入参数校验
-	blockLastSeq, err := chain.blockStore.LoadBlockLastSequence()
-	if err != nil || seq.End > blockLastSeq || blockLastSeq < 0 || !strings.HasPrefix(seq.Title, types.ParaKeyX) {
-		filterlog.Error("checkInputParam", "blockLastSeq", blockLastSeq, "seq", seq, "err", err)
+	if req.GetStart() > req.GetEnd() {
+		chainlog.Error("checkInputParam input must Start <= End:", "Start", req.Start, "End", req.End)
+		return types.ErrEndLessThanStartHeight
+	}
+
+	//需要区分是通过seq/height来获取平行链交易
+	if req.IsSeq {
+		lastblock, err = chain.blockStore.LoadBlockLastSequence()
+	} else {
+		lastblock = chain.GetBlockHeight()
+	}
+	if err != nil || req.End > lastblock || lastblock < 0 || !strings.HasPrefix(req.Title, types.ParaKeyX) {
+		filterlog.Error("checkInputParam", "lastblock", lastblock, "req", req, "err", err)
 		return types.ErrInvalidParam
 	}
 	return nil
