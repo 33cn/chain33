@@ -449,7 +449,7 @@ func getExecBalance(callback func(*types.StoreList) (*types.StoreListReply, erro
 		if strings.HasSuffix(prefix, ":") {
 			addr := strKey[len(prefix):]
 			execAddr := []byte(prefix[(len(prefix) - len(addr) - 1):(len(prefix) - 1)])
-			fmt.Println("DB.GetExecBalance record for specific exec addr.", "execAddr:", string(execAddr), " addr:", string(addr))
+			fmt.Println("DB.GetExecBalance record for specific exec addr.", "execAddr:", string(execAddr), " addr:", addr)
 			reply.AddItem(execAddr, res.Values[i])
 		} else {
 			combinAddr := strKey[len(prefix):]
@@ -458,7 +458,7 @@ func getExecBalance(callback func(*types.StoreList) (*types.StoreListReply, erro
 				fmt.Println("accountDB.GetExecBalance key does not contain exec-addr & addr", "key", strKey, "combinAddr", combinAddr)
 				return nil, types.ErrTypeAsset
 			}
-			fmt.Println("DB.GetExecBalance", "execAddr", string(addrs[0]), "addr", string(addrs[1]))
+			fmt.Println("DB.GetExecBalance", "execAddr", addrs[0], "addr", addrs[1])
 			reply.AddItem([]byte(addrs[0]), res.Values[i])
 		}
 	}

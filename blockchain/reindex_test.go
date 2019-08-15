@@ -84,9 +84,9 @@ func getAllKeys(db dbm.DB) (kvs []*types.KeyValue) {
 	return kvs
 }
 
-func str(key string) string {
-	return strings.Replace(key, "\n", "\\n", -1)
-}
+// func str(key string) string {
+// 	return strings.Replace(key, "\n", "\\n", -1)
+// }
 
 func copyBytes(keys []byte) []byte {
 	data := make([]byte, len(keys))
