@@ -7,7 +7,6 @@ package db
 import (
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"testing"
 
 	"github.com/33cn/chain33/common"
@@ -157,10 +156,6 @@ func TestVersionSetAndGet(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, v, []byte("v3"))
 }
-
-// func randBytes() []byte {
-// 	return hashN(rand.Int())
-// }
 
 func hashN(n int) []byte {
 	s := fmt.Sprint(n)

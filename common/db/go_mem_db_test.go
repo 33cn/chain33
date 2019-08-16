@@ -85,8 +85,8 @@ func BenchmarkRandomGoMemDBReadsWrites(b *testing.B) {
 			idx := (int64(RandInt()) % numItems)
 			internal[idx]++
 			val := internal[idx]
-			idxBytes := int642Bytes(int64(idx))
-			valBytes := int642Bytes(int64(val))
+			idxBytes := int642Bytes(idx)
+			valBytes := int642Bytes(val)
 			//fmt.Printf("Set %X -> %X\n", idxBytes, valBytes)
 			db.Set(
 				idxBytes,
@@ -97,7 +97,7 @@ func BenchmarkRandomGoMemDBReadsWrites(b *testing.B) {
 		{
 			idx := (int64(RandInt()) % numItems)
 			val := internal[idx]
-			idxBytes := int642Bytes(int64(idx))
+			idxBytes := int642Bytes(idx)
 			valBytes, _ := db.Get(idxBytes)
 			//fmt.Printf("Get %X -> %X\n", idxBytes, valBytes)
 			if val == 0 {
