@@ -6,19 +6,20 @@ OP="${1}"
 path="${2}"
 
 function filterLinter() {
-    res=$(golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all \
-        --enable=gofmt \
-        --enable=gosimple \
-        --enable=deadcode \
-        --enable=unconvert \
-        --enable=interfacer \
-        --enable=varcheck \
-        --enable=structcheck \
-        --enable=goimports \
-        --enable=misspell \
-        --enable=golint \
-        --exclude=underscores \
-        )
+    res=$(
+        golangci-lint run --no-config --issues-exit-code=1 --deadline=2m --disable-all \
+            --enable=gofmt \
+            --enable=gosimple \
+            --enable=deadcode \
+            --enable=unconvert \
+            --enable=interfacer \
+            --enable=varcheck \
+            --enable=structcheck \
+            --enable=goimports \
+            --enable=misspell \
+            --enable=golint \
+            --exclude=underscores
+    )
     #	    --enable=staticcheck \
     #	    --enable=gocyclo \
     #	    --enable=staticcheck \
@@ -27,18 +28,18 @@ function filterLinter() {
     #	    --enable=gotype \
     #	    --enable=gotypex \
 
-#    if [[ ${#res} -gt "0" ]]; then
-#        resNoSpace=$(echo "${res}" | tr ' ' '@')
-#        array=($(echo "${resNoSpace}" | tr '\n' '\n'))
-#        str=""
-#        for var in ${array[*]}; do
-#            if ! [[ $var =~ "underscores" ]]; then
-#                str="${str}""${var}""\\n"
-#            fi
-#        done
-#        res=""
-#        res=$(echo "${str}" | tr '@' ' ')
-#    fi
+    #    if [[ ${#res} -gt "0" ]]; then
+    #        resNoSpace=$(echo "${res}" | tr ' ' '@')
+    #        array=($(echo "${resNoSpace}" | tr '\n' '\n'))
+    #        str=""
+    #        for var in ${array[*]}; do
+    #            if ! [[ $var =~ "underscores" ]]; then
+    #                str="${str}""${var}""\\n"
+    #            fi
+    #        done
+    #        res=""
+    #        res=$(echo "${str}" | tr '@' ' ')
+    #    fi
     if [[ ${#res} -gt "0" ]]; then
         echo -e "${res}"
         exit 1
@@ -47,7 +48,7 @@ function filterLinter() {
 
 function testLinter() {
     cd "${path}" >/dev/null || exit
-    golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all \
+    golangci-lint run --no-config --issues-exit-code=1 --deadline=2m --disable-all \
         --enable=gofmt \
         --enable=gosimple \
         --enable=deadcode \
@@ -58,7 +59,7 @@ function testLinter() {
         --enable=goimports \
         --enable=misspell \
         --enable=golint \
-        --exclude=underscores \
+        --exclude=underscores
 
     cd - >/dev/null || exit
 }

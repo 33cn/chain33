@@ -14,9 +14,11 @@ package btcutil
 // and http://stackoverflow.com/a/8392111/174463
 // for details on how this Koblitz curve math works.
 
-import "crypto/elliptic"
-import "fmt"
-import "math/big"
+import (
+	"crypto/elliptic"
+	"fmt"
+	"math/big"
+)
 
 // KoblitzCurve A Koblitz Curve with a=0.
 type KoblitzCurve struct {

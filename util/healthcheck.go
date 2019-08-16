@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	listenAddr            = ":8805" //as server, should keep default 0.0.0.0
-	unSyncMaxTimes uint32 = 6       //max 6 times
-	checkInterval  uint32 = 5       // 5s
+	listenAddr            = "127.0.0.1:8805" //as server, should keep default 0.0.0.0
+	unSyncMaxTimes uint32 = 6                //max 6 times
+	checkInterval  uint32 = 5                // 5s
 )
 
 // HealthCheckServer  a node's health check server

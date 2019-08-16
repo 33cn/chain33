@@ -4,10 +4,12 @@
 
 package btcutil
 
-import "crypto/ecdsa"
-import "crypto/rand"
-import "fmt"
-import "math/big"
+import (
+	"crypto/ecdsa"
+	"crypto/rand"
+	"fmt"
+	"math/big"
+)
 
 // BlindSignerState blind signer state
 type BlindSignerState struct {
