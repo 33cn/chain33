@@ -21,7 +21,8 @@ matrix:
         - go get -u mvdan.cc/sh/cmd/shfmt
         - go get -u mvdan.cc/sh/cmd/gosh
         - sudo apt-get update
-        - sudo apt upgrade shellcheck
+        - sudo apt-get remove shellcheck
+        - sudo apt-get install shellcheck
         - shellcheck -V
       script:
         - make checkgofmt && make fmt_go
