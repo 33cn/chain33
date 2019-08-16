@@ -29,8 +29,7 @@ PROJ := "build"
 default: build cli depends
 
 dep: ## Get the dependencies
-	@go get -u gopkg.in/alecthomas/gometalinter.v2
-	@gometalinter.v2 -i
+	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
 	@go get -u github.com/mitchellh/gox
 	@go get -u github.com/vektra/mockery/.../
 	@go get -u mvdan.cc/sh/cmd/shfmt
@@ -91,14 +90,14 @@ build_ci: depends ## Build the binary file for CI
 
 linter: vet ineffassign gosec ## Use gometalinter check code, ignore some unserious warning
 	@./golinter.sh "filter"
-	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
+	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck --exclude=SC1009,SC1073,SC2154,SC1072
 
 linter_test: ## Use gometalinter check code, for local test
 	@./golinter.sh "test" "${p}"
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 gosec:
-	@gosec -quiet=true -exclude=G107,G402,G302 ${PKG_LIST_GOSEC}
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec --exclude=G107,G402,G404,G102,G302 ${PKG_LIST_GOSEC}
 
 race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
@@ -107,7 +106,7 @@ vet:
 	@go vet ${PKG_LIST_VET}
 
 ineffassign:
-	@ineffassign -n ${PKG_LIST_INEFFASSIGN}
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign   -n ${PKG_LIST_INEFFASSIGN}
 
 test: ## Run unittests
 	@go test -race $(PKG_LIST)

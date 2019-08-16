@@ -26,8 +26,6 @@ import (
 
 var elog = log.New("module", "execs")
 
-// var coinsAccount *dbm.DB
-
 // SetLogLevel set log level
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)

@@ -6,7 +6,7 @@ OP="${1}"
 path="${2}"
 
 function filterLinter() {
-    res=$(golangci-lint  run --no-config --issues-exit-code=0  --deadline=2m --disable-all \
+    res=$(golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all \
         --enable=gofmt \
         --enable=gosimple \
         --enable=deadcode \
@@ -47,7 +47,7 @@ function filterLinter() {
 
 function testLinter() {
     cd "${path}" >/dev/null || exit
-    golangci-lint  run --no-config --issues-exit-code=0  --deadline=2m --disable-all \
+    golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all \
         --enable=gofmt \
         --enable=gosimple \
         --enable=deadcode \
@@ -56,9 +56,9 @@ function testLinter() {
         --enable=varcheck \
         --enable=structcheck \
         --enable=goimports \
-        --enable=vet \
+        --enable=misspell \
         --enable=golint \
-        --enable=ineffassign  
+        --exclude=underscores \
 
     cd - >/dev/null || exit
 }

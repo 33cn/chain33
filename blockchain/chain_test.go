@@ -326,7 +326,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	addblockheight := curheight + 10
 	var txs []*types.Transaction
 	for {
-		txlist, _, err := addTxTxHeigt(mock33.GetGenesisKey(), mock33.GetAPI(), int64(curheight))
+		txlist, _, err := addTxTxHeigt(mock33.GetGenesisKey(), mock33.GetAPI(), curheight)
 		txs = append(txs, txlist...)
 		require.NoError(t, err)
 		curheight := blockchain.GetBlockHeight()
@@ -419,7 +419,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	curheightForExpire := curheight
 	var txs []*types.Transaction
 	for {
-		txlist, _, err := addTxTxHeigt(mock33.GetGenesisKey(), mock33.GetAPI(), int64(curheightForExpire))
+		txlist, _, err := addTxTxHeigt(mock33.GetGenesisKey(), mock33.GetAPI(), curheightForExpire)
 		txs = append(txs, txlist...)
 		require.NoError(t, err)
 		curheightForExpire = blockchain.GetBlockHeight()

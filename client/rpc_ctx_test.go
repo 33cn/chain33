@@ -18,7 +18,7 @@ import (
 )
 
 // TODO: SetPostRunCb()
-type JsonRpcCtx struct {
+type JSONRPCCtx struct {
 	Addr   string
 	Method string
 	Params interface{}
@@ -31,8 +31,8 @@ type JsonRpcCtx struct {
 
 type Callback func(res interface{}) (interface{}, error)
 
-func NewJsonRpcCtx(methed string, params, res interface{}) *JsonRpcCtx {
-	return &JsonRpcCtx{
+func NewJSONRPCCtx(methed string, params, res interface{}) *JSONRPCCtx {
+	return &JSONRPCCtx{
 		Addr:   jrpcsite,
 		Method: methed,
 		Params: params,
@@ -40,11 +40,11 @@ func NewJsonRpcCtx(methed string, params, res interface{}) *JsonRpcCtx {
 	}
 }
 
-func (c *JsonRpcCtx) SetResultCb(cb Callback) {
+func (c *JSONRPCCtx) SetResultCb(cb Callback) {
 	c.cb = cb
 }
 
-func (c *JsonRpcCtx) Run() (err error) {
+func (c *JSONRPCCtx) Run() (err error) {
 	if c.jsonClient == nil {
 		c.jsonClient, err = jsonclient.NewJSONClient(c.Addr)
 		if err != nil {
