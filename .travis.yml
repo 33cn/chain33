@@ -20,6 +20,7 @@ matrix:
         - go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
         - go get -u mvdan.cc/sh/cmd/shfmt
         - go get -u mvdan.cc/sh/cmd/gosh
+        - sudo apt install shellcheck
       script:
         - make checkgofmt && make fmt_go
         - make linter
