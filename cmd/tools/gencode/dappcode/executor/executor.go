@@ -42,7 +42,7 @@ var (
 
 import (
 	log "github.com/33cn/chain33/common/log/log15"
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 )
@@ -58,7 +58,7 @@ var (
 	elog = log.New("module", "${EXECNAME}.executor")
 )
 
-var driverName = ptypes.${CLASSNAME}X
+var driverName = ${EXECNAME}types.${CLASSNAME}X
 
 func init() {
 	ety := types.LoadExecutorType(driverName)

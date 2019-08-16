@@ -5,8 +5,6 @@
 package types
 
 import (
-	"os"
-
 	"github.com/33cn/chain33/cmd/tools/gencode/base"
 	"github.com/33cn/chain33/cmd/tools/types"
 )
@@ -22,7 +20,7 @@ type typesCode struct {
 
 func (c typesCode) GetDirName() string {
 
-	return "types" + string(os.PathSeparator) + "${EXECNAME}"
+	return "types"
 }
 
 func (c typesCode) GetFiles() map[string]string {

@@ -68,7 +68,7 @@ var (
 	execContent = `package executor
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -83,7 +83,7 @@ ${EXECFILECONTENT}`
 	execLocalContent = `package executor
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -98,7 +98,7 @@ ${EXECLOCALFILECONTENT}`
 	execDelContent = `package executor
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	"github.com/33cn/chain33/types"
 )
 
