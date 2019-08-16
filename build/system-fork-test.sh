@@ -43,7 +43,6 @@ DAPP_TEST_FILE=""
 if [ -n "${DAPP}" ]; then
     testfile="fork-test.sh"
     if [ -e "$testfile" ]; then
-        # shellcheck source=/dev/null
         source "${testfile}"
         DAPP_TEST_FILE="$testfile"
     fi
@@ -57,7 +56,6 @@ if [ -n "${DAPP}" ]; then
 fi
 
 system_coins_file="system/coins/fork-test.sh"
-# shellcheck source=/dev/null
 source "${system_coins_file}"
 
 echo "=========== # env setting ============="

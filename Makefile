@@ -30,10 +30,12 @@ default: build cli depends
 
 dep: ## Get the dependencies
 	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
+	@go get -u golang.org/x/tools/cmd/goimports
 	@go get -u github.com/mitchellh/gox
 	@go get -u github.com/vektra/mockery/.../
 	@go get -u mvdan.cc/sh/cmd/shfmt
 	@go get -u mvdan.cc/sh/cmd/gosh
+	@git checkout go.mod go.sum
 	@apt install clang-format
 	@apt install shellcheck
 

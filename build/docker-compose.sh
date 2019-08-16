@@ -44,7 +44,6 @@ DAPP_TEST_FILE=""
 if [ -n "${DAPP}" ]; then
     DAPP_TEST_FILE="testcase.sh"
     if [ -e "$DAPP_TEST_FILE" ]; then
-        # shellcheck source=/dev/null
         source "${DAPP_TEST_FILE}"
     fi
 
@@ -57,7 +56,6 @@ if [ -n "${DAPP}" ]; then
 fi
 
 if [ -z "$DAPP" ]; then
-    # shellcheck source=/dev/null
     source system-test-rpc.sh
 fi
 
