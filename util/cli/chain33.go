@@ -195,6 +195,8 @@ func RunChain33(name string) {
 		//close all module,clean some resource
 		log.Info("begin close health module")
 		health.Close()
+		log.Info("begin close consensus module")
+		cs.Close()
 		log.Info("begin close blockchain module")
 		chain.Close()
 		log.Info("begin close mempool module")
@@ -205,8 +207,6 @@ func RunChain33(name string) {
 		exec.Close()
 		log.Info("begin close store module")
 		s.Close()
-		log.Info("begin close consensus module")
-		cs.Close()
 		log.Info("begin close rpc module")
 		rpcapi.Close()
 		log.Info("begin close wallet module")
