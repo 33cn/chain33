@@ -4,9 +4,11 @@
 
 package btcutil
 
-import "crypto/ecdsa"
-import "crypto/rand"
-import "math/big"
+import (
+	"crypto/ecdsa"
+	"crypto/rand"
+	"math/big"
+)
 
 // BlindRequesterState State
 type BlindRequesterState struct {

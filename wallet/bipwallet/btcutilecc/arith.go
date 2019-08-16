@@ -5,8 +5,10 @@
 // Package btcutil Utility functions for Bitcoin elliptic curve cryptography.
 package btcutil
 
-import "crypto/ecdsa"
-import "math/big"
+import (
+	"crypto/ecdsa"
+	"math/big"
+)
 
 // ScalarBaseMult Multiplies the base G by a large integer.  The resulting
 // point is represented as an ECDSA public key since that's

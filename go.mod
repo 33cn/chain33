@@ -15,7 +15,6 @@ require (
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac
 	github.com/coreos/bbolt v1.3.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/blake256 v1.0.0 // indirect
 	github.com/decred/base58 v1.0.0
 	github.com/dgraph-io/badger v1.5.4
@@ -24,19 +23,17 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
+	github.com/golangci/golangci-lint v1.17.1 // indirect
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.0
 	github.com/huin/goupnp v1.0.0
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.1
-	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mr-tron/base58 v1.1.0
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/errors v0.8.0
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/cors v1.6.0
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
@@ -45,12 +42,15 @@ require (
 	github.com/syndtr/goleveldb v0.0.0-20181105012736-f9080354173f
 	github.com/tjfoc/gmsm v0.0.0-20171124023159-98aa888b79d8
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a
+	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/tools v0.0.0-20190815235612-5b08f89bfc0c // indirect
 	google.golang.org/grpc v1.22.1
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/go-playground/webhooks.v5 v5.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
+	mvdan.cc/sh v2.6.4+incompatible // indirect
 )
