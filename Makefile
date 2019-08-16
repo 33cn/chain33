@@ -90,14 +90,14 @@ build_ci: depends ## Build the binary file for CI
 
 linter: vet ineffassign gosec ## Use gometalinter check code, ignore some unserious warning
 	@./golinter.sh "filter"
-	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck --exclude=SC1009,SC1073,SC2154,SC1072
+	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 linter_test: ## Use gometalinter check code, for local test
 	@./golinter.sh "test" "${p}"
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 gosec:
-	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec --exclude=G107,G402,G404,G102,G302 ${PKG_LIST_GOSEC}
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec ${PKG_LIST_GOSEC}
 
 race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
