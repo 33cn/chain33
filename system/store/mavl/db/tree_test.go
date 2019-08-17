@@ -72,13 +72,6 @@ func i2b(i int32) []byte {
 	return Sha256(bbuf.Bytes())
 }
 
-// func b2i(bz []byte) int {
-// 	var x int
-// 	bbuf := bytes.NewBuffer(bz)
-// 	binary.Read(bbuf, binary.BigEndian, &x)
-// 	return x
-// }
-
 // 测试set和get功能
 func TestBasic(t *testing.T) {
 	var tree = NewTree(nil, true)
