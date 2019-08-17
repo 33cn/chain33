@@ -165,23 +165,6 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	return q, chain, s, mem
 }
 
-// func initEnv2(size int) (queue.Queue, *Mempool) {
-// 	var q = queue.New("channel")
-// 	cfg, _ := types.InitCfg("../../cmd/chain33/chain33.test.toml")
-// 	types.Init(cfg.Title, cfg)
-// 	blockchainProcess(q)
-// 	execProcess(q)
-// 	cfg.Mempool.PoolCacheSize = int64(size)
-// 	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
-// 	mem := NewMempool(cfg.Mempool)
-// 	mem.SetQueueCache(NewSimpleQueue(subConfig))
-// 	mem.SetQueueClient(q.Client())
-// 	mem.setSync(true)
-// 	mem.SetMinFee(0)
-// 	mem.Wait()
-// 	return q, mem
-// }
-
 func initEnv(size int) (queue.Queue, *Mempool) {
 	if size == 0 {
 		size = 100
