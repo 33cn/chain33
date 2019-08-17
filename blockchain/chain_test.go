@@ -70,8 +70,6 @@ func TestBlockChain(t *testing.T) {
 	//等待共识模块增长10个区块
 	testProcAddBlockMsg(t, mock33, blockchain)
 
-	//curBlock := testGetBlock(t, blockchain)
-
 	testGetTx(t, blockchain)
 
 	testGetTxHashList(t, blockchain)
@@ -158,19 +156,6 @@ func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain 
 		time.Sleep(sendTxWait)
 	}
 	chainlog.Info("testProcAddBlockMsg end --------------------")
-}
-
-func testGetBlock(t *testing.T, blockchain *blockchain.BlockChain) *types.Block {
-	chainlog.Info("testGetBlock begin --------------------")
-	curheight := blockchain.GetBlockHeight()
-	block, err := blockchain.GetBlock(curheight)
-	require.NoError(t, err)
-	if curheight != block.Block.Height {
-		t.Error("get block height error")
-	}
-	chainlog.Info("testGetBlock end --------------------")
-	return block.Block
-
 }
 
 func testGetTx(t *testing.T, blockchain *blockchain.BlockChain) {
