@@ -19,7 +19,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type Genesis struct {
 	Isrun                bool     `protobuf:"varint,1,opt,name=isrun,proto3" json:"isrun,omitempty"`
@@ -501,97 +501,13 @@ func (m *ConfigItem) GetTy() int32 {
 	return 0
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*ConfigItem) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _ConfigItem_OneofMarshaler, _ConfigItem_OneofUnmarshaler, _ConfigItem_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*ConfigItem) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*ConfigItem_Arr)(nil),
 		(*ConfigItem_Str)(nil),
 		(*ConfigItem_Int)(nil),
 	}
-}
-
-func _ConfigItem_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*ConfigItem)
-	// value
-	switch x := m.Value.(type) {
-	case *ConfigItem_Arr:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Arr); err != nil {
-			return err
-		}
-	case *ConfigItem_Str:
-		b.EncodeVarint(4<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Str); err != nil {
-			return err
-		}
-	case *ConfigItem_Int:
-		b.EncodeVarint(5<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Int); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("ConfigItem.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _ConfigItem_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*ConfigItem)
-	switch tag {
-	case 3: // value.arr
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(ArrayConfig)
-		err := b.DecodeMessage(msg)
-		m.Value = &ConfigItem_Arr{msg}
-		return true, err
-	case 4: // value.str
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(StringConfig)
-		err := b.DecodeMessage(msg)
-		m.Value = &ConfigItem_Str{msg}
-		return true, err
-	case 5: // value.int
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Int32Config)
-		err := b.DecodeMessage(msg)
-		m.Value = &ConfigItem_Int{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _ConfigItem_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*ConfigItem)
-	// value
-	switch x := m.Value.(type) {
-	case *ConfigItem_Arr:
-		s := proto.Size(x.Arr)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *ConfigItem_Str:
-		s := proto.Size(x.Str)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *ConfigItem_Int:
-		s := proto.Size(x.Int)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type ModifyConfig struct {

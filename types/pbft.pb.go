@@ -19,7 +19,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type Operation struct {
 	Value                *Block   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
@@ -451,9 +451,9 @@ func (m *Request) GetNewview() *RequestNewView {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Request) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Request_OneofMarshaler, _Request_OneofUnmarshaler, _Request_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Request) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Request_Client)(nil),
 		(*Request_Preprepare)(nil),
 		(*Request_Prepare)(nil),
@@ -463,180 +463,6 @@ func (*Request) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error
 		(*Request_Ack)(nil),
 		(*Request_Newview)(nil),
 	}
-}
-
-func _Request_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Request)
-	// value
-	switch x := m.Value.(type) {
-	case *Request_Client:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Client); err != nil {
-			return err
-		}
-	case *Request_Preprepare:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Preprepare); err != nil {
-			return err
-		}
-	case *Request_Prepare:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Prepare); err != nil {
-			return err
-		}
-	case *Request_Commit:
-		b.EncodeVarint(4<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Commit); err != nil {
-			return err
-		}
-	case *Request_Checkpoint:
-		b.EncodeVarint(5<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Checkpoint); err != nil {
-			return err
-		}
-	case *Request_Viewchange:
-		b.EncodeVarint(6<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Viewchange); err != nil {
-			return err
-		}
-	case *Request_Ack:
-		b.EncodeVarint(7<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Ack); err != nil {
-			return err
-		}
-	case *Request_Newview:
-		b.EncodeVarint(8<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Newview); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("Request.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Request_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Request)
-	switch tag {
-	case 1: // value.client
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RequestClient)
-		err := b.DecodeMessage(msg)
-		m.Value = &Request_Client{msg}
-		return true, err
-	case 2: // value.preprepare
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RequestPrePrepare)
-		err := b.DecodeMessage(msg)
-		m.Value = &Request_Preprepare{msg}
-		return true, err
-	case 3: // value.prepare
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RequestPrepare)
-		err := b.DecodeMessage(msg)
-		m.Value = &Request_Prepare{msg}
-		return true, err
-	case 4: // value.commit
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RequestCommit)
-		err := b.DecodeMessage(msg)
-		m.Value = &Request_Commit{msg}
-		return true, err
-	case 5: // value.checkpoint
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RequestCheckpoint)
-		err := b.DecodeMessage(msg)
-		m.Value = &Request_Checkpoint{msg}
-		return true, err
-	case 6: // value.viewchange
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RequestViewChange)
-		err := b.DecodeMessage(msg)
-		m.Value = &Request_Viewchange{msg}
-		return true, err
-	case 7: // value.ack
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RequestAck)
-		err := b.DecodeMessage(msg)
-		m.Value = &Request_Ack{msg}
-		return true, err
-	case 8: // value.newview
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RequestNewView)
-		err := b.DecodeMessage(msg)
-		m.Value = &Request_Newview{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Request_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Request)
-	// value
-	switch x := m.Value.(type) {
-	case *Request_Client:
-		s := proto.Size(x.Client)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Request_Preprepare:
-		s := proto.Size(x.Preprepare)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Request_Prepare:
-		s := proto.Size(x.Prepare)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Request_Commit:
-		s := proto.Size(x.Commit)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Request_Checkpoint:
-		s := proto.Size(x.Checkpoint)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Request_Viewchange:
-		s := proto.Size(x.Viewchange)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Request_Ack:
-		s := proto.Size(x.Ack)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Request_Newview:
-		s := proto.Size(x.Newview)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type RequestClient struct {

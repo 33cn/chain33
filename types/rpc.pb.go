@@ -10,6 +10,8 @@ import (
 
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -21,7 +23,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 func init() { proto.RegisterFile("rpc.proto", fileDescriptor_77a6da22d6a3feb1) }
 
@@ -815,6 +817,173 @@ type Chain33Server interface {
 	CreateNoBalanceTxs(context.Context, *NoBalanceTxs) (*ReplySignRawTx, error)
 	//通过seq以及title获取对应平行连的交易
 	GetParaTxByTitle(context.Context, *ReqParaTxByTitle) (*ParaTxDetails, error)
+}
+
+// UnimplementedChain33Server can be embedded to have forward compatible implementations.
+type UnimplementedChain33Server struct {
+}
+
+func (*UnimplementedChain33Server) GetBlocks(ctx context.Context, req *ReqBlocks) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlocks not implemented")
+}
+func (*UnimplementedChain33Server) GetLastHeader(ctx context.Context, req *ReqNil) (*Header, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLastHeader not implemented")
+}
+func (*UnimplementedChain33Server) CreateRawTransaction(ctx context.Context, req *CreateTx) (*UnsignTx, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRawTransaction not implemented")
+}
+func (*UnimplementedChain33Server) CreateRawTxGroup(ctx context.Context, req *CreateTransactionGroup) (*UnsignTx, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRawTxGroup not implemented")
+}
+func (*UnimplementedChain33Server) QueryTransaction(ctx context.Context, req *ReqHash) (*TransactionDetail, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryTransaction not implemented")
+}
+func (*UnimplementedChain33Server) SendTransaction(ctx context.Context, req *Transaction) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendTransaction not implemented")
+}
+func (*UnimplementedChain33Server) GetTransactionByAddr(ctx context.Context, req *ReqAddr) (*ReplyTxInfos, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTransactionByAddr not implemented")
+}
+func (*UnimplementedChain33Server) GetTransactionByHashes(ctx context.Context, req *ReqHashes) (*TransactionDetails, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTransactionByHashes not implemented")
+}
+func (*UnimplementedChain33Server) GetMemPool(ctx context.Context, req *ReqGetMempool) (*ReplyTxList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMemPool not implemented")
+}
+func (*UnimplementedChain33Server) GetAccounts(ctx context.Context, req *ReqNil) (*WalletAccounts, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAccounts not implemented")
+}
+func (*UnimplementedChain33Server) NewAccount(ctx context.Context, req *ReqNewAccount) (*WalletAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NewAccount not implemented")
+}
+func (*UnimplementedChain33Server) WalletTransactionList(ctx context.Context, req *ReqWalletTransactionList) (*WalletTxDetails, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WalletTransactionList not implemented")
+}
+func (*UnimplementedChain33Server) ImportPrivkey(ctx context.Context, req *ReqWalletImportPrivkey) (*WalletAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportPrivkey not implemented")
+}
+func (*UnimplementedChain33Server) SendToAddress(ctx context.Context, req *ReqWalletSendToAddress) (*ReplyHash, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendToAddress not implemented")
+}
+func (*UnimplementedChain33Server) SetTxFee(ctx context.Context, req *ReqWalletSetFee) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetTxFee not implemented")
+}
+func (*UnimplementedChain33Server) SetLabl(ctx context.Context, req *ReqWalletSetLabel) (*WalletAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetLabl not implemented")
+}
+func (*UnimplementedChain33Server) MergeBalance(ctx context.Context, req *ReqWalletMergeBalance) (*ReplyHashes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MergeBalance not implemented")
+}
+func (*UnimplementedChain33Server) SetPasswd(ctx context.Context, req *ReqWalletSetPasswd) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetPasswd not implemented")
+}
+func (*UnimplementedChain33Server) Lock(ctx context.Context, req *ReqNil) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Lock not implemented")
+}
+func (*UnimplementedChain33Server) UnLock(ctx context.Context, req *WalletUnLock) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnLock not implemented")
+}
+func (*UnimplementedChain33Server) GetPeerInfo(ctx context.Context, req *ReqNil) (*PeerList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPeerInfo not implemented")
+}
+func (*UnimplementedChain33Server) GetLastMemPool(ctx context.Context, req *ReqNil) (*ReplyTxList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLastMemPool not implemented")
+}
+func (*UnimplementedChain33Server) GetProperFee(ctx context.Context, req *ReqProperFee) (*ReplyProperFee, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProperFee not implemented")
+}
+func (*UnimplementedChain33Server) GetWalletStatus(ctx context.Context, req *ReqNil) (*WalletStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWalletStatus not implemented")
+}
+func (*UnimplementedChain33Server) GetBlockOverview(ctx context.Context, req *ReqHash) (*BlockOverview, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlockOverview not implemented")
+}
+func (*UnimplementedChain33Server) GetAddrOverview(ctx context.Context, req *ReqAddr) (*AddrOverview, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAddrOverview not implemented")
+}
+func (*UnimplementedChain33Server) GetBlockHash(ctx context.Context, req *ReqInt) (*ReplyHash, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlockHash not implemented")
+}
+func (*UnimplementedChain33Server) GenSeed(ctx context.Context, req *GenSeedLang) (*ReplySeed, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenSeed not implemented")
+}
+func (*UnimplementedChain33Server) GetSeed(ctx context.Context, req *GetSeedByPw) (*ReplySeed, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSeed not implemented")
+}
+func (*UnimplementedChain33Server) SaveSeed(ctx context.Context, req *SaveSeedByPw) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveSeed not implemented")
+}
+func (*UnimplementedChain33Server) GetBalance(ctx context.Context, req *ReqBalance) (*Accounts, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBalance not implemented")
+}
+func (*UnimplementedChain33Server) QueryChain(ctx context.Context, req *ChainExecutor) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryChain not implemented")
+}
+func (*UnimplementedChain33Server) ExecWallet(ctx context.Context, req *ChainExecutor) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExecWallet not implemented")
+}
+func (*UnimplementedChain33Server) QueryConsensus(ctx context.Context, req *ChainExecutor) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryConsensus not implemented")
+}
+func (*UnimplementedChain33Server) CreateTransaction(ctx context.Context, req *CreateTxIn) (*UnsignTx, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateTransaction not implemented")
+}
+func (*UnimplementedChain33Server) GetHexTxByHash(ctx context.Context, req *ReqHash) (*HexTx, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHexTxByHash not implemented")
+}
+func (*UnimplementedChain33Server) DumpPrivkey(ctx context.Context, req *ReqString) (*ReplyString, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DumpPrivkey not implemented")
+}
+func (*UnimplementedChain33Server) Version(ctx context.Context, req *ReqNil) (*VersionInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Version not implemented")
+}
+func (*UnimplementedChain33Server) IsSync(ctx context.Context, req *ReqNil) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsSync not implemented")
+}
+func (*UnimplementedChain33Server) IsNtpClockSync(ctx context.Context, req *ReqNil) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsNtpClockSync not implemented")
+}
+func (*UnimplementedChain33Server) NetInfo(ctx context.Context, req *ReqNil) (*NodeNetInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NetInfo not implemented")
+}
+func (*UnimplementedChain33Server) GetFatalFailure(ctx context.Context, req *ReqNil) (*Int32, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFatalFailure not implemented")
+}
+func (*UnimplementedChain33Server) GetLastBlockSequence(ctx context.Context, req *ReqNil) (*Int64, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLastBlockSequence not implemented")
+}
+func (*UnimplementedChain33Server) GetSequenceByHash(ctx context.Context, req *ReqHash) (*Int64, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSequenceByHash not implemented")
+}
+func (*UnimplementedChain33Server) GetBlockByHashes(ctx context.Context, req *ReqHashes) (*BlockDetails, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlockByHashes not implemented")
+}
+func (*UnimplementedChain33Server) GetBlockBySeq(ctx context.Context, req *Int64) (*BlockSeq, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlockBySeq not implemented")
+}
+func (*UnimplementedChain33Server) CloseQueue(ctx context.Context, req *ReqNil) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CloseQueue not implemented")
+}
+func (*UnimplementedChain33Server) GetAllExecBalance(ctx context.Context, req *ReqAllExecBalance) (*AllExecBalance, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllExecBalance not implemented")
+}
+func (*UnimplementedChain33Server) SignRawTx(ctx context.Context, req *ReqSignRawTx) (*ReplySignRawTx, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SignRawTx not implemented")
+}
+func (*UnimplementedChain33Server) CreateNoBalanceTransaction(ctx context.Context, req *NoBalanceTx) (*ReplySignRawTx, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateNoBalanceTransaction not implemented")
+}
+func (*UnimplementedChain33Server) QueryRandNum(ctx context.Context, req *ReqRandHash) (*ReplyHash, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryRandNum not implemented")
+}
+func (*UnimplementedChain33Server) GetFork(ctx context.Context, req *ReqKey) (*Int64, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFork not implemented")
+}
+func (*UnimplementedChain33Server) CreateNoBalanceTxs(ctx context.Context, req *NoBalanceTxs) (*ReplySignRawTx, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateNoBalanceTxs not implemented")
+}
+func (*UnimplementedChain33Server) GetParaTxByTitle(ctx context.Context, req *ReqParaTxByTitle) (*ParaTxDetails, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetParaTxByTitle not implemented")
 }
 
 func RegisterChain33Server(s *grpc.Server, srv Chain33Server) {

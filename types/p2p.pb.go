@@ -10,6 +10,8 @@ import (
 
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -21,7 +23,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 //*
 // 请求获取远程节点的节点信息
@@ -1313,78 +1315,12 @@ func (m *P2PQueryData) GetBlockTxReq() *P2PBlockTxReq {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*P2PQueryData) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _P2PQueryData_OneofMarshaler, _P2PQueryData_OneofUnmarshaler, _P2PQueryData_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*P2PQueryData) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*P2PQueryData_TxReq)(nil),
 		(*P2PQueryData_BlockTxReq)(nil),
 	}
-}
-
-func _P2PQueryData_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*P2PQueryData)
-	// value
-	switch x := m.Value.(type) {
-	case *P2PQueryData_TxReq:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.TxReq); err != nil {
-			return err
-		}
-	case *P2PQueryData_BlockTxReq:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.BlockTxReq); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("P2PQueryData.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _P2PQueryData_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*P2PQueryData)
-	switch tag {
-	case 1: // value.txReq
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(P2PTxReq)
-		err := b.DecodeMessage(msg)
-		m.Value = &P2PQueryData_TxReq{msg}
-		return true, err
-	case 2: // value.blockTxReq
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(P2PBlockTxReq)
-		err := b.DecodeMessage(msg)
-		m.Value = &P2PQueryData_BlockTxReq{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _P2PQueryData_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*P2PQueryData)
-	// value
-	switch x := m.Value.(type) {
-	case *P2PQueryData_TxReq:
-		s := proto.Size(x.TxReq)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *P2PQueryData_BlockTxReq:
-		s := proto.Size(x.BlockTxReq)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 //*
@@ -1602,9 +1538,9 @@ func (m *BroadCastData) GetBlockRep() *P2PBlockTxReply {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*BroadCastData) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _BroadCastData_OneofMarshaler, _BroadCastData_OneofUnmarshaler, _BroadCastData_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*BroadCastData) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*BroadCastData_Tx)(nil),
 		(*BroadCastData_Block)(nil),
 		(*BroadCastData_Ping)(nil),
@@ -1614,180 +1550,6 @@ func (*BroadCastData) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer)
 		(*BroadCastData_Query)(nil),
 		(*BroadCastData_BlockRep)(nil),
 	}
-}
-
-func _BroadCastData_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*BroadCastData)
-	// value
-	switch x := m.Value.(type) {
-	case *BroadCastData_Tx:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Tx); err != nil {
-			return err
-		}
-	case *BroadCastData_Block:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Block); err != nil {
-			return err
-		}
-	case *BroadCastData_Ping:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Ping); err != nil {
-			return err
-		}
-	case *BroadCastData_Version:
-		b.EncodeVarint(4<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Version); err != nil {
-			return err
-		}
-	case *BroadCastData_LtTx:
-		b.EncodeVarint(5<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.LtTx); err != nil {
-			return err
-		}
-	case *BroadCastData_LtBlock:
-		b.EncodeVarint(6<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.LtBlock); err != nil {
-			return err
-		}
-	case *BroadCastData_Query:
-		b.EncodeVarint(7<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Query); err != nil {
-			return err
-		}
-	case *BroadCastData_BlockRep:
-		b.EncodeVarint(8<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.BlockRep); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("BroadCastData.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _BroadCastData_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*BroadCastData)
-	switch tag {
-	case 1: // value.tx
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(P2PTx)
-		err := b.DecodeMessage(msg)
-		m.Value = &BroadCastData_Tx{msg}
-		return true, err
-	case 2: // value.block
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(P2PBlock)
-		err := b.DecodeMessage(msg)
-		m.Value = &BroadCastData_Block{msg}
-		return true, err
-	case 3: // value.ping
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(P2PPing)
-		err := b.DecodeMessage(msg)
-		m.Value = &BroadCastData_Ping{msg}
-		return true, err
-	case 4: // value.version
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Versions)
-		err := b.DecodeMessage(msg)
-		m.Value = &BroadCastData_Version{msg}
-		return true, err
-	case 5: // value.ltTx
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(LightTx)
-		err := b.DecodeMessage(msg)
-		m.Value = &BroadCastData_LtTx{msg}
-		return true, err
-	case 6: // value.ltBlock
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(LightBlock)
-		err := b.DecodeMessage(msg)
-		m.Value = &BroadCastData_LtBlock{msg}
-		return true, err
-	case 7: // value.query
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(P2PQueryData)
-		err := b.DecodeMessage(msg)
-		m.Value = &BroadCastData_Query{msg}
-		return true, err
-	case 8: // value.blockRep
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(P2PBlockTxReply)
-		err := b.DecodeMessage(msg)
-		m.Value = &BroadCastData_BlockRep{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _BroadCastData_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*BroadCastData)
-	// value
-	switch x := m.Value.(type) {
-	case *BroadCastData_Tx:
-		s := proto.Size(x.Tx)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *BroadCastData_Block:
-		s := proto.Size(x.Block)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *BroadCastData_Ping:
-		s := proto.Size(x.Ping)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *BroadCastData_Version:
-		s := proto.Size(x.Version)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *BroadCastData_LtTx:
-		s := proto.Size(x.LtTx)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *BroadCastData_LtBlock:
-		s := proto.Size(x.LtBlock)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *BroadCastData_Query:
-		s := proto.Size(x.Query)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *BroadCastData_BlockRep:
-		s := proto.Size(x.BlockRep)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 //*
@@ -1970,78 +1732,12 @@ func (m *InvData) GetTy() int32 {
 	return 0
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*InvData) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _InvData_OneofMarshaler, _InvData_OneofUnmarshaler, _InvData_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*InvData) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*InvData_Tx)(nil),
 		(*InvData_Block)(nil),
 	}
-}
-
-func _InvData_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*InvData)
-	// value
-	switch x := m.Value.(type) {
-	case *InvData_Tx:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Tx); err != nil {
-			return err
-		}
-	case *InvData_Block:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Block); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("InvData.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _InvData_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*InvData)
-	switch tag {
-	case 1: // value.tx
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Transaction)
-		err := b.DecodeMessage(msg)
-		m.Value = &InvData_Tx{msg}
-		return true, err
-	case 2: // value.block
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Block)
-		err := b.DecodeMessage(msg)
-		m.Value = &InvData_Block{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _InvData_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*InvData)
-	// value
-	switch x := m.Value.(type) {
-	case *InvData_Tx:
-		s := proto.Size(x.Tx)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *InvData_Block:
-		s := proto.Size(x.Block)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 //*
@@ -2845,6 +2541,62 @@ type P2PgserviceServer interface {
 	// grpc 收集inpeers
 	CollectInPeers(context.Context, *P2PPing) (*PeerList, error)
 	CollectInPeers2(context.Context, *P2PPing) (*PeersReply, error)
+}
+
+// UnimplementedP2PgserviceServer can be embedded to have forward compatible implementations.
+type UnimplementedP2PgserviceServer struct {
+}
+
+func (*UnimplementedP2PgserviceServer) BroadCastTx(ctx context.Context, req *P2PTx) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BroadCastTx not implemented")
+}
+func (*UnimplementedP2PgserviceServer) BroadCastBlock(ctx context.Context, req *P2PBlock) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BroadCastBlock not implemented")
+}
+func (*UnimplementedP2PgserviceServer) Ping(ctx context.Context, req *P2PPing) (*P2PPong, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetAddr(ctx context.Context, req *P2PGetAddr) (*P2PAddr, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAddr not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetAddrList(ctx context.Context, req *P2PGetAddr) (*P2PAddrList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAddrList not implemented")
+}
+func (*UnimplementedP2PgserviceServer) Version(ctx context.Context, req *P2PVersion) (*P2PVerAck, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Version not implemented")
+}
+func (*UnimplementedP2PgserviceServer) Version2(ctx context.Context, req *P2PVersion) (*P2PVersion, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Version2 not implemented")
+}
+func (*UnimplementedP2PgserviceServer) SoftVersion(ctx context.Context, req *P2PPing) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SoftVersion not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetBlocks(ctx context.Context, req *P2PGetBlocks) (*P2PInv, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlocks not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetMemPool(ctx context.Context, req *P2PGetMempool) (*P2PInv, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMemPool not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetData(req *P2PGetData, srv P2Pgservice_GetDataServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetData not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetHeaders(ctx context.Context, req *P2PGetHeaders) (*P2PHeaders, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHeaders not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetPeerInfo(ctx context.Context, req *P2PGetPeerInfo) (*P2PPeerInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPeerInfo not implemented")
+}
+func (*UnimplementedP2PgserviceServer) ServerStreamRead(srv P2Pgservice_ServerStreamReadServer) error {
+	return status.Errorf(codes.Unimplemented, "method ServerStreamRead not implemented")
+}
+func (*UnimplementedP2PgserviceServer) ServerStreamSend(req *P2PPing, srv P2Pgservice_ServerStreamSendServer) error {
+	return status.Errorf(codes.Unimplemented, "method ServerStreamSend not implemented")
+}
+func (*UnimplementedP2PgserviceServer) CollectInPeers(ctx context.Context, req *P2PPing) (*PeerList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CollectInPeers not implemented")
+}
+func (*UnimplementedP2PgserviceServer) CollectInPeers2(ctx context.Context, req *P2PPing) (*PeersReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CollectInPeers2 not implemented")
 }
 
 func RegisterP2PgserviceServer(s *grpc.Server, srv P2PgserviceServer) {
