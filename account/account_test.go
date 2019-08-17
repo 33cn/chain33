@@ -48,7 +48,7 @@ func (acc *DB) GenerAccData() {
 		Balance: 1000 * 1e8,
 		Addr:    addr1,
 	}
-	acc.SaveAccount(account)
+	   acc.SaveAccount(account)
 
 	account.Balance = 900 * 1e8
 	account.Addr = addr2
