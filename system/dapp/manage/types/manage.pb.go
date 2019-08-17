@@ -20,7 +20,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type ManageAction struct {
 	// Types that are valid to be assigned to Value:
@@ -88,59 +88,11 @@ func (m *ManageAction) GetTy() int32 {
 	return 0
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*ManageAction) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _ManageAction_OneofMarshaler, _ManageAction_OneofUnmarshaler, _ManageAction_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*ManageAction) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*ManageAction_Modify)(nil),
 	}
-}
-
-func _ManageAction_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*ManageAction)
-	// value
-	switch x := m.Value.(type) {
-	case *ManageAction_Modify:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Modify); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("ManageAction.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _ManageAction_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*ManageAction)
-	switch tag {
-	case 1: // value.modify
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(types.ModifyConfig)
-		err := b.DecodeMessage(msg)
-		m.Value = &ManageAction_Modify{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _ManageAction_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*ManageAction)
-	// value
-	switch x := m.Value.(type) {
-	case *ManageAction_Modify:
-		s := proto.Size(x.Modify)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 func init() {
