@@ -63,7 +63,7 @@ func addTxTxHeigt(priv crypto.PrivKey, api client.QueueProtocolAPI, height int64
 }
 
 func TestBlockChain(t *testing.T) {
-	    log.SetLogLevel("crit")
+	log.SetLogLevel("crit")
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	blockchain := mock33.GetBlockChain()
