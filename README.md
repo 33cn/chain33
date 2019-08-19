@@ -79,7 +79,7 @@ $ chain33 -f chain33.toml
 * `git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33`
 
 ```
-注意：注意：这里要 clone 到 $GOPATH/src/github.com/33cn/chain33, 否则go 包路径会找不到
+注意：这里要 clone 到 $GOPATH/src/github.com/33cn/chain33, 否则go 包路径会找不到
 ```
 
 * 添加 `33cn/chain33` 远端分支： `git remote add upstream https://github.com/33cn/chain33.git`  我已经把这个加入了 Makefile 可以直接 运行 `make addupstream` 
