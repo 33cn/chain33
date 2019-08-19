@@ -144,10 +144,9 @@ func Test_processP2P(t *testing.T) {
 			TxIndices: []int32{1},
 			Txs:       txList[1:2],
 		}}
-		<-subChan
-		assert.True(t, ltBlockCache.contains(blockHash))
-
-		cpBlock.TxHash = rootHash
+		rep1, ok := (<-subChan).(*types.P2PQueryData)
+		assert.True(t, ok)
+		assert.Nil(t, rep1.GetBlockTxReq().GetTxIndices())
 		sendChan <- &versionData{rawData: &types.P2PBlockTxReply{
 			BlockHash: blockHash,
 			Txs:       txList[0:],
