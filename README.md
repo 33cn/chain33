@@ -43,7 +43,7 @@ L3 20000
 编译:
 
 ```shell
-git clone https://github.com/33cn/chain33.git
+git clone https://github.com/33cn/chain33.git $GOPATH/src/github.com/33cn/chain33
 cd chain33
 export GO111MODULE=on
 export GOPROXY=https://mirrors.aliyun.com/goproxy
@@ -76,10 +76,10 @@ $ chain33 -f chain33.toml
 
 * 如果有什么想法，建立 issues, 和我们来讨论。
 * 首先点击 右上角的 fork 图标， 把chain33 fork 到自己的分支 比如我的是 vipwzw/chain33
-* `git clone https://github.com/vipwzw/chain33.git`
+* `git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33`
 
 ```
-注意：这里可以clone到任意你想要得工作的空间， 因为go1.11之后的版本，采用了module模式，不需要项目代码放在$GOPATH路径下
+注意：注意：这里要 clone 到 $GOPATH/src/github.com/33cn/chain33, 否则go 包路径会找不到
 ```
 
 * 添加 `33cn/chain33` 远端分支： `git remote add upstream https://github.com/33cn/chain33.git`  我已经把这个加入了 Makefile 可以直接 运行 `make addupstream` 
@@ -122,10 +122,10 @@ git push origin fixbug_ci
 #### 准备阶段
 
 * 首先点击 右上角的 fork 图标， 把chain33 fork 到自己的分支 比如我的是 vipwzw/chain33
-* `git clone https://github.com/vipwzw/chain33.git`
+* `git clone https://github.com/vipwzw/chain33.git $GOPATH/src/github.com/33cn/chain33`
 
 ```
-注意：这里可以clone到任意你想要得工作的空间， 因为go1.11之后的版本，采用了module模式，不需要项目代码放在$GOPATH路径下
+注意：这里要 clone 到 $GOPATH/src/github.com/33cn/chain33, 否则go 包路径会找不到
 ```
 
 ```
