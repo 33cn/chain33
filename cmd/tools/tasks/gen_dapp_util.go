@@ -59,7 +59,7 @@ func readDappActionFromProto(protoContent, actionName string) ([]*actionInfoItem
 
 func formatExecContent(infos []*actionInfoItem, dappName string) string {
 
-	fnFmtStr := `func (c *%s) Exec_%s(payload *ptypes.%s, tx *types.Transaction, index int) (*types.Receipt, error) {
+	fnFmtStr := `func (c *%s) Exec_%s(payload *%stypes.%s, tx *types.Transaction, index int) (*types.Receipt, error) {
 	var receipt *types.Receipt
 	//implement code
 	return receipt, nil
@@ -68,7 +68,7 @@ func formatExecContent(infos []*actionInfoItem, dappName string) string {
 `
 	content := ""
 	for _, info := range infos {
-		content += fmt.Sprintf(fnFmtStr, dappName, info.memberName, info.memberType)
+		content += fmt.Sprintf(fnFmtStr, dappName, info.memberName, dappName, info.memberType)
 	}
 
 	return content
@@ -76,7 +76,7 @@ func formatExecContent(infos []*actionInfoItem, dappName string) string {
 
 func formatExecLocalContent(infos []*actionInfoItem, dappName string) string {
 
-	fnFmtStr := `func (c *%s) ExecLocal_%s(payload *ptypes.%s, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	fnFmtStr := `func (c *%s) ExecLocal_%s(payload *%stypes.%s, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var dbSet *types.LocalDBSet
 	//implement code
 	return dbSet, nil
@@ -85,7 +85,7 @@ func formatExecLocalContent(infos []*actionInfoItem, dappName string) string {
 `
 	content := ""
 	for _, info := range infos {
-		content += fmt.Sprintf(fnFmtStr, dappName, info.memberName, info.memberType)
+		content += fmt.Sprintf(fnFmtStr, dappName, info.memberName, dappName, info.memberType)
 	}
 
 	return content
@@ -93,7 +93,7 @@ func formatExecLocalContent(infos []*actionInfoItem, dappName string) string {
 
 func formatExecDelLocalContent(infos []*actionInfoItem, dappName string) string {
 
-	fnFmtStr := `func (c *%s) ExecDelLocal_%s(payload *ptypes.%s, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	fnFmtStr := `func (c *%s) ExecDelLocal_%s(payload *%stypes.%s, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var dbSet *types.LocalDBSet
 	//implement code
 	return dbSet, nil
@@ -102,7 +102,7 @@ func formatExecDelLocalContent(infos []*actionInfoItem, dappName string) string 
 `
 	content := ""
 	for _, info := range infos {
-		content += fmt.Sprintf(fnFmtStr, dappName, info.memberName, info.memberType)
+		content += fmt.Sprintf(fnFmtStr, dappName, info.memberName, dappName, info.memberType)
 	}
 
 	return content

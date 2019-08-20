@@ -43,7 +43,7 @@ func (c typesCode) GetFileReplaceTags() []string {
 
 var (
 	typesName    = "${EXECNAME}.go"
-	typesContent = `package ${EXECNAME}
+	typesContent = `package types
 
 import (
 "encoding/json"
