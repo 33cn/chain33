@@ -37,7 +37,7 @@ package types
 
 import (
 	"${IMPORTPATH}/${EXECNAME}/commands"
-	"${IMPORTPATH}/${EXECNAME}/types"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	"${IMPORTPATH}/${EXECNAME}/executor"
 	"${IMPORTPATH}/${EXECNAME}/rpc"
 	"github.com/33cn/chain33/pluginmgr"
@@ -49,7 +49,7 @@ import (
 
 func init() {
 	pluginmgr.Register(&pluginmgr.PluginBase{
-		Name:     types.${CLASSNAME}X,
+		Name:     ${EXECNAME}types.${CLASSNAME}X,
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
 		Cmd:      commands.Cmd,

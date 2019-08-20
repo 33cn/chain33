@@ -54,7 +54,7 @@ var (
 	protoShellName    = "create_protobuf.sh"
 	protoShellContent = `#!/bin/sh
 # proto生成命令，将pb.go文件生成到types/${EXECNAME}目录下
-protoc --go_out=plugins=grpc:../types/${EXECNAME} ./*.proto
+protoc --go_out=plugins=grpc:../types ./*.proto
 `
 
 	makeName    = "Makefile"
