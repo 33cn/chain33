@@ -3,6 +3,8 @@
 # 2. make dep
 # 3. make build
 # ...
+export GO111MODULE=on
+export CHAIN33_PATH=${GOPATH}/src/github.com/33cn/chain33
 SRC := github.com/33cn/chain33/cmd/chain33
 SRC_CLI := github.com/33cn/chain33/cmd/cli
 SRC_SIGNATORY := github.com/33cn/chain33/cmd/signatory-server
