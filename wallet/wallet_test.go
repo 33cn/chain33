@@ -508,6 +508,13 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 		println("TestProcWalletTxList", "index[1]", index[1], "index[2]", index[2])
 		t.Error("testProcWalletTxList:positive check fail!")
 	}
+
+	//count 大于1000个报错
+	txList.Count = 1001
+	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
+	wallet.client.Send(msg, true)
+	resp, err = wallet.client.Wait(msg)
+	assert.Equal(t, err, types.ErrMaxCountPerTime)
 	println("TestProcWalletTxList end")
 	println("--------------------------")
 }
