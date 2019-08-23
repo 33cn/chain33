@@ -32,7 +32,7 @@ function copyAutoTestConfig() {
     #copy all the dapp test case config file
     for rootDir in "${Chain33AutoTestDirs[@]}"; do
 
-        if [[ ! -d "${rootDir}" ]]; then
+        if [[ ! -d ${rootDir} ]]; then
             continue
         fi
 
