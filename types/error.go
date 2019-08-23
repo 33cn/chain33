@@ -189,4 +189,5 @@ var (
 	ErrDisableRead  = errors.New("ErrDisableRead")
 
 	ErrConsensusHashErr = errors.New("ErrConsensusHashErr")
+	ErrMaxCountPerTime  = errors.New("ErrMaxCountPerTime")
 )

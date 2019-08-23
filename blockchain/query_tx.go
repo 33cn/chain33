@@ -21,6 +21,14 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	if addr == nil || len(addr.Addr) == 0 {
 		return nil, types.ErrInvalidParam
 	}
+	//默认取10笔交易数据
+	if addr.Count == 0 {
+		addr.Count = 10
+	}
+
+	if int64(addr.Count) > types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	//入参数校验
 	curheigt := chain.GetBlockHeight()
 	if addr.GetHeight() > curheigt || addr.GetHeight() < -1 {
@@ -52,7 +60,9 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 //}
 //通过hashs获取交易详情
 func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *types.TransactionDetails, err error) {
-	//chainlog.Info("ProcGetTransactionByHashes", "txhash len:", len(hashs))
+	if int64(len(hashs)) > types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	var txDetails types.TransactionDetails
 	for _, txhash := range hashs {
 		txresult, err := chain.GetTxResultFromDb(txhash)

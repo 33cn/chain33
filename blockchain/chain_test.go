@@ -503,6 +503,11 @@ func testGetBlocksMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 			checkheight++
 		}
 	}
+	reqBlock.Start = 0
+	reqBlock.End = 1000
+	_, err = blockchain.ProcGetBlockDetailsMsg(&reqBlock)
+	assert.Equal(t, err, types.ErrMaxCountPerTime)
+
 	chainlog.Info("TestGetBlocksMsg end --------------------")
 }
 
@@ -525,6 +530,11 @@ func testProcGetHeadersMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 			checkheight++
 		}
 	}
+	reqBlock.Start = 0
+	reqBlock.End = 1000
+	_, err = blockchain.ProcGetHeadersMsg(&reqBlock)
+	assert.Equal(t, err, types.ErrMaxCountPerTime)
+
 	chainlog.Info("TestProcGetHeadersMsg end --------------------")
 }
 
@@ -591,6 +601,11 @@ func testGetBlockSequences(t *testing.T, chain *blockchain.BlockChain) {
 			}
 		}
 	}
+	reqBlock.Start = 0
+	reqBlock.End = 1000
+	_, err = chain.GetBlockSequences(&reqBlock)
+	assert.Equal(t, err, types.ErrMaxCountPerTime)
+
 	chainlog.Info("testGetBlockSequences end --------------------")
 }
 
@@ -724,6 +739,10 @@ func testProcGetTransactionByHashes(t *testing.T, blockchain *blockchain.BlockCh
 			}
 		}
 	}
+
+	parm.Count = 1001
+	_, err = blockchain.ProcGetTransactionByAddr(parm)
+	assert.Equal(t, err, types.ErrMaxCountPerTime)
 
 	chainlog.Info("textProcGetTransactionByHashes end --------------------")
 }
