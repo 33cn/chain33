@@ -49,7 +49,10 @@ cd $GOPATH/src/github.com/33cn/chain33
 export GOPROXY=https://mirrors.aliyun.com/goproxy
 make
 ```
-* 国内用户需要加一下代理，用于获取依赖包，go mod 模式已经在Makefile默认开启了
+
+```
+ 注意：国内用户需要加一下阿里云代理，用于获取依赖包， mod功能已经在Makefile默认开启了
+```
 
 测试：
 
