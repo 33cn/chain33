@@ -243,3 +243,16 @@ message ReqParaTxByTitle {
     string title = 3;
     bool   isSeq = 4;
 }
+
+//导出block文件头信息
+message FileHeader {
+    int64   startHeight = 1;
+    string  driver      = 2;
+    string  title       = 3;
+    bool    testNet     = 4;
+}
+//存储block高度和hash
+message EndBlock {
+    int64  height = 1;
+    bytes  hash   = 2;
+}
