@@ -83,11 +83,9 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	}
 	log.Info("show 1st balance", "utc", header.BlockTime, "total", totalBty)
 
-	monitorInterval := int64(statInterval)
-	if totalBty < monitorBtyLowLimit && totalBty > 0 {
-		monitorInterval = int64(float64(monitorBtyLowLimit) / float64(totalBty) * float64(statInterval))
-	}
+	monitorInterval := calcMoniterInterval(totalBty)
 	log.Info("show", "monitor Interval", monitorInterval)
+
 	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-monitorInterval)
 	if err != nil {
 		log.Error("show", "getBalance failed", err, "ts", header.BlockTime-monitorInterval)
@@ -107,6 +105,15 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	//}
 
 	return nil
+}
+
+func calcMoniterInterval(totalBty int64) int64 {
+	monitorInterval := int64(statInterval)
+	if totalBty < monitorBtyLowLimit && totalBty > 0 {
+		monitorInterval = int64(float64(monitorBtyLowLimit) / float64(totalBty) * float64(statInterval))
+	}
+	log.Info("show", "monitor Interval", monitorInterval)
+	return monitorInterval
 }
 
 func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *rpctypes.Header) *MinerAccounts {
