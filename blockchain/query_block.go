@@ -12,6 +12,9 @@ import (
 //GetBlockByHashes 通过blockhash 获取对应的block信息
 //从数据库获取区块不能太多，防止内存异常。一次最多获取100M区块数据从数据库
 func (chain *BlockChain) GetBlockByHashes(hashes [][]byte) (respblocks *types.BlockDetails, err error) {
+	if int64(len(hashes)) > types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	var blocks types.BlockDetails
 	size := 0
 	for _, hash := range hashes {
@@ -125,7 +128,9 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 		chainlog.Error("ProcGetHeadersMsg input must Start <= End:", "Startheight", requestblock.Start, "Endheight", requestblock.End)
 		return nil, types.ErrEndLessThanStartHeight
 	}
-
+	if requestblock.End-requestblock.Start >= types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	if requestblock.Start > blockhight {
 		chainlog.Error("ProcGetHeadersMsg Startheight err", "startheight", requestblock.Start, "curheight", blockhight)
 		return nil, types.ErrStartHeight
@@ -141,6 +146,7 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 		chainlog.Error("ProcGetHeadersMsg count err", "startheight", requestblock.Start, "endheight", requestblock.End, "curheight", blockhight)
 		return nil, types.ErrEndLessThanStartHeight
 	}
+
 	var headers types.Headers
 	headers.Items = make([]*types.Header, count)
 	j := 0
@@ -192,7 +198,9 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		chainlog.Error("ProcGetBlockDetailsMsg input must Start <= End:", "Startheight", requestblock.Start, "Endheight", requestblock.End)
 		return nil, types.ErrEndLessThanStartHeight
 	}
-
+	if requestblock.End-requestblock.Start >= types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	chainlog.Debug("ProcGetBlockDetailsMsg", "Start", requestblock.Start, "End", requestblock.End, "Isdetail", requestblock.IsDetail)
 
 	end := requestblock.End

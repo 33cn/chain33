@@ -376,6 +376,14 @@ func (wallet *Wallet) ProcWalletTxList(TxList *types.ReqWalletTransactionList) (
 		walletlog.Error("ProcWalletTxList Direction err!")
 		return nil, types.ErrInvalidParam
 	}
+	//默认取10笔交易数据
+	if TxList.Count == 0 {
+		TxList.Count = 10
+	}
+	if int64(TxList.Count) > types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
+
 	WalletTxDetails, err := wallet.walletStore.GetTxDetailByIter(TxList)
 	if err != nil {
 		walletlog.Error("ProcWalletTxList", "GetTxDetailByIter err", err)
