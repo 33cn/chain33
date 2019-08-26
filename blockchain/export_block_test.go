@@ -55,7 +55,7 @@ func TestExportBlockProc(t *testing.T) {
 
 	var fileHeader types.FileHeader
 	err = types.Decode(headertitle, &fileHeader)
-		require.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, driver, fileHeader.Driver)
 	assert.Equal(t, int64(0), fileHeader.GetStartHeight())
 	assert.Equal(t, title, fileHeader.GetTitle())
