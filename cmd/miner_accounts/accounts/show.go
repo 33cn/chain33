@@ -63,7 +63,7 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 		}
 		seconds = tm.Unix()
 	}
-	log.Info("show", "utc", seconds)
+	log.Info("show", "utc-init", seconds)
 
 	addrs := show.Addrs
 	if in.Addrs != nil && len(in.Addrs) > 0 {
@@ -81,10 +81,11 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	for _, acc := range curAcc {
 		totalBty += acc.Frozen
 	}
+	log.Info("show 1st balance", "utc", header.BlockTime, "total", totalBty)
 
 	monitorInterval := int64(statInterval)
 	if totalBty < monitorBtyLowLimit && totalBty > 0 {
-		monitorInterval = int64(float64(statInterval) * float64(monitorBtyLowLimit) / float64(totalBty))
+		monitorInterval = int64(float64(monitorBtyLowLimit) / float64(totalBty) * float64(statInterval))
 	}
 	log.Info("show", "monitor Interval", monitorInterval)
 	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-monitorInterval)
@@ -93,6 +94,7 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 		return nil
 	}
 	fmt.Print(curAcc, lastAcc)
+	log.Info("show 2nd balance", "utc", *lastHourHeader)
 
 	miner := &MinerAccounts{}
 	miner.Seconds = header.BlockTime - lastHourHeader.BlockTime
@@ -181,43 +183,3 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 	return miner
 
 }
-
-/*
-func readJson(jsonFile string) (*Accounts, error) {
-	d1, err := ioutil.ReadFile(jsonFile)
-	if err != nil {
-		log.Error("show", "read json", jsonFile, "err", err)
-		return nil, err
-	}
-	var acc Accounts
-	err = json.Unmarshal([]byte(d1), &acc)
-	if err != nil {
-		log.Error("show", "read json", jsonFile, "err", err)
-		return nil, err
-	}
-	return &acc, nil
-}
-
-func parseAccounts(acc *Accounts) (*map[string]float64, error) {
-	result := map[string]float64{}
-	for _, a := range acc.Accounts {
-		f1, e1 := strconv.ParseFloat(a.Balance, 64)
-		f2, e2 := strconv.ParseFloat(a.Frozen, 64)
-		if e1 != nil || e2 != nil {
-			log.Error("show", "account2  len", e1, "account  len", e2)
-			return nil, types.ErrNotFound
-		}
-		result[a.Addr] = f1 + f2
-	}
-	return &result, nil
-}
-
-func getAccountDetail(jsonFile string) (*map[string]float64, error) {
-	acc, err := readJson(jsonFile)
-	if err != nil {
-		return nil, err
-	}
-	return parseAccounts(acc)
-}
-
-*/
