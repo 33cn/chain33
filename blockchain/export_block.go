@@ -273,7 +273,7 @@ func (chain *BlockChain) mainChainImport(block *types.Block) error {
 	_, isMainChain, isOrphan, err := chain.ProcessBlock(false, &blockDetail, "import", true, -1)
 	if err == types.ErrBlockExist {
 		return nil
-	} else {
+	} else if err != nil {
 		return err
 	}
 	if !isMainChain {
