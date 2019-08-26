@@ -565,7 +565,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	// 节点同步阶段自己高度小于最大高度batchsyncblocknum时存储block到db批量处理时不刷盘
 	if peerMaxBlkHeight > curheight+batchsyncblocknum && !chain.cfgBatchSync {
 		atomic.CompareAndSwapInt32(&chain.isbatchsync, 1, 0)
-	} else {
+	} else if peerMaxBlkHeight >= 0 {
 		atomic.CompareAndSwapInt32(&chain.isbatchsync, 0, 1)
 	}
 
