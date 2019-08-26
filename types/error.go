@@ -188,6 +188,7 @@ var (
 	ErrDisableWrite = errors.New("ErrDisableWrite")
 	ErrDisableRead  = errors.New("ErrDisableRead")
 
-	ErrConsensusHashErr = errors.New("ErrConsensusHashErr")
-	ErrMaxCountPerTime  = errors.New("ErrMaxCountPerTime")
+	ErrConsensusHashErr  = errors.New("ErrConsensusHashErr")
+	ErrMaxCountPerTime   = errors.New("ErrMaxCountPerTime")
+	ErrInValidFileHeader = errors.New("ErrInValidFileHeader")
 )

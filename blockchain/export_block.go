@@ -101,7 +101,7 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 		}
 		if !isValidFileHeader(oldfileHeader, &newfileHeader) {
 			exportlog.Error("exportBlock:inValidFileHeader", "oldfileHeader", oldfileHeader, "newfileHeader", newfileHeader)
-			return errors.New("inValidFileHeader!")
+			return types.ErrInValidFileHeader
 		}
 		//需要在已有导出的endheight区块继续接着导出，需要校验endHeight
 		endBlock, err := getEndBlock(exportdb)
@@ -111,7 +111,7 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 		}
 		if endBlock.Height < startHeight || endBlock.Height > curheight-blockCount {
 			exportlog.Error("exportBlock:endHeight<startHeight", "endHeight", endBlock.Height, "startHeight", startHeight, "error", err)
-			return errors.New("inValidHeight!")
+			return types.ErrBlockHeight
 		}
 
 		// 需要校验block是否连续
@@ -218,7 +218,7 @@ func (chain *BlockChain) ImportBlock(filename, dbPath string) error {
 
 	if err != nil || fileHeader.StartHeight < 0 || !isValidFileHeader(fileHeader, &newfileHeader) {
 		exportlog.Error("importBlock:fileHeader", "filename", filename, "dbPath", dbPath, "fileHeader", fileHeader, "cfg.fileHeader", newfileHeader, "err", err)
-		return errors.New("inValidFileHeader!")
+		return types.ErrInValidFileHeader
 	}
 	startHeight := fileHeader.StartHeight
 
