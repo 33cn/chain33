@@ -20,12 +20,16 @@ import (
 )
 
 var (
-	fileHeaderKey        = []byte("F:header:")
-	endBlockKey          = []byte("F:endblock:")
-	blockHeightKey       = []byte("F:blockH:")
-	blockCount     int64 = 1024 //只处理当前高度减去1024之前的区块，避免导出侧链的数据
-	dbCache        int32 = 4
-	exportlog            = chainlog.New("submodule", "export")
+	fileHeaderKey                       = []byte("F:header:")
+	endBlockKey                         = []byte("F:endblock:")
+	blockHeightKey                      = []byte("F:blockH:")
+	blockCount                    int64 = 1024 //只处理当前高度减去1024之前的区块，避免导出侧链的数据
+	dbCache                       int32 = 4
+	exportlog                           = chainlog.New("submodule", "export")
+	ErrIsOrphan                         = errors.New("ErrIsOrphan")
+	ErrIsSideChain                      = errors.New("ErrIsSideChain")
+	ErrBlockHeightDiscontinuous         = errors.New("ErrBlockHeightDiscontinuous")
+	ErrCurHeightMoreThanEndHeight       = errors.New("ErrCurHeightMoreThanEndHeight")
 )
 
 func calcblockHeightKey(height int64) []byte {
@@ -236,11 +240,11 @@ func (chain *BlockChain) ImportBlock(filename, dbPath string) error {
 
 	if curheight < startHeight {
 		exportlog.Error("importBlock", "curheight", curheight, "startHeight", startHeight)
-		return errors.New("BlockHeightDiscontinuous!")
+		return ErrBlockHeightDiscontinuous
 	}
 	if curheight > endHeight {
 		exportlog.Error("importBlock", "curheight", curheight, "endHeight", endHeight)
-		return errors.New("CurHeightMoreThanEndHeight!")
+		return ErrCurHeightMoreThanEndHeight
 	}
 	if curheight >= startHeight {
 		startHeight = curheight + 1
@@ -277,10 +281,10 @@ func (chain *BlockChain) mainChainImport(block *types.Block) error {
 		return err
 	}
 	if !isMainChain {
-		return errors.New("isSideChain")
+		return ErrIsSideChain
 	}
 	if isOrphan {
-		return errors.New("isOrphan")
+		return ErrIsOrphan
 	}
 	return nil
 }
