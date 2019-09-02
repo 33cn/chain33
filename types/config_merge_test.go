@@ -223,6 +223,7 @@ ForkChainParamV2= -1
 ForkBlockCheck=1725000
 ForkLocalDBAccess=1
 ForkBase58AddressCheck=1800000
+ForkTicketFundAddrV1=-1
 [fork.sub.coins]
 Enable=0
 
