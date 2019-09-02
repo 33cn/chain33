@@ -756,6 +756,15 @@ func (c *Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 
 // GetBalance get balance
 func (c *Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
+	//增加addr地址的校验
+	for _, addr := range in.GetAddresses() {
+		err := address.CheckAddress(addr)
+		if err != nil {
+			if err = address.CheckMultiSignAddress(addr); err != nil {
+				return types.ErrInvalidAddress
+			}
+		}
+	}
 	balances, err := c.cli.GetBalance(&in)
 	if err != nil {
 		return err
