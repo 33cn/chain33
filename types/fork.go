@@ -217,6 +217,7 @@ func SetTestNetFork() {
 	//这个fork只影响平行链，注册类似user.p.x.exec的driver，新开的平行链设为0即可，老的平行链要设置新的高度
 	systemFork.SetFork("chain33", "ForkEnableParaRegExec", 0)
 	systemFork.SetFork("chain33", "ForkCacheDriver", 2580000)
+	systemFork.SetFork("chain33", "ForkTicketFundAddrV1", 3350000)
 }
 
 func setLocalFork() {
