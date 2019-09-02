@@ -8,12 +8,11 @@ package btcbase
 
 import (
 	"crypto/sha256"
+	"fmt"
 
-	"github.com/haltingstate/secp256k1-go"
+	secp256k1 "github.com/haltingstate/secp256k1-go"
 	"github.com/mr-tron/base58/base58"
 	"golang.org/x/crypto/ripemd160"
-
-	"fmt"
 )
 
 // btcBaseTransformer 转换基于比特币地址规则的币种实现类

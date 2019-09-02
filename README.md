@@ -38,14 +38,20 @@ L3 20000
 
 ## Building from source
 
-环境要求: Go (version 1.9 or later)
+环境要求: Go (version 1.12 or later)
 
 编译:
 
 ```shell
 git clone https://github.com/33cn/chain33.git $GOPATH/src/github.com/33cn/chain33
 cd $GOPATH/src/github.com/33cn/chain33
+//国内用户需要导入一下代理
+export GOPROXY=https://mirrors.aliyun.com/goproxy
 make
+```
+
+```
+ 注意：国内用户需要加一下阿里云代理，用于获取依赖包， mod功能已经在Makefile默认开启了
 ```
 
 测试：
@@ -65,7 +71,6 @@ $ chain33 -f chain33.toml
 ## 使用chain33 开发插件注意点
 
 * 不可以使用 master 分支，要使用 发布分支
-* vendor 依赖不要重建，未来我们可能会支持自己下载vendor目录，但是目前，我们不支持这样做。
 
 ## 贡献代码
 

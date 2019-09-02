@@ -5,10 +5,12 @@ package types
 
 import (
 	fmt "fmt"
+
+	proto "github.com/golang/protobuf/proto"
+
 	math "math"
 
 	types "github.com/33cn/chain33/types"
-	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -36,17 +38,16 @@ func (m *ManageAction) Reset()         { *m = ManageAction{} }
 func (m *ManageAction) String() string { return proto.CompactTextString(m) }
 func (*ManageAction) ProtoMessage()    {}
 func (*ManageAction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_519fa8ed5ffbbc8f, []int{0}
+	return fileDescriptor_manage_3431ad7dc887f02b, []int{0}
 }
-
 func (m *ManageAction) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ManageAction.Unmarshal(m, b)
 }
 func (m *ManageAction) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ManageAction.Marshal(b, m, deterministic)
 }
-func (m *ManageAction) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ManageAction.Merge(m, src)
+func (dst *ManageAction) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ManageAction.Merge(dst, src)
 }
 func (m *ManageAction) XXX_Size() int {
 	return xxx_messageInfo_ManageAction.Size(m)
@@ -147,9 +148,9 @@ func init() {
 	proto.RegisterType((*ManageAction)(nil), "types.ManageAction")
 }
 
-func init() { proto.RegisterFile("manage.proto", fileDescriptor_519fa8ed5ffbbc8f) }
+func init() { proto.RegisterFile("manage.proto", fileDescriptor_manage_3431ad7dc887f02b) }
 
-var fileDescriptor_519fa8ed5ffbbc8f = []byte{
+var fileDescriptor_manage_3431ad7dc887f02b = []byte{
 	// 136 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xc9, 0x4d, 0xcc, 0x4b,
 	0x4c, 0x4f, 0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x2d, 0xa9, 0x2c, 0x48, 0x2d, 0x96,

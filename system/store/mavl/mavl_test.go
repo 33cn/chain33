@@ -642,7 +642,7 @@ func BenchmarkGet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		key := GetRandomString(MaxKeylenth)
 		value := fmt.Sprintf("%s%d", key, i)
-		keys = append(keys, []byte(string(key)))
+		keys = append(keys, []byte(key))
 		kv = append(kv, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
 		if i%10000 == 0 {
 			datas := &types.StoreSet{StateHash: hash, KV: kv}
@@ -734,7 +734,7 @@ func BenchmarkStoreGetKvsForNN(b *testing.B) {
 	for i := 0; i < 30; i++ {
 		key = GetRandomString(MaxKeylenth)
 		value = fmt.Sprintf("v%d", i)
-		keys = append(keys, []byte(string(key)))
+		keys = append(keys, []byte(key))
 		kv = append(kv, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
 	}
 	datas := &types.StoreSet{
@@ -795,7 +795,7 @@ func BenchmarkStoreGetKvsFor10000(b *testing.B) {
 	for i := 0; i < 30; i++ {
 		key = GetRandomString(MaxKeylenth)
 		value = fmt.Sprintf("v%d", i)
-		keys = append(keys, []byte(string(key)))
+		keys = append(keys, []byte(key))
 		kv = append(kv, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
 	}
 	datas := &types.StoreSet{
@@ -860,7 +860,7 @@ func BenchmarkSet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		key := GetRandomString(MaxKeylenth)
 		value := fmt.Sprintf("%s%d", key, i)
-		keys = append(keys, []byte(string(key)))
+		keys = append(keys, []byte(key))
 		kv = append(kv, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
 		if i%10000 == 0 {
 			datas := &types.StoreSet{StateHash: hash, KV: kv}
@@ -896,7 +896,7 @@ func BenchmarkStoreSetKvs(b *testing.B) {
 	for i := 0; i < 30; i++ {
 		key = GetRandomString(MaxKeylenth)
 		value = fmt.Sprintf("v%d", i)
-		keys = append(keys, []byte(string(key)))
+		keys = append(keys, []byte(key))
 		kv = append(kv, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
 	}
 	datas := &types.StoreSet{
@@ -930,7 +930,7 @@ func BenchmarkMemSet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		key = GetRandomString(MaxKeylenth)
 		value = fmt.Sprintf("v%d", i)
-		keys = append(keys, []byte(string(key)))
+		keys = append(keys, []byte(key))
 		kv = append(kv, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
 	}
 	datas := &types.StoreSet{
@@ -964,7 +964,7 @@ func BenchmarkStoreMemSet(b *testing.B) {
 	for i := 0; i < 30; i++ {
 		key = GetRandomString(MaxKeylenth)
 		value = fmt.Sprintf("v%d", i)
-		keys = append(keys, []byte(string(key)))
+		keys = append(keys, []byte(key))
 		kv = append(kv, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
 	}
 	datas := &types.StoreSet{
@@ -999,7 +999,7 @@ func BenchmarkCommit(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		key = GetRandomString(MaxKeylenth)
 		value = fmt.Sprintf("v%d", i)
-		keys = append(keys, []byte(string(key)))
+		keys = append(keys, []byte(key))
 		kv = append(kv, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
 	}
 	datas := &types.StoreSet{
@@ -1039,7 +1039,7 @@ func BenchmarkStoreCommit(b *testing.B) {
 	for i := 0; i < 30; i++ {
 		key = GetRandomString(MaxKeylenth)
 		value = fmt.Sprintf("v%d", i)
-		keys = append(keys, []byte(string(key)))
+		keys = append(keys, []byte(key))
 		kv = append(kv, &types.KeyValue{Key: []byte(key), Value: []byte(value)})
 	}
 	datas := &types.StoreSet{

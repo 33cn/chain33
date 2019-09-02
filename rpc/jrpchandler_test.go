@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 
 	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -371,7 +372,7 @@ func TestDecodeLogModifyConfig(t *testing.T) {
 	assert.Equal(t, "LogModifyConfig", result.Logs[0].TyName)
 }
 
-func newTestChain33(api *mocks.QueueProtocolAPI) *Chain33 {
+func newTestChain33(api client.QueueProtocolAPI) *Chain33 {
 	return &Chain33{
 		cli: channelClient{
 			QueueProtocolAPI: api,

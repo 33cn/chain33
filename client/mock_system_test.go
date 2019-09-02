@@ -188,7 +188,7 @@ func (mock *mockSystem) getAPI() client.QueueProtocolAPI {
 
 type mockJRPCSystem struct {
 	japi *rpc.JSONRPCServer
-	ctx  *JsonRpcCtx
+	ctx  *JSONRPCCtx
 }
 
 func (mock *mockJRPCSystem) OnStartup(m *mockSystem) {
@@ -210,9 +210,9 @@ func (mock *mockJRPCSystem) OnStop() {
 	mock.japi.Close()
 }
 
-func (mock *mockJRPCSystem) newRpcCtx(methed string, params, res interface{}) error {
+func (mock *mockJRPCSystem) newRPCCtx(methed string, params, res interface{}) error {
 	if mock.ctx == nil {
-		mock.ctx = NewJsonRpcCtx(methed, params, res)
+		mock.ctx = NewJSONRPCCtx(methed, params, res)
 	} else {
 		mock.ctx.Method = methed
 		mock.ctx.Params = params
@@ -245,7 +245,7 @@ func (mock *mockGRPCSystem) OnStop() {
 	mock.gapi.Close()
 }
 
-func (mock *mockGRPCSystem) newRpcCtx(method string, param, res interface{}) error {
+func (mock *mockGRPCSystem) newRPCCtx(method string, param, res interface{}) error {
 	if mock.ctx == nil {
 		mock.ctx = NewGRpcCtx(method, param, res)
 	} else {

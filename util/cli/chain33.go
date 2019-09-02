@@ -44,14 +44,18 @@ import (
 )
 
 var (
-	cpuNum     = runtime.NumCPU()
-	configPath = flag.String("f", "", "configfile")
-	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
-	versionCmd = flag.Bool("v", false, "version")
-	fixtime    = flag.Bool("fixtime", false, "fix time")
-	waitPid    = flag.Bool("waitpid", false, "p2p stuck until seed save info wallet & wallet unlock")
-	rollback   = flag.Int64("rollback", 0, "rollback block")
-	save       = flag.Bool("save", false, "rollback save temporary block")
+	cpuNum      = runtime.NumCPU()
+	configPath  = flag.String("f", "", "configfile")
+	datadir     = flag.String("datadir", "", "data dir of chain33, include logs and datas")
+	versionCmd  = flag.Bool("v", false, "version")
+	fixtime     = flag.Bool("fixtime", false, "fix time")
+	waitPid     = flag.Bool("waitpid", false, "p2p stuck until seed save info wallet & wallet unlock")
+	rollback    = flag.Int64("rollback", 0, "rollback block")
+	save        = flag.Bool("save", false, "rollback save temporary block")
+	importFile  = flag.String("import", "", "import block file name")
+	exportTitle = flag.String("export", "", "export block title name")
+	fileDir     = flag.String("filedir", "", "import/export block file dir,defalut current path")
+	startHeight = flag.Int64("startheight", 0, "export block start height")
 )
 
 //RunChain33 : run Chain33
@@ -179,7 +183,13 @@ func RunChain33(name string) {
 	walletm.SetQueueClient(q.Client())
 
 	chain.Rollbackblock()
-
+	//导入/导出区块通过title
+	if *importFile != "" {
+		chain.ImportBlockProc(*importFile, *fileDir)
+	}
+	if *exportTitle != "" {
+		chain.ExportBlockProc(*exportTitle, *fileDir, *startHeight)
+	}
 	log.Info("loading p2p module")
 	var network queue.Module
 	if cfg.P2P.Enable && !types.IsPara() {

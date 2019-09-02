@@ -11,12 +11,13 @@ matrix:
     - name: check_fmt
       sudo: require
       go:
-        - "1.11.x"
+        - "1.12.x"
         - master
+      env:
+        - GO111MODULE=on
       install:
         - go get -u golang.org/x/tools/cmd/goimports
-        - go get -u gopkg.in/alecthomas/gometalinter.v2
-        - gometalinter.v2 -i
+        - go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
         - go get -u mvdan.cc/sh/cmd/shfmt
         - go get -u mvdan.cc/sh/cmd/gosh
       script:
@@ -24,7 +25,10 @@ matrix:
         - make linter
 
     - name: unit-test
-      go: "1.9.x"
+      go: "1.12.x"
+      env:
+        - GO111MODULE=on
+
       install: skip
       script:
         - make test
@@ -32,7 +36,9 @@ matrix:
     - name: coverage
       if: branch = master
       go:
-        - "1.9.x"
+        - "1.12.x"
+      env:
+        - GO111MODULE=on
       before_install:
         - go get -t -v ./...
       install: skip
@@ -43,10 +49,13 @@ matrix:
 
     - name: deploy
       sudo: required
+      go: 
+        - "1.12.x" 
       services:
         - docker
       env:
         - DOCKER_COMPOSE_VERSION=1.21.2
+        - GO111MODULE=on
       install:
         - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"

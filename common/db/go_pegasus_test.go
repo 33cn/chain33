@@ -29,7 +29,7 @@ func TestPegasusDB_Get(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, data, val)
 
-	data, err = db.Get([]byte(key1))
+	data, err = db.Get(key1)
 	assert.Nil(t, data)
 	assert.EqualError(t, err, ErrNotFoundInDb.Error())
 	tbl.AssertExpectations(t)

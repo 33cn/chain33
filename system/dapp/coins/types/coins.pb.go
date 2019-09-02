@@ -5,10 +5,12 @@ package types
 
 import (
 	fmt "fmt"
+
+	proto "github.com/golang/protobuf/proto"
+
 	math "math"
 
 	types "github.com/33cn/chain33/types"
-	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -40,17 +42,16 @@ func (m *CoinsAction) Reset()         { *m = CoinsAction{} }
 func (m *CoinsAction) String() string { return proto.CompactTextString(m) }
 func (*CoinsAction) ProtoMessage()    {}
 func (*CoinsAction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_da4483c99519c66a, []int{0}
+	return fileDescriptor_coins_62a28f0f42170aa2, []int{0}
 }
-
 func (m *CoinsAction) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CoinsAction.Unmarshal(m, b)
 }
 func (m *CoinsAction) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CoinsAction.Marshal(b, m, deterministic)
 }
-func (m *CoinsAction) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CoinsAction.Merge(m, src)
+func (dst *CoinsAction) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CoinsAction.Merge(dst, src)
 }
 func (m *CoinsAction) XXX_Size() int {
 	return xxx_messageInfo_CoinsAction.Size(m)
@@ -247,9 +248,9 @@ func init() {
 	proto.RegisterType((*CoinsAction)(nil), "types.CoinsAction")
 }
 
-func init() { proto.RegisterFile("coins.proto", fileDescriptor_da4483c99519c66a) }
+func init() { proto.RegisterFile("coins.proto", fileDescriptor_coins_62a28f0f42170aa2) }
 
-var fileDescriptor_da4483c99519c66a = []byte{
+var fileDescriptor_coins_62a28f0f42170aa2 = []byte{
 	// 214 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4e, 0xce, 0xcf, 0xcc,
 	0x2b, 0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x2d, 0xa9, 0x2c, 0x48, 0x2d, 0x96, 0x12,

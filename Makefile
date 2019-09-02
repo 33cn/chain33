@@ -1,8 +1,10 @@
-# golang1.9 or latest
+# golang1.12 or latest
 # 1. make help
 # 2. make dep
 # 3. make build
 # ...
+export GO111MODULE=on
+export CHAIN33_PATH=${GOPATH}/src/github.com/33cn/chain33
 SRC := github.com/33cn/chain33/cmd/chain33
 SRC_CLI := github.com/33cn/chain33/cmd/cli
 SRC_SIGNATORY := github.com/33cn/chain33/cmd/signatory-server
@@ -29,12 +31,13 @@ PROJ := "build"
 default: build cli depends
 
 dep: ## Get the dependencies
-	@go get -u gopkg.in/alecthomas/gometalinter.v2
-	@gometalinter.v2 -i
+	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
+	@go get -u golang.org/x/tools/cmd/goimports
 	@go get -u github.com/mitchellh/gox
 	@go get -u github.com/vektra/mockery/.../
 	@go get -u mvdan.cc/sh/cmd/shfmt
 	@go get -u mvdan.cc/sh/cmd/gosh
+	@git checkout go.mod go.sum
 	@apt install clang-format
 	@apt install shellcheck
 
@@ -98,7 +101,7 @@ linter_test: ## Use gometalinter check code, for local test
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 gosec:
-	@gosec -quiet=true -exclude=G107,G402,G302 ${PKG_LIST_GOSEC}
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec ${PKG_LIST_GOSEC}
 
 race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
@@ -107,7 +110,7 @@ vet:
 	@go vet ${PKG_LIST_VET}
 
 ineffassign:
-	@ineffassign -n ${PKG_LIST_INEFFASSIGN}
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign   -n ${PKG_LIST_INEFFASSIGN}
 
 test: ## Run unittests
 	@go test -race $(PKG_LIST)

@@ -23,7 +23,9 @@ func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*type
 		chainlog.Error("GetBlockSequences input must Start <= End:", "startSeq", requestblock.Start, "endSeq", requestblock.End)
 		return nil, types.ErrEndLessThanStartHeight
 	}
-
+	if requestblock.End-requestblock.Start >= types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	end := requestblock.End
 	if requestblock.End > blockLastSeq {
 		end = blockLastSeq

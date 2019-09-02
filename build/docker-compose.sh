@@ -336,7 +336,6 @@ function transfer() {
                 echo "----------block info------------------"
                 lastheight=$(${CLI} block last_header | jq -r ".height")
                 ${CLI} block get -s 1 -e "${lastheight}" -d 1
-
                 exit 1
             fi
         else

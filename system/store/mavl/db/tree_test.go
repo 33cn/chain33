@@ -63,20 +63,13 @@ func randstr(length int) string {
 }
 
 func RandInt32() uint32 {
-	return uint32(rand.Uint32())
+	return rand.Uint32()
 }
 
 func i2b(i int32) []byte {
 	bbuf := bytes.NewBuffer([]byte{})
 	binary.Write(bbuf, binary.BigEndian, i)
 	return Sha256(bbuf.Bytes())
-}
-
-func b2i(bz []byte) int {
-	var x int
-	bbuf := bytes.NewBuffer(bz)
-	binary.Read(bbuf, binary.BigEndian, &x)
-	return x
 }
 
 // 测试set和get功能
@@ -371,7 +364,7 @@ func TestPersistence(t *testing.T) {
 		//_, t2value, _ := t22.Get([]byte(key))
 		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 0, enableMvcc)
 		if string(t2value) != value {
-			t.Log("tree22 value update.", "oldvalue", string(value), "newvalue", string(t2value), "key", string(key))
+			t.Log("tree22 value update.", "oldvalue", value, "newvalue", string(t2value), "key", key)
 		}
 	}
 	count = 0
@@ -383,7 +376,7 @@ func TestPersistence(t *testing.T) {
 		//_, t2value, _ := t22.Get([]byte(key))
 		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 1, enableMvcc)
 		if string(t2value) != value {
-			t.Logf("tree2222 Invalid value. Expected %v, got %v,key %v", string(value), string(t2value), string(key))
+			t.Logf("tree2222 Invalid value. Expected %v, got %v,key %v", value, string(t2value), key)
 		}
 	}
 	dbm.Close()

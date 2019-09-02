@@ -68,17 +68,15 @@ func init() {
 
 func testTLS(RPCAddr string) string {
 	rpcaddr := RPCAddr
-	if strings.HasPrefix(rpcaddr, "https://") {
-		return RPCAddr
-	}
 	if !strings.HasPrefix(rpcaddr, "http://") {
 		return RPCAddr
 	}
-	//test tls ok
+	// if http://
 	if rpcaddr[len(rpcaddr)-1] != '/' {
 		rpcaddr += "/"
 	}
 	rpcaddr += "test"
+	/* #nosec */
 	resp, err := http.Get(rpcaddr)
 	if err != nil {
 		return "https://" + RPCAddr[7:]

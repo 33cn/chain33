@@ -8,7 +8,7 @@ set -o pipefail
 # os: ubuntu16.04 x64
 
 #chain33 dapp autotest root directory
-declare -a Chain33AutoTestDirs=("system" "plugin" "vendor/github.com/33cn/chain33/system" "vendor/github.com/33cn/plugin/plugin")
+declare -a Chain33AutoTestDirs=("${CHAIN33_PATH}/system" "${PLUGIN_PATH}/plugin")
 
 #copy auto test to specific directory
 # check args
@@ -32,11 +32,11 @@ function copyAutoTestConfig() {
     #copy all the dapp test case config file
     for rootDir in "${Chain33AutoTestDirs[@]}"; do
 
-        if [ ! -d ../../"${rootDir}" ]; then
+        if [[ ! -d ${rootDir} ]]; then
             continue
         fi
 
-        testDirArr=$(find ../../"${rootDir}" -type d -name autotest)
+        testDirArr=$(find "${rootDir}" -type d -name autotest)
 
         for autotest in ${testDirArr}; do
 
@@ -65,7 +65,7 @@ function copyChain33() {
 
     echo "# copy chain33 bin to path \"$1\", make sure build chain33"
     cp ../chain33 ../chain33-cli ../chain33.toml "$1"
-    find ../../ -path '*cmd/chain33/chain33.test.toml' -exec cp {} "$1" ';'
+    cp "${CHAIN33_PATH}"/cmd/chain33/chain33.test.toml "$1"
 }
 
 for dir in "$@"; do
