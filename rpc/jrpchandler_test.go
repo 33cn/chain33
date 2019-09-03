@@ -1301,7 +1301,6 @@ func TestChain33_GetBalance(t *testing.T) {
 	//测试地址不合法返回ErrInvalidAddress
 	var data1 interface{}
 	var addrs1 = []string{"17n2qu84Z1SUUosWjySggBS9pKWdAP3tZt"}
-
 	input := types.ReqBalance{
 		Execer:    types.ExecName("coins"),
 		Addresses: addrs1,
@@ -1309,6 +1308,27 @@ func TestChain33_GetBalance(t *testing.T) {
 
 	err := client.GetBalance(input, &data1)
 	assert.Equal(t, err, types.ErrInvalidAddress)
+
+	//测试多重签名地址不合法返回ErrInvalidAddress
+	var addrs2 = []string{"3BJqXn4v741wDJY6Fzb4YbLSftXwgDzFE8"}
+	input = types.ReqBalance{
+		Execer:    types.ExecName("coins"),
+		Addresses: addrs2,
+	}
+
+	err = client.GetBalance(input, &data1)
+	assert.Equal(t, err, types.ErrInvalidAddress)
+
+	//测试多重签名地址合法
+	var addrs3 = []string{"3BJqXn4v741wDJY6Fzb4YbLSftXwgDzFE7"}
+	input = types.ReqBalance{
+		Execer:    types.ExecName("coins"),
+		Addresses: addrs3,
+	}
+
+	err = client.GetBalance(input, &data1)
+	assert.Nil(t, err)
+
 }
 
 func TestChain33_CreateNoBalanceTransaction(t *testing.T) {
