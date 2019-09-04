@@ -24,12 +24,6 @@ var rootCmd = &cobra.Command{
 	Short: types.GetTitle() + " client tools",
 }
 
-var sendCmd = &cobra.Command{
-	Use:   "send",
-	Short: "Send transaction in one step",
-	Run:   func(cmd *cobra.Command, args []string) {},
-}
-
 var closeCmd = &cobra.Command{
 	Use:   "close",
 	Short: "Close " + types.GetTitle(),
@@ -60,7 +54,7 @@ func init() {
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.VersionCmd(),
-		sendCmd,
+		commands.OneStepSendCmd(),
 		closeCmd,
 		commands.AssetCmd(),
 	)
@@ -98,12 +92,6 @@ func Run(RPCAddr, ParaName string) {
 	types.S("ParaName", ParaName)
 	rootCmd.PersistentFlags().String("rpc_laddr", types.GStr("RPCAddr"), "http url")
 	rootCmd.PersistentFlags().String("paraName", types.GStr("ParaName"), "parachain")
-	if len(os.Args) > 1 {
-		if os.Args[1] == "send" {
-			commands.OneStepSend(os.Args)
-			return
-		}
-	}
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
