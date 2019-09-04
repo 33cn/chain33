@@ -18,24 +18,19 @@ import (
 func OneStepSendCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                "send",
-		Long:               "integrate create/sign/send transaction operations in one, with private key or from address specified",
+		Short:              "send tx in one step",
 		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
-
 			oneStepSend(os.Args[0], args)
 		},
 	}
-	cmd.Flags().StringP("key", "k", "", "private key or from address for sign tx")
+	//cmd.Flags().StringP("key", "k", "", "private key or from address for sign tx")
 	return cmd
 }
 
 // one step send
 func oneStepSend(cmd string, params []string) {
-	if len(params) < 1 {
-		loadSendHelp()
-		return
-	}
-	if params[0] == "help" || params[0] == "--help" || params[0] == "-h" {
+	if len(params) < 1 || params[0] == "help" || params[0] == "--help" || params[0] == "-h" {
 		loadSendHelp()
 		return
 	}
@@ -49,20 +44,16 @@ func oneStepSend(cmd string, params []string) {
 		if v == "-k" || v == "--key" {
 			keyIndex = i
 			key = params[i+1]
-
 		} else if v == "--rpc_laddr" {
 			rpcAddrParams = append(rpcAddrParams, "--rpc_laddr", params[i+1])
 		}
 	}
-
 	if key == "" {
 		loadSendHelp()
 		fmt.Println("Error: required flag(s) \"key\" not set")
 		return
 	}
-	//remove key param
-	params = append(params[:keyIndex], params[keyIndex+2:]...)
-
+	params = append(params[:keyIndex], params[keyIndex+2:]...) //remove key param
 	if address.CheckAddress(key) != nil {
 		keyParams = append(keyParams, "-k", key)
 	} else {
@@ -82,7 +73,6 @@ func oneStepSend(cmd string, params []string) {
 		fmt.Println(errCreate.String())
 		return
 	}
-
 	bufCreate := outCreate.Bytes()
 	signParams := []string{"wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1])}
 	cmdSign := exec.Command(cmd, append(append(signParams, keyParams...), rpcAddrParams...)...)
@@ -120,7 +110,6 @@ func oneStepSend(cmd string, params []string) {
 }
 
 func loadSendHelp() {
-
 	help := `[Integrate create/sign/send transaction operations in one command]
 Usage:
   -cli send [flags]
