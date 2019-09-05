@@ -23,7 +23,7 @@ var (
 //GetLocalDBKeyList 获取本地key列表
 func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
-		WalletVerKey, BlockChainVerKey, LocalDBMeta, MavlTreeVerKey,
+		WalletVerKey, BlockChainVerKey, LocalDBMeta, StoreDBMeta, MavlTreeVerKey,
 	}
 }
 
