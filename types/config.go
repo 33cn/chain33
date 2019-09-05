@@ -577,8 +577,11 @@ func FlatConfig(conf map[string]interface{}) map[string]interface{} {
 
 func setMver(title string, cfgstring string) {
 	mu.Lock()
+	defer mu.Unlock()
+	if _, ok := mver[title]; ok {
+		return
+	}
 	mver[title] = newMversion(title, cfgstring)
-	mu.Unlock()
 }
 
 // InitCfgString 初始化配置
