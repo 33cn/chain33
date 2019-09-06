@@ -450,6 +450,7 @@ func queryTotalFeeWithHash(blockHash string, rpc *jsonclient.JSONClient) (*types
 	}
 
 	//查询手续费
+	hash = append([]byte("TotalFeeKey:"), hash...)
 	params := types.LocalDBGet{Keys: [][]byte{hash[:]}}
 	res := &types.TotalFee{}
 	err = rpc.Call("Chain33.QueryTotalFee", params, &res)
