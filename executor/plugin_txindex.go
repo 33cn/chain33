@@ -60,7 +60,8 @@ func getTx(executor *executor, tx *types.Transaction, receipt *types.ReceiptData
 	txresult.ActionName = tx.ActionName()
 	var kvlist []*types.KeyValue
 	kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxKey(txhash), Value: types.Encode(&txresult)})
-	if types.IsEnable("quickIndex") {
+	cfg := executor.api.GetConfig()
+	if cfg.IsEnable("quickIndex") {
 		kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxShortKey(txhash), Value: []byte("1")})
 	}
 	return kvlist

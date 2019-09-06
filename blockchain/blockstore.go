@@ -152,9 +152,10 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 		blockStore.saveSequence = chain.isRecordBlockSequence
 		blockStore.isParaChain = chain.isParaChain
 	}
+	tycfg := chain.client.GetConfig()
 	if height == -1 {
 		chainlog.Info("load block height error, may be init database", "height", height)
-		if types.IsEnable("quickIndex") {
+		if tycfg.IsEnable("quickIndex") {
 			blockStore.saveQuickIndexFlag()
 		}
 	} else {
@@ -168,7 +169,7 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 		if err != nil {
 			panic(err)
 		}
-		if types.IsEnable("quickIndex") {
+		if tycfg.IsEnable("quickIndex") {
 			if flag == 0 {
 				blockStore.initQuickIndex(height)
 			}
@@ -343,7 +344,7 @@ func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
 
 //HasTx 是否包含该交易
 func (bs *BlockStore) HasTx(key []byte) (bool, error) {
-	if types.IsEnable("quickIndex") {
+	if bs.client.GetConfig().IsEnable("quickIndex") {
 		if _, err := bs.db.Get(types.CalcTxShortKey(key)); err != nil {
 			if err == dbm.ErrNotFoundInDb {
 				return false, nil
@@ -541,7 +542,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	blockbody.Receipts = blockdetail.Receipts
 	blockbody.MainHash = hash
 	blockbody.MainHeight = height
-	if types.IsPara() {
+	if bs.client.GetConfig().IsPara() {
 		blockbody.MainHash = blockdetail.Block.MainHash
 		blockbody.MainHeight = blockdetail.Block.MainHeight
 	}
@@ -876,7 +877,7 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	blockbody.Receipts = blockdetail.Receipts
 	blockbody.MainHash = hash
 	blockbody.MainHeight = height
-	if types.IsPara() {
+	if bs.client.GetConfig().IsPara() {
 		blockbody.MainHash = blockdetail.Block.MainHash
 		blockbody.MainHeight = blockdetail.Block.MainHeight
 	}

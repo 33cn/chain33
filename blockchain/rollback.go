@@ -32,7 +32,8 @@ func (chain *BlockChain) NeedRollback(curHeight, rollHeight int64) bool {
 		chainlog.Info("curHeight is small than rollback height, no need rollback")
 		return false
 	}
-	kvmvccMavlFork := types.GetDappFork("store-kvmvccmavl", "ForkKvmvccmavl")
+	cfg := chain.client.GetConfig()
+	kvmvccMavlFork := cfg.GetDappFork("store-kvmvccmavl", "ForkKvmvccmavl")
 	if curHeight >= kvmvccMavlFork+10000 && rollHeight <= kvmvccMavlFork {
 		chainlog.Info("because ForkKvmvccmavl", "current height", curHeight, "not support rollback to", rollHeight)
 		return false

@@ -91,7 +91,8 @@ func RunChain33(name string) {
 		panic(err)
 	}
 	//set config: bityuan 用 bityuan.toml 这个配置文件
-	cfg, sub := types.InitCfg(*configPath)
+	strCfg := types.ReadFile(*configPath)
+	cfg, sub := types.InitCfgString(strCfg)
 	if *datadir != "" {
 		util.ResetDatadir(cfg, *datadir)
 	}
@@ -102,7 +103,11 @@ func RunChain33(name string) {
 		cfg.P2P.WaitPid = *waitPid
 	}
 	//set test net flag
-	types.Init(cfg.Title, cfg)
+	// TODO 删除
+	//types.Init(cfg.Title, cfg)
+	// TODO 需要处理下mergeconfig
+	chain33Cfg := types.NewChain33Config(strCfg)
+
 	if cfg.FixTime {
 		go fixtimeRoutine()
 	}
@@ -149,6 +154,7 @@ func RunChain33(name string) {
 	log.Info(cfg.Title + "-app:" + version.GetAppVersion() + " chain33:" + version.GetVersion() + " localdb:" + version.GetLocalDBVersion() + " statedb:" + version.GetStoreDBVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
+	q.SetConfig(chain33Cfg)
 
 	log.Info("loading mempool module")
 	mem := mempool.New(cfg.Mempool, sub.Mempool)
@@ -192,7 +198,7 @@ func RunChain33(name string) {
 	}
 	log.Info("loading p2p module")
 	var network queue.Module
-	if cfg.P2P.Enable && !types.IsPara() {
+	if cfg.P2P.Enable && !chain33Cfg.IsPara() {
 		network = p2p.New(cfg.P2P)
 	} else {
 		network = &util.MockModule{Key: "p2p"}

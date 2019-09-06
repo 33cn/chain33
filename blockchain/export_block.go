@@ -70,12 +70,14 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 	if startHeight < 0 {
 		return types.ErrInvalidParam
 	}
+	cfg := chain.client.GetConfig()
+	cfgTitle := cfg.GetTitle()
 	//title检测
 	if len(title) == 0 {
-		title = types.GetTitle()
+		title = cfgTitle
 	}
-	if title != types.GetTitle() {
-		exportlog.Error("exportBlock", "title", title, "configTitle", types.GetTitle())
+	if title != cfgTitle {
+		exportlog.Error("exportBlock", "title", title, "configTitle", cfgTitle)
 		return types.ErrInvalidParam
 	}
 	//获取blockstore中当前区块的最新高度
@@ -101,7 +103,7 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 		newfileHeader := types.FileHeader{
 			Title:   title,
 			Driver:  chain.cfg.Driver,
-			TestNet: types.IsTestNet(),
+			TestNet: cfg.IsTestNet(),
 		}
 		if !isValidFileHeader(oldfileHeader, &newfileHeader) {
 			exportlog.Error("exportBlock:inValidFileHeader", "oldfileHeader", oldfileHeader, "newfileHeader", newfileHeader)

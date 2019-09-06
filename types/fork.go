@@ -14,12 +14,12 @@ MaxHeight 出于forks 过程安全的考虑，比如代码更新，出现了新�
 */
 const MaxHeight = 10000000000000000
 
-var systemFork = &Forks{}
+//var systemFork = &Forks{}
 
-func init() {
-	//先要初始化
-	SetTestNetFork()
-}
+//func init() {
+//	//先要初始化
+//	SetTestNetFork()
+//}
 
 //Forks fork分叉结构体
 type Forks struct {
@@ -194,100 +194,100 @@ func (f *Forks) IsDappFork(title string, height int64, dapp, fork string) bool {
 }
 
 //SetTestNetFork bityuan test net fork
-func SetTestNetFork() {
-	systemFork.SetFork("chain33", "ForkChainParamV1", 110000)
-	systemFork.SetFork("chain33", "ForkChainParamV2", 1692674)
-	systemFork.SetFork("chain33", "ForkCheckTxDup", 75260)
-	systemFork.SetFork("chain33", "ForkBlockHash", 209186)
-	systemFork.SetFork("chain33", "ForkMinerTime", 350000)
-	systemFork.SetFork("chain33", "ForkTransferExec", 408400)
-	systemFork.SetFork("chain33", "ForkExecKey", 408400)
-	systemFork.SetFork("chain33", "ForkWithdraw", 480000)
-	systemFork.SetFork("chain33", "ForkTxGroup", 408400)
-	systemFork.SetFork("chain33", "ForkResetTx0", 453400)
-	systemFork.SetFork("chain33", "ForkExecRollback", 706531)
-	systemFork.SetFork("chain33", "ForkTxHeight", 806578)
-	systemFork.SetFork("chain33", "ForkCheckBlockTime", 1200000)
-	systemFork.SetFork("chain33", "ForkMultiSignAddress", 1298600)
-	systemFork.SetFork("chain33", "ForkStateDBSet", 1572391)
-	systemFork.SetFork("chain33", "ForkBlockCheck", 1560000)
-	systemFork.SetFork("chain33", "ForkLocalDBAccess", 1572391)
-	systemFork.SetFork("chain33", "ForkTxGroupPara", 1687250)
-	systemFork.SetFork("chain33", "ForkBase58AddressCheck", 1800000)
-	//这个fork只影响平行链，注册类似user.p.x.exec的driver，新开的平行链设为0即可，老的平行链要设置新的高度
-	systemFork.SetFork("chain33", "ForkEnableParaRegExec", 0)
-	systemFork.SetFork("chain33", "ForkCacheDriver", 2580000)
-	systemFork.SetFork("chain33", "ForkTicketFundAddrV1", 3350000)
-}
+//func SetTestNetFork() {
+//	systemFork.SetFork("chain33", "ForkChainParamV1", 110000)
+//	systemFork.SetFork("chain33", "ForkChainParamV2", 1692674)
+//	systemFork.SetFork("chain33", "ForkCheckTxDup", 75260)
+//	systemFork.SetFork("chain33", "ForkBlockHash", 209186)
+//	systemFork.SetFork("chain33", "ForkMinerTime", 350000)
+//	systemFork.SetFork("chain33", "ForkTransferExec", 408400)
+//	systemFork.SetFork("chain33", "ForkExecKey", 408400)
+//	systemFork.SetFork("chain33", "ForkWithdraw", 480000)
+//	systemFork.SetFork("chain33", "ForkTxGroup", 408400)
+//	systemFork.SetFork("chain33", "ForkResetTx0", 453400)
+//	systemFork.SetFork("chain33", "ForkExecRollback", 706531)
+//	systemFork.SetFork("chain33", "ForkTxHeight", 806578)
+//	systemFork.SetFork("chain33", "ForkCheckBlockTime", 1200000)
+//	systemFork.SetFork("chain33", "ForkMultiSignAddress", 1298600)
+//	systemFork.SetFork("chain33", "ForkStateDBSet", 1572391)
+//	systemFork.SetFork("chain33", "ForkBlockCheck", 1560000)
+//	systemFork.SetFork("chain33", "ForkLocalDBAccess", 1572391)
+//	systemFork.SetFork("chain33", "ForkTxGroupPara", 1687250)
+//	systemFork.SetFork("chain33", "ForkBase58AddressCheck", 1800000)
+//	//这个fork只影响平行链，注册类似user.p.x.exec的driver，新开的平行链设为0即可，老的平行链要设置新的高度
+//	systemFork.SetFork("chain33", "ForkEnableParaRegExec", 0)
+//	systemFork.SetFork("chain33", "ForkCacheDriver", 2580000)
+//	systemFork.SetFork("chain33", "ForkTicketFundAddrV1", 3350000)
+//}
 
-func setLocalFork() {
-	err := systemFork.CloneZero("chain33", "local")
+func (f *Forks) setLocalFork() {
+	err := f.CloneZero("chain33", "local")
 	if err != nil {
 		panic(err)
 	}
-	systemFork.ReplaceFork("local", "ForkBlockHash", 1)
+	f.ReplaceFork("local", "ForkBlockHash", 1)
 }
 
 //paraName not used currently
-func setForkForParaZero(paraName string) {
-	err := systemFork.CloneZero("chain33", paraName)
+func (f *Forks) setForkForParaZero(paraName string) {
+	err := f.CloneZero("chain33", paraName)
 	if err != nil {
 		tlog.Error("setForkForPara", "error", err)
 	}
-	systemFork.ReplaceFork(paraName, "ForkBlockHash", 1)
+	f.ReplaceFork(paraName, "ForkBlockHash", 1)
 }
 
 // IsFork 是否系统 fork高度
-func IsFork(height int64, fork string) bool {
-	return systemFork.IsFork(GetTitle(), height, fork)
+func (c *Chain33Config) IsFork(height int64, fork string) bool {
+	return c.forks.IsFork(c.GetTitle(), height, fork)
 }
 
 // IsDappFork 是否dapp fork高度
-func IsDappFork(height int64, dapp, fork string) bool {
-	return systemFork.IsDappFork(GetTitle(), height, dapp, fork)
+func (c *Chain33Config) IsDappFork(height int64, dapp, fork string) bool {
+	return c.forks.IsDappFork(c.GetTitle(), height, dapp, fork)
 }
 
 // GetDappFork 获取dapp fork高度
-func GetDappFork(dapp, fork string) int64 {
-	return systemFork.GetDappFork(GetTitle(), dapp, fork)
+func (c *Chain33Config) GetDappFork(dapp, fork string) int64 {
+	return c.forks.GetDappFork(c.GetTitle(), dapp, fork)
 }
 
 // SetDappFork 设置dapp fork高度
-func SetDappFork(title, dapp, fork string, height int64) {
-	systemFork.SetDappFork(title, dapp, fork, height)
+func (c *Chain33Config) SetDappFork(title, dapp, fork string, height int64) {
+	c.forks.SetDappFork(title, dapp, fork, height)
 }
 
 // RegisterDappFork 注册dapp fork高度
-func RegisterDappFork(dapp, fork string, height int64) {
-	systemFork.SetDappFork("chain33", dapp, fork, height)
+func (c *Chain33Config) RegisterDappFork(dapp, fork string, height int64) {
+	c.forks.SetDappFork("chain33", dapp, fork, height)
 }
 
 // GetFork 获取系统fork高度
-func GetFork(fork string) int64 {
-	return systemFork.GetFork(GetTitle(), fork)
+func (c *Chain33Config) GetFork(fork string) int64 {
+	return c.forks.GetFork(c.GetTitle(), fork)
 }
 
 // HasFork 是否有系统fork
-func HasFork(fork string) bool {
-	return systemFork.HasFork("chain33", fork)
+func (c *Chain33Config) HasFork(fork string) bool {
+	return c.forks.HasFork("chain33", fork)
 }
 
 // IsEnableFork 是否使能了fork
-func IsEnableFork(height int64, fork string, enable bool) bool {
+func (c *Chain33Config) IsEnableFork(height int64, fork string, enable bool) bool {
 	if !enable {
 		return false
 	}
-	return IsFork(height, fork)
+	return c.IsFork(height, fork)
 }
 
 //fork 设置规则：
 //所有的fork都需要有明确的配置，不开启fork 配置为 -1
-func initForkConfig(title string, forks *ForkList) {
+func (c *Chain33Config) initForkConfig(title string, forks *ForkList) {
 	if title == "chain33" { //chain33 fork is default set in code
 		return
 	}
 	println(title)
-	chain33fork := systemFork.GetAll("chain33")
+	chain33fork := c.forks.GetAll("chain33")
 	if chain33fork == nil {
 		panic("chain33 fork not init")
 	}
@@ -326,23 +326,23 @@ func initForkConfig(title string, forks *ForkList) {
 		if v == -1 {
 			v = MaxHeight
 		}
-		if !HasFork(k) {
+		if !c.HasFork(k) {
 			s += "system fork not exist : " + k + "\n"
 		}
-		systemFork.SetFork(title, k, v)
+		c.forks.SetFork(title, k, v)
 	}
 	//重置allow exec 的权限，让他只限制在配置文件设置的
-	AllowUserExec = [][]byte{ExecerNone}
+	c.AllowUserExec = [][]byte{ExecerNone}
 	for dapp, forklist := range forks.Sub {
-		AllowUserExec = append(AllowUserExec, []byte(dapp))
+		c.AllowUserExec = append(c.AllowUserExec, []byte(dapp))
 		for k, v := range forklist {
 			if v == -1 {
 				v = MaxHeight
 			}
-			if !HasFork(dapp + "." + k) {
+			if !c.HasFork(dapp + "." + k) {
 				s += "exec fork not exist : exec = " + dapp + " key = " + k + "\n"
 			}
-			systemFork.SetDappFork(title, dapp, k, v)
+			c.forks.SetDappFork(title, dapp, k, v)
 		}
 	}
 	if len(s) > 0 {

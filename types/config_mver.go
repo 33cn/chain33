@@ -65,7 +65,7 @@ func (m *mversion) get(key string) (interface{}, error) {
 }
 
 //根据title 计算fork 信息, 保证这个函数调用在title 的fork 初始化完成之后
-func (m *mversion) UpdateFork() {
+func (m *mversion) UpdateFork(f *Forks) {
 	for k := range m.data {
 		//global fork
 		//mver.forkname.name
@@ -75,15 +75,15 @@ func (m *mversion) UpdateFork() {
 			continue
 		}
 		forkname := items[len(items)-2]
-		if !systemFork.HasFork(m.title, forkname) {
+		if !f.HasFork(m.title, forkname) {
 			//maybe sub forl
 			//mver.exec.sub.token.forkname
 			forkname = items[len(items)-3] + "." + items[len(items)-2]
-			if !systemFork.HasFork(m.title, forkname) {
+			if !f.HasFork(m.title, forkname) {
 				continue
 			}
 		}
-		id := systemFork.GetFork(title, forkname)
+		id := f.GetFork(m.title, forkname)
 		items[len(items)-2] = items[len(items)-1]
 		suffix := items[len(items)-1]
 		prefix := strings.Join(items[0:len(items)-2], ".")

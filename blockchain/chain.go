@@ -163,7 +163,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 }
 
 func (chain *BlockChain) initConfig(cfg *types.BlockChain) {
-	if types.IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
+	if chain.client.GetConfig().IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
 		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
 	}
 
@@ -178,7 +178,7 @@ func (chain *BlockChain) initConfig(cfg *types.BlockChain) {
 	chain.isStrongConsistency = cfg.IsStrongConsistency
 	chain.isRecordBlockSequence = cfg.IsRecordBlockSequence
 	chain.isParaChain = cfg.IsParaChain
-	types.S("quickIndex", cfg.EnableTxQuickIndex)
+	chain.client.GetConfig().S("quickIndex", cfg.EnableTxQuickIndex)
 }
 
 //Close 关闭区块链
@@ -252,7 +252,7 @@ func (chain *BlockChain) InitBlockChain() {
 
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
-	if types.IsEnable("TxHeight") {
+	if chain.client.GetConfig().IsEnable("TxHeight") {
 		chain.InitCache(curheight)
 	}
 	//获取数据库中最新的10240个区块加载到index和bestview链中
@@ -271,7 +271,7 @@ func (chain *BlockChain) InitBlockChain() {
 			chainlog.Error("InitIndexAndBestView SetDbVersion ", "err", err)
 		}
 	}
-	types.S("dbversion", curdbver)
+	chain.client.GetConfig().S("dbversion", curdbver)
 	if !chain.cfg.IsParaChain && chain.cfg.RollbackBlock <= 0 {
 		// 定时检测/同步block
 		go chain.SynRoutine()

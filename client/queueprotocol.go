@@ -853,7 +853,7 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 // Version get the software version
 func (q *QueueProtocol) Version() (*types.VersionInfo, error) {
 	return &types.VersionInfo{
-		Title:   types.GetTitle(),
+		Title:   q.client.GetConfig().GetTitle(),
 		App:     version.GetAppVersion(),
 		Chain33: version.GetVersion(),
 		LocalDb: version.GetLocalDBVersion(),
@@ -1295,4 +1295,13 @@ func (q *QueueProtocol) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
+}
+
+//GetConfig 通过seq以及title获取对应平行连的交易
+func (q *QueueProtocol) GetConfig() *types.Chain33Config {
+	cfg := q.client.GetConfig()
+	if cfg == nil {
+		panic("QueueProtocol get config is nil")
+	}
+	return cfg
 }
