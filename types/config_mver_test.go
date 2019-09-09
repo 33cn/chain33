@@ -5,8 +5,9 @@
 package types
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfigFlat(t *testing.T) {
@@ -57,7 +58,7 @@ var chainV3Param *ChainParam
 func initChainBase() {
 	chainBaseParam = &ChainParam{}
 	chainBaseParam.PowLimitBits = uint32(0x1f00ffff)
-	chainBaseParam.MaxTxNumber = 1600      //160
+	chainBaseParam.MaxTxNumber = 1600 //160
 
 }
 
