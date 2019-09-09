@@ -7,12 +7,13 @@ package types
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/33cn/chain33/types/chaincfg"
-	tml "github.com/BurntSushi/toml"
 	"io/ioutil"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/33cn/chain33/types/chaincfg"
+	tml "github.com/BurntSushi/toml"
 )
 
 //区块链共识相关的参数，重要参数不要随便修改
@@ -58,8 +59,8 @@ func init() {
 
 // ChainParam 结构体
 type ChainParam struct {
-	MaxTxNumber              int64
-	PowLimitBits             uint32
+	MaxTxNumber  int64
+	PowLimitBits uint32
 }
 
 // GetP 获取ChainParam
