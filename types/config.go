@@ -7,14 +7,12 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/33cn/chain33/types/chaincfg"
+	tml "github.com/BurntSushi/toml"
 	"io/ioutil"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
-
-	"github.com/33cn/chain33/types/chaincfg"
-	tml "github.com/BurntSushi/toml"
 )
 
 //区块链共识相关的参数，重要参数不要随便修改
@@ -60,36 +58,16 @@ func init() {
 
 // ChainParam 结构体
 type ChainParam struct {
-	CoinDevFund              int64
-	CoinReward               int64
-	FutureBlockTime          int64
-	TicketPrice              int64
-	TicketFrozenTime         int64
-	TicketWithdrawTime       int64
-	TicketMinerWaitTime      int64
 	MaxTxNumber              int64
 	PowLimitBits             uint32
-	TargetTimespan           time.Duration
-	TargetTimePerBlock       time.Duration
-	RetargetAdjustmentFactor int64
 }
 
 // GetP 获取ChainParam
 func GetP(height int64) *ChainParam {
 	conf := Conf("mver.consensus")
 	c := &ChainParam{}
-	c.CoinDevFund = conf.MGInt("coinDevFund", height) * Coin
-	c.CoinReward = conf.MGInt("coinReward", height) * Coin
-	c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
-	c.TicketPrice = conf.MGInt("ticketPrice", height) * Coin
-	c.TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
-	c.TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
-	c.TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
 	c.MaxTxNumber = conf.MGInt("maxTxNumber", height)
 	c.PowLimitBits = uint32(conf.MGInt("powLimitBits", height))
-	c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
-	c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
-	c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
 	return c
 }
 

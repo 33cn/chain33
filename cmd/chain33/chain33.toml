@@ -141,14 +141,19 @@ minerExecs=["ticket", "autonomy"]
 [mver.consensus]
 #基金账户地址
 fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+#挖矿难度
+powLimitBits = "0x1f00ffff"
+#区块包含最多交易数
+maxTxNumber = 1600
+
+
+[mver.consensus.ticket]
 #用户回报
 coinReward = 18
 #发展基金回报
 coinDevFund = 12
 #ticket价格
 ticketPrice = 10000
-#挖矿难度
-powLimitBits = "0x1f00ffff"
 #每次调整难度的最大的范围，如果设置成 4 的话，范围是 (1/4 - 4)，一次不能增加 4倍以上的难度，或者难度减少为 原来的 1/4 ，这个参数，是为了难度不会突然爆增加或者减少
 retargetAdjustmentFactor = 4
 #表示如果区块时间大于当前时间 16s ，那么区块就会判定为无效区块。
@@ -157,8 +162,6 @@ futureBlockTime = 16
 ticketFrozenTime = 5    #5s only for test
 ticketWithdrawTime = 10 #10s only for test
 ticketMinerWaitTime = 2 #2s only for test
-#区块包含最多交易数
-maxTxNumber = 1600      #160
 #调整挖矿难度的间隔，(ps:难度不是每个区块都调整的，而是每隔 targetTimespan / targetTimePerBlock 块调整一次)
 targetTimespan = 2304
 #每个区块打包的目标时间
