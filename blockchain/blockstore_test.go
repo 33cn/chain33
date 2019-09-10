@@ -1,13 +1,12 @@
 package blockchain
 
 import (
-	"testing"
-
+	"fmt"
 	"io/ioutil"
 	"os"
+	"testing"
 
-	"fmt"
-
+	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -176,4 +175,61 @@ func TestSeqCreateAndDelete(t *testing.T) {
 	seq, err = blockStore.GetSequenceByHash([]byte("0"))
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), seq)
+}
+
+func TestHasTx(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+
+	blockStore := NewBlockStore(nil, blockStoreDB, nil)
+	assert.NotNil(t, blockStore)
+	blockStore.saveSequence = false
+	blockStore.isParaChain = false
+	types.S("quickIndex", true)
+
+	//txstring1 和txstring2的短hash是一样的，但是全hash是不一样的
+	txstring1 := "0xaf095d11326ebb97d142fdb0e0138ef28524470c121b4811bdd05857b2d06764"
+	txstring2 := "0xaf095d11326ebb97d142fdb0e0138ef28524470c121b4811bdd05857b2d06765"
+	txstring3 := "0x8fac317e02ee25b1bbc5bd5a8570962b482928b014d14817b3c7a4e6aeddb3c6"
+	txstring4 := "0x6522279c4fae53965e7bfbd35651dcd68813a50c65bf7af20b02c9bfe3d2ce8b"
+
+	txhash1, err := common.FromHex(txstring1)
+	assert.Nil(t, err)
+	txhash2, err := common.FromHex(txstring2)
+	assert.Nil(t, err)
+	txhash3, err := common.FromHex(txstring3)
+	assert.Nil(t, err)
+	txhash4, err := common.FromHex(txstring4)
+	assert.Nil(t, err)
+
+	batch := blockStore.NewBatch(true)
+
+	var txresult types.TxResult
+	txresult.Height = 1
+	txresult.Index = int32(1)
+	batch.Set(types.CalcTxKey(txhash1), types.Encode(&txresult))
+	batch.Set(types.CalcTxShortKey(txhash1), []byte("1"))
+
+	txresult.Height = 3
+	txresult.Index = int32(3)
+	batch.Set(types.CalcTxKey(txhash3), types.Encode(&txresult))
+	batch.Set(types.CalcTxShortKey(txhash3), []byte("1"))
+
+	batch.Write()
+
+	has, _ := blockStore.HasTx(txhash1)
+	assert.Equal(t, has, true)
+
+	has, _ = blockStore.HasTx(txhash2)
+	assert.Equal(t, has, false)
+
+	has, _ = blockStore.HasTx(txhash3)
+	assert.Equal(t, has, true)
+
+	has, _ = blockStore.HasTx(txhash4)
+	assert.Equal(t, has, false)
 }

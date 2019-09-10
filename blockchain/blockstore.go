@@ -350,7 +350,9 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 			}
 			return false, err
 		}
-		return true, nil
+		//通过短hash查询交易存在时，需要再通过全hash索引查询一下。
+		//避免短hash重复，而全hash不一样的情况
+		//return true, nil
 	}
 	if _, err := bs.db.Get(types.CalcTxKey(key)); err != nil {
 		if err == dbm.ErrNotFoundInDb {
