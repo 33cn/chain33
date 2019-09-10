@@ -82,6 +82,8 @@ func (m *Cli) BroadCastTx(msg *queue.Message, taskindex int64) {
 		//是否已存在记录，不存在表示本节点发起的交易
 		if ttl, exist := txHashFilter.Get(txHash).(*pb.P2PRoute); exist {
 			route.TTL = ttl.TTL + 1
+		}else {
+			txHashFilter.RegRecvData(txHash)
 		}
 		m.network.node.pubsub.FIFOPub(&pb.P2PTx{Tx: tx, Route: route}, "tx")
 		msg.Reply(m.network.client.NewMessage("mempool", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
@@ -528,7 +530,11 @@ func (m *Cli) BlockBroadcast(msg *queue.Message, taskindex int64) {
 		<-m.network.otherFactory
 		log.Debug("BlockBroadcast", "task complete:", taskindex)
 	}()
-	m.network.node.pubsub.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, "block")
+
+	if block, ok := msg.GetData().(*pb.Block); ok {
+		blockHashFilter.RegRecvData(hex.EncodeToString(block.Hash()))
+		m.network.node.pubsub.FIFOPub(&pb.P2PBlock{Block: block}, "block")
+	}
 }
 
 // GetNetInfo get network information
