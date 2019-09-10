@@ -9,6 +9,7 @@ import (
 	"github.com/33cn/chain33/rpc/types"
 	wcom "github.com/33cn/chain33/wallet/common"
 	"github.com/spf13/cobra"
+	typ "github.com/33cn/chain33/types"
 )
 
 // PluginBase plugin module base struct
@@ -16,7 +17,7 @@ type PluginBase struct {
 	Name     string
 	ExecName string
 	RPC      func(name string, s types.RPCServer)
-	Exec     func(name string, sub []byte)
+	Exec     func(name string, typ *typ.Chain33Config, sub []byte)
 	Wallet   func(walletBiz wcom.WalletOperate, sub []byte)
 	Cmd      func() *cobra.Command
 }
@@ -32,12 +33,12 @@ func (p *PluginBase) GetExecutorName() string {
 }
 
 // InitExec init exec
-func (p *PluginBase) InitExec(sub map[string][]byte) {
+func (p *PluginBase) InitExec(typ *typ.Chain33Config, sub map[string][]byte) {
 	subcfg, ok := sub[p.ExecName]
 	if !ok {
 		subcfg = nil
 	}
-	p.Exec(p.ExecName, subcfg)
+	p.Exec(p.ExecName, typ, subcfg)
 }
 
 // InitWallet init wallet plugin

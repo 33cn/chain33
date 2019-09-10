@@ -86,7 +86,7 @@ func LoadExecutorType(execstr string) ExecutorType {
 }
 
 // CallExecNewTx 重构完成后删除
-func CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
+func (c *Chain33Config) CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 	exec := LoadExecutorType(execName)
 	if exec == nil {
 		tlog.Error("callExecNewTx", "Error", "exec not found")
@@ -107,7 +107,7 @@ func CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		tlog.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-	return FormatTxEncode(execName, tx)
+	return c.FormatTxEncode(execName, tx)
 }
 
 //CallCreateTransaction 创建一个交易
@@ -126,23 +126,23 @@ func CallCreateTransaction(execName, action string, param Message) (*Transaction
 }
 
 // CallCreateTx 构造交易信息
-func CallCreateTx(execName, action string, param Message) ([]byte, error) {
+func (c *Chain33Config) CallCreateTx(execName, action string, param Message) ([]byte, error) {
 	tx, err := CallCreateTransaction(execName, action, param)
 	if err != nil {
 		return nil, err
 	}
-	return FormatTxEncode(execName, tx)
+	return c.FormatTxEncode(execName, tx)
 }
 
 //CallCreateTxJSON create tx by json
-func CallCreateTxJSON(execName, action string, param json.RawMessage) ([]byte, error) {
+func (c *Chain33Config) CallCreateTxJSON(execName, action string, param json.RawMessage) ([]byte, error) {
 	exec := LoadExecutorType(execName)
 	if exec == nil {
 		execer := GetParaExecName([]byte(execName))
 		//找不到执行器，并且是user.xxx 的情况下
 		if bytes.HasPrefix(execer, UserKey) {
 			tx := &Transaction{Payload: param}
-			return FormatTxEncode(execName, tx)
+			return c.FormatTxEncode(execName, tx)
 		}
 		tlog.Error("CallCreateTxJSON", "Error", "exec not found")
 		return nil, ErrExecNotFound
@@ -157,28 +157,28 @@ func CallCreateTxJSON(execName, action string, param json.RawMessage) ([]byte, e
 		tlog.Error("CallCreateTxJSON", "Error", err)
 		return nil, err
 	}
-	return FormatTxEncode(execName, tx)
+	return c.FormatTxEncode(execName, tx)
 }
 
 // CreateFormatTx 构造交易信息
-func CreateFormatTx(execName string, payload []byte) (*Transaction, error) {
+func (c *Chain33Config) CreateFormatTx(execName string, payload []byte) (*Transaction, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
 	tx := &Transaction{Payload: payload}
-	return FormatTx(execName, tx)
+	return c.FormatTx(execName, tx)
 }
 
 // FormatTx 格式化tx交易
-func FormatTx(execName string, tx *Transaction) (*Transaction, error) {
+func (c *Chain33Config) FormatTx(execName string, tx *Transaction) (*Transaction, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
 	tx.Nonce = rand.Int63()
 	tx.Execer = []byte(execName)
 	//平行链，所有的to地址都是合约地址
-	if IsPara() || tx.To == "" {
+	if c.IsPara() || tx.To == "" {
 		tx.To = address.ExecAddress(string(tx.Execer))
 	}
 	var err error
 	if tx.Fee == 0 {
-		tx.Fee, err = tx.GetRealFee(GInt("MinFee"))
+		tx.Fee, err = tx.GetRealFee(c.GInt("MinFee"))
 		if err != nil {
 			return nil, err
 		}
@@ -187,8 +187,8 @@ func FormatTx(execName string, tx *Transaction) (*Transaction, error) {
 }
 
 // FormatTxEncode 对交易信息编码成byte类型
-func FormatTxEncode(execName string, tx *Transaction) ([]byte, error) {
-	tx, err := FormatTx(execName, tx)
+func (c *Chain33Config) FormatTxEncode(execName string, tx *Transaction) ([]byte, error) {
+	tx, err := c.FormatTx(execName, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -290,6 +290,7 @@ type ExecutorType interface {
 	CreateTransaction(action string, data Message) (*Transaction, error)
 	// collect assets the tx deal with
 	GetAssets(tx *Transaction) ([]*Asset, error)
+
 }
 
 // ExecTypeGet  获取类型值
@@ -307,6 +308,7 @@ type ExecTypeBase struct {
 	rpclist             map[string]reflect.Method
 	queryMap            map[string]reflect.Type
 	forks               *Forks
+	cfg                 *Chain33Config
 }
 
 // GetChild  获取子执行器
@@ -408,7 +410,7 @@ func (base *ExecTypeBase) IsFork(height int64, key string) bool {
 	if base.GetForks() == nil {
 		return false
 	}
-	return base.forks.IsFork(GetTitle(), height, key)
+	return base.forks.IsFork(base.cfg.GetTitle(), height, key)
 }
 
 // GetValueTypeMap  获取执行函数
@@ -418,7 +420,7 @@ func (base *ExecTypeBase) GetValueTypeMap() map[string]reflect.Type {
 
 //GetRealToAddr 用户看到的ToAddr
 func (base *ExecTypeBase) GetRealToAddr(tx *Transaction) string {
-	if !IsPara() {
+	if !base.cfg.IsPara() {
 		return tx.To
 	}
 	//平行链中的处理方式
@@ -631,7 +633,7 @@ func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg inte
 
 //AssertCreate 构造assets资产交易
 func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
-	if c.ExecName != "" && !IsAllowExecName([]byte(c.ExecName), []byte(c.ExecName)) {
+	if c.ExecName != "" && !base.cfg.IsAllowExecName([]byte(c.ExecName), []byte(c.ExecName)) {
 		tlog.Error("CreateTx", "Error", ErrExecNameNotMatch)
 		return nil, ErrExecNameNotMatch
 	}

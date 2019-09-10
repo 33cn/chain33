@@ -44,16 +44,19 @@ func resetDatadir(cfg *types.Config, datadir string) {
 
 func initEnv() (queue.Queue, queue.Module, queue.Module) {
 	var q = queue.New("channel")
-	cfg, sub := types.InitCfg(*configPath)
+	strCfg := types.ReadFile(*configPath)
+	cfg, sub := types.InitCfg(strCfg)
 	if *datadir != "" {
 		resetDatadir(cfg, *datadir)
 	}
 	cfg.Consensus.Minerstart = false
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
-	exec := executor.New(cfg.Exec, sub.Exec)
+	// TODO 需要处理下mergeconfig
+	chain33Cfg := types.NewChain33Config(strCfg)
+	exec := executor.New(cfg.Exec, chain33Cfg, sub.Exec)
 	exec.SetQueueClient(q.Client())
-	types.SetMinFee(0)
+	chain33Cfg.SetMinFee(0)
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
 	return q, chain, s

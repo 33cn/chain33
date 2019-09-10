@@ -22,6 +22,7 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	typ "github.com/33cn/chain33/types"
 )
 
 var elog = log.New("module", "execs")
@@ -46,17 +47,17 @@ type Executor struct {
 	alias        map[string]string
 }
 
-func execInit(sub map[string][]byte) {
-	pluginmgr.InitExec(sub)
+func execInit(typ *typ.Chain33Config, sub map[string][]byte) {
+	pluginmgr.InitExec(typ, sub)
 }
 
 var runonce sync.Once
 
 // New new executor
-func New(cfg *types.Exec, sub map[string][]byte) *Executor {
+func New(cfg *types.Exec, types *typ.Chain33Config, sub map[string][]byte) *Executor {
 	// init executor
 	runonce.Do(func() {
-		execInit(sub)
+		execInit(types, sub)
 	})
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果

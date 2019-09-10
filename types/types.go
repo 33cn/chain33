@@ -40,22 +40,22 @@ type TxGroup interface {
 }
 
 //ExecName  执行器name
-func ExecName(name string) string {
+func (c *Chain33Config) ExecName(name string) string {
 	if len(name) > 1 && name[0] == '#' {
 		return name[1:]
 	}
 	if IsParaExecName(name) {
 		return name
 	}
-	if IsPara() {
-		return GetTitle() + name
+	if c.IsPara() {
+		return c.GetTitle() + name
 	}
 	return name
 }
 
 //IsAllowExecName 默认的allow 规则->根据 GetRealExecName 来判断
 //name 必须大于3 小于 100
-func IsAllowExecName(name []byte, execer []byte) bool {
+func (c *Chain33Config) IsAllowExecName(name []byte, execer []byte) bool {
 	// name长度不能超过系统限制
 	if len(name) > address.MaxExecNameLength || len(execer) > address.MaxExecNameLength {
 		return false
@@ -73,8 +73,8 @@ func IsAllowExecName(name []byte, execer []byte) bool {
 	if bytes.HasPrefix(name, UserKey) {
 		return true
 	}
-	for i := range AllowUserExec {
-		if bytes.Equal(AllowUserExec[i], name) {
+	for i := range c.AllowUserExec {
+		if bytes.Equal(c.AllowUserExec[i], name) {
 			return true
 		}
 	}
@@ -130,16 +130,16 @@ func FindExecer(key []byte) (execer []byte, err error) {
 }
 
 //GetParaExec  获取平行链执行
-func GetParaExec(execer []byte) []byte {
+func (c *Chain33Config) GetParaExec(execer []byte) []byte {
 	//必须是平行链
-	if !IsPara() {
+	if !c.IsPara() {
 		return execer
 	}
 	//必须是相同的平行链
-	if !strings.HasPrefix(string(execer), GetTitle()) {
+	if !strings.HasPrefix(string(execer), c.GetTitle()) {
 		return execer
 	}
-	return execer[len(GetTitle()):]
+	return execer[len(c.GetTitle()):]
 }
 
 //GetParaExecName 获取平行链上的执行器
@@ -325,8 +325,8 @@ func ManageKey(key string) string {
 }
 
 //ManaeKeyWithHeigh 超级管理员账户key
-func ManaeKeyWithHeigh(key string, height int64) string {
-	if IsFork(height, "ForkExecKey") {
+func (c *Chain33Config) ManaeKeyWithHeigh(key string, height int64) string {
+	if c.IsFork(height, "ForkExecKey") {
 		return ManageKey(key)
 	}
 	return ConfigKey(key)

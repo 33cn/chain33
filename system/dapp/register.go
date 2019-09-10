@@ -28,7 +28,7 @@ var (
 )
 
 // Register register dcriver height in name
-func Register(name string, create DriverCreate, height int64) {
+func Register(types *types.Chain33Config, name string, create DriverCreate, height int64) {
 	if create == nil {
 		panic("Execute: Register driver is nil")
 	}

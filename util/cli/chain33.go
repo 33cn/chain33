@@ -161,7 +161,7 @@ func RunChain33(name string) {
 	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
-	exec := executor.New(cfg.Exec, sub.Exec)
+	exec := executor.New(cfg.Exec, chain33Cfg, sub.Exec)
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading blockchain module")

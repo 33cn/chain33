@@ -15,8 +15,8 @@ import (
 )
 
 // Hash 获取block的hash值
-func (block *Block) Hash() []byte {
-	if IsFork(block.Height, "ForkBlockHash") {
+func (block *Block) Hash(cfg *Chain33Config) []byte {
+	if cfg.IsFork(block.Height, "ForkBlockHash") {
 		return block.HashNew()
 	}
 	return block.HashOld()
@@ -54,7 +54,7 @@ func (block *Block) Size() int {
 }
 
 // GetHeader 获取block的Header信息
-func (block *Block) GetHeader() *Header {
+func (block *Block) GetHeader(cfg *Chain33Config) *Header {
 	head := &Header{}
 	head.Version = block.Version
 	head.ParentHash = block.ParentHash
@@ -64,7 +64,7 @@ func (block *Block) GetHeader() *Header {
 	head.Difficulty = block.Difficulty
 	head.StateHash = block.StateHash
 	head.TxCount = int64(len(block.Txs))
-	head.Hash = block.Hash()
+	head.Hash = block.Hash(cfg)
 	return head
 }
 
@@ -92,10 +92,10 @@ func (block *Block) getHeaderHashNew() *Header {
 }
 
 // CheckSign 检测block的签名
-func (block *Block) CheckSign() bool {
+func (block *Block) CheckSign(cfg *Chain33Config) bool {
 	//检查区块的签名
 	if block.Signature != nil {
-		hash := block.Hash()
+		hash := block.Hash(cfg)
 		sign := block.GetSignature()
 		if !CheckSign(hash, "", sign) {
 			return false
@@ -194,9 +194,9 @@ func CheckSign(data []byte, execer string, sign *Signature) bool {
 //2,交易组中的平行连交易，需要将整个交易组都过滤出来
 //目前暂时不返回单个交易的proof证明路径，
 //后面会将平行链的交易组装到一起，构成一个子roothash。会返回子roothash的proof证明路径
-func (blockDetail *BlockDetail) FilterParaTxsByTitle(title string) *ParaTxDetail {
+func (blockDetail *BlockDetail) FilterParaTxsByTitle(cfg *Chain33Config, title string) *ParaTxDetail {
 	var paraTx ParaTxDetail
-	paraTx.Header = blockDetail.Block.GetHeader()
+	paraTx.Header = blockDetail.Block.GetHeader(cfg)
 
 	for i := 0; i < len(blockDetail.Block.Txs); i++ {
 		tx := blockDetail.Block.Txs[i]

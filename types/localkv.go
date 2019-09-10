@@ -30,8 +30,8 @@ func GetLocalDBKeyList() [][]byte {
 }
 
 //CalcTxKey local db中保存交易的方法
-func CalcTxKey(hash []byte) []byte {
-	if IsEnable("quickIndex") {
+func (c *Chain33Config) CalcTxKey(hash []byte) []byte {
+	if c.IsEnable("quickIndex") {
 		return append(TxHashPerfix, hash...)
 	}
 	return hash
