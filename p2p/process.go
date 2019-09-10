@@ -106,7 +106,6 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 		p2pData.Value = &types.BroadCastData_Block{Block: block}
 	}
 
-	blockHashFilter.RegRecvData(blockHash)
 	return true
 }
 
