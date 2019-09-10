@@ -99,7 +99,9 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 		}
 
 		// cache block
-		totalBlockCache.add(blockHash, block.Block, ltBlock.Size)
+		if !totalBlockCache.contains(blockHash) {
+			totalBlockCache.add(blockHash, block.Block, ltBlock.Size)
+		}
 
 		p2pData.Value = &types.BroadCastData_LtBlock{LtBlock: ltBlock}
 	} else {
