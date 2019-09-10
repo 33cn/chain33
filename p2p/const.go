@@ -68,9 +68,12 @@ const (
 
 // P2pCacheTxSize p2pcache size of transaction
 const (
-	PeerAddrCacheNum      = 1000
-	TxHashCacheNum        = 10240
-	BlockHashCacheNum     = 100
+	PeerAddrCacheNum = 1000
+	//接收的交易哈希过滤缓存设为mempool最大接收交易量
+	TxRecvFilterCacheNum = 10240
+	BlockFilterCacheNum  = 50
+	//交易从接收到处理完继续向外广播通常耗时较少, 维持较小的缓存个数即可
+	TxSendFilterCacheNum  = 100
 	BlockCacheNum         = 10
 	MaxBlockCacheByteSize = 100 * 1024 * 1024
 )

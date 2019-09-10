@@ -13,8 +13,9 @@ import (
 )
 
 type versionData struct {
-	rawData interface{}
-	version int32
+	peerName string
+	rawData  interface{}
+	version  int32
 }
 
 func Test_processP2P(t *testing.T) {
@@ -74,7 +75,7 @@ func Test_processP2P(t *testing.T) {
 		for data := range sendChan {
 			verData, ok := data.(*versionData)
 			assert.True(t, ok)
-			sendData, doSend := node.processSendP2P(verData.rawData, verData.version, "testIP:port")
+			sendData, doSend := node.processSendP2P(verData.rawData, verData.version, verData.peerName, "testIP:port")
 			txHashFilter.regRData.Remove(txHash)
 			blockHashFilter.regRData.Remove(blockHash)
 			assert.True(t, doSend, "sendData:", verData.rawData)
@@ -104,15 +105,15 @@ func Test_processP2P(t *testing.T) {
 	go func() {
 		subChan := node.pubsub.Sub(pid)
 		//normal
-		sendChan <- &versionData{rawData: &types.P2PTx{Tx: tx, Route: &types.P2PRoute{}}, version: lightBroadCastVersion - 1}
+		sendChan <- &versionData{peerName: pid + "1", rawData: &types.P2PTx{Tx: tx, Route: &types.P2PRoute{}}, version: lightBroadCastVersion - 1}
 		assert.Nil(t, client.Send(client.NewMessage("p2p", types.EventTxBroadcast, tx), false))
-		sendChan <- &versionData{rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion - 1}
+		sendChan <- &versionData{peerName: pid + "1", rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion - 1}
 		//light broadcast
 		txHashFilter.Add(hex.EncodeToString(tx1.Hash()), &types.P2PRoute{TTL: DefaultLtTxBroadCastTTL})
 		_ = client.Send(client.NewMessage("p2p", types.EventTxBroadcast, tx1), false)
-		sendChan <- &versionData{rawData: &types.P2PTx{Tx: tx, Route: &types.P2PRoute{TTL: DefaultLtTxBroadCastTTL}}, version: lightBroadCastVersion}
+		sendChan <- &versionData{peerName: pid + "2", rawData: &types.P2PTx{Tx: tx, Route: &types.P2PRoute{TTL: DefaultLtTxBroadCastTTL}}, version: lightBroadCastVersion}
 		<-subChan //query tx
-		sendChan <- &versionData{rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion}
+		sendChan <- &versionData{peerName: pid + "2", rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion}
 		<-subChan //query block
 		for !ltBlockCache.contains(blockHash) {
 		}
@@ -154,8 +155,7 @@ func Test_processP2P(t *testing.T) {
 		for ltBlockCache.contains(blockHash) {
 		}
 		//max ttl
-		node.nodeInfo.cfg.MaxTTL = 0
-		_, doSend := node.processSendP2P(&types.P2PTx{Tx: tx, Route: &types.P2PRoute{TTL: 1}}, lightBroadCastVersion, "testIP:port")
+		_, doSend := node.processSendP2P(&types.P2PTx{Tx: tx, Route: &types.P2PRoute{TTL: node.nodeInfo.cfg.MaxTTL + 1}}, lightBroadCastVersion, pid+"5", "testIP:port")
 		assert.False(t, doSend)
 		close(testDone)
 	}()

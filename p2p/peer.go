@@ -254,7 +254,7 @@ func (p *Peer) sendStream() {
 					log.Error("sendStream peer connect closed", "peerName", p.GetPeerName())
 					return
 				}
-				sendData, doSend := p.node.processSendP2P(task, p.version.GetVersion(), p.Addr())
+				sendData, doSend := p.node.processSendP2P(task, p.version.GetVersion(), peername, p.Addr())
 				if !doSend {
 					continue
 				}

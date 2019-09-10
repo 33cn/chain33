@@ -15,7 +15,7 @@ func (n *Node) pubToPeer(data interface{}, pid string) {
 	n.pubsub.FIFOPub(data, pid)
 }
 
-func (n *Node) processSendP2P(rawData interface{}, peerVersion int32, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
+func (n *Node) processSendP2P(rawData interface{}, peerVersion int32, pid, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
 	//出错处理
 	defer func() {
 		if r := recover(); r != nil {
@@ -23,13 +23,13 @@ func (n *Node) processSendP2P(rawData interface{}, peerVersion int32, peerAddr s
 			doSend = false
 		}
 	}()
-	log.Debug("processSendP2PBegin", "peerAddr", peerAddr)
+	log.Debug("processSendP2PBegin", "peerID", pid, "peerAddr", peerAddr)
 	sendData = &types.BroadCastData{}
 	doSend = false
 	if tx, ok := rawData.(*types.P2PTx); ok {
-		doSend = n.sendTx(tx, sendData, peerVersion)
+		doSend = n.sendTx(tx, sendData, peerVersion, pid)
 	} else if blc, ok := rawData.(*types.P2PBlock); ok {
-		doSend = n.sendBlock(blc, sendData, peerVersion)
+		doSend = n.sendBlock(blc, sendData, peerVersion, pid)
 	} else if query, ok := rawData.(*types.P2PQueryData); ok {
 		doSend = n.sendQueryData(query, sendData)
 	} else if rep, ok := rawData.(*types.P2PBlockTxReply); ok {
@@ -50,13 +50,13 @@ func (n *Node) processRecvP2P(data *types.BroadCastData, pid string, pubPeerFunc
 			log.Error("processRecvP2P_Panic", "recoverErr", r)
 		}
 	}()
-	log.Debug("processRecvP2P", "peerAddr", peerAddr)
+	log.Debug("processRecvP2P", "peerID", pid, "peerAddr", peerAddr)
 	if pid == "" {
 		return false
 	}
 	handled = true
 	if tx := data.GetTx(); tx != nil {
-		n.recvTx(tx)
+		n.recvTx(tx, pid)
 	} else if ltTx := data.GetLtTx(); ltTx != nil {
 		n.recvLtTx(ltTx, pid, pubPeerFunc)
 	} else if ltBlc := data.GetLtBlock(); ltBlc != nil {
@@ -74,13 +74,17 @@ func (n *Node) processRecvP2P(data *types.BroadCastData, pid string, pubPeerFunc
 	return
 }
 
-func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, peerVersion int32) (doSend bool) {
+func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, peerVersion int32, pid string) (doSend bool) {
 
 	if block.Block == nil {
 		return false
 	}
 	byteHash := block.Block.Hash()
 	blockHash := hex.EncodeToString(byteHash)
+	//检测冗余发送
+	if addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid) {
+		return false
+	}
 	log.Debug("sendStream", "will send block", blockHash)
 	if peerVersion >= lightBroadCastVersion {
 
@@ -121,10 +125,16 @@ func (n *Node) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCa
 	return true
 }
 
-func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion int32) (doSend bool) {
+func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion int32, pid string) (doSend bool) {
+
+	txHash := hex.EncodeToString(tx.Tx.Hash())
+	//检测冗余发送
+	if addIgnoreSendPeerAtomic(txSendFilter, txHash, pid) {
+		return false
+	}
 
 	ttl := tx.GetRoute().GetTTL()
-	log.Debug("P2PSendStream", "will send tx", hex.EncodeToString(tx.Tx.Hash()), "ttl", ttl)
+	log.Debug("P2PSendStream", "will send tx", txHash, "ttl", ttl)
 	//超过最大的ttl, 不再发送
 	if ttl > n.nodeInfo.cfg.MaxTTL {
 		return false
@@ -144,12 +154,15 @@ func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion
 	return true
 }
 
-func (n *Node) recvTx(tx *types.P2PTx) {
+func (n *Node) recvTx(tx *types.P2PTx, pid string) {
 	if tx.GetTx() == nil {
 		return
 	}
 	txHash := hex.EncodeToString(tx.GetTx().Hash())
-	if n.checkAndRegFilterAtomic(txHashFilter, txHash) {
+	//将节点id添加到发送过滤, 避免冗余发送
+	addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
+	//重复接收
+	if checkAndRegFilterAtomic(txHashFilter, txHash) {
 		return
 	}
 	log.Debug("recvTx", "tx", txHash, "ttl", tx.GetRoute().GetTTL())
@@ -167,6 +180,8 @@ func (n *Node) recvLtTx(tx *types.LightTx, pid string, pubPeerFunc pubFuncType) 
 
 	txHash := hex.EncodeToString(tx.TxHash)
 	log.Debug("recvLtTx", "peerID", pid, "txHash", txHash, "ttl", tx.GetRoute().GetTTL())
+	//将节点id添加到发送过滤, 避免冗余发送
+	addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
 	//本地不存在, 需要向对端节点发起完整交易请求. 如果存在则表示本地已经接收过此交易, 不做任何操作
 	if !txHashFilter.QueryRecvData(txHash) {
 
@@ -186,9 +201,11 @@ func (n *Node) recvBlock(block *types.P2PBlock, pid string) {
 	if block.GetBlock() == nil {
 		return
 	}
-	//如果已经有登记过的消息记录，则不发送给本地blockchain
 	blockHash := hex.EncodeToString(block.GetBlock().Hash())
-	if n.checkAndRegFilterAtomic(blockHashFilter, blockHash) {
+	//将节点id添加到发送过滤, 避免冗余发送
+	addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
+	//如果重复接收, 则不再发到blockchain执行
+	if checkAndRegFilterAtomic(blockHashFilter, blockHash) {
 		return
 	}
 
@@ -204,8 +221,10 @@ func (n *Node) recvBlock(block *types.P2PBlock, pid string) {
 func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid string, pubPeerFunc pubFuncType) {
 
 	blockHash := hex.EncodeToString(ltBlock.Header.Hash)
+	//将节点id添加到发送过滤, 避免冗余发送
+	addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
 	//检测是否已经收到此block
-	if n.checkAndRegFilterAtomic(blockHashFilter, blockHash) {
+	if checkAndRegFilterAtomic(blockHashFilter, blockHash) {
 		return
 	}
 	log.Debug("recvLtBlock", "blockHash", blockHash, "blockHeight", ltBlock.GetHeader().GetHeight())
@@ -417,7 +436,7 @@ func (n *Node) postBlockChain(block *types.Block, pid string) error {
 	return nil
 }
 
-func (n *Node) checkAndRegFilterAtomic(filter *Filterdata, key string) (exist bool) {
+func checkAndRegFilterAtomic(filter *Filterdata, key string) (exist bool) {
 
 	filter.GetLock()
 	defer filter.ReleaseLock()
@@ -426,4 +445,20 @@ func (n *Node) checkAndRegFilterAtomic(filter *Filterdata, key string) (exist bo
 	}
 	filter.RegRecvData(key)
 	return false
+}
+
+func addIgnoreSendPeerAtomic(filter *Filterdata, key, pid string) (ignore bool) {
+
+	filter.GetLock()
+	defer filter.ReleaseLock()
+	var info *sendFilterInfo
+	if !filter.QueryRecvData(key) {
+		info = &sendFilterInfo{ignoreSendPeers: make(map[string]bool)}
+		filter.Add(key, info)
+	} else {
+		info = filter.Get(key).(*sendFilterInfo)
+	}
+	_, ignore = info.ignoreSendPeers[pid]
+	info.ignoreSendPeers[pid] = true
+	return ignore
 }
