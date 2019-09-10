@@ -7,7 +7,9 @@ import (
 )
 
 var (
+	//发送交易短哈希广播,在本地暂时缓存一些区块数据, 限制最大大小
 	totalBlockCache = newSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
+	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
 	ltBlockCache    = newSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
 )
 
