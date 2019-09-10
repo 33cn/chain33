@@ -146,6 +146,15 @@ powLimitBits = "0x1f00ffff"
 #区块包含最多交易数
 maxTxNumber = 1600
 
+[mver.consensus.ForkChainParamV1]
+maxTxNumber = 1500
+
+
+[mver.consensus.ForkChainParamV2]
+powLimitBits = "0x1f2fffff"
+
+[mver.consensus.ForkTicketFundAddrV1]
+fundKeyAddr = "1Ji3W12KGScCM7C2p8bg635sNkayDM8MGY"
 
 [mver.consensus.ticket]
 #用户回报
@@ -167,20 +176,15 @@ targetTimespan = 2304
 #每个区块打包的目标时间
 targetTimePerBlock = 16
 
-[mver.consensus.ForkChainParamV1]
+[mver.consensus.ticket.ForkChainParamV1]
 futureBlockTime = 15
 ticketFrozenTime = 43200
 ticketWithdrawTime = 172800
 ticketMinerWaitTime = 7200
-maxTxNumber = 1500
 targetTimespan = 2160
 targetTimePerBlock = 15
 
-[mver.consensus.ForkChainParamV2]
-powLimitBits = "0x1f2fffff"
 
-[mver.consensus.ForkTicketFundAddrV1]
-fundKeyAddr = "1Ji3W12KGScCM7C2p8bg635sNkayDM8MGY"
 
 [consensus.sub.solo]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
