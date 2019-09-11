@@ -39,6 +39,12 @@ func (chain *BlockChain) UpgradeStore() {
 		}
 	}
 	if chain.needReExec(meta) {
+		//如果没有开始重建index，那么先del all keys
+		if !meta.Starting && chain.cfg.EnableReExecLocal {
+			chainlog.Info("begin del all keys")
+			chain.blockStore.delAllKeys()
+			chainlog.Info("end del all keys")
+		}
 		start := meta.Height
 		//reExecBlock 的过程中，会每个高度都去更新meta
 		chain.ReExecBlock(start, curheight)
