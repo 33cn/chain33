@@ -129,6 +129,7 @@ func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.
 		return nil, err
 	}
 	//to地址的问题,如果是主链交易，to地址就是直接是设置to
+	types := c.GetConfig()
 	if !types.IsPara() {
 		tx.To = create.To
 	}
@@ -142,6 +143,7 @@ func (c *CoinsType) GetAssets(tx *types.Transaction) ([]*types.Asset, error) {
 		return nil, err
 	}
 	if assets[0].Symbol == "" {
+		types := c.GetConfig()
 		assets[0].Symbol = types.GetCoinSymbol()
 	}
 	if assets[0].Symbol == "bty" {

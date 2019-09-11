@@ -9,12 +9,12 @@ import (
 	log "github.com/33cn/chain33/common/log/log15"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
+	typ "github.com/33cn/chain33/system/dapp/manage/types"
 )
 
 var (
 	clog       = log.New("module", "execs.manage")
 	driverName = "manage"
-	conf       = types.ConfSub(driverName)
 )
 
 func init() {
@@ -23,8 +23,9 @@ func init() {
 }
 
 // Init resister a dirver
-func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newManage, types.GetDappFork(driverName, "Enable"))
+func Init(name string, types *types.Chain33Config, sub []byte) {
+	typ.InitTypes(types)
+	drivers.Register(types, GetName(), newManage, types.GetDappFork(driverName, "Enable"))
 }
 
 // GetName return manage name
@@ -55,7 +56,8 @@ func (c *Manage) CheckTx(tx *types.Transaction, index int) error {
 }
 
 // IsSuperManager is supper manager or not
-func IsSuperManager(addr string) bool {
+func IsSuperManager(cfg *types.Chain33Config, addr string) bool {
+	conf := types.ConfSub(driverName, cfg)
 	for _, m := range conf.GStrList("superManager") {
 		if addr == m {
 			return true

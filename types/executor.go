@@ -86,7 +86,7 @@ func LoadExecutorType(execstr string) ExecutorType {
 }
 
 // CallExecNewTx 重构完成后删除
-func (c *Chain33Config) CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
+func CallExecNewTx(c *Chain33Config, execName, action string, param interface{}) ([]byte, error) {
 	exec := LoadExecutorType(execName)
 	if exec == nil {
 		tlog.Error("callExecNewTx", "Error", "exec not found")
@@ -107,7 +107,7 @@ func (c *Chain33Config) CallExecNewTx(execName, action string, param interface{}
 		tlog.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-	return c.FormatTxEncode(execName, tx)
+	return FormatTxEncode(c, execName, tx)
 }
 
 //CallCreateTransaction 创建一个交易
@@ -126,23 +126,23 @@ func CallCreateTransaction(execName, action string, param Message) (*Transaction
 }
 
 // CallCreateTx 构造交易信息
-func (c *Chain33Config) CallCreateTx(execName, action string, param Message) ([]byte, error) {
+func CallCreateTx(c *Chain33Config, execName, action string, param Message) ([]byte, error) {
 	tx, err := CallCreateTransaction(execName, action, param)
 	if err != nil {
 		return nil, err
 	}
-	return c.FormatTxEncode(execName, tx)
+	return FormatTxEncode(c, execName, tx)
 }
 
 //CallCreateTxJSON create tx by json
-func (c *Chain33Config) CallCreateTxJSON(execName, action string, param json.RawMessage) ([]byte, error) {
+func CallCreateTxJSON(c *Chain33Config, execName, action string, param json.RawMessage) ([]byte, error) {
 	exec := LoadExecutorType(execName)
 	if exec == nil {
 		execer := GetParaExecName([]byte(execName))
 		//找不到执行器，并且是user.xxx 的情况下
 		if bytes.HasPrefix(execer, UserKey) {
 			tx := &Transaction{Payload: param}
-			return c.FormatTxEncode(execName, tx)
+			return FormatTxEncode(c, execName, tx)
 		}
 		tlog.Error("CallCreateTxJSON", "Error", "exec not found")
 		return nil, ErrExecNotFound
@@ -157,18 +157,18 @@ func (c *Chain33Config) CallCreateTxJSON(execName, action string, param json.Raw
 		tlog.Error("CallCreateTxJSON", "Error", err)
 		return nil, err
 	}
-	return c.FormatTxEncode(execName, tx)
+	return FormatTxEncode(c, execName, tx)
 }
 
 // CreateFormatTx 构造交易信息
-func (c *Chain33Config) CreateFormatTx(execName string, payload []byte) (*Transaction, error) {
+func CreateFormatTx(c *Chain33Config, execName string, payload []byte) (*Transaction, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
 	tx := &Transaction{Payload: payload}
-	return c.FormatTx(execName, tx)
+	return FormatTx(c, execName, tx)
 }
 
 // FormatTx 格式化tx交易
-func (c *Chain33Config) FormatTx(execName string, tx *Transaction) (*Transaction, error) {
+func FormatTx(c *Chain33Config, execName string, tx *Transaction) (*Transaction, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
 	tx.Nonce = rand.Int63()
 	tx.Execer = []byte(execName)
@@ -187,8 +187,8 @@ func (c *Chain33Config) FormatTx(execName string, tx *Transaction) (*Transaction
 }
 
 // FormatTxEncode 对交易信息编码成byte类型
-func (c *Chain33Config) FormatTxEncode(execName string, tx *Transaction) ([]byte, error) {
-	tx, err := c.FormatTx(execName, tx)
+func FormatTxEncode(c *Chain33Config, execName string, tx *Transaction) ([]byte, error) {
+	tx, err := FormatTx(c, execName, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -793,4 +793,8 @@ func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
 	}
 	asset.Amount = amount
 	return []*Asset{asset}, nil
+}
+
+func (base *ExecTypeBase) GetConfig() *Chain33Config {
+	return base.cfg
 }

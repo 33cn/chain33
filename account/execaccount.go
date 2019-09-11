@@ -224,12 +224,12 @@ func (acc *DB) ExecAddress(name string) string {
 }
 
 // ExecDepositFrozen 执行增发coins到具体的地址，并冻结
-func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) ExecDepositFrozen(cfg types.Chain33Config, addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
 	//issue coins to exec addr
-	receipt1, err := acc.ExecIssueCoins(execaddr, amount)
+	receipt1, err := acc.ExecIssueCoins(cfg, execaddr, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -241,12 +241,12 @@ func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 }
 
 // ExecIssueCoins 增发coins到具体的挖矿合约
-func (acc *DB) ExecIssueCoins(execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) ExecIssueCoins(cfg types.Chain33Config, execaddr string, amount int64) (*types.Receipt, error) {
 
 	//这个函数只有挖矿的合约才能调用
 	allow := false
-	for _, exec := range types.GetMinerExecs() {
-		if acc.ExecAddress(types.ExecName(exec)) == execaddr {
+	for _, exec := range cfg.GetMinerExecs() {
+		if acc.ExecAddress(cfg.ExecName(exec)) == execaddr {
 			allow = true
 			break
 		}
