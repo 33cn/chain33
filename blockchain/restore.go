@@ -123,4 +123,3 @@ func (chain *BlockChain) upgradeMeta(height int64) error {
 	}
 	return chain.blockStore.SetStoreUpgradeMeta(meta)
 }
-
