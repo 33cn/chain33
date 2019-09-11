@@ -56,9 +56,9 @@ func (n *Node) processRecvP2P(data *types.BroadCastData, pid string, pubPeerFunc
 	}
 	handled = true
 	if tx := data.GetTx(); tx != nil {
-		n.recvTx(tx, pid)
+		n.recvTx(tx, pid, peerAddr)
 	} else if ltTx := data.GetLtTx(); ltTx != nil {
-		n.recvLtTx(ltTx, pid, pubPeerFunc)
+		n.recvLtTx(ltTx, pid, peerAddr, pubPeerFunc)
 	} else if ltBlc := data.GetLtBlock(); ltBlc != nil {
 		n.recvLtBlock(ltBlc, pid, peerAddr, pubPeerFunc)
 	} else if blc := data.GetBlock(); blc != nil {
@@ -80,11 +80,11 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送
 	ignoreSend := n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
+	log.Debug("P2PSendBlock", "blockHash", blockHash, "peerIsLtVersion", peerVersion >= lightBroadCastVersion,
+		"peerAddr", peerAddr, "ignoreSend", ignoreSend)
 	if ignoreSend {
 		return false
 	}
-	log.Debug("P2PSendBlock", "blockHash", blockHash, "peerIsLtVersion", peerVersion >= lightBroadCastVersion,
-		"peerAddr", peerAddr, "ignoreSend", ignoreSend)
 
 	if peerVersion >= lightBroadCastVersion {
 
@@ -133,13 +133,13 @@ func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion
 	ttl := tx.GetRoute().GetTTL()
 	//检测冗余发送
 	ignoreSend := n.addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
-	if ignoreSend {
-		return false
-	}
 	isLightSend := peerVersion >= lightBroadCastVersion && ttl >= n.nodeInfo.cfg.LightTxTTL
 	log.Debug("P2PSendTx", "txHash", txHash, "ttl", ttl, "isLightSend", isLightSend,
 		"peerAddr", peerAddr, "ignoreSend", ignoreSend)
 
+	if ignoreSend {
+		return false
+	}
 	//超过最大的ttl, 不再发送
 	if ttl > n.nodeInfo.cfg.MaxTTL {
 		return false
@@ -159,7 +159,7 @@ func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion
 	return true
 }
 
-func (n *Node) recvTx(tx *types.P2PTx, pid string) {
+func (n *Node) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 	if tx.GetTx() == nil {
 		return
 	}
@@ -168,7 +168,7 @@ func (n *Node) recvTx(tx *types.P2PTx, pid string) {
 	n.addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
 	//重复接收
 	isDuplicate := n.checkAndRegFilterAtomic(txHashFilter, txHash)
-	log.Debug("recvTx", "tx", txHash, "ttl", tx.GetRoute().GetTTL(), "duplicateTx", isDuplicate)
+	log.Debug("recvTx", "tx", txHash, "ttl", tx.GetRoute().GetTTL(), "peerAddr", peerAddr, "duplicateTx", isDuplicate)
 	if isDuplicate {
 		return
 	}
@@ -182,13 +182,13 @@ func (n *Node) recvTx(tx *types.P2PTx, pid string) {
 
 }
 
-func (n *Node) recvLtTx(tx *types.LightTx, pid string, pubPeerFunc pubFuncType) {
+func (n *Node) recvLtTx(tx *types.LightTx, pid, peerAddr string, pubPeerFunc pubFuncType) {
 
 	txHash := hex.EncodeToString(tx.TxHash)
 	//将节点id添加到发送过滤, 避免冗余发送
 	n.addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
 	exist := txHashFilter.QueryRecvData(txHash)
-	log.Debug("recvLtTx", "peerID", pid, "txHash", txHash, "ttl", tx.GetRoute().GetTTL(), "exist", exist)
+	log.Debug("recvLtTx", "txHash", txHash, "ttl", tx.GetRoute().GetTTL(), "peerAddr", peerAddr, "exist", exist)
 	//本地不存在, 需要向对端节点发起完整交易请求. 如果存在则表示本地已经接收过此交易, 不做任何操作
 	if !exist {
 
