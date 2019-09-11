@@ -215,6 +215,7 @@ mock:
 	@cd common/db && mockery -name=KV && mv mocks/KV.go mocks/kv.go && cd -
 	@cd common/db && mockery -name=KVDB && mv mocks/KVDB.go mocks/kvdb.go && cd -
 	@cd types/ && mockery -name=Chain33Client && mv mocks/Chain33Client.go mocks/chain33client.go && cd -
+	@cd wallet/common && mockery -name=MineStatusReport && mv mocks/MineStatusReport.go mocks/mineStatusReport.go && cd -
 	@cd wallet/common && mockery -name=WalletOperate && mv mocks/WalletOperate.go mocks/walletOperate.go && cd -
 
 
