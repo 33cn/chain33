@@ -65,7 +65,7 @@ func MakeStringToLower(in string, pos, count int) (out string, err error) {
 		return
 	}
 	tmp := []rune(in)
-	for n := pos; n < pos+count; n++ {
+for n := pos; n < pos+count; n++ {
 		tmp[n] = unicode.ToLower(tmp[n])
 	}
 	out = string(tmp)
