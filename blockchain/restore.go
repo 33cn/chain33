@@ -107,10 +107,13 @@ func (chain *BlockChain) needReExec(meta *types.UpgradeMeta) bool {
 	}
 	v1 := meta.Version
 	v2 := version.GetStoreDBVersion()
-	v1arr := strings.Split(v1, ".")
-	v2arr := strings.Split(v2, ".")
+	v1arr := strings.Split(v1, ".") // 数据库中版本
+	v2arr := strings.Split(v2, ".") // 程序中的版本
 	if len(v1arr) != 3 || len(v2arr) != 3 {
 		panic("upgrade store meta version error")
+	}
+	if v2arr[0] != "2" {
+		panic("not support upgrade storedbVersion is not 2.0.0")
 	}
 	return v1arr[0] != v2arr[0]
 }
@@ -123,4 +126,3 @@ func (chain *BlockChain) upgradeMeta(height int64) error {
 	}
 	return chain.blockStore.SetStoreUpgradeMeta(meta)
 }
-
