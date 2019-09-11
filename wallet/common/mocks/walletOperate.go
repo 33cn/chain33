@@ -4,6 +4,7 @@ package mocks
 
 import (
 	client "github.com/33cn/chain33/client"
+	common "github.com/33cn/chain33/wallet/common"
 
 	crypto "github.com/33cn/chain33/common/crypto"
 
@@ -382,11 +383,11 @@ func (_m *WalletOperate) Nonce() int64 {
 }
 
 // RegisterMineStatusReporter provides a mock function with given fields: reporter
-func (_m *WalletOperate) RegisterMineStatusReporter(reporter MineStatusReport) error {
+func (_m *WalletOperate) RegisterMineStatusReporter(reporter common.MineStatusReport) error {
 	ret := _m.Called(reporter)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(MineStatusReport) error); ok {
+	if rf, ok := ret.Get(0).(func(common.MineStatusReport) error); ok {
 		r0 = rf(reporter)
 	} else {
 		r0 = ret.Error(0)
