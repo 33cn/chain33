@@ -15,7 +15,7 @@ import (
 func TestNeedReExec(t *testing.T) {
 	defer func() {
 		r := recover()
-		assert.Equal(t, r, "not support upgrade storedbVersion is not 2.0.0")
+		assert.Equal(t, r, "not support upgrade store to greater than 2.0.0")
 	}()
 	chain := &BlockChain{}
 	testcase := []*types.UpgradeMeta{

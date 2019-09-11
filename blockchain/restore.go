@@ -112,8 +112,8 @@ func (chain *BlockChain) needReExec(meta *types.UpgradeMeta) bool {
 	if len(v1arr) != 3 || len(v2arr) != 3 {
 		panic("upgrade store meta version error")
 	}
-	if v2arr[0] != "2" {
-		panic("not support upgrade storedbVersion is not 2.0.0")
+	if v2arr[0] > "2" {
+		panic("not support upgrade store to greater than 2.0.0")
 	}
 	return v1arr[0] != v2arr[0]
 }
@@ -126,3 +126,4 @@ func (chain *BlockChain) upgradeMeta(height int64) error {
 	}
 	return chain.blockStore.SetStoreUpgradeMeta(meta)
 }
+
