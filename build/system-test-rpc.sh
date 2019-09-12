@@ -261,22 +261,30 @@ chain33_GetTimeStatus() {
 }
 
 chain33_GetLastBlockSequence() {
-    r1=$(curl -ksd '{"method":"Chain33.GetLastBlockSequence","params":[]}' ${MAIN_HTTP} | jq -r ".result")
-    [ "$r1" -ge 0 ]
-    echo_rst "$FUNCNAME" "$?"
+    if [ "$IS_PARA" == true ]; then
+        echo_rst "$FUNCNAME" 2
+    else
+        r1=$(curl -ksd '{"method":"Chain33.GetLastBlockSequence","params":[]}' ${MAIN_HTTP} | jq -r ".result")
+        [ "$r1" -ge 0 ]
+        echo_rst "$FUNCNAME" "$?"
+    fi
 }
 
 chain33_GetBlockSequences() {
-    r1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq ".result.blkseqInfos|length==3")
-    [ "$r1" == true ]
-    echo_rst "$FUNCNAME" "$?"
+    if [ "$IS_PARA" == true ]; then
+        echo_rst "$FUNCNAME" 2
+    else
+        r1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq ".result.blkseqInfos|length==3")
+        [ "$r1" == true ]
+        echo_rst "$FUNCNAME" "$?"
+    fi
 }
 
 chain33_GetBlockByHashes() {
     if [ "$IS_PARA" == true ]; then
         geneis="0x97162f9d4a888121fdba2fb1ab402596acdbcb602121bd12284adb739d85f225"
-        statehash=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$geneis"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.stateHash")
-        [ "$statehash" == "0x2863c8dbc7fe3146c8d4e7acf2b8bbe4666264d658356e299e240f462a382a51" ]
+        statehash=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$geneis"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.parentHash")
+        [ "$statehash" == "0x0000000000000000000000000000000000000000000000000000000000000000" ]
         echo_rst "$FUNCNAME" "$?"
     else
         hash0=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[0].hash")
