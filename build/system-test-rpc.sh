@@ -349,7 +349,7 @@ chain33_GetSeqCallBackLastNum() {
 chain33_GetCoinSymbol() {
     symbol="bty"
     if [ "$IS_PARA" == true ]; then
-        symbol="paracoin"
+        symbol="para"
     fi
     r1=$(curl -ksd '{"method":"Chain33.GetCoinSymbol","params":[]}' ${MAIN_HTTP} | jq -r ".result.data")
     [ "$r1" == "$symbol" ]
