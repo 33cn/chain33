@@ -104,6 +104,15 @@ func (chain *BlockChain) ProcRecvMsg() {
 		//通过平行链title获取平行链的交易
 		case types.EventGetParaTxByTitle:
 			go chain.processMsg(msg, reqnum, chain.getParaTxByTitle)
+
+			//获取拥有此title交易的区块高度
+		case types.EventGetHeightByTitle:
+			go chain.processMsg(msg, reqnum, chain.getHeightByTitle)
+
+			//通过区块高度列表+title获取平行链交易
+		case types.EventGetParaTxByTitleAndHeight:
+			go chain.processMsg(msg, reqnum, chain.getParaTxByTitleAndHeight)
+
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -604,6 +613,30 @@ func (chain *BlockChain) getParaTxByTitle(msg *queue.Message) {
 	reply, err := chain.GetParaTxByTitle(req)
 	if err != nil {
 		chainlog.Error("getParaTxByTitle", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
+}
+
+//getHeightByTitle //获取拥有此title交易的区块高度
+func (chain *BlockChain) getHeightByTitle(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqHeightByTitle)
+	reply, err := chain.LoadParaTxByTitle(req)
+	if err != nil {
+		chainlog.Error("getHeightByTitle", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventReplyHeightByTitle, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventReplyHeightByTitle, reply))
+}
+
+//getParaTxByTitleAndHeight //通过区块高度列表+title获取平行链交易
+func (chain *BlockChain) getParaTxByTitleAndHeight(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqParaTxByHeight)
+	reply, err := chain.GetParaTxByHeight(req)
+	if err != nil {
+		chainlog.Error("getParaTxByTitleAndHeight", "req", req, "err", err.Error())
 		msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, err))
 		return
 	}

@@ -185,6 +185,24 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 					}
 				}
 
+			case types.EventGetHeightByTitle:
+				if req, ok := msg.GetData().(*types.ReqHeightByTitle); ok {
+					// just for cover
+					if req.Title == "user" {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyHeightByTitle, &types.Reply{IsOk: false, Msg: []byte("not support")}))
+					} else {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyHeightByTitle, &types.HeightParas{}))
+					}
+				}
+			case types.EventGetParaTxByTitleAndHeight:
+				if req, ok := msg.GetData().(*types.ReqParaTxByHeight); ok {
+					// just for cover
+					if req.Title == "user" {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.Reply{IsOk: false, Msg: []byte("not support")}))
+					} else {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.ParaTxDetails{}))
+					}
+				}
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}

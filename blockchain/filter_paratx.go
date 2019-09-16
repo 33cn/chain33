@@ -68,7 +68,7 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 		}
 		paraTxs.Items = append(paraTxs.Items, paraTx)
 	}
-	return &paraTxs, err
+	return &paraTxs, nil
 }
 
 //checkInputParam 入参检测，主要检测req的end的值以及title是否合法
@@ -92,4 +92,81 @@ func (chain *BlockChain) checkInputParam(req *types.ReqParaTxByTitle) error {
 		return types.ErrInvalidParam
 	}
 	return nil
+}
+
+//GetParaTxByTitle 通过seq以及title获取对应平行连的交易
+func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
+	filterlog.Error("GetParaTxByHeight", "req", req)
+	//入参数校验
+	if req == nil {
+		return nil, types.ErrInvalidParam
+	}
+	count := len(req.Items)
+	if int64(count) > types.MaxBlockCountPerTime {
+		return nil, types.ErrInvalidParam
+	}
+	lastheight := chain.GetBlockHeight()
+	if req.Items[0] < 0 || req.Items[count-1] > lastheight {
+		return nil, types.ErrInvalidParam
+	}
+	if !strings.HasPrefix(req.Title, types.ParaKeyX) {
+		return nil, types.ErrInvalidParam
+	}
+	var paraTxs types.ParaTxDetails
+	for _, height := range req.Items {
+		var paraTx *types.ParaTxDetail
+
+		block, err := chain.GetBlock(height)
+		if err != nil {
+			filterlog.Error("GetParaTxByHeight:GetBlock", "height", height, "err", err)
+			paraTx = nil
+		} else {
+			paraTx = block.FilterParaTxsByTitle(req.Title)
+			paraTx.Type = types.AddBlock
+		}
+		paraTxs.Items = append(paraTxs.Items, paraTx)
+	}
+	return &paraTxs, nil
+}
+
+//LoadParaTxByHeight 通过height索引获取本高度上的平行链title前后翻页
+func (chain *BlockChain) LoadParaTxByHeight(height int64, title string, count, direction int32) (*types.HeightParas, error) {
+	//入参合法性检测
+	curHeight := chain.GetBlockHeight()
+	if height > curHeight || height < 0 {
+		return nil, types.ErrInvalidParam
+	}
+
+	var primaryKey []byte
+	if len(title) == 0 {
+		primaryKey = nil
+	} else if !strings.HasPrefix(title, types.ParaKeyX) {
+		return nil, types.ErrInvalidParam
+	} else {
+		primaryKey = calcHeightTitleKey(height, title)
+	}
+	return getParaTxByIndex(chain.blockStore.db, "height", calcHeightParaKey(height), primaryKey, count, direction)
+}
+
+//LoadParaTxByTitle 通过title索引获取本平行链交易所在的区块高度信息前后翻页
+func (chain *BlockChain) LoadParaTxByTitle(req *types.ReqHeightByTitle) (*types.HeightParas, error) {
+	var primaryKey []byte
+
+	//入参合法性检测
+	if req == nil || int64(req.Count) > types.MaxBlockCountPerTime {
+		return nil, types.ErrInvalidParam
+	}
+	if req.GetDirection() != 0 && req.GetDirection() != 1 {
+		return nil, types.ErrInvalidParam
+	}
+	curHeight := chain.GetBlockHeight()
+	if req.Height > curHeight || len(req.Title) == 0 || !strings.HasPrefix(req.Title, types.ParaKeyX) {
+		return nil, types.ErrInvalidParam
+	}
+	if req.Height != -1 {
+		primaryKey = calcHeightTitleKey(req.Height, req.Title)
+	} else {
+		primaryKey = nil
+	}
+	return getParaTxByIndex(chain.blockStore.db, "title", []byte(req.Title), primaryKey, req.Count, req.Direction)
 }

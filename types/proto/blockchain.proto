@@ -164,11 +164,17 @@ message ReplyBlockHeight {
 //区块体信息
 // 	 txs : 区块上所有交易列表
 //	 receipts :区块上所有交易的收据信息列表
+// 	 mainHash : 主链区块hash，平行链使用
+//	 mainHeight :主链区块高度，平行链使用
+// 	 hash : 本链区块hash
+//	 height :本链区块高度
 message BlockBody {
     repeated Transaction txs        = 1;
     repeated ReceiptData receipts   = 2;
     bytes                mainHash   = 3;
     int64                mainHeight = 4;
+    bytes                hash       = 5;
+    int64                height     = 6;
 }
 //  区块追赶主链状态，用于判断本节点区块是否已经同步好
 message IsCaughtUp {
@@ -255,4 +261,29 @@ message FileHeader {
 message EndBlock {
     int64 height = 1;
     bytes hash   = 2;
+}
+
+//记录该区块上的平行链交易
+message HeightPara {
+    int64 height = 1;
+    string title  = 2;
+    bytes  hash   = 3;
+}
+
+message HeightParas {
+    repeated HeightPara items = 1;
+}
+
+//通过指定title以及height翻页获取拥有此title交易的区块高度列表
+message ReqHeightByTitle {
+    int64  height    = 1;
+    string title     = 2;
+    int32  count     = 3;
+    int32  direction = 4;
+}
+
+//通过高度列表和title获取平行链交易
+message ReqParaTxByHeight {
+    repeated int64 items = 1;
+    string   title       = 2;
 }

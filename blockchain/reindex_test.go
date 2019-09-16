@@ -17,6 +17,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	//区块0产生的kv对数量
+	kvCount = 23
+)
+
 func TestReindex(t *testing.T) {
 	cfg, sub := testnode.GetDefaultConfig()
 	mock33 := testnode.NewWithConfig(cfg, sub, nil)
@@ -24,7 +29,7 @@ func TestReindex(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), 22)
+	assert.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 	txs := util.GenCoinsTxs(mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {

@@ -401,3 +401,13 @@ func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
 func (g *Grpc) GetParaTxByTitle(ctx context.Context, in *pb.ReqParaTxByTitle) (*pb.ParaTxDetails, error) {
 	return g.cli.GetParaTxByTitle(in)
 }
+
+// LoadParaTxByTitle //获取拥有此title交易的区块高度
+func (g *Grpc) LoadParaTxByTitle(ctx context.Context, in *pb.ReqHeightByTitle) (*pb.HeightParas, error) {
+	return g.cli.LoadParaTxByTitle(in)
+}
+
+// GetParaTxByHeight //通过区块高度列表+title获取平行链交易
+func (g *Grpc) GetParaTxByHeight(ctx context.Context, in *pb.ReqParaTxByHeight) (*pb.ParaTxDetails, error) {
+	return g.cli.GetParaTxByHeight(in)
+}

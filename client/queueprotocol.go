@@ -1296,3 +1296,41 @@ func (q *QueueProtocol) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.
 	}
 	return nil, types.ErrTypeAsset
 }
+
+//LoadParaTxByTitle //获取拥有此title交易的区块高度
+func (q *QueueProtocol) LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.HeightParas, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("LoadParaTxByTitle", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(blockchainKey, types.EventGetHeightByTitle, param)
+	if err != nil {
+		log.Error("LoadParaTxByTitle", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.HeightParas); ok {
+
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+//GetParaTxByHeight //通过区块高度列表+title获取平行链交易
+func (q *QueueProtocol) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetParaTxByHeight", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(blockchainKey, types.EventGetParaTxByTitleAndHeight, param)
+	if err != nil {
+		log.Error("GetParaTxByHeight", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ParaTxDetails); ok {
+
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}

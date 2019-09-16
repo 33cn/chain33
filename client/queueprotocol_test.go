@@ -1325,3 +1325,44 @@ func TestGetParaTxByTitle(t *testing.T) {
 	assert.NotNil(t, err)
 
 }
+
+func testLoadParaTxByTitleGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.HeightParas
+	var req types.ReqHeightByTitle
+	req.Count = 1
+	req.Direction = 0
+	req.Title = "user"
+	req.Height = 0
+
+	err := rpc.newRPCCtx("LoadParaTxByTitle", &req, &res)
+	assert.NotNil(t, err)
+
+	req.Title = "user.p.para."
+	err = rpc.newRPCCtx("LoadParaTxByTitle", &req, &res)
+	assert.Nil(t, err)
+}
+
+func TestLoadParaTxByTitle(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.LoadParaTxByTitle(nil)
+	assert.NotNil(t, err)
+}
+
+func testGetParaTxByHeightGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ParaTxDetails
+	var req types.ReqParaTxByHeight
+	req.Items = append(req.Items, 0)
+	req.Title = "user"
+	err := rpc.newRPCCtx("GetParaTxByHeight", &req, &res)
+	assert.NotNil(t, err)
+
+	req.Title = "user.p.para."
+	err = rpc.newRPCCtx("GetParaTxByHeight", &req, &res)
+	assert.Nil(t, err)
+}
+
+func TestGetParaTxByHeight(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.GetParaTxByHeight(nil)
+	assert.NotNil(t, err)
+}

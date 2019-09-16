@@ -160,4 +160,8 @@ type QueueProtocolAPI interface {
 	GetSeqCallBackLastNum(param *types.ReqString) (*types.Int64, error)
 	// types.EventGetParaTxByTitle
 	GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.ParaTxDetails, error)
+	// types.EventGetHeightByTitle
+	LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.HeightParas, error)
+	// types.EventGetParaTxByTitleAndHeight
+	GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error)
 }
