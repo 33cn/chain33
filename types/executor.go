@@ -633,7 +633,7 @@ func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg inte
 
 //AssertCreate 构造assets资产交易
 func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
-	if c.ExecName != "" && !base.cfg.IsAllowExecName([]byte(c.ExecName), []byte(c.ExecName)) {
+	if c.ExecName != "" && !IsAllowExecName([]byte(c.ExecName), []byte(c.ExecName)) {
 		tlog.Error("CreateTx", "Error", ErrExecNameNotMatch)
 		return nil, ErrExecNameNotMatch
 	}

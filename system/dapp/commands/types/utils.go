@@ -121,7 +121,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	} else {
 		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: address.ExecAddress(string(execer))}
 	}
-	tx, err := types.FormatTx(string(execer), tx)
+	tx, err := types.FormatTx(types.CliSysParam, string(execer), tx)
 	if err != nil {
 		return "", err
 	}

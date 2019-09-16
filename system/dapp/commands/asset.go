@@ -131,7 +131,7 @@ func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
 	}
 
 	params := &rpcTypes.CreateTxIn{
-		Execer:     types.ExecName(fromExec),
+		Execer:     types.CliSysParam.ExecName(fromExec),
 		ActionName: "TransferToExec",
 		Payload:    types.MustPBToJSON(payload),
 	}
@@ -164,7 +164,7 @@ func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
 		ExecName:  exec,
 	}
 	params := &rpcTypes.CreateTxIn{
-		Execer:     types.ExecName(fromExec),
+		Execer:     types.CliSysParam.ExecName(fromExec),
 		ActionName: "Withdraw",
 		Payload:    types.MustPBToJSON(payload),
 	}
@@ -188,7 +188,7 @@ func CreateAssetTransfer(cmd *cobra.Command, args []string, fromExec string) {
 		Cointoken: symbol,
 	}
 	params := &rpcTypes.CreateTxIn{
-		Execer:     types.ExecName(fromExec),
+		Execer:     types.CliSysParam.ExecName(fromExec),
 		ActionName: "Transfer",
 		Payload:    types.MustPBToJSON(payload),
 	}

@@ -144,7 +144,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	}
 	//允许重写的情况
 	//看重写的名字 name, 是否被允许执行
-	if !cfg.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
+	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
 		return types.ErrExecNameNotAllow
 	}
 	return nil

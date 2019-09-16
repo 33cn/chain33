@@ -55,7 +55,7 @@ func (c *Chain33Config) ExecName(name string) string {
 
 //IsAllowExecName 默认的allow 规则->根据 GetRealExecName 来判断
 //name 必须大于3 小于 100
-func (c *Chain33Config) IsAllowExecName(name []byte, execer []byte) bool {
+func IsAllowExecName(name []byte, execer []byte) bool {
 	// name长度不能超过系统限制
 	if len(name) > address.MaxExecNameLength || len(execer) > address.MaxExecNameLength {
 		return false
@@ -73,8 +73,8 @@ func (c *Chain33Config) IsAllowExecName(name []byte, execer []byte) bool {
 	if bytes.HasPrefix(name, UserKey) {
 		return true
 	}
-	for i := range c.AllowUserExec {
-		if bytes.Equal(c.AllowUserExec[i], name) {
+	for i := range AllowUserExec {
+		if bytes.Equal(AllowUserExec[i], name) {
 			return true
 		}
 	}

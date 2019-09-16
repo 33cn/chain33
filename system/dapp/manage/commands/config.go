@@ -71,7 +71,7 @@ func configTx(cmd *cobra.Command, args []string) {
 	}
 	tx := &types.Transaction{Payload: types.Encode(modify)}
 	var err error
-	tx, err = types.FormatTx(util.GetParaExecName(paraName, "manage"), tx)
+	tx, err = types.FormatTx(types.CliSysParam, util.GetParaExecName(paraName, "manage"), tx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

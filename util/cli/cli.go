@@ -19,14 +19,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+
+
 var rootCmd = &cobra.Command{
-	Use:   types.GetTitle() + "-cli",
-	Short: types.GetTitle() + " client tools",
+	Use:   types.CliSysParam.GetTitle() + "-cli",
+	Short: types.CliSysParam.GetTitle() + " client tools",
 }
 
 var closeCmd = &cobra.Command{
 	Use:   "close",
-	Short: "Close " + types.GetTitle(),
+	Short: "Close " + types.CliSysParam.GetTitle(),
 	Run: func(cmd *cobra.Command, args []string) {
 		rpcLaddr, err := cmd.Flags().GetString("rpc_laddr")
 		if err != nil {
@@ -88,10 +90,10 @@ func Run(RPCAddr, ParaName string) {
 	RPCAddr = testTLS(RPCAddr)
 	pluginmgr.AddCmd(rootCmd)
 	log.SetLogLevel("error")
-	types.S("RPCAddr", RPCAddr)
-	types.S("ParaName", ParaName)
-	rootCmd.PersistentFlags().String("rpc_laddr", types.GStr("RPCAddr"), "http url")
-	rootCmd.PersistentFlags().String("paraName", types.GStr("ParaName"), "parachain")
+	types.CliSysParam.S("RPCAddr", RPCAddr)
+	types.CliSysParam.S("ParaName", ParaName)
+	rootCmd.PersistentFlags().String("rpc_laddr", types.CliSysParam.GStr("RPCAddr"), "http url")
+	rootCmd.PersistentFlags().String("paraName", types.CliSysParam.GStr("ParaName"), "parachain")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

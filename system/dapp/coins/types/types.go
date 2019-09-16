@@ -36,11 +36,11 @@ var (
 )
 
 func init() {
+	types.AllowUserExec = append(types.AllowUserExec, ExecerCoins)
 	types.RegistorExecutor("coins", NewType())
 }
 
 func InitTypes(types *types.Chain33Config) {
-	types.AllowUserExec = append(types.AllowUserExec, ExecerCoins)
 	types.RegisterDappFork(CoinsX, "Enable", 0)
 }
 

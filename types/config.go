@@ -13,15 +13,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/33cn/chain33/types/chaincfg"
 	tml "github.com/BurntSushi/toml"
 )
 
 //区块链共识相关的参数，重要参数不要随便修改
 var (
-	//AllowUserExec = [][]byte{ExecerNone}
+	AllowUserExec = [][]byte{ExecerNone}
 	//挖矿的合约名单，适配旧配置，默认ticket
 	//minerExecs  = []string{"ticket"}
-	EmptyValue  = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	EmptyValue = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 	//title       string
 	//mu          sync.Mutex
 	//titles      = map[string]bool{}
@@ -29,6 +30,8 @@ var (
 	//mver        = make(map[string]*mversion)
 	//coinSymbol  = "bty"
 )
+
+var CliSysParam = NewChain33Config("")
 
 // coin conversation
 const (
@@ -59,7 +62,6 @@ const (
 //}
 
 type Chain33Config struct {
-	AllowUserExec [][]byte
 	minerExecs    []string
 	title         string
 	mu            sync.Mutex
@@ -86,17 +88,37 @@ type ChainParam struct {
 }
 
 func NewChain33Config(cfgstring string) *Chain33Config {
-	cfg, _ := InitCfgString(cfgstring)
 	chain33Cfg := &Chain33Config{
-		AllowUserExec: [][]byte{ExecerNone},
-		minerExecs: []string{"ticket"},     //挖矿的合约名单，适配旧配置，默认ticket
-		coinSymbol: "bty",
-		forks: &Forks{},
+		minerExecs:    []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
+		coinSymbol:    "bty",
+		forks:         &Forks{},
 	}
-	chain33Cfg.setFlatConfig(cfgstring)
-	chain33Cfg.setMver(cfg.Title, cfgstring)
-	chain33Cfg.chainParamInit(cfg.Title, cfg)
+	chain33Cfg.setDefaultConfig()
+	if cfgstring != "" {
+		cfg, _ := InitCfgString(cfgstring)
+		chain33Cfg.setFlatConfig(cfgstring)
+		chain33Cfg.setMver(cfg.Title, cfgstring)
+		chain33Cfg.chainParamInit(cfg.Title, cfg)
+	}
 	return chain33Cfg
+}
+
+func (c *Chain33Config) setDefaultConfig() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.S("TestNet", false)
+	c.SetMinFee(1e5)
+	for key, cfg := range chaincfg.LoadAll() {
+		c.S("cfg."+key, cfg)
+	}
+	//防止报error 错误，不影响功能
+	if !c.HasConf("cfg.chain33") {
+		c.S("cfg.chain33", "")
+	}
+	if !c.HasConf("cfg.local") {
+		c.S("cfg.local", "")
+	}
+	c.S("TxHeight", false)
 }
 
 func (c *Chain33Config) setFlatConfig(cfgstring string) {
@@ -202,7 +224,7 @@ func (c *Chain33Config) setTestNet(isTestNet bool) {
 		c.setChainConfig("TestNet", false)
 		return
 	}
-	c. setChainConfig("TestNet", true)
+	c.setChainConfig("TestNet", true)
 	//const 初始化TestNet 的初始化参数
 }
 
@@ -385,7 +407,7 @@ func (c *Chain33Config) S(key string, value interface{}) {
 //SetTitleOnlyForTest set title only for test use
 func (c *Chain33Config) SetTitleOnlyForTest(ti string) {
 	c.mu.Lock()
-	defer  c.mu.Unlock()
+	defer c.mu.Unlock()
 	c.title = ti
 
 }
@@ -430,7 +452,6 @@ func (c *Chain33Config) setMinFee(fee int64) {
 	c.setChainConfig("MaxFee", fee*10000)
 	c.setChainConfig("MinBalanceTransfer", fee*10)
 }
-
 
 func (c *Chain33Config) isPara() bool {
 	return strings.Count(c.title, ".") == 3 && strings.HasPrefix(c.title, ParaKeyX)
@@ -720,7 +741,7 @@ func Conf(prefix string, cfg *Chain33Config) *ConfQuery {
 
 // ConfSub 子模块配置
 func ConfSub(name string, cfg *Chain33Config) *ConfQuery {
-	return Conf("config.exec.sub." + name, cfg)
+	return Conf("config.exec.sub."+name, cfg)
 }
 
 // G 获取指定key的配置信息

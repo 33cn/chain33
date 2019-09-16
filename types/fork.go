@@ -332,9 +332,9 @@ func (c *Chain33Config) initForkConfig(title string, forks *ForkList) {
 		c.forks.SetFork(title, k, v)
 	}
 	//重置allow exec 的权限，让他只限制在配置文件设置的
-	c.AllowUserExec = [][]byte{ExecerNone}
+	AllowUserExec = [][]byte{ExecerNone}
 	for dapp, forklist := range forks.Sub {
-		c.AllowUserExec = append(c.AllowUserExec, []byte(dapp))
+		AllowUserExec = append(AllowUserExec, []byte(dapp))
 		for k, v := range forklist {
 			if v == -1 {
 				v = MaxHeight
