@@ -152,4 +152,10 @@ service chain33 {
 
     //通过seq以及title获取对应平行连的交易
     rpc GetParaTxByTitle(ReqParaTxByTitle) returns (ParaTxDetails) {}
+    
+    //获取拥有此title交易的区块高度
+    rpc LoadParaTxByTitle(ReqHeightByTitle) returns (HeightParas) {}
+    
+    //通过区块高度列表+title获取平行链交易
+    rpc GetParaTxByHeight(ReqParaTxByHeight) returns (ParaTxDetails) {}
 }

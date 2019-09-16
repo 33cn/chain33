@@ -16,7 +16,8 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/33cn/chain33/common/log"
+
+	//	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
@@ -63,7 +64,7 @@ func addTxTxHeigt(priv crypto.PrivKey, api client.QueueProtocolAPI, height int64
 }
 
 func TestBlockChain(t *testing.T) {
-	log.SetLogLevel("crit")
+	//log.SetLogLevel("crit")
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	blockchain := mock33.GetBlockChain()
