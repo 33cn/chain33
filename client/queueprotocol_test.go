@@ -939,6 +939,8 @@ func TestGRPC(t *testing.T) {
 	testIsNtpClockSyncGRPC(t, &grpcMock)
 	testNetInfoGRPC(t, &grpcMock)
 	testGetParaTxByTitleGRPC(t, &grpcMock)
+	testLoadParaTxByTitleGRPC(t, &grpcMock)
+	testGetParaTxByHeightGRPC(t, &grpcMock)
 
 }
 

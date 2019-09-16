@@ -98,6 +98,7 @@ func saveBlockBodyTable(db dbm.DB, body *types.BlockBody) ([]*types.KeyValue, er
 	return kvs, nil
 }
 
+/*
 //delBlockBodyTable 删除block body
 func delBlockBodyTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyValue, error) {
 	kvdb := dbm.NewKVDB(db)
@@ -114,7 +115,7 @@ func delBlockBodyTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyValue,
 	}
 	return kvs, nil
 }
-
+*/
 //通过指定的index获取对应的blockbody
 //通过高度获取：height+hash；indexName="",prefix=nil,primaryKey=calcHeightHashKey
 //通过index获取：hash; indexName="hash",prefix=BodyRow.Get(indexName),primaryKey=nil
@@ -210,6 +211,7 @@ func saveHeaderTable(db dbm.DB, header *types.Header) ([]*types.KeyValue, error)
 	return kvs, nil
 }
 
+/*
 //delHeaderTable 删除block header
 func delHeaderTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyValue, error) {
 	kvdb := dbm.NewKVDB(db)
@@ -226,7 +228,7 @@ func delHeaderTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyValue, er
 	}
 	return kvs, nil
 }
-
+*/
 //通过指定的index获取对应的blockheader
 //通过高度获取：height+hash；indexName="",prefix=nil,primaryKey=calcHeightHashKey
 //通过index获取：hash; indexName="hash",prefix=HeaderRow.Get(indexName),primaryKey=nil
