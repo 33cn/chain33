@@ -1461,31 +1461,3 @@ func (bs *BlockStore) loadBlockBySequenceOld(Sequence int64) (*types.BlockDetail
 	}
 	return block, blockSeq.GetType(), nil
 }
-
-//test
-func (chain *BlockChain) GetParaTxByTitleTest() {
-	//从头开始获取第一次
-	storeLog.Error("GetParaTxByTitleTest:begin")
-	var req types.ReqHeightByTitle
-	req.Height = -1
-	req.Title = "user.p.magic."
-	req.Count = 100
-	req.Direction = 1
-	for {
-		paraTxs, err := chain.LoadParaTxByTitle(&req)
-		if err != nil {
-			storeLog.Error("GetParaTxByTitleTest:LoadParaTxByTitle", "err", err)
-			return
-		}
-		count := 0
-		for _, paratx := range paraTxs.Items {
-			req.Height = paratx.Height
-			count++
-			storeLog.Error("GetParaTxByTitleTest", "paratx", paratx)
-		}
-		if count < 100 {
-			storeLog.Error("GetParaTxByTitleTest:complet")
-			return
-		}
-	}
-}
