@@ -229,7 +229,11 @@ func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block, lastHeightSave b
 		heightbytes := types.Encode(&types.Int64{Data: block.Height})
 		newbatch.Set(calcLastTempBlockHeightKey(), heightbytes)
 	}
-	return newbatch.Write()
+	err = newbatch.Write()
+	if err != nil {
+		panic(err)
+	}
+	return nil
 }
 
 //GetLastTempBlockHeight 从数据库中获取快速下载的最新的block高度

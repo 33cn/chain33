@@ -940,7 +940,7 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	err = storeBatch.Write()
 	if err != nil {
 		chainlog.Error("dbMaybeStoreBlock storeBatch.Write:", "err", err)
-		return types.ErrDataBaseDamage
+		panic(err)
 	}
 	return nil
 }
