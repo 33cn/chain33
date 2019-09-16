@@ -475,7 +475,7 @@ func (bs *BlockStore) LoadBlockByHeight(height int64) (*types.BlockDetail, error
 	block, err := bs.loadBlockByIndex("", calcHeightHashKey(height, hash), nil)
 	if block == nil && err != nil {
 		return bs.loadBlockByHashOld(hash)
-}
+	}
 	return block, nil
 }
 

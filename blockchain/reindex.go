@@ -39,8 +39,8 @@ func (chain *BlockChain) UpgradeChain() {
 		}
 		start := meta.Height
 		if v1 == 1 {
-		//reindex 的过程中，会每个高度都去更新meta
-		chain.reIndex(start, curheight)
+			//reindex 的过程中，会每个高度都去更新meta
+			chain.reIndex(start, curheight)
 		} else if v1 == 2 {
 			//如果节点开启isRecordBlockSequence功能，需要按照seq来升级区块信息
 			var isSeq bool

@@ -265,7 +265,7 @@ message EndBlock {
 
 //记录该区块上的平行链交易
 message HeightPara {
-    int64 height = 1;
+    int64  height = 1;
     string title  = 2;
     bytes  hash   = 3;
 }
@@ -285,5 +285,5 @@ message ReqHeightByTitle {
 //通过高度列表和title获取平行链交易
 message ReqParaTxByHeight {
     repeated int64 items = 1;
-    string   title       = 2;
+    string         title = 2;
 }
