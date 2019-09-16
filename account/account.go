@@ -40,8 +40,8 @@ type DB struct {
 }
 
 // NewCoinsAccount 新建账户
-func NewCoinsAccount() *DB {
-	prefix := "mavl-coins-" + types.GetCoinSymbol() + "-"
+func NewCoinsAccount(coinSymbol string) *DB {
+	prefix := "mavl-coins-" + coinSymbol + "-"
 	return newAccountDB(prefix)
 }
 

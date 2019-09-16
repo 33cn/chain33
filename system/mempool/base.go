@@ -128,13 +128,14 @@ func (mem *Mempool) getTxList(filterList *types.TxHashList) (txs []*types.Transa
 func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool) (txs []*types.Transaction) {
 	height := mem.header.GetHeight()
 	blocktime := mem.header.GetBlockTime()
+	cfg := mem.client.GetConfig()
 	mem.cache.Walk(int(count), func(tx *Item) bool {
 		if dupMap != nil {
 			if _, ok := dupMap[string(tx.Value.Hash())]; ok {
 				return true
 			}
 		}
-		if isExpired(tx, height, blocktime) && !isAll {
+		if isExpired(cfg, tx, height, blocktime) && !isAll {
 			return true
 		}
 		txs = append(txs, tx.Value)
@@ -244,7 +245,7 @@ func (mem *Mempool) pollLastHeader() {
 func (mem *Mempool) removeExpired() {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	mem.cache.removeExpiredTx(mem.header.GetHeight(), mem.header.GetBlockTime())
+	mem.cache.removeExpiredTx(mem.client.GetConfig(), mem.header.GetHeight(), mem.header.GetBlockTime())
 }
 
 // removeBlockedTxs 每隔1分钟清理一次已打包的交易
@@ -297,7 +298,8 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 		}
 	}
 	//控制精度
-	minFee := types.GInt("MinFee")
+	cfg := mem.client.GetConfig()
+	minFee := cfg.GInt("MinFee")
 	if minFee != 0 && feeRate%minFee > 0 {
 		feeRate = (feeRate/minFee + 1) * minFee
 	}
@@ -308,7 +310,8 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 func (mem *Mempool) getLevelFeeRate(baseFeeRate int64, appendCount, appendSize int32) int64 {
 	var feeRate int64
 	sumByte := mem.cache.TotalByte() + int64(appendSize)
-	maxTxNumber := types.GetP(mem.Height()).MaxTxNumber
+	cfg := mem.client.GetConfig()
+	maxTxNumber := types.GetP(mem.Height(), cfg).MaxTxNumber
 	switch {
 	case sumByte >= int64(types.MaxBlockSize/20) || int64(mem.Size()+int(appendCount)) >= maxTxNumber/2:
 		feeRate = 100 * baseFeeRate
@@ -330,6 +333,7 @@ func (mem *Mempool) delBlock(block *types.Block) {
 	}
 	blkTxs := block.Txs
 	header := mem.GetHeader()
+	cfg := mem.client.GetConfig()
 	for i := 0; i < len(blkTxs); i++ {
 		tx := blkTxs[i]
 		//当前包括ticket和平行链的第一笔挖矿交易，统一actionName为miner
@@ -342,7 +346,7 @@ func (mem *Mempool) delBlock(block *types.Block) {
 			tx = group.Tx()
 			i = i + groupCount - 1
 		}
-		err := tx.Check(header.GetHeight(), mem.cfg.MinTxFee, mem.cfg.MaxTxFee)
+		err := tx.Check(cfg, header.GetHeight(), mem.cfg.MinTxFee, mem.cfg.MaxTxFee)
 		if err != nil {
 			continue
 		}

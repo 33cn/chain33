@@ -194,6 +194,7 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 	batch := bs.db.NewBatch(true)
 	var maxsize = 100 * 1024 * 1024
 	var count = 0
+	cfg := bs.client.GetConfig()
 	for i := int64(0); i <= height; i++ {
 		blockdetail, err := bs.LoadBlockByHeight(i)
 		if err != nil {
@@ -206,7 +207,7 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 				panic(err)
 			}
 			count += len(txresult)
-			batch.Set(types.CalcTxKey(hash), txresult)
+			batch.Set(cfg.CalcTxKey(hash), txresult)
 			batch.Set(types.CalcTxShortKey(hash), []byte("1"))
 		}
 		if count > maxsize {
@@ -353,7 +354,8 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 		}
 		return true, nil
 	}
-	if _, err := bs.db.Get(types.CalcTxKey(key)); err != nil {
+	cfg := bs.client.GetConfig()
+	if _, err := bs.db.Get(cfg.CalcTxKey(key)); err != nil {
 		if err == dbm.ErrNotFoundInDb {
 			return false, nil
 		}
@@ -401,7 +403,7 @@ func (bs *BlockStore) LastHeader() *types.Header {
 		blockheader.Signature = bs.lastBlock.Signature
 		blockheader.Difficulty = bs.lastBlock.Difficulty
 
-		blockheader.Hash = bs.lastBlock.Hash()
+		blockheader.Hash = bs.lastBlock.Hash(bs.client.GetConfig())
 		blockheader.TxCount = int64(len(bs.lastBlock.Txs))
 	}
 	return &blockheader
@@ -419,7 +421,7 @@ func (bs *BlockStore) UpdateLastBlock(hash []byte) {
 	if blockdetail != nil {
 		bs.lastBlock = blockdetail.Block
 	}
-	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", blockdetail.Block.Height, "LastHederhash", common.ToHex(blockdetail.Block.Hash()))
+	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", blockdetail.Block.Height, "LastHederhash", common.ToHex(blockdetail.Block.Hash(bs.client.GetConfig())))
 }
 
 //UpdateLastBlock2 更新LastBlock到缓存中
@@ -427,7 +429,7 @@ func (bs *BlockStore) UpdateLastBlock2(block *types.Block) {
 	bs.lastheaderlock.Lock()
 	defer bs.lastheaderlock.Unlock()
 	bs.lastBlock = block
-	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", block.Height, "LastHederhash", common.ToHex(block.Hash()))
+	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", block.Height, "LastHederhash", common.ToHex(block.Hash(bs.client.GetConfig())))
 }
 
 //LastBlock 获取最新的block信息
@@ -534,7 +536,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
 		storeLog.Error("SaveBlock Receipts is nil ", "height", height)
 	}
-	hash := blockdetail.Block.Hash()
+	hash := blockdetail.Block.Hash(bs.client.GetConfig())
 
 	// Save blockbody通过block hash
 	var blockbody types.BlockBody
@@ -603,7 +605,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDetail, sequence int64) (int64, error) {
 	var lastSequence int64 = -1
 	height := blockdetail.Block.Height
-	hash := blockdetail.Block.Hash()
+	hash := blockdetail.Block.Hash(bs.client.GetConfig())
 
 	//更新最新的block高度为前一个高度
 	bytes := types.Encode(&types.Int64{Data: height - 1})
@@ -635,7 +637,8 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 		err := errors.New("input hash is null")
 		return nil, err
 	}
-	rawBytes, err := bs.db.Get(types.CalcTxKey(hash))
+	cfg := bs.client.GetConfig()
+	rawBytes, err := bs.db.Get(cfg.CalcTxKey(hash))
 	if rawBytes == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
@@ -868,7 +871,7 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 		return types.ErrInvalidParam
 	}
 	height := blockdetail.Block.GetHeight()
-	hash := blockdetail.Block.Hash()
+	hash := blockdetail.Block.Hash(bs.client.GetConfig())
 	storeBatch := bs.NewBatch(sync)
 
 	// Save blockbody通过block hash
@@ -930,7 +933,7 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 		//chainlog.Error("dbMaybeStoreBlock Difficulty", "height", height, "self.td", difficulty.BigToCompact(blocktd))
 	}
 
-	err = bs.SaveTdByBlockHash(storeBatch, blockdetail.Block.Hash(), blocktd)
+	err = bs.SaveTdByBlockHash(storeBatch, blockdetail.Block.Hash(bs.client.GetConfig()), blocktd)
 	if err != nil {
 		chainlog.Error("dbMaybeStoreBlock SaveTdByBlockHash:", "height", height, "hash", common.ToHex(hash), "err", err)
 		return err

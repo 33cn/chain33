@@ -46,7 +46,7 @@ type P2p struct {
 func New(cfg *types.P2P) *P2p {
 
 	//主网的channel默认设为0, 测试网未配置时设为默认
-	if types.IsTestNet() && cfg.Channel == 0 {
+	if cfg.Cfg.IsTestNet() && cfg.Channel == 0 {
 		cfg.Channel = defaultTestNetChannel
 	}
 	//ttl至少设为2
@@ -57,7 +57,7 @@ func New(cfg *types.P2P) *P2p {
 		cfg.MaxTTL = DefaultMaxTxBroadCastTTL
 	}
 
-	log.Info("p2p", "Channel", cfg.Channel, "Version", VERSION, "IsTest", types.IsTestNet())
+	log.Info("p2p", "Channel", cfg.Channel, "Version", VERSION, "IsTest", cfg.Cfg.IsTestNet())
 	if cfg.InnerBounds == 0 {
 		cfg.InnerBounds = 500
 	}

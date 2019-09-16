@@ -33,7 +33,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	//	return nil, types.ErrNoPrivilege
 	//}
 
-	if !IsSuperManager(m.fromaddr) {
+	if !IsSuperManager(m.cfg, m.fromaddr) {
 		return nil, pty.ErrNoPrivilege
 	}
 	if len(modify.Key) == 0 {

@@ -43,6 +43,7 @@ func (chain *BlockChain) NeedRollback(curHeight, rollHeight int64) bool {
 
 // Rollback chain Rollback
 func (chain *BlockChain) Rollback() {
+	cfg := chain.client.GetConfig()
 	//获取当前的tip节点
 	tipnode := chain.bestChain.Tip()
 	startHeight := tipnode.height
@@ -64,18 +65,18 @@ func (chain *BlockChain) Rollback() {
 		sequence := int64(-1)
 		if chain.isParaChain {
 			// 获取平行链的seq
-			sequence, err = chain.ProcGetMainSeqByHash(blockdetail.Block.Hash())
+			sequence, err = chain.ProcGetMainSeqByHash(blockdetail.Block.Hash(cfg))
 			if err != nil {
-				chainlog.Error("chain rollback get main seq fail", "height: ", i, "err", err, "hash", common.ToHex(blockdetail.Block.Hash()))
+				chainlog.Error("chain rollback get main seq fail", "height: ", i, "err", err, "hash", common.ToHex(blockdetail.Block.Hash(cfg)))
 			}
 		}
 		err = chain.disBlock(blockdetail, sequence)
 		if err != nil {
-			panic(fmt.Sprintln("rollback block fail ", "height", blockdetail.Block.Height, "blockHash:", common.ToHex(blockdetail.Block.Hash())))
+			panic(fmt.Sprintln("rollback block fail ", "height", blockdetail.Block.Height, "blockHash:", common.ToHex(blockdetail.Block.Hash(cfg))))
 		}
 		// 删除storedb中的状态高度
 		chain.sendDelStore(blockdetail.Block.StateHash, blockdetail.Block.Height)
-		chainlog.Info("chain rollback ", "height: ", i, "blockheight", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "state hash", common.ToHex(blockdetail.Block.StateHash))
+		chainlog.Info("chain rollback ", "height: ", i, "blockheight", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash(cfg)), "state hash", common.ToHex(blockdetail.Block.StateHash))
 	}
 }
 

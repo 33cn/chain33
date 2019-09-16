@@ -129,7 +129,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		defCacheSize = cfg.DefCacheSize
 	}
 	blockchain := &BlockChain{
-		cache:              NewBlockCache(defCacheSize),
+		cache:              NewBlockCache(cfg.SysParam, defCacheSize),
 		DefCacheSize:       defCacheSize,
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
@@ -143,7 +143,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
-		orphanPool:          NewOrphanPool(),
+		orphanPool:          NewOrphanPool(cfg.SysParam),
 		index:               newBlockIndex(),
 		isCaughtUp:          false,
 		isbatchsync:         1,
@@ -331,6 +331,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 
 //SendBlockBroadcast blockchain模块广播此block到网络中
 func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
+	cfg := chain.client.GetConfig()
 	if chain.client == nil {
 		fmt.Println("chain client not bind message queue.")
 		return
@@ -339,12 +340,12 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 		chainlog.Error("SendBlockBroadcast block is null")
 		return
 	}
-	chainlog.Debug("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
+	chainlog.Debug("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)))
 
 	msg := chain.client.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
 	err := chain.client.Send(msg, false)
 	if err != nil {
-		chainlog.Error("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()), "err", err)
+		chainlog.Error("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)), "err", err)
 	}
 }
 
@@ -489,6 +490,7 @@ func (chain *BlockChain) UpdateRoutine() {
 
 //ProcFutureBlocks 循环遍历所有futureblocks，当futureblock的block生成time小于当前系统时间就将此block广播出去
 func (chain *BlockChain) ProcFutureBlocks() {
+	cfg := chain.client.GetConfig()
 	for _, hash := range chain.futureBlocks.Keys() {
 		if block, exist := chain.futureBlocks.Peek(hash); exist {
 			if block != nil {
@@ -497,7 +499,7 @@ func (chain *BlockChain) ProcFutureBlocks() {
 				if types.Now().Unix() > blockdetail.Block.BlockTime {
 					chain.SendBlockBroadcast(blockdetail)
 					chain.futureBlocks.Remove(hash)
-					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
+					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash(cfg)), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 				}
 			}
 		}

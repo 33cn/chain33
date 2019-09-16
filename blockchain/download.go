@@ -114,6 +114,7 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 	var waitCount ErrCountInfo
 	waitCount.Height = 0
 	waitCount.Count = 0
+	cfg := chain.client.GetConfig()
 	for {
 		curheight := chain.GetBlockHeight()
 		peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
@@ -164,15 +165,15 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 			if isNewStart && chain.downLoadTask.InProgress() {
 				Err := chain.downLoadTask.Cancel()
 				if Err != nil {
-					synlog.Error("ReadBlockToExec:downLoadTask.Cancel!", "height", block.Height, "hash", common.ToHex(block.Hash()), "isNewStart", isNewStart, "err", Err)
+					synlog.Error("ReadBlockToExec:downLoadTask.Cancel!", "height", block.Height, "hash", common.ToHex(block.Hash(cfg)), "isNewStart", isNewStart, "err", Err)
 				}
 				chain.DefaultDownLoadInfo()
 			}
 			chain.cancelFastDownLoadFlag(isNewStart)
-			synlog.Error("ReadBlockToExec:ProcessBlock:err!", "height", block.Height, "hash", common.ToHex(block.Hash()), "isNewStart", isNewStart, "err", err)
+			synlog.Error("ReadBlockToExec:ProcessBlock:err!", "height", block.Height, "hash", common.ToHex(block.Hash(cfg)), "isNewStart", isNewStart, "err", err)
 			break
 		}
-		synlog.Debug("ReadBlockToExec:ProcessBlock:success!", "height", block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()))
+		synlog.Debug("ReadBlockToExec:ProcessBlock:success!", "height", block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash(cfg)))
 	}
 }
 

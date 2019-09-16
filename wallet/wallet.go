@@ -90,7 +90,6 @@ func DisableLog() {
 // New 创建一个钱包对象
 func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	//walletStore
-	accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
 	walletStore := newStore(walletStoreDB)
@@ -261,6 +260,7 @@ func (wallet *Wallet) IsWalletLocked() bool {
 
 // SetQueueClient 初始化客户端消息队列
 func (wallet *Wallet) SetQueueClient(cli queue.Client) {
+	accountdb = account.NewCoinsAccount(cli.GetConfig().GetCoinSymbol())
 	var err error
 	wallet.client = cli
 	wallet.client.Sub("wallet")

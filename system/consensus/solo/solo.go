@@ -95,6 +95,7 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 //CreateBlock 创建区块
 func (client *Client) CreateBlock() {
 	issleep := true
+	cfg := client.GetAPI().GetConfig()
 	for {
 		if client.IsClosed() {
 			break
@@ -107,7 +108,7 @@ func (client *Client) CreateBlock() {
 			time.Sleep(client.sleepTime)
 		}
 		lastBlock := client.GetCurrentBlock()
-		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
+		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1, cfg).MaxTxNumber), nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -121,11 +122,11 @@ func (client *Client) CreateBlock() {
 			continue
 		}
 		var newblock types.Block
-		newblock.ParentHash = lastBlock.Hash()
+		newblock.ParentHash = lastBlock.Hash(cfg)
 		newblock.Height = lastBlock.Height + 1
 		client.AddTxsToBlock(&newblock, txs)
 		//solo 挖矿固定难度
-		newblock.Difficulty = types.GetP(0).PowLimitBits
+		newblock.Difficulty = types.GetP(0, cfg).PowLimitBits
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		newblock.BlockTime = types.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {

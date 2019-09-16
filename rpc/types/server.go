@@ -38,7 +38,7 @@ func (c *ChannelClient) Init(name string, s RPCServer, jrpc, grpc interface{}) {
 	}
 	c.grpc = grpc
 	c.jrpc = jrpc
-	c.accountdb = account.NewCoinsAccount()
+	c.accountdb = account.NewCoinsAccount(c.GetConfig().GetCoinSymbol())
 }
 
 // GetCoinsAccountDB  return accountdb

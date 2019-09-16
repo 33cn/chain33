@@ -52,7 +52,7 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 	e := &executor{
 		stateDB:      NewStateDB(client, ctx.stateHash, localdb, opt),
 		localDB:      localdb,
-		coinsAccount: account.NewCoinsAccount(),
+		coinsAccount: account.NewCoinsAccount(client.GetConfig().GetCoinSymbol()),
 		height:       ctx.height,
 		blocktime:    ctx.blocktime,
 		difficulty:   ctx.difficulty,
@@ -134,17 +134,17 @@ func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
 }
 
 func (e *executor) checkTx(tx *types.Transaction, index int) error {
-	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) {
+	cfg := e.api.GetConfig()
+	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(cfg, e.height, e.blocktime) {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	cfg := e.api.GetConfig()
-	if err := tx.Check(e.height, cfg.GInt("MinFee"), cfg.GInt("MaxFee")); err != nil {
+	if err := tx.Check(e.api.GetConfig(), e.height, cfg.GInt("MinFee"), cfg.GInt("MaxFee")); err != nil {
 		return err
 	}
 	//允许重写的情况
 	//看重写的名字 name, 是否被允许执行
-	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
+	if !cfg.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
 		return types.ErrExecNameNotAllow
 	}
 	return nil
@@ -163,12 +163,12 @@ func (e *executor) setEnv(exec drivers.Driver) {
 }
 
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
-	if e.height > 0 && e.blocktime > 0 && txgroup.IsExpire(e.height, e.blocktime) {
+	cfg := e.api.GetConfig()
+	if e.height > 0 && e.blocktime > 0 && txgroup.IsExpire(cfg, e.height, e.blocktime) {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	cfg := e.api.GetConfig()
-	if err := txgroup.Check(e.height, cfg.GInt("MinFee"), cfg.GInt("MaxFee")); err != nil {
+	if err := txgroup.Check(cfg, e.height, cfg.GInt("MinFee"), cfg.GInt("MaxFee")); err != nil {
 		return err
 	}
 	return nil
@@ -211,7 +211,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriver(tx, index)
 	//to 必须是一个地址
-	if err := drivers.CheckAddress(tx.GetRealToAddr(), e.height); err != nil {
+	if err := drivers.CheckAddress(e.api.GetConfig(), tx.GetRealToAddr(), e.height); err != nil {
 		return nil, err
 	}
 	cfg := e.api.GetConfig()
@@ -576,7 +576,7 @@ func (e *executor) isExecLocalSameTime(tx *types.Transaction, index int) bool {
 
 func (e *executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 	for i := 0; i < len(kvs); i++ {
-		err := isAllowLocalKey(execer, kvs[i].Key)
+		err := isAllowLocalKey(e.api.GetConfig(), execer, kvs[i].Key)
 		if err != nil {
 			//测试的情况下，先panic，实际情况下会删除返回错误
 			panic(err)

@@ -107,7 +107,7 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	}
 	cfg := exec.client.GetConfig()
 	if cfg.IsPara() {
-		exec.grpccli, err = grpcclient.NewMainChainClient("")
+		exec.grpccli, err = grpcclient.NewMainChainClient(exec.client.GetConfig(), "")
 		if err != nil {
 			panic(err)
 		}

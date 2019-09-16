@@ -79,7 +79,7 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 	if block.Block == nil {
 		return false
 	}
-	byteHash := block.Block.Hash()
+	byteHash := block.Block.Hash(n.cfg)
 	blockHash := hex.EncodeToString(byteHash)
 	log.Debug("sendStream", "will send block", blockHash)
 	if peerVersion >= lightBroadCastVersion {
@@ -89,7 +89,7 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 		}
 		ltBlock := &types.LightBlock{}
 		ltBlock.Size = int64(types.Size(block.Block))
-		ltBlock.Header = block.Block.GetHeader()
+		ltBlock.Header = block.Block.GetHeader(n.cfg)
 		ltBlock.Header.Hash = byteHash[:]
 		ltBlock.Header.Signature = block.Block.Signature
 		ltBlock.MinerTx = block.Block.Txs[0]
@@ -186,7 +186,7 @@ func (n *Node) recvBlock(block *types.P2PBlock, pid string) {
 		return
 	}
 	//如果已经有登记过的消息记录，则不发送给本地blockchain
-	blockHash := hex.EncodeToString(block.GetBlock().Hash())
+	blockHash := hex.EncodeToString(block.GetBlock().Hash(n.cfg))
 	if n.checkAndRegFilterAtomic(blockHashFilter, blockHash) {
 		return
 	}

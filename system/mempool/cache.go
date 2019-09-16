@@ -139,10 +139,10 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 	return nil
 }
 
-func (cache *txCache) removeExpiredTx(height, blocktime int64) {
+func (cache *txCache) removeExpiredTx(cfg *types.Chain33Config, height, blocktime int64) {
 	var txs []string
 	cache.qcache.Walk(0, func(tx *Item) bool {
-		if isExpired(tx, height, blocktime) {
+		if isExpired(cfg, tx, height, blocktime) {
 			txs = append(txs, string(tx.Value.Hash()))
 		}
 		return true
@@ -151,11 +151,11 @@ func (cache *txCache) removeExpiredTx(height, blocktime int64) {
 }
 
 //判断交易是否过期
-func isExpired(item *Item, height, blockTime int64) bool {
+func isExpired(cfg *types.Chain33Config,item *Item, height, blockTime int64) bool {
 	if types.Now().Unix()-item.EnterTime >= mempoolExpiredInterval {
 		return true
 	}
-	if item.Value.IsExpire(height, blockTime) {
+	if item.Value.IsExpire(cfg, height, blockTime) {
 		return true
 	}
 	return false

@@ -122,7 +122,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 		return nil, err
 	}
 	tx.Fee = fee
-	tx.SetExpire(time.Second * 120)
+	tx.SetExpire(wallet.client.GetConfig(), time.Second * 120)
 	tx.Sign(int32(SignType), priv)
 	reply, err := wallet.sendTx(tx)
 	if err != nil {
@@ -230,7 +230,8 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 	if err != nil {
 		return nil, err
 	}
-	tx.SetExpire(time.Second * 120)
+	cfg := wallet.client.GetConfig()
+	tx.SetExpire(cfg, time.Second * 120)
 	proper, err := wallet.api.GetProperFee(nil)
 	if err != nil {
 		return nil, err
@@ -247,8 +248,8 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 		tx.Execer = []byte(exec)
 	}
 
-	if types.IsPara() {
-		tx.Execer = []byte(types.GetTitle() + string(tx.Execer))
+	if cfg.IsPara() {
+		tx.Execer = []byte(cfg.GetTitle() + string(tx.Execer))
 		tx.To = address.ExecAddress(string(tx.Execer))
 	}
 

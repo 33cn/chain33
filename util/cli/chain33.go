@@ -199,6 +199,7 @@ func RunChain33(name string) {
 	log.Info("loading p2p module")
 	var network queue.Module
 	if cfg.P2P.Enable && !chain33Cfg.IsPara() {
+		cfg.P2P.Cfg = chain33Cfg
 		network = p2p.New(cfg.P2P)
 	} else {
 		network = &util.MockModule{Key: "p2p"}

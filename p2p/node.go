@@ -78,6 +78,7 @@ type Node struct {
 	cfgSeeds   sync.Map
 	closed     int32
 	pubsub     *pubsub.PubSub
+	cfg        *types.Chain33Config
 }
 
 // SetQueueClient return client for nodeinfo
@@ -101,7 +102,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 
 	if cfg.InnerSeedEnable {
 		seeds := MainNetSeeds
-		if types.IsTestNet() {
+		if cfg.Cfg.IsTestNet() {
 			seeds = TestNetSeeds
 		}
 
@@ -117,6 +118,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	if cfg.ServerStart {
 		node.server = newListener(protocol, node)
 	}
+	node.cfg = cfg.Cfg
 	return node, nil
 }
 
