@@ -148,8 +148,6 @@ type BlockChain struct {
 	RollbackBlock int64 `protobuf:"varint,15,opt,name=rollbackBlock" json:"rollbackBlock,omitempty"`
 	// 回退是否保存区块
 	RollbackSave bool `protobuf:"varint,16,opt,name=rollbackSave" json:"rollbackSave,omitempty"`
-	// 系统运行参数
-	SysParam       *Chain33Config  `protobuf:"varint,17,opt,name=sysParam" json:"sysParam,omitempty"`
 }
 
 // P2P 配置
@@ -189,8 +187,6 @@ type P2P struct {
 	Channel int32 `protobuf:"varint,20,opt,name=channel" json:"channel,omitempty"`
 	//固定连接节点，只连接配置项seeds中的节点
 	FixedSeed bool `protobuf:"varint,21,opt,name=fixedSeed" json:"fixedSeed,omitempty"`
-	// 系统运行时的配置参数
-	Cfg       *Chain33Config  `protobuf:"varint,22,opt,name=cfg" json:"cfg,omitempty"`
 }
 
 // RPC 配置

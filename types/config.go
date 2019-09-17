@@ -31,7 +31,9 @@ var (
 	//coinSymbol  = "bty"
 )
 
-var CliSysParam = NewChain33Config("")
+//var CliSysParam = NewChain33Config("")
+
+var CliSysParam = &Chain33Config{}
 
 // coin conversation
 const (
@@ -62,6 +64,8 @@ const (
 //}
 
 type Chain33Config struct {
+	mcfg          *Config
+	scfg          *ConfigSubModule
 	minerExecs    []string
 	title         string
 	mu            sync.Mutex
@@ -88,24 +92,31 @@ type ChainParam struct {
 }
 
 func NewChain33Config(cfgstring string) *Chain33Config {
+	cfg, sub := InitCfgString(cfgstring)
 	chain33Cfg := &Chain33Config{
-		minerExecs:    []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
+		mcfg:          cfg,
+		scfg:          sub,
+		minerExecs:    []string{"ticket"},          //挖矿的合约名单，适配旧配置，默认ticket
+		chainConfig:   make(map[string]interface{}),
 		coinSymbol:    "bty",
 		forks:         &Forks{},
 	}
 	chain33Cfg.setDefaultConfig()
-	if cfgstring != "" {
-		cfg, _ := InitCfgString(cfgstring)
-		chain33Cfg.setFlatConfig(cfgstring)
-		chain33Cfg.setMver(cfg.Title, cfgstring)
-		chain33Cfg.chainParamInit(cfg.Title, cfg)
-	}
+	chain33Cfg.setFlatConfig(cfgstring)
+	chain33Cfg.setMver(cfg.Title, cfgstring)
+	chain33Cfg.chainParamInit(cfg.Title, cfg)
 	return chain33Cfg
 }
 
+func (c *Chain33Config) GetMConfig() *Config {
+	return c.mcfg
+}
+
+func (c *Chain33Config) GetSConfig() *ConfigSubModule {
+	return c.scfg
+}
+
 func (c *Chain33Config) setDefaultConfig() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.S("TestNet", false)
 	c.SetMinFee(1e5)
 	for key, cfg := range chaincfg.LoadAll() {
@@ -153,6 +164,11 @@ func (c *Chain33Config) chainParamInit(t string, cfg *Config) {
 	defer c.mu.Unlock()
 
 	c.title = t
+
+	if c.forks == nil {
+		c.forks = &Forks{}
+	}
+	c.forks.SetTestNetFork()
 
 	if cfg != nil {
 		if c.isLocal() {
@@ -228,48 +244,22 @@ func (c *Chain33Config) setTestNet(isTestNet bool) {
 	//const 初始化TestNet 的初始化参数
 }
 
-func (c *Chain33Config) SetTestNetFork() {
-	c.forks.SetFork("chain33", "ForkChainParamV1", 110000)
-	c.forks.SetFork("chain33", "ForkChainParamV2", 1692674)
-	c.forks.SetFork("chain33", "ForkCheckTxDup", 75260)
-	c.forks.SetFork("chain33", "ForkBlockHash", 209186)
-	c.forks.SetFork("chain33", "ForkMinerTime", 350000)
-	c.forks.SetFork("chain33", "ForkTransferExec", 408400)
-	c.forks.SetFork("chain33", "ForkExecKey", 408400)
-	c.forks.SetFork("chain33", "ForkWithdraw", 480000)
-	c.forks.SetFork("chain33", "ForkTxGroup", 408400)
-	c.forks.SetFork("chain33", "ForkResetTx0", 453400)
-	c.forks.SetFork("chain33", "ForkExecRollback", 706531)
-	c.forks.SetFork("chain33", "ForkTxHeight", 806578)
-	c.forks.SetFork("chain33", "ForkCheckBlockTime", 1200000)
-	c.forks.SetFork("chain33", "ForkMultiSignAddress", 1298600)
-	c.forks.SetFork("chain33", "ForkStateDBSet", 1572391)
-	c.forks.SetFork("chain33", "ForkBlockCheck", 1560000)
-	c.forks.SetFork("chain33", "ForkLocalDBAccess", 1572391)
-	c.forks.SetFork("chain33", "ForkTxGroupPara", 1687250)
-	c.forks.SetFork("chain33", "ForkBase58AddressCheck", 1800000)
-	//这个fork只影响平行链，注册类似user.p.x.exec的driver，新开的平行链设为0即可，老的平行链要设置新的高度
-	c.forks.SetFork("chain33", "ForkEnableParaRegExec", 0)
-	c.forks.SetFork("chain33", "ForkCacheDriver", 2580000)
-	c.forks.SetFork("chain33", "ForkTicketFundAddrV1", 3350000)
-}
-
 // GetP 获取ChainParam
 func GetP(height int64, cfg *Chain33Config) *ChainParam {
 	conf := Conf("mver.consensus", cfg)
 	c := &ChainParam{}
-	c.CoinDevFund = conf.MGInt("coinDevFund", height) * Coin
-	c.CoinReward = conf.MGInt("coinReward", height) * Coin
-	c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
-	c.TicketPrice = conf.MGInt("ticketPrice", height) * Coin
-	c.TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
-	c.TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
-	c.TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
-	c.MaxTxNumber = conf.MGInt("maxTxNumber", height)
-	c.PowLimitBits = uint32(conf.MGInt("powLimitBits", height))
-	c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
-	c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
-	c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
+	c.CoinDevFund = conf.MGIntq("coinDevFund", height) * Coin
+	c.CoinReward = conf.MGIntq("coinReward", height) * Coin
+	c.FutureBlockTime = conf.MGIntq("futureBlockTime", height)
+	c.TicketPrice = conf.MGIntq("ticketPrice", height) * Coin
+	c.TicketFrozenTime = conf.MGIntq("ticketFrozenTime", height)
+	c.TicketWithdrawTime = conf.MGIntq("ticketWithdrawTime", height)
+	c.TicketMinerWaitTime = conf.MGIntq("ticketMinerWaitTime", height)
+	c.MaxTxNumber = conf.MGIntq("maxTxNumber", height)
+	c.PowLimitBits = uint32(conf.MGIntq("powLimitBits", height))
+	c.TargetTimespan = time.Duration(conf.MGIntq("targetTimespan", height)) * time.Second
+	c.TargetTimePerBlock = time.Duration(conf.MGIntq("targetTimePerBlock", height)) * time.Second
+	c.RetargetAdjustmentFactor = conf.MGIntq("retargetAdjustmentFactor", height)
 	return c
 }
 

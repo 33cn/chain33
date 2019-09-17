@@ -88,13 +88,15 @@ func DisableLog() {
 }
 
 // New 创建一个钱包对象
-func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
+func New(cfg *types.Chain33Config) *Wallet {
+	mcfg := cfg.GetMConfig().Wallet
+	sub := cfg.GetSConfig().Wallet
 	//walletStore
-	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
+	walletStoreDB := dbm.NewDB("wallet", mcfg.Driver, mcfg.DbPath, mcfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
 	walletStore := newStore(walletStoreDB)
-	minFee = cfg.MinFee
-	signType := types.GetSignType("", cfg.SignType)
+	minFee = mcfg.MinFee
+	signType := types.GetSignType("", mcfg.SignType)
 	if signType == types.Invalid {
 		signType = types.SECP256K1
 	}
@@ -108,7 +110,7 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 		FeeAmount:        walletStore.GetFeeAmount(minFee),
 		EncryptFlag:      walletStore.GetEncryptionFlag(),
 		done:             make(chan struct{}),
-		cfg:              cfg,
+		cfg:              mcfg,
 		rescanwg:         &sync.WaitGroup{},
 		initFlag:         0,
 	}

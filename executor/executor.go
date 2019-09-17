@@ -54,30 +54,32 @@ func execInit(typ *typ.Chain33Config, sub map[string][]byte) {
 var runonce sync.Once
 
 // New new executor
-func New(cfg *types.Exec, types *typ.Chain33Config, sub map[string][]byte) *Executor {
+func New(cfg *typ.Chain33Config) *Executor {
+	mcfg := cfg.GetMConfig().Exec
+	sub := cfg.GetSConfig().Exec
 	// init executor
 	runonce.Do(func() {
-		execInit(types, sub)
+		execInit(cfg, sub)
 	})
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
-	if cfg.MinExecFee == 0 && cfg.IsFree {
+	if mcfg.MinExecFee == 0 && mcfg.IsFree {
 		elog.Warn("set executor to free fee")
-		types.SetMinFee(0)
+		cfg.SetMinFee(0)
 	}
-	if cfg.MinExecFee > 0 {
-		types.SetMinFee(cfg.MinExecFee)
+	if mcfg.MinExecFee > 0 {
+		cfg.SetMinFee(mcfg.MinExecFee)
 	}
 	exec := &Executor{}
 	exec.pluginEnable = make(map[string]bool)
-	exec.pluginEnable["stat"] = cfg.EnableStat
-	exec.pluginEnable["mvcc"] = cfg.EnableMVCC
-	exec.pluginEnable["addrindex"] = !cfg.DisableAddrIndex
+	exec.pluginEnable["stat"] = mcfg.EnableStat
+	exec.pluginEnable["mvcc"] = mcfg.EnableMVCC
+	exec.pluginEnable["addrindex"] = !mcfg.DisableAddrIndex
 	exec.pluginEnable["txindex"] = true
 	exec.pluginEnable["fee"] = true
 
 	exec.alias = make(map[string]string)
-	for _, v := range cfg.Alias {
+	for _, v := range mcfg.Alias {
 		data := strings.Split(v, ":")
 		if len(data) != 2 {
 			panic("exec.alias config error: " + v)

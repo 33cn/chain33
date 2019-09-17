@@ -193,6 +193,32 @@ func (f *Forks) IsDappFork(title string, height int64, dapp, fork string) bool {
 	return f.IsFork(title, height, dapp+"."+fork)
 }
 
+func (f *Forks) SetTestNetFork() {
+	f.SetFork("chain33", "ForkChainParamV1", 110000)
+	f.SetFork("chain33", "ForkChainParamV2", 1692674)
+	f.SetFork("chain33", "ForkCheckTxDup", 75260)
+	f.SetFork("chain33", "ForkBlockHash", 209186)
+	f.SetFork("chain33", "ForkMinerTime", 350000)
+	f.SetFork("chain33", "ForkTransferExec", 408400)
+	f.SetFork("chain33", "ForkExecKey", 408400)
+	f.SetFork("chain33", "ForkWithdraw", 480000)
+	f.SetFork("chain33", "ForkTxGroup", 408400)
+	f.SetFork("chain33", "ForkResetTx0", 453400)
+	f.SetFork("chain33", "ForkExecRollback", 706531)
+	f.SetFork("chain33", "ForkTxHeight", 806578)
+	f.SetFork("chain33", "ForkCheckBlockTime", 1200000)
+	f.SetFork("chain33", "ForkMultiSignAddress", 1298600)
+	f.SetFork("chain33", "ForkStateDBSet", 1572391)
+	f.SetFork("chain33", "ForkBlockCheck", 1560000)
+	f.SetFork("chain33", "ForkLocalDBAccess", 1572391)
+	f.SetFork("chain33", "ForkTxGroupPara", 1687250)
+	f.SetFork("chain33", "ForkBase58AddressCheck", 1800000)
+	//这个fork只影响平行链，注册类似user.p.x.exec的driver，新开的平行链设为0即可，老的平行链要设置新的高度
+	f.SetFork("chain33", "ForkEnableParaRegExec", 0)
+	f.SetFork("chain33", "ForkCacheDriver", 2580000)
+	f.SetFork("chain33", "ForkTicketFundAddrV1", 3350000)
+}
+
 //SetTestNetFork bityuan test net fork
 //func SetTestNetFork() {
 //	systemFork.SetFork("chain33", "ForkChainParamV1", 110000)

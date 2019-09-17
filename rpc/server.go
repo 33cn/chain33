@@ -223,12 +223,13 @@ func InitCfg(cfg *types.RPC) {
 }
 
 // New produce a rpc by cfg
-func New(cfg *types.RPC) *RPC {
-	InitCfg(cfg)
-	if cfg.EnableTrace {
+func New(cfg *types.Chain33Config) *RPC {
+	mcfg := cfg.GetMConfig().RPC
+	InitCfg(mcfg)
+	if mcfg.EnableTrace {
 		grpc.EnableTracing = true
 	}
-	return &RPC{cfg: cfg}
+	return &RPC{cfg: mcfg}
 }
 
 // SetAPI set api of rpc

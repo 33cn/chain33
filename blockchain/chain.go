@@ -119,22 +119,23 @@ type BlockChain struct {
 }
 
 //New new
-func New(cfg *types.BlockChain) *BlockChain {
+func New(cfg *types.Chain33Config) *BlockChain {
+	mcfg := cfg.GetMConfig().BlockChain
 	futureBlocks, err := lru.New(maxFutureBlocks)
 	if err != nil {
 		panic("when New BlockChain lru.New return err")
 	}
 	defCacheSize := int64(128)
-	if cfg.DefCacheSize > 0 {
-		defCacheSize = cfg.DefCacheSize
+	if mcfg.DefCacheSize > 0 {
+		defCacheSize = mcfg.DefCacheSize
 	}
 	blockchain := &BlockChain{
-		cache:              NewBlockCache(cfg.SysParam, defCacheSize),
+		cache:              NewBlockCache(cfg, defCacheSize),
 		DefCacheSize:       defCacheSize,
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		peerList:           nil,
-		cfg:                cfg,
+		cfg:                mcfg,
 		recvwg:             &sync.WaitGroup{},
 		tickerwg:           &sync.WaitGroup{},
 
@@ -143,12 +144,12 @@ func New(cfg *types.BlockChain) *BlockChain {
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
-		orphanPool:          NewOrphanPool(cfg.SysParam),
+		orphanPool:          NewOrphanPool(cfg),
 		index:               newBlockIndex(),
 		isCaughtUp:          false,
 		isbatchsync:         1,
 		firstcheckbestchain: 0,
-		cfgBatchSync:        cfg.Batchsync,
+		cfgBatchSync:        mcfg.Batchsync,
 		faultPeerList:       make(map[string]*FaultPeerInfo),
 		bestChainPeerList:   make(map[string]*BestPeerInfo),
 		futureBlocks:        futureBlocks,
@@ -162,23 +163,24 @@ func New(cfg *types.BlockChain) *BlockChain {
 	return blockchain
 }
 
-func (chain *BlockChain) initConfig(cfg *types.BlockChain) {
-	if chain.client.GetConfig().IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
+func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
+	mcfg := cfg.GetMConfig().BlockChain
+	if cfg.IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
 		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
 	}
 
-	if cfg.MaxFetchBlockNum > 0 {
-		chain.MaxFetchBlockNum = cfg.MaxFetchBlockNum
+	if mcfg.MaxFetchBlockNum > 0 {
+		chain.MaxFetchBlockNum = mcfg.MaxFetchBlockNum
 	}
 
-	if cfg.TimeoutSeconds > 0 {
-		chain.TimeoutSeconds = cfg.TimeoutSeconds
+	if mcfg.TimeoutSeconds > 0 {
+		chain.TimeoutSeconds = mcfg.TimeoutSeconds
 	}
 	chain.blockSynInterVal = time.Duration(chain.TimeoutSeconds)
-	chain.isStrongConsistency = cfg.IsStrongConsistency
-	chain.isRecordBlockSequence = cfg.IsRecordBlockSequence
-	chain.isParaChain = cfg.IsParaChain
-	chain.client.GetConfig().S("quickIndex", cfg.EnableTxQuickIndex)
+	chain.isStrongConsistency = mcfg.IsStrongConsistency
+	chain.isRecordBlockSequence = mcfg.IsRecordBlockSequence
+	chain.isParaChain = mcfg.IsParaChain
+	cfg.S("quickIndex", mcfg.EnableTxQuickIndex)
 }
 
 //Close 关闭区块链
