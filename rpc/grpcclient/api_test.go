@@ -103,3 +103,21 @@ func TestNewParaClient(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, reply.Hash, []byte("hello"))
 }
+
+func TestNewMainChainClient(t *testing.T) {
+	grpcClient1, err := grpcclient.NewMainChainClient("")
+	assert.Nil(t, err)
+	grpcClient2, err := grpcclient.NewMainChainClient("")
+	assert.Nil(t, err)
+	if grpcClient1 != grpcClient2 {
+		t.Error("grpc client is the same")
+	}
+
+	grpcClient3, err := grpcclient.NewMainChainClient("127.0.0.1")
+	assert.Nil(t, err)
+	grpcClient4, err := grpcclient.NewMainChainClient("127.0.0.1")
+	assert.Nil(t, err)
+	if grpcClient3 == grpcClient4 {
+		t.Error("grpc client is not the same")
+	}
+}

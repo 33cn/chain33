@@ -19,9 +19,10 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
-const secondsPerBlock = 15
-const btyPreBlock = 18
-const statInterval = 3600
+const secondsPerBlock = 5
+const btyPreBlock = 5
+const baseInterval = 3600
+const maxInterval = 15 * 24 * 3600
 const monitorBtyLowLimit = 3 * 1e7 * types.Coin
 
 var log = l.New("module", "accounts")
@@ -54,26 +55,21 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 		log.Error("show", "in", "nil")
 		return types.ErrInvalidParam
 	}
-	seconds := time.Now().Unix()
-	if len(in.TimeAt) != 0 {
-		tm, err := time.Parse("2006-01-02-15", in.TimeAt)
-		if err != nil {
-			log.Error("show", "in.TimeAt Parse", err)
-			return types.ErrInvalidParam
-		}
-		seconds = tm.Unix()
-	}
-	log.Info("show", "utc", seconds)
-
 	addrs := show.Addrs
 	if in.Addrs != nil && len(in.Addrs) > 0 {
 		addrs = in.Addrs
 	}
 	log.Info("show", "miners", addrs)
-	//for i := int64(0); i < 200; i++ {
-	header, curAcc, err := cache.getBalance(addrs, "ticket", seconds)
+
+	height, err := toBlockHeight(in.TimeAt)
 	if err != nil {
-		log.Error("show", "getBalance failed", err, "ts", seconds)
+		return err
+	}
+	log.Info("show", "header", height)
+
+	header, curAcc, err := cache.getBalance(addrs, "ticket", height)
+	if err != nil {
+		log.Error("show", "getBalance failed", err, "height", height)
 		return nil
 	}
 
@@ -81,18 +77,18 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	for _, acc := range curAcc {
 		totalBty += acc.Frozen
 	}
+	log.Info("show 1st balance", "utc", header.BlockTime, "total", totalBty)
 
-	monitorInterval := int64(statInterval)
-	if totalBty < monitorBtyLowLimit && totalBty > 0 {
-		monitorInterval = int64(float64(statInterval) * float64(monitorBtyLowLimit) / float64(totalBty))
-	}
+	monitorInterval := calcMoniterInterval(totalBty)
 	log.Info("show", "monitor Interval", monitorInterval)
-	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-monitorInterval)
+
+	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.Height-monitorInterval)
 	if err != nil {
 		log.Error("show", "getBalance failed", err, "ts", header.BlockTime-monitorInterval)
 		return nil
 	}
 	fmt.Print(curAcc, lastAcc)
+	log.Info("show 2nd balance", "utc", *lastHourHeader)
 
 	miner := &MinerAccounts{}
 	miner.Seconds = header.BlockTime - lastHourHeader.BlockTime
@@ -102,9 +98,42 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	miner = calcIncrease(miner, curAcc, lastAcc, header)
 	*out = &miner
 
-	//}
-
 	return nil
+}
+
+// 找指定时间最接近的区块， 默认是当前时间
+func toBlockHeight(timeAt string) (int64, error) {
+	seconds := time.Now().Unix()
+	if len(timeAt) != 0 {
+		tm, err := time.Parse("2006-01-02-15", timeAt)
+		if err != nil {
+			log.Error("show", "in.TimeAt Parse", err)
+			return 0, types.ErrInvalidParam
+		}
+		seconds = tm.Unix()
+	}
+	log.Info("show", "utc-init", seconds)
+
+	realTs, header := cache.findBlock(seconds)
+	if realTs == 0 || header == nil {
+		log.Error("show", "findBlock", "nil")
+		return 0, types.ErrNotFound
+	}
+	return header.Height, nil
+}
+
+// 计算监控区块的范围
+// 做对小额帐号限制，不然监控范围过大， 如9000个币需要138天
+func calcMoniterInterval(totalBty int64) int64 {
+	monitorInterval := int64(baseInterval)
+	if totalBty < monitorBtyLowLimit && totalBty > 0 {
+		monitorInterval = int64(float64(monitorBtyLowLimit) / float64(totalBty) * float64(baseInterval))
+	}
+	if monitorInterval > maxInterval {
+		monitorInterval = maxInterval
+	}
+	log.Info("show", "monitor Interval", monitorInterval)
+	return monitorInterval / secondsPerBlock
 }
 
 func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *rpctypes.Header) *MinerAccounts {
@@ -132,7 +161,7 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 		}
 	}
 	ticketTotal := float64(30000 * 10000)
-	_, ticketAcc, err := cache.getBalance([]string{"16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"}, "coins", header.BlockTime)
+	_, ticketAcc, err := cache.getBalance([]string{"16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"}, "coins", header.Height)
 	if err == nil && len(ticketAcc) == 1 {
 		ticketTotal = float64(ticketAcc[0].Balance+ticketAcc[0].Frozen) / float64(types.Coin)
 	}
@@ -157,12 +186,12 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 
 			// 由于取不到挖矿的交易， 通过预期挖矿数， 推断间隔多少个区块能挖到。
 			// 由于挖矿分布的波动， 用双倍的预期能挖到区块的时间间隔来预警
-			expectBlocks := (expectIncrease / btyPreBlock)     // 一个小时预期挖多少个块
-			expectMinerInterval := statInterval / expectBlocks // 预期多少秒可以挖一个块
+			expectBlocks := (expectIncrease / btyPreBlock)                               // 一个小时预期挖多少个块
+			expectMinerInterval := float64(miner.Seconds/secondsPerBlock) / expectBlocks // 预期多少秒可以挖一个块
 			moniterInterval := int64(2*expectMinerInterval) + 1
 
 			m.ExpectMinerBlocks = strconv.FormatFloat(expectBlocks, 'f', 4, 64)
-			_, acc, err := cache.getBalance([]string{m.Addr}, "ticket", header.BlockTime-moniterInterval)
+			_, acc, err := cache.getBalance([]string{m.Addr}, "ticket", header.Height-moniterInterval)
 			if err != nil || len(acc) == 0 {
 				m.MinerBtyDuring = "0.0000"
 			} else {
@@ -181,43 +210,3 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 	return miner
 
 }
-
-/*
-func readJson(jsonFile string) (*Accounts, error) {
-	d1, err := ioutil.ReadFile(jsonFile)
-	if err != nil {
-		log.Error("show", "read json", jsonFile, "err", err)
-		return nil, err
-	}
-	var acc Accounts
-	err = json.Unmarshal([]byte(d1), &acc)
-	if err != nil {
-		log.Error("show", "read json", jsonFile, "err", err)
-		return nil, err
-	}
-	return &acc, nil
-}
-
-func parseAccounts(acc *Accounts) (*map[string]float64, error) {
-	result := map[string]float64{}
-	for _, a := range acc.Accounts {
-		f1, e1 := strconv.ParseFloat(a.Balance, 64)
-		f2, e2 := strconv.ParseFloat(a.Frozen, 64)
-		if e1 != nil || e2 != nil {
-			log.Error("show", "account2  len", e1, "account  len", e2)
-			return nil, types.ErrNotFound
-		}
-		result[a.Addr] = f1 + f2
-	}
-	return &result, nil
-}
-
-func getAccountDetail(jsonFile string) (*map[string]float64, error) {
-	acc, err := readJson(jsonFile)
-	if err != nil {
-		return nil, err
-	}
-	return parseAccounts(acc)
-}
-
-*/

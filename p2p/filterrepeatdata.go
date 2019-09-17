@@ -14,13 +14,31 @@ import (
 )
 
 // Filter  a Filter object
-var Filter = NewFilter()
+var (
+	peerAddrFilter = NewFilter(PeerAddrCacheNum)
+	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
+	txHashFilter    = NewFilter(TxRecvFilterCacheNum)
+	blockHashFilter = NewFilter(BlockFilterCacheNum)
+
+	//发送交易和区块时过滤缓存, 解决冗余广播发送
+	txSendFilter    = NewFilter(TxSendFilterCacheNum)
+	blockSendFilter = NewFilter(BlockFilterCacheNum)
+)
 
 // NewFilter produce a filter object
-func NewFilter() *Filterdata {
+func NewFilter(num int) *Filterdata {
 	filter := new(Filterdata)
-	filter.regRData, _ = lru.New(P2pCacheTxSize)
+	var err error
+	filter.regRData, err = lru.New(num)
+	if err != nil {
+		panic(err)
+	}
 	return filter
+}
+
+type sendFilterInfo struct {
+	//记录广播交易或区块时需要忽略的节点, 这些节点可能是交易的来源节点,也可能节点间维护了多条连接, 冗余发送
+	ignoreSendPeers map[string]bool
 }
 
 // Filterdata filter data attribute
@@ -91,4 +109,16 @@ func (f *Filterdata) ManageRecvFilter() {
 			return
 		}
 	}
+}
+
+// Add add val
+func (f *Filterdata) Add(key string, val interface{}) bool {
+
+	return f.regRData.Add(key, val)
+}
+
+// Get get val
+func (f *Filterdata) Get(key string) interface{} {
+	val, _ := f.regRData.Get(key)
+	return val
 }

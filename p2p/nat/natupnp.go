@@ -65,10 +65,13 @@ func (n *upnp) AddMapping(protocol string, extport, intport int, desc string, li
 	if err != nil {
 		return nil
 	}
-	fmt.Println("internalAddress:", ip)
+	//fmt.Println("internalAddress:", ip)
 	protocol = strings.ToUpper(protocol)
 	lifetimeS := uint32(lifetime / time.Second)
-	n.DeleteMapping(protocol, extport, intport)
+	err = n.DeleteMapping(protocol, extport, intport)
+	if err != nil {
+		return err
+	}
 	return n.client.AddPortMapping("", uint16(extport), protocol, uint16(intport), ip.String(), true, desc, lifetimeS)
 }
 

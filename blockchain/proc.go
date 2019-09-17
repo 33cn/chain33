@@ -61,7 +61,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventIsSync:
 			go chain.processMsg(msg, reqnum, chain.isSync)
 		case types.EventIsNtpClockSync:
-			go chain.processMsg(msg, reqnum, chain.isNtpClockSync)
+			go chain.processMsg(msg, reqnum, chain.isNtpClockSyncFunc)
 		case types.EventGetLastBlockSequence:
 			go chain.processMsg(msg, reqnum, chain.getLastBlockSequence)
 
@@ -70,7 +70,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetBlockByHashes:
 			go chain.processMsg(msg, reqnum, chain.getBlockByHashes)
-
 		case types.EventGetBlockBySeq:
 			go chain.processMsg(msg, reqnum, chain.getBlockBySeq)
 
@@ -90,6 +89,21 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetSeqCBLastNum:
 			go chain.processMsg(msg, reqnum, chain.getSeqCBLastNum)
+
+		case types.EventGetLastBlockMainSequence:
+			go chain.processMsg(msg, reqnum, chain.GetLastBlockMainSequence)
+		case types.EventGetMainSeqByHash:
+			go chain.processMsg(msg, reqnum, chain.GetMainSeqByHash)
+
+		//para共识模块操作blockchain db的事件
+		case types.EventSetValueByKey:
+			go chain.processMsg(msg, reqnum, chain.setValueByKey)
+		case types.EventGetValueByKey:
+			go chain.processMsg(msg, reqnum, chain.getValueByKey)
+
+		//通过平行链title获取平行链的交易
+		case types.EventGetParaTxByTitle:
+			go chain.processMsg(msg, reqnum, chain.getParaTxByTitle)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -157,19 +171,30 @@ func (chain *BlockChain) getBlocks(msg *queue.Message) {
 }
 
 func (chain *BlockChain) addBlock(msg *queue.Message) {
-	//var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
 	blockpid := msg.Data.(*types.BlockPid)
-	_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
-	if err != nil {
-		chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
-		reply.IsOk = false
-		reply.Msg = []byte(err.Error())
+	//chainlog.Error("addBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid)
+	if chain.GetDownloadSyncStatus() {
+		err := chain.WriteBlockToDbTemp(blockpid.Block, true)
+		if err != nil {
+			chainlog.Error("WriteBlockToDbTemp", "height", blockpid.Block.Height, "err", err.Error())
+			reply.IsOk = false
+			reply.Msg = []byte(err.Error())
+		}
+		//downLoadTask 运行时设置对应的blockdone
+		if chain.downLoadTask.InProgress() {
+			chain.downLoadTask.Done(blockpid.Block.GetHeight())
+		}
 	} else {
-		//chain.notifySync()
+		_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
+		if err != nil {
+			chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
+			reply.IsOk = false
+			reply.Msg = []byte(err.Error())
+		}
+		chainlog.Debug("EventAddBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid, "success", "ok")
 	}
-	chainlog.Debug("EventAddBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid, "success", "ok")
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
 
@@ -355,8 +380,8 @@ func (chain *BlockChain) getLastBlock(msg *queue.Message) {
 	}
 }
 
-func (chain *BlockChain) isNtpClockSync(msg *queue.Message) {
-	ok := GetNtpClockSyncStatus()
+func (chain *BlockChain) isNtpClockSyncFunc(msg *queue.Message) {
+	ok := chain.GetNtpClockSyncStatus()
 	msg.Reply(chain.client.NewMessage("", types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{Isntpclocksync: ok}))
 }
 
@@ -456,6 +481,14 @@ func (chain *BlockChain) delParaChainBlockDetail(msg *queue.Message) {
 func (chain *BlockChain) addParaChainBlockDetail(msg *queue.Message) {
 	parablockDetail := msg.Data.(*types.ParaChainBlockDetail)
 
+	//根据配置chain.cfgBatchSync和parablockDetail.IsSync
+	//来决定写数据库时是否需要刷盘,主要是为了同步阶段提高执行区块的效率
+	if !parablockDetail.IsSync && !chain.cfgBatchSync {
+		atomic.CompareAndSwapInt32(&chain.isbatchsync, 1, 0)
+	} else {
+		atomic.CompareAndSwapInt32(&chain.isbatchsync, 0, 1)
+	}
+
 	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
 	// 平行链上P2P模块关闭，不用广播区块
 	blockDetail, err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
@@ -507,4 +540,72 @@ func (chain *BlockChain) localAddrTxCount(msg *queue.Message) {
 	}
 	counts = count.Data
 	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+}
+
+//GetLastBlockMainSequence 获取最新的block执行序列号
+func (chain *BlockChain) GetLastBlockMainSequence(msg *queue.Message) {
+	var lastSequence types.Int64
+	var err error
+	lastSequence.Data, err = chain.blockStore.LoadBlockLastMainSequence()
+	if err != nil {
+		chainlog.Debug("GetLastBlockMainSequence", "err", err)
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyLastBlockMainSequence, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventReplyLastBlockMainSequence, &lastSequence))
+}
+
+//GetMainSeqByHash parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
+func (chain *BlockChain) GetMainSeqByHash(msg *queue.Message) {
+	blockhash := (msg.Data).(*types.ReqHash)
+	seq, err := chain.ProcGetMainSeqByHash(blockhash.Hash)
+	if err != nil {
+		chainlog.Error("GetMainSeqByHash", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyMainSeqByHash, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventReplyMainSeqByHash, &types.Int64{Data: seq}))
+}
+
+//setValueByKey 设置kv对到blockchain db中
+func (chain *BlockChain) setValueByKey(msg *queue.Message) {
+	var reply types.Reply
+	reply.IsOk = true
+	if !chain.isParaChain {
+		reply.IsOk = false
+		reply.Msg = []byte("Must Para Chain Support!")
+		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
+		return
+	}
+	kvs := (msg.Data).(*types.LocalDBSet)
+	err := chain.SetValueByKey(kvs)
+	if err != nil {
+		chainlog.Error("setValueByKey", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
+}
+
+//GetValueByKey 获取value通过key从blockchain db中
+func (chain *BlockChain) getValueByKey(msg *queue.Message) {
+	if !chain.isParaChain {
+		msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, nil))
+		return
+	}
+	keys := (msg.Data).(*types.LocalDBGet)
+	values := chain.GetValueByKey(keys)
+	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, values))
+}
+
+//getParaTxByTitle //通过平行链title获取平行链的交易
+func (chain *BlockChain) getParaTxByTitle(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqParaTxByTitle)
+	reply, err := chain.GetParaTxByTitle(req)
+	if err != nil {
+		chainlog.Error("getParaTxByTitle", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
 }

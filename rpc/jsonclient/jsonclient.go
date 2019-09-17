@@ -42,6 +42,7 @@ func NewJSONClient(url string) (*JSONClient, error) {
 func New(prefix, url string, tlsVerify bool) (*JSONClient, error) {
 	httpcli := http.DefaultClient
 	if strings.Contains(url, "https") { //暂不校验tls证书
+		/* #nosec */
 		httpcli = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify}}}
 	}
 	return &JSONClient{

@@ -10,11 +10,21 @@ import (
 )
 
 //GetBlockByHashes 通过blockhash 获取对应的block信息
+//从数据库获取区块不能太多，防止内存异常。一次最多获取100M区块数据从数据库
 func (chain *BlockChain) GetBlockByHashes(hashes [][]byte) (respblocks *types.BlockDetails, err error) {
+	if int64(len(hashes)) > types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	var blocks types.BlockDetails
+	size := 0
 	for _, hash := range hashes {
 		block, err := chain.LoadBlockByHash(hash)
 		if err == nil && block != nil {
+			size += block.Size()
+			if size > types.MaxBlockSizePerTime {
+				chainlog.Error("GetBlockByHashes:overflow", "MaxBlockSizePerTime", types.MaxBlockSizePerTime)
+				return &blocks, nil
+			}
 			blocks.Items = append(blocks.Items, block)
 		} else {
 			blocks.Items = append(blocks.Items, nil)
@@ -118,7 +128,9 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 		chainlog.Error("ProcGetHeadersMsg input must Start <= End:", "Startheight", requestblock.Start, "Endheight", requestblock.End)
 		return nil, types.ErrEndLessThanStartHeight
 	}
-
+	if requestblock.End-requestblock.Start >= types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	if requestblock.Start > blockhight {
 		chainlog.Error("ProcGetHeadersMsg Startheight err", "startheight", requestblock.Start, "curheight", blockhight)
 		return nil, types.ErrStartHeight
@@ -134,6 +146,7 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 		chainlog.Error("ProcGetHeadersMsg count err", "startheight", requestblock.Start, "endheight", requestblock.End, "curheight", blockhight)
 		return nil, types.ErrEndLessThanStartHeight
 	}
+
 	var headers types.Headers
 	headers.Items = make([]*types.Header, count)
 	j := 0
@@ -185,7 +198,9 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 		chainlog.Error("ProcGetBlockDetailsMsg input must Start <= End:", "Startheight", requestblock.Start, "Endheight", requestblock.End)
 		return nil, types.ErrEndLessThanStartHeight
 	}
-
+	if requestblock.End-requestblock.Start >= types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	chainlog.Debug("ProcGetBlockDetailsMsg", "Start", requestblock.Start, "End", requestblock.End, "Isdetail", requestblock.IsDetail)
 
 	end := requestblock.End
@@ -226,6 +241,10 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 
 //ProcAddBlockMsg 处理从peer对端同步过来的block消息
 func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail, pid string) (*types.BlockDetail, error) {
+	beg := types.Now()
+	defer func() {
+		chainlog.Info("ProcAddBlockMsg", "cost", types.Since(beg))
+	}()
 	block := blockdetail.Block
 	if block == nil {
 		chainlog.Error("ProcAddBlockMsg input block is null")
@@ -235,15 +254,13 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	if b != nil {
 		blockdetail = b
 	}
-	//非孤儿block或者已经存在的block
-	if chain.task.InProgress() {
-		if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
-			chain.task.Done(blockdetail.Block.GetHeight())
-		}
+	//syncTask 运行时设置对应的blockdone
+	if chain.syncTask.InProgress() {
+		chain.syncTask.Done(blockdetail.Block.GetHeight())
 	}
-	//forktask 运行时设置对应的blockdone
-	if chain.forktask.InProgress() {
-		chain.forktask.Done(blockdetail.Block.GetHeight())
+	//downLoadTask 运行时设置对应的blockdone
+	if chain.downLoadTask.InProgress() {
+		chain.downLoadTask.Done(blockdetail.Block.GetHeight())
 	}
 	//此处只更新广播block的高度
 	if broadcast {
@@ -259,4 +276,19 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	}
 	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
 	return blockdetail, err
+}
+
+//getBlockHashes 获取指定height区间对应的blockhashes
+func (chain *BlockChain) getBlockHashes(startheight, endheight int64) types.ReqHashes {
+	var reqHashes types.ReqHashes
+	for i := startheight; i <= endheight; i++ {
+		hash, err := chain.blockStore.GetBlockHashByHeight(i)
+		if hash == nil || err != nil {
+			storeLog.Error("getBlockHashesByHeight", "height", i, "error", err)
+			reqHashes.Hashes = append(reqHashes.Hashes, nil)
+		} else {
+			reqHashes.Hashes = append(reqHashes.Hashes, hash)
+		}
+	}
+	return reqHashes
 }

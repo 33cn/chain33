@@ -21,6 +21,14 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	if addr == nil || len(addr.Addr) == 0 {
 		return nil, types.ErrInvalidParam
 	}
+	//默认取10笔交易数据
+	if addr.Count == 0 {
+		addr.Count = 10
+	}
+
+	if int64(addr.Count) > types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	//入参数校验
 	curheigt := chain.GetBlockHeight()
 	if addr.GetHeight() > curheigt || addr.GetHeight() < -1 {
@@ -52,7 +60,9 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 //}
 //通过hashs获取交易详情
 func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *types.TransactionDetails, err error) {
-	//chainlog.Info("ProcGetTransactionByHashes", "txhash len:", len(hashs))
+	if int64(len(hashs)) > types.MaxBlockCountPerTime {
+		return nil, types.ErrMaxCountPerTime
+	}
 	var txDetails types.TransactionDetails
 	for _, txhash := range hashs {
 		txresult, err := chain.GetTxResultFromDb(txhash)
@@ -191,12 +201,7 @@ func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresul
 	TransactionDetail.ActionName = txresult.GetTx().ActionName()
 
 	//获取from地址
-	addr := txresult.GetTx().From()
-	TransactionDetail.Fromaddr = addr
-	if TransactionDetail.GetTx().IsWithdraw() {
-		//swap from and to
-		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
-	}
+	TransactionDetail.Fromaddr = txresult.GetTx().From()
 }
 
 //ProcGetAddrOverview 获取addrOverview
@@ -222,36 +227,23 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	} else {
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	beg := types.Now()
-	curdbver, err := types.G("dbversion")
 	if err != nil {
 		return nil, err
 	}
+
 	var reqkey types.ReqKey
-	if curdbver.(int64) == 0 {
-		//旧的数据库获取地址对应的交易count，使用前缀查找的方式获取
-		//前缀和util.go 文件中的CalcTxAddrHashKey保持一致
-		reqkey.Key = []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr.Addr, ""))
-		count, err := chain.query.Query(types.ExecName("coins"), "GetPrefixCount", &reqkey)
-		if err != nil {
-			chainlog.Error("ProcGetAddrOverview", "GetPrefixCount err", err)
-			addrOverview.TxCount = 0
-		} else {
-			addrOverview.TxCount = count.(*types.Int64).GetData()
-		}
-		chainlog.Debug("GetPrefixCount", "cost ", types.Since(beg))
+
+	//新的代码不支持PrefixCount查询地址交易计数，executor/localdb.go PrefixCount
+	//现有的节点都已经升级了localdb，也就是都支持通过GetAddrTxsCount来获取地址交易计数
+	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
+	count, err := chain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", &reqkey)
+	if err != nil {
+		chainlog.Error("ProcGetAddrOverview", "GetAddrTxsCount err", err)
+		addrOverview.TxCount = 0
 	} else {
-		//新的数据库直接使用key值查找就可以
-		//前缀和util.go 文件中的calcAddrTxsCountKey保持一致
-		reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
-		count, err := chain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", &reqkey)
-		if err != nil {
-			chainlog.Error("ProcGetAddrOverview", "GetAddrTxsCount err", err)
-			addrOverview.TxCount = 0
-		} else {
-			addrOverview.TxCount = count.(*types.Int64).GetData()
-		}
-		chainlog.Debug("GetAddrTxsCount", "cost ", types.Since(beg))
+		addrOverview.TxCount = count.(*types.Int64).GetData()
 	}
+	chainlog.Debug("GetAddrTxsCount", "TxCount ", addrOverview.TxCount)
+
 	return &addrOverview, nil
 }

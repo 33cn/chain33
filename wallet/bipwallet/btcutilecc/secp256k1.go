@@ -14,9 +14,11 @@ package btcutil
 // and http://stackoverflow.com/a/8392111/174463
 // for details on how this Koblitz curve math works.
 
-import "crypto/elliptic"
-import "fmt"
-import "math/big"
+import (
+	"crypto/elliptic"
+	"fmt"
+	"math/big"
+)
 
 // KoblitzCurve A Koblitz Curve with a=0.
 type KoblitzCurve struct {
@@ -37,10 +39,22 @@ func Secp256k1() elliptic.Curve {
 
 func init() {
 	var p, n, gx, gy big.Int
-	fmt.Sscan("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", &p)
-	fmt.Sscan("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", &n)
-	fmt.Sscan("0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", &gx)
-	fmt.Sscan("0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", &gy)
+	_, err := fmt.Sscan("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", &p)
+	if err != nil {
+		return
+	}
+	_, err = fmt.Sscan("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", &n)
+	if err != nil {
+		return
+	}
+	_, err = fmt.Sscan("0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", &gx)
+	if err != nil {
+		return
+	}
+	_, err = fmt.Sscan("0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", &gy)
+	if err != nil {
+		return
+	}
 	b := big.NewInt(7)
 	secp256k1 = &KoblitzCurve{
 		P:       &p,

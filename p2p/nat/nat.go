@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
 	//"log"
 	"net"
 	"strings"
@@ -32,7 +33,7 @@ import (
 	"time"
 
 	//"github.com/ethereum/go-ethereum/log"
-	"github.com/jackpal/go-nat-pmp"
+	natpmp "github.com/jackpal/go-nat-pmp"
 )
 
 // Interface An implementation of nat.Interface can map local ports to ports
@@ -112,7 +113,10 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 
 		refresh.Stop()
 		log.Println("Deleting port mapping")
-		m.DeleteMapping(protocol, extport, intport)
+		err := m.DeleteMapping(protocol, extport, intport)
+		if err != nil {
+			return
+		}
 	}()
 	if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
 		log.Println("Couldn't add port mapping", "err", err)

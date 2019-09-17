@@ -49,7 +49,6 @@ func init() {
 
 //保证只有一个chain33 会运行
 var lognode = log15.New("module", "lognode")
-var chain33globalLock sync.Mutex
 
 //Chain33Mock :
 type Chain33Mock struct {
@@ -69,6 +68,7 @@ type Chain33Mock struct {
 	sub      *types.ConfigSubModule
 	datadir  string
 	lastsend []byte
+	mu       sync.Mutex
 }
 
 //GetDefaultConfig :
@@ -82,7 +82,6 @@ func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client
 }
 
 func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	chain33globalLock.Lock()
 	return newWithConfigNoLock(cfg, sub, mockapi)
 }
 
@@ -130,7 +129,11 @@ func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi 
 	mock.wallet.SetQueueClient(cli)
 	lognode.Info("init wallet")
 	if mockapi == nil {
-		mockapi, _ = client.New(q.Client(), nil)
+		var err error
+		mockapi, err = client.New(q.Client(), nil)
+		if err != nil {
+			return nil
+		}
 		newWalletRealize(mockapi)
 	}
 	mock.api = mockapi
@@ -168,13 +171,17 @@ func (mock *Chain33Mock) Listen() {
 		l := len(mock.cfg.RPC.GrpcBindAddr)
 		mock.cfg.RPC.GrpcBindAddr = mock.cfg.RPC.GrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portgrpc)
 	}
-	if mock.sub.Consensus["para"] != nil {
-		data, err := types.ModifySubConfig(mock.sub.Consensus["para"], "ParaRemoteGrpcClient", mock.cfg.RPC.GrpcBindAddr)
+}
+
+//ModifyParaClient modify para config
+func ModifyParaClient(sub *types.ConfigSubModule, gaddr string) {
+	if sub.Consensus["para"] != nil {
+		data, err := types.ModifySubConfig(sub.Consensus["para"], "ParaRemoteGrpcClient", gaddr)
 		if err != nil {
 			panic(err)
 		}
-		mock.sub.Consensus["para"] = data
-		types.S("config.consensus.sub.para.ParaRemoteGrpcClient", mock.cfg.RPC.GrpcBindAddr)
+		sub.Consensus["para"] = data
+		types.S("config.consensus.sub.para.ParaRemoteGrpcClient", gaddr)
 	}
 }
 
@@ -194,7 +201,10 @@ func setFee(cfg *types.Config, fee int64) {
 
 //GetJSONC :
 func (mock *Chain33Mock) GetJSONC() *jsonclient.JSONClient {
-	jsonc, _ := jsonclient.NewJSONClient("http://" + mock.cfg.RPC.JrpcBindAddr + "/")
+	jsonc, err := jsonclient.NewJSONClient("http://" + mock.cfg.RPC.JrpcBindAddr + "/")
+	if err != nil {
+		return nil
+	}
 	return jsonc
 }
 
@@ -242,13 +252,13 @@ func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, non
 func newWalletRealize(qAPI client.QueueProtocolAPI) {
 	seed := &types.SaveSeedByPw{
 		Seed:   "subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant",
-		Passwd: "123456",
+		Passwd: "123456fuzamei",
 	}
 	reply, err := qAPI.SaveSeed(seed)
 	if !reply.IsOk && err != nil {
 		panic(err)
 	}
-	reply, err = qAPI.WalletUnLock(&types.WalletUnLock{Passwd: "123456"})
+	reply, err = qAPI.WalletUnLock(&types.WalletUnLock{Passwd: "123456fuzamei"})
 	if !reply.IsOk && err != nil {
 		panic(err)
 	}
@@ -285,20 +295,31 @@ func (mock *Chain33Mock) GetCfg() *types.Config {
 //Close :
 func (mock *Chain33Mock) Close() {
 	mock.closeNoLock()
-	chain33globalLock.Unlock()
 }
 
 func (mock *Chain33Mock) closeNoLock() {
-	mock.chain.Close()
-	mock.store.Close()
-	mock.mem.Close()
-	mock.cs.Close()
-	mock.exec.Close()
-	mock.wallet.Close()
+	lognode.Info("network close")
 	mock.network.Close()
-	mock.client.Close()
+	lognode.Info("network close")
 	mock.rpc.Close()
-	os.RemoveAll(mock.datadir)
+	lognode.Info("rpc close")
+	mock.mem.Close()
+	lognode.Info("mem close")
+	mock.exec.Close()
+	lognode.Info("exec close")
+	mock.cs.Close()
+	lognode.Info("cs close")
+	mock.wallet.Close()
+	lognode.Info("wallet close")
+	mock.chain.Close()
+	lognode.Info("chain close")
+	mock.store.Close()
+	lognode.Info("store close")
+	mock.client.Close()
+	err := os.RemoveAll(mock.datadir)
+	if err != nil {
+		return
+	}
 }
 
 //WaitHeight :
@@ -350,8 +371,31 @@ func (mock *Chain33Mock) SendTx(tx *types.Transaction) []byte {
 	if err != nil {
 		panic(err)
 	}
-	mock.lastsend = reply.GetMsg()
+	mock.SetLastSend(reply.GetMsg())
 	return reply.GetMsg()
+}
+
+//SetLastSend :
+func (mock *Chain33Mock) SetLastSend(hash []byte) {
+	mock.mu.Lock()
+	mock.lastsend = hash
+	mock.mu.Unlock()
+}
+
+//SendTxRPC :
+func (mock *Chain33Mock) SendTxRPC(tx *types.Transaction) []byte {
+	var txhash string
+	hextx := common.ToHex(types.Encode(tx))
+	err := mock.GetJSONC().Call("Chain33.SendTransaction", &rpctypes.RawParm{Data: hextx}, &txhash)
+	if err != nil {
+		panic(err)
+	}
+	hash, err := common.FromHex(txhash)
+	if err != nil {
+		panic(err)
+	}
+	mock.lastsend = hash
+	return hash
 }
 
 //Wait :

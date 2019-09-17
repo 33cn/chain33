@@ -4,9 +4,12 @@
 
 package main
 
-import "crypto/rand"
-import "fmt"
-import btcutil "github.com/33cn/chain33/wallet/bipwallet/btcutilecc"
+import (
+	"crypto/rand"
+	"fmt"
+
+	btcutil "github.com/33cn/chain33/wallet/bipwallet/btcutilecc"
+)
 
 func main() {
 	signer := new(btcutil.BlindSignerState)

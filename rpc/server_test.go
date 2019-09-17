@@ -101,7 +101,7 @@ func TestJSONClient_Call(t *testing.T) {
 
 	var fee types.TotalFee
 	api.On("LocalGet", mock.Anything).Return(nil, errors.New("error value"))
-	err = jsonClient.Call("Chain33.QueryTotalFee", &types.ReqSignRawTx{}, &fee)
+	err = jsonClient.Call("Chain33.QueryTotalFee", &types.LocalDBGet{Keys: [][]byte{[]byte("test")}}, &fee)
 	assert.NotNil(t, err)
 
 	var retNtp bool
@@ -109,9 +109,19 @@ func TestJSONClient_Call(t *testing.T) {
 	err = jsonClient.Call("Chain33.IsNtpClockSync", &types.ReqNil{}, &retNtp)
 	assert.Nil(t, err)
 	assert.True(t, retNtp)
+	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 2}, nil)
 	testCreateTxCoins(t, jsonClient)
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
+}
+
+func testDecodeTxHex(t *testing.T, txHex string) *types.Transaction {
+	txbytes, err := hex.DecodeString(txHex)
+	assert.Nil(t, err)
+	var tx types.Transaction
+	err = types.Decode(txbytes, &tx)
+	assert.Nil(t, err)
+	return &tx
 }
 
 func testCreateTxCoins(t *testing.T, jsonClient *jsonclient.JSONClient) {
@@ -128,12 +138,15 @@ func testCreateTxCoins(t *testing.T, jsonClient *jsonclient.JSONClient) {
 	var res string
 	err := jsonClient.Call("Chain33.CreateRawTransaction", req, &res)
 	assert.Nil(t, err)
-	txbytes, err := hex.DecodeString(res)
-	assert.Nil(t, err)
-	var tx types.Transaction
-	err = types.Decode(txbytes, &tx)
-	assert.Nil(t, err)
+	tx := testDecodeTxHex(t, res)
 	assert.Equal(t, "184wj4nsgVxKyz2NhM3Yb5RK5Ap6AFRFq2", tx.To)
+	assert.Equal(t, int64(1), tx.Fee)
+	req.Fee = 0
+	err = jsonClient.Call("Chain33.CreateRawTransaction", req, &res)
+	assert.Nil(t, err)
+	tx = testDecodeTxHex(t, res)
+	fee, _ := tx.GetRealFee(2)
+	assert.Equal(t, fee, tx.Fee)
 }
 
 func TestGrpc_Call(t *testing.T) {
@@ -145,6 +158,7 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
 	api := new(mocks.QueueProtocolAPI)
+	_ = NewGrpcServer()
 	server := NewGRpcServer(&qmocks.Client{}, api)
 	assert.NotNil(t, server)
 	go server.Listen()
@@ -179,4 +193,55 @@ func TestGrpc_Call(t *testing.T) {
 
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
+}
+
+func TestRPC(t *testing.T) {
+	cfg := &types.RPC{
+		JrpcBindAddr:      "8801",
+		GrpcBindAddr:      "8802",
+		Whitlist:          []string{"127.0.0.1"},
+		JrpcFuncBlacklist: []string{"CloseQueue"},
+		GrpcFuncBlacklist: []string{"CloseQueue"},
+		EnableTrace:       true,
+	}
+	InitCfg(cfg)
+	rpc := New(cfg)
+	client := &qmocks.Client{}
+	rpc.SetQueueClient(client)
+
+	assert.Equal(t, client, rpc.GetQueueClient())
+	assert.NotNil(t, rpc.GRPC())
+	assert.NotNil(t, rpc.JRPC())
+}
+
+func TestCheckFuncList(t *testing.T) {
+	funcName := "abc"
+	jrpcFuncWhitelist = make(map[string]bool)
+	assert.False(t, checkJrpcFuncWhitelist(funcName))
+	jrpcFuncWhitelist["*"] = true
+	assert.True(t, checkJrpcFuncWhitelist(funcName))
+
+	delete(jrpcFuncWhitelist, "*")
+	jrpcFuncWhitelist[funcName] = true
+	assert.True(t, checkJrpcFuncWhitelist(funcName))
+
+	grpcFuncWhitelist = make(map[string]bool)
+	assert.False(t, checkGrpcFuncWhitelist(funcName))
+	grpcFuncWhitelist["*"] = true
+	assert.True(t, checkGrpcFuncWhitelist(funcName))
+
+	delete(grpcFuncWhitelist, "*")
+	grpcFuncWhitelist[funcName] = true
+	assert.True(t, checkGrpcFuncWhitelist(funcName))
+
+	jrpcFuncBlacklist = make(map[string]bool)
+	assert.False(t, checkJrpcFuncBlacklist(funcName))
+	jrpcFuncBlacklist[funcName] = true
+	assert.True(t, checkJrpcFuncBlacklist(funcName))
+
+	grpcFuncBlacklist = make(map[string]bool)
+	assert.False(t, checkGrpcFuncBlacklist(funcName))
+	grpcFuncBlacklist[funcName] = true
+	assert.True(t, checkGrpcFuncBlacklist(funcName))
+
 }

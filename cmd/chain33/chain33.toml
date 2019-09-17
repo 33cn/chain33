@@ -1,6 +1,8 @@
 Title="chain33"
 TestNet=true
 FixTime=false
+# 配置主币的名称: 比特元链bty, 部分未配置的平行链需要配置为 bty， 新的平行链配置 para或其他， 不配置panic
+CoinSymbol="bty"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -47,6 +49,8 @@ isRecordBlockSequence=true
 # 是否为平行链节点
 isParaChain=false
 enableTxQuickIndex=false
+# 升级storedb是否重新执行localdb
+enableReExecLocal=false
 
 [p2p]
 # P2P服务监听端口号
@@ -74,6 +78,8 @@ dbPath="datadir/addrbook"
 dbCache=4
 # GRPC请求日志文件
 grpcLogFile="grpc33.log"
+#waitPid 等待seed导入
+waitPid=false
 
 [rpc]
 # jrpc绑定地址
@@ -102,6 +108,10 @@ poolCacheSize=10240
 minTxFee=100000
 # 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
+# 最大得交易手续费用，这个没有默认值，必填，一般是100000
+maxTxFee=1000000000
+# 是否开启阶梯手续费
+isLevelFee=false
 
 [mempool.sub.timeline]
 # mempool缓存容量大小，默认10240
@@ -126,18 +136,41 @@ minerstart=true
 genesisBlockTime=1514533394
 #创世交易地址
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+minerExecs=["ticket", "autonomy"]
 
 [mver.consensus]
 #基金账户地址
 fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+<<<<<<< HEAD
+=======
+#挖矿难度
+powLimitBits = "0x1f00ffff"
+#区块包含最多交易数
+maxTxNumber = 1600
+
+[mver.consensus.ForkChainParamV1]
+maxTxNumber = 1500
+
+
+[mver.consensus.ForkChainParamV2]
+powLimitBits = "0x1f2fffff"
+
+[mver.consensus.ForkTicketFundAddrV1]
+fundKeyAddr = "1Ji3W12KGScCM7C2p8bg635sNkayDM8MGY"
+
+[mver.consensus.ticket]
+>>>>>>> upstream/master
 #用户回报
 coinReward = 18
 #发展基金回报
 coinDevFund = 12
 #ticket价格
 ticketPrice = 10000
+<<<<<<< HEAD
 #挖矿难度
 powLimitBits = "0x1f00ffff"
+=======
+>>>>>>> upstream/master
 #每次调整难度的最大的范围，如果设置成 4 的话，范围是 (1/4 - 4)，一次不能增加 4倍以上的难度，或者难度减少为 原来的 1/4 ，这个参数，是为了难度不会突然爆增加或者减少
 retargetAdjustmentFactor = 4
 #表示如果区块时间大于当前时间 16s ，那么区块就会判定为无效区块。
@@ -146,24 +179,25 @@ futureBlockTime = 16
 ticketFrozenTime = 5    #5s only for test
 ticketWithdrawTime = 10 #10s only for test
 ticketMinerWaitTime = 2 #2s only for test
+<<<<<<< HEAD
 #区块包含最多交易数
 maxTxNumber = 1600      #160
+=======
+>>>>>>> upstream/master
 #调整挖矿难度的间隔，(ps:难度不是每个区块都调整的，而是每隔 targetTimespan / targetTimePerBlock 块调整一次)
 targetTimespan = 2304
 #每个区块打包的目标时间
 targetTimePerBlock = 16
 
-[mver.consensus.ForkChainParamV1]
+[mver.consensus.ticket.ForkChainParamV1]
 futureBlockTime = 15
 ticketFrozenTime = 43200
 ticketWithdrawTime = 172800
 ticketMinerWaitTime = 7200
-maxTxNumber = 1500
 targetTimespan = 2160
 targetTimePerBlock = 15
 
-[mver.consensus.ForkChainParamV2]
-powLimitBits = "0x1f2fffff"
+
 
 [consensus.sub.solo]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
@@ -198,8 +232,14 @@ driver="leveldb"
 dbPath="datadir/mavltree"
 # Cache大小
 dbCache=128
+<<<<<<< HEAD
 # 数据库版本
+=======
+# local数据库版本
+>>>>>>> upstream/master
 localdbVersion="1.0.0"
+# store数据库版本
+storedbVersion="1.0.0"
 
 [store.sub.mavl]
 # 是否使能mavl加前缀
@@ -210,6 +250,12 @@ enableMVCC=false
 enableMavlPrune=false
 # 裁剪高度间隔
 pruneHeight=10000
+# 是否使能mavl数据载入内存
+enableMemTree=false
+# 是否使能mavl叶子节点数据载入内存
+enableMemVal=false
+# 缓存close ticket数目，该缓存越大同步速度越快，最大设置到1500000
+tkCloseCacheLen=100000
 
 [wallet]
 # 交易发送最低手续费，单位0.00000001BTY(1e-8),默认100000，即0.001BTY
@@ -234,6 +280,10 @@ minerwhitelist=["*"]
 isFree=false
 #执行器执行所需最小费用,低于Mempool和Wallet设置的MinFee,在minExecFee = 0 的情况下，isFree = true才会生效
 minExecFee=100000
+<<<<<<< HEAD
+=======
+maxExecFee=1000000000
+>>>>>>> upstream/master
 #是否开启stat插件
 enableStat=false
 #是否开启MVCC插件
@@ -272,3 +322,7 @@ superManager=[
     "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 
     "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"
 ]
+
+[exec.sub.autonomy]
+total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+useBalance=false

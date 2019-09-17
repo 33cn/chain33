@@ -87,18 +87,21 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	if float64(types.MaxCoin/types.Coin) < amount {
 		return "", types.ErrAmount
 	}
-
+	//检测to地址的合法性
+	if to != "" {
+		if err := address.CheckAddress(to); err != nil {
+			return "", types.ErrInvalidAddress
+		}
+	}
 	paraName, _ := cmd.Flags().GetString("paraName")
 	amountInt64 := int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4
-	initExecName := execName
-	execName = getRealExecName(paraName, execName)
 	if execName != "" && !types.IsAllowExecName([]byte(execName), []byte(execName)) {
 		return "", types.ErrExecNameNotMatch
 	}
 	var tx *types.Transaction
 	transfer := &cty.CoinsAction{}
 	if !isWithdraw {
-		if initExecName != "" {
+		if execName != "" {
 			v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, Note: []byte(note), ExecName: execName, To: to}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionTransferToExec

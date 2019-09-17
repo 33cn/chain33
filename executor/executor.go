@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/api"
 	dbm "github.com/33cn/chain33/common/db"
 	clog "github.com/33cn/chain33/common/log"
@@ -26,7 +25,6 @@ import (
 )
 
 var elog = log.New("module", "execs")
-var coinsAccount = account.NewCoinsAccount()
 
 // SetLogLevel set log level
 func SetLogLevel(level string) {
@@ -106,9 +104,11 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	if err != nil {
 		panic(err)
 	}
-	exec.grpccli, err = grpcclient.NewMainChainClient("")
-	if err != nil {
-		panic(err)
+	if types.IsPara() {
+		exec.grpccli, err = grpcclient.NewMainChainClient("")
+		if err != nil {
+			panic(err)
+		}
 	}
 	//recv 消息的处理
 	go func() {
@@ -130,6 +130,14 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 }
 
 func (exec *Executor) procExecQuery(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	header, err := exec.qclient.GetLastHeader()
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
@@ -169,6 +177,14 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 }
 
 func (exec *Executor) procExecCheckTx(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.ExecTxList)
 	ctx := &executorCtx{
 		stateHash:  datas.StateHash,
@@ -205,6 +221,14 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 }
 
 func (exec *Executor) procExecTxList(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.ExecTxList)
 	ctx := &executorCtx{
 		stateHash:  datas.StateHash,
@@ -279,6 +303,14 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 }
 
 func (exec *Executor) procExecAddBlock(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	ctx := &executorCtx{
@@ -300,7 +332,10 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	execute.enableMVCC(datas.PrevStatusHash)
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
-		execute.stateDB.Set(kv.Key, kv.Value)
+		err := execute.stateDB.Set(kv.Key, kv.Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	for name, plugin := range globalPlugins {
 		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])
@@ -321,7 +356,10 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 		if len(kvs) > 0 {
 			kvset.KV = append(kvset.KV, kvs...)
 			for _, kv := range kvs {
-				execute.localDB.Set(kv.Key, kv.Value)
+				err := execute.localDB.Set(kv.Key, kv.Value)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -341,6 +379,14 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 }
 
 func (exec *Executor) procExecDelBlock(msg *queue.Message) {
+	//panic 处理
+	defer func() {
+		if r := recover(); r != nil {
+			elog.Error("panic error", "err", r)
+			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
+			return
+		}
+	}()
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
 	ctx := &executorCtx{
@@ -361,7 +407,10 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	execute.enableMVCC(nil)
 	var kvset types.LocalDBSet
 	for _, kv := range datas.KV {
-		execute.stateDB.Set(kv.Key, kv.Value)
+		err := execute.stateDB.Set(kv.Key, kv.Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	for name, plugin := range globalPlugins {
 		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])
@@ -408,4 +457,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 // Close close executor
 func (exec *Executor) Close() {
 	elog.Info("exec module closed")
+	if exec.client != nil {
+		exec.client.Close()
+	}
 }

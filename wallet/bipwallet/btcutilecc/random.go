@@ -4,8 +4,10 @@
 
 package btcutil
 
-import "io"
-import "math/big"
+import (
+	"io"
+	"math/big"
+)
 
 var one = new(big.Int).SetInt64(1)
 

@@ -44,11 +44,18 @@ import (
 )
 
 var (
-	cpuNum     = runtime.NumCPU()
-	configPath = flag.String("f", "", "configfile")
-	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
-	versionCmd = flag.Bool("v", false, "version")
-	fixtime    = flag.Bool("fixtime", false, "fix time")
+	cpuNum      = runtime.NumCPU()
+	configPath  = flag.String("f", "", "configfile")
+	datadir     = flag.String("datadir", "", "data dir of chain33, include logs and datas")
+	versionCmd  = flag.Bool("v", false, "version")
+	fixtime     = flag.Bool("fixtime", false, "fix time")
+	waitPid     = flag.Bool("waitpid", false, "p2p stuck until seed save info wallet & wallet unlock")
+	rollback    = flag.Int64("rollback", 0, "rollback block")
+	save        = flag.Bool("save", false, "rollback save temporary block")
+	importFile  = flag.String("import", "", "import block file name")
+	exportTitle = flag.String("export", "", "export block title name")
+	fileDir     = flag.String("filedir", "", "import/export block file dir,defalut current path")
+	startHeight = flag.Int64("startheight", 0, "export block start height")
 )
 
 //RunChain33 : run Chain33
@@ -65,12 +72,21 @@ func RunChain33(name string) {
 			*configPath = name + ".toml"
 		}
 	}
-	d, _ := os.Getwd()
+	d, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 	log.Info("current dir:", "dir", d)
-	os.Chdir(pwd())
-	d, _ = os.Getwd()
+	err = os.Chdir(pwd())
+	if err != nil {
+		panic(err)
+	}
+	d, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 	log.Info("current dir:", "dir", d)
-	err := limits.SetLimits()
+	err = limits.SetLimits()
 	if err != nil {
 		panic(err)
 	}
@@ -81,6 +97,9 @@ func RunChain33(name string) {
 	}
 	if *fixtime {
 		cfg.FixTime = *fixtime
+	}
+	if *waitPid {
+		cfg.P2P.WaitPid = *waitPid
 	}
 	//set test net flag
 	types.Init(cfg.Title, cfg)
@@ -109,9 +128,15 @@ func RunChain33(name string) {
 	//set pprof
 	go func() {
 		if cfg.Pprof != nil {
-			http.ListenAndServe(cfg.Pprof.ListenAddr, nil)
+			err := http.ListenAndServe(cfg.Pprof.ListenAddr, nil)
+			if err != nil {
+				log.Info("ListenAndServe", "listen addr", cfg.Pprof.ListenAddr, "err", err)
+			}
 		} else {
-			http.ListenAndServe("localhost:6060", nil)
+			err := http.ListenAndServe("localhost:6060", nil)
+			if err != nil {
+				log.Info("ListenAndServe", "listen addr localhost:6060 err", err)
+			}
 		}
 	}()
 	//set maxprocs
@@ -119,45 +144,35 @@ func RunChain33(name string) {
 	//开始区块链模块加载
 	//channel, rabitmq 等
 	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
+	version.SetStoreDBVersion(cfg.Store.StoreDBVersion)
 	version.SetAppVersion(cfg.Version)
-	log.Info(cfg.Title + "-app:" + version.GetAppVersion() + " chain33:" + version.GetVersion() + " localdb:" + version.GetLocalDBVersion())
+	log.Info(cfg.Title + "-app:" + version.GetAppVersion() + " chain33:" + version.GetVersion() + " localdb:" + version.GetLocalDBVersion() + " statedb:" + version.GetStoreDBVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
 	log.Info("loading mempool module")
-	var mem queue.Module
-	if !types.IsPara() {
-		mem = mempool.New(cfg.Mempool, sub.Mempool)
-	} else {
-		mem = &util.MockModule{Key: "mempool"}
-	}
+	mem := mempool.New(cfg.Mempool, sub.Mempool)
 	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
 	exec := executor.New(cfg.Exec, sub.Exec)
 	exec.SetQueueClient(q.Client())
 
+	log.Info("loading blockchain module")
+	cfg.BlockChain.RollbackBlock = *rollback
+	cfg.BlockChain.RollbackSave = *save
+	chain := blockchain.New(cfg.BlockChain)
+	chain.SetQueueClient(q.Client())
+
 	log.Info("loading store module")
 	s := store.New(cfg.Store, sub.Store)
 	s.SetQueueClient(q.Client())
 
-	log.Info("loading blockchain module")
-	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueueClient(q.Client())
-	chain.UpgradeChain()
+	chain.Upgrade()
 
 	log.Info("loading consensus module")
 	cs := consensus.New(cfg.Consensus, sub.Consensus)
 	cs.SetQueueClient(q.Client())
-
-	log.Info("loading p2p module")
-	var network queue.Module
-	if cfg.P2P.Enable && !types.IsPara() {
-		network = p2p.New(cfg.P2P)
-	} else {
-		network = &util.MockModule{Key: "p2p"}
-	}
-	network.SetQueueClient(q.Client())
 
 	//jsonrpc, grpc, channel 三种模式
 	rpcapi := rpc.New(cfg.RPC)
@@ -166,6 +181,23 @@ func RunChain33(name string) {
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet, sub.Wallet)
 	walletm.SetQueueClient(q.Client())
+
+	chain.Rollbackblock()
+	//导入/导出区块通过title
+	if *importFile != "" {
+		chain.ImportBlockProc(*importFile, *fileDir)
+	}
+	if *exportTitle != "" {
+		chain.ExportBlockProc(*exportTitle, *fileDir, *startHeight)
+	}
+	log.Info("loading p2p module")
+	var network queue.Module
+	if cfg.P2P.Enable && !types.IsPara() {
+		network = p2p.New(cfg.P2P)
+	} else {
+		network = &util.MockModule{Key: "p2p"}
+	}
+	network.SetQueueClient(q.Client())
 
 	health := util.NewHealthCheckServer(q.Client())
 	health.Start(cfg.Health)

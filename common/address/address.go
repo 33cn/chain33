@@ -7,6 +7,7 @@ package address
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 
@@ -17,6 +18,7 @@ import (
 
 var addrSeed = []byte("address seed bytes for public key")
 var addressCache *lru.Cache
+var pubkeyCache *lru.Cache
 var checkAddressCache *lru.Cache
 var multisignCache *lru.Cache
 var multiCheckAddressCache *lru.Cache
@@ -26,6 +28,9 @@ var ErrCheckVersion = errors.New("check version error")
 
 //ErrCheckChecksum :
 var ErrCheckChecksum = errors.New("Address Checksum error")
+
+//ErrAddressChecksum :
+var ErrAddressChecksum = errors.New("address checksum error")
 
 //MaxExecNameLength 执行器名最大长度
 const MaxExecNameLength = 100
@@ -37,10 +42,27 @@ const NormalVer byte = 0
 const MultiSignVer byte = 5
 
 func init() {
-	multisignCache, _ = lru.New(10240)
-	addressCache, _ = lru.New(10240)
-	checkAddressCache, _ = lru.New(10240)
-	multiCheckAddressCache, _ = lru.New(10240)
+	var err error
+	multisignCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	pubkeyCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	addressCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	checkAddressCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+	multiCheckAddressCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
 }
 
 //ExecPubKey 计算公钥
@@ -101,6 +123,16 @@ func PubKeyToAddress(in []byte) *Address {
 	return HashToAddress(NormalVer, in)
 }
 
+//PubKeyToAddr 公钥转为地址
+func PubKeyToAddr(in []byte) string {
+	if value, ok := pubkeyCache.Get(string(in)); ok {
+		return value.(string)
+	}
+	addr := HashToAddress(NormalVer, in).String()
+	pubkeyCache.Add(string(in), addr)
+	return addr
+}
+
 //HashToAddress hash32 to address
 func HashToAddress(version byte, in []byte) *Address {
 	a := new(Address)
@@ -111,7 +143,15 @@ func HashToAddress(version byte, in []byte) *Address {
 	return a
 }
 
+func checksum(input []byte) (cksum [4]byte) {
+	h := sha256.Sum256(input)
+	h2 := sha256.Sum256(h[:])
+	copy(cksum[:], h2[:4])
+	return
+}
+
 func checkAddress(ver byte, addr string) (e error) {
+
 	dec := base58.Decode(addr)
 	if dec == nil {
 		e = errors.New("Cannot decode b58 string '" + addr + "'")
@@ -123,14 +163,24 @@ func checkAddress(ver byte, addr string) (e error) {
 		checkAddressCache.Add(addr, e)
 		return
 	}
+	//version 的错误优先
+	if dec[0] != ver {
+		e = ErrCheckVersion
+		return
+	}
+	//需要兼容以前的错误(以前的错误，是一种特殊的情况)
 	if len(dec) == 25 {
 		sh := common.Sha2Sum(dec[0:21])
 		if !bytes.Equal(sh[:4], dec[21:25]) {
 			e = ErrCheckChecksum
+			return
 		}
 	}
-	if dec[0] != ver {
-		e = ErrCheckVersion
+	var cksum [4]byte
+	copy(cksum[:], dec[len(dec)-4:])
+	//新的错误: 这个错误用一种新的错误标记
+	if checksum(dec[:len(dec)-4]) != cksum {
+		e = ErrAddressChecksum
 	}
 	return e
 }

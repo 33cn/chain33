@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
@@ -45,6 +46,7 @@ type BaseClient struct {
 	client       queue.Client
 	api          client.QueueProtocolAPI
 	minerStart   int32
+	isclosed     int32
 	once         sync.Once
 	Cfg          *types.Consensus
 	currentBlock *types.Block
@@ -81,12 +83,21 @@ func (bc *BaseClient) GetAPI() client.QueueProtocolAPI {
 	return bc.api
 }
 
+//SetAPI ...
+func (bc *BaseClient) SetAPI(api client.QueueProtocolAPI) {
+	bc.api = api
+}
+
 //InitClient 初始化
 func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	log.Info("Enter SetQueueClient method of consensus")
 	bc.client = c
 	bc.minerstartCB = minerstartCB
-	bc.api, _ = client.New(c, nil)
+	var err error
+	bc.api, err = client.New(c, nil)
+	if err != nil {
+		panic(err)
+	}
 	bc.InitMiner()
 }
 
@@ -137,7 +148,10 @@ func (bc *BaseClient) InitBlock() {
 		if newblock.Height == 0 {
 			newblock.Difficulty = types.GetP(0).PowLimitBits
 		}
-		bc.WriteBlock(zeroHash[:], newblock)
+		err := bc.WriteBlock(zeroHash[:], newblock)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		bc.SetCurrentBlock(block)
 	}
@@ -146,8 +160,14 @@ func (bc *BaseClient) InitBlock() {
 //Close 关闭
 func (bc *BaseClient) Close() {
 	atomic.StoreInt32(&bc.minerStart, 0)
+	atomic.StoreInt32(&bc.isclosed, 1)
 	bc.client.Close()
 	log.Info("consensus base closed")
+}
+
+//IsClosed 是否已经关闭
+func (bc *BaseClient) IsClosed() bool {
+	return atomic.LoadInt32(&bc.isclosed) == 1
 }
 
 //CheckTxDup 为了不引起交易检查时候产生的无序
@@ -172,7 +192,10 @@ func (bc *BaseClient) IsCaughtUp() bool {
 		panic("bc not bind message queue.")
 	}
 	msg := bc.client.NewMessage("blockchain", types.EventIsSync, nil)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return false
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return false
@@ -262,6 +285,15 @@ func (bc *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	if string(block.Block.GetParentHash()) != string(parent.Hash()) {
 		return types.ErrParentHash
 	}
+	//check block size and tx count
+	if types.IsFork(block.Block.Height, "ForkBlockCheck") {
+		if block.Block.Size() > types.MaxBlockSize {
+			return types.ErrBlockSize
+		}
+		if int64(len(block.Block.Txs)) > types.GetP(block.Block.Height).MaxTxNumber {
+			return types.ErrManyTx
+		}
+	}
 	//check by drivers
 	err = bc.child.CheckBlock(parent, block)
 	return err
@@ -273,7 +305,10 @@ func (bc *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.Tran
 		panic("bc not bind message queue.")
 	}
 	msg := bc.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Hashes: txHashList, Count: int64(listSize)})
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil
@@ -288,7 +323,10 @@ func (bc *BaseClient) RequestBlock(start int64) (*types.Block, error) {
 	}
 	reqblock := &types.ReqBlocks{Start: start, End: start, IsDetail: false, Pid: []string{""}}
 	msg := bc.client.NewMessage("blockchain", types.EventGetBlocks, reqblock)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -303,7 +341,10 @@ func (bc *BaseClient) RequestLastBlock() (*types.Block, error) {
 		panic("client not bind message queue.")
 	}
 	msg := bc.client.NewMessage("blockchain", types.EventGetLastBlock, nil)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return nil, err
@@ -316,7 +357,10 @@ func (bc *BaseClient) RequestLastBlock() (*types.Block, error) {
 func (bc *BaseClient) delMempoolTx(deltx []*types.Transaction) error {
 	hashList := buildHashList(deltx)
 	msg := bc.client.NewMessage("mempool", types.EventDelTxList, hashList)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return err
@@ -343,7 +387,10 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 
 	blockdetail := &types.BlockDetail{Block: block}
 	msg := bc.client.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
-	bc.client.Send(msg, true)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return err
+	}
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return err
@@ -352,7 +399,10 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	//从mempool 中删除错误的交易
 	deltx := diffTx(rawtxs, blockdetail.Block.Txs)
 	if len(deltx) > 0 {
-		bc.delMempoolTx(deltx)
+		err := bc.delMempoolTx(deltx)
+		if err != nil {
+			return err
+		}
 	}
 	if blockdetail != nil {
 		bc.SetCurrentBlock(blockdetail.Block)
@@ -433,16 +483,17 @@ func (bc *BaseClient) ConsensusTicketMiner(iscaughtup *types.IsCaughtUp) {
 func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction) []*types.Transaction {
 	size := block.Size()
 	max := types.MaxBlockSize - 100000 //留下100K空间，添加其他的交易
-	currentcount := int64(len(block.Txs))
+	currentCount := int64(len(block.Txs))
 	maxTx := types.GetP(block.Height).MaxTxNumber
 	addedTx := make([]*types.Transaction, 0, len(txs))
 	for i := 0; i < len(txs); i++ {
-		txgroup, err := txs[i].GetTxGroup()
+		txGroup, err := txs[i].GetTxGroup()
 		if err != nil {
 			continue
 		}
-		if txgroup == nil {
-			if currentcount+1 > maxTx {
+		if txGroup == nil {
+			currentCount++
+			if currentCount > maxTx {
 				return addedTx
 			}
 			size += txs[i].Size()
@@ -452,18 +503,75 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 			addedTx = append(addedTx, txs[i])
 			block.Txs = append(block.Txs, txs[i])
 		} else {
-			if currentcount+int64(len(txgroup.Txs)) > maxTx {
+			currentCount += int64(len(txGroup.Txs))
+			if currentCount > maxTx {
 				return addedTx
 			}
-			for i := 0; i < len(txgroup.Txs); i++ {
-				size += txgroup.Txs[i].Size()
+			for i := 0; i < len(txGroup.Txs); i++ {
+				size += txGroup.Txs[i].Size()
 			}
 			if size > max {
 				return addedTx
 			}
-			addedTx = append(addedTx, txgroup.Txs...)
-			block.Txs = append(block.Txs, txgroup.Txs...)
+			addedTx = append(addedTx, txGroup.Txs...)
+			block.Txs = append(block.Txs, txGroup.Txs...)
 		}
 	}
 	return addedTx
+}
+
+//CheckTxExpire 此时的tx交易组都是展开的，过滤掉已经过期的tx交易，目前只有ticket共识需要在updateBlock时调用
+func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, blocktime int64) (transactions []*types.Transaction) {
+	var txlist types.Transactions
+	var hasTxExpire bool
+
+	for i := 0; i < len(txs); i++ {
+
+		groupCount := txs[i].GroupCount
+		if groupCount == 0 {
+			if isExpire(txs[i:i+1], height, blocktime) {
+				txs[i] = nil
+				hasTxExpire = true
+			}
+			continue
+		}
+
+		//判断GroupCount 是否会产生越界
+		if i+int(groupCount) > len(txs) {
+			continue
+		}
+
+		//交易组有过期交易时需要将整个交易组都删除
+		grouptxs := txs[i : i+int(groupCount)]
+		if isExpire(grouptxs, height, blocktime) {
+			for j := i; j < i+int(groupCount); j++ {
+				txs[j] = nil
+				hasTxExpire = true
+			}
+		}
+		i = i + int(groupCount) - 1
+	}
+
+	//有过期交易时需要重新组装交易
+	if hasTxExpire {
+		for _, tx := range txs {
+			if tx != nil {
+				txlist.Txs = append(txlist.Txs, tx)
+			}
+		}
+		return txlist.GetTxs()
+	}
+
+	return txs
+}
+
+//检测交易数组是否过期，只要有一个过期就认为整个交易组过期
+func isExpire(txs []*types.Transaction, height int64, blocktime int64) bool {
+	for _, tx := range txs {
+		if height > 0 && blocktime > 0 && tx.IsExpire(height, blocktime) {
+			log.Debug("isExpire", "height", height, "blocktime", blocktime, "hash", common.ToHex(tx.Hash()), "Expire", tx.Expire)
+			return true
+		}
+	}
+	return false
 }

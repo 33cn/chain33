@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"math/rand"
 	"testing"
+	"time"
 
 	"fmt"
 
@@ -16,19 +17,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 const (
 	strChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" // 62 characters
 )
 
 func RandInt() int {
-	return rand.Int()
+	return random.Int()
 }
 
 func RandStr(length int) string {
 	chars := []byte{}
 MAIN_LOOP:
 	for {
-		val := rand.Int63()
+		val := random.Int63()
 		for i := 0; i < 10; i++ {
 			v := int(val & 0x3f) // rightmost 6 bits
 			if v >= 62 {         // only 62 characters in strChars
@@ -45,6 +48,92 @@ MAIN_LOOP:
 	}
 
 	return string(chars)
+}
+
+func testDBIteratorAllKey(t *testing.T, db DB) {
+	var datas = [][]byte{
+		[]byte("aa0"), []byte("aa1"), []byte("bb0"), []byte("bb1"), []byte("cc0"), []byte("cc1"),
+	}
+	for _, v := range datas {
+		db.Set(v, v)
+	}
+	//一次遍历
+	it := db.Iterator(nil, types.EmptyValue, false)
+	i := 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		db.Delete(it.Key())
+		i++
+		if i == 2 {
+			break
+		}
+	}
+	it.Close()
+	//从第3个开始遍历
+	it = db.Iterator([]byte("aa1"), types.EmptyValue, false)
+	i = 2
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		db.Delete(it.Key())
+		i++
+		if i == 4 {
+			break
+		}
+	}
+	it.Close()
+	//从第5个开始遍历
+	it = db.Iterator([]byte("bb1"), types.EmptyValue, false)
+	i = 4
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		db.Delete(it.Key())
+		i++
+		if i == 6 {
+			break
+		}
+	}
+	it.Close()
+}
+
+func testDBIteratorReserverExample(t *testing.T, db DB) {
+	var datas = [][]byte{
+		[]byte("aa0"), []byte("aa1"), []byte("bb0"), []byte("bb1"), []byte("cc0"), []byte("cc1"),
+	}
+	for _, v := range datas {
+		db.Set(v, v)
+	}
+	// 从尾部到头一次遍历
+	it := db.Iterator(nil, types.EmptyValue, true)
+	i := 5
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+	}
+	it.Close()
+	assert.Equal(t, i, -1)
+
+	// 从bb0开始从后到前遍历,end需要填入bb0的下一个，才可以遍历到bb0
+	it = db.Iterator(nil, []byte("bb1"), true)
+	i = 2
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		//fmt.Println(i, string(it.Key()))
+		i--
+	}
+	it.Close()
+	assert.Equal(t, i, -1)
+
+	// 反向前缀查找
+	it = db.Iterator([]byte("bb"), nil, true)
+	i = 3
+	for it.Rewind(); it.Valid(); it.Next() {
+		assert.Equal(t, it.Key(), datas[i])
+		// fmt.Println(string(it.Key()))
+		i--
+	}
+	it.Close()
+	assert.Equal(t, i, 1)
 }
 
 // 迭代测试
@@ -106,59 +195,6 @@ func testDBIterator(t *testing.T, db DB) {
 		t.Log(string(v))
 	}*/
 	require.Equal(t, list, [][]byte{[]byte("my_key/2"), []byte("my_key/1"), []byte("my_"), []byte("my")})
-}
-
-// 边界测试
-func testDBBoundary2(t *testing.T, db DB) {
-	a, _ := hex.DecodeString("ff")
-	b, _ := hex.DecodeString("ffff")
-	c, _ := hex.DecodeString("ffffff")
-	d, _ := hex.DecodeString("ffffffff")
-	db.Set(a, []byte("0xff"))
-	db.Set(b, []byte("0xffff"))
-	db.Set(c, []byte("0xffffff"))
-	db.Set(d, []byte("0xffffffff"))
-
-	values := [][]byte{[]byte("0xff"), []byte("0xffff"), []byte("0xffffff"), []byte("0xffffffff")}
-	valuesReverse := [][]byte{[]byte("0xffffffff"), []byte("0xffffff"), []byte("0xffff"), []byte("0xff")}
-	var v []byte
-	_ = v
-	it := NewListHelper(db)
-
-	// f为prefix
-	t.Log("PrefixScan")
-	list := it.PrefixScan(a)
-	for i, v := range list {
-		t.Log(i, string(v))
-	}
-	require.Equal(t, list, values)
-
-	t.Log("IteratorScanFromFirst")
-	list = it.IteratorScanFromFirst(a, 2)
-	for i, v := range list {
-		t.Log(i, string(v))
-	}
-	require.Equal(t, list, values[0:2])
-	t.Log("IteratorScanFromLast")
-	list = it.IteratorScanFromLast(a, 100)
-	for i, v := range list {
-		t.Log(i, string(v))
-	}
-	require.Equal(t, list, valuesReverse)
-
-	t.Log("IteratorScan 1") //seek 第二个
-	list = it.IteratorScan(a, b, 100, 1)
-	for i, v := range list {
-		t.Log(i, string(v))
-	}
-	require.Equal(t, list, values[1:])
-
-	t.Log("IteratorScan 0")
-	list = it.IteratorScan(a, c, 100, 0)
-	for i, v := range list {
-		t.Log(i, string(v))
-	}
-	require.Equal(t, list, valuesReverse[1:])
 }
 
 func testDBBoundary(t *testing.T, db DB) {

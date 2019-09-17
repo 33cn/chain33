@@ -261,11 +261,11 @@ func addLeafCountKeyToSecondLevel(db dbm.DB, kvs []*types.KeyValue, batch dbm.Ba
 		batch.Delete(kv.Key)
 		batch.Set(genOldLeafCountKeyFromKey(kv.Key), kv.Value)
 		if batch.ValueSize() > batchDataSize {
-			batch.Write()
+			dbm.MustWrite(batch)
 			batch.Reset()
 		}
 	}
-	batch.Write()
+	dbm.MustWrite(batch)
 }
 
 func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.Batch) {
@@ -291,7 +291,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 					batch.Delete(leafCountKey) // 叶子计数节点
 					batch.Delete(val.hash)     // 叶子节点hash值
 					if batch.ValueSize() > batchDataSize {
-						batch.Write()
+						dbm.MustWrite(batch)
 						batch.Reset()
 					}
 				}
@@ -299,7 +299,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 		}
 		delete(mp, key)
 	}
-	batch.Write()
+	dbm.MustWrite(batch)
 }
 
 func pruningSecondLevel(db dbm.DB, curHeight int64) {
@@ -313,7 +313,10 @@ func pruningSecondLevel(db dbm.DB, curHeight int64) {
 		pruningSecondLevelNode(db, curHeight)
 		end := time.Now()
 		treelog.Info("pruningTree pruningSecondLevel", "curHeight:", curHeight, "pruning leafNode cost time:", end.Sub(start))
-		setSecLvlPruningHeight(db, curHeight)
+		err := setSecLvlPruningHeight(db, curHeight)
+		if err != nil {
+			return
+		}
 		secLvlPruningH = curHeight
 	}
 }
@@ -397,11 +400,11 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch d
 		}
 		delete(mp, key)
 		if batch.ValueSize() > batchDataSize {
-			batch.Write()
+			dbm.MustWrite(batch)
 			batch.Reset()
 		}
 	}
-	batch.Write()
+	dbm.MustWrite(batch)
 }
 
 // PruningTreePrintDB pruning tree print db

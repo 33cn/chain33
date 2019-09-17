@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package calculator;
+// calculator 合约交易行为总类型
+message CalculatorAction {
+    oneof value {
+        Add      add = 1;
+        Subtract sub = 2;
+        Multiply mul = 3;
+        Divide   div = 4;
+    }
+    int32 ty = 5;
+}
+
+message Add {
+    int32 summand = 1; //被加数
+    int32 addend  = 2; //加数
+}
+message AddLog {
+    int32 sum = 1; //和
+}
+
+message Subtract {
+    int32 minuend    = 1; //被减数
+    int32 subtrahend = 2; //减数
+}
+message SubLog {
+    int32 remainder = 1; //差
+}
+
+message Multiply {
+    int32 faciend    = 1; //被乘数
+    int32 multiplier = 2; //乘数
+}
+message MultiplyLog {
+    int32 product = 1; //积
+}
+
+message Divide {
+    int32 dividend = 1; //被除数
+    int32 divisor  = 2; //除数
+}
+message DivideLog {
+    int32 quotient = 1; //商
+    int32 remain   = 2; //余数
+}
+
+message ReqQueryCalcCount {
+    string action = 1;
+}
+message ReplyQueryCalcCount {
+    int32 count = 1;
+}
+
+service calculator {
+    rpc QueryCalcCount(ReqQueryCalcCount) returns (ReplyQueryCalcCount) {}
+}

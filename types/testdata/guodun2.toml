@@ -1,0 +1,158 @@
+Title="user.p.guodun2."
+TestNet=false
+FixTime=false
+EnableParaFork=false
+CoinSymbol="gd2"
+
+[log]
+# 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
+loglevel = "debug"
+logConsoleLevel = "info"
+# 日志文件名，可带目录，所有生成的日志文件都放到此目录下
+logFile = "logs/chain33.log"
+# 单个日志文件的最大值（单位：兆）
+maxFileSize = 300
+# 最多保存的历史日志文件个数
+maxBackups = 100
+# 最多保存的历史日志消息（单位：天）
+maxAge = 28
+# 日志文件名是否使用本地事件（否则使用UTC时间）
+localTime = true
+# 历史日志文件是否压缩（压缩格式为gz）
+compress = true
+# 是否打印调用源文件和行号
+callerFile = false
+# 是否打印调用方法
+callerFunction = false
+
+[blockchain]
+defCacheSize=128
+maxFetchBlockNum=128
+timeoutSeconds=5
+batchBlockNum=128
+driver="leveldb"
+dbPath="datadir"
+dbCache=64
+isStrongConsistency=false
+singleMode=false
+batchsync=false
+isRecordBlockSequence=false
+enableTxQuickIndex=false
+
+[p2p]
+port=13802
+seeds=[]
+enable=true
+isSeed=false
+serverStart=true
+innerSeedEnable=true
+useGithub=true
+innerBounds=300
+msgCacheSize=10240
+driver="leveldb"
+dbPath="datadir/addrbook"
+dbCache=4
+grpcLogFile="grpc33.log"
+
+[rpc]
+jrpcBindAddr="localhost:8801"
+grpcBindAddr="localhost:8802"
+whitelist=["127.0.0.1"]
+jrpcFuncWhitelist=["*"]
+grpcFuncWhitelist=["*"]
+enableTLS=false
+certFile="cert.pem"
+keyFile="key.pem"
+
+[mempool]
+poolCacheSize=102400
+minTxFee=100000
+maxTxNumPerAccount=100
+maxTxFee=1000000000
+
+[consensus]
+name="ticket"
+minerstart=true
+genesisBlockTime=1514533394
+genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
+[consensus.sub.ticket]
+genesisBlockTime=1526486816
+[[consensus.sub.ticket.genesis]]
+minerAddr="184wj4nsgVxKyz2NhM3Yb5RK5Ap6AFRFq2"
+returnAddr="1FB8L3DykVF7Y78bRfUrRcMZwesKue7CyR"
+count=3000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1M4ns1eGHdHak3SNc2UTQB75vnXyJQd91s"
+returnAddr="1Lw6QLShKVbKM6QvMaCQwTh5Uhmy4644CG"
+count=3000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="19ozyoUGPAQ9spsFiz9CJfnUCFeszpaFuF"
+returnAddr="1PSYYfCbtSeT1vJTvSKmQvhz8y6VhtddWi"
+count=3000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1MoEnCDhXZ6Qv5fNDGYoW6MVEBTBK62HP2"
+returnAddr="1BG9ZoKtgU5bhKLpcsrncZ6xdzFCgjrZud"
+count=3000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1FjKcxY7vpmMH6iB5kxNYLvJkdkQXddfrp"
+returnAddr="1G7s64AgX1ySDcUdSW5vDa8jTYQMnZktCd"
+count=3000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="12T8QfKbCRBhQdRfnAfFbUwdnH7TDTm4vx"
+returnAddr="1FiDC6XWHLe7fDMhof8wJ3dty24f6aKKjK"
+count=3000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1bgg6HwQretMiVcSWvayPRvVtwjyKfz1J"
+returnAddr="1AMvuuQ7V7FPQ4hkvHQdgNWy8wVL4d4hmp"
+count=3000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1EwkKd9iU1pL2ZwmRAC5RrBoqFD1aMrQ2"
+returnAddr="1ExRRLoJXa8LzXdNxnJvBkVNZpVw3QWMi4"
+count=3000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1HFUhgxarjC7JLru1FLEY6aJbQvCSL58CB"
+returnAddr="1KNGHukhbBnbWWnMYxu1C7YMoCj45Z3amm"
+count=3000
+
+[[consensus.sub.ticket.genesis]]
+minerAddr="1C9M1RCv2e9b4GThN9ddBgyxAphqMgh5zq"
+returnAddr="1AH9HRd4WBJ824h9PP1jYpvRZ4BSA4oN6Y"
+count=4733
+
+[store]
+name="mavl"
+driver="leveldb"
+dbPath="datadir/mavltree"
+dbCache=128
+enableMavlPrefix=false
+enableMVCC=false
+
+[wallet]
+minFee=100000
+driver="leveldb"
+dbPath="wallet"
+dbCache=16
+signType="secp256k1"
+minerdisable=false
+minerwhitelist=["*"]
+
+[exec]
+isFree=false
+minExecFee=100000
+maxExecFee=1000000000
+enableStat=false
+enableMVCC=false
+
+[exec.sub.token]
+saveTokenTxList=false
+
+

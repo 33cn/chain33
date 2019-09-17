@@ -7,6 +7,7 @@ package types
 import (
 	"encoding/hex"
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
@@ -29,12 +30,12 @@ func TestCreateGroupTx(t *testing.T) {
 	var tx32 Transaction
 	Decode(tx31, &tx32)
 
-	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
+	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, GInt("MinFee"))
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	err = group.Check(0, GInt("MinFee"))
+	err = group.Check(0, GInt("MinFee"), GInt("MaxFee"))
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -45,6 +46,67 @@ func TestCreateGroupTx(t *testing.T) {
 	newtx := group.Tx()
 	grouptx := hex.EncodeToString(Encode(newtx))
 	t.Log(grouptx)
+}
+
+func TestCreateParaGroupTx(t *testing.T) {
+	tempTitle := GetTitle()
+	SetTitleOnlyForTest("chain33")
+	testHeight := int64(1687250 + 1)
+	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx2 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630de92c3828ad194b26d3a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx3 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630b0d6c895c4d28efe5d3a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx11, _ := hex.DecodeString(tx1)
+	tx21, _ := hex.DecodeString(tx2)
+	tx31, _ := hex.DecodeString(tx3)
+	var tx12 Transaction
+	Decode(tx11, &tx12)
+	var tx22 Transaction
+	Decode(tx21, &tx22)
+	var tx32 Transaction
+	Decode(tx31, &tx32)
+
+	tx12.Execer = []byte("user.p.test.token")
+	tx22.Execer = []byte("token")
+	tx32.Execer = []byte("user.p.test.ticket")
+
+	feeRate := GInt("MinFee")
+	//SetFork("", "ForkTxGroupPara", 0)
+	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, feeRate)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	err = group.Check(testHeight, GInt("MinFee"), GInt("MaxFee"))
+	if err != nil {
+		for i := 0; i < len(group.Txs); i++ {
+			t.Log(group.Txs[i].JSON())
+		}
+		//t.Error(err)
+
+	}
+	assert.Equal(t, ErrTxGroupParaMainMixed, err)
+
+	tx22.Execer = []byte("user.p.para.token")
+	group, err = CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, feeRate)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	err = group.Check(testHeight, GInt("MinFee"), GInt("MaxFee"))
+	assert.Equal(t, ErrTxGroupParaCount, err)
+
+	tx22.Execer = []byte("user.p.test.paracross")
+	group, err = CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, feeRate)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	err = group.Check(testHeight, GInt("MinFee"), GInt("MaxFee"))
+	assert.Nil(t, err)
+	newtx := group.Tx()
+	grouptx := hex.EncodeToString(Encode(newtx))
+	t.Log(grouptx)
+	SetTitleOnlyForTest(tempTitle)
 }
 
 func TestCreateGroupTxWithSize(t *testing.T) {
@@ -74,13 +136,13 @@ func TestCreateGroupTxWithSize(t *testing.T) {
 	var tx32 Transaction
 	Decode(tx31, &tx32)
 
-	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32})
+	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, GInt("MinFee"))
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	err = group.Check(0, GInt("MinFee"))
+	err = group.Check(0, GInt("MinFee"), GInt("MaxFee"))
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -163,7 +225,7 @@ func TestSignGroupTx(t *testing.T) {
 			return
 		}
 	}
-	err = group.Check(0, GInt("MinFee"))
+	err = group.Check(0, GInt("MinFee"), GInt("MaxFee"))
 	if err != nil {
 		t.Error(err)
 		return
@@ -206,4 +268,48 @@ func TestParseExpire(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(123000000000), exp)
 
+}
+
+func BenchmarkHash(b *testing.B) {
+	tx := &Transaction{Payload: []byte("xxxxxxxxxxxxdggrgrgrgrgrgrgrrhthththhth"), Execer: []byte("hello")}
+	for i := 0; i < b.N; i++ {
+		tx.Hash()
+	}
+}
+
+func TestSetGroupExpire(t *testing.T) {
+	rawtx := "0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720c0843d30aab4d59684b5cce7143a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4ab50c0aa3010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720c0843d30aab4d59684b5cce7143a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522008217c413b035fddd8f34a303e90a29e661746ed9b23a97768c1f25817c2c3450a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a673094fbcabe96c99ea7163a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f552203c6a2b11cce466891f084b49450472b1d4c39213f63117d3d4ce2a3851304ebc0a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730c187fb80fe88ce9e3c3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522066419d70492f757d7285fd226dff62da8d803c8121ded95242d222dbb10f2d9b0a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a673098aa929ab292b3f0023a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f552202bab08051d24fe923f66c8aeea4ce3f425d47a72f7c5c230a2b1427e04e2eb510a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730bfe9abb3edc6d9cb163a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f55220e1ba0493aa431ea3071026bd8dfa8280efab53ce86441fc474a1c19550a554ba0a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730d2e196a8ecada9d53e3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522016600fbfa23b3f0e8f9a14b716ce8f4064c091fbf6fa94489bc9d14b5b6049a60a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730a0b7b1b1dda2f4c5743a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522089d0442d76713369022499d054db65ccacbf5c627a525bd5454e0a30d23fa2990a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730c5838f94e2f49acb4b3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522018f208938606b390d752898332a84a9fbb900c2ed55ec33cd54d09b1970043b90a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a67308dfddb82faf7dfc4113a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522013002bab7a9c65881bd937a6fded4c3959bb631fa84434572970c1ec3e6fccf90a7d0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730b8b082d799a4ddc93a3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522008217c413b035fddd8f34a303e90a29e661746ed9b23a97768c1f25817c2c345"
+	var tx Transaction
+	txhex, _ := hex.DecodeString(rawtx)
+	Decode(txhex, &tx)
+	group, err := tx.GetTxGroup()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, tmptx := range group.GetTxs() {
+		if tmptx.GetExpire() != 0 {
+			t.Error("TestSetGroupExpire Expire !=0", "tx", tmptx)
+		}
+	}
+
+	//设置交易组过期时间
+	for i := 0; i < len(group.Txs); i++ {
+		group.SetExpire(i, time.Duration(120))
+	}
+	group.RebuiltGroup()
+
+	//校验重组后的交易组
+	firsttxhash := group.GetTxs()[0].Hash()
+	for _, tmptx := range group.GetTxs() {
+		if string(tmptx.GetHeader()) != string(firsttxhash) {
+			t.Error("TestSetGroupExpire group: tx.Hash !=  group.Txs[0].Hash()")
+		}
+	}
+
+	for _, tmptx := range group.GetTxs() {
+		if tmptx.GetExpire() == 0 {
+			t.Error("TestSetGroupExpire Expire == 0", "tx", tmptx)
+		}
+	}
 }

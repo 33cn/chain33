@@ -9,6 +9,8 @@ datadir*
 *.bak
 .idea
 .vscode
+*.pprof
+*.test
 cmd/chain33/chain33
 cmd/tools/tools
 build/cert.pem

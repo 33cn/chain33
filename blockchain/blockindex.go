@@ -104,8 +104,8 @@ func newBlockIndex() *blockIndex {
 }
 
 func (bi *blockIndex) HaveBlock(hash []byte) bool {
-	bi.Lock()
-	defer bi.Unlock()
+	bi.RLock()
+	defer bi.RUnlock()
 	_, hasBlock := bi.index[string(hash)]
 
 	return hasBlock

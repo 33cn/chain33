@@ -203,11 +203,17 @@ message P2PGetData {
     repeated Inventory invs = 2;
 }
 
+//
+message P2PRoute {
+    int32 TTL = 1;
+}
+
 /**
  * p2p 发送交易协议
  */
 message P2PTx {
-    Transaction tx = 1;
+    Transaction tx    = 1;
+    P2PRoute    route = 2;
 }
 
 /**
@@ -215,6 +221,52 @@ message P2PTx {
  */
 message P2PBlock {
     Block block = 1;
+}
+
+/**
+ * p2p 轻量级区块, 广播交易短哈希列表
+ */
+message LightBlock {
+
+    int64       size          = 1;
+    Header      header        = 2;
+    Transaction minerTx       = 3;
+    repeated string sTxHashes = 4;
+}
+
+// 轻量级交易广播
+message LightTx {
+    bytes    txHash = 1;
+    P2PRoute route  = 2;
+}
+
+// 请求完整交易数据
+message P2PTxReq {
+    bytes txHash = 1;
+}
+
+// 请求区块内交易数据
+message P2PBlockTxReq {
+    string   blockHash       = 1;
+    repeated int32 txIndices = 2;
+}
+
+// 区块交易数据返回
+message P2PBlockTxReply {
+    string   blockHash       = 1;
+    repeated int32 txIndices = 2;
+    repeated Transaction txs = 3;
+}
+
+/* 节点收到区块或交易hash,
+ * 当在本地不存在时,需要请求重发完整交易或区块
+ * 采用统一结构减少消息类型
+ */
+message P2PQueryData {
+    oneof value {
+        P2PTxReq      txReq      = 1;
+        P2PBlockTxReq blockTxReq = 2;
+    }
 }
 /**
  * p2p 协议和软件版本
@@ -230,10 +282,14 @@ message Versions {
  */
 message BroadCastData {
     oneof value {
-        P2PTx    tx      = 1;
-        P2PBlock block   = 2;
-        P2PPing  ping    = 3;
-        Versions version = 4;
+        P2PTx           tx       = 1;
+        P2PBlock        block    = 2;
+        P2PPing         ping     = 3;
+        Versions        version  = 4;
+        LightTx         ltTx     = 5;
+        LightBlock      ltBlock  = 6;
+        P2PQueryData    query    = 7;
+        P2PBlockTxReply blockRep = 8;
     }
 }
 

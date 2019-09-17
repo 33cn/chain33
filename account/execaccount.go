@@ -37,7 +37,10 @@ func (acc *DB) LoadExecAccountQueue(api client.QueueProtocolAPI, addr, execaddr 
 func (acc *DB) SaveExecAccount(execaddr string, acc1 *types.Account) {
 	set := acc.GetExecKVSet(execaddr, acc1)
 	for i := 0; i < len(set); i++ {
-		acc.db.Set(set[i].GetKey(), set[i].Value)
+		err := acc.db.Set(set[i].GetKey(), set[i].Value)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -52,6 +55,7 @@ func (acc *DB) GetExecKVSet(execaddr string, acc1 *types.Account) (kvset []*type
 }
 
 func (acc *DB) execAccountKey(address, execaddr string) (key []byte) {
+	key = make([]byte, 0, len(acc.execAccountKeyPerfix)+len(execaddr)+len(address)+1)
 	key = append(key, acc.execAccountKeyPerfix...)
 	key = append(key, []byte(execaddr)...)
 	key = append(key, []byte(":")...)
@@ -219,24 +223,13 @@ func (acc *DB) ExecAddress(name string) string {
 	return address.ExecAddress(name)
 }
 
-// ExecDepositFrozen 执行
+// ExecDepositFrozen 执行增发coins到具体的地址，并冻结
 func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
-	//这个函数只有挖矿的合约才能调用
-	list := types.AllowDepositExec
-	allow := false
-	for _, exec := range list {
-		if acc.ExecAddress(string(exec)) == execaddr {
-			allow = true
-			break
-		}
-	}
-	if !allow {
-		return nil, types.ErrNotAllowDeposit
-	}
-	receipt1, err := acc.depositBalance(execaddr, amount)
+	//issue coins to exec addr
+	receipt1, err := acc.ExecIssueCoins(execaddr, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -245,6 +238,27 @@ func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 		return nil, err
 	}
 	return acc.mergeReceipt(receipt1, receipt2), nil
+}
+
+// ExecIssueCoins 增发coins到具体的挖矿合约
+func (acc *DB) ExecIssueCoins(execaddr string, amount int64) (*types.Receipt, error) {
+
+	//这个函数只有挖矿的合约才能调用
+	allow := false
+	for _, exec := range types.GetMinerExecs() {
+		if acc.ExecAddress(types.ExecName(exec)) == execaddr {
+			allow = true
+			break
+		}
+	}
+	if !allow {
+		return nil, types.ErrNotAllowDeposit
+	}
+	receipt, err := acc.depositBalance(execaddr, amount)
+	if err != nil {
+		return nil, err
+	}
+	return receipt, nil
 }
 
 func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {

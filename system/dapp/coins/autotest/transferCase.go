@@ -47,8 +47,14 @@ func (pack *TransferPack) checkBalance(txInfo map[string]interface{}) bool {
 	logFee := logArr[0].(map[string]interface{})["log"].(map[string]interface{})
 	logSend := logArr[1].(map[string]interface{})["log"].(map[string]interface{})
 	logRecv := logArr[2].(map[string]interface{})["log"].(map[string]interface{})
-	fee, _ := strconv.ParseFloat(feeStr, 64)
-	Amount, _ := strconv.ParseFloat(interCase.Amount, 64)
+	fee, err := strconv.ParseFloat(feeStr, 64)
+	if err != nil {
+		return false
+	}
+	Amount, err := strconv.ParseFloat(interCase.Amount, 64)
+	if err != nil {
+		return false
+	}
 
 	pack.FLog.Info("TransferBalanceDetails", "TestID", pack.PackID,
 		"Fee", feeStr, "Amount", interCase.Amount,

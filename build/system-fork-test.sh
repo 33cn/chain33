@@ -132,7 +132,7 @@ function start() {
     #fi
 
     echo "=========== # save seed to wallet ============="
-    result=$(${CLI} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+    result=$(${CLI} seed save -p 1314fuzamei -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "save seed to wallet error seed, result: ${result}"
         exit 1
@@ -141,7 +141,7 @@ function start() {
     sleep 1
 
     echo "=========== # unlock wallet ============="
-    result=$(${CLI} wallet unlock -p 1314 -t 0 | jq ".isok")
+    result=$(${CLI} wallet unlock -p 1314fuzamei -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         exit 1
     fi
@@ -173,7 +173,7 @@ function start() {
 
     ## 2nd mining
     echo "=========== # save seed to wallet ============="
-    result=$(${CLI4} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+    result=$(${CLI4} seed save -p 1314fuzamei -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "save seed to wallet error seed, result: ${result}"
         exit 1
@@ -182,7 +182,7 @@ function start() {
     sleep 1
 
     echo "=========== # unlock wallet ============="
-    result=$(${CLI4} wallet unlock -p 1314 -t 0 | jq ".isok")
+    result=$(${CLI4} wallet unlock -p 1314fuzamei -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         exit 1
     fi
@@ -444,7 +444,7 @@ function optDockerPart3() {
 
     echo "======sleep 20s======"
     sleep 5
-    result=$($CLI4 wallet unlock -p 1314 -t 0 | jq ".isok")
+    result=$($CLI4 wallet unlock -p 1314fuzamei -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "wallet1 unlock fail"
         exit 1
@@ -494,7 +494,7 @@ function optDockerPart4() {
 
     echo "======sleep 20s======"
     sleep 5
-    result=$($CLI wallet unlock -p 1314 -t 0 | jq ".isok")
+    result=$($CLI wallet unlock -p 1314fuzamei -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "wallet2 unlock fail"
         exit 1
@@ -618,7 +618,7 @@ function type2_optDockerPart3() {
     sleep 20
     echo "======开启第二组docker节点挖矿======"
 
-    result=$($CLI wallet unlock -p 1314 -t 0 | jq ".isok")
+    result=$($CLI wallet unlock -p 1314fuzamei -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "wallet1 unlock fail"
         exit 1
@@ -632,7 +632,7 @@ function type2_optDockerPart3() {
     fi
 
     sleep 1
-    result=$($CLI4 wallet unlock -p 1314 -t 0 | jq ".isok")
+    result=$($CLI4 wallet unlock -p 1314fuzamei -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "wallet2 unlock fail"
         exit 1

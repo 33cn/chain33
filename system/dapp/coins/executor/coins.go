@@ -33,6 +33,7 @@ func Init(name string, sub []byte) {
 }
 
 // the initialization process is relatively heavyweight, lots of reflact, so it's global
+
 func init() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&Coins{}))
@@ -80,9 +81,14 @@ func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bo
 		return false
 	}
 	//step2 判定 othertx 的 执行器名称(只允许主链，并且是挖矿的行为)
-	if string(othertx.Execer) == "ticket" && othertx.ActionName() == "miner" {
-		return true
+	if othertx.ActionName() == "miner" {
+		for _, exec := range types.GetMinerExecs() {
+			if types.ExecName(exec) == string(othertx.Execer) {
+				return true
+			}
+		}
 	}
+
 	return false
 }
 

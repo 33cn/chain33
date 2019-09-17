@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,45 @@ func TestDecodeTx(t *testing.T) {
 	data, err = DecodeTx(&tx)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
+}
+
+func TestDecodeLog(t *testing.T) {
+	execer := []byte("coins")
+	log := &ReceiptLog{}
+	receipt := &ReceiptData{Ty: 2, Logs: []*ReceiptLog{log}}
+	_, err := DecodeLog(execer, receipt)
+	assert.NoError(t, err)
+}
+
+func TestConvertWalletTxDetailToJSON(t *testing.T) {
+
+	tx := &types.Transaction{Execer: []byte("coins")}
+	log := &types.ReceiptLog{Ty: 0, Log: []byte("test")}
+	receipt := &types.ReceiptData{Ty: 0, Logs: []*types.ReceiptLog{log}}
+	detail := &types.WalletTxDetail{Tx: tx, Receipt: receipt}
+	in := &types.WalletTxDetails{TxDetails: []*types.WalletTxDetail{detail}}
+	out := &WalletTxDetails{}
+	err := ConvertWalletTxDetailToJSON(in, out)
+	assert.NoError(t, err)
+
+	//test withdraw swap from to
+	detail.Fromaddr = "from"
+	detail.Tx.Payload, err = common.FromHex("0x180322301080c2d72f2205636f696e732a22314761485970576d71414a7371527772706f4e6342385676674b7453776a63487174")
+	assert.NoError(t, err)
+	tx.To = "to"
+	out = &WalletTxDetails{}
+	err = ConvertWalletTxDetailToJSON(in, out)
+	assert.NoError(t, err)
+	assert.Equal(t, "to", out.TxDetails[0].FromAddr)
+	assert.Equal(t, "from", detail.Tx.To)
+}
+
+func TestServer(t *testing.T) {
+	api := &mocks.QueueProtocolAPI{}
+	ch := ChannelClient{QueueProtocolAPI: api}
+	ch.Init("test", nil, nil, nil)
+	db := ch.GetCoinsAccountDB()
+	assert.NotNil(t, db)
 }
 
 func TestDecodeTx2(t *testing.T) {

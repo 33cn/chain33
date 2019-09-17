@@ -5,20 +5,21 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
-	"time"
 )
 
 // 定义key值
 var (
-	LocalPrefix       = []byte("LODB")
-	FlagTxQuickIndex  = []byte("FLAG:FlagTxQuickIndex")
-	FlagKeyMVCC       = []byte("FLAG:keyMVCCFlag")
-	TxHashPerfix      = []byte("TX:")
-	TxShortHashPerfix = []byte("STX:")
-	TxAddrHash        = []byte("TxAddrHash:")
-	TxAddrDirHash     = []byte("TxAddrDirHash:")
-	AddrTxsCount      = []byte("AddrTxsCount:")
+	LocalPrefix            = []byte("LODB")
+	FlagTxQuickIndex       = []byte("FLAG:FlagTxQuickIndex")
+	FlagKeyMVCC            = []byte("FLAG:keyMVCCFlag")
+	TxHashPerfix           = []byte("TX:")
+	TxShortHashPerfix      = []byte("STX:")
+	TxAddrHash             = []byte("TxAddrHash:")
+	TxAddrDirHash          = []byte("TxAddrDirHash:")
+	AddrTxsCount           = []byte("AddrTxsCount:")
+	ConsensusParaTxsPrefix = []byte("LODBP:Consensus:Para:") //存贮para共识模块从主链拉取的平行链交易
 )
 
 // GetLocalDBKeyList 获取localdb的key列表
@@ -63,23 +64,40 @@ func StatisticFlag() []byte {
 	return []byte("Statistics:Flag")
 }
 
-//StatisticTicketInfoKey 统计ticket的key
-func StatisticTicketInfoKey(ticketID string) []byte {
-	return []byte("Statistics:TicketInfo:TicketId:" + ticketID)
-}
-
-//StatisticTicketInfoOrderKey 统计ticket的key
-func StatisticTicketInfoOrderKey(minerAddr string, createTime int64, ticketID string) []byte {
-	return []byte("Statistics:TicketInfoOrder:Addr:" + minerAddr + ":CreateTime:" + time.Unix(createTime, 0).Format("20060102150405") + ":TicketId:" + ticketID)
-}
-
-//StatisticTicketKey 统计ticket的key
-func StatisticTicketKey(minerAddr string) []byte {
-	return []byte("Statistics:TicketStat:Addr:" + minerAddr)
-}
-
 //TotalFeeKey 统计所有费用的key
 func TotalFeeKey(hash []byte) []byte {
 	key := []byte("TotalFeeKey:")
 	return append(key, hash...)
+}
+
+//CalcLocalPrefix 计算localdb key
+func CalcLocalPrefix(execer []byte) []byte {
+	s := append([]byte("LODB-"), execer...)
+	s = append(s, byte('-'))
+	return s
+}
+
+//CalcStatePrefix 计算localdb key
+func CalcStatePrefix(execer []byte) []byte {
+	s := append([]byte("mavl-"), execer...)
+	s = append(s, byte('-'))
+	return s
+}
+
+//CalcRollbackKey 计算回滚的key
+func CalcRollbackKey(execer []byte, hash []byte) []byte {
+	prefix := CalcLocalPrefix(execer)
+	key := append(prefix, []byte("rollback-")...)
+	key = append(key, hash...)
+	return key
+}
+
+//CalcConsensusParaTxsKey 平行链localdb中保存的平行链title对应的交易
+func CalcConsensusParaTxsKey(key []byte) []byte {
+	return append(ConsensusParaTxsPrefix, key...)
+}
+
+//CheckConsensusParaTxsKey 检测para共识模块需要操作的平行链交易的key值
+func CheckConsensusParaTxsKey(key []byte) bool {
+	return bytes.HasPrefix(key, ConsensusParaTxsPrefix)
 }

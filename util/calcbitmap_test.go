@@ -7,6 +7,7 @@ package util
 import (
 	"testing"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,12 +15,12 @@ import (
 func TestCalcByteBitMap(t *testing.T) {
 	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17}
 	for i := 0; i < 18; i++ {
-		ori = append(ori, []byte{byte(i)})
+		ori = append(ori, common.Sha256([]byte(string(i))))
 	}
 	cur := [][]byte{}
 	arry := []byte{3, 7, 8, 11, 15, 17}
 	for _, v := range arry {
-		cur = append(cur, []byte{byte(v)})
+		cur = append(cur, common.Sha256([]byte(string(v))))
 	}
 
 	d0 := &types.ReceiptData{Ty: types.ExecOk}
@@ -42,12 +43,12 @@ func TestCalcByteBitMap(t *testing.T) {
 func TestCalcSubBitMap(t *testing.T) {
 	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9}
 	for i := 0; i < 10; i++ {
-		ori = append(ori, []byte{byte(i)})
+		ori = append(ori, common.Sha256([]byte(string(i))))
 	}
 	sub := [][]byte{}
 	arry := []byte{0, 2, 4, 6, 7, 9}
 	for _, v := range arry {
-		sub = append(sub, []byte{byte(v)})
+		sub = append(sub, common.Sha256([]byte(string(v))))
 	}
 
 	d0 := &types.ReceiptData{Ty: types.ExecOk}
@@ -62,7 +63,7 @@ func TestCalcSubBitMap(t *testing.T) {
 	d9 := &types.ReceiptData{Ty: types.ExecPack}
 	data := []*types.ReceiptData{d0, d1, d2, d3, d4, d5, d6, d7, d8, d9}
 
-	rst := CalcSubBitMap(ori, sub, data)
+	rst := CalcBitMap(sub, ori, data)
 	//t.Log(rst)
 	check := []byte{0x17}
 	assert.Equal(t, check, rst)
@@ -87,4 +88,47 @@ func TestDecodeByteBitMap(t *testing.T) {
 	i = 100
 	ret = BitMapBit(rst, i)
 	assert.False(t, ret)
+}
+
+func TestCalcSingleBitMap(t *testing.T) {
+	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9}
+	for i := 0; i < 10; i++ {
+		ori = append(ori, common.Sha256([]byte(string(i))))
+	}
+
+	d0 := &types.ReceiptData{Ty: types.ExecOk}
+	d1 := &types.ReceiptData{Ty: types.ExecPack}
+	d2 := &types.ReceiptData{Ty: types.ExecOk}
+	d3 := &types.ReceiptData{Ty: types.ExecPack}
+	d4 := &types.ReceiptData{Ty: types.ExecOk}
+	d5 := &types.ReceiptData{Ty: types.ExecOk}
+	d6 := &types.ReceiptData{Ty: types.ExecPack}
+	d7 := &types.ReceiptData{Ty: types.ExecOk}
+	d8 := &types.ReceiptData{Ty: types.ExecPack}
+	d9 := &types.ReceiptData{Ty: types.ExecPack}
+	data := []*types.ReceiptData{d0, d1, d2, d3, d4, d5, d6, d7, d8, d9}
+
+	rst := CalcSingleBitMap(ori, data)
+	//t.Log(rst)
+	check := []byte{0xb5}
+	assert.Equal(t, check, rst)
+
+}
+
+func TestCalcBitMapByBitMap(t *testing.T) {
+	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9}
+	for i := 0; i < 10; i++ {
+		ori = append(ori, common.Sha256([]byte(string(i))))
+	}
+	sub := [][]byte{}
+	arry := []byte{0, 2, 4, 6, 7, 9}
+	for _, v := range arry {
+		sub = append(sub, common.Sha256([]byte(string(v))))
+	}
+
+	bitmap := []byte{0x97}
+	rst := CalcBitMapByBitMap(sub, ori, bitmap)
+	//t.Log(rst)
+	check := []byte{0x17}
+	assert.Equal(t, check, rst)
 }

@@ -8,10 +8,9 @@ package log
 import (
 	"os"
 
-	"github.com/33cn/chain33/types"
-
 	"github.com/33cn/chain33/common/log/log15"
-	"gopkg.in/natefinch/lumberjack.v2"
+	"github.com/33cn/chain33/types"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (

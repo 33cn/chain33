@@ -20,6 +20,8 @@ const (
 	KeyTemplateFilePath         = "template_file_path"
 	KeyUpdateInit               = "update_init"
 	KeyCreatePlugin             = "create_plugin"
+	KeyGenDapp                  = "generate_dapp"
+	KeyDappOutDir               = "generate_dapp_out_dir"
 
 	DefCpmConfigfile = "chain33.cpm.toml"
 
@@ -36,4 +38,16 @@ const (
 	TagLogMapText      = "${LOGMAPTEXT}"
 	TagTypeMapText     = "${TYPEMAPTEXT}"
 	TagTypeName        = "${TYPENAME}"
+
+	//TagImport
+	TagImportPath = "${IMPORTPATH}"
+
+	//Tag proto file
+	TagProtoFileContent = "${PROTOFILECONTENT}"
+	TagProtoFileAppend  = "${PROTOFILEAPPEND}"
+
+	//Tag exec.go file
+	TagExecFileContent         = "${EXECFILECONTENT}"
+	TagExecLocalFileContent    = "${EXECLOCALFILECONTENT}"
+	TagExecDelLocalFileContent = "${EXECDELLOCALFILECONTENT}"
 )

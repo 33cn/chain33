@@ -5,6 +5,7 @@
 package types
 
 import (
+	"bytes"
 	"runtime"
 	"sync"
 
@@ -63,6 +64,7 @@ func (block *Block) GetHeader() *Header {
 	head.Difficulty = block.Difficulty
 	head.StateHash = block.StateHash
 	head.TxCount = int64(len(block.Txs))
+	head.Hash = block.Hash()
 	return head
 }
 
@@ -185,4 +187,65 @@ func CheckSign(data []byte, execer string, sign *Signature) bool {
 		return false
 	}
 	return pub.VerifyBytes(data, signbytes)
+}
+
+//FilterParaTxsByTitle 过滤指定title的平行链交易
+//1，单笔平行连交易
+//2,交易组中的平行连交易，需要将整个交易组都过滤出来
+//目前暂时不返回单个交易的proof证明路径，
+//后面会将平行链的交易组装到一起，构成一个子roothash。会返回子roothash的proof证明路径
+func (blockDetail *BlockDetail) FilterParaTxsByTitle(title string) *ParaTxDetail {
+	var paraTx ParaTxDetail
+	paraTx.Header = blockDetail.Block.GetHeader()
+
+	for i := 0; i < len(blockDetail.Block.Txs); i++ {
+		tx := blockDetail.Block.Txs[i]
+		if IsSpecificParaExecName(title, string(tx.Execer)) {
+
+			//过滤交易组中的para交易，需要将整个交易组都过滤出来
+			if tx.GroupCount >= 2 {
+				txDetails, endIdx := blockDetail.filterParaTxGroup(tx, i)
+				paraTx.TxDetails = append(paraTx.TxDetails, txDetails...)
+				i = endIdx - 1
+				continue
+			}
+
+			//单笔para交易
+			var txDetail TxDetail
+			txDetail.Tx = tx
+			txDetail.Receipt = blockDetail.Receipts[i]
+			txDetail.Index = uint32(i)
+			paraTx.TxDetails = append(paraTx.TxDetails, &txDetail)
+
+		}
+	}
+	return &paraTx
+}
+
+//filterParaTxGroup 获取para交易所在交易组信息
+func (blockDetail *BlockDetail) filterParaTxGroup(tx *Transaction, index int) ([]*TxDetail, int) {
+	var headIdx int
+	var txDetails []*TxDetail
+
+	for i := index; i >= 0; i-- {
+		if bytes.Equal(tx.Header, blockDetail.Block.Txs[i].Hash()) {
+			headIdx = i
+			break
+		}
+	}
+
+	endIdx := headIdx + int(tx.GroupCount)
+	for i := headIdx; i < endIdx; i++ {
+		var txDetail TxDetail
+		txDetail.Tx = blockDetail.Block.Txs[i]
+		txDetail.Receipt = blockDetail.Receipts[i]
+		txDetail.Index = uint32(i)
+		txDetails = append(txDetails, &txDetail)
+	}
+	return txDetails, endIdx
+}
+
+// Size 获取blockDetail的Size
+func (blockDetail *BlockDetail) Size() int {
+	return Size(blockDetail)
 }

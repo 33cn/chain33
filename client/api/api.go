@@ -155,7 +155,21 @@ func IsQueueError(err error) bool {
 	return false
 }
 
+//IsFatalError 是否是必须停止执行的系统错误
+func IsFatalError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if err == errAPIEnv {
+		return true
+	}
+	if err == types.ErrConsensusHashErr {
+		return true
+	}
+	return false
+}
+
 //IsAPIEnvError 是否是api执行环境的错误
 func IsAPIEnvError(err error) bool {
-	return IsGrpcError(err) || IsQueueError(err)
+	return IsGrpcError(err) || IsQueueError(err) || IsFatalError(err)
 }

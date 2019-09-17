@@ -58,6 +58,7 @@ message ReWriteRawTx {
     string to     = 3;
     string expire = 4;
     int64  fee    = 5;
+    int32  index  = 6;
 }
 
 message CreateTransactionGroup {
@@ -68,19 +69,20 @@ message UnsignTx {
     bytes data = 1;
 }
 
+// 支持构造多笔nobalance的交易 payAddr 可以支持 1. 地址 2. 私钥
+message NoBalanceTxs {
+    repeated string txHexs  = 1;
+    string          payAddr = 2;
+    string          privkey = 3;
+    string          expire  = 4;
+}
+
 // payAddr 可以支持 1. 地址 2. 私钥
 message NoBalanceTx {
     string txHex   = 1;
     string payAddr = 2;
     string privkey = 3;
     string expire  = 4;
-}
-
-message SignedTx {
-    bytes unsign = 1;
-    bytes sign   = 2;
-    bytes pubkey = 3;
-    int32 ty     = 4;
 }
 
 message Transaction {
@@ -171,6 +173,19 @@ message ReplyTxList {
     repeated Transaction txs = 1;
 }
 
+message ReqGetMempool {
+    bool isAll = 1;
+}
+
+message ReqProperFee {
+    int32 txCount = 1;
+    int32 txSize  = 2;
+}
+
+message ReplyProperFee {
+    int64 properFee = 1;
+}
+
 message TxHashList {
     repeated bytes hashes = 1;
     int64          count  = 2;
@@ -240,7 +255,13 @@ message UserWrite {
 }
 
 message UpgradeMeta {
-    bool   indexing = 1;
+    bool   starting = 1;
     string version  = 2;
     int64  height   = 3;
+}
+
+//通过交易hash获取交易列表，需要区分是短hash还是全hash值
+message ReqTxHashList {
+    repeated string hashes      = 1;
+    bool            isShortHash = 2;
 }

@@ -24,17 +24,14 @@ var rootCmd = &cobra.Command{
 	Short: types.GetTitle() + " client tools",
 }
 
-var sendCmd = &cobra.Command{
-	Use:   "send",
-	Short: "Send transaction in one step",
-	Run:   func(cmd *cobra.Command, args []string) {},
-}
-
 var closeCmd = &cobra.Command{
 	Use:   "close",
 	Short: "Close " + types.GetTitle(),
 	Run: func(cmd *cobra.Command, args []string) {
-		rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+		rpcLaddr, err := cmd.Flags().GetString("rpc_laddr")
+		if err != nil {
+			panic(err)
+		}
 		//		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
 		//		rpc.Call("Chain33.CloseQueue", nil, nil)
 		var res rpctypes.Reply
@@ -48,7 +45,6 @@ func init() {
 		commands.CertCmd(),
 		commands.AccountCmd(),
 		commands.BlockCmd(),
-		commands.BTYCmd(),
 		commands.CoinsCmd(),
 		commands.ExecCmd(),
 		commands.MempoolCmd(),
@@ -58,7 +54,7 @@ func init() {
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.VersionCmd(),
-		sendCmd,
+		commands.OneStepSendCmd(),
 		closeCmd,
 		commands.AssetCmd(),
 	)
@@ -66,17 +62,15 @@ func init() {
 
 func testTLS(RPCAddr string) string {
 	rpcaddr := RPCAddr
-	if strings.HasPrefix(rpcaddr, "https://") {
-		return RPCAddr
-	}
 	if !strings.HasPrefix(rpcaddr, "http://") {
 		return RPCAddr
 	}
-	//test tls ok
+	// if http://
 	if rpcaddr[len(rpcaddr)-1] != '/' {
 		rpcaddr += "/"
 	}
 	rpcaddr += "test"
+	/* #nosec */
 	resp, err := http.Get(rpcaddr)
 	if err != nil {
 		return "https://" + RPCAddr[7:]
@@ -98,12 +92,6 @@ func Run(RPCAddr, ParaName string) {
 	types.S("ParaName", ParaName)
 	rootCmd.PersistentFlags().String("rpc_laddr", types.GStr("RPCAddr"), "http url")
 	rootCmd.PersistentFlags().String("paraName", types.GStr("ParaName"), "parachain")
-	if len(os.Args) > 1 {
-		if os.Args[1] == "send" {
-			commands.OneStepSend(os.Args)
-			return
-		}
-	}
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

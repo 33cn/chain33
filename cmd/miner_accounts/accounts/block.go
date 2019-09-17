@@ -44,20 +44,21 @@ func (b chain33) findBlock(ts int64) (int64, *rpctypes.Header) {
 
 	return 0, nil
 }
-func (b chain33) getBalance(addrs []string, exec string, timeNear int64) (*rpctypes.Header, []*rpctypes.Account, error) {
+
+func (b chain33) getBalance(addrs []string, exec string, height int64) (*rpctypes.Header, []*rpctypes.Account, error) {
 	rpcCli, err := jsonclient.NewJSONClient(b.Host)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, nil, err
 	}
-	realTs, header := b.findBlock(timeNear)
-	log.Info("show", "utc", realTs)
-	if realTs == 0 || header == nil {
-		return nil, nil, types.ErrNotFound
+	hs, err := getHeaders(rpcCli, height, height)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return nil, nil, err
 	}
 
-	acc, err := getBalanceAt(rpcCli, addrs, exec, header.StateHash)
-	return header, acc, err
+	acc, err := getBalanceAt(rpcCli, addrs, exec, hs.Items[0].StateHash)
+	return hs.Items[0], acc, err
 }
 
 func (b chain33) addBlock(h *rpctypes.Header) error {

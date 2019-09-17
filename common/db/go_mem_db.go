@@ -151,14 +151,15 @@ func (b *memBatch) Delete(key []byte) {
 }
 
 func (b *memBatch) Write() error {
+	var err error
 	for _, kv := range b.writes {
 		if kv.v == nil {
-			b.db.Delete(kv.k)
+			err = b.db.Delete(kv.k)
 		} else {
-			b.db.Set(kv.k, kv.v)
+			err = b.db.Set(kv.k, kv.v)
 		}
 	}
-	return nil
+	return err
 }
 
 func (b *memBatch) ValueSize() int {

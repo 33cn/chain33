@@ -11,6 +11,7 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
+	farm "github.com/dgryski/go-farm"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -217,6 +218,9 @@ func (node *Node) Hash(t *Tree) []byte {
 		}
 	}
 
+	if enableMemTree {
+		updateLocalMemTree(t, node)
+	}
 	return node.hash
 }
 
@@ -498,6 +502,9 @@ func removeOrphan(t *Tree, node *Node) {
 	}
 	if t.ndb == nil {
 		return
+	}
+	if enableMemTree && t != nil {
+		t.obsoleteNode[uintkey(farm.Hash64(node.hash))] = struct{}{}
 	}
 	t.ndb.RemoveNode(t, node)
 }

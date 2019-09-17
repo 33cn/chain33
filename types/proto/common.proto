@@ -29,7 +29,8 @@ message Int64 {
 }
 
 message ReqHash {
-    bytes hash = 1;
+    bytes hash    = 1;
+    bool  upgrade = 2;
 }
 
 message ReplyHash {

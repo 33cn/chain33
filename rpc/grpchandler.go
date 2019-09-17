@@ -8,6 +8,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"strings"
+
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 )
@@ -15,6 +17,16 @@ import (
 // SendTransaction send transaction by network
 func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
 	return g.cli.SendTx(in)
+}
+
+// CreateNoBalanceTxs create multiple transaction with no balance
+func (g *Grpc) CreateNoBalanceTxs(ctx context.Context, in *pb.NoBalanceTxs) (*pb.ReplySignRawTx, error) {
+	reply, err := g.cli.CreateNoBalanceTxs(in)
+	if err != nil {
+		return nil, err
+	}
+	tx := pb.Encode(reply)
+	return &pb.ReplySignRawTx{TxHex: hex.EncodeToString(tx)}, nil
 }
 
 // CreateNoBalanceTransaction create transaction with no balance
@@ -78,11 +90,6 @@ func (g *Grpc) CreateRawTxGroup(ctx context.Context, in *pb.CreateTransactionGro
 	return &pb.UnsignTx{Data: reply}, nil
 }
 
-// SendRawTransaction send rawtransaction
-func (g *Grpc) SendRawTransaction(ctx context.Context, in *pb.SignedTx) (*pb.Reply, error) {
-	return g.cli.SendRawTransaction(in)
-}
-
 // QueryTransaction query transaction by grpc
 func (g *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.TransactionDetail, error) {
 	return g.cli.QueryTx(in)
@@ -133,8 +140,8 @@ func (g *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*p
 }
 
 // GetMemPool get mempool contents
-func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
-	return g.cli.GetMempool()
+func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqGetMempool) (*pb.ReplyTxList, error) {
+	return g.cli.GetMempool(in)
 }
 
 // GetAccounts get  accounts
@@ -206,6 +213,11 @@ func (g *Grpc) GetHeaders(ctx context.Context, in *pb.ReqBlocks) (*pb.Headers, e
 // GetLastMemPool return last mempool contents
 func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
 	return g.cli.GetLastMempool()
+}
+
+// GetProperFee return last mempool proper fee
+func (g *Grpc) GetProperFee(ctx context.Context, in *pb.ReqProperFee) (*pb.ReplyProperFee, error) {
+	return g.cli.GetProperFee(in)
 }
 
 // GetBlockOverview get block overview
@@ -333,7 +345,10 @@ func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, e
 func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
 	go func() {
 		time.Sleep(time.Millisecond * 100)
-		g.cli.CloseQueue()
+		_, err := g.cli.CloseQueue()
+		if err != nil {
+			log.Error("CloseQueue", "Error", err)
+		}
 	}()
 
 	return &pb.Reply{IsOk: true}, nil
@@ -375,5 +390,14 @@ func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqRandHash) (*pb.ReplyH
 
 // GetFork get fork height by fork key
 func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
+	keys := strings.Split(string(in.Key), "-")
+	if len(keys) == 2 {
+		return &pb.Int64{Data: pb.GetDappFork(keys[0], keys[1])}, nil
+	}
 	return &pb.Int64{Data: pb.GetFork(string(in.Key))}, nil
+}
+
+// GetParaTxByTitle 通过seq以及title获取对应平行连的交易
+func (g *Grpc) GetParaTxByTitle(ctx context.Context, in *pb.ReqParaTxByTitle) (*pb.ParaTxDetails, error) {
+	return g.cli.GetParaTxByTitle(in)
 }

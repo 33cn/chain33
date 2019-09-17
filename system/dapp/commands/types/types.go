@@ -7,7 +7,6 @@ package types
 
 import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	"github.com/33cn/chain33/types"
 )
 
 // AccountsResult defines accountsresult command
@@ -85,7 +84,7 @@ type TxDetailResult struct {
 	Amount     string                      `json:"amount"`
 	Fromaddr   string                      `json:"fromaddr"`
 	ActionName string                      `json:"actionname"`
-	Assets     []*types.Asset              `json:"assets"`
+	Assets     []*rpctypes.Asset           `json:"assets"`
 }
 
 // TxDetailsResult defines txdetails result command
@@ -147,26 +146,6 @@ type GetTotalCoinsResult struct {
 	TotalAmount      string `json:"totalAmount"`
 	ActualAmount     string `json:"actualAmount,omitempty"`
 	DifferenceAmount string `json:"differenceAmount,omitempty"`
-}
-
-// GetTicketStatisticResult defines ticketstatistic result rpc command
-type GetTicketStatisticResult struct {
-	CurrentOpenCount int64 `json:"currentOpenCount"`
-	TotalMinerCount  int64 `json:"totalMinerCount"`
-	TotalCloseCount  int64 `json:"totalCloseCount"`
-}
-
-// GetTicketMinerInfoResult defines ticker minerinformation result rpc command
-type GetTicketMinerInfoResult struct {
-	TicketID     string `json:"ticketId"`
-	Status       string `json:"status"`
-	PrevStatus   string `json:"prevStatus"`
-	IsGenesis    bool   `json:"isGenesis"`
-	CreateTime   string `json:"createTime"`
-	MinerTime    string `json:"minerTime"`
-	CloseTime    string `json:"closeTime"`
-	MinerValue   int64  `json:"minerValue,omitempty"`
-	MinerAddress string `json:"minerAddress,omitempty"`
 }
 
 // UTXOGlobalIndex defines  utxo globalindex command

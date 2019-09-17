@@ -125,12 +125,18 @@ func (db *GoLevelDB) DB() *leveldb.DB {
 
 //Close 关闭
 func (db *GoLevelDB) Close() {
-	db.db.Close()
+	err := db.db.Close()
+	if err != nil {
+		llog.Error("Close", "error", err)
+	}
 }
 
 //Print 打印
 func (db *GoLevelDB) Print() {
-	str, _ := db.db.GetProperty("leveldb.stats")
+	str, err := db.db.GetProperty("leveldb.stats")
+	if err != nil {
+		return
+	}
 	llog.Info("Print", "stats", str)
 
 	iter := db.db.NewIterator(nil, nil)

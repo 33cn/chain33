@@ -5,19 +5,14 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
-	"time"
-
-	"github.com/33cn/chain33/common/address"
-	"github.com/33cn/chain33/rpc/jsonclient"
-
-	"math/big"
 
 	"github.com/33cn/chain33/common"
-	"github.com/33cn/chain33/common/difficulty"
+	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
@@ -33,19 +28,16 @@ func StatCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		GetTotalCoinsCmd(),
-		GetTicketStatCmd(),
-		GetTicketInfoCmd(),
-		GetTicketInfoListCmd(),
-		GetMinerStatCmd(),
-		GetExecBalanceCmd(),
+		getTotalCoinsCmd(),
+		getExecBalanceCmd(),
+		totalFeeCmd(),
 	)
 
 	return cmd
 }
 
-// GetTotalCoinsCmd get total coins
-func GetTotalCoinsCmd() *cobra.Command {
+// getTotalCoinsCmd get total coins
+func getTotalCoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "total_coins",
 		Short: "Get total amount of a token (default: bty of current height)",
@@ -67,43 +59,32 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	height, _ := cmd.Flags().GetInt64("height")
 	actual, _ := cmd.Flags().GetString("actual")
 
-	if height == -1 {
-		rpc, err := jsonclient.NewJSONClient(rpcAddr)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		var res rpctypes.Header
-		err = rpc.Call("Chain33.GetLastHeader", nil, &res)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		height = res.Height
-	}
-
-	// 获取高度statehash
-	params := rpctypes.BlockParam{
-		Start: height,
-		End:   height,
-		//Isdetail: false,
-		Isdetail: true,
-	}
-
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	var res rpctypes.BlockDetails
-	err = rpc.Call("Chain33.GetBlocks", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	var stateHashHex string
+	if height < 0 {
+
+		header, err := getLastBlock(rpc)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		height = header.Height
+		stateHashHex = header.StateHash
+	} else {
+		blocks, err := getBlocks(height, height, rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "GetBlocksErr:%s", err.Error())
+			return
+		}
+		stateHashHex = blocks.Items[0].Block.StateHash
 	}
 
-	stateHash, err := common.FromHex(res.Items[0].Block.StateHash)
+	stateHash, err := common.FromHex(stateHashHex)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -114,33 +95,22 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	resp := commandtypes.GetTotalCoinsResult{}
 
 	if symbol == "bty" {
-		//查询高度blockhash
-		params := types.ReqInt{Height: height}
-		var res1 rpctypes.ReplyHash
-		err = rpc.Call("Chain33.GetBlockHash", params, &res1)
+		//查询历史总手续费
+		fee, err := queryTotalFeeWithHeight(height, rpc)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
 
-		blockHash, err := common.FromHex(res1.Hash)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
+		resp.TxCount = fee.TxCount
+		var issueCoins int64
+		//只适用bty主网计算
+		if height < 2270000 {
+			issueCoins = 30 * height
+		} else { //挖矿产量降低30->8
+			issueCoins = 22*2269999 + height*8
 		}
-
-		//查询手续费
-		key := append([]byte("TotalFeeKey:"), blockHash...)
-		params2 := types.LocalDBGet{Keys: [][]byte{key}}
-		var res2 types.TotalFee
-		err = rpc.Call("Chain33.QueryTotalFee", params2, &res2)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-
-		resp.TxCount = res2.TxCount
-		totalAmount = (317430000+30*height)*types.Coin - res2.Fee
+		totalAmount = (317430000+issueCoins)*types.Coin - fee.Fee
 		resp.TotalAmount = strconv.FormatFloat(float64(totalAmount)/float64(types.Coin), 'f', 4, 64)
 	} else {
 		var req types.ReqString
@@ -213,439 +183,8 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	fmt.Println(string(data))
 }
 
-// GetTicketStatCmd get ticket stat
-func GetTicketStatCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "ticket_stat",
-		Short: "Get ticket statistics by addr",
-		Run:   ticketStat,
-	}
-	addTicketStatCmdFlags(cmd)
-	return cmd
-}
-
-func addTicketStatCmdFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "addr")
-	cmd.MarkFlagRequired("addr")
-}
-
-func ticketStat(cmd *cobra.Command, args []string) {
-	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-
-	rpc, err := jsonclient.NewJSONClient(rpcAddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	key := []byte("Statistics:TicketStat:Addr:" + addr)
-	fmt.Println(string(key))
-	params := types.LocalDBGet{Keys: [][]byte{key}}
-	var res types.TicketStatistic
-	err = rpc.Call("Chain33.QueryTicketStat", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	var resp commandtypes.GetTicketStatisticResult
-	resp.CurrentOpenCount = res.CurrentOpenCount
-	resp.TotalMinerCount = res.TotalMinerCount
-	resp.TotalCloseCount = res.TotalCancleCount
-
-	data, err := json.MarshalIndent(resp, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
-}
-
-// GetTicketInfoCmd get a ticket information
-func GetTicketInfoCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "ticket_info",
-		Short: "Get ticket info by ticket_id",
-		Run:   ticketInfo,
-	}
-	addTicketInfoCmdFlags(cmd)
-	return cmd
-}
-
-func addTicketInfoCmdFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("ticket_id", "t", "", "ticket_id")
-	cmd.MarkFlagRequired("ticket_id")
-}
-
-func ticketInfo(cmd *cobra.Command, args []string) {
-	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
-	ticketID, _ := cmd.Flags().GetString("ticket_id")
-
-	rpc, err := jsonclient.NewJSONClient(rpcAddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	key := []byte("Statistics:TicketInfo:TicketId:" + ticketID)
-	fmt.Println(string(key))
-	params := types.LocalDBGet{Keys: [][]byte{key}}
-	var res types.TicketMinerInfo
-	err = rpc.Call("Chain33.QueryTicketInfo", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	var resp commandtypes.GetTicketMinerInfoResult
-	resp.TicketID = res.TicketId
-	switch res.Status {
-	case 1:
-		resp.Status = "openTicket"
-	case 2:
-		resp.Status = "minerTicket"
-	case 3:
-		resp.Status = "closeTicket"
-	}
-	switch res.PrevStatus {
-	case 1:
-		resp.PrevStatus = "openTicket"
-	case 2:
-		resp.PrevStatus = "minerTicket"
-	case 3:
-		resp.PrevStatus = "closeTicket"
-	}
-	resp.IsGenesis = res.IsGenesis
-	resp.CreateTime = time.Unix(res.CreateTime, 0).Format("20060102150405")
-	resp.MinerTime = time.Unix(res.MinerTime, 0).Format("20060102150405")
-	resp.CloseTime = time.Unix(res.CloseTime, 0).Format("20060102150405")
-	resp.MinerValue = res.MinerValue
-	resp.MinerAddress = res.MinerAddress
-
-	data, err := json.MarshalIndent(resp, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
-}
-
-// GetTicketInfoListCmd get ticket information list
-func GetTicketInfoListCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "ticket_info_list",
-		Short: "Get ticket info list by ticket_id",
-		Run:   ticketInfoList,
-	}
-	addTicketInfoListCmdFlags(cmd)
-	return cmd
-}
-
-func addTicketInfoListCmdFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "addr")
-	cmd.MarkFlagRequired("addr")
-	cmd.Flags().Int32P("count", "c", 10, "count")
-	//cmd.MarkFlagRequired("count")
-	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page)")
-	cmd.Flags().StringP("create_time", "r", "", "create_time")
-	cmd.Flags().StringP("ticket_id", "t", "", "ticket_id")
-}
-
-func ticketInfoList(cmd *cobra.Command, args []string) {
-	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-	count, _ := cmd.Flags().GetInt32("count")
-	direction, _ := cmd.Flags().GetInt32("direction")
-	createTime, _ := cmd.Flags().GetString("create_time")
-	ticketID, _ := cmd.Flags().GetString("ticket_id")
-
-	if count <= 0 {
-		fmt.Fprintln(os.Stderr, fmt.Errorf("input err, count:%v", count))
-		return
-	}
-
-	rpc, err := jsonclient.NewJSONClient(rpcAddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	var key []byte
-	prefix := []byte("Statistics:TicketInfoOrder:Addr:" + addr)
-	if ticketID != "" && createTime != "" {
-		key = []byte("Statistics:TicketInfoOrder:Addr:" + addr + ":CreateTime:" + createTime + ":TicketId:" + ticketID)
-	}
-	fmt.Println(string(prefix))
-	fmt.Println(string(key))
-	params := types.LocalDBList{Prefix: prefix, Key: key, Direction: direction, Count: count}
-	var res []types.TicketMinerInfo
-	err = rpc.Call("Chain33.QueryTicketInfoList", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	var resp []commandtypes.GetTicketMinerInfoResult
-	for _, v := range res {
-		var ticket commandtypes.GetTicketMinerInfoResult
-		ticket.TicketID = v.TicketId
-
-		switch v.Status {
-		case 1:
-			ticket.Status = "openTicket"
-		case 2:
-			ticket.Status = "minerTicket"
-		case 3:
-			ticket.Status = "closeTicket"
-		}
-		switch v.PrevStatus {
-		case 1:
-			ticket.PrevStatus = "openTicket"
-		case 2:
-			ticket.PrevStatus = "minerTicket"
-		case 3:
-			ticket.PrevStatus = "closeTicket"
-		}
-		ticket.IsGenesis = v.IsGenesis
-		ticket.CreateTime = time.Unix(v.CreateTime, 0).Format("20060102150405")
-		if v.MinerTime != 0 {
-			ticket.MinerTime = time.Unix(v.MinerTime, 0).Format("20060102150405")
-		}
-		if v.CloseTime != 0 {
-			ticket.CloseTime = time.Unix(v.CloseTime, 0).Format("20060102150405")
-		}
-		ticket.MinerValue = v.MinerValue
-		ticket.MinerAddress = v.MinerAddress
-
-		resp = append(resp, ticket)
-	}
-
-	data, err := json.MarshalIndent(resp, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	fmt.Println(string(data))
-}
-
-// GetMinerStatCmd get miner stat
-func GetMinerStatCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "miner",
-		Short: "Get miner statistic",
-		Run:   minerStat,
-	}
-	addMinerStatCmdFlags(cmd)
-	return cmd
-}
-
-func addMinerStatCmdFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "addr")
-	cmd.MarkFlagRequired("addr")
-
-	cmd.Flags().Int64P("height", "t", 0, "start block height")
-	cmd.MarkFlagRequired("height")
-}
-
-func minerStat(cmd *cobra.Command, args []string) {
-	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-	height, _ := cmd.Flags().GetInt64("height")
-
-	if err := address.CheckAddress(addr); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	if height <= 0 {
-		fmt.Fprintln(os.Stderr, fmt.Errorf("input err, height:%v", height))
-		return
-	}
-
-	rpc, err := jsonclient.NewJSONClient(rpcAddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	// 获取最新高度
-	var lastheader rpctypes.Header
-	err = rpc.Call("Chain33.GetLastHeader", nil, &lastheader)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	// 循环取难度区间
-	var diffList []difficultyRange
-	var diff difficultyRange
-
-	startH := height
-diffListLoop:
-	for {
-		endH := startH + 10
-		if endH > lastheader.Height {
-			endH = lastheader.Height
-		}
-
-		params := types.ReqBlocks{
-			Start:    startH,
-			End:      endH,
-			IsDetail: false,
-		}
-		var respHeaders rpctypes.Headers
-		err = rpc.Call("Chain33.GetHeaders", params, &respHeaders)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-
-		for _, h := range respHeaders.Items {
-			if diff.bits != h.Difficulty {
-				diff.timestamp = h.BlockTime
-				diff.height = h.Height
-				diff.bits = h.Difficulty
-				diff.diff = difficulty.CompactToBig(diff.bits)
-				diffList = append(diffList, diff)
-			}
-		}
-
-		if len(respHeaders.Items) < 10 || endH+1 > lastheader.Height {
-			// 最后一个点，记录截止时间
-			diff.timestamp = respHeaders.Items[len(respHeaders.Items)-1].BlockTime
-			diffList = append(diffList, diff)
-			break diffListLoop
-		}
-		startH = endH + 1
-	}
-
-	// 统计挖矿概率
-	bigOne := big.NewInt(1)
-	oneLsh256 := new(big.Int).Lsh(bigOne, 256)
-	oneLsh256.Sub(oneLsh256, bigOne)
-	resp := new(MinerResult)
-	resp.Expect = new(big.Float).SetInt64(0)
-
-	var key []byte
-	prefix := []byte("Statistics:TicketInfoOrder:Addr:" + addr)
-	for {
-		params := types.LocalDBList{Prefix: prefix, Key: key, Direction: 1, Count: 10}
-		var res []types.TicketMinerInfo
-		err = rpc.Call("Chain33.QueryTicketInfoList", params, &res)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Errorf("QueryTicketInfoList failed:%v", err))
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-
-		for _, v := range res {
-			if v.CreateTime < diffList[0].timestamp-types.GetP(diffList[0].height).TicketFrozenTime {
-				continue
-			}
-			//找到开始挖矿的难度坐标
-			var pos int
-			for i := range diffList {
-				//创建时间+冻结时间<右节点
-				if v.CreateTime >= diffList[i].timestamp-types.GetP(diffList[i].height).TicketFrozenTime {
-					continue
-				} else {
-					pos = i - 1
-					break
-				}
-			}
-			diffList2 := diffList[pos:]
-
-			//没有挖到，还在挖
-			if v.CloseTime == 0 && v.MinerTime == 0 {
-				for i := range diffList2 {
-					if i == 0 {
-						continue
-					}
-					probability := new(big.Float).Quo(new(big.Float).SetInt(diffList2[i-1].diff), new(big.Float).SetInt(oneLsh256))
-					if i == 1 {
-						resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-v.CreateTime-types.GetP(diffList2[i-1].height).TicketFrozenTime)))
-					} else {
-						resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-diffList2[i-1].timestamp)))
-					}
-				}
-			}
-
-			//没有挖到，主动关闭
-			if v.MinerTime == 0 && v.CloseTime != 0 {
-				for i := range diffList2 {
-					if i == 0 {
-						continue
-					}
-					probability := new(big.Float).Quo(new(big.Float).SetInt(diffList2[i-1].diff), new(big.Float).SetInt(oneLsh256))
-					if i == 1 {
-						resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-v.CreateTime-types.GetP(diffList2[i-1].height).TicketFrozenTime)))
-					} else {
-						if v.CloseTime <= diffList2[i].timestamp {
-							resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(v.CloseTime-diffList2[i-1].timestamp)))
-							break
-						} else {
-							resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-diffList2[i-1].timestamp)))
-						}
-					}
-				}
-			}
-
-			//挖到
-			if v.MinerTime != 0 {
-				for i := range diffList2 {
-					if i == 0 {
-						continue
-					}
-					probability := new(big.Float).Quo(new(big.Float).SetInt(diffList2[i-1].diff), new(big.Float).SetInt(oneLsh256))
-					if i == 1 {
-						resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-v.CreateTime-types.GetP(diffList2[i-1].height).TicketFrozenTime)))
-					} else {
-						if v.MinerTime <= diffList2[i].timestamp {
-							resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(v.MinerTime-diffList2[i-1].timestamp)))
-							break
-						} else {
-							resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-diffList2[i-1].timestamp)))
-						}
-					}
-				}
-
-				resp.Actual++
-			}
-		}
-
-		if len(res) < 10 {
-			break
-		}
-		key = []byte("Statistics:TicketInfoOrder:Addr:" + addr + ":CreateTime:" + time.Unix(res[len(res)-1].CreateTime, 0).Format("20060102150405") + ":TicketId:" + res[len(res)-1].TicketId)
-	}
-
-	expect := resp.Expect.Text('f', 2)
-	fmt.Println("Expect:", expect)
-	fmt.Println("Actual:", resp.Actual)
-
-	e, _ := strconv.ParseFloat(expect, 64)
-	fmt.Printf("Deviation:%+.3f%%\n", (float64(resp.Actual)/e-1.0)*100.0)
-}
-
-type difficultyRange struct {
-	timestamp int64
-	height    int64
-	bits      uint32
-	diff      *big.Int
-}
-
-// MinerResult defiles miner command
-type MinerResult struct {
-	Expect *big.Float
-	Actual int64
-}
-
-// GetExecBalanceCmd get exec-addr balance of specific addr
-func GetExecBalanceCmd() *cobra.Command {
+// getExecBalanceCmd get exec-addr balance of specific addr
+func getExecBalanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "exec_balance",
 		Short: "Get the exec amount of a token of one address (default: all exec-addr bty of current height of one addr)",
@@ -672,43 +211,30 @@ func execBalance(cmd *cobra.Command, args []string) {
 	execAddr, _ := cmd.Flags().GetString("exec_addr")
 	height, _ := cmd.Flags().GetInt64("height")
 
-	if height == -1 {
-		rpc, err := jsonclient.NewJSONClient(rpcAddr)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		var res rpctypes.Header
-		err = rpc.Call("Chain33.GetLastHeader", nil, &res)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		height = res.Height
-	}
-
-	// 获取高度statehash
-	params := rpctypes.BlockParam{
-		Start: height,
-		End:   height,
-		//Isdetail: false,
-		Isdetail: true,
-	}
-
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	var stateHashHex string
+	if height < 0 {
 
-	var res rpctypes.BlockDetails
-	err = rpc.Call("Chain33.GetBlocks", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+		header, err := getLastBlock(rpc)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		stateHashHex = header.StateHash
+	} else {
+		blocks, err := getBlocks(height, height, rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "GetBlocksErr:%s", err.Error())
+			return
+		}
+		stateHashHex = blocks.Items[0].Block.StateHash
 	}
 
-	stateHash, err := common.FromHex(res.Items[0].Block.StateHash)
+	stateHash, err := common.FromHex(stateHashHex)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -727,7 +253,6 @@ func execBalance(cmd *cobra.Command, args []string) {
 		ExecAddr:  []byte(execAddr),
 		Execer:    exec,
 	}
-	reqParam.StateHash = stateHash
 
 	if len(execAddr) > 0 {
 		reqParam.Count = 1 //由于精确匹配一条记录，所以这里设定为1
@@ -799,4 +324,154 @@ func convertReplyToResult(reply *types.ReplyGetExecBalance, result *commandtypes
 		item.Active = strconv.FormatFloat(float64(reply.Items[i].Active)/float64(precision), 'f', 4, 64)
 		result.ExecBalances = append(result.ExecBalances, item)
 	}
+}
+
+// totalFeeCmd query total fee command
+func totalFeeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "total_fee",
+		Short: "query total transaction fee, support specific block height interval [start, end]",
+		Run:   totalFee,
+	}
+	cmd.Flags().Int64P("start_height", "s", 0, "start block height, default 0")
+	cmd.Flags().Int64P("end_height", "e", -1, "end block height, default current block height")
+	return cmd
+}
+
+func totalFee(cmd *cobra.Command, args []string) {
+	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
+	start, _ := cmd.Flags().GetInt64("start_height")
+	end, _ := cmd.Flags().GetInt64("end_height")
+
+	var startFeeAmount, endFeeAmount int64
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "NewJsonClientErr:%s\n", err.Error())
+		return
+	}
+	if start < 0 {
+		start = 0
+	}
+
+	if start > 0 {
+		totalFee, err := queryTotalFeeWithHeight(start-1, rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "QueryStartFeeErr:%s\n", err.Error())
+			return
+		}
+		startFeeAmount = totalFee.Fee
+	}
+
+	if end < 0 {
+		//last block fee
+		currentHeight, totalFee, err := queryCurrentTotalFee(rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "QueryCurrentTotalFeeErr:%s\n", err.Error())
+			return
+		}
+		endFeeAmount = totalFee.Fee
+		end = currentHeight
+	} else {
+		totalFee, err := queryTotalFeeWithHeight(end, rpc)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "QueryEndFeeErr:%s\n", err.Error())
+			return
+		}
+		endFeeAmount = totalFee.Fee
+	}
+
+	fee := endFeeAmount - startFeeAmount
+	if fee < 0 {
+		fee = 0
+	}
+	resp := fmt.Sprintf(`{"startHeight":%d,"endHeight":%d, "totalFee":%s}`, start, end, commandtypes.FormatAmountValue2Display(fee))
+	buf := &bytes.Buffer{}
+	err = json.Indent(buf, []byte(resp), "", "    ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "JsonIndentResultErr:%s\n", err.Error())
+		return
+	}
+
+	fmt.Println(buf.String())
+}
+
+//get last block header
+func getLastBlock(rpc *jsonclient.JSONClient) (*rpctypes.Header, error) {
+
+	res := &rpctypes.Header{}
+	err := rpc.Call("Chain33.GetLastHeader", nil, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+//get block hash with height
+func getBlockHash(height int64, rpc *jsonclient.JSONClient) (string, error) {
+
+	params := types.ReqInt{Height: height}
+	var res rpctypes.ReplyHash
+	err := rpc.Call("Chain33.GetBlockHash", params, &res)
+	if err != nil {
+		return "", err
+	}
+	return res.Hash, nil
+}
+
+func queryCurrentTotalFee(rpc *jsonclient.JSONClient) (int64, *types.TotalFee, error) {
+	header, err := getLastBlock(rpc)
+	if err != nil {
+		return 0, nil, err
+	}
+	fee, err := queryTotalFeeWithHash(header.Hash, rpc)
+	if err != nil {
+		return 0, nil, err
+	}
+	return header.Height, fee, nil
+}
+
+func queryTotalFeeWithHeight(height int64, rpc *jsonclient.JSONClient) (*types.TotalFee, error) {
+	hash, err := getBlockHash(height, rpc)
+	if err != nil {
+		return nil, err
+	}
+	fee, err := queryTotalFeeWithHash(hash, rpc)
+	if err != nil {
+		return nil, err
+	}
+	return fee, nil
+}
+
+func queryTotalFeeWithHash(blockHash string, rpc *jsonclient.JSONClient) (*types.TotalFee, error) {
+
+	hash, err := common.FromHex(blockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	//查询手续费
+	hash = append([]byte("TotalFeeKey:"), hash...)
+	params := types.LocalDBGet{Keys: [][]byte{hash[:]}}
+	res := &types.TotalFee{}
+	err = rpc.Call("Chain33.QueryTotalFee", params, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func getBlocks(start, end int64, rpc *jsonclient.JSONClient) (*rpctypes.BlockDetails, error) {
+	// 获取blocks
+	params := rpctypes.BlockParam{
+		Start: start,
+		End:   end,
+		//Isdetail: false,
+		Isdetail: true,
+	}
+	res := &rpctypes.BlockDetails{}
+	err := rpc.Call("Chain33.GetBlocks", params, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }

@@ -75,6 +75,7 @@ var (
 	ErrFeeTooLow                  = errors.New("ErrFeeTooLow")
 	ErrEmptyTx                    = errors.New("ErrEmptyTx")
 	ErrTxFeeTooLow                = errors.New("ErrTxFeeTooLow")
+	ErrTxFeeTooHigh               = errors.New("ErrTxFeeTooHigh")
 	ErrTxMsgSizeTooBig            = errors.New("ErrTxMsgSizeTooBig")
 	ErrFutureBlock                = errors.New("ErrFutureBlock")
 	ErrHashNotFound               = errors.New("ErrHashNotFound")
@@ -134,12 +135,13 @@ var (
 	ErrFromHex            = errors.New("ErrFromHex")
 	ErrPrivKeyFromBytes   = errors.New("ErrFromHex")
 	ErrParentHash         = errors.New("ErrParentHash")
-
+	ErrInvalidPassWord    = errors.New("ErrInvalidPassWord")
 	//ErrPing p2p模块错误类型
 	ErrPing       = errors.New("ErrPingSignature")
 	ErrVersion    = errors.New("ErrVersionNoSupport")
 	ErrStreamPing = errors.New("ErrStreamPing")
 	ErrPeerStop   = errors.New("ErrPeerStop")
+	ErrP2PChannel = errors.New("ErrIllegalP2PChannel")
 
 	ErrBlockSize                  = errors.New("ErrBlockSize")
 	ErrTxGroupIndex               = errors.New("ErrTxGroupIndex")
@@ -162,6 +164,7 @@ var (
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
 	ErrTxGroupParaCount           = errors.New("ErrTxGroupParaCount")
+	ErrTxGroupParaMainMixed       = errors.New("ErrTxGroupParaMainMixed")
 
 	//ErrInvalidMainnetRPCAddr rpc模块的错误类型
 	ErrInvalidMainnetRPCAddr = errors.New("ErrInvalidMainnetRPCAddr")
@@ -180,4 +183,12 @@ var (
 	ErrHeightLessZero      = errors.New("ErrHeightLessZero")
 	ErrHeightOverflow      = errors.New("ErrHeightOverflow")
 	ErrRecordBlockSequence = errors.New("ErrRecordBlockSequence")
+	ErrExecPanic           = errors.New("ErrExecPanic")
+
+	ErrDisableWrite = errors.New("ErrDisableWrite")
+	ErrDisableRead  = errors.New("ErrDisableRead")
+
+	ErrConsensusHashErr  = errors.New("ErrConsensusHashErr")
+	ErrMaxCountPerTime   = errors.New("ErrMaxCountPerTime")
+	ErrInValidFileHeader = errors.New("ErrInValidFileHeader")
 )

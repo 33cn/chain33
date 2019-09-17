@@ -18,23 +18,17 @@ import (
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 //var
 var (
 	//cache 存贮的block个数
-	DefCacheSize        int64 = 128
-	MaxSeqCB            int64 = 20
-	cachelock           sync.Mutex
-	zeroHash            [32]byte
-	InitBlockNum        int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
-	isStrongConsistency       = false
-
-	chainlog                    = log.New("module", "blockchain")
-	FutureBlockDelayTime  int64 = 1
-	isRecordBlockSequence       = false //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
-	isParaChain                 = false //是否是平行链。平行链需要记录Sequence信息
+	MaxSeqCB             int64 = 20
+	zeroHash             [32]byte
+	InitBlockNum         int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
+	chainlog                   = log.New("module", "blockchain")
+	FutureBlockDelayTime int64 = 1
 )
 
 const maxFutureBlocks = 256
@@ -47,9 +41,9 @@ type BlockChain struct {
 	blockStore *BlockStore
 	pushseq    *pushseq
 	//cache  缓存block方便快速查询
-	cfg      *types.BlockChain
-	task     *Task
-	forktask *Task
+	cfg          *types.BlockChain
+	syncTask     *Task
+	downLoadTask *Task
 
 	query *Query
 
@@ -98,20 +92,45 @@ type BlockChain struct {
 	//记录futureblocks
 	futureBlocks *lru.Cache // future blocks are broadcast later processing
 
-	//fork block req
-	forkInfo *ForkInfo
-	forklock sync.Mutex
+	//downLoad block info
+	downLoadInfo       *DownLoadInfo
+	isFastDownloadSync bool //当本节点落后很多时，可以先下载区块到db，启动单独的goroutine去执行block
+
+	isRecordBlockSequence bool //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
+	isParaChain           bool //是否是平行链。平行链需要记录Sequence信息
+	isStrongConsistency   bool
+	//lock
+	synBlocklock        sync.Mutex
+	peerMaxBlklock      sync.Mutex
+	castlock            sync.Mutex
+	ntpClockSynclock    sync.Mutex
+	faultpeerlock       sync.Mutex
+	bestpeerlock        sync.Mutex
+	downLoadlock        sync.Mutex
+	fastDownLoadSynLock sync.Mutex
+	isNtpClockSync      bool //ntp时间是否同步
+
+	//cfg
+	MaxFetchBlockNum int64 //一次最多申请获取block个数
+	TimeoutSeconds   int64
+	blockSynInterVal time.Duration
+	DefCacheSize     int64
+	failed           int32
 }
 
 //New new
 func New(cfg *types.BlockChain) *BlockChain {
-	initConfig(cfg)
 	futureBlocks, err := lru.New(maxFutureBlocks)
 	if err != nil {
 		panic("when New BlockChain lru.New return err")
 	}
+	defCacheSize := int64(128)
+	if cfg.DefCacheSize > 0 {
+		defCacheSize = cfg.DefCacheSize
+	}
 	blockchain := &BlockChain{
-		cache:              NewBlockCache(DefCacheSize),
+		cache:              NewBlockCache(defCacheSize),
+		DefCacheSize:       defCacheSize,
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		peerList:           nil,
@@ -119,8 +138,8 @@ func New(cfg *types.BlockChain) *BlockChain {
 		recvwg:             &sync.WaitGroup{},
 		tickerwg:           &sync.WaitGroup{},
 
-		task:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
-		forktask: newTask(300 * time.Second),
+		syncTask:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
+		downLoadTask: newTask(300 * time.Second),
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
@@ -133,31 +152,32 @@ func New(cfg *types.BlockChain) *BlockChain {
 		faultPeerList:       make(map[string]*FaultPeerInfo),
 		bestChainPeerList:   make(map[string]*BestPeerInfo),
 		futureBlocks:        futureBlocks,
-		forkInfo:            &ForkInfo{},
+		downLoadInfo:        &DownLoadInfo{},
+		isNtpClockSync:      true,
+		MaxFetchBlockNum:    128 * 6, //一次最多申请获取block个数
+		TimeoutSeconds:      2,
+		isFastDownloadSync:  true,
 	}
-
+	blockchain.initConfig(cfg)
 	return blockchain
 }
 
-func initConfig(cfg *types.BlockChain) {
-	if cfg.DefCacheSize > 0 {
-		DefCacheSize = cfg.DefCacheSize
-	}
-
-	if types.IsEnable("TxHeight") && DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
+func (chain *BlockChain) initConfig(cfg *types.BlockChain) {
+	if types.IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
 		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
 	}
 
 	if cfg.MaxFetchBlockNum > 0 {
-		MaxFetchBlockNum = cfg.MaxFetchBlockNum
+		chain.MaxFetchBlockNum = cfg.MaxFetchBlockNum
 	}
 
 	if cfg.TimeoutSeconds > 0 {
-		TimeoutSeconds = cfg.TimeoutSeconds
+		chain.TimeoutSeconds = cfg.TimeoutSeconds
 	}
-	isStrongConsistency = cfg.IsStrongConsistency
-	isRecordBlockSequence = cfg.IsRecordBlockSequence
-	isParaChain = cfg.IsParaChain
+	chain.blockSynInterVal = time.Duration(chain.TimeoutSeconds)
+	chain.isStrongConsistency = cfg.IsStrongConsistency
+	chain.isRecordBlockSequence = cfg.IsRecordBlockSequence
+	chain.isParaChain = cfg.IsParaChain
 	types.S("quickIndex", cfg.EnableTxQuickIndex)
 }
 
@@ -193,7 +213,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client.Sub("blockchain")
 
 	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, chain.cfg.DbCache)
-	blockStore := NewBlockStore(blockStoreDB, client)
+	blockStore := NewBlockStore(chain, blockStoreDB, client)
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
@@ -225,9 +245,11 @@ func (chain *BlockChain) GetOrphanPool() *OrphanPool {
 //InitBlockChain 区块链初始化
 func (chain *BlockChain) InitBlockChain() {
 	//isRecordBlockSequence配置的合法性检测
-	if !chain.cfg.IsParaChain {
-		chain.blockStore.isRecordBlockSequenceValid()
+	seqStatus := chain.blockStore.CheckSequenceStatus(chain.isRecordBlockSequence)
+	if seqStatus == seqStatusNeedCreate {
+		chain.blockStore.CreateSequences(100000)
 	}
+
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
 	if types.IsEnable("TxHeight") {
@@ -250,15 +272,15 @@ func (chain *BlockChain) InitBlockChain() {
 		}
 	}
 	types.S("dbversion", curdbver)
-	if !chain.cfg.IsParaChain {
+	if !chain.cfg.IsParaChain && chain.cfg.RollbackBlock <= 0 {
 		// 定时检测/同步block
 		go chain.SynRoutine()
 
 		// 定时处理futureblock
 		go chain.UpdateRoutine()
 	}
-	//初始化默认forkinfo
-	chain.DefaultForkInfo()
+	//初始化默认DownLoadInfo
+	chain.DefaultDownLoadInfo()
 }
 
 func (chain *BlockChain) getStateHash() []byte {
@@ -394,7 +416,7 @@ func (chain *BlockChain) InitCache(height int64) {
 	if height < 0 {
 		return
 	}
-	for i := height - DefCacheSize; i <= height; i++ {
+	for i := height - chain.DefCacheSize; i <= height; i++ {
 		if i < 0 {
 			i = 0
 		}
@@ -480,4 +502,14 @@ func (chain *BlockChain) ProcFutureBlocks() {
 			}
 		}
 	}
+}
+
+//SetValueByKey 设置kv对到blockchain数据库
+func (chain *BlockChain) SetValueByKey(kvs *types.LocalDBSet) error {
+	return chain.blockStore.SetConsensusPara(kvs)
+}
+
+//GetValueByKey 通过key值从blockchain数据库中获取value值
+func (chain *BlockChain) GetValueByKey(keys *types.LocalDBGet) *types.LocalReplyValue {
+	return chain.blockStore.Get(keys)
 }

@@ -33,6 +33,7 @@ function down() {
     # shellchk not recommend the first way
     # remains=( $(docker-compose ps -q | awk '{print $1}') )
     mapfile -t remains < <(docker-compose ps -q | awk '{print $1}')
+    # shellcheck disable=SC2154
     num=${#remains[@]}
     echo "container num=$num"
     if [ "$num" -gt 0 ]; then

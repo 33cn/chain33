@@ -5,9 +5,8 @@
 package store
 
 import (
-	"testing"
-
 	"os"
+	"testing"
 
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/queue"
@@ -34,6 +33,14 @@ func (s *storeChild) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 }
 
 func (s *storeChild) Commit(hash *types.ReqHash) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (s *storeChild) MemSetUpgrade(datas *types.StoreSet, sync bool) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (s *storeChild) CommitUpgrade(req *types.ReqHash) ([]byte, error) {
 	return []byte{}, nil
 }
 
@@ -153,4 +160,40 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreDel), resp.Ty)
 
+	list := &types.StoreList{StateHash: EmptyRoot[:]}
+	msg = queueClinet.NewMessage("store", types.EventStoreList, list)
+	err = queueClinet.Send(msg, true)
+	assert.Nil(t, err)
+	resp, err = queueClinet.Wait(msg)
+	assert.Nil(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, int64(types.EventStoreListReply), resp.Ty)
+
+}
+
+func TestSubStore(t *testing.T) {
+	storelistQuery := NewStoreListQuery(&storeChild{}, &types.StoreList{StateHash: EmptyRoot[:], Mode: 1})
+	ok := storelistQuery.IterateCallBack([]byte("abc"), nil)
+	_ = storelistQuery.Run()
+	assert.True(t, ok)
+
+	storelistQuery = NewStoreListQuery(&storeChild{}, &types.StoreList{StateHash: EmptyRoot[:], Count: 2, Mode: 1})
+	ok = storelistQuery.IterateCallBack([]byte("abc"), nil)
+	assert.False(t, ok)
+
+	storelistQuery = NewStoreListQuery(&storeChild{}, &types.StoreList{StateHash: EmptyRoot[:], Suffix: []byte("bc"), Mode: 2})
+	ok = storelistQuery.IterateCallBack([]byte("abc"), nil)
+	assert.True(t, ok)
+}
+
+func TestRegAndLoad(t *testing.T) {
+	Reg("test", func(cfg *types.Store, sub []byte) queue.Module {
+		return nil
+	})
+
+	_, err := Load("test")
+	assert.NoError(t, err)
+
+	_, err = Load("test2")
+	assert.Equal(t, types.ErrNotFound, err)
 }

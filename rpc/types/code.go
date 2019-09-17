@@ -70,6 +70,11 @@ func ConvertWalletTxDetailToJSON(in *types.WalletTxDetails, out *WalletTxDetails
 		if err != nil {
 			continue
 		}
+		if tx.Tx.IsWithdraw() {
+			//swap from and to
+			tx.Fromaddr, tx.Tx.To = tx.Tx.To, tx.Fromaddr
+			tran.To = tx.Tx.GetRealToAddr()
+		}
 		out.TxDetails = append(out.TxDetails, &WalletTxDetail{
 			Tx:         tran,
 			Receipt:    rd,

@@ -87,10 +87,17 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 	txmsg := msg.GetData().(*types.Transaction)
 	//普通的交易
 	tx := types.NewTransactionCache(txmsg)
-	err := tx.Check(header.GetHeight(), mem.cfg.MinTxFee)
+	err := tx.Check(header.GetHeight(), mem.cfg.MinTxFee, mem.cfg.MaxTxFee)
 	if err != nil {
 		msg.Data = err
 		return msg
+	}
+	if mem.cfg.IsLevelFee {
+		err = mem.checkLevelFee(tx)
+		if err != nil {
+			msg.Data = err
+			return msg
+		}
 	}
 	//检查txgroup 中的每个交易
 	txs, err := tx.GetTxGroup()
@@ -114,29 +121,58 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 	return msg
 }
 
-//checkTxList 检查账户余额是否足够，并加入到Mempool，成功则传入goodChan，若加入Mempool失败则传入badChan
+// checkLevelFee 检查阶梯手续费
+func (mem *Mempool) checkLevelFee(tx *types.TransactionCache) error {
+	//获取mempool里所有交易手续费总和
+	feeRate := mem.getLevelFeeRate(mem.cfg.MinTxFee, 0, 0)
+	totalfee, err := tx.GetTotalFee(feeRate)
+	if err != nil {
+		return err
+	}
+	if tx.Fee < totalfee {
+		return types.ErrTxFeeTooLow
+	}
+	return nil
+}
+
+//checkTxRemote 检查账户余额是否足够，并加入到Mempool，成功则传入goodChan，若加入Mempool失败则传入badChan
 func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 	tx := msg.GetData().(types.TxGroup)
+	lastheader := mem.GetHeader()
+
+	//add check dup tx需要区分单笔交易/交易组
+	temtxlist := &types.ExecTxList{}
+	txGroup, err := tx.GetTxGroup()
+	if err != nil {
+		msg.Data = err
+		return msg
+	}
+	if txGroup == nil {
+		temtxlist.Txs = append(temtxlist.Txs, tx.Tx())
+	} else {
+		temtxlist.Txs = append(temtxlist.Txs, txGroup.GetTxs()...)
+	}
+	temtxlist.Height = lastheader.Height
+	newtxs, err := util.CheckDupTx(mem.client, temtxlist.Txs, temtxlist.Height)
+	if err != nil {
+		msg.Data = err
+		return msg
+	}
+	if len(newtxs) != len(temtxlist.Txs) {
+		msg.Data = types.ErrDupTx
+		return msg
+	}
+
+	//exec模块检查交易
 	txlist := &types.ExecTxList{}
 	txlist.Txs = append(txlist.Txs, tx.Tx())
-	//检查是否重复
-	lastheader := mem.GetHeader()
 	txlist.BlockTime = lastheader.BlockTime
 	txlist.Height = lastheader.Height
 	txlist.StateHash = lastheader.StateHash
 	// 增加这个属性，在执行器中会使用到
 	txlist.Difficulty = uint64(lastheader.Difficulty)
 	txlist.IsMempool = true
-	//add check dup tx
-	newtxs, err := util.CheckDupTx(mem.client, txlist.Txs, txlist.Height)
-	if err != nil {
-		msg.Data = err
-		return msg
-	}
-	if len(newtxs) != len(txlist.Txs) {
-		msg.Data = types.ErrDupTx
-		return msg
-	}
+
 	result, err := mem.checkTxListRemote(txlist)
 	if err != nil {
 		msg.Data = err

@@ -6,6 +6,13 @@
 
 package basen_test
 
+import (
+	"testing"
+
+	"github.com/33cn/chain33/wallet/bipwallet/basen"
+	"github.com/stretchr/testify/assert"
+)
+
 /*
 func Test(t *testing.T) { gc.TestingT(t) }
 
@@ -69,3 +76,21 @@ func (s *Suite) TestNoMultiByte(c *gc.C) {
 		"multi-byte characters not supported")
 }
 */
+
+func TestBase58(t *testing.T) {
+	s := basen.Base58.MustRandom(10)
+	assert.False(t, len(s) == 0)
+
+	b, err := basen.Base58.DecodeString(s)
+	assert.NoError(t, err)
+	assert.True(t, len(b) <= 10)
+	s = basen.Base58.EncodeToString([]byte{0, 1, 2, 3, 4, 5})
+	b, err = basen.Base58.DecodeString(s)
+	assert.NoError(t, err)
+	assert.Equal(t, 5, len(b))
+	b, err = basen.Base58.DecodeStringN(s, 12)
+	assert.NoError(t, err)
+	assert.Equal(t, 12, len(b))
+
+	assert.True(t, basen.Base58.Base() == 58)
+}

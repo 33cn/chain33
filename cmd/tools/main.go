@@ -9,13 +9,12 @@ import (
 
 	"github.com/33cn/chain33/cmd/tools/commands"
 	"github.com/33cn/chain33/common/log"
-	"github.com/33cn/chain33/common/log/log15"
 	"github.com/spf13/cobra"
 )
 
-var (
-	mlog = log15.New("module", "tools")
-)
+//var (
+//	mlog = log15.New("module", "tools")
+//)
 
 func main() {
 	log.SetLogLevel("debug")
@@ -24,11 +23,10 @@ func main() {
 
 func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(
-		commands.SimpleCmd(),
-		commands.AdvanceCmd(),
 		commands.ImportCmd(),
 		commands.UpdateInitCmd(),
 		commands.CreatePluginCmd(),
+		commands.GenDappCmd(),
 	)
 }
 
@@ -40,7 +38,7 @@ func runCommands() {
 	addCommands(rootCmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		mlog.Error("Execute command failed.", "error", err)
+		//mlog.Error("Execute command failed.", "error", err)
 		os.Exit(1)
 	}
 }

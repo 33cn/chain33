@@ -163,7 +163,8 @@ func TestVersion(t *testing.T) {
 //}
 
 func testGetMemPoolOK(t *testing.T) {
-	qapi.On("GetMempool").Return(nil, nil)
+	var in *types.ReqGetMempool
+	qapi.On("GetMempool", in).Return(nil, nil)
 	data, err := g.GetMemPool(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
 	assert.Nil(t, data)
@@ -200,6 +201,18 @@ func testGetLastMemPoolOK(t *testing.T) {
 func TestGetLastMemPool(t *testing.T) {
 	//testGetLastMemPoolReject(t)
 	testGetLastMemPoolOK(t)
+}
+
+func testGetProperFeeOK(t *testing.T) {
+	var in *types.ReqProperFee
+	qapi.On("GetProperFee", in).Return(&types.ReplyProperFee{ProperFee: 1000000}, nil)
+	data, err := g.GetProperFee(getOkCtx(), in)
+	assert.Nil(t, err, "the error should be nil")
+	assert.Equal(t, int64(1000000), data.ProperFee)
+}
+
+func TestGetProperFee(t *testing.T) {
+	testGetProperFeeOK(t)
 }
 
 //func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) {
@@ -976,17 +989,6 @@ func TestGetLastHeader(t *testing.T) {
 //	testCreateRawTransactionOk(t)
 //}
 
-//func testSendRawTransactionReject(t *testing.T) {
-//	var in *pb.SignedTx
-//
-//	_, err := g.SendRawTransaction(getNokCtx(), in)
-//	assert.EqualError(t, err, "reject", "the erros should be reject")
-//}
-
-//func TestSendRawTransaction(t *testing.T) {
-//	testSendRawTransactionReject(t)
-//}
-
 //func testQueryTransactionReject(t *testing.T) {
 //	var in *pb.ReqHash
 //
@@ -1054,6 +1056,7 @@ func TestReWriteRawTx(t *testing.T) {
 		Fee:    29977777777,
 		Expire: "130s",
 		To:     "aabbccdd",
+		Index:  0,
 	}
 
 	data, err := g.ReWriteRawTx(getOkCtx(), in)
@@ -1066,6 +1069,99 @@ func TestReWriteRawTx(t *testing.T) {
 	err = types.Decode(data.Data, tx)
 	assert.Nil(t, err)
 	assert.Equal(t, tx.Fee, in.Fee)
-	assert.Equal(t, int64(130000000000), tx.Expire)
 	assert.Equal(t, in.To, tx.To)
+}
+
+func TestGrpc_CreateNoBalanceTransaction(t *testing.T) {
+	_, err := g.CreateNoBalanceTransaction(getOkCtx(), &pb.NoBalanceTx{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_CreateNoBalanceTxs(t *testing.T) {
+	_, err := g.CreateNoBalanceTxs(getOkCtx(), &pb.NoBalanceTxs{TxHexs: []string{"0a05746f6b656e12413804223d0a0443434e5910a09c011a0d74657374207472616e73666572222231333559774e715367694551787577586650626d526d48325935334564673864343820a08d0630969a9fe6c4b9c7ba5d3a2231333559774e715367694551787577586650626d526d483259353345646738643438", "0a05746f6b656e12413804223d0a0443434e5910b0ea011a0d74657374207472616e73666572222231333559774e715367694551787577586650626d526d48325935334564673864343820a08d0630bca0a2dbc0f182e06f3a2231333559774e715367694551787577586650626d526d483259353345646738643438"}})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_CreateRawTransaction(t *testing.T) {
+	_, err := g.CreateRawTransaction(getOkCtx(), &pb.CreateTx{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_CreateTransaction(t *testing.T) {
+	_, err := g.CreateTransaction(getOkCtx(), &pb.CreateTxIn{Execer: []byte("coins")})
+	assert.Equal(t, err, types.ErrActionNotSupport)
+}
+
+func TestGrpc_CreateRawTxGroup(t *testing.T) {
+	_, err := g.CreateRawTxGroup(getOkCtx(), &pb.CreateTransactionGroup{})
+	assert.Equal(t, types.ErrTxGroupCountLessThanTwo, err)
+}
+
+func TestGrpc_GetAddrOverview(t *testing.T) {
+	_, err := g.GetAddrOverview(getOkCtx(), &types.ReqAddr{})
+	assert.Equal(t, err, types.ErrInvalidAddress)
+}
+
+func TestGrpc_GetBalance(t *testing.T) {
+	qapi.On("StoreGet", mock.Anything).Return(nil, types.ErrInvalidParam)
+	_, err := g.GetBalance(getOkCtx(), &types.ReqBalance{})
+	assert.Equal(t, err, types.ErrInvalidParam)
+}
+
+func TestGrpc_GetAllExecBalance(t *testing.T) {
+	_, err := g.GetAllExecBalance(getOkCtx(), &pb.ReqAllExecBalance{})
+	assert.Equal(t, err, types.ErrInvalidAddress)
+}
+
+func TestGrpc_QueryConsensus(t *testing.T) {
+	qapi.On("QueryConsensus", mock.Anything).Return(&types.ReqString{Data: "test"}, nil)
+	_, err := g.QueryConsensus(getOkCtx(), &pb.ChainExecutor{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_ExecWallet(t *testing.T) {
+	qapi.On("ExecWallet", mock.Anything).Return(&types.ReqString{Data: "test"}, nil)
+	_, err := g.ExecWallet(getOkCtx(), &pb.ChainExecutor{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetLastBlockSequence(t *testing.T) {
+	qapi.On("GetLastBlockSequence", mock.Anything).Return(nil, nil)
+	_, err := g.GetLastBlockSequence(getOkCtx(), &types.ReqNil{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetBlockByHashes(t *testing.T) {
+	qapi.On("GetBlockByHashes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.GetBlockByHashes(getOkCtx(), &types.ReqHashes{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetSequenceByHash(t *testing.T) {
+	qapi.On("GetSequenceByHash", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.GetSequenceByHash(getOkCtx(), &pb.ReqHash{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_SignRawTx(t *testing.T) {
+	qapi.On("SignRawTx", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.SignRawTx(getOkCtx(), &types.ReqSignRawTx{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_QueryRandNum(t *testing.T) {
+	qapi.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&pb.ReplyHash{Hash: []byte("test")}, nil)
+	_, err := g.QueryRandNum(getOkCtx(), &pb.ReqRandHash{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetFork(t *testing.T) {
+	pb.SetDappFork("local", "para", "fork100", 100)
+	val, err := g.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("para-fork100")})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(100), val.Data)
+
+	val, err = g.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("ForkBlockHash")})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), val.Data)
 }

@@ -1,0 +1,21 @@
+syntax = "proto3";
+package ticket;
+
+message Ticket {
+    string ticketId = 1;
+    // 0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
+    int32 status = 2;
+    // genesis 创建的私钥比较特殊
+    bool isGenesis = 3;
+    //创建时间
+    int64 createTime = 4;
+    //挖矿时间
+    int64 minerTime = 5;
+    //挖到的币的数目
+    int64  minerValue   = 8;
+    string minerAddress = 6;
+    // return wallet
+    string returnAddress = 7;
+    // miner Price
+    int64 price = 9;
+}

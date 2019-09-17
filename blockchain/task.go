@@ -15,14 +15,15 @@ import (
 //Task 任务
 type Task struct {
 	sync.Mutex
-	cond     *sync.Cond
-	start    int64
-	end      int64
-	isruning bool
-	ticker   *time.Timer
-	timeout  time.Duration
-	cb       func()
-	donelist map[int64]struct{}
+	cond      *sync.Cond
+	start     int64
+	end       int64
+	isruning  bool
+	ticker    *time.Timer
+	timeout   time.Duration
+	cb        func()
+	donelist  map[int64]struct{}
+	timeoutcb func(height int64)
 }
 
 func newTask(timeout time.Duration) *Task {
@@ -43,12 +44,15 @@ func (t *Task) tick() {
 		t.cond.L.Unlock()
 		_, ok := <-t.ticker.C
 		if !ok {
-			chainlog.Error("task is done", "timer is stop", t.start)
+			chainlog.Error("task is done", "timer ticker is stop", t.start)
 			continue
 		}
 		t.Lock()
 		if err := t.stop(false); err == nil {
-			chainlog.Debug("task is done", "timer is stop", t.start)
+			if t.timeoutcb != nil {
+				go t.timeoutcb(t.start)
+			}
+			chainlog.Debug("task is done", "timer timeout is stop", t.start)
 		}
 		t.Unlock()
 	}
@@ -78,7 +82,7 @@ func (t *Task) TimerStop() {
 }
 
 //Start 计时器启动
-func (t *Task) Start(start, end int64, cb func()) error {
+func (t *Task) Start(start, end int64, cb func(), timeoutcb func(height int64)) error {
 	t.Lock()
 	defer t.Unlock()
 	if t.isruning {
@@ -93,6 +97,7 @@ func (t *Task) Start(start, end int64, cb func()) error {
 	t.start = start
 	t.end = end
 	t.cb = cb
+	t.timeoutcb = timeoutcb
 	t.donelist = make(map[int64]struct{})
 	t.cond.Signal()
 	return nil

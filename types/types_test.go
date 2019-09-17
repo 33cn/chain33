@@ -334,7 +334,7 @@ func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T) {
 	assert.Equal(t, 4, len(reply.Keys))
 	assert.Equal(t, 4, len(reply.Values))
 	assert.Equal(t, int64(4), reply.Num)
-	assert.Equal(t, string(key3), string(reply.NextKey))
+	assert.Equal(t, key3, string(reply.NextKey))
 	fmt.Println(string(reply.NextKey))
 }
 

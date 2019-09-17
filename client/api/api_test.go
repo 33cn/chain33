@@ -66,6 +66,8 @@ func TestAPI(t *testing.T) {
 	assert.Equal(t, false, IsGrpcError(nil))
 	assert.Equal(t, false, IsGrpcError(errors.New("xxxx")))
 	assert.Equal(t, true, eapi.IsErr())
+	assert.Equal(t, true, IsFatalError(types.ErrConsensusHashErr))
+	assert.Equal(t, false, IsFatalError(errors.New("xxxx")))
 
 	gapi2, err := grpcclient.NewMainChainClient("127.0.0.1:8003")
 	assert.Nil(t, err)

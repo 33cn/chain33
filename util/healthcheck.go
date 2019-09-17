@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	listenAddr            = ":8805" //as server, should keep default 0.0.0.0
-	unSyncMaxTimes uint32 = 6       //max 6 times
-	checkInterval  uint32 = 5       // 5s
+	listenAddr            = "127.0.0.1:8805" //as server, should keep default 0.0.0.0
+	unSyncMaxTimes uint32 = 6                //max 6 times
+	checkInterval  uint32 = 5                // 5s
 )
 
 // HealthCheckServer  a node's health check server
@@ -43,7 +43,11 @@ func NewHealthCheckServer(c queue.Client) *HealthCheckServer {
 		return nil
 	}
 	h := &HealthCheckServer{}
-	h.api, _ = client.New(c, nil)
+	var err error
+	h.api, err = client.New(c, nil)
+	if err != nil {
+		return nil
+	}
 	h.quit = make(chan struct{})
 	return h
 }
@@ -101,7 +105,7 @@ func (s *HealthCheckServer) getHealth(sync bool) (bool, error) {
 		return false, err
 	}
 
-	log.Info("healthCheck tick", "peers", len(peerList.Peers), "isCaughtUp", reply.IsOk,
+	log.Debug("healthCheck tick", "peers", len(peerList.Peers), "isCaughtUp", reply.IsOk,
 		"health", len(peerList.Peers) > 1 && reply.IsOk, "listen", sync)
 
 	return len(peerList.Peers) > 1 && reply.IsOk, nil
@@ -119,7 +123,10 @@ func (s *HealthCheckServer) healthCheck() {
 		select {
 		case <-s.quit:
 			if s.l != nil {
-				s.l.Close()
+				err := s.l.Close()
+				if err != nil {
+					log.Error("healthCheck ", "close err ", err)
+				}
 			}
 			if s.api != nil {
 				s.api.Close()

@@ -8,6 +8,7 @@ import (
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/system/dapp/commands/types"
+	ctypes "github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +23,7 @@ func MempoolCmd() *cobra.Command {
 	cmd.AddCommand(
 		GetMempoolCmd(),
 		GetLastMempoolCmd(),
+		GetProperFeeCmd(),
 	)
 
 	return cmd
@@ -34,13 +36,22 @@ func GetMempoolCmd() *cobra.Command {
 		Short: "List mempool txs",
 		Run:   listMempoolTxs,
 	}
+	addGetMempoolFlags(cmd)
 	return cmd
+}
+
+func addGetMempoolFlags(cmd *cobra.Command) {
+	cmd.Flags().BoolP("all", "a", false, "show all tx in mempool")
 }
 
 func listMempoolTxs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	isAll, _ := cmd.Flags().GetBool("all")
+	params := &ctypes.ReqGetMempool{
+		IsAll: isAll,
+	}
 	var res rpctypes.ReplyTxList
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetMempool", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetMempool", params, &res)
 	ctx.SetResultCb(parseListMempoolTxsRes)
 	ctx.Run()
 }
@@ -79,4 +90,22 @@ func parselastMempoolTxsRes(arg interface{}) (interface{}, error) {
 		result.Txs = append(result.Txs, types.DecodeTransaction(v))
 	}
 	return result, nil
+}
+
+// GetProperFeeCmd  get last proper fee
+func GetProperFeeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "proper_fee",
+		Short: "Get latest proper fee",
+		Run:   properFee,
+	}
+	return cmd
+}
+
+func properFee(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res rpctypes.ReplyProperFee
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetProperFee", nil, &res)
+	ctx.SetResultCb(nil)
+	ctx.Run()
 }

@@ -19,3 +19,11 @@ func TestForks(t *testing.T) {
 	assert.Equal(t, systemFork.IsFork("local", 1, "ForkBlockHash"), true)
 	assert.Equal(t, systemFork.IsFork("local", 1, "ForkTransferExec"), true)
 }
+
+func TestParaFork(t *testing.T) {
+	cfg, _ := InitCfg("testdata/guodun.toml")
+	Init(cfg.Title, cfg)
+
+	cfg, _ = InitCfg("testdata/guodun2.toml")
+	Init(cfg.Title, cfg)
+}

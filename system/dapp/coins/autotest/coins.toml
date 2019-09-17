@@ -14,7 +14,7 @@ command = "account import_key -k 0xd165c84ed37c2a427fea487470ee671b7a0495d68d826
 
 [[TransferCase]]
 id = "btyTrans1"
-command = "send bty transfer -a 10 -t 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+command = "send coins transfer -a 10 -t 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 to = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 amount = "10"
@@ -24,7 +24,7 @@ dep = ["import1"]
 
 [[TransferCase]]
 id = "btyTrans2"
-command = "send bty transfer -a 1 -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+command = "send coins transfer -a 1 -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 from = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 amount = "1"
@@ -35,7 +35,7 @@ dep = ["btyTrans1"]
 
 [[TransferCase]]
 id = "failBtyTrans"
-command = "send bty transfer -a 15 -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+command = "send coins transfer -a 15 -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 from = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 amount = "15"
@@ -46,7 +46,7 @@ fail = true
 
 [[TransferCase]]
 id = "btyTrans3"
-command = "send bty transfer -a 1 -t 1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+command = "send coins transfer -a 1 -t 1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 from = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 to = "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt"
 amount = "1"
@@ -56,7 +56,7 @@ dep = ["btyTrans1"]
 
 [[WithdrawCase]]
 id = "btyWithdraw"
-command = "send bty withdraw -a 0.1 -e coins -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+command = "send coins withdraw -a 0.1 -e coins -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 addr = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 amount = "0.1"
 checkItem = ["balance"]
@@ -66,7 +66,7 @@ dep = ["btyTrans3"]
 
 [[WithdrawCase]]
 id = "failWithdraw"
-command = "send bty withdraw -a 1.1 -e coins -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+command = "send coins withdraw -a 1.1 -e coins -k 1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 addr = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 amount = "1.1"
 checkItem = ["balance"]

@@ -352,8 +352,14 @@ func (tx *JoinMeta) SetPayload(data types.Message) error {
 	if txdata, ok := data.(*JoinData); ok {
 		tx.data = txdata
 		if tx.data.Left != nil && tx.data.Right != nil {
-			tx.left.SetPayload(tx.data.Left)
-			tx.right.SetPayload(tx.data.Right)
+			err := tx.left.SetPayload(tx.data.Left)
+			if err != nil {
+				return err
+			}
+			err = tx.right.SetPayload(tx.data.Right)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}

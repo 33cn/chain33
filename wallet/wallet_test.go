@@ -5,6 +5,7 @@
 package wallet
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
@@ -14,12 +15,13 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/store"
+	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/wallet/bipwallet"
+	wcom "github.com/33cn/chain33/wallet/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	_ "github.com/33cn/chain33/system"
 )
 
 func init() {
@@ -33,7 +35,6 @@ func initEnv() (*Wallet, queue.Module, queue.Queue) {
 
 	wallet := New(cfg.Wallet, sub.Wallet)
 	wallet.SetQueueClient(q.Client())
-
 	store := store.New(cfg.Store, sub.Store)
 	store.SetQueueClient(q.Client())
 
@@ -47,6 +48,8 @@ var (
 	ToAddr1     string
 	ToAddr2     string
 	AddrPrivKey string
+	addr        string
+	priv        crypto.PrivKey
 )
 
 func blockchainModProc(q queue.Queue) {
@@ -93,12 +96,14 @@ func blockchainModProc(q queue.Queue) {
 				msg.Reply(client.NewMessage("", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 1}))
 			} else if msg.Ty == types.EventIsSync {
 				msg.Reply(client.NewMessage("", types.EventReplyIsSync, &types.IsCaughtUp{Iscaughtup: true}))
+			} else if msg.Ty == types.EventQueryTx {
+				msg.Reply(client.NewMessage("", types.EventTransactionDetail, &types.TransactionDetail{Receipt: &types.ReceiptData{Ty: types.ExecOk}}))
 			}
 		}
 	}()
 	go func() {
 		client := q.Client()
-		client.Sub("execs")
+		client.Sub("exec")
 		for msg := range client.Recv() {
 			walletlog.Error("execs", "msg.Ty", msg.Ty)
 			if msg.Ty == types.EventBlockChainQuery {
@@ -127,6 +132,8 @@ func mempoolModProc(q queue.Queue) {
 			//walletlog.Info("mempool", "msg.Ty", msg.Ty)
 			if msg.Ty == types.EventTx {
 				msg.Reply(client.NewMessage("wallet", types.EventReply, &types.Reply{IsOk: true}))
+			} else if msg.Ty == types.EventGetProperFee {
+				msg.Reply(client.NewMessage("wallet", types.EventReply, &types.ReplyProperFee{ProperFee: 1000000}))
 			}
 		}
 	}()
@@ -139,12 +146,12 @@ func SaveAccountTomavl(client queue.Client, prevStateRoot []byte, accs []*types.
 		kvs := accountdb.GetKVSet(acc)
 		kvset = append(kvset, kvs...)
 	}
-	hash, err := util.ExecKVMemSet(client, prevStateRoot, 0, kvset, true)
+	hash, err := util.ExecKVMemSet(client, prevStateRoot, 0, kvset, true, false)
 	if err != nil {
 		panic(err)
 	}
 	Statehash = hash
-	util.ExecKVSetCommit(client, Statehash)
+	util.ExecKVSetCommit(client, Statehash, false)
 	return hash
 }
 
@@ -181,6 +188,11 @@ func TestWallet(t *testing.T) {
 	testSignRawTx(t, wallet)
 	testsetFatalFailure(t, wallet)
 	testgetFatalFailure(t, wallet)
+
+	testWallet(t, wallet)
+	testSendTx(t, wallet)
+	testCreateNewAccountByIndex(t, wallet)
+
 }
 
 //ProcWalletLock
@@ -192,7 +204,7 @@ func testSeed(t *testing.T, wallet *Wallet) {
 	seed := seedRes.GetData().(*types.ReplySeed).Seed
 	println("seed: ", seed)
 
-	password := "password"
+	password := "password123"
 	saveSeedByPw := &types.SaveSeedByPw{Seed: "", Passwd: ""}
 	msgSaveEmpty := wallet.client.NewMessage("wallet", types.EventSaveSeed, saveSeedByPw)
 	wallet.client.Send(msgSaveEmpty, true)
@@ -403,9 +415,11 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 
 func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletTxList begin")
+
+	//倒序获取最新的三笔交易
 	txList := &types.ReqWalletTransactionList{
 		Count:     3,
-		Direction: 1,
+		Direction: 0,
 		FromTx:    []byte(""),
 	}
 	msg := wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
@@ -415,13 +429,25 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	walletTxDetails := resp.GetData().(*types.WalletTxDetails)
 
 	var FromTxstr string
+	index := make([]int64, 3)
+
 	if len(walletTxDetails.TxDetails) != 3 {
 		t.Error("testProcWalletTxList failed")
 	}
 	println("TestProcWalletTxList dir last-------")
-	for _, walletTxDetail := range walletTxDetails.TxDetails {
+	for i, walletTxDetail := range walletTxDetails.TxDetails {
 		println("TestProcWalletTxList", "Direction", txList.Direction, "WalletTxDetail", walletTxDetail.String())
+		index[i] = walletTxDetail.GetHeight()*100000 + walletTxDetail.GetIndex()
 		FromTxstr = fmt.Sprintf("%018d", walletTxDetail.GetHeight()*100000+walletTxDetail.GetIndex())
+	}
+	//倒序index值的判断，index[0]>index[1]>index[2]
+	if index[0] <= index[1] {
+		println("TestProcWalletTxList", "index[0]", index[0], "index[1]", index[1])
+		t.Error("testProcWalletTxList:Reverse check fail!")
+	}
+	if index[1] <= index[2] {
+		println("TestProcWalletTxList", "index[1]", index[1], "index[2]", index[2])
+		t.Error("testProcWalletTxList:Reverse check fail!")
 	}
 
 	txList.Direction = 1
@@ -454,6 +480,41 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	for _, walletTxDetail := range walletTxDetails.TxDetails {
 		println("TestProcWalletTxList", "Direction", txList.Direction, "WalletTxDetail", walletTxDetail.String())
 	}
+
+	//正序获取最早的三笔交易
+	txList = &types.ReqWalletTransactionList{
+		Count:     3,
+		Direction: 1,
+		FromTx:    []byte(""),
+	}
+	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
+	wallet.client.Send(msg, true)
+	resp, err = wallet.client.Wait(msg)
+	require.NoError(t, err)
+	walletTxDetails = resp.GetData().(*types.WalletTxDetails)
+
+	if len(walletTxDetails.TxDetails) != 3 {
+		t.Error("testProcWalletTxList failed")
+	}
+	for i, walletTxDetail := range walletTxDetails.TxDetails {
+		index[i] = walletTxDetail.GetHeight()*100000 + walletTxDetail.GetIndex()
+	}
+	//正序index值的判断，index[0]<index[1]<index[2]
+	if index[0] >= index[1] {
+		println("TestProcWalletTxList", "index[0]", index[0], "index[1]", index[1])
+		t.Error("testProcWalletTxList:positive check fail!")
+	}
+	if index[1] >= index[2] {
+		println("TestProcWalletTxList", "index[1]", index[1], "index[2]", index[2])
+		t.Error("testProcWalletTxList:positive check fail!")
+	}
+
+	//count 大于1000个报错
+	txList.Count = 1001
+	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
+	wallet.client.Send(msg, true)
+	resp, err = wallet.client.Wait(msg)
+	assert.Equal(t, err, types.ErrMaxCountPerTime)
 	println("TestProcWalletTxList end")
 	println("--------------------------")
 }
@@ -483,7 +544,7 @@ func testProcSendToAddress(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msg, true)
 	resp, err = wallet.client.Wait(msg)
 	//返回ErrAmount错误
-	assert.Equal(t, string(err.Error()), types.ErrAmount.Error())
+	assert.Equal(t, err.Error(), types.ErrAmount.Error())
 	require.Error(t, err)
 	//replyHash = resp.GetData().(*types.ReplyHash)
 	//println("withdraw tx", "ReplyHash", common.ToHex(replyHash.Hash))
@@ -568,7 +629,7 @@ func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletSetPasswd begin")
 	passwd := &types.ReqWalletSetPasswd{
 		OldPass: "wrongpassword",
-		NewPass: "Newpass",
+		NewPass: "Newpass123",
 	}
 	msg := wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
 	wallet.client.Send(msg, true)
@@ -577,7 +638,7 @@ func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 		t.Error("testProcWalletSetPasswd failed")
 	}
 
-	passwd.OldPass = "password"
+	passwd.OldPass = "password123"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
 	wallet.client.Send(msg, true)
 	_, err := wallet.client.Wait(msg)
@@ -621,12 +682,12 @@ func testProcWalletLock(t *testing.T, wallet *Wallet) {
 		t.Error("test input wrong password failed")
 	}
 
-	walletUnLock.Passwd = "Newpass"
+	walletUnLock.Passwd = "Newpass123"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletUnLock, walletUnLock)
 	wallet.client.Send(msg, true)
 	wallet.client.Wait(msg)
 
-	msgGetSeed := wallet.client.NewMessage("wallet", types.EventGetSeed, &types.GetSeedByPw{Passwd: "Newpass"})
+	msgGetSeed := wallet.client.NewMessage("wallet", types.EventGetSeed, &types.GetSeedByPw{Passwd: "Newpass123"})
 	wallet.client.Send(msgGetSeed, true)
 	resp, _ = wallet.client.Wait(msgGetSeed)
 	println("seed:", resp.GetData().(*types.ReplySeed).Seed)
@@ -735,5 +796,166 @@ func testgetFatalFailure(t *testing.T, wallet *Wallet) {
 	_, err := wallet.client.Wait(msg)
 	require.NoError(t, err)
 	println("testgetFatalFailure end")
+	println("--------------------------")
+}
+
+func testWallet(t *testing.T, wallet *Wallet) {
+	println("test wallet begin")
+	addr, priv = util.Genaddress()
+	bpriv := wcom.CBCEncrypterPrivkey([]byte(wallet.Password), priv.Bytes())
+	was := &types.WalletAccountStore{Privkey: common.ToHex(bpriv), Label: "test", Addr: addr, TimeStamp: time.Now().String()}
+	err := wallet.SetWalletAccount(false, addr, was)
+	assert.NoError(t, err)
+	was1, err := wallet.GetAccountByAddr(addr)
+	assert.NoError(t, err)
+	assert.Equal(t, was.Privkey, was1.Privkey)
+	was2, err := wallet.GetAccountByLabel("test")
+	assert.NoError(t, err)
+	assert.Equal(t, was.Privkey, was2.Privkey)
+	priv2, err := wallet.GetPrivKeyByAddr(addr)
+	assert.NoError(t, err)
+	assert.Equal(t, priv, priv2)
+	_, err = wallet.GetWalletAccounts()
+	assert.NoError(t, err)
+	t.Log("password:", wallet.Password)
+
+	wallet.walletStore.SetWalletPassword("Newpass2")
+	assert.Equal(t, "Newpass2", wallet.walletStore.GetWalletPassword())
+
+	err = wallet.walletStore.SetFeeAmount(1e5)
+	assert.NoError(t, err)
+	fee := wallet.walletStore.GetFeeAmount(1e4)
+	assert.Equal(t, int64(1e5), fee)
+
+	println("test wallet end")
+
+	wallet.GetConfig()
+	wallet.GetMutex()
+	wallet.GetDBStore()
+	wallet.GetSignType()
+	wallet.GetPassword()
+	wallet.Nonce()
+	wallet.GetRandom()
+	wallet.GetBlockHeight()
+	wallet.GetWalletDone()
+	wallet.GetLastHeader()
+	wallet.IsClose()
+	wallet.AddWaitGroup(1)
+	wallet.WaitGroupDone()
+	wallet.RegisterMineStatusReporter(nil)
+}
+
+func testSendTx(t *testing.T, wallet *Wallet) {
+	ok := wallet.IsCaughtUp()
+	assert.True(t, ok)
+
+	_, err := wallet.GetBalance(addr, "coins")
+	assert.NoError(t, err)
+
+	_, err = wallet.GetAllPrivKeys()
+	assert.NoError(t, err)
+	hash, err := wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("coins"), priv, ToAddr1)
+	assert.NoError(t, err)
+
+	//wallet.WaitTx(hash)
+	wallet.WaitTxs([][]byte{hash})
+	hash, err = wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
+	assert.NoError(t, err)
+	t.Log(common.ToHex(hash))
+
+	err = wallet.sendTransactionWait(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
+	assert.NoError(t, err)
+
+	_, err = wallet.getMinerColdAddr(addr)
+	assert.Equal(t, types.ErrActionNotSupport, err)
+
+}
+
+func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
+	println("testCreateNewAccountByIndex begin")
+
+	//首先创建一个airdropaddr标签的账户
+	reqNewAccount := &types.ReqNewAccount{Label: "airdropaddr"}
+	msg1 := wallet.client.NewMessage("wallet", types.EventNewAccount, reqNewAccount)
+	wallet.client.Send(msg1, true)
+	respp, err := wallet.client.Wait(msg1)
+	require.NoError(t, err)
+	walletAcc := respp.GetData().(*types.WalletAccount)
+	addrtmp := walletAcc.GetAcc().Addr
+	if walletAcc.GetLabel() != "airdropaddr" {
+		t.Error("testCreateNewAccountByIndex", "walletAcc.GetLabel()", walletAcc.GetLabel(), "Label", "airdropaddr")
+	}
+
+	//index参数的校验。目前只支持10000000
+	reqIndex := &types.Int32{Data: 0}
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	//创建一个空投地址
+	reqIndex = &types.Int32{Data: 100000000}
+	resp1, err := wallet.GetAPI().ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+
+	require.NoError(t, err)
+	pubkey := resp1.(*types.ReplyString)
+
+	//通过pubkey换算成addr然后获取账户信息
+	privkeybyte, err := common.FromHex(pubkey.Data)
+	require.NoError(t, err)
+	pub, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	require.NoError(t, err)
+
+	addr, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub)
+	require.NoError(t, err)
+	if addr != "" {
+		//测试ProcGetAccountList函数
+		msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
+		wallet.client.Send(msgGetAccList, true)
+		resp, err := wallet.client.Wait(msgGetAccList)
+		assert.Nil(t, err)
+		accountlist := resp.GetData().(*types.WalletAccounts)
+		for _, acc := range accountlist.Wallets {
+			if addr == acc.Acc.Addr && addr != addrtmp {
+				if acc.GetLabel() != ("airdropaddr" + fmt.Sprintf("%d", 1)) {
+					t.Error("testCreateNewAccountByIndex", "addr", addr, "acc.GetLabel()", acc.GetLabel())
+				}
+			}
+		}
+	}
+
+	//已经存在，和上一次获取的地址是一致的
+	reqIndex = &types.Int32{Data: 100000000}
+	resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+
+	require.NoError(t, err)
+	pubkey = resp.(*types.ReplyString)
+
+	//通过pubkey换算成addr然后获取账户信息
+	privkeybyte, err = common.FromHex(pubkey.Data)
+	require.NoError(t, err)
+	pub2, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	require.NoError(t, err)
+	addr2, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub2)
+	require.NoError(t, err)
+	if addr != addr2 {
+		t.Error("TestProcCreateNewAccount", "addr", addr, "addr2", addr2)
+	}
+
+	privstr := "0x78a8c993abf85d2a452233033c19fac6b3bd4fe2c805615b337ef75dacd86ac9"
+	pubstr := "0277786ddef164b594f7db40d9a563f1ef1733cf34f1592f4c3bf1b344bd8f059b"
+	addrstr := "19QtNuUS9UN4hQPLrnYr3UhJsQYy4z4TMT"
+	privkeybyte, err = common.FromHex(privstr)
+	require.NoError(t, err)
+	pub3, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, privkeybyte)
+	require.NoError(t, err)
+	pubtmp := hex.EncodeToString(pub3)
+	if pubtmp != pubstr {
+		t.Error("TestProcCreateNewAccount", "pubtmp", pubtmp, "pubstr", pubstr)
+	}
+	addr3, err := bipwallet.PubToAddress(bipwallet.TypeBty, pub3)
+	require.NoError(t, err)
+	if addr3 != addrstr {
+		t.Error("TestProcCreateNewAccount", "addr3", addr3, "addrstr", addrstr)
+	}
+	println("TestProcCreateNewAccount end")
 	println("--------------------------")
 }

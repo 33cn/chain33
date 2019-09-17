@@ -87,7 +87,10 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 		cfg:      cfg,
 		Quit:     make(chan struct{}, 1),
 	}
-	a.Start()
+	err := a.Start()
+	if err != nil {
+		return nil
+	}
 	return a
 }
 
@@ -210,7 +213,10 @@ func (a *AddrBook) saveToDb() {
 		return
 	}
 	log.Debug("saveToDb", "addrs", string(jsonBytes))
-	a.bookDb.Set([]byte(addrkeyTag), jsonBytes)
+	err = a.bookDb.Set([]byte(addrkeyTag), jsonBytes)
+	if err != nil {
+		panic(err)
+	}
 
 }
 func (a *AddrBook) genPubkey(privkey string) string {
@@ -236,15 +242,10 @@ func (a *AddrBook) genPubkey(privkey string) string {
 
 func (a *AddrBook) loadDb() bool {
 	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
-	privkey, _ := a.bookDb.Get([]byte(privKeyTag))
-	if len(privkey) == 0 {
-		a.initKey()
-		privkey, _ := a.GetPrivPubKey()
-		a.bookDb.Set([]byte(privKeyTag), []byte(privkey))
-		return false
+	privkey, err := a.bookDb.Get([]byte(privKeyTag))
+	if len(privkey) != 0 && err == nil {
+		a.setKey(string(privkey), a.genPubkey(string(privkey)))
 	}
-
-	a.setKey(string(privkey), a.genPubkey(string(privkey)))
 
 	iteror := a.bookDb.Iterator(nil, nil, false)
 	for iteror.Next() {
@@ -380,6 +381,20 @@ func (a *AddrBook) setKey(privkey, pubkey string) {
 	a.privkey = privkey
 	a.pubkey = pubkey
 
+}
+
+//ResetPeerkey reset priv,pub key
+func (a *AddrBook) ResetPeerkey(privkey, pubkey string) {
+
+	if privkey == "" || pubkey == "" {
+		a.initKey()
+		privkey, pubkey = a.GetPrivPubKey()
+	}
+	a.setKey(privkey, pubkey)
+	err := a.bookDb.Set([]byte(privKeyTag), []byte(privkey))
+	if err != nil {
+		panic(err)
+	}
 }
 
 // GetPrivPubKey return privkey and pubkey

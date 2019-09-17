@@ -5,7 +5,6 @@ package table
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	"github.com/33cn/chain33/common/db"
@@ -241,19 +240,6 @@ func TestTransactinListAuto(t *testing.T) {
 	assert.Equal(t, 3, len(rows))
 }
 
-func mergeDup(kvs []*types.KeyValue) (kvset []*types.KeyValue) {
-	maplist := make(map[string]*types.KeyValue)
-	for _, kv := range kvs {
-		if item, ok := maplist[string(kv.Key)]; ok {
-			item.Value = kv.Value //更新item 的value
-		} else {
-			maplist[string(kv.Key)] = kv
-			kvset = append(kvset, kv)
-		}
-	}
-	return kvset
-}
-
 func TestRow(t *testing.T) {
 	rowmeta := NewTransactionRow()
 	row := rowmeta.CreateRow()
@@ -308,14 +294,6 @@ func TestDel(t *testing.T) {
 	rows, err := query.ListIndex("From", []byte(addr1[0:10]), nil, 0, 0)
 	assert.Equal(t, types.ErrNotFound, err)
 	assert.Equal(t, 0, len(rows))
-}
-
-func printAllKey(db db.DB) {
-	it := db.Iterator(nil, nil, false)
-	defer it.Close()
-	for it.Rewind(); it.Valid(); it.Next() {
-		fmt.Println("db.allkey", string(it.Key()))
-	}
 }
 
 func TestUpdate(t *testing.T) {

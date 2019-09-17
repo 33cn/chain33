@@ -65,7 +65,8 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(priv2, addr3, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(priv3, addr4, types.Coin))
 	//执行三笔交易: 全部正确
-	txgroup, err := types.CreateTxGroup(txs)
+	feeRate := types.GInt("MinFee")
+	txgroup, err := types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, genkey)
@@ -85,7 +86,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(genkey, addr4, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(genkey, addr4, types.Coin))
 
-	txgroup, err = types.CreateTxGroup(txs)
+	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, priv2)
@@ -100,7 +101,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(priv2, addr4, 2*types.Coin))
 	txs = append(txs, util.CreateCoinsTx(genkey, addr4, types.Coin))
 
-	txgroup, err = types.CreateTxGroup(txs)
+	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, genkey)
@@ -115,7 +116,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(genkey, addr4, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(priv2, addr4, 10*types.Coin))
 
-	txgroup, err = types.CreateTxGroup(txs)
+	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, genkey)
@@ -131,7 +132,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(priv2, addr4, 10*types.Coin))
 	txs[2].Execer = []byte("user.xxx")
 	txs[2].To = address.ExecAddress("user.xxx")
-	txgroup, err = types.CreateTxGroup(txs)
+	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
 	txgroup.SignN(0, types.SECP256K1, genkey)
@@ -188,7 +189,7 @@ func TestExecBlock2(t *testing.T) {
 	txs := util.GenCoinsTxs(genkey, 2)
 
 	block2 := util.CreateNewBlock(block, txs)
-	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
 	if err != nil {
 		t.Error(err)
 		return
@@ -205,7 +206,7 @@ func TestExecBlock2(t *testing.T) {
 		go func() {
 			txs := util.GenCoinsTxs(genkey, 2)
 			block3 := util.CreateNewBlock(block2, txs)
-			detail, _, err := util.ExecBlock(mock33.GetClient(), block2.StateHash, block3, false, true)
+			detail, _, err := util.ExecBlock(mock33.GetClient(), block2.StateHash, block3, false, true, false)
 			assert.Nil(t, err)
 			for _, Receipt := range detail.Receipts {
 				if Receipt.GetTy() != 2 {
@@ -234,7 +235,7 @@ func TestSameTx(t *testing.T) {
 	newblock.Txs = append(newblock.Txs, newblock.Txs[2])
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
-	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true)
+	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
 	assert.Equal(t, types.ErrTxDup, err)
 
 	//情况2
@@ -244,15 +245,17 @@ func TestSameTx(t *testing.T) {
 	newblock.Txs = append(newblock.Txs, newblock.Txs[4:]...)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
-	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true)
+	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
 	assert.Equal(t, types.ErrTxDup, err)
 }
 
 func TestExecBlock(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
-	block := util.CreateNoneBlock(mock33.GetGenesisKey(), 10)
-	util.ExecBlock(mock33.GetClient(), nil, block, false, true)
+	mock33.WaitHeight(0)
+	block0 := mock33.GetBlock(0)
+	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 10)
+	util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true, false)
 }
 
 //区块执行性能更好的一个测试
@@ -264,6 +267,7 @@ func TestExecBlock(t *testing.T) {
 
 //区块执行新能测试
 func BenchmarkExecBlock(b *testing.B) {
+	b.ReportAllocs()
 	mock33 := newMockNode()
 	defer mock33.Close()
 	block := util.CreateCoinsBlock(mock33.GetGenesisKey(), 10000)
@@ -273,7 +277,7 @@ func BenchmarkExecBlock(b *testing.B) {
 	assert.Equal(b, int64(10000000000000000), account.Balance)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true)
+		util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true, false)
 	}
 }
 
@@ -309,7 +313,10 @@ func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	}
 	if seterrkey {
 		println("set err key value")
-		demo.GetLocalDB().Set([]byte("key1"), []byte("value1"))
+		err = demo.GetLocalDB().Set([]byte("key1"), []byte("value1"))
+		if err != nil {
+			return nil, err
+		}
 	}
 	receipt = &types.Receipt{Ty: types.ExecOk}
 	receipt.KV = append(receipt.KV, &types.KeyValue{
@@ -362,7 +369,7 @@ func TestExecLocalSameTime1(t *testing.T) {
 	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
 	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
 	block2 := util.CreateNewBlock(block, txs)
-	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
 	if err != nil {
 		t.Error(err)
 		return
@@ -392,17 +399,20 @@ func TestExecLocalSameTime0(t *testing.T) {
 	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
 	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
 	block2 := util.CreateNewBlock(block, txs)
-	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	for i, receipt := range detail.Receipts {
-		assert.Equal(t, receipt.GetTy(), int32(2), fmt.Sprint(i))
+		if i == 0 {
+			assert.Equal(t, receipt.GetTy(), int32(2), fmt.Sprint(i))
+		}
 		if i >= 1 {
+			assert.Equal(t, receipt.GetTy(), int32(1), fmt.Sprint(i))
 			fmt.Println(receipt)
 			assert.Equal(t, len(receipt.Logs), 2)
-			assert.Equal(t, receipt.Logs[1].Ty, int32(0))
+			assert.Equal(t, receipt.Logs[1].Ty, int32(1))
 		}
 	}
 }
@@ -425,7 +435,7 @@ func TestExecLocalSameTimeSetErrKey(t *testing.T) {
 	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
 	txs = append(txs, util.CreateTxWithExecer(priv1, "demo2"))
 	block2 := util.CreateNewBlock(block, txs)
-	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
 	if err != nil {
 		t.Error(err)
 		return

@@ -117,18 +117,19 @@ func (client *client) WaitTimeout(msg *Message, timeout time.Duration) (*Message
 	if msg.chReply == nil {
 		return &Message{}, errors.New("empty wait channel")
 	}
-	if timeout == -1 {
-		msg = <-msg.chReply
-		return msg, msg.Err()
+
+	var t <-chan time.Time
+	if timeout > 0 {
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+		t = timer.C
 	}
-	t := time.NewTimer(timeout)
-	defer t.Stop()
 	select {
 	case msg = <-msg.chReply:
 		return msg, msg.Err()
 	case <-client.done:
 		return &Message{}, ErrIsQueueClosed
-	case <-t.C:
+	case <-t:
 		return &Message{}, ErrQueueTimeout
 	}
 }
@@ -153,6 +154,7 @@ func (client *client) getTopic() string {
 }
 
 func (client *client) setTopic(topic string) {
+	// #nosec
 	atomic.StorePointer(&client.topic, unsafe.Pointer(&topic))
 }
 
@@ -166,7 +168,7 @@ func (client *client) isInClose() bool {
 
 // Close 关闭client
 func (client *client) Close() {
-	if atomic.LoadInt32(&client.isClosed) == 1 || client.topic == nil {
+	if atomic.LoadInt32(&client.isClosed) == 1 || atomic.LoadPointer(&client.topic) == nil {
 		return
 	}
 	topic := client.getTopic()
@@ -176,6 +178,9 @@ func (client *client) Close() {
 	client.wg.Wait()
 	atomic.StoreInt32(&client.isClosed, 1)
 	close(client.Recv())
+	for msg := range client.Recv() {
+		msg.Reply(client.NewMessage(msg.Topic, msg.Ty, types.ErrChannelClosed))
+	}
 }
 
 // CloseQueue 关闭消息队列

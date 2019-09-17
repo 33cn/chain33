@@ -149,7 +149,10 @@ func (db *GoBadgerDB) DB() *badger.DB {
 
 //Close 关闭
 func (db *GoBadgerDB) Close() {
-	db.db.Close()
+	err := db.db.Close()
+	if err != nil {
+		return
+	}
 }
 
 //Print 打印

@@ -136,7 +136,10 @@ func (l *LocalDB) Commit() error {
 	}
 	it := l.txcache.Iterator(nil, nil, false)
 	for it.Next() {
-		l.cache.Set(it.Key(), it.Value())
+		err := l.cache.Set(it.Key(), it.Value())
+		if err != nil {
+			panic(err)
+		}
 	}
 	l.resetTx()
 	return nil

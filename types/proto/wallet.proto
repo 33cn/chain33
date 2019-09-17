@@ -224,27 +224,6 @@ message Int32 {
     int32 data = 1;
 }
 
-// 某些交易需要存在一些复杂的算法，所以需要请求服务器协助构建交易，返回对应交易哈希值，后续签名可以根据此哈希值进行处理
-message ReqCreateTransaction {
-    string tokenname = 1;
-    // 构建交易类型
-    // 0：普通的交易（暂不支持）
-    // 1：隐私交易 公开->隐私
-    // 2：隐私交易 隐私->隐私
-    // 3：隐私交易 隐私->公开
-    int32  type   = 2;
-    int64  amount = 3;
-    string note   = 4;
-    // 普通交易的发送方
-    string from = 5;
-    // 普通交易的接收方
-    string to = 6;
-    // 隐私交易，接收方的公钥对
-    string pubkeypair = 10;
-    int32  mixcount   = 11;
-    int64  expire     = 12;
-}
-
 message ReqAccountList {
     bool withoutBalance = 1;
 }

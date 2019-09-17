@@ -12,7 +12,8 @@ import (
 )
 
 func TestCache(t *testing.T) {
-	cache := NewSimpleQueue(1)
+	subConfig := SubConfig{1, 100000}
+	cache := NewSimpleQueue(subConfig)
 	tx := &types.Transaction{Payload: []byte("123")}
 	hash := string(tx.Hash())
 	assert.Equal(t, false, cache.Exist(hash))
@@ -38,7 +39,8 @@ func TestCache(t *testing.T) {
 	cache.Remove(hash)
 	assert.Equal(t, 0, cache.Size())
 	//push to item
-	cache = NewSimpleQueue(2)
+	subConfig = SubConfig{2, 100000}
+	cache = NewSimpleQueue(subConfig)
 	cache.Push(item1)
 	cache.Push(item2)
 	assert.Equal(t, 2, cache.Size())
@@ -69,4 +71,7 @@ func TestCache(t *testing.T) {
 		return false
 	})
 	assert.Equal(t, 1, i)
+
+	//test timeline GetProperFee
+	assert.Equal(t, int64(100000), cache.GetProperFee())
 }

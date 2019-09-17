@@ -386,9 +386,9 @@ var (
 		FNan:  proto.Float32(float32(math.NaN())),
 		FPinf: proto.Float32(float32(math.Inf(1))),
 		FNinf: proto.Float32(float32(math.Inf(-1))),
-		DNan:  proto.Float64(float64(math.NaN())),
-		DPinf: proto.Float64(float64(math.Inf(1))),
-		DNinf: proto.Float64(float64(math.Inf(-1))),
+		DNan:  proto.Float64(math.NaN()),
+		DPinf: proto.Float64(math.Inf(1)),
+		DNinf: proto.Float64(math.Inf(-1)),
 	}
 	nonFinitesJSON = `{` +
 		`"fNan":"NaN",` +
@@ -864,7 +864,7 @@ func TestUnmarshaling(t *testing.T) {
 		// For easier diffs, compare text strings of the protos.
 		exp := proto.MarshalTextString(tt.pb)
 		act := proto.MarshalTextString(p)
-		if string(exp) != string(act) {
+		if exp != act {
 			t.Errorf("%s: got [%s] want [%s]", tt.desc, act, exp)
 		}
 	}
@@ -914,7 +914,7 @@ func TestUnmarshalNext(t *testing.T) {
 		// For easier diffs, compare text strings of the protos.
 		exp := proto.MarshalTextString(tt.pb)
 		act := proto.MarshalTextString(p)
-		if string(exp) != string(act) {
+		if exp != act {
 			t.Errorf("%s: got [%s] want [%s]", tt.desc, act, exp)
 		}
 	}

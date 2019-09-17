@@ -8,7 +8,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"reflect"
 	"time"
+
+	lru "github.com/hashicorp/golang-lru"
 
 	"strconv"
 
@@ -21,10 +24,37 @@ var (
 	bCoins   = []byte("coins")
 	bToken   = []byte("token")
 	withdraw = "withdraw"
+	txCache  *lru.Cache
 )
 
-// CreateTxGroup 创建组交易
-func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
+func init() {
+	var err error
+	txCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
+	}
+}
+
+//TxCacheGet 某些交易的cache 加入缓存中，防止重复进行解析或者计算
+func TxCacheGet(tx *Transaction) (*TransactionCache, bool) {
+	txc, ok := txCache.Get(tx)
+	if !ok {
+		return nil, ok
+	}
+	return txc.(*TransactionCache), ok
+}
+
+//TxCacheSet 设置 cache
+func TxCacheSet(tx *Transaction, txc *TransactionCache) {
+	if txc == nil {
+		txCache.Remove(tx)
+		return
+	}
+	txCache.Add(tx, txc)
+}
+
+// CreateTxGroup 创建组交易, feeRate传入交易费率, 建议通过系统GetProperFee获取
+func CreateTxGroup(txs []*Transaction, feeRate int64) (*Transactions, error) {
 	if len(txs) < 2 {
 		return nil, ErrTxGroupCountLessThanTwo
 	}
@@ -45,7 +75,7 @@ func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 		} else {
 			txs[i].Fee = 0
 		}
-		realfee, err := txs[i].GetRealFee(GInt("MinFee"))
+		realfee, err := txs[i].GetRealFee(feeRate)
 		if err != nil {
 			return nil, err
 		}
@@ -107,6 +137,30 @@ func (txgroup *Transactions) CheckSign() bool {
 	return true
 }
 
+//RebuiltGroup 交易内容有变化时需要重新构建交易组
+func (txgroup *Transactions) RebuiltGroup() {
+	header := txgroup.Txs[0].Hash()
+	for i := len(txgroup.Txs) - 1; i >= 0; i-- {
+		txgroup.Txs[i].Header = header
+		if i == 0 {
+			header = txgroup.Txs[0].Hash()
+		} else {
+			txgroup.Txs[i-1].Next = txgroup.Txs[i].Hash()
+		}
+	}
+	for i := 0; i < len(txgroup.Txs); i++ {
+		txgroup.Txs[i].Header = header
+	}
+}
+
+//SetExpire 设置交易组中交易的过期时间
+func (txgroup *Transactions) SetExpire(n int, expire time.Duration) {
+	if n >= len(txgroup.GetTxs()) {
+		return
+	}
+	txgroup.GetTxs()[n].SetExpire(expire)
+}
+
 //IsExpire 交易是否过期
 func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	txs := txgroup.Txs
@@ -118,8 +172,8 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	return false
 }
 
-//Check height == 0 的时候，不做检查
-func (txgroup *Transactions) Check(height int64, minfee int64) error {
+//CheckWithFork 和fork 无关的有个检查函数
+func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, minfee, maxFee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
@@ -129,22 +183,31 @@ func (txgroup *Transactions) Check(height int64, minfee int64) error {
 		if txs[i] == nil {
 			return ErrTxGroupEmpty
 		}
-		err := txs[i].check(0)
+		err := txs[i].check(height, 0, maxFee)
 		if err != nil {
 			return err
 		}
-		name := string(txs[i].Execer)
-		if IsParaExecName(name) {
-			para[name] = true
+		if title, ok := GetParaExecTitleName(string(txs[i].Execer)); ok {
+			para[title] = true
 		}
 	}
-	//txgroup 只允许一条平行链的交易
-	if IsEnableFork(height, "ForkV24TxGroupPara", EnableTxGroupParaFork) {
+	//txgroup 只允许一条平行链的交易, 且平行链txgroup须全部是平行链tx
+	//如果平行链已经在主链分叉高度前运行了一段时间且有跨链交易，平行链需要自己设置这个fork
+	if paraFork {
 		if len(para) > 1 {
 			tlog.Info("txgroup has multi para transaction")
 			return ErrTxGroupParaCount
 		}
+		if len(para) > 0 {
+			for _, tx := range txs {
+				if !IsParaExecName(string(tx.Execer)) {
+					tlog.Error("para txgroup has main chain transaction")
+					return ErrTxGroupParaMainMixed
+				}
+			}
+		}
 	}
+
 	for i := 1; i < len(txs); i++ {
 		if txs[i].Fee != 0 {
 			return ErrTxGroupFeeNotZero
@@ -161,6 +224,9 @@ func (txgroup *Transactions) Check(height int64, minfee int64) error {
 	}
 	if txs[0].Fee < totalfee {
 		return ErrTxFeeTooLow
+	}
+	if txs[0].Fee > maxFee && maxFee > 0 && checkFork {
+		return ErrTxFeeTooHigh
 	}
 	//检查hash是否符合要求
 	for i := 0; i < len(txs); i++ {
@@ -195,6 +261,13 @@ func (txgroup *Transactions) Check(height int64, minfee int64) error {
 	return nil
 }
 
+//Check height == 0 的时候，不做检查
+func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
+	paraFork := IsFork(height, "ForkTxGroupPara")
+	checkFork := IsFork(height, "ForkBlockCheck")
+	return txgroup.CheckWithFork(checkFork, paraFork, height, minfee, maxFee)
+}
+
 //TransactionCache 交易缓存结构
 type TransactionCache struct {
 	*Transaction
@@ -204,6 +277,9 @@ type TransactionCache struct {
 	signok  int   //init 0, ok 1, err 2
 	checkok error //init 0, ok 1, err 2
 	checked bool
+	payload reflect.Value
+	plname  string
+	plerr   error
 }
 
 //NewTransactionCache new交易缓存
@@ -217,6 +293,28 @@ func (tx *TransactionCache) Hash() []byte {
 		tx.hash = tx.Transaction.Hash()
 	}
 	return tx.hash
+}
+
+//SetPayloadValue 设置payload 的cache
+func (tx *TransactionCache) SetPayloadValue(plname string, payload reflect.Value, plerr error) {
+	tx.payload = payload
+	tx.plerr = plerr
+	tx.plname = plname
+}
+
+//GetPayloadValue 设置payload 的cache
+func (tx *TransactionCache) GetPayloadValue() (plname string, payload reflect.Value, plerr error) {
+	if tx.plerr != nil || tx.plname != "" {
+		return tx.plname, tx.payload, tx.plerr
+	}
+	exec := LoadExecutorType(string(tx.Execer))
+	if exec == nil {
+		tx.SetPayloadValue("", reflect.ValueOf(nil), ErrExecNotFound)
+		return "", reflect.ValueOf(nil), ErrExecNotFound
+	}
+	plname, payload, plerr = exec.DecodePayloadValue(tx.Tx())
+	tx.SetPayloadValue(plname, payload, plerr)
+	return
 }
 
 //Size 交易缓存的大小
@@ -233,7 +331,7 @@ func (tx *TransactionCache) Tx() *Transaction {
 }
 
 //Check 交易缓存中交易组合费用的检测
-func (tx *TransactionCache) Check(height, minfee int64) error {
+func (tx *TransactionCache) Check(height, minfee, maxFee int64) error {
 	if !tx.checked {
 		tx.checked = true
 		txs, err := tx.GetTxGroup()
@@ -242,12 +340,34 @@ func (tx *TransactionCache) Check(height, minfee int64) error {
 			return err
 		}
 		if txs == nil {
-			tx.checkok = tx.check(minfee)
+			tx.checkok = tx.check(height, minfee, maxFee)
 		} else {
-			tx.checkok = txs.Check(height, minfee)
+			tx.checkok = txs.Check(height, minfee, maxFee)
 		}
 	}
 	return tx.checkok
+}
+
+//GetTotalFee 获取交易真实费用
+func (tx *TransactionCache) GetTotalFee(minFee int64) (int64, error) {
+	txgroup, err := tx.GetTxGroup()
+	if err != nil {
+		tx.checkok = err
+		return 0, err
+	}
+	var totalfee int64
+	if txgroup == nil {
+		return tx.GetRealFee(minFee)
+	}
+	txs := txgroup.Txs
+	for i := 0; i < len(txs); i++ {
+		fee, err := txs[i].GetRealFee(minFee)
+		if err != nil {
+			return 0, err
+		}
+		totalfee += fee
+	}
+	return totalfee, nil
 }
 
 //GetTxGroup 获取交易组
@@ -394,18 +514,18 @@ func (tx *Transaction) checkSign() bool {
 }
 
 //Check 交易检测
-func (tx *Transaction) Check(height, minfee int64) error {
+func (tx *Transaction) Check(height, minfee, maxFee int64) error {
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return err
 	}
 	if group == nil {
-		return tx.check(minfee)
+		return tx.check(height, minfee, maxFee)
 	}
-	return group.Check(height, minfee)
+	return group.Check(height, minfee, maxFee)
 }
 
-func (tx *Transaction) check(minfee int64) error {
+func (tx *Transaction) check(height, minfee, maxFee int64) error {
 	txSize := Size(tx)
 	if txSize > int(MaxTxSize) {
 		return ErrTxMsgSizeTooBig
@@ -417,6 +537,9 @@ func (tx *Transaction) check(minfee int64) error {
 	realFee := int64(txSize/1000+1) * minfee
 	if tx.Fee < realFee {
 		return ErrTxFeeTooLow
+	}
+	if tx.Fee > maxFee && maxFee > 0 && IsFork(height, "ForkBlockCheck") {
+		return ErrTxFeeTooHigh
 	}
 	return nil
 }
@@ -479,9 +602,18 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	return group.IsExpire(height, blocktime)
 }
 
+//GetTxFee 获取交易的费用，区分单笔交易和交易组
+func (tx *Transaction) GetTxFee() int64 {
+	group, _ := tx.GetTxGroup()
+	if group == nil {
+		return tx.Fee
+	}
+	return group.Txs[0].Fee
+}
+
 //From 交易from地址
 func (tx *Transaction) From() string {
-	return address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	return address.PubKeyToAddr(tx.GetSignature().GetPubkey())
 }
 
 //检查交易是否过期，过期返回true，未过期返回false
@@ -645,4 +777,12 @@ func ParseExpire(expire string) (int64, error) {
 	}
 
 	return 0, err
+}
+
+//CalcTxShortHash 取txhash的前指定字节，目前默认5
+func CalcTxShortHash(hash []byte) string {
+	if len(hash) >= 5 {
+		return hex.EncodeToString(hash[0:5])
+	}
+	return ""
 }

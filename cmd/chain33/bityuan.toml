@@ -32,6 +32,8 @@ batchsync=false
 # 是否记录添加或者删除区块的序列，若节点作为主链节点，为平行链节点提供服务，需要设置为true
 isRecordBlockSequence=false
 enableTxQuickIndex=false
+# 升级storedb是否重新执行localdb
+enableReExecLocal=false
 
 [p2p]
 # P2P服务监听端口号
@@ -52,6 +54,8 @@ dbPath="datadir/addrbook"
 dbCache=4
 # GRPC请求日志文件
 grpcLogFile="grpc33.log"
+#waitPid 等待seed导入
+waitPid=false
 
 [rpc]
 # jrpc绑定地址
@@ -90,6 +94,12 @@ enableMVCC=false
 enableMavlPrune=false
 # 裁剪高度间隔
 pruneHeight=10000
+# 是否使能mavl数据载入内存
+enableMemTree=false
+# 是否使能mavl叶子节点数据载入内存
+enableMemVal=false
+# 缓存close ticket数目，该缓存越大同步速度越快，最大设置到1500000
+tkCloseCacheLen=100000
 
 [wallet]
 # walletdb路径

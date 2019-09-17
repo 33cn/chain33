@@ -96,6 +96,14 @@ type Batch interface {
 	Reset()         // Reset resets the batch for reuse
 }
 
+// MustWrite must write correct
+func MustWrite(batch Batch) {
+	err := batch.Write()
+	if err != nil {
+		panic(fmt.Sprint("batch write err", err))
+	}
+}
+
 //IteratorSeeker ...
 type IteratorSeeker interface {
 	Rewind() bool
@@ -215,7 +223,11 @@ func (db *BaseDB) SetCacheSize(size int) {
 	if db.cache != nil {
 		return
 	}
-	db.cache, _ = lru.NewARC(size)
+	var err error
+	db.cache, err = lru.NewARC(size)
+	if err != nil {
+		panic(err)
+	}
 }
 
 //Begin call panic when Begin not rewrite

@@ -13,7 +13,7 @@ import (
 )
 
 func TestNewMempool(t *testing.T) {
-	sub, _ := json.Marshal(&subConfig{PoolCacheSize: 2})
+	sub, _ := json.Marshal(&mempool.SubConfig{PoolCacheSize: 2})
 	module := New(&types.Mempool{}, sub)
 	mem := module.(*mempool.Mempool)
 	mem.Close()

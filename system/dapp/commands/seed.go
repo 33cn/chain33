@@ -104,7 +104,7 @@ func addSaveSeedFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("seed", "s", "", "15 seed characters separated by space")
 	cmd.MarkFlagRequired("seed")
 
-	cmd.Flags().StringP("pwd", "p", "", "password used to encrypt seed")
+	cmd.Flags().StringP("pwd", "p", "", "password used to encrypt seed, [8-30]letter and digit")
 	cmd.MarkFlagRequired("pwd")
 }
 
@@ -119,4 +119,12 @@ func saveSeed(cmd *cobra.Command, args []string) {
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
 	ctx.Run()
+	//钱包解锁60s
+	params1 := types.WalletUnLock{
+		Passwd:         pwd,
+		Timeout:        60,
+		WalletOrTicket: false,
+	}
+	var res1 rpctypes.Reply
+	jsonclient.NewRPCCtx(rpcLaddr, "Chain33.UnLock", params1, &res1)
 }

@@ -196,7 +196,7 @@ func (f *Forks) IsDappFork(title string, height int64, dapp, fork string) bool {
 //SetTestNetFork bityuan test net fork
 func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkChainParamV1", 110000)
-	systemFork.SetFork("chain33", "ForkChainParamV2", MaxHeight)
+	systemFork.SetFork("chain33", "ForkChainParamV2", 1692674)
 	systemFork.SetFork("chain33", "ForkCheckTxDup", 75260)
 	systemFork.SetFork("chain33", "ForkBlockHash", 209186)
 	systemFork.SetFork("chain33", "ForkMinerTime", 350000)
@@ -207,10 +207,17 @@ func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkResetTx0", 453400)
 	systemFork.SetFork("chain33", "ForkExecRollback", 706531)
 	systemFork.SetFork("chain33", "ForkTxHeight", 806578)
-	systemFork.SetFork("chain33", "ForkTxGroupPara", 806578)
 	systemFork.SetFork("chain33", "ForkCheckBlockTime", 1200000)
 	systemFork.SetFork("chain33", "ForkMultiSignAddress", 1298600)
-	systemFork.SetFork("chain33", "ForkStateDBSet", MaxHeight)
+	systemFork.SetFork("chain33", "ForkStateDBSet", 1572391)
+	systemFork.SetFork("chain33", "ForkBlockCheck", 1560000)
+	systemFork.SetFork("chain33", "ForkLocalDBAccess", 1572391)
+	systemFork.SetFork("chain33", "ForkTxGroupPara", 1687250)
+	systemFork.SetFork("chain33", "ForkBase58AddressCheck", 1800000)
+	//这个fork只影响平行链，注册类似user.p.x.exec的driver，新开的平行链设为0即可，老的平行链要设置新的高度
+	systemFork.SetFork("chain33", "ForkEnableParaRegExec", 0)
+	systemFork.SetFork("chain33", "ForkCacheDriver", 2580000)
+	systemFork.SetFork("chain33", "ForkTicketFundAddrV1", 3350000)
 }
 
 func setLocalFork() {
@@ -222,7 +229,7 @@ func setLocalFork() {
 }
 
 //paraName not used currently
-func setForkForPara(paraName string) {
+func setForkForParaZero(paraName string) {
 	err := systemFork.CloneZero("chain33", paraName)
 	if err != nil {
 		tlog.Error("setForkForPara", "error", err)
@@ -279,6 +286,7 @@ func initForkConfig(title string, forks *ForkList) {
 	if title == "chain33" { //chain33 fork is default set in code
 		return
 	}
+	println(title)
 	chain33fork := systemFork.GetAll("chain33")
 	if chain33fork == nil {
 		panic("chain33 fork not init")

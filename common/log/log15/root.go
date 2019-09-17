@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/33cn/chain33/common/log/log15/term"
-	"github.com/mattn/go-colorable"
+	colorable "github.com/mattn/go-colorable"
 )
 
 // Predefined handlers

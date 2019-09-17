@@ -136,7 +136,7 @@ func addSetPwdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("old", "o", "", "old password")
 	cmd.MarkFlagRequired("old")
 
-	cmd.Flags().StringP("new", "n", "", "new password")
+	cmd.Flags().StringP("new", "n", "", "new password,[8-30]letter and digit")
 	cmd.MarkFlagRequired("new")
 }
 
@@ -171,14 +171,14 @@ func addWalletListTxsFlags(cmd *cobra.Command) {
 	cmd.Flags().Int32P("count", "c", 0, "number of transactions")
 	cmd.MarkFlagRequired("count")
 
-	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page)")
+	cmd.Flags().Int32P("direction", "d", 0, "query direction (0: pre page, 1: next page)")
 }
 
 func walletListTxs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	txHash, _ := cmd.Flags().GetString("from")
 	count, _ := cmd.Flags().GetInt32("count")
-	direction, _ := cmd.Flags().GetInt32("dir")
+	direction, _ := cmd.Flags().GetInt32("direction")
 	params := rpctypes.ReqWalletTransactionList{
 		FromTx:    txHash,
 		Count:     count,
@@ -312,7 +312,7 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("key", "k", "", "private key (optional)")
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
-	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional)")
+	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional), auto set proper fee if not set or zero fee")
 	cmd.Flags().StringP("to", "t", "", "new to addr (optional)")
 
 	// A duration string is a possibly signed sequence of

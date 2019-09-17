@@ -15,6 +15,7 @@ const (
 	keyEncryptionCompFlag = "EncryptionFlag" // 中间有一段时间运行了一个错误的密码版本，导致有部分用户信息发生错误，需要兼容下
 	keyPasswordHash       = "PasswordHash"
 	keyWalletSeed         = "walletseed"
+	keyAirDropIndex       = "AirDropIndex" //存储通过seed生成的空投地址信息
 )
 
 // CalcAccountKey 用于所有Account账户的输出list，需要安装时间排序
@@ -56,4 +57,9 @@ func CalcPasswordHash() []byte {
 // CalcWalletSeed 钱包Seed的Key
 func CalcWalletSeed() []byte {
 	return []byte(keyWalletSeed)
+}
+
+// CalcAirDropIndex 通过钱包Seed指定index生成的空投地址
+func CalcAirDropIndex() []byte {
+	return []byte(keyAirDropIndex)
 }

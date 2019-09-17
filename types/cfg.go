@@ -6,22 +6,24 @@ package types
 
 // Config 配置信息
 type Config struct {
-	Title      string       `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
-	Version    string       `protobuf:"bytes,1,opt,name=version" json:"version,omitempty"`
-	Log        *Log         `protobuf:"bytes,2,opt,name=log" json:"log,omitempty"`
-	Store      *Store       `protobuf:"bytes,3,opt,name=store" json:"store,omitempty"`
-	Consensus  *Consensus   `protobuf:"bytes,5,opt,name=consensus" json:"consensus,omitempty"`
-	Mempool    *Mempool     `protobuf:"bytes,6,opt,name=mempool" json:"memPool,omitempty"`
-	BlockChain *BlockChain  `protobuf:"bytes,7,opt,name=blockChain" json:"blockChain,omitempty"`
-	Wallet     *Wallet      `protobuf:"bytes,8,opt,name=wallet" json:"wallet,omitempty"`
-	P2P        *P2P         `protobuf:"bytes,9,opt,name=p2p" json:"p2p,omitempty"`
-	RPC        *RPC         `protobuf:"bytes,10,opt,name=rpc" json:"rpc,omitempty"`
-	Exec       *Exec        `protobuf:"bytes,11,opt,name=exec" json:"exec,omitempty"`
-	TestNet    bool         `protobuf:"varint,12,opt,name=testNet" json:"testNet,omitempty"`
-	FixTime    bool         `protobuf:"varint,13,opt,name=fixTime" json:"fixTime,omitempty"`
-	Pprof      *Pprof       `protobuf:"bytes,14,opt,name=pprof" json:"pprof,omitempty"`
-	Fork       *ForkList    `protobuf:"bytes,15,opt,name=fork" json:"fork,omitempty"`
-	Health     *HealthCheck `protobuf:"bytes,16,opt,name=health" json:"health,omitempty"`
+	Title          string       `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Version        string       `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	Log            *Log         `protobuf:"bytes,3,opt,name=log" json:"log,omitempty"`
+	Store          *Store       `protobuf:"bytes,4,opt,name=store" json:"store,omitempty"`
+	Consensus      *Consensus   `protobuf:"bytes,5,opt,name=consensus" json:"consensus,omitempty"`
+	Mempool        *Mempool     `protobuf:"bytes,6,opt,name=mempool" json:"memPool,omitempty"`
+	BlockChain     *BlockChain  `protobuf:"bytes,7,opt,name=blockChain" json:"blockChain,omitempty"`
+	Wallet         *Wallet      `protobuf:"bytes,8,opt,name=wallet" json:"wallet,omitempty"`
+	P2P            *P2P         `protobuf:"bytes,9,opt,name=p2p" json:"p2p,omitempty"`
+	RPC            *RPC         `protobuf:"bytes,10,opt,name=rpc" json:"rpc,omitempty"`
+	Exec           *Exec        `protobuf:"bytes,11,opt,name=exec" json:"exec,omitempty"`
+	TestNet        bool         `protobuf:"varint,12,opt,name=testNet" json:"testNet,omitempty"`
+	FixTime        bool         `protobuf:"varint,13,opt,name=fixTime" json:"fixTime,omitempty"`
+	Pprof          *Pprof       `protobuf:"bytes,14,opt,name=pprof" json:"pprof,omitempty"`
+	Fork           *ForkList    `protobuf:"bytes,15,opt,name=fork" json:"fork,omitempty"`
+	Health         *HealthCheck `protobuf:"bytes,16,opt,name=health" json:"health,omitempty"`
+	CoinSymbol     string       `protobuf:"bytes,17,opt,name=coinSymbol" json:"coinSymbol,omitempty"`
+	EnableParaFork bool         `protobuf:"bytes,18,opt,name=enableParaFork" json:"enableParaFork,omitempty"`
 }
 
 // ForkList fork列表配置
@@ -58,6 +60,7 @@ type Mempool struct {
 	// mempool队列名称，可配，timeline，score，price
 	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
 	// mempool缓存容量大小，默认10240
+<<<<<<< HEAD
 	PoolCacheSize int64 `protobuf:"varint,1,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
 	// 最小得交易手续费用，这个没有默认值，必填，一般是100000
 	MinTxFee    int64 `protobuf:"varint,2,opt,name=minTxFee" json:"minTxFee,omitempty"`
@@ -65,6 +68,17 @@ type Mempool struct {
 	// 每个账户在mempool中得最大交易数量，默认100
 	MaxTxNumPerAccount int64 `protobuf:"varint,4,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
 	MaxTxLast          int64 `protobuf:"varint,4,opt,name=maxTxLast" json:"maxTxLast,omitempty"`
+=======
+	PoolCacheSize int64 `protobuf:"varint,2,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
+	// 最小得交易手续费用，这个没有默认值，必填，一般是100000
+	MinTxFee    int64 `protobuf:"varint,3,opt,name=minTxFee" json:"minTxFee,omitempty"`
+	MaxTxFee    int64 `protobuf:"varint,3,opt,name=maxTxFee" json:"maxTxFee,omitempty"`
+	ForceAccept bool  `protobuf:"varint,4,opt,name=forceAccept" json:"forceAccept,omitempty"`
+	// 每个账户在mempool中得最大交易数量，默认100
+	MaxTxNumPerAccount int64 `protobuf:"varint,5,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
+	MaxTxLast          int64 `protobuf:"varint,6,opt,name=maxTxLast" json:"maxTxLast,omitempty"`
+	IsLevelFee         bool  `protobuf:"varint,7,opt,name=isLevelFee" json:"isLevelFee,omitempty"`
+>>>>>>> upstream/master
 }
 
 // Consensus 配置
@@ -79,6 +93,11 @@ type Consensus struct {
 	Genesis     string `protobuf:"bytes,4,opt,name=genesis" json:"genesis,omitempty"`
 	HotkeyAddr  string `protobuf:"bytes,5,opt,name=hotkeyAddr" json:"hotkeyAddr,omitempty"`
 	ForceMining bool   `protobuf:"varint,6,opt,name=forceMining" json:"forceMining,omitempty"`
+<<<<<<< HEAD
+=======
+	// 配置挖矿的合约名单
+	MinerExecs []string `protobuf:"bytes,7,rep,name=minerExecs" json:"minerExecs,omitempty"`
+>>>>>>> upstream/master
 }
 
 // Wallet 配置
@@ -107,6 +126,8 @@ type Store struct {
 	DbCache int32 `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
 	// 数据库版本
 	LocalDBVersion string `protobuf:"bytes,5,opt,name=localdbVersion" json:"localdbVersion,omitempty"`
+	// 数据库版本
+	StoreDBVersion string `protobuf:"bytes,5,opt,name=storedbVersion" json:"storedbVersion,omitempty"`
 }
 
 // BlockChain 配置
@@ -134,6 +155,15 @@ type BlockChain struct {
 	// 是否为平行链节点
 	IsParaChain        bool `protobuf:"varint,12,opt,name=isParaChain" json:"isParaChain,omitempty"`
 	EnableTxQuickIndex bool `protobuf:"varint,13,opt,name=enableTxQuickIndex" json:"enableTxQuickIndex,omitempty"`
+<<<<<<< HEAD
+=======
+	// 升级storedb是否重新执行localdb
+	EnableReExecLocal bool `protobuf:"varint,14,opt,name=enableReExecLocal" json:"enableReExecLocal,omitempty"`
+	// 区块回退
+	RollbackBlock int64 `protobuf:"varint,15,opt,name=rollbackBlock" json:"rollbackBlock,omitempty"`
+	// 回退是否保存区块
+	RollbackSave bool `protobuf:"varint,16,opt,name=rollbackSave" json:"rollbackSave,omitempty"`
+>>>>>>> upstream/master
 }
 
 // P2P 配置
@@ -157,16 +187,32 @@ type P2P struct {
 	// 是否启动P2P服务
 	Enable       bool  `protobuf:"varint,9,opt,name=enable" json:"enable,omitempty"`
 	MsgCacheSize int32 `protobuf:"varint,10,opt,name=msgCacheSize" json:"msgCacheSize,omitempty"`
+<<<<<<< HEAD
 	// 版本号
 	Version int32 `protobuf:"varint,11,opt,name=version" json:"version,omitempty"`
 	VerMin  int32 `protobuf:"varint,12,opt,name=verMin" json:"verMin,omitempty"`
 	VerMax  int32 `protobuf:"varint,13,opt,name=verMax" json:"verMax,omitempty"`
+=======
+>>>>>>> upstream/master
 	// 是否使用内置的种子节点
 	InnerSeedEnable bool `protobuf:"varint,14,opt,name=innerSeedEnable" json:"innerSeedEnable,omitempty"`
 	// 最多的接入节点个数
 	InnerBounds int32 `protobuf:"varint,15,opt,name=innerBounds" json:"innerBounds,omitempty"`
 	// 是否使用Github获取种子节点
 	UseGithub bool `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
+<<<<<<< HEAD
+=======
+	//是否等待Pid
+	WaitPid bool `protobuf:"varint,17,opt,name=waitPid" json:"waitPid,omitempty"`
+	//交易开始采用哈希广播的ttl
+	LightTxTTL int32 `protobuf:"varint,18,opt,name=lightTxTTL" json:"lightTxTTL,omitempty"`
+	// 最大传播ttl, ttl达到该值将停止继续向外发送
+	MaxTTL int32 `protobuf:"varint,19,opt,name=maxTTL" json:"maxTTL,omitempty"`
+	// p2p网络频道,用于区分主网/测试网/其他网络
+	Channel int32 `protobuf:"varint,20,opt,name=channel" json:"channel,omitempty"`
+	//固定连接节点，只连接配置项seeds中的节点
+	FixedSeed bool `protobuf:"varint,21,opt,name=fixedSeed" json:"fixedSeed,omitempty"`
+>>>>>>> upstream/master
 }
 
 // RPC 配置
@@ -199,6 +245,11 @@ type RPC struct {
 type Exec struct {
 	// 执行器执行所需最小费用,低于Mempool和Wallet设置的MinFee,在minExecFee = 0 的情况下，isFree = true才会生效
 	MinExecFee int64 `protobuf:"varint,1,opt,name=minExecFee" json:"minExecFee,omitempty"`
+<<<<<<< HEAD
+=======
+	// 执行器执行所需最大费用,这个值必须大于mempool 和 wallet 的值
+	MaxExecFee int64 `protobuf:"varint,1,opt,name=maxExecFee" json:"maxExecFee,omitempty"`
+>>>>>>> upstream/master
 	// 执行器执行是否免费
 	IsFree bool `protobuf:"varint,2,opt,name=isFree" json:"isFree,omitempty"`
 	// 是否开启stat插件

@@ -43,7 +43,7 @@ singleMode=true
 batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
-enableTxQuickIndex=false
+enableTxQuickIndex=true
 
 [p2p]
 seeds=[]
@@ -68,38 +68,46 @@ grpcFuncWhitelist=["*"]
 
 [mempool]
 name="timeline"
-poolCacheSize=10240
+poolCacheSize=102400
 minTxFee=100000
-maxTxNumPerAccount=10000
+maxTxNumPerAccount=100000
 
 [consensus]
 name="solo"
 minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+minerExecs=["ticket", "autonomy"]
 
 [mver.consensus]
 fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
+powLimitBits = "0x1f00ffff"
+maxTxNumber = 10000
+
+[mver.consensus.ForkChainParamV1]
+maxTxNumber = 10000
+
+[mver.consensus.ForkChainParamV2]
+powLimitBits = "0x1f2fffff"
+
+[mver.consensus.ForkTicketFundAddrV1]
+fundKeyAddr = "1Ji3W12KGScCM7C2p8bg635sNkayDM8MGY"
+
+[mver.consensus.ticket]
 coinReward = 18
 coinDevFund = 12
 ticketPrice = 10000
-powLimitBits = "0x1f00ffff"
 retargetAdjustmentFactor = 4
 futureBlockTime = 16
 ticketFrozenTime = 5
 ticketWithdrawTime = 10
 ticketMinerWaitTime = 2
-maxTxNumber = 1600
 targetTimespan = 2304
 targetTimePerBlock = 16
 
-[mver.consensus.ForkChainParamV1]
-maxTxNumber = 10000
+[mver.consensus.ticket.ForkChainParamV1]
 targetTimespan = 288 #only for test
 targetTimePerBlock = 2
-
-[mver.consensus.ForkChainParamV2]
-powLimitBits = "0x1f2fffff"
 
 [consensus.sub.para]
 ParaRemoteGrpcClient="localhost:8802"
@@ -193,4 +201,7 @@ superManager=[
     "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 
     "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"
 ]
+[exec.sub.autonomy]
+total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
+useBalance=false
 `

@@ -76,7 +76,10 @@ func (c *KVCreator) addnoprefix(key, value []byte, set bool) *KVCreator {
 	}
 	c.kvs = append(c.kvs, &types.KeyValue{Key: key, Value: value})
 	if set {
-		c.kvdb.Set(key, value)
+		err := c.kvdb.Set(key, value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return c
 }
@@ -147,18 +150,27 @@ func (c *KVCreator) KVList() []*types.KeyValue {
 
 //AddRollbackKV 添加回滚数据到 KV
 func (c *KVCreator) AddRollbackKV() {
-	v := types.Encode(c.rollbackLog())
-	c.kvs = append(c.kvs, &types.KeyValue{Key: c.rollbackkey, Value: v})
+	rbLog := c.rollbackLog()
+	if rbLog != nil {
+		v := types.Encode(rbLog)
+		c.kvs = append(c.kvs, &types.KeyValue{Key: c.rollbackkey, Value: v})
+	}
+
 }
 
 //DelRollbackKV 删除rollback kv
 func (c *KVCreator) DelRollbackKV() {
-	c.kvs = append(c.kvs, &types.KeyValue{Key: c.rollbackkey})
+	if len(c.kvs) > 0 {
+		c.kvs = append(c.kvs, &types.KeyValue{Key: c.rollbackkey})
+	}
 }
 
 //GetRollbackKVList 获取 rollback 到 Key and Vaue
 func (c *KVCreator) GetRollbackKVList() ([]*types.KeyValue, error) {
 	data, err := c.kvdb.Get(c.rollbackkey)
+	if err == types.ErrNotFound {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -180,6 +192,9 @@ func (c *KVCreator) GetRollbackKVList() ([]*types.KeyValue, error) {
 
 //rollbackLog rollback log
 func (c *KVCreator) rollbackLog() *types.ReceiptLog {
+	if len(c.rollbackkvs) == 0 {
+		return nil
+	}
 	data := types.Encode(&types.LocalDBSet{KV: c.rollbackkvs})
 	return &types.ReceiptLog{Ty: types.TyLogRollback, Log: data}
 }

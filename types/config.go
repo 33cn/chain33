@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/33cn/chain33/types/chaincfg"
 	tml "github.com/BurntSushi/toml"
@@ -20,14 +19,15 @@ import (
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowUserExec = [][]byte{ExecerNone}
-	//AllowDepositExec 这里又限制了一次，因为挖矿的合约不会太多，所以这里配置死了，如果要扩展，需要改这里的代码
-	AllowDepositExec = [][]byte{[]byte("ticket")}
-	EmptyValue       = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	title            string
-	mu               sync.Mutex
-	titles           = map[string]bool{}
-	chainConfig      = make(map[string]interface{})
-	mver             = make(map[string]*mversion)
+	//挖矿的合约名单，适配旧配置，默认ticket
+	minerExecs  = []string{"ticket"}
+	EmptyValue  = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
+	title       string
+	mu          sync.Mutex
+	titles      = map[string]bool{}
+	chainConfig = make(map[string]interface{})
+	mver        = make(map[string]*mversion)
+	coinSymbol  = "bty"
 )
 
 // coin conversation
@@ -59,37 +59,28 @@ func init() {
 
 // ChainParam 结构体
 type ChainParam struct {
-	CoinDevFund              int64
-	CoinReward               int64
-	FutureBlockTime          int64
-	TicketPrice              int64
-	TicketFrozenTime         int64
-	TicketWithdrawTime       int64
-	TicketMinerWaitTime      int64
-	MaxTxNumber              int64
-	PowLimitBits             uint32
-	TargetTimespan           time.Duration
-	TargetTimePerBlock       time.Duration
-	RetargetAdjustmentFactor int64
+	MaxTxNumber  int64
+	PowLimitBits uint32
 }
 
 // GetP 获取ChainParam
 func GetP(height int64) *ChainParam {
 	conf := Conf("mver.consensus")
 	c := &ChainParam{}
-	c.CoinDevFund = conf.MGInt("coinDevFund", height) * Coin
-	c.CoinReward = conf.MGInt("coinReward", height) * Coin
-	c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
-	c.TicketPrice = conf.MGInt("ticketPrice", height) * Coin
-	c.TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
-	c.TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
-	c.TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
 	c.MaxTxNumber = conf.MGInt("maxTxNumber", height)
 	c.PowLimitBits = uint32(conf.MGInt("powLimitBits", height))
-	c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
-	c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
-	c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
 	return c
+}
+
+// GetMinerExecs 获取挖矿的合约名单
+func GetMinerExecs() []string {
+	return minerExecs
+}
+
+func setMinerExecs(execs []string) {
+	if len(execs) > 0 {
+		minerExecs = execs
+	}
 }
 
 // GetFundAddr 获取基金账户地址
@@ -113,8 +104,9 @@ func getChainConfig(key string) (value interface{}, err error) {
 // G 获取ChainConfig中的配置
 func G(key string) (value interface{}, err error) {
 	mu.Lock()
-	defer mu.Unlock()
-	return getChainConfig(key)
+	value, err = getChainConfig(key)
+	mu.Unlock()
+	return
 }
 
 // MG 获取mver config中的配置
@@ -217,12 +209,11 @@ func S(key string, value interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
 	if strings.HasPrefix(key, "config.") {
-		if !isLocal() { //only local can modify for test
+		if !isLocal() && !isTestPara() { //only local and test para can modify for test
 			panic("prefix config. is readonly")
 		} else {
 			tlog.Error("modify " + key + " is only for test")
 		}
-		return
 	}
 	setChainConfig(key, value)
 }
@@ -230,8 +221,8 @@ func S(key string, value interface{}) {
 //SetTitleOnlyForTest set title only for test use
 func SetTitleOnlyForTest(ti string) {
 	mu.Lock()
-	defer mu.Unlock()
 	title = ti
+	mu.Unlock()
 }
 
 // Init 初始化
@@ -246,6 +237,7 @@ func Init(t string, cfg *Config) {
 	}
 	titles[t] = true
 	title = t
+
 	if cfg != nil {
 		if isLocal() {
 			setTestNet(true)
@@ -255,8 +247,31 @@ func Init(t string, cfg *Config) {
 		if cfg.Exec.MinExecFee > cfg.Mempool.MinTxFee || cfg.Mempool.MinTxFee > cfg.Wallet.MinFee {
 			panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
 		}
-		setMinFee(cfg.Exec.MinExecFee)
+		if cfg.Exec.MaxExecFee < cfg.Mempool.MaxTxFee {
+			panic("config must meet: mempool.maxTxFee <= exec.maxExecFee")
+		}
+		if cfg.Consensus != nil {
+			setMinerExecs(cfg.Consensus.MinerExecs)
+		}
+		if cfg.Exec != nil {
+			setMinFee(cfg.Exec.MinExecFee)
+		}
 		setChainConfig("FixTime", cfg.FixTime)
+		if cfg.Exec.MaxExecFee > 0 {
+			setChainConfig("MaxFee", cfg.Exec.MaxExecFee)
+		}
+		if cfg.CoinSymbol != "" {
+			if strings.Contains(cfg.CoinSymbol, "-") {
+				panic("config CoinSymbol must without '-'")
+			}
+			coinSymbol = cfg.CoinSymbol
+		} else {
+			if isPara() {
+				panic("must config CoinSymbol in para chain")
+			} else {
+				coinSymbol = DefaultCoinsSymbol
+			}
+		}
 	}
 	//local 只用于单元测试
 	if isLocal() {
@@ -272,7 +287,9 @@ func Init(t string, cfg *Config) {
 	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
 	if isPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
 		//keep superManager same with mainnet
-		setForkForPara(title)
+		if !cfg.EnableParaFork {
+			setForkForParaZero(title)
+		}
 		if mver[title] != nil {
 			mver[title].UpdateFork()
 		}
@@ -289,8 +306,17 @@ func Init(t string, cfg *Config) {
 // GetTitle 获取title
 func GetTitle() string {
 	mu.Lock()
-	defer mu.Unlock()
-	return title
+	s := title
+	mu.Unlock()
+	return s
+}
+
+// GetCoinSymbol 获取 coin symbol
+func GetCoinSymbol() string {
+	mu.Lock()
+	s := coinSymbol
+	mu.Unlock()
+	return s
 }
 
 func isLocal() bool {
@@ -300,26 +326,32 @@ func isLocal() bool {
 // IsLocal 是否locak title
 func IsLocal() bool {
 	mu.Lock()
-	defer mu.Unlock()
-	return isLocal()
+	is := isLocal()
+	mu.Unlock()
+	return is
 }
 
 // SetMinFee 设置最小费用
 func SetMinFee(fee int64) {
 	mu.Lock()
-	defer mu.Unlock()
 	setMinFee(fee)
+	mu.Unlock()
 }
 
 func isPara() bool {
 	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
 }
 
+func isTestPara() bool {
+	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX) && strings.HasSuffix(title, "test.")
+}
+
 // IsPara 是否平行链
 func IsPara() bool {
 	mu.Lock()
-	defer mu.Unlock()
-	return isPara()
+	is := isPara()
+	mu.Unlock()
+	return is
 }
 
 // IsParaExecName 是否平行链执行器
@@ -330,6 +362,23 @@ func IsParaExecName(exec string) bool {
 //IsMyParaExecName 是否是我的para链的执行器
 func IsMyParaExecName(exec string) bool {
 	return IsParaExecName(exec) && strings.HasPrefix(exec, GetTitle())
+}
+
+//IsSpecificParaExecName 是否是某一个平行链的执行器
+func IsSpecificParaExecName(title, exec string) bool {
+	return IsParaExecName(exec) && strings.HasPrefix(exec, title)
+}
+
+//GetParaExecTitleName 如果是平行链执行器，获取对应title
+func GetParaExecTitleName(exec string) (string, bool) {
+	if IsParaExecName(exec) {
+		for i := len(ParaKey); i < len(exec); i++ {
+			if exec[i] == '.' {
+				return exec[:i+1], true
+			}
+		}
+	}
+	return "", false
 }
 
 func setTestNet(isTestNet bool) {
@@ -351,6 +400,7 @@ func setMinFee(fee int64) {
 		panic("fee less than zero")
 	}
 	setChainConfig("MinFee", fee)
+	setChainConfig("MaxFee", fee*10000)
 	setChainConfig("MinBalanceTransfer", fee*10)
 }
 
@@ -475,7 +525,6 @@ func InitCfg(path string) (*Config, *ConfigSubModule) {
 
 func setFlatConfig(cfgstring string) {
 	mu.Lock()
-	defer mu.Unlock()
 	cfg := make(map[string]interface{})
 	if _, err := tml.Decode(cfgstring, &cfg); err != nil {
 		panic(err)
@@ -484,6 +533,7 @@ func setFlatConfig(cfgstring string) {
 	for k, v := range flat {
 		setChainConfig("config."+k, v)
 	}
+	mu.Unlock()
 }
 
 func flatConfig(key string, conf map[string]interface{}, flat map[string]interface{}) {
@@ -506,8 +556,8 @@ func FlatConfig(conf map[string]interface{}) map[string]interface{} {
 
 func setMver(title string, cfgstring string) {
 	mu.Lock()
-	defer mu.Unlock()
 	mver[title] = newMversion(title, cfgstring)
+	mu.Unlock()
 }
 
 // InitCfgString 初始化配置

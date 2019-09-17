@@ -62,7 +62,7 @@ filename = "token.toml"
 ```
 [[TransferCase]]
 id = "btyTrans1"
-command = "send bty transfer -a 10 -t 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+command = "send coins transfer -a 10 -t 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "10"

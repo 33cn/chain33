@@ -74,6 +74,19 @@ func (op *OrphanPool) GetOrphanRoot(hash []byte) []byte {
 	return orphanRoot
 }
 
+//RemoveOrphanBlockByHash 通过指定的区块hash
+//删除孤儿区块从OrphanPool中，以及prevOrphans中的index.
+func (op *OrphanPool) RemoveOrphanBlockByHash(hash []byte) {
+	op.orphanLock.Lock()
+	defer op.orphanLock.Unlock()
+
+	orphan, exists := op.orphans[string(hash)]
+	if exists && orphan != nil {
+		chainlog.Debug("RemoveOrphanBlockByHash:", "height", orphan.block.Height, "hash", common.ToHex(orphan.block.Hash()))
+		op.removeOrphanBlock(orphan)
+	}
+}
+
 //RemoveOrphanBlock 删除孤儿节点从OrphanPool中，以及prevOrphans中的index
 func (op *OrphanPool) RemoveOrphanBlock(orphan *orphanBlock) {
 	op.orphanLock.Lock()
@@ -124,13 +137,13 @@ func (op *OrphanPool) removeOrphanBlock(orphan *orphanBlock) {
 	}
 }
 
-// addOrphanBlock adds the passed block (which is already determined to be
+// AddOrphanBlock adds the passed block (which is already determined to be
 // an orphan prior calling this function) to the orphan pool.  It lazily cleans
 // up any expired blocks so a separate cleanup poller doesn't need to be run.
 // It also imposes a maximum limit on the number of outstanding orphan
 // blocks and will remove the oldest received orphan block if the limit is
 // exceeded.
-func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid string, sequence int64) {
+func (op *OrphanPool) AddOrphanBlock(broadcast bool, block *types.Block, pid string, sequence int64) {
 
 	chainlog.Debug("addOrphanBlock:", "block.height", block.Height, "block.hash", common.ToHex(block.Hash()))
 
@@ -175,25 +188,69 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid str
 	op.prevOrphans[string(prevHash)] = append(op.prevOrphans[string(prevHash)], oBlock)
 }
 
+//getChildOrphanCount 获取父hash对应的子孤儿节点的个数,内部函数
+func (op *OrphanPool) getChildOrphanCount(hash string) int {
+	return len(op.prevOrphans[hash])
+}
+
 //GetChildOrphanCount 获取父hash对应的子孤儿节点的个数
 func (op *OrphanPool) GetChildOrphanCount(hash string) int {
 	op.orphanLock.RLock()
 	defer op.orphanLock.RUnlock()
 
-	return len(op.prevOrphans[hash])
+	return op.getChildOrphanCount(hash)
 }
 
+//getChildOrphan 获取子孤儿连，内部函数
 func (op *OrphanPool) getChildOrphan(hash string, index int) *orphanBlock {
-	op.orphanLock.RLock()
-	defer op.orphanLock.RUnlock()
 	if index >= len(op.prevOrphans[hash]) {
 		return nil
 	}
 	return op.prevOrphans[hash][index]
 }
+
 func (op *OrphanPool) printorphan() {
 	for _, oBlock := range op.orphans {
 		// 打印孤儿block
 		chainlog.Error("printorphannode:", "oBlock.height", oBlock.block.Height, "oBlock.hash", common.ToHex(oBlock.block.Hash()))
 	}
+}
+
+//ProcessOrphans 孤儿链的处理,将本hash对应的子block插入chain中
+func (op *OrphanPool) ProcessOrphans(hash []byte, b *BlockChain) error {
+	chainlog.Debug("ProcessOrphans:parent", "hash", common.ToHex(hash))
+	op.orphanLock.Lock()
+	defer op.orphanLock.Unlock()
+
+	processHashes := make([]string, 0, 100)
+	processHashes = append(processHashes, string(hash))
+	for len(processHashes) > 0 {
+		processHash := processHashes[0]
+		processHashes[0] = "" // Prevent GC leak.
+		processHashes = processHashes[1:]
+
+		//  处理以processHash为父hash的所有子block
+		count := b.orphanPool.getChildOrphanCount(processHash)
+		for i := 0; i < count; i++ {
+			orphan := b.orphanPool.getChildOrphan(processHash, i)
+			if orphan == nil {
+				chainlog.Debug("ProcessOrphans", "Found a nil entry at index", i, "orphan dependency list for block", common.ToHex([]byte(processHash)))
+				continue
+			}
+
+			// 从孤儿池中删除此孤儿节点
+			orphanHash := orphan.block.Hash()
+			b.orphanPool.removeOrphanBlock(orphan)
+			i--
+
+			chainlog.Debug("processOrphans:maybeAcceptBlock", "height", orphan.block.GetHeight(), "hash", common.ToHex(orphan.block.Hash()))
+			// 尝试将此孤儿节点添加到主链
+			_, _, err := b.maybeAcceptBlock(orphan.broadcast, &types.BlockDetail{Block: orphan.block}, orphan.pid, orphan.sequence)
+			if err != nil {
+				return err
+			}
+			processHashes = append(processHashes, string(orphanHash))
+		}
+	}
+	return nil
 }

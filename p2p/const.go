@@ -18,28 +18,24 @@ var (
 	StreamPingTimeout           = 20 * time.Second
 	MonitorPeerInfoInterval     = 10 * time.Second
 	MonitorPeerNumInterval      = 30 * time.Second
-	MonitorReBalanceInterval    = 2 * time.Minute
+	MonitorReBalanceInterval    = 15 * time.Minute
 	GetAddrFromAddrBookInterval = 5 * time.Second
 	GetAddrFromOnlineInterval   = 5 * time.Second
 	GetAddrFromGitHubInterval   = 5 * time.Minute
 	CheckActivePeersInterVal    = 5 * time.Second
 	CheckBlackListInterVal      = 30 * time.Second
+	CheckCfgSeedsInterVal       = 1 * time.Minute
 )
 
 const (
 	msgTx           = 1
 	msgBlock        = 2
 	tryMapPortTimes = 20
-)
-
-var (
-	// LocalAddr local address
-	LocalAddr   string
-	defaultPort = 13802
+	maxSamIPNum     = 20
 )
 
 const (
-	defalutNatPort  = 23802
+	//defalutNatPort  = 23802
 	maxOutBoundNum  = 25
 	stableBoundNum  = 15
 	maxAttemps      = 5
@@ -64,31 +60,35 @@ const (
 	privKeyTag = "privkey"
 )
 
+//TTL
+const (
+	DefaultLtTxBroadCastTTL  = 3
+	DefaultMaxTxBroadCastTTL = 25
+)
+
 // P2pCacheTxSize p2pcache size of transaction
 const (
-	P2pCacheTxSize = 10240
+	PeerAddrCacheNum = 1000
+	//接收的交易哈希过滤缓存设为mempool最大接收交易量
+	TxRecvFilterCacheNum = 10240
+	BlockFilterCacheNum  = 50
+	//发送过滤主要用于发送时冗余检测, 发送完即可以被删除, 维护较小缓存数
+	TxSendFilterCacheNum  = 500
+	BlockCacheNum         = 10
+	MaxBlockCacheByteSize = 100 * 1024 * 1024
 )
 
 // TestNetSeeds test seeds of net
 var TestNetSeeds = []string{
 	"114.55.101.159:13802",
 	"47.104.125.151:13802",
-	"47.104.125.97:13802",
-	"47.104.125.177:13802",
 }
 
-// InnerSeeds built-in list of seed
-var InnerSeeds = []string{
+// MainNetSeeds built-in list of seed
+var MainNetSeeds = []string{
 	"39.107.234.240:13802",
 	"39.105.88.66:13802",
 	"39.105.87.114:13802",
-	"39.105.85.247:13802",
-	"39.105.87.106:13802",
-	"39.105.76.78:13802",
-	"39.105.82.4:13802",
-	"39.105.43.225:13802",
-	"39.107.239.248:13802",
-	"39.105.83.33:13802",
 	"120.27.234.254:13802",
 	"116.62.169.41:13802",
 	"47.97.169.229:13802",
@@ -129,4 +129,11 @@ var InnerSeeds = []string{
 	"47.74.22.60:13802",
 	"47.74.22.86:13802",
 	"47.91.17.139:13802",
+	"49.4.51.190:13802",
+	"114.115.151.98:13802",
+	"114.116.6.132:13802",
+	"114.116.12.244:13802",
+	"114.116.114.77:13802",
+	"114.116.109.21:13802",
+	"114.116.50.182:13802",
 }

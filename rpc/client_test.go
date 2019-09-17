@@ -5,9 +5,9 @@
 package rpc
 
 import (
-	"testing"
-
+	"encoding/hex"
 	"fmt"
+	"testing"
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/mocks"
@@ -63,10 +63,16 @@ func testCreateRawTransactionAmoutErr(t *testing.T) {
 
 func testCreateRawTransactionTo(t *testing.T) {
 	name := types.ExecName(cty.CoinsX)
-	tx := types.CreateTx{ExecName: name, Amount: 1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
+	tx := types.CreateTx{ExecName: name, Amount: 1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32", Fee: 1}
 
 	client := newTestChannelClient()
 	rawtx, err := client.CreateRawTransaction(&tx)
+	assert.NoError(t, err)
+
+	reqDecode := &types.ReqDecodeRawTransaction{TxHex: hex.EncodeToString(rawtx)}
+	_, err = client.DecodeRawTransaction(reqDecode)
+	assert.NoError(t, err)
+
 	assert.Nil(t, err)
 	var mytx types.Transaction
 	err = types.Decode(rawtx, &mytx)
@@ -84,8 +90,9 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: false,
-		To:         "to",
+		To:         "1JkbMq5yNMZHtokjg5XxkC3RZbqjoPJm84",
 		Note:       []byte("note"),
+		Fee:        1,
 	}
 
 	client := newTestChannelClient()
@@ -107,8 +114,9 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: false,
-		To:         "to",
+		To:         "1JkbMq5yNMZHtokjg5XxkC3RZbqjoPJm84",
 		Note:       []byte("note"),
+		Fee:        1,
 	}
 
 	client := newTestChannelClient()
@@ -134,8 +142,9 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: true,
-		To:         "to",
+		To:         "1JkbMq5yNMZHtokjg5XxkC3RZbqjoPJm84",
 		Note:       []byte("note"),
+		Fee:        1,
 	}
 
 	client := newTestChannelClient()
@@ -164,54 +173,6 @@ func TestChannelClient_CreateRawTransaction(t *testing.T) {
 	testCreateRawTransactionCoinTransfer(t)
 	testCreateRawTransactionCoinTransferExec(t)
 	testCreateRawTransactionCoinWithdraw(t)
-}
-
-func testSendRawTransactionNil(t *testing.T) {
-	client := newTestChannelClient()
-	_, err := client.SendRawTransaction(nil)
-	assert.Equal(t, types.ErrInvalidParam, err)
-}
-
-func testSendRawTransactionErr(t *testing.T) {
-	var param = types.SignedTx{
-		Unsign: []byte("123"),
-		Sign:   []byte("123"),
-		Pubkey: []byte("123"),
-		Ty:     1,
-	}
-
-	client := newTestChannelClient()
-	_, err := client.SendRawTransaction(&param)
-	assert.NotEmpty(t, err)
-}
-
-func testSendRawTransactionOk(t *testing.T) {
-	transfer := &types.Transaction{
-		Execer: []byte(types.ExecName("ticket")),
-	}
-	payload := types.Encode(transfer)
-
-	api := new(mocks.QueueProtocolAPI)
-	client := &channelClient{
-		QueueProtocolAPI: api,
-	}
-	api.On("SendTx", mock.Anything).Return(nil, nil)
-
-	var param = types.SignedTx{
-		Unsign: payload,
-		Sign:   []byte("123"),
-		Pubkey: []byte("123"),
-		Ty:     1,
-	}
-
-	_, err := client.SendRawTransaction(&param)
-	assert.Nil(t, err)
-}
-
-func TestChannelClient_SendRawTransaction(t *testing.T) {
-	testSendRawTransactionNil(t)
-	testSendRawTransactionOk(t)
-	testSendRawTransactionErr(t)
 }
 
 func testChannelClientGetAddrOverviewNil(t *testing.T) {
@@ -343,21 +304,90 @@ func TestChannelClient_GetBalance(t *testing.T) {
 	testChannelClient_GetBalanceOther(t)
 }
 
-// func TestChannelClient_GetTotalCoins(t *testing.T) {
-// 	client := newTestChannelClient()
-// 	data, err := client.GetTotalCoins(nil)
-// 	assert.NotNil(t, err)
-// 	assert.Nil(t, data)
-//
-// 	// accountdb =
-// 	token := &types.ReqGetTotalCoins{
-// 		Symbol:    "CNY",
-// 		StateHash: []byte("1234"),
-// 		StartKey:  []byte("sad"),
-// 		Count:     1,
-// 		Execer:    "coin",
-// 	}
-// 	data, err = client.GetTotalCoins(token)
-// 	assert.NotNil(t, data)
-// 	assert.Nil(t, err)
-// }
+func TestChannelClient_GetTotalCoins(t *testing.T) {
+	client := new(channelClient)
+	api := new(mocks.QueueProtocolAPI)
+	client.Init(&qmock.Client{}, api)
+	api.On("StoreGetTotalCoins", mock.Anything).Return(&types.ReplyGetTotalCoins{}, nil)
+	_, err := client.GetTotalCoins(&types.ReqGetTotalCoins{})
+	assert.NoError(t, err)
+
+	// accountdb =
+	//token := &types.ReqGetTotalCoins{
+	//	Symbol:    "CNY",
+	//	StateHash: []byte("1234"),
+	//	StartKey:  []byte("sad"),
+	//	Count:     1,
+	//	Execer:    "coin",
+	//}
+	//data, err = client.GetTotalCoins(token)
+	//assert.NotNil(t, data)
+	//assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
+	client := new(channelClient)
+	api := new(mocks.QueueProtocolAPI)
+	client.Init(&qmock.Client{}, api)
+	fee := types.GInt("MinFee") * 2
+	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: fee}, nil)
+	in := &types.NoBalanceTx{}
+	tx, err := client.CreateNoBalanceTransaction(in)
+	assert.NoError(t, err)
+	gtx, _ := tx.GetTxGroup()
+	assert.NoError(t, gtx.Check(0, fee, types.GInt("MaxFee")))
+	assert.NoError(t, err)
+}
+
+func TestClientReWriteRawTx(t *testing.T) {
+	//交易组原始交易的修改测试
+	txHex1 := "0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720c0843d30aab4d59684b5cce7143a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4ab50c0aa3010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720c0843d30aab4d59684b5cce7143a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522008217c413b035fddd8f34a303e90a29e661746ed9b23a97768c1f25817c2c3450a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a673094fbcabe96c99ea7163a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f552203c6a2b11cce466891f084b49450472b1d4c39213f63117d3d4ce2a3851304ebc0a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730c187fb80fe88ce9e3c3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522066419d70492f757d7285fd226dff62da8d803c8121ded95242d222dbb10f2d9b0a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a673098aa929ab292b3f0023a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f552202bab08051d24fe923f66c8aeea4ce3f425d47a72f7c5c230a2b1427e04e2eb510a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730bfe9abb3edc6d9cb163a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f55220e1ba0493aa431ea3071026bd8dfa8280efab53ce86441fc474a1c19550a554ba0a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730d2e196a8ecada9d53e3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522016600fbfa23b3f0e8f9a14b716ce8f4064c091fbf6fa94489bc9d14b5b6049a60a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730a0b7b1b1dda2f4c5743a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522089d0442d76713369022499d054db65ccacbf5c627a525bd5454e0a30d23fa2990a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730c5838f94e2f49acb4b3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522018f208938606b390d752898332a84a9fbb900c2ed55ec33cd54d09b1970043b90a9f010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a67308dfddb82faf7dfc4113a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522013002bab7a9c65881bd937a6fded4c3959bb631fa84434572970c1ec3e6fccf90a7d0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730b8b082d799a4ddc93a3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f400a4a201f533ac07c3fc4c716f65cdb0f1f02e7f5371b5164277210dafb1dbdd4a5f4f5522008217c413b035fddd8f34a303e90a29e661746ed9b23a97768c1f25817c2c345"
+	//修改交易组的所有交易
+	ctx := types.ReWriteRawTx{
+		Tx:     txHex1,
+		Fee:    29977777777,
+		Expire: "130s",
+		To:     "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
+		Index:  0,
+	}
+
+	client := newTestChannelClient()
+
+	txHex, err := client.ReWriteRawTx(&ctx)
+	assert.Nil(t, err)
+	rtTx := hex.EncodeToString(txHex)
+	txData, err := hex.DecodeString(rtTx)
+	assert.Nil(t, err)
+	tx := &types.Transaction{}
+	err = types.Decode(txData, tx)
+	assert.Nil(t, err)
+	assert.Equal(t, ctx.Fee, tx.Fee)
+
+	//只修改交易组中指定的交易
+	ctx2 := types.ReWriteRawTx{
+		Tx:     txHex1,
+		Fee:    29977777777,
+		Expire: "130s",
+		To:     "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
+		Index:  2,
+	}
+	txHex22, err := client.ReWriteRawTx(&ctx2)
+	assert.Nil(t, err)
+	rtTx22 := hex.EncodeToString(txHex22)
+	txData22, err := hex.DecodeString(rtTx22)
+	assert.Nil(t, err)
+	tx22 := &types.Transaction{}
+	err = types.Decode(txData22, tx22)
+	assert.Nil(t, err)
+	group22, err := tx22.GetTxGroup()
+	assert.Nil(t, err)
+
+	for index, tmptx := range group22.GetTxs() {
+		if tmptx.GetExpire() != 0 && index != 1 {
+			t.Error("TestClientReWriteRawTx Expire !=0 index != 1 ")
+		}
+		if tmptx.GetFee() != 0 && index != 0 {
+			t.Error("TestClientReWriteRawTx Fee !=0")
+		}
+	}
+}

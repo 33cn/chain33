@@ -120,3 +120,111 @@ func TestAllow(t *testing.T) {
 	assert.Equal(t, types.ErrNotAllow, demo.Allow(tx, 0))
 	assert.Equal(t, false, demo.IsFriend(nil, nil, nil))
 }
+
+func TestDriverBase(t *testing.T) {
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
+	demo := newdemoApp().(*demoApp)
+	demo.SetExecutorType(nil)
+	assert.Nil(t, demo.GetPayloadValue())
+	assert.Nil(t, demo.GetExecutorType())
+	assert.True(t, demo.ExecutorOrder() == 0)
+	assert.Nil(t, demo.GetFuncMap())
+	demo.SetIsFree(false)
+	assert.False(t, demo.IsFree())
+
+	tx := &types.Transaction{Execer: []byte("demo"), To: ExecAddress("demo"), GroupCount: 1}
+	t.Log("addr:", ExecAddress("demo"))
+	_, err := demo.ExecLocal(tx, nil, 0)
+	assert.NoError(t, err)
+	_, err = demo.ExecDelLocal(tx, nil, 0)
+	assert.NoError(t, err)
+	_, err = demo.Exec(tx, 0)
+	assert.NoError(t, err)
+	err = demo.CheckTx(tx, 0)
+	assert.NoError(t, err)
+
+	txs := []*types.Transaction{tx}
+	demo.SetTxs(txs)
+	assert.Equal(t, txs, demo.GetTxs())
+	_, err = demo.GetTxGroup(0)
+	assert.Equal(t, types.ErrTxGroupFormat, err)
+
+	demo.SetReceipt(nil)
+	assert.Nil(t, demo.GetReceipt())
+	demo.SetLocalDB(nil)
+	assert.Nil(t, demo.GetLocalDB())
+	assert.Nil(t, demo.GetStateDB())
+	assert.True(t, demo.GetHeight() == 0)
+	assert.True(t, demo.GetBlockTime() == 0)
+	assert.True(t, demo.GetDifficulty() == 0)
+	assert.Equal(t, "demo", demo.GetName())
+	assert.Equal(t, "demo", demo.GetCurrentExecName())
+
+	name := demo.GetActionName(tx)
+	assert.Equal(t, "unknown", name)
+	assert.True(t, demo.CheckSignatureData(tx, 0))
+	assert.NotNil(t, demo.GetCoinsAccount())
+	assert.False(t, demo.CheckReceiptExecOk())
+
+	err = CheckAddress("1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", 0)
+	assert.NoError(t, err)
+
+	demo.SetLocalDB(kvdb)
+	execer := "user.p.guodun.demo"
+	kvs := []*types.KeyValue{
+		{
+			Key:   []byte("hello"),
+			Value: []byte("world"),
+		},
+	}
+	newkvs := demo.AddRollbackKV(tx, []byte(execer), kvs)
+	assert.Equal(t, 2, len(newkvs))
+	assert.Equal(t, string(newkvs[0].Key), "hello")
+	assert.Equal(t, string(newkvs[0].Value), "world")
+	assert.Equal(t, string(newkvs[1].Key), string(append([]byte("LODB-demo-rollback-"), tx.Hash()...)))
+
+	rollbackkvs := []*types.KeyValue{
+		{
+			Key:   []byte("hello"),
+			Value: nil,
+		},
+	}
+	data := types.Encode(&types.LocalDBSet{KV: rollbackkvs})
+	assert.Equal(t, string(newkvs[1].Value), string(types.Encode(&types.ReceiptLog{Ty: types.TyLogRollback, Log: data})))
+
+	kvdb.Set(newkvs[1].Key, newkvs[1].Value)
+	newkvs, err = demo.DelRollbackKV(tx, []byte(execer))
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(newkvs))
+	assert.Equal(t, string(newkvs[0].Key), "hello")
+	assert.Equal(t, newkvs[0].Value, []byte(nil))
+
+	assert.Equal(t, string(newkvs[1].Key), string(append([]byte("LODB-demo-rollback-"), tx.Hash()...)))
+	assert.Equal(t, newkvs[1].Value, []byte(nil))
+}
+
+func TestDriverBase_Query(t *testing.T) {
+	dir, ldb, kvdb := util.CreateTestDB()
+	defer util.CloseTestDB(dir, ldb)
+	demo := newdemoApp().(*demoApp)
+	demo.SetLocalDB(kvdb)
+	addr := &types.ReqAddr{Addr: "1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", Count: 1, Direction: 1}
+	kvdb.Set(types.CalcTxAddrHashKey(addr.GetAddr(), ""), types.Encode(&types.ReplyTxInfo{}))
+	_, err := demo.GetTxsByAddr(addr)
+	assert.Equal(t, types.ErrNotFound, err)
+
+	addr.Height = -1
+	_, err = demo.GetTxsByAddr(addr)
+	assert.NoError(t, err)
+
+	c, err := demo.GetPrefixCount(&types.ReqKey{Key: types.CalcTxAddrHashKey(addr.GetAddr(), "")})
+	assert.NoError(t, err)
+	assert.True(t, c.(*types.Int64).Data == 1)
+
+	_, err = demo.GetAddrTxsCount(&types.ReqKey{Key: types.CalcTxAddrHashKey(addr.GetAddr(), "")})
+	assert.NoError(t, err)
+
+	_, err = demo.Query("", nil)
+	assert.Equal(t, types.ErrActionNotSupport, err)
+}

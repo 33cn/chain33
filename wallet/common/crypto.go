@@ -19,7 +19,10 @@ func CBCEncrypterPrivkey(password []byte, privkey []byte) []byte {
 		copy(key, password)
 	}
 
-	block, _ := aes.NewCipher(key)
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil
+	}
 	iv := key[:block.BlockSize()]
 
 	encrypter := cipher.NewCBCEncrypter(block, iv)
@@ -36,8 +39,10 @@ func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
 	} else {
 		copy(key, password)
 	}
-
-	block, _ := aes.NewCipher(key)
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil
+	}
 	iv := key[:block.BlockSize()]
 	decryptered := make([]byte, len(privkey))
 	decrypter := cipher.NewCBCDecrypter(block, iv)

@@ -142,20 +142,25 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 }
 
 //GetPrivkeyBySeed 通过seed生成子私钥十六进制字符串
-func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
+func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32) (string, error) {
 	var backupindex uint32
 	var Hexsubprivkey string
 	var err error
 	var index uint32
+
 	//通过主私钥随机生成child私钥十六进制字符串
-	backuppubkeyindex, err := db.Get([]byte(BACKUPKEYINDEX))
-	if backuppubkeyindex == nil || err != nil {
-		index = 0
-	} else {
-		if err = json.Unmarshal(backuppubkeyindex, &backupindex); err != nil {
-			return "", err
+	if specificIndex == 0 {
+		backuppubkeyindex, err := db.Get([]byte(BACKUPKEYINDEX))
+		if backuppubkeyindex == nil || err != nil {
+			index = 0
+		} else {
+			if err = json.Unmarshal(backuppubkeyindex, &backupindex); err != nil {
+				return "", err
+			}
+			index = backupindex + 1
 		}
-		index = backupindex + 1
+	} else {
+		index = specificIndex
 	}
 	if SignType != 1 && SignType != 2 {
 		return "", types.ErrNotSupport
@@ -209,17 +214,19 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 		Hexsubprivkey = secretKey
 	}
 	// back up index in db
-	var pubkeyindex []byte
-	pubkeyindex, err = json.Marshal(index)
-	if err != nil {
-		seedlog.Error("GetPrivkeyBySeed", "Marshal err ", err)
-		return "", types.ErrMarshal
-	}
+	if specificIndex == 0 {
+		var pubkeyindex []byte
+		pubkeyindex, err = json.Marshal(index)
+		if err != nil {
+			seedlog.Error("GetPrivkeyBySeed", "Marshal err ", err)
+			return "", types.ErrMarshal
+		}
 
-	err = db.SetSync([]byte(BACKUPKEYINDEX), pubkeyindex)
-	if err != nil {
-		seedlog.Error("GetPrivkeyBySeed", "SetSync err ", err)
-		return "", err
+		err = db.SetSync([]byte(BACKUPKEYINDEX), pubkeyindex)
+		if err != nil {
+			seedlog.Error("GetPrivkeyBySeed", "SetSync err ", err)
+			return "", err
+		}
 	}
 	return Hexsubprivkey, nil
 }

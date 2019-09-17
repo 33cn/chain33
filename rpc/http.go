@@ -76,17 +76,15 @@ func (j *JSONRPCServer) Listen() (int, error) {
 			}
 			//格式做一个检查
 			client, err := parseJSONRpcParams(data)
-			errstr := "nil"
 			if err != nil {
-				errstr = err.Error()
+				err = fmt.Errorf(`invalid json request err:%s`, err.Error())
+				log.Debug("JSONRPCServer", "request", string(data), "parseErr", err)
+				writeError(w, r, 0, err.Error())
+				return
 			}
 			funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
 			if !checkFilterPrintFuncBlacklist(funcName) {
-				log.Debug("JSONRPCServer", "request", string(data), "err", errstr)
-			}
-			if err != nil {
-				writeError(w, r, 0, fmt.Sprintf(`parse request err %s`, err.Error()))
-				return
+				log.Debug("JSONRPCServer", "request", string(data))
 			}
 			//Release local request
 			ipaddr := net.ParseIP(ip)
@@ -135,7 +133,11 @@ func writeError(w http.ResponseWriter, r *http.Request, id uint64, errstr string
 		log.Debug("json marshal error, nerver happen")
 		return
 	}
-	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		log.Debug("Write", "err", err)
+		return
+	}
 }
 
 // Listen grpcserver listen

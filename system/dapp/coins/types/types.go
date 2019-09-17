@@ -5,6 +5,8 @@
 package types
 
 import (
+	"reflect"
+
 	"github.com/33cn/chain33/types"
 )
 
@@ -72,6 +74,44 @@ func (c *CoinsType) GetTypeMap() map[string]int32 {
 	return actionName
 }
 
+//DecodePayloadValue 为了性能考虑，coins 是最常用的合约，我们这里不用反射吗，做了特殊化的优化
+func (c *CoinsType) DecodePayloadValue(tx *types.Transaction) (string, reflect.Value, error) {
+	name, value, err := c.decodePayloadValue(tx)
+	return name, value, err
+}
+
+func (c *CoinsType) decodePayloadValue(tx *types.Transaction) (string, reflect.Value, error) {
+	var action CoinsAction
+	if tx.GetPayload() == nil {
+		return "", reflect.ValueOf(nil), types.ErrActionNotSupport
+	}
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return "", reflect.ValueOf(nil), err
+	}
+	var name string
+	var value types.Message
+
+	switch action.Ty {
+	case CoinsActionTransfer:
+		name = "Transfer"
+		value = action.GetTransfer()
+	case CoinsActionTransferToExec:
+		name = "TransferToExec"
+		value = action.GetTransferToExec()
+	case CoinsActionWithdraw:
+		name = "Withdraw"
+		value = action.GetWithdraw()
+	case CoinsActionGenesis:
+		name = "Genesis"
+		value = action.GetGenesis()
+	}
+	if value == nil {
+		return "", reflect.ValueOf(nil), types.ErrActionNotSupport
+	}
+	return name, reflect.ValueOf(value), nil
+}
+
 // RPC_Default_Process default process fo rpc
 func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.Transaction, error) {
 	var create *types.CreateTx
@@ -95,12 +135,15 @@ func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.
 
 // GetAssets return asset list
 func (c *CoinsType) GetAssets(tx *types.Transaction) ([]*types.Asset, error) {
-	assetlist, err := c.ExecTypeBase.GetAssets(tx)
-	if err != nil || len(assetlist) == 0 {
+	assets, err := c.ExecTypeBase.GetAssets(tx)
+	if err != nil || len(assets) == 0 {
 		return nil, err
 	}
-	if assetlist[0].Symbol == "" {
-		assetlist[0].Symbol = types.BTY
+	if assets[0].Symbol == "" {
+		assets[0].Symbol = types.GetCoinSymbol()
 	}
-	return assetlist, nil
+	if assets[0].Symbol == "bty" {
+		assets[0].Symbol = "BTY"
+	}
+	return assets, nil
 }

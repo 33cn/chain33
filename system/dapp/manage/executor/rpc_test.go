@@ -205,3 +205,16 @@ func TestTokenFinisher(t *testing.T) {
 	assert.Equal(t, reply.Key, "token-finisher")
 	assert.Equal(t, reply.Value, "[1FCX9XJTZXvZteagTrefJEBPZMt8BFmdoi]")
 }
+
+func TestModify(t *testing.T) {
+	manager := new(Manage)
+
+	log := &types.ReceiptLog{Ty: 0, Log: types.Encode(&types.ReceiptConfig{Prev: &types.ConfigItem{}, Current: &types.ConfigItem{}})}
+	receipt := &types.ReceiptData{Logs: []*types.ReceiptLog{log}}
+
+	_, err := manager.ExecDelLocal_Modify(nil, nil, receipt, 0)
+	assert.NoError(t, err)
+
+	_, err = manager.ExecLocal_Modify(nil, nil, receipt, 0)
+	assert.NoError(t, err)
+}
