@@ -493,7 +493,7 @@ func (bs *BlockStore) loadBlockByHash(hash []byte) (*types.BlockDetail, int, err
 	//通过hash索引获取blockdetail
 	blockdetail, err := bs.loadBlockByIndex("hash", hash, nil)
 	if err != nil {
-		storeLog.Error("LoadBlockByHeight:loadBlockByIndex", "hash", common.ToHex(hash), "err", err)
+		storeLog.Error("loadBlockByHash:loadBlockByIndex", "hash", common.ToHex(hash), "err", err)
 		return nil, blockSize, err
 	}
 	blockSize = blockdetail.Size()
@@ -1365,13 +1365,13 @@ func (bs *BlockStore) loadBlockByHashOld(hash []byte) (*types.BlockDetail, error
 	header, err := bs.db.Get(calcHashToBlockHeaderKey(hash))
 	if header == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("loadBlockByHeightOld:calcHashToBlockHeaderKey", "hash", common.ToHex(hash), "err", err)
+			storeLog.Error("loadBlockByHashOld:calcHashToBlockHeaderKey", "hash", common.ToHex(hash), "err", err)
 		}
 		return nil, types.ErrHashNotExist
 	}
 	err = proto.Unmarshal(header, &blockheader)
 	if err != nil {
-		storeLog.Error("loadBlockByHeightOld", "err", err)
+		storeLog.Error("loadBlockByHashOld", "err", err)
 		return nil, err
 	}
 
@@ -1379,13 +1379,13 @@ func (bs *BlockStore) loadBlockByHashOld(hash []byte) (*types.BlockDetail, error
 	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
 	if body == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("loadBlockByHeightOld:calcHashToBlockBodyKey ", "err", err)
+			storeLog.Error("loadBlockByHashOld:calcHashToBlockBodyKey ", "err", err)
 		}
 		return nil, types.ErrHashNotExist
 	}
 	err = proto.Unmarshal(body, &blockbody)
 	if err != nil {
-		storeLog.Error("loadBlockByHeightOld", "err", err)
+		storeLog.Error("loadBlockByHashOld", "err", err)
 		return nil, err
 	}
 
@@ -1406,6 +1406,7 @@ func (bs *BlockStore) loadBlockByHashOld(hash []byte) (*types.BlockDetail, error
 	return &blockdetail, nil
 }
 
+//loadBlockByHeightOld 在版本升级到2.0.0时需要使用旧接口获取block信息
 func (bs *BlockStore) loadBlockByHeightOld(height int64) (*types.BlockDetail, error) {
 	hash, err := bs.GetBlockHashByHeight(height)
 	if err != nil {
@@ -1414,12 +1415,10 @@ func (bs *BlockStore) loadBlockByHeightOld(height int64) (*types.BlockDetail, er
 	return bs.loadBlockByHashOld(hash)
 }
 
-//getBlockHeaderByHeightOld 需要在db升级之前使用旧的key值获取block信息
+//getBlockHeaderByHeightOld 需要在db升级之前使用旧的key值获取header信息
 func (bs *BlockStore) getBlockHeaderByHeightOld(height int64) (*types.Header, error) {
-
 	blockheader, err := bs.db.Get(calcHeightToBlockHeaderKey(height))
 	if err != nil {
-		//首先通过height获取block hash从db中
 		var hash []byte
 		hash, err = bs.GetBlockHashByHeight(height)
 		if err != nil {
