@@ -285,7 +285,7 @@ func (c *Chain33Config) SetDappFork(title, dapp, fork string, height int64) {
 
 // RegisterDappFork 注册dapp fork高度
 func (c *Chain33Config) RegisterDappFork(dapp, fork string, height int64) {
-	c.forks.SetDappFork("chain33", dapp, fork, height)
+	c.forks.SetDappFork(c.title, dapp, fork, height)
 }
 
 // GetFork 获取系统fork高度
@@ -295,7 +295,7 @@ func (c *Chain33Config) GetFork(fork string) int64 {
 
 // HasFork 是否有系统fork
 func (c *Chain33Config) HasFork(fork string) bool {
-	return c.forks.HasFork("chain33", fork)
+	return c.forks.HasFork(c.title, fork)
 }
 
 // IsEnableFork 是否使能了fork
