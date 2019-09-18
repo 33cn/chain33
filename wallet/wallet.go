@@ -291,6 +291,9 @@ func (wallet *Wallet) GetPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
 	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	return wallet.getPrivKeyByAddr(addr)
 }
 
