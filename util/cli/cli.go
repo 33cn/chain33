@@ -28,7 +28,6 @@ func Run(RPCAddr, ParaName, configPath, name string) {
 			configPath = name + ".toml"
 		}
 	}
-	fmt.Println("cli toml is", configPath)
 	if configPath == "" {
 		panic("can not find the cli toml")
 	}

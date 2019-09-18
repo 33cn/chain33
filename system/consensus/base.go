@@ -147,7 +147,7 @@ func (bc *BaseClient) InitBlock() {
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		if newblock.Height == 0 {
 			cfg := bc.client.GetConfig()
-			newblock.Difficulty = types.GetP(0, cfg).PowLimitBits
+			newblock.Difficulty = cfg.GetP(0).PowLimitBits
 		}
 		err := bc.WriteBlock(zeroHash[:], newblock)
 		if err != nil {
@@ -292,7 +292,7 @@ func (bc *BaseClient) CheckBlock(block *types.BlockDetail) error {
 		if block.Block.Size() > types.MaxBlockSize {
 			return types.ErrBlockSize
 		}
-		if int64(len(block.Block.Txs)) > types.GetP(block.Block.Height, cfg).MaxTxNumber {
+		if int64(len(block.Block.Txs)) > cfg.GetP(block.Block.Height).MaxTxNumber {
 			return types.ErrManyTx
 		}
 	}
@@ -487,7 +487,7 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 	max := types.MaxBlockSize - 100000 //留下100K空间，添加其他的交易
 	currentCount := int64(len(block.Txs))
 	cfg := bc.client.GetConfig()
-	maxTx := types.GetP(block.Height, cfg).MaxTxNumber
+	maxTx := cfg.GetP(block.Height).MaxTxNumber
 	addedTx := make([]*types.Transaction, 0, len(txs))
 	for i := 0; i < len(txs); i++ {
 		txGroup, err := txs[i].GetTxGroup()

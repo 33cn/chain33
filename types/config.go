@@ -243,22 +243,22 @@ func (c *Chain33Config) setTestNet(isTestNet bool) {
 }
 
 // GetP 获取ChainParam
-func GetP(height int64, cfg *Chain33Config) *ChainParam {
-	conf := Conf("mver.consensus", cfg)
-	c := &ChainParam{}
-	c.CoinDevFund = conf.MGIntq("coinDevFund", height) * Coin
-	c.CoinReward = conf.MGIntq("coinReward", height) * Coin
-	c.FutureBlockTime = conf.MGIntq("futureBlockTime", height)
-	c.TicketPrice = conf.MGIntq("ticketPrice", height) * Coin
-	c.TicketFrozenTime = conf.MGIntq("ticketFrozenTime", height)
-	c.TicketWithdrawTime = conf.MGIntq("ticketWithdrawTime", height)
-	c.TicketMinerWaitTime = conf.MGIntq("ticketMinerWaitTime", height)
-	c.MaxTxNumber = conf.MGIntq("maxTxNumber", height)
-	c.PowLimitBits = uint32(conf.MGIntq("powLimitBits", height))
-	c.TargetTimespan = time.Duration(conf.MGIntq("targetTimespan", height)) * time.Second
-	c.TargetTimePerBlock = time.Duration(conf.MGIntq("targetTimePerBlock", height)) * time.Second
-	c.RetargetAdjustmentFactor = conf.MGIntq("retargetAdjustmentFactor", height)
-	return c
+func (c *Chain33Config) GetP(height int64) *ChainParam {
+	conf := Conf(c, "mver.consensus")
+	chain := &ChainParam{}
+	chain.CoinDevFund = conf.MGIntq("coinDevFund", height) * Coin
+	chain.CoinReward = conf.MGIntq("coinReward", height) * Coin
+	chain.FutureBlockTime = conf.MGIntq("futureBlockTime", height)
+	chain.TicketPrice = conf.MGIntq("ticketPrice", height) * Coin
+	chain.TicketFrozenTime = conf.MGIntq("ticketFrozenTime", height)
+	chain.TicketWithdrawTime = conf.MGIntq("ticketWithdrawTime", height)
+	chain.TicketMinerWaitTime = conf.MGIntq("ticketMinerWaitTime", height)
+	chain.MaxTxNumber = conf.MGIntq("maxTxNumber", height)
+	chain.PowLimitBits = uint32(conf.MGIntq("powLimitBits", height))
+	chain.TargetTimespan = time.Duration(conf.MGIntq("targetTimespan", height)) * time.Second
+	chain.TargetTimePerBlock = time.Duration(conf.MGIntq("targetTimePerBlock", height)) * time.Second
+	chain.RetargetAdjustmentFactor = conf.MGIntq("retargetAdjustmentFactor", height)
+	return chain
 }
 
 // GetMinerExecs 获取挖矿的合约名单
@@ -720,7 +720,7 @@ type ConfQuery struct {
 }
 
 // Conf 配置
-func Conf(prefix string, cfg *Chain33Config) *ConfQuery {
+func Conf(cfg *Chain33Config, prefix string) *ConfQuery {
 	if prefix == "" || (!strings.HasPrefix(prefix, "config.") && !strings.HasPrefix(prefix, "mver.")) {
 		panic("ConfQuery must init buy prefix config. or mver.")
 	}
@@ -729,7 +729,7 @@ func Conf(prefix string, cfg *Chain33Config) *ConfQuery {
 
 // ConfSub 子模块配置
 func ConfSub(name string, cfg *Chain33Config) *ConfQuery {
-	return Conf("config.exec.sub."+name, cfg)
+	return Conf(cfg, "config.exec.sub."+name)
 }
 
 // G 获取指定key的配置信息

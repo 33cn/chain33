@@ -80,20 +80,12 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 }
 
 func LoadDriverWithClient(qclent client.QueueProtocolAPI, name string, height int64) (driver Driver, err error) {
-	// user.evm.xxxx 的交易，使用evm执行器
-	//   user.p.evm
-	name = string(types.GetRealExecName([]byte(name)))
-	c, ok := registedExecDriver[name]
-	if !ok {
-		elog.Debug("LoadDriver", "driver", name)
-		return nil, types.ErrUnRegistedDriver
+	driver, err = LoadDriver(name, height)
+	if err != nil {
+		return nil, err
 	}
-	if height >= c.height || height == -1 {
-		driver = c.create()
-		driver.SetAPI(qclent)
-		return driver, nil
-	}
-	return nil, types.ErrUnknowDriver
+	driver.SetAPI(qclent)
+	return driver, nil
 }
 
 // LoadDriverAllow load driver allow

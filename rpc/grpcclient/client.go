@@ -23,7 +23,7 @@ func NewMainChainClient(cfg *types.Chain33Config, grpcaddr string) (types.Chain3
 	if grpcaddr == "" && defaultClient != nil {
 		return defaultClient, nil
 	}
-	paraRemoteGrpcClient := types.Conf("config.consensus.sub.para", cfg).GStr("ParaRemoteGrpcClient")
+	paraRemoteGrpcClient := types.Conf(cfg, "config.consensus.sub.para").GStr("ParaRemoteGrpcClient")
 	if grpcaddr != "" {
 		paraRemoteGrpcClient = grpcaddr
 	}
