@@ -212,9 +212,8 @@ func (p *pushseq) getBlockDataBySeq(seq int64) (*types.BlockSeq, int, error) {
 func (p *pushseq) getSeqs(cb *types.BlockSeqCB, seq int64, seqCount, maxSize int) ([]byte, int64, error) {
 	if cb.IsHeader {
 		return p.getHeaderSeqs(cb.Encode, seq, seqCount, maxSize)
-	} else {
-		return p.getBlockSeqs(cb.Encode, seq, seqCount, maxSize)
 	}
+	return p.getBlockSeqs(cb.Encode, seq, seqCount, maxSize)
 }
 
 func (p *pushseq) getBlockSeqs(encode string, seq int64, seqCount, maxSize int) ([]byte, int64, error) {

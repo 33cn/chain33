@@ -320,6 +320,8 @@ func addblockSeqCallBackCmdFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("encode", "e", "", "data encode type,json or proto buff")
 	cmd.MarkFlagRequired("encode")
+
+	cmd.Flags().StringP("isheader", "i", "f", "push header or block (0/f/false for block; 1/t/true for header)")
 }
 
 func addblockSeqCallBackCmd(cmd *cobra.Command, args []string) {
@@ -328,10 +330,17 @@ func addblockSeqCallBackCmd(cmd *cobra.Command, args []string) {
 	url, _ := cmd.Flags().GetString("url")
 	encode, _ := cmd.Flags().GetString("encode")
 
+	isHeaderStr, _ := cmd.Flags().GetString("isheader")
+	isHeader, err := strconv.ParseBool(isHeaderStr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	params := types.BlockSeqCB{
-		Name:   name,
-		URL:    url,
-		Encode: encode,
+		Name:     name,
+		URL:      url,
+		Encode:   encode,
+		IsHeader: isHeader,
 	}
 
 	var res rpctypes.Reply
