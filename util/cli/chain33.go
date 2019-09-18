@@ -91,9 +91,6 @@ func RunChain33(name string) {
 		panic(err)
 	}
 	//set config: bityuan 用 bityuan.toml 这个配置文件
-	//set test net flag
-	// TODO 删除
-	//types.Init(cfg.Title, cfg)
 	// TODO 需要处理下mergeconfig
 	chain33Cfg := types.NewChain33Config(types.ReadFile(*configPath))
 	cfg := chain33Cfg.GetMConfig()
