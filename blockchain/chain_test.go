@@ -947,7 +947,7 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 		URL:    "http://192.168.1.107:15760",
 		Encode: "json",
 	}
-	blockchain.MaxSeqCB = 1
+	blockchain.MaxSeqCB = 2
 	err := chain.ProcAddBlockSeqCB(cb)
 	require.NoError(t, err)
 
@@ -955,7 +955,7 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 	require.NoError(t, err)
 	exist := false
 	for _, temcb := range cbs.Items {
-		if temcb.Name == cb.Name {
+		if temcb.Name == cb.Name && !temcb.IsHeader {
 			exist = true
 		}
 	}
@@ -965,6 +965,31 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 	num := chain.ProcGetSeqCBLastNum(cb.Name)
 	if num != -1 {
 		t.Error("testAddBlockSeqCB  getSeqCBLastNum", "num", num, "name", cb.Name)
+	}
+
+	cb1 := &types.BlockSeqCB{
+		Name:     "test-1",
+		URL:      "http://192.168.1.107:15760",
+		Encode:   "json",
+		IsHeader: true,
+	}
+	err = chain.ProcAddBlockSeqCB(cb1)
+	require.NoError(t, err)
+
+	cbs, err = chain.ProcListBlockSeqCB()
+	require.NoError(t, err)
+	exist = false
+	for _, temcb := range cbs.Items {
+		if temcb.Name == cb1.Name && temcb.IsHeader {
+			exist = true
+		}
+	}
+	if !exist {
+		t.Error("testAddBlockSeqCB  listSeqCB fail", "cb", cb1, "cbs", cbs)
+	}
+	num = chain.ProcGetSeqCBLastNum(cb1.Name)
+	if num != -1 {
+		t.Error("testAddBlockSeqCB  getSeqCBLastNum", "num", num, "name", cb1.Name)
 	}
 
 	cb2 := &types.BlockSeqCB{
