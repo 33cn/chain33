@@ -188,7 +188,7 @@ func scanWrite() {
 				Payload: noteTx.Payload,
 			}
 			userTx.To = address.ExecAddress(string(noteTx.Execer))
-			userTx.Fee, err = userTx.GetReallFee(types.GInt("MinFee"))
+			userTx.Fee, err = userTx.GetRealFee(types.GInt("MinFee"))
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				continue

@@ -52,7 +52,7 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 	e := &executor{
 		stateDB:      NewStateDB(client, ctx.stateHash, localdb, opt),
 		localDB:      localdb,
-		coinsAccount: account.NewCoinsAccount(client.GetConfig().GetCoinSymbol()),
+		coinsAccount: account.NewCoinsAccount(client.GetConfig()),
 		height:       ctx.height,
 		blocktime:    ctx.blocktime,
 		difficulty:   ctx.difficulty,

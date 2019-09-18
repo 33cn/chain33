@@ -348,7 +348,7 @@ func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
 		//log.Error("new CoinsAccount")
-		d.coinsaccount = account.NewCoinsAccount(d.api.GetConfig().GetCoinSymbol())
+		d.coinsaccount = account.NewCoinsAccount(d.api.GetConfig())
 	}
 	d.statedb = db
 	d.coinsaccount.SetDB(db)
@@ -465,7 +465,7 @@ func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 // GetCoinsAccount get coins account
 func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
-		d.coinsaccount = account.NewCoinsAccount(d.api.GetConfig().GetCoinSymbol())
+		d.coinsaccount = account.NewCoinsAccount(d.api.GetConfig())
 		d.coinsaccount.SetDB(d.statedb)
 	}
 	return d.coinsaccount

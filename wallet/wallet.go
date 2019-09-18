@@ -262,7 +262,7 @@ func (wallet *Wallet) IsWalletLocked() bool {
 
 // SetQueueClient 初始化客户端消息队列
 func (wallet *Wallet) SetQueueClient(cli queue.Client) {
-	accountdb = account.NewCoinsAccount(cli.GetConfig().GetCoinSymbol())
+	accountdb = account.NewCoinsAccount(cli.GetConfig())
 	var err error
 	wallet.client = cli
 	wallet.client.Sub("wallet")

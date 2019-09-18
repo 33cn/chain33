@@ -109,6 +109,9 @@ func (q *queue) SetConfig(cfg *types.Chain33Config) {
 	if cfg == nil {
 		panic("set config is nil")
 	}
+	if q.cfg != nil {
+		panic("do not reset queue config")
+	}
 	q.cfg = cfg
 }
 

@@ -44,22 +44,6 @@ const (
 	MaxTokenBalance int64 = 900 * 1e8 * TokenPrecision //900亿
 )
 
-// TODO 查看下是否可以直接删除
-//func init() {
-//	S("TestNet", false)
-//	SetMinFee(1e5)
-//	for key, cfg := range chaincfg.LoadAll() {
-//		S("cfg."+key, cfg)
-//	}
-//	//防止报error 错误，不影响功能
-//	if !HasConf("cfg.chain33") {
-//		S("cfg.chain33", "")
-//	}
-//	if !HasConf("cfg.local") {
-//		S("cfg.local", "")
-//	}
-//}
-
 type Chain33Config struct {
 	mcfg        *Config
 	scfg        *ConfigSubModule
