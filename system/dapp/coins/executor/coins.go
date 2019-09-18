@@ -26,17 +26,18 @@ import (
 var driverName = "coins"
 
 // Init defines a register function
-func Init(name string, types *types.Chain33Config, sub []byte) {
+func Init(name string, cfg *types.Chain33Config, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}
-	typ.InitTypes(types)
-	drivers.Register(types, driverName, newCoins, types.GetDappFork(driverName, "Enable"))
+	typ.InitTypes(cfg)
+	drivers.Register(cfg, driverName, newCoins, cfg.GetDappFork(driverName, "Enable"))
+	InitExecType()
 }
 
 // the initialization process is relatively heavyweight, lots of reflact, so it's global
 
-func init() {
+func InitExecType() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&Coins{}))
 }

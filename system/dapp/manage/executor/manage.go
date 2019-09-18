@@ -17,15 +17,16 @@ var (
 	driverName = "manage"
 )
 
-func init() {
-	ety := types.LoadExecutorType(driverName)
-	ety.InitFuncList(types.ListMethod(&Manage{}))
+// Init resister a dirver
+func Init(name string, cfg *types.Chain33Config, sub []byte) {
+	typ.InitTypes(cfg)
+	drivers.Register(cfg, GetName(), newManage, cfg.GetDappFork(driverName, "Enable"))
+	InitExecType()
 }
 
-// Init resister a dirver
-func Init(name string, types *types.Chain33Config, sub []byte) {
-	typ.InitTypes(types)
-	drivers.Register(types, GetName(), newManage, types.GetDappFork(driverName, "Enable"))
+func InitExecType() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Manage{}))
 }
 
 // GetName return manage name

@@ -26,12 +26,12 @@ var (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(ManageX))
-	types.RegistorExecutor(ManageX, NewType())
 }
 
-func InitTypes(types *types.Chain33Config) {
-	types.RegisterDappFork(ManageX, "Enable", 120000)
-	types.RegisterDappFork(ManageX, "ForkManageExec", 400000)
+func InitTypes(cfg *types.Chain33Config) {
+	cfg.RegisterDappFork(ManageX, "Enable", 120000)
+	cfg.RegisterDappFork(ManageX, "ForkManageExec", 400000)
+	types.RegistorExecutor(ManageX, NewType(cfg))
 }
 
 // ManageType defines managetype
@@ -40,9 +40,10 @@ type ManageType struct {
 }
 
 // NewType new a managetype object
-func NewType() *ManageType {
+func NewType(cfg *types.Chain33Config) *ManageType {
 	c := &ManageType{}
 	c.SetChild(c)
+	c.SetConfig(cfg)
 	return c
 }
 

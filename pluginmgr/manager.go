@@ -18,10 +18,10 @@ var pluginItems = make(map[string]Plugin)
 var once = &sync.Once{}
 
 // InitExec init exec
-func InitExec(typ *typ.Chain33Config, sub map[string][]byte) {
+func InitExec(cfg *typ.Chain33Config) {
 	once.Do(func() {
 		for _, item := range pluginItems {
-			item.InitExec(typ, sub)
+			item.InitExec(cfg)
 		}
 	})
 }

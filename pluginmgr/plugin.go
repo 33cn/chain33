@@ -18,7 +18,7 @@ type Plugin interface {
 	// 获取插件中执行器名
 	GetExecutorName() string
 	// 初始化执行器时会调用该接口
-	InitExec(typ *typ.Chain33Config, sub map[string][]byte)
+	InitExec(cfg *typ.Chain33Config)
 	InitWallet(wallet wcom.WalletOperate, sub map[string][]byte)
 	AddCmd(rootCmd *cobra.Command)
 	AddRPC(s types.RPCServer)

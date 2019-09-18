@@ -79,6 +79,11 @@ func addUserDataFlags(cmd *cobra.Command) {
 }
 
 func addUserData(cmd *cobra.Command, args []string) {
+	title, _ := cmd.Flags().GetString("title")
+	cfg, ok := types.CliSysParam[title]
+	if !ok {
+		panic(fmt.Sprintln("can not find CliSysParam title", title))
+	}
 	execer, err := cmd.Flags().GetString("exec")
 	if err != nil {
 		fmt.Println(err)
@@ -107,7 +112,7 @@ func addUserData(cmd *cobra.Command, args []string) {
 		Payload: []byte(data),
 		To:      addrResult,
 	}
-	tx.Fee, err = tx.GetRealFee(types.CliSysParam.GInt("MinFee"))
+	tx.Fee, err = tx.GetRealFee(cfg.GInt("MinFee"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

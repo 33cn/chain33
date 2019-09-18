@@ -291,6 +291,9 @@ type ExecutorType interface {
 	// collect assets the tx deal with
 	GetAssets(tx *Transaction) ([]*Asset, error)
 
+	// about chain33Config
+    GetConfig() *Chain33Config
+    SetConfig(cfg *Chain33Config)
 }
 
 // ExecTypeGet  获取类型值
@@ -797,4 +800,8 @@ func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
 
 func (base *ExecTypeBase) GetConfig() *Chain33Config {
 	return base.cfg
+}
+
+func (base *ExecTypeBase) SetConfig(cfg *Chain33Config) {
+	base.cfg = cfg
 }

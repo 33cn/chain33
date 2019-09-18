@@ -29,11 +29,9 @@ var (
 	//chainConfig = make(map[string]interface{})
 	//mver        = make(map[string]*mversion)
 	//coinSymbol  = "bty"
+	CliSysParam   = make(map[string]*Chain33Config) // map key is title
 )
 
-//var CliSysParam = NewChain33Config("")
-
-var CliSysParam = &Chain33Config{}
 
 // coin conversation
 const (

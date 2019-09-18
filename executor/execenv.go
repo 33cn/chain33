@@ -254,7 +254,7 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 }
 
 func (e *executor) loadDriverNoCache(tx *types.Transaction, index int) (c drivers.Driver) {
-	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	exec := drivers.LoadDriverAllow(e.api, tx, index, e.height)
 	e.setEnv(exec)
 	return exec
 }
@@ -266,7 +266,7 @@ func (e *executor) loadDriverWithCache(tx *types.Transaction, index int) (c driv
 	if ok {
 		return exec
 	}
-	exec = drivers.LoadDriverAllow(tx, index, e.height)
+	exec = drivers.LoadDriverAllow(e.api, tx, index, e.height)
 	e.setEnv(exec)
 	e.execCache[ename] = exec
 	return exec

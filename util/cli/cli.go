@@ -19,30 +19,43 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-
-var rootCmd = &cobra.Command{
-	Use:   types.CliSysParam.GetTitle() + "-cli",
-	Short: types.CliSysParam.GetTitle() + " client tools",
-}
-
-var closeCmd = &cobra.Command{
-	Use:   "close",
-	Short: "Close " + types.CliSysParam.GetTitle(),
-	Run: func(cmd *cobra.Command, args []string) {
-		rpcLaddr, err := cmd.Flags().GetString("rpc_laddr")
-		if err != nil {
-			panic(err)
+//Run :
+func Run(RPCAddr, ParaName, configPath, name string) {
+	if configPath == "" {
+		if name == "" {
+			configPath = "chain33.toml"
+		} else {
+			configPath = name + ".toml"
 		}
-		//		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
-		//		rpc.Call("Chain33.CloseQueue", nil, nil)
-		var res rpctypes.Reply
-		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
-		ctx.Run()
-	},
-}
+	}
+	fmt.Println("cli toml is", configPath)
+	if configPath == "" {
+		panic("can not find the cli toml")
+	}
+	chain33Cfg := types.NewChain33Config(types.ReadFile(configPath))
+	types.CliSysParam[chain33Cfg.GetTitle()] = chain33Cfg
+	
+	rootCmd := &cobra.Command{
+		Use:   chain33Cfg.GetTitle() + "-cli",
+		Short: chain33Cfg.GetTitle() + " client tools",
+	}
+	
+	closeCmd := &cobra.Command{
+		Use:   "close",
+		Short: "Close " + chain33Cfg.GetTitle(),
+		Run: func(cmd *cobra.Command, args []string) {
+			rpcLaddr, err := cmd.Flags().GetString("rpc_laddr")
+			if err != nil {
+				panic(err)
+			}
+			//		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
+			//		rpc.Call("Chain33.CloseQueue", nil, nil)
+			var res rpctypes.Reply
+			ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
+			ctx.Run()
+		},
+	}
 
-func init() {
 	rootCmd.AddCommand(
 		commands.CertCmd(),
 		commands.AccountCmd(),
@@ -60,6 +73,20 @@ func init() {
 		closeCmd,
 		commands.AssetCmd(),
 	)
+
+	//test tls is enable
+	RPCAddr = testTLS(RPCAddr)
+	pluginmgr.AddCmd(rootCmd)
+	log.SetLogLevel("error")
+	chain33Cfg.S("RPCAddr", RPCAddr)
+	chain33Cfg.S("ParaName", ParaName)
+	rootCmd.PersistentFlags().String("rpc_laddr", chain33Cfg.GStr("RPCAddr"), "http url")
+	rootCmd.PersistentFlags().String("paraName", chain33Cfg.GStr("ParaName"), "parachain")
+	rootCmd.PersistentFlags().String("title", chain33Cfg.GetTitle(), "get title name")
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func testTLS(RPCAddr string) string {
@@ -82,20 +109,4 @@ func testTLS(RPCAddr string) string {
 		return RPCAddr
 	}
 	return "https://" + RPCAddr[7:]
-}
-
-//Run :
-func Run(RPCAddr, ParaName string) {
-	//test tls is enable
-	RPCAddr = testTLS(RPCAddr)
-	pluginmgr.AddCmd(rootCmd)
-	log.SetLogLevel("error")
-	types.CliSysParam.S("RPCAddr", RPCAddr)
-	types.CliSysParam.S("ParaName", ParaName)
-	rootCmd.PersistentFlags().String("rpc_laddr", types.CliSysParam.GStr("RPCAddr"), "http url")
-	rootCmd.PersistentFlags().String("paraName", types.CliSysParam.GStr("ParaName"), "parachain")
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
 }

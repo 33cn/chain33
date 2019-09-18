@@ -47,20 +47,19 @@ type Executor struct {
 	alias        map[string]string
 }
 
-func execInit(typ *typ.Chain33Config, sub map[string][]byte) {
-	pluginmgr.InitExec(typ, sub)
+func execInit(cfg *typ.Chain33Config) {
+	pluginmgr.InitExec(cfg)
 }
 
 var runonce sync.Once
 
 // New new executor
 func New(cfg *typ.Chain33Config) *Executor {
-	mcfg := cfg.GetMConfig().Exec
-	sub := cfg.GetSConfig().Exec
 	// init executor
 	runonce.Do(func() {
-		execInit(cfg, sub)
+		execInit(cfg)
 	})
+	mcfg := cfg.GetMConfig().Exec
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
 	if mcfg.MinExecFee == 0 && mcfg.IsFree {
@@ -70,6 +69,7 @@ func New(cfg *typ.Chain33Config) *Executor {
 	if mcfg.MinExecFee > 0 {
 		cfg.SetMinFee(mcfg.MinExecFee)
 	}
+
 	exec := &Executor{}
 	exec.pluginEnable = make(map[string]bool)
 	exec.pluginEnable["stat"] = mcfg.EnableStat
@@ -114,6 +114,7 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 			panic(err)
 		}
 	}
+
 	//recv 消息的处理
 	go func() {
 		for msg := range exec.client.Recv() {
@@ -148,7 +149,7 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 		return
 	}
 	data := msg.GetData().(*types.ChainExecutor)
-	driver, err := drivers.LoadDriver(data.Driver, header.GetHeight())
+	driver, err := drivers.LoadDriverWithClient(exec.qclient, data.Driver, header.GetHeight())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return

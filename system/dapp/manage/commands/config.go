@@ -59,6 +59,11 @@ func addConfigTxFlags(cmd *cobra.Command) {
 }
 
 func configTx(cmd *cobra.Command, args []string) {
+	title, _ := cmd.Flags().GetString("title")
+	cfg, ok := types.CliSysParam[title]
+	if !ok {
+		panic(fmt.Sprintln("can not find CliSysParam title", title))
+	}
 	paraName, _ := cmd.Flags().GetString("paraName")
 	key, _ := cmd.Flags().GetString("config_key")
 	op, _ := cmd.Flags().GetString("operation")
@@ -71,7 +76,7 @@ func configTx(cmd *cobra.Command, args []string) {
 	}
 	tx := &types.Transaction{Payload: types.Encode(modify)}
 	var err error
-	tx, err = types.FormatTx(types.CliSysParam, util.GetParaExecName(paraName, "manage"), tx)
+	tx, err = types.FormatTx(cfg, util.GetParaExecName(paraName, "manage"), tx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

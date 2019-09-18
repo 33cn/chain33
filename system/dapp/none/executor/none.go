@@ -17,12 +17,12 @@ import (
 var driverName = "none"
 
 // Init register newnone
-func Init(name string, types *types.Chain33Config, sub []byte) {
+func Init(name string, cfg *types.Chain33Config, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}
 	driverName = name
-	drivers.Register(types, name, newNone, 0)
+	drivers.Register(cfg, name, newNone, 0)
 }
 
 // GetName return name at execution time

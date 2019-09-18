@@ -9,6 +9,7 @@ import (
 	"github.com/33cn/chain33/common/address"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/client"
 )
 
 var elog = log.New("module", "execs")
@@ -28,7 +29,10 @@ var (
 )
 
 // Register register dcriver height in name
-func Register(types *types.Chain33Config, name string, create DriverCreate, height int64) {
+func Register(cfg *types.Chain33Config, name string, create DriverCreate, height int64) {
+	if cfg == nil {
+		panic("Execute: GetConfig is nil")
+	}
 	if create == nil {
 		panic("Execute: Register driver is nil")
 	}
@@ -44,13 +48,13 @@ func Register(types *types.Chain33Config, name string, create DriverCreate, heig
 	registerAddress(name)
 	execDrivers[ExecAddress(name)] = driverHeight
 
-	if types.IsPara() {
-		paraHeight := types.GetFork("ForkEnableParaRegExec")
+	if cfg.IsPara() {
+		paraHeight := cfg.GetFork("ForkEnableParaRegExec")
 		if paraHeight < height {
 			paraHeight = height
 		}
 		//平行链的合约地址是通过user.p.x.name计算的
-		paraDriverName := types.ExecName(name)
+		paraDriverName := cfg.ExecName(name)
 		registerAddress(paraDriverName)
 		execDrivers[ExecAddress(paraDriverName)] = &driverWithHeight{
 			create: create,
@@ -75,15 +79,32 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 	return nil, types.ErrUnknowDriver
 }
 
+func LoadDriverWithClient(qclent client.QueueProtocolAPI, name string, height int64) (driver Driver, err error) {
+	// user.evm.xxxx 的交易，使用evm执行器
+	//   user.p.evm
+	name = string(types.GetRealExecName([]byte(name)))
+	c, ok := registedExecDriver[name]
+	if !ok {
+		elog.Debug("LoadDriver", "driver", name)
+		return nil, types.ErrUnRegistedDriver
+	}
+	if height >= c.height || height == -1 {
+		driver = c.create()
+		driver.SetAPI(qclent)
+		return driver, nil
+	}
+	return nil, types.ErrUnknowDriver
+}
+
 // LoadDriverAllow load driver allow
-func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Driver) {
-	exec, err := LoadDriver(string(tx.Execer), height)
+func LoadDriverAllow(qclent client.QueueProtocolAPI, tx *types.Transaction, index int, height int64) (driver Driver) {
+	exec, err := LoadDriverWithClient(qclent, string(tx.Execer), height)
 	if err == nil {
 		exec.SetEnv(height, 0, 0)
 		err = exec.Allow(tx, index)
 	}
 	if err != nil {
-		exec, err = LoadDriver("none", height)
+		exec, err = LoadDriverWithClient(qclent, "none", height)
 		if err != nil {
 			panic(err)
 		}

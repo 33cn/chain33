@@ -7,6 +7,7 @@ package buildflags
 
 //var
 var (
-	ParaName string
-	RPCAddr  string
+	ParaName   string
+	RPCAddr    string
+	ConfigPath string
 )

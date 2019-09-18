@@ -37,11 +37,11 @@ var (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerCoins)
-	types.RegistorExecutor("coins", NewType())
 }
 
-func InitTypes(types *types.Chain33Config) {
-	types.RegisterDappFork(CoinsX, "Enable", 0)
+func InitTypes(cfg *types.Chain33Config) {
+	cfg.RegisterDappFork(CoinsX, "Enable", 0)
+	types.RegistorExecutor("coins", NewType(cfg))
 }
 
 // CoinsType defines exec type
@@ -50,9 +50,10 @@ type CoinsType struct {
 }
 
 // NewType new coinstype
-func NewType() *CoinsType {
+func NewType(cfg *types.Chain33Config) *CoinsType {
 	c := &CoinsType{}
 	c.SetChild(c)
+	c.SetConfig(cfg)
 	return c
 }
 
