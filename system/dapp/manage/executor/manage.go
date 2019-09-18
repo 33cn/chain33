@@ -8,8 +8,8 @@ package executor
 import (
 	log "github.com/33cn/chain33/common/log/log15"
 	drivers "github.com/33cn/chain33/system/dapp"
-	"github.com/33cn/chain33/types"
 	typ "github.com/33cn/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/types"
 )
 
 var (

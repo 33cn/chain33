@@ -44,6 +44,22 @@ func (_m *Client) CloseQueue() (*types.Reply, error) {
 	return r0, r1
 }
 
+// GetConfig provides a mock function with given fields:
+func (_m *Client) GetConfig() *types.Chain33Config {
+	ret := _m.Called()
+
+	var r0 *types.Chain33Config
+	if rf, ok := ret.Get(0).(func() *types.Chain33Config); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Chain33Config)
+		}
+	}
+
+	return r0
+}
+
 // NewMessage provides a mock function with given fields: topic, ty, data
 func (_m *Client) NewMessage(topic string, ty int64, data interface{}) *queue.Message {
 	ret := _m.Called(topic, ty, data)

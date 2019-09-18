@@ -292,8 +292,8 @@ type ExecutorType interface {
 	GetAssets(tx *Transaction) ([]*Asset, error)
 
 	// about chain33Config
-    GetConfig() *Chain33Config
-    SetConfig(cfg *Chain33Config)
+	GetConfig() *Chain33Config
+	SetConfig(cfg *Chain33Config)
 }
 
 // ExecTypeGet  获取类型值

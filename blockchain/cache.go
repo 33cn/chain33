@@ -32,7 +32,7 @@ func NewBlockCache(param *types.Chain33Config, defCacheSize int64) *BlockCache {
 		cacheSize:  defCacheSize,
 		cacheQueue: list.New(),
 		maxHeight:  0,
-		sysPm: param,
+		sysPm:      param,
 	}
 }
 

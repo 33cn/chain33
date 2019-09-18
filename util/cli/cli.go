@@ -33,12 +33,12 @@ func Run(RPCAddr, ParaName, configPath, name string) {
 	}
 	chain33Cfg := types.NewChain33Config(types.ReadFile(configPath))
 	types.CliSysParam[chain33Cfg.GetTitle()] = chain33Cfg
-	
+
 	rootCmd := &cobra.Command{
 		Use:   chain33Cfg.GetTitle() + "-cli",
 		Short: chain33Cfg.GetTitle() + " client tools",
 	}
-	
+
 	closeCmd := &cobra.Command{
 		Use:   "close",
 		Short: "Close " + chain33Cfg.GetTitle(),

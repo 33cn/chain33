@@ -29,9 +29,8 @@ var (
 	//chainConfig = make(map[string]interface{})
 	//mver        = make(map[string]*mversion)
 	//coinSymbol  = "bty"
-	CliSysParam   = make(map[string]*Chain33Config) // map key is title
+	CliSysParam = make(map[string]*Chain33Config) // map key is title
 )
-
 
 // coin conversation
 const (
@@ -62,15 +61,15 @@ const (
 //}
 
 type Chain33Config struct {
-	mcfg          *Config
-	scfg          *ConfigSubModule
-	minerExecs    []string
-	title         string
-	mu            sync.Mutex
-	chainConfig   map[string]interface{}
-	mver          *mversion
-	coinSymbol    string
-	forks         *Forks
+	mcfg        *Config
+	scfg        *ConfigSubModule
+	minerExecs  []string
+	title       string
+	mu          sync.Mutex
+	chainConfig map[string]interface{}
+	mver        *mversion
+	coinSymbol  string
+	forks       *Forks
 }
 
 // ChainParam 结构体
@@ -92,12 +91,12 @@ type ChainParam struct {
 func NewChain33Config(cfgstring string) *Chain33Config {
 	cfg, sub := InitCfgString(cfgstring)
 	chain33Cfg := &Chain33Config{
-		mcfg:          cfg,
-		scfg:          sub,
-		minerExecs:    []string{"ticket"},          //挖矿的合约名单，适配旧配置，默认ticket
-		chainConfig:   make(map[string]interface{}),
-		coinSymbol:    "bty",
-		forks:         &Forks{},
+		mcfg:        cfg,
+		scfg:        sub,
+		minerExecs:  []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
+		chainConfig: make(map[string]interface{}),
+		coinSymbol:  "bty",
+		forks:       &Forks{},
 	}
 	chain33Cfg.setDefaultConfig()
 	chain33Cfg.setFlatConfig(cfgstring)

@@ -185,7 +185,7 @@ func createCoinsTx(cfg *types.Chain33Config, to string, amount int64) *types.Tra
 		panic(err)
 	}
 	tx.To = to
-	tx, err = types.FormatTx(cfg,"coins", tx)
+	tx, err = types.FormatTx(cfg, "coins", tx)
 	if err != nil {
 		return nil
 	}

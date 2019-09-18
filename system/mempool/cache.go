@@ -151,7 +151,7 @@ func (cache *txCache) removeExpiredTx(cfg *types.Chain33Config, height, blocktim
 }
 
 //判断交易是否过期
-func isExpired(cfg *types.Chain33Config,item *Item, height, blockTime int64) bool {
+func isExpired(cfg *types.Chain33Config, item *Item, height, blockTime int64) bool {
 	if types.Now().Unix()-item.EnterTime >= mempoolExpiredInterval {
 		return true
 	}

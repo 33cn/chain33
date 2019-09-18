@@ -18,8 +18,8 @@ EventTransfer -> 转移资产
 
 import (
 	drivers "github.com/33cn/chain33/system/dapp"
-	"github.com/33cn/chain33/types"
 	typ "github.com/33cn/chain33/system/dapp/coins/types"
+	"github.com/33cn/chain33/types"
 )
 
 // var clog = log.New("module", "execs.coins")

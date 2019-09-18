@@ -6,9 +6,9 @@ package pluginmgr
 
 import (
 	"github.com/33cn/chain33/rpc/types"
+	typ "github.com/33cn/chain33/types"
 	wcom "github.com/33cn/chain33/wallet/common"
 	"github.com/spf13/cobra"
-	typ "github.com/33cn/chain33/types"
 )
 
 // Plugin plugin module struct
