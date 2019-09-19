@@ -274,6 +274,8 @@ func TestExecBlock(t *testing.T) {
 	tx := CreateCoinsTx(priv, addr, types.Coin)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
+	//EventExecTxList returned 2 txs' receipt
+	txs = append(txs, tx)
 	_, _, err := ExecBlock(client, nil, &types.Block{Txs: txs}, false, true, false)
 	assert.NoError(t, err)
 }
