@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/client/api"
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	drivers "github.com/33cn/chain33/system/dapp"
@@ -144,6 +145,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	//允许重写的情况
 	//看重写的名字 name, 是否被允许执行
 	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
+		elog.Error("checkTx execNameNotAllow", "realname", string(e.getRealExecName(tx, index)), "exec", string(tx.Execer))
 		return types.ErrExecNameNotAllow
 	}
 	return nil
@@ -517,6 +519,10 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	//2. 打包的时候，尽量打包更多的交易，只要基本的签名，以及格式没有问题
 	err := e.checkTx(tx, index)
 	if err != nil {
+		elog.Error("execTx.checkTx ", "txhash", common.ToHex(tx.Hash()), "err", err)
+		if types.IsPara() {
+			panic(err)
+		}
 		return nil, err
 	}
 	//处理交易手续费(先把手续费收了)

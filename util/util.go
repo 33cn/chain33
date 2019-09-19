@@ -278,7 +278,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	for i := 0; i < len(receipts.Receipts); i++ {
 		receipt := receipts.Receipts[i]
 		if receipt.Ty == types.ExecErr {
-			ulog.Error("exec tx err", "err", receipt)
+			ulog.Error("exec tx err", "err", receipt, "txhash", common.ToHex(block.Txs[i].Hash()))
 			if errReturn { //认为这个是一个错误的区块
 				return nil, nil, types.ErrBlockExec
 			}
