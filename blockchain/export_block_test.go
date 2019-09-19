@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestExportBlockProc(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	blockchain := mock33.GetBlockChain()
