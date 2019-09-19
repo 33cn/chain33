@@ -120,7 +120,7 @@ type BlockChain struct {
 
 //New new
 func New(cfg *types.Chain33Config) *BlockChain {
-	mcfg := cfg.GetMConfig().BlockChain
+	mcfg := cfg.GetModuleConfig().BlockChain
 	futureBlocks, err := lru.New(maxFutureBlocks)
 	if err != nil {
 		panic("when New BlockChain lru.New return err")
@@ -164,7 +164,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 }
 
 func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
-	mcfg := cfg.GetMConfig().BlockChain
+	mcfg := cfg.GetModuleConfig().BlockChain
 	if cfg.IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
 		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
 	}

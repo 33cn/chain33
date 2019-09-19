@@ -44,7 +44,7 @@ type P2p struct {
 
 // New produce a p2p object
 func New(cfg *types.Chain33Config) *P2p {
-	mcfg := cfg.GetMConfig().P2P
+	mcfg := cfg.GetModuleConfig().P2P
 	//主网的channel默认设为0, 测试网未配置时设为默认
 	if cfg.IsTestNet() && mcfg.Channel == 0 {
 		mcfg.Channel = defaultTestNetChannel

@@ -73,7 +73,7 @@ type Chain33Mock struct {
 
 //GetDefaultConfig :
 func GetDefaultConfig() *types.Chain33Config {
-	return types.NewChain33Config(cfgstring)
+	return types.NewChain33Config(util.GetDefaultCfgstring())
 }
 
 //NewWithConfig :
@@ -86,8 +86,8 @@ func newWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *C
 }
 
 func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	mfg := cfg.GetMConfig()
-	sub := cfg.GetSConfig()
+	mfg := cfg.GetModuleConfig()
+	sub := cfg.GetSubConfig()
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	types.Debug = false
@@ -149,12 +149,12 @@ func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolA
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	var cfg *types.Chain33Config
 	if cfgpath == "" || cfgpath == "--notset--" || cfgpath == "--free--" {
-		cfg = types.NewChain33Config(cfgstring)
+		cfg = types.NewChain33Config(util.GetDefaultCfgstring())
 		if cfgpath == "--free--" {
-			setFee(cfg.GetMConfig(), 0)
+			setFee(cfg.GetModuleConfig(), 0)
 		}
 	} else {
-		cfg = types.NewChain33Config(cfgstring)
+		cfg = types.NewChain33Config(util.GetDefaultCfgstring())
 	}
 	return newWithConfig(cfg, mockapi)
 }
@@ -175,7 +175,7 @@ func (mock *Chain33Mock) Listen() {
 
 //ModifyParaClient modify para config
 func ModifyParaClient(cfg *types.Chain33Config, gaddr string) {
-	sub := cfg.GetSConfig()
+	sub := cfg.GetSubConfig()
 	if sub.Consensus["para"] != nil {
 		data, err := types.ModifySubConfig(sub.Consensus["para"], "ParaRemoteGrpcClient", gaddr)
 		if err != nil {

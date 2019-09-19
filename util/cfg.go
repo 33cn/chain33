@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package testnode
+package util
 
 var cfgstring = `
 Title="local"
@@ -201,3 +201,6 @@ superManager=[
 total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 useBalance=false
 `
+func GetDefaultCfgstring() string {
+	return cfgstring
+}

@@ -89,8 +89,8 @@ func DisableLog() {
 
 // New 创建一个钱包对象
 func New(cfg *types.Chain33Config) *Wallet {
-	mcfg := cfg.GetMConfig().Wallet
-	sub := cfg.GetSConfig().Wallet
+	mcfg := cfg.GetModuleConfig().Wallet
+	sub := cfg.GetSubConfig().Wallet
 	//walletStore
 	walletStoreDB := dbm.NewDB("wallet", mcfg.Driver, mcfg.DbPath, mcfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)

@@ -89,11 +89,11 @@ func NewChain33Config(cfgstring string) *Chain33Config {
 	return chain33Cfg
 }
 
-func (c *Chain33Config) GetMConfig() *Config {
+func (c *Chain33Config) GetModuleConfig() *Config {
 	return c.mcfg
 }
 
-func (c *Chain33Config) GetSConfig() *ConfigSubModule {
+func (c *Chain33Config) GetSubConfig() *ConfigSubModule {
 	return c.scfg
 }
 
@@ -201,7 +201,7 @@ func (c *Chain33Config) chainParamInit(t string, cfg *Config) {
 	if c.isPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
 		//keep superManager same with mainnet
 		if !cfg.EnableParaFork {
-			c.forks.setForkForParaZero(c.title)
+			c.forks.setForkForParaZero()
 		}
 		if c.mver != nil {
 			c.mver.UpdateFork(c.forks)
@@ -209,7 +209,7 @@ func (c *Chain33Config) chainParamInit(t string, cfg *Config) {
 		return
 	}
 	if cfg != nil && cfg.Fork != nil {
-		c.initForkConfig(c.title, cfg.Fork)
+		c.initForkConfig(cfg.Fork)
 	}
 	if c.mver != nil {
 		c.mver.UpdateFork(c.forks)

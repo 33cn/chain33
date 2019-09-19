@@ -413,7 +413,7 @@ func (base *ExecTypeBase) IsFork(height int64, key string) bool {
 	if base.GetForks() == nil {
 		return false
 	}
-	return base.forks.IsFork(base.cfg.GetTitle(), height, key)
+	return base.forks.IsFork(height, key)
 }
 
 // GetValueTypeMap  获取执行函数

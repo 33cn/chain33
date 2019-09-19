@@ -88,7 +88,7 @@ func (n *Node) SetQueueClient(client queue.Client) {
 
 // NewNode produce a node object
 func NewNode(cfg *types.Chain33Config) (*Node, error) {
-	mcfg := cfg.GetMConfig().P2P
+	mcfg := cfg.GetModuleConfig().P2P
 	node := &Node{
 		outBound:   make(map[string]*Peer),
 		cacheBound: make(map[string]*Peer),

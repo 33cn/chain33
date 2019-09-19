@@ -13,8 +13,8 @@ import (
 
 // New new store queue module
 func New(cfg *types.Chain33Config) queue.Module {
-	mcfg := cfg.GetMConfig().Store
-	sub := cfg.GetSConfig().Store
+	mcfg := cfg.GetModuleConfig().Store
+	sub := cfg.GetSubConfig().Store
 	s, err := store.Load(mcfg.Name)
 	if err != nil {
 		panic("Unsupported store type:" + mcfg.Name + " " + err.Error())

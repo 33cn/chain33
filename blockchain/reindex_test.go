@@ -18,36 +18,36 @@ import (
 )
 
 func TestReindex(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	cfg:= testnode.GetDefaultConfig()
+	mock33 := testnode.NewWithConfig(cfg, nil)
 	//发送交易
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
 	assert.Equal(t, len(kvs), 22)
 	defer mock33.Close()
-	txs := util.GenCoinsTxs(mock33.GetGenesisKey(), 10)
+	txs := util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(1)
-	txs = util.GenCoinsTxs(mock33.GetGenesisKey(), 10)
+	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(2)
-	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 1)
+	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 1)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(3)
-	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 2)
+	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 2)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)

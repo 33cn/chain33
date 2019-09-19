@@ -16,7 +16,7 @@ const MaxHeight = 10000000000000000
 
 //Forks fork分叉结构体
 type Forks struct {
-	forks map[string]map[string]int64
+	forks map[string]int64
 }
 
 func checkKey(key string) {
@@ -26,155 +26,123 @@ func checkKey(key string) {
 }
 
 //SetFork 设置fork信息
-func (f *Forks) SetFork(title, key string, height int64) {
+func (f *Forks) SetFork(key string, height int64) {
 	checkKey(key)
-	f.setFork(title, key, height)
+	f.setFork(key, height)
 }
 
 //ReplaceFork 替换fork信息
-func (f *Forks) ReplaceFork(title, key string, height int64) {
+func (f *Forks) ReplaceFork(key string, height int64) {
 	checkKey(key)
-	f.replaceFork(title, key, height)
+	f.replaceFork(key, height)
 }
 
 //SetDappFork 设置dapp的fork信息
-func (f *Forks) SetDappFork(title, dapp, key string, height int64) {
+func (f *Forks) SetDappFork(dapp, key string, height int64) {
 	checkKey(key)
-	f.setFork(title, dapp+"."+key, height)
+	f.setFork(dapp+"."+key, height)
 }
 
 //ReplaceDappFork 替换dapp的fork信息
-func (f *Forks) ReplaceDappFork(title, dapp, key string, height int64) {
+func (f *Forks) ReplaceDappFork(dapp, key string, height int64) {
 	checkKey(key)
-	f.replaceFork(title, dapp+"."+key, height)
+	f.replaceFork(dapp+"."+key, height)
 }
 
-func (f *Forks) replaceFork(title, key string, height int64) {
+func (f *Forks) replaceFork(key string, height int64) {
 	if f.forks == nil {
-		f.forks = make(map[string]map[string]int64)
+		f.forks = make(map[string]int64)
 	}
-	_, ok := f.forks[title]
-	if !ok {
-		panic("replace a not exist title " + title)
+	if _, ok := f.forks[key]; !ok {
+		panic("replace a not exist key " + " " + key)
 	}
-	if _, ok := f.forks[title][key]; !ok {
-		panic("replace a not exist key " + title + " " + key)
-	}
-	f.forks[title][key] = height
+	f.forks[key] = height
 }
 
-func (f *Forks) setFork(title, key string, height int64) {
+func (f *Forks) setFork(key string, height int64) {
 	if f.forks == nil {
-		f.forks = make(map[string]map[string]int64)
+		f.forks = make(map[string]int64)
 	}
-	_, ok := f.forks[title]
-	if !ok {
-		f.forks[title] = make(map[string]int64)
+	if _, ok := f.forks[key]; ok {
+		panic("set dup fork " + " " + key)
 	}
-	if _, ok := f.forks[title][key]; ok {
-		panic("set dup fork " + title + " " + key)
-	}
-	f.forks[title][key] = height
+	f.forks[key] = height
 }
 
 // GetFork 如果不存在，那么fork高度为0
-func (f *Forks) GetFork(title, key string) int64 {
-	forkitem, ok := f.forks[title]
+func (f *Forks) GetFork(key string) int64 {
+	height, ok := f.forks[key]
 	if !ok {
-		if title == "local" {
-			panic("title not exisit -> " + title)
-		} else {
-			tlog.Error("getfork title not exisit -> ", "title", title, "key", key)
-		}
-		return MaxHeight
-	}
-	height, ok := forkitem[key]
-	if !ok {
-		if title == "local" {
-			panic("key not exisit -> " + key)
-		} else {
-			tlog.Error("get fork key not exisit -> " + key)
-		}
+		tlog.Error("get fork key not exisit -> " + key)
 		return MaxHeight
 	}
 	return height
 }
 
 // HasFork fork信息是否存在
-func (f *Forks) HasFork(title, key string) bool {
-	forkitem, ok := f.forks[title]
-	if !ok {
-		return false
-	}
-	_, ok = forkitem[key]
+func (f *Forks) HasFork(key string) bool {
+	_, ok := f.forks[key]
 	return ok
 }
 
 // GetDappFork 获取dapp fork信息
-func (f *Forks) GetDappFork(title, app string, key string) int64 {
-	return f.GetFork(title, app+"."+key)
+func (f *Forks) GetDappFork(app string, key string) int64 {
+	return f.GetFork(app+"."+key)
 }
 
+// TODO 需要确认是否使用
 // Clone fork信息拷贝
-func (f *Forks) Clone(from, to string) error {
-	forkitem, ok := f.forks[from]
-	if !ok {
-		return ErrCloneForkFrom
-	}
-	_, ok = f.forks[to]
-	if ok {
-		return ErrCloneForkToExist
-	}
-	f.forks[to] = make(map[string]int64)
-	for k, v := range forkitem {
-		f.forks[to][k] = v
-	}
-	return nil
-}
+//func (f *Forks) Clone(from, to string) error {
+//	forkitem, ok := f.forks[from]
+//	if !ok {
+//		return ErrCloneForkFrom
+//	}
+//	_, ok = f.forks[to]
+//	if ok {
+//		return ErrCloneForkToExist
+//	}
+//	f.forks[to] = make(map[string]int64)
+//	for k, v := range forkitem {
+//		f.forks[to][k] = v
+//	}
+//	return nil
+//}
 
-// CloneZero fork信息拷贝并设置所有fork高度是0
-func (f *Forks) CloneZero(from, to string) error {
-	err := f.Clone(from, to)
-	if err != nil {
-		return err
-	}
-	f.SetAllFork(to, 0)
-	return nil
-}
+//// CloneZero fork信息拷贝并设置所有fork高度是0
+//func (f *Forks) CloneZero(from, to string) error {
+//	err := f.Clone(from, to)
+//	if err != nil {
+//		return err
+//	}
+//	f.SetAllFork(to, 0)
+//	return nil
+//}
 
-// CloneMaxHeight fork信息拷贝并设置所有fork高度MaxHeight
-func (f *Forks) CloneMaxHeight(from, to string) error {
-	err := f.Clone(from, to)
-	if err != nil {
-		return err
-	}
-	f.SetAllFork(to, MaxHeight)
-	return nil
-}
+//// CloneMaxHeight fork信息拷贝并设置所有fork高度MaxHeight
+//func (f *Forks) CloneMaxHeight(from, to string) error {
+//	err := f.Clone(from, to)
+//	if err != nil {
+//		return err
+//	}
+//	f.SetAllFork(to, MaxHeight)
+//	return nil
+//}
 
 // SetAllFork 设置所有fork的高度
-func (f *Forks) SetAllFork(title string, height int64) {
-	forkitem, ok := f.forks[title]
-	if !ok {
-		return
-	}
-	for k := range forkitem {
-		forkitem[k] = height
+func (f *Forks) SetAllFork(height int64) {
+	for k := range f.forks {
+		f.forks[k] = height
 	}
 }
 
 // GetAll 获取所有fork信息
-func (f *Forks) GetAll(title string) map[string]int64 {
-	forkitem, ok := f.forks[title]
-	if !ok {
-		return nil
-	}
-	return forkitem
+func (f *Forks) GetAll() map[string]int64 {
+	return f.forks
 }
 
 // IsFork 是否fork高度
-func (f *Forks) IsFork(title string, height int64, fork string) bool {
-	ifork := f.GetFork(title, fork)
+func (f *Forks) IsFork(height int64, fork string) bool {
+	ifork := f.GetFork(fork)
 	if height == -1 || height >= ifork {
 		return true
 	}
@@ -182,87 +150,81 @@ func (f *Forks) IsFork(title string, height int64, fork string) bool {
 }
 
 // IsDappFork 是否dapp fork高度
-func (f *Forks) IsDappFork(title string, height int64, dapp, fork string) bool {
-	return f.IsFork(title, height, dapp+"."+fork)
+func (f *Forks) IsDappFork(height int64, dapp, fork string) bool {
+	return f.IsFork(height, dapp+"."+fork)
 }
 
 // SetTestNetFork bityuan test net fork
 func (f *Forks) SetTestNetFork() {
-	f.SetFork("chain33", "ForkChainParamV1", 110000)
-	f.SetFork("chain33", "ForkChainParamV2", 1692674)
-	f.SetFork("chain33", "ForkCheckTxDup", 75260)
-	f.SetFork("chain33", "ForkBlockHash", 209186)
-	f.SetFork("chain33", "ForkMinerTime", 350000)
-	f.SetFork("chain33", "ForkTransferExec", 408400)
-	f.SetFork("chain33", "ForkExecKey", 408400)
-	f.SetFork("chain33", "ForkWithdraw", 480000)
-	f.SetFork("chain33", "ForkTxGroup", 408400)
-	f.SetFork("chain33", "ForkResetTx0", 453400)
-	f.SetFork("chain33", "ForkExecRollback", 706531)
-	f.SetFork("chain33", "ForkTxHeight", 806578)
-	f.SetFork("chain33", "ForkCheckBlockTime", 1200000)
-	f.SetFork("chain33", "ForkMultiSignAddress", 1298600)
-	f.SetFork("chain33", "ForkStateDBSet", 1572391)
-	f.SetFork("chain33", "ForkBlockCheck", 1560000)
-	f.SetFork("chain33", "ForkLocalDBAccess", 1572391)
-	f.SetFork("chain33", "ForkTxGroupPara", 1687250)
-	f.SetFork("chain33", "ForkBase58AddressCheck", 1800000)
+	f.SetFork("ForkChainParamV1", 110000)
+	f.SetFork("ForkChainParamV2", 1692674)
+	f.SetFork("ForkCheckTxDup", 75260)
+	f.SetFork("ForkBlockHash", 209186)
+	f.SetFork("ForkMinerTime", 350000)
+	f.SetFork("ForkTransferExec", 408400)
+	f.SetFork("ForkExecKey", 408400)
+	f.SetFork("ForkWithdraw", 480000)
+	f.SetFork("ForkTxGroup", 408400)
+	f.SetFork("ForkResetTx0", 453400)
+	f.SetFork("ForkExecRollback", 706531)
+	f.SetFork("ForkTxHeight", 806578)
+	f.SetFork("ForkCheckBlockTime", 1200000)
+	f.SetFork("ForkMultiSignAddress", 1298600)
+	f.SetFork("ForkStateDBSet", 1572391)
+	f.SetFork("ForkBlockCheck", 1560000)
+	f.SetFork("ForkLocalDBAccess", 1572391)
+	f.SetFork("ForkTxGroupPara", 1687250)
+	f.SetFork("ForkBase58AddressCheck", 1800000)
 	//这个fork只影响平行链，注册类似user.p.x.exec的driver，新开的平行链设为0即可，老的平行链要设置新的高度
-	f.SetFork("chain33", "ForkEnableParaRegExec", 0)
-	f.SetFork("chain33", "ForkCacheDriver", 2580000)
-	f.SetFork("chain33", "ForkTicketFundAddrV1", 3350000)
+	f.SetFork("ForkEnableParaRegExec", 0)
+	f.SetFork("ForkCacheDriver", 2580000)
+	f.SetFork("ForkTicketFundAddrV1", 3350000)
 }
 
 func (f *Forks) setLocalFork() {
-	err := f.CloneZero("chain33", "local")
-	if err != nil {
-		panic(err)
-	}
-	f.ReplaceFork("local", "ForkBlockHash", 1)
+	f.SetAllFork(0)
+	f.ReplaceFork("ForkBlockHash", 1)
 }
 
 //paraName not used currently
-func (f *Forks) setForkForParaZero(paraName string) {
-	err := f.CloneZero("chain33", paraName)
-	if err != nil {
-		tlog.Error("setForkForPara", "error", err)
-	}
-	f.ReplaceFork(paraName, "ForkBlockHash", 1)
+func (f *Forks) setForkForParaZero() {
+	f.SetAllFork(0)
+	f.ReplaceFork("ForkBlockHash", 1)
 }
 
 // IsFork 是否系统 fork高度
 func (c *Chain33Config) IsFork(height int64, fork string) bool {
-	return c.forks.IsFork(c.GetTitle(), height, fork)
+	return c.forks.IsFork(height, fork)
 }
 
 // IsDappFork 是否dapp fork高度
 func (c *Chain33Config) IsDappFork(height int64, dapp, fork string) bool {
-	return c.forks.IsDappFork(c.GetTitle(), height, dapp, fork)
+	return c.forks.IsDappFork(height, dapp, fork)
 }
 
 // GetDappFork 获取dapp fork高度
 func (c *Chain33Config) GetDappFork(dapp, fork string) int64 {
-	return c.forks.GetDappFork(c.GetTitle(), dapp, fork)
+	return c.forks.GetDappFork(dapp, fork)
 }
 
 // SetDappFork 设置dapp fork高度
-func (c *Chain33Config) SetDappFork(title, dapp, fork string, height int64) {
-	c.forks.SetDappFork(title, dapp, fork, height)
+func (c *Chain33Config) SetDappFork(dapp, fork string, height int64) {
+	c.forks.SetDappFork(dapp, fork, height)
 }
 
 // RegisterDappFork 注册dapp fork高度
 func (c *Chain33Config) RegisterDappFork(dapp, fork string, height int64) {
-	c.forks.SetDappFork(c.title, dapp, fork, height)
+	c.forks.SetDappFork(dapp, fork, height)
 }
 
 // GetFork 获取系统fork高度
 func (c *Chain33Config) GetFork(fork string) int64 {
-	return c.forks.GetFork(c.GetTitle(), fork)
+	return c.forks.GetFork(fork)
 }
 
 // HasFork 是否有系统fork
 func (c *Chain33Config) HasFork(fork string) bool {
-	return c.forks.HasFork(c.title, fork)
+	return c.forks.HasFork(fork)
 }
 
 // IsEnableFork 是否使能了fork
@@ -275,12 +237,8 @@ func (c *Chain33Config) IsEnableFork(height int64, fork string, enable bool) boo
 
 //fork 设置规则：
 //所有的fork都需要有明确的配置，不开启fork 配置为 -1
-func (c *Chain33Config) initForkConfig(title string, forks *ForkList) {
-	if title == "chain33" { //chain33 fork is default set in code
-		return
-	}
-	println(title)
-	chain33fork := c.forks.GetAll("chain33")
+func (c *Chain33Config) initForkConfig(forks *ForkList) {
+	chain33fork := c.forks.GetAll()
 	if chain33fork == nil {
 		panic("chain33 fork not init")
 	}
@@ -322,7 +280,7 @@ func (c *Chain33Config) initForkConfig(title string, forks *ForkList) {
 		if !c.HasFork(k) {
 			s += "system fork not exist : " + k + "\n"
 		}
-		c.forks.SetFork(title, k, v)
+		c.forks.SetFork(k, v)
 	}
 	//重置allow exec 的权限，让他只限制在配置文件设置的
 	AllowUserExec = [][]byte{ExecerNone}
@@ -335,7 +293,7 @@ func (c *Chain33Config) initForkConfig(title string, forks *ForkList) {
 			if !c.HasFork(dapp + "." + k) {
 				s += "exec fork not exist : exec = " + dapp + " key = " + k + "\n"
 			}
-			c.forks.SetDappFork(title, dapp, k, v)
+			c.forks.SetDappFork(dapp, k, v)
 		}
 	}
 	if len(s) > 0 {

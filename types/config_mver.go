@@ -75,15 +75,15 @@ func (m *mversion) UpdateFork(f *Forks) {
 			continue
 		}
 		forkname := items[len(items)-2]
-		if !f.HasFork(m.title, forkname) {
+		if !f.HasFork(forkname) {
 			//maybe sub forl
 			//mver.exec.sub.token.forkname
 			forkname = items[len(items)-3] + "." + items[len(items)-2]
-			if !f.HasFork(m.title, forkname) {
+			if !f.HasFork(forkname) {
 				continue
 			}
 		}
-		id := f.GetFork(m.title, forkname)
+		id := f.GetFork(forkname)
 		items[len(items)-2] = items[len(items)-1]
 		suffix := items[len(items)-1]
 		prefix := strings.Join(items[0:len(items)-2], ".")

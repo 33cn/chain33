@@ -59,7 +59,7 @@ func New(cfg *typ.Chain33Config) *Executor {
 	runonce.Do(func() {
 		execInit(cfg)
 	})
-	mcfg := cfg.GetMConfig().Exec
+	mcfg := cfg.GetModuleConfig().Exec
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
 	if mcfg.MinExecFee == 0 && mcfg.IsFree {

@@ -15,8 +15,8 @@ import (
 
 // New new consensus queue module
 func New(cfg *types.Chain33Config) queue.Module {
-	mcfg := cfg.GetMConfig().Consensus
-	sub := cfg.GetSConfig().Consensus
+	mcfg := cfg.GetModuleConfig().Consensus
+	sub := cfg.GetSubConfig().Consensus
 	con, err := consensus.Load(mcfg.Name)
 	if err != nil {
 		panic("Unsupported consensus type:" + mcfg.Name + " " + err.Error())

@@ -224,7 +224,7 @@ func InitCfg(cfg *types.RPC) {
 
 // New produce a rpc by cfg
 func New(cfg *types.Chain33Config) *RPC {
-	mcfg := cfg.GetMConfig().RPC
+	mcfg := cfg.GetModuleConfig().RPC
 	InitCfg(mcfg)
 	if mcfg.EnableTrace {
 		grpc.EnableTracing = true

@@ -8,11 +8,11 @@ import (
 
 // New new mempool queue module
 func New(cfg *types.Chain33Config) queue.Module {
-	mcfg := cfg.GetMConfig().Mempool
-	sub := cfg.GetSConfig().Mempool
-	con, err := mempool.Load(cfg.GetMConfig().Mempool.Name)
+	mcfg := cfg.GetModuleConfig().Mempool
+	sub := cfg.GetSubConfig().Mempool
+	con, err := mempool.Load(mcfg.Name)
 	if err != nil {
-		panic("Unsupported mempool type:" + cfg.GetMConfig().Mempool.Name + " " + err.Error())
+		panic("Unsupported mempool type:" + mcfg.Name + " " + err.Error())
 	}
 	subcfg, ok := sub[mcfg.Name]
 	if !ok {

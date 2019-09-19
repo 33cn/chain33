@@ -152,10 +152,10 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 		blockStore.saveSequence = chain.isRecordBlockSequence
 		blockStore.isParaChain = chain.isParaChain
 	}
-	tycfg := chain.client.GetConfig()
+	cfg := chain.client.GetConfig()
 	if height == -1 {
 		chainlog.Info("load block height error, may be init database", "height", height)
-		if tycfg.IsEnable("quickIndex") {
+		if cfg.IsEnable("quickIndex") {
 			blockStore.saveQuickIndexFlag()
 		}
 	} else {
@@ -169,7 +169,7 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 		if err != nil {
 			panic(err)
 		}
-		if tycfg.IsEnable("quickIndex") {
+		if cfg.IsEnable("quickIndex") {
 			if flag == 0 {
 				blockStore.initQuickIndex(height)
 			}

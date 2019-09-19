@@ -34,7 +34,7 @@ func (p *PluginBase) GetExecutorName() string {
 
 // InitExec init exec
 func (p *PluginBase) InitExec(cfg *typ.Chain33Config) {
-	sub := cfg.GetSConfig().Exec
+	sub := cfg.GetSubConfig().Exec
 	subcfg, ok := sub[p.ExecName]
 	if !ok {
 		subcfg = nil
