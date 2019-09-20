@@ -267,7 +267,7 @@ func (d *DownloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan cha
 	}
 
 	block := invData.Items[0].GetBlock()
-	bchan <- &pb.BlockPid{Pid: peer.GetPeerName(), Block: block} //加入到输出通道
 	log.Debug("download", "frompeer", peer.Addr(), "blockheight", inv.GetHeight(), "blockSize", block.Size())
+	bchan <- &pb.BlockPid{Pid: peer.GetPeerName(), Block: block} //加入到输出通道
 	return nil
 }
