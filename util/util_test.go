@@ -295,9 +295,15 @@ func TestExecBlockUpgrade(t *testing.T) {
 func TestExecAndCheckBlock(t *testing.T) {
 	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	_, err := ExecAndCheckBlock(client, &types.Block{}, nil, 0)
+	addr, priv := Genaddress()
+	tx := CreateCoinsTx(priv, addr, types.Coin)
+	tx.Sign(types.SECP256K1, priv)
+	var txs []*types.Transaction
+	txs = append(txs, tx)
+	txs = append(txs, tx)
+	_, err := ExecAndCheckBlock(client, &types.Block{Txs: txs}, txs, 0)
 	assert.NoError(t, err)
-	_, err = ExecAndCheckBlock2(client, &types.Block{}, nil, nil)
+	_, err = ExecAndCheckBlock2(client, &types.Block{Txs: txs}, txs, []int{types.ExecErr, types.ExecErr})
 	assert.NoError(t, err)
 }
 
