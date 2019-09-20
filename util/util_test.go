@@ -298,12 +298,12 @@ func TestExecAndCheckBlock(t *testing.T) {
 	addr, priv := Genaddress()
 	tx := CreateCoinsTx(priv, addr, types.Coin)
 	tx.Sign(types.SECP256K1, priv)
+	tx2 := CreateCoinsTx(priv, addr, 2*types.Coin)
+	tx2.Sign(types.SECP256K1, priv)
 	var txs []*types.Transaction
 	txs = append(txs, tx)
-	txs = append(txs, tx)
-	_, err := ExecAndCheckBlock(client, &types.Block{Txs: txs}, txs, 0)
-	assert.NoError(t, err)
-	_, err = ExecAndCheckBlock2(client, &types.Block{Txs: txs}, txs, []int{types.ExecErr, types.ExecErr})
+	txs = append(txs, tx2)
+	_, err := ExecAndCheckBlock(client, &types.Block{}, txs, []int{types.ExecOk, types.ExecErr})
 	assert.NoError(t, err)
 }
 
