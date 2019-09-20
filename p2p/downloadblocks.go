@@ -159,6 +159,7 @@ func (d *DownloadJob) GetFreePeer(blockHeight int64) *Peer {
 	infos := d.p2pcli.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var minJobNum int32 = 10
 	var bestPeer *Peer
+	//对download peer读取需要增加保护
 	for _, peer := range d.getDownloadPeers() {
 
 		peerName := peer.GetPeerName()
