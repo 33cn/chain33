@@ -68,6 +68,14 @@ func NewDownloadJob(p2pcli *Cli, peers []*Peer) *DownloadJob {
 	return job
 }
 
+func (d *DownloadJob) getDownloadPeers() []*Peer {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	peers := make([]*Peer, len(d.downloadPeers))
+	copy(peers, d.downloadPeers)
+	return peers
+}
+
 func (d *DownloadJob) isBusyPeer(pid string) bool {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
@@ -151,10 +159,7 @@ func (d *DownloadJob) GetFreePeer(blockHeight int64) *Peer {
 	infos := d.p2pcli.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var minJobNum int32 = 10
 	var bestPeer *Peer
-
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	for _, peer := range d.downloadPeers {
+	for _, peer := range d.getDownloadPeers() {
 
 		peerName := peer.GetPeerName()
 		if d.isBusyPeer(peerName) {
