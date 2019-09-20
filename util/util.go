@@ -409,24 +409,8 @@ func CreateNewBlock(parent *types.Block, txs []*types.Transaction) *types.Block 
 	return newblock
 }
 
-//ExecAndCheckBlock : Exec and Check Block
-func ExecAndCheckBlock(qclient queue.Client, block *types.Block, txs []*types.Transaction, status int) (*types.Block, error) {
-	return ExecAndCheckBlockCB(qclient, block, txs, func(index int, receipt *types.ReceiptData) error {
-		if status == 0 && receipt != nil {
-			return errors.New("all must failed index = " + fmt.Sprint(index))
-		}
-		if status > 0 && receipt == nil {
-			return errors.New("all must not faild, but index = " + fmt.Sprint(index))
-		}
-		if status > 0 && receipt.Ty != int32(status) {
-			return errors.New("status not equal, but index = " + fmt.Sprint(index))
-		}
-		return nil
-	})
-}
-
 // ExecAndCheckBlock2 :
-func ExecAndCheckBlock2(qclient queue.Client, block *types.Block, txs []*types.Transaction, result []int) (*types.Block, error) {
+func ExecAndCheckBlock(qclient queue.Client, block *types.Block, txs []*types.Transaction, result []int) (*types.Block, error) {
 	return ExecAndCheckBlockCB(qclient, block, txs, func(index int, receipt *types.ReceiptData) error {
 		if len(result) <= index {
 			return errors.New("txs num and status len not equal")
