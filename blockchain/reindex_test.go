@@ -18,7 +18,7 @@ import (
 )
 
 func TestReindex(t *testing.T) {
-	cfg:= testnode.GetDefaultConfig()
+	cfg := testnode.GetDefaultConfig()
 	mock33 := testnode.NewWithConfig(cfg, nil)
 	//发送交易
 	chain := mock33.GetBlockChain()

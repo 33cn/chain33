@@ -87,7 +87,7 @@ func (f *Forks) HasFork(key string) bool {
 
 // GetDappFork 获取dapp fork信息
 func (f *Forks) GetDappFork(app string, key string) int64 {
-	return f.GetFork(app+"."+key)
+	return f.GetFork(app + "." + key)
 }
 
 // TODO 需要确认是否使用

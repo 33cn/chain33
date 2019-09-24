@@ -201,6 +201,7 @@ superManager=[
 total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 useBalance=false
 `
+
 func GetDefaultCfgstring() string {
 	return cfgstring
 }

@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func addMainTx(cfg *types.Chain33Config, priv crypto.PrivKey, api client.QueueProtocolAPI) (string, error) {
 	txs := util.GenCoinsTxs(cfg, priv, 1)
 	hash := common.ToHex(txs[0].Hash())

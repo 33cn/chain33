@@ -28,7 +28,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 var TxHeightOffset int64
 var sendTxWait = time.Millisecond * 5
 var chainlog = log15.New("module", "chain_test")
