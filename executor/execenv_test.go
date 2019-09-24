@@ -8,16 +8,17 @@ import (
 	"testing"
 	"time"
 
+	"strings"
+
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
-	"strings"
 )
 
 func TestLoadDriverFork(t *testing.T) {
 	str := util.GetDefaultCfgstring()
-	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"" , 1)
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	exec := initEnv(new)
 	cfg := exec.client.GetConfig()
 	execInit(cfg)

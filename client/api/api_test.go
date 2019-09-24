@@ -13,10 +13,10 @@ import (
 	"github.com/33cn/chain33/rpc"
 	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/status"
-	"github.com/33cn/chain33/util"
 )
 
 func TestAPI(t *testing.T) {
