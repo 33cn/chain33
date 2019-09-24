@@ -896,6 +896,9 @@ func (wallet *Wallet) ProcWalletLock() error {
 //	Timeout int64
 //解锁钱包Timeout时间，超时后继续锁住
 func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	//判断钱包是否已保存seed
 	has, err := wallet.walletStore.HasSeed()
 	if !has || err != nil {
@@ -1206,6 +1209,8 @@ func (wallet *Wallet) SaveSeed(password string, seed string) (bool, error) {
 
 //保存seed种子到数据库中, 并通过钱包密码加密, 钱包起来首先要设置seed
 func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
 
 	//首先需要判断钱包是否已经设置seed，如果已经设置提示不需要再设置，一个钱包只能保存一个seed
 	exit, err := wallet.walletStore.HasSeed()
