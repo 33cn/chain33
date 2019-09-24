@@ -10,6 +10,7 @@ import (
 )
 
 func TestPlugin(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
 	ctx := &executorCtx{
@@ -22,7 +23,7 @@ func TestPlugin(t *testing.T) {
 	}
 	var txs []*types.Transaction
 	addr, priv := util.Genaddress()
-	tx := util.CreateCoinsTx(priv, addr, types.Coin)
+	tx := util.CreateCoinsTx(cfg, priv, addr, types.Coin)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 

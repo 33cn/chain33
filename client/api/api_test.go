@@ -16,12 +16,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/status"
+	"github.com/33cn/chain33/util"
 )
 
 func TestAPI(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	gapi, err := grpcclient.NewMainChainClient("")
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	gapi, err := grpcclient.NewMainChainClient(cfg, "")
 	assert.Nil(t, err)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	eapi := New(api, gapi)
 	param := &types.ReqHashes{
 		Hashes: [][]byte{[]byte("hello")},
@@ -45,7 +48,7 @@ func TestAPI(t *testing.T) {
 	txdetail, err := eapi.QueryTx(param3)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), txdetail.Height)
-	types.SetTitleOnlyForTest("user.p.wzw.")
+	cfg.SetTitleOnlyForTest("user.p.wzw.")
 	//testnode setup
 	rpcCfg := new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8003"
@@ -69,7 +72,7 @@ func TestAPI(t *testing.T) {
 	assert.Equal(t, true, IsFatalError(types.ErrConsensusHashErr))
 	assert.Equal(t, false, IsFatalError(errors.New("xxxx")))
 
-	gapi2, err := grpcclient.NewMainChainClient("127.0.0.1:8003")
+	gapi2, err := grpcclient.NewMainChainClient(cfg, "127.0.0.1:8003")
 	assert.Nil(t, err)
 	eapi = New(api, gapi2)
 	detail, err = eapi.GetBlockByHashes(param)
