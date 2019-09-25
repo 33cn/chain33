@@ -325,11 +325,6 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	return priv, nil
 }
 
-//外部已经加了lock
-func (wallet *Wallet) getFee() int64 {
-	return wallet.FeeAmount
-}
-
 // AddrInWallet 地址对应的账户是否属于本钱包
 func (wallet *Wallet) AddrInWallet(addr string) bool {
 	if !wallet.isInited() {
