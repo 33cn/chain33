@@ -196,8 +196,6 @@ func TestWallet(t *testing.T) {
 	testCreateNewAccountByIndex(t, wallet)
 
 	t.Log(datapath)
-
-	//os.RemoveAll("datadir") //删除已存在目录
 }
 
 //ProcWalletLock
@@ -963,4 +961,62 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 	}
 	println("TestProcCreateNewAccount end")
 	println("--------------------------")
+}
+
+func TestInitSeedLibrary(t *testing.T) {
+	wallet, store, q, _ := initEnv()
+	defer os.RemoveAll("datadir") // clean up
+	defer wallet.Close()
+	defer store.Close()
+
+	//启动blockchain模块
+	blockchainModProc(q)
+	mempoolModProc(q)
+
+	InitSeedLibrary()
+	you := ChineseSeedCache["有"]
+	assert.Equal(t, "有", you)
+	abandon := EnglishSeedCache["abandon"]
+	assert.Equal(t, "abandon", abandon)
+
+	//获取随机种子
+	replySeed, err := wallet.GenSeed(0)
+	require.NoError(t, err)
+	replySeed, err = wallet.GenSeed(1)
+	require.NoError(t, err)
+	password := "heyubin123"
+	wallet.SaveSeed(password, replySeed.Seed)
+	wallet.ProcWalletUnLock(&types.WalletUnLock{Passwd: password})
+
+	//
+	_, err = GetPrivkeyBySeed(wallet.walletStore.GetDB(), replySeed.Seed, 0, 2)
+	require.NoError(t, err)
+
+	acc, err := wallet.GetBalance("1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6", "token")
+	require.NoError(t, err)
+	assert.Equal(t, acc.Addr, "1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6")
+	assert.Equal(t, int64(0), acc.Balance)
+
+	err = wallet.RegisterMineStatusReporter(nil)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
+	policy := wcom.PolicyContainer[walletBizPolicyX]
+	if policy != nil {
+		policy.OnAddBlockTx(nil, nil, 0, nil)
+		policy.OnDeleteBlockTx(nil, nil, 0, nil)
+		need, _, _ := policy.SignTransaction(nil, nil)
+		assert.Equal(t, true, need)
+		account := types.Account{
+			Addr:     "1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6",
+			Currency: 0,
+			Balance:  0,
+			Frozen:   0,
+		}
+		policy.OnCreateNewAccount(&account)
+		policy.OnImportPrivateKey(&account)
+		policy.OnAddBlockFinish(nil)
+		policy.OnDeleteBlockFinish(nil)
+		policy.OnClose()
+		policy.OnSetQueueClient()
+	}
 }
