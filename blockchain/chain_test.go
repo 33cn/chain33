@@ -1294,7 +1294,7 @@ func TestOnChainTimeout(t *testing.T) {
 	chainlog.Info("TestOnChainTimeout begin --------------------")
 
 	cfg, sub := testnode.GetDefaultConfig()
-	cfg.BlockChain.OnChainTimeout = 2
+	cfg.BlockChain.OnChainTimeout = 1
 	mock33 := testnode.NewWithConfig(cfg, sub, nil)
 
 	defer mock33.Close()
@@ -1309,8 +1309,8 @@ func TestOnChainTimeout(t *testing.T) {
 	isTimeOut := blockchain.OnChainTimeout(curheight)
 	assert.Equal(t, isTimeOut, false)
 
-	//5秒后超时
-	time.Sleep(5 * time.Second)
+	//2秒后超时
+	time.Sleep(2 * time.Second)
 	lastheight := blockchain.GetBlockHeight()
 	isTimeOut = blockchain.OnChainTimeout(lastheight)
 	println("curheight:", curheight)
@@ -1319,7 +1319,7 @@ func TestOnChainTimeout(t *testing.T) {
 		isTimeOut = blockchain.OnChainTimeout(lastheight)
 		assert.Equal(t, isTimeOut, true)
 	} else {
-		time.Sleep(5 * time.Second)
+		time.Sleep(2 * time.Second)
 		isTimeOut = blockchain.OnChainTimeout(lastheight)
 		assert.Equal(t, isTimeOut, true)
 	}
