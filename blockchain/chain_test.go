@@ -1288,5 +1288,41 @@ func TestSetValueByKey(t *testing.T) {
 		t.Error("TestSetValueByKey:GetValueByKey:fail")
 	}
 	chainlog.Info("TestSetValueByKey end --------------------")
+}
 
+func TestOnChainTimeout(t *testing.T) {
+	chainlog.Info("TestOnChainTimeout begin --------------------")
+
+	cfg, sub := testnode.GetDefaultConfig()
+	cfg.BlockChain.OnChainTimeout = 2
+	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+
+	defer mock33.Close()
+	blockchain := mock33.GetBlockChain()
+
+	//等待共识模块增长10个区块
+	testProcAddBlockMsg(t, mock33, blockchain)
+
+	curheight := blockchain.GetBlockHeight()
+
+	//没有超时
+	isTimeOut := blockchain.OnChainTimeout(curheight)
+	assert.Equal(t, isTimeOut, false)
+
+	//5秒后超时
+	time.Sleep(5 * time.Second)
+	lastheight := blockchain.GetBlockHeight()
+	isTimeOut = blockchain.OnChainTimeout(lastheight)
+	println("curheight:", curheight)
+	println("lastheight:", lastheight)
+	if lastheight == curheight {
+		isTimeOut = blockchain.OnChainTimeout(lastheight)
+		assert.Equal(t, isTimeOut, true)
+	} else {
+		time.Sleep(5 * time.Second)
+		isTimeOut = blockchain.OnChainTimeout(lastheight)
+		assert.Equal(t, isTimeOut, true)
+	}
+
+	chainlog.Info("TestOnChainTimeout end --------------------")
 }
