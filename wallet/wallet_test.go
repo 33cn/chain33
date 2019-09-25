@@ -7,6 +7,7 @@ package wallet
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -29,7 +30,7 @@ func init() {
 	SetLogLevel("err")
 }
 
-func initEnv() (*Wallet, queue.Module, queue.Queue) {
+func initEnv() (*Wallet, queue.Module, queue.Queue, string) {
 	var q = queue.New("channel")
 	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
 
@@ -38,7 +39,7 @@ func initEnv() (*Wallet, queue.Module, queue.Queue) {
 	store := store.New(cfg.Store, sub.Store)
 	store.SetQueueClient(q.Client())
 
-	return wallet, store, q
+	return wallet, store, q, cfg.Wallet.DbPath
 }
 
 var (
@@ -156,7 +157,8 @@ func SaveAccountTomavl(client queue.Client, prevStateRoot []byte, accs []*types.
 }
 
 func TestWallet(t *testing.T) {
-	wallet, store, q := initEnv()
+	wallet, store, q, datapath := initEnv()
+	defer os.RemoveAll("datadir") // clean up
 	defer wallet.Close()
 	defer store.Close()
 
@@ -193,6 +195,9 @@ func TestWallet(t *testing.T) {
 	testSendTx(t, wallet)
 	testCreateNewAccountByIndex(t, wallet)
 
+	t.Log(datapath)
+
+	//os.RemoveAll("datadir") //删除已存在目录
 }
 
 //ProcWalletLock
@@ -299,7 +304,7 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	}
 
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 	require.NoError(t, err)
 
 	Privkey := "0xb94ae286a508e4bb3fbbcb61997822fea6f0a534510597ef8eb60a19d6b219a0"
@@ -362,7 +367,7 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	println("TestProcImportPrivKey begin")
 
 	//生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 	require.NoError(t, err)
 
 	priv, err := cr.GenKey()
