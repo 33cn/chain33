@@ -104,6 +104,9 @@ func (wallet *Wallet) SendTransaction(payload types.Message, execer []byte, priv
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
 	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	return wallet.sendTransaction(payload, execer, priv, to)
 }
 
@@ -123,7 +126,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	}
 	tx.Fee = fee
 	tx.SetExpire(time.Second * 120)
-	tx.Sign(int32(SignType), priv)
+	tx.Sign(int32(wallet.SignType), priv)
 	reply, err := wallet.sendTx(tx)
 	if err != nil {
 		return nil, err
@@ -197,6 +200,8 @@ func (wallet *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
 
 // SendToAddress 想合约地址转账
 func (wallet *Wallet) SendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
 	return wallet.sendToAddress(priv, addrto, amount, note, Istoken, tokenSymbol)
 }
 
@@ -261,7 +266,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 	if err != nil {
 		return nil, err
 	}
-	tx.Sign(int32(SignType), priv)
+	tx.Sign(int32(wallet.SignType), priv)
 
 	reply, err := wallet.api.SendTx(tx)
 	if err != nil {

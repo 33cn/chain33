@@ -32,10 +32,8 @@ var (
 	// MaxTxHashsPerTime 每次处理的最大交易哈希数量
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
-	// SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
-	SignType    = 1
-	accountdb   *account.DB
-	accTokenMap = make(map[string]*account.DB)
+	accountdb         *account.DB
+	accTokenMap       = make(map[string]*account.DB)
 )
 
 func init() {
@@ -74,6 +72,8 @@ type Wallet struct {
 	rescanwg           *sync.WaitGroup
 	lastHeader         *types.Header
 	initFlag           uint32 // 钱包模块是否初始化完毕的标记，默认为0，表示未初始化
+	// SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
+	SignType int
 }
 
 // SetLogLevel 设置日志登记
@@ -99,7 +99,6 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	if signType == types.Invalid {
 		signType = types.SECP256K1
 	}
-	SignType = signType
 
 	wallet := &Wallet{
 		walletStore:      walletStore,
@@ -112,6 +111,7 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
 		initFlag:         0,
+		SignType:         signType,
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
@@ -156,7 +156,7 @@ func (wallet *Wallet) GetDBStore() dbm.DB {
 
 // GetSignType 获取签名类型
 func (wallet *Wallet) GetSignType() int {
-	return SignType
+	return wallet.SignType
 }
 
 // GetPassword 获取密码
@@ -312,7 +312,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 
 	privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 	if err != nil {
 		walletlog.Error("getPrivKeyByAddr", "err", err)
 		return nil, err

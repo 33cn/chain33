@@ -142,7 +142,7 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 }
 
 //GetPrivkeyBySeed 通过seed生成子私钥十六进制字符串
-func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32) (string, error) {
+func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32, signType int) (string, error) {
 	var backupindex uint32
 	var Hexsubprivkey string
 	var err error
@@ -162,11 +162,11 @@ func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32) (string, err
 	} else {
 		index = specificIndex
 	}
-	if SignType != 1 && SignType != 2 {
+	if signType != 1 && signType != 2 {
 		return "", types.ErrNotSupport
 	}
 	//secp256k1
-	if SignType == 1 {
+	if signType == 1 {
 
 		wallet, err := bipwallet.NewWalletFromMnemonic(bipwallet.TypeBty, seed)
 		if err != nil {
@@ -197,7 +197,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32) (string, err
 			return "", types.ErrSubPubKeyVerifyFail
 		}
 
-	} else if SignType == 2 { //ed25519
+	} else if signType == 2 { //ed25519
 
 		//通过助记词形式的seed生成私钥和公钥,一个seed根据不同的index可以生成许多组密钥
 		//字符串形式的助记词(英语单词)通过计算一次hash转成字节形式的seed

@@ -59,7 +59,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		if err != nil || len(keyByte) == 0 {
 			return "", err
 		}
-		cr, err := crypto.New(types.GetSignName("", SignType))
+		cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 		if err != nil {
 			return "", err
 		}
@@ -117,7 +117,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", err
 	}
 	if group == nil {
-		tx.Sign(int32(SignType), key)
+		tx.Sign(int32(wallet.SignType), key)
 		txHex := types.Encode(&tx)
 		signedTx := hex.EncodeToString(txHex)
 		return signedTx, nil
@@ -127,7 +127,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	}
 	if index <= 0 {
 		for i := range group.Txs {
-			err := group.SignN(i, int32(SignType), key)
+			err := group.SignN(i, int32(wallet.SignType), key)
 			if err != nil {
 				return "", err
 			}
@@ -138,7 +138,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return signedTx, nil
 	}
 	index--
-	err = group.SignN(int(index), int32(SignType), key)
+	err = group.SignN(int(index), int32(wallet.SignType), key)
 	if err != nil {
 		return "", err
 	}
@@ -259,18 +259,10 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	var Account types.Account
 	var walletAccount types.WalletAccount
 	var WalletAccStore types.WalletAccountStore
-	var cointype uint32
 	var addr string
 	var privkeybyte []byte
 
-	if SignType == 1 {
-		cointype = bipwallet.TypeBty
-	} else if SignType == 2 {
-		cointype = bipwallet.TypeYcc
-	} else {
-		cointype = bipwallet.TypeBty
-	}
-
+	cointype := wallet.getCoinsType()
 	//通过seed获取私钥, 首先通过钱包密码解锁seed然后通过seed生成私钥
 	seed, err := wallet.getSeed(wallet.Password)
 	if err != nil {
@@ -279,7 +271,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	}
 
 	for {
-		privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed, 0)
+		privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed, 0, wallet.SignType)
 		if err != nil {
 			walletlog.Error("ProcCreateNewAccount", "GetPrivkeyBySeed err", err)
 			return nil, err
@@ -423,14 +415,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 		return nil, types.ErrLabelHasUsed
 	}
 
-	var cointype uint32
-	if SignType == 1 {
-		cointype = bipwallet.TypeBty
-	} else if SignType == 2 {
-		cointype = bipwallet.TypeYcc
-	} else {
-		cointype = bipwallet.TypeBty
-	}
+	cointype := wallet.getCoinsType()
 
 	privkeybyte, err := common.FromHex(PrivKey.Privkey)
 	if err != nil || len(privkeybyte) == 0 {
@@ -695,7 +680,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		walletlog.Error("ProcMergeBalance", "AccStores", len(WalletAccStores), "accounts", len(accounts))
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 	if err != nil {
 		walletlog.Error("ProcMergeBalance", "err", err)
 		return nil, err
@@ -747,7 +732,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		}
 		tx := &types.Transaction{Execer: exec, Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: toAddr, Nonce: wallet.random.Int63()}
 		tx.SetExpire(time.Second * 120)
-		tx.Sign(int32(SignType), priv)
+		tx.Sign(int32(wallet.SignType), priv)
 		//walletlog.Info("ProcMergeBalance", "tx.Nonce", tx.Nonce, "tx", tx, "index", index)
 
 		//发送交易信息给mempool模块
@@ -1360,19 +1345,12 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 		return common.ToHex(priv.Bytes()), nil
 	}
 
-	var cointype uint32
 	var addr string
 	var privkeybyte []byte
 	var HexPubkey string
 	var isUsed bool
 
-	if SignType == 1 {
-		cointype = bipwallet.TypeBty
-	} else if SignType == 2 {
-		cointype = bipwallet.TypeYcc
-	} else {
-		cointype = bipwallet.TypeBty
-	}
+	cointype := wallet.getCoinsType()
 
 	//通过seed获取私钥, 首先通过钱包密码解锁seed然后通过seed生成私钥
 	seed, err := wallet.getSeed(wallet.Password)
@@ -1382,7 +1360,7 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 	}
 
 	// 通过指定index生成公私钥对，并存入数据库中，如果账户已经存在就直接返回账户信息即可
-	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed, index)
+	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed, index, wallet.SignType)
 	if err != nil {
 		walletlog.Error("createNewAccountByIndex", "GetPrivkeyBySeed err", err)
 		return "", err
@@ -1492,4 +1470,13 @@ func isValidIndex(index uint32) bool {
 		return true
 	}
 	return false
+}
+
+func (wallet *Wallet) getCoinsType() uint32 {
+	if wallet.SignType == 1 {
+		return bipwallet.TypeBty
+	} else if wallet.SignType == 2 {
+		return bipwallet.TypeYcc
+	}
+	return bipwallet.TypeBty
 }
