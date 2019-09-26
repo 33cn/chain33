@@ -209,11 +209,23 @@ func (c *Chain33Config) GetDappFork(dapp, fork string) int64 {
 
 // SetDappFork 设置dapp fork高度
 func (c *Chain33Config) SetDappFork(dapp, fork string, height int64) {
+	if c.needSetForkZero() {
+		height = 0
+		if fork == "ForkBlockHash" {
+			height = 1
+		}
+	}
 	c.forks.SetDappFork(dapp, fork, height)
 }
 
 // RegisterDappFork 注册dapp fork高度
 func (c *Chain33Config) RegisterDappFork(dapp, fork string, height int64) {
+	if c.needSetForkZero() {
+		height = 0
+		if fork == "ForkBlockHash" {
+			height = 1
+		}
+	}
 	c.forks.SetDappFork(dapp, fork, height)
 }
 
@@ -280,7 +292,8 @@ func (c *Chain33Config) initForkConfig(forks *ForkList) {
 		if !c.HasFork(k) {
 			s += "system fork not exist : " + k + "\n"
 		}
-		c.forks.SetFork(k, v)
+		// 由于toml文件中保存的是新的fork所以需要替换已有的初始化的fork
+		c.forks.ReplaceFork(k, v)
 	}
 	//重置allow exec 的权限，让他只限制在配置文件设置的
 	AllowUserExec = [][]byte{ExecerNone}
@@ -293,7 +306,8 @@ func (c *Chain33Config) initForkConfig(forks *ForkList) {
 			if !c.HasFork(dapp + "." + k) {
 				s += "exec fork not exist : exec = " + dapp + " key = " + k + "\n"
 			}
-			c.forks.SetDappFork(dapp, k, v)
+			// 由于toml文件中保存的是新的fork所以需要替换已有的初始化的fork
+			c.forks.ReplaceDappFork(dapp, k, v)
 		}
 	}
 	if len(s) > 0 {

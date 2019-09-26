@@ -55,20 +55,23 @@ func TestAllowExecName(t *testing.T) {
 }
 
 func BenchmarkExecName(b *testing.B) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
 	for i := 0; i < b.N; i++ {
-		ExecName("hello")
+		cfg.ExecName("hello")
 	}
 }
 
 func BenchmarkG(b *testing.B) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
 	for i := 0; i < b.N; i++ {
-		G("TestNet")
+		cfg.G("TestNet")
 	}
 }
 
 func BenchmarkS(b *testing.B) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
 	for i := 0; i < b.N; i++ {
-		S("helloword", true)
+		cfg.S("helloword", true)
 	}
 }
 func TestJsonNoName(t *testing.T) {

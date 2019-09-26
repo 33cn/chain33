@@ -78,14 +78,17 @@ func NewChain33Config(cfgstring string) *Chain33Config {
 		mcfg:        cfg,
 		scfg:        sub,
 		minerExecs:  []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
+		title:       cfg.Title,
 		chainConfig: make(map[string]interface{}),
 		coinSymbol:  "bty",
-		forks:       &Forks{},
+		forks:       &Forks{make(map[string]int64)},
 	}
+	// 先将每个模块的fork初始化到Chain33Config中，然后如果需要再将toml中的替换
 	chain33Cfg.setDefaultConfig()
 	chain33Cfg.setFlatConfig(cfgstring)
-	chain33Cfg.setMver(cfg.Title, cfgstring)
-	chain33Cfg.chainParamInit(cfg.Title, cfg)
+	chain33Cfg.setMver(cfgstring)
+	// TODO 需要测试是否与NewChain33Config分开
+	// chain33Cfg.Chain33CfgInit(cfg)
 	return chain33Cfg
 }
 
@@ -140,11 +143,9 @@ func (c *Chain33Config) getChainConfig(key string) (value interface{}, err error
 }
 
 // Init 初始化
-func (c *Chain33Config) chainParamInit(t string, cfg *Config) {
+func (c *Chain33Config) Chain33CfgInit(cfg *Config) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	c.title = t
 
 	if c.forks == nil {
 		c.forks = &Forks{}
@@ -186,34 +187,35 @@ func (c *Chain33Config) chainParamInit(t string, cfg *Config) {
 			}
 		}
 	}
-	//local 只用于单元测试
-	if c.isLocal() {
-		c.forks.setLocalFork()
-		c.setChainConfig("TxHeight", true)
-		c.setChainConfig("Debug", true)
-		//更新fork配置信息
-		if c.mver != nil {
-			c.mver.UpdateFork(c.forks)
-		}
-		return
-	}
-	//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
-	if c.isPara() && (cfg == nil || cfg.Fork == nil || cfg.Fork.System == nil) {
-		//keep superManager same with mainnet
-		if !cfg.EnableParaFork {
+	if c.needSetForkZero() { //local 只用于单元测试
+		if c.isLocal() {
+			c.forks.setLocalFork()
+			c.setChainConfig("TxHeight", true)
+			c.setChainConfig("Debug", true)
+		} else {
 			c.forks.setForkForParaZero()
 		}
-		if c.mver != nil {
-			c.mver.UpdateFork(c.forks)
+	} else {
+		if cfg != nil && cfg.Fork != nil {
+			c.initForkConfig(cfg.Fork)
 		}
-		return
 	}
-	if cfg != nil && cfg.Fork != nil {
-		c.initForkConfig(cfg.Fork)
-	}
+	// 更新fork配置信息
 	if c.mver != nil {
 		c.mver.UpdateFork(c.forks)
 	}
+}
+
+func (c *Chain33Config) needSetForkZero() bool {
+	if c.isLocal() {
+		return true
+	} else if c.isPara() &&
+		(c.mcfg == nil || c.mcfg.Fork == nil || c.mcfg.Fork.System == nil) &&
+		!c.mcfg.EnableParaFork  {
+		//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
+		return true
+	}
+	return false
 }
 
 func (c *Chain33Config) setTestNet(isTestNet bool) {
@@ -593,10 +595,10 @@ func FlatConfig(conf map[string]interface{}) map[string]interface{} {
 	return flat
 }
 
-func (c *Chain33Config) setMver(title string, cfgstring string) {
+func (c *Chain33Config) setMver(cfgstring string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.mver = newMversion(title, cfgstring)
+	c.mver = newMversion(cfgstring)
 }
 
 // InitCfgString 初始化配置
@@ -696,7 +698,7 @@ func Conf(cfg *Chain33Config, prefix string) *ConfQuery {
 }
 
 // ConfSub 子模块配置
-func ConfSub(name string, cfg *Chain33Config) *ConfQuery {
+func ConfSub(cfg *Chain33Config, name string) *ConfQuery {
 	return Conf(cfg, "config.exec.sub."+name)
 }
 
@@ -720,7 +722,7 @@ func parseStrList(data interface{}) []string {
 
 // GStrList 解析字符串列表
 func (query *ConfQuery) GStrList(key string) []string {
-	data, err := query.G(key)
+	data, err := query.Gq(key)
 	if err == nil {
 		return parseStrList(data)
 	}
@@ -759,7 +761,7 @@ func (query *ConfQuery) MGStrq(key string, height int64) string {
 
 // MGStrList 解析mversion string list类型配置
 func (query *ConfQuery) MGStrList(key string, height int64) []string {
-	data, err := query.MG(key, height)
+	data, err := query.MGq(key, height)
 	if err == nil {
 		return parseStrList(data)
 	}

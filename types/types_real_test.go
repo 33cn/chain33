@@ -11,13 +11,16 @@ import (
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/33cn/chain33/util"
+	"strings"
 )
 
 //how to create transafer for para
 func TestCallCreateTxPara(t *testing.T) {
-	ti := types.GetTitle()
-	defer types.SetTitleOnlyForTest(ti)
-	types.SetTitleOnlyForTest("user.p.sto.")
+	str := util.GetDefaultCfgstring()
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"user.p.sto.\"" , 1)
+	cfg := types.NewChain33Config(new)
+
 	req := &types.CreateTx{
 		To:          "184wj4nsgVxKyz2NhM3Yb5RK5Ap6AFRFq2",
 		Amount:      10,
@@ -26,28 +29,26 @@ func TestCallCreateTxPara(t *testing.T) {
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
-		ExecName:    types.ExecName("coins"),
+		ExecName:    cfg.ExecName("coins"),
 	}
-	assert.True(t, types.IsPara())
+	assert.True(t, cfg.IsPara())
 	tx, err := types.CallCreateTransaction("coins", "", req)
 	assert.Nil(t, err)
-	tx, err = types.FormatTx("coins", tx)
+	tx, err = types.FormatTx(cfg, "coins", tx)
 	assert.Nil(t, err)
 	assert.Equal(t, "coins", string(tx.Execer))
 	assert.Equal(t, address.ExecAddress("coins"), tx.To)
-	tx, err = types.FormatTx(types.ExecName("coins"), tx)
+	tx, err = types.FormatTx(cfg, cfg.ExecName("coins"), tx)
 	assert.Nil(t, err)
 	assert.Equal(t, "user.p.sto.coins", string(tx.Execer))
 	assert.Equal(t, address.ExecAddress("user.p.sto.coins"), tx.To)
 }
 
 func TestExecName(t *testing.T) {
-	ti := types.GetTitle()
-	defer types.SetTitleOnlyForTest(ti)
-	types.SetTitleOnlyForTest("local")
-	assert.Equal(t, types.ExecName("coins"), "coins")
-	types.SetTitleOnlyForTest("user.p.sto.")
-	assert.Equal(t, types.ExecName("coins"), "user.p.sto.coins")
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	assert.Equal(t, cfg.ExecName("coins"), "coins")
+	cfg.SetTitleOnlyForTest("user.p.sto.")
+	assert.Equal(t, cfg.ExecName("coins"), "user.p.sto.coins")
 	//#在exec前面加一个 # 表示不重写执行器
-	assert.Equal(t, types.ExecName("#coins"), "coins")
+	assert.Equal(t, cfg.ExecName("#coins"), "coins")
 }

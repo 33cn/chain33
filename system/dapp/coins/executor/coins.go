@@ -31,6 +31,7 @@ func Init(name string, cfg *types.Chain33Config, sub []byte) {
 		panic("system dapp can't be rename")
 	}
 	typ.InitTypes(cfg)
+	// 需要先 RegisterDappFork才可以Register dapp
 	drivers.Register(cfg, driverName, newCoins, cfg.GetDappFork(driverName, "Enable"))
 	InitExecType()
 }

@@ -19,6 +19,7 @@ import (
 	mavldb "github.com/33cn/chain33/system/store/mavl/db"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/33cn/chain33/util"
 )
 
 const MaxKeylenth int = 64
@@ -280,6 +281,7 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 func TestIterateCallBack_Mode1(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
@@ -289,7 +291,7 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	//defer mavldb.EnableMavlPrefix(false)
 
 	//var accountdb *account.DB
-	accountdb := account.NewCoinsAccount()
+	accountdb := account.NewCoinsAccount(cfg)
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	prefix := "mavl-coins-bty-exec-"
 	execAddr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
@@ -424,6 +426,7 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 func TestIterateCallBack_Mode2(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
@@ -433,7 +436,7 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	//defer mavldb.EnableMavlPrefix(false)
 
 	//var accountdb *account.DB
-	accountdb := account.NewCoinsAccount()
+	accountdb := account.NewCoinsAccount(cfg)
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	prefix := "mavl-coins-bty-exec-"
 	execAddr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"

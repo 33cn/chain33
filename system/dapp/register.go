@@ -30,11 +30,6 @@ var (
 
 // Register register dcriver height in name
 func Register(cfg *types.Chain33Config, name string, create DriverCreate, height int64) {
-	// 注册时候进行判断是否是local
-	if cfg.IsLocal() {
-		height = 0
-	}
-
 	if cfg == nil {
 		panic("Execute: GetConfig is nil")
 	}
