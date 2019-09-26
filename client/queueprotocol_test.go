@@ -113,6 +113,7 @@ func TestQueueProtocol(t *testing.T) {
 	testBlockChainQuery(t, api)
 	testQueryConsensus(t, api)
 	testExecWalletFunc(t, api)
+	testGetSequenceByHash(t,api)
 }
 
 func testGetSequenceByHash(t *testing.T, api client.QueueProtocolAPI) {
@@ -120,7 +121,7 @@ func testGetSequenceByHash(t *testing.T, api client.QueueProtocolAPI) {
 	assert.Equal(t, types.ErrInvalidParam, err)
 	res, err := api.GetSequenceByHash(&types.ReqHash{})
 	assert.Nil(t, err)
-	assert.Equal(t, types.Int64{Data: 1}, res)
+	assert.Equal(t, &types.Int64{Data: 1}, res)
 }
 
 func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
