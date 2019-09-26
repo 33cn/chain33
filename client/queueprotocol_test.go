@@ -113,7 +113,7 @@ func TestQueueProtocol(t *testing.T) {
 	testBlockChainQuery(t, api)
 	testQueryConsensus(t, api)
 	testExecWalletFunc(t, api)
-	testGetSequenceByHash(t,api)
+	testGetSequenceByHash(t, api)
 }
 
 func testGetSequenceByHash(t *testing.T, api client.QueueProtocolAPI) {
