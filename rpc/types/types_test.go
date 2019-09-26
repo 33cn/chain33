@@ -8,14 +8,15 @@ import (
 	"encoding/json"
 	"testing"
 
+	"sync"
+
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
-	"github.com/33cn/chain33/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/33cn/chain33/util"
-	"github.com/stretchr/testify/mock"
 	coinsTy "github.com/33cn/chain33/system/dapp/coins/types"
-	"sync"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 var runonce sync.Once
@@ -129,5 +130,3 @@ func TestDecodeTx2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, string(jsondata), `{"execer":"coins","payload":{"transfer":{"cointoken":"","amount":"200000000","note":"1\n2\n3","to":""},"ty":1},"rawPayload":"0x18010a0c108084af5f1a05310a320a33","signature":{"ty":0,"pubkey":"","signature":""},"fee":449000,"feefmt":"0.0045","expire":0,"nonce":5539796760414985017,"from":"1HT7xU2Ngenf7D4yocz2SAcnNLW7rK8d4E","to":"1KgE3vayiqZKhfhMftN7vt2gDv9HoMk941","hash":"0x6f9d543a345f6e17d8c3cc5f846c22570acf3b4b5851f48d0c2be5459d90c410"}`)
 }
-
-

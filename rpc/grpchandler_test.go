@@ -12,12 +12,12 @@ import (
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/types"
 	pb "github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/peer"
-	"github.com/33cn/chain33/util"
 )
 
 var (

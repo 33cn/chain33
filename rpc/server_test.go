@@ -15,11 +15,11 @@ import (
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"github.com/33cn/chain33/util"
 )
 
 func TestCheckIpWhitelist(t *testing.T) {
@@ -209,10 +209,10 @@ func TestRPC(t *testing.T) {
 	rpcCfg := cfg.GetModuleConfig().RPC
 	rpcCfg.JrpcBindAddr = "8801"
 	rpcCfg.GrpcBindAddr = "8802"
-	rpcCfg.Whitlist          = []string{"127.0.0.1"}
+	rpcCfg.Whitlist = []string{"127.0.0.1"}
 	rpcCfg.JrpcFuncBlacklist = []string{"CloseQueue"}
 	rpcCfg.GrpcFuncBlacklist = []string{"CloseQueue"}
-	rpcCfg.EnableTrace       = true
+	rpcCfg.EnableTrace = true
 	InitCfg(rpcCfg)
 	rpc := New(cfg)
 	client := &qmocks.Client{}

@@ -3,13 +3,14 @@ package executor
 import (
 	"testing"
 
+	"encoding/json"
+	"fmt"
+
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
-	"encoding/json"
-	"fmt"
 )
 
 func TestManageConfig(t *testing.T) {

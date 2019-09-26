@@ -17,9 +17,9 @@ import (
 	qmock "github.com/33cn/chain33/queue/mocks"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/33cn/chain33/util"
 )
 
 func Init(cfg *types.Chain33Config) {
