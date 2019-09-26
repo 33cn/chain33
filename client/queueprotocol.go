@@ -1190,19 +1190,6 @@ func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, e
 	return nil, err
 }
 
-// GetTicketCount get ticket count from consensus
-func (q *QueueProtocol) GetTicketCount() (*types.Int64, error) {
-	msg, err := q.send(consensusKey, types.EventGetTicketCount, &types.ReqNil{})
-	if err != nil {
-		log.Error("GetTicketCount", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Int64); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 // AddSeqCallBack Add Seq CallBack
 func (q *QueueProtocol) AddSeqCallBack(param *types.BlockSeqCB) (*types.Reply, error) {
 
