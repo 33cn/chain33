@@ -12,9 +12,10 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
 
+	"strings"
+
 	_ "github.com/33cn/chain33/system/crypto/init"
 	"github.com/stretchr/testify/assert"
-	"strings"
 )
 
 func TestCreateGroupTx(t *testing.T) {
@@ -52,7 +53,7 @@ func TestCreateGroupTx(t *testing.T) {
 
 func TestCreateParaGroupTx(t *testing.T) {
 	str := GetDefaultCfgstring()
-	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"" , 1)
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := NewChain33Config(new)
 
 	testHeight := int64(1687250 + 1)
@@ -231,7 +232,7 @@ func TestSignGroupTx(t *testing.T) {
 			return
 		}
 	}
-	err = group.Check(cfg, 0, cfg.GInt("MinFee"), cfg. GInt("MaxFee"))
+	err = group.Check(cfg, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
 	if err != nil {
 		t.Error(err)
 		return

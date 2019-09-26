@@ -105,7 +105,7 @@ func TestCallCreateTx(t *testing.T) {
 		Addr:  "",
 	}
 
-	result, err := CallCreateTx(cfg,"manage", "Modify", modify)
+	result, err := CallCreateTx(cfg, "manage", "Modify", modify)
 	assert.Equal(t, err, nil)
 	assert.NotEqual(t, result, nil)
 	var tx Transaction
@@ -118,7 +118,7 @@ func TestCallCreateTx(t *testing.T) {
 	_, err = CallCreateTx(cfg, "coins", "Modify", modify)
 	assert.NotEqual(t, err, nil)
 
-	_, err = CallCreateTx(cfg,"xxxx", "xxx", modify)
+	_, err = CallCreateTx(cfg, "xxxx", "xxx", modify)
 	assert.NotEqual(t, err, nil)
 
 	modify = &ModifyConfig{
@@ -128,7 +128,7 @@ func TestCallCreateTx(t *testing.T) {
 		Addr:  "",
 	}
 
-	result, err = CallCreateTx(cfg,"manage", "Modify", modify)
+	result, err = CallCreateTx(cfg, "manage", "Modify", modify)
 	assert.Equal(t, err, nil)
 	assert.NotEqual(t, result, nil)
 	err = Decode(result, &tx)

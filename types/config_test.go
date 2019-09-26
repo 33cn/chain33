@@ -38,7 +38,7 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, mcfg.Fork.Sub["token"]["Enable"], int64(100899))
 	confsystem := Conf(cfg, "config.fork.system")
 	assert.Equal(t, confsystem.GInt("ForkV16Withdraw"), int64(480000))
-	confsubtoken := Conf(cfg,"config.fork.sub.token")
+	confsubtoken := Conf(cfg, "config.fork.sub.token")
 	assert.Equal(t, confsubtoken.GInt("Enable"), int64(100899))
 }
 

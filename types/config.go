@@ -211,7 +211,7 @@ func (c *Chain33Config) needSetForkZero() bool {
 		return true
 	} else if c.isPara() &&
 		(c.mcfg == nil || c.mcfg.Fork == nil || c.mcfg.Fork.System == nil) &&
-		!c.mcfg.EnableParaFork  {
+		!c.mcfg.EnableParaFork {
 		//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
 		return true
 	}

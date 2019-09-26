@@ -7,18 +7,19 @@ package types_test
 import (
 	"testing"
 
+	"strings"
+
 	"github.com/33cn/chain33/common/address"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
-	"github.com/stretchr/testify/assert"
 	"github.com/33cn/chain33/util"
-	"strings"
+	"github.com/stretchr/testify/assert"
 )
 
 //how to create transafer for para
 func TestCallCreateTxPara(t *testing.T) {
 	str := util.GetDefaultCfgstring()
-	new := strings.Replace(str, "Title=\"local\"", "Title=\"user.p.sto.\"" , 1)
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"user.p.sto.\"", 1)
 	cfg := types.NewChain33Config(new)
 
 	req := &types.CreateTx{
