@@ -21,6 +21,8 @@ func (m *mockConsensus) SetQueueClient(q queue.Queue) {
 			switch msg.Ty {
 			case types.EventGetTicketCount:
 				msg.Reply(client.NewMessage(consensusKey, types.EventReplyGetTicketCount, &types.Int64{}))
+			case types.EventConsensusQuery:
+				msg.Reply(client.NewMessage(consensusKey, types.EventReplyQuery, &types.Reply{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}

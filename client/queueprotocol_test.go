@@ -76,6 +76,7 @@ func TestQueueProtocol(t *testing.T) {
 	testWalletSetPasswd(t, api)
 	testWalletLock(t, api)
 	testWalletUnLock(t, api)
+	testWalletGetFatalFailure(t, api)
 	testPeerInfo(t, api)
 	testGetHeaders(t, api)
 	testGetLastMempool(t, api)
@@ -83,6 +84,12 @@ func TestQueueProtocol(t *testing.T) {
 	testGetBlockOverview(t, api)
 	testGetAddrOverview(t, api)
 	testGetBlockHash(t, api)
+	testGetBlockByHashes(t, api)
+	testGetBlockSequences(t, api)
+	testAddSeqCallBack(t, api)
+	testListSeqCallBack(t, api)
+	testGetSeqCallBackLastNum(t, api)
+	testGetLastBlockSequence(t, api)
 	testGenSeed(t, api)
 	testSaveSeed(t, api)
 	testGetSeed(t, api)
@@ -104,6 +111,16 @@ func TestQueueProtocol(t *testing.T) {
 	testStoreGetTotalCoins(t, api)
 	testStoreList(t, api)
 	testBlockChainQuery(t, api)
+	testQueryConsensus(t, api)
+	testExecWalletFunc(t, api)
+}
+
+func testGetSequenceByHash(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.GetSequenceByHash(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
+	res, err := api.GetSequenceByHash(&types.ReqHash{})
+	assert.Nil(t, err)
+	assert.Equal(t, types.Int64{Data: 1}, res)
 }
 
 func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
@@ -125,6 +142,100 @@ func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
 		require.Equalf(t, err, test.actualErr, "testBlockChainQuery case index %d", index)
 		require.Equalf(t, res, test.actualRes, "testBlockChainQuery case index %d", index)
 	}
+
+	_, err := api.Query("", "", nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.Query("", "", testCases[1].param)
+	assert.Nil(t, err)
+	assert.Equal(t, res, testCases[1].actualRes)
+}
+
+func testQueryConsensus(t *testing.T, api client.QueueProtocolAPI) {
+	testCases := []struct {
+		param     *types.ChainExecutor
+		actualRes types.Message
+		actualErr error
+	}{
+		{
+			actualErr: types.ErrInvalidParam,
+		},
+		{
+			param:     &types.ChainExecutor{},
+			actualRes: &types.Reply{},
+		},
+	}
+	for index, test := range testCases {
+		res, err := api.QueryConsensus(test.param)
+		require.Equalf(t, err, test.actualErr, "testQueryConsensus case index %d", index)
+		require.Equalf(t, res, test.actualRes, "testQueryConsensus case index %d", index)
+	}
+
+	_, err := api.QueryConsensusFunc("", "", nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.QueryConsensusFunc("", "", testCases[1].param)
+	assert.Nil(t, err)
+	assert.Equal(t, res, testCases[1].actualRes)
+}
+
+func testExecWalletFunc(t *testing.T, api client.QueueProtocolAPI) {
+	testCases := []struct {
+		param     *types.ChainExecutor
+		actualRes types.Message
+		actualErr error
+	}{
+		{
+			actualErr: types.ErrInvalidParam,
+		},
+		{
+			param:     &types.ChainExecutor{},
+			actualRes: &types.Reply{},
+		},
+	}
+	for index, test := range testCases {
+		res, err := api.ExecWallet(test.param)
+		require.Equalf(t, err, test.actualErr, "testQueryConsensus case index %d", index)
+		require.Equalf(t, res, test.actualRes, "testQueryConsensus case index %d", index)
+	}
+
+	_, err := api.ExecWalletFunc("", "", nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.ExecWalletFunc("", "", testCases[1].param)
+	assert.Nil(t, err)
+	assert.Equal(t, res, testCases[1].actualRes)
+}
+
+func testGetBlockByHashes(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.GetBlockByHashes(nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{}})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.BlockDetails{}, res)
+}
+
+func testGetBlockSequences(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.GetBlockSequences(nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.GetBlockSequences(&types.ReqBlocks{Start: 0, End: 1})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.BlockSequences{}, res)
+}
+
+func testAddSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {
+	res, err := api.AddSeqCallBack(&types.BlockSeqCB{})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.Reply{}, res)
+}
+
+func testListSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {
+	res, err := api.ListSeqCallBack()
+	assert.Nil(t, err)
+	assert.Equal(t, &types.BlockSeqCBs{}, res)
+}
+
+func testGetSeqCallBackLastNum(t *testing.T, api client.QueueProtocolAPI) {
+	res, err := api.GetSeqCallBackLastNum(&types.ReqString{})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.Int64{}, res)
 }
 
 func testStoreSet(t *testing.T, api client.QueueProtocolAPI) {
@@ -276,10 +387,16 @@ func testLocalTransaction(t *testing.T, api client.QueueProtocolAPI) {
 	assert.Equal(t, txid.Data, int64(9999))
 	err = api.LocalBegin(txid)
 	assert.Nil(t, err)
+	err = api.LocalCommit(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
 	err = api.LocalCommit(txid)
 	assert.Nil(t, err)
+	err = api.LocalRollback(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
 	err = api.LocalRollback(txid)
 	assert.Nil(t, err)
+	err = api.LocalSet(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
 	param := &types.LocalDBSet{Txid: txid.Data}
 	err = api.LocalSet(param)
 	assert.Nil(t, err)
@@ -580,6 +697,13 @@ func testWalletTransactionList(t *testing.T, api client.QueueProtocolAPI) {
 	}
 }
 
+func testWalletGetFatalFailure(t *testing.T, api client.QueueProtocolAPI) {
+	res, err := api.GetFatalFailure()
+	assert.Nil(t, err)
+	assert.Equal(t, &types.Int32{}, res)
+
+}
+
 func testNewAccount(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.NewAccount(&types.ReqNewAccount{})
 	if err != nil {
@@ -674,6 +798,12 @@ func testGetBlocks(t *testing.T, api client.QueueProtocolAPI) {
 	if err == nil {
 		t.Error("GetBlocks(&types.ReqBlocks{Start:1}) need return error.")
 	}
+}
+
+func testGetLastBlockSequence(t *testing.T, api client.QueueProtocolAPI) {
+	res, err := api.GetLastBlockSequence()
+	assert.Nil(t, err)
+	assert.Equal(t, &types.Int64{}, res)
 }
 
 func testGetTxList(t *testing.T, api client.QueueProtocolAPI) {
