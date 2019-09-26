@@ -11,6 +11,8 @@ import (
 	_ "net/http/pprof"
 	"testing"
 
+	"sync"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/merkle"
@@ -20,7 +22,6 @@ import (
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
-	"sync"
 )
 
 var runonce sync.Once

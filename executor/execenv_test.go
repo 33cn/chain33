@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"strings"
+
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
-	"strings"
 )
 
 func TestLoadDriverFork(t *testing.T) {

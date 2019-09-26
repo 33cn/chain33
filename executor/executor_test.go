@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/queue"
@@ -19,9 +20,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
-	"github.com/33cn/chain33/client"
 )
-
 
 func initEnv(cfgstring string) (*Executor, queue.Queue) {
 	cfg := types.NewChain33Config(cfgstring)

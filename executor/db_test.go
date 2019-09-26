@@ -7,16 +7,17 @@ package executor
 import (
 	"testing"
 
-	dbm "github.com/33cn/chain33/common/db"
-	"github.com/33cn/chain33/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/33cn/chain33/util"
-	"github.com/33cn/chain33/queue"
 	"strings"
+
+	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/store"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
+	"github.com/stretchr/testify/assert"
 )
 
-func newStateDbForTest(height int64, cfg *types.Chain33Config ) dbm.KV {
+func newStateDbForTest(height int64, cfg *types.Chain33Config) dbm.KV {
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	return NewStateDB(q.Client(), nil, nil, &StateDBOption{Height: height})
@@ -48,7 +49,7 @@ func testDBGet(t *testing.T, db dbm.KV) {
 
 func TestStateDBTxGetOld(t *testing.T) {
 	str := util.GetDefaultCfgstring()
-	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"" , 1)
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(new)
 
 	q := queue.New("channel")
