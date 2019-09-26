@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
-	"github.com/33cn/chain33/util"
 )
 
 func TestTypeReflact(t *testing.T) {
