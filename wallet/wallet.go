@@ -27,13 +27,13 @@ import (
 )
 
 var (
-	minFee           int64
+	//minFee           int64
 	maxTxNumPerBlock int64 = types.MaxTxsPerBlock
 	// MaxTxHashsPerTime 每次处理的最大交易哈希数量
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
-	accountdb         *account.DB
-	accTokenMap       = make(map[string]*account.DB)
+	//accountdb         *account.DB
+	//accTokenMap = make(map[string]*account.DB)
 )
 
 func init() {
@@ -73,7 +73,10 @@ type Wallet struct {
 	lastHeader         *types.Header
 	initFlag           uint32 // 钱包模块是否初始化完毕的标记，默认为0，表示未初始化
 	// SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
-	SignType int
+	SignType    int
+	minFee      int64
+	accountdb   *account.DB
+	accTokenMap map[string]*account.DB
 }
 
 // SetLogLevel 设置日志登记
@@ -90,11 +93,11 @@ func DisableLog() {
 // New 创建一个钱包对象
 func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 	//walletStore
-	accountdb = account.NewCoinsAccount()
+	//accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
 	walletStore := newStore(walletStoreDB)
-	minFee = cfg.MinFee
+	//minFee = cfg.MinFee
 	signType := types.GetSignType("", cfg.SignType)
 	if signType == types.Invalid {
 		signType = types.SECP256K1
@@ -105,13 +108,16 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 		isWalletLocked:   1,
 		fatalFailureFlag: 0,
 		wg:               &sync.WaitGroup{},
-		FeeAmount:        walletStore.GetFeeAmount(minFee),
+		FeeAmount:        walletStore.GetFeeAmount(cfg.MinFee),
 		EncryptFlag:      walletStore.GetEncryptionFlag(),
 		done:             make(chan struct{}),
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
 		initFlag:         0,
 		SignType:         signType,
+		minFee:           cfg.MinFee,
+		accountdb:        account.NewCoinsAccount(),
+		accTokenMap:      make(map[string]*account.DB),
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))

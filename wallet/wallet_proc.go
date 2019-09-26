@@ -177,7 +177,7 @@ func (wallet *Wallet) ProcGetAccountList(req *types.ReqAccountList) (*types.Wall
 		}
 	}
 	//获取所有地址对应的账户详细信息从account模块
-	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcGetAccountList", "LoadAccounts:err", err)
 		return nil, err
@@ -323,7 +323,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	//获取地址对应的账户信息从account模块
 	addrs := make([]string, 1)
 	addrs[0] = addr
-	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil {
 		walletlog.Error("ProcCreateNewAccount", "LoadAccounts err", err)
 		return nil, err
@@ -464,7 +464,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 	//获取地址对应的账户信息从account模块
 	addrs := make([]string, 1)
 	addrs[0] = addr
-	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "LoadAccounts err", err)
 		return nil, err
@@ -516,7 +516,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	addrs[0] = SendToAddress.GetFrom()
 	var accounts []*types.Account
 	var tokenAccounts []*types.Account
-	accounts, err = accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err = wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcSendToAddress", "LoadAccounts err", err)
 		return nil, err
@@ -536,14 +536,14 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		if Balance < wallet.FeeAmount {
 			return nil, types.ErrInsufficientBalance
 		}
-		if nil == accTokenMap[SendToAddress.TokenSymbol] {
+		if nil == wallet.accTokenMap[SendToAddress.TokenSymbol] {
 			tokenAccDB, err := account.NewAccountDB("token", SendToAddress.TokenSymbol, nil)
 			if err != nil {
 				return nil, err
 			}
-			accTokenMap[SendToAddress.TokenSymbol] = tokenAccDB
+			wallet.accTokenMap[SendToAddress.TokenSymbol] = tokenAccDB
 		}
-		tokenAccDB := accTokenMap[SendToAddress.TokenSymbol]
+		tokenAccDB := wallet.accTokenMap[SendToAddress.TokenSymbol]
 		tokenAccounts, err = tokenAccDB.LoadAccounts(wallet.api, addrs)
 		if err != nil || len(tokenAccounts) == 0 {
 			walletlog.Error("ProcSendToAddress", "Load Token Accounts err", err)
@@ -568,8 +568,8 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 //	Amount int64
 //设置钱包默认的手续费
 func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
-	if WalletSetFee.Amount < minFee {
-		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", minFee)
+	if WalletSetFee.Amount < wallet.minFee {
+		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", wallet.minFee)
 		return types.ErrInvalidParam
 	}
 	err := wallet.walletStore.SetFeeAmount(WalletSetFee.Amount)
@@ -619,7 +619,7 @@ func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*ty
 			//获取地址对应的账户详细信息从account模块
 			addrs := make([]string, 1)
 			addrs[0] = SetLabel.Addr
-			accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+			accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 			if err != nil || len(accounts) == 0 {
 				walletlog.Error("ProcWalletSetLabel", "LoadAccounts err", err)
 				return nil, err
@@ -669,7 +669,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		}
 	}
 	//获取所有地址对应的账户信息从account模块
-	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcMergeBalance", "LoadAccounts err", err)
 		return nil, err
@@ -1435,7 +1435,7 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 		//获取地址对应的账户信息从account模块
 		addrs := make([]string, 1)
 		addrs[0] = addr
-		accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+		accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 		if err != nil {
 			walletlog.Error("createNewAccountByIndex", "LoadAccounts err", err)
 			return "", err
