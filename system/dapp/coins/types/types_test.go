@@ -11,10 +11,11 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
+	"github.com/33cn/chain33/util"
 )
 
 func TestTypeReflact(t *testing.T) {
-	ty := NewType()
+	ty := NewType(types.NewChain33Config(util.GetDefaultCfgstring()))
 	assert.NotNil(t, ty)
 	//创建一个json字符串
 	data, err := types.PBToJSON(&types.AssetsTransfer{Amount: 10})
@@ -32,7 +33,7 @@ func TestTypeReflact(t *testing.T) {
 }
 
 func TestCoinsType(t *testing.T) {
-	ty := NewType()
+	ty := NewType(types.NewChain33Config(util.GetDefaultCfgstring()))
 	payload := ty.GetPayload()
 	assert.Equal(t, &CoinsAction{}, payload.(*CoinsAction))
 

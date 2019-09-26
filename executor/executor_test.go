@@ -23,14 +23,14 @@ import (
 )
 
 
-func initEnv(cfgstring string) *Executor {
+func initEnv(cfgstring string) (*Executor, queue.Queue) {
 	cfg := types.NewChain33Config(cfgstring)
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	exec := New(cfg)
 	exec.client = q.Client()
 	exec.qclient, _ = client.New(exec.client, nil)
-	return exec
+	return exec, q
 }
 
 func TestIsModule(t *testing.T) {
@@ -39,7 +39,7 @@ func TestIsModule(t *testing.T) {
 }
 
 func TestExecutorGetTxGroup(t *testing.T) {
-	exec := initEnv(util.GetDefaultCfgstring())
+	exec, _ := initEnv(util.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
 	execInit(nil)
 	var txs []*types.Transaction
@@ -93,7 +93,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 //gen 1万币需要 2s，主要是签名的花费
 func BenchmarkGenRandBlock(b *testing.B) {
-	exec := initEnv(util.GetDefaultCfgstring())
+	exec, _ := initEnv(util.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
 	_, key := util.Genaddress()
 	for i := 0; i < b.N; i++ {
@@ -113,6 +113,7 @@ func TestLoadDriver(t *testing.T) {
 }
 
 func TestKeyAllow(t *testing.T) {
+	exect, _ := initEnv(util.GetDefaultCfgstring())
 	execInit(nil)
 	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
 	exec := []byte("retrieve")
@@ -129,13 +130,14 @@ func TestKeyAllow(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	execute := newExecutor(ctx, exect, nil, nil, nil)
 	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("retrieve can modify exec")
 	}
 }
 
 func TestKeyAllow_evm(t *testing.T) {
+	exect, _ := initEnv(util.GetDefaultCfgstring())
 	execInit(nil)
 	key := []byte("mavl-coins-bty-exec-1GacM93StrZveMrPjXDoz5TxajKa9LM5HG:19EJVYexvSn1kZ6MWiKcW14daXsPpdVDuF")
 	exec := []byte("user.evm.0xc79c9113a71c0a4244e20f0780e7c13552f40ee30b05998a38edb08fe617aaa5")
@@ -152,7 +154,7 @@ func TestKeyAllow_evm(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	execute := newExecutor(ctx, exect, nil, nil, nil)
 	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("user.evm.hash can modify exec")
 	}
@@ -160,7 +162,7 @@ func TestKeyAllow_evm(t *testing.T) {
 }
 
 func TestKeyLocalAllow(t *testing.T) {
-	exec := initEnv(util.GetDefaultCfgstring())
+	exec, _ := initEnv(util.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
 	err := isAllowLocalKey(cfg, []byte("token"), []byte("LODB-token-"))
 	assert.Equal(t, err, types.ErrLocalKeyLen)
@@ -212,11 +214,17 @@ func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 }
 
 func TestExecutorErrAPIEnv(t *testing.T) {
-	exec := initEnv(util.GetDefaultCfgstring())
+	exec, q := initEnv(util.GetDefaultCfgstring())
 	exec.disableLocal = true
 	cfg := exec.client.GetConfig()
+	cfg.S("MinFee", 0)
 	Register(cfg)
 	execInit(cfg)
+
+	store := store.New(cfg)
+	store.SetQueueClient(q.Client())
+	defer store.Close()
+
 	var txs []*types.Transaction
 	genkey := util.TestPrivkeyList[0]
 	txs = append(txs, util.CreateTxWithExecer(cfg, genkey, "demo"))
@@ -237,10 +245,9 @@ func TestExecutorErrAPIEnv(t *testing.T) {
 	assert.Equal(t, true, api.IsAPIEnvError(err))
 }
 func TestCheckTx(t *testing.T) {
-	exec := initEnv(types.ReadFile("../cmd/chain33/chain33.test.toml"))
+	exec, q := initEnv(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	cfg := exec.client.GetConfig()
-	q := queue.New("channel")
-	q.SetConfig(cfg)
+
 	store := store.New(cfg)
 	store.SetQueueClient(q.Client())
 	defer store.Close()

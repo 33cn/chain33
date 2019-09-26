@@ -23,12 +23,13 @@ import (
 func TestSolo(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	txs := util.GenNoneTxs(mock33.GetGenesisKey(), 10)
+	cfg := mock33.GetClient().GetConfig()
+	txs := util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		mock33.GetAPI().SendTx(txs[i])
 	}
 	mock33.WaitHeight(1)
-	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 10)
+	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		mock33.GetAPI().SendTx(txs[i])
 	}
@@ -36,13 +37,14 @@ func TestSolo(t *testing.T) {
 }
 
 func BenchmarkSolo(b *testing.B) {
-	cfg, subcfg := testnode.GetDefaultConfig()
+	cfg := testnode.GetDefaultConfig()
+	subcfg := cfg.GetSubConfig()
 	solocfg, err := types.ModifySubConfig(subcfg.Consensus["solo"], "waitTxMs", 1000)
 	assert.Nil(b, err)
 	subcfg.Consensus["solo"] = solocfg
-	mock33 := testnode.NewWithConfig(cfg, subcfg, nil)
+	mock33 := testnode.NewWithConfig(cfg, nil)
 	defer mock33.Close()
-	txs := util.GenCoinsTxs(mock33.GetGenesisKey(), int64(b.N))
+	txs := util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), int64(b.N))
 	var last []byte
 	var mu sync.Mutex
 	b.ResetTimer()

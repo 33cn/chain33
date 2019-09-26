@@ -12,7 +12,20 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/33cn/chain33/util"
+	"github.com/stretchr/testify/mock"
+	coinsTy "github.com/33cn/chain33/system/dapp/coins/types"
+	"sync"
 )
+
+var runonce sync.Once
+
+func InitCoinsExecutor() {
+	runonce.Do(func() {
+		cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+		types.RegistorExecutor("coins", coinsTy.NewType(cfg))
+	})
+}
 
 func TestDecodeUserWrite(t *testing.T) {
 	payload := []byte("#md#hello#world")
@@ -29,8 +42,9 @@ func TestDecodeUserWrite(t *testing.T) {
 }
 
 func TestDecodeTx(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	tx := types.Transaction{
-		Execer:  []byte(types.ExecName("coin")),
+		Execer:  []byte(cfg.ExecName("coin")),
 		Payload: []byte("342412abcd"),
 		Nonce:   8978167239,
 		To:      "1asd234dsf43fds",
@@ -40,13 +54,13 @@ func TestDecodeTx(t *testing.T) {
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
-	tx.Execer = []byte(types.ExecName("coins"))
+	tx.Execer = []byte(cfg.ExecName("coins"))
 	data, err = DecodeTx(&tx)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
 	tx = types.Transaction{
-		Execer:  []byte(types.ExecName("hashlock")),
+		Execer:  []byte(cfg.ExecName("hashlock")),
 		Payload: []byte("34"),
 		Nonce:   8978167239,
 		To:      "1asd234dsf43fds",
@@ -67,6 +81,8 @@ func TestDecodeLog(t *testing.T) {
 }
 
 func TestConvertWalletTxDetailToJSON(t *testing.T) {
+	// 需要先注册执行器类型
+	InitCoinsExecutor()
 
 	tx := &types.Transaction{Execer: []byte("coins")}
 	log := &types.ReceiptLog{Ty: 0, Log: []byte("test")}
@@ -92,12 +108,16 @@ func TestConvertWalletTxDetailToJSON(t *testing.T) {
 func TestServer(t *testing.T) {
 	api := &mocks.QueueProtocolAPI{}
 	ch := ChannelClient{QueueProtocolAPI: api}
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	ch.Init("test", nil, nil, nil)
 	db := ch.GetCoinsAccountDB()
 	assert.NotNil(t, db)
 }
 
 func TestDecodeTx2(t *testing.T) {
+	// 需要先注册执行器类型
+	InitCoinsExecutor()
 	bdata, err := common.FromHex("0a05636f696e73121018010a0c108084af5f1a05310a320a3320e8b31b30b9b69483d7f9d3f04c3a22314b67453376617969715a4b6866684d66744e3776743267447639486f4d6b393431")
 	assert.Nil(t, err)
 	var r types.Transaction
@@ -109,3 +129,5 @@ func TestDecodeTx2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, string(jsondata), `{"execer":"coins","payload":{"transfer":{"cointoken":"","amount":"200000000","note":"1\n2\n3","to":""},"ty":1},"rawPayload":"0x18010a0c108084af5f1a05310a320a33","signature":{"ty":0,"pubkey":"","signature":""},"fee":449000,"feefmt":"0.0045","expire":0,"nonce":5539796760414985017,"from":"1HT7xU2Ngenf7D4yocz2SAcnNLW7rK8d4E","to":"1KgE3vayiqZKhfhMftN7vt2gDv9HoMk941","hash":"0x6f9d543a345f6e17d8c3cc5f846c22570acf3b4b5851f48d0c2be5459d90c410"}`)
 }
+
+

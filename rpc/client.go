@@ -36,7 +36,7 @@ func (c *channelClient) Init(q queue.Client, api client.QueueProtocolAPI) {
 		}
 	}
 	c.QueueProtocolAPI = api
-	c.accountdb = account.NewCoinsAccount(api.GetConfig())
+	c.accountdb = account.NewCoinsAccount(q.GetConfig())
 }
 
 // CreateRawTransaction create rawtransaction

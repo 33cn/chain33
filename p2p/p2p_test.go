@@ -33,8 +33,8 @@ func processMsg(q queue.Queue) {
 
 	go func() {
 
-		cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
-		wcli := wallet.New(cfg.Wallet, sub.Wallet)
+		cfg := q.GetConfig()
+		wcli := wallet.New(cfg)
 		client := q.Client()
 		wcli.SetQueueClient(client)
 		//导入种子，解锁钱包
@@ -115,16 +115,15 @@ func processMsg(q queue.Queue) {
 }
 
 //new p2p
-func newP2p(port int32, dbpath string, q queue.Queue) *P2p {
-
-	cfg := new(types.P2P)
-	cfg.Port = port
-	cfg.Enable = true
-	cfg.DbPath = dbpath
-	cfg.DbCache = 4
-	cfg.Channel = testChannel
-	cfg.ServerStart = true
-	cfg.Driver = "leveldb"
+func newP2p(cfg *types.Chain33Config, port int32, dbpath string, q queue.Queue) *P2p {
+	pcfg := cfg.GetModuleConfig().P2P
+	pcfg.Port = port
+	pcfg.Enable = true
+	pcfg.DbPath = dbpath
+	pcfg.DbCache = 4
+	pcfg.Channel = testChannel
+	pcfg.ServerStart = true
+	pcfg.Driver = "leveldb"
 
 	p2pcli := New(cfg)
 	p2pcli.node.nodeInfo.addrBook.initKey()
@@ -175,7 +174,7 @@ func testNetInfo(t *testing.T, p2p *P2p) {
 }
 
 //测试Peer
-func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
+func testPeer(t *testing.T, cfg *types.Chain33Config, p2p *P2p, q queue.Queue) {
 
 	conn, err := grpc.Dial("localhost:53802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
@@ -185,7 +184,7 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	remote, err := NewNetAddressString("127.0.0.1:53802")
 	assert.Nil(t, err)
 
-	localP2P := newP2p(43802, "testPeer", q)
+	localP2P := newP2p(cfg, 43802, "testPeer", q)
 	defer freeP2p(localP2P)
 
 	t.Log(localP2P.node.CacheBoundsSize())
@@ -406,17 +405,18 @@ func testRestart(t *testing.T, p2p *P2p) {
 }
 
 func Test_p2p(t *testing.T) {
-
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
+	q.SetConfig(cfg)
 	go q.Start()
 	processMsg(q)
-	p2p := newP2p(53802, "testP2p", q)
+	p2p := newP2p(cfg, 53802, "testP2p", q)
 	p2p.Wait()
 	defer freeP2p(p2p)
 	defer q.Close()
 	testP2PEvent(t, q.Client())
 	testNetInfo(t, p2p)
-	testPeer(t, p2p, q)
+	testPeer(t, cfg, p2p, q)
 	testGrpcConns(t)
 	testGrpcStreamConns(t, p2p)
 	testP2pComm(t, p2p)

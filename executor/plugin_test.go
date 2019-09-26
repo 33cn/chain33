@@ -10,7 +10,8 @@ import (
 )
 
 func TestPlugin(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	exec, _ := initEnv(util.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
 	ctx := &executorCtx{
@@ -32,7 +33,7 @@ func TestPlugin(t *testing.T) {
 			Block:    &types.Block{Txs: txs},
 			Receipts: []*types.ReceiptData{{}},
 		}
-		executor := newExecutor(ctx, &Executor{}, kvdb, txs, nil)
+		executor := newExecutor(ctx, exec, kvdb, txs, nil)
 		_, _, err := plugin.CheckEnable(executor, false)
 		assert.NoError(t, err)
 		kvs, err := plugin.ExecLocal(executor, detail)
@@ -47,6 +48,7 @@ func TestPlugin(t *testing.T) {
 }
 
 func TestPluginBase(t *testing.T) {
+	exec, _ := initEnv(util.GetDefaultCfgstring())
 	base := new(pluginBase)
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
@@ -58,7 +60,7 @@ func TestPluginBase(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	executor := newExecutor(ctx, &Executor{}, kvdb, nil, nil)
+	executor := newExecutor(ctx, exec, kvdb, nil, nil)
 	_, _, err := base.checkFlag(executor, nil, true)
 	assert.NoError(t, err)
 

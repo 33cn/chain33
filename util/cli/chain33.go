@@ -59,7 +59,7 @@ var (
 )
 
 //RunChain33 : run Chain33
-func RunChain33(name string) {
+func RunChain33(name, defCfg string) {
 	flag.Parse()
 	if *versionCmd {
 		fmt.Println(version.GetVersion())
@@ -91,8 +91,7 @@ func RunChain33(name string) {
 		panic(err)
 	}
 	//set config: bityuan 用 bityuan.toml 这个配置文件
-	// TODO 需要处理下mergeconfig
-	chain33Cfg := types.NewChain33Config(types.ReadFile(*configPath))
+	chain33Cfg := types.NewChain33Config(types.MergeCfg(types.ReadFile(*configPath), defCfg))
 	cfg := chain33Cfg.GetModuleConfig()
 	if *datadir != "" {
 		util.ResetDatadir(cfg, *datadir)

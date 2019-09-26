@@ -22,6 +22,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/33cn/chain33/util"
 )
 
 func TestDecodeLogErr(t *testing.T) {
@@ -376,7 +377,7 @@ func newTestChain33(api client.QueueProtocolAPI) *Chain33 {
 	return &Chain33{
 		cli: channelClient{
 			QueueProtocolAPI: api,
-			accountdb:        account.NewCoinsAccount(),
+			accountdb:        account.NewCoinsAccount(api.GetConfig()),
 		},
 	}
 }
@@ -385,6 +386,8 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	// var result interface{}
 	// api.On("CreateRawTransaction", nil, &result).Return()
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	err := testChain33.CreateRawTransaction(nil, &testResult)
@@ -399,7 +402,7 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
-		ExecName:    types.ExecName("coins"),
+		ExecName:    cfg.ExecName("coins"),
 	}
 
 	err = testChain33.CreateRawTransaction(tx, &testResult)
@@ -408,7 +411,9 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 }
 
 func TestChain33_ReWriteRawTx(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 	txHex1 := "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"
 	//txHex2 := "0a05636f696e73122d18010a29108084af5f222231484c53426e7437486e486a7857797a636a6f573863663259745550663337594d6320a08d0630dbc4cbf6fbc4e1d0533a2231484c53426e7437486e486a7857797a636a6f573863663259745550663337594d63"
@@ -437,6 +442,8 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 
 func TestChain33_CreateTxGroup(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	api.On("GetProperFee", mock.Anything).Return(nil, nil)
@@ -459,16 +466,18 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 		t.Error("Test createtxgroup failed")
 		return
 	}
-	err = tx.Check(0, types.GInt("MinFee"), types.GInt("MaxFee"))
+	err = tx.Check(cfg, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
 	assert.Nil(t, err)
 }
 
 func TestChain33_SendTransaction(t *testing.T) {
-	if types.IsPara() {
-		t.Skip()
-		return
-	}
+	//if types.IsPara() {
+	//	t.Skip()
+	//	return
+	//}
 	api := new(mocks.QueueProtocolAPI)
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	tx := &types.Transaction{}
 	api.On("SendTx", tx).Return(nil, errors.New("error value"))
 	testChain33 := newTestChain33(api)
@@ -485,7 +494,9 @@ func TestChain33_SendTransaction(t *testing.T) {
 }
 
 func TestChain33_GetHexTxByHash(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	api.On("QueryTx", &types.ReqHash{Hash: []byte("")}).Return(nil, errors.New("error value"))
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
@@ -501,7 +512,9 @@ func TestChain33_GetHexTxByHash(t *testing.T) {
 }
 
 func TestChain33_QueryTransaction(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	api.On("QueryTx", &types.ReqHash{Hash: []byte("")}).Return(nil, errors.New("error value"))
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
@@ -517,6 +530,7 @@ func TestChain33_QueryTransaction(t *testing.T) {
 }
 
 func TestChain33_QueryTransactionOk(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	data := rpctypes.QueryParm{
 		Hash: "",
 	}
@@ -525,7 +539,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	}
 	payload := types.Encode(act)
 	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName("ticket")),
+		Execer:  []byte(cfg.ExecName("ticket")),
 		Payload: payload,
 	}
 
@@ -555,6 +569,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	}
 
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	api.On("QueryTx", &types.ReqHash{Hash: []byte("")}).Return(&reply, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
@@ -569,7 +584,9 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 }
 
 func TestChain33_GetBlocks(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	api.On("GetBlocks", &types.ReqBlocks{Pid: []string{""}}).Return(&types.BlockDetails{Items: []*types.BlockDetail{{}}}, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
@@ -582,7 +599,9 @@ func TestChain33_GetBlocks(t *testing.T) {
 }
 
 func TestChain33_GetLastHeader(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	api.On("GetLastHeader", mock.Anything).Return(&types.Header{}, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
@@ -596,7 +615,9 @@ func TestChain33_GetLastHeader(t *testing.T) {
 }
 
 func TestChain33_GetTxByAddr(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	api.On("GetTransactionByAddr", mock.Anything).Return(&types.ReplyTxInfos{TxInfos: []*types.ReplyTxInfo{{}}}, nil)
@@ -611,7 +632,9 @@ func TestChain33_GetTxByAddr(t *testing.T) {
 }
 
 func TestChain33_GetTxByHashes(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	api.On("GetTransactionByHash", mock.Anything).Return(&types.TransactionDetails{}, nil)
@@ -627,7 +650,9 @@ func TestChain33_GetTxByHashes(t *testing.T) {
 }
 
 func TestChain33_GetMempool(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	api.On("GetMempool", &types.ReqGetMempool{}).Return(&types.ReplyTxList{Txs: []*types.Transaction{{}}}, nil)
@@ -642,7 +667,9 @@ func TestChain33_GetMempool(t *testing.T) {
 }
 
 func TestChain33_GetAccountsV2(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	api.On("WalletGetAccountList", mock.Anything).Return(&types.WalletAccounts{Wallets: []*types.WalletAccount{{}}}, nil)
@@ -654,7 +681,9 @@ func TestChain33_GetAccountsV2(t *testing.T) {
 }
 
 func TestChain33_GetAccounts(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	api.On("WalletGetAccountList", mock.Anything).Return(nil, errors.New("error value"))
@@ -669,7 +698,9 @@ func TestChain33_GetAccounts(t *testing.T) {
 }
 
 func TestChain33_NewAccount(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	api.On("NewAccount", &types.ReqNewAccount{}).Return(nil, errors.New("error value"))
@@ -684,7 +715,9 @@ func TestChain33_NewAccount(t *testing.T) {
 }
 
 func TestChain33_WalletTxList(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletTransactionList{FromTx: []byte("")}
@@ -701,7 +734,9 @@ func TestChain33_WalletTxList(t *testing.T) {
 }
 
 func TestChain33_ImportPrivkey(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletImportPrivkey{}
@@ -718,11 +753,13 @@ func TestChain33_ImportPrivkey(t *testing.T) {
 }
 
 func TestChain33_SendToAddress(t *testing.T) {
-	if types.IsPara() {
-		t.Skip()
-		return
-	}
+	//if types.IsPara() {
+	//	t.Skip()
+	//	return
+	//}
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletSendToAddress{}
@@ -739,7 +776,9 @@ func TestChain33_SendToAddress(t *testing.T) {
 }
 
 func TestChain33_SetTxFee(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletSetFee{}
@@ -756,7 +795,9 @@ func TestChain33_SetTxFee(t *testing.T) {
 }
 
 func TestChain33_SetLabl(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletSetLabel{}
@@ -773,7 +814,9 @@ func TestChain33_SetLabl(t *testing.T) {
 }
 
 func TestChain33_MergeBalance(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletMergeBalance{}
@@ -790,7 +833,9 @@ func TestChain33_MergeBalance(t *testing.T) {
 }
 
 func TestChain33_SetPasswd(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletSetPasswd{}
@@ -807,7 +852,9 @@ func TestChain33_SetPasswd(t *testing.T) {
 }
 
 func TestChain33_Lock(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	// expected := types.ReqNil{}
@@ -824,7 +871,9 @@ func TestChain33_Lock(t *testing.T) {
 }
 
 func TestChain33_UnLock(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.WalletUnLock{}
@@ -841,7 +890,9 @@ func TestChain33_UnLock(t *testing.T) {
 }
 
 func TestChain33_GetPeerInfo(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	api.On("PeerInfo").Return(nil, errors.New("error value"))
@@ -857,7 +908,9 @@ func TestChain33_GetPeerInfo(t *testing.T) {
 }
 
 func TestChain33_GetPeerInfoOk(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	var peerlist types.PeerList
@@ -874,7 +927,9 @@ func TestChain33_GetPeerInfoOk(t *testing.T) {
 }
 
 func TestChain33_GetHeaders(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqBlocks{}
@@ -891,7 +946,9 @@ func TestChain33_GetHeaders(t *testing.T) {
 }
 
 func TestChain33_GetHeadersOk(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	var headers types.Headers
@@ -912,7 +969,9 @@ func TestChain33_GetHeadersOk(t *testing.T) {
 }
 
 func TestChain33_GetLastMemPool(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	// expected := &types.ReqBlocks{}
@@ -929,7 +988,9 @@ func TestChain33_GetLastMemPool(t *testing.T) {
 }
 
 func TestChain33_GetProperFee(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := types.ReqProperFee{}
@@ -945,7 +1006,9 @@ func TestChain33_GetProperFee(t *testing.T) {
 }
 
 func TestChain33_GetBlockOverview(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqHash{Hash: []byte{}}
@@ -962,7 +1025,9 @@ func TestChain33_GetBlockOverview(t *testing.T) {
 }
 
 func TestChain33_GetBlockOverviewOk(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 	var head = &types.Header{
 		Hash: []byte("123456"),
@@ -987,7 +1052,9 @@ func TestChain33_GetBlockOverviewOk(t *testing.T) {
 }
 
 func TestChain33_GetAddrOverview(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqAddr{}
@@ -1004,7 +1071,9 @@ func TestChain33_GetAddrOverview(t *testing.T) {
 }
 
 func TestChain33_GetBlockHash(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqInt{}
@@ -1021,7 +1090,9 @@ func TestChain33_GetBlockHash(t *testing.T) {
 }
 
 func TestChain33_GenSeed(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.GenSeedLang{}
@@ -1038,7 +1109,9 @@ func TestChain33_GenSeed(t *testing.T) {
 }
 
 func TestChain33_SaveSeed(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.SaveSeedByPw{}
@@ -1055,7 +1128,9 @@ func TestChain33_SaveSeed(t *testing.T) {
 }
 
 func TestChain33_GetSeed(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	expected := &types.GetSeedByPw{}
@@ -1072,7 +1147,9 @@ func TestChain33_GetSeed(t *testing.T) {
 }
 
 func TestChain33_GetWalletStatus(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
 	api.On("GetWalletStatus").Return(nil, errors.New("error value")).Once()
@@ -1126,7 +1203,9 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 // ----------------------------
 
 func TestChain33_Version(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	in := &types.ReqNil{}
@@ -1140,7 +1219,9 @@ func TestChain33_Version(t *testing.T) {
 }
 
 func TestChain33_GetTimeStatus(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var result interface{}
 	err := client.GetTimeStatus(&types.ReqNil{}, &result)
@@ -1148,7 +1229,9 @@ func TestChain33_GetTimeStatus(t *testing.T) {
 }
 
 func TestChain33_GetLastBlockSequence(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var result interface{}
 	api.On("GetLastBlockSequence", mock.Anything).Return(nil, types.ErrInvalidParam)
@@ -1156,6 +1239,7 @@ func TestChain33_GetLastBlockSequence(t *testing.T) {
 	assert.NotNil(t, err)
 
 	api = new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client = newTestChain33(api)
 	var result2 interface{}
 	lastSeq := types.Int64{Data: 1}
@@ -1166,7 +1250,9 @@ func TestChain33_GetLastBlockSequence(t *testing.T) {
 }
 
 func TestChain33_GetBlockSequences(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var result interface{}
 	api.On("GetBlockSequences", mock.Anything).Return(nil, types.ErrInvalidParam)
@@ -1174,6 +1260,7 @@ func TestChain33_GetBlockSequences(t *testing.T) {
 	assert.NotNil(t, err)
 
 	api = new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client = newTestChain33(api)
 	var result2 interface{}
 	blocks := types.BlockSequences{}
@@ -1186,7 +1273,9 @@ func TestChain33_GetBlockSequences(t *testing.T) {
 }
 
 func TestChain33_GetBlockByHashes(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	in := rpctypes.ReqHashes{Hashes: []string{}}
@@ -1196,6 +1285,7 @@ func TestChain33_GetBlockByHashes(t *testing.T) {
 	assert.Nil(t, err)
 
 	api = new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client = newTestChain33(api)
 	var testResult2 interface{}
 	api.On("GetBlockByHashes", mock.Anything).Return(nil, types.ErrInvalidParam)
@@ -1204,7 +1294,10 @@ func TestChain33_GetBlockByHashes(t *testing.T) {
 }
 
 func TestChain33_CreateTransaction(t *testing.T) {
-	client := newTestChain33(nil)
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
 
 	var result interface{}
 	err := client.CreateTransaction(nil, &result)
@@ -1214,12 +1307,12 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrExecNotFound, err)
 
-	in = &rpctypes.CreateTxIn{Execer: types.ExecName("coins"), ActionName: "notExist", Payload: []byte("x")}
+	in = &rpctypes.CreateTxIn{Execer: cfg.ExecName("coins"), ActionName: "notExist", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrActionNotSupport, err)
 
 	in = &rpctypes.CreateTxIn{
-		Execer:     types.ExecName("coins"),
+		Execer:     cfg.ExecName("coins"),
 		ActionName: "Transfer",
 		Payload:    []byte("{\"to\": \"addr\", \"amount\":\"10\"}"),
 	}
@@ -1228,7 +1321,9 @@ func TestChain33_CreateTransaction(t *testing.T) {
 }
 
 func TestChain33_GetExecBalance(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	in := &types.ReqGetExecBalance{}
@@ -1237,6 +1332,7 @@ func TestChain33_GetExecBalance(t *testing.T) {
 	assert.Nil(t, err)
 
 	api = new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client = newTestChain33(api)
 	var testResult2 interface{}
 	api.On("StoreList", mock.Anything).Return(nil, types.ErrInvalidParam)
@@ -1245,7 +1341,9 @@ func TestChain33_GetExecBalance(t *testing.T) {
 }
 
 func TestChain33_GetBalance(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 
 	var addrs = []string{"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt"}
@@ -1253,24 +1351,24 @@ func TestChain33_GetBalance(t *testing.T) {
 		In types.ReqBalance
 	}{
 		{In: types.ReqBalance{
-			Execer:    types.ExecName("coins"),
+			Execer:    cfg.ExecName("coins"),
 			Addresses: addrs,
 		}},
 		{In: types.ReqBalance{
-			Execer:    types.ExecName("ticket"),
+			Execer:    cfg.ExecName("ticket"),
 			Addresses: addrs,
 		}},
 
 		{In: types.ReqBalance{
 			AssetSymbol: "bty",
 			AssetExec:   "coins",
-			Execer:      types.ExecName("ticket"),
+			Execer:      cfg.ExecName("ticket"),
 			Addresses:   addrs,
 		}},
 		{In: types.ReqBalance{
 			AssetSymbol: "bty",
 			AssetExec:   "coins",
-			Execer:      types.ExecName("coins"),
+			Execer:      cfg.ExecName("coins"),
 			Addresses:   addrs,
 		}},
 	}
@@ -1302,7 +1400,7 @@ func TestChain33_GetBalance(t *testing.T) {
 	var data1 interface{}
 	var addrs1 = []string{"17n2qu84Z1SUUosWjySggBS9pKWdAP3tZt"}
 	input := types.ReqBalance{
-		Execer:    types.ExecName("coins"),
+		Execer:    cfg.ExecName("coins"),
 		Addresses: addrs1,
 	}
 
@@ -1312,7 +1410,7 @@ func TestChain33_GetBalance(t *testing.T) {
 	//测试多重签名地址不合法返回ErrInvalidAddress
 	var addrs2 = []string{"3BJqXn4v741wDJY6Fzb4YbLSftXwgDzFE8"}
 	input = types.ReqBalance{
-		Execer:    types.ExecName("coins"),
+		Execer:    cfg.ExecName("coins"),
 		Addresses: addrs2,
 	}
 
@@ -1322,7 +1420,7 @@ func TestChain33_GetBalance(t *testing.T) {
 	//测试多重签名地址合法
 	var addrs3 = []string{"3BJqXn4v741wDJY6Fzb4YbLSftXwgDzFE7"}
 	input = types.ReqBalance{
-		Execer:    types.ExecName("coins"),
+		Execer:    cfg.ExecName("coins"),
 		Addresses: addrs3,
 	}
 
@@ -1332,7 +1430,9 @@ func TestChain33_GetBalance(t *testing.T) {
 }
 
 func TestChain33_CreateNoBalanceTransaction(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	chain33 := newTestChain33(api)
 	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 1000000}, nil)
 	var result string
@@ -1341,7 +1441,9 @@ func TestChain33_CreateNoBalanceTransaction(t *testing.T) {
 }
 
 func TestChain33_CreateNoBalanceTxs(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	chain33 := newTestChain33(api)
 	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 1000000}, nil)
 	var result string
@@ -1350,7 +1452,9 @@ func TestChain33_CreateNoBalanceTxs(t *testing.T) {
 }
 
 func TestChain33_ExecWallet(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	in := &rpctypes.ChainExecutor{}
@@ -1360,7 +1464,9 @@ func TestChain33_ExecWallet(t *testing.T) {
 }
 
 func TestChain33_Query(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	in := rpctypes.Query4Jrpc{Execer: "coins"}
@@ -1370,7 +1476,9 @@ func TestChain33_Query(t *testing.T) {
 }
 
 func TestChain33_DumpPrivkey(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("DumpPrivkey", mock.Anything).Return(nil, nil)
@@ -1379,7 +1487,9 @@ func TestChain33_DumpPrivkey(t *testing.T) {
 }
 
 func TestChain33_GetTotalCoins(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("StoreGetTotalCoins", mock.Anything).Return(nil, nil)
@@ -1388,7 +1498,9 @@ func TestChain33_GetTotalCoins(t *testing.T) {
 }
 
 func TestChain33_GetFatalFailure(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("GetFatalFailure", mock.Anything).Return(&types.Int32{}, nil)
@@ -1397,7 +1509,9 @@ func TestChain33_GetFatalFailure(t *testing.T) {
 }
 
 func TestChain33_DecodeRawTransaction(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	//api.On("GetFatalFailure", mock.Anything).Return(&types.Int32{}, nil)
@@ -1406,7 +1520,9 @@ func TestChain33_DecodeRawTransaction(t *testing.T) {
 }
 
 func TestChain33_CloseQueue(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("CloseQueue", mock.Anything).Return(nil, nil)
@@ -1416,7 +1532,9 @@ func TestChain33_CloseQueue(t *testing.T) {
 }
 
 func TestChain33_AddSeqCallBack(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("AddSeqCallBack", mock.Anything).Return(&types.Reply{}, nil)
@@ -1425,7 +1543,9 @@ func TestChain33_AddSeqCallBack(t *testing.T) {
 }
 
 func TestChain33_ListSeqCallBack(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("ListSeqCallBack", mock.Anything).Return(&types.BlockSeqCBs{}, nil)
@@ -1434,7 +1554,9 @@ func TestChain33_ListSeqCallBack(t *testing.T) {
 }
 
 func TestChain33_GetSeqCallBackLastNum(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("GetSeqCallBackLastNum", mock.Anything).Return(&types.Int64{}, nil)
@@ -1443,7 +1565,9 @@ func TestChain33_GetSeqCallBackLastNum(t *testing.T) {
 }
 
 func TestChain33_ConvertExectoAddr(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult string
 	err := client.ConvertExectoAddr(rpctypes.ExecNameParm{ExecName: "coins"}, &testResult)
@@ -1477,7 +1601,9 @@ func queryTotalFee(client *Chain33, req *types.LocalDBGet, t *testing.T) int64 {
 }
 
 func TestChain33_QueryTotalFee(t *testing.T) {
+	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 
 	total := &types.TotalFee{TxCount: 1, Fee: 10000}

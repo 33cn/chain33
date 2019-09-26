@@ -533,22 +533,7 @@ func getkey(key, key1 string) string {
 	return key + "." + key1
 }
 
-func (c *Chain33Config) getDefCfg(cfg *Config) string {
-	if cfg.Title == "" {
-		panic("title is not set in cfg")
-	}
-	if c.HasConf("cfg." + cfg.Title) {
-		return c.GStr("cfg." + cfg.Title)
-	}
-	return ""
-}
-
-func (c *Chain33Config) mergeCfg(cfgstring string) string {
-	cfg, err := initCfgString(cfgstring)
-	if err != nil {
-		panic(err)
-	}
-	cfgdefault := c.getDefCfg(cfg)
+func MergeCfg(cfgstring, cfgdefault string) string {
 	if cfgdefault != "" {
 		return mergeCfgString(cfgstring, cfgdefault)
 	}
