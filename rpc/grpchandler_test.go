@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"testing"
 
+	"strings"
+
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/types"
 	pb "github.com/33cn/chain33/types"
@@ -18,7 +20,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/peer"
-	"strings"
 )
 
 var (
@@ -1165,7 +1166,7 @@ func TestGrpc_GetFork(t *testing.T) {
 	})
 
 	str := util.GetDefaultCfgstring()
-	newstr := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"" , 1)
+	newstr := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(newstr)
 	Init(cfg)
 	api := new(mocks.QueueProtocolAPI)
@@ -1175,7 +1176,6 @@ func TestGrpc_GetFork(t *testing.T) {
 	val, err := grpc.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("para-fork100")})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(100), val.Data)
-
 
 	cfg1 := types.NewChain33Config(util.GetDefaultCfgstring())
 	Init(cfg1)

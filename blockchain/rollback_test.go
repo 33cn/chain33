@@ -10,18 +10,17 @@ import (
 
 	"fmt"
 
+	"strings"
+	"sync"
+
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"sync"
 )
 
-
 var once sync.Once
-
 
 func TestRollbackblock(t *testing.T) {
 	once.Do(func() {
@@ -30,7 +29,7 @@ func TestRollbackblock(t *testing.T) {
 		})
 	})
 	str := util.GetDefaultCfgstring()
-	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"" , 1)
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(new)
 	mfg := cfg.GetModuleConfig()
 	mfg.BlockChain.RollbackBlock = 0
@@ -56,7 +55,7 @@ func TestNeedRollback(t *testing.T) {
 	})
 
 	str := util.GetDefaultCfgstring()
-	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"" , 1)
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(new)
 	mock33 := testnode.NewWithConfig(cfg, nil)
 	chain := mock33.GetBlockChain()

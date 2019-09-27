@@ -9,9 +9,9 @@ import (
 
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
-	"github.com/33cn/chain33/util"
 )
 
 func TestCheckExpireOpt(t *testing.T) {
@@ -73,7 +73,7 @@ func TestCreateRawTx(t *testing.T) {
 	chain33Cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	types.SetCliSysParam(chain33Cfg.GetTitle(), chain33Cfg)
 
-	cmd  := &cobra.Command{}
+	cmd := &cobra.Command{}
 	cmd.Flags().StringP("title", "t", chain33Cfg.GetTitle(), "for test")
 
 	var err error
