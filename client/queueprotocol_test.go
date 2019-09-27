@@ -15,7 +15,6 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +29,7 @@ var (
 func TestMain(m *testing.M) {
 	mock.grpcMock = &grpcMock
 	mock.jrpcMock = &jrpc
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	pluginmgr.InitExec(cfg)
 	api = mock.startup(0)
 	flag := m.Run()

@@ -52,7 +52,7 @@ func Init(cfg *types.Chain33Config) {
 }
 
 func TestReigister(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	Init(cfg)
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
@@ -85,7 +85,7 @@ func TestReigister(t *testing.T) {
 }
 
 func TestDriverAPI(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	Init(cfg)
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
@@ -121,7 +121,7 @@ func TestExecAddress(t *testing.T) {
 }
 
 func TestAllow(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	Init(cfg)
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
@@ -144,7 +144,7 @@ func TestAllow(t *testing.T) {
 }
 
 func TestDriverBase(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	Init(cfg)

@@ -13,7 +13,6 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/store"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +22,7 @@ func newStateDbForTest(height int64, cfg *types.Chain33Config) dbm.KV {
 	return NewStateDB(q.Client(), nil, nil, &StateDBOption{Height: height})
 }
 func TestStateDBGet(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	db := newStateDbForTest(0, cfg)
 	testDBGet(t, db)
 }
@@ -48,7 +47,7 @@ func testDBGet(t *testing.T, db dbm.KV) {
 }
 
 func TestStateDBTxGetOld(t *testing.T) {
-	str := util.GetDefaultCfgstring()
+	str := types.GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(new)
 
@@ -138,7 +137,7 @@ func testTxGet(t *testing.T, db dbm.KV) {
 }
 
 func TestStateDBTxGet(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	db := newStateDbForTest(cfg.GetFork("ForkExecRollback"), cfg)
 	testTxGet(t, db)
 }

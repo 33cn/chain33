@@ -10,14 +10,13 @@ import (
 	"github.com/33cn/chain33/rpc"
 	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 )
 
 func TestMultipleGRPC(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	qapi := new(mocks.QueueProtocolAPI)
 	qapi.On("GetConfig", mock.Anything).Return(cfg)
 	qapi.On("Query", "ticket", "RandNumHash", mock.Anything).Return(&types.ReplyHash{Hash: []byte("hello")}, nil)
@@ -51,7 +50,7 @@ func TestMultipleGRPC(t *testing.T) {
 }
 
 func TestMultipleGRPCLocalhost(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	qapi := new(mocks.QueueProtocolAPI)
 	qapi.On("GetConfig", mock.Anything).Return(cfg)
 	qapi.On("Query", "ticket", "RandNumHash", mock.Anything).Return(&types.ReplyHash{Hash: []byte("hello")}, nil)
@@ -86,7 +85,7 @@ func TestMultipleGRPCLocalhost(t *testing.T) {
 
 func TestNewParaClient(t *testing.T) {
 	qapi := new(mocks.QueueProtocolAPI)
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	qapi.On("GetConfig", mock.Anything).Return(cfg)
 	qapi.On("Query", "ticket", "RandNumHash", mock.Anything).Return(&types.ReplyHash{Hash: []byte("hello")}, nil)
 	//testnode setup
@@ -118,7 +117,7 @@ func TestNewParaClient(t *testing.T) {
 }
 
 func TestNewMainChainClient(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	grpcClient1, err := grpcclient.NewMainChainClient(cfg, "")
 	assert.Nil(t, err)
 	grpcClient2, err := grpcclient.NewMainChainClient(cfg, "")

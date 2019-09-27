@@ -17,7 +17,6 @@ import (
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -32,7 +31,7 @@ var (
 
 func GenerAccDb() (*DB, *DB) {
 	//构造账户数据库
-	accCoin := NewCoinsAccount(types.NewChain33Config(util.GetDefaultCfgstring()))
+	accCoin := NewCoinsAccount(types.NewChain33Config(types.GetDefaultCfgstring()))
 	stroedb, _ := db.NewGoMemDB("gomemdb", "test", 128)
 	accCoin.SetDB(stroedb)
 
@@ -117,7 +116,7 @@ func TestDepositBalance(t *testing.T) {
 
 func initEnv() queue.Queue {
 	var q = queue.New("channel")
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	q.SetConfig(cfg)
 	return q
 }
@@ -208,7 +207,7 @@ func TestGetTotalCoins(t *testing.T) {
 func TestAccountName(t *testing.T) {
 	stroedb, _ := db.NewGoMemDB("gomemdb", "test", 128)
 
-	accCoin := NewCoinsAccount(types.NewChain33Config(util.GetDefaultCfgstring()))
+	accCoin := NewCoinsAccount(types.NewChain33Config(types.GetDefaultCfgstring()))
 	accCoin.SetDB(stroedb)
 	coinsAddr := address.ExecAddress("coins")
 	t.Log("coinsAddr:", coinsAddr)
@@ -472,7 +471,7 @@ func getExecBalance(callback func(*types.StoreList) (*types.StoreListReply, erro
 }
 
 func TestGetExecBalance2(t *testing.T) {
-	accCoin := NewCoinsAccount(types.NewChain33Config(util.GetDefaultCfgstring()))
+	accCoin := NewCoinsAccount(types.NewChain33Config(types.GetDefaultCfgstring()))
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	execAddr := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
@@ -559,7 +558,7 @@ func TestGetExecBalance2(t *testing.T) {
 }
 
 func TestGetBalance(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	accCoin := NewCoinsAccount(cfg)
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 

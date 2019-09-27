@@ -38,7 +38,7 @@ func TestIsModule(t *testing.T) {
 }
 
 func TestExecutorGetTxGroup(t *testing.T) {
-	exec, _ := initEnv(util.GetDefaultCfgstring())
+	exec, _ := initEnv(types.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
 	execInit(nil)
 	var txs []*types.Transaction
@@ -92,7 +92,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 //gen 1万币需要 2s，主要是签名的花费
 func BenchmarkGenRandBlock(b *testing.B) {
-	exec, _ := initEnv(util.GetDefaultCfgstring())
+	exec, _ := initEnv(types.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
 	_, key := util.Genaddress()
 	for i := 0; i < b.N; i++ {
@@ -112,7 +112,7 @@ func TestLoadDriver(t *testing.T) {
 }
 
 func TestKeyAllow(t *testing.T) {
-	exect, _ := initEnv(util.GetDefaultCfgstring())
+	exect, _ := initEnv(types.GetDefaultCfgstring())
 	execInit(nil)
 	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
 	exec := []byte("retrieve")
@@ -136,7 +136,7 @@ func TestKeyAllow(t *testing.T) {
 }
 
 func TestKeyAllow_evm(t *testing.T) {
-	exect, _ := initEnv(util.GetDefaultCfgstring())
+	exect, _ := initEnv(types.GetDefaultCfgstring())
 	execInit(nil)
 	key := []byte("mavl-coins-bty-exec-1GacM93StrZveMrPjXDoz5TxajKa9LM5HG:19EJVYexvSn1kZ6MWiKcW14daXsPpdVDuF")
 	exec := []byte("user.evm.0xc79c9113a71c0a4244e20f0780e7c13552f40ee30b05998a38edb08fe617aaa5")
@@ -161,7 +161,7 @@ func TestKeyAllow_evm(t *testing.T) {
 }
 
 func TestKeyLocalAllow(t *testing.T) {
-	exec, _ := initEnv(util.GetDefaultCfgstring())
+	exec, _ := initEnv(types.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
 	err := isAllowLocalKey(cfg, []byte("token"), []byte("LODB-token-"))
 	assert.Equal(t, err, types.ErrLocalKeyLen)
@@ -213,7 +213,7 @@ func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 }
 
 func TestExecutorErrAPIEnv(t *testing.T) {
-	exec, q := initEnv(util.GetDefaultCfgstring())
+	exec, q := initEnv(types.GetDefaultCfgstring())
 	exec.disableLocal = true
 	cfg := exec.client.GetConfig()
 	cfg.S("MinFee", 0)

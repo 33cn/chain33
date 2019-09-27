@@ -12,7 +12,6 @@ import (
 	"github.com/33cn/chain33/common/address"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +45,7 @@ func TestCallCreateTxPara(t *testing.T) {
 }
 
 func TestExecName(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	assert.Equal(t, cfg.ExecName("coins"), "coins")
 	cfg.SetTitleOnlyForTest("user.p.sto.")
 	assert.Equal(t, cfg.ExecName("coins"), "user.p.sto.coins")

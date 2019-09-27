@@ -14,7 +14,6 @@ import (
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/types"
 	pb "github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -64,7 +63,7 @@ func init() {
 	//addr := "192.168.1.1"
 	//remoteIpWhitelist[addr] = true
 	//grpcFuncWhitelist["*"] = true
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	Init(cfg)
 	qapi = new(mocks.QueueProtocolAPI)
 	qapi.On("GetConfig", mock.Anything).Return(cfg)
@@ -1165,7 +1164,7 @@ func TestGrpc_GetFork(t *testing.T) {
 		cfg.SetDappFork("para", "fork100", 100)
 	})
 
-	str := util.GetDefaultCfgstring()
+	str := types.GetDefaultCfgstring()
 	newstr := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(newstr)
 	Init(cfg)
@@ -1177,7 +1176,7 @@ func TestGrpc_GetFork(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(100), val.Data)
 
-	cfg1 := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg1 := types.NewChain33Config(types.GetDefaultCfgstring())
 	Init(cfg1)
 	api1 := new(mocks.QueueProtocolAPI)
 	api1.On("GetConfig", mock.Anything).Return(cfg1)

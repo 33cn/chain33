@@ -22,7 +22,6 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	coinstypes "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/BurntSushi/toml"
 )
 
@@ -58,7 +57,7 @@ func initWrite() *Config {
 }
 
 func main() {
-	chain33Cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	chain33Cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	cfg := initWrite()
 	receiveAddr = cfg.UserWriteConf.ReceiveAddr
 	currentHeight = cfg.UserWriteConf.CurrentHeight

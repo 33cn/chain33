@@ -17,7 +17,6 @@ import (
 	qmock "github.com/33cn/chain33/queue/mocks"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -28,7 +27,7 @@ func Init(cfg *types.Chain33Config) {
 }
 
 func newTestChannelClient() *channelClient {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	return &channelClient{
@@ -248,7 +247,7 @@ func TestChannelClient_GetAddrOverview(t *testing.T) {
 }
 
 func testChannelClient_GetBalanceCoin(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	db := new(account.DB)
@@ -282,7 +281,7 @@ func testChannelClient_GetBalanceCoin(t *testing.T) {
 }
 
 func testChannelClient_GetBalanceOther(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	db := new(account.DB)
@@ -321,7 +320,7 @@ func TestChannelClient_GetBalance(t *testing.T) {
 }
 
 func TestChannelClient_GetTotalCoins(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	client := new(channelClient)
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg)
@@ -346,7 +345,7 @@ func TestChannelClient_GetTotalCoins(t *testing.T) {
 }
 
 func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	client := new(channelClient)
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg)

@@ -28,7 +28,7 @@ func TestRollbackblock(t *testing.T) {
 			cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
 		})
 	})
-	str := util.GetDefaultCfgstring()
+	str := types.GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(new)
 	mfg := cfg.GetModuleConfig()
@@ -54,7 +54,7 @@ func TestNeedRollback(t *testing.T) {
 		})
 	})
 
-	str := util.GetDefaultCfgstring()
+	str := types.GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(new)
 	mock33 := testnode.NewWithConfig(cfg, nil)

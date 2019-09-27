@@ -11,13 +11,12 @@ import (
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func InitEnv() *BlockChain {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	chain := New(cfg)

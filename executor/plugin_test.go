@@ -10,7 +10,7 @@ import (
 )
 
 func TestPlugin(t *testing.T) {
-	exec, _ := initEnv(util.GetDefaultCfgstring())
+	exec, _ := initEnv(types.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
@@ -48,7 +48,7 @@ func TestPlugin(t *testing.T) {
 }
 
 func TestPluginBase(t *testing.T) {
-	exec, _ := initEnv(util.GetDefaultCfgstring())
+	exec, _ := initEnv(types.GetDefaultCfgstring())
 	base := new(pluginBase)
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)

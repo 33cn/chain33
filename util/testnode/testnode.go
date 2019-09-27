@@ -73,7 +73,7 @@ type Chain33Mock struct {
 
 //GetDefaultConfig :
 func GetDefaultConfig() *types.Chain33Config {
-	return types.NewChain33Config(util.GetDefaultCfgstring())
+	return types.NewChain33Config(types.GetDefaultCfgstring())
 }
 
 //NewWithConfig :
@@ -149,12 +149,12 @@ func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolA
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	var cfg *types.Chain33Config
 	if cfgpath == "" || cfgpath == "--notset--" || cfgpath == "--free--" {
-		cfg = types.NewChain33Config(util.GetDefaultCfgstring())
+		cfg = types.NewChain33Config(types.GetDefaultCfgstring())
 		if cfgpath == "--free--" {
 			setFee(cfg.GetModuleConfig(), 0)
 		}
 	} else {
-		cfg = types.NewChain33Config(util.GetDefaultCfgstring())
+		cfg = types.NewChain33Config(types.GetDefaultCfgstring())
 	}
 	return newWithConfig(cfg, mockapi)
 }

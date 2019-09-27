@@ -13,7 +13,6 @@ import (
 	"github.com/33cn/chain33/rpc"
 	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/status"
@@ -21,7 +20,7 @@ import (
 
 func TestAPI(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	gapi, err := grpcclient.NewMainChainClient(cfg, "")
 	assert.Nil(t, err)
 	api.On("GetConfig", mock.Anything).Return(cfg)

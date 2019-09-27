@@ -18,7 +18,6 @@ import (
 	drivers "github.com/33cn/chain33/system/store"
 	mavldb "github.com/33cn/chain33/system/store/mavl/db"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -281,7 +280,7 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 func TestIterateCallBack_Mode1(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
@@ -426,7 +425,7 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 func TestIterateCallBack_Mode2(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)

@@ -17,7 +17,7 @@ import (
 )
 
 func TestLoadDriverFork(t *testing.T) {
-	str := util.GetDefaultCfgstring()
+	str := types.GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	exec, _ := initEnv(new)
 	cfg := exec.client.GetConfig()

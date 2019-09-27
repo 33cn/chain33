@@ -15,7 +15,6 @@ import (
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/net/context"
@@ -48,7 +47,7 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
 	api := new(mocks.QueueProtocolAPI)
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	qm := &qmocks.Client{}
 	qm.On("GetConfig", mock.Anything).Return(cfg)
@@ -162,7 +161,7 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	_ = NewGrpcServer()
@@ -205,7 +204,7 @@ func TestGrpc_Call(t *testing.T) {
 }
 
 func TestRPC(t *testing.T) {
-	cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	rpcCfg := cfg.GetModuleConfig().RPC
 	rpcCfg.JrpcBindAddr = "8801"
 	rpcCfg.GrpcBindAddr = "8802"

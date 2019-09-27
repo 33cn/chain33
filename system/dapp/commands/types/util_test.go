@@ -9,7 +9,6 @@ import (
 
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
@@ -70,7 +69,7 @@ func TestDecodeAccount(t *testing.T) {
 }
 
 func TestCreateRawTx(t *testing.T) {
-	chain33Cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	chain33Cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	types.SetCliSysParam(chain33Cfg.GetTitle(), chain33Cfg)
 
 	cmd := &cobra.Command{}
