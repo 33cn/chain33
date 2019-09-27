@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"sync"
+
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"sync"
 )
 
 var runonce sync.Once
@@ -46,7 +47,7 @@ func (none *noneApp) GetDriverName() string {
 func Init(cfg *types.Chain33Config) {
 	runonce.Do(func() {
 		Register(cfg, "none", newnoneApp, 0)
-		Register(cfg,"demo", newdemoApp, 1)
+		Register(cfg, "demo", newdemoApp, 1)
 	})
 }
 
