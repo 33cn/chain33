@@ -54,9 +54,8 @@ func TestQueueProtocolAPI(t *testing.T) {
 	if qc == nil {
 		t.Error("queueprotoapi object is nil")
 	}
-	_,err = qc.Notify("",1,"data")
-	assert.Nil(t,err)
-
+	_, err = qc.Notify("", 1, "data")
+	assert.Nil(t, err)
 
 }
 
