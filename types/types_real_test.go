@@ -17,8 +17,8 @@ import (
 
 //how to create transafer for para
 func TestCallCreateTxPara(t *testing.T) {
-	str := util.GetDefaultCfgstring()
-	new := strings.Replace(str, "Title=\"local\"", "Title=\"user.p.sto.\"" , 1)
+	str := types.ReadFile("testdata/guodun2.toml")
+	new := strings.Replace(str, "Title=\"user.p.guodun2.\"", "Title=\"user.p.sto.\"" , 1)
 	cfg := types.NewChain33Config(new)
 
 	req := &types.CreateTx{

@@ -57,7 +57,9 @@ func TestAPI(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	rpc.InitCfg(rpcCfg)
-	server := rpc.NewGRpcServer(&qmocks.Client{}, api)
+	qc := &qmocks.Client{}
+	qc.On("GetConfig", mock.Anything).Return(cfg)
+	server := rpc.NewGRpcServer(qc, api)
 	assert.NotNil(t, server)
 	go server.Listen()
 	time.Sleep(time.Second)

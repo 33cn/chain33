@@ -23,6 +23,7 @@ import (
 	coinstypes "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 	"github.com/BurntSushi/toml"
+	"github.com/33cn/chain33/util"
 )
 
 var (
@@ -57,6 +58,7 @@ func initWrite() *Config {
 }
 
 func main() {
+	chain33Cfg := types.NewChain33Config(util.GetDefaultCfgstring())
 	cfg := initWrite()
 	receiveAddr = cfg.UserWriteConf.ReceiveAddr
 	currentHeight = cfg.UserWriteConf.CurrentHeight
@@ -69,7 +71,7 @@ func main() {
 		return
 	}
 	fmt.Println("starting scaning.............")
-	scanWrite()
+	scanWrite(chain33Cfg)
 }
 
 func ioHeightAndIndex() error {
@@ -106,7 +108,7 @@ func ioHeightAndIndex() error {
 	return nil
 }
 
-func scanWrite() {
+func scanWrite(cfg *types.Chain33Config) {
 	for {
 		time.Sleep(time.Second * 5)
 		rpc, err := jsonclient.NewJSONClient(rpcAddr)
@@ -188,7 +190,7 @@ func scanWrite() {
 				Payload: noteTx.Payload,
 			}
 			userTx.To = address.ExecAddress(string(noteTx.Execer))
-			userTx.Fee, err = userTx.GetRealFee(types.GInt("MinFee"))
+			userTx.Fee, err = userTx.GetRealFee(cfg.GInt("MinFee"))
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				continue

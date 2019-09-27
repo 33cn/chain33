@@ -26,11 +26,16 @@ var (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(ManageX))
+	types.RegFork(ManageX, InitFork)
+	types.RegExec(ManageX, InitExecutor)
 }
 
-func InitTypes(cfg *types.Chain33Config) {
+func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(ManageX, "Enable", 120000)
 	cfg.RegisterDappFork(ManageX, "ForkManageExec", 400000)
+}
+
+func InitExecutor(cfg *types.Chain33Config) {
 	types.RegistorExecutor(ManageX, NewType(cfg))
 }
 

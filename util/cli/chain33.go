@@ -159,9 +159,6 @@ func RunChain33(name, defCfg string) {
 	exec := executor.New(chain33Cfg)
 	exec.SetQueueClient(q.Client())
 
-	// executor 执行器模块注册fork之后才可以进行初始化
-	chain33Cfg.Chain33CfgInit(cfg)
-
 	log.Info("loading blockchain module")
 	cfg.BlockChain.RollbackBlock = *rollback
 	cfg.BlockChain.RollbackSave = *save

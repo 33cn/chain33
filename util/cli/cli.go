@@ -32,7 +32,7 @@ func Run(RPCAddr, ParaName, configPath, name string) {
 		panic("can not find the cli toml")
 	}
 	chain33Cfg := types.NewChain33Config(types.ReadFile(configPath))
-	types.CliSysParam[chain33Cfg.GetTitle()] = chain33Cfg
+	types.SetCliSysParam(chain33Cfg.GetTitle(), chain33Cfg)
 
 	rootCmd := &cobra.Command{
 		Use:   chain33Cfg.GetTitle() + "-cli",

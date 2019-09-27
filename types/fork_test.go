@@ -15,7 +15,6 @@ func TestForks(t *testing.T) {
 	cfg.forks.setLocalFork()
 	assert.Equal(t, cfg.forks.IsFork( 1, "ForkV1"), false)
 	assert.Equal(t, cfg.forks.IsFork( 1, "ForkV12"), false)
-	assert.Equal(t, cfg.forks.IsFork( 1, "ForkTransferExec"), false)
 	assert.Equal(t, cfg.forks.IsFork( 0, "ForkBlockHash"), false)
 	assert.Equal(t, cfg.forks.IsFork( 1, "ForkBlockHash"), true)
 	assert.Equal(t, cfg.forks.IsFork( 1, "ForkTransferExec"), true)

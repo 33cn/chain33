@@ -17,6 +17,8 @@ import (
 	tml "github.com/BurntSushi/toml"
 )
 
+type Create func(cfg *Chain33Config)
+
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowUserExec = [][]byte{ExecerNone}
@@ -29,7 +31,10 @@ var (
 	//chainConfig = make(map[string]interface{})
 	//mver        = make(map[string]*mversion)
 	//coinSymbol  = "bty"
-	CliSysParam = make(map[string]*Chain33Config) // map key is title
+	cliSysParam   = make(map[string]*Chain33Config) // map key is title
+	regModuleInit = make(map[string]Create)
+	regExecInit   = make(map[string]Create)
+	runonce       = sync.Once{}
 )
 
 // coin conversation
@@ -45,15 +50,16 @@ const (
 )
 
 type Chain33Config struct {
-	mcfg        *Config
-	scfg        *ConfigSubModule
-	minerExecs  []string
-	title       string
-	mu          sync.Mutex
-	chainConfig map[string]interface{}
-	mver        *mversion
-	coinSymbol  string
-	forks       *Forks
+	mcfg            *Config
+	scfg            *ConfigSubModule
+	minerExecs      []string
+	title           string
+	mu              sync.Mutex
+	chainConfig     map[string]interface{}
+	mver            *mversion
+	coinSymbol      string
+	forks           *Forks
+	enableCheckFork bool
 }
 
 // ChainParam 结构体
@@ -72,7 +78,65 @@ type ChainParam struct {
 	RetargetAdjustmentFactor int64
 }
 
+// Reg 注册每个模块的自动初始化函数
+func RegFork(name string, create Create) {
+	if create == nil {
+		panic("config: Register Module Init is nil")
+	}
+	if _, dup := regModuleInit[name]; dup {
+		panic("config: Register Init called twice for driver " + name)
+	}
+	regModuleInit[name] = create
+}
+
+func RegForkInit(cfg *Chain33Config) {
+	for _, item := range regModuleInit {
+		item(cfg)
+	}
+}
+
+func RegExec(name string, create Create) {
+	if create == nil {
+		panic("config: Register Exec Init is nil")
+	}
+	if _, dup := regExecInit[name]; dup {
+		panic("config: Register Exec called twice for driver " + name)
+	}
+	regExecInit[name] = create
+}
+
+func RegExecInit(cfg *Chain33Config) {
+	runonce.Do(func() {
+		for _, item := range regExecInit {
+			item(cfg)
+		}
+	})
+}
+
 func NewChain33Config(cfgstring string) *Chain33Config {
+	cfg, sub := InitCfgString(cfgstring)
+	chain33Cfg := &Chain33Config{
+		mcfg:            cfg,
+		scfg:            sub,
+		minerExecs:      []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
+		title:           cfg.Title,
+		chainConfig:     make(map[string]interface{}),
+		coinSymbol:      "bty",
+		forks:           &Forks{make(map[string]int64)},
+		enableCheckFork: true,
+	}
+	// 先将每个模块的fork初始化到Chain33Config中，然后如果需要再将toml中的替换
+	chain33Cfg.setDefaultConfig()
+	chain33Cfg.setFlatConfig(cfgstring)
+	chain33Cfg.setMver(cfgstring)
+	// TODO 需要测试是否与NewChain33Config分开
+	RegForkInit(chain33Cfg)
+	RegExecInit(chain33Cfg)
+	chain33Cfg.chain33CfgInit(cfg)
+	return chain33Cfg
+}
+
+func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 	cfg, sub := InitCfgString(cfgstring)
 	chain33Cfg := &Chain33Config{
 		mcfg:        cfg,
@@ -88,7 +152,8 @@ func NewChain33Config(cfgstring string) *Chain33Config {
 	chain33Cfg.setFlatConfig(cfgstring)
 	chain33Cfg.setMver(cfgstring)
 	// TODO 需要测试是否与NewChain33Config分开
-	// chain33Cfg.Chain33CfgInit(cfg)
+	RegForkInit(chain33Cfg)
+	RegExecInit(chain33Cfg)
 	return chain33Cfg
 }
 
@@ -98,6 +163,10 @@ func (c *Chain33Config) GetModuleConfig() *Config {
 
 func (c *Chain33Config) GetSubConfig() *ConfigSubModule {
 	return c.scfg
+}
+
+func (c *Chain33Config) EnableCheckFork(enable bool) {
+	c.enableCheckFork = false
 }
 
 func (c *Chain33Config) setDefaultConfig() {
@@ -143,7 +212,7 @@ func (c *Chain33Config) getChainConfig(key string) (value interface{}, err error
 }
 
 // Init 初始化
-func (c *Chain33Config) Chain33CfgInit(cfg *Config) {
+func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -211,7 +280,7 @@ func (c *Chain33Config) needSetForkZero() bool {
 		return true
 	} else if c.isPara() &&
 		(c.mcfg == nil || c.mcfg.Fork == nil || c.mcfg.Fork.System == nil) &&
-		!c.mcfg.EnableParaFork  {
+		!c.mcfg.EnableParaFork {
 		//如果para 没有配置fork，那么默认所有的fork 为 0（一般只用于测试）
 		return true
 	}
@@ -771,4 +840,18 @@ func (query *ConfQuery) MGStrList(key string, height int64) []string {
 // MIsEnable 解析mversion bool类型配置
 func (query *ConfQuery) MIsEnableq(key string, height int64) bool {
 	return query.MIsEnable(getkey(query.prefix, key), height)
+}
+
+func SetCliSysParam(title string, cfg *Chain33Config) {
+	if cfg == nil {
+		panic("set cli system Chain33Config param is nil")
+	}
+	cliSysParam[title] = cfg
+}
+
+func GetCliSysParam(title string) *Chain33Config {
+	if v, ok := cliSysParam[title]; ok {
+		return v
+	}
+	return nil
 }

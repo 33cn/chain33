@@ -63,9 +63,6 @@ func (f *Forks) setFork(key string, height int64) {
 	if f.forks == nil {
 		f.forks = make(map[string]int64)
 	}
-	if _, ok := f.forks[key]; ok {
-		panic("set dup fork " + " " + key)
-	}
 	f.forks[key] = height
 }
 
@@ -248,7 +245,7 @@ func (c *Chain33Config) IsEnableFork(height int64, fork string, enable bool) boo
 }
 
 //fork 设置规则：
-//所有的fork都需要有明确的配置，不开启fork 配置为 -1
+//所有的fork都需要有明确的配置，不开启fork 配置为 -1; forks即为从toml中读入文件
 func (c *Chain33Config) initForkConfig(forks *ForkList) {
 	chain33fork := c.forks.GetAll()
 	if chain33fork == nil {
@@ -293,7 +290,7 @@ func (c *Chain33Config) initForkConfig(forks *ForkList) {
 			s += "system fork not exist : " + k + "\n"
 		}
 		// 由于toml文件中保存的是新的fork所以需要替换已有的初始化的fork
-		c.forks.ReplaceFork(k, v)
+		c.forks.SetFork(k, v)
 	}
 	//重置allow exec 的权限，让他只限制在配置文件设置的
 	AllowUserExec = [][]byte{ExecerNone}
@@ -307,10 +304,12 @@ func (c *Chain33Config) initForkConfig(forks *ForkList) {
 				s += "exec fork not exist : exec = " + dapp + " key = " + k + "\n"
 			}
 			// 由于toml文件中保存的是新的fork所以需要替换已有的初始化的fork
-			c.forks.ReplaceDappFork(dapp, k, v)
+			c.forks.SetDappFork(dapp, k, v)
 		}
 	}
-	if len(s) > 0 {
-		panic(s)
+	if c.enableCheckFork {
+		if len(s) > 0 {
+			panic(s)
+		}
 	}
 }

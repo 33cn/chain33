@@ -18,7 +18,6 @@ EventTransfer -> 转移资产
 
 import (
 	drivers "github.com/33cn/chain33/system/dapp"
-	typ "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -30,7 +29,6 @@ func Init(name string, cfg *types.Chain33Config, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}
-	typ.InitTypes(cfg)
 	// 需要先 RegisterDappFork才可以Register dapp
 	drivers.Register(cfg, driverName, newCoins, cfg.GetDappFork(driverName, "Enable"))
 	InitExecType()

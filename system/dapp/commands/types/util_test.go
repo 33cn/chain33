@@ -11,6 +11,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"github.com/33cn/chain33/util"
 )
 
 func TestCheckExpireOpt(t *testing.T) {
@@ -69,18 +70,24 @@ func TestDecodeAccount(t *testing.T) {
 }
 
 func TestCreateRawTx(t *testing.T) {
+	chain33Cfg := types.NewChain33Config(util.GetDefaultCfgstring())
+	types.SetCliSysParam(chain33Cfg.GetTitle(), chain33Cfg)
+
+	cmd  := &cobra.Command{}
+	cmd.Flags().StringP("title", "t", chain33Cfg.GetTitle(), "for test")
+
 	var err error
-	_, err = CreateRawTx(&cobra.Command{}, "", 0, "", false, "", "")
+	_, err = CreateRawTx(cmd, "", 0, "", false, "", "")
 	assert.Nil(t, err)
-	_, err = CreateRawTx(&cobra.Command{}, "", 0, "", false, "", "coins")
+	_, err = CreateRawTx(cmd, "", 0, "", false, "", "coins")
 	assert.Nil(t, err)
-	_, err = CreateRawTx(&cobra.Command{}, "", 0, "", true, "", "")
+	_, err = CreateRawTx(cmd, "", 0, "", true, "", "")
 	assert.Nil(t, err)
-	_, err = CreateRawTx(&cobra.Command{}, "", -1, "", false, "", "")
+	_, err = CreateRawTx(cmd, "", -1, "", false, "", "")
 	assert.Equal(t, types.ErrAmount, err)
-	_, err = CreateRawTx(&cobra.Command{}, "", 1e10, "", false, "", "")
+	_, err = CreateRawTx(cmd, "", 1e10, "", false, "", "")
 	assert.Equal(t, types.ErrAmount, err)
-	_, err = CreateRawTx(&cobra.Command{}, "", 0, "", false, "", "coins-")
+	_, err = CreateRawTx(cmd, "", 0, "", false, "", "coins-")
 	assert.Equal(t, types.ErrExecNameNotMatch, err)
 }
 

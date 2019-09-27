@@ -12,6 +12,7 @@ import (
 )
 
 func TestLoadExecutorType(t *testing.T) {
+	NewChain33Config(GetDefaultCfgstring())
 	exec := LoadExecutorType("manage")
 	assert.NotEqual(t, exec, nil)
 	assert.Equal(t, exec.GetName(), "manage")
@@ -22,7 +23,6 @@ func TestLoadExecutorType(t *testing.T) {
 
 	exec = LoadExecutorType("xxxx")
 	assert.Equal(t, exec, nil)
-
 }
 
 func TestFormatTx(t *testing.T) {

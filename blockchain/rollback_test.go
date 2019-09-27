@@ -15,15 +15,23 @@ import (
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"strings"
+	"sync"
 )
 
-func Init(cfg *types.Chain33Config) {
-	cfg.SetDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
-}
+
+var once sync.Once
+
 
 func TestRollbackblock(t *testing.T) {
-	cfg := testnode.GetDefaultConfig()
-	Init(cfg)
+	once.Do(func() {
+		types.RegFork("store-kvmvccmavl", func(cfg *types.Chain33Config) {
+			cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
+		})
+	})
+	str := util.GetDefaultCfgstring()
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"" , 1)
+	cfg := types.NewChain33Config(new)
 	mfg := cfg.GetModuleConfig()
 	mfg.BlockChain.RollbackBlock = 0
 	mock33 := testnode.NewWithConfig(cfg, nil)
@@ -41,8 +49,15 @@ func TestRollbackblock(t *testing.T) {
 }
 
 func TestNeedRollback(t *testing.T) {
-	cfg := testnode.GetDefaultConfig()
-	Init(cfg)
+	once.Do(func() {
+		types.RegFork("store-kvmvccmavl", func(cfg *types.Chain33Config) {
+			cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
+		})
+	})
+
+	str := util.GetDefaultCfgstring()
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"" , 1)
+	cfg := types.NewChain33Config(new)
 	mock33 := testnode.NewWithConfig(cfg, nil)
 	chain := mock33.GetBlockChain()
 
@@ -80,7 +95,6 @@ func TestNeedRollback(t *testing.T) {
 
 func TestRollback(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
-	Init(cfg)
 	mfg := cfg.GetModuleConfig()
 	mfg.BlockChain.RollbackBlock = 2
 	mock33 := testnode.NewWithConfig(cfg, nil)
@@ -99,7 +113,6 @@ func TestRollback(t *testing.T) {
 
 func TestRollbackSave(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
-	Init(cfg)
 	mfg := cfg.GetModuleConfig()
 	mfg.BlockChain.RollbackBlock = 2
 	mfg.BlockChain.RollbackSave = true
@@ -134,7 +147,6 @@ func TestRollbackSave(t *testing.T) {
 
 func TestRollbackPara(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
-	Init(cfg)
 	mfg := cfg.GetModuleConfig()
 	mfg.BlockChain.RollbackBlock = 2
 	mfg.BlockChain.IsParaChain = true

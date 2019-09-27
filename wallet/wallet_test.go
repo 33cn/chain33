@@ -30,12 +30,12 @@ func init() {
 }
 
 func initEnv() (*Wallet, queue.Module, queue.Queue) {
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	var q = queue.New("channel")
-	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
-
-	wallet := New(cfg.Wallet, sub.Wallet)
+	q.SetConfig(cfg)
+	wallet := New(cfg)
 	wallet.SetQueueClient(q.Client())
-	store := store.New(cfg.Store, sub.Store)
+	store := store.New(cfg)
 	store.SetQueueClient(q.Client())
 
 	return wallet, store, q

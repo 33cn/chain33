@@ -8,7 +8,6 @@ package executor
 import (
 	log "github.com/33cn/chain33/common/log/log15"
 	drivers "github.com/33cn/chain33/system/dapp"
-	typ "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -19,7 +18,6 @@ var (
 
 // Init resister a dirver
 func Init(name string, cfg *types.Chain33Config, sub []byte) {
-	typ.InitTypes(cfg)
 	// 需要先 RegisterDappFork才可以Register dapp
 	drivers.Register(cfg, GetName(), newManage, cfg.GetDappFork(driverName, "Enable"))
 	InitExecType()

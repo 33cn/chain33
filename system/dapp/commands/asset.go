@@ -110,8 +110,8 @@ func assetBalance(cmd *cobra.Command, args []string) {
 // CreateAssetSendToExec 通用的创建 send_exec 交易， 额外指定资产合约
 func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
 	title, _ := cmd.Flags().GetString("title")
-	cfg, ok := types.CliSysParam[title]
-	if !ok {
+	cfg := types.GetCliSysParam(title)
+	if cfg == nil {
 		panic(fmt.Sprintln("can not find CliSysParam title", title))
 	}
 	paraName, _ := cmd.Flags().GetString("paraName")
@@ -149,8 +149,8 @@ func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
 // CreateAssetWithdraw 通用的创建 withdraw 交易， 额外指定资产合约
 func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
 	title, _ := cmd.Flags().GetString("title")
-	cfg, ok := types.CliSysParam[title]
-	if !ok {
+	cfg := types.GetCliSysParam(title)
+	if cfg == nil {
 		panic(fmt.Sprintln("can not find CliSysParam title", title))
 	}
 	exec, _ := cmd.Flags().GetString("exec")
@@ -187,8 +187,8 @@ func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
 // CreateAssetTransfer 通用的创建 transfer 交易， 额外指定资产合约
 func CreateAssetTransfer(cmd *cobra.Command, args []string, fromExec string) {
 	title, _ := cmd.Flags().GetString("title")
-	cfg, ok := types.CliSysParam[title]
-	if !ok {
+	cfg := types.GetCliSysParam(title)
+	if cfg == nil {
 		panic(fmt.Sprintln("can not find CliSysParam title", title))
 	}
 	toAddr, _ := cmd.Flags().GetString("to")
