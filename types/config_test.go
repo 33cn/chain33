@@ -44,13 +44,13 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, confsubtoken.GIntq("Enable"), int64(100899))
 }
 
-//func TestBityuanInit(t *testing.T) {
-//	cfg, err := initCfgString(MergeCfg(ReadFile("../cmd/chain33/bityuan.toml"), ""))
-//	assert.Nil(t, err)
-//	assert.Equal(t, int64(200000), cfg.Fork.System["ForkWithdraw"])
-//	assert.Equal(t, int64(0), cfg.Fork.Sub["token"]["Enable"])
-//	assert.Nil(t, err)
-//}
+func TestBityuanInit(t *testing.T) {
+	cfg, err := initCfgString(MergeCfg(ReadFile("testdata/bityuan.toml"), ""))
+	assert.Nil(t, err)
+	assert.Equal(t, int64(200000), cfg.Fork.System["ForkWithdraw"])
+	assert.Equal(t, int64(0), cfg.Fork.Sub["token"]["Enable"])
+	assert.Nil(t, err)
+}
 
 func TestGetParaExecTitleName(t *testing.T) {
 	_, exist := GetParaExecTitleName("token")
