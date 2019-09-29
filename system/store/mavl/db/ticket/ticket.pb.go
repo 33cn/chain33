@@ -5,9 +5,10 @@ package ticket
 
 import (
 	fmt "fmt"
-	math "math"
 
 	proto "github.com/golang/protobuf/proto"
+
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -27,11 +28,11 @@ type Ticket struct {
 	Status int32 `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
 	// genesis 创建的私钥比较特殊
 	IsGenesis bool `protobuf:"varint,3,opt,name=isGenesis,proto3" json:"isGenesis,omitempty"`
-	//创建时间
+	// 创建时间
 	CreateTime int64 `protobuf:"varint,4,opt,name=createTime,proto3" json:"createTime,omitempty"`
-	//挖矿时间
+	// 挖矿时间
 	MinerTime int64 `protobuf:"varint,5,opt,name=minerTime,proto3" json:"minerTime,omitempty"`
-	//挖到的币的数目
+	// 挖到的币的数目
 	MinerValue   int64  `protobuf:"varint,8,opt,name=minerValue,proto3" json:"minerValue,omitempty"`
 	MinerAddress string `protobuf:"bytes,6,opt,name=minerAddress,proto3" json:"minerAddress,omitempty"`
 	// return wallet
@@ -47,17 +48,16 @@ func (m *Ticket) Reset()         { *m = Ticket{} }
 func (m *Ticket) String() string { return proto.CompactTextString(m) }
 func (*Ticket) ProtoMessage()    {}
 func (*Ticket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_98a6c21780e82d22, []int{0}
+	return fileDescriptor_ticket_e4c23a562b266bab, []int{0}
 }
-
 func (m *Ticket) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Ticket.Unmarshal(m, b)
 }
 func (m *Ticket) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Ticket.Marshal(b, m, deterministic)
 }
-func (m *Ticket) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Ticket.Merge(m, src)
+func (dst *Ticket) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Ticket.Merge(dst, src)
 }
 func (m *Ticket) XXX_Size() int {
 	return xxx_messageInfo_Ticket.Size(m)
@@ -135,9 +135,9 @@ func init() {
 	proto.RegisterType((*Ticket)(nil), "ticket.Ticket")
 }
 
-func init() { proto.RegisterFile("ticket.proto", fileDescriptor_98a6c21780e82d22) }
+func init() { proto.RegisterFile("ticket.proto", fileDescriptor_ticket_e4c23a562b266bab) }
 
-var fileDescriptor_98a6c21780e82d22 = []byte{
+var fileDescriptor_ticket_e4c23a562b266bab = []byte{
 	// 207 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x90, 0xcd, 0x4a, 0xc4, 0x30,
 	0x14, 0x85, 0x49, 0x6b, 0x63, 0x7b, 0xa9, 0x9b, 0x8b, 0x48, 0x10, 0x91, 0x50, 0x5c, 0x64, 0xe5,
