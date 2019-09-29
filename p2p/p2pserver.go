@@ -420,11 +420,18 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 	peerAddr := fmt.Sprintf("%s:%v", peerIP, in.GetPort())
 	//等待ReadStream接收节点version信息
 	var peerInfo *innerpeer
-	for ; peerInfo == nil || peerInfo.p2pversion == 0; peerInfo = s.getInBoundPeerInfo(peerAddr) {
+	var reTry int32
+	peerName := hex.EncodeToString(in.GetSign().GetPubkey())
+	//此处不能用IP:Port 作为key,因为存在内网多个节点共享一个IP的可能,用peerName 不会有这个问题
+	for ; peerInfo == nil || peerInfo.p2pversion == 0; peerInfo = s.getInBoundPeerInfo(peerName) {
 		time.Sleep(time.Second)
+		reTry++
+		if reTry > 5 { //如果一直不跳出循环，这个goroutine 一直存在，潜在的风险点
+			return fmt.Errorf("can not find peer:%v", peerAddr)
+		}
 	}
 	log.Debug("ServerStreamSend")
-	peerName := hex.EncodeToString(in.GetSign().GetPubkey())
+
 	dataChain := s.addStreamHandler(peerName)
 	defer s.deleteStream(peerName, dataChain)
 	for data := range dataChain {
@@ -457,7 +464,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 	var peeraddr, peername string
 	//此处delete是defer调用, 提前绑定变量,需要传入指针, peeraddr的值才能被获取
-	defer s.deleteInBoundPeerInfo(&peeraddr)
+	defer s.deleteInBoundPeerInfo(&peername)
 	defer stream.SendAndClose(&pb.ReqNil{})
 
 	for {
@@ -476,7 +483,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			//接收版本信息
 			peername = ver.GetPeername()
 			softversion := ver.GetSoftversion()
-			innerpeer := s.getInBoundPeerInfo(peeraddr)
+			innerpeer := s.getInBoundPeerInfo(peername)
 			channel, p2pVersion := decodeChannelVersion(ver.GetP2Pversion())
 			if !s.node.verifyP2PChannel(channel) {
 				return pb.ErrP2PChannel
@@ -486,7 +493,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				info := *innerpeer
 				info.p2pversion = p2pVersion
 				info.softversion = softversion
-				s.addInBoundPeerInfo(innerpeer.addr, info)
+				s.addInBoundPeerInfo(peername, info)
 			} else {
 				//没有获取到peer 的信息，说明没有获取ping的消息包
 				return pb.ErrStreamPing
@@ -507,7 +514,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", peerIP, ping.GetPort())
-			s.addInBoundPeerInfo(peeraddr, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
+			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
 		}
 	}
 }
@@ -664,22 +671,22 @@ func (s *P2pserver) deleteStream(peerName string, delChan chan interface{}) {
 	}
 }
 
-func (s *P2pserver) addInBoundPeerInfo(peerAddr string, info innerpeer) {
+func (s *P2pserver) addInBoundPeerInfo(peerName string, info innerpeer) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
-	s.inboundpeers[peerAddr] = &info
+	s.inboundpeers[peerName] = &info
 }
 
-func (s *P2pserver) deleteInBoundPeerInfo(peerAddr *string) {
+func (s *P2pserver) deleteInBoundPeerInfo(peerName *string) {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
-	delete(s.inboundpeers, *peerAddr)
+	delete(s.inboundpeers, *peerName)
 }
 
-func (s *P2pserver) getInBoundPeerInfo(peerAddr string) *innerpeer {
+func (s *P2pserver) getInBoundPeerInfo(peerName string) *innerpeer {
 	s.imtx.Lock()
 	defer s.imtx.Unlock()
-	if key, ok := s.inboundpeers[peerAddr]; ok {
+	if key, ok := s.inboundpeers[peerName]; ok {
 		return key
 	}
 

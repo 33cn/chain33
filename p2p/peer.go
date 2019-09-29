@@ -301,7 +301,7 @@ func (p *Peer) readStream() {
 		}
 		ping, err := P2pComm.NewPingData(p.node.nodeInfo)
 		if err != nil {
-			log.Error("readStream", "err:", err.Error())
+			log.Error("readStream", "err:", err.Error(), "peerIp", p.Addr())
 			continue
 		}
 		resp, err := p.mconn.gcli.ServerStreamSend(context.Background(), ping)
@@ -313,6 +313,7 @@ func (p *Peer) readStream() {
 		}
 
 		log.Debug("SubStreamBlock", "Start", p.Addr())
+		var reTry int32
 		for {
 			if !p.GetRunning() {
 				errs := resp.CloseSend()
@@ -325,22 +326,30 @@ func (p *Peer) readStream() {
 			data, err := resp.Recv()
 			P2pComm.CollectPeerStat(err, p)
 			if err != nil {
-				log.Error("readStream", "recv,err:", err.Error())
-				errs := resp.CloseSend()
-				if errs != nil {
-					log.Error("CloseSend", "err", errs)
+				reTry++
+				if reTry > 5 {
+					errs := resp.CloseSend()
+					if errs != nil {
+						log.Error("CloseSend", "err", errs)
+					}
+					return
 				}
+
+				log.Error("readStream", "recv,err:", err.Error(), "peerIp", p.Addr(), "peer", p)
+
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 					p.node.nodeInfo.blacklist.Add(p.Addr(), 3600)
+					return
 				}
 				//beyound max inbound num
 				if strings.Contains(err.Error(), "beyound max inbound num") {
 					log.Info("readStream", "peer inbounds num", p.GetInBouns())
 					p.IsMaxInbouds = true
 					P2pComm.CollectPeerStat(err, p)
+					return
 				}
 				time.Sleep(time.Second) //have a rest
-				break
+
 			}
 
 			p.node.processRecvP2P(data, p.GetPeerName(), p.node.pubToPeer, p.Addr())
