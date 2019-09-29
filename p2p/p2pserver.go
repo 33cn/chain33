@@ -514,9 +514,9 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 // CollectInPeers collect external network nodes of connect their own
 func (s *P2pserver) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.PeerList, error) {
-	log.Info("CollectInPeers")
+	log.Debug("CollectInPeers")
 	if !P2pComm.CheckSign(in) {
-		log.Info("CollectInPeers", "ping", "signatrue err")
+		log.Debug("CollectInPeers", "ping", "signatrue err")
 		return nil, pb.ErrPing
 	}
 	inPeers := s.getInBoundPeers()
@@ -538,9 +538,9 @@ func (s *P2pserver) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 
 // CollectInPeers2 collect external network nodes of connect their own
 func (s *P2pserver) CollectInPeers2(ctx context.Context, in *pb.P2PPing) (*pb.PeersReply, error) {
-	log.Info("CollectInPeers2")
+	log.Debug("CollectInPeers2")
 	if !P2pComm.CheckSign(in) {
-		log.Info("CollectInPeers", "ping", "signatrue err")
+		log.Debug("CollectInPeers", "ping", "signatrue err")
 		return nil, pb.ErrPing
 	}
 	inPeers := s.getInBoundPeers()

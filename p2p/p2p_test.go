@@ -222,6 +222,8 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 
 	localP2P.node.AddCachePeer(peer)
 	peer.GetRunning()
+	peer.getIsRegister()
+	peer.setIsRegister(false)
 	localP2P.node.nodeInfo.FetchPeerInfo(localP2P.node)
 	peers, infos := localP2P.node.GetActivePeers()
 	assert.Equal(t, len(peers), len(infos))

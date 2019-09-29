@@ -76,7 +76,7 @@ func (c Comm) GetLocalAddr() string {
 }
 
 func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, node *Node) (*Peer, error) {
-	log.Info("dialPeerWithAddress")
+	log.Debug("dialPeerWithAddress")
 	conn, err := addr.DialTimeout(node.nodeInfo.channelVersion)
 	if err != nil {
 		return nil, err
