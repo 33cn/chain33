@@ -243,7 +243,7 @@ func (p *Peer) sendStream() {
 	SEND_LOOP:
 		for {
 			//老版本的peerinfo注册错误, 需要结束发送流循环, 重新注册节点信息
-			if p.getIsRegister() == false {
+			if !p.getIsRegister() {
 				break
 			}
 			if !p.GetRunning() {
