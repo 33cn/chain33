@@ -39,7 +39,7 @@ func initEnv() (*Wallet, queue.Module, queue.Queue, string) {
 	store := store.New(cfg)
 	store.SetQueueClient(q.Client())
 
-	return wallet, store, q, cfg.Wallet.DbPath
+	return wallet, store, q, cfg.GetModuleConfig().Wallet.DbPath
 }
 
 var (

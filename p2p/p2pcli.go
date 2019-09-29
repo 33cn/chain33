@@ -532,7 +532,7 @@ func (m *Cli) BlockBroadcast(msg *queue.Message, taskindex int64) {
 	}()
 
 	if block, ok := msg.GetData().(*pb.Block); ok {
-		blockHashFilter.RegRecvData(hex.EncodeToString(block.Hash()))
+		blockHashFilter.RegRecvData(hex.EncodeToString(block.Hash(m.network.client.GetConfig())))
 		m.network.node.pubsub.FIFOPub(&pb.P2PBlock{Block: block}, "block")
 	}
 }

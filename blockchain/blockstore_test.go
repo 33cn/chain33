@@ -199,11 +199,13 @@ func TestHasTx(t *testing.T) {
 
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 
-	blockStore := NewBlockStore(nil, blockStoreDB, nil)
+	chain := InitEnv()
+	cfg := chain.client.GetConfig()
+	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
 	assert.NotNil(t, blockStore)
 	blockStore.saveSequence = false
 	blockStore.isParaChain = false
-	types.S("quickIndex", true)
+	cfg.S("quickIndex", true)
 
 	//txstring1 和txstring2的短hash是一样的，但是全hash是不一样的
 	txstring1 := "0xaf095d11326ebb97d142fdb0e0138ef28524470c121b4811bdd05857b2d06764"
@@ -225,12 +227,12 @@ func TestHasTx(t *testing.T) {
 	var txresult types.TxResult
 	txresult.Height = 1
 	txresult.Index = int32(1)
-	batch.Set(types.CalcTxKey(txhash1), types.Encode(&txresult))
+	batch.Set(cfg.CalcTxKey(txhash1), types.Encode(&txresult))
 	batch.Set(types.CalcTxShortKey(txhash1), []byte("1"))
 
 	txresult.Height = 3
 	txresult.Index = int32(3)
-	batch.Set(types.CalcTxKey(txhash3), types.Encode(&txresult))
+	batch.Set(cfg.CalcTxKey(txhash3), types.Encode(&txresult))
 	batch.Set(types.CalcTxShortKey(txhash3), []byte("1"))
 
 	batch.Write()

@@ -187,8 +187,8 @@ func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	chain.isParaChain = mcfg.IsParaChain
 	cfg.S("quickIndex", mcfg.EnableTxQuickIndex)
 
-	if cfg.OnChainTimeout > 0 {
-		chain.onChainTimeout = cfg.OnChainTimeout
+	if mcfg.OnChainTimeout > 0 {
+		chain.onChainTimeout = mcfg.OnChainTimeout
 	}
 	chain.initOnChainTimeout()
 }

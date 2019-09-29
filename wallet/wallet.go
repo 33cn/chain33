@@ -110,7 +110,7 @@ func New(cfg *types.Chain33Config) *Wallet {
 		isWalletLocked:   1,
 		fatalFailureFlag: 0,
 		wg:               &sync.WaitGroup{},
-		FeeAmount:        walletStore.GetFeeAmount(cfg.MinFee),
+		FeeAmount:        walletStore.GetFeeAmount(mcfg.MinFee),
 		EncryptFlag:      walletStore.GetEncryptionFlag(),
 		done:             make(chan struct{}),
 		cfg:              mcfg,

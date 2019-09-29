@@ -1291,9 +1291,10 @@ func TestSetValueByKey(t *testing.T) {
 func TestOnChainTimeout(t *testing.T) {
 	chainlog.Info("TestOnChainTimeout begin --------------------")
 
-	cfg, sub := testnode.GetDefaultConfig()
-	cfg.BlockChain.OnChainTimeout = 1
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	cfg := testnode.GetDefaultConfig()
+	mcfg := cfg.GetModuleConfig()
+	mcfg.BlockChain.OnChainTimeout = 1
+	mock33 := testnode.NewWithConfig(cfg, nil)
 
 	defer mock33.Close()
 	blockchain := mock33.GetBlockChain()

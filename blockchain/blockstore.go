@@ -345,7 +345,8 @@ func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
 
 //HasTx 是否包含该交易
 func (bs *BlockStore) HasTx(key []byte) (bool, error) {
-	if bs.client.GetConfig().IsEnable("quickIndex") {
+	cfg := bs.client.GetConfig()
+	if cfg.IsEnable("quickIndex") {
 		if _, err := bs.db.Get(types.CalcTxShortKey(key)); err != nil {
 			if err == dbm.ErrNotFoundInDb {
 				return false, nil
@@ -356,7 +357,6 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 		//避免短hash重复，而全hash不一样的情况
 		//return true, nil
 	}
-	cfg := bs.client.GetConfig()
 	if _, err := bs.db.Get(cfg.CalcTxKey(key)); err != nil {
 		if err == dbm.ErrNotFoundInDb {
 			return false, nil

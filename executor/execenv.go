@@ -531,7 +531,8 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	err := e.checkTx(tx, index)
 	if err != nil {
 		elog.Error("execTx.checkTx ", "txhash", common.ToHex(tx.Hash()), "err", err)
-		if types.IsPara() {
+		cfg := e.api.GetConfig()
+		if cfg.IsPara() {
 			panic(err)
 		}
 		return nil, err

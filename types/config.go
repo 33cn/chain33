@@ -289,8 +289,8 @@ func (c *Chain33Config) setTestNet(isTestNet bool) {
 func (c *Chain33Config) GetP(height int64) *ChainParam {
 	conf := Conf(c, "mver.consensus")
 	chain := &ChainParam{}
-	chain.MaxTxNumber = conf.MGInt("maxTxNumber", height)
-	chain.PowLimitBits = uint32(conf.MGInt("powLimitBits", height))
+	chain.MaxTxNumber = conf.MGIntq("maxTxNumber", height)
+	chain.PowLimitBits = uint32(conf.MGIntq("powLimitBits", height))
 	return chain
 }
 
