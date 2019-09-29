@@ -19,6 +19,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"strings"
 )
 
 func TestMakeStringUpper(t *testing.T) {
@@ -270,7 +271,9 @@ func (t *testClient) Wait(in *queue.Message) (*queue.Message, error) {
 }
 
 func TestExecBlock(t *testing.T) {
-	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	str := types.GetDefaultCfgstring()
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"" , 1)
+	cfg := types.NewChain33Config(new)
 	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	client.On("GetConfig", mock.Anything).Return(cfg)
