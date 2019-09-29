@@ -81,29 +81,33 @@ minerExecs=["ticket", "autonomy"]
 
 [mver.consensus]
 fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
-coinReward = 18
-coinDevFund = 12
-ticketPrice = 10000
 powLimitBits = "0x1f00ffff"
-retargetAdjustmentFactor = 4
-futureBlockTime = 16
-ticketFrozenTime = 5
-ticketWithdrawTime = 10
-ticketMinerWaitTime = 2
 maxTxNumber = 10000
-targetTimespan = 2304
-targetTimePerBlock = 16
 
 [mver.consensus.ForkChainParamV1]
 maxTxNumber = 10000
-targetTimespan = 288 #only for test
-targetTimePerBlock = 2
 
 [mver.consensus.ForkChainParamV2]
 powLimitBits = "0x1f2fffff"
 
 [mver.consensus.ForkTicketFundAddrV1]
 fundKeyAddr = "1Ji3W12KGScCM7C2p8bg635sNkayDM8MGY"
+
+[mver.consensus.ticket]
+coinReward = 18
+coinDevFund = 12
+ticketPrice = 10000
+retargetAdjustmentFactor = 4
+futureBlockTime = 16
+ticketFrozenTime = 5
+ticketWithdrawTime = 10
+ticketMinerWaitTime = 2
+targetTimespan = 2304
+targetTimePerBlock = 16
+
+[mver.consensus.ticket.ForkChainParamV1]
+targetTimespan = 288 #only for test
+targetTimePerBlock = 2
 
 [consensus.sub.para]
 ParaRemoteGrpcClient="localhost:8802"

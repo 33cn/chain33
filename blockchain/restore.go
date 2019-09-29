@@ -38,7 +38,13 @@ func (chain *BlockChain) UpgradeStore() {
 			panic(err)
 		}
 	}
-	if chain.needReExec(meta) {
+	if chain.NeedReExec(meta) {
+		//如果没有开始重建index，那么先del all keys
+		if !meta.Starting && chain.cfg.EnableReExecLocal {
+			chainlog.Info("begin del all keys")
+			chain.blockStore.delAllKeys()
+			chainlog.Info("end del all keys")
+		}
 		start := meta.Height
 		//reExecBlock 的过程中，会每个高度都去更新meta
 		chain.ReExecBlock(start, curheight)
@@ -95,16 +101,25 @@ func (chain *BlockChain) ReExecBlock(startHeight, curHeight int64) {
 	}
 }
 
-func (chain *BlockChain) needReExec(meta *types.UpgradeMeta) bool {
+// NeedReExec 是否需要重新执行
+func (chain *BlockChain) NeedReExec(meta *types.UpgradeMeta) bool {
 	if meta.Starting { //正在
 		return true
 	}
 	v1 := meta.Version
 	v2 := version.GetStoreDBVersion()
-	v1arr := strings.Split(v1, ".")
-	v2arr := strings.Split(v2, ".")
+	v1arr := strings.Split(v1, ".") // 数据库中版本
+	v2arr := strings.Split(v2, ".") // 程序中的版本
 	if len(v1arr) != 3 || len(v2arr) != 3 {
 		panic("upgrade store meta version error")
+	}
+	if v2arr[0] > "2" {
+		chainlog.Info("NeedReExec", "version program", v1, "version DB", v2)
+		panic("not support upgrade store to greater than 2.0.0")
+	}
+	if v1arr[0] > v2arr[0] { // 数据库已经是新版本不允许降级使用旧程序
+		chainlog.Info("NeedReExec", "version program", v1, "version DB", v2)
+		panic("not support degrade the program")
 	}
 	return v1arr[0] != v2arr[0]
 }

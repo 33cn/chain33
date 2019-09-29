@@ -352,7 +352,9 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 			}
 			return false, err
 		}
-		return true, nil
+		//通过短hash查询交易存在时，需要再通过全hash索引查询一下。
+		//避免短hash重复，而全hash不一样的情况
+		//return true, nil
 	}
 	cfg := bs.client.GetConfig()
 	if _, err := bs.db.Get(cfg.CalcTxKey(key)); err != nil {
@@ -942,7 +944,7 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	err = storeBatch.Write()
 	if err != nil {
 		chainlog.Error("dbMaybeStoreBlock storeBatch.Write:", "err", err)
-		return types.ErrDataBaseDamage
+		panic(err)
 	}
 	return nil
 }

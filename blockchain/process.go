@@ -345,8 +345,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	err = newbatch.Write()
 	if err != nil {
 		chainlog.Error("connectBlock newbatch.Write", "err", err)
-		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
-		return nil, err
+		panic(err)
 	}
 	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", types.Since(beg), "hash", common.ToHex(blockdetail.Block.Hash(cfg)))
 
@@ -411,8 +410,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	err = newbatch.Write()
 	if err != nil {
 		chainlog.Error("disconnectBlock newbatch.Write", "err", err)
-		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
-		return err
+		panic(err)
 	}
 	//更新最新的高度和header为上一个块
 	b.blockStore.UpdateHeight()

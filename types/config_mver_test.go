@@ -6,7 +6,6 @@ package types
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,6 +31,7 @@ func TestConfigMverInit(t *testing.T) {
 	cfg.chain33CfgInit(cfg.GetModuleConfig())
 	assert.Equal(t, cfg.MGStr("mver.consensus.name2", 0), "ticket-bityuan")
 	assert.Equal(t, cfg.MGStr("mver.consensus.name2", 10), "ticket-bityuanv5")
+	assert.Equal(t, cfg.MGStr("mver.consensus.name2", 25), "ticket-bityuanv2")
 	assert.Equal(t, cfg.MGStr("mver.hello", 0), "world")
 	assert.Equal(t, cfg.MGStr("mver.hello", 11), "forkworld")
 	assert.Equal(t, cfg.MGStr("mver.nofork", 0), "nofork")
@@ -44,6 +44,15 @@ func TestConfigMverInit(t *testing.T) {
 	assert.Equal(t, cfg.MGStr("mver.exec.sub.coins.name2", 10), "ticket-bityuanv5")
 	assert.Equal(t, cfg.MGStr("mver.exec.sub.coins.name2", 11), "ticket-bityuanv5")
 	assert.Equal(t, int64(1), cfg.GetDappFork("store-kvmvccmavl", "ForkKvmvccmavl"))
+
+	assert.Equal(t, cfg.MGInt("mver.consensus.ticket.ticketPrice", 1), int64(10000))
+	assert.Equal(t, cfg.MGInt("mver.consensus.ticket.ticketPrice", 11), int64(20000))
+	assert.Equal(t, cfg.MGInt("mver.consensus.ticket.ticketPrice", 21), int64(30000))
+
+	assert.Equal(t, cfg.MGInt("mver.consensus.ticket.ticketFrozenTime", -2), int64(5))
+	assert.Equal(t, cfg.MGInt("mver.consensus.ticket.ticketFrozenTime", 1), int64(5))
+	assert.Equal(t, cfg.MGInt("mver.consensus.ticket.ticketFrozenTime", 10), int64(5))
+	assert.Equal(t, cfg.MGInt("mver.consensus.ticket.ticketFrozenTime", 20), int64(5))
 }
 
 var chainBaseParam *ChainParam
@@ -51,18 +60,9 @@ var chainV3Param *ChainParam
 
 func initChainBase() {
 	chainBaseParam = &ChainParam{}
-	chainBaseParam.CoinReward = 18 * Coin  //用户回报
-	chainBaseParam.CoinDevFund = 12 * Coin //发展基金回报
-	chainBaseParam.TicketPrice = 10000 * Coin
 	chainBaseParam.PowLimitBits = uint32(0x1f00ffff)
-	chainBaseParam.RetargetAdjustmentFactor = 4
-	chainBaseParam.FutureBlockTime = 16
-	chainBaseParam.TicketFrozenTime = 5    //5s only for test
-	chainBaseParam.TicketWithdrawTime = 10 //10s only for test
-	chainBaseParam.TicketMinerWaitTime = 2 // 2s only for test
-	chainBaseParam.MaxTxNumber = 1600      //160
-	chainBaseParam.TargetTimespan = 144 * 16 * time.Second
-	chainBaseParam.TargetTimePerBlock = 16 * time.Second
+	chainBaseParam.MaxTxNumber = 1600 //160
+
 }
 
 func getP(cfg *Chain33Config, height int64) *ChainParam {
@@ -80,13 +80,9 @@ func initChainBityuanV3() {
 	//copy base param
 	chainV3Param = &tmp
 	//修改的值
-	chainV3Param.FutureBlockTime = 15
-	chainV3Param.TicketFrozenTime = 12 * 3600
-	chainV3Param.TicketWithdrawTime = 48 * 3600
-	chainV3Param.TicketMinerWaitTime = 2 * 3600
+
 	chainV3Param.MaxTxNumber = 1500
-	chainV3Param.TargetTimespan = 144 * 15 * time.Second
-	chainV3Param.TargetTimePerBlock = 15 * time.Second
+
 }
 
 func TestInitChainParam(t *testing.T) {

@@ -116,6 +116,9 @@ type BlockChain struct {
 	blockSynInterVal time.Duration
 	DefCacheSize     int64
 	failed           int32
+
+	blockOnChain   *BlockOnChain
+	onChainTimeout int64
 }
 
 //New new
@@ -158,6 +161,8 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		MaxFetchBlockNum:    128 * 6, //一次最多申请获取block个数
 		TimeoutSeconds:      2,
 		isFastDownloadSync:  true,
+		blockOnChain:        &BlockOnChain{},
+		onChainTimeout:      0,
 	}
 	blockchain.initConfig(cfg)
 	return blockchain
@@ -181,6 +186,11 @@ func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	chain.isRecordBlockSequence = mcfg.IsRecordBlockSequence
 	chain.isParaChain = mcfg.IsParaChain
 	cfg.S("quickIndex", mcfg.EnableTxQuickIndex)
+
+	if cfg.OnChainTimeout > 0 {
+		chain.onChainTimeout = cfg.OnChainTimeout
+	}
+	chain.initOnChainTimeout()
 }
 
 //Close 关闭区块链

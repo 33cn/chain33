@@ -424,14 +424,14 @@ func (s *P2pserver) ServerStreamSend(in *pb.P2PPing, stream pb.P2Pgservice_Serve
 		time.Sleep(time.Second)
 	}
 	log.Debug("ServerStreamSend")
-	peername := hex.EncodeToString(in.GetSign().GetPubkey())
-	dataChain := s.addStreamHandler(peername)
-	defer s.deleteStream(peername, dataChain)
+	peerName := hex.EncodeToString(in.GetSign().GetPubkey())
+	dataChain := s.addStreamHandler(peerName)
+	defer s.deleteStream(peerName, dataChain)
 	for data := range dataChain {
 		if s.IsClose() {
 			return fmt.Errorf("node close")
 		}
-		sendData, doSend := s.node.processSendP2P(data, peerInfo.p2pversion, peerInfo.addr)
+		sendData, doSend := s.node.processSendP2P(data, peerInfo.p2pversion, peerName, peerInfo.addr)
 		if !doSend {
 			continue
 		}

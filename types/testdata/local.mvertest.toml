@@ -88,6 +88,28 @@ name2="ticket-bityuanv1"
 [mver.consensus.ForkChainParamV2]
 name2="ticket-bityuanv2"
 
+[mver.consensus.ticket]
+ticketPrice = 10000
+ticketFrozenTime = 5    #5s only for test
+ticketWithdrawTime = 10 #10s only for test
+ticketMinerWaitTime = 2 #2s only for test
+targetTimespan = 1304
+targetTimePerBlock = 16
+retargetAdjustmentFactor = 4
+futureBlockTime = 16
+
+[mver.consensus.ticket.ForkChainParamV1]
+ticketPrice = 20000
+targetTimespan = 2304
+targetTimePerBlock = 26
+
+
+[mver.consensus.ticket.ForkChainParamV2]
+ticketPrice = 30000
+targetTimespan =3304
+targetTimePerBlock = 36
+
+
 [consensus.sub.ticket]
 genesisBlockTime=1526486816
 [[consensus.sub.ticket.genesis]]
@@ -179,7 +201,7 @@ name2="ticket-bityuanv5-enable"
 #但是我们可以替换
 [fork.system]
 ForkChainParamV1= 10
-ForkChainParamV2= 10
+ForkChainParamV2= 20
 ForkStateDBSet=-1
 ForkCheckTxDup=0
 ForkBlockHash= 1

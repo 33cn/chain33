@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/33cn/chain33/types/chaincfg"
 	tml "github.com/BurntSushi/toml"
@@ -64,18 +63,8 @@ type Chain33Config struct {
 
 // ChainParam 结构体
 type ChainParam struct {
-	CoinDevFund              int64
-	CoinReward               int64
-	FutureBlockTime          int64
-	TicketPrice              int64
-	TicketFrozenTime         int64
-	TicketWithdrawTime       int64
-	TicketMinerWaitTime      int64
-	MaxTxNumber              int64
-	PowLimitBits             uint32
-	TargetTimespan           time.Duration
-	TargetTimePerBlock       time.Duration
-	RetargetAdjustmentFactor int64
+	MaxTxNumber  int64
+	PowLimitBits uint32
 }
 
 // Reg 注册每个模块的自动初始化函数
@@ -300,18 +289,8 @@ func (c *Chain33Config) setTestNet(isTestNet bool) {
 func (c *Chain33Config) GetP(height int64) *ChainParam {
 	conf := Conf(c, "mver.consensus")
 	chain := &ChainParam{}
-	chain.CoinDevFund = conf.MGIntq("coinDevFund", height) * Coin
-	chain.CoinReward = conf.MGIntq("coinReward", height) * Coin
-	chain.FutureBlockTime = conf.MGIntq("futureBlockTime", height)
-	chain.TicketPrice = conf.MGIntq("ticketPrice", height) * Coin
-	chain.TicketFrozenTime = conf.MGIntq("ticketFrozenTime", height)
-	chain.TicketWithdrawTime = conf.MGIntq("ticketWithdrawTime", height)
-	chain.TicketMinerWaitTime = conf.MGIntq("ticketMinerWaitTime", height)
-	chain.MaxTxNumber = conf.MGIntq("maxTxNumber", height)
-	chain.PowLimitBits = uint32(conf.MGIntq("powLimitBits", height))
-	chain.TargetTimespan = time.Duration(conf.MGIntq("targetTimespan", height)) * time.Second
-	chain.TargetTimePerBlock = time.Duration(conf.MGIntq("targetTimePerBlock", height)) * time.Second
-	chain.RetargetAdjustmentFactor = conf.MGIntq("retargetAdjustmentFactor", height)
+	chain.MaxTxNumber = conf.MGInt("maxTxNumber", height)
+	chain.PowLimitBits = uint32(conf.MGInt("powLimitBits", height))
 	return chain
 }
 
