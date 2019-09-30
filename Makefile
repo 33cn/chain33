@@ -58,15 +58,15 @@ release: ## Build the binary file
 	@cp cmd/chain33/bityuan.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
 
-cli: ## Build cli binary; buildflags.ConfigPath is to build a cli read toml path
-	@go build -v -i -o $(CLI) -ldflags "-X $(SRC_CLI)/buildflags.ConfigPath=" $(SRC_CLI)
+cli: ## Build cli binary
+	@go build -v -i -o $(CLI) $(SRC_CLI)
 
 execblock: ## Build cli binary
 	@go build -v -i -o build/execblock github.com/33cn/chain33/cmd/execblock
 
 
 para:
-	@go build -v -o build/$(NAME) -ldflags "-X $(SRC_CLI)/buildflags.ParaName=user.p.$(NAME). -X $(SRC_CLI)/buildflags.RPCAddr=http://localhost:8901 -X $(SRC_CLI)/buildflags.ConfigPath=" $(SRC_CLI)
+	@go build -v -o build/$(NAME) -ldflags "-X $(SRC_CLI)/buildflags.ParaName=user.p.$(NAME). -X $(SRC_CLI)/buildflags.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
 
 autotest:## build autotest binary

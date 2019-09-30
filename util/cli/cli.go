@@ -20,7 +20,20 @@ import (
 )
 
 //Run :
-func Run(RPCAddr, ParaName, configPath, name string) {
+func Run(RPCAddr, ParaName, name string) {
+	configPath := ""
+	for i, arg := range os.Args[:] {
+		if arg == "-file" { // -file chain33.toml 可以配置读入cli配置文件路径
+			if i+1 < len(os.Args)-1 {
+				configPath = os.Args[i+1]
+				os.Args = append(os.Args[:i], os.Args[i+2:]...)
+			} else if i+1 == len(os.Args)-1 {
+				configPath = os.Args[i+1]
+				os.Args = os.Args[:i]
+			}
+			break
+		}
+	}
 	if configPath == "" {
 		if name == "" {
 			configPath = "chain33.toml"
@@ -31,6 +44,7 @@ func Run(RPCAddr, ParaName, configPath, name string) {
 	if configPath == "" {
 		panic("can not find the cli toml")
 	}
+
 	chain33Cfg := types.NewChain33Config(types.ReadFile(configPath))
 	types.SetCliSysParam(chain33Cfg.GetTitle(), chain33Cfg)
 
