@@ -174,8 +174,8 @@ func testNetInfo(t *testing.T, p2p *P2p) {
 }
 
 //测试Peer
-func testPeer(t *testing.T, cfg *types.Chain33Config, p2p *P2p, q queue.Queue) {
-
+func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	conn, err := grpc.Dial("localhost:53802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
@@ -416,7 +416,7 @@ func Test_p2p(t *testing.T) {
 	defer q.Close()
 	testP2PEvent(t, q.Client())
 	testNetInfo(t, p2p)
-	testPeer(t, cfg, p2p, q)
+	testPeer(t, p2p, q)
 	testGrpcConns(t)
 	testGrpcStreamConns(t, p2p)
 	testP2pComm(t, p2p)
