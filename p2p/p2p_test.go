@@ -199,10 +199,13 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	localP2P.node.addPeer(peer)
 	var info *innerpeer
 	t.Log("WaitRegisterPeerStart...")
-	for peer.GetPeerName() == "" ||
-		info == nil || info.p2pversion == 0 {
+	for info == nil || info.p2pversion == 0 {
 		time.Sleep(time.Millisecond * 10)
-		info = p2p.node.server.p2pserver.getInBoundPeerInfo("127.0.0.1:43802")
+		//info = p2p.node.server.p2pserver.getInBoundPeerInfo("127.0.0.1:43802")
+		info = p2p.node.server.p2pserver.getInBoundPeerInfo(peer.GetPeerName())
+		if info == nil {
+			return
+		}
 	}
 	t.Log("WaitRegisterPeerStop...")
 	p2pcli := NewNormalP2PCli()
@@ -222,6 +225,8 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 
 	localP2P.node.AddCachePeer(peer)
 	peer.GetRunning()
+	peer.getIsRegister()
+	peer.setIsRegister(false)
 	localP2P.node.nodeInfo.FetchPeerInfo(localP2P.node)
 	peers, infos := localP2P.node.GetActivePeers()
 	assert.Equal(t, len(peers), len(infos))
