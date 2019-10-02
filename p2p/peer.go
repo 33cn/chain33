@@ -361,7 +361,7 @@ func (p *Peer) readStream() {
 					log.Error("CloseSend", "err", errs)
 				}
 
-				log.Error("readStream", "recv,err:", err.Error(), "peerIp", p.Addr(), "peer", p)
+				log.Error("readStream", "recv,err:", err.Error(), "peerIp", p.Addr())
 
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 					p.node.nodeInfo.blacklist.Add(p.Addr(), 3600)
