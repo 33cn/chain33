@@ -268,7 +268,11 @@ chain33_GetBlockSequences() {
 
 chain33_GetBlockByHashes() {
     if [ "$IS_PARA" == true ]; then
-        geneis="0x97162f9d4a888121fdba2fb1ab402596acdbcb602121bd12284adb739d85f225"
+        req='{"method":"Chain33.GetBlockHash", "params":[{"height":0}]}'
+        resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+        echo "#GetBlockHash.response: $resp"
+        geneis=$(jq -r '(.result.hash)' <<<"$resp")
+        #geneis="0x97162f9d4a888121fdba2fb1ab402596acdbcb602121bd12284adb739d85f225"
         statehash=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$geneis"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.parentHash")
         [ "$statehash" == "0x0000000000000000000000000000000000000000000000000000000000000000" ]
         echo_rst "$FUNCNAME" "$?"
