@@ -50,4 +50,6 @@ const (
 	TagExecFileContent         = "${EXECFILECONTENT}"
 	TagExecLocalFileContent    = "${EXECLOCALFILECONTENT}"
 	TagExecDelLocalFileContent = "${EXECDELLOCALFILECONTENT}"
+
+	TagExecObject = "${EXEC_OBJECT}" //执行器类函数接收对象, 默认为首字母
 )
