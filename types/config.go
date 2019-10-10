@@ -289,8 +289,8 @@ func (c *Chain33Config) setTestNet(isTestNet bool) {
 func (c *Chain33Config) GetP(height int64) *ChainParam {
 	conf := Conf(c, "mver.consensus")
 	chain := &ChainParam{}
-	chain.MaxTxNumber = conf.MGIntq("maxTxNumber", height)
-	chain.PowLimitBits = uint32(conf.MGIntq("powLimitBits", height))
+	chain.MaxTxNumber = conf.MGInt("maxTxNumber", height)
+	chain.PowLimitBits = uint32(conf.MGInt("powLimitBits", height))
 	return chain
 }
 
@@ -733,7 +733,7 @@ func parseItem(data map[string]interface{}) map[string][]byte {
 
 // ConfQuery 结构体
 type ConfQuery struct {
-	*Chain33Config
+	cfg    *Chain33Config
 	prefix string
 }
 
@@ -742,7 +742,7 @@ func Conf(cfg *Chain33Config, prefix string) *ConfQuery {
 	if prefix == "" || (!strings.HasPrefix(prefix, "config.") && !strings.HasPrefix(prefix, "mver.")) {
 		panic("ConfQuery must init buy prefix config. or mver.")
 	}
-	return &ConfQuery{Chain33Config: cfg, prefix: prefix}
+	return &ConfQuery{cfg: cfg, prefix: prefix}
 }
 
 // ConfSub 子模块配置
@@ -751,8 +751,8 @@ func ConfSub(cfg *Chain33Config, name string) *ConfQuery {
 }
 
 // G 获取指定key的配置信息
-func (query *ConfQuery) Gq(key string) (interface{}, error) {
-	return query.G(getkey(query.prefix, key))
+func (query *ConfQuery) G(key string) (interface{}, error) {
+	return query.cfg.G(getkey(query.prefix, key))
 }
 
 func parseStrList(data interface{}) []string {
@@ -770,7 +770,7 @@ func parseStrList(data interface{}) []string {
 
 // GStrList 解析字符串列表
 func (query *ConfQuery) GStrList(key string) []string {
-	data, err := query.Gq(key)
+	data, err := query.G(key)
 	if err == nil {
 		return parseStrList(data)
 	}
@@ -778,38 +778,38 @@ func (query *ConfQuery) GStrList(key string) []string {
 }
 
 // GInt 解析int类型
-func (query *ConfQuery) GIntq(key string) int64 {
-	return query.GInt(getkey(query.prefix, key))
+func (query *ConfQuery) GInt(key string) int64 {
+	return query.cfg.GInt(getkey(query.prefix, key))
 }
 
 // GStr 解析string类型
-func (query *ConfQuery) GStrq(key string) string {
-	return query.GStr(getkey(query.prefix, key))
+func (query *ConfQuery) GStr(key string) string {
+	return query.cfg.GStr(getkey(query.prefix, key))
 }
 
 // IsEnable 解析bool类型
-func (query *ConfQuery) IsEnableq(key string) bool {
-	return query.IsEnable(getkey(query.prefix, key))
+func (query *ConfQuery) IsEnable(key string) bool {
+	return query.cfg.IsEnable(getkey(query.prefix, key))
 }
 
 // MG 解析mversion
-func (query *ConfQuery) MGq(key string, height int64) (interface{}, error) {
-	return query.MG(getkey(query.prefix, key), height)
+func (query *ConfQuery) MG(key string, height int64) (interface{}, error) {
+	return query.cfg.MG(getkey(query.prefix, key), height)
 }
 
 // MGInt 解析mversion int类型配置
-func (query *ConfQuery) MGIntq(key string, height int64) int64 {
-	return query.MGInt(getkey(query.prefix, key), height)
+func (query *ConfQuery) MGInt(key string, height int64) int64 {
+	return query.cfg.MGInt(getkey(query.prefix, key), height)
 }
 
 // MGStr 解析mversion string类型配置
-func (query *ConfQuery) MGStrq(key string, height int64) string {
-	return query.MGStr(getkey(query.prefix, key), height)
+func (query *ConfQuery) MGStr(key string, height int64) string {
+	return query.cfg.MGStr(getkey(query.prefix, key), height)
 }
 
 // MGStrList 解析mversion string list类型配置
 func (query *ConfQuery) MGStrList(key string, height int64) []string {
-	data, err := query.MGq(key, height)
+	data, err := query.MG(key, height)
 	if err == nil {
 		return parseStrList(data)
 	}
@@ -817,8 +817,8 @@ func (query *ConfQuery) MGStrList(key string, height int64) []string {
 }
 
 // MIsEnable 解析mversion bool类型配置
-func (query *ConfQuery) MIsEnableq(key string, height int64) bool {
-	return query.MIsEnable(getkey(query.prefix, key), height)
+func (query *ConfQuery) MIsEnable(key string, height int64) bool {
+	return query.cfg.MIsEnable(getkey(query.prefix, key), height)
 }
 
 func SetCliSysParam(title string, cfg *Chain33Config) {
