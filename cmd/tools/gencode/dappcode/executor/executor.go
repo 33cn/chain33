@@ -33,7 +33,7 @@ func (c executorCodeFile) GetFiles() map[string]string {
 
 func (c executorCodeFile) GetFileReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagImportPath, types.TagClassName}
+	return []string{types.TagExecName, types.TagExecObject, types.TagImportPath, types.TagClassName}
 }
 
 var (
@@ -86,12 +86,12 @@ func GetName() string {
 	return new${CLASSNAME}().GetName()
 }
 
-func (*${EXECNAME}) GetDriverName() string {
+func (${EXEC_OBJECT} *${EXECNAME}) GetDriverName() string {
 	return driverName
 }
 
 // CheckTx 实现自定义检验交易接口，供框架调用
-func (*${EXECNAME}) CheckTx(tx *types.Transaction, index int) error {
+func (${EXEC_OBJECT} *${EXECNAME}) CheckTx(tx *types.Transaction, index int) error {
 	// implement code
 	return nil
 }
