@@ -63,7 +63,7 @@ type subConfig struct {
 }
 
 // New new mavl store module
-func New(cfg *types.Store, sub []byte) queue.Module {
+func New(cfg *types.Store, sub []byte, chain33cfg *types.Chain33Config) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	var subcfg subConfig
 	if sub != nil {

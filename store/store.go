@@ -23,5 +23,5 @@ func New(cfg *types.Chain33Config) queue.Module {
 	if !ok {
 		subcfg = nil
 	}
-	return s(mcfg, subcfg)
+	return s(mcfg, subcfg, cfg)
 }

@@ -46,7 +46,7 @@ func InitFork(cfg *types.Chain33Config) {
 }
 
 func InitExecutor(cfg *types.Chain33Config) {
-	types.RegistorExecutor("coins", NewType(cfg))
+	types.RegistorExecutor(CoinsX, NewType(cfg))
 }
 
 // CoinsType defines exec type
