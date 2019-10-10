@@ -349,3 +349,17 @@ func initForkConfig(title string, forks *ForkList) {
 		panic(s)
 	}
 }
+
+// CloneFork fork信息拷贝
+func CloneFork(from string) (map[string]int64, error) {
+	forkitem, ok := systemFork.forks[from]
+	if !ok {
+		return nil, ErrCloneForkFrom
+	}
+
+	forks := make(map[string]int64)
+	for k, v := range forkitem {
+		forks[k] = v
+	}
+	return forks, nil
+}
