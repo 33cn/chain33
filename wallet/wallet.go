@@ -93,7 +93,6 @@ func DisableLog() {
 // New 创建一个钱包对象
 func New(cfg *types.Chain33Config) *Wallet {
 	mcfg := cfg.GetModuleConfig().Wallet
-	sub := cfg.GetSubConfig().Wallet
 	//walletStore
 	//accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", mcfg.Driver, mcfg.DbPath, mcfg.DbCache)
@@ -123,7 +122,6 @@ func New(cfg *types.Chain33Config) *Wallet {
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
-	wcom.Init(wallet, sub)
 	return wallet
 }
 
@@ -276,6 +274,9 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	if err != nil {
 		panic("SetQueueClient client.New err")
 	}
+	sub := cli.GetConfig().GetSubConfig().Wallet
+	// 置完client之后才做Init
+	wcom.Init(wallet, sub)
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 	for _, policy := range wcom.PolicyContainer {
