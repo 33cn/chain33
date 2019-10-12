@@ -45,6 +45,9 @@ func Run(RPCAddr, ParaName, name string) {
 		panic("can not find the cli toml")
 	}
 
+	// cli 命令只打印错误级别到控制台
+	log.SetLogLevel("error")
+
 	chain33Cfg := types.NewChain33Config(types.ReadFile(configPath))
 	types.SetCliSysParam(chain33Cfg.GetTitle(), chain33Cfg)
 
