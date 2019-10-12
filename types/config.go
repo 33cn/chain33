@@ -20,7 +20,7 @@ import (
 var (
 	AllowUserExec = [][]byte{ExecerNone}
 	//挖矿的合约名单，适配旧配置，默认ticket
-	minerExecs  = []string{"ticket"}
+	minerExecs  = []string{"ticket", "pos33"}
 	EmptyValue  = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
 	title       string
 	mu          sync.Mutex
