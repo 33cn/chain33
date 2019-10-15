@@ -5,11 +5,11 @@
 package consensus
 
 import (
+	"bytes"
 	"errors"
 	"math/rand"
 	"sync"
 	"sync/atomic"
-	"bytes"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
@@ -440,7 +440,7 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	beg := types.Now()
 	beg2 := beg
 	defer func() {
-		log.Info("execBlock", "height", block.Height, "ntx", len(block.Txs),  "cost", types.Since(beg2))
+		log.Info("execBlock", "height", block.Height, "ntx", len(block.Txs), "cost", types.Since(beg2))
 	}()
 
 	if errReturn && block.Height > 0 && !block.CheckSign() {
