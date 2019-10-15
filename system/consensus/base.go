@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"sync"
 	"sync/atomic"
+	"bytes"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
@@ -412,16 +413,16 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	return nil
 }
 
-// ExecBlock 预执行区块, 用于raft, tendermint等共识
-func (bc *BaseClient) ExecBlock(block *types.Block) *types.Block {
+// ExecBlock 预执行区块, 用于raft, tendermint等共识, errReturn表示区块来源于自己还是别人
+func (bc *BaseClient) ExecBlock(block *types.Block, errReturn bool) *types.Block {
 	lastBlock, err := bc.RequestBlock(block.Height - 1)
 	if err != nil {
 		log.Error("ExecBlock RequestBlock fail", "err", err)
 		return nil
 	}
-	blockdetail, deltx, err := util.ExecBlock(bc.client, lastBlock.StateHash, block, false, false, true)
+	blockdetail, deltx, err := execBlock(bc.client, lastBlock.StateHash, block, errReturn)
 	if err != nil {
-		log.Error("Consensus ExecBlock fail", "err", err)
+		log.Error("Consensus execBlock fail", "err", err)
 		return nil
 	}
 	if len(deltx) > 0 {
@@ -432,6 +433,112 @@ func (bc *BaseClient) ExecBlock(block *types.Block) *types.Block {
 		}
 	}
 	return blockdetail.Block
+}
+
+func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool) (*types.BlockDetail, []*types.Transaction, error) {
+	log.Debug("execBlock", "height------->", block.Height, "ntx", len(block.Txs))
+	beg := types.Now()
+	beg2 := beg
+	defer func() {
+		log.Info("execBlock", "height", block.Height, "ntx", len(block.Txs),  "cost", types.Since(beg2))
+	}()
+
+	if errReturn && block.Height > 0 && !block.CheckSign() {
+		return nil, nil, types.ErrSign
+	}
+	//tx交易去重处理
+	cacheTxs := types.TxsToCache(block.Txs)
+	oldtxscount := len(cacheTxs)
+	var err error
+	cacheTxs, err = util.CheckTxDup(client, cacheTxs, block.Height)
+	if err != nil {
+		return nil, nil, err
+	}
+	log.Debug("execBlock", "CheckTxDup", types.Since(beg))
+	beg = types.Now()
+	newtxscount := len(cacheTxs)
+	if oldtxscount != newtxscount && errReturn {
+		return nil, nil, types.ErrTxDup
+	}
+	log.Debug("execBlock", "prevtx", oldtxscount, "newtx", newtxscount)
+	block.Txs = types.CacheToTxs(cacheTxs)
+
+	receipts, err := util.ExecTx(client, prevStateRoot, block)
+	if err != nil {
+		return nil, nil, err
+	}
+	log.Debug("execBlock", "ExecTx", types.Since(beg))
+	beg = types.Now()
+	var kvset []*types.KeyValue
+	var deltxlist = make(map[int]bool)
+	var rdata []*types.ReceiptData //save to db receipt log
+	for i := 0; i < len(receipts.Receipts); i++ {
+		receipt := receipts.Receipts[i]
+		if receipt.Ty == types.ExecErr {
+			log.Error("exec tx err", "err", receipt, "txhash", common.ToHex(block.Txs[i].Hash()))
+			if errReturn { //认为这个是一个错误的区块
+				return nil, nil, types.ErrBlockExec
+			}
+			deltxlist[i] = true
+			continue
+		}
+		rdata = append(rdata, &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs})
+		kvset = append(kvset, receipt.KV...)
+	}
+	kvset = util.DelDupKey(kvset)
+	//删除无效的交易
+	var deltx []*types.Transaction
+	if len(deltxlist) > 0 {
+		index := 0
+		for i := 0; i < len(block.Txs); i++ {
+			if deltxlist[i] {
+				deltx = append(deltx, block.Txs[i])
+				continue
+			}
+			block.Txs[index] = block.Txs[i]
+			cacheTxs[index] = cacheTxs[i]
+			index++
+		}
+		block.Txs = block.Txs[0:index]
+		cacheTxs = cacheTxs[0:index]
+	}
+	//交易有执行不成功的，报错(TxHash一定不同)
+	if len(deltx) > 0 && errReturn {
+		return nil, nil, types.ErrCheckTxHash
+	}
+	//检查block的txhash
+	calcHash := merkle.CalcMerkleRootCache(cacheTxs)
+	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
+		return nil, nil, types.ErrCheckTxHash
+	}
+	log.Debug("execBlock", "CalcMerkleRootCache", types.Since(beg))
+	beg = types.Now()
+	block.TxHash = calcHash
+	var detail types.BlockDetail
+	calcHash, err = util.ExecKVMemSet(client, prevStateRoot, block.Height, kvset, false, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	//检查block的StateHash
+	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
+		err = util.ExecKVSetRollback(client, calcHash)
+		if err != nil {
+			log.Error("execBlock ExecKVSetRollback", "err", err)
+		}
+		return nil, nil, types.ErrCheckStateHash
+	}
+	block.StateHash = calcHash
+	detail.Block = block
+	detail.Receipts = rdata
+	if detail.Block.Height > 0 {
+		err := util.CheckBlock(client, &detail)
+		if err != nil {
+			log.Debug("execBlock CheckBlock", "err", err)
+			return nil, nil, err
+		}
+	}
+	log.Debug("execBlock", "CheckBlock", types.Since(beg))
+	return &detail, deltx, nil
 }
 
 func diffTx(tx1, tx2 []*types.Transaction) (deltx []*types.Transaction) {
