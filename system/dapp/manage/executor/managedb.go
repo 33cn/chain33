@@ -20,6 +20,9 @@ type Action struct {
 
 // NewAction new a action object
 func NewAction(m *Manage, tx *types.Transaction) *Action {
+	if m.GetAPI() == nil || m.GetAPI().GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	return &Action{db: m.GetStateDB(), fromaddr: tx.From(), height: m.GetHeight(), cfg: m.GetAPI().GetConfig()}
 
 }

@@ -44,6 +44,9 @@ func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptC
 }
 
 func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
+	if mem.client == nil || mem.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	if tx.IsExpire(mem.client.GetConfig(), mem.header.GetHeight(), mem.header.GetBlockTime()) {
 		return false
 	}
@@ -87,6 +90,9 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 	txmsg := msg.GetData().(*types.Transaction)
 	//普通的交易
 	tx := types.NewTransactionCache(txmsg)
+	if mem.client == nil || mem.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	err := tx.Check(mem.client.GetConfig(), header.GetHeight(), mem.cfg.MinTxFee, mem.cfg.MaxTxFee)
 	if err != nil {
 		msg.Data = err

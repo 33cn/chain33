@@ -118,6 +118,9 @@ func (d *DriverBase) ExecutorOrder() int64 {
 
 //GetLastHash 获取最后区块的hash，主链和平行链不同
 func (d *DriverBase) GetLastHash() []byte {
+	if d.api == nil || d.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := d.api.GetConfig()
 	if cfg.IsPara() {
 		return d.mainHash
@@ -348,6 +351,9 @@ func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
 		//log.Error("new CoinsAccount")
+		if d.api == nil || d.api.GetConfig() == nil {
+			panic("api or Chain33Config is nil, can not get Chain33Config")
+		}
 		d.coinsaccount = account.NewCoinsAccount(d.api.GetConfig())
 	}
 	d.statedb = db
@@ -363,6 +369,9 @@ func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
 	c := int(tx.GroupCount)
 	if c <= 0 || c > int(types.MaxTxGroupSize) {
 		return nil, types.ErrTxGroupCount
+	}
+	if d.api == nil || d.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
 	}
 	cfg := d.api.GetConfig()
 	for i := index; i >= 0 && i >= index-c; i-- {
@@ -410,6 +419,9 @@ func (d *DriverBase) GetHeight() int64 {
 
 // GetMainHeight return height
 func (d *DriverBase) GetMainHeight() int64 {
+	if d.api == nil || d.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	if d.api.GetConfig().IsPara() {
 		return d.mainHeight
 	}
@@ -465,6 +477,9 @@ func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 // GetCoinsAccount get coins account
 func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
+		if d.api == nil || d.api.GetConfig() == nil {
+			panic("api or Chain33Config is nil, can not get Chain33Config")
+		}
 		d.coinsaccount = account.NewCoinsAccount(d.api.GetConfig())
 		d.coinsaccount.SetDB(d.statedb)
 	}

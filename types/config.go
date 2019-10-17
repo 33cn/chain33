@@ -46,6 +46,7 @@ const (
 	MaxTxsPerBlock        = 100000
 	TokenPrecision  int64 = 1e8
 	MaxTokenBalance int64 = 900 * 1e8 * TokenPrecision //900亿
+	DefaultMinFee   int64 = 1e5
 )
 
 type Chain33Config struct {
@@ -160,7 +161,7 @@ func (c *Chain33Config) EnableCheckFork(enable bool) {
 
 func (c *Chain33Config) setDefaultConfig() {
 	c.S("TestNet", false)
-	c.SetMinFee(1e5)
+	c.SetMinFee(DefaultMinFee)
 	for key, cfg := range chaincfg.LoadAll() {
 		c.S("cfg."+key, cfg)
 	}

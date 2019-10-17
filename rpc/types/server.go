@@ -38,6 +38,9 @@ func (c *ChannelClient) Init(name string, s RPCServer, jrpc, grpc interface{}) {
 	}
 	c.grpc = grpc
 	c.jrpc = jrpc
+	if c == nil || c.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	c.accountdb = account.NewCoinsAccount(c.GetConfig())
 }
 

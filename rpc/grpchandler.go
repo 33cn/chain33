@@ -59,6 +59,9 @@ func (g *Grpc) ReWriteRawTx(ctx context.Context, in *pb.ReWriteRawTx) (*pb.Unsig
 
 // CreateTransaction create transaction of grpc
 func (g *Grpc) CreateTransaction(ctx context.Context, in *pb.CreateTxIn) (*pb.UnsignTx, error) {
+	if g.cli.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := g.cli.GetConfig()
 	execer := cfg.ExecName(string(in.Execer))
 	exec := pb.LoadExecutorType(execer)
@@ -391,6 +394,9 @@ func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqRandHash) (*pb.ReplyH
 
 // GetFork get fork height by fork key
 func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
+	if g.cli.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := g.cli.GetConfig()
 	keys := strings.Split(string(in.Key), "-")
 	if len(keys) == 2 {

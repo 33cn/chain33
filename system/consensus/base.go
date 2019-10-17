@@ -146,6 +146,9 @@ func (bc *BaseClient) InitBlock() {
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		if newblock.Height == 0 {
+			if bc.client == nil || bc.client.GetConfig() == nil {
+				panic("client or Chain33Config is nil, can not get Chain33Config")
+			}
 			cfg := bc.client.GetConfig()
 			newblock.Difficulty = cfg.GetP(0).PowLimitBits
 		}
@@ -278,6 +281,9 @@ func (bc *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	//check base info
 	if parent.Height+1 != block.Block.Height {
 		return types.ErrBlockHeight
+	}
+	if bc.client == nil || bc.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
 	}
 	cfg := bc.client.GetConfig()
 	if cfg.IsFork(block.Block.Height, "ForkCheckBlockTime") && parent.BlockTime > block.Block.BlockTime {
@@ -486,6 +492,9 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 	size := block.Size()
 	max := types.MaxBlockSize - 100000 //留下100K空间，添加其他的交易
 	currentCount := int64(len(block.Txs))
+	if bc.client == nil || bc.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := bc.client.GetConfig()
 	maxTx := cfg.GetP(block.Height).MaxTxNumber
 	addedTx := make([]*types.Transaction, 0, len(txs))
@@ -528,6 +537,9 @@ func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, bloc
 	var txlist types.Transactions
 	var hasTxExpire bool
 
+	if bc.client == nil || bc.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := bc.client.GetConfig()
 	for i := 0; i < len(txs); i++ {
 

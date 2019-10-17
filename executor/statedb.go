@@ -71,6 +71,9 @@ func (s *StateDB) enableMVCC(hash []byte) {
 func (s *StateDB) Begin() {
 	s.intx = true
 	s.keys = nil
+	if s.client == nil || s.client.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := s.client.GetConfig()
 	if cfg.IsFork(s.height, "ForkExecRollback") {
 		s.txcache = nil
@@ -89,6 +92,9 @@ func (s *StateDB) Commit() error {
 	}
 	s.intx = false
 	s.keys = nil
+	if s.client == nil || s.client.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := s.client.GetConfig()
 	if cfg.IsFork(s.height, "ForkExecRollback") {
 		s.resetTx()

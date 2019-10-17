@@ -154,6 +154,9 @@ func CheckDupTx(client queue.Client, txs []*types.Transaction, height int64) (tr
 //CheckTxDup : check whether the tx is duplicated within the while chain
 func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList
+	if client == nil || client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := client.GetConfig()
 	if cfg.IsFork(height, "ForkCheckTxDup") {
 		txs = DelDupTx(txs)

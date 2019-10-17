@@ -47,6 +47,9 @@ type mainChainAPI struct {
 
 //New 新建接口
 func New(api client.QueueProtocolAPI, grpcClient types.Chain33Client) ExecutorAPI {
+	if api == nil || api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	types := api.GetConfig()
 	if types.IsPara() {
 		return newParaChainAPI(api, grpcClient)

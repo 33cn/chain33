@@ -53,6 +53,9 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	}
 	//因为历史原因，这里还是有部分token 的字段，但是没有依赖token dapp
 	//未来这个调用可能会被废弃
+	if c.QueueProtocolAPI == nil || c.QueueProtocolAPI.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := c.QueueProtocolAPI.GetConfig()
 	execer := cfg.ExecName(ety.CoinsX)
 	if param.IsToken {
@@ -90,6 +93,9 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 }
 
 func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) {
+	if c.QueueProtocolAPI == nil || c.QueueProtocolAPI.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := c.QueueProtocolAPI.GetConfig()
 	if param == nil || param.Tx == "" {
 		log.Error("ReWriteRawTx", "Error", types.ErrInvalidParam)
@@ -162,6 +168,9 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 
 // CreateRawTxGroup create rawtransaction for group
 func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([]byte, error) {
+	if c.QueueProtocolAPI == nil || c.QueueProtocolAPI.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := c.QueueProtocolAPI.GetConfig()
 	if param == nil || len(param.Txs) <= 1 {
 		return nil, types.ErrTxGroupCountLessThanTwo
@@ -202,6 +211,9 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 // CreateNoBalanceTxs create the multiple transaction with no balance
 // 实际使用的时候要注意，一般情况下，不要传递 private key 到服务器端，除非是本地localhost 的服务。
 func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Transaction, error) {
+	if c.QueueProtocolAPI == nil || c.QueueProtocolAPI.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := c.QueueProtocolAPI.GetConfig()
 	txNone := &types.Transaction{Execer: []byte(cfg.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))
@@ -254,6 +266,9 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 // CreateNoBalanceTransaction create the transaction with no balance
 // 实际使用的时候要注意，一般情况下，不要传递 private key 到服务器端，除非是本地localhost 的服务。
 func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*types.Transaction, error) {
+	if c.QueueProtocolAPI == nil || c.QueueProtocolAPI.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := c.QueueProtocolAPI.GetConfig()
 	txNone := &types.Transaction{Execer: []byte(cfg.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))
@@ -358,6 +373,9 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 // GetAllExecBalance get balance of exec
 func (c *channelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.AllExecBalance, error) {
+	if c.QueueProtocolAPI == nil || c.QueueProtocolAPI.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := c.QueueProtocolAPI.GetConfig()
 	addr := in.Addr
 	err := address.CheckAddress(addr)

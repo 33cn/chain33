@@ -71,6 +71,9 @@ func newClient(q *queue) Client {
 
 // GetConfig return the queue Chain33Config
 func (client *client) GetConfig() *types.Chain33Config {
+	if client.q == nil || client.q.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	return client.q.GetConfig()
 }
 

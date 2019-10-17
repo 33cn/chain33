@@ -50,6 +50,9 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 	client := exec.client
 	enableMVCC := exec.pluginEnable["mvcc"]
 	opt := &StateDBOption{EnableMVCC: enableMVCC, Height: ctx.height}
+	if client == nil || client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	e := &executor{
 		stateDB:      NewStateDB(client, ctx.stateHash, localdb, opt),
 		localDB:      localdb,
@@ -135,6 +138,9 @@ func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
 }
 
 func (e *executor) checkTx(tx *types.Transaction, index int) error {
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := e.api.GetConfig()
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(cfg, e.height, e.blocktime) {
 		//如果已经过期
@@ -165,6 +171,9 @@ func (e *executor) setEnv(exec drivers.Driver) {
 }
 
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := e.api.GetConfig()
 	if e.height > 0 && e.blocktime > 0 && txgroup.IsExpire(cfg, e.height, e.blocktime) {
 		//如果已经过期
@@ -189,6 +198,9 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//checkInExec
 	exec := e.loadDriver(tx, index)
 	//手续费检查
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := e.api.GetConfig()
 	if !exec.IsFree() && cfg.GInt("MinFee") > 0 {
 		from := tx.From()
@@ -213,8 +225,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriver(tx, index)
 	//to 必须是一个地址
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	if err := drivers.CheckAddress(e.api.GetConfig(), tx.GetRealToAddr(), e.height); err != nil {
 		return nil, err
+	}
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
 	}
 	cfg := e.api.GetConfig()
 	if e.localDB != nil && cfg.IsFork(e.height, "ForkLocalDBAccess") {
@@ -248,6 +266,9 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := e.api.GetConfig()
 	if cfg.IsFork(e.height, "ForkCacheDriver") {
 		return e.loadDriverNoCache(tx, index)
@@ -283,6 +304,9 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 	feelog, err := e.execFee(txs[0], index)
 	if err != nil {
 		return nil, err
+	}
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
 	}
 	cfg := e.api.GetConfig()
 	//开启内存事务处理，假设系统只有一个thread 执行
@@ -361,6 +385,9 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 	}
 	var err error
 	//公链不允许手续费为0
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := e.api.GetConfig()
 	if !cfg.IsPara() && cfg.GInt("MinFee") > 0 && !ex.IsFree() {
 		feelog, err = e.processFee(tx)
@@ -419,6 +446,9 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 		feelog.Logs = append(feelog.Logs, receipt.Logs...)
 		feelog.Ty = receipt.Ty
 	}
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := e.api.GetConfig()
 	if cfg.IsFork(e.height, "ForkStateDBSet") {
 		for _, v := range feelog.KV {
@@ -462,6 +492,9 @@ func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, i
 }
 
 func (e *executor) begin() {
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := e.api.GetConfig()
 	matchfork := cfg.IsFork(e.height, "ForkExecRollback")
 	if matchfork {
@@ -475,6 +508,9 @@ func (e *executor) begin() {
 }
 
 func (e *executor) commit() error {
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := e.api.GetConfig()
 	matchfork := cfg.IsFork(e.height, "ForkExecRollback")
 	if matchfork {
@@ -502,6 +538,9 @@ func (e *executor) startTx() {
 }
 
 func (e *executor) rollback() {
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := e.api.GetConfig()
 	matchfork := cfg.IsFork(e.height, "ForkExecRollback")
 	if matchfork {
@@ -531,6 +570,9 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	err := e.checkTx(tx, index)
 	if err != nil {
 		elog.Error("execTx.checkTx ", "txhash", common.ToHex(tx.Hash()), "err", err)
+		if e.api == nil || e.api.GetConfig() == nil {
+			panic("api or Chain33Config is nil, can not get Chain33Config")
+		}
 		cfg := e.api.GetConfig()
 		if cfg.IsPara() {
 			panic(err)
@@ -582,8 +624,12 @@ func (e *executor) isExecLocalSameTime(tx *types.Transaction, index int) bool {
 }
 
 func (e *executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
+	if e.api == nil || e.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
+	cfg := e.api.GetConfig()
 	for i := 0; i < len(kvs); i++ {
-		err := isAllowLocalKey(e.api.GetConfig(), execer, kvs[i].Key)
+		err := isAllowLocalKey(cfg, execer, kvs[i].Key)
 		if err != nil {
 			//测试的情况下，先panic，实际情况下会删除返回错误
 			panic(err)

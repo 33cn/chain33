@@ -95,6 +95,9 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 //CreateBlock 创建区块
 func (client *Client) CreateBlock() {
 	issleep := true
+	if client.GetAPI() == nil || client.GetAPI().GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := client.GetAPI().GetConfig()
 	for {
 		if client.IsClosed() {

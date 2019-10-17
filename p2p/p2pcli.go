@@ -532,6 +532,9 @@ func (m *Cli) BlockBroadcast(msg *queue.Message, taskindex int64) {
 	}()
 
 	if block, ok := msg.GetData().(*pb.Block); ok {
+		if m.network.client == nil || m.network.client.GetConfig() == nil {
+			panic("client or Chain33Config is nil, can not get Chain33Config")
+		}
 		blockHashFilter.RegRecvData(hex.EncodeToString(block.Hash(m.network.client.GetConfig())))
 		m.network.node.pubsub.FIFOPub(&pb.P2PBlock{Block: block}, "block")
 	}

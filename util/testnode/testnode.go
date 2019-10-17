@@ -154,7 +154,7 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 			setFee(cfg.GetModuleConfig(), 0)
 		}
 	} else {
-		cfg = types.NewChain33Config(types.GetDefaultCfgstring())
+		cfg = types.NewChain33Config(types.ReadFile(cfgpath))
 	}
 	return newWithConfig(cfg, mockapi)
 }
@@ -361,6 +361,9 @@ func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error
 
 //SendHot :
 func (mock *Chain33Mock) SendHot() error {
+	if mock.client == nil || mock.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	tx := util.CreateCoinsTx(mock.client.GetConfig(), mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
 	mock.SendTx(tx)
 	return mock.Wait()
@@ -411,6 +414,9 @@ func (mock *Chain33Mock) Wait() error {
 //GetAccount :
 func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Account {
 	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
+	if mock.client == nil || mock.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	acc := account.NewCoinsAccount(mock.client.GetConfig())
 	acc.SetDB(statedb)
 	return acc.LoadAccount(addr)
@@ -419,6 +425,9 @@ func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Accoun
 //GetExecAccount :get execer account info
 func (mock *Chain33Mock) GetExecAccount(stateHash []byte, execer, addr string) *types.Account {
 	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
+	if mock.client == nil || mock.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	acc := account.NewCoinsAccount(mock.client.GetConfig())
 	acc.SetDB(statedb)
 	return acc.LoadExecAccount(addr, address.ExecAddress(execer))

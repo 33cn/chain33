@@ -103,6 +103,9 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
+	if wallet.client == nil || wallet.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := wallet.client.GetConfig()
 	tx.SetExpire(cfg, time.Duration(expire))
 	if policy, ok := wcom.PolicyContainer[string(cfg.GetParaExec(tx.Execer))]; ok {
@@ -692,6 +695,9 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 
 	var ReplyHashes types.ReplyHashes
 
+	if wallet.client == nil || wallet.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := wallet.client.GetConfig()
 	for index, Account := range accounts {
 		Privkey := WalletAccStores[index].Privkey
@@ -939,6 +945,9 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		return
 	}
 	//walletlog.Error("ProcWalletAddBlock", "height", block.GetBlock().GetHeight())
+	if wallet.client == nil || wallet.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := wallet.client.GetConfig()
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
@@ -1062,7 +1071,9 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		return
 	}
 	//walletlog.Error("ProcWalletDelBlock", "height", block.GetBlock().GetHeight())
-
+	if wallet.client == nil || wallet.client.GetConfig() == nil {
+		panic("client or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := wallet.client.GetConfig()
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)

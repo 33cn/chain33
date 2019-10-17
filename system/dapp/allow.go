@@ -12,6 +12,9 @@ import (
 
 // AllowIsSame allow issame drivername
 func (d *DriverBase) AllowIsSame(execer []byte) bool {
+	if d.api == nil || d.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := d.api.GetConfig()
 	execer = cfg.GetParaExec(execer)
 	return d.child.GetDriverName() == string(execer)
@@ -19,6 +22,9 @@ func (d *DriverBase) AllowIsSame(execer []byte) bool {
 
 // AllowIsUserDot1 user.evm
 func (d *DriverBase) AllowIsUserDot1(execer []byte) bool {
+	if d.api == nil || d.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := d.api.GetConfig()
 	execer = cfg.GetParaExec(execer)
 	if !bytes.HasPrefix(execer, types.UserKey) {
@@ -29,6 +35,9 @@ func (d *DriverBase) AllowIsUserDot1(execer []byte) bool {
 
 // AllowIsUserDot2 user.evm.xxx
 func (d *DriverBase) AllowIsUserDot2(execer []byte) bool {
+	if d.api == nil || d.api.GetConfig() == nil {
+		panic("api or Chain33Config is nil, can not get Chain33Config")
+	}
 	cfg := d.api.GetConfig()
 	execer = cfg.GetParaExec(execer)
 	if !bytes.HasPrefix(execer, types.UserKey) {
