@@ -15,7 +15,7 @@ import (
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
-        	  "github.com/33cn/chain33/types"
+        	 "github.com/33cn/chain33/types"
 
 	// register gzip
 	_ "google.golang.org/grpc/encoding/gzip"
