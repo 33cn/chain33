@@ -228,7 +228,6 @@ func TestHashSame(t *testing.T) {
 	t.Log(dir)
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
 
-
 	t1 := NewTree(dbm, true, nil)
 	t1.Set([]byte("1"), []byte("1"))
 	t1.Set([]byte("2"), []byte("2"))
@@ -237,7 +236,7 @@ func TestHashSame(t *testing.T) {
 
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMVCC: true,
+		EnableMVCC:       true,
 	}
 	//t2 在t1的基础上再做修改
 	t2 := NewTree(dbm, true, treeCfg)
@@ -268,7 +267,7 @@ func TestHashSame2(t *testing.T) {
 
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMVCC: true,
+		EnableMVCC:       true,
 	}
 
 	for i := 0; i < 5; i++ {
@@ -299,7 +298,7 @@ func TestPersistence(t *testing.T) {
 		records[randstr(20)] = randstr(20)
 	}
 
-	enableMvcc := true
+	enableMvcc := false
 	mvccdb := db.NewMVCC(dbm)
 
 	t1 := NewTree(dbm, true, nil)
@@ -798,8 +797,8 @@ func TestPruningTree(t *testing.T) {
 
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMavlPrune: true,
-		PruneHeight: preDel,
+		EnableMavlPrune:  true,
+		PruneHeight:      preDel,
 	}
 
 	for j := 0; j < round; j++ {
@@ -975,7 +974,7 @@ func TestGetHash(t *testing.T) {
 	//开启前缀
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMavlPrune: true,
+		EnableMavlPrune:  true,
 	}
 
 	tree1 := NewTree(db, true, treeCfg)
@@ -1031,7 +1030,7 @@ func TestRemoveLeafCountKey(t *testing.T) {
 	//开启裁剪
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMavlPrune: true,
+		EnableMavlPrune:  true,
 	}
 
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
@@ -1157,7 +1156,7 @@ func TestSaveRootHash(t *testing.T) {
 
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMavlPrune: true,
+		EnableMavlPrune:  true,
 	}
 
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
@@ -1189,7 +1188,7 @@ func TestDelLeafCountKV(t *testing.T) {
 	//开启裁剪
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMavlPrune: true,
+		EnableMavlPrune:  true,
 	}
 
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
@@ -1266,10 +1265,9 @@ func TestGetObsoleteNode(t *testing.T) {
 	t.Log(dir)
 	defer os.Remove(dir)
 
-
 	treeCfg := &TreeConfig{
-		EnableMemTree: true,
-		EnableMemVal: true,
+		EnableMemTree:   true,
+		EnableMemVal:    true,
 		TkCloseCacheLen: 100,
 	}
 
@@ -1615,7 +1613,6 @@ func TestPruningSecondLevelNode(t *testing.T) {
 	batch.Write()
 	db1.Close()
 
-
 	db2 := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	var existHashs [][]byte
@@ -1769,7 +1766,7 @@ func TestGetKeyHeightFromOldLeafCountKey(t *testing.T) {
 func TestPrintSameLeafKey(t *testing.T) {
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMavlPrune: true,
+		EnableMavlPrune:  true,
 	}
 	type record struct {
 		key   string
@@ -1802,7 +1799,7 @@ func TestPrintSameLeafKey(t *testing.T) {
 func TestPrintLeafNodeParent(t *testing.T) {
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMavlPrune: true,
+		EnableMavlPrune:  true,
 	}
 	blockHeight := int64(1000)
 	type record struct {
@@ -1837,7 +1834,7 @@ func TestPrintLeafNodeParent(t *testing.T) {
 func TestPrintNodeDb(t *testing.T) {
 	treeCfg := &TreeConfig{
 		EnableMavlPrefix: true,
-		EnableMavlPrune: true,
+		EnableMavlPrune:  true,
 	}
 	type record struct {
 		key   string

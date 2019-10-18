@@ -12,13 +12,14 @@ import (
 	"fmt"
 	"time"
 
+	"encoding/json"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/store"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
-	"encoding/json"
 )
 
 const MaxKeylenth int = 64

@@ -567,7 +567,7 @@ func (node *Node) printNodeInfo(db *nodeDB) {
 
 // PruningTree 裁剪树
 func PruningTree(db dbm.DB, curHeight int64, treeCfg *TreeConfig) {
-	pruningTree(db, curHeight,treeCfg)
+	pruningTree(db, curHeight, treeCfg)
 }
 
 // PrintMemStats 打印内存使用情况

@@ -32,8 +32,8 @@ func DisableLog() {
 // Store mavl store struct
 type Store struct {
 	*drivers.BaseStore
-	trees     *sync.Map
-	treeCfg   *mavl.TreeConfig
+	trees   *sync.Map
+	treeCfg *mavl.TreeConfig
 }
 
 func init() {
@@ -69,12 +69,12 @@ func New(cfg *types.Store, sub []byte, chain33cfg *types.Chain33Config) queue.Mo
 	}
 	treeCfg := &mavl.TreeConfig{
 		EnableMavlPrefix: subcfg.EnableMavlPrefix,
-		EnableMVCC: subcfg.EnableMVCC,
-		EnableMavlPrune: subcfg.EnableMavlPrune,
-		PruneHeight: subcfg.PruneHeight,
-		EnableMemTree: subcfg.EnableMemTree,
-		EnableMemVal: subcfg.EnableMemVal,
-		TkCloseCacheLen: subcfg.TkCloseCacheLen,
+		EnableMVCC:       subcfg.EnableMVCC,
+		EnableMavlPrune:  subcfg.EnableMavlPrune,
+		PruneHeight:      subcfg.PruneHeight,
+		EnableMemTree:    subcfg.EnableMemTree,
+		EnableMemVal:     subcfg.EnableMemVal,
+		TkCloseCacheLen:  subcfg.TkCloseCacheLen,
 	}
 	mavls := &Store{bs, &sync.Map{}, treeCfg}
 	mavl.InitGlobalMem(treeCfg)

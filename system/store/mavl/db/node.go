@@ -279,7 +279,8 @@ func (node *Node) storeNode(t *Tree) []byte {
 
 	//leafnode
 	if node.height == 0 {
-		if t.config != nil && !t.config.EnableMVCC {
+		if (t.config == nil) ||
+			(t.config != nil && !t.config.EnableMVCC) {
 			storeNode.Value = node.value
 		}
 	} else {
@@ -503,7 +504,7 @@ func removeOrphan(t *Tree, node *Node) {
 	if t.ndb == nil {
 		return
 	}
-	if t.config != nil && t.config.EnableMemTree && t != nil {
+	if t != nil && t.config != nil && t.config.EnableMemTree {
 		t.obsoleteNode[uintkey(farm.Hash64(node.hash))] = struct{}{}
 	}
 	t.ndb.RemoveNode(t, node)

@@ -22,18 +22,18 @@ import (
 )
 
 const (
-	hashNodePrefix       = "_mh_"
-	leafNodePrefix       = "_mb_"
-	curMaxBlockHeight    = "_..mcmbh.._"
-	rootHashHeightPrefix = "_mrhp_"
-	tkCloseCacheLen int32 = 10 * 10000
+	hashNodePrefix             = "_mh_"
+	leafNodePrefix             = "_mb_"
+	curMaxBlockHeight          = "_..mcmbh.._"
+	rootHashHeightPrefix       = "_mrhp_"
+	tkCloseCacheLen      int32 = 10 * 10000
 )
 
 var (
 	// ErrNodeNotExist node is not exist
-	ErrNodeNotExist  = errors.New("ErrNodeNotExist")
-	treelog          = log.New("module", "mavl")
-	emptyRoot        [32]byte
+	ErrNodeNotExist = errors.New("ErrNodeNotExist")
+	treelog         = log.New("module", "mavl")
+	emptyRoot       [32]byte
 	//enableMavlPrefix bool
 	// 是否开启MVCC
 	//enableMvcc bool
@@ -43,9 +43,8 @@ var (
 	//
 	//enableMemTree   bool
 	//enableMemVal    bool
-	memTree         MemTreeOpera
-	tkCloseCache    MemTreeOpera
-
+	memTree      MemTreeOpera
+	tkCloseCache MemTreeOpera
 )
 
 //// EnableMavlPrefix 使能mavl加前缀
@@ -856,7 +855,7 @@ func PrintTreeLeaf(db dbm.DB, roothash []byte, treeCfg *TreeConfig) {
 }
 
 // IterateRangeByStateHash 在start和end之间的键进行迭代回调[start, end)
-func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending bool, treeCfg *TreeConfig, fn func([]byte, []byte,) bool) {
+func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending bool, treeCfg *TreeConfig, fn func([]byte, []byte) bool) {
 	tree := NewTree(db, true, treeCfg)
 	err := tree.Load(statehash)
 	if err != nil {
