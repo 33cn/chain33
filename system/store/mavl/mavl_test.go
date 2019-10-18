@@ -16,9 +16,9 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/store"
-	mavldb "github.com/33cn/chain33/system/store/mavl/db"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
+	"encoding/json"
 )
 
 const MaxKeylenth int = 64
@@ -633,10 +633,13 @@ func BenchmarkGet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil, nil).(*Store)
+	subcfg := &subConfig{
+		EnableMavlPrefix: true,
+	}
+	sub, err := json.Marshal(subcfg)
+	assert.Nil(b, err)
+	store := New(storeCfg, sub, nil).(*Store)
 	assert.NotNil(b, store)
-	mavldb.EnableMavlPrefix(true)
-	defer mavldb.EnableMavlPrefix(false)
 	var kv []*types.KeyValue
 	var keys [][]byte
 	var hash = drivers.EmptyRoot[:]
@@ -851,10 +854,13 @@ func BenchmarkSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil, nil).(*Store)
+	subcfg := &subConfig{
+		EnableMavlPrefix: true,
+	}
+	sub, err := json.Marshal(subcfg)
+	assert.Nil(b, err)
+	store := New(storeCfg, sub, nil).(*Store)
 	assert.NotNil(b, store)
-	mavldb.EnableMavlPrefix(true)
-	defer mavldb.EnableMavlPrefix(false)
 	var kv []*types.KeyValue
 	var keys [][]byte
 	var hash = drivers.EmptyRoot[:]
