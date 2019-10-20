@@ -41,11 +41,12 @@ chain33_unlock() {
 }
 
 chain33_WalletTxList() {
-    req='"method":"Chain33.WalletTxList", "params":[{"fromTx":"", "count":2, "direction":1}]'
-    http_req "$req" '(.error|not) and (.result.txDetails|length == 2)' "$FUNCNAME"
+    req='{"method":"Chain33.WalletTxList", "params":[{"fromTx":"", "count":2, "direction":1}]}'
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.txDetails|length == 2)' "$FUNCNAME"
 }
 
 chain33_ImportPrivkey() {
+    req='{"method":"Chain33.ImportPrivkey", "params":[{"privkey":"0x88b2fb90411935872f0501dd13345aba19b5fac9b00eb0dddd7df977d4d5477e", "label":"testimportkey"}]}'
     http_req "$req" '(.error|not) and (.result.label=="testimportkey") and (.result.acc.addr == "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt")' "$FUNCNAME"
 }
 
