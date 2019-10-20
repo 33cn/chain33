@@ -37,16 +37,16 @@ chain33_lock() {
 }
 
 chain33_unlock() {
-    http_req '{"method":"Chain33.UnLock","params":[{"passwd":"1314fuzamei","timeout":0}]}' ${MAIN_HTTP}  ".result.isOK" "$FUNCNAME"
+    http_req '{"method":"Chain33.UnLock","params":[{"passwd":"1314fuzamei","timeout":0}]}' ${MAIN_HTTP} ".result.isOK" "$FUNCNAME"
 }
 
 chain33_WalletTxList() {
     req='"method":"Chain33.WalletTxList", "params":[{"fromTx":"", "count":2, "direction":1}]'
-    http_req  "$req" '(.error|not) and (.result.txDetails|length == 2)' "$FUNCNAME"
+    http_req "$req" '(.error|not) and (.result.txDetails|length == 2)' "$FUNCNAME"
 }
 
 chain33_ImportPrivkey() {
-     http_req  "$req" '(.error|not) and (.result.label=="testimportkey") and (.result.acc.addr == "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt")' "$FUNCNAME"
+    http_req "$req" '(.error|not) and (.result.label=="testimportkey") and (.result.acc.addr == "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt")' "$FUNCNAME"
 }
 
 chain33_DumpPrivkey() {
