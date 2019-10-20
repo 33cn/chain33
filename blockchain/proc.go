@@ -390,14 +390,14 @@ type funcProcess func(msg *queue.Message)
 func (chain *BlockChain) processMsg(msg *queue.Message, reqnum chan struct{}, cb funcProcess) {
 	beg := types.Now()
 	defer func() {
-		if r := recover(); r != nil {
-			chainlog.Error("panic error", "err", r)
-			msg.Reply(chain.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
-			return
-		}
 		<-reqnum
 		atomic.AddInt32(&chain.runcount, -1)
 		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+		if r := recover(); r != nil {
+			chainlog.Error("panic error", "err", r)
+			msg.Reply(chain.client.NewMessage("", msg.Ty, fmt.Errorf("%s:%v", types.ErrExecPanic.Error(), r))
+			return
+		}
 	}()
 	cb(msg)
 }
