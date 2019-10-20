@@ -6,6 +6,7 @@ package blockchain
 
 //message callback
 import (
+	"fmt"
 	"sync/atomic"
 
 	"github.com/33cn/chain33/common"
@@ -395,7 +396,7 @@ func (chain *BlockChain) processMsg(msg *queue.Message, reqnum chan struct{}, cb
 		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 		if r := recover(); r != nil {
 			chainlog.Error("panic error", "err", r)
-			msg.Reply(chain.client.NewMessage("", msg.Ty, fmt.Errorf("%s:%v", types.ErrExecPanic.Error(), r))
+			msg.Reply(chain.client.NewMessage("", msg.Ty, fmt.Errorf("%s:%v", types.ErrExecPanic.Error(), r)))
 			return
 		}
 	}()
