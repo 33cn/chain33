@@ -18,9 +18,17 @@ echo_rst() {
         echo -e "${GRE}$1 not support${NOC}"
     else
         echo -e "${RED}$1 fail${NOC}"
+        echo -e "${RED}$3 ${NOC}"
         CASE_ERR="err"
     fi
+}
 
+http_req() {
+    body=$(curl -ksd $1 $2)
+    ok=$(echo $body | jq -r $3)
+    [ "$ok" == true ]
+    rst=$?
+    echo_rst "$4" "$rst" $body
 }
 
 chain33_lock() {
@@ -274,9 +282,7 @@ chain33_GetBlockSequences() {
     if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
-        r1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq ".result.blkseqInfos|length==3")
-        [ "$r1" == true ]
-        echo_rst "$FUNCNAME" "$?"
+        http_req '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} ".result.blkseqInfos|length==3" "$FUNCNAME"
     fi
 }
 
