@@ -24,11 +24,11 @@ echo_rst() {
 }
 
 http_req() {
-    body=$(curl -ksd $1 $2)
-    ok=$(echo $body | jq -r $3)
+    body=$(curl -ksd "$1" "$2")
+    ok=$(echo "$body" | jq -r "$3")
     [ "$ok" == true ]
     rst=$?
-    echo_rst "$4" "$rst" $body
+    echo_rst "$4" "$rst" "$body"
 }
 
 chain33_lock() {
