@@ -32,6 +32,7 @@ type Mempool struct {
 	done              chan struct{}
 	removeBlockTicket *time.Ticker
 	cache             *txCache
+	syncTotalInfo     *time.Ticker
 }
 
 //GetSync 判断是否mempool 同步
@@ -59,6 +60,7 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	pool.cfg = cfg
 	pool.poolHeader = make(chan struct{}, 2)
 	pool.removeBlockTicket = time.NewTicker(time.Minute)
+	pool.syncTotalInfo = time.NewTicker(time.Hour)
 	pool.cache = newCache(cfg.MaxTxNumPerAccount, cfg.MaxTxLast, cfg.PoolCacheSize)
 	return pool
 }
@@ -89,6 +91,8 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 	go mem.checkSync()
 	mem.wg.Add(1)
 	go mem.removeBlockedTxs()
+	mem.wg.Add(1)
+	go mem.syncCacheTotalInfo()
 
 	mem.wg.Add(1)
 	go mem.eventProcess()
@@ -296,6 +300,9 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 			feeRate = levelFeeRate
 		}
 	}
+	if feeRate > 10000000 {
+		feeRate = 10000000
+	}
 	//控制精度
 	minFee := types.GInt("MinFee")
 	if minFee != 0 && feeRate%minFee > 0 {
@@ -454,4 +461,30 @@ func (mem *Mempool) getTxListByHash(hashList *types.ReqTxHashList) *types.ReplyT
 		replyTxList.Txs = append(replyTxList.Txs, tx)
 	}
 	return &replyTxList
+}
+
+// syncCacheTotalInfo 每隔一小时同步cache里的total信息
+func (mem *Mempool) syncCacheTotalInfo() {
+	defer mem.wg.Done()
+	defer mlog.Info("resetCacheTotalInfo quit")
+	if mem.client == nil {
+		panic("client not bind message queue.")
+	}
+	for {
+		select {
+		case <-mem.syncTotalInfo.C:
+			if mem.isClose() {
+				return
+			}
+			mem.resetTxCacheTotalInfo()
+		case <-mem.done:
+			return
+		}
+	}
+}
+
+func (mem *Mempool) resetTxCacheTotalInfo() {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	mem.cache.syncTxCacheTotalInfo()
 }

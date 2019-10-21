@@ -169,3 +169,18 @@ func (cache *txCache) getTxByHash(hash string) *types.Transaction {
 	}
 	return item.Value
 }
+
+func (cache *txCache) syncTxCacheTotalInfo() {
+	var sumFee int64 = 0
+	var sumTxByte int64 = 0
+	cache.qcache.Walk(0, func(tx *Item) bool {
+		sumFee += tx.Value.Fee
+		sumTxByte += int64(proto.Size(tx.Value))
+		return true
+	})
+	if sumFee != cache.totalFee || sumTxByte != cache.totalByte {
+		mlog.Info("resetTxCacheTotalInfo", "totalinfo not equal", "sumFee", sumFee, "totalFee", cache.totalFee, "sumTxByte", sumTxByte, "totalByte", cache.totalByte)
+		cache.totalFee = sumFee
+		cache.totalByte = sumTxByte
+	}
+}
