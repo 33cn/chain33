@@ -37,8 +37,8 @@ var (
 	// 当前树的最大高度
 	maxBlockHeight int64
 	heightMtx      sync.Mutex
-	memTree      MemTreeOpera
-	tkCloseCache MemTreeOpera
+	memTree        MemTreeOpera
+	tkCloseCache   MemTreeOpera
 )
 
 // InitGlobalMem 初始化全局变量
