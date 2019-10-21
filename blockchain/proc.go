@@ -258,6 +258,10 @@ func (chain *BlockChain) addBlockDetail(msg *queue.Message) {
 	msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, blockDetail))
 }
 
+//超前太多或者落后太多的广播区块都不做处理：
+//当本节点在同步阶段并且远远落后主网最新高度时不处理广播block,暂定落后128个区块
+//以免广播区块占用go goroutine资源
+//目前回滚只支持10000个区块，所以收到落后10000高度之外的广播区块也不做处理
 func (chain *BlockChain) broadcastAddBlock(msg *queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
@@ -265,9 +269,11 @@ func (chain *BlockChain) broadcastAddBlock(msg *queue.Message) {
 
 	castheight := blockwithpid.Block.Height
 	curheight := chain.GetBlockHeight()
-	//当本节点在同步阶段并且远远落后主网最新高度时不处理广播block,暂定落后128个区块
-	//以免广播区块占用go goroutine资源
-	if blockwithpid.Block.Height > curheight+BackBlockNum {
+
+	futureMaximum := castheight > curheight+BackBlockNum
+	backWardMaximum := curheight > MaxRollBlockNum && castheight < curheight-MaxRollBlockNum
+
+	if futureMaximum || backWardMaximum {
 		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "result", "Do not handle broad cast Block in sync")
 		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 		return

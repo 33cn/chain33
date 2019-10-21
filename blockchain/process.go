@@ -226,7 +226,7 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 
 	if blocktd.Cmp(tiptd) <= 0 {
 		fork := b.bestChain.FindFork(node)
-		if bytes.Equal(parentHash, fork.hash) {
+		if fork != nil && bytes.Equal(parentHash, fork.hash) {
 			chainlog.Info("connectBestChain FORK:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
 		} else {
 			chainlog.Info("connectBestChain extends a side chain:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
