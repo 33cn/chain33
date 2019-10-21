@@ -14,6 +14,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+
 //ProcRecvMsg blockchain模块的消息接收处理
 func (chain *BlockChain) ProcRecvMsg() {
 	defer chain.recvwg.Done()
