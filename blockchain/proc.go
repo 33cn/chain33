@@ -6,6 +6,7 @@ package blockchain
 
 //message callback
 import (
+	"fmt"
 	"sync/atomic"
 
 	"github.com/33cn/chain33/common"
@@ -64,43 +65,33 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.isNtpClockSyncFunc)
 		case types.EventGetLastBlockSequence:
 			go chain.processMsg(msg, reqnum, chain.getLastBlockSequence)
-
 		case types.EventGetBlockSequences:
 			go chain.processMsg(msg, reqnum, chain.getBlockSequences)
-
 		case types.EventGetBlockByHashes:
 			go chain.processMsg(msg, reqnum, chain.getBlockByHashes)
 		case types.EventGetBlockBySeq:
 			go chain.processMsg(msg, reqnum, chain.getBlockBySeq)
-
 		case types.EventDelParaChainBlockDetail:
 			go chain.processMsg(msg, reqnum, chain.delParaChainBlockDetail)
-
 		case types.EventAddParaChainBlockDetail:
 			go chain.processMsg(msg, reqnum, chain.addParaChainBlockDetail)
-
 		case types.EventGetSeqByHash:
 			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
 		case types.EventAddBlockSeqCB:
 			go chain.processMsg(msg, reqnum, chain.addBlockSeqCB)
-
 		case types.EventListBlockSeqCB:
 			go chain.processMsg(msg, reqnum, chain.listBlockSeqCB)
-
 		case types.EventGetSeqCBLastNum:
 			go chain.processMsg(msg, reqnum, chain.getSeqCBLastNum)
-
 		case types.EventGetLastBlockMainSequence:
 			go chain.processMsg(msg, reqnum, chain.GetLastBlockMainSequence)
 		case types.EventGetMainSeqByHash:
 			go chain.processMsg(msg, reqnum, chain.GetMainSeqByHash)
-
 		//para共识模块操作blockchain db的事件
 		case types.EventSetValueByKey:
 			go chain.processMsg(msg, reqnum, chain.setValueByKey)
 		case types.EventGetValueByKey:
 			go chain.processMsg(msg, reqnum, chain.getValueByKey)
-
 		//通过平行链title获取平行链的交易
 		case types.EventGetParaTxByTitle:
 			go chain.processMsg(msg, reqnum, chain.getParaTxByTitle)
@@ -393,6 +384,11 @@ func (chain *BlockChain) processMsg(msg *queue.Message, reqnum chan struct{}, cb
 		<-reqnum
 		atomic.AddInt32(&chain.runcount, -1)
 		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+		if r := recover(); r != nil {
+			chainlog.Error("panic error", "err", r)
+			msg.Reply(chain.client.NewMessage("", msg.Ty, fmt.Errorf("%s:%v", types.ErrExecPanic.Error(), r)))
+			return
+		}
 	}()
 	cb(msg)
 }

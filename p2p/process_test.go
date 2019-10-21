@@ -159,7 +159,7 @@ func Test_processP2P(t *testing.T) {
 		assert.False(t, doSend)
 		close(testDone)
 	}()
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(time.Minute * 5)
 	defer ticker.Stop()
 	for {
 		select {
