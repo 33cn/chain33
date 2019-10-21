@@ -31,9 +31,7 @@ type Item struct {
 type txCache struct {
 	*AccountTxIndex
 	*LastTxCache
-	qcache    QueueCache
-	totalFee  int64
-	totalByte int64
+	qcache QueueCache
 	*SHashTxCache
 }
 
@@ -64,8 +62,6 @@ func (cache *txCache) Remove(hash string) {
 	}
 	cache.AccountTxIndex.Remove(tx)
 	cache.LastTxCache.Remove(tx)
-	cache.totalFee -= tx.Fee
-	cache.totalByte -= int64(proto.Size(tx))
 	cache.SHashTxCache.Remove(tx)
 }
 
@@ -95,12 +91,22 @@ func (cache *txCache) Size() int {
 
 //TotalFee 手续费总和
 func (cache *txCache) TotalFee() int64 {
-	return cache.totalFee
+	var totalFee int64
+	cache.qcache.Walk(0, func(item *Item) bool {
+		totalFee += item.Value.Fee
+		return true
+	})
+	return totalFee
 }
 
 //TotalByte 交易字节数总和
 func (cache *txCache) TotalByte() int64 {
-	return cache.totalByte
+	var totalByte int64
+	cache.qcache.Walk(0, func(item *Item) bool {
+		totalByte += int64(proto.Size(item.Value))
+		return true
+	})
+	return totalByte
 }
 
 //Walk iter all txs
@@ -133,8 +139,6 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		return err
 	}
 	cache.LastTxCache.Push(tx)
-	cache.totalFee += tx.Fee
-	cache.totalByte += int64(proto.Size(tx))
 	cache.SHashTxCache.Push(tx)
 	return nil
 }
@@ -178,9 +182,5 @@ func (cache *txCache) syncTxCacheTotalInfo() {
 		sumTxByte += int64(proto.Size(tx.Value))
 		return true
 	})
-	if sumFee != cache.totalFee || sumTxByte != cache.totalByte {
-		mlog.Info("resetTxCacheTotalInfo", "totalinfo not equal", "sumFee", sumFee, "totalFee", cache.totalFee, "sumTxByte", sumTxByte, "totalByte", cache.totalByte)
-		cache.totalFee = sumFee
-		cache.totalByte = sumTxByte
-	}
+	mlog.Info("resetTxCacheTotalInfo", "totalinfo", "sumFee", sumFee, "sumTxByte", sumTxByte)
 }
