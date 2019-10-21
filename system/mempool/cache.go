@@ -171,8 +171,8 @@ func (cache *txCache) getTxByHash(hash string) *types.Transaction {
 }
 
 func (cache *txCache) syncTxCacheTotalInfo() {
-	var sumFee int64 = 0
-	var sumTxByte int64 = 0
+	var sumFee int64
+	var sumTxByte int64
 	cache.qcache.Walk(0, func(tx *Item) bool {
 		sumFee += tx.Value.Fee
 		sumTxByte += int64(proto.Size(tx.Value))
