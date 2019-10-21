@@ -172,7 +172,11 @@ func (n *Node) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 	if isDuplicate {
 		return
 	}
-	txHashFilter.Add(txHash, tx.Route)
+	//有可能收到老版本的交易路由,此时route是空指针
+	if tx.GetRoute() == nil {
+		tx.Route = &types.P2PRoute{TTL: 1}
+	}
+	txHashFilter.Add(txHash, tx.GetRoute())
 
 	msg := n.nodeInfo.client.NewMessage("mempool", types.EventTx, tx.GetTx())
 	errs := n.nodeInfo.client.Send(msg, false)

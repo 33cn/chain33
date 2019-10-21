@@ -81,7 +81,7 @@ func (m *Cli) BroadCastTx(msg *queue.Message, taskindex int64) {
 		route := &pb.P2PRoute{TTL: 1}
 		//是否已存在记录，不存在表示本节点发起的交易
 		if ttl, exist := txHashFilter.Get(txHash).(*pb.P2PRoute); exist {
-			route.TTL = ttl.TTL + 1
+			route.TTL = ttl.GetTTL() + 1
 		} else {
 			txHashFilter.RegRecvData(txHash)
 		}
