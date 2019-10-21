@@ -62,6 +62,7 @@ func (c *GenDappCodeTask) calcReplacePairs(pbContent string) error {
 	dapp := strings.ToLower(c.DappName)
 	className, _ := util2.MakeStringToUpper(dapp, 0, 1)
 	c.replacePairs[types.TagExecName] = dapp
+	c.replacePairs[types.TagExecObject] = dapp[:1]
 	c.replacePairs[types.TagClassName] = className
 	c.replacePairs[types.TagImportPath] = c.PackagePath
 

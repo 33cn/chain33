@@ -420,6 +420,28 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	return nil
 }
 
+// PreExecBlock 预执行区块, 用于raft, tendermint等共识, errReturn表示区块来源于自己还是别人
+func (bc *BaseClient) PreExecBlock(block *types.Block, errReturn bool) *types.Block {
+	lastBlock, err := bc.RequestBlock(block.Height - 1)
+	if err != nil {
+		log.Error("PreExecBlock RequestBlock fail", "err", err)
+		return nil
+	}
+	blockdetail, deltx, err := util.PreExecBlock(bc.client, lastBlock.StateHash, block, errReturn, false, true)
+	if err != nil {
+		log.Error("util.PreExecBlock fail", "err", err)
+		return nil
+	}
+	if len(deltx) > 0 {
+		err := bc.delMempoolTx(deltx)
+		if err != nil {
+			log.Error("PreExecBlock delMempoolTx fail", "err", err)
+			return nil
+		}
+	}
+	return blockdetail.Block
+}
+
 func diffTx(tx1, tx2 []*types.Transaction) (deltx []*types.Transaction) {
 	txlist2 := make(map[string]bool)
 	for _, tx := range tx2 {

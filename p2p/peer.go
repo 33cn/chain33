@@ -50,6 +50,7 @@ type Peer struct {
 	taskChan     chan interface{} //tx block
 	inBounds     int32            //连接此节点的客户端节点数量
 	IsMaxInbouds bool
+	isRegister   bool //标记是否发送服务端注册peer info, 规避6.2版本no peer info问题, TODO: 全网升级到6.3后, 可删除相关代码
 }
 
 // NewPeer produce a peer object
@@ -183,7 +184,7 @@ func (p *Peer) sendStream() {
 	//Stream Send data
 	for {
 		if !p.GetRunning() {
-			log.Info("sendStream peer connect closed", "peerid", p.GetPeerName())
+			log.Debug("sendStream peer connect closed", "peerid", p.GetPeerName())
 			return
 		}
 		ctx, cancel := context.WithCancel(context.Background())
@@ -235,15 +236,21 @@ func (p *Peer) sendStream() {
 			log.Error("sendStream", "sendversion", err)
 			continue
 		}
+		//发送完版本信息后, 标识已注册 TODO: 全网升级到6.3后, 可删除这部分代码
+		p.setIsRegister(true)
 		timeout := time.NewTimer(time.Second * 2)
 		defer timeout.Stop()
 	SEND_LOOP:
 		for {
-
+			//老版本的peerinfo注册错误, 需要结束发送流循环, 重新注册节点信息
+			if !p.getIsRegister() {
+				break
+			}
 			if !p.GetRunning() {
 				return
 			}
 			select {
+
 			case task := <-p.taskChan:
 				if !p.GetRunning() {
 					errs := resp.CloseSend()
@@ -294,14 +301,22 @@ func (p *Peer) sendStream() {
 
 func (p *Peer) readStream() {
 
+	//6.2版本no peer info错误重试 TODO: 全网升级到6.3后, 可删除这部分代码
+	noPeerInfoRetry := 0
 	for {
 		if !p.GetRunning() {
 			log.Debug("readstream", "loop", "done")
 			return
 		}
+
+		//等待注册节点信息成功后再进行广播接收, 规避6.2版本未注册直接报错问题 TODO: 全网升级到6.3后, 可删除这部分代码
+		for !p.getIsRegister() {
+			time.Sleep(5 * time.Second * time.Duration(noPeerInfoRetry))
+		}
+
 		ping, err := P2pComm.NewPingData(p.node.nodeInfo)
 		if err != nil {
-			log.Error("readStream", "err:", err.Error())
+			log.Error("readStream", "err:", err.Error(), "peerIp", p.Addr())
 			continue
 		}
 		resp, err := p.mconn.gcli.ServerStreamSend(context.Background(), ping)
@@ -323,24 +338,44 @@ func (p *Peer) readStream() {
 			}
 
 			data, err := resp.Recv()
-			P2pComm.CollectPeerStat(err, p)
 			if err != nil {
-				log.Error("readStream", "recv,err:", err.Error())
+				//6.2版本的no peer info错误,会导致节点重复多次尝试连接, 前面已经尽量规避, 依然有该错误,需要触发重新注册
+				//TODO: 全网升级到6.3后, 可删除这部分代码
+				if strings.Contains(err.Error(), "no peer info") {
+					noPeerInfoRetry++
+					//重复次数过多
+					if noPeerInfoRetry > 10 {
+						log.Error("readStream", "err", "max no peer info retry")
+						p.Close()
+						return
+					}
+					log.Debug("readStream", "err", "no peer info", "retryTimes", noPeerInfoRetry, "peerAddr", p.Addr())
+					p.setIsRegister(false)
+					time.Sleep(time.Second * 10 * time.Duration(noPeerInfoRetry))
+					break
+				}
+				P2pComm.CollectPeerStat(err, p)
+				log.Error("readStream", "recv,err:", err.Error(), "peerAddr", p.Addr())
 				errs := resp.CloseSend()
 				if errs != nil {
 					log.Error("CloseSend", "err", errs)
 				}
+
+				log.Error("readStream", "recv,err:", err.Error(), "peerIp", p.Addr())
+
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
 					p.node.nodeInfo.blacklist.Add(p.Addr(), 3600)
+					return
 				}
 				//beyound max inbound num
 				if strings.Contains(err.Error(), "beyound max inbound num") {
-					log.Info("readStream", "peer inbounds num", p.GetInBouns())
+					log.Debug("readStream", "peer inbounds num", p.GetInBouns())
 					p.IsMaxInbouds = true
 					P2pComm.CollectPeerStat(err, p)
+					return
 				}
 				time.Sleep(time.Second) //have a rest
-				break
+
 			}
 
 			p.node.processRecvP2P(data, p.GetPeerName(), p.node.pubToPeer, p.Addr())
@@ -394,4 +429,16 @@ func (p *Peer) GetPeerName() string {
 	p.mutx.Lock()
 	defer p.mutx.Unlock()
 	return p.name
+}
+
+func (p *Peer) setIsRegister(register bool) {
+	p.mutx.Lock()
+	defer p.mutx.Unlock()
+	p.isRegister = register
+}
+
+func (p *Peer) getIsRegister() bool {
+	p.mutx.Lock()
+	defer p.mutx.Unlock()
+	return p.isRegister
 }

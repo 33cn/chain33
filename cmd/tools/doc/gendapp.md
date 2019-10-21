@@ -87,8 +87,7 @@ demo
 │   ├── rpc.go
 │   └── types.go
 └── types           //类型模块
-    └── demo
-        └── demo.go
+    └── demo.go 
 
 ```
 ##### 生成pb.go文件

@@ -217,7 +217,7 @@ func (n *Node) recvBlock(block *types.P2PBlock, pid, peerAddr string) {
 	n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
 	//如果重复接收, 则不再发到blockchain执行
 	isDuplicate := n.checkAndRegFilterAtomic(blockHashFilter, blockHash)
-	log.Info("recvBlock", "blockHeight", block.GetBlock().GetHeight(), "peerAddr", peerAddr,
+	log.Debug("recvBlock", "blockHeight", block.GetBlock().GetHeight(), "peerAddr", peerAddr,
 		"block size(KB)", float32(block.Block.Size())/1024, "blockHash", blockHash, "duplicateBlock", isDuplicate)
 	if isDuplicate {
 		return
@@ -298,7 +298,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string, pubP
 	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) &&
 		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
-		log.Info("recvLtBlock", "height", block.GetHeight(), "peerAddr", peerAddr,
+		log.Debug("recvLtBlock", "height", block.GetHeight(), "peerAddr", peerAddr,
 			"blockHash", blockHash, "block size(KB)", float32(ltBlock.Size)/1024)
 		//发送至blockchain执行
 		if err := n.postBlockChain(block, pid); err != nil {
@@ -399,7 +399,7 @@ func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string, 
 	//计算的root hash是否一致
 	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
-		log.Info("recvQueryReplyBlock", "blockHeight", block.GetHeight(), "peerAddr", peerAddr,
+		log.Debug("recvQueryReplyBlock", "blockHeight", block.GetHeight(), "peerAddr", peerAddr,
 			"block size(KB)", float32(block.Size())/1024, "blockHash", rep.BlockHash)
 		//发送至blockchain执行
 		if err := n.postBlockChain(block, pid); err != nil {
