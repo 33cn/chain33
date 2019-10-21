@@ -40,10 +40,6 @@ const (
 )
 
 var (
-	// 是否开启mavl裁剪
-	//enablePrune bool
-	// 每个10000裁剪一次
-	//pruneHeight = 10000
 	// 裁剪状态
 	pruningState   int32
 	wg             sync.WaitGroup
@@ -55,18 +51,6 @@ type hashData struct {
 	height int64
 	hash   []byte
 }
-
-// EnablePrune 使能裁剪
-//func EnablePrune(enable bool) {
-//	enablePrune = enable
-//	//开启裁剪需要同时开启前缀
-//	enableMavlPrefix = enable
-//}
-
-//// SetPruneHeight 设置每次裁剪高度
-//func SetPruneHeight(height int) {
-//	pruneHeight = height
-//}
 
 // ClosePrune 关闭裁剪
 func ClosePrune() {

@@ -34,43 +34,12 @@ var (
 	ErrNodeNotExist = errors.New("ErrNodeNotExist")
 	treelog         = log.New("module", "mavl")
 	emptyRoot       [32]byte
-	//enableMavlPrefix bool
-	// 是否开启MVCC
-	//enableMvcc bool
 	// 当前树的最大高度
 	maxBlockHeight int64
 	heightMtx      sync.Mutex
-	//
-	//enableMemTree   bool
-	//enableMemVal    bool
 	memTree      MemTreeOpera
 	tkCloseCache MemTreeOpera
 )
-
-//// EnableMavlPrefix 使能mavl加前缀
-//func EnableMavlPrefix(enable bool) {
-//	enableMavlPrefix = enable
-//}
-//
-//// EnableMVCC 使能MVCC
-//func EnableMVCC(enable bool) {
-//	enableMvcc = enable
-//}
-//
-//// EnableMemTree 使能mavl数据载入内存
-//func EnableMemTree(enable bool) {
-//	enableMemTree = enable
-//}
-//
-//// EnableMemVal 使能mavl叶子节点数据载入内存
-//func EnableMemVal(enable bool) {
-//	enableMemVal = enable
-//}
-
-//// TkCloseCacheLen 设置缓存close ticket数目
-//func TkCloseCacheLen(len int32) {
-//	tkCloseCacheLen = len
-//}
 
 // InitGlobalMem 初始化全局变量
 func InitGlobalMem(treeCfg *TreeConfig) {
