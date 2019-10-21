@@ -60,14 +60,16 @@ var (
 
 var driverName = ${EXECNAME}types.${CLASSNAME}X
 
-func init() {
-	ety := types.LoadExecutorType(driverName)
-	ety.InitFuncList(types.ListMethod(&${EXECNAME}{}))
+// Init register dapp
+func Init(name string, cfg *types.Chain33Config, sub []byte) {
+	drivers.Register(cfg, GetName(), new${CLASSNAME}, cfg.GetDappFork(driverName, "Enable"))
+    InitExecType()
 }
 
-// Init register dapp
-func Init(name string, sub []byte) {
-	drivers.Register(GetName(), new${CLASSNAME}, types.GetDappFork(driverName, "Enable"))
+// InitExecType Init Exec Type
+func InitExecType() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&${EXECNAME}{}))
 }
 
 type ${EXECNAME} struct {

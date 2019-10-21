@@ -74,20 +74,32 @@ var (
 	tlog = log.New("module", "${EXECNAME}.types")
 )
 
+// init defines a register function
 func init() {
     types.AllowUserExec = append(types.AllowUserExec, []byte(${CLASSNAME}X))
-    types.RegistorExecutor(${CLASSNAME}X, newType())
 	//注册合约启用高度
-	types.RegisterDappFork(${CLASSNAME}X, "Enable", 0)
+	types.RegFork(${CLASSNAME}X, InitFork)
+	types.RegExec(${CLASSNAME}X, InitExecutor)
+}
+
+// InitFork defines register fork
+func InitFork(cfg *types.Chain33Config) {
+	cfg.RegisterDappFork(${CLASSNAME}X, "Enable", 0)
+}
+
+// InitExecutor defines register executor
+func InitExecutor(cfg *types.Chain33Config) {
+	types.RegistorExecutor(${CLASSNAME}X, NewType(cfg))
 }
 
 type ${EXECNAME}Type struct {
     types.ExecTypeBase
 }
 
-func newType() *${EXECNAME}Type {
+func NewType(cfg *types.Chain33Config) *${EXECNAME}Type {
     c := &${EXECNAME}Type{}
     c.SetChild(c)
+    c.SetConfig(cfg)
     return c
 }
 
