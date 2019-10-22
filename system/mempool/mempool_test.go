@@ -1065,7 +1065,7 @@ func TestSimpleQueue_TotalByte(t *testing.T) {
 		sumByte += int64(proto.Size(it.Value))
 		return true
 	})
-	assert.Equal(t, sumByte, mem.cache.TotalByte())
+	assert.Equal(t, sumByte, mem.GetTotalCacheBytes())
 	assert.Equal(t, sumByte, int64(19))
 
 	mem.cache.Remove(string(txb.Hash()))
@@ -1075,7 +1075,7 @@ func TestSimpleQueue_TotalByte(t *testing.T) {
 		sumByte2 += int64(proto.Size(it.Value))
 		return true
 	})
-	assert.Equal(t, sumByte2, mem.cache.TotalByte())
+	assert.Equal(t, sumByte2, mem.GetTotalCacheBytes())
 	assert.Equal(t, sumByte2, int64(9))
 }
 
