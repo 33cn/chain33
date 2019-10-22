@@ -87,44 +87,6 @@ func (f *Forks) GetDappFork(app string, key string) int64 {
 	return f.GetFork(app + "." + key)
 }
 
-// TODO 需要确认是否使用
-// Clone fork信息拷贝
-//func (f *Forks) Clone(from, to string) error {
-//	forkitem, ok := f.forks[from]
-//	if !ok {
-//		return ErrCloneForkFrom
-//	}
-//	_, ok = f.forks[to]
-//	if ok {
-//		return ErrCloneForkToExist
-//	}
-//	f.forks[to] = make(map[string]int64)
-//	for k, v := range forkitem {
-//		f.forks[to][k] = v
-//	}
-//	return nil
-//}
-
-//// CloneZero fork信息拷贝并设置所有fork高度是0
-//func (f *Forks) CloneZero(from, to string) error {
-//	err := f.Clone(from, to)
-//	if err != nil {
-//		return err
-//	}
-//	f.SetAllFork(to, 0)
-//	return nil
-//}
-
-//// CloneMaxHeight fork信息拷贝并设置所有fork高度MaxHeight
-//func (f *Forks) CloneMaxHeight(from, to string) error {
-//	err := f.Clone(from, to)
-//	if err != nil {
-//		return err
-//	}
-//	f.SetAllFork(to, MaxHeight)
-//	return nil
-//}
-
 // SetAllFork 设置所有fork的高度
 func (f *Forks) SetAllFork(height int64) {
 	for k := range f.forks {

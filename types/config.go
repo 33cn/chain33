@@ -159,6 +159,13 @@ func (c *Chain33Config) EnableCheckFork(enable bool) {
 	c.enableCheckFork = false
 }
 
+func (c *Chain33Config) GetForks() (map[string]int64, error)  {
+	if c.forks == nil {
+		return nil, ErrNotFound
+	}
+	return c.forks.forks, nil
+}
+
 func (c *Chain33Config) setDefaultConfig() {
 	c.S("TestNet", false)
 	c.SetMinFee(DefaultMinFee)
