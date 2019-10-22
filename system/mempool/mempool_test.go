@@ -1036,7 +1036,7 @@ func TestSimpleQueue_TotalFee(t *testing.T) {
 		sumFee += it.Value.Fee
 		return true
 	})
-	assert.Equal(t, sumFee, mem.cache.TotalFee())
+	assert.Equal(t, sumFee, mem.GetTotalCacheFee())
 	assert.Equal(t, sumFee, int64(200000))
 
 	mem.cache.Remove(string(txb.Hash()))
@@ -1046,7 +1046,7 @@ func TestSimpleQueue_TotalFee(t *testing.T) {
 		sumFee2 += it.Value.Fee
 		return true
 	})
-	assert.Equal(t, sumFee2, mem.cache.TotalFee())
+	assert.Equal(t, sumFee2, mem.GetTotalCacheFee())
 	assert.Equal(t, sumFee2, int64(100000))
 }
 

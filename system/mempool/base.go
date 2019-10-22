@@ -225,6 +225,13 @@ func (mem *Mempool) GetTotalCacheBytes() int64 {
 	return mem.cache.TotalByte()
 }
 
+//  GetTotalFee 获取缓存交易的总手续费
+func (mem *Mempool) GetTotalCacheFee() int64 {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.TotalFee()
+}
+
 // pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
 func (mem *Mempool) pollLastHeader() {
 	defer mem.wg.Done()
