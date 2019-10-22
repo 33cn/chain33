@@ -159,7 +159,7 @@ func (c *Chain33Config) EnableCheckFork(enable bool) {
 	c.enableCheckFork = false
 }
 
-func (c *Chain33Config) GetForks() (map[string]int64, error)  {
+func (c *Chain33Config) GetForks() (map[string]int64, error) {
 	if c.forks == nil {
 		return nil, ErrNotFound
 	}
