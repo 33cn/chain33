@@ -82,7 +82,11 @@ func (cache *txCache) GetProperFee() int64 {
 	if cache.qcache == nil {
 		return 0
 	}
-	return cache.qcache.GetProperFee()
+	feeRate := cache.qcache.GetProperFee()
+	if feeRate > 10000000 {
+		feeRate = 10000000
+	}
+	return feeRate
 }
 
 //Size cache tx num
