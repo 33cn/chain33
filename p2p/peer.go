@@ -222,9 +222,9 @@ func (p *Peer) sendStream() {
 		}
 
 		//send softversion&p2pversion
-		_, peername := p.node.nodeInfo.addrBook.GetPrivPubKey()
+		_, peerName := p.node.nodeInfo.addrBook.GetPrivPubKey()
 		p2pdata.Value = &pb.BroadCastData_Version{Version: &pb.Versions{P2Pversion: p.node.nodeInfo.channelVersion,
-			Softversion: v.GetVersion(), Peername: peername}}
+			Softversion: v.GetVersion(), Peername: peerName}}
 
 		if err := resp.Send(p2pdata); err != nil {
 			P2pComm.CollectPeerStat(err, p)
@@ -261,7 +261,7 @@ func (p *Peer) sendStream() {
 					log.Error("sendStream peer connect closed", "peerName", p.GetPeerName())
 					return
 				}
-				sendData, doSend := p.node.processSendP2P(task, p.version.GetVersion(), peername, p.Addr())
+				sendData, doSend := p.node.processSendP2P(task, p.version.GetVersion(), p.GetPeerName(), p.Addr())
 				if !doSend {
 					continue
 				}
