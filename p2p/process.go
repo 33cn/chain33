@@ -131,9 +131,15 @@ func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion
 
 	txHash := hex.EncodeToString(tx.Tx.Hash())
 	ttl := tx.GetRoute().GetTTL()
-	//检测冗余发送
-	ignoreSend := n.addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
 	isLightSend := peerVersion >= lightBroadCastVersion && ttl >= n.nodeInfo.cfg.LightTxTTL
+	//检测冗余发送
+	ignoreSend := false
+
+	//短哈希广播不记录发送过滤
+	if !isLightSend {
+		ignoreSend = n.addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
+	}
+
 	log.Debug("P2PSendTx", "txHash", txHash, "ttl", ttl, "isLightSend", isLightSend,
 		"peerAddr", peerAddr, "ignoreSend", ignoreSend)
 
@@ -336,7 +342,6 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid, peerAddr string, pu
 		txHash := hex.EncodeToString(txReq.TxHash)
 		log.Debug("recvQueryTx", "txHash", txHash, "peerAddr", peerAddr)
 		//向mempool请求交易
-		//get tx from mempool
 		resp, err := n.queryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
 		if err != nil {
 			log.Error("recvQuery", "queryMempoolErr", err)
