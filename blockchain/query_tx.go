@@ -227,6 +227,9 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	} else {
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
+	if err != nil && err != types.ErrEmpty {
+		return nil, err
+	}
 
 	var reqkey types.ReqKey
 
