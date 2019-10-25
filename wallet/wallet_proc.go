@@ -126,6 +126,9 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", types.ErrIndex
 	}
 	if index <= 0 {
+		//设置过期需要重构
+		group.SetExpire(0, time.Duration(expire))
+		group.RebuiltGroup()
 		for i := range group.Txs {
 			err := group.SignN(i, int32(wallet.SignType), key)
 			if err != nil {
