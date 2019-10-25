@@ -31,7 +31,13 @@ func (g *Grpc) CreateNoBalanceTxs(ctx context.Context, in *pb.NoBalanceTxs) (*pb
 
 // CreateNoBalanceTransaction create transaction with no balance
 func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceTx) (*pb.ReplySignRawTx, error) {
-	reply, err := g.cli.CreateNoBalanceTransaction(in)
+	params := &pb.NoBalanceTxs{
+		TxHexs:  []string{in.GetTxHex()},
+		PayAddr: in.GetPayAddr(),
+		Privkey: in.GetPrivkey(),
+		Expire:  in.GetExpire(),
+	}
+	reply, err := g.cli.CreateNoBalanceTxs(params)
 	if err != nil {
 		return nil, err
 	}
