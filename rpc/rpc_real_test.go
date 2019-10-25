@@ -5,6 +5,7 @@
 package rpc_test
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -133,4 +134,84 @@ func TestCreateTransactionUserWrite(t *testing.T) {
 	fmt.Println(string(tx.Payload))
 	assert.Nil(t, err)
 	assert.Equal(t, `{"key":"value"}`, string(tx.Payload))
+}
+
+func TestExprieCreateNoBalanceTransaction(t *testing.T) {
+	mocker := testnode.New("--free--", nil)
+	defer mocker.Close()
+	mocker.Listen()
+	jrpcClient := getRPCClient(t, mocker)
+	req := &rpctypes.CreateTxIn{
+		Execer:     "user.write",
+		ActionName: "write",
+		Payload:    []byte(`{"key":"value"}`),
+	}
+	var res string
+	err := jrpcClient.Call("Chain33.CreateTransaction", req, &res)
+	assert.Nil(t, err)
+	gen := mocker.GetGenesisKey().Bytes()
+	req2 := &types.NoBalanceTx{
+		TxHex:   res,
+		Privkey: common.ToHex(gen),
+		Expire:  "300s",
+	}
+	var groupres string
+	err = jrpcClient.Call("Chain33.CreateNoBalanceTransaction", req2, &groupres)
+	assert.Nil(t, err)
+
+	txByteData, err := common.FromHex(groupres)
+	assert.Nil(t, err)
+	var tx types.Transaction
+	err = types.Decode(txByteData, &tx)
+	txgroup, err := tx.GetTxGroup()
+	assert.Nil(t, err)
+	assert.True(t, txgroup.GetTxs()[0].GetExpire() > 0)
+}
+
+func TestExprieSignRawTx(t *testing.T) {
+	mocker := testnode.New("--free--", nil)
+	defer mocker.Close()
+	mocker.Listen()
+	jrpcClient := getRPCClient(t, mocker)
+	req := &rpctypes.CreateTxIn{
+		Execer:     "user.write",
+		ActionName: "write",
+		Payload:    []byte(`{"key":"value"}`),
+	}
+	var res string
+	err := jrpcClient.Call("Chain33.CreateTransaction", req, &res)
+
+	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
+	txNone.To = address.ExecAddress(string(txNone.Execer))
+	txNone, err = types.FormatTx(types.ExecName(types.NoneX), txNone)
+	assert.NoError(t, err)
+	assert.Nil(t, err)
+	gen := mocker.GetGenesisKey().Bytes()
+	req2 := &types.CreateTransactionGroup{
+		Txs: []string{hex.EncodeToString(types.Encode(txNone)), res},
+	}
+	var groupres string
+	err = jrpcClient.Call("Chain33.CreateRawTxGroup", req2, &groupres)
+	assert.Nil(t, err)
+
+	txByteData, err := common.FromHex(groupres)
+	assert.Nil(t, err)
+	var tx types.Transaction
+	err = types.Decode(txByteData, &tx)
+	req3 := &types.ReqSignRawTx{
+		TxHex:   common.ToHex(types.Encode(&tx)),
+		Privkey: common.ToHex(gen),
+		Expire:  "300s",
+	}
+	var signgrouptx string
+	err = jrpcClient.Call("Chain33.SignRawTx", req3, &signgrouptx)
+	assert.Nil(t, err)
+
+	txByteData, err = common.FromHex(signgrouptx)
+	assert.Nil(t, err)
+	var tx2 types.Transaction
+	err = types.Decode(txByteData, &tx2)
+	txgroup2, err := tx2.GetTxGroup()
+	assert.Nil(t, err)
+	assert.True(t, txgroup2.GetTxs()[0].GetExpire() > 0)
 }
