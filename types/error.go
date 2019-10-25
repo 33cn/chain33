@@ -49,6 +49,7 @@ var (
 	ErrBlockNotFound           = errors.New("ErrBlockNotFound")
 	ErrLogType                 = errors.New("ErrLogType")
 	ErrInvalidParam            = errors.New("ErrInvalidParam")
+	ErrInvalidExpire           = errors.New("ErrInvalidExpire")
 	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
 	ErrNotInited               = errors.New("ErrNotInited")
 
