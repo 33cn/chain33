@@ -254,7 +254,7 @@ func (chain *BlockChain) addBlockDetail(msg *queue.Message) {
 		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
 		return
 	}
-	chainlog.Debug("addBlockDetail success ", "Height", Height, "hash", common.HashHex(blockDetail.Block.Hash()))
+	chainlog.Debug("addBlockDetail success ", "Height", Height, "hash", common.HashHex(blockDetail.Block.Hash(chain.client.GetConfig())))
 	msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, blockDetail))
 }
 
@@ -274,7 +274,7 @@ func (chain *BlockChain) broadcastAddBlock(msg *queue.Message) {
 	backWardMaximum := curheight > MaxRollBlockNum && castheight < curheight-MaxRollBlockNum
 
 	if futureMaximum || backWardMaximum {
-		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "result", "Do not handle broad cast Block in sync")
+		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash(chain.client.GetConfig())), "pid", blockwithpid.Pid, "result", "Do not handle broad cast Block in sync")
 		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 		return
 	}
@@ -284,7 +284,7 @@ func (chain *BlockChain) broadcastAddBlock(msg *queue.Message) {
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}
-	chainlog.Debug("EventBroadcastAddBlock", "height", blockwithpid.Block.Height, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "success", "ok")
+	chainlog.Debug("EventBroadcastAddBlock", "height", blockwithpid.Block.Height, "hash", common.ToHex(blockwithpid.Block.Hash(chain.client.GetConfig())), "pid", blockwithpid.Pid, "success", "ok")
 
 	msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 }
@@ -466,7 +466,7 @@ func (chain *BlockChain) delParaChainBlockDetail(msg *queue.Message) {
 	reply.IsOk = true
 	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
 
-	chainlog.Debug("delParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
+	chainlog.Debug("delParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash(chain.client.GetConfig())))
 
 	// 平行链上P2P模块关闭，不用广播区块
 	err := chain.ProcDelParaChainBlockMsg(false, parablockDetail, "self")
@@ -491,7 +491,7 @@ func (chain *BlockChain) addParaChainBlockDetail(msg *queue.Message) {
 		atomic.CompareAndSwapInt32(&chain.isbatchsync, 0, 1)
 	}
 
-	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
+	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash(chain.client.GetConfig())))
 	// 平行链上P2P模块关闭，不用广播区块
 	blockDetail, err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {

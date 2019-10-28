@@ -78,6 +78,7 @@ type Node struct {
 	cfgSeeds   sync.Map
 	closed     int32
 	pubsub     *pubsub.PubSub
+	cfg        *types.Chain33Config
 }
 
 // SetQueueClient return client for nodeinfo
@@ -86,22 +87,22 @@ func (n *Node) SetQueueClient(client queue.Client) {
 }
 
 // NewNode produce a node object
-func NewNode(cfg *types.P2P) (*Node, error) {
-
+func NewNode(cfg *types.Chain33Config) (*Node, error) {
+	mcfg := cfg.GetModuleConfig().P2P
 	node := &Node{
 		outBound:   make(map[string]*Peer),
 		cacheBound: make(map[string]*Peer),
 		pubsub:     pubsub.NewPubSub(10200),
 	}
 	node.listenPort = 13802
-	if cfg.Port != 0 && cfg.Port <= 65535 && cfg.Port > 1024 {
-		node.listenPort = int(cfg.Port)
+	if mcfg.Port != 0 && mcfg.Port <= 65535 && mcfg.Port > 1024 {
+		node.listenPort = int(mcfg.Port)
 
 	}
 
-	if cfg.InnerSeedEnable {
+	if mcfg.InnerSeedEnable {
 		seeds := MainNetSeeds
-		if types.IsTestNet() {
+		if cfg.IsTestNet() {
 			seeds = TestNetSeeds
 		}
 
@@ -110,13 +111,14 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		}
 	}
 
-	for _, seed := range cfg.Seeds {
+	for _, seed := range mcfg.Seeds {
 		node.cfgSeeds.Store(seed, "cfg")
 	}
-	node.nodeInfo = NewNodeInfo(cfg)
-	if cfg.ServerStart {
+	node.nodeInfo = NewNodeInfo(mcfg)
+	if mcfg.ServerStart {
 		node.server = newListener(protocol, node)
 	}
+	node.cfg = cfg
 	return node, nil
 }
 

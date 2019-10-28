@@ -76,7 +76,7 @@ func (n *Node) processRecvP2P(data *types.BroadCastData, pid string, pubPeerFunc
 
 func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, peerVersion int32, pid, peerAddr string) (doSend bool) {
 
-	byteHash := block.Block.Hash()
+	byteHash := block.Block.Hash(n.cfg)
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送
 	ignoreSend := n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
@@ -93,7 +93,7 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 		}
 		ltBlock := &types.LightBlock{}
 		ltBlock.Size = int64(types.Size(block.Block))
-		ltBlock.Header = block.Block.GetHeader()
+		ltBlock.Header = block.Block.GetHeader(n.cfg)
 		ltBlock.Header.Hash = byteHash[:]
 		ltBlock.Header.Signature = block.Block.Signature
 		ltBlock.MinerTx = block.Block.Txs[0]
@@ -218,7 +218,7 @@ func (n *Node) recvBlock(block *types.P2PBlock, pid, peerAddr string) {
 	if block.GetBlock() == nil {
 		return
 	}
-	blockHash := hex.EncodeToString(block.GetBlock().Hash())
+	blockHash := hex.EncodeToString(block.GetBlock().Hash(n.cfg))
 	//将节点id添加到发送过滤, 避免冗余发送
 	n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
 	//如果重复接收, 则不再发到blockchain执行

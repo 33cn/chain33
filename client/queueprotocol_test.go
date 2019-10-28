@@ -29,7 +29,8 @@ var (
 func TestMain(m *testing.M) {
 	mock.grpcMock = &grpcMock
 	mock.jrpcMock = &jrpc
-	pluginmgr.InitExec(nil)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	pluginmgr.InitExec(cfg)
 	api = mock.startup(0)
 	flag := m.Run()
 	mock.stop()

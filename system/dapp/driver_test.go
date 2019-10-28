@@ -4,12 +4,17 @@ import (
 	"testing"
 	"time"
 
+	"sync"
+
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+var runonce sync.Once
 
 type demoApp struct {
 	*DriverBase
@@ -39,58 +44,70 @@ func (none *noneApp) GetDriverName() string {
 	return "none"
 }
 
-func init() {
-	Register("none", newnoneApp, 0)
-	Register("demo", newdemoApp, 1)
+func Init(cfg *types.Chain33Config) {
+	runonce.Do(func() {
+		Register(cfg, "none", newnoneApp, 0)
+		Register(cfg, "demo", newdemoApp, 1)
+	})
 }
 
 func TestReigister(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	Init(cfg)
+	api := &mocks.QueueProtocolAPI{}
+	api.On("GetConfig", mock.Anything).Return(cfg)
+
 	_, err := LoadDriver("demo", 0)
 	assert.Equal(t, err, types.ErrUnknowDriver)
 	_, err = LoadDriver("demo", 1)
 	assert.Equal(t, err, nil)
 
 	tx := &types.Transaction{Execer: []byte("demo")}
-	driver := LoadDriverAllow(tx, 0, 0)
+	driver := LoadDriverAllow(api, tx, 0, 0)
 	assert.Equal(t, "none", driver.GetDriverName())
-	driver = LoadDriverAllow(tx, 0, 1)
+	driver = LoadDriverAllow(api, tx, 0, 1)
 	assert.Equal(t, "demo", driver.GetDriverName())
 
-	types.SetTitleOnlyForTest("user.p.hello.")
+	cfg.SetTitleOnlyForTest("user.p.hello.")
 	tx = &types.Transaction{Execer: []byte("demo")}
-	driver = LoadDriverAllow(tx, 0, 0)
+	driver = LoadDriverAllow(api, tx, 0, 0)
 	assert.Equal(t, "none", driver.GetDriverName())
-	driver = LoadDriverAllow(tx, 0, 1)
+	driver = LoadDriverAllow(api, tx, 0, 1)
 	assert.Equal(t, "demo", driver.GetDriverName())
 
 	tx.Execer = []byte("user.p.hello.demo")
-	driver = LoadDriverAllow(tx, 0, 1)
+	driver = LoadDriverAllow(api, tx, 0, 1)
 	assert.Equal(t, "demo", driver.GetDriverName())
 
 	tx.Execer = []byte("user.p.hello2.demo")
-	driver = LoadDriverAllow(tx, 0, 1)
+	driver = LoadDriverAllow(api, tx, 0, 1)
 	assert.Equal(t, "none", driver.GetDriverName())
 }
 
 func TestDriverAPI(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	Init(cfg)
+	api := &mocks.QueueProtocolAPI{}
+	api.On("GetConfig", mock.Anything).Return(cfg)
+
 	tx := &types.Transaction{Execer: []byte("demo")}
-	demo := LoadDriverAllow(tx, 0, 1).(*demoApp)
+	demo := LoadDriverAllow(api, tx, 0, 1).(*demoApp)
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
 	demo.SetEnv(1, time.Now().Unix(), 1)
 	demo.SetBlockInfo([]byte("parentHash"), []byte("mainHash"), 1)
 	demo.SetLocalDB(kvdb)
 	demo.SetStateDB(kvdb)
-	demo.SetAPI(&mocks.QueueProtocolAPI{})
-	gcli, err := grpcclient.NewMainChainClient("")
+	demo.SetAPI(api)
+	gcli, err := grpcclient.NewMainChainClient(cfg, "")
 	assert.Nil(t, err)
-	demo.SetExecutorAPI(&mocks.QueueProtocolAPI{}, gcli)
+	demo.SetExecutorAPI(api, gcli)
 	assert.NotNil(t, demo.GetAPI())
 	assert.NotNil(t, demo.GetExecutorAPI())
-	types.SetTitleOnlyForTest("chain33")
+	cfg.SetTitleOnlyForTest("chain33")
 	assert.Equal(t, "parentHash", string(demo.GetParentHash()))
 	assert.Equal(t, "parentHash", string(demo.GetLastHash()))
-	types.SetTitleOnlyForTest("user.p.wzw.")
+	cfg.SetTitleOnlyForTest("user.p.wzw.")
 	assert.Equal(t, "parentHash", string(demo.GetParentHash()))
 	assert.Equal(t, "mainHash", string(demo.GetLastHash()))
 	assert.Equal(t, int64(1), demo.GetMainHeight())
@@ -104,10 +121,15 @@ func TestExecAddress(t *testing.T) {
 }
 
 func TestAllow(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	Init(cfg)
+	api := &mocks.QueueProtocolAPI{}
+	api.On("GetConfig", mock.Anything).Return(cfg)
+
 	tx := &types.Transaction{Execer: []byte("demo")}
-	demo := LoadDriverAllow(tx, 0, 1).(*demoApp)
+	demo := LoadDriverAllow(api, tx, 0, 1).(*demoApp)
 	assert.Equal(t, true, demo.AllowIsSame([]byte("demo")))
-	types.SetTitleOnlyForTest("user.p.wzw.")
+	cfg.SetTitleOnlyForTest("user.p.wzw.")
 	assert.Equal(t, true, demo.AllowIsSame([]byte("user.p.wzw.demo")))
 	assert.Equal(t, false, demo.AllowIsSame([]byte("user.p.wzw2.demo")))
 	assert.Equal(t, false, demo.AllowIsUserDot1([]byte("user.p.wzw.demo")))
@@ -122,9 +144,14 @@ func TestAllow(t *testing.T) {
 }
 
 func TestDriverBase(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := &mocks.QueueProtocolAPI{}
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	Init(cfg)
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
 	demo := newdemoApp().(*demoApp)
+	demo.SetAPI(api)
 	demo.SetExecutorType(nil)
 	assert.Nil(t, demo.GetPayloadValue())
 	assert.Nil(t, demo.GetExecutorType())
@@ -167,7 +194,7 @@ func TestDriverBase(t *testing.T) {
 	assert.NotNil(t, demo.GetCoinsAccount())
 	assert.False(t, demo.CheckReceiptExecOk())
 
-	err = CheckAddress("1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", 0)
+	err = CheckAddress(cfg, "1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", 0)
 	assert.NoError(t, err)
 
 	demo.SetLocalDB(kvdb)

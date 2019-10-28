@@ -31,21 +31,22 @@ func TestErrLog(t *testing.T) {
 	// 启动RPCmocker
 	mocker := testnode.New("--free--", nil)
 	defer mocker.Close()
+	cfg := mocker.GetClient().GetConfig()
 	mocker.Listen()
 	jrpcClient := getRPCClient(t, mocker)
 	gen := mocker.GetGenesisKey()
 	//发送交易到区块链
 	addr1, key1 := util.Genaddress()
 	addr2, _ := util.Genaddress()
-	tx1 := util.CreateCoinsTx(gen, addr1, 1*types.Coin)
+	tx1 := util.CreateCoinsTx(cfg, gen, addr1, 1*types.Coin)
 	mocker.GetAPI().SendTx(tx1)
 	mocker.WaitHeight(1)
 
-	tx11 := util.CreateCoinsTx(key1, addr2, 6*int64(1e7))
+	tx11 := util.CreateCoinsTx(cfg, key1, addr2, 6*int64(1e7))
 	reply, err := mocker.GetAPI().SendTx(tx11)
 	assert.Nil(t, err)
 	assert.Equal(t, reply.GetMsg(), tx11.Hash())
-	tx12 := util.CreateCoinsTx(key1, addr2, 6*int64(1e7))
+	tx12 := util.CreateCoinsTx(cfg, key1, addr2, 6*int64(1e7))
 	reply, err = mocker.GetAPI().SendTx(tx12)
 	assert.Nil(t, err)
 	assert.Equal(t, reply.GetMsg(), tx12.Hash())
@@ -170,6 +171,7 @@ func TestExprieCreateNoBalanceTransaction(t *testing.T) {
 
 func TestExprieSignRawTx(t *testing.T) {
 	mocker := testnode.New("--free--", nil)
+	cfg := mocker.GetClient().GetConfig()
 	defer mocker.Close()
 	mocker.Listen()
 	jrpcClient := getRPCClient(t, mocker)
@@ -181,9 +183,9 @@ func TestExprieSignRawTx(t *testing.T) {
 	var res string
 	err := jrpcClient.Call("Chain33.CreateTransaction", req, &res)
 
-	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
+	txNone := &types.Transaction{Execer: []byte(cfg.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))
-	txNone, err = types.FormatTx(types.ExecName(types.NoneX), txNone)
+	txNone, err = types.FormatTx(cfg, cfg.ExecName(types.NoneX), txNone)
 	assert.NoError(t, err)
 	assert.Nil(t, err)
 	gen := mocker.GetGenesisKey().Bytes()

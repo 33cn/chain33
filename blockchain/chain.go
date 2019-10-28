@@ -122,22 +122,23 @@ type BlockChain struct {
 }
 
 //New new
-func New(cfg *types.BlockChain) *BlockChain {
+func New(cfg *types.Chain33Config) *BlockChain {
+	mcfg := cfg.GetModuleConfig().BlockChain
 	futureBlocks, err := lru.New(maxFutureBlocks)
 	if err != nil {
 		panic("when New BlockChain lru.New return err")
 	}
 	defCacheSize := int64(128)
-	if cfg.DefCacheSize > 0 {
-		defCacheSize = cfg.DefCacheSize
+	if mcfg.DefCacheSize > 0 {
+		defCacheSize = mcfg.DefCacheSize
 	}
 	blockchain := &BlockChain{
-		cache:              NewBlockCache(defCacheSize),
+		cache:              NewBlockCache(cfg, defCacheSize),
 		DefCacheSize:       defCacheSize,
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		peerList:           nil,
-		cfg:                cfg,
+		cfg:                mcfg,
 		recvwg:             &sync.WaitGroup{},
 		tickerwg:           &sync.WaitGroup{},
 
@@ -146,12 +147,12 @@ func New(cfg *types.BlockChain) *BlockChain {
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
-		orphanPool:          NewOrphanPool(),
+		orphanPool:          NewOrphanPool(cfg),
 		index:               newBlockIndex(),
 		isCaughtUp:          false,
 		isbatchsync:         1,
 		firstcheckbestchain: 0,
-		cfgBatchSync:        cfg.Batchsync,
+		cfgBatchSync:        mcfg.Batchsync,
 		faultPeerList:       make(map[string]*FaultPeerInfo),
 		bestChainPeerList:   make(map[string]*BestPeerInfo),
 		futureBlocks:        futureBlocks,
@@ -167,26 +168,27 @@ func New(cfg *types.BlockChain) *BlockChain {
 	return blockchain
 }
 
-func (chain *BlockChain) initConfig(cfg *types.BlockChain) {
-	if types.IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
+func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
+	mcfg := cfg.GetModuleConfig().BlockChain
+	if cfg.IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
 		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
 	}
 
-	if cfg.MaxFetchBlockNum > 0 {
-		chain.MaxFetchBlockNum = cfg.MaxFetchBlockNum
+	if mcfg.MaxFetchBlockNum > 0 {
+		chain.MaxFetchBlockNum = mcfg.MaxFetchBlockNum
 	}
 
-	if cfg.TimeoutSeconds > 0 {
-		chain.TimeoutSeconds = cfg.TimeoutSeconds
+	if mcfg.TimeoutSeconds > 0 {
+		chain.TimeoutSeconds = mcfg.TimeoutSeconds
 	}
 	chain.blockSynInterVal = time.Duration(chain.TimeoutSeconds)
-	chain.isStrongConsistency = cfg.IsStrongConsistency
-	chain.isRecordBlockSequence = cfg.IsRecordBlockSequence
-	chain.isParaChain = cfg.IsParaChain
-	types.S("quickIndex", cfg.EnableTxQuickIndex)
+	chain.isStrongConsistency = mcfg.IsStrongConsistency
+	chain.isRecordBlockSequence = mcfg.IsRecordBlockSequence
+	chain.isParaChain = mcfg.IsParaChain
+	cfg.S("quickIndex", mcfg.EnableTxQuickIndex)
 
-	if cfg.OnChainTimeout > 0 {
-		chain.onChainTimeout = cfg.OnChainTimeout
+	if mcfg.OnChainTimeout > 0 {
+		chain.onChainTimeout = mcfg.OnChainTimeout
 	}
 	chain.initOnChainTimeout()
 }
@@ -262,7 +264,7 @@ func (chain *BlockChain) InitBlockChain() {
 
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
-	if types.IsEnable("TxHeight") {
+	if chain.client.GetConfig().IsEnable("TxHeight") {
 		chain.InitCache(curheight)
 	}
 	//获取数据库中最新的10240个区块加载到index和bestview链中
@@ -281,7 +283,7 @@ func (chain *BlockChain) InitBlockChain() {
 			chainlog.Error("InitIndexAndBestView SetDbVersion ", "err", err)
 		}
 	}
-	types.S("dbversion", curdbver)
+	chain.client.GetConfig().S("dbversion", curdbver)
 	if !chain.cfg.IsParaChain && chain.cfg.RollbackBlock <= 0 {
 		// 定时检测/同步block
 		go chain.SynRoutine()
@@ -341,6 +343,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 
 //SendBlockBroadcast blockchain模块广播此block到网络中
 func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
+	cfg := chain.client.GetConfig()
 	if chain.client == nil {
 		fmt.Println("chain client not bind message queue.")
 		return
@@ -349,12 +352,12 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 		chainlog.Error("SendBlockBroadcast block is null")
 		return
 	}
-	chainlog.Debug("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()))
+	chainlog.Debug("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)))
 
 	msg := chain.client.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
 	err := chain.client.Send(msg, false)
 	if err != nil {
-		chainlog.Error("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash()), "err", err)
+		chainlog.Error("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)), "err", err)
 	}
 }
 
@@ -499,6 +502,7 @@ func (chain *BlockChain) UpdateRoutine() {
 
 //ProcFutureBlocks 循环遍历所有futureblocks，当futureblock的block生成time小于当前系统时间就将此block广播出去
 func (chain *BlockChain) ProcFutureBlocks() {
+	cfg := chain.client.GetConfig()
 	for _, hash := range chain.futureBlocks.Keys() {
 		if block, exist := chain.futureBlocks.Peek(hash); exist {
 			if block != nil {
@@ -507,7 +511,7 @@ func (chain *BlockChain) ProcFutureBlocks() {
 				if types.Now().Unix() > blockdetail.Block.BlockTime {
 					chain.SendBlockBroadcast(blockdetail)
 					chain.futureBlocks.Remove(hash)
-					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
+					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash(cfg)), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 				}
 			}
 		}

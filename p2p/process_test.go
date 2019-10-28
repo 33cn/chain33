@@ -19,10 +19,11 @@ type versionData struct {
 }
 
 func Test_processP2P(t *testing.T) {
-
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
+	q.SetConfig(cfg)
 	go q.Start()
-	p2p := newP2p(12345, "testProcessP2p", q)
+	p2p := newP2p(cfg, 12345, "testProcessP2p", q)
 	defer freeP2p(p2p)
 	defer q.Close()
 	node := p2p.node
@@ -37,7 +38,7 @@ func Test_processP2P(t *testing.T) {
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 4600, Expire: 2}
 	tx1 := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 460000000, Expire: 0}
 	tx2 := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 100, Expire: 1}
-	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, types.GInt("MinFee"))
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, cfg.GInt("MinFee"))
 	gtx := txGroup.Tx()
 	txList := append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
 	memTxList := append([]*types.Transaction{}, tx, gtx)
@@ -48,7 +49,7 @@ func Test_processP2P(t *testing.T) {
 		Txs:    txList,
 	}
 	txHash := hex.EncodeToString(tx.Hash())
-	blockHash := hex.EncodeToString(block.Hash())
+	blockHash := hex.EncodeToString(block.Hash(cfg))
 	rootHash := merkle.CalcMerkleRoot(txList)
 
 	//mempool handler

@@ -6,6 +6,7 @@ package dapp
 
 //store package store the world - state data
 import (
+	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/address"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
@@ -28,7 +29,10 @@ var (
 )
 
 // Register register dcriver height in name
-func Register(name string, create DriverCreate, height int64) {
+func Register(cfg *types.Chain33Config, name string, create DriverCreate, height int64) {
+	if cfg == nil {
+		panic("Execute: GetConfig is nil")
+	}
 	if create == nil {
 		panic("Execute: Register driver is nil")
 	}
@@ -44,13 +48,13 @@ func Register(name string, create DriverCreate, height int64) {
 	registerAddress(name)
 	execDrivers[ExecAddress(name)] = driverHeight
 
-	if types.IsPara() {
-		paraHeight := types.GetFork("ForkEnableParaRegExec")
+	if cfg.IsPara() {
+		paraHeight := cfg.GetFork("ForkEnableParaRegExec")
 		if paraHeight < height {
 			paraHeight = height
 		}
 		//平行链的合约地址是通过user.p.x.name计算的
-		paraDriverName := types.ExecName(name)
+		paraDriverName := cfg.ExecName(name)
 		registerAddress(paraDriverName)
 		execDrivers[ExecAddress(paraDriverName)] = &driverWithHeight{
 			create: create,
@@ -75,15 +79,24 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 	return nil, types.ErrUnknowDriver
 }
 
+func LoadDriverWithClient(qclent client.QueueProtocolAPI, name string, height int64) (driver Driver, err error) {
+	driver, err = LoadDriver(name, height)
+	if err != nil {
+		return nil, err
+	}
+	driver.SetAPI(qclent)
+	return driver, nil
+}
+
 // LoadDriverAllow load driver allow
-func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Driver) {
-	exec, err := LoadDriver(string(tx.Execer), height)
+func LoadDriverAllow(qclent client.QueueProtocolAPI, tx *types.Transaction, index int, height int64) (driver Driver) {
+	exec, err := LoadDriverWithClient(qclent, string(tx.Execer), height)
 	if err == nil {
 		exec.SetEnv(height, 0, 0)
 		err = exec.Allow(tx, index)
 	}
 	if err != nil {
-		exec, err = LoadDriver("none", height)
+		exec, err = LoadDriverWithClient(qclent, "none", height)
 		if err != nil {
 			panic(err)
 		}

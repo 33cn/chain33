@@ -52,12 +52,13 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 		return nil, err
 	}
 
+	cfg := chain.client.GetConfig()
 	//通过指定的title过滤对应平行链的交易
 	var paraTxs types.ParaTxDetails
 	var paraTx *types.ParaTxDetail
 	for i, block := range blocks.Items {
 		if block != nil {
-			paraTx = block.FilterParaTxsByTitle(seq.Title)
+			paraTx = block.FilterParaTxsByTitle(cfg, seq.Title)
 			if seq.IsSeq {
 				paraTx.Type = sequences.Items[i].GetType()
 			} else {

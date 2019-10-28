@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/33cn/chain33/rpc/types"
+	typ "github.com/33cn/chain33/types"
 	wcom "github.com/33cn/chain33/wallet/common"
 	"github.com/spf13/cobra"
 )
@@ -17,10 +18,10 @@ var pluginItems = make(map[string]Plugin)
 var once = &sync.Once{}
 
 // InitExec init exec
-func InitExec(sub map[string][]byte) {
+func InitExec(cfg *typ.Chain33Config) {
 	once.Do(func() {
 		for _, item := range pluginItems {
-			item.InitExec(sub)
+			item.InitExec(cfg)
 		}
 	})
 }

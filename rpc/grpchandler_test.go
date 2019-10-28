@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"testing"
 
+	"strings"
+
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/types"
 	pb "github.com/33cn/chain33/types"
@@ -61,8 +63,10 @@ func init() {
 	//addr := "192.168.1.1"
 	//remoteIpWhitelist[addr] = true
 	//grpcFuncWhitelist["*"] = true
-
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	Init(cfg)
 	qapi = new(mocks.QueueProtocolAPI)
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
 	g.cli.QueueProtocolAPI = qapi
 }
 
@@ -1156,12 +1160,29 @@ func TestGrpc_QueryRandNum(t *testing.T) {
 }
 
 func TestGrpc_GetFork(t *testing.T) {
-	pb.SetDappFork("local", "para", "fork100", 100)
-	val, err := g.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("para-fork100")})
+	types.RegFork("para", func(cfg *types.Chain33Config) {
+		cfg.SetDappFork("para", "fork100", 100)
+	})
+
+	str := types.GetDefaultCfgstring()
+	newstr := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
+	cfg := types.NewChain33Config(newstr)
+	Init(cfg)
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	grpc := Grpc{}
+	grpc.cli.QueueProtocolAPI = api
+	val, err := grpc.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("para-fork100")})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(100), val.Data)
 
-	val, err = g.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("ForkBlockHash")})
+	cfg1 := types.NewChain33Config(types.GetDefaultCfgstring())
+	Init(cfg1)
+	api1 := new(mocks.QueueProtocolAPI)
+	api1.On("GetConfig", mock.Anything).Return(cfg1)
+	grpc1 := Grpc{}
+	grpc1.cli.QueueProtocolAPI = api1
+	val, err = grpc1.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("ForkBlockHash")})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), val.Data)
 }

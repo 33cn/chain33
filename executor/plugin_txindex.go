@@ -49,6 +49,8 @@ func (p *txindexPlugin) ExecDelLocal(executor *executor, data *types.BlockDetail
 
 //获取公共的信息
 func getTx(executor *executor, tx *types.Transaction, receipt *types.ReceiptData, index int) []*types.KeyValue {
+	types.AssertConfig(executor.api)
+	cfg := executor.api.GetConfig()
 	txhash := tx.Hash()
 	//构造txresult 信息保存到db中
 	var txresult types.TxResult
@@ -59,8 +61,8 @@ func getTx(executor *executor, tx *types.Transaction, receipt *types.ReceiptData
 	txresult.Blocktime = executor.blocktime
 	txresult.ActionName = tx.ActionName()
 	var kvlist []*types.KeyValue
-	kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxKey(txhash), Value: types.Encode(&txresult)})
-	if types.IsEnable("quickIndex") {
+	kvlist = append(kvlist, &types.KeyValue{Key: cfg.CalcTxKey(txhash), Value: types.Encode(&txresult)})
+	if cfg.IsEnable("quickIndex") {
 		kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxShortKey(txhash), Value: []byte("1")})
 	}
 	return kvlist

@@ -15,11 +15,13 @@ type Action struct {
 	db       dbm.KV
 	fromaddr string
 	height   int64
+	cfg      *types.Chain33Config
 }
 
 // NewAction new a action object
 func NewAction(m *Manage, tx *types.Transaction) *Action {
-	return &Action{db: m.GetStateDB(), fromaddr: tx.From(), height: m.GetHeight()}
+	types.AssertConfig(m.GetAPI())
+	return &Action{db: m.GetStateDB(), fromaddr: tx.From(), height: m.GetHeight(), cfg: m.GetAPI().GetConfig()}
 
 }
 
@@ -32,7 +34,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	//	return nil, types.ErrNoPrivilege
 	//}
 
-	if !IsSuperManager(m.fromaddr) {
+	if !IsSuperManager(m.cfg, m.fromaddr) {
 		return nil, pty.ErrNoPrivilege
 	}
 	if len(modify.Key) == 0 {
@@ -104,7 +106,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	key := types.ManaeKeyWithHeigh(modify.Key, m.height)
+	key := m.cfg.ManaeKeyWithHeigh(modify.Key, m.height)
 	valueSave := types.Encode(&item)
 	err = m.db.Set([]byte(key), valueSave)
 	if err != nil {

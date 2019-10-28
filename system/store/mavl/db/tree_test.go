@@ -74,7 +74,7 @@ func i2b(i int32) []byte {
 
 // 测试set和get功能
 func TestBasic(t *testing.T) {
-	var tree = NewTree(nil, true)
+	var tree = NewTree(nil, true, nil)
 	up := tree.Set([]byte("1"), []byte("one"))
 	if up {
 		t.Error("Did not expect an update (should have been create)")
@@ -169,7 +169,7 @@ func TestTreeHeightAndSize(t *testing.T) {
 	}
 
 	// Construct some tree and save it
-	t1 := NewTree(db, true)
+	t1 := NewTree(db, true, nil)
 
 	for key, value := range records {
 		t1.Set([]byte(key), []byte(value))
@@ -198,7 +198,7 @@ func TestSetAndGetOld(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(dir)
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
-	t1 := NewTree(dbm, true)
+	t1 := NewTree(dbm, true, nil)
 	t1.Set([]byte("1"), []byte("1"))
 	t1.Set([]byte("2"), []byte("2"))
 
@@ -206,13 +206,13 @@ func TestSetAndGetOld(t *testing.T) {
 	t1.Save()
 
 	//t2 在t1的基础上再做修改
-	t2 := NewTree(dbm, true)
+	t2 := NewTree(dbm, true, nil)
 	t2.Load(hash)
 	t2.Set([]byte("2"), []byte("22"))
 	hash = t2.Hash()
 	t2.Save()
 
-	t3 := NewTree(dbm, true)
+	t3 := NewTree(dbm, true, nil)
 	t3.Load(hash)
 	_, v, _ := t3.Get([]byte("1"))
 	assert.Equal(t, []byte("1"), v)
@@ -228,18 +228,18 @@ func TestHashSame(t *testing.T) {
 	t.Log(dir)
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
 
-	t1 := NewTree(dbm, true)
+	t1 := NewTree(dbm, true, nil)
 	t1.Set([]byte("1"), []byte("1"))
 	t1.Set([]byte("2"), []byte("2"))
 
 	hash1 := t1.Hash()
 
-	EnableMVCC(true)
-	defer EnableMVCC(false)
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMVCC:       true,
+	}
 	//t2 在t1的基础上再做修改
-	t2 := NewTree(dbm, true)
+	t2 := NewTree(dbm, true, treeCfg)
 	t2.Set([]byte("1"), []byte("1"))
 	t2.Set([]byte("2"), []byte("2"))
 	hash2 := t2.Hash()
@@ -255,7 +255,7 @@ func TestHashSame2(t *testing.T) {
 	prevHash := make([]byte, 32)
 	strs1 := make(map[string]bool)
 	for i := 0; i < 5; i++ {
-		prevHash, err = saveBlock(db1, int64(i), prevHash, 1000, false)
+		prevHash, err = saveBlock(db1, int64(i), prevHash, 1000, false, nil)
 		assert.Nil(t, err)
 		str := ToHex(prevHash)
 		fmt.Println("unable", str)
@@ -264,12 +264,14 @@ func TestHashSame2(t *testing.T) {
 
 	db2 := db.NewDB("test2", "leveldb", dir, 100)
 	prevHash = prevHash[:0]
-	EnableMVCC(true)
-	defer EnableMVCC(false)
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
+
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMVCC:       true,
+	}
+
 	for i := 0; i < 5; i++ {
-		prevHash, err = saveBlock(db2, int64(i), prevHash, 1000, false)
+		prevHash, err = saveBlock(db2, int64(i), prevHash, 1000, false, treeCfg)
 		assert.Nil(t, err)
 		str := ToHex(prevHash)
 		fmt.Println("enable", str)
@@ -296,9 +298,10 @@ func TestPersistence(t *testing.T) {
 		records[randstr(20)] = randstr(20)
 	}
 
+	enableMvcc := false
 	mvccdb := db.NewMVCC(dbm)
 
-	t1 := NewTree(dbm, true)
+	t1 := NewTree(dbm, true, nil)
 
 	for key, value := range records {
 		//t1.Set([]byte(key), []byte(value))
@@ -313,7 +316,7 @@ func TestPersistence(t *testing.T) {
 	t.Log("TestPersistence", "roothash1", hash)
 
 	// Load a tree
-	t2 := NewTree(dbm, true)
+	t2 := NewTree(dbm, true, nil)
 	t2.Load(hash)
 
 	for key, value := range records {
@@ -343,7 +346,7 @@ func TestPersistence(t *testing.T) {
 
 	// 重新加载hash
 
-	t11 := NewTree(dbm, true)
+	t11 := NewTree(dbm, true, nil)
 	t11.Load(hash)
 
 	t.Log("------tree11------TestPersistence---------")
@@ -355,7 +358,7 @@ func TestPersistence(t *testing.T) {
 		}
 	}
 	//重新加载hash2
-	t22 := NewTree(dbm, true)
+	t22 := NewTree(dbm, true, nil)
 	t22.Load(hash2)
 	t.Log("------tree22------TestPersistence---------")
 
@@ -419,7 +422,7 @@ func TestIAVLProof(t *testing.T) {
 
 	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
-	var tree = NewTree(db, true)
+	var tree = NewTree(db, true, nil)
 
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("TestIAVLProof key:%d!", i)
@@ -466,7 +469,7 @@ func TestIAVLProof(t *testing.T) {
 	}
 
 	t.Log("TestIAVLProof test Persistence data----------------")
-	tree = NewTree(db, true)
+	tree = NewTree(db, true, nil)
 
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("TestIAVLProof key:%d!", i)
@@ -569,19 +572,19 @@ func TestSetAndGetKVPair(t *testing.T) {
 	}
 	// storeSet hash is nil
 	storeSet.StateHash = emptyRoot[:]
-	newhash, err := SetKVPair(db, &storeSet, true)
+	newhash, err := SetKVPair(db, &storeSet, true, nil)
 	assert.Nil(t, err)
 	//打印指定roothash的tree
 	t.Log("TestSetAndGetKVPair newhash tree")
-	PrintTreeLeaf(db, newhash)
+	PrintTreeLeaf(db, newhash, nil)
 
 	//删除5个节点
 	storeDel.StateHash = newhash
-	delhash, _, err := DelKVPair(db, &storeDel)
+	delhash, _, err := DelKVPair(db, &storeDel, nil)
 	assert.Nil(t, err)
 	//打印指定roothash的tree
 	t.Log("TestSetAndGetKVPair delhash tree")
-	PrintTreeLeaf(db, delhash)
+	PrintTreeLeaf(db, delhash, nil)
 
 	// 在原来的基础上再次插入10个节点
 
@@ -610,16 +613,16 @@ func TestSetAndGetKVPair(t *testing.T) {
 	}
 	// storeSet hash is newhash
 	storeSet2.StateHash = delhash
-	newhash2, err := SetKVPair(db, &storeSet2, true)
+	newhash2, err := SetKVPair(db, &storeSet2, true, nil)
 	assert.Nil(t, err)
 	t.Log("TestSetAndGetKVPair newhash2 tree")
-	PrintTreeLeaf(db, newhash2)
+	PrintTreeLeaf(db, newhash2, nil)
 
 	t.Log("TestSetAndGetKVPair delhash tree again !!!")
-	PrintTreeLeaf(db, delhash)
+	PrintTreeLeaf(db, delhash, nil)
 
 	t.Log("TestSetAndGetKVPair newhash tree again !!!")
-	PrintTreeLeaf(db, newhash)
+	PrintTreeLeaf(db, newhash, nil)
 	db.Close()
 }
 
@@ -655,12 +658,12 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 	}
 	// storeSet hash is nil
 	storeSet.StateHash = emptyRoot[:]
-	newhash, err := SetKVPair(db, &storeSet, true)
+	newhash, err := SetKVPair(db, &storeSet, true, nil)
 	assert.Nil(t, err)
 	for i = 0; i < total; i++ {
 		var keyvalue types.KeyValue
 
-		proof, err := GetKVPairProof(db, newhash, storeGet.Keys[i])
+		proof, err := GetKVPairProof(db, newhash, storeGet.Keys[i], nil)
 		assert.Nil(t, err)
 		keyvalue.Key = storeGet.Keys[i]
 		keyvalue.Value = []byte(records[string(storeGet.Keys[i])])
@@ -688,7 +691,7 @@ func TestIterateRange(t *testing.T) {
 	t.Log(dir)
 
 	db := db.NewDB("mavltree", "leveldb", dir, 100)
-	tree := NewTree(db, true)
+	tree := NewTree(db, true, nil)
 
 	type record struct {
 		key   string
@@ -767,7 +770,7 @@ func TestIAVLPrint(t *testing.T) {
 	t.Log(dir)
 	dbm := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
-	tree := NewTree(dbm, true)
+	tree := NewTree(dbm, true, nil)
 	tree.Load(prevHash)
 	PrintNode(tree.root)
 	kvs := genKVShort(0, 10)
@@ -792,26 +795,25 @@ func TestPruningTree(t *testing.T) {
 	db := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
 
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
-	EnablePrune(true)
-	defer EnablePrune(false)
-	SetPruneHeight(preDel)
-	defer SetPruneHeight(0)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMavlPrune:  true,
+		PruneHeight:      preDel,
+	}
 
 	for j := 0; j < round; j++ {
 		for i := 0; i < preB; i++ {
 			setPruning(pruningStateStart)
-			prevHash, err = saveUpdateBlock(db, int64(i), prevHash, txN, j, int64(j*preB+i))
+			prevHash, err = saveUpdateBlock(db, int64(i), prevHash, txN, j, int64(j*preB+i), treeCfg)
 			assert.Nil(t, err)
 			m := int64(j*preB + i)
 			if m/int64(preDel) > 1 && m%int64(preDel) == 0 {
-				pruningTree(db, m)
+				pruningTree(db, m, treeCfg)
 			}
 		}
 		fmt.Printf("round %d over \n", j)
 	}
-	te := NewTree(db, true)
+	te := NewTree(db, true, treeCfg)
 	err = te.Load(prevHash)
 	if err == nil {
 		fmt.Printf("te.Load \n")
@@ -840,8 +842,8 @@ func genUpdateKV(height int64, txN int64, vIndex int) (kvs []*types.KeyValue) {
 	return kvs
 }
 
-func saveUpdateBlock(dbm db.DB, height int64, hash []byte, txN int64, vIndex int, blockHeight int64) (newHash []byte, err error) {
-	t := NewTree(dbm, true)
+func saveUpdateBlock(dbm db.DB, height int64, hash []byte, txN int64, vIndex int, blockHeight int64, treeCfg *TreeConfig) (newHash []byte, err error) {
+	t := NewTree(dbm, true, treeCfg)
 	t.Load(hash)
 	t.SetBlockHeight(blockHeight)
 	kvs := genUpdateKV(height, txN, vIndex)
@@ -910,7 +912,7 @@ func TestGetHash(t *testing.T) {
 	defer os.Remove(dir)
 
 	db := db.NewDB("mavltree", "leveldb", dir, 100)
-	tree := NewTree(db, true)
+	tree := NewTree(db, true, nil)
 
 	type record struct {
 		key   string
@@ -957,7 +959,7 @@ func TestGetHash(t *testing.T) {
 		{"good", "0x0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
 	}
 
-	tr := NewTree(db, true)
+	tr := NewTree(db, true, nil)
 	tr.Load(hash)
 	for _, val := range expecteds {
 		_, hash, exists := tr.GetHash([]byte(val.key))
@@ -970,12 +972,12 @@ func TestGetHash(t *testing.T) {
 	}
 
 	//开启前缀
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
-	EnablePrune(true)
-	defer EnablePrune(false)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMavlPrune:  true,
+	}
 
-	tree1 := NewTree(db, true)
+	tree1 := NewTree(db, true, treeCfg)
 	for _, r := range records {
 		updated := tree1.Set([]byte(r.key), []byte(r.value))
 		if updated {
@@ -998,7 +1000,7 @@ func TestGetHash(t *testing.T) {
 		{"good", "0x5f6d625f2d303030303030303030302d0c99238587914476198da04cbb1555d092f813eaf2e796893084406290188776"},
 	}
 
-	tr1 := NewTree(db, true)
+	tr1 := NewTree(db, true, treeCfg)
 	tr1.Load(hash1)
 	for _, val := range expecteds {
 		_, hash, exists := tr1.GetHash([]byte(val.key))
@@ -1026,13 +1028,15 @@ func TestRemoveLeafCountKey(t *testing.T) {
 		{"foobaz", "foobaz"},
 	}
 	//开启裁剪
-	EnablePrune(true)
-	defer EnablePrune(false)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMavlPrune:  true,
+	}
 
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	blockHeight := int64(1000)
-	tree := NewTree(dbm, true)
+	tree := NewTree(dbm, true, treeCfg)
 	tree.SetBlockHeight(blockHeight)
 	for _, r := range records {
 		tree.Set([]byte(r.key), []byte(r.value))
@@ -1050,7 +1054,7 @@ func TestRemoveLeafCountKey(t *testing.T) {
 	it.Close()
 
 	// 在blockHeight + 100高度在插入另外
-	tree1 := NewTree(dbm, true)
+	tree1 := NewTree(dbm, true, treeCfg)
 	tree1.Load(hash)
 	tree1.SetBlockHeight(blockHeight + 100)
 	records1 := []record{
@@ -1074,7 +1078,7 @@ func TestRemoveLeafCountKey(t *testing.T) {
 	it.Close()
 
 	// check
-	tr1 := NewTree(dbm, true)
+	tr1 := NewTree(dbm, true, treeCfg)
 	tr1.Load(hash1)
 	tr1.RemoveLeafCountKey(blockHeight)
 	for _, key := range countKeys {
@@ -1104,7 +1108,7 @@ func TestIsRemoveLeafCountKey(t *testing.T) {
 
 	maxBlockHeight = 0
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
-	tree := NewTree(dbm, true)
+	tree := NewTree(dbm, true, nil)
 	tree.SetBlockHeight(1000)
 	isRe := tree.isRemoveLeafCountKey()
 	require.Equal(t, false, isRe)
@@ -1125,7 +1129,7 @@ func TestIsRemoveLeafCountKey(t *testing.T) {
 		swg.Add(1)
 		go func(i int, pwg *sync.WaitGroup, dbn db.DB) {
 			defer swg.Done()
-			tree := NewTree(dbm, true)
+			tree := NewTree(dbm, true, nil)
 			tree.SetBlockHeight(int64(800 + i))
 			require.Equal(t, true, tree.isRemoveLeafCountKey())
 		}(i, &swg, dbm)
@@ -1150,10 +1154,13 @@ func TestSaveRootHash(t *testing.T) {
 	t.Log(dir)
 	defer os.Remove(dir)
 
-	EnablePrune(true)
-	defer EnablePrune(false)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMavlPrune:  true,
+	}
+
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
-	tree := NewTree(dbm, true)
+	tree := NewTree(dbm, true, treeCfg)
 	tree.SetBlockHeight(1010)
 	tree.Set([]byte("key:111"), []byte("value:111"))
 	hash := tree.Save()
@@ -1179,13 +1186,15 @@ func TestDelLeafCountKV(t *testing.T) {
 		{"foobaz", "foobaz"},
 	}
 	//开启裁剪
-	EnablePrune(true)
-	defer EnablePrune(false)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMavlPrune:  true,
+	}
 
 	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	blockHeight := int64(1000)
-	tree := NewTree(dbm, true)
+	tree := NewTree(dbm, true, treeCfg)
 	tree.SetBlockHeight(blockHeight)
 	for _, r := range records {
 		tree.Set([]byte(r.key), []byte(r.value))
@@ -1203,7 +1212,7 @@ func TestDelLeafCountKV(t *testing.T) {
 	it.Close()
 
 	// 在blockHeight + 100高度在插入另外
-	tree1 := NewTree(dbm, true)
+	tree1 := NewTree(dbm, true, treeCfg)
 	tree1.Load(hash)
 	tree1.SetBlockHeight(blockHeight + 100)
 	records1 := []record{
@@ -1228,7 +1237,7 @@ func TestDelLeafCountKV(t *testing.T) {
 
 	// check
 	// del leaf count key
-	err = DelLeafCountKV(dbm, blockHeight)
+	err = DelLeafCountKV(dbm, blockHeight, treeCfg)
 	require.NoError(t, err)
 
 	for _, key := range countKeys {
@@ -1256,13 +1265,15 @@ func TestGetObsoleteNode(t *testing.T) {
 	t.Log(dir)
 	defer os.Remove(dir)
 
-	EnableMemTree(true)
-	EnableMemVal(true)
-	defer EnableMemTree(false)
-	defer EnableMemVal(false)
+	treeCfg := &TreeConfig{
+		EnableMemTree:   true,
+		EnableMemVal:    true,
+		TkCloseCacheLen: 100,
+	}
 
+	InitGlobalMem(treeCfg)
 	db := db.NewDB("mavltree", "leveldb", dir, 100)
-	tree := NewTree(db, true)
+	tree := NewTree(db, true, treeCfg)
 
 	type record struct {
 		key   string
@@ -1286,7 +1297,7 @@ func TestGetObsoleteNode(t *testing.T) {
 	mp := make(map[uint64]struct{})
 	LoadTree2MemDb(db, hash, mp)
 
-	tree1 := NewTree(db, true)
+	tree1 := NewTree(db, true, treeCfg)
 	tree1.Load(hash)
 	records1 := []record{
 		{"abc", "abc1"},
@@ -1309,7 +1320,7 @@ func TestGetObsoleteNode(t *testing.T) {
 		}
 	}
 
-	tree2 := NewTree(db, true)
+	tree2 := NewTree(db, true, treeCfg)
 	tree2.Load(hash)
 	records2 := []record{
 		{"fan", "fan1"},
@@ -1417,14 +1428,16 @@ func TestPruningFirstLevelNode(t *testing.T) {
 	batch.Write()
 	db1.Close()
 
-	SetPruneHeight(5000)
 	db2 := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	var existHashs [][]byte
 	var noExistHashs [][]byte
 
+	treeCfg := &TreeConfig{
+		PruneHeight: 5000,
+	}
 	//当前高度设置为10000,只能删除高度为1的节点
-	pruningFirstLevel(db2, 10000)
+	pruningFirstLevel(db2, 10000, treeCfg)
 
 	for i, node := range nodes1 {
 		if i >= 1 {
@@ -1447,7 +1460,7 @@ func TestPruningFirstLevelNode(t *testing.T) {
 	verifyNodeExist(t, db2, existHashs, noExistHashs)
 
 	//当前高度设置为20000, 删除高度为1000的
-	pruningFirstLevel(db2, 20000)
+	pruningFirstLevel(db2, 20000, treeCfg)
 
 	existHashs = existHashs[:0][:0]
 	existHashs = noExistHashs[:0][:0]
@@ -1473,7 +1486,7 @@ func TestPruningFirstLevelNode(t *testing.T) {
 
 	//目前还剩下 10000 30000 40000 450000
 	//当前高度设置为510001, 将高度为10000的加入二级节点,删除30000 40000节点
-	pruningFirstLevel(db2, 510001)
+	pruningFirstLevel(db2, 510001, treeCfg)
 	existHashs = existHashs[:0][:0]
 	existHashs = noExistHashs[:0][:0]
 	for i, node := range nodes1 {
@@ -1600,14 +1613,16 @@ func TestPruningSecondLevelNode(t *testing.T) {
 	batch.Write()
 	db1.Close()
 
-	SetPruneHeight(5000)
 	db2 := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	var existHashs [][]byte
 	var noExistHashs [][]byte
 
 	//当前高度设置为1500010,只能删除高度为1的节点
-	pruningSecondLevel(db2, 1500010)
+	treeCfg := &TreeConfig{
+		PruneHeight: 5000,
+	}
+	pruningSecondLevel(db2, 1500010, treeCfg)
 
 	for i, node := range nodes1 {
 		if i >= 2 {
@@ -1749,10 +1764,10 @@ func TestGetKeyHeightFromOldLeafCountKey(t *testing.T) {
 }
 
 func TestPrintSameLeafKey(t *testing.T) {
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
-	EnablePrune(true)
-	defer EnablePrune(false)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMavlPrune:  true,
+	}
 	type record struct {
 		key   string
 		value string
@@ -1769,7 +1784,7 @@ func TestPrintSameLeafKey(t *testing.T) {
 	defer os.Remove(dir)
 
 	db := db.NewDB("mavltree", "leveldb", dir, 100)
-	tree := NewTree(db, true)
+	tree := NewTree(db, true, treeCfg)
 
 	for _, r := range records {
 		updated := tree.Set([]byte(r.key), []byte(r.value))
@@ -1782,10 +1797,10 @@ func TestPrintSameLeafKey(t *testing.T) {
 }
 
 func TestPrintLeafNodeParent(t *testing.T) {
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
-	EnablePrune(true)
-	defer EnablePrune(false)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMavlPrune:  true,
+	}
 	blockHeight := int64(1000)
 	type record struct {
 		key   string
@@ -1803,7 +1818,7 @@ func TestPrintLeafNodeParent(t *testing.T) {
 	defer os.Remove(dir)
 
 	db := db.NewDB("mavltree", "leveldb", dir, 100)
-	tree := NewTree(db, true)
+	tree := NewTree(db, true, treeCfg)
 	tree.SetBlockHeight(blockHeight)
 	for _, r := range records {
 		updated := tree.Set([]byte(r.key), []byte(r.value))
@@ -1817,10 +1832,10 @@ func TestPrintLeafNodeParent(t *testing.T) {
 }
 
 func TestPrintNodeDb(t *testing.T) {
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
-	EnablePrune(true)
-	defer EnablePrune(false)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+		EnableMavlPrune:  true,
+	}
 	type record struct {
 		key   string
 		value string
@@ -1837,7 +1852,7 @@ func TestPrintNodeDb(t *testing.T) {
 	defer os.Remove(dir)
 
 	db := db.NewDB("mavltree", "leveldb", dir, 100)
-	tree := NewTree(db, true)
+	tree := NewTree(db, true, treeCfg)
 
 	for _, r := range records {
 		updated := tree.Set([]byte(r.key), []byte(r.value))
@@ -1857,7 +1872,7 @@ func BenchmarkDBSet(b *testing.B) {
 	db := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
 	for i := 0; i < b.N; i++ {
-		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
+		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false, nil)
 		assert.Nil(b, err)
 	}
 }
@@ -1869,31 +1884,26 @@ func BenchmarkDBSetMVCC(b *testing.B) {
 	db := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
 	for i := 0; i < b.N; i++ {
-		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, true)
+		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, true, nil)
 		assert.Nil(b, err)
 	}
 }
 
 func BenchmarkDBGet(b *testing.B) {
-	//开启MVCC情况下不做测试；BenchmarkDBGetMVCC进行测试
-	if enableMvcc {
-		b.Skip()
-		return
-	}
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(b, err)
 	b.Log(dir)
 	db := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
 	for i := 0; i < b.N; i++ {
-		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
+		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false, nil)
 		assert.Nil(b, err)
 		if i%10 == 0 {
 			fmt.Println(prevHash)
 		}
 	}
 	b.ResetTimer()
-	t := NewTree(db, true)
+	t := NewTree(db, true, nil)
 	t.Load(prevHash)
 	for i := 0; i < b.N*1000; i++ {
 		key := i2b(int32(i))
@@ -1912,10 +1922,11 @@ func BenchmarkDBGetMVCC(b *testing.B) {
 	b.Log(dir)
 	ldb := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
-	EnableMavlPrefix(true)
-	defer EnableMavlPrefix(false)
+	treeCfg := &TreeConfig{
+		EnableMavlPrefix: true,
+	}
 	for i := 0; i < b.N; i++ {
-		prevHash, err = saveBlock(ldb, int64(i), prevHash, 1000, true)
+		prevHash, err = saveBlock(ldb, int64(i), prevHash, 1000, true, treeCfg)
 		assert.Nil(b, err)
 		if i%10 == 0 {
 			fmt.Println(prevHash)
@@ -1952,8 +1963,8 @@ func genKV(height int64, txN int64) (kvs []*types.KeyValue) {
 	return kvs
 }
 
-func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool) (newHash []byte, err error) {
-	t := NewTree(dbm, true)
+func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool, treeCfg *TreeConfig) (newHash []byte, err error) {
+	t := NewTree(dbm, true, treeCfg)
 	t.Load(hash)
 	kvs := genKV(height, txN)
 	for _, kv := range kvs {

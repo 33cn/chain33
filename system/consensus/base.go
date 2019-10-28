@@ -146,7 +146,9 @@ func (bc *BaseClient) InitBlock() {
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		if newblock.Height == 0 {
-			newblock.Difficulty = types.GetP(0).PowLimitBits
+			types.AssertConfig(bc.client)
+			cfg := bc.client.GetConfig()
+			newblock.Difficulty = cfg.GetP(0).PowLimitBits
 		}
 		err := bc.WriteBlock(zeroHash[:], newblock)
 		if err != nil {
@@ -278,19 +280,21 @@ func (bc *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	if parent.Height+1 != block.Block.Height {
 		return types.ErrBlockHeight
 	}
-	if types.IsFork(block.Block.Height, "ForkCheckBlockTime") && parent.BlockTime > block.Block.BlockTime {
+	types.AssertConfig(bc.client)
+	cfg := bc.client.GetConfig()
+	if cfg.IsFork(block.Block.Height, "ForkCheckBlockTime") && parent.BlockTime > block.Block.BlockTime {
 		return types.ErrBlockTime
 	}
 	//check parent hash
-	if string(block.Block.GetParentHash()) != string(parent.Hash()) {
+	if string(block.Block.GetParentHash()) != string(parent.Hash(cfg)) {
 		return types.ErrParentHash
 	}
 	//check block size and tx count
-	if types.IsFork(block.Block.Height, "ForkBlockCheck") {
+	if cfg.IsFork(block.Block.Height, "ForkBlockCheck") {
 		if block.Block.Size() > types.MaxBlockSize {
 			return types.ErrBlockSize
 		}
-		if int64(len(block.Block.Txs)) > types.GetP(block.Block.Height).MaxTxNumber {
+		if int64(len(block.Block.Txs)) > cfg.GetP(block.Block.Height).MaxTxNumber {
 			return types.ErrManyTx
 		}
 	}
@@ -506,7 +510,9 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 	size := block.Size()
 	max := types.MaxBlockSize - 100000 //留下100K空间，添加其他的交易
 	currentCount := int64(len(block.Txs))
-	maxTx := types.GetP(block.Height).MaxTxNumber
+	types.AssertConfig(bc.client)
+	cfg := bc.client.GetConfig()
+	maxTx := cfg.GetP(block.Height).MaxTxNumber
 	addedTx := make([]*types.Transaction, 0, len(txs))
 	for i := 0; i < len(txs); i++ {
 		txGroup, err := txs[i].GetTxGroup()
@@ -547,11 +553,13 @@ func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, bloc
 	var txlist types.Transactions
 	var hasTxExpire bool
 
+	types.AssertConfig(bc.client)
+	cfg := bc.client.GetConfig()
 	for i := 0; i < len(txs); i++ {
 
 		groupCount := txs[i].GroupCount
 		if groupCount == 0 {
-			if isExpire(txs[i:i+1], height, blocktime) {
+			if isExpire(cfg, txs[i:i+1], height, blocktime) {
 				txs[i] = nil
 				hasTxExpire = true
 			}
@@ -565,7 +573,7 @@ func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, bloc
 
 		//交易组有过期交易时需要将整个交易组都删除
 		grouptxs := txs[i : i+int(groupCount)]
-		if isExpire(grouptxs, height, blocktime) {
+		if isExpire(cfg, grouptxs, height, blocktime) {
 			for j := i; j < i+int(groupCount); j++ {
 				txs[j] = nil
 				hasTxExpire = true
@@ -588,9 +596,9 @@ func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, bloc
 }
 
 //检测交易数组是否过期，只要有一个过期就认为整个交易组过期
-func isExpire(txs []*types.Transaction, height int64, blocktime int64) bool {
+func isExpire(cfg *types.Chain33Config, txs []*types.Transaction, height int64, blocktime int64) bool {
 	for _, tx := range txs {
-		if height > 0 && blocktime > 0 && tx.IsExpire(height, blocktime) {
+		if height > 0 && blocktime > 0 && tx.IsExpire(cfg, height, blocktime) {
 			log.Debug("isExpire", "height", height, "blocktime", blocktime, "hash", common.ToHex(tx.Hash()), "Expire", tx.Expire)
 			return true
 		}

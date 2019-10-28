@@ -163,8 +163,14 @@ func addCreateTxGroupFlags(cmd *cobra.Command) {
 }
 
 func createTxGroup(cmd *cobra.Command, args []string) {
+	title, _ := cmd.Flags().GetString("title")
+	cfg := types.GetCliSysParam(title)
+	if cfg == nil {
+		panic(fmt.Sprintln("can not find CliSysParam title", title))
+	}
 	txs, _ := cmd.Flags().GetString("txs")
 	file, _ := cmd.Flags().GetString("file")
+
 	var txsArr []string
 	if txs != "" {
 		txsArr = strings.Split(txs, " ")
@@ -210,12 +216,12 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 		types.Decode(txByte, &transaction)
 		transactions = append(transactions, &transaction)
 	}
-	group, err := types.CreateTxGroup(transactions, types.GInt("MinFee"))
+	group, err := types.CreateTxGroup(transactions, cfg.GInt("MinFee"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	err = group.CheckWithFork(true, true, 0, types.GInt("MinFee"), types.GInt("MaxFee"))
+	err = group.CheckWithFork(cfg, true, true, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
