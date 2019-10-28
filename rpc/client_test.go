@@ -355,11 +355,25 @@ func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	fee := cfg.GInt("MinFee") * 2
 	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: fee}, nil)
 	in := &types.NoBalanceTx{}
-	tx, err := client.CreateNoBalanceTransaction(in)
+	params := &types.NoBalanceTxs{
+		TxHexs:  []string{in.GetTxHex()},
+		PayAddr: in.GetPayAddr(),
+		Privkey: in.GetPrivkey(),
+		Expire:  in.GetExpire(),
+	}
+	tx, err := client.CreateNoBalanceTxs(params)
 	assert.NoError(t, err)
 	gtx, _ := tx.GetTxGroup()
 	assert.NoError(t, gtx.Check(cfg, 0, fee, cfg.GInt("MaxFee")))
 	assert.NoError(t, err)
+	params.Expire = "300s"
+	tx, err = client.CreateNoBalanceTxs(params)
+	assert.NoError(t, err)
+	assert.Equal(t, true, (tx.GetExpire() > types.Now().Unix()) && (tx.GetExpire() <= types.Now().Unix()+300))
+	params.TxHexs[0] = hex.EncodeToString(types.Encode(&types.Transaction{Execer: []byte("user.p.para.coins")}))
+	params.Expire = "100"
+	tx, err = client.CreateNoBalanceTxs(params)
+	assert.Equal(t, types.ErrInvalidExpire, err)
 }
 
 func TestClientReWriteRawTx(t *testing.T) {

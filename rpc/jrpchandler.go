@@ -86,7 +86,13 @@ func (c *Chain33) CreateNoBlanaceTxs(in *types.NoBalanceTxs, result *string) err
 
 // CreateNoBalanceTransaction create transaction with no balance
 func (c *Chain33) CreateNoBalanceTransaction(in *types.NoBalanceTx, result *string) error {
-	tx, err := c.cli.CreateNoBalanceTransaction(in)
+	params := &types.NoBalanceTxs{
+		TxHexs:  []string{in.GetTxHex()},
+		PayAddr: in.GetPayAddr(),
+		Privkey: in.GetPrivkey(),
+		Expire:  in.GetExpire(),
+	}
+	tx, err := c.cli.CreateNoBalanceTxs(params)
 	if err != nil {
 		return err
 	}
