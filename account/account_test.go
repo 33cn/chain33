@@ -31,11 +31,12 @@ var (
 
 func GenerAccDb() (*DB, *DB) {
 	//构造账户数据库
-	accCoin := NewCoinsAccount(types.NewChain33Config(types.GetDefaultCfgstring()))
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	accCoin := NewCoinsAccount(cfg)
 	stroedb, _ := db.NewGoMemDB("gomemdb", "test", 128)
 	accCoin.SetDB(stroedb)
 
-	accToken, _ := NewAccountDB("token", "test", nil)
+	accToken, _ := NewAccountDB(cfg, "token", "test", nil)
 	stroedb2, _ := db.NewGoMemDB("gomemdb", "test", 128)
 	accToken.SetDB(stroedb2)
 
@@ -206,13 +207,13 @@ func TestGetTotalCoins(t *testing.T) {
 
 func TestAccountName(t *testing.T) {
 	stroedb, _ := db.NewGoMemDB("gomemdb", "test", 128)
-
-	accCoin := NewCoinsAccount(types.NewChain33Config(types.GetDefaultCfgstring()))
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	accCoin := NewCoinsAccount(cfg)
 	accCoin.SetDB(stroedb)
 	coinsAddr := address.ExecAddress("coins")
 	t.Log("coinsAddr:", coinsAddr)
 
-	accToken, _ := NewAccountDB("token", "test", nil)
+	accToken, _ := NewAccountDB(cfg, "token", "test", nil)
 	accToken.SetDB(stroedb)
 	tokenAddr := address.ExecAddress("token")
 	t.Log("tokenAddr:", tokenAddr)

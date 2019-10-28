@@ -37,16 +37,17 @@ type DB struct {
 	execer               string
 	symbol               string
 	accountKeyBuffer     []byte
+	cfg                  *types.Chain33Config
 }
 
 // NewCoinsAccount 新建账户
 func NewCoinsAccount(cfg *types.Chain33Config) *DB {
 	prefix := "mavl-coins-" + cfg.GetCoinSymbol() + "-"
-	return newAccountDB(prefix)
+	return newAccountDB(cfg, prefix)
 }
 
 // NewAccountDB 新建DB账户
-func NewAccountDB(execer string, symbol string, db dbm.KV) (*DB, error) {
+func NewAccountDB(cfg *types.Chain33Config, execer string, symbol string, db dbm.KV) (*DB, error) {
 	//如果execer 和  symbol 中存在 "-", 那么创建失败
 	if strings.ContainsRune(execer, '-') {
 		return nil, types.ErrExecNameNotAllow
@@ -54,15 +55,15 @@ func NewAccountDB(execer string, symbol string, db dbm.KV) (*DB, error) {
 	if strings.ContainsRune(symbol, '-') {
 		return nil, types.ErrSymbolNameNotAllow
 	}
-	accDB := newAccountDB(symbolPrefix(execer, symbol))
+	accDB := newAccountDB(cfg, symbolPrefix(execer, symbol))
 	accDB.execer = execer
 	accDB.symbol = symbol
 	accDB.SetDB(db)
 	return accDB, nil
 }
 
-func newAccountDB(prefix string) *DB {
-	acc := &DB{}
+func newAccountDB(cfg *types.Chain33Config, prefix string) *DB {
+	acc := &DB{cfg: cfg}
 	acc.accountKeyPerfix = []byte(prefix)
 	acc.accountKeyBuffer = make([]byte, 0, len(acc.accountKeyPerfix)+64)
 	acc.accountKeyBuffer = append(acc.accountKeyBuffer, acc.accountKeyPerfix...)

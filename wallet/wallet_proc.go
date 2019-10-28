@@ -544,7 +544,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 			return nil, types.ErrInsufficientBalance
 		}
 		if nil == wallet.accTokenMap[SendToAddress.TokenSymbol] {
-			tokenAccDB, err := account.NewAccountDB("token", SendToAddress.TokenSymbol, nil)
+			tokenAccDB, err := account.NewAccountDB(wallet.api.GetConfig(), "token", SendToAddress.TokenSymbol, nil)
 			if err != nil {
 				return nil, err
 			}

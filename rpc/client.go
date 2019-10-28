@@ -329,7 +329,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		return c.accountdb.GetBalance(c.QueueProtocolAPI, in)
 	}
 
-	acc, err := account.NewAccountDB(in.AssetExec, in.AssetSymbol, nil)
+	acc, err := account.NewAccountDB(c.QueueProtocolAPI.GetConfig(), in.AssetExec, in.AssetSymbol, nil)
 	if err != nil {
 		log.Error("GetBalance", "Error", err.Error())
 		return nil, err
