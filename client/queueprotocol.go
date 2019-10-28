@@ -852,9 +852,7 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 
 // Version get the software version
 func (q *QueueProtocol) Version() (*types.VersionInfo, error) {
-	if q.client == nil || q.client.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(q.client)
 	return &types.VersionInfo{
 		Title:   q.client.GetConfig().GetTitle(),
 		App:     version.GetAppVersion(),
@@ -1289,12 +1287,12 @@ func (q *QueueProtocol) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.
 
 //GetConfig 通过seq以及title获取对应平行连的交易
 func (q *QueueProtocol) GetConfig() *types.Chain33Config {
-	if q.client == nil || q.client.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
+	if q.client == nil {
+		panic("client is nil, can not get Chain33Config")
 	}
 	cfg := q.client.GetConfig()
 	if cfg == nil {
-		panic("QueueProtocol get config is nil")
+		panic("Chain33Config is nil")
 	}
 	return cfg
 }

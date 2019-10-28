@@ -302,9 +302,7 @@ func (network *P2p) ReStart() {
 	log.Info("p2p restart, wait p2p task done")
 	network.waitTaskDone()
 	network.node.Close()
-	if network.client == nil || network.client.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(network.client)
 	node, err := NewNode(network.client.GetConfig()) //创建新的node节点
 	if err != nil {
 		panic(err.Error())

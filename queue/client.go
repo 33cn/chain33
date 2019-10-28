@@ -71,10 +71,12 @@ func newClient(q *queue) Client {
 
 // GetConfig return the queue Chain33Config
 func (client *client) GetConfig() *types.Chain33Config {
-	if client.q == nil || client.q.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
+	types.AssertConfig(client.q)
+	cfg := client.q.GetConfig()
+	if cfg == nil {
+		panic("Chain33Config is nil")
 	}
-	return client.q.GetConfig()
+	return cfg
 }
 
 // Send 发送消息,msg 消息 ,waitReply 是否等待回应

@@ -834,3 +834,9 @@ func GetCliSysParam(title string) *Chain33Config {
 	}
 	return nil
 }
+
+func AssertConfig(check interface{}) {
+	if check == nil {
+		panic("check object is nil (Chain33Config)")
+	}
+}

@@ -373,9 +373,7 @@ func TestDecodeLogModifyConfig(t *testing.T) {
 }
 
 func newTestChain33(api client.QueueProtocolAPI) *Chain33 {
-	if api == nil || api.GetConfig() == nil {
-		panic("api or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(api)
 	return &Chain33{
 		cli: channelClient{
 			QueueProtocolAPI: api,

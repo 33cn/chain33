@@ -377,10 +377,7 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 		ulog.Info("ExecBlockUpgrade", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg1))
 	}()
 
-	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
-	cacheTxs := types.TxsToCache(block.Txs)
 	var err error
-	block.Txs = types.CacheToTxs(cacheTxs)
 	//println("1")
 	receipts, err := ExecTx(client, prevStateRoot, block)
 	if err != nil {

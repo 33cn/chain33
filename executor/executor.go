@@ -107,9 +107,7 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	if err != nil {
 		panic(err)
 	}
-	if exec.client == nil || exec.client.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(exec.client)
 	cfg := exec.client.GetConfig()
 	if cfg.IsPara() {
 		exec.grpccli, err = grpcclient.NewMainChainClient(cfg, "")
@@ -279,9 +277,7 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 			continue
 		}
 		//所有tx.GroupCount > 0 的交易都是错误的交易
-		if exec.client == nil || exec.client.GetConfig() == nil {
-			panic("client or Chain33Config is nil, can not get Chain33Config")
-		}
+		types.AssertConfig(exec.client)
 		cfg := exec.client.GetConfig()
 		if !cfg.IsFork(datas.Height, "ForkTxGroup") {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupNotSupport))

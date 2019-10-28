@@ -35,9 +35,7 @@ func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail)
 			fromkey2 := types.CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey1, Value: txinfobyte})
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey2, Value: txinfobyte})
-			if executor.api == nil || executor.api.GetConfig() == nil {
-				panic("api or Chain33Config is nil, can not get Chain33Config")
-			}
+			types.AssertConfig(executor.api)
 			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.from, 1, true)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
@@ -48,9 +46,7 @@ func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail)
 			tokey2 := types.CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey1, Value: txinfobyte})
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey2, Value: txinfobyte})
-			if executor.api == nil || executor.api.GetConfig() == nil {
-				panic("api or Chain33Config is nil, can not get Chain33Config")
-			}
+			types.AssertConfig(executor.api)
 			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.to, 1, true)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)

@@ -11,6 +11,7 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	"google.golang.org/grpc"
+	"github.com/33cn/chain33/types"
 )
 
 // RPCServer interface
@@ -38,9 +39,7 @@ func (c *ChannelClient) Init(name string, s RPCServer, jrpc, grpc interface{}) {
 	}
 	c.grpc = grpc
 	c.jrpc = jrpc
-	if c == nil || c.GetConfig() == nil {
-		panic("api or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(c.QueueProtocolAPI)
 	c.accountdb = account.NewCoinsAccount(c.GetConfig())
 }
 

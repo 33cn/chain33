@@ -49,9 +49,7 @@ func (p *txindexPlugin) ExecDelLocal(executor *executor, data *types.BlockDetail
 
 //获取公共的信息
 func getTx(executor *executor, tx *types.Transaction, receipt *types.ReceiptData, index int) []*types.KeyValue {
-	if executor.api == nil || executor.api.GetConfig() == nil {
-		panic("api or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(executor.api)
 	cfg := executor.api.GetConfig()
 	txhash := tx.Hash()
 	//构造txresult 信息保存到db中

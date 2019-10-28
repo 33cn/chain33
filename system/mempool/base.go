@@ -128,9 +128,7 @@ func (mem *Mempool) getTxList(filterList *types.TxHashList) (txs []*types.Transa
 func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool) (txs []*types.Transaction) {
 	height := mem.header.GetHeight()
 	blocktime := mem.header.GetBlockTime()
-	if mem.client == nil || mem.client.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
 	mem.cache.Walk(int(count), func(tx *Item) bool {
 		if dupMap != nil {
@@ -255,9 +253,7 @@ func (mem *Mempool) pollLastHeader() {
 func (mem *Mempool) removeExpired() {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	if mem.client == nil || mem.client.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(mem.client)
 	mem.cache.removeExpiredTx(mem.client.GetConfig(), mem.header.GetHeight(), mem.header.GetBlockTime())
 }
 
@@ -311,9 +307,7 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 		}
 	}
 	//控制精度
-	if mem.client == nil || mem.client.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
 	minFee := cfg.GInt("MinFee")
 	if minFee != 0 && feeRate%minFee > 0 {
@@ -326,9 +320,7 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 func (mem *Mempool) getLevelFeeRate(baseFeeRate int64, appendCount, appendSize int32) int64 {
 	var feeRate int64
 	sumByte := mem.GetTotalCacheBytes() + int64(appendSize)
-	if mem.client == nil || mem.client.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
 	maxTxNumber := cfg.GetP(mem.Height()).MaxTxNumber
 	memSize := mem.Size()
@@ -353,9 +345,7 @@ func (mem *Mempool) delBlock(block *types.Block) {
 	}
 	blkTxs := block.Txs
 	header := mem.GetHeader()
-	if mem.client == nil || mem.client.GetConfig() == nil {
-		panic("client or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
 	for i := 0; i < len(blkTxs); i++ {
 		tx := blkTxs[i]

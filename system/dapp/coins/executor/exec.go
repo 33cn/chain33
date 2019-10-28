@@ -22,9 +22,7 @@ func (c *Coins) Exec_Transfer(transfer *types.AssetsTransfer, tx *types.Transact
 
 // Exec_TransferToExec the transfer to exec address
 func (c *Coins) Exec_TransferToExec(transfer *types.AssetsTransferToExec, tx *types.Transaction, index int) (*types.Receipt, error) {
-	if c.GetAPI() == nil || c.GetAPI().GetConfig() == nil {
-		panic("api or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(c.GetAPI())
 	cfg := c.GetAPI().GetConfig()
 	if !cfg.IsFork(c.GetHeight(), "ForkTransferExec") {
 		return nil, types.ErrActionNotSupport
@@ -39,9 +37,7 @@ func (c *Coins) Exec_TransferToExec(transfer *types.AssetsTransferToExec, tx *ty
 
 // Exec_Withdraw withdraw exec
 func (c *Coins) Exec_Withdraw(withdraw *types.AssetsWithdraw, tx *types.Transaction, index int) (*types.Receipt, error) {
-	if c.GetAPI() == nil || c.GetAPI().GetConfig() == nil {
-		panic("api or Chain33Config is nil, can not get Chain33Config")
-	}
+	types.AssertConfig(c.GetAPI())
 	cfg := c.GetAPI().GetConfig()
 	if !cfg.IsFork(c.GetHeight(), "ForkWithdraw") {
 		withdraw.ExecName = ""
