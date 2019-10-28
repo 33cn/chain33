@@ -228,7 +228,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 			return nil, err
 		}
 		//交易组只需要设置单笔交易超时
-		txNone.SetExpire(time.Duration(expire))
+		txNone.SetExpire(cfg, time.Duration(expire))
 	}
 	isParaTx := false
 	transactions := []*types.Transaction{txNone}

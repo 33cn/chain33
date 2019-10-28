@@ -171,6 +171,7 @@ func TestExprieCreateNoBalanceTransaction(t *testing.T) {
 
 func TestExprieSignRawTx(t *testing.T) {
 	mocker := testnode.New("--free--", nil)
+	cfg := mocker.GetClient().GetConfig()
 	defer mocker.Close()
 	mocker.Listen()
 	jrpcClient := getRPCClient(t, mocker)
@@ -182,9 +183,9 @@ func TestExprieSignRawTx(t *testing.T) {
 	var res string
 	err := jrpcClient.Call("Chain33.CreateTransaction", req, &res)
 
-	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
+	txNone := &types.Transaction{Execer: []byte(cfg.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))
-	txNone, err = types.FormatTx(types.ExecName(types.NoneX), txNone)
+	txNone, err = types.FormatTx(cfg, cfg.ExecName(types.NoneX), txNone)
 	assert.NoError(t, err)
 	assert.Nil(t, err)
 	gen := mocker.GetGenesisKey().Bytes()

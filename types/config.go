@@ -21,15 +21,7 @@ type Create func(cfg *Chain33Config)
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowUserExec = [][]byte{ExecerNone}
-	//挖矿的合约名单，适配旧配置，默认ticket
-	//minerExecs  = []string{"ticket"}
 	EmptyValue = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	//title       string
-	//mu          sync.Mutex
-	//titles      = map[string]bool{}
-	//chainConfig = make(map[string]interface{})
-	//mver        = make(map[string]*mversion)
-	//coinSymbol  = "bty"
 	cliSysParam   = make(map[string]*Chain33Config) // map key is title
 	regModuleInit = make(map[string]Create)
 	regExecInit   = make(map[string]Create)
