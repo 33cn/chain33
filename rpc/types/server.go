@@ -10,8 +10,8 @@ import (
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
-	"google.golang.org/grpc"
 	"github.com/33cn/chain33/types"
+	"google.golang.org/grpc"
 )
 
 // RPCServer interface
