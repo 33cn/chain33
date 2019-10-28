@@ -222,6 +222,13 @@ func (mem *Mempool) GetLatestTx() []*types.Transaction {
 	return mem.cache.GetLatestTx()
 }
 
+//  GetTotalCacheBytes 获取缓存交易的总占用空间
+func (mem *Mempool) GetTotalCacheBytes() int64 {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.TotalByte()
+}
+
 // pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
 func (mem *Mempool) pollLastHeader() {
 	defer mem.wg.Done()
@@ -318,16 +325,17 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 // getLevelFeeRate 获取合适的阶梯手续费率, 可以外部传入count, size进行前瞻性估计
 func (mem *Mempool) getLevelFeeRate(baseFeeRate int64, appendCount, appendSize int32) int64 {
 	var feeRate int64
-	sumByte := mem.cache.TotalByte() + int64(appendSize)
+	sumByte := mem.GetTotalCacheBytes() + int64(appendSize)
 	if mem.client == nil || mem.client.GetConfig() == nil {
 		panic("client or Chain33Config is nil, can not get Chain33Config")
 	}
 	cfg := mem.client.GetConfig()
 	maxTxNumber := cfg.GetP(mem.Height()).MaxTxNumber
+	memSize := mem.Size()
 	switch {
-	case sumByte >= int64(types.MaxBlockSize/20) || int64(mem.Size()+int(appendCount)) >= maxTxNumber/2:
+	case sumByte >= int64(types.MaxBlockSize/20) || int64(memSize+int(appendCount)) >= maxTxNumber/2:
 		feeRate = 100 * baseFeeRate
-	case sumByte >= int64(types.MaxBlockSize/100) || int64(mem.Size()+int(appendCount)) >= maxTxNumber/10:
+	case sumByte >= int64(types.MaxBlockSize/100) || int64(memSize+int(appendCount)) >= maxTxNumber/10:
 		feeRate = 10 * baseFeeRate
 	default:
 		feeRate = baseFeeRate
