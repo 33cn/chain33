@@ -61,9 +61,6 @@ func addConfigTxFlags(cmd *cobra.Command) {
 func configTx(cmd *cobra.Command, args []string) {
 	title, _ := cmd.Flags().GetString("title")
 	cfg := types.GetCliSysParam(title)
-	if cfg == nil {
-		panic(fmt.Sprintln("can not find CliSysParam title", title))
-	}
 	paraName, _ := cmd.Flags().GetString("paraName")
 	key, _ := cmd.Flags().GetString("config_key")
 	op, _ := cmd.Flags().GetString("operation")

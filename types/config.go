@@ -14,6 +14,7 @@ import (
 
 	"github.com/33cn/chain33/types/chaincfg"
 	tml "github.com/BurntSushi/toml"
+	"fmt"
 )
 
 type Create func(cfg *Chain33Config)
@@ -832,7 +833,7 @@ func GetCliSysParam(title string) *Chain33Config {
 	if v, ok := cliSysParam[title]; ok {
 		return v
 	}
-	return nil
+	panic(fmt.Sprintln("can not find CliSysParam title", title))
 }
 
 func AssertConfig(check interface{}) {

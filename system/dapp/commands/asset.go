@@ -111,9 +111,6 @@ func assetBalance(cmd *cobra.Command, args []string) {
 func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
 	title, _ := cmd.Flags().GetString("title")
 	cfg := types.GetCliSysParam(title)
-	if cfg == nil {
-		panic(fmt.Sprintln("can not find CliSysParam title", title))
-	}
 	paraName, _ := cmd.Flags().GetString("paraName")
 	exec, _ := cmd.Flags().GetString("exec")
 	exec = getRealExecName(paraName, exec)
@@ -150,9 +147,6 @@ func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
 func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
 	title, _ := cmd.Flags().GetString("title")
 	cfg := types.GetCliSysParam(title)
-	if cfg == nil {
-		panic(fmt.Sprintln("can not find CliSysParam title", title))
-	}
 	exec, _ := cmd.Flags().GetString("exec")
 	paraName, _ := cmd.Flags().GetString("paraName")
 	exec = getRealExecName(paraName, exec)
@@ -188,9 +182,6 @@ func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
 func CreateAssetTransfer(cmd *cobra.Command, args []string, fromExec string) {
 	title, _ := cmd.Flags().GetString("title")
 	cfg := types.GetCliSysParam(title)
-	if cfg == nil {
-		panic(fmt.Sprintln("can not find CliSysParam title", title))
-	}
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
