@@ -83,9 +83,6 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isWithdraw bool, tokenSymbol, execName string) (string, error) {
 	title, _ := cmd.Flags().GetString("title")
 	cfg := types.GetCliSysParam(title)
-	if cfg == nil {
-		panic(fmt.Sprintln("can not find CliSysParam title", title))
-	}
 
 	if amount < 0 {
 		return "", types.ErrAmount
