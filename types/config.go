@@ -12,9 +12,10 @@ import (
 	"strings"
 	"sync"
 
+	"fmt"
+
 	"github.com/33cn/chain33/types/chaincfg"
 	tml "github.com/BurntSushi/toml"
-	"fmt"
 )
 
 type Create func(cfg *Chain33Config)
