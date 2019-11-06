@@ -224,7 +224,7 @@ func (mem *Mempool) GetLatestTx() []*types.Transaction {
 func (mem *Mempool) GetTotalCacheBytes() int64 {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	return mem.cache.TotalByte()
+	return mem.cache.qcache.GetCacheBytes()
 }
 
 // pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回

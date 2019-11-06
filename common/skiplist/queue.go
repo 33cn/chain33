@@ -12,13 +12,16 @@ type Scorer interface {
 	Hash() []byte
 	//在score相同情况下的比较
 	Compare(Scorer) int
+	//占用字节大小
+	ByteSize() int64
 }
 
 // Queue skiplist 实现的一个 按照score 排序的队列，score相同的按照元素到的先后排序
 type Queue struct {
-	txMap   map[string]*list.Element
-	txList  *SkipList
-	maxsize int64
+	txMap      map[string]*list.Element
+	txList     *SkipList
+	maxsize    int64
+	cacheBytes int64
 }
 
 // NewQueue 创建队列
@@ -90,8 +93,14 @@ func (cache *Queue) GetItem(hash string) (Scorer, error) {
 	return nil, types.ErrNotFound
 }
 
+//GetCacheBytes get cache byte size
+func (cache *Queue) GetCacheBytes() int64 {
+	return cache.cacheBytes
+}
+
 //Insert Scorer item to queue
 func (cache *Queue) Insert(hash string, item Scorer) {
+	cache.cacheBytes += item.ByteSize()
 	cache.txMap[hash] = cache.insertSkipValue(item)
 }
 
@@ -132,6 +141,7 @@ func (cache *Queue) Remove(hash string) error {
 		println("queue_data_crash")
 		return err
 	}
+	cache.cacheBytes -= elm.Value.(Scorer).ByteSize()
 	return nil
 }
 

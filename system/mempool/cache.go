@@ -6,7 +6,6 @@ package mempool
 
 import (
 	"github.com/33cn/chain33/types"
-	"github.com/golang/protobuf/proto"
 )
 
 //QueueCache 排队交易处理
@@ -18,6 +17,7 @@ type QueueCache interface {
 	Size() int
 	Walk(count int, cb func(tx *Item) bool)
 	GetProperFee() int64
+	GetCacheBytes() int64
 }
 
 // Item 为Mempool中包装交易的数据结构
@@ -31,9 +31,8 @@ type Item struct {
 type txCache struct {
 	*AccountTxIndex
 	*LastTxCache
-	qcache    QueueCache
-	totalFee  int64
-	totalByte int64
+	qcache   QueueCache
+	totalFee int64
 	*SHashTxCache
 }
 
@@ -65,7 +64,6 @@ func (cache *txCache) Remove(hash string) {
 	cache.AccountTxIndex.Remove(tx)
 	cache.LastTxCache.Remove(tx)
 	cache.totalFee -= tx.Fee
-	cache.totalByte -= int64(proto.Size(tx))
 	cache.SHashTxCache.Remove(tx)
 }
 
@@ -102,11 +100,6 @@ func (cache *txCache) TotalFee() int64 {
 	return cache.totalFee
 }
 
-//TotalByte 交易字节数总和
-func (cache *txCache) TotalByte() int64 {
-	return cache.totalByte
-}
-
 //Walk iter all txs
 func (cache *txCache) Walk(count int, cb func(tx *Item) bool) {
 	if cache.qcache == nil {
@@ -138,7 +131,6 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 	}
 	cache.LastTxCache.Push(tx)
 	cache.totalFee += tx.Fee
-	cache.totalByte += int64(proto.Size(tx))
 	cache.SHashTxCache.Push(tx)
 	return nil
 }
