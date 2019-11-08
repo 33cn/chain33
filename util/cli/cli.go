@@ -26,7 +26,7 @@ func Run(RPCAddr, ParaName, name string) {
 
 	configPath := ""
 	for i, arg := range os.Args[:] {
-		if arg == "-file" { // -file chain33.toml 可以配置读入cli配置文件路径
+		if arg == "-conf" { // -conf chain33.toml 可以配置读入cli配置文件路径
 			if i+1 < len(os.Args)-1 {
 				configPath = os.Args[i+1]
 				os.Args = append(os.Args[:i], os.Args[i+2:]...)
