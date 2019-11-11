@@ -149,6 +149,7 @@ func TestQueue(t *testing.T) {
 		totalByte += i
 	}
 	assert.Equal(t, int64(totalByte), queue.GetCacheBytes())
+	//缓存已满,触发优先级高的替换操作, 11替换1
 	assert.Nil(t, queue.Push(&scoreint{data: 11}))
 	assert.Equal(t, int64(totalByte)+10, queue.GetCacheBytes())
 	assert.Equal(t, int64(10), queue.MaxSize())
