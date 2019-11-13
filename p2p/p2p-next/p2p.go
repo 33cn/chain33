@@ -2,6 +2,7 @@ package p2pnext
 
 import (
 	"context"
+	"encoding/hex"
 	"time"
 
 	"github.com/33cn/chain33/client"
@@ -10,6 +11,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-host"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
@@ -26,7 +28,7 @@ type P2p struct {
 	Done       chan struct{}
 }
 
-func New() *P2p {
+func New(cfg *types.Chain33Config) *P2p {
 
 	m, err := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/13803")
 	if err != nil {
@@ -34,8 +36,17 @@ func New() *P2p {
 	}
 	var addrlist []multiaddr.Multiaddr
 	addrlist = append(addrlist, m)
+	keystr, _ := NewAddrBook(cfg).GetPrivPubKey()
+	//key string convert to crpyto.Privkey
+	key, _ := hex.DecodeString(keystr)
+	priv, err := crypto.UnmarshalSecp256k1PrivateKey(key)
+	if err != nil {
+		panic(err)
+	}
 	host, err := libp2p.New(context.Background(),
 		libp2p.ListenAddrs(addrlist...),
+		//用于生成对应得peerid,入参是私钥
+		libp2p.Identity(priv),
 	)
 
 	p2p := &P2p{}
