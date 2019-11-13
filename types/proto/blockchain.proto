@@ -52,6 +52,9 @@ message BlockSeqCB {
     string URL      = 2;
     string encode   = 3;
     bool   isHeader = 4;
+    int64  lastSequence = 5;
+    int64  lastHeight = 6;
+    string lastBlockHash = 7;
 }
 
 message BlockSeqCBs {
