@@ -21,9 +21,12 @@ import (
 
 //Run :
 func Run(RPCAddr, ParaName, name string) {
+	// cli 命令只打印错误级别到控制台
+	log.SetLogLevel("error")
+
 	configPath := ""
 	for i, arg := range os.Args[:] {
-		if arg == "-file" { // -file chain33.toml 可以配置读入cli配置文件路径
+		if arg == "-conf" { // -conf chain33.toml 可以配置读入cli配置文件路径
 			if i+1 < len(os.Args)-1 {
 				configPath = os.Args[i+1]
 				os.Args = append(os.Args[:i], os.Args[i+2:]...)
@@ -41,14 +44,20 @@ func Run(RPCAddr, ParaName, name string) {
 			configPath = name + ".toml"
 		}
 	}
-	if configPath == "" {
-		panic("can not find the cli toml")
+
+	exist, _ := PathExists(configPath)
+	var chain33Cfg *types.Chain33Config
+	if exist {
+		chain33Cfg = types.NewChain33Config(types.ReadFile(configPath))
+	} else {
+		cfgstring := types.GetDefaultCfgstring()
+		if ParaName != "" {
+			cfgstring = strings.Replace(cfgstring, "Title=\"local\"", fmt.Sprintf("Title=\"%s\"", ParaName), 1)
+			cfgstring = strings.Replace(cfgstring, "FixTime=false", "CoinSymbol=\"para\"", 1)
+		}
+		chain33Cfg = types.NewChain33Config(cfgstring)
 	}
 
-	// cli 命令只打印错误级别到控制台
-	log.SetLogLevel("error")
-
-	chain33Cfg := types.NewChain33Config(types.ReadFile(configPath))
 	types.SetCliSysParam(chain33Cfg.GetTitle(), chain33Cfg)
 
 	rootCmd := &cobra.Command{
@@ -125,4 +134,15 @@ func testTLS(RPCAddr string) string {
 		return RPCAddr
 	}
 	return "https://" + RPCAddr[7:]
+}
+
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
