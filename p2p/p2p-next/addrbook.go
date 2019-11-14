@@ -1,12 +1,13 @@
 package p2pnext
 
 import (
+	"encoding/hex"
 	"sync"
 
 	"github.com/33cn/chain33/types"
 
 	"github.com/33cn/chain33/common/crypto"
-	//"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/db"
 )
 
 const (
@@ -41,7 +42,12 @@ func (a *AddrBook) loadDb() bool {
 	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
 	privkey, err := a.bookDb.Get([]byte(privKeyTag))
 	if len(privkey) != 0 && err == nil {
-		a.setKey(string(privkey), a.genPubkey(string(privkey)))
+		pubkey, err := genPubkey(string(privkey))
+		if err != nil {
+			logger.Error("genPubkey", "err", err.Error())
+			panic(err)
+		}
+		a.setKey(string(privkey), pubkey)
 		return true
 	}
 
@@ -69,9 +75,9 @@ func (a *AddrBook) initKey() {
 	a.setKey(hex.EncodeToString(priv), hex.EncodeToString(pub))
 }
 
-func (a *AddrBook) SaveKey(key, tag string) {
-	a.setKey(privkey, pubkey)
-	err := a.bookDb.Set([]byte(privKeyTag), []byte(privkey))
+func (a *AddrBook) SaveKey(priv, pub string) {
+	a.setKey(priv, pub)
+	err := a.bookDb.Set([]byte(privKeyTag), []byte(priv))
 	if err != nil {
 		panic(err)
 	}
@@ -96,14 +102,37 @@ func (a *AddrBook) setKey(privkey, pubkey string) {
 func GenPrivPubkey() ([]byte, []byte, error) {
 	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
-		log.Error("CryPto Error", "Error", err.Error())
+		logger.Error("CryPto Error", "Error", err.Error())
 		return nil, nil, err
 	}
 
 	key, err := cr.GenKey()
 	if err != nil {
-		log.Error("GenKey", "Error", err)
+		logger.Error("GenKey", "Error", err)
 		return nil, nil, err
 	}
 	return key.Bytes(), key.PubKey().Bytes(), nil
+}
+
+func genPubkey(privkey string) (string, error) {
+
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+	if err != nil {
+		logger.Error("CryPto Error", "Error", err.Error())
+		return "", err
+	}
+
+	pribyts, err := hex.DecodeString(privkey)
+	if err != nil {
+		logger.Error("DecodeString Error", "Error", err.Error())
+		return "", err
+	}
+	priv, err := cr.PrivKeyFromBytes(pribyts)
+	if err != nil {
+		logger.Error("Load PrivKey", "Error", err.Error())
+		return "", err
+	}
+
+	return hex.EncodeToString(priv.PubKey().Bytes()), nil
+
 }

@@ -36,7 +36,7 @@ func New(cfg *types.Chain33Config) *P2p {
 	}
 	var addrlist []multiaddr.Multiaddr
 	addrlist = append(addrlist, m)
-	keystr, _ := NewAddrBook(cfg).GetPrivPubKey()
+	keystr, _ := NewAddrBook(cfg.GetModuleConfig().P2P).GetPrivPubKey()
 	//key string convert to crpyto.Privkey
 	key, _ := hex.DecodeString(keystr)
 	priv, err := crypto.UnmarshalSecp256k1PrivateKey(key)

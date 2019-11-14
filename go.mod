@@ -26,7 +26,7 @@ require (
 	github.com/huin/goupnp v1.0.0
 	github.com/ipfs/go-log v0.0.1
 	github.com/jackpal/go-nat-pmp v1.0.1
-	github.com/libp2p/go-libp2p v0.3.1
+	github.com/libp2p/go-libp2p v0.4.0
 	github.com/libp2p/go-libp2p-core v0.2.3
 	github.com/libp2p/go-libp2p-discovery v0.1.0
 	github.com/libp2p/go-libp2p-host v0.1.0
