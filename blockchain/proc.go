@@ -110,7 +110,7 @@ func (chain *BlockChain) addBlockSeqCB(msg *queue.Message) {
 		IsOk: true,
 	}
 	cb := (msg.Data).(*types.BlockSeqCB)
-	err := chain.ProcAddBlockSeqCB(cb)
+	_, err := chain.ProcAddBlockSeqCB(cb)
 	if err != nil {
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())

@@ -107,26 +107,26 @@ func (chain *BlockChain) ProcGetMainSeqByHash(hash []byte) (int64, error) {
 }
 
 //ProcAddBlockSeqCB 添加seq callback
-func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) error {
+func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, error) {
 	if cb == nil {
-		return types.ErrInvalidParam
+		return nil, types.ErrInvalidParam
 	}
 
 	if !chain.isRecordBlockSequence {
-		return types.ErrRecordBlockSequence
+		return nil, types.ErrRecordBlockSequence
 	}
 	if chain.blockStore.seqCBNum() >= MaxSeqCB && !chain.blockStore.isSeqCBExist(cb.Name) {
-		return types.ErrTooManySeqCB
+		return nil, types.ErrTooManySeqCB
 	}
 
 	// 在不指定sequence时, 和原来行为保存一直
 	if cb.LastSequence == 0 {
 		err := chain.blockStore.addBlockSeqCB(cb)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		chain.pushseq.addTask(cb)
-		return nil
+		return nil, nil
 	}
 
 	// TODO
@@ -134,7 +134,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) error {
 
 	}
 
-	return nil
+	return nil, nil
 }
 
 //ProcListBlockSeqCB 列出所有已经设置的seq callback
