@@ -118,11 +118,22 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) error {
 	if chain.blockStore.seqCBNum() >= MaxSeqCB && !chain.blockStore.isSeqCBExist(cb.Name) {
 		return types.ErrTooManySeqCB
 	}
-	err := chain.blockStore.addBlockSeqCB(cb)
-	if err != nil {
-		return err
+
+	// 在不指定sequence时, 和原来行为保存一直
+	if cb.LastSequence == 0 {
+		err := chain.blockStore.addBlockSeqCB(cb)
+		if err != nil {
+			return err
+		}
+		chain.pushseq.addTask(cb)
+		return nil
 	}
-	chain.pushseq.addTask(cb)
+
+	// TODO
+	if cb.LastSequence != 0 {
+
+	}
+
 	return nil
 }
 
