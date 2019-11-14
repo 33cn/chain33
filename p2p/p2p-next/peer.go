@@ -8,4 +8,5 @@ type Peer struct {
 }
 
 func (p *Peer) GetPeerInfo() (*pb.P2PPeerInfo, error) {
+	return nil, nil
 }
