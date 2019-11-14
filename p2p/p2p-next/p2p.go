@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/metrics"
+
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/p2p/p2p-next/protos/broadcastTx"
 	"github.com/33cn/chain33/queue"
@@ -43,10 +45,14 @@ func New(cfg *types.Chain33Config) *P2p {
 	if err != nil {
 		panic(err)
 	}
+
+	bandwidthTracker := metrics.NewBandwidthCounter()
 	host, err := libp2p.New(context.Background(),
 		libp2p.ListenAddrs(addrlist...),
-		//用于生成对应得peerid,入参是私钥
 		libp2p.Identity(priv),
+		libp2p.EnableAutoRelay(),
+		libp2p.BandwidthReporter(bandwidthTracker),
+		libp2p.NATPortMap(),
 	)
 
 	p2p := &P2p{}
@@ -112,6 +118,8 @@ func (p *P2p) subP2pMsg() {
 
 		case types.EventTxBroadcast: //广播tx
 			p.txServ.BroadCastTx(msg)
+
+		case types.EventPeerInfo:
 		}
 	}
 }
