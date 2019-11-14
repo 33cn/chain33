@@ -117,7 +117,7 @@ func (chain *BlockChain) addBlockSeqCB(msg *queue.Message) {
 		msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
 		return
 	}
-	chain.pushseq.addTask(cb)
+
 	msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
 }
 
