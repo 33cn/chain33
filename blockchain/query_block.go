@@ -49,7 +49,7 @@ func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHas
 	if err != nil {
 		return nil, err
 	}
-	ReplyHash.Hash = block.Block.Hash()
+	ReplyHash.Hash = block.Block.Hash(chain.client.GetConfig())
 	return &ReplyHash, nil
 }
 
@@ -80,7 +80,7 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 	header.StateHash = block.Block.StateHash
 	header.BlockTime = block.Block.BlockTime
 	header.Height = block.Block.Height
-	header.Hash = block.Block.Hash()
+	header.Hash = block.Block.Hash(chain.client.GetConfig())
 	header.TxCount = int64(len(block.Block.GetTxs()))
 	header.Difficulty = block.Block.Difficulty
 	header.Signature = block.Block.Signature
@@ -274,7 +274,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 			return nil, types.ErrExecBlockNil
 		}
 	}
-	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
+	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash(chain.client.GetConfig())), "err", err)
 	return blockdetail, err
 }
 

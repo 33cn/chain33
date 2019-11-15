@@ -48,9 +48,10 @@ message Blocks {
 }
 
 message BlockSeqCB {
-    string name   = 1;
-    string URL    = 2;
-    string encode = 3;
+    string name     = 1;
+    string URL      = 2;
+    string encode   = 3;
+    bool   isHeader = 4;
 }
 
 message BlockSeqCBs {
@@ -263,6 +264,19 @@ message EndBlock {
     bytes hash   = 2;
 }
 
+//通过seq获取区块的header信息
+message HeaderSeq {
+    int64         num    = 1;
+    BlockSequence seq    = 2;
+    Header        header = 3;
+}
+
+//批量推送区块的header信息
+message HeaderSeqs {
+    repeated HeaderSeq seqs = 1;
+}
+
+
 //记录本平行链所在区块的信息以及子根hash值
 //childHash:平行链子roothash值
 //startIndex:此平行链的第一笔交易的index索引值
@@ -332,6 +346,3 @@ message ParaTxInfo {
     uint32   index              = 5;
     repeated bytes proofs       = 6;
 }
-
-
-

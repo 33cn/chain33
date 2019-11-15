@@ -27,15 +27,13 @@ import (
 )
 
 var (
-	minFee           int64
+	//minFee           int64
 	maxTxNumPerBlock int64 = types.MaxTxsPerBlock
 	// MaxTxHashsPerTime 每次处理的最大交易哈希数量
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
-	// SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
-	SignType    = 1
-	accountdb   *account.DB
-	accTokenMap = make(map[string]*account.DB)
+	//accountdb         *account.DB
+	//accTokenMap = make(map[string]*account.DB)
 )
 
 func init() {
@@ -74,6 +72,11 @@ type Wallet struct {
 	rescanwg           *sync.WaitGroup
 	lastHeader         *types.Header
 	initFlag           uint32 // 钱包模块是否初始化完毕的标记，默认为0，表示未初始化
+	// SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
+	SignType    int
+	minFee      int64
+	accountdb   *account.DB
+	accTokenMap map[string]*account.DB
 }
 
 // SetLogLevel 设置日志登记
@@ -88,34 +91,37 @@ func DisableLog() {
 }
 
 // New 创建一个钱包对象
-func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
+func New(cfg *types.Chain33Config) *Wallet {
+	mcfg := cfg.GetModuleConfig().Wallet
 	//walletStore
-	accountdb = account.NewCoinsAccount()
-	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
+	//accountdb = account.NewCoinsAccount()
+	walletStoreDB := dbm.NewDB("wallet", mcfg.Driver, mcfg.DbPath, mcfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
 	walletStore := newStore(walletStoreDB)
-	minFee = cfg.MinFee
-	signType := types.GetSignType("", cfg.SignType)
+	//minFee = cfg.MinFee
+	signType := types.GetSignType("", mcfg.SignType)
 	if signType == types.Invalid {
 		signType = types.SECP256K1
 	}
-	SignType = signType
 
 	wallet := &Wallet{
 		walletStore:      walletStore,
 		isWalletLocked:   1,
 		fatalFailureFlag: 0,
 		wg:               &sync.WaitGroup{},
-		FeeAmount:        walletStore.GetFeeAmount(minFee),
+		FeeAmount:        walletStore.GetFeeAmount(mcfg.MinFee),
 		EncryptFlag:      walletStore.GetEncryptionFlag(),
 		done:             make(chan struct{}),
-		cfg:              cfg,
+		cfg:              mcfg,
 		rescanwg:         &sync.WaitGroup{},
 		initFlag:         0,
+		SignType:         signType,
+		minFee:           mcfg.MinFee,
+		accountdb:        account.NewCoinsAccount(cfg),
+		accTokenMap:      make(map[string]*account.DB),
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
-	wcom.Init(wallet, sub)
 	return wallet
 }
 
@@ -156,7 +162,7 @@ func (wallet *Wallet) GetDBStore() dbm.DB {
 
 // GetSignType 获取签名类型
 func (wallet *Wallet) GetSignType() int {
-	return SignType
+	return wallet.SignType
 }
 
 // GetPassword 获取密码
@@ -268,6 +274,9 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	if err != nil {
 		panic("SetQueueClient client.New err")
 	}
+	sub := cli.GetConfig().GetSubConfig().Wallet
+	// 置完client之后才做Init
+	wcom.Init(wallet, sub)
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 	for _, policy := range wcom.PolicyContainer {
@@ -291,6 +300,7 @@ func (wallet *Wallet) GetPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
 	}
+
 	return wallet.getPrivKeyByAddr(addr)
 }
 
@@ -311,7 +321,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 
 	privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 	if err != nil {
 		walletlog.Error("getPrivKeyByAddr", "err", err)
 		return nil, err
@@ -322,11 +332,6 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 	return priv, nil
-}
-
-//外部已经加了lock
-func (wallet *Wallet) getFee() int64 {
-	return wallet.FeeAmount
 }
 
 // AddrInWallet 地址对应的账户是否属于本钱包

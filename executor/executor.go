@@ -22,6 +22,7 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	typ "github.com/33cn/chain33/types"
 )
 
 var elog = log.New("module", "execs")
@@ -46,37 +47,39 @@ type Executor struct {
 	alias        map[string]string
 }
 
-func execInit(sub map[string][]byte) {
-	pluginmgr.InitExec(sub)
+func execInit(cfg *typ.Chain33Config) {
+	pluginmgr.InitExec(cfg)
 }
 
 var runonce sync.Once
 
 // New new executor
-func New(cfg *types.Exec, sub map[string][]byte) *Executor {
+func New(cfg *typ.Chain33Config) *Executor {
 	// init executor
 	runonce.Do(func() {
-		execInit(sub)
+		execInit(cfg)
 	})
+	mcfg := cfg.GetModuleConfig().Exec
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
-	if cfg.MinExecFee == 0 && cfg.IsFree {
+	if mcfg.MinExecFee == 0 && mcfg.IsFree {
 		elog.Warn("set executor to free fee")
-		types.SetMinFee(0)
+		cfg.SetMinFee(0)
 	}
-	if cfg.MinExecFee > 0 {
-		types.SetMinFee(cfg.MinExecFee)
+	if mcfg.MinExecFee > 0 {
+		cfg.SetMinFee(mcfg.MinExecFee)
 	}
+
 	exec := &Executor{}
 	exec.pluginEnable = make(map[string]bool)
-	exec.pluginEnable["stat"] = cfg.EnableStat
-	exec.pluginEnable["mvcc"] = cfg.EnableMVCC
-	exec.pluginEnable["addrindex"] = !cfg.DisableAddrIndex
+	exec.pluginEnable["stat"] = mcfg.EnableStat
+	exec.pluginEnable["mvcc"] = mcfg.EnableMVCC
+	exec.pluginEnable["addrindex"] = !mcfg.DisableAddrIndex
 	exec.pluginEnable["txindex"] = true
 	exec.pluginEnable["fee"] = true
 
 	exec.alias = make(map[string]string)
-	for _, v := range cfg.Alias {
+	for _, v := range mcfg.Alias {
 		data := strings.Split(v, ":")
 		if len(data) != 2 {
 			panic("exec.alias config error: " + v)
@@ -104,12 +107,15 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	if err != nil {
 		panic(err)
 	}
-	if types.IsPara() {
-		exec.grpccli, err = grpcclient.NewMainChainClient("")
+	types.AssertConfig(exec.client)
+	cfg := exec.client.GetConfig()
+	if cfg.IsPara() {
+		exec.grpccli, err = grpcclient.NewMainChainClient(cfg, "")
 		if err != nil {
 			panic(err)
 		}
 	}
+
 	//recv 消息的处理
 	go func() {
 		for msg := range exec.client.Recv() {
@@ -144,7 +150,7 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 		return
 	}
 	data := msg.GetData().(*types.ChainExecutor)
-	driver, err := drivers.LoadDriver(data.Driver, header.GetHeight())
+	driver, err := drivers.LoadDriverWithClient(exec.qclient, data.Driver, header.GetHeight())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
@@ -271,7 +277,9 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 			continue
 		}
 		//所有tx.GroupCount > 0 的交易都是错误的交易
-		if !types.IsFork(datas.Height, "ForkTxGroup") {
+		types.AssertConfig(exec.client)
+		cfg := exec.client.GetConfig()
+		if !cfg.IsFork(datas.Height, "ForkTxGroup") {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupNotSupport))
 			continue
 		}

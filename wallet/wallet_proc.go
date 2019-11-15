@@ -59,7 +59,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		if err != nil || len(keyByte) == 0 {
 			return "", err
 		}
-		cr, err := crypto.New(types.GetSignName("", SignType))
+		cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 		if err != nil {
 			return "", err
 		}
@@ -103,8 +103,10 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	tx.SetExpire(time.Duration(expire))
-	if policy, ok := wcom.PolicyContainer[string(types.GetParaExec(tx.Execer))]; ok {
+	types.AssertConfig(wallet.client)
+	cfg := wallet.client.GetConfig()
+	tx.SetExpire(cfg, time.Duration(expire))
+	if policy, ok := wcom.PolicyContainer[string(cfg.GetParaExec(tx.Execer))]; ok {
 		// 尝试让策略自己去完成签名
 		needSysSign, signtx, err := policy.SignTransaction(key, unsigned)
 		if !needSysSign {
@@ -117,7 +119,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", err
 	}
 	if group == nil {
-		tx.Sign(int32(SignType), key)
+		tx.Sign(int32(wallet.SignType), key)
 		txHex := types.Encode(&tx)
 		signedTx := hex.EncodeToString(txHex)
 		return signedTx, nil
@@ -126,8 +128,11 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", types.ErrIndex
 	}
 	if index <= 0 {
+		//设置过期需要重构
+		group.SetExpire(cfg, 0, time.Duration(expire))
+		group.RebuiltGroup()
 		for i := range group.Txs {
-			err := group.SignN(i, int32(SignType), key)
+			err := group.SignN(i, int32(wallet.SignType), key)
 			if err != nil {
 				return "", err
 			}
@@ -138,7 +143,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return signedTx, nil
 	}
 	index--
-	err = group.SignN(int(index), int32(SignType), key)
+	err = group.SignN(int(index), int32(wallet.SignType), key)
 	if err != nil {
 		return "", err
 	}
@@ -177,7 +182,7 @@ func (wallet *Wallet) ProcGetAccountList(req *types.ReqAccountList) (*types.Wall
 		}
 	}
 	//获取所有地址对应的账户详细信息从account模块
-	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcGetAccountList", "LoadAccounts:err", err)
 		return nil, err
@@ -259,18 +264,10 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	var Account types.Account
 	var walletAccount types.WalletAccount
 	var WalletAccStore types.WalletAccountStore
-	var cointype uint32
 	var addr string
 	var privkeybyte []byte
 
-	if SignType == 1 {
-		cointype = bipwallet.TypeBty
-	} else if SignType == 2 {
-		cointype = bipwallet.TypeYcc
-	} else {
-		cointype = bipwallet.TypeBty
-	}
-
+	cointype := wallet.getCoinsType()
 	//通过seed获取私钥, 首先通过钱包密码解锁seed然后通过seed生成私钥
 	seed, err := wallet.getSeed(wallet.Password)
 	if err != nil {
@@ -279,7 +276,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	}
 
 	for {
-		privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed, 0)
+		privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed, 0, wallet.SignType)
 		if err != nil {
 			walletlog.Error("ProcCreateNewAccount", "GetPrivkeyBySeed err", err)
 			return nil, err
@@ -331,7 +328,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	//获取地址对应的账户信息从account模块
 	addrs := make([]string, 1)
 	addrs[0] = addr
-	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil {
 		walletlog.Error("ProcCreateNewAccount", "LoadAccounts err", err)
 		return nil, err
@@ -423,14 +420,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 		return nil, types.ErrLabelHasUsed
 	}
 
-	var cointype uint32
-	if SignType == 1 {
-		cointype = bipwallet.TypeBty
-	} else if SignType == 2 {
-		cointype = bipwallet.TypeYcc
-	} else {
-		cointype = bipwallet.TypeBty
-	}
+	cointype := wallet.getCoinsType()
 
 	privkeybyte, err := common.FromHex(PrivKey.Privkey)
 	if err != nil || len(privkeybyte) == 0 {
@@ -479,7 +469,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 	//获取地址对应的账户信息从account模块
 	addrs := make([]string, 1)
 	addrs[0] = addr
-	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "LoadAccounts err", err)
 		return nil, err
@@ -531,7 +521,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	addrs[0] = SendToAddress.GetFrom()
 	var accounts []*types.Account
 	var tokenAccounts []*types.Account
-	accounts, err = accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err = wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcSendToAddress", "LoadAccounts err", err)
 		return nil, err
@@ -551,14 +541,14 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		if Balance < wallet.FeeAmount {
 			return nil, types.ErrInsufficientBalance
 		}
-		if nil == accTokenMap[SendToAddress.TokenSymbol] {
-			tokenAccDB, err := account.NewAccountDB("token", SendToAddress.TokenSymbol, nil)
+		if nil == wallet.accTokenMap[SendToAddress.TokenSymbol] {
+			tokenAccDB, err := account.NewAccountDB(wallet.api.GetConfig(), "token", SendToAddress.TokenSymbol, nil)
 			if err != nil {
 				return nil, err
 			}
-			accTokenMap[SendToAddress.TokenSymbol] = tokenAccDB
+			wallet.accTokenMap[SendToAddress.TokenSymbol] = tokenAccDB
 		}
-		tokenAccDB := accTokenMap[SendToAddress.TokenSymbol]
+		tokenAccDB := wallet.accTokenMap[SendToAddress.TokenSymbol]
 		tokenAccounts, err = tokenAccDB.LoadAccounts(wallet.api, addrs)
 		if err != nil || len(tokenAccounts) == 0 {
 			walletlog.Error("ProcSendToAddress", "Load Token Accounts err", err)
@@ -583,8 +573,8 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 //	Amount int64
 //设置钱包默认的手续费
 func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
-	if WalletSetFee.Amount < minFee {
-		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", minFee)
+	if WalletSetFee.Amount < wallet.minFee {
+		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", wallet.minFee)
 		return types.ErrInvalidParam
 	}
 	err := wallet.walletStore.SetFeeAmount(WalletSetFee.Amount)
@@ -634,7 +624,7 @@ func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*ty
 			//获取地址对应的账户详细信息从account模块
 			addrs := make([]string, 1)
 			addrs[0] = SetLabel.Addr
-			accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+			accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 			if err != nil || len(accounts) == 0 {
 				walletlog.Error("ProcWalletSetLabel", "LoadAccounts err", err)
 				return nil, err
@@ -684,7 +674,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		}
 	}
 	//获取所有地址对应的账户信息从account模块
-	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+	accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil || len(accounts) == 0 {
 		walletlog.Error("ProcMergeBalance", "LoadAccounts err", err)
 		return nil, err
@@ -695,7 +685,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		walletlog.Error("ProcMergeBalance", "AccStores", len(WalletAccStores), "accounts", len(accounts))
 	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 	if err != nil {
 		walletlog.Error("ProcMergeBalance", "err", err)
 		return nil, err
@@ -706,6 +696,8 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 
 	var ReplyHashes types.ReplyHashes
 
+	types.AssertConfig(wallet.client)
+	cfg := wallet.client.GetConfig()
 	for index, Account := range accounts {
 		Privkey := WalletAccStores[index].Privkey
 		//解密存储的私钥
@@ -734,20 +726,20 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		v := &cty.CoinsAction_Transfer{
 			Transfer: &types.AssetsTransfer{Amount: amount, Note: []byte(note)},
 		}
-		if types.IsPara() {
+		if cfg.IsPara() {
 			v.Transfer.To = MergeBalance.GetTo()
 		}
 		transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 		//初始化随机数
 		exec := []byte("coins")
 		toAddr := addrto
-		if types.IsPara() {
-			exec = []byte(types.GetTitle() + "coins")
+		if cfg.IsPara() {
+			exec = []byte(cfg.GetTitle() + "coins")
 			toAddr = address.ExecAddress(string(exec))
 		}
 		tx := &types.Transaction{Execer: exec, Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: toAddr, Nonce: wallet.random.Int63()}
-		tx.SetExpire(time.Second * 120)
-		tx.Sign(int32(SignType), priv)
+		tx.SetExpire(cfg, time.Second*120)
+		tx.Sign(int32(wallet.SignType), priv)
 		//walletlog.Info("ProcMergeBalance", "tx.Nonce", tx.Nonce, "tx", tx, "index", index)
 
 		//发送交易信息给mempool模块
@@ -896,6 +888,9 @@ func (wallet *Wallet) ProcWalletLock() error {
 //	Timeout int64
 //解锁钱包Timeout时间，超时后继续锁住
 func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	//判断钱包是否已保存seed
 	has, err := wallet.walletStore.HasSeed()
 	if !has || err != nil {
@@ -949,11 +944,13 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		return
 	}
 	//walletlog.Error("ProcWalletAddBlock", "height", block.GetBlock().GetHeight())
+	types.AssertConfig(wallet.client)
+	cfg := wallet.client.GetConfig()
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
 	for index := 0; index < txlen; index++ {
 		tx := block.Block.Txs[index]
-		execer := string(types.GetParaExec(tx.Execer))
+		execer := string(cfg.GetParaExec(tx.Execer))
 		// 执行钱包业务逻辑策略
 		if policy, ok := wcom.PolicyContainer[execer]; ok {
 			wtxdetail := policy.OnAddBlockTx(block, tx, int32(index), newbatch)
@@ -1071,7 +1068,8 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		return
 	}
 	//walletlog.Error("ProcWalletDelBlock", "height", block.GetBlock().GetHeight())
-
+	types.AssertConfig(wallet.client)
+	cfg := wallet.client.GetConfig()
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
 	for index := txlen - 1; index >= 0; index-- {
@@ -1079,7 +1077,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		heightstr := fmt.Sprintf("%018d", blockheight)
 		tx := block.Block.Txs[index]
 
-		execer := string(types.GetParaExec(tx.Execer))
+		execer := string(cfg.GetParaExec(tx.Execer))
 		// 执行钱包业务逻辑策略
 		if policy, ok := wcom.PolicyContainer[execer]; ok {
 			wtxdetail := policy.OnDeleteBlockTx(block, tx, int32(index), newbatch)
@@ -1206,6 +1204,8 @@ func (wallet *Wallet) SaveSeed(password string, seed string) (bool, error) {
 
 //保存seed种子到数据库中, 并通过钱包密码加密, 钱包起来首先要设置seed
 func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
 
 	//首先需要判断钱包是否已经设置seed，如果已经设置提示不需要再设置，一个钱包只能保存一个seed
 	exit, err := wallet.walletStore.HasSeed()
@@ -1355,19 +1355,12 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 		return common.ToHex(priv.Bytes()), nil
 	}
 
-	var cointype uint32
 	var addr string
 	var privkeybyte []byte
 	var HexPubkey string
 	var isUsed bool
 
-	if SignType == 1 {
-		cointype = bipwallet.TypeBty
-	} else if SignType == 2 {
-		cointype = bipwallet.TypeYcc
-	} else {
-		cointype = bipwallet.TypeBty
-	}
+	cointype := wallet.getCoinsType()
 
 	//通过seed获取私钥, 首先通过钱包密码解锁seed然后通过seed生成私钥
 	seed, err := wallet.getSeed(wallet.Password)
@@ -1377,7 +1370,7 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 	}
 
 	// 通过指定index生成公私钥对，并存入数据库中，如果账户已经存在就直接返回账户信息即可
-	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed, index)
+	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed, index, wallet.SignType)
 	if err != nil {
 		walletlog.Error("createNewAccountByIndex", "GetPrivkeyBySeed err", err)
 		return "", err
@@ -1452,7 +1445,7 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 		//获取地址对应的账户信息从account模块
 		addrs := make([]string, 1)
 		addrs[0] = addr
-		accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
+		accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
 		if err != nil {
 			walletlog.Error("createNewAccountByIndex", "LoadAccounts err", err)
 			return "", err
@@ -1487,4 +1480,13 @@ func isValidIndex(index uint32) bool {
 		return true
 	}
 	return false
+}
+
+func (wallet *Wallet) getCoinsType() uint32 {
+	if wallet.SignType == 1 {
+		return bipwallet.TypeBty
+	} else if wallet.SignType == 2 {
+		return bipwallet.TypeYcc
+	}
+	return bipwallet.TypeBty
 }

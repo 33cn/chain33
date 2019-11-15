@@ -10,6 +10,9 @@ import (
 
 	"fmt"
 
+	"strings"
+	"sync"
+
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
@@ -17,14 +20,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	types.SetDappFork("local", "store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
-}
+var once sync.Once
 
 func TestRollbackblock(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	cfg.BlockChain.RollbackBlock = 0
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	once.Do(func() {
+		types.RegFork("store-kvmvccmavl", func(cfg *types.Chain33Config) {
+			cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
+		})
+	})
+	str := types.GetDefaultCfgstring()
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
+	cfg := types.NewChain33Config(new)
+	mfg := cfg.GetModuleConfig()
+	mfg.BlockChain.RollbackBlock = 0
+	mock33 := testnode.NewWithConfig(cfg, nil)
 	chain := mock33.GetBlockChain()
 	chain.Rollbackblock()
 	db := chain.GetDB()
@@ -39,8 +48,16 @@ func TestRollbackblock(t *testing.T) {
 }
 
 func TestNeedRollback(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	once.Do(func() {
+		types.RegFork("store-kvmvccmavl", func(cfg *types.Chain33Config) {
+			cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
+		})
+	})
+
+	str := types.GetDefaultCfgstring()
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
+	cfg := types.NewChain33Config(new)
+	mock33 := testnode.NewWithConfig(cfg, nil)
 	chain := mock33.GetBlockChain()
 
 	curHeight := int64(5)
@@ -76,9 +93,10 @@ func TestNeedRollback(t *testing.T) {
 }
 
 func TestRollback(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	cfg.BlockChain.RollbackBlock = 2
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	cfg := testnode.GetDefaultConfig()
+	mfg := cfg.GetModuleConfig()
+	mfg.BlockChain.RollbackBlock = 2
+	mock33 := testnode.NewWithConfig(cfg, nil)
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
@@ -93,10 +111,11 @@ func TestRollback(t *testing.T) {
 }
 
 func TestRollbackSave(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	cfg.BlockChain.RollbackBlock = 2
-	cfg.BlockChain.RollbackSave = true
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	cfg := testnode.GetDefaultConfig()
+	mfg := cfg.GetModuleConfig()
+	mfg.BlockChain.RollbackBlock = 2
+	mfg.BlockChain.RollbackSave = true
+	mock33 := testnode.NewWithConfig(cfg, nil)
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
@@ -126,10 +145,11 @@ func TestRollbackSave(t *testing.T) {
 }
 
 func TestRollbackPara(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	cfg.BlockChain.RollbackBlock = 2
-	cfg.BlockChain.IsParaChain = true
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	cfg := testnode.GetDefaultConfig()
+	mfg := cfg.GetModuleConfig()
+	mfg.BlockChain.RollbackBlock = 2
+	mfg.BlockChain.IsParaChain = true
+	mock33 := testnode.NewWithConfig(cfg, nil)
 	chain := mock33.GetBlockChain()
 	defer mock33.Close()
 
@@ -141,28 +161,29 @@ func TestRollbackPara(t *testing.T) {
 }
 
 func testMockSendTx(t *testing.T, mock33 *testnode.Chain33Mock) {
-	txs := util.GenCoinsTxs(mock33.GetGenesisKey(), 10)
+	cfg := mock33.GetClient().GetConfig()
+	txs := util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(1)
-	txs = util.GenCoinsTxs(mock33.GetGenesisKey(), 10)
+	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(2)
-	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 1)
+	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 1)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(3)
-	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 2)
+	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 2)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)

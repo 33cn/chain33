@@ -24,12 +24,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	types.Init("local", nil)
-}
-
-func addMainTx(priv crypto.PrivKey, api client.QueueProtocolAPI) (string, error) {
-	txs := util.GenCoinsTxs(priv, 1)
+func addMainTx(cfg *types.Chain33Config, priv crypto.PrivKey, api client.QueueProtocolAPI) (string, error) {
+	txs := util.GenCoinsTxs(cfg, priv, 1)
 	hash := common.ToHex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
@@ -44,7 +40,6 @@ func addMainTx(priv crypto.PrivKey, api client.QueueProtocolAPI) (string, error)
 //构造单笔para交易
 func addSingleParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI, exec string) (string, error) {
 	tx := util.CreateTxWithExecer(priv, exec)
-
 	hash := common.ToHex(tx.Hash())
 	reply, err := api.SendTx(tx)
 	if err != nil {
@@ -60,7 +55,7 @@ func addSingleParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI, exec stri
 func addGroupParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI, title string, haveMainTx bool) (string, *types.ReplyStrings, error) {
 	var tx0 *types.Transaction
 	if haveMainTx {
-		tx0 = util.CreateTxWithExecer(priv, "coins")
+		tx0 = util.CreateTxWithExecer(cfg, priv, "coins")
 	} else {
 		tx0 = util.CreateTxWithExecer(priv, title+"coins")
 	}
@@ -75,7 +70,7 @@ func addGroupParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI, title stri
 	txs.Txs = append(txs.Txs, tx2)
 	txs.Txs = append(txs.Txs, tx3)
 	txs.Txs = append(txs.Txs, tx4)
-	feeRate := types.GInt("MinFee")
+	feeRate := cfg.GInt("MinFee")
 	group, err := types.CreateTxGroup(txs.Txs, feeRate)
 	if err != nil {
 		chainlog.Error("addGroupParaTx", "err", err.Error())
@@ -119,15 +114,16 @@ func TestGetParaTxByTitle(t *testing.T) {
 	if err != nil {
 		require.NoError(t, err)
 	}
-
+	cfg := mock33.GetClient().GetConfig()
 	for {
-		_, err = addMainTx(mock33.GetGenesisKey(), mock33.GetAPI())
+		_, err = addMainTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI())
 		require.NoError(t, err)
 
 		_, err = addSingleParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
 		require.NoError(t, err)
 
 		_, _, err = addGroupParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.", false)
+
 		require.NoError(t, err)
 
 		curheight = blockchain.GetBlockHeight()

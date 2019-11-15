@@ -85,7 +85,10 @@ func main() {
 	}
 
 	if *pruneTreeHeight > 0 {
-		mavl.PruningTree(db, *pruneTreeHeight)
+		treeCfg := &mavl.TreeConfig{
+			PruneHeight: mavl.DefaultPruneHeight,
+		}
+		mavl.PruningTree(db, *pruneTreeHeight, treeCfg)
 	}
 
 	if len(*querySameLeafCountKeyPri) > 0 {

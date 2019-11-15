@@ -32,14 +32,8 @@ func DisableLog() {
 // Store mavl store struct
 type Store struct {
 	*drivers.BaseStore
-	trees            *sync.Map
-	enableMavlPrefix bool
-	enableMVCC       bool
-	enableMavlPrune  bool
-	pruneHeight      int32
-	enableMemTree    bool
-	enableMemVal     bool
-	tkCloseCacheLen  int32
+	trees   *sync.Map
+	treeCfg *mavl.TreeConfig
 }
 
 func init() {
@@ -63,28 +57,27 @@ type subConfig struct {
 }
 
 // New new mavl store module
-func New(cfg *types.Store, sub []byte) queue.Module {
+func New(cfg *types.Store, sub []byte, chain33cfg *types.Chain33Config) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	var subcfg subConfig
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
-	mavls := &Store{bs, &sync.Map{}, subcfg.EnableMavlPrefix, subcfg.EnableMVCC,
-		subcfg.EnableMavlPrune, subcfg.PruneHeight, subcfg.EnableMemTree, subcfg.EnableMemVal, subcfg.TkCloseCacheLen}
-	mavls.enableMavlPrefix = subcfg.EnableMavlPrefix
-	mavls.enableMVCC = subcfg.EnableMVCC
-	mavls.enableMavlPrune = subcfg.EnableMavlPrune
-	mavls.pruneHeight = subcfg.PruneHeight
-	mavls.enableMemTree = subcfg.EnableMemTree
-	mavls.enableMemVal = subcfg.EnableMemVal
-	mavls.tkCloseCacheLen = subcfg.TkCloseCacheLen
-	mavl.EnableMavlPrefix(mavls.enableMavlPrefix)
-	mavl.EnableMVCC(mavls.enableMVCC)
-	mavl.EnablePrune(mavls.enableMavlPrune)
-	mavl.SetPruneHeight(int(mavls.pruneHeight))
-	mavl.EnableMemTree(mavls.enableMemTree)
-	mavl.EnableMemVal(mavls.enableMemVal)
-	mavl.TkCloseCacheLen(mavls.tkCloseCacheLen)
+	// 开启裁剪需要同时开启前缀树
+	if subcfg.EnableMavlPrune {
+		subcfg.EnableMavlPrefix = subcfg.EnableMavlPrune
+	}
+	treeCfg := &mavl.TreeConfig{
+		EnableMavlPrefix: subcfg.EnableMavlPrefix,
+		EnableMVCC:       subcfg.EnableMVCC,
+		EnableMavlPrune:  subcfg.EnableMavlPrune,
+		PruneHeight:      subcfg.PruneHeight,
+		EnableMemTree:    subcfg.EnableMemTree,
+		EnableMemVal:     subcfg.EnableMemVal,
+		TkCloseCacheLen:  subcfg.TkCloseCacheLen,
+	}
+	mavls := &Store{bs, &sync.Map{}, treeCfg}
+	mavl.InitGlobalMem(treeCfg)
 	bs.SetChild(mavls)
 	return mavls
 }
@@ -98,7 +91,7 @@ func (mavls *Store) Close() {
 
 // Set set k v to mavl store db; sync is true represent write sync
 func (mavls *Store) Set(datas *types.StoreSet, sync bool) ([]byte, error) {
-	return mavl.SetKVPair(mavls.GetDB(), datas, sync)
+	return mavl.SetKVPair(mavls.GetDB(), datas, sync, mavls.treeCfg)
 }
 
 // Get get values by keys
@@ -110,7 +103,7 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 	if data, ok := mavls.trees.Load(search); ok && data != nil {
 		tree = data.(*mavl.Tree)
 	} else {
-		tree = mavl.NewTree(mavls.GetDB(), true)
+		tree = mavl.NewTree(mavls.GetDB(), true, mavls.treeCfg)
 		//get接口也应该传入高度
 		//tree.SetBlockHeight(datas.Height)
 		err = tree.Load(datas.StateHash)
@@ -138,7 +131,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 		mavls.trees.Store(string(datas.StateHash), nil)
 		return datas.StateHash, nil
 	}
-	tree := mavl.NewTree(mavls.GetDB(), sync)
+	tree := mavl.NewTree(mavls.GetDB(), sync, mavls.treeCfg)
 	tree.SetBlockHeight(datas.Height)
 	err := tree.Load(datas.StateHash)
 	if err != nil {
@@ -188,7 +181,7 @@ func (mavls *Store) MemSetUpgrade(datas *types.StoreSet, sync bool) ([]byte, err
 		mavls.trees.Store(string(datas.StateHash), nil)
 		return datas.StateHash, nil
 	}
-	tree := mavl.NewTree(mavls.GetDB(), sync)
+	tree := mavl.NewTree(mavls.GetDB(), sync, mavls.treeCfg)
 	tree.SetBlockHeight(datas.Height)
 	err := tree.Load(datas.StateHash)
 	if err != nil {
@@ -223,7 +216,7 @@ func (mavls *Store) Rollback(req *types.ReqHash) ([]byte, error) {
 
 // IterateRangeByStateHash 迭代实现功能； statehash：当前状态hash, start：开始查找的key, end: 结束的key, ascending：升序，降序, fn 迭代回调函数
 func (mavls *Store) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
-	mavl.IterateRangeByStateHash(mavls.GetDB(), statehash, start, end, ascending, fn)
+	mavl.IterateRangeByStateHash(mavls.GetDB(), statehash, start, end, ascending, mavls.treeCfg, fn)
 }
 
 // ProcEvent not support message

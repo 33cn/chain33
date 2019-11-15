@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"math/big"
 	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -80,6 +81,46 @@ type BestPeerInfo struct {
 	Td          *big.Int
 	ReqFlag     bool
 	IsBestChain bool
+}
+
+//记录最新区块上链的时间，长时间没有更新需要做对应的超时处理
+//主要是处理联盟链区块高度相差一个区块
+//整个网络长时间不出块时需要主动去获取最新的区块
+type BlockOnChain struct {
+	sync.RWMutex
+	Height      int64
+	OnChainTime int64
+}
+
+//initOnChainTimeout 初始化
+func (chain *BlockChain) initOnChainTimeout() {
+	chain.blockOnChain.Lock()
+	defer chain.blockOnChain.Unlock()
+
+	chain.blockOnChain.Height = -1
+	chain.blockOnChain.OnChainTime = types.Now().Unix()
+}
+
+//onChainTimeout 最新区块长时间没有更新并超过设置的超时时间
+func (chain *BlockChain) OnChainTimeout(height int64) bool {
+	chain.blockOnChain.Lock()
+	defer chain.blockOnChain.Unlock()
+
+	if chain.onChainTimeout == 0 {
+		return false
+	}
+
+	curTime := types.Now().Unix()
+	if chain.blockOnChain.Height != height {
+		chain.blockOnChain.Height = height
+		chain.blockOnChain.OnChainTime = curTime
+		return false
+	}
+	if curTime-chain.blockOnChain.OnChainTime > chain.onChainTimeout {
+		synlog.Debug("OnChainTimeout", "curTime", curTime, "blockOnChain", chain.blockOnChain)
+		return true
+	}
+	return false
 }
 
 //SynRoutine 同步事务
@@ -581,7 +622,11 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		return
 	}
 	//获取peers的最新高度.处理没有收到广播block的情况
-	if curheight+1 < peerMaxBlkHeight {
+	//落后超过2个区块时主动同步区块，落后一个区块时需要判断是否超时
+	backWardThanTwo := curheight+1 < peerMaxBlkHeight
+	backWardOne := curheight+1 == peerMaxBlkHeight && chain.OnChainTimeout(curheight)
+
+	if backWardThanTwo || backWardOne {
 		synlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 		pids := chain.GetBestChainPids()
 		if pids != nil {
@@ -621,7 +666,6 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 	//一个检测周期发现本节点bestchain的tip高度没有变化。
 	//远远落后于高度的peer节点并且最高peer节点不是最优链，本节点可能在侧链上，
 	//需要从最新的peer上向后取BackBlockNum个headers
-
 	maxpeer := chain.GetMaxPeerInfo()
 	if maxpeer == nil {
 		synlog.Error("CheckHeightNoIncrease GetMaxPeerInfo is nil")

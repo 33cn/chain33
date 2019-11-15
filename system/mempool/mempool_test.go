@@ -144,21 +144,22 @@ func getprivkey(key string) crypto.PrivKey {
 }
 
 func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
+	cfg := types.NewChain33Config(types.ReadFile("../../cmd/chain33/chain33.test.toml"))
+	mcfg := cfg.GetModuleConfig()
 	var q = queue.New("channel")
-	cfg, sub := types.InitCfg("../../cmd/chain33/chain33.test.toml")
-	types.Init(cfg.Title, cfg)
-	cfg.Consensus.Minerstart = false
-	chain := blockchain.New(cfg.BlockChain)
+	q.SetConfig(cfg)
+	mcfg.Consensus.Minerstart = false
+	chain := blockchain.New(cfg)
 	chain.SetQueueClient(q.Client())
 
-	exec := executor.New(cfg.Exec, sub.Exec)
+	exec := executor.New(cfg)
 	exec.SetQueueClient(q.Client())
 
-	types.SetMinFee(0)
-	s := store.New(cfg.Store, sub.Store)
+	cfg.SetMinFee(0)
+	s := store.New(cfg)
 	s.SetQueueClient(q.Client())
-	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
-	mem := NewMempool(cfg.Mempool)
+	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFee}
+	mem := NewMempool(mcfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
 	mem.Wait()
@@ -169,18 +170,19 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	if size == 0 {
 		size = 100
 	}
+	cfg := types.NewChain33Config(types.ReadFile("../../cmd/chain33/chain33.test.toml"))
+	mcfg := cfg.GetModuleConfig()
 	var q = queue.New("channel")
-	cfg, _ := types.InitCfg("../../cmd/chain33/chain33.test.toml")
-	types.Init(cfg.Title, cfg)
+	q.SetConfig(cfg)
 	blockchainProcess(q)
 	execProcess(q)
-	cfg.Mempool.PoolCacheSize = int64(size)
-	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
-	mem := NewMempool(cfg.Mempool)
+	mcfg.Mempool.PoolCacheSize = int64(size)
+	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFee}
+	mem := NewMempool(mcfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-	mem.SetMinFee(types.GInt("MinFee"))
+	mem.SetMinFee(cfg.GInt("MinFee"))
 	mem.Wait()
 	return q, mem
 }
@@ -189,19 +191,19 @@ func initEnv4(size int) (queue.Queue, *Mempool) {
 	if size == 0 {
 		size = 100
 	}
+	cfg := types.NewChain33Config(types.ReadFile("testdata/chain33.test.toml"))
+	mcfg := cfg.GetModuleConfig()
 	var q = queue.New("channel")
-	cfg, _ := types.InitCfg("testdata/chain33.test.toml")
-
-	types.Init(cfg.Title, cfg)
+	q.SetConfig(cfg)
 	blockchainProcess(q)
 	execProcess(q)
-	cfg.Mempool.PoolCacheSize = int64(size)
-	subConfig := SubConfig{cfg.Mempool.PoolCacheSize, cfg.Mempool.MinTxFee}
-	mem := NewMempool(cfg.Mempool)
+	mcfg.Mempool.PoolCacheSize = int64(size)
+	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFee}
+	mem := NewMempool(mcfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-	mem.SetMinFee(types.GInt("MinFee"))
+	mem.SetMinFee(cfg.GInt("MinFee"))
 	mem.Wait()
 	return q, mem
 }
@@ -622,6 +624,7 @@ func testProperFee(t *testing.T, client queue.Client, req *types.ReqProperFee, e
 
 func TestGetProperFee(t *testing.T) {
 	q, mem := initEnv(0)
+	cfg := q.GetConfig()
 	defer q.Close()
 	defer mem.Close()
 	defer func() {
@@ -634,7 +637,7 @@ func TestGetProperFee(t *testing.T) {
 		t.Error("add tx error", err.Error())
 		return
 	}
-	maxTxNum := types.GetP(mem.Height()).MaxTxNumber
+	maxTxNum := cfg.GetP(mem.Height()).MaxTxNumber
 	maxSize := types.MaxBlockSize
 	msg11 := mem.client.NewMessage("mempool", types.EventTx, tx11)
 	mem.client.Send(msg11, true)
@@ -842,6 +845,7 @@ func TestDelBlock(t *testing.T) {
 
 func TestAddTxGroup(t *testing.T) {
 	q, mem := initEnv(0)
+	cfg := q.GetConfig()
 	defer q.Close()
 	defer mem.Close()
 	toAddr := "1PjMi9yGTjA9bbqUZa1Sj7dAUKyLA8KqE1"
@@ -852,7 +856,7 @@ func TestAddTxGroup(t *testing.T) {
 	crouptx3 := types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
 	crouptx4 := types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
 
-	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&crouptx1, &crouptx2, &crouptx3, &crouptx4}, types.GInt("MinFee"))
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&crouptx1, &crouptx2, &crouptx3, &crouptx4}, cfg.GInt("MinFee"))
 
 	for i := range txGroup.Txs {
 		err := txGroup.SignN(i, types.SECP256K1, mainPriv)
@@ -876,6 +880,7 @@ func TestAddTxGroup(t *testing.T) {
 
 func TestLevelFeeBigByte(t *testing.T) {
 	q, mem := initEnv(0)
+	cfg := q.GetConfig()
 	defer q.Close()
 	defer mem.Close()
 	defer func() {
@@ -935,7 +940,7 @@ func TestLevelFeeBigByte(t *testing.T) {
 	}
 
 	//test group high fee , feeRate = 10 * minfee
-	txGroup, err := types.CreateTxGroup([]*types.Transaction{bigTx4, bigTx5, bigTx6, bigTx7, bigTx8, bigTx9, bigTx10, bigTx11}, types.GInt("MinFee"))
+	txGroup, err := types.CreateTxGroup([]*types.Transaction{bigTx4, bigTx5, bigTx6, bigTx7, bigTx8, bigTx9, bigTx10, bigTx11}, cfg.GInt("MinFee"))
 	if err != nil {
 		t.Error("CreateTxGroup err ", err.Error())
 	}
@@ -1065,7 +1070,7 @@ func TestSimpleQueue_TotalByte(t *testing.T) {
 		sumByte += int64(proto.Size(it.Value))
 		return true
 	})
-	assert.Equal(t, sumByte, mem.cache.TotalByte())
+	assert.Equal(t, sumByte, mem.GetTotalCacheBytes())
 	assert.Equal(t, sumByte, int64(19))
 
 	mem.cache.Remove(string(txb.Hash()))
@@ -1075,7 +1080,7 @@ func TestSimpleQueue_TotalByte(t *testing.T) {
 		sumByte2 += int64(proto.Size(it.Value))
 		return true
 	})
-	assert.Equal(t, sumByte2, mem.cache.TotalByte())
+	assert.Equal(t, sumByte2, mem.GetTotalCacheBytes())
 	assert.Equal(t, sumByte2, int64(9))
 }
 

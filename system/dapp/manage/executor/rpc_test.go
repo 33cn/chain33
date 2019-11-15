@@ -11,8 +11,8 @@ import (
 )
 
 func TestManageConfig(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	mocker := testnode.NewWithConfig(cfg, sub, nil)
+	cfg := testnode.GetDefaultConfig()
+	mocker := testnode.NewWithConfig(cfg, nil)
 	defer mocker.Close()
 	mocker.Listen()
 	err := mocker.SendHot()
@@ -151,8 +151,8 @@ func TestManageConfig(t *testing.T) {
 }
 
 func TestTokenFinisher(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	mocker := testnode.NewWithConfig(cfg, sub, nil)
+	cfg := testnode.GetDefaultConfig()
+	mocker := testnode.NewWithConfig(cfg, nil)
 	defer mocker.Close()
 	mocker.Listen()
 	err := mocker.SendHot()
@@ -189,6 +189,7 @@ func TestTokenFinisher(t *testing.T) {
 	assert.Nil(t, err)
 	txinfo, err := mocker.WaitTx(hash)
 	assert.Nil(t, err)
+
 	assert.Equal(t, txinfo.Receipt.Ty, int32(2))
 
 	queryreq := &types.ReqString{

@@ -5,8 +5,6 @@
 package types
 
 import (
-	"os"
-
 	"github.com/33cn/chain33/cmd/tools/gencode/base"
 	"github.com/33cn/chain33/cmd/tools/types"
 )
@@ -22,7 +20,7 @@ type typesCode struct {
 
 func (c typesCode) GetDirName() string {
 
-	return "types" + string(os.PathSeparator) + "${EXECNAME}"
+	return "types"
 }
 
 func (c typesCode) GetFiles() map[string]string {
@@ -38,14 +36,14 @@ func (c typesCode) GetDirReplaceTags() []string {
 
 func (c typesCode) GetFileReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagClassName,
+	return []string{types.TagExecName, types.TagExecObject, types.TagClassName,
 		types.TagActionIDText, types.TagTyLogActionType,
 		types.TagLogMapText, types.TagTypeMapText}
 }
 
 var (
 	typesName    = "${EXECNAME}.go"
-	typesContent = `package ${EXECNAME}
+	typesContent = `package types
 
 import (
 "encoding/json"
@@ -76,44 +74,48 @@ var (
 	tlog = log.New("module", "${EXECNAME}.types")
 )
 
+// init defines a register function
 func init() {
     types.AllowUserExec = append(types.AllowUserExec, []byte(${CLASSNAME}X))
-    types.RegistorExecutor(${CLASSNAME}X, newType())
 	//注册合约启用高度
-	types.RegisterDappFork(${CLASSNAME}X, "Enable", 0)
+	types.RegFork(${CLASSNAME}X, InitFork)
+	types.RegExec(${CLASSNAME}X, InitExecutor)
+}
+
+// InitFork defines register fork
+func InitFork(cfg *types.Chain33Config) {
+	cfg.RegisterDappFork(${CLASSNAME}X, "Enable", 0)
+}
+
+// InitExecutor defines register executor
+func InitExecutor(cfg *types.Chain33Config) {
+	types.RegistorExecutor(${CLASSNAME}X, NewType(cfg))
 }
 
 type ${EXECNAME}Type struct {
     types.ExecTypeBase
 }
 
-func newType() *${EXECNAME}Type {
+func NewType(cfg *types.Chain33Config) *${EXECNAME}Type {
     c := &${EXECNAME}Type{}
     c.SetChild(c)
+    c.SetConfig(cfg)
     return c
 }
 
 // GetPayload 获取合约action结构
-func (t *${EXECNAME}Type) GetPayload() types.Message {
+func (${EXEC_OBJECT} *${EXECNAME}Type) GetPayload() types.Message {
     return &${CLASSNAME}Action{}
 }
 
 // GeTypeMap 获取合约action的id和name信息
-func (t *${EXECNAME}Type) GetTypeMap() map[string]int32 {
+func (${EXEC_OBJECT} *${EXECNAME}Type) GetTypeMap() map[string]int32 {
     return actionMap
 }
 
 // GetLogMap 获取合约log相关信息
-func (t *${EXECNAME}Type) GetLogMap() map[int64]*types.LogInfo {
+func (${EXEC_OBJECT} *${EXECNAME}Type) GetLogMap() map[int64]*types.LogInfo {
     return logMap
-}
-
-// CreateTx 重载基类接口，实现本合约交易创建，供框架调用
-func (t *${EXECNAME}Type) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
-	var tx *types.Transaction
-	//if action == someAction
-		//return new tx
-	return tx, types.ErrNotSupport
 }
 
 `

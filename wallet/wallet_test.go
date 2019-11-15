@@ -7,6 +7,7 @@ package wallet
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -29,16 +30,16 @@ func init() {
 	SetLogLevel("err")
 }
 
-func initEnv() (*Wallet, queue.Module, queue.Queue) {
+func initEnv() (*Wallet, queue.Module, queue.Queue, string) {
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	var q = queue.New("channel")
-	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
-
-	wallet := New(cfg.Wallet, sub.Wallet)
+	q.SetConfig(cfg)
+	wallet := New(cfg)
 	wallet.SetQueueClient(q.Client())
-	store := store.New(cfg.Store, sub.Store)
+	store := store.New(cfg)
 	store.SetQueueClient(q.Client())
 
-	return wallet, store, q
+	return wallet, store, q, cfg.GetModuleConfig().Wallet.DbPath
 }
 
 var (
@@ -139,11 +140,11 @@ func mempoolModProc(q queue.Queue) {
 	}()
 }
 
-func SaveAccountTomavl(client queue.Client, prevStateRoot []byte, accs []*types.Account) []byte {
+func SaveAccountTomavl(wallet *Wallet, client queue.Client, prevStateRoot []byte, accs []*types.Account) []byte {
 	var kvset []*types.KeyValue
 
 	for _, acc := range accs {
-		kvs := accountdb.GetKVSet(acc)
+		kvs := wallet.accountdb.GetKVSet(acc)
 		kvset = append(kvset, kvs...)
 	}
 	hash, err := util.ExecKVMemSet(client, prevStateRoot, 0, kvset, true, false)
@@ -156,7 +157,8 @@ func SaveAccountTomavl(client queue.Client, prevStateRoot []byte, accs []*types.
 }
 
 func TestWallet(t *testing.T) {
-	wallet, store, q := initEnv()
+	wallet, store, q, datapath := initEnv()
+	defer os.RemoveAll("datadir") // clean up
 	defer wallet.Close()
 	defer store.Close()
 
@@ -193,6 +195,7 @@ func TestWallet(t *testing.T) {
 	testSendTx(t, wallet)
 	testCreateNewAccountByIndex(t, wallet)
 
+	t.Log(datapath)
 }
 
 //ProcWalletLock
@@ -299,7 +302,7 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	}
 
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 	require.NoError(t, err)
 
 	Privkey := "0xb94ae286a508e4bb3fbbcb61997822fea6f0a534510597ef8eb60a19d6b219a0"
@@ -317,7 +320,7 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	accs[total] = &acc
 
 	//存入账户信息到mavl树中
-	SaveAccountTomavl(wallet.client, nil, accs)
+	SaveAccountTomavl(wallet, wallet.client, nil, accs)
 
 	//测试ProcGetAccountList函数
 	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
@@ -362,7 +365,7 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	println("TestProcImportPrivKey begin")
 
 	//生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 	require.NoError(t, err)
 
 	priv, err := cr.GenKey()
@@ -409,6 +412,22 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 		t.Error("testDumpPrivKey failed")
 	}
 
+	//入参测试
+	_, err = wallet.ProcImportPrivKey(nil)
+	assert.Equal(t, err, types.ErrInvalidParam)
+	privKey.Label = "hyb123"
+	privKey.Privkey = "0xb694ae286a508e4bb3fbbcb61997822fea6f0a534510597ef8eb60a19d6b219a0"
+
+	_, err = wallet.ProcImportPrivKey(privKey)
+	assert.Equal(t, err, types.ErrPrivkeyToPub)
+
+	_, err = wallet.ProcImportPrivKey(nil)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
+	privKey.Label = "hyb1234"
+	privKey.Privkey = "lfllfllflflfllf"
+	_, err = wallet.ProcImportPrivKey(privKey)
+	assert.Equal(t, err, types.ErrFromHex)
 	println("TestProcImportPrivKey end")
 	println("--------------------------")
 }
@@ -515,6 +534,14 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msg, true)
 	resp, err = wallet.client.Wait(msg)
 	assert.Equal(t, err, types.ErrMaxCountPerTime)
+
+	//入参测试
+	_, err = wallet.ProcWalletTxList(nil)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
+	txList.Direction = 2
+	_, err = wallet.ProcWalletTxList(txList)
+	assert.Equal(t, err, types.ErrInvalidParam)
 	println("TestProcWalletTxList end")
 	println("--------------------------")
 }
@@ -728,7 +755,7 @@ func testProcWalletLock(t *testing.T, wallet *Wallet) {
 // ProcWalletAddBlock
 func testProcWalletAddBlock(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletAddBlock & TestProcWalletDelBlock begin")
-	tx := &types.Transaction{Execer: []byte(types.NoneX)}
+	tx := &types.Transaction{Execer: []byte(types.NoneX), To: ToAddr1}
 	blk := &types.Block{
 		Version:    1,
 		ParentHash: []byte("parent hash"),
@@ -770,6 +797,33 @@ func testSignRawTx(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msg, true)
 	_, err = wallet.client.Wait(msg)
 	require.NoError(t, err)
+
+	//交易组的签名
+	group1 := "0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720c09a0c308dfddb82faf7dfc4113a2231444e615344524739524431397335396d65416f654e34613246365248393766536f40024aa5020aa3010a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6720c09a0c308dfddb82faf7dfc4113a2231444e615344524739524431397335396d65416f654e34613246365248393766536f40024a204d14e67e6123d8efee02bf0d707380e9b82e5bd8972d085974879a41190eba7c5220d41e1ba3a374424254f3f417de8175a34671238798a2c63b28a90ff0233679960a7d0a0a757365722e7772697465121d236d642368616b6468676f7177656a6872676f716a676f6a71776c6a6730b8b082d799a4ddc93a3a2231444e615344524739524431397335396d65416f654e34613246365248393766536f40024a204d14e67e6123d8efee02bf0d707380e9b82e5bd8972d085974879a41190eba7c5220d41e1ba3a374424254f3f417de8175a34671238798a2c63b28a90ff023367996"
+	unsigned.TxHex = group1
+	msg = wallet.client.NewMessage("wallet", types.EventSignRawTx, unsigned)
+	wallet.client.Send(msg, true)
+	_, err = wallet.client.Wait(msg)
+	require.NoError(t, err)
+
+	unsigned.TxHex = "0a05636f696e73120c18010a081080c2d72f1a01312080897a30c0e2a4a789d684ad443a0131"
+
+	//重新设置toaddr和fee
+	unsigned.NewToAddr = "1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6"
+	unsigned.Fee = 10000
+	msg = wallet.client.NewMessage("wallet", types.EventSignRawTx, unsigned)
+	wallet.client.Send(msg, true)
+	_, err = wallet.client.Wait(msg)
+	require.NoError(t, err)
+
+	//地址和私钥都为空
+	unsigned.Privkey = ""
+	unsigned.Addr = ""
+	msg = wallet.client.NewMessage("wallet", types.EventSignRawTx, unsigned)
+	wallet.client.Send(msg, true)
+	_, err = wallet.client.Wait(msg)
+	assert.Equal(t, err, types.ErrNoPrivKeyOrAddr)
+
 	println("TestSignRawTx end")
 	println("--------------------------")
 }
@@ -958,4 +1012,69 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 	}
 	println("TestProcCreateNewAccount end")
 	println("--------------------------")
+}
+
+func TestInitSeedLibrary(t *testing.T) {
+	wallet, store, q, _ := initEnv()
+	defer os.RemoveAll("datadir") // clean up
+	defer wallet.Close()
+	defer store.Close()
+
+	//启动blockchain模块
+	blockchainModProc(q)
+	mempoolModProc(q)
+
+	InitSeedLibrary()
+	you := ChineseSeedCache["有"]
+	assert.Equal(t, "有", you)
+	abandon := EnglishSeedCache["abandon"]
+	assert.Equal(t, "abandon", abandon)
+
+	_, err := wallet.IsTransfer("1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6")
+	assert.Equal(t, err, types.ErrWalletIsLocked)
+	//获取随机种子
+	replySeed, err := wallet.GenSeed(0)
+	require.NoError(t, err)
+	replySeed, err = wallet.GenSeed(1)
+	require.NoError(t, err)
+	password := "heyubin123"
+	wallet.SaveSeed(password, replySeed.Seed)
+	wallet.ProcWalletUnLock(&types.WalletUnLock{Passwd: password})
+
+	//16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp ticket合约地址
+	_, err = wallet.IsTransfer("16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
+	require.NoError(t, err)
+
+	_, err = GetPrivkeyBySeed(wallet.walletStore.GetDB(), replySeed.Seed, 0, 2)
+	require.NoError(t, err)
+
+	acc, err := wallet.GetBalance("1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6", "token")
+	require.NoError(t, err)
+	assert.Equal(t, acc.Addr, "1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6")
+	assert.Equal(t, int64(0), acc.Balance)
+
+	err = wallet.RegisterMineStatusReporter(nil)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
+	in := wallet.AddrInWallet("")
+	assert.Equal(t, in, false)
+	policy := wcom.PolicyContainer[walletBizPolicyX]
+	if policy != nil {
+		policy.OnAddBlockTx(nil, nil, 0, nil)
+		policy.OnDeleteBlockTx(nil, nil, 0, nil)
+		need, _, _ := policy.SignTransaction(nil, nil)
+		assert.Equal(t, true, need)
+		account := types.Account{
+			Addr:     "1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6",
+			Currency: 0,
+			Balance:  0,
+			Frozen:   0,
+		}
+		policy.OnCreateNewAccount(&account)
+		policy.OnImportPrivateKey(&account)
+		policy.OnAddBlockFinish(nil)
+		policy.OnDeleteBlockFinish(nil)
+		policy.OnClose()
+		policy.OnSetQueueClient()
+	}
 }

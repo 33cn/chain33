@@ -318,6 +318,22 @@ func (_m *QueueProtocolAPI) GetBlocks(param *types.ReqBlocks) (*types.BlockDetai
 	return r0, r1
 }
 
+// GetConfig provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetConfig() *types.Chain33Config {
+	ret := _m.Called()
+
+	var r0 *types.Chain33Config
+	if rf, ok := ret.Get(0).(func() *types.Chain33Config); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Chain33Config)
+		}
+	}
+
+	return r0
+}
+
 // GetFatalFailure provides a mock function with given fields:
 func (_m *QueueProtocolAPI) GetFatalFailure() (*types.Int32, error) {
 	ret := _m.Called()

@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"strings"
+
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
@@ -15,23 +17,27 @@ import (
 )
 
 func TestLoadDriverFork(t *testing.T) {
-	execInit(nil)
+	str := types.GetDefaultCfgstring()
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
+	exec, _ := initEnv(new)
+	cfg := exec.client.GetConfig()
+	execInit(cfg)
 
 	var txs []*types.Transaction
 	addr, _ := util.Genaddress()
 	genkey := util.TestPrivkeyList[0]
-	tx := util.CreateCoinsTx(genkey, addr, types.Coin)
+	tx := util.CreateCoinsTx(cfg, genkey, addr, types.Coin)
 	txs = append(txs, tx)
 
 	// local fork值 为0, 测试不出fork前的情况
-	types.SetTitleOnlyForTest("chain33")
-	t.Log("get fork value", types.GetFork("ForkCacheDriver"), types.GetTitle())
+	//types.SetTitleOnlyForTest("chain33")
+	t.Log("get fork value", cfg.GetFork("ForkCacheDriver"), cfg.GetTitle())
 	cases := []struct {
 		height    int64
 		cacheSize int
 	}{
-		{types.GetFork("ForkCacheDriver") - 1, 1},
-		{types.GetFork("ForkCacheDriver"), 0},
+		{cfg.GetFork("ForkCacheDriver") - 1, 1},
+		{cfg.GetFork("ForkCacheDriver"), 0},
 	}
 	for _, c := range cases {
 		ctx := &executorCtx{
@@ -42,7 +48,7 @@ func TestLoadDriverFork(t *testing.T) {
 			mainHash:   nil,
 			parentHash: nil,
 		}
-		execute := newExecutor(ctx, &Executor{}, nil, txs, nil)
+		execute := newExecutor(ctx, exec, nil, txs, nil)
 		_ = execute.loadDriver(tx, 0)
 		assert.Equal(t, c.cacheSize, len(execute.execCache))
 	}

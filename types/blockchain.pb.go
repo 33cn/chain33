@@ -50,7 +50,11 @@ func (m *Header) Reset()         { *m = Header{} }
 func (m *Header) String() string { return proto.CompactTextString(m) }
 func (*Header) ProtoMessage()    {}
 func (*Header) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{0}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{0}
+>>>>>>> master
 }
 
 func (m *Header) XXX_Unmarshal(b []byte) error {
@@ -164,7 +168,11 @@ func (m *Block) Reset()         { *m = Block{} }
 func (m *Block) String() string { return proto.CompactTextString(m) }
 func (*Block) ProtoMessage()    {}
 func (*Block) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{1}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{1}
+>>>>>>> master
 }
 
 func (m *Block) XXX_Unmarshal(b []byte) error {
@@ -273,7 +281,11 @@ func (m *Blocks) Reset()         { *m = Blocks{} }
 func (m *Blocks) String() string { return proto.CompactTextString(m) }
 func (*Blocks) ProtoMessage()    {}
 func (*Blocks) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{2}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{2}
+>>>>>>> master
 }
 
 func (m *Blocks) XXX_Unmarshal(b []byte) error {
@@ -305,6 +317,7 @@ type BlockSeqCB struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	URL                  string   `protobuf:"bytes,2,opt,name=URL,proto3" json:"URL,omitempty"`
 	Encode               string   `protobuf:"bytes,3,opt,name=encode,proto3" json:"encode,omitempty"`
+	IsHeader             bool     `protobuf:"varint,4,opt,name=isHeader,proto3" json:"isHeader,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -314,7 +327,11 @@ func (m *BlockSeqCB) Reset()         { *m = BlockSeqCB{} }
 func (m *BlockSeqCB) String() string { return proto.CompactTextString(m) }
 func (*BlockSeqCB) ProtoMessage()    {}
 func (*BlockSeqCB) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{3}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{3}
+>>>>>>> master
 }
 
 func (m *BlockSeqCB) XXX_Unmarshal(b []byte) error {
@@ -356,6 +373,13 @@ func (m *BlockSeqCB) GetEncode() string {
 	return ""
 }
 
+func (m *BlockSeqCB) GetIsHeader() bool {
+	if m != nil {
+		return m.IsHeader
+	}
+	return false
+}
+
 type BlockSeqCBs struct {
 	Items                []*BlockSeqCB `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
@@ -367,7 +391,11 @@ func (m *BlockSeqCBs) Reset()         { *m = BlockSeqCBs{} }
 func (m *BlockSeqCBs) String() string { return proto.CompactTextString(m) }
 func (*BlockSeqCBs) ProtoMessage()    {}
 func (*BlockSeqCBs) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{4}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{4}
+>>>>>>> master
 }
 
 func (m *BlockSeqCBs) XXX_Unmarshal(b []byte) error {
@@ -408,7 +436,11 @@ func (m *BlockSeq) Reset()         { *m = BlockSeq{} }
 func (m *BlockSeq) String() string { return proto.CompactTextString(m) }
 func (*BlockSeq) ProtoMessage()    {}
 func (*BlockSeq) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{5}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{5}
+>>>>>>> master
 }
 
 func (m *BlockSeq) XXX_Unmarshal(b []byte) error {
@@ -461,7 +493,11 @@ func (m *BlockSeqs) Reset()         { *m = BlockSeqs{} }
 func (m *BlockSeqs) String() string { return proto.CompactTextString(m) }
 func (*BlockSeqs) ProtoMessage()    {}
 func (*BlockSeqs) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{6}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{6}
+>>>>>>> master
 }
 
 func (m *BlockSeqs) XXX_Unmarshal(b []byte) error {
@@ -502,7 +538,11 @@ func (m *BlockPid) Reset()         { *m = BlockPid{} }
 func (m *BlockPid) String() string { return proto.CompactTextString(m) }
 func (*BlockPid) ProtoMessage()    {}
 func (*BlockPid) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{7}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{7}
+>>>>>>> master
 }
 
 func (m *BlockPid) XXX_Unmarshal(b []byte) error {
@@ -549,7 +589,11 @@ func (m *BlockDetails) Reset()         { *m = BlockDetails{} }
 func (m *BlockDetails) String() string { return proto.CompactTextString(m) }
 func (*BlockDetails) ProtoMessage()    {}
 func (*BlockDetails) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{8}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{8}
+>>>>>>> master
 }
 
 func (m *BlockDetails) XXX_Unmarshal(b []byte) error {
@@ -589,7 +633,11 @@ func (m *Headers) Reset()         { *m = Headers{} }
 func (m *Headers) String() string { return proto.CompactTextString(m) }
 func (*Headers) ProtoMessage()    {}
 func (*Headers) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{9}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{9}
+>>>>>>> master
 }
 
 func (m *Headers) XXX_Unmarshal(b []byte) error {
@@ -629,7 +677,11 @@ func (m *HeadersPid) Reset()         { *m = HeadersPid{} }
 func (m *HeadersPid) String() string { return proto.CompactTextString(m) }
 func (*HeadersPid) ProtoMessage()    {}
 func (*HeadersPid) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{10}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{10}
+>>>>>>> master
 }
 
 func (m *HeadersPid) XXX_Unmarshal(b []byte) error {
@@ -681,7 +733,11 @@ func (m *BlockOverview) Reset()         { *m = BlockOverview{} }
 func (m *BlockOverview) String() string { return proto.CompactTextString(m) }
 func (*BlockOverview) ProtoMessage()    {}
 func (*BlockOverview) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{11}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{11}
+>>>>>>> master
 }
 
 func (m *BlockOverview) XXX_Unmarshal(b []byte) error {
@@ -740,7 +796,11 @@ func (m *BlockDetail) Reset()         { *m = BlockDetail{} }
 func (m *BlockDetail) String() string { return proto.CompactTextString(m) }
 func (*BlockDetail) ProtoMessage()    {}
 func (*BlockDetail) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{12}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{12}
+>>>>>>> master
 }
 
 func (m *BlockDetail) XXX_Unmarshal(b []byte) error {
@@ -800,7 +860,11 @@ func (m *Receipts) Reset()         { *m = Receipts{} }
 func (m *Receipts) String() string { return proto.CompactTextString(m) }
 func (*Receipts) ProtoMessage()    {}
 func (*Receipts) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{13}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{13}
+>>>>>>> master
 }
 
 func (m *Receipts) XXX_Unmarshal(b []byte) error {
@@ -839,7 +903,11 @@ func (m *PrivacyKV) Reset()         { *m = PrivacyKV{} }
 func (m *PrivacyKV) String() string { return proto.CompactTextString(m) }
 func (*PrivacyKV) ProtoMessage()    {}
 func (*PrivacyKV) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{14}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{14}
+>>>>>>> master
 }
 
 func (m *PrivacyKV) XXX_Unmarshal(b []byte) error {
@@ -881,7 +949,11 @@ func (m *PrivacyKVToken) Reset()         { *m = PrivacyKVToken{} }
 func (m *PrivacyKVToken) String() string { return proto.CompactTextString(m) }
 func (*PrivacyKVToken) ProtoMessage()    {}
 func (*PrivacyKVToken) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{15}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{15}
+>>>>>>> master
 }
 
 func (m *PrivacyKVToken) XXX_Unmarshal(b []byte) error {
@@ -942,7 +1014,11 @@ func (m *ReceiptsAndPrivacyKV) Reset()         { *m = ReceiptsAndPrivacyKV{} }
 func (m *ReceiptsAndPrivacyKV) String() string { return proto.CompactTextString(m) }
 func (*ReceiptsAndPrivacyKV) ProtoMessage()    {}
 func (*ReceiptsAndPrivacyKV) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{16}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{16}
+>>>>>>> master
 }
 
 func (m *ReceiptsAndPrivacyKV) XXX_Unmarshal(b []byte) error {
@@ -988,7 +1064,11 @@ func (m *ReceiptCheckTxList) Reset()         { *m = ReceiptCheckTxList{} }
 func (m *ReceiptCheckTxList) String() string { return proto.CompactTextString(m) }
 func (*ReceiptCheckTxList) ProtoMessage()    {}
 func (*ReceiptCheckTxList) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{17}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{17}
+>>>>>>> master
 }
 
 func (m *ReceiptCheckTxList) XXX_Unmarshal(b []byte) error {
@@ -1033,7 +1113,11 @@ func (m *ChainStatus) Reset()         { *m = ChainStatus{} }
 func (m *ChainStatus) String() string { return proto.CompactTextString(m) }
 func (*ChainStatus) ProtoMessage()    {}
 func (*ChainStatus) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{18}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{18}
+>>>>>>> master
 }
 
 func (m *ChainStatus) XXX_Unmarshal(b []byte) error {
@@ -1094,7 +1178,11 @@ func (m *ReqBlocks) Reset()         { *m = ReqBlocks{} }
 func (m *ReqBlocks) String() string { return proto.CompactTextString(m) }
 func (*ReqBlocks) ProtoMessage()    {}
 func (*ReqBlocks) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{19}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{19}
+>>>>>>> master
 }
 
 func (m *ReqBlocks) XXX_Unmarshal(b []byte) error {
@@ -1154,7 +1242,11 @@ func (m *MempoolSize) Reset()         { *m = MempoolSize{} }
 func (m *MempoolSize) String() string { return proto.CompactTextString(m) }
 func (*MempoolSize) ProtoMessage()    {}
 func (*MempoolSize) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{20}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{20}
+>>>>>>> master
 }
 
 func (m *MempoolSize) XXX_Unmarshal(b []byte) error {
@@ -1193,7 +1285,11 @@ func (m *ReplyBlockHeight) Reset()         { *m = ReplyBlockHeight{} }
 func (m *ReplyBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*ReplyBlockHeight) ProtoMessage()    {}
 func (*ReplyBlockHeight) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{21}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{21}
+>>>>>>> master
 }
 
 func (m *ReplyBlockHeight) XXX_Unmarshal(b []byte) error {
@@ -1244,7 +1340,11 @@ func (m *BlockBody) Reset()         { *m = BlockBody{} }
 func (m *BlockBody) String() string { return proto.CompactTextString(m) }
 func (*BlockBody) ProtoMessage()    {}
 func (*BlockBody) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{22}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{22}
+>>>>>>> master
 }
 
 func (m *BlockBody) XXX_Unmarshal(b []byte) error {
@@ -1319,7 +1419,11 @@ func (m *IsCaughtUp) Reset()         { *m = IsCaughtUp{} }
 func (m *IsCaughtUp) String() string { return proto.CompactTextString(m) }
 func (*IsCaughtUp) ProtoMessage()    {}
 func (*IsCaughtUp) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{23}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{23}
+>>>>>>> master
 }
 
 func (m *IsCaughtUp) XXX_Unmarshal(b []byte) error {
@@ -1359,7 +1463,11 @@ func (m *IsNtpClockSync) Reset()         { *m = IsNtpClockSync{} }
 func (m *IsNtpClockSync) String() string { return proto.CompactTextString(m) }
 func (*IsNtpClockSync) ProtoMessage()    {}
 func (*IsNtpClockSync) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{24}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{24}
+>>>>>>> master
 }
 
 func (m *IsNtpClockSync) XXX_Unmarshal(b []byte) error {
@@ -1403,7 +1511,11 @@ func (m *ChainExecutor) Reset()         { *m = ChainExecutor{} }
 func (m *ChainExecutor) String() string { return proto.CompactTextString(m) }
 func (*ChainExecutor) ProtoMessage()    {}
 func (*ChainExecutor) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{25}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{25}
+>>>>>>> master
 }
 
 func (m *ChainExecutor) XXX_Unmarshal(b []byte) error {
@@ -1472,7 +1584,11 @@ func (m *BlockSequence) Reset()         { *m = BlockSequence{} }
 func (m *BlockSequence) String() string { return proto.CompactTextString(m) }
 func (*BlockSequence) ProtoMessage()    {}
 func (*BlockSequence) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{26}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{26}
+>>>>>>> master
 }
 
 func (m *BlockSequence) XXX_Unmarshal(b []byte) error {
@@ -1519,7 +1635,11 @@ func (m *BlockSequences) Reset()         { *m = BlockSequences{} }
 func (m *BlockSequences) String() string { return proto.CompactTextString(m) }
 func (*BlockSequences) ProtoMessage()    {}
 func (*BlockSequences) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{27}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{27}
+>>>>>>> master
 }
 
 func (m *BlockSequences) XXX_Unmarshal(b []byte) error {
@@ -1564,7 +1684,11 @@ func (m *ParaChainBlockDetail) Reset()         { *m = ParaChainBlockDetail{} }
 func (m *ParaChainBlockDetail) String() string { return proto.CompactTextString(m) }
 func (*ParaChainBlockDetail) ProtoMessage()    {}
 func (*ParaChainBlockDetail) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{28}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{28}
+>>>>>>> master
 }
 
 func (m *ParaChainBlockDetail) XXX_Unmarshal(b []byte) error {
@@ -1618,7 +1742,11 @@ func (m *ParaTxDetails) Reset()         { *m = ParaTxDetails{} }
 func (m *ParaTxDetails) String() string { return proto.CompactTextString(m) }
 func (*ParaTxDetails) ProtoMessage()    {}
 func (*ParaTxDetails) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{29}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{29}
+>>>>>>> master
 }
 
 func (m *ParaTxDetails) XXX_Unmarshal(b []byte) error {
@@ -1662,7 +1790,11 @@ func (m *ParaTxDetail) Reset()         { *m = ParaTxDetail{} }
 func (m *ParaTxDetail) String() string { return proto.CompactTextString(m) }
 func (*ParaTxDetail) ProtoMessage()    {}
 func (*ParaTxDetail) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{30}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{30}
+>>>>>>> master
 }
 
 func (m *ParaTxDetail) XXX_Unmarshal(b []byte) error {
@@ -1723,7 +1855,11 @@ func (m *TxDetail) Reset()         { *m = TxDetail{} }
 func (m *TxDetail) String() string { return proto.CompactTextString(m) }
 func (*TxDetail) ProtoMessage()    {}
 func (*TxDetail) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{31}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{31}
+>>>>>>> master
 }
 
 func (m *TxDetail) XXX_Unmarshal(b []byte) error {
@@ -1787,7 +1923,11 @@ func (m *ReqParaTxByTitle) Reset()         { *m = ReqParaTxByTitle{} }
 func (m *ReqParaTxByTitle) String() string { return proto.CompactTextString(m) }
 func (*ReqParaTxByTitle) ProtoMessage()    {}
 func (*ReqParaTxByTitle) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{32}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{32}
+>>>>>>> master
 }
 
 func (m *ReqParaTxByTitle) XXX_Unmarshal(b []byte) error {
@@ -1851,7 +1991,11 @@ func (m *FileHeader) Reset()         { *m = FileHeader{} }
 func (m *FileHeader) String() string { return proto.CompactTextString(m) }
 func (*FileHeader) ProtoMessage()    {}
 func (*FileHeader) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{33}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{33}
+>>>>>>> master
 }
 
 func (m *FileHeader) XXX_Unmarshal(b []byte) error {
@@ -1913,7 +2057,11 @@ func (m *EndBlock) Reset()         { *m = EndBlock{} }
 func (m *EndBlock) String() string { return proto.CompactTextString(m) }
 func (*EndBlock) ProtoMessage()    {}
 func (*EndBlock) Descriptor() ([]byte, []int) {
+<<<<<<< HEAD
 	return fileDescriptor_e9ac6287ce250c9a, []int{34}
+=======
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{34}
+>>>>>>> master
 }
 
 func (m *EndBlock) XXX_Unmarshal(b []byte) error {
@@ -1948,6 +2096,7 @@ func (m *EndBlock) GetHash() []byte {
 	return nil
 }
 
+<<<<<<< HEAD
 //记录本平行链所在区块的信息以及子根hash值
 //childHash:平行链子roothash值
 //startIndex:此平行链的第一笔交易的index索引值
@@ -2027,10 +2176,50 @@ func (m *HeightPara) GetStartIndex() int32 {
 func (m *HeightPara) GetChildHashIndex() uint32 {
 	if m != nil {
 		return m.ChildHashIndex
+=======
+// 通过seq获取区块的header信息
+type HeaderSeq struct {
+	Num                  int64          `protobuf:"varint,1,opt,name=num,proto3" json:"num,omitempty"`
+	Seq                  *BlockSequence `protobuf:"bytes,2,opt,name=seq,proto3" json:"seq,omitempty"`
+	Header               *Header        `protobuf:"bytes,3,opt,name=header,proto3" json:"header,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
+}
+
+func (m *HeaderSeq) Reset()         { *m = HeaderSeq{} }
+func (m *HeaderSeq) String() string { return proto.CompactTextString(m) }
+func (*HeaderSeq) ProtoMessage()    {}
+func (*HeaderSeq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{35}
+}
+func (m *HeaderSeq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HeaderSeq.Unmarshal(m, b)
+}
+func (m *HeaderSeq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HeaderSeq.Marshal(b, m, deterministic)
+}
+func (dst *HeaderSeq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HeaderSeq.Merge(dst, src)
+}
+func (m *HeaderSeq) XXX_Size() int {
+	return xxx_messageInfo_HeaderSeq.Size(m)
+}
+func (m *HeaderSeq) XXX_DiscardUnknown() {
+	xxx_messageInfo_HeaderSeq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HeaderSeq proto.InternalMessageInfo
+
+func (m *HeaderSeq) GetNum() int64 {
+	if m != nil {
+		return m.Num
+>>>>>>> master
 	}
 	return 0
 }
 
+<<<<<<< HEAD
 type HeightParas struct {
 	Items                []*HeightPara `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
@@ -2066,10 +2255,16 @@ var xxx_messageInfo_HeightParas proto.InternalMessageInfo
 func (m *HeightParas) GetItems() []*HeightPara {
 	if m != nil {
 		return m.Items
+=======
+func (m *HeaderSeq) GetSeq() *BlockSequence {
+	if m != nil {
+		return m.Seq
+>>>>>>> master
 	}
 	return nil
 }
 
+<<<<<<< HEAD
 //记录平行链第一笔交易的index,以及平行链的roothash
 type ChildChain struct {
 	Title                string   `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
@@ -2122,10 +2317,16 @@ func (m *ChildChain) GetStartIndex() int32 {
 func (m *ChildChain) GetChildHash() []byte {
 	if m != nil {
 		return m.ChildHash
+=======
+func (m *HeaderSeq) GetHeader() *Header {
+	if m != nil {
+		return m.Header
+>>>>>>> master
 	}
 	return nil
 }
 
+<<<<<<< HEAD
 //通过指定title以及height翻页获取拥有此title交易的区块高度列表
 type ReqHeightByTitle struct {
 	Height               int64    `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
@@ -2193,11 +2394,17 @@ func (m *ReqHeightByTitle) GetDirection() int32 {
 type ReplyHeightByTitle struct {
 	Title                string       `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	Items                []*BlockInfo `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+=======
+// 批量推送区块的header信息
+type HeaderSeqs struct {
+	Seqs                 []*HeaderSeq `protobuf:"bytes,1,rep,name=seqs,proto3" json:"seqs,omitempty"`
+>>>>>>> master
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
 }
 
+<<<<<<< HEAD
 func (m *ReplyHeightByTitle) Reset()         { *m = ReplyHeightByTitle{} }
 func (m *ReplyHeightByTitle) String() string { return proto.CompactTextString(m) }
 func (*ReplyHeightByTitle) ProtoMessage()    {}
@@ -2453,6 +2660,35 @@ func (m *ParaTxInfo) GetIndex() uint32 {
 func (m *ParaTxInfo) GetProofs() [][]byte {
 	if m != nil {
 		return m.Proofs
+=======
+func (m *HeaderSeqs) Reset()         { *m = HeaderSeqs{} }
+func (m *HeaderSeqs) String() string { return proto.CompactTextString(m) }
+func (*HeaderSeqs) ProtoMessage()    {}
+func (*HeaderSeqs) Descriptor() ([]byte, []int) {
+	return fileDescriptor_blockchain_b8ca955375a80343, []int{36}
+}
+func (m *HeaderSeqs) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HeaderSeqs.Unmarshal(m, b)
+}
+func (m *HeaderSeqs) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HeaderSeqs.Marshal(b, m, deterministic)
+}
+func (dst *HeaderSeqs) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HeaderSeqs.Merge(dst, src)
+}
+func (m *HeaderSeqs) XXX_Size() int {
+	return xxx_messageInfo_HeaderSeqs.Size(m)
+}
+func (m *HeaderSeqs) XXX_DiscardUnknown() {
+	xxx_messageInfo_HeaderSeqs.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HeaderSeqs proto.InternalMessageInfo
+
+func (m *HeaderSeqs) GetSeqs() []*HeaderSeq {
+	if m != nil {
+		return m.Seqs
+>>>>>>> master
 	}
 	return nil
 }
@@ -2493,6 +2729,7 @@ func init() {
 	proto.RegisterType((*ReqParaTxByTitle)(nil), "types.ReqParaTxByTitle")
 	proto.RegisterType((*FileHeader)(nil), "types.FileHeader")
 	proto.RegisterType((*EndBlock)(nil), "types.EndBlock")
+<<<<<<< HEAD
 	proto.RegisterType((*HeightPara)(nil), "types.HeightPara")
 	proto.RegisterType((*HeightParas)(nil), "types.HeightParas")
 	proto.RegisterType((*ChildChain)(nil), "types.ChildChain")
@@ -2607,4 +2844,102 @@ var fileDescriptor_e9ac6287ce250c9a = []byte{
 	0xf7, 0x24, 0x52, 0xe3, 0xfc, 0xc5, 0x30, 0x4c, 0xa6, 0x77, 0x37, 0x37, 0xc3, 0xf8, 0x2e, 0xfd,
 	0x71, 0xb3, 0xb9, 0x79, 0x97, 0x00, 0xbc, 0x68, 0xd0, 0x3f, 0x33, 0x9b, 0x7f, 0x06, 0x00, 0x00,
 	0xff, 0xff, 0x49, 0x6f, 0x7c, 0x9b, 0xd5, 0x11, 0x00, 0x00,
+=======
+	proto.RegisterType((*HeaderSeq)(nil), "types.HeaderSeq")
+	proto.RegisterType((*HeaderSeqs)(nil), "types.HeaderSeqs")
+}
+
+func init() { proto.RegisterFile("blockchain.proto", fileDescriptor_blockchain_b8ca955375a80343) }
+
+var fileDescriptor_blockchain_b8ca955375a80343 = []byte{
+	// 1396 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x57, 0xdd, 0x6e, 0x1b, 0x45,
+	0x14, 0xd6, 0xfa, 0x27, 0xb1, 0x8f, 0xed, 0x90, 0x0e, 0x06, 0x59, 0x11, 0x50, 0x77, 0x28, 0xc5,
+	0x94, 0xe2, 0xa2, 0x04, 0x95, 0x0a, 0x81, 0x04, 0x49, 0x8b, 0x1a, 0x52, 0x4a, 0x98, 0xb8, 0xb9,
+	0xe0, 0x6e, 0xbb, 0x9e, 0xc4, 0xab, 0xda, 0xbb, 0x9b, 0x9d, 0x59, 0x63, 0x73, 0xc5, 0x35, 0x12,
+	0x8f, 0xc0, 0x0b, 0x20, 0xde, 0x89, 0x57, 0x41, 0xe7, 0xcc, 0x8c, 0x77, 0xd7, 0x24, 0x81, 0x8a,
+	0x2b, 0xee, 0xe6, 0xfc, 0xcd, 0xf9, 0xe6, 0xcc, 0x9c, 0x9f, 0x81, 0xed, 0x17, 0xd3, 0x38, 0x78,
+	0x19, 0x4c, 0xfc, 0x30, 0x1a, 0x26, 0x69, 0xac, 0x63, 0x56, 0xd7, 0xcb, 0x44, 0xaa, 0x9d, 0x1b,
+	0x3a, 0xf5, 0x23, 0xe5, 0x07, 0x3a, 0x8c, 0xad, 0x64, 0xa7, 0x1d, 0xc4, 0xb3, 0x99, 0xa3, 0xf8,
+	0x1f, 0x15, 0xd8, 0x78, 0x22, 0xfd, 0xb1, 0x4c, 0x59, 0x0f, 0x36, 0xe7, 0x32, 0x55, 0x61, 0x1c,
+	0xf5, 0xbc, 0xbe, 0x37, 0xa8, 0x0a, 0x47, 0xb2, 0x77, 0x00, 0x12, 0x3f, 0x95, 0x91, 0x7e, 0xe2,
+	0xab, 0x49, 0xaf, 0xd2, 0xf7, 0x06, 0x6d, 0x51, 0xe0, 0xb0, 0x37, 0x61, 0x43, 0x2f, 0x48, 0x56,
+	0x25, 0x99, 0xa5, 0xd8, 0x5b, 0xd0, 0x54, 0xda, 0xd7, 0x92, 0x44, 0x35, 0x12, 0xe5, 0x0c, 0xb4,
+	0x9a, 0xc8, 0xf0, 0x7c, 0xa2, 0x7b, 0x75, 0x72, 0x67, 0x29, 0xb4, 0xa2, 0xe3, 0x8c, 0xc2, 0x99,
+	0xec, 0x6d, 0x90, 0x28, 0x67, 0x20, 0x4a, 0xbd, 0x38, 0x88, 0xb3, 0x48, 0xf7, 0x9a, 0x06, 0xa5,
+	0x25, 0x19, 0x83, 0xda, 0x04, 0x1d, 0x01, 0x39, 0xa2, 0x35, 0x22, 0x1f, 0x87, 0x67, 0x67, 0x61,
+	0x90, 0x4d, 0xf5, 0xb2, 0xd7, 0xea, 0x7b, 0x83, 0x8e, 0x28, 0x70, 0xd8, 0x10, 0x9a, 0x2a, 0x3c,
+	0x8f, 0x7c, 0x9d, 0xa5, 0xb2, 0xd7, 0xe8, 0x7b, 0x83, 0xd6, 0xee, 0xf6, 0x90, 0x42, 0x37, 0x3c,
+	0x71, 0x7c, 0x91, 0xab, 0xf0, 0x3f, 0x2b, 0x50, 0xdf, 0x47, 0x2c, 0xff, 0x93, 0x68, 0xfd, 0xd3,
+	0xf9, 0x77, 0xa0, 0x31, 0xf3, 0xc3, 0x88, 0x5c, 0xb6, 0xc9, 0xe5, 0x8a, 0x46, 0x5b, 0x5a, 0x1b,
+	0xaf, 0x1d, 0xda, 0xba, 0xc0, 0x79, 0xd5, 0xd8, 0xb1, 0xdb, 0x50, 0xd5, 0x0b, 0xd5, 0xdb, 0xec,
+	0x57, 0x07, 0xad, 0x5d, 0x66, 0x35, 0x47, 0xf9, 0xfb, 0x14, 0x28, 0xe6, 0xf7, 0x60, 0x83, 0x02,
+	0xac, 0x18, 0x87, 0x7a, 0xa8, 0xe5, 0x4c, 0xf5, 0x3c, 0xb2, 0x68, 0x5b, 0x0b, 0x92, 0x0a, 0x23,
+	0xe2, 0x67, 0x00, 0x44, 0x9f, 0xc8, 0x8b, 0x83, 0x7d, 0x7c, 0x01, 0x91, 0x3f, 0x93, 0x74, 0x21,
+	0x4d, 0x41, 0x6b, 0xb6, 0x0d, 0xd5, 0xe7, 0xe2, 0x29, 0x5d, 0x43, 0x53, 0xe0, 0x12, 0x23, 0x29,
+	0xa3, 0x20, 0x1e, 0x4b, 0x8a, 0x7f, 0x53, 0x58, 0x0a, 0x63, 0x11, 0x2a, 0x93, 0x0b, 0x14, 0xfe,
+	0x86, 0x58, 0xd1, 0xfc, 0x01, 0xb4, 0x72, 0x3f, 0x8a, 0xbd, 0x5f, 0x86, 0x76, 0xa3, 0x08, 0x8d,
+	0x54, 0x1c, 0xbe, 0x04, 0x1a, 0x8e, 0x89, 0x48, 0xa2, 0x6c, 0x66, 0x5f, 0x0b, 0x2e, 0xd9, 0x1d,
+	0xa8, 0x2a, 0x79, 0x41, 0xd8, 0x5a, 0xbb, 0xdd, 0xb5, 0x4d, 0x32, 0x19, 0x05, 0x52, 0xa0, 0x02,
+	0xbb, 0x0b, 0x1b, 0x63, 0xa9, 0xfd, 0x70, 0x4a, 0x88, 0xf3, 0xe0, 0x91, 0xea, 0x23, 0x92, 0x08,
+	0xab, 0xc1, 0x3f, 0x86, 0xa6, 0xdb, 0x41, 0xb1, 0x77, 0xa1, 0xa6, 0xe4, 0x85, 0x83, 0xf9, 0xda,
+	0x9a, 0x07, 0x41, 0x42, 0xfe, 0xa5, 0xc5, 0x78, 0x1c, 0x8e, 0x11, 0x63, 0x12, 0x8e, 0x6d, 0x00,
+	0x71, 0x89, 0xb7, 0x40, 0xcf, 0xc9, 0xa2, 0x5c, 0xbb, 0x05, 0x12, 0xf1, 0x87, 0xd0, 0x2e, 0x40,
+	0x51, 0x6c, 0x50, 0x0e, 0xcf, 0x65, 0x70, 0x6d, 0x7c, 0x86, 0xb0, 0x69, 0x22, 0x8c, 0x58, 0x4b,
+	0x46, 0x1d, 0x6b, 0x64, 0xc4, 0x4e, 0xff, 0x09, 0x80, 0xd5, 0xbf, 0x1c, 0xed, 0x00, 0x36, 0x27,
+	0x46, 0x6e, 0xf1, 0x6e, 0x95, 0xb6, 0x51, 0xc2, 0x89, 0xf9, 0x04, 0x3a, 0x84, 0xe7, 0xbb, 0xb9,
+	0x4c, 0xe7, 0xa1, 0xfc, 0x91, 0xdd, 0x82, 0x1a, 0xca, 0x68, 0xb7, 0xbf, 0xb9, 0x27, 0x51, 0xb1,
+	0xf6, 0x54, 0xca, 0xb5, 0x67, 0x07, 0x1a, 0x26, 0x8b, 0xa5, 0xea, 0x55, 0xfb, 0x55, 0xcc, 0x23,
+	0x47, 0xf3, 0xdf, 0x3d, 0xfb, 0x78, 0xcc, 0xd1, 0xf3, 0x88, 0x7a, 0x57, 0x46, 0x94, 0x0d, 0xa1,
+	0x91, 0xca, 0x40, 0x86, 0x89, 0xc6, 0x83, 0x14, 0x83, 0x28, 0x0c, 0xfb, 0x91, 0xaf, 0x7d, 0xb1,
+	0xd2, 0x61, 0x37, 0xa1, 0x72, 0x74, 0x4a, 0x9e, 0xf3, 0x6b, 0x3e, 0x92, 0xcb, 0x53, 0x7f, 0x9a,
+	0x49, 0x51, 0x39, 0x3a, 0x65, 0x77, 0x60, 0x2b, 0x49, 0xe5, 0xfc, 0x44, 0xfb, 0x3a, 0x53, 0x85,
+	0x0a, 0xb3, 0xc6, 0xe5, 0x0f, 0xa0, 0x21, 0xdc, 0xa6, 0x77, 0x0b, 0x20, 0xcc, 0xa5, 0x6c, 0x95,
+	0x41, 0xe4, 0x00, 0xf8, 0x37, 0xd0, 0x3c, 0x4e, 0xc3, 0xb9, 0x1f, 0x2c, 0x8f, 0x4e, 0xd9, 0x17,
+	0xe8, 0xcc, 0x12, 0xa3, 0xf8, 0xa5, 0x8c, 0xac, 0xf9, 0x1b, 0xd6, 0xfc, 0xb8, 0x24, 0x14, 0x6b,
+	0xca, 0x7c, 0x09, 0x5b, 0x65, 0x0d, 0xd6, 0x85, 0xba, 0xb6, 0xfb, 0xe0, 0x55, 0x1b, 0xc2, 0x5c,
+	0xc7, 0x61, 0x34, 0x96, 0x0b, 0xba, 0x8e, 0xba, 0x70, 0xa4, 0x29, 0xb1, 0x93, 0x52, 0x89, 0xa5,
+	0x76, 0x60, 0xc2, 0x54, 0xbb, 0x32, 0x4c, 0x5c, 0x41, 0xd7, 0x1d, 0xff, 0xab, 0x68, 0x9c, 0x9f,
+	0xe8, 0xc3, 0x52, 0x28, 0xbc, 0x82, 0xb9, 0x53, 0x2f, 0x5c, 0xc6, 0x10, 0x9a, 0xab, 0x13, 0xd9,
+	0x67, 0xb8, 0xbd, 0x7e, 0x72, 0x91, 0xab, 0xf0, 0x01, 0x30, 0xbb, 0xcb, 0xc1, 0x44, 0x06, 0x2f,
+	0x47, 0x8b, 0xa7, 0xa1, 0xa2, 0x76, 0x26, 0xd3, 0xd4, 0x44, 0xbe, 0x29, 0x68, 0xcd, 0x97, 0xd0,
+	0x3a, 0xc0, 0x26, 0x6f, 0x2e, 0x8c, 0xdd, 0x86, 0x4e, 0x90, 0xa5, 0xd4, 0x58, 0x4c, 0x91, 0x36,
+	0xb5, 0xa5, 0xcc, 0x64, 0x7d, 0x68, 0xcd, 0xe4, 0x2c, 0x89, 0xe3, 0xe9, 0x49, 0xf8, 0x93, 0xb4,
+	0x2f, 0xb7, 0xc8, 0x62, 0x1c, 0xda, 0x33, 0x75, 0xfe, 0x7d, 0x26, 0x33, 0x49, 0x2a, 0x55, 0x52,
+	0x29, 0xf1, 0xb8, 0x0f, 0x4d, 0x21, 0x2f, 0x6c, 0x69, 0xee, 0x42, 0x5d, 0x69, 0x3f, 0x75, 0x0e,
+	0x0d, 0x81, 0xe9, 0x28, 0xa3, 0xb1, 0x75, 0x80, 0x4b, 0x53, 0x52, 0x1f, 0xe5, 0xa5, 0x8b, 0x4a,
+	0xaa, 0x4d, 0x03, 0x9b, 0xbc, 0x35, 0x3a, 0x1e, 0x2e, 0xf9, 0x2d, 0x68, 0x7d, 0x5b, 0x40, 0xc5,
+	0xa0, 0xa6, 0x10, 0x8d, 0xf1, 0x41, 0x6b, 0x7e, 0x17, 0xb6, 0x85, 0x4c, 0xa6, 0x4b, 0xc2, 0x61,
+	0xcf, 0x97, 0x77, 0x46, 0xaf, 0xd8, 0x19, 0xf9, 0x6f, 0x9e, 0x2d, 0x85, 0xfb, 0xf1, 0x78, 0xe9,
+	0xba, 0x8f, 0x77, 0x6d, 0xf7, 0x79, 0xe5, 0xbc, 0x2b, 0xf6, 0xcf, 0xea, 0xb5, 0xfd, 0xb3, 0xb6,
+	0xde, 0x3f, 0xf9, 0x3d, 0x80, 0x43, 0x75, 0xe0, 0x67, 0xe7, 0x13, 0xfd, 0x3c, 0x41, 0xed, 0x43,
+	0x15, 0x10, 0x95, 0x25, 0x74, 0x92, 0x86, 0x28, 0x70, 0xf8, 0x43, 0xd8, 0x3a, 0x54, 0xcf, 0x74,
+	0x72, 0x40, 0xc5, 0x7b, 0x19, 0x05, 0x98, 0xd2, 0xa1, 0x8a, 0x74, 0x12, 0xd0, 0x9d, 0x2c, 0xa3,
+	0xc0, 0x5a, 0xad, 0x71, 0xf9, 0xaf, 0x1e, 0x74, 0xe8, 0xd5, 0x3c, 0x5e, 0xc8, 0x20, 0xd3, 0x71,
+	0x8a, 0x11, 0x1b, 0xa7, 0xe1, 0x5c, 0xa6, 0x36, 0x9f, 0x2c, 0x85, 0xa7, 0x39, 0xcb, 0xa2, 0xe0,
+	0x19, 0xf6, 0x50, 0xd3, 0x30, 0x57, 0x74, 0x79, 0x3a, 0xa9, 0xae, 0x4f, 0x27, 0x5d, 0xa8, 0x27,
+	0x7e, 0xea, 0xcf, 0x6c, 0x55, 0x31, 0x04, 0x72, 0xe5, 0x42, 0xa7, 0x3e, 0x8d, 0x2c, 0x6d, 0x61,
+	0x08, 0xfe, 0xa9, 0xad, 0xbc, 0xae, 0xc7, 0xe1, 0x45, 0xd3, 0xae, 0x9e, 0x19, 0xdc, 0x68, 0x43,
+	0x06, 0xb5, 0xd1, 0x32, 0x71, 0xaf, 0x95, 0xd6, 0xfc, 0x73, 0xd8, 0x2a, 0x19, 0x62, 0x85, 0x2a,
+	0xf5, 0x8c, 0xcb, 0x5b, 0xa8, 0x6d, 0x1d, 0x3f, 0x7b, 0xd0, 0x3d, 0xf6, 0x53, 0x9f, 0x42, 0x51,
+	0xac, 0xc7, 0x9f, 0x40, 0x8b, 0x8a, 0xae, 0x6d, 0xb1, 0xde, 0x95, 0x2d, 0xb6, 0xa8, 0x86, 0xb1,
+	0x52, 0xd6, 0x83, 0x05, 0xb9, 0xa2, 0x31, 0xbe, 0xa1, 0xc2, 0x3b, 0xb2, 0x8f, 0xde, 0x52, 0xfc,
+	0x33, 0xe8, 0x20, 0x82, 0xd1, 0xc2, 0x35, 0xca, 0x0f, 0xca, 0xf8, 0x5f, 0x77, 0x55, 0xa2, 0xa0,
+	0xe4, 0xe0, 0x2f, 0xa0, 0x5d, 0x64, 0x63, 0x80, 0x50, 0xd9, 0x65, 0x07, 0xae, 0xd9, 0x7b, 0x98,
+	0x09, 0x34, 0xbf, 0x54, 0x2e, 0x6b, 0x62, 0x56, 0xc8, 0x3e, 0x82, 0xa6, 0x76, 0x10, 0xd6, 0x7a,
+	0xc6, 0xca, 0x6b, 0xae, 0xc1, 0x7f, 0xf1, 0xa0, 0xb1, 0x72, 0xdb, 0x85, 0x7a, 0x48, 0x15, 0xd7,
+	0xa3, 0x59, 0xd2, 0x10, 0x8c, 0x43, 0x45, 0x2f, 0xac, 0xd3, 0xcb, 0x72, 0xab, 0xa2, 0x17, 0xec,
+	0x1e, 0x6c, 0xda, 0xb4, 0x59, 0x9b, 0x62, 0x8a, 0x99, 0xe5, 0x54, 0x30, 0x84, 0x49, 0x1a, 0xc7,
+	0x67, 0x8a, 0x0a, 0x44, 0x5b, 0x58, 0x8a, 0x9f, 0x61, 0x01, 0xb8, 0x30, 0x91, 0xd8, 0x5f, 0x8e,
+	0x42, 0x3d, 0x95, 0xff, 0xba, 0x1a, 0x61, 0x17, 0x41, 0x03, 0x3b, 0xf7, 0x19, 0x82, 0x4e, 0xa4,
+	0x4e, 0xe4, 0x85, 0x9d, 0xf9, 0x0c, 0xc1, 0xe7, 0x00, 0x5f, 0x87, 0x53, 0x69, 0xbf, 0x46, 0x7d,
+	0x68, 0xd1, 0xa6, 0xa5, 0x32, 0x5b, 0x64, 0x15, 0x52, 0xaa, 0x52, 0x4a, 0xa9, 0xcb, 0x7d, 0x62,
+	0xe7, 0x92, 0x4a, 0x3f, 0x93, 0xda, 0x7a, 0x75, 0x24, 0xf6, 0xdf, 0xc7, 0xd1, 0xd8, 0x7c, 0x31,
+	0xae, 0x28, 0x6c, 0xab, 0x8f, 0x4e, 0x25, 0xff, 0xe8, 0xf0, 0x29, 0x34, 0x0d, 0xd6, 0xff, 0x36,
+	0x69, 0xe6, 0x2f, 0xa8, 0x7a, 0xcd, 0x0b, 0xe2, 0xbb, 0x6e, 0x0c, 0xa3, 0x29, 0xf3, 0x76, 0x69,
+	0xca, 0xdc, 0x2e, 0x99, 0xac, 0xc6, 0xcc, 0xfd, 0x9b, 0x3f, 0xbc, 0x7d, 0x1e, 0xea, 0x49, 0xf6,
+	0x62, 0x18, 0xc4, 0xb3, 0xfb, 0x7b, 0x7b, 0x41, 0x74, 0x9f, 0x3e, 0xac, 0x7b, 0x7b, 0xf7, 0xc9,
+	0xe0, 0xc5, 0x06, 0xfd, 0x48, 0xf7, 0xfe, 0x0a, 0x00, 0x00, 0xff, 0xff, 0x62, 0xf1, 0x52, 0x67,
+	0xcd, 0x0e, 0x00, 0x00,
+>>>>>>> master
 }

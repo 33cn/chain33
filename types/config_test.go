@@ -11,11 +11,12 @@ import (
 )
 
 func TestChainConfig(t *testing.T) {
-	S("a", true)
-	_, err := G("b")
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	cfg.S("a", true)
+	_, err := cfg.G("b")
 	assert.Equal(t, err, ErrNotFound)
 
-	adata, err := G("a")
+	adata, err := cfg.G("a")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, adata.(bool), true)
 }
@@ -31,17 +32,20 @@ func TestSubConfig(t *testing.T) {
 }
 
 func TestConfig(t *testing.T) {
-	cfg, _ := InitCfgString(readFile("testdata/chain33.toml"))
-	assert.Equal(t, cfg.Fork.System["ForkV16Withdraw"], int64(480000))
-	assert.Equal(t, cfg.Fork.Sub["token"]["Enable"], int64(100899))
-	confsystem := Conf("config.fork.system")
+	cfg := NewChain33ConfigNoInit(ReadFile("testdata/chain33.toml"))
+	cfg.EnableCheckFork(false)
+	cfg.chain33CfgInit(cfg.GetModuleConfig())
+	mcfg := cfg.GetModuleConfig()
+	assert.Equal(t, cfg.forks.forks["ForkV16Withdraw"], int64(480000))
+	assert.Equal(t, mcfg.Fork.Sub["token"]["Enable"], int64(100899))
+	confsystem := Conf(cfg, "config.fork.system")
 	assert.Equal(t, confsystem.GInt("ForkV16Withdraw"), int64(480000))
-	confsubtoken := Conf("config.fork.sub.token")
+	confsubtoken := Conf(cfg, "config.fork.sub.token")
 	assert.Equal(t, confsubtoken.GInt("Enable"), int64(100899))
 }
 
 func TestBityuanInit(t *testing.T) {
-	cfg, err := initCfgString(mergeCfg(readFile("../cmd/chain33/bityuan.toml")))
+	cfg, err := initCfgString(MergeCfg(ReadFile("testdata/bityuan.toml"), ""))
 	assert.Nil(t, err)
 	assert.Equal(t, int64(200000), cfg.Fork.System["ForkWithdraw"])
 	assert.Equal(t, int64(0), cfg.Fork.Sub["token"]["Enable"])

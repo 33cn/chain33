@@ -76,7 +76,7 @@ func (n *Node) processRecvP2P(data *types.BroadCastData, pid string, pubPeerFunc
 
 func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, peerVersion int32, pid, peerAddr string) (doSend bool) {
 
-	byteHash := block.Block.Hash()
+	byteHash := block.Block.Hash(n.cfg)
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送
 	ignoreSend := n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
@@ -93,7 +93,7 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 		}
 		ltBlock := &types.LightBlock{}
 		ltBlock.Size = int64(types.Size(block.Block))
-		ltBlock.Header = block.Block.GetHeader()
+		ltBlock.Header = block.Block.GetHeader(n.cfg)
 		ltBlock.Header.Hash = byteHash[:]
 		ltBlock.Header.Signature = block.Block.Signature
 		ltBlock.MinerTx = block.Block.Txs[0]
@@ -131,9 +131,15 @@ func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion
 
 	txHash := hex.EncodeToString(tx.Tx.Hash())
 	ttl := tx.GetRoute().GetTTL()
-	//检测冗余发送
-	ignoreSend := n.addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
 	isLightSend := peerVersion >= lightBroadCastVersion && ttl >= n.nodeInfo.cfg.LightTxTTL
+	//检测冗余发送
+	ignoreSend := false
+
+	//短哈希广播不记录发送过滤
+	if !isLightSend {
+		ignoreSend = n.addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
+	}
+
 	log.Debug("P2PSendTx", "txHash", txHash, "ttl", ttl, "isLightSend", isLightSend,
 		"peerAddr", peerAddr, "ignoreSend", ignoreSend)
 
@@ -172,7 +178,11 @@ func (n *Node) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 	if isDuplicate {
 		return
 	}
-	txHashFilter.Add(txHash, tx.Route)
+	//有可能收到老版本的交易路由,此时route是空指针
+	if tx.GetRoute() == nil {
+		tx.Route = &types.P2PRoute{TTL: 1}
+	}
+	txHashFilter.Add(txHash, tx.GetRoute())
 
 	msg := n.nodeInfo.client.NewMessage("mempool", types.EventTx, tx.GetTx())
 	errs := n.nodeInfo.client.Send(msg, false)
@@ -208,12 +218,12 @@ func (n *Node) recvBlock(block *types.P2PBlock, pid, peerAddr string) {
 	if block.GetBlock() == nil {
 		return
 	}
-	blockHash := hex.EncodeToString(block.GetBlock().Hash())
+	blockHash := hex.EncodeToString(block.GetBlock().Hash(n.cfg))
 	//将节点id添加到发送过滤, 避免冗余发送
 	n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
 	//如果重复接收, 则不再发到blockchain执行
 	isDuplicate := n.checkAndRegFilterAtomic(blockHashFilter, blockHash)
-	log.Info("recvBlock", "blockHeight", block.GetBlock().GetHeight(), "peerAddr", peerAddr,
+	log.Debug("recvBlock", "blockHeight", block.GetBlock().GetHeight(), "peerAddr", peerAddr,
 		"block size(KB)", float32(block.Block.Size())/1024, "blockHash", blockHash, "duplicateBlock", isDuplicate)
 	if isDuplicate {
 		return
@@ -294,7 +304,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string, pubP
 	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) &&
 		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
-		log.Info("recvLtBlock", "height", block.GetHeight(), "peerAddr", peerAddr,
+		log.Debug("recvLtBlock", "height", block.GetHeight(), "peerAddr", peerAddr,
 			"blockHash", blockHash, "block size(KB)", float32(ltBlock.Size)/1024)
 		//发送至blockchain执行
 		if err := n.postBlockChain(block, pid); err != nil {
@@ -332,7 +342,6 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid, peerAddr string, pu
 		txHash := hex.EncodeToString(txReq.TxHash)
 		log.Debug("recvQueryTx", "txHash", txHash, "peerAddr", peerAddr)
 		//向mempool请求交易
-		//get tx from mempool
 		resp, err := n.queryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
 		if err != nil {
 			log.Error("recvQuery", "queryMempoolErr", err)
@@ -395,7 +404,7 @@ func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string, 
 	//计算的root hash是否一致
 	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
 
-		log.Info("recvQueryReplyBlock", "blockHeight", block.GetHeight(), "peerAddr", peerAddr,
+		log.Debug("recvQueryReplyBlock", "blockHeight", block.GetHeight(), "peerAddr", peerAddr,
 			"block size(KB)", float32(block.Size())/1024, "blockHash", rep.BlockHash)
 		//发送至blockchain执行
 		if err := n.postBlockChain(block, pid); err != nil {

@@ -53,7 +53,7 @@ var (
 	typesContent = `package rpc
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
@@ -82,6 +82,6 @@ func Init(name string, s rpctypes.RPCServer) {
 	grpc := &Grpc{channelClient: cli}
 	cli.Init(name, s, &Jrpc{cli: cli}, grpc)
 	//存在grpc service时注册grpc server，需要生成对应的pb.go文件
-	ptypes.Register${CLASSNAME}Server(s.GRPC(), grpc)
+	${EXECNAME}types.Register${CLASSNAME}Server(s.GRPC(), grpc)
 }`
 )

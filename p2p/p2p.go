@@ -43,25 +43,25 @@ type P2p struct {
 }
 
 // New produce a p2p object
-func New(cfg *types.P2P) *P2p {
-
+func New(cfg *types.Chain33Config) *P2p {
+	mcfg := cfg.GetModuleConfig().P2P
 	//主网的channel默认设为0, 测试网未配置时设为默认
-	if types.IsTestNet() && cfg.Channel == 0 {
-		cfg.Channel = defaultTestNetChannel
+	if cfg.IsTestNet() && mcfg.Channel == 0 {
+		mcfg.Channel = defaultTestNetChannel
 	}
 	//ttl至少设为2
-	if cfg.LightTxTTL <= 1 {
-		cfg.LightTxTTL = DefaultLtTxBroadCastTTL
+	if mcfg.LightTxTTL <= 1 {
+		mcfg.LightTxTTL = DefaultLtTxBroadCastTTL
 	}
-	if cfg.MaxTTL <= 0 {
-		cfg.MaxTTL = DefaultMaxTxBroadCastTTL
+	if mcfg.MaxTTL <= 0 {
+		mcfg.MaxTTL = DefaultMaxTxBroadCastTTL
 	}
 
-	log.Info("p2p", "Channel", cfg.Channel, "Version", VERSION, "IsTest", types.IsTestNet())
-	if cfg.InnerBounds == 0 {
-		cfg.InnerBounds = 500
+	log.Info("p2p", "Channel", mcfg.Channel, "Version", VERSION, "IsTest", cfg.IsTestNet())
+	if mcfg.InnerBounds == 0 {
+		mcfg.InnerBounds = 500
 	}
-	log.Info("p2p", "InnerBounds", cfg.InnerBounds)
+	log.Info("p2p", "InnerBounds", mcfg.InnerBounds)
 
 	node, err := NewNode(cfg)
 	if err != nil {
@@ -75,7 +75,7 @@ func New(cfg *types.P2P) *P2p {
 	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
 	p2p.waitRestart = make(chan struct{}, 1)
 	p2p.txCapcity = 1000
-	p2p.cfg = cfg
+	p2p.cfg = mcfg
 	p2p.taskGroup = &sync.WaitGroup{}
 	return p2p
 }
@@ -302,7 +302,8 @@ func (network *P2p) ReStart() {
 	log.Info("p2p restart, wait p2p task done")
 	network.waitTaskDone()
 	network.node.Close()
-	node, err := NewNode(network.cfg) //创建新的node节点
+	types.AssertConfig(network.client)
+	node, err := NewNode(network.client.GetConfig()) //创建新的node节点
 	if err != nil {
 		panic(err.Error())
 	}

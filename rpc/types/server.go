@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 	"google.golang.org/grpc"
 )
 
@@ -38,7 +39,8 @@ func (c *ChannelClient) Init(name string, s RPCServer, jrpc, grpc interface{}) {
 	}
 	c.grpc = grpc
 	c.jrpc = jrpc
-	c.accountdb = account.NewCoinsAccount()
+	types.AssertConfig(c.QueueProtocolAPI)
+	c.accountdb = account.NewCoinsAccount(c.GetConfig())
 }
 
 // GetCoinsAccountDB  return accountdb

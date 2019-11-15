@@ -25,16 +25,18 @@ import (
 var driverName = "coins"
 
 // Init defines a register function
-func Init(name string, sub []byte) {
+func Init(name string, cfg *types.Chain33Config, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
 	}
-	drivers.Register(driverName, newCoins, types.GetDappFork(driverName, "Enable"))
+	// 需要先 RegisterDappFork才可以Register dapp
+	drivers.Register(cfg, driverName, newCoins, cfg.GetDappFork(driverName, "Enable"))
+	InitExecType()
 }
 
 // the initialization process is relatively heavyweight, lots of reflact, so it's global
 
-func init() {
+func InitExecType() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&Coins{}))
 }
@@ -81,6 +83,8 @@ func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bo
 		return false
 	}
 	//step2 判定 othertx 的 执行器名称(只允许主链，并且是挖矿的行为)
+	types.AssertConfig(c.GetAPI())
+	types := c.GetAPI().GetConfig()
 	if othertx.ActionName() == "miner" {
 		for _, exec := range types.GetMinerExecs() {
 			if types.ExecName(exec) == string(othertx.Execer) {

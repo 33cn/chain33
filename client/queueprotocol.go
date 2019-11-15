@@ -852,8 +852,9 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 
 // Version get the software version
 func (q *QueueProtocol) Version() (*types.VersionInfo, error) {
+	types.AssertConfig(q.client)
 	return &types.VersionInfo{
-		Title:   types.GetTitle(),
+		Title:   q.client.GetConfig().GetTitle(),
 		App:     version.GetAppVersion(),
 		Chain33: version.GetVersion(),
 		LocalDb: version.GetLocalDBVersion(),
@@ -1190,19 +1191,6 @@ func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, e
 	return nil, err
 }
 
-// GetTicketCount get ticket count from consensus
-func (q *QueueProtocol) GetTicketCount() (*types.Int64, error) {
-	msg, err := q.send(consensusKey, types.EventGetTicketCount, &types.ReqNil{})
-	if err != nil {
-		log.Error("GetTicketCount", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Int64); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 // AddSeqCallBack Add Seq CallBack
 func (q *QueueProtocol) AddSeqCallBack(param *types.BlockSeqCB) (*types.Reply, error) {
 
@@ -1333,4 +1321,16 @@ func (q *QueueProtocol) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*type
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
+}
+
+//GetConfig 通过seq以及title获取对应平行连的交易
+func (q *QueueProtocol) GetConfig() *types.Chain33Config {
+	if q.client == nil {
+		panic("client is nil, can not get Chain33Config")
+	}
+	cfg := q.client.GetConfig()
+	if cfg == nil {
+		panic("Chain33Config is nil")
+	}
+	return cfg
 }

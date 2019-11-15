@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"strings"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -107,17 +109,18 @@ func TestUpperLower(t *testing.T) {
 }
 
 func TestGenTx(t *testing.T) {
-	txs := GenNoneTxs(TestPrivkeyList[0], 2)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	txs := GenNoneTxs(cfg, TestPrivkeyList[0], 2)
 	assert.Equal(t, 2, len(txs))
 	assert.Equal(t, "none", string(txs[0].Execer))
 	assert.Equal(t, "none", string(txs[1].Execer))
 
-	txs = GenCoinsTxs(TestPrivkeyList[0], 2)
+	txs = GenCoinsTxs(cfg, TestPrivkeyList[0], 2)
 	assert.Equal(t, 2, len(txs))
 	assert.Equal(t, "coins", string(txs[0].Execer))
 	assert.Equal(t, "coins", string(txs[1].Execer))
 
-	txs = GenTxsTxHeigt(TestPrivkeyList[0], 2, 10)
+	txs = GenTxsTxHeigt(cfg, TestPrivkeyList[0], 2, 10)
 	assert.Equal(t, 2, len(txs))
 	assert.Equal(t, "coins", string(txs[0].Execer))
 	assert.Equal(t, "coins", string(txs[1].Execer))
@@ -125,16 +128,17 @@ func TestGenTx(t *testing.T) {
 }
 
 func TestGenBlock(t *testing.T) {
-	block2 := CreateNoneBlock(TestPrivkeyList[0], 2)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	block2 := CreateNoneBlock(cfg, TestPrivkeyList[0], 2)
 	assert.Equal(t, 2, len(block2.Txs))
 
-	block2 = CreateCoinsBlock(TestPrivkeyList[0], 2)
+	block2 = CreateCoinsBlock(cfg, TestPrivkeyList[0], 2)
 	assert.Equal(t, 2, len(block2.Txs))
 
-	txs := GenNoneTxs(TestPrivkeyList[0], 2)
-	newblock := CreateNewBlock(block2, txs)
+	txs := GenNoneTxs(cfg, TestPrivkeyList[0], 2)
+	newblock := CreateNewBlock(cfg, block2, txs)
 	assert.Equal(t, newblock.Height, block2.Height+1)
-	assert.Equal(t, newblock.ParentHash, block2.Hash())
+	assert.Equal(t, newblock.ParentHash, block2.Hash(cfg))
 }
 
 func TestDelDupKey(t *testing.T) {
@@ -185,7 +189,8 @@ func BenchmarkDelDupKey(b *testing.B) {
 }
 
 func TestDelDupTx(t *testing.T) {
-	txs := GenNoneTxs(TestPrivkeyList[0], 2)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	txs := GenNoneTxs(cfg, TestPrivkeyList[0], 2)
 	assert.Equal(t, 2, len(txs))
 	assert.Equal(t, "none", string(txs[0].Execer))
 	assert.Equal(t, "none", string(txs[1].Execer))
@@ -267,23 +272,31 @@ func (t *testClient) Wait(in *queue.Message) (*queue.Message, error) {
 }
 
 func TestExecBlock(t *testing.T) {
+	str := types.GetDefaultCfgstring()
+	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
+	cfg := types.NewChain33Config(new)
 	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	client.On("GetConfig", mock.Anything).Return(cfg)
 	var txs []*types.Transaction
 	addr, priv := Genaddress()
-	tx := CreateCoinsTx(priv, addr, types.Coin)
+	tx := CreateCoinsTx(cfg, priv, addr, types.Coin)
 	tx.Sign(types.SECP256K1, priv)
+	txs = append(txs, tx)
+	//EventExecTxList returned 2 txs' receipt
 	txs = append(txs, tx)
 	_, _, err := ExecBlock(client, nil, &types.Block{Txs: txs}, false, true, false)
 	assert.NoError(t, err)
 }
 
 func TestExecBlockUpgrade(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	client.On("GetConfig", mock.Anything).Return(cfg)
 	var txs []*types.Transaction
 	addr, priv := Genaddress()
-	tx := CreateCoinsTx(priv, addr, types.Coin)
+	tx := CreateCoinsTx(cfg, priv, addr, types.Coin)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 	err := ExecBlockUpgrade(client, nil, &types.Block{Txs: txs}, false)
@@ -291,11 +304,19 @@ func TestExecBlockUpgrade(t *testing.T) {
 }
 
 func TestExecAndCheckBlock(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	_, err := ExecAndCheckBlock(client, &types.Block{}, nil, 0)
-	assert.NoError(t, err)
-	_, err = ExecAndCheckBlock2(client, &types.Block{}, nil, nil)
+	client.On("GetConfig", mock.Anything).Return(cfg)
+	addr, priv := Genaddress()
+	tx := CreateCoinsTx(cfg, priv, addr, types.Coin)
+	tx.Sign(types.SECP256K1, priv)
+	tx2 := CreateCoinsTx(cfg, priv, addr, 2*types.Coin)
+	tx2.Sign(types.SECP256K1, priv)
+	var txs []*types.Transaction
+	txs = append(txs, tx)
+	txs = append(txs, tx2)
+	_, err := ExecAndCheckBlock(client, &types.Block{}, txs, []int{types.ExecOk, types.ExecErr})
 	assert.NoError(t, err)
 }
 
@@ -314,11 +335,13 @@ func TestExecKVSetRollback(t *testing.T) {
 }
 
 func TestCheckDupTx(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	client.On("GetConfig", mock.Anything).Return(cfg)
 	var txs []*types.Transaction
 	addr, priv := Genaddress()
-	tx := CreateCoinsTx(priv, addr, types.Coin)
+	tx := CreateCoinsTx(cfg, priv, addr, types.Coin)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 	_, err := CheckDupTx(client, txs, 1)

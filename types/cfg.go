@@ -148,6 +148,8 @@ type BlockChain struct {
 	RollbackBlock int64 `protobuf:"varint,15,opt,name=rollbackBlock" json:"rollbackBlock,omitempty"`
 	// 回退是否保存区块
 	RollbackSave bool `protobuf:"varint,16,opt,name=rollbackSave" json:"rollbackSave,omitempty"`
+	// 最新区块上链超时时间，单位秒。
+	OnChainTimeout int64 `protobuf:"varint,16,opt,name=onChainTimeout" json:"onChainTimeout,omitempty"`
 }
 
 // P2P 配置

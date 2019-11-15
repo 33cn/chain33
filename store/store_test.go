@@ -25,8 +25,8 @@ func init() {
 
 func initEnv() (queue.Queue, queue.Module) {
 	var q = queue.New("channel")
-	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
-	s := New(cfg.Store, sub.Store)
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
+	s := New(cfg)
 	s.SetQueueClient(q.Client())
 	return q, s
 }
@@ -275,6 +275,7 @@ var storecfg1 = &types.Store{Name: "mavl", Driver: "leveldb", DbPath: "/tmp/stor
 
 func TestNewMavl(t *testing.T) {
 	os.RemoveAll(storecfg1.DbPath)
-	store := New(storecfg1, nil)
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
+	store := New(cfg)
 	assert.NotNil(t, store)
 }

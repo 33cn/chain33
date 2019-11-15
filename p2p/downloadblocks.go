@@ -68,6 +68,14 @@ func NewDownloadJob(p2pcli *Cli, peers []*Peer) *DownloadJob {
 	return job
 }
 
+func (d *DownloadJob) getDownloadPeers() []*Peer {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	peers := make([]*Peer, len(d.downloadPeers))
+	copy(peers, d.downloadPeers)
+	return peers
+}
+
 func (d *DownloadJob) isBusyPeer(pid string) bool {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
@@ -151,7 +159,8 @@ func (d *DownloadJob) GetFreePeer(blockHeight int64) *Peer {
 	infos := d.p2pcli.network.node.nodeInfo.peerInfos.GetPeerInfos()
 	var minJobNum int32 = 10
 	var bestPeer *Peer
-	for _, peer := range d.downloadPeers {
+	//对download peer读取需要增加保护
+	for _, peer := range d.getDownloadPeers() {
 
 		peerName := peer.GetPeerName()
 		if d.isBusyPeer(peerName) {
@@ -258,7 +267,7 @@ func (d *DownloadJob) syncDownloadBlock(peer *Peer, inv *pb.Inventory, bchan cha
 	}
 
 	block := invData.Items[0].GetBlock()
-	bchan <- &pb.BlockPid{Pid: peer.GetPeerName(), Block: block} //加入到输出通道
 	log.Debug("download", "frompeer", peer.Addr(), "blockheight", inv.GetHeight(), "blockSize", block.Size())
+	bchan <- &pb.BlockPid{Pid: peer.GetPeerName(), Block: block} //加入到输出通道
 	return nil
 }

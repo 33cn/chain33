@@ -33,8 +33,8 @@ func processMsg(q queue.Queue) {
 
 	go func() {
 
-		cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
-		wcli := wallet.New(cfg.Wallet, sub.Wallet)
+		cfg := q.GetConfig()
+		wcli := wallet.New(cfg)
 		client := q.Client()
 		wcli.SetQueueClient(client)
 		//导入种子，解锁钱包
@@ -115,16 +115,15 @@ func processMsg(q queue.Queue) {
 }
 
 //new p2p
-func newP2p(port int32, dbpath string, q queue.Queue) *P2p {
-
-	cfg := new(types.P2P)
-	cfg.Port = port
-	cfg.Enable = true
-	cfg.DbPath = dbpath
-	cfg.DbCache = 4
-	cfg.Channel = testChannel
-	cfg.ServerStart = true
-	cfg.Driver = "leveldb"
+func newP2p(cfg *types.Chain33Config, port int32, dbpath string, q queue.Queue) *P2p {
+	pcfg := cfg.GetModuleConfig().P2P
+	pcfg.Port = port
+	pcfg.Enable = true
+	pcfg.DbPath = dbpath
+	pcfg.DbCache = 4
+	pcfg.Channel = testChannel
+	pcfg.ServerStart = true
+	pcfg.Driver = "leveldb"
 
 	p2pcli := New(cfg)
 	p2pcli.node.nodeInfo.addrBook.initKey()
@@ -176,7 +175,7 @@ func testNetInfo(t *testing.T, p2p *P2p) {
 
 //测试Peer
 func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
-
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	conn, err := grpc.Dial("localhost:53802", grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	assert.Nil(t, err)
@@ -185,7 +184,7 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	remote, err := NewNetAddressString("127.0.0.1:53802")
 	assert.Nil(t, err)
 
-	localP2P := newP2p(43802, "testPeer", q)
+	localP2P := newP2p(cfg, 43802, "testPeer", q)
 	defer freeP2p(localP2P)
 
 	t.Log(localP2P.node.CacheBoundsSize())
@@ -199,10 +198,15 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	localP2P.node.addPeer(peer)
 	var info *innerpeer
 	t.Log("WaitRegisterPeerStart...")
-	for peer.GetPeerName() == "" ||
-		info == nil || info.p2pversion == 0 {
-		time.Sleep(time.Millisecond * 10)
-		info = p2p.node.server.p2pserver.getInBoundPeerInfo("127.0.0.1:43802")
+	trytime := 0
+	for info == nil || info.p2pversion == 0 {
+		trytime++
+		time.Sleep(time.Millisecond * 100)
+		//info = p2p.node.server.p2pserver.getInBoundPeerInfo("127.0.0.1:43802")
+		info = p2p.node.server.p2pserver.getInBoundPeerInfo(peer.GetPeerName())
+		if trytime > 100 {
+			return
+		}
 	}
 	t.Log("WaitRegisterPeerStop...")
 	p2pcli := NewNormalP2PCli()
@@ -222,6 +226,8 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 
 	localP2P.node.AddCachePeer(peer)
 	peer.GetRunning()
+	peer.getIsRegister()
+	peer.setIsRegister(false)
 	localP2P.node.nodeInfo.FetchPeerInfo(localP2P.node)
 	peers, infos := localP2P.node.GetActivePeers()
 	assert.Equal(t, len(peers), len(infos))
@@ -406,11 +412,12 @@ func testRestart(t *testing.T, p2p *P2p) {
 }
 
 func Test_p2p(t *testing.T) {
-
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
+	q.SetConfig(cfg)
 	go q.Start()
 	processMsg(q)
-	p2p := newP2p(53802, "testP2p", q)
+	p2p := newP2p(cfg, 53802, "testP2p", q)
 	p2p.Wait()
 	defer freeP2p(p2p)
 	defer q.Close()

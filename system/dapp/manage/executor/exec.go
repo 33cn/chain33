@@ -26,7 +26,9 @@ func (c *Manage) checkTxToAddress(tx *types.Transaction, index int) error {
 func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("manage.Exec", "start index", index)
 	// 兼容在区块上没有To地址检查的交易数据
-	if types.IsDappFork(c.GetHeight(), mty.ManageX, "ForkManageExec") {
+	types.AssertConfig(c.GetAPI())
+	cfg := c.GetAPI().GetConfig()
+	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, "ForkManageExec") {
 		if err := c.checkTxToAddress(tx, index); err != nil {
 			return nil, err
 		}

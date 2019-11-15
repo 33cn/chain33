@@ -476,7 +476,7 @@ func (n *Node) monitorDialPeers() {
 			continue
 		}
 
-		log.Info("DialPeers", "peer", netAddr.String())
+		log.Debug("DialPeers", "peer", netAddr.String())
 		//并发连接节点，增加连接效率
 		if dialCount >= maxOutBoundNum*2 {
 			n.pubsub.FIFOPub(addr, "addr")
@@ -487,7 +487,7 @@ func (n *Node) monitorDialPeers() {
 		dialCount++
 		//把待连接的节点增加到过滤容器中
 		peerAddrFilter.RegRecvData(addr.(string))
-		log.Info("monitorDialPeer", "dialCount", dialCount)
+		log.Debug("monitorDialPeer", "dialCount", dialCount)
 		go func(netAddr *NetAddress) {
 			defer peerAddrFilter.RemoveRecvData(netAddr.String())
 			peer, err := P2pComm.dialPeer(netAddr, n)

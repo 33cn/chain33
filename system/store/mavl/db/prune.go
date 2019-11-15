@@ -36,13 +36,10 @@ const (
 	onceScanCount           = 10000 // 单次扫描数目
 	onceCount               = 1000  // 容器长度
 	batchDataSize           = 1024 * 1024 * 1
+	DefaultPruneHeight      = 10000
 )
 
 var (
-	// 是否开启mavl裁剪
-	enablePrune bool
-	// 每个10000裁剪一次
-	pruneHeight = 10000
 	// 裁剪状态
 	pruningState   int32
 	wg             sync.WaitGroup
@@ -53,18 +50,6 @@ var (
 type hashData struct {
 	height int64
 	hash   []byte
-}
-
-// EnablePrune 使能裁剪
-func EnablePrune(enable bool) {
-	enablePrune = enable
-	//开启裁剪需要同时开启前缀
-	enableMavlPrefix = enable
-}
-
-// SetPruneHeight 设置每次裁剪高度
-func SetPruneHeight(height int) {
-	pruneHeight = height
 }
 
 // ClosePrune 关闭裁剪
@@ -174,29 +159,29 @@ func setSecLvlPruningHeight(db dbm.DB, height int64) error {
 	return db.Set([]byte(secLvlPruningHeightKey), value)
 }
 
-func pruning(db dbm.DB, curHeight int64) {
+func pruning(db dbm.DB, curHeight int64, treeCfg *TreeConfig) {
 	defer wg.Done()
-	pruningTree(db, curHeight)
+	pruningTree(db, curHeight, treeCfg)
 }
 
-func pruningTree(db dbm.DB, curHeight int64) {
+func pruningTree(db dbm.DB, curHeight int64, treeCfg *TreeConfig) {
 	setPruning(pruningStateStart)
 	// 一级遍历
-	pruningFirstLevel(db, curHeight)
+	pruningFirstLevel(db, curHeight, treeCfg)
 	// 二级遍历
-	pruningSecondLevel(db, curHeight)
+	pruningSecondLevel(db, curHeight, treeCfg)
 	setPruning(pruningStateEnd)
 }
 
-func pruningFirstLevel(db dbm.DB, curHeight int64) {
+func pruningFirstLevel(db dbm.DB, curHeight int64, treeCfg *TreeConfig) {
 	treelog.Info("pruningTree pruningFirstLevel", "start curHeight:", curHeight)
 	start := time.Now()
-	pruningFirstLevelNode(db, curHeight)
+	pruningFirstLevelNode(db, curHeight, treeCfg)
 	end := time.Now()
 	treelog.Info("pruningTree pruningFirstLevel", "curHeight:", curHeight, "pruning leafNode cost time:", end.Sub(start))
 }
 
-func pruningFirstLevelNode(db dbm.DB, curHeight int64) {
+func pruningFirstLevelNode(db dbm.DB, curHeight int64, treeCfg *TreeConfig) {
 	prefix := []byte(leafKeyCountPrefix)
 	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
@@ -222,7 +207,7 @@ func pruningFirstLevelNode(db dbm.DB, curHeight int64) {
 			continue
 		}
 		if curHeight < int64(height)+secondLevelPruningHeight {
-			if curHeight >= int64(height)+int64(pruneHeight) {
+			if curHeight >= int64(height)+int64(treeCfg.PruneHeight) {
 				data := hashData{
 					height: int64(height),
 					hash:   hash,
@@ -236,7 +221,7 @@ func pruningFirstLevelNode(db dbm.DB, curHeight int64) {
 			kvs = append(kvs, &types.KeyValue{Key: hashK, Value: value})
 		}
 		if len(mp) >= onceCount-1 || count > onceScanCount {
-			deleteNode(db, mp, curHeight, batch)
+			deleteNode(db, mp, curHeight, batch, treeCfg)
 			mp = nil
 			count = 0
 		}
@@ -246,7 +231,7 @@ func pruningFirstLevelNode(db dbm.DB, curHeight int64) {
 		}
 	}
 	if len(mp) > 0 {
-		deleteNode(db, mp, curHeight, batch)
+		deleteNode(db, mp, curHeight, batch, treeCfg)
 		mp = nil
 		_ = mp
 	}
@@ -268,7 +253,7 @@ func addLeafCountKeyToSecondLevel(db dbm.DB, kvs []*types.KeyValue, batch dbm.Ba
 	dbm.MustWrite(batch)
 }
 
-func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.Batch) {
+func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.Batch, treeCfg *TreeConfig) {
 	if len(mp) == 0 {
 		return
 	}
@@ -276,7 +261,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 	for key, vals := range mp {
 		if len(vals) > 1 && vals[1].height != vals[0].height { //防止相同高度时候出现的误删除
 			for _, val := range vals[1:] { //从第二个开始判断
-				if curHeight >= val.height+int64(pruneHeight) {
+				if curHeight >= val.height+int64(treeCfg.PruneHeight) {
 					leafCountKey := genLeafCountKey([]byte(key), val.hash, val.height, len(val.hash))
 					value, err := db.Get(leafCountKey)
 					if err == nil {
@@ -302,7 +287,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 	dbm.MustWrite(batch)
 }
 
-func pruningSecondLevel(db dbm.DB, curHeight int64) {
+func pruningSecondLevel(db dbm.DB, curHeight int64, treeCfg *TreeConfig) {
 	if secLvlPruningH == 0 {
 		secLvlPruningH = getSecLvlPruningHeight(db)
 	}
@@ -310,7 +295,7 @@ func pruningSecondLevel(db dbm.DB, curHeight int64) {
 		curHeight/secondLevelPruningHeight != secLvlPruningH/secondLevelPruningHeight {
 		treelog.Info("pruningTree pruningSecondLevel", "start curHeight:", curHeight)
 		start := time.Now()
-		pruningSecondLevelNode(db, curHeight)
+		pruningSecondLevelNode(db, curHeight, treeCfg)
 		end := time.Now()
 		treelog.Info("pruningTree pruningSecondLevel", "curHeight:", curHeight, "pruning leafNode cost time:", end.Sub(start))
 		err := setSecLvlPruningHeight(db, curHeight)
@@ -321,7 +306,7 @@ func pruningSecondLevel(db dbm.DB, curHeight int64) {
 	}
 }
 
-func pruningSecondLevelNode(db dbm.DB, curHeight int64) {
+func pruningSecondLevelNode(db dbm.DB, curHeight int64, treeCfg *TreeConfig) {
 	prefix := []byte(oldLeafKeyCountPrefix)
 	it := db.Iterator(prefix, nil, true)
 	defer it.Close()
@@ -349,20 +334,20 @@ func pruningSecondLevelNode(db dbm.DB, curHeight int64) {
 			mp[string(key)] = append(mp[string(key)], data)
 			count++
 			if len(mp) >= onceCount-1 || count > onceScanCount {
-				deleteOldNode(db, mp, curHeight, batch)
+				deleteOldNode(db, mp, curHeight, batch, treeCfg)
 				mp = nil
 				count = 0
 			}
 		}
 	}
 	if len(mp) > 0 {
-		deleteOldNode(db, mp, curHeight, batch)
+		deleteOldNode(db, mp, curHeight, batch, treeCfg)
 		mp = nil
 		_ = mp
 	}
 }
 
-func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.Batch) {
+func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.Batch, treeCfg *TreeConfig) {
 	if len(mp) == 0 {
 		return
 	}
@@ -371,7 +356,7 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch d
 		if len(vals) > 1 {
 			if vals[1].height != vals[0].height { //防止相同高度时候出现的误删除
 				for _, val := range vals[1:] { //从第二个开始判断
-					if curHeight >= val.height+int64(pruneHeight) {
+					if curHeight >= val.height+int64(treeCfg.PruneHeight) {
 						leafCountKey := genOldLeafCountKey([]byte(key), val.hash, val.height, len(val.hash))
 						value, err := db.Get(leafCountKey)
 						if err == nil {
@@ -565,8 +550,8 @@ func (node *Node) printNodeInfo(db *nodeDB) {
 }
 
 // PruningTree 裁剪树
-func PruningTree(db dbm.DB, curHeight int64) {
-	pruningTree(db, curHeight)
+func PruningTree(db dbm.DB, curHeight int64, treeCfg *TreeConfig) {
+	pruningTree(db, curHeight, treeCfg)
 }
 
 // PrintMemStats 打印内存使用情况

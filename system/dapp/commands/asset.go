@@ -109,6 +109,8 @@ func assetBalance(cmd *cobra.Command, args []string) {
 
 // CreateAssetSendToExec 通用的创建 send_exec 交易， 额外指定资产合约
 func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
+	title, _ := cmd.Flags().GetString("title")
+	cfg := types.GetCliSysParam(title)
 	paraName, _ := cmd.Flags().GetString("paraName")
 	exec, _ := cmd.Flags().GetString("exec")
 	exec = getRealExecName(paraName, exec)
@@ -131,7 +133,7 @@ func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
 	}
 
 	params := &rpcTypes.CreateTxIn{
-		Execer:     types.ExecName(fromExec),
+		Execer:     cfg.ExecName(fromExec),
 		ActionName: "TransferToExec",
 		Payload:    types.MustPBToJSON(payload),
 	}
@@ -143,6 +145,8 @@ func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
 
 // CreateAssetWithdraw 通用的创建 withdraw 交易， 额外指定资产合约
 func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
+	title, _ := cmd.Flags().GetString("title")
+	cfg := types.GetCliSysParam(title)
 	exec, _ := cmd.Flags().GetString("exec")
 	paraName, _ := cmd.Flags().GetString("paraName")
 	exec = getRealExecName(paraName, exec)
@@ -164,7 +168,7 @@ func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
 		ExecName:  exec,
 	}
 	params := &rpcTypes.CreateTxIn{
-		Execer:     types.ExecName(fromExec),
+		Execer:     cfg.ExecName(fromExec),
 		ActionName: "Withdraw",
 		Payload:    types.MustPBToJSON(payload),
 	}
@@ -176,6 +180,8 @@ func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
 
 // CreateAssetTransfer 通用的创建 transfer 交易， 额外指定资产合约
 func CreateAssetTransfer(cmd *cobra.Command, args []string, fromExec string) {
+	title, _ := cmd.Flags().GetString("title")
+	cfg := types.GetCliSysParam(title)
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
@@ -188,7 +194,7 @@ func CreateAssetTransfer(cmd *cobra.Command, args []string, fromExec string) {
 		Cointoken: symbol,
 	}
 	params := &rpcTypes.CreateTxIn{
-		Execer:     types.ExecName(fromExec),
+		Execer:     cfg.ExecName(fromExec),
 		ActionName: "Transfer",
 		Payload:    types.MustPBToJSON(payload),
 	}

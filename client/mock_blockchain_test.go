@@ -184,14 +184,13 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.ParaTxDetails{}))
 					}
 				}
-
 			case types.EventGetHeightByTitle:
 				if req, ok := msg.GetData().(*types.ReqHeightByTitle); ok {
 					// just for cover
 					if req.Title == "user" {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyHeightByTitle, &types.Reply{IsOk: false, Msg: []byte("not support")}))
 					} else {
-						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyHeightByTitle, &types.HeightParas{}))
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyHeightByTitle, &types.ReplyHeightByTitle{}))
 					}
 				}
 			case types.EventGetParaTxByTitleAndHeight:
@@ -200,9 +199,21 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 					if req.Title == "user" {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.Reply{IsOk: false, Msg: []byte("not support")}))
 					} else {
-						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.ParaTxDetails{}))
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.ReplyParaTxByHeight{}))
 					}
 				}
+			case types.EventGetLastBlockSequence:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyLastBlockSequence, &types.Int64{}))
+			case types.EventGetBlockByHashes:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyLastBlockSequence, &types.BlockDetails{}))
+			case types.EventGetBlockSequences:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyBlockSequences, &types.BlockSequences{}))
+			case types.EventAddBlockSeqCB:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Reply{}))
+			case types.EventListBlockSeqCB:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.BlockSeqCBs{}))
+			case types.EventGetSeqCBLastNum:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Int64{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
