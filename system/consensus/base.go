@@ -386,7 +386,8 @@ func buildHashList(deltx []*types.Transaction) *types.TxHashList {
 //WriteBlock 向blockchain写区块
 func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	//交易排序
-	if types.IsFork(block.GetHeight(), "ForkRootHash") {
+	cfg := bc.client.GetConfig()
+	if cfg.IsFork(block.GetHeight(), "ForkRootHash") {
 		txs, err := types.SortTxList(block.Txs)
 		if err != nil {
 			return err

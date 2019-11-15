@@ -171,22 +171,18 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	if err != nil {
 		return nil, err
 	}
-	//test
-	chainlog.Info("ProcQueryTxMsg", "Height", txresult.Height, "txroothash", common.ToHex(block.Block.TxHash), "txhash", common.ToHex(txhash))
 
-	for index, tx := range block.Block.Txs {
-		chainlog.Info("ProcQueryTxMsg", "index", index, "exec", string(tx.Execer), "txhash", common.ToHex(tx.Hash()))
-	}
 	var TransactionDetail types.TransactionDetail
 	var proofs [][]byte
-	if !types.IsFork(txresult.Height, "ForkRootHash") || chain.isParaChain {
+	cfg := chain.client.GetConfig()
+	if !cfg.IsFork(txresult.Height, "ForkRootHash") || chain.isParaChain {
 		//获取指定tx在txlist中的proof
 		proofs, err = GetTransactionProofs(block.Block.Txs, txresult.Index)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		proofs = chain.getTxBranchOnChildChain(txresult.Height, block.Block.Hash(), block.Block.Txs, txresult.Index)
+		proofs = chain.getTxBranchOnChildChain(txresult.Height, block.Block.Hash(cfg), block.Block.Txs, txresult.Index)
 	}
 
 	TransactionDetail.Proofs = proofs
@@ -264,7 +260,8 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 }
 
 func (chain *BlockChain) CalcMerkleRootFromBranch(height int64, blockhash []byte, merkleBranch [][]byte, txhash []byte, index uint32) []byte {
-	if !types.IsFork(height, "ForkRootHash") || chain.isParaChain {
+	cfg := chain.client.GetConfig()
+	if !cfg.IsFork(height, "ForkRootHash") || chain.isParaChain {
 		return merkle.GetMerkleRootFromBranch(merkleBranch, txhash, index)
 	}
 	txresult, err := chain.GetTxResultFromDb(txhash)

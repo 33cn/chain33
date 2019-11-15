@@ -325,7 +325,8 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	}
 	//检查block的txhash值
 	var calcHash []byte
-	if !types.IsFork(block.Height, "ForkRootHash") {
+	cfg := client.GetConfig()
+	if !cfg.IsFork(block.Height, "ForkRootHash") {
 		calcHash = merkle.CalcMerkleRootCache(cacheTxs)
 
 	} else {

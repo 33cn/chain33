@@ -115,6 +115,7 @@ func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types
 	if !strings.HasPrefix(req.Title, types.ParaKeyX) {
 		return nil, types.ErrInvalidParam
 	}
+	cfg := chain.client.GetConfig()
 	var paraTxs types.ReplyParaTxByHeight
 	for _, height := range req.Items {
 		var paraTx types.ParaTxInfo
@@ -123,12 +124,12 @@ func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types
 		if err != nil {
 			filterlog.Error("GetParaTxByHeight:GetBlock", "height", height, "err", err)
 		} else {
-			paraTxDetail := block.FilterParaTxsByTitle(req.Title)
+			paraTxDetail := block.FilterParaTxsByTitle(cfg, req.Title)
 			if paraTxDetail != nil {
 				paraTx.Header = paraTxDetail.Header
 				paraTx.TxDetails = paraTxDetail.TxDetails
 				paraTx.Type = types.AddBlock
-				if types.IsFork(height, "ForkRootHash") {
+				if cfg.IsFork(height, "ForkRootHash") {
 					paraInfos, err := getParaTxByIndex(chain.blockStore.db, "", calcHeightTitleKey(height, req.Title), nil, 0, 1)
 					if err == nil && len(paraInfos.Items) == 1 {
 						paraTx.ChildHash = paraInfos.Items[0].ChildHash
@@ -209,10 +210,8 @@ func (chain *BlockChain) getTxBranchOnChildChain(height int64, blockHash []byte,
 	var childHashes [][]byte
 	for i := startIndex; i < endindex; i++ {
 		childHashes = append(childHashes, Txs[i].Hash())
-		filterlog.Error("getTxBranchOnChildChain", "i", i, "txHash", common.ToHex(Txs[i].Hash()))
 	}
 	txInChildIndex := index - startIndex
-	filterlog.Error("getTxBranchOnChildChain", "txInChildIndex", txInChildIndex)
 
 	//计算单笔交易在子链中的路径证明
 	txBranch := merkle.GetMerkleBranch(childHashes, uint32(txInChildIndex))

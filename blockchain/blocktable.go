@@ -311,10 +311,10 @@ func (paratx *ParaTxRow) Get(key string) ([]byte, error) {
 }
 
 //saveParaTxTable 保存平行链标识
-func saveParaTxTable(db dbm.DB, height int64, hash []byte, txs []*types.Transaction) ([]*types.KeyValue, error) {
+func saveParaTxTable(cfg *types.Chain33Config, db dbm.DB, height int64, hash []byte, txs []*types.Transaction) ([]*types.KeyValue, error) {
 	kvdb := dbm.NewKVDB(db)
 	table := NewParaTxTable(kvdb)
-	if !types.IsFork(height, "ForkRootHash") {
+	if !cfg.IsFork(height, "ForkRootHash") {
 		for _, tx := range txs {
 			exec := string(tx.Execer)
 			if types.IsParaExecName(exec) {

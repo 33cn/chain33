@@ -324,6 +324,7 @@ func TestSetGroupExpire(t *testing.T) {
 }
 
 func TestSortTxList(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
 
 	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
 	tx2 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630de92c3828ad194b26d3a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
@@ -350,7 +351,7 @@ func TestSortTxList(t *testing.T) {
 
 	//构建主链的交易组并添加到交易列表中
 	tx111, tx221, tx321 := modifyTxExec(tx12, tx22, tx32, "paracross", "game", "guess")
-	group, err := CreateTxGroup([]*Transaction{&tx111, &tx221, &tx321}, GInt("MinFee"))
+	group, err := CreateTxGroup([]*Transaction{&tx111, &tx221, &tx321}, cfg.GInt("MinFee"))
 	if err != nil {
 		t.Error(err)
 		return
@@ -372,7 +373,7 @@ func TestSortTxList(t *testing.T) {
 
 	//构建user.p.test.平行链的交易组并添加到交易列表中
 	tx1112, tx2212, tx3212 := modifyTxExec(tx12, tx22, tx32, "user.p.test.evm", "user.p.test.relay", "user.p.test.ticket")
-	group, err = CreateTxGroup([]*Transaction{&tx1112, &tx2212, &tx3212}, GInt("MinFee"))
+	group, err = CreateTxGroup([]*Transaction{&tx1112, &tx2212, &tx3212}, cfg.GInt("MinFee"))
 	if err != nil {
 		t.Error(err)
 		return
@@ -388,7 +389,7 @@ func TestSortTxList(t *testing.T) {
 	//构建user.p.para.平行链的交易组并添加到交易列表中
 	tx1113, tx2213, tx3213 := modifyTxExec(tx12, tx22, tx32, "user.p.para.coins", "user.p.para.paracross", "user.p.para.pokerbull")
 
-	group, err = CreateTxGroup([]*Transaction{&tx1113, &tx2213, &tx3213}, GInt("MinFee"))
+	group, err = CreateTxGroup([]*Transaction{&tx1113, &tx2213, &tx3213}, cfg.GInt("MinFee"))
 	if err != nil {
 		t.Error(err)
 		return
@@ -404,7 +405,7 @@ func TestSortTxList(t *testing.T) {
 	//构建user.p.fuzamei.平行链的交易组并添加到交易列表中
 	tx1114, tx2214, tx3214 := modifyTxExec(tx12, tx22, tx32, "user.p.fuzamei.norm", "user.p.fuzamei.coins", "user.p.fuzamei.retrieve")
 
-	group, err = CreateTxGroup([]*Transaction{&tx1114, &tx2214, &tx3214}, GInt("MinFee"))
+	group, err = CreateTxGroup([]*Transaction{&tx1114, &tx2214, &tx3214}, cfg.GInt("MinFee"))
 	if err != nil {
 		t.Error(err)
 		return

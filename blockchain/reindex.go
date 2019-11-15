@@ -154,7 +154,7 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 		panic(err)
 	}
 	height := blockdetail.Block.GetHeight()
-	hash := blockdetail.Block.Hash()
+	hash := blockdetail.Block.Hash(chain.client.GetConfig())
 
 	//只重构add时区块的存储方式，del时只需要删除对应区块上的平行链标记即可
 	if blockOptType == types.AddBlock {

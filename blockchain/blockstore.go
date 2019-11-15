@@ -1241,7 +1241,8 @@ func (bs *BlockStore) SetConsensusPara(kvs *types.LocalDBSet) error {
 func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types.BlockDetail, isBestChain bool) error {
 
 	height := blockdetail.Block.Height
-	hash := blockdetail.Block.Hash()
+	cfg := bs.client.GetConfig()
+	hash := blockdetail.Block.Hash(cfg)
 
 	// Save blockbody
 	var blockbody types.BlockBody
@@ -1251,7 +1252,7 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 	blockbody.MainHeight = height
 	blockbody.Hash = hash
 	blockbody.Height = height
-	if types.IsPara() {
+	if bs.isParaChain {
 		blockbody.MainHash = blockdetail.Block.MainHash
 		blockbody.MainHeight = blockdetail.Block.MainHeight
 	}
@@ -1287,8 +1288,8 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 	}
 
 	//只过滤主链上的平行链交易
-	if isBestChain && !types.IsPara() {
-		paratxkvs, err := saveParaTxTable(bs.db, height, hash, blockdetail.Block.Txs)
+	if isBestChain && !bs.isParaChain {
+		paratxkvs, err := saveParaTxTable(cfg, bs.db, height, hash, blockdetail.Block.Txs)
 		if err != nil {
 			storeLog.Error("SaveBlock:saveParaTxTable", "height", height, "hash", common.ToHex(hash), "err", err)
 			return err

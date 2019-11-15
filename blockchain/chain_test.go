@@ -72,7 +72,7 @@ func TestBlockChain(t *testing.T) {
 
 	testGetTxHashList(t, blockchain)
 
-	testProcQueryTxMsg(t, blockchain)
+	testProcQueryTxMsg(cfg, t, blockchain)
 
 	testGetBlocksMsg(t, blockchain)
 
@@ -453,7 +453,7 @@ func TestCheckDupTxHashList05(t *testing.T) {
 	chainlog.Info("TestCheckDupTxHashList05 end --------------------")
 }
 
-func testProcQueryTxMsg(t *testing.T, blockchain *blockchain.BlockChain) {
+func testProcQueryTxMsg(cfg *types.Chain33Config, t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("TestProcQueryTxMsg begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	var merkleroothash []byte
@@ -476,7 +476,7 @@ func testProcQueryTxMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	//证明txproof的正确性
 	//brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, uint32(txindex))
 
-	brroothash := blockchain.CalcMerkleRootFromBranch(curheight, block.Block.Hash(), txproof.GetProofs(), txhash, uint32(txindex))
+	brroothash := blockchain.CalcMerkleRootFromBranch(curheight, block.Block.Hash(cfg), txproof.GetProofs(), txhash, uint32(txindex))
 
 	assert.Equal(t, merkleroothash, brroothash)
 

@@ -17,14 +17,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	types.Init("local", nil)
-}
 func TestBlockTable(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	cfg.BlockChain.RollbackBlock = 5
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	cfg := testnode.GetDefaultConfig()
+	cfg.GetModuleConfig().BlockChain.RollbackBlock = 5
+	mock33 := testnode.NewWithConfig(cfg, nil)
 	defer mock33.Close()
+	cfg = mock33.GetClient().GetConfig()
 	blockchain := mock33.GetBlockChain()
 	chainlog.Info("TestBlockTable begin --------------------")
 
@@ -38,10 +36,10 @@ func TestBlockTable(t *testing.T) {
 	}
 
 	for {
-		_, err = addSingleParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
+		_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
 		require.NoError(t, err)
 
-		_, _, err = addGroupParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.", false)
+		_, _, err = addGroupParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.", false)
 		require.NoError(t, err)
 
 		curheight = blockchain.GetBlockHeight()
@@ -53,13 +51,13 @@ func TestBlockTable(t *testing.T) {
 		time.Sleep(sendTxWait)
 	}
 	time.Sleep(sendTxWait * 2)
-	testBlockTable(t, blockchain)
+	testBlockTable(cfg, t, blockchain)
 	//del测试
 	blockchain.Rollback()
-	testBlockTable(t, blockchain)
+	testBlockTable(cfg, t, blockchain)
 }
 
-func testBlockTable(t *testing.T, blockchain *blockchain.BlockChain) {
+func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockchain.BlockChain) {
 	curheight := blockchain.GetBlockHeight()
 
 	//通过当前高度获取header
@@ -70,14 +68,14 @@ func testBlockTable(t *testing.T, blockchain *blockchain.BlockChain) {
 	block, err := blockchain.GetStore().LoadBlockByHeight(curheight)
 	require.NoError(t, err)
 
-	assert.Equal(t, header.GetHash(), block.Block.Hash())
+	assert.Equal(t, header.GetHash(), block.Block.Hash(cfg))
 	assert.Equal(t, header.GetHash(), block.Block.MainHash)
 	assert.Equal(t, curheight, block.Block.MainHeight)
 
 	//通过当前高度+hash获取block
 	block1, err := blockchain.GetStore().LoadBlockByHash(header.GetHash())
 	require.NoError(t, err)
-	assert.Equal(t, header.GetHash(), block1.Block.Hash())
+	assert.Equal(t, header.GetHash(), block1.Block.Hash(cfg))
 	assert.Equal(t, header.GetHash(), block1.Block.MainHash)
 	assert.Equal(t, curheight, block1.Block.MainHeight)
 
