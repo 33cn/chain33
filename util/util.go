@@ -310,7 +310,13 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		return nil, nil, types.ErrCheckTxHash
 	}
 	//检查block的txhash值
-	calcHash := merkle.CalcMerkleRootCache(cacheTxs)
+	var calcHash []byte
+	if !types.IsFork(block.Height, "ForkRootHash") {
+		calcHash = merkle.CalcMerkleRootCache(cacheTxs)
+
+	} else {
+		calcHash, _ = merkle.CalcMultiLayerMerkleRoot(block.Txs)
+	}
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}

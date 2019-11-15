@@ -65,6 +65,7 @@ const (
 	MaxBlockSizePerTime           = 100000000 //从数据库中一次性获取block的最大size100M
 	AddBlock              int64   = 1
 	DelBlock              int64   = 2
+	MainChainName                 = "main"
 )
 
 //全局账户私钥/公钥

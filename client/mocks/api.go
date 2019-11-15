@@ -526,15 +526,15 @@ func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 }
 
 // GetParaTxByHeight provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
+func (_m *QueueProtocolAPI) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ReplyParaTxByHeight, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.ParaTxDetails
-	if rf, ok := ret.Get(0).(func(*types.ReqParaTxByHeight) *types.ParaTxDetails); ok {
+	var r0 *types.ReplyParaTxByHeight
+	if rf, ok := ret.Get(0).(func(*types.ReqParaTxByHeight) *types.ReplyParaTxByHeight); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ParaTxDetails)
+			r0 = ret.Get(0).(*types.ReplyParaTxByHeight)
 		}
 	}
 
@@ -825,15 +825,15 @@ func (_m *QueueProtocolAPI) ListSeqCallBack() (*types.BlockSeqCBs, error) {
 }
 
 // LoadParaTxByTitle provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.HeightParas, error) {
+func (_m *QueueProtocolAPI) LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.ReplyHeightByTitle, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.HeightParas
-	if rf, ok := ret.Get(0).(func(*types.ReqHeightByTitle) *types.HeightParas); ok {
+	var r0 *types.ReplyHeightByTitle
+	if rf, ok := ret.Get(0).(func(*types.ReqHeightByTitle) *types.ReplyHeightByTitle); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.HeightParas)
+			r0 = ret.Get(0).(*types.ReplyHeightByTitle)
 		}
 	}
 

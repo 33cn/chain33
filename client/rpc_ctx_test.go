@@ -337,13 +337,13 @@ func (c *GrpcCtx) Run() (err error) {
 	case "LoadParaTxByTitle":
 		reply, err := rpc.LoadParaTxByTitle(context.Background(), c.Params.(*types.ReqHeightByTitle))
 		if err == nil {
-			*c.Res.(*types.HeightParas) = *reply
+			*c.Res.(*types.ReplyHeightByTitle) = *reply
 		}
 		errRet = err
 	case "GetParaTxByHeight":
 		reply, err := rpc.GetParaTxByHeight(context.Background(), c.Params.(*types.ReqParaTxByHeight))
 		if err == nil {
-			*c.Res.(*types.ParaTxDetails) = *reply
+			*c.Res.(*types.ReplyParaTxByHeight) = *reply
 		}
 		errRet = err
 

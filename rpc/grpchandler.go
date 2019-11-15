@@ -403,11 +403,11 @@ func (g *Grpc) GetParaTxByTitle(ctx context.Context, in *pb.ReqParaTxByTitle) (*
 }
 
 // LoadParaTxByTitle //获取拥有此title交易的区块高度
-func (g *Grpc) LoadParaTxByTitle(ctx context.Context, in *pb.ReqHeightByTitle) (*pb.HeightParas, error) {
+func (g *Grpc) LoadParaTxByTitle(ctx context.Context, in *pb.ReqHeightByTitle) (*pb.ReplyHeightByTitle, error) {
 	return g.cli.LoadParaTxByTitle(in)
 }
 
 // GetParaTxByHeight //通过区块高度列表+title获取平行链交易
-func (g *Grpc) GetParaTxByHeight(ctx context.Context, in *pb.ReqParaTxByHeight) (*pb.ParaTxDetails, error) {
+func (g *Grpc) GetParaTxByHeight(ctx context.Context, in *pb.ReqParaTxByHeight) (*pb.ReplyParaTxByHeight, error) {
 	return g.cli.GetParaTxByHeight(in)
 }

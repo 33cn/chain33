@@ -5,6 +5,7 @@ import (
 
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/db/table"
+	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
 )
 
@@ -313,21 +314,41 @@ func (paratx *ParaTxRow) Get(key string) ([]byte, error) {
 func saveParaTxTable(db dbm.DB, height int64, hash []byte, txs []*types.Transaction) ([]*types.KeyValue, error) {
 	kvdb := dbm.NewKVDB(db)
 	table := NewParaTxTable(kvdb)
-	for _, tx := range txs {
-		exec := string(tx.Execer)
-		if types.IsParaExecName(exec) {
-			if title, ok := types.GetParaExecTitleName(exec); ok {
-				var paratx = &types.HeightPara{
-					Height: height,
-					Title:  title,
-					Hash:   hash,
-				}
-				err := table.Replace(paratx)
-				if err != nil {
-					return nil, err
+	if !types.IsFork(height, "ForkRootHash") {
+		for _, tx := range txs {
+			exec := string(tx.Execer)
+			if types.IsParaExecName(exec) {
+				if title, ok := types.GetParaExecTitleName(exec); ok {
+					var paratx = &types.HeightPara{
+						Height: height,
+						Title:  title,
+						Hash:   hash,
+					}
+					err := table.Replace(paratx)
+					if err != nil {
+						return nil, err
+					}
 				}
 			}
 		}
+	} else {
+		//交易分类排序之后需要存储各个链的子roothash
+		_, childhashs := merkle.CalcMultiLayerMerkleRoot(txs)
+		for i, childhash := range childhashs {
+			var paratx = &types.HeightPara{
+				Height:         height,
+				Hash:           hash,
+				Title:          childhash.Title,
+				ChildHash:      childhash.ChildHash,
+				StartIndex:     childhash.StartIndex,
+				ChildHashIndex: uint32(i),
+			}
+			err := table.Replace(paratx)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 	}
 	kvs, err := table.Save()
 	if err != nil {
@@ -356,7 +377,7 @@ func delParaTxTable(db dbm.DB, height int64) ([]*types.KeyValue, error) {
 	return kvs, nil
 }
 
-//通过指定的index获取对应的blockheader
+//通过指定的index获取对应的ParaTx信息
 //通过height高度获取：indexName="height",prefix=HeaderRow.Get(indexName)
 //通过title获取;     indexName="title",prefix=HeaderRow.Get(indexName)
 func getParaTxByIndex(db dbm.DB, indexName string, prefix []byte, primaryKey []byte, count, direction int32) (*types.HeightParas, error) {

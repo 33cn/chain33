@@ -381,6 +381,14 @@ func buildHashList(deltx []*types.Transaction) *types.TxHashList {
 
 //WriteBlock 向blockchain写区块
 func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
+	//交易排序
+	if types.IsFork(block.GetHeight(), "ForkRootHash") {
+		txs, err := types.SortTxList(block.Txs)
+		if err != nil {
+			return err
+		}
+		block.Txs = txs
+	}
 	//保存block的原始信息用于删除mempool中的错误交易
 	rawtxs := make([]*types.Transaction, len(block.Txs))
 	copy(rawtxs, block.Txs)

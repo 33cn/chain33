@@ -161,7 +161,7 @@ type QueueProtocolAPI interface {
 	// types.EventGetParaTxByTitle
 	GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.ParaTxDetails, error)
 	// types.EventGetHeightByTitle
-	LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.HeightParas, error)
+	LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.ReplyHeightByTitle, error)
 	// types.EventGetParaTxByTitleAndHeight
-	GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error)
+	GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ReplyParaTxByHeight, error)
 }

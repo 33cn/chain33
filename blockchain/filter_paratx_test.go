@@ -42,8 +42,8 @@ func addMainTx(priv crypto.PrivKey, api client.QueueProtocolAPI) (string, error)
 }
 
 //构造单笔para交易
-func addSingleParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI) (string, error) {
-	tx := util.CreateTxWithExecer(priv, "user.p.hyb.none")
+func addSingleParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI, exec string) (string, error) {
+	tx := util.CreateTxWithExecer(priv, exec)
 
 	hash := common.ToHex(tx.Hash())
 	reply, err := api.SendTx(tx)
@@ -57,17 +57,17 @@ func addSingleParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI) (string, 
 }
 
 //构造para交易组
-func addGroupParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI, haveMainTx bool) (string, *types.ReplyStrings, error) {
+func addGroupParaTx(priv crypto.PrivKey, api client.QueueProtocolAPI, title string, haveMainTx bool) (string, *types.ReplyStrings, error) {
 	var tx0 *types.Transaction
 	if haveMainTx {
 		tx0 = util.CreateTxWithExecer(priv, "coins")
 	} else {
-		tx0 = util.CreateTxWithExecer(priv, "user.p.hyb.coins")
+		tx0 = util.CreateTxWithExecer(priv, title+"coins")
 	}
-	tx1 := util.CreateTxWithExecer(priv, "user.p.hyb.token")
-	tx2 := util.CreateTxWithExecer(priv, "user.p.hyb.trade")
-	tx3 := util.CreateTxWithExecer(priv, "user.p.hyb.evm")
-	tx4 := util.CreateTxWithExecer(priv, "user.p.hyb.none")
+	tx1 := util.CreateTxWithExecer(priv, title+"token")
+	tx2 := util.CreateTxWithExecer(priv, title+"trade")
+	tx3 := util.CreateTxWithExecer(priv, title+"evm")
+	tx4 := util.CreateTxWithExecer(priv, title+"none")
 
 	var txs types.Transactions
 	txs.Txs = append(txs.Txs, tx0)
@@ -124,13 +124,10 @@ func TestGetParaTxByTitle(t *testing.T) {
 		_, err = addMainTx(mock33.GetGenesisKey(), mock33.GetAPI())
 		require.NoError(t, err)
 
-		_, err = addSingleParaTx(mock33.GetGenesisKey(), mock33.GetAPI())
+		_, err = addSingleParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
 		require.NoError(t, err)
 
-		//_, _, err = addGroupParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), true)
-		//require.NoError(t, err)
-
-		_, _, err = addGroupParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), false)
+		_, _, err = addGroupParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.", false)
 		require.NoError(t, err)
 
 		curheight = blockchain.GetBlockHeight()
@@ -157,6 +154,12 @@ func TestGetParaTxByTitle(t *testing.T) {
 	req.IsSeq = false
 	req.End = curheight + 1
 	testgetParaTxByTitle(t, blockchain, &req, 1)
+
+	curheight = blockchain.GetBlockHeight()
+	var height int64
+	for height = 0; height <= curheight; height++ {
+		testGetParaTxByHeight(t, blockchain, height)
+	}
 	chainlog.Info("TestGetParaTxByTitle end --------------------")
 
 }
@@ -194,5 +197,98 @@ func testgetParaTxByTitle(t *testing.T, blockchain *blockchain.BlockChain, req *
 				}
 			}
 		}
+	}
+}
+
+//获取当前高度上的所有平行链title
+func testGetParaTxByHeight(t *testing.T, blockchain *blockchain.BlockChain, height int64) {
+
+	block, err := blockchain.GetBlock(height)
+	require.NoError(t, err)
+
+	replyparaTxs, err := blockchain.LoadParaTxByHeight(height, "", 0, 1)
+	if height == 0 {
+		return
+	}
+
+	require.NoError(t, err)
+	var mThreePhashes [][]byte
+	for _, paratx := range replyparaTxs.Items {
+		assert.Equal(t, paratx.Height, height)
+		assert.Equal(t, paratx.Hash, block.Block.Hash())
+		mThreePhashes = append(mThreePhashes, paratx.ChildHash)
+	}
+	//子roothash的proof证明
+	for _, childchain := range replyparaTxs.Items {
+		branch := merkle.GetMerkleBranch(mThreePhashes, childchain.GetChildHashIndex())
+		root := merkle.GetMerkleRootFromBranch(branch, childchain.ChildHash, childchain.GetChildHashIndex())
+		assert.Equal(t, block.Block.TxHash, root)
+	}
+	rootHash := merkle.GetMerkleRoot(mThreePhashes)
+	assert.Equal(t, block.Block.TxHash, rootHash)
+}
+
+func TestMultiLayerMerkleTree(t *testing.T) {
+	mock33 := testnode.New("", nil)
+	defer mock33.Close()
+	blockchain := mock33.GetBlockChain()
+	chainlog.Info("TestMultiLayerMerkleTree begin --------------------")
+
+	//构造十个区块
+	curheight := blockchain.GetBlockHeight()
+	addblockheight := curheight + 10
+
+	_, err := blockchain.GetBlock(curheight)
+	if err != nil {
+		require.NoError(t, err)
+	}
+
+	for {
+		_, err = addMainTx(mock33.GetGenesisKey(), mock33.GetAPI())
+		require.NoError(t, err)
+
+		_, err = addSingleParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.ticket")
+		require.NoError(t, err)
+		_, err = addSingleParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.test.coins")
+		require.NoError(t, err)
+		_, err = addSingleParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.para.game")
+		require.NoError(t, err)
+
+		_, _, err = addGroupParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.test.", false)
+		require.NoError(t, err)
+
+		_, _, err = addGroupParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.", false)
+		require.NoError(t, err)
+
+		_, _, err = addGroupParaTx(mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.para.", false)
+		require.NoError(t, err)
+		curheight = blockchain.GetBlockHeight()
+		_, err = blockchain.GetBlock(curheight)
+		require.NoError(t, err)
+		if curheight >= addblockheight {
+			break
+		}
+		time.Sleep(sendTxWait)
+	}
+
+	curheight = blockchain.GetBlockHeight()
+	//var height int64
+	//for height = 0; height <= curheight; height++ {
+	testParaTxByHeight(t, blockchain, curheight)
+	//}
+	chainlog.Info("TestMultiLayerMerkleTree end --------------------")
+}
+
+//获取当前高度上的所有平行链title
+func testParaTxByHeight(t *testing.T, blockchain *blockchain.BlockChain, height int64) {
+
+	block, err := blockchain.GetBlock(height)
+	require.NoError(t, err)
+
+	for index, tx := range block.Block.Txs {
+		txDetail, err := blockchain.ProcQueryTxMsg(tx.Hash())
+		require.NoError(t, err)
+		roothash := blockchain.CalcMerkleRootFromBranch(height, block.Block.Hash(), txDetail.GetProofs(), tx.Hash(), uint32(index))
+		assert.Equal(t, block.Block.TxHash, roothash)
 	}
 }

@@ -19,7 +19,7 @@ import (
 
 	//	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/common/merkle"
+	//"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
@@ -475,12 +475,13 @@ func testProcQueryTxMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	}
 	txproof, err := blockchain.ProcQueryTxMsg(txhash)
 	require.NoError(t, err)
-
+	assert.NotNil(t, txproof.GetProofs())
 	//证明txproof的正确性
-	brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, uint32(txindex))
-	if !bytes.Equal(merkleroothash, brroothash) {
-		t.Error("txproof roothash error")
-	}
+	//brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, uint32(txindex))
+
+	brroothash := blockchain.CalcMerkleRootFromBranch(curheight, block.Block.Hash(), txproof.GetProofs(), txhash, uint32(txindex))
+
+	assert.Equal(t, merkleroothash, brroothash)
 
 	chainlog.Info("TestProcQueryTxMsg end --------------------")
 }

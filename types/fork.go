@@ -218,6 +218,8 @@ func SetTestNetFork() {
 	systemFork.SetFork("chain33", "ForkEnableParaRegExec", 0)
 	systemFork.SetFork("chain33", "ForkCacheDriver", 2580000)
 	systemFork.SetFork("chain33", "ForkTicketFundAddrV1", 3350000)
+	systemFork.SetFork("chain33", "ForkRootHash", 6000000)
+
 }
 
 func setLocalFork() {
@@ -226,6 +228,7 @@ func setLocalFork() {
 		panic(err)
 	}
 	systemFork.ReplaceFork("local", "ForkBlockHash", 1)
+	systemFork.ReplaceFork("local", "ForkRootHash", 1)
 }
 
 //paraName not used currently
@@ -235,6 +238,7 @@ func setForkForParaZero(paraName string) {
 		tlog.Error("setForkForPara", "error", err)
 	}
 	systemFork.ReplaceFork(paraName, "ForkBlockHash", 1)
+	systemFork.ReplaceFork(paraName, "ForkRootHash", 1)
 }
 
 // IsFork 是否系统 fork高度

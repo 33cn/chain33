@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"reflect"
+	"sort"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -785,4 +786,116 @@ func CalcTxShortHash(hash []byte) string {
 		return hex.EncodeToString(hash[0:5])
 	}
 	return ""
+}
+
+//
+type TxSlice []*Transaction
+
+func (s TxSlice) Len() int {
+	return len(s)
+}
+func (s TxSlice) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+// 将 TxSlice 包装起来到 ByExecName 中
+type ByExecName struct {
+	TxSlice
+}
+
+// 将 Less 绑定到 ByExecName 上
+//主要将主链的交易都统一排在平行链的交易前面，主链的交易在比较时统一加“m”，
+//平行链交易的执行器都是以user.p.开头的.这样主链的交易都会排在平行链交易的前面
+func (s ByExecName) Less(i, j int) bool {
+
+	leftExecName := string(s.TxSlice[i].Execer)
+	rightExecName := string(s.TxSlice[j].Execer)
+
+	if !IsParaExecName(leftExecName) {
+		leftExecName = "m" + leftExecName
+	}
+	if !IsParaExecName(rightExecName) {
+		rightExecName = "m" + rightExecName
+	}
+	return leftExecName < rightExecName
+}
+
+//SortTxList 对交易数组按照指定规则排序
+//首先将交易列表中的交易组合并成单个组交易
+//然后对新的交易列表排序
+//再后将排序后的交易列表中的组交易展开，主要是交易组的特殊处理
+func SortTxList(txs []*Transaction) ([]*Transaction, error) {
+	var haveTxGroup bool
+	var err error
+	for _, tx := range txs {
+		if tx.GroupCount != 0 {
+			haveTxGroup = true
+			break
+		}
+	}
+	uniteTxIist := txs
+	if haveTxGroup {
+		uniteTxIist, err = uniteTxList(txs)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	sort.Sort(ByExecName{TxSlice: uniteTxIist})
+
+	return expandTxs(uniteTxIist)
+}
+
+//将交易列表中的交易组交易合并成一个组交易
+func uniteTxList(txs []*Transaction) ([]*Transaction, error) {
+
+	var txsList Transactions
+	txsCount := len(txs)
+	for i := 0; i < txsCount; i++ {
+		tx := txs[i]
+		if tx.GroupCount < 0 || tx.GroupCount == 1 || tx.GroupCount > 20 {
+			return nil, ErrTxGroupCount
+		}
+		//单个交易
+		if tx.GroupCount == 0 {
+			txsList.Txs = append(txsList.Txs, tx)
+			continue
+		}
+
+		//判断GroupCount 是否会产生越界
+		if i+int(tx.GroupCount) > txsCount {
+			return nil, ErrTxGroupCount
+		}
+
+		//将交易组交易合并成一个组交易
+		groupTx := uniteTxGroup(txs[i : i+int(tx.GroupCount)])
+		txsList.Txs = append(txsList.Txs, groupTx)
+
+		i = i + int(tx.GroupCount) - 1
+	}
+	return txsList.Txs, nil
+}
+
+//将一个交易组的所有交易合并成一个组交易
+func uniteTxGroup(txs []*Transaction) *Transaction {
+	txgroup := &Transactions{}
+	txgroup.Txs = txs
+	return txgroup.Tx()
+}
+
+//将排序后的交易列表中的组交易展开成交易组形式
+func expandTxs(txs []*Transaction) ([]*Transaction, error) {
+	var txsList Transactions
+	for i := 0; i < len(txs); i++ {
+		txGroup, err := txs[i].GetTxGroup()
+		if err != nil {
+			return nil, err
+		}
+		if txGroup == nil {
+			txsList.Txs = append(txsList.Txs, txs[i])
+		} else {
+			txsList.Txs = append(txsList.Txs, txGroup.Txs...)
+		}
+	}
+	return txsList.Txs, nil
 }
