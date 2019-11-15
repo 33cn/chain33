@@ -276,11 +276,10 @@ message HeaderSeqs {
     repeated HeaderSeq seqs = 1;
 }
 
-
 //记录本平行链所在区块的信息以及子根hash值
-//childHash:平行链子roothash值
-//startIndex:此平行链的第一笔交易的index索引值
-//childHashIndex:此平行链子roothash在本区块中的索引值
+// childHash:平行链子roothash值
+// startIndex:此平行链的第一笔交易的index索引值
+// childHashIndex:此平行链子roothash在本区块中的索引值
 message HeightPara {
     int64  height         = 1;
     string title          = 2;
@@ -295,10 +294,10 @@ message HeightParas {
 }
 
 //记录平行链第一笔交易的index,以及平行链的roothash
-message ChildChain  {
-	string title      =1;
-	int32  startIndex =2;
-	bytes  childHash  =3;
+message ChildChain {
+    string title      = 1;
+    int32  startIndex = 2;
+    bytes  childHash  = 3;
 }
 
 //通过指定title以及height翻页获取拥有此title交易的区块高度列表
@@ -314,13 +313,11 @@ message ReplyHeightByTitle {
     repeated BlockInfo items = 2;
 }
 
-//title平行链交易所在主链区块的信息
+// title平行链交易所在主链区块的信息
 message BlockInfo {
-    int64  height    = 1;
-    bytes  hash      = 2;
+    int64 height = 1;
+    bytes hash   = 2;
 }
-
-
 
 //通过高度列表和title获取平行链交易
 message ReqParaTxByHeight {
@@ -342,7 +339,7 @@ message ParaTxInfo {
     int64    type               = 1;
     Header   header             = 2;
     repeated TxDetail txDetails = 3;
-    bytes    childHash          = 4;
-    uint32   index              = 5;
+    bytes             childHash = 4;
+    uint32            index     = 5;
     repeated bytes proofs       = 6;
 }
