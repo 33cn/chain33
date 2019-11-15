@@ -5,6 +5,8 @@
 package blockchain
 
 import (
+	"fmt"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 )
@@ -131,7 +133,19 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, e
 
 	// TODO
 	if cb.LastSequence != 0 {
-
+		// name 是否存在， 存在就继续，不用在重新注册了
+		if chain.blockStore.isSeqCBExist(cb.Name) {
+			return nil, nil
+		}
+		// name不存在：Sequence 信息匹配，添加
+		LoadedHeight, LoadedHash := int64(1), "TODO" // by Last Seq
+		if cb.LastHeight == LoadedHeight && cb.LastBlockHash == LoadedHash {
+			// TODO Add
+			return nil, nil
+		}
+		// name不存在， 但对应的Hash/Height对不上
+		LoadedBlocks := []types.Block{}
+		return LoadedBlocks, fmt.Errorf("%s", "SequenceNotMatch")
 	}
 
 	return nil, nil
