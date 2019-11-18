@@ -388,12 +388,13 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	//交易排序
 	cfg := bc.client.GetConfig()
 	if cfg.IsFork(block.GetHeight(), "ForkRootHash") {
-		txs, err := types.SortTxList(block.Txs)
+		txs, err := bc.sortTxList(cfg.GetModuleConfig().Consensus.Name, block.Txs)
 		if err != nil {
 			return err
 		}
 		block.Txs = txs
 	}
+
 	//保存block的原始信息用于删除mempool中的错误交易
 	rawtxs := make([]*types.Transaction, len(block.Txs))
 	copy(rawtxs, block.Txs)
@@ -613,4 +614,31 @@ func isExpire(cfg *types.Chain33Config, txs []*types.Transaction, height int64, 
 		}
 	}
 	return false
+}
+
+//对打包上链的交易排序
+//需要过滤掉有些共识的miner挖矿交易不参与排序，必须是第一笔交易,ticket,para
+func (bc *BaseClient) sortTxList(consensus string, rawtxs []*types.Transaction) ([]*types.Transaction, error) {
+
+	var txs types.Transactions
+	var haveMinerTx bool
+
+	if consensus == "ticket" || consensus == "para" {
+		txs.Txs = append(txs.Txs, rawtxs[1:]...)
+		haveMinerTx = true
+	} else {
+		txs.Txs = append(txs.Txs, rawtxs[0:]...)
+	}
+	txlist, err := types.SortTxList(txs.Txs)
+	if err != nil {
+		tlog.Error("WriteBlock", "err", err)
+		return nil, err
+	}
+	var sorTxs types.Transactions
+	if haveMinerTx {
+		sorTxs.Txs = append(sorTxs.Txs, rawtxs[0])
+	}
+	sorTxs.Txs = append(sorTxs.Txs, txlist...)
+	return sorTxs.Txs, nil
+
 }

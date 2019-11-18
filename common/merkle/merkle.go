@@ -344,7 +344,7 @@ func CalcMultiLayerMerkleRoot(txs []*types.Transaction) ([]byte, []types.ChildCh
 	if txsCount == 0 {
 		return zeroHash[:], nil
 	}
-	//需要区分交易列表中是同一个链的交易，
+	//需要区分交易列表中是否是同一个链的交易，
 	//混合链的交易需要找到每个链的第一笔交易，方便子链roothash的并行计算
 	for i, tx := range txs {
 		paraTitle, haveParaTx := types.GetParaExecTitleName(string(tx.Execer))

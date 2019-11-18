@@ -145,12 +145,14 @@ func (f *Forks) SetTestNetFork() {
 func (f *Forks) setLocalFork() {
 	f.SetAllFork(0)
 	f.ReplaceFork("ForkBlockHash", 1)
+	f.ReplaceFork("ForkRootHash", 1)
 }
 
 //paraName not used currently
 func (f *Forks) setForkForParaZero() {
 	f.SetAllFork(0)
 	f.ReplaceFork("ForkBlockHash", 1)
+	f.ReplaceFork("ForkRootHash", 1)
 }
 
 // IsFork 是否系统 fork高度
