@@ -194,7 +194,7 @@ func (chain *BlockChain) getTxBranchOnChildChain(height int64, blockHash []byte,
 	//不存在或者获取到的索引错误直接返回
 	if !exist || startIndex > index || childhashIndex >= uint32(len(replyparaTxs.Items)) {
 		filterlog.Error("getTxBranchOnChildChain", "height", height, "blockHash", common.ToHex(blockHash), "exist", exist, "replyparaTxs", replyparaTxs)
-		filterlog.Error("getTxBranchOnChildChain", "height", height, "blockHash", common.ToHex(blockHash), "startIndex", startIndex, "index", index, "childhashIndex", childhashIndex)
+		filterlog.Error("getTxBranchOnChildChain", "startIndex", startIndex, "index", index, "childhashIndex", childhashIndex)
 		return nil
 	}
 
@@ -215,6 +215,10 @@ func (chain *BlockChain) getTxBranchOnChildChain(height int64, blockHash []byte,
 
 	//计算单笔交易在子链中的路径证明
 	txBranch := merkle.GetMerkleBranch(childHashes, uint32(txInChildIndex))
+	if txBranch == nil {
+		filterlog.Error("getTxBranchOnChildChain", "height", height, "blockHash", common.ToHex(blockHash))
+		filterlog.Error("getTxBranchOnChildChain", "index", index, "startIndex", startIndex, "endindex", endindex, "Txs", Txs)
+	}
 	return txBranch
 }
 

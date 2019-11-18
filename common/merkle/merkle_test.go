@@ -415,7 +415,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 
 	//构建主链的交易组并添加到交易列表中
 	tx111, tx221, tx321 := modifyTxExec(tx12, tx22, tx32, "paracross", "game", "guess")
-	group, err := types.CreateTxGroup([]*types.Transaction{&tx111, &tx221, &tx321}, types.GInt("MinFee"))
+	group, err := types.CreateTxGroup([]*types.Transaction{&tx111, &tx221, &tx321}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -437,7 +437,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 
 	//构建user.p.test.平行链的交易组并添加到交易列表中
 	tx1112, tx2212, tx3212 := modifyTxExec(tx12, tx22, tx32, "user.p.test.evm", "user.p.test.relay", "user.p.test.ticket")
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx1112, &tx2212, &tx3212}, types.GInt("MinFee"))
+	group, err = types.CreateTxGroup([]*types.Transaction{&tx1112, &tx2212, &tx3212}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -453,7 +453,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	//构建user.p.para.平行链的交易组并添加到交易列表中
 	tx1113, tx2213, tx3213 := modifyTxExec(tx12, tx22, tx32, "user.p.para.coins", "user.p.para.paracross", "user.p.para.pokerbull")
 
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx1113, &tx2213, &tx3213}, types.GInt("MinFee"))
+	group, err = types.CreateTxGroup([]*types.Transaction{&tx1113, &tx2213, &tx3213}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -469,7 +469,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	//构建user.p.fuzamei.平行链的交易组并添加到交易列表中
 	tx1114, tx2214, tx3214 := modifyTxExec(tx12, tx22, tx32, "user.p.fuzamei.norm", "user.p.fuzamei.coins", "user.p.fuzamei.retrieve")
 
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx1114, &tx2214, &tx3214}, types.GInt("MinFee"))
+	group, err = types.CreateTxGroup([]*types.Transaction{&tx1114, &tx2214, &tx3214}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -571,7 +571,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	txMainList.Txs = append(txMainList.Txs, &tx53211)
 
 	tx61111, tx62211, tx63211 := modifyTxExec(tx12, tx22, tx32, "ajs", "zottery", "norm")
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx61111, &tx62211, &tx63211}, types.GInt("MinFee"))
+	group, err = types.CreateTxGroup([]*types.Transaction{&tx61111, &tx62211, &tx63211}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -605,7 +605,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 
 	tx81111, tx82211, tx83211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.coins", "user.p.test.token", "user.p.test.none")
 
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx81111, &tx82211, &tx83211}, types.GInt("MinFee"))
+	group, err = types.CreateTxGroup([]*types.Transaction{&tx81111, &tx82211, &tx83211}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return

@@ -623,7 +623,7 @@ func (bc *BaseClient) sortTxList(consensus string, rawtxs []*types.Transaction) 
 	var txs types.Transactions
 	var haveMinerTx bool
 
-	if consensus == "ticket" || consensus == "para" {
+	if haveSpecialTx(consensus) {
 		txs.Txs = append(txs.Txs, rawtxs[1:]...)
 		haveMinerTx = true
 	} else {
@@ -640,5 +640,12 @@ func (bc *BaseClient) sortTxList(consensus string, rawtxs []*types.Transaction) 
 	}
 	sorTxs.Txs = append(sorTxs.Txs, txlist...)
 	return sorTxs.Txs, nil
+}
 
+//有些共识的第一笔交易是固定交易，不参与排序
+func haveSpecialTx(consensus string) bool {
+	if consensus == "ticket" || consensus == "para" || consensus == "tendermint" {
+		return true
+	}
+	return false
 }
