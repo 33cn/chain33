@@ -472,7 +472,9 @@ func testProcQueryTxMsg(cfg *types.Chain33Config, t *testing.T, blockchain *bloc
 	}
 	txproof, err := blockchain.ProcQueryTxMsg(txhash)
 	require.NoError(t, err)
-	assert.NotNil(t, txproof.GetProofs())
+	if len(block.Block.Txs) > 1 {
+		assert.NotNil(t, txproof.GetProofs())
+	}
 	//证明txproof的正确性
 	//brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, uint32(txindex))
 
