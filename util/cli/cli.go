@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"flag"
+
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/rpc/jsonclient"
@@ -19,24 +21,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var conf = flag.String("conf", "", "cli config")
+
 //Run :
 func Run(RPCAddr, ParaName, name string) {
 	// cli 命令只打印错误级别到控制台
 	log.SetLogLevel("error")
+	flag.Parse()
 
-	configPath := ""
-	for i, arg := range os.Args[:] {
-		if arg == "-conf" { // -conf chain33.toml 可以配置读入cli配置文件路径
-			if i+1 < len(os.Args)-1 {
-				configPath = os.Args[i+1]
-				os.Args = append(os.Args[:i], os.Args[i+2:]...)
-			} else if i+1 == len(os.Args)-1 {
-				configPath = os.Args[i+1]
-				os.Args = os.Args[:i]
-			}
-			break
-		}
-	}
+	configPath := *conf
 	if configPath == "" {
 		if name == "" {
 			configPath = "chain33.toml"
@@ -108,6 +101,8 @@ func Run(RPCAddr, ParaName, name string) {
 	rootCmd.PersistentFlags().String("rpc_laddr", chain33Cfg.GStr("RPCAddr"), "http url")
 	rootCmd.PersistentFlags().String("paraName", chain33Cfg.GStr("ParaName"), "parachain")
 	rootCmd.PersistentFlags().String("title", chain33Cfg.GetTitle(), "get title name")
+	rootCmd.PersistentFlags().MarkHidden("title")
+	rootCmd.PersistentFlags().String("conf", "", "cli config")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
