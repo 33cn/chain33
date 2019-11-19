@@ -67,6 +67,13 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 			} else {
 				paraTx.Type = types.AddBlock
 			}
+			height := block.Block.GetHeight()
+			if cfg.IsFork(height, "ForkRootHash") {
+				branch, childHash, index := chain.getChildChainProofs(height, seq.Title, block.Block.GetTxs())
+				paraTx.ChildHash = childHash
+				paraTx.Index = index
+				paraTx.Proofs = branch
+			}
 		} else {
 			paraTx = nil
 		}
@@ -99,7 +106,7 @@ func (chain *BlockChain) checkInputParam(req *types.ReqParaTxByTitle) error {
 }
 
 //GetParaTxByTitle 通过seq以及title获取对应平行连的交易
-func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types.ReplyParaTxByHeight, error) {
+func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
 	//入参数校验
 	if req == nil {
 		return nil, types.ErrInvalidParam
@@ -116,50 +123,58 @@ func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types
 		return nil, types.ErrInvalidParam
 	}
 	cfg := chain.client.GetConfig()
-	var paraTxs types.ReplyParaTxByHeight
+	var paraTxs types.ParaTxDetails
+	var paraTxDetail *types.ParaTxDetail
 	for _, height := range req.Items {
-		var paraTx types.ParaTxInfo
-
 		block, err := chain.GetBlock(height)
 		if err != nil {
 			filterlog.Error("GetParaTxByHeight:GetBlock", "height", height, "err", err)
 		} else {
-			paraTxDetail := block.FilterParaTxsByTitle(cfg, req.Title)
+			paraTxDetail = block.FilterParaTxsByTitle(cfg, req.Title)
 			if paraTxDetail != nil {
-				paraTx.Header = paraTxDetail.Header
-				paraTx.TxDetails = paraTxDetail.TxDetails
-				paraTx.Type = types.AddBlock
+				paraTxDetail.Type = types.AddBlock
 				if cfg.IsFork(height, "ForkRootHash") {
-					paraInfos, err := getParaTxByIndex(chain.blockStore.db, "", calcHeightTitleKey(height, req.Title), nil, 0, 1)
-					if err == nil && len(paraInfos.Items) == 1 {
-						paraTx.ChildHash = paraInfos.Items[0].ChildHash
-						paraTx.Index = paraInfos.Items[0].ChildHashIndex
-						paraTx.Proofs = chain.getChildChainBranch(height, req.Title)
-					}
+					branch, childHash, index := chain.getChildChainProofs(height, req.Title, block.Block.GetTxs())
+					paraTxDetail.ChildHash = childHash
+					paraTxDetail.Index = index
+					paraTxDetail.Proofs = branch
 				}
 			}
 		}
-		paraTxs.Items = append(paraTxs.Items, &paraTx)
+		paraTxs.Items = append(paraTxs.Items, paraTxDetail)
 	}
 	return &paraTxs, nil
 }
 
 //获取指定title子链roothash在指定高度上的路径证明
-func (chain *BlockChain) getChildChainBranch(height int64, title string) [][]byte {
-	replyparaTxs, err := chain.LoadParaTxByHeight(height, "", 0, 1)
-	if err != nil {
-		return nil
-	}
-
-	var hashes [][]byte
+func (chain *BlockChain) getChildChainProofs(height int64, title string, txs []*types.Transaction) ([][]byte, []byte, uint32) {
+	var branch [][]byte
+	var childHash []byte
 	var index uint32
-	for _, paratx := range replyparaTxs.Items {
-		if title == paratx.Title {
-			index = paratx.ChildHashIndex
+	var hashes [][]byte
+
+	replyparaTxs, err := chain.LoadParaTxByHeight(height, "", 0, 1)
+	if err == nil {
+		for _, paratx := range replyparaTxs.Items {
+			if title == paratx.Title {
+				index = paratx.ChildHashIndex
+				childHash = paratx.ChildHash
+			}
+			hashes = append(hashes, paratx.ChildHash)
 		}
-		hashes = append(hashes, paratx.ChildHash)
+		branch = merkle.GetMerkleBranch(hashes, index)
+		return branch, childHash, index
 	}
-	return merkle.GetMerkleBranch(hashes, index)
+	_, childChains := merkle.CalcMultiLayerMerkleRoot(txs)
+	for i, childchain := range childChains {
+		hashes = append(hashes, childchain.ChildHash)
+		if childchain.Title == title {
+			index = uint32(i)
+			childHash = childchain.ChildHash
+		}
+	}
+	branch = merkle.GetMerkleBranch(hashes, index)
+	return branch, childHash, index
 }
 
 //获取指定交易在子链中的路径证明

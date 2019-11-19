@@ -1305,7 +1305,7 @@ func (q *QueueProtocol) LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types
 }
 
 //GetParaTxByHeight //通过区块高度列表+title获取平行链交易
-func (q *QueueProtocol) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ReplyParaTxByHeight, error) {
+func (q *QueueProtocol) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("GetParaTxByHeight", "Error", err)
@@ -1316,7 +1316,7 @@ func (q *QueueProtocol) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*type
 		log.Error("GetParaTxByHeight", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.ReplyParaTxByHeight); ok {
+	if reply, ok := msg.GetData().(*types.ParaTxDetails); ok {
 
 		return reply, nil
 	}

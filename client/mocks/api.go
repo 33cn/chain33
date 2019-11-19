@@ -542,15 +542,15 @@ func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 }
 
 // GetParaTxByHeight provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ReplyParaTxByHeight, error) {
+func (_m *QueueProtocolAPI) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.ReplyParaTxByHeight
-	if rf, ok := ret.Get(0).(func(*types.ReqParaTxByHeight) *types.ReplyParaTxByHeight); ok {
+	var r0 *types.ParaTxDetails
+	if rf, ok := ret.Get(0).(func(*types.ReqParaTxByHeight) *types.ParaTxDetails); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyParaTxByHeight)
+			r0 = ret.Get(0).(*types.ParaTxDetails)
 		}
 	}
 

@@ -343,7 +343,7 @@ func (c *GrpcCtx) Run() (err error) {
 	case "GetParaTxByHeight":
 		reply, err := rpc.GetParaTxByHeight(context.Background(), c.Params.(*types.ReqParaTxByHeight))
 		if err == nil {
-			*c.Res.(*types.ReplyParaTxByHeight) = *reply
+			*c.Res.(*types.ParaTxDetails) = *reply
 		}
 		errRet = err
 

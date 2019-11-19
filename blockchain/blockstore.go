@@ -488,8 +488,6 @@ func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
 	return block, err
 }
 
-//我们升级是按照height来处理的，所以我们只升级了主链的区块，没有升级侧链的数据。
-//这样就会导致通过seq获取的区块hash可能是侧链。通过table的这种方式查找会失败，需要按照旧的方式再查找一次
 func (bs *BlockStore) loadBlockByHash(hash []byte) (*types.BlockDetail, int, error) {
 	var blockSize int
 

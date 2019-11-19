@@ -225,10 +225,16 @@ message ParaTxDetails {
 // type:平行链交易所在区块add/del操作，方便平行链回滚
 // header:平行链交易所在区块头信息
 // txDetails:本区块中指定title平行链的所有交易
+// proofs:对应平行链子roothash的存在证明路径
+// childHash:此平行链交易的子roothash
+// index:对应平行链子roothash在整个区块中的索引
 message ParaTxDetail {
     int64    type               = 1;
     Header   header             = 2;
     repeated TxDetail txDetails = 3;
+    bytes             childHash = 4;
+    uint32            index     = 5;
+    repeated bytes proofs       = 6;
 }
 
 //交易的详情：
@@ -323,23 +329,4 @@ message BlockInfo {
 message ReqParaTxByHeight {
     repeated int64 items = 1;
     string         title = 2;
-}
-
-message ReplyParaTxByHeight {
-    repeated ParaTxInfo items = 1;
-}
-
-// type:平行链交易所在区块add/del操作，方便平行链回滚
-// header:平行链交易所在区块头信息
-// txDetails:本区块中指定title平行链的所有交易
-// proofs:对应平行链子roothash的存在证明路径
-// childHash:此平行链交易的子roothash
-// index:对应平行链子roothash在整个区块中的索引
-message ParaTxInfo {
-    int64    type               = 1;
-    Header   header             = 2;
-    repeated TxDetail txDetails = 3;
-    bytes             childHash = 4;
-    uint32            index     = 5;
-    repeated bytes proofs       = 6;
 }

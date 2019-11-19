@@ -199,7 +199,7 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 					if req.Title == "user" {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.Reply{IsOk: false, Msg: []byte("not support")}))
 					} else {
-						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.ReplyParaTxByHeight{}))
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.ParaTxDetails{}))
 					}
 				}
 			case types.EventGetLastBlockSequence:

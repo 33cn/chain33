@@ -418,6 +418,6 @@ func (g *Grpc) LoadParaTxByTitle(ctx context.Context, in *pb.ReqHeightByTitle) (
 }
 
 // GetParaTxByHeight //通过区块高度列表+title获取平行链交易
-func (g *Grpc) GetParaTxByHeight(ctx context.Context, in *pb.ReqParaTxByHeight) (*pb.ReplyParaTxByHeight, error) {
+func (g *Grpc) GetParaTxByHeight(ctx context.Context, in *pb.ReqParaTxByHeight) (*pb.ParaTxDetails, error) {
 	return g.cli.GetParaTxByHeight(in)
 }

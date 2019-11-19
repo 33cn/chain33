@@ -157,5 +157,5 @@ service chain33 {
     rpc LoadParaTxByTitle(ReqHeightByTitle) returns (ReplyHeightByTitle) {}
 
     //通过区块高度列表+title获取平行链交易
-    rpc GetParaTxByHeight(ReqParaTxByHeight) returns (ReplyParaTxByHeight) {}
+    rpc GetParaTxByHeight(ReqParaTxByHeight) returns (ParaTxDetails) {}
 }

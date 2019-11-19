@@ -1485,7 +1485,7 @@ func TestLoadParaTxByTitle(t *testing.T) {
 }
 
 func testGetParaTxByHeightGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.ReplyParaTxByHeight
+	var res types.ParaTxDetails
 	var req types.ReqParaTxByHeight
 	req.Items = append(req.Items, 0)
 	req.Title = "user"
