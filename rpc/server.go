@@ -186,8 +186,8 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServer {
 	j := &JSONRPCServer{jrpc: &Chain33{}}
 	j.jrpc.cli.Init(c, api)
-	if types.IsPara() {
-		grpcCli, err := grpcclient.NewMainChainClient("")
+	if c.GetConfig().IsPara() {
+		grpcCli, err := grpcclient.NewMainChainClient(c.GetConfig(), "")
 		if err != nil {
 			panic(err)
 		}
@@ -223,12 +223,13 @@ func InitCfg(cfg *types.RPC) {
 }
 
 // New produce a rpc by cfg
-func New(cfg *types.RPC) *RPC {
-	InitCfg(cfg)
-	if cfg.EnableTrace {
+func New(cfg *types.Chain33Config) *RPC {
+	mcfg := cfg.GetModuleConfig().RPC
+	InitCfg(mcfg)
+	if mcfg.EnableTrace {
 		grpc.EnableTracing = true
 	}
-	return &RPC{cfg: cfg}
+	return &RPC{cfg: mcfg}
 }
 
 // SetAPI set api of rpc

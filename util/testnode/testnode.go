@@ -72,50 +72,51 @@ type Chain33Mock struct {
 }
 
 //GetDefaultConfig :
-func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
-	return types.InitCfgString(cfgstring)
+func GetDefaultConfig() *types.Chain33Config {
+	return types.NewChain33Config(types.GetDefaultCfgstring())
 }
 
 //NewWithConfig :
-func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	return newWithConfig(cfg, sub, mockapi)
+func NewWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	return newWithConfig(cfg, mockapi)
 }
 
-func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	return newWithConfigNoLock(cfg, sub, mockapi)
+func newWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	return newWithConfigNoLock(cfg, mockapi)
 }
 
-func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	types.Init(cfg.Title, cfg)
+func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	mfg := cfg.GetModuleConfig()
+	sub := cfg.GetSubConfig()
 	q := queue.New("channel")
+	q.SetConfig(cfg)
 	types.Debug = false
-	datadir := util.ResetDatadir(cfg, "$TEMP/")
-	mock := &Chain33Mock{cfg: cfg, sub: sub, q: q, datadir: datadir}
+	datadir := util.ResetDatadir(mfg, "$TEMP/")
+	mock := &Chain33Mock{cfg: mfg, sub: sub, q: q, datadir: datadir}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 
-	mock.exec = executor.New(cfg.Exec, sub.Exec)
+	mock.exec = executor.New(cfg)
 	mock.exec.SetQueueClient(q.Client())
-	types.SetMinFee(cfg.Exec.MinExecFee)
 	lognode.Info("init exec")
 
-	mock.store = store.New(cfg.Store, sub.Store)
+	mock.store = store.New(cfg)
 	mock.store.SetQueueClient(q.Client())
 	lognode.Info("init store")
 
-	mock.chain = blockchain.New(cfg.BlockChain)
+	mock.chain = blockchain.New(cfg)
 	mock.chain.SetQueueClient(q.Client())
 	lognode.Info("init blockchain")
 
-	mock.cs = consensus.New(cfg.Consensus, sub.Consensus)
+	mock.cs = consensus.New(cfg)
 	mock.cs.SetQueueClient(q.Client())
-	lognode.Info("init consensus " + cfg.Consensus.Name)
+	lognode.Info("init consensus " + mfg.Consensus.Name)
 
-	mock.mem = mempool.New(cfg.Mempool, sub.Mempool)
+	mock.mem = mempool.New(cfg)
 	mock.mem.SetQueueClient(q.Client())
 	mock.mem.Wait()
 	lognode.Info("init mempool")
-	if cfg.P2P.Enable {
-		mock.network = p2p.New(cfg.P2P)
+	if mfg.P2P.Enable {
+		mock.network = p2p.New(cfg)
 		mock.network.SetQueueClient(q.Client())
 	} else {
 		mock.network = &mockP2P{}
@@ -123,7 +124,7 @@ func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi 
 	}
 	lognode.Info("init P2P")
 	cli := q.Client()
-	w := wallet.New(cfg.Wallet, sub.Wallet)
+	w := wallet.New(cfg)
 	mock.client = q.Client()
 	mock.wallet = w
 	mock.wallet.SetQueueClient(cli)
@@ -137,7 +138,7 @@ func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi 
 		newWalletRealize(mockapi)
 	}
 	mock.api = mockapi
-	server := rpc.New(cfg.RPC)
+	server := rpc.New(cfg)
 	server.SetAPI(mock.api)
 	server.SetQueueClientNoListen(q.Client())
 	mock.rpc = server
@@ -146,17 +147,16 @@ func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi 
 
 //New :
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	var cfg *types.Config
-	var sub *types.ConfigSubModule
+	var cfg *types.Chain33Config
 	if cfgpath == "" || cfgpath == "--notset--" || cfgpath == "--free--" {
-		cfg, sub = types.InitCfgString(cfgstring)
+		cfg = types.NewChain33Config(types.GetDefaultCfgstring())
 		if cfgpath == "--free--" {
-			setFee(cfg, 0)
+			setFee(cfg.GetModuleConfig(), 0)
 		}
 	} else {
-		cfg, sub = types.InitCfg(cfgpath)
+		cfg = types.NewChain33Config(types.ReadFile(cfgpath))
 	}
-	return newWithConfig(cfg, sub, mockapi)
+	return newWithConfig(cfg, mockapi)
 }
 
 //Listen :
@@ -174,14 +174,15 @@ func (mock *Chain33Mock) Listen() {
 }
 
 //ModifyParaClient modify para config
-func ModifyParaClient(sub *types.ConfigSubModule, gaddr string) {
+func ModifyParaClient(cfg *types.Chain33Config, gaddr string) {
+	sub := cfg.GetSubConfig()
 	if sub.Consensus["para"] != nil {
 		data, err := types.ModifySubConfig(sub.Consensus["para"], "ParaRemoteGrpcClient", gaddr)
 		if err != nil {
 			panic(err)
 		}
 		sub.Consensus["para"] = data
-		types.S("config.consensus.sub.para.ParaRemoteGrpcClient", gaddr)
+		cfg.S("config.consensus.sub.para.ParaRemoteGrpcClient", gaddr)
 	}
 }
 
@@ -360,7 +361,8 @@ func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error
 
 //SendHot :
 func (mock *Chain33Mock) SendHot() error {
-	tx := util.CreateCoinsTx(mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
+	types.AssertConfig(mock.client)
+	tx := util.CreateCoinsTx(mock.client.GetConfig(), mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
 	mock.SendTx(tx)
 	return mock.Wait()
 }
@@ -410,7 +412,8 @@ func (mock *Chain33Mock) Wait() error {
 //GetAccount :
 func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Account {
 	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
-	acc := account.NewCoinsAccount()
+	types.AssertConfig(mock.client)
+	acc := account.NewCoinsAccount(mock.client.GetConfig())
 	acc.SetDB(statedb)
 	return acc.LoadAccount(addr)
 }
@@ -418,7 +421,8 @@ func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Accoun
 //GetExecAccount :get execer account info
 func (mock *Chain33Mock) GetExecAccount(stateHash []byte, execer, addr string) *types.Account {
 	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
-	acc := account.NewCoinsAccount()
+	types.AssertConfig(mock.client)
+	acc := account.NewCoinsAccount(mock.client.GetConfig())
 	acc.SetDB(statedb)
 	return acc.LoadExecAccount(addr, address.ExecAddress(execer))
 }

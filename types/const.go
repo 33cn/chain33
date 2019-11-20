@@ -144,9 +144,10 @@ const (
 	ExecOk   = 2
 )
 
-func init() {
-	S("TxHeight", false)
-}
+// TODO 后续调试确认放的位置
+//func init() {
+//	S("TxHeight", false)
+//}
 
 //flag:
 

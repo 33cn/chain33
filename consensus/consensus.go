@@ -14,16 +14,18 @@ import (
 )
 
 // New new consensus queue module
-func New(cfg *types.Consensus, sub map[string][]byte) queue.Module {
-	con, err := consensus.Load(cfg.Name)
+func New(cfg *types.Chain33Config) queue.Module {
+	mcfg := cfg.GetModuleConfig().Consensus
+	sub := cfg.GetSubConfig().Consensus
+	con, err := consensus.Load(mcfg.Name)
 	if err != nil {
-		panic("Unsupported consensus type:" + cfg.Name + " " + err.Error())
+		panic("Unsupported consensus type:" + mcfg.Name + " " + err.Error())
 	}
-	subcfg, ok := sub[cfg.Name]
+	subcfg, ok := sub[mcfg.Name]
 	if !ok {
 		subcfg = nil
 	}
-	obj := con(cfg, subcfg)
-	consensus.QueryData.SetThis(cfg.Name, reflect.ValueOf(obj))
+	obj := con(mcfg, subcfg)
+	consensus.QueryData.SetThis(mcfg.Name, reflect.ValueOf(obj))
 	return obj
 }

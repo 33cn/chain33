@@ -10,6 +10,8 @@ import (
 )
 
 func TestPlugin(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
 	ctx := &executorCtx{
@@ -22,7 +24,7 @@ func TestPlugin(t *testing.T) {
 	}
 	var txs []*types.Transaction
 	addr, priv := util.Genaddress()
-	tx := util.CreateCoinsTx(priv, addr, types.Coin)
+	tx := util.CreateCoinsTx(cfg, priv, addr, types.Coin)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 
@@ -31,7 +33,7 @@ func TestPlugin(t *testing.T) {
 			Block:    &types.Block{Txs: txs},
 			Receipts: []*types.ReceiptData{{}},
 		}
-		executor := newExecutor(ctx, &Executor{}, kvdb, txs, nil)
+		executor := newExecutor(ctx, exec, kvdb, txs, nil)
 		_, _, err := plugin.CheckEnable(executor, false)
 		assert.NoError(t, err)
 		kvs, err := plugin.ExecLocal(executor, detail)
@@ -46,6 +48,7 @@ func TestPlugin(t *testing.T) {
 }
 
 func TestPluginBase(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
 	base := new(pluginBase)
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
@@ -57,7 +60,7 @@ func TestPluginBase(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	executor := newExecutor(ctx, &Executor{}, kvdb, nil, nil)
+	executor := newExecutor(ctx, exec, kvdb, nil, nil)
 	_, _, err := base.checkFlag(executor, nil, true)
 	assert.NoError(t, err)
 

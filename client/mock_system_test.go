@@ -100,6 +100,10 @@ func (mock *mockClient) NewMessage(topic string, ty int64, data interface{}) *qu
 	return mock.c.NewMessage(topic, ty, data)
 }
 
+func (mock *mockClient) GetConfig() *types.Chain33Config {
+	return mock.c.GetConfig()
+}
+
 func (mock *mockClient) Clone() queue.Client {
 	clone := mockClient{}
 	clone.c = mock.c
@@ -131,6 +135,7 @@ func (mock *mockQueue) Name() string {
 func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 
 	var q = queue.New("channel")
+	q.SetConfig(types.NewChain33Config(types.GetDefaultCfgstring()))
 	queue := &mockQueue{q: q}
 	chain := &mockBlockChain{}
 	chain.SetQueueClient(q)

@@ -14,17 +14,18 @@ import (
 var (
 	clog       = log.New("module", "execs.manage")
 	driverName = "manage"
-	conf       = types.ConfSub(driverName)
 )
 
-func init() {
-	ety := types.LoadExecutorType(driverName)
-	ety.InitFuncList(types.ListMethod(&Manage{}))
+// Init resister a dirver
+func Init(name string, cfg *types.Chain33Config, sub []byte) {
+	// 需要先 RegisterDappFork才可以Register dapp
+	drivers.Register(cfg, GetName(), newManage, cfg.GetDappFork(driverName, "Enable"))
+	InitExecType()
 }
 
-// Init resister a dirver
-func Init(name string, sub []byte) {
-	drivers.Register(GetName(), newManage, types.GetDappFork(driverName, "Enable"))
+func InitExecType() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Manage{}))
 }
 
 // GetName return manage name
@@ -55,7 +56,8 @@ func (c *Manage) CheckTx(tx *types.Transaction, index int) error {
 }
 
 // IsSuperManager is supper manager or not
-func IsSuperManager(addr string) bool {
+func IsSuperManager(cfg *types.Chain33Config, addr string) bool {
+	conf := types.ConfSub(cfg, driverName)
 	for _, m := range conf.GStrList("superManager") {
 		if addr == m {
 			return true

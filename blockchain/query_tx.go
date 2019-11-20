@@ -46,7 +46,8 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	//查询的drivers--> main 驱动的名称
 	//查询的方法：  --> GetTxsByAddr
 	//查询的参数：  --> interface{} 类型
-	txinfos, err := chain.query.Query(types.ExecName("coins"), "GetTxsByAddr", addr)
+	cfg := chain.client.GetConfig()
+	txinfos, err := chain.query.Query(cfg.ExecName("coins"), "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -134,12 +135,13 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 	if txhashlist.Expire != nil && len(txhashlist.Expire) != len(txhashlist.Hashes) {
 		return nil, types.ErrInvalidParam
 	}
+	cfg := chain.client.GetConfig()
 	for i, txhash := range txhashlist.Hashes {
 		expire := int64(0)
 		if txhashlist.Expire != nil {
 			expire = txhashlist.Expire[i]
 		}
-		txHeight := types.GetTxHeight(expire, txhashlist.Count)
+		txHeight := types.GetTxHeight(cfg, expire, txhashlist.Count)
 		//在txHeight > 0 的情况下，可以安全的查询cache
 		if txHeight > 0 {
 			onlyquerycache = true
@@ -210,7 +212,7 @@ func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresul
 //	int64 balance = 2;
 //	int64 txCount = 3;}
 func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOverview, error) {
-
+	cfg := chain.client.GetConfig()
 	if addr == nil || len(addr.Addr) == 0 {
 		chainlog.Error("ProcGetAddrOverview input err!")
 		return nil, types.ErrInvalidParam
@@ -220,14 +222,14 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.query.Query(types.ExecName("coins"), "GetAddrReciver", addr)
+	amount, err := chain.query.Query(cfg.ExecName("coins"), "GetAddrReciver", addr)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
 		addrOverview.Reciver = 0
 	} else {
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	if err != nil {
+	if err != nil && err != types.ErrEmpty {
 		return nil, err
 	}
 
@@ -236,7 +238,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	//新的代码不支持PrefixCount查询地址交易计数，executor/localdb.go PrefixCount
 	//现有的节点都已经升级了localdb，也就是都支持通过GetAddrTxsCount来获取地址交易计数
 	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
-	count, err := chain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", &reqkey)
+	count, err := chain.query.Query(cfg.ExecName("coins"), "GetAddrTxsCount", &reqkey)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrTxsCount err", err)
 		addrOverview.TxCount = 0

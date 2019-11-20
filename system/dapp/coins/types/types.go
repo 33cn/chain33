@@ -37,9 +37,16 @@ var (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerCoins)
-	types.RegistorExecutor("coins", NewType())
+	types.RegFork(CoinsX, InitFork)
+	types.RegExec(CoinsX, InitExecutor)
+}
 
-	types.RegisterDappFork(CoinsX, "Enable", 0)
+func InitFork(cfg *types.Chain33Config) {
+	cfg.RegisterDappFork(CoinsX, "Enable", 0)
+}
+
+func InitExecutor(cfg *types.Chain33Config) {
+	types.RegistorExecutor(CoinsX, NewType(cfg))
 }
 
 // CoinsType defines exec type
@@ -48,9 +55,10 @@ type CoinsType struct {
 }
 
 // NewType new coinstype
-func NewType() *CoinsType {
+func NewType(cfg *types.Chain33Config) *CoinsType {
 	c := &CoinsType{}
 	c.SetChild(c)
+	c.SetConfig(cfg)
 	return c
 }
 
@@ -127,6 +135,7 @@ func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.
 		return nil, err
 	}
 	//to地址的问题,如果是主链交易，to地址就是直接是设置to
+	types := c.GetConfig()
 	if !types.IsPara() {
 		tx.To = create.To
 	}
@@ -140,6 +149,7 @@ func (c *CoinsType) GetAssets(tx *types.Transaction) ([]*types.Asset, error) {
 		return nil, err
 	}
 	if assets[0].Symbol == "" {
+		types := c.GetConfig()
 		assets[0].Symbol = types.GetCoinSymbol()
 	}
 	if assets[0].Symbol == "bty" {

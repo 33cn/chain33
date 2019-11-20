@@ -12,6 +12,7 @@ import (
 )
 
 func TestLoadExecutorType(t *testing.T) {
+	NewChain33Config(GetDefaultCfgstring())
 	exec := LoadExecutorType("manage")
 	assert.NotEqual(t, exec, nil)
 	assert.Equal(t, exec.GetName(), "manage")
@@ -22,22 +23,23 @@ func TestLoadExecutorType(t *testing.T) {
 
 	exec = LoadExecutorType("xxxx")
 	assert.Equal(t, exec, nil)
-
 }
 
 func TestFormatTx(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
 	tx := &Transaction{
 		Payload: []byte("this is  a test."),
 	}
-	tx, err := FormatTx("user.p.none", tx)
+	tx, err := FormatTx(cfg, "user.p.none", tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("user.p.none"))
-	fee, _ := tx.GetRealFee(GInt("MinFee"))
+	fee, _ := tx.GetRealFee(cfg.GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 }
 
 func TestFormatTxEncode(t *testing.T) {
-	data, err := FormatTxEncode("coins", &Transaction{
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	data, err := FormatTxEncode(cfg, "coins", &Transaction{
 		Payload: []byte("this is  a test."),
 	})
 	assert.Equal(t, err, nil)
@@ -48,6 +50,7 @@ func TestFormatTxEncode(t *testing.T) {
 }
 
 func TestCallCreateTxJSON(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
 	modify := &ModifyConfig{
 		Key:   "token-finisher",
 		Value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -57,20 +60,20 @@ func TestCallCreateTxJSON(t *testing.T) {
 	data, err := json.Marshal(modify)
 	assert.Equal(t, err, nil)
 
-	result, err := CallCreateTxJSON("manage", "Modify", data)
+	result, err := CallCreateTxJSON(cfg, "manage", "Modify", data)
 	assert.Equal(t, err, nil)
 	assert.NotEqual(t, result, nil)
 	var tx Transaction
 	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
-	fee, _ := tx.GetRealFee(GInt("MinFee"))
+	fee, _ := tx.GetRealFee(cfg.GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 
-	_, err = CallCreateTxJSON("coins", "Modify", data)
+	_, err = CallCreateTxJSON(cfg, "coins", "Modify", data)
 	assert.NotEqual(t, err, nil)
 
-	_, err = CallCreateTxJSON("xxxx", "xxx", data)
+	_, err = CallCreateTxJSON(cfg, "xxxx", "xxx", data)
 	assert.NotEqual(t, err, nil)
 
 	modify = &ModifyConfig{
@@ -82,18 +85,19 @@ func TestCallCreateTxJSON(t *testing.T) {
 	data, err = json.Marshal(modify)
 	assert.Equal(t, err, nil)
 
-	result, err = CallCreateTxJSON("manage", "Modify", data)
+	result, err = CallCreateTxJSON(cfg, "manage", "Modify", data)
 	assert.Equal(t, err, nil)
 	assert.NotEqual(t, result, nil)
 	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
-	fee, _ = tx.GetRealFee(GInt("MinFee"))
+	fee, _ = tx.GetRealFee(cfg.GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 
 }
 
 func TestCallCreateTx(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
 	modify := &ModifyConfig{
 		Key:   "token-finisher",
 		Value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -101,20 +105,20 @@ func TestCallCreateTx(t *testing.T) {
 		Addr:  "",
 	}
 
-	result, err := CallCreateTx("manage", "Modify", modify)
+	result, err := CallCreateTx(cfg, "manage", "Modify", modify)
 	assert.Equal(t, err, nil)
 	assert.NotEqual(t, result, nil)
 	var tx Transaction
 	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
-	fee, _ := tx.GetRealFee(GInt("MinFee"))
+	fee, _ := tx.GetRealFee(cfg.GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 
-	_, err = CallCreateTx("coins", "Modify", modify)
+	_, err = CallCreateTx(cfg, "coins", "Modify", modify)
 	assert.NotEqual(t, err, nil)
 
-	_, err = CallCreateTx("xxxx", "xxx", modify)
+	_, err = CallCreateTx(cfg, "xxxx", "xxx", modify)
 	assert.NotEqual(t, err, nil)
 
 	modify = &ModifyConfig{
@@ -124,13 +128,13 @@ func TestCallCreateTx(t *testing.T) {
 		Addr:  "",
 	}
 
-	result, err = CallCreateTx("manage", "Modify", modify)
+	result, err = CallCreateTx(cfg, "manage", "Modify", modify)
 	assert.Equal(t, err, nil)
 	assert.NotEqual(t, result, nil)
 	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
-	fee, _ = tx.GetRealFee(GInt("MinFee"))
+	fee, _ = tx.GetRealFee(cfg.GInt("MinFee"))
 	assert.Equal(t, tx.Fee, fee)
 }
 

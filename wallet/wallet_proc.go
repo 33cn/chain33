@@ -103,8 +103,10 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	tx.SetExpire(time.Duration(expire))
-	if policy, ok := wcom.PolicyContainer[string(types.GetParaExec(tx.Execer))]; ok {
+	types.AssertConfig(wallet.client)
+	cfg := wallet.client.GetConfig()
+	tx.SetExpire(cfg, time.Duration(expire))
+	if policy, ok := wcom.PolicyContainer[string(cfg.GetParaExec(tx.Execer))]; ok {
 		// 尝试让策略自己去完成签名
 		needSysSign, signtx, err := policy.SignTransaction(key, unsigned)
 		if !needSysSign {
@@ -126,6 +128,9 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", types.ErrIndex
 	}
 	if index <= 0 {
+		//设置过期需要重构
+		group.SetExpire(cfg, 0, time.Duration(expire))
+		group.RebuiltGroup()
 		for i := range group.Txs {
 			err := group.SignN(i, int32(wallet.SignType), key)
 			if err != nil {
@@ -537,7 +542,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 			return nil, types.ErrInsufficientBalance
 		}
 		if nil == wallet.accTokenMap[SendToAddress.TokenSymbol] {
-			tokenAccDB, err := account.NewAccountDB("token", SendToAddress.TokenSymbol, nil)
+			tokenAccDB, err := account.NewAccountDB(wallet.api.GetConfig(), "token", SendToAddress.TokenSymbol, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -691,6 +696,8 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 
 	var ReplyHashes types.ReplyHashes
 
+	types.AssertConfig(wallet.client)
+	cfg := wallet.client.GetConfig()
 	for index, Account := range accounts {
 		Privkey := WalletAccStores[index].Privkey
 		//解密存储的私钥
@@ -719,19 +726,19 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		v := &cty.CoinsAction_Transfer{
 			Transfer: &types.AssetsTransfer{Amount: amount, Note: []byte(note)},
 		}
-		if types.IsPara() {
+		if cfg.IsPara() {
 			v.Transfer.To = MergeBalance.GetTo()
 		}
 		transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 		//初始化随机数
 		exec := []byte("coins")
 		toAddr := addrto
-		if types.IsPara() {
-			exec = []byte(types.GetTitle() + "coins")
+		if cfg.IsPara() {
+			exec = []byte(cfg.GetTitle() + "coins")
 			toAddr = address.ExecAddress(string(exec))
 		}
 		tx := &types.Transaction{Execer: exec, Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: toAddr, Nonce: wallet.random.Int63()}
-		tx.SetExpire(time.Second * 120)
+		tx.SetExpire(cfg, time.Second*120)
 		tx.Sign(int32(wallet.SignType), priv)
 		//walletlog.Info("ProcMergeBalance", "tx.Nonce", tx.Nonce, "tx", tx, "index", index)
 
@@ -937,11 +944,13 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		return
 	}
 	//walletlog.Error("ProcWalletAddBlock", "height", block.GetBlock().GetHeight())
+	types.AssertConfig(wallet.client)
+	cfg := wallet.client.GetConfig()
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
 	for index := 0; index < txlen; index++ {
 		tx := block.Block.Txs[index]
-		execer := string(types.GetParaExec(tx.Execer))
+		execer := string(cfg.GetParaExec(tx.Execer))
 		// 执行钱包业务逻辑策略
 		if policy, ok := wcom.PolicyContainer[execer]; ok {
 			wtxdetail := policy.OnAddBlockTx(block, tx, int32(index), newbatch)
@@ -1059,7 +1068,8 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		return
 	}
 	//walletlog.Error("ProcWalletDelBlock", "height", block.GetBlock().GetHeight())
-
+	types.AssertConfig(wallet.client)
+	cfg := wallet.client.GetConfig()
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
 	for index := txlen - 1; index >= 0; index-- {
@@ -1067,7 +1077,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		heightstr := fmt.Sprintf("%018d", blockheight)
 		tx := block.Block.Txs[index]
 
-		execer := string(types.GetParaExec(tx.Execer))
+		execer := string(cfg.GetParaExec(tx.Execer))
 		// 执行钱包业务逻辑策略
 		if policy, ok := wcom.PolicyContainer[execer]; ok {
 			wtxdetail := policy.OnDeleteBlockTx(block, tx, int32(index), newbatch)

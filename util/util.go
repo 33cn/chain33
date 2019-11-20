@@ -73,18 +73,18 @@ func MakeStringToLower(in string, pos, count int) (out string, err error) {
 }
 
 //GenNoneTxs : 创建一些 none 执行器的 交易列表，一般用于测试
-func GenNoneTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
+func GenNoneTxs(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	for i := 0; i < int(n); i++ {
-		txs = append(txs, CreateNoneTx(priv))
+		txs = append(txs, CreateNoneTx(cfg, priv))
 	}
 	return txs
 }
 
 //GenCoinsTxs : generate txs to be executed on exector coin
-func GenCoinsTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
+func GenCoinsTxs(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
-		txs = append(txs, CreateCoinsTx(priv, to, n+1))
+		txs = append(txs, CreateCoinsTx(cfg, priv, to, n+1))
 	}
 	return txs
 }
@@ -104,19 +104,19 @@ func Genaddress() (string, crypto.PrivKey) {
 }
 
 // CreateNoneTx : Create None Tx
-func CreateNoneTx(priv crypto.PrivKey) *types.Transaction {
-	return CreateTxWithExecer(priv, "none")
+func CreateNoneTx(cfg *types.Chain33Config, priv crypto.PrivKey) *types.Transaction {
+	return CreateTxWithExecer(cfg, priv, "none")
 }
 
 // CreateTxWithExecer ： Create Tx With Execer
-func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
+func CreateTxWithExecer(cfg *types.Chain33Config, priv crypto.PrivKey, execer string) *types.Transaction {
 	if execer == "coins" {
 		to, _ := Genaddress()
-		return CreateCoinsTx(priv, to, types.Coin)
+		return CreateCoinsTx(cfg, priv, to, types.Coin)
 	}
 	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none")}
 	tx.To = address.ExecAddress(execer)
-	tx, err := types.FormatTx(execer, tx)
+	tx, err := types.FormatTx(cfg, execer, tx)
 	if err != nil {
 		return nil
 	}
@@ -147,7 +147,7 @@ func JSONPrint(t TestingT, input interface{}) {
 }
 
 // CreateManageTx : Create Manage Tx
-func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transaction {
+func CreateManageTx(cfg *types.Chain33Config, priv crypto.PrivKey, key, op, value string) *types.Transaction {
 	v := &types.ModifyConfig{Key: key, Op: op, Value: value, Addr: ""}
 	exec := types.LoadExecutorType("manage")
 	if exec == nil {
@@ -157,7 +157,7 @@ func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transacti
 	if err != nil {
 		panic(err)
 	}
-	tx, err = types.FormatTx("manage", tx)
+	tx, err = types.FormatTx(cfg, "manage", tx)
 	if err != nil {
 		return nil
 	}
@@ -166,13 +166,13 @@ func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transacti
 }
 
 // CreateCoinsTx : Create Coins Tx
-func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	tx := createCoinsTx(to, amount)
+func CreateCoinsTx(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+	tx := createCoinsTx(cfg, to, amount)
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
 
-func createCoinsTx(to string, amount int64) *types.Transaction {
+func createCoinsTx(cfg *types.Chain33Config, to string, amount int64) *types.Transaction {
 	exec := types.LoadExecutorType("coins")
 	if exec == nil {
 		panic("unknow driver coins")
@@ -185,7 +185,7 @@ func createCoinsTx(to string, amount int64) *types.Transaction {
 		panic(err)
 	}
 	tx.To = to
-	tx, err = types.FormatTx("coins", tx)
+	tx, err = types.FormatTx(cfg, "coins", tx)
 	if err != nil {
 		return nil
 	}
@@ -193,18 +193,18 @@ func createCoinsTx(to string, amount int64) *types.Transaction {
 }
 
 //CreateTxWithTxHeight : Create Tx With Tx Height
-func CreateTxWithTxHeight(priv crypto.PrivKey, to string, amount, expire int64) *types.Transaction {
-	tx := createCoinsTx(to, amount)
+func CreateTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, expire int64) *types.Transaction {
+	tx := createCoinsTx(cfg, to, amount)
 	tx.Expire = expire + types.TxHeightFlag
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
 
 // GenTxsTxHeigt : Gen Txs with Heigt
-func GenTxsTxHeigt(priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
+func GenTxsTxHeigt(cfg *types.Chain33Config, priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
-		tx := CreateTxWithTxHeight(priv, to, types.Coin*(n+1), 20+height)
+		tx := CreateTxWithTxHeight(cfg, priv, to, types.Coin*(n+1), 20+height)
 		txs = append(txs, tx)
 	}
 	return txs
@@ -213,39 +213,53 @@ func GenTxsTxHeigt(priv crypto.PrivKey, n, height int64) (txs []*types.Transacti
 var zeroHash [32]byte
 
 // CreateNoneBlock : Create None Block
-func CreateNoneBlock(priv crypto.PrivKey, n int64) *types.Block {
+func CreateNoneBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = 1
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
-	newblock.Txs = GenNoneTxs(priv, n)
+	newblock.Txs = GenNoneTxs(cfg, priv, n)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	return newblock
 }
 
 //CreateCoinsBlock : create coins block, n size
-func CreateCoinsBlock(priv crypto.PrivKey, n int64) *types.Block {
+func CreateCoinsBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = 1
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
-	newblock.Txs = GenCoinsTxs(priv, n)
+	newblock.Txs = GenCoinsTxs(cfg, priv, n)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	return newblock
 }
 
 // ExecBlock : just exec block
 func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
-	//发送执行交易给execs模块
-	//通过consensus module 再次检查
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := types.Now()
-	beg2 := beg
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg2))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
 	}()
 
-	if errReturn && block.Height > 0 && !block.CheckSign() {
+	detail, deltx, err := PreExecBlock(client, prevStateRoot, block, errReturn, sync, checkblock)
+	if err != nil {
+		return nil, nil, err
+	}
+	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
+	err = ExecKVSetCommit(client, block.StateHash, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	return detail, deltx, nil
+}
+
+// PreExecBlock : pre exec block
+func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
+	//发送执行交易给execs模块
+	//通过consensus module 再次检查
+	beg := types.Now()
+	if errReturn && block.Height > 0 && !block.CheckSign(client.GetConfig()) {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
 	}
@@ -257,20 +271,20 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Debug("ExecBlock", "CheckTxDup", types.Since(beg))
+	ulog.Debug("PreExecBlock", "CheckTxDup", types.Since(beg))
 	beg = types.Now()
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
 	}
-	ulog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
+	ulog.Debug("PreExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
 	block.Txs = types.CacheToTxs(cacheTxs)
 	//println("1")
 	receipts, err := ExecTx(client, prevStateRoot, block)
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Debug("ExecBlock", "ExecTx", types.Since(beg))
+	ulog.Debug("PreExecBlock", "ExecTx", types.Since(beg))
 	beg = types.Now()
 	var kvset []*types.KeyValue
 	var deltxlist = make(map[int]bool)
@@ -314,7 +328,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}
-	ulog.Debug("ExecBlock", "CalcMerkleRootCache", types.Since(beg))
+	ulog.Debug("PreExecBlock", "CalcMerkleRootCache", types.Since(beg))
 	beg = types.Now()
 	block.TxHash = calcHash
 	var detail types.BlockDetail
@@ -326,7 +340,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		err = ExecKVSetRollback(client, calcHash)
 		if err != nil {
-			ulog.Error("execBlock-->ExecKVSetRollback", "err", err)
+			ulog.Error("PreExecBlock-->ExecKVSetRollback", "err", err)
 		}
 		if len(rdata) > 0 {
 			for i, rd := range rdata {
@@ -341,16 +355,12 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if detail.Block.Height > 0 && checkblock {
 		err := CheckBlock(client, &detail)
 		if err != nil {
-			ulog.Debug("CheckBlock-->", "err=", err)
-			return nil, deltx, err
+			ulog.Debug("CheckBlock-->", "err", err)
+			return nil, nil, err
 		}
 	}
-	ulog.Debug("ExecBlock", "CheckBlock", types.Since(beg))
-	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
-	err = ExecKVSetCommit(client, block.StateHash, false)
-	if err != nil {
-		return nil, nil, err
-	}
+	ulog.Debug("PreExecBlock", "CheckBlock", types.Since(beg))
+
 	detail.KV = kvset
 	detail.PrevStatusHash = prevStateRoot
 	return &detail, deltx, nil
@@ -367,10 +377,7 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 		ulog.Info("ExecBlockUpgrade", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg1))
 	}()
 
-	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
-	cacheTxs := types.TxsToCache(block.Txs)
 	var err error
-	block.Txs = types.CacheToTxs(cacheTxs)
 	//println("1")
 	receipts, err := ExecTx(client, prevStateRoot, block)
 	if err != nil {
@@ -399,11 +406,11 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 }
 
 //CreateNewBlock : Create a New Block
-func CreateNewBlock(parent *types.Block, txs []*types.Transaction) *types.Block {
+func CreateNewBlock(cfg *types.Chain33Config, parent *types.Block, txs []*types.Transaction) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = parent.Height + 1
 	newblock.BlockTime = parent.BlockTime + 1
-	newblock.ParentHash = parent.Hash()
+	newblock.ParentHash = parent.Hash(cfg)
 	newblock.Txs = append(newblock.Txs, txs...)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	return newblock
@@ -431,7 +438,7 @@ func ExecAndCheckBlock(qclient queue.Client, block *types.Block, txs []*types.Tr
 
 //ExecAndCheckBlockCB :
 func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.Transaction, cb func(int, *types.ReceiptData) error) (*types.Block, error) {
-	block2 := CreateNewBlock(block, txs)
+	block2 := CreateNewBlock(qclient.GetConfig(), block, txs)
 	detail, deltx, err := ExecBlock(qclient, block.StateHash, block2, false, true, false)
 	if err != nil {
 		return nil, err

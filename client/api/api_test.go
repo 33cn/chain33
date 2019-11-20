@@ -20,8 +20,10 @@ import (
 
 func TestAPI(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	gapi, err := grpcclient.NewMainChainClient("")
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	gapi, err := grpcclient.NewMainChainClient(cfg, "")
 	assert.Nil(t, err)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	eapi := New(api, gapi)
 	param := &types.ReqHashes{
 		Hashes: [][]byte{[]byte("hello")},
@@ -45,7 +47,7 @@ func TestAPI(t *testing.T) {
 	txdetail, err := eapi.QueryTx(param3)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), txdetail.Height)
-	types.SetTitleOnlyForTest("user.p.wzw.")
+	cfg.SetTitleOnlyForTest("user.p.wzw.")
 	//testnode setup
 	rpcCfg := new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8003"
@@ -54,7 +56,9 @@ func TestAPI(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	rpc.InitCfg(rpcCfg)
-	server := rpc.NewGRpcServer(&qmocks.Client{}, api)
+	qc := &qmocks.Client{}
+	qc.On("GetConfig", mock.Anything).Return(cfg)
+	server := rpc.NewGRpcServer(qc, api)
 	assert.NotNil(t, server)
 	go server.Listen()
 	time.Sleep(time.Second)
@@ -69,7 +73,7 @@ func TestAPI(t *testing.T) {
 	assert.Equal(t, true, IsFatalError(types.ErrConsensusHashErr))
 	assert.Equal(t, false, IsFatalError(errors.New("xxxx")))
 
-	gapi2, err := grpcclient.NewMainChainClient("127.0.0.1:8003")
+	gapi2, err := grpcclient.NewMainChainClient(cfg, "127.0.0.1:8003")
 	assert.Nil(t, err)
 	eapi = New(api, gapi2)
 	detail, err = eapi.GetBlockByHashes(param)

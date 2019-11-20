@@ -86,7 +86,13 @@ func (c *Chain33) CreateNoBlanaceTxs(in *types.NoBalanceTxs, result *string) err
 
 // CreateNoBalanceTransaction create transaction with no balance
 func (c *Chain33) CreateNoBalanceTransaction(in *types.NoBalanceTx, result *string) error {
-	tx, err := c.cli.CreateNoBalanceTransaction(in)
+	params := &types.NoBalanceTxs{
+		TxHexs:  []string{in.GetTxHex()},
+		PayAddr: in.GetPayAddr(),
+		Privkey: in.GetPrivkey(),
+		Expire:  in.GetExpire(),
+	}
+	tx, err := c.cli.CreateNoBalanceTxs(params)
 	if err != nil {
 		return err
 	}
@@ -110,7 +116,8 @@ func (c *Chain33) SendTransaction(in rpctypes.RawParm, result *interface{}) erro
 
 	var reply *types.Reply
 	//para chain, forward to main chain
-	if types.IsPara() {
+	cfg := c.cli.GetConfig()
+	if cfg.IsPara() {
 		reply, err = c.mainGrpcCli.SendTransaction(context.Background(), &parm)
 	} else {
 		reply, err = c.cli.SendTx(&parm)
@@ -827,6 +834,7 @@ func (c *Chain33) ExecWallet(in *rpctypes.ChainExecutor, result *interface{}) er
 
 // Query query
 func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
+	cfg := c.cli.GetConfig()
 	execty := types.LoadExecutorType(in.Execer)
 	if execty == nil {
 		log.Error("Query", "funcname", in.FuncName, "err", types.ErrNotSupport)
@@ -838,7 +846,7 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		log.Error("EventQuery1", "err", err.Error())
 		return err
 	}
-	resp, err := c.cli.Query(types.ExecName(in.Execer), in.FuncName, decodePayload)
+	resp, err := c.cli.Query(cfg.ExecName(in.Execer), in.FuncName, decodePayload)
 	if err != nil {
 		log.Error("EventQuery2", "err", err.Error())
 		return err
@@ -1092,7 +1100,8 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 	if in == nil {
 		return types.ErrInvalidParam
 	}
-	btx, err := types.CallCreateTxJSON(types.ExecName(in.Execer), in.ActionName, in.Payload)
+	cfg := c.cli.GetConfig()
+	btx, err := types.CallCreateTxJSON(cfg, cfg.ExecName(in.Execer), in.ActionName, in.Payload)
 	if err != nil {
 		return err
 	}
@@ -1211,7 +1220,8 @@ func fmtAccount(balances []*types.Account) []*rpctypes.Account {
 
 // GetCoinSymbol get coin symbol
 func (c *Chain33) GetCoinSymbol(in types.ReqNil, result *interface{}) error {
-	symbol := types.GetCoinSymbol()
+	cfg := c.cli.GetConfig()
+	symbol := cfg.GetCoinSymbol()
 	resp := types.ReplyString{Data: symbol}
 	log.Warn("GetCoinSymbol", "Symbol", symbol)
 	*result = &resp

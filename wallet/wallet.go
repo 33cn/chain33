@@ -91,14 +91,15 @@ func DisableLog() {
 }
 
 // New 创建一个钱包对象
-func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
+func New(cfg *types.Chain33Config) *Wallet {
+	mcfg := cfg.GetModuleConfig().Wallet
 	//walletStore
 	//accountdb = account.NewCoinsAccount()
-	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
+	walletStoreDB := dbm.NewDB("wallet", mcfg.Driver, mcfg.DbPath, mcfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
 	walletStore := newStore(walletStoreDB)
 	//minFee = cfg.MinFee
-	signType := types.GetSignType("", cfg.SignType)
+	signType := types.GetSignType("", mcfg.SignType)
 	if signType == types.Invalid {
 		signType = types.SECP256K1
 	}
@@ -108,20 +109,19 @@ func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
 		isWalletLocked:   1,
 		fatalFailureFlag: 0,
 		wg:               &sync.WaitGroup{},
-		FeeAmount:        walletStore.GetFeeAmount(cfg.MinFee),
+		FeeAmount:        walletStore.GetFeeAmount(mcfg.MinFee),
 		EncryptFlag:      walletStore.GetEncryptionFlag(),
 		done:             make(chan struct{}),
-		cfg:              cfg,
+		cfg:              mcfg,
 		rescanwg:         &sync.WaitGroup{},
 		initFlag:         0,
 		SignType:         signType,
-		minFee:           cfg.MinFee,
-		accountdb:        account.NewCoinsAccount(),
+		minFee:           mcfg.MinFee,
+		accountdb:        account.NewCoinsAccount(cfg),
 		accTokenMap:      make(map[string]*account.DB),
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
-	wcom.Init(wallet, sub)
 	return wallet
 }
 
@@ -274,6 +274,9 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	if err != nil {
 		panic("SetQueueClient client.New err")
 	}
+	sub := cli.GetConfig().GetSubConfig().Wallet
+	// 置完client之后才做Init
+	wcom.Init(wallet, sub)
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 	for _, policy := range wcom.PolicyContainer {

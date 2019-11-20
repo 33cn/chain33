@@ -17,9 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	types.Init("local", nil)
-}
 func TestExportBlockProc(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	blockchain := mock33.GetBlockChain()
@@ -29,8 +26,9 @@ func TestExportBlockProc(t *testing.T) {
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 1030
 	var err error
+	cfg := mock33.GetClient().GetConfig()
 	for {
-		_, err = addMainTx(mock33.GetGenesisKey(), mock33.GetAPI())
+		_, err = addMainTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI())
 		require.NoError(t, err)
 
 		curheight = blockchain.GetBlockHeight()

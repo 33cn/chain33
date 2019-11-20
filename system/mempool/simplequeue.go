@@ -17,8 +17,9 @@ type SubConfig struct {
 
 //SimpleQueue 简单队列模式(默认提供一个队列，便于测试)
 type SimpleQueue struct {
-	txList    *listmap.ListMap
-	subConfig SubConfig
+	txList     *listmap.ListMap
+	subConfig  SubConfig
+	cacheBytes int64
 }
 
 //NewSimpleQueue 创建队列
@@ -53,16 +54,18 @@ func (cache *SimpleQueue) Push(tx *Item) error {
 		return types.ErrMemFull
 	}
 	cache.txList.Push(string(hash), tx)
+	cache.cacheBytes += int64(types.Size(tx.Value))
 	return nil
 }
 
 // Remove 删除数据
 func (cache *SimpleQueue) Remove(hash string) error {
-	_, err := cache.GetItem(hash)
+	item, err := cache.GetItem(hash)
 	if err != nil {
 		return err
 	}
 	cache.txList.Remove(hash)
+	cache.cacheBytes -= int64(types.Size(item.Value))
 	return nil
 }
 
@@ -86,4 +89,9 @@ func (cache *SimpleQueue) Walk(count int, cb func(value *Item) bool) {
 // GetProperFee 获取合适的手续费
 func (cache *SimpleQueue) GetProperFee() int64 {
 	return cache.subConfig.ProperFee
+}
+
+// GetCacheBytes 获取缓存占用空间大小
+func (cache *SimpleQueue) GetCacheBytes() int64 {
+	return cache.cacheBytes
 }

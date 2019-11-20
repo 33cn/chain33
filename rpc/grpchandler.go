@@ -31,7 +31,13 @@ func (g *Grpc) CreateNoBalanceTxs(ctx context.Context, in *pb.NoBalanceTxs) (*pb
 
 // CreateNoBalanceTransaction create transaction with no balance
 func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceTx) (*pb.ReplySignRawTx, error) {
-	reply, err := g.cli.CreateNoBalanceTransaction(in)
+	params := &pb.NoBalanceTxs{
+		TxHexs:  []string{in.GetTxHex()},
+		PayAddr: in.GetPayAddr(),
+		Privkey: in.GetPrivkey(),
+		Expire:  in.GetExpire(),
+	}
+	reply, err := g.cli.CreateNoBalanceTxs(params)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +65,9 @@ func (g *Grpc) ReWriteRawTx(ctx context.Context, in *pb.ReWriteRawTx) (*pb.Unsig
 
 // CreateTransaction create transaction of grpc
 func (g *Grpc) CreateTransaction(ctx context.Context, in *pb.CreateTxIn) (*pb.UnsignTx, error) {
-	execer := pb.ExecName(string(in.Execer))
+	pb.AssertConfig(g.cli)
+	cfg := g.cli.GetConfig()
+	execer := cfg.ExecName(string(in.Execer))
 	exec := pb.LoadExecutorType(execer)
 	if exec == nil {
 		log.Error("callExecNewTx", "Error", "exec not found")
@@ -74,7 +82,7 @@ func (g *Grpc) CreateTransaction(ctx context.Context, in *pb.CreateTxIn) (*pb.Un
 	if err != nil {
 		return nil, err
 	}
-	reply, err := pb.CallCreateTx(execer, in.ActionName, msg)
+	reply, err := pb.CallCreateTx(cfg, execer, in.ActionName, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -390,11 +398,13 @@ func (g *Grpc) QueryRandNum(ctx context.Context, in *pb.ReqRandHash) (*pb.ReplyH
 
 // GetFork get fork height by fork key
 func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
+	pb.AssertConfig(g.cli)
+	cfg := g.cli.GetConfig()
 	keys := strings.Split(string(in.Key), "-")
 	if len(keys) == 2 {
-		return &pb.Int64{Data: pb.GetDappFork(keys[0], keys[1])}, nil
+		return &pb.Int64{Data: cfg.GetDappFork(keys[0], keys[1])}, nil
 	}
-	return &pb.Int64{Data: pb.GetFork(string(in.Key))}, nil
+	return &pb.Int64{Data: cfg.GetFork(string(in.Key))}, nil
 }
 
 // GetParaTxByTitle 通过seq以及title获取对应平行连的交易

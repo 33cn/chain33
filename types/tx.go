@@ -154,18 +154,18 @@ func (txgroup *Transactions) RebuiltGroup() {
 }
 
 //SetExpire 设置交易组中交易的过期时间
-func (txgroup *Transactions) SetExpire(n int, expire time.Duration) {
+func (txgroup *Transactions) SetExpire(cfg *Chain33Config, n int, expire time.Duration) {
 	if n >= len(txgroup.GetTxs()) {
 		return
 	}
-	txgroup.GetTxs()[n].SetExpire(expire)
+	txgroup.GetTxs()[n].SetExpire(cfg, expire)
 }
 
 //IsExpire 交易是否过期
-func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
+func (txgroup *Transactions) IsExpire(cfg *Chain33Config, height, blocktime int64) bool {
 	txs := txgroup.Txs
 	for i := 0; i < len(txs); i++ {
-		if txs[i].isExpire(height, blocktime) {
+		if txs[i].isExpire(cfg, height, blocktime) {
 			return true
 		}
 	}
@@ -173,7 +173,7 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 }
 
 //CheckWithFork 和fork 无关的有个检查函数
-func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, minfee, maxFee int64) error {
+func (txgroup *Transactions) CheckWithFork(cfg *Chain33Config, checkFork, paraFork bool, height, minfee, maxFee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
@@ -183,7 +183,7 @@ func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, min
 		if txs[i] == nil {
 			return ErrTxGroupEmpty
 		}
-		err := txs[i].check(height, 0, maxFee)
+		err := txs[i].check(cfg, height, 0, maxFee)
 		if err != nil {
 			return err
 		}
@@ -262,10 +262,10 @@ func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, min
 }
 
 //Check height == 0 的时候，不做检查
-func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
-	paraFork := IsFork(height, "ForkTxGroupPara")
-	checkFork := IsFork(height, "ForkBlockCheck")
-	return txgroup.CheckWithFork(checkFork, paraFork, height, minfee, maxFee)
+func (txgroup *Transactions) Check(cfg *Chain33Config, height, minfee, maxFee int64) error {
+	paraFork := cfg.IsFork(height, "ForkTxGroupPara")
+	checkFork := cfg.IsFork(height, "ForkBlockCheck")
+	return txgroup.CheckWithFork(cfg, checkFork, paraFork, height, minfee, maxFee)
 }
 
 //TransactionCache 交易缓存结构
@@ -331,7 +331,7 @@ func (tx *TransactionCache) Tx() *Transaction {
 }
 
 //Check 交易缓存中交易组合费用的检测
-func (tx *TransactionCache) Check(height, minfee, maxFee int64) error {
+func (tx *TransactionCache) Check(cfg *Chain33Config, height, minfee, maxFee int64) error {
 	if !tx.checked {
 		tx.checked = true
 		txs, err := tx.GetTxGroup()
@@ -340,9 +340,9 @@ func (tx *TransactionCache) Check(height, minfee, maxFee int64) error {
 			return err
 		}
 		if txs == nil {
-			tx.checkok = tx.check(height, minfee, maxFee)
+			tx.checkok = tx.check(cfg, height, minfee, maxFee)
 		} else {
-			tx.checkok = txs.Check(height, minfee, maxFee)
+			tx.checkok = txs.Check(cfg, height, minfee, maxFee)
 		}
 	}
 	return tx.checkok
@@ -514,18 +514,18 @@ func (tx *Transaction) checkSign() bool {
 }
 
 //Check 交易检测
-func (tx *Transaction) Check(height, minfee, maxFee int64) error {
+func (tx *Transaction) Check(cfg *Chain33Config, height, minfee, maxFee int64) error {
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return err
 	}
 	if group == nil {
-		return tx.check(height, minfee, maxFee)
+		return tx.check(cfg, height, minfee, maxFee)
 	}
-	return group.Check(height, minfee, maxFee)
+	return group.Check(cfg, height, minfee, maxFee)
 }
 
-func (tx *Transaction) check(height, minfee, maxFee int64) error {
+func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) error {
 	txSize := Size(tx)
 	if txSize > int(MaxTxSize) {
 		return ErrTxMsgSizeTooBig
@@ -538,16 +538,16 @@ func (tx *Transaction) check(height, minfee, maxFee int64) error {
 	if tx.Fee < realFee {
 		return ErrTxFeeTooLow
 	}
-	if tx.Fee > maxFee && maxFee > 0 && IsFork(height, "ForkBlockCheck") {
+	if tx.Fee > maxFee && maxFee > 0 && cfg.IsFork(height, "ForkBlockCheck") {
 		return ErrTxFeeTooHigh
 	}
 	return nil
 }
 
 //SetExpire 设置交易过期时间
-func (tx *Transaction) SetExpire(expire time.Duration) {
+func (tx *Transaction) SetExpire(cfg *Chain33Config, expire time.Duration) {
 	//Txheight处理
-	if IsEnable("TxHeight") && int64(expire) > TxHeightFlag {
+	if cfg.IsEnable("TxHeight") && int64(expire) > TxHeightFlag {
 		tx.Expire = int64(expire)
 		return
 	}
@@ -594,12 +594,12 @@ func (tx *Transaction) SetRealFee(minFee int64) error {
 var ExpireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 //IsExpire 交易是否过期
-func (tx *Transaction) IsExpire(height, blocktime int64) bool {
+func (tx *Transaction) IsExpire(cfg *Chain33Config, height, blocktime int64) bool {
 	group, _ := tx.GetTxGroup()
 	if group == nil {
-		return tx.isExpire(height, blocktime)
+		return tx.isExpire(cfg, height, blocktime)
 	}
-	return group.IsExpire(height, blocktime)
+	return group.IsExpire(cfg, height, blocktime)
 }
 
 //GetTxFee 获取交易的费用，区分单笔交易和交易组
@@ -617,7 +617,7 @@ func (tx *Transaction) From() string {
 }
 
 //检查交易是否过期，过期返回true，未过期返回false
-func (tx *Transaction) isExpire(height, blocktime int64) bool {
+func (tx *Transaction) isExpire(cfg *Chain33Config, height, blocktime int64) bool {
 	valid := tx.Expire
 	// Expire为0，返回false
 	if valid == 0 {
@@ -628,7 +628,7 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		return valid <= height
 	}
 	//EnableTxHeight 选项开启, 并且符合条件
-	if txHeight := GetTxHeight(valid, height); txHeight > 0 {
+	if txHeight := GetTxHeight(cfg, valid, height); txHeight > 0 {
 		if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
 			return false
 		}
@@ -639,8 +639,8 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 }
 
 //GetTxHeight 获取交易高度
-func GetTxHeight(valid int64, height int64) int64 {
-	if IsEnableFork(height, "ForkTxHeight", IsEnable("TxHeight")) && valid > TxHeightFlag {
+func GetTxHeight(cfg *Chain33Config, valid int64, height int64) int64 {
+	if cfg.IsEnableFork(height, "ForkTxHeight", cfg.IsEnable("TxHeight")) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
 	return -1

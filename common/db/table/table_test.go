@@ -23,21 +23,22 @@ func TestTransactinList(t *testing.T) {
 		Primary: "Hash",
 		Index:   []string{"From", "To"},
 	}
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	table, err := NewTable(NewTransactionRow(), kvdb, opt)
 	assert.Nil(t, err)
 	addr1, priv := util.Genaddress()
-	tx1 := util.CreateNoneTx(priv)
+	tx1 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx1)
 	assert.Nil(t, err)
-	tx2 := util.CreateNoneTx(priv)
+	tx2 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx2)
 	assert.Nil(t, err)
 
 	addr2, priv := util.Genaddress()
-	tx3 := util.CreateNoneTx(priv)
+	tx3 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx3)
 	assert.Nil(t, err)
-	tx4 := util.CreateNoneTx(priv)
+	tx4 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx4)
 	assert.Nil(t, err)
 	//添加一个无效的类型
@@ -161,21 +162,22 @@ func TestTransactinListAuto(t *testing.T) {
 		Primary: "",
 		Index:   []string{"From", "To"},
 	}
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	table, err := NewTable(NewTransactionRow(), kvdb, opt)
 	assert.Nil(t, err)
 	addr1, priv := util.Genaddress()
-	tx1 := util.CreateNoneTx(priv)
+	tx1 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx1)
 	assert.Nil(t, err)
-	tx2 := util.CreateNoneTx(priv)
+	tx2 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx2)
 	assert.Nil(t, err)
 
 	addr2, priv := util.Genaddress()
-	tx3 := util.CreateNoneTx(priv)
+	tx3 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx3)
 	assert.Nil(t, err)
-	tx4 := util.CreateNoneTx(priv)
+	tx4 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx4)
 	assert.Nil(t, err)
 	//添加一个无效的类型
@@ -241,10 +243,11 @@ func TestTransactinListAuto(t *testing.T) {
 }
 
 func TestRow(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	rowmeta := NewTransactionRow()
 	row := rowmeta.CreateRow()
 	_, priv := util.Genaddress()
-	tx1 := util.CreateNoneTx(priv)
+	tx1 := util.CreateNoneTx(cfg, priv)
 	row.Data = tx1
 	row.Primary = tx1.Hash()
 	data, err := row.Encode()
@@ -267,15 +270,16 @@ func TestDel(t *testing.T) {
 		Primary: "Hash",
 		Index:   []string{"From", "To"},
 	}
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	table, err := NewTable(NewTransactionRow(), kvdb, opt)
 	assert.Nil(t, err)
 	addr1, priv := util.Genaddress()
-	tx1 := util.CreateNoneTx(priv)
+	tx1 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx1)
 	assert.Nil(t, err)
 
 	_, priv = util.Genaddress()
-	tx2 := util.CreateNoneTx(priv)
+	tx2 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx2)
 	assert.Nil(t, err)
 
@@ -305,10 +309,11 @@ func TestUpdate(t *testing.T) {
 		Primary: "Hash",
 		Index:   []string{"From", "To"},
 	}
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	table, err := NewTable(NewTransactionRow(), kvdb, opt)
 	assert.Nil(t, err)
 	_, priv := util.Genaddress()
-	tx1 := util.CreateNoneTx(priv)
+	tx1 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx1)
 	assert.Nil(t, err)
 
@@ -338,10 +343,11 @@ func TestReplace(t *testing.T) {
 		Primary: "Hash",
 		Index:   []string{"From", "To"},
 	}
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	table, err := NewTable(NewTransactionRow(), kvdb, opt)
 	assert.Nil(t, err)
 	addr1, priv := util.Genaddress()
-	tx1 := util.CreateNoneTx(priv)
+	tx1 := util.CreateNoneTx(cfg, priv)
 	err = table.Add(tx1)
 	assert.Nil(t, err)
 

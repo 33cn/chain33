@@ -39,6 +39,7 @@ type Client interface {
 	Close()
 	CloseQueue() (*types.Reply, error)
 	NewMessage(topic string, ty int64, data interface{}) (msg *Message)
+	GetConfig() *types.Chain33Config
 }
 
 // Module be used for module interface
@@ -66,6 +67,16 @@ func newClient(q *queue) Client {
 	client.done = make(chan struct{}, 1)
 	client.wg = &sync.WaitGroup{}
 	return client
+}
+
+// GetConfig return the queue Chain33Config
+func (client *client) GetConfig() *types.Chain33Config {
+	types.AssertConfig(client.q)
+	cfg := client.q.GetConfig()
+	if cfg == nil {
+		panic("Chain33Config is nil")
+	}
+	return cfg
 }
 
 // Send 发送消息,msg 消息 ,waitReply 是否等待回应

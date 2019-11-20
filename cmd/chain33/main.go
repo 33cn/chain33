@@ -13,5 +13,5 @@ import (
 )
 
 func main() {
-	cli.RunChain33("")
+	cli.RunChain33("", "")
 }

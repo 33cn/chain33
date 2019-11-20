@@ -12,11 +12,12 @@ import (
 	"fmt"
 	"time"
 
+	"encoding/json"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/store"
-	mavldb "github.com/33cn/chain33/system/store/mavl/db"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +34,7 @@ func TestKvdbNewClose(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 
 	store.Close()
@@ -45,7 +46,7 @@ func TestKvddbSetGet(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -92,7 +93,7 @@ func TestKvdbMemSet(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -123,7 +124,7 @@ func TestKvdbMemSetUpgrade(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -152,7 +153,7 @@ func TestKvdbRollback(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -182,7 +183,7 @@ func TestProcEvent(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 
 	store.ProcEvent(nil)
@@ -195,7 +196,7 @@ func TestDel(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 
 	store.Del(nil)
@@ -215,7 +216,7 @@ func TestKvdbIterate(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -280,16 +281,17 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 func TestIterateCallBack_Mode1(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg, nil).(*Store)
+	store := New(store_cfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 	//mavldb.EnableMavlPrefix(true)
 	//defer mavldb.EnableMavlPrefix(false)
 
 	//var accountdb *account.DB
-	accountdb := account.NewCoinsAccount()
+	accountdb := account.NewCoinsAccount(cfg)
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	prefix := "mavl-coins-bty-exec-"
 	execAddr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
@@ -424,16 +426,17 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 func TestIterateCallBack_Mode2(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg, nil).(*Store)
+	store := New(store_cfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 	//mavldb.EnableMavlPrefix(true)
 	//defer mavldb.EnableMavlPrefix(false)
 
 	//var accountdb *account.DB
-	accountdb := account.NewCoinsAccount()
+	accountdb := account.NewCoinsAccount(cfg)
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	prefix := "mavl-coins-bty-exec-"
 	execAddr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
@@ -600,7 +603,7 @@ func TestKvdbIterateTimes(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -631,10 +634,13 @@ func BenchmarkGet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	subcfg := &subConfig{
+		EnableMavlPrefix: true,
+	}
+	sub, err := json.Marshal(subcfg)
+	assert.Nil(b, err)
+	store := New(storeCfg, sub, nil).(*Store)
 	assert.NotNil(b, store)
-	mavldb.EnableMavlPrefix(true)
-	defer mavldb.EnableMavlPrefix(false)
 	var kv []*types.KeyValue
 	var keys [][]byte
 	var hash = drivers.EmptyRoot[:]
@@ -678,7 +684,7 @@ func BenchmarkStoreGetKvs4N(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -723,7 +729,7 @@ func BenchmarkStoreGetKvsForNN(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -784,7 +790,7 @@ func BenchmarkStoreGetKvsFor10000(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -849,10 +855,13 @@ func BenchmarkSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	subcfg := &subConfig{
+		EnableMavlPrefix: true,
+	}
+	sub, err := json.Marshal(subcfg)
+	assert.Nil(b, err)
+	store := New(storeCfg, sub, nil).(*Store)
 	assert.NotNil(b, store)
-	mavldb.EnableMavlPrefix(true)
-	defer mavldb.EnableMavlPrefix(false)
 	var kv []*types.KeyValue
 	var keys [][]byte
 	var hash = drivers.EmptyRoot[:]
@@ -885,7 +894,7 @@ func BenchmarkStoreSetKvs(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -920,7 +929,7 @@ func BenchmarkMemSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(b, store)
 	var kv []*types.KeyValue
 	var key string
@@ -953,7 +962,7 @@ func BenchmarkStoreMemSet(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -988,7 +997,7 @@ func BenchmarkCommit(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -1028,7 +1037,7 @@ func BenchmarkStoreCommit(b *testing.B) {
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	var storeCfg = newStoreCfg(dir)
-	store := New(storeCfg, nil).(*Store)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue

@@ -59,6 +59,8 @@ type Queue interface {
 	Start()
 	Client() Client
 	Name() string
+	SetConfig(cfg *types.Chain33Config)
+	GetConfig() *types.Chain33Config
 }
 
 type queue struct {
@@ -69,6 +71,7 @@ type queue struct {
 	callback  chan *Message
 	isClose   int32
 	name      string
+	cfg       *types.Chain33Config
 }
 
 // New new queue struct
@@ -94,6 +97,22 @@ func New(name string) Queue {
 		}
 	}()
 	return q
+}
+
+// GetConfig return the queue Chain33Config
+func (q *queue) GetConfig() *types.Chain33Config {
+	return q.cfg
+}
+
+// Name return the queue name
+func (q *queue) SetConfig(cfg *types.Chain33Config) {
+	if cfg == nil {
+		panic("set config is nil")
+	}
+	if q.cfg != nil {
+		panic("do not reset queue config")
+	}
+	q.cfg = cfg
 }
 
 // Name return the queue name

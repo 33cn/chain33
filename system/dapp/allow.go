@@ -12,13 +12,17 @@ import (
 
 // AllowIsSame allow issame drivername
 func (d *DriverBase) AllowIsSame(execer []byte) bool {
-	execer = types.GetParaExec(execer)
+	types.AssertConfig(d.api)
+	cfg := d.api.GetConfig()
+	execer = cfg.GetParaExec(execer)
 	return d.child.GetDriverName() == string(execer)
 }
 
 // AllowIsUserDot1 user.evm
 func (d *DriverBase) AllowIsUserDot1(execer []byte) bool {
-	execer = types.GetParaExec(execer)
+	types.AssertConfig(d.api)
+	cfg := d.api.GetConfig()
+	execer = cfg.GetParaExec(execer)
 	if !bytes.HasPrefix(execer, types.UserKey) {
 		return false
 	}
@@ -27,7 +31,9 @@ func (d *DriverBase) AllowIsUserDot1(execer []byte) bool {
 
 // AllowIsUserDot2 user.evm.xxx
 func (d *DriverBase) AllowIsUserDot2(execer []byte) bool {
-	execer = types.GetParaExec(execer)
+	types.AssertConfig(d.api)
+	cfg := d.api.GetConfig()
+	execer = cfg.GetParaExec(execer)
 	if !bytes.HasPrefix(execer, types.UserKey) {
 		return false
 	}

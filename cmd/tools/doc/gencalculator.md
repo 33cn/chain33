@@ -91,7 +91,6 @@ $ tree -d
 ├── proto   //proto脚本模块
 ├── rpc     //rpc模块
 └── types   //类型模块
-    └── calculator
 ```
 
 ##### 生成pb.go文件
@@ -151,57 +150,7 @@ const (
 		TyDivLog: {Ty:reflect.TypeOf(DivideLog{}), Name: "DivideLog"},
 	}
 ```
-##### 注册dapp启用高度(types/calculator/calculator.go)
-> 默认生成的代码，启用高度设为0，可以自定义修改
-```go
-types.RegisterDappFork(CalculatorX, "Enable", 0)
-```
 
-##### 实现CreateTx接口(types/calculator/calculator.go)
-> CreateTx即根据不同action name创建交易，隶属于框架ExcutorType接口。
-合约的CreateTx功能可以通过框架相关接口调用，将在rpc模块开发进行演示，
-本例中简单实现了加法和除法的创建逻辑，其余类似
-```go
-func (t *calculatorType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
-	var tx *types.Transaction
-
-	if action == NameAddAction {
-		param := &Add{}
-		err := json.Unmarshal(message, param)
-		if err != nil {
-			tlog.Error("CreateTx","UnmarshalErr", err)
-			return nil, types.ErrUnmarshal
-		}
-		tx = &types.Transaction{
-			Execer: []byte(types.ExecName(CalculatorX)),
-			Payload: types.Encode(&CalculatorAction{Ty:TyAddAction, Value:&CalculatorAction_Add{Add:param}}),
-			Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-			//"github.com/33cn/chain33/common/address"
-			To:  address.ExecAddress(types.ExecName(CalculatorX)),
-		}
-		return tx, nil
-	} else if action == NameSubAction {
-	} else if action == NameMulAction {
-	} else if action == NameDivAction{
-
-		param := &Divide{}
-		err := json.Unmarshal(message, param)
-		if err != nil {
-			tlog.Error("CreateTx","UnmarshalErr", err)
-			return nil, err
-		}
-		tx = &types.Transaction{
-			Execer: []byte(types.ExecName(CalculatorX)),
-			Payload: types.Encode(&CalculatorAction{Ty:TyDivAction, Value:&CalculatorAction_Div{Div:param}}),
-			Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-			To:  address.ExecAddress(types.ExecName(CalculatorX)),
-		}
-		return tx, nil
-	}
-
-	return tx, types.ErrNotSupport
-}
-```
 
 #### executor执行模块
 此目录归纳了交易执行逻辑实现代码
@@ -507,7 +456,7 @@ func Cmd() *cobra.Command {
 >需要在此文件import目录，新增calculator包导入
 ```go
  import (
- 	_ "github.com/33cn/plugin/plugin/dapp/calculator" //auto gen
+ 	_ "github.com/33cn/plugin/plugin/dapp/calculator"
  ```
 
 ##### 编译

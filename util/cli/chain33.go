@@ -59,7 +59,7 @@ var (
 )
 
 //RunChain33 : run Chain33
-func RunChain33(name string) {
+func RunChain33(name, defCfg string) {
 	flag.Parse()
 	if *versionCmd {
 		fmt.Println(version.GetVersion())
@@ -91,7 +91,8 @@ func RunChain33(name string) {
 		panic(err)
 	}
 	//set config: bityuan 用 bityuan.toml 这个配置文件
-	cfg, sub := types.InitCfg(*configPath)
+	chain33Cfg := types.NewChain33Config(types.MergeCfg(types.ReadFile(*configPath), defCfg))
+	cfg := chain33Cfg.GetModuleConfig()
 	if *datadir != "" {
 		util.ResetDatadir(cfg, *datadir)
 	}
@@ -101,8 +102,7 @@ func RunChain33(name string) {
 	if *waitPid {
 		cfg.P2P.WaitPid = *waitPid
 	}
-	//set test net flag
-	types.Init(cfg.Title, cfg)
+
 	if cfg.FixTime {
 		go fixtimeRoutine()
 	}
@@ -149,37 +149,38 @@ func RunChain33(name string) {
 	log.Info(cfg.Title + "-app:" + version.GetAppVersion() + " chain33:" + version.GetVersion() + " localdb:" + version.GetLocalDBVersion() + " statedb:" + version.GetStoreDBVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
+	q.SetConfig(chain33Cfg)
 
 	log.Info("loading mempool module")
-	mem := mempool.New(cfg.Mempool, sub.Mempool)
+	mem := mempool.New(chain33Cfg)
 	mem.SetQueueClient(q.Client())
 
 	log.Info("loading execs module")
-	exec := executor.New(cfg.Exec, sub.Exec)
+	exec := executor.New(chain33Cfg)
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading blockchain module")
 	cfg.BlockChain.RollbackBlock = *rollback
 	cfg.BlockChain.RollbackSave = *save
-	chain := blockchain.New(cfg.BlockChain)
+	chain := blockchain.New(chain33Cfg)
 	chain.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
-	s := store.New(cfg.Store, sub.Store)
+	s := store.New(chain33Cfg)
 	s.SetQueueClient(q.Client())
 
 	chain.Upgrade()
 
 	log.Info("loading consensus module")
-	cs := consensus.New(cfg.Consensus, sub.Consensus)
+	cs := consensus.New(chain33Cfg)
 	cs.SetQueueClient(q.Client())
 
 	//jsonrpc, grpc, channel 三种模式
-	rpcapi := rpc.New(cfg.RPC)
+	rpcapi := rpc.New(chain33Cfg)
 	rpcapi.SetQueueClient(q.Client())
 
 	log.Info("loading wallet module")
-	walletm := wallet.New(cfg.Wallet, sub.Wallet)
+	walletm := wallet.New(chain33Cfg)
 	walletm.SetQueueClient(q.Client())
 
 	chain.Rollbackblock()
@@ -192,8 +193,8 @@ func RunChain33(name string) {
 	}
 	log.Info("loading p2p module")
 	var network queue.Module
-	if cfg.P2P.Enable && !types.IsPara() {
-		network = p2p.New(cfg.P2P)
+	if cfg.P2P.Enable && !chain33Cfg.IsPara() {
+		network = p2p.New(chain33Cfg)
 	} else {
 		network = &util.MockModule{Key: "p2p"}
 	}

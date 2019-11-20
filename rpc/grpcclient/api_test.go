@@ -16,7 +16,9 @@ import (
 )
 
 func TestMultipleGRPC(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	qapi := new(mocks.QueueProtocolAPI)
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
 	qapi.On("Query", "ticket", "RandNumHash", mock.Anything).Return(&types.ReplyHash{Hash: []byte("hello")}, nil)
 	//testnode setup
 	rpcCfg := new(types.RPC)
@@ -26,7 +28,9 @@ func TestMultipleGRPC(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	rpc.InitCfg(rpcCfg)
-	server := rpc.NewGRpcServer(&qmocks.Client{}, qapi)
+	qm := &qmocks.Client{}
+	qm.On("GetConfig", mock.Anything).Return(cfg)
+	server := rpc.NewGRpcServer(qm, qapi)
 	assert.NotNil(t, server)
 	go server.Listen()
 	time.Sleep(time.Second)
@@ -46,7 +50,9 @@ func TestMultipleGRPC(t *testing.T) {
 }
 
 func TestMultipleGRPCLocalhost(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	qapi := new(mocks.QueueProtocolAPI)
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
 	qapi.On("Query", "ticket", "RandNumHash", mock.Anything).Return(&types.ReplyHash{Hash: []byte("hello")}, nil)
 	//testnode setup
 	rpcCfg := new(types.RPC)
@@ -56,7 +62,9 @@ func TestMultipleGRPCLocalhost(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	rpc.InitCfg(rpcCfg)
-	server := rpc.NewGRpcServer(&qmocks.Client{}, qapi)
+	qm := &qmocks.Client{}
+	qm.On("GetConfig", mock.Anything).Return(cfg)
+	server := rpc.NewGRpcServer(qm, qapi)
 	assert.NotNil(t, server)
 	go server.Listen()
 	time.Sleep(time.Second)
@@ -77,6 +85,8 @@ func TestMultipleGRPCLocalhost(t *testing.T) {
 
 func TestNewParaClient(t *testing.T) {
 	qapi := new(mocks.QueueProtocolAPI)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
 	qapi.On("Query", "ticket", "RandNumHash", mock.Anything).Return(&types.ReplyHash{Hash: []byte("hello")}, nil)
 	//testnode setup
 	rpcCfg := new(types.RPC)
@@ -86,13 +96,15 @@ func TestNewParaClient(t *testing.T) {
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	rpc.InitCfg(rpcCfg)
-	server := rpc.NewGRpcServer(&qmocks.Client{}, qapi)
+	qm := &qmocks.Client{}
+	qm.On("GetConfig", mock.Anything).Return(cfg)
+	server := rpc.NewGRpcServer(qm, qapi)
 	assert.NotNil(t, server)
 	go server.Listen()
 	time.Sleep(time.Second)
 	//一个IP 有效，一个IP 无效
 	paraRemoteGrpcClient := "127.0.0.1:8004,127.0.0.1:8003,127.0.0.1"
-	grpcClient, err := grpcclient.NewMainChainClient(paraRemoteGrpcClient)
+	grpcClient, err := grpcclient.NewMainChainClient(cfg, paraRemoteGrpcClient)
 	assert.Nil(t, err)
 	param := &types.ReqRandHash{
 		ExecName: "ticket",
@@ -105,17 +117,18 @@ func TestNewParaClient(t *testing.T) {
 }
 
 func TestNewMainChainClient(t *testing.T) {
-	grpcClient1, err := grpcclient.NewMainChainClient("")
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	grpcClient1, err := grpcclient.NewMainChainClient(cfg, "")
 	assert.Nil(t, err)
-	grpcClient2, err := grpcclient.NewMainChainClient("")
+	grpcClient2, err := grpcclient.NewMainChainClient(cfg, "")
 	assert.Nil(t, err)
 	if grpcClient1 != grpcClient2 {
 		t.Error("grpc client is the same")
 	}
 
-	grpcClient3, err := grpcclient.NewMainChainClient("127.0.0.1")
+	grpcClient3, err := grpcclient.NewMainChainClient(cfg, "127.0.0.1")
 	assert.Nil(t, err)
-	grpcClient4, err := grpcclient.NewMainChainClient("127.0.0.1")
+	grpcClient4, err := grpcclient.NewMainChainClient(cfg, "127.0.0.1")
 	assert.Nil(t, err)
 	if grpcClient3 == grpcClient4 {
 		t.Error("grpc client is not the same")
