@@ -194,7 +194,7 @@ func (db *GoLevelDB) BeginTx() (TxKV, error) {
 }
 
 func (db *GoLevelDB) CompactRange(start, limit []byte) error {
-	r := util.Range{Start:start, Limit:limit}
+	r := util.Range{Start: start, Limit: limit}
 	return db.db.CompactRange(r)
 }
 
