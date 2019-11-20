@@ -424,7 +424,7 @@ func TestSortTxList(t *testing.T) {
 	txList.Txs = append(txList.Txs, &tx2215)
 	txList.Txs = append(txList.Txs, &tx3215)
 
-	sorTxList, err := SortTxList(txList.Txs)
+	sorTxList, err := TransactionSort("solo", txList.Txs)
 	if err != nil {
 		t.Error(err)
 		return
@@ -457,18 +457,12 @@ func TestSortTxList(t *testing.T) {
 	txSingleList.Txs = append(txSingleList.Txs, &tx62211)
 	txSingleList.Txs = append(txSingleList.Txs, &tx63211)
 
-	for _, tx := range txSingleList.Txs {
-		t.Logf("txSingleList:execer:%s", string(tx.Execer))
-
-	}
-	sorTxSingleList, err := SortTxList(txSingleList.Txs)
+	sorTxSingleList, err := TransactionSort("solo", txSingleList.Txs)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-
 	assert.Equal(t, len(txSingleList.Txs), len(sorTxSingleList))
-
 	for _, sorttx := range sorTxSingleList {
 		var equal bool
 		sortHash := sorttx.Hash()
@@ -479,7 +473,44 @@ func TestSortTxList(t *testing.T) {
 				break
 			}
 		}
-		t.Logf("sorTxSingleList:execer:%s", string(sorttx.Execer))
+		assert.Equal(t, equal, true)
+	}
+
+	//构建第一笔是特殊交易不参与排序
+	var txSpecialList Transactions
+	tx71111, tx72211, tx73211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.js", "user.p.para.lottery", "user.p.fuzamei.norm")
+	txSpecialList.Txs = append(txSpecialList.Txs, &tx71111)
+	txSpecialList.Txs = append(txSpecialList.Txs, &tx72211)
+	txSpecialList.Txs = append(txSpecialList.Txs, &tx73211)
+
+	tx81111, tx82211, tx83211 := modifyTxExec(tx12, tx22, tx32, "ajs", "zottery", "norm")
+	txSpecialList.Txs = append(txSpecialList.Txs, &tx81111)
+	txSpecialList.Txs = append(txSpecialList.Txs, &tx82211)
+	txSpecialList.Txs = append(txSpecialList.Txs, &tx83211)
+
+	sorTxSpecialList, err := TransactionSort("para", txSpecialList.Txs)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	assert.Equal(t, len(txSpecialList.Txs), len(sorTxSpecialList))
+	for i, sorttx := range sorTxSpecialList {
+		var equal bool
+		//第一笔不参与排序
+		if i == 0 {
+			assert.Equal(t, "user.p.test.js", string(sorttx.Execer))
+		}
+		if i == 1 {
+			assert.Equal(t, "ajs", string(sorttx.Execer))
+		}
+		sortHash := sorttx.Hash()
+		for _, tx := range txSpecialList.Txs {
+			txHash := tx.Hash()
+			if bytes.Equal(sortHash, txHash) {
+				equal = true
+				break
+			}
+		}
 		assert.Equal(t, equal, true)
 	}
 }

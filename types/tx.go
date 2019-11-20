@@ -820,11 +820,11 @@ func (s ByExecName) Less(i, j int) bool {
 	return leftExecName < rightExecName
 }
 
-//SortTxList 对交易数组按照指定规则排序
+//sortTxList 对交易数组按照指定规则排序
 //首先将交易列表中的交易组合并成单个组交易
 //然后对新的交易列表排序
 //再后将排序后的交易列表中的组交易展开，主要是交易组的特殊处理
-func SortTxList(txs []*Transaction) ([]*Transaction, error) {
+func sortTxList(txs []*Transaction) ([]*Transaction, error) {
 	var haveTxGroup bool
 	var err error
 	for _, tx := range txs {
@@ -848,7 +848,6 @@ func SortTxList(txs []*Transaction) ([]*Transaction, error) {
 
 //将交易列表中的交易组交易合并成一个组交易
 func uniteTxList(txs []*Transaction) ([]*Transaction, error) {
-
 	var txsList Transactions
 	txsCount := len(txs)
 	for i := 0; i < txsCount; i++ {
@@ -898,4 +897,38 @@ func expandTxs(txs []*Transaction) ([]*Transaction, error) {
 		}
 	}
 	return txsList.Txs, nil
+}
+
+//TransactionSort:对打包上链的交易排序
+//需要过滤掉有些共识的特殊交易不参与排序，必须是第一笔交易,
+//例如：ticket,para,tendermint
+func TransactionSort(consensus string, rawtxs []*Transaction) ([]*Transaction, error) {
+	var txs Transactions
+	var haveMinerTx bool
+
+	if haveSpecialTx(consensus) {
+		txs.Txs = append(txs.Txs, rawtxs[1:]...)
+		haveMinerTx = true
+	} else {
+		txs.Txs = append(txs.Txs, rawtxs[0:]...)
+	}
+	txlist, err := sortTxList(txs.Txs)
+	if err != nil {
+		tlog.Error("TransactionSort", "err", err, "txs", txs)
+		return nil, err
+	}
+	var sorTxs Transactions
+	if haveMinerTx {
+		sorTxs.Txs = append(sorTxs.Txs, rawtxs[0])
+	}
+	sorTxs.Txs = append(sorTxs.Txs, txlist...)
+	return sorTxs.Txs, nil
+}
+
+//有些共识的第一笔交易是固定交易，不参与排序
+func haveSpecialTx(consensus string) bool {
+	if consensus == "ticket" || consensus == "para" || consensus == "tendermint" {
+		return true
+	}
+	return false
 }

@@ -488,7 +488,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	txList.Txs = append(txList.Txs, &tx2215)
 	txList.Txs = append(txList.Txs, &tx3215)
 
-	sorTxList, err := types.SortTxList(txList.Txs)
+	sorTxList, err := types.TransactionSort("solo", txList.Txs)
 	if err != nil {
 		t.Error(err)
 		return
@@ -584,7 +584,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	}
 	txMainList.Txs = append(txMainList.Txs, txGroup.GetTxs()...)
 
-	sorTxMainList, err := types.SortTxList(txMainList.Txs)
+	sorTxMainList, err := types.TransactionSort("solo", txMainList.Txs)
 	if err != nil {
 		t.Error(err)
 		return
@@ -618,7 +618,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	}
 	txParaTestList.Txs = append(txParaTestList.Txs, txGroup.GetTxs()...)
 
-	sorTxParaTestList, err := types.SortTxList(txParaTestList.Txs)
+	sorTxParaTestList, err := types.TransactionSort("solo", txParaTestList.Txs)
 	if err != nil {
 		t.Error(err)
 		return
@@ -638,7 +638,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	txMPList.Txs = append(txMPList.Txs, &tx92211)
 	txMPList.Txs = append(txMPList.Txs, &tx93211)
 
-	sorTxMPList, err := types.SortTxList(txMPList.Txs)
+	sorTxMPList, err := types.TransactionSort("solo", txMPList.Txs)
 	if err != nil {
 		t.Error(err)
 		return
@@ -681,7 +681,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	txMThreePList.Txs = append(txMThreePList.Txs, &tx312211)
 	txMThreePList.Txs = append(txMThreePList.Txs, &tx313211)
 
-	sorTxMThreePList, err := types.SortTxList(txMThreePList.Txs)
+	sorTxMThreePList, err := types.TransactionSort("solo", txMThreePList.Txs)
 	if err != nil {
 		t.Error(err)
 		return

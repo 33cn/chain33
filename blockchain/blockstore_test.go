@@ -176,10 +176,6 @@ func TestSeqCreateAndDelete(t *testing.T) {
 			batch.Set(kv.GetKey(), kv.GetValue())
 		}
 		batch.Set(calcHeightToHashKey(int64(i)), []byte(fmt.Sprintf("%d", i)))
-		//h0 := calcHeightToBlockHeaderKey(int64(i))
-		//header.Hash = []byte(fmt.Sprintf("%d", i))
-		//types.Encode(&header)
-		//batch.Set(h0, types.Encode(&header))
 	}
 	blockStore.height = 100
 	batch.Write()

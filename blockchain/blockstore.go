@@ -468,8 +468,6 @@ func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
 //启动的过程中通过height获取区块时需要兼容旧的存储格式
 //升级完成正常启动之后通过loadBlockByIndex获取block不应该有失败
 func (bs *BlockStore) LoadBlockByHeight(height int64) (*types.BlockDetail, error) {
-	storeLog.Debug("LoadBlockByHeight", "height", height)
-
 	hash, err := bs.GetBlockHashByHeight(height)
 	if err != nil {
 		return nil, err
@@ -552,7 +550,6 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 
 	//删除block height和block hash的对应关系，便于通过height查询block
 	storeBatch.Delete(calcHeightToHashKey(height))
-	//storeBatch.Delete(calcHeightToBlockHeaderKey(height))
 
 	if bs.saveSequence || bs.isParaChain {
 		//存储记录block序列执行的type del
@@ -562,7 +559,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 			return lastSequence, err
 		}
 	}
-	// 删除主链上本区块对应的平行链标识
+	// 删除主链上本区块存储的平行链标识，侧链的不记录
 	if !bs.isParaChain {
 		parakvs, _ := delParaTxTable(bs.db, height)
 		for _, kv := range parakvs {

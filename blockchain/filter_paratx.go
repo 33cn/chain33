@@ -68,8 +68,9 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 				paraTx.Type = types.AddBlock
 			}
 			height := block.Block.GetHeight()
+			blockhash := block.Block.Hash(cfg)
 			if cfg.IsFork(height, "ForkRootHash") {
-				branch, childHash, index := chain.getChildChainProofs(height, seq.Title, block.Block.GetTxs())
+				branch, childHash, index := chain.getChildChainProofs(height, blockhash, seq.Title, block.Block.GetTxs())
 				paraTx.ChildHash = childHash
 				paraTx.Index = index
 				paraTx.Proofs = branch
@@ -133,8 +134,9 @@ func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types
 			paraTxDetail = block.FilterParaTxsByTitle(cfg, req.Title)
 			if paraTxDetail != nil {
 				paraTxDetail.Type = types.AddBlock
+				blockHash := block.Block.Hash(cfg)
 				if cfg.IsFork(height, "ForkRootHash") {
-					branch, childHash, index := chain.getChildChainProofs(height, req.Title, block.Block.GetTxs())
+					branch, childHash, index := chain.getChildChainProofs(height, blockHash, req.Title, block.Block.GetTxs())
 					paraTxDetail.ChildHash = childHash
 					paraTxDetail.Index = index
 					paraTxDetail.Proofs = branch
@@ -147,15 +149,16 @@ func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types
 }
 
 //获取指定title子链roothash在指定高度上的路径证明
-func (chain *BlockChain) getChildChainProofs(height int64, title string, txs []*types.Transaction) ([][]byte, []byte, uint32) {
+func (chain *BlockChain) getChildChainProofs(height int64, blockHash []byte, title string, txs []*types.Transaction) ([][]byte, []byte, uint32) {
 	var branch [][]byte
 	var childHash []byte
 	var index uint32
 	var hashes [][]byte
 
-	replyparaTxs, err := chain.LoadParaTxByHeight(height, "", 0, 1)
-	if err == nil {
-		for _, paratx := range replyparaTxs.Items {
+	//主链直接从数据库获取对应的子链根hash
+	paraTxs, err := chain.LoadParaTxByHeight(height, "", 0, 1)
+	if err == nil && len(paraTxs.Items) > 0 && bytes.Equal(paraTxs.Items[0].GetHash(), blockHash) {
+		for _, paratx := range paraTxs.Items {
 			if title == paratx.Title {
 				index = paratx.ChildHashIndex
 				childHash = paratx.ChildHash
@@ -165,6 +168,7 @@ func (chain *BlockChain) getChildChainProofs(height int64, title string, txs []*
 		branch = merkle.GetMerkleBranch(hashes, index)
 		return branch, childHash, index
 	}
+	//侧链的需要重新计算
 	_, childChains := merkle.CalcMultiLayerMerkleRoot(txs)
 	for i, childchain := range childChains {
 		hashes = append(hashes, childchain.ChildHash)
