@@ -38,6 +38,7 @@ type Miner interface {
 	GetGenesisBlockTime() int64
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
+	AddBlock(b *types.Block) error
 	ProcEvent(msg *queue.Message) bool
 }
 
@@ -212,6 +213,10 @@ func (bc *BaseClient) ExecConsensus(data *types.ChainExecutor) (types.Message, e
 	return QueryData.Call(data.Driver, data.FuncName, param)
 }
 
+func (bc *BaseClient) AddBlock(b *types.Block) error {
+	return nil
+}
+
 //EventLoop 准备新区块
 func (bc *BaseClient) EventLoop() {
 	// 监听blockchain模块，获取当前最高区块
@@ -235,6 +240,7 @@ func (bc *BaseClient) EventLoop() {
 			} else if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
 				bc.SetCurrentBlock(block)
+				bc.child.AddBlock(block)
 			} else if msg.Ty == types.EventCheckBlock {
 				block := msg.GetData().(*types.BlockDetail)
 				err := bc.CheckBlock(block)
