@@ -827,7 +827,11 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 			err = chain.syncTask.Cancel()
 			synlog.Info("ProcBlockHeaders: cancel syncTask start fork process downLoadTask!", "err", err)
 		}
-		go chain.ProcDownLoadBlocks(ForkHeight, peermaxheight, []string{pid})
+		endHeight := peermaxheight
+		if tipheight < peermaxheight {
+			endHeight = tipheight + 1
+		}
+		go chain.ProcDownLoadBlocks(ForkHeight, endHeight, []string{pid})
 	}
 	return nil
 }
