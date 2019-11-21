@@ -109,7 +109,7 @@ func (chain *BlockChain) ProcGetMainSeqByHash(hash []byte) (int64, error) {
 }
 
 //ProcAddBlockSeqCB 添加seq callback
-func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, error) {
+func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (*types.BlockSequences, error) {
 	if cb == nil {
 		chainlog.Error("ProcAddBlockSeqCB input hash is null")
 		return nil, types.ErrInvalidParam
@@ -153,12 +153,14 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, e
 	// 同一高度，不一定同一个hash，有分叉的可能；但同一个hash必定同一个高度
 	reloadHash := common.ToHex(sequences.Items[0].Hash)
 	if cb.LastBlockHash == reloadHash {
-		// TODO 开始参数填入， 而不是从0开始
+		// 先填入last seq， 而不是从0开始
+		chain.GetStore().setSeqCBLastNum([]byte(cb.Name), cb.LastSequence)
 		chain.pushseq.addTask(cb)
 		return nil, nil
 	}
+
 	// name不存在， 但对应的Hash/Height对不上
-	count := 100
+	count := int64(100)
 	if count > types.MaxBlockCountPerTime {
 		count = types.MaxBlockCountPerTime
 	}
@@ -172,8 +174,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, e
 		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-2", err)
 		return nil, err
 	}
-	LoadedBlocks := []types.Block{}
-	return LoadedBlocks, fmt.Errorf("%s", "SequenceNotMatch")
+	return sequences, fmt.Errorf("%s", "SequenceNotMatch")
 }
 
 //ProcListBlockSeqCB 列出所有已经设置的seq callback
