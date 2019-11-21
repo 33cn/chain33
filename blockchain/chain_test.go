@@ -128,6 +128,9 @@ func TestBlockChain(t *testing.T) {
 	testUpgradeStore(t, blockchain)
 
 	testProcMainSeqMsg(t, blockchain)
+	testProcessDelBlock(t, blockchain)
+	testAddOrphanBlock(t, blockchain)
+	testCheckBestChainProc(t, cfg, blockchain)
 }
 
 func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
@@ -1141,6 +1144,7 @@ func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
 	if err != nil {
 		t.Error("testWriteBlockToDbTemp", "err", err)
 	}
+	chain.UpdateDownLoadPids()
 	chainlog.Info("WriteBlockToDbTemp end ---------------------")
 }
 
@@ -1169,6 +1173,49 @@ func testProcMainSeqMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	assert.Equal(t, int64(types.EventGetMainSeqByHash), msg.Ty)
 
 	chainlog.Info("testProcMainSeqMsg end --------------------")
+}
+
+func testProcessDelBlock(t *testing.T, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testProcessDelBlock begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	_, ok, _, err := blockchain.ProcessDelParaChainBlock(true, block, "self", curheight)
+	require.NoError(t, err)
+	assert.Equal(t, true, ok)
+
+	chainlog.Info("testProcessDelBlock end --------------------")
+}
+func testAddOrphanBlock(t *testing.T, blockchain *blockchain.BlockChain) {
+
+	chainlog.Info("testAddOrphanBlock begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+	block.Block.ParentHash = block.Block.GetTxHash()
+	newblock := types.BlockDetail{}
+	newblock.Block = block.Block
+
+	blockchain.ProcessBlock(true, &newblock, "1", true, 0)
+	chainlog.Info("testAddOrphanBlock end --------------------")
+}
+func testCheckBestChainProc(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testCheckBestChainProc begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+	header := block.Block.GetHeader(cfg)
+
+	var headers types.Headers
+	headers.Items = append(headers.Items, header)
+	blockchain.CheckBestChainProc(&headers, "test")
+
+	blockchain.CheckBestChain(true)
+	blockchain.GetNtpClockSyncStatus()
+	blockchain.UpdateNtpClockSyncStatus(true)
+	blockchain.IsErrExecBlock(curheight, block.Block.Hash(cfg))
+	chainlog.Info("testCheckBestChainProc end --------------------")
 }
 
 //测试kv对的读写

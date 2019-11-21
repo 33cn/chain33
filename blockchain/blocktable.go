@@ -319,11 +319,7 @@ func saveParaTxTable(cfg *types.Chain33Config, db dbm.DB, height int64, hash []b
 			exec := string(tx.Execer)
 			if types.IsParaExecName(exec) {
 				if title, ok := types.GetParaExecTitleName(exec); ok {
-					var paratx = &types.HeightPara{
-						Height: height,
-						Title:  title,
-						Hash:   hash,
-					}
+					var paratx = &types.HeightPara{Height: height, Title: title, Hash: hash}
 					err := table.Replace(paratx)
 					if err != nil {
 						return nil, err
@@ -359,7 +355,6 @@ func saveParaTxTable(cfg *types.Chain33Config, db dbm.DB, height int64, hash []b
 
 //delParaTxTable 删除平行链标识
 //删除本高度对应的所有平行链的标识
-
 func delParaTxTable(db dbm.DB, height int64) ([]*types.KeyValue, error) {
 	kvdb := dbm.NewKVDB(db)
 	table := NewParaTxTable(kvdb)

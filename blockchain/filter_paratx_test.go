@@ -156,6 +156,18 @@ func TestGetParaTxByTitle(t *testing.T) {
 	for height = 0; height <= curheight; height++ {
 		testGetParaTxByHeight(cfg, t, blockchain, height)
 	}
+	//异常测试
+	req.Start = 3
+	req.End = 2
+	_, err = blockchain.GetParaTxByTitle(&req)
+	assert.Equal(t, err, types.ErrEndLessThanStartHeight)
+
+	req.Start = 1
+	req.End = 1
+	req.Title = "user.write"
+	_, err = blockchain.GetParaTxByTitle(&req)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
 	chainlog.Info("TestGetParaTxByTitle end --------------------")
 
 }
@@ -201,6 +213,12 @@ func testGetParaTxByHeight(cfg *types.Chain33Config, t *testing.T, blockchain *b
 
 	block, err := blockchain.GetBlock(height)
 	require.NoError(t, err)
+
+	_, err = blockchain.LoadParaTxByHeight(-1, "", 0, 1)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	_, err = blockchain.LoadParaTxByHeight(height, "user.write", 0, 1)
+	assert.Equal(t, types.ErrInvalidParam, err)
 
 	replyparaTxs, err := blockchain.LoadParaTxByHeight(height, "", 0, 1)
 	if height == 0 {

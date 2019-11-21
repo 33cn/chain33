@@ -150,5 +150,29 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	if count < 2 {
 		t.Error("testBlockTable:Title:fail!")
 	}
+	//异常测试
+	_, err = blockchain.LoadParaTxByTitle(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	req.Count = 10000
+	_, err = blockchain.LoadParaTxByTitle(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	req.Count = 0
+	req.Direction = 3
+	_, err = blockchain.LoadParaTxByTitle(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	req.Count = 0
+	req.Direction = 0
+	req.Title = ""
+	_, err = blockchain.LoadParaTxByTitle(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	req.Count = 0
+	req.Direction = 0
+	req.Title = "user.write"
+	_, err = blockchain.LoadParaTxByTitle(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
 
 }
