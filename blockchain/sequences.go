@@ -138,12 +138,30 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, e
 			return nil, nil
 		}
 		// name不存在：Sequence 信息匹配，添加
-		LoadedHeight, LoadedHash := int64(1), "TODO" // by Last Seq
-		if cb.LastHeight == LoadedHeight && cb.LastBlockHash == LoadedHash {
-			// TODO Add
+		req := &types.ReqBlocks{Start: cb.LastSequence, End: cb.LastSequence, IsDetail: false, Pid: []string{}}
+		sequences, err := chain.GetBlockSequences(req)
+		if err != nil {
+			// TODO check not exist
+			return nil, err
+		}
+		// 同一高度，不一定同一个hash，有分叉的可能；但同一个hash必定同一个高度
+		reloadHash := common.ToHex(sequences.Items[0].Hash)
+		if cb.LastBlockHash == reloadHash {
+			// TODO 开始参数填入， 而不是从0开始
+			chain.pushseq.addTask(cb)
 			return nil, nil
 		}
 		// name不存在， 但对应的Hash/Height对不上
+		start := cb.LastSequence - 100
+		if start < 0 {
+			start = 0
+		}
+		req2 := &types.ReqBlocks{Start: start, End: cb.LastSequence, IsDetail: false, Pid: []string{}}
+		sequences, err = chain.GetBlockSequences(req2)
+		if err != nil {
+			// TODO check not exist
+			return nil, err
+		}
 		LoadedBlocks := []types.Block{}
 		return LoadedBlocks, fmt.Errorf("%s", "SequenceNotMatch")
 	}
