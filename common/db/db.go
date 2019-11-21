@@ -54,6 +54,7 @@ type DB interface {
 	Close()
 	NewBatch(sync bool) Batch
 	BeginTx() (TxKV, error)
+	CompactRange(start, limit []byte) error
 	// For debugging
 	Print()
 	Stats() map[string]string
@@ -248,4 +249,9 @@ func (db *BaseDB) Rollback() {
 //BeginTx call panic when BeginTx not rewrite
 func (db *BaseDB) BeginTx() (TxKV, error) {
 	panic("BeginTx not impl")
+}
+
+//CompactRange call panic when CompactRange not rewrite
+func (db *BaseDB) CompactRange(start, limit []byte) error {
+	panic("CompactRange not impl")
 }
