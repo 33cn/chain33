@@ -136,43 +136,44 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, e
 	}
 
 	// TODO
-	chainlog.Debug("ProcAddBlockSeqCB add continue seq-push", "name", cb.Name, "seq", cb.LastSequence,
+	chainlog.Debug("ProcAddBlockSeqCB continue-seq-push", "name", cb.Name, "seq", cb.LastSequence,
 		"hash", cb.LastBlockHash, "height", cb.LastHeight)
-	if cb.LastSequence != 0 {
-		// name 是否存在， 存在就继续，不用在重新注册了
-		if chain.blockStore.isSeqCBExist(cb.Name) {
-			return nil, nil
-		}
-		// name不存在：Sequence 信息匹配，添加
-		req := &types.ReqBlocks{Start: cb.LastSequence, End: cb.LastSequence, IsDetail: false, Pid: []string{}}
-		sequences, err := chain.GetBlockSequences(req)
-		if err != nil {
-			// TODO check not exist
-			return nil, err
-		}
-		// 同一高度，不一定同一个hash，有分叉的可能；但同一个hash必定同一个高度
-		reloadHash := common.ToHex(sequences.Items[0].Hash)
-		if cb.LastBlockHash == reloadHash {
-			// TODO 开始参数填入， 而不是从0开始
-			chain.pushseq.addTask(cb)
-			return nil, nil
-		}
-		// name不存在， 但对应的Hash/Height对不上
-		start := cb.LastSequence - 100
-		if start < 0 {
-			start = 0
-		}
-		req2 := &types.ReqBlocks{Start: start, End: cb.LastSequence, IsDetail: false, Pid: []string{}}
-		sequences, err = chain.GetBlockSequences(req2)
-		if err != nil {
-			// TODO check not exist
-			return nil, err
-		}
-		LoadedBlocks := []types.Block{}
-		return LoadedBlocks, fmt.Errorf("%s", "SequenceNotMatch")
+	// name 是否存在， 存在就继续，不需要重新注册了
+	if chain.blockStore.isSeqCBExist(cb.Name) {
+		chainlog.Info("ProcAddBlockSeqCB continue-seq-push", "exist", cb.Name)
+		return nil, nil
 	}
-
-	return nil, nil
+	// name不存在：Sequence 信息匹配，添加
+	req := &types.ReqBlocks{Start: cb.LastSequence, End: cb.LastSequence, IsDetail: false, Pid: []string{}}
+	sequences, err := chain.GetBlockSequences(req)
+	if err != nil {
+		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-1", err)
+		return nil, err
+	}
+	// 同一高度，不一定同一个hash，有分叉的可能；但同一个hash必定同一个高度
+	reloadHash := common.ToHex(sequences.Items[0].Hash)
+	if cb.LastBlockHash == reloadHash {
+		// TODO 开始参数填入， 而不是从0开始
+		chain.pushseq.addTask(cb)
+		return nil, nil
+	}
+	// name不存在， 但对应的Hash/Height对不上
+	count := 100
+	if count > types.MaxBlockCountPerTime {
+		count = types.MaxBlockCountPerTime
+	}
+	start := cb.LastSequence - count
+	if start < 0 {
+		start = 0
+	}
+	req2 := &types.ReqBlocks{Start: start, End: cb.LastSequence, IsDetail: false, Pid: []string{}}
+	sequences, err = chain.GetBlockSequences(req2)
+	if err != nil {
+		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-2", err)
+		return nil, err
+	}
+	LoadedBlocks := []types.Block{}
+	return LoadedBlocks, fmt.Errorf("%s", "SequenceNotMatch")
 }
 
 //ProcListBlockSeqCB 列出所有已经设置的seq callback
