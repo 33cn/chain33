@@ -111,13 +111,16 @@ func (chain *BlockChain) ProcGetMainSeqByHash(hash []byte) (int64, error) {
 //ProcAddBlockSeqCB 添加seq callback
 func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, error) {
 	if cb == nil {
+		chainlog.Error("ProcAddBlockSeqCB input hash is null")
 		return nil, types.ErrInvalidParam
 	}
 
 	if !chain.isRecordBlockSequence {
+		chainlog.Error("ProcAddBlockSeqCB not support sequence")
 		return nil, types.ErrRecordBlockSequence
 	}
 	if chain.blockStore.seqCBNum() >= MaxSeqCB && !chain.blockStore.isSeqCBExist(cb.Name) {
+		chainlog.Error("ProcAddBlockSeqCB too many seq callback")
 		return nil, types.ErrTooManySeqCB
 	}
 
@@ -125,6 +128,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, e
 	if cb.LastSequence == 0 {
 		err := chain.blockStore.addBlockSeqCB(cb)
 		if err != nil {
+			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
 		}
 		chain.pushseq.addTask(cb)
@@ -132,6 +136,8 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (interface{}, e
 	}
 
 	// TODO
+	chainlog.Debug("ProcAddBlockSeqCB add continue seq-push", "name", cb.Name, "seq", cb.LastSequence,
+		"hash", cb.LastBlockHash, "height", cb.LastHeight)
 	if cb.LastSequence != 0 {
 		// name 是否存在， 存在就继续，不用在重新注册了
 		if chain.blockStore.isSeqCBExist(cb.Name) {
