@@ -155,7 +155,7 @@ func (p *pushseq) runTask(input pushNotify) {
 					continue
 				}
 				//update seqid
-				lastseq = lastseq + int64(seqCount)
+				lastseq = updateSeq
 				p.trigeRun(run, 0)
 			}
 		}
