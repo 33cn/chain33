@@ -128,7 +128,6 @@ func TestBlockChain(t *testing.T) {
 	testUpgradeStore(t, blockchain)
 
 	testProcMainSeqMsg(t, blockchain)
-	testProcessDelBlock(t, blockchain)
 	testAddOrphanBlock(t, blockchain)
 	testCheckBestChainProc(t, cfg, blockchain)
 }
@@ -1175,18 +1174,6 @@ func testProcMainSeqMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testProcMainSeqMsg end --------------------")
 }
 
-func testProcessDelBlock(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcessDelBlock begin --------------------")
-	curheight := blockchain.GetBlockHeight()
-	block, err := blockchain.GetBlock(curheight)
-	require.NoError(t, err)
-
-	_, ok, _, err := blockchain.ProcessDelParaChainBlock(true, block, "self", curheight)
-	require.NoError(t, err)
-	assert.Equal(t, true, ok)
-
-	chainlog.Info("testProcessDelBlock end --------------------")
-}
 func testAddOrphanBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 
 	chainlog.Info("testAddOrphanBlock begin --------------------")
@@ -1375,4 +1362,21 @@ func TestOnChainTimeout(t *testing.T) {
 	}
 
 	chainlog.Info("TestOnChainTimeout end --------------------")
+}
+
+func TestProcessDelBlock(t *testing.T) {
+	chainlog.Info("TestProcessDelBlock begin --------------------")
+	mock33 := testnode.New("", nil)
+	defer mock33.Close()
+	blockchain := mock33.GetBlockChain()
+
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	_, ok, _, err := blockchain.ProcessDelParaChainBlock(true, block, "self", curheight)
+	require.NoError(t, err)
+	assert.Equal(t, true, ok)
+
+	chainlog.Info("TestProcessDelBlock end --------------------")
 }
