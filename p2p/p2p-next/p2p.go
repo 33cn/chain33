@@ -28,6 +28,7 @@ type P2p struct {
 	api        client.QueueProtocolAPI
 	client     queue.Client
 	Done       chan struct{}
+	Node       *Node
 }
 
 func New(cfg *types.Chain33Config) *P2p {
@@ -39,6 +40,7 @@ func New(cfg *types.Chain33Config) *P2p {
 	var addrlist []multiaddr.Multiaddr
 	addrlist = append(addrlist, m)
 	keystr, _ := NewAddrBook(cfg.GetModuleConfig().P2P).GetPrivPubKey()
+
 	//key string convert to crpyto.Privkey
 	key, _ := hex.DecodeString(keystr)
 	priv, err := crypto.UnmarshalSecp256k1PrivateKey(key)
@@ -54,10 +56,9 @@ func New(cfg *types.Chain33Config) *P2p {
 		libp2p.BandwidthReporter(bandwidthTracker),
 		libp2p.NATPortMap(),
 	)
-
-	p2p := &P2p{}
+	p2p := &P2p{Host: host}
 	p2p.streamMang = NewStreamManage(host)
-	p2p.txServ = tx.NewService(host, p2p.streamMang.StreamStore)
+	p2p.discovery = new(Discovery)
 	return p2p
 
 }
@@ -103,6 +104,8 @@ func (p *P2p) SetQueueClient(cli queue.Client) {
 	if p.client == nil {
 		p.client = cli
 	}
+	p.Node = NewNode(p)
+
 	go p.managePeers()
 	go p.subP2pMsg()
 
@@ -117,9 +120,9 @@ func (p *P2p) subP2pMsg() {
 		switch msg.Ty {
 
 		case types.EventTxBroadcast: //广播tx
-			p.txServ.BroadCastTx(msg)
 
 		case types.EventPeerInfo:
+			p.Node.GetPeersInfo(msg)
 		}
 	}
 }

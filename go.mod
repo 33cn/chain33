@@ -20,7 +20,9 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.0
+	github.com/gogo/protobuf v1.3.0
 	github.com/golang/protobuf v1.3.1
+	github.com/google/uuid v1.1.1
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/huin/goupnp v1.0.0
@@ -29,6 +31,7 @@ require (
 	github.com/libp2p/go-libp2p v0.4.0
 	github.com/libp2p/go-libp2p-core v0.2.3
 	github.com/libp2p/go-libp2p-discovery v0.1.0
+	github.com/libp2p/go-libp2p-examples v0.1.0
 	github.com/libp2p/go-libp2p-host v0.1.0
 	github.com/libp2p/go-libp2p-kad-dht v0.2.1
 	github.com/libp2p/go-libp2p-net v0.1.0
