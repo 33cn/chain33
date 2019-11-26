@@ -143,15 +143,25 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (*types.BlockSe
 		chainlog.Info("ProcAddBlockSeqCB continue-seq-push", "exist", cb.Name)
 		return nil, nil
 	}
+
+	lastSeq, err := chain.blockStore.LoadBlockLastSequence()
+	if err != nil {
+		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-last-seq", err)
+		return nil, err
+	}
+
+	// 续传的情况下， 最好等节点同步过了原先的点， 不然同步好的删除了， 等于重新同步
+	if lastSeq < cb.LastSequence {
+		return nil, fmt.Errorf("%s", "SequenceTooBig")
+	}
 	// name不存在：Sequence 信息匹配，添加
-	req := &types.ReqBlocks{Start: cb.LastSequence, End: cb.LastSequence, IsDetail: false, Pid: []string{}}
-	sequences, err := chain.GetBlockSequences(req)
+	sequence, err := chain.blockStore.GetBlockSequence(cb.LastSequence)
 	if err != nil {
 		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-1", err)
 		return nil, err
 	}
 	// 同一高度，不一定同一个hash，有分叉的可能；但同一个hash必定同一个高度
-	reloadHash := common.ToHex(sequences.Items[0].Hash)
+	reloadHash := common.ToHex(sequence.Hash)
 	if cb.LastBlockHash == reloadHash {
 		// 先填入last seq， 而不是从0开始
 		chain.GetStore().setSeqCBLastNum([]byte(cb.Name), cb.LastSequence)
@@ -169,7 +179,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (*types.BlockSe
 		start = 0
 	}
 	req2 := &types.ReqBlocks{Start: start, End: cb.LastSequence, IsDetail: false, Pid: []string{}}
-	sequences, err = chain.GetBlockSequences(req2)
+	sequences, err := chain.GetBlockSequences(req2)
 	if err != nil {
 		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-2", err)
 		return nil, err
