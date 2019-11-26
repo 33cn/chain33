@@ -90,11 +90,11 @@ func GetTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, erro
 	leaves := make([][]byte, txlen)
 	for index, tx := range Txs {
 		leaves[index] = tx.Hash()
-		//chainlog.Info("GetTransactionDetail txhash", "index", index, "txhash", tx.Hash())
+		chainlog.Info("GetTransactionDetail txhash", "index", index, "txhash", common.ToHex(tx.Hash()))
 	}
 
 	proofs := merkle.GetMerkleBranch(leaves, uint32(index))
-	chainlog.Debug("GetTransactionDetail proofs", "proofs", proofs)
+	chainlog.Debug("GetTransactionDetail proofs", "index", index, "proofs", proofs)
 
 	return proofs, nil
 }
