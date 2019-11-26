@@ -310,10 +310,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 	for _, proof := range txProofs {
 		proofs = append(proofs, common.ToHex(proof))
 	}
-	// txproof:test
-	log.Info("fmtTxDetail", "txhash ", common.ToHex(tx.GetTx().Hash()), "proofs ", proofs)
 
-	//
 	tran, err := rpctypes.DecodeTx(tx.GetTx())
 	if err != nil {
 		log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)

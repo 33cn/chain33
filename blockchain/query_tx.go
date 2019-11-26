@@ -82,19 +82,18 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	return &txDetails, nil
 }
 
-//GetTransactionProofs 获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
-func GetTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, error) {
+//getTransactionProofs 获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
+func getTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, error) {
 	txlen := len(Txs)
 
 	//计算tx的hash值
 	leaves := make([][]byte, txlen)
 	for index, tx := range Txs {
 		leaves[index] = tx.Hash()
-		chainlog.Info("GetTransactionDetail txhash", "index", index, "txhash", common.ToHex(tx.Hash()))
 	}
 
 	proofs := merkle.GetMerkleBranch(leaves, uint32(index))
-	chainlog.Debug("GetTransactionDetail proofs", "index", index, "proofs", proofs)
+	chainlog.Debug("getTransactionDetail", "index", index, "proofs", proofs)
 
 	return proofs, nil
 }
@@ -177,7 +176,7 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	cfg := chain.client.GetConfig()
 	if !cfg.IsFork(txresult.Height, "ForkRootHash") || chain.isParaChain {
 		//获取指定tx在txlist中的proof
-		proofs, err = GetTransactionProofs(block.Block.Txs, txresult.Index)
+		proofs, err = getTransactionProofs(block.Block.Txs, txresult.Index)
 		if err != nil {
 			return nil, err
 		}
@@ -187,10 +186,6 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 
 	setTxDetailFromTxResult(&txDetail, txresult)
 	txDetail.Proofs = proofs
-	// txproof:test
-	chainlog.Info("ProcQueryTxMsg", "txhash ", common.ToHex(txDetail.GetTx().Hash()), "proofs ", txDetail.Proofs)
-
-	//
 	return &txDetail, nil
 }
 
