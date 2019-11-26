@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/33cn/chain33/types"
@@ -123,7 +124,7 @@ func (q *queue) Name() string {
 // Start 开始运行消息队列
 func (q *queue) Start() {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	// Block until a signal is received.
 	select {
 	case <-q.done:
