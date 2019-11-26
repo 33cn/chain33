@@ -187,6 +187,10 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 
 	TransactionDetail.Proofs = proofs
 	setTxDetailFromTxResult(&TransactionDetail, txresult)
+	// txproof:test
+	chainlog.Info("ProcQueryTxMsg", "txhash ", common.ToHex(TransactionDetail.GetTx().Hash()), "proofs ", TransactionDetail.Proofs)
+
+	//
 	return &TransactionDetail, nil
 }
 
