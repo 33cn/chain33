@@ -109,7 +109,7 @@ func (chain *BlockChain) ProcGetMainSeqByHash(hash []byte) (int64, error) {
 }
 
 //ProcAddBlockSeqCB 添加seq callback
-func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (*types.BlockSequences, error) {
+func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	if cb == nil {
 		chainlog.Error("ProcAddBlockSeqCB input hash is null")
 		return nil, types.ErrInvalidParam
@@ -178,8 +178,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (*types.BlockSe
 
 // add callback时， name不存在， 但对应的Hash/Height对不上
 // 加载推荐的开始点
-func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) (*types.BlockSequences, error) {
-	// name不存在， 但对应的Hash/Height对不上
+func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	count := int64(100)
 	if count > types.MaxBlockCountPerTime {
 		count = types.MaxBlockCountPerTime
@@ -188,13 +187,22 @@ func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) (*types
 	if start < 0 {
 		start = 0
 	}
-	req2 := &types.ReqBlocks{Start: start, End: cb.LastSequence, IsDetail: false, Pid: []string{}}
-	sequences, err := chain.GetBlockSequences(req2)
-	if err != nil {
-		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-2", err)
-		return nil, err
+
+	seqs := make([]*types.Sequence, 0)
+	for i := cb.LastSequence; i >= start; i-- {
+		seq, err := chain.blockStore.GetBlockSequence(1)
+		if err != nil || seq == nil {
+			chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", i)
+			continue
+		}
+		header, err := chain.blockStore.GetBlockHeaderByHash(seq.Hash)
+		if err != nil || header == nil {
+			chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", i, "hash", common.ToHex(seq.Hash))
+			continue
+		}
+		seqs = append(seqs, &types.Sequence{Hash: seq.Hash, Type: seq.Type, Sequence: i, Height: header.Height})
 	}
-	return sequences, fmt.Errorf("%s", "SequenceNotMatch")
+	return seqs, fmt.Errorf("%s", "SequenceNotMatch")
 }
 
 //ProcListBlockSeqCB 列出所有已经设置的seq callback
