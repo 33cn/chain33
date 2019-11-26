@@ -180,6 +180,8 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 // 加载推荐的开始点
 func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	count := int64(100)
+	skip := int64(100)
+	skipTimes := int64(100)
 	if count > types.MaxBlockCountPerTime {
 		count = types.MaxBlockCountPerTime
 	}
@@ -190,7 +192,7 @@ func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*typ
 
 	seqs := make([]*types.Sequence, 0)
 	for i := cb.LastSequence; i >= start; i-- {
-		seq, err := chain.blockStore.GetBlockSequence(1)
+		seq, err := chain.blockStore.GetBlockSequence(i)
 		if err != nil || seq == nil {
 			chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", i)
 			continue
@@ -201,6 +203,24 @@ func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*typ
 			continue
 		}
 		seqs = append(seqs, &types.Sequence{Hash: seq.Hash, Type: seq.Type, Sequence: i, Height: header.Height})
+	}
+	for cur := start - skip; cur > 0; cur = cur - skip {
+		skipTimes--
+		if skipTimes <= 0 {
+			break
+		}
+		seq, err := chain.blockStore.GetBlockSequence(cur)
+		if err != nil || seq == nil {
+			chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", cur)
+			continue
+		}
+		header, err := chain.blockStore.GetBlockHeaderByHash(seq.Hash)
+		if err != nil || header == nil {
+			chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", cur, "hash", common.ToHex(seq.Hash))
+			continue
+		}
+		seqs = append(seqs, &types.Sequence{Hash: seq.Hash, Type: seq.Type, Sequence: cur, Height: header.Height})
+
 	}
 	return seqs, fmt.Errorf("%s", "SequenceNotMatch")
 }
