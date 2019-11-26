@@ -1192,14 +1192,13 @@ func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, e
 }
 
 // AddSeqCallBack Add Seq CallBack
-func (q *QueueProtocol) AddSeqCallBack(param *types.BlockSeqCB) (*types.Reply, error) {
-
+func (q *QueueProtocol) AddSeqCallBack(param *types.BlockSeqCB) (*types.ReplyAddSeqCallback, error) {
 	msg, err := q.send(blockchainKey, types.EventAddBlockSeqCB, param)
 	if err != nil {
 		log.Error("AddSeqCallBack", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
+	if reply, ok := msg.GetData().(*types.ReplyAddSeqCallback); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset

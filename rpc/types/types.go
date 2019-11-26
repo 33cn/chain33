@@ -341,6 +341,12 @@ type ReplyBlkSeqs struct {
 	BlkSeqInfos []*ReplyBlkSeq `json:"blkseqInfos"`
 }
 
+// ReplyAddCallback Reply AddCallback
+type ReplyAddCallback struct {
+	Reply
+	Seqs ReplyBlkSeqs `json:"seqs"`
+}
+
 // ReplyBlkSeq reply block sequece
 type ReplyBlkSeq struct {
 	Hash string `json:"hash"`
