@@ -617,6 +617,36 @@ func (_m *Chain33Client) GetFork(ctx context.Context, in *types.ReqKey, opts ...
 	return r0, r1
 }
 
+// GetHeaders provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetHeaders(ctx context.Context, in *types.ReqBlocks, opts ...grpc.CallOption) (*types.Headers, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.Headers
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqBlocks, ...grpc.CallOption) *types.Headers); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Headers)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqBlocks, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetHexTxByHash provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetHexTxByHash(ctx context.Context, in *types.ReqHash, opts ...grpc.CallOption) (*types.HexTx, error) {
 	_va := make([]interface{}, len(opts))

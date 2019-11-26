@@ -158,7 +158,7 @@ service chain33 {
 
     //通过区块高度列表+title获取平行链交易
     rpc GetParaTxByHeight(ReqParaTxByHeight) returns (ParaTxDetails) {}
-    
+
     //获取区块头信息
     rpc GetHeaders(ReqBlocks) returns (Headers) {}
 }
