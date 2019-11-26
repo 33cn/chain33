@@ -204,6 +204,13 @@ message BlockSequences {
     repeated BlockSequence items = 1;
 }
 
+// Reply AddSeqCallback 
+message ReplyAddSeqCallback {
+    bool  isOk = 1;
+    bytes msg  = 2;
+    BlockSequences seqs = 3;
+}
+
 //平行链区块详细信息
 // 	 blockdetail : 区块详细信息
 //	 sequence :区块序列号
