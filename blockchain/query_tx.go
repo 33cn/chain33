@@ -172,7 +172,7 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 		return nil, err
 	}
 
-	var TransactionDetail types.TransactionDetail
+	var txDetail types.TransactionDetail
 	var proofs [][]byte
 	cfg := chain.client.GetConfig()
 	if !cfg.IsFork(txresult.Height, "ForkRootHash") || chain.isParaChain {
@@ -185,13 +185,13 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 		proofs = chain.getTxBranchOnChildChain(txresult.Height, block.Block.Hash(cfg), block.Block.Txs, txresult.Index)
 	}
 
-	TransactionDetail.Proofs = proofs
-	setTxDetailFromTxResult(&TransactionDetail, txresult)
+	setTxDetailFromTxResult(&txDetail, txresult)
+	txDetail.Proofs = proofs
 	// txproof:test
-	chainlog.Info("ProcQueryTxMsg", "txhash ", common.ToHex(TransactionDetail.GetTx().Hash()), "proofs ", TransactionDetail.Proofs)
+	chainlog.Info("ProcQueryTxMsg", "txhash ", common.ToHex(txDetail.GetTx().Hash()), "proofs ", txDetail.Proofs)
 
 	//
-	return &TransactionDetail, nil
+	return &txDetail, nil
 }
 
 func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresult *types.TxResult) {
