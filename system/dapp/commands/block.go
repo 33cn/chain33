@@ -361,7 +361,7 @@ func addblockSeqCallBackCmd(cmd *cobra.Command, args []string) {
 		LastBlockHash: lastBlockHash,
 	}
 
-	var res rpctypes.Reply
+	var res rpctypes.ReplyAddCallback
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddSeqCallBack", params, &res)
 	ctx.Run()
 }
