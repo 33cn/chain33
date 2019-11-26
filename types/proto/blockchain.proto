@@ -206,16 +206,16 @@ message BlockSequences {
 
 // AddSeqCallback 推荐的sequence 信息
 message Sequence {
-    bytes Hash = 1;
-    int64 Type = 2;
+    bytes Hash     = 1;
+    int64 Type     = 2;
     int64 sequence = 3;
-    int64 height = 4;
+    int64 height   = 4;
 }
 
 // Reply AddSeqCallback
 message ReplyAddSeqCallback {
-    bool           isOk = 1;
-    bytes          msg  = 2;
+    bool     isOk          = 1;
+    bytes    msg           = 2;
     repeated Sequence seqs = 3;
 }
 
