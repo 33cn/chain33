@@ -135,7 +135,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (*types.BlockSe
 		return nil, nil
 	}
 
-	// TODO
+	// 处理带 last sequence, 推送续传的情况
 	chainlog.Debug("ProcAddBlockSeqCB continue-seq-push", "name", cb.Name, "seq", cb.LastSequence,
 		"hash", cb.LastBlockHash, "height", cb.LastHeight)
 	// name 是否存在， 存在就继续，不需要重新注册了
@@ -160,6 +160,8 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (*types.BlockSe
 		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-1", err)
 		return nil, err
 	}
+
+	// 注册点，在节点上存在
 	// 同一高度，不一定同一个hash，有分叉的可能；但同一个hash必定同一个高度
 	reloadHash := common.ToHex(sequence.Hash)
 	if cb.LastBlockHash == reloadHash {
@@ -169,6 +171,14 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) (*types.BlockSe
 		return nil, nil
 	}
 
+	// 注册点，在节点上不存在， 即分叉上
+	// name不存在， 但对应的Hash/Height对不上
+	return loadSequanceForAddCallback(chain, cb)
+}
+
+// add callback时， name不存在， 但对应的Hash/Height对不上
+// 加载推荐的开始点
+func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) (*types.BlockSequences, error) {
 	// name不存在， 但对应的Hash/Height对不上
 	count := int64(100)
 	if count > types.MaxBlockCountPerTime {
