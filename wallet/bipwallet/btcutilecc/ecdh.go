@@ -4,8 +4,10 @@
 
 package btcutil
 
-import "crypto/ecdsa"
-import "math/big"
+import (
+	"crypto/ecdsa"
+	"math/big"
+)
 
 // ECDH Calculate a shared secret using elliptic curve Diffie-Hellman
 func ECDH(priv *ecdsa.PrivateKey, pub *ecdsa.PublicKey) *big.Int {

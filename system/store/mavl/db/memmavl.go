@@ -12,7 +12,7 @@ import (
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	farm "github.com/dgryski/go-farm"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 // MemTreeOpera memtree操作接口

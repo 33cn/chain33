@@ -4,8 +4,10 @@
 
 package btcutil
 
-import "crypto/ecdsa"
-import "io"
+import (
+	"crypto/ecdsa"
+	"io"
+)
 
 // GenerateKey generates a public and private key pair
 func GenerateKey(rand io.Reader) (*ecdsa.PrivateKey, error) {

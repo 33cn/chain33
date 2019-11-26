@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 
 	"strconv"
 

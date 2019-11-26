@@ -18,7 +18,7 @@ import (
 	"github.com/33cn/chain33/types"
 	farm "github.com/dgryski/go-farm"
 	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 const (

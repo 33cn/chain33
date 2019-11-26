@@ -4,9 +4,11 @@
 
 package btcutil
 
-import "crypto/ecdsa"
-import "fmt"
-import "math/big"
+import (
+	"crypto/ecdsa"
+	"fmt"
+	"math/big"
+)
 
 // BlindSignature Based on algorithm described in An Efficient Blind Signature Scheme
 // Based on the Elliptic Curve Discrete Logarithm Problem by
