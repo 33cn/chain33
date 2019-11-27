@@ -165,7 +165,16 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 	reloadHash := common.ToHex(sequence.Hash)
 	if cb.LastBlockHash == reloadHash {
 		// 先填入last seq， 而不是从0开始
-		chain.GetStore().setSeqCBLastNum([]byte(cb.Name), cb.LastSequence)
+		err = chain.GetStore().setSeqCBLastNum([]byte(cb.Name), cb.LastSequence)
+		if err != nil {
+			chainlog.Error("ProcAddBlockSeqCB", "setSeqCBLastNum", err)
+			return nil, err
+		}
+		err = chain.blockStore.addBlockSeqCB(cb)
+		if err != nil {
+			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
+			return nil, err
+		}
 		chain.pushseq.addTask(cb)
 		return nil, nil
 	}
