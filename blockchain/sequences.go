@@ -192,37 +192,38 @@ func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*typ
 
 	seqs := make([]*types.Sequence, 0)
 	for i := cb.LastSequence; i >= start; i-- {
-		seq, err := chain.blockStore.GetBlockSequence(i)
-		if err != nil || seq == nil {
-			chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", i)
+		seq, err := loadOneSeq(chain, i)
+		if err != nil {
 			continue
 		}
-		header, err := chain.blockStore.GetBlockHeaderByHash(seq.Hash)
-		if err != nil || header == nil {
-			chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", i, "hash", common.ToHex(seq.Hash))
-			continue
-		}
-		seqs = append(seqs, &types.Sequence{Hash: seq.Hash, Type: seq.Type, Sequence: i, Height: header.Height})
+		seqs = append(seqs, seq)
 	}
 	for cur := start - skip; cur > 0; cur = cur - skip {
 		skipTimes--
 		if skipTimes <= 0 {
 			break
 		}
-		seq, err := chain.blockStore.GetBlockSequence(cur)
-		if err != nil || seq == nil {
-			chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", cur)
+		seq, err := loadOneSeq(chain, cur)
+		if err != nil {
 			continue
 		}
-		header, err := chain.blockStore.GetBlockHeaderByHash(seq.Hash)
-		if err != nil || header == nil {
-			chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", cur, "hash", common.ToHex(seq.Hash))
-			continue
-		}
-		seqs = append(seqs, &types.Sequence{Hash: seq.Hash, Type: seq.Type, Sequence: cur, Height: header.Height})
-
+		seqs = append(seqs, seq)
 	}
 	return seqs, fmt.Errorf("%s", "SequenceNotMatch")
+}
+
+func loadOneSeq(chain *BlockChain, cur int64) (*types.Sequence, error) {
+	seq, err := chain.blockStore.GetBlockSequence(cur)
+	if err != nil || seq == nil {
+		chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", cur)
+		return nil, err
+	}
+	header, err := chain.blockStore.GetBlockHeaderByHash(seq.Hash)
+	if err != nil || header == nil {
+		chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", cur, "hash", common.ToHex(seq.Hash))
+		return nil, err
+	}
+	return &types.Sequence{Hash: seq.Hash, Type: seq.Type, Sequence: cur, Height: header.Height}, nil
 }
 
 //ProcListBlockSeqCB 列出所有已经设置的seq callback
