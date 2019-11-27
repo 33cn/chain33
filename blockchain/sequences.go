@@ -184,43 +184,56 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 	return loadSequanceForAddCallback(chain, cb)
 }
 
-// add callback时， name不存在， 但对应的Hash/Height对不上
-// 加载推荐的开始点
+// add callback时， name不存在， 但对应的Hash/Height对不上, 加载推荐的开始点
 // 1. 在接近的sequence推荐，解决分叉问题
 // 2. 跳跃的sequence推荐，解决在极端情况下， 有比较深的分叉， 减少交互的次数
 func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
-	count := int64(100)
-	skip := int64(100)
-	skipTimes := int64(100)
-	if count+skipTimes > types.MaxBlockCountPerTime {
-		count = types.MaxBlockCountPerTime / 2
-		skipTimes = types.MaxBlockCountPerTime / 2
-	}
-	start := cb.LastSequence - count
-	if start < 0 {
-		start = 0
-	}
+	seqsNumber := recommendSeqs(cb.LastSequence, types.MaxBlockCountPerTime)
 
 	seqs := make([]*types.Sequence, 0)
-	for i := cb.LastSequence; i >= start; i-- {
+	for _, i := range seqsNumber {
 		seq, err := loadOneSeq(chain, i)
 		if err != nil {
 			continue
 		}
 		seqs = append(seqs, seq)
 	}
-	for cur := start - skip; cur > 0; cur = cur - skip {
+	return seqs, types.ErrSequenceNotMatch
+}
+
+func recommendSeqs(lastSequence, max int64) []int64 {
+	count := int64(100)
+	skip := int64(100)
+	skipTimes := int64(100)
+	if count+skipTimes > max {
+		count = max / 2
+		skipTimes = max / 2
+	}
+
+	seqs := make([]int64, 0)
+
+	start := lastSequence - count
+	if start < 0 {
+		start = 0
+	}
+	cur := lastSequence
+	for ; cur > start; cur-- {
+		seqs = append(seqs, cur)
+	}
+
+	cur = start + 1 - skip
+	for ; cur > 0; cur = cur - skip {
 		skipTimes--
-		if skipTimes <= 0 {
+		if skipTimes < 0 {
 			break
 		}
-		seq, err := loadOneSeq(chain, cur)
-		if err != nil {
-			continue
-		}
-		seqs = append(seqs, seq)
+		seqs = append(seqs, cur)
 	}
-	return seqs, types.ErrSequenceNotMatch
+	if cur <= 0 {
+		seqs = append(seqs, 0)
+	}
+
+	return seqs
 }
 
 func loadOneSeq(chain *BlockChain, cur int64) (*types.Sequence, error) {
