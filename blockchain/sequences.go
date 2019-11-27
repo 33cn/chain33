@@ -178,7 +178,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 // add callback时， name不存在， 但对应的Hash/Height对不上
 // 加载推荐的开始点
 // 1. 在接近的sequence推荐，解决分叉问题
-// 2. 跳跃的sequence推荐，解决在极端情况下， 有比较深的分叉
+// 2. 跳跃的sequence推荐，解决在极端情况下， 有比较深的分叉， 减少交互的次数
 func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	count := int64(100)
 	skip := int64(100)
