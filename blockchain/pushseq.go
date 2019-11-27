@@ -143,13 +143,13 @@ func (p *pushseq) runTask(input pushNotify) {
 				}
 				data, updateSeq, err := p.getSeqs(cb, lastseq+1, seqCount, pushMaxSize)
 				if err != nil {
-					chainlog.Error("getDataBySeq", "err", err, "seq", lastseq+1, "maxSeq", seqCount)
+					chainlog.Error("getDataBySeq", "err", err, "seq", lastseq+1, "maxSeq", seqCount, "cbName", cb.Name)
 					p.trigeRun(run, 1000*time.Millisecond)
 					continue
 				}
 				err = p.postData(cb, data, updateSeq)
 				if err != nil {
-					chainlog.Error("postdata", "err", err)
+					chainlog.Error("postdata", "err", err, "lastseq", lastseq, "cbName", cb.Name)
 					//sleep 60s
 					p.trigeRun(run, 60000*time.Millisecond)
 					continue
