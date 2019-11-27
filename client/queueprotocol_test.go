@@ -227,7 +227,7 @@ func testGetBlockSequences(t *testing.T, api client.QueueProtocolAPI) {
 func testAddSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {
 	res, err := api.AddSeqCallBack(&types.BlockSeqCB{})
 	assert.Nil(t, err)
-	assert.Equal(t, &types.Reply{}, res)
+	assert.Equal(t, &types.ReplyAddSeqCallback{}, res)
 }
 
 func testListSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {

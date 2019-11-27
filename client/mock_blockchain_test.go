@@ -191,7 +191,7 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 			case types.EventGetBlockSequences:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyBlockSequences, &types.BlockSequences{}))
 			case types.EventAddBlockSeqCB:
-				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Reply{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.ReplyAddSeqCallback{}))
 			case types.EventListBlockSeqCB:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.BlockSeqCBs{}))
 			case types.EventGetSeqCBLastNum:
