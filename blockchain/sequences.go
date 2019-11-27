@@ -182,8 +182,9 @@ func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*typ
 	count := int64(100)
 	skip := int64(100)
 	skipTimes := int64(100)
-	if count > types.MaxBlockCountPerTime {
-		count = types.MaxBlockCountPerTime
+	if count+skipTimes > types.MaxBlockCountPerTime {
+		count = types.MaxBlockCountPerTime / 2
+		skipTimes = types.MaxBlockCountPerTime / 2
 	}
 	start := cb.LastSequence - count
 	if start < 0 {
