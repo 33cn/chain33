@@ -1537,7 +1537,7 @@ func TestChain33_AddSeqCallBack(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	api.On("AddSeqCallBack", mock.Anything).Return(&types.Reply{}, nil)
+	api.On("AddSeqCallBack", mock.Anything).Return(&types.ReplyAddSeqCallback{}, nil)
 	err := client.AddSeqCallBack(nil, &testResult)
 	assert.NoError(t, err)
 }
