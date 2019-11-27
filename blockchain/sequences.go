@@ -5,8 +5,6 @@
 package blockchain
 
 import (
-	"fmt"
-
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 )
@@ -152,7 +150,8 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 
 	// 续传的情况下， 最好等节点同步过了原先的点， 不然同步好的删除了， 等于重新同步
 	if lastSeq < cb.LastSequence {
-		return nil, fmt.Errorf("%s", "SequenceTooBig")
+		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "last-seq", lastSeq, "input-seq", cb.LastSequence, "err", types.ErrSequenceTooBig)
+		return nil, types.ErrSequenceTooBig
 	}
 	// name不存在：Sequence 信息匹配，添加
 	sequence, err := chain.blockStore.GetBlockSequence(cb.LastSequence)
@@ -210,7 +209,7 @@ func loadSequanceForAddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*typ
 		}
 		seqs = append(seqs, seq)
 	}
-	return seqs, fmt.Errorf("%s", "SequenceNotMatch")
+	return seqs, types.ErrSequenceNotMatch
 }
 
 func loadOneSeq(chain *BlockChain, cur int64) (*types.Sequence, error) {
