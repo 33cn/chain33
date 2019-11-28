@@ -24,7 +24,7 @@ type pushNotify struct {
 
 //push seq data to out
 type pushseq struct {
-	store        *BlockStore
+	store        SequenceStore
 	cmds         map[string]pushNotify
 	mu           sync.Mutex
 	client       *http.Client
