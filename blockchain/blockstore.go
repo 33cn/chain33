@@ -247,13 +247,10 @@ func (bs *BlockStore) seqCBNum() int64 {
 }
 
 // TODO1
-func (bs *BlockStore) addBlockSeqCB(cb *types.BlockSeqCB) error {
-	if len(cb.Name) > 128 || len(cb.URL) > 1024 {
-		return types.ErrInvalidParam
-	}
-	storeLog.Info("addBlockSeqCB", "key", string(calcSeqCBKey([]byte(cb.Name))), "value", cb)
 
-	return bs.db.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
+// SetSync TODO 先用这个临时做store
+func (bs *BlockStore) SetSync(key, value []byte) error {
+	return bs.db.SetSync(key, value)
 }
 
 func (bs *BlockStore) listSeqCB() (cbs []*types.BlockSeqCB, err error) {

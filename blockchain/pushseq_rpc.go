@@ -27,7 +27,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 
 	// 在不指定sequence时, 和原来行为保存一直
 	if cb.LastSequence == 0 {
-		err := chain.blockStore.addBlockSeqCB(cb)
+		err := chain.pushservice.pushStore.Add(cb)
 		if err != nil {
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
@@ -73,7 +73,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 			chainlog.Error("ProcAddBlockSeqCB", "setSeqCBLastNum", err)
 			return nil, err
 		}
-		err = chain.blockStore.addBlockSeqCB(cb)
+		err = chain.pushservice.pushStore.Add(cb)
 		if err != nil {
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
@@ -113,12 +113,12 @@ type PushService interface {
 // PushService1 实现
 // 放一个chain的指针，简单的分开代码
 type PushService1 struct {
-	seqStore *BlockStore
-	bcStore  *BlockStore
+	seqStore  *BlockStore
+	pushStore *PushSeqStore1
 }
 
 func newPushService(seqStore *BlockStore, bcStore *BlockStore) *PushService1 {
-	return &PushService1{seqStore: seqStore, bcStore: bcStore}
+	return &PushService1{seqStore: seqStore, pushStore: &PushSeqStore1{store: bcStore}}
 }
 
 // add callback时， name不存在， 但对应的Hash/Height对不上, 加载推荐的开始点
