@@ -67,7 +67,7 @@ type PushService1 struct {
 	pushStore *PushSeqStore1
 }
 
-func newPushService(seqStore *BlockStore, bcStore *BlockStore) *PushService1 {
+func newPushService(seqStore SequenceStore, bcStore CommonStore) *PushService1 {
 	return &PushService1{seqStore: seqStore, pushStore: &PushSeqStore1{store: bcStore}}
 }
 
