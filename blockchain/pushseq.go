@@ -132,7 +132,7 @@ func (p *pushseq) runTask(input pushNotify) {
 					continue
 				}
 				if lastseq == -1 {
-					lastseq = p.store.getSeqCBLastNum([]byte(cb.Name))
+					lastseq = p.pushseqStore.GetLastPushSeq([]byte(cb.Name))
 				}
 				if lastseq >= maxseq {
 					p.trigeRun(run, 100*time.Millisecond)
@@ -196,7 +196,7 @@ func (p *pushseq) postData(cb *types.BlockSeqCB, postdata []byte, seq int64) (er
 		return types.ErrPushSeqPostData
 	}
 	chainlog.Debug("postData success", "cb.name", cb.Name, "updateSeq", seq)
-	return p.store.setSeqCBLastNum([]byte(cb.Name), seq)
+	return p.pushseqStore.SetLastPushSeq([]byte(cb.Name), seq)
 }
 
 func (p *pushseq) getBlockDataBySeq(seq int64) (*types.BlockSeq, int, error) {
