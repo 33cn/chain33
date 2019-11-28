@@ -476,7 +476,7 @@ func testProcQueryTxMsg(cfg *types.Chain33Config, t *testing.T, blockchain *bloc
 	require.NoError(t, err)
 	if len(block.Block.Txs) <= 1 {
 		assert.Nil(t, txProof.GetProofs())
-		assert.Nil(t, txProof.GetTxProofs())
+		assert.Nil(t, txProof.GetTxProofs()[0].GetProofs())
 	}
 	//证明txproof的正确性,
 	if txProof.GetProofs() != nil { //ForkRootHash 之前的proof证明
