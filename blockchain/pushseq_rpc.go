@@ -36,9 +36,9 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 
 // 推送服务
 // 1. 需要一个store， 读取seq 相关信息: 包括 seq -> block/height/hash
-// 1. 需要一个store， 读写推送相关信息： 包含 注册和推送的seq
-// 1. 一组rpc， 进行管理
-// 1. 一组真实工作的模块： pushseq文件
+// 1. 需要一个store， 读写推送相关信息： 包含 注册信息和推送进度
+// 1. 一组rpc， 进行推送管理
+// 1. 一组真实推送的模块： pushseq文件
 
 // SequenceStore 第一store： 满足获得 seq -> block 的信息获得
 // 实现接口先用现有的blockstroe， 先分开代码
