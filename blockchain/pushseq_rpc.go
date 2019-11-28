@@ -10,6 +10,26 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+//ProcListBlockSeqCB 列出所有已经设置的seq callback
+func (chain *BlockChain) ProcListBlockSeqCB() (*types.BlockSeqCBs, error) {
+	cbs, err := chain.pushservice.pushStore.ListCB()
+	if err != nil {
+		chainlog.Error("ProcListBlockSeqCB", "err", err.Error())
+		return nil, err
+	}
+	var listSeqCBs types.BlockSeqCBs
+
+	listSeqCBs.Items = append(listSeqCBs.Items, cbs...)
+
+	return &listSeqCBs, nil
+}
+
+//ProcGetSeqCBLastNum 获取指定name的callback已经push的最新seq num
+func (chain *BlockChain) ProcGetSeqCBLastNum(name string) int64 {
+	num := chain.pushservice.pushStore.GetLastPushSeq([]byte(name))
+	return num
+}
+
 //ProcAddBlockSeqCB 添加seq callback
 func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	if cb == nil {
@@ -186,26 +206,6 @@ func loadOneSeq(store *BlockStore, cur int64) (*types.Sequence, error) {
 		return nil, err
 	}
 	return &types.Sequence{Hash: seq.Hash, Type: seq.Type, Sequence: cur, Height: header.Height}, nil
-}
-
-//ProcListBlockSeqCB 列出所有已经设置的seq callback
-func (chain *BlockChain) ProcListBlockSeqCB() (*types.BlockSeqCBs, error) {
-	cbs, err := chain.pushservice.pushStore.ListCB()
-	if err != nil {
-		chainlog.Error("ProcListBlockSeqCB", "err", err.Error())
-		return nil, err
-	}
-	var listSeqCBs types.BlockSeqCBs
-
-	listSeqCBs.Items = append(listSeqCBs.Items, cbs...)
-
-	return &listSeqCBs, nil
-}
-
-//ProcGetSeqCBLastNum 获取指定name的callback已经push的最新seq num
-func (chain *BlockChain) ProcGetSeqCBLastNum(name string) int64 {
-	num := chain.pushservice.pushStore.GetLastPushSeq([]byte(name))
-	return num
 }
 
 // PushSeqStore1 store
