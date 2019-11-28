@@ -20,14 +20,14 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 		chainlog.Error("ProcAddBlockSeqCB not support sequence")
 		return nil, types.ErrRecordBlockSequence
 	}
-	if chain.blockStore.seqCBNum() >= MaxSeqCB && !chain.blockStore.isSeqCBExist(cb.Name) {
+	if chain.pushservice.pushStore.CallbackCount() >= MaxSeqCB && !chain.pushservice.pushStore.CallbackExist(cb.Name) {
 		chainlog.Error("ProcAddBlockSeqCB too many seq callback")
 		return nil, types.ErrTooManySeqCB
 	}
 
 	// 在不指定sequence时, 和原来行为保存一直
 	if cb.LastSequence == 0 {
-		err := chain.pushservice.pushStore.Add(cb)
+		err := chain.pushservice.pushStore.AddCallback(cb)
 		if err != nil {
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
@@ -40,7 +40,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 	chainlog.Debug("ProcAddBlockSeqCB continue-seq-push", "name", cb.Name, "seq", cb.LastSequence,
 		"hash", cb.LastBlockHash, "height", cb.LastHeight)
 	// name 是否存在， 存在就继续，不需要重新注册了
-	if chain.blockStore.isSeqCBExist(cb.Name) {
+	if chain.pushservice.pushStore.CallbackExist(cb.Name) {
 		chainlog.Info("ProcAddBlockSeqCB continue-seq-push", "exist", cb.Name)
 		return nil, nil
 	}
@@ -73,7 +73,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 			chainlog.Error("ProcAddBlockSeqCB", "setSeqCBLastNum", err)
 			return nil, err
 		}
-		err = chain.pushservice.pushStore.Add(cb)
+		err = chain.pushservice.pushStore.AddCallback(cb)
 		if err != nil {
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
@@ -189,7 +189,7 @@ func loadOneSeq(store *BlockStore, cur int64) (*types.Sequence, error) {
 
 //ProcListBlockSeqCB 列出所有已经设置的seq callback
 func (chain *BlockChain) ProcListBlockSeqCB() (*types.BlockSeqCBs, error) {
-	cbs, err := chain.blockStore.listSeqCB()
+	cbs, err := chain.pushservice.pushStore.ListCB()
 	if err != nil {
 		chainlog.Error("ProcListBlockSeqCB", "err", err.Error())
 		return nil, err
@@ -212,8 +212,8 @@ type PushSeqStore1 struct {
 	store *BlockStore
 }
 
-// Add push seq callback
-func (push *PushSeqStore1) Add(cb *types.BlockSeqCB) error {
+// AddCallback push seq callback
+func (push *PushSeqStore1) AddCallback(cb *types.BlockSeqCB) error {
 	if len(cb.Name) > 128 || len(cb.URL) > 1024 {
 		return types.ErrInvalidParam
 	}
@@ -221,13 +221,35 @@ func (push *PushSeqStore1) Add(cb *types.BlockSeqCB) error {
 	return push.store.db.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
 }
 
-/*
-func (bs *BlockStore) addBlockSeqCB(cb *types.BlockSeqCB) error {
-	if len(cb.Name) > 128 || len(cb.URL) > 1024 {
-		return types.ErrInvalidParam
-	}
-	storeLog.Info("addBlockSeqCB", "key", string(calcSeqCBKey([]byte(cb.Name))), "value", cb)
-
-	return bs.db.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
+// CallbackCount Callback Count
+func (push *PushSeqStore1) CallbackCount() int64 {
+	return push.store.PrefixCount(seqCBPrefix)
 }
-*/
+
+// CallbackExist Callback Exist
+func (push *PushSeqStore1) CallbackExist(name string) bool {
+	value, err := push.store.GetKey(calcSeqCBKey([]byte(name)))
+	if err == nil {
+		var cb types.BlockSeqCB
+		err = types.Decode(value, &cb)
+		return err == nil
+	}
+	return false
+}
+
+// ListCB List callback
+func (push *PushSeqStore1) ListCB() (cbs []*types.BlockSeqCB, err error) {
+	values, err := push.store.List(seqCBPrefix)
+	if err != nil {
+		return nil, err
+	}
+	for _, value := range values {
+		var cb types.BlockSeqCB
+		err := types.Decode(value, &cb)
+		if err != nil {
+			return nil, err
+		}
+		cbs = append(cbs, &cb)
+	}
+	return cbs, nil
+}

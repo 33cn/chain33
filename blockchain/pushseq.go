@@ -24,20 +24,21 @@ type pushNotify struct {
 
 //push seq data to out
 type pushseq struct {
-	store  *BlockStore
-	cmds   map[string]pushNotify
-	mu     sync.Mutex
-	client *http.Client
+	store        *BlockStore
+	cmds         map[string]pushNotify
+	mu           sync.Mutex
+	client       *http.Client
+	pushseqStore *PushSeqStore1
 }
 
-func newpushseq(store *BlockStore) *pushseq {
+func newpushseq(store *BlockStore, pushseqStore *PushSeqStore1) *pushseq {
 	cmds := make(map[string]pushNotify)
-	return &pushseq{store: store, cmds: cmds, client: &http.Client{}}
+	return &pushseq{store: store, cmds: cmds, client: &http.Client{}, pushseqStore: pushseqStore}
 }
 
 //初始化: 从数据库读出seq的数目
 func (p *pushseq) init() {
-	cbs, err := p.store.listSeqCB()
+	cbs, err := p.pushseqStore.ListCB()
 	if err != nil {
 		chainlog.Error("listSeqCB", "err", err)
 		return
