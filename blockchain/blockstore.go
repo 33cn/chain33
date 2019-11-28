@@ -231,7 +231,8 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 	bs.saveQuickIndexFlag()
 }
 
-// TODO1
+// store通用接口: 非block相关的保存功能，用通用的接口
+// 避免store相关的代码膨胀
 
 // SetSync store通用接口
 func (bs *BlockStore) SetSync(key, value []byte) error {
