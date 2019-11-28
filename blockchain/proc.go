@@ -149,12 +149,12 @@ func (chain *BlockChain) getSeqCBLastNum(msg *queue.Message) {
 
 func (chain *BlockChain) queryTx(msg *queue.Message) {
 	txhash := (msg.Data).(*types.ReqHash)
-	TransactionDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
+	txDetail, err := chain.ProcQueryTxMsg(txhash.Hash)
 	if err != nil {
 		chainlog.Debug("ProcQueryTxMsg", "err", err.Error())
 		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetail, err))
 	} else {
-		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetail, TransactionDetail))
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetail, txDetail))
 	}
 }
 

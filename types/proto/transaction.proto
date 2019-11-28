@@ -225,16 +225,17 @@ message TxResult {
 }
 
 message TransactionDetail {
-    Transaction tx            = 1;
-    ReceiptData receipt       = 2;
-    repeated bytes proofs     = 3;
-    int64          height     = 4;
-    int64          index      = 5;
-    int64          blocktime  = 6;
-    int64          amount     = 7;
-    string         fromaddr   = 8;
-    string         actionName = 9;
-    repeated Asset assets     = 10;
+    Transaction tx              = 1;
+    ReceiptData receipt         = 2;
+    repeated bytes proofs       = 3;
+    int64          height       = 4;
+    int64          index        = 5;
+    int64          blocktime    = 6;
+    int64          amount       = 7;
+    string         fromaddr     = 8;
+    string         actionName   = 9;
+    repeated Asset assets       = 10;
+    repeated TxProof txProofs   = 11;
 }
 
 message TransactionDetails {
@@ -264,4 +265,11 @@ message UpgradeMeta {
 message ReqTxHashList {
     repeated string hashes      = 1;
     bool            isShortHash = 2;
+}
+
+//使用多层merkle树之后的proof证明结构体
+message TxProof {
+    repeated bytes proofs   = 1;
+    uint32 index            = 2;
+    bytes  rootHash         = 3;
 }

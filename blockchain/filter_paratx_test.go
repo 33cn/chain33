@@ -168,8 +168,21 @@ func TestGetParaTxByTitle(t *testing.T) {
 	_, err = blockchain.GetParaTxByTitle(&req)
 	assert.Equal(t, err, types.ErrInvalidParam)
 
+	//title 对应的交易不存在
+	req.Start = 1
+	req.End = 1
+	req.Title = "user.p.write"
+	paratxs, err := blockchain.GetParaTxByTitle(&req)
+	require.NoError(t, err)
+	assert.NotNil(t, paratxs)
+	for _, paratx := range paratxs.Items {
+		assert.Equal(t, types.AddBlock, paratx.Type)
+		assert.Nil(t, paratx.TxDetails)
+		assert.Nil(t, paratx.ChildHash)
+		assert.Nil(t, paratx.Proofs)
+		assert.Equal(t, uint32(0), paratx.Index)
+	}
 	chainlog.Info("TestGetParaTxByTitle end --------------------")
-
 }
 func testgetParaTxByTitle(t *testing.T, blockchain *blockchain.BlockChain, req *types.ReqParaTxByTitle, flag int) {
 	count := req.End - req.Start + 1
@@ -241,7 +254,6 @@ func testGetParaTxByHeight(cfg *types.Chain33Config, t *testing.T, blockchain *b
 	rootHash := merkle.GetMerkleRoot(mThreePhashes)
 	assert.Equal(t, block.Block.TxHash, rootHash)
 }
-
 func TestMultiLayerMerkleTree(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
@@ -287,10 +299,10 @@ func TestMultiLayerMerkleTree(t *testing.T) {
 	}
 
 	curheight = blockchain.GetBlockHeight()
-	//var height int64
-	//for height = 0; height <= curheight; height++ {
-	testParaTxByHeight(cfg, t, blockchain, curheight)
-	//}
+	var height int64
+	for height = 0; height <= curheight; height++ {
+		testParaTxByHeight(cfg, t, blockchain, height)
+	}
 	chainlog.Info("TestMultiLayerMerkleTree end --------------------")
 }
 
@@ -299,11 +311,32 @@ func testParaTxByHeight(cfg *types.Chain33Config, t *testing.T, blockchain *bloc
 
 	block, err := blockchain.GetBlock(height)
 	require.NoError(t, err)
+	merkleroothash := block.Block.GetTxHash()
 
-	for index, tx := range block.Block.Txs {
-		txDetail, err := blockchain.ProcQueryTxMsg(tx.Hash())
+	for txindex, tx := range block.Block.Txs {
+		txhash := tx.Hash()
+		txProof, err := blockchain.ProcQueryTxMsg(tx.Hash())
 		require.NoError(t, err)
-		roothash := blockchain.CalcMerkleRootFromBranch(height, block.Block.Hash(cfg), txDetail.GetProofs(), tx.Hash(), uint32(index))
-		assert.Equal(t, block.Block.TxHash, roothash)
+		//证明txproof的正确性,
+		if txProof.GetProofs() != nil { //ForkRootHash 之前的proof证明
+			brroothash := merkle.GetMerkleRootFromBranch(txProof.GetProofs(), txhash, uint32(txindex))
+			assert.Equal(t, merkleroothash, brroothash)
+		} else if txProof.GetTxProofs() != nil { //ForkRootHash 之后的proof证明
+			var childhash []byte
+			for i, txproof := range txProof.GetTxProofs() {
+				if i == 0 {
+					childhash = merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, txproof.GetIndex())
+					if txproof.GetRootHash() != nil {
+						assert.Equal(t, txproof.GetRootHash(), childhash)
+					} else {
+						assert.Equal(t, txproof.GetIndex(), uint32(txindex))
+						assert.Equal(t, merkleroothash, childhash)
+					}
+				} else {
+					brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), childhash, txproof.GetIndex())
+					assert.Equal(t, merkleroothash, brroothash)
+				}
+			}
+		}
 	}
 }

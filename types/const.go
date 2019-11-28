@@ -66,6 +66,8 @@ const (
 	AddBlock              int64   = 1
 	DelBlock              int64   = 2
 	MainChainName                 = "main"
+	MaxHeaderCountPerTime int64   = 10000 //从数据库中一次性获取header的最大数 10000个
+
 )
 
 //全局账户私钥/公钥

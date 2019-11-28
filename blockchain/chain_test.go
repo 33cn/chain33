@@ -19,7 +19,7 @@ import (
 
 	//	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/common/log/log15"
-	//"github.com/33cn/chain33/common/merkle"
+	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
@@ -472,18 +472,33 @@ func testProcQueryTxMsg(cfg *types.Chain33Config, t *testing.T, blockchain *bloc
 			txindex = index
 		}
 	}
-	txproof, err := blockchain.ProcQueryTxMsg(txhash)
+	txProof, err := blockchain.ProcQueryTxMsg(txhash)
 	require.NoError(t, err)
-	if len(block.Block.Txs) > 1 {
-		assert.NotNil(t, txproof.GetProofs())
+	if len(block.Block.Txs) <= 1 {
+		assert.Nil(t, txProof.GetProofs())
+		assert.Nil(t, txProof.GetTxProofs())
 	}
-	//证明txproof的正确性
-	//brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, uint32(txindex))
-
-	brroothash := blockchain.CalcMerkleRootFromBranch(curheight, block.Block.Hash(cfg), txproof.GetProofs(), txhash, uint32(txindex))
-
-	assert.Equal(t, merkleroothash, brroothash)
-
+	//证明txproof的正确性,
+	if txProof.GetProofs() != nil { //ForkRootHash 之前的proof证明
+		brroothash := merkle.GetMerkleRootFromBranch(txProof.GetProofs(), txhash, uint32(txindex))
+		assert.Equal(t, merkleroothash, brroothash)
+	} else if txProof.GetTxProofs() != nil { //ForkRootHash 之后的proof证明
+		var childhash []byte
+		for i, txproof := range txProof.GetTxProofs() {
+			if i == 0 {
+				childhash = merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, txproof.GetIndex())
+				if txproof.GetRootHash() != nil {
+					assert.Equal(t, txproof.GetRootHash(), childhash)
+				} else {
+					assert.Equal(t, txproof.GetIndex(), uint32(txindex))
+					assert.Equal(t, merkleroothash, childhash)
+				}
+			} else {
+				brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), childhash, txproof.GetIndex())
+				assert.Equal(t, merkleroothash, brroothash)
+			}
+		}
+	}
 	chainlog.Info("TestProcQueryTxMsg end --------------------")
 }
 
@@ -534,7 +549,7 @@ func testProcGetHeadersMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 		}
 	}
 	reqBlock.Start = 0
-	reqBlock.End = 1000
+	reqBlock.End = 100000
 	_, err = blockchain.ProcGetHeadersMsg(&reqBlock)
 	assert.Equal(t, err, types.ErrMaxCountPerTime)
 
@@ -1370,7 +1385,29 @@ func TestProcessDelBlock(t *testing.T) {
 	defer mock33.Close()
 	blockchain := mock33.GetBlockChain()
 
+	//构造十个区块
 	curheight := blockchain.GetBlockHeight()
+	addblockheight := curheight + 10
+
+	_, err := blockchain.GetBlock(curheight)
+	if err != nil {
+		require.NoError(t, err)
+	}
+	cfg := mock33.GetClient().GetConfig()
+	for {
+		_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
+		require.NoError(t, err)
+
+		curheight = blockchain.GetBlockHeight()
+		_, err = blockchain.GetBlock(curheight)
+		require.NoError(t, err)
+		if curheight >= addblockheight {
+			break
+		}
+		time.Sleep(sendTxWait)
+	}
+
+	curheight = blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight)
 	require.NoError(t, err)
 
@@ -1378,5 +1415,37 @@ func TestProcessDelBlock(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, true, ok)
 
+	//获取已经删除的区块上的title
+	var req types.ReqParaTxByTitle
+	req.Start = curheight + 1
+	req.End = curheight + 1
+	req.Title = "user.p.para."
+	req.IsSeq = true
+
+	paratxs, err := blockchain.GetParaTxByTitle(&req)
+	require.NoError(t, err)
+	assert.NotNil(t, paratxs)
+	for _, paratx := range paratxs.Items {
+		assert.Equal(t, types.DelBlock, paratx.Type)
+		assert.Nil(t, paratx.TxDetails)
+		assert.Nil(t, paratx.ChildHash)
+		assert.Nil(t, paratx.Proofs)
+		assert.Equal(t, uint32(0), paratx.Index)
+	}
+
+	req.Title = "user.p.hyb."
+	maintxs, err := blockchain.GetParaTxByTitle(&req)
+	require.NoError(t, err)
+	assert.NotNil(t, maintxs)
+	for _, maintx := range maintxs.Items {
+		assert.Equal(t, types.DelBlock, maintx.Type)
+		roothash := merkle.GetMerkleRootFromBranch(maintx.Proofs, maintx.ChildHash, maintx.Index)
+		var txs []*types.Transaction
+		for _, tx := range maintx.TxDetails {
+			txs = append(txs, tx.Tx)
+		}
+		hash := merkle.CalcMerkleRoot(txs)
+		assert.Equal(t, hash, roothash)
+	}
 	chainlog.Info("TestProcessDelBlock end --------------------")
 }

@@ -154,7 +154,7 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	_, err = blockchain.LoadParaTxByTitle(nil)
 	assert.Equal(t, types.ErrInvalidParam, err)
 
-	req.Count = 10000
+	req.Count = 100000
 	_, err = blockchain.LoadParaTxByTitle(nil)
 	assert.Equal(t, types.ErrInvalidParam, err)
 
@@ -175,4 +175,25 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	_, err = blockchain.LoadParaTxByTitle(nil)
 	assert.Equal(t, types.ErrInvalidParam, err)
 
+	//GetParaTxByHeight入参检测test
+	_, err = blockchain.GetParaTxByHeight(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	var reqPara types.ReqParaTxByHeight
+	reqPara.Title = "user.write"
+	reqPara.Items = append(reqPara.Items, 1)
+	_, err = blockchain.GetParaTxByHeight(&reqPara)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	reqPara.Title = "user.p.hyb."
+	reqPara.Items = append(reqPara.Items, 2)
+	reqPara.Items[0] = -1
+	_, err = blockchain.GetParaTxByHeight(&reqPara)
+	assert.Equal(t, types.ErrInvalidParam, err)
+
+	for i := 0; i < 10002; i++ {
+		reqPara.Items = append(reqPara.Items, int64(i))
+	}
+	_, err = blockchain.GetParaTxByHeight(&reqPara)
+	assert.Equal(t, types.ErrInvalidParam, err)
 }

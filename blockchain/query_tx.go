@@ -5,7 +5,6 @@
 package blockchain
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/33cn/chain33/common"
@@ -172,20 +171,18 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	}
 
 	var txDetail types.TransactionDetail
-	var proofs [][]byte
 	cfg := chain.client.GetConfig()
+
+	//获取指定tx在txlist中的proof,fork前的主链节点和平行链节点都是一层merkle树
 	if !cfg.IsFork(txresult.Height, "ForkRootHash") || chain.isParaChain {
-		//获取指定tx在txlist中的proof
-		proofs, err = getTransactionProofs(block.Block.Txs, txresult.Index)
-		if err != nil {
-			return nil, err
-		}
+		proofs, _ := getTransactionProofs(block.Block.Txs, txresult.Index)
+		txDetail.Proofs = proofs
 	} else {
-		proofs = chain.getTxBranchOnChildChain(txresult.Height, block.Block.Hash(cfg), block.Block.Txs, txresult.Index)
+		txproofs := chain.getMultiLayerProofs(txresult.Height, block.Block.Hash(cfg), block.Block.Txs, txresult.Index)
+		txDetail.TxProofs = txproofs
 	}
 
 	setTxDetailFromTxResult(&txDetail, txresult)
-	txDetail.Proofs = proofs
 	return &txDetail, nil
 }
 
@@ -256,59 +253,4 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	chainlog.Debug("GetAddrTxsCount", "TxCount ", addrOverview.TxCount)
 
 	return &addrOverview, nil
-}
-
-func (chain *BlockChain) CalcMerkleRootFromBranch(height int64, blockhash []byte, merkleBranch [][]byte, txhash []byte, index uint32) []byte {
-	cfg := chain.client.GetConfig()
-	if !cfg.IsFork(height, "ForkRootHash") || chain.isParaChain {
-		return merkle.GetMerkleRootFromBranch(merkleBranch, txhash, index)
-	}
-	txresult, err := chain.GetTxResultFromDb(txhash)
-	if err != nil {
-		chainlog.Error("CalcMerkleRootFromBranch", "txhash ", common.ToHex(txhash), "err", err)
-		return nil
-	}
-	if height != txresult.GetHeight() || index != uint32(txresult.GetIndex()) {
-		chainlog.Error("CalcMerkleRootFromBranch", "txhash ", common.ToHex(txhash), "err", err)
-		return nil
-	}
-
-	tx := txresult.GetTx()
-	title, haveParaTx := types.GetParaExecTitleName(string(tx.Execer))
-	if !haveParaTx {
-		title = types.MainChainName
-	}
-
-	replyparaTxs, err := chain.LoadParaTxByHeight(height, "", 0, 1)
-	if err != nil || 0 == len(replyparaTxs.Items) {
-		filterlog.Error("calcMerkleRootFromBranch", "height", height, "blockhash", common.ToHex(blockhash), "err", err)
-		return nil
-	}
-
-	var exist bool
-	var hashes [][]byte
-	var childHash []byte
-	var startIndex int32
-	for _, paratx := range replyparaTxs.Items {
-		if title == paratx.Title && bytes.Equal(blockhash, paratx.GetHash()) {
-			startIndex = paratx.GetStartIndex()
-			childHash = paratx.ChildHash
-			exist = true
-		}
-		hashes = append(hashes, paratx.ChildHash)
-	}
-	if !exist {
-		filterlog.Error("calcMerkleRootFromBranch", "exist", exist, "height", height, "blockHash", common.ToHex(blockhash))
-		return nil
-	}
-	txInChildIndex := index - uint32(startIndex)
-	filterlog.Error("calcMerkleRootFromBranch", "txInChildIndex", txInChildIndex)
-
-	//计算子链根hash
-	childRootHash := merkle.GetMerkleRootFromBranch(merkleBranch, txhash, txInChildIndex)
-	if !bytes.Equal(childHash, childRootHash) {
-		filterlog.Error("calcMerkleRootFromBranch", "childRootHash", common.ToHex(childRootHash), "childHash", common.ToHex(childHash))
-		return nil
-	}
-	return merkle.GetMerkleRoot(hashes)
 }
