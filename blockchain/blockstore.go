@@ -231,42 +231,31 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 	bs.saveQuickIndexFlag()
 }
 
-func (bs *BlockStore) isSeqCBExist(name string) bool {
-	value, err := bs.db.Get(calcSeqCBKey([]byte(name)))
-	if err == nil {
-		var cb types.BlockSeqCB
-		err = types.Decode(value, &cb)
-		return err == nil
-	}
-	return false
-}
-
-func (bs *BlockStore) seqCBNum() int64 {
-	counts := dbm.NewListHelper(bs.db).PrefixCount(seqCBPrefix)
-	return counts
-}
-
 // TODO1
 
-// SetSync TODO 先用这个临时做store
+// SetSync store通用接口
 func (bs *BlockStore) SetSync(key, value []byte) error {
 	return bs.db.SetSync(key, value)
 }
 
-func (bs *BlockStore) listSeqCB() (cbs []*types.BlockSeqCB, err error) {
-	values := dbm.NewListHelper(bs.db).PrefixScan(seqCBPrefix)
+// GetKey store通用接口， Get 已经被使用
+func (bs *BlockStore) GetKey(key []byte) ([]byte, error) {
+	return bs.db.Get(key)
+}
+
+// PrefixCount store通用接口
+func (bs *BlockStore) PrefixCount(prefix []byte) int64 {
+	counts := dbm.NewListHelper(bs.db).PrefixCount(prefix)
+	return counts
+}
+
+// List store通用接口
+func (bs *BlockStore) List(prefix []byte) ([][]byte, error) {
+	values := dbm.NewListHelper(bs.db).PrefixScan(prefix)
 	if values == nil {
 		return nil, types.ErrNotFound
 	}
-	for _, value := range values {
-		var cb types.BlockSeqCB
-		err := types.Decode(value, &cb)
-		if err != nil {
-			return nil, err
-		}
-		cbs = append(cbs, &cb)
-	}
-	return cbs, nil
+	return values, nil
 }
 
 func (bs *BlockStore) delAllKeys() {

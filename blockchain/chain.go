@@ -230,8 +230,9 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
-	chain.pushseq = newpushseq(chain.blockStore)
+
 	chain.pushservice = newPushService(chain.blockStore, chain.blockStore)
+	chain.pushseq = newpushseq(chain.blockStore, chain.pushservice.pushStore)
 	//startTime
 	chain.startTime = types.Now()
 
