@@ -31,7 +31,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 		chainlog.Error("ProcAddBlockSeqCB not support sequence")
 		return nil, types.ErrRecordBlockSequence
 	}
-	return chain.pushservice.ProcAddBlockSeqCB(chain, cb)
+	return chain.pushservice.AddCallback(chain, cb)
 }
 
 // 推送服务
@@ -83,25 +83,21 @@ func (push *PushService1) GetLastPushSeq(name string) int64 {
 	return push.pushStore.GetLastPushSeq([]byte(name))
 }
 
-//ProcAddBlockSeqCB 添加seq callback
-func (push *PushService1) ProcAddBlockSeqCB(chain *BlockChain, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
+// AddCallback 添加seq callback
+func (push *PushService1) AddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	if cb == nil {
-		chainlog.Error("ProcAddBlockSeqCB input hash is null")
+		chainlog.Error("AddCallback input hash is null")
 		return nil, types.ErrInvalidParam
 	}
 
-	if !chain.isRecordBlockSequence {
-		chainlog.Error("ProcAddBlockSeqCB not support sequence")
-		return nil, types.ErrRecordBlockSequence
-	}
-	if chain.pushservice.pushStore.CallbackCount() >= MaxSeqCB && !chain.pushservice.pushStore.CallbackExist(cb.Name) {
+	if push.pushStore.CallbackCount() >= MaxSeqCB && !push.pushStore.CallbackExist(cb.Name) {
 		chainlog.Error("ProcAddBlockSeqCB too many seq callback")
 		return nil, types.ErrTooManySeqCB
 	}
 
 	// 在不指定sequence时, 和原来行为保存一直
 	if cb.LastSequence == 0 {
-		err := chain.pushservice.pushStore.AddCallback(cb)
+		err := push.pushStore.AddCallback(cb)
 		if err != nil {
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
@@ -114,12 +110,12 @@ func (push *PushService1) ProcAddBlockSeqCB(chain *BlockChain, cb *types.BlockSe
 	chainlog.Debug("ProcAddBlockSeqCB continue-seq-push", "name", cb.Name, "seq", cb.LastSequence,
 		"hash", cb.LastBlockHash, "height", cb.LastHeight)
 	// name 是否存在， 存在就继续，不需要重新注册了
-	if chain.pushservice.pushStore.CallbackExist(cb.Name) {
+	if push.pushStore.CallbackExist(cb.Name) {
 		chainlog.Info("ProcAddBlockSeqCB continue-seq-push", "exist", cb.Name)
 		return nil, nil
 	}
 
-	lastSeq, err := chain.blockStore.LoadBlockLastSequence()
+	lastSeq, err := push.seqStore.LoadBlockLastSequence()
 	if err != nil {
 		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-last-seq", err)
 		return nil, err
@@ -131,7 +127,7 @@ func (push *PushService1) ProcAddBlockSeqCB(chain *BlockChain, cb *types.BlockSe
 		return nil, types.ErrSequenceTooBig
 	}
 	// name不存在：Sequence 信息匹配，添加
-	sequence, err := chain.blockStore.GetBlockSequence(cb.LastSequence)
+	sequence, err := push.seqStore.GetBlockSequence(cb.LastSequence)
 	if err != nil {
 		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-1", err)
 		return nil, err
@@ -142,12 +138,12 @@ func (push *PushService1) ProcAddBlockSeqCB(chain *BlockChain, cb *types.BlockSe
 	reloadHash := common.ToHex(sequence.Hash)
 	if cb.LastBlockHash == reloadHash {
 		// 先填入last seq， 而不是从0开始
-		err = chain.pushservice.pushStore.SetLastPushSeq([]byte(cb.Name), cb.LastSequence)
+		err = push.pushStore.SetLastPushSeq([]byte(cb.Name), cb.LastSequence)
 		if err != nil {
 			chainlog.Error("ProcAddBlockSeqCB", "setSeqCBLastNum", err)
 			return nil, err
 		}
-		err = chain.pushservice.pushStore.AddCallback(cb)
+		err = push.pushStore.AddCallback(cb)
 		if err != nil {
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
