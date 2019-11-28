@@ -210,11 +210,14 @@ checkgofmt: ## get all go files and run go fmt on them
 
 .PHONY: mock
 mock:
+	@cd blockchain/ && mockery -name=CommonStore && mv mocks/CommonStore.go mocks/commonstore.go && cd -
+	@cd blockchain/ && mockery -name=SequenceStore && mv mocks/SequenceStore.go mocks/sequence_store.go && cd -
 	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
-	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
 	@cd common/db && mockery -name=KV && mv mocks/KV.go mocks/kv.go && cd -
 	@cd common/db && mockery -name=KVDB && mv mocks/KVDB.go mocks/kvdb.go && cd -
+	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
 	@cd types/ && mockery -name=Chain33Client && mv mocks/Chain33Client.go mocks/chain33client.go && cd -
+
 
 
 .PHONY: auto_ci_before auto_ci_after auto_ci
