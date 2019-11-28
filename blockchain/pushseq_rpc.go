@@ -43,6 +43,13 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 // SequenceStore 第一store： 满足获得 seq -> block 的信息获得
 // 实现接口先用现有的blockstroe， 先分开代码
 type SequenceStore interface {
+	LoadBlockLastSequence() (int64, error)
+	// seq -> block sequence
+	GetBlockSequence(seq int64) (*types.BlockSequence, error)
+	// hash -> block header
+	GetBlockHeaderByHash(hash []byte) (*types.Header, error)
+	// seq -> block, size
+	LoadBlockBySequence(seq int64) (*types.BlockDetail, int, error)
 }
 
 // PushService rpc接口转发
@@ -56,7 +63,7 @@ type PushService interface {
 // PushService1 实现
 // 放一个chain的指针，简单的分开代码
 type PushService1 struct {
-	seqStore  *BlockStore
+	seqStore  SequenceStore
 	pushStore *PushSeqStore1
 }
 
