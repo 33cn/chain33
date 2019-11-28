@@ -12,7 +12,61 @@ import (
 
 //ProcListBlockSeqCB 列出所有已经设置的seq callback
 func (chain *BlockChain) ProcListBlockSeqCB() (*types.BlockSeqCBs, error) {
-	cbs, err := chain.pushservice.pushStore.ListCB()
+	return chain.pushservice.ListCallback()
+}
+
+//ProcGetSeqCBLastNum 获取指定name的callback已经push的最新seq num
+func (chain *BlockChain) ProcGetSeqCBLastNum(name string) int64 {
+	return chain.pushservice.GetLastPushSeq(name)
+}
+
+//ProcAddBlockSeqCB 添加seq callback
+func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Sequence, error) {
+	if cb == nil {
+		chainlog.Error("ProcAddBlockSeqCB input hash is null")
+		return nil, types.ErrInvalidParam
+	}
+
+	if !chain.isRecordBlockSequence {
+		chainlog.Error("ProcAddBlockSeqCB not support sequence")
+		return nil, types.ErrRecordBlockSequence
+	}
+	return chain.pushservice.ProcAddBlockSeqCB(chain, cb)
+}
+
+// 推送服务
+// 1. 需要一个store， 读取seq 相关信息: 包括 seq -> block/height/hash
+// 1. 需要一个store， 读写推送相关信息： 包含 注册和推送的seq
+// 1. 一组rpc， 进行管理
+// 1. 一组真实工作的模块： pushseq文件
+
+// SequenceStore 第一store： 满足获得 seq -> block 的信息获得
+// 实现接口先用现有的blockstroe， 先分开代码
+type SequenceStore interface {
+}
+
+// PushService rpc接口转发
+// 外部接口通过 rpc -> queue -> chain 过来， 接口不变
+type PushService interface {
+	Add()
+	List()
+	Get()
+}
+
+// PushService1 实现
+// 放一个chain的指针，简单的分开代码
+type PushService1 struct {
+	seqStore  *BlockStore
+	pushStore *PushSeqStore1
+}
+
+func newPushService(seqStore *BlockStore, bcStore *BlockStore) *PushService1 {
+	return &PushService1{seqStore: seqStore, pushStore: &PushSeqStore1{store: bcStore}}
+}
+
+// ListCallback List Callback
+func (push *PushService1) ListCallback() (*types.BlockSeqCBs, error) {
+	cbs, err := push.pushStore.ListCB()
 	if err != nil {
 		chainlog.Error("ProcListBlockSeqCB", "err", err.Error())
 		return nil, err
@@ -24,14 +78,13 @@ func (chain *BlockChain) ProcListBlockSeqCB() (*types.BlockSeqCBs, error) {
 	return &listSeqCBs, nil
 }
 
-//ProcGetSeqCBLastNum 获取指定name的callback已经push的最新seq num
-func (chain *BlockChain) ProcGetSeqCBLastNum(name string) int64 {
-	num := chain.pushservice.pushStore.GetLastPushSeq([]byte(name))
-	return num
+// GetLastPushSeq 获取指定name的callback已经push的最新seq num
+func (push *PushService1) GetLastPushSeq(name string) int64 {
+	return push.pushStore.GetLastPushSeq([]byte(name))
 }
 
 //ProcAddBlockSeqCB 添加seq callback
-func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Sequence, error) {
+func (push *PushService1) ProcAddBlockSeqCB(chain *BlockChain, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	if cb == nil {
 		chainlog.Error("ProcAddBlockSeqCB input hash is null")
 		return nil, types.ErrInvalidParam
@@ -106,36 +159,6 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 	// 注册点，在节点上不存在， 即分叉上
 	// name不存在， 但对应的Hash/Height对不上
 	return loadSequanceForAddCallback(chain.blockStore, cb)
-}
-
-// 推送服务
-// 1. 需要一个store， 读取seq 相关信息: 包括 seq -> block/height/hash
-// 1. 需要一个store， 读写推送相关信息： 包含 注册和推送的seq
-// 1. 一组rpc， 进行管理
-// 1. 一组真实工作的模块： pushseq文件
-
-// SequenceStore 第一store： 满足获得 seq -> block 的信息获得
-// 实现接口先用现有的blockstroe， 先分开代码
-type SequenceStore interface {
-}
-
-// PushService rpc接口转发
-// 外部接口通过 rpc -> queue -> chain 过来， 接口不变
-type PushService interface {
-	Add()
-	List()
-	Get()
-}
-
-// PushService1 实现
-// 放一个chain的指针，简单的分开代码
-type PushService1 struct {
-	seqStore  *BlockStore
-	pushStore *PushSeqStore1
-}
-
-func newPushService(seqStore *BlockStore, bcStore *BlockStore) *PushService1 {
-	return &PushService1{seqStore: seqStore, pushStore: &PushSeqStore1{store: bcStore}}
 }
 
 // add callback时， name不存在， 但对应的Hash/Height对不上, 加载推荐的开始点
