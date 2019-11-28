@@ -113,7 +113,12 @@ type PushService interface {
 // PushService1 实现
 // 放一个chain的指针，简单的分开代码
 type PushService1 struct {
-	chain *BlockChain
+	seqStore *BlockStore
+	bcStore  *BlockStore
+}
+
+func newPushService(seqStore *BlockStore, bcStore *BlockStore) *PushService1 {
+	return &PushService1{seqStore: seqStore, bcStore: bcStore}
 }
 
 // add callback时， name不存在， 但对应的Hash/Height对不上, 加载推荐的开始点
@@ -201,3 +206,28 @@ func (chain *BlockChain) ProcGetSeqCBLastNum(name string) int64 {
 	num := chain.blockStore.getSeqCBLastNum([]byte(name))
 	return num
 }
+
+// PushSeqStore1 store
+type PushSeqStore1 struct {
+	store *BlockStore
+}
+
+// Add push seq callback
+func (push *PushSeqStore1) Add(cb *types.BlockSeqCB) error {
+	if len(cb.Name) > 128 || len(cb.URL) > 1024 {
+		return types.ErrInvalidParam
+	}
+	storeLog.Info("addBlockSeqCB", "key", string(calcSeqCBKey([]byte(cb.Name))), "value", cb)
+	return push.store.db.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
+}
+
+/*
+func (bs *BlockStore) addBlockSeqCB(cb *types.BlockSeqCB) error {
+	if len(cb.Name) > 128 || len(cb.URL) > 1024 {
+		return types.ErrInvalidParam
+	}
+	storeLog.Info("addBlockSeqCB", "key", string(calcSeqCBKey([]byte(cb.Name))), "value", cb)
+
+	return bs.db.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
+}
+*/
