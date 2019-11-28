@@ -246,6 +246,7 @@ func (bs *BlockStore) seqCBNum() int64 {
 	return counts
 }
 
+// TODO1
 func (bs *BlockStore) addBlockSeqCB(cb *types.BlockSeqCB) error {
 	if len(cb.Name) > 128 || len(cb.URL) > 1024 {
 		return types.ErrInvalidParam
