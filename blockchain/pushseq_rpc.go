@@ -87,6 +87,35 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 	return loadSequanceForAddCallback(chain.blockStore, cb)
 }
 
+// 推送服务
+// 1. 需要一个store， 读取seq 相关信息: 包括 seq -> block/height/hash
+// 1. 需要一个store， 读写推送相关信息： 包含 注册和推送的seq
+// 1. 一组rpc， 进行管理
+// 1. 一组真实工作的模块： pushseq文件
+
+// SequenceStore 第一store： 满足获得 seq -> block 的信息获得
+// 实现接口先用现有的blockstroe， 先分开代码
+type SequenceStore interface {
+}
+
+// PushSeqStrore 第二store， 读写推送相关信息的读写
+type PushSeqStrore interface {
+}
+
+// PushService rpc接口转发
+// 外部接口通过 rpc -> queue -> chain 过来， 接口不变
+type PushService interface {
+	Add()
+	List()
+	Get()
+}
+
+// PushService1 实现
+// 放一个chain的指针，简单的分开代码
+type PushService1 struct {
+	chain *BlockChain
+}
+
 // add callback时， name不存在， 但对应的Hash/Height对不上, 加载推荐的开始点
 // 1. 在接近的sequence推荐，解决分叉问题
 // 2. 跳跃的sequence推荐，解决在极端情况下， 有比较深的分叉， 减少交互的次数
