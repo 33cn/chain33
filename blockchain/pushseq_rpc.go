@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"github.com/33cn/chain33/common"
+	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
 
@@ -68,7 +69,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 	reloadHash := common.ToHex(sequence.Hash)
 	if cb.LastBlockHash == reloadHash {
 		// 先填入last seq， 而不是从0开始
-		err = chain.GetStore().setSeqCBLastNum([]byte(cb.Name), cb.LastSequence)
+		err = chain.pushservice.pushStore.SetLastPushSeq([]byte(cb.Name), cb.LastSequence)
 		if err != nil {
 			chainlog.Error("ProcAddBlockSeqCB", "setSeqCBLastNum", err)
 			return nil, err
@@ -203,11 +204,12 @@ func (chain *BlockChain) ProcListBlockSeqCB() (*types.BlockSeqCBs, error) {
 
 //ProcGetSeqCBLastNum 获取指定name的callback已经push的最新seq num
 func (chain *BlockChain) ProcGetSeqCBLastNum(name string) int64 {
-	num := chain.blockStore.getSeqCBLastNum([]byte(name))
+	num := chain.pushservice.pushStore.GetLastPushSeq([]byte(name))
 	return num
 }
 
 // PushSeqStore1 store
+// 两组接口： 和注册相关的， 和推送进行到seq相关的
 type PushSeqStore1 struct {
 	store *BlockStore
 }
@@ -252,4 +254,27 @@ func (push *PushSeqStore1) ListCB() (cbs []*types.BlockSeqCB, err error) {
 		cbs = append(cbs, &cb)
 	}
 	return cbs, nil
+}
+
+// GetLastPushSeq Seq的合法值从0开始的，所以没有获取到或者获取失败都应该返回-1
+func (push *PushSeqStore1) GetLastPushSeq(name []byte) int64 {
+	bytes, err := push.store.GetKey(calcSeqCBLastNumKey([]byte(name)))
+	if bytes == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("getSeqCBLastNum", "error", err)
+		}
+		return -1
+	}
+	n, err := decodeHeight(bytes)
+	if err != nil {
+		return -1
+	}
+	storeLog.Error("getSeqCBLastNum", "name", string(name), "num", n)
+
+	return n
+}
+
+// SetLastPushSeq 更新推送进度
+func (push *PushSeqStore1) SetLastPushSeq(name []byte, num int64) error {
+	return push.store.SetSync(calcSeqCBLastNumKey(name), types.Encode(&types.Int64{Data: num}))
 }

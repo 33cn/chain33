@@ -962,28 +962,6 @@ func (bs *BlockStore) LoadBlockLastMainSequence() (int64, error) {
 	return decodeHeight(bytes)
 }
 
-func (bs *BlockStore) setSeqCBLastNum(name []byte, num int64) error {
-	return bs.db.SetSync(calcSeqCBLastNumKey(name), types.Encode(&types.Int64{Data: num}))
-}
-
-//Seq的合法值从0开始的，所以没有获取到或者获取失败都应该返回-1
-func (bs *BlockStore) getSeqCBLastNum(name []byte) int64 {
-	bytes, err := bs.db.Get(calcSeqCBLastNumKey(name))
-	if bytes == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("getSeqCBLastNum", "error", err)
-		}
-		return -1
-	}
-	n, err := decodeHeight(bytes)
-	if err != nil {
-		return -1
-	}
-	storeLog.Error("getSeqCBLastNum", "name", string(name), "num", n)
-
-	return n
-}
-
 //SaveBlockSequence 存储block 序列执行的类型用于blockchain的恢复
 //获取当前的序列号，将此序列号加1存储本block的hash ，当使能isRecordBlockSequence
 //平行链使能isParaChain时，而外保存主链的 sequence
