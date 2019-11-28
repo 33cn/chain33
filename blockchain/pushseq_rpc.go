@@ -119,20 +119,6 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 type SequenceStore interface {
 }
 
-// PushSeqStrore 第二store， 读写推送相关信息的读写
-type PushSeqStrore interface {
-}
-
-// CommonStore 通用的store 接口
-// 修改大一点，可能可以用 db.KVDB
-// 先改动小一点， 用store, 如果接口一样可以直接换
-type CommonStore interface {
-	SetSync(key, value []byte) error
-	GetKey(key []byte) ([]byte, error)
-	PrefixCount(prefix []byte) int64
-	List(prefix []byte) ([][]byte, error)
-}
-
 // PushService rpc接口转发
 // 外部接口通过 rpc -> queue -> chain 过来， 接口不变
 type PushService interface {
@@ -216,6 +202,20 @@ func loadOneSeq(store *BlockStore, cur int64) (*types.Sequence, error) {
 		return nil, err
 	}
 	return &types.Sequence{Hash: seq.Hash, Type: seq.Type, Sequence: cur, Height: header.Height}, nil
+}
+
+// PushSeqStrore 第二store， 读写推送相关信息的读写
+type PushSeqStrore interface {
+}
+
+// CommonStore 通用的store 接口
+// 修改大一点，可能可以用 db.KVDB
+// 先改动小一点， 用store, 如果接口一样可以直接换
+type CommonStore interface {
+	SetSync(key, value []byte) error
+	GetKey(key []byte) ([]byte, error)
+	PrefixCount(prefix []byte) int64
+	List(prefix []byte) ([][]byte, error)
 }
 
 // PushSeqStore1 store
