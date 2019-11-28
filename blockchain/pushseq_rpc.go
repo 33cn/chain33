@@ -174,6 +174,7 @@ func loadSequanceForAddCallback(store *BlockStore, cb *types.BlockSeqCB) ([]*typ
 	return seqs, types.ErrSequenceNotMatch
 }
 
+// 推荐开始点选取
 func recommendSeqs(lastSequence, max int64) []int64 {
 	count := int64(100)
 	skip := int64(100)
