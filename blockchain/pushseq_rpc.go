@@ -123,6 +123,16 @@ type SequenceStore interface {
 type PushSeqStrore interface {
 }
 
+// CommonStore 通用的store 接口
+// 修改大一点，可能可以用 db.KVDB
+// 先改动小一点， 用store, 如果接口一样可以直接换
+type CommonStore interface {
+	SetSync(key, value []byte) error
+	GetKey(key []byte) ([]byte, error)
+	PrefixCount(prefix []byte) int64
+	List(prefix []byte) ([][]byte, error)
+}
+
 // PushService rpc接口转发
 // 外部接口通过 rpc -> queue -> chain 过来， 接口不变
 type PushService interface {
@@ -211,7 +221,7 @@ func loadOneSeq(store *BlockStore, cur int64) (*types.Sequence, error) {
 // PushSeqStore1 store
 // 两组接口： 和注册相关的， 和推送进行到seq相关的
 type PushSeqStore1 struct {
-	store *BlockStore
+	store CommonStore
 }
 
 // AddCallback push seq callback
@@ -220,7 +230,7 @@ func (push *PushSeqStore1) AddCallback(cb *types.BlockSeqCB) error {
 		return types.ErrInvalidParam
 	}
 	storeLog.Info("addBlockSeqCB", "key", string(calcSeqCBKey([]byte(cb.Name))), "value", cb)
-	return push.store.db.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
+	return push.store.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
 }
 
 // CallbackCount Callback Count
