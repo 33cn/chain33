@@ -12,12 +12,12 @@ type PushWorkNotify struct {
 	mock.Mock
 }
 
-// addTask provides a mock function with given fields: cb
-func (_m *PushWorkNotify) addTask(cb *types.BlockSeqCB) {
+// AddTask provides a mock function with given fields: cb
+func (_m *PushWorkNotify) AddTask(cb *types.BlockSeqCB) {
 	_m.Called(cb)
 }
 
-// updateSeq provides a mock function with given fields: seq
-func (_m *PushWorkNotify) updateSeq(seq int64) {
+// UpdateSeq provides a mock function with given fields: seq
+func (_m *PushWorkNotify) UpdateSeq(seq int64) {
 	_m.Called(seq)
 }

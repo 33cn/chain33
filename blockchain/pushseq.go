@@ -44,7 +44,7 @@ func (p *pushseq) init() {
 		return
 	}
 	for _, cb := range cbs {
-		p.addTask(cb)
+		p.AddTask(cb)
 	}
 }
 
@@ -60,8 +60,8 @@ func (p *pushseq) updateLastSeq(name string) {
 	notify.seq <- last
 }
 
-//每个name 有一个task
-func (p *pushseq) addTask(cb *types.BlockSeqCB) {
+// AddTask 每个name 有一个task, 通知新增推送
+func (p *pushseq) AddTask(cb *types.BlockSeqCB) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if notify, ok := p.cmds[cb.Name]; ok {
@@ -85,7 +85,8 @@ func (p *pushseq) addTask(cb *types.BlockSeqCB) {
 	chainlog.Debug("runTask callback", "cb", cb)
 }
 
-func (p *pushseq) updateSeq(seq int64) {
+// UpdateSeq sequence 更新通知
+func (p *pushseq) UpdateSeq(seq int64) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for _, notify := range p.cmds {

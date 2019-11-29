@@ -57,8 +57,8 @@ type SequenceStore interface {
 // 2. callback 变化
 // 函数名不变， 可以先不改pushseq的代码
 type PushWorkNotify interface {
-	addTask(cb *types.BlockSeqCB)
-	updateSeq(seq int64)
+	AddTask(cb *types.BlockSeqCB)
+	UpdateSeq(seq int64)
 }
 
 // PushService rpc接口转发
@@ -119,7 +119,7 @@ func (push *PushService1) AddCallback(pushseq PushWorkNotify, cb *types.BlockSeq
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
 		}
-		pushseq.addTask(cb)
+		pushseq.AddTask(cb)
 		return nil, nil
 	}
 
@@ -165,7 +165,7 @@ func (push *PushService1) AddCallback(pushseq PushWorkNotify, cb *types.BlockSeq
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
 		}
-		pushseq.addTask(cb)
+		pushseq.AddTask(cb)
 		return nil, nil
 	}
 
