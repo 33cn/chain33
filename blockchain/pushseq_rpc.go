@@ -31,7 +31,7 @@ func (chain *BlockChain) ProcAddBlockSeqCB(cb *types.BlockSeqCB) ([]*types.Seque
 		chainlog.Error("ProcAddBlockSeqCB not support sequence")
 		return nil, types.ErrRecordBlockSequence
 	}
-	return chain.pushservice.AddCallback(chain, cb)
+	return chain.pushservice.AddCallback(chain.pushseq, cb)
 }
 
 // 推送服务
@@ -91,7 +91,7 @@ func (push *PushService1) GetLastPushSeq(name string) int64 {
 }
 
 // AddCallback 添加seq callback
-func (push *PushService1) AddCallback(chain *BlockChain, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
+func (push *PushService1) AddCallback(pushseq *pushseq, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	if cb == nil {
 		chainlog.Error("AddCallback input hash is null")
 		return nil, types.ErrInvalidParam
@@ -109,7 +109,7 @@ func (push *PushService1) AddCallback(chain *BlockChain, cb *types.BlockSeqCB) (
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
 		}
-		chain.pushseq.addTask(cb)
+		pushseq.addTask(cb)
 		return nil, nil
 	}
 
@@ -155,19 +155,19 @@ func (push *PushService1) AddCallback(chain *BlockChain, cb *types.BlockSeqCB) (
 			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
 			return nil, err
 		}
-		chain.pushseq.addTask(cb)
+		pushseq.addTask(cb)
 		return nil, nil
 	}
 
 	// 注册点，在节点上不存在， 即分叉上
 	// name不存在， 但对应的Hash/Height对不上
-	return loadSequanceForAddCallback(chain.blockStore, cb)
+	return loadSequanceForAddCallback(push.seqStore, cb)
 }
 
 // add callback时， name不存在， 但对应的Hash/Height对不上, 加载推荐的开始点
 // 1. 在接近的sequence推荐，解决分叉问题
 // 2. 跳跃的sequence推荐，解决在极端情况下， 有比较深的分叉， 减少交互的次数
-func loadSequanceForAddCallback(store *BlockStore, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
+func loadSequanceForAddCallback(store SequenceStore, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	seqsNumber := recommendSeqs(cb.LastSequence, types.MaxBlockCountPerTime)
 
 	seqs := make([]*types.Sequence, 0)
@@ -217,7 +217,7 @@ func recommendSeqs(lastSequence, max int64) []int64 {
 	return seqs
 }
 
-func loadOneSeq(store *BlockStore, cur int64) (*types.Sequence, error) {
+func loadOneSeq(store SequenceStore, cur int64) (*types.Sequence, error) {
 	seq, err := store.GetBlockSequence(cur)
 	if err != nil || seq == nil {
 		chainlog.Warn("ProcAddBlockSeqCB continue-seq-push", "load-2", err, "seq", cur)
