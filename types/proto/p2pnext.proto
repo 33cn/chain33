@@ -126,11 +126,15 @@ message MessageExternalNetResp{
  */
 
 
-message MessageGetBlocks{
+message MessageGetBlocksReq{
 	MessageComm messageData=1;
 	P2PGetBlocks message=2;
 }
 
+message MessageGetBlocksResp{
+	MessageComm messageData=1;
+	InvDatas message =2;
+}
 /**
  * 获取mempool
  */

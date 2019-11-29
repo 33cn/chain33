@@ -40,6 +40,13 @@ func (s *streamMange) deleteStream(pid string) {
 
 }
 
+func (s *streamMange) GetStream(id string) net.Stream {
+	v, ok := s.StreamStore.Load(id)
+	if ok {
+		return v.(net.Stream)
+	}
+	return nil
+}
 func (s *streamMange) fetchStreams() []net.Stream {
 	var streams []net.Stream
 
