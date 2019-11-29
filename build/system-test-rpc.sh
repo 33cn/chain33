@@ -24,9 +24,9 @@ echo_rst() {
 }
 
 http_req() {
-  #  echo "#$4 request: $1"
+    #  echo "#$4 request: $1"
     body=$(curl -ksd "$1" "$2")
-  #  echo "#response: $body"
+    #  echo "#response: $body"
     ok=$(echo "$body" | jq -r "$3")
     [ "$ok" == true ]
     rst=$?
@@ -58,61 +58,61 @@ chain33_DumpPrivkey() {
 
 chain33_SendToAddress() {
     req='{"method":"Chain33.SendToAddress", "params":[{"from":"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv","to":"1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt", "amount":100000000, "note":"test\n"}]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.hash|length==66)' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.hash|length==66)' "$FUNCNAME"
 }
 
 chain33_SetTxFee() {
-	http_req '{"method":"Chain33.SetTxFee", "params":[{"amount":100000}]}' ${MAIN_HTTP} '(.error|not) and .result.isOK' "$FUNCNAME"
+    http_req '{"method":"Chain33.SetTxFee", "params":[{"amount":100000}]}' ${MAIN_HTTP} '(.error|not) and .result.isOK' "$FUNCNAME"
 }
 
 chain33_SetLabl() {
     req='{"method":"Chain33.SetLabl", "params":[{"addr":"1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt", "label":"updatetestimport"}]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.label=="updatetestimport") and (.result.acc.addr == "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt")' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.label=="updatetestimport") and (.result.acc.addr == "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt")' "$FUNCNAME"
 }
 
 chain33_GetPeerInfo() {
     if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
-		resok='(.error|not) and (.result.peers|length >= 1) and (.result.peers[0] | [has("addr", "port", "name", "mempoolSize", "self", "header"), true] | unique | length == 1)'
-		http_req '{"method":"Chain33.GetPeerInfo", "params":[{}]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
-	fi
+        resok='(.error|not) and (.result.peers|length >= 1) and (.result.peers[0] | [has("addr", "port", "name", "mempoolSize", "self", "header"), true] | unique | length == 1)'
+        http_req '{"method":"Chain33.GetPeerInfo", "params":[{}]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
+    fi
 }
 
 chain33_GetHeaders() {
-	resok='(.error|not) and (.result.items|length == 2) and (.result.items[0] | [has("version","parentHash", "txHash", "stateHash", "height", "blockTime", "txCount", "hash", "difficulty"),true] | unique | length == 1 )'
-	http_req '{"method":"Chain33.GetHeaders", "params":[{"start":1, "end":2, "isDetail":true}]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
+    resok='(.error|not) and (.result.items|length == 2) and (.result.items[0] | [has("version","parentHash", "txHash", "stateHash", "height", "blockTime", "txCount", "hash", "difficulty"),true] | unique | length == 1 )'
+    http_req '{"method":"Chain33.GetHeaders", "params":[{"start":1, "end":2, "isDetail":true}]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
 }
 
 chain33_GetLastMemPool() {
     if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
-		http_req '{"method":"Chain33.GetLastMemPool", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.txs|length >= 0)' "$FUNCNAME"
+        http_req '{"method":"Chain33.GetLastMemPool", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.txs|length >= 0)' "$FUNCNAME"
     fi
 }
 
 chain33_GetProperFee() {
-	http_req '{"method":"Chain33.GetProperFee", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.properFee > 10000)' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetProperFee", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.properFee > 10000)' "$FUNCNAME"
 }
 
 chain33_GetBlockOverview() {
     hash=$(curl -ksd '{"method":"Chain33.GetHeaders", "params":[{"start":1, "end":1, "isDetail":true}]}' ${MAIN_HTTP} | jq '.result.items[0].hash')
     req='{"method":"Chain33.GetBlockOverview", "params":[{"hash":'"$hash"'}]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result| [has("head", "txCount", "txHashes"), true]|unique|length == 1) and (.result.txCount == (.result.txHashes|length))' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result| [has("head", "txCount", "txHashes"), true]|unique|length == 1) and (.result.txCount == (.result.txHashes|length))' "$FUNCNAME"
 }
 
 chain33_GetAddrOverview() {
     req='{"method":"Chain33.GetAddrOverview", "params":[{"addr":"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"}]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result|[has("reciver", "balance", "txCount"), true]|unique|length == 1)' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result|[has("reciver", "balance", "txCount"), true]|unique|length == 1)' "$FUNCNAME"
 }
 
 chain33_SetPasswd() {
-	http_req '{"method":"Chain33.SetPasswd", "params":[{"oldPass":"1314fuzamei", "newPass":"1314fuzamei"}]}' ${MAIN_HTTP} '(.error|not) and .result.isOK' "$FUNCNAME"
+    http_req '{"method":"Chain33.SetPasswd", "params":[{"oldPass":"1314fuzamei", "newPass":"1314fuzamei"}]}' ${MAIN_HTTP} '(.error|not) and .result.isOK' "$FUNCNAME"
 }
 
 chain33_MergeBalance() {
-	http_req '{"method":"Chain33.MergeBalance", "params":[{"to":"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"}]}' ${MAIN_HTTP} '(.error|not) and (.result.hashes|length > 0)' "$FUNCNAME"
+    http_req '{"method":"Chain33.MergeBalance", "params":[{"to":"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"}]}' ${MAIN_HTTP} '(.error|not) and (.result.hashes|length > 0)' "$FUNCNAME"
 }
 
 chain33_QueryTotalFee() {
@@ -127,24 +127,24 @@ chain33_QueryTotalFee() {
     base64_hash="$prefixhash_base64$blockhash_base64"
 
     req='{"method":"Chain33.QueryTotalFee","params":[{"keys":["'$base64_hash'"]}]}'
-	http_req "$req" ${MAIN_HTTP} '(.result.txCount >= 0)' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.result.txCount >= 0)' "$FUNCNAME"
 }
 
 chain33_GetNetInfo() {
-   if [ "$IS_PARA" == true ]; then
-       echo_rst "$FUNCNAME" 2
-   else
-       http_req '{"method":"Chain33.GetNetInfo", "params":[]}' ${MAIN_HTTP} '(.result.externalAddr| length > 0) and (.result.service == true)' "$FUNCNAME"
-   fi
+    if [ "$IS_PARA" == true ]; then
+        echo_rst "$FUNCNAME" 2
+    else
+        http_req '{"method":"Chain33.GetNetInfo", "params":[]}' ${MAIN_HTTP} '(.result.externalAddr| length > 0) and (.result.service == true)' "$FUNCNAME"
+    fi
 }
 
 chain33_GetFatalFailure() {
-	http_req '{"method":"Chain33.GetFatalFailure", "params":[]}' ${MAIN_HTTP} '(.error|not) and (.result | 0)' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetFatalFailure", "params":[]}' ${MAIN_HTTP} '(.error|not) and (.result | 0)' "$FUNCNAME"
 }
 
 chain33_DecodeRawTransaction() {
     tx="0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"
-	http_req '{"method":"Chain33.DecodeRawTransaction", "params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP} '(.result.txs[0].execer == "coins")' "$FUNCNAME"
+    http_req '{"method":"Chain33.DecodeRawTransaction", "params":[{"txHex":"'$tx'"}]}' ${MAIN_HTTP} '(.result.txs[0].execer == "coins")' "$FUNCNAME"
 }
 
 chain33_GetTimeStatus() {
@@ -174,14 +174,14 @@ chain33_GetBlockSequences() {
 
 chain33_GetBlockByHashes() {
     if [ "$IS_PARA" == true ]; then
-    #    req='{"method":"Chain33.GetBlockHash", "params":[{"height":0}]}'
-    #    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
-    #    echo "#GetBlockHash.response: $resp"
-    #    geneis=$(jq -r '(.result.hash)' <<<"$resp")
-    #    #geneis="0xfd39dbdbd2cdeb9f34bcec3612735671b35e2e2dbf9a4e6e3ed0c34804a757bb"
-    #    statehash=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$geneis"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.parentHash")
-    #    [ "$statehash" == "0x0000000000000000000000000000000000000000000000000000000000000000" ]
-    #    echo_rst "$FUNCNAME" "$?"
+        #    req='{"method":"Chain33.GetBlockHash", "params":[{"height":0}]}'
+        #    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
+        #    echo "#GetBlockHash.response: $resp"
+        #    geneis=$(jq -r '(.result.hash)' <<<"$resp")
+        #    #geneis="0xfd39dbdbd2cdeb9f34bcec3612735671b35e2e2dbf9a4e6e3ed0c34804a757bb"
+        #    statehash=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$geneis"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.parentHash")
+        #    [ "$statehash" == "0x0000000000000000000000000000000000000000000000000000000000000000" ]
+        #    echo_rst "$FUNCNAME" "$?"
 
         http_req '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["0xfd39dbdbd2cdeb9f34bcec3612735671b35e2e2dbf9a4e6e3ed0c34804a757bb"]}]}' ${MAIN_HTTP} '(.result.items[0].block.parentHash == "0x0000000000000000000000000000000000000000000000000000000000000000")' "$FUNCNAME"
     else
@@ -191,12 +191,12 @@ chain33_GetBlockByHashes() {
 
         req='{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$hash1"'","'"$hash2"'"]}]}'
         resok='(.result.items[0].block.parentHash == "'"$hash0"'") and (.result.items[1].block.parentHash =="'"$hash1"'")'
-	    http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
+        http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
     fi
 }
 
 chain33_ConvertExectoAddr() {
-	http_req '{"method":"Chain33.ConvertExectoAddr","params":[{"execname":"coins"}]}' ${MAIN_HTTP} '(.result == "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt")' "$FUNCNAME"
+    http_req '{"method":"Chain33.ConvertExectoAddr","params":[{"execname":"coins"}]}' ${MAIN_HTTP} '(.result == "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt")' "$FUNCNAME"
 }
 
 chain33_GetExecBalance() {
@@ -214,7 +214,7 @@ chain33_AddSeqCallBack() {
     if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
-	    http_req '{"method":"Chain33.AddSeqCallBack","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} '(.result.isOK == true)' "$FUNCNAME"
+        http_req '{"method":"Chain33.AddSeqCallBack","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} '(.result.isOK == true)' "$FUNCNAME"
     fi
 }
 
@@ -222,12 +222,12 @@ chain33_ListSeqCallBack() {
     if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
-	    http_req '{"method":"Chain33.ListSeqCallBack","params":[]}' ${MAIN_HTTP} ' (.result.items[0].name == "test")' "$FUNCNAME"
+        http_req '{"method":"Chain33.ListSeqCallBack","params":[]}' ${MAIN_HTTP} ' (.result.items[0].name == "test")' "$FUNCNAME"
     fi
 }
 
 chain33_GetSeqCallBackLastNum() {
-	http_req '{"method":"Chain33.GetSeqCallBackLastNum","params":[{"data":"test"}]}' ${MAIN_HTTP} '(.result.data == -1)' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetSeqCallBackLastNum","params":[{"data":"test"}]}' ${MAIN_HTTP} '(.result.data == -1)' "$FUNCNAME"
 }
 
 chain33_GetCoinSymbol() {
@@ -237,7 +237,7 @@ chain33_GetCoinSymbol() {
     fi
 
     resok='(.result.data == "'"$symbol"'")'
-	http_req '{"method":"Chain33.GetCoinSymbol","params":[]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
+    http_req '{"method":"Chain33.GetCoinSymbol","params":[]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
 }
 
 chain33_GetHexTxByHash() {
@@ -245,7 +245,7 @@ chain33_GetHexTxByHash() {
     reHash=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r '.result.txInfos[0].hash')
     #查询交易
     req='{"method":"Chain33.GetHexTxByHash","params":[{"hash":"'"$reHash"'","upgrade":false}]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result != null)' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result != null)' "$FUNCNAME"
 }
 
 chain33_QueryTransaction() {
@@ -253,47 +253,47 @@ chain33_QueryTransaction() {
     reHash=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r '.result.txInfos[0].hash')
     #查询交易
     req='{"method":"Chain33.QueryTransaction","params":[{"hash":"'"$reHash"'","upgrade":false}]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.receipt.tyName == "ExecOk") and (.result.height >= 0) and (.result.index >= 0) and (.result.amount >= 0)' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.receipt.tyName == "ExecOk") and (.result.height >= 0) and (.result.index >= 0) and (.result.amount >= 0)' "$FUNCNAME"
 }
 
 chain33_GetBlocks() {
-	http_req '{"method":"Chain33.GetBlocks","params":[{"start":1,"end":2}]}' ${MAIN_HTTP} '(.result.items[1].block.height == 2)' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetBlocks","params":[{"start":1,"end":2}]}' ${MAIN_HTTP} '(.result.items[1].block.height == 2)' "$FUNCNAME"
 }
 
 chain33_GetLastHeader() {
     resok='(.error|not) and (.result.height >= 0) and (.result | [has("version","parentHash", "txHash", "stateHash", "height", "blockTime", "txCount", "hash", "difficulty"),true] | unique | length == 1)'
-	http_req '{"method":"Chain33.GetLastHeader","params":[{}]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
+    http_req '{"method":"Chain33.GetLastHeader","params":[{}]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
 }
 
 chain33_GetTxByAddr() {
     req='{"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}'
     resok='(.error|not) and (.result.txInfos[0].index >= 0) and (.result.txInfos[0] | [has("hash", "height", "index", "assets"),true] | unique | length == 1)'
-	http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
 }
 
 chain33_GetTxByHashes() {
     req='{"method":"Chain33.GetTxByHashes","params":[{"hashes":["0x8040109d3859827d0f0c80ce91cc4ec80c496c45250f5e5755064b6da60842ab","0x501b910fd85d13d1ab7d776bce41a462f27c4bfeceb561dc47f0a11b10f452e4"]}]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.txs|length == 2)' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.txs|length == 2)' "$FUNCNAME"
 }
 
 chain33_GetMempool() {
     if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
-	    http_req '{"method":"Chain33.GetMempool","params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.txs|length >= 0)' "$FUNCNAME"
+        http_req '{"method":"Chain33.GetMempool","params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.txs|length >= 0)' "$FUNCNAME"
     fi
 }
 
 chain33_GetAccountsV2() {
-	http_req '{"method":"Chain33.GetAccountsV2","params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.wallets|length >= 0)' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetAccountsV2","params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.wallets|length >= 0)' "$FUNCNAME"
 }
 
 chain33_GetAccounts() {
-	http_req '{"method":"Chain33.GetAccounts","params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.wallets|length >= 0)' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetAccounts","params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.wallets|length >= 0)' "$FUNCNAME"
 }
 
 chain33_NewAccount() {
-	http_req '{"method":"Chain33.NewAccount","params":[{"label":"test169"}]}' ${MAIN_HTTP} '(.error|not) and (.result.label == "test169") and (.result.acc | [has("addr"),true] | unique | length == 1)' "$FUNCNAME"
+    http_req '{"method":"Chain33.NewAccount","params":[{"label":"test169"}]}' ${MAIN_HTTP} '(.error|not) and (.result.label == "test169") and (.result.acc | [has("addr"),true] | unique | length == 1)' "$FUNCNAME"
 }
 
 # hyb
@@ -304,7 +304,7 @@ chain33_CreateRawTransaction() {
 
     req='{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}'
     resok='(.result.txs[0].payload.transfer.amount == "'$amount'") and (.result.txs[0].to == "'$to'")'
-	http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
 }
 
 chain33_CreateTransaction() {
@@ -322,7 +322,7 @@ chain33_CreateTransaction() {
 
     req='{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}'
     resok='(.result.txs[0].payload.transfer.amount == "'$amount'") and (.result.txs[0].payload.transfer.to == "'$to'")'
-	http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
 }
 
 chain33_ReWriteRawTx() {
@@ -331,7 +331,7 @@ chain33_ReWriteRawTx() {
     tx=$(curl -ksd '{"method":"Chain33.ReWriteRawTx","params":[{"expire":"120s","fee":'$fee',"tx":"'$tx1'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
     req='{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.txs[0].execer == "coins") and (.result.txs[0].to == "1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t") and (.result.txs[0].fee == '$fee')' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.txs[0].execer == "coins") and (.result.txs[0].to == "1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t") and (.result.txs[0].fee == '$fee')' "$FUNCNAME"
 }
 
 chain33_CreateRawTxGroup() {
@@ -356,7 +356,7 @@ chain33_SignRawTx() {
 
     req='{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}'
     resok='(.error|not) and (.result.txs[0].execer == "coins") and (.result.txs[0].to == "1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t") and (.result.txs[0].fee == '$fee') and (.result.txs[0].from == "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt")'
-	http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
 }
 
 chain33_SendTransaction() {
@@ -370,7 +370,7 @@ chain33_SendTransaction() {
     tx=$(curl -ksd '{"method":"Chain33.SignRawTx","params":[{"expire":"120s","fee":'$fee',"privkey":"'$privkey'","txHex":"'$tx1'"}]}' ${MAIN_HTTP} | jq -r ".result")
 
     req='{"method":"Chain33.SendTransaction","params":[{"data":"'"$tx"'"}]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result != null)' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result != null)' "$FUNCNAME"
 }
 
 chain33_CreateNoBalanceTransaction() {
@@ -398,7 +398,7 @@ chain33_CreateNoBalanceTransaction() {
 }
 
 chain33_GetBlockHash() {
-	http_req '{"method":"Chain33.GetBlockHash","params":[{"height":1}]}' ${MAIN_HTTP} '(.error|not) and (.result| has("hash"))' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetBlockHash","params":[{"height":1}]}' ${MAIN_HTTP} '(.error|not) and (.result| has("hash"))' "$FUNCNAME"
 }
 
 chain33_GenSeed() {
@@ -423,7 +423,7 @@ chain33_testSeed() {
 }
 
 chain33_GetWalletStatus() {
-	http_req '{"method":"Chain33.GetWalletStatus","params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result| [has("isWalletLock", "isAutoMining", "isHasSeed", "isTicketLock"), true] | unique | length == 1)' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetWalletStatus","params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result| [has("isWalletLock", "isAutoMining", "isHasSeed", "isTicketLock"), true] | unique | length == 1)' "$FUNCNAME"
 }
 
 chain33_GetBalance() {
@@ -437,27 +437,27 @@ chain33_GetAllExecBalance() {
 
 chain33_ExecWallet() {
     req='{"method":"Chain33.ExecWallet", "params":[{"funcName" : "NewAccountByIndex", "payload" : {"data" : 100000009}, "stateHash" : "", "execer" : "wallet" }]}'
-	http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result | has("data"))' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result | has("data"))' "$FUNCNAME"
 }
 
 chain33_Query() {
-	http_req '{"method":"Chain33.Query", "params":[{ "execer":"coins", "funcName": "GetTxsByAddr", "payload" : {"addr" : "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"}}]}' ${MAIN_HTTP} '(. | has("result"))' "$FUNCNAME"
+    http_req '{"method":"Chain33.Query", "params":[{ "execer":"coins", "funcName": "GetTxsByAddr", "payload" : {"addr" : "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"}}]}' ${MAIN_HTTP} '(. | has("result"))' "$FUNCNAME"
 }
 
 chain33_Version() {
-	http_req '{"method":"Chain33.Version", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result)' "$FUNCNAME"
+    http_req '{"method":"Chain33.Version", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result)' "$FUNCNAME"
 }
 
 chain33_GetTotalCoins() {
-	http_req '{"method":"Chain33.GetTotalCoins", "params":[{"symbol" : "bty", "stateHash":"", "startKey":"", "count":2, "execer":"coins"}]}' ${MAIN_HTTP} '(.error|not) and (.result| has("count"))' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetTotalCoins", "params":[{"symbol" : "bty", "stateHash":"", "startKey":"", "count":2, "execer":"coins"}]}' ${MAIN_HTTP} '(.error|not) and (.result| has("count"))' "$FUNCNAME"
 }
 
 chain33_IsSync() {
-	http_req '{"method":"Chain33.IsSync", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (. | has("result"))' "$FUNCNAME"
+    http_req '{"method":"Chain33.IsSync", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (. | has("result"))' "$FUNCNAME"
 }
 
 chain33_IsNtpClockSync() {
-	http_req '{"method":"Chain33.IsNtpClockSync", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (. | has("result"))' "$FUNCNAME"
+    http_req '{"method":"Chain33.IsNtpClockSync", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (. | has("result"))' "$FUNCNAME"
 }
 
 run_testcases() {
