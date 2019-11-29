@@ -133,7 +133,7 @@ func (p *pushseq) runTask(input pushNotify) {
 					continue
 				}
 				if lastseq == -1 {
-					lastseq = p.pushseqStore.GetLastPushSeq([]byte(cb.Name))
+					lastseq = p.pushseqStore.GetLastPushSeq(cb.Name)
 				}
 				if lastseq >= maxseq {
 					p.trigeRun(run, 100*time.Millisecond)

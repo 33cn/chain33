@@ -97,7 +97,7 @@ func (push *PushService1) ListCallback() (*types.BlockSeqCBs, error) {
 
 // GetLastPushSeq 获取指定name的callback已经push的最新seq num
 func (push *PushService1) GetLastPushSeq(name string) int64 {
-	return push.pushStore.GetLastPushSeq([]byte(name))
+	return push.pushStore.GetLastPushSeq(name)
 }
 
 // AddCallback 添加seq callback
@@ -304,7 +304,7 @@ func (push *PushSeqStore1) ListCB() (cbs []*types.BlockSeqCB, err error) {
 }
 
 // GetLastPushSeq Seq的合法值从0开始的，所以没有获取到或者获取失败都应该返回-1
-func (push *PushSeqStore1) GetLastPushSeq(name []byte) int64 {
+func (push *PushSeqStore1) GetLastPushSeq(name string) int64 {
 	bytes, err := push.store.GetKey(calcSeqCBLastNumKey([]byte(name)))
 	if bytes == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
