@@ -316,7 +316,7 @@ func (push *PushSeqStore1) GetLastPushSeq(name string) int64 {
 	if err != nil {
 		return -1
 	}
-	storeLog.Error("getSeqCBLastNum", "name", string(name), "num", n)
+	storeLog.Error("getSeqCBLastNum", "name", name, "num", n)
 
 	return n
 }
