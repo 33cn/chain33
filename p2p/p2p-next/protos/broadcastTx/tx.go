@@ -1,14 +1,15 @@
 package tx
 
 import (
+	core "github.com/libp2p/go-libp2p-core"
 	"io"
 	"sync"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	logging "github.com/ipfs/go-log"
-	host "github.com/libp2p/go-libp2p-host"
-	net "github.com/libp2p/go-libp2p-net"
+	host "github.com/libp2p/go-libp2p-core/host"
+	net "github.com/libp2p/go-libp2p-core/network"
 )
 
 var log = logging.Logger("broadcastTx")
@@ -31,19 +32,19 @@ func NewService(h host.Host, streams sync.Map) *TxService {
 }
 
 //p2pserver 端接收处理TX事件
-func (t *TxService) txHandler(instream net.Stream) {
+func (t *TxService) txHandler(inStream net.Stream) {
 
-	t.inStream.Store(instream, true)
+	t.inStream.Store(inStream, true)
 	var buf []byte
 
 	for {
-		_, err := io.ReadFull(instream, buf)
+		_, err := io.ReadFull(inStream, buf)
 		if err != nil {
 			if err == io.EOF {
 				continue
 			}
-			instream.Close()
-			t.inStream.Delete(instream)
+			inStream.Close()
+			t.inStream.Delete(inStream)
 			return
 
 		}
@@ -67,7 +68,7 @@ func (t *TxService) BroadCastTx(msg *queue.Message) {
 	}
 
 	t.outStream.Range(func(k, v interface{}) bool {
-		istream := v.(net.Stream)
+		istream := v.(core.Stream)
 		_, err := istream.Write(types.Encode(tx))
 		if err != nil {
 			istream.Close()
@@ -79,7 +80,7 @@ func (t *TxService) BroadCastTx(msg *queue.Message) {
 
 	//把同样的消息发给instream的那些节点
 	t.inStream.Range(func(k, v interface{}) bool {
-		istream := k.(net.Stream)
+		istream := k.(core.Stream)
 		_, err := istream.Write(types.Encode(tx))
 		if err != nil {
 			istream.Close()
