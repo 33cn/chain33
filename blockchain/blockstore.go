@@ -241,7 +241,12 @@ func (bs *BlockStore) SetSync(key, value []byte) error {
 
 // GetKey store通用接口， Get 已经被使用
 func (bs *BlockStore) GetKey(key []byte) ([]byte, error) {
-	return bs.db.Get(key)
+	value, err := bs.db.Get(key)
+	if err != nil && err != dbm.ErrNotFoundInDb {
+		return nil, types.ErrNotFound
+
+	}
+	return value, err
 }
 
 // PrefixCount store通用接口
