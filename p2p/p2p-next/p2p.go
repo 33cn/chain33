@@ -8,7 +8,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/metrics"
 
 	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/p2p/p2p-next/protos/broadcastTx"
+	"github.com/33cn/chain33/p2p/p2p-next/service/broadcastTx"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/ipfs/go-log"
