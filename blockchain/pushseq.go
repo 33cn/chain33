@@ -31,7 +31,7 @@ type pushseq struct {
 	pushseqStore *PushSeqStore1
 }
 
-func newpushseq(store *BlockStore, pushseqStore *PushSeqStore1) *pushseq {
+func newpushseq(store SequenceStore, pushseqStore *PushSeqStore1) *pushseq {
 	cmds := make(map[string]pushNotify)
 	return &pushseq{store: store, cmds: cmds, client: &http.Client{}, pushseqStore: pushseqStore}
 }
