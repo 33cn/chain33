@@ -52,8 +52,18 @@ type SequenceStore interface {
 	LoadBlockBySequence(seq int64) (*types.BlockDetail, int, error)
 }
 
+// PushWorkNotify 两类notify
+// 1. last sequence 变化
+// 2. callback 变化
+// 函数名不变， 可以先不改pushseq的代码
+type PushWorkNotify interface {
+	addTask(cb *types.BlockSeqCB)
+	updateSeq(seq int64)
+}
+
 // PushService rpc接口转发
 // 外部接口通过 rpc -> queue -> chain 过来， 接口不变
+// TODO 以后或许推送服务整个可以插件化
 type PushService interface {
 	Add()
 	List()
@@ -91,7 +101,7 @@ func (push *PushService1) GetLastPushSeq(name string) int64 {
 }
 
 // AddCallback 添加seq callback
-func (push *PushService1) AddCallback(pushseq *pushseq, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
+func (push *PushService1) AddCallback(pushseq PushWorkNotify, cb *types.BlockSeqCB) ([]*types.Sequence, error) {
 	if cb == nil {
 		chainlog.Error("AddCallback input hash is null")
 		return nil, types.ErrInvalidParam
