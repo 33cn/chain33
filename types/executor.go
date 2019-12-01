@@ -333,14 +333,27 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 		return
 	}
 	base.actionFunList = ListMethod(action)
-	if _, ok := base.actionFunList["XXX_OneofFuncs"]; !ok {
-		return
+
+	useNew := false
+	mp, ok := base.actionFunList["XXX_OneofFuncs"]
+	if !ok {
+		mp, ok = base.actionFunList["XXX_OneofWrappers"]
+		if !ok {
+			return
+		}
+		useNew = true
 	}
-	retval := base.actionFunList["XXX_OneofFuncs"].Func.Call([]reflect.Value{reflect.ValueOf(action)})
-	if len(retval) != 4 {
-		panic("err XXX_OneofFuncs")
+	var list map[string]reflect.Type
+	if useNew {
+		retval := mp.Func.Call([]reflect.Value{reflect.ValueOf(action)})
+		list = ListType(retval[0].Interface().([]interface{}))
+	} else {
+		retval := mp.Func.Call([]reflect.Value{reflect.ValueOf(action)})
+		if len(retval) != 4 {
+			panic("err XXX_OneofFuncs")
+		}
+		list = ListType(retval[3].Interface().([]interface{}))
 	}
-	list := ListType(retval[3].Interface().([]interface{}))
 
 	for k, v := range list {
 		data := strings.Split(k, "_")
@@ -533,7 +546,7 @@ func (base *ExecTypeBase) decodePayloadValue(tx *Transaction) (string, reflect.V
 	typemap := base.child.GetTypeMap()
 	//check types is ok
 	if v, ok := typemap[name]; !ok || v != ty {
-		tlog.Error("GetTypeMap is not ok")
+		tlog.Error("GetTypeMap is not ok", "name", name, "ty", ty, "v", v)
 		return "", nilValue, ErrActionNotSupport
 	}
 	return name, val, nil
@@ -678,6 +691,7 @@ func (base *ExecTypeBase) Create(action string, msg Message) (*Transaction, erro
 		ty1 := base.actionListValueType[action]
 		ty2 := reflect.TypeOf(msg).Elem()
 		if ty1 != ty2 {
+			tlog.Error("param error", "ty1", ty1, "ty2", ty2, "msg", msg)
 			return nil, ErrInvalidParam
 		}
 		return base.CreateTransaction(action, msg.(Message))

@@ -104,6 +104,7 @@ func (acc *DB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, 
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
+	alog.Info("ExecFrozen", "addr", addr, "execaddr", execaddr, "account", acc1)
 	if acc1.Balance-amount < 0 {
 		alog.Error("ExecFrozen", "balance", acc1.Balance, "amount", amount)
 		return nil, types.ErrNoBalance
@@ -297,7 +298,7 @@ func (acc *DB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt,
 		Prev:     &copyacc,
 		Current:  acc1,
 	}
-	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
+	alog.Info("ExecDeposit", "addr", addr, "execaddr", execaddr, "account", acc1)
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecDeposit)
 	return acc.execReceipt(ty, acc1, receiptBalance), nil

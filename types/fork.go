@@ -140,6 +140,33 @@ func (f *Forks) SetTestNetFork() {
 	f.SetFork("ForkTicketFundAddrV1", 3350000)
 }
 
+// SetPos33NetFork only use newest code
+func (f *Forks) SetPos33NetFork() {
+	f.SetFork("ForkChainParamV1", 0)
+	f.SetFork("ForkChainParamV2", 0)
+	f.SetFork("ForkCheckTxDup", 0)
+	f.SetFork("ForkBlockHash", 0)
+	f.SetFork("ForkMinerTime", 0)
+	f.SetFork("ForkTransferExec", 0)
+	f.SetFork("ForkExecKey", 0)
+	f.SetFork("ForkWithdraw", 0)
+	f.SetFork("ForkTxGroup", 0)
+	f.SetFork("ForkResetTx0", 0)
+	f.SetFork("ForkExecRollback", 0)
+	f.SetFork("ForkTxHeight", 0)
+	f.SetFork("ForkCheckBlockTime", 0)
+	f.SetFork("ForkMultiSignAddress", 0)
+	f.SetFork("ForkStateDBSet", 0)
+	f.SetFork("ForkBlockCheck", 0)
+	f.SetFork("ForkLocalDBAccess", 0)
+	f.SetFork("ForkTxGroupPara", 0)
+	f.SetFork("ForkBase58AddressCheck", 0)
+	//这个fork只影响平行链，注册类似user.p.x.exec的driver，新开的平行链设为0即可，老的平行链要设置新的高度
+	f.SetFork("ForkEnableParaRegExec", 0)
+	f.SetFork("ForkCacheDriver", 0)
+	f.SetFork("ForkTicketFundAddrV1", 0)
+}
+
 func (f *Forks) setLocalFork() {
 	f.SetAllFork(0)
 	f.ReplaceFork("ForkBlockHash", 1)

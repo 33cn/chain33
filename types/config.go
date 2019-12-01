@@ -91,7 +91,8 @@ func RegExec(name string, create Create) {
 
 func RegExecInit(cfg *Chain33Config) {
 	runonce.Do(func() {
-		for _, item := range regExecInit {
+		for name, item := range regExecInit {
+			tlog.Info("reg exec", "exname", name)
 			item(cfg)
 		}
 	})
@@ -210,7 +211,8 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	if c.forks == nil {
 		c.forks = &Forks{}
 	}
-	c.forks.SetTestNetFork()
+	//c.forks.SetTestNetFork()
+	c.forks.SetPos33NetFork()
 
 	if cfg != nil {
 		if c.isLocal() {

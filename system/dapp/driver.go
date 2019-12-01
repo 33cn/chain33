@@ -289,7 +289,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			blog.Error("call exec error", "tx.exec", tx.Execer, "info", r)
+			blog.Error("call exec error", "tx.exec", string(tx.Execer), "info", r)
 			err = types.ErrActionNotSupport
 			receipt = nil
 		}
