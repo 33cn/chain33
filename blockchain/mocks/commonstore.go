@@ -69,6 +69,20 @@ func (_m *CommonStore) PrefixCount(prefix []byte) int64 {
 	return r0
 }
 
+// Set provides a mock function with given fields: key, value
+func (_m *CommonStore) Set(key []byte, value []byte) error {
+	ret := _m.Called(key, value)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]byte, []byte) error); ok {
+		r0 = rf(key, value)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SetSync provides a mock function with given fields: key, value
 func (_m *CommonStore) SetSync(key []byte, value []byte) error {
 	ret := _m.Called(key, value)
