@@ -138,7 +138,7 @@ func (f *Forks) SetTestNetFork() {
 	f.SetFork("ForkEnableParaRegExec", 0)
 	f.SetFork("ForkCacheDriver", 2580000)
 	f.SetFork("ForkTicketFundAddrV1", 3350000)
-	f.SetFork("ForkRootHash", 4021000)
+	f.SetFork("ForkRootHash", 4300000)
 
 }
 
