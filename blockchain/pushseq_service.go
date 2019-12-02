@@ -131,7 +131,6 @@ func (push *PushService1) AddCallback(pushseq PushWorkNotify, cb *types.BlockSeq
 		chainlog.Info("ProcAddBlockSeqCB continue-seq-push", "exist", cb.Name)
 		return nil, nil
 	}
-
 	lastSeq, err := push.seqStore.LoadBlockLastSequence()
 	if err != nil {
 		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-last-seq", err)
@@ -155,7 +154,7 @@ func (push *PushService1) AddCallback(pushseq PushWorkNotify, cb *types.BlockSeq
 	reloadHash := common.ToHex(sequence.Hash)
 	if cb.LastBlockHash == reloadHash {
 		// 先填入last seq， 而不是从0开始
-		err = push.pushStore.SetLastPushSeq([]byte(cb.Name), cb.LastSequence)
+		err = push.pushStore.SetLastPushSeqSync([]byte(cb.Name), cb.LastSequence)
 		if err != nil {
 			chainlog.Error("ProcAddBlockSeqCB", "setSeqCBLastNum", err)
 			return nil, err
@@ -250,6 +249,7 @@ type PushSeqStrore interface {
 // 先改动小一点， 用store, 如果接口一样可以直接换
 type CommonStore interface {
 	SetSync(key, value []byte) error
+	Set(key, value []byte) error
 	GetKey(key []byte) ([]byte, error)
 	PrefixCount(prefix []byte) int64
 	List(prefix []byte) ([][]byte, error)
@@ -319,6 +319,11 @@ func (push *PushSeqStore1) GetLastPushSeq(name string) int64 {
 	storeLog.Error("getSeqCBLastNum", "name", name, "num", n)
 
 	return n
+}
+
+// SetLastPushSeqSync 更新推送进度
+func (push *PushSeqStore1) SetLastPushSeqSync(name []byte, num int64) error {
+	return push.store.SetSync(calcSeqCBLastNumKey(name), types.Encode(&types.Int64{Data: num}))
 }
 
 // SetLastPushSeq 更新推送进度
