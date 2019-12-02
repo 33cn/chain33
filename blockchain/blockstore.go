@@ -239,6 +239,11 @@ func (bs *BlockStore) SetSync(key, value []byte) error {
 	return bs.db.SetSync(key, value)
 }
 
+// Set store通用接口
+func (bs *BlockStore) Set(key, value []byte) error {
+	return bs.db.Set(key, value)
+}
+
 // GetKey store通用接口， Get 已经被使用
 func (bs *BlockStore) GetKey(key []byte) ([]byte, error) {
 	value, err := bs.db.Get(key)
