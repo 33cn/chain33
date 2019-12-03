@@ -301,7 +301,16 @@ func GetMerkleRootAndBranch(leaves [][]byte, position uint32) (roothash []byte, 
 var zeroHash [32]byte
 
 //CalcMerkleRoot 计算merkle树根
-func CalcMerkleRoot(txs []*types.Transaction) []byte {
+func CalcMerkleRoot(cfg *types.Chain33Config, height int64, txs []*types.Transaction) []byte {
+	if !cfg.IsFork(height, "ForkRootHash") {
+		return calcSingleLayerMerkleRoot(txs)
+	}
+	calcHash, _ := calcMultiLayerMerkleInfo(txs)
+	return calcHash
+}
+
+//calcSingleLayerMerkleRoot 计算merkle树根
+func calcSingleLayerMerkleRoot(txs []*types.Transaction) []byte {
 	var hashes [][]byte
 	for _, tx := range txs {
 		hashes = append(hashes, tx.Hash())
@@ -332,11 +341,19 @@ func CalcMerkleRootCache(txs []*types.TransactionCache) []byte {
 	return merkleroot
 }
 
-//CalcMultiLayerMerkleRoot 计算多层merkle树根
+//CalcMultiLayerMerkleInfo 计算多层merkle树根hash以及子链根hash信息
+func CalcMultiLayerMerkleInfo(cfg *types.Chain33Config, height int64, txs []*types.Transaction) ([]byte, []types.ChildChain) {
+	if !cfg.IsFork(height, "ForkRootHash") {
+		return nil, nil
+	}
+	return calcMultiLayerMerkleInfo(txs)
+}
+
+//calcMultiLayerMerkleInfo 计算多层merkle树根
 //1,交易列表中都是主链的交易
 //2,交易列表中都是某个平行链的交易（平行链节点上的情况）
 //3,交易列表中是主链和平行链交易都存在，及混合交易
-func CalcMultiLayerMerkleRoot(txs []*types.Transaction) ([]byte, []types.ChildChain) {
+func calcMultiLayerMerkleInfo(txs []*types.Transaction) ([]byte, []types.ChildChain) {
 	var fristParaTitle string
 	var childchains []types.ChildChain
 
@@ -367,7 +384,7 @@ func CalcMultiLayerMerkleRoot(txs []*types.Transaction) ([]byte, []types.ChildCh
 	//全是主链或者全是同一个平行链的交易。
 	//直接调用CalcMerkleRoot计算roothash即可
 	if chainCount <= 1 {
-		merkleRoot := CalcMerkleRoot(txs)
+		merkleRoot := calcSingleLayerMerkleRoot(txs)
 		childchains[0].ChildHash = merkleRoot
 		return merkleRoot, childchains
 	}
@@ -384,7 +401,7 @@ func CalcMultiLayerMerkleRoot(txs []*types.Transaction) ([]byte, []types.ChildCh
 			end = int(childchains[index+1].StartIndex)
 		}
 		go func(index int, subtxs []*types.Transaction) {
-			subChainRoot := CalcMerkleRoot(subtxs)
+			subChainRoot := calcSingleLayerMerkleRoot(subtxs)
 			ch <- &childstate{
 				hash:  subChainRoot,
 				index: index,

@@ -173,7 +173,8 @@ func (chain *BlockChain) getChildChainProofs(height int64, blockHash []byte, tit
 		return nil, nil, 0
 	}
 	//侧链的需要重新计算
-	_, childChains := merkle.CalcMultiLayerMerkleRoot(txs)
+	cfg := chain.client.GetConfig()
+	_, childChains := merkle.CalcMultiLayerMerkleInfo(cfg, height, txs)
 	for i, childchain := range childChains {
 		hashes = append(hashes, childchain.ChildHash)
 		if childchain.Title == title {

@@ -219,7 +219,7 @@ func CreateNoneBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *ty
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = GenNoneTxs(cfg, priv, n)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	return newblock
 }
 
@@ -230,7 +230,7 @@ func CreateCoinsBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *t
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = GenCoinsTxs(cfg, priv, n)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	return newblock
 }
 
@@ -328,9 +328,8 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	cfg := client.GetConfig()
 	if !cfg.IsFork(block.Height, "ForkRootHash") {
 		calcHash = merkle.CalcMerkleRootCache(cacheTxs)
-
 	} else {
-		calcHash, _ = merkle.CalcMultiLayerMerkleRoot(block.Txs)
+		calcHash = merkle.CalcMerkleRoot(cfg, block.Height, block.Txs)
 	}
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
@@ -419,7 +418,7 @@ func CreateNewBlock(cfg *types.Chain33Config, parent *types.Block, txs []*types.
 	newblock.BlockTime = parent.BlockTime + 1
 	newblock.ParentHash = parent.Hash(cfg)
 	newblock.Txs = append(newblock.Txs, txs...)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	return newblock
 }
 

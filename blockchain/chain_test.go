@@ -1444,7 +1444,7 @@ func TestProcessDelBlock(t *testing.T) {
 		for _, tx := range maintx.TxDetails {
 			txs = append(txs, tx.Tx)
 		}
-		hash := merkle.CalcMerkleRoot(txs)
+		hash := merkle.CalcMerkleRoot(cfg, maintx.GetHeader().GetHeight(), txs)
 		assert.Equal(t, hash, roothash)
 	}
 	chainlog.Info("TestProcessDelBlock end --------------------")

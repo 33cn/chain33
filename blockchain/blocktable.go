@@ -329,7 +329,7 @@ func saveParaTxTable(cfg *types.Chain33Config, db dbm.DB, height int64, hash []b
 		}
 	} else {
 		//交易分类排序之后需要存储各个链的子roothash
-		_, childhashs := merkle.CalcMultiLayerMerkleRoot(txs)
+		_, childhashs := merkle.CalcMultiLayerMerkleInfo(cfg, height, txs)
 		for i, childhash := range childhashs {
 			var paratx = &types.HeightPara{
 				Height:         height,

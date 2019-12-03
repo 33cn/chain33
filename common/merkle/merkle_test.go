@@ -390,6 +390,8 @@ func TestLog2(t *testing.T) {
 
 func TestCalcMainMerkleRoot(t *testing.T) {
 
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+
 	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
 	tx2 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630de92c3828ad194b26d3a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
 	tx3 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630b0d6c895c4d28efe5d3a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
@@ -512,24 +514,24 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	var mixChainHashes [][]byte
 
 	//主链子roothash[0-9]
-	oldMixMainHash := CalcMerkleRoot(sorTxList[0:9])
+	oldMixMainHash := calcSingleLayerMerkleRoot(sorTxList[0:9])
 	mixChainHashes = append(mixChainHashes, oldMixMainHash)
 
 	// fuzamei平行链的子roothash[9-13]
-	oldMixFuzameiHash := CalcMerkleRoot(sorTxList[9:13])
+	oldMixFuzameiHash := calcSingleLayerMerkleRoot(sorTxList[9:13])
 	mixChainHashes = append(mixChainHashes, oldMixFuzameiHash)
 
 	// para平行链的子roothash
-	oldMixParaHash := CalcMerkleRoot(sorTxList[13:17])
+	oldMixParaHash := calcSingleLayerMerkleRoot(sorTxList[13:17])
 	mixChainHashes = append(mixChainHashes, oldMixParaHash)
 
 	// test平行链的子roothash
-	oldMixTestHash := CalcMerkleRoot(sorTxList[17:21])
+	oldMixTestHash := calcSingleLayerMerkleRoot(sorTxList[17:21])
 	mixChainHashes = append(mixChainHashes, oldMixTestHash)
 
 	oldMixChainHash := GetMerkleRoot(mixChainHashes)
 
-	newMixChainHash, childMixChainHash := CalcMultiLayerMerkleRoot(sorTxList)
+	newMixChainHash, childMixChainHash := CalcMultiLayerMerkleInfo(cfg, 1, sorTxList)
 
 	assert.Equal(t, newMixChainHash, oldMixChainHash)
 
@@ -589,13 +591,15 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	newrootHash, childHash := CalcMultiLayerMerkleRoot(sorTxMainList)
-	oldrootHash := CalcMerkleRoot(sorTxMainList)
+	newrootHash, childHash := CalcMultiLayerMerkleInfo(cfg, 1, sorTxMainList)
+	oldrootHash := calcSingleLayerMerkleRoot(sorTxMainList)
 	assert.Equal(t, newrootHash, oldrootHash)
 	assert.Equal(t, childHash[0].ChildHash, oldrootHash)
 	assert.Equal(t, childHash[0].StartIndex, int32(0))
 	assert.Equal(t, childHash[0].Title, types.MainChainName)
 
+	roothashTem := CalcMerkleRoot(cfg, 0, sorTxMainList)
+	assert.Equal(t, roothashTem, oldrootHash)
 	//构建全是同一个平行链的交易列表
 	var txParaTestList types.Transactions
 	tx71111, tx72211, tx73211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.js", "user.p.test.lottery", "user.p.test.norm")
@@ -623,8 +627,8 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	newPararootHash, childParaHash := CalcMultiLayerMerkleRoot(sorTxParaTestList)
-	oldPararootHash := CalcMerkleRoot(sorTxParaTestList)
+	newPararootHash, childParaHash := CalcMultiLayerMerkleInfo(cfg, 1, sorTxParaTestList)
+	oldPararootHash := calcSingleLayerMerkleRoot(sorTxParaTestList)
 	assert.Equal(t, newPararootHash, oldPararootHash)
 
 	assert.Equal(t, childParaHash[0].ChildHash, oldPararootHash)
@@ -645,13 +649,13 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	}
 
 	var hashes [][]byte
-	oldMrootHash := CalcMerkleRoot(sorTxMPList[0:2])
-	oldProotHash := CalcMerkleRoot(sorTxMPList[2:])
+	oldMrootHash := calcSingleLayerMerkleRoot(sorTxMPList[0:2])
+	oldProotHash := calcSingleLayerMerkleRoot(sorTxMPList[2:])
 	hashes = append(hashes, oldMrootHash)
 	hashes = append(hashes, oldProotHash)
 	oldMProotHash := GetMerkleRoot(hashes)
 
-	newMProotHash, childMainParaHash := CalcMultiLayerMerkleRoot(sorTxMPList)
+	newMProotHash, childMainParaHash := CalcMultiLayerMerkleInfo(cfg, 1, sorTxMPList)
 
 	assert.Equal(t, newMProotHash, oldMProotHash)
 
@@ -690,20 +694,23 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	var mThreePhashes [][]byte
 
 	//主链的三笔交易的子roothash
-	mainRootHash := CalcMerkleRoot(sorTxMThreePList[0:3])
+	mainRootHash := calcSingleLayerMerkleRoot(sorTxMThreePList[0:3])
 	mThreePhashes = append(mThreePhashes, mainRootHash)
 
 	//para平行链的三笔交易的子roothash
-	paraRootHash := CalcMerkleRoot(sorTxMThreePList[3:6])
+	paraRootHash := calcSingleLayerMerkleRoot(sorTxMThreePList[3:6])
 	mThreePhashes = append(mThreePhashes, paraRootHash)
 
 	//test平行链的三笔交易的子roothash
-	testRootHash := CalcMerkleRoot(sorTxMThreePList[6:])
+	testRootHash := calcSingleLayerMerkleRoot(sorTxMThreePList[6:])
 	mThreePhashes = append(mThreePhashes, testRootHash)
 
 	oldMThreeProotHash := GetMerkleRoot(mThreePhashes)
 
-	newMThreeProotHash, childMThreePHash := CalcMultiLayerMerkleRoot(sorTxMThreePList)
+	newMThreeProotHash, childMThreePHash := CalcMultiLayerMerkleInfo(cfg, 1, sorTxMThreePList)
+
+	tempRootHash := CalcMerkleRoot(cfg, 1, sorTxMThreePList)
+	assert.Equal(t, newMThreeProotHash, tempRootHash)
 
 	assert.Equal(t, newMThreeProotHash, oldMThreeProotHash)
 
@@ -720,6 +727,9 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	assert.Equal(t, childMThreePHash[2].StartIndex, int32(6))
 	assert.Equal(t, childMThreePHash[2].Title, "user.p.test.")
 
+	roothash1, childHash1 := CalcMultiLayerMerkleInfo(cfg, 0, sorTxMThreePList)
+	assert.Nil(t, roothash1)
+	assert.Nil(t, childHash1)
 }
 
 func modifyTxExec(tx1, tx2, tx3 types.Transaction, tx1exec, tx2exec, tx3exec string) (types.Transaction, types.Transaction, types.Transaction) {

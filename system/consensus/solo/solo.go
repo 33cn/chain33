@@ -128,7 +128,7 @@ func (client *Client) CreateBlock() {
 		client.AddTxsToBlock(&newblock, txs)
 		//solo 挖矿固定难度
 		newblock.Difficulty = cfg.GetP(0).PowLimitBits
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 		newblock.BlockTime = types.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
