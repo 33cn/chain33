@@ -213,15 +213,16 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	if err != nil {
 		return nil, err
 	}
-	var expire int64
-	if in.Expire != "" {
-		expire, err = types.ParseExpire(in.Expire)
-		if err != nil {
-			return nil, err
-		}
-		//交易组只需要设置单笔交易超时
-		txNone.SetExpire(cfg, time.Duration(expire))
+	//不设置时默认为永不超时
+	if in.Expire == "" {
+		in.Expire = "0"
 	}
+	expire, err := types.ParseExpire(in.Expire)
+	if err != nil {
+		return nil, err
+	}
+	//交易组只需要设置单笔交易超时
+	txNone.SetExpire(cfg, time.Duration(expire))
 	isParaTx := false
 	transactions := []*types.Transaction{txNone}
 	for _, txhex := range in.TxHexs {
@@ -236,7 +237,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	}
 
 	//平行链下不允许设置高度作为过期判定, issue#706
-	if in.GetExpire() != "" && expire <= types.ExpireBound && isParaTx {
+	if expire > 0 && expire <= types.ExpireBound && isParaTx {
 		return nil, types.ErrInvalidExpire
 	}
 
