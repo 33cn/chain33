@@ -29,6 +29,10 @@ func Run(RPCAddr, ParaName, name string) {
 			configPath = os.Args[i+1]
 			break
 		}
+		if strings.HasPrefix(arg, "--conf=") { // --conf="chain33.toml"
+			configPath = strings.TrimPrefix(arg, "--conf=")
+			break
+		}
 	}
 	if configPath == "" {
 		if name == "" {
