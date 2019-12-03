@@ -366,6 +366,9 @@ func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	gtx, _ := tx.GetTxGroup()
 	assert.NoError(t, gtx.Check(cfg, 0, fee, cfg.GInt("MaxFee")))
 	assert.NoError(t, err)
+	tx, err = client.CreateNoBalanceTxs(params)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), tx.GetExpire())
 	params.Expire = "300s"
 	tx, err = client.CreateNoBalanceTxs(params)
 	assert.NoError(t, err)
