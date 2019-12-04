@@ -366,9 +366,6 @@ func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	gtx, _ := tx.GetTxGroup()
 	assert.NoError(t, gtx.Check(cfg, 0, fee, cfg.GInt("MaxFee")))
 	assert.NoError(t, err)
-	tx, err = client.CreateNoBalanceTxs(params)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), tx.GetExpire())
 	params.Expire = "300s"
 	tx, err = client.CreateNoBalanceTxs(params)
 	assert.NoError(t, err)
@@ -377,6 +374,12 @@ func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	params.Expire = "100"
 	tx, err = client.CreateNoBalanceTxs(params)
 	assert.Equal(t, types.ErrInvalidExpire, err)
+	params.Expire = "0"
+	_, err = client.CreateNoBalanceTxs(params)
+	assert.NotEqual(t, types.ErrInvalidExpire, err)
+	params.Expire = fmt.Sprintf("%d", types.ExpireBound+1)
+	_, err = client.CreateNoBalanceTxs(params)
+	assert.NotEqual(t, types.ErrInvalidExpire, err)
 }
 
 func TestClientReWriteRawTx(t *testing.T) {
