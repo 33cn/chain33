@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -104,7 +105,7 @@ func Test_PushServiceAdd(t *testing.T) {
 		IsHeader:      true,
 		LastSequence:  int64(2),
 		LastHeight:    int64(2),
-		LastBlockHash: common.ToHex([]byte("match")),
+		LastBlockHash: common.ToHex([]byte("match2")),
 	}
 
 	cb3 := types.BlockSeqCB{
@@ -127,6 +128,16 @@ func Test_PushServiceAdd(t *testing.T) {
 		LastBlockHash: common.ToHex([]byte("not-match")),
 	}
 
+	cb5 := types.BlockSeqCB{
+		Name:          "cb5",
+		URL:           "url2",
+		Encode:        "json",
+		IsHeader:      true,
+		LastSequence:  int64(-1),
+		LastHeight:    int64(2),
+		LastBlockHash: common.ToHex([]byte("match2")),
+	}
+
 	s := newPushService(seqStore, pushStore)
 
 	// 模拟只注册了cb1
@@ -137,9 +148,15 @@ func Test_PushServiceAdd(t *testing.T) {
 	pushStore.On("SetSync", calcSeqCBKey([]byte(cb1.Name)), types.Encode(&cb1)).Return(nil)
 
 	// seq 匹配的情况
+	seqStore.On("LastHeader").Return(&types.Header{Height: 6, Hash: []byte("match6")})
 	seqStore.On("LoadBlockLastSequence").Return(int64(6), nil)
-	sequence := types.BlockSequence{Hash: []byte("match"), Type: 1}
-	seqStore.On("GetBlockSequence", mock.Anything).Return(&sequence, nil)
+	for i := 0; i <= 6; i++ {
+		sequence := types.BlockSequence{Hash: []byte(fmt.Sprintf("match%d", i)), Type: 1}
+		seqStore.On("GetBlockSequence", int64(i)).Return(&sequence, nil)
+		seqStore.On("GetSequenceByHash", []byte(fmt.Sprintf("match%d", i))).Return(int64(i), nil)
+		header := types.Header{Height: int64(i), Hash: []byte(fmt.Sprintf("match%d", i))}
+		seqStore.On("GetBlockHeaderByHash", []byte(fmt.Sprintf("match%d", i))).Return(&header, nil)
+	}
 
 	work.On("AddTask", mock.Anything).Return()
 	pushStore.On("SetSync", calcSeqCBLastNumKey([]byte(cb2.Name)), mock.Anything).Return(nil)
@@ -150,8 +167,6 @@ func Test_PushServiceAdd(t *testing.T) {
 	assert.Nil(t, seq1)
 
 	// seq 不匹配的情况
-	seqStore.On("GetBlockHeaderByHash", mock.Anything).Return(nil, nil)
-	//seqStore.On("")
 	_, err1 = s.AddCallback(work, &cb3)
 	assert.Equal(t, types.ErrSequenceNotMatch, err1)
 
@@ -159,4 +174,14 @@ func Test_PushServiceAdd(t *testing.T) {
 	seq1, err1 = s.AddCallback(work, &cb4)
 	assert.Equal(t, types.ErrSequenceTooBig, err1)
 	assert.Nil(t, seq1)
+
+	seq1, err1 = s.AddCallback(work, &cb5)
+	assert.Equal(t, types.ErrSequenceNotMatch, err1)
+	assert.Equal(t, 3, len(seq1))
+	assert.Equal(t, int64(2), seq1[0].Sequence)
+	assert.Equal(t, int64(2), seq1[0].Height)
+}
+
+func Test_AddCallbackArgs(t *testing.T) {
+
 }
