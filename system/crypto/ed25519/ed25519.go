@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/ed25519"
 )
@@ -82,7 +81,10 @@ func (privKey PrivKeyEd25519) Equals(other crypto.PrivKey) bool {
 		return bytes.Equal(privKey[:], otherEd[:])
 	}
 	return false
+}
 
+func (privKey PrivKeyEd25519) Decrypt(in []byte) ([]byte, error) {
+	return in, nil
 }
 
 //PubKeyEd25519 PubKey
@@ -122,7 +124,10 @@ func (pubKey PubKeyEd25519) Equals(other crypto.PubKey) bool {
 		return bytes.Equal(pubKey[:], otherEd[:])
 	}
 	return false
+}
 
+func (pubKey PubKeyEd25519) Encrypt(in []byte) ([]byte, error) {
+	return in, nil
 }
 
 //SignatureEd25519 Signature

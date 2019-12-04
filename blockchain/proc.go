@@ -493,13 +493,13 @@ func (chain *BlockChain) addParaChainBlockDetail(msg *queue.Message) {
 
 	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash(chain.client.GetConfig())))
 	// 平行链上P2P模块关闭，不用广播区块
-	blockDetail, err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
+	_, err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
-		msg.Reply(chain.client.NewMessage("p2p", types.EventReply, err))
+		//msg.Reply(chain.client.NewMessage("p2p", types.EventReply, err))
 	}
 	chainlog.Debug("EventAddParaChainBlockDetail", "success", "ok")
-	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, blockDetail))
+	//msg.Reply(chain.client.NewMessage("p2p", types.EventReply, blockDetail))
 }
 
 //parachian 通过blockhash获取对应的seq，只记录了addblock时的seq

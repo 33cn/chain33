@@ -87,11 +87,15 @@ func (privKey PrivKeySecp256k1) Equals(other crypto.PrivKey) bool {
 		return bytes.Equal(privKey[:], otherSecp[:])
 	}
 	return false
-
 }
 
 func (privKey PrivKeySecp256k1) String() string {
 	return fmt.Sprintf("PrivKeySecp256k1{*****}")
+}
+
+func (privKey PrivKeySecp256k1) Decrypt(in []byte) ([]byte, error) {
+	priv, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey[:])
+	return secp256k1.Decrypt(priv, in)
 }
 
 // PubKey
@@ -148,6 +152,15 @@ func (pubKey PubKeySecp256k1) Equals(other crypto.PubKey) bool {
 	return false
 
 }
+
+func (pubKey PubKeySecp256k1) Encrypt(in []byte) ([]byte, error) {
+	pubkey, err := secp256k1.ParsePubKey(pubKey[:], secp256k1.S256())
+	if err != nil {
+		return nil, err
+	}
+	return secp256k1.Encrypt(pubkey, in)
+}
+
 
 //SignatureSecp256k1 Signature
 type SignatureSecp256k1 []byte

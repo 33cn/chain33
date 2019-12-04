@@ -507,6 +507,7 @@ func IsSpecificParaExecName(title, exec string) bool {
 }
 
 //GetParaExecTitleName 如果是平行链执行器，获取对应title
+//因为历史原因，title中包含最后的".",如果user.p.fzm.
 func GetParaExecTitleName(exec string) (string, bool) {
 	if IsParaExecName(exec) {
 		for i := len(ParaKey); i < len(exec); i++ {

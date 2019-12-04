@@ -423,7 +423,7 @@ func (bc *BaseClient) PreExecBlock(block *types.Block, errReturn bool) *types.Bl
 		log.Error("PreExecBlock RequestBlock fail", "err", err)
 		return nil
 	}
-	blockdetail, deltx, err := util.PreExecBlock(bc.client, lastBlock.StateHash, block, errReturn, false, true)
+	blockdetail, deltx, err := util.PreExecBlock(bc.client, lastBlock.StateHash, block, errReturn, false, true, nil)
 	if err != nil {
 		log.Error("util.PreExecBlock fail", "err", err)
 		return nil

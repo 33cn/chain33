@@ -31,6 +31,7 @@ const (
 	UserKeyX = "user."
 	ParaKeyX = "user.p."
 	NoneX    = "none"
+	PrivacyTx4Para = "privacyTx4Para"
 )
 
 //DefaultCoinsSymbol 默认的主币名称

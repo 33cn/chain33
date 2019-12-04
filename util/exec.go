@@ -5,13 +5,20 @@
 package util
 
 import (
+	"bytes"
 	"errors"
+	"github.com/33cn/chain33/common/crypto"
 
 	"github.com/33cn/chain33/common"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
+
+type AddrAndPrivKey struct {
+	Addr    string
+	PrivKey crypto.PrivKey
+}
 
 //CheckBlock : To check the block's validaty
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
@@ -33,7 +40,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 }
 
 //ExecTx : To send lists of txs within a block to exector for execution
-func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*types.Receipts, error) {
+func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block, addrAndPrivKey *AddrAndPrivKey) (*types.Receipts, error) {
 	list := &types.ExecTxList{
 		StateHash:  prevStateRoot,
 		ParentHash: block.ParentHash,
@@ -45,6 +52,44 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 		Difficulty: uint64(block.Difficulty),
 		IsMempool:  false,
 	}
+	var txsBk []*types.Transaction
+	var bk bool
+	if client.GetConfig().IsPara() {
+		ulog.Debug("ExecTx", "PrivacyTx4Para for para chain with height", list.Height)
+		for i, tx := range list.Txs {
+			if bytes.HasSuffix([]byte(tx.Execer),  []byte(types.PrivacyTx4Para)) {
+				var privacyTxPayload types.PrivacyTxPayload
+				if err := types.Decode(tx.Payload, &privacyTxPayload); nil != err {
+					ulog.Error("ExecTx", "Failed to decode privacy Tx Payload due to:", err)
+					continue
+				}
+				if nil == addrAndPrivKey {
+					ulog.Error("ExecTx", "Nil addrAndPrivKey", addrAndPrivKey)
+					continue
+				}
+				skCiphered, ok := privacyTxPayload.AddrSymKey[addrAndPrivKey.Addr]
+				if !ok {
+					ulog.Error("ExecTx", "No ciphered symmetric key for me", privacyTxPayload.AddrSymKey)
+					continue
+				}
+				txPlainByte, err := addrAndPrivKey.PrivKey.Decrypt(skCiphered)
+				if nil != err {
+					ulog.Error("ExecTx", "Failed to decrypt for tx with hash:", common.ToHex(tx.Hash()))
+					continue
+				}
+				var txPlain types.Transaction
+				if err := types.Decode(txPlainByte, &txPlain); nil != err {
+					ulog.Error("ExecTx", "Failed to decode for tx with hash:", common.ToHex(tx.Hash()))
+					continue
+				}
+				if !bk {
+					bk = true
+					txsBk = list.Txs
+				}
+				list.Txs[i] = &txPlain
+			}
+		}
+	}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	err := client.Send(msg, true)
 	if err != nil {
@@ -54,6 +99,11 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 	if err != nil {
 		return nil, err
 	}
+	//如果有隐私交易，则进行恢复
+	if bk {
+		block.Txs = txsBk
+	}
+
 	receipts := resp.GetData().(*types.Receipts)
 	return receipts, nil
 }

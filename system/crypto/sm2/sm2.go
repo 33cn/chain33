@@ -119,6 +119,10 @@ func (privKey PrivKeySM2) String() string {
 	return fmt.Sprintf("PrivKeySM2{*****}")
 }
 
+func (privKey PrivKeySM2) Decrypt(in []byte) ([]byte, error) {
+	return in, nil
+}
+
 //PubKeySM2 公钥
 type PubKeySM2 [SM2PublicKeyLength]byte
 
@@ -181,6 +185,10 @@ func (pubKey PubKeySM2) Equals(other crypto.PubKey) bool {
 	}
 	return false
 
+}
+
+func (pubKey PubKeySM2) Encrypt(in []byte) ([]byte, error) {
+	return in, nil
 }
 
 //SignatureSM2 签名
