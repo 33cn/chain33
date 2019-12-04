@@ -52,6 +52,8 @@ type SequenceStore interface {
 	LoadBlockBySequence(seq int64) (*types.BlockDetail, int, error)
 	// get last header
 	LastHeader() *types.Header
+	// hash -> seq
+	GetSequenceByHash(hash []byte) (int64, error)
 }
 
 // PushWorkNotify 两类notify
@@ -147,30 +149,49 @@ func (push *PushService1) AddCallback(pushseq PushWorkNotify, cb *types.BlockSeq
 		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "last-height", lastHeader.Height, "input-height", cb.LastHeight, "err", types.ErrSequenceTooBig)
 		return nil, types.ErrSequenceTooBig
 	}
-	// name不存在：Sequence 信息匹配，添加
-	sequence, err := push.seqStore.GetBlockSequence(cb.LastSequence)
-	if err != nil {
-		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-1", err)
-		return nil, err
+
+	if cb.LastSequence > 0 {
+		// name不存在：Sequence 信息匹配，添加
+		sequence, err := push.seqStore.GetBlockSequence(cb.LastSequence)
+		if err != nil {
+			chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-1", err)
+			return nil, err
+		}
+
+		// 注册点，在节点上存在
+		// 同一高度，不一定同一个hash，有分叉的可能；但同一个hash必定同一个高度
+		reloadHash := common.ToHex(sequence.Hash)
+		if cb.LastBlockHash == reloadHash {
+			// 先填入last seq， 而不是从0开始
+			err = push.pushStore.SetLastPushSeqSync([]byte(cb.Name), cb.LastSequence)
+			if err != nil {
+				chainlog.Error("ProcAddBlockSeqCB", "setSeqCBLastNum", err)
+				return nil, err
+			}
+			err = push.pushStore.AddCallback(cb)
+			if err != nil {
+				chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
+				return nil, err
+			}
+			pushseq.AddTask(cb)
+			return nil, nil
+		}
 	}
 
-	// 注册点，在节点上存在
-	// 同一高度，不一定同一个hash，有分叉的可能；但同一个hash必定同一个高度
-	reloadHash := common.ToHex(sequence.Hash)
-	if cb.LastBlockHash == reloadHash {
-		// 先填入last seq， 而不是从0开始
-		err = push.pushStore.SetLastPushSeqSync([]byte(cb.Name), cb.LastSequence)
+	// 支持已经从N height之后才有业务的情况
+	// 指定height，hash， 推荐sequence 再来注册
+	if cb.LastSequence == -1 {
+		hexHash, err := common.FromHex(cb.LastBlockHash)
 		if err != nil {
-			chainlog.Error("ProcAddBlockSeqCB", "setSeqCBLastNum", err)
+			chainlog.Error("ProcAddBlockSeqCB common.FromHex", "err", err, "hash", cb.LastBlockHash)
 			return nil, err
 		}
-		err = push.pushStore.AddCallback(cb)
+		seq, err := push.seqStore.GetSequenceByHash(hexHash)
 		if err != nil {
-			chainlog.Error("ProcAddBlockSeqCB", "addBlockSeqCB", err)
+			chainlog.Error("ProcAddBlockSeqCB GetSequenceByHash", "err", err, "hash", cb.LastBlockHash)
 			return nil, err
 		}
-		pushseq.AddTask(cb)
-		return nil, nil
+		cb.LastSequence = seq
 	}
 
 	// 注册点，在节点上不存在， 即分叉上
