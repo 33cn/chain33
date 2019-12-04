@@ -877,10 +877,12 @@ func testLoadBlockBySequence(t *testing.T, blockchain *blockchain.BlockChain) {
 
 	curheight := blockchain.GetBlockHeight()
 	lastseq, _ := blockchain.GetStore().LoadBlockLastSequence()
+	sequence, err := blockchain.GetStore().GetBlockSequence(lastseq)
+	require.NoError(t, err)
 	block, _, err := blockchain.GetStore().LoadBlockBySequence(lastseq)
 	require.NoError(t, err)
 
-	if block.Block.Height != curheight {
+	if block.Block.Height != curheight && types.DelBlock != sequence.GetType() {
 		t.Error("testLoadBlockBySequence", "curheight", curheight, "lastseq", lastseq, "Block.Height", block.Block.Height)
 	}
 	chainlog.Info("testLoadBlockBySequence end -------------------------")
