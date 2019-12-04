@@ -107,6 +107,13 @@ func (push *PushService1) AddCallback(pushseq PushWorkNotify, cb *types.BlockSeq
 		return nil, types.ErrInvalidParam
 	}
 
+	if cb.LastBlockHash != "" || cb.LastSequence != 0 || cb.LastHeight != 0 {
+		if cb.LastBlockHash == "" || cb.LastSequence == 0 || cb.LastHeight == 0 {
+			chainlog.Error("AddCallback ErrInvalidParam", "seq", cb.LastSequence, "height", cb.LastHeight, "hash", cb.LastBlockHash)
+			return nil, types.ErrInvalidParam
+		}
+	}
+
 	if push.pushStore.CallbackCount() >= MaxSeqCB && !push.pushStore.CallbackExist(cb.Name) {
 		chainlog.Error("ProcAddBlockSeqCB too many seq callback")
 		return nil, types.ErrTooManySeqCB
