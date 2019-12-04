@@ -128,6 +128,16 @@ func (client *Client) CreateBlock() {
 		client.AddTxsToBlock(&newblock, txs)
 		//solo 挖矿固定难度
 		newblock.Difficulty = cfg.GetP(0).PowLimitBits
+		//需要首先对交易进行排序然后再计算TxHash
+		if cfg.IsFork(newblock.GetHeight(), "ForkRootHash") {
+			sorttxs, err := types.TransactionSort(cfg.GetModuleConfig().Consensus.Name, newblock.Txs)
+			if err != nil {
+				slog.Error("CreateBlock:TransactionSort", "err", err, "newblock.Txs", newblock.Txs)
+				issleep = true
+				continue
+			}
+			newblock.Txs = sorttxs
+		}
 		newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 		newblock.BlockTime = types.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
