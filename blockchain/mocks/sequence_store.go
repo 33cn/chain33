@@ -58,6 +58,22 @@ func (_m *SequenceStore) GetBlockSequence(seq int64) (*types.BlockSequence, erro
 	return r0, r1
 }
 
+// LastHeader provides a mock function with given fields:
+func (_m *SequenceStore) LastHeader() *types.Header {
+	ret := _m.Called()
+
+	var r0 *types.Header
+	if rf, ok := ret.Get(0).(func() *types.Header); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Header)
+		}
+	}
+
+	return r0
+}
+
 // LoadBlockBySequence provides a mock function with given fields: seq
 func (_m *SequenceStore) LoadBlockBySequence(seq int64) (*types.BlockDetail, int, error) {
 	ret := _m.Called(seq)
