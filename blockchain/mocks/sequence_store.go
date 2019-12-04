@@ -58,6 +58,27 @@ func (_m *SequenceStore) GetBlockSequence(seq int64) (*types.BlockSequence, erro
 	return r0, r1
 }
 
+// GetSequenceByHash provides a mock function with given fields: hash
+func (_m *SequenceStore) GetSequenceByHash(hash []byte) (int64, error) {
+	ret := _m.Called(hash)
+
+	var r0 int64
+	if rf, ok := ret.Get(0).(func([]byte) int64); ok {
+		r0 = rf(hash)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]byte) error); ok {
+		r1 = rf(hash)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // LastHeader provides a mock function with given fields:
 func (_m *SequenceStore) LastHeader() *types.Header {
 	ret := _m.Called()
