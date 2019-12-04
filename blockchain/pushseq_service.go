@@ -50,6 +50,8 @@ type SequenceStore interface {
 	GetBlockHeaderByHash(hash []byte) (*types.Header, error)
 	// seq -> block, size
 	LoadBlockBySequence(seq int64) (*types.BlockDetail, int, error)
+	// get last header
+	LastHeader() *types.Header
 }
 
 // PushWorkNotify 两类notify
@@ -138,15 +140,11 @@ func (push *PushService1) AddCallback(pushseq PushWorkNotify, cb *types.BlockSeq
 		chainlog.Info("ProcAddBlockSeqCB continue-seq-push", "exist", cb.Name)
 		return nil, nil
 	}
-	lastSeq, err := push.seqStore.LoadBlockLastSequence()
-	if err != nil {
-		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "load-last-seq", err)
-		return nil, err
-	}
 
+	lastHeader := push.seqStore.LastHeader()
 	// 续传的情况下， 最好等节点同步过了原先的点， 不然同步好的删除了， 等于重新同步
-	if lastSeq < cb.LastSequence {
-		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "last-seq", lastSeq, "input-seq", cb.LastSequence, "err", types.ErrSequenceTooBig)
+	if lastHeader.Height < cb.LastHeight {
+		chainlog.Error("ProcAddBlockSeqCB continue-seq-push", "last-height", lastHeader.Height, "input-height", cb.LastHeight, "err", types.ErrSequenceTooBig)
 		return nil, types.ErrSequenceTooBig
 	}
 	// name不存在：Sequence 信息匹配，添加
