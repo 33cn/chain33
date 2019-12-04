@@ -181,7 +181,3 @@ func Test_PushServiceAdd(t *testing.T) {
 	assert.Equal(t, int64(2), seq1[0].Sequence)
 	assert.Equal(t, int64(2), seq1[0].Height)
 }
-
-func Test_AddCallbackArgs(t *testing.T) {
-
-}
