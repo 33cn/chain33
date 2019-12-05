@@ -159,7 +159,8 @@ It has these top-level messages:
 	MessageAddrList
 	MessageExternalNetReq
 	MessageExternalNetResp
-	MessageGetBlocks
+	MessageGetBlocksReq
+	MessageGetBlocksResp
 	MessageGetMempoolReq
 	MessageVersion
 	MessageHeaderReq

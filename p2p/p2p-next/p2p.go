@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/metrics"
-
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/p2p/p2p-next/service/broadcastTx"
 	"github.com/33cn/chain33/queue"
@@ -14,6 +12,7 @@ import (
 	"github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	host "github.com/libp2p/go-libp2p-host"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
@@ -107,11 +106,11 @@ func (p *P2p) SetQueueClient(cli queue.Client) {
 	p.Node = NewNode(p)
 
 	go p.managePeers()
-	go p.subP2pMsg()
+	go p.subP2PMsg()
 
 }
 
-func (p *P2p) subP2pMsg() {
+func (p *P2p) subP2PMsg() {
 	if p.client == nil {
 		return
 	}
@@ -122,7 +121,14 @@ func (p *P2p) subP2pMsg() {
 		case types.EventTxBroadcast: //广播tx
 
 		case types.EventPeerInfo:
-			p.Node.GetPeersInfo(msg)
+			go p.Node.GetPeersInfo(msg)
+		case types.EventFetchBlockHeaders:
+			go p.Node.GetHeaders(msg)
+		case types.EventGetNetInfo:
+		//TODO
+		case types.EventFetchBlocks:
+			//下载区块高度
+			go p.Node.GetBlocks(msg)
 		}
 	}
 }

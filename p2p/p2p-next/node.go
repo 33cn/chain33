@@ -9,7 +9,6 @@ import (
 	ggio "github.com/gogo/protobuf/io"
 	proto "github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -21,6 +20,8 @@ type Node struct {
 	host      host.Host
 	*streamMange
 	*PeerInfoProtol
+	*HeaderInfoProtol
+	*DownloadBlockProtol
 }
 
 func NewNode(p *P2p) *Node {
@@ -146,13 +147,6 @@ func (n *Node) NewMessageData(messageId string, gossip bool) *types.MessageComm 
 func (n *Node) sendProtoMessage(s net.Stream, p protocol.ID, data proto.Message) bool {
 	writer := ggio.NewFullWriter(s)
 	err := writer.WriteMsg(data)
-	if err != nil {
-		log.Println(err)
-		s.Reset()
-		return false
-	}
-	// FullClose closes the stream and waits for the other side to close their half.
-	err = helpers.FullClose(s)
 	if err != nil {
 		log.Println(err)
 		s.Reset()
