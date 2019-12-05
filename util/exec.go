@@ -7,12 +7,14 @@ package util
 import (
 	"bytes"
 	"errors"
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-
+	"github.com/33cn/chain33/system/crypto/symcipher"
 	"github.com/33cn/chain33/common"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	"runtime/debug"
 )
 
 type AddrAndPrivKey struct {
@@ -55,9 +57,12 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block, addrA
 	var txsBk []*types.Transaction
 	var bk bool
 	if client.GetConfig().IsPara() {
-		ulog.Debug("ExecTx", "PrivacyTx4Para for para chain with height", list.Height)
 		for i, tx := range list.Txs {
+			ulog.Debug("ExecTx", "filtering tx for PrivacyTx4Para for para chain with txhash:",common.ToHex(tx.Hash()), "height:", list.Height)
 			if bytes.HasSuffix([]byte(tx.Execer),  []byte(types.PrivacyTx4Para)) {
+				ulog.Debug("ExecTx Stack", string(debug.Stack()))
+				ulog.Debug("ExecTx", "Got PrivacyTx4Para for para chain with txhash:",common.ToHex(tx.Hash()),
+					"height:", list.Height)
 				var privacyTxPayload types.PrivacyTxPayload
 				if err := types.Decode(tx.Payload, &privacyTxPayload); nil != err {
 					ulog.Error("ExecTx", "Failed to decode privacy Tx Payload due to:", err)
@@ -72,16 +77,29 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block, addrA
 					ulog.Error("ExecTx", "No ciphered symmetric key for me", privacyTxPayload.AddrSymKey)
 					continue
 				}
-				txPlainByte, err := addrAndPrivKey.PrivKey.Decrypt(skCiphered)
+				///////////////debug code begin////////////////////
+				ulog.Debug("ExecTx decode sym key", "decipher sk with addr:", addrAndPrivKey.Addr,
+					"public key:", common.ToHex(addrAndPrivKey.PrivKey.PubKey().Bytes()),
+				    "generated addr:", address.PubKeyToAddr(addrAndPrivKey.PrivKey.PubKey().Bytes()))
+				///////////////debug code end////////////////////
+				skPlain, err := addrAndPrivKey.PrivKey.Decrypt(skCiphered)
 				if nil != err {
-					ulog.Error("ExecTx", "Failed to decrypt for tx with hash:", common.ToHex(tx.Hash()))
+					ulog.Error("ExecTx", "Failed to decrypt symmetric key for addr:", addrAndPrivKey.Addr)
 					continue
 				}
+
+				txPlainByte, err := symcipher.DecryptSymmetric(skPlain, privacyTxPayload.CipheredTx)
+				if nil != err {
+					ulog.Error("ExecTx", "Failed to decrypt tx payload due to:", err.Error())
+					continue
+				}
+
 				var txPlain types.Transaction
 				if err := types.Decode(txPlainByte, &txPlain); nil != err {
 					ulog.Error("ExecTx", "Failed to decode for tx with hash:", common.ToHex(tx.Hash()))
 					continue
 				}
+				ulog.Debug("ExecTx: Succeed to decrypt for para-chain's privacy tx")
 				if !bk {
 					bk = true
 					txsBk = list.Txs
