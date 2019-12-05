@@ -1,10 +1,11 @@
-package p2pnext
+package protos
 
 import (
 	"io"
 	"io/ioutil"
 	"time"
 
+	next "github.com/33cn/chain33/p2p/p2p-next"
 	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
 
@@ -22,15 +23,15 @@ const (
 type HeaderInfoProtol struct {
 	client   queue.Client
 	done     chan struct{}
-	node     *Node                              // local host
+	node     *next.Node                         // local host
 	requests map[string]*types.MessageHeaderReq // used to access request data from response handlers
 }
 
-func NewHeaderInfoProtol(node *Node, cli queue.Client, done chan struct{}) *HeaderInfoProtol {
+func (h *HeaderInfoProtol) New(node *next.Node, cli queue.Client, done chan struct{}) next.Driver {
 
 	Server := &HeaderInfoProtol{}
-	node.host.SetStreamHandler(headerInfoReq, Server.onHeaderReq)
-	node.host.SetStreamHandler(headerInfoResp, Server.onHeaderResp)
+	node.Host.SetStreamHandler(headerInfoReq, Server.OnReq)
+	node.Host.SetStreamHandler(headerInfoResp, Server.OnResp)
 	Server.requests = make(map[string]*types.MessageHeaderReq)
 	Server.node = node
 	Server.client = cli
@@ -40,7 +41,7 @@ func NewHeaderInfoProtol(node *Node, cli queue.Client, done chan struct{}) *Head
 
 //接收RESP消息
 
-func (h *HeaderInfoProtol) onHeaderResp(s net.Stream) {
+func (h *HeaderInfoProtol) OnResp(s net.Stream) {
 	for {
 
 		data := &types.MessageHeaderResp{}
@@ -58,7 +59,7 @@ func (h *HeaderInfoProtol) onHeaderResp(s net.Stream) {
 			continue
 		}
 
-		valid := h.node.authenticateMessage(data, data.MessageData)
+		valid := h.node.AuthenticateMessage(data, data.MessageData)
 
 		if !valid {
 			logger.Error("Failed to authenticate message")
@@ -85,7 +86,7 @@ func (h *HeaderInfoProtol) onHeaderResp(s net.Stream) {
 	}
 }
 
-func (h *HeaderInfoProtol) onHeaderReq(s net.Stream) {
+func (h *HeaderInfoProtol) OnReq(s net.Stream) {
 	for {
 
 		var buf []byte
@@ -107,7 +108,7 @@ func (h *HeaderInfoProtol) onHeaderReq(s net.Stream) {
 			continue
 		}
 
-		valid := h.node.authenticateMessage(&data, data.MessageData)
+		valid := h.node.AuthenticateMessage(&data, data.MessageData)
 		if !valid {
 			logger.Error("Failed to authenticate message")
 			continue
@@ -139,7 +140,7 @@ func (h *HeaderInfoProtol) onHeaderReq(s net.Stream) {
 			Message: &types.P2PHeaders{Headers: headers.GetItems()}}
 
 		// sign the data
-		signature, err := h.node.signProtoMessage(resp)
+		signature, err := h.node.SignProtoMessage(resp)
 		if err != nil {
 			logger.Error("failed to sign response")
 			continue
@@ -148,7 +149,7 @@ func (h *HeaderInfoProtol) onHeaderReq(s net.Stream) {
 		// add the signature to the message
 		resp.MessageData.Sign = signature
 
-		ok := h.node.sendProtoMessage(s, headerInfoResp, resp)
+		ok := h.node.SendProtoMessage(s, headerInfoResp, resp)
 
 		if ok {
 			logger.Info("%s: Ping response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
@@ -158,7 +159,7 @@ func (h *HeaderInfoProtol) onHeaderReq(s net.Stream) {
 }
 
 //GetHeaders 接收来自chain33 blockchain模块发来的请求
-func (h *HeaderInfoProtol) GetHeaders(msg *queue.Message) {
+func (h *HeaderInfoProtol) DoProcess(msg *queue.Message) {
 
 	req := msg.GetData().(*types.ReqBlocks)
 	pids := req.GetPid()
@@ -169,7 +170,7 @@ func (h *HeaderInfoProtol) GetHeaders(msg *queue.Message) {
 	}
 
 	msg.Reply(h.client.NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	peersMap := h.node.peersInfo
+	peersMap := h.node.PeersInfo
 
 	for _, pid := range pids {
 		data, ok := peersMap.Load(pid)
@@ -180,7 +181,7 @@ func (h *HeaderInfoProtol) GetHeaders(msg *queue.Message) {
 		//去指定的peer上获取对应的blockHeader
 		peerId := peerinfo.GetName()
 
-		pstream := h.node.streamMange.GetStream(peerId)
+		pstream := h.node.StreamMange.GetStream(peerId)
 		if pstream == nil {
 			continue
 		}
@@ -191,14 +192,14 @@ func (h *HeaderInfoProtol) GetHeaders(msg *queue.Message) {
 			Message: p2pgetheaders}
 
 		// sign the data
-		signature, err := h.node.signProtoMessage(req)
+		signature, err := h.node.SignProtoMessage(req)
 		if err != nil {
 			logger.Error("failed to sign pb data")
 			return
 		}
 
 		headerReq.MessageData.Sign = signature
-		if h.node.sendProtoMessage(pstream, headerInfoReq, headerReq) {
+		if h.node.SendProtoMessage(pstream, headerInfoReq, headerReq) {
 			h.requests[headerReq.MessageData.Id] = headerReq
 		}
 

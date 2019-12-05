@@ -2,6 +2,7 @@ package p2pnext
 
 import (
 	"context"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-discovery"
@@ -12,6 +13,7 @@ import (
 const RendezvousString = "chain33-p2p-findme"
 
 type Discovery struct {
+	KademliaDHT *dht.IpfsDHT
 }
 
 func (d *Discovery) FindPeers(ctx context.Context, host host.Host) (<-chan peer.AddrInfo, error) {
@@ -21,6 +23,7 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host) (<-chan peer.
 	if err != nil {
 		panic(err)
 	}
+	d.KademliaDHT = kademliaDHT
 
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
@@ -40,4 +43,36 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host) (<-chan peer.
 	}
 
 	return peerChan, nil
+}
+
+//根据指定的peerID ,查找指定的peer,
+func (d *Discovery) FindSpecialPeer(pid peer.ID) (*peer.AddrInfo, error) {
+	ctx := context.Background()
+	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	peerInfo, err := d.KademliaDHT.FindPeer(pctx, pid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &peerInfo, nil
+
+}
+
+//根据pid 查找当前DHT内部的peer信息
+func (d *Discovery) FindSpecailLocalPeer(pid peer.ID) peer.AddrInfo {
+
+	return d.KademliaDHT.FindLocal(pid)
+
+}
+
+//获取连接指定的peerId的peers信息
+
+func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo, error) {
+	ctx := context.Background()
+	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	return d.KademliaDHT.FindPeersConnectedToPeer(pctx, pid)
+
 }

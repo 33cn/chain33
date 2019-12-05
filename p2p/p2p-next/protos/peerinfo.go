@@ -1,15 +1,17 @@
-package p2pnext
+package protos
 
 import (
 	"io"
 	"io/ioutil"
 	"time"
 
-	proto "github.com/gogo/protobuf/proto"
-	uuid "github.com/google/uuid"
+	logging "github.com/ipfs/go-log"
 
+	next "github.com/33cn/chain33/p2p/p2p-next"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	proto "github.com/gogo/protobuf/proto"
+	uuid "github.com/google/uuid"
 	net "github.com/libp2p/go-libp2p-net"
 )
 
@@ -18,27 +20,34 @@ const (
 	peerInfoResp = "/chain33/peerinfoResp/1.0.0"
 )
 
+var logger = logging.Logger("protos")
+
 //type Istream
 type PeerInfoProtol struct {
 	client   queue.Client
 	done     chan struct{}
-	node     *Node                                // local host
+	node     *next.Node                           // local host
 	requests map[string]*types.MessagePeerInfoReq // used to access request data from response handlers
 }
 
-func NewPeerInfoProtol(node *Node, cli queue.Client, done chan struct{}) *PeerInfoProtol {
+func init() {
+	next.Register("peerinfo", &PeerInfoProtol{})
+}
+
+func (p *PeerInfoProtol) New(node *next.Node, cli queue.Client, done chan struct{}) next.Driver {
 
 	Server := &PeerInfoProtol{}
-	node.host.SetStreamHandler(peerInfoReq, Server.ReqHandler)
-	node.host.SetStreamHandler(peerInfoResp, Server.onPeerInfoResp)
+	node.Host.SetStreamHandler(peerInfoReq, Server.OnReq)
+	node.Host.SetStreamHandler(peerInfoResp, Server.OnResp)
 	Server.requests = make(map[string]*types.MessagePeerInfoReq)
 	Server.node = node
 	Server.client = cli
 	Server.done = done
 	return Server
+
 }
 
-func (p *PeerInfoProtol) onPeerInfoResp(s net.Stream) {
+func (p *PeerInfoProtol) OnResp(s net.Stream) {
 	for {
 
 		data := &types.MessagePeerInfoResp{}
@@ -56,7 +65,7 @@ func (p *PeerInfoProtol) onPeerInfoResp(s net.Stream) {
 			continue
 		}
 
-		valid := p.node.authenticateMessage(data, data.MessageData)
+		valid := p.node.AuthenticateMessage(data, data.MessageData)
 
 		if !valid {
 			logger.Error("Failed to authenticate message")
@@ -72,7 +81,7 @@ func (p *PeerInfoProtol) onPeerInfoResp(s net.Stream) {
 			logger.Error("Failed to locate request data boject for response")
 			continue
 		}
-		p.node.peersInfo.Store(data.GetMessage().GetName(), data.GetMessage())
+		p.node.PeersInfo.Store(data.GetMessage().GetName(), data.GetMessage())
 		logger.Debug("%s: Received ping response from %s. Message id:%s. Message: %s.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.MessageData.Id, data.Message)
 
 	}
@@ -113,14 +122,24 @@ func (p *PeerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 Jump:
 	header := resp.GetData().(*types.Header)
 	peerinfo.Header = header
-	peerinfo.Name = p.node.host.ID().Pretty()
+	peerinfo.Name = p.node.Host.ID().Pretty()
 
-	peerinfo.Addr = p.node.host.Addrs()[0].String()
+	peerinfo.Addr = p.node.Host.Addrs()[0].String()
 	return &peerinfo
+}
+func (p *PeerInfoProtol) ManagePeerInfo() {
+
+	for {
+		select {
+		case <-time.Tick(time.Second * 20):
+			p.PeerInfo()
+		}
+	}
+
 }
 
 //p2pserver 端接收处理事件
-func (p *PeerInfoProtol) ReqHandler(s net.Stream) {
+func (p *PeerInfoProtol) OnReq(s net.Stream) {
 	for {
 
 		var buf []byte
@@ -148,7 +167,7 @@ func (p *PeerInfoProtol) ReqHandler(s net.Stream) {
 			Message: peerinfo}
 
 		// sign the data
-		signature, err := p.node.signProtoMessage(resp)
+		signature, err := p.node.SignProtoMessage(resp)
 		if err != nil {
 			logger.Error("failed to sign response")
 			continue
@@ -157,7 +176,7 @@ func (p *PeerInfoProtol) ReqHandler(s net.Stream) {
 		// add the signature to the message
 		resp.MessageData.Sign = signature
 
-		ok := p.node.sendProtoMessage(s, peerInfoResp, resp)
+		ok := p.node.SendProtoMessage(s, peerInfoResp, resp)
 
 		if ok {
 			logger.Info("%s: Ping response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
@@ -169,11 +188,11 @@ func (p *PeerInfoProtol) ReqHandler(s net.Stream) {
 // PeerInfo 向对方节点请求peerInfo信息
 func (p *PeerInfoProtol) PeerInfo() {
 
-	for _, s := range p.node.fetchStreams() {
+	for _, s := range p.node.FetchStreams() {
 		req := &types.MessagePeerInfoReq{MessageData: p.node.NewMessageData(uuid.New().String(), false)}
 
 		// sign the data
-		signature, err := p.node.signProtoMessage(req)
+		signature, err := p.node.SignProtoMessage(req)
 		if err != nil {
 			logger.Error("failed to sign pb data")
 			return
@@ -181,7 +200,7 @@ func (p *PeerInfoProtol) PeerInfo() {
 
 		req.MessageData.Sign = signature
 
-		ok := p.node.sendProtoMessage(s, peerInfoReq, req)
+		ok := p.node.SendProtoMessage(s, peerInfoReq, req)
 		if !ok {
 			return
 		}
@@ -203,7 +222,7 @@ func (p *PeerInfoProtol) copy(dest *types.Peer, source *types.P2PPeerInfo) {
 }
 
 //接收chain33其他模块发来的请求消息
-func (p *PeerInfoProtol) GetPeersInfo(msg *queue.Message) {
+func (p *PeerInfoProtol) DoProcess(msg *queue.Message) {
 
 	_, ok := msg.GetData().(*types.P2PGetPeerInfo)
 	if !ok {
@@ -211,7 +230,7 @@ func (p *PeerInfoProtol) GetPeersInfo(msg *queue.Message) {
 	}
 	var peers []*types.Peer
 
-	p.node.peersInfo.Range(func(key interface{}, value interface{}) bool {
+	p.node.PeersInfo.Range(func(key interface{}, value interface{}) bool {
 		peerinfo := value.(*types.P2PPeerInfo)
 		var peer types.Peer
 		p.copy(&peer, peerinfo)
