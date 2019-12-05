@@ -475,6 +475,25 @@ func TestSortTxList(t *testing.T) {
 		}
 		assert.Equal(t, equal, true)
 	}
+	var prev string
+	for i, sorttx := range sorTxSingleList {
+		if 0 == i {
+			prev = string(sorttx.Execer)
+			if !IsParaExecName(string(sorttx.Execer)) {
+				prev = "m" + string(sorttx.Execer)
+			}
+		} else {
+			cur := string(sorttx.Execer)
+			if !IsParaExecName(string(sorttx.Execer)) {
+				cur = "m" + string(sorttx.Execer)
+			}
+			if cur < prev {
+				t.Error("TransactionSort:fail!")
+				return
+			}
+			prev = cur
+		}
+	}
 
 	//构建第一笔是特殊交易不参与排序
 	var txSpecialList Transactions

@@ -925,11 +925,3 @@ func TransactionSort(iSpecialFirstTx bool, rawtxs []*Transaction) ([]*Transactio
 	sorTxs.Txs = append(sorTxs.Txs, txlist...)
 	return sorTxs.Txs, nil
 }
-
-//有些共识的第一笔交易是固定交易，不参与排序
-func haveSpecialTx(consensus string) bool {
-	if consensus == "ticket" || consensus == "para" || consensus == "tendermint" {
-		return true
-	}
-	return false
-}
