@@ -160,3 +160,13 @@ func (n *Node) sendProtoMessage(s net.Stream, p protocol.ID, data proto.Message)
 	}
 	return true
 }
+
+
+
+func (n *Node) GetChainCfg() *types.Chain33Config {
+	return nil
+}
+
+func (n *Node) GetP2pCfg() *types.P2P {
+	return nil
+}
