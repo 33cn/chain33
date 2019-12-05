@@ -901,12 +901,13 @@ func expandTxs(txs []*Transaction) ([]*Transaction, error) {
 
 //TransactionSort:对打包上链的交易排序
 //需要过滤掉有些共识的特殊交易不参与排序，必须是第一笔交易,
+//iSpecialFirstTx:表示第一笔交易是否一笔特殊交易，true时第一笔交易不参与排序
 //例如：ticket,para,tendermint
-func TransactionSort(consensus string, rawtxs []*Transaction) ([]*Transaction, error) {
+func TransactionSort(iSpecialFirstTx bool, rawtxs []*Transaction) ([]*Transaction, error) {
 	var txs Transactions
 	var haveMinerTx bool
 
-	if haveSpecialTx(consensus) {
+	if iSpecialFirstTx {
 		txs.Txs = append(txs.Txs, rawtxs[1:]...)
 		haveMinerTx = true
 	} else {

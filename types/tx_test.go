@@ -424,7 +424,7 @@ func TestSortTxList(t *testing.T) {
 	txList.Txs = append(txList.Txs, &tx2215)
 	txList.Txs = append(txList.Txs, &tx3215)
 
-	sorTxList, err := TransactionSort("solo", txList.Txs)
+	sorTxList, err := TransactionSort(false, txList.Txs)
 	if err != nil {
 		t.Error(err)
 		return
@@ -432,11 +432,11 @@ func TestSortTxList(t *testing.T) {
 
 	assert.Equal(t, len(txList.Txs), len(sorTxList))
 
-	for _, sorttx := range sorTxList {
+	for _, tx := range txList.Txs {
 		var equal bool
-		sortHash := sorttx.Hash()
-		for _, tx := range txList.Txs {
-			txHash := tx.Hash()
+		txHash := tx.Hash()
+		for _, sorttx := range sorTxList {
+			sortHash := sorttx.Hash()
 			if bytes.Equal(sortHash, txHash) {
 				equal = true
 				break
@@ -457,17 +457,17 @@ func TestSortTxList(t *testing.T) {
 	txSingleList.Txs = append(txSingleList.Txs, &tx62211)
 	txSingleList.Txs = append(txSingleList.Txs, &tx63211)
 
-	sorTxSingleList, err := TransactionSort("solo", txSingleList.Txs)
+	sorTxSingleList, err := TransactionSort(false, txSingleList.Txs)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	assert.Equal(t, len(txSingleList.Txs), len(sorTxSingleList))
-	for _, sorttx := range sorTxSingleList {
+	for _, tx := range txSingleList.Txs {
 		var equal bool
-		sortHash := sorttx.Hash()
-		for _, tx := range txSingleList.Txs {
-			txHash := tx.Hash()
+		txHash := tx.Hash()
+		for _, sorttx := range sorTxSingleList {
+			sortHash := sorttx.Hash()
 			if bytes.Equal(sortHash, txHash) {
 				equal = true
 				break
@@ -488,7 +488,7 @@ func TestSortTxList(t *testing.T) {
 	txSpecialList.Txs = append(txSpecialList.Txs, &tx82211)
 	txSpecialList.Txs = append(txSpecialList.Txs, &tx83211)
 
-	sorTxSpecialList, err := TransactionSort("para", txSpecialList.Txs)
+	sorTxSpecialList, err := TransactionSort(true, txSpecialList.Txs)
 	if err != nil {
 		t.Error(err)
 		return

@@ -368,13 +368,8 @@ func calcMultiLayerMerkleInfo(txs []*types.Transaction) ([]byte, []types.ChildCh
 		//记录主链交易的index。主链交易肯定是从0开始的
 		if !haveParaTx && 0 == i {
 			childchains = append(childchains, types.ChildChain{Title: types.MainChainName, StartIndex: 0})
-		} else if haveParaTx && 0 == len(fristParaTitle) {
-			//第一个平行链交易
-			fristParaTitle = paraTitle
-			childchains = append(childchains, types.ChildChain{Title: paraTitle, StartIndex: int32(i)})
-
-		} else if haveParaTx && paraTitle != fristParaTitle {
-			//不同平行链的交易
+		} else if (haveParaTx && 0 == len(fristParaTitle)) || (haveParaTx && paraTitle != fristParaTitle) {
+			//第一个平行链交易或者不同平行链的交易需要更新fristParaTitle以及子链信息
 			fristParaTitle = paraTitle
 			childchains = append(childchains, types.ChildChain{Title: paraTitle, StartIndex: int32(i)})
 		}

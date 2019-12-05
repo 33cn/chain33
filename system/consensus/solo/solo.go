@@ -130,7 +130,7 @@ func (client *Client) CreateBlock() {
 		newblock.Difficulty = cfg.GetP(0).PowLimitBits
 		//需要首先对交易进行排序然后再计算TxHash
 		if cfg.IsFork(newblock.GetHeight(), "ForkRootHash") {
-			sorttxs, err := types.TransactionSort(cfg.GetModuleConfig().Consensus.Name, newblock.Txs)
+			sorttxs, err := types.TransactionSort(false, newblock.Txs)
 			if err != nil {
 				slog.Error("CreateBlock:TransactionSort", "err", err, "newblock.Txs", newblock.Txs)
 				issleep = true
