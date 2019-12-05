@@ -103,8 +103,8 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 		}
 
 		// cache block
-		if !totalBlockCache.contains(blockHash) {
-			totalBlockCache.add(blockHash, block.Block, ltBlock.Size)
+		if !totalBlockCache.Contains(blockHash) {
+			totalBlockCache.Add(blockHash, block.Block, ltBlock.Size)
 		}
 
 		p2pData.Value = &types.BroadCastData_LtBlock{LtBlock: ltBlock}
@@ -332,7 +332,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string, pubP
 	//pub to specified peer
 	pubPeerFunc(query, pid)
 	//需要将不完整的block预存
-	ltBlockCache.add(blockHash, block, int64(block.Size()))
+	ltBlockCache.Add(blockHash, block, int64(block.Size()))
 }
 
 func (n *Node) recvQueryData(query *types.P2PQueryData, pid, peerAddr string, pubPeerFunc pubFuncType) {
@@ -366,7 +366,7 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid, peerAddr string, pu
 	} else if blcReq := query.GetBlockTxReq(); blcReq != nil {
 
 		log.Debug("recvQueryBlockTx", "blockHash", blcReq.BlockHash, "queryTxCount", len(blcReq.TxIndices), "peerAddr", peerAddr)
-		if block, ok := totalBlockCache.get(blcReq.BlockHash).(*types.Block); ok {
+		if block, ok := totalBlockCache.Get(blcReq.BlockHash).(*types.Block); ok {
 
 			blockRep := &types.P2PBlockTxReply{BlockHash: blcReq.BlockHash}
 
@@ -386,7 +386,7 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid, peerAddr string, pu
 func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string, pubPeerFunc pubFuncType) {
 
 	log.Debug("recvQueryReplyBlock", "blockHash", rep.GetBlockHash(), "queryTxsCount", len(rep.GetTxIndices()), "peerAddr", peerAddr)
-	val, exist := ltBlockCache.del(rep.BlockHash)
+	val, exist := ltBlockCache.Del(rep.BlockHash)
 	block, _ := val.(*types.Block)
 	//not exist in cache or nil block
 	if !exist || block == nil {
@@ -424,7 +424,7 @@ func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string, 
 		//pub to specified peer
 		pubPeerFunc(query, pid)
 		block.Txs = nil
-		ltBlockCache.add(rep.BlockHash, block, int64(block.Size()))
+		ltBlockCache.Add(rep.BlockHash, block, int64(block.Size()))
 	}
 }
 

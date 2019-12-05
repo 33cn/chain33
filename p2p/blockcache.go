@@ -8,13 +8,13 @@ import (
 
 var (
 	//发送交易短哈希广播,在本地暂时缓存一些区块数据, 限制最大大小
-	totalBlockCache = newSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
+	totalBlockCache = NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
-	ltBlockCache = newSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
+	ltBlockCache = NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
 )
 
 // lru缓存封装, 控制占用空间大小
-type spaceLimitCache struct {
+type SpaceLimitCache struct {
 	maxSize  int64
 	currSize int64
 	sizeMap  map[interface{}]int64
@@ -22,9 +22,9 @@ type spaceLimitCache struct {
 	lock     *sync.RWMutex
 }
 
-func newSpaceLimitCache(num int, maxByteSize int64) *spaceLimitCache {
+func NewSpaceLimitCache(num int, maxByteSize int64) *SpaceLimitCache {
 
-	cache := &spaceLimitCache{maxSize: maxByteSize}
+	cache := &SpaceLimitCache{maxSize: maxByteSize}
 	cache.sizeMap = make(map[interface{}]int64)
 	cache.lock = &sync.RWMutex{}
 	var err error
@@ -35,7 +35,7 @@ func newSpaceLimitCache(num int, maxByteSize int64) *spaceLimitCache {
 	return cache
 }
 
-func (c *spaceLimitCache) add(key interface{}, val interface{}, size int64) bool {
+func (c *SpaceLimitCache) Add(key interface{}, val interface{}, size int64) bool {
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -71,12 +71,12 @@ func (c *spaceLimitCache) add(key interface{}, val interface{}, size int64) bool
 	return true
 }
 
-func (c *spaceLimitCache) get(key interface{}) interface{} {
+func (c *SpaceLimitCache) Get(key interface{}) interface{} {
 	v, _ := c.data.Get(key)
 	return v
 }
 
-func (c *spaceLimitCache) del(key interface{}) (interface{}, bool) {
+func (c *SpaceLimitCache) Del(key interface{}) (interface{}, bool) {
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -89,7 +89,7 @@ func (c *spaceLimitCache) del(key interface{}) (interface{}, bool) {
 	return val, exist
 }
 
-func (c *spaceLimitCache) contains(key interface{}) bool {
+func (c *SpaceLimitCache) Contains(key interface{}) bool {
 
 	return c.data.Contains(key)
 }

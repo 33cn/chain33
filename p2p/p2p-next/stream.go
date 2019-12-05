@@ -4,8 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/33cn/chain33/p2p/p2p-next/protos/broadcastTx"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 	host "github.com/libp2p/go-libp2p-host"
 	net "github.com/libp2p/go-libp2p-net"
@@ -25,7 +23,8 @@ func NewStreamManage(host host.Host) *StreamMange {
 
 func (s *StreamMange) newStream(ctx context.Context, pr peer.AddrInfo) (net.Stream, error) {
 	//可以后续添加 block.ID,mempool.ID,header.ID
-	stream, err := s.Host.NewStream(ctx, pr.ID, tx.ID)
+
+	stream, err := s.Host.NewStream(ctx, pr.ID)
 	if err != nil {
 		return nil, err
 	}

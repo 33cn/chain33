@@ -116,9 +116,9 @@ func Test_processP2P(t *testing.T) {
 		<-subChan //query tx
 		sendChan <- &versionData{peerName: pid + "2", rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion}
 		<-subChan //query block
-		for !ltBlockCache.contains(blockHash) {
+		for !ltBlockCache.Contains(blockHash) {
 		}
-		cpBlock := *ltBlockCache.get(blockHash).(*types.Block)
+		cpBlock := *ltBlockCache.Get(blockHash).(*types.Block)
 		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(cpBlock.Txs)))
 
 		//query tx
@@ -153,7 +153,7 @@ func Test_processP2P(t *testing.T) {
 			BlockHash: blockHash,
 			Txs:       txList[0:],
 		}}
-		for ltBlockCache.contains(blockHash) {
+		for ltBlockCache.Contains(blockHash) {
 		}
 		//max ttl
 		_, doSend := node.processSendP2P(&types.P2PTx{Tx: tx, Route: &types.P2PRoute{TTL: node.nodeInfo.cfg.MaxTTL + 1}}, lightBroadCastVersion, pid+"5", "testIP:port")
