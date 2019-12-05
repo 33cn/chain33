@@ -7,12 +7,11 @@ package util
 import (
 	"bytes"
 	"errors"
-	"github.com/33cn/chain33/common/address"
-	"github.com/33cn/chain33/common/crypto"
-	"github.com/33cn/chain33/system/crypto/symcipher"
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/system/crypto/symcipher"
 	"github.com/33cn/chain33/types"
 	"runtime/debug"
 )
@@ -54,8 +53,8 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block, addrA
 		Difficulty: uint64(block.Difficulty),
 		IsMempool:  false,
 	}
-	var txsBk []*types.Transaction
-	var bk bool
+	var txsBk map[int]*types.Transaction
+	var bk bool = false
 	if client.GetConfig().IsPara() {
 		for i, tx := range list.Txs {
 			ulog.Debug("ExecTx", "filtering tx for PrivacyTx4Para for para chain with txhash:",common.ToHex(tx.Hash()), "height:", list.Height)
@@ -79,8 +78,7 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block, addrA
 				}
 				///////////////debug code begin////////////////////
 				ulog.Debug("ExecTx decode sym key", "decipher sk with addr:", addrAndPrivKey.Addr,
-					"public key:", common.ToHex(addrAndPrivKey.PrivKey.PubKey().Bytes()),
-				    "generated addr:", address.PubKeyToAddr(addrAndPrivKey.PrivKey.PubKey().Bytes()))
+					"public key:", common.ToHex(addrAndPrivKey.PrivKey.PubKey().Bytes()))
 				///////////////debug code end////////////////////
 				skPlain, err := addrAndPrivKey.PrivKey.Decrypt(skCiphered)
 				if nil != err {
@@ -102,8 +100,9 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block, addrA
 				ulog.Debug("ExecTx: Succeed to decrypt for para-chain's privacy tx")
 				if !bk {
 					bk = true
-					txsBk = list.Txs
+					txsBk = make(map[int]*types.Transaction)
 				}
+				txsBk[i] = list.Txs[i]
 				list.Txs[i] = &txPlain
 			}
 		}
@@ -119,7 +118,10 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block, addrA
 	}
 	//如果有隐私交易，则进行恢复
 	if bk {
-		block.Txs = txsBk
+		for i, tx := range txsBk {
+			list.Txs[i] = tx
+			ulog.Debug("ExecTx: restored privacy tx", "hash:", common.ToHex(tx.Hash()))
+		}
 	}
 
 	receipts := resp.GetData().(*types.Receipts)

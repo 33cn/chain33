@@ -75,7 +75,8 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		} else {
 			txDetails.Txs = append(txDetails.Txs, nil)
-			chainlog.Debug("ProcGetTransactionByHashes hash no exit", "txhash", common.ToHex(txhash))
+			chainlog.Debug("ProcGetTransactionByHashes hash no exit", "txhash", common.ToHex(txhash),
+				"error info:", err.Error())
 		}
 	}
 	return &txDetails, nil

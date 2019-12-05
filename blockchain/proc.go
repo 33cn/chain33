@@ -496,10 +496,11 @@ func (chain *BlockChain) addParaChainBlockDetail(msg *queue.Message) {
 	_, err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
-		//msg.Reply(chain.client.NewMessage("p2p", types.EventReply, err))
+		msg.Reply(chain.client.NewMessage("p2p", types.EventReply, err))
 	}
+	//回复消息只为blockchain和para之间的串行执行，避免para在blockchain未处理完成前，就再次请求
 	chainlog.Debug("EventAddParaChainBlockDetail", "success", "ok")
-	//msg.Reply(chain.client.NewMessage("p2p", types.EventReply, blockDetail))
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, nil))
 }
 
 //parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
