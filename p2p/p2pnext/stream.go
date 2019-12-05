@@ -4,11 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/33cn/chain33/p2p/p2p-next/service/broadcastTx"
-
 	"github.com/libp2p/go-libp2p-core/peer"
-	host "github.com/libp2p/go-libp2p-host"
-	net "github.com/libp2p/go-libp2p-net"
+	host "github.com/libp2p/go-libp2p-core/host"
+	net "github.com/libp2p/go-libp2p-core/network"
 )
 
 type streamMange struct {

@@ -1,6 +1,5 @@
 package broadcast
 
-
 //TTL
 const (
 	DefaultLtTxBroadCastTTL  = 3

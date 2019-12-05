@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/p2p/p2p-next/service/broadcastTx"
+	"github.com/33cn/chain33/p2p/p2pnext/service/broadcastTx"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/ipfs/go-log"

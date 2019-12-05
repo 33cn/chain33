@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"encoding/hex"
+
 	"github.com/33cn/chain33/types"
 )
 
@@ -90,4 +91,3 @@ func (s *Service) recvLtTx(tx *types.LightTx, pid, peerAddr string) {
 		s.queryStream(pid, query)
 	}
 }
-
