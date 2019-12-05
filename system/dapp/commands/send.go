@@ -6,9 +6,11 @@ package commands
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -21,92 +23,97 @@ func OneStepSendCmd() *cobra.Command {
 		Short:              "send tx in one step",
 		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
-			oneStepSend(os.Args[0], args)
+			oneStepSend(cmd, os.Args[0], args)
 		},
 	}
-	//cmd.Flags().StringP("key", "k", "", "private key or from address for sign tx")
+	cmd.Flags().StringP("key", "k", "", "private key or from address for sign tx")
+	//cmd.MarkFlagRequired("key")
 	return cmd
 }
 
 // one step send
-func oneStepSend(cmd string, params []string) {
+func oneStepSend(cmd *cobra.Command, cmdName string, params []string) {
 	if len(params) < 1 || params[0] == "help" || params[0] == "--help" || params[0] == "-h" {
 		loadSendHelp()
 		return
 	}
-	keyIndex := -1
-	key := ""
-	var rpcAddrParams, keyParams []string
+
+	var createParams, keyParams []string
+	//取出send命令的key参数, 保留原始构建的参数列表
 	for i, v := range params {
-		if i == len(params)-1 {
+		if strings.HasPrefix(v, "-k=") || strings.HasPrefix(v, "--key=") {
+			keyParams = append(keyParams, v)
+			createParams = append(params[:i], params[i+1:]...)
+			break
+		} else if (v == "-k" || v == "--key") && i < len(params)-1 {
+			keyParams = append(keyParams, v, params[i+1])
+			createParams = append(params[:i], params[i+2:]...)
 			break
 		}
-		if v == "-k" || v == "--key" {
-			keyIndex = i
-			key = params[i+1]
-		} else if v == "--rpc_laddr" {
-			rpcAddrParams = append(rpcAddrParams, "--rpc_laddr", params[i+1])
-		}
 	}
-	if key == "" {
+	//调用send命令parse函数解析key参数
+	err := cmd.Flags().Parse(keyParams)
+	key, _ := cmd.Flags().GetString("key")
+	if len(key) < 32 || err != nil {
 		loadSendHelp()
-		fmt.Println("Error: required flag(s) \"key\" not set")
+		fmt.Fprintln(os.Stderr, "Error: required flag(s) \"key\" not proper set")
 		return
 	}
-	params = append(params[:keyIndex], params[keyIndex+2:]...) //remove key param
-	if address.CheckAddress(key) != nil {
-		keyParams = append(keyParams, "-k", key)
+
+	//构造签名命令的key参数
+	if address.CheckAddress(key) == nil {
+		keyParams = append([]string{}, "-a", key)
 	} else {
-		keyParams = append(keyParams, "-a", key)
+		keyParams = append([]string{}, "-k", key)
 	}
+	//创建交易命令
+	cmdCreate := exec.Command(cmdName, createParams...)
+	createRes, err := execCmd(cmdCreate)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	//cli不传任何参数不会报错, 输出帮助信息
+	if strings.Contains(createRes, "\n") {
+		fmt.Println(createRes)
+		return
+	}
+	//采用内部的构造交易命令,解析rpc_laddr地址参数
+	createCmd, createFlags, _ := cmd.Root().Traverse(createParams)
+	_ = createCmd.ParseFlags(createFlags)
+	rpcAddr, _ := createCmd.Flags().GetString("rpc_laddr")
+	//交易签名命令调用
+	signParams := []string{"wallet", "sign", "-d", createRes, "--rpc_laddr", rpcAddr}
+	cmdSign := exec.Command(cmdName, append(signParams, keyParams...)...)
+	signRes, err := execCmd(cmdSign)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	//交易发送命令调用
+	sendParams := []string{"wallet", "send", "-d", signRes, "--rpc_laddr", rpcAddr}
+	cmdSend := exec.Command(cmdName, sendParams...)
+	sendRes, err := execCmd(cmdSend)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(sendRes)
+}
 
-	cmdCreate := exec.Command(cmd, params...)
-	var outCreate bytes.Buffer
-	var errCreate bytes.Buffer
-	cmdCreate.Stdout = &outCreate
-	cmdCreate.Stderr = &errCreate
-	err := cmdCreate.Run()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	if errCreate.String() != "" {
-		fmt.Println(errCreate.String())
-		return
-	}
-	bufCreate := outCreate.Bytes()
-	signParams := []string{"wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1])}
-	cmdSign := exec.Command(cmd, append(append(signParams, keyParams...), rpcAddrParams...)...)
-	var outSign bytes.Buffer
-	var errSign bytes.Buffer
-	cmdSign.Stdout = &outSign
-	cmdSign.Stderr = &errSign
-	err = cmdSign.Run()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	if errSign.String() != "" {
-		fmt.Println(errSign.String())
-		return
-	}
-	//fmt.Println("signedTx", outSign.String(), errSign.String())
+func execCmd(c *exec.Cmd) (string, error) {
+	var outBuf, errBuf bytes.Buffer
+	c.Stderr = &errBuf
+	c.Stdout = &outBuf
 
-	bufSign := outSign.Bytes()
-	sendParams := []string{"wallet", "send", "-d", string(bufSign[:len(bufSign)-1])}
-	cmdSend := exec.Command(cmd, append(sendParams, rpcAddrParams...)...)
-	var outSend bytes.Buffer
-	var errSend bytes.Buffer
-	cmdSend.Stdout = &outSend
-	cmdSend.Stderr = &errSend
-	err = cmdSend.Run()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	if err := c.Run(); err != nil {
+		return "", errors.New(err.Error() + "\n" + errBuf.String())
 	}
-	if errSend.String() != "" {
-		fmt.Println(errSend.String())
-		return
+	if len(errBuf.String()) > 0 {
+		return "", errors.New(errBuf.String())
 	}
-	bufSend := outSend.Bytes()
-	fmt.Println(string(bufSend[:len(bufSend)-1]))
+	outBytes := outBuf.Bytes()
+	return string(outBytes[:len(outBytes)-1]), nil
 }
 
 func loadSendHelp() {
@@ -124,10 +131,6 @@ equivalent to three steps:
 
 Flags:
   -h, --help         help for send
-  -k, --key string   private key or from address for sign tx, required
-
-Global Flags:
-      --paraName string    parachain
-      --rpc_laddr string   http url (default "https://localhost:8801")`
+  -k, --key			 private key or from address for sign tx, required`
 	fmt.Println(help)
 }
