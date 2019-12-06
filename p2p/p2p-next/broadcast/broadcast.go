@@ -9,7 +9,7 @@ import (
 
 	logger "github.com/33cn/chain33/common/log/log15"
 	common "github.com/33cn/chain33/p2p"
-	p2p "github.com/33cn/chain33/p2p/p2pnext"
+	p2p "github.com/33cn/chain33/p2p/p2p-next"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	host "github.com/libp2p/go-libp2p-core/host"
