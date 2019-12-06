@@ -21,12 +21,12 @@ var logger = log.New("module", "p2p-next")
 type P2p struct {
 	Host       host.Host
 	discovery  *Discovery
-	txServ     *tx.TxService
-	streamMang *streamMange
+	streamMang *StreamMange
 	api        client.QueueProtocolAPI
 	client     queue.Client
 	Done       chan struct{}
 	Node       *Node
+	Processer  map[string]Driver
 }
 
 func New(cfg *types.Chain33Config) *P2p {
@@ -56,6 +56,7 @@ func New(cfg *types.Chain33Config) *P2p {
 	)
 	p2p := &P2p{Host: host}
 	p2p.streamMang = NewStreamManage(host)
+	p2p.Processer = make(map[string]Driver)
 	p2p.discovery = new(Discovery)
 	p2p.Node = NewNode(p2p, cfg)
 	return p2p
@@ -97,6 +98,18 @@ func (p *P2p) Close() {
 	close(p.Done)
 }
 
+func (p *P2p) initProcesser() {
+
+	for _, name := range ProcessName {
+		driver, err := NewDriver(name)
+		if err != nil {
+			return
+		}
+		process := driver.New(p.Node, p.client, p.Done)
+		p.Processer[name] = process
+	}
+
+}
 func (p *P2p) SetQueueClient(cli queue.Client) {
 	var err error
 	p.api, err = client.New(cli, nil)
@@ -106,7 +119,7 @@ func (p *P2p) SetQueueClient(cli queue.Client) {
 	if p.client == nil {
 		p.client = cli
 	}
-
+	p.initProcesser()
 	go p.managePeers()
 	go p.subP2PMsg()
 
@@ -119,18 +132,17 @@ func (p *P2p) subP2PMsg() {
 
 	for msg := range p.client.Recv() {
 		switch msg.Ty {
-
-		case types.EventTxBroadcast: //广播tx
-
+		case types.EventTxBroadcast:
+			go p.Processer[BroadCastTx].DoProcess(msg)
 		case types.EventPeerInfo:
-			go p.Node.GetPeersInfo(msg)
+			go p.Processer[PeerInfo].DoProcess(msg)
 		case types.EventFetchBlockHeaders:
-			go p.Node.GetHeaders(msg)
+			go p.Processer[Header].DoProcess(msg)
 		case types.EventGetNetInfo:
-		//TODO
+			go p.Processer[NetInfo].DoProcess(msg)
 		case types.EventFetchBlocks:
-			//下载区块高度
-			go p.Node.GetBlocks(msg)
+			go p.Processer[Download].DoProcess(msg)
+
 		}
 	}
 }

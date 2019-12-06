@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	//p2pproto "github.com/33cn/chain33/p2p/p2p-next/protos"
 	"github.com/33cn/chain33/types"
 	ggio "github.com/gogo/protobuf/io"
 	proto "github.com/gogo/protobuf/proto"
@@ -16,38 +17,25 @@ import (
 )
 
 type Node struct {
-	peersInfo sync.Map
-	host      host.Host
-	*streamMange
-	*PeerInfoProtol
-	*HeaderInfoProtol
-	*DownloadBlockProtol
+	PeersInfo sync.Map
+	Host      host.Host
+	*StreamMange
 	chainCfg *types.Chain33Config
 	p2pCfg *types.P2P
 }
 
 func NewNode(p *P2p, cfg *types.Chain33Config) *Node {
-	node := &Node{host: p.Host}
-	node.PeerInfoProtol = NewPeerInfoProtol(node, p.client, p.Done)
-	node.streamMange = p.streamMang
+	node := &Node{Host: p.Host}
+	node.StreamMange = p.streamMang
 	node.chainCfg = cfg
 	node.p2pCfg = cfg.GetModuleConfig().P2P
 	return node
 }
 
-func (n *Node) ManagePeerInfo() {
 
-	for {
-		select {
-		case <-time.Tick(time.Second * 20):
-			n.PeerInfo()
-		}
-	}
-
-}
 
 // data: common p2p message data
-func (n *Node) authenticateMessage(message proto.Message, data *types.MessageComm) bool {
+func (n *Node) AuthenticateMessage(message proto.Message, data *types.MessageComm) bool {
 	// store a temp ref to signature and remove it from message data
 	// sign is a string to allow easy reset to zero-value (empty string)
 	sign := data.Sign
@@ -76,7 +64,7 @@ func (n *Node) authenticateMessage(message proto.Message, data *types.MessageCom
 }
 
 // sign an outgoing p2p message payload
-func (n *Node) signProtoMessage(message proto.Message) ([]byte, error) {
+func (n *Node) SignProtoMessage(message proto.Message) ([]byte, error) {
 	data, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err
@@ -86,7 +74,7 @@ func (n *Node) signProtoMessage(message proto.Message) ([]byte, error) {
 
 // sign binary data using the local node's private key
 func (n *Node) signData(data []byte) ([]byte, error) {
-	key := n.host.Peerstore().PrivKey(n.host.ID())
+	key := n.Host.Peerstore().PrivKey(n.Host.ID())
 	res, err := key.Sign(data)
 	return res, err
 }
@@ -131,14 +119,14 @@ func (n *Node) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyD
 func (n *Node) NewMessageData(messageId string, gossip bool) *types.MessageComm {
 	// Add protobufs bin data for message author public key
 	// this is useful for authenticating  messages forwarded by a node authored by another node
-	nodePubKey, err := n.host.Peerstore().PubKey(n.host.ID()).Bytes()
+	nodePubKey, err := n.Host.Peerstore().PubKey(n.Host.ID()).Bytes()
 
 	if err != nil {
 		panic("Failed to get public key for sender from local peer store.")
 	}
 
 	return &types.MessageComm{Version: "",
-		NodeId:     peer.IDB58Encode(n.host.ID()),
+		NodeId:     peer.IDB58Encode(n.Host.ID()),
 		NodePubKey: nodePubKey,
 		Timestamp:  time.Now().Unix(),
 		Id:         messageId,
@@ -148,7 +136,7 @@ func (n *Node) NewMessageData(messageId string, gossip bool) *types.MessageComm 
 // helper method - writes a protobuf go data object to a network stream
 // data: reference of protobuf go data object to send (not the object itself)
 // s: network stream to write the data to
-func (n *Node) sendProtoMessage(s net.Stream, p protocol.ID, data proto.Message) bool {
+func (n *Node) SendProtoMessage(s net.Stream, p protocol.ID, data proto.Message) bool {
 	writer := ggio.NewFullWriter(s)
 	err := writer.WriteMsg(data)
 	if err != nil {

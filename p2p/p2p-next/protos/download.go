@@ -1,4 +1,4 @@
-package p2p_next
+package protos
 
 import (
 	"io"
@@ -6,6 +6,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	next "github.com/33cn/chain33/p2p/p2p-next"
 
 	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
@@ -24,15 +26,19 @@ const (
 type DownloadBlockProtol struct {
 	client   queue.Client
 	done     chan struct{}
-	node     *Node                                 // local host
+	node     *next.Node                            // local host
 	requests map[string]*types.MessageGetBlocksReq // used to access request data from response handlers
 }
 
-func NewDownloadBlockProtol(node *Node, cli queue.Client, done chan struct{}) *DownloadBlockProtol {
+func init() {
+	next.Register("download", &DownloadBlockProtol{})
+}
+
+func (d *DownloadBlockProtol) New(node *next.Node, cli queue.Client, done chan struct{}) next.Driver {
 
 	Server := &DownloadBlockProtol{}
-	node.host.SetStreamHandler(downloadBlockReq, Server.onReq)
-	node.host.SetStreamHandler(downloadBlockResp, Server.onResp)
+	node.Host.SetStreamHandler(downloadBlockReq, Server.OnReq)
+	node.Host.SetStreamHandler(downloadBlockResp, Server.OnResp)
 	Server.requests = make(map[string]*types.MessageGetBlocksReq)
 	Server.node = node
 	Server.client = cli
@@ -41,7 +47,7 @@ func NewDownloadBlockProtol(node *Node, cli queue.Client, done chan struct{}) *D
 }
 
 //接收Response消息
-func (d *DownloadBlockProtol) onResp(s net.Stream) {
+func (d *DownloadBlockProtol) OnResp(s net.Stream) {
 	for {
 
 		data := &types.MessageGetBlocksResp{}
@@ -59,7 +65,7 @@ func (d *DownloadBlockProtol) onResp(s net.Stream) {
 			continue
 		}
 
-		valid := d.node.authenticateMessage(data, data.MessageData)
+		valid := d.node.AuthenticateMessage(data, data.MessageData)
 
 		if !valid {
 			logger.Error("Failed to authenticate message")
@@ -93,7 +99,7 @@ func (d *DownloadBlockProtol) onResp(s net.Stream) {
 	}
 }
 
-func (d *DownloadBlockProtol) onReq(s net.Stream) {
+func (d *DownloadBlockProtol) OnReq(s net.Stream) {
 	for {
 
 		var buf []byte
@@ -115,7 +121,7 @@ func (d *DownloadBlockProtol) onReq(s net.Stream) {
 			continue
 		}
 
-		valid := d.node.authenticateMessage(&data, data.MessageData)
+		valid := d.node.AuthenticateMessage(&data, data.MessageData)
 		if !valid {
 			logger.Error("Failed to authenticate message")
 			continue
@@ -156,7 +162,7 @@ func (d *DownloadBlockProtol) onReq(s net.Stream) {
 			Message: &types.InvDatas{p2pInvData}}
 
 		// sign the data
-		signature, err := d.node.signProtoMessage(blocksResp)
+		signature, err := d.node.SignProtoMessage(blocksResp)
 		if err != nil {
 			logger.Error("failed to sign response")
 			continue
@@ -164,7 +170,7 @@ func (d *DownloadBlockProtol) onReq(s net.Stream) {
 
 		// add the signature to the message
 		blocksResp.MessageData.Sign = signature
-		ok := d.node.sendProtoMessage(s, headerInfoResp, blocksResp)
+		ok := d.node.SendProtoMessage(s, downloadBlockResp, blocksResp)
 
 		if ok {
 			logger.Info("%s: Ping response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
@@ -174,7 +180,7 @@ func (d *DownloadBlockProtol) onReq(s net.Stream) {
 }
 
 //GetBlocks 接收来自chain33 blockchain模块发来的请求
-func (d *DownloadBlockProtol) GetBlocks(msg *queue.Message) {
+func (d *DownloadBlockProtol) DoProcess(msg *queue.Message) {
 
 	req := msg.GetData().(*types.ReqBlocks)
 	pids := req.GetPid()
@@ -185,7 +191,7 @@ func (d *DownloadBlockProtol) GetBlocks(msg *queue.Message) {
 	}
 
 	msg.Reply(d.client.NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	peersMap := d.node.peersInfo
+	peersMap := d.node.PeersInfo
 
 	for _, pid := range pids {
 		data, ok := peersMap.Load(pid)
@@ -196,7 +202,7 @@ func (d *DownloadBlockProtol) GetBlocks(msg *queue.Message) {
 		//去指定的peer上获取对应的blockHeader
 		peerId := peerinfo.GetName()
 
-		pstream := d.node.streamMange.GetStream(peerId)
+		pstream := d.node.StreamMange.GetStream(peerId)
 		if pstream == nil {
 			continue
 		}
@@ -211,14 +217,14 @@ func (d *DownloadBlockProtol) GetBlocks(msg *queue.Message) {
 				Message: getblocks}
 
 			// sign the data
-			signature, err := d.node.signProtoMessage(blockReq)
+			signature, err := d.node.SignProtoMessage(blockReq)
 			if err != nil {
 				logger.Error("failed to sign pb data")
 				return
 			}
 
 			blockReq.MessageData.Sign = signature
-			if d.node.sendProtoMessage(jStream.Stream, downloadBlockReq, blockReq) {
+			if d.node.SendProtoMessage(jStream.Stream, downloadBlockReq, blockReq) {
 				d.requests[blockReq.MessageData.Id] = blockReq
 			}
 
@@ -253,7 +259,7 @@ func (i jobs) Swap(a, b int) {
 
 func (d *DownloadBlockProtol) initStreamJob() jobs {
 	var jobStreams jobs
-	streams := d.node.streamMange.fetchStreams()
+	streams := d.node.StreamMange.FetchStreams()
 	for _, stream := range streams {
 		var jstream JobStream
 		jstream.Stream = stream

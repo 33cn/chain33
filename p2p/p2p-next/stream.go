@@ -9,21 +9,22 @@ import (
 	net "github.com/libp2p/go-libp2p-core/network"
 )
 
-type streamMange struct {
+type StreamMange struct {
 	StreamStore sync.Map
 	Host        host.Host
 }
 
-func NewStreamManage(host host.Host) *streamMange {
-	streamM := &streamMange{}
+func NewStreamManage(host host.Host) *StreamMange {
+	streamM := &StreamMange{}
 	streamM.Host = host
 	return streamM
 
 }
 
-func (s *streamMange) newStream(ctx context.Context, pr peer.AddrInfo) (net.Stream, error) {
+func (s *StreamMange) newStream(ctx context.Context, pr peer.AddrInfo) (net.Stream, error) {
 	//可以后续添加 block.ID,mempool.ID,header.ID
-	stream, err := s.Host.NewStream(ctx, pr.ID, tx.ID)
+
+	stream, err := s.Host.NewStream(ctx, pr.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -33,19 +34,19 @@ func (s *streamMange) newStream(ctx context.Context, pr peer.AddrInfo) (net.Stre
 
 }
 
-func (s *streamMange) deleteStream(pid string) {
+func (s *StreamMange) deleteStream(pid string) {
 	s.StreamStore.Delete(pid)
 
 }
 
-func (s *streamMange) GetStream(id string) net.Stream {
+func (s *StreamMange) GetStream(id string) net.Stream {
 	v, ok := s.StreamStore.Load(id)
 	if ok {
 		return v.(net.Stream)
 	}
 	return nil
 }
-func (s *streamMange) fetchStreams() []net.Stream {
+func (s *StreamMange) FetchStreams() []net.Stream {
 	var streams []net.Stream
 
 	s.StreamStore.Range(func(k, v interface{}) bool {
@@ -56,7 +57,7 @@ func (s *streamMange) fetchStreams() []net.Stream {
 	return streams
 }
 
-func (s *streamMange) Size() int {
+func (s *StreamMange) Size() int {
 	var streams []net.Stream
 	s.StreamStore.Range(func(k, v interface{}) bool {
 		streams = append(streams, v.(net.Stream))
