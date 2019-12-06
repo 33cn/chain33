@@ -329,7 +329,8 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	if !cfg.IsFork(block.Height, "ForkRootHash") {
 		calcHash = merkle.CalcMerkleRootCache(cacheTxs)
 	} else {
-		calcHash = merkle.CalcMerkleRoot(cfg, block.Height, block.Txs)
+		temtxs := types.TransactionSort(block.Txs)
+		calcHash = merkle.CalcMerkleRoot(cfg, block.Height, temtxs)
 	}
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
