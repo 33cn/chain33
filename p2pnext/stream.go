@@ -1,4 +1,4 @@
-package p2p_next
+package p2pnext
 
 import (
 	"context"

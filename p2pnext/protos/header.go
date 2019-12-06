@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	next "github.com/33cn/chain33/p2p/p2p-next"
+	next "github.com/33cn/chain33/p2pnext"
 	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
 

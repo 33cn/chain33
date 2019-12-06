@@ -1,12 +1,12 @@
-package p2p_next
+package p2pnext
 
 import (
 	"context"
 	"time"
 
+	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-discovery"
-	host "github.com/libp2p/go-libp2p-core/host"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 )
 
