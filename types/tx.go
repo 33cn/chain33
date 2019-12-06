@@ -788,140 +788,36 @@ func CalcTxShortHash(hash []byte) string {
 	return ""
 }
 
-//
-type TxSlice []*Transaction
+//TransactionSort:对主链以及平行链交易分类
+//构造一个map用于临时存储各个子链的交易, 按照title分类，主链交易的title设置成main
+//并对map按照title进行排序，不然每次遍历map顺序会不一致
+func TransactionSort(rawtxs []*Transaction) []*Transaction {
+	txMap := make(map[string]*Transactions)
 
-func (s TxSlice) Len() int {
-	return len(s)
-}
-func (s TxSlice) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-// 将 TxSlice 包装起来到 ByExecName 中
-type ByExecName struct {
-	TxSlice
-}
-
-// 将 Less 绑定到 ByExecName 上
-//主要将主链的交易都统一排在平行链的交易前面，主链的交易在比较时统一加“m”，
-//平行链交易的执行器都是以user.p.开头的.这样主链的交易都会排在平行链交易的前面
-func (s ByExecName) Less(i, j int) bool {
-
-	leftExecName := string(s.TxSlice[i].Execer)
-	rightExecName := string(s.TxSlice[j].Execer)
-
-	if !IsParaExecName(leftExecName) {
-		leftExecName = "m" + leftExecName
-	}
-	if !IsParaExecName(rightExecName) {
-		rightExecName = "m" + rightExecName
-	}
-	return leftExecName < rightExecName
-}
-
-//sortTxList 对交易数组按照指定规则排序
-//首先将交易列表中的交易组合并成单个组交易
-//然后对新的交易列表排序
-//再后将排序后的交易列表中的组交易展开，主要是交易组的特殊处理
-func sortTxList(txs []*Transaction) ([]*Transaction, error) {
-	var haveTxGroup bool
-	var err error
-	for _, tx := range txs {
-		if tx.GroupCount != 0 {
-			haveTxGroup = true
-			break
+	for _, tx := range rawtxs {
+		title, isPara := GetParaExecTitleName(string(tx.Execer))
+		if !isPara {
+			title = MainChainName
 		}
-	}
-	uniteTxIist := txs
-	if haveTxGroup {
-		uniteTxIist, err = uniteTxList(txs)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	sort.Sort(ByExecName{TxSlice: uniteTxIist})
-
-	return expandTxs(uniteTxIist)
-}
-
-//将交易列表中的交易组交易合并成一个组交易
-func uniteTxList(txs []*Transaction) ([]*Transaction, error) {
-	var txsList Transactions
-	txsCount := len(txs)
-	for i := 0; i < txsCount; i++ {
-		tx := txs[i]
-		if tx.GroupCount < 0 || tx.GroupCount == 1 || tx.GroupCount > 20 {
-			return nil, ErrTxGroupCount
-		}
-		//单个交易
-		if tx.GroupCount == 0 {
-			txsList.Txs = append(txsList.Txs, tx)
-			continue
-		}
-
-		//判断GroupCount 是否会产生越界
-		if i+int(tx.GroupCount) > txsCount {
-			return nil, ErrTxGroupCount
-		}
-
-		//将交易组交易合并成一个组交易
-		groupTx := uniteTxGroup(txs[i : i+int(tx.GroupCount)])
-		txsList.Txs = append(txsList.Txs, groupTx)
-
-		i = i + int(tx.GroupCount) - 1
-	}
-	return txsList.Txs, nil
-}
-
-//将一个交易组的所有交易合并成一个组交易
-func uniteTxGroup(txs []*Transaction) *Transaction {
-	txgroup := &Transactions{}
-	txgroup.Txs = txs
-	return txgroup.Tx()
-}
-
-//将排序后的交易列表中的组交易展开成交易组形式
-func expandTxs(txs []*Transaction) ([]*Transaction, error) {
-	var txsList Transactions
-	for i := 0; i < len(txs); i++ {
-		txGroup, err := txs[i].GetTxGroup()
-		if err != nil {
-			return nil, err
-		}
-		if txGroup == nil {
-			txsList.Txs = append(txsList.Txs, txs[i])
+		if txMap[title] != nil {
+			txMap[title].Txs = append(txMap[title].Txs, tx)
 		} else {
-			txsList.Txs = append(txsList.Txs, txGroup.Txs...)
+			var temptxs Transactions
+			temptxs.Txs = append(temptxs.Txs, tx)
+			txMap[title] = &temptxs
 		}
 	}
-	return txsList.Txs, nil
-}
 
-//TransactionSort:对打包上链的交易排序
-//需要过滤掉有些共识的特殊交易不参与排序，必须是第一笔交易,
-//iSpecialFirstTx:表示第一笔交易是否一笔特殊交易，true时第一笔交易不参与排序
-//例如：ticket,para,tendermint
-func TransactionSort(iSpecialFirstTx bool, rawtxs []*Transaction) ([]*Transaction, error) {
+	//需要按照title排序，不然每次遍历的map的顺序会不一致
+	var newMp = make([]string, 0)
+	for k, _ := range txMap {
+		newMp = append(newMp, k)
+	}
+	sort.Strings(newMp)
+
 	var txs Transactions
-	var haveMinerTx bool
-
-	if iSpecialFirstTx {
-		txs.Txs = append(txs.Txs, rawtxs[1:]...)
-		haveMinerTx = true
-	} else {
-		txs.Txs = append(txs.Txs, rawtxs[0:]...)
+	for _, v := range newMp {
+		txs.Txs = append(txs.Txs, txMap[v].GetTxs()...)
 	}
-	txlist, err := sortTxList(txs.Txs)
-	if err != nil {
-		tlog.Error("TransactionSort", "err", err, "txs", txs)
-		return nil, err
-	}
-	var sorTxs Transactions
-	if haveMinerTx {
-		sorTxs.Txs = append(sorTxs.Txs, rawtxs[0])
-	}
-	sorTxs.Txs = append(sorTxs.Txs, txlist...)
-	return sorTxs.Txs, nil
+	return txs.GetTxs()
 }

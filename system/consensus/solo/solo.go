@@ -130,13 +130,7 @@ func (client *Client) CreateBlock() {
 		newblock.Difficulty = cfg.GetP(0).PowLimitBits
 		//需要首先对交易进行排序然后再计算TxHash
 		if cfg.IsFork(newblock.GetHeight(), "ForkRootHash") {
-			sorttxs, err := types.TransactionSort(false, newblock.Txs)
-			if err != nil {
-				slog.Error("CreateBlock:TransactionSort", "err", err, "newblock.Txs", newblock.Txs)
-				issleep = true
-				continue
-			}
-			newblock.Txs = sorttxs
+			newblock.Txs = types.TransactionSort(newblock.Txs)
 		}
 		newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 		newblock.BlockTime = types.Now().Unix()

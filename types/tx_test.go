@@ -424,12 +424,8 @@ func TestSortTxList(t *testing.T) {
 	txList.Txs = append(txList.Txs, &tx2215)
 	txList.Txs = append(txList.Txs, &tx3215)
 
-	sorTxList, err := TransactionSort(false, txList.Txs)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
+	//交易只分类不排序，保证子链内部交易的顺序不变
+	sorTxList := TransactionSort(txList.Txs)
 	assert.Equal(t, len(txList.Txs), len(sorTxList))
 
 	for _, tx := range txList.Txs {
@@ -444,10 +440,35 @@ func TestSortTxList(t *testing.T) {
 		}
 		assert.Equal(t, equal, true)
 	}
+	//校验每个子链中交易的顺序没有变化
+	//计算期望的子主链交易的子roothash
+	var prevmainhashes [][]byte
+	prevmainhashes = append(prevmainhashes, tx12.Hash(), tx22.Hash(), tx32.Hash(), tx111.Hash(), tx221.Hash(), tx321.Hash(), tx1115.Hash(), tx2215.Hash(), tx3215.Hash())
 
-	//构建只有单笔交易的txs。主链和平行链
+	var prevfuzameihashes [][]byte
+	prevfuzameihashes = append(prevfuzameihashes, tx3211.Hash(), tx1114.Hash(), tx2214.Hash(), tx3214.Hash())
+
+	var prevparahashes [][]byte
+	prevparahashes = append(prevparahashes, tx2211.Hash(), tx1113.Hash(), tx2213.Hash(), tx3213.Hash())
+
+	var prevtesthashes [][]byte
+	prevtesthashes = append(prevtesthashes, tx1111.Hash(), tx1112.Hash(), tx2212.Hash(), tx3212.Hash())
+
+	// 校验分类之后各个子链中交易的顺序是否是我们期望的
+	for j, sorttx := range sorTxList {
+		if j < 9 {
+			assert.Equal(t, prevmainhashes[j], sorttx.Hash())
+		} else if j >= 9 && j <= 12 {
+			assert.Equal(t, prevfuzameihashes[j-9], sorttx.Hash())
+		} else if j >= 13 && j <= 16 {
+			assert.Equal(t, prevparahashes[j-13], sorttx.Hash())
+		} else {
+			assert.Equal(t, prevtesthashes[j-17], sorttx.Hash())
+		}
+	}
+	//构建只有主链交易
 	var txSingleList Transactions
-	tx51111, tx52211, tx53211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.js", "user.p.para.lottery", "user.p.fuzamei.norm")
+	tx51111, tx52211, tx53211 := modifyTxExec(tx12, tx22, tx32, "coins", "token", "hashlock")
 	txSingleList.Txs = append(txSingleList.Txs, &tx51111)
 	txSingleList.Txs = append(txSingleList.Txs, &tx52211)
 	txSingleList.Txs = append(txSingleList.Txs, &tx53211)
@@ -457,80 +478,11 @@ func TestSortTxList(t *testing.T) {
 	txSingleList.Txs = append(txSingleList.Txs, &tx62211)
 	txSingleList.Txs = append(txSingleList.Txs, &tx63211)
 
-	sorTxSingleList, err := TransactionSort(false, txSingleList.Txs)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	sorTxSingleList := TransactionSort(txSingleList.Txs)
 	assert.Equal(t, len(txSingleList.Txs), len(sorTxSingleList))
-	for _, tx := range txSingleList.Txs {
-		var equal bool
-		txHash := tx.Hash()
-		for _, sorttx := range sorTxSingleList {
-			sortHash := sorttx.Hash()
-			if bytes.Equal(sortHash, txHash) {
-				equal = true
-				break
-			}
-		}
-		assert.Equal(t, equal, true)
-	}
-	var prev string
-	for i, sorttx := range sorTxSingleList {
-		if 0 == i {
-			prev = string(sorttx.Execer)
-			if !IsParaExecName(string(sorttx.Execer)) {
-				prev = "m" + string(sorttx.Execer)
-			}
-		} else {
-			cur := string(sorttx.Execer)
-			if !IsParaExecName(string(sorttx.Execer)) {
-				cur = "m" + string(sorttx.Execer)
-			}
-			if cur < prev {
-				t.Error("TransactionSort:fail!")
-				return
-			}
-			prev = cur
-		}
-	}
-
-	//构建第一笔是特殊交易不参与排序
-	var txSpecialList Transactions
-	tx71111, tx72211, tx73211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.js", "user.p.para.lottery", "user.p.fuzamei.norm")
-	txSpecialList.Txs = append(txSpecialList.Txs, &tx71111)
-	txSpecialList.Txs = append(txSpecialList.Txs, &tx72211)
-	txSpecialList.Txs = append(txSpecialList.Txs, &tx73211)
-
-	tx81111, tx82211, tx83211 := modifyTxExec(tx12, tx22, tx32, "ajs", "zottery", "norm")
-	txSpecialList.Txs = append(txSpecialList.Txs, &tx81111)
-	txSpecialList.Txs = append(txSpecialList.Txs, &tx82211)
-	txSpecialList.Txs = append(txSpecialList.Txs, &tx83211)
-
-	sorTxSpecialList, err := TransactionSort(true, txSpecialList.Txs)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	assert.Equal(t, len(txSpecialList.Txs), len(sorTxSpecialList))
-	for i, sorttx := range sorTxSpecialList {
-		var equal bool
-		//第一笔不参与排序
-		if i == 0 {
-			assert.Equal(t, "user.p.test.js", string(sorttx.Execer))
-		}
-		if i == 1 {
-			assert.Equal(t, "ajs", string(sorttx.Execer))
-		}
-		sortHash := sorttx.Hash()
-		for _, tx := range txSpecialList.Txs {
-			txHash := tx.Hash()
-			if bytes.Equal(sortHash, txHash) {
-				equal = true
-				break
-			}
-		}
-		assert.Equal(t, equal, true)
+	//分类前后交易的顺序一致
+	for i, tx := range txSingleList.Txs {
+		assert.Equal(t, tx.Hash(), sorTxSingleList[i].Hash())
 	}
 }
 

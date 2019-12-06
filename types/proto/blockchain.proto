@@ -286,6 +286,7 @@ message HeaderSeqs {
 // childHash:平行链子roothash值
 // startIndex:此平行链的第一笔交易的index索引值
 // childHashIndex:此平行链子roothash在本区块中的索引值
+// txCount:此平行链交易的个数
 message HeightPara {
     int64  height         = 1;
     string title          = 2;
@@ -293,6 +294,7 @@ message HeightPara {
     bytes  childHash      = 4;
     int32  startIndex     = 5;
     uint32 childHashIndex = 6;
+    int32  txCount        = 7;
 }
 
 message HeightParas {
@@ -300,10 +302,15 @@ message HeightParas {
 }
 
 //记录平行链第一笔交易的index,以及平行链的roothash
+// title:子链名字，主链的默认是main
+// startIndex:子链第一笔交易的索引
+// childHash:子链的根hash
+// txCount:子链交易的数量
 message ChildChain {
     string title      = 1;
     int32  startIndex = 2;
     bytes  childHash  = 3;
+    int32  txCount    = 4;
 }
 
 //通过指定title以及height翻页获取拥有此title交易的区块高度列表

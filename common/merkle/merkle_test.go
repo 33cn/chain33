@@ -490,11 +490,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	txList.Txs = append(txList.Txs, &tx2215)
 	txList.Txs = append(txList.Txs, &tx3215)
 
-	sorTxList, err := types.TransactionSort(false, txList.Txs)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	sorTxList := types.TransactionSort(txList.Txs)
 
 	assert.Equal(t, len(txList.Txs), len(sorTxList))
 
@@ -540,18 +536,22 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	assert.Equal(t, childMixChainHash[0].ChildHash, oldMixMainHash)
 	assert.Equal(t, childMixChainHash[0].StartIndex, int32(0))
 	assert.Equal(t, childMixChainHash[0].Title, types.MainChainName)
+	assert.Equal(t, childMixChainHash[0].GetTxCount(), int32(9))
 	//fuzamei平行链子roothash的检测
 	assert.Equal(t, childMixChainHash[1].ChildHash, oldMixFuzameiHash)
 	assert.Equal(t, childMixChainHash[1].StartIndex, int32(9))
 	assert.Equal(t, childMixChainHash[1].Title, "user.p.fuzamei.")
+	assert.Equal(t, childMixChainHash[1].GetTxCount(), int32(4))
 	//para平行链子roothash的检测
 	assert.Equal(t, childMixChainHash[2].ChildHash, oldMixParaHash)
 	assert.Equal(t, childMixChainHash[2].StartIndex, int32(13))
 	assert.Equal(t, childMixChainHash[2].Title, "user.p.para.")
+	assert.Equal(t, childMixChainHash[2].GetTxCount(), int32(4))
 	//test平行链子roothash的检测
 	assert.Equal(t, childMixChainHash[3].ChildHash, oldMixTestHash)
 	assert.Equal(t, childMixChainHash[3].StartIndex, int32(17))
 	assert.Equal(t, childMixChainHash[3].Title, "user.p.test.")
+	assert.Equal(t, childMixChainHash[3].GetTxCount(), int32(4))
 
 	var leaves [][]byte
 	for _, childChain := range childMixChainHash {
@@ -586,17 +586,15 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	}
 	txMainList.Txs = append(txMainList.Txs, txGroup.GetTxs()...)
 
-	sorTxMainList, err := types.TransactionSort(false, txMainList.Txs)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	sorTxMainList := types.TransactionSort(txMainList.Txs)
+
 	newrootHash, childHash := CalcMultiLayerMerkleInfo(cfg, 1, sorTxMainList)
 	oldrootHash := calcSingleLayerMerkleRoot(sorTxMainList)
 	assert.Equal(t, newrootHash, oldrootHash)
 	assert.Equal(t, childHash[0].ChildHash, oldrootHash)
 	assert.Equal(t, childHash[0].StartIndex, int32(0))
 	assert.Equal(t, childHash[0].Title, types.MainChainName)
+	assert.Equal(t, childHash[0].GetTxCount(), int32(6))
 
 	roothashTem := CalcMerkleRoot(cfg, 0, sorTxMainList)
 	assert.Equal(t, roothashTem, oldrootHash)
@@ -622,11 +620,8 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	}
 	txParaTestList.Txs = append(txParaTestList.Txs, txGroup.GetTxs()...)
 
-	sorTxParaTestList, err := types.TransactionSort(false, txParaTestList.Txs)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	sorTxParaTestList := types.TransactionSort(txParaTestList.Txs)
+
 	newPararootHash, childParaHash := CalcMultiLayerMerkleInfo(cfg, 1, sorTxParaTestList)
 	oldPararootHash := calcSingleLayerMerkleRoot(sorTxParaTestList)
 	assert.Equal(t, newPararootHash, oldPararootHash)
@@ -634,6 +629,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	assert.Equal(t, childParaHash[0].ChildHash, oldPararootHash)
 	assert.Equal(t, childParaHash[0].StartIndex, int32(0))
 	assert.Equal(t, childParaHash[0].Title, "user.p.test.")
+	assert.Equal(t, childParaHash[0].GetTxCount(), int32(6))
 
 	//构造一个主链和一个平行链的交易列表
 	var txMPList types.Transactions
@@ -642,11 +638,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	txMPList.Txs = append(txMPList.Txs, &tx92211)
 	txMPList.Txs = append(txMPList.Txs, &tx93211)
 
-	sorTxMPList, err := types.TransactionSort(false, txMPList.Txs)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	sorTxMPList := types.TransactionSort(txMPList.Txs)
 
 	var hashes [][]byte
 	oldMrootHash := calcSingleLayerMerkleRoot(sorTxMPList[0:2])
@@ -663,10 +655,12 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	assert.Equal(t, childMainParaHash[0].ChildHash, oldMrootHash)
 	assert.Equal(t, childMainParaHash[0].StartIndex, int32(0))
 	assert.Equal(t, childMainParaHash[0].Title, types.MainChainName)
+	assert.Equal(t, childMainParaHash[0].GetTxCount(), int32(2))
 
 	assert.Equal(t, childMainParaHash[1].ChildHash, oldProotHash)
 	assert.Equal(t, childMainParaHash[1].StartIndex, int32(2))
 	assert.Equal(t, childMainParaHash[1].Title, "user.p.test.")
+	assert.Equal(t, childMainParaHash[1].GetTxCount(), int32(1))
 
 	//构造一个主链和三个平行链的交易列表
 	var txMThreePList types.Transactions
@@ -685,11 +679,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	txMThreePList.Txs = append(txMThreePList.Txs, &tx312211)
 	txMThreePList.Txs = append(txMThreePList.Txs, &tx313211)
 
-	sorTxMThreePList, err := types.TransactionSort(false, txMThreePList.Txs)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	sorTxMThreePList := types.TransactionSort(txMThreePList.Txs)
 
 	var mThreePhashes [][]byte
 
@@ -718,14 +708,17 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	assert.Equal(t, childMThreePHash[0].ChildHash, mainRootHash)
 	assert.Equal(t, childMThreePHash[0].StartIndex, int32(0))
 	assert.Equal(t, childMThreePHash[0].Title, types.MainChainName)
+	assert.Equal(t, childMThreePHash[0].GetTxCount(), int32(3))
 
 	assert.Equal(t, childMThreePHash[1].ChildHash, paraRootHash)
 	assert.Equal(t, childMThreePHash[1].StartIndex, int32(3))
 	assert.Equal(t, childMThreePHash[1].Title, "user.p.para.")
+	assert.Equal(t, childMThreePHash[1].GetTxCount(), int32(3))
 
 	assert.Equal(t, childMThreePHash[2].ChildHash, testRootHash)
 	assert.Equal(t, childMThreePHash[2].StartIndex, int32(6))
 	assert.Equal(t, childMThreePHash[2].Title, "user.p.test.")
+	assert.Equal(t, childMThreePHash[2].GetTxCount(), int32(3))
 
 	roothash1, childHash1 := CalcMultiLayerMerkleInfo(cfg, 0, sorTxMThreePList)
 	assert.Nil(t, roothash1)

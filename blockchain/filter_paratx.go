@@ -210,13 +210,15 @@ func (chain *BlockChain) getMultiLayerProofs(height int64, blockHash []byte, Txs
 	var hashes [][]byte
 	var exist bool
 	var childHash []byte
-	//proofs := make([]*types.TxProof, 2)
+	var txCount int32
 	var proofs []*types.TxProof
+
 	for _, paratx := range replyparaTxs.Items {
 		if title == paratx.Title && bytes.Equal(blockHash, paratx.GetHash()) {
 			startIndex = paratx.GetStartIndex()
 			childIndex = paratx.ChildHashIndex
 			childHash = paratx.ChildHash
+			txCount = paratx.GetTxCount()
 			exist = true
 		}
 		hashes = append(hashes, paratx.ChildHash)
@@ -229,21 +231,15 @@ func (chain *BlockChain) getMultiLayerProofs(height int64, blockHash []byte, Txs
 		return proofs
 	}
 
+	endindex := startIndex + txCount
 	//不存在或者获取到的索引错误直接返回
-	if !exist || startIndex > index || childIndex >= uint32(len(replyparaTxs.Items)) {
+	if !exist || startIndex > index || endindex > int32(len(Txs)) || childIndex >= uint32(len(replyparaTxs.Items)) {
 		filterlog.Error("getMultiLayerProofs", "height", height, "blockHash", common.ToHex(blockHash), "exist", exist, "replyparaTxs", replyparaTxs)
 		filterlog.Error("getMultiLayerProofs", "startIndex", startIndex, "index", index, "childIndex", childIndex)
 		return nil
 	}
 
-	//主链和平行链交易都存在
-	var endindex int32
-	if childIndex+1 < uint32(len(replyparaTxs.Items)) {
-		endindex = replyparaTxs.Items[childIndex+1].GetStartIndex()
-	} else {
-		endindex = int32(len(Txs))
-	}
-
+	//主链和平行链交易都存在,获取本子链所有交易的hash值
 	var childHashes [][]byte
 	for i := startIndex; i < endindex; i++ {
 		childHashes = append(childHashes, Txs[i].Hash())

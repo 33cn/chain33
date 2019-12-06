@@ -212,24 +212,6 @@ func saveHeaderTable(db dbm.DB, header *types.Header) ([]*types.KeyValue, error)
 	return kvs, nil
 }
 
-/*
-//delHeaderTable 删除block header
-func delHeaderTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyValue, error) {
-	kvdb := dbm.NewKVDB(db)
-	table := NewHeaderTable(kvdb)
-
-	err := table.Del(calcHeightHashKey(height, hash))
-	if err != nil {
-		return nil, err
-	}
-
-	kvs, err := table.Save()
-	if err != nil {
-		return nil, err
-	}
-	return kvs, nil
-}
-*/
 //通过指定的index获取对应的blockheader
 //通过高度获取：height+hash；indexName="",prefix=nil,primaryKey=calcHeightHashKey
 //通过index获取：hash; indexName="hash",prefix=HeaderRow.Get(indexName),primaryKey=nil
@@ -338,6 +320,7 @@ func saveParaTxTable(cfg *types.Chain33Config, db dbm.DB, height int64, hash []b
 				ChildHash:      childhash.ChildHash,
 				StartIndex:     childhash.StartIndex,
 				ChildHashIndex: uint32(i),
+				TxCount:        childhash.GetTxCount(),
 			}
 			err := table.Replace(paratx)
 			if err != nil {

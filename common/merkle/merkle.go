@@ -381,6 +381,7 @@ func calcMultiLayerMerkleInfo(txs []*types.Transaction) ([]byte, []types.ChildCh
 	if chainCount <= 1 {
 		merkleRoot := calcSingleLayerMerkleRoot(txs)
 		childchains[0].ChildHash = merkleRoot
+		childchains[0].TxCount = int32(txsCount)
 		return merkleRoot, childchains
 	}
 
@@ -395,6 +396,7 @@ func calcMultiLayerMerkleInfo(txs []*types.Transaction) ([]byte, []types.ChildCh
 		} else {
 			end = int(childchains[index+1].StartIndex)
 		}
+		childchains[index].TxCount = int32(end) - start
 		go func(index int, subtxs []*types.Transaction) {
 			subChainRoot := calcSingleLayerMerkleRoot(subtxs)
 			ch <- &childstate{
