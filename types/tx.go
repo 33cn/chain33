@@ -810,7 +810,7 @@ func TransactionSort(rawtxs []*Transaction) []*Transaction {
 
 	//需要按照title排序，不然每次遍历的map的顺序会不一致
 	var newMp = make([]string, 0)
-	for k, _ := range txMap {
+	for k := range txMap {
 		newMp = append(newMp, k)
 	}
 	sort.Strings(newMp)
