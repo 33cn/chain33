@@ -250,14 +250,14 @@ func AutoMineCmd() *cobra.Command {
 }
 
 func addAutoMineFlags(cmd *cobra.Command) {
-	cmd.Flags().Int32P("flag", "f", 0, `auto mine(0: off, 1: on)`)
+	cmd.Flags().Int32P("flag", "f", 0, `auto mine(0: off, 1: on, 3: ycc on, 4: ycc off)`)
 	cmd.MarkFlagRequired("flag")
 }
 
 func autoMine(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	flag, _ := cmd.Flags().GetInt32("flag")
-	if flag != 0 && flag != 1 {
+	if flag < 0 && flag > 4 {
 		err := cmd.UsageFunc()(cmd)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -269,8 +269,14 @@ func autoMine(cmd *cobra.Command, args []string) {
 	}{
 		Flag: flag,
 	}
+
+	m := "ticket.SetAutoMining"
+	if flag > 2 {
+		m = "pos33.SetAutoMining"
+		params.Flag -= 2
+	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "ticket.SetAutoMining", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, m, params, &res)
 	ctx.Run()
 }
 
