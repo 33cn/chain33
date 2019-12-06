@@ -22,12 +22,16 @@ type Node struct {
 	*PeerInfoProtol
 	*HeaderInfoProtol
 	*DownloadBlockProtol
+	chainCfg *types.Chain33Config
+	p2pCfg *types.P2P
 }
 
-func NewNode(p *P2p) *Node {
+func NewNode(p *P2p, cfg *types.Chain33Config) *Node {
 	node := &Node{host: p.Host}
 	node.PeerInfoProtol = NewPeerInfoProtol(node, p.client, p.Done)
 	node.streamMange = p.streamMang
+	node.chainCfg = cfg
+	node.p2pCfg = cfg.GetModuleConfig().P2P
 	return node
 }
 
@@ -158,9 +162,9 @@ func (n *Node) sendProtoMessage(s net.Stream, p protocol.ID, data proto.Message)
 
 
 func (n *Node) GetChainCfg() *types.Chain33Config {
-	return nil
+	return n.chainCfg
 }
 
 func (n *Node) GetP2pCfg() *types.P2P {
-	return nil
+	return n.p2pCfg
 }
