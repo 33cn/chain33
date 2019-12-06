@@ -15,15 +15,15 @@ type QueueProtocolAPI struct {
 }
 
 // AddSeqCallBack provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) AddSeqCallBack(param *types.BlockSeqCB) (*types.Reply, error) {
+func (_m *QueueProtocolAPI) AddSeqCallBack(param *types.BlockSeqCB) (*types.ReplyAddSeqCallback, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.BlockSeqCB) *types.Reply); ok {
+	var r0 *types.ReplyAddSeqCallback
+	if rf, ok := ret.Get(0).(func(*types.BlockSeqCB) *types.ReplyAddSeqCallback); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
+			r0 = ret.Get(0).(*types.ReplyAddSeqCallback)
 		}
 	}
 

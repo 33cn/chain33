@@ -969,7 +969,7 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 		Encode: "json",
 	}
 	blockchain.MaxSeqCB = 2
-	err := chain.ProcAddBlockSeqCB(cb)
+	_, err := chain.ProcAddBlockSeqCB(cb)
 	require.NoError(t, err)
 
 	cbs, err := chain.ProcListBlockSeqCB()
@@ -994,7 +994,7 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 		Encode:   "json",
 		IsHeader: true,
 	}
-	err = chain.ProcAddBlockSeqCB(cb1)
+	_, err = chain.ProcAddBlockSeqCB(cb1)
 	require.NoError(t, err)
 
 	cbs, err = chain.ProcListBlockSeqCB()
@@ -1019,7 +1019,7 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 		Encode: "json",
 	}
 
-	err = chain.ProcAddBlockSeqCB(cb2)
+	_, err = chain.ProcAddBlockSeqCB(cb2)
 	if err != types.ErrTooManySeqCB {
 		t.Error("testAddBlockSeqCB", "cb", cb2, "err", err)
 	}

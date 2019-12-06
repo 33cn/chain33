@@ -152,7 +152,7 @@ type QueueProtocolAPI interface {
 	CloseQueue() (*types.Reply, error)
 	// --------------- other interfaces end
 	// types.EventAddBlockSeqCB
-	AddSeqCallBack(param *types.BlockSeqCB) (*types.Reply, error)
+	AddSeqCallBack(param *types.BlockSeqCB) (*types.ReplyAddSeqCallback, error)
 
 	// types.EventListBlockSeqCB
 	ListSeqCallBack() (*types.BlockSeqCBs, error)

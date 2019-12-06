@@ -38,8 +38,9 @@ type BlockChain struct {
 	client queue.Client
 	cache  *BlockCache
 	// 永久存储数据到db中
-	blockStore *BlockStore
-	pushseq    *pushseq
+	blockStore  *BlockStore
+	pushseq     *pushseq
+	pushservice *PushService1
 	//cache  缓存block方便快速查询
 	cfg          *types.BlockChain
 	syncTask     *Task
@@ -229,7 +230,9 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
-	chain.pushseq = newpushseq(chain.blockStore)
+
+	chain.pushservice = newPushService(chain.blockStore, chain.blockStore)
+	chain.pushseq = newpushseq(chain.blockStore, chain.pushservice.pushStore)
 	//startTime
 	chain.startTime = types.Now()
 

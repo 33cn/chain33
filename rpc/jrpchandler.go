@@ -1136,9 +1136,15 @@ func (c *Chain33) AddSeqCallBack(in *types.BlockSeqCB, result *interface{}) erro
 	if err != nil {
 		return err
 	}
-	var resp rpctypes.Reply
+	var resp rpctypes.ReplyAddCallback
 	resp.IsOk = reply.GetIsOk()
 	resp.Msg = string(reply.GetMsg())
+	if reply.GetSeqs() != nil {
+		for _, seq := range reply.Seqs {
+			hash := common.ToHex(seq.Hash)
+			resp.Seqs = append(resp.Seqs, &rpctypes.Sequence{Hash: hash, Type: seq.Type, Height: seq.Height, Sequence: seq.Sequence})
+		}
+	}
 	*result = &resp
 	return nil
 }

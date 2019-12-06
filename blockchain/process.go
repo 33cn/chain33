@@ -377,7 +377,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 	//目前非平行链并开启isRecordBlockSequence功能
 	if b.isRecordBlockSequence {
-		b.pushseq.updateSeq(lastSequence)
+		b.pushseq.UpdateSeq(lastSequence)
 	}
 	return blockdetail, nil
 }
@@ -445,7 +445,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 
 	//目前非平行链并开启isRecordBlockSequence功能
 	if b.isRecordBlockSequence {
-		b.pushseq.updateSeq(lastSequence)
+		b.pushseq.UpdateSeq(lastSequence)
 	}
 	return nil
 }
