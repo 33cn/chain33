@@ -250,7 +250,7 @@ func AutoMineCmd() *cobra.Command {
 }
 
 func addAutoMineFlags(cmd *cobra.Command) {
-	cmd.Flags().Int32P("flag", "f", 0, `auto mine(0: off, 1: on, 3: ycc on, 4: ycc off)`)
+	cmd.Flags().Int32P("flag", "f", 0, `auto mine(0: off, 1: on, 2: ycc off, 3: ycc on)`)
 	cmd.MarkFlagRequired("flag")
 }
 
