@@ -168,6 +168,9 @@ const (
 	//通过平行链title获取平行链的交易
 	EventGetParaTxByTitle   = 306
 	EventReplyParaTxByTitle = 307
+
+	EventParaSelfConsensusAccount   = 308
+	EventReplyParaSelfConsensusAccount = 309
 )
 
 var eventName = map[int]string{
@@ -323,4 +326,6 @@ var eventName = map[int]string{
 	EventGetValueByKey:              "EventGetValueByKey",
 	EventGetParaTxByTitle:           "EventGetParaTxByTitle",
 	EventReplyParaTxByTitle:         "EventReplyParaTxByTitle",
+	EventParaSelfConsensusAccount:   "EventParaSelfConsensusAccount",
+	EventReplyParaSelfConsensusAccount: "EventReplyParaSelfConsensusAccount",
 }

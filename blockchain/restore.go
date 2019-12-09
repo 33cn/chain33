@@ -85,7 +85,7 @@ func (chain *BlockChain) ReExecBlock(startHeight, curHeight int64) {
 		if chain.cfg.EnableReExecLocal {
 			// 保存tx信息到db中
 			newbatch := chain.blockStore.NewBatch(false)
-			err = chain.blockStore.AddTxs(newbatch, blockdetail)
+			err = chain.blockStore.AddTxs(newbatch, blockdetail, chain.parachainPrivacyTxManager)
 			if err != nil {
 				panic(fmt.Sprintf("execBlockEx connectBlock readd Txs fail height=%d err=%s, this not allow fail", i, err.Error()))
 			}

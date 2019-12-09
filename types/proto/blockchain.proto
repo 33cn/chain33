@@ -269,3 +269,9 @@ message HeaderSeq {
 message HeaderSeqs {
     repeated HeaderSeq seqs = 1;
 }
+
+message ParaSelfConsensusAccount {
+    int32 signType   = 1;
+    bytes privateKey = 2;
+    string address   = 3;
+}

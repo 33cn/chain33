@@ -235,14 +235,14 @@ func CreateCoinsBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *t
 }
 
 // ExecBlock : just exec block
-func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool, addrAndPrivKey *AddrAndPrivKey) (*types.BlockDetail, []*types.Transaction, error) {
+func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool, privacyTxManager *ParachainPrivacyTxManager) (*types.BlockDetail, []*types.Transaction, error) {
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := types.Now()
 	defer func() {
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
 	}()
 
-	detail, deltx, err := PreExecBlock(client, prevStateRoot, block, errReturn, sync, checkblock, addrAndPrivKey)
+	detail, deltx, err := PreExecBlock(client, prevStateRoot, block, errReturn, sync, checkblock, privacyTxManager)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -255,7 +255,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 }
 
 // PreExecBlock : pre exec block
-func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool, addrAndPrivKey *AddrAndPrivKey) (*types.BlockDetail, []*types.Transaction, error) {
+func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool, privacyTxManager *ParachainPrivacyTxManager) (*types.BlockDetail, []*types.Transaction, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	beg := types.Now()
@@ -280,7 +280,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	ulog.Debug("PreExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
 	block.Txs = types.CacheToTxs(cacheTxs)
 	//println("1")
-	receipts, err := ExecTx(client, prevStateRoot, block, addrAndPrivKey)
+	receipts, err := ExecTx(client, prevStateRoot, block, privacyTxManager)
 	if err != nil {
 		return nil, nil, err
 	}

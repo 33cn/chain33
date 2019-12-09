@@ -11,8 +11,8 @@ import (
 )
 
 //执行区块将变成一个私有的函数
-func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
-	return util.ExecBlock(client, prevStateRoot, block, errReturn, sync, true, nil)
+func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool, privacyTxManager *util.ParachainPrivacyTxManager) (*types.BlockDetail, []*types.Transaction, error) {
+	return util.ExecBlock(client, prevStateRoot, block, errReturn, sync, true, privacyTxManager)
 }
 
 //从本地执行区块

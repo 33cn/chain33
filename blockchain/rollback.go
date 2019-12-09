@@ -88,7 +88,7 @@ func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64
 	newbatch := chain.blockStore.NewBatch(true)
 
 	//从db中删除tx相关的信息
-	err := chain.blockStore.DelTxs(newbatch, blockdetail)
+	err := chain.blockStore.DelTxs(newbatch, blockdetail, chain.parachainPrivacyTxManager)
 	if err != nil {
 		chainlog.Error("disBlock DelTxs:", "height", blockdetail.Block.Height, "err", err)
 		return err

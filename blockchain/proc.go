@@ -7,6 +7,7 @@ package blockchain
 //message callback
 import (
 	"fmt"
+	"github.com/33cn/chain33/common/crypto"
 	"sync/atomic"
 
 	"github.com/33cn/chain33/common"
@@ -95,6 +96,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 		//通过平行链title获取平行链的交易
 		case types.EventGetParaTxByTitle:
 			go chain.processMsg(msg, reqnum, chain.getParaTxByTitle)
+		case types.EventParaSelfConsensusAccount:
+			go chain.processMsg(msg, reqnum, chain.getParaSelfConsensusAccount)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -493,14 +496,14 @@ func (chain *BlockChain) addParaChainBlockDetail(msg *queue.Message) {
 
 	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash(chain.client.GetConfig())))
 	// 平行链上P2P模块关闭，不用广播区块
-	_, err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
+	blockDetail, err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
 		msg.Reply(chain.client.NewMessage("p2p", types.EventReply, err))
 	}
 	//回复消息只为blockchain和para之间的串行执行，避免para在blockchain未处理完成前，就再次请求
 	chainlog.Debug("EventAddParaChainBlockDetail", "success", "ok")
-	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, nil))
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, blockDetail))
 }
 
 //parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
@@ -611,4 +614,27 @@ func (chain *BlockChain) getParaTxByTitle(msg *queue.Message) {
 		return
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
+}
+
+func (chain *BlockChain) getParaSelfConsensusAccount(msg *queue.Message) {
+	paraSelfConsensusAccount, ok := (msg.Data).(*types.ParaSelfConsensusAccount);
+	if !ok {
+		chainlog.Error("getParaSelfConsensusAccount", "Recv wrong data format as:", msg.Data)
+		return
+	}
+	secp, err := crypto.New(types.GetSignName("", int(paraSelfConsensusAccount.SignType)))
+	if err != nil {
+		chainlog.Error("getParaSelfConsensusAccount", "wrong sign type:", paraSelfConsensusAccount.SignType)
+		return
+	}
+	priKey, err := secp.PrivKeyFromBytes(paraSelfConsensusAccount.PrivateKey)
+	if err != nil {
+		chainlog.Error("getParaSelfConsensusAccount", "wrong private key:", common.ToHex(paraSelfConsensusAccount.PrivateKey))
+		return
+	}
+	chain.parachainPrivacyTxManager.SelfConsensusAddr = paraSelfConsensusAccount.Address
+	chain.parachainPrivacyTxManager.SelfConsensusPrivateKey = priKey
+	chainlog.Info("getParaSelfConsensusAccount", "Succeed to set private key for address:", paraSelfConsensusAccount.Address)
+	msg.Reply(chain.client.NewMessage("", types.EventReplyParaSelfConsensusAccount, nil))
+	return
 }

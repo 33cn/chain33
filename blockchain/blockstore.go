@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/33cn/chain33/util"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -658,8 +659,8 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 }
 
 //AddTxs 通过批量存储tx信息到db中
-func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail) error {
-	kv, err := bs.getLocalKV(blockDetail)
+func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail, privacyTxManager *util.ParachainPrivacyTxManager) error {
+	kv, err := bs.getLocalKV(blockDetail, privacyTxManager)
 	if err != nil {
 		storeLog.Error("indexTxs getLocalKV err", "Height", blockDetail.Block.Height, "err", err)
 		return err
@@ -676,11 +677,11 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 }
 
 //DelTxs 通过批量删除tx信息从db中
-func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail) error {
+func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail, privacyTxManager *util.ParachainPrivacyTxManager) error {
 	//存储key:addr:flag:height ,value:txhash
 	//flag :0-->from,1--> to
 	//height=height*10000+index 存储账户地址相关的交易
-	kv, err := bs.getDelLocalKV(blockDetail)
+	kv, err := bs.getDelLocalKV(blockDetail, privacyTxManager)
 	if err != nil {
 		storeLog.Error("indexTxs getLocalKV err", "Height", blockDetail.Block.Height, "err", err)
 		return err
@@ -791,10 +792,16 @@ func (bs *BlockStore) GetBlockHeaderByHash(hash []byte) (*types.Header, error) {
 	return &header, nil
 }
 
-func (bs *BlockStore) getLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, error) {
+func (bs *BlockStore) getLocalKV(detail *types.BlockDetail, privacyTxManager *util.ParachainPrivacyTxManager) (*types.LocalDBSet, error) {
 	if bs.client == nil {
 		panic("client not bind message queue.")
 	}
+	var txsBk map[int]*types.Transaction
+	var bk bool = false
+	if bs.client.GetConfig().IsPara() {
+	    bk, txsBk = util.ConvertPrivacyTx2Plain(detail.Block.Txs, privacyTxManager, detail.Block.Height)
+	}
+
 	msg := bs.client.NewMessage("execs", types.EventAddBlock, detail)
 	err := bs.client.Send(msg, true)
 	if err != nil {
@@ -805,12 +812,42 @@ func (bs *BlockStore) getLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, 
 		return nil, err
 	}
 	kv := resp.GetData().(*types.LocalDBSet)
+	//如果有隐私交易，则进行恢复
+	if bk {
+		cfg := bs.client.GetConfig()
+		replaceKeyAndRestoreTxs(cfg, detail.Block.Txs, txsBk, kv)
+	}
 	return kv, nil
 }
+//将交易hash替换为原有密文交易hash，这样后续就可以直接通过密文交易hash查找执行结果
+//将block中的交易恢复成密文交易
+func replaceKeyAndRestoreTxs(cfg *types.Chain33Config, txs []*types.Transaction, txsBk map[int]*types.Transaction, kv *types.LocalDBSet) {
+	for i, privacyTx := range txsBk {
+		txhash := txs[i].Hash()
+		txKey := cfg.CalcTxKey(txhash)
+		for _, kv := range kv.KV {
+			if bytes.Equal(kv.Key, txKey) {
+				kv.Key = cfg.CalcTxKey(privacyTx.Hash())
+			}
+			if cfg.IsEnable("quickIndex") {
+				txShortKey := types.CalcTxShortKey(txhash)
+				if bytes.Equal(kv.Key, txShortKey) {
+					kv.Key = types.CalcTxShortKey(privacyTx.Hash())
+				}
+			}
+		}
+		txs[i] = privacyTx
+	}
+}
 
-func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, error) {
+func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail, privacyTxManager *util.ParachainPrivacyTxManager) (*types.LocalDBSet, error) {
 	if bs.client == nil {
 		panic("client not bind message queue.")
+	}
+	var txsBk map[int]*types.Transaction
+	var bk bool = false
+	if bs.client.GetConfig().IsPara() {
+		bk, txsBk = util.ConvertPrivacyTx2Plain(detail.Block.Txs, privacyTxManager, detail.Block.Height)
 	}
 	msg := bs.client.NewMessage("execs", types.EventDelBlock, detail)
 	err := bs.client.Send(msg, true)
@@ -822,6 +859,12 @@ func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSe
 		return nil, err
 	}
 	localDBSet := resp.GetData().(*types.LocalDBSet)
+	//如果有隐私交易，则进行恢复
+	if bk {
+		cfg := bs.client.GetConfig()
+		replaceKeyAndRestoreTxs(cfg, detail.Block.Txs, txsBk, localDBSet)
+	}
+
 	return localDBSet, nil
 }
 

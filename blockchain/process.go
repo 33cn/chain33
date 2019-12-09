@@ -279,25 +279,25 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	block := blockdetail.Block
 	cfg := b.client.GetConfig()
 	//主链才需要触发执行，平行链区块在共识协议中已经执行
-	if !cfg.IsPara() {
-		prevStateHash := b.bestChain.Tip().statehash
-		errReturn := (node.pid != "self")
-		blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync)
-		if err != nil {
-			//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
-			if IsRecordFaultErr(err) {
-				b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
-			} else if node.pid == "self" {
-				// 本节点产生的block由于api或者queue导致执行失败需要删除block在index中的记录，
-				// 返回错误信息给共识模块，由共识模块尝试再次发起block的执行
-				// 同步或者广播过来的情况会再下了一个区块过来后重新触发此block的执行
-				chainlog.Debug("connectBlock DelNode!", "height", block.Height, "node.hash", common.ToHex(node.hash), "err", err)
-				b.index.DelNode(node.hash)
-			}
-			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
-			return nil, err
+
+	prevStateHash := b.bestChain.Tip().statehash
+	errReturn := (node.pid != "self")
+	blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync, b.parachainPrivacyTxManager)
+	if err != nil {
+		//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
+		if IsRecordFaultErr(err) {
+			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
+		} else if node.pid == "self" {
+			// 本节点产生的block由于api或者queue导致执行失败需要删除block在index中的记录，
+			// 返回错误信息给共识模块，由共识模块尝试再次发起block的执行
+			// 同步或者广播过来的情况会再下了一个区块过来后重新触发此block的执行
+			chainlog.Debug("connectBlock DelNode!", "height", block.Height, "node.hash", common.ToHex(node.hash), "err", err)
+			b.index.DelNode(node.hash)
 		}
+		chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
+		return nil, err
 	}
+
 	//要更新node的信息
 	if node.pid == "self" {
 		prevhash := node.hash
@@ -311,7 +311,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	newbatch := b.blockStore.NewBatch(sync)
 
 	//保存tx信息到db中
-	err = b.blockStore.AddTxs(newbatch, blockdetail)
+	err = b.blockStore.AddTxs(newbatch, blockdetail, b.parachainPrivacyTxManager)
 	if err != nil {
 		chainlog.Error("connectBlock indexTxs:", "height", block.Height, "err", err)
 		return nil, err
@@ -398,7 +398,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	newbatch := b.blockStore.NewBatch(true)
 
 	//从db中删除tx相关的信息
-	err := b.blockStore.DelTxs(newbatch, blockdetail)
+	err := b.blockStore.DelTxs(newbatch, blockdetail, b.parachainPrivacyTxManager)
 	if err != nil {
 		chainlog.Error("disconnectBlock DelTxs:", "height", blockdetail.Block.Height, "err", err)
 		return err
