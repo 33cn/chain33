@@ -5,13 +5,13 @@ import (
 	"io/ioutil"
 	"time"
 
-	next "github.com/33cn/chain33/p2p/p2p-next"
+	next "github.com/33cn/chain33/p2pnext"
 	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	net "github.com/libp2p/go-libp2p-net"
+	net "github.com/libp2p/go-libp2p-core/network"
 )
 
 const (

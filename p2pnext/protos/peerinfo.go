@@ -7,12 +7,12 @@ import (
 
 	logging "github.com/ipfs/go-log"
 
-	next "github.com/33cn/chain33/p2p/p2p-next"
+	next "github.com/33cn/chain33/p2pnext"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
-	net "github.com/libp2p/go-libp2p-net"
+	net "github.com/libp2p/go-libp2p-core/network"
 )
 
 const (

@@ -1,20 +1,19 @@
 package broadcast
 
 import (
-	core "github.com/libp2p/go-libp2p-core"
 	"io"
 	"sync"
 	"time"
 
+	core "github.com/libp2p/go-libp2p-core"
+
 	logger "github.com/33cn/chain33/common/log/log15"
+	common "github.com/33cn/chain33/p2p"
+	p2p "github.com/33cn/chain33/p2pnext"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	host "github.com/libp2p/go-libp2p-core/host"
-	common "github.com/33cn/chain33/p2p"
-	p2p "github.com/33cn/chain33/p2p/p2p-next"
 )
-
-type pubFuncType func(interface{}, core.Stream)
 
 var log = logger.New("module", "p2p.broadcast")
 
@@ -22,18 +21,16 @@ const ID = "/chain33/p2p/broadcast/1.0.0"
 
 //
 type Service struct {
-
-	streams  sync.Map
-	txFilter *common.Filterdata
-	blockFilter *common.Filterdata
-	txSendFilter *common.Filterdata
+	streams         sync.Map
+	txFilter        *common.Filterdata
+	blockFilter     *common.Filterdata
+	txSendFilter    *common.Filterdata
 	blockSendFilter *common.Filterdata
 	totalBlockCache *common.SpaceLimitCache
-	ltBlockCache *common.SpaceLimitCache
+	ltBlockCache    *common.SpaceLimitCache
 
-	node *p2p.Node
+	node   *p2p.Node
 	client queue.Client
-
 }
 
 //  NewService
@@ -43,11 +40,11 @@ func New(h host.Host) *Service {
 	h.SetStreamHandler(ID, handler.recvStream)
 
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
-	handler.txFilter    = common.NewFilter(TxRecvFilterCacheNum)
+	handler.txFilter = common.NewFilter(TxRecvFilterCacheNum)
 	handler.blockFilter = common.NewFilter(BlockFilterCacheNum)
 
 	//发送交易和区块时过滤缓存, 解决冗余广播发送
-	handler.txSendFilter    = common.NewFilter(TxSendFilterCacheNum)
+	handler.txSendFilter = common.NewFilter(TxSendFilterCacheNum)
 	handler.blockSendFilter = common.NewFilter(BlockFilterCacheNum)
 
 	//在本地暂时缓存一些区块数据, 限制最大大小
@@ -84,15 +81,13 @@ func (s *Service) queryStream(pid string, data interface{}) {
 	}
 }
 
-func (s *Service)sendStream(stream core.Stream, data interface{}) (int, error) {
+func (s *Service) sendStream(stream core.Stream, data interface{}) (int, error) {
 
 	pid := stream.Conn().RemotePeer().Pretty()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
 	sendData, _ := s.handleSend(data, pid, peerAddr)
 	return stream.Write(types.Encode(sendData))
 }
-
-
 
 // Service
 func (s *Service) recvStream(stream core.Stream) {
@@ -113,7 +108,7 @@ func (s *Service) recvStream(stream core.Stream) {
 
 		}
 		//解析处理
-		recvData :=  &types.BroadCastData{}
+		recvData := &types.BroadCastData{}
 		err = types.Decode(buf, recvData)
 		if err != nil {
 			continue
@@ -124,8 +119,6 @@ func (s *Service) recvStream(stream core.Stream) {
 	}
 
 }
-
-
 
 func (s *Service) handleSend(rawData interface{}, pid, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
 	//出错处理
@@ -139,9 +132,9 @@ func (s *Service) handleSend(rawData interface{}, pid, peerAddr string) (sendDat
 	sendData = &types.BroadCastData{}
 	doSend = false
 	if tx, ok := rawData.(*types.P2PTx); ok {
-		doSend = s.sendTx(tx, sendData,  pid, peerAddr)
+		doSend = s.sendTx(tx, sendData, pid, peerAddr)
 	} else if blc, ok := rawData.(*types.P2PBlock); ok {
-		doSend = s.sendBlock(blc, sendData,  pid, peerAddr)
+		doSend = s.sendBlock(blc, sendData, pid, peerAddr)
 	} else if query, ok := rawData.(*types.P2PQueryData); ok {
 		doSend = s.sendQueryData(query, sendData, peerAddr)
 	} else if rep, ok := rawData.(*types.P2PBlockTxReply); ok {
@@ -186,7 +179,6 @@ func (s *Service) handleReceive(data *types.BroadCastData, pid string, peerAddr 
 	return
 }
 
-
 func (s *Service) queryMempool(ty int64, data interface{}) (interface{}, error) {
 
 	msg := s.client.NewMessage("mempool", ty, data)
@@ -224,7 +216,6 @@ func checkAndRegFilterAtomic(filter *common.Filterdata, key string) (exist bool)
 	return false
 }
 
-
 type sendFilterInfo struct {
 	//记录广播交易或区块时需要忽略的节点, 这些节点可能是交易的来源节点,也可能节点间维护了多条连接, 冗余发送
 	ignoreSendPeers map[string]bool
@@ -246,7 +237,3 @@ func addIgnoreSendPeerAtomic(filter *common.Filterdata, key, pid string) (exist 
 	info.ignoreSendPeers[pid] = true
 	return exist
 }
-
-
-
-

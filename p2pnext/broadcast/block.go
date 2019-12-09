@@ -3,6 +3,7 @@ package broadcast
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
 )
@@ -41,7 +42,6 @@ func (s *Service) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData,
 
 	return true
 }
-
 
 func (s *Service) recvBlock(block *types.P2PBlock, pid, peerAddr string) {
 
@@ -164,4 +164,3 @@ func (s *Service) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string) {
 	//需要将不完整的block预存
 	s.ltBlockCache.Add(blockHash, block, int64(block.Size()))
 }
-

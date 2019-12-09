@@ -6,10 +6,9 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client"
-
+	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
@@ -17,7 +16,7 @@ import (
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
-var logger = log.Logger("Testp2p")
+var logger = log.New("module", "p2p-next")
 
 type P2p struct {
 	Host       host.Host
@@ -59,6 +58,7 @@ func New(cfg *types.Chain33Config) *P2p {
 	p2p.streamMang = NewStreamManage(host)
 	p2p.Processer = make(map[string]Driver)
 	p2p.discovery = new(Discovery)
+	p2p.Node = NewNode(p2p, cfg)
 	return p2p
 
 }
@@ -90,6 +90,9 @@ func (p *P2p) managePeers() {
 	}
 
 }
+func (p *P2p) Wait() {
+
+}
 
 func (p *P2p) Close() {
 	close(p.Done)
@@ -116,7 +119,6 @@ func (p *P2p) SetQueueClient(cli queue.Client) {
 	if p.client == nil {
 		p.client = cli
 	}
-	p.Node = NewNode(p)
 	p.initProcesser()
 	go p.managePeers()
 	go p.subP2PMsg()
