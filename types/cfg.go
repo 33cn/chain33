@@ -149,7 +149,9 @@ type BlockChain struct {
 	// 回退是否保存区块
 	RollbackSave bool `protobuf:"varint,16,opt,name=rollbackSave" json:"rollbackSave,omitempty"`
 	// 最新区块上链超时时间，单位秒。
-	OnChainTimeout int64 `protobuf:"varint,16,opt,name=onChainTimeout" json:"onChainTimeout,omitempty"`
+	OnChainTimeout int64 `protobuf:"varint,17,opt,name=onChainTimeout" json:"onChainTimeout,omitempty"`
+	// 使能精简localdb
+	EnableReduceLocaldb bool `protobuf:"varint,18,opt,name=enableReduceLocaldb" json:"enableReduceLocaldb,omitempty"`
 }
 
 // P2P 配置

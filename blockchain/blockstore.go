@@ -179,7 +179,138 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 			}
 		}
 	}
+	if cfg.IsEnable("reduceLocaldb") {
+		blockStore.initReduceLocaldb(height)
+	} else {
+		flagHeight, _ := blockStore.loadFlag(types.ReduceLocaldbHeight) //一旦开启reduceLocaldb，这后续不能关闭
+		if flagHeight != 0 {
+			panic("toml config disable reduce localdb, but database enable reduce localdb")
+		}
+	}
 	return blockStore
+}
+
+// 初始化启动时候执行
+func (bs *BlockStore) initReduceLocaldb(height int64) {
+	flag, err := bs.loadFlag(types.FlagReduceLocaldb)
+	if err != nil {
+		panic(err)
+	}
+	flagHeight, err := bs.loadFlag(types.ReduceLocaldbHeight)
+	if err != nil {
+		panic(err)
+	}
+	if flag == 0 {
+		endHeight := height - MaxRollBlockNum
+		if endHeight > flagHeight {
+			chainlog.Info("start reduceLocaldb", "start height", flagHeight, "end height", endHeight)
+			bs.reduceLocaldb(flagHeight, endHeight, false, bs.reduceBodyInit,
+				func(batch dbm.Batch, height int64) {
+					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data:height}))
+				})
+			// CompactRange执行将会阻塞仅仅做一次压缩
+			chainlog.Info("reduceLocaldb start compact db")
+			bs.db.CompactRange(nil, nil)
+			chainlog.Info("reduceLocaldb end compact db")
+		}
+		bs.saveReduceLocaldbFlag()
+	}
+}
+
+func (bs *BlockStore) saveReduceLocaldbFlag() {
+	kv := types.FlagKV(types.FlagReduceLocaldb, 1)
+	err := bs.db.Set(kv.Key, kv.Value)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (bs *BlockStore) reduceLocaldb(start, end int64, sync bool, fn func(batch dbm.Batch, height int64),
+	fnflag func(batch dbm.Batch, height int64)) {
+	// 删除
+	const batchDataSize = 1024 * 1024 * 1
+	newbatch := bs.NewBatch(sync)
+	for i := start; i <= end; i++ {
+		fn(newbatch, i)
+		if newbatch.ValueSize() > batchDataSize {
+			// 记录当前高度
+			fnflag(newbatch, i)
+			dbm.MustWrite(newbatch)
+			newbatch.Reset()
+			chainlog.Info("reduceLocaldb",  "height", i)
+		}
+	}
+	if newbatch.ValueSize() > 0 {
+		// 记录当前高度
+		fnflag(newbatch, end)
+		dbm.MustWrite(newbatch)
+		newbatch.Reset()
+		chainlog.Info("reduceLocaldb end",  "height", end)
+	}
+}
+
+// reduceBody 将body中的receipt进行精简；
+func (bs *BlockStore) reduceBody(batch dbm.Batch, height int64) {
+	body, err := bs.loadBlockBody(height)
+	if err == nil {
+		for i := 0; i < len(body.Receipts); i++ {
+			body.Receipts[i].Logs = nil
+		}
+		batch.Set(calcHashToBlockBodyKey(body.MainHash), types.Encode(body))
+	}
+}
+
+// reduceBodyInit 将body中的receipt进行精简；将TxHashPerfix为key的TxResult中的receipt和tx字段进行精简
+func (bs *BlockStore) reduceBodyInit(batch dbm.Batch, height int64) {
+	cfg := bs.client.GetConfig()
+	body, err := bs.loadBlockBody(height)
+	if err == nil {
+		for j := 0; j < len(body.Receipts); j++ {
+			body.Receipts[j].Logs = nil
+		}
+		batch.Set(calcHashToBlockBodyKey(body.MainHash), types.Encode(body))
+		for _, tx := range body.Txs {
+			hash := tx.Hash()
+			value, err := bs.db.Get(cfg.CalcTxKey(hash))
+			if err != nil {
+				panic(err)
+			}
+			txresult := &types.TxResult{}
+			err = types.Decode(value, txresult)
+			if err != nil {
+				panic(err)
+			}
+			batch.Set(cfg.CalcTxKey(hash), cfg.CalcTxKeyValue(txresult))
+			// 之前执行quickIndex时候未对无用hash做删除处理，占用空间，因此这里删除
+			if cfg.IsEnable("quickIndex") {
+				batch.Delete(hash)
+			}
+		}
+	}
+}
+
+//loadBlockBody 通过height高度获取BlockBody信息
+func (bs *BlockStore) loadBlockBody(height int64) (*types.BlockBody, error) {
+	//首先通过height获取block hash从db中
+	hash, err := bs.GetBlockHashByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+	//通过hash获取blockbody
+	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
+	if body == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("LoadBlockByHash calcHashToBlockBodyKey ", "err", err)
+		}
+		return nil, types.ErrHashNotExist
+	}
+	var blockbody types.BlockBody
+	err = proto.Unmarshal(body, &blockbody)
+	if err != nil {
+		storeLog.Error("LoadBlockByHash", "err", err)
+		return nil, err
+	}
+	return &blockbody, nil
 }
 
 //步骤:
@@ -654,7 +785,27 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &txResult, nil
+	return bs.getRealTxResult(&txResult), nil
+}
+
+func (bs *BlockStore) getRealTxResult(txr *types.TxResult) *types.TxResult  {
+	cfg := bs.client.GetConfig()
+	if !cfg.IsEnable("reduceLocaldb") {
+		return txr
+	}
+	// 如果是精简版的localdb 则需要从block中获取tx交易内容以及receipt
+	blockinfo, err := bs.LoadBlockByHeight(txr.Height)
+	if err != nil {
+		chainlog.Error("getRealTxResult LoadBlockByHeight", "height", txr.Height, "error", err)
+		return txr
+	}
+	if int(txr.Index) < len(blockinfo.Block.Txs) {
+		txr.Tx = blockinfo.Block.Txs[txr.Index]
+	}
+	if int(txr.Index) < len(blockinfo.Receipts) {
+		txr.Receiptdate = blockinfo.Receipts[txr.Index]
+	}
+	return txr
 }
 
 //AddTxs 通过批量存储tx信息到db中

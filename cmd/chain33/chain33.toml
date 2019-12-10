@@ -51,6 +51,8 @@ isParaChain=false
 enableTxQuickIndex=false
 # 升级storedb是否重新执行localdb
 enableReExecLocal=false
+# 使能精简localdb
+enableReduceLocaldb=true
 
 [p2p]
 # P2P服务监听端口号
