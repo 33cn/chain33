@@ -171,6 +171,9 @@ const (
 
 	EventParaSelfConsensusAccount   = 308
 	EventReplyParaSelfConsensusAccount = 309
+	EventGeneratePrivacyTxQueryId  = 310
+	EventReplyGeneratePrivacyTxQueryId =  311
+	EventGetPrivacyTransactionByHash  = 312
 )
 
 var eventName = map[int]string{
@@ -328,4 +331,8 @@ var eventName = map[int]string{
 	EventReplyParaTxByTitle:         "EventReplyParaTxByTitle",
 	EventParaSelfConsensusAccount:   "EventParaSelfConsensusAccount",
 	EventReplyParaSelfConsensusAccount: "EventReplyParaSelfConsensusAccount",
+	EventGeneratePrivacyTxQueryId: "EventGeneratePrivacyTxQueryId",
+	EventReplyGeneratePrivacyTxQueryId: "EventReplyGeneratePrivacyTxQueryId",
+	EventGetPrivacyTransactionByHash: "EventGetPrivacyTransactionByHash",
+
 }

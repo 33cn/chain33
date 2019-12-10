@@ -133,7 +133,10 @@ type QueueProtocolAPI interface {
 	GetLastBlockMainSequence() (*types.Int64, error)
 	//types.EventGetSequenceByHash:
 	GetMainSequenceByHash(param *types.ReqHash) (*types.Int64, error)
-
+	// types.EventGetPrivacyTransactionByHash
+	GetPrivacyTransactionByHash(param *types.ReqPrivacyHashes) (*types.TransactionDetails, error)
+	// types.EventGeneratePrivacyTxQueryId
+	GetNewPrivacyTxQueryId() (*types.ReplyString, error)
 	// --------------- blockchain interfaces end
 
 	// +++++++++++++++ store interfaces begin

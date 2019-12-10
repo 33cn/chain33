@@ -5,6 +5,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/33cn/chain33/common"
@@ -60,7 +61,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 //	Txs []*Transaction
 //}
 //通过hashs获取交易详情
-func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *types.TransactionDetails, err error) {
+func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte, enablePrivacyQuery bool) (TxDetails *types.TransactionDetails, err error) {
 	if int64(len(hashs)) > types.MaxBlockCountPerTime {
 		return nil, types.ErrMaxCountPerTime
 	}
@@ -70,6 +71,16 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
 			setTxDetailFromTxResult(&txDetail, txresult)
+			if bytes.HasSuffix([]byte(txDetail.Tx.Execer),  []byte(types.PrivacyTx4Para)) && enablePrivacyQuery == false {
+				txDetail.Receipt = nil
+				txDetail.ActionName = ""
+				txDetail.Amount = 0
+			}
+
+			if bytes.HasSuffix([]byte(txDetail.Tx.Execer),  []byte(types.PrivacyTx4Para)) && enablePrivacyQuery == true {
+				chainlog.Info("ProcGetTransactionByHashes", "privacy tx key:", common.ToHex(txhash),
+					"value hash:", common.ToHex(common.Sha256(types.Encode(txresult))))
+			}
 
 			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)

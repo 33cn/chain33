@@ -223,6 +223,36 @@ func (q *QueueProtocol) GetTransactionByHash(param *types.ReqHashes) (*types.Tra
 	return nil, types.ErrTypeAsset
 }
 
+func (q *QueueProtocol) GetNewPrivacyTxQueryId() (*types.ReplyString, error) {
+	log.Info("GetNewPrivacyTxQueryId", "get now", "yes")
+	msg, err := q.send(blockchainKey, types.EventGeneratePrivacyTxQueryId, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetNewPrivacyTxQueryId", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyString); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) GetPrivacyTransactionByHash(param *types.ReqPrivacyHashes) (*types.TransactionDetails, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetPrivacyTransactionByHash", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(blockchainKey, types.EventGetPrivacyTransactionByHash, param)
+	if err != nil {
+		log.Error("GetPrivacyTransactionByHash", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.TransactionDetails); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 // GetMempool get transactions from mempool
 func (q *QueueProtocol) GetMempool(req *types.ReqGetMempool) (*types.ReplyTxList, error) {
 	msg, err := q.send(mempoolKey, types.EventGetMempool, req)

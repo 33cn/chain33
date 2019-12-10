@@ -14,6 +14,11 @@ const (
 	aesKeyLength   = 32 // in bytes
 )
 
+// GenerateRandomId: generates a random Id
+func GenerateRandomId() ([]byte, error) {
+	return GenerateSymKey()
+}
+
 // GenerateSymKey: generates a random symmetric key
 func GenerateSymKey() ([]byte, error) {
 	key, err := generateSecureRandomData(aesKeyLength)
