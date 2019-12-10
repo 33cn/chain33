@@ -74,6 +74,8 @@ func (chain *BlockChain) localSet(msg *queue.Message) {
 		err := tx.Set(kvs.KV[i].Key, kvs.KV[i].Value)
 		if err != nil {
 			chainlog.Error("localSet", "i", i, "key", string(kvs.KV[i].Key), "err", err)
+			msg.Reply(chain.client.NewMessage("", types.EventLocalSet, err))
+			return
 		}
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventLocalSet, nil))
