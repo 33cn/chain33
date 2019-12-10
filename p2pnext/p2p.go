@@ -12,6 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/peer"
 	host "github.com/libp2p/go-libp2p-host"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
@@ -64,13 +65,24 @@ func New(cfg *types.Chain33Config) *P2p {
 	p2p.discovery = new(Discovery)
 	p2p.Node = NewNode(p2p, cfg)
 
-	logger.Info("NewP2p", "peerId", p2p.Host.ID())
+	logger.Info("NewP2p", "peerId", p2p.Host.ID(), "addrs", p2p.Host.Addrs())
 	return p2p
 
 }
 
 func (p *P2p) managePeers() {
+	for _, seed := range p.Node.p2pCfg.Seeds {
+		addr, _ := multiaddr.NewMultiaddr(seed)
 
+		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
+		if err != nil {
+			panic(err)
+		}
+		logger.Info("xxx", "pid:", peerinfo.ID, "addr", peerinfo.Addrs)
+		_, err = p.streamMang.newStream(context.Background(), *peerinfo)
+		logger.Error(err.Error())
+		//p.Host.Connect(context.Background(), peerinfo)
+	}
 	peerChan, err := p.discovery.FindPeers(context.Background(), p.Host)
 	if err != nil {
 		panic("PeerFind Err")
