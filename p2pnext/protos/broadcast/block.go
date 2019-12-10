@@ -9,7 +9,6 @@ import (
 )
 
 func (s *Service) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pid, peerAddr string) (doSend bool) {
-
 	byteHash := block.Block.Hash(s.node.GetChainCfg())
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送
@@ -22,6 +21,7 @@ func (s *Service) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData,
 	if len(block.Block.Txs) < 1 {
 		return false
 	}
+	//首先发起liteBlock broadcast
 	ltBlock := &types.LightBlock{}
 	ltBlock.Size = int64(types.Size(block.Block))
 	ltBlock.Header = block.Block.GetHeader(s.node.GetChainCfg())
@@ -94,7 +94,8 @@ func (s *Service) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string) {
 	ok := false
 	//get tx list from mempool
 	if len(ltBlock.STxHashes) > 0 {
-		resp, err := s.queryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: ltBlock.STxHashes, IsShortHash: true})
+		resp, err := s.sendToMempool(types.EventTxListByHash,
+			&types.ReqTxHashList{Hashes: ltBlock.STxHashes, IsShortHash: true})
 		if err != nil {
 			log.Error("recvLtBlock", "queryTxListByHashErr", err)
 			return
@@ -112,6 +113,7 @@ func (s *Service) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string) {
 			//tx not exist in mempool
 			nilTxIndices = append(nilTxIndices, int32(i+1))
 			tx = &types.Transaction{}
+			block.Txs = append(block.Txs, tx)
 		} else if count := tx.GetGroupCount(); count > 0 {
 
 			group, err := tx.GetTxGroup()
@@ -124,10 +126,8 @@ func (s *Service) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string) {
 			block.Txs = append(block.Txs, group.Txs...)
 			//跳过遍历
 			i += len(group.Txs) - 1
-			continue
 		}
 
-		block.Txs = append(block.Txs, tx)
 	}
 	nilTxLen := len(nilTxIndices)
 	//需要比较交易根哈希是否一致, 不一致需要请求区块内所有的交易
@@ -148,7 +148,8 @@ func (s *Service) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string) {
 		float32(block.Size()) < float32(ltBlock.Size)/3) {
 		nilTxIndices = nilTxIndices[:0]
 	}
-	log.Debug("recvLtBlock", "queryBlockHash", blockHash, "queryHeight", ltBlock.GetHeader().GetHeight(), "queryTxNum", len(nilTxIndices))
+	log.Debug("recvLtBlock", "queryBlockHash", blockHash,
+		"queryHeight", ltBlock.GetHeader().GetHeight(), "queryTxNum", len(nilTxIndices))
 
 	// query not exist txs
 	query := &types.P2PQueryData{

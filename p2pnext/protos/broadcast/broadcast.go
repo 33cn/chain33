@@ -2,17 +2,15 @@ package broadcast
 
 import (
 	"io"
-	"sync"
 	"time"
-
-	core "github.com/libp2p/go-libp2p-core"
 
 	logger "github.com/33cn/chain33/common/log/log15"
 	common "github.com/33cn/chain33/p2p"
 	p2p "github.com/33cn/chain33/p2pnext"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	host "github.com/libp2p/go-libp2p-core/host"
+	uuid "github.com/google/uuid"
+	net "github.com/libp2p/go-libp2p-core/network"
 )
 
 var log = logger.New("module", "p2p.broadcast")
@@ -21,24 +19,23 @@ const ID = "/chain33/p2p/broadcast/1.0.0"
 
 //
 type Service struct {
-	streams         sync.Map
 	txFilter        *common.Filterdata
 	blockFilter     *common.Filterdata
 	txSendFilter    *common.Filterdata
 	blockSendFilter *common.Filterdata
 	totalBlockCache *common.SpaceLimitCache
 	ltBlockCache    *common.SpaceLimitCache
-
-	node   *p2p.Node
-	client queue.Client
+	node            *p2p.Node
+	client          queue.Client
+	done            chan struct{}
 }
 
-//  NewService
-func New(h host.Host) *Service {
+//New
+func (s *Service) New(node *p2p.Node, cli queue.Client, done chan struct{}) p2p.Driver {
 
 	handler := &Service{}
-	h.SetStreamHandler(ID, handler.recvStream)
-
+	node.Host.SetStreamHandler(ID, handler.OnResp)
+	s.node = node
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
 	handler.txFilter = common.NewFilter(TxRecvFilterCacheNum)
 	handler.blockFilter = common.NewFilter(BlockFilterCacheNum)
@@ -56,45 +53,64 @@ func New(h host.Host) *Service {
 }
 
 //
-func (s *Service) sendAllStream(msg *queue.Message) {
+func (s *Service) DoProcess(msg *queue.Message) {
 
 	data := msg.GetData()
-	s.streams.Range(func(k, v interface{}) bool {
-		stream := v.(core.Stream)
-		_, err := s.sendStream(k.(core.Stream), data)
-		if err != nil {
-			stream.Close()
-			s.streams.Delete(k)
-		}
-		return true
-	})
-}
-
-func (s *Service) queryStream(pid string, data interface{}) {
-
-	if v, ok := s.streams.Load(pid); ok {
-		stream := v.(core.Stream)
-		_, err := s.sendStream(stream, data)
-		if err != nil {
-			s.streams.Delete(stream)
-		}
+	streams := s.node.FetchStreams()
+	for _, stream := range streams {
+		s.sendStream(stream, data)
 	}
+
 }
 
-func (s *Service) sendStream(stream core.Stream, data interface{}) (int, error) {
+func (s *Service) queryStream(pid string, data interface{}) bool {
+
+	stream := s.node.GetStream(pid)
+	if stream != nil {
+		return s.sendStream(stream, data)
+	}
+
+	return false
+
+}
+
+func (s *Service) sendStream(stream net.Stream, data interface{}) bool {
 
 	pid := stream.Conn().RemotePeer().Pretty()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
 	sendData, _ := s.handleSend(data, pid, peerAddr)
-	return stream.Write(types.Encode(sendData))
+	//包装一层MessageBroadCast
+	broadData := &types.MessageBroadCast{Common: s.node.NewMessageData(uuid.New().String(), true),
+		Message: sendData}
+
+	// sign the data
+	signature, err := s.node.SignProtoMessage(broadData)
+	if err != nil {
+		logger.Error("failed to sign pb data")
+		return false
+	}
+
+	broadData.Common.Sign = signature
+	ok := s.node.SendProtoMessage(stream, ID, broadData)
+	if !ok {
+		stream.Close()
+		s.node.DeleteStream(pid)
+		return false
+	}
+
+	return true
+
 }
 
+//OnRep
+func (s *Service) OnReq(stream net.Stream) {}
+
 // Service
-func (s *Service) recvStream(stream core.Stream) {
+func (s *Service) OnResp(stream net.Stream) {
 
 	pid := stream.Conn().RemotePeer().Pretty()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
-	s.streams.Store(pid, stream)
+	s.node.Store(pid, stream)
 	var buf []byte
 	for {
 		_, err := io.ReadFull(stream, buf)
@@ -103,16 +119,24 @@ func (s *Service) recvStream(stream core.Stream) {
 				continue
 			}
 			stream.Close()
-			s.streams.Delete(stream)
+			s.node.DeleteStream(pid)
 			return
 
 		}
 		//解析处理
-		recvData := &types.BroadCastData{}
-		err = types.Decode(buf, recvData)
+		var data types.MessageBroadCast
+		err = types.Decode(buf, &data)
 		if err != nil {
 			continue
 		}
+
+		valid := s.node.AuthenticateMessage(&data, data.Common)
+		if !valid {
+			logger.Error("Failed to authenticate message")
+			continue
+		}
+
+		recvData := data.Message
 
 		_ = s.handleReceive(recvData, pid, peerAddr)
 
@@ -120,11 +144,12 @@ func (s *Service) recvStream(stream core.Stream) {
 
 }
 
+// handleSend 对数据进行处理，包装成BroadCast结构
 func (s *Service) handleSend(rawData interface{}, pid, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
 	//出错处理
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("processSendP2P_Panic", "sendData", rawData, "peerAddr", peerAddr, "recoverErr", r)
+			log.Error("handleSend_Panic", "sendData", rawData, "peerAddr", peerAddr, "recoverErr", r)
 			doSend = false
 		}
 	}()
@@ -143,7 +168,7 @@ func (s *Service) handleSend(rawData interface{}, pid, peerAddr string) (sendDat
 		doSend = true
 		sendData.Value = &types.BroadCastData_Ping{Ping: ping}
 	}
-	log.Debug("ProcessSendP2PEnd", "peerAddr", peerAddr, "doSend", doSend)
+	log.Debug("handleSend", "peerAddr", peerAddr, "doSend", doSend)
 	return
 }
 
@@ -152,10 +177,10 @@ func (s *Service) handleReceive(data *types.BroadCastData, pid string, peerAddr 
 	//接收网络数据不可靠
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("ProcessRecvP2P_Panic", "recvData", data, "peerAddr", peerAddr, "recoverErr", r)
+			log.Error("handleReceive_Panic", "recvData", data, "peerAddr", peerAddr, "recoverErr", r)
 		}
 	}()
-	log.Debug("ProcessRecvP2P", "peerID", pid, "peerAddr", peerAddr)
+	log.Debug("handleReceive", "peerID", pid, "peerAddr", peerAddr)
 	if pid == "" {
 		return false
 	}
@@ -175,13 +200,13 @@ func (s *Service) handleReceive(data *types.BroadCastData, pid string, peerAddr 
 	} else {
 		handled = false
 	}
-	log.Debug("ProcessRecvP2P", "peerAddr", peerAddr, "handled", handled)
+	log.Debug("handleReceive", "peerAddr", peerAddr, "handled", handled)
 	return
 }
 
-func (s *Service) queryMempool(ty int64, data interface{}) (interface{}, error) {
+func (s *Service) sendToMempool(ty int64, data interface{}) (interface{}, error) {
 
-	msg := s.client.NewMessage("mempool", ty, data)
+	msg := s.client.NewMessage(p2p.MEMPOOL, ty, data)
 	err := s.client.Send(msg, true)
 	if err != nil {
 		return nil, err
@@ -195,7 +220,7 @@ func (s *Service) queryMempool(ty int64, data interface{}) (interface{}, error) 
 
 func (s *Service) postBlockChain(block *types.Block, pid string) error {
 
-	msg := s.client.NewMessage("blockchain", types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
+	msg := s.client.NewMessage(p2p.BLOCKCHAIN, types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
 	err := s.client.Send(msg, false)
 	if err != nil {
 		log.Error("postBlockChain", "send to blockchain Error", err.Error())
@@ -227,7 +252,7 @@ func addIgnoreSendPeerAtomic(filter *common.Filterdata, key, pid string) (exist 
 	filter.GetLock()
 	defer filter.ReleaseLock()
 	var info *sendFilterInfo
-	if !filter.QueryRecvData(key) {
+	if !filter.QueryRecvData(key) { //之前没有收到过这个key
 		info = &sendFilterInfo{ignoreSendPeers: make(map[string]bool)}
 		filter.Add(key, info)
 	} else {

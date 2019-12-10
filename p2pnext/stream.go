@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/libp2p/go-libp2p-core/peer"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type StreamMange struct {
@@ -34,7 +34,10 @@ func (s *StreamMange) newStream(ctx context.Context, pr peer.AddrInfo) (net.Stre
 
 }
 
-func (s *StreamMange) deleteStream(pid string) {
+func (s *StreamMange) Store(pid string, stream net.Stream) {
+	s.StreamStore.Store(pid, stream)
+}
+func (s *StreamMange) DeleteStream(pid string) {
 	s.StreamStore.Delete(pid)
 
 }

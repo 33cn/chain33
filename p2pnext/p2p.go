@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client"
-	log "github.com/33cn/chain33/common/log/log15"
+	l "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
@@ -16,7 +16,7 @@ import (
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
-var logger = log.New("module", "p2p-next")
+var logger = l.New("module", "p2pnext")
 
 type P2p struct {
 	Host       host.Host
@@ -38,7 +38,7 @@ func New(cfg *types.Chain33Config) *P2p {
 	var addrlist []multiaddr.Multiaddr
 	addrlist = append(addrlist, m)
 	keystr, _ := NewAddrBook(cfg.GetModuleConfig().P2P).GetPrivPubKey()
-
+	logger.Info("loadPrivkey:", keystr)
 	//key string convert to crpyto.Privkey
 	key, _ := hex.DecodeString(keystr)
 	priv, err := crypto.UnmarshalSecp256k1PrivateKey(key)
@@ -50,15 +50,21 @@ func New(cfg *types.Chain33Config) *P2p {
 	host, err := libp2p.New(context.Background(),
 		libp2p.ListenAddrs(addrlist...),
 		libp2p.Identity(priv),
-		libp2p.EnableAutoRelay(),
+		//libp2p.EnableAutoRelay(),
 		libp2p.BandwidthReporter(bandwidthTracker),
 		libp2p.NATPortMap(),
 	)
+
+	if err != nil {
+		panic(err)
+	}
 	p2p := &P2p{Host: host}
 	p2p.streamMang = NewStreamManage(host)
 	p2p.Processer = make(map[string]Driver)
 	p2p.discovery = new(Discovery)
 	p2p.Node = NewNode(p2p, cfg)
+
+	logger.Info("NewP2p", "peerId", p2p.Host.ID())
 	return p2p
 
 }
@@ -72,9 +78,19 @@ func (p *P2p) managePeers() {
 	for {
 		select {
 		case peer := <-peerChan:
+			if len(peer.Addrs) == 0 {
+				continue
+			}
 			if peer.ID == p.Host.ID() {
 				break
 			}
+
+			if peer.ID == p.Host.ID() {
+				logger.Info("Find self...")
+				continue
+			}
+			logger.Info("p2p.managePeers", "addrs", peer.Addrs, "id", peer.ID.String(),
+				"peer", peer.String())
 			p.streamMang.newStream(context.Background(), peer)
 		Recheck:
 			if p.streamMang.Size() >= 25 {
@@ -110,6 +126,8 @@ func (p *P2p) initProcesser() {
 	}
 
 }
+
+// SetQueueClient
 func (p *P2p) SetQueueClient(cli queue.Client) {
 	var err error
 	p.api, err = client.New(cli, nil)
@@ -132,8 +150,8 @@ func (p *P2p) subP2PMsg() {
 
 	for msg := range p.client.Recv() {
 		switch msg.Ty {
-		case types.EventTxBroadcast:
-			go p.Processer[BroadCastTx].DoProcess(msg)
+		case types.EventTxBroadcast, types.EventBlockBroadcast:
+			go p.Processer[BroadCast].DoProcess(msg)
 		case types.EventPeerInfo:
 			go p.Processer[PeerInfo].DoProcess(msg)
 		case types.EventFetchBlockHeaders:

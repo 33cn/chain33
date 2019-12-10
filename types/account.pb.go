@@ -169,6 +169,7 @@ It has these top-level messages:
 	MessagePeerList
 	MessageNetInfo
 	MessagePeersReply
+	MessageBroadCast
 	Operation
 	Checkpoint
 	Entry

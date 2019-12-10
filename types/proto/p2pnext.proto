@@ -220,3 +220,12 @@ message MessagePeersReply{
 	PeersReply peersReply=2;
 }
 
+
+/**
+* p2p 广播
+*/
+
+message MessageBroadCast{
+	MessageComm common=1;
+	BroadCastData message=2;
+}

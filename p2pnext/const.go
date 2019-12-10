@@ -6,19 +6,17 @@ const (
 )
 
 const (
-	PeerInfo       = "peerinfo"
-	Header         = "header"
-	Download       = "download"
-	BroadCastTx    = "broadcastTx"
-	BroadCastBlock = "broadcastblock"
-	NetInfo        = "netinfo"
+	PeerInfo  = "peerinfo"
+	Header    = "header"
+	Download  = "download"
+	BroadCast = "broadcast"
+	NetInfo   = "netinfo"
 )
 
 var ProcessName = []string{
 	PeerInfo,
 	Header,
 	Download,
-	BroadCastTx,
-	BroadCastBlock,
 	NetInfo,
+	BroadCast,
 }

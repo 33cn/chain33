@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	next "github.com/33cn/chain33/p2pnext"
+	p2p "github.com/33cn/chain33/p2pnext"
 
 	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
@@ -26,15 +26,11 @@ const (
 type DownloadBlockProtol struct {
 	client   queue.Client
 	done     chan struct{}
-	node     *next.Node                            // local host
+	node     *p2p.Node                             // local host
 	requests map[string]*types.MessageGetBlocksReq // used to access request data from response handlers
 }
 
-func init() {
-	next.Register("download", &DownloadBlockProtol{})
-}
-
-func (d *DownloadBlockProtol) New(node *next.Node, cli queue.Client, done chan struct{}) next.Driver {
+func (d *DownloadBlockProtol) New(node *p2p.Node, cli queue.Client, done chan struct{}) p2p.Driver {
 
 	Server := &DownloadBlockProtol{}
 	node.Host.SetStreamHandler(downloadBlockReq, Server.OnReq)
@@ -206,7 +202,7 @@ func (d *DownloadBlockProtol) DoProcess(msg *queue.Message) {
 		if pstream == nil {
 			continue
 		}
-		//TODO具体的下载逻辑
+		//具体的下载逻辑
 		jobS := d.initStreamJob()
 
 		for height := req.GetStart(); height <= req.GetEnd(); height++ {

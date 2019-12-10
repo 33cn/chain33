@@ -27,7 +27,7 @@ func (s *Service) recvQueryData(query *types.P2PQueryData, pid, peerAddr string)
 		txHash := hex.EncodeToString(txReq.TxHash)
 		log.Debug("recvQueryTx", "txHash", txHash, "peerAddr", peerAddr)
 		//向mempool请求交易
-		resp, err := s.queryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
+		resp, err := s.sendToMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
 		if err != nil {
 			log.Error("recvQuery", "queryMempoolErr", err)
 			return

@@ -20,26 +20,26 @@ var (
 	drivers   = make(map[string]Driver)
 )
 
-//对不同币种的Sender进行注册
+//对不同事件的Sender进行注册
 func Register(name string, driver Driver) {
 	driversMu.Lock()
 	defer driversMu.Unlock()
 	if driver == nil {
-		panic("transformer: Register driver is nil")
+		panic("processer: Register driver is nil")
 	}
 	if _, dup := drivers[name]; dup {
-		panic("transformer: Register called twice for driver " + name)
+		panic("processer: Register called twice for driver " + name)
 	}
 	drivers[name] = driver
 }
 
-//提供名称返回相应的Sender对象
+//提供事件名称返回相应的Sender对象
 func NewDriver(name string) (t Driver, err error) {
 	driversMu.RLock()
 	defer driversMu.RUnlock()
 	t, ok := drivers[name]
 	if !ok {
-		err = fmt.Errorf("unknown Coins %q", name)
+		err = fmt.Errorf("unknown Envent %q", name)
 		return
 	}
 

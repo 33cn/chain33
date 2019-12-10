@@ -72,7 +72,7 @@ func (a *AddrBook) initKey() {
 
 	}
 
-	a.setKey(hex.EncodeToString(priv), hex.EncodeToString(pub))
+	a.SaveKey(hex.EncodeToString(priv), hex.EncodeToString(pub))
 }
 
 func (a *AddrBook) SaveKey(priv, pub string) {

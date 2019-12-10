@@ -22,11 +22,11 @@ func (s *Service) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, pee
 	log.Debug("P2PSendTx", "txHash", txHash, "ttl", ttl, "isLightSend", isLightSend,
 		"peerAddr", peerAddr, "ignoreSend", ignoreSend)
 
-	if ignoreSend {
+	if ignoreSend { //说明已经发送或者接收过此Tx
 		return false
 	}
 	//超过最大的ttl, 不再发送
-	if ttl > s.node.GetP2pCfg().MaxTTL {
+	if ttl > s.node.GetP2pCfg().MaxTTL { //超过最大发送次数
 		return false
 	}
 
@@ -39,7 +39,7 @@ func (s *Service) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, pee
 			},
 		}
 	} else {
-		p2pData.Value = &types.BroadCastData_Tx{Tx: tx}
+		p2pData.Value = &types.BroadCastData_Tx{Tx: tx} //完整Tx发送
 	}
 	return true
 }
@@ -51,7 +51,7 @@ func (s *Service) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 	txHash := hex.EncodeToString(tx.GetTx().Hash())
 	//将节点id添加到发送过滤, 避免冗余发送
 	addIgnoreSendPeerAtomic(s.txSendFilter, txHash, pid)
-	//重复接收
+	//避免重复接收
 	isDuplicate := checkAndRegFilterAtomic(s.txFilter, txHash)
 	log.Debug("recvTx", "tx", txHash, "ttl", tx.GetRoute().GetTTL(), "peerAddr", peerAddr, "duplicateTx", isDuplicate)
 	if isDuplicate {
@@ -62,12 +62,7 @@ func (s *Service) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 		tx.Route = &types.P2PRoute{TTL: 1}
 	}
 	s.txFilter.Add(txHash, tx.GetRoute())
-
-	msg := s.client.NewMessage("mempool", types.EventTx, tx.GetTx())
-	errs := s.client.Send(msg, false)
-	if errs != nil {
-		log.Error("recvTx", "process EventTx msg Error", errs.Error())
-	}
+	s.sendToMempool(types.EventTx, tx.GetTx())
 
 }
 

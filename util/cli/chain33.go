@@ -34,7 +34,7 @@ import (
 	"github.com/33cn/chain33/consensus"
 	"github.com/33cn/chain33/executor"
 	"github.com/33cn/chain33/mempool"
-	"github.com/33cn/chain33/p2p"
+	p2p "github.com/33cn/chain33/p2pnext"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/rpc"
 	"github.com/33cn/chain33/store"

@@ -7,7 +7,7 @@ import (
 
 	logging "github.com/ipfs/go-log"
 
-	next "github.com/33cn/chain33/p2pnext"
+	p2p "github.com/33cn/chain33/p2pnext"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	proto "github.com/gogo/protobuf/proto"
@@ -26,15 +26,11 @@ var logger = logging.Logger("protos")
 type PeerInfoProtol struct {
 	client   queue.Client
 	done     chan struct{}
-	node     *next.Node                           // local host
+	node     *p2p.Node                            // local host
 	requests map[string]*types.MessagePeerInfoReq // used to access request data from response handlers
 }
 
-func init() {
-	next.Register("peerinfo", &PeerInfoProtol{})
-}
-
-func (p *PeerInfoProtol) New(node *next.Node, cli queue.Client, done chan struct{}) next.Driver {
+func (p *PeerInfoProtol) New(node *p2p.Node, cli queue.Client, done chan struct{}) p2p.Driver {
 
 	Server := &PeerInfoProtol{}
 	node.Host.SetStreamHandler(peerInfoReq, Server.OnReq)

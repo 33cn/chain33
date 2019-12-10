@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	next "github.com/33cn/chain33/p2pnext"
+	p2p "github.com/33cn/chain33/p2pnext"
 	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
 
@@ -23,11 +23,11 @@ const (
 type HeaderInfoProtol struct {
 	client   queue.Client
 	done     chan struct{}
-	node     *next.Node                         // local host
+	node     *p2p.Node                          // local host
 	requests map[string]*types.MessageHeaderReq // used to access request data from response handlers
 }
 
-func (h *HeaderInfoProtol) New(node *next.Node, cli queue.Client, done chan struct{}) next.Driver {
+func (h *HeaderInfoProtol) New(node *p2p.Node, cli queue.Client, done chan struct{}) p2p.Driver {
 
 	Server := &HeaderInfoProtol{}
 	node.Host.SetStreamHandler(headerInfoReq, Server.OnReq)
