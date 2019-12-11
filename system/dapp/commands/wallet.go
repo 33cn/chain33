@@ -257,7 +257,7 @@ func addAutoMineFlags(cmd *cobra.Command) {
 func autoMine(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	flag, _ := cmd.Flags().GetInt32("flag")
-	if flag < 0 && flag > 4 {
+	if flag < 0 && flag > 3 {
 		err := cmd.UsageFunc()(cmd)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -271,7 +271,7 @@ func autoMine(cmd *cobra.Command, args []string) {
 	}
 
 	m := "ticket.SetAutoMining"
-	if flag > 2 {
+	if flag > 1 {
 		m = "pos33.SetAutoMining"
 		params.Flag -= 2
 	}
