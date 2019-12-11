@@ -348,22 +348,26 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		return nil, nil
 	}
 
-	var recp rpctypes.ReceiptData
-	recp.Ty = tx.GetReceipt().GetTy()
-	logs := tx.GetReceipt().GetLogs()
-	if disableDetail {
-		logs = nil
-	}
-	for _, lg := range logs {
-		recp.Logs = append(recp.Logs,
-			&rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
-	}
-
+	txReceipt := tx.GetReceipt()
 	var recpResult *rpctypes.ReceiptDataResult
-	recpResult, err := rpctypes.DecodeLog(tx.Tx.Execer, &recp)
-	if err != nil {
-		log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
-		return nil, err
+	if nil != txReceipt{
+		var recp rpctypes.ReceiptData
+		recp.Ty = txReceipt.GetTy()
+		logs := txReceipt.GetLogs()
+		if disableDetail {
+			logs = nil
+		}
+		for _, lg := range logs {
+			recp.Logs = append(recp.Logs,
+				&rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+		}
+
+		var err error
+		recpResult, err = rpctypes.DecodeLog(tx.Tx.Execer, &recp)
+		if err != nil {
+			log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
+			return nil, err
+		}
 	}
 
 	var proofs []string

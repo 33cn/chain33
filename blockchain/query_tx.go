@@ -7,6 +7,7 @@ package blockchain
 import (
 	"bytes"
 	"fmt"
+	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/merkle"
@@ -70,18 +71,17 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte, enablePrivac
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
+			if bytes.HasSuffix([]byte(txresult.Tx.Execer),  []byte(types.PrivacyTx4Para)) {
+				if !enablePrivacyQuery {
+					txresult.Receiptdate = nil
+				} else {
+					plainTx, err := util.DecipherPrivacyTx(txresult.Tx, chain.parachainPrivacyTxManager)
+					if nil == err {
+						txresult.Tx = plainTx
+					}
+				}
+			}
 			setTxDetailFromTxResult(&txDetail, txresult)
-			if bytes.HasSuffix([]byte(txDetail.Tx.Execer),  []byte(types.PrivacyTx4Para)) && enablePrivacyQuery == false {
-				txDetail.Receipt = nil
-				txDetail.ActionName = ""
-				txDetail.Amount = 0
-			}
-
-			if bytes.HasSuffix([]byte(txDetail.Tx.Execer),  []byte(types.PrivacyTx4Para)) && enablePrivacyQuery == true {
-				chainlog.Info("ProcGetTransactionByHashes", "privacy tx key:", common.ToHex(txhash),
-					"value hash:", common.ToHex(common.Sha256(types.Encode(txresult))))
-			}
-
 			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		} else {
@@ -177,6 +177,9 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	txresult, err := chain.GetTxResultFromDb(txhash)
 	if err != nil {
 		return nil, err
+	}
+	if bytes.HasSuffix([]byte(txresult.Tx.Execer),  []byte(types.PrivacyTx4Para)) {
+		txresult.Receiptdate = nil
 	}
 	block, err := chain.GetBlock(txresult.Height)
 	if err != nil {

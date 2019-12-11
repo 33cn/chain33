@@ -76,7 +76,7 @@ type ReceiptExecAccountTransfer struct {
 // TxDetailResult defines txdetail result command
 type TxDetailResult struct {
 	Tx         *TxResult                   `json:"tx"`
-	Receipt    *rpctypes.ReceiptDataResult `json:"receipt"`
+	Receipt    *rpctypes.ReceiptDataResult `json:"receipt,omitempty"`
 	Proofs     []string                    `json:"proofs,omitempty"`
 	Height     int64                       `json:"height"`
 	Index      int64                       `json:"index"`

@@ -158,6 +158,51 @@ func ConvertPrivacyTx2Plain(txsInBlk []*types.Transaction, privacyTxManager *Par
 	return bk, txsBk
 }
 
+func DecipherPrivacyTx(tx*types.Transaction, privacyTxManager *ParachainPrivacyTxManager) (*types.Transaction, error) {
+	txhash := common.ToHex(tx.Hash())
+	//如果该隐私交易在区块的缓存中存在该笔交易，则直接替换
+	if data, exist := privacyTxManager.PlainTxs.Get(txhash); exist {
+		txPlainCached, ok := data.(*types.Transaction)
+		if !ok {
+			ulog.Error("ExecTx", "Wrong data format:", data)
+			return nil, errors.New("Wrong Transaction format")
+		} else {
+			return txPlainCached, nil
+		}
+	}
+	var privacyTxPayload types.PrivacyTxPayload
+	if err := types.Decode(tx.Payload, &privacyTxPayload); nil != err {
+		ulog.Error("ExecTx", "Failed to decode privacy Tx Payload due to:", err)
+		return nil, err
+	}
+
+	skCiphered, ok := privacyTxPayload.AddrSymKey[privacyTxManager.SelfConsensusAddr]
+	if !ok {
+		ulog.Error("ExecTx", "No ciphered symmetric key for me", privacyTxPayload.AddrSymKey)
+		return nil, errors.New("No ciphered symmetric key for me")
+	}
+	skPlain, err := privacyTxManager.SelfConsensusPrivateKey.Decrypt(skCiphered)
+	if nil != err {
+		ulog.Error("ExecTx", "Failed to decrypt symmetric key for addr:", privacyTxManager.SelfConsensusAddr)
+		return nil, err
+	}
+
+	txPlainByte, err := symcipher.DecryptSymmetric(skPlain, privacyTxPayload.CipheredTx)
+	if nil != err {
+		ulog.Error("ExecTx", "Failed to decrypt tx payload due to:", err.Error())
+		return nil, err
+	}
+
+	var txPlain types.Transaction
+	if err := types.Decode(txPlainByte, &txPlain); nil != err {
+		ulog.Error("ExecTx", "Failed to decode for tx with hash:", common.ToHex(tx.Hash()))
+		return nil, err
+	}
+	privacyTxManager.PlainTxs.Add(txhash, &txPlain)
+	ulog.Debug("ExecTx: Succeed to decrypt for para-chain's privacy tx")
+	return &txPlain, nil
+}
+
 //ExecKVMemSet : send kv values to memory store and set it in db
 func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset []*types.KeyValue, sync bool, upgrade bool) ([]byte, error) {
 	set := &types.StoreSet{StateHash: prevStateRoot, KV: kvset, Height: height}

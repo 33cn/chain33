@@ -686,12 +686,6 @@ func (chain *BlockChain) getPrivacyTransactionByHashes(msg *queue.Message) {
 		enablePrivacyQuery = true
 	}
 	chainlog.Info("getPrivacyTransactionByHashes", "enablePrivacyQuery", enablePrivacyQuery)
-	if false == enablePrivacyQuery {
-		err := errors.New("The user is not authorized to qurey privacy tx's receipt")
-		chainlog.Error("getPrivacyTransactionByHashes", "err", err.Error())
-		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, err))
-		return
-	}
 	//chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
 	TransactionDetails, err := chain.ProcGetTransactionByHashes(req.Hashes, enablePrivacyQuery)
 	if err != nil {
