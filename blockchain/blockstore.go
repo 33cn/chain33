@@ -206,12 +206,13 @@ func (bs *BlockStore) initReduceLocaldb(height int64) {
 			chainlog.Info("start reduceLocaldb", "start height", flagHeight, "end height", endHeight)
 			bs.reduceLocaldb(flagHeight, endHeight, false, bs.reduceBodyInit,
 				func(batch dbm.Batch, height int64) {
+					height++
 					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data:height}))
 				})
 			// CompactRange执行将会阻塞仅仅做一次压缩
 			chainlog.Info("reduceLocaldb start compact db")
-			bs.db.CompactRange(nil, nil)
-			chainlog.Info("reduceLocaldb end compact db")
+			err = bs.db.CompactRange(nil, nil)
+			chainlog.Info("reduceLocaldb end compact db", "error", err)
 		}
 		bs.saveReduceLocaldbFlag()
 	}
