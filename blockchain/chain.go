@@ -301,6 +301,7 @@ func (chain *BlockChain) InitBlockChain() {
 	}
 	if cfg.IsEnable("reduceLocaldb") {
 		// 精简localdb
+		chain.reducewg.Add(1)
 		go chain.ReduceLocalDB()
 	}
 	//初始化默认DownLoadInfo

@@ -12,7 +12,6 @@ import (
 
 // ReduceLocalDB 实时精简localdb
 func (chain *BlockChain) ReduceLocalDB() {
-	chain.reducewg.Add(1)
 	defer chain.reducewg.Done()
 
 	flagHeight, err := chain.blockStore.loadFlag(types.ReduceLocaldbHeight)
@@ -29,18 +28,28 @@ func (chain *BlockChain) ReduceLocalDB() {
 		case <-chain.quit:
 			return
 		case <-checkTicker.C:
-			height := chain.GetBlockHeight()
-			safetyHeight := height - MaxRollBlockNum  // 当前高度减去最大回滚高度即为安全高度
-			if (safetyHeight)/100 > flagHeight/100 {  // 每隔100区块进行一次精简
-				chain.blockStore.reduceLocaldb(flagHeight, safetyHeight, true, chain.blockStore.reduceBody,
-					func(batch dbm.Batch, height int64) {
-						// 记录的时候记录下一个，中断开始执行的就是下一个
-						height++
-						batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data:height}))
-					})
-				flagHeight = safetyHeight + 1
-				chainlog.Debug("reduceLocaldb ticker", "current height", flagHeight)
-			}
+			flagHeight = chain.TryReduceLocalDB(flagHeight, 100)
 		}
 	}
+}
+
+// TryReduce try reduce
+func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (newHeight int64) {
+	if rangeHeight <= 0 {
+		rangeHeight = 100
+	}
+	height := chain.GetBlockHeight()
+	safetyHeight := height - MaxRollBlockNum
+	if safetyHeight/rangeHeight > flagHeight/rangeHeight {    // 每隔rangeHeight区块进行一次精简
+		chain.blockStore.reduceLocaldb(flagHeight, safetyHeight, true, chain.blockStore.reduceBody,
+			func(batch dbm.Batch, height int64) {
+				// 记录的时候记录下一个，中断开始执行的就是下一个
+				height++
+				batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data:height}))
+			})
+		flagHeight = safetyHeight + 1
+		chainlog.Debug("reduceLocaldb ticker", "current height", flagHeight)
+		return flagHeight
+	}
+	return flagHeight
 }

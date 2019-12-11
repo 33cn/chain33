@@ -201,7 +201,8 @@ func (bs *BlockStore) initReduceLocaldb(height int64) {
 		panic(err)
 	}
 	if flag == 0 {
-		endHeight := height - MaxRollBlockNum
+		safetyHeight := MaxRollBlockNum * 3 / 2  //初始化时候执行精简高度要大于最大回滚高度
+		endHeight := height - safetyHeight
 		if endHeight > flagHeight {
 			chainlog.Info("start reduceLocaldb", "start height", flagHeight, "end height", endHeight)
 			bs.reduceLocaldb(flagHeight, endHeight, false, bs.reduceBodyInit,
