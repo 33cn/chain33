@@ -3,6 +3,7 @@ package p2pnext
 import (
 	"context"
 	"encoding/hex"
+	"github.com/33cn/chain33/p2pnext/protocol"
 	"time"
 
 	"github.com/33cn/chain33/client"
@@ -19,7 +20,7 @@ import (
 
 var logger = l.New("module", "p2pnext")
 
-type P2p struct {
+type P2P struct {
 	Host       host.Host
 	discovery  *Discovery
 	streamMang *StreamMange
@@ -30,7 +31,7 @@ type P2p struct {
 	Processer  map[string]Driver
 }
 
-func New(cfg *types.Chain33Config) *P2p {
+func New(cfg *types.Chain33Config) *P2P {
 
 	m, err := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/13803")
 	if err != nil {
@@ -59,7 +60,7 @@ func New(cfg *types.Chain33Config) *P2p {
 	if err != nil {
 		panic(err)
 	}
-	p2p := &P2p{Host: host}
+	p2p := &P2P{Host: host}
 	p2p.streamMang = NewStreamManage(host)
 	p2p.Processer = make(map[string]Driver)
 	p2p.discovery = new(Discovery)
@@ -70,7 +71,7 @@ func New(cfg *types.Chain33Config) *P2p {
 
 }
 
-func (p *P2p) managePeers() {
+func (p *P2P) managePeers() {
 	for _, seed := range p.Node.p2pCfg.Seeds {
 		addr, _ := multiaddr.NewMultiaddr(seed)
 
@@ -118,15 +119,15 @@ func (p *P2p) managePeers() {
 	}
 
 }
-func (p *P2p) Wait() {
+func (p *P2P) Wait() {
 
 }
 
-func (p *P2p) Close() {
+func (p *P2P) Close() {
 	close(p.Done)
 }
 
-func (p *P2p) initProcesser() {
+func (p *P2P) initProcesser() {
 
 	for _, name := range ProcessName {
 		driver, err := NewDriver(name)
@@ -140,7 +141,7 @@ func (p *P2p) initProcesser() {
 }
 
 // SetQueueClient
-func (p *P2p) SetQueueClient(cli queue.Client) {
+func (p *P2P) SetQueueClient(cli queue.Client) {
 	var err error
 	p.api, err = client.New(cli, nil)
 	if err != nil {
@@ -152,10 +153,11 @@ func (p *P2p) SetQueueClient(cli queue.Client) {
 	p.initProcesser()
 	go p.managePeers()
 	go p.subP2PMsg()
+	go p.processP2P()
 
 }
 
-func (p *P2p) subP2PMsg() {
+func (p *P2P) subP2PMsg() {
 	if p.client == nil {
 		return
 	}
@@ -174,5 +176,17 @@ func (p *P2p) subP2PMsg() {
 			go p.Processer[Download].DoProcess(msg)
 
 		}
+	}
+}
+
+func (p *P2P) processP2P() {
+
+	if p.client == nil {
+		return
+	}
+	//TODO, control goroutine num
+	for msg := range p.client.Recv() {
+
+	   go protocol.ProcessEvent(msg)
 	}
 }

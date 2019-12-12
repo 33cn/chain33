@@ -24,7 +24,7 @@ type Node struct {
 	p2pCfg *types.P2P
 }
 
-func NewNode(p *P2p, cfg *types.Chain33Config) *Node {
+func NewNode(p *P2P, cfg *types.Chain33Config) *Node {
 	node := &Node{Host: p.Host}
 	node.StreamMange = p.streamMang
 	node.chainCfg = cfg
