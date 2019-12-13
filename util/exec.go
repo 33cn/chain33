@@ -7,6 +7,7 @@ package util
 import (
 	"bytes"
 	"errors"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -86,12 +87,12 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block, priva
 	return receipts, nil
 }
 
-func ConvertPrivacyTx2Plain(txsInBlk []*types.Transaction, privacyTxManager *ParachainPrivacyTxManager, height int64)(bool, map[int]*types.Transaction) {
+func ConvertPrivacyTx2Plain(txsInBlk []*types.Transaction, privacyTxManager *ParachainPrivacyTxManager, height int64) (bool, map[int]*types.Transaction) {
 	var txsBk map[int]*types.Transaction
 	var bk bool = false
 	for i, tx := range txsInBlk {
-		if bytes.HasSuffix([]byte(tx.Execer),  []byte(types.PrivacyTx4Para)) {
-			ulog.Debug("ExecTx", "Got PrivacyTx4Para for para chain with txhash:",common.ToHex(tx.Hash()),
+		if bytes.HasSuffix([]byte(tx.Execer), []byte(types.PrivacyTx4Para)) {
+			ulog.Debug("ExecTx", "Got PrivacyTx4Para for para chain with txhash:", common.ToHex(tx.Hash()),
 				"height:", height)
 			if nil == privacyTxManager {
 				ulog.Error("ExecTx", "Nil privacyTxManager", privacyTxManager)
@@ -158,7 +159,7 @@ func ConvertPrivacyTx2Plain(txsInBlk []*types.Transaction, privacyTxManager *Par
 	return bk, txsBk
 }
 
-func DecipherPrivacyTx(tx*types.Transaction, privacyTxManager *ParachainPrivacyTxManager) (*types.Transaction, error) {
+func DecipherPrivacyTx(tx *types.Transaction, privacyTxManager *ParachainPrivacyTxManager) (*types.Transaction, error) {
 	txhash := common.ToHex(tx.Hash())
 	//如果该隐私交易在区块的缓存中存在该笔交易，则直接替换
 	if data, exist := privacyTxManager.PlainTxs.Get(txhash); exist {

@@ -9,11 +9,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/33cn/chain33/system/crypto/symcipher"
-	"github.com/33cn/chain33/util"
 	"math/big"
 	"sync"
 	"sync/atomic"
+
+	"github.com/33cn/chain33/system/crypto/symcipher"
+	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
@@ -807,7 +808,7 @@ func (bs *BlockStore) getLocalKV(detail *types.BlockDetail, privacyTxManager *ut
 	var txsBk map[int]*types.Transaction
 	var bk bool = false
 	if bs.client.GetConfig().IsPara() {
-	    bk, txsBk = util.ConvertPrivacyTx2Plain(detail.Block.Txs, privacyTxManager, detail.Block.Height)
+		bk, txsBk = util.ConvertPrivacyTx2Plain(detail.Block.Txs, privacyTxManager, detail.Block.Height)
 	}
 
 	msg := bs.client.NewMessage("execs", types.EventAddBlock, detail)
@@ -827,6 +828,7 @@ func (bs *BlockStore) getLocalKV(detail *types.BlockDetail, privacyTxManager *ut
 	}
 	return kv, nil
 }
+
 //将交易hash替换为原有密文交易hash，这样后续就可以直接通过密文交易hash查找执行结果
 //将block中的交易恢复成密文交易
 func replaceKeyAndRestoreTxs(cfg *types.Chain33Config, txs []*types.Transaction, txsBk map[int]*types.Transaction, kvLocal *types.LocalDBSet) {
@@ -1405,14 +1407,13 @@ func (bs *BlockStore) SetConsensusPara(kvs *types.LocalDBSet) error {
 	return err
 }
 
-
 //隐私交易查询id，只能是随机字符串，而不能是自然数，因为如果是自然数，
 //同一个用户在不同的平行链节点得到了访问授权，用户向node0的查看请求被网络侦听到之后
 //非法用户就可以通过该请求向另外一个节点发起查看请求。
 //如果是数字的话，存在这样的一种场景，在节点node0上分配了queryid，然后返回给真实的查询方，
 //查询方，通过构造签名，发起查询请求，恶意用户通过同样的请求向另外的节点发起查询，正好该id也未查询，
 //就可以被查询，所以在节点上使用随机生成的id，可以规避在不同节点上生成相同查询id的可能性
-func (bs *BlockStore) CreateNewPrivacyTxQueryId() ([]byte) {
+func (bs *BlockStore) CreateNewPrivacyTxQueryId() []byte {
 	queryId, _ := symcipher.GenerateRandomId()
 	bs.makePrivacyTxQueryIdUnUsed(queryId)
 	return queryId
@@ -1448,18 +1449,18 @@ func (bs *BlockStore) CreateNewPrivacyTxQueryId() ([]byte) {
 //	return
 //}
 
-func (bs *BlockStore) MakePrivacyTxQueryIdUsedAlready(queryId []byte)  {
+func (bs *BlockStore) MakePrivacyTxQueryIdUsedAlready(queryId []byte) {
 	key := calcPrivacyTxQueryIdUsedKey(queryId)
 	bs.db.Set(key, []byte("1"))
 }
 
-func (bs *BlockStore) makePrivacyTxQueryIdUnUsed(queryId []byte)  {
+func (bs *BlockStore) makePrivacyTxQueryIdUnUsed(queryId []byte) {
 	key := calcPrivacyTxQueryIdUsedKey(queryId)
 	bs.db.Set(key, []byte("0"))
 }
 
 //IsPrivacyTxQueryIdValid:确认查询id是否存在于本节点，并且未被使用过
-func (bs *BlockStore) IsPrivacyTxQueryIdValid(queryId []byte) bool  {
+func (bs *BlockStore) IsPrivacyTxQueryIdValid(queryId []byte) bool {
 	key := calcPrivacyTxQueryIdUsedKey(queryId)
 	value, err := bs.db.Get(key)
 	if nil != err {
@@ -1470,4 +1471,3 @@ func (bs *BlockStore) IsPrivacyTxQueryIdValid(queryId []byte) bool  {
 	}
 	return false
 }
-

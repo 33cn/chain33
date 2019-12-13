@@ -8,9 +8,10 @@ package blockchain
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-	"sync/atomic"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
@@ -624,7 +625,7 @@ func (chain *BlockChain) getParaTxByTitle(msg *queue.Message) {
 }
 
 func (chain *BlockChain) getParaSelfConsensusAccount(msg *queue.Message) {
-	paraSelfConsensusAccount, ok := (msg.Data).(*types.ParaSelfConsensusAccount);
+	paraSelfConsensusAccount, ok := (msg.Data).(*types.ParaSelfConsensusAccount)
 	if !ok {
 		chainlog.Error("getParaSelfConsensusAccount", "Recv wrong data format as:", msg.Data)
 		return
@@ -648,7 +649,7 @@ func (chain *BlockChain) getParaSelfConsensusAccount(msg *queue.Message) {
 
 func (chain *BlockChain) getNewGeneratedQueryId(msg *queue.Message) {
 	queryId := chain.blockStore.CreateNewPrivacyTxQueryId()
-	reply := types.ReplyString{Data:common.ToHex(queryId)}
+	reply := types.ReplyString{Data: common.ToHex(queryId)}
 	msg.Reply(chain.client.NewMessage("", types.EventReplyGeneratePrivacyTxQueryId, &reply))
 	chainlog.Info("getNewGeneratedQueryId", "new created Privacy Tx QueryId:", reply.Data)
 	return

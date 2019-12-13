@@ -2,9 +2,10 @@ package secp256k1
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/common"
 	"os"
 	"testing"
+
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 )
 
@@ -12,7 +13,7 @@ var driver Driver
 
 func Test_Cipher(t *testing.T) {
 	fmt.Printf("Begin to test cipher by secp256k1\n")
-	privateKey ,_ := driver.GenKey()
+	privateKey, _ := driver.GenKey()
 	privateKeyBytes := privateKey.Bytes()
 	fmt.Fprintf(os.Stdout, "The new generated private key is:%s, len:%d\n", common.ToHex(privateKeyBytes), len(privateKeyBytes))
 	publicKey := privateKey.PubKey()
@@ -21,7 +22,7 @@ func Test_Cipher(t *testing.T) {
 
 	plainTxt := "hello chain33"
 	cipherTxt, _ := publicKey.Encrypt([]byte(plainTxt))
-	fmt.Fprintf(os.Stdout, "The ciphered text:%s\n", string(cipherTxt[:len(cipherTxt) - 1]))
+	fmt.Fprintf(os.Stdout, "The ciphered text:%s\n", string(cipherTxt[:len(cipherTxt)-1]))
 
 	decryptedTxt, _ := privateKey.Decrypt(cipherTxt)
 	fmt.Fprintf(os.Stdout, "The decrypted text:%s\n", string(decryptedTxt))
@@ -59,7 +60,7 @@ func Test_EncryptBySecp256k1(t *testing.T) {
 
 	plainTxt := "hello chain33"
 	cipherTxt, _ := publicKey.Encrypt([]byte(plainTxt))
-	fmt.Fprintf(os.Stdout, "The ciphered text:%s\n", string(cipherTxt[:len(cipherTxt) - 1]))
+	fmt.Fprintf(os.Stdout, "The ciphered text:%s\n", string(cipherTxt[:len(cipherTxt)-1]))
 
 	decryptedTxt, _ := privateKey.Decrypt(cipherTxt)
 	fmt.Fprintf(os.Stdout, "The decrypted text:%s\n", string(decryptedTxt))

@@ -101,8 +101,8 @@ message Transaction {
 }
 
 message PrivacyTxPayload {
-    bytes     cipheredTx                 = 1;
-    map<string, bytes> addrSymKey        = 2;
+    bytes cipheredTx = 1;
+    map<string, bytes> addrSymKey = 2;
 }
 
 message Transactions {

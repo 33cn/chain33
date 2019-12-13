@@ -3,9 +3,9 @@ package symcipher
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	crand "crypto/rand"
 	"errors"
 	"fmt"
-	crand "crypto/rand"
 	mrand "math/rand"
 )
 

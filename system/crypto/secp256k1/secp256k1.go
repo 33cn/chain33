@@ -161,7 +161,6 @@ func (pubKey PubKeySecp256k1) Encrypt(in []byte) ([]byte, error) {
 	return secp256k1.Encrypt(pubkey, in)
 }
 
-
 //SignatureSecp256k1 Signature
 type SignatureSecp256k1 []byte
 

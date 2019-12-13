@@ -169,11 +169,11 @@ const (
 	EventGetParaTxByTitle   = 306
 	EventReplyParaTxByTitle = 307
 
-	EventParaSelfConsensusAccount   = 308
+	EventParaSelfConsensusAccount      = 308
 	EventReplyParaSelfConsensusAccount = 309
-	EventGeneratePrivacyTxQueryId  = 310
-	EventReplyGeneratePrivacyTxQueryId =  311
-	EventGetPrivacyTransactionByHash  = 312
+	EventGeneratePrivacyTxQueryId      = 310
+	EventReplyGeneratePrivacyTxQueryId = 311
+	EventGetPrivacyTransactionByHash   = 312
 )
 
 var eventName = map[int]string{
@@ -321,18 +321,17 @@ var eventName = map[int]string{
 	EventReplyProperFee: "EventReplyProperFee",
 	EventTxListByHash:   "EventTxListByHash",
 	// block chain
-	EventGetLastBlockMainSequence:   "EventGetLastBlockMainSequence",
-	EventReplyLastBlockMainSequence: "EventReplyLastBlockMainSequence",
-	EventGetMainSeqByHash:           "EventGetMainSeqByHash",
-	EventReplyMainSeqByHash:         "EventReplyMainSeqByHash",
-	EventSetValueByKey:              "EventSetValueByKey",
-	EventGetValueByKey:              "EventGetValueByKey",
-	EventGetParaTxByTitle:           "EventGetParaTxByTitle",
-	EventReplyParaTxByTitle:         "EventReplyParaTxByTitle",
-	EventParaSelfConsensusAccount:   "EventParaSelfConsensusAccount",
+	EventGetLastBlockMainSequence:      "EventGetLastBlockMainSequence",
+	EventReplyLastBlockMainSequence:    "EventReplyLastBlockMainSequence",
+	EventGetMainSeqByHash:              "EventGetMainSeqByHash",
+	EventReplyMainSeqByHash:            "EventReplyMainSeqByHash",
+	EventSetValueByKey:                 "EventSetValueByKey",
+	EventGetValueByKey:                 "EventGetValueByKey",
+	EventGetParaTxByTitle:              "EventGetParaTxByTitle",
+	EventReplyParaTxByTitle:            "EventReplyParaTxByTitle",
+	EventParaSelfConsensusAccount:      "EventParaSelfConsensusAccount",
 	EventReplyParaSelfConsensusAccount: "EventReplyParaSelfConsensusAccount",
-	EventGeneratePrivacyTxQueryId: "EventGeneratePrivacyTxQueryId",
+	EventGeneratePrivacyTxQueryId:      "EventGeneratePrivacyTxQueryId",
 	EventReplyGeneratePrivacyTxQueryId: "EventReplyGeneratePrivacyTxQueryId",
-	EventGetPrivacyTransactionByHash: "EventGetPrivacyTransactionByHash",
-
+	EventGetPrivacyTransactionByHash:   "EventGetPrivacyTransactionByHash",
 }
