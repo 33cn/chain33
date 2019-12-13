@@ -633,29 +633,6 @@ func (_m *QueueProtocolAPI) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*ty
 	return r0, r1
 }
 
-// GetPrivacyTransactionByHash provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) GetPrivacyTransactionByHash(param *types.ReqPrivacyHashes) (*types.TransactionDetails, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.TransactionDetails
-	if rf, ok := ret.Get(0).(func(*types.ReqPrivacyHashes) *types.TransactionDetails); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.TransactionDetails)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqPrivacyHashes) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetProperFee provides a mock function with given fields: req
 func (_m *QueueProtocolAPI) GetProperFee(req *types.ReqProperFee) (*types.ReplyProperFee, error) {
 	ret := _m.Called(req)
