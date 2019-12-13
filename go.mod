@@ -23,7 +23,6 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
-	github.com/golangci/golangci-lint v1.17.1 // indirect
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.0
 	github.com/huin/goupnp v1.0.0
