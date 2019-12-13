@@ -45,7 +45,6 @@ type upnpClient interface {
 	AddPortMapping(string, uint16, string, uint16, string, bool, string, uint32) error
 	DeletePortMapping(string, uint16, string) error
 	GetNATRSIPStatus() (sip bool, nat bool, err error)
-	//InnerIPaddress() (string, error)
 }
 
 func (n *upnp) ExternalIP() (addr net.IP, err error) {
@@ -65,7 +64,6 @@ func (n *upnp) AddMapping(protocol string, extport, intport int, desc string, li
 	if err != nil {
 		return nil
 	}
-	//fmt.Println("internalAddress:", ip)
 	protocol = strings.ToUpper(protocol)
 	lifetimeS := uint32(lifetime / time.Second)
 	err = n.DeleteMapping(protocol, extport, intport)
@@ -75,13 +73,6 @@ func (n *upnp) AddMapping(protocol string, extport, intport int, desc string, li
 	return n.client.AddPortMapping("", uint16(extport), protocol, uint16(intport), ip.String(), true, desc, lifetimeS)
 }
 
-//func (n *upnp) InnerIPaddress() (string, error) {
-//	ipaddr, err := n.internalAddress()
-//	if err != nil {
-//		return "", err
-//	}
-//	return ipaddr.String(),nil
-//}
 func (n *upnp) internalAddress() (net.IP, error) {
 	devaddr, err := net.ResolveUDPAddr("udp4", n.dev.URLBase.Host)
 	if err != nil {
