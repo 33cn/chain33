@@ -241,44 +241,42 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 	bs.saveQuickIndexFlag()
 }
 
-func (bs *BlockStore) isSeqCBExist(name string) bool {
-	value, err := bs.db.Get(calcSeqCBKey([]byte(name)))
-	if err == nil {
-		var cb types.BlockSeqCB
-		err = types.Decode(value, &cb)
-		return err == nil
-	}
-	return false
+// store通用接口: 非block相关的保存功能，用通用的接口
+// 避免store相关的代码膨胀
+
+// SetSync store通用接口
+func (bs *BlockStore) SetSync(key, value []byte) error {
+	return bs.db.SetSync(key, value)
 }
 
-func (bs *BlockStore) seqCBNum() int64 {
-	counts := dbm.NewListHelper(bs.db).PrefixCount(seqCBPrefix)
+// Set store通用接口
+func (bs *BlockStore) Set(key, value []byte) error {
+	return bs.db.Set(key, value)
+}
+
+// GetKey store通用接口， Get 已经被使用
+func (bs *BlockStore) GetKey(key []byte) ([]byte, error) {
+	value, err := bs.db.Get(key)
+	if err != nil && err != dbm.ErrNotFoundInDb {
+		return nil, types.ErrNotFound
+
+	}
+	return value, err
+}
+
+// PrefixCount store通用接口
+func (bs *BlockStore) PrefixCount(prefix []byte) int64 {
+	counts := dbm.NewListHelper(bs.db).PrefixCount(prefix)
 	return counts
 }
 
-func (bs *BlockStore) addBlockSeqCB(cb *types.BlockSeqCB) error {
-	if len(cb.Name) > 128 || len(cb.URL) > 1024 {
-		return types.ErrInvalidParam
-	}
-	storeLog.Info("addBlockSeqCB", "key", string(calcSeqCBKey([]byte(cb.Name))), "value", cb)
-
-	return bs.db.SetSync(calcSeqCBKey([]byte(cb.Name)), types.Encode(cb))
-}
-
-func (bs *BlockStore) listSeqCB() (cbs []*types.BlockSeqCB, err error) {
-	values := dbm.NewListHelper(bs.db).PrefixScan(seqCBPrefix)
+// List store通用接口
+func (bs *BlockStore) List(prefix []byte) ([][]byte, error) {
+	values := dbm.NewListHelper(bs.db).PrefixScan(prefix)
 	if values == nil {
 		return nil, types.ErrNotFound
 	}
-	for _, value := range values {
-		var cb types.BlockSeqCB
-		err := types.Decode(value, &cb)
-		if err != nil {
-			return nil, err
-		}
-		cbs = append(cbs, &cb)
-	}
-	return cbs, nil
+	return values, nil
 }
 
 func (bs *BlockStore) delAllKeys() {
@@ -1037,28 +1035,6 @@ func (bs *BlockStore) LoadBlockLastMainSequence() (int64, error) {
 		return -1, types.ErrHeightNotExist
 	}
 	return decodeHeight(bytes)
-}
-
-func (bs *BlockStore) setSeqCBLastNum(name []byte, num int64) error {
-	return bs.db.SetSync(calcSeqCBLastNumKey(name), types.Encode(&types.Int64{Data: num}))
-}
-
-//Seq的合法值从0开始的，所以没有获取到或者获取失败都应该返回-1
-func (bs *BlockStore) getSeqCBLastNum(name []byte) int64 {
-	bytes, err := bs.db.Get(calcSeqCBLastNumKey(name))
-	if bytes == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("getSeqCBLastNum", "error", err)
-		}
-		return -1
-	}
-	n, err := decodeHeight(bytes)
-	if err != nil {
-		return -1
-	}
-	storeLog.Error("getSeqCBLastNum", "name", string(name), "num", n)
-
-	return n
 }
 
 //SaveBlockSequence 存储block 序列执行的类型用于blockchain的恢复

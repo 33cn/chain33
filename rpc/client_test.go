@@ -374,6 +374,12 @@ func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	params.Expire = "100"
 	tx, err = client.CreateNoBalanceTxs(params)
 	assert.Equal(t, types.ErrInvalidExpire, err)
+	params.Expire = "0"
+	_, err = client.CreateNoBalanceTxs(params)
+	assert.NotEqual(t, types.ErrInvalidExpire, err)
+	params.Expire = fmt.Sprintf("%d", types.ExpireBound+1)
+	_, err = client.CreateNoBalanceTxs(params)
+	assert.NotEqual(t, types.ErrInvalidExpire, err)
 }
 
 func TestClientReWriteRawTx(t *testing.T) {

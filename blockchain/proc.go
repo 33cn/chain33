@@ -115,18 +115,19 @@ func (chain *BlockChain) unknowMsg(msg *queue.Message) {
 }
 
 func (chain *BlockChain) addBlockSeqCB(msg *queue.Message) {
-	reply := &types.Reply{
+	reply := &types.ReplyAddSeqCallback{
 		IsOk: true,
 	}
 	cb := (msg.Data).(*types.BlockSeqCB)
-	err := chain.ProcAddBlockSeqCB(cb)
+	sequences, err := chain.ProcAddBlockSeqCB(cb)
 	if err != nil {
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
+		reply.Seqs = sequences
 		msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
 		return
 	}
-	chain.pushseq.addTask(cb)
+
 	msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
 }
 
