@@ -37,8 +37,10 @@ type StreamHandler interface {
 	Init(protocol *Protocol)
 	// VerifyRequest  验证请求数据
 	VerifyRequest(request []byte) bool
-	// 处理请求, 有返回需要设置具体的response结构
+	// Handle 处理请求, 有返回需要设置具体的response结构
 	Handle(request []byte, stream core.Stream) (*StreamResponse, error)
+	// GetProtocol get protocol member
+	GetProtocol() *Protocol
 }
 
 type BaseStreamHandler struct {
@@ -58,6 +60,10 @@ func (s *BaseStreamHandler) VerifyRequest(request []byte) bool {
 	//基类统一验证数据, 不需要验证,重写该方法直接返回true
 	//TODO, verify request
 	return true
+}
+
+func (s *BaseStreamHandler) GetProtocol() *Protocol {
+	return s.protocol
 }
 
 
