@@ -587,6 +587,29 @@ func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 	return r0, r1
 }
 
+// GetNewPrivacyTxQueryId provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetNewPrivacyTxQueryId() (*types.ReplyString, error) {
+	ret := _m.Called()
+
+	var r0 *types.ReplyString
+	if rf, ok := ret.Get(0).(func() *types.ReplyString); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyString)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetParaTxByTitle provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.ParaTxDetails, error) {
 	ret := _m.Called(param)
@@ -602,6 +625,29 @@ func (_m *QueueProtocolAPI) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*ty
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.ReqParaTxByTitle) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetPrivacyTransactionByHash provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetPrivacyTransactionByHash(param *types.ReqPrivacyHashes) (*types.TransactionDetails, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.TransactionDetails
+	if rf, ok := ret.Get(0).(func(*types.ReqPrivacyHashes) *types.TransactionDetails); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.TransactionDetails)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqPrivacyHashes) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)

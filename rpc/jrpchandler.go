@@ -254,6 +254,7 @@ func (c *Chain33) GetPrivacyTxByHashes(in rpctypes.ReqPrivacyHashes, result *int
 	log.Info("Enter GetPrivacyTxByHashes", "ReqPrivacyHashes", in)
 	parm := &types.ReqPrivacyHashes{
 		RequestID: in.RequestID,
+
 		Signature: &types.Signature{
 			Ty: types.SECP256K1,
 		},
