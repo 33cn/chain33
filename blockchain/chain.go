@@ -8,7 +8,6 @@ Package blockchain 实现区块链模块，包含区块链存储
 package blockchain
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,7 +17,7 @@ import (
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 )
 
 //var
@@ -313,7 +312,7 @@ func (chain *BlockChain) getStateHash() []byte {
 //SendAddBlockEvent blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
 func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
-		fmt.Println("chain client not bind message queue.")
+		chainlog.Error("SendAddBlockEvent: chain client not bind message queue.")
 		return types.ErrClientNotBindQueue
 	}
 	if block == nil {
@@ -348,7 +347,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	cfg := chain.client.GetConfig()
 	if chain.client == nil {
-		fmt.Println("chain client not bind message queue.")
+		chainlog.Error("SendBlockBroadcast: chain client not bind message queue.")
 		return
 	}
 	if block == nil {
@@ -393,7 +392,7 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 //SendDelBlockEvent blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
 func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
-		fmt.Println("chain client not bind message queue.")
+		chainlog.Error("SendDelBlockEvent: chain client not bind message queue.")
 		err := types.ErrClientNotBindQueue
 		return err
 	}

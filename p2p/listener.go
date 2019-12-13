@@ -163,7 +163,7 @@ func (h *statshandler) HandleConn(ctx context.Context, s stats.ConnStats) {
 	}
 	tag, ok := getConnTagFromContext(ctx)
 	if !ok {
-		fmt.Println("can not get conn tag")
+		log.Error("can not get conn tag")
 		return
 	}
 
@@ -186,7 +186,7 @@ func (h *statshandler) HandleConn(ctx context.Context, s stats.ConnStats) {
 		}
 		log.Debug("ip connend", "ip", ip, "n", conns[ip])
 	default:
-		log.Error("illegal ConnStats type\n")
+		log.Error("illegal ConnStats type")
 	}
 }
 
