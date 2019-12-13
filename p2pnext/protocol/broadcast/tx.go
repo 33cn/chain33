@@ -6,7 +6,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func (s *Service) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, peerAddr string) (doSend bool) {
+func (s *broadCastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, peerAddr string) (doSend bool) {
 
 	txHash := hex.EncodeToString(tx.Tx.Hash())
 	ttl := tx.GetRoute().GetTTL()
@@ -44,7 +44,7 @@ func (s *Service) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, pee
 	return true
 }
 
-func (s *Service) recvTx(tx *types.P2PTx, pid, peerAddr string) {
+func (s *broadCastProtocol) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 	if tx.GetTx() == nil {
 		return
 	}
@@ -66,7 +66,7 @@ func (s *Service) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 
 }
 
-func (s *Service) recvLtTx(tx *types.LightTx, pid, peerAddr string) {
+func (s *broadCastProtocol) recvLtTx(tx *types.LightTx, pid, peerAddr string) {
 
 	txHash := hex.EncodeToString(tx.TxHash)
 	//将节点id添加到发送过滤, 避免冗余发送

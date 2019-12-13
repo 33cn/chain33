@@ -5,61 +5,101 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/network"
+	"reflect"
+)
+
+var (
+	protocolTypeMap map[string]reflect.Type
 )
 
 
+type IProtocol interface {
+	 InitProtocol(*GlobalData)
+}
 
 
-// Protocol store public data
-type Protocol struct{
+func RegisterProtocolType(typeName string, proto IProtocol) {
 
+	if proto == nil {
+		panic("RegisterProtocolType, protocol is nil, msgId="+typeName)
+	}
+	if _, dup := protocolTypeMap[typeName]; dup {
+		panic("RegisterProtocolType, protocol is nil, msgId="+typeName)
+	}
+	protocolTypeMap[typeName] = reflect.TypeOf(proto)
+}
+
+func init() {
+	RegisterProtocolType("BaseProtocol", &BaseProtocol{})
+}
+
+type ProtocolManager struct {
+
+	protoMap map[string]IProtocol
+}
+
+
+type GlobalData struct {
 	ChainCfg        *types.Chain33Config
 	QueueClient     queue.Client
 	Host            core.Host
 	StreamManager   *manage.StreamManager
 	PeerInfoManager *manage.PeerInfoManager
-
 }
 
 
+// BaseProtocol store public data
+type BaseProtocol struct{
+	 *GlobalData
+}
 
-func (p *Protocol)Init(streamHandler network.StreamHandler) {
+func (p *BaseProtocol)InitProtocol(data *GlobalData) {
+	p.GlobalData = data
+}
 
-	//
+func (p *ProtocolManager)Init(data *GlobalData) {
 
-	//
-	for id, handler := range streamHandlerMap {
-		handler.Init(p)
-		p.Host.SetStreamHandler(core.ProtocolID(id), streamHandler)
+	//  每个P2P实例都重新分配相关的protocol结构
+	for id, protocolType := range protocolTypeMap {
+		protocol := reflect.New(protocolType).Interface().(IProtocol)
+		protocol.InitProtocol(data)
+		p.protoMap[id] = protocol
+	}
+
+	//  每个P2P实例都重新分配相关的handler结构
+	for id, handlerType := range streamHandlerTypeMap {
+		newHandler := reflect.New(handlerType).Interface().(StreamHandler)
+		protoID, msgID := decodeHandlerTypeID(id)
+		newHandler.SetProtocol(p.protoMap[protoID])
+		data.Host.SetStreamHandler(core.ProtocolID(msgID), BaseStreamHandler{child:newHandler}.HandleStream)
 	}
 
 }
 
 
 
-func (p *Protocol)GetChainCfg() *types.Chain33Config{
+func (p *BaseProtocol)GetChainCfg() *types.Chain33Config{
 
 	return p.ChainCfg
 
 }
 
-func (p *Protocol)GetQueueClient() queue.Client {
+func (p *BaseProtocol)GetQueueClient() queue.Client {
 
 	return p.QueueClient
 }
 
-func (p *Protocol)GetHost() core.Host{
+func (p *BaseProtocol)GetHost() core.Host{
 
 	return p.Host
 
 }
 
-func (p *Protocol)GetStreamManager() *manage.StreamManager {
+func (p *BaseProtocol)GetStreamManager() *manage.StreamManager {
 	return p.StreamManager
 
 }
 
-func (p *Protocol)GetPeerInfoManager() *manage.PeerInfoManager{
+func (p *BaseProtocol)GetPeerInfoManager() *manage.PeerInfoManager{
 	return p.PeerInfoManager
 }

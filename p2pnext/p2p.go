@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/33cn/chain33/p2pnext/manage"
 	"github.com/33cn/chain33/p2pnext/protocol"
+	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	core "github.com/libp2p/go-libp2p-core"
 	"time"
 
@@ -156,7 +157,14 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 	if p.client == nil {
 		p.client = cli
 	}
-	protocol.Init(p.host, p.chainCfg, cli)
+	globalData := &prototypes.GlobalData{
+		ChainCfg:        nil,
+		QueueClient:     nil,
+		Host:            nil,
+		StreamManager:   nil,
+		PeerInfoManager: nil,
+	}
+	protocol.Init(globalData)
 	p.initProcesser()
 	go p.managePeers()
 	//go p.subP2PMsg()

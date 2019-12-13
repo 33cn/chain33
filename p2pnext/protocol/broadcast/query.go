@@ -8,19 +8,19 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func (s *Service) sendQueryData(query *types.P2PQueryData, p2pData *types.BroadCastData, peerAddr string) bool {
+func (s *broadCastProtocol) sendQueryData(query *types.P2PQueryData, p2pData *types.BroadCastData, peerAddr string) bool {
 	log.Debug("P2PSendQueryData", "peerAddr", peerAddr)
 	p2pData.Value = &types.BroadCastData_Query{Query: query}
 	return true
 }
 
-func (s *Service) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCastData, peerAddr string) bool {
+func (s *broadCastProtocol) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCastData, peerAddr string) bool {
 	log.Debug("P2PSendQueryReply", "peerAddr", peerAddr)
 	p2pData.Value = &types.BroadCastData_BlockRep{BlockRep: rep}
 	return true
 }
 
-func (s *Service) recvQueryData(query *types.P2PQueryData, pid, peerAddr string) {
+func (s *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid, peerAddr string) {
 
 	if txReq := query.GetTxReq(); txReq != nil {
 
@@ -68,7 +68,7 @@ func (s *Service) recvQueryData(query *types.P2PQueryData, pid, peerAddr string)
 	}
 }
 
-func (s *Service) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string) {
+func (s *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string) {
 
 	log.Debug("recvQueryReplyBlock", "blockHash", rep.GetBlockHash(), "queryTxsCount", len(rep.GetTxIndices()), "peerAddr", peerAddr)
 	val, exist := s.ltBlockCache.Del(rep.BlockHash)

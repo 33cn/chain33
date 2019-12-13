@@ -1,27 +1,39 @@
 package types
 
 import (
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
+	"io/ioutil"
+	"reflect"
+	"strings"
 )
 
 
 
 var (
 
-	streamHandlerMap map[string]StreamHandler
+	log                  = log15.New("module", "p2p.protocol.types")
+	streamHandlerTypeMap map[string]reflect.Type
 )
 
 
-func RegisterStreamHandler(msgID string, handler StreamHandler) {
+func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 
 	if handler == nil {
-		panic("addStreamHandler, handler is nil, msgId="+msgID)
+		panic("RegisterStreamHandlerType, handler is nil, msgId="+msgID)
 	}
-	if _, dup := streamHandlerMap[msgID]; dup {
-		panic("addStreamHandler, handler is nil, msgId="+msgID)
+
+	if _, exist := protocolTypeMap[typeName]; !exist{
+		panic("RegisterStreamHandlerType, protocol type not exist, msgId="+msgID)
 	}
-	streamHandlerMap[msgID] = handler
+
+	typeID := formatHandlerTypeID(typeName, msgID)
+
+	if _, dup := streamHandlerTypeMap[typeID]; dup {
+		panic("addStreamHandler, handler is nil, typeID=" + typeID)
+	}
+	streamHandlerTypeMap[typeID] = reflect.TypeOf(handler)
 }
 
 type StreamResponse struct{
@@ -33,21 +45,22 @@ type StreamResponse struct{
 // StreamHandler stream handler
 type StreamHandler interface {
 
-	// Init 初始化公共结构, 内部通过protocol获取外部依赖公共类, 如queue.client等
-	Init(protocol *Protocol)
+	// GetProtocol get protocol
+	GetProtocol() IProtocol
+	// SetProtocol 初始化公共结构, 内部通过protocol获取外部依赖公共类, 如queue.client等
+	SetProtocol(protocol IProtocol)
 	// VerifyRequest  验证请求数据
 	VerifyRequest(request []byte) bool
 	// Handle 处理请求, 有返回需要设置具体的response结构
 	Handle(request []byte, stream core.Stream) (*StreamResponse, error)
-	// GetProtocol get protocol member
-	GetProtocol() *Protocol
 }
 
 type BaseStreamHandler struct {
-	protocol *Protocol
+	protocol IProtocol
+	child StreamHandler
 }
 
-func (s *BaseStreamHandler) Init (protocol *Protocol) {
+func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 	s.protocol = protocol
 }
 
@@ -62,18 +75,44 @@ func (s *BaseStreamHandler) VerifyRequest(request []byte) bool {
 	return true
 }
 
-func (s *BaseStreamHandler) GetProtocol() *Protocol {
+func (s *BaseStreamHandler) GetProtocol() IProtocol {
 	return s.protocol
 }
 
+func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
-func GetStreamHandler(msgID string) (StreamHandler, bool) {
+	for {
 
-	handler, ok := streamHandlerMap[msgID]
-	return handler, ok
+		buf, err := ioutil.ReadAll(stream)
+		if err != nil {
+			stream.Reset()
+			log.Error("HandleStream", "err", err)
+			continue
+		}
+
+		if !s.child.VerifyRequest(buf) {
+			//invalid request
+			continue
+		}
+
+		resp, err := s.child.Handle(buf, stream)
+		if err != nil {
+			continue
+		}
+		if resp.Msg != nil {
+			//TODO, send response message
+		}
+	}
 }
 
 
 
+func formatHandlerTypeID(protocolType, msgID string) string {
+	return protocolType + "#" + msgID
+}
 
+func decodeHandlerTypeID(typeID string) (string, string) {
 
+	arr := strings.Split(typeID, "#")
+	return arr[0], arr[1]
+}

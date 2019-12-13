@@ -5,7 +5,7 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 	"time"
 
-	logger "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/common/log/log15"
 	common "github.com/33cn/chain33/p2p"
 	p2p "github.com/33cn/chain33/p2pnext"
 	"github.com/33cn/chain33/queue"
@@ -13,18 +13,23 @@ import (
 	net "github.com/libp2p/go-libp2p-core/network"
 )
 
-var log = logger.New("module", "p2p.broadcast")
+var log = log15.New("module", "p2p.broadcast")
 
-const ID = "/chain33/p2p/broadcast/1.0.0"
+
+const (
+	protoTypeID = "BroadcastProtocolType"
+	ID = "/chain33/p2p/broadcast/1.0.0"
+)
 
 
 func init() {
- 	prototypes.RegisterStreamHandler(ID, &broadCastHandler{})
+	prototypes.RegisterProtocolType(protoTypeID, &broadCastProtocol{})
+ 	prototypes.RegisterStreamHandlerType(protoTypeID, ID, &broadCastHandler{})
 }
 
 //
-type Service struct {
-	protocol *prototypes.Protocol
+type broadCastProtocol struct {
+	*prototypes.BaseProtocol
 	txFilter        *common.Filterdata
 	blockFilter     *common.Filterdata
 	txSendFilter    *common.Filterdata
@@ -36,41 +41,36 @@ type Service struct {
 
 
 //New
-func newService(proto *prototypes.Protocol) *Service {
+func (p *broadCastProtocol)InitProtocol(data *prototypes.GlobalData)  {
 
-	service := &Service{}
-	service.protocol = proto
+
+	p.GlobalData = data
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
-	service.txFilter = common.NewFilter(TxRecvFilterCacheNum)
-	service.blockFilter = common.NewFilter(BlockFilterCacheNum)
+	p.txFilter = common.NewFilter(TxRecvFilterCacheNum)
+	p.blockFilter = common.NewFilter(BlockFilterCacheNum)
 
 	//发送交易和区块时过滤缓存, 解决冗余广播发送
-	service.txSendFilter = common.NewFilter(TxSendFilterCacheNum)
-	service.blockSendFilter = common.NewFilter(BlockFilterCacheNum)
+	p.txSendFilter = common.NewFilter(TxSendFilterCacheNum)
+	p.blockSendFilter = common.NewFilter(BlockFilterCacheNum)
 
 	//在本地暂时缓存一些区块数据, 限制最大大小
-	service.totalBlockCache = common.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
+	p.totalBlockCache = common.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
-	service.ltBlockCache = common.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
-	service.p2pCfg = service.protocol.GetChainCfg().GetModuleConfig().P2P
-	return service
+	p.ltBlockCache = common.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
+	p.p2pCfg = p.GetChainCfg().GetModuleConfig().P2P
+
+	prototypes.RegisterEventHandler(types.EventTxBroadcast, p.handleEvent)
+	prototypes.RegisterEventHandler(types.EventBlockBroadcast, p.handleEvent)
 }
 
 
 type broadCastHandler struct {
 	*prototypes.BaseStreamHandler
-	service *Service
-}
-
-func (h *broadCastHandler)Init(p *prototypes.Protocol) {
-	service := newService(p)
-	h.service = service
-	prototypes.RegisterEventHandler(types.EventTxBroadcast, service.handleEvent)
-	prototypes.RegisterEventHandler(types.EventBlockBroadcast, service.handleEvent)
 }
 
 func (h *broadCastHandler)Handle(req []byte, stream core.Stream) (*prototypes.StreamResponse, error) {
 
+	protocol := h.GetProtocol().(*broadCastProtocol)
 	pid := stream.Conn().RemotePeer().Pretty()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
 	//s.node.Store(pid, stream)
@@ -90,7 +90,7 @@ func (h *broadCastHandler)Handle(req []byte, stream core.Stream) (*prototypes.St
 
 	recvData := data.Message
 
-	_ = h.service.handleReceive(recvData, pid, peerAddr)
+	_ = protocol.handleReceive(recvData, pid, peerAddr)
 	return nil, nil
 }
 
@@ -100,19 +100,19 @@ func (h *broadCastHandler)VerifyRequest([]byte) bool {
 }
 
 //
-func (s *Service) handleEvent(msg *queue.Message) {
+func (s *broadCastProtocol) handleEvent(msg *queue.Message) {
 
 	data := msg.GetData()
-	streams := s.protocol.GetStreamManager().FetchStreams()
+	streams := s.GetStreamManager().FetchStreams()
 	for _, stream := range streams {
 		s.sendStream(stream, data)
 	}
 
 }
 
-func (s *Service) queryStream(pid string, data interface{}) error {
+func (s *broadCastProtocol) queryStream(pid string, data interface{}) error {
 
-	stream := s.protocol.GetStreamManager().GetStream(pid)
+	stream := s.GetStreamManager().GetStream(pid)
 	if stream != nil {
 		return s.sendStream(stream, data)
 	}
@@ -121,7 +121,7 @@ func (s *Service) queryStream(pid string, data interface{}) error {
 
 }
 
-func (s *Service) sendStream(stream net.Stream, data interface{}) error {
+func (s *broadCastProtocol) sendStream(stream net.Stream, data interface{}) error {
 
 	//pid := stream.Conn().RemotePeer().Pretty()
 	//peerAddr := stream.Conn().RemoteMultiaddr().String()
@@ -157,7 +157,7 @@ func (s *Service) sendStream(stream net.Stream, data interface{}) error {
 
 
 // handleSend 对数据进行处理，包装成BroadCast结构
-func (s *Service) handleSend(rawData interface{}, pid, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
+func (s *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
 	//出错处理
 	defer func() {
 		if r := recover(); r != nil {
@@ -184,7 +184,7 @@ func (s *Service) handleSend(rawData interface{}, pid, peerAddr string) (sendDat
 	return
 }
 
-func (s *Service) handleReceive(data *types.BroadCastData, pid string, peerAddr string) (handled bool) {
+func (s *broadCastProtocol) handleReceive(data *types.BroadCastData, pid string, peerAddr string) (handled bool) {
 
 	//接收网络数据不可靠
 	defer func() {
@@ -216,9 +216,9 @@ func (s *Service) handleReceive(data *types.BroadCastData, pid string, peerAddr 
 	return
 }
 
-func (s *Service) sendToMempool(ty int64, data interface{}) (interface{}, error) {
+func (s *broadCastProtocol) sendToMempool(ty int64, data interface{}) (interface{}, error) {
 
-	client := s.protocol.GetQueueClient()
+	client := s.GetQueueClient()
 	msg := client.NewMessage(p2p.MEMPOOL, ty, data)
 	err := client.Send(msg, true)
 	if err != nil {
@@ -231,9 +231,9 @@ func (s *Service) sendToMempool(ty int64, data interface{}) (interface{}, error)
 	return resp.Data, nil
 }
 
-func (s *Service) postBlockChain(block *types.Block, pid string) error {
+func (s *broadCastProtocol) postBlockChain(block *types.Block, pid string) error {
 
-	client := s.protocol.GetQueueClient()
+	client := s.GetQueueClient()
 	msg := client.NewMessage(p2p.BLOCKCHAIN, types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
 	err := client.Send(msg, false)
 	if err != nil {
