@@ -5,7 +5,10 @@
 package blockchain
 
 import (
+	"bytes"
 	"fmt"
+
+	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/merkle"
@@ -60,7 +63,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 //	Txs []*Transaction
 //}
 //通过hashs获取交易详情
-func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *types.TransactionDetails, err error) {
+func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte, enablePrivacyQuery bool) (TxDetails *types.TransactionDetails, err error) {
 	if int64(len(hashs)) > types.MaxBlockCountPerTime {
 		return nil, types.ErrMaxCountPerTime
 	}
@@ -69,13 +72,23 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
+			if bytes.HasSuffix(txresult.Tx.Execer, []byte(types.PrivacyTx4Para)) {
+				if !enablePrivacyQuery {
+					txresult.Receiptdate = nil
+				} else {
+					plainTx, err := util.DecipherPrivacyTx(txresult.Tx, chain.parachainPrivacyTxManager)
+					if nil == err {
+						txresult.Tx = plainTx
+					}
+				}
+			}
 			setTxDetailFromTxResult(&txDetail, txresult)
-
 			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		} else {
 			txDetails.Txs = append(txDetails.Txs, nil)
-			chainlog.Debug("ProcGetTransactionByHashes hash no exit", "txhash", common.ToHex(txhash))
+			chainlog.Debug("ProcGetTransactionByHashes hash no exit", "txhash", common.ToHex(txhash),
+				"error info:", err.Error())
 		}
 	}
 	return &txDetails, nil
@@ -165,6 +178,9 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	txresult, err := chain.GetTxResultFromDb(txhash)
 	if err != nil {
 		return nil, err
+	}
+	if bytes.HasSuffix(txresult.Tx.Execer, []byte(types.PrivacyTx4Para)) {
+		txresult.Receiptdate = nil
 	}
 	block, err := chain.GetBlock(txresult.Height)
 	if err != nil {

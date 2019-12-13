@@ -168,6 +168,12 @@ const (
 	//通过平行链title获取平行链的交易
 	EventGetParaTxByTitle   = 306
 	EventReplyParaTxByTitle = 307
+
+	EventParaSelfConsensusAccount      = 308
+	EventReplyParaSelfConsensusAccount = 309
+	EventGeneratePrivacyTxQueryID      = 310
+	EventReplyGeneratePrivacyTxQueryID = 311
+	EventGetPrivacyTransactionByHash   = 312
 )
 
 var eventName = map[int]string{
@@ -315,12 +321,17 @@ var eventName = map[int]string{
 	EventReplyProperFee: "EventReplyProperFee",
 	EventTxListByHash:   "EventTxListByHash",
 	// block chain
-	EventGetLastBlockMainSequence:   "EventGetLastBlockMainSequence",
-	EventReplyLastBlockMainSequence: "EventReplyLastBlockMainSequence",
-	EventGetMainSeqByHash:           "EventGetMainSeqByHash",
-	EventReplyMainSeqByHash:         "EventReplyMainSeqByHash",
-	EventSetValueByKey:              "EventSetValueByKey",
-	EventGetValueByKey:              "EventGetValueByKey",
-	EventGetParaTxByTitle:           "EventGetParaTxByTitle",
-	EventReplyParaTxByTitle:         "EventReplyParaTxByTitle",
+	EventGetLastBlockMainSequence:      "EventGetLastBlockMainSequence",
+	EventReplyLastBlockMainSequence:    "EventReplyLastBlockMainSequence",
+	EventGetMainSeqByHash:              "EventGetMainSeqByHash",
+	EventReplyMainSeqByHash:            "EventReplyMainSeqByHash",
+	EventSetValueByKey:                 "EventSetValueByKey",
+	EventGetValueByKey:                 "EventGetValueByKey",
+	EventGetParaTxByTitle:              "EventGetParaTxByTitle",
+	EventReplyParaTxByTitle:            "EventReplyParaTxByTitle",
+	EventParaSelfConsensusAccount:      "EventParaSelfConsensusAccount",
+	EventReplyParaSelfConsensusAccount: "EventReplyParaSelfConsensusAccount",
+	EventGeneratePrivacyTxQueryID:      "EventGeneratePrivacyTxQueryID",
+	EventReplyGeneratePrivacyTxQueryID: "EventReplyGeneratePrivacyTxQueryID",
+	EventGetPrivacyTransactionByHash:   "EventGetPrivacyTransactionByHash",
 }

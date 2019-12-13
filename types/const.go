@@ -28,9 +28,10 @@ type LogInfo struct {
 
 //UserKeyX 用户自定义执行器前缀字符串
 const (
-	UserKeyX = "user."
-	ParaKeyX = "user.p."
-	NoneX    = "none"
+	UserKeyX       = "user."
+	ParaKeyX       = "user.p."
+	NoneX          = "none"
+	PrivacyTx4Para = "privacyTx4Para"
 )
 
 //DefaultCoinsSymbol 默认的主币名称

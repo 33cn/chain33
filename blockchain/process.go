@@ -277,9 +277,12 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	var lastSequence int64
 
 	block := blockdetail.Block
+	cfg := b.client.GetConfig()
+	//主链才需要触发执行，平行链区块在共识协议中已经执行
+
 	prevStateHash := b.bestChain.Tip().statehash
 	errReturn := (node.pid != "self")
-	blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync)
+	blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync, b.parachainPrivacyTxManager)
 	if err != nil {
 		//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
 		if IsRecordFaultErr(err) {
@@ -294,7 +297,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 		return nil, err
 	}
-	cfg := b.client.GetConfig()
+
 	//要更新node的信息
 	if node.pid == "self" {
 		prevhash := node.hash
@@ -308,7 +311,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	newbatch := b.blockStore.NewBatch(sync)
 
 	//保存tx信息到db中
-	err = b.blockStore.AddTxs(newbatch, blockdetail)
+	err = b.blockStore.AddTxs(newbatch, blockdetail, b.parachainPrivacyTxManager)
 	if err != nil {
 		chainlog.Error("connectBlock indexTxs:", "height", block.Height, "err", err)
 		return nil, err
@@ -395,7 +398,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	newbatch := b.blockStore.NewBatch(true)
 
 	//从db中删除tx相关的信息
-	err := b.blockStore.DelTxs(newbatch, blockdetail)
+	err := b.blockStore.DelTxs(newbatch, blockdetail, b.parachainPrivacyTxManager)
 	if err != nil {
 		chainlog.Error("disconnectBlock DelTxs:", "height", blockdetail.Block.Height, "err", err)
 		return err

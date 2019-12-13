@@ -100,6 +100,11 @@ message Transaction {
     bytes  next       = 10;
 }
 
+message PrivacyTxPayload {
+    bytes cipheredTx = 1;
+    map<string, bytes> addrSymKey = 2;
+}
+
 message Transactions {
     repeated Transaction txs = 1;
 }

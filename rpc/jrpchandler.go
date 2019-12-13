@@ -240,6 +240,68 @@ func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 	return nil
 }
 
+func (c *Chain33) GetNewPrivacyTxQueryID(in rpctypes.ReqPrivacyTxQueryID, result *interface{}) error {
+	log.Info("GetNewPrivacyTxQueryID", "now going to get query id", in)
+	reply, err := c.cli.GetNewPrivacyTxQueryID()
+	if err != nil {
+		return err
+	}
+	*result = &reply.Data
+	return nil
+}
+
+func (c *Chain33) GetPrivacyTxByHashes(in rpctypes.ReqPrivacyHashes, result *interface{}) error {
+	log.Info("Enter GetPrivacyTxByHashes", "ReqPrivacyHashes", in)
+	parm := &types.ReqPrivacyHashes{
+		RequestID: in.RequestID,
+
+		Signature: &types.Signature{
+			Ty: types.SECP256K1,
+		},
+	}
+	parm.Hashes = make([][]byte, 0)
+	for _, v := range in.Hashes {
+		hb, err := common.FromHex(v)
+		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
+			continue
+		}
+		parm.Hashes = append(parm.Hashes, hb)
+	}
+	signature, err := common.FromHex(in.Signature)
+	if err != nil {
+		log.Error("GetPrivacyTxByHashes", "Failed to get signature due to", err.Error())
+		return err
+	}
+	parm.Signature.Signature = signature
+	publicKey, err := common.FromHex(in.PublicKey)
+	if err != nil {
+		log.Error("GetPrivacyTxByHashes", "Failed to get publicKey due to", err.Error())
+		return err
+	}
+	parm.Signature.Pubkey = publicKey
+
+	reply, err := c.cli.GetPrivacyTransactionByHash(parm)
+	if err != nil {
+		log.Error("GetPrivacyTxByHashes", "Failed to GetPrivacyTransactionByHash due to", err.Error())
+		return err
+	}
+	txs := reply.GetTxs()
+	log.Info("GetPrivacyTxByHashes", "get tx with count", len(txs))
+	var txdetails rpctypes.TransactionDetails
+	if 0 != len(txs) {
+		for _, tx := range txs {
+			txDetail, err := fmtTxDetail(tx, in.DisableDetail)
+			if err != nil {
+				return err
+			}
+			txdetails.Txs = append(txdetails.Txs, txDetail)
+		}
+	}
+	*result = &txdetails
+	return nil
+}
+
 // GetTxByHashes get transaction by hashes
 /*
 GetTxByHashes(parm *types.ReqHashes) (*types.TransactionDetails, error)
@@ -287,22 +349,26 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		return nil, nil
 	}
 
-	var recp rpctypes.ReceiptData
-	recp.Ty = tx.GetReceipt().GetTy()
-	logs := tx.GetReceipt().GetLogs()
-	if disableDetail {
-		logs = nil
-	}
-	for _, lg := range logs {
-		recp.Logs = append(recp.Logs,
-			&rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
-	}
-
+	txReceipt := tx.GetReceipt()
 	var recpResult *rpctypes.ReceiptDataResult
-	recpResult, err := rpctypes.DecodeLog(tx.Tx.Execer, &recp)
-	if err != nil {
-		log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
-		return nil, err
+	if nil != txReceipt {
+		var recp rpctypes.ReceiptData
+		recp.Ty = txReceipt.GetTy()
+		logs := txReceipt.GetLogs()
+		if disableDetail {
+			logs = nil
+		}
+		for _, lg := range logs {
+			recp.Logs = append(recp.Logs,
+				&rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+		}
+
+		var err error
+		recpResult, err = rpctypes.DecodeLog(tx.Tx.Execer, &recp)
+		if err != nil {
+			log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
+			return nil, err
+		}
 	}
 
 	var proofs []string

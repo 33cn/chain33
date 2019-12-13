@@ -725,7 +725,7 @@ func testProcGetTransactionByHashes(t *testing.T, blockchain *blockchain.BlockCh
 		}
 	}
 
-	TxDetails, err := blockchain.ProcGetTransactionByHashes(Hashes)
+	TxDetails, err := blockchain.ProcGetTransactionByHashes(Hashes, false)
 	require.NoError(t, err)
 
 	if TxDetails != nil {

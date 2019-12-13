@@ -6,8 +6,12 @@ package blockchain
 
 //message callback
 import (
+	"errors"
 	"fmt"
 	"sync/atomic"
+
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
@@ -95,6 +99,12 @@ func (chain *BlockChain) ProcRecvMsg() {
 		//通过平行链title获取平行链的交易
 		case types.EventGetParaTxByTitle:
 			go chain.processMsg(msg, reqnum, chain.getParaTxByTitle)
+		case types.EventParaSelfConsensusAccount:
+			go chain.processMsg(msg, reqnum, chain.getParaSelfConsensusAccount)
+		case types.EventGeneratePrivacyTxQueryID:
+			go chain.processMsg(msg, reqnum, chain.getNewGeneratedQueryID)
+		case types.EventGetPrivacyTransactionByHash:
+			go chain.processMsg(msg, reqnum, chain.getPrivacyTransactionByHashes)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -306,7 +316,7 @@ func (chain *BlockChain) getTransactionByAddr(msg *queue.Message) {
 func (chain *BlockChain) getTransactionByHashes(msg *queue.Message) {
 	txhashs := (msg.Data).(*types.ReqHashes)
 	//chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
-	TransactionDetails, err := chain.ProcGetTransactionByHashes(txhashs.Hashes)
+	TransactionDetails, err := chain.ProcGetTransactionByHashes(txhashs.Hashes, false)
 	if err != nil {
 		chainlog.Error("ProcGetTransactionByHashes", "err", err.Error())
 		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, err))
@@ -499,6 +509,7 @@ func (chain *BlockChain) addParaChainBlockDetail(msg *queue.Message) {
 		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
 		msg.Reply(chain.client.NewMessage("p2p", types.EventReply, err))
 	}
+	//回复消息只为blockchain和para之间的串行执行，避免para在blockchain未处理完成前，就再次请求
 	chainlog.Debug("EventAddParaChainBlockDetail", "success", "ok")
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, blockDetail))
 }
@@ -611,4 +622,77 @@ func (chain *BlockChain) getParaTxByTitle(msg *queue.Message) {
 		return
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
+}
+
+func (chain *BlockChain) getParaSelfConsensusAccount(msg *queue.Message) {
+	paraSelfConsensusAccount, ok := (msg.Data).(*types.ParaSelfConsensusAccount)
+	if !ok {
+		chainlog.Error("getParaSelfConsensusAccount", "Recv wrong data format as:", msg.Data)
+		return
+	}
+	secp, err := crypto.New(types.GetSignName("", int(paraSelfConsensusAccount.SignType)))
+	if err != nil {
+		chainlog.Error("getParaSelfConsensusAccount", "wrong sign type:", paraSelfConsensusAccount.SignType)
+		return
+	}
+	priKey, err := secp.PrivKeyFromBytes(paraSelfConsensusAccount.PrivateKey)
+	if err != nil {
+		chainlog.Error("getParaSelfConsensusAccount", "wrong private key:", common.ToHex(paraSelfConsensusAccount.PrivateKey))
+		return
+	}
+	chain.parachainPrivacyTxManager.SelfConsensusAddr = paraSelfConsensusAccount.Address
+	chain.parachainPrivacyTxManager.SelfConsensusPrivateKey = priKey
+	chainlog.Info("getParaSelfConsensusAccount", "Succeed to set private key for address:", paraSelfConsensusAccount.Address)
+	msg.Reply(chain.client.NewMessage("", types.EventReplyParaSelfConsensusAccount, nil))
+}
+
+func (chain *BlockChain) getNewGeneratedQueryID(msg *queue.Message) {
+	queryID := chain.blockStore.CreateNewPrivacyTxQueryID()
+	reply := types.ReplyString{Data: common.ToHex(queryID)}
+	msg.Reply(chain.client.NewMessage("", types.EventReplyGeneratePrivacyTxQueryID, &reply))
+	chainlog.Info("getNewGeneratedQueryID", "new created Privacy Tx QueryId:", reply.Data)
+}
+
+func (chain *BlockChain) getPrivacyTransactionByHashes(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqPrivacyHashes)
+	copyReq := *req
+	copyReq.Signature = nil
+	chainlog.Info("getPrivacyTransactionByHashes", "Query privacy tx with id:", req.RequestID)
+	data := types.Encode(&copyReq)
+	if req.GetSignature() == nil {
+		err := errors.New("nil signature")
+		chainlog.Error("getPrivacyTransactionByHashes", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, err))
+		return
+	}
+	if !types.CheckSign(data, "", req.GetSignature()) {
+		err := errors.New("Signature verification failed")
+		chainlog.Error("getPrivacyTransactionByHashes", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, err))
+		return
+	}
+
+	queryID, _ := common.FromHex(req.RequestID)
+	if !chain.blockStore.IsPrivacyTxQueryIDValid(queryID) {
+		err := errors.New("The same QueryId is used already or not existed")
+		chainlog.Error("getPrivacyTransactionByHashes", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, err))
+		return
+	}
+	chain.blockStore.MakePrivacyTxQueryIDUsedAlready(queryID)
+
+	enablePrivacyQuery := false
+	if chain.parachainPrivacyTxManager.SelfConsensusAddr == address.PubKeyToAddr(req.Signature.Pubkey) {
+		enablePrivacyQuery = true
+	}
+	chainlog.Info("getPrivacyTransactionByHashes", "enablePrivacyQuery", enablePrivacyQuery)
+	//chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
+	TransactionDetails, err := chain.ProcGetTransactionByHashes(req.Hashes, enablePrivacyQuery)
+	if err != nil {
+		chainlog.Error("ProcGetTransactionByHashes", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, err))
+	} else {
+		//chainlog.Debug("EventGetTransactionByHash", "success", "ok")
+		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
+	}
 }

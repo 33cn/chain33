@@ -16,6 +16,7 @@ type PrivKey interface {
 	Sign(msg []byte) Signature
 	PubKey() PubKey
 	Equals(PrivKey) bool
+	Decrypt(in []byte) ([]byte, error)
 }
 
 //Signature 签名
@@ -32,6 +33,7 @@ type PubKey interface {
 	KeyString() string
 	VerifyBytes(msg []byte, sig Signature) bool
 	Equals(PubKey) bool
+	Encrypt(in []byte) ([]byte, error)
 }
 
 //Crypto 加密

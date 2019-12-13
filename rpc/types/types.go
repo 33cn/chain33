@@ -249,6 +249,17 @@ type ReqHashes struct {
 	DisableDetail bool     `json:"disableDetail"`
 }
 
+type ReqPrivacyTxQueryID struct {
+}
+
+type ReqPrivacyHashes struct {
+	Hashes        []string `json:"hashes"`
+	Signature     string   `json:"signature"`
+	PublicKey     string   `json:"publicKey"`
+	RequestID     string   `json:"requestID"`
+	DisableDetail bool     `json:"disableDetail"`
+}
+
 // ReqWalletTransactionList require wallet transaction list
 type ReqWalletTransactionList struct {
 	FromTx          string `json:"fromTx"`

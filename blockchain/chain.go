@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/util"
+
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -31,7 +33,10 @@ var (
 	FutureBlockDelayTime int64 = 1
 )
 
-const maxFutureBlocks = 256
+const (
+	maxFutureBlocks = 256
+	maxPrivacyTxs   = 2048
+)
 
 //BlockChain 区块链结构体
 type BlockChain struct {
@@ -118,8 +123,9 @@ type BlockChain struct {
 	DefCacheSize     int64
 	failed           int32
 
-	blockOnChain   *BlockOnChain
-	onChainTimeout int64
+	blockOnChain              *BlockOnChain
+	onChainTimeout            int64
+	parachainPrivacyTxManager *util.ParachainPrivacyTxManager
 }
 
 //New new
@@ -133,6 +139,12 @@ func New(cfg *types.Chain33Config) *BlockChain {
 	if mcfg.DefCacheSize > 0 {
 		defCacheSize = mcfg.DefCacheSize
 	}
+
+	plainTxs, err := lru.New(maxPrivacyTxs)
+	if err != nil {
+		panic("when New BlockChain lru.New return err")
+	}
+
 	blockchain := &BlockChain{
 		cache:              NewBlockCache(cfg, defCacheSize),
 		DefCacheSize:       defCacheSize,
@@ -164,6 +176,9 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		isFastDownloadSync:  true,
 		blockOnChain:        &BlockOnChain{},
 		onChainTimeout:      0,
+		parachainPrivacyTxManager: &util.ParachainPrivacyTxManager{
+			PlainTxs: plainTxs,
+		},
 	}
 	blockchain.initConfig(cfg)
 	return blockchain

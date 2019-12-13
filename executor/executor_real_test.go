@@ -198,7 +198,7 @@ func TestExecBlock2(t *testing.T) {
 	txs := util.GenCoinsTxs(cfg, genkey, 2)
 
 	block2 := util.CreateNewBlock(cfg, block, txs)
-	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -215,7 +215,7 @@ func TestExecBlock2(t *testing.T) {
 		go func() {
 			txs := util.GenCoinsTxs(cfg, genkey, 2)
 			block3 := util.CreateNewBlock(cfg, block2, txs)
-			detail, _, err := util.ExecBlock(mock33.GetClient(), block2.StateHash, block3, false, true, false)
+			detail, _, err := util.ExecBlock(mock33.GetClient(), block2.StateHash, block3, false, true, false, nil)
 			assert.Nil(t, err)
 			for _, Receipt := range detail.Receipts {
 				if Receipt.GetTy() != 2 {
@@ -245,7 +245,7 @@ func TestSameTx(t *testing.T) {
 	newblock.Txs = append(newblock.Txs, newblock.Txs[2])
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
-	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
+	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false, nil)
 	assert.Equal(t, types.ErrTxDup, err)
 
 	//情况2
@@ -255,7 +255,7 @@ func TestSameTx(t *testing.T) {
 	newblock.Txs = append(newblock.Txs, newblock.Txs[4:]...)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
-	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
+	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false, nil)
 	assert.Equal(t, types.ErrTxDup, err)
 }
 
@@ -266,7 +266,7 @@ func TestExecBlock(t *testing.T) {
 	mock33.WaitHeight(0)
 	block0 := mock33.GetBlock(0)
 	block := util.CreateCoinsBlock(cfg, mock33.GetGenesisKey(), 10)
-	util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true, false)
+	util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true, false, nil)
 }
 
 //区块执行性能更好的一个测试
@@ -289,7 +289,7 @@ func BenchmarkExecBlock(b *testing.B) {
 	assert.Equal(b, int64(10000000000000000), account.Balance)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true, false)
+		util.ExecBlock(mock33.GetClient(), block0.StateHash, block, false, true, false, nil)
 	}
 }
 
@@ -382,7 +382,7 @@ func TestExecLocalSameTime1(t *testing.T) {
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	block2 := util.CreateNewBlock(cfg, block, txs)
-	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -413,7 +413,7 @@ func TestExecLocalSameTime0(t *testing.T) {
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	block2 := util.CreateNewBlock(cfg, block, txs)
-	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -450,7 +450,7 @@ func TestExecLocalSameTimeSetErrKey(t *testing.T) {
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	block2 := util.CreateNewBlock(cfg, block, txs)
-	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false)
+	detail, _, err := util.ExecBlock(mock33.GetClient(), block.StateHash, block2, false, true, false, nil)
 	if err != nil {
 		t.Error(err)
 		return

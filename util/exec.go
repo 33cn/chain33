@@ -5,13 +5,29 @@
 package util
 
 import (
+	"bytes"
 	"errors"
 
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/system/crypto/symcipher"
 	"github.com/33cn/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 )
+
+//type AddrAndPrivKey struct {
+//	Addr    string
+//	PrivKey crypto.PrivKey
+//}
+
+type ParachainPrivacyTxManager struct {
+	//记录隐私交易的明文内容，在执行前解密，在execLocal时需要再次使用，同时在区块进行回滚时也需要使用
+	PlainTxs                *lru.Cache
+	SelfConsensusAddr       string //平行链自共识的地址和私钥，解密时需要使用
+	SelfConsensusPrivateKey crypto.PrivKey
+}
 
 //CheckBlock : To check the block's validaty
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
@@ -33,7 +49,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 }
 
 //ExecTx : To send lists of txs within a block to exector for execution
-func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*types.Receipts, error) {
+func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block, privacyTxManager *ParachainPrivacyTxManager) (*types.Receipts, error) {
 	list := &types.ExecTxList{
 		StateHash:  prevStateRoot,
 		ParentHash: block.ParentHash,
@@ -45,6 +61,11 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 		Difficulty: uint64(block.Difficulty),
 		IsMempool:  false,
 	}
+	var txsBk map[int]*types.Transaction
+	bk := false
+	if client.GetConfig().IsPara() {
+		bk, txsBk = ConvertPrivacyTx2Plain(list.Txs, privacyTxManager, list.Height)
+	}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	err := client.Send(msg, true)
 	if err != nil {
@@ -54,8 +75,132 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 	if err != nil {
 		return nil, err
 	}
+	//如果有隐私交易，则进行恢复
+	if bk {
+		for i, tx := range txsBk {
+			list.Txs[i] = tx
+			ulog.Debug("ExecTx: restored privacy tx", "hash:", common.ToHex(tx.Hash()))
+		}
+	}
+
 	receipts := resp.GetData().(*types.Receipts)
 	return receipts, nil
+}
+
+func ConvertPrivacyTx2Plain(txsInBlk []*types.Transaction, privacyTxManager *ParachainPrivacyTxManager, height int64) (bool, map[int]*types.Transaction) {
+	var txsBk map[int]*types.Transaction
+	bk := false
+	for i, tx := range txsInBlk {
+		if bytes.HasSuffix(tx.Execer, []byte(types.PrivacyTx4Para)) {
+			ulog.Debug("ExecTx", "Got PrivacyTx4Para for para chain with txhash:", common.ToHex(tx.Hash()),
+				"height:", height)
+			if nil == privacyTxManager {
+				ulog.Error("ExecTx", "Nil privacyTxManager", privacyTxManager)
+				continue
+			}
+			txhash := common.ToHex(tx.Hash())
+			//如果该隐私交易在区块的缓存中存在该笔交易，则直接替换
+			if data, exist := privacyTxManager.PlainTxs.Get(txhash); exist {
+				txPlainCached, ok := data.(*types.Transaction)
+				if !ok {
+					ulog.Error("ExecTx", "Wrong data format:", data)
+				} else {
+					if !bk {
+						bk = true
+						txsBk = make(map[int]*types.Transaction)
+					}
+					txsBk[i] = txsInBlk[i]
+					txsInBlk[i] = txPlainCached
+					continue
+				}
+			}
+			var privacyTxPayload types.PrivacyTxPayload
+			if err := types.Decode(tx.Payload, &privacyTxPayload); nil != err {
+				ulog.Error("ExecTx", "Failed to decode privacy Tx Payload due to:", err)
+				continue
+			}
+
+			skCiphered, ok := privacyTxPayload.AddrSymKey[privacyTxManager.SelfConsensusAddr]
+			if !ok {
+				ulog.Error("ExecTx", "No ciphered symmetric key for me", privacyTxPayload.AddrSymKey)
+				continue
+			}
+			///////////////debug code begin////////////////////
+			ulog.Debug("ExecTx decode sym key", "decipher sk with addr:", privacyTxManager.SelfConsensusAddr,
+				"public key:", common.ToHex(privacyTxManager.SelfConsensusPrivateKey.PubKey().Bytes()))
+			///////////////debug code end////////////////////
+			skPlain, err := privacyTxManager.SelfConsensusPrivateKey.Decrypt(skCiphered)
+			if nil != err {
+				ulog.Error("ExecTx", "Failed to decrypt symmetric key for addr:", privacyTxManager.SelfConsensusAddr)
+				continue
+			}
+
+			txPlainByte, err := symcipher.DecryptSymmetric(skPlain, privacyTxPayload.CipheredTx)
+			if nil != err {
+				ulog.Error("ExecTx", "Failed to decrypt tx payload due to:", err.Error())
+				continue
+			}
+
+			var txPlain types.Transaction
+			if err := types.Decode(txPlainByte, &txPlain); nil != err {
+				ulog.Error("ExecTx", "Failed to decode for tx with hash:", common.ToHex(tx.Hash()))
+				continue
+			}
+			privacyTxManager.PlainTxs.Add(txhash, &txPlain)
+			ulog.Debug("ExecTx: Succeed to decrypt for para-chain's privacy tx")
+			if !bk {
+				bk = true
+				txsBk = make(map[int]*types.Transaction)
+			}
+			txsBk[i] = txsInBlk[i]
+			txsInBlk[i] = &txPlain
+		}
+	}
+	return bk, txsBk
+}
+
+func DecipherPrivacyTx(tx *types.Transaction, privacyTxManager *ParachainPrivacyTxManager) (*types.Transaction, error) {
+	txhash := common.ToHex(tx.Hash())
+	//如果该隐私交易在区块的缓存中存在该笔交易，则直接替换
+	if data, exist := privacyTxManager.PlainTxs.Get(txhash); exist {
+		txPlainCached, ok := data.(*types.Transaction)
+		if !ok {
+			ulog.Error("ExecTx", "Wrong data format:", data)
+			return nil, errors.New("Wrong Transaction format")
+		}
+		return txPlainCached, nil
+	}
+	var privacyTxPayload types.PrivacyTxPayload
+	if err := types.Decode(tx.Payload, &privacyTxPayload); nil != err {
+		ulog.Error("ExecTx", "Failed to decode privacy Tx Payload due to:", err)
+		return nil, err
+	}
+
+	skCiphered, ok := privacyTxPayload.AddrSymKey[privacyTxManager.SelfConsensusAddr]
+	if !ok {
+		ulog.Error("ExecTx", "No ciphered symmetric key for me", privacyTxPayload.AddrSymKey)
+		return nil, errors.New("No ciphered symmetric key for me")
+	}
+	skPlain, err := privacyTxManager.SelfConsensusPrivateKey.Decrypt(skCiphered)
+	if nil != err {
+		ulog.Error("ExecTx", "Failed to decrypt symmetric key for addr:", privacyTxManager.SelfConsensusAddr)
+		return nil, err
+	}
+
+	txPlainByte, err := symcipher.DecryptSymmetric(skPlain, privacyTxPayload.CipheredTx)
+	if nil != err {
+		ulog.Error("ExecTx", "Failed to decrypt tx payload due to:", err.Error())
+		return nil, err
+	}
+
+	var txPlain types.Transaction
+	if err := types.Decode(txPlainByte, &txPlain); nil != err {
+		ulog.Error("ExecTx", "Failed to decode for tx with hash:", common.ToHex(tx.Hash()))
+		return nil, err
+	}
+	privacyTxManager.PlainTxs.Add(txhash, &txPlain)
+	ulog.Debug("ExecTx: Succeed to decrypt for para-chain's privacy tx")
+	return &txPlain, nil
 }
 
 //ExecKVMemSet : send kv values to memory store and set it in db

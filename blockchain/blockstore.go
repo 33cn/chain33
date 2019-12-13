@@ -13,6 +13,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/33cn/chain33/system/crypto/symcipher"
+	"github.com/33cn/chain33/util"
+
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/difficulty"
@@ -39,6 +42,8 @@ var (
 	paraSeqToHashKey      = []byte("ParaSeq:")
 	HashToParaSeqPrefix   = []byte("HashToParaSeq:")
 	LastParaSequence      = []byte("LastParaSequence")
+	LastPrivacyTxQueryID  = []byte("LastPrivacyTxQueryID:")
+	PrivacyTxQueryIDUsed  = []byte("PrivacyTxQueryIDUsed:")
 	storeLog              = chainlog.New("submodule", "store")
 )
 
@@ -123,6 +128,10 @@ func calcMainSequenceToHashKey(sequence int64) []byte {
 	return append(seqToHashKey, []byte(fmt.Sprintf("%v", sequence))...)
 }
 
+func calcPrivacyTxQueryIDUsedKey(queryID []byte) []byte {
+	return append(PrivacyTxQueryIDUsed, []byte(fmt.Sprintf("%v", queryID))...)
+}
+
 //BlockStore 区块存储
 type BlockStore struct {
 	db             dbm.DB
@@ -132,6 +141,8 @@ type BlockStore struct {
 	lastheaderlock sync.Mutex
 	saveSequence   bool
 	isParaChain    bool
+	//LastPrivacyTxQueryID int64
+	//privacyTxQueryIdLock sync.Mutex
 }
 
 //NewBlockStore new
@@ -652,12 +663,13 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &txResult, nil
 }
 
 //AddTxs 通过批量存储tx信息到db中
-func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail) error {
-	kv, err := bs.getLocalKV(blockDetail)
+func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail, privacyTxManager *util.ParachainPrivacyTxManager) error {
+	kv, err := bs.getLocalKV(blockDetail, privacyTxManager)
 	if err != nil {
 		storeLog.Error("indexTxs getLocalKV err", "Height", blockDetail.Block.Height, "err", err)
 		return err
@@ -674,11 +686,11 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 }
 
 //DelTxs 通过批量删除tx信息从db中
-func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail) error {
+func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail, privacyTxManager *util.ParachainPrivacyTxManager) error {
 	//存储key:addr:flag:height ,value:txhash
 	//flag :0-->from,1--> to
 	//height=height*10000+index 存储账户地址相关的交易
-	kv, err := bs.getDelLocalKV(blockDetail)
+	kv, err := bs.getDelLocalKV(blockDetail, privacyTxManager)
 	if err != nil {
 		storeLog.Error("indexTxs getLocalKV err", "Height", blockDetail.Block.Height, "err", err)
 		return err
@@ -789,10 +801,16 @@ func (bs *BlockStore) GetBlockHeaderByHash(hash []byte) (*types.Header, error) {
 	return &header, nil
 }
 
-func (bs *BlockStore) getLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, error) {
+func (bs *BlockStore) getLocalKV(detail *types.BlockDetail, privacyTxManager *util.ParachainPrivacyTxManager) (*types.LocalDBSet, error) {
 	if bs.client == nil {
 		panic("client not bind message queue.")
 	}
+	var txsBk map[int]*types.Transaction
+	bk := false
+	if bs.client.GetConfig().IsPara() {
+		bk, txsBk = util.ConvertPrivacyTx2Plain(detail.Block.Txs, privacyTxManager, detail.Block.Height)
+	}
+
 	msg := bs.client.NewMessage("execs", types.EventAddBlock, detail)
 	err := bs.client.Send(msg, true)
 	if err != nil {
@@ -803,12 +821,55 @@ func (bs *BlockStore) getLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, 
 		return nil, err
 	}
 	kv := resp.GetData().(*types.LocalDBSet)
+	//如果有隐私交易，则进行恢复
+	if bk {
+		cfg := bs.client.GetConfig()
+		replaceKeyAndRestoreTxs(cfg, detail.Block.Txs, txsBk, kv)
+	}
 	return kv, nil
 }
 
-func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, error) {
+//将交易hash替换为原有密文交易hash，这样后续就可以直接通过密文交易hash查找执行结果
+//将block中的交易恢复成密文交易
+func replaceKeyAndRestoreTxs(cfg *types.Chain33Config, txs []*types.Transaction, txsBk map[int]*types.Transaction, kvLocal *types.LocalDBSet) {
+	for i, privacyTx := range txsBk {
+		txhash := txs[i].Hash()
+		txKey := cfg.CalcTxKey(txhash)
+		for i, kv := range kvLocal.KV {
+			if bytes.Equal(kv.Key, txKey) {
+				privacyTxHash := privacyTx.Hash()
+				storeLog.Info("replaceKeyAndRestoreTxs", "privacyTxHash:", common.ToHex(privacyTxHash))
+				kvLocal.KV[i].Key = cfg.CalcTxKey(privacyTxHash)
+				//如果非删除操作，则将明文内容替换为密文内容
+				if nil != kv.Value {
+					var txResult types.TxResult
+					_ = types.Decode(kv.Value, &txResult)
+					txResult.Tx = privacyTx
+					kvLocal.KV[i].Value = types.Encode(&txResult)
+
+					storeLog.Info("replaceKeyAndRestoreTxs", "key:", common.ToHex(kvLocal.KV[i].Key),
+						"value", common.ToHex(common.Sha256(kvLocal.KV[i].Value)))
+				}
+			}
+			if cfg.IsEnable("quickIndex") {
+				txShortKey := types.CalcTxShortKey(txhash)
+				if bytes.Equal(kv.Key, txShortKey) {
+					kvLocal.KV[i].Key = types.CalcTxShortKey(privacyTx.Hash())
+				}
+			}
+		}
+		txs[i] = privacyTx
+	}
+}
+
+func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail, privacyTxManager *util.ParachainPrivacyTxManager) (*types.LocalDBSet, error) {
 	if bs.client == nil {
 		panic("client not bind message queue.")
+	}
+	var txsBk map[int]*types.Transaction
+	bk := false
+	if bs.client.GetConfig().IsPara() {
+		bk, txsBk = util.ConvertPrivacyTx2Plain(detail.Block.Txs, privacyTxManager, detail.Block.Height)
 	}
 	msg := bs.client.NewMessage("execs", types.EventDelBlock, detail)
 	err := bs.client.Send(msg, true)
@@ -820,6 +881,12 @@ func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSe
 		return nil, err
 	}
 	localDBSet := resp.GetData().(*types.LocalDBSet)
+	//如果有隐私交易，则进行恢复
+	if bk {
+		cfg := bs.client.GetConfig()
+		replaceKeyAndRestoreTxs(cfg, detail.Block.Txs, txsBk, localDBSet)
+	}
+
 	return localDBSet, nil
 }
 
@@ -1338,4 +1405,39 @@ func (bs *BlockStore) SetConsensusPara(kvs *types.LocalDBSet) error {
 		panic(err)
 	}
 	return err
+}
+
+//隐私交易查询id，只能是随机字符串，而不能是自然数，因为如果是自然数，
+//同一个用户在不同的平行链节点得到了访问授权，用户向node0的查看请求被网络侦听到之后
+//非法用户就可以通过该请求向另外一个节点发起查看请求。
+//如果是数字的话，存在这样的一种场景，在节点node0上分配了queryid，然后返回给真实的查询方，
+//查询方，通过构造签名，发起查询请求，恶意用户通过同样的请求向另外的节点发起查询，正好该id也未查询，
+//就可以被查询，所以在节点上使用随机生成的id，可以规避在不同节点上生成相同查询id的可能性
+func (bs *BlockStore) CreateNewPrivacyTxQueryID() []byte {
+	queryID, _ := symcipher.GenerateRandomID()
+	bs.makePrivacyTxQueryIDUnUsed(queryID)
+	return queryID
+}
+
+func (bs *BlockStore) MakePrivacyTxQueryIDUsedAlready(queryID []byte) {
+	key := calcPrivacyTxQueryIDUsedKey(queryID)
+	bs.db.Set(key, []byte("1"))
+}
+
+func (bs *BlockStore) makePrivacyTxQueryIDUnUsed(queryID []byte) {
+	key := calcPrivacyTxQueryIDUsedKey(queryID)
+	bs.db.Set(key, []byte("0"))
+}
+
+//IsPrivacyTxQueryIDValid:确认查询id是否存在于本节点，并且未被使用过
+func (bs *BlockStore) IsPrivacyTxQueryIDValid(queryID []byte) bool {
+	key := calcPrivacyTxQueryIDUsedKey(queryID)
+	value, err := bs.db.Get(key)
+	if nil != err {
+		return false
+	}
+	if bytes.Equal(value, []byte("0")) {
+		return true
+	}
+	return false
 }
