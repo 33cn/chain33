@@ -285,7 +285,7 @@ func TestExecBlock(t *testing.T) {
 	txs = append(txs, tx)
 	//EventExecTxList returned 2 txs' receipt
 	txs = append(txs, tx)
-	_, _, err := ExecBlock(client, nil, &types.Block{Txs: txs}, false, true, false)
+	_, _, err := ExecBlock(client, nil, &types.Block{Txs: txs}, false, true, false, nil)
 	assert.NoError(t, err)
 }
 

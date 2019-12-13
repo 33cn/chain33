@@ -240,9 +240,9 @@ func (c *Chain33) GetTxByAddr(in types.ReqAddr, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) GetNewPrivacyTxQueryId(in rpctypes.ReqPrivacyTxQueryId, result *interface{}) error {
-	log.Info("GetNewPrivacyTxQueryId", "now going to get query id", in)
-	reply, err := c.cli.GetNewPrivacyTxQueryId()
+func (c *Chain33) GetNewPrivacyTxQueryID(in rpctypes.ReqPrivacyTxQueryID, result *interface{}) error {
+	log.Info("GetNewPrivacyTxQueryID", "now going to get query id", in)
+	reply, err := c.cli.GetNewPrivacyTxQueryID()
 	if err != nil {
 		return err
 	}
@@ -253,9 +253,9 @@ func (c *Chain33) GetNewPrivacyTxQueryId(in rpctypes.ReqPrivacyTxQueryId, result
 func (c *Chain33) GetPrivacyTxByHashes(in rpctypes.ReqPrivacyHashes, result *interface{}) error {
 	log.Info("Enter GetPrivacyTxByHashes", "ReqPrivacyHashes", in)
 	parm := &types.ReqPrivacyHashes{
-		RequestID:in.RequestId,
-		Signature:&types.Signature{
-			Ty:        types.SECP256K1,
+		RequestID: in.RequestID,
+		Signature: &types.Signature{
+			Ty: types.SECP256K1,
 		},
 	}
 	parm.Hashes = make([][]byte, 0)
@@ -350,7 +350,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 
 	txReceipt := tx.GetReceipt()
 	var recpResult *rpctypes.ReceiptDataResult
-	if nil != txReceipt{
+	if nil != txReceipt {
 		var recp rpctypes.ReceiptData
 		recp.Ty = txReceipt.GetTy()
 		logs := txReceipt.GetLogs()

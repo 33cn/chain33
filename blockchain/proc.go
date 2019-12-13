@@ -8,9 +8,10 @@ package blockchain
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-	"sync/atomic"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
@@ -100,8 +101,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getParaTxByTitle)
 		case types.EventParaSelfConsensusAccount:
 			go chain.processMsg(msg, reqnum, chain.getParaSelfConsensusAccount)
-		case types.EventGeneratePrivacyTxQueryId:
-			go chain.processMsg(msg, reqnum, chain.getNewGeneratedQueryId)
+		case types.EventGeneratePrivacyTxQueryID:
+			go chain.processMsg(msg, reqnum, chain.getNewGeneratedQueryID)
 		case types.EventGetPrivacyTransactionByHash:
 			go chain.processMsg(msg, reqnum, chain.getPrivacyTransactionByHashes)
 		default:
@@ -624,7 +625,7 @@ func (chain *BlockChain) getParaTxByTitle(msg *queue.Message) {
 }
 
 func (chain *BlockChain) getParaSelfConsensusAccount(msg *queue.Message) {
-	paraSelfConsensusAccount, ok := (msg.Data).(*types.ParaSelfConsensusAccount);
+	paraSelfConsensusAccount, ok := (msg.Data).(*types.ParaSelfConsensusAccount)
 	if !ok {
 		chainlog.Error("getParaSelfConsensusAccount", "Recv wrong data format as:", msg.Data)
 		return
@@ -643,15 +644,13 @@ func (chain *BlockChain) getParaSelfConsensusAccount(msg *queue.Message) {
 	chain.parachainPrivacyTxManager.SelfConsensusPrivateKey = priKey
 	chainlog.Info("getParaSelfConsensusAccount", "Succeed to set private key for address:", paraSelfConsensusAccount.Address)
 	msg.Reply(chain.client.NewMessage("", types.EventReplyParaSelfConsensusAccount, nil))
-	return
 }
 
-func (chain *BlockChain) getNewGeneratedQueryId(msg *queue.Message) {
-	queryId := chain.blockStore.CreateNewPrivacyTxQueryId()
-	reply := types.ReplyString{Data:common.ToHex(queryId)}
-	msg.Reply(chain.client.NewMessage("", types.EventReplyGeneratePrivacyTxQueryId, &reply))
-	chainlog.Info("getNewGeneratedQueryId", "new created Privacy Tx QueryId:", reply.Data)
-	return
+func (chain *BlockChain) getNewGeneratedQueryID(msg *queue.Message) {
+	queryID := chain.blockStore.CreateNewPrivacyTxQueryID()
+	reply := types.ReplyString{Data: common.ToHex(queryID)}
+	msg.Reply(chain.client.NewMessage("", types.EventReplyGeneratePrivacyTxQueryID, &reply))
+	chainlog.Info("getNewGeneratedQueryID", "new created Privacy Tx QueryId:", reply.Data)
 }
 
 func (chain *BlockChain) getPrivacyTransactionByHashes(msg *queue.Message) {
@@ -673,14 +672,14 @@ func (chain *BlockChain) getPrivacyTransactionByHashes(msg *queue.Message) {
 		return
 	}
 
-	queryId, _ := common.FromHex(req.RequestID)
-	if !chain.blockStore.IsPrivacyTxQueryIdValid(queryId) {
+	queryID, _ := common.FromHex(req.RequestID)
+	if !chain.blockStore.IsPrivacyTxQueryIDValid(queryID) {
 		err := errors.New("The same QueryId is used already or not existed")
 		chainlog.Error("getPrivacyTransactionByHashes", "err", err.Error())
 		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, err))
 		return
 	}
-	chain.blockStore.MakePrivacyTxQueryIdUsedAlready(queryId)
+	chain.blockStore.MakePrivacyTxQueryIDUsedAlready(queryID)
 
 	enablePrivacyQuery := false
 	if chain.parachainPrivacyTxManager.SelfConsensusAddr == address.PubKeyToAddr(req.Signature.Pubkey) {
@@ -696,6 +695,4 @@ func (chain *BlockChain) getPrivacyTransactionByHashes(msg *queue.Message) {
 		//chainlog.Debug("EventGetTransactionByHash", "success", "ok")
 		msg.Reply(chain.client.NewMessage("rpc", types.EventTransactionDetails, TransactionDetails))
 	}
-
-	return
 }

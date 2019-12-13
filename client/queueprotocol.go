@@ -223,11 +223,11 @@ func (q *QueueProtocol) GetTransactionByHash(param *types.ReqHashes) (*types.Tra
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) GetNewPrivacyTxQueryId() (*types.ReplyString, error) {
-	log.Info("GetNewPrivacyTxQueryId", "get now", "yes")
-	msg, err := q.send(blockchainKey, types.EventGeneratePrivacyTxQueryId, &types.ReqNil{})
+func (q *QueueProtocol) GetNewPrivacyTxQueryID() (*types.ReplyString, error) {
+	log.Info("GetNewPrivacyTxQueryID", "get now", "yes")
+	msg, err := q.send(blockchainKey, types.EventGeneratePrivacyTxQueryID, &types.ReqNil{})
 	if err != nil {
-		log.Error("GetNewPrivacyTxQueryId", "Error", err.Error())
+		log.Error("GetNewPrivacyTxQueryID", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.ReplyString); ok {

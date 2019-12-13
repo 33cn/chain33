@@ -249,14 +249,14 @@ type ReqHashes struct {
 	DisableDetail bool     `json:"disableDetail"`
 }
 
-type ReqPrivacyTxQueryId struct {
+type ReqPrivacyTxQueryID struct {
 }
 
 type ReqPrivacyHashes struct {
 	Hashes        []string `json:"hashes"`
 	Signature     string   `json:"signature"`
 	PublicKey     string   `json:"publicKey"`
-	RequestId     string   `json:"requestId"`
+	RequestID     string   `json:"requestID"`
 	DisableDetail bool     `json:"disableDetail"`
 }
 

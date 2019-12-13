@@ -9,10 +9,11 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/util"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"

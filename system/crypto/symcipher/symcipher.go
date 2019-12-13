@@ -3,9 +3,9 @@ package symcipher
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	crand "crypto/rand"
 	"errors"
 	"fmt"
-	crand "crypto/rand"
 	mrand "math/rand"
 )
 
@@ -14,8 +14,8 @@ const (
 	aesKeyLength   = 32 // in bytes
 )
 
-// GenerateRandomId: generates a random Id
-func GenerateRandomId() ([]byte, error) {
+// GenerateRandomID: generates a random Id
+func GenerateRandomID() ([]byte, error) {
 	return GenerateSymKey()
 }
 

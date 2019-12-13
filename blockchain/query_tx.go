@@ -7,6 +7,7 @@ package blockchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common"
@@ -71,7 +72,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte, enablePrivac
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
 			var txDetail types.TransactionDetail
-			if bytes.HasSuffix([]byte(txresult.Tx.Execer),  []byte(types.PrivacyTx4Para)) {
+			if bytes.HasSuffix(txresult.Tx.Execer, []byte(types.PrivacyTx4Para)) {
 				if !enablePrivacyQuery {
 					txresult.Receiptdate = nil
 				} else {
@@ -178,7 +179,7 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	if err != nil {
 		return nil, err
 	}
-	if bytes.HasSuffix([]byte(txresult.Tx.Execer),  []byte(types.PrivacyTx4Para)) {
+	if bytes.HasSuffix(txresult.Tx.Execer, []byte(types.PrivacyTx4Para)) {
 		txresult.Receiptdate = nil
 	}
 	block, err := chain.GetBlock(txresult.Height)
