@@ -1,4 +1,4 @@
-package protocol
+package types
 
 import (
 	"fmt"
@@ -6,13 +6,13 @@ import (
 )
 
 
-type eventHandler func(*queue.Message)
+type EventHandler func(*queue.Message)
 
 var (
-	eventHandlerMap = make(map[int64]eventHandler)
+	eventHandlerMap = make(map[int64]EventHandler)
 )
 
-func RegisterEventHandler(eventID int64, handler eventHandler) {
+func RegisterEventHandler(eventID int64, handler EventHandler) {
 
 	if handler == nil {
 		panic(fmt.Sprintf("addEventHandler, handler is nil, id=%d", eventID))
@@ -24,9 +24,10 @@ func RegisterEventHandler(eventID int64, handler eventHandler) {
 }
 
 
-func ProcessEvent(msg *queue.Message) {
 
-	if handler, ok := eventHandlerMap[msg.Ty]; ok {
-		handler(msg)
-	}
+func GetEventHandler(eventID int64) (EventHandler, bool) {
+	handler, ok := eventHandlerMap[eventID]
+	return handler, ok
 }
+
+

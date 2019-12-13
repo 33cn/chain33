@@ -10,7 +10,7 @@ func (s *Service) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, pee
 
 	txHash := hex.EncodeToString(tx.Tx.Hash())
 	ttl := tx.GetRoute().GetTTL()
-	isLightSend := ttl >= s.node.GetP2pCfg().LightTxTTL
+	isLightSend := ttl >= s.p2pCfg.LightTxTTL
 	//检测冗余发送
 	ignoreSend := false
 
@@ -26,7 +26,7 @@ func (s *Service) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, pee
 		return false
 	}
 	//超过最大的ttl, 不再发送
-	if ttl > s.node.GetP2pCfg().MaxTTL { //超过最大发送次数
+	if ttl > s.p2pCfg.MaxTTL { //超过最大发送次数
 		return false
 	}
 

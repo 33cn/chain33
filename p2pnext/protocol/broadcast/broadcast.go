@@ -1,7 +1,8 @@
 package broadcast
 
 import (
-	"io"
+	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
+	core "github.com/libp2p/go-libp2p-core"
 	"time"
 
 	logger "github.com/33cn/chain33/common/log/log15"
@@ -9,7 +10,6 @@ import (
 	p2p "github.com/33cn/chain33/p2pnext"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	uuid "github.com/google/uuid"
 	net "github.com/libp2p/go-libp2p-core/network"
 )
 
@@ -17,132 +17,144 @@ var log = logger.New("module", "p2p.broadcast")
 
 const ID = "/chain33/p2p/broadcast/1.0.0"
 
+
+func init() {
+ 	prototypes.RegisterStreamHandler(ID, &broadCastHandler{})
+}
+
 //
 type Service struct {
+	protocol *prototypes.Protocol
 	txFilter        *common.Filterdata
 	blockFilter     *common.Filterdata
 	txSendFilter    *common.Filterdata
 	blockSendFilter *common.Filterdata
 	totalBlockCache *common.SpaceLimitCache
 	ltBlockCache    *common.SpaceLimitCache
-	node            *p2p.Node
-	client          queue.Client
-	done            chan struct{}
+	p2pCfg *types.P2P
 }
 
-//New
-func (s *Service) New(node *p2p.Node, cli queue.Client, done chan struct{}) p2p.Driver {
 
-	handler := &Service{}
-	node.Host.SetStreamHandler(ID, handler.OnResp)
-	s.node = node
+//New
+func newService(proto *prototypes.Protocol) *Service {
+
+	service := &Service{}
+	service.protocol = proto
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
-	handler.txFilter = common.NewFilter(TxRecvFilterCacheNum)
-	handler.blockFilter = common.NewFilter(BlockFilterCacheNum)
+	service.txFilter = common.NewFilter(TxRecvFilterCacheNum)
+	service.blockFilter = common.NewFilter(BlockFilterCacheNum)
 
 	//发送交易和区块时过滤缓存, 解决冗余广播发送
-	handler.txSendFilter = common.NewFilter(TxSendFilterCacheNum)
-	handler.blockSendFilter = common.NewFilter(BlockFilterCacheNum)
+	service.txSendFilter = common.NewFilter(TxSendFilterCacheNum)
+	service.blockSendFilter = common.NewFilter(BlockFilterCacheNum)
 
 	//在本地暂时缓存一些区块数据, 限制最大大小
-	handler.totalBlockCache = common.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
+	service.totalBlockCache = common.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
-	handler.ltBlockCache = common.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
+	service.ltBlockCache = common.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
+	service.p2pCfg = service.protocol.GetChainCfg().GetModuleConfig().P2P
+	return service
+}
 
-	return handler
+
+type broadCastHandler struct {
+	*prototypes.BaseStreamHandler
+	service *Service
+}
+
+func (h *broadCastHandler)Init(p *prototypes.Protocol) {
+	service := newService(p)
+	h.service = service
+	prototypes.RegisterEventHandler(types.EventTxBroadcast, service.handleEvent)
+	prototypes.RegisterEventHandler(types.EventBlockBroadcast, service.handleEvent)
+}
+
+func (h *broadCastHandler)Handle(req []byte, stream core.Stream) (*prototypes.StreamResponse, error) {
+
+	pid := stream.Conn().RemotePeer().Pretty()
+	peerAddr := stream.Conn().RemoteMultiaddr().String()
+	//s.node.Store(pid, stream)
+
+	//解析处理
+	var data types.MessageBroadCast
+	err := types.Decode(req, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	//valid := s.node.AuthenticateMessage(&data, data.Common)
+	//if !valid {
+	//	logger.Error("Failed to authenticate message")
+	//	continue
+	//}
+
+	recvData := data.Message
+
+	_ = h.service.handleReceive(recvData, pid, peerAddr)
+	return nil, nil
+}
+
+func (h *broadCastHandler)VerifyRequest([]byte) bool {
+
+	return true
 }
 
 //
-func (s *Service) DoProcess(msg *queue.Message) {
+func (s *Service) handleEvent(msg *queue.Message) {
 
 	data := msg.GetData()
-	streams := s.node.FetchStreams()
+	streams := s.protocol.GetStreamManager().FetchStreams()
 	for _, stream := range streams {
 		s.sendStream(stream, data)
 	}
 
 }
 
-func (s *Service) queryStream(pid string, data interface{}) bool {
+func (s *Service) queryStream(pid string, data interface{}) error {
 
-	stream := s.node.GetStream(pid)
+	stream := s.protocol.GetStreamManager().GetStream(pid)
 	if stream != nil {
 		return s.sendStream(stream, data)
 	}
 
-	return false
+	return nil
 
 }
 
-func (s *Service) sendStream(stream net.Stream, data interface{}) bool {
+func (s *Service) sendStream(stream net.Stream, data interface{}) error {
 
-	pid := stream.Conn().RemotePeer().Pretty()
-	peerAddr := stream.Conn().RemoteMultiaddr().String()
-	sendData, _ := s.handleSend(data, pid, peerAddr)
+	//pid := stream.Conn().RemotePeer().Pretty()
+	//peerAddr := stream.Conn().RemoteMultiaddr().String()
+	//sendData, doSend := s.handleSend(data, pid, peerAddr)
+	//if !doSend {
+	//	log.Debug("sendStream", "doSend", doSend)
+	//	return nil
+	//}
+	//TODO,send stream
 	//包装一层MessageBroadCast
-	broadData := &types.MessageBroadCast{Common: s.node.NewMessageData(uuid.New().String(), true),
-		Message: sendData}
+	//broadData := &types.MessageBroadCast{Common: s.node.NewMessageData(uuid.New().String(), true),
+	//	Message: sendData}
+	//
+	//// sign the data
+	//signature, err := s.node.SignProtoMessage(broadData)
+	//if err != nil {
+	//	logger.Error("failed to sign pb data")
+	//	return err
+	//}
+	//
+	//broadData.Common.Sign = signature
+	//ok := s.protocol.GetStreamManager().SendProtoMessage(stream, ID, broadData)
+	//if !ok {
+	//	stream.Close()
+	//	s.protocol.GetStreamManager().DeleteStream(pid)
+	//	return errors.New("SendStreamErr")
+	//}
 
-	// sign the data
-	signature, err := s.node.SignProtoMessage(broadData)
-	if err != nil {
-		logger.Error("failed to sign pb data")
-		return false
-	}
-
-	broadData.Common.Sign = signature
-	ok := s.node.SendProtoMessage(stream, ID, broadData)
-	if !ok {
-		stream.Close()
-		s.node.DeleteStream(pid)
-		return false
-	}
-
-	return true
-
-}
-
-//OnRep
-func (s *Service) OnReq(stream net.Stream) {}
-
-// Service
-func (s *Service) OnResp(stream net.Stream) {
-
-	pid := stream.Conn().RemotePeer().Pretty()
-	peerAddr := stream.Conn().RemoteMultiaddr().String()
-	s.node.Store(pid, stream)
-	var buf []byte
-	for {
-		_, err := io.ReadFull(stream, buf)
-		if err != nil {
-			if err == io.EOF {
-				continue
-			}
-			stream.Close()
-			s.node.DeleteStream(pid)
-			return
-
-		}
-		//解析处理
-		var data types.MessageBroadCast
-		err = types.Decode(buf, &data)
-		if err != nil {
-			continue
-		}
-
-		valid := s.node.AuthenticateMessage(&data, data.Common)
-		if !valid {
-			logger.Error("Failed to authenticate message")
-			continue
-		}
-
-		recvData := data.Message
-
-		_ = s.handleReceive(recvData, pid, peerAddr)
-
-	}
+	return nil
 
 }
+
+
 
 // handleSend 对数据进行处理，包装成BroadCast结构
 func (s *Service) handleSend(rawData interface{}, pid, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
@@ -206,12 +218,13 @@ func (s *Service) handleReceive(data *types.BroadCastData, pid string, peerAddr 
 
 func (s *Service) sendToMempool(ty int64, data interface{}) (interface{}, error) {
 
-	msg := s.client.NewMessage(p2p.MEMPOOL, ty, data)
-	err := s.client.Send(msg, true)
+	client := s.protocol.GetQueueClient()
+	msg := client.NewMessage(p2p.MEMPOOL, ty, data)
+	err := client.Send(msg, true)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := s.client.WaitTimeout(msg, time.Second*10)
+	resp, err := client.WaitTimeout(msg, time.Second*10)
 	if err != nil {
 		return nil, err
 	}
@@ -220,8 +233,9 @@ func (s *Service) sendToMempool(ty int64, data interface{}) (interface{}, error)
 
 func (s *Service) postBlockChain(block *types.Block, pid string) error {
 
-	msg := s.client.NewMessage(p2p.BLOCKCHAIN, types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
-	err := s.client.Send(msg, false)
+	client := s.protocol.GetQueueClient()
+	msg := client.NewMessage(p2p.BLOCKCHAIN, types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
+	err := client.Send(msg, false)
 	if err != nil {
 		log.Error("postBlockChain", "send to blockchain Error", err.Error())
 		return err

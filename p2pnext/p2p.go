@@ -66,6 +66,7 @@ func New(cfg *types.Chain33Config) *P2P {
 	p2p.discovery = new(Discovery)
 	p2p.Node = NewNode(p2p, cfg)
 
+
 	logger.Info("NewP2p", "peerId", p2p.Host.ID(), "addrs", p2p.Host.Addrs())
 	return p2p
 
@@ -187,6 +188,6 @@ func (p *P2P) processP2P() {
 	//TODO, control goroutine num
 	for msg := range p.client.Recv() {
 
-	   go protocol.ProcessEvent(msg)
+	   go protocol.HandleEvent(msg)
 	}
 }

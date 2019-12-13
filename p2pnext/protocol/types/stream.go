@@ -1,9 +1,8 @@
-package protocol
+package types
 
 import (
 	"github.com/33cn/chain33/types"
-	net "github.com/libp2p/go-libp2p-core/network"
-	"io/ioutil"
+	core "github.com/libp2p/go-libp2p-core"
 )
 
 
@@ -26,8 +25,9 @@ func RegisterStreamHandler(msgID string, handler StreamHandler) {
 }
 
 type StreamResponse struct{
-	msgID string
-	msg   types.Message
+	Stream core.Stream
+	MsgID string
+	Msg   types.Message
 }
 
 // StreamHandler stream handler
@@ -38,7 +38,7 @@ type StreamHandler interface {
 	// VerifyRequest  验证请求数据
 	VerifyRequest(request []byte) bool
 	// 处理请求, 有返回需要设置具体的response结构
-	Handle(request []byte) (*StreamResponse, error)
+	Handle(request []byte, stream core.Stream) (*StreamResponse, error)
 }
 
 type BaseStreamHandler struct {
@@ -49,7 +49,7 @@ func (s *BaseStreamHandler) Init (protocol *Protocol) {
 	s.protocol = protocol
 }
 
-func (s *BaseStreamHandler) Handle(request []byte) (*StreamResponse, error) {
+func (s *BaseStreamHandler) Handle([]byte, core.Stream) (*StreamResponse, error) {
 	return nil, nil
 }
 
@@ -60,35 +60,14 @@ func (s *BaseStreamHandler) VerifyRequest(request []byte) bool {
 	return true
 }
 
-func handleStream(stream net.Stream) {
 
-	msgID := stream.Protocol()
-	for {
+func GetStreamHandler(msgID string) (StreamHandler, bool) {
 
-		buf, err := ioutil.ReadAll(stream)
-		if err != nil {
-			stream.Reset()
-			logger.Error(err)
-			continue
-		}
-
-		if handler, ok := streamHandlerMap[string(msgID)]; ok {
-
-			if !handler.VerifyRequest(buf) {
-				//invalid request
-				continue
-			}
-
-			resp, err := handler.Handle(buf)
-		    if err != nil {
-		    	continue
-			}
-			if resp.msg != nil {
-				//TODO, send response message
-			}
-		}
-	}
+	handler, ok := streamHandlerMap[msgID]
+	return handler, ok
 }
+
+
 
 
 
