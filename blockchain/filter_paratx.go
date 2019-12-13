@@ -106,7 +106,7 @@ func (chain *BlockChain) checkInputParam(req *types.ReqParaTxByTitle) error {
 	return nil
 }
 
-//GetParaTxByTitle 通过seq以及title获取对应平行连的交易
+//GetParaTxByHeight 通过height以及title获取对应平行连的交易
 func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
 	//入参数校验
 	if req == nil {
@@ -126,6 +126,7 @@ func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types
 	cfg := chain.client.GetConfig()
 	var paraTxs types.ParaTxDetails
 	var paraTxDetail *types.ParaTxDetail
+	size := 0
 	for _, height := range req.Items {
 		block, err := chain.GetBlock(height)
 		if err != nil {
@@ -142,6 +143,11 @@ func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types
 					paraTxDetail.Proofs = branch
 				}
 			}
+		}
+		size += paraTxDetail.Size()
+		if size > types.MaxBlockSizePerTime {
+			chainlog.Info("GetParaTxByHeight:overflow", "MaxBlockSizePerTime", types.MaxBlockSizePerTime)
+			return &paraTxs, nil
 		}
 		paraTxs.Items = append(paraTxs.Items, paraTxDetail)
 	}
