@@ -17,7 +17,7 @@ type Protocol struct{
 	ChainCfg        *types.Chain33Config
 	QueueClient     queue.Client
 	Host            core.Host
-	StreamManager   *manage.StreamManger
+	StreamManager   *manage.StreamManager
 	PeerInfoManager *manage.PeerInfoManager
 
 }
@@ -55,7 +55,7 @@ func (p *Protocol)GetHost() core.Host{
 
 }
 
-func (p *Protocol)GetStreamManager() *manage.StreamManger{
+func (p *Protocol)GetStreamManager() *manage.StreamManager {
 	return p.StreamManager
 
 }
