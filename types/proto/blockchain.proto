@@ -366,6 +366,6 @@ message ReqPrivacyHashes {
     repeated bytes hashes = 1;
     //查询客户端需要本地生成一个查询id，以防止非法盗用该查询id,查询id只能被使用一次，
     //下次使用需要重新生成并签名
-    string requestID = 2;
+    string    requestID = 2;
     Signature signature = 3;
 }
