@@ -254,3 +254,7 @@ func (blockDetail *BlockDetail) Size() int {
 func (header *Header) Size() int {
 	return Size(header)
 }
+
+func (paraTxDetail *ParaTxDetail) Size() int {
+	return Size(paraTxDetail)
+}

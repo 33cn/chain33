@@ -585,17 +585,6 @@ func (chain *BlockChain) RecordFaultPeer(pid string, height int64, hash []byte, 
 	chain.AddFaultPeer(&faultnode)
 }
 
-//PrintFaultPeer 打印出错的节点
-func (chain *BlockChain) PrintFaultPeer() {
-	chain.faultpeerlock.Lock()
-	defer chain.faultpeerlock.Unlock()
-
-	//循环遍历故障peerlist，尝试检测故障peer是否已经恢复
-	for pid, faultpeer := range chain.faultPeerList {
-		synlog.Debug("PrintFaultPeer", "pid", pid, "FaultHeight", faultpeer.FaultHeight, "FaultHash", common.ToHex(faultpeer.FaultHash), "Err", faultpeer.ErrInfo)
-	}
-}
-
 //SynBlocksFromPeers blockSynSeconds时间检测一次本节点的height是否有增长，没有增长就需要通过对端peerlist获取最新高度，发起同步
 func (chain *BlockChain) SynBlocksFromPeers() {
 
@@ -827,7 +816,11 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 			err = chain.syncTask.Cancel()
 			synlog.Info("ProcBlockHeaders: cancel syncTask start fork process downLoadTask!", "err", err)
 		}
-		go chain.ProcDownLoadBlocks(ForkHeight, peermaxheight, []string{pid})
+		endHeight := peermaxheight
+		if tipheight < peermaxheight {
+			endHeight = tipheight + 1
+		}
+		go chain.ProcDownLoadBlocks(ForkHeight, endHeight, []string{pid})
 	}
 	return nil
 }

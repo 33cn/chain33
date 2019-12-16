@@ -302,7 +302,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string, pubP
 	nilTxLen := len(nilTxIndices)
 	//需要比较交易根哈希是否一致, 不一致需要请求区块内所有的交易
 	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) &&
-		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
+		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(n.cfg, block.Height, block.Txs)) {
 
 		log.Debug("recvLtBlock", "height", block.GetHeight(), "peerAddr", peerAddr,
 			"blockHash", blockHash, "block size(KB)", float32(ltBlock.Size)/1024)
@@ -402,7 +402,7 @@ func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string, 
 	}
 
 	//计算的root hash是否一致
-	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
+	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(n.cfg, block.Height, block.Txs)) {
 
 		log.Debug("recvQueryReplyBlock", "blockHeight", block.GetHeight(), "peerAddr", peerAddr,
 			"block size(KB)", float32(block.Size())/1024, "blockHash", rep.BlockHash)
