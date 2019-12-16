@@ -132,6 +132,7 @@ type BlockStore struct {
 	lastheaderlock sync.Mutex
 	saveSequence   bool
 	isParaChain    bool
+	cacheBody      *FIFO
 }
 
 //NewBlockStore new
@@ -253,22 +254,48 @@ func (bs *BlockStore) reduceLocaldb(start, end int64, sync bool, fn func(batch d
 
 // reduceBody 将body中的receipt进行精简；
 func (bs *BlockStore) reduceBody(batch dbm.Batch, height int64) {
-	body, err := bs.loadBlockBody(height)
-	if err == nil {
+	body, err := bs.LoadCacheBlockBody(height)
+	if err != nil {
+		chainlog.Debug("reduceLocaldb LoadCacheBlockBody", "height", height, "error", err)
+		body, err = bs.LoadBlockBody(height)
+	}
+	if body != nil {
 		for i := 0; i < len(body.Receipts); i++ {
-			body.Receipts[i].Logs = nil
+			for j := 0; j < len(body.Receipts[i].Logs); j++ {
+				if body.Receipts[i].Logs[j] != nil {
+					body.Receipts[i].Logs[j].Log = nil
+				}
+			}
 		}
 		batch.Set(calcHashToBlockBodyKey(body.MainHash), types.Encode(body))
 	}
 }
 
+// LoadCacheBlockBody 从缓存中载入body
+func (bs *BlockStore) LoadCacheBlockBody(height int64) (*types.BlockBody, error) {
+	value := bs.GetCacheBlockBody(height)
+	if value == nil {
+		return nil, types.ErrNotFound
+	}
+	var body types.BlockBody
+	err := types.Decode(value, &body)
+	if err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
 // reduceBodyInit 将body中的receipt进行精简；将TxHashPerfix为key的TxResult中的receipt和tx字段进行精简
 func (bs *BlockStore) reduceBodyInit(batch dbm.Batch, height int64) {
 	cfg := bs.client.GetConfig()
-	body, err := bs.loadBlockBody(height)
+	body, err := bs.LoadBlockBody(height)
 	if err == nil {
-		for j := 0; j < len(body.Receipts); j++ {
-			body.Receipts[j].Logs = nil
+		for i := 0; i < len(body.Receipts); i++ {
+			for j := 0; j < len(body.Receipts[i].Logs); j++ {
+				if body.Receipts[i].Logs[j] != nil {
+					body.Receipts[i].Logs[j].Log = nil
+				}
+			}
 		}
 		batch.Set(calcHashToBlockBodyKey(body.MainHash), types.Encode(body))
 		for _, tx := range body.Txs {
@@ -292,7 +319,7 @@ func (bs *BlockStore) reduceBodyInit(batch dbm.Batch, height int64) {
 }
 
 //loadBlockBody 通过height高度获取BlockBody信息
-func (bs *BlockStore) loadBlockBody(height int64) (*types.BlockBody, error) {
+func (bs *BlockStore) LoadBlockBody(height int64) (*types.BlockBody, error) {
 	//首先通过height获取block hash从db中
 	hash, err := bs.GetBlockHashByHeight(height)
 	if err != nil {
@@ -302,7 +329,7 @@ func (bs *BlockStore) loadBlockBody(height int64) (*types.BlockBody, error) {
 	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
 	if body == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("LoadBlockByHash calcHashToBlockBodyKey ", "err", err)
+			storeLog.Error("LoadBlockByHash calcHashToBlockBodyKey ", "height", height, "err", err)
 		}
 		return nil, types.ErrHashNotExist
 	}
@@ -671,7 +698,8 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
 		storeLog.Error("SaveBlock Receipts is nil ", "height", height)
 	}
-	hash := blockdetail.Block.Hash(bs.client.GetConfig())
+	cfg := bs.client.GetConfig()
+	hash := blockdetail.Block.Hash(cfg)
 
 	// Save blockbody通过block hash
 	var blockbody types.BlockBody
@@ -679,7 +707,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	blockbody.Receipts = blockdetail.Receipts
 	blockbody.MainHash = hash
 	blockbody.MainHeight = height
-	if bs.client.GetConfig().IsPara() {
+	if cfg.IsPara() {
 		blockbody.MainHash = blockdetail.Block.MainHash
 		blockbody.MainHeight = blockdetail.Block.MainHeight
 	}
@@ -690,6 +718,11 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 		return lastSequence, err
 	}
 	storeBatch.Set(calcHashToBlockBodyKey(hash), body)
+
+	// 精简localdb时候需要缓存blockbody
+	if cfg.IsEnable("reduceLocaldb") {
+		bs.AddCacheBlockBody(height, body)
+	}
 
 	// Save blockheader通过block hash
 	var blockheader types.Header
@@ -1515,4 +1548,26 @@ func (bs *BlockStore) SetConsensusPara(kvs *types.LocalDBSet) error {
 		panic(err)
 	}
 	return err
+}
+
+func (bs *BlockStore) AddCacheBlockBody(height int64, value []byte) {
+	if bs.cacheBody == nil {
+		// 这里lru缓存的size要大于回退高度
+		cacheBody := NewFIFO(int(MaxRollBlockNum*3/2))
+		if cacheBody == nil {
+			panic("NewFIFO fail")
+		}
+		bs.cacheBody = cacheBody
+	}
+	bs.cacheBody.Add(height, value)
+}
+
+func (bs *BlockStore) GetCacheBlockBody(height int64) []byte {
+	if bs.cacheBody == nil {
+		return nil
+	}
+	if value, ok := bs.cacheBody.Get(height); ok {
+		return value.([]byte)
+	}
+	return nil
 }

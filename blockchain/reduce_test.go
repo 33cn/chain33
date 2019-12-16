@@ -5,6 +5,7 @@
 package blockchain_test
 
 import (
+	"fmt"
 	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
@@ -42,4 +43,63 @@ func TestTryReduceLocalDB(t *testing.T) {
 		flagHeight = chain.TryReduceLocalDB(flagHeight, int64(count))
 		assert.Equal(t, flagHeight, int64((i + 1) * count +1))
 	}
+}
+
+func TestFIFO(t *testing.T) {
+	fifo10 := blockchain.NewFIFO(10)
+
+	for i := 0; i < 11; i++{
+		fifo10.Add(i, []byte(fmt.Sprintf("value-%d", i)))
+	}
+	// check Contains Get
+	ok := fifo10.Contains(0)
+	assert.Equal(t, ok, false)
+	value, ok := fifo10.Get(0)
+	assert.Equal(t, value, nil)
+	assert.Equal(t, ok, false)
+	for i := 1; i < 11; i++ {
+		ok := fifo10.Contains(i)
+		assert.Equal(t, ok, true)
+		value, ok := fifo10.Get(i)
+		assert.Equal(t, ok, true)
+		assert.Equal(t, value.([]byte), []byte(fmt.Sprintf("value-%d", i)) )
+	}
+	// check Remove
+	ok = fifo10.Remove(10)
+	assert.Equal(t, ok, true)
+	value, ok = fifo10.Get(10)
+	assert.Equal(t, value, nil)
+	assert.Equal(t, ok, false)
+
+	ok = fifo10.Remove(11)
+	assert.Equal(t, ok, false)
+
+
+
+	// test for size = 0
+	fifo0 := blockchain.NewFIFO(0)
+
+	fifo0.Add(0, []byte(fmt.Sprintf("value-%d", 0)))
+	value, ok = fifo0.Get(0)
+	assert.Equal(t, ok, true)
+	assert.Equal(t, value.([]byte), []byte(fmt.Sprintf("value-%d", 0)) )
+
+	fifo0.Add(1, []byte(fmt.Sprintf("value-%d", 1)))
+	value, ok = fifo0.Get(0)
+	assert.Equal(t, ok, false)
+
+	value, ok = fifo0.Get(1)
+	assert.Equal(t, ok, true)
+	assert.Equal(t, value.([]byte), []byte(fmt.Sprintf("value-%d", 1)) )
+
+	// remove 0  fasle
+	ok = fifo0.Remove(0)
+	assert.Equal(t, ok, false)
+
+	// remove 1 true
+	ok = fifo0.Remove(1)
+	assert.Equal(t, ok, true)
+	// Get 1 false
+	_, ok = fifo0.Get(1)
+	assert.Equal(t, ok, false)
 }

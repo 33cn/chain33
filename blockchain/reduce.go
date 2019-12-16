@@ -5,8 +5,10 @@
 package blockchain
 
 import (
+	"container/list"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
+	"sync"
 	"time"
 )
 
@@ -22,7 +24,7 @@ func (chain *BlockChain) ReduceLocalDB() {
 		flagHeight = 0
 	}
 	// 1分钟检测一次是否可以进行reduce localdb
-	checkTicker := time.NewTicker(60 * time.Second)
+	checkTicker := time.NewTicker(10 * time.Second)
 	for {
 		select {
 		case <-chain.quit:
@@ -52,4 +54,73 @@ func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (
 		return flagHeight
 	}
 	return flagHeight
+}
+
+// FIFO fifo queue
+type FIFO struct {
+	m  map[interface{}]*list.Element
+	l  *list.List
+	size int
+	sync.RWMutex
+}
+
+type entry struct {
+	key   interface{}
+	value interface{}
+}
+
+// NewFIFO  new fifi queue
+func NewFIFO(size int) *FIFO {
+	if size <= 0{
+		size = 1
+	}
+	return &FIFO{
+		m: make(map[interface{}]*list.Element, size),
+		l: list.New(),
+		size: size,
+	}
+}
+
+// Contains check is a key is in the cache
+func (fi *FIFO) Contains(key interface{}) bool {
+	fi.RLock()
+	defer fi.RUnlock()
+	_, ok := fi.m[key]
+	return ok
+}
+
+func (fi *FIFO) Get(key interface{}) (value interface{}, ok bool) {
+	fi.Lock()
+	defer fi.Unlock()
+
+	if elem, ok := fi.m[key]; ok {
+		return elem.Value.(*entry).value, true
+	}
+	return
+}
+
+func (fi *FIFO) Add(key, value interface{}) {
+	fi.Lock()
+	defer fi.Unlock()
+
+	if fi.l.Len() >= fi.size {
+		ent := fi.l.Remove(fi.l.Front()).(*entry)
+		delete(fi.m, ent.key)
+	}
+
+	ent := &entry{key, value}
+	elem := fi.l.PushBack(ent)
+	fi.m[key] = elem
+}
+
+func (fi *FIFO) Remove(key interface{}) (present bool) {
+	fi.Lock()
+	defer fi.Unlock()
+
+	if elem, ok := fi.m[key]; ok {
+		ent := fi.l.Remove(elem).(*entry)
+		delete(fi.m, ent.key)
+		return true
+	}
+	return false
 }
