@@ -29,7 +29,9 @@ var (
 	chainlog                   = log.New("module", "blockchain")
 	FutureBlockDelayTime int64 = 1
 )
+
 const maxFutureBlocks = 256
+
 //BlockChain 区块链结构体
 type BlockChain struct {
 	client queue.Client
