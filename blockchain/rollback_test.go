@@ -38,7 +38,7 @@ func TestRollbackblock(t *testing.T) {
 	chain.Rollbackblock()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), 22)
+	assert.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 
 	//发送交易
@@ -100,7 +100,7 @@ func TestRollback(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), 22)
+	assert.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 
 	//发送交易
@@ -119,7 +119,7 @@ func TestRollbackSave(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), 22)
+	assert.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 
 	//发送交易

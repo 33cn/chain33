@@ -399,7 +399,7 @@ func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
 
 //IterateRangeByStateHash 迭代查找
 func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
-	fmt.Println("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key))
+	tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key))
 	var acc Account
 	err := Decode(value, &acc)
 	if err != nil {

@@ -174,16 +174,9 @@ chain33_GetBlockSequences() {
 
 chain33_GetBlockByHashes() {
     if [ "$IS_PARA" == true ]; then
-        #    req='{"method":"Chain33.GetBlockHash", "params":[{"height":0}]}'
-        #    resp=$(curl -ksd "$req" "${MAIN_HTTP}")
-        #    echo "#GetBlockHash.response: $resp"
-        #    geneis=$(jq -r '(.result.hash)' <<<"$resp")
-        #    #geneis="0xfd39dbdbd2cdeb9f34bcec3612735671b35e2e2dbf9a4e6e3ed0c34804a757bb"
-        #    statehash=$(curl -ksd '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"$geneis"'"]}]}' ${MAIN_HTTP} | jq -r ".result.items[0].block.parentHash")
-        #    [ "$statehash" == "0x0000000000000000000000000000000000000000000000000000000000000000" ]
-        #    echo_rst "$FUNCNAME" "$?"
-
-        http_req '{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["0xfd39dbdbd2cdeb9f34bcec3612735671b35e2e2dbf9a4e6e3ed0c34804a757bb"]}]}' ${MAIN_HTTP} '(.result.items[0].block.parentHash == "0x0000000000000000000000000000000000000000000000000000000000000000")' "$FUNCNAME"
+        geneis=$(curl -ksd '{"method":"Chain33.GetBlockHash", "params":[{"height":0}]}' "${MAIN_HTTP}" | jq -r '(.result.hash)')
+        req='{"method":"Chain33.GetBlockByHashes","params":[{"hashes":["'"${geneis}"'"]}]}'
+        http_req "$req" ${MAIN_HTTP} '(.result.items[0].block.parentHash == "0x0000000000000000000000000000000000000000000000000000000000000000")' "$FUNCNAME"
     else
         hash0=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[0].hash")
         hash1=$(curl -ksd '{"method":"Chain33.GetBlockSequences","params":[{"start":1,"end":3,"isDetail":true}]}' ${MAIN_HTTP} | jq -r ".result.blkseqInfos[1].hash")
@@ -363,7 +356,6 @@ chain33_SendTransaction() {
     local fee=1000000
     local exec="coins"
     local to="1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"
-    #   local from="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
     local privkey="CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 
     tx1="0a05636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0628e1ddcae60530f6db93c0e0d3f1ff5e3a223145444467684174674273616d724e45744e6d5964517a43315145684c6b72383774"
@@ -383,7 +375,6 @@ chain33_CreateNoBalanceTransaction() {
         exec="user.p.para.none"
         coinexec="user.p.para.coins"
         txHex="0a11757365722e702e706172612e636f696e73122d18010a291080ade20422223145444467684174674273616d724e45744e6d5964517a43315145684c6b7238377420a08d0630e6cbfbf1a7bafcb8263a2231415662506538776f524a7a7072507a4575707735554262433259507331344a4354"
-
     else
         exec="none"
         coinexec="coins"
@@ -391,7 +382,6 @@ chain33_CreateNoBalanceTransaction() {
     fi
 
     tx=$(curl -ksd '{"method":"Chain33.CreateNoBalanceTransaction","params":[{"txHex":"'$txHex'"}]}' ${MAIN_HTTP} | jq -r ".result")
-
     req='{"method":"Chain33.DecodeRawTransaction","params":[{"txHex":"'"$tx"'"}]}'
     resok='(.error|not) and (.result.txs[0].execer == "'$exec'") and (.result.txs[0].groupCount == 2) and (.result.txs[1].execer == "'$coinexec'") and (.result.txs[1].groupCount == 2) and (.result.txs[1].to == "'$to'")'
     http_req "$req" ${MAIN_HTTP} "$resok" "$FUNCNAME"
@@ -532,7 +522,6 @@ run_testcases() {
     chain33_SetPasswd "$1"
     chain33_MergeBalance "$1"
     set -e
-
 }
 
 function system_test_rpc() {
@@ -549,5 +538,3 @@ function system_test_rpc() {
         echo -e "${GRE}======system rpc test pass=======${NOC}"
     fi
 }
-
-#system_test_rpc $1

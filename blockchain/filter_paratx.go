@@ -5,8 +5,11 @@
 package blockchain
 
 import (
+	"bytes"
 	"strings"
 
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
 )
 
@@ -64,12 +67,20 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 			} else {
 				paraTx.Type = types.AddBlock
 			}
+			height := block.Block.GetHeight()
+			blockhash := block.Block.Hash(cfg)
+			if cfg.IsFork(height, "ForkRootHash") {
+				branch, childHash, index := chain.getChildChainProofs(height, blockhash, seq.Title, block.Block.GetTxs())
+				paraTx.ChildHash = childHash
+				paraTx.Index = index
+				paraTx.Proofs = branch
+			}
 		} else {
 			paraTx = nil
 		}
 		paraTxs.Items = append(paraTxs.Items, paraTx)
 	}
-	return &paraTxs, err
+	return &paraTxs, nil
 }
 
 //checkInputParam 入参检测，主要检测req的end的值以及title是否合法
@@ -93,4 +104,214 @@ func (chain *BlockChain) checkInputParam(req *types.ReqParaTxByTitle) error {
 		return types.ErrInvalidParam
 	}
 	return nil
+}
+
+//GetParaTxByHeight 通过height以及title获取对应平行连的交易
+func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
+	//入参数校验
+	if req == nil {
+		return nil, types.ErrInvalidParam
+	}
+	count := len(req.Items)
+	if int64(count) > types.MaxBlockCountPerTime {
+		return nil, types.ErrInvalidParam
+	}
+	lastheight := chain.GetBlockHeight()
+	if req.Items[0] < 0 || req.Items[count-1] > lastheight {
+		return nil, types.ErrInvalidParam
+	}
+	if !strings.HasPrefix(req.Title, types.ParaKeyX) {
+		return nil, types.ErrInvalidParam
+	}
+	cfg := chain.client.GetConfig()
+	var paraTxs types.ParaTxDetails
+	var paraTxDetail *types.ParaTxDetail
+	size := 0
+	for _, height := range req.Items {
+		block, err := chain.GetBlock(height)
+		if err != nil {
+			filterlog.Error("GetParaTxByHeight:GetBlock", "height", height, "err", err)
+		} else {
+			paraTxDetail = block.FilterParaTxsByTitle(cfg, req.Title)
+			if paraTxDetail != nil {
+				paraTxDetail.Type = types.AddBlock
+				blockHash := block.Block.Hash(cfg)
+				if cfg.IsFork(height, "ForkRootHash") {
+					branch, childHash, index := chain.getChildChainProofs(height, blockHash, req.Title, block.Block.GetTxs())
+					paraTxDetail.ChildHash = childHash
+					paraTxDetail.Index = index
+					paraTxDetail.Proofs = branch
+				}
+			}
+		}
+		size += paraTxDetail.Size()
+		if size > types.MaxBlockSizePerTime {
+			chainlog.Info("GetParaTxByHeight:overflow", "MaxBlockSizePerTime", types.MaxBlockSizePerTime)
+			return &paraTxs, nil
+		}
+		paraTxs.Items = append(paraTxs.Items, paraTxDetail)
+	}
+	return &paraTxs, nil
+}
+
+//获取指定title子链roothash在指定高度上的路径证明
+func (chain *BlockChain) getChildChainProofs(height int64, blockHash []byte, title string, txs []*types.Transaction) ([][]byte, []byte, uint32) {
+	var branch [][]byte
+	var childHash []byte
+	var index uint32
+	var hashes [][]byte
+	var exist bool
+	//主链直接从数据库获取对应的子链根hash
+	paraTxs, err := chain.LoadParaTxByHeight(height, "", 0, 1)
+	if err == nil && len(paraTxs.Items) > 0 && bytes.Equal(paraTxs.Items[0].GetHash(), blockHash) {
+		for _, paratx := range paraTxs.Items {
+			if title == paratx.Title {
+				index = paratx.ChildHashIndex
+				childHash = paratx.ChildHash
+				exist = true
+			}
+			hashes = append(hashes, paratx.ChildHash)
+		}
+		if exist {
+			branch = merkle.GetMerkleBranch(hashes, index)
+			return branch, childHash, index
+		}
+		return nil, nil, 0
+	}
+	//侧链的需要重新计算
+	cfg := chain.client.GetConfig()
+	_, childChains := merkle.CalcMultiLayerMerkleInfo(cfg, height, txs)
+	for i, childchain := range childChains {
+		hashes = append(hashes, childchain.ChildHash)
+		if childchain.Title == title {
+			index = uint32(i)
+			childHash = childchain.ChildHash
+			exist = true
+		}
+	}
+	if exist {
+		branch = merkle.GetMerkleBranch(hashes, index)
+		return branch, childHash, index
+	}
+	return nil, nil, 0
+}
+
+//获取指定交易在子链中的路径证明
+func (chain *BlockChain) getMultiLayerProofs(height int64, blockHash []byte, Txs []*types.Transaction, index int32) []*types.TxProof {
+
+	title, haveParaTx := types.GetParaExecTitleName(string(Txs[index].Execer))
+	if !haveParaTx {
+		title = types.MainChainName
+	}
+
+	replyparaTxs, err := chain.LoadParaTxByHeight(height, "", 0, 1)
+	if err != nil || 0 == len(replyparaTxs.Items) {
+		filterlog.Error("getMultiLayerProofs", "height", height, "blockHash", common.ToHex(blockHash), "err", err)
+		return nil
+	}
+
+	//获取本子链的第一笔交易的index值，以及最后一笔交易的index值
+	var startIndex int32
+	var childIndex uint32
+	var hashes [][]byte
+	var exist bool
+	var childHash []byte
+	var txCount int32
+	var proofs []*types.TxProof
+
+	for _, paratx := range replyparaTxs.Items {
+		if title == paratx.Title && bytes.Equal(blockHash, paratx.GetHash()) {
+			startIndex = paratx.GetStartIndex()
+			childIndex = paratx.ChildHashIndex
+			childHash = paratx.ChildHash
+			txCount = paratx.GetTxCount()
+			exist = true
+		}
+		hashes = append(hashes, paratx.ChildHash)
+	}
+	//只有主链的交易,没有其他平行链的交易
+	if len(replyparaTxs.Items) == 1 && startIndex == 0 && childIndex == 0 {
+		txProofs, _ := getTransactionProofs(Txs, index)
+		proof := types.TxProof{Proofs: txProofs, Index: uint32(index)}
+		proofs = append(proofs, &proof)
+		return proofs
+	}
+
+	endindex := startIndex + txCount
+	//不存在或者获取到的索引错误直接返回
+	if !exist || startIndex > index || endindex > int32(len(Txs)) || childIndex >= uint32(len(replyparaTxs.Items)) {
+		filterlog.Error("getMultiLayerProofs", "height", height, "blockHash", common.ToHex(blockHash), "exist", exist, "replyparaTxs", replyparaTxs)
+		filterlog.Error("getMultiLayerProofs", "startIndex", startIndex, "index", index, "childIndex", childIndex)
+		return nil
+	}
+
+	//主链和平行链交易都存在,获取本子链所有交易的hash值
+	var childHashes [][]byte
+	for i := startIndex; i < endindex; i++ {
+		childHashes = append(childHashes, Txs[i].Hash())
+	}
+	txOnChildIndex := index - startIndex
+
+	//计算单笔交易在子链中的路径证明
+	txOnChildBranch := merkle.GetMerkleBranch(childHashes, uint32(txOnChildIndex))
+	txproof := types.TxProof{Proofs: txOnChildBranch, Index: uint32(txOnChildIndex), RootHash: childHash}
+	proofs = append(proofs, &txproof)
+
+	//子链在整个区块中的路径证明
+	childBranch := merkle.GetMerkleBranch(hashes, childIndex)
+	childproof := types.TxProof{Proofs: childBranch, Index: childIndex}
+	proofs = append(proofs, &childproof)
+	return proofs
+}
+
+//LoadParaTxByTitle 通过title获取本平行链交易所在的区块高度信息前后翻页
+func (chain *BlockChain) LoadParaTxByTitle(req *types.ReqHeightByTitle) (*types.ReplyHeightByTitle, error) {
+	var primaryKey []byte
+
+	//入参合法性检测
+	if req == nil || int64(req.Count) > types.MaxHeaderCountPerTime {
+		return nil, types.ErrInvalidParam
+	}
+	if req.GetDirection() != 0 && req.GetDirection() != 1 {
+		return nil, types.ErrInvalidParam
+	}
+	curHeight := chain.GetBlockHeight()
+	if req.Height > curHeight || len(req.Title) == 0 || !strings.HasPrefix(req.Title, types.ParaKeyX) {
+		return nil, types.ErrInvalidParam
+	}
+	if req.Height != -1 {
+		primaryKey = calcHeightTitleKey(req.Height, req.Title)
+	} else {
+		primaryKey = nil
+	}
+	paraInfos, err := getParaTxByIndex(chain.blockStore.db, "title", []byte(req.Title), primaryKey, req.Count, req.Direction)
+	if err != nil {
+		return nil, err
+	}
+
+	var reply types.ReplyHeightByTitle
+	reply.Title = req.Title
+	for _, para := range paraInfos.Items {
+		reply.Items = append(reply.Items, &types.BlockInfo{Height: para.GetHeight(), Hash: para.GetHash()})
+	}
+	return &reply, nil
+}
+
+//LoadParaTxByHeight 通过height获取本高度上的平行链title前后翻页;预留接口
+func (chain *BlockChain) LoadParaTxByHeight(height int64, title string, count, direction int32) (*types.HeightParas, error) {
+	//入参合法性检测
+	curHeight := chain.GetBlockHeight()
+	if height > curHeight || height < 0 {
+		return nil, types.ErrInvalidParam
+	}
+
+	var primaryKey []byte
+	if len(title) == 0 {
+		primaryKey = nil
+	} else if !strings.HasPrefix(title, types.ParaKeyX) {
+		return nil, types.ErrInvalidParam
+	} else {
+		primaryKey = calcHeightTitleKey(height, title)
+	}
+	return getParaTxByIndex(chain.blockStore.db, "height", calcHeightParaKey(height), primaryKey, count, direction)
 }

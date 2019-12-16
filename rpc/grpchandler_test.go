@@ -1186,3 +1186,15 @@ func TestGrpc_GetFork(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), val.Data)
 }
+
+func TestGrpc_LoadParaTxByTitle(t *testing.T) {
+	qapi.On("LoadParaTxByTitle", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.LoadParaTxByTitle(getOkCtx(), &pb.ReqHeightByTitle{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetParaTxByHeight(t *testing.T) {
+	qapi.On("GetParaTxByHeight", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.GetParaTxByHeight(getOkCtx(), &pb.ReqParaTxByHeight{})
+	assert.NoError(t, err)
+}

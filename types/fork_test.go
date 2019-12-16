@@ -18,6 +18,8 @@ func TestForks(t *testing.T) {
 	assert.Equal(t, cfg.forks.IsFork(0, "ForkBlockHash"), false)
 	assert.Equal(t, cfg.forks.IsFork(1, "ForkBlockHash"), true)
 	assert.Equal(t, cfg.forks.IsFork(1, "ForkTransferExec"), true)
+	assert.Equal(t, cfg.forks.IsFork(0, "ForkBlockHash"), false)
+	assert.Equal(t, cfg.forks.IsFork(1, "ForkBlockHash"), true)
 }
 
 func TestParaFork(t *testing.T) {

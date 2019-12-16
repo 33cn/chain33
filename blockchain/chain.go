@@ -8,7 +8,6 @@ Package blockchain 实现区块链模块，包含区块链存储
 package blockchain
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -328,7 +327,7 @@ func (chain *BlockChain) getStateHash() []byte {
 //SendAddBlockEvent blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
 func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
-		fmt.Println("chain client not bind message queue.")
+		chainlog.Error("SendAddBlockEvent: chain client not bind message queue.")
 		return types.ErrClientNotBindQueue
 	}
 	if block == nil {
@@ -363,7 +362,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	cfg := chain.client.GetConfig()
 	if chain.client == nil {
-		fmt.Println("chain client not bind message queue.")
+		chainlog.Error("SendBlockBroadcast: chain client not bind message queue.")
 		return
 	}
 	if block == nil {
@@ -408,7 +407,7 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 //SendDelBlockEvent blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
 func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
-		fmt.Println("chain client not bind message queue.")
+		chainlog.Error("SendDelBlockEvent: chain client not bind message queue.")
 		err := types.ErrClientNotBindQueue
 		return err
 	}
@@ -483,8 +482,12 @@ func (chain *BlockChain) InitIndexAndBestView() {
 	for ; height <= curheight; height++ {
 		header, err := chain.blockStore.GetBlockHeaderByHeight(height)
 		if header == nil {
-			chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
-			panic("InitIndexAndBestView fail!")
+			//开始升级localdb到2.0.0版本时需要兼容旧的存储方式
+			header, err = chain.blockStore.getBlockHeaderByHeightOld(height)
+			if header == nil {
+				chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
+				panic("InitIndexAndBestView fail!")
+			}
 		}
 
 		newNode := newBlockNodeByHeader(false, header, "self", -1)
