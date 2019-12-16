@@ -3,9 +3,13 @@
 
 package types // import "github.com/33cn/chain33/types"
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+
+	proto "github.com/golang/protobuf/proto"
+
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -48,7 +52,7 @@ func (m *Header) Reset()         { *m = Header{} }
 func (m *Header) String() string { return proto.CompactTextString(m) }
 func (*Header) ProtoMessage()    {}
 func (*Header) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{0}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{0}
 }
 func (m *Header) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Header.Unmarshal(m, b)
@@ -161,7 +165,7 @@ func (m *Block) Reset()         { *m = Block{} }
 func (m *Block) String() string { return proto.CompactTextString(m) }
 func (*Block) ProtoMessage()    {}
 func (*Block) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{1}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{1}
 }
 func (m *Block) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Block.Unmarshal(m, b)
@@ -269,7 +273,7 @@ func (m *Blocks) Reset()         { *m = Blocks{} }
 func (m *Blocks) String() string { return proto.CompactTextString(m) }
 func (*Blocks) ProtoMessage()    {}
 func (*Blocks) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{2}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{2}
 }
 func (m *Blocks) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Blocks.Unmarshal(m, b)
@@ -313,7 +317,7 @@ func (m *BlockSeqCB) Reset()         { *m = BlockSeqCB{} }
 func (m *BlockSeqCB) String() string { return proto.CompactTextString(m) }
 func (*BlockSeqCB) ProtoMessage()    {}
 func (*BlockSeqCB) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{3}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{3}
 }
 func (m *BlockSeqCB) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockSeqCB.Unmarshal(m, b)
@@ -393,7 +397,7 @@ func (m *BlockSeqCBs) Reset()         { *m = BlockSeqCBs{} }
 func (m *BlockSeqCBs) String() string { return proto.CompactTextString(m) }
 func (*BlockSeqCBs) ProtoMessage()    {}
 func (*BlockSeqCBs) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{4}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{4}
 }
 func (m *BlockSeqCBs) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockSeqCBs.Unmarshal(m, b)
@@ -433,7 +437,7 @@ func (m *BlockSeq) Reset()         { *m = BlockSeq{} }
 func (m *BlockSeq) String() string { return proto.CompactTextString(m) }
 func (*BlockSeq) ProtoMessage()    {}
 func (*BlockSeq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{5}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{5}
 }
 func (m *BlockSeq) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockSeq.Unmarshal(m, b)
@@ -485,7 +489,7 @@ func (m *BlockSeqs) Reset()         { *m = BlockSeqs{} }
 func (m *BlockSeqs) String() string { return proto.CompactTextString(m) }
 func (*BlockSeqs) ProtoMessage()    {}
 func (*BlockSeqs) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{6}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{6}
 }
 func (m *BlockSeqs) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockSeqs.Unmarshal(m, b)
@@ -525,7 +529,7 @@ func (m *BlockPid) Reset()         { *m = BlockPid{} }
 func (m *BlockPid) String() string { return proto.CompactTextString(m) }
 func (*BlockPid) ProtoMessage()    {}
 func (*BlockPid) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{7}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{7}
 }
 func (m *BlockPid) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockPid.Unmarshal(m, b)
@@ -571,7 +575,7 @@ func (m *BlockDetails) Reset()         { *m = BlockDetails{} }
 func (m *BlockDetails) String() string { return proto.CompactTextString(m) }
 func (*BlockDetails) ProtoMessage()    {}
 func (*BlockDetails) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{8}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{8}
 }
 func (m *BlockDetails) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockDetails.Unmarshal(m, b)
@@ -610,7 +614,7 @@ func (m *Headers) Reset()         { *m = Headers{} }
 func (m *Headers) String() string { return proto.CompactTextString(m) }
 func (*Headers) ProtoMessage()    {}
 func (*Headers) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{9}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{9}
 }
 func (m *Headers) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Headers.Unmarshal(m, b)
@@ -649,7 +653,7 @@ func (m *HeadersPid) Reset()         { *m = HeadersPid{} }
 func (m *HeadersPid) String() string { return proto.CompactTextString(m) }
 func (*HeadersPid) ProtoMessage()    {}
 func (*HeadersPid) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{10}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{10}
 }
 func (m *HeadersPid) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HeadersPid.Unmarshal(m, b)
@@ -700,7 +704,7 @@ func (m *BlockOverview) Reset()         { *m = BlockOverview{} }
 func (m *BlockOverview) String() string { return proto.CompactTextString(m) }
 func (*BlockOverview) ProtoMessage()    {}
 func (*BlockOverview) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{11}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{11}
 }
 func (m *BlockOverview) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockOverview.Unmarshal(m, b)
@@ -758,7 +762,7 @@ func (m *BlockDetail) Reset()         { *m = BlockDetail{} }
 func (m *BlockDetail) String() string { return proto.CompactTextString(m) }
 func (*BlockDetail) ProtoMessage()    {}
 func (*BlockDetail) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{12}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{12}
 }
 func (m *BlockDetail) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockDetail.Unmarshal(m, b)
@@ -817,7 +821,7 @@ func (m *Receipts) Reset()         { *m = Receipts{} }
 func (m *Receipts) String() string { return proto.CompactTextString(m) }
 func (*Receipts) ProtoMessage()    {}
 func (*Receipts) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{13}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{13}
 }
 func (m *Receipts) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Receipts.Unmarshal(m, b)
@@ -855,7 +859,7 @@ func (m *PrivacyKV) Reset()         { *m = PrivacyKV{} }
 func (m *PrivacyKV) String() string { return proto.CompactTextString(m) }
 func (*PrivacyKV) ProtoMessage()    {}
 func (*PrivacyKV) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{14}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{14}
 }
 func (m *PrivacyKV) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyKV.Unmarshal(m, b)
@@ -896,7 +900,7 @@ func (m *PrivacyKVToken) Reset()         { *m = PrivacyKVToken{} }
 func (m *PrivacyKVToken) String() string { return proto.CompactTextString(m) }
 func (*PrivacyKVToken) ProtoMessage()    {}
 func (*PrivacyKVToken) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{15}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{15}
 }
 func (m *PrivacyKVToken) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyKVToken.Unmarshal(m, b)
@@ -956,7 +960,7 @@ func (m *ReceiptsAndPrivacyKV) Reset()         { *m = ReceiptsAndPrivacyKV{} }
 func (m *ReceiptsAndPrivacyKV) String() string { return proto.CompactTextString(m) }
 func (*ReceiptsAndPrivacyKV) ProtoMessage()    {}
 func (*ReceiptsAndPrivacyKV) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{16}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{16}
 }
 func (m *ReceiptsAndPrivacyKV) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReceiptsAndPrivacyKV.Unmarshal(m, b)
@@ -1001,7 +1005,7 @@ func (m *ReceiptCheckTxList) Reset()         { *m = ReceiptCheckTxList{} }
 func (m *ReceiptCheckTxList) String() string { return proto.CompactTextString(m) }
 func (*ReceiptCheckTxList) ProtoMessage()    {}
 func (*ReceiptCheckTxList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{17}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{17}
 }
 func (m *ReceiptCheckTxList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReceiptCheckTxList.Unmarshal(m, b)
@@ -1045,7 +1049,7 @@ func (m *ChainStatus) Reset()         { *m = ChainStatus{} }
 func (m *ChainStatus) String() string { return proto.CompactTextString(m) }
 func (*ChainStatus) ProtoMessage()    {}
 func (*ChainStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{18}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{18}
 }
 func (m *ChainStatus) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChainStatus.Unmarshal(m, b)
@@ -1105,7 +1109,7 @@ func (m *ReqBlocks) Reset()         { *m = ReqBlocks{} }
 func (m *ReqBlocks) String() string { return proto.CompactTextString(m) }
 func (*ReqBlocks) ProtoMessage()    {}
 func (*ReqBlocks) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{19}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{19}
 }
 func (m *ReqBlocks) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqBlocks.Unmarshal(m, b)
@@ -1164,7 +1168,7 @@ func (m *MempoolSize) Reset()         { *m = MempoolSize{} }
 func (m *MempoolSize) String() string { return proto.CompactTextString(m) }
 func (*MempoolSize) ProtoMessage()    {}
 func (*MempoolSize) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{20}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{20}
 }
 func (m *MempoolSize) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MempoolSize.Unmarshal(m, b)
@@ -1202,7 +1206,7 @@ func (m *ReplyBlockHeight) Reset()         { *m = ReplyBlockHeight{} }
 func (m *ReplyBlockHeight) String() string { return proto.CompactTextString(m) }
 func (*ReplyBlockHeight) ProtoMessage()    {}
 func (*ReplyBlockHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{21}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{21}
 }
 func (m *ReplyBlockHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyBlockHeight.Unmarshal(m, b)
@@ -1252,7 +1256,7 @@ func (m *BlockBody) Reset()         { *m = BlockBody{} }
 func (m *BlockBody) String() string { return proto.CompactTextString(m) }
 func (*BlockBody) ProtoMessage()    {}
 func (*BlockBody) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{22}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{22}
 }
 func (m *BlockBody) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockBody.Unmarshal(m, b)
@@ -1326,7 +1330,7 @@ func (m *IsCaughtUp) Reset()         { *m = IsCaughtUp{} }
 func (m *IsCaughtUp) String() string { return proto.CompactTextString(m) }
 func (*IsCaughtUp) ProtoMessage()    {}
 func (*IsCaughtUp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{23}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{23}
 }
 func (m *IsCaughtUp) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IsCaughtUp.Unmarshal(m, b)
@@ -1365,7 +1369,7 @@ func (m *IsNtpClockSync) Reset()         { *m = IsNtpClockSync{} }
 func (m *IsNtpClockSync) String() string { return proto.CompactTextString(m) }
 func (*IsNtpClockSync) ProtoMessage()    {}
 func (*IsNtpClockSync) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{24}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{24}
 }
 func (m *IsNtpClockSync) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IsNtpClockSync.Unmarshal(m, b)
@@ -1408,7 +1412,7 @@ func (m *ChainExecutor) Reset()         { *m = ChainExecutor{} }
 func (m *ChainExecutor) String() string { return proto.CompactTextString(m) }
 func (*ChainExecutor) ProtoMessage()    {}
 func (*ChainExecutor) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{25}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{25}
 }
 func (m *ChainExecutor) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChainExecutor.Unmarshal(m, b)
@@ -1476,7 +1480,7 @@ func (m *BlockSequence) Reset()         { *m = BlockSequence{} }
 func (m *BlockSequence) String() string { return proto.CompactTextString(m) }
 func (*BlockSequence) ProtoMessage()    {}
 func (*BlockSequence) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{26}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{26}
 }
 func (m *BlockSequence) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockSequence.Unmarshal(m, b)
@@ -1522,7 +1526,7 @@ func (m *BlockSequences) Reset()         { *m = BlockSequences{} }
 func (m *BlockSequences) String() string { return proto.CompactTextString(m) }
 func (*BlockSequences) ProtoMessage()    {}
 func (*BlockSequences) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{27}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{27}
 }
 func (m *BlockSequences) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockSequences.Unmarshal(m, b)
@@ -1564,7 +1568,7 @@ func (m *Sequence) Reset()         { *m = Sequence{} }
 func (m *Sequence) String() string { return proto.CompactTextString(m) }
 func (*Sequence) ProtoMessage()    {}
 func (*Sequence) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{28}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{28}
 }
 func (m *Sequence) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Sequence.Unmarshal(m, b)
@@ -1626,7 +1630,7 @@ func (m *ReplyAddSeqCallback) Reset()         { *m = ReplyAddSeqCallback{} }
 func (m *ReplyAddSeqCallback) String() string { return proto.CompactTextString(m) }
 func (*ReplyAddSeqCallback) ProtoMessage()    {}
 func (*ReplyAddSeqCallback) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{29}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{29}
 }
 func (m *ReplyAddSeqCallback) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyAddSeqCallback.Unmarshal(m, b)
@@ -1684,7 +1688,7 @@ func (m *ParaChainBlockDetail) Reset()         { *m = ParaChainBlockDetail{} }
 func (m *ParaChainBlockDetail) String() string { return proto.CompactTextString(m) }
 func (*ParaChainBlockDetail) ProtoMessage()    {}
 func (*ParaChainBlockDetail) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{30}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{30}
 }
 func (m *ParaChainBlockDetail) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ParaChainBlockDetail.Unmarshal(m, b)
@@ -1737,7 +1741,7 @@ func (m *ParaTxDetails) Reset()         { *m = ParaTxDetails{} }
 func (m *ParaTxDetails) String() string { return proto.CompactTextString(m) }
 func (*ParaTxDetails) ProtoMessage()    {}
 func (*ParaTxDetails) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{31}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{31}
 }
 func (m *ParaTxDetails) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ParaTxDetails.Unmarshal(m, b)
@@ -1786,7 +1790,7 @@ func (m *ParaTxDetail) Reset()         { *m = ParaTxDetail{} }
 func (m *ParaTxDetail) String() string { return proto.CompactTextString(m) }
 func (*ParaTxDetail) ProtoMessage()    {}
 func (*ParaTxDetail) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{32}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{32}
 }
 func (m *ParaTxDetail) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ParaTxDetail.Unmarshal(m, b)
@@ -1867,7 +1871,7 @@ func (m *TxDetail) Reset()         { *m = TxDetail{} }
 func (m *TxDetail) String() string { return proto.CompactTextString(m) }
 func (*TxDetail) ProtoMessage()    {}
 func (*TxDetail) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{33}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{33}
 }
 func (m *TxDetail) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TxDetail.Unmarshal(m, b)
@@ -1930,7 +1934,7 @@ func (m *ReqParaTxByTitle) Reset()         { *m = ReqParaTxByTitle{} }
 func (m *ReqParaTxByTitle) String() string { return proto.CompactTextString(m) }
 func (*ReqParaTxByTitle) ProtoMessage()    {}
 func (*ReqParaTxByTitle) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{34}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{34}
 }
 func (m *ReqParaTxByTitle) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqParaTxByTitle.Unmarshal(m, b)
@@ -1993,7 +1997,7 @@ func (m *FileHeader) Reset()         { *m = FileHeader{} }
 func (m *FileHeader) String() string { return proto.CompactTextString(m) }
 func (*FileHeader) ProtoMessage()    {}
 func (*FileHeader) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{35}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{35}
 }
 func (m *FileHeader) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FileHeader.Unmarshal(m, b)
@@ -2054,7 +2058,7 @@ func (m *EndBlock) Reset()         { *m = EndBlock{} }
 func (m *EndBlock) String() string { return proto.CompactTextString(m) }
 func (*EndBlock) ProtoMessage()    {}
 func (*EndBlock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{36}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{36}
 }
 func (m *EndBlock) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EndBlock.Unmarshal(m, b)
@@ -2102,7 +2106,7 @@ func (m *HeaderSeq) Reset()         { *m = HeaderSeq{} }
 func (m *HeaderSeq) String() string { return proto.CompactTextString(m) }
 func (*HeaderSeq) ProtoMessage()    {}
 func (*HeaderSeq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{37}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{37}
 }
 func (m *HeaderSeq) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HeaderSeq.Unmarshal(m, b)
@@ -2155,7 +2159,7 @@ func (m *HeaderSeqs) Reset()         { *m = HeaderSeqs{} }
 func (m *HeaderSeqs) String() string { return proto.CompactTextString(m) }
 func (*HeaderSeqs) ProtoMessage()    {}
 func (*HeaderSeqs) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{38}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{38}
 }
 func (m *HeaderSeqs) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HeaderSeqs.Unmarshal(m, b)
@@ -2204,7 +2208,7 @@ func (m *HeightPara) Reset()         { *m = HeightPara{} }
 func (m *HeightPara) String() string { return proto.CompactTextString(m) }
 func (*HeightPara) ProtoMessage()    {}
 func (*HeightPara) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{39}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{39}
 }
 func (m *HeightPara) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HeightPara.Unmarshal(m, b)
@@ -2284,7 +2288,7 @@ func (m *HeightParas) Reset()         { *m = HeightParas{} }
 func (m *HeightParas) String() string { return proto.CompactTextString(m) }
 func (*HeightParas) ProtoMessage()    {}
 func (*HeightParas) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{40}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{40}
 }
 func (m *HeightParas) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HeightParas.Unmarshal(m, b)
@@ -2330,7 +2334,7 @@ func (m *ChildChain) Reset()         { *m = ChildChain{} }
 func (m *ChildChain) String() string { return proto.CompactTextString(m) }
 func (*ChildChain) ProtoMessage()    {}
 func (*ChildChain) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{41}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{41}
 }
 func (m *ChildChain) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChildChain.Unmarshal(m, b)
@@ -2393,7 +2397,7 @@ func (m *ReqHeightByTitle) Reset()         { *m = ReqHeightByTitle{} }
 func (m *ReqHeightByTitle) String() string { return proto.CompactTextString(m) }
 func (*ReqHeightByTitle) ProtoMessage()    {}
 func (*ReqHeightByTitle) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{42}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{42}
 }
 func (m *ReqHeightByTitle) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqHeightByTitle.Unmarshal(m, b)
@@ -2453,7 +2457,7 @@ func (m *ReplyHeightByTitle) Reset()         { *m = ReplyHeightByTitle{} }
 func (m *ReplyHeightByTitle) String() string { return proto.CompactTextString(m) }
 func (*ReplyHeightByTitle) ProtoMessage()    {}
 func (*ReplyHeightByTitle) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{43}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{43}
 }
 func (m *ReplyHeightByTitle) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyHeightByTitle.Unmarshal(m, b)
@@ -2500,7 +2504,7 @@ func (m *BlockInfo) Reset()         { *m = BlockInfo{} }
 func (m *BlockInfo) String() string { return proto.CompactTextString(m) }
 func (*BlockInfo) ProtoMessage()    {}
 func (*BlockInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{44}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{44}
 }
 func (m *BlockInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BlockInfo.Unmarshal(m, b)
@@ -2547,7 +2551,7 @@ func (m *ReqParaTxByHeight) Reset()         { *m = ReqParaTxByHeight{} }
 func (m *ReqParaTxByHeight) String() string { return proto.CompactTextString(m) }
 func (*ReqParaTxByHeight) ProtoMessage()    {}
 func (*ReqParaTxByHeight) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{45}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{45}
 }
 func (m *ReqParaTxByHeight) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqParaTxByHeight.Unmarshal(m, b)
@@ -2594,7 +2598,7 @@ func (m *ParaSelfConsensusAccount) Reset()         { *m = ParaSelfConsensusAccou
 func (m *ParaSelfConsensusAccount) String() string { return proto.CompactTextString(m) }
 func (*ParaSelfConsensusAccount) ProtoMessage()    {}
 func (*ParaSelfConsensusAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{46}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{46}
 }
 func (m *ParaSelfConsensusAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ParaSelfConsensusAccount.Unmarshal(m, b)
@@ -2650,7 +2654,7 @@ func (m *ReqPrivacyHashes) Reset()         { *m = ReqPrivacyHashes{} }
 func (m *ReqPrivacyHashes) String() string { return proto.CompactTextString(m) }
 func (*ReqPrivacyHashes) ProtoMessage()    {}
 func (*ReqPrivacyHashes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_blockchain_d2ac1b7384a8f217, []int{47}
+	return fileDescriptor_blockchain_e2b423e7677fb4e0, []int{47}
 }
 func (m *ReqPrivacyHashes) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqPrivacyHashes.Unmarshal(m, b)
@@ -2742,9 +2746,9 @@ func init() {
 	proto.RegisterType((*ReqPrivacyHashes)(nil), "types.ReqPrivacyHashes")
 }
 
-func init() { proto.RegisterFile("blockchain.proto", fileDescriptor_blockchain_d2ac1b7384a8f217) }
+func init() { proto.RegisterFile("blockchain.proto", fileDescriptor_blockchain_e2b423e7677fb4e0) }
 
-var fileDescriptor_blockchain_d2ac1b7384a8f217 = []byte{
+var fileDescriptor_blockchain_e2b423e7677fb4e0 = []byte{
 	// 1787 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x58, 0x5f, 0x73, 0x1b, 0x49,
 	0x11, 0xaf, 0xd5, 0x4a, 0xb2, 0xd4, 0xb2, 0x8d, 0x33, 0x67, 0x28, 0x55, 0x0a, 0xee, 0x7c, 0x43,
