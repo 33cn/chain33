@@ -334,6 +334,19 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 
+	case "LoadParaTxByTitle":
+		reply, err := rpc.LoadParaTxByTitle(context.Background(), c.Params.(*types.ReqHeightByTitle))
+		if err == nil {
+			*c.Res.(*types.ReplyHeightByTitle) = *reply
+		}
+		errRet = err
+	case "GetParaTxByHeight":
+		reply, err := rpc.GetParaTxByHeight(context.Background(), c.Params.(*types.ReqParaTxByHeight))
+		if err == nil {
+			*c.Res.(*types.ParaTxDetails) = *reply
+		}
+		errRet = err
+
 	default:
 		errRet = errors.New(fmt.Sprintf("Unsupport method %v", c.Method))
 	}

@@ -168,10 +168,14 @@ func TestSeqCreateAndDelete(t *testing.T) {
 	batch := blockStore.NewBatch(true)
 	for i := 0; i <= 100; i++ {
 		var header types.Header
-		h0 := calcHeightToBlockHeaderKey(int64(i))
+		header.Height = int64(i)
 		header.Hash = []byte(fmt.Sprintf("%d", i))
-		types.Encode(&header)
-		batch.Set(h0, types.Encode(&header))
+		headerkvs, err := saveHeaderTable(blockStore.db, &header)
+		assert.Nil(t, err)
+		for _, kv := range headerkvs {
+			batch.Set(kv.GetKey(), kv.GetValue())
+		}
+		batch.Set(calcHeightToHashKey(int64(i)), []byte(fmt.Sprintf("%d", i)))
 	}
 	blockStore.height = 100
 	batch.Write()

@@ -50,7 +50,7 @@ func Test_processP2P(t *testing.T) {
 	}
 	txHash := hex.EncodeToString(tx.Hash())
 	blockHash := hex.EncodeToString(block.Hash(cfg))
-	rootHash := merkle.CalcMerkleRoot(txList)
+	rootHash := merkle.CalcMerkleRoot(cfg, block.Height, txList)
 
 	//mempool handler
 	go func() {
@@ -119,7 +119,7 @@ func Test_processP2P(t *testing.T) {
 		for !ltBlockCache.contains(blockHash) {
 		}
 		cpBlock := *ltBlockCache.get(blockHash).(*types.Block)
-		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(cpBlock.Txs)))
+		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(cfg, cpBlock.Height, cpBlock.Txs)))
 
 		//query tx
 		sendChan <- &versionData{rawData: &types.P2PQueryData{Value: &types.P2PQueryData_TxReq{TxReq: &types.P2PTxReq{TxHash: tx.Hash()}}}}

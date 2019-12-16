@@ -88,7 +88,7 @@ func New(name string) Queue {
 		for {
 			select {
 			case <-q.done:
-				fmt.Println("closing chain33 callback")
+				qlog.Info("closing chain33 callback")
 				return
 			case msg := <-q.callback:
 				if msg.callback != nil {
@@ -128,15 +128,15 @@ func (q *queue) Start() {
 	// Block until a signal is received.
 	select {
 	case <-q.done:
-		fmt.Println("closing chain33 done")
+		qlog.Info("closing chain33 done")
 		//atomic.StoreInt32(&q.isClose, 1)
 		break
 	case <-q.interrupt:
-		fmt.Println("closing chain33")
+		qlog.Info("closing chain33")
 		//atomic.StoreInt32(&q.isClose, 1)
 		break
 	case s := <-c:
-		fmt.Println("Got signal:", s)
+		qlog.Info("Got signal:", s)
 		//atomic.StoreInt32(&q.isClose, 1)
 		break
 	}

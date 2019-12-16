@@ -169,11 +169,17 @@ const (
 	EventGetParaTxByTitle   = 306
 	EventReplyParaTxByTitle = 307
 
-	EventParaSelfConsensusAccount      = 308
-	EventReplyParaSelfConsensusAccount = 309
-	EventGeneratePrivacyTxQueryID      = 310
-	EventReplyGeneratePrivacyTxQueryID = 311
-	EventGetPrivacyTransactionByHash   = 312
+	//获取拥有此title交易的区块高度
+	EventGetHeightByTitle   = 308
+	EventReplyHeightByTitle = 309
+
+	//通过区块高度列表+title获取平行链交易
+	EventGetParaTxByTitleAndHeight     = 310
+	EventParaSelfConsensusAccount      = 311
+	EventReplyParaSelfConsensusAccount = 312
+	EventGeneratePrivacyTxQueryID      = 313
+	EventReplyGeneratePrivacyTxQueryID = 314
+	EventGetPrivacyTransactionByHash   = 315
 )
 
 var eventName = map[int]string{
@@ -329,6 +335,9 @@ var eventName = map[int]string{
 	EventGetValueByKey:                 "EventGetValueByKey",
 	EventGetParaTxByTitle:              "EventGetParaTxByTitle",
 	EventReplyParaTxByTitle:            "EventReplyParaTxByTitle",
+	EventGetHeightByTitle:              "EventGetHeightByTitle",
+	EventReplyHeightByTitle:            "EventReplyHeightByTitle",
+	EventGetParaTxByTitleAndHeight:     "EventGetParaTxByTitleAndHeight",
 	EventParaSelfConsensusAccount:      "EventParaSelfConsensusAccount",
 	EventReplyParaSelfConsensusAccount: "EventReplyParaSelfConsensusAccount",
 	EventGeneratePrivacyTxQueryID:      "EventGeneratePrivacyTxQueryID",

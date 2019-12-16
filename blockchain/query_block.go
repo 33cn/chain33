@@ -128,7 +128,7 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 		chainlog.Error("ProcGetHeadersMsg input must Start <= End:", "Startheight", requestblock.Start, "Endheight", requestblock.End)
 		return nil, types.ErrEndLessThanStartHeight
 	}
-	if requestblock.End-requestblock.Start >= types.MaxBlockCountPerTime {
+	if requestblock.End-requestblock.Start >= types.MaxHeaderCountPerTime {
 		return nil, types.ErrMaxCountPerTime
 	}
 	if requestblock.Start > blockhight {

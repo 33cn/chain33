@@ -344,6 +344,21 @@ func (chain *BlockChain) DownLoadTimeOutProc(height int64) {
 	info := chain.GetDownLoadInfo()
 	synlog.Info("DownLoadTimeOutProc", "timeoutheight", height, "StartHeight", info.StartHeight, "EndHeight", info.EndHeight)
 
+	// 下载超时需要检测下载的pid是否存在，如果所有下载peer都失连，需要退出本次下载
+	// 在处理分叉时从指定节点下载区块超时时，可能是节点失连导致，此时需要退出本次下载
+	if info.Pids != nil {
+		var exist bool
+		for _, pid := range info.Pids {
+			peerinfo := chain.GetPeerInfo(pid)
+			if peerinfo != nil {
+				exist = true
+			}
+		}
+		if !exist {
+			synlog.Info("DownLoadTimeOutProc:peer not exist!", "info.Pids", info.Pids, "GetPeers", chain.GetPeers())
+			return
+		}
+	}
 	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {
 		//从超时的高度继续下载区块
 		if info.StartHeight > height {
