@@ -6,10 +6,11 @@ package blockchain
 
 import (
 	"container/list"
-	dbm "github.com/33cn/chain33/common/db"
-	"github.com/33cn/chain33/types"
 	"sync"
 	"time"
+
+	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
 )
 
 // ReduceLocalDB 实时精简localdb
@@ -42,12 +43,12 @@ func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (
 	}
 	height := chain.GetBlockHeight()
 	safetyHeight := height - MaxRollBlockNum
-	if safetyHeight/rangeHeight > flagHeight/rangeHeight {    // 每隔rangeHeight区块进行一次精简
+	if safetyHeight/rangeHeight > flagHeight/rangeHeight { // 每隔rangeHeight区块进行一次精简
 		chain.blockStore.reduceLocaldb(flagHeight, safetyHeight, true, chain.blockStore.reduceBody,
 			func(batch dbm.Batch, height int64) {
 				// 记录的时候记录下一个，中断开始执行的就是下一个
 				height++
-				batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data:height}))
+				batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 			})
 		flagHeight = safetyHeight + 1
 		chainlog.Debug("reduceLocaldb ticker", "current height", flagHeight)
@@ -58,8 +59,8 @@ func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (
 
 // FIFO fifo queue
 type FIFO struct {
-	m  map[interface{}]*list.Element
-	l  *list.List
+	m    map[interface{}]*list.Element
+	l    *list.List
 	size int
 	sync.RWMutex
 }
@@ -71,12 +72,12 @@ type entry struct {
 
 // NewFIFO  new fifi queue
 func NewFIFO(size int) *FIFO {
-	if size <= 0{
+	if size <= 0 {
 		size = 1
 	}
 	return &FIFO{
-		m: make(map[interface{}]*list.Element, size),
-		l: list.New(),
+		m:    make(map[interface{}]*list.Element, size),
+		l:    list.New(),
 		size: size,
 	}
 }

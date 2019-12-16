@@ -2,11 +2,12 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/util"
 	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
+
+	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
@@ -268,16 +269,16 @@ func TestInitReduceLocaldb(t *testing.T) {
 
 	// for test initReduceLocaldb
 	flagHeight := int64(0)
-	endHeight  := int64(80000)
+	endHeight := int64(80000)
 	flag := int64(0)
 	if flag == 0 {
 		if endHeight > flagHeight {
 			blockStore.reduceLocaldb(flagHeight, endHeight, false,
 				func(batch dbm.Batch, height int64) {
-				    batch.Set([]byte(fmt.Sprintf("key-%d", height)), []byte(fmt.Sprintf("value-%d", height)))
-			    },
+					batch.Set([]byte(fmt.Sprintf("key-%d", height)), []byte(fmt.Sprintf("value-%d", height)))
+				},
 				func(batch dbm.Batch, height int64) {
-					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data:height}))
+					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 				})
 			// CompactRange执行将会阻塞仅仅做一次压缩
 			chainlog.Info("reduceLocaldb start compact db")
@@ -313,7 +314,7 @@ func TestInitReduceLocaldb1(t *testing.T) {
 
 	// for test initReduceLocaldb
 	flagHeight := int64(0)
-	endHeight  := int64(80000)
+	endHeight := int64(80000)
 	flag := int64(0)
 	if flag == 0 {
 		defer func() {
@@ -338,7 +339,7 @@ func TestInitReduceLocaldb1(t *testing.T) {
 					if height == endHeight {
 						panic("for test")
 					}
-					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data:height}))
+					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 				})
 			// CompactRange执行将会阻塞仅仅做一次压缩
 			chainlog.Info("reduceLocaldb start compact db")
@@ -362,7 +363,7 @@ func TestReduceBody(t *testing.T) {
 
 	// generate blockdetail
 	txs := util.GenCoinsTxs(cfg, util.HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"), 10)
-	block := &types.Block{Txs:txs}
+	block := &types.Block{Txs: txs}
 	block.MainHash = block.Hash(cfg)
 	block.Height = 0
 	blockdetail := &types.BlockDetail{
@@ -391,7 +392,7 @@ func TestReduceBody(t *testing.T) {
 	body, err := blockStore.LoadBlockBody(0)
 	assert.NoError(t, err)
 	for _, recep := range body.Receipts {
-		for _, log := range recep.Logs  {
+		for _, log := range recep.Logs {
 			assert.Nil(t, log.Log)
 		}
 	}
@@ -408,10 +409,9 @@ func TestReduceBodyInit(t *testing.T) {
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
 	assert.NotNil(t, blockStore)
 
-
 	// generate blockdetail
 	txs := util.GenCoinsTxs(cfg, util.HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"), 10)
-	block := &types.Block{Txs:txs}
+	block := &types.Block{Txs: txs}
 	block.MainHash = block.Hash(cfg)
 	block.Height = 0
 	blockdetail := &types.BlockDetail{
@@ -433,7 +433,7 @@ func TestReduceBodyInit(t *testing.T) {
 
 	// save tx TxResult
 	newbatch = blockStore.NewBatch(true)
-	for index, tx := range txs  {
+	for index, tx := range txs {
 		var txresult types.TxResult
 		txresult.Height = block.Height
 		txresult.Index = int32(index)
@@ -456,12 +456,12 @@ func TestReduceBodyInit(t *testing.T) {
 	body, err := blockStore.LoadBlockBody(0)
 	assert.NoError(t, err)
 	for _, recep := range body.Receipts {
-		for _, log := range recep.Logs  {
+		for _, log := range recep.Logs {
 			assert.Nil(t, log.Log)
 		}
 	}
 	// 2 tx
-	for _, tx := range txs  {
+	for _, tx := range txs {
 		hash := tx.Hash()
 		_, err := blockStore.db.Get(hash)
 		assert.Error(t, err, types.ErrNotFound)
@@ -487,7 +487,7 @@ func TestGetRealTxResult(t *testing.T) {
 
 	// generate blockdetail
 	txs := util.GenCoinsTxs(cfg, util.HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"), 10)
-	block := &types.Block{Txs:txs}
+	block := &types.Block{Txs: txs}
 	block.MainHash = block.Hash(cfg)
 	block.Height = 0
 	blockdetail := &types.BlockDetail{
@@ -511,7 +511,7 @@ func TestGetRealTxResult(t *testing.T) {
 	cfg.S("reduceLocaldb", true)
 	txr := &types.TxResult{
 		Height: 0,
-		Index: 0,
+		Index:  0,
 	}
 	blockStore.getRealTxResult(txr)
 	assert.Equal(t, txr.Tx.Nonce, txs[0].Nonce)
@@ -533,7 +533,7 @@ func TestLoadCacheBlockBody(t *testing.T) {
 
 	txs := util.GenCoinsTxs(cfg, util.HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"), 10)
 	body := &types.BlockBody{
-		Txs: txs,
+		Txs:        txs,
 		MainHeight: 1,
 	}
 	blockStore.AddCacheBlockBody(1, types.Encode(body))
@@ -560,7 +560,7 @@ func TestLoadCacheBlockBodyBatch(t *testing.T) {
 	printMemStats(0)
 	for i := 0; i < 15000; i++ {
 		body := &types.BlockBody{
-			Txs: txs,
+			Txs:        txs,
 			MainHeight: int64(i),
 		}
 		blockStore.AddCacheBlockBody(int64(i), types.Encode(body))

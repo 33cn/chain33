@@ -19,9 +19,9 @@ var (
 	TxAddrHash             = []byte("TxAddrHash:")
 	TxAddrDirHash          = []byte("TxAddrDirHash:")
 	AddrTxsCount           = []byte("AddrTxsCount:")
-	ConsensusParaTxsPrefix = []byte("LODBP:Consensus:Para:") //存贮para共识模块从主链拉取的平行链交易
-	FlagReduceLocaldb      = []byte("FLAG:ReduceLocaldb")    // 精简版localdb标记
-	ReduceLocaldbHeight    = append(FlagReduceLocaldb, []byte(":H")...)  // 精简版localdb高度
+	ConsensusParaTxsPrefix = []byte("LODBP:Consensus:Para:")            //存贮para共识模块从主链拉取的平行链交易
+	FlagReduceLocaldb      = []byte("FLAG:ReduceLocaldb")               // 精简版localdb标记
+	ReduceLocaldbHeight    = append(FlagReduceLocaldb, []byte(":H")...) // 精简版localdb高度
 )
 
 // GetLocalDBKeyList 获取localdb的key列表
@@ -43,9 +43,9 @@ func (c *Chain33Config) CalcTxKey(hash []byte) []byte {
 func (c *Chain33Config) CalcTxKeyValue(txr *TxResult) []byte {
 	if c.IsEnable("reduceLocaldb") {
 		txres := &TxResult{
-			Height: txr.GetHeight(),
-			Index: txr.GetIndex(),
-			Blocktime: txr.GetBlocktime(),
+			Height:     txr.GetHeight(),
+			Index:      txr.GetIndex(),
+			Blocktime:  txr.GetBlocktime(),
 			ActionName: txr.GetActionName(),
 		}
 		return Encode(txres)

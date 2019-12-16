@@ -202,14 +202,14 @@ func (bs *BlockStore) initReduceLocaldb(height int64) {
 		panic(err)
 	}
 	if flag == 0 {
-		safetyHeight := MaxRollBlockNum * 3 / 2  //初始化时候执行精简高度要大于最大回滚高度
+		safetyHeight := MaxRollBlockNum * 3 / 2 //初始化时候执行精简高度要大于最大回滚高度
 		endHeight := height - safetyHeight
 		if endHeight > flagHeight {
 			chainlog.Info("start reduceLocaldb", "start height", flagHeight, "end height", endHeight)
 			bs.reduceLocaldb(flagHeight, endHeight, false, bs.reduceBodyInit,
 				func(batch dbm.Batch, height int64) {
 					height++
-					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data:height}))
+					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 				})
 			// CompactRange执行将会阻塞仅仅做一次压缩
 			chainlog.Info("reduceLocaldb start compact db")
@@ -240,7 +240,7 @@ func (bs *BlockStore) reduceLocaldb(start, end int64, sync bool, fn func(batch d
 			fnflag(newbatch, i)
 			dbm.MustWrite(newbatch)
 			newbatch.Reset()
-			chainlog.Info("reduceLocaldb",  "height", i)
+			chainlog.Info("reduceLocaldb", "height", i)
 		}
 	}
 	if newbatch.ValueSize() > 0 {
@@ -248,7 +248,7 @@ func (bs *BlockStore) reduceLocaldb(start, end int64, sync bool, fn func(batch d
 		fnflag(newbatch, end)
 		dbm.MustWrite(newbatch)
 		newbatch.Reset()
-		chainlog.Info("reduceLocaldb end",  "height", end)
+		chainlog.Info("reduceLocaldb end", "height", end)
 	}
 }
 
@@ -823,7 +823,7 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	return bs.getRealTxResult(&txResult), nil
 }
 
-func (bs *BlockStore) getRealTxResult(txr *types.TxResult) *types.TxResult  {
+func (bs *BlockStore) getRealTxResult(txr *types.TxResult) *types.TxResult {
 	cfg := bs.client.GetConfig()
 	if !cfg.IsEnable("reduceLocaldb") {
 		return txr
@@ -1553,7 +1553,7 @@ func (bs *BlockStore) SetConsensusPara(kvs *types.LocalDBSet) error {
 func (bs *BlockStore) AddCacheBlockBody(height int64, value []byte) {
 	if bs.cacheBody == nil {
 		// 这里lru缓存的size要大于回退高度
-		cacheBody := NewFIFO(int(MaxRollBlockNum*3/2))
+		cacheBody := NewFIFO(int(MaxRollBlockNum * 3 / 2))
 		if cacheBody == nil {
 			panic("NewFIFO fail")
 		}

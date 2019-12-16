@@ -6,13 +6,13 @@ package blockchain_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
-
 
 func TestTryReduceLocalDB(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
@@ -37,18 +37,18 @@ func TestTryReduceLocalDB(t *testing.T) {
 			reply, err := mock33.GetAPI().SendTx(txs[j])
 			assert.Nil(t, err)
 			assert.Equal(t, reply.IsOk, true)
-			waitH := i*count+(j+1)
+			waitH := i*count + (j + 1)
 			mock33.WaitHeight(int64(waitH))
 		}
 		flagHeight = chain.TryReduceLocalDB(flagHeight, int64(count))
-		assert.Equal(t, flagHeight, int64((i + 1) * count +1))
+		assert.Equal(t, flagHeight, int64((i+1)*count+1))
 	}
 }
 
 func TestFIFO(t *testing.T) {
 	fifo10 := blockchain.NewFIFO(10)
 
-	for i := 0; i < 11; i++{
+	for i := 0; i < 11; i++ {
 		fifo10.Add(i, []byte(fmt.Sprintf("value-%d", i)))
 	}
 	// check Contains Get
@@ -62,7 +62,7 @@ func TestFIFO(t *testing.T) {
 		assert.Equal(t, ok, true)
 		value, ok := fifo10.Get(i)
 		assert.Equal(t, ok, true)
-		assert.Equal(t, value.([]byte), []byte(fmt.Sprintf("value-%d", i)) )
+		assert.Equal(t, value.([]byte), []byte(fmt.Sprintf("value-%d", i)))
 	}
 	// check Remove
 	ok = fifo10.Remove(10)
@@ -74,15 +74,13 @@ func TestFIFO(t *testing.T) {
 	ok = fifo10.Remove(11)
 	assert.Equal(t, ok, false)
 
-
-
 	// test for size = 0
 	fifo0 := blockchain.NewFIFO(0)
 
 	fifo0.Add(0, []byte(fmt.Sprintf("value-%d", 0)))
 	value, ok = fifo0.Get(0)
 	assert.Equal(t, ok, true)
-	assert.Equal(t, value.([]byte), []byte(fmt.Sprintf("value-%d", 0)) )
+	assert.Equal(t, value.([]byte), []byte(fmt.Sprintf("value-%d", 0)))
 
 	fifo0.Add(1, []byte(fmt.Sprintf("value-%d", 1)))
 	value, ok = fifo0.Get(0)
@@ -90,7 +88,7 @@ func TestFIFO(t *testing.T) {
 
 	value, ok = fifo0.Get(1)
 	assert.Equal(t, ok, true)
-	assert.Equal(t, value.([]byte), []byte(fmt.Sprintf("value-%d", 1)) )
+	assert.Equal(t, value.([]byte), []byte(fmt.Sprintf("value-%d", 1)))
 
 	// remove 0  fasle
 	ok = fifo0.Remove(0)
