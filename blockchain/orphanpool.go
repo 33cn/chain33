@@ -195,27 +195,12 @@ func (op *OrphanPool) getChildOrphanCount(hash string) int {
 	return len(op.prevOrphans[hash])
 }
 
-//GetChildOrphanCount 获取父hash对应的子孤儿节点的个数
-func (op *OrphanPool) GetChildOrphanCount(hash string) int {
-	op.orphanLock.RLock()
-	defer op.orphanLock.RUnlock()
-
-	return op.getChildOrphanCount(hash)
-}
-
 //getChildOrphan 获取子孤儿连，内部函数
 func (op *OrphanPool) getChildOrphan(hash string, index int) *orphanBlock {
 	if index >= len(op.prevOrphans[hash]) {
 		return nil
 	}
 	return op.prevOrphans[hash][index]
-}
-
-func (op *OrphanPool) printorphan() {
-	for _, oBlock := range op.orphans {
-		// 打印孤儿block
-		chainlog.Error("printorphannode:", "oBlock.height", oBlock.block.Height, "oBlock.hash", common.ToHex(oBlock.block.Hash(op.param)))
-	}
 }
 
 //ProcessOrphans 孤儿链的处理,将本hash对应的子block插入chain中

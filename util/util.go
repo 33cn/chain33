@@ -219,7 +219,7 @@ func CreateNoneBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *ty
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = GenNoneTxs(cfg, priv, n)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	return newblock
 }
 
@@ -230,7 +230,7 @@ func CreateCoinsBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *t
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = GenCoinsTxs(cfg, priv, n)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	return newblock
 }
 
@@ -324,7 +324,20 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 		return nil, nil, types.ErrCheckTxHash
 	}
 	//检查block的txhash值
-	calcHash := merkle.CalcMerkleRootCache(cacheTxs)
+	var calcHash []byte
+	cfg := client.GetConfig()
+	height := block.Height
+
+	//此时需要区分主链和平行链
+	if cfg.IsPara() {
+		height = block.MainHeight
+	}
+	if !cfg.IsFork(height, "ForkRootHash") {
+		calcHash = merkle.CalcMerkleRootCache(cacheTxs)
+	} else {
+		temtxs := types.TransactionSort(block.Txs)
+		calcHash = merkle.CalcMerkleRoot(cfg, height, temtxs)
+	}
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}
@@ -412,7 +425,12 @@ func CreateNewBlock(cfg *types.Chain33Config, parent *types.Block, txs []*types.
 	newblock.BlockTime = parent.BlockTime + 1
 	newblock.ParentHash = parent.Hash(cfg)
 	newblock.Txs = append(newblock.Txs, txs...)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+
+	//需要首先对交易进行排序然后再计算TxHash
+	if cfg.IsFork(newblock.GetHeight(), "ForkRootHash") {
+		newblock.Txs = types.TransactionSort(newblock.Txs)
+	}
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	return newblock
 }
 

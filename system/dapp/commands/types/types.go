@@ -85,6 +85,7 @@ type TxDetailResult struct {
 	Fromaddr   string                      `json:"fromaddr"`
 	ActionName string                      `json:"actionname"`
 	Assets     []*rpctypes.Asset           `json:"assets"`
+	TxProofs   []*rpctypes.TxProof         `json:"txProofs"`
 }
 
 // TxDetailsResult defines txdetails result command

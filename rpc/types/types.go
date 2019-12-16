@@ -152,6 +152,14 @@ type TransactionDetail struct {
 	Fromaddr   string             `json:"fromAddr"`
 	ActionName string             `json:"actionName"`
 	Assets     []*Asset           `json:"assets"`
+	TxProofs   []*TxProof         `json:"txProofs"`
+}
+
+// TxProof :
+type TxProof struct {
+	Proofs   []string `json:"proofs"`
+	Index    uint32   `json:"index"`
+	RootHash string   `json:"rootHash"`
 }
 
 // ReplyTxInfos reply tx infos
