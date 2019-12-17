@@ -6,7 +6,6 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-
 	"io/ioutil"
 	"reflect"
 	"strings"
@@ -17,6 +16,7 @@ var (
 	streamHandlerTypeMap map[string]reflect.Type
 )
 
+//注册typeName,msgID,处理函数
 func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 
 	if handler == nil {
@@ -50,9 +50,8 @@ type StreamHandler interface {
 	SetProtocol(protocol IProtocol)
 	// VerifyRequest  验证请求数据
 	VerifyRequest(request []byte) bool
-
-	// Handle 处理请求, 有返回需要设置具体的response结构
-	Handle(request []byte, stream core.Stream) (*StreamResponse, error)
+	// Handle 处理请求
+	Handle(buf []byte, stream core.Stream)
 }
 
 type BaseStreamHandler struct {
@@ -64,54 +63,26 @@ func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 	s.protocol = protocol
 }
 
-func (s *BaseStreamHandler) OnReq(interface{}, core.Stream)  {}
-func (s *BaseStreamHandler) OnResp(interface{}, core.Stream) {}
+func (s *BaseStreamHandler) OnReq(core.Stream)  {}
+func (s *BaseStreamHandler) OnResp(core.Stream) {}
 
 func (s *BaseStreamHandler) Handle([]byte, core.Stream) (*StreamResponse, error) {
 	return nil, nil
 }
 
-func (s *BaseStreamHandler) VerifyRequest(request []byte) bool {
+func (s *BaseStreamHandler) VerifyRequest(request []byte, msgId string) bool {
 	//基类统一验证数据, 不需要验证,重写该方法直接返回true
 	//TODO, verify request
+	//获取对应的消息结构package
 
-	data := &types.MessageHeaderResp{}
-	proto.Unmarshal(buf, data)
-	if err != nil {
-		logger.Error(err)
-		continue
-	}
-
-	sign := data.Sign
-	data.Sign = nil
-
-	// marshall data without the signature to protobufs3 binary format
-	bin, err := proto.Marshal(data.Message)
-	if err != nil {
-		log.Println(err, "failed to marshal pb message")
-		return false
-	}
-
-	// restore sig in message data (for possible future use)
-	data.Sign = sign
-
-	// restore peer id binary format from base58 encoded node id data
-	peerId, err := peer.IDB58Decode(data.NodeId)
-	if err != nil {
-		log.Println(err, "Failed to decode node id from base58")
-		return false
-	}
-
-	// verify the data was authored by the signing peer identified by the public key
-	// and signature included in the message
-	return s.verifyData(bin, []byte(sign), peerId, data.NodePubKey)
+	return true
 
 }
 
 func (s *BaseStreamHandler) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
-		log.Println(err, "Failed to extract key from message key data")
+		log.Error("verifyData", err, "Failed to extract key from message key data")
 		return false
 	}
 
@@ -119,19 +90,19 @@ func (s *BaseStreamHandler) verifyData(data []byte, signature []byte, peerId pee
 	idFromKey, err := peer.IDFromPublicKey(key)
 
 	if err != nil {
-		log.Println(err, "Failed to extract peer id from public key")
+		log.Error("verifyData", err, "Failed to extract peer id from public key")
 		return false
 	}
 
 	// verify that message author node id matches the provided node public key
 	if idFromKey != peerId {
-		log.Println(err, "Node id and provided public key mismatch")
+		log.Error("verifyData", err, "Node id and provided public key mismatch")
 		return false
 	}
 
 	res, err := key.Verify(data, signature)
 	if err != nil {
-		log.Println(err, "Error authenticating data")
+		log.Error("verifyData", err, "Error authenticating data")
 		return false
 	}
 
@@ -142,30 +113,18 @@ func (s *BaseStreamHandler) GetProtocol() IProtocol {
 	return s.protocol
 }
 
+//stream事件预处理函数
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
-	for {
-
-		buf, err := ioutil.ReadAll(stream)
-		if err != nil {
-			stream.Reset()
-			log.Error("HandleStream", "err", err)
-			continue
-		}
-
-		if !s.child.VerifyRequest(buf) {
-			//invalid request
-			continue
-		}
-
-		resp, err := s.child.Handle(buf, stream)
-		if err != nil {
-			continue
-		}
-		if resp.Msg != nil {
-			//TODO, send response message
-		}
+	buf, err := ioutil.ReadAll(stream)
+	if err != nil {
+		stream.Reset()
+		log.Error("HandleStream", "err", err)
+		return
 	}
+
+	s.child.Handle(buf, stream)
+
 }
 
 func formatHandlerTypeID(protocolType, msgID string) string {

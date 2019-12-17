@@ -2,6 +2,7 @@ package types
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/33cn/chain33/p2pnext/manage"
 	"github.com/33cn/chain33/queue"
@@ -55,21 +56,34 @@ func (p *BaseProtocol) InitProtocol(data *GlobalData) {
 
 func (p *ProtocolManager) Init(data *GlobalData) {
 
-	//  每个P2P实例都重新分配相关的protocol结构
+	//每个P2P实例都重新分配相关的protocol结构
 	for id, protocolType := range protocolTypeMap {
 		protocol := reflect.New(protocolType).Interface().(IProtocol)
 		protocol.InitProtocol(data)
 		p.protoMap[id] = protocol
+
 	}
 
-	//  每个P2P实例都重新分配相关的handler结构
+	//每个P2P实例都重新分配相关的handler结构
 	for id, handlerType := range streamHandlerTypeMap {
 		newHandler := reflect.New(handlerType).Interface().(StreamHandler)
 		protoID, msgID := decodeHandlerTypeID(id)
 		newHandler.SetProtocol(p.protoMap[protoID])
-		data.Host.SetStreamHandler(core.ProtocolID(msgID), BaseStreamHandler{child: newHandler}.HandleStream)
-
+		var baseHander BaseStreamHandler
+		baseHander.child = newHandler
+		baseHander.SetProtocol(p.protoMap[protoID])
+		data.Host.SetStreamHandler(core.ProtocolID(msgID), baseHander.HandleStream)
 	}
+
+}
+
+func (s *BaseProtocol) NewMessageCommon(messageId, pid string, nodePubkey []byte, gossip bool) *types.MessageComm {
+	return &types.MessageComm{Version: "",
+		NodeId:     pid,
+		NodePubKey: nodePubkey,
+		Timestamp:  time.Now().Unix(),
+		Id:         messageId,
+		Gossip:     gossip}
 
 }
 

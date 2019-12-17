@@ -34,6 +34,7 @@ require (
 	github.com/libp2p/go-libp2p-host v0.1.0
 	github.com/libp2p/go-libp2p-kad-dht v0.2.1
 	github.com/libp2p/go-libp2p-net v0.1.0
+	github.com/libp2p/go-libp2p-peerstore v0.1.3
 
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mr-tron/base58 v1.1.2
@@ -44,6 +45,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tjfoc/gmsm v0.0.0-20171124023159-98aa888b79d8
+	go.opencensus.io v0.22.1
 	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 	golang.org/x/sys v0.0.0-20190922100055-0a153f010e69

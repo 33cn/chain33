@@ -1,13 +1,16 @@
 package broadcast
 
 import (
+	"errors"
+	"time"
+
+	//uuid "github.com/google/uuid"
+
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	core "github.com/libp2p/go-libp2p-core"
-	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
 	common "github.com/33cn/chain33/p2p"
-	p2p "github.com/33cn/chain33/p2pnext"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	net "github.com/libp2p/go-libp2p-core/network"
@@ -15,16 +18,14 @@ import (
 
 var log = log15.New("module", "p2p.broadcast")
 
-
 const (
 	protoTypeID = "BroadcastProtocolType"
-	ID = "/chain33/p2p/broadcast/1.0.0"
+	ID          = "/chain33/p2p/broadcast/1.0.0"
 )
-
 
 func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &broadCastProtocol{})
- 	prototypes.RegisterStreamHandlerType(protoTypeID, ID, &broadCastHandler{})
+	prototypes.RegisterStreamHandlerType(protoTypeID, ID, &broadCastHandler{})
 }
 
 //
@@ -36,13 +37,11 @@ type broadCastProtocol struct {
 	blockSendFilter *common.Filterdata
 	totalBlockCache *common.SpaceLimitCache
 	ltBlockCache    *common.SpaceLimitCache
-	p2pCfg *types.P2P
+	p2pCfg          *types.P2P
 }
 
-
 //New
-func (p *broadCastProtocol)InitProtocol(data *prototypes.GlobalData)  {
-
+func (p *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
 
 	p.GlobalData = data
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
@@ -58,17 +57,17 @@ func (p *broadCastProtocol)InitProtocol(data *prototypes.GlobalData)  {
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
 	p.ltBlockCache = common.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
 	p.p2pCfg = p.GetChainCfg().GetModuleConfig().P2P
-
+	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventTxBroadcast, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventBlockBroadcast, p.handleEvent)
 }
-
 
 type broadCastHandler struct {
 	*prototypes.BaseStreamHandler
 }
 
-func (h *broadCastHandler)Handle(req []byte, stream core.Stream) (*prototypes.StreamResponse, error) {
+//Handle 处理请求
+func (h *broadCastHandler) Handle(req []byte, stream core.Stream) {
 
 	protocol := h.GetProtocol().(*broadCastProtocol)
 	pid := stream.Conn().RemotePeer().Pretty()
@@ -79,22 +78,16 @@ func (h *broadCastHandler)Handle(req []byte, stream core.Stream) (*prototypes.St
 	var data types.MessageBroadCast
 	err := types.Decode(req, &data)
 	if err != nil {
-		return nil, err
+		return
 	}
-
-	//valid := s.node.AuthenticateMessage(&data, data.Common)
-	//if !valid {
-	//	logger.Error("Failed to authenticate message")
-	//	continue
-	//}
 
 	recvData := data.Message
 
 	_ = protocol.handleReceive(recvData, pid, peerAddr)
-	return nil, nil
+	return
 }
 
-func (h *broadCastHandler)VerifyRequest([]byte) bool {
+func (h *broadCastHandler) VerifyRequest(data []byte) bool {
 
 	return true
 }
@@ -123,38 +116,38 @@ func (s *broadCastProtocol) queryStream(pid string, data interface{}) error {
 
 func (s *broadCastProtocol) sendStream(stream net.Stream, data interface{}) error {
 
-	//pid := stream.Conn().RemotePeer().Pretty()
-	//peerAddr := stream.Conn().RemoteMultiaddr().String()
-	//sendData, doSend := s.handleSend(data, pid, peerAddr)
-	//if !doSend {
-	//	log.Debug("sendStream", "doSend", doSend)
-	//	return nil
-	//}
+	pid := stream.Conn().RemotePeer().Pretty()
+	peerAddr := stream.Conn().RemoteMultiaddr().String()
+	sendData, doSend := s.handleSend(data, pid, peerAddr)
+	if !doSend {
+		log.Debug("sendStream", "doSend", doSend)
+		return nil
+	}
 	//TODO,send stream
 	//包装一层MessageBroadCast
-	//broadData := &types.MessageBroadCast{Common: s.node.NewMessageData(uuid.New().String(), true),
-	//	Message: sendData}
-	//
-	//// sign the data
-	//signature, err := s.node.SignProtoMessage(broadData)
-	//if err != nil {
-	//	logger.Error("failed to sign pb data")
-	//	return err
-	//}
-	//
-	//broadData.Common.Sign = signature
-	//ok := s.protocol.GetStreamManager().SendProtoMessage(stream, ID, broadData)
-	//if !ok {
-	//	stream.Close()
-	//	s.protocol.GetStreamManager().DeleteStream(pid)
-	//	return errors.New("SendStreamErr")
-	//}
+	broadData := &types.MessageBroadCast{
+		Message: sendData}
+
+	// TODO sign the data
+	// signature, err := s.node.SignProtoMessage(broadData)
+	// if err != nil {
+	// 	logger.Error("failed to sign pb data")
+	// 	return err
+	// }
+
+	// broadData.Common.Sign = signature
+
+	//s.GetStreamManager().GetStream()
+	ok := s.GetStreamManager().SendProtoMessage(broadData, stream)
+	if !ok {
+		stream.Close()
+		s.GetStreamManager().DeleteStream(pid)
+		return errors.New("SendStreamErr")
+	}
 
 	return nil
 
 }
-
-
 
 // handleSend 对数据进行处理，包装成BroadCast结构
 func (s *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
@@ -167,6 +160,7 @@ func (s *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr string
 	}()
 	log.Debug("ProcessSendP2PBegin", "peerID", pid, "peerAddr", peerAddr)
 	sendData = &types.BroadCastData{}
+
 	doSend = false
 	if tx, ok := rawData.(*types.P2PTx); ok {
 		doSend = s.sendTx(tx, sendData, pid, peerAddr)
@@ -219,7 +213,7 @@ func (s *broadCastProtocol) handleReceive(data *types.BroadCastData, pid string,
 func (s *broadCastProtocol) sendToMempool(ty int64, data interface{}) (interface{}, error) {
 
 	client := s.GetQueueClient()
-	msg := client.NewMessage(p2p.MEMPOOL, ty, data)
+	msg := client.NewMessage("mempool", ty, data)
 	err := client.Send(msg, true)
 	if err != nil {
 		return nil, err
@@ -234,7 +228,7 @@ func (s *broadCastProtocol) sendToMempool(ty int64, data interface{}) (interface
 func (s *broadCastProtocol) postBlockChain(block *types.Block, pid string) error {
 
 	client := s.GetQueueClient()
-	msg := client.NewMessage(p2p.BLOCKCHAIN, types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
+	msg := client.NewMessage("blockchain", types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
 	err := client.Send(msg, false)
 	if err != nil {
 		log.Error("postBlockChain", "send to blockchain Error", err.Error())

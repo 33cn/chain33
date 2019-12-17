@@ -3,11 +3,10 @@ package p2pnext
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 
 	"time"
 
-	"github.com/33cn/chain33/p2pnext/manage"
-	"github.com/33cn/chain33/p2pnext/protocol"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	core "github.com/libp2p/go-libp2p-core"
 
@@ -18,11 +17,11 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-peerstore"
+
+	//"github.com/libp2p/go-libp2p-peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
@@ -38,7 +37,6 @@ type P2P struct {
 	client        queue.Client
 	Done          chan struct{}
 	Node          *Node
-	Processer     map[string]Driver
 }
 
 func New(cfg *types.Chain33Config) *P2P {
@@ -76,7 +74,6 @@ func New(cfg *types.Chain33Config) *P2P {
 	p2p.streamManag = manage.NewStreamManager()
 	p2p.peerInfoManag = manage.NewPeerInfoManager()
 	p2p.chainCfg = cfg
-	p2p.Processer = make(map[string]Driver)
 	p2p.discovery = new(Discovery)
 	p2p.Node = NewNode(p2p, cfg)
 
@@ -93,7 +90,7 @@ func (p *P2P) managePeers() {
 			panic(err)
 		}
 
-		err = p.Host.Connect(context.Background(), *peerinfo)
+		err = p.host.Connect(context.Background(), *peerinfo)
 		if err != nil {
 			logger.Error("Host Connect", "err", err)
 			return
@@ -165,11 +162,11 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 		p.client = cli
 	}
 	globalData := &prototypes.GlobalData{
-		ChainCfg:        nil,
-		QueueClient:     nil,
-		Host:            nil,
-		StreamManager:   nil,
-		PeerInfoManager: nil,
+		ChainCfg:        p.chainCfg,
+		QueueClient:     p.client,
+		Host:            p.host,
+		StreamManager:   p.streamManag,
+		PeerInfoManager: p.peerInfoManag,
 	}
 	protocol.Init(globalData)
 	go p.managePeers()
@@ -191,7 +188,7 @@ func (p *P2P) processP2P() {
 func (p *P2P) newStream(ctx context.Context, pr peer.AddrInfo) (core.Stream, error) {
 
 	//可以后续添加 block.ID,mempool.ID,header.ID
-	p.host.Peerstore().Addrs(pr.ID, pr.Addrs, peerstore.TempAddrTTL)
+	p.host.Peerstore().Addrs(pr.ID)
 	stream, err := p.host.NewStream(ctx, pr.ID)
 	if err != nil {
 		return nil, err

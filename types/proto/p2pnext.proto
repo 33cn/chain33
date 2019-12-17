@@ -20,6 +20,19 @@ message MessageComm {
     bytes sign = 7;         // signature of message data + method specific data by message authoring node.
 }
 
+message MessageUtil{
+	MessageComm common=1;
+	oneof value {
+		P2PPeerInfo peerInfo=2;
+		P2PVersion  version=3;
+		P2PVerAck   versionAck=4;
+		P2PExternalInfo external=5;
+		P2PGetBlocks getblocks=6;
+		InvDatas invdatas=7;
+		
+	}
+}
+
 /**
  * 请求获取远程节点的节点信息
  */
