@@ -310,6 +310,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 	for _, proof := range txProofs {
 		proofs = append(proofs, common.ToHex(proof))
 	}
+
 	tran, err := rpctypes.DecodeTx(tx.GetTx())
 	if err != nil {
 		log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)
@@ -331,6 +332,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		Fromaddr:   tx.GetFromaddr(),
 		ActionName: tx.GetActionName(),
 		Assets:     fmtAsssets(tx.GetAssets()),
+		TxProofs:   fmtTxProofs(tx.GetTxProofs()),
 	}, nil
 }
 
@@ -1134,9 +1136,15 @@ func (c *Chain33) AddSeqCallBack(in *types.BlockSeqCB, result *interface{}) erro
 	if err != nil {
 		return err
 	}
-	var resp rpctypes.Reply
+	var resp rpctypes.ReplyAddCallback
 	resp.IsOk = reply.GetIsOk()
 	resp.Msg = string(reply.GetMsg())
+	if reply.GetSeqs() != nil {
+		for _, seq := range reply.Seqs {
+			hash := common.ToHex(seq.Hash)
+			resp.Seqs = append(resp.Seqs, &rpctypes.Sequence{Hash: hash, Type: seq.Type, Height: seq.Height, Sequence: seq.Sequence})
+		}
+	}
 	*result = &resp
 	return nil
 }
@@ -1226,4 +1234,21 @@ func (c *Chain33) GetCoinSymbol(in types.ReqNil, result *interface{}) error {
 	log.Warn("GetCoinSymbol", "Symbol", symbol)
 	*result = &resp
 	return nil
+}
+
+func fmtTxProofs(txProofs []*types.TxProof) []*rpctypes.TxProof {
+	var result []*rpctypes.TxProof
+	for _, txproof := range txProofs {
+		var proofs []string
+		for _, proof := range txproof.GetProofs() {
+			proofs = append(proofs, common.ToHex(proof))
+		}
+		rpctxproof := &rpctypes.TxProof{
+			Proofs:   proofs,
+			Index:    txproof.GetIndex(),
+			RootHash: common.ToHex(txproof.GetRootHash()),
+		}
+		result = append(result, rpctxproof)
+	}
+	return result
 }

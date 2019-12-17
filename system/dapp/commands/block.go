@@ -322,6 +322,10 @@ func addblockSeqCallBackCmdFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("encode")
 
 	cmd.Flags().StringP("isheader", "i", "f", "push header or block (0/f/false for block; 1/t/true for header)")
+
+	cmd.Flags().Int64P("lastSequence", "", 0, "lastSequence")
+	cmd.Flags().Int64P("lastHeight", "", 0, "lastHeight")
+	cmd.Flags().StringP("lastBlockHash", "", "", "lastBlockHash")
 }
 
 func addblockSeqCallBackCmd(cmd *cobra.Command, args []string) {
@@ -336,14 +340,28 @@ func addblockSeqCallBackCmd(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := types.BlockSeqCB{
-		Name:     name,
-		URL:      url,
-		Encode:   encode,
-		IsHeader: isHeader,
+
+	lastSeq, _ := cmd.Flags().GetInt64("lastSequence")
+	lastHeight, _ := cmd.Flags().GetInt64("lastHeight")
+	lastBlockHash, _ := cmd.Flags().GetString("lastBlockHash")
+	if lastSeq != 0 || lastHeight != 0 || lastBlockHash != "" {
+		if lastSeq == 0 || lastHeight == 0 || lastBlockHash == "" {
+			fmt.Println("lastSequence, lastHeight, lastBlockHash need at the same time")
+			return
+		}
 	}
 
-	var res rpctypes.Reply
+	params := types.BlockSeqCB{
+		Name:          name,
+		URL:           url,
+		Encode:        encode,
+		IsHeader:      isHeader,
+		LastSequence:  lastSeq,
+		LastHeight:    lastHeight,
+		LastBlockHash: lastBlockHash,
+	}
+
+	var res rpctypes.ReplyAddCallback
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddSeqCallBack", params, &res)
 	ctx.Run()
 }

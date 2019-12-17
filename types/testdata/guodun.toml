@@ -180,7 +180,7 @@ ForkBase58AddressCheck=1800000
 ForkEnableParaRegExec=0
 ForkCacheDriver=0
 ForkTicketFundAddrV1=-1
-
+ForkRootHash=1
 [fork.sub.coins]
 Enable=0
 

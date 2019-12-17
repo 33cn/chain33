@@ -110,7 +110,7 @@ func (na *NetAddress) Less(other interface{}) bool {
 		return na.String() < o.String()
 	}
 
-	fmt.Println("Cannot compare unequal types")
+	log.Error("Cannot compare unequal types")
 	return false
 }
 

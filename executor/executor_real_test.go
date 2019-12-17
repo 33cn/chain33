@@ -241,9 +241,9 @@ func TestSameTx(t *testing.T) {
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 3)
-	hash1 := merkle.CalcMerkleRoot(newblock.Txs)
+	hash1 := merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	newblock.Txs = append(newblock.Txs, newblock.Txs[2])
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
 	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
 	assert.Equal(t, types.ErrTxDup, err)
@@ -251,9 +251,9 @@ func TestSameTx(t *testing.T) {
 	//情况2
 	//[tx1,xt2,tx3,tx4,tx5,tx6] and [tx1,xt2,tx3,tx4,tx5,tx6,tx5,tx6]
 	newblock.Txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 6)
-	hash1 = merkle.CalcMerkleRoot(newblock.Txs)
+	hash1 = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	newblock.Txs = append(newblock.Txs, newblock.Txs[4:]...)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
 	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
 	assert.Equal(t, types.ErrTxDup, err)

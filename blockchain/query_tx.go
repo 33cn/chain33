@@ -81,19 +81,18 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	return &txDetails, nil
 }
 
-//GetTransactionProofs 获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
-func GetTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, error) {
+//getTransactionProofs 获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
+func getTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, error) {
 	txlen := len(Txs)
 
 	//计算tx的hash值
 	leaves := make([][]byte, txlen)
 	for index, tx := range Txs {
 		leaves[index] = tx.Hash()
-		//chainlog.Info("GetTransactionDetail txhash", "index", index, "txhash", tx.Hash())
 	}
 
 	proofs := merkle.GetMerkleBranch(leaves, uint32(index))
-	chainlog.Debug("GetTransactionDetail proofs", "proofs", proofs)
+	chainlog.Debug("getTransactionDetail", "index", index, "proofs", proofs)
 
 	return proofs, nil
 }
@@ -170,15 +169,21 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	if err != nil {
 		return nil, err
 	}
-	var TransactionDetail types.TransactionDetail
-	//获取指定tx在txlist中的proof
-	proofs, err := GetTransactionProofs(block.Block.Txs, txresult.Index)
-	if err != nil {
-		return nil, err
+
+	var txDetail types.TransactionDetail
+	cfg := chain.client.GetConfig()
+
+	//获取指定tx在txlist中的proof,fork前的主链节点和平行链节点都是一层merkle树
+	if !cfg.IsFork(txresult.Height, "ForkRootHash") || chain.isParaChain {
+		proofs, _ := getTransactionProofs(block.Block.Txs, txresult.Index)
+		txDetail.Proofs = proofs
+	} else {
+		txproofs := chain.getMultiLayerProofs(txresult.Height, block.Block.Hash(cfg), block.Block.Txs, txresult.Index)
+		txDetail.TxProofs = txproofs
 	}
-	TransactionDetail.Proofs = proofs
-	setTxDetailFromTxResult(&TransactionDetail, txresult)
-	return &TransactionDetail, nil
+
+	setTxDetailFromTxResult(&txDetail, txresult)
+	return &txDetail, nil
 }
 
 func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresult *types.TxResult) {

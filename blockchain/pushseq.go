@@ -24,26 +24,27 @@ type pushNotify struct {
 
 //push seq data to out
 type pushseq struct {
-	store  *BlockStore
-	cmds   map[string]pushNotify
-	mu     sync.Mutex
-	client *http.Client
+	store        SequenceStore
+	cmds         map[string]pushNotify
+	mu           sync.Mutex
+	client       *http.Client
+	pushseqStore *PushSeqStore1
 }
 
-func newpushseq(store *BlockStore) *pushseq {
+func newpushseq(store SequenceStore, pushseqStore *PushSeqStore1) *pushseq {
 	cmds := make(map[string]pushNotify)
-	return &pushseq{store: store, cmds: cmds, client: &http.Client{}}
+	return &pushseq{store: store, cmds: cmds, client: &http.Client{}, pushseqStore: pushseqStore}
 }
 
 //初始化: 从数据库读出seq的数目
 func (p *pushseq) init() {
-	cbs, err := p.store.listSeqCB()
+	cbs, err := p.pushseqStore.ListCB()
 	if err != nil {
 		chainlog.Error("listSeqCB", "err", err)
 		return
 	}
 	for _, cb := range cbs {
-		p.addTask(cb)
+		p.AddTask(cb)
 	}
 }
 
@@ -59,8 +60,8 @@ func (p *pushseq) updateLastSeq(name string) {
 	notify.seq <- last
 }
 
-//每个name 有一个task
-func (p *pushseq) addTask(cb *types.BlockSeqCB) {
+// AddTask 每个name 有一个task, 通知新增推送
+func (p *pushseq) AddTask(cb *types.BlockSeqCB) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if notify, ok := p.cmds[cb.Name]; ok {
@@ -84,7 +85,8 @@ func (p *pushseq) addTask(cb *types.BlockSeqCB) {
 	chainlog.Debug("runTask callback", "cb", cb)
 }
 
-func (p *pushseq) updateSeq(seq int64) {
+// UpdateSeq sequence 更新通知
+func (p *pushseq) UpdateSeq(seq int64) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for _, notify := range p.cmds {
@@ -131,7 +133,7 @@ func (p *pushseq) runTask(input pushNotify) {
 					continue
 				}
 				if lastseq == -1 {
-					lastseq = p.store.getSeqCBLastNum([]byte(cb.Name))
+					lastseq = p.pushseqStore.GetLastPushSeq(cb.Name)
 				}
 				if lastseq >= maxseq {
 					p.trigeRun(run, 100*time.Millisecond)
@@ -143,19 +145,19 @@ func (p *pushseq) runTask(input pushNotify) {
 				}
 				data, updateSeq, err := p.getSeqs(cb, lastseq+1, seqCount, pushMaxSize)
 				if err != nil {
-					chainlog.Error("getDataBySeq", "err", err, "seq", lastseq+1, "maxSeq", seqCount)
+					chainlog.Error("getDataBySeq", "err", err, "seq", lastseq+1, "maxSeq", seqCount, "cbName", cb.Name)
 					p.trigeRun(run, 1000*time.Millisecond)
 					continue
 				}
 				err = p.postData(cb, data, updateSeq)
 				if err != nil {
-					chainlog.Error("postdata", "err", err)
+					chainlog.Error("postdata", "err", err, "lastseq", lastseq, "cbName", cb.Name)
 					//sleep 60s
 					p.trigeRun(run, 60000*time.Millisecond)
 					continue
 				}
 				//update seqid
-				lastseq = lastseq + int64(seqCount)
+				lastseq = updateSeq
 				p.trigeRun(run, 0)
 			}
 		}
@@ -195,7 +197,7 @@ func (p *pushseq) postData(cb *types.BlockSeqCB, postdata []byte, seq int64) (er
 		return types.ErrPushSeqPostData
 	}
 	chainlog.Debug("postData success", "cb.name", cb.Name, "updateSeq", seq)
-	return p.store.setSeqCBLastNum([]byte(cb.Name), seq)
+	return p.pushseqStore.SetLastPushSeq([]byte(cb.Name), seq)
 }
 
 func (p *pushseq) getBlockDataBySeq(seq int64) (*types.BlockSeq, int, error) {

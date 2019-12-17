@@ -10,8 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"flag"
-
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/rpc/jsonclient"
@@ -21,15 +19,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var conf = flag.String("conf", "", "cli config")
-
 //Run :
 func Run(RPCAddr, ParaName, name string) {
 	// cli 命令只打印错误级别到控制台
 	log.SetLogLevel("error")
-	flag.Parse()
-
-	configPath := *conf
+	configPath := ""
+	for i, arg := range os.Args[:] {
+		if arg == "--conf" && i+1 <= len(os.Args)-1 { // --conf chain33.toml 可以配置读入cli配置文件路径
+			configPath = os.Args[i+1]
+			break
+		}
+		if strings.HasPrefix(arg, "--conf=") { // --conf="chain33.toml"
+			configPath = strings.TrimPrefix(arg, "--conf=")
+			break
+		}
+	}
 	if configPath == "" {
 		if name == "" {
 			configPath = "chain33.toml"

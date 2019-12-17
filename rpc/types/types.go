@@ -152,6 +152,14 @@ type TransactionDetail struct {
 	Fromaddr   string             `json:"fromAddr"`
 	ActionName string             `json:"actionName"`
 	Assets     []*Asset           `json:"assets"`
+	TxProofs   []*TxProof         `json:"txProofs"`
+}
+
+// TxProof :
+type TxProof struct {
+	Proofs   []string `json:"proofs"`
+	Index    uint32   `json:"index"`
+	RootHash string   `json:"rootHash"`
 }
 
 // ReplyTxInfos reply tx infos
@@ -339,6 +347,20 @@ type TimeStatus struct {
 // ReplyBlkSeqs reply block sequences
 type ReplyBlkSeqs struct {
 	BlkSeqInfos []*ReplyBlkSeq `json:"blkseqInfos"`
+}
+
+// Sequence for callback
+type Sequence struct {
+	Hash     string `json:"Hash"`
+	Type     int64  `json:"Type"`
+	Sequence int64  `json:"sequence"`
+	Height   int64  `json:"height"`
+}
+
+// ReplyAddCallback Reply AddCallback
+type ReplyAddCallback struct {
+	Reply
+	Seqs []*Sequence `json:"seqs"`
 }
 
 // ReplyBlkSeq reply block sequece

@@ -48,10 +48,13 @@ message Blocks {
 }
 
 message BlockSeqCB {
-    string name     = 1;
-    string URL      = 2;
-    string encode   = 3;
-    bool   isHeader = 4;
+    string name          = 1;
+    string URL           = 2;
+    string encode        = 3;
+    bool   isHeader      = 4;
+    int64  lastSequence  = 5;
+    int64  lastHeight    = 6;
+    string lastBlockHash = 7;
 }
 
 message BlockSeqCBs {
@@ -165,11 +168,17 @@ message ReplyBlockHeight {
 //区块体信息
 // 	 txs : 区块上所有交易列表
 //	 receipts :区块上所有交易的收据信息列表
+// 	 mainHash : 主链区块hash，平行链使用
+//	 mainHeight :主链区块高度，平行链使用
+// 	 hash : 本链区块hash
+//	 height :本链区块高度
 message BlockBody {
     repeated Transaction txs        = 1;
     repeated ReceiptData receipts   = 2;
     bytes                mainHash   = 3;
     int64                mainHeight = 4;
+    bytes                hash       = 5;
+    int64                height     = 6;
 }
 //  区块追赶主链状态，用于判断本节点区块是否已经同步好
 message IsCaughtUp {
@@ -201,6 +210,21 @@ message BlockSequences {
     repeated BlockSequence items = 1;
 }
 
+// AddSeqCallback 推荐的sequence 信息
+message Sequence {
+    bytes Hash     = 1;
+    int64 Type     = 2;
+    int64 sequence = 3;
+    int64 height   = 4;
+}
+
+// Reply AddSeqCallback
+message ReplyAddSeqCallback {
+    bool     isOk          = 1;
+    bytes    msg           = 2;
+    repeated Sequence seqs = 3;
+}
+
 //平行链区块详细信息
 // 	 blockdetail : 区块详细信息
 //	 sequence :区块序列号
@@ -219,10 +243,16 @@ message ParaTxDetails {
 // type:平行链交易所在区块add/del操作，方便平行链回滚
 // header:平行链交易所在区块头信息
 // txDetails:本区块中指定title平行链的所有交易
+// proofs:对应平行链子roothash的存在证明路径
+// childHash:此平行链交易的子roothash
+// index:对应平行链子roothash在整个区块中的索引
 message ParaTxDetail {
     int64    type               = 1;
     Header   header             = 2;
     repeated TxDetail txDetails = 3;
+    bytes             childHash = 4;
+    uint32            index     = 5;
+    repeated bytes proofs       = 6;
 }
 
 //交易的详情：
@@ -268,4 +298,60 @@ message HeaderSeq {
 //批量推送区块的header信息
 message HeaderSeqs {
     repeated HeaderSeq seqs = 1;
+}
+
+//记录本平行链所在区块的信息以及子根hash值
+// childHash:平行链子roothash值
+// startIndex:此平行链的第一笔交易的index索引值
+// childHashIndex:此平行链子roothash在本区块中的索引值
+// txCount:此平行链交易的个数
+message HeightPara {
+    int64  height         = 1;
+    string title          = 2;
+    bytes  hash           = 3;
+    bytes  childHash      = 4;
+    int32  startIndex     = 5;
+    uint32 childHashIndex = 6;
+    int32  txCount        = 7;
+}
+
+message HeightParas {
+    repeated HeightPara items = 1;
+}
+
+//记录平行链第一笔交易的index,以及平行链的roothash
+// title:子链名字，主链的默认是main
+// startIndex:子链第一笔交易的索引
+// childHash:子链的根hash
+// txCount:子链交易的数量
+message ChildChain {
+    string title      = 1;
+    int32  startIndex = 2;
+    bytes  childHash  = 3;
+    int32  txCount    = 4;
+}
+
+//通过指定title以及height翻页获取拥有此title交易的区块高度列表
+message ReqHeightByTitle {
+    int64  height    = 1;
+    string title     = 2;
+    int32  count     = 3;
+    int32  direction = 4;
+}
+
+message ReplyHeightByTitle {
+    string   title           = 1;
+    repeated BlockInfo items = 2;
+}
+
+// title平行链交易所在主链区块的信息
+message BlockInfo {
+    int64 height = 1;
+    bytes hash   = 2;
+}
+
+//通过高度列表和title获取平行链交易
+message ReqParaTxByHeight {
+    repeated int64 items = 1;
+    string         title = 2;
 }

@@ -227,7 +227,7 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 
 	defer func() {
 		if r := recover(); r != nil {
-			blog.Error("call localexec error", "prefix", prefix, "tx.exec", tx.Execer, "info", r)
+			blog.Error("call localexec error", "prefix", prefix, "tx.exec", string(tx.Execer), "info", r)
 			err = types.ErrActionNotSupport
 			set = nil
 		}
@@ -289,7 +289,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			blog.Error("call exec error", "tx.exec", tx.Execer, "info", r)
+			blog.Error("call exec error", "tx.exec", string(tx.Execer), "info", r)
 			err = types.ErrActionNotSupport
 			receipt = nil
 		}
