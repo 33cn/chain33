@@ -231,7 +231,7 @@ func (bs *BlockStore) saveReduceLocaldbFlag() {
 func (bs *BlockStore) reduceLocaldb(start, end int64, sync bool, fn func(batch dbm.Batch, height int64),
 	fnflag func(batch dbm.Batch, height int64)) {
 	// 删除
-	const batchDataSize = 1024 * 1024 * 1
+	const batchDataSize = 1024 * 1024 * 10
 	newbatch := bs.NewBatch(sync)
 	for i := start; i <= end; i++ {
 		fn(newbatch, i)

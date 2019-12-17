@@ -7,6 +7,7 @@ package blockchain
 import (
 	"container/list"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	dbm "github.com/33cn/chain33/common/db"
@@ -44,7 +45,11 @@ func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (
 	height := chain.GetBlockHeight()
 	safetyHeight := height - MaxRollBlockNum
 	if safetyHeight/rangeHeight > flagHeight/rangeHeight { // 每隔rangeHeight区块进行一次精简
-		chain.blockStore.reduceLocaldb(flagHeight, safetyHeight, true, chain.blockStore.reduceBody,
+		sync := true
+		if atomic.LoadInt32(&chain.isbatchsync) == 0 {
+			sync = false
+		}
+		chain.blockStore.reduceLocaldb(flagHeight, safetyHeight, sync, chain.blockStore.reduceBody,
 			func(batch dbm.Batch, height int64) {
 				// 记录的时候记录下一个，中断开始执行的就是下一个
 				height++
@@ -70,7 +75,7 @@ type entry struct {
 	value interface{}
 }
 
-// NewFIFO  new fifi queue
+// NewFIFO  new fifo queue
 func NewFIFO(size int) *FIFO {
 	if size <= 0 {
 		size = 1
