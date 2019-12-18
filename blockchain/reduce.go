@@ -14,6 +14,24 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+
+// ReduceChain 精简chain
+func (chain *BlockChain) ReduceChain() {
+	height := chain.GetBlockHeight()
+	cfg := chain.client.GetConfig()
+	if cfg.IsEnable("reduceLocaldb") {
+		// 精简localdb
+		chain.blockStore.initReduceLocaldb(height)
+		chain.reducewg.Add(1)
+		go chain.ReduceLocalDB()
+	} else {
+		flagHeight, _ := chain.blockStore.loadFlag(types.ReduceLocaldbHeight) //一旦开启reduceLocaldb，后续不能关闭
+		if flagHeight != 0 {
+			panic("toml config disable reduce localdb, but database enable reduce localdb")
+		}
+	}
+}
+
 // ReduceLocalDB 实时精简localdb
 func (chain *BlockChain) ReduceLocalDB() {
 	defer chain.reducewg.Done()
@@ -25,7 +43,7 @@ func (chain *BlockChain) ReduceLocalDB() {
 	if flagHeight < 0 {
 		flagHeight = 0
 	}
-	// 1分钟检测一次是否可以进行reduce localdb
+	// 10s检测一次是否可以进行reduce localdb
 	checkTicker := time.NewTicker(10 * time.Second)
 	for {
 		select {
@@ -43,7 +61,7 @@ func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (
 		rangeHeight = 100
 	}
 	height := chain.GetBlockHeight()
-	safetyHeight := height - MaxRollBlockNum
+	safetyHeight := height - ReduceHeight
 	if safetyHeight/rangeHeight > flagHeight/rangeHeight { // 每隔rangeHeight区块进行一次精简
 		sync := true
 		if atomic.LoadInt32(&chain.isbatchsync) == 0 {

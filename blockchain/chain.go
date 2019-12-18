@@ -301,11 +301,6 @@ func (chain *BlockChain) InitBlockChain() {
 		// 定时处理futureblock
 		go chain.UpdateRoutine()
 	}
-	if cfg.IsEnable("reduceLocaldb") {
-		// 精简localdb
-		chain.reducewg.Add(1)
-		go chain.ReduceLocalDB()
-	}
 	//初始化默认DownLoadInfo
 	chain.DefaultDownLoadInfo()
 }

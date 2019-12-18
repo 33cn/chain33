@@ -183,14 +183,6 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 			}
 		}
 	}
-	if cfg.IsEnable("reduceLocaldb") {
-		blockStore.initReduceLocaldb(height)
-	} else {
-		flagHeight, _ := blockStore.loadFlag(types.ReduceLocaldbHeight) //一旦开启reduceLocaldb，这后续不能关闭
-		if flagHeight != 0 {
-			panic("toml config disable reduce localdb, but database enable reduce localdb")
-		}
-	}
 	return blockStore
 }
 
@@ -205,8 +197,7 @@ func (bs *BlockStore) initReduceLocaldb(height int64) {
 		panic(err)
 	}
 	if flag == 0 {
-		safetyHeight := MaxRollBlockNum * 3 / 2 //初始化时候执行精简高度要大于最大回滚高度
-		endHeight := height - safetyHeight
+		endHeight := height - SafetyReduceHeight //初始化时候执行精简高度要大于最大回滚高度
 		if endHeight > flagHeight {
 			chainlog.Info("start reduceLocaldb", "start height", flagHeight, "end height", endHeight)
 			bs.reduceLocaldb(flagHeight, endHeight, false, bs.reduceBodyInit,
@@ -261,16 +252,19 @@ func (bs *BlockStore) reduceBody(batch dbm.Batch, height int64) {
 	if err != nil {
 		chainlog.Debug("reduceLocaldb LoadCacheBlockBody", "height", height, "error", err)
 		body, err = bs.LoadBlockBody(height)
+		if err != nil {
+			body, err = bs.LoadBlockBodyOld(height)
+		}
 	}
 	if body != nil {
-		for i := 0; i < len(body.Receipts); i++ {
-			for j := 0; j < len(body.Receipts[i].Logs); j++ {
-				if body.Receipts[i].Logs[j] != nil {
-					body.Receipts[i].Logs[j].Log = nil
-				}
-			}
+		body.Receipts = reduceReceipts(body.Receipts)
+		kvs, err := saveBlockBodyTable(bs.db, body)
+		if err != nil {
+			panic(fmt.Sprintln("reduceBodyInit saveBlockBodyTable ", "height ", height, "err ", err))
 		}
-		batch.Set(calcHashToBlockBodyKey(body.MainHash), types.Encode(body))
+		for _, kv := range kvs {
+			batch.Set(kv.GetKey(), kv.GetValue())
+		}
 	}
 }
 
@@ -290,39 +284,76 @@ func (bs *BlockStore) LoadCacheBlockBody(height int64) (*types.BlockBody, error)
 
 // reduceBodyInit 将body中的receipt进行精简；将TxHashPerfix为key的TxResult中的receipt和tx字段进行精简
 func (bs *BlockStore) reduceBodyInit(batch dbm.Batch, height int64) {
-	cfg := bs.client.GetConfig()
 	body, err := bs.LoadBlockBody(height)
+	if err != nil {
+		body, err = bs.LoadBlockBodyOld(height)
+	}
 	if err == nil {
-		for i := 0; i < len(body.Receipts); i++ {
-			for j := 0; j < len(body.Receipts[i].Logs); j++ {
-				if body.Receipts[i].Logs[j] != nil {
-					body.Receipts[i].Logs[j].Log = nil
-				}
-			}
+		body.Receipts = reduceReceipts(body.Receipts)
+		kvs, err := saveBlockBodyTable(bs.db, body)
+		if err != nil {
+			panic(fmt.Sprintln("reduceBodyInit saveBlockBodyTable ", "height ", height, "err ", err))
 		}
-		batch.Set(calcHashToBlockBodyKey(body.MainHash), types.Encode(body))
-		for _, tx := range body.Txs {
-			hash := tx.Hash()
-			value, err := bs.db.Get(cfg.CalcTxKey(hash))
-			if err != nil {
-				panic(err)
-			}
-			txresult := &types.TxResult{}
-			err = types.Decode(value, txresult)
-			if err != nil {
-				panic(err)
-			}
-			batch.Set(cfg.CalcTxKey(hash), cfg.CalcTxKeyValue(txresult))
-			// 之前执行quickIndex时候未对无用hash做删除处理，占用空间，因此这里删除
-			if cfg.IsEnable("quickIndex") {
-				batch.Delete(hash)
-			}
+		for _, kv := range kvs {
+			batch.Set(kv.GetKey(), kv.GetValue())
+		}
+		bs.reduceAboutTx(batch, body.Txs)
+	}
+}
+
+// reduceAboutTx 对数据库中的 hash-TX进行精简
+func (bs *BlockStore) reduceAboutTx(batch dbm.Batch, Txs []*types.Transaction) {
+	cfg := bs.client.GetConfig()
+	for _, tx := range Txs {
+		hash := tx.Hash()
+		value, err := bs.db.Get(cfg.CalcTxKey(hash))
+		if err != nil {
+			panic(err)
+		}
+		txresult := &types.TxResult{}
+		err = types.Decode(value, txresult)
+		if err != nil {
+			panic(err)
+		}
+		batch.Set(cfg.CalcTxKey(hash), cfg.CalcTxKeyValue(txresult))
+		// 之前执行quickIndex时候未对无用hash做删除处理，占用空间，因此这里删除
+		if cfg.IsEnable("quickIndex") {
+			batch.Delete(hash)
 		}
 	}
 }
 
-//loadBlockBody 通过height高度获取BlockBody信息
+// reduceReceipts 精简receipts
+func reduceReceipts(Receipts []*types.ReceiptData) []*types.ReceiptData {
+	for i := 0; i < len(Receipts); i++ {
+		for j := 0; j < len(Receipts[i].Logs); j++ {
+			if Receipts[i].Logs[j] != nil {
+				Receipts[i].Logs[j].Log = nil
+			}
+		}
+	}
+	return Receipts
+}
+
+//LoadBlockBody 通过height高度获取BlockBody信息
 func (bs *BlockStore) LoadBlockBody(height int64) (*types.BlockBody, error) {
+	//首先通过height获取block hash从db中
+	hash, err := bs.GetBlockHashByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+	blockbody, err := getBodyByIndex(bs.db, "", calcHeightHashKey(height, hash), nil)
+	if blockbody == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("LoadBlockBody calcHashToBlockBodyKey", "height", height, "err", err)
+		}
+		return nil, types.ErrHashNotExist
+	}
+	return blockbody, err
+}
+
+//LoadBlockBodyOld 旧版本通过height高度获取BlockBody信息
+func (bs *BlockStore) LoadBlockBodyOld(height int64) (*types.BlockBody, error) {
 	//首先通过height获取block hash从db中
 	hash, err := bs.GetBlockHashByHeight(height)
 	if err != nil {
@@ -332,7 +363,7 @@ func (bs *BlockStore) LoadBlockBody(height int64) (*types.BlockBody, error) {
 	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
 	if body == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("LoadBlockByHash calcHashToBlockBodyKey ", "height", height, "err", err)
+			storeLog.Error("LoadBlockBodyOld calcHashToBlockBodyKey ", "height", height, "err", err)
 		}
 		return nil, types.ErrHashNotExist
 	}
@@ -659,12 +690,13 @@ func (bs *BlockStore) loadBlockByHash(hash []byte) (*types.BlockDetail, int, err
 
 //SaveBlock 批量保存blocks信息到db数据库中,并返回最新的sequence值
 func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDetail, sequence int64) (int64, error) {
+	cfg := bs.client.GetConfig()
 	var lastSequence int64 = -1
 	height := blockdetail.Block.Height
 	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
 		storeLog.Error("SaveBlock Receipts is nil ", "height", height)
 	}
-	hash := blockdetail.Block.Hash(bs.client.GetConfig())
+	hash := blockdetail.Block.Hash(cfg)
 	//存储区块body和header信息
 	err := bs.saveBlockForTable(storeBatch, blockdetail, true)
 	if err != nil {
@@ -690,7 +722,31 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 		}
 	}
 	storeLog.Debug("SaveBlock success", "blockheight", height, "hash", common.ToHex(hash))
+
+	// 精简localdb时候需要缓存blockbody
+	if cfg.IsEnable("reduceLocaldb") {
+		blockbody := bs.BlockdetailToBlockBody(blockdetail)
+		bs.AddCacheBlockBody(height, types.Encode(blockbody))
+	}
 	return lastSequence, nil
+}
+
+func (bs *BlockStore) BlockdetailToBlockBody(blockdetail *types.BlockDetail) *types.BlockBody {
+	cfg := bs.client.GetConfig()
+	height := blockdetail.Block.Height
+	hash := blockdetail.Block.Hash(cfg)
+	var blockbody types.BlockBody
+	blockbody.Txs = blockdetail.Block.Txs
+	blockbody.Receipts = blockdetail.Receipts
+	blockbody.MainHash = hash
+	blockbody.MainHeight = height
+	blockbody.Hash = hash
+	blockbody.Height = height
+	if bs.isParaChain {
+		blockbody.MainHash = blockdetail.Block.MainHash
+		blockbody.MainHeight = blockdetail.Block.MainHeight
+	}
+	return &blockbody
 }
 
 //DelBlock 删除block信息从db数据库中
@@ -1396,29 +1452,14 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 	hash := blockdetail.Block.Hash(cfg)
 
 	// Save blockbody
-	var blockbody types.BlockBody
-	blockbody.Txs = blockdetail.Block.Txs
-	blockbody.Receipts = blockdetail.Receipts
-	blockbody.MainHash = hash
-	blockbody.MainHeight = height
-	blockbody.Hash = hash
-	blockbody.Height = height
-	if bs.isParaChain {
-		blockbody.MainHash = blockdetail.Block.MainHash
-		blockbody.MainHeight = blockdetail.Block.MainHeight
-	}
-	bodykvs, err := saveBlockBodyTable(bs.db, &blockbody)
+	blockbody := bs.BlockdetailToBlockBody(blockdetail)
+	bodykvs, err := saveBlockBodyTable(bs.db, blockbody)
 	if err != nil {
 		storeLog.Error("SaveBlockForTable:saveBlockBodyTable", "height", height, "hash", common.ToHex(hash), "err", err)
 		return err
 	}
 	for _, kv := range bodykvs {
 		storeBatch.Set(kv.GetKey(), kv.GetValue())
-	}
-
-	// 精简localdb时候需要缓存blockbody
-	if cfg.IsEnable("reduceLocaldb") {
-		bs.AddCacheBlockBody(height, body)
 	}
 
 	// Save blockheader

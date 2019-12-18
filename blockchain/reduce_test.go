@@ -21,12 +21,12 @@ func TestTryReduceLocalDB(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), 22)
+	assert.Equal(t, len(kvs), 23)
 	defer mock33.Close()
 
-	blockchain.MaxRollBlockNum = 0
+	blockchain.ReduceHeight = 0
 	defer func() {
-		blockchain.MaxRollBlockNum = 10000
+		blockchain.ReduceHeight = 10000
 	}()
 
 	var flagHeight int64

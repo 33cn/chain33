@@ -161,6 +161,10 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 		if index%1000 == 0 {
 			chainlog.Info("reindex -> ", "index", index, "lastindex", lastindex, "isSeq", isSeq)
 		}
+		// 精简localdb
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && lastindex - SafetyReduceHeight > index {
+			blockdetail.Receipts = reduceReceipts(blockdetail.Receipts)
+		}
 		//使用table格式保存header和body以及paratx标识
 		err = chain.blockStore.saveBlockForTable(newbatch, blockdetail, true)
 		if err != nil {
@@ -172,6 +176,12 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 		newbatch.Delete(calcHashToBlockHeaderKey(hash))
 		newbatch.Delete(calcHashToBlockBodyKey(hash))
 		newbatch.Delete(calcHeightToBlockHeaderKey(height))
+
+		// 精简localdb
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && lastindex - SafetyReduceHeight > index {
+			chain.blockStore.reduceAboutTx(newbatch, blockdetail.Block.GetTxs())
+			newbatch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
+		}
 	} else {
 		parakvs, _ := delParaTxTable(chain.blockStore.db, height)
 		for _, kv := range parakvs {
