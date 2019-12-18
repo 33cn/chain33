@@ -1449,5 +1449,18 @@ func TestProcessDelBlock(t *testing.T) {
 		hash := merkle.CalcMerkleRoot(cfg, maintx.GetHeader().GetHeight(), txs)
 		assert.Equal(t, hash, roothash)
 	}
+
+	//从数据库中删除此block
+	header := maintxs.GetItems()[0].GetHeader()
+	blockchain.RemoveExecFailBlock(header.GetHeight(), header.GetHash())
+	//通过hash获取block失败
+	var hashes types.ReqHashes
+	hashes.Hashes = append(hashes.Hashes, header.GetHash())
+	blockDetails, _ := blockchain.GetBlockByHashes(hashes.Hashes)
+	for _, item := range blockDetails.Items {
+		if item != nil {
+			t.Error(item)
+		}
+	}
 	chainlog.Info("TestProcessDelBlock end --------------------")
 }

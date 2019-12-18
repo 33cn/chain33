@@ -1435,3 +1435,38 @@ func (bs *BlockStore) loadBlockBySequenceOld(Sequence int64) (*types.BlockDetail
 	}
 	return block, blockSeq.GetType(), nil
 }
+
+//removeBlockForTable 将block的header和body信息从数据库中删除
+func (bs *BlockStore) removeBlockForTable(storeBatch dbm.Batch, height int64, hash []byte) {
+	//删除body
+	bodykvs, _ := delBlockBodyTable(bs.db, height, hash)
+	for _, kv := range bodykvs {
+		if len(kv.GetKey()) != 0 && kv.GetValue() == nil {
+			storeBatch.Delete(kv.GetKey())
+		}
+	}
+
+	// 删除header
+	headerkvs, _ := delHeaderTable(bs.db, height, hash)
+	for _, kv := range headerkvs {
+		if len(kv.GetKey()) != 0 && kv.GetValue() == nil {
+			storeBatch.Delete(kv.GetKey())
+		}
+	}
+}
+
+//removeTdByBlockHash  删除block hash对应的总难度到db中
+func (bs *BlockStore) removeTdByBlockHash(storeBatch dbm.Batch, hash []byte) {
+	storeBatch.Delete(calcHashToTdKey(hash))
+}
+
+//removeBlock   删除区块信息
+func (bs *BlockStore) removeBlock(height int64, hash []byte) {
+	newbatch := bs.db.NewBatch(true)
+	bs.removeBlockForTable(newbatch, height, hash)
+	bs.removeTdByBlockHash(newbatch, hash)
+	err := newbatch.Write()
+	if err != nil {
+		chainlog.Error("RemoveBlock newbatch.Write", "height", height, "hash", common.ToHex(hash), "err", err)
+	}
+}
