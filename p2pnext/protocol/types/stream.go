@@ -14,7 +14,7 @@ import (
 var (
 
 	log                  = log15.New("module", "p2p.protocol.types")
-	streamHandlerTypeMap map[string]reflect.Type
+	streamHandlerTypeMap = make(map[string]reflect.Type)
 )
 
 
@@ -33,7 +33,11 @@ func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 	if _, dup := streamHandlerTypeMap[typeID]; dup {
 		panic("addStreamHandler, handler is nil, typeID=" + typeID)
 	}
-	streamHandlerTypeMap[typeID] = reflect.TypeOf(handler)
+	handlerType := reflect.TypeOf(handler)
+	if handlerType.Kind() == reflect.Ptr {
+		handlerType = handlerType.Elem()
+	}
+	streamHandlerTypeMap[typeID] = handlerType
 }
 
 type StreamResponse struct{

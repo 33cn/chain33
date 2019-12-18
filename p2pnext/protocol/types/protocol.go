@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	protocolTypeMap map[string]reflect.Type
+	protocolTypeMap = make(map[string]reflect.Type)
 )
 
 
@@ -26,7 +26,11 @@ func RegisterProtocolType(typeName string, proto IProtocol) {
 	if _, dup := protocolTypeMap[typeName]; dup {
 		panic("RegisterProtocolType, protocol is nil, msgId="+typeName)
 	}
-	protocolTypeMap[typeName] = reflect.TypeOf(proto)
+	protoType := reflect.TypeOf(proto)
+	if protoType.Kind() == reflect.Ptr {
+	   protoType = protoType.Elem()
+	}
+	protocolTypeMap[typeName] = protoType
 }
 
 func init() {
@@ -59,19 +63,32 @@ func (p *BaseProtocol)InitProtocol(data *GlobalData) {
 
 func (p *ProtocolManager)Init(data *GlobalData) {
 
+	p.protoMap = make(map[string]IProtocol)
 	//  每个P2P实例都重新分配相关的protocol结构
 	for id, protocolType := range protocolTypeMap {
-		protocol := reflect.New(protocolType).Interface().(IProtocol)
+		protoVal := reflect.New(protocolType)
+		baseValue := protoVal.Elem().FieldByName("BaseProtocol")
+		//指针形式继承,需要初始化BaseProtocol结构
+		if baseValue != reflect.ValueOf(nil) && baseValue.Kind() == reflect.Ptr {
+			baseValue.Set(reflect.ValueOf(&BaseProtocol{}))
+		}
+		protocol := protoVal.Interface().(IProtocol)
 		protocol.InitProtocol(data)
 		p.protoMap[id] = protocol
 	}
 
 	//  每个P2P实例都重新分配相关的handler结构
 	for id, handlerType := range streamHandlerTypeMap {
-		newHandler := reflect.New(handlerType).Interface().(StreamHandler)
+		handlerValue := reflect.New(handlerType)
+		baseValue := handlerValue.Elem().FieldByName("BaseStreamHandler")
+		//指针形式继承,需要初始化BaseStreamHandler结构
+		if baseValue != reflect.ValueOf(nil) && baseValue.Kind() == reflect.Ptr {
+			baseValue.Set(reflect.ValueOf(&BaseStreamHandler{}))
+		}
+		newHandler := handlerValue.Interface().(StreamHandler)
 		protoID, msgID := decodeHandlerTypeID(id)
 		newHandler.SetProtocol(p.protoMap[protoID])
-		data.Host.SetStreamHandler(core.ProtocolID(msgID), BaseStreamHandler{child:newHandler}.HandleStream)
+		data.Host.SetStreamHandler(core.ProtocolID(msgID), (&BaseStreamHandler{child:newHandler}).HandleStream)
 	}
 
 }

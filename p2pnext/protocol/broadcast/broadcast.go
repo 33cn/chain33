@@ -29,7 +29,7 @@ func init() {
 
 //
 type broadCastProtocol struct {
-	*prototypes.BaseProtocol
+	prototypes.BaseProtocol
 	txFilter        *common.Filterdata
 	blockFilter     *common.Filterdata
 	txSendFilter    *common.Filterdata
@@ -65,7 +65,7 @@ func (p *broadCastProtocol)InitProtocol(data *prototypes.GlobalData)  {
 
 
 type broadCastHandler struct {
-	*prototypes.BaseStreamHandler
+	prototypes.BaseStreamHandler
 }
 
 func (h *broadCastHandler)Handle(req []byte, stream core.Stream) (*prototypes.StreamResponse, error) {
