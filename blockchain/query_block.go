@@ -254,17 +254,26 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	if b != nil {
 		blockdetail = b
 	}
+	height := blockdetail.Block.GetHeight()
+	hash := blockdetail.Block.Hash(chain.client.GetConfig())
+
 	//syncTask 运行时设置对应的blockdone
 	if chain.syncTask.InProgress() {
-		chain.syncTask.Done(blockdetail.Block.GetHeight())
+		chain.syncTask.Done(height)
 	}
 	//downLoadTask 运行时设置对应的blockdone
 	if chain.downLoadTask.InProgress() {
-		chain.downLoadTask.Done(blockdetail.Block.GetHeight())
+		chain.downLoadTask.Done(height)
 	}
 	//此处只更新广播block的高度
 	if broadcast {
-		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
+		chain.UpdateRcvCastBlkHeight(height)
+		if err == types.ErrCheckStateHash && pid != "self" {
+			//删除由于状态hash不一致导致执行失败的区块在本地保存的信息
+			chain.RemoveExecFailBlock(height, hash)
+			//然后再次从pid节点获取本区块
+			go chain.ProcDownLoadBlocks(height, height, []string{pid})
+		}
 	}
 	if pid == "self" {
 		if err != nil {
@@ -274,7 +283,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 			return nil, types.ErrExecBlockNil
 		}
 	}
-	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash(chain.client.GetConfig())), "err", err)
+	chainlog.Debug("ProcAddBlockMsg result:", "height", height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(hash), "err", err)
 	return blockdetail, err
 }
 
@@ -291,4 +300,10 @@ func (chain *BlockChain) getBlockHashes(startheight, endheight int64) types.ReqH
 		}
 	}
 	return reqHashes
+}
+
+//删除执行失败的区块存储在数据库中的信息
+func (chain *BlockChain) RemoveExecFailBlock(height int64, hash []byte) {
+	chain.index.DelNode(hash)
+	chain.blockStore.removeBlock(height, hash)
 }
