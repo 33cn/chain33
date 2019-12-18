@@ -186,196 +186,6 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 	return blockStore
 }
 
-// 初始化启动时候执行
-func (bs *BlockStore) initReduceLocaldb(height int64) {
-	flag, err := bs.loadFlag(types.FlagReduceLocaldb)
-	if err != nil {
-		panic(err)
-	}
-	flagHeight, err := bs.loadFlag(types.ReduceLocaldbHeight)
-	if err != nil {
-		panic(err)
-	}
-	if flag == 0 {
-		endHeight := height - SafetyReduceHeight //初始化时候执行精简高度要大于最大回滚高度
-		if endHeight > flagHeight {
-			chainlog.Info("start reduceLocaldb", "start height", flagHeight, "end height", endHeight)
-			bs.reduceLocaldb(flagHeight, endHeight, false, bs.reduceBodyInit,
-				func(batch dbm.Batch, height int64) {
-					height++
-					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
-				})
-			// CompactRange执行将会阻塞仅仅做一次压缩
-			chainlog.Info("reduceLocaldb start compact db")
-			err = bs.db.CompactRange(nil, nil)
-			chainlog.Info("reduceLocaldb end compact db", "error", err)
-		}
-		bs.saveReduceLocaldbFlag()
-	}
-}
-
-func (bs *BlockStore) saveReduceLocaldbFlag() {
-	kv := types.FlagKV(types.FlagReduceLocaldb, 1)
-	err := bs.db.Set(kv.Key, kv.Value)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (bs *BlockStore) reduceLocaldb(start, end int64, sync bool, fn func(batch dbm.Batch, height int64),
-	fnflag func(batch dbm.Batch, height int64)) {
-	// 删除
-	const batchDataSize = 1024 * 1024 * 10
-	newbatch := bs.NewBatch(sync)
-	for i := start; i <= end; i++ {
-		fn(newbatch, i)
-		if newbatch.ValueSize() > batchDataSize {
-			// 记录当前高度
-			fnflag(newbatch, i)
-			dbm.MustWrite(newbatch)
-			newbatch.Reset()
-			chainlog.Info("reduceLocaldb", "height", i)
-		}
-	}
-	if newbatch.ValueSize() > 0 {
-		// 记录当前高度
-		fnflag(newbatch, end)
-		dbm.MustWrite(newbatch)
-		newbatch.Reset()
-		chainlog.Info("reduceLocaldb end", "height", end)
-	}
-}
-
-// reduceBody 将body中的receipt进行精简；
-func (bs *BlockStore) reduceBody(batch dbm.Batch, height int64) {
-	body, err := bs.LoadCacheBlockBody(height)
-	if err != nil {
-		chainlog.Debug("reduceLocaldb LoadCacheBlockBody", "height", height, "error", err)
-		body, err = bs.LoadBlockBody(height)
-		if err != nil {
-			body, err = bs.LoadBlockBodyOld(height)
-		}
-	}
-	if body != nil {
-		body.Receipts = reduceReceipts(body.Receipts)
-		kvs, err := saveBlockBodyTable(bs.db, body)
-		if err != nil {
-			panic(fmt.Sprintln("reduceBodyInit saveBlockBodyTable ", "height ", height, "err ", err))
-		}
-		for _, kv := range kvs {
-			batch.Set(kv.GetKey(), kv.GetValue())
-		}
-	}
-}
-
-// LoadCacheBlockBody 从缓存中载入body
-func (bs *BlockStore) LoadCacheBlockBody(height int64) (*types.BlockBody, error) {
-	value := bs.GetCacheBlockBody(height)
-	if value == nil {
-		return nil, types.ErrNotFound
-	}
-	var body types.BlockBody
-	err := types.Decode(value, &body)
-	if err != nil {
-		return nil, err
-	}
-	return &body, nil
-}
-
-// reduceBodyInit 将body中的receipt进行精简；将TxHashPerfix为key的TxResult中的receipt和tx字段进行精简
-func (bs *BlockStore) reduceBodyInit(batch dbm.Batch, height int64) {
-	body, err := bs.LoadBlockBody(height)
-	if err != nil {
-		body, err = bs.LoadBlockBodyOld(height)
-	}
-	if err == nil {
-		body.Receipts = reduceReceipts(body.Receipts)
-		kvs, err := saveBlockBodyTable(bs.db, body)
-		if err != nil {
-			panic(fmt.Sprintln("reduceBodyInit saveBlockBodyTable ", "height ", height, "err ", err))
-		}
-		for _, kv := range kvs {
-			batch.Set(kv.GetKey(), kv.GetValue())
-		}
-		bs.reduceAboutTx(batch, body.Txs)
-	}
-}
-
-// reduceAboutTx 对数据库中的 hash-TX进行精简
-func (bs *BlockStore) reduceAboutTx(batch dbm.Batch, Txs []*types.Transaction) {
-	cfg := bs.client.GetConfig()
-	for _, tx := range Txs {
-		hash := tx.Hash()
-		value, err := bs.db.Get(cfg.CalcTxKey(hash))
-		if err != nil {
-			panic(err)
-		}
-		txresult := &types.TxResult{}
-		err = types.Decode(value, txresult)
-		if err != nil {
-			panic(err)
-		}
-		batch.Set(cfg.CalcTxKey(hash), cfg.CalcTxKeyValue(txresult))
-		// 之前执行quickIndex时候未对无用hash做删除处理，占用空间，因此这里删除
-		if cfg.IsEnable("quickIndex") {
-			batch.Delete(hash)
-		}
-	}
-}
-
-// reduceReceipts 精简receipts
-func reduceReceipts(Receipts []*types.ReceiptData) []*types.ReceiptData {
-	for i := 0; i < len(Receipts); i++ {
-		for j := 0; j < len(Receipts[i].Logs); j++ {
-			if Receipts[i].Logs[j] != nil {
-				Receipts[i].Logs[j].Log = nil
-			}
-		}
-	}
-	return Receipts
-}
-
-//LoadBlockBody 通过height高度获取BlockBody信息
-func (bs *BlockStore) LoadBlockBody(height int64) (*types.BlockBody, error) {
-	//首先通过height获取block hash从db中
-	hash, err := bs.GetBlockHashByHeight(height)
-	if err != nil {
-		return nil, err
-	}
-	blockbody, err := getBodyByIndex(bs.db, "", calcHeightHashKey(height, hash), nil)
-	if blockbody == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("LoadBlockBody calcHashToBlockBodyKey", "height", height, "err", err)
-		}
-		return nil, types.ErrHashNotExist
-	}
-	return blockbody, err
-}
-
-//LoadBlockBodyOld 旧版本通过height高度获取BlockBody信息
-func (bs *BlockStore) LoadBlockBodyOld(height int64) (*types.BlockBody, error) {
-	//首先通过height获取block hash从db中
-	hash, err := bs.GetBlockHashByHeight(height)
-	if err != nil {
-		return nil, err
-	}
-	//通过hash获取blockbody
-	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
-	if body == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("LoadBlockBodyOld calcHashToBlockBodyKey ", "height", height, "err", err)
-		}
-		return nil, types.ErrHashNotExist
-	}
-	var blockbody types.BlockBody
-	err = proto.Unmarshal(body, &blockbody)
-	if err != nil {
-		storeLog.Error("LoadBlockByHash", "err", err)
-		return nil, err
-	}
-	return &blockbody, nil
-}
-
 //步骤:
 //检查数据库是否已经进行quickIndex改造
 //如果没有，那么进行下面的步骤
@@ -1660,6 +1470,69 @@ func (bs *BlockStore) loadBlockBySequenceOld(Sequence int64) (*types.BlockDetail
 		}
 	}
 	return block, blockSeq.GetType(), nil
+}
+
+func (bs *BlockStore) saveReduceLocaldbFlag() {
+	kv := types.FlagKV(types.FlagReduceLocaldb, 1)
+	err := bs.db.Set(kv.Key, kv.Value)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// LoadCacheBlockBody 从缓存中载入body
+func (bs *BlockStore) LoadCacheBlockBody(height int64) (*types.BlockBody, error) {
+	value := bs.GetCacheBlockBody(height)
+	if value == nil {
+		return nil, types.ErrNotFound
+	}
+	var body types.BlockBody
+	err := types.Decode(value, &body)
+	if err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+//LoadBlockBody 通过height高度获取BlockBody信息
+func (bs *BlockStore) LoadBlockBody(height int64) (*types.BlockBody, error) {
+	//首先通过height获取block hash从db中
+	hash, err := bs.GetBlockHashByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+	blockbody, err := getBodyByIndex(bs.db, "", calcHeightHashKey(height, hash), nil)
+	if blockbody == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("LoadBlockBody calcHashToBlockBodyKey", "height", height, "err", err)
+		}
+		return nil, types.ErrHashNotExist
+	}
+	return blockbody, err
+}
+
+//LoadBlockBodyOld 旧版本通过height高度获取BlockBody信息
+func (bs *BlockStore) LoadBlockBodyOld(height int64) (*types.BlockBody, error) {
+	//首先通过height获取block hash从db中
+	hash, err := bs.GetBlockHashByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+	//通过hash获取blockbody
+	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
+	if body == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("LoadBlockBodyOld calcHashToBlockBodyKey ", "height", height, "err", err)
+		}
+		return nil, types.ErrHashNotExist
+	}
+	var blockbody types.BlockBody
+	err = proto.Unmarshal(body, &blockbody)
+	if err != nil {
+		storeLog.Error("LoadBlockByHash", "err", err)
+		return nil, err
+	}
+	return &blockbody, nil
 }
 
 func (bs *BlockStore) AddCacheBlockBody(height int64, value []byte) {

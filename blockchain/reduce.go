@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"container/list"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,7 +22,7 @@ func (chain *BlockChain) ReduceChain() {
 	cfg := chain.client.GetConfig()
 	if cfg.IsEnable("reduceLocaldb") {
 		// 精简localdb
-		chain.blockStore.initReduceLocaldb(height)
+		chain.InitReduceLocalDB(height)
 		chain.reducewg.Add(1)
 		go chain.ReduceLocalDB()
 	} else {
@@ -30,6 +31,112 @@ func (chain *BlockChain) ReduceChain() {
 			panic("toml config disable reduce localdb, but database enable reduce localdb")
 		}
 	}
+}
+
+// InitReduceLocalDB 初始化启动时候执行
+func (chain *BlockChain) InitReduceLocalDB(height int64) {
+	flag, err := chain.blockStore.loadFlag(types.FlagReduceLocaldb)
+	if err != nil {
+		panic(err)
+	}
+	flagHeight, err := chain.blockStore.loadFlag(types.ReduceLocaldbHeight)
+	if err != nil {
+		panic(err)
+	}
+	if flag == 0 {
+		endHeight := height - SafetyReduceHeight //初始化时候执行精简高度要大于最大回滚高度
+		if endHeight > flagHeight {
+			chainlog.Info("start reduceLocaldb", "start height", flagHeight, "end height", endHeight)
+			chain.walkOver(flagHeight, endHeight, false, chain.reduceBodyInit,
+				func(batch dbm.Batch, height int64) {
+					height++
+					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
+				})
+			// CompactRange执行将会阻塞仅仅做一次压缩
+			chainlog.Info("reduceLocaldb start compact db")
+			err = chain.blockStore.db.CompactRange(nil, nil)
+			chainlog.Info("reduceLocaldb end compact db", "error", err)
+		}
+		chain.blockStore.saveReduceLocaldbFlag()
+	}
+}
+
+// walkOver walk over
+func (chain *BlockChain) walkOver(start, end int64, sync bool, fn func(batch dbm.Batch, height int64),
+	fnflag func(batch dbm.Batch, height int64)) {
+	// 删除
+	const batchDataSize = 1024 * 1024 * 10
+	newbatch := chain.blockStore.NewBatch(sync)
+	for i := start; i <= end; i++ {
+		fn(newbatch, i)
+		if newbatch.ValueSize() > batchDataSize {
+			// 记录当前高度
+			fnflag(newbatch, i)
+			dbm.MustWrite(newbatch)
+			newbatch.Reset()
+			chainlog.Info("reduceLocaldb", "height", i)
+		}
+	}
+	if newbatch.ValueSize() > 0 {
+		// 记录当前高度
+		fnflag(newbatch, end)
+		dbm.MustWrite(newbatch)
+		newbatch.Reset()
+		chainlog.Info("reduceLocaldb end", "height", end)
+	}
+}
+
+// reduceBodyInit 将body中的receipt进行精简；将TxHashPerfix为key的TxResult中的receipt和tx字段进行精简
+func (chain *BlockChain) reduceBodyInit(batch dbm.Batch, height int64) {
+	body, err := chain.blockStore.LoadBlockBody(height)
+	if err != nil {
+		body, err = chain.blockStore.LoadBlockBodyOld(height)
+	}
+	if err == nil {
+		body.Receipts = reduceReceipts(body.Receipts)
+		kvs, err := saveBlockBodyTable(chain.blockStore.db, body)
+		if err != nil {
+			panic(fmt.Sprintln("reduceBodyInit saveBlockBodyTable ", "height ", height, "err ", err))
+		}
+		for _, kv := range kvs {
+			batch.Set(kv.GetKey(), kv.GetValue())
+		}
+		chain.reduceAboutTx(batch, body.Txs)
+	}
+}
+
+// reduceAboutTx 对数据库中的 hash-TX进行精简
+func (chain *BlockChain) reduceAboutTx(batch dbm.Batch, Txs []*types.Transaction) {
+	cfg := chain.client.GetConfig()
+	for _, tx := range Txs {
+		hash := tx.Hash()
+		value, err := chain.blockStore.db.Get(cfg.CalcTxKey(hash))
+		if err != nil {
+			panic(err)
+		}
+		txresult := &types.TxResult{}
+		err = types.Decode(value, txresult)
+		if err != nil {
+			panic(err)
+		}
+		batch.Set(cfg.CalcTxKey(hash), cfg.CalcTxKeyValue(txresult))
+		// 之前执行quickIndex时候未对无用hash做删除处理，占用空间，因此这里删除
+		if cfg.IsEnable("quickIndex") {
+			batch.Delete(hash)
+		}
+	}
+}
+
+// reduceReceipts 精简receipts
+func reduceReceipts(Receipts []*types.ReceiptData) []*types.ReceiptData {
+	for i := 0; i < len(Receipts); i++ {
+		for j := 0; j < len(Receipts[i].Logs); j++ {
+			if Receipts[i].Logs[j] != nil {
+				Receipts[i].Logs[j].Log = nil
+			}
+		}
+	}
+	return Receipts
 }
 
 // ReduceLocalDB 实时精简localdb
@@ -67,7 +174,7 @@ func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (
 		if atomic.LoadInt32(&chain.isbatchsync) == 0 {
 			sync = false
 		}
-		chain.blockStore.reduceLocaldb(flagHeight, safetyHeight, sync, chain.blockStore.reduceBody,
+		chain.walkOver(flagHeight, safetyHeight, sync, chain.reduceBody,
 			func(batch dbm.Batch, height int64) {
 				// 记录的时候记录下一个，中断开始执行的就是下一个
 				height++
@@ -78,6 +185,28 @@ func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (
 		return flagHeight
 	}
 	return flagHeight
+}
+
+// reduceBody 将body中的receipt进行精简；
+func (chain *BlockChain) reduceBody(batch dbm.Batch, height int64) {
+	body, err := chain.blockStore.LoadCacheBlockBody(height)
+	if err != nil {
+		chainlog.Debug("reduceLocaldb LoadCacheBlockBody", "height", height, "error", err)
+		body, err = chain.blockStore.LoadBlockBody(height)
+		if err != nil {
+			body, err = chain.blockStore.LoadBlockBodyOld(height)
+		}
+	}
+	if body != nil {
+		body.Receipts = reduceReceipts(body.Receipts)
+		kvs, err := saveBlockBodyTable(chain.blockStore.db, body)
+		if err != nil {
+			panic(fmt.Sprintln("reduceBodyInit saveBlockBodyTable ", "height ", height, "err ", err))
+		}
+		for _, kv := range kvs {
+			batch.Set(kv.GetKey(), kv.GetValue())
+		}
+	}
 }
 
 // FIFO fifo queue
