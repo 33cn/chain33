@@ -273,6 +273,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 			chain.RemoveExecFailBlock(height, hash)
 			//然后再次从pid节点获取本区块
 			go chain.ProcDownLoadBlocks(height, height, []string{pid})
+			chainlog.Info("ProcAddBlockMsg:ProcDownLoadBlocks", "height", height, "pid", pid)
 		}
 	}
 	if pid == "self" {
