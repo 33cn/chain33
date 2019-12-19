@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 )
 
 var (
-	protocolTypeMap map[string]reflect.Type
+	protocolTypeMap = make(map[string]reflect.Type)
 )
 
 type IProtocol interface {
@@ -51,14 +52,19 @@ type BaseProtocol struct {
 }
 
 func (p *BaseProtocol) InitProtocol(data *GlobalData) {
+	if p.GlobalData == nil {
+		p.GlobalData = new(GlobalData)
+	}
 	p.GlobalData = data
 }
 
 func (p *ProtocolManager) Init(data *GlobalData) {
-
+	p.protoMap = make(map[string]IProtocol)
 	//每个P2P实例都重新分配相关的protocol结构
 	for id, protocolType := range protocolTypeMap {
-		protocol := reflect.New(protocolType).Interface().(IProtocol)
+		fmt.Println("protoTy id", id)
+
+		protocol := reflect.New(protocolType.Elem()).Interface().(IProtocol)
 		protocol.InitProtocol(data)
 		p.protoMap[id] = protocol
 
@@ -66,9 +72,12 @@ func (p *ProtocolManager) Init(data *GlobalData) {
 
 	//每个P2P实例都重新分配相关的handler结构
 	for id, handlerType := range streamHandlerTypeMap {
-		newHandler := reflect.New(handlerType).Interface().(StreamHandler)
+		fmt.Println("stream msg id", id)
+		newHandler := reflect.New(handlerType.Elem()).Interface().(StreamHandler)
 		protoID, msgID := decodeHandlerTypeID(id)
-		newHandler.SetProtocol(p.protoMap[protoID])
+		protol := p.protoMap[protoID]
+		newHandler.SetProtocol(protol)
+
 		var baseHander BaseStreamHandler
 		baseHander.child = newHandler
 		baseHander.SetProtocol(p.protoMap[protoID])

@@ -21,7 +21,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	//"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
@@ -89,7 +89,6 @@ func (p *P2P) managePeers() {
 		if err != nil {
 			panic(err)
 		}
-
 		err = p.host.Connect(context.Background(), *peerinfo)
 		if err != nil {
 			logger.Error("Host Connect", "err", err)
@@ -98,7 +97,10 @@ func (p *P2P) managePeers() {
 
 		logger.Info("managePeers", "pid:", peerinfo.ID, "addr", peerinfo.Addrs)
 		_, err = p.newStream(context.Background(), *peerinfo)
-		logger.Error(err.Error())
+		if err != nil {
+			logger.Error("newStream", err.Error(), "")
+
+		}
 
 	}
 	peerChan, err := p.discovery.FindPeers(context.Background(), p.host)
@@ -188,8 +190,9 @@ func (p *P2P) processP2P() {
 func (p *P2P) newStream(ctx context.Context, pr peer.AddrInfo) (core.Stream, error) {
 
 	//可以后续添加 block.ID,mempool.ID,header.ID
-	p.host.Peerstore().Addrs(pr.ID)
-	stream, err := p.host.NewStream(ctx, pr.ID)
+	p.host.Peerstore().AddAddrs(pr.ID, pr.Addrs, peerstore.TempAddrTTL)
+	logger.Info("newStream", "MsgIds size", len(protocol.MsgIDs), "msgIds", protocol.MsgIDs)
+	stream, err := p.host.NewStream(ctx, pr.ID, protocol.MsgIDs...)
 	if err != nil {
 		return nil, err
 	}

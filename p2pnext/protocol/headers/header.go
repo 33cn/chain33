@@ -20,14 +20,15 @@ var (
 
 func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &HeaderInfoProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, headerInfoReq, &HeaderInfoHander{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, headerInfoResp, &HeaderInfoHander{})
+	var hander = new(HeaderInfoHander)
+	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, hander)
+	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoResp, hander)
 }
 
 const (
 	protoTypeID    = "HeadersProtocolType"
-	headerInfoReq  = "/chain33/headerinfoReq/1.0.0"
-	headerInfoResp = "/chain33/headerinfoResp/1.0.0"
+	HeaderInfoReq  = "/chain33/headerinfoReq/1.0.0"
+	HeaderInfoResp = "/chain33/headerinfoResp/1.0.0"
 )
 
 //type Istream
@@ -37,10 +38,10 @@ type HeaderInfoProtol struct {
 }
 
 func (h *HeaderInfoProtol) InitProtocol(data *prototypes.GlobalData) {
+	h.BaseProtocol = new(prototypes.BaseProtocol)
+	h.requests = make(map[string]*types.MessageHeaderReq)
 	h.GlobalData = data
-	h.ChainCfg = data.ChainCfg
-	//注册事件处理函数
-	h.QueueClient = data.QueueClient
+	h.requests = make(map[string]*types.MessageHeaderReq)
 	prototypes.RegisterEventHandler(types.EventGetHeaders, h.handleEvent)
 }
 
@@ -146,7 +147,7 @@ func (d *HeaderInfoHander) Handle(req []byte, stream core.Stream) {
 	protocol := d.GetProtocol().(*HeaderInfoProtol)
 
 	//解析处理
-	if stream.Protocol() == headerInfoReq {
+	if stream.Protocol() == HeaderInfoReq {
 		var data types.MessageHeaderReq
 		err := types.Decode(req, &data)
 		if err != nil {
@@ -184,4 +185,8 @@ func (h *HeaderInfoProtol) CheckMessage(id string) bool {
 
 	log.Error("Failed to locate request data boject for response")
 	return false
+}
+func (h *HeaderInfoHander) SetProtocol(protocol prototypes.IProtocol) {
+	h.BaseStreamHandler = new(prototypes.BaseStreamHandler)
+	h.Protocol = protocol
 }

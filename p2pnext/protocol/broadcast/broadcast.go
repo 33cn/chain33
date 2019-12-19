@@ -42,6 +42,7 @@ type broadCastProtocol struct {
 
 //New
 func (p *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
+	p.BaseProtocol = new(prototypes.BaseProtocol)
 
 	p.GlobalData = data
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
@@ -85,6 +86,10 @@ func (h *broadCastHandler) Handle(req []byte, stream core.Stream) {
 
 	_ = protocol.handleReceive(recvData, pid, peerAddr)
 	return
+}
+func (b *broadCastHandler) SetProtocol(protocol prototypes.IProtocol) {
+	b.BaseStreamHandler = new(prototypes.BaseStreamHandler)
+	b.Protocol = protocol
 }
 
 func (h *broadCastHandler) VerifyRequest(data []byte) bool {

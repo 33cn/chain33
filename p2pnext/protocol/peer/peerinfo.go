@@ -14,16 +14,17 @@ import (
 
 const (
 	protoTypeID  = "PeerProtocolType"
-	peerInfoReq  = "/chain33/peerinfoReq/1.0.0"
-	peerInfoResp = "/chain33/peerinfoResp/1.0.0"
+	PeerInfoReq  = "/chain33/peerinfoReq/1.0.0"
+	PeerInfoResp = "/chain33/peerinfoResp/1.0.0"
 )
 
 var log = log15.New("module", "p2p.peer")
 
 func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &PeerInfoProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, peerInfoReq, &PeerInfoHandler{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, peerInfoResp, &PeerInfoHandler{})
+	var hander = new(PeerInfoHandler)
+	prototypes.RegisterStreamHandlerType(protoTypeID, PeerInfoReq, hander)
+	prototypes.RegisterStreamHandlerType(protoTypeID, PeerInfoResp, hander)
 
 }
 
@@ -35,9 +36,11 @@ type PeerInfoProtol struct {
 }
 
 func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
-	p.QueueClient = data.QueueClient
-	p.Host = data.Host
+	p.BaseProtocol = new(prototypes.BaseProtocol)
+	p.requests = make(map[string]*types.MessagePeerInfoReq)
+	p.GlobalData = data
 	p.p2pCfg = data.ChainCfg.GetModuleConfig().P2P
+	go p.ManagePeerInfo()
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 
 }
@@ -45,7 +48,7 @@ func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
 func (p *PeerInfoProtol) OnResp(peerinfo *types.P2PPeerInfo, s net.Stream) {
 	peerId := s.Conn().RemotePeer().Pretty()
 	p.GetPeerInfoManager().Store(peerId, peerinfo)
-	log.Debug("%s: Received ping response from %s", s.Conn().LocalPeer(), s.Conn().RemotePeer())
+	log.Debug("OnResp Received ping response ", "from", s.Conn().LocalPeer(), "to", s.Conn().RemotePeer())
 
 }
 
@@ -90,7 +93,7 @@ Jump:
 	return &peerinfo
 }
 func (p *PeerInfoProtol) ManagePeerInfo() {
-
+	p.PeerInfo()
 	for {
 		select {
 		case <-time.Tick(time.Second * 20):
@@ -109,11 +112,11 @@ func (p *PeerInfoProtol) OnReq(s net.Stream) {
 
 	resp := &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 		Message: peerinfo}
-
+	s.SetProtocol(PeerInfoResp)
 	ok := p.StreamManager.SendProtoMessage(resp, s)
 
 	if ok {
-		log.Info("%s: Ping response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+		log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String())
 	}
 
 }
@@ -124,8 +127,9 @@ func (p *PeerInfoProtol) PeerInfo() {
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	for _, s := range p.GetStreamManager().FetchStreams() {
+		log.Info("peerInfo", "s.Proto", s.Protocol())
 		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
-
+		s.SetProtocol(PeerInfoReq)
 		ok := p.StreamManager.SendProtoMessage(req, s)
 		if !ok {
 			return
@@ -133,7 +137,7 @@ func (p *PeerInfoProtol) PeerInfo() {
 
 		// store ref request so response handler has access to it
 		p.requests[req.MessageData.Id] = req
-
+		log.Info("PeerInfo", "sendRequst", pid.Pretty())
 	}
 
 }
@@ -162,11 +166,12 @@ type PeerInfoHandler struct {
 
 //Handle 处理请求
 func (h *PeerInfoHandler) Handle(req []byte, stream core.Stream) {
-
+	log.Info("peerInfo", "hander", "process")
 	protocol := h.GetProtocol().(*PeerInfoProtol)
 
 	//解析处理
-	if stream.Protocol() == peerInfoReq {
+	log.Info("PeerInfo Handler", "stream proto", stream.Protocol())
+	if stream.Protocol() == PeerInfoReq {
 		var data types.MessagePeerInfoReq
 		err := types.Decode(req, &data)
 		if err != nil {
@@ -188,7 +193,11 @@ func (h *PeerInfoHandler) Handle(req []byte, stream core.Stream) {
 	return
 }
 
-func (h *PeerInfoHandler) VerifyRequest(data []byte) bool {
+func (p *PeerInfoHandler) VerifyRequest(data []byte) bool {
 
 	return true
+}
+func (p *PeerInfoHandler) SetProtocol(protocol prototypes.IProtocol) {
+	p.BaseStreamHandler = new(prototypes.BaseStreamHandler)
+	p.Protocol = protocol
 }

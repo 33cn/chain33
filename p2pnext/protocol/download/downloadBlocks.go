@@ -23,14 +23,15 @@ var (
 
 func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &DownloadProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, downloadBlockReq, &DownloadHander{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, downloadBlockResp, &DownloadHander{})
+	var downloadHandler = new(DownloadHander)
+	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockReq, downloadHandler)
+	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockResp, downloadHandler)
 }
 
 const (
 	protoTypeID       = "DownloadProtocolType"
-	downloadBlockReq  = "/chain33/downloadBlockReq/1.0.0"
-	downloadBlockResp = "/chain33/downloadBlockResp/1.0.0"
+	DownloadBlockReq  = "/chain33/downloadBlockReq/1.0.0"
+	DownloadBlockResp = "/chain33/downloadBlockResp/1.0.0"
 )
 
 //type Istream
@@ -41,17 +42,21 @@ type DownloadProtol struct {
 }
 
 func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
+	d.BaseProtocol = new(prototypes.BaseProtocol)
+	d.requests = make(map[string]*types.MessageGetBlocksReq)
 	d.GlobalData = data
-	d.ChainCfg = data.ChainCfg
+
 	//注册事件处理函数
-	d.QueueClient = data.QueueClient
-	d.PeerInfoManager = data.PeerInfoManager
-	d.StreamManager = data.StreamManager
 	prototypes.RegisterEventHandler(types.EventFetchBlocks, d.handleEvent)
 }
 
 type DownloadHander struct {
 	*prototypes.BaseStreamHandler
+}
+
+func (d *DownloadHander) SetProtocol(protocol prototypes.IProtocol) {
+	d.BaseStreamHandler = new(prototypes.BaseStreamHandler)
+	d.Protocol = protocol
 }
 
 //接收Response消息
@@ -81,7 +86,7 @@ func (d *DownloadHander) Handle(req []byte, stream core.Stream) {
 	protocol := d.GetProtocol().(*DownloadProtol)
 
 	//解析处理
-	if stream.Protocol() == downloadBlockReq {
+	if stream.Protocol() == DownloadBlockReq {
 		var data types.MessageGetBlocksReq
 		err := types.Decode(req, &data)
 		if err != nil {

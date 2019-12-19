@@ -1,19 +1,20 @@
 package types
 
 import (
+	"bufio"
+	//"io/ioutil"
+	"reflect"
+	"strings"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"io/ioutil"
-	"reflect"
-	"strings"
 )
 
 var (
 	log                  = log15.New("module", "p2p.protocol.types")
-	streamHandlerTypeMap map[string]reflect.Type
+	streamHandlerTypeMap = make(map[string]reflect.Type)
 )
 
 //注册typeName,msgID,处理函数
@@ -43,7 +44,6 @@ type StreamResponse struct {
 
 // StreamHandler stream handler
 type StreamHandler interface {
-
 	// GetProtocol get protocol
 	GetProtocol() IProtocol
 	// SetProtocol 初始化公共结构, 内部通过protocol获取外部依赖公共类, 如queue.client等
@@ -55,16 +55,13 @@ type StreamHandler interface {
 }
 
 type BaseStreamHandler struct {
-	protocol IProtocol
+	Protocol IProtocol
 	child    StreamHandler
 }
 
 func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
-	s.protocol = protocol
+	s.Protocol = protocol
 }
-
-func (s *BaseStreamHandler) OnReq(core.Stream)  {}
-func (s *BaseStreamHandler) OnResp(core.Stream) {}
 
 func (s *BaseStreamHandler) Handle([]byte, core.Stream) (*StreamResponse, error) {
 	return nil, nil
@@ -110,20 +107,24 @@ func (s *BaseStreamHandler) verifyData(data []byte, signature []byte, peerId pee
 }
 
 func (s *BaseStreamHandler) GetProtocol() IProtocol {
-	return s.protocol
+	return s.Protocol
 }
 
 //stream事件预处理函数
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
-	buf, err := ioutil.ReadAll(stream)
+	log.Info("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
+	var readbuf []byte
+	r := bufio.NewReader(bufio.NewReader(stream))
+
+	rlen, err := r.Read(readbuf)
 	if err != nil {
-		stream.Reset()
 		log.Error("HandleStream", "err", err)
 		return
 	}
 
-	s.child.Handle(buf, stream)
+	log.Info("BaseStreamHandler", "read size", len(readbuf))
+	s.child.Handle(readbuf[:rlen], stream)
 
 }
 
