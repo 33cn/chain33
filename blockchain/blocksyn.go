@@ -18,12 +18,12 @@ import (
 
 //var
 var (
-	BackBlockNum            int64 = 128    //节点高度不增加时向后取blocks的个数
-	BackwardBlockNum        int64 = 16     //本节点高度不增加时并且落后peer的高度数
-	checkHeightNoIncSeconds int64 = 5 * 60 //高度不增长时的检测周期目前暂定5分钟
-	checkBlockHashSeconds   int64 = 1 * 60 //1分钟检测一次tip hash和peer 对应高度的hash是否一致
-	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
-	MaxRollBlockNum         int64 = 10000  //最大回退block数量
+	BackBlockNum            int64 = 128                  //节点高度不增加时向后取blocks的个数
+	BackwardBlockNum        int64 = 16                   //本节点高度不增加时并且落后peer的高度数
+	checkHeightNoIncSeconds int64 = 5 * 60               //高度不增长时的检测周期目前暂定5分钟
+	checkBlockHashSeconds   int64 = 1 * 60               //1分钟检测一次tip hash和peer 对应高度的hash是否一致
+	fetchPeerListSeconds    int64 = 5                    //5 秒获取一个peerlist
+	MaxRollBlockNum         int64 = 10000                //最大回退block数量
 	ReduceHeight                  = MaxRollBlockNum      // 距离最大高度的可精简高度
 	SafetyReduceHeight            = ReduceHeight * 3 / 2 // 安全精简高度
 	//TODO

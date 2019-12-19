@@ -6,11 +6,12 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/stretchr/testify/assert"

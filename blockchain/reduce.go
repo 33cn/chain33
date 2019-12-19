@@ -7,15 +7,15 @@ package blockchain
 import (
 	"container/list"
 	"fmt"
-	"github.com/33cn/chain33/common"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/common"
+
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
-
 
 // ReduceChain 精简chain
 func (chain *BlockChain) ReduceChain() {

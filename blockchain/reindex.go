@@ -162,7 +162,7 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 			chainlog.Info("reindex -> ", "index", index, "lastindex", lastindex, "isSeq", isSeq)
 		}
 		// 精简localdb
-		if chain.client.GetConfig().IsEnable("reduceLocaldb") && lastindex - SafetyReduceHeight > index {
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && lastindex-SafetyReduceHeight > index {
 			blockdetail.Receipts = reduceReceipts(blockdetail.Receipts)
 		}
 		//使用table格式保存header和body以及paratx标识
@@ -178,7 +178,7 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 		newbatch.Delete(calcHeightToBlockHeaderKey(height))
 
 		// 精简localdb
-		if chain.client.GetConfig().IsEnable("reduceLocaldb") && lastindex - SafetyReduceHeight > index {
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && lastindex-SafetyReduceHeight > index {
 			chain.reduceIndexTx(newbatch, blockdetail.Block.GetTxs())
 			newbatch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 		}
