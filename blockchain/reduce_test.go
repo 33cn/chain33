@@ -91,7 +91,7 @@ func TestInitReduceLocaldb1(t *testing.T) {
 
 				flagHeight, err = blockStore.loadFlag(types.ReduceLocaldbHeight)
 				assert.NoError(t, err)
-				assert.NotEqual(t, flagHeight, int64(endHeight))
+				assert.NotEqual(t, flagHeight, endHeight)
 				return
 			}
 		}()
