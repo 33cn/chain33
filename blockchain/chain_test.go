@@ -1396,10 +1396,19 @@ func TestProcessDelBlock(t *testing.T) {
 		require.NoError(t, err)
 	}
 	cfg := mock33.GetClient().GetConfig()
-	for {
-		_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
-		require.NoError(t, err)
 
+	// 确保只出指定数量的区块
+	isFirst := true
+	prevheight := curheight
+	for {
+		if isFirst || curheight > prevheight {
+			_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
+			require.NoError(t, err)
+			if curheight > prevheight {
+				prevheight = curheight
+			}
+			isFirst = false
+		}
 		curheight = blockchain.GetBlockHeight()
 		_, err = blockchain.GetBlock(curheight)
 		require.NoError(t, err)
