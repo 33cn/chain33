@@ -7,6 +7,7 @@ package blockchain
 import (
 	"container/list"
 	"fmt"
+	"github.com/33cn/chain33/common"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -101,29 +102,31 @@ func (chain *BlockChain) reduceBodyInit(batch dbm.Batch, height int64) {
 		for _, kv := range kvs {
 			batch.Set(kv.GetKey(), kv.GetValue())
 		}
-		chain.reduceAboutTx(batch, body.Txs)
+		chain.reduceIndexTx(batch, body.Txs)
 	}
 }
 
-// reduceAboutTx 对数据库中的 hash-TX进行精简
-func (chain *BlockChain) reduceAboutTx(batch dbm.Batch, Txs []*types.Transaction) {
+// reduceIndexTx 对数据库中的 hash-TX进行精简
+func (chain *BlockChain) reduceIndexTx(batch dbm.Batch, Txs []*types.Transaction) {
 	cfg := chain.client.GetConfig()
 	for _, tx := range Txs {
 		hash := tx.Hash()
-		value, err := chain.blockStore.db.Get(cfg.CalcTxKey(hash))
-		if err != nil {
-			panic(err)
-		}
-		txresult := &types.TxResult{}
-		err = types.Decode(value, txresult)
-		if err != nil {
-			panic(err)
-		}
-		batch.Set(cfg.CalcTxKey(hash), cfg.CalcTxKeyValue(txresult))
 		// 之前执行quickIndex时候未对无用hash做删除处理，占用空间，因此这里删除
 		if cfg.IsEnable("quickIndex") {
 			batch.Delete(hash)
 		}
+
+		value, err := chain.blockStore.db.Get(cfg.CalcTxKey(hash))
+		if err != nil {
+			continue
+		}
+		txresult := &types.TxResult{}
+		err = types.Decode(value, txresult)
+		if err != nil {
+			chainlog.Error("reduceIndexTx decode", "tx hash ", common.HashHex(hash), "error", err)
+			continue
+		}
+		batch.Set(cfg.CalcTxKey(hash), cfg.CalcTxKeyValue(txresult))
 	}
 }
 

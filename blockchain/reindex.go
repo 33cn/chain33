@@ -179,7 +179,7 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 
 		// 精简localdb
 		if chain.client.GetConfig().IsEnable("reduceLocaldb") && lastindex - SafetyReduceHeight > index {
-			chain.reduceAboutTx(newbatch, blockdetail.Block.GetTxs())
+			chain.reduceIndexTx(newbatch, blockdetail.Block.GetTxs())
 			newbatch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 		}
 	} else {

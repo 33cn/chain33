@@ -1538,7 +1538,7 @@ func (bs *BlockStore) LoadBlockBodyOld(height int64) (*types.BlockBody, error) {
 func (bs *BlockStore) AddCacheBlockBody(height int64, value []byte) {
 	if bs.cacheBody == nil {
 		// 这里lru缓存的size要大于回退高度
-		cacheBody := NewFIFO(int(MaxRollBlockNum * 3 / 2))
+		cacheBody := NewFIFO(int(SafetyReduceHeight))
 		if cacheBody == nil {
 			panic("NewFIFO fail")
 		}
