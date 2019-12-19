@@ -258,17 +258,18 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	height := blockdetail.Block.GetHeight()
 	hash := blockdetail.Block.Hash(chain.client.GetConfig())
 
-	//syncTask 运行时设置对应的blockdone
-	if chain.syncTask.InProgress() {
-		chain.syncTask.Done(height)
-	}
-	//downLoadTask 运行时设置对应的blockdone
-	if chain.downLoadTask.InProgress() {
-		chain.downLoadTask.Done(height)
-	}
-	//此处只更新广播block的高度
+	//更新广播block的高度,设置请求过来的区块已经处理完成
 	if broadcast {
 		chain.UpdateRcvCastBlkHeight(height)
+	} else {
+		//syncTask 运行时设置对应的blockdone
+		if chain.syncTask.InProgress() {
+			chain.syncTask.Done(height)
+		}
+		//downLoadTask 运行时设置对应的blockdone
+		if chain.downLoadTask.InProgress() {
+			chain.downLoadTask.Done(height)
+		}
 	}
 	if pid == "self" {
 		if err != nil {
