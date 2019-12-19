@@ -1,6 +1,8 @@
 package types
 
 import (
+
+	"time"
 	"github.com/33cn/chain33/p2pnext/manage"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -89,34 +91,46 @@ func (p *ProtocolManager)Init(data *GlobalData) {
 		protoID, msgID := decodeHandlerTypeID(id)
 		newHandler.SetProtocol(p.protoMap[protoID])
 		data.Host.SetStreamHandler(core.ProtocolID(msgID), (&BaseStreamHandler{child:newHandler}).HandleStream)
+
 	}
 
 }
 
+func (p *BaseProtocol) NewMessageCommon(messageId, pid string, nodePubkey []byte, gossip bool) *types.MessageComm {
+	return &types.MessageComm{Version: "",
+		NodeId:     pid,
+		NodePubKey: nodePubkey,
+		Timestamp:  time.Now().Unix(),
+		Id:         messageId,
+		Gossip:     gossip}
 
+}
 
-func (p *BaseProtocol)GetChainCfg() *types.Chain33Config{
+func (p *BaseProtocol) GetChainCfg() *types.Chain33Config {
 
 	return p.ChainCfg
 
 }
 
-func (p *BaseProtocol)GetQueueClient() queue.Client {
+
+func (p *BaseProtocol) GetQueueClient() queue.Client {
 
 	return p.QueueClient
 }
 
-func (p *BaseProtocol)GetHost() core.Host{
+func (p *BaseProtocol) GetHost() core.Host {
 
 	return p.Host
 
 }
 
 func (p *BaseProtocol)GetStreamManager() *manage.StreamManager {
+
 	return p.StreamManager
 
 }
 
-func (p *BaseProtocol)GetPeerInfoManager() *manage.PeerInfoManager{
+
+func (p *BaseProtocol) GetPeerInfoManager() *manage.PeerInfoManager {
 	return p.PeerInfoManager
 }

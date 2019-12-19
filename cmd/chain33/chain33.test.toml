@@ -40,8 +40,8 @@ enableTxQuickIndex=false
 
 
 [p2p]
-port=13802
-seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
+port=13803
+seeds=["/ip4/112.74.59.221/tcp/13803/ipfs/16Uiu2HAmEQTBWg8Lo351WgQbtCrRojfWsnig8KX8cMgYAfEb1koT"]
 enable=true
 isSeed=true
 serverStart=true

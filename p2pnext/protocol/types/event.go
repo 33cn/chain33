@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/33cn/chain33/queue"
 )
 
@@ -12,6 +13,8 @@ var (
 	eventHandlerMap = make(map[int64]EventHandler)
 )
 
+
+//注册消息处理函数
 func RegisterEventHandler(eventID int64, handler EventHandler) {
 
 	if handler == nil {
@@ -24,10 +27,8 @@ func RegisterEventHandler(eventID int64, handler EventHandler) {
 }
 
 
-
 func GetEventHandler(eventID int64) (EventHandler, bool) {
 	handler, ok := eventHandlerMap[eventID]
 	return handler, ok
 }
-
 

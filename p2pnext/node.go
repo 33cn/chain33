@@ -20,7 +20,7 @@ type Node struct {
 	PeersInfo sync.Map
 	Host      host.Host
 	chainCfg *types.Chain33Config
-	p2pCfg *types.P2P
+	p2pCfg   *types.P2P
 }
 
 func NewNode(p *P2P, cfg *types.Chain33Config) *Node {
@@ -29,8 +29,6 @@ func NewNode(p *P2P, cfg *types.Chain33Config) *Node {
 	node.p2pCfg = cfg.GetModuleConfig().P2P
 	return node
 }
-
-
 
 // data: common p2p message data
 func (n *Node) AuthenticateMessage(message proto.Message, data *types.MessageComm) bool {
@@ -144,8 +142,6 @@ func (n *Node) SendProtoMessage(s net.Stream, p protocol.ID, data proto.Message)
 	}
 	return true
 }
-
-
 
 func (n *Node) GetChainCfg() *types.Chain33Config {
 	return n.chainCfg

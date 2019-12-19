@@ -2,6 +2,9 @@ package manage
 
 import (
 	"sync"
+	proto "github.com/gogo/protobuf/proto"
+
+	ggio "github.com/gogo/protobuf/io"
 
 	net "github.com/libp2p/go-libp2p-core/network"
 )
@@ -50,4 +53,18 @@ func (s *StreamManager) Size() int {
 	})
 
 	return len(streams)
+}
+
+func (s *StreamManager) SendProtoMessage(data proto.Message, stream net.Stream) bool {
+	writer := ggio.NewFullWriter(stream)
+
+	err := writer.WriteMsg(data)
+	if err != nil {
+		//log.Println(err)
+		stream.Reset()
+		return false
+	}
+	writer.Close()
+	stream.Reset()
+	return true
 }

@@ -203,6 +203,7 @@ func RunChain33(name, defCfg string) {
 	health := util.NewHealthCheckServer(q.Client())
 	health.Start(cfg.Health)
 	defer func() {
+		os.Exit(0)
 		//close all module,clean some resource
 		log.Info("begin close health module")
 		health.Close()

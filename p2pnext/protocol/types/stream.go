@@ -1,17 +1,23 @@
 package types
 
 import (
+
+	"bufio"
+	//"io/ioutil"
+	"reflect"
+	"strings"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
-	"io/ioutil"
-	"reflect"
-	"strings"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
+
 )
 
 
 
 var (
+
 
 	log                  = log15.New("module", "p2p.protocol.types")
 	streamHandlerTypeMap = make(map[string]reflect.Type)
@@ -26,6 +32,7 @@ func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 
 	if _, exist := protocolTypeMap[typeName]; !exist{
 		panic("RegisterStreamHandlerType, protocol type not exist, msgId="+msgID)
+
 	}
 
 	typeID := formatHandlerTypeID(typeName, msgID)
@@ -33,6 +40,7 @@ func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 	if _, dup := streamHandlerTypeMap[typeID]; dup {
 		panic("addStreamHandler, handler is nil, typeID=" + typeID)
 	}
+
 	handlerType := reflect.TypeOf(handler)
 	if handlerType.Kind() == reflect.Ptr {
 		handlerType = handlerType.Elem()
@@ -42,8 +50,9 @@ func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 
 type StreamResponse struct{
 	Stream core.Stream
-	MsgID string
+	protoID string
 	Msg   types.Message
+
 }
 
 // StreamHandler stream handler
@@ -55,8 +64,9 @@ type StreamHandler interface {
 	SetProtocol(protocol IProtocol)
 	// VerifyRequest  验证请求数据
 	VerifyRequest(request []byte) bool
+
 	// Handle 处理请求, 有返回需要设置具体的response结构
-	Handle(request []byte, stream core.Stream) (*StreamResponse, error)
+	Handle(request []byte, stream core.Stream)
 }
 
 type BaseStreamHandler struct {
@@ -68,9 +78,10 @@ func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 	s.protocol = protocol
 }
 
-func (s *BaseStreamHandler) Handle([]byte, core.Stream) (*StreamResponse, error) {
-	return nil, nil
+func (s *BaseStreamHandler) Handle([]byte, core.Stream) {
+	return
 }
+
 
 
 func (s *BaseStreamHandler) VerifyRequest(request []byte) bool {
@@ -83,33 +94,55 @@ func (s *BaseStreamHandler) GetProtocol() IProtocol {
 	return s.protocol
 }
 
-func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
-	for {
-
-		buf, err := ioutil.ReadAll(stream)
-		if err != nil {
-			stream.Reset()
-			log.Error("HandleStream", "err", err)
-			continue
-		}
-
-		if !s.child.VerifyRequest(buf) {
-			//invalid request
-			continue
-		}
-
-		resp, err := s.child.Handle(buf, stream)
-		if err != nil {
-			continue
-		}
-		if resp.Msg != nil {
-			//TODO, send response message
-		}
+func (s *BaseStreamHandler) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyData []byte) bool {
+	key, err := crypto.UnmarshalPublicKey(pubKeyData)
+	if err != nil {
+		log.Error("verifyData", err, "Failed to extract key from message key data")
+		return false
 	}
+
+	// extract node id from the provided public key
+	idFromKey, err := peer.IDFromPublicKey(key)
+
+	if err != nil {
+		log.Error("verifyData", err, "Failed to extract peer id from public key")
+		return false
+	}
+
+	// verify that message author node id matches the provided node public key
+	if idFromKey != peerId {
+		log.Error("verifyData", err, "Node id and provided public key mismatch")
+		return false
+	}
+
+	res, err := key.Verify(data, signature)
+	if err != nil {
+		log.Error("verifyData", err, "Error authenticating data")
+		return false
+	}
+
+	return res
 }
 
 
+//stream事件预处理函数
+func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
+
+	log.Info("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
+	var readbuf []byte
+	r := bufio.NewReader(bufio.NewReader(stream))
+
+	rlen, err := r.Read(readbuf)
+	if err != nil {
+		log.Error("HandleStream", "err", err)
+		return
+	}
+
+	log.Info("BaseStreamHandler", "read size", len(readbuf))
+	s.child.Handle(readbuf[:rlen], stream)
+
+}
 
 func formatHandlerTypeID(protocolType, msgID string) string {
 	return protocolType + "#" + msgID
