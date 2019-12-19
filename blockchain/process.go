@@ -281,8 +281,14 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	errReturn := (node.pid != "self")
 	blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync)
 	if err != nil {
-		//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
-		if IsRecordFaultErr(err) {
+		//通过交易hash在本地组装的广播区块，可能存在各个节点上交易hash一致
+		//但签名地址不一样导致执行后的状态hash不一致。此类情况需要从对端重新拉取整个区块再次执行
+		if node.pid != "self" && node.broadcast && err == types.ErrCheckStateHash {
+			b.RemoveExecFailBlock(block.Height, node.hash)
+			go b.ProcDownLoadBlocks(block.Height, block.Height, []string{node.pid})
+			chainlog.Error("connectBlock:DownLoadBlockFromPeer!", "height", block.Height, "hash", common.ToHex(node.hash), "pid", node.pid)
+		} else if IsRecordFaultErr(err) {
+			//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
 			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
 		} else if node.pid == "self" {
 			// 本节点产生的block由于api或者queue导致执行失败需要删除block在index中的记录，
@@ -576,4 +582,10 @@ func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types
 // IsRecordFaultErr 检测此错误是否要记录到故障错误中
 func IsRecordFaultErr(err error) bool {
 	return err != types.ErrFutureBlock && !api.IsGrpcError(err) && !api.IsQueueError(err)
+}
+
+//删除执行失败的区块存储在数据库中的信息
+func (b *BlockChain) RemoveExecFailBlock(height int64, hash []byte) {
+	b.index.DelNode(hash)
+	b.blockStore.removeBlock(height, hash)
 }

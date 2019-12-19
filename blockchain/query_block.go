@@ -254,6 +254,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	if b != nil {
 		blockdetail = b
 	}
+
 	height := blockdetail.Block.GetHeight()
 	hash := blockdetail.Block.Hash(chain.client.GetConfig())
 
@@ -268,13 +269,6 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	//此处只更新广播block的高度
 	if broadcast {
 		chain.UpdateRcvCastBlkHeight(height)
-		if err == types.ErrCheckStateHash && pid != "self" {
-			//删除由于状态hash不一致导致执行失败的区块在本地保存的信息
-			chain.RemoveExecFailBlock(height, hash)
-			//然后再次从pid节点获取本区块
-			go chain.ProcDownLoadBlocks(height, height, []string{pid})
-			chainlog.Info("ProcAddBlockMsg:ProcDownLoadBlocks", "height", height, "pid", pid)
-		}
 	}
 	if pid == "self" {
 		if err != nil {
@@ -301,10 +295,4 @@ func (chain *BlockChain) getBlockHashes(startheight, endheight int64) types.ReqH
 		}
 	}
 	return reqHashes
-}
-
-//删除执行失败的区块存储在数据库中的信息
-func (chain *BlockChain) RemoveExecFailBlock(height int64, hash []byte) {
-	chain.index.DelNode(hash)
-	chain.blockStore.removeBlock(height, hash)
 }
