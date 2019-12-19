@@ -155,6 +155,7 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 	}
 	height := blockdetail.Block.GetHeight()
 	hash := blockdetail.Block.Hash(chain.client.GetConfig())
+	curHeight := chain.GetBlockHeight()
 
 	//只重构add时区块的存储方式，del时只需要删除对应区块上的平行链标记即可
 	if blockOptType == types.AddBlock {
@@ -162,7 +163,7 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 			chainlog.Info("reindex -> ", "index", index, "lastindex", lastindex, "isSeq", isSeq)
 		}
 		// 精简localdb
-		if chain.client.GetConfig().IsEnable("reduceLocaldb") && lastindex-SafetyReduceHeight > index {
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && curHeight-SafetyReduceHeight > height {
 			blockdetail.Receipts = reduceReceipts(blockdetail.Receipts)
 		}
 		//使用table格式保存header和body以及paratx标识
@@ -178,7 +179,7 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 		newbatch.Delete(calcHeightToBlockHeaderKey(height))
 
 		// 精简localdb
-		if chain.client.GetConfig().IsEnable("reduceLocaldb") && lastindex-SafetyReduceHeight > index {
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && curHeight-SafetyReduceHeight > height {
 			chain.reduceIndexTx(newbatch, blockdetail.Block.GetTxs())
 			newbatch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 		}

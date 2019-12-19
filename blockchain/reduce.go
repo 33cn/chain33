@@ -90,9 +90,6 @@ func (chain *BlockChain) walkOver(start, end int64, sync bool, fn func(batch dbm
 // reduceBodyInit 将body中的receipt进行精简；将TxHashPerfix为key的TxResult中的receipt和tx字段进行精简
 func (chain *BlockChain) reduceBodyInit(batch dbm.Batch, height int64) {
 	body, err := chain.blockStore.LoadBlockBody(height)
-	if err != nil {
-		body, err = chain.blockStore.LoadBlockBodyOld(height)
-	}
 	if err == nil {
 		body.Receipts = reduceReceipts(body.Receipts)
 		kvs, err := saveBlockBodyTable(chain.blockStore.db, body)
@@ -196,9 +193,6 @@ func (chain *BlockChain) reduceBody(batch dbm.Batch, height int64) {
 	if err != nil {
 		chainlog.Debug("reduceLocaldb LoadCacheBlockBody", "height", height, "error", err)
 		body, err = chain.blockStore.LoadBlockBody(height)
-		if err != nil {
-			body, err = chain.blockStore.LoadBlockBodyOld(height)
-		}
 	}
 	if body != nil {
 		body.Receipts = reduceReceipts(body.Receipts)

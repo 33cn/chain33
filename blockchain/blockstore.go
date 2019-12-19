@@ -1511,30 +1511,6 @@ func (bs *BlockStore) LoadBlockBody(height int64) (*types.BlockBody, error) {
 	return blockbody, err
 }
 
-//LoadBlockBodyOld 旧版本通过height高度获取BlockBody信息
-func (bs *BlockStore) LoadBlockBodyOld(height int64) (*types.BlockBody, error) {
-	//首先通过height获取block hash从db中
-	hash, err := bs.GetBlockHashByHeight(height)
-	if err != nil {
-		return nil, err
-	}
-	//通过hash获取blockbody
-	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
-	if body == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("LoadBlockBodyOld calcHashToBlockBodyKey ", "height", height, "err", err)
-		}
-		return nil, types.ErrHashNotExist
-	}
-	var blockbody types.BlockBody
-	err = proto.Unmarshal(body, &blockbody)
-	if err != nil {
-		storeLog.Error("LoadBlockByHash", "err", err)
-		return nil, err
-	}
-	return &blockbody, nil
-}
-
 func (bs *BlockStore) AddCacheBlockBody(height int64, value []byte) {
 	if bs.cacheBody == nil {
 		// 这里lru缓存的size要大于回退高度
