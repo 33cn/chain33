@@ -19,14 +19,12 @@ import (
 type Node struct {
 	PeersInfo sync.Map
 	Host      host.Host
-	*StreamMange
 	chainCfg *types.Chain33Config
 	p2pCfg   *types.P2P
 }
 
-func NewNode(p *P2p, cfg *types.Chain33Config) *Node {
-	node := &Node{Host: p.Host}
-	node.StreamMange = p.streamMang
+func NewNode(p *P2P, cfg *types.Chain33Config) *Node {
+	node := &Node{Host: p.host}
 	node.chainCfg = cfg
 	node.p2pCfg = cfg.GetModuleConfig().P2P
 	return node
