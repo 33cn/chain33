@@ -22,6 +22,8 @@ var (
 
 //对不同事件的Sender进行注册
 func Register(name string, driver Driver) {
+	logger.Info("Register", "name", name)
+
 	driversMu.Lock()
 	defer driversMu.Unlock()
 	if driver == nil {
@@ -30,6 +32,7 @@ func Register(name string, driver Driver) {
 	if _, dup := drivers[name]; dup {
 		panic("processer: Register called twice for driver " + name)
 	}
+	logger.Info("Register", "name", name)
 	drivers[name] = driver
 }
 
@@ -39,7 +42,7 @@ func NewDriver(name string) (t Driver, err error) {
 	defer driversMu.RUnlock()
 	t, ok := drivers[name]
 	if !ok {
-		err = fmt.Errorf("unknown Envent %q", name)
+		err = fmt.Errorf("unknown Envent %v", name)
 		return
 	}
 

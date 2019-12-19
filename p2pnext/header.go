@@ -1,11 +1,11 @@
-package protos
+package p2pnext
 
 import (
 	"io"
 	"io/ioutil"
 	"time"
 
-	p2p "github.com/33cn/chain33/p2pnext"
+	//p2p "github.com/33cn/chain33/p2pnext"
 	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
 
@@ -23,11 +23,11 @@ const (
 type HeaderInfoProtol struct {
 	client   queue.Client
 	done     chan struct{}
-	node     *p2p.Node                          // local host
+	node     *Node                              // local host
 	requests map[string]*types.MessageHeaderReq // used to access request data from response handlers
 }
 
-func (h *HeaderInfoProtol) New(node *p2p.Node, cli queue.Client, done chan struct{}) p2p.Driver {
+func (h *HeaderInfoProtol) New(node *Node, cli queue.Client, done chan struct{}) Driver {
 
 	Server := &HeaderInfoProtol{}
 	node.Host.SetStreamHandler(headerInfoReq, Server.OnReq)
@@ -48,14 +48,14 @@ func (h *HeaderInfoProtol) OnResp(s net.Stream) {
 		buf, err := ioutil.ReadAll(s)
 		if err != nil {
 			s.Reset()
-			logger.Error(err)
+			logger.Error("read", err)
 			continue
 		}
 
 		// unmarshal it
 		proto.Unmarshal(buf, data)
 		if err != nil {
-			logger.Error(err)
+			logger.Error("HeaderInfoProtol Unmarshal", err)
 			continue
 		}
 

@@ -54,7 +54,7 @@ enableReExecLocal=false
 
 [p2p]
 # P2P服务监听端口号
-port=13802
+port=13803
 # 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=["10.0.0.1:13802","10.0.0.2:13802","10.0.0.3:13802"]
 seeds=["/ip4/112.74.59.221/tcp/13803/ipfs/16Uiu2HAmEQTBWg8Lo351WgQbtCrRojfWsnig8KX8cMgYAfEb1koT"]
 # 是否启动P2P服务
@@ -83,9 +83,9 @@ waitPid=false
 
 [rpc]
 # jrpc绑定地址
-jrpcBindAddr="localhost:8801"
+jrpcBindAddr="localhost:8803"
 # grpc绑定地址
-grpcBindAddr="localhost:8802"
+grpcBindAddr="localhost:8804"
 # 白名单列表，允许访问的IP地址，默认是“*”，允许所有IP访问
 whitelist=["127.0.0.1"]
 # jrpc方法请求白名单，默认是“*”，允许访问所有RPC方法

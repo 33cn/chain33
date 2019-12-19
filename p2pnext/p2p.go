@@ -3,6 +3,7 @@ package p2pnext
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/33cn/chain33/client"
@@ -32,12 +33,15 @@ type P2p struct {
 
 func New(cfg *types.Chain33Config) *P2p {
 
-	m, err := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/13803")
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.GetModuleConfig().P2P.Port))
 	if err != nil {
 		return nil
 	}
+	localAddr := getNodeLocalAddr()
+	lm, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", localAddr, cfg.GetModuleConfig().P2P.Port))
 	var addrlist []multiaddr.Multiaddr
 	addrlist = append(addrlist, m)
+	addrlist = append(addrlist, lm)
 	keystr, _ := NewAddrBook(cfg.GetModuleConfig().P2P).GetPrivPubKey()
 	logger.Info("loadPrivkey:", keystr)
 	//key string convert to crpyto.Privkey
@@ -73,22 +77,34 @@ func New(cfg *types.Chain33Config) *P2p {
 func (p *P2p) managePeers() {
 	for _, seed := range p.Node.p2pCfg.Seeds {
 		addr, _ := multiaddr.NewMultiaddr(seed)
-
 		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
 		if err != nil {
 			panic(err)
 		}
+
+		err = p.Host.Connect(context.Background(), *peerinfo)
+		if err != nil {
+			logger.Error("Host Connect", "err", err)
+			return
+		}
+
 		logger.Info("xxx", "pid:", peerinfo.ID, "addr", peerinfo.Addrs)
+
 		_, err = p.streamMang.newStream(context.Background(), *peerinfo)
-		logger.Error(err.Error())
-		//p.Host.Connect(context.Background(), peerinfo)
+		if err != nil {
+			logger.Error("xxxnewStream", "err", err)
+			return
+		}
 	}
 	peerChan, err := p.discovery.FindPeers(context.Background(), p.Host)
 	if err != nil {
 		panic("PeerFind Err")
 	}
+
 	for {
 		select {
+		case <-p.Done:
+			return
 		case peer := <-peerChan:
 			if len(peer.Addrs) == 0 {
 				continue
@@ -101,7 +117,7 @@ func (p *P2p) managePeers() {
 				logger.Info("Find self...")
 				continue
 			}
-			logger.Info("p2p.managePeers", "addrs", peer.Addrs, "id", peer.ID.String(),
+			logger.Info("p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
 				"peer", peer.String())
 			p.streamMang.newStream(context.Background(), peer)
 		Recheck:
@@ -123,18 +139,18 @@ func (p *P2p) Wait() {
 }
 
 func (p *P2p) Close() {
+	p.client.Close()
 	close(p.Done)
+	logger.Info("p2p closed")
+
+	return
 }
 
 func (p *P2p) initProcesser() {
-
-	for _, name := range ProcessName {
-		driver, err := NewDriver(name)
-		if err != nil {
-			return
-		}
+	for name, driver := range drivers {
 		process := driver.New(p.Node, p.client, p.Done)
 		p.Processer[name] = process
+
 	}
 
 }
@@ -156,15 +172,18 @@ func (p *P2p) SetQueueClient(cli queue.Client) {
 }
 
 func (p *P2p) subP2PMsg() {
+
 	if p.client == nil {
 		return
 	}
+	p.client.Sub("p2p")
 
 	for msg := range p.client.Recv() {
 		switch msg.Ty {
 		case types.EventTxBroadcast, types.EventBlockBroadcast:
-			go p.Processer[BroadCast].DoProcess(msg)
+			//go p.Processer[BroadCast].DoProcess(msg)
 		case types.EventPeerInfo:
+			logger.Info("subP2PMsg", "Receive PeerInfo Request")
 			go p.Processer[PeerInfo].DoProcess(msg)
 		case types.EventFetchBlockHeaders:
 			go p.Processer[Header].DoProcess(msg)

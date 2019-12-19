@@ -1,4 +1,4 @@
-package protos
+package p2pnext
 
 import (
 	"io"
@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	p2p "github.com/33cn/chain33/p2pnext"
+	//p2p "github.com/33cn/chain33/p2pnext"
 
 	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
@@ -26,11 +26,11 @@ const (
 type DownloadBlockProtol struct {
 	client   queue.Client
 	done     chan struct{}
-	node     *p2p.Node                             // local host
+	node     *Node                                 // local host
 	requests map[string]*types.MessageGetBlocksReq // used to access request data from response handlers
 }
 
-func (d *DownloadBlockProtol) New(node *p2p.Node, cli queue.Client, done chan struct{}) p2p.Driver {
+func (d *DownloadBlockProtol) New(node *Node, cli queue.Client, done chan struct{}) Driver {
 
 	Server := &DownloadBlockProtol{}
 	node.Host.SetStreamHandler(downloadBlockReq, Server.OnReq)
@@ -50,14 +50,14 @@ func (d *DownloadBlockProtol) OnResp(s net.Stream) {
 		buf, err := ioutil.ReadAll(s)
 		if err != nil {
 			s.Reset()
-			logger.Error(err)
+			logger.Error("OnResp", err)
 			continue
 		}
 
 		// unmarshal it
 		proto.Unmarshal(buf, data)
 		if err != nil {
-			logger.Error(err)
+			logger.Error("Unmarshal", err)
 			continue
 		}
 

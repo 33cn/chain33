@@ -1,13 +1,13 @@
-package protos
+package p2pnext
 
 import (
 	"io"
 	"io/ioutil"
 	"time"
 
-	logging "github.com/ipfs/go-log"
+	//	logging "github.com/ipfs/go-log"
 
-	p2p "github.com/33cn/chain33/p2pnext"
+	//	p2p "github.com/33cn/chain33/p2pnext"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	proto "github.com/gogo/protobuf/proto"
@@ -20,17 +20,17 @@ const (
 	peerInfoResp = "/chain33/peerinfoResp/1.0.0"
 )
 
-var logger = logging.Logger("protos")
+//var logger = logging.Logger("protos")
 
 //type Istream
 type PeerInfoProtol struct {
 	client   queue.Client
 	done     chan struct{}
-	node     *p2p.Node                            // local host
+	node     *Node                                // local host
 	requests map[string]*types.MessagePeerInfoReq // used to access request data from response handlers
 }
 
-func (p *PeerInfoProtol) New(node *p2p.Node, cli queue.Client, done chan struct{}) p2p.Driver {
+func (p *PeerInfoProtol) New(node *Node, cli queue.Client, done chan struct{}) Driver {
 
 	Server := &PeerInfoProtol{}
 	node.Host.SetStreamHandler(peerInfoReq, Server.OnReq)
@@ -50,14 +50,14 @@ func (p *PeerInfoProtol) OnResp(s net.Stream) {
 		buf, err := ioutil.ReadAll(s)
 		if err != nil {
 			s.Reset()
-			logger.Error(err)
+			logger.Error("PeerInfoProtol", "read", err)
 			continue
 		}
 
 		// unmarshal it
 		proto.Unmarshal(buf, data)
 		if err != nil {
-			logger.Error(err)
+			logger.Error("PeerInfoProtol", "Unmarshal", err)
 			continue
 		}
 
@@ -240,5 +240,6 @@ func (p *PeerInfoProtol) DoProcess(msg *queue.Message) {
 	peer.Self = true
 	peers = append(peers, &peer)
 	msg.Reply(p.client.NewMessage("blockchain", types.EventPeerList, &types.PeerList{Peers: peers}))
+	logger.Info("PeerInfoProtol", "PeerInfo", "reply")
 
 }

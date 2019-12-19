@@ -24,7 +24,7 @@ func NewStreamManage(host host.Host) *StreamMange {
 func (s *StreamMange) newStream(ctx context.Context, pr peer.AddrInfo) (net.Stream, error) {
 	//可以后续添加 block.ID,mempool.ID,header.ID
 
-	stream, err := s.Host.NewStream(ctx, pr.ID)
+	stream, err := s.Host.NewStream(ctx, pr.ID, protoId...)
 	if err != nil {
 		return nil, err
 	}
