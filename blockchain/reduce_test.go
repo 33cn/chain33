@@ -242,6 +242,23 @@ func TestReduceBodyInit(t *testing.T) {
 	}
 }
 
+func TestReduceReceipts(t *testing.T) {
+	receipts := []*types.ReceiptData{
+		{Ty: 0, Logs: []*types.ReceiptLog{{Ty: 0, Log: []byte("000")}, {Ty: 0, Log: []byte("0000")}}},
+		{Ty: 1, Logs: []*types.ReceiptLog{{Ty: 111, Log: []byte("111")}, {Ty: 1111, Log: []byte("1111")}}},
+		{Ty: 2, Logs: []*types.ReceiptLog{{Ty: 222, Log: []byte("222")}, {Ty: 2222, Log: []byte("2222")}}},
+		{Ty: 3, Logs: []*types.ReceiptLog{{Ty: 333, Log: []byte("333")}, {Ty: 3333, Log: []byte("3333")}}},
+	}
+	reduceReceipts(receipts)
+
+	// check
+	for _, recpt := range receipts {
+		for _, log := range recpt.Logs {
+			assert.Nil(t, log.Log)
+		}
+	}
+}
+
 func TestFIFO(t *testing.T) {
 	fifo10 := NewFIFO(10)
 
