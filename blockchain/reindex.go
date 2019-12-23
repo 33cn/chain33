@@ -180,7 +180,7 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 
 		// 精简localdb
 		if chain.client.GetConfig().IsEnable("reduceLocaldb") && curHeight-SafetyReduceHeight > height {
-			chain.reduceIndexTx(newbatch, blockdetail.Block.GetTxs())
+			chain.reduceIndexTx(newbatch, blockdetail.GetBlock())
 			newbatch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 		}
 	} else {
@@ -189,6 +189,10 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 			if len(kv.GetKey()) != 0 && kv.GetValue() == nil {
 				newbatch.Delete(kv.GetKey())
 			}
+		}
+		// 精简localdb，为了提升效率，所有索引tx均生成，而不从数据库中读取，因此需要删除侧链生成的tx
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && curHeight-SafetyReduceHeight > height {
+			chain.deleteTx(newbatch, blockdetail.GetBlock())
 		}
 	}
 

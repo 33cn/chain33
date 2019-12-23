@@ -11,8 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/33cn/chain33/common"
-
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
@@ -89,8 +87,9 @@ func (chain *BlockChain) walkOver(start, end int64, sync bool, fn func(batch dbm
 
 // reduceBodyInit 将body中的receipt进行精简；将TxHashPerfix为key的TxResult中的receipt和tx字段进行精简
 func (chain *BlockChain) reduceBodyInit(batch dbm.Batch, height int64) {
-	body, err := chain.blockStore.LoadBlockBody(height)
+	blockDetail, err := chain.blockStore.LoadBlockByHeight(height)
 	if err == nil {
+		body := chain.blockStore.BlockdetailToBlockBody(blockDetail)
 		body.Receipts = reduceReceipts(body.Receipts)
 		kvs, err := saveBlockBodyTable(chain.blockStore.db, body)
 		if err != nil {
@@ -99,31 +98,37 @@ func (chain *BlockChain) reduceBodyInit(batch dbm.Batch, height int64) {
 		for _, kv := range kvs {
 			batch.Set(kv.GetKey(), kv.GetValue())
 		}
-		chain.reduceIndexTx(batch, body.Txs)
+		chain.reduceIndexTx(batch, blockDetail.GetBlock())
 	}
 }
 
 // reduceIndexTx 对数据库中的 hash-TX进行精简
-func (chain *BlockChain) reduceIndexTx(batch dbm.Batch, Txs []*types.Transaction) {
+func (chain *BlockChain) reduceIndexTx(batch dbm.Batch, block *types.Block) {
 	cfg := chain.client.GetConfig()
-	for _, tx := range Txs {
+	Txs := block.GetTxs()
+	for index, tx := range Txs {
 		hash := tx.Hash()
 		// 之前执行quickIndex时候未对无用hash做删除处理，占用空间，因此这里删除
 		if cfg.IsEnable("quickIndex") {
 			batch.Delete(hash)
 		}
 
-		value, err := chain.blockStore.db.Get(cfg.CalcTxKey(hash))
-		if err != nil {
-			continue
-		}
-		txresult := &types.TxResult{}
-		err = types.Decode(value, txresult)
-		if err != nil {
-			chainlog.Error("reduceIndexTx decode", "tx hash ", common.HashHex(hash), "error", err)
-			continue
+		// 为了提高效率组合生成txresult,不从数据库中读取已有txresult
+		txresult := &types.TxResult{
+			Height:     block.Height,
+			Index:      int32(index),
+			Blocktime:  block.BlockTime,
+			ActionName: tx.ActionName(),
 		}
 		batch.Set(cfg.CalcTxKey(hash), cfg.CalcTxKeyValue(txresult))
+	}
+}
+
+func (chain *BlockChain) deleteTx(batch dbm.Batch, block *types.Block) {
+	cfg := chain.client.GetConfig()
+	Txs := block.GetTxs()
+	for _, tx := range Txs {
+		batch.Delete(cfg.CalcTxKey(tx.Hash()))
 	}
 }
 
