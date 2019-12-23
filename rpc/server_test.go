@@ -5,12 +5,12 @@
 package rpc
 
 import (
-	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/common"
 	qmocks "github.com/33cn/chain33/queue/mocks"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -120,7 +120,7 @@ func TestJSONClient_Call(t *testing.T) {
 }
 
 func testDecodeTxHex(t *testing.T, txHex string) *types.Transaction {
-	txbytes, err := hex.DecodeString(txHex)
+	txbytes, err := common.FromHex(txHex)
 	assert.Nil(t, err)
 	var tx types.Transaction
 	err = types.Decode(txbytes, &tx)
