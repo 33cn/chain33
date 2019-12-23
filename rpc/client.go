@@ -171,7 +171,7 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 	}
 	var transactions []*types.Transaction
 	for _, t := range param.Txs {
-		txByte, err := hex.DecodeString(t)
+		txByte, err := common.FromHex(t)
 		if err != nil {
 			return nil, err
 		}
@@ -276,7 +276,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 
 func decodeTx(hexstr string) (*types.Transaction, error) {
 	var tx types.Transaction
-	data, err := hex.DecodeString(hexstr)
+	data, err := common.FromHex(hexstr)
 	if err != nil {
 		return nil, err
 	}

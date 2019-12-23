@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	pb "github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
@@ -739,7 +740,7 @@ func testGetHexTxByHashOK(t *testing.T) {
 	var td = &types.TransactionDetail{Tx: tx}
 	var tdNil = &types.TransactionDetail{Tx: nil}
 
-	encodetx := hex.EncodeToString(pb.Encode(tx))
+	encodetx := common.ToHex(pb.Encode(tx))
 
 	qapi.On("QueryTx", in).Return(tdNil, nil).Once()
 	data, err := g.GetHexTxByHash(getOkCtx(), in)
