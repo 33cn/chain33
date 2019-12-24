@@ -7,13 +7,17 @@ set -o pipefail
 
 # os: ubuntu16.04 x64
 
+CHAIN33_PATH=$(go list -f '{{.Dir}}' github.com/33cn/chain33)
+if [[ $1 != "chain33" ]]; then
+    PLUGIN_PATH=$(go list -f '{{.Dir}}' github.com/33cn/plugin)
+fi
 #chain33 dapp autotest root directory
 declare -a Chain33AutoTestDirs=("${CHAIN33_PATH}/system" "${PLUGIN_PATH}/plugin")
 
 #copy auto test to specific directory
 # check args
-if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 directory list"
+if [[ $# -lt 2 ]]; then
+    echo "Usage: $0 chain33 directory list"
     exit 1
 fi
 
@@ -68,10 +72,11 @@ function copyChain33() {
     cp "${CHAIN33_PATH}"/cmd/chain33/chain33.test.toml "$1"
 }
 
-for dir in "$@"; do
+for ((i = 2; i <= $#; i++)); do
 
+    dir=${!i}
     #check dir exist
-    if [ ! -d "${dir}" ]; then
+    if [[ ! -d ${dir} ]]; then
         mkdir "${dir}"
     fi
     cp autotest "${dir}"
