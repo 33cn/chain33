@@ -19,6 +19,11 @@ func TestChainConfig(t *testing.T) {
 	adata, err := cfg.G("a")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, adata.(bool), true)
+
+	// tx fee config
+	assert.Equal(t, cfg.GetMaxTxFee(), int64(1e9))
+	assert.Equal(t, cfg.GetMaxTxFeeRate(), int64(1e7))
+	assert.Equal(t, cfg.GetMinTxFeeRate(), int64(1e5))
 }
 
 //测试实际的配置文件
@@ -42,6 +47,12 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, confsystem.GInt("ForkV16Withdraw"), int64(480000))
 	confsubtoken := Conf(cfg, "config.fork.sub.token")
 	assert.Equal(t, confsubtoken.GInt("Enable"), int64(100899))
+	// tx fee config
+	assert.Equal(t, int64(1e8), cfg.GetMaxTxFee())
+	assert.Equal(t, int64(1e6), cfg.GetMaxTxFeeRate())
+	assert.Equal(t, int64(1e4), cfg.GetMinTxFeeRate())
+	cfg.SetTxFeeConfig(1e9, 1e9, 1e9)
+	assert.True(t, int64(1e9) == cfg.GetMinTxFeeRate() && cfg.GetMaxTxFeeRate() == cfg.GetMaxTxFee())
 }
 
 func TestBityuanInit(t *testing.T) {
@@ -49,7 +60,6 @@ func TestBityuanInit(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(200000), cfg.Fork.System["ForkWithdraw"])
 	assert.Equal(t, int64(0), cfg.Fork.Sub["token"]["Enable"])
-	assert.Nil(t, err)
 }
 
 func TestGetParaExecTitleName(t *testing.T) {

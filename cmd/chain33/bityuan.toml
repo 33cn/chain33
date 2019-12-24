@@ -78,6 +78,12 @@ keyFile="key.pem"
 [mempool]
 # 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
+# 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
+minTxFeeRate=100000
+# 最大的交易手续费率, 0.1 coins
+maxTxFeeRate=10000000
+# 单笔交易最大的手续费, 10 coins
+maxTxFee=1000000000
 
 [store]
 # 数据文件存储路径

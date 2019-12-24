@@ -63,9 +63,13 @@ grpcFuncWhitelist=["*"]
 
 [mempool]
 poolCacheSize=10240
-minTxFee=100000
+# 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
+minTxFeeRate=10000
+# 最大的交易手续费率, 0.1 coins
+maxTxFeeRate=1000000
+# 单笔交易最大的手续费, 10 coins
+maxTxFee=100000000
 maxTxNumPerAccount=10000
-maxTxFee=1000000000
 
 [consensus]
 name="ticket"
@@ -118,9 +122,7 @@ minerdisable=false
 minerwhitelist=["*"]
 
 [exec]
-isFree=false
-minExecFee=100000
-maxExecFee=1000000000
+#交易费相关统一在mempool中配置0
 enableStat=false
 enableMVCC=false
 alias=["token1:token","token2:token","token3:token"]
