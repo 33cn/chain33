@@ -33,7 +33,7 @@ func TestFormatTx(t *testing.T) {
 	tx, err := FormatTx(cfg, "user.p.none", tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("user.p.none"))
-	fee, _ := tx.GetRealFee(cfg.GInt("MinFee"))
+	fee, _ := tx.GetRealFee(cfg.GetMinTxFeeRate())
 	assert.Equal(t, tx.Fee, fee)
 }
 
@@ -67,7 +67,7 @@ func TestCallCreateTxJSON(t *testing.T) {
 	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
-	fee, _ := tx.GetRealFee(cfg.GInt("MinFee"))
+	fee, _ := tx.GetRealFee(cfg.GetMinTxFeeRate())
 	assert.Equal(t, tx.Fee, fee)
 
 	_, err = CallCreateTxJSON(cfg, "coins", "Modify", data)
@@ -91,7 +91,7 @@ func TestCallCreateTxJSON(t *testing.T) {
 	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
-	fee, _ = tx.GetRealFee(cfg.GInt("MinFee"))
+	fee, _ = tx.GetRealFee(cfg.GetMinTxFeeRate())
 	assert.Equal(t, tx.Fee, fee)
 
 }
@@ -112,7 +112,7 @@ func TestCallCreateTx(t *testing.T) {
 	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
-	fee, _ := tx.GetRealFee(cfg.GInt("MinFee"))
+	fee, _ := tx.GetRealFee(cfg.GetMinTxFeeRate())
 	assert.Equal(t, tx.Fee, fee)
 
 	_, err = CallCreateTx(cfg, "coins", "Modify", modify)
@@ -134,7 +134,7 @@ func TestCallCreateTx(t *testing.T) {
 	err = Decode(result, &tx)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, tx.Execer, []byte("manage"))
-	fee, _ = tx.GetRealFee(cfg.GInt("MinFee"))
+	fee, _ = tx.GetRealFee(cfg.GetMinTxFeeRate())
 	assert.Equal(t, tx.Fee, fee)
 }
 

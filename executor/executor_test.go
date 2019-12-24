@@ -50,7 +50,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.Coin))
 	//执行三笔交易: 全部正确
-	txgroup, err := types.CreateTxGroup(txs, cfg.GInt("MinFee"))
+	txgroup, err := types.CreateTxGroup(txs, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return

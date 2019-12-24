@@ -223,7 +223,7 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 			panic("config must meet: wallet.minFee >= mempool.minTxFeeRate")
 		}
 		if cfg.Mempool.MaxTxFeeRate == 0 {
-			cfg.Mempool.MaxTxFeeRate = 1e7 //0.01 coins
+			cfg.Mempool.MaxTxFeeRate = 1e7 //0.1 coins
 		}
 		if cfg.Mempool.MaxTxFee == 0 {
 			cfg.Mempool.MaxTxFee = 1e9 // 10 coins
