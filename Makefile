@@ -53,7 +53,7 @@ build: ## Build the binary file
 	@cp cmd/chain33/bityuan.toml build/
 
 release: ## Build the binary file
-	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
+	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/bityuan.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
@@ -72,7 +72,7 @@ para:
 autotest:## build autotest binary
 	@go build -v -i -o $(AUTOTEST) $(SRC_AUTOTEST)
 	@if [ -n "$(dapp)" ]; then \
-		cd build/autotest && bash ./copy-autotest.sh local && cd local && bash ./local-autotest.sh $(dapp) && cd ../../../; \
+		cd build/autotest && bash ./copy-autotest.sh chain33 local && cd local && bash ./local-autotest.sh $(dapp) && cd ../../../; \
 	fi
 autotest_ci: autotest ## autotest jerkins ci
 	@cd build/autotest && bash ./copy-autotest.sh jerkinsci/temp$(proj) && cd jerkinsci && bash ./jerkins-ci-autotest.sh $(proj) && cd ../../../
@@ -183,7 +183,7 @@ help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
 	@printf "[command]\n"
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-	
+
 cleandata:
 	rm -rf build/datadir/addrbook
 	rm -rf build/datadir/blockchain.db
