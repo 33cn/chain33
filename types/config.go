@@ -460,6 +460,21 @@ func (c *Chain33Config) IsLocal() bool {
 	return c.isLocal()
 }
 
+// GetMinTxFeeRate get min transaction fee rate
+func (c *Chain33Config) GetMinTxFeeRate() int64 {
+	return c.GInt("MinTxFeeRate")
+}
+
+// GetMaxTxFeeRate get max transaction fee rate
+func (c *Chain33Config) GetMaxTxFeeRate() int64 {
+	return c.GInt("MaxTxFeeRate")
+}
+
+// GetMaxTxFee get max transaction fee
+func (c *Chain33Config) GetMaxTxFee() int64 {
+	return c.GInt("MaxTxFee")
+}
+
 // SetMinFee 设置最小费用
 func (c *Chain33Config) SetMinFee(fee int64) {
 	c.mu.Lock()
