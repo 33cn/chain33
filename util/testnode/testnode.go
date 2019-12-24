@@ -191,12 +191,8 @@ func (mock *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
 }
 
 func setFee(cfg *types.Config, fee int64) {
-	cfg.Exec.MinExecFee = fee
 	cfg.Mempool.MinTxFeeRate = fee
 	cfg.Wallet.MinFee = fee
-	if fee == 0 {
-		cfg.Exec.IsFree = true
-	}
 }
 
 //GetJSONC :
