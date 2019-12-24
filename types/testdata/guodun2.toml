@@ -66,7 +66,7 @@ keyFile="key.pem"
 
 [mempool]
 poolCacheSize=102400
-minTxFee=100000
+minTxFeeRate=100000
 maxTxNumPerAccount=100
 maxTxFee=1000000000
 
@@ -146,9 +146,7 @@ minerdisable=false
 minerwhitelist=["*"]
 
 [exec]
-isFree=false
-minExecFee=100000
-maxExecFee=1000000000
+#交易费相关统一在mempool中配置
 enableStat=false
 enableMVCC=false
 
