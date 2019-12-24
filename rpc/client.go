@@ -182,7 +182,7 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 		}
 		transactions = append(transactions, &transaction)
 	}
-	feeRate := cfg.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	//get proper fee rate
 	proper, err := c.GetProperFee(nil)
 	if err != nil {
@@ -241,7 +241,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 		return nil, types.ErrInvalidExpire
 	}
 
-	feeRate := cfg.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	//get proper fee rate
 	proper, err := c.GetProperFee(nil)
 	if err != nil {
@@ -255,7 +255,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(cfg, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	if err != nil {
 		return nil, err
 	}

@@ -73,7 +73,7 @@ func TestFilterParaTxsByTitle(t *testing.T) {
 	txs.Txs = append(txs.Txs, tx1)
 	txs.Txs = append(txs.Txs, tx2)
 	txs.Txs = append(txs.Txs, tx3)
-	feeRate := cfg.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	group, err := CreateTxGroup(txs.Txs, feeRate)
 	require.NoError(t, err)
 

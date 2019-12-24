@@ -55,7 +55,7 @@ func TestTxGroup(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
 	cfg := mock33.GetClient().GetConfig()
-	prev := cfg.GInt("MinFee")
+	prev := cfg.GetMinTxFeeRate()
 	cfg.SetMinFee(100000)
 	defer cfg.SetMinFee(prev)
 	mcfg := mock33.GetCfg()
@@ -72,7 +72,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.Coin))
 	//执行三笔交易: 全部正确
-	feeRate := cfg.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	txgroup, err := types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
@@ -154,7 +154,7 @@ func TestExecAllow(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
 	cfg := mock33.GetClient().GetConfig()
-	prev := cfg.GInt("MinFee")
+	prev := cfg.GetMinTxFeeRate()
 	cfg.SetMinFee(100000)
 	defer cfg.SetMinFee(prev)
 	genkey := mock33.GetGenesisKey()

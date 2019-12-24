@@ -70,7 +70,7 @@ func addGroupParaTx(cfg *types.Chain33Config, priv crypto.PrivKey, api client.Qu
 	txs.Txs = append(txs.Txs, tx2)
 	txs.Txs = append(txs.Txs, tx3)
 	txs.Txs = append(txs.Txs, tx4)
-	feeRate := cfg.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	group, err := types.CreateTxGroup(txs.Txs, feeRate)
 	if err != nil {
 		chainlog.Error("addGroupParaTx", "err", err.Error())

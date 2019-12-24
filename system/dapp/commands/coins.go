@@ -213,12 +213,12 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 		types.Decode(txByte, &transaction)
 		transactions = append(transactions, &transaction)
 	}
-	group, err := types.CreateTxGroup(transactions, cfg.GInt("MinFee"))
+	group, err := types.CreateTxGroup(transactions, cfg.GetMinTxFeeRate())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	err = group.CheckWithFork(cfg, true, true, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = group.CheckWithFork(cfg, true, true, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

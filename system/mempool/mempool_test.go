@@ -182,7 +182,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-	mem.SetMinFee(cfg.GInt("MinFee"))
+	mem.SetMinFee(cfg.GetMinTxFeeRate())
 	mem.Wait()
 	return q, mem
 }
@@ -203,7 +203,7 @@ func initEnv4(size int) (queue.Queue, *Mempool) {
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-	mem.SetMinFee(cfg.GInt("MinFee"))
+	mem.SetMinFee(cfg.GetMinTxFeeRate())
 	mem.Wait()
 	return q, mem
 }
@@ -856,7 +856,7 @@ func TestAddTxGroup(t *testing.T) {
 	crouptx3 := types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
 	crouptx4 := types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
 
-	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&crouptx1, &crouptx2, &crouptx3, &crouptx4}, cfg.GInt("MinFee"))
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&crouptx1, &crouptx2, &crouptx3, &crouptx4}, cfg.GetMinTxFeeRate())
 
 	for i := range txGroup.Txs {
 		err := txGroup.SignN(i, types.SECP256K1, mainPriv)
@@ -940,7 +940,7 @@ func TestLevelFeeBigByte(t *testing.T) {
 	}
 
 	//test group high fee , feeRate = 10 * minfee
-	txGroup, err := types.CreateTxGroup([]*types.Transaction{bigTx4, bigTx5, bigTx6, bigTx7, bigTx8, bigTx9, bigTx10, bigTx11}, cfg.GInt("MinFee"))
+	txGroup, err := types.CreateTxGroup([]*types.Transaction{bigTx4, bigTx5, bigTx6, bigTx7, bigTx8, bigTx9, bigTx10, bigTx11}, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error("CreateTxGroup err ", err.Error())
 	}
