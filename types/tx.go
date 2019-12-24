@@ -821,3 +821,12 @@ func TransactionSort(rawtxs []*Transaction) []*Transaction {
 	}
 	return txs.GetTxs()
 }
+
+//FullHash 交易的fullhash包含交易的签名信息，
+//hash不包含header的值，引入tx group的概念后，做了修改
+func (tx *Transaction) FullHash() []byte {
+	copytx := clone(tx)
+	copytx.Header = nil
+	data := Encode(copytx)
+	return common.Sha256(data)
+}
