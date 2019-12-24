@@ -125,11 +125,15 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	for index, pChainTx := range paraChainTxs.Items {
 		assert.Equal(t, pChainTx.Header.Height, paraTxs.Items[index].Height)
 		assert.Equal(t, pChainTx.Header.Hash, paraTxs.Items[index].Hash)
-
+		blockheight := pChainTx.Header.Height
 		//子roothash的proof证明验证
 		var hashes [][]byte
 		for _, tx := range pChainTx.GetTxDetails() {
-			hashes = append(hashes, tx.GetTx().Hash())
+			if cfg.IsFork(blockheight, "ForkRootHash") {
+				hashes = append(hashes, tx.GetTx().FullHash())
+			} else {
+				hashes = append(hashes, tx.GetTx().Hash())
+			}
 		}
 		childHash := merkle.GetMerkleRoot(hashes)
 		root := merkle.GetMerkleRootFromBranch(pChainTx.GetProofs(), childHash, pChainTx.Index)

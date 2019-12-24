@@ -245,6 +245,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	defer func() {
 		chainlog.Info("ProcAddBlockMsg", "cost", types.Since(beg))
 	}()
+
 	block := blockdetail.Block
 	if block == nil {
 		chainlog.Error("ProcAddBlockMsg input block is null")

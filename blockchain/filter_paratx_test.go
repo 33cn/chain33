@@ -313,10 +313,19 @@ func testParaTxByHeight(cfg *types.Chain33Config, t *testing.T, blockchain *bloc
 	require.NoError(t, err)
 	merkleroothash := block.Block.GetTxHash()
 
+	blockheight := block.Block.GetHeight()
+	if cfg.IsPara() {
+		blockheight = block.Block.GetMainHeight()
+	}
+
 	for txindex, tx := range block.Block.Txs {
-		txhash := tx.Hash()
 		txProof, err := blockchain.ProcQueryTxMsg(tx.Hash())
 		require.NoError(t, err)
+		txhash := tx.Hash()
+		if cfg.IsFork(blockheight, "ForkRootHash") {
+			txhash = tx.FullHash()
+		}
+
 		//证明txproof的正确性,
 		if txProof.GetProofs() != nil { //ForkRootHash 之前的proof证明
 			brroothash := merkle.GetMerkleRootFromBranch(txProof.GetProofs(), txhash, uint32(txindex))

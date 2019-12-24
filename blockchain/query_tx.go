@@ -5,6 +5,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/33cn/chain33/common"
@@ -81,12 +82,11 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	return &txDetails, nil
 }
 
-//getTransactionProofs 获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
-func getTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, error) {
+//getTxHashProofs 获取指定txindex在txs中的proof ，注释：index从0开始
+func getTxHashProofs(Txs []*types.Transaction, index int32) [][]byte {
 	txlen := len(Txs)
-
-	//计算tx的hash值
 	leaves := make([][]byte, txlen)
+
 	for index, tx := range Txs {
 		leaves[index] = tx.Hash()
 	}
@@ -94,7 +94,7 @@ func getTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, erro
 	proofs := merkle.GetMerkleBranch(leaves, uint32(index))
 	chainlog.Debug("getTransactionDetail", "index", index, "proofs", proofs)
 
-	return proofs, nil
+	return proofs
 }
 
 //GetTxResultFromDb 通过txhash 从txindex db中获取tx信息
@@ -172,10 +172,13 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 
 	var txDetail types.TransactionDetail
 	cfg := chain.client.GetConfig()
-
-	//获取指定tx在txlist中的proof,fork前的主链节点和平行链节点都是一层merkle树
-	if !cfg.IsFork(txresult.Height, "ForkRootHash") || chain.isParaChain {
-		proofs, _ := getTransactionProofs(block.Block.Txs, txresult.Index)
+	height := block.Block.GetHeight()
+	if chain.isParaChain {
+		height = block.Block.GetMainHeight()
+	}
+	//获取指定tx在txlist中的proof,需要区分ForkRootHash前后proof证明数据
+	if !cfg.IsFork(height, "ForkRootHash") {
+		proofs := getTxHashProofs(block.Block.Txs, txresult.Index)
 		txDetail.Proofs = proofs
 	} else {
 		txproofs := chain.getMultiLayerProofs(txresult.Height, block.Block.Hash(cfg), block.Block.Txs, txresult.Index)
@@ -253,4 +256,96 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	chainlog.Debug("GetAddrTxsCount", "TxCount ", addrOverview.TxCount)
 
 	return &addrOverview, nil
+}
+
+//getTxFullHashProofs 获取指定txinde在txs中的proof, ForkRootHash之后使用fullhash来计算
+func getTxFullHashProofs(Txs []*types.Transaction, index int32) [][]byte {
+	txlen := len(Txs)
+	leaves := make([][]byte, txlen)
+
+	for index, tx := range Txs {
+		leaves[index] = tx.FullHash()
+	}
+
+	proofs := merkle.GetMerkleBranch(leaves, uint32(index))
+	chainlog.Debug("getTxProofs", "index", index, "proofs", proofs)
+
+	return proofs
+}
+
+//获取指定交易在子链中的路径证明,使用fullhash
+func (chain *BlockChain) getMultiLayerProofs(height int64, blockHash []byte, Txs []*types.Transaction, index int32) []*types.TxProof {
+	var proofs []*types.TxProof
+
+	//平行链节点上的交易都是单层merkle树，使用FullHash直接计算即可
+	if chain.isParaChain {
+		txProofs := getTxFullHashProofs(Txs, index)
+		proof := types.TxProof{Proofs: txProofs, Index: uint32(index)}
+		proofs = append(proofs, &proof)
+		return proofs
+	}
+
+	//主链节点的处理
+	title, haveParaTx := types.GetParaExecTitleName(string(Txs[index].Execer))
+	if !haveParaTx {
+		title = types.MainChainName
+	}
+
+	replyparaTxs, err := chain.LoadParaTxByHeight(height, "", 0, 1)
+	if err != nil || 0 == len(replyparaTxs.Items) {
+		filterlog.Error("getMultiLayerProofs", "height", height, "blockHash", common.ToHex(blockHash), "err", err)
+		return nil
+	}
+
+	//获取本子链的第一笔交易的index值，以及最后一笔交易的index值
+	var startIndex int32
+	var childIndex uint32
+	var hashes [][]byte
+	var exist bool
+	var childHash []byte
+	var txCount int32
+
+	for _, paratx := range replyparaTxs.Items {
+		if title == paratx.Title && bytes.Equal(blockHash, paratx.GetHash()) {
+			startIndex = paratx.GetStartIndex()
+			childIndex = paratx.ChildHashIndex
+			childHash = paratx.ChildHash
+			txCount = paratx.GetTxCount()
+			exist = true
+		}
+		hashes = append(hashes, paratx.ChildHash)
+	}
+	//只有主链的交易,没有其他平行链的交易
+	if len(replyparaTxs.Items) == 1 && startIndex == 0 && childIndex == 0 {
+		txProofs := getTxFullHashProofs(Txs, index)
+		proof := types.TxProof{Proofs: txProofs, Index: uint32(index)}
+		proofs = append(proofs, &proof)
+		return proofs
+	}
+
+	endindex := startIndex + txCount
+	//不存在或者获取到的索引错误直接返回
+	if !exist || startIndex > index || endindex > int32(len(Txs)) || childIndex >= uint32(len(replyparaTxs.Items)) {
+		filterlog.Error("getMultiLayerProofs", "height", height, "blockHash", common.ToHex(blockHash), "exist", exist, "replyparaTxs", replyparaTxs)
+		filterlog.Error("getMultiLayerProofs", "startIndex", startIndex, "index", index, "childIndex", childIndex)
+		return nil
+	}
+
+	//主链和平行链交易都存在,获取本子链所有交易的hash值
+	var childHashes [][]byte
+	for i := startIndex; i < endindex; i++ {
+		childHashes = append(childHashes, Txs[i].FullHash())
+	}
+	txOnChildIndex := index - startIndex
+
+	//计算单笔交易在子链中的路径证明
+	txOnChildBranch := merkle.GetMerkleBranch(childHashes, uint32(txOnChildIndex))
+	txproof := types.TxProof{Proofs: txOnChildBranch, Index: uint32(txOnChildIndex), RootHash: childHash}
+	proofs = append(proofs, &txproof)
+
+	//子链在整个区块中的路径证明
+	childBranch := merkle.GetMerkleBranch(hashes, childIndex)
+	childproof := types.TxProof{Proofs: childBranch, Index: childIndex}
+	proofs = append(proofs, &childproof)
+	return proofs
 }
