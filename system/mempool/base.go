@@ -104,7 +104,7 @@ func (mem *Mempool) Size() int {
 // SetMinFee 设置最小交易费用
 func (mem *Mempool) SetMinFee(fee int64) {
 	mem.proxyMtx.Lock()
-	mem.cfg.MinTxFee = fee
+	mem.cfg.MinTxFeeRate = fee
 	mem.proxyMtx.Unlock()
 }
 
@@ -301,7 +301,7 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 	}
 	feeRate := mem.cache.GetProperFee()
 	if mem.cfg.IsLevelFee {
-		levelFeeRate := mem.getLevelFeeRate(mem.cfg.MinTxFee, req.TxCount, req.TxSize)
+		levelFeeRate := mem.getLevelFeeRate(mem.cfg.MinTxFeeRate, req.TxCount, req.TxSize)
 		if levelFeeRate > feeRate {
 			feeRate = levelFeeRate
 		}
@@ -359,7 +359,7 @@ func (mem *Mempool) delBlock(block *types.Block) {
 			tx = group.Tx()
 			i = i + groupCount - 1
 		}
-		err := tx.Check(cfg, header.GetHeight(), mem.cfg.MinTxFee, mem.cfg.MaxTxFee)
+		err := tx.Check(cfg, header.GetHeight(), mem.cfg.MinTxFeeRate, mem.cfg.MaxTxFee)
 		if err != nil {
 			continue
 		}
