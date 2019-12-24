@@ -158,7 +158,7 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	cfg.SetMinFee(0)
 	s := store.New(cfg)
 	s.SetQueueClient(q.Client())
-	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFee}
+	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFeeRate}
 	mem := NewMempool(mcfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
@@ -177,7 +177,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	blockchainProcess(q)
 	execProcess(q)
 	mcfg.Mempool.PoolCacheSize = int64(size)
-	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFee}
+	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFeeRate}
 	mem := NewMempool(mcfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
@@ -198,7 +198,7 @@ func initEnv4(size int) (queue.Queue, *Mempool) {
 	blockchainProcess(q)
 	execProcess(q)
 	mcfg.Mempool.PoolCacheSize = int64(size)
-	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFee}
+	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFeeRate}
 	mem := NewMempool(mcfg.Mempool)
 	mem.SetQueueCache(NewSimpleQueue(subConfig))
 	mem.SetQueueClient(q.Client())
@@ -643,7 +643,7 @@ func TestGetProperFee(t *testing.T) {
 	mem.client.Send(msg11, true)
 	mem.client.Wait(msg11)
 
-	baseFee := testProperFee(t, mem.client, nil, mem.cfg.MinTxFee)
+	baseFee := testProperFee(t, mem.client, nil, mem.cfg.MinTxFeeRate)
 	mem.cfg.IsLevelFee = true
 	testProperFee(t, mem.client, nil, baseFee)
 	testProperFee(t, mem.client, &types.ReqProperFee{}, baseFee)
