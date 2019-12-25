@@ -823,10 +823,9 @@ func TransactionSort(rawtxs []*Transaction) []*Transaction {
 }
 
 //FullHash 交易的fullhash包含交易的签名信息，
-//hash不包含header的值，引入tx group的概念后，做了修改
+//这里做了clone 主要是因为 Encode 可能会修改 tx 的 Size 字段，可能会引起data race
 func (tx *Transaction) FullHash() []byte {
 	copytx := clone(tx)
-	copytx.Header = nil
 	data := Encode(copytx)
 	return common.Sha256(data)
 }
