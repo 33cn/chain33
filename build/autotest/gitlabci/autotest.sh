@@ -123,14 +123,14 @@ function start() {
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
-#    echo "=========== check genesis hash ========== "
-#    ${CLI} block hash -t 0
-#    res=$(${CLI} block hash -t 0 | jq ".hash")
-#    count=$(echo "$res" | grep -c "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6")
-#    if [ "${count}" != 1 ]; then
-#        echo "genesis hash error!"
-#        exit 1
-#    fi
+    #    echo "=========== check genesis hash ========== "
+    #    ${CLI} block hash -t 0
+    #    res=$(${CLI} block hash -t 0 | jq ".hash")
+    #    count=$(echo "$res" | grep -c "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6")
+    #    if [ "${count}" != 1 ]; then
+    #        echo "genesis hash error!"
+    #        exit 1
+    #    fi
 
     echo "=========== query height ========== "
     ${CLI} block last_header
