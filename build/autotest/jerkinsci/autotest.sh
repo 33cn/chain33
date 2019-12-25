@@ -18,13 +18,11 @@ export PATH="$PWD:$PATH"
 PROJECT_NAME="${1}"
 if [[ ${PROJECT_NAME} == "" ]]; then
     PROJECT_NAME="build"
-    rm -rf ../jerkinsci/tempbuild
-    mv -f ./temp tempbuild
 fi
 
 NODE3="${PROJECT_NAME}_autotest_1"
 CLI="docker exec ${NODE3} /root/chain33-cli"
-TEMP_CI_DIR=temp"${PROJECT_NAME}"
+TEMP_CI_DIR=ci-"${PROJECT_NAME}"
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
@@ -151,18 +149,24 @@ function stop_chain33() {
     docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down
     echo "=========== #remove related images ============"
     docker rmi "${PROJECT_NAME}"_autotest || true
-    cd ../ && rm -rf ./"${TEMP_CI_DIR}"
+    pwd
+    cd ../ && rm -rf ./"$TEMP_CI_DIR"
     exit ${rv}
 }
 
 function main() {
 
-    cd "${TEMP_CI_DIR}" && cp ../compose-autotest.yml ../Dockerfile-autotest ./
+    if [[ -d $TEMP_CI_DIR ]]; then
+        rm -rf ./"$TEMP_CI_DIR"
+    fi
+    mkdir "$TEMP_CI_DIR" && cd "$TEMP_CI_DIR"
+    mv ../autotest ../*.toml ./ && mv ../chain33* ./
+    cp ../compose-autotest.yml ../Dockerfile-autotest ./
+
     config_chain33
     config_autotest
     start_chain33
     start_autotest
-
 }
 
 #trap exit

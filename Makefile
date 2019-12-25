@@ -72,10 +72,9 @@ para:
 autotest:## build autotest binary
 	@go build -v -i -o $(AUTOTEST) $(SRC_AUTOTEST)
 	@if [ -n "$(dapp)" ]; then \
-		cd build/autotest && bash ./copy-autotest.sh chain33 local && cd local && bash ./local-autotest.sh $(dapp) && cd ../../../; \
-	fi
+		cd build/autotest && ./run.sh local $(dapp) && cd ../../; fi
 autotest_ci: autotest ## autotest jerkins ci
-	@cd build/autotest && bash ./copy-autotest.sh jerkinsci/temp$(proj) && cd jerkinsci && bash ./jerkins-ci-autotest.sh $(proj) && cd ../../../
+	@cd build/autotest && ./run.sh jerkinsci $(proj) && cd ../../
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..

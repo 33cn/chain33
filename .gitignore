@@ -35,9 +35,8 @@ cmd/execblock/execblock
 cmd/miner_accounts/miner_accounts
 cmd/write/write
 build/autotest/autotest
-build/autotest/local/*.toml
-build/autotest/local/autotest*
-build/autotest/local/chain33*
+build/autotest/local/*
+!build/autotest/local/autotest.sh
 plugin/consensus/raft/chain33_raft-1/
 common/mavl/datastore
 .DS_Store
