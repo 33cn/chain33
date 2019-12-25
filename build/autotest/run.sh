@@ -7,22 +7,11 @@ set -o pipefail
 
 # os: ubuntu16.04 x64
 
-CHAIN33_PATH=$(go list -f '{{.Dir}}' github.com/33cn/chain33)
-if [[ $1 != "chain33" ]]; then
-    PLUGIN_PATH=$(go list -f '{{.Dir}}' github.com/33cn/plugin)
-fi
-#chain33 dapp autotest root directory
-declare -a Chain33AutoTestDirs=("${CHAIN33_PATH}/system" "${PLUGIN_PATH}/plugin")
-
-#copy auto test to specific directory
-# check args
-if [[ $# -lt 2 ]]; then
-    echo "Usage: $0 chain33 directory list"
-    exit 1
-fi
+CHAIN33_PATH=../../
 
 function copyAutoTestConfig() {
 
+    declare -a Chain33AutoTestDirs=("${CHAIN33_PATH}/system")
     echo "#copy auto test config to path \"$1\""
     local AutoTestConfigFile="$1/autotest.toml"
 
@@ -72,9 +61,9 @@ function copyChain33() {
     cp "${CHAIN33_PATH}"/cmd/chain33/chain33.test.toml "$1"
 }
 
-for ((i = 2; i <= $#; i++)); do
+function copyAll() {
 
-    dir=${!i}
+    dir="$1"
     #check dir exist
     if [[ ! -d ${dir} ]]; then
         mkdir "${dir}"
@@ -83,5 +72,13 @@ for ((i = 2; i <= $#; i++)); do
     copyAutoTestConfig "${dir}"
     copyChain33 "${dir}"
     echo "# all copy have done!"
+}
 
-done
+function main() {
+
+    dir="$1"
+    copyAll "$dir" && cd "$dir" && ./autotest.sh "${@:2}" && cd ../
+
+}
+
+main "$@"
