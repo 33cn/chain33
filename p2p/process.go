@@ -301,17 +301,18 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string, pubP
 	}
 	nilTxLen := len(nilTxIndices)
 	//需要比较交易根哈希是否一致, 不一致需要请求区块内所有的交易
-	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) &&
-		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(n.cfg, block.Height, block.Txs)) {
-
-		log.Debug("recvLtBlock", "height", block.GetHeight(), "peerAddr", peerAddr,
-			"blockHash", blockHash, "block size(KB)", float32(ltBlock.Size)/1024)
-		//发送至blockchain执行
-		if err := n.postBlockChain(block, pid); err != nil {
-			log.Error("recvLtBlock", "send block to blockchain Error", err.Error())
+	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) {
+		if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(n.cfg, block.Height, block.Txs)) {
+			log.Debug("recvLtBlock", "height", block.GetHeight(), "peerAddr", peerAddr,
+				"blockHash", blockHash, "block size(KB)", float32(ltBlock.Size)/1024)
+			//发送至blockchain执行
+			if err := n.postBlockChain(block, pid); err != nil {
+				log.Error("recvLtBlock", "send block to blockchain Error", err.Error())
+			}
+			return
 		}
-
-		return
+		log.Debug("recvLtBlock:TxHashCheckFail", "height", block.GetHeight(), "peerAddr", peerAddr,
+			"blockHash", blockHash, "block.Txs", block.Txs)
 	}
 	// 缺失的交易个数大于总数1/3 或者缺失数据大小大于2/3, 触发请求区块所有交易数据
 	if nilTxLen > 0 && (float32(nilTxLen) > float32(ltBlock.Header.TxCount)/3 ||
