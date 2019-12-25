@@ -321,6 +321,11 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		tx.Fromaddr, tx.Tx.To = tx.Tx.To, tx.Fromaddr
 		tran.To = tx.Tx.GetRealToAddr()
 	}
+	//交易fullhash
+	var fullhash string
+	if len(tx.GetFullHash()) != 0 {
+		fullhash = common.ToHex(tx.GetFullHash())
+	}
 	return &rpctypes.TransactionDetail{
 		Tx:         tran,
 		Height:     tx.GetHeight(),
@@ -333,6 +338,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		ActionName: tx.GetActionName(),
 		Assets:     fmtAsssets(tx.GetAssets()),
 		TxProofs:   fmtTxProofs(tx.GetTxProofs()),
+		FullHash:   fullhash,
 	}, nil
 }
 

@@ -183,6 +183,7 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	} else {
 		txproofs := chain.getMultiLayerProofs(txresult.Height, block.Block.Hash(cfg), block.Block.Txs, txresult.Index)
 		txDetail.TxProofs = txproofs
+		txDetail.FullHash = block.Block.Txs[txresult.Index].FullHash()
 	}
 
 	setTxDetailFromTxResult(&txDetail, txresult)
