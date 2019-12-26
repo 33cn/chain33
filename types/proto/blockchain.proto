@@ -186,9 +186,9 @@ message BlockBody {
 // 	 hash : 本链区块hash
 //	 height :本链区块高度
 message BlockReceipt {
-    repeated ReceiptData receipts   = 1;
-    bytes                hash       = 2;
-    int64                height     = 3;
+    repeated ReceiptData receipts = 1;
+    bytes                hash     = 2;
+    int64                height   = 3;
 }
 
 //  区块追赶主链状态，用于判断本节点区块是否已经同步好
