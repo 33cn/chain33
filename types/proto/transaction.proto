@@ -236,6 +236,7 @@ message TransactionDetail {
     string         actionName = 9;
     repeated Asset assets     = 10;
     repeated TxProof txProofs = 11;
+    bytes            fullHash = 12;
 }
 
 message TransactionDetails {

@@ -478,6 +478,14 @@ func testProcQueryTxMsg(cfg *types.Chain33Config, t *testing.T, blockchain *bloc
 		assert.Nil(t, txProof.GetProofs())
 		assert.Nil(t, txProof.GetTxProofs()[0].GetProofs())
 	}
+
+	blockheight := block.Block.GetHeight()
+	if cfg.IsPara() {
+		blockheight = block.Block.GetMainHeight()
+	}
+	if cfg.IsFork(blockheight, "ForkRootHash") {
+		txhash = block.Block.Txs[txindex].FullHash()
+	}
 	//证明txproof的正确性,
 	if txProof.GetProofs() != nil { //ForkRootHash 之前的proof证明
 		brroothash := merkle.GetMerkleRootFromBranch(txProof.GetProofs(), txhash, uint32(txindex))
@@ -1396,10 +1404,19 @@ func TestProcessDelBlock(t *testing.T) {
 		require.NoError(t, err)
 	}
 	cfg := mock33.GetClient().GetConfig()
-	for {
-		_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
-		require.NoError(t, err)
 
+	// 确保只出指定数量的区块
+	isFirst := true
+	prevheight := curheight
+	for {
+		if isFirst || curheight > prevheight {
+			_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
+			require.NoError(t, err)
+			if curheight > prevheight {
+				prevheight = curheight
+			}
+			isFirst = false
+		}
 		curheight = blockchain.GetBlockHeight()
 		_, err = blockchain.GetBlock(curheight)
 		require.NoError(t, err)

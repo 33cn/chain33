@@ -253,7 +253,7 @@ func (wallet *Wallet) ExecWallet(msg *queue.Message) (types.Message, error) {
 	var data []byte
 	if msg.Data != nil {
 		if d, ok := msg.Data.(types.Message); ok {
-			data = types.Encode(d)
+			data = types.Encode(types.Clone(d))
 		} else {
 			return nil, types.ErrInvalidParam
 		}

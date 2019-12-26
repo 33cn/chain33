@@ -99,24 +99,6 @@ func saveBlockBodyTable(db dbm.DB, body *types.BlockBody) ([]*types.KeyValue, er
 	return kvs, nil
 }
 
-/*
-//delBlockBodyTable 删除block body
-func delBlockBodyTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyValue, error) {
-	kvdb := dbm.NewKVDB(db)
-	table := NewBodyTable(kvdb)
-
-	err := table.Del(calcHeightHashKey(height, hash))
-	if err != nil {
-		return nil, err
-	}
-
-	kvs, err := table.Save()
-	if err != nil {
-		return nil, err
-	}
-	return kvs, nil
-}
-*/
 //通过指定的index获取对应的blockbody
 //通过高度获取：height+hash；indexName="",prefix=nil,primaryKey=calcHeightHashKey
 //通过index获取：hash; indexName="hash",prefix=BodyRow.Get(indexName),primaryKey=nil
