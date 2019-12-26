@@ -577,9 +577,3 @@ func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types
 func IsRecordFaultErr(err error) bool {
 	return err != types.ErrFutureBlock && !api.IsGrpcError(err) && !api.IsQueueError(err)
 }
-
-//删除执行失败的区块存储在数据库中的信息
-func (b *BlockChain) RemoveExecFailBlock(height int64, hash []byte) {
-	b.index.DelNode(hash)
-	b.blockStore.removeBlock(height, hash)
-}

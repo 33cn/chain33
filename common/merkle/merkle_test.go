@@ -596,7 +596,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	assert.Equal(t, childHash[0].Title, types.MainChainName)
 	assert.Equal(t, childHash[0].GetTxCount(), int32(6))
 
-	roothashTem := CalcMerkleRoot(cfg, 0, sorTxMainList)
+	roothashTem := CalcMerkleRoot(cfg, 1, sorTxMainList)
 	assert.Equal(t, roothashTem, oldrootHash)
 	//构建全是同一个平行链的交易列表
 	var txParaTestList types.Transactions
