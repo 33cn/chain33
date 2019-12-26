@@ -153,6 +153,7 @@ type TransactionDetail struct {
 	ActionName string             `json:"actionName"`
 	Assets     []*Asset           `json:"assets"`
 	TxProofs   []*TxProof         `json:"txProofs"`
+	FullHash   string             `json:"fullHash"`
 }
 
 // TxProof :

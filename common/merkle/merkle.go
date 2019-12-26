@@ -303,17 +303,33 @@ var zeroHash [32]byte
 //CalcMerkleRoot 计算merkle树根
 func CalcMerkleRoot(cfg *types.Chain33Config, height int64, txs []*types.Transaction) []byte {
 	if !cfg.IsFork(height, "ForkRootHash") {
-		return calcSingleLayerMerkleRoot(txs)
+		return calcMerkleRoot(txs)
 	}
 	calcHash, _ := calcMultiLayerMerkleInfo(txs)
 	return calcHash
 }
 
-//calcSingleLayerMerkleRoot 计算merkle树根
-func calcSingleLayerMerkleRoot(txs []*types.Transaction) []byte {
+//calcMerkleRoot 计算merkle树根hash
+func calcMerkleRoot(txs []*types.Transaction) []byte {
 	var hashes [][]byte
 	for _, tx := range txs {
 		hashes = append(hashes, tx.Hash())
+	}
+	if hashes == nil {
+		return zeroHash[:]
+	}
+	merkleroot := GetMerkleRoot(hashes)
+	if merkleroot == nil {
+		panic("calc merkle root error")
+	}
+	return merkleroot
+}
+
+//calcSingleLayerMerkleRoot 计算单层merkle树根hash使用fullhash
+func calcSingleLayerMerkleRoot(txs []*types.Transaction) []byte {
+	var hashes [][]byte
+	for _, tx := range txs {
+		hashes = append(hashes, tx.FullHash())
 	}
 	if hashes == nil {
 		return zeroHash[:]
@@ -349,7 +365,7 @@ func CalcMultiLayerMerkleInfo(cfg *types.Chain33Config, height int64, txs []*typ
 	return calcMultiLayerMerkleInfo(txs)
 }
 
-//calcMultiLayerMerkleInfo 计算多层merkle树根
+//calcMultiLayerMerkleInfo 计算多层merkle树根hash使用fullhash
 //1,交易列表中都是主链的交易
 //2,交易列表中都是某个平行链的交易（平行链节点上的情况）
 //3,交易列表中是主链和平行链交易都存在，及混合交易
@@ -377,7 +393,7 @@ func calcMultiLayerMerkleInfo(txs []*types.Transaction) ([]byte, []types.ChildCh
 	chainCount := len(childchains)
 
 	//全是主链或者全是同一个平行链的交易。
-	//直接调用CalcMerkleRoot计算roothash即可
+	//直接调用calcSingleLayerMerkleRoot计算roothash即可
 	if chainCount <= 1 {
 		merkleRoot := calcSingleLayerMerkleRoot(txs)
 		childchains[0].ChildHash = merkleRoot

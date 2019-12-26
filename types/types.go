@@ -484,3 +484,8 @@ func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 	item := &ExecBalanceItem{ExecAddr: execAddr, Frozen: acc.Frozen, Active: acc.Balance}
 	t.Items = append(t.Items, item)
 }
+
+//Clone  克隆
+func Clone(data proto.Message) proto.Message {
+	return proto.Clone(data)
+}

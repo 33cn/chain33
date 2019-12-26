@@ -821,3 +821,11 @@ func TransactionSort(rawtxs []*Transaction) []*Transaction {
 	}
 	return txs.GetTxs()
 }
+
+//FullHash 交易的fullhash包含交易的签名信息，
+//这里做了clone 主要是因为 Encode 可能会修改 tx 的 Size 字段，可能会引起data race
+func (tx *Transaction) FullHash() []byte {
+	copytx := clone(tx)
+	data := Encode(copytx)
+	return common.Sha256(data)
+}

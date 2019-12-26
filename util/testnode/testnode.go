@@ -7,7 +7,6 @@
 package testnode
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"os"
@@ -211,7 +210,7 @@ func (mock *Chain33Mock) GetJSONC() *jsonclient.JSONClient {
 
 //SendAndSign :
 func (mock *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte, error) {
-	txbytes, err := hex.DecodeString(hextx)
+	txbytes, err := common.FromHex(hextx)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +230,7 @@ func (mock *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte,
 
 //SendAndSignNonce 用外部传入的nonce 重写nonce
 func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, nonce int64) ([]byte, error) {
-	txbytes, err := hex.DecodeString(hextx)
+	txbytes, err := common.FromHex(hextx)
 	if err != nil {
 		return nil, err
 	}
