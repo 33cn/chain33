@@ -13,7 +13,6 @@ var (
 	chainParaTxPrefix = []byte("CHAIN-paratx")
 	chainBodyPrefix   = []byte("CHAIN-body")
 	chainHeaderPrefix = []byte("CHAIN-header")
-	chainRecptPrefix   = []byte("CHAIN-recpt")
 )
 
 func calcHeightHashKey(height int64, hash []byte) []byte {
@@ -358,98 +357,4 @@ func getParaTxByIndex(db dbm.DB, indexName string, prefix []byte, primaryKey []b
 		rep.Items = append(rep.Items, r)
 	}
 	return &rep, nil
-}
-
-/*
-table  body
-data:  block body
-index: hash
-*/
-var bodyOpt = &table.Option{
-	Prefix:  "CHAIN-body",
-	Name:    "body",
-	Primary: "heighthash",
-	Index:   []string{"hash"},
-}
-
-//NewBodyTable 新建表
-func NewBodyTable(kvdb dbm.KV) *table.Table {
-	rowmeta := NewBodyRow()
-	table, err := table.NewTable(rowmeta, kvdb, bodyOpt)
-	if err != nil {
-		panic(err)
-	}
-	return table
-}
-
-//BodyRow table meta 结构
-type BlockReceiptRow struct {
-	*types.blockr
-}
-
-//NewBodyRow 新建一个meta 结构
-func NewBodyRow() *BodyRow {
-	return &BodyRow{BlockBody: &types.BlockBody{}}
-}
-
-//CreateRow 新建数据行
-func (body *BodyRow) CreateRow() *table.Row {
-	return &table.Row{Data: &types.BlockBody{}}
-}
-
-//SetPayload 设置数据
-func (body *BodyRow) SetPayload(data types.Message) error {
-	if blockbody, ok := data.(*types.BlockBody); ok {
-		body.BlockBody = blockbody
-		return nil
-	}
-	return types.ErrTypeAsset
-}
-
-//Get 获取索引对应的key值
-func (body *BodyRow) Get(key string) ([]byte, error) {
-	if key == "heighthash" {
-		return calcHeightHashKey(body.Height, body.Hash), nil
-	} else if key == "hash" {
-		return body.Hash, nil
-	}
-	return nil, types.ErrNotFound
-}
-
-//saveBlockBodyTable 保存block body
-func saveBlockBodyTable(db dbm.DB, body *types.BlockBody) ([]*types.KeyValue, error) {
-	kvdb := dbm.NewKVDB(db)
-	table := NewBodyTable(kvdb)
-
-	err := table.Replace(body)
-	if err != nil {
-		return nil, err
-	}
-
-	kvs, err := table.Save()
-	if err != nil {
-		return nil, err
-	}
-	return kvs, nil
-}
-
-//通过指定的index获取对应的blockbody
-//通过高度获取：height+hash；indexName="",prefix=nil,primaryKey=calcHeightHashKey
-//通过index获取：hash; indexName="hash",prefix=BodyRow.Get(indexName),primaryKey=nil
-func getBodyByIndex(db dbm.DB, indexName string, prefix []byte, primaryKey []byte) (*types.BlockBody, error) {
-	kvdb := dbm.NewKVDB(db)
-	table := NewBodyTable(kvdb)
-
-	rows, err := table.ListIndex(indexName, prefix, primaryKey, 0, dbm.ListASC)
-	if err != nil {
-		return nil, err
-	}
-	if len(rows) != 1 {
-		panic("getBodyByIndex")
-	}
-	body, ok := rows[0].Data.(*types.BlockBody)
-	if !ok {
-		return nil, types.ErrDecode
-	}
-	return body, nil
 }
