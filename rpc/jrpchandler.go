@@ -40,7 +40,7 @@ func (c *Chain33) CreateRawTransaction(in *rpctypes.CreateTx, result *interface{
 	if err != nil {
 		return err
 	}
-	*result = hex.EncodeToString(reply)
+	*result = common.ToHex(reply)
 	return nil
 }
 
@@ -58,7 +58,7 @@ func (c *Chain33) ReWriteRawTx(in *rpctypes.ReWriteRawTx, result *interface{}) e
 	if err != nil {
 		return err
 	}
-	*result = hex.EncodeToString(reply)
+	*result = common.ToHex(reply)
 	return nil
 }
 
@@ -69,7 +69,7 @@ func (c *Chain33) CreateRawTxGroup(in *types.CreateTransactionGroup, result *int
 		return err
 	}
 
-	*result = hex.EncodeToString(reply)
+	*result = common.ToHex(reply)
 	return nil
 }
 
@@ -79,7 +79,7 @@ func (c *Chain33) CreateNoBlanaceTxs(in *types.NoBalanceTxs, result *string) err
 	if err != nil {
 		return err
 	}
-	grouptx := hex.EncodeToString(types.Encode(tx))
+	grouptx := common.ToHex(types.Encode(tx))
 	*result = grouptx
 	return nil
 }
@@ -96,7 +96,7 @@ func (c *Chain33) CreateNoBalanceTransaction(in *types.NoBalanceTx, result *stri
 	if err != nil {
 		return err
 	}
-	grouptx := hex.EncodeToString(types.Encode(tx))
+	grouptx := common.ToHex(types.Encode(tx))
 	*result = grouptx
 	return nil
 }
@@ -141,7 +141,7 @@ func (c *Chain33) GetHexTxByHash(in rpctypes.QueryParm, result *interface{}) err
 	if err != nil {
 		return err
 	}
-	*result = hex.EncodeToString(types.Encode(reply.GetTx()))
+	*result = common.ToHex(types.Encode(reply.GetTx()))
 	return err
 }
 
@@ -1107,7 +1107,7 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 	if err != nil {
 		return err
 	}
-	*result = hex.EncodeToString(btx)
+	*result = common.ToHex(btx)
 	return nil
 }
 

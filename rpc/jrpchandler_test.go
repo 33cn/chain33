@@ -430,7 +430,7 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, testResult)
 	assert.NotEqual(t, txHex1, testResult)
-	txData, err := hex.DecodeString(testResult.(string))
+	txData, err := common.FromHex(testResult.(string))
 	assert.Nil(t, err)
 	tx := &types.Transaction{}
 	err = types.Decode(txData, tx)
