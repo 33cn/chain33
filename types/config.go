@@ -481,7 +481,7 @@ func (c *Chain33Config) SetTxFeeConfig(minTxFeeRate, maxTxFeeRate, maxTxFee int6
 	c.setTxFeeConfig(minTxFeeRate, maxTxFeeRate, maxTxFee)
 }
 
-func (c *Chain33Config) setTxFeeConfig(minTxFeeRate, maxTxFeeRate, maxTxFee int64){
+func (c *Chain33Config) setTxFeeConfig(minTxFeeRate, maxTxFeeRate, maxTxFee int64) {
 	if minTxFeeRate < 0 {
 		panic("minTxFeeRate less than zero")
 	}
