@@ -216,7 +216,7 @@ func TestExecutorErrAPIEnv(t *testing.T) {
 	exec, q := initEnv(types.GetDefaultCfgstring())
 	exec.disableLocal = true
 	cfg := exec.client.GetConfig()
-	cfg.S("MinFee", 0)
+	cfg.SetMinFee(0)
 	Register(cfg)
 	execInit(cfg)
 

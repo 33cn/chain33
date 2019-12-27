@@ -151,6 +151,7 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 		cfg = types.NewChain33Config(types.GetDefaultCfgstring())
 		if cfgpath == "--free--" {
 			setFee(cfg.GetModuleConfig(), 0)
+			cfg.SetMinFee(0)
 		}
 	} else {
 		cfg = types.NewChain33Config(types.ReadFile(cfgpath))
