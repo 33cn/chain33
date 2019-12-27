@@ -4,7 +4,6 @@
 # 3. make build
 # ...
 export GO111MODULE=on
-export CHAIN33_PATH=${GOPATH}/src/github.com/33cn/chain33
 SRC := github.com/33cn/chain33/cmd/chain33
 SRC_CLI := github.com/33cn/chain33/cmd/cli
 SRC_SIGNATORY := github.com/33cn/chain33/cmd/signatory-server
@@ -16,11 +15,6 @@ MINER := build/miner_accounts
 AUTOTEST := build/autotest/autotest
 SRC_AUTOTEST := github.com/33cn/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "mocks"`
-PKG_LIST_VET := `go list ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15"`
-PKG_LIST_INEFFASSIGN= `go list -f {{.Dir}} ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15" | grep -v "common/ed25519"`
-PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "mocks"`
-PKG_LIST_GOSEC := `go list -f "${GOPATH}/src/{{.ImportPath}}" ./... | grep -v "vendor" | grep -v "mocks" | grep -v "cmd" | grep -v "types" | grep -v "commands" | grep -v "log15" | grep -v "ed25519" | grep -v "crypto"`
 BUILD_FLAGS = -ldflags "-X github.com/33cn/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
@@ -100,22 +94,22 @@ linter_test: ## Use gometalinter check code, for local test
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 gosec:
-	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec ${PKG_LIST_GOSEC}
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec --skip-dirs=commands
 
 race: ## Run data race detector
-	@go test -race -short $(PKG_LIST)
+	@go test -race -short `go list ./... | grep -v "mocks"`
 
 vet:
-	@go vet ${PKG_LIST_VET}
+	@go vet `go list -f {{.Dir}} ./... | grep -v "common/crypto/sha3"`
 
 ineffassign:
-	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign   -n ${PKG_LIST_INEFFASSIGN}
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign  -n ./...
 
 test: ## Run unittests
-	@go test -race $(PKG_LIST)
+	@go test -race `go list ./... | grep -v "mocks"`
 
 testq: ## Run unittests
-	@go test $(PKG_LIST_Q)
+	@go test `go list ./... | grep -v "mocks"`
 
 fmt: fmt_proto fmt_shell ## go fmt
 	go fmt ./...
@@ -132,7 +126,7 @@ bench: ## Run benchmark of all
 	@go test ./... -v -bench=.
 
 msan: ## Run memory sanitizer
-	@go test -msan -short $(PKG_LIST)
+	@go test -msan -short $(go list ./... | grep -v "mocks")
 
 coverage: ## Generate global code coverage report
 	@./build/tools/coverage.sh
