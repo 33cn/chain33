@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	chainParaTxPrefix = []byte("CHAIN-paratx")
-	chainBodyPrefix   = []byte("CHAIN-body")
-	chainHeaderPrefix = []byte("CHAIN-header")
+	chainParaTxPrefix  = []byte("CHAIN-paratx")
+	chainBodyPrefix    = []byte("CHAIN-body")
+	chainHeaderPrefix  = []byte("CHAIN-header")
 	chainReceiptPrefix = []byte("CHAIN-receipt")
 )
 
