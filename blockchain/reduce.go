@@ -278,4 +278,3 @@ func (fi *FIFO) Remove(key interface{}) (present bool) {
 	}
 	return false
 }
-
