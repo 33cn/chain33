@@ -5,7 +5,9 @@
 package blockchain
 
 import (
+	"bytes"
 	"container/list"
+	"encoding/gob"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -134,15 +136,21 @@ func (chain *BlockChain) deleteTx(batch dbm.Batch, block *types.Block) {
 }
 
 // reduceReceipts 精简receipts
-func reduceReceipts(Receipts []*types.ReceiptData) []*types.ReceiptData {
-	for i := 0; i < len(Receipts); i++ {
-		for j := 0; j < len(Receipts[i].Logs); j++ {
-			if Receipts[i].Logs[j] != nil {
-				Receipts[i].Logs[j].Log = nil
+func reduceReceipts(src *types.BlockBody) []*types.ReceiptData {
+	dst := &types.BlockBody{}
+	err := deepCopy(dst, src)
+	if err != nil {
+		chainlog.Error("reduceReceipts deepCopy fail", "error", err)
+		return src.Receipts
+	}
+	for i := 0; i < len(dst.Receipts); i++ {
+		for j := 0; j < len(dst.Receipts[i].Logs); j++ {
+			if dst.Receipts[i].Logs[j] != nil {
+				dst.Receipts[i].Logs[j].Log = nil
 			}
 		}
 	}
-	return Receipts
+	return dst.Receipts
 }
 
 // ReduceLocalDB 实时精简localdb
@@ -277,4 +285,12 @@ func (fi *FIFO) Remove(key interface{}) (present bool) {
 		return true
 	}
 	return false
+}
+
+func deepCopy(dst, src interface{}) error {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
+		return err
+	}
+	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
 }

@@ -1259,7 +1259,7 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 	blockbody := bs.BlockdetailToBlockBody(blockdetail)
 	// 这里将blockbody进行中的receipt拆分成独立的一张表,
 	// 因此body中只保存Receipts的结果，具体内容在ReceiptTable中
-	blockbody.Receipts = reduceReceipts(blockbody.Receipts)
+	blockbody.Receipts = reduceReceipts(blockbody)
 	bodykvs, err := saveBlockBodyTable(bs.db, blockbody)
 	if err != nil {
 		storeLog.Error("SaveBlockForTable:saveBlockBodyTable", "height", height, "hash", common.ToHex(hash), "err", err)
@@ -1505,21 +1505,4 @@ func (bs *BlockStore) saveReduceLocaldbFlag() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-//LoadBlockBody 通过height高度获取BlockBody信息
-func (bs *BlockStore) LoadBlockBody(height int64) (*types.BlockBody, error) {
-	//首先通过height获取block hash从db中
-	hash, err := bs.GetBlockHashByHeight(height)
-	if err != nil {
-		return nil, err
-	}
-	blockbody, err := getBodyByIndex(bs.db, "", calcHeightHashKey(height, hash), nil)
-	if blockbody == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("LoadBlockBody calcHashToBlockBodyKey", "height", height, "err", err)
-		}
-		return nil, types.ErrHashNotExist
-	}
-	return blockbody, err
 }

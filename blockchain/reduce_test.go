@@ -150,15 +150,25 @@ func TestReduceBody(t *testing.T) {
 	assert.NoError(t, err)
 	newbatch.Write()
 
+	// check
+	blockDetail, err := blockStore.LoadBlockByHeight(0)
+	assert.NoError(t, err)
+	for _, recep := range blockDetail.Receipts {
+		for _, log := range recep.Logs {
+			assert.NotNil(t, log.Log)
+		}
+	}
+
 	// reduceBody
 	newbatch = blockStore.NewBatch(true)
 	chain.reduceBody(newbatch, 0)
 	newbatch.Write()
 
 	// check
-	body, err := blockStore.LoadBlockBody(0)
+	cfg.S("reduceLocaldb", true)
+	blockDetail, err = blockStore.LoadBlockByHeight(0)
 	assert.NoError(t, err)
-	for _, recep := range body.Receipts {
+	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {
 			assert.Nil(t, log.Log)
 		}
@@ -221,9 +231,9 @@ func TestReduceBodyInit(t *testing.T) {
 
 	// check
 	// 1 body
-	body, err := blockStore.LoadBlockBody(0)
+	blockDetail, err := blockStore.LoadBlockByHeight(0)
 	assert.NoError(t, err)
-	for _, recep := range body.Receipts {
+	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {
 			assert.Nil(t, log.Log)
 		}
@@ -243,16 +253,25 @@ func TestReduceBodyInit(t *testing.T) {
 }
 
 func TestReduceReceipts(t *testing.T) {
+
+	var body types.BlockBody
 	receipts := []*types.ReceiptData{
 		{Ty: 0, Logs: []*types.ReceiptLog{{Ty: 0, Log: []byte("000")}, {Ty: 0, Log: []byte("0000")}}},
 		{Ty: 1, Logs: []*types.ReceiptLog{{Ty: 111, Log: []byte("111")}, {Ty: 1111, Log: []byte("1111")}}},
 		{Ty: 2, Logs: []*types.ReceiptLog{{Ty: 222, Log: []byte("222")}, {Ty: 2222, Log: []byte("2222")}}},
 		{Ty: 3, Logs: []*types.ReceiptLog{{Ty: 333, Log: []byte("333")}, {Ty: 3333, Log: []byte("3333")}}},
 	}
-	reduceReceipts(receipts)
+	body.Receipts = receipts
+	dstReceipts := reduceReceipts(&body)
 
 	// check
-	for _, recpt := range receipts {
+	for _, recpt := range body.Receipts {
+		for _, log := range recpt.Logs {
+			assert.NotNil(t, log.Log)
+		}
+	}
+
+	for _, recpt := range dstReceipts {
 		for _, log := range recpt.Logs {
 			assert.Nil(t, log.Log)
 		}
