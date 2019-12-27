@@ -20,7 +20,7 @@ func TestTryReduceLocalDB(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), 23)
+	assert.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 
 	blockchain.ReduceHeight = 0

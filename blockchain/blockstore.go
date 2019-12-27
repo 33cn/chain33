@@ -50,7 +50,7 @@ func GetLocalDBKeyList() [][]byte {
 		blockLastHeight, bodyPrefix, LastSequence, headerPrefix, heightToHeaderPrefix,
 		hashPrefix, tdPrefix, heightToHashKeyPrefix, seqToHashKey, HashToSeqPrefix,
 		seqCBPrefix, seqCBLastNumPrefix, tempBlockKey, lastTempBlockKey, LastParaSequence,
-		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix,
+		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix, chainReceiptPrefix,
 	}
 }
 
@@ -135,7 +135,6 @@ type BlockStore struct {
 	lastheaderlock sync.Mutex
 	saveSequence   bool
 	isParaChain    bool
-	cacheBody      *FIFO
 }
 
 //NewBlockStore new
@@ -533,11 +532,6 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	}
 	storeLog.Debug("SaveBlock success", "blockheight", height, "hash", common.ToHex(hash))
 
-	// 精简localdb时候需要缓存blockbody
-	if cfg.IsEnable("reduceLocaldb") {
-		blockbody := bs.BlockdetailToBlockBody(blockdetail)
-		bs.AddCacheBlockBody(height, types.Encode(blockbody))
-	}
 	return lastSequence, nil
 }
 
@@ -1263,12 +1257,30 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 
 	// Save blockbody
 	blockbody := bs.BlockdetailToBlockBody(blockdetail)
+	// 这里将blockbody进行中的receipt拆分成独立的一张表,
+	// 因此body中只保存Receipts的结果，具体内容在ReceiptTable中
+	blockbody.Receipts = reduceReceipts(blockbody.Receipts)
 	bodykvs, err := saveBlockBodyTable(bs.db, blockbody)
 	if err != nil {
 		storeLog.Error("SaveBlockForTable:saveBlockBodyTable", "height", height, "hash", common.ToHex(hash), "err", err)
 		return err
 	}
 	for _, kv := range bodykvs {
+		storeBatch.Set(kv.GetKey(), kv.GetValue())
+	}
+
+	// Save blockReceipt
+	blockReceipt := &types.BlockReceipt{
+		Receipts: blockdetail.Receipts,
+		Hash:     hash,
+		Height:   height,
+	}
+	recptkvs, err := saveBlockReceiptTable(bs.db, blockReceipt)
+	if err != nil {
+		storeLog.Error("SaveBlockForTable:saveBlockReceiptTable", "height", height, "hash", common.ToHex(hash), "err", err)
+		return err
+	}
+	for _, kv := range recptkvs {
 		storeBatch.Set(kv.GetKey(), kv.GetValue())
 	}
 
@@ -1310,6 +1322,7 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 
 //loadBlockByIndex 通过索引获取BlockDetail信息
 func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryKey []byte) (*types.BlockDetail, error) {
+	cfg := bs.client.GetConfig()
 	//获取header
 	blockheader, err := getHeaderByIndex(bs.db, indexName, prefix, primaryKey)
 	if blockheader == nil || err != nil {
@@ -1327,6 +1340,20 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 		}
 		return nil, types.ErrHashNotExist
 	}
+
+	blockreceipt := blockbody.Receipts
+	// 非精简节点查询时候需要在ReceiptTable中获取详细的receipt信息
+	if !cfg.IsEnable("reduceLocaldb") {
+		receipt, err := getReceiptByIndex(bs.db, indexName, prefix, primaryKey)
+		if blockreceipt == nil || err != nil {
+			if err != dbm.ErrNotFoundInDb {
+				storeLog.Error("loadBlockByIndex:getReceiptByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+			}
+			return nil, types.ErrHashNotExist
+		}
+		blockreceipt = receipt.Receipts
+	}
+
 	var blockdetail types.BlockDetail
 	var block types.Block
 
@@ -1342,7 +1369,7 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 	block.MainHeight = blockbody.MainHeight
 	block.MainHash = blockbody.MainHash
 
-	blockdetail.Receipts = blockbody.Receipts
+	blockdetail.Receipts = blockreceipt
 	blockdetail.Block = &block
 	return &blockdetail, nil
 }
@@ -1480,20 +1507,6 @@ func (bs *BlockStore) saveReduceLocaldbFlag() {
 	}
 }
 
-// LoadCacheBlockBody 从缓存中载入body
-func (bs *BlockStore) LoadCacheBlockBody(height int64) (*types.BlockBody, error) {
-	value := bs.GetCacheBlockBody(height)
-	if value == nil {
-		return nil, types.ErrNotFound
-	}
-	var body types.BlockBody
-	err := types.Decode(value, &body)
-	if err != nil {
-		return nil, err
-	}
-	return &body, nil
-}
-
 //LoadBlockBody 通过height高度获取BlockBody信息
 func (bs *BlockStore) LoadBlockBody(height int64) (*types.BlockBody, error) {
 	//首先通过height获取block hash从db中
@@ -1509,26 +1522,4 @@ func (bs *BlockStore) LoadBlockBody(height int64) (*types.BlockBody, error) {
 		return nil, types.ErrHashNotExist
 	}
 	return blockbody, err
-}
-
-func (bs *BlockStore) AddCacheBlockBody(height int64, value []byte) {
-	if bs.cacheBody == nil {
-		// 这里lru缓存的size要大于回退高度
-		cacheBody := NewFIFO(int(SafetyReduceHeight))
-		if cacheBody == nil {
-			panic("NewFIFO fail")
-		}
-		bs.cacheBody = cacheBody
-	}
-	bs.cacheBody.Add(height, value)
-}
-
-func (bs *BlockStore) GetCacheBlockBody(height int64) []byte {
-	if bs.cacheBody == nil {
-		return nil
-	}
-	if value, ok := bs.cacheBody.Get(height); ok {
-		return value.([]byte)
-	}
-	return nil
 }

@@ -162,10 +162,6 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 		if index%1000 == 0 {
 			chainlog.Info("reindex -> ", "index", index, "lastindex", lastindex, "isSeq", isSeq)
 		}
-		// 精简localdb
-		if chain.client.GetConfig().IsEnable("reduceLocaldb") && curHeight-SafetyReduceHeight > height {
-			blockdetail.Receipts = reduceReceipts(blockdetail.Receipts)
-		}
 		//使用table格式保存header和body以及paratx标识
 		err = chain.blockStore.saveBlockForTable(newbatch, blockdetail, true)
 		if err != nil {
@@ -180,6 +176,12 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 
 		// 精简localdb
 		if chain.client.GetConfig().IsEnable("reduceLocaldb") && curHeight-SafetyReduceHeight > height {
+			kvs, _ := delBlockReceiptTable(chain.blockStore.db, height, hash)
+			for _, kv := range kvs {
+				if kv.GetValue() == nil {
+					newbatch.Delete(kv.GetKey())
+				}
+			}
 			chain.reduceIndexTx(newbatch, blockdetail.GetBlock())
 			newbatch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 		}

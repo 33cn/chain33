@@ -6,7 +6,6 @@ package blockchain
 
 import (
 	"container/list"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -89,14 +88,16 @@ func (chain *BlockChain) walkOver(start, end int64, sync bool, fn func(batch dbm
 func (chain *BlockChain) reduceBodyInit(batch dbm.Batch, height int64) {
 	blockDetail, err := chain.blockStore.LoadBlockByHeight(height)
 	if err == nil {
-		body := chain.blockStore.BlockdetailToBlockBody(blockDetail)
-		body.Receipts = reduceReceipts(body.Receipts)
-		kvs, err := saveBlockBodyTable(chain.blockStore.db, body)
+		cfg := chain.client.GetConfig()
+		kvs, err := delBlockReceiptTable(chain.blockStore.db, height, blockDetail.Block.Hash(cfg))
 		if err != nil {
-			panic(fmt.Sprintln("reduceBodyInit saveBlockBodyTable ", "height ", height, "err ", err))
+			chainlog.Debug("reduceBody delBlockReceiptTable", "height", height, "error", err)
+			return
 		}
 		for _, kv := range kvs {
-			batch.Set(kv.GetKey(), kv.GetValue())
+			if kv.GetValue() == nil {
+				batch.Delete(kv.GetKey())
+			}
 		}
 		chain.reduceIndexTx(batch, blockDetail.GetBlock())
 	}
@@ -194,19 +195,17 @@ func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (
 
 // reduceBody 将body中的receipt进行精简；
 func (chain *BlockChain) reduceBody(batch dbm.Batch, height int64) {
-	body, err := chain.blockStore.LoadCacheBlockBody(height)
-	if err != nil {
-		chainlog.Debug("reduceLocaldb LoadCacheBlockBody", "height", height, "error", err)
-		body, err = chain.blockStore.LoadBlockBody(height)
-	}
-	if body != nil {
-		body.Receipts = reduceReceipts(body.Receipts)
-		kvs, err := saveBlockBodyTable(chain.blockStore.db, body)
+	hash, err := chain.blockStore.GetBlockHashByHeight(height)
+	if err == nil {
+		kvs, err := delBlockReceiptTable(chain.blockStore.db, height, hash)
 		if err != nil {
-			panic(fmt.Sprintln("reduceBodyInit saveBlockBodyTable ", "height ", height, "err ", err))
+			chainlog.Debug("reduceBody delBlockReceiptTable", "height", height, "error", err)
+			return
 		}
 		for _, kv := range kvs {
-			batch.Set(kv.GetKey(), kv.GetValue())
+			if kv.GetValue() == nil {
+				batch.Delete(kv.GetKey())
+			}
 		}
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"runtime"
 	"testing"
 
 	"github.com/33cn/chain33/util"
@@ -299,61 +298,4 @@ func TestGetRealTxResult(t *testing.T) {
 	blockStore.getRealTxResult(txr)
 	assert.Equal(t, txr.Tx.Nonce, txs[0].Nonce)
 	assert.Equal(t, txr.Receiptdate.Ty, blockdetail.Receipts[0].Ty)
-}
-
-func TestLoadCacheBlockBody(t *testing.T) {
-	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir) // clean up
-	os.RemoveAll(dir)       //删除已存在目录
-	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
-	chain := InitEnv()
-	cfg := chain.client.GetConfig()
-	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-
-	_, err = blockStore.LoadCacheBlockBody(0)
-	assert.Error(t, err, types.ErrNotFound)
-
-	txs := util.GenCoinsTxs(cfg, util.HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"), 10)
-	body := &types.BlockBody{
-		Txs:        txs,
-		MainHeight: 1,
-	}
-	blockStore.AddCacheBlockBody(1, types.Encode(body))
-	bdy, err := blockStore.LoadCacheBlockBody(1)
-	assert.NoError(t, err)
-	assert.Equal(t, bdy.MainHeight, body.MainHeight)
-
-	blockStore.AddCacheBlockBody(2, []byte("1111"))
-	_, err = blockStore.LoadCacheBlockBody(2)
-	assert.Error(t, err, types.ErrNotFound)
-}
-
-func TestLoadCacheBlockBodyBatch(t *testing.T) {
-	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir) // clean up
-	os.RemoveAll(dir)       //删除已存在目录
-	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
-	chain := InitEnv()
-	cfg := chain.client.GetConfig()
-	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-
-	txs := util.GenCoinsTxs(cfg, util.HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"), 10)
-	printMemStats(0)
-	for i := 0; i < 15000; i++ {
-		body := &types.BlockBody{
-			Txs:        txs,
-			MainHeight: int64(i),
-		}
-		blockStore.AddCacheBlockBody(int64(i), types.Encode(body))
-	}
-	printMemStats(15000)
-}
-
-// printMemStats 打印内存使用情况
-func printMemStats(height int64) {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	fmt.Println("printMemStats:", "程序向系统申请", m.HeapSys/(1024*1024), "堆上目前分配Alloc:", m.HeapAlloc/(1024*1024), "堆上没有使用", m.HeapIdle/(1024*1024), "HeapReleased", m.HeapReleased/(1024*1024), "height", height)
 }
