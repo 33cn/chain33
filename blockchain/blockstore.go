@@ -507,7 +507,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	}
 	hash := blockdetail.Block.Hash(cfg)
 	//存储区块body和header信息
-	err := bs.saveBlockForTable(storeBatch, blockdetail, true)
+	err := bs.saveBlockForTable(storeBatch, blockdetail, true, true)
 	if err != nil {
 		storeLog.Error("SaveBlock:saveBlockForTable", "height", height, "hash", common.ToHex(hash), "error", err)
 		return lastSequence, err
@@ -818,7 +818,7 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	storeBatch := bs.NewBatch(sync)
 
 	//Save block header和body使用table形式存储
-	err := bs.saveBlockForTable(storeBatch, blockdetail, false)
+	err := bs.saveBlockForTable(storeBatch, blockdetail, false, true)
 	if err != nil {
 		chainlog.Error("dbMaybeStoreBlock:saveBlockForTable", "height", height, "hash", common.ToHex(hash), "err", err)
 		return err
@@ -1249,7 +1249,7 @@ func (bs *BlockStore) SetConsensusPara(kvs *types.LocalDBSet) error {
 }
 
 //saveBlockForTable 将block的header和body以及paratx保存成table形式，方便快速查询
-func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types.BlockDetail, isBestChain bool) error {
+func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types.BlockDetail, isBestChain, isSaveReceipt bool) error {
 
 	height := blockdetail.Block.Height
 	cfg := bs.client.GetConfig()
@@ -1270,18 +1270,20 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 	}
 
 	// Save blockReceipt
-	blockReceipt := &types.BlockReceipt{
-		Receipts: blockdetail.Receipts,
-		Hash:     hash,
-		Height:   height,
-	}
-	recptkvs, err := saveBlockReceiptTable(bs.db, blockReceipt)
-	if err != nil {
-		storeLog.Error("SaveBlockForTable:saveBlockReceiptTable", "height", height, "hash", common.ToHex(hash), "err", err)
-		return err
-	}
-	for _, kv := range recptkvs {
-		storeBatch.Set(kv.GetKey(), kv.GetValue())
+	if isSaveReceipt {
+		blockReceipt := &types.BlockReceipt{
+			Receipts: blockdetail.Receipts,
+			Hash:     hash,
+			Height:   height,
+		}
+		recptkvs, err := saveBlockReceiptTable(bs.db, blockReceipt)
+		if err != nil {
+			storeLog.Error("SaveBlockForTable:saveBlockReceiptTable", "height", height, "hash", common.ToHex(hash), "err", err)
+			return err
+		}
+		for _, kv := range recptkvs {
+			storeBatch.Set(kv.GetKey(), kv.GetValue())
+		}
 	}
 
 	// Save blockheader

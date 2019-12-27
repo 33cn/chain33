@@ -6,9 +6,7 @@ package blockchain
 
 import (
 	"bytes"
-	"container/list"
 	"encoding/gob"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -216,75 +214,6 @@ func (chain *BlockChain) reduceBody(batch dbm.Batch, height int64) {
 			}
 		}
 	}
-}
-
-// FIFO fifo queue
-type FIFO struct {
-	m    map[interface{}]*list.Element
-	l    *list.List
-	size int
-	sync.RWMutex
-}
-
-type entry struct {
-	key   interface{}
-	value interface{}
-}
-
-// NewFIFO  new fifo queue
-func NewFIFO(size int) *FIFO {
-	if size <= 0 {
-		size = 1
-	}
-	return &FIFO{
-		m:    make(map[interface{}]*list.Element, size),
-		l:    list.New(),
-		size: size,
-	}
-}
-
-// Contains check is a key is in the cache
-func (fi *FIFO) Contains(key interface{}) bool {
-	fi.RLock()
-	defer fi.RUnlock()
-	_, ok := fi.m[key]
-	return ok
-}
-
-func (fi *FIFO) Get(key interface{}) (value interface{}, ok bool) {
-	fi.Lock()
-	defer fi.Unlock()
-
-	if elem, ok := fi.m[key]; ok {
-		return elem.Value.(*entry).value, true
-	}
-	return
-}
-
-func (fi *FIFO) Add(key, value interface{}) {
-	fi.Lock()
-	defer fi.Unlock()
-
-	if fi.l.Len() >= fi.size {
-		ent := fi.l.Remove(fi.l.Front()).(*entry)
-		delete(fi.m, ent.key)
-	}
-
-	ent := &entry{key, value}
-	elem := fi.l.PushBack(ent)
-	fi.m[key] = elem
-}
-
-func (fi *FIFO) Remove(key interface{}) (present bool) {
-	fi.Lock()
-	defer fi.Unlock()
-
-	if elem, ok := fi.m[key]; ok {
-		ent := fi.l.Remove(elem).(*entry)
-		delete(fi.m, ent.key)
-		return true
-	}
-	return false
 }
 
 func deepCopy(dst, src interface{}) error {
