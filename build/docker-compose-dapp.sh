@@ -109,12 +109,12 @@ function start() {
     ${CLI} block last_header
     ${CLI} net info
 
-    ${CLI} net peer_info
-    peersCount=$(${CLI} net peer_info | jq '.[] | length')
+    ${CLI} net peer
+    peersCount=$(${CLI} net peer | jq '.[] | length')
     echo "${peersCount}"
     if [ "${peersCount}" -lt 2 ]; then
         sleep 20
-        peersCount=$(${CLI} net peer_info | jq '.[] | length')
+        peersCount=$(${CLI} net peer | jq '.[] | length')
         echo "${peersCount}"
         if [ "${peersCount}" -lt 2 ]; then
             echo "peers error"
