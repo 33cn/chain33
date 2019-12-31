@@ -1347,7 +1347,7 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 	// 非精简节点查询时候需要在ReceiptTable中获取详细的receipt信息
 	if !cfg.IsEnable("reduceLocaldb") {
 		receipt, err := getReceiptByIndex(bs.db, indexName, prefix, primaryKey)
-		if blockreceipt == nil || err != nil {
+		if receipt == nil || err != nil {
 			if err != dbm.ErrNotFoundInDb {
 				storeLog.Error("loadBlockByIndex:getReceiptByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
 			}
