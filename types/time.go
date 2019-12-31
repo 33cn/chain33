@@ -13,10 +13,10 @@ var deltaTime int64
 
 //NtpHosts ntp hosts
 var NtpHosts = []string{
-	"time.windows.com:123",
-	"ntp.ubuntu.com:123",
-	"pool.ntp.org:123",
-	"cn.pool.ntp.org:123",
+	"ntp.aliyun.com:123",
+	"time1.cloud.tencent.com:123",
+	"time.ustc.edu.cn:123",
+	"cn.ntp.org.cn:123",
 	"time.apple.com:123",
 }
 

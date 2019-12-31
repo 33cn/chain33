@@ -158,7 +158,7 @@ func GetRealTime(hosts []string) time.Time {
 		go func(host string) {
 			ntptime, err := getTimeRetry(host, 1)
 			if ntptime.IsZero() || err != nil {
-				log.Error("getTimeRetry", "err", err)
+				log.Error("getTimeRetry", "host", host, "err", err)
 				ch <- time.Duration(math.MaxInt64)
 			} else {
 				dt := time.Until(ntptime)

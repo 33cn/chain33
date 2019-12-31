@@ -396,8 +396,8 @@ func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransactio
 
 // GetTimeStatus get status of time
 func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
-	ntpTime := common.GetRealTimeRetry(types.NtpHosts, 10)
-	local := types.Now()
+	ntpTime := common.GetRealTimeRetry(types.NtpHosts, 2)
+	local := time.Now()
 	if ntpTime.IsZero() {
 		return &types.TimeStatus{NtpTime: "", LocalTime: local.Format("2006-01-02 15:04:05"), Diff: 0}, nil
 	}
