@@ -155,14 +155,21 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 	}
 	height := blockdetail.Block.GetHeight()
 	hash := blockdetail.Block.Hash(chain.client.GetConfig())
+	curHeight := chain.GetBlockHeight()
 
 	//只重构add时区块的存储方式，del时只需要删除对应区块上的平行链标记即可
 	if blockOptType == types.AddBlock {
 		if index%1000 == 0 {
 			chainlog.Info("reindex -> ", "index", index, "lastindex", lastindex, "isSeq", isSeq)
 		}
+
+		saveReceipt := true
+		// 精简localdb,情况下直接不对 blockReceipt做保存
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && curHeight-SafetyReduceHeight > height {
+			saveReceipt = false
+		}
 		//使用table格式保存header和body以及paratx标识
-		err = chain.blockStore.saveBlockForTable(newbatch, blockdetail, true)
+		err = chain.blockStore.saveBlockForTable(newbatch, blockdetail, true, saveReceipt)
 		if err != nil {
 			chainlog.Error("reindex:reIndexForTable", "height", height, "isSeq", isSeq, "err", err)
 			panic(err)
@@ -172,12 +179,22 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 		newbatch.Delete(calcHashToBlockHeaderKey(hash))
 		newbatch.Delete(calcHashToBlockBodyKey(hash))
 		newbatch.Delete(calcHeightToBlockHeaderKey(height))
+
+		// 精简localdb
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && curHeight-SafetyReduceHeight > height {
+			chain.reduceIndexTx(newbatch, blockdetail.GetBlock())
+			newbatch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
+		}
 	} else {
 		parakvs, _ := delParaTxTable(chain.blockStore.db, height)
 		for _, kv := range parakvs {
 			if len(kv.GetKey()) != 0 && kv.GetValue() == nil {
 				newbatch.Delete(kv.GetKey())
 			}
+		}
+		// 精简localdb，为了提升效率，所有索引tx均生成，而不从数据库中读取，因此需要删除侧链生成的tx
+		if chain.client.GetConfig().IsEnable("reduceLocaldb") && curHeight-SafetyReduceHeight > height {
+			chain.deleteTx(newbatch, blockdetail.GetBlock())
 		}
 	}
 

@@ -20,6 +20,8 @@ func (chain *BlockChain) Upgrade() {
 	chain.UpgradeChain()
 	chainlog.Info("storedb upgrade start")
 	chain.UpgradeStore()
+	chainlog.Info("chain reduce start")
+	chain.ReduceChain()
 }
 
 //UpgradeStore 升级storedb

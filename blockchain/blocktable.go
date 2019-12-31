@@ -10,9 +10,10 @@ import (
 )
 
 var (
-	chainParaTxPrefix = []byte("CHAIN-paratx")
-	chainBodyPrefix   = []byte("CHAIN-body")
-	chainHeaderPrefix = []byte("CHAIN-header")
+	chainParaTxPrefix  = []byte("CHAIN-paratx")
+	chainBodyPrefix    = []byte("CHAIN-body")
+	chainHeaderPrefix  = []byte("CHAIN-header")
+	chainReceiptPrefix = []byte("CHAIN-receipt")
 )
 
 func calcHeightHashKey(height int64, hash []byte) []byte {
@@ -357,4 +358,115 @@ func getParaTxByIndex(db dbm.DB, indexName string, prefix []byte, primaryKey []b
 		rep.Items = append(rep.Items, r)
 	}
 	return &rep, nil
+}
+
+/*
+table  receipt
+data:  block receipt
+index: hash
+*/
+var receiptOpt = &table.Option{
+	Prefix:  "CHAIN-receipt",
+	Name:    "receipt",
+	Primary: "heighthash",
+	Index:   []string{"hash"},
+}
+
+//NewReceiptTable 新建表
+func NewReceiptTable(kvdb dbm.KV) *table.Table {
+	rowmeta := NewReceiptRow()
+	table, err := table.NewTable(rowmeta, kvdb, receiptOpt)
+	if err != nil {
+		panic(err)
+	}
+	return table
+}
+
+//ReceiptRow table meta 结构
+type ReceiptRow struct {
+	*types.BlockReceipt
+}
+
+//NewReceiptRow 新建一个meta 结构
+func NewReceiptRow() *ReceiptRow {
+	return &ReceiptRow{BlockReceipt: &types.BlockReceipt{}}
+}
+
+//CreateRow 新建数据行
+func (recpt *ReceiptRow) CreateRow() *table.Row {
+	return &table.Row{Data: &types.BlockReceipt{}}
+}
+
+//SetPayload 设置数据
+func (recpt *ReceiptRow) SetPayload(data types.Message) error {
+	if blockReceipt, ok := data.(*types.BlockReceipt); ok {
+		recpt.BlockReceipt = blockReceipt
+		return nil
+	}
+	return types.ErrTypeAsset
+}
+
+//Get 获取索引对应的key值
+func (recpt *ReceiptRow) Get(key string) ([]byte, error) {
+	if key == "heighthash" {
+		return calcHeightHashKey(recpt.Height, recpt.Hash), nil
+	} else if key == "hash" {
+		return recpt.Hash, nil
+	}
+	return nil, types.ErrNotFound
+}
+
+//saveBlockReceiptTable 保存block receipt
+func saveBlockReceiptTable(db dbm.DB, recpt *types.BlockReceipt) ([]*types.KeyValue, error) {
+	kvdb := dbm.NewKVDB(db)
+	table := NewReceiptTable(kvdb)
+
+	err := table.Replace(recpt)
+	if err != nil {
+		return nil, err
+	}
+
+	kvs, err := table.Save()
+	if err != nil {
+		return nil, err
+	}
+	return kvs, nil
+}
+
+//通过指定的index获取对应的blockReceipt
+//通过高度获取：height+hash；indexName="",prefix=nil,primaryKey=calcHeightHashKey
+//通过index获取：hash; indexName="hash",prefix=ReceiptRow.Get(indexName),primaryKey=nil
+func getReceiptByIndex(db dbm.DB, indexName string, prefix []byte, primaryKey []byte) (*types.BlockReceipt, error) {
+	kvdb := dbm.NewKVDB(db)
+	table := NewReceiptTable(kvdb)
+
+	rows, err := table.ListIndex(indexName, prefix, primaryKey, 0, dbm.ListASC)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) != 1 {
+		panic("getReceiptByIndex")
+	}
+	recpt, ok := rows[0].Data.(*types.BlockReceipt)
+	if !ok {
+		return nil, types.ErrDecode
+	}
+	return recpt, nil
+}
+
+//delBlockReceiptTable 删除block receipt
+func delBlockReceiptTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyValue, error) {
+	kvdb := dbm.NewKVDB(db)
+	table := NewReceiptTable(kvdb)
+
+	err := table.Del(calcHeightHashKey(height, hash))
+	if err != nil {
+		return nil, err
+	}
+
+	kvs, err := table.Save()
+	if err != nil {
+		return nil, err
+	}
+	return kvs, nil
 }

@@ -50,7 +50,7 @@ func GetLocalDBKeyList() [][]byte {
 		blockLastHeight, bodyPrefix, LastSequence, headerPrefix, heightToHeaderPrefix,
 		hashPrefix, tdPrefix, heightToHashKeyPrefix, seqToHashKey, HashToSeqPrefix,
 		seqCBPrefix, seqCBLastNumPrefix, tempBlockKey, lastTempBlockKey, LastParaSequence,
-		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix,
+		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix, chainReceiptPrefix,
 	}
 }
 
@@ -499,14 +499,15 @@ func (bs *BlockStore) loadBlockByHash(hash []byte) (*types.BlockDetail, int, err
 
 //SaveBlock 批量保存blocks信息到db数据库中,并返回最新的sequence值
 func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDetail, sequence int64) (int64, error) {
+	cfg := bs.client.GetConfig()
 	var lastSequence int64 = -1
 	height := blockdetail.Block.Height
 	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
 		storeLog.Error("SaveBlock Receipts is nil ", "height", height)
 	}
-	hash := blockdetail.Block.Hash(bs.client.GetConfig())
+	hash := blockdetail.Block.Hash(cfg)
 	//存储区块body和header信息
-	err := bs.saveBlockForTable(storeBatch, blockdetail, true)
+	err := bs.saveBlockForTable(storeBatch, blockdetail, true, true)
 	if err != nil {
 		storeLog.Error("SaveBlock:saveBlockForTable", "height", height, "hash", common.ToHex(hash), "error", err)
 		return lastSequence, err
@@ -530,7 +531,26 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 		}
 	}
 	storeLog.Debug("SaveBlock success", "blockheight", height, "hash", common.ToHex(hash))
+
 	return lastSequence, nil
+}
+
+func (bs *BlockStore) BlockdetailToBlockBody(blockdetail *types.BlockDetail) *types.BlockBody {
+	cfg := bs.client.GetConfig()
+	height := blockdetail.Block.Height
+	hash := blockdetail.Block.Hash(cfg)
+	var blockbody types.BlockBody
+	blockbody.Txs = blockdetail.Block.Txs
+	blockbody.Receipts = blockdetail.Receipts
+	blockbody.MainHash = hash
+	blockbody.MainHeight = height
+	blockbody.Hash = hash
+	blockbody.Height = height
+	if bs.isParaChain {
+		blockbody.MainHash = blockdetail.Block.MainHash
+		blockbody.MainHeight = blockdetail.Block.MainHeight
+	}
+	return &blockbody
 }
 
 //DelBlock 删除block信息从db数据库中
@@ -591,7 +611,27 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &txResult, nil
+	return bs.getRealTxResult(&txResult), nil
+}
+
+func (bs *BlockStore) getRealTxResult(txr *types.TxResult) *types.TxResult {
+	cfg := bs.client.GetConfig()
+	if !cfg.IsEnable("reduceLocaldb") {
+		return txr
+	}
+	// 如果是精简版的localdb 则需要从block中获取tx交易内容以及receipt
+	blockinfo, err := bs.LoadBlockByHeight(txr.Height)
+	if err != nil {
+		chainlog.Error("getRealTxResult LoadBlockByHeight", "height", txr.Height, "error", err)
+		return txr
+	}
+	if int(txr.Index) < len(blockinfo.Block.Txs) {
+		txr.Tx = blockinfo.Block.Txs[txr.Index]
+	}
+	if int(txr.Index) < len(blockinfo.Receipts) {
+		txr.Receiptdate = blockinfo.Receipts[txr.Index]
+	}
+	return txr
 }
 
 //AddTxs 通过批量存储tx信息到db中
@@ -778,7 +818,7 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	storeBatch := bs.NewBatch(sync)
 
 	//Save block header和body使用table形式存储
-	err := bs.saveBlockForTable(storeBatch, blockdetail, false)
+	err := bs.saveBlockForTable(storeBatch, blockdetail, false, true)
 	if err != nil {
 		chainlog.Error("dbMaybeStoreBlock:saveBlockForTable", "height", height, "hash", common.ToHex(hash), "err", err)
 		return err
@@ -1209,31 +1249,41 @@ func (bs *BlockStore) SetConsensusPara(kvs *types.LocalDBSet) error {
 }
 
 //saveBlockForTable 将block的header和body以及paratx保存成table形式，方便快速查询
-func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types.BlockDetail, isBestChain bool) error {
+func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types.BlockDetail, isBestChain, isSaveReceipt bool) error {
 
 	height := blockdetail.Block.Height
 	cfg := bs.client.GetConfig()
 	hash := blockdetail.Block.Hash(cfg)
 
 	// Save blockbody
-	var blockbody types.BlockBody
-	blockbody.Txs = blockdetail.Block.Txs
-	blockbody.Receipts = blockdetail.Receipts
-	blockbody.MainHash = hash
-	blockbody.MainHeight = height
-	blockbody.Hash = hash
-	blockbody.Height = height
-	if bs.isParaChain {
-		blockbody.MainHash = blockdetail.Block.MainHash
-		blockbody.MainHeight = blockdetail.Block.MainHeight
-	}
-	bodykvs, err := saveBlockBodyTable(bs.db, &blockbody)
+	blockbody := bs.BlockdetailToBlockBody(blockdetail)
+	// 这里将blockbody进行中的receipt拆分成独立的一张表,
+	// 因此body中只保存Receipts的结果，具体内容在ReceiptTable中
+	blockbody.Receipts = reduceReceipts(blockbody)
+	bodykvs, err := saveBlockBodyTable(bs.db, blockbody)
 	if err != nil {
 		storeLog.Error("SaveBlockForTable:saveBlockBodyTable", "height", height, "hash", common.ToHex(hash), "err", err)
 		return err
 	}
 	for _, kv := range bodykvs {
 		storeBatch.Set(kv.GetKey(), kv.GetValue())
+	}
+
+	// Save blockReceipt
+	if isSaveReceipt {
+		blockReceipt := &types.BlockReceipt{
+			Receipts: blockdetail.Receipts,
+			Hash:     hash,
+			Height:   height,
+		}
+		recptkvs, err := saveBlockReceiptTable(bs.db, blockReceipt)
+		if err != nil {
+			storeLog.Error("SaveBlockForTable:saveBlockReceiptTable", "height", height, "hash", common.ToHex(hash), "err", err)
+			return err
+		}
+		for _, kv := range recptkvs {
+			storeBatch.Set(kv.GetKey(), kv.GetValue())
+		}
 	}
 
 	// Save blockheader
@@ -1274,6 +1324,7 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 
 //loadBlockByIndex 通过索引获取BlockDetail信息
 func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryKey []byte) (*types.BlockDetail, error) {
+	cfg := bs.client.GetConfig()
 	//获取header
 	blockheader, err := getHeaderByIndex(bs.db, indexName, prefix, primaryKey)
 	if blockheader == nil || err != nil {
@@ -1291,6 +1342,20 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 		}
 		return nil, types.ErrHashNotExist
 	}
+
+	blockreceipt := blockbody.Receipts
+	// 非精简节点查询时候需要在ReceiptTable中获取详细的receipt信息
+	if !cfg.IsEnable("reduceLocaldb") {
+		receipt, err := getReceiptByIndex(bs.db, indexName, prefix, primaryKey)
+		if blockreceipt == nil || err != nil {
+			if err != dbm.ErrNotFoundInDb {
+				storeLog.Error("loadBlockByIndex:getReceiptByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+			}
+			return nil, types.ErrHashNotExist
+		}
+		blockreceipt = receipt.Receipts
+	}
+
 	var blockdetail types.BlockDetail
 	var block types.Block
 
@@ -1306,7 +1371,7 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 	block.MainHeight = blockbody.MainHeight
 	block.MainHash = blockbody.MainHash
 
-	blockdetail.Receipts = blockbody.Receipts
+	blockdetail.Receipts = blockreceipt
 	blockdetail.Block = &block
 	return &blockdetail, nil
 }
@@ -1434,4 +1499,12 @@ func (bs *BlockStore) loadBlockBySequenceOld(Sequence int64) (*types.BlockDetail
 		}
 	}
 	return block, blockSeq.GetType(), nil
+}
+
+func (bs *BlockStore) saveReduceLocaldbFlag() {
+	kv := types.FlagKV(types.FlagReduceLocaldb, 1)
+	err := bs.db.Set(kv.Key, kv.Value)
+	if err != nil {
+		panic(err)
+	}
 }

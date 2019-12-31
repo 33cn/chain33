@@ -57,6 +57,7 @@ type BlockChain struct {
 	peerList PeerInfoList
 	recvwg   *sync.WaitGroup
 	tickerwg *sync.WaitGroup
+	reducewg *sync.WaitGroup
 
 	synblock            chan struct{}
 	quit                chan struct{}
@@ -141,6 +142,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		cfg:                mcfg,
 		recvwg:             &sync.WaitGroup{},
 		tickerwg:           &sync.WaitGroup{},
+		reducewg:           &sync.WaitGroup{},
 
 		syncTask:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
 		downLoadTask: newTask(300 * time.Second),
@@ -186,6 +188,7 @@ func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	chain.isRecordBlockSequence = mcfg.IsRecordBlockSequence
 	chain.isParaChain = mcfg.IsParaChain
 	cfg.S("quickIndex", mcfg.EnableTxQuickIndex)
+	cfg.S("reduceLocaldb", mcfg.EnableReduceLocaldb)
 
 	if mcfg.OnChainTimeout > 0 {
 		chain.onChainTimeout = mcfg.OnChainTimeout
@@ -213,6 +216,10 @@ func (chain *BlockChain) Close() {
 	//wait for tickerwg quit:
 	chainlog.Info("blockchain wait for tickerwg quit")
 	chain.tickerwg.Wait()
+
+	//wait for reducewg quit:
+	chainlog.Info("blockchain wait for reducewg quit")
+	chain.reducewg.Wait()
 
 	//关闭数据库
 	chain.blockStore.db.Close()
@@ -285,7 +292,8 @@ func (chain *BlockChain) InitBlockChain() {
 			chainlog.Error("InitIndexAndBestView SetDbVersion ", "err", err)
 		}
 	}
-	chain.client.GetConfig().S("dbversion", curdbver)
+	cfg := chain.client.GetConfig()
+	cfg.S("dbversion", curdbver)
 	if !chain.cfg.IsParaChain && chain.cfg.RollbackBlock <= 0 {
 		// 定时检测/同步block
 		go chain.SynRoutine()
