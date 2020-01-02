@@ -1,6 +1,5 @@
 package manage
 
-
 import (
 	"sync"
 
@@ -47,7 +46,6 @@ func (p *PeerInfoManager) FetchPeers() []*types.Peer {
 
 	return peers
 }
-
 
 func NewPeerInfoManager() *PeerInfoManager {
 

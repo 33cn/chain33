@@ -6,13 +6,11 @@ import (
 	"github.com/33cn/chain33/queue"
 )
 
-
 type EventHandler func(*queue.Message)
 
 var (
 	eventHandlerMap = make(map[int64]EventHandler)
 )
-
 
 //注册消息处理函数
 func RegisterEventHandler(eventID int64, handler EventHandler) {
@@ -26,9 +24,8 @@ func RegisterEventHandler(eventID int64, handler EventHandler) {
 	eventHandlerMap[eventID] = handler
 }
 
-
 func GetEventHandler(eventID int64) (EventHandler, bool) {
 	handler, ok := eventHandlerMap[eventID]
+
 	return handler, ok
 }
-

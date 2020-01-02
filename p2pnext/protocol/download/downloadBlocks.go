@@ -1,6 +1,7 @@
 package download
 
 import (
+	"context"
 	"sort"
 	"sync"
 	"time"
@@ -25,23 +26,25 @@ func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &DownloadProtol{})
 	var downloadHandler = new(DownloadHander)
 	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockReq, downloadHandler)
-	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockResp, downloadHandler)
+	//prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockResp, downloadHandler)
 }
 
 const (
-	protoTypeID       = "DownloadProtocolType"
-	DownloadBlockReq  = "/chain33/downloadBlockReq/1.0.0"
-	DownloadBlockResp = "/chain33/downloadBlockResp/1.0.0"
+	protoTypeID      = "DownloadProtocolType"
+	DownloadBlockReq = "/chain33/downloadBlockReq/1.0.0"
+	//DownloadBlockResp = "/chain33/downloadBlockResp/1.0.0"
 )
 
 //type Istream
 type DownloadProtol struct {
-	prototypes.BaseProtocol
+	*prototypes.BaseProtocol
+	*prototypes.BaseStreamHandler
 
 	requests map[string]*types.MessageGetBlocksReq // used to access request data from response handlers
 }
 
 func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
+	d.BaseProtocol = new(prototypes.BaseProtocol)
 	d.requests = make(map[string]*types.MessageGetBlocksReq)
 	d.GlobalData = data
 
@@ -50,9 +53,13 @@ func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
 }
 
 type DownloadHander struct {
-	prototypes.BaseStreamHandler
+	*prototypes.BaseStreamHandler
 }
 
+func (d *DownloadHander) SetProtocol(protocol prototypes.IProtocol) {
+	d.BaseStreamHandler = new(prototypes.BaseStreamHandler)
+	d.Protocol = protocol
+}
 
 //接收Response消息
 func (d *DownloadProtol) OnResp(datas *types.InvDatas, s core.Stream) {
@@ -77,31 +84,22 @@ func (h *DownloadHander) VerifyRequest(data []byte) bool {
 }
 
 //Handle 处理请求
-func (d *DownloadHander) Handle(req []byte, stream core.Stream) {
+func (d *DownloadHander) Handle(stream core.Stream) {
 	protocol := d.GetProtocol().(*DownloadProtol)
 
 	//解析处理
 	if stream.Protocol() == DownloadBlockReq {
 		var data types.MessageGetBlocksReq
-		err := types.Decode(req, &data)
+		err := d.BaseStreamHandler.ReadProtoMessage(&data, stream)
 		if err != nil {
-
+			log.Error("Handle", "err", err)
 			return
 		}
-
 		recvData := data.Message
-
 		protocol.OnReq(data.MessageData.Id, recvData, stream)
 		return
 	}
-	var data types.MessageGetBlocksResp
-	err := types.Decode(req, &data)
-	if err != nil {
-		return
-	}
 
-	recvData := data.Message
-	protocol.OnResp(recvData, stream)
 	return
 
 }
@@ -142,10 +140,14 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	blocksResp := &types.MessageGetBlocksResp{MessageData: d.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.InvDatas{p2pInvData}}
 
-	ok := d.GetStreamManager().SendProtoMessage(blocksResp, s)
-	if ok {
-		log.Info("%s: Ping response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+	err = d.BaseStreamHandler.SendProtoMessage(blocksResp, s)
+	//wlen, err := rw.WriteString(fmt.Sprintf("%v\n", string(types.Encode(blocksResp))))
+	if err != nil {
+		log.Error("SendProtoMessage", "err", err)
+		d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
+		return
 	}
+	log.Info("%s: Ping response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 
 }
 
@@ -171,8 +173,8 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 		peerinfo := data.(*types.P2PPeerInfo)
 		//去指定的peer上获取对应的blockHeader
 		peerId := peerinfo.GetName()
-		pstream := d.StreamManager.GetStream(peerId)
-		if pstream == nil {
+		Pconn := d.ConnManager.Get(peerId)
+		if Pconn == nil {
 			continue
 		}
 		//具体的下载逻辑
@@ -188,7 +190,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 			blockReq := &types.MessageGetBlocksReq{MessageData: d.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 				Message: getblocks}
 
-			if d.StreamManager.SendProtoMessage(blockReq, jStream.Stream) {
+			if err := d.SendProtoMessage(blockReq, jStream.Stream); err == nil {
 				d.requests[blockReq.MessageData.Id] = blockReq
 			}
 
@@ -223,9 +225,15 @@ func (i jobs) Swap(a, b int) {
 
 func (d *DownloadProtol) initStreamJob() jobs {
 	var jobStreams jobs
-	streams := d.StreamManager.FetchStreams()
-	for _, stream := range streams {
+	conns := d.ConnManager.Fetch()
+	for _, conn := range conns {
 		var jstream JobStream
+
+		stream, err := d.Host.NewStream(context.Background(), conn.RemotePeer(), DownloadBlockReq)
+		if err != nil {
+			log.Error("NewStream", "err", err)
+			continue
+		}
 		jstream.Stream = stream
 		jstream.Limit = 0
 		jobStreams = append(jobStreams, &jstream)

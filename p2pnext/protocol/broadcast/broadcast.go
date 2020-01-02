@@ -1,6 +1,7 @@
 package broadcast
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -30,7 +31,9 @@ func init() {
 
 //
 type broadCastProtocol struct {
-	prototypes.BaseProtocol
+	*prototypes.BaseProtocol
+	*prototypes.BaseStreamHandler
+
 	txFilter        *common.Filterdata
 	blockFilter     *common.Filterdata
 	txSendFilter    *common.Filterdata
@@ -42,6 +45,7 @@ type broadCastProtocol struct {
 
 //New
 func (p *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
+	p.BaseProtocol = new(prototypes.BaseProtocol)
 
 	p.GlobalData = data
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
@@ -63,28 +67,29 @@ func (p *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
 }
 
 type broadCastHandler struct {
-	prototypes.BaseStreamHandler
+	*prototypes.BaseStreamHandler
 }
 
 //Handle 处理请求
-func (h *broadCastHandler) Handle(req []byte, stream core.Stream) {
+func (h *broadCastHandler) Handle(stream core.Stream) {
 
 	protocol := h.GetProtocol().(*broadCastProtocol)
 	pid := stream.Conn().RemotePeer().Pretty()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
-	//s.node.Store(pid, stream)
 
-	//解析处理
 	var data types.MessageBroadCast
-	err := types.Decode(req, &data)
+	err := h.BaseStreamHandler.ReadProtoMessage(&data, stream)
 	if err != nil {
+		log.Error("Handle", "err", err)
 		return
 	}
 
-	recvData := data.Message
-
-	_ = protocol.handleReceive(recvData, pid, peerAddr)
+	_ = protocol.handleReceive(data.Message, pid, peerAddr)
 	return
+}
+func (b *broadCastHandler) SetProtocol(protocol prototypes.IProtocol) {
+	b.BaseStreamHandler = new(prototypes.BaseStreamHandler)
+	b.Protocol = protocol
 }
 
 func (h *broadCastHandler) VerifyRequest(data []byte) bool {
@@ -96,8 +101,14 @@ func (h *broadCastHandler) VerifyRequest(data []byte) bool {
 func (s *broadCastProtocol) handleEvent(msg *queue.Message) {
 
 	data := msg.GetData()
-	streams := s.GetStreamManager().FetchStreams()
-	for _, stream := range streams {
+	conns := s.GetConnsManager().Fetch()
+	for _, scon := range conns {
+		stream, err := s.Host.NewStream(context.Background(), scon.RemotePeer(), ID)
+		if err != nil {
+			log.Error("NewStream", "err", err)
+			continue
+		}
+		//stream, _ := scon.NewStream()
 		s.sendStream(stream, data)
 	}
 
@@ -105,8 +116,13 @@ func (s *broadCastProtocol) handleEvent(msg *queue.Message) {
 
 func (s *broadCastProtocol) queryStream(pid string, data interface{}) error {
 
-	stream := s.GetStreamManager().GetStream(pid)
-	if stream != nil {
+	scon := s.GetConnsManager().Get(pid)
+	if scon != nil {
+		stream, err := scon.NewStream()
+		if err != nil {
+			return err
+		}
+		stream.SetProtocol(ID)
 		return s.sendStream(stream, data)
 	}
 
@@ -128,20 +144,10 @@ func (s *broadCastProtocol) sendStream(stream net.Stream, data interface{}) erro
 	broadData := &types.MessageBroadCast{
 		Message: sendData}
 
-	// TODO sign the data
-	// signature, err := s.node.SignProtoMessage(broadData)
-	// if err != nil {
-	// 	logger.Error("failed to sign pb data")
-	// 	return err
-	// }
-
-	// broadData.Common.Sign = signature
-
-	//s.GetStreamManager().GetStream()
-	ok := s.GetStreamManager().SendProtoMessage(broadData, stream)
-	if !ok {
+	err := s.SendProtoMessage(broadData, stream)
+	if err != nil {
 		stream.Close()
-		s.GetStreamManager().DeleteStream(pid)
+		s.GetConnsManager().Delete(pid)
 		return errors.New("SendStreamErr")
 	}
 

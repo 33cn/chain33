@@ -2,69 +2,53 @@ package manage
 
 import (
 	"sync"
-	proto "github.com/gogo/protobuf/proto"
-
-	ggio "github.com/gogo/protobuf/io"
 
 	net "github.com/libp2p/go-libp2p-core/network"
 )
 
-type StreamManager struct {
+type ConnManager struct {
 	store sync.Map
 }
 
-func NewStreamManager() *StreamManager {
-	streamM := &StreamManager{}
+func NewConnManager() *ConnManager {
+	streamM := &ConnManager{}
 	return streamM
 
 }
 
-func (s *StreamManager) AddStream(pid string, stream net.Stream) {
-	s.store.Store(pid, stream)
+func (s *ConnManager) Add(pid string, conn net.Conn) {
+	s.store.Store(pid, conn)
 }
-func (s *StreamManager) DeleteStream(pid string) {
+func (s *ConnManager) Delete(pid string) {
 	s.store.Delete(pid)
 
 }
 
-func (s *StreamManager) GetStream(id string) net.Stream {
+func (s *ConnManager) Get(id string) net.Conn {
 	v, ok := s.store.Load(id)
 	if ok {
-		return v.(net.Stream)
+		return v.(net.Conn)
 	}
 	return nil
 }
-func (s *StreamManager) FetchStreams() []net.Stream {
-	var streams []net.Stream
+
+func (s *ConnManager) Fetch() []net.Conn {
+	var conns []net.Conn
 
 	s.store.Range(func(k, v interface{}) bool {
-		streams = append(streams, v.(net.Stream))
+		conns = append(conns, v.(net.Conn))
 		return true
 	})
 
-	return streams
+	return conns
 }
 
-func (s *StreamManager) Size() int {
-	var streams []net.Stream
+func (s *ConnManager) Size() int {
+	var conns []net.Conn
 	s.store.Range(func(k, v interface{}) bool {
-		streams = append(streams, v.(net.Stream))
+		conns = append(conns, v.(net.Conn))
 		return true
 	})
 
-	return len(streams)
-}
-
-func (s *StreamManager) SendProtoMessage(data proto.Message, stream net.Stream) bool {
-	writer := ggio.NewFullWriter(stream)
-
-	err := writer.WriteMsg(data)
-	if err != nil {
-		//log.Println(err)
-		stream.Reset()
-		return false
-	}
-	writer.Close()
-	stream.Reset()
-	return true
+	return len(conns)
 }

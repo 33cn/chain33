@@ -3,9 +3,8 @@ package p2pnext
 import (
 	"context"
 	"encoding/hex"
-	"github.com/33cn/chain33/p2pnext/manage"
-	"github.com/33cn/chain33/p2pnext/protocol"
 	"fmt"
+
 	"time"
 
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
@@ -13,6 +12,8 @@ import (
 
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/p2pnext/manage"
+	"github.com/33cn/chain33/p2pnext/protocol"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
@@ -30,7 +31,7 @@ type P2P struct {
 	chainCfg      *types.Chain33Config
 	host          core.Host
 	discovery     *Discovery
-	streamManag   *manage.StreamManager
+	connManag     *manage.ConnManager
 	peerInfoManag *manage.PeerInfoManager
 	api           client.QueueProtocolAPI
 	client        queue.Client
@@ -70,7 +71,7 @@ func New(cfg *types.Chain33Config) *P2P {
 		panic(err)
 	}
 	p2p := &P2P{host: host}
-	p2p.streamManag = manage.NewStreamManager()
+	p2p.connManag = manage.NewConnManager()
 	p2p.peerInfoManag = manage.NewPeerInfoManager()
 	p2p.chainCfg = cfg
 	p2p.discovery = new(Discovery)
@@ -93,13 +94,18 @@ func (p *P2P) managePeers() {
 			logger.Error("Host Connect", "err", err)
 			return
 		}
+		peers := p.host.Peerstore().Peers()
 
+		for _, v := range peers {
+			logger.Info("managePeers", "peerStore,peerID", v)
+		}
 		logger.Info("managePeers", "pid:", peerinfo.ID, "addr", peerinfo.Addrs)
 		_, err = p.newStream(context.Background(), *peerinfo)
 		if err != nil {
 			logger.Error("newStream", err.Error(), "")
 
 		}
+
 	}
 	peerChan, err := p.discovery.FindPeers(context.Background(), p.host)
 	if err != nil {
@@ -124,9 +130,10 @@ func (p *P2P) managePeers() {
 			}
 			logger.Info("p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
 				"peer", peer.String())
+
 			p.newStream(context.Background(), peer)
 		Recheck:
-			if p.streamManag.Size() >= 25 {
+			if p.connManag.Size() >= 25 {
 				//达到连接节点数最大要求
 				time.Sleep(time.Second * 10)
 				goto Recheck
@@ -145,7 +152,6 @@ func (p *P2P) Wait() {
 
 func (p *P2P) Close() {
 	close(p.Done)
-
 	logger.Info("p2p closed")
 
 	return
@@ -162,11 +168,10 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 		p.client = cli
 	}
 	globalData := &prototypes.GlobalData{
-
 		ChainCfg:        p.chainCfg,
 		QueueClient:     p.client,
 		Host:            p.host,
-		StreamManager:   p.streamManag,
+		ConnManager:     p.connManag,
 		PeerInfoManager: p.peerInfoManag,
 	}
 	protocol.Init(globalData)
@@ -195,8 +200,9 @@ func (p *P2P) newStream(ctx context.Context, pr peer.AddrInfo) (core.Stream, err
 	if err != nil {
 		return nil, err
 	}
+	defer stream.Close()
 
-	p.streamManag.AddStream(string(pr.ID), stream)
+	p.connManag.Add(string(pr.ID), stream.Conn())
 	return stream, nil
 
 }

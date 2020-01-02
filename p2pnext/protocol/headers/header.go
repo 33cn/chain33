@@ -1,6 +1,8 @@
 package headers
 
 import (
+	"context"
+
 	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -22,22 +24,25 @@ func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &HeaderInfoProtol{})
 	var hander = new(HeaderInfoHander)
 	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, hander)
-	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoResp, hander)
+	//prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoResp, hander)
 }
 
 const (
-	protoTypeID    = "HeadersProtocolType"
-	HeaderInfoReq  = "/chain33/headerinfoReq/1.0.0"
-	HeaderInfoResp = "/chain33/headerinfoResp/1.0.0"
+	protoTypeID   = "HeadersProtocolType"
+	HeaderInfoReq = "/chain33/headerinfoReq/1.0.0"
+	//HeaderInfoResp = "/chain33/headerinfoResp/1.0.0"
 )
 
 //type Istream
 type HeaderInfoProtol struct {
-	prototypes.BaseProtocol
+	*prototypes.BaseProtocol
+	*prototypes.BaseStreamHandler
+
 	requests map[string]*types.MessageHeaderReq // used to access request data from response handlers
 }
 
 func (h *HeaderInfoProtol) InitProtocol(data *prototypes.GlobalData) {
+	h.BaseProtocol = new(prototypes.BaseProtocol)
 	h.requests = make(map[string]*types.MessageHeaderReq)
 	h.GlobalData = data
 	h.requests = make(map[string]*types.MessageHeaderReq)
@@ -78,11 +83,14 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s n
 	pubkey, _ := h.GetHost().Peerstore().PubKey(peerID).Bytes()
 	resp := &types.MessageHeaderResp{MessageData: h.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.P2PHeaders{Headers: headers.GetItems()}}
+	//wlen, err := rw.WriteString(fmt.Sprintf("%v\n", string(types.Encode(resp))))
 
-	ok := h.StreamManager.SendProtoMessage(resp, s)
-	if ok {
+	err = h.SendProtoMessage(resp, s)
+	if err == nil {
 		log.Info("%s: Ping response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 	}
+
+	log.Info("OnReq", "SendProtoMessage", "ok")
 
 }
 
@@ -108,8 +116,8 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		//去指定的peer上获取对应的blockHeader
 		peerId := peerinfo.GetName()
 
-		pstream := h.StreamManager.GetStream(peerId)
-		if pstream == nil {
+		pConn := h.GetConnsManager().Get(peerId)
+		if pConn == nil {
 			continue
 		}
 
@@ -120,15 +128,15 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		headerReq := &types.MessageHeaderReq{MessageData: h.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 			Message: p2pgetheaders}
 
-		// sign the data
-		// signature, err := h.node.SignProtoMessage(req)
-		// if err != nil {
-		// 	logger.Error("failed to sign pb data")
-		// 	return
-		// }
-
 		// headerReq.MessageData.Sign = signature
-		if h.StreamManager.SendProtoMessage(headerReq, pstream) {
+		stream, err := h.Host.NewStream(context.Background(), pConn.RemotePeer(), HeaderInfoReq)
+		if err != nil {
+			log.Error("NewStream", "err", err, "peerID", pConn.RemotePeer())
+			h.BaseProtocol.ConnManager.Delete(pConn.RemotePeer().Pretty())
+			continue
+		}
+		//发送请求
+		if err := h.SendProtoMessage(headerReq, stream); err == nil {
 			h.requests[headerReq.MessageData.Id] = headerReq
 		}
 
@@ -137,36 +145,29 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 }
 
 type HeaderInfoHander struct {
-	prototypes.BaseStreamHandler
+	*prototypes.BaseStreamHandler
 }
 
 //Handle 处理请求
-func (d *HeaderInfoHander) Handle(req []byte, stream core.Stream) {
+func (d *HeaderInfoHander) Handle(stream core.Stream) {
 
 	protocol := d.GetProtocol().(*HeaderInfoProtol)
 
 	//解析处理
 	if stream.Protocol() == HeaderInfoReq {
 		var data types.MessageHeaderReq
-		err := types.Decode(req, &data)
-		if err != nil {
 
+		err := d.ReadProtoMessage(&data, stream)
+		if err != nil {
 			return
 		}
-		protocol.CheckMessage(data.GetMessageData().GetId())
+		//TODO checkCommonData
+		//protocol.CheckMessage(data.GetMessageData().GetId())
 		recvData := data.Message
+		protocol.OnReq(data.GetMessageData().GetId(), recvData, stream)
+		return
+	}
 
-		protocol.OnReq(data.MessageData.Id, recvData, stream)
-		return
-	}
-	var data types.MessageHeaderResp
-	err := types.Decode(req, &data)
-	if err != nil {
-		return
-	}
-	protocol.CheckMessage(data.GetMessageData().GetId())
-	recvData := data.Message
-	protocol.OnResp(recvData, stream)
 	return
 
 }
@@ -184,4 +185,8 @@ func (h *HeaderInfoProtol) CheckMessage(id string) bool {
 
 	log.Error("Failed to locate request data boject for response")
 	return false
+}
+func (h *HeaderInfoHander) SetProtocol(protocol prototypes.IProtocol) {
+	h.BaseStreamHandler = new(prototypes.BaseStreamHandler)
+	h.Protocol = protocol
 }

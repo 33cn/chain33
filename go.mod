@@ -39,6 +39,7 @@ require (
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.1.1
+	github.com/multiformats/go-multicodec v0.1.6
 	github.com/pkg/errors v0.8.1
 	github.com/rs/cors v1.6.0
 	github.com/spf13/cobra v0.0.5
