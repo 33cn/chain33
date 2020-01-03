@@ -7,19 +7,19 @@ import (
 
 	"time"
 
-	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
-	core "github.com/libp2p/go-libp2p-core"
-
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2pnext/manage"
 	"github.com/33cn/chain33/p2pnext/protocol"
+	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	libp2p "github.com/libp2p/go-libp2p"
+	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
-
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
