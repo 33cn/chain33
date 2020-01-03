@@ -61,14 +61,17 @@ type Mempool struct {
 	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
 	// mempool缓存容量大小，默认10240
 	PoolCacheSize int64 `protobuf:"varint,2,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
-	// 最小得交易手续费用，这个没有默认值，必填，一般是100000
-	MinTxFee    int64 `protobuf:"varint,3,opt,name=minTxFee" json:"minTxFee,omitempty"`
-	MaxTxFee    int64 `protobuf:"varint,3,opt,name=maxTxFee" json:"maxTxFee,omitempty"`
-	ForceAccept bool  `protobuf:"varint,4,opt,name=forceAccept" json:"forceAccept,omitempty"`
+	ForceAccept   bool  `protobuf:"varint,4,opt,name=forceAccept" json:"forceAccept,omitempty"`
 	// 每个账户在mempool中得最大交易数量，默认100
 	MaxTxNumPerAccount int64 `protobuf:"varint,5,opt,name=maxTxNumPerAccount" json:"maxTxNumPerAccount,omitempty"`
 	MaxTxLast          int64 `protobuf:"varint,6,opt,name=maxTxLast" json:"maxTxLast,omitempty"`
 	IsLevelFee         bool  `protobuf:"varint,7,opt,name=isLevelFee" json:"isLevelFee,omitempty"`
+	// 最小单元交易费，这个没有默认值，必填，一般是100000
+	MinTxFeeRate int64 `protobuf:"varint,8,opt,name=minTxFeeRate" json:"minTxFeeRate,omitempty"`
+	// 最大单元交易费, 默认1e7
+	MaxTxFeeRate int64 `protobuf:"varint,9,opt,name=maxTxFeeRate" json:"maxTxFeeRate,omitempty"`
+	// 单笔最大交易费, 默认1e9
+	MaxTxFee int64 `protobuf:"varint,10,opt,name=maxTxFee" json:"maxTxFee,omitempty"`
 }
 
 // Consensus 配置
@@ -149,7 +152,9 @@ type BlockChain struct {
 	// 回退是否保存区块
 	RollbackSave bool `protobuf:"varint,16,opt,name=rollbackSave" json:"rollbackSave,omitempty"`
 	// 最新区块上链超时时间，单位秒。
-	OnChainTimeout int64 `protobuf:"varint,16,opt,name=onChainTimeout" json:"onChainTimeout,omitempty"`
+	OnChainTimeout int64 `protobuf:"varint,17,opt,name=onChainTimeout" json:"onChainTimeout,omitempty"`
+	// 使能精简localdb
+	EnableReduceLocaldb bool `protobuf:"varint,18,opt,name=enableReduceLocaldb" json:"enableReduceLocaldb,omitempty"`
 }
 
 // P2P 配置
@@ -219,12 +224,6 @@ type RPC struct {
 
 // Exec 配置
 type Exec struct {
-	// 执行器执行所需最小费用,低于Mempool和Wallet设置的MinFee,在minExecFee = 0 的情况下，isFree = true才会生效
-	MinExecFee int64 `protobuf:"varint,1,opt,name=minExecFee" json:"minExecFee,omitempty"`
-	// 执行器执行所需最大费用,这个值必须大于mempool 和 wallet 的值
-	MaxExecFee int64 `protobuf:"varint,1,opt,name=maxExecFee" json:"maxExecFee,omitempty"`
-	// 执行器执行是否免费
-	IsFree bool `protobuf:"varint,2,opt,name=isFree" json:"isFree,omitempty"`
 	// 是否开启stat插件
 	EnableStat bool `protobuf:"varint,3,opt,name=enableStat" json:"enableStat,omitempty"`
 	// 是否开启MVCC插件

@@ -132,7 +132,7 @@ func (s *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr
 	nilTxLen := len(nilTxIndices)
 	//需要比较交易根哈希是否一致, 不一致需要请求区块内所有的交易
 	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) &&
-		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
+		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(s.BaseProtocol.ChainCfg,block.GetHeight(),block.Txs)) {
 
 		log.Debug("recvLtBlock", "height", block.GetHeight(), "peerAddr", peerAddr,
 			"blockHash", blockHash, "block size(KB)", float32(ltBlock.Size)/1024)

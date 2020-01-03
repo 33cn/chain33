@@ -430,7 +430,7 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, testResult)
 	assert.NotEqual(t, txHex1, testResult)
-	txData, err := hex.DecodeString(testResult.(string))
+	txData, err := common.FromHex(testResult.(string))
 	assert.Nil(t, err)
 	tx := &types.Transaction{}
 	err = types.Decode(txData, tx)
@@ -466,7 +466,7 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 		t.Error("Test createtxgroup failed")
 		return
 	}
-	err = tx.Check(cfg, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = tx.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	assert.Nil(t, err)
 }
 
@@ -1537,7 +1537,7 @@ func TestChain33_AddSeqCallBack(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	api.On("AddSeqCallBack", mock.Anything).Return(&types.Reply{}, nil)
+	api.On("AddSeqCallBack", mock.Anything).Return(&types.ReplyAddSeqCallback{}, nil)
 	err := client.AddSeqCallBack(nil, &testResult)
 	assert.NoError(t, err)
 }

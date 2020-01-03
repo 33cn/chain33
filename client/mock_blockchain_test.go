@@ -184,6 +184,24 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.ParaTxDetails{}))
 					}
 				}
+			case types.EventGetHeightByTitle:
+				if req, ok := msg.GetData().(*types.ReqHeightByTitle); ok {
+					// just for cover
+					if req.Title == "user" {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyHeightByTitle, &types.Reply{IsOk: false, Msg: []byte("not support")}))
+					} else {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyHeightByTitle, &types.ReplyHeightByTitle{}))
+					}
+				}
+			case types.EventGetParaTxByTitleAndHeight:
+				if req, ok := msg.GetData().(*types.ReqParaTxByHeight); ok {
+					// just for cover
+					if req.Title == "user" {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.Reply{IsOk: false, Msg: []byte("not support")}))
+					} else {
+						msg.Reply(client.NewMessage(blockchainKey, types.EventReplyParaTxByTitle, &types.ParaTxDetails{}))
+					}
+				}
 			case types.EventGetLastBlockSequence:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyLastBlockSequence, &types.Int64{}))
 			case types.EventGetBlockByHashes:
@@ -191,7 +209,7 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 			case types.EventGetBlockSequences:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyBlockSequences, &types.BlockSequences{}))
 			case types.EventAddBlockSeqCB:
-				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Reply{}))
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.ReplyAddSeqCallback{}))
 			case types.EventListBlockSeqCB:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.BlockSeqCBs{}))
 			case types.EventGetSeqCBLastNum:

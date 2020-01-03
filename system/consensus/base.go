@@ -131,6 +131,7 @@ func (bc *BaseClient) SetQueueClient(c queue.Client) {
 
 //InitBlock change init block
 func (bc *BaseClient) InitBlock() {
+	cfg := bc.client.GetConfig()
 	block, err := bc.RequestLastBlock()
 	if err != nil {
 		panic(err)
@@ -144,10 +145,9 @@ func (bc *BaseClient) InitBlock() {
 		newblock.ParentHash = zeroHash[:]
 		tx := bc.child.CreateGenesisTx()
 		newblock.Txs = tx
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 		if newblock.Height == 0 {
 			types.AssertConfig(bc.client)
-			cfg := bc.client.GetConfig()
 			newblock.Difficulty = cfg.GetP(0).PowLimitBits
 		}
 		err := bc.WriteBlock(zeroHash[:], newblock)

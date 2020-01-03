@@ -128,7 +128,7 @@ func (chain *BlockChain) ProcGetHeadersMsg(requestblock *types.ReqBlocks) (resph
 		chainlog.Error("ProcGetHeadersMsg input must Start <= End:", "Startheight", requestblock.Start, "Endheight", requestblock.End)
 		return nil, types.ErrEndLessThanStartHeight
 	}
-	if requestblock.End-requestblock.Start >= types.MaxBlockCountPerTime {
+	if requestblock.End-requestblock.Start >= types.MaxHeaderCountPerTime {
 		return nil, types.ErrMaxCountPerTime
 	}
 	if requestblock.Start > blockhight {
@@ -245,6 +245,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	defer func() {
 		chainlog.Info("ProcAddBlockMsg", "cost", types.Since(beg))
 	}()
+
 	block := blockdetail.Block
 	if block == nil {
 		chainlog.Error("ProcAddBlockMsg input block is null")
@@ -254,17 +255,22 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	if b != nil {
 		blockdetail = b
 	}
-	//syncTask 运行时设置对应的blockdone
-	if chain.syncTask.InProgress() {
-		chain.syncTask.Done(blockdetail.Block.GetHeight())
-	}
-	//downLoadTask 运行时设置对应的blockdone
-	if chain.downLoadTask.InProgress() {
-		chain.downLoadTask.Done(blockdetail.Block.GetHeight())
-	}
-	//此处只更新广播block的高度
+
+	height := blockdetail.Block.GetHeight()
+	hash := blockdetail.Block.Hash(chain.client.GetConfig())
+
+	//更新广播block的高度,设置请求过来的区块已经处理完成
 	if broadcast {
-		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
+		chain.UpdateRcvCastBlkHeight(height)
+	} else {
+		//syncTask 运行时设置对应的blockdone
+		if chain.syncTask.InProgress() {
+			chain.syncTask.Done(height)
+		}
+		//downLoadTask 运行时设置对应的blockdone
+		if chain.downLoadTask.InProgress() {
+			chain.downLoadTask.Done(height)
+		}
 	}
 	if pid == "self" {
 		if err != nil {
@@ -274,7 +280,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 			return nil, types.ErrExecBlockNil
 		}
 	}
-	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash(chain.client.GetConfig())), "err", err)
+	chainlog.Debug("ProcAddBlockMsg result:", "height", height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(hash), "err", err)
 	return blockdetail, err
 }
 

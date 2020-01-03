@@ -87,7 +87,7 @@ func (s *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid, peer
 	}
 
 	//计算的root hash是否一致
-	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(block.Txs)) {
+	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(s.BaseProtocol.ChainCfg,block.GetHeight(),block.Txs)) {
 
 		log.Debug("recvQueryReplyBlock", "blockHeight", block.GetHeight(), "peerAddr", peerAddr,
 			"block size(KB)", float32(block.Size())/1024, "blockHash", rep.BlockHash)

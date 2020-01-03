@@ -55,7 +55,7 @@ func TestTxGroup(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
 	cfg := mock33.GetClient().GetConfig()
-	prev := cfg.GInt("MinFee")
+	prev := cfg.GetMinTxFeeRate()
 	cfg.SetMinFee(100000)
 	defer cfg.SetMinFee(prev)
 	mcfg := mock33.GetCfg()
@@ -72,7 +72,7 @@ func TestTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.Coin))
 	//执行三笔交易: 全部正确
-	feeRate := cfg.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	txgroup, err := types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
 	//重新签名
@@ -154,7 +154,7 @@ func TestExecAllow(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
 	cfg := mock33.GetClient().GetConfig()
-	prev := cfg.GInt("MinFee")
+	prev := cfg.GetMinTxFeeRate()
 	cfg.SetMinFee(100000)
 	defer cfg.SetMinFee(prev)
 	genkey := mock33.GetGenesisKey()
@@ -241,9 +241,9 @@ func TestSameTx(t *testing.T) {
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 3)
-	hash1 := merkle.CalcMerkleRoot(newblock.Txs)
+	hash1 := merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	newblock.Txs = append(newblock.Txs, newblock.Txs[2])
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
 	_, _, err := util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
 	assert.Equal(t, types.ErrTxDup, err)
@@ -251,9 +251,9 @@ func TestSameTx(t *testing.T) {
 	//情况2
 	//[tx1,xt2,tx3,tx4,tx5,tx6] and [tx1,xt2,tx3,tx4,tx5,tx6,tx5,tx6]
 	newblock.Txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 6)
-	hash1 = merkle.CalcMerkleRoot(newblock.Txs)
+	hash1 = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	newblock.Txs = append(newblock.Txs, newblock.Txs[4:]...)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	assert.Equal(t, hash1, newblock.TxHash)
 	_, _, err = util.ExecBlock(mock33.GetClient(), nil, newblock, true, true, false)
 	assert.Equal(t, types.ErrTxDup, err)

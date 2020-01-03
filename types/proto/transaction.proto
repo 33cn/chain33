@@ -235,6 +235,8 @@ message TransactionDetail {
     string         fromaddr   = 8;
     string         actionName = 9;
     repeated Asset assets     = 10;
+    repeated TxProof txProofs = 11;
+    bytes            fullHash = 12;
 }
 
 message TransactionDetails {
@@ -264,4 +266,11 @@ message UpgradeMeta {
 message ReqTxHashList {
     repeated string hashes      = 1;
     bool            isShortHash = 2;
+}
+
+//使用多层merkle树之后的proof证明结构体
+message TxProof {
+    repeated bytes proofs   = 1;
+    uint32         index    = 2;
+    bytes          rootHash = 3;
 }

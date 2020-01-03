@@ -60,16 +60,6 @@ func New(cfg *typ.Chain33Config) *Executor {
 		execInit(cfg)
 	})
 	mcfg := cfg.GetModuleConfig().Exec
-	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
-	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
-	if mcfg.MinExecFee == 0 && mcfg.IsFree {
-		elog.Warn("set executor to free fee")
-		cfg.SetMinFee(0)
-	}
-	if mcfg.MinExecFee > 0 {
-		cfg.SetMinFee(mcfg.MinExecFee)
-	}
-
 	exec := &Executor{}
 	exec.pluginEnable = make(map[string]bool)
 	exec.pluginEnable["stat"] = mcfg.EnableStat

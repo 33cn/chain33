@@ -89,7 +89,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 	//普通的交易
 	tx := types.NewTransactionCache(txmsg)
 	types.AssertConfig(mem.client)
-	err := tx.Check(mem.client.GetConfig(), header.GetHeight(), mem.cfg.MinTxFee, mem.cfg.MaxTxFee)
+	err := tx.Check(mem.client.GetConfig(), header.GetHeight(), mem.cfg.MinTxFeeRate, mem.cfg.MaxTxFee)
 	if err != nil {
 		msg.Data = err
 		return msg
@@ -126,7 +126,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 // checkLevelFee 检查阶梯手续费
 func (mem *Mempool) checkLevelFee(tx *types.TransactionCache) error {
 	//获取mempool里所有交易手续费总和
-	feeRate := mem.getLevelFeeRate(mem.cfg.MinTxFee, 0, 0)
+	feeRate := mem.getLevelFeeRate(mem.cfg.MinTxFeeRate, 0, 0)
 	totalfee, err := tx.GetTotalFee(feeRate)
 	if err != nil {
 		return err

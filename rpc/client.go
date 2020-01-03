@@ -171,7 +171,7 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 	}
 	var transactions []*types.Transaction
 	for _, t := range param.Txs {
-		txByte, err := hex.DecodeString(t)
+		txByte, err := common.FromHex(t)
 		if err != nil {
 			return nil, err
 		}
@@ -182,7 +182,7 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 		}
 		transactions = append(transactions, &transaction)
 	}
-	feeRate := cfg.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	//get proper fee rate
 	proper, err := c.GetProperFee(nil)
 	if err != nil {
@@ -213,15 +213,16 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	if err != nil {
 		return nil, err
 	}
-	var expire int64
-	if in.Expire != "" {
-		expire, err = types.ParseExpire(in.Expire)
-		if err != nil {
-			return nil, err
-		}
-		//交易组只需要设置单笔交易超时
-		txNone.SetExpire(cfg, time.Duration(expire))
+	//不设置时默认为永不超时
+	if in.Expire == "" {
+		in.Expire = "0"
 	}
+	expire, err := types.ParseExpire(in.Expire)
+	if err != nil {
+		return nil, err
+	}
+	//交易组只需要设置单笔交易超时
+	txNone.SetExpire(cfg, time.Duration(expire))
 	isParaTx := false
 	transactions := []*types.Transaction{txNone}
 	for _, txhex := range in.TxHexs {
@@ -236,11 +237,11 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	}
 
 	//平行链下不允许设置高度作为过期判定, issue#706
-	if in.GetExpire() != "" && expire <= types.ExpireBound && isParaTx {
+	if expire > 0 && expire <= types.ExpireBound && isParaTx {
 		return nil, types.ErrInvalidExpire
 	}
 
-	feeRate := cfg.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	//get proper fee rate
 	proper, err := c.GetProperFee(nil)
 	if err != nil {
@@ -254,7 +255,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(cfg, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +276,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 
 func decodeTx(hexstr string) (*types.Transaction, error) {
 	var tx types.Transaction
-	data, err := hex.DecodeString(hexstr)
+	data, err := common.FromHex(hexstr)
 	if err != nil {
 		return nil, err
 	}
@@ -395,8 +396,8 @@ func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransactio
 
 // GetTimeStatus get status of time
 func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
-	ntpTime := common.GetRealTimeRetry(types.NtpHosts, 10)
-	local := types.Now()
+	ntpTime := common.GetRealTimeRetry(types.NtpHosts, 2)
+	local := time.Now()
 	if ntpTime.IsZero() {
 		return &types.TimeStatus{NtpTime: "", LocalTime: local.Format("2006-01-02 15:04:05"), Diff: 0}, nil
 	}

@@ -75,18 +75,6 @@ func (cache *txCache) Exist(hash string) bool {
 	return cache.qcache.Exist(hash)
 }
 
-//GetProperFee 获取合适手续费
-func (cache *txCache) GetProperFee() int64 {
-	if cache.qcache == nil {
-		return 0
-	}
-	feeRate := cache.qcache.GetProperFee()
-	if feeRate > 10000000 {
-		feeRate = 10000000
-	}
-	return feeRate
-}
-
 //Size cache tx num
 func (cache *txCache) Size() int {
 	if cache.qcache == nil {

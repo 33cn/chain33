@@ -7,7 +7,6 @@
 package testnode
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"os"
@@ -152,6 +151,7 @@ func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 		cfg = types.NewChain33Config(types.GetDefaultCfgstring())
 		if cfgpath == "--free--" {
 			setFee(cfg.GetModuleConfig(), 0)
+			cfg.SetMinFee(0)
 		}
 	} else {
 		cfg = types.NewChain33Config(types.ReadFile(cfgpath))
@@ -192,12 +192,8 @@ func (mock *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
 }
 
 func setFee(cfg *types.Config, fee int64) {
-	cfg.Exec.MinExecFee = fee
-	cfg.Mempool.MinTxFee = fee
+	cfg.Mempool.MinTxFeeRate = fee
 	cfg.Wallet.MinFee = fee
-	if fee == 0 {
-		cfg.Exec.IsFree = true
-	}
 }
 
 //GetJSONC :
@@ -211,7 +207,7 @@ func (mock *Chain33Mock) GetJSONC() *jsonclient.JSONClient {
 
 //SendAndSign :
 func (mock *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte, error) {
-	txbytes, err := hex.DecodeString(hextx)
+	txbytes, err := common.FromHex(hextx)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +227,7 @@ func (mock *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte,
 
 //SendAndSignNonce 用外部传入的nonce 重写nonce
 func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, nonce int64) ([]byte, error) {
-	txbytes, err := hex.DecodeString(hextx)
+	txbytes, err := common.FromHex(hextx)
 	if err != nil {
 		return nil, err
 	}

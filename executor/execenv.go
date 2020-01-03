@@ -142,7 +142,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(e.api.GetConfig(), e.height, cfg.GInt("MinFee"), cfg.GInt("MaxFee")); err != nil {
+	if err := tx.Check(e.api.GetConfig(), e.height, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee()); err != nil {
 		return err
 	}
 	//允许重写的情况
@@ -173,7 +173,7 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(cfg, e.height, cfg.GInt("MinFee"), cfg.GInt("MaxFee")); err != nil {
+	if err := txgroup.Check(cfg, e.height, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee()); err != nil {
 		return err
 	}
 	return nil
@@ -194,7 +194,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//手续费检查
 	types.AssertConfig(e.api)
 	cfg := e.api.GetConfig()
-	if !exec.IsFree() && cfg.GInt("MinFee") > 0 {
+	if !exec.IsFree() && cfg.GetMinTxFeeRate() > 0 {
 		from := tx.From()
 		accFrom := e.coinsAccount.LoadAccount(from)
 
@@ -371,7 +371,7 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 	//公链不允许手续费为0
 	types.AssertConfig(e.api)
 	cfg := e.api.GetConfig()
-	if !cfg.IsPara() && cfg.GInt("MinFee") > 0 && !ex.IsFree() {
+	if !cfg.IsPara() && cfg.GetMinTxFeeRate() > 0 && !ex.IsFree() {
 		feelog, err = e.processFee(tx)
 		if err != nil {
 			return nil, err

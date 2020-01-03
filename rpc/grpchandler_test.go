@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	pb "github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
@@ -739,7 +740,7 @@ func testGetHexTxByHashOK(t *testing.T) {
 	var td = &types.TransactionDetail{Tx: tx}
 	var tdNil = &types.TransactionDetail{Tx: nil}
 
-	encodetx := hex.EncodeToString(pb.Encode(tx))
+	encodetx := common.ToHex(pb.Encode(tx))
 
 	qapi.On("QueryTx", in).Return(tdNil, nil).Once()
 	data, err := g.GetHexTxByHash(getOkCtx(), in)
@@ -1185,4 +1186,16 @@ func TestGrpc_GetFork(t *testing.T) {
 	val, err = grpc1.GetFork(getOkCtx(), &pb.ReqKey{Key: []byte("ForkBlockHash")})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), val.Data)
+}
+
+func TestGrpc_LoadParaTxByTitle(t *testing.T) {
+	qapi.On("LoadParaTxByTitle", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.LoadParaTxByTitle(getOkCtx(), &pb.ReqHeightByTitle{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetParaTxByHeight(t *testing.T) {
+	qapi.On("GetParaTxByHeight", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.GetParaTxByHeight(getOkCtx(), &pb.ReqParaTxByHeight{})
+	assert.NoError(t, err)
 }

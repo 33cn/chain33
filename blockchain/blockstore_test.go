@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/33cn/chain33/util"
+
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
@@ -168,10 +170,14 @@ func TestSeqCreateAndDelete(t *testing.T) {
 	batch := blockStore.NewBatch(true)
 	for i := 0; i <= 100; i++ {
 		var header types.Header
-		h0 := calcHeightToBlockHeaderKey(int64(i))
+		header.Height = int64(i)
 		header.Hash = []byte(fmt.Sprintf("%d", i))
-		types.Encode(&header)
-		batch.Set(h0, types.Encode(&header))
+		headerkvs, err := saveHeaderTable(blockStore.db, &header)
+		assert.Nil(t, err)
+		for _, kv := range headerkvs {
+			batch.Set(kv.GetKey(), kv.GetValue())
+		}
+		batch.Set(calcHeightToHashKey(int64(i)), []byte(fmt.Sprintf("%d", i)))
 	}
 	blockStore.height = 100
 	batch.Write()
@@ -248,4 +254,48 @@ func TestHasTx(t *testing.T) {
 
 	has, _ = blockStore.HasTx(txhash4)
 	assert.Equal(t, has, false)
+}
+
+func TestGetRealTxResult(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+	chain := InitEnv()
+	cfg := chain.client.GetConfig()
+	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
+	assert.NotNil(t, blockStore)
+
+	// generate blockdetail
+	txs := util.GenCoinsTxs(cfg, util.HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01"), 10)
+	block := &types.Block{Txs: txs}
+	block.MainHash = block.Hash(cfg)
+	block.Height = 0
+	blockdetail := &types.BlockDetail{
+		Block: block,
+		Receipts: []*types.ReceiptData{
+			{Ty: 0, Logs: []*types.ReceiptLog{{Ty: 0, Log: []byte("000")}, {Ty: 0, Log: []byte("0000")}}},
+			{Ty: 1, Logs: []*types.ReceiptLog{{Ty: 111, Log: []byte("111")}, {Ty: 1111, Log: []byte("1111")}}},
+			{Ty: 2, Logs: []*types.ReceiptLog{{Ty: 222, Log: []byte("222")}, {Ty: 2222, Log: []byte("2222")}}},
+			{Ty: 3, Logs: []*types.ReceiptLog{{Ty: 333, Log: []byte("333")}, {Ty: 3333, Log: []byte("3333")}}},
+		},
+		KV: []*types.KeyValue{{Key: []byte("000"), Value: []byte("000")}, {Key: []byte("111"), Value: []byte("111")}},
+	}
+
+	// save blockdetail
+	newbatch := blockStore.NewBatch(true)
+	_, err = blockStore.SaveBlock(newbatch, blockdetail, 0)
+	assert.NoError(t, err)
+	newbatch.Write()
+
+	// check
+	cfg.S("reduceLocaldb", true)
+	txr := &types.TxResult{
+		Height: 0,
+		Index:  0,
+	}
+	blockStore.getRealTxResult(txr)
+	assert.Equal(t, txr.Tx.Nonce, txs[0].Nonce)
+	assert.Equal(t, txr.Receiptdate.Ty, blockdetail.Receipts[0].Ty)
 }

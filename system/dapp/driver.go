@@ -227,7 +227,7 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 
 	defer func() {
 		if r := recover(); r != nil {
-			blog.Error("call localexec error", "prefix", prefix, "tx.exec", tx.Execer, "info", r)
+			blog.Error("call localexec error", "prefix", prefix, "tx.exec", string(tx.Execer), "info", r)
 			err = types.ErrActionNotSupport
 			set = nil
 		}
@@ -289,7 +289,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			blog.Error("call exec error", "tx.exec", tx.Execer, "info", r)
+			blog.Error("call exec error", "tx.exec", string(tx.Execer), "info", r)
 			err = types.ErrActionNotSupport
 			receipt = nil
 		}
@@ -371,7 +371,7 @@ func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
 	for i := index; i >= 0 && i >= index-c; i-- {
 		if bytes.Equal(d.txs[i].Header, d.txs[i].Hash()) { //find header
 			txgroup := types.Transactions{Txs: d.txs[i : i+c]}
-			err := txgroup.Check(cfg, d.GetHeight(), cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+			err := txgroup.Check(cfg, d.GetHeight(), cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 			if err != nil {
 				return nil, err
 			}

@@ -50,7 +50,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.Coin))
 	//执行三笔交易: 全部正确
-	txgroup, err := types.CreateTxGroup(txs, cfg.GInt("MinFee"))
+	txgroup, err := types.CreateTxGroup(txs, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return
@@ -216,7 +216,7 @@ func TestExecutorErrAPIEnv(t *testing.T) {
 	exec, q := initEnv(types.GetDefaultCfgstring())
 	exec.disableLocal = true
 	cfg := exec.client.GetConfig()
-	cfg.S("MinFee", 0)
+	cfg.SetMinFee(0)
 	Register(cfg)
 	execInit(cfg)
 

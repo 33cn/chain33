@@ -178,7 +178,7 @@ func FormatTx(c *Chain33Config, execName string, tx *Transaction) (*Transaction,
 	}
 	var err error
 	if tx.Fee == 0 {
-		tx.Fee, err = tx.GetRealFee(c.GInt("MinFee"))
+		tx.Fee, err = tx.GetRealFee(c.GetMinTxFeeRate())
 		if err != nil {
 			return nil, err
 		}

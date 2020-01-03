@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"reflect"
+	"sort"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -785,4 +786,46 @@ func CalcTxShortHash(hash []byte) string {
 		return hex.EncodeToString(hash[0:5])
 	}
 	return ""
+}
+
+//TransactionSort:对主链以及平行链交易分类
+//构造一个map用于临时存储各个子链的交易, 按照title分类，主链交易的title设置成main
+//并对map按照title进行排序，不然每次遍历map顺序会不一致
+func TransactionSort(rawtxs []*Transaction) []*Transaction {
+	txMap := make(map[string]*Transactions)
+
+	for _, tx := range rawtxs {
+		title, isPara := GetParaExecTitleName(string(tx.Execer))
+		if !isPara {
+			title = MainChainName
+		}
+		if txMap[title] != nil {
+			txMap[title].Txs = append(txMap[title].Txs, tx)
+		} else {
+			var temptxs Transactions
+			temptxs.Txs = append(temptxs.Txs, tx)
+			txMap[title] = &temptxs
+		}
+	}
+
+	//需要按照title排序，不然每次遍历的map的顺序会不一致
+	var newMp = make([]string, 0)
+	for k := range txMap {
+		newMp = append(newMp, k)
+	}
+	sort.Strings(newMp)
+
+	var txs Transactions
+	for _, v := range newMp {
+		txs.Txs = append(txs.Txs, txMap[v].GetTxs()...)
+	}
+	return txs.GetTxs()
+}
+
+//FullHash 交易的fullhash包含交易的签名信息，
+//这里做了clone 主要是因为 Encode 可能会修改 tx 的 Size 字段，可能会引起data race
+func (tx *Transaction) FullHash() []byte {
+	copytx := clone(tx)
+	data := Encode(copytx)
+	return common.Sha256(data)
 }

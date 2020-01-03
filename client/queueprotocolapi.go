@@ -152,7 +152,7 @@ type QueueProtocolAPI interface {
 	CloseQueue() (*types.Reply, error)
 	// --------------- other interfaces end
 	// types.EventAddBlockSeqCB
-	AddSeqCallBack(param *types.BlockSeqCB) (*types.Reply, error)
+	AddSeqCallBack(param *types.BlockSeqCB) (*types.ReplyAddSeqCallback, error)
 
 	// types.EventListBlockSeqCB
 	ListSeqCallBack() (*types.BlockSeqCBs, error)
@@ -160,6 +160,10 @@ type QueueProtocolAPI interface {
 	GetSeqCallBackLastNum(param *types.ReqString) (*types.Int64, error)
 	// types.EventGetParaTxByTitle
 	GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.ParaTxDetails, error)
+	// types.EventGetHeightByTitle
+	LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.ReplyHeightByTitle, error)
+	// types.EventGetParaTxByTitleAndHeight
+	GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error)
 
 	// get chain config
 	GetConfig() *types.Chain33Config

@@ -352,7 +352,7 @@ func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	qm := &qmock.Client{}
 	qm.On("GetConfig", mock.Anything).Return(cfg)
 	client.Init(qm, api)
-	fee := cfg.GInt("MinFee") * 2
+	fee := cfg.GetMinTxFeeRate() * 2
 	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: fee}, nil)
 	in := &types.NoBalanceTx{}
 	params := &types.NoBalanceTxs{
@@ -364,7 +364,7 @@ func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	tx, err := client.CreateNoBalanceTxs(params)
 	assert.NoError(t, err)
 	gtx, _ := tx.GetTxGroup()
-	assert.NoError(t, gtx.Check(cfg, 0, fee, cfg.GInt("MaxFee")))
+	assert.NoError(t, gtx.Check(cfg, 0, fee, cfg.GetMaxTxFee()))
 	assert.NoError(t, err)
 	params.Expire = "300s"
 	tx, err = client.CreateNoBalanceTxs(params)
@@ -374,6 +374,12 @@ func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	params.Expire = "100"
 	tx, err = client.CreateNoBalanceTxs(params)
 	assert.Equal(t, types.ErrInvalidExpire, err)
+	params.Expire = "0"
+	_, err = client.CreateNoBalanceTxs(params)
+	assert.NotEqual(t, types.ErrInvalidExpire, err)
+	params.Expire = fmt.Sprintf("%d", types.ExpireBound+1)
+	_, err = client.CreateNoBalanceTxs(params)
+	assert.NotEqual(t, types.ErrInvalidExpire, err)
 }
 
 func TestClientReWriteRawTx(t *testing.T) {

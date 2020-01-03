@@ -4,7 +4,6 @@
 # 3. make build
 # ...
 export GO111MODULE=on
-export CHAIN33_PATH=${GOPATH}/src/github.com/33cn/chain33
 SRC := github.com/33cn/chain33/cmd/chain33
 SRC_CLI := github.com/33cn/chain33/cmd/cli
 SRC_SIGNATORY := github.com/33cn/chain33/cmd/signatory-server
@@ -16,11 +15,6 @@ MINER := build/miner_accounts
 AUTOTEST := build/autotest/autotest
 SRC_AUTOTEST := github.com/33cn/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "mocks"`
-PKG_LIST_VET := `go list ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15"`
-PKG_LIST_INEFFASSIGN= `go list -f {{.Dir}} ./... | grep -v "vendor" | grep -v "common/crypto/sha3" | grep -v "common/log/log15" | grep -v "common/ed25519"`
-PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "mocks"`
-PKG_LIST_GOSEC := `go list -f "${GOPATH}/src/{{.ImportPath}}" ./... | grep -v "vendor" | grep -v "mocks" | grep -v "cmd" | grep -v "types" | grep -v "commands" | grep -v "log15" | grep -v "ed25519" | grep -v "crypto"`
 BUILD_FLAGS = -ldflags "-X github.com/33cn/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
@@ -53,7 +47,7 @@ build: ## Build the binary file
 	@cp cmd/chain33/bityuan.toml build/
 
 release: ## Build the binary file
-	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
+	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/bityuan.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
@@ -72,10 +66,9 @@ para:
 autotest:## build autotest binary
 	@go build -v -i -o $(AUTOTEST) $(SRC_AUTOTEST)
 	@if [ -n "$(dapp)" ]; then \
-		cd build/autotest && bash ./copy-autotest.sh local && cd local && bash ./local-autotest.sh $(dapp) && cd ../../../; \
-	fi
+		cd build/autotest && ./run.sh local $(dapp) && cd ../../; fi
 autotest_ci: autotest ## autotest jerkins ci
-	@cd build/autotest && bash ./copy-autotest.sh jerkinsci/temp$(proj) && cd jerkinsci && bash ./jerkins-ci-autotest.sh $(proj) && cd ../../../
+	@cd build/autotest && ./run.sh jerkinsci $(proj) && cd ../../
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
@@ -101,22 +94,22 @@ linter_test: ## Use gometalinter check code, for local test
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 gosec:
-	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec ${PKG_LIST_GOSEC}
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec --skip-dirs=commands
 
 race: ## Run data race detector
-	@go test -race -short $(PKG_LIST)
+	@go test -race -short `go list ./... | grep -v "mocks"`
 
 vet:
-	@go vet ${PKG_LIST_VET}
+	@go vet `go list -f {{.Dir}} ./... | grep -v "common/crypto/sha3"`
 
 ineffassign:
-	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign   -n ${PKG_LIST_INEFFASSIGN}
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign  -n ./...
 
 test: ## Run unittests
-	@go test -race $(PKG_LIST)
+	@go test -race `go list ./... | grep -v "mocks"`
 
 testq: ## Run unittests
-	@go test $(PKG_LIST_Q)
+	@go test `go list ./... | grep -v "mocks"`
 
 fmt: fmt_proto fmt_shell ## go fmt
 	go fmt ./...
@@ -133,7 +126,7 @@ bench: ## Run benchmark of all
 	@go test ./... -v -bench=.
 
 msan: ## Run memory sanitizer
-	@go test -msan -short $(PKG_LIST)
+	@go test -msan -short $(go list ./... | grep -v "mocks")
 
 coverage: ## Generate global code coverage report
 	@./build/tools/coverage.sh
@@ -183,7 +176,7 @@ help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
 	@printf "[command]\n"
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-	
+
 cleandata:
 	rm -rf build/datadir/addrbook
 	rm -rf build/datadir/blockchain.db
@@ -210,11 +203,15 @@ checkgofmt: ## get all go files and run go fmt on them
 
 .PHONY: mock
 mock:
+	@cd blockchain/ && mockery -name=CommonStore && mv mocks/CommonStore.go mocks/commonstore.go && cd -
+	@cd blockchain/ && mockery -name=SequenceStore && mv mocks/SequenceStore.go mocks/sequence_store.go && cd -
+	@cd blockchain/ && mockery -name=PushWorkNotify && mv mocks/PushWorkNotify.go mocks/pushwork_notify.go && cd -
 	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
-	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
 	@cd common/db && mockery -name=KV && mv mocks/KV.go mocks/kv.go && cd -
 	@cd common/db && mockery -name=KVDB && mv mocks/KVDB.go mocks/kvdb.go && cd -
+	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
 	@cd types/ && mockery -name=Chain33Client && mv mocks/Chain33Client.go mocks/chain33client.go && cd -
+
 
 
 .PHONY: auto_ci_before auto_ci_after auto_ci
