@@ -12,6 +12,7 @@ import (
 
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
+	"github.com/golang/protobuf/proto"
 
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/stretchr/testify/assert"
@@ -262,7 +263,8 @@ func TestReduceReceipts(t *testing.T) {
 		{Ty: 3, Logs: []*types.ReceiptLog{{Ty: 333, Log: []byte("333")}, {Ty: 3333, Log: []byte("3333")}}},
 	}
 	body.Receipts = receipts
-	dstReceipts := reduceReceipts(&body)
+	cloneBody := proto.Clone(&body).(*types.BlockBody)
+	dstReceipts := reduceReceipts(cloneBody)
 
 	// check
 	for _, recpt := range body.Receipts {
