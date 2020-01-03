@@ -1259,7 +1259,8 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 	blockbody := bs.BlockdetailToBlockBody(blockdetail)
 	// 这里将blockbody进行中的receipt拆分成独立的一张表,
 	// 因此body中只保存Receipts的结果，具体内容在ReceiptTable中
-	blockbody.Receipts = reduceReceipts(blockbody)
+	cloneBody := proto.Clone(blockbody).(*types.BlockBody)
+	blockbody.Receipts = reduceReceipts(cloneBody)
 	bodykvs, err := saveBlockBodyTable(bs.db, blockbody)
 	if err != nil {
 		storeLog.Error("SaveBlockForTable:saveBlockBodyTable", "height", height, "hash", common.ToHex(hash), "err", err)

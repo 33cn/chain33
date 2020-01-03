@@ -10,7 +10,6 @@ import (
 
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
-	"github.com/golang/protobuf/proto"
 )
 
 // ReduceChain 精简chain
@@ -133,8 +132,7 @@ func (chain *BlockChain) deleteTx(batch dbm.Batch, block *types.Block) {
 }
 
 // reduceReceipts 精简receipts
-func reduceReceipts(src *types.BlockBody) []*types.ReceiptData {
-	dst := proto.Clone(src).(*types.BlockBody)
+func reduceReceipts(dst *types.BlockBody) []*types.ReceiptData {
 	for i := 0; i < len(dst.Receipts); i++ {
 		for j := 0; j < len(dst.Receipts[i].Logs); j++ {
 			if dst.Receipts[i].Logs[j] != nil {
