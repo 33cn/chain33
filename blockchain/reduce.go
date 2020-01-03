@@ -5,8 +5,6 @@
 package blockchain
 
 import (
-	"bytes"
-	"encoding/gob"
 	"sync/atomic"
 	"time"
 
@@ -135,12 +133,7 @@ func (chain *BlockChain) deleteTx(batch dbm.Batch, block *types.Block) {
 
 // reduceReceipts 精简receipts
 func reduceReceipts(src *types.BlockBody) []*types.ReceiptData {
-	dst := &types.BlockBody{}
-	err := deepCopy(dst, src)
-	if err != nil {
-		chainlog.Error("reduceReceipts deepCopy fail", "error", err)
-		return src.Receipts
-	}
+	dst := src.Clone()
 	for i := 0; i < len(dst.Receipts); i++ {
 		for j := 0; j < len(dst.Receipts[i].Logs); j++ {
 			if dst.Receipts[i].Logs[j] != nil {
@@ -214,12 +207,4 @@ func (chain *BlockChain) reduceBody(batch dbm.Batch, height int64) {
 			}
 		}
 	}
-}
-
-func deepCopy(dst, src interface{}) error {
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
-		return err
-	}
-	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
 }
