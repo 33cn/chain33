@@ -66,11 +66,11 @@ func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 	s.Protocol = protocol
 }
 
-func (s *BaseStreamHandler) Handle(core.Stream) (*StreamResponse, error) {
-	return nil, nil
+func (s *BaseStreamHandler) Handle(core.Stream)  {
+	return
 }
 
-func (s *BaseStreamHandler) VerifyRequest(request []byte, msgId string) bool {
+func (s *BaseStreamHandler) VerifyRequest(request []byte) bool {
 	//基类统一验证数据, 不需要验证,重写该方法直接返回true
 	//TODO, verify request
 	//获取对应的消息结构package

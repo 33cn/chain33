@@ -16,12 +16,10 @@ import (
 	"github.com/33cn/chain33/p2pnext/protocol"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/libp2p/go-libp2p-peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
