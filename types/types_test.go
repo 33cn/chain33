@@ -427,3 +427,120 @@ func TestJsonpbUTF8Tx(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, string(pljson), `{"transfer":{"cointoken":"","amount":"200000000","note":"1\n2\n3","to":""},"ty":1}`)
 }
+
+func TestSignatureClone(t *testing.T) {
+	s1 := &Signature{Ty: 1, Pubkey: []byte("Pubkey1"), Signature: []byte("Signature1")}
+	s2 := s1.Clone()
+	s2.Pubkey = []byte("Pubkey2")
+	assert.Equal(t, s1.Ty, s2.Ty)
+	assert.Equal(t, s1.Signature, s2.Signature)
+	assert.Equal(t, []byte("Pubkey1"), s1.Pubkey)
+	assert.Equal(t, []byte("Pubkey2"), s2.Pubkey)
+}
+
+func TestTxClone(t *testing.T) {
+	s1 := &Signature{Ty: 1, Pubkey: []byte("Pubkey1"), Signature: []byte("Signature1")}
+	tx1 := &Transaction{Execer: []byte("Execer1"), Fee: 1, Signature: s1}
+	tx2 := tx1.Clone()
+	tx2.Signature.Pubkey = []byte("Pubkey2")
+	tx2.Fee = 2
+	assert.Equal(t, tx1.Execer, tx2.Execer)
+	assert.Equal(t, int64(1), tx1.Fee)
+	assert.Equal(t, tx1.Signature.Ty, tx2.Signature.Ty)
+	assert.Equal(t, []byte("Pubkey1"), tx1.Signature.Pubkey)
+	assert.Equal(t, []byte("Pubkey2"), tx2.Signature.Pubkey)
+
+	tx2.Signature = nil
+	assert.NotNil(t, tx1.Signature)
+	assert.Nil(t, tx2.Signature)
+}
+
+func TestBlockClone(t *testing.T) {
+	b1 := getTestBlockDetail()
+	b2 := b1.Clone()
+
+	b2.Block.Signature.Ty = 22
+	assert.NotEqual(t, b1.Block.Signature.Ty, b2.Block.Signature.Ty)
+	assert.Equal(t, b1.Block.Signature.Signature, b2.Block.Signature.Signature)
+
+	b2.Block.Txs[1].Execer = []byte("E22")
+	assert.NotEqual(t, b1.Block.Txs[1].Execer, b2.Block.Txs[1].Execer)
+	assert.Equal(t, b1.Block.Txs[1].Fee, b2.Block.Txs[1].Fee)
+
+	b2.KV[1].Key = []byte("key22")
+	assert.NotEqual(t, b1.KV[1].Key, b2.KV[1].Key)
+	assert.Equal(t, b1.KV[1].Value, b2.KV[1].Value)
+
+	b2.Receipts[1].Ty = 22
+	assert.NotEqual(t, b1.Receipts[1].Ty, b2.Receipts[1].Ty)
+	assert.Equal(t, b1.Receipts[1].Logs, b2.Receipts[1].Logs)
+
+	b2.Block.Txs[0] = nil
+	assert.NotNil(t, b1.Block.Txs[0])
+}
+
+func TestBlockBody(t *testing.T) {
+	detail := getTestBlockDetail()
+	b1 := BlockBody{
+		Txs:        detail.Block.Txs,
+		Receipts:   detail.Receipts,
+		MainHash:   []byte("MainHash1"),
+		MainHeight: 1,
+		Hash:       []byte("Hash"),
+		Height:     1,
+	}
+	b2 := b1.Clone()
+
+	b2.Txs[1].Execer = []byte("E22")
+	assert.NotEqual(t, b1.Txs[1].Execer, b2.Txs[1].Execer)
+	assert.Equal(t, b1.Txs[1].Fee, b2.Txs[1].Fee)
+
+	b2.Receipts[1].Ty = 22
+	assert.NotEqual(t, b1.Receipts[1].Ty, b2.Receipts[1].Ty)
+	assert.Equal(t, b1.Receipts[1].Logs, b2.Receipts[1].Logs)
+
+	b2.Txs[0] = nil
+	assert.NotNil(t, b1.Txs[0])
+
+	b2.MainHash = []byte("MainHash2")
+	assert.NotEqual(t, b1.MainHash, b2.MainHash)
+	assert.Equal(t, b1.Height, b2.Height)
+}
+
+func getTestBlockDetail() *BlockDetail {
+	s1 := &Signature{Ty: 1, Pubkey: []byte("Pubkey1"), Signature: []byte("Signature1")}
+	s2 := &Signature{Ty: 2, Pubkey: []byte("Pubkey2"), Signature: []byte("Signature2")}
+	tx1 := &Transaction{Execer: []byte("Execer1"), Fee: 1, Signature: s1}
+	tx2 := &Transaction{Execer: []byte("Execer2"), Fee: 2, Signature: s2}
+
+	sigBlock := &Signature{Ty: 1, Pubkey: []byte("BlockPubkey1"), Signature: []byte("BlockSignature1")}
+	block := &Block{
+		Version:    1,
+		ParentHash: []byte("ParentHash"),
+		TxHash:     []byte("TxHash"),
+		StateHash:  []byte("TxHash"),
+		Height:     1,
+		BlockTime:  1,
+		Difficulty: 1,
+		MainHash:   []byte("MainHash"),
+		MainHeight: 1,
+		Signature:  sigBlock,
+		Txs:        []*Transaction{tx1, tx2},
+	}
+	kv1 := &KeyValue{Key: []byte("key1"), Value: []byte("value1")}
+	kv2 := &KeyValue{Key: []byte("key1"), Value: []byte("value1")}
+
+	log1 := &ReceiptLog{Ty: 1, Log: []byte("log1")}
+	log2 := &ReceiptLog{Ty: 2, Log: []byte("log2")}
+	receipts := []*ReceiptData{
+		{Ty: 11, Logs: []*ReceiptLog{log1}},
+		{Ty: 12, Logs: []*ReceiptLog{log2}},
+	}
+
+	return &BlockDetail{
+		Block:          block,
+		Receipts:       receipts,
+		KV:             []*KeyValue{kv1, kv2},
+		PrevStatusHash: []byte("PrevStatusHash"),
+	}
+}
