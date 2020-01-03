@@ -5,13 +5,12 @@
 package blockchain
 
 import (
-	"bytes"
-	"encoding/gob"
 	"sync/atomic"
 	"time"
 
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
+	"github.com/golang/protobuf/proto"
 )
 
 // ReduceChain 精简chain
@@ -135,7 +134,7 @@ func (chain *BlockChain) deleteTx(batch dbm.Batch, block *types.Block) {
 
 // reduceReceipts 精简receipts
 func reduceReceipts(src *types.BlockBody) []*types.ReceiptData {
-	dst := proto.Clone(src).(*types.BlockBody{})
+	dst := proto.Clone(src).(*types.BlockBody)
 	for i := 0; i < len(dst.Receipts); i++ {
 		for j := 0; j < len(dst.Receipts[i].Logs); j++ {
 			if dst.Receipts[i].Logs[j] != nil {
@@ -210,4 +209,3 @@ func (chain *BlockChain) reduceBody(batch dbm.Batch, height int64) {
 		}
 	}
 }
-
