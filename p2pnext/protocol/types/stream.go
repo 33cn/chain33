@@ -36,7 +36,12 @@ func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 	if _, dup := streamHandlerTypeMap[typeID]; dup {
 		panic("addStreamHandler, handler is nil, typeID=" + typeID)
 	}
-	streamHandlerTypeMap[typeID] = reflect.TypeOf(handler)
+	//streamHandlerTypeMap[typeID] = reflect.TypeOf(handler)
+	handlerType := reflect.TypeOf(handler)
+	if handlerType.Kind() == reflect.Ptr {
+		handlerType = handlerType.Elem()
+	}
+	streamHandlerTypeMap[typeID] = handlerType
 }
 
 type StreamResponse struct {
