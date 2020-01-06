@@ -5,6 +5,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"container/list"
 	"math/big"
 	"sync"
@@ -22,6 +23,7 @@ type blockNode struct {
 	broadcast  bool
 	pid        string
 	sequence   int64
+	BlockTime  int64
 }
 
 type blockIndex struct {
@@ -43,6 +45,7 @@ func initBlockNode(cfg *types.Chain33Config, node *blockNode, block *types.Block
 		broadcast:  broadcast,
 		pid:        pid,
 		sequence:   sequence,
+		BlockTime:  block.BlockTime,
 	}
 }
 
@@ -62,6 +65,7 @@ func newBlockNodeByHeader(broadcast bool, header *types.Header, pid string, sequ
 		broadcast:  broadcast,
 		pid:        pid,
 		sequence:   sequence,
+		BlockTime:  header.BlockTime,
 	}
 	return node
 }
@@ -164,4 +168,15 @@ func (bi *blockIndex) DelNode(hash []byte) {
 		delnode.parent = nil
 		delete(bi.index, string(hash))
 	}
+}
+
+//同一高度出块时间相差一秒，选择区块hash大的作为最优区块
+func (node *blockNode) Cmp(nodeB *blockNode) bool {
+	diffTime := node.BlockTime - nodeB.BlockTime
+	if node.height == nodeB.height && diffTime >= -1 && diffTime <= 1 {
+		if bytes.Compare(node.hash, nodeB.hash) == 1 {
+			return true
+		}
+	}
+	return false
 }

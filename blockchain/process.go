@@ -196,11 +196,10 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, 
 //将block添加到主链中
 func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail) (*types.BlockDetail, bool, error) {
 
-	// 将此block插入到主链
 	parentHash := block.Block.GetParentHash()
-	if bytes.Equal(parentHash, b.bestChain.Tip().hash) {
 
-		// 将此block添加到主链中,tip节点刚好是插入block的父节点.
+	// 将此block添加到主链中,tip节点刚好是插入block的父节点.
+	if bytes.Equal(parentHash, b.bestChain.Tip().hash) {
 		var err error
 		block, err = b.connectBlock(node, block)
 		if err != nil {
@@ -226,7 +225,9 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", difficulty.BigToCompact(tiptd))
 	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", difficulty.BigToCompact(blocktd))
 
-	if blocktd.Cmp(tiptd) <= 0 {
+	//优先选择总难度系数大的区块
+	//总难度系数和区块高度相同以及出块时间相差一秒内优先选择区块hash大的
+	if blocktd.Cmp(tiptd) < 0 || (blocktd.Cmp(tiptd) == 0 && !node.Cmp(b.bestChain.Tip())) {
 		fork := b.bestChain.FindFork(node)
 		if fork != nil && bytes.Equal(parentHash, fork.hash) {
 			chainlog.Info("connectBestChain FORK:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
@@ -245,7 +246,6 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 	detachNodes, attachNodes := b.getReorganizeNodes(node)
 
 	// Reorganize the chain.
-	//chainlog.Info("connectBestChain REORGANIZE:", "block height", node.height, "block hash", common.ToHex(node.hash))
 	err := b.reorganizeChain(detachNodes, attachNodes)
 	if err != nil {
 		return nil, false, err
@@ -493,6 +493,9 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		if block != nil && err == nil {
 			detachBlocks = append(detachBlocks, block)
 			chainlog.Debug("reorganizeChain detachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)))
+		} else {
+			chainlog.Error("reorganizeChain detachBlocks fail", "height", n.height, "hash", common.ToHex(n.hash), "err", err)
+			return err
 		}
 	}
 
@@ -504,6 +507,9 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		if block != nil && err == nil {
 			attachBlocks = append(attachBlocks, block)
 			chainlog.Debug("reorganizeChain attachBlocks ", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)))
+		} else {
+			chainlog.Error("reorganizeChain attachBlocks fail", "height", n.height, "hash", common.ToHex(n.hash), "err", err)
+			return err
 		}
 	}
 
