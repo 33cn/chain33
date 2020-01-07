@@ -18,12 +18,6 @@ type MConnection struct {
 	peer          *Peer
 }
 
-// MConnConfig is a MConnection configuration.
-type MConnConfig struct {
-	gconn *grpc.ClientConn
-	gcli  pb.P2PgserviceClient
-}
-
 // NewMConnection wraps net.Conn and creates multiplex connection
 func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *Peer) *MConnection {
 	log.Info("NewMConnection p2p client", "addr", remote)
