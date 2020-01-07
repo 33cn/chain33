@@ -59,6 +59,8 @@ func TestErrLog(t *testing.T) {
 	err = jrpcClient.Call("Chain33.QueryTransaction", req, &testResult)
 	assert.Nil(t, err)
 	assert.Equal(t, string(testResult.Receipt.Logs[0].Log), `"ErrNoBalance"`)
+	assert.Equal(t, "0.6000", testResult.Tx.AmountFmt)
+	assert.Equal(t, int64(6e7), testResult.Tx.Amount)
 }
 
 func getTx(t *testing.T, hex string) *types.Transaction {
