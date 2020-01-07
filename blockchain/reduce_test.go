@@ -170,7 +170,11 @@ func TestReduceBody(t *testing.T) {
 	assert.NoError(t, err)
 	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {
-			assert.Nil(t, log.Log)
+			if recep.Ty == types.ExecErr {
+				assert.NotNil(t, log.Log)
+			} else {
+				assert.Nil(t, log.Log)
+			}
 		}
 	}
 }
@@ -235,7 +239,11 @@ func TestReduceBodyInit(t *testing.T) {
 	assert.NoError(t, err)
 	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {
-			assert.Nil(t, log.Log)
+			if recep.Ty == types.ExecErr {
+				assert.NotNil(t, log.Log)
+			} else {
+				assert.Nil(t, log.Log)
+			}
 		}
 	}
 	// 2 tx
@@ -273,7 +281,11 @@ func TestReduceReceipts(t *testing.T) {
 
 	for _, recpt := range dstReceipts {
 		for _, log := range recpt.Logs {
-			assert.Nil(t, log.Log)
+			if recpt.Ty == types.ExecErr {
+				assert.NotNil(t, log.Log)
+			} else {
+				assert.Nil(t, log.Log)
+			}
 		}
 	}
 }
