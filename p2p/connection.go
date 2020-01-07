@@ -24,19 +24,6 @@ type MConnConfig struct {
 	gcli  pb.P2PgserviceClient
 }
 
-// DefaultMConnConfig returns the default config.
-func DefaultMConnConfig() *MConnConfig {
-	return &MConnConfig{}
-}
-
-// NewTemMConnConfig return the config by grpc.clientconn, gcli
-func NewTemMConnConfig(gconn *grpc.ClientConn, gcli pb.P2PgserviceClient) *MConnConfig {
-	return &MConnConfig{
-		gconn: gconn,
-		gcli:  gcli,
-	}
-}
-
 // NewMConnection wraps net.Conn and creates multiplex connection
 func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *Peer) *MConnection {
 	log.Info("NewMConnection p2p client", "addr", remote)
@@ -47,15 +34,6 @@ func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *Peer) *MCon
 	}
 	mconn.node = peer.node
 	mconn.remoteAddress = remote
-	return mconn
-}
-
-// NewMConnectionWithConfig return mconn by mconnconfig
-func NewMConnectionWithConfig(cfg *MConnConfig) *MConnection {
-	mconn := &MConnection{
-		gconn: cfg.gconn,
-		gcli:  cfg.gcli,
-	}
 	return mconn
 }
 
