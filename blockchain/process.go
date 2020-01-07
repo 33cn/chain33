@@ -196,10 +196,13 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, 
 //将block添加到主链中
 func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail) (*types.BlockDetail, bool, error) {
 
+	enBestBlockCmp := b.client.GetConfig().GetModuleConfig().Consensus.EnableBestBlockCmp
 	parentHash := block.Block.GetParentHash()
+	tip := b.bestChain.Tip()
+	cfg := b.client.GetConfig()
 
 	// 将此block添加到主链中,tip节点刚好是插入block的父节点.
-	if bytes.Equal(parentHash, b.bestChain.Tip().hash) {
+	if bytes.Equal(parentHash, tip.hash) {
 		var err error
 		block, err = b.connectBlock(node, block)
 		if err != nil {
@@ -207,27 +210,28 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 		}
 		return block, true, nil
 	}
-	chainlog.Debug("connectBestChain", "parentHash", common.ToHex(parentHash), "bestChain.Tip().hash", common.ToHex(b.bestChain.Tip().hash))
+	chainlog.Debug("connectBestChain", "parentHash", common.ToHex(parentHash), "bestChain.Tip().hash", common.ToHex(tip.hash))
 
 	// 获取tip节点的block总难度tipid
-	tiptd, Err := b.blockStore.GetTdByBlockHash(b.bestChain.Tip().hash)
+	tiptd, Err := b.blockStore.GetTdByBlockHash(tip.hash)
 	if tiptd == nil || Err != nil {
-		chainlog.Error("connectBestChain tiptd is not exits!", "height", b.bestChain.Tip().height, "b.bestChain.Tip().hash", common.ToHex(b.bestChain.Tip().hash))
+		chainlog.Error("connectBestChain tiptd is not exits!", "height", tip.height, "b.bestChain.Tip().hash", common.ToHex(tip.hash))
 		return nil, false, Err
 	}
 	parenttd, Err := b.blockStore.GetTdByBlockHash(parentHash)
 	if parenttd == nil || Err != nil {
-		chainlog.Error("connectBestChain parenttd is not exits!", "height", block.Block.Height, "parentHash", common.ToHex(parentHash), "block.Block.hash", common.ToHex(block.Block.Hash(b.client.GetConfig())))
+		chainlog.Error("connectBestChain parenttd is not exits!", "height", block.Block.Height, "parentHash", common.ToHex(parentHash), "block.Block.hash", common.ToHex(block.Block.Hash(cfg)))
 		return nil, false, types.ErrParentTdNoExist
 	}
 	blocktd := new(big.Int).Add(node.Difficulty, parenttd)
 
-	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(b.bestChain.Tip().hash), "height", b.bestChain.Tip().height, "TD", difficulty.BigToCompact(tiptd))
+	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(tip.hash), "height", tip.height, "TD", difficulty.BigToCompact(tiptd))
 	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", difficulty.BigToCompact(blocktd))
 
 	//优先选择总难度系数大的区块
-	//总难度系数和区块高度相同以及出块时间相差一秒内优先选择区块hash大的
-	if blocktd.Cmp(tiptd) < 0 || (blocktd.Cmp(tiptd) == 0 && !node.Cmp(b.bestChain.Tip())) {
+	//总难度系数，区块高度，出块时间以及父区块一致并开启最优区块比较功能时，通过共识模块来确定最优区块
+	iSideChain := blocktd.Cmp(tiptd) < 0 || (blocktd.Cmp(tiptd) == 0 && !enBestBlockCmp)
+	if iSideChain {
 		fork := b.bestChain.FindFork(node)
 		if fork != nil && bytes.Equal(parentHash, fork.hash) {
 			chainlog.Info("connectBestChain FORK:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
@@ -235,12 +239,23 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 			chainlog.Info("connectBestChain extends a side chain:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
 		}
 		return nil, false, nil
+	} else if blocktd.Cmp(tiptd) == 0 && enBestBlockCmp && node.height == tip.height {
+		isbestBlock := util.CmpBestBlock(b.client, block.Block, tip.hash)
+		if !isbestBlock {
+			fork := b.bestChain.FindFork(node)
+			if fork != nil && bytes.Equal(parentHash, fork.hash) {
+				chainlog.Info("connectBestChain FORK:EnableBestBlockCmp", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
+			} else {
+				chainlog.Info("connectBestChain extends a side chain:EnableBestBlockCmp", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
+			}
+			return nil, false, nil
+		}
 	}
 
 	//print
-	chainlog.Debug("connectBestChain tip", "height", b.bestChain.Tip().height, "hash", common.ToHex(b.bestChain.Tip().hash))
+	chainlog.Debug("connectBestChain tip", "height", tip.height, "hash", common.ToHex(tip.hash))
 	chainlog.Debug("connectBestChain node", "height", node.height, "hash", common.ToHex(node.hash), "parentHash", common.ToHex(parentHash))
-	chainlog.Debug("connectBestChain block", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(b.client.GetConfig())))
+	chainlog.Debug("connectBestChain block", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)))
 
 	// 获取需要重组的block node
 	detachNodes, attachNodes := b.getReorganizeNodes(node)

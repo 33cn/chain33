@@ -366,3 +366,10 @@ message ReqParaTxByHeight {
     repeated int64 items = 1;
     string         title = 2;
 }
+
+//用于比较最优区块的消息结构
+message CmpBlock {
+    Block block     = 1;
+    bytes cmpHash   = 2;
+}
+

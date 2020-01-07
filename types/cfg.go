@@ -88,6 +88,8 @@ type Consensus struct {
 	ForceMining bool   `protobuf:"varint,6,opt,name=forceMining" json:"forceMining,omitempty"`
 	// 配置挖矿的合约名单
 	MinerExecs []string `protobuf:"bytes,7,rep,name=minerExecs" json:"minerExecs,omitempty"`
+	// 最优区块选择
+	EnableBestBlockCmp bool `protobuf:"bytes,8,rep,name=enableBestBlockCmp" json:"enableBestBlockCmp,omitempty"`
 }
 
 // Wallet 配置
