@@ -250,6 +250,7 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 			}
 			return nil, false, nil
 		}
+		chainlog.Info("connectBestChain:BestBlock", "BestBlockHash", common.ToHex(node.hash), "TipBlockHash", common.ToHex(tip.hash))
 	}
 
 	//print
