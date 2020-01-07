@@ -158,7 +158,6 @@ func (p *Peer) heartBeat() {
 		if !p.GetRunning() {
 			return
 		}
-		<-ticker.C
 		peerNum, err := pcli.GetInPeersNum(p)
 		if err == nil {
 			atomic.StoreInt32(&p.inBounds, int32(peerNum))
@@ -167,6 +166,7 @@ func (p *Peer) heartBeat() {
 		if err != nil {
 			log.Error("SendPeerPing", "peer", p.Addr(), "err", err)
 		}
+		<-ticker.C
 	}
 }
 
