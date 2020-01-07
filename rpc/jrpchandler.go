@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -315,6 +316,10 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 	if err != nil {
 		log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)
 		return nil, err
+	}
+	if tx.GetAmount() != 0 {
+		tran.Amount = tx.GetAmount()
+		tran.AmountFmt = strconv.FormatFloat(float64(tran.Amount)/float64(types.Coin), 'f', 4, 64)
 	}
 	// swap from with to
 	if tx.GetTx().IsWithdraw() {

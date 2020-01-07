@@ -257,4 +257,5 @@ func TestGRPCQueryTransactionFormat(t *testing.T) {
 	assert.Equal(t, detail.Tx.FeeFmt, fmtDetail.FeeFmt)
 	assert.Equal(t, detail.Tx.AmountFmt, fmtDetail.AmountFmt)
 	assert.Equal(t, detail.Tx.Hash, common.ToHex(fmtDetail.Hash))
+	assert.Equal(t, "1.0000", detail.Tx.AmountFmt)
 }
