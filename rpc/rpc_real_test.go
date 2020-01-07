@@ -5,6 +5,7 @@
 package rpc_test
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"testing"
@@ -216,4 +217,44 @@ func TestExprieSignRawTx(t *testing.T) {
 	txgroup2, err := tx2.GetTxGroup()
 	assert.Nil(t, err)
 	assert.True(t, txgroup2.GetTxs()[0].GetExpire() > 0)
+}
+
+func TestGRPCQueryTransactionFormat(t *testing.T) {
+
+	// 启动RPCmocker
+	mocker := testnode.New("--free--", nil)
+	defer mocker.Close()
+	cfg := mocker.GetClient().GetConfig()
+	mocker.Listen()
+	jrpcClient := getRPCClient(t, mocker)
+	gen := mocker.GetGenesisKey()
+	//发送交易到区块链
+	addr1, _ := util.Genaddress()
+	tx := util.CreateCoinsTx(cfg, gen, addr1, 1*types.Coin)
+	reply, err := mocker.GetAPI().SendTx(tx)
+	mocker.WaitTx(reply.GetMsg())
+
+	assert.Nil(t, err)
+	assert.Equal(t, reply.GetMsg(), tx.Hash())
+
+	var detail rpctypes.TransactionDetail
+	req := rpctypes.QueryParm{
+		Hash: common.ToHex(tx.Hash()),
+	}
+	//query transaction
+	err = jrpcClient.Call("Chain33.QueryTransaction", req, &detail)
+	assert.Nil(t, err)
+	gcli := mocker.GetGrpcCli()
+	assert.NotNil(t, gcli)
+	fmtDetail, err := gcli.QueryTransactionFormat(context.Background(), &types.ReqHash{
+		Hash:    tx.Hash(),
+		Upgrade: false,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, detail.Tx.To, fmtDetail.Tx.To)
+	assert.Equal(t, detail.Fromaddr, fmtDetail.Fromaddr)
+	assert.Equal(t, detail.Amount, fmtDetail.Amount)
+	assert.Equal(t, detail.Tx.FeeFmt, fmtDetail.FeeFmt)
+	assert.Equal(t, detail.Tx.AmountFmt, fmtDetail.AmountFmt)
+	assert.Equal(t, detail.Tx.Hash, common.ToHex(fmtDetail.Hash))
 }

@@ -274,3 +274,22 @@ message TxProof {
     uint32         index    = 2;
     bytes          rootHash = 3;
 }
+
+// 通过grpc获取交易详情的返回值
+message TxDetailFormat {
+    Transaction tx             = 1;
+    ReceiptData receipt        = 2;
+    repeated bytes proofs      = 3;
+    int64          height      = 4;
+    int64          index       = 5;
+    int64          blocktime   = 6;
+    int64          amount      = 7;
+    string         fromaddr    = 8;
+    string         actionName  = 9;
+    repeated Asset assets      = 10;
+    repeated TxProof txProofs  = 11;
+    bytes            fullHash  = 12;
+    string           feeFmt    = 13;
+    string           amountFmt = 14;
+    bytes            hash      = 15;
+}

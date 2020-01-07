@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/client"
@@ -68,6 +70,7 @@ type Chain33Mock struct {
 	datadir  string
 	lastsend []byte
 	mu       sync.Mutex
+	grpcCli  types.Chain33Client
 }
 
 //GetDefaultConfig :
@@ -203,6 +206,20 @@ func (mock *Chain33Mock) GetJSONC() *jsonclient.JSONClient {
 		return nil
 	}
 	return jsonc
+}
+
+func (mock *Chain33Mock) GetGrpcCli() types.Chain33Client {
+
+	if mock.grpcCli != nil {
+		return mock.grpcCli
+	}
+	conn, err := grpc.Dial(mock.cfg.RPC.GrpcBindAddr, grpc.WithInsecure())
+	if err != nil {
+		return nil
+	}
+	grpcClient := types.NewChain33Client(conn)
+	mock.grpcCli = grpcClient
+	return grpcClient
 }
 
 //SendAndSign :

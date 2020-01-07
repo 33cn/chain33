@@ -103,6 +103,37 @@ func (g *Grpc) QueryTransaction(ctx context.Context, in *pb.ReqHash) (*pb.Transa
 	return g.cli.QueryTx(in)
 }
 
+// QueryTransactionFormat query transaction by grpc with format
+func (g *Grpc) QueryTransactionFormat(ctx context.Context, in *pb.ReqHash) (*pb.TxDetailFormat, error) {
+	reply, err := g.QueryTransaction(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	fmtDetail, err := fmtTxDetail(reply, false)
+	detail := &pb.TxDetailFormat{
+		Tx:         reply.Tx,
+		Receipt:    reply.Receipt,
+		Proofs:     reply.Proofs,
+		Height:     fmtDetail.Height,
+		Index:      fmtDetail.Index,
+		Blocktime:  fmtDetail.Blocktime,
+		Amount:     fmtDetail.Amount,
+		Fromaddr:   fmtDetail.Fromaddr,
+		ActionName: fmtDetail.ActionName,
+		Assets:     reply.Assets,
+		TxProofs:   reply.TxProofs,
+		FullHash:   reply.FullHash,
+		//格式化参数
+		FeeFmt:    fmtDetail.Tx.FeeFmt,
+		AmountFmt: fmtDetail.Tx.AmountFmt,
+		Hash:      reply.Tx.Hash(),
+	}
+	//fmtTxDetail内部有GetRealTo等逻辑
+	detail.Tx.To = fmtDetail.Tx.To
+	return detail, nil
+}
+
 // GetBlocks get blocks by grpc
 func (g *Grpc) GetBlocks(ctx context.Context, in *pb.ReqBlocks) (*pb.Reply, error) {
 	reply, err := g.cli.GetBlocks(&pb.ReqBlocks{
