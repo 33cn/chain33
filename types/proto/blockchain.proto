@@ -369,7 +369,6 @@ message ReqParaTxByHeight {
 
 //用于比较最优区块的消息结构
 message CmpBlock {
-    Block block     = 1;
-    bytes cmpHash   = 2;
+    Block block   = 1;
+    bytes cmpHash = 2;
 }
-
