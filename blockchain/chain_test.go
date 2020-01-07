@@ -1266,9 +1266,13 @@ func TestProcessDelBlock(t *testing.T) {
 	chainlog.Info("TestProcessDelBlock end --------------------")
 }
 
-func TestProcessSameHeightBlock(t *testing.T) {
-	chainlog.Info("TestProcessSameHeightBlock begin --------------------")
-	mock33 := testnode.New("", nil)
+func TestEnableCmpBestBlock(t *testing.T) {
+	chainlog.Info("TestEnableCmpBestBlock begin --------------------")
+	defaultCfg := testnode.GetDefaultConfig()
+	mcfg := defaultCfg.GetModuleConfig()
+	mcfg.Consensus.EnableBestBlockCmp = true
+	mock33 := testnode.NewWithConfig(defaultCfg, nil)
+
 	defer mock33.Close()
 	blockchain := mock33.GetBlockChain()
 
@@ -1313,11 +1317,96 @@ func TestProcessSameHeightBlock(t *testing.T) {
 	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.GetHeight(), newblock.GetTxs())
 	blockDetail := types.BlockDetail{Block: newblock}
 	_, err = blockchain.ProcAddBlockMsg(true, &blockDetail, "peer")
+
 	//直接修改了交易的Nonce，执行时会报ErrSign错误
 	if err != nil {
 		assert.Equal(t, types.ErrSign, err)
 	} else {
 		require.NoError(t, err)
 	}
-	chainlog.Info("TestProcessSameHeightBlock end --------------------")
+
+	//当前节点做对比
+	curheight = blockchain.GetBlockHeight()
+	curblock, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	testCmpBestBlock(t, mock33.GetClient(), curblock.Block, cfg)
+
+	//非当前节点做对比
+	curheight = blockchain.GetBlockHeight()
+	oldblock, err := blockchain.GetBlock(curheight - 1)
+	require.NoError(t, err)
+
+	testCmpBestBlock(t, mock33.GetClient(), oldblock.Block, cfg)
+
+	chainlog.Info("TestEnableCmpBestBlock end --------------------")
+}
+
+func TestDisableCmpBestBlock(t *testing.T) {
+	chainlog.Info("TestDisableCmpBestBlock begin --------------------")
+	defaultCfg := testnode.GetDefaultConfig()
+	mock33 := testnode.NewWithConfig(defaultCfg, nil)
+
+	defer mock33.Close()
+	blockchain := mock33.GetBlockChain()
+
+	//构造十个区块
+	curheight := blockchain.GetBlockHeight()
+	addblockheight := curheight + 10
+
+	_, err := blockchain.GetBlock(curheight)
+	if err != nil {
+		require.NoError(t, err)
+	}
+	cfg := mock33.GetClient().GetConfig()
+
+	// 确保只出指定数量的区块
+	isFirst := true
+	prevheight := curheight
+	for {
+		if isFirst || curheight > prevheight {
+			_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
+			require.NoError(t, err)
+			if curheight > prevheight {
+				prevheight = curheight
+			}
+			isFirst = false
+		}
+		curheight = blockchain.GetBlockHeight()
+		_, err = blockchain.GetBlock(curheight)
+		require.NoError(t, err)
+		if curheight >= addblockheight {
+			break
+		}
+		time.Sleep(sendTxWait)
+	}
+
+	curheight = blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	temblock := types.Clone(block.Block)
+	newblock := temblock.(*types.Block)
+	newblock.GetTxs()[0].Nonce = newblock.GetTxs()[0].Nonce + 1
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.GetHeight(), newblock.GetTxs())
+	blockDetail := types.BlockDetail{Block: newblock}
+	_, err = blockchain.ProcAddBlockMsg(true, &blockDetail, "peer")
+
+	//直接修改了交易的Nonce，执行时会报ErrSign错误
+	if err != nil {
+		assert.Equal(t, types.ErrSign, err)
+	} else {
+		require.NoError(t, err)
+	}
+	chainlog.Info("TestDisableCmpBestBlock end --------------------")
+}
+
+func testCmpBestBlock(t *testing.T, client queue.Client, block *types.Block, cfg *types.Chain33Config) {
+	temblock := types.Clone(block)
+	newblock := temblock.(*types.Block)
+	newblock.GetTxs()[0].Nonce = newblock.GetTxs()[0].Nonce + 1
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.GetHeight(), newblock.GetTxs())
+
+	isbestBlock := util.CmpBestBlock(client, newblock, block.Hash(cfg))
+	assert.Equal(t, isbestBlock, false)
 }

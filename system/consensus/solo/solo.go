@@ -12,7 +12,6 @@ import (
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/consensus"
-
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 )
@@ -144,4 +143,9 @@ func (client *Client) CreateBlock() {
 			continue
 		}
 	}
+}
+
+//CmpBestBlock 比较newBlock是不是最优区块
+func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool {
+	return false
 }

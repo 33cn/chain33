@@ -5,6 +5,7 @@
 package consensus
 
 import (
+	"bytes"
 	"errors"
 	"math/rand"
 	"sync"
@@ -39,6 +40,7 @@ type Miner interface {
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	ProcEvent(msg *queue.Message) bool
+	CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool
 }
 
 //BaseClient ...
@@ -257,6 +259,11 @@ func (bc *BaseClient) EventLoop() {
 			} else if msg.Ty == types.EventDelBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
 				bc.UpdateCurrentBlock(block)
+			} else if msg.Ty == types.EventCmpBestBlock {
+				var reply types.Reply
+				cmpBlock := msg.GetData().(*types.CmpBlock)
+				reply.IsOk = bc.CmpBestBlock(cmpBlock.Block, cmpBlock.CmpHash)
+				msg.Reply(bc.api.NewMessage("", 0, &reply))
 			} else {
 				if !bc.child.ProcEvent(msg) {
 					msg.ReplyErr("BaseClient.EventLoop() ", types.ErrActionNotSupport)
@@ -604,4 +611,55 @@ func isExpire(cfg *types.Chain33Config, txs []*types.Transaction, height int64, 
 		}
 	}
 	return false
+}
+
+//CmpBestBlock 最优区块的比较
+//height,BlockTime,ParentHash必须一致才可以继续比较
+//通过比较newBlock是最优区块就返回true，否则返回false
+func (bc *BaseClient) CmpBestBlock(newBlock *types.Block, cmpHash []byte) bool {
+
+	cfg := bc.client.GetConfig()
+	curBlock := bc.GetCurrentBlock()
+
+	//需要比较的区块就是当前区块,
+	if bytes.Equal(cmpHash, curBlock.Hash(cfg)) {
+		if curBlock.GetHeight() == newBlock.GetHeight() && curBlock.BlockTime == newBlock.BlockTime && bytes.Equal(newBlock.GetParentHash(), curBlock.GetParentHash()) {
+			return bc.child.CmpBestBlock(newBlock, curBlock)
+		}
+		return false
+	}
+	//需要比较的区块不是当前区块，需要从blockchain模块获取cmpHash对应的block信息
+	block, err := bc.ReqBlockByHash(cmpHash)
+	if err != nil {
+		log.Error("CmpBestBlock:RequestBlockByHash", "Hash", common.ToHex(cmpHash), "err", err)
+		return false
+	}
+
+	if block.GetHeight() == newBlock.GetHeight() && block.BlockTime == newBlock.BlockTime && bytes.Equal(block.GetParentHash(), newBlock.GetParentHash()) {
+		return bc.child.CmpBestBlock(newBlock, block)
+	}
+	return false
+}
+
+//RequestBlockByHash 通过区块hash获取区块信息
+func (bc *BaseClient) ReqBlockByHash(hash []byte) (*types.Block, error) {
+	if bc.client == nil {
+		panic("bc not bind message queue.")
+	}
+	hashes := types.ReqHashes{}
+	hashes.Hashes = append(hashes.Hashes, hash)
+	msg := bc.client.NewMessage("blockchain", types.EventGetBlockByHashes, &hashes)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := bc.client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	blocks := resp.GetData().(*types.BlockDetails)
+	if len(blocks.Items) == 1 && blocks.Items[0] != nil {
+		return blocks.Items[0].Block, nil
+	}
+	return nil, types.ErrHashNotExist
 }

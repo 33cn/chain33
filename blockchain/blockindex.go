@@ -5,7 +5,6 @@
 package blockchain
 
 import (
-	"bytes"
 	"container/list"
 	"math/big"
 	"sync"
@@ -168,15 +167,4 @@ func (bi *blockIndex) DelNode(hash []byte) {
 		delnode.parent = nil
 		delete(bi.index, string(hash))
 	}
-}
-
-//同一高度出块时间相差一秒，选择区块hash大的作为最优区块
-func (node *blockNode) Cmp(nodeB *blockNode) bool {
-	diffTime := node.BlockTime - nodeB.BlockTime
-	if node.height == nodeB.height && diffTime >= -1 && diffTime <= 1 {
-		if bytes.Compare(node.hash, nodeB.hash) == 1 {
-			return true
-		}
-	}
-	return false
 }
