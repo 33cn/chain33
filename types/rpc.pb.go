@@ -3,12 +3,15 @@
 
 package types // import "github.com/33cn/chain33/types"
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-
 import (
+	fmt "fmt"
+
+	proto "github.com/golang/protobuf/proto"
+
+	math "math"
+
 	context "golang.org/x/net/context"
+
 	grpc "google.golang.org/grpc"
 )
 
@@ -2082,9 +2085,9 @@ var _Chain33_serviceDesc = grpc.ServiceDesc{
 	Metadata: "rpc.proto",
 }
 
-func init() { proto.RegisterFile("rpc.proto", fileDescriptor_rpc_7022b1bb2ca87bc4) }
+func init() { proto.RegisterFile("rpc.proto", fileDescriptor_rpc_e9d53a1256f2b122) }
 
-var fileDescriptor_rpc_7022b1bb2ca87bc4 = []byte{
+var fileDescriptor_rpc_e9d53a1256f2b122 = []byte{
 	// 1176 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x57, 0x6d, 0x6f, 0xdb, 0x36,
 	0x10, 0xd6, 0x87, 0x2d, 0x69, 0x58, 0xc7, 0x71, 0x98, 0x34, 0x6b, 0x84, 0x15, 0x05, 0x04, 0x0c,
