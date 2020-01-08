@@ -335,18 +335,45 @@ func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 		Key:   demoCalcStateKey(addr, id),
 		Value: []byte(fmt.Sprint(len(values))),
 	})
-	receipt.Logs = append(receipt.Logs, &types.ReceiptLog{Ty: int32(len(values))})
+	k := []byte("LODB-demo2-localkey")
+	data, err := demo.GetLocalDB().Get(k)
+	if err != nil && err != types.ErrNotFound {
+		return nil, err
+	}
+	count := &types.Int64{Data: 0}
+	if err == nil {
+		err = types.Decode(data, count)
+		if err != nil {
+			return nil, err
+		}
+	}
+	count.Data += 1
+	receipt.Logs = append(receipt.Logs, &types.ReceiptLog{Ty: int32(len(values)),
+		Log: types.Encode(count)})
 	return receipt, nil
 }
 
 func (demo *demoApp) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (localkv *types.LocalDBSet, err error) {
 	localkv = &types.LocalDBSet{}
-	addr := tx.From()
-	id := common.ToHex(tx.Hash())
+	var count types.Int64
+	err = types.Decode(receipt.Logs[0].Log, &count)
+	if err != nil {
+		return nil, err
+	}
 	localkv.KV = append(localkv.KV, &types.KeyValue{
-		Key:   demoCalcLocalKey(addr, id),
-		Value: tx.Hash(),
+		Key:   []byte("LODB-demo2-localkey"),
+		Value: receipt.Logs[0].Log,
 	})
+	localkv.KV = append(localkv.KV, &types.KeyValue{
+		Key:   []byte("LODB-demo2-localkey" + fmt.Sprint(count.GetData())),
+		Value: receipt.Logs[0].Log,
+	})
+	if count.GetData() > 0 {
+		localkv.KV = append(localkv.KV, &types.KeyValue{
+			Key:   []byte("LODB-demo2-localkey" + fmt.Sprint(count.GetData()-1)),
+			Value: nil,
+		})
+	}
 	return localkv, nil
 }
 
@@ -389,12 +416,11 @@ func TestExecLocalSameTime1(t *testing.T) {
 	}
 	for i, receipt := range detail.Receipts {
 		assert.Equal(t, receipt.GetTy(), int32(2), fmt.Sprint(i))
-		if i >= 1 {
-			fmt.Println(receipt)
-			assert.Equal(t, len(receipt.Logs), 2)
-			assert.Equal(t, receipt.Logs[1].Ty, int32(i)-1)
-		}
 	}
+	receipt1 := detail.Receipts[1]
+	assert.Equal(t, receipt1.Logs[1].Log, types.Encode(&types.Int64{Data: 1}))
+	receipt2 := detail.Receipts[2]
+	assert.Equal(t, receipt2.Logs[1].Log, types.Encode(&types.Int64{Data: 2}))
 }
 
 func TestExecLocalSameTime0(t *testing.T) {
@@ -418,17 +444,11 @@ func TestExecLocalSameTime0(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	for i, receipt := range detail.Receipts {
-		if i == 0 {
-			assert.Equal(t, receipt.GetTy(), int32(2), fmt.Sprint(i))
-		}
-		if i >= 1 {
-			assert.Equal(t, receipt.GetTy(), int32(1), fmt.Sprint(i))
-			fmt.Println(receipt)
-			assert.Equal(t, len(receipt.Logs), 2)
-			assert.Equal(t, receipt.Logs[1].Ty, int32(1))
-		}
-	}
+	assert.Equal(t, detail.Receipts[0].GetTy(), int32(2))
+	receipt1 := detail.Receipts[1]
+	assert.Equal(t, receipt1.Logs[1].Log, []byte(types.ErrDisableRead.Error()))
+	receipt2 := detail.Receipts[2]
+	assert.Equal(t, receipt2.Logs[1].Log, []byte(types.ErrDisableRead.Error()))
 }
 
 var seterrkey = false
