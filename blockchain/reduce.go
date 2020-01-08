@@ -135,11 +135,11 @@ func (chain *BlockChain) deleteTx(batch dbm.Batch, block *types.Block) {
 func reduceReceipts(src *types.BlockBody) []*types.ReceiptData {
 	dst := src.Clone()
 	for i := 0; i < len(dst.Receipts); i++ {
-		if dst.Receipts[i].Ty == types.ExecErr {
-			continue
-		}
 		for j := 0; j < len(dst.Receipts[i].Logs); j++ {
 			if dst.Receipts[i].Logs[j] != nil {
+				if dst.Receipts[i].Logs[j].Ty == types.TyLogErr { // 为了匹配界面显示
+					continue
+				}
 				dst.Receipts[i].Logs[j].Log = nil
 			}
 		}
