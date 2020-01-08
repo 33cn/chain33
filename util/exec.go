@@ -246,5 +246,7 @@ func CmpBestBlock(client queue.Client, newBlock *types.Block, cmpHash []byte) bo
 		return false
 	}
 	reply := resp.GetData().(*types.Reply)
+
+	log.Debug("CmpBestBlock", "newBlockHash", common.ToHex(newBlock.Hash(cfg)), "cmpHash", common.ToHex(cmpHash), "isBestBlock", reply.IsOk)
 	return reply.IsOk
 }
