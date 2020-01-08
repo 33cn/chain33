@@ -347,7 +347,7 @@ func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 			return nil, err
 		}
 	}
-	count.Data += 1
+	count.Data++
 	receipt.Logs = append(receipt.Logs, &types.ReceiptLog{Ty: int32(len(values)),
 		Log: types.Encode(count)})
 	return receipt, nil

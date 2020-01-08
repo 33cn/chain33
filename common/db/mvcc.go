@@ -338,7 +338,7 @@ func (m *SimpleMVCC) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte
 	kvlist = append(kvlist, versionlist...)
 	delkeys := &types.LocalDBSet{}
 	for i := 0; i < len(kvs); i++ {
-		//最原始的数据
+		//最原始的数据  
 		delkeys.KV = append(delkeys.KV, &types.KeyValue{Key: kvs[i].Key})
 		kv, err := m.GetSaveKV(kvs[i].Key, kvs[i].Value, version)
 		if err != nil {
