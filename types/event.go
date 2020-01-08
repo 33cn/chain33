@@ -153,6 +153,9 @@ const (
 
 	EventReExecBlock  = 142
 	EventTxListByHash = 143
+
+	EventDumpPrivkeysFile   = 144
+	EventImportPrivkeysFile = 145
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213

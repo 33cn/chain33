@@ -316,8 +316,15 @@ func (g *Grpc) ExecWallet(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply,
 
 // DumpPrivkey dump Privkey
 func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyString, error) {
-
 	return g.cli.DumpPrivkey(in)
+}
+
+func (g *Grpc) DumpPrivkeysFile(ctx context.Context, in *pb.ReqString) (*pb.Reply, error) {
+	return g.cli.DumpPrivkeysFile(in)
+}
+
+func (g *Grpc) ImportPrivkeysFile(ctx context.Context, in *pb.ReqString) (*pb.Reply, error) {
+	return g.cli.ImportPrivkeysFile(in)
 }
 
 // Version version

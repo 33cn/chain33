@@ -107,6 +107,11 @@ service chain33 {
     // 导出私钥
     rpc DumpPrivkey(ReqString) returns (ReplyString) {}
 
+    // 导出私钥到文件
+    rpc DumpPrivkeysFile(ReqString) returns (Reply) {}
+    // 从文件中导入私钥
+    rpc ImportPrivkeysFile(ReqString) returns (Reply) {}
+
     //获取程序版本
     rpc Version(ReqNil) returns (VersionInfo) {}
 
