@@ -454,7 +454,6 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 		}
 		walletlog.Error("ProcImportPrivKey!", "Account.Privkey", Account.Privkey, "input Privkey", PrivKey.Privkey)
 		return nil, types.ErrPrivkey
-
 	}
 
 	var walletaccount types.WalletAccount
@@ -494,9 +493,8 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 //input:
 //type  struct {
 //	fileName string
-//	password   string
 //导入私钥，并且同时会导入交易
-func (wallet *Wallet) ProcImportPrivKeysFile(fileName, password string) error {
+func (wallet *Wallet) ProcImportPrivKeysFile(fileName string) error {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
 		return err
 	}
@@ -533,69 +531,15 @@ func (wallet *Wallet) ProcImportPrivKeysFile(fileName, password string) error {
 		}
 		label = label + "_2"
 
-		cointype := wallet.getCoinsType()
-
-		privkeybyte, err := common.FromHex(privKey)
-		if err != nil || len(privkeybyte) == 0 {
-			walletlog.Error("ProcImportPrivKey", "FromHex err", err)
-			return types.ErrFromHex
+		PrivKey := &types.ReqWalletImportPrivkey{
+			Privkey: privKey,
+			Label:   label,
 		}
 
-		pub, err := bipwallet.PrivkeyToPub(cointype, privkeybyte)
-		if err != nil {
-			seedlog.Error("ProcImportPrivKey PrivkeyToPub", "err", err)
-			return types.ErrPrivkeyToPub
-		}
-		addr, err := bipwallet.PubToAddress(cointype, pub)
-		if err != nil {
-			seedlog.Error("ProcImportPrivKey PrivkeyToPub", "err", err)
-			return types.ErrPrivkeyToPub
-		}
-
-		//对私钥加密
-		Encryptered := wcom.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
-		Encrypteredstr := common.ToHex(Encryptered)
-		//校验PrivKey对应的addr是否已经存在钱包中
-		Account, err = wallet.walletStore.GetAccountByAddr(addr)
-		if Account != nil && err == nil {
-			if Account.Privkey == Encrypteredstr {
-				walletlog.Error("ProcImportPrivKey Privkey is exist in wallet!")
-				return types.ErrPrivkeyExist
-			}
-			walletlog.Error("ProcImportPrivKey!", "Account.Privkey", Account.Privkey, "input Privkey", PrivKey.Privkey)
-			return types.ErrPrivkey
-
-		}
-
-		var walletaccount types.WalletAccount
-		var WalletAccStore types.WalletAccountStore
-		WalletAccStore.Privkey = Encrypteredstr //存储加密后的私钥
-		WalletAccStore.Label = label
-		WalletAccStore.Addr = addr
-		//存储Addr:label+privkey+addr到数据库
-		err = wallet.walletStore.SetWalletAccount(false, addr, &WalletAccStore)
-		if err != nil {
-			walletlog.Error("ProcImportPrivKey", "SetWalletAccount err", err)
-			return err
-		}
-
-		//获取地址对应的账户信息从account模块
-		addrs := make([]string, 1)
-		addrs[0] = addr
-		accounts, err := wallet.accountdb.LoadAccounts(wallet.api, addrs)
-		if err != nil {
-			walletlog.Error("ProcImportPrivKey", "LoadAccounts err", err)
-			return err
-		}
-		// 本账户是首次创建
-		if len(accounts[0].Addr) == 0 {
-			accounts[0].Addr = addr
-		}
-		walletaccount.Acc = accounts[0]
-		walletaccount.Label = label
-
-		for _, policy := range wcom.PolicyContainer {
-			policy.OnImportPrivateKey(accounts[0])
+		_, err = wallet.ProcImportPrivKey(PrivKey)
+		if err == types.ErrPrivkeyExist {
+			// 修改标签名称 是否需要?
+			// wallet.ProcWalletSetLabel()
 		}
 	}
 	return nil
@@ -1438,7 +1382,11 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName string) error {
 
 	var fileContent string
 	for _, acc := range accounts {
-		content := acc.Privkey + ";" + acc.Label
+		privkey, err := wallet.ProcDumpPrivkey(acc.Addr)
+		if err != nil {
+			continue
+		}
+		content := privkey + ";" + acc.Label
 		fileContent += content
 		fileContent += "&&&"
 	}

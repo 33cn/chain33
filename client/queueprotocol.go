@@ -689,6 +689,42 @@ func (q *QueueProtocol) DumpPrivkey(param *types.ReqString) (*types.ReplyString,
 	return nil, types.ErrTypeAsset
 }
 
+// DumpPrivkey dump privkeys to file
+func (q *QueueProtocol) DumpPrivkeysFile(param *types.ReqString) (*types.Reply, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("DumpPrivkeysFile", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(walletKey, types.EventDumpPrivkeysFile, param)
+	if err != nil {
+		log.Error("DumpPrivkeysFile", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+// ImportPrivkeysFile import privkey from file
+func (q *QueueProtocol) ImportPrivkeysFile(param *types.ReqString) (*types.Reply, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("ImportPrivkeysFile", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(walletKey, types.EventImportPrivkeysFile, param)
+	if err != nil {
+		log.Error("ImportPrivkeysFile", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 // IsSync query the blockchain sync state
 func (q *QueueProtocol) IsSync() (*types.Reply, error) {
 	msg, err := q.send(blockchainKey, types.EventIsSync, &types.ReqNil{})
