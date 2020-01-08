@@ -69,7 +69,7 @@ message MessageP2PVersionReq {
 
 message MessageP2PVersionResp {
 	 MessageComm messageData=1;
-	 P2PVerAck message =2;
+	 P2PVersion message =2;
 }
 
 

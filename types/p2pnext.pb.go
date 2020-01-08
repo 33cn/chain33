@@ -26,7 +26,7 @@ type MessageComm struct {
 func (m *MessageComm) Reset()                    { *m = MessageComm{} }
 func (m *MessageComm) String() string            { return proto.CompactTextString(m) }
 func (*MessageComm) ProtoMessage()               {}
-func (*MessageComm) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{0} }
+func (*MessageComm) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{0} }
 
 func (m *MessageComm) GetVersion() string {
 	if m != nil {
@@ -77,6 +77,259 @@ func (m *MessageComm) GetSign() []byte {
 	return nil
 }
 
+type MessageUtil struct {
+	Common *MessageComm `protobuf:"bytes,1,opt,name=common" json:"common,omitempty"`
+	// Types that are valid to be assigned to Value:
+	//	*MessageUtil_PeerInfo
+	//	*MessageUtil_Version
+	//	*MessageUtil_VersionAck
+	//	*MessageUtil_External
+	//	*MessageUtil_Getblocks
+	//	*MessageUtil_Invdatas
+	Value isMessageUtil_Value `protobuf_oneof:"value"`
+}
+
+func (m *MessageUtil) Reset()                    { *m = MessageUtil{} }
+func (m *MessageUtil) String() string            { return proto.CompactTextString(m) }
+func (*MessageUtil) ProtoMessage()               {}
+func (*MessageUtil) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{1} }
+
+type isMessageUtil_Value interface {
+	isMessageUtil_Value()
+}
+
+type MessageUtil_PeerInfo struct {
+	PeerInfo *P2PPeerInfo `protobuf:"bytes,2,opt,name=peerInfo,oneof"`
+}
+type MessageUtil_Version struct {
+	Version *P2PVersion `protobuf:"bytes,3,opt,name=version,oneof"`
+}
+type MessageUtil_VersionAck struct {
+	VersionAck *P2PVerAck `protobuf:"bytes,4,opt,name=versionAck,oneof"`
+}
+type MessageUtil_External struct {
+	External *P2PExternalInfo `protobuf:"bytes,5,opt,name=external,oneof"`
+}
+type MessageUtil_Getblocks struct {
+	Getblocks *P2PGetBlocks `protobuf:"bytes,6,opt,name=getblocks,oneof"`
+}
+type MessageUtil_Invdatas struct {
+	Invdatas *InvDatas `protobuf:"bytes,7,opt,name=invdatas,oneof"`
+}
+
+func (*MessageUtil_PeerInfo) isMessageUtil_Value()   {}
+func (*MessageUtil_Version) isMessageUtil_Value()    {}
+func (*MessageUtil_VersionAck) isMessageUtil_Value() {}
+func (*MessageUtil_External) isMessageUtil_Value()   {}
+func (*MessageUtil_Getblocks) isMessageUtil_Value()  {}
+func (*MessageUtil_Invdatas) isMessageUtil_Value()   {}
+
+func (m *MessageUtil) GetValue() isMessageUtil_Value {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+func (m *MessageUtil) GetCommon() *MessageComm {
+	if m != nil {
+		return m.Common
+	}
+	return nil
+}
+
+func (m *MessageUtil) GetPeerInfo() *P2PPeerInfo {
+	if x, ok := m.GetValue().(*MessageUtil_PeerInfo); ok {
+		return x.PeerInfo
+	}
+	return nil
+}
+
+func (m *MessageUtil) GetVersion() *P2PVersion {
+	if x, ok := m.GetValue().(*MessageUtil_Version); ok {
+		return x.Version
+	}
+	return nil
+}
+
+func (m *MessageUtil) GetVersionAck() *P2PVerAck {
+	if x, ok := m.GetValue().(*MessageUtil_VersionAck); ok {
+		return x.VersionAck
+	}
+	return nil
+}
+
+func (m *MessageUtil) GetExternal() *P2PExternalInfo {
+	if x, ok := m.GetValue().(*MessageUtil_External); ok {
+		return x.External
+	}
+	return nil
+}
+
+func (m *MessageUtil) GetGetblocks() *P2PGetBlocks {
+	if x, ok := m.GetValue().(*MessageUtil_Getblocks); ok {
+		return x.Getblocks
+	}
+	return nil
+}
+
+func (m *MessageUtil) GetInvdatas() *InvDatas {
+	if x, ok := m.GetValue().(*MessageUtil_Invdatas); ok {
+		return x.Invdatas
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*MessageUtil) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _MessageUtil_OneofMarshaler, _MessageUtil_OneofUnmarshaler, _MessageUtil_OneofSizer, []interface{}{
+		(*MessageUtil_PeerInfo)(nil),
+		(*MessageUtil_Version)(nil),
+		(*MessageUtil_VersionAck)(nil),
+		(*MessageUtil_External)(nil),
+		(*MessageUtil_Getblocks)(nil),
+		(*MessageUtil_Invdatas)(nil),
+	}
+}
+
+func _MessageUtil_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*MessageUtil)
+	// value
+	switch x := m.Value.(type) {
+	case *MessageUtil_PeerInfo:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.PeerInfo); err != nil {
+			return err
+		}
+	case *MessageUtil_Version:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Version); err != nil {
+			return err
+		}
+	case *MessageUtil_VersionAck:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.VersionAck); err != nil {
+			return err
+		}
+	case *MessageUtil_External:
+		b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.External); err != nil {
+			return err
+		}
+	case *MessageUtil_Getblocks:
+		b.EncodeVarint(6<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Getblocks); err != nil {
+			return err
+		}
+	case *MessageUtil_Invdatas:
+		b.EncodeVarint(7<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Invdatas); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("MessageUtil.Value has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _MessageUtil_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*MessageUtil)
+	switch tag {
+	case 2: // value.peerInfo
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(P2PPeerInfo)
+		err := b.DecodeMessage(msg)
+		m.Value = &MessageUtil_PeerInfo{msg}
+		return true, err
+	case 3: // value.version
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(P2PVersion)
+		err := b.DecodeMessage(msg)
+		m.Value = &MessageUtil_Version{msg}
+		return true, err
+	case 4: // value.versionAck
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(P2PVerAck)
+		err := b.DecodeMessage(msg)
+		m.Value = &MessageUtil_VersionAck{msg}
+		return true, err
+	case 5: // value.external
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(P2PExternalInfo)
+		err := b.DecodeMessage(msg)
+		m.Value = &MessageUtil_External{msg}
+		return true, err
+	case 6: // value.getblocks
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(P2PGetBlocks)
+		err := b.DecodeMessage(msg)
+		m.Value = &MessageUtil_Getblocks{msg}
+		return true, err
+	case 7: // value.invdatas
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(InvDatas)
+		err := b.DecodeMessage(msg)
+		m.Value = &MessageUtil_Invdatas{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _MessageUtil_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*MessageUtil)
+	// value
+	switch x := m.Value.(type) {
+	case *MessageUtil_PeerInfo:
+		s := proto.Size(x.PeerInfo)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *MessageUtil_Version:
+		s := proto.Size(x.Version)
+		n += proto.SizeVarint(3<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *MessageUtil_VersionAck:
+		s := proto.Size(x.VersionAck)
+		n += proto.SizeVarint(4<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *MessageUtil_External:
+		s := proto.Size(x.External)
+		n += proto.SizeVarint(5<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *MessageUtil_Getblocks:
+		s := proto.Size(x.Getblocks)
+		n += proto.SizeVarint(6<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *MessageUtil_Invdatas:
+		s := proto.Size(x.Invdatas)
+		n += proto.SizeVarint(7<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
 // *
 // 请求获取远程节点的节点信息
 type MessagePeerInfoReq struct {
@@ -87,7 +340,7 @@ type MessagePeerInfoReq struct {
 func (m *MessagePeerInfoReq) Reset()                    { *m = MessagePeerInfoReq{} }
 func (m *MessagePeerInfoReq) String() string            { return proto.CompactTextString(m) }
 func (*MessagePeerInfoReq) ProtoMessage()               {}
-func (*MessagePeerInfoReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{1} }
+func (*MessagePeerInfoReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{2} }
 
 func (m *MessagePeerInfoReq) GetMessageData() *MessageComm {
 	if m != nil {
@@ -104,7 +357,7 @@ type MessagePeerInfoResp struct {
 func (m *MessagePeerInfoResp) Reset()                    { *m = MessagePeerInfoResp{} }
 func (m *MessagePeerInfoResp) String() string            { return proto.CompactTextString(m) }
 func (*MessagePeerInfoResp) ProtoMessage()               {}
-func (*MessagePeerInfoResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{2} }
+func (*MessagePeerInfoResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{3} }
 
 func (m *MessagePeerInfoResp) GetMessageData() *MessageComm {
 	if m != nil {
@@ -128,7 +381,7 @@ type MessageP2PVersionReq struct {
 func (m *MessageP2PVersionReq) Reset()                    { *m = MessageP2PVersionReq{} }
 func (m *MessageP2PVersionReq) String() string            { return proto.CompactTextString(m) }
 func (*MessageP2PVersionReq) ProtoMessage()               {}
-func (*MessageP2PVersionReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{3} }
+func (*MessageP2PVersionReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{4} }
 
 func (m *MessageP2PVersionReq) GetMessageData() *MessageComm {
 	if m != nil {
@@ -146,13 +399,13 @@ func (m *MessageP2PVersionReq) GetMessage() *P2PVersion {
 
 type MessageP2PVersionResp struct {
 	MessageData *MessageComm `protobuf:"bytes,1,opt,name=messageData" json:"messageData,omitempty"`
-	Message     *P2PVerAck   `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
+	Message     *P2PVersion  `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
 }
 
 func (m *MessageP2PVersionResp) Reset()                    { *m = MessageP2PVersionResp{} }
 func (m *MessageP2PVersionResp) String() string            { return proto.CompactTextString(m) }
 func (*MessageP2PVersionResp) ProtoMessage()               {}
-func (*MessageP2PVersionResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{4} }
+func (*MessageP2PVersionResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{5} }
 
 func (m *MessageP2PVersionResp) GetMessageData() *MessageComm {
 	if m != nil {
@@ -161,7 +414,7 @@ func (m *MessageP2PVersionResp) GetMessageData() *MessageComm {
 	return nil
 }
 
-func (m *MessageP2PVersionResp) GetMessage() *P2PVerAck {
+func (m *MessageP2PVersionResp) GetMessage() *P2PVersion {
 	if m != nil {
 		return m.Message
 	}
@@ -176,7 +429,7 @@ type MessagePingReq struct {
 func (m *MessagePingReq) Reset()                    { *m = MessagePingReq{} }
 func (m *MessagePingReq) String() string            { return proto.CompactTextString(m) }
 func (*MessagePingReq) ProtoMessage()               {}
-func (*MessagePingReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{5} }
+func (*MessagePingReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{6} }
 
 func (m *MessagePingReq) GetMessageData() *MessageComm {
 	if m != nil {
@@ -200,7 +453,7 @@ type MessagePingResp struct {
 func (m *MessagePingResp) Reset()                    { *m = MessagePingResp{} }
 func (m *MessagePingResp) String() string            { return proto.CompactTextString(m) }
 func (*MessagePingResp) ProtoMessage()               {}
-func (*MessagePingResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{6} }
+func (*MessagePingResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{7} }
 
 func (m *MessagePingResp) GetMessageData() *MessageComm {
 	if m != nil {
@@ -224,7 +477,7 @@ type MessageAddrReq struct {
 func (m *MessageAddrReq) Reset()                    { *m = MessageAddrReq{} }
 func (m *MessageAddrReq) String() string            { return proto.CompactTextString(m) }
 func (*MessageAddrReq) ProtoMessage()               {}
-func (*MessageAddrReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{7} }
+func (*MessageAddrReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{8} }
 
 func (m *MessageAddrReq) GetMessageData() *MessageComm {
 	if m != nil {
@@ -248,7 +501,7 @@ type MessageAddrResp struct {
 func (m *MessageAddrResp) Reset()                    { *m = MessageAddrResp{} }
 func (m *MessageAddrResp) String() string            { return proto.CompactTextString(m) }
 func (*MessageAddrResp) ProtoMessage()               {}
-func (*MessageAddrResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{8} }
+func (*MessageAddrResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{9} }
 
 func (m *MessageAddrResp) GetMessageData() *MessageComm {
 	if m != nil {
@@ -272,7 +525,7 @@ type MessageAddrList struct {
 func (m *MessageAddrList) Reset()                    { *m = MessageAddrList{} }
 func (m *MessageAddrList) String() string            { return proto.CompactTextString(m) }
 func (*MessageAddrList) ProtoMessage()               {}
-func (*MessageAddrList) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{9} }
+func (*MessageAddrList) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{10} }
 
 func (m *MessageAddrList) GetMessageData() *MessageComm {
 	if m != nil {
@@ -295,7 +548,7 @@ type MessageExternalNetReq struct {
 func (m *MessageExternalNetReq) Reset()                    { *m = MessageExternalNetReq{} }
 func (m *MessageExternalNetReq) String() string            { return proto.CompactTextString(m) }
 func (*MessageExternalNetReq) ProtoMessage()               {}
-func (*MessageExternalNetReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{10} }
+func (*MessageExternalNetReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{11} }
 
 func (m *MessageExternalNetReq) GetMessageData() *MessageComm {
 	if m != nil {
@@ -312,7 +565,7 @@ type MessageExternalNetResp struct {
 func (m *MessageExternalNetResp) Reset()                    { *m = MessageExternalNetResp{} }
 func (m *MessageExternalNetResp) String() string            { return proto.CompactTextString(m) }
 func (*MessageExternalNetResp) ProtoMessage()               {}
-func (*MessageExternalNetResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{11} }
+func (*MessageExternalNetResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{12} }
 
 func (m *MessageExternalNetResp) GetMessageData() *MessageComm {
 	if m != nil {
@@ -336,7 +589,7 @@ type MessageGetBlocksReq struct {
 func (m *MessageGetBlocksReq) Reset()                    { *m = MessageGetBlocksReq{} }
 func (m *MessageGetBlocksReq) String() string            { return proto.CompactTextString(m) }
 func (*MessageGetBlocksReq) ProtoMessage()               {}
-func (*MessageGetBlocksReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{12} }
+func (*MessageGetBlocksReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{13} }
 
 func (m *MessageGetBlocksReq) GetMessageData() *MessageComm {
 	if m != nil {
@@ -360,7 +613,7 @@ type MessageGetBlocksResp struct {
 func (m *MessageGetBlocksResp) Reset()                    { *m = MessageGetBlocksResp{} }
 func (m *MessageGetBlocksResp) String() string            { return proto.CompactTextString(m) }
 func (*MessageGetBlocksResp) ProtoMessage()               {}
-func (*MessageGetBlocksResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{13} }
+func (*MessageGetBlocksResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{14} }
 
 func (m *MessageGetBlocksResp) GetMessageData() *MessageComm {
 	if m != nil {
@@ -384,7 +637,7 @@ type MessageGetMempoolReq struct {
 func (m *MessageGetMempoolReq) Reset()                    { *m = MessageGetMempoolReq{} }
 func (m *MessageGetMempoolReq) String() string            { return proto.CompactTextString(m) }
 func (*MessageGetMempoolReq) ProtoMessage()               {}
-func (*MessageGetMempoolReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{14} }
+func (*MessageGetMempoolReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{15} }
 
 func (m *MessageGetMempoolReq) GetMessageData() *MessageComm {
 	if m != nil {
@@ -408,7 +661,7 @@ type MessageVersion struct {
 func (m *MessageVersion) Reset()                    { *m = MessageVersion{} }
 func (m *MessageVersion) String() string            { return proto.CompactTextString(m) }
 func (*MessageVersion) ProtoMessage()               {}
-func (*MessageVersion) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{15} }
+func (*MessageVersion) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{16} }
 
 func (m *MessageVersion) GetMessageData() *MessageComm {
 	if m != nil {
@@ -432,7 +685,7 @@ type MessageHeaderReq struct {
 func (m *MessageHeaderReq) Reset()                    { *m = MessageHeaderReq{} }
 func (m *MessageHeaderReq) String() string            { return proto.CompactTextString(m) }
 func (*MessageHeaderReq) ProtoMessage()               {}
-func (*MessageHeaderReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{16} }
+func (*MessageHeaderReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{17} }
 
 func (m *MessageHeaderReq) GetMessageData() *MessageComm {
 	if m != nil {
@@ -456,7 +709,7 @@ type MessageHeaderResp struct {
 func (m *MessageHeaderResp) Reset()                    { *m = MessageHeaderResp{} }
 func (m *MessageHeaderResp) String() string            { return proto.CompactTextString(m) }
 func (*MessageHeaderResp) ProtoMessage()               {}
-func (*MessageHeaderResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{17} }
+func (*MessageHeaderResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{18} }
 
 func (m *MessageHeaderResp) GetMessageData() *MessageComm {
 	if m != nil {
@@ -480,7 +733,7 @@ type MessageInvDataReq struct {
 func (m *MessageInvDataReq) Reset()                    { *m = MessageInvDataReq{} }
 func (m *MessageInvDataReq) String() string            { return proto.CompactTextString(m) }
 func (*MessageInvDataReq) ProtoMessage()               {}
-func (*MessageInvDataReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{18} }
+func (*MessageInvDataReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{19} }
 
 func (m *MessageInvDataReq) GetMessageData() *MessageComm {
 	if m != nil {
@@ -504,7 +757,7 @@ type MessagePeerList struct {
 func (m *MessagePeerList) Reset()                    { *m = MessagePeerList{} }
 func (m *MessagePeerList) String() string            { return proto.CompactTextString(m) }
 func (*MessagePeerList) ProtoMessage()               {}
-func (*MessagePeerList) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{19} }
+func (*MessagePeerList) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{20} }
 
 func (m *MessagePeerList) GetMessageData() *MessageComm {
 	if m != nil {
@@ -528,7 +781,7 @@ type MessageNetInfo struct {
 func (m *MessageNetInfo) Reset()                    { *m = MessageNetInfo{} }
 func (m *MessageNetInfo) String() string            { return proto.CompactTextString(m) }
 func (*MessageNetInfo) ProtoMessage()               {}
-func (*MessageNetInfo) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{20} }
+func (*MessageNetInfo) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{21} }
 
 func (m *MessageNetInfo) GetMessageData() *MessageComm {
 	if m != nil {
@@ -552,7 +805,7 @@ type MessagePeersReply struct {
 func (m *MessagePeersReply) Reset()                    { *m = MessagePeersReply{} }
 func (m *MessagePeersReply) String() string            { return proto.CompactTextString(m) }
 func (*MessagePeersReply) ProtoMessage()               {}
-func (*MessagePeersReply) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{21} }
+func (*MessagePeersReply) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{22} }
 
 func (m *MessagePeersReply) GetCommon() *MessageComm {
 	if m != nil {
@@ -576,7 +829,7 @@ type MessageBroadCast struct {
 func (m *MessageBroadCast) Reset()                    { *m = MessageBroadCast{} }
 func (m *MessageBroadCast) String() string            { return proto.CompactTextString(m) }
 func (*MessageBroadCast) ProtoMessage()               {}
-func (*MessageBroadCast) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{22} }
+func (*MessageBroadCast) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{23} }
 
 func (m *MessageBroadCast) GetCommon() *MessageComm {
 	if m != nil {
@@ -594,6 +847,7 @@ func (m *MessageBroadCast) GetMessage() *BroadCastData {
 
 func init() {
 	proto.RegisterType((*MessageComm)(nil), "types.MessageComm")
+	proto.RegisterType((*MessageUtil)(nil), "types.MessageUtil")
 	proto.RegisterType((*MessagePeerInfoReq)(nil), "types.MessagePeerInfoReq")
 	proto.RegisterType((*MessagePeerInfoResp)(nil), "types.MessagePeerInfoResp")
 	proto.RegisterType((*MessageP2PVersionReq)(nil), "types.MessageP2PVersionReq")
@@ -618,48 +872,55 @@ func init() {
 	proto.RegisterType((*MessageBroadCast)(nil), "types.MessageBroadCast")
 }
 
-func init() { proto.RegisterFile("p2pnext.proto", fileDescriptor6) }
+func init() { proto.RegisterFile("p2pnext.proto", fileDescriptor5) }
 
-var fileDescriptor6 = []byte{
-	// 630 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x96, 0x5f, 0x6f, 0xda, 0x3c,
-	0x14, 0xc6, 0x15, 0xda, 0xc2, 0x8b, 0x79, 0x47, 0x8b, 0xdb, 0xa1, 0x68, 0xda, 0x1f, 0xc4, 0x15,
-	0xeb, 0x36, 0xd8, 0x60, 0x5f, 0xa0, 0x74, 0x53, 0xc7, 0x36, 0x10, 0xca, 0xc5, 0x2e, 0x76, 0x17,
-	0x92, 0x33, 0x1a, 0x95, 0xc4, 0x6e, 0x6c, 0x18, 0x4c, 0xbb, 0xd8, 0xd7, 0xda, 0xb7, 0x9b, 0x08,
-	0xb6, 0xe3, 0xa4, 0xb4, 0xd2, 0xbc, 0x72, 0x17, 0x3b, 0xe7, 0x3c, 0xbf, 0x3c, 0x3e, 0xc7, 0x47,
-	0x41, 0x0f, 0x68, 0x97, 0x46, 0xb0, 0xe4, 0x6d, 0x1a, 0x13, 0x4e, 0xf0, 0x01, 0x5f, 0x51, 0x60,
-	0x8f, 0xca, 0xb4, 0x4b, 0x37, 0x3b, 0xcd, 0xdf, 0x16, 0xaa, 0x0c, 0x81, 0x31, 0x77, 0x0a, 0xe7,
-	0x24, 0x0c, 0xb1, 0x8d, 0x4a, 0x0b, 0x88, 0x59, 0x40, 0x22, 0xdb, 0x6a, 0x58, 0xad, 0xb2, 0x23,
-	0x97, 0xf8, 0x31, 0x2a, 0xf3, 0x20, 0x04, 0xc6, 0xdd, 0x90, 0xda, 0x85, 0x86, 0xd5, 0xda, 0x73,
-	0xd2, 0x0d, 0x5c, 0x45, 0x85, 0xc0, 0xb7, 0xf7, 0x92, 0x94, 0x42, 0xe0, 0xe3, 0x3a, 0x2a, 0x4e,
-	0x09, 0x63, 0x01, 0xb5, 0xf7, 0x1b, 0x56, 0xeb, 0x3f, 0x47, 0xac, 0xd6, 0xfb, 0x11, 0xf1, 0x61,
-	0xe0, 0xdb, 0x07, 0x49, 0xac, 0x58, 0xe1, 0xa7, 0x08, 0xad, 0x9f, 0xc6, 0xf3, 0xc9, 0x27, 0x58,
-	0xd9, 0xc5, 0x86, 0xd5, 0xfa, 0xdf, 0xd1, 0x76, 0x30, 0x46, 0xfb, 0x2c, 0x98, 0x46, 0x76, 0x29,
-	0x79, 0x93, 0x3c, 0x37, 0x3f, 0x22, 0x2c, 0x3e, 0x7d, 0x0c, 0x10, 0x0f, 0xa2, 0x6f, 0xc4, 0x81,
-	0x6b, 0xfc, 0x16, 0x55, 0xc2, 0xcd, 0xee, 0x3b, 0x97, 0xbb, 0x89, 0x8b, 0x4a, 0x17, 0xb7, 0x13,
-	0xe7, 0x6d, 0xcd, 0xaa, 0xa3, 0x87, 0x35, 0x57, 0xe8, 0xf8, 0x86, 0x16, 0xa3, 0x66, 0x62, 0xf8,
-	0x25, 0x2a, 0x89, 0x65, 0x72, 0x50, 0x69, 0xc6, 0xb8, 0x3b, 0x56, 0xf2, 0x32, 0xa4, 0xb9, 0x42,
-	0x27, 0x12, 0xdd, 0x1d, 0x7f, 0xd9, 0x9c, 0xb6, 0xb1, 0x11, 0xfc, 0x22, 0xcf, 0xae, 0xa5, 0x6c,
-	0x29, 0xae, 0xa1, 0x1f, 0x6e, 0x41, 0x1b, 0xfb, 0x3e, 0xcd, 0xb3, 0x8f, 0x32, 0xec, 0x33, 0xef,
-	0x2a, 0x45, 0x53, 0x54, 0x95, 0xe8, 0x20, 0x9a, 0x9a, 0xfb, 0x6d, 0xe5, 0x99, 0x55, 0xed, 0xac,
-	0xd7, 0xca, 0x8a, 0x78, 0x8d, 0x0e, 0x33, 0x44, 0x63, 0x9b, 0x77, 0x22, 0x89, 0x8e, 0x64, 0xca,
-	0xe4, 0x99, 0xef, 0xc7, 0xbb, 0x29, 0xea, 0x05, 0xf0, 0x44, 0x7c, 0x8b, 0xcf, 0x0d, 0x74, 0x27,
-	0x3e, 0xb3, 0xc8, 0x79, 0x06, 0xf9, 0x39, 0x60, 0x7c, 0x07, 0x37, 0x47, 0x4a, 0xa7, 0xd8, 0xa1,
-	0x6a, 0xdf, 0xf7, 0x4b, 0x0e, 0x71, 0xe4, 0xce, 0x46, 0xc0, 0xcd, 0x67, 0xc0, 0x2f, 0x0b, 0xd5,
-	0xb7, 0xe9, 0x19, 0x1f, 0xe0, 0xeb, 0xbc, 0x9b, 0x7a, 0xea, 0x46, 0x12, 0xb2, 0xb3, 0xe0, 0x87,
-	0x1a, 0x43, 0x17, 0xc0, 0xfb, 0x33, 0xe2, 0x5d, 0x31, 0xf3, 0xae, 0x79, 0x95, 0xc7, 0x1f, 0x67,
-	0xba, 0x46, 0xc8, 0x2b, 0xf6, 0x77, 0x35, 0x87, 0x34, 0xb6, 0xb1, 0xf7, 0xe7, 0x79, 0xf8, 0xa1,
-	0xc8, 0x18, 0x44, 0x8b, 0x75, 0x80, 0x06, 0xfe, 0xa9, 0x83, 0x87, 0x10, 0x52, 0x42, 0x66, 0xe6,
-	0xae, 0xdb, 0x79, 0xf0, 0x49, 0xc6, 0xb5, 0xd4, 0xd7, 0xae, 0x8b, 0xbc, 0xa3, 0x62, 0x00, 0xde,
-	0xb7, 0x61, 0x21, 0xab, 0x19, 0x5e, 0xa2, 0x23, 0x21, 0xf3, 0x01, 0x5c, 0x1f, 0xe2, 0x9d, 0x99,
-	0xdd, 0xc8, 0x6b, 0xe4, 0x05, 0xaa, 0xe5, 0xc8, 0xc6, 0x05, 0xbe, 0x6b, 0x26, 0xdd, 0xe0, 0x32,
-	0xc5, 0x15, 0xe5, 0xdf, 0xc1, 0xc0, 0x97, 0xca, 0x0a, 0x1a, 0xa7, 0x03, 0x1f, 0xe0, 0x5f, 0xa6,
-	0xd2, 0xad, 0xa5, 0x95, 0xba, 0x29, 0x93, 0xab, 0x6e, 0x1a, 0x01, 0x5f, 0xdf, 0xed, 0xfb, 0x1e,
-	0x84, 0x23, 0xe2, 0x4b, 0x69, 0xdd, 0x69, 0x4d, 0x73, 0xca, 0x1c, 0xa0, 0xb3, 0x15, 0x3e, 0x45,
-	0x45, 0x8f, 0x84, 0xa1, 0xf8, 0x93, 0xdb, 0xce, 0x14, 0x11, 0xf8, 0x0d, 0x42, 0x54, 0x65, 0xe6,
-	0xeb, 0xa9, 0x5e, 0x38, 0x5a, 0x50, 0x33, 0x52, 0x4d, 0xdc, 0x8f, 0x89, 0xeb, 0x9f, 0xbb, 0x8c,
-	0xff, 0x15, 0xf2, 0xd6, 0xd6, 0x55, 0x72, 0x99, 0x6a, 0xf6, 0x9f, 0x7d, 0x7d, 0x32, 0x0d, 0xf8,
-	0xe5, 0x7c, 0xd2, 0xf6, 0x48, 0xd8, 0xe9, 0xf5, 0xbc, 0xa8, 0xe3, 0x5d, 0xba, 0x41, 0xd4, 0xeb,
-	0x75, 0x92, 0xbc, 0x49, 0x31, 0xf9, 0xa3, 0xed, 0xfd, 0x09, 0x00, 0x00, 0xff, 0xff, 0x3f, 0x51,
-	0x3b, 0xd6, 0xf4, 0x0a, 0x00, 0x00,
+var fileDescriptor5 = []byte{
+	// 739 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x97, 0xdb, 0x6e, 0xda, 0x4a,
+	0x14, 0x86, 0x81, 0x24, 0x1c, 0x16, 0x7b, 0xe7, 0x30, 0xc9, 0x8e, 0xac, 0xad, 0x1e, 0x10, 0x57,
+	0xf4, 0x10, 0x92, 0x9a, 0xbc, 0x40, 0x48, 0xab, 0x90, 0xb6, 0x89, 0x90, 0xa5, 0xf6, 0xa2, 0x77,
+	0x06, 0x4f, 0x89, 0x15, 0xec, 0x99, 0x78, 0x06, 0x1a, 0xaa, 0x5e, 0xf4, 0xb5, 0xfa, 0x58, 0x7d,
+	0x83, 0x8a, 0x61, 0x4e, 0x38, 0x10, 0x29, 0x6e, 0xb8, 0xb3, 0x67, 0xd6, 0x5a, 0x9f, 0xff, 0xb5,
+	0x66, 0x7e, 0x01, 0xfc, 0x4b, 0x5d, 0x1a, 0xe3, 0x5b, 0xde, 0xa4, 0x09, 0xe1, 0x04, 0x6d, 0xf0,
+	0x09, 0xc5, 0xec, 0xff, 0x0a, 0x75, 0xe9, 0x6c, 0xa5, 0xfe, 0x2b, 0x0f, 0xd5, 0x0b, 0xcc, 0x98,
+	0x3f, 0xc0, 0xa7, 0x24, 0x8a, 0x90, 0x03, 0xa5, 0x31, 0x4e, 0x58, 0x48, 0x62, 0x27, 0x5f, 0xcb,
+	0x37, 0x2a, 0x9e, 0x7a, 0x45, 0x4f, 0xa0, 0xc2, 0xc3, 0x08, 0x33, 0xee, 0x47, 0xd4, 0x29, 0xd4,
+	0xf2, 0x8d, 0x35, 0xcf, 0x2c, 0xa0, 0x4d, 0x28, 0x84, 0x81, 0xb3, 0x26, 0x52, 0x0a, 0x61, 0x80,
+	0xf6, 0xa1, 0x38, 0x20, 0x8c, 0x85, 0xd4, 0x59, 0xaf, 0xe5, 0x1b, 0x65, 0x4f, 0xbe, 0x4d, 0xd7,
+	0x63, 0x12, 0xe0, 0xf3, 0xc0, 0xd9, 0x10, 0xb1, 0xf2, 0x0d, 0x3d, 0x03, 0x98, 0x3e, 0x75, 0x47,
+	0xbd, 0x0f, 0x78, 0xe2, 0x14, 0x6b, 0xf9, 0xc6, 0x3f, 0x9e, 0xb5, 0x82, 0x10, 0xac, 0xb3, 0x70,
+	0x10, 0x3b, 0x25, 0xb1, 0x23, 0x9e, 0xeb, 0xbf, 0x0b, 0xfa, 0xdb, 0x3f, 0xf1, 0x70, 0x88, 0x5e,
+	0x42, 0xb1, 0x4f, 0xa2, 0x48, 0x7e, 0x7a, 0xd5, 0x45, 0x4d, 0x21, 0xb7, 0x69, 0xe9, 0xf3, 0x64,
+	0x04, 0x3a, 0x82, 0x32, 0xc5, 0x38, 0x39, 0x8f, 0xbf, 0x12, 0x21, 0xc6, 0x44, 0x77, 0xdd, 0x6e,
+	0x57, 0xee, 0x74, 0x72, 0x9e, 0x8e, 0x42, 0x07, 0xa6, 0x33, 0x6b, 0x22, 0x61, 0xc7, 0x24, 0x7c,
+	0x9e, 0x6d, 0x74, 0x72, 0xa6, 0x5d, 0x2e, 0x80, 0x7c, 0x3c, 0xe9, 0x5f, 0x8b, 0x26, 0x54, 0xdd,
+	0xed, 0xb9, 0x8c, 0x93, 0xfe, 0x75, 0x27, 0xe7, 0x59, 0x51, 0xe8, 0x18, 0xca, 0xf8, 0x96, 0xe3,
+	0x24, 0xf6, 0x87, 0xa2, 0x3d, 0x55, 0x77, 0xdf, 0x64, 0xbc, 0x93, 0x3b, 0xea, 0xc3, 0x54, 0x24,
+	0x6a, 0x41, 0x65, 0x80, 0x79, 0x6f, 0x48, 0xfa, 0xd7, 0x4c, 0x74, 0xae, 0xea, 0xee, 0x9a, 0xb4,
+	0x33, 0xcc, 0xdb, 0x62, 0xab, 0x93, 0xf3, 0x4c, 0x1c, 0x3a, 0x80, 0x72, 0x18, 0x8f, 0x03, 0x9f,
+	0xfb, 0x4c, 0xf4, 0xb4, 0xea, 0x6e, 0xc9, 0x9c, 0xf3, 0x78, 0xfc, 0x76, 0xba, 0x3c, 0x65, 0xa8,
+	0x90, 0x76, 0x09, 0x36, 0xc6, 0xfe, 0x70, 0x84, 0xeb, 0xef, 0x01, 0xc9, 0x76, 0xaa, 0x26, 0x79,
+	0xf8, 0x06, 0x1d, 0x43, 0x35, 0x9a, 0xad, 0x4e, 0x53, 0xef, 0x69, 0xbf, 0x1d, 0x56, 0x9f, 0xc0,
+	0xee, 0x9d, 0x5a, 0x8c, 0x66, 0x2b, 0x86, 0x5e, 0x43, 0x49, 0xbe, 0x2e, 0x9f, 0xa7, 0xa7, 0x42,
+	0xea, 0x13, 0xd8, 0x53, 0x68, 0x3d, 0xbd, 0xcc, 0x42, 0xd0, 0xab, 0x34, 0xfb, 0xee, 0xd1, 0x30,
+	0xe8, 0xef, 0xf0, 0xdf, 0x02, 0x74, 0x66, 0xdd, 0x0f, 0x62, 0x53, 0xd8, 0x54, 0xec, 0x30, 0x1e,
+	0x64, 0x17, 0xdc, 0x48, 0x43, 0x37, 0xad, 0x66, 0x4f, 0x2b, 0x6b, 0xe2, 0x0d, 0x6c, 0xcd, 0x11,
+	0x33, 0xeb, 0xbc, 0x17, 0x49, 0x6c, 0x24, 0xd3, 0x22, 0x4f, 0x82, 0x20, 0x59, 0xcd, 0x54, 0xcf,
+	0x30, 0x17, 0xc5, 0x17, 0xe8, 0x9c, 0x41, 0x57, 0xa2, 0x73, 0x1e, 0x39, 0x9a, 0x43, 0x7e, 0x0c,
+	0x19, 0x5f, 0xc1, 0xd5, 0x51, 0xa5, 0x0d, 0xf6, 0x42, 0x9f, 0x5f, 0xe5, 0x48, 0x97, 0x98, 0x67,
+	0x37, 0x81, 0x9f, 0x79, 0xd8, 0x5f, 0x54, 0x2f, 0x73, 0x03, 0x8f, 0xd2, 0x6a, 0x96, 0x78, 0xa8,
+	0x7d, 0x23, 0x95, 0x0f, 0x69, 0xb3, 0xcc, 0x7e, 0x6a, 0x0e, 0xd2, 0xf8, 0x45, 0x5e, 0x6c, 0xd8,
+	0xdf, 0xb4, 0x11, 0x59, 0xec, 0xcc, 0xda, 0x5f, 0xa4, 0xe1, 0x69, 0x53, 0x37, 0xe0, 0x1f, 0x36,
+	0xf8, 0x02, 0x47, 0x94, 0x90, 0x61, 0x76, 0xd5, 0xcd, 0x34, 0x78, 0x6f, 0x4e, 0xb5, 0xaa, 0x6f,
+	0x5d, 0x17, 0x75, 0x47, 0xa5, 0x47, 0x3d, 0xb6, 0x60, 0x59, 0xd6, 0x12, 0x7c, 0x0b, 0xdb, 0xb2,
+	0x4c, 0x07, 0xfb, 0x01, 0x4e, 0x56, 0x26, 0x76, 0x56, 0xde, 0x22, 0x8f, 0x61, 0x27, 0x45, 0x5e,
+	0x89, 0xdb, 0xdf, 0xe1, 0x32, 0xcd, 0x95, 0xe3, 0x5f, 0x81, 0xe1, 0xab, 0xca, 0x1a, 0x9a, 0x18,
+	0xc3, 0xc7, 0xf8, 0x6f, 0x5c, 0x69, 0xe9, 0x68, 0x55, 0x5d, 0xc3, 0xe4, 0xfa, 0x34, 0x5d, 0x62,
+	0x2e, 0x7e, 0xac, 0x3d, 0xb2, 0x11, 0x5e, 0x92, 0x40, 0x95, 0xb6, 0x95, 0xee, 0x58, 0x4a, 0x99,
+	0x87, 0xe9, 0x70, 0xf2, 0xa0, 0xdf, 0xa0, 0x6f, 0x00, 0xa8, 0xce, 0x4c, 0xcf, 0x53, 0x6f, 0x78,
+	0x56, 0x50, 0x3d, 0xd6, 0x87, 0xb8, 0x9d, 0x10, 0x3f, 0x38, 0xf5, 0x19, 0x7f, 0x10, 0x72, 0xe9,
+	0xd1, 0xd5, 0xe5, 0xe6, 0xa6, 0xd9, 0x7e, 0xfe, 0xe5, 0xe9, 0x20, 0xe4, 0x57, 0xa3, 0x5e, 0xb3,
+	0x4f, 0xa2, 0xc3, 0x56, 0xab, 0x1f, 0x1f, 0xf6, 0xaf, 0xfc, 0x30, 0x6e, 0xb5, 0x0e, 0x45, 0x5e,
+	0xaf, 0x28, 0xfe, 0x46, 0xb4, 0xfe, 0x04, 0x00, 0x00, 0xff, 0xff, 0xbb, 0x63, 0x1e, 0x5a, 0x69,
+	0x0c, 0x00, 0x00,
 }

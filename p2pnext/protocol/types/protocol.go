@@ -58,9 +58,7 @@ type BaseProtocol struct {
 }
 
 func (p *BaseProtocol) InitProtocol(data *GlobalData) {
-	/*if p.GlobalData == nil {
-		p.GlobalData = new(GlobalData)
-	}*/
+
 	p.GlobalData = data
 }
 

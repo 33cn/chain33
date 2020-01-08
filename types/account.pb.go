@@ -10,8 +10,8 @@ It is generated from these files:
 	common.proto
 	db.proto
 	executor.proto
-	p2p.proto
 	p2pnext.proto
+	p2p.proto
 	pbft.proto
 	rpc.proto
 	statistic.proto
@@ -52,11 +52,14 @@ It has these top-level messages:
 	MempoolSize
 	ReplyBlockHeight
 	BlockBody
+	BlockReceipt
 	IsCaughtUp
 	IsNtpClockSync
 	ChainExecutor
 	BlockSequence
 	BlockSequences
+	Sequence
+	ReplyAddSeqCallback
 	ParaChainBlockDetail
 	ParaTxDetails
 	ParaTxDetail
@@ -66,6 +69,13 @@ It has these top-level messages:
 	EndBlock
 	HeaderSeq
 	HeaderSeqs
+	HeightPara
+	HeightParas
+	ChildChain
+	ReqHeightByTitle
+	ReplyHeightByTitle
+	BlockInfo
+	ReqParaTxByHeight
 	Reply
 	ReqString
 	ReplyString
@@ -112,6 +122,30 @@ It has these top-level messages:
 	ReceiptConfig
 	ReplyConfig
 	HistoryCertStore
+	MessageComm
+	MessageUtil
+	MessagePeerInfoReq
+	MessagePeerInfoResp
+	MessageP2PVersionReq
+	MessageP2PVersionResp
+	MessagePingReq
+	MessagePingResp
+	MessageAddrReq
+	MessageAddrResp
+	MessageAddrList
+	MessageExternalNetReq
+	MessageExternalNetResp
+	MessageGetBlocksReq
+	MessageGetBlocksResp
+	MessageGetMempoolReq
+	MessageVersion
+	MessageHeaderReq
+	MessageHeaderResp
+	MessageInvDataReq
+	MessagePeerList
+	MessageNetInfo
+	MessagePeersReply
+	MessageBroadCast
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
@@ -147,29 +181,6 @@ It has these top-level messages:
 	NodeNetInfo
 	PeersReply
 	PeersInfo
-	MessageComm
-	MessagePeerInfoReq
-	MessagePeerInfoResp
-	MessageP2PVersionReq
-	MessageP2PVersionResp
-	MessagePingReq
-	MessagePingResp
-	MessageAddrReq
-	MessageAddrResp
-	MessageAddrList
-	MessageExternalNetReq
-	MessageExternalNetResp
-	MessageGetBlocksReq
-	MessageGetBlocksResp
-	MessageGetMempoolReq
-	MessageVersion
-	MessageHeaderReq
-	MessageHeaderResp
-	MessageInvDataReq
-	MessagePeerList
-	MessageNetInfo
-	MessagePeersReply
-	MessageBroadCast
 	Operation
 	Checkpoint
 	Entry
@@ -233,6 +244,7 @@ It has these top-level messages:
 	UserWrite
 	UpgradeMeta
 	ReqTxHashList
+	TxProof
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore

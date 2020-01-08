@@ -92,6 +92,7 @@ func (p *P2P) managePeers() {
 			logger.Error("Host Connect", "err", err)
 			return
 		}
+
 		peers := p.host.Peerstore().Peers()
 
 		for _, v := range peers {
@@ -184,7 +185,6 @@ func (p *P2P) processP2P() {
 
 	//TODO, control goroutine num
 	for msg := range p.client.Recv() {
-
 		go protocol.HandleEvent(msg)
 	}
 }

@@ -27,7 +27,7 @@ type P2PGetPeerInfo struct {
 func (m *P2PGetPeerInfo) Reset()                    { *m = P2PGetPeerInfo{} }
 func (m *P2PGetPeerInfo) String() string            { return proto.CompactTextString(m) }
 func (*P2PGetPeerInfo) ProtoMessage()               {}
-func (*P2PGetPeerInfo) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{0} }
+func (*P2PGetPeerInfo) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{0} }
 
 func (m *P2PGetPeerInfo) GetVersion() int32 {
 	if m != nil {
@@ -54,7 +54,7 @@ type P2PPeerInfo struct {
 func (m *P2PPeerInfo) Reset()                    { *m = P2PPeerInfo{} }
 func (m *P2PPeerInfo) String() string            { return proto.CompactTextString(m) }
 func (*P2PPeerInfo) ProtoMessage()               {}
-func (*P2PPeerInfo) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{1} }
+func (*P2PPeerInfo) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{1} }
 
 func (m *P2PPeerInfo) GetAddr() string {
 	if m != nil {
@@ -115,7 +115,7 @@ type P2PVersion struct {
 func (m *P2PVersion) Reset()                    { *m = P2PVersion{} }
 func (m *P2PVersion) String() string            { return proto.CompactTextString(m) }
 func (*P2PVersion) ProtoMessage()               {}
-func (*P2PVersion) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{2} }
+func (*P2PVersion) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{2} }
 
 func (m *P2PVersion) GetVersion() int32 {
 	if m != nil {
@@ -184,7 +184,7 @@ type P2PVerAck struct {
 func (m *P2PVerAck) Reset()                    { *m = P2PVerAck{} }
 func (m *P2PVerAck) String() string            { return proto.CompactTextString(m) }
 func (*P2PVerAck) ProtoMessage()               {}
-func (*P2PVerAck) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{3} }
+func (*P2PVerAck) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{3} }
 
 func (m *P2PVerAck) GetVersion() int32 {
 	if m != nil {
@@ -223,7 +223,7 @@ type P2PPing struct {
 func (m *P2PPing) Reset()                    { *m = P2PPing{} }
 func (m *P2PPing) String() string            { return proto.CompactTextString(m) }
 func (*P2PPing) ProtoMessage()               {}
-func (*P2PPing) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{4} }
+func (*P2PPing) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{4} }
 
 func (m *P2PPing) GetNonce() int64 {
 	if m != nil {
@@ -262,7 +262,7 @@ type P2PPong struct {
 func (m *P2PPong) Reset()                    { *m = P2PPong{} }
 func (m *P2PPong) String() string            { return proto.CompactTextString(m) }
 func (*P2PPong) ProtoMessage()               {}
-func (*P2PPong) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{5} }
+func (*P2PPong) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{5} }
 
 func (m *P2PPong) GetNonce() int64 {
 	if m != nil {
@@ -280,7 +280,7 @@ type P2PGetAddr struct {
 func (m *P2PGetAddr) Reset()                    { *m = P2PGetAddr{} }
 func (m *P2PGetAddr) String() string            { return proto.CompactTextString(m) }
 func (*P2PGetAddr) ProtoMessage()               {}
-func (*P2PGetAddr) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{6} }
+func (*P2PGetAddr) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{6} }
 
 func (m *P2PGetAddr) GetNonce() int64 {
 	if m != nil {
@@ -300,7 +300,7 @@ type P2PAddr struct {
 func (m *P2PAddr) Reset()                    { *m = P2PAddr{} }
 func (m *P2PAddr) String() string            { return proto.CompactTextString(m) }
 func (*P2PAddr) ProtoMessage()               {}
-func (*P2PAddr) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{7} }
+func (*P2PAddr) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{7} }
 
 func (m *P2PAddr) GetNonce() int64 {
 	if m != nil {
@@ -324,7 +324,7 @@ type P2PAddrList struct {
 func (m *P2PAddrList) Reset()                    { *m = P2PAddrList{} }
 func (m *P2PAddrList) String() string            { return proto.CompactTextString(m) }
 func (*P2PAddrList) ProtoMessage()               {}
-func (*P2PAddrList) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{8} }
+func (*P2PAddrList) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{8} }
 
 func (m *P2PAddrList) GetNonce() int64 {
 	if m != nil {
@@ -352,7 +352,7 @@ type P2PExternalInfo struct {
 func (m *P2PExternalInfo) Reset()                    { *m = P2PExternalInfo{} }
 func (m *P2PExternalInfo) String() string            { return proto.CompactTextString(m) }
 func (*P2PExternalInfo) ProtoMessage()               {}
-func (*P2PExternalInfo) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{9} }
+func (*P2PExternalInfo) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{9} }
 
 func (m *P2PExternalInfo) GetAddr() string {
 	if m != nil {
@@ -379,7 +379,7 @@ type P2PGetBlocks struct {
 func (m *P2PGetBlocks) Reset()                    { *m = P2PGetBlocks{} }
 func (m *P2PGetBlocks) String() string            { return proto.CompactTextString(m) }
 func (*P2PGetBlocks) ProtoMessage()               {}
-func (*P2PGetBlocks) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{10} }
+func (*P2PGetBlocks) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{10} }
 
 func (m *P2PGetBlocks) GetVersion() int32 {
 	if m != nil {
@@ -411,7 +411,7 @@ type P2PGetMempool struct {
 func (m *P2PGetMempool) Reset()                    { *m = P2PGetMempool{} }
 func (m *P2PGetMempool) String() string            { return proto.CompactTextString(m) }
 func (*P2PGetMempool) ProtoMessage()               {}
-func (*P2PGetMempool) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{11} }
+func (*P2PGetMempool) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{11} }
 
 func (m *P2PGetMempool) GetVersion() int32 {
 	if m != nil {
@@ -427,7 +427,7 @@ type P2PInv struct {
 func (m *P2PInv) Reset()                    { *m = P2PInv{} }
 func (m *P2PInv) String() string            { return proto.CompactTextString(m) }
 func (*P2PInv) ProtoMessage()               {}
-func (*P2PInv) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{12} }
+func (*P2PInv) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{12} }
 
 func (m *P2PInv) GetInvs() []*Inventory {
 	if m != nil {
@@ -449,7 +449,7 @@ type Inventory struct {
 func (m *Inventory) Reset()                    { *m = Inventory{} }
 func (m *Inventory) String() string            { return proto.CompactTextString(m) }
 func (*Inventory) ProtoMessage()               {}
-func (*Inventory) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{13} }
+func (*Inventory) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{13} }
 
 func (m *Inventory) GetTy() int32 {
 	if m != nil {
@@ -484,7 +484,7 @@ type P2PGetData struct {
 func (m *P2PGetData) Reset()                    { *m = P2PGetData{} }
 func (m *P2PGetData) String() string            { return proto.CompactTextString(m) }
 func (*P2PGetData) ProtoMessage()               {}
-func (*P2PGetData) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{14} }
+func (*P2PGetData) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{14} }
 
 func (m *P2PGetData) GetVersion() int32 {
 	if m != nil {
@@ -508,7 +508,7 @@ type P2PRoute struct {
 func (m *P2PRoute) Reset()                    { *m = P2PRoute{} }
 func (m *P2PRoute) String() string            { return proto.CompactTextString(m) }
 func (*P2PRoute) ProtoMessage()               {}
-func (*P2PRoute) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{15} }
+func (*P2PRoute) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{15} }
 
 func (m *P2PRoute) GetTTL() int32 {
 	if m != nil {
@@ -527,7 +527,7 @@ type P2PTx struct {
 func (m *P2PTx) Reset()                    { *m = P2PTx{} }
 func (m *P2PTx) String() string            { return proto.CompactTextString(m) }
 func (*P2PTx) ProtoMessage()               {}
-func (*P2PTx) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{16} }
+func (*P2PTx) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{16} }
 
 func (m *P2PTx) GetTx() *Transaction {
 	if m != nil {
@@ -552,7 +552,7 @@ type P2PBlock struct {
 func (m *P2PBlock) Reset()                    { *m = P2PBlock{} }
 func (m *P2PBlock) String() string            { return proto.CompactTextString(m) }
 func (*P2PBlock) ProtoMessage()               {}
-func (*P2PBlock) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{17} }
+func (*P2PBlock) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{17} }
 
 func (m *P2PBlock) GetBlock() *Block {
 	if m != nil {
@@ -573,7 +573,7 @@ type LightBlock struct {
 func (m *LightBlock) Reset()                    { *m = LightBlock{} }
 func (m *LightBlock) String() string            { return proto.CompactTextString(m) }
 func (*LightBlock) ProtoMessage()               {}
-func (*LightBlock) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{18} }
+func (*LightBlock) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{18} }
 
 func (m *LightBlock) GetSize() int64 {
 	if m != nil {
@@ -612,7 +612,7 @@ type LightTx struct {
 func (m *LightTx) Reset()                    { *m = LightTx{} }
 func (m *LightTx) String() string            { return proto.CompactTextString(m) }
 func (*LightTx) ProtoMessage()               {}
-func (*LightTx) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{19} }
+func (*LightTx) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{19} }
 
 func (m *LightTx) GetTxHash() []byte {
 	if m != nil {
@@ -636,7 +636,7 @@ type P2PTxReq struct {
 func (m *P2PTxReq) Reset()                    { *m = P2PTxReq{} }
 func (m *P2PTxReq) String() string            { return proto.CompactTextString(m) }
 func (*P2PTxReq) ProtoMessage()               {}
-func (*P2PTxReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{20} }
+func (*P2PTxReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{20} }
 
 func (m *P2PTxReq) GetTxHash() []byte {
 	if m != nil {
@@ -654,7 +654,7 @@ type P2PBlockTxReq struct {
 func (m *P2PBlockTxReq) Reset()                    { *m = P2PBlockTxReq{} }
 func (m *P2PBlockTxReq) String() string            { return proto.CompactTextString(m) }
 func (*P2PBlockTxReq) ProtoMessage()               {}
-func (*P2PBlockTxReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{21} }
+func (*P2PBlockTxReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{21} }
 
 func (m *P2PBlockTxReq) GetBlockHash() string {
 	if m != nil {
@@ -680,7 +680,7 @@ type P2PBlockTxReply struct {
 func (m *P2PBlockTxReply) Reset()                    { *m = P2PBlockTxReply{} }
 func (m *P2PBlockTxReply) String() string            { return proto.CompactTextString(m) }
 func (*P2PBlockTxReply) ProtoMessage()               {}
-func (*P2PBlockTxReply) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{22} }
+func (*P2PBlockTxReply) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{22} }
 
 func (m *P2PBlockTxReply) GetBlockHash() string {
 	if m != nil {
@@ -716,7 +716,7 @@ type P2PQueryData struct {
 func (m *P2PQueryData) Reset()                    { *m = P2PQueryData{} }
 func (m *P2PQueryData) String() string            { return proto.CompactTextString(m) }
 func (*P2PQueryData) ProtoMessage()               {}
-func (*P2PQueryData) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{23} }
+func (*P2PQueryData) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{23} }
 
 type isP2PQueryData_Value interface {
 	isP2PQueryData_Value()
@@ -838,7 +838,7 @@ type Versions struct {
 func (m *Versions) Reset()                    { *m = Versions{} }
 func (m *Versions) String() string            { return proto.CompactTextString(m) }
 func (*Versions) ProtoMessage()               {}
-func (*Versions) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{24} }
+func (*Versions) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{24} }
 
 func (m *Versions) GetP2Pversion() int32 {
 	if m != nil {
@@ -879,7 +879,7 @@ type BroadCastData struct {
 func (m *BroadCastData) Reset()                    { *m = BroadCastData{} }
 func (m *BroadCastData) String() string            { return proto.CompactTextString(m) }
 func (*BroadCastData) ProtoMessage()               {}
-func (*BroadCastData) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{25} }
+func (*BroadCastData) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{25} }
 
 type isBroadCastData_Value interface {
 	isBroadCastData_Value()
@@ -1181,7 +1181,7 @@ type P2PGetHeaders struct {
 func (m *P2PGetHeaders) Reset()                    { *m = P2PGetHeaders{} }
 func (m *P2PGetHeaders) String() string            { return proto.CompactTextString(m) }
 func (*P2PGetHeaders) ProtoMessage()               {}
-func (*P2PGetHeaders) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{26} }
+func (*P2PGetHeaders) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{26} }
 
 func (m *P2PGetHeaders) GetVersion() int32 {
 	if m != nil {
@@ -1213,7 +1213,7 @@ type P2PHeaders struct {
 func (m *P2PHeaders) Reset()                    { *m = P2PHeaders{} }
 func (m *P2PHeaders) String() string            { return proto.CompactTextString(m) }
 func (*P2PHeaders) ProtoMessage()               {}
-func (*P2PHeaders) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{27} }
+func (*P2PHeaders) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{27} }
 
 func (m *P2PHeaders) GetHeaders() []*Header {
 	if m != nil {
@@ -1235,7 +1235,7 @@ type InvData struct {
 func (m *InvData) Reset()                    { *m = InvData{} }
 func (m *InvData) String() string            { return proto.CompactTextString(m) }
 func (*InvData) ProtoMessage()               {}
-func (*InvData) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{28} }
+func (*InvData) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{28} }
 
 type isInvData_Value interface {
 	isInvData_Value()
@@ -1362,7 +1362,7 @@ type InvDatas struct {
 func (m *InvDatas) Reset()                    { *m = InvDatas{} }
 func (m *InvDatas) String() string            { return proto.CompactTextString(m) }
 func (*InvDatas) ProtoMessage()               {}
-func (*InvDatas) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{29} }
+func (*InvDatas) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{29} }
 
 func (m *InvDatas) GetItems() []*InvData {
 	if m != nil {
@@ -1385,7 +1385,7 @@ type Peer struct {
 func (m *Peer) Reset()                    { *m = Peer{} }
 func (m *Peer) String() string            { return proto.CompactTextString(m) }
 func (*Peer) ProtoMessage()               {}
-func (*Peer) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{30} }
+func (*Peer) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{30} }
 
 func (m *Peer) GetAddr() string {
 	if m != nil {
@@ -1438,7 +1438,7 @@ type PeerList struct {
 func (m *PeerList) Reset()                    { *m = PeerList{} }
 func (m *PeerList) String() string            { return proto.CompactTextString(m) }
 func (*PeerList) ProtoMessage()               {}
-func (*PeerList) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{31} }
+func (*PeerList) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{31} }
 
 func (m *PeerList) GetPeers() []*Peer {
 	if m != nil {
@@ -1460,7 +1460,7 @@ type NodeNetInfo struct {
 func (m *NodeNetInfo) Reset()                    { *m = NodeNetInfo{} }
 func (m *NodeNetInfo) String() string            { return proto.CompactTextString(m) }
 func (*NodeNetInfo) ProtoMessage()               {}
-func (*NodeNetInfo) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{32} }
+func (*NodeNetInfo) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{32} }
 
 func (m *NodeNetInfo) GetExternaladdr() string {
 	if m != nil {
@@ -1504,7 +1504,7 @@ type PeersReply struct {
 func (m *PeersReply) Reset()                    { *m = PeersReply{} }
 func (m *PeersReply) String() string            { return proto.CompactTextString(m) }
 func (*PeersReply) ProtoMessage()               {}
-func (*PeersReply) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{33} }
+func (*PeersReply) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{33} }
 
 func (m *PeersReply) GetPeers() []*PeersInfo {
 	if m != nil {
@@ -1524,7 +1524,7 @@ type PeersInfo struct {
 func (m *PeersInfo) Reset()                    { *m = PeersInfo{} }
 func (m *PeersInfo) String() string            { return proto.CompactTextString(m) }
 func (*PeersInfo) ProtoMessage()               {}
-func (*PeersInfo) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{34} }
+func (*PeersInfo) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{34} }
 
 func (m *PeersInfo) GetName() string {
 	if m != nil {
@@ -2318,9 +2318,9 @@ var _P2Pgservice_serviceDesc = grpc.ServiceDesc{
 	Metadata: "p2p.proto",
 }
 
-func init() { proto.RegisterFile("p2p.proto", fileDescriptor5) }
+func init() { proto.RegisterFile("p2p.proto", fileDescriptor6) }
 
-var fileDescriptor5 = []byte{
+var fileDescriptor6 = []byte{
 	// 1569 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x58, 0x5b, 0x6f, 0x1b, 0x37,
 	0x16, 0x1e, 0xdd, 0x2c, 0xe9, 0xc8, 0x57, 0x26, 0x1b, 0x08, 0x82, 0x37, 0xc9, 0x12, 0xce, 0xc6,
