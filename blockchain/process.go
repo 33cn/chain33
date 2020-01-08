@@ -230,7 +230,10 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 
 	//优先选择总难度系数大的区块
 	//总难度系数，区块高度，出块时间以及父区块一致并开启最优区块比较功能时，通过共识模块来确定最优区块
-	iSideChain := blocktd.Cmp(tiptd) < 0 || (blocktd.Cmp(tiptd) == 0 && !enBestBlockCmp)
+	iSideChain := blocktd.Cmp(tiptd) <= 0
+	if enBestBlockCmp && blocktd.Cmp(tiptd) == 0 && node.height == tip.height && util.CmpBestBlock(b.client, block.Block, tip.hash) {
+		iSideChain = false
+	}
 	if iSideChain {
 		fork := b.bestChain.FindFork(node)
 		if fork != nil && bytes.Equal(parentHash, fork.hash) {
@@ -239,18 +242,6 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail)
 			chainlog.Info("connectBestChain extends a side chain:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
 		}
 		return nil, false, nil
-	} else if blocktd.Cmp(tiptd) == 0 && enBestBlockCmp && node.height == tip.height {
-		isbestBlock := util.CmpBestBlock(b.client, block.Block, tip.hash)
-		if !isbestBlock {
-			fork := b.bestChain.FindFork(node)
-			if fork != nil && bytes.Equal(parentHash, fork.hash) {
-				chainlog.Info("connectBestChain FORK:EnableBestBlockCmp", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
-			} else {
-				chainlog.Info("connectBestChain extends a side chain:EnableBestBlockCmp", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
-			}
-			return nil, false, nil
-		}
-		chainlog.Info("connectBestChain:BestBlock", "BestBlockHash", common.ToHex(node.hash), "TipBlockHash", common.ToHex(tip.hash))
 	}
 
 	//print
