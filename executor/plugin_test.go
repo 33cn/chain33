@@ -31,7 +31,7 @@ func TestPlugin(t *testing.T) {
 	stateHash[0] = 30
 	for _, plugin := range globalPlugins {
 		detail := &types.BlockDetail{
-			Block:    &types.Block{Txs: txs, StateHash:stateHash[:]},
+			Block:    &types.Block{Txs: txs, StateHash: stateHash[:]},
 			Receipts: []*types.ReceiptData{{}},
 		}
 		executor := newExecutor(ctx, exec, kvdb, txs, nil)
