@@ -61,7 +61,7 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 		defer it.Close()
 		flag := it.Seek(key)
 		//判断是已经删除的key
-		for isdeleted(it.Value()) {
+		for it.Valid() && isdeleted(it.Value()) {
 			it.Next()
 			if !it.Valid() {
 				return nil
