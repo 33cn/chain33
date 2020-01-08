@@ -27,10 +27,11 @@ func TestPlugin(t *testing.T) {
 	tx := util.CreateCoinsTx(cfg, priv, addr, types.Coin)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
-
+	var stateHash [32]byte
+	stateHash[0] = 30
 	for _, plugin := range globalPlugins {
 		detail := &types.BlockDetail{
-			Block:    &types.Block{Txs: txs},
+			Block:    &types.Block{Txs: txs, StateHash:stateHash[:]},
 			Receipts: []*types.ReceiptData{{}},
 		}
 		executor := newExecutor(ctx, exec, kvdb, txs, nil)
