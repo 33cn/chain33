@@ -150,11 +150,6 @@ func (wallet *Wallet) GetAPI() client.QueueProtocolAPI {
 	return wallet.api
 }
 
-// GetMutex 获取钱包互斥量
-func (wallet *Wallet) GetMutex() *sync.Mutex {
-	return &wallet.mtx
-}
-
 // GetDBStore 获取数据库存储对象操作接口
 func (wallet *Wallet) GetDBStore() dbm.DB {
 	return wallet.walletStore.GetDB()

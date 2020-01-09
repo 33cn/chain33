@@ -884,7 +884,6 @@ func testWallet(t *testing.T, wallet *Wallet) {
 	println("test wallet end")
 
 	wallet.GetConfig()
-	wallet.GetMutex()
 	wallet.GetDBStore()
 	wallet.GetSignType()
 	wallet.GetPassword()
