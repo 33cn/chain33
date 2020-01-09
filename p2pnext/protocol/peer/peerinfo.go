@@ -160,7 +160,7 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 			s.Close()
 			continue
 		}
-		peerinfos = append(P2PPeerInfo, resp.GetMessage())
+		peerinfos = append(peerinfos, resp.GetMessage())
 		//p.OnResp(resp.GetMessage(), s)
 		s.Close()
 
@@ -219,9 +219,15 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 
 //接收chain33其他模块发来的请求消息
 func (p *PeerInfoProtol) handleEvent(msg *queue.Message) {
-	peers := p.GetPeerInfo()
+	pinfos := p.GetPeerInfo()
 	//peers := p.PeerInfoManager.FetchPeers()
+	var peers []*types.Peer
 	var peer types.Peer
+	for _, pinfo := range pinfos {
+		var peer types.Peer
+		p.PeerInfoManager.Copy(&peer, pinfo)
+		peers = append(peers, &peer)
+	}
 	peerinfo := p.getLoacalPeerInfo()
 	p.PeerInfoManager.Copy(&peer, peerinfo)
 	peer.Self = true
