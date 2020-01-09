@@ -238,9 +238,9 @@ func (wallet *Wallet) On_ImportPrivkeysFile(req *types.ReqString) (types.Message
 	reply := &types.Reply{
 		IsOk: true,
 	}
-	err := wallet.ProcImportPrivKeysFile(req.Data)
+	err := wallet.ProcImportPrivkeysFile(req.Data)
 	if err != nil {
-		walletlog.Error("ProcImportPrivKeysFile", "err", err.Error())
+		walletlog.Error("ProcImportPrivkeysFile", "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}

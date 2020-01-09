@@ -6,6 +6,7 @@ package wallet
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -43,14 +44,15 @@ func initEnv() (*Wallet, queue.Module, queue.Queue, string) {
 }
 
 var (
-	Statehash   []byte
-	CutHeight   int64
-	FromAddr    string
-	ToAddr1     string
-	ToAddr2     string
-	AddrPrivKey string
-	addr        string
-	priv        crypto.PrivKey
+	Statehash      []byte
+	CutHeight      int64
+	FromAddr       string
+	ToAddr1        string
+	ToAddr2        string
+	AddrPrivKey    string
+	addr           string
+	priv           crypto.PrivKey
+	AllAccountlist *types.WalletAccounts
 )
 
 func blockchainModProc(q queue.Queue) {
@@ -156,7 +158,12 @@ func SaveAccountTomavl(wallet *Wallet, client queue.Client, prevStateRoot []byte
 	return hash
 }
 
-func TestWallet(t *testing.T) {
+func TestAll(t *testing.T) {
+	testAllWallet(t)
+	testWalletImportPrivkeysFile(t)
+}
+
+func testAllWallet(t *testing.T) {
 	wallet, store, q, datapath := initEnv()
 	defer os.RemoveAll("datadir") // clean up
 	defer wallet.Close()
@@ -171,6 +178,9 @@ func TestWallet(t *testing.T) {
 	testProcCreateNewAccount(t, wallet)
 
 	testProcImportPrivKey(t, wallet)
+
+	testProcDumpPrivkeysFile(t, wallet)
+
 	//wait data sync
 	testProcWalletTxList(t, wallet)
 
@@ -196,6 +206,20 @@ func TestWallet(t *testing.T) {
 	testCreateNewAccountByIndex(t, wallet)
 
 	t.Log(datapath)
+}
+
+func testWalletImportPrivkeysFile(t *testing.T) {
+	wallet, store, q, _ := initEnv()
+	defer os.RemoveAll("datadir") // clean up
+	defer wallet.Close()
+	defer store.Close()
+
+	//启动blockchain模块
+	blockchainModProc(q)
+	mempoolModProc(q)
+
+	testSeed(t, wallet)
+	testProcImportPrivkeysFile(t, wallet)
 }
 
 //ProcWalletLock
@@ -1077,4 +1101,63 @@ func TestInitSeedLibrary(t *testing.T) {
 		policy.OnClose()
 		policy.OnSetQueueClient()
 	}
+}
+
+func testProcDumpPrivkeysFile(t *testing.T, wallet *Wallet) {
+	println("testProcDumpPrivkeysFile begin")
+	fileName := "Privkeys"
+	_, err := os.Stat(fileName)
+	if err == nil {
+		os.Remove(fileName)
+	}
+
+	msgDumpPrivkeysFile := wallet.client.NewMessage("wallet", types.EventDumpPrivkeysFile, &types.ReqString{Data: fileName})
+	wallet.client.Send(msgDumpPrivkeysFile, true)
+	resp, err := wallet.client.Wait(msgDumpPrivkeysFile)
+	assert.Nil(t, err)
+
+	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
+	wallet.client.Send(msgGetAccList, true)
+	resp, err = wallet.client.Wait(msgGetAccList)
+	assert.Nil(t, err)
+
+	// 后面要对比
+	AllAccountlist = resp.GetData().(*types.WalletAccounts)
+	println("testProcDumpPrivkeysFile end")
+	println("--------------------------")
+}
+
+func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
+	println("testProcImportPrivkeysFile begin")
+	fileName := "Privkeys"
+
+	msgImportPrivkeysFile := wallet.client.NewMessage("wallet", types.EventImportPrivkeysFile, &types.ReqString{Data: fileName})
+	wallet.client.Send(msgImportPrivkeysFile, true)
+	resp, err := wallet.client.Wait(msgImportPrivkeysFile)
+	assert.Nil(t, err)
+
+	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
+	wallet.client.Send(msgGetAccList, true)
+	resp, err = wallet.client.Wait(msgGetAccList)
+	assert.Nil(t, err)
+
+	// 与之前的 AllAccountlist 对比
+	accountlist := resp.GetData().(*types.WalletAccounts)
+	assert.Equal(t, len(accountlist.GetWallets()), len(AllAccountlist.GetWallets()))
+	for _, acc1 := range AllAccountlist.GetWallets() {
+		isEqual := false
+		for _, acc2 := range accountlist.GetWallets() {
+			if acc1.Acc.Addr == acc2.Acc.Addr {
+				isEqual = true
+				break
+			}
+		}
+		if !isEqual {
+			assert.Error(t, errors.New(acc1.Acc.Addr+" not find in new list."))
+		}
+	}
+
+	os.Remove(fileName)
+	println("testProcImportPrivkeysFile end")
+	println("--------------------------")
 }
