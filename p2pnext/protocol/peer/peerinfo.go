@@ -53,6 +53,7 @@ func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
 
 func (p *PeerInfoProtol) OnResp(peerinfo *types.P2PPeerInfo, s core.Stream) {
 	peerId := s.Conn().RemotePeer().Pretty()
+
 	p.GetPeerInfoManager().Store(peerId, peerinfo)
 	log.Info("OnResp Received peerinfo response ", "from", s.Conn().RemotePeer(), "to", s.Conn().LocalPeer())
 
@@ -130,10 +131,11 @@ func (p *PeerInfoProtol) OnReq(req *types.MessagePeerInfoReq, s core.Stream) {
 }
 
 // PeerInfo 向对方节点请求peerInfo信息
-func (p *PeerInfoProtol) GetPeerInfo() {
+func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
+	var peerinfos []*types.P2PPeerInfo
 	for _, v := range p.GetConnsManager().Fetch() {
 
 		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
@@ -158,10 +160,12 @@ func (p *PeerInfoProtol) GetPeerInfo() {
 			s.Close()
 			continue
 		}
-		p.OnResp(resp.GetMessage(), s)
+		peerinfos = append(P2PPeerInfo, resp.GetMessage())
+		//p.OnResp(resp.GetMessage(), s)
 		s.Close()
 
 	}
+	return peerinfos
 
 }
 func (p *PeerInfoProtol) DetectNodeAddr() {
@@ -215,8 +219,8 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 
 //接收chain33其他模块发来的请求消息
 func (p *PeerInfoProtol) handleEvent(msg *queue.Message) {
-	p.GetPeerInfo()
-	peers := p.PeerInfoManager.FetchPeers()
+	peers := p.GetPeerInfo()
+	//peers := p.PeerInfoManager.FetchPeers()
 	var peer types.Peer
 	peerinfo := p.getLoacalPeerInfo()
 	p.PeerInfoManager.Copy(&peer, peerinfo)
