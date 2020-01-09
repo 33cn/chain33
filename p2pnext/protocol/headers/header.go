@@ -94,7 +94,7 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s n
 
 //GetHeaders 接收来自chain33 blockchain模块发来的请求
 func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
-
+	log.Info("handleEvent", "msgxxxxxx", msg)
 	req := msg.GetData().(*types.ReqBlocks)
 	pids := req.GetPid()
 	if len(pids) == 0 { //根据指定的pidlist 获取对应的block header
@@ -106,15 +106,15 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 	msg.Reply(h.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
 
 	for _, pid := range pids {
-		data := h.PeerInfoManager.Load(pid)
-		if data == nil {
-			continue
-		}
-		peerinfo := data.(*types.P2PPeerInfo)
-		//去指定的peer上获取对应的blockHeader
-		peerId := peerinfo.GetName()
+		// data := h.PeerInfoManager.Load(pid)
+		// if data == nil {
+		// 	continue
+		// }
+		// peerinfo := data.(*types.P2PPeerInfo)
+		// //去指定的peer上获取对应的blockHeader
+		// peerId := peerinfo.GetName()
 
-		pConn := h.GetConnsManager().Get(peerId)
+		pConn := h.GetConnsManager().Get(pid)
 		if pConn == nil {
 			continue
 		}
