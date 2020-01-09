@@ -99,10 +99,10 @@ Jump:
 	peerinfo.Port = int32(port)
 	//TODO 需要返回自身的外网地址
 	if externalAddr == "" {
-		peerinfo.Addr = splites[1]
+		peerinfo.Addr = splites[2]
 
 	} else {
-		peerinfo.Addr = strings.Split(externalAddr, "/")[1]
+		peerinfo.Addr = strings.Split(externalAddr, "/")[2]
 	}
 	return &peerinfo
 }

@@ -58,7 +58,7 @@ enableReduceLocaldb=true
 # P2P服务监听端口号
 port=13803
 # 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=["10.0.0.1:13802","10.0.0.2:13802","10.0.0.3:13802"]
-seeds=["/ip4/112.74.59.221/tcp/13803/ipfs/16Uiu2HAmEQTBWg8Lo351WgQbtCrRojfWsnig8KX8cMgYAfEb1koT"]
+seeds=["/ip4/52.229.200.231/tcp/13802/ipfs/16Uiu2HAmQPsneAp4RSNXJbzsMfP3y576UiAVv1NyLHPjpWELmAxY"]
 # 是否启动P2P服务
 enable=true
 # 是否为种子节点
