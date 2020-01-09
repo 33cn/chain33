@@ -305,6 +305,8 @@ var eventName = map[int]string{
 	126: "EventAddParaChainBlockDetail",
 	127: "EventGetSeqByHash",
 	128: "EventLocalPrefixCount",
+	144: "EventDumpPrivkeysFile",
+	145: "EventImportPrivkeysFile",
 	//todo: 这个可能后面会删除
 	//EventWalletCreateTx: "EventWalletCreateTx",
 	EventStoreList:      "EventStoreList",

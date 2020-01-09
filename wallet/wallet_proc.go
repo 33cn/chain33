@@ -406,6 +406,11 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
+	walletaccount, err := wallet.procImportPrivKey(PrivKey)
+	return walletaccount, err
+}
+
+func (wallet *Wallet) procImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
 		return nil, err
@@ -489,12 +494,12 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 	return &walletaccount, nil
 }
 
-// ProcImportPrivKeysFile 处理导入私钥
+// ProcImportPrivkeysFile 处理导入私钥
 //input:
 //type  struct {
 //	fileName string
 //导入私钥，并且同时会导入交易
-func (wallet *Wallet) ProcImportPrivKeysFile(fileName string) error {
+func (wallet *Wallet) ProcImportPrivkeysFile(fileName string) error {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
 		return err
 	}
@@ -518,7 +523,8 @@ func (wallet *Wallet) ProcImportPrivKeysFile(fileName string) error {
 	for _, value := range accounts {
 		acc := strings.Split(value, ";")
 		if len(acc) != 2 {
-			return errors.New("File format error.")
+			continue
+			//	return errors.New("File format error.")
 		}
 		privKey := acc[0]
 		label := acc[1]
@@ -536,7 +542,7 @@ func (wallet *Wallet) ProcImportPrivKeysFile(fileName string) error {
 			Label:   label,
 		}
 
-		_, err = wallet.ProcImportPrivKey(PrivKey)
+		_, err = wallet.procImportPrivKey(PrivKey)
 		if err == types.ErrPrivkeyExist {
 			// 修改标签名称 是否需要?
 			// wallet.ProcWalletSetLabel()
@@ -1375,17 +1381,21 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName string) error {
 	}
 	defer f.Close()
 
-	accounts, err := wallet.GetWalletAccounts()
-	if err != nil {
+	accounts, err := wallet.walletStore.GetAccountByPrefix("Account")
+	if err != nil || len(accounts) == 0 {
+		walletlog.Info("GetWalletAccounts", "GetAccountByPrefix:err", err)
 		return err
 	}
 
 	var fileContent string
 	for _, acc := range accounts {
-		privkey, err := wallet.ProcDumpPrivkey(acc.Addr)
+		priv, err := wallet.getPrivKeyByAddr(acc.Addr)
 		if err != nil {
+			walletlog.Info("getPrivKeyByAddr", acc.Addr, err)
 			continue
 		}
+
+		privkey := common.ToHex(priv.Bytes())
 		content := privkey + ";" + acc.Label
 		fileContent += content
 		fileContent += "&&&"
@@ -1395,6 +1405,7 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("--", err)
 
 	return nil
 }
