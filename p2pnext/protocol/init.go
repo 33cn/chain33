@@ -15,12 +15,7 @@ func Init(data *prototypes.GlobalData) {
 	MsgIDs = append(MsgIDs, peer.PeerInfoReq)
 	MsgIDs = append(MsgIDs, broadcast.ID)
 	MsgIDs = append(MsgIDs, download.DownloadBlockReq)
-	//MsgIDs = append(MsgIDs, download.DownloadBlockResp)
-
-	//MsgIDs = append(MsgIDs, peer.PeerInfoResp)
 	MsgIDs = append(MsgIDs, headers.HeaderInfoReq)
-	//MsgIDs = append(MsgIDs, headers.HeaderInfoResp)
-
 	manager := &prototypes.ProtocolManager{}
 	manager.Init(data)
 }

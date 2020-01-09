@@ -24,13 +24,11 @@ func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &HeaderInfoProtol{})
 	var hander = new(HeaderInfoHander)
 	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, hander)
-	//prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoResp, hander)
 }
 
 const (
 	protoTypeID   = "HeadersProtocolType"
 	HeaderInfoReq = "/chain33/headerinfoReq/1.0.0"
-	//HeaderInfoResp = "/chain33/headerinfoResp/1.0.0"
 )
 
 //type Istream
@@ -46,7 +44,7 @@ func (h *HeaderInfoProtol) InitProtocol(data *prototypes.GlobalData) {
 	h.requests = make(map[string]*types.MessageHeaderReq)
 	h.GlobalData = data
 	h.requests = make(map[string]*types.MessageHeaderReq)
-	prototypes.RegisterEventHandler(types.EventGetHeaders, h.handleEvent)
+	prototypes.RegisterEventHandler(types.EventFetchBlockHeaders, h.handleEvent)
 }
 
 //接收RESP消息

@@ -26,13 +26,11 @@ func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &DownloadProtol{})
 	var downloadHandler = new(DownloadHander)
 	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockReq, downloadHandler)
-	//prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockResp, downloadHandler)
 }
 
 const (
 	protoTypeID      = "DownloadProtocolType"
 	DownloadBlockReq = "/chain33/downloadBlockReq/1.0.0"
-	//DownloadBlockResp = "/chain33/downloadBlockResp/1.0.0"
 )
 
 //type Istream
