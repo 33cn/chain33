@@ -316,8 +316,8 @@ dataEmitMode="influxdb"
 [metrics.sub.influxdb]
 #以纳秒为单位的发送间隔
 duration=1000000000
-url="http://172.17.0.3:8086"
-database="chain33metrics";
-username="";
-password="";
-namespace="";
+url="http://influxdb:8086"
+database="chain33metrics"
+username=""
+password=""
+namespace=""

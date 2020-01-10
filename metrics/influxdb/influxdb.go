@@ -5,9 +5,9 @@ import (
 	uurl "net/url"
 	"time"
 
-	metrics "github.com/rcrowley/go-metrics"
-	"github.com/influxdata/influxdb/client"
 	chain33log "github.com/33cn/chain33/common/log/log15"
+	"github.com/influxdata/influxdb/client"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 type reporter struct {
@@ -32,11 +32,11 @@ var (
 
 // InfluxDB starts a InfluxDB reporter which will post the from the given metrics.Registry at each d interval.
 func InfluxDB(r metrics.Registry, d time.Duration, url, database, username, password, namespace string) {
-	InfluxDBWithTags(r, d, url, database, username, password, namespace, nil)
+	Emit2InfluxDBWithTags(r, d, url, database, username, password, namespace, nil)
 }
 
-// InfluxDBWithTags starts a InfluxDB reporter which will post the from the given metrics.Registry at each d interval with the specified tags
-func InfluxDBWithTags(r metrics.Registry, d time.Duration, url, database, username, password, namespace string, tags map[string]string) {
+// Emit2InfluxDBWithTags starts a InfluxDB reporter which will post the from the given metrics.Registry at each d interval with the specified tags
+func Emit2InfluxDBWithTags(r metrics.Registry, d time.Duration, url, database, username, password, namespace string, tags map[string]string) {
 	u, err := uurl.Parse(url)
 	if err != nil {
 		log.Warn("Unable to parse InfluxDB", "url", url, "err", err)
@@ -62,8 +62,8 @@ func InfluxDBWithTags(r metrics.Registry, d time.Duration, url, database, userna
 	rep.run()
 }
 
-// InfluxDBWithTagsOnce runs once an InfluxDB reporter and post the given metrics.Registry with the specified tags
-func InfluxDBWithTagsOnce(r metrics.Registry, url, database, username, password, namespace string, tags map[string]string) error {
+// Emit2InfluxDBWithTagsOnce runs once an InfluxDB reporter and post the given metrics.Registry with the specified tags
+func Emit2InfluxDBWithTagsOnce(r metrics.Registry, url, database, username, password, namespace string, tags map[string]string) error {
 	u, err := uurl.Parse(url)
 	if err != nil {
 		return fmt.Errorf("unable to parse InfluxDB. url: %s, err: %v", url, err)
@@ -226,27 +226,27 @@ func (r *reporter) send() error {
 				},
 				Time: now,
 			})
-		//case metrics.ResettingTimer:
-		//	t := metric.Snapshot()
-		//
-		//	if len(t.Values()) > 0 {
-		//		ps := t.Percentiles([]float64{50, 95, 99})
-		//		val := t.Values()
-		//		pts = append(pts, client.Point{
-		//			Measurement: fmt.Sprintf("%s%s.span", namespace, name),
-		//			Tags:        r.tags,
-		//			Fields: map[string]interface{}{
-		//				"count": len(val),
-		//				"max":   val[len(val)-1],
-		//				"mean":  t.Mean(),
-		//				"min":   val[0],
-		//				"p50":   ps[0],
-		//				"p95":   ps[1],
-		//				"p99":   ps[2],
-		//			},
-		//			Time: now,
-		//		})
-		//	}
+			//case metrics.ResettingTimer:
+			//	t := metric.Snapshot()
+			//
+			//	if len(t.Values()) > 0 {
+			//		ps := t.Percentiles([]float64{50, 95, 99})
+			//		val := t.Values()
+			//		pts = append(pts, client.Point{
+			//			Measurement: fmt.Sprintf("%s%s.span", namespace, name),
+			//			Tags:        r.tags,
+			//			Fields: map[string]interface{}{
+			//				"count": len(val),
+			//				"max":   val[len(val)-1],
+			//				"mean":  t.Mean(),
+			//				"min":   val[0],
+			//				"p50":   ps[0],
+			//				"p95":   ps[1],
+			//				"p99":   ps[2],
+			//			},
+			//			Time: now,
+			//		})
+			//	}
 		}
 	})
 
