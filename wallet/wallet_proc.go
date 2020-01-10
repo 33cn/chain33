@@ -6,7 +6,6 @@ package wallet
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -1365,8 +1364,9 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 func (wallet *Wallet) ProcDumpPrivkeysFile(fileName string) error {
 	_, err := os.Stat(fileName)
 	if err == nil {
-		walletlog.Error("ProcDumpPrivkeysFile file is exist!", "fileName", fileName)
-		return errors.New(fileName + " already exists. If you are sure this is what you want, move it out of the way first.")
+		walletlog.Error("ProcDumpPrivkeysFile file already exists!", "fileName", fileName)
+		// return errors.New(fileName + " already exists. If you are sure this is what you want, move it out of the way first.")
+		return types.ErrFileExists
 	}
 
 	wallet.mtx.Lock()
