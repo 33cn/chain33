@@ -230,5 +230,5 @@ message ReqAccountList {
 
 message ReqPrivkeysFile {
     string fileName = 1;
-    string passwd=2;
+    string passwd   = 2;
 }
