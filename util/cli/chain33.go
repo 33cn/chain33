@@ -15,6 +15,7 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"github.com/33cn/chain33/metrics"
 	"net/http"
 	_ "net/http/pprof" //
 	"os"
@@ -202,6 +203,7 @@ func RunChain33(name, defCfg string) {
 
 	health := util.NewHealthCheckServer(q.Client())
 	health.Start(cfg.Health)
+	metrics.StartMetrics(chain33Cfg)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close health module")
