@@ -104,6 +104,7 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 	}
 
 	msg.Reply(h.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
+	log.Info("handlerEvent", "conns num", p.GetConnsManager().Fetch())
 
 	for _, pid := range pids {
 
