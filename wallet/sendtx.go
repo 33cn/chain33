@@ -43,17 +43,19 @@ func (wallet *Wallet) GetAllPrivKeys() ([]crypto.PrivKey, error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
 	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	return wallet.getAllPrivKeys()
 }
 
 func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
-	accounts, err := wallet.GetWalletAccounts()
+	accounts, err := wallet.getWalletAccounts()
 	if err != nil {
 		return nil, err
 	}
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-	ok, err := wallet.CheckWalletStatus()
+
+	ok, err := wallet.checkWalletStatus()
 	if !ok && err != types.ErrOnlyTicketUnLocked {
 		return nil, err
 	}
