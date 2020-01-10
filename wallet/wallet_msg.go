@@ -220,11 +220,11 @@ func (wallet *Wallet) On_DumpPrivkey(req *types.ReqString) (types.Message, error
 }
 
 // On_DumpPrivkeysFile 处理到处私钥
-func (wallet *Wallet) On_DumpPrivkeysFile(req *types.ReqString) (types.Message, error) {
+func (wallet *Wallet) On_DumpPrivkeysFile(req *types.ReqPrivkeysFile) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
-	err := wallet.ProcDumpPrivkeysFile(req.Data)
+	err := wallet.ProcDumpPrivkeysFile(req.FileName, req.Passwd)
 	if err != nil {
 		walletlog.Error("ProcDumpPrivkeysFile", "err", err.Error())
 		reply.IsOk = false
@@ -234,11 +234,11 @@ func (wallet *Wallet) On_DumpPrivkeysFile(req *types.ReqString) (types.Message, 
 }
 
 // On_WalletImportPrivkeys 响应导入多个私钥
-func (wallet *Wallet) On_ImportPrivkeysFile(req *types.ReqString) (types.Message, error) {
+func (wallet *Wallet) On_ImportPrivkeysFile(req *types.ReqPrivkeysFile) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,
 	}
-	err := wallet.ProcImportPrivkeysFile(req.Data)
+	err := wallet.ProcImportPrivkeysFile(req.FileName, req.Passwd)
 	if err != nil {
 		walletlog.Error("ProcImportPrivkeysFile", "err", err.Error())
 		reply.IsOk = false
