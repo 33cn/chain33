@@ -501,6 +501,7 @@ func (wallet *Wallet) procImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 //导入私钥，并且同时会导入交易
 func (wallet *Wallet) ProcImportPrivkeysFile(fileName string) error {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		walletlog.Error("ProcImportPrivkeysFile file is not exist!", "fileName", fileName)
 		return err
 	}
 
@@ -514,7 +515,8 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName string) error {
 
 	f, err := os.Open(fileName)
 	if err != nil {
-		panic(err)
+		walletlog.Error("ProcImportPrivkeysFile Open file error", "fileName", fileName)
+		return err
 	}
 	defer f.Close()
 	fileContent, err := ioutil.ReadAll(f)
@@ -532,10 +534,9 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName string) error {
 		//校验label是否已经被使用
 		Account, err := wallet.walletStore.GetAccountByLabel(label)
 		if Account != nil && err == nil {
-			walletlog.Error("ProcImportPrivKey Label is exist in wallet!")
-			// return types.ErrLabelHasUsed
+			walletlog.Info("ProcImportPrivKey Label is exist in wallet, label = label + _2!")
+			label = label + "_2"
 		}
-		label = label + "_2"
 
 		PrivKey := &types.ReqWalletImportPrivkey{
 			Privkey: privKey,
@@ -1364,6 +1365,7 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 func (wallet *Wallet) ProcDumpPrivkeysFile(fileName string) error {
 	_, err := os.Stat(fileName)
 	if err == nil {
+		walletlog.Error("ProcDumpPrivkeysFile file is exist!", "fileName", fileName)
 		return errors.New(fileName + " already exists. If you are sure this is what you want, move it out of the way first.")
 	}
 
@@ -1377,6 +1379,7 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName string) error {
 
 	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
+		walletlog.Error("ProcDumpPrivkeysFile create file error!", "fileName", fileName)
 		return err
 	}
 	defer f.Close()
@@ -1403,9 +1406,9 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName string) error {
 
 	_, err = f.WriteString(fileContent)
 	if err != nil {
+		walletlog.Error("ProcDumpPrivkeysFile write file error!", "fileName", fileName)
 		return err
 	}
-	fmt.Println("--", err)
 
 	return nil
 }

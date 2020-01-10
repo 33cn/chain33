@@ -64,7 +64,7 @@ func DumpKeysFileCmd() *cobra.Command {
 func ImportKeysFileCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import_keys",
-		Short: "Import private keys for file",
+		Short: "Import private keys from file",
 		Run:   importKeys,
 	}
 	cmd.Flags().StringP("file", "f", "", "file name")
