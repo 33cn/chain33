@@ -81,7 +81,6 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s n
 	pubkey, _ := h.GetHost().Peerstore().PubKey(peerID).Bytes()
 	resp := &types.MessageHeaderResp{MessageData: h.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.P2PHeaders{Headers: headers.GetItems()}}
-	//wlen, err := rw.WriteString(fmt.Sprintf("%v\n", string(types.Encode(resp))))
 
 	err = h.SendProtoMessage(resp, s)
 	if err == nil {
@@ -107,16 +106,11 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 	msg.Reply(h.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
 
 	for _, pid := range pids {
-		// data := h.PeerInfoManager.Load(pid)
-		// if data == nil {
-		// 	continue
-		// }
-		// peerinfo := data.(*types.P2PPeerInfo)
-		// //去指定的peer上获取对应的blockHeader
-		// peerId := peerinfo.GetName()
-		log.Info("handleEvent", "pid", pid)
+
+		log.Info("handleEvent", "pid", pid, "start", req.GetStart(), "end", req.GetEnd())
 		pConn := h.GetConnsManager().Get(pid)
 		if pConn == nil {
+			log.Error("handleEvent", "no is conn from ", pid)
 			continue
 		}
 
@@ -135,9 +129,24 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 			continue
 		}
 		//发送请求
-		if err := h.SendProtoMessage(headerReq, stream); err == nil {
-			h.requests[headerReq.MessageData.Id] = headerReq
+		if err := h.SendProtoMessage(headerReq, stream); err != nil {
+			log.Error("handleEvent", "SendProtoMessage", err)
 		}
+
+		var resp types.MessageHeaderResp
+		err = h.ReadProtoMessage(&resp, stream)
+		if err != nil {
+			log.Error("handleEvent", "SendProtoMessage", err)
+		}
+
+		client := h.GetQueueClient()
+		msg := client.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
+		err = client.Send(msg, false)
+		if err != nil {
+			log.Error("send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
+		}
+
+		stream.Close()
 
 	}
 
@@ -184,8 +193,4 @@ func (h *HeaderInfoProtol) CheckMessage(id string) bool {
 
 	log.Error("Failed to locate request data boject for response")
 	return false
-}
-func (h *HeaderInfoHander) SetProtocol(protocol prototypes.IProtocol) {
-	h.BaseStreamHandler = new(prototypes.BaseStreamHandler)
-	h.Protocol = protocol
 }
