@@ -254,7 +254,7 @@ type Metrics struct {
 	EnableMetrics bool   `protobuf:"varint,1,opt,name=enableMetrics" json:"enableMetrics,omitempty"`
 	DataEmitMode  string `protobuf:"bytes,2,opt,name=dataEmitMode" json:"dataEmitMode,omitempty"`
 	Duration      int64  `protobuf:"varint,3,opt,name=duration" json:"duration,omitempty"`
-	Url           string `protobuf:"bytes,4,opt,name=url" json:"url,omitempty"`
+	URL           string `protobuf:"bytes,4,opt,name=url" json:"url,omitempty"`
 	DatabaseName  string `protobuf:"bytes,5,opt,name=databaseName" json:"databaseName,omitempty"`
 	Username      string `protobuf:"bytes,6,opt,name=username" json:"username,omitempty"`
 	Password      string `protobuf:"bytes,7,opt,name=password" json:"password,omitempty"`

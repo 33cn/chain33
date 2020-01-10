@@ -15,12 +15,13 @@ package cli
 import (
 	"flag"
 	"fmt"
-	"github.com/33cn/chain33/metrics"
 	"net/http"
 	_ "net/http/pprof" //
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/33cn/chain33/metrics"
 
 	"time"
 

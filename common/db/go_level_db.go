@@ -7,7 +7,6 @@ package db
 import (
 	"bytes"
 	"fmt"
-	"github.com/rcrowley/go-metrics"
 	"path"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
+	metrics "github.com/rcrowley/go-metrics"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
@@ -91,7 +91,7 @@ func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
 		return nil, err
 	}
 	database := &GoLevelDB{
-		db: db,
+		db:       db,
 		quitChan: make(chan chan error),
 	}
 
@@ -450,7 +450,7 @@ func (db *GoLevelDB) meter(refresh time.Duration) {
 			// Timeout, gather a new set of stats
 		}
 	}
-    if nil != merr {
+	if nil != merr {
 		llog.Error("level-db meter error", "err", merr.Error())
 	}
 
