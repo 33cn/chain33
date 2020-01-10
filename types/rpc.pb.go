@@ -110,10 +110,6 @@ type Chain33Client interface {
 	GetHexTxByHash(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*HexTx, error)
 	// 导出私钥
 	DumpPrivkey(ctx context.Context, in *ReqString, opts ...grpc.CallOption) (*ReplyString, error)
-	// 导出私钥到文件
-	DumpPrivkeysFile(ctx context.Context, in *ReqString, opts ...grpc.CallOption) (*Reply, error)
-	// 从文件中导入私钥
-	ImportPrivkeysFile(ctx context.Context, in *ReqString, opts ...grpc.CallOption) (*Reply, error)
 	// 获取程序版本
 	Version(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*VersionInfo, error)
 	// 是否同步
@@ -494,24 +490,6 @@ func (c *chain33Client) DumpPrivkey(ctx context.Context, in *ReqString, opts ...
 	return out, nil
 }
 
-func (c *chain33Client) DumpPrivkeysFile(ctx context.Context, in *ReqString, opts ...grpc.CallOption) (*Reply, error) {
-	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/DumpPrivkeysFile", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *chain33Client) ImportPrivkeysFile(ctx context.Context, in *ReqString, opts ...grpc.CallOption) (*Reply, error) {
-	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.chain33/ImportPrivkeysFile", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *chain33Client) Version(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*VersionInfo, error) {
 	out := new(VersionInfo)
 	err := c.cc.Invoke(ctx, "/types.chain33/Version", in, out, opts...)
@@ -766,10 +744,6 @@ type Chain33Server interface {
 	GetHexTxByHash(context.Context, *ReqHash) (*HexTx, error)
 	// 导出私钥
 	DumpPrivkey(context.Context, *ReqString) (*ReplyString, error)
-	// 导出私钥到文件
-	DumpPrivkeysFile(context.Context, *ReqString) (*Reply, error)
-	// 从文件中导入私钥
-	ImportPrivkeysFile(context.Context, *ReqString) (*Reply, error)
 	// 获取程序版本
 	Version(context.Context, *ReqNil) (*VersionInfo, error)
 	// 是否同步
@@ -1479,42 +1453,6 @@ func _Chain33_DumpPrivkey_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Chain33_DumpPrivkeysFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReqString)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(Chain33Server).DumpPrivkeysFile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/types.chain33/DumpPrivkeysFile",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(Chain33Server).DumpPrivkeysFile(ctx, req.(*ReqString))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Chain33_ImportPrivkeysFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReqString)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(Chain33Server).ImportPrivkeysFile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/types.chain33/ImportPrivkeysFile",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(Chain33Server).ImportPrivkeysFile(ctx, req.(*ReqString))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Chain33_Version_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReqNil)
 	if err := dec(in); err != nil {
@@ -2026,14 +1964,6 @@ var _Chain33_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DumpPrivkey",
 			Handler:    _Chain33_DumpPrivkey_Handler,
-		},
-		{
-			MethodName: "DumpPrivkeysFile",
-			Handler:    _Chain33_DumpPrivkeysFile_Handler,
-		},
-		{
-			MethodName: "ImportPrivkeysFile",
-			Handler:    _Chain33_ImportPrivkeysFile_Handler,
 		},
 		{
 			MethodName: "Version",

@@ -886,28 +886,6 @@ func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 	return nil
 }
 
-//
-func (c *Chain33) DumpPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}) error {
-	reply, err := c.cli.DumpPrivkeysFile(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = reply
-	return nil
-}
-
-//
-func (c *Chain33) ImportPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}) error {
-	reply, err := c.cli.ImportPrivkeysFile(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = reply
-	return nil
-}
-
 // Version get software version
 func (c *Chain33) Version(in *types.ReqNil, result *interface{}) error {
 	resp, err := c.cli.Version()
