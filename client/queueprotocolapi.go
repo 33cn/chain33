@@ -92,9 +92,9 @@ type QueueProtocolAPI interface {
 	// types.EventDumpPrivkey
 	DumpPrivkey(param *types.ReqString) (*types.ReplyString, error)
 	// types.EventDumpPrivkeysFile
-	DumpPrivkeysFile(param *types.ReqString) (*types.Reply, error)
+	DumpPrivkeysFile(param *types.ReqString) (*types.ReqPrivkeysFile, error)
 	// types.EventImportPrivkeysFile
-	ImportPrivkeysFile(param *types.ReqString) (*types.Reply, error)
+	ImportPrivkeysFile(param *types.ReqString) (*types.ReqPrivkeysFile, error)
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)

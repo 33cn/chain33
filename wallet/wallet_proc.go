@@ -498,7 +498,7 @@ func (wallet *Wallet) procImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 //type  struct {
 //	fileName string
 //导入私钥，并且同时会导入交易
-func (wallet *Wallet) ProcImportPrivkeysFile(fileName string) error {
+func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
 		walletlog.Error("ProcImportPrivkeysFile file is not exist!", "fileName", fileName)
 		return err
@@ -519,8 +519,9 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName string) error {
 	}
 	defer f.Close()
 	fileContent, err := ioutil.ReadAll(f)
+	Decrypter := wcom.CBCDecrypterPrivkey([]byte(passwd), []byte(fileContent))
 
-	accounts := strings.Split(string(fileContent), "&&&")
+	accounts := strings.Split(string(string(Decrypter)), "&&&")
 	for _, value := range accounts {
 		acc := strings.Split(value, ";")
 		if len(acc) != 2 {
@@ -1361,7 +1362,7 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 }
 
 //ProcDumpPrivkeysFile 获取全部私钥保存到文件
-func (wallet *Wallet) ProcDumpPrivkeysFile(fileName string) error {
+func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 	_, err := os.Stat(fileName)
 	if err == nil {
 		walletlog.Error("ProcDumpPrivkeysFile file already exists!", "fileName", fileName)
@@ -1404,7 +1405,9 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName string) error {
 		fileContent += "&&&"
 	}
 
-	_, err = f.WriteString(fileContent)
+	Encrypter := wcom.CBCEncrypterPrivkey([]byte(passwd), []byte(fileContent))
+
+	_, err = f.WriteString(string(Encrypter))
 	if err != nil {
 		walletlog.Error("ProcDumpPrivkeysFile write file error!", "fileName", fileName)
 		return err

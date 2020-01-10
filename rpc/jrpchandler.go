@@ -881,7 +881,7 @@ func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 }
 
 //
-func (c *Chain33) DumpPrivkeysFile(in types.ReqString, result *interface{}) error {
+func (c *Chain33) DumpPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}) error {
 	reply, err := c.cli.DumpPrivkeysFile(&in)
 	if err != nil {
 		return err
@@ -892,7 +892,7 @@ func (c *Chain33) DumpPrivkeysFile(in types.ReqString, result *interface{}) erro
 }
 
 //
-func (c *Chain33) ImportPrivkeysFile(in types.ReqString, result *interface{}) error {
+func (c *Chain33) ImportPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}) error {
 	reply, err := c.cli.ImportPrivkeysFile(&in)
 	if err != nil {
 		return err

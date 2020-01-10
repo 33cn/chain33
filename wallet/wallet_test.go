@@ -1111,7 +1111,7 @@ func testProcDumpPrivkeysFile(t *testing.T, wallet *Wallet) {
 		os.Remove(fileName)
 	}
 
-	msgDumpPrivkeysFile := wallet.client.NewMessage("wallet", types.EventDumpPrivkeysFile, &types.ReqString{Data: fileName})
+	msgDumpPrivkeysFile := wallet.client.NewMessage("wallet", types.EventDumpPrivkeysFile, &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
 	wallet.client.Send(msgDumpPrivkeysFile, true)
 	resp, err := wallet.client.Wait(msgDumpPrivkeysFile)
 	assert.Nil(t, err)
@@ -1131,7 +1131,7 @@ func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
 	println("testProcImportPrivkeysFile begin")
 	fileName := "Privkeys"
 
-	msgImportPrivkeysFile := wallet.client.NewMessage("wallet", types.EventImportPrivkeysFile, &types.ReqString{Data: fileName})
+	msgImportPrivkeysFile := wallet.client.NewMessage("wallet", types.EventImportPrivkeysFile, &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
 	wallet.client.Send(msgImportPrivkeysFile, true)
 	resp, err := wallet.client.Wait(msgImportPrivkeysFile)
 	assert.Nil(t, err)
