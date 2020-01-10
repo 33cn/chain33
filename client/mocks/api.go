@@ -88,6 +88,29 @@ func (_m *QueueProtocolAPI) DumpPrivkey(param *types.ReqString) (*types.ReplyStr
 	return r0, r1
 }
 
+// DumpPrivkeysFile provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) DumpPrivkeysFile(param *types.ReqString) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqString) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqString) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ExecWallet provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) ExecWallet(param *types.ChainExecutor) (types.Message, error) {
 	ret := _m.Called(param)
@@ -764,6 +787,29 @@ func (_m *QueueProtocolAPI) GetWalletStatus() (*types.WalletStatus, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ImportPrivkeysFile provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) ImportPrivkeysFile(param *types.ReqString) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqString) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqString) error); ok {
+		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
 	}
