@@ -24,6 +24,7 @@ type Config struct {
 	Health         *HealthCheck `protobuf:"bytes,16,opt,name=health" json:"health,omitempty"`
 	CoinSymbol     string       `protobuf:"bytes,17,opt,name=coinSymbol" json:"coinSymbol,omitempty"`
 	EnableParaFork bool         `protobuf:"bytes,18,opt,name=enableParaFork" json:"enableParaFork,omitempty"`
+	Metrics        *Metrics     `protobuf:"bytes,19,opt,name=metrics" json:"metrics,omitempty"`
 }
 
 // ForkList fork列表配置
@@ -246,4 +247,16 @@ type HealthCheck struct {
 	ListenAddr     string `protobuf:"bytes,1,opt,name=listenAddr" json:"listenAddr,omitempty"`
 	CheckInterval  uint32 `protobuf:"varint,2,opt,name=checkInterval" json:"checkInterval,omitempty"`
 	UnSyncMaxTimes uint32 `protobuf:"varint,3,opt,name=unSyncMaxTimes" json:"unSyncMaxTimes,omitempty"`
+}
+
+// Metrics:相关测量配置信息
+type Metrics struct {
+	EnableMetrics bool   `protobuf:"varint,1,opt,name=enableMetrics" json:"enableMetrics,omitempty"`
+	DataEmitMode  string `protobuf:"bytes,2,opt,name=dataEmitMode" json:"dataEmitMode,omitempty"`
+	Duration      int64  `protobuf:"varint,3,opt,name=duration" json:"duration,omitempty"`
+	Url           string `protobuf:"bytes,4,opt,name=url" json:"url,omitempty"`
+	DatabaseName  string `protobuf:"bytes,5,opt,name=databaseName" json:"databaseName,omitempty"`
+	Username      string `protobuf:"bytes,6,opt,name=username" json:"username,omitempty"`
+	Password      string `protobuf:"bytes,7,opt,name=password" json:"password,omitempty"`
+	Namespace     string `protobuf:"bytes,8,opt,name=namespace" json:"namespace,omitempty"`
 }
