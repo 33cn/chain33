@@ -319,14 +319,6 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyStri
 	return g.cli.DumpPrivkey(in)
 }
 
-func (g *Grpc) DumpPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*pb.Reply, error) {
-	return g.cli.DumpPrivkeysFile(in)
-}
-
-func (g *Grpc) ImportPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*pb.Reply, error) {
-	return g.cli.ImportPrivkeysFile(in)
-}
-
 // Version version
 func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.VersionInfo, error) {
 

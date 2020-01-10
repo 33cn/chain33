@@ -1111,14 +1111,12 @@ func testProcDumpPrivkeysFile(t *testing.T, wallet *Wallet) {
 		os.Remove(fileName)
 	}
 
-	msgDumpPrivkeysFile := wallet.client.NewMessage("wallet", types.EventDumpPrivkeysFile, &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
-	wallet.client.Send(msgDumpPrivkeysFile, true)
-	resp, err := wallet.client.Wait(msgDumpPrivkeysFile)
-	assert.Nil(t, err)
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "DumpPrivkeysFile", &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
+	require.NoError(t, err)
 
 	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
 	wallet.client.Send(msgGetAccList, true)
-	resp, err = wallet.client.Wait(msgGetAccList)
+	resp, err := wallet.client.Wait(msgGetAccList)
 	assert.Nil(t, err)
 
 	// 后面要对比
@@ -1131,14 +1129,12 @@ func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
 	println("testProcImportPrivkeysFile begin")
 	fileName := "Privkeys"
 
-	msgImportPrivkeysFile := wallet.client.NewMessage("wallet", types.EventImportPrivkeysFile, &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
-	wallet.client.Send(msgImportPrivkeysFile, true)
-	resp, err := wallet.client.Wait(msgImportPrivkeysFile)
-	assert.Nil(t, err)
+	_, err := wallet.GetAPI().ExecWalletFunc("wallet", "ImportPrivkeysFile", &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
+	require.NoError(t, err)
 
 	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
 	wallet.client.Send(msgGetAccList, true)
-	resp, err = wallet.client.Wait(msgGetAccList)
+	resp, err := wallet.client.Wait(msgGetAccList)
 	assert.Nil(t, err)
 
 	// 与之前的 AllAccountlist 对比

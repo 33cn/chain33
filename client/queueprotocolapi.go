@@ -91,10 +91,6 @@ type QueueProtocolAPI interface {
 	GetWalletStatus() (*types.WalletStatus, error)
 	// types.EventDumpPrivkey
 	DumpPrivkey(param *types.ReqString) (*types.ReplyString, error)
-	// types.EventDumpPrivkeysFile
-	DumpPrivkeysFile(param *types.ReqString) (*types.ReqPrivkeysFile, error)
-	// types.EventImportPrivkeysFile
-	ImportPrivkeysFile(param *types.ReqString) (*types.ReqPrivkeysFile, error)
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)

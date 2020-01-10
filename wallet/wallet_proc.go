@@ -514,19 +514,25 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 
 	f, err := os.Open(fileName)
 	if err != nil {
-		walletlog.Error("ProcImportPrivkeysFile Open file error", "fileName", fileName)
+		walletlog.Error("ProcImportPrivkeysFile Open file error", "fileName", fileName, "err", err)
 		return err
 	}
 	defer f.Close()
-	fileContent, err := ioutil.ReadAll(f)
-	Decrypter := wcom.CBCDecrypterPrivkey([]byte(passwd), []byte(fileContent))
 
-	accounts := strings.Split(string(string(Decrypter)), "&&&")
+	fileContent, err := ioutil.ReadAll(f)
+	accounts := strings.Split(string(string(fileContent)), "&&&")
 	for _, value := range accounts {
-		acc := strings.Split(value, ";")
-		if len(acc) != 2 {
+		Decrypter, err := AesgcmDecrypter([]byte(passwd), []byte(value))
+		if err != nil {
+			walletlog.Error("ProcImportPrivkeysFile AesgcmDecrypter fileContent error", "fileName", fileName, "err", err)
+			// return err
 			continue
-			//	return errors.New("File format error.")
+		}
+
+		acc := strings.Split(string(Decrypter), " ")
+		if len(acc) != 2 {
+			walletlog.Error("ProcImportPrivkeysFile len(acc) != 2, File format error.", "Decrypter", string(Decrypter), "len", len(acc))
+			continue
 		}
 		privKey := acc[0]
 		label := acc[1]
@@ -547,8 +553,11 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 		if err == types.ErrPrivkeyExist {
 			// 修改标签名称 是否需要?
 			// wallet.ProcWalletSetLabel()
+		} else {
+			walletlog.Info("ProcImportPrivKey procImportPrivKey error")
 		}
 	}
+
 	return nil
 }
 
@@ -1366,7 +1375,6 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 	_, err := os.Stat(fileName)
 	if err == nil {
 		walletlog.Error("ProcDumpPrivkeysFile file already exists!", "fileName", fileName)
-		// return errors.New(fileName + " already exists. If you are sure this is what you want, move it out of the way first.")
 		return types.ErrFileExists
 	}
 
@@ -1378,9 +1386,9 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 		return err
 	}
 
-	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
-		walletlog.Error("ProcDumpPrivkeysFile create file error!", "fileName", fileName)
+		walletlog.Error("ProcDumpPrivkeysFile create file error!", "fileName", fileName, "err", err)
 		return err
 	}
 	defer f.Close()
@@ -1391,7 +1399,6 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 		return err
 	}
 
-	var fileContent string
 	for _, acc := range accounts {
 		priv, err := wallet.getPrivKeyByAddr(acc.Addr)
 		if err != nil {
@@ -1400,17 +1407,16 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 		}
 
 		privkey := common.ToHex(priv.Bytes())
-		content := privkey + ";" + acc.Label
-		fileContent += content
-		fileContent += "&&&"
-	}
+		content := privkey + " " + acc.Label
 
-	Encrypter := wcom.CBCEncrypterPrivkey([]byte(passwd), []byte(fileContent))
+		Encrypter, err := AesgcmEncrypter([]byte(passwd), []byte(content))
+		if err != nil {
+			walletlog.Error("ProcDumpPrivkeysFile AesgcmEncrypter fileContent error!", "fileName", fileName, "err", err)
+			continue
+		}
 
-	_, err = f.WriteString(string(Encrypter))
-	if err != nil {
-		walletlog.Error("ProcDumpPrivkeysFile write file error!", "fileName", fileName)
-		return err
+		f.WriteString(string(Encrypter))
+		f.WriteString("&&&")
 	}
 
 	return nil
