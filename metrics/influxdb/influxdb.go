@@ -226,27 +226,6 @@ func (r *reporter) send() error {
 				},
 				Time: now,
 			})
-			//case metrics.ResettingTimer:
-			//	t := metric.Snapshot()
-			//
-			//	if len(t.Values()) > 0 {
-			//		ps := t.Percentiles([]float64{50, 95, 99})
-			//		val := t.Values()
-			//		pts = append(pts, client.Point{
-			//			Measurement: fmt.Sprintf("%s%s.span", namespace, name),
-			//			Tags:        r.tags,
-			//			Fields: map[string]interface{}{
-			//				"count": len(val),
-			//				"max":   val[len(val)-1],
-			//				"mean":  t.Mean(),
-			//				"min":   val[0],
-			//				"p50":   ps[0],
-			//				"p95":   ps[1],
-			//				"p99":   ps[2],
-			//			},
-			//			Time: now,
-			//		})
-			//	}
 		}
 	})
 
