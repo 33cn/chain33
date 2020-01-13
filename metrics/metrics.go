@@ -46,14 +46,13 @@ func StartMetrics(cfg *types.Chain33Config) {
 			"influxdbcfg.Username", influxdbcfg.Username,
 			"influxdbcfg.Password", influxdbcfg.Password,
 			"influxdbcfg.Namespace", influxdbcfg.Namespace)
-		go influxdb.Emit2InfluxDBWithTags(go_metrics.DefaultRegistry,
+		go influxdb.InfluxDB(go_metrics.DefaultRegistry,
 			time.Duration(influxdbcfg.Duration),
 			influxdbcfg.URL,
 			influxdbcfg.Database,
 			influxdbcfg.Username,
 			influxdbcfg.Password,
-			influxdbcfg.Namespace,
-			nil)
+			"")
 	default:
 		log.Error("startMetrics", "The dataEmitMode set is not supported now ", metrics.DataEmitMode)
 		return
