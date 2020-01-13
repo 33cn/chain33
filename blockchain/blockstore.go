@@ -1345,7 +1345,7 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 
 	blockreceipt := blockbody.Receipts
 	// 非精简节点查询时候需要在ReceiptTable中获取详细的receipt信息, 精简情况下可以获取未精简部分receipt
-	if !cfg.IsEnable("reduceLocaldb") || bs.Height() < blockheader.Height + ReduceHeight {
+	if !cfg.IsEnable("reduceLocaldb") || bs.Height() < blockheader.Height+ReduceHeight {
 		receipt, err := getReceiptByIndex(bs.db, indexName, prefix, primaryKey)
 		if receipt != nil {
 			blockreceipt = receipt.Receipts
