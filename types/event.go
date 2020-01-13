@@ -156,6 +156,7 @@ const (
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
+	EventUpgrade         = 214
 
 	// BlockChain 接收的事件
 	EventGetLastBlockMainSequence   = 300
@@ -336,4 +337,5 @@ var eventName = map[int]string{
 	EventReplyHeightByTitle:         "EventReplyHeightByTitle",
 	EventGetParaTxByTitleAndHeight:  "EventGetParaTxByTitleAndHeight",
 	EventCmpBestBlock:               "EventCmpBestBlock",
+	EventUpgrade:                    "EventUpgrade",
 }

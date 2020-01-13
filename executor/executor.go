@@ -120,9 +120,62 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 				go exec.procExecCheckTx(msg)
 			} else if msg.Ty == types.EventBlockChainQuery {
 				go exec.procExecQuery(msg)
+			} else if msg.Ty == types.EventUpgrade {
+				//执行升级过程中不允许执行其他的事件，这个事件直接不采用异步执行
+				exec.procUpgrade(msg)
 			}
 		}
 	}()
+}
+
+func (exec *Executor) procUpgrade(msg *queue.Message) {
+	for _, plugin := range pluginmgr.GetExecList() {
+		elog.Info("begin upgrade plugin ", "name", plugin)
+		err := exec.upgradePlugin(msg, plugin)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (exec *Executor) upgradePlugin(msg *queue.Message, plugin string) error {
+	header, err := exec.qclient.GetLastHeader()
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
+		return err
+	}
+	driver, err := drivers.LoadDriverWithClient(exec.qclient, plugin, header.GetHeight())
+	if err == types.ErrUnknowDriver { //已经注册插件，但是没有启动
+		elog.Info("upgrade ignore ", "name", plugin)
+		return nil
+	}
+	if err != nil {
+		msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
+		return err
+	}
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client)
+		defer localdb.(*LocalDB).Close()
+		driver.SetLocalDB(localdb)
+	}
+	//目前升级不允许访问statedb
+	driver.SetStateDB(nil)
+	driver.SetAPI(exec.qclient)
+	driver.SetExecutorAPI(exec.qclient, exec.grpccli)
+	driver.SetEnv(header.GetHeight(), header.GetBlockTime(), uint64(header.GetDifficulty()))
+	localdb.Begin()
+	err = driver.Upgrade()
+	if err != nil {
+		localdb.Rollback()
+		msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
+		return err
+	}
+	localdb.Commit()
+	msg.Reply(exec.client.NewMessage("", types.EventUpgrade, &types.Reply{
+		IsOk: true,
+	}))
+	return nil
 }
 
 func (exec *Executor) procExecQuery(msg *queue.Message) {
