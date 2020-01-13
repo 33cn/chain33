@@ -28,7 +28,6 @@ require (
 	github.com/huin/goupnp v1.0.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/influxdata/influxdb v1.7.9
-	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.0.9
@@ -44,13 +43,10 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/syndtr/goleveldb v0.0.0-20181105012736-f9080354173f
 	github.com/tjfoc/gmsm v0.0.0-20171124023159-98aa888b79d8
-	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect
-	github.com/vrischmann/go-metrics-influxdb v0.0.0-20191025205203-5a26c5fe1198
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a
 	golang.org/x/text v0.3.2 // indirect
-	golang.org/x/tools v0.0.0-20190816200558-6889da9d5479 // indirect
 	google.golang.org/grpc v1.22.1
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/go-playground/webhooks.v5 v5.2.0
