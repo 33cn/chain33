@@ -390,16 +390,11 @@ func (c *Chain33) GetAccountsV2(in *types.ReqNil, result *interface{}) error {
 
 // GetAccounts get accounts
 func (c *Chain33) GetAccounts(in *types.ReqAccountList, result *interface{}) error {
-	reply, err := c.cli.WalletGetAccountList(in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletGetAccountList", in)
 	if err != nil {
 		return err
 	}
-	var accounts rpctypes.WalletAccounts
-	for _, wallet := range reply.Wallets {
-		accounts.Wallets = append(accounts.Wallets, &rpctypes.WalletAccount{Label: wallet.GetLabel(),
-			Acc: &rpctypes.Account{Currency: wallet.GetAcc().GetCurrency(), Balance: wallet.GetAcc().GetBalance(),
-				Frozen: wallet.GetAcc().GetFrozen(), Addr: wallet.GetAcc().GetAddr()}})
-	}
+	accounts := reply.(*types.WalletAccounts)
 	*result = &accounts
 	return nil
 }

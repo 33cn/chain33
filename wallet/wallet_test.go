@@ -348,11 +348,9 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	SaveAccountTomavl(wallet, wallet.client, nil, accs)
 
 	//测试ProcGetAccountList函数
-	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
-	wallet.client.Send(msgGetAccList, true)
-	resp, err := wallet.client.Wait(msgGetAccList)
+	resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "WalletGetAccountList", &types.ReqAccountList{})
 	assert.Nil(t, err)
-	accountlist := resp.GetData().(*types.WalletAccounts)
+	accountlist := resp.(*types.WalletAccounts)
 	for _, acc1 := range accountlist.Wallets {
 		exist := false
 		for _, acc2 := range accs[:10] {
@@ -987,11 +985,9 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 	require.NoError(t, err)
 	if addr != "" {
 		//测试ProcGetAccountList函数
-		msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
-		wallet.client.Send(msgGetAccList, true)
-		resp, err := wallet.client.Wait(msgGetAccList)
+		resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "WalletGetAccountList", &types.ReqAccountList{})
 		assert.Nil(t, err)
-		accountlist := resp.GetData().(*types.WalletAccounts)
+		accountlist := resp.(*types.WalletAccounts)
 		for _, acc := range accountlist.Wallets {
 			if addr == acc.Acc.Addr && addr != addrtmp {
 				if acc.GetLabel() != ("airdropaddr" + fmt.Sprintf("%d", 1)) {
@@ -1115,13 +1111,11 @@ func testProcDumpPrivkeysFile(t *testing.T, wallet *Wallet) {
 	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "DumpPrivkeysFile", &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
 	require.NoError(t, err)
 
-	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
-	wallet.client.Send(msgGetAccList, true)
-	resp, err := wallet.client.Wait(msgGetAccList)
+	resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "WalletGetAccountList", &types.ReqAccountList{})
 	assert.Nil(t, err)
 
 	// 后面要对比
-	AllAccountlist = resp.GetData().(*types.WalletAccounts)
+	AllAccountlist = resp.(*types.WalletAccounts)
 	println("testProcDumpPrivkeysFile end")
 	println("--------------------------")
 }
@@ -1133,13 +1127,11 @@ func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
 	_, err := wallet.GetAPI().ExecWalletFunc("wallet", "ImportPrivkeysFile", &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
 	assert.Nil(t, err)
 
-	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
-	wallet.client.Send(msgGetAccList, true)
-	resp, err := wallet.client.Wait(msgGetAccList)
+	resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "WalletGetAccountList", &types.ReqAccountList{})
 	assert.Nil(t, err)
 
 	// 与之前的 AllAccountlist 对比
-	accountlist := resp.GetData().(*types.WalletAccounts)
+	accountlist := resp.(*types.WalletAccounts)
 	assert.Equal(t, len(accountlist.GetWallets()), len(AllAccountlist.GetWallets()))
 	if len(accountlist.GetWallets()) != len(AllAccountlist.GetWallets()) {
 		f, _ := os.Open(fileName)

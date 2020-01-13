@@ -6,43 +6,43 @@ package types
 
 // event
 const (
-	EventTx                    = 1
-	EventGetBlocks             = 2
-	EventBlocks                = 3
-	EventGetBlockHeight        = 4
-	EventReplyBlockHeight      = 5
-	EventQueryTx               = 6
-	EventTransactionDetail     = 7
-	EventReply                 = 8
-	EventTxBroadcast           = 9
-	EventPeerInfo              = 10
-	EventTxList                = 11
-	EventReplyTxList           = 12
-	EventAddBlock              = 13
-	EventBlockBroadcast        = 14
-	EventFetchBlocks           = 15
-	EventAddBlocks             = 16
-	EventTxHashList            = 17
-	EventTxHashListReply       = 18
-	EventGetHeaders            = 19
-	EventHeaders               = 20
-	EventGetMempoolSize        = 21
-	EventMempoolSize           = 22
-	EventStoreGet              = 23
-	EventStoreSet              = 24
-	EventStoreGetReply         = 25
-	EventStoreSetReply         = 26
-	EventReceipts              = 27
-	EventExecTxList            = 28
-	EventPeerList              = 29
-	EventGetLastHeader         = 30
-	EventHeader                = 31
-	EventAddBlockDetail        = 32
-	EventGetMempool            = 33
-	EventGetTransactionByAddr  = 34
-	EventGetTransactionByHash  = 35
-	EventReplyTxInfo           = 36
-	EventWalletGetAccountList  = 37
+	EventTx                   = 1
+	EventGetBlocks            = 2
+	EventBlocks               = 3
+	EventGetBlockHeight       = 4
+	EventReplyBlockHeight     = 5
+	EventQueryTx              = 6
+	EventTransactionDetail    = 7
+	EventReply                = 8
+	EventTxBroadcast          = 9
+	EventPeerInfo             = 10
+	EventTxList               = 11
+	EventReplyTxList          = 12
+	EventAddBlock             = 13
+	EventBlockBroadcast       = 14
+	EventFetchBlocks          = 15
+	EventAddBlocks            = 16
+	EventTxHashList           = 17
+	EventTxHashListReply      = 18
+	EventGetHeaders           = 19
+	EventHeaders              = 20
+	EventGetMempoolSize       = 21
+	EventMempoolSize          = 22
+	EventStoreGet             = 23
+	EventStoreSet             = 24
+	EventStoreGetReply        = 25
+	EventStoreSetReply        = 26
+	EventReceipts             = 27
+	EventExecTxList           = 28
+	EventPeerList             = 29
+	EventGetLastHeader        = 30
+	EventHeader               = 31
+	EventAddBlockDetail       = 32
+	EventGetMempool           = 33
+	EventGetTransactionByAddr = 34
+	EventGetTransactionByHash = 35
+	EventReplyTxInfo          = 36
+	//	EventWalletGetAccountList  = 37
 	EventWalletAccountList     = 38
 	EventNewAccount            = 39
 	EventWalletAccount         = 40
@@ -178,43 +178,43 @@ const (
 )
 
 var eventName = map[int]string{
-	1:   "EventTx",
-	2:   "EventGetBlocks",
-	3:   "EventBlocks",
-	4:   "EventGetBlockHeight",
-	5:   "EventReplyBlockHeight",
-	6:   "EventQueryTx",
-	7:   "EventTransactionDetail",
-	8:   "EventReply",
-	9:   "EventTxBroadcast",
-	10:  "EventPeerInfo",
-	11:  "EventTxList",
-	12:  "EventReplyTxList",
-	13:  "EventAddBlock",
-	14:  "EventBlockBroadcast",
-	15:  "EventFetchBlocks",
-	16:  "EventAddBlocks",
-	17:  "EventTxHashList",
-	18:  "EventTxHashListReply",
-	19:  "EventGetHeaders",
-	20:  "EventHeaders",
-	21:  "EventGetMempoolSize",
-	22:  "EventMempoolSize",
-	23:  "EventStoreGet",
-	24:  "EventStoreSet",
-	25:  "EventStoreGetReply",
-	26:  "EventStoreSetReply",
-	27:  "EventReceipts",
-	28:  "EventExecTxList",
-	29:  "EventPeerList",
-	30:  "EventGetLastHeader",
-	31:  "EventHeader",
-	32:  "EventAddBlockDetail",
-	33:  "EventGetMempool",
-	34:  "EventGetTransactionByAddr",
-	35:  "EventGetTransactionByHash",
-	36:  "EventReplyTxInfo",
-	37:  "EventWalletGetAccountList",
+	1:  "EventTx",
+	2:  "EventGetBlocks",
+	3:  "EventBlocks",
+	4:  "EventGetBlockHeight",
+	5:  "EventReplyBlockHeight",
+	6:  "EventQueryTx",
+	7:  "EventTransactionDetail",
+	8:  "EventReply",
+	9:  "EventTxBroadcast",
+	10: "EventPeerInfo",
+	11: "EventTxList",
+	12: "EventReplyTxList",
+	13: "EventAddBlock",
+	14: "EventBlockBroadcast",
+	15: "EventFetchBlocks",
+	16: "EventAddBlocks",
+	17: "EventTxHashList",
+	18: "EventTxHashListReply",
+	19: "EventGetHeaders",
+	20: "EventHeaders",
+	21: "EventGetMempoolSize",
+	22: "EventMempoolSize",
+	23: "EventStoreGet",
+	24: "EventStoreSet",
+	25: "EventStoreGetReply",
+	26: "EventStoreSetReply",
+	27: "EventReceipts",
+	28: "EventExecTxList",
+	29: "EventPeerList",
+	30: "EventGetLastHeader",
+	31: "EventHeader",
+	32: "EventAddBlockDetail",
+	33: "EventGetMempool",
+	34: "EventGetTransactionByAddr",
+	35: "EventGetTransactionByHash",
+	36: "EventReplyTxInfo",
+	//	37:  "EventWalletGetAccountList",
 	38:  "EventWalletAccountList",
 	39:  "EventNewAccount",
 	40:  "EventWalletAccount",

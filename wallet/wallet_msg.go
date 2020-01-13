@@ -219,34 +219,6 @@ func (wallet *Wallet) On_DumpPrivkey(req *types.ReqString) (types.Message, error
 	return reply, err
 }
 
-// On_DumpPrivkeysFile 处理到处私钥
-func (wallet *Wallet) On_DumpPrivkeysFile(req *types.ReqPrivkeysFile) (types.Message, error) {
-	reply := &types.Reply{
-		IsOk: true,
-	}
-	err := wallet.ProcDumpPrivkeysFile(req.FileName, req.Passwd)
-	if err != nil {
-		walletlog.Error("ProcDumpPrivkeysFile", "err", err.Error())
-		reply.IsOk = false
-		reply.Msg = []byte(err.Error())
-	}
-	return reply, err
-}
-
-// On_WalletImportPrivkeys 响应导入多个私钥
-func (wallet *Wallet) On_ImportPrivkeysFile(req *types.ReqPrivkeysFile) (types.Message, error) {
-	reply := &types.Reply{
-		IsOk: true,
-	}
-	err := wallet.ProcImportPrivkeysFile(req.FileName, req.Passwd)
-	if err != nil {
-		walletlog.Error("ProcImportPrivkeysFile", "err", err.Error())
-		reply.IsOk = false
-		reply.Msg = []byte(err.Error())
-	}
-	return reply, err
-}
-
 // On_SignRawTx 处理交易签名
 func (wallet *Wallet) On_SignRawTx(req *types.ReqSignRawTx) (types.Message, error) {
 	reply := &types.ReplySignRawTx{}
@@ -321,4 +293,32 @@ func (wallet *Wallet) On_NewAccountByIndex(req *types.Int32) (types.Message, err
 		walletlog.Error("On_NewAccountByIndex", "err", err.Error())
 	}
 	return &types.ReplyString{Data: reply}, err
+}
+
+// On_DumpPrivkeysFile 处理到处私钥
+func (wallet *Wallet) On_DumpPrivkeysFile(req *types.ReqPrivkeysFile) (types.Message, error) {
+	reply := &types.Reply{
+		IsOk: true,
+	}
+	err := wallet.ProcDumpPrivkeysFile(req.FileName, req.Passwd)
+	if err != nil {
+		walletlog.Error("ProcDumpPrivkeysFile", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	return reply, err
+}
+
+// On_WalletImportPrivkeys 响应导入多个私钥
+func (wallet *Wallet) On_ImportPrivkeysFile(req *types.ReqPrivkeysFile) (types.Message, error) {
+	reply := &types.Reply{
+		IsOk: true,
+	}
+	err := wallet.ProcImportPrivkeysFile(req.FileName, req.Passwd)
+	if err != nil {
+		walletlog.Error("ProcImportPrivkeysFile", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	return reply, err
 }

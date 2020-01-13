@@ -155,7 +155,11 @@ func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqGetMempool) (*pb.ReplyT
 // GetAccounts get  accounts
 func (g *Grpc) GetAccounts(ctx context.Context, in *pb.ReqNil) (*pb.WalletAccounts, error) {
 	req := &pb.ReqAccountList{WithoutBalance: false}
-	return g.cli.WalletGetAccountList(req)
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletGetAccountList", req)
+	if err == nil {
+		return reply.(*pb.WalletAccounts), nil
+	}
+	return nil, err
 }
 
 // NewAccount produce new account

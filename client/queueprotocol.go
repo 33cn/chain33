@@ -236,19 +236,6 @@ func (q *QueueProtocol) GetMempool(req *types.ReqGetMempool) (*types.ReplyTxList
 	return nil, types.ErrTypeAsset
 }
 
-// WalletGetAccountList get account list from wallet
-func (q *QueueProtocol) WalletGetAccountList(req *types.ReqAccountList) (*types.WalletAccounts, error) {
-	msg, err := q.send(walletKey, types.EventWalletGetAccountList, req)
-	if err != nil {
-		log.Error("WalletGetAccountList", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.WalletAccounts); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 // NewAccount new account in wallet
 func (q *QueueProtocol) NewAccount(param *types.ReqNewAccount) (*types.WalletAccount, error) {
 	if param == nil {
