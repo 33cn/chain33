@@ -68,7 +68,6 @@ func TestQueueProtocol(t *testing.T) {
 	testQueryTx(t, api)
 	testGetTransactionByHash(t, api)
 	testGetMempool(t, api)
-	testWalletGetAccountList(t, api)
 	testNewAccount(t, api)
 	testWalletTransactionList(t, api)
 	testWalletImportprivkey(t, api)
@@ -720,14 +719,6 @@ func testNewAccount(t *testing.T, api client.QueueProtocolAPI) {
 	_, err = api.NewAccount(&types.ReqNewAccount{Label: "case1"})
 	if err == nil {
 		t.Error("NewAccount(&types.ReqNewAccount{Label:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletGetAccountList(t *testing.T, api client.QueueProtocolAPI) {
-	req := types.ReqAccountList{WithoutBalance: true}
-	_, err := api.WalletGetAccountList(&req)
-	if err != nil {
-		t.Error("Call WalletGetAccountList Failed.", err)
 	}
 }
 

@@ -268,7 +268,7 @@ func newWalletRealize(qAPI client.QueueProtocolAPI) {
 		lognode.Info("import", "index", i, "addr", acc.Acc.Addr)
 	}
 	req := &types.ReqAccountList{WithoutBalance: true}
-	_, err = qAPI.WalletGetAccountList(req)
+	_, err = qAPI.ExecWalletFunc("wallet", "WalletGetAccountList", req)
 	if err != nil {
 		panic(err)
 	}
