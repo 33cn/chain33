@@ -136,6 +136,10 @@ func (exec *Executor) procUpgrade(msg *queue.Message) {
 			panic(err)
 		}
 	}
+	elog.Info("upgrade plugin success")
+	msg.Reply(exec.client.NewMessage("", types.EventUpgrade, &types.Reply{
+		IsOk: true,
+	}))
 }
 
 func (exec *Executor) upgradePlugin(msg *queue.Message, plugin string) error {
@@ -172,9 +176,6 @@ func (exec *Executor) upgradePlugin(msg *queue.Message, plugin string) error {
 		return err
 	}
 	localdb.Commit()
-	msg.Reply(exec.client.NewMessage("", types.EventUpgrade, &types.Reply{
-		IsOk: true,
-	}))
 	return nil
 }
 
