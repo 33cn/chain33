@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -1130,7 +1131,7 @@ func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
 	fileName := "Privkeys"
 
 	_, err := wallet.GetAPI().ExecWalletFunc("wallet", "ImportPrivkeysFile", &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
-	require.NoError(t, err)
+	assert.Nil(t, err)
 
 	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
 	wallet.client.Send(msgGetAccList, true)
@@ -1140,6 +1141,14 @@ func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
 	// 与之前的 AllAccountlist 对比
 	accountlist := resp.GetData().(*types.WalletAccounts)
 	assert.Equal(t, len(accountlist.GetWallets()), len(AllAccountlist.GetWallets()))
+	if len(accountlist.GetWallets()) != len(AllAccountlist.GetWallets()) {
+		f, _ := os.Open(fileName)
+		defer f.Close()
+
+		fileContent, _ := ioutil.ReadAll(f)
+		println("fileContent = ", fileContent)
+	}
+
 	for _, acc1 := range AllAccountlist.GetWallets() {
 		isEqual := false
 		for _, acc2 := range accountlist.GetWallets() {
@@ -1149,7 +1158,7 @@ func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
 			}
 		}
 		if !isEqual {
-			assert.Error(t, errors.New(acc1.Acc.Addr+" not find in new list."))
+			assert.Nil(t, errors.New(acc1.Acc.Addr+" not find in new list."))
 		}
 	}
 

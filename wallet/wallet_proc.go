@@ -520,7 +520,7 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 	defer f.Close()
 
 	fileContent, err := ioutil.ReadAll(f)
-	accounts := strings.Split(string(string(fileContent)), "&&&")
+	accounts := strings.Split(string(fileContent), "&ffzm.&**&")
 	for _, value := range accounts {
 		Decrypter, err := AesgcmDecrypter([]byte(passwd), []byte(value))
 		if err != nil {
@@ -529,7 +529,7 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 			continue
 		}
 
-		acc := strings.Split(string(Decrypter), " ")
+		acc := strings.Split(string(Decrypter), "& *.prickey.+.label.* &")
 		if len(acc) != 2 {
 			walletlog.Error("ProcImportPrivkeysFile len(acc) != 2, File format error.", "Decrypter", string(Decrypter), "len", len(acc))
 			continue
@@ -1407,7 +1407,7 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 		}
 
 		privkey := common.ToHex(priv.Bytes())
-		content := privkey + " " + acc.Label
+		content := privkey + "& *.prickey.+.label.* &" + acc.Label
 
 		Encrypter, err := AesgcmEncrypter([]byte(passwd), []byte(content))
 		if err != nil {
@@ -1416,7 +1416,7 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 		}
 
 		f.WriteString(string(Encrypter))
-		f.WriteString("&&&")
+		f.WriteString("&ffzm.&**&")
 	}
 
 	return nil
