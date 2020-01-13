@@ -1478,29 +1478,6 @@ func (_m *QueueProtocolAPI) Version() (*types.VersionInfo, error) {
 	return r0, r1
 }
 
-// WalletGetAccountList provides a mock function with given fields: req
-func (_m *QueueProtocolAPI) WalletGetAccountList(req *types.ReqAccountList) (*types.WalletAccounts, error) {
-	ret := _m.Called(req)
-
-	var r0 *types.WalletAccounts
-	if rf, ok := ret.Get(0).(func(*types.ReqAccountList) *types.WalletAccounts); ok {
-		r0 = rf(req)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.WalletAccounts)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqAccountList) error); ok {
-		r1 = rf(req)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // WalletImportprivkey provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
 	ret := _m.Called(param)
