@@ -60,11 +60,23 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 		it := db.db.Iterator(prefix, nil, true)
 		defer it.Close()
 		flag := it.Seek(key)
-		//判断是否相等
+		//判断是已经删除的key
+		for it.Valid() && isdeleted(it.Value()) {
+			it.Next()
+			if !it.Valid() {
+				return nil
+			}
+		}
 		if !flag || !bytes.Equal(key, it.Key()) {
 			it.Next()
 			if !it.Valid() {
 				return nil
+			}
+			for isdeleted(it.Value()) {
+				it.Next()
+				if !it.Valid() {
+					return nil
+				}
 			}
 		}
 		return [][]byte{cloneByte(it.Key()), cloneByte(it.Value())}
@@ -95,6 +107,9 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 			values = nil
 			return
 		}
+		if isdeleted(it.Value()) {
+			continue
+		}
 		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
 		values = append(values, value)
 		i++
@@ -116,6 +131,9 @@ func (db *ListHelper) iteratorScan(prefix []byte, count int32, reverse bool) (va
 			values = nil
 			return
 		}
+		if isdeleted(it.Value()) {
+			continue
+		}
 		//println(string(it.Key()), string(value))
 		values = append(values, value)
 		i++
@@ -136,6 +154,10 @@ func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [
 	return db.iteratorScan(prefix, count, true)
 }
 
+func isdeleted(d []byte) bool {
+	return len(d) == 0
+}
+
 //PrefixCount 前缀数量
 func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 	it := db.db.Iterator(prefix, nil, true)
@@ -145,6 +167,9 @@ func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 			listlog.Error("PrefixCount it.Value()", "error", it.Error())
 			count = 0
 			return
+		}
+		if isdeleted(it.Value()) {
+			continue
 		}
 		count++
 	}
@@ -162,6 +187,9 @@ func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, di
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			return
+		}
+		if isdeleted(it.Value()) {
+			continue
 		}
 		key := it.Key()
 		//判断key 和 end 的关系

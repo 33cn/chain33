@@ -137,6 +137,9 @@ func reduceReceipts(src *types.BlockBody) []*types.ReceiptData {
 	for i := 0; i < len(dst.Receipts); i++ {
 		for j := 0; j < len(dst.Receipts[i].Logs); j++ {
 			if dst.Receipts[i].Logs[j] != nil {
+				if dst.Receipts[i].Logs[j].Ty == types.TyLogErr { // 为了匹配界面显示
+					continue
+				}
 				dst.Receipts[i].Logs[j].Log = nil
 			}
 		}
