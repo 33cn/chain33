@@ -50,14 +50,15 @@ const (
 
 //List 列表
 func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [][]byte) {
+	if len(key) != 0 && count == 1 && direction == ListSeek {
+		return db.nextKeyValue(prefix, key, count, direction)
+	}
+
 	if len(key) == 0 {
 		if direction == ListASC {
 			return db.IteratorScanFromFirst(prefix, count)
 		}
 		return db.IteratorScanFromLast(prefix, count)
-	}
-	if count == 1 && direction == ListSeek {
-		return db.nextKeyValue(prefix, key, count, direction)
 	}
 	return db.IteratorScan(prefix, key, count, direction)
 }
