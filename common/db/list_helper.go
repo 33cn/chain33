@@ -57,29 +57,7 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 		return db.IteratorScanFromLast(prefix, count)
 	}
 	if count == 1 && direction == ListSeek {
-		it := db.db.Iterator(prefix, nil, true)
-		defer it.Close()
-		flag := it.Seek(key)
-		//判断是已经删除的key
-		for it.Valid() && isdeleted(it.Value()) {
-			it.Next()
-			if !it.Valid() {
-				return nil
-			}
-		}
-		if !flag || !bytes.Equal(key, it.Key()) {
-			it.Next()
-			if !it.Valid() {
-				return nil
-			}
-			for isdeleted(it.Value()) {
-				it.Next()
-				if !it.Valid() {
-					return nil
-				}
-			}
-		}
-		return [][]byte{cloneByte(it.Key()), cloneByte(it.Value())}
+		return db.nextKeyValue(prefix, key, count, direction)
 	}
 	return db.IteratorScan(prefix, key, count, direction)
 }
@@ -215,4 +193,31 @@ func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, di
 			break
 		}
 	}
+}
+
+//nextKeyValue List 时, count 为 1, deriction 为 ListSeek, key 非空， 取key 的下一个KV
+func (db *ListHelper) nextKeyValue(prefix, key []byte, count, direction int32) (values [][]byte) {
+	it := db.db.Iterator(prefix, nil, true)
+	defer it.Close()
+	flag := it.Seek(key)
+	//判断是已经删除的key
+	for it.Valid() && isdeleted(it.Value()) {
+		it.Next()
+		if !it.Valid() {
+			return nil
+		}
+	}
+	if !flag || !bytes.Equal(key, it.Key()) {
+		it.Next()
+		if !it.Valid() {
+			return nil
+		}
+		for isdeleted(it.Value()) {
+			it.Next()
+			if !it.Valid() {
+				return nil
+			}
+		}
+	}
+	return [][]byte{cloneByte(it.Key()), cloneByte(it.Value())}
 }
