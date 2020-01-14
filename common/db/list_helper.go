@@ -13,15 +13,14 @@ import (
 
 //ListHelper ...
 type ListHelper struct {
-	db      IteratorDB
-	results *collector
+	db IteratorDB
 }
 
 var listlog = log.New("module", "db.ListHelper")
 
 //NewListHelper new
 func NewListHelper(db IteratorDB) *ListHelper {
-	return &ListHelper{db: db, results: newCollector()}
+	return &ListHelper{db: db}
 }
 
 //PrefixScan 前缀
@@ -243,9 +242,9 @@ type collector struct {
 	direction int32
 }
 
-func newCollector() *collector {
+func newCollector(direction int32) *collector {
 	r := make([][]byte, 0)
-	return &collector{results: r, direction: 0}
+	return &collector{results: r, direction: direction}
 }
 
 func (c *collector) collect(it Iterator) {
