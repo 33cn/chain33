@@ -24,21 +24,20 @@ func NewListHelper(db IteratorDB) *ListHelper {
 }
 
 //PrefixScan 前缀
-func (db *ListHelper) PrefixScan(prefix []byte) (values [][]byte) {
+func (db *ListHelper) PrefixScan(prefix []byte) [][]byte {
 	it := db.db.Iterator(prefix, nil, false)
 	defer it.Close()
 
+	resutls := newCollector(0)
 	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.ValueCopy()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
-			values = nil
-			return
+			return nil
 		}
+		resutls.collect(it)
 		//blog.Debug("PrefixScan", "key", string(item.Key()), "value", string(value))
-		values = append(values, value)
 	}
-	return
+	return resutls.results
 }
 
 //const
@@ -57,85 +56,80 @@ const (
 )
 
 //List 列表
-func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [][]byte) {
+func (db *ListHelper) List(prefix, key []byte, count, direction int32) [][]byte {
 	if len(key) != 0 && count == 1 && direction == ListSeek {
 		return db.nextKeyValue(prefix, key, count, direction)
 	}
 
 	if len(key) == 0 {
 		if isASC(direction) {
-			return db.IteratorScanFromFirst(prefix, count)
+			return db.IteratorScanFromFirst(prefix, count, direction)
 		}
-		return db.IteratorScanFromLast(prefix, count)
+		return db.IteratorScanFromLast(prefix, count, direction)
 	}
 	return db.IteratorScan(prefix, key, count, direction)
 }
 
 //IteratorScan 迭代
-func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direction int32) (values [][]byte) {
+func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direction int32) [][]byte {
 	reserse := isRervese(direction)
 	it := db.db.Iterator(prefix, nil, reserse)
 	defer it.Close()
+	results := newCollector(direction)
 
 	var i int32
 	it.Seek(key)
 	if !it.Valid() {
 		listlog.Error("PrefixScan it.Value()", "error", it.Error())
-		values = nil
-		return
+		return nil
 	}
 	for it.Next(); it.Valid(); it.Next() {
-		value := it.ValueCopy()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
-			values = nil
-			return
+			return nil
 		}
 		if isdeleted(it.Value()) {
 			continue
 		}
-		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
-		values = append(values, value)
+		results.collect(it)
 		i++
 		if i == count {
 			break
 		}
 	}
-	return
+	return results.results
 }
 
-func (db *ListHelper) iteratorScan(prefix []byte, count int32, reverse bool) (values [][]byte) {
+func (db *ListHelper) iteratorScan(prefix []byte, count int32, reverse bool, direction int32) [][]byte {
 	it := db.db.Iterator(prefix, nil, reverse)
 	defer it.Close()
+	results := newCollector(direction)
 	var i int32
 	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.ValueCopy()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
-			values = nil
-			return
+			return nil
 		}
 		if isdeleted(it.Value()) {
 			continue
 		}
-		//println(string(it.Key()), string(value))
-		values = append(values, value)
+		results.collect(it)
 		i++
 		if i == count {
 			break
 		}
 	}
-	return
+	return results.results
 }
 
 //IteratorScanFromFirst 从头迭代
-func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values [][]byte) {
-	return db.iteratorScan(prefix, count, false)
+func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32, direction int32) (values [][]byte) {
+	return db.iteratorScan(prefix, count, false, direction)
 }
 
 //IteratorScanFromLast 从尾迭代
-func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [][]byte) {
-	return db.iteratorScan(prefix, count, true)
+func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32, direction int32) (values [][]byte) {
+	return db.iteratorScan(prefix, count, true, direction)
 }
 
 func isdeleted(d []byte) bool {
@@ -248,6 +242,7 @@ func newCollector(direction int32) *collector {
 }
 
 func (c *collector) collect(it Iterator) {
+	//blog.Debug("collect", "key", string(item.Key()), "value", value)
 	if c.direction&ListKeyOnly != 0 {
 		c.results = append(c.results, cloneByte(it.Key()))
 	} else if c.direction&ListWithKey != 0 {
