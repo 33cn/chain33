@@ -306,12 +306,10 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	accs := make([]*types.Account, total+1)
 	for i := 0; i < total; i++ {
 		reqNewAccount := &types.ReqNewAccount{Label: fmt.Sprintf("account:%d", i)}
-		msg := wallet.client.NewMessage("wallet", types.EventNewAccount, reqNewAccount)
-		wallet.client.Send(msg, true)
-		resp, err := wallet.client.Wait(msg)
+		resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "NewAccount", reqNewAccount)
 		require.NoError(t, err)
 		time.Sleep(time.Microsecond * 100)
-		walletAcc := resp.GetData().(*types.WalletAccount)
+		walletAcc := resp.(*types.WalletAccount)
 		addrlist[i] = walletAcc.Acc.Addr
 		walletAcc.Acc.Balance = int64(i)
 		walletAcc.Acc.Currency = int32(i)
@@ -953,11 +951,9 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 
 	//首先创建一个airdropaddr标签的账户
 	reqNewAccount := &types.ReqNewAccount{Label: "airdropaddr"}
-	msg1 := wallet.client.NewMessage("wallet", types.EventNewAccount, reqNewAccount)
-	wallet.client.Send(msg1, true)
-	respp, err := wallet.client.Wait(msg1)
+	respp, err := wallet.GetAPI().ExecWalletFunc("wallet", "NewAccount", reqNewAccount)
 	require.NoError(t, err)
-	walletAcc := respp.GetData().(*types.WalletAccount)
+	walletAcc := respp.(*types.WalletAccount)
 	addrtmp := walletAcc.GetAcc().Addr
 	if walletAcc.GetLabel() != "airdropaddr" {
 		t.Error("testCreateNewAccountByIndex", "walletAcc.GetLabel()", walletAcc.GetLabel(), "Label", "airdropaddr")

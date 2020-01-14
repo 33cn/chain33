@@ -1002,29 +1002,6 @@ func (_m *QueueProtocolAPI) LocalSet(param *types.LocalDBSet) error {
 	return r0
 }
 
-// NewAccount provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) NewAccount(param *types.ReqNewAccount) (*types.WalletAccount, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.WalletAccount
-	if rf, ok := ret.Get(0).(func(*types.ReqNewAccount) *types.WalletAccount); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.WalletAccount)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqNewAccount) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // NewMessage provides a mock function with given fields: topic, msgid, data
 func (_m *QueueProtocolAPI) NewMessage(topic string, msgid int64, data interface{}) *queue.Message {
 	ret := _m.Called(topic, msgid, data)

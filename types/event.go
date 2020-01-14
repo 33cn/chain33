@@ -43,8 +43,8 @@ const (
 	EventGetTransactionByHash = 35
 	EventReplyTxInfo          = 36
 	//	EventWalletGetAccountList  = 37
-	EventWalletAccountList     = 38
-	EventNewAccount            = 39
+	EventWalletAccountList = 38
+	// EventNewAccount            = 39
 	EventWalletAccount         = 40
 	EventWalletTransactionList = 41
 	EventWalletExecutor        = 42
@@ -218,8 +218,8 @@ var eventName = map[int]string{
 	35: "EventGetTransactionByHash",
 	36: "EventReplyTxInfo",
 	//	37:  "EventWalletGetAccountList",
-	38:  "EventWalletAccountList",
-	39:  "EventNewAccount",
+	38: "EventWalletAccountList",
+	// 39:  "EventNewAccount",
 	40:  "EventWalletAccount",
 	41:  "EventWalletTransactionList",
 	42:  "EventWalletExecutor",
