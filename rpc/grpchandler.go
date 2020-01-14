@@ -164,7 +164,12 @@ func (g *Grpc) GetAccounts(ctx context.Context, in *pb.ReqNil) (*pb.WalletAccoun
 
 // NewAccount produce new account
 func (g *Grpc) NewAccount(ctx context.Context, in *pb.ReqNewAccount) (*pb.WalletAccount, error) {
-	return g.cli.NewAccount(in)
+	// return g.cli.NewAccount(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "NewAccount", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.WalletAccount), nil
 }
 
 // WalletTransactionList transaction list of wallet

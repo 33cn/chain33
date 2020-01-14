@@ -236,24 +236,6 @@ func (q *QueueProtocol) GetMempool(req *types.ReqGetMempool) (*types.ReplyTxList
 	return nil, types.ErrTypeAsset
 }
 
-// NewAccount new account in wallet
-func (q *QueueProtocol) NewAccount(param *types.ReqNewAccount) (*types.WalletAccount, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("NewAccount", "Error", err)
-		return nil, err
-	}
-	msg, err := q.send(walletKey, types.EventNewAccount, param)
-	if err != nil {
-		log.Error("NewAccount", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.WalletAccount); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 // WalletTransactionList get transactions from wallet
 func (q *QueueProtocol) WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	if param == nil {

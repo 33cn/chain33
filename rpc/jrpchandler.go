@@ -401,7 +401,7 @@ func (c *Chain33) GetAccounts(in *types.ReqAccountList, result *interface{}) err
 
 // NewAccount new a account
 func (c *Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error {
-	reply, err := c.cli.NewAccount(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "NewAccount", &in)
 	if err != nil {
 		return err
 	}

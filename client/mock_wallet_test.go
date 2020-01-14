@@ -19,18 +19,6 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 		client.Sub(walletKey)
 		for msg := range client.Recv() {
 			switch msg.Ty {
-			case types.EventWalletGetAccountList:
-				msg.Reply(client.NewMessage(walletKey, types.EventWalletAccountList, &types.WalletAccounts{}))
-			case types.EventNewAccount:
-				if req, ok := msg.GetData().(*types.ReqNewAccount); ok {
-					if req.Label == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.WalletAccount{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
 			case types.EventWalletTransactionList:
 				if req, ok := msg.GetData().(*types.ReqWalletTransactionList); ok {
 					if req.Direction == 1 {
