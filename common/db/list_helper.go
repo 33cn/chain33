@@ -13,14 +13,15 @@ import (
 
 //ListHelper ...
 type ListHelper struct {
-	db IteratorDB
+	db      IteratorDB
+	results *collector
 }
 
 var listlog = log.New("module", "db.ListHelper")
 
 //NewListHelper new
 func NewListHelper(db IteratorDB) *ListHelper {
-	return &ListHelper{db}
+	return &ListHelper{db: db, results: newCollector()}
 }
 
 //PrefixScan 前缀
@@ -234,4 +235,24 @@ func (db *ListHelper) nextKeyValue(prefix, key []byte, count, direction int32) (
 		}
 	}
 	return [][]byte{cloneByte(it.Key()), cloneByte(it.Value())}
+}
+
+// collector 辅助收集list 的数据
+type collector struct {
+	results   [][]byte
+	direction int32
+}
+
+func newCollector() *collector {
+	r := make([][]byte, 0)
+	return &collector{results: r, direction: 0}
+}
+
+func (c *collector) collect(it Iterator) {
+	if c.direction&ListKeyOnly != 0 {
+		c.results = append(c.results, cloneByte(it.Key()))
+	} else if c.direction&ListWithKey != 0 {
+		c.results = append(c.results, cloneByte(it.Key()), cloneByte(it.Value()))
+	}
+	c.results = append(c.results, cloneByte(it.Value()))
 }
