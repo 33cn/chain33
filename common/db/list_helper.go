@@ -43,9 +43,17 @@ func (db *ListHelper) PrefixScan(prefix []byte) (values [][]byte) {
 
 //const
 const (
-	ListDESC = int32(0)
-	ListASC  = int32(1)
-	ListSeek = int32(2)
+	// direction 位模式指定direction 参数
+	// 000， <- 位从低位开始数
+	// 0位：direction  ListDESC ListASC
+	// 1位：next key， 目前是一个特殊用途， 因为其他的都是返回value， 这个模式同时返回key， value。 不和其他位组合
+	// 2位: 返回时，返回 key value， 不指定 只返回value
+	// 3位: 返回时，返回 key， 不指定 只返回value. 和 2位不可以同时设置为1
+	ListDESC    = int32(0) // 0
+	ListASC     = int32(1) // 1
+	ListSeek    = int32(2) // 10
+	ListWithKey = int32(4) // 01xx
+	ListKeyOnly = int32(8) // 10xx
 )
 
 //List 列表
@@ -55,7 +63,7 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 	}
 
 	if len(key) == 0 {
-		if direction == ListASC {
+		if isASC(direction) {
 			return db.IteratorScanFromFirst(prefix, count)
 		}
 		return db.IteratorScanFromLast(prefix, count)
@@ -65,10 +73,7 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 
 //IteratorScan 迭代
 func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direction int32) (values [][]byte) {
-	var reserse = false
-	if direction == 0 {
-		reserse = true
-	}
+	reserse := isRervese(direction)
 	it := db.db.Iterator(prefix, nil, reserse)
 	defer it.Close()
 
@@ -157,7 +162,7 @@ func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 
 //IteratorCallback 迭代回滚
 func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, direction int32, fn func(key, value []byte) bool) {
-	reserse := direction == 0
+	reserse := isRervese(direction)
 	it := db.db.Iterator(start, end, reserse)
 	defer it.Close()
 	var i int32
@@ -194,6 +199,14 @@ func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, di
 			break
 		}
 	}
+}
+
+func isASC(direction int32) bool {
+	return direction&ListASC == ListASC
+}
+
+func isRervese(direction int32) bool {
+	return !isASC(direction)
 }
 
 //nextKeyValue List 时, count 为 1, deriction 为 ListSeek, key 非空， 取key 的下一个KV
