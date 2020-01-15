@@ -157,7 +157,7 @@ func (exec *Executor) upgradePlugin(plugin string) error {
 		return err
 	}
 	var localdb dbm.KVDB
-	if exec.disableLocal {
+	if !exec.disableLocal {
 		localdb = NewLocalDB(exec.client)
 		defer localdb.(*LocalDB).Close()
 		driver.SetLocalDB(localdb)
