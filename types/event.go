@@ -45,35 +45,35 @@ const (
 	//	EventWalletGetAccountList  = 37
 	EventWalletAccountList = 38
 	// EventNewAccount            = 39
-	EventWalletAccount         = 40
-	EventWalletTransactionList = 41
-	EventWalletExecutor        = 42
-	EventWalletImportPrivkey   = 43
-	EventWalletSendToAddress   = 44
-	EventWalletSetFee          = 45
-	EventWalletSetLabel        = 46
-	EventStoreDel              = 47
-	EventWalletMergeBalance    = 48
-	EventReplyHashes           = 49
-	EventWalletSetPasswd       = 50
-	EventWalletLock            = 51
-	EventWalletUnLock          = 52
-	EventTransactionDetails    = 53
-	EventBroadcastAddBlock     = 54
-	EventGetBlockOverview      = 55
-	EventGetAddrOverview       = 56
-	EventReplyBlockOverview    = 57
-	EventReplyAddrOverview     = 58
-	EventGetBlockHash          = 59
-	EventBlockHash             = 60
-	EventGetLastMempool        = 61
-	EventMinerStart            = 63
-	EventMinerStop             = 64
-	EventWalletTickets         = 65
-	EventStoreMemSet           = 66
-	EventStoreRollback         = 67
-	EventStoreCommit           = 68
-	EventCheckBlock            = 69
+	EventWalletAccount = 40
+	// EventWalletTransactionList = 41
+	EventWalletExecutor      = 42
+	EventWalletImportPrivkey = 43
+	EventWalletSendToAddress = 44
+	EventWalletSetFee        = 45
+	EventWalletSetLabel      = 46
+	EventStoreDel            = 47
+	EventWalletMergeBalance  = 48
+	EventReplyHashes         = 49
+	EventWalletSetPasswd     = 50
+	EventWalletLock          = 51
+	EventWalletUnLock        = 52
+	EventTransactionDetails  = 53
+	EventBroadcastAddBlock   = 54
+	EventGetBlockOverview    = 55
+	EventGetAddrOverview     = 56
+	EventReplyBlockOverview  = 57
+	EventReplyAddrOverview   = 58
+	EventGetBlockHash        = 59
+	EventBlockHash           = 60
+	EventGetLastMempool      = 61
+	EventMinerStart          = 63
+	EventMinerStop           = 64
+	EventWalletTickets       = 65
+	EventStoreMemSet         = 66
+	EventStoreRollback       = 67
+	EventStoreCommit         = 68
+	EventCheckBlock          = 69
 	//seed
 	EventGenSeed      = 70
 	EventReplyGenSeed = 71
@@ -87,19 +87,19 @@ const (
 	EventLocalList       = 78
 	EventLocalSet        = 79
 
-	EventGetWalletStatus         = 80
-	EventCheckTx                 = 81
-	EventReceiptCheckTx          = 82
-	EventReplyQuery              = 84
-	EventAddBlockSeqCB           = 85
-	EventFetchBlockHeaders       = 86
-	EventAddBlockHeaders         = 87
-	EventReplyWalletStatus       = 89
-	EventGetLastBlock            = 90
-	EventBlock                   = 91
-	EventGetTicketCount          = 92
-	EventReplyGetTicketCount     = 93
-	EventDumpPrivkey             = 94
+	EventGetWalletStatus     = 80
+	EventCheckTx             = 81
+	EventReceiptCheckTx      = 82
+	EventReplyQuery          = 84
+	EventAddBlockSeqCB       = 85
+	EventFetchBlockHeaders   = 86
+	EventAddBlockHeaders     = 87
+	EventReplyWalletStatus   = 89
+	EventGetLastBlock        = 90
+	EventBlock               = 91
+	EventGetTicketCount      = 92
+	EventReplyGetTicketCount = 93
+	// EventDumpPrivkey             = 94
 	EventReplyPrivkey            = 95
 	EventIsSync                  = 96
 	EventReplyIsSync             = 97
@@ -217,57 +217,57 @@ var eventName = map[int]string{
 	//	37:  "EventWalletGetAccountList",
 	38: "EventWalletAccountList",
 	// 39:  "EventNewAccount",
-	40:  "EventWalletAccount",
-	41:  "EventWalletTransactionList",
-	42:  "EventWalletExecutor",
-	43:  "EventWalletImportPrivkey",
-	44:  "EventWalletSendToAddress",
-	45:  "EventWalletSetFee",
-	46:  "EventWalletSetLabel",
-	47:  "EventStoreDel",
-	48:  "EventWalletMergeBalance",
-	49:  "EventReplyHashes",
-	50:  "EventWalletSetPasswd",
-	51:  "EventWalletLock",
-	52:  "EventWalletUnLock",
-	53:  "EventTransactionDetails",
-	54:  "EventBroadcastAddBlock",
-	55:  "EventGetBlockOverview",
-	56:  "EventGetAddrOverview",
-	57:  "EventReplyBlockOverview",
-	58:  "EventReplyAddrOverview",
-	59:  "EventGetBlockHash",
-	60:  "EventBlockHash",
-	61:  "EventGetLastMempool",
-	63:  "EventMinerStart",
-	64:  "EventMinerStop",
-	65:  "EventWalletTickets",
-	66:  "EventStoreMemSet",
-	67:  "EventStoreRollback",
-	68:  "EventStoreCommit",
-	69:  "EventCheckBlock",
-	70:  "EventGenSeed",
-	71:  "EventReplyGenSeed",
-	72:  "EventSaveSeed",
-	73:  "EventGetSeed",
-	74:  "EventReplyGetSeed",
-	75:  "EventDelBlock",
-	76:  "EventLocalGet",
-	77:  "EventLocalReplyValue",
-	78:  "EventLocalList",
-	79:  "EventLocalSet",
-	80:  "EventGetWalletStatus",
-	81:  "EventCheckTx",
-	82:  "EventReceiptCheckTx",
-	84:  "EventReplyQuery",
-	86:  "EventFetchBlockHeaders",
-	87:  "EventAddBlockHeaders",
-	89:  "EventReplyWalletStatus",
-	90:  "EventGetLastBlock",
-	91:  "EventBlock",
-	92:  "EventGetTicketCount",
-	93:  "EventReplyGetTicketCount",
-	94:  "EventDumpPrivkey",
+	40: "EventWalletAccount",
+	//41:  "EventWalletTransactionList",
+	42: "EventWalletExecutor",
+	43: "EventWalletImportPrivkey",
+	44: "EventWalletSendToAddress",
+	45: "EventWalletSetFee",
+	46: "EventWalletSetLabel",
+	47: "EventStoreDel",
+	48: "EventWalletMergeBalance",
+	49: "EventReplyHashes",
+	50: "EventWalletSetPasswd",
+	51: "EventWalletLock",
+	52: "EventWalletUnLock",
+	53: "EventTransactionDetails",
+	54: "EventBroadcastAddBlock",
+	55: "EventGetBlockOverview",
+	56: "EventGetAddrOverview",
+	57: "EventReplyBlockOverview",
+	58: "EventReplyAddrOverview",
+	59: "EventGetBlockHash",
+	60: "EventBlockHash",
+	61: "EventGetLastMempool",
+	63: "EventMinerStart",
+	64: "EventMinerStop",
+	65: "EventWalletTickets",
+	66: "EventStoreMemSet",
+	67: "EventStoreRollback",
+	68: "EventStoreCommit",
+	69: "EventCheckBlock",
+	70: "EventGenSeed",
+	71: "EventReplyGenSeed",
+	72: "EventSaveSeed",
+	73: "EventGetSeed",
+	74: "EventReplyGetSeed",
+	75: "EventDelBlock",
+	76: "EventLocalGet",
+	77: "EventLocalReplyValue",
+	78: "EventLocalList",
+	79: "EventLocalSet",
+	80: "EventGetWalletStatus",
+	81: "EventCheckTx",
+	82: "EventReceiptCheckTx",
+	84: "EventReplyQuery",
+	86: "EventFetchBlockHeaders",
+	87: "EventAddBlockHeaders",
+	89: "EventReplyWalletStatus",
+	90: "EventGetLastBlock",
+	91: "EventBlock",
+	92: "EventGetTicketCount",
+	93: "EventReplyGetTicketCount",
+	// 94:  "EventDumpPrivkey",
 	95:  "EventReplyPrivkey",
 	96:  "EventIsSync",
 	97:  "EventReplyIsSync",

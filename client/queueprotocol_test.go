@@ -68,8 +68,6 @@ func TestQueueProtocol(t *testing.T) {
 	testQueryTx(t, api)
 	testGetTransactionByHash(t, api)
 	testGetMempool(t, api)
-	testWalletTransactionList(t, api)
-	testWalletImportprivkey(t, api)
 	testWalletSendToAddress(t, api)
 	testWalletSetFee(t, api)
 	testWalletSetLabel(t, api)
@@ -95,7 +93,6 @@ func TestQueueProtocol(t *testing.T) {
 	testSaveSeed(t, api)
 	testGetSeed(t, api)
 	testGetWalletStatus(t, api)
-	testDumpPrivkey(t, api)
 	testIsSync(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
@@ -420,21 +417,6 @@ func testIsSync(t *testing.T, api client.QueueProtocolAPI) {
 	}
 }
 
-func testDumpPrivkey(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.DumpPrivkey(&types.ReqString{})
-	if err != nil {
-		t.Error("Call DumpPrivkey Failed.", err)
-	}
-	_, err = api.DumpPrivkey(nil)
-	if err == nil {
-		t.Error("DumpPrivkey(nil) need return error.")
-	}
-	_, err = api.DumpPrivkey(&types.ReqString{Data: "case1"})
-	if err == nil {
-		t.Error("DumpPrivkey(&types.ReqStr{ReqStr:\"case1\"}) need return error.")
-	}
-}
-
 func testGetWalletStatus(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.GetWalletStatus()
 	if err != nil {
@@ -666,36 +648,6 @@ func testWalletSendToAddress(t *testing.T, api client.QueueProtocolAPI) {
 	_, err = api.WalletSendToAddress(&types.ReqWalletSendToAddress{Note: "case1"})
 	if err == nil {
 		t.Error("WalletSendToAddress(&types.ReqWalletSendToAddress{Note:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletImportprivkey(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletImportprivkey(&types.ReqWalletImportPrivkey{})
-	if err != nil {
-		t.Error("Call WalletTransactionList Failed.", err)
-	}
-	_, err = api.WalletImportprivkey(nil)
-	if err == nil {
-		t.Error("WalletImportprivkey(nil) need return error.")
-	}
-	_, err = api.WalletImportprivkey(&types.ReqWalletImportPrivkey{Label: "case1"})
-	if err == nil {
-		t.Error("WalletImportprivkey(&types.ReqWalletImportPrivKey{Label:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletTransactionList(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletTransactionList(&types.ReqWalletTransactionList{})
-	if err != nil {
-		t.Error("Call WalletTransactionList Failed.", err)
-	}
-	_, err = api.WalletTransactionList(nil)
-	if err == nil {
-		t.Error("WalletTransactionList(nil) need return error.")
-	}
-	_, err = api.WalletTransactionList(&types.ReqWalletTransactionList{Direction: 1})
-	if err == nil {
-		t.Error("WalletTransactionList(&types.ReqWalletTransactionList{Direction:1}) need return error.")
 	}
 }
 

@@ -156,10 +156,11 @@ func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqGetMempool) (*pb.ReplyT
 func (g *Grpc) GetAccounts(ctx context.Context, in *pb.ReqNil) (*pb.WalletAccounts, error) {
 	req := &pb.ReqAccountList{WithoutBalance: false}
 	reply, err := g.cli.ExecWalletFunc("wallet", "WalletGetAccountList", req)
-	if err == nil {
-		return reply.(*pb.WalletAccounts), nil
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+	// types.Reply
+	return reply.(*pb.WalletAccounts), nil
 }
 
 // NewAccount produce new account
@@ -174,12 +175,20 @@ func (g *Grpc) NewAccount(ctx context.Context, in *pb.ReqNewAccount) (*pb.Wallet
 
 // WalletTransactionList transaction list of wallet
 func (g *Grpc) WalletTransactionList(ctx context.Context, in *pb.ReqWalletTransactionList) (*pb.WalletTxDetails, error) {
-	return g.cli.WalletTransactionList(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletTransactionList", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.WalletTxDetails), nil
 }
 
 // ImportPrivkey import privkey
 func (g *Grpc) ImportPrivkey(ctx context.Context, in *pb.ReqWalletImportPrivkey) (*pb.WalletAccount, error) {
-	return g.cli.WalletImportprivkey(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletImportPrivkey", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.WalletAccount), nil
 }
 
 // SendToAddress send to address of coins
@@ -325,7 +334,11 @@ func (g *Grpc) ExecWallet(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply,
 
 // DumpPrivkey dump Privkey
 func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyString, error) {
-	return g.cli.DumpPrivkey(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "DumpPrivkey", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.ReplyString), nil
 }
 
 // Version version
