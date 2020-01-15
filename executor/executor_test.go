@@ -311,7 +311,6 @@ func TestCheckTx(t *testing.T) {
 
 func TestExecutorUpgradeMsg(t *testing.T) {
 	exec, q := initEnv(types.GetDefaultCfgstring())
-	exec.disableLocal = true
 	cfg := exec.client.GetConfig()
 	cfg.SetMinFee(0)
 	Register(cfg)
@@ -326,7 +325,6 @@ func TestExecutorUpgradeMsg(t *testing.T) {
 
 func TestExecutorPluginUpgrade(t *testing.T) {
 	exec, q := initEnv(types.GetDefaultCfgstring())
-	exec.disableLocal = true
 	cfg := exec.client.GetConfig()
 	cfg.SetMinFee(0)
 	Register(cfg)
