@@ -37,7 +37,7 @@ func (db *ListHelper) PrefixScan(prefix []byte) [][]byte {
 		resutls.collect(it)
 		//blog.Debug("PrefixScan", "key", string(item.Key()), "value", string(value))
 	}
-	return resutls.results
+	return resutls.result()
 }
 
 //const
@@ -97,7 +97,7 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 			break
 		}
 	}
-	return results.results
+	return results.result()
 }
 
 func (db *ListHelper) iteratorScan(prefix []byte, count int32, reverse bool, direction int32) [][]byte {
@@ -119,7 +119,7 @@ func (db *ListHelper) iteratorScan(prefix []byte, count int32, reverse bool, dir
 			break
 		}
 	}
-	return results.results
+	return results.result()
 }
 
 //IteratorScanFromFirst 从头迭代
@@ -249,4 +249,11 @@ func (c *collector) collect(it Iterator) {
 		c.results = append(c.results, cloneByte(it.Key()), cloneByte(it.Value()))
 	}
 	c.results = append(c.results, cloneByte(it.Value()))
+}
+
+func (c *collector) result() [][]byte {
+	if len(c.results) == 0 {
+		return nil
+	}
+	return c.results
 }
