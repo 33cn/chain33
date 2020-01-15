@@ -321,3 +321,42 @@ func testTransaction(t *testing.T, db DB) {
 	assert.Nil(t, err)
 	assert.Equal(t, "world2", string(value))
 }
+
+// 返回值测试
+func testDBIteratorResult(t *testing.T, db DB) {
+	t.Log("test Set")
+	db.Set([]byte("aaaaaa/1"), []byte("aaaaaa/1"))
+	db.Set([]byte("my_key/1"), []byte("my_value/1"))
+	db.Set([]byte("my_key/2"), []byte("my_value/2"))
+	db.Set([]byte("my_key/3"), []byte("my_value/3"))
+	db.Set([]byte("my_key/4"), []byte("my_value/4"))
+	db.Set([]byte("my"), []byte("my"))
+	db.Set([]byte("my_"), []byte("my_"))
+	db.Set([]byte("zzzzzz/1"), []byte("zzzzzz/1"))
+	b, err := hex.DecodeString("ff")
+	require.NoError(t, err)
+	db.Set(b, []byte("0xff"))
+
+	t.Log("test Get")
+	v, _ := db.Get([]byte("aaaaaa/1"))
+	require.Equal(t, string(v), "aaaaaa/1")
+	//test list:
+	it0 := NewListHelper(db)
+	list0 := it0.List([]byte("my_key"), nil, 100, 1|ListKeyOnly)
+	require.Equal(t, list0, [][]byte{[]byte("my_key/1"), []byte("my_key/2"), []byte("my_key/3"), []byte("my_key/4")})
+
+	it1 := NewListHelper(db)
+	list1 := it1.List([]byte("my_key"), nil, 100, 1)
+	require.Equal(t, list1, [][]byte{[]byte("my_value/1"), []byte("my_value/2"), []byte("my_value/3"), []byte("my_value/4")})
+
+	it2 := NewListHelper(db)
+	list2 := it2.List([]byte("my_key"), nil, 100, 1|ListWithKey)
+	require.Equal(t, 4, len(list2))
+	for i, v := range list2 {
+		var kv types.KeyValue
+		err = types.Decode(v, &kv)
+		require.Equal(t, nil, err)
+		require.Equal(t, fmt.Sprintf("my_key/%d", i+1), string(kv.Key))
+		require.Equal(t, fmt.Sprintf("my_value/%d", i+1), string(kv.Value))
+	}
+}
