@@ -169,14 +169,14 @@ func testDBIterator(t *testing.T, db DB) {
 	assert.Equal(t, list0, list)
 	require.Equal(t, list, [][]byte{[]byte("aaaaaa/1"), []byte("my"), []byte("my_"), []byte("my_key/1"), []byte("my_key/2"), []byte("my_key/3"), []byte("my_key/4"), []byte("zzzzzz/1"), []byte("0xff")})
 	t.Log("test IteratorScanFromFirst")
-	list = it.IteratorScanFromFirst([]byte("my"), 2)
+	list = it.IteratorScanFromFirst([]byte("my"), 2, 0)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
 	require.Equal(t, list, [][]byte{[]byte("my"), []byte("my_")})
 
 	t.Log("test IteratorScanFromLast")
-	list = it.IteratorScanFromLast([]byte("my"), 100)
+	list = it.IteratorScanFromLast([]byte("my"), 100, 0)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
@@ -217,11 +217,11 @@ func testDBBoundary(t *testing.T, db DB) {
 	require.Equal(t, list, [][]byte{[]byte("0x0f"), []byte("0x0fff")})
 
 	t.Log("IteratorScanFromFirst")
-	list = it.IteratorScanFromFirst(a, 2)
+	list = it.IteratorScanFromFirst(a, 2, 0)
 	require.Equal(t, list, [][]byte{[]byte("0x0f"), []byte("0x0fff")})
 
 	t.Log("IteratorScanFromLast")
-	list = it.IteratorScanFromLast(a, 100)
+	list = it.IteratorScanFromLast(a, 100, 0)
 	require.Equal(t, list, [][]byte{[]byte("0x0fff"), []byte("0x0f")})
 
 	t.Log("IteratorScan 1")
@@ -238,11 +238,11 @@ func testDBBoundary(t *testing.T, db DB) {
 	require.Equal(t, list, [][]byte{[]byte("0xff"), []byte("0xffff")})
 
 	t.Log("IteratorScanFromFirst")
-	list = it.IteratorScanFromFirst(b, 2)
+	list = it.IteratorScanFromFirst(b, 2, 0)
 	require.Equal(t, list, [][]byte{[]byte("0xff"), []byte("0xffff")})
 
 	t.Log("IteratorScanFromLast")
-	list = it.IteratorScanFromLast(b, 100)
+	list = it.IteratorScanFromLast(b, 100, 0)
 	require.Equal(t, list, [][]byte{[]byte("0xffff"), []byte("0xff")})
 
 	t.Log("IteratorScan 1")
