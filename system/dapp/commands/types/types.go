@@ -150,38 +150,6 @@ type GetTotalCoinsResult struct {
 	DifferenceAmount string `json:"differenceAmount,omitempty"`
 }
 
-// UTXOGlobalIndex defines  utxo globalindex command
-type UTXOGlobalIndex struct {
-	// Height   int64  `json:"height,omitempty"`
-	// Txindex  int32  `json:"txindex,omitempty"`
-	Outindex int32  `json:"outindex,omitempty"`
-	Txhash   string `json:"txhash,omitempty"`
-}
-
-// KeyInput defines keyinput info command
-type KeyInput struct {
-	Amount          string             `json:"amount,omitempty"`
-	UtxoGlobalIndex []*UTXOGlobalIndex `json:"utxoGlobalIndex,omitempty"`
-	KeyImage        string             `json:"keyImage,omitempty"`
-}
-
-// PrivacyInput defines privacy input command
-type PrivacyInput struct {
-	Keyinput []*KeyInput `json:"keyinput,omitempty"`
-}
-
-// KeyOutput privacy output
-type KeyOutput struct {
-	Amount        string `json:"amount,omitempty"`
-	Onetimepubkey string `json:"onetimepubkey,omitempty"`
-}
-
-// ReceiptPrivacyOutput defines receipt privacy output command
-type ReceiptPrivacyOutput struct {
-	Token     string       `json:"token,omitempty"`
-	Keyoutput []*KeyOutput `json:"keyoutput,omitempty"`
-}
-
 // AllExecBalance defines all balance of exec command
 type AllExecBalance struct {
 	Addr        string         `json:"addr"`
@@ -251,38 +219,6 @@ type TokenPreCreateCLI struct {
 	Total        int64  `json:"total,omitempty"`
 	Price        string `json:"price,omitempty"`
 	Owner        string `json:"owner,omitempty"`
-}
-
-// Public2PrivacyCLI defines public to privacy cli command
-type Public2PrivacyCLI struct {
-	Tokenname string         `json:"tokenname,omitempty"`
-	Amount    string         `json:"amount,omitempty"`
-	Note      string         `json:"note,omitempty"`
-	Output    *PrivacyOutput `json:"output,omitempty"`
-}
-
-// Privacy2PrivacyCLI defines privacy to privacy cli command
-type Privacy2PrivacyCLI struct {
-	Tokenname string         `json:"tokenname,omitempty"`
-	Amount    string         `json:"amount,omitempty"`
-	Note      string         `json:"note,omitempty"`
-	Input     *PrivacyInput  `json:"input,omitempty"`
-	Output    *PrivacyOutput `json:"output,omitempty"`
-}
-
-// Privacy2PublicCLI defines privacy to public cli command
-type Privacy2PublicCLI struct {
-	Tokenname string         `json:"tokenname,omitempty"`
-	Amount    string         `json:"amount,omitempty"`
-	Note      string         `json:"note,omitempty"`
-	Input     *PrivacyInput  `json:"input,omitempty"`
-	Output    *PrivacyOutput `json:"output,omitempty"`
-}
-
-// PrivacyOutput defines Privacy output command
-type PrivacyOutput struct {
-	RpubKeytx string       `protobuf:"bytes,1,opt,name=RpubKeytx,proto3" json:"RpubKeytx,omitempty"`
-	Keyoutput []*KeyOutput `protobuf:"bytes,2,rep,name=keyoutput" json:"keyoutput,omitempty"`
 }
 
 // GetExecBalanceResult  defines balance of exec result rpc command
