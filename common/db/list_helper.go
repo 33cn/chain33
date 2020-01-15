@@ -250,8 +250,9 @@ func (c *collector) collect(it Iterator) {
 		v := types.KeyValue{Key: cloneByte(it.Key()), Value: cloneByte(it.Value())}
 		c.results = append(c.results, types.Encode(&v))
 		// c.results = append(c.results, Key: cloneByte(it.Key()), Value: cloneByte(it.Value()))
+	} else {
+		c.results = append(c.results, cloneByte(it.Value()))
 	}
-	c.results = append(c.results, cloneByte(it.Value()))
 }
 
 func (c *collector) result() [][]byte {
