@@ -208,9 +208,9 @@ func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*
 	if len(TxList.FromTx) == 0 {
 		list := store.NewListHelper()
 		if TxList.Direction == 0 {
-			txbytes = list.IteratorScanFromLast(CalcTxKey(""), TxList.Count)
+			txbytes = list.IteratorScanFromLast(CalcTxKey(""), TxList.Count, 0)
 		} else {
-			txbytes = list.IteratorScanFromFirst(CalcTxKey(""), TxList.Count)
+			txbytes = list.IteratorScanFromFirst(CalcTxKey(""), TxList.Count, 0)
 		}
 		if len(txbytes) == 0 {
 			storelog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
