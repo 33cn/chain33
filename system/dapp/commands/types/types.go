@@ -162,65 +162,6 @@ type ExecAccount struct {
 	Account *AccountResult `json:"account"`
 }
 
-// CoinsTransferCLI  decodetx
-type CoinsTransferCLI struct {
-	Cointoken string `json:"cointoken,omitempty"`
-	Amount    string `json:"amount,omitempty"`
-	Note      string `json:"note,omitempty"`
-	To        string `json:"to,omitempty"`
-}
-
-// CoinsWithdrawCLI defines coins withdrawcli command
-type CoinsWithdrawCLI struct {
-	Cointoken string `json:"cointoken,omitempty"`
-	Amount    string `json:"amount,omitempty"`
-	Note      string `json:"note,omitempty"`
-	ExecName  string `json:"execName,omitempty"`
-	To        string `json:"to,omitempty"`
-}
-
-// CoinsGenesisCLI defines coins genesis cli command
-type CoinsGenesisCLI struct {
-	Amount        string `json:"amount,omitempty"`
-	ReturnAddress string `json:"returnAddress,omitempty"`
-}
-
-// CoinsTransferToExecCLI defines coins transfertoexec cli command
-type CoinsTransferToExecCLI struct {
-	Cointoken string `json:"cointoken,omitempty"`
-	Amount    string `json:"amount,omitempty"`
-	Note      string `json:"note,omitempty"`
-	ExecName  string `json:"execName,omitempty"`
-	To        string `json:"to,omitempty"`
-}
-
-// HashlockLockCLI defines hashlocklockcli rpc command
-type HashlockLockCLI struct {
-	Amount        string `json:"amount,omitempty"`
-	Time          int64  `json:"time,omitempty"`
-	Hash          []byte `json:"hash,omitempty"`
-	ToAddress     string `json:"toAddress,omitempty"`
-	ReturnAddress string `json:"returnAddress,omitempty"`
-}
-
-// TicketMinerCLI defines ticket minercli command
-type TicketMinerCLI struct {
-	Bits     uint32 `json:"bits,omitempty"`
-	Reward   string `json:"reward,omitempty"`
-	TicketID string `json:"ticketId,omitempty"`
-	Modify   []byte `json:"modify,omitempty"`
-}
-
-// TokenPreCreateCLI defines token precreatecli command
-type TokenPreCreateCLI struct {
-	Name         string `json:"name,omitempty"`
-	Symbol       string `json:"symbol,omitempty"`
-	Introduction string `json:"introduction,omitempty"`
-	Total        int64  `json:"total,omitempty"`
-	Price        string `json:"price,omitempty"`
-	Owner        string `json:"owner,omitempty"`
-}
-
 // GetExecBalanceResult  defines balance of exec result rpc command
 type GetExecBalanceResult struct {
 	Amount       string         `json:"totalAmount"`
