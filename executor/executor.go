@@ -133,6 +133,7 @@ func (exec *Executor) procUpgrade(msg *queue.Message) {
 		elog.Info("begin upgrade plugin ", "name", plugin)
 		err := exec.upgradePlugin(msg, plugin)
 		if err != nil {
+			msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
 			panic(err)
 		}
 	}
@@ -145,7 +146,6 @@ func (exec *Executor) procUpgrade(msg *queue.Message) {
 func (exec *Executor) upgradePlugin(msg *queue.Message, plugin string) error {
 	header, err := exec.qclient.GetLastHeader()
 	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
 		return err
 	}
 	driver, err := drivers.LoadDriverWithClient(exec.qclient, plugin, header.GetHeight())
@@ -154,7 +154,6 @@ func (exec *Executor) upgradePlugin(msg *queue.Message, plugin string) error {
 		return nil
 	}
 	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
 		return err
 	}
 	var localdb dbm.KVDB
@@ -172,7 +171,6 @@ func (exec *Executor) upgradePlugin(msg *queue.Message, plugin string) error {
 	err = driver.Upgrade()
 	if err != nil {
 		localdb.Rollback()
-		msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
 		return err
 	}
 	localdb.Commit()
