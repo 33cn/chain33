@@ -396,17 +396,12 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 
 	privKey := &types.ReqWalletImportPrivkey{Privkey: AddrPrivKey}
 	privKey.Label = "account:0"
-
-	msgImport := wallet.client.NewMessage("wallet", types.EventWalletImportPrivkey, privKey)
-	wallet.client.Send(msgImport, true)
-	_, err = wallet.client.Wait(msgImport)
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "WalletImportPrivkey", privKey)
 	assert.Equal(t, err.Error(), types.ErrLabelHasUsed.Error())
 
 	privKey.Label = "ImportPrivKey-Label"
-	msgImport = wallet.client.NewMessage("wallet", types.EventWalletImportPrivkey, privKey)
-	wallet.client.Send(msgImport, true)
-	resp, _ := wallet.client.Wait(msgImport)
-	importedAcc := resp.GetData().(*types.WalletAccount)
+	resp, _ := wallet.GetAPI().ExecWalletFunc("wallet", "WalletImportPrivkey", privKey)
+	importedAcc := resp.(*types.WalletAccount)
 	if importedAcc.Label != "ImportPrivKey-Label" || importedAcc.Acc.Addr != address.PubKeyToAddress(priv.PubKey().Bytes()).String() {
 		t.Error("testProcImportPrivKey failed")
 		return
@@ -417,19 +412,14 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	privKey.Label = "ImportPrivKey-Label-hyb"
 	walletlog.Info("TestProcImportPrivKey", "Privkey", privKey.Privkey, "Label", privKey.Label)
 
-	msgImport = wallet.client.NewMessage("wallet", types.EventWalletImportPrivkey, privKey)
-	wallet.client.Send(msgImport, true)
-	wallet.client.Wait(msgImport)
+	wallet.GetAPI().ExecWalletFunc("wallet", "WalletImportPrivkey", privKey)
 
 	addr := &types.ReqString{Data: address.PubKeyToAddress(priv.PubKey().Bytes()).String()}
-	msgDump := wallet.client.NewMessage("wallet", types.EventDumpPrivkey, &types.ReqString{Data: "wrongaddr"})
-	wallet.client.Send(msgDump, true)
-	_, err = wallet.client.Wait(msgDump)
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "DumpPrivkey", &types.ReqString{Data: "wrongaddr"})
 	assert.Equal(t, err.Error(), types.ErrAddrNotExist.Error())
-	msgDump = wallet.client.NewMessage("wallet", types.EventDumpPrivkey, addr)
-	wallet.client.Send(msgDump, true)
-	resp, _ = wallet.client.Wait(msgDump)
-	if resp.GetData().(*types.ReplyString).Data != common.ToHex(priv.Bytes()) {
+
+	resp, _ = wallet.GetAPI().ExecWalletFunc("wallet", "DumpPrivkey", addr)
+	if resp.(*types.ReplyString).Data != common.ToHex(priv.Bytes()) {
 		t.Error("testDumpPrivKey failed")
 	}
 
@@ -462,11 +452,9 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 		Direction: 0,
 		FromTx:    []byte(""),
 	}
-	msg := wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "WalletTransactionList", txList)
 	require.NoError(t, err)
-	walletTxDetails := resp.GetData().(*types.WalletTxDetails)
+	walletTxDetails := resp.(*types.WalletTxDetails)
 
 	var FromTxstr string
 	index := make([]int64, 3)
@@ -495,11 +483,9 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	txList.FromTx = []byte(FromTxstr)
 
 	println("TestProcWalletTxList dir next-------")
-	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
-	wallet.client.Send(msg, true)
-	resp, err = wallet.client.Wait(msg)
+	resp, err = wallet.GetAPI().ExecWalletFunc("wallet", "WalletTransactionList", txList)
 	require.NoError(t, err)
-	walletTxDetails = resp.GetData().(*types.WalletTxDetails)
+	walletTxDetails = resp.(*types.WalletTxDetails)
 	if len(walletTxDetails.TxDetails) != 2 {
 		t.Error("testProcWalletTxList failed")
 	}
@@ -509,11 +495,9 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 
 	println("TestProcWalletTxList dir prv------")
 	txList.Direction = 0
-	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
-	wallet.client.Send(msg, true)
-	resp, err = wallet.client.Wait(msg)
+	resp, err = wallet.GetAPI().ExecWalletFunc("wallet", "WalletTransactionList", txList)
 	require.NoError(t, err)
-	walletTxDetails = resp.GetData().(*types.WalletTxDetails)
+	walletTxDetails = resp.(*types.WalletTxDetails)
 	if len(walletTxDetails.TxDetails) != 2 {
 		t.Error("testProcWalletTxList failed")
 	}
@@ -527,11 +511,9 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 		Direction: 1,
 		FromTx:    []byte(""),
 	}
-	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
-	wallet.client.Send(msg, true)
-	resp, err = wallet.client.Wait(msg)
+	resp, err = wallet.GetAPI().ExecWalletFunc("wallet", "WalletTransactionList", txList)
 	require.NoError(t, err)
-	walletTxDetails = resp.GetData().(*types.WalletTxDetails)
+	walletTxDetails = resp.(*types.WalletTxDetails)
 
 	if len(walletTxDetails.TxDetails) != 3 {
 		t.Error("testProcWalletTxList failed")
@@ -551,9 +533,7 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 
 	//count 大于1000个报错
 	txList.Count = 1001
-	msg = wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
-	wallet.client.Send(msg, true)
-	resp, err = wallet.client.Wait(msg)
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "WalletTransactionList", txList)
 	assert.Equal(t, err, types.ErrMaxCountPerTime)
 
 	//入参测试

@@ -236,42 +236,6 @@ func (q *QueueProtocol) GetMempool(req *types.ReqGetMempool) (*types.ReplyTxList
 	return nil, types.ErrTypeAsset
 }
 
-// WalletTransactionList get transactions from wallet
-func (q *QueueProtocol) WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("WalletTransactionList", "Error", err)
-		return nil, err
-	}
-	msg, err := q.send(walletKey, types.EventWalletTransactionList, param)
-	if err != nil {
-		log.Error("WalletTransactionList", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.WalletTxDetails); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-// WalletImportprivkey import privkey in wallet
-func (q *QueueProtocol) WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("WalletImportprivkey", "Error", err)
-		return nil, err
-	}
-	msg, err := q.send(walletKey, types.EventWalletImportPrivkey, param)
-	if err != nil {
-		log.Error("WalletImportprivkey", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.WalletAccount); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 // WalletSendToAddress req send to address
 func (q *QueueProtocol) WalletSendToAddress(param *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
 	if param == nil {
@@ -635,24 +599,6 @@ func (q *QueueProtocol) ExecWallet(param *types.ChainExecutor) (types.Message, e
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(types.Message); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-// DumpPrivkey dump privkey by wallet
-func (q *QueueProtocol) DumpPrivkey(param *types.ReqString) (*types.ReplyString, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("DumpPrivkey", "Error", err)
-		return nil, err
-	}
-	msg, err := q.send(walletKey, types.EventDumpPrivkey, param)
-	if err != nil {
-		log.Error("DumpPrivkey", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.ReplyString); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset

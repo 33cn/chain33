@@ -59,10 +59,6 @@ type QueueProtocolAPI interface {
 	LocalSet(param *types.LocalDBSet) error
 	// types.EventLocalList
 	LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error)
-	// types.EventWalletTransactionList
-	WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error)
-	// types.EventWalletImportprivkey
-	WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error)
 	// types.EventWalletSendToAddress
 	WalletSendToAddress(param *types.ReqWalletSendToAddress) (*types.ReplyHash, error)
 	// types.EventWalletSetFee
@@ -85,8 +81,6 @@ type QueueProtocolAPI interface {
 	GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error)
 	// types.EventGetWalletStatus
 	GetWalletStatus() (*types.WalletStatus, error)
-	// types.EventDumpPrivkey
-	DumpPrivkey(param *types.ReqString) (*types.ReplyString, error)
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)

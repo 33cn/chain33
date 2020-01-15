@@ -261,11 +261,11 @@ func newWalletRealize(qAPI client.QueueProtocolAPI) {
 	}
 	for i, priv := range util.TestPrivkeyHex {
 		privkey := &types.ReqWalletImportPrivkey{Privkey: priv, Label: fmt.Sprintf("label%d", i)}
-		acc, err := qAPI.WalletImportprivkey(privkey)
+		acc, err := qAPI.ExecWalletFunc("wallet", "WalletImportPrivkey", privkey)
 		if err != nil {
 			panic(err)
 		}
-		lognode.Info("import", "index", i, "addr", acc.Acc.Addr)
+		lognode.Info("import", "index", i, "addr", acc.(*types.WalletAccount).Acc.Addr)
 	}
 	req := &types.ReqAccountList{WithoutBalance: true}
 	_, err = qAPI.ExecWalletFunc("wallet", "WalletGetAccountList", req)

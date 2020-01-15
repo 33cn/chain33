@@ -65,29 +65,6 @@ func (_m *QueueProtocolAPI) CloseQueue() (*types.Reply, error) {
 	return r0, r1
 }
 
-// DumpPrivkey provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) DumpPrivkey(param *types.ReqString) (*types.ReplyString, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplyString
-	if rf, ok := ret.Get(0).(func(*types.ReqString) *types.ReplyString); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyString)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqString) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // ExecWallet provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) ExecWallet(param *types.ChainExecutor) (types.Message, error) {
 	ret := _m.Called(param)
@@ -1455,29 +1432,6 @@ func (_m *QueueProtocolAPI) Version() (*types.VersionInfo, error) {
 	return r0, r1
 }
 
-// WalletImportprivkey provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.WalletAccount
-	if rf, ok := ret.Get(0).(func(*types.ReqWalletImportPrivkey) *types.WalletAccount); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.WalletAccount)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqWalletImportPrivkey) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // WalletLock provides a mock function with given fields:
 func (_m *QueueProtocolAPI) WalletLock() (*types.Reply, error) {
 	ret := _m.Called()
@@ -1608,29 +1562,6 @@ func (_m *QueueProtocolAPI) WalletSetPasswd(param *types.ReqWalletSetPasswd) (*t
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.ReqWalletSetPasswd) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// WalletTransactionList provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.WalletTxDetails
-	if rf, ok := ret.Get(0).(func(*types.ReqWalletTransactionList) *types.WalletTxDetails); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.WalletTxDetails)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqWalletTransactionList) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)

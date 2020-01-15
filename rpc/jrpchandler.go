@@ -400,7 +400,15 @@ func (c *Chain33) GetAccounts(in *types.ReqAccountList, result *interface{}) err
 	if err != nil {
 		return err
 	}
-	accounts := reply.(*types.WalletAccounts)
+
+	accountsList := reply.(*types.WalletAccounts)
+	var accounts rpctypes.WalletAccounts
+	for _, wallet := range accountsList.Wallets {
+		accounts.Wallets = append(accounts.Wallets, &rpctypes.WalletAccount{Label: wallet.GetLabel(),
+			Acc: &rpctypes.Account{Currency: wallet.GetAcc().GetCurrency(), Balance: wallet.GetAcc().GetBalance(),
+				Frozen: wallet.GetAcc().GetFrozen(), Addr: wallet.GetAcc().GetAddr()}})
+	}
+
 	*result = &accounts
 	return nil
 }
@@ -422,13 +430,13 @@ func (c *Chain33) WalletTxList(in rpctypes.ReqWalletTransactionList, result *int
 	parm.FromTx = []byte(in.FromTx)
 	parm.Count = in.Count
 	parm.Direction = in.Direction
-	reply, err := c.cli.WalletTransactionList(&parm)
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletTransactionList", &parm)
 	if err != nil {
 		return err
 	}
 	{
 		var txdetails rpctypes.WalletTxDetails
-		err := rpctypes.ConvertWalletTxDetailToJSON(reply, &txdetails)
+		err := rpctypes.ConvertWalletTxDetailToJSON(reply.(*types.WalletTxDetails), &txdetails)
 		if err != nil {
 			return err
 		}
@@ -439,7 +447,7 @@ func (c *Chain33) WalletTxList(in rpctypes.ReqWalletTransactionList, result *int
 
 // ImportPrivkey import privkey of wallet
 func (c *Chain33) ImportPrivkey(in types.ReqWalletImportPrivkey, result *interface{}) error {
-	reply, err := c.cli.WalletImportprivkey(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletImportPrivkey", &in)
 	if err != nil {
 		return err
 	}
@@ -872,11 +880,10 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 
 // DumpPrivkey dump privkey
 func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
-	reply, err := c.cli.DumpPrivkey(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "DumpPrivkey", &in)
 	if err != nil {
 		return err
 	}
-
 	*result = reply
 	return nil
 }

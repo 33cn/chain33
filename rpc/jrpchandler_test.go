@@ -672,7 +672,7 @@ func TestChain33_GetAccountsV2(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
-	api.On("WalletGetAccountList", mock.Anything).Return(&types.WalletAccounts{Wallets: []*types.WalletAccount{{}}}, nil)
+	api.On("ExecWalletFunc", "wallet", "WalletGetAccountList", mock.Anything).Return(&types.WalletAccounts{Wallets: []*types.WalletAccount{{}}}, nil)
 	var testResult interface{}
 	err := testChain33.GetAccountsV2(nil, &testResult)
 	t.Log(err)
@@ -686,7 +686,7 @@ func TestChain33_GetAccounts(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
-	api.On("WalletGetAccountList", mock.Anything).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "WalletGetAccountList", mock.Anything).Return(nil, errors.New("error value"))
 	var testResult interface{}
 	data := &types.ReqAccountList{}
 	err := testChain33.GetAccounts(data, &testResult)
@@ -703,7 +703,8 @@ func TestChain33_NewAccount(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
-	api.On("NewAccount", &types.ReqNewAccount{}).Return(nil, errors.New("error value"))
+	//	api.On("NewAccount", &types.ReqNewAccount{}).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "NewAccount", &types.ReqNewAccount{}).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	err := testChain33.NewAccount(types.ReqNewAccount{}, &testResult)
@@ -721,7 +722,7 @@ func TestChain33_WalletTxList(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletTransactionList{FromTx: []byte("")}
-	api.On("WalletTransactionList", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "WalletTransactionList", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := rpctypes.ReqWalletTransactionList{}
@@ -740,7 +741,7 @@ func TestChain33_ImportPrivkey(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletImportPrivkey{}
-	api.On("WalletImportprivkey", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "WalletImportPrivkey", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.ReqWalletImportPrivkey{}
@@ -1481,7 +1482,7 @@ func TestChain33_DumpPrivkey(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	api.On("DumpPrivkey", mock.Anything).Return(nil, nil)
+	api.On("ExecWalletFunc", "wallet", "DumpPrivkey", mock.Anything).Return(nil, nil)
 	err := client.DumpPrivkey(types.ReqString{}, &testResult)
 	assert.NoError(t, err)
 }

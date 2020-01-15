@@ -19,26 +19,6 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 		client.Sub(walletKey)
 		for msg := range client.Recv() {
 			switch msg.Ty {
-			case types.EventWalletTransactionList:
-				if req, ok := msg.GetData().(*types.ReqWalletTransactionList); ok {
-					if req.Direction == 1 {
-						msg.Reply(client.NewMessage(walletKey, types.EventTransactionDetails, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventTransactionDetails, &types.WalletTxDetails{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventWalletImportPrivkey:
-				if req, ok := msg.GetData().(*types.ReqWalletImportPrivkey); ok {
-					if req.Label == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.WalletAccount{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
 			case types.EventWalletSendToAddress:
 				if req, ok := msg.GetData().(*types.ReqWalletSendToAddress); ok {
 					if req.Note == "case1" {
@@ -133,16 +113,6 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventGetWalletStatus:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyWalletStatus, &types.WalletStatus{IsWalletLock: true, IsAutoMining: false, IsHasSeed: true, IsTicketLock: false}))
-			case types.EventDumpPrivkey:
-				if req, ok := msg.GetData().(*types.ReqString); ok {
-					if req.Data == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivkey, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivkey, &types.ReplyString{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
 			case types.EventCloseTickets:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHashes{}))
 			case types.EventLocalGet:
