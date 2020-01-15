@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/types"
 )
 
 //ListHelper ...
@@ -46,8 +47,8 @@ const (
 	// 000， <- 位从低位开始数
 	// 0位：direction  ListDESC ListASC
 	// 1位：next key， 目前是一个特殊用途， 因为其他的都是返回value， 这个模式同时返回key， value。 不和其他位组合
-	// 2位: 返回时，返回 key value， 不指定 只返回value
-	// 3位: 返回时，返回 key， 不指定 只返回value. 和 2位不可以同时设置为1
+	// 2位: 为1返回时，返回 key+value，默认只返回value. 返回的是 types.Encode(types.KeyValue)
+	// 3位: 为1返回时，返回 key， 默认只返回value. 和 2位不可以同时设置为1
 	ListDESC    = int32(0) // 0
 	ListASC     = int32(1) // 1
 	ListSeek    = int32(2) // 10
@@ -246,7 +247,9 @@ func (c *collector) collect(it Iterator) {
 	if c.direction&ListKeyOnly != 0 {
 		c.results = append(c.results, cloneByte(it.Key()))
 	} else if c.direction&ListWithKey != 0 {
-		c.results = append(c.results, cloneByte(it.Key()), cloneByte(it.Value()))
+		v := types.KeyValue{Key: cloneByte(it.Key()), Value: cloneByte(it.Value())}
+		c.results = append(c.results, types.Encode(&v))
+		// c.results = append(c.results, Key: cloneByte(it.Key()), Value: cloneByte(it.Value()))
 	}
 	c.results = append(c.results, cloneByte(it.Value()))
 }
