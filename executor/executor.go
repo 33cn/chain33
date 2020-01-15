@@ -131,7 +131,7 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 func (exec *Executor) procUpgrade(msg *queue.Message) {
 	for _, plugin := range pluginmgr.GetExecList() {
 		elog.Info("begin upgrade plugin ", "name", plugin)
-		err := exec.upgradePlugin(msg, plugin)
+		err := exec.upgradePlugin(plugin)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
 			panic(err)
@@ -143,7 +143,7 @@ func (exec *Executor) procUpgrade(msg *queue.Message) {
 	}))
 }
 
-func (exec *Executor) upgradePlugin(msg *queue.Message, plugin string) error {
+func (exec *Executor) upgradePlugin(plugin string) error {
 	header, err := exec.qclient.GetLastHeader()
 	if err != nil {
 		return err
