@@ -159,7 +159,6 @@ func (g *Grpc) GetAccounts(ctx context.Context, in *pb.ReqNil) (*pb.WalletAccoun
 	if err != nil {
 		return nil, err
 	}
-	// types.Reply
 	return reply.(*pb.WalletAccounts), nil
 }
 
