@@ -132,7 +132,11 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 			case types.EventFatalFailure:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyFatalFailure, &types.Int32{}))
 			case types.EventWalletExecutor:
-				msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
+				if msg.GetData().(*types.ChainExecutor).FuncName == "WalletGetAccountList" {
+					msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletAccounts{}))
+				} else {
+					msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
+				}
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
