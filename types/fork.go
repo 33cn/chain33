@@ -145,7 +145,7 @@ func (f *Forks) SetPos33NetFork() {
 	f.SetFork("ForkChainParamV1", 0)
 	f.SetFork("ForkChainParamV2", 0)
 	f.SetFork("ForkCheckTxDup", 0)
-	f.SetFork("ForkBlockHash", 0)
+	f.SetFork("ForkBlockHash", MaxHeight)
 	f.SetFork("ForkMinerTime", 0)
 	f.SetFork("ForkTransferExec", 0)
 	f.SetFork("ForkExecKey", 0)
