@@ -37,7 +37,7 @@ func (p *Peer) Close() {
 
 // Peer object information
 type Peer struct {
-	mutx         sync.Mutex
+	mutex        sync.RWMutex
 	node         *Node
 	conn         *grpc.ClientConn // source connection
 	persistent   bool
@@ -386,8 +386,8 @@ func (p *Peer) IsPersistent() bool {
 
 // SetPeerName set name of peer
 func (p *Peer) SetPeerName(name string) {
-	p.mutx.Lock()
-	defer p.mutx.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	if name == "" {
 		return
 	}
@@ -396,7 +396,7 @@ func (p *Peer) SetPeerName(name string) {
 
 // GetPeerName get name of peer
 func (p *Peer) GetPeerName() string {
-	p.mutx.Lock()
-	defer p.mutx.Unlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 	return p.name
 }
