@@ -57,6 +57,10 @@ func New(cfg *types.Chain33Config) *P2p {
 		mcfg.MaxTTL = DefaultMaxTxBroadCastTTL
 	}
 
+	if mcfg.MinLtBlockTxNum < DefaultMinLtBlockTxNum {
+		mcfg.MinLtBlockTxNum = DefaultMinLtBlockTxNum
+	}
+
 	log.Info("p2p", "Channel", mcfg.Channel, "Version", VERSION, "IsTest", cfg.IsTestNet())
 	if mcfg.InnerBounds == 0 {
 		mcfg.InnerBounds = 500
