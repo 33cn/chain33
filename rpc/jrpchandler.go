@@ -390,7 +390,8 @@ func (c *Chain33) GetAccountsV2(in *types.ReqNil, result *interface{}) error {
 
 // GetAccounts get accounts
 func (c *Chain33) GetAccounts(in *types.ReqAccountList, result *interface{}) error {
-	reply, err := c.cli.ExecWalletFunc("wallet", "WalletGetAccountList", in)
+	req := types.ReqAccountList{WithoutBalance: in.WithoutBalance}
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletGetAccountList", &req)
 	if err != nil {
 		return err
 	}
