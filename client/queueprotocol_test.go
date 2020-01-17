@@ -1002,7 +1002,6 @@ func TestGRPC(t *testing.T) {
 	testGetParaTxByTitleGRPC(t, &grpcMock)
 	testLoadParaTxByTitleGRPC(t, &grpcMock)
 	testGetParaTxByHeightGRPC(t, &grpcMock)
-
 }
 
 func testNetInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
