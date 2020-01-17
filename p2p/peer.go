@@ -50,7 +50,6 @@ type Peer struct {
 	taskChan     chan interface{} //tx block
 	inBounds     int32            //连接此节点的客户端节点数量
 	IsMaxInbouds bool
-	isRegister   bool //标记是否发送服务端注册peer info, 规避6.2版本no peer info问题, TODO: 全网升级到6.3后, 可删除相关代码
 }
 
 // NewPeer produce a peer object
