@@ -146,8 +146,8 @@ func (na *NetAddress) DialTimeout(version int32) (*grpc.ClientConn, error) {
 	ch <- P2pComm.GrpcConfig()
 
 	var cliparm keepalive.ClientParameters
-	cliparm.Time = 10 * time.Second    //10秒Ping 一次
-	cliparm.Timeout = 10 * time.Second //等待10秒，如果Ping 没有响应，则超时
+	cliparm.Time = 15 * time.Second    //keepalive ping 周期
+	cliparm.Timeout = 10 * time.Second //ping后的获取ack消息超时时间
 	cliparm.PermitWithoutStream = true //启动keepalive 进行检查
 	keepaliveOp := grpc.WithKeepaliveParams(cliparm)
 	timeoutOp := grpc.WithTimeout(time.Second * 3)
