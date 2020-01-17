@@ -64,6 +64,7 @@ const (
 const (
 	DefaultLtTxBroadCastTTL  = 3
 	DefaultMaxTxBroadCastTTL = 25
+	DefaultMinLtBlockTxNum   = 2
 )
 
 // P2pCacheTxSize p2pcache size of transaction
