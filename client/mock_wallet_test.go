@@ -134,6 +134,14 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 			case types.EventWalletExecutor:
 				if msg.GetData().(*types.ChainExecutor).FuncName == "WalletGetAccountList" {
 					msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletAccounts{}))
+				} else if msg.GetData().(*types.ChainExecutor).FuncName == "NewAccount" {
+					msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletAccount{}))
+				} else if msg.GetData().(*types.ChainExecutor).FuncName == "WalletTransactionList" {
+					msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletTxDetails{}))
+				} else if msg.GetData().(*types.ChainExecutor).FuncName == "WalletImportPrivkey" {
+					msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletAccount{}))
+				} else if msg.GetData().(*types.ChainExecutor).FuncName == "DumpPrivkey" {
+					msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.ReplyString{}))
 				} else {
 					msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
 				}
