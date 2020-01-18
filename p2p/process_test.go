@@ -38,7 +38,7 @@ func Test_processP2P(t *testing.T) {
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 4600, Expire: 2}
 	tx1 := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 460000000, Expire: 0}
 	tx2 := &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 100, Expire: 1}
-	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, cfg.GInt("MinFee"))
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, cfg.GetMinTxFeeRate())
 	gtx := txGroup.Tx()
 	txList := append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
 	memTxList := append([]*types.Transaction{}, tx, gtx)
@@ -50,7 +50,7 @@ func Test_processP2P(t *testing.T) {
 	}
 	txHash := hex.EncodeToString(tx.Hash())
 	blockHash := hex.EncodeToString(block.Hash(cfg))
-	rootHash := merkle.CalcMerkleRoot(txList)
+	rootHash := merkle.CalcMerkleRoot(cfg, block.Height, txList)
 
 	//mempool handler
 	go func() {
@@ -119,7 +119,7 @@ func Test_processP2P(t *testing.T) {
 		for !ltBlockCache.contains(blockHash) {
 		}
 		cpBlock := *ltBlockCache.get(blockHash).(*types.Block)
-		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(cpBlock.Txs)))
+		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(cfg, cpBlock.Height, cpBlock.Txs)))
 
 		//query tx
 		sendChan <- &versionData{rawData: &types.P2PQueryData{Value: &types.P2PQueryData_TxReq{TxReq: &types.P2PTxReq{TxHash: tx.Hash()}}}}

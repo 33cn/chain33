@@ -69,7 +69,8 @@ grpcFuncWhitelist=["*"]
 [mempool]
 name="timeline"
 poolCacheSize=102400
-minTxFee=100000
+# 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
+minTxFeeRate=100000
 maxTxNumPerAccount=100000
 
 [consensus]
@@ -167,8 +168,6 @@ minerdisable=false
 minerwhitelist=["*"]
 
 [exec]
-isFree=false
-minExecFee=100000
 enableStat=false
 enableMVCC=false
 alias=["token1:token","token2:token","token3:token"]

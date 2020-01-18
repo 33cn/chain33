@@ -111,12 +111,12 @@ function start() {
     ${CLI} block last_header
     ${CLI} net info
 
-    ${CLI} net peer_info
-    peersCount=$(${CLI} net peer_info | jq '.[] | length')
+    ${CLI} net peer
+    peersCount=$(${CLI} net peer | jq '.[] | length')
     echo "${peersCount}"
     if [ "${peersCount}" -lt 2 ]; then
         sleep 20
-        peersCount=$(${CLI} net peer_info | jq '.[] | length')
+        peersCount=$(${CLI} net peer | jq '.[] | length')
         echo "${peersCount}"
         if [ "${peersCount}" -lt 2 ]; then
             echo "peers error"
@@ -738,7 +738,7 @@ function peersCount() {
     needCount=$3
 
     for ((i = 0; i < time; i++)); do
-        peersCount=$($name net peer_info | jq '.[] | length')
+        peersCount=$($name net peer | jq '.[] | length')
         printf '查询节点 %s ,所需节点数 %d ,当前节点数 %s \n' "${name}" "${needCount}" "${peersCount}"
         if [ "${peersCount}" = "$needCount" ]; then
             echo "============= 符合节点数要求 ============="
@@ -795,7 +795,7 @@ function checkBlockHashfun() {
             fi
         fi
         peersCount=0
-        peersCount=$(${forkContainers[0]} net peer_info | jq '.[] | length')
+        peersCount=$(${forkContainers[0]} net peer | jq '.[] | length')
         printf '第 %d 次，未查询到网络同步，当前节点数 %d 个，100s后查询\n' $j "${peersCount}"
         sleep 100
         #检查是否超过了最大检测次数

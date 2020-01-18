@@ -14,7 +14,7 @@ var (
 	LocalDBMeta      = []byte("LocalDBMeta")
 	StoreDBMeta      = []byte("StoreDBMeta")
 	MavlTreeVerKey   = []byte("MavlTreeVerKey")
-	localversion     = "1.0.0"
+	localversion     = "2.0.0"
 	storeversion     = "1.0.0"
 	appversion       = "1.0.0"
 	GitCommit        string

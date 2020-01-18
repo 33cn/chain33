@@ -8,7 +8,6 @@ Package blockchain 实现区块链模块，包含区块链存储
 package blockchain
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -38,8 +37,9 @@ type BlockChain struct {
 	client queue.Client
 	cache  *BlockCache
 	// 永久存储数据到db中
-	blockStore *BlockStore
-	pushseq    *pushseq
+	blockStore  *BlockStore
+	pushseq     *pushseq
+	pushservice *PushService1
 	//cache  缓存block方便快速查询
 	cfg          *types.BlockChain
 	syncTask     *Task
@@ -57,6 +57,7 @@ type BlockChain struct {
 	peerList PeerInfoList
 	recvwg   *sync.WaitGroup
 	tickerwg *sync.WaitGroup
+	reducewg *sync.WaitGroup
 
 	synblock            chan struct{}
 	quit                chan struct{}
@@ -141,6 +142,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		cfg:                mcfg,
 		recvwg:             &sync.WaitGroup{},
 		tickerwg:           &sync.WaitGroup{},
+		reducewg:           &sync.WaitGroup{},
 
 		syncTask:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
 		downLoadTask: newTask(300 * time.Second),
@@ -186,6 +188,7 @@ func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	chain.isRecordBlockSequence = mcfg.IsRecordBlockSequence
 	chain.isParaChain = mcfg.IsParaChain
 	cfg.S("quickIndex", mcfg.EnableTxQuickIndex)
+	cfg.S("reduceLocaldb", mcfg.EnableReduceLocaldb)
 
 	if mcfg.OnChainTimeout > 0 {
 		chain.onChainTimeout = mcfg.OnChainTimeout
@@ -214,6 +217,10 @@ func (chain *BlockChain) Close() {
 	chainlog.Info("blockchain wait for tickerwg quit")
 	chain.tickerwg.Wait()
 
+	//wait for reducewg quit:
+	chainlog.Info("blockchain wait for reducewg quit")
+	chain.reducewg.Wait()
+
 	//关闭数据库
 	chain.blockStore.db.Close()
 	chainlog.Info("blockchain module closed")
@@ -229,7 +236,9 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
-	chain.pushseq = newpushseq(chain.blockStore)
+
+	chain.pushservice = newPushService(chain.blockStore, chain.blockStore)
+	chain.pushseq = newpushseq(chain.blockStore, chain.pushservice.pushStore)
 	//startTime
 	chain.startTime = types.Now()
 
@@ -283,7 +292,8 @@ func (chain *BlockChain) InitBlockChain() {
 			chainlog.Error("InitIndexAndBestView SetDbVersion ", "err", err)
 		}
 	}
-	chain.client.GetConfig().S("dbversion", curdbver)
+	cfg := chain.client.GetConfig()
+	cfg.S("dbversion", curdbver)
 	if !chain.cfg.IsParaChain && chain.cfg.RollbackBlock <= 0 {
 		// 定时检测/同步block
 		go chain.SynRoutine()
@@ -310,7 +320,7 @@ func (chain *BlockChain) getStateHash() []byte {
 //SendAddBlockEvent blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
 func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
-		fmt.Println("chain client not bind message queue.")
+		chainlog.Error("SendAddBlockEvent: chain client not bind message queue.")
 		return types.ErrClientNotBindQueue
 	}
 	if block == nil {
@@ -345,7 +355,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	cfg := chain.client.GetConfig()
 	if chain.client == nil {
-		fmt.Println("chain client not bind message queue.")
+		chainlog.Error("SendBlockBroadcast: chain client not bind message queue.")
 		return
 	}
 	if block == nil {
@@ -390,7 +400,7 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 //SendDelBlockEvent blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
 func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
-		fmt.Println("chain client not bind message queue.")
+		chainlog.Error("SendDelBlockEvent: chain client not bind message queue.")
 		err := types.ErrClientNotBindQueue
 		return err
 	}
@@ -465,8 +475,12 @@ func (chain *BlockChain) InitIndexAndBestView() {
 	for ; height <= curheight; height++ {
 		header, err := chain.blockStore.GetBlockHeaderByHeight(height)
 		if header == nil {
-			chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
-			panic("InitIndexAndBestView fail!")
+			//开始升级localdb到2.0.0版本时需要兼容旧的存储方式
+			header, err = chain.blockStore.getBlockHeaderByHeightOld(height)
+			if header == nil {
+				chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
+				panic("InitIndexAndBestView fail!")
+			}
 		}
 
 		newNode := newBlockNodeByHeader(false, header, "self", -1)

@@ -5,11 +5,11 @@
 package rpc
 
 import (
-	"encoding/hex"
 	"time"
 
 	"strings"
 
+	"github.com/33cn/chain33/common"
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 )
@@ -26,7 +26,7 @@ func (g *Grpc) CreateNoBalanceTxs(ctx context.Context, in *pb.NoBalanceTxs) (*pb
 		return nil, err
 	}
 	tx := pb.Encode(reply)
-	return &pb.ReplySignRawTx{TxHex: hex.EncodeToString(tx)}, nil
+	return &pb.ReplySignRawTx{TxHex: common.ToHex(tx)}, nil
 }
 
 // CreateNoBalanceTransaction create transaction with no balance
@@ -42,7 +42,7 @@ func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceT
 		return nil, err
 	}
 	tx := pb.Encode(reply)
-	return &pb.ReplySignRawTx{TxHex: hex.EncodeToString(tx)}, nil
+	return &pb.ReplySignRawTx{TxHex: common.ToHex(tx)}, nil
 }
 
 // CreateRawTransaction create rawtransaction of grpc
@@ -139,7 +139,7 @@ func (g *Grpc) GetHexTxByHash(ctx context.Context, in *pb.ReqHash) (*pb.HexTx, e
 	if tx == nil {
 		return &pb.HexTx{}, nil
 	}
-	return &pb.HexTx{Tx: hex.EncodeToString(pb.Encode(reply.GetTx()))}, nil
+	return &pb.HexTx{Tx: common.ToHex(pb.Encode(reply.GetTx()))}, nil
 }
 
 // GetTransactionByHashes get transaction by hashes
@@ -410,4 +410,14 @@ func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
 // GetParaTxByTitle 通过seq以及title获取对应平行连的交易
 func (g *Grpc) GetParaTxByTitle(ctx context.Context, in *pb.ReqParaTxByTitle) (*pb.ParaTxDetails, error) {
 	return g.cli.GetParaTxByTitle(in)
+}
+
+// LoadParaTxByTitle //获取拥有此title交易的区块高度
+func (g *Grpc) LoadParaTxByTitle(ctx context.Context, in *pb.ReqHeightByTitle) (*pb.ReplyHeightByTitle, error) {
+	return g.cli.LoadParaTxByTitle(in)
+}
+
+// GetParaTxByHeight //通过区块高度列表+title获取平行链交易
+func (g *Grpc) GetParaTxByHeight(ctx context.Context, in *pb.ReqParaTxByHeight) (*pb.ParaTxDetails, error) {
+	return g.cli.GetParaTxByHeight(in)
 }

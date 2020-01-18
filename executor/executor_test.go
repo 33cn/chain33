@@ -7,6 +7,7 @@ package executor
 import (
 	"encoding/hex"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -50,7 +51,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.Coin))
 	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.Coin))
 	//执行三笔交易: 全部正确
-	txgroup, err := types.CreateTxGroup(txs, cfg.GInt("MinFee"))
+	txgroup, err := types.CreateTxGroup(txs, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return
@@ -186,11 +187,16 @@ func TestKeyLocalAllow(t *testing.T) {
 }
 
 func init() {
-	types.AllowUserExec = append(types.AllowUserExec, []byte("demo"))
+	types.AllowUserExec = append(types.AllowUserExec, []byte("demo"), []byte("demof"))
 }
 
+var testRegOnce sync.Once
+
 func Register(cfg *types.Chain33Config) {
-	drivers.Register(cfg, "demo", newdemoApp, 1)
+	testRegOnce.Do(func() {
+		drivers.Register(cfg, "demo", newdemoApp, 1)
+		drivers.Register(cfg, "demof", newdemofApp, 1)
+	})
 }
 
 //ErrEnvAPI 测试
@@ -212,11 +218,40 @@ func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	return nil, queue.ErrQueueTimeout
 }
 
+func (demo *demoApp) Upgrade() (err error) {
+	db := demo.GetLocalDB()
+	db.Set([]byte("LODB-demo-a"), []byte("t1"))
+	db.Set([]byte("LODB-demo-b"), []byte("t2"))
+	return nil
+}
+
+type demofApp struct {
+	*drivers.DriverBase
+}
+
+func newdemofApp() drivers.Driver {
+	demo := &demofApp{DriverBase: &drivers.DriverBase{}}
+	demo.SetChild(demo)
+	return demo
+}
+
+func (demo *demofApp) GetDriverName() string {
+	return "demof"
+}
+
+func (demo *demofApp) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
+	return nil, queue.ErrQueueTimeout
+}
+
+func (demo *demofApp) Upgrade() (err error) {
+	return types.ErrInvalidParam
+}
+
 func TestExecutorErrAPIEnv(t *testing.T) {
 	exec, q := initEnv(types.GetDefaultCfgstring())
 	exec.disableLocal = true
 	cfg := exec.client.GetConfig()
-	cfg.S("MinFee", 0)
+	cfg.SetMinFee(0)
 	Register(cfg)
 	execInit(cfg)
 
@@ -272,4 +307,43 @@ func TestCheckTx(t *testing.T) {
 	execute := newExecutor(ctx, exec, nil, txs, nil)
 	err := execute.execCheckTx(tx, 0)
 	assert.Equal(t, err, types.ErrNoBalance)
+}
+
+func TestExecutorUpgradeMsg(t *testing.T) {
+	exec, q := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	cfg.SetMinFee(0)
+	Register(cfg)
+	execInit(cfg)
+
+	exec.SetQueueClient(q.Client())
+	client := q.Client()
+	msg := client.NewMessage("execs", types.EventUpgrade, nil)
+	err := client.Send(msg, true)
+	assert.Nil(t, err)
+}
+
+func TestExecutorPluginUpgrade(t *testing.T) {
+	exec, q := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	cfg.SetMinFee(0)
+	Register(cfg)
+	execInit(cfg)
+
+	go func() {
+		client := q.Client()
+		client.Sub("blockchain")
+		for msg := range client.Recv() {
+			if msg.Ty == types.EventLocalNew {
+				msg.Reply(client.NewMessage("", types.EventHeader, &types.Int64{Data: 100}))
+			} else {
+				msg.Reply(client.NewMessage("", types.EventHeader, &types.Header{Height: 100}))
+			}
+		}
+	}()
+
+	err := exec.upgradePlugin("demo")
+	assert.Nil(t, err)
+	err = exec.upgradePlugin("demof")
+	assert.NotNil(t, err)
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/consensus"
-
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 )
@@ -128,7 +127,11 @@ func (client *Client) CreateBlock() {
 		client.AddTxsToBlock(&newblock, txs)
 		//solo 挖矿固定难度
 		newblock.Difficulty = cfg.GetP(0).PowLimitBits
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		//需要首先对交易进行排序然后再计算TxHash
+		if cfg.IsFork(newblock.GetHeight(), "ForkRootHash") {
+			newblock.Txs = types.TransactionSort(newblock.Txs)
+		}
+		newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 		newblock.BlockTime = types.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
@@ -140,4 +143,9 @@ func (client *Client) CreateBlock() {
 			continue
 		}
 	}
+}
+
+//CmpBestBlock 比较newBlock是不是最优区块
+func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool {
+	return false
 }

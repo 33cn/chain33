@@ -131,9 +131,6 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Next:       common.ToHex(tx.Next),
 		Hash:       common.ToHex(tx.Hash()),
 	}
-	if result.Amount != 0 {
-		result.AmountFmt = strconv.FormatFloat(float64(result.Amount)/float64(types.Coin), 'f', 4, 64)
-	}
 	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
 	result.FeeFmt = feeResult
 	return result, nil

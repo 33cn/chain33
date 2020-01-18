@@ -86,8 +86,8 @@ func (f *Filterdata) isClose() bool {
 }
 
 // ManageRecvFilter manager receive filter
-func (f *Filterdata) ManageRecvFilter() {
-	ticker := time.NewTicker(time.Second * 30)
+func (f *Filterdata) ManageRecvFilter(tickTime time.Duration) {
+	ticker := time.NewTicker(tickTime)
 	var timeout int64 = 60
 	defer ticker.Stop()
 	for {

@@ -5,6 +5,9 @@
 package types
 
 import (
+	"bytes"
+	"encoding/gob"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -12,6 +15,7 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types/jsonpb"
+	proto "github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -426,4 +430,196 @@ func TestJsonpbUTF8Tx(t *testing.T) {
 	pljson, err = PBToJSONUTF8(pl)
 	assert.Nil(t, err)
 	assert.Equal(t, string(pljson), `{"transfer":{"cointoken":"","amount":"200000000","note":"1\n2\n3","to":""},"ty":1}`)
+}
+
+func TestSignatureClone(t *testing.T) {
+	s1 := &Signature{Ty: 1, Pubkey: []byte("Pubkey1"), Signature: []byte("Signature1")}
+	s2 := s1.Clone()
+	s2.Pubkey = []byte("Pubkey2")
+	assert.Equal(t, s1.Ty, s2.Ty)
+	assert.Equal(t, s1.Signature, s2.Signature)
+	assert.Equal(t, []byte("Pubkey1"), s1.Pubkey)
+	assert.Equal(t, []byte("Pubkey2"), s2.Pubkey)
+}
+
+func TestTxClone(t *testing.T) {
+	s1 := &Signature{Ty: 1, Pubkey: []byte("Pubkey1"), Signature: []byte("Signature1")}
+	tx1 := &Transaction{Execer: []byte("Execer1"), Fee: 1, Signature: s1}
+	tx2 := tx1.Clone()
+	tx2.Signature.Pubkey = []byte("Pubkey2")
+	tx2.Fee = 2
+	assert.Equal(t, tx1.Execer, tx2.Execer)
+	assert.Equal(t, int64(1), tx1.Fee)
+	assert.Equal(t, tx1.Signature.Ty, tx2.Signature.Ty)
+	assert.Equal(t, []byte("Pubkey1"), tx1.Signature.Pubkey)
+	assert.Equal(t, []byte("Pubkey2"), tx2.Signature.Pubkey)
+
+	tx2.Signature = nil
+	assert.NotNil(t, tx1.Signature)
+	assert.Nil(t, tx2.Signature)
+}
+
+func TestBlockClone(t *testing.T) {
+	b1 := getTestBlockDetail()
+	b2 := b1.Clone()
+
+	b2.Block.Signature.Ty = 22
+	assert.NotEqual(t, b1.Block.Signature.Ty, b2.Block.Signature.Ty)
+	assert.Equal(t, b1.Block.Signature.Signature, b2.Block.Signature.Signature)
+
+	b2.Block.Txs[1].Execer = []byte("E22")
+	assert.NotEqual(t, b1.Block.Txs[1].Execer, b2.Block.Txs[1].Execer)
+	assert.Equal(t, b1.Block.Txs[1].Fee, b2.Block.Txs[1].Fee)
+
+	b2.KV[1].Key = []byte("key22")
+	assert.NotEqual(t, b1.KV[1].Key, b2.KV[1].Key)
+	assert.Equal(t, b1.KV[1].Value, b2.KV[1].Value)
+
+	b2.Receipts[1].Ty = 22
+	assert.NotEqual(t, b1.Receipts[1].Ty, b2.Receipts[1].Ty)
+	assert.Equal(t, b1.Receipts[1].Logs, b2.Receipts[1].Logs)
+
+	b2.Block.Txs[0] = nil
+	assert.NotNil(t, b1.Block.Txs[0])
+}
+
+func TestBlockBody(t *testing.T) {
+	detail := getTestBlockDetail()
+	b1 := BlockBody{
+		Txs:        detail.Block.Txs,
+		Receipts:   detail.Receipts,
+		MainHash:   []byte("MainHash1"),
+		MainHeight: 1,
+		Hash:       []byte("Hash"),
+		Height:     1,
+	}
+	b2 := b1.Clone()
+
+	b2.Txs[1].Execer = []byte("E22")
+	assert.NotEqual(t, b1.Txs[1].Execer, b2.Txs[1].Execer)
+	assert.Equal(t, b1.Txs[1].Fee, b2.Txs[1].Fee)
+
+	b2.Receipts[1].Ty = 22
+	assert.NotEqual(t, b1.Receipts[1].Ty, b2.Receipts[1].Ty)
+	assert.Equal(t, b1.Receipts[1].Logs, b2.Receipts[1].Logs)
+
+	b2.Txs[0] = nil
+	assert.NotNil(t, b1.Txs[0])
+
+	b2.MainHash = []byte("MainHash2")
+	assert.NotEqual(t, b1.MainHash, b2.MainHash)
+	assert.Equal(t, b1.Height, b2.Height)
+}
+
+func getTestBlockDetail() *BlockDetail {
+	s1 := &Signature{Ty: 1, Pubkey: []byte("Pubkey1"), Signature: []byte("Signature1")}
+	s2 := &Signature{Ty: 2, Pubkey: []byte("Pubkey2"), Signature: []byte("Signature2")}
+	tx1 := &Transaction{Execer: []byte("Execer1"), Fee: 1, Signature: s1}
+	tx2 := &Transaction{Execer: []byte("Execer2"), Fee: 2, Signature: s2}
+
+	sigBlock := &Signature{Ty: 1, Pubkey: []byte("BlockPubkey1"), Signature: []byte("BlockSignature1")}
+	block := &Block{
+		Version:    1,
+		ParentHash: []byte("ParentHash"),
+		TxHash:     []byte("TxHash"),
+		StateHash:  []byte("TxHash"),
+		Height:     1,
+		BlockTime:  1,
+		Difficulty: 1,
+		MainHash:   []byte("MainHash"),
+		MainHeight: 1,
+		Signature:  sigBlock,
+		Txs:        []*Transaction{tx1, tx2},
+	}
+	kv1 := &KeyValue{Key: []byte("key1"), Value: []byte("value1")}
+	kv2 := &KeyValue{Key: []byte("key1"), Value: []byte("value1")}
+
+	log1 := &ReceiptLog{Ty: 1, Log: []byte("log1")}
+	log2 := &ReceiptLog{Ty: 2, Log: []byte("log2")}
+	receipts := []*ReceiptData{
+		{Ty: 11, Logs: []*ReceiptLog{log1}},
+		{Ty: 12, Logs: []*ReceiptLog{log2}},
+	}
+
+	return &BlockDetail{
+		Block:          block,
+		Receipts:       receipts,
+		KV:             []*KeyValue{kv1, kv2},
+		PrevStatusHash: []byte("PrevStatusHash"),
+	}
+}
+
+// 测试数据对象复制效率
+func deepCopy(dst, src interface{}) error {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
+		return err
+	}
+	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
+}
+
+func BenchmarkDeepCody(b *testing.B) {
+	block := getRealBlockDetail()
+	if block == nil {
+		return
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var b1 *BlockDetail
+		_ = deepCopy(b1, block)
+	}
+
+}
+
+func BenchmarkProtoClone(b *testing.B) {
+	block := getRealBlockDetail()
+	if block == nil {
+		return
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = proto.Clone(block).(*BlockDetail)
+	}
+}
+
+func BenchmarkProtoMarshal(b *testing.B) {
+	block := getRealBlockDetail()
+	if block == nil {
+		return
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		x, _ := proto.Marshal(block)
+		var b BlockDetail
+		proto.Unmarshal(x, &b)
+	}
+}
+
+func BenchmarkCopyBlockDetail(b *testing.B) {
+	block := getRealBlockDetail()
+	if block == nil {
+		return
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = block.Clone()
+	}
+}
+
+func getRealBlockDetail() *BlockDetail {
+	hexBlock := "0aad071220d29ccba4a90178614c8036f962201fdf56e77b419ca570371778e129a0e0e2841a20dd690056e7719d5b5fd1ad3e76f3b4366db9f3278ca29fbe4fc523bbf756fa8a222064cdbc89fe14ae7b851a71e41bd36a82db8cd3b69f4434f6420b279fea4fd25028e90330d386c4ea053a99040a067469636b657412ed02501022e80208ffff8bf8011080cab5ee011a70313271796f6361794e46374c7636433971573461767873324537553431664b5366763a3078386434663130653666313762616533636538663764303239616263623461393839616563333333386238386662333537656165663035613265326465373930343a30303030303035363533224230783537656632356366363036613734393462626164326432666233373734316137636332346663663066653064303637363638636564306235653961363735336632206b9836b2d295ca16634ea83359342db3ab1ab5f15200993bf6a09024089b7b693a810136f5a704a427a0562653345659193a0e292f16200ce67d6a8f8af631149a904fb80f0c12f525f7ce208fbf2183f2052af6252a108bb2614db0ccf8d91d4e910a04c472f5113275fe937f68ed6b2b0b522cc5fc2594b9fec60c0b22524b828333aaa982be125ec0f69645c86de3d331b26aa84c29a06824e977ce51f76f34f0629c1a6d080112210320bbac09528e19c55b0f89cb37ab265e7e856b1a8c388780322dbbfd194b52ba1a46304402200971163de32cb6a17e925eb3fcec8a0ccc193493635ecbf52357f5365edc2c82022039d84aa7078bc51ef83536038b7fd83087bf4deb965370f211a5589d4add551720a08d063097c5abcc9db1e4a92b3a22313668747663424e53454137665a6841644c4a706844775152514a614870794854703af4010a05746f6b656e124438070a400a0879696e6865626962120541424344452080d0dbc3f4022864322231513868474c666f47653633656665576138664a34506e756b686b6e677436706f4b38011a6d08011221021afd97c3d9a47f7ead3ca34fe5a73789714318df2c608cf2c7962378dc858ecb1a4630440220316a241f19b392e685ef940dee48dc53f90fc5c8be108ceeef1d3c65f530ee5f02204c89708cc7dac408a88e9fa6ad8e723d93fc18fe114d4a416e280f5a15656b0920a08d0628ca87c4ea0530dd91be81ae9ed1882d3a22313268704a4248796268316d537943696a51324d514a506b377a376b5a376a6e516158ffff8bf80162200b97166ad507aea57a4bb6e6b9295ec082cdc670b8468a83b559dbd900ffb83068e90312e80508021a5e0802125a0a2b1080978dcaef192222313271796f6361794e46374c7636433971573461767873324537553431664b536676122b10e08987caef192222313271796f6361794e46374c7636433971573461767873324537553431664b5366761a9f010871129a010a70313271796f6361794e46374c7636433971573461767873324537553431664b5366763a3078386434663130653666313762616533636538663764303239616263623461393839616563333333386238386662333537656165663035613265326465373930343a30303030303035363533100218012222313271796f6361794e46374c7636433971573461767873324537553431664b5366761a620805125e0a2d1080e0cd90f6a6ca342222313668747663424e53454137665a6841644c4a706844775152514a61487079485470122d1080aa83fff7a6ca342222313668747663424e53454137665a6841644c4a706844775152514a614870794854701a870108081282010a22313668747663424e53454137665a6841644c4a706844775152514a61487079485470122d1880f0cae386e68611222231344b454b6259744b4b516d34774d7468534b394a344c61346e41696964476f7a741a2d1880ba80d288e68611222231344b454b6259744b4b516d34774d7468534b394a344c61346e41696964476f7a741a620805125e0a2d1080aa83fff7a6ca342222313668747663424e53454137665a6841644c4a706844775152514a61487079485470122d1080f0898ef9a6ca342222313668747663424e53454137665a6841644c4a706844775152514a614870794854701a8f010808128a010a22313668747663424e53454137665a6841644c4a706844775152514a6148707948547012311080e0ba84bf03188090c0ac622222314251585336547861595947356d41446157696a344178685a5a55547077393561351a311080e0ba84bf031880d6c6bb632222314251585336547861595947356d41446157696a344178685a5a555470773935613512970208021a5c080212580a2a10c099b8c321222231513868474c666f47653633656665576138664a34506e756b686b6e677436706f4b122a10a08cb2c321222231513868474c666f47653633656665576138664a34506e756b686b6e677436706f4b1a82010809127e0a22313268704a4248796268316d537943696a51324d514a506b377a376b5a376a6e5161122a108094ebdc03222231513868474c666f47653633656665576138664a34506e756b686b6e677436706f4b1a2c109c93ebdc031864222231513868474c666f47653633656665576138664a34506e756b686b6e677436706f4b1a3008d301122b0a054142434445122231513868474c666f47653633656665576138664a34506e756b686b6e677436706f4b"
+	bs, err := hex.DecodeString(hexBlock)
+	if err != nil {
+		return nil
+	}
+	var block BlockDetail
+	err = Decode(bs, &block)
+	if err != nil {
+		return nil
+	}
+	return &block
 }

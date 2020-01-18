@@ -1192,14 +1192,13 @@ func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, e
 }
 
 // AddSeqCallBack Add Seq CallBack
-func (q *QueueProtocol) AddSeqCallBack(param *types.BlockSeqCB) (*types.Reply, error) {
-
+func (q *QueueProtocol) AddSeqCallBack(param *types.BlockSeqCB) (*types.ReplyAddSeqCallback, error) {
 	msg, err := q.send(blockchainKey, types.EventAddBlockSeqCB, param)
 	if err != nil {
 		log.Error("AddSeqCallBack", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
+	if reply, ok := msg.GetData().(*types.ReplyAddSeqCallback); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
@@ -1276,6 +1275,44 @@ func (q *QueueProtocol) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.
 	msg, err := q.send(blockchainKey, types.EventGetParaTxByTitle, param)
 	if err != nil {
 		log.Error("GetParaTxByTitle", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ParaTxDetails); ok {
+
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+//LoadParaTxByTitle //获取拥有此title交易的区块高度
+func (q *QueueProtocol) LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.ReplyHeightByTitle, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("LoadParaTxByTitle", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(blockchainKey, types.EventGetHeightByTitle, param)
+	if err != nil {
+		log.Error("LoadParaTxByTitle", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyHeightByTitle); ok {
+
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+//GetParaTxByHeight //通过区块高度列表+title获取平行链交易
+func (q *QueueProtocol) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetParaTxByHeight", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(blockchainKey, types.EventGetParaTxByTitleAndHeight, param)
+	if err != nil {
+		log.Error("GetParaTxByHeight", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.ParaTxDetails); ok {

@@ -70,8 +70,8 @@ function start() {
     ${CLI} block last_header
     ${CLI} net info
 
-    ${CLI} net peer_info
-    peersCount=$(${CLI} net peer_info | jq '.[] | length')
+    ${CLI} net peer
+    peersCount=$(${CLI} net peer | jq '.[] | length')
     echo "${peersCount}"
     if [ "${peersCount}" -lt 2 ]; then
         echo "peers error"
@@ -122,15 +122,6 @@ function start() {
 
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
-
-    echo "=========== check genesis hash ========== "
-    ${CLI} block hash -t 0
-    res=$(${CLI} block hash -t 0 | jq ".hash")
-    count=$(echo "$res" | grep -c "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6")
-    if [ "${count}" != 1 ]; then
-        echo "genesis hash error!"
-        exit 1
-    fi
 
     echo "=========== query height ========== "
     ${CLI} block last_header

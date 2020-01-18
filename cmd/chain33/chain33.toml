@@ -51,6 +51,8 @@ isParaChain=false
 enableTxQuickIndex=false
 # 升级storedb是否重新执行localdb
 enableReExecLocal=false
+# 使能精简localdb
+enableReduceLocaldb=true
 
 [p2p]
 # P2P服务监听端口号
@@ -104,11 +106,13 @@ keyFile="key.pem"
 name="timeline"
 # mempool缓存容量大小，默认10240
 poolCacheSize=10240
-# 最小得交易手续费用，这个没有默认值，必填，一般是100000
-minTxFee=100000
 # 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
-# 最大得交易手续费用，这个没有默认值，必填，一般是100000
+# 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
+minTxFeeRate=100000
+# 最大的交易手续费率, 0.1 coins
+maxTxFeeRate=10000000
+# 单笔交易最大的手续费, 10 coins
 maxTxFee=1000000000
 # 是否开启阶梯手续费
 isLevelFee=false
@@ -259,11 +263,7 @@ minerdisable=false
 minerwhitelist=["*"]
 
 [exec]
-#执行器执行是否免费
-isFree=false
-#执行器执行所需最小费用,低于Mempool和Wallet设置的MinFee,在minExecFee = 0 的情况下，isFree = true才会生效
-minExecFee=100000
-maxExecFee=1000000000
+#交易费相关统一在mempool中配置
 #是否开启stat插件
 enableStat=false
 #是否开启MVCC插件
@@ -298,11 +298,26 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 [exec.sub.manage]
 #manage执行器超级管理员地址
 superManager=[
-    "1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", 
-    "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 
+    "1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+    "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
     "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"
 ]
 
 [exec.sub.autonomy]
 total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 useBalance=false
+
+[metrics]
+#是否使能发送metrics数据的发送
+enableMetrics=true
+#数据保存模式
+dataEmitMode="influxdb"
+
+[metrics.sub.influxdb]
+#以纳秒为单位的发送间隔
+duration=1000000000
+url="http://influxdb:8086"
+database="chain33metrics"
+username=""
+password=""
+namespace=""

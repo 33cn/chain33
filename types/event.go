@@ -156,6 +156,7 @@ const (
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
+	EventUpgrade         = 214
 
 	// BlockChain 接收的事件
 	EventGetLastBlockMainSequence   = 300
@@ -168,6 +169,15 @@ const (
 	//通过平行链title获取平行链的交易
 	EventGetParaTxByTitle   = 306
 	EventReplyParaTxByTitle = 307
+
+	//获取拥有此title交易的区块高度
+	EventGetHeightByTitle   = 308
+	EventReplyHeightByTitle = 309
+
+	//通过区块高度列表+title获取平行链交易
+	EventGetParaTxByTitleAndHeight = 310
+	//比较当前区块和新广播的区块最优区块
+	EventCmpBestBlock = 311
 )
 
 var eventName = map[int]string{
@@ -323,4 +333,9 @@ var eventName = map[int]string{
 	EventGetValueByKey:              "EventGetValueByKey",
 	EventGetParaTxByTitle:           "EventGetParaTxByTitle",
 	EventReplyParaTxByTitle:         "EventReplyParaTxByTitle",
+	EventGetHeightByTitle:           "EventGetHeightByTitle",
+	EventReplyHeightByTitle:         "EventReplyHeightByTitle",
+	EventGetParaTxByTitleAndHeight:  "EventGetParaTxByTitleAndHeight",
+	EventCmpBestBlock:               "EventCmpBestBlock",
+	EventUpgrade:                    "EventUpgrade",
 }

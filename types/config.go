@@ -220,22 +220,21 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 		} else {
 			c.setTestNet(cfg.TestNet)
 		}
-		if cfg.Exec.MinExecFee > cfg.Mempool.MinTxFee || cfg.Mempool.MinTxFee > cfg.Wallet.MinFee {
-			panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
+
+		if cfg.Wallet.MinFee < cfg.Mempool.MinTxFeeRate {
+			panic("config must meet: wallet.minFee >= mempool.minTxFeeRate")
 		}
-		if cfg.Exec.MaxExecFee < cfg.Mempool.MaxTxFee {
-			panic("config must meet: mempool.maxTxFee <= exec.maxExecFee")
+		if cfg.Mempool.MaxTxFeeRate == 0 {
+			cfg.Mempool.MaxTxFeeRate = 1e7 //0.1 coins
 		}
+		if cfg.Mempool.MaxTxFee == 0 {
+			cfg.Mempool.MaxTxFee = 1e9 // 10 coins
+		}
+		c.setTxFeeConfig(cfg.Mempool.MinTxFeeRate, cfg.Mempool.MaxTxFeeRate, cfg.Mempool.MaxTxFee)
 		if cfg.Consensus != nil {
 			c.setMinerExecs(cfg.Consensus.MinerExecs)
 		}
-		if cfg.Exec != nil {
-			c.setMinFee(cfg.Exec.MinExecFee)
-		}
 		c.setChainConfig("FixTime", cfg.FixTime)
-		if cfg.Exec.MaxExecFee > 0 {
-			c.setChainConfig("MaxFee", cfg.Exec.MaxExecFee)
-		}
 		if cfg.CoinSymbol != "" {
 			if strings.Contains(cfg.CoinSymbol, "-") {
 				panic("config CoinSymbol must without '-'")
@@ -462,20 +461,47 @@ func (c *Chain33Config) IsLocal() bool {
 	return c.isLocal()
 }
 
+// GetMinTxFeeRate get min transaction fee rate
+func (c *Chain33Config) GetMinTxFeeRate() int64 {
+	return c.GInt("MinTxFeeRate")
+}
+
+// GetMaxTxFeeRate get max transaction fee rate
+func (c *Chain33Config) GetMaxTxFeeRate() int64 {
+	return c.GInt("MaxTxFeeRate")
+}
+
+// GetMaxTxFee get max transaction fee
+func (c *Chain33Config) GetMaxTxFee() int64 {
+	return c.GInt("MaxTxFee")
+}
+
+// SetTxFeeConfig 设置交易费相关配置
+func (c *Chain33Config) SetTxFeeConfig(minTxFeeRate, maxTxFeeRate, maxTxFee int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.setTxFeeConfig(minTxFeeRate, maxTxFeeRate, maxTxFee)
+}
+
+func (c *Chain33Config) setTxFeeConfig(minTxFeeRate, maxTxFeeRate, maxTxFee int64) {
+	if minTxFeeRate < 0 {
+		panic("minTxFeeRate less than zero")
+	}
+
+	if minTxFeeRate > maxTxFeeRate || maxTxFeeRate > maxTxFee {
+		panic("SetTxFee, tx fee must meet, minTxFeeRate <= maxTxFeeRate <= maxTxFee")
+	}
+	c.setChainConfig("MinTxFeeRate", minTxFeeRate)
+	c.setChainConfig("MaxTxFeeRate", maxTxFeeRate)
+	c.setChainConfig("MaxTxFee", maxTxFee)
+	c.setChainConfig("MinBalanceTransfer", minTxFeeRate*10)
+}
+
 // SetMinFee 设置最小费用
 func (c *Chain33Config) SetMinFee(fee int64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.setMinFee(fee)
-}
-
-func (c *Chain33Config) setMinFee(fee int64) {
-	if fee < 0 {
-		panic("fee less than zero")
-	}
-	c.setChainConfig("MinFee", fee)
-	c.setChainConfig("MaxFee", fee*10000)
-	c.setChainConfig("MinBalanceTransfer", fee*10)
+	c.setTxFeeConfig(fee, fee*100, fee*10000)
 }
 
 func (c *Chain33Config) isPara() bool {
@@ -676,6 +702,7 @@ type subModule struct {
 	Consensus map[string]interface{}
 	Wallet    map[string]interface{}
 	Mempool   map[string]interface{}
+	Metrics   map[string]interface{}
 }
 
 func ReadFile(path string) string {
@@ -705,6 +732,7 @@ func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
 	subcfg.Consensus = parseItem(cfg.Consensus)
 	subcfg.Wallet = parseItem(cfg.Wallet)
 	subcfg.Mempool = parseItem(cfg.Mempool)
+	subcfg.Metrics = parseItem(cfg.Metrics)
 	return &subcfg, nil
 }
 

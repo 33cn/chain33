@@ -228,3 +228,25 @@ func DelDupKey(kvs []*types.KeyValue) []*types.KeyValue {
 	}
 	return kvs[0:n]
 }
+
+//CmpBestBlock : 选择最优区块,通知共识模块newblock是否是最优区块
+// height,time,parentHash一致时根据共识各自规则判断
+func CmpBestBlock(client queue.Client, newBlock *types.Block, cmpHash []byte) bool {
+	cfg := client.GetConfig()
+	req := types.CmpBlock{Block: newBlock, CmpHash: cmpHash}
+	msg := client.NewMessage("consensus", types.EventCmpBestBlock, &req)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("CmpBestBlock:Send", "cmpHash", common.ToHex(cmpHash), "newBlockHash", common.ToHex(newBlock.Hash(cfg)), "err", err)
+		return false
+	}
+	resp, err := client.Wait(msg)
+	if err != nil {
+		log.Error("CmpBestBlock:Wait", "cmpHash", common.ToHex(cmpHash), "newBlockHash", common.ToHex(newBlock.Hash(cfg)), "err", err)
+		return false
+	}
+	reply := resp.GetData().(*types.Reply)
+
+	log.Debug("CmpBestBlock", "newBlockHash", common.ToHex(newBlock.Hash(cfg)), "cmpHash", common.ToHex(cmpHash), "isBestBlock", reply.IsOk)
+	return reply.IsOk
+}

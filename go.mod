@@ -25,6 +25,7 @@ require (
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.0
 	github.com/huin/goupnp v1.0.0
+	github.com/influxdata/influxdb v1.7.9
 	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.0.9
@@ -33,17 +34,16 @@ require (
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/errors v0.8.1
+	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/rs/cors v1.6.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v0.0.0-20181105012736-f9080354173f
 	github.com/tjfoc/gmsm v0.0.0-20171124023159-98aa888b79d8
-	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect
-	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 	golang.org/x/sys v0.0.0-20200107162124-548cf772de50
 	golang.org/x/text v0.3.2 // indirect
-	golang.org/x/tools v0.0.0-20190816200558-6889da9d5479 // indirect
 	google.golang.org/grpc v1.22.1
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/go-playground/webhooks.v5 v5.2.0

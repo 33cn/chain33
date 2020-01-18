@@ -66,8 +66,12 @@ keyFile="key.pem"
 
 [mempool]
 poolCacheSize=102400
-minTxFee=100000
 maxTxNumPerAccount=100
+# 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
+minTxFeeRate=100000
+# 最大的交易手续费率, 0.1 coins
+maxTxFeeRate=10000000
+# 单笔交易最大的手续费, 10 coins
 maxTxFee=1000000000
 
 [consensus]
@@ -146,9 +150,7 @@ minerdisable=false
 minerwhitelist=["*"]
 
 [exec]
-isFree=false
-minExecFee=100000
-maxExecFee=1000000000
+#交易费相关统一在mempool中配置
 enableStat=false
 enableMVCC=false
 
@@ -180,7 +182,7 @@ ForkBase58AddressCheck=1800000
 ForkEnableParaRegExec=0
 ForkCacheDriver=0
 ForkTicketFundAddrV1=-1
-
+ForkRootHash=1
 [fork.sub.coins]
 Enable=0
 

@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -40,7 +41,7 @@ func (c *Chain33) CreateRawTransaction(in *rpctypes.CreateTx, result *interface{
 	if err != nil {
 		return err
 	}
-	*result = hex.EncodeToString(reply)
+	*result = common.ToHex(reply)
 	return nil
 }
 
@@ -58,7 +59,7 @@ func (c *Chain33) ReWriteRawTx(in *rpctypes.ReWriteRawTx, result *interface{}) e
 	if err != nil {
 		return err
 	}
-	*result = hex.EncodeToString(reply)
+	*result = common.ToHex(reply)
 	return nil
 }
 
@@ -69,7 +70,7 @@ func (c *Chain33) CreateRawTxGroup(in *types.CreateTransactionGroup, result *int
 		return err
 	}
 
-	*result = hex.EncodeToString(reply)
+	*result = common.ToHex(reply)
 	return nil
 }
 
@@ -79,7 +80,7 @@ func (c *Chain33) CreateNoBlanaceTxs(in *types.NoBalanceTxs, result *string) err
 	if err != nil {
 		return err
 	}
-	grouptx := hex.EncodeToString(types.Encode(tx))
+	grouptx := common.ToHex(types.Encode(tx))
 	*result = grouptx
 	return nil
 }
@@ -96,7 +97,7 @@ func (c *Chain33) CreateNoBalanceTransaction(in *types.NoBalanceTx, result *stri
 	if err != nil {
 		return err
 	}
-	grouptx := hex.EncodeToString(types.Encode(tx))
+	grouptx := common.ToHex(types.Encode(tx))
 	*result = grouptx
 	return nil
 }
@@ -141,7 +142,7 @@ func (c *Chain33) GetHexTxByHash(in rpctypes.QueryParm, result *interface{}) err
 	if err != nil {
 		return err
 	}
-	*result = hex.EncodeToString(types.Encode(reply.GetTx()))
+	*result = common.ToHex(types.Encode(reply.GetTx()))
 	return err
 }
 
@@ -310,15 +311,26 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 	for _, proof := range txProofs {
 		proofs = append(proofs, common.ToHex(proof))
 	}
+
 	tran, err := rpctypes.DecodeTx(tx.GetTx())
 	if err != nil {
 		log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)
 		return nil, err
 	}
+	//对Amount做格式化
+	if tx.Amount != 0 {
+		tran.Amount = tx.Amount
+		tran.AmountFmt = strconv.FormatFloat(float64(tran.Amount)/float64(types.Coin), 'f', 4, 64)
+	}
 	// swap from with to
 	if tx.GetTx().IsWithdraw() {
 		tx.Fromaddr, tx.Tx.To = tx.Tx.To, tx.Fromaddr
 		tran.To = tx.Tx.GetRealToAddr()
+	}
+	//交易fullhash
+	var fullhash string
+	if len(tx.GetFullHash()) != 0 {
+		fullhash = common.ToHex(tx.GetFullHash())
 	}
 	return &rpctypes.TransactionDetail{
 		Tx:         tran,
@@ -331,6 +343,8 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		Fromaddr:   tx.GetFromaddr(),
 		ActionName: tx.GetActionName(),
 		Assets:     fmtAsssets(tx.GetAssets()),
+		TxProofs:   fmtTxProofs(tx.GetTxProofs()),
+		FullHash:   fullhash,
 	}, nil
 }
 
@@ -1105,7 +1119,7 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 	if err != nil {
 		return err
 	}
-	*result = hex.EncodeToString(btx)
+	*result = common.ToHex(btx)
 	return nil
 }
 
@@ -1134,9 +1148,15 @@ func (c *Chain33) AddSeqCallBack(in *types.BlockSeqCB, result *interface{}) erro
 	if err != nil {
 		return err
 	}
-	var resp rpctypes.Reply
+	var resp rpctypes.ReplyAddCallback
 	resp.IsOk = reply.GetIsOk()
 	resp.Msg = string(reply.GetMsg())
+	if reply.GetSeqs() != nil {
+		for _, seq := range reply.Seqs {
+			hash := common.ToHex(seq.Hash)
+			resp.Seqs = append(resp.Seqs, &rpctypes.Sequence{Hash: hash, Type: seq.Type, Height: seq.Height, Sequence: seq.Sequence})
+		}
+	}
 	*result = &resp
 	return nil
 }
@@ -1226,4 +1246,21 @@ func (c *Chain33) GetCoinSymbol(in types.ReqNil, result *interface{}) error {
 	log.Warn("GetCoinSymbol", "Symbol", symbol)
 	*result = &resp
 	return nil
+}
+
+func fmtTxProofs(txProofs []*types.TxProof) []*rpctypes.TxProof {
+	var result []*rpctypes.TxProof
+	for _, txproof := range txProofs {
+		var proofs []string
+		for _, proof := range txproof.GetProofs() {
+			proofs = append(proofs, common.ToHex(proof))
+		}
+		rpctxproof := &rpctypes.TxProof{
+			Proofs:   proofs,
+			Index:    txproof.GetIndex(),
+			RootHash: common.ToHex(txproof.GetRootHash()),
+		}
+		result = append(result, rpctxproof)
+	}
+	return result
 }

@@ -189,7 +189,7 @@ func scanWrite(cfg *types.Chain33Config) {
 				Payload: noteTx.Payload,
 			}
 			userTx.To = address.ExecAddress(string(noteTx.Execer))
-			userTx.Fee, err = userTx.GetRealFee(cfg.GInt("MinFee"))
+			userTx.Fee, err = userTx.GetRealFee(cfg.GetMinTxFeeRate())
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				continue

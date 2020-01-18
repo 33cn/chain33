@@ -227,7 +227,7 @@ func testGetBlockSequences(t *testing.T, api client.QueueProtocolAPI) {
 func testAddSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {
 	res, err := api.AddSeqCallBack(&types.BlockSeqCB{})
 	assert.Nil(t, err)
-	assert.Equal(t, &types.Reply{}, res)
+	assert.Equal(t, &types.ReplyAddSeqCallback{}, res)
 }
 
 func testListSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {
@@ -1073,6 +1073,8 @@ func TestGRPC(t *testing.T) {
 	testIsNtpClockSyncGRPC(t, &grpcMock)
 	testNetInfoGRPC(t, &grpcMock)
 	testGetParaTxByTitleGRPC(t, &grpcMock)
+	testLoadParaTxByTitleGRPC(t, &grpcMock)
+	testGetParaTxByHeightGRPC(t, &grpcMock)
 
 }
 
@@ -1458,4 +1460,45 @@ func TestGetParaTxByTitle(t *testing.T) {
 	_, err := q.GetParaTxByTitle(nil)
 	assert.NotNil(t, err)
 
+}
+
+func testLoadParaTxByTitleGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyHeightByTitle
+	var req types.ReqHeightByTitle
+	req.Count = 1
+	req.Direction = 0
+	req.Title = "user"
+	req.Height = 0
+
+	err := rpc.newRPCCtx("LoadParaTxByTitle", &req, &res)
+	assert.NotNil(t, err)
+
+	req.Title = "user.p.para."
+	err = rpc.newRPCCtx("LoadParaTxByTitle", &req, &res)
+	assert.Nil(t, err)
+}
+
+func TestLoadParaTxByTitle(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.LoadParaTxByTitle(nil)
+	assert.NotNil(t, err)
+}
+
+func testGetParaTxByHeightGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ParaTxDetails
+	var req types.ReqParaTxByHeight
+	req.Items = append(req.Items, 0)
+	req.Title = "user"
+	err := rpc.newRPCCtx("GetParaTxByHeight", &req, &res)
+	assert.NotNil(t, err)
+
+	req.Title = "user.p.para."
+	err = rpc.newRPCCtx("GetParaTxByHeight", &req, &res)
+	assert.Nil(t, err)
+}
+
+func TestGetParaTxByHeight(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.GetParaTxByHeight(nil)
+	assert.NotNil(t, err)
 }

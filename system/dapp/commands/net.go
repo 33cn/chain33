@@ -34,7 +34,7 @@ func NetCmd() *cobra.Command {
 // GetPeerInfoCmd  get peers connected info
 func GetPeerInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "peer_info",
+		Use:   "peer",
 		Short: "Get remote peer nodes",
 		Run:   peerInfo,
 	}

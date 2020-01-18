@@ -104,7 +104,7 @@ func (mem *Mempool) Size() int {
 // SetMinFee 设置最小交易费用
 func (mem *Mempool) SetMinFee(fee int64) {
 	mem.proxyMtx.Lock()
-	mem.cfg.MinTxFee = fee
+	mem.cfg.MinTxFeeRate = fee
 	mem.proxyMtx.Unlock()
 }
 
@@ -290,6 +290,22 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	}
 	return true
 }
+func (mem *Mempool) getCacheFeeRate() int64 {
+	if mem.cache.qcache == nil {
+		return 0
+	}
+	feeRate := mem.cache.qcache.GetProperFee()
+
+	//控制精度
+	unitFee := mem.cfg.MinTxFeeRate
+	if unitFee != 0 && feeRate%unitFee > 0 {
+		feeRate = (feeRate/unitFee + 1) * unitFee
+	}
+	if feeRate > mem.cfg.MaxTxFeeRate {
+		feeRate = mem.cfg.MaxTxFeeRate
+	}
+	return feeRate
+}
 
 // GetProperFeeRate 获取合适的手续费率
 func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
@@ -299,19 +315,12 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 	if req.TxSize == 0 {
 		req.TxSize = 10240
 	}
-	feeRate := mem.cache.GetProperFee()
+	feeRate := mem.getCacheFeeRate()
 	if mem.cfg.IsLevelFee {
-		levelFeeRate := mem.getLevelFeeRate(mem.cfg.MinTxFee, req.TxCount, req.TxSize)
+		levelFeeRate := mem.getLevelFeeRate(mem.cfg.MinTxFeeRate, req.TxCount, req.TxSize)
 		if levelFeeRate > feeRate {
 			feeRate = levelFeeRate
 		}
-	}
-	//控制精度
-	types.AssertConfig(mem.client)
-	cfg := mem.client.GetConfig()
-	minFee := cfg.GInt("MinFee")
-	if minFee != 0 && feeRate%minFee > 0 {
-		feeRate = (feeRate/minFee + 1) * minFee
 	}
 	return feeRate
 }
@@ -332,8 +341,8 @@ func (mem *Mempool) getLevelFeeRate(baseFeeRate int64, appendCount, appendSize i
 	default:
 		feeRate = baseFeeRate
 	}
-	if feeRate > 10000000 {
-		feeRate = 10000000
+	if feeRate > mem.cfg.MaxTxFeeRate {
+		feeRate = mem.cfg.MaxTxFeeRate
 	}
 	return feeRate
 }
@@ -359,7 +368,7 @@ func (mem *Mempool) delBlock(block *types.Block) {
 			tx = group.Tx()
 			i = i + groupCount - 1
 		}
-		err := tx.Check(cfg, header.GetHeight(), mem.cfg.MinTxFee, mem.cfg.MaxTxFee)
+		err := tx.Check(cfg, header.GetHeight(), mem.cfg.MinTxFeeRate, mem.cfg.MaxTxFee)
 		if err != nil {
 			continue
 		}

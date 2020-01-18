@@ -5,6 +5,7 @@
 package types
 
 import (
+	"bytes"
 	"encoding/hex"
 	"testing"
 	"time"
@@ -33,12 +34,12 @@ func TestCreateGroupTx(t *testing.T) {
 	var tx32 Transaction
 	Decode(tx31, &tx32)
 
-	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, cfg.GInt("MinFee"))
+	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	err = group.Check(cfg, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -74,14 +75,14 @@ func TestCreateParaGroupTx(t *testing.T) {
 	tx22.Execer = []byte("token")
 	tx32.Execer = []byte("user.p.test.ticket")
 
-	feeRate := cfg.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	//SetFork("", "ForkTxGroupPara", 0)
 	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, feeRate)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	err = group.Check(cfg, testHeight, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = group.Check(cfg, testHeight, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -97,7 +98,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = group.Check(cfg, testHeight, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = group.Check(cfg, testHeight, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	assert.Equal(t, ErrTxGroupParaCount, err)
 
 	tx22.Execer = []byte("user.p.test.paracross")
@@ -106,7 +107,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = group.Check(cfg, testHeight, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = group.Check(cfg, testHeight, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	assert.Nil(t, err)
 	newtx := group.Tx()
 	grouptx := hex.EncodeToString(Encode(newtx))
@@ -141,13 +142,13 @@ func TestCreateGroupTxWithSize(t *testing.T) {
 	var tx32 Transaction
 	Decode(tx31, &tx32)
 
-	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, cfg.GInt("MinFee"))
+	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	err = group.Check(cfg, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -232,7 +233,7 @@ func TestSignGroupTx(t *testing.T) {
 			return
 		}
 	}
-	err = group.Check(cfg, 0, cfg.GInt("MinFee"), cfg.GInt("MaxFee"))
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	if err != nil {
 		t.Error(err)
 		return
@@ -320,4 +321,179 @@ func TestSetGroupExpire(t *testing.T) {
 			t.Error("TestSetGroupExpire Expire == 0", "tx", tmptx)
 		}
 	}
+}
+
+func TestSortTxList(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+
+	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx2 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630de92c3828ad194b26d3a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx3 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630b0d6c895c4d28efe5d3a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx11, _ := hex.DecodeString(tx1)
+	tx21, _ := hex.DecodeString(tx2)
+	tx31, _ := hex.DecodeString(tx3)
+
+	var txList Transactions
+	var tx12 Transaction
+	Decode(tx11, &tx12)
+	var tx22 Transaction
+	Decode(tx21, &tx22)
+	var tx32 Transaction
+	Decode(tx31, &tx32)
+
+	//构建三笔单个交易并添加到交易列表中
+	tx12.Execer = []byte("hashlock")
+	tx22.Execer = []byte("voken")
+	tx32.Execer = []byte("coins")
+	txList.Txs = append(txList.Txs, &tx12)
+	txList.Txs = append(txList.Txs, &tx22)
+	txList.Txs = append(txList.Txs, &tx32)
+
+	//构建主链的交易组并添加到交易列表中
+	tx111, tx221, tx321 := modifyTxExec(tx12, tx22, tx32, "paracross", "game", "guess")
+	group, err := CreateTxGroup([]*Transaction{&tx111, &tx221, &tx321}, cfg.GetMinTxFeeRate())
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	groupTx := group.Tx()
+	txGroup, err := groupTx.GetTxGroup()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txList.Txs = append(txList.Txs, txGroup.GetTxs()...)
+
+	//构建三笔不同平行链的单笔交易
+	tx1111, tx2211, tx3211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.js", "user.p.para.lottery", "user.p.fuzamei.norm")
+
+	txList.Txs = append(txList.Txs, &tx1111)
+	txList.Txs = append(txList.Txs, &tx2211)
+	txList.Txs = append(txList.Txs, &tx3211)
+
+	//构建user.p.test.平行链的交易组并添加到交易列表中
+	tx1112, tx2212, tx3212 := modifyTxExec(tx12, tx22, tx32, "user.p.test.evm", "user.p.test.relay", "user.p.test.ticket")
+	group, err = CreateTxGroup([]*Transaction{&tx1112, &tx2212, &tx3212}, cfg.GetMinTxFeeRate())
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	groupTx = group.Tx()
+	txGroup, err = groupTx.GetTxGroup()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txList.Txs = append(txList.Txs, txGroup.GetTxs()...)
+
+	//构建user.p.para.平行链的交易组并添加到交易列表中
+	tx1113, tx2213, tx3213 := modifyTxExec(tx12, tx22, tx32, "user.p.para.coins", "user.p.para.paracross", "user.p.para.pokerbull")
+
+	group, err = CreateTxGroup([]*Transaction{&tx1113, &tx2213, &tx3213}, cfg.GetMinTxFeeRate())
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	groupTx = group.Tx()
+	txGroup, err = groupTx.GetTxGroup()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txList.Txs = append(txList.Txs, txGroup.GetTxs()...)
+
+	//构建user.p.fuzamei.平行链的交易组并添加到交易列表中
+	tx1114, tx2214, tx3214 := modifyTxExec(tx12, tx22, tx32, "user.p.fuzamei.norm", "user.p.fuzamei.coins", "user.p.fuzamei.retrieve")
+
+	group, err = CreateTxGroup([]*Transaction{&tx1114, &tx2214, &tx3214}, cfg.GetMinTxFeeRate())
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	groupTx = group.Tx()
+	txGroup, err = groupTx.GetTxGroup()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	txList.Txs = append(txList.Txs, txGroup.GetTxs()...)
+
+	//构造一些主链交易的合约名排序在user后面的交易
+	tx1115, tx2215, tx3215 := modifyTxExec(tx12, tx22, tx32, "varacross", "wame", "zuess")
+	txList.Txs = append(txList.Txs, &tx1115)
+	txList.Txs = append(txList.Txs, &tx2215)
+	txList.Txs = append(txList.Txs, &tx3215)
+
+	//交易只分类不排序，保证子链内部交易的顺序不变
+	sorTxList := TransactionSort(txList.Txs)
+	assert.Equal(t, len(txList.Txs), len(sorTxList))
+
+	for _, tx := range txList.Txs {
+		var equal bool
+		txHash := tx.Hash()
+		for _, sorttx := range sorTxList {
+			sortHash := sorttx.Hash()
+			if bytes.Equal(sortHash, txHash) {
+				equal = true
+				break
+			}
+		}
+		assert.Equal(t, equal, true)
+	}
+	//校验每个子链中交易的顺序没有变化
+	//计算期望的子主链交易的子roothash
+	var prevmainhashes [][]byte
+	prevmainhashes = append(prevmainhashes, tx12.Hash(), tx22.Hash(), tx32.Hash(), tx111.Hash(), tx221.Hash(), tx321.Hash(), tx1115.Hash(), tx2215.Hash(), tx3215.Hash())
+
+	var prevfuzameihashes [][]byte
+	prevfuzameihashes = append(prevfuzameihashes, tx3211.Hash(), tx1114.Hash(), tx2214.Hash(), tx3214.Hash())
+
+	var prevparahashes [][]byte
+	prevparahashes = append(prevparahashes, tx2211.Hash(), tx1113.Hash(), tx2213.Hash(), tx3213.Hash())
+
+	var prevtesthashes [][]byte
+	prevtesthashes = append(prevtesthashes, tx1111.Hash(), tx1112.Hash(), tx2212.Hash(), tx3212.Hash())
+
+	// 校验分类之后各个子链中交易的顺序是否是我们期望的
+	for j, sorttx := range sorTxList {
+		if j < 9 {
+			assert.Equal(t, prevmainhashes[j], sorttx.Hash())
+		} else if j >= 9 && j <= 12 {
+			assert.Equal(t, prevfuzameihashes[j-9], sorttx.Hash())
+		} else if j >= 13 && j <= 16 {
+			assert.Equal(t, prevparahashes[j-13], sorttx.Hash())
+		} else {
+			assert.Equal(t, prevtesthashes[j-17], sorttx.Hash())
+		}
+	}
+	//构建只有主链交易
+	var txSingleList Transactions
+	tx51111, tx52211, tx53211 := modifyTxExec(tx12, tx22, tx32, "coins", "token", "hashlock")
+	txSingleList.Txs = append(txSingleList.Txs, &tx51111)
+	txSingleList.Txs = append(txSingleList.Txs, &tx52211)
+	txSingleList.Txs = append(txSingleList.Txs, &tx53211)
+
+	tx61111, tx62211, tx63211 := modifyTxExec(tx12, tx22, tx32, "ajs", "zottery", "norm")
+	txSingleList.Txs = append(txSingleList.Txs, &tx61111)
+	txSingleList.Txs = append(txSingleList.Txs, &tx62211)
+	txSingleList.Txs = append(txSingleList.Txs, &tx63211)
+
+	sorTxSingleList := TransactionSort(txSingleList.Txs)
+	assert.Equal(t, len(txSingleList.Txs), len(sorTxSingleList))
+	//分类前后交易的顺序一致
+	for i, tx := range txSingleList.Txs {
+		assert.Equal(t, tx.Hash(), sorTxSingleList[i].Hash())
+	}
+}
+
+func modifyTxExec(tx1, tx2, tx3 Transaction, tx1exec, tx2exec, tx3exec string) (Transaction, Transaction, Transaction) {
+	tx11 := tx1
+	tx12 := tx2
+	tx13 := tx3
+
+	tx11.Execer = []byte(tx1exec)
+	tx12.Execer = []byte(tx2exec)
+	tx13.Execer = []byte(tx3exec)
+
+	return tx11, tx12, tx13
 }
