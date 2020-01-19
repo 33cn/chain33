@@ -153,19 +153,18 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 }
 
 func (network *P2p) loadP2PPrivKeyToWallet() error {
-
 	var parm types.ReqWalletImportPrivkey
 	parm.Privkey, _ = network.node.nodeInfo.addrBook.GetPrivPubKey()
 	parm.Label = "node award"
 
 ReTry:
-	msg := network.client.NewMessage("wallet", types.EventWalletImportPrivkey, &parm)
-	err := network.client.SendTimeout(msg, true, time.Minute)
+	api, err := client.New(network.client, nil)
 	if err != nil {
 		log.Error("ImportPrivkey", "Error", err.Error())
 		return err
 	}
-	resp, err := network.client.WaitTimeout(msg, time.Minute)
+
+	resp, err := api.ExecWalletFunc("wallet", "ImportPrivkey", &parm)
 	if err != nil {
 		if err == types.ErrPrivkeyExist {
 			return nil
@@ -181,7 +180,7 @@ ReTry:
 		return err
 	}
 
-	log.Debug("loadP2PPrivKeyToWallet", "resp", resp.GetData())
+	log.Debug("loadP2PPrivKeyToWallet", "resp", resp.(*types.WalletAccount))
 	return nil
 
 }

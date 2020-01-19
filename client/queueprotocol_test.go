@@ -625,7 +625,7 @@ func testDumpPrivkeyJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testDumpPrivkeysFileJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
-	var res types.Reply
+	var res rpctypes.Reply
 	err := rpc.newRPCCtx("Chain33.DumpPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
 	if err != nil {
 		t.Error("testDumpPrivkeysFileJSONRPC Failed.", err)
@@ -633,7 +633,7 @@ func testDumpPrivkeysFileJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testImportPrivkeysFileJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
-	var res types.Reply
+	var res rpctypes.Reply
 	err := rpc.newRPCCtx("Chain33.ImportPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
 	if err != nil {
 		t.Error("testImportPrivkeysFileJSONRPC Failed.", err)

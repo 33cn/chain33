@@ -880,7 +880,11 @@ func (c *Chain33) DumpPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}
 	if err != nil {
 		return err
 	}
-	*result = reply
+
+	var resp rpctypes.Reply
+	resp.IsOk = reply.(*types.Reply).GetIsOk()
+	resp.Msg = string(reply.(*types.Reply).GetMsg())
+	*result = &resp
 	return nil
 }
 
@@ -889,7 +893,11 @@ func (c *Chain33) ImportPrivkeysFile(in types.ReqPrivkeysFile, result *interface
 	if err != nil {
 		return err
 	}
-	*result = reply
+
+	var resp rpctypes.Reply
+	resp.IsOk = reply.(*types.Reply).GetIsOk()
+	resp.Msg = string(reply.(*types.Reply).GetMsg())
+	*result = &resp
 	return nil
 }
 
