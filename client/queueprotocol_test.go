@@ -68,14 +68,6 @@ func TestQueueProtocol(t *testing.T) {
 	testQueryTx(t, api)
 	testGetTransactionByHash(t, api)
 	testGetMempool(t, api)
-	//testWalletSendToAddress(t, api)
-	//testWalletSetFee(t, api)
-	//testWalletSetLabel(t, api)
-	//testWalletMergeBalance(t, api)
-	//testWalletSetPasswd(t, api)
-	//testWalletLock(t, api)
-	//testWalletUnLock(t, api)
-	//testWalletGetFatalFailure(t, api)
 	testPeerInfo(t, api)
 	testGetHeaders(t, api)
 	testGetLastMempool(t, api)
@@ -89,17 +81,12 @@ func TestQueueProtocol(t *testing.T) {
 	testListSeqCallBack(t, api)
 	testGetSeqCallBackLastNum(t, api)
 	testGetLastBlockSequence(t, api)
-	//testGenSeed(t, api)
-	//testSaveSeed(t, api)
-	//testGetSeed(t, api)
-	//testGetWalletStatus(t, api)
 	testIsSync(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
 	testLocalTransaction(t, api)
 	testLocalList(t, api)
 	testGetLastHeader(t, api)
-	//testSignRawTx(t, api)
 	testStoreSet(t, api)
 	testStoreGet(t, api)
 	testStoreMemSet(t, api)
@@ -335,22 +322,6 @@ func testStoreList(t *testing.T, api client.QueueProtocolAPI) {
 		t.Error("StoreList(nil) need return error.")
 	}
 }
-
-/*
-func testSignRawTx(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.SignRawTx(&types.ReqSignRawTx{})
-	if err != nil {
-		t.Error("Call SignRawTx Failed.", err)
-	}
-	_, err = api.SignRawTx(nil)
-	if err == nil {
-		t.Error("SignRawTx(nil) need return error.")
-	}
-	_, err = api.SignRawTx(&types.ReqSignRawTx{Addr: "case1"})
-	if err == nil {
-		t.Error("SignRawTx(&types.ReqStr{Addr:\"case1\"}) need return error.")
-	}
-}*/
 
 func testGetLastHeader(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.GetLastHeader()
