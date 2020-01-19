@@ -763,7 +763,6 @@ func TestChain33_SendToAddress(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletSendToAddress{}
-	//api.On("WalletSendToAddress", expected).Return(nil, errors.New("error value"))
 	api.On("ExecWalletFunc", "wallet", "WalletSendToAddress", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
@@ -1489,7 +1488,6 @@ func TestChain33_GetFatalFailure(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	//api.On("GetFatalFailure", mock.Anything).Return(&types.Int32{}, nil)
 
 	expected := types.ReqNil{}
 	api.On("ExecWalletFunc", "wallet", "FatalFailure", &expected).Return(&types.Int32{}, nil)
@@ -1503,7 +1501,6 @@ func TestChain33_DecodeRawTransaction(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	//api.On("GetFatalFailure", mock.Anything).Return(&types.Int32{}, nil)
 	err := client.DecodeRawTransaction(&types.ReqDecodeRawTransaction{TxHex: "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"}, &testResult)
 	assert.NoError(t, err)
 }

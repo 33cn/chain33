@@ -98,7 +98,6 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.Equal(t, "123", nodeInfo.Externaladdr)
 
 	var singRet = ""
-	// api.On("SignRawTx", mock.Anything).Return(&types.ReplySignRawTx{TxHex: "123"}, nil)
 	api.On("ExecWalletFunc", "wallet", "SignRawTx", mock.Anything).Return(&types.ReplySignRawTx{TxHex: "123"}, nil)
 	err = jsonClient.Call("Chain33.SignRawTx", &types.ReqSignRawTx{}, &singRet)
 	assert.Nil(t, err)

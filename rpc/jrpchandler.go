@@ -957,7 +957,6 @@ func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
 	}
 	*result = reply.(*types.ReplySignRawTx).TxHex
 	return nil
-	// *result = resp.TxHex
 }
 
 // GetNetInfo get net information
@@ -984,7 +983,6 @@ func (c *Chain33) GetFatalFailure(in *types.ReqNil, result *interface{}) error {
 	}
 	*result = reply.(*types.Int32).Data
 	return nil
-	//*result = resp.GetData()
 }
 
 // DecodeRawTransaction 考虑交易组的解析统一返回ReplyTxList列表

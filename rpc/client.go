@@ -265,7 +265,6 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	if in.PayAddr != "" || in.Privkey != "" {
 		rawTx := hex.EncodeToString(types.Encode(newtx))
 		req := &types.ReqSignRawTx{Addr: in.PayAddr, Privkey: in.Privkey, Expire: in.Expire, TxHex: rawTx, Index: 1}
-		// signedTx, err := c.SignRawTx(req)
 		signedTx, err := c.ExecWalletFunc("wallet", "SignRawTx", req)
 		if err != nil {
 			return nil, err
