@@ -130,7 +130,7 @@ Retry:
 	}
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.UnaryInterceptor(interceptor), grpc.StreamInterceptor(interceptorStream))
-	maxMsgSize := pb.MaxBlockSize + 1024 * 1024 //最大传输数据 最大区块大小
+	maxMsgSize := pb.MaxBlockSize + 1024*1024    //最大传输数据 最大区块大小
 	msgRecvOp := grpc.MaxRecvMsgSize(maxMsgSize) //设置最大接收数据
 	msgSendOp := grpc.MaxSendMsgSize(maxMsgSize) //设置最大发送数据
 	kaep := keepalive.EnforcementPolicy{
