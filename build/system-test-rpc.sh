@@ -58,12 +58,12 @@ chain33_DumpPrivkey() {
 
 chain33_DumpPrivkeysFile() {
     req='{"method":"Chain33.DumpPrivkeysFile", "params":[{"fileName":"PrivkeysFile","passwd":"123456"}]}'
-    http_req "$req" ${MAIN_HTTP} '(.error|not) and .result.isOk' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and .result.isOK' "$FUNCNAME"
 }
 
 chain33_ImportPrivkeysFile() {
     req='{"method":"Chain33.ImportPrivkeysFile", "params":[{"fileName":"PrivkeysFile","passwd":"123456"}]}'
-    http_req "$req" ${MAIN_HTTP} '(.error|not) and .result.isOk' "$FUNCNAME"
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and .result.isOK' "$FUNCNAME"
     # rm -rf ./PrivkeysFile
 }
 

@@ -1477,7 +1477,7 @@ func TestChain33_DumpPrivkeysFile(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	api.On("ExecWalletFunc", "wallet", "DumpPrivkeysFile", mock.Anything).Return(nil, nil)
+	api.On("ExecWalletFunc", "wallet", "DumpPrivkeysFile", mock.Anything).Return(&types.Reply{}, nil)
 	err := client.DumpPrivkeysFile(types.ReqPrivkeysFile{}, &testResult)
 	assert.NoError(t, err)
 }
@@ -1488,7 +1488,7 @@ func TestChain33_ImportPrivkeysFile(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	api.On("ExecWalletFunc", "wallet", "ImportPrivkeysFile", mock.Anything).Return(nil, nil)
+	api.On("ExecWalletFunc", "wallet", "ImportPrivkeysFile", mock.Anything).Return(&types.Reply{}, nil)
 	err := client.ImportPrivkeysFile(types.ReqPrivkeysFile{}, &testResult)
 	assert.NoError(t, err)
 }
