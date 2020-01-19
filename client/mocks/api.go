@@ -111,29 +111,6 @@ func (_m *QueueProtocolAPI) ExecWalletFunc(driver string, funcname string, param
 	return r0, r1
 }
 
-// GenSeed provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) GenSeed(param *types.GenSeedLang) (*types.ReplySeed, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplySeed
-	if rf, ok := ret.Get(0).(func(*types.GenSeedLang) *types.ReplySeed); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplySeed)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.GenSeedLang) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetAddrOverview provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetAddrOverview(param *types.ReqAddr) (*types.AddrOverview, error) {
 	ret := _m.Called(param)
@@ -309,29 +286,6 @@ func (_m *QueueProtocolAPI) GetConfig() *types.Chain33Config {
 	}
 
 	return r0
-}
-
-// GetFatalFailure provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetFatalFailure() (*types.Int32, error) {
-	ret := _m.Called()
-
-	var r0 *types.Int32
-	if rf, ok := ret.Get(0).(func() *types.Int32); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Int32)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
 }
 
 // GetHeaders provides a mock function with given fields: param
@@ -587,29 +541,6 @@ func (_m *QueueProtocolAPI) GetProperFee(req *types.ReqProperFee) (*types.ReplyP
 	return r0, r1
 }
 
-// GetSeed provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplySeed
-	if rf, ok := ret.Get(0).(func(*types.GetSeedByPw) *types.ReplySeed); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplySeed)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.GetSeedByPw) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetSeqCallBackLastNum provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetSeqCallBackLastNum(param *types.ReqString) (*types.Int64, error) {
 	ret := _m.Called(param)
@@ -718,29 +649,6 @@ func (_m *QueueProtocolAPI) GetTxList(param *types.TxHashList) (*types.ReplyTxLi
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.TxHashList) error); ok {
 		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetWalletStatus provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetWalletStatus() (*types.WalletStatus, error) {
-	ret := _m.Called()
-
-	var r0 *types.WalletStatus
-	if rf, ok := ret.Get(0).(func() *types.WalletStatus); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.WalletStatus)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1156,29 +1064,6 @@ func (_m *QueueProtocolAPI) QueryTx(param *types.ReqHash) (*types.TransactionDet
 	return r0, r1
 }
 
-// SaveSeed provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) SaveSeed(param *types.SaveSeedByPw) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.SaveSeedByPw) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.SaveSeedByPw) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // SendTx provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) SendTx(param *types.Transaction) (*types.Reply, error) {
 	ret := _m.Called(param)
@@ -1194,29 +1079,6 @@ func (_m *QueueProtocolAPI) SendTx(param *types.Transaction) (*types.Reply, erro
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.Transaction) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// SignRawTx provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplySignRawTx
-	if rf, ok := ret.Get(0).(func(*types.ReqSignRawTx) *types.ReplySignRawTx); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplySignRawTx)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqSignRawTx) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
@@ -1425,167 +1287,6 @@ func (_m *QueueProtocolAPI) Version() (*types.VersionInfo, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// WalletLock provides a mock function with given fields:
-func (_m *QueueProtocolAPI) WalletLock() (*types.Reply, error) {
-	ret := _m.Called()
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func() *types.Reply); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// WalletMergeBalance provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletMergeBalance(param *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplyHashes
-	if rf, ok := ret.Get(0).(func(*types.ReqWalletMergeBalance) *types.ReplyHashes); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyHashes)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqWalletMergeBalance) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// WalletSendToAddress provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletSendToAddress(param *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplyHash
-	if rf, ok := ret.Get(0).(func(*types.ReqWalletSendToAddress) *types.ReplyHash); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyHash)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqWalletSendToAddress) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// WalletSetFee provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletSetFee(param *types.ReqWalletSetFee) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqWalletSetFee) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqWalletSetFee) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// WalletSetLabel provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletSetLabel(param *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.WalletAccount
-	if rf, ok := ret.Get(0).(func(*types.ReqWalletSetLabel) *types.WalletAccount); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.WalletAccount)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqWalletSetLabel) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// WalletSetPasswd provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletSetPasswd(param *types.ReqWalletSetPasswd) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqWalletSetPasswd) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqWalletSetPasswd) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// WalletUnLock provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletUnLock(param *types.WalletUnLock) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.WalletUnLock) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.WalletUnLock) error); ok {
-		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
 	}
