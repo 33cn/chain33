@@ -68,14 +68,14 @@ func TestQueueProtocol(t *testing.T) {
 	testQueryTx(t, api)
 	testGetTransactionByHash(t, api)
 	testGetMempool(t, api)
-	testWalletSendToAddress(t, api)
-	testWalletSetFee(t, api)
-	testWalletSetLabel(t, api)
-	testWalletMergeBalance(t, api)
-	testWalletSetPasswd(t, api)
-	testWalletLock(t, api)
-	testWalletUnLock(t, api)
-	testWalletGetFatalFailure(t, api)
+	//testWalletSendToAddress(t, api)
+	//testWalletSetFee(t, api)
+	//testWalletSetLabel(t, api)
+	//testWalletMergeBalance(t, api)
+	//testWalletSetPasswd(t, api)
+	//testWalletLock(t, api)
+	//testWalletUnLock(t, api)
+	//testWalletGetFatalFailure(t, api)
 	testPeerInfo(t, api)
 	testGetHeaders(t, api)
 	testGetLastMempool(t, api)
@@ -89,17 +89,17 @@ func TestQueueProtocol(t *testing.T) {
 	testListSeqCallBack(t, api)
 	testGetSeqCallBackLastNum(t, api)
 	testGetLastBlockSequence(t, api)
-	testGenSeed(t, api)
-	testSaveSeed(t, api)
-	testGetSeed(t, api)
-	testGetWalletStatus(t, api)
+	//testGenSeed(t, api)
+	//testSaveSeed(t, api)
+	//testGetSeed(t, api)
+	//testGetWalletStatus(t, api)
 	testIsSync(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
 	testLocalTransaction(t, api)
 	testLocalList(t, api)
 	testGetLastHeader(t, api)
-	testSignRawTx(t, api)
+	//testSignRawTx(t, api)
 	testStoreSet(t, api)
 	testStoreGet(t, api)
 	testStoreMemSet(t, api)
@@ -336,6 +336,7 @@ func testStoreList(t *testing.T, api client.QueueProtocolAPI) {
 	}
 }
 
+/*
 func testSignRawTx(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.SignRawTx(&types.ReqSignRawTx{})
 	if err != nil {
@@ -349,7 +350,7 @@ func testSignRawTx(t *testing.T, api client.QueueProtocolAPI) {
 	if err == nil {
 		t.Error("SignRawTx(&types.ReqStr{Addr:\"case1\"}) need return error.")
 	}
-}
+}*/
 
 func testGetLastHeader(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.GetLastHeader()
@@ -414,58 +415,6 @@ func testIsSync(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.IsSync()
 	if err != nil {
 		t.Error("Call IsSync Failed.", err)
-	}
-}
-
-func testGetWalletStatus(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.GetWalletStatus()
-	if err != nil {
-		t.Error("Call GetWalletStatus Failed.", err)
-	}
-}
-
-func testGetSeed(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.GetSeed(&types.GetSeedByPw{})
-	if err != nil {
-		t.Error("Call GetSeed Failed.", err)
-	}
-	_, err = api.GetSeed(nil)
-	if err == nil {
-		t.Error("GetSeed(nil) need return error.")
-	}
-	_, err = api.GetSeed(&types.GetSeedByPw{Passwd: "case1"})
-	if err == nil {
-		t.Error("GetSeed(&types.GetSeedByPw{Passwd:\"case1\"}) need return error.")
-	}
-}
-
-func testSaveSeed(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.SaveSeed(&types.SaveSeedByPw{})
-	if err != nil {
-		t.Error("Call SaveSeed Failed.", err)
-	}
-	_, err = api.SaveSeed(nil)
-	if err == nil {
-		t.Error("SaveSeed(nil) need return error.")
-	}
-	_, err = api.SaveSeed(&types.SaveSeedByPw{Seed: "case1"})
-	if err == nil {
-		t.Error("SaveSeed(&types.SaveSeedByPw{Seed:\"case1\"}) need return error.")
-	}
-}
-
-func testGenSeed(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.GenSeed(&types.GenSeedLang{})
-	if err != nil {
-		t.Error("Call GenSeed Failed.", err)
-	}
-	_, err = api.GenSeed(nil)
-	if err == nil {
-		t.Error("GenSeed(nil) need return error.")
-	}
-	_, err = api.GenSeed(&types.GenSeedLang{Lang: 10})
-	if err == nil {
-		t.Error("GenSeed(&types.GenSeedLang{Lang:10}) need return error.")
 	}
 }
 
@@ -552,110 +501,6 @@ func testPeerInfo(t *testing.T, api client.QueueProtocolAPI) {
 	if err != nil {
 		t.Error("Call PeerInfo Failed.", err)
 	}
-}
-
-func testWalletUnLock(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletUnLock(&types.WalletUnLock{})
-	if err != nil {
-		t.Error("Call WalletUnLock Failed.", err)
-	}
-	_, err = api.WalletUnLock(nil)
-	if err == nil {
-		t.Error("WalletUnLock(nil) need return error.")
-	}
-	_, err = api.WalletUnLock(&types.WalletUnLock{Passwd: "case1"})
-	if err == nil {
-		t.Error("WalletUnLock(&types.WalletUnLock{Passwd:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletLock(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletLock()
-	if err != nil {
-		t.Error("Call WalletLock Failed.", err)
-	}
-}
-
-func testWalletSetPasswd(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletSetPasswd(&types.ReqWalletSetPasswd{})
-	if err != nil {
-		t.Error("Call WalletSetPasswd Failed.", err)
-	}
-	_, err = api.WalletSetPasswd(nil)
-	if err == nil {
-		t.Error("WalletSetPasswd(nil) need return error.")
-	}
-	_, err = api.WalletSetPasswd(&types.ReqWalletSetPasswd{OldPass: "case1"})
-	if err == nil {
-		t.Error("WalletSetPasswd(&types.ReqWalletSetPasswd{OldPass:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletMergeBalance(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletMergeBalance(&types.ReqWalletMergeBalance{})
-	if err != nil {
-		t.Error("Call WalletMergeBalance Failed.", err)
-	}
-	_, err = api.WalletMergeBalance(nil)
-	if err == nil {
-		t.Error("WalletMergeBalance(nil) need return error.")
-	}
-	_, err = api.WalletMergeBalance(&types.ReqWalletMergeBalance{To: "case1"})
-	if err == nil {
-		t.Error("WalletMergeBalance(&types.ReqWalletMergeBalance{To:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletSetLabel(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletSetLabel(&types.ReqWalletSetLabel{})
-	if err != nil {
-		t.Error("Call WalletSetLabel Failed.", err)
-	}
-	_, err = api.WalletSetLabel(nil)
-	if err == nil {
-		t.Error("WalletSetLabel(nil) need return error.")
-	}
-	_, err = api.WalletSetLabel(&types.ReqWalletSetLabel{Label: "case1"})
-	if err == nil {
-		t.Error("WalletSetLabel(&types.ReqWalletSetLabel{Label:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletSetFee(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletSetFee(&types.ReqWalletSetFee{})
-	if err != nil {
-		t.Error("Call WalletSetFee Failed.", err)
-	}
-	_, err = api.WalletSetFee(nil)
-	if err == nil {
-		t.Error("WalletSetFee(nil) need return error.")
-	}
-	_, err = api.WalletSetFee(&types.ReqWalletSetFee{Amount: 1000})
-	if err == nil {
-		t.Error("WalletSetFee(&types.ReqWalletSetFee{Amount:1000}) need return error.")
-	}
-}
-
-func testWalletSendToAddress(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletSendToAddress(&types.ReqWalletSendToAddress{})
-	if err != nil {
-		t.Error("Call WalletSendToAddress Failed.", err)
-	}
-	_, err = api.WalletSendToAddress(nil)
-	if err == nil {
-		t.Error("WalletSendToAddress(nil) need return error.")
-	}
-	_, err = api.WalletSendToAddress(&types.ReqWalletSendToAddress{Note: "case1"})
-	if err == nil {
-		t.Error("WalletSendToAddress(&types.ReqWalletSendToAddress{Note:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletGetFatalFailure(t *testing.T, api client.QueueProtocolAPI) {
-	res, err := api.GetFatalFailure()
-	assert.Nil(t, err)
-	assert.Equal(t, &types.Int32{}, res)
-
 }
 
 func testGetMempool(t *testing.T, api client.QueueProtocolAPI) {
@@ -814,7 +659,6 @@ func testGetWalletStatusJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	} else {
 		if res.IsTicketLock || res.IsAutoMining || !res.IsHasSeed || !res.IsWalletLock {
 			t.Error("testGetWalletStatusJSONRPC return type error.")
-
 		}
 	}
 }

@@ -251,12 +251,12 @@ func newWalletRealize(qAPI client.QueueProtocolAPI) {
 		Seed:   "subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant",
 		Passwd: "123456fuzamei",
 	}
-	reply, err := qAPI.SaveSeed(seed)
-	if !reply.IsOk && err != nil {
+	reply, err := qAPI.ExecWalletFunc("wallet", "SaveSeed", seed)
+	if !reply.(*types.Reply).IsOk && err != nil {
 		panic(err)
 	}
-	reply, err = qAPI.WalletUnLock(&types.WalletUnLock{Passwd: "123456fuzamei"})
-	if !reply.IsOk && err != nil {
+	reply, err = qAPI.ExecWalletFunc("wallet", "WalletUnLock", &types.WalletUnLock{Passwd: "123456fuzamei"})
+	if !reply.(*types.Reply).IsOk && err != nil {
 		panic(err)
 	}
 	for i, priv := range util.TestPrivkeyHex {

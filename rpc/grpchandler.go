@@ -192,37 +192,65 @@ func (g *Grpc) ImportPrivkey(ctx context.Context, in *pb.ReqWalletImportPrivkey)
 
 // SendToAddress send to address of coins
 func (g *Grpc) SendToAddress(ctx context.Context, in *pb.ReqWalletSendToAddress) (*pb.ReplyHash, error) {
-	return g.cli.WalletSendToAddress(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletSendToAddress", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.ReplyHash), nil
 }
 
 // SetTxFee set tx fee
 func (g *Grpc) SetTxFee(ctx context.Context, in *pb.ReqWalletSetFee) (*pb.Reply, error) {
-	return g.cli.WalletSetFee(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletSetFee", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.Reply), nil
 }
 
 // SetLabl set labl
 func (g *Grpc) SetLabl(ctx context.Context, in *pb.ReqWalletSetLabel) (*pb.WalletAccount, error) {
-	return g.cli.WalletSetLabel(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletSetLabel", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.WalletAccount), nil
 }
 
 // MergeBalance merge balance of wallet
 func (g *Grpc) MergeBalance(ctx context.Context, in *pb.ReqWalletMergeBalance) (*pb.ReplyHashes, error) {
-	return g.cli.WalletMergeBalance(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletMergeBalance", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.ReplyHashes), nil
 }
 
 // SetPasswd set password
 func (g *Grpc) SetPasswd(ctx context.Context, in *pb.ReqWalletSetPasswd) (*pb.Reply, error) {
-	return g.cli.WalletSetPasswd(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletSetPasswd", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.Reply), nil
 }
 
 // Lock wallet lock
 func (g *Grpc) Lock(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
-	return g.cli.WalletLock()
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletLock", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.Reply), nil
 }
 
 // UnLock wallet unlock
 func (g *Grpc) UnLock(ctx context.Context, in *pb.WalletUnLock) (*pb.Reply, error) {
-	return g.cli.WalletUnLock(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "WalletUnLock", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.Reply), nil
 }
 
 // GetPeerInfo get peer information
@@ -263,22 +291,38 @@ func (g *Grpc) GetBlockHash(ctx context.Context, in *pb.ReqInt) (*pb.ReplyHash, 
 
 // GenSeed seed
 func (g *Grpc) GenSeed(ctx context.Context, in *pb.GenSeedLang) (*pb.ReplySeed, error) {
-	return g.cli.GenSeed(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "GenSeed", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.ReplySeed), nil
 }
 
 // GetSeed get seed
 func (g *Grpc) GetSeed(ctx context.Context, in *pb.GetSeedByPw) (*pb.ReplySeed, error) {
-	return g.cli.GetSeed(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "GetSeed", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.ReplySeed), nil
 }
 
 // SaveSeed save seed
 func (g *Grpc) SaveSeed(ctx context.Context, in *pb.SaveSeedByPw) (*pb.Reply, error) {
-	return g.cli.SaveSeed(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "SaveSeed", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.Reply), nil
 }
 
 // GetWalletStatus get wallet status
 func (g *Grpc) GetWalletStatus(ctx context.Context, in *pb.ReqNil) (*pb.WalletStatus, error) {
-	return g.cli.GetWalletStatus()
+	reply, err := g.cli.ExecWalletFunc("wallet", "GetWalletStatus", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.WalletStatus), nil
 }
 
 // GetBalance get balance
@@ -366,7 +410,11 @@ func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, err
 
 // GetFatalFailure return  fatal of failure
 func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, error) {
-	return g.cli.GetFatalFailure()
+	reply, err := g.cli.ExecWalletFunc("wallet", "GetFatalFailure", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.Int32), nil
 }
 
 // CloseQueue close queue
@@ -404,7 +452,11 @@ func (g *Grpc) GetBlockBySeq(ctx context.Context, in *pb.Int64) (*pb.BlockSeq, e
 
 // SignRawTx signature rawtransaction
 func (g *Grpc) SignRawTx(ctx context.Context, in *pb.ReqSignRawTx) (*pb.ReplySignRawTx, error) {
-	return g.cli.SignRawTx(in)
+	reply, err := g.cli.ExecWalletFunc("wallet", "SignRawTx", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.ReplySignRawTx), nil
 }
 
 // QueryRandNum query randHash from ticket

@@ -49,36 +49,36 @@ const (
 	// EventWalletTransactionList = 41
 	EventWalletExecutor      = 42
 	EventWalletImportPrivkey = 43
-	EventWalletSendToAddress = 44
-	EventWalletSetFee        = 45
-	EventWalletSetLabel      = 46
-	EventStoreDel            = 47
-	EventWalletMergeBalance  = 48
-	EventReplyHashes         = 49
-	EventWalletSetPasswd     = 50
-	EventWalletLock          = 51
-	EventWalletUnLock        = 52
-	EventTransactionDetails  = 53
-	EventBroadcastAddBlock   = 54
-	EventGetBlockOverview    = 55
-	EventGetAddrOverview     = 56
-	EventReplyBlockOverview  = 57
-	EventReplyAddrOverview   = 58
-	EventGetBlockHash        = 59
-	EventBlockHash           = 60
-	EventGetLastMempool      = 61
-	EventMinerStart          = 63
-	EventMinerStop           = 64
-	EventWalletTickets       = 65
-	EventStoreMemSet         = 66
-	EventStoreRollback       = 67
-	EventStoreCommit         = 68
-	EventCheckBlock          = 69
+	//EventWalletSendToAddress = 44
+	//EventWalletSetFee        = 45
+	//EventWalletSetLabel      = 46
+	EventStoreDel = 47
+	//EventWalletMergeBalance = 48
+	EventReplyHashes = 49
+	//EventWalletSetPasswd    = 50
+	//EventWalletLock          = 51
+	EventWalletUnLock       = 52
+	EventTransactionDetails = 53
+	EventBroadcastAddBlock  = 54
+	EventGetBlockOverview   = 55
+	EventGetAddrOverview    = 56
+	EventReplyBlockOverview = 57
+	EventReplyAddrOverview  = 58
+	EventGetBlockHash       = 59
+	EventBlockHash          = 60
+	EventGetLastMempool     = 61
+	EventMinerStart         = 63
+	EventMinerStop          = 64
+	EventWalletTickets      = 65
+	EventStoreMemSet        = 66
+	EventStoreRollback      = 67
+	EventStoreCommit        = 68
+	EventCheckBlock         = 69
 	//seed
-	EventGenSeed      = 70
+	//EventGenSeed      = 70
 	EventReplyGenSeed = 71
 	EventSaveSeed     = 72
-	EventGetSeed      = 73
+	//EventGetSeed      = 73
 	EventReplyGetSeed = 74
 	EventDelBlock     = 75
 	//local store
@@ -100,25 +100,25 @@ const (
 	EventGetTicketCount      = 92
 	EventReplyGetTicketCount = 93
 	// EventDumpPrivkey             = 94
-	EventReplyPrivkey            = 95
-	EventIsSync                  = 96
-	EventReplyIsSync             = 97
-	EventCloseTickets            = 98
-	EventGetAddrTxs              = 99
-	EventReplyAddrTxs            = 100
-	EventIsNtpClockSync          = 101
-	EventReplyIsNtpClockSync     = 102
-	EventDelTxList               = 103
-	EventStoreGetTotalCoins      = 104
-	EventGetTotalCoinsReply      = 105
-	EventQueryTotalFee           = 106
-	EventSignRawTx               = 107
-	EventReplySignRawTx          = 108
-	EventSyncBlock               = 109
-	EventGetNetInfo              = 110
-	EventReplyNetInfo            = 111
-	EventErrToFront              = 112
-	EventFatalFailure            = 113
+	EventReplyPrivkey        = 95
+	EventIsSync              = 96
+	EventReplyIsSync         = 97
+	EventCloseTickets        = 98
+	EventGetAddrTxs          = 99
+	EventReplyAddrTxs        = 100
+	EventIsNtpClockSync      = 101
+	EventReplyIsNtpClockSync = 102
+	EventDelTxList           = 103
+	EventStoreGetTotalCoins  = 104
+	EventGetTotalCoinsReply  = 105
+	EventQueryTotalFee       = 106
+	//EventSignRawTx               = 107
+	EventReplySignRawTx = 108
+	EventSyncBlock      = 109
+	EventGetNetInfo     = 110
+	EventReplyNetInfo   = 111
+	EventErrToFront     = 112
+	//EventFatalFailure            = 113
 	EventReplyFatalFailure       = 114
 	EventBindMiner               = 115
 	EventReplyBindMiner          = 116
@@ -224,14 +224,14 @@ var eventName = map[int]string{
 	//41:  "EventWalletTransactionList",
 	42: "EventWalletExecutor",
 	43: "EventWalletImportPrivkey",
-	44: "EventWalletSendToAddress",
-	45: "EventWalletSetFee",
-	46: "EventWalletSetLabel",
+	//44: "EventWalletSendToAddress",
+	//45: "EventWalletSetFee",
+	//46: "EventWalletSetLabel",
 	47: "EventStoreDel",
-	48: "EventWalletMergeBalance",
+	//48: "EventWalletMergeBalance",
 	49: "EventReplyHashes",
-	50: "EventWalletSetPasswd",
-	51: "EventWalletLock",
+	//50: "EventWalletSetPasswd",
+	//51: "EventWalletLock",
 	52: "EventWalletUnLock",
 	53: "EventTransactionDetails",
 	54: "EventBroadcastAddBlock",
@@ -249,10 +249,10 @@ var eventName = map[int]string{
 	67: "EventStoreRollback",
 	68: "EventStoreCommit",
 	69: "EventCheckBlock",
-	70: "EventGenSeed",
+	//70: "EventGenSeed",
 	71: "EventReplyGenSeed",
 	72: "EventSaveSeed",
-	73: "EventGetSeed",
+	//73: "EventGetSeed",
 	74: "EventReplyGetSeed",
 	75: "EventDelBlock",
 	76: "EventLocalGet",
@@ -283,13 +283,13 @@ var eventName = map[int]string{
 	104: "EventStoreGetTotalCoins",
 	105: "EventGetTotalCoinsReply",
 	106: "EventQueryTotalFee",
-	107: "EventSignRawTx",
+	//107: "EventSignRawTx",
 	108: "EventReplySignRawTx",
 	109: "EventSyncBlock",
 	110: "EventGetNetInfo",
 	111: "EventReplyNetInfo",
 	112: "EventErrToFront",
-	113: "EventFatalFailure",
+	//113: "EventFatalFailure",
 	114: "EventReplyFatalFailure",
 	115: "EventBindMiner",
 	116: "EventReplyBindMiner",

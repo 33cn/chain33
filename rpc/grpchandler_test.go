@@ -241,10 +241,9 @@ func TestImportPrivKey(t *testing.T) {
 
 func testSendToAddressOK(t *testing.T) {
 	var in *pb.ReqWalletSendToAddress
-	qapi.On("WalletSendToAddress", in).Return(nil, nil)
-	data, err := g.SendToAddress(getOkCtx(), nil)
+	qapi.On("ExecWalletFunc", "wallet", "WalletSendToAddress", in).Return(&pb.ReplyHash{}, nil)
+	_, err := g.SendToAddress(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestSendToAddress(t *testing.T) {
@@ -253,10 +252,9 @@ func TestSendToAddress(t *testing.T) {
 
 func testSetTxFeeOK(t *testing.T) {
 	var in *pb.ReqWalletSetFee
-	qapi.On("WalletSetFee", in).Return(nil, nil)
-	data, err := g.SetTxFee(getOkCtx(), nil)
+	qapi.On("ExecWalletFunc", "wallet", "WalletSetFee", in).Return(&pb.Reply{}, nil)
+	_, err := g.SetTxFee(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestSetTxFee(t *testing.T) {
@@ -265,10 +263,9 @@ func TestSetTxFee(t *testing.T) {
 
 func testSetLablOK(t *testing.T) {
 	var in *pb.ReqWalletSetLabel
-	qapi.On("WalletSetLabel", in).Return(nil, nil)
-	data, err := g.SetLabl(getOkCtx(), nil)
+	qapi.On("ExecWalletFunc", "wallet", "WalletSetLabel", in).Return(&pb.WalletAccount{}, nil)
+	_, err := g.SetLabl(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestSetLabl(t *testing.T) {
@@ -277,10 +274,9 @@ func TestSetLabl(t *testing.T) {
 
 func testMergeBalanceOK(t *testing.T) {
 	var in *pb.ReqWalletMergeBalance
-	qapi.On("WalletMergeBalance", in).Return(nil, nil)
-	data, err := g.MergeBalance(getOkCtx(), nil)
+	qapi.On("ExecWalletFunc", "wallet", "WalletMergeBalance", in).Return(&pb.ReplyHashes{}, nil)
+	_, err := g.MergeBalance(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestMergeBalance(t *testing.T) {
@@ -289,10 +285,9 @@ func TestMergeBalance(t *testing.T) {
 
 func testSetPasswdOK(t *testing.T) {
 	var in *pb.ReqWalletSetPasswd
-	qapi.On("WalletSetPasswd", in).Return(nil, nil)
-	data, err := g.SetPasswd(getOkCtx(), nil)
+	qapi.On("ExecWalletFunc", "wallet", "WalletSetPasswd", in).Return(&pb.Reply{}, nil)
+	_, err := g.SetPasswd(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestSetPasswd(t *testing.T) {
@@ -300,10 +295,10 @@ func TestSetPasswd(t *testing.T) {
 }
 
 func testLockOK(t *testing.T) {
-	qapi.On("WalletLock").Return(nil, nil)
-	data, err := g.Lock(getOkCtx(), nil)
+	var in *pb.ReqNil
+	qapi.On("ExecWalletFunc", "wallet", "WalletLock", in).Return(&pb.Reply{}, nil)
+	_, err := g.Lock(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestLock(t *testing.T) {
@@ -312,10 +307,9 @@ func TestLock(t *testing.T) {
 
 func testUnLockOK(t *testing.T) {
 	var in *pb.WalletUnLock
-	qapi.On("WalletUnLock", in).Return(nil, nil)
-	data, err := g.UnLock(getOkCtx(), nil)
+	qapi.On("ExecWalletFunc", "wallet", "WalletUnLock", in).Return(&pb.Reply{}, nil)
+	_, err := g.UnLock(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestUnLock(t *testing.T) {
@@ -324,10 +318,9 @@ func TestUnLock(t *testing.T) {
 
 func testGenSeedOK(t *testing.T) {
 	var in *pb.GenSeedLang
-	qapi.On("GenSeed", in).Return(nil, nil)
-	data, err := g.GenSeed(getOkCtx(), nil)
+	qapi.On("ExecWalletFunc", "wallet", "GenSeed", in).Return(&pb.ReplySeed{}, nil)
+	_, err := g.GenSeed(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestGenSeed(t *testing.T) {
@@ -336,10 +329,9 @@ func TestGenSeed(t *testing.T) {
 
 func testGetSeedOK(t *testing.T) {
 	var in *pb.GetSeedByPw
-	qapi.On("GetSeed", in).Return(nil, nil)
-	data, err := g.GetSeed(getOkCtx(), nil)
+	qapi.On("ExecWalletFunc", "wallet", "GetSeed", in).Return(&pb.ReplySeed{}, nil)
+	_, err := g.GetSeed(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestGetSeed(t *testing.T) {
@@ -348,10 +340,9 @@ func TestGetSeed(t *testing.T) {
 
 func testSaveSeedOK(t *testing.T) {
 	var in *pb.SaveSeedByPw
-	qapi.On("SaveSeed", in).Return(nil, nil)
-	data, err := g.SaveSeed(getOkCtx(), nil)
+	qapi.On("ExecWalletFunc", "wallet", "SaveSeed", in).Return(&pb.Reply{}, nil)
+	_, err := g.SaveSeed(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestSaveSeed(t *testing.T) {
@@ -359,10 +350,10 @@ func TestSaveSeed(t *testing.T) {
 }
 
 func testGetWalletStatusOK(t *testing.T) {
-	qapi.On("GetWalletStatus").Return(nil, nil)
-	data, err := g.GetWalletStatus(getOkCtx(), nil)
+	var in *pb.ReqNil
+	qapi.On("ExecWalletFunc", "wallet", "GetWalletStatus", in).Return(&pb.WalletStatus{}, nil)
+	_, err := g.GetWalletStatus(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
 }
 
 func TestGetWalletStatus(t *testing.T) {
@@ -647,7 +638,7 @@ func TestGrpc_GetSequenceByHash(t *testing.T) {
 }
 
 func TestGrpc_SignRawTx(t *testing.T) {
-	qapi.On("SignRawTx", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	qapi.On("ExecWalletFunc", "wallet", "SignRawTx", mock.Anything).Return(&pb.ReplySignRawTx{}, nil)
 	_, err := g.SignRawTx(getOkCtx(), &types.ReqSignRawTx{})
 	assert.NoError(t, err)
 }

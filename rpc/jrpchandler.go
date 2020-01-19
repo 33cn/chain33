@@ -191,7 +191,6 @@ func (c *Chain33) GetBlocks(in rpctypes.BlockParam, result *interface{}) error {
 
 // GetLastHeader get last header
 func (c *Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
-
 	reply, err := c.cli.GetLastHeader()
 	if err != nil {
 		return err
@@ -458,105 +457,97 @@ func (c *Chain33) ImportPrivkey(in types.ReqWalletImportPrivkey, result *interfa
 
 // SendToAddress send to address of coins
 func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
-	reply, err := c.cli.WalletSendToAddress(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletSendToAddress", &in)
 	if err != nil {
 		log.Debug("SendToAddress", "Error", err.Error())
 		return err
 	}
+
 	log.Debug("sendtoaddr", "msg", reply.String())
-	*result = &rpctypes.ReplyHash{Hash: common.ToHex(reply.GetHash())}
+	*result = &rpctypes.ReplyHash{Hash: common.ToHex(reply.(*types.ReplyHash).GetHash())}
 	log.Debug("SendToAddress", "resulrt", *result)
 	return nil
 }
 
 // SetTxFee set tx fee
-/*
-	SetTxFee(parm *types.ReqWalletSetFee) (*types.Reply, error)
-	SetLabl(parm *types.ReqWalletSetLabel) (*types.WalletAccount, error)
-	MergeBalance(parm *types.ReqWalletMergeBalance) (*types.ReplyHashes, error)
-	SetPasswd(parm *types.ReqWalletSetPasswd) (*types.Reply, error)
-*/
 func (c *Chain33) SetTxFee(in types.ReqWalletSetFee, result *interface{}) error {
-	reply, err := c.cli.WalletSetFee(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletSetFee", &in)
 	if err != nil {
 		return err
 	}
+
 	var resp rpctypes.Reply
-	resp.IsOk = reply.GetIsOk()
-	resp.Msg = string(reply.GetMsg())
+	resp.IsOk = reply.(*types.Reply).GetIsOk()
+	resp.Msg = string(reply.(*types.Reply).GetMsg())
 	*result = &resp
 	return nil
 }
 
 // SetLabl set lable
 func (c *Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error {
-	reply, err := c.cli.WalletSetLabel(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletSetLabel", &in)
 	if err != nil {
 		return err
 	}
 
-	*result = &rpctypes.WalletAccount{Acc: &rpctypes.Account{Addr: reply.GetAcc().Addr, Currency: reply.GetAcc().GetCurrency(),
-		Frozen: reply.GetAcc().GetFrozen(), Balance: reply.GetAcc().GetBalance()}, Label: reply.GetLabel()}
+	*result = &rpctypes.WalletAccount{Acc: &rpctypes.Account{Addr: reply.(*types.WalletAccount).GetAcc().Addr, Currency: reply.(*types.WalletAccount).GetAcc().GetCurrency(),
+		Frozen: reply.(*types.WalletAccount).GetAcc().GetFrozen(), Balance: reply.(*types.WalletAccount).GetAcc().GetBalance()}, Label: reply.(*types.WalletAccount).GetLabel()}
 	return nil
 }
 
 // MergeBalance merge balance
 func (c *Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
-	reply, err := c.cli.WalletMergeBalance(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletMergeBalance", &in)
 	if err != nil {
 		return err
 	}
-	{
-		var hashes rpctypes.ReplyHashes
-		for _, has := range reply.Hashes {
-			hashes.Hashes = append(hashes.Hashes, common.ToHex(has))
-		}
-		*result = &hashes
-	}
 
+	var hashes rpctypes.ReplyHashes
+	for _, has := range reply.(*types.ReplyHashes).Hashes {
+		hashes.Hashes = append(hashes.Hashes, common.ToHex(has))
+	}
+	*result = &hashes
 	return nil
 }
 
 // SetPasswd set password
 func (c *Chain33) SetPasswd(in types.ReqWalletSetPasswd, result *interface{}) error {
-	reply, err := c.cli.WalletSetPasswd(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletSetPasswd", &in)
 	if err != nil {
 		return err
 	}
+
 	var resp rpctypes.Reply
-	resp.IsOk = reply.GetIsOk()
-	resp.Msg = string(reply.GetMsg())
+	resp.IsOk = reply.(*types.Reply).GetIsOk()
+	resp.Msg = string(reply.(*types.Reply).GetMsg())
 	*result = &resp
 	return nil
 }
 
 // Lock wallet lock
-/*
-	Lock() (*types.Reply, error)
-	UnLock(parm *types.WalletUnLock) (*types.Reply, error)
-	GetPeerInfo() (*types.PeerList, error)
-*/
 func (c *Chain33) Lock(in types.ReqNil, result *interface{}) error {
-	reply, err := c.cli.WalletLock()
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletLock", &in)
 	if err != nil {
 		return err
 	}
+
 	var resp rpctypes.Reply
-	resp.IsOk = reply.GetIsOk()
-	resp.Msg = string(reply.GetMsg())
+	resp.IsOk = reply.(*types.Reply).GetIsOk()
+	resp.Msg = string(reply.(*types.Reply).GetMsg())
 	*result = &resp
 	return nil
 }
 
 // UnLock wallet unlock
 func (c *Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
-	reply, err := c.cli.WalletUnLock(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletUnLock", &in)
 	if err != nil {
 		return err
 	}
+
 	var resp rpctypes.Reply
-	resp.IsOk = reply.GetIsOk()
-	resp.Msg = string(reply.GetMsg())
+	resp.IsOk = reply.(*types.Reply).GetIsOk()
+	resp.Msg = string(reply.(*types.Reply).GetMsg())
 	*result = &resp
 	return nil
 }
@@ -731,7 +722,7 @@ func (c *Chain33) GetBlockHash(in types.ReqInt, result *interface{}) error {
 
 // GenSeed seed
 func (c *Chain33) GenSeed(in types.GenSeedLang, result *interface{}) error {
-	reply, err := c.cli.GenSeed(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "GenSeed", &in)
 	if err != nil {
 		return err
 	}
@@ -741,21 +732,21 @@ func (c *Chain33) GenSeed(in types.GenSeedLang, result *interface{}) error {
 
 // SaveSeed save seed
 func (c *Chain33) SaveSeed(in types.SaveSeedByPw, result *interface{}) error {
-	reply, err := c.cli.SaveSeed(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "SaveSeed", &in)
 	if err != nil {
 		return err
 	}
 
 	var resp rpctypes.Reply
-	resp.IsOk = reply.GetIsOk()
-	resp.Msg = string(reply.GetMsg())
+	resp.IsOk = reply.(*types.Reply).GetIsOk()
+	resp.Msg = string(reply.(*types.Reply).GetMsg())
 	*result = &resp
 	return nil
 }
 
 // GetSeed get seed
 func (c *Chain33) GetSeed(in types.GetSeedByPw, result *interface{}) error {
-	reply, err := c.cli.GetSeed(&in)
+	reply, err := c.cli.ExecWalletFunc("wallet", "GetSeed", &in)
 	if err != nil {
 		return err
 	}
@@ -765,15 +756,16 @@ func (c *Chain33) GetSeed(in types.GetSeedByPw, result *interface{}) error {
 
 // GetWalletStatus get status of wallet
 func (c *Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
-	reply, err := c.cli.GetWalletStatus()
+	reply, err := c.cli.ExecWalletFunc("wallet", "GetWalletStatus", &in)
 	if err != nil {
 		return err
 	}
+
 	status := rpctypes.WalletStatus{
-		IsWalletLock: reply.IsWalletLock,
-		IsAutoMining: reply.IsAutoMining,
-		IsHasSeed:    reply.IsHasSeed,
-		IsTicketLock: reply.IsTicketLock,
+		IsWalletLock: reply.(*types.WalletStatus).IsWalletLock,
+		IsAutoMining: reply.(*types.WalletStatus).IsAutoMining,
+		IsHasSeed:    reply.(*types.WalletStatus).IsHasSeed,
+		IsTicketLock: reply.(*types.WalletStatus).IsTicketLock,
 	}
 	*result = &status
 	return nil
@@ -963,12 +955,15 @@ func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error
 
 // SignRawTx signature the rawtransaction
 func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
-	resp, err := c.cli.SignRawTx(in)
+	req := types.ReqSignRawTx{Addr: in.Addr, Privkey: in.Privkey, TxHex: in.TxHex, Expire: in.Expire,
+		Index: in.Index, Token: in.Token, Fee: in.Fee, NewToAddr: in.NewToAddr}
+	reply, err := c.cli.ExecWalletFunc("wallet", "SignRawTx", &req)
 	if err != nil {
 		return err
 	}
-	*result = resp.TxHex
+	*result = reply.(*types.ReplySignRawTx).TxHex
 	return nil
+	// *result = resp.TxHex
 }
 
 // GetNetInfo get net information
@@ -989,13 +984,13 @@ func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
 
 // GetFatalFailure return fatal failure
 func (c *Chain33) GetFatalFailure(in *types.ReqNil, result *interface{}) error {
-	resp, err := c.cli.GetFatalFailure()
+	reply, err := c.cli.ExecWalletFunc("wallet", "FatalFailure", &types.ReqNil{})
 	if err != nil {
 		return err
 	}
-	*result = resp.GetData()
+	*result = reply.(*types.Int32).Data
 	return nil
-
+	//*result = resp.GetData()
 }
 
 // DecodeRawTransaction 考虑交易组的解析统一返回ReplyTxList列表
