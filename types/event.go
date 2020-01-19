@@ -68,12 +68,10 @@ const (
 	EventReplyGetSeed = 74
 	EventDelBlock     = 75
 	//local store
-	EventLocalGet        = 76
-	EventLocalReplyValue = 77
-	EventLocalList       = 78
-	EventLocalSet        = 79
-
-	EventGetWalletStatus         = 80
+	EventLocalGet                = 76
+	EventLocalReplyValue         = 77
+	EventLocalList               = 78
+	EventLocalSet                = 79
 	EventCheckTx                 = 81
 	EventReceiptCheckTx          = 82
 	EventReplyQuery              = 84
@@ -101,7 +99,6 @@ const (
 	EventSyncBlock               = 109
 	EventGetNetInfo              = 110
 	EventReplyNetInfo            = 111
-	EventErrToFront              = 112
 	EventReplyFatalFailure       = 114
 	EventBindMiner               = 115
 	EventReplyBindMiner          = 116
@@ -227,7 +224,6 @@ var eventName = map[int]string{
 	77:  "EventLocalReplyValue",
 	78:  "EventLocalList",
 	79:  "EventLocalSet",
-	80:  "EventGetWalletStatus",
 	81:  "EventCheckTx",
 	82:  "EventReceiptCheckTx",
 	84:  "EventReplyQuery",
@@ -254,7 +250,6 @@ var eventName = map[int]string{
 	109: "EventSyncBlock",
 	110: "EventGetNetInfo",
 	111: "EventReplyNetInfo",
-	112: "EventErrToFront",
 	114: "EventReplyFatalFailure",
 	115: "EventBindMiner",
 	116: "EventReplyBindMiner",

@@ -7,6 +7,7 @@ package util
 import (
 	"errors"
 
+	clientApi "github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -204,10 +205,14 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	reportErrEvent.Frommodule = frommodule
 	reportErrEvent.Tomodule = tomodule
 	reportErrEvent.Error = err.Error()
-	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
-	err = client.Send(msg, false)
+
+	api, err := clientApi.New(client, nil)
 	if err != nil {
-		log.Error("send", "EventErrToFront msg err", err)
+		log.Error("client", "new err", err)
+	}
+	_, err = api.ExecWalletFunc(tomodule, "ErrToFront", &reportErrEvent)
+	if err != nil {
+		log.Error("send", "ErrToFront msg err", err)
 	}
 }
 

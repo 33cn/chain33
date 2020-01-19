@@ -201,20 +201,13 @@ func (network *P2p) genAirDropKeyFromWallet() error {
 			log.Error("genAirDropKeyFromWallet", "p2p closed", "")
 			return fmt.Errorf("p2p closed")
 		}
-		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
-		err := network.client.SendTimeout(msg, true, time.Minute)
-		if err != nil {
-			log.Error("genAirDropKeyFromWallet", "Error", err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
 
-		resp, err := network.client.WaitTimeout(msg, time.Minute)
+		resp, err := network.api.ExecWalletFunc("wallet", "WalletStatus", nil)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
 		}
-		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
+		if resp.(*types.WalletStatus).GetIsWalletLock() { //上锁
 			if savePub == "" {
 				log.Warn("P2P Stuck ! Wallet must be unlock and save with mnemonics")
 
@@ -223,7 +216,7 @@ func (network *P2p) genAirDropKeyFromWallet() error {
 			continue
 		}
 
-		if !resp.GetData().(*types.WalletStatus).GetIsHasSeed() { //无种子
+		if !resp.(*types.WalletStatus).GetIsHasSeed() { //无种子
 			if savePub == "" {
 				log.Warn("P2P Stuck ! Wallet must be imported with mnemonics")
 

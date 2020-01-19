@@ -792,8 +792,7 @@ func testsetFatalFailure(t *testing.T, wallet *Wallet) {
 	reportErrEvent.Tomodule = "wallet"
 	reportErrEvent.Error = "ErrDataBaseDamage"
 
-	msg := wallet.client.NewMessage("wallet", types.EventErrToFront, &reportErrEvent)
-	wallet.client.Send(msg, false)
+	wallet.GetAPI().ExecWalletFunc("wallet", "ErrToFront", &reportErrEvent)
 	println("testsetFatalFailure end")
 	println("--------------------------")
 }
