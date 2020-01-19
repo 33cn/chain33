@@ -1522,11 +1522,11 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 
 	accounts, err := wallet.walletStore.GetAccountByPrefix("Account")
 	if err != nil || len(accounts) == 0 {
-		walletlog.Info("GetWalletAccounts", "GetAccountByPrefix:err", err)
+		walletlog.Info("ProcDumpPrivkeysFile GetWalletAccounts", "GetAccountByPrefix:err", err)
 		return err
 	}
 
-	for _, acc := range accounts {
+	for i, acc := range accounts {
 		priv, err := wallet.getPrivKeyByAddr(acc.Addr)
 		if err != nil {
 			walletlog.Info("getPrivKeyByAddr", acc.Addr, err)
@@ -1543,7 +1543,10 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 		}
 
 		f.WriteString(string(Encrypter))
-		f.WriteString("&ffzm.&**&")
+
+		if i < len(accounts)-1 {
+			f.WriteString("&ffzm.&**&")
+		}
 	}
 
 	return nil
@@ -1582,7 +1585,7 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 		Decrypter, err := AesgcmDecrypter([]byte(passwd), []byte(value))
 		if err != nil {
 			walletlog.Error("ProcImportPrivkeysFile AesgcmDecrypter fileContent error", "fileName", fileName, "err", err)
-			// return err
+			return types.ErrVerifyOldpasswdFail
 			continue
 		}
 

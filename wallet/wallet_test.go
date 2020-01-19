@@ -1141,6 +1141,9 @@ func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
 		}
 	}
 
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "ImportPrivkeysFile", &types.ReqPrivkeysFile{FileName: fileName, Passwd: "12345678"})
+	assert.Equal(t, err, types.ErrVerifyOldpasswdFail)
+
 	os.Remove(fileName)
 	println("testProcImportPrivkeysFile end")
 	println("--------------------------")
