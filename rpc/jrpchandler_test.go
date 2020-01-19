@@ -703,7 +703,6 @@ func TestChain33_NewAccount(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
-	//	api.On("NewAccount", &types.ReqNewAccount{}).Return(nil, errors.New("error value"))
 	api.On("ExecWalletFunc", "wallet", "NewAccount", &types.ReqNewAccount{}).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
@@ -764,7 +763,8 @@ func TestChain33_SendToAddress(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletSendToAddress{}
-	api.On("WalletSendToAddress", expected).Return(nil, errors.New("error value"))
+	//api.On("WalletSendToAddress", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "WalletSendToAddress", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.ReqWalletSendToAddress{}
@@ -783,7 +783,7 @@ func TestChain33_SetTxFee(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletSetFee{}
-	api.On("WalletSetFee", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "WalletSetFee", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.ReqWalletSetFee{}
@@ -802,7 +802,7 @@ func TestChain33_SetLabl(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletSetLabel{}
-	api.On("WalletSetLabel", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "WalletSetLabel", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.ReqWalletSetLabel{}
@@ -821,7 +821,7 @@ func TestChain33_MergeBalance(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletMergeBalance{}
-	api.On("WalletMergeBalance", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "WalletMergeBalance", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.ReqWalletMergeBalance{}
@@ -840,7 +840,7 @@ func TestChain33_SetPasswd(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.ReqWalletSetPasswd{}
-	api.On("WalletSetPasswd", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "WalletSetPasswd", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.ReqWalletSetPasswd{}
@@ -858,8 +858,8 @@ func TestChain33_Lock(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
-	// expected := types.ReqNil{}
-	api.On("WalletLock").Return(nil, errors.New("error value"))
+	expected := types.ReqNil{}
+	api.On("ExecWalletFunc", "wallet", "WalletLock", &expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.ReqNil{}
@@ -878,7 +878,7 @@ func TestChain33_UnLock(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.WalletUnLock{}
-	api.On("WalletUnLock", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "WalletUnLock", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.WalletUnLock{}
@@ -1097,7 +1097,7 @@ func TestChain33_GenSeed(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.GenSeedLang{}
-	api.On("GenSeed", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "GenSeed", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.GenSeedLang{}
@@ -1116,7 +1116,7 @@ func TestChain33_SaveSeed(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.SaveSeedByPw{}
-	api.On("SaveSeed", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "SaveSeed", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.SaveSeedByPw{}
@@ -1135,7 +1135,7 @@ func TestChain33_GetSeed(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	expected := &types.GetSeedByPw{}
-	api.On("GetSeed", expected).Return(nil, errors.New("error value"))
+	api.On("ExecWalletFunc", "wallet", "GetSeed", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
 	actual := types.GetSeedByPw{}
@@ -1153,7 +1153,8 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
-	api.On("GetWalletStatus").Return(nil, errors.New("error value")).Once()
+	expected := types.ReqNil{}
+	api.On("ExecWalletFunc", "wallet", "GetWalletStatus", &expected).Return(nil, errors.New("error value")).Once()
 
 	var testResult interface{}
 	actual := types.ReqNil{}
@@ -1168,7 +1169,8 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 		IsHasSeed:    false,
 		IsTicketLock: false,
 	}
-	api.On("GetWalletStatus").Return(&expect, nil).Once()
+
+	api.On("ExecWalletFunc", "wallet", "GetWalletStatus", &expected).Return(&expect, nil).Once()
 	err = testChain33.GetWalletStatus(actual, &testResult)
 	t.Log(err)
 	assert.Nil(t, err)
@@ -1183,23 +1185,6 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 
 	mock.AssertExpectationsForObjects(t, api)
 }
-
-// func TestChain33_GetBalance(t *testing.T) {
-// 	api := new(mocks.QueueProtocolAPI)
-// 	testChain33 := newTestChain33(api)
-//
-// 	expected := &types.ReqBalance{}
-// 	api.On("GetBalance",expected).Return(nil, errors.New("error value"))
-//
-// 	var testResult interface{}
-// 	actual := types.ReqBalance{}
-// 	err := testChain33.GetBalance(actual, &testResult)
-// 	t.Log(err)
-// 	assert.Equal(t, nil, testResult)
-// 	assert.NotNil(t, err)
-//
-// 	mock.AssertExpectationsForObjects(t, api)
-// }
 
 // ----------------------------
 
@@ -1504,8 +1489,11 @@ func TestChain33_GetFatalFailure(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	api.On("GetFatalFailure", mock.Anything).Return(&types.Int32{}, nil)
-	err := client.GetFatalFailure(nil, &testResult)
+	//api.On("GetFatalFailure", mock.Anything).Return(&types.Int32{}, nil)
+
+	expected := types.ReqNil{}
+	api.On("ExecWalletFunc", "wallet", "FatalFailure", &expected).Return(&types.Int32{}, nil)
+	err := client.GetFatalFailure(&expected, &testResult)
 	assert.NoError(t, err)
 }
 
