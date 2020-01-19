@@ -130,9 +130,9 @@ Retry:
 	}
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.UnaryInterceptor(interceptor), grpc.StreamInterceptor(interceptorStream))
-	//区块最多10M
-	msgRecvOp := grpc.MaxRecvMsgSize(11 * 1024 * 1024) //设置最大接收数据大小位11M
-	msgSendOp := grpc.MaxSendMsgSize(11 * 1024 * 1024) //设置最大发送数据大小为11M
+	maxMsgSize := pb.MaxBlockSize + 1024 * 1024 //最大传输数据 最大区块大小
+	msgRecvOp := grpc.MaxRecvMsgSize(maxMsgSize) //设置最大接收数据
+	msgSendOp := grpc.MaxSendMsgSize(maxMsgSize) //设置最大发送数据
 	kaep := keepalive.EnforcementPolicy{
 		MinTime:             10 * time.Second, //只允许不低于10s频率的ping周期
 		PermitWithoutStream: true,
