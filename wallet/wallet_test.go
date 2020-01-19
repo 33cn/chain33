@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -162,6 +161,7 @@ func SaveAccountTomavl(wallet *Wallet, client queue.Client, prevStateRoot []byte
 func TestAll(t *testing.T) {
 	testAllWallet(t)
 	testWalletImportPrivkeysFile(t)
+	testWalletImportPrivkeysFile2(t)
 }
 
 func testAllWallet(t *testing.T) {
@@ -221,6 +221,20 @@ func testWalletImportPrivkeysFile(t *testing.T) {
 
 	testSeed(t, wallet)
 	testProcImportPrivkeysFile(t, wallet)
+}
+
+func testWalletImportPrivkeysFile2(t *testing.T) {
+	wallet, store, q, _ := initEnv()
+	defer os.RemoveAll("datadir") // clean up
+	defer wallet.Close()
+	defer store.Close()
+
+	//启动blockchain模块
+	blockchainModProc(q)
+	mempoolModProc(q)
+
+	testSeed(t, wallet)
+	testProcImportPrivkeysFile2(t, wallet)
 }
 
 //ProcWalletLock
@@ -1101,6 +1115,9 @@ func testProcDumpPrivkeysFile(t *testing.T, wallet *Wallet) {
 	resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "WalletGetAccountList", &types.ReqAccountList{})
 	assert.Nil(t, err)
 
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "DumpPrivkeysFile", &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
+	assert.Equal(t, err, types.ErrFileExists)
+
 	// 后面要对比
 	AllAccountlist = resp.(*types.WalletAccounts)
 	println("testProcDumpPrivkeysFile end")
@@ -1120,13 +1137,6 @@ func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
 	// 与之前的 AllAccountlist 对比
 	accountlist := resp.(*types.WalletAccounts)
 	assert.Equal(t, len(accountlist.GetWallets()), len(AllAccountlist.GetWallets()))
-	if len(accountlist.GetWallets()) != len(AllAccountlist.GetWallets()) {
-		f, _ := os.Open(fileName)
-		defer f.Close()
-
-		fileContent, _ := ioutil.ReadAll(f)
-		println("fileContent = ", fileContent)
-	}
 
 	for _, acc1 := range AllAccountlist.GetWallets() {
 		isEqual := false
@@ -1143,6 +1153,32 @@ func testProcImportPrivkeysFile(t *testing.T, wallet *Wallet) {
 
 	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "ImportPrivkeysFile", &types.ReqPrivkeysFile{FileName: fileName, Passwd: "12345678"})
 	assert.Equal(t, err, types.ErrVerifyOldpasswdFail)
+
+	println("testProcImportPrivkeysFile end")
+	println("--------------------------")
+}
+
+func testProcImportPrivkeysFile2(t *testing.T, wallet *Wallet) {
+	println("testProcImportPrivkeysFile begin")
+	reqNewAccount := &types.ReqNewAccount{Label: "account:0"}
+	_, err := wallet.GetAPI().ExecWalletFunc("wallet", "NewAccount", reqNewAccount)
+	assert.NoError(t, err)
+
+	privKey := &types.ReqWalletImportPrivkey{}
+	privKey.Privkey = "0xb94ae286a508e4bb3fbbcb61997822fea6f0a534510597ef8eb60a19d6b219a0"
+	privKey.Label = "ImportPrivKey-Label-hyb-new"
+	wallet.GetAPI().ExecWalletFunc("wallet", "WalletImportPrivkey", privKey)
+
+	fileName := "Privkeys"
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "ImportPrivkeysFile", &types.ReqPrivkeysFile{FileName: fileName, Passwd: "123456"})
+	assert.Nil(t, err)
+
+	resp, err := wallet.GetAPI().ExecWalletFunc("wallet", "WalletGetAccountList", &types.ReqAccountList{})
+	assert.Nil(t, err)
+
+	// 与之前的 AllAccountlist 对比
+	accountlist := resp.(*types.WalletAccounts)
+	assert.Equal(t, len(accountlist.GetWallets()), len(AllAccountlist.GetWallets())+1)
 
 	os.Remove(fileName)
 	println("testProcImportPrivkeysFile end")
