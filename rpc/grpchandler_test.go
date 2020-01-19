@@ -371,6 +371,28 @@ func TestDumpPrivkey(t *testing.T) {
 	testDumpPrivkeyOK(t)
 }
 
+func testDumpPrivkeysFileOK(t *testing.T) {
+	var in *pb.ReqPrivkeysFile
+	qapi.On("ExecWalletFunc", "wallet", "DumpPrivkeysFile", in).Return(&pb.Reply{}, nil)
+	_, err := g.DumpPrivkeysFile(getOkCtx(), nil)
+	assert.Nil(t, err, "the error should be nil")
+}
+
+func TestDumpPrivkeysFile(t *testing.T) {
+	testDumpPrivkeysFileOK(t)
+}
+
+func testImportPrivkeysFileOK(t *testing.T) {
+	var in *pb.ReqPrivkeysFile
+	qapi.On("ExecWalletFunc", "wallet", "ImportPrivkeysFile", in).Return(&pb.Reply{}, nil)
+	_, err := g.ImportPrivkeysFile(getOkCtx(), nil)
+	assert.Nil(t, err, "the error should be nil")
+}
+
+func TestImportPrivkeysFile(t *testing.T) {
+	testImportPrivkeysFileOK(t)
+}
+
 func testGetBlocksError(t *testing.T) {
 	var in = pb.ReqBlocks{IsDetail: true}
 	qapi.On("GetBlocks", &in).Return(nil, fmt.Errorf("error")).Once()
