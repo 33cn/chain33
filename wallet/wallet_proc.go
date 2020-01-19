@@ -1612,8 +1612,9 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 		if err == types.ErrPrivkeyExist {
 			// 修改标签名称 是否需要?
 			// wallet.ProcWalletSetLabel()
-		} else {
+		} else if err != nil {
 			walletlog.Info("ProcImportPrivKey procImportPrivKey error")
+			return err
 		}
 	}
 
