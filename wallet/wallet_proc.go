@@ -1586,7 +1586,6 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 		if err != nil {
 			walletlog.Error("ProcImportPrivkeysFile AesgcmDecrypter fileContent error", "fileName", fileName, "err", err)
 			return types.ErrVerifyOldpasswdFail
-			continue
 		}
 
 		acc := strings.Split(string(Decrypter), "& *.prickey.+.label.* &")
