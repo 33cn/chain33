@@ -153,7 +153,6 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 		log.Debug("SetQueueClient gorountine ret")
 
 	}(network)
-
 }
 
 func (network *P2p) loadP2PPrivKeyToWallet() error {
@@ -162,17 +161,10 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 	parm.Label = "node award"
 
 ReTry:
-	api, err := client.New(network.client, nil)
-	if err != nil {
-		log.Error("ImportPrivkey", "Error", err.Error())
-		return err
-	}
-
-	resp, err := api.ExecWalletFunc("wallet", "ImportPrivkey", &parm)
+	resp, err := network.api.ExecWalletFunc("wallet", "WalletImportPrivkey", &parm)
 	if err != nil {
 		if err == types.ErrPrivkeyExist {
 			return nil
-
 		}
 		if err == types.ErrLabelHasUsed {
 			//切换随机lable
@@ -186,7 +178,6 @@ ReTry:
 
 	log.Debug("loadP2PPrivKeyToWallet", "resp", resp.(*types.WalletAccount))
 	return nil
-
 }
 
 func (network *P2p) showTaskCapcity() {
