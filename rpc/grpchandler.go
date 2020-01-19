@@ -383,6 +383,22 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyStri
 	return reply.(*pb.ReplyString), nil
 }
 
+func (g *Grpc) DumpPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*pb.Reply, error) {
+	reply, err := g.cli.ExecWalletFunc("wallet", "DumpPrivkeysFile", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.Reply), nil
+}
+
+func (g *Grpc) ImportPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*pb.Reply, error) {
+	reply, err := g.cli.ExecWalletFunc("wallet", "ImportPrivkeysFile", in)
+	if err != nil {
+		return nil, err
+	}
+	return reply.(*pb.Reply), nil
+}
+
 // Version version
 func (g *Grpc) Version(ctx context.Context, in *pb.ReqNil) (*pb.VersionInfo, error) {
 

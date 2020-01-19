@@ -603,6 +603,8 @@ func TestJsonRPC(t *testing.T) {
 	testGetNetInfoJSONRPC(t, &jrpc)
 	testGetWalletStatusJSONRPC(t, &jrpc)
 	testDumpPrivkeyJSONRPC(t, &jrpc)
+	testDumpPrivkeysFileJSONRPC(t, &jrpc)
+	testImportPrivkeysFileJSONRPC(t, &jrpc)
 	testGetAccountsJSONRPC(t, &jrpc)
 }
 
@@ -619,6 +621,22 @@ func testDumpPrivkeyJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	err := rpc.newRPCCtx("Chain33.DumpPrivkey", &types.ReqString{}, &res)
 	if err != nil {
 		t.Error("testDumpPrivkeyJSONRPC Failed.", err)
+	}
+}
+
+func testDumpPrivkeysFileJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res types.Reply
+	err := rpc.newRPCCtx("Chain33.DumpPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
+	if err != nil {
+		t.Error("testDumpPrivkeysFileJSONRPC Failed.", err)
+	}
+}
+
+func testImportPrivkeysFileJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res types.Reply
+	err := rpc.newRPCCtx("Chain33.ImportPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
+	if err != nil {
+		t.Error("testImportPrivkeysFileJSONRPC Failed.", err)
 	}
 }
 
@@ -810,6 +828,8 @@ func TestGRPC(t *testing.T) {
 	testQueryChainGRPC(t, &grpcMock)
 	testGetHexTxByHashGRPC(t, &grpcMock)
 	testDumpPrivkeyGRPC(t, &grpcMock)
+	testDumpPrivkeysFileGRPC(t, &grpcMock)
+	testImportPrivkeysFileGRPC(t, &grpcMock)
 	testVersionGRPC(t, &grpcMock)
 	testIsSyncGRPC(t, &grpcMock)
 	testIsNtpClockSyncGRPC(t, &grpcMock)
@@ -857,6 +877,22 @@ func testDumpPrivkeyGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	err := rpc.newRPCCtx("DumpPrivkey", &types.ReqString{}, &res)
 	if err != nil {
 		t.Error("Call DumpPrivkey Failed.", err)
+	}
+}
+
+func testDumpPrivkeysFileGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRPCCtx("DumpPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
+	if err != nil {
+		t.Error("Call DumpPrivkeysFile Failed.", err)
+	}
+}
+
+func testImportPrivkeysFileGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRPCCtx("ImportPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
+	if err != nil {
+		t.Error("Call ImportPrivkeysFile Failed.", err)
 	}
 }
 
