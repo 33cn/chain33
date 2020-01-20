@@ -210,6 +210,7 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	if err != nil {
 		log.Error("client", "new err", err)
 	}
+
 	_, err = api.ExecWalletFunc(tomodule, "ErrToFront", &reportErrEvent)
 	if err != nil {
 		log.Error("send", "ErrToFront msg err", err)
