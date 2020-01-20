@@ -202,7 +202,7 @@ func (network *P2p) genAirDropKeyFromWallet() error {
 			return fmt.Errorf("p2p closed")
 		}
 
-		resp, err := network.api.ExecWalletFunc("wallet", "WalletStatus", nil)
+		resp, err := network.api.ExecWalletFunc("wallet", "GetWalletStatus", &types.ReqNil{})
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
