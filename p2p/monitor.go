@@ -567,7 +567,8 @@ func (n *Node) monitorBlackList() {
 }
 
 func (n *Node) monitorFilter() {
-	peerAddrFilter.ManageRecvFilter()
+	tickTime := time.Second * 30
+	peerAddrFilter.ManageRecvFilter(tickTime)
 }
 
 //独立goroutine 监控配置的

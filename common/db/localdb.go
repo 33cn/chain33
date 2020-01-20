@@ -35,6 +35,10 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	value, err := l.get(key)
+	if isdeleted(value) {
+		//表示已经删除了(空值要用内部定义的 emptyvalue)
+		return nil, ErrNotFoundInDb
+	}
 	return value, err
 }
 
@@ -66,9 +70,9 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 		if l.txcache == nil {
 			l.txcache = newMemDB()
 		}
-		setdb(l.txcache, key, value)
+		setdb2(l.txcache, key, value)
 	} else {
-		setdb(l.cache, key, value)
+		setdb2(l.cache, key, value)
 	}
 	return nil
 }
@@ -150,16 +154,10 @@ func (l *LocalDB) resetTx() {
 	l.txcache = nil
 }
 
-func setdb(d DB, key []byte, value []byte) {
-	if value == nil {
-		err := d.Delete(key)
-		if err != nil {
-			return
-		}
-	} else {
-		err := d.Set(key, value)
-		if err != nil {
-			panic(err)
-		}
+func setdb2(d DB, key []byte, value []byte) {
+	//value == nil 特殊标记key，代表key已经删除了
+	err := d.Set(key, value)
+	if err != nil {
+		panic(err)
 	}
 }

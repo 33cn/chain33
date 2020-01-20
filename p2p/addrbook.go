@@ -7,6 +7,7 @@ package p2p
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -220,21 +221,14 @@ func (a *AddrBook) saveToDb() {
 
 }
 func (a *AddrBook) genPubkey(privkey string) string {
-	pubkey, err := P2pComm.Pubkey(privkey)
-	if err != nil {
-		var maxRetry = 10
-		for i := 0; i < maxRetry; i++ {
-			pubkey, err = P2pComm.Pubkey(privkey)
-			if err == nil {
-				break
-			}
-			if i == maxRetry-1 && err != nil {
-				panic(err.Error())
-			}
+	maxRetry := 10
+	for i := 0; i < maxRetry; i++ {
+		pubkey, err := P2pComm.Pubkey(privkey)
+		if err == nil {
+			return pubkey
 		}
 	}
-
-	return pubkey
+	panic(fmt.Sprintf("get pubkey from privkey:%s failed", privkey))
 }
 
 // Returns false if file does not exist.
@@ -357,22 +351,16 @@ func (a *AddrBook) GetAddrs() []string {
 
 func (a *AddrBook) initKey() {
 
-	priv, pub, err := P2pComm.GenPrivPubkey()
-	if err != nil {
-		var maxRetry = 10
-		for i := 0; i < maxRetry; i++ {
-			priv, pub, err = P2pComm.GenPrivPubkey()
-			if err == nil {
-				break
-			}
-			if i == maxRetry-1 && err != nil {
-				panic(err.Error())
-			}
+	maxRetry := 10
+	for i := 0; i < maxRetry; i++ {
+		priv, pub, err := P2pComm.GenPrivPubkey()
+		if err == nil {
+			a.setKey(hex.EncodeToString(priv), hex.EncodeToString(pub))
+			return
 		}
-
 	}
+	panic(fmt.Sprintf("p2p initPrivPubkey failed"))
 
-	a.setKey(hex.EncodeToString(priv), hex.EncodeToString(pub))
 }
 
 func (a *AddrBook) setKey(privkey, pubkey string) {

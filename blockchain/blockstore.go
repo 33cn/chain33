@@ -1344,16 +1344,17 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 	}
 
 	blockreceipt := blockbody.Receipts
-	// 非精简节点查询时候需要在ReceiptTable中获取详细的receipt信息
-	if !cfg.IsEnable("reduceLocaldb") {
+	// 非精简节点查询时候需要在ReceiptTable中获取详细的receipt信息, 精简情况下可以获取未精简部分receipt
+	if !cfg.IsEnable("reduceLocaldb") || bs.Height() < blockheader.Height+ReduceHeight {
 		receipt, err := getReceiptByIndex(bs.db, indexName, prefix, primaryKey)
-		if receipt == nil || err != nil {
-			if err != dbm.ErrNotFoundInDb {
-				storeLog.Error("loadBlockByIndex:getReceiptByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+		if receipt != nil {
+			blockreceipt = receipt.Receipts
+		} else {
+			storeLog.Error("loadBlockByIndex:getReceiptByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+			if !cfg.IsEnable("reduceLocaldb") {
+				return nil, types.ErrHashNotExist
 			}
-			return nil, types.ErrHashNotExist
 		}
-		blockreceipt = receipt.Receipts
 	}
 
 	var blockdetail types.BlockDetail

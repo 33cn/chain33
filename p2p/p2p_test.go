@@ -2,6 +2,8 @@ package p2p
 
 import (
 	"encoding/hex"
+	"fmt"
+	"net"
 	"sync/atomic"
 	"time"
 
@@ -174,7 +176,7 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	assert.Nil(t, err)
 	defer conn.Close()
 
-	remote, err := NewNetAddressString("127.0.0.1:53802")
+	remote, err := NewNetAddressString(fmt.Sprintf("127.0.0.1:%d", p2p.node.listenPort))
 	assert.Nil(t, err)
 
 	localP2P := newP2p(cfg, 43802, "testPeer", q)
@@ -184,23 +186,26 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	t.Log(localP2P.node.GetCacheBounds())
 
 	localP2P.node.RemoveCachePeer("localhost:12345")
+	assert.False(t, localP2P.node.HasCacheBound("localhost:12345"))
 	peer, err := P2pComm.dialPeer(remote, localP2P.node)
 	assert.Nil(t, err)
 	defer peer.Close()
 	peer.MakePersistent()
 	localP2P.node.addPeer(peer)
+	_, localPeerName := localP2P.node.nodeInfo.addrBook.GetPrivPubKey()
 	var info *innerpeer
 	t.Log("WaitRegisterPeerStart...")
 	trytime := 0
 	for info == nil || info.p2pversion == 0 {
 		trytime++
 		time.Sleep(time.Millisecond * 100)
-		//info = p2p.node.server.p2pserver.getInBoundPeerInfo("127.0.0.1:43802")
-		info = p2p.node.server.p2pserver.getInBoundPeerInfo(peer.GetPeerName())
+		info = p2p.node.server.p2pserver.getInBoundPeerInfo(localPeerName)
 		if trytime > 100 {
 			return
 		}
 	}
+	exist, _ := p2p.node.isInBoundPeer(localPeerName)
+	assert.True(t, exist)
 	t.Log("WaitRegisterPeerStop...")
 	p2pcli := NewNormalP2PCli()
 	num, err := p2pcli.GetInPeersNum(peer)
@@ -218,9 +223,8 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	t.Log("WaitRegisterTxFilterStop")
 
 	localP2P.node.AddCachePeer(peer)
+	assert.Equal(t, localP2P.node.CacheBoundsSize(), len(localP2P.node.GetCacheBounds()))
 	peer.GetRunning()
-	peer.getIsRegister()
-	peer.setIsRegister(false)
 	localP2P.node.nodeInfo.FetchPeerInfo(localP2P.node)
 	peers, infos := localP2P.node.GetActivePeers()
 	assert.Equal(t, len(peers), len(infos))
@@ -280,6 +284,9 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	job.removePeer(peer.GetPeerName())
 	job.CancelJob()
 
+	localP2P.node.addPeer(peer)
+	assert.True(t, localP2P.node.Has(peer.Addr()))
+	assert.True(t, localP2P.node.needMore())
 	peer.Close()
 	localP2P.node.remove(peer.peerAddr.String())
 }
@@ -378,12 +385,21 @@ func testAddrBook(t *testing.T, p2p *P2p) {
 	t.Log("GenPubkey:", pubstr)
 
 	addrBook := p2p.node.nodeInfo.addrBook
-	addrBook.Size()
+	addrBook.AddOurAddress(NewNetAddressIPPort(net.ParseIP("127.0.0.1"), 1234))
+	addrBook.AddAddress(nil, nil)
+	addrBook.AddAddress(NewNetAddressIPPort(net.ParseIP("127.0.0.1"), 1234), nil)
+	addrBook.AddAddress(NewNetAddressIPPort(net.ParseIP("127.0.0.2"), 1234), nil)
+	assert.True(t, addrBook.ISOurAddress(NewNetAddressIPPort(net.ParseIP("127.0.0.1"), 1234)))
+	assert.True(t, addrBook.IsOurStringAddress("127.0.0.1:1234"))
+	assert.Equal(t, addrBook.Size(), len(addrBook.GetPeers()))
+	addrBook.setAddrStat("127.0.0.2:1234", true)
+	addrBook.setAddrStat("127.0.0.2:1234", false)
 	addrBook.saveToDb()
 	addrBook.GetPeerStat("locolhost:43802")
 	addrBook.genPubkey(hex.EncodeToString(prv))
 	assert.Equal(t, addrBook.genPubkey(hex.EncodeToString(prv)), pubstr)
 	addrBook.Save()
+	addrBook.GetPeers()
 	addrBook.GetAddrs()
 	addrBook.ResetPeerkey("", "")
 	privkey, _ := addrBook.GetPrivPubKey()
