@@ -11,6 +11,7 @@ import (
 
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/version"
+	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
 
@@ -21,13 +22,13 @@ func (chain *BlockChain) Upgrade() {
 	chainlog.Info("storedb upgrade start")
 	chain.UpgradeStore()
 	chainlog.Info("upgrade all dapp")
-	chain.upgradePlugin()
+	chain.UpgradePlugin(chain.client)
 	chainlog.Info("chain reduce start")
 	chain.ReduceChain()
 }
 
-func (chain *BlockChain) upgradePlugin() {
-	client := chain.client
+// UpgradePlugin 升级插件
+func (chain *BlockChain) UpgradePlugin(client queue.Client) {
 	msg := client.NewMessage("execs", types.EventUpgrade, nil)
 	err := client.Send(msg, true)
 	if err != nil {

@@ -5,9 +5,11 @@
 package blockchain_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/version"
@@ -15,6 +17,9 @@ import (
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
+
+	client "github.com/33cn/chain33/queue"
+	clientMocks "github.com/33cn/chain33/queue/mocks"
 )
 
 func TestNeedReExec(t *testing.T) {
@@ -124,4 +129,50 @@ func GetAddrTxsCount(db dbm.DB, addr string) (int64, error) {
 		return 0, err
 	}
 	return count.Data, nil
+}
+
+func TestUpgradePlugin(t *testing.T) {
+	chain := &blockchain.BlockChain{}
+	cli := new(clientMocks.Client)
+
+	msg := &client.Message{Topic: "execs"}
+	errSend := errors.New("Send error")
+	errWait := errors.New("Wait error")
+
+	cases := []struct {
+		m1   *client.Message
+		send error
+		wait error
+	}{
+		{msg, nil, nil},
+		{msg, errSend, nil},
+		{msg, nil, errWait},
+	}
+
+	for _, c := range cases {
+		func() {
+			c1 := c
+			defer func() {
+				err := recover()
+				var expat error
+				if c1.send != nil {
+					expat = c1.send
+				} else if c1.wait != nil {
+					expat = c1.wait
+				}
+				if err == nil {
+					assert.Nil(t, expat)
+				} else {
+					e1 := err.(error)
+					assert.Equal(t, expat.Error(), e1.Error())
+				}
+			}()
+			cli.On("NewMessage", "execs", int64(types.EventUpgrade), nil).Return(msg).Once()
+			cli.On("Send", msg, true).Return(c1.send).Once()
+			if c1.send == nil {
+				cli.On("Wait", msg).Return(nil, c1.wait).Once()
+			}
+			chain.UpgradePlugin(cli)
+		}()
+	}
 }
