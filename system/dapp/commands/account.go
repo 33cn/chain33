@@ -32,6 +32,8 @@ func AccountCmd() *cobra.Command {
 		ImportKeyCmd(),
 		NewAccountCmd(),
 		SetLabelCmd(),
+		DumpKeysFileCmd(),
+		ImportKeysFileCmd(),
 	)
 
 	return cmd
@@ -349,4 +351,56 @@ func parseSetLabelRes(arg interface{}) (interface{}, error) {
 		Label: res.GetLabel(),
 	}
 	return result, nil
+}
+
+func DumpKeysFileCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "dump_keys",
+		Short: "Dump private keys to file",
+		Run:   dumpKeys,
+	}
+	cmd.Flags().StringP("file", "f", "", "file name")
+	cmd.MarkFlagRequired("file")
+	cmd.Flags().StringP("pwd", "p", "", "password needed to encrypt")
+	cmd.MarkFlagRequired("pwd")
+	return cmd
+}
+
+func ImportKeysFileCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "import_keys",
+		Short: "Import private keys from file",
+		Run:   importKeys,
+	}
+	cmd.Flags().StringP("file", "f", "", "file name")
+	cmd.MarkFlagRequired("file")
+	cmd.Flags().StringP("pwd", "p", "", "password needed to decode")
+	cmd.MarkFlagRequired("pwd")
+	return cmd
+}
+
+func dumpKeys(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	file, _ := cmd.Flags().GetString("file")
+	pwd, _ := cmd.Flags().GetString("pwd")
+	params := types.ReqPrivkeysFile{
+		FileName: file,
+		Passwd:   pwd,
+	}
+	var res types.Reply
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DumpPrivkeysFile", params, &res)
+	ctx.Run()
+}
+
+func importKeys(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	file, _ := cmd.Flags().GetString("file")
+	pwd, _ := cmd.Flags().GetString("pwd")
+	params := types.ReqPrivkeysFile{
+		FileName: file,
+		Passwd:   pwd,
+	}
+	var res types.Reply
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkeysFile", params, &res)
+	ctx.Run()
 }

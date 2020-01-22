@@ -7,6 +7,8 @@ package wallet
 import (
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -403,6 +405,11 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
+	walletaccount, err := wallet.procImportPrivKey(PrivKey)
+	return walletaccount, err
+}
+
+func (wallet *Wallet) procImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
 		return nil, err
@@ -451,7 +458,6 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 		}
 		walletlog.Error("ProcImportPrivKey!", "Account.Privkey", Account.Privkey, "input Privkey", PrivKey.Privkey)
 		return nil, types.ErrPrivkey
-
 	}
 
 	var walletaccount types.WalletAccount
@@ -1489,4 +1495,128 @@ func (wallet *Wallet) getCoinsType() uint32 {
 		return bipwallet.TypeYcc
 	}
 	return bipwallet.TypeBty
+}
+
+//ProcDumpPrivkeysFile 获取全部私钥保存到文件
+func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
+	_, err := os.Stat(fileName)
+	if err == nil {
+		walletlog.Error("ProcDumpPrivkeysFile file already exists!", "fileName", fileName)
+		return types.ErrFileExists
+	}
+
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return err
+	}
+
+	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		walletlog.Error("ProcDumpPrivkeysFile create file error!", "fileName", fileName, "err", err)
+		return err
+	}
+	defer f.Close()
+
+	accounts, err := wallet.walletStore.GetAccountByPrefix("Account")
+	if err != nil || len(accounts) == 0 {
+		walletlog.Info("ProcDumpPrivkeysFile GetWalletAccounts", "GetAccountByPrefix:err", err)
+		return err
+	}
+
+	for i, acc := range accounts {
+		priv, err := wallet.getPrivKeyByAddr(acc.Addr)
+		if err != nil {
+			walletlog.Info("getPrivKeyByAddr", acc.Addr, err)
+			continue
+		}
+
+		privkey := common.ToHex(priv.Bytes())
+		content := privkey + "& *.prickey.+.label.* &" + acc.Label
+
+		Encrypter, err := AesgcmEncrypter([]byte(passwd), []byte(content))
+		if err != nil {
+			walletlog.Error("ProcDumpPrivkeysFile AesgcmEncrypter fileContent error!", "fileName", fileName, "err", err)
+			continue
+		}
+
+		f.WriteString(string(Encrypter))
+
+		if i < len(accounts)-1 {
+			f.WriteString("&ffzm.&**&")
+		}
+	}
+
+	return nil
+}
+
+// ProcImportPrivkeysFile 处理导入私钥
+//input:
+//type  struct {
+//	fileName string
+//  passwd   string
+//导入私钥，并且同时会导入交易
+func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
+	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		walletlog.Error("ProcImportPrivkeysFile file is not exist!", "fileName", fileName)
+		return err
+	}
+
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return err
+	}
+
+	f, err := os.Open(fileName)
+	if err != nil {
+		walletlog.Error("ProcImportPrivkeysFile Open file error", "fileName", fileName, "err", err)
+		return err
+	}
+	defer f.Close()
+
+	fileContent, err := ioutil.ReadAll(f)
+	accounts := strings.Split(string(fileContent), "&ffzm.&**&")
+	for _, value := range accounts {
+		Decrypter, err := AesgcmDecrypter([]byte(passwd), []byte(value))
+		if err != nil {
+			walletlog.Error("ProcImportPrivkeysFile AesgcmDecrypter fileContent error", "fileName", fileName, "err", err)
+			return types.ErrVerifyOldpasswdFail
+		}
+
+		acc := strings.Split(string(Decrypter), "& *.prickey.+.label.* &")
+		if len(acc) != 2 {
+			walletlog.Error("ProcImportPrivkeysFile len(acc) != 2, File format error.", "Decrypter", string(Decrypter), "len", len(acc))
+			continue
+		}
+		privKey := acc[0]
+		label := acc[1]
+
+		//校验label是否已经被使用
+		Account, err := wallet.walletStore.GetAccountByLabel(label)
+		if Account != nil && err == nil {
+			walletlog.Info("ProcImportPrivKey Label is exist in wallet, label = label + _2!")
+			label = label + "_2"
+		}
+
+		PrivKey := &types.ReqWalletImportPrivkey{
+			Privkey: privKey,
+			Label:   label,
+		}
+
+		_, err = wallet.procImportPrivKey(PrivKey)
+		if err == types.ErrPrivkeyExist {
+			// 修改标签名称 是否需要?
+			// wallet.ProcWalletSetLabel()
+		} else if err != nil {
+			walletlog.Info("ProcImportPrivKey procImportPrivKey error")
+			return err
+		}
+	}
+
+	return nil
 }

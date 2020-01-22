@@ -17,7 +17,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet"
 
-	//"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -32,9 +31,7 @@ func init() {
 }
 
 func processMsg(q queue.Queue) {
-
 	go func() {
-
 		cfg := q.GetConfig()
 		wcli := wallet.New(cfg)
 		client := q.Client()
@@ -43,9 +40,7 @@ func processMsg(q queue.Queue) {
 		password := "a12345678"
 		seed := "cushion canal bitter result harvest sentence ability time steel basket useful ask depth sorry area course purpose search exile chapter mountain project ranch buffalo"
 		saveSeedByPw := &types.SaveSeedByPw{Seed: seed, Passwd: password}
-		msgSaveEmpty := client.NewMessage("wallet", types.EventSaveSeed, saveSeedByPw)
-		client.Send(msgSaveEmpty, true)
-		_, err := client.Wait(msgSaveEmpty)
+		_, err := wcli.GetAPI().ExecWalletFunc("wallet", "SaveSeed", saveSeedByPw)
 		if err != nil {
 			return
 		}
@@ -54,13 +49,11 @@ func processMsg(q queue.Queue) {
 			Timeout:        0,
 			WalletOrTicket: false,
 		}
-		msgUnlock := client.NewMessage("wallet", types.EventWalletUnLock, walletUnLock)
-		client.Send(msgUnlock, true)
-		_, err = client.Wait(msgUnlock)
+
+		_, err = wcli.GetAPI().ExecWalletFunc("wallet", "WalletUnLock", walletUnLock)
 		if err != nil {
 			return
 		}
-
 	}()
 
 	go func() {
@@ -232,8 +225,6 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	localP2P.node.AddCachePeer(peer)
 	assert.Equal(t, localP2P.node.CacheBoundsSize(), len(localP2P.node.GetCacheBounds()))
 	peer.GetRunning()
-	peer.getIsRegister()
-	peer.setIsRegister(false)
 	localP2P.node.nodeInfo.FetchPeerInfo(localP2P.node)
 	peers, infos := localP2P.node.GetActivePeers()
 	assert.Equal(t, len(peers), len(infos))
