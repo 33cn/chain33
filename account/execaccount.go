@@ -297,7 +297,7 @@ func (acc *DB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt,
 		Prev:     &copyacc,
 		Current:  acc1,
 	}
-	alog.Info("ExecDeposit", "addr", addr, "execaddr", execaddr, "account", acc1)
+	// alog.Debug("ExecDeposit", "addr", addr, "execaddr", execaddr, "account", acc1)
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecDeposit)
 	return acc.execReceipt(ty, acc1, receiptBalance), nil

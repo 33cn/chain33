@@ -33,8 +33,8 @@ var (
 // coin conversation
 const (
 	Coin            int64 = 1e8
-	MaxCoin         int64 = 100 * 1e8 * Coin //1e17 YCC chang to 100 亿
-	MaxTxSize             = 100000           //100K
+	MaxCoin         int64 = 1e17
+	MaxTxSize             = 100000 //100K
 	MaxTxGroupSize  int32 = 20
 	MaxBlockSize          = 20000000 //20M
 	MaxTxsPerBlock        = 100000
@@ -91,8 +91,7 @@ func RegExec(name string, create Create) {
 
 func RegExecInit(cfg *Chain33Config) {
 	runonce.Do(func() {
-		for name, item := range regExecInit {
-			tlog.Info("reg exec", "exname", name)
+		for _, item := range regExecInit {
 			item(cfg)
 		}
 	})
@@ -211,8 +210,11 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	if c.forks == nil {
 		c.forks = &Forks{}
 	}
-	//c.forks.SetTestNetFork()
-	c.forks.SetPos33NetFork()
+	if c.title == "YCC" {
+		c.forks.SetPos33NetFork()
+	} else {
+		c.forks.SetTestNetFork()
+	}
 
 	if cfg != nil {
 		if c.isLocal() {

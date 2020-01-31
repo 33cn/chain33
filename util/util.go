@@ -236,7 +236,7 @@ func CreateCoinsBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *t
 
 // ExecBlock : just exec block
 func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
-	ulog.Info("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs), "hash", common.ToHex(block.Hash(client.GetConfig())))
+	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs), "hash", common.ToHex(block.Hash(client.GetConfig())))
 	beg := types.Now()
 	defer func() {
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg), "hash", common.ToHex(block.Hash(client.GetConfig())))
