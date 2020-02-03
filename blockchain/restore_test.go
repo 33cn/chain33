@@ -66,6 +66,22 @@ func TestNeedReExec(t *testing.T) {
 	}
 }
 
+func GetAddrTxsCount(db dbm.DB, addr string) (int64, error) {
+	count := types.Int64{}
+	TxsCount, err := db.Get(types.CalcAddrTxsCountKey(addr))
+	if err != nil && err != types.ErrNotFound {
+		return 0, err
+	}
+	if len(TxsCount) == 0 {
+		return 0, nil
+	}
+	err = types.Decode(TxsCount, &count)
+	if err != nil {
+		return 0, err
+	}
+	return count.Data, nil
+}
+
 func TestUpgradeStore(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	cfg.GetModuleConfig().BlockChain.EnableReExecLocal = true
@@ -115,26 +131,14 @@ func TestUpgradeStore(t *testing.T) {
 	assert.Equal(t, count1, count2)
 }
 
-func GetAddrTxsCount(db dbm.DB, addr string) (int64, error) {
-	count := types.Int64{}
-	TxsCount, err := db.Get(types.CalcAddrTxsCountKey(addr))
-	if err != nil && err != types.ErrNotFound {
-		return 0, err
-	}
-	if len(TxsCount) == 0 {
-		return 0, nil
-	}
-	err = types.Decode(TxsCount, &count)
-	if err != nil {
-		return 0, err
-	}
-	return count.Data, nil
-}
-
 func TestUpgradePlugin(t *testing.T) {
-	chain := &blockchain.BlockChain{}
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	chain := blockchain.New(cfg)
 	cli := new(clientMocks.Client)
-
+	cli.On("Sub", "blockchain").Return(nil)
+	cli.On("GetConfig").Return(cfg)
+	cli.On("Recv").Return(nil)
+	chain.SetQueueClient(cli)
 	msg := &client.Message{Topic: "execs"}
 	errSend := errors.New("Send error")
 	errWait := errors.New("Wait error")
@@ -172,7 +176,7 @@ func TestUpgradePlugin(t *testing.T) {
 			if c1.send == nil {
 				cli.On("Wait", msg).Return(nil, c1.wait).Once()
 			}
-			chain.UpgradePlugin(cli)
+			chain.UpgradePlugin()
 		}()
 	}
 }
