@@ -194,4 +194,5 @@ var (
 	ErrConsensusHashErr  = errors.New("ErrConsensusHashErr")
 	ErrMaxCountPerTime   = errors.New("ErrMaxCountPerTime")
 	ErrInValidFileHeader = errors.New("ErrInValidFileHeader")
+	ErrFileExists        = errors.New("ErrFileExists")
 )

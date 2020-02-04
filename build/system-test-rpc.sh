@@ -56,6 +56,17 @@ chain33_DumpPrivkey() {
     http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.data=="0x88b2fb90411935872f0501dd13345aba19b5fac9b00eb0dddd7df977d4d5477e")' "$FUNCNAME"
 }
 
+chain33_DumpPrivkeysFile() {
+    req='{"method":"Chain33.DumpPrivkeysFile", "params":[{"fileName":"PrivkeysFile","passwd":"123456"}]}'
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and .result.isOK' "$FUNCNAME"
+}
+
+chain33_ImportPrivkeysFile() {
+    req='{"method":"Chain33.ImportPrivkeysFile", "params":[{"fileName":"PrivkeysFile","passwd":"123456"}]}'
+    http_req "$req" ${MAIN_HTTP} '(.error|not) and .result.isOK' "$FUNCNAME"
+    # rm -rf ./PrivkeysFile
+}
+
 chain33_SendToAddress() {
     req='{"method":"Chain33.SendToAddress", "params":[{"from":"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv","to":"1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt", "amount":100000000, "note":"test\n"}]}'
     http_req "$req" ${MAIN_HTTP} '(.error|not) and (.result.hash|length==66)' "$FUNCNAME"
@@ -462,6 +473,8 @@ run_testcases() {
     chain33_WalletTxList "$1"
     chain33_ImportPrivkey "$1"
     chain33_DumpPrivkey "$1"
+    chain33_DumpPrivkeysFile "$1"
+    chain33_ImportPrivkeysFile "$1"
     chain33_SendToAddress "$1"
     chain33_SetTxFee "$1"
     chain33_SetLabl "$1"

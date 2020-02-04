@@ -57,6 +57,10 @@ func New(cfg *types.Chain33Config) *P2p {
 		mcfg.MaxTTL = DefaultMaxTxBroadCastTTL
 	}
 
+	if mcfg.MinLtBlockTxNum < DefaultMinLtBlockTxNum {
+		mcfg.MinLtBlockTxNum = DefaultMinLtBlockTxNum
+	}
+
 	log.Info("p2p", "Channel", mcfg.Channel, "Version", VERSION, "IsTest", cfg.IsTestNet())
 	if mcfg.InnerBounds == 0 {
 		mcfg.InnerBounds = 500
@@ -149,27 +153,18 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 		log.Debug("SetQueueClient gorountine ret")
 
 	}(network)
-
 }
 
 func (network *P2p) loadP2PPrivKeyToWallet() error {
-
 	var parm types.ReqWalletImportPrivkey
 	parm.Privkey, _ = network.node.nodeInfo.addrBook.GetPrivPubKey()
 	parm.Label = "node award"
 
 ReTry:
-	msg := network.client.NewMessage("wallet", types.EventWalletImportPrivkey, &parm)
-	err := network.client.SendTimeout(msg, true, time.Minute)
-	if err != nil {
-		log.Error("ImportPrivkey", "Error", err.Error())
-		return err
-	}
-	resp, err := network.client.WaitTimeout(msg, time.Minute)
+	resp, err := network.api.ExecWalletFunc("wallet", "WalletImportPrivkey", &parm)
 	if err != nil {
 		if err == types.ErrPrivkeyExist {
 			return nil
-
 		}
 		if err == types.ErrLabelHasUsed {
 			//切换随机lable
@@ -181,9 +176,8 @@ ReTry:
 		return err
 	}
 
-	log.Debug("loadP2PPrivKeyToWallet", "resp", resp.GetData())
+	log.Debug("loadP2PPrivKeyToWallet", "resp", resp.(*types.WalletAccount))
 	return nil
-
 }
 
 func (network *P2p) showTaskCapcity() {
@@ -207,20 +201,13 @@ func (network *P2p) genAirDropKeyFromWallet() error {
 			log.Error("genAirDropKeyFromWallet", "p2p closed", "")
 			return fmt.Errorf("p2p closed")
 		}
-		msg := network.client.NewMessage("wallet", types.EventGetWalletStatus, nil)
-		err := network.client.SendTimeout(msg, true, time.Minute)
-		if err != nil {
-			log.Error("genAirDropKeyFromWallet", "Error", err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
 
-		resp, err := network.client.WaitTimeout(msg, time.Minute)
+		resp, err := network.api.ExecWalletFunc("wallet", "GetWalletStatus", &types.ReqNil{})
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
 		}
-		if resp.GetData().(*types.WalletStatus).GetIsWalletLock() { //上锁
+		if resp.(*types.WalletStatus).GetIsWalletLock() { //上锁
 			if savePub == "" {
 				log.Warn("P2P Stuck ! Wallet must be unlock and save with mnemonics")
 
@@ -229,7 +216,7 @@ func (network *P2p) genAirDropKeyFromWallet() error {
 			continue
 		}
 
-		if !resp.GetData().(*types.WalletStatus).GetIsHasSeed() { //无种子
+		if !resp.(*types.WalletStatus).GetIsHasSeed() { //无种子
 			if savePub == "" {
 				log.Warn("P2P Stuck ! Wallet must be imported with mnemonics")
 

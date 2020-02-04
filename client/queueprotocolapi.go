@@ -59,41 +59,6 @@ type QueueProtocolAPI interface {
 	LocalSet(param *types.LocalDBSet) error
 	// types.EventLocalList
 	LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error)
-	// types.EventWalletGetAccountList
-	WalletGetAccountList(req *types.ReqAccountList) (*types.WalletAccounts, error)
-	// types.EventNewAccount
-	NewAccount(param *types.ReqNewAccount) (*types.WalletAccount, error)
-	// types.EventWalletTransactionList
-	WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error)
-	// types.EventWalletImportprivkey
-	WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error)
-	// types.EventWalletSendToAddress
-	WalletSendToAddress(param *types.ReqWalletSendToAddress) (*types.ReplyHash, error)
-	// types.EventWalletSetFee
-	WalletSetFee(param *types.ReqWalletSetFee) (*types.Reply, error)
-	// types.EventWalletSetLabel
-	WalletSetLabel(param *types.ReqWalletSetLabel) (*types.WalletAccount, error)
-	// types.EventWalletMergeBalance
-	WalletMergeBalance(param *types.ReqWalletMergeBalance) (*types.ReplyHashes, error)
-	// types.EventWalletSetPasswd
-	WalletSetPasswd(param *types.ReqWalletSetPasswd) (*types.Reply, error)
-	// types.EventWalletLock
-	WalletLock() (*types.Reply, error)
-	// types.EventWalletUnLock
-	WalletUnLock(param *types.WalletUnLock) (*types.Reply, error)
-	// types.EventGenSeed
-	GenSeed(param *types.GenSeedLang) (*types.ReplySeed, error)
-	// types.EventSaveSeed
-	SaveSeed(param *types.SaveSeedByPw) (*types.Reply, error)
-	// types.EventGetSeed
-	GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error)
-	// types.EventGetWalletStatus
-	GetWalletStatus() (*types.WalletStatus, error)
-	// types.EventDumpPrivkey
-	DumpPrivkey(param *types.ReqString) (*types.ReplyString, error)
-	// types.EventSignRawTx
-	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
-	GetFatalFailure() (*types.Int32, error)
 	// types.EventGetBlocks
 	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
 	// types.EventQueryTx

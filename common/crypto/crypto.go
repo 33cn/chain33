@@ -71,6 +71,11 @@ func Register(name string, driver Crypto) {
 func RegisterType(name string, ty int) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
+	for _, t := range driversType {
+		if t == ty {
+			panic(fmt.Sprintf("crypto: Register(ty) duplicate type, name=%s, type=%d", name, ty))
+		}
+	}
 	if _, dup := driversType[name]; dup {
 		panic("crypto: Register(ty) called twice for driver " + name)
 	}
