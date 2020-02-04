@@ -1515,7 +1515,7 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return err
 	}
@@ -1574,7 +1574,7 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return err
 	}
