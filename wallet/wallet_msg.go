@@ -178,7 +178,7 @@ func (wallet *Wallet) On_GenSeed(req *types.GenSeedLang) (types.Message, error) 
 // On_GetSeed 处理获取Seed
 func (wallet *Wallet) On_GetSeed(req *types.GetSeedByPw) (types.Message, error) {
 	reply := &types.ReplySeed{}
-	seed, err := wallet.getSeed(req.Passwd)
+	seed, err := wallet.GetSeed(req.Passwd)
 	if err != nil {
 		walletlog.Error("getSeed", "err", err.Error())
 	} else {
