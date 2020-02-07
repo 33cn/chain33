@@ -14,6 +14,7 @@ import (
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	drivers "github.com/33cn/chain33/system/dapp"
+	plugins "github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
 )
@@ -654,9 +655,10 @@ func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, inde
 	return kv, nil
 }
 
-func (e *executor) execLocalPlugin(enable bool, plugin Plugin, name string, datas *types.BlockDetail, index int) (kvset *types.LocalDBSet, ok bool, err error) {
+// TODO setup plugin env
+func (e *executor) execLocalPlugin(enable bool, plugin plugins.Plugin, name string, datas *types.BlockDetail) (kvset *types.LocalDBSet, ok bool, err error) {
 	e.startTx()
-	kvs, ok, err := plugin.CheckEnable(e, enable)
+	kvs, ok, err := plugin.CheckEnable(enable)
 	if err != nil {
 		panic(err)
 	}
@@ -666,7 +668,7 @@ func (e *executor) execLocalPlugin(enable bool, plugin Plugin, name string, data
 	if len(kvs) > 0 {
 		kvset.KV = append(kvset.KV, kvs...)
 	}
-	kvs, err = plugin.ExecLocal(e, datas)
+	kvs, err = plugin.ExecLocal(datas)
 	if err != nil {
 		return nil, false, err
 	}
@@ -687,9 +689,9 @@ func (e *executor) execLocalPlugin(enable bool, plugin Plugin, name string, data
 	return kvset, true, nil
 }
 
-func (e *executor) execDelLocalPlugin(enable bool, plugin Plugin, name string, datas *types.BlockDetail, index int) (kvset *types.LocalDBSet, ok bool, err error) {
+func (e *executor) execDelLocalPlugin(enable bool, plugin plugins.Plugin, name string, datas *types.BlockDetail) (kvset *types.LocalDBSet, ok bool, err error) {
 	e.startTx()
-	kvs, ok, err := plugin.CheckEnable(e, enable)
+	kvs, ok, err := plugin.CheckEnable(enable)
 	if err != nil {
 		panic(err)
 	}
@@ -699,7 +701,7 @@ func (e *executor) execDelLocalPlugin(enable bool, plugin Plugin, name string, d
 	if len(kvs) > 0 {
 		kvset.KV = append(kvset.KV, kvs...)
 	}
-	kvs, err = plugin.ExecDelLocal(e, datas)
+	kvs, err = plugin.ExecDelLocal(datas)
 	if err != nil {
 		return nil, false, err
 	}
