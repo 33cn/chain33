@@ -390,8 +390,12 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	}
 	globalPlugins := plugins.GetAllPlugins()
 	for name, plugin := range globalPlugins {
+		enable, ok := exec.pluginEnable[name]
+		if !ok {
+			continue
+		}
 		// TODO setup exec env
-		kvs, ok, err := plugin.CheckEnable(exec.pluginEnable[name])
+		kvs, ok, err := plugin.CheckEnable(enable)
 		if err != nil {
 			panic(err)
 		}
@@ -467,8 +471,12 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	}
 	globalPlugins := plugins.GetAllPlugins()
 	for name, plugin := range globalPlugins {
+		enable, ok := exec.pluginEnable[name]
+		if !ok {
+			continue
+		}
 		// TODO setup env
-		kvs, ok, err := plugin.CheckEnable(exec.pluginEnable[name])
+		kvs, ok, err := plugin.CheckEnable(enable)
 		if err != nil {
 			panic(err)
 		}
@@ -508,52 +516,6 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventDelBlock, &kvset))
 }
-
-/*
-func (exec *executor) execLocalPlugin(plugin Plugin, name string, datas *types.ReceiptData, index int) (kvset *types.LocalDBSet, err error) {
-	kvs, ok, err := plugin.CheckEnable(exec, exec.pluginEnable[name])
-	if err != nil {
-		panic(err)
-	}
-	if !ok {
-		return nil, nil
-	}
-	if len(kvs) > 0 {
-		kvset.KV = append(kvset.KV, kvs...)
-	}
-	kvs, err = plugin.ExecDelLocal(exec, datas)
-
-	memkvset := exec.localDB.(*LocalDB).GetSetKeys()
-	if kvs != nil && kvs.KV != nil {
-		err := exec.checkKV(memkvset, kv.KV)
-		if err != nil {
-			return nil, types.ErrNotAllowMemSetLocalKey
-		}
-		err = exec.checkPrefix(tx.Execer, kv.KV)
-		if err != nil {
-			return nil, err
-		}
-		for _, kv := range kvs.KV {
-			err = exec.localDB.Set(kv.Key, kv.Value)
-			if err != nil {
-				panic(err)
-			}
-		}
-	} else {
-		if len(memkvset) > 0 {
-			return nil, types.ErrNotAllowMemSetLocalKey
-		}
-	}
-
-	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-		return
-	}
-	if len(kvs) > 0 {
-		kvset.KV = append(kvset.KV, kvs...)
-	}
-}
-*/
 
 // Close close executor
 func (exec *Executor) Close() {
