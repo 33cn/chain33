@@ -26,9 +26,12 @@ func RegisterPlugin(name string, p Plugin) {
 	globalPlugins[name] = p
 }
 
-// GetAllPlugins Get plugins
-func GetAllPlugins() map[string]Plugin {
-	return globalPlugins
+// GetPlugin by name
+func GetPlugin(name string) (p Plugin, err error) {
+	if p, ok := globalPlugins[name]; ok {
+		return p, nil
+	}
+	return nil, types.ErrUnknowPlugin
 }
 
 // Plugin defines some interface
