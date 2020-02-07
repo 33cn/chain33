@@ -675,7 +675,7 @@ func (e *executor) execLocalPlugin(enable bool, plugin Plugin, name string, data
 	}
 
 	memkvset := e.localDB.(*LocalDB).GetSetKeys()
-	err = e.checkPluginKvs(memkvset, kvset.KV)
+	err = e.checkPluginKvs(name, memkvset, kvset.KV)
 	if err != nil {
 		return nil, false, err
 	}
@@ -708,7 +708,7 @@ func (e *executor) execDelLocalPlugin(enable bool, plugin Plugin, name string, d
 	}
 
 	memkvset := e.localDB.(*LocalDB).GetSetKeys()
-	err = e.checkPluginKvs(memkvset, kvset.KV)
+	err = e.checkPluginKvs(name, memkvset, kvset.KV)
 	if err != nil {
 		return nil, false, err
 	}
@@ -733,15 +733,18 @@ func (e *executor) setPluginKvs(kvs []*types.KeyValue) error {
 	return nil
 }
 
-func (e *executor) checkPluginKvs(memKeys []string, kvs []*types.KeyValue) error {
+func (e *executor) checkPluginKvs(name string, memKeys []string, kvs []*types.KeyValue) error {
 	if kvs != nil {
 		err := e.checkKV(memKeys, kvs)
 		if err != nil {
 			return types.ErrNotAllowMemSetLocalKey
 		}
-		err = e.checkPrefix([]byte("tx.Execer TODO"), kvs)
-		if err != nil {
-			return err
+		prefix := []byte(localPluginPrefix(name))
+		for _, kv := range kvs {
+			has := bytes.HasPrefix(kv.Key, prefix)
+			if !has {
+				return types.ErrLocalPrefix
+			}
 		}
 	} else {
 		if len(memKeys) > 0 {
@@ -749,4 +752,8 @@ func (e *executor) checkPluginKvs(memKeys []string, kvs []*types.KeyValue) error
 		}
 	}
 	return nil
+}
+
+func localPluginPrefix(name string) string {
+	return "LODBP-" + name
 }
