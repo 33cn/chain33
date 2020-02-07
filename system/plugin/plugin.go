@@ -52,6 +52,8 @@ type Plugin interface {
 		SetAPI(client.QueueProtocolAPI)
 		SetEnv(height, blocktime int64, difficulty uint64)
 	*/
+	SetLocalDB(dbm.KVDB)
+	SetHeight(int64)
 	GetLocalDB() dbm.KVDB
 	GetHeight() int64
 }
@@ -71,4 +73,39 @@ type Base struct {
 	execapi              api.ExecutorAPI
 	txs                  []*types.Transaction
 	receipts             []*types.ReceiptData
+}
+
+// CheckEnable CheckEnable
+func (b *Base) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
+	return nil, true, nil
+}
+
+// ExecLocal ExecLocal
+func (b *Base) ExecLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
+	return nil, nil
+}
+
+// ExecDelLocal ExecDelLocal
+func (b *Base) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
+	return nil, nil
+}
+
+// SetLocalDB set localdb
+func (b *Base) SetLocalDB(l dbm.KVDB) {
+	b.localdb = l
+}
+
+// GetLocalDB get localdb
+func (b *Base) GetLocalDB() dbm.KVDB {
+	return b.localdb
+}
+
+// GetHeight get height
+func (b *Base) GetHeight() int64 {
+	return b.height
+}
+
+// SetHeight set height
+func (b *Base) SetHeight(h int64) {
+	b.height = h
 }
