@@ -52,6 +52,8 @@ type Plugin interface {
 		SetAPI(client.QueueProtocolAPI)
 		SetEnv(height, blocktime int64, difficulty uint64)
 	*/
+	GetLocalDB() dbm.KVDB
+	GetHeight() int64
 }
 
 // Base defines plugin base type
