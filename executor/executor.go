@@ -420,6 +420,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 			}
 		}
 	}
+
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
 		execute.localDB.(*LocalDB).StartTx()
@@ -496,6 +497,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 			kvset.KV = append(kvset.KV, kvs...)
 		}
 	}
+
 	for i := len(b.Txs) - 1; i >= 0; i-- {
 		tx := b.Txs[i]
 		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
