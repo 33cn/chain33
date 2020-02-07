@@ -397,29 +397,17 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 		if err != nil {
 			panic(err)
 		}
-		kvs, ok, err := plugin.CheckEnable(enable)
-		if err != nil {
-			panic(err)
-		}
-		if !ok {
-			continue
-		}
-		if len(kvs) > 0 {
-			kvset.KV = append(kvset.KV, kvs...)
-		}
-		kvs, err = plugin.ExecLocal(datas)
+		kvs, ok, err := execute.execLocalPlugin(enable, plugin, name, datas)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
 			return
 		}
-		if len(kvs) > 0 {
-			kvset.KV = append(kvset.KV, kvs...)
-			for _, kv := range kvs {
-				err := execute.localDB.Set(kv.Key, kv.Value)
-				if err != nil {
-					panic(err)
-				}
-			}
+		if !ok {
+			continue
+		}
+
+		if kvs != nil && len(kvs.KV) > 0 {
+			kvset.KV = append(kvset.KV, kvs.KV...)
 		}
 	}
 
@@ -474,29 +462,22 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	}
 
 	for name, enable := range exec.pluginEnable {
-		// TODO setup exec env
 		plugin, err := plugins.GetPlugin(name)
 		if err != nil {
 			panic(err)
 		}
 		// TODO setup env
-		kvs, ok, err := plugin.CheckEnable(enable)
+		kvs, ok, err := execute.execDelLocalPlugin(enable, plugin, name, datas)
 		if err != nil {
-			panic(err)
+			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
+			return
 		}
 		if !ok {
 			continue
 		}
-		if len(kvs) > 0 {
-			kvset.KV = append(kvset.KV, kvs...)
-		}
-		kvs, err = plugin.ExecDelLocal(datas)
-		if err != nil {
-			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-			return
-		}
-		if len(kvs) > 0 {
-			kvset.KV = append(kvset.KV, kvs...)
+
+		if kvs != nil && len(kvs.KV) > 0 {
+			kvset.KV = append(kvset.KV, kvs.KV...)
 		}
 	}
 
