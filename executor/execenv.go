@@ -653,3 +653,100 @@ func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, inde
 	}
 	return kv, nil
 }
+
+func (e *executor) execLocalPlugin(enable bool, plugin Plugin, name string, datas *types.BlockDetail, index int) (kvset *types.LocalDBSet, ok bool, err error) {
+	e.startTx()
+	kvs, ok, err := plugin.CheckEnable(e, enable)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		return nil, ok, nil
+	}
+	if len(kvs) > 0 {
+		kvset.KV = append(kvset.KV, kvs...)
+	}
+	kvs, err = plugin.ExecLocal(e, datas)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(kvs) > 0 {
+		kvset.KV = append(kvset.KV, kvs...)
+	}
+
+	memkvset := e.localDB.(*LocalDB).GetSetKeys()
+	err = e.checkPluginKvs(memkvset, kvset.KV)
+	if err != nil {
+		return nil, false, err
+	}
+	err = e.setPluginKvs(kvset.KV)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return kvset, true, nil
+}
+
+func (e *executor) execDelLocalPlugin(enable bool, plugin Plugin, name string, datas *types.BlockDetail, index int) (kvset *types.LocalDBSet, ok bool, err error) {
+	e.startTx()
+	kvs, ok, err := plugin.CheckEnable(e, enable)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		return nil, ok, nil
+	}
+	if len(kvs) > 0 {
+		kvset.KV = append(kvset.KV, kvs...)
+	}
+	kvs, err = plugin.ExecDelLocal(e, datas)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(kvs) > 0 {
+		kvset.KV = append(kvset.KV, kvs...)
+	}
+
+	memkvset := e.localDB.(*LocalDB).GetSetKeys()
+	err = e.checkPluginKvs(memkvset, kvset.KV)
+	if err != nil {
+		return nil, false, err
+	}
+	err = e.setPluginKvs(kvset.KV)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return kvset, true, nil
+}
+
+func (e *executor) setPluginKvs(kvs []*types.KeyValue) error {
+	if kvs == nil {
+		return nil
+	}
+	for _, kv := range kvs {
+		err := e.localDB.Set(kv.Key, kv.Value)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return nil
+}
+
+func (e *executor) checkPluginKvs(memKeys []string, kvs []*types.KeyValue) error {
+	if kvs != nil {
+		err := e.checkKV(memKeys, kvs)
+		if err != nil {
+			return types.ErrNotAllowMemSetLocalKey
+		}
+		err = e.checkPrefix([]byte("tx.Execer TODO"), kvs)
+		if err != nil {
+			return err
+		}
+	} else {
+		if len(memKeys) > 0 {
+			return types.ErrNotAllowMemSetLocalKey
+		}
+	}
+	return nil
+}
