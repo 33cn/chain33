@@ -8,16 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-/*
 func TestPlugin(t *testing.T) {
-
-	cfg := exec.client.GetConfig()
 	dir, ldb, kvdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, ldb)
 
 	var txs []*types.Transaction
-	addr, priv := util.Genaddress()
-	tx := util.CreateCoinsTx(cfg, priv, addr, types.Coin)
+	_, priv := util.Genaddress()
+	tx := &types.Transaction{Fee: 1000000, Execer: []byte("none")}
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 	var stateHash [32]byte
@@ -40,7 +37,6 @@ func TestPlugin(t *testing.T) {
 		assert.NoError(t, err)
 	}
 }
-*/
 
 func TestPluginFlag(t *testing.T) {
 	flag := new(Flag)
