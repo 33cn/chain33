@@ -61,6 +61,22 @@ func TestNeedReExec(t *testing.T) {
 	}
 }
 
+func GetAddrTxsCount(db dbm.DB, addr string) (int64, error) {
+	count := types.Int64{}
+	TxsCount, err := db.Get(types.CalcAddrTxsCountKey(addr))
+	if err != nil && err != types.ErrNotFound {
+		return 0, err
+	}
+	if len(TxsCount) == 0 {
+		return 0, nil
+	}
+	err = types.Decode(TxsCount, &count)
+	if err != nil {
+		return 0, err
+	}
+	return count.Data, nil
+}
+
 func TestUpgradeStore(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	cfg.GetModuleConfig().BlockChain.EnableReExecLocal = true
@@ -108,20 +124,4 @@ func TestUpgradeStore(t *testing.T) {
 	count2, err := GetAddrTxsCount(db, addr)
 	assert.NoError(t, err)
 	assert.Equal(t, count1, count2)
-}
-
-func GetAddrTxsCount(db dbm.DB, addr string) (int64, error) {
-	count := types.Int64{}
-	TxsCount, err := db.Get(types.CalcAddrTxsCountKey(addr))
-	if err != nil && err != types.ErrNotFound {
-		return 0, err
-	}
-	if len(TxsCount) == 0 {
-		return 0, nil
-	}
-	err = types.Decode(TxsCount, &count)
-	if err != nil {
-		return 0, err
-	}
-	return count.Data, nil
 }

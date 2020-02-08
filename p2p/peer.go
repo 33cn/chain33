@@ -30,7 +30,10 @@ func (p *Peer) Close() {
 		return
 	}
 	p.mconn.Close()
-	p.node.pubsub.Unsub(p.taskChan, "block", "tx")
+	if p.taskChan != nil {
+		//unsub all topics
+		p.node.pubsub.Unsub(p.taskChan)
+	}
 	log.Info("Peer", "closed", p.Addr())
 
 }
