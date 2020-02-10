@@ -5,38 +5,45 @@
 package executor
 
 import (
+	"fmt"
+
+	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
+	log "github.com/33cn/chain33/common/log/log15"
 	drivers "github.com/33cn/chain33/system/dapp"
+	"github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
 )
 
+var elog = log.New("module", "system/plugin/txindex")
+
 func init() {
-	RegisterPlugin("addrindex", &addrindexPlugin{})
+	plugin.RegisterPlugin("addrindex", &addrindexPlugin{})
 }
 
 type addrindexPlugin struct {
-	pluginBase
+	plugin.Base
 }
 
-func (p *addrindexPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {
+func (p *addrindexPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
 	return nil, enable, nil
 }
 
-func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail) ([]*types.KeyValue, error) {
+func (p *addrindexPlugin) ExecLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
 	b := data.Block
 	var set types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
 		receipt := data.Receipts[i]
-		txindex := getTxIndex(executor, tx, receipt, i)
+		txindex := getTxIndex(p, tx, receipt, i)
 		txinfobyte := types.Encode(txindex.index)
 		if len(txindex.from) != 0 {
 			fromkey1 := types.CalcTxAddrDirHashKey(txindex.from, drivers.TxIndexFrom, txindex.heightstr)
 			fromkey2 := types.CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey1, Value: txinfobyte})
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey2, Value: txinfobyte})
-			types.AssertConfig(executor.api)
-			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.from, 1, true)
+			types.AssertConfig(p.GetAPI())
+			kv, err := updateAddrTxsCount(p.GetAPI().GetConfig(), p.GetLocalDB(), txindex.from, 1, true)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
 			}
@@ -46,8 +53,8 @@ func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail)
 			tokey2 := types.CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey1, Value: txinfobyte})
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey2, Value: txinfobyte})
-			types.AssertConfig(executor.api)
-			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.to, 1, true)
+			types.AssertConfig(p.GetAPI())
+			kv, err := updateAddrTxsCount(p.GetAPI().GetConfig(), p.GetLocalDB(), txindex.to, 1, true)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
 			}
@@ -56,20 +63,20 @@ func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail)
 	return set.KV, nil
 }
 
-func (p *addrindexPlugin) ExecDelLocal(executor *executor, data *types.BlockDetail) ([]*types.KeyValue, error) {
+func (p *addrindexPlugin) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
 	b := data.Block
 	var set types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
 		receipt := data.Receipts[i]
 		//del: addr index
-		txindex := getTxIndex(executor, tx, receipt, i)
+		txindex := getTxIndex(p, tx, receipt, i)
 		if len(txindex.from) != 0 {
 			fromkey1 := types.CalcTxAddrDirHashKey(txindex.from, drivers.TxIndexFrom, txindex.heightstr)
 			fromkey2 := types.CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey1, Value: nil})
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey2, Value: nil})
-			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.from, 1, false)
+			kv, err := updateAddrTxsCount(p.GetAPI().GetConfig(), p.GetLocalDB(), txindex.from, 1, false)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
 			}
@@ -79,7 +86,7 @@ func (p *addrindexPlugin) ExecDelLocal(executor *executor, data *types.BlockDeta
 			tokey2 := types.CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey1, Value: nil})
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey2, Value: nil})
-			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.to, 1, false)
+			kv, err := updateAddrTxsCount(p.GetAPI().GetConfig(), p.GetLocalDB(), txindex.to, 1, false)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
 			}
@@ -137,4 +144,37 @@ func updateAddrTxsCount(cfg *types.Chain33Config, cachedb dbm.KVDB, addr string,
 	}
 	//keyvalue
 	return getAddrTxsCountKV(addr, txscount), nil
+}
+
+type txIndex struct {
+	from      string
+	to        string
+	heightstr string
+	index     *types.ReplyTxInfo
+}
+
+//交易中 from/to 的索引
+func getTxIndex(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
+	var txIndexInfo txIndex
+	var txinf types.ReplyTxInfo
+	txinf.Hash = tx.Hash()
+	txinf.Height = p.GetHeight()
+	txinf.Index = int64(index)
+	ety := types.LoadExecutorType(string(tx.Execer))
+	// none exec has not execType
+	if ety != nil {
+		var err error
+		txinf.Assets, err = ety.GetAssets(tx)
+		if err != nil {
+			elog.Error("getTxIndex ", "GetAssets err", err)
+		}
+	}
+
+	txIndexInfo.index = &txinf
+	heightstr := fmt.Sprintf("%018d", p.GetHeight()*types.MaxTxsPerBlock+int64(index))
+	txIndexInfo.heightstr = heightstr
+
+	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	txIndexInfo.to = tx.GetRealToAddr()
+	return &txIndexInfo
 }

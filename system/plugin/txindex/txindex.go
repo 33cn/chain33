@@ -5,9 +5,6 @@
 package txindex
 
 import (
-	"fmt"
-
-	"github.com/33cn/chain33/common/address"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
@@ -71,37 +68,4 @@ func getTx(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, i
 		kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxShortKey(txhash), Value: []byte("1")})
 	}
 	return kvlist
-}
-
-type txIndex struct {
-	from      string
-	to        string
-	heightstr string
-	index     *types.ReplyTxInfo
-}
-
-//交易中 from/to 的索引
-func getTxIndex(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
-	var txIndexInfo txIndex
-	var txinf types.ReplyTxInfo
-	txinf.Hash = tx.Hash()
-	txinf.Height = p.GetHeight()
-	txinf.Index = int64(index)
-	ety := types.LoadExecutorType(string(tx.Execer))
-	// none exec has not execType
-	if ety != nil {
-		var err error
-		txinf.Assets, err = ety.GetAssets(tx)
-		if err != nil {
-			elog.Error("getTxIndex ", "GetAssets err", err)
-		}
-	}
-
-	txIndexInfo.index = &txinf
-	heightstr := fmt.Sprintf("%018d", p.GetHeight()*types.MaxTxsPerBlock+int64(index))
-	txIndexInfo.heightstr = heightstr
-
-	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	txIndexInfo.to = tx.GetRealToAddr()
-	return &txIndexInfo
 }
