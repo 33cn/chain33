@@ -139,7 +139,7 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		if err != nil {
 			log.Error("handleEvent", "ReadProtoMessagexxxxxxxxxxxxx", err)
 		}
-		log.Info("handleEvent EventAddBlockHeaders","pid",pid,"headers")
+		log.Info("handleEvent EventAddBlockHeaders","pid",pid,"headers",resp.GetMessage().GetHeaders())
 		client := h.GetQueueClient()
 		msg := client.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
 		err = client.Send(msg, false)
