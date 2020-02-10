@@ -2,6 +2,7 @@ package headers
 
 import (
 	"context"
+	//"github.com/33cn/chain33/client"
 
 	"time"
 
@@ -35,15 +36,12 @@ const (
 type HeaderInfoProtol struct {
 	*prototypes.BaseProtocol
 	*prototypes.BaseStreamHandler
-
-	requests map[string]*types.MessageHeaderReq // used to access request data from response handlers
 }
 
 func (h *HeaderInfoProtol) InitProtocol(data *prototypes.GlobalData) {
-	h.BaseProtocol = new(prototypes.BaseProtocol)
-	h.requests = make(map[string]*types.MessageHeaderReq)
+	//h.BaseProtocol = new(prototypes.BaseProtocol)
+	//h.requests = make(map[string]*types.MessageHeaderReq)
 	h.GlobalData = data
-	h.requests = make(map[string]*types.MessageHeaderReq)
 	prototypes.RegisterEventHandler(types.EventFetchBlockHeaders, h.handleEvent)
 }
 
@@ -51,6 +49,7 @@ func (h *HeaderInfoProtol) InitProtocol(data *prototypes.GlobalData) {
 func (h *HeaderInfoProtol) OnResp(headers *types.P2PHeaders, s net.Stream) {
 
 	client := h.GetQueueClient()
+	log.Info("OnResp","pid",s.Conn().LocalPeer().String(),"headers",headers.GetHeaders())
 	msg := client.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: s.Conn().LocalPeer().String(), Headers: &types.Headers{Items: headers.GetHeaders()}})
 	client.Send(msg, false)
 
@@ -63,6 +62,7 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s n
 		return
 
 	}
+	log.Info("OnReq","Start","start", getheaders.GetStartHeight(),"end", getheaders.GetEndHeight())
 	client := h.GetQueueClient()
 	msg := client.NewMessage("blockchain", types.EventGetHeaders, &types.ReqBlocks{Start: getheaders.GetStartHeight(), End: getheaders.GetEndHeight()})
 	err := client.SendTimeout(msg, true, time.Second*30)
@@ -137,14 +137,14 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		var resp types.MessageHeaderResp
 		err = h.ReadProtoMessage(&resp, stream)
 		if err != nil {
-			log.Error("handleEvent", "SendProtoMessage", err)
+			log.Error("handleEvent", "ReadProtoMessagexxxxxxxxxxxxx", err)
 		}
-
+		log.Info("handleEvent EventAddBlockHeaders","pid",pid,"headers")
 		client := h.GetQueueClient()
 		msg := client.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
 		err = client.Send(msg, false)
 		if err != nil {
-			log.Error("send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
+			log.Error("handleEvent send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
 		}
 
 		stream.Close()
@@ -164,8 +164,8 @@ func (d *HeaderInfoHander) Handle(stream core.Stream) {
 
 	//解析处理
 	if stream.Protocol() == HeaderInfoReq {
+		log.Info("Handler","protoID","HeaderInfoReq")
 		var data types.MessageHeaderReq
-
 		err := d.ReadProtoMessage(&data, stream)
 		if err != nil {
 			return
@@ -185,13 +185,4 @@ func (h *HeaderInfoHander) VerifyRequest(data []byte) bool {
 
 	return true
 }
-func (h *HeaderInfoProtol) CheckMessage(id string) bool {
-	_, ok := h.requests[id]
-	if ok {
-		delete(h.requests, id)
-		return true
-	}
 
-	log.Error("Failed to locate request data boject for response")
-	return false
-}
