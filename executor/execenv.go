@@ -634,6 +634,9 @@ func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, inde
 // TODO setup plugin env
 func (e *executor) execLocalPlugin(enable bool, plugin plugins.Plugin, name string, datas *types.BlockDetail) (kvset *types.LocalDBSet, ok bool, err error) {
 	e.startTx()
+	plugin.SetEnv(e.height, e.blocktime, e.difficulty)
+	plugin.SetAPI(e.api)
+	plugin.SetLocalDB(e.localDB)
 	kvs, ok, err := plugin.CheckEnable(enable)
 	if err != nil {
 		panic(err)
@@ -667,6 +670,9 @@ func (e *executor) execLocalPlugin(enable bool, plugin plugins.Plugin, name stri
 
 func (e *executor) execDelLocalPlugin(enable bool, plugin plugins.Plugin, name string, datas *types.BlockDetail) (kvset *types.LocalDBSet, ok bool, err error) {
 	e.startTx()
+	plugin.SetEnv(e.height, e.blocktime, e.difficulty)
+	plugin.SetAPI(e.api)
+	plugin.SetLocalDB(e.localDB)
 	kvs, ok, err := plugin.CheckEnable(enable)
 	if err != nil {
 		panic(err)
