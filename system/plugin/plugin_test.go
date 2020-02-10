@@ -44,16 +44,16 @@ func TestPluginFlag(t *testing.T) {
 	defer util.CloseTestDB(dir, ldb)
 
 	base := Base{}
-	base.SetHeight(0)
+	base.SetEnv(0, 1000000, 11111111111111)
 	base.SetLocalDB(kvdb)
 
 	k := []byte("test")
-	_, _, err := flag.checkFlag(&base, k, true)
+	_, _, err := flag.CheckFlag(&base, k, true)
 	assert.NoError(t, err)
 
 	v := types.Encode(&types.Int64{})
 	err = kvdb.Set(k, v)
 	assert.NoError(t, err)
-	_, _, err = flag.checkFlag(&base, k, true)
+	_, _, err = flag.CheckFlag(&base, k, true)
 	assert.NoError(t, err)
 }
