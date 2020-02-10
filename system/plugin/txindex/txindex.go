@@ -8,37 +8,41 @@ import (
 	"fmt"
 
 	"github.com/33cn/chain33/common/address"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
 )
 
+var elog = log.New("module", "system/plugin/txindex")
+
 func init() {
-	RegisterPlugin("txindex", &txindexPlugin{})
+	plugin.RegisterPlugin("txindex", &txindexPlugin{})
 }
 
 type txindexPlugin struct {
-	pluginBase
+	plugin.Base
 }
 
-func (p *txindexPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {
+func (p *txindexPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
 	return nil, true, nil
 }
 
-func (p *txindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail) (kvs []*types.KeyValue, err error) {
+func (p *txindexPlugin) ExecLocal(data *types.BlockDetail) (kvs []*types.KeyValue, err error) {
 	for i := 0; i < len(data.Block.Txs); i++ {
 		tx := data.Block.Txs[i]
 		receipt := data.Receipts[i]
-		kv := getTx(executor, tx, receipt, i)
+		kv := getTx(p, tx, receipt, i)
 		kvs = append(kvs, kv...)
 	}
 	return kvs, nil
 }
 
-func (p *txindexPlugin) ExecDelLocal(executor *executor, data *types.BlockDetail) (kvs []*types.KeyValue, err error) {
+func (p *txindexPlugin) ExecDelLocal(data *types.BlockDetail) (kvs []*types.KeyValue, err error) {
 	for i := 0; i < len(data.Block.Txs); i++ {
 		tx := data.Block.Txs[i]
 		receipt := data.Receipts[i]
 		//del：tx
-		kvdel := getTx(executor, tx, receipt, i)
+		kvdel := getTx(p, tx, receipt, i)
 		for k := range kvdel {
 			kvdel[k].Value = nil
 		}
@@ -48,17 +52,18 @@ func (p *txindexPlugin) ExecDelLocal(executor *executor, data *types.BlockDetail
 }
 
 //获取公共的信息
-func getTx(executor *executor, tx *types.Transaction, receipt *types.ReceiptData, index int) []*types.KeyValue {
-	types.AssertConfig(executor.api)
-	cfg := executor.api.GetConfig()
+func getTx(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, index int) []*types.KeyValue {
+	api := p.GetAPI()
+	types.AssertConfig(api)
+	cfg := api.GetConfig()
 	txhash := tx.Hash()
 	//构造txresult 信息保存到db中
 	var txresult types.TxResult
-	txresult.Height = executor.height
+	txresult.Height = p.GetHeight()
 	txresult.Index = int32(index)
 	txresult.Tx = tx
 	txresult.Receiptdate = receipt
-	txresult.Blocktime = executor.blocktime
+	txresult.Blocktime = p.GetBlockTime()
 	txresult.ActionName = tx.ActionName()
 	var kvlist []*types.KeyValue
 	kvlist = append(kvlist, &types.KeyValue{Key: cfg.CalcTxKey(txhash), Value: cfg.CalcTxKeyValue(&txresult)})
@@ -76,11 +81,11 @@ type txIndex struct {
 }
 
 //交易中 from/to 的索引
-func getTxIndex(executor *executor, tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
+func getTxIndex(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
 	var txIndexInfo txIndex
 	var txinf types.ReplyTxInfo
 	txinf.Hash = tx.Hash()
-	txinf.Height = executor.height
+	txinf.Height = p.GetHeight()
 	txinf.Index = int64(index)
 	ety := types.LoadExecutorType(string(tx.Execer))
 	// none exec has not execType
@@ -93,7 +98,7 @@ func getTxIndex(executor *executor, tx *types.Transaction, receipt *types.Receip
 	}
 
 	txIndexInfo.index = &txinf
-	heightstr := fmt.Sprintf("%018d", executor.height*types.MaxTxsPerBlock+int64(index))
+	heightstr := fmt.Sprintf("%018d", p.GetHeight()*types.MaxTxsPerBlock+int64(index))
 	txIndexInfo.heightstr = heightstr
 
 	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
