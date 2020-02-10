@@ -56,6 +56,9 @@ type Plugin interface {
 	SetHeight(int64)
 	GetLocalDB() dbm.KVDB
 	GetHeight() int64
+
+	SetAPI(queueapi client.QueueProtocolAPI)
+	GetAPI() client.QueueProtocolAPI
 }
 
 // Base defines plugin base type
@@ -108,4 +111,14 @@ func (b *Base) GetHeight() int64 {
 // SetHeight set height
 func (b *Base) SetHeight(h int64) {
 	b.height = h
+}
+
+// SetAPI set queue protocol api
+func (b *Base) SetAPI(queueapi client.QueueProtocolAPI) {
+	b.api = queueapi
+}
+
+// GetAPI get queue protocol api
+func (b *Base) GetAPI() client.QueueProtocolAPI {
+	return b.api
 }
