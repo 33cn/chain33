@@ -5,37 +5,39 @@
 package executor
 
 import (
+	"github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
 )
 
 func init() {
-	RegisterPlugin("stat", &statPlugin{})
+	plugin.RegisterPlugin("stat", &statPlugin{})
 }
 
 type statPlugin struct {
-	pluginBase
+	plugin.Base
+	plugin.Flag
 }
 
-func (p *statPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {
-	kvs, ok, err = p.checkFlag(executor, types.StatisticFlag(), enable)
+func (p *statPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
+	kvs, ok, err = p.CheckFlag(p, types.StatisticFlag(), enable)
 	if err == types.ErrDBFlag {
 		panic("stat config is enable, it must be synchronized from 0 height ")
 	}
 	return kvs, ok, err
 }
 
-func (p *statPlugin) ExecLocal(executor *executor, data *types.BlockDetail) ([]*types.KeyValue, error) {
-	return countInfo(executor, data)
+func (p *statPlugin) ExecLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
+	return countInfo(data)
 }
 
-func (p *statPlugin) ExecDelLocal(executor *executor, data *types.BlockDetail) ([]*types.KeyValue, error) {
-	return delCountInfo(executor, data)
+func (p *statPlugin) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
+	return delCountInfo(data)
 }
 
-func countInfo(ex *executor, b *types.BlockDetail) ([]*types.KeyValue, error) {
+func countInfo(b *types.BlockDetail) ([]*types.KeyValue, error) {
 	var kvset types.LocalDBSet
 	//保存挖矿统计数据
-	ticketkv, err := countTicket(ex, b)
+	ticketkv, err := countTicket(b)
 	if err != nil {
 		return nil, err
 	}
@@ -46,10 +48,10 @@ func countInfo(ex *executor, b *types.BlockDetail) ([]*types.KeyValue, error) {
 	return kvset.KV, nil
 }
 
-func delCountInfo(ex *executor, b *types.BlockDetail) ([]*types.KeyValue, error) {
+func delCountInfo(b *types.BlockDetail) ([]*types.KeyValue, error) {
 	var kvset types.LocalDBSet
 	//删除挖矿统计数据
-	ticketkv, err := delCountTicket(ex, b)
+	ticketkv, err := delCountTicket(b)
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +64,10 @@ func delCountInfo(ex *executor, b *types.BlockDetail) ([]*types.KeyValue, error)
 
 //这两个功能需要重构到 ticket 里面去。
 //有些功能需要开启选项，才会启用功能。并且功能必须从0开始
-func countTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
+func countTicket(b *types.BlockDetail) (*types.LocalDBSet, error) {
 	return nil, nil
 }
 
-func delCountTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
+func delCountTicket(b *types.BlockDetail) (*types.LocalDBSet, error) {
 	return nil, nil
 }
