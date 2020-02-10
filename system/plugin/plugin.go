@@ -52,6 +52,8 @@ type Plugin interface {
 		SetAPI(client.QueueProtocolAPI)
 		SetEnv(height, blocktime int64, difficulty uint64)
 	*/
+	GetBlockTime() int64
+	SetBlockTime(int64)
 	SetLocalDB(dbm.KVDB)
 	SetHeight(int64)
 	GetLocalDB() dbm.KVDB
@@ -66,7 +68,7 @@ type Base struct {
 	localdb              dbm.KVDB
 	coinsaccount         *account.DB
 	height               int64
-	blocktime            int64
+	blockTime            int64
 	parentHash, mainHash []byte
 	mainHeight           int64
 	name                 string
@@ -121,4 +123,14 @@ func (b *Base) SetAPI(queueapi client.QueueProtocolAPI) {
 // GetAPI get queue protocol api
 func (b *Base) GetAPI() client.QueueProtocolAPI {
 	return b.api
+}
+
+// GetBlockTime set block time
+func (b *Base) GetBlockTime() int64 {
+	return b.blockTime
+}
+
+// SetBlockTime set block time
+func (b *Base) SetBlockTime(t int64) {
+	b.blockTime = t
 }
