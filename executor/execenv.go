@@ -74,30 +74,6 @@ func (e *executor) enableMVCC(hash []byte) {
 	e.stateDB.(*StateDB).enableMVCC(hash)
 }
 
-// AddMVCC convert key value to mvcc kv data
-func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
-	kvs := detail.KV
-	hash := detail.Block.StateHash
-	mvcc := dbm.NewSimpleMVCC(db)
-	//检查版本号是否是连续的
-	kvlist, err := mvcc.AddMVCC(kvs, hash, detail.PrevStatusHash, detail.Block.Height)
-	if err != nil {
-		panic(err)
-	}
-	return kvlist
-}
-
-// DelMVCC convert key value to mvcc kv data
-func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
-	hash := detail.Block.StateHash
-	mvcc := dbm.NewSimpleMVCC(db)
-	kvlist, err := mvcc.DelMVCC(hash, detail.Block.Height, true)
-	if err != nil {
-		panic(err)
-	}
-	return kvlist
-}
-
 //隐私交易费扣除规则：
 //1.公对私交易：直接从coin合约中扣除
 //2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除
