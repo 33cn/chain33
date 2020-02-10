@@ -20,8 +20,23 @@ func (chain *BlockChain) Upgrade() {
 	chain.UpgradeChain()
 	chainlog.Info("storedb upgrade start")
 	chain.UpgradeStore()
+	chainlog.Info("upgrade all dapp")
+	chain.UpgradePlugin()
 	chainlog.Info("chain reduce start")
 	chain.ReduceChain()
+}
+
+// UpgradePlugin 升级插件
+func (chain *BlockChain) UpgradePlugin() {
+	msg := chain.client.NewMessage("execs", types.EventUpgrade, nil)
+	err := chain.client.Send(msg, true)
+	if err != nil {
+		panic(err)
+	}
+	_, err = chain.client.Wait(msg)
+	if err != nil {
+		panic(err)
+	}
 }
 
 //UpgradeStore 升级storedb

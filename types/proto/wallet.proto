@@ -227,3 +227,8 @@ message Int32 {
 message ReqAccountList {
     bool withoutBalance = 1;
 }
+
+message ReqPrivkeysFile {
+    string fileName = 1;
+    string passwd   = 2;
+}

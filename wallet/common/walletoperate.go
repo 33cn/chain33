@@ -45,7 +45,6 @@ type WalletOperate interface {
 	RegisterMineStatusReporter(reporter MineStatusReport) error
 
 	GetAPI() client.QueueProtocolAPI
-	GetMutex() *sync.Mutex
 	GetDBStore() db.DB
 	GetSignType() int
 	GetPassword() string

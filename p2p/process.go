@@ -86,11 +86,8 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 		return false
 	}
 
-	if peerVersion >= lightBroadCastVersion {
+	if peerVersion >= lightBroadCastVersion && len(block.Block.Txs) >= int(n.nodeInfo.cfg.MinLtBlockTxNum) {
 
-		if len(block.Block.Txs) < 1 {
-			return false
-		}
 		ltBlock := &types.LightBlock{}
 		ltBlock.Size = int64(types.Size(block.Block))
 		ltBlock.Header = block.Block.GetHeader(n.cfg)

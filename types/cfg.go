@@ -197,6 +197,8 @@ type P2P struct {
 	Channel int32 `protobuf:"varint,20,opt,name=channel" json:"channel,omitempty"`
 	//固定连接节点，只连接配置项seeds中的节点
 	FixedSeed bool `protobuf:"varint,21,opt,name=fixedSeed" json:"fixedSeed,omitempty"`
+	//区块轻广播的最低打包交易数, 大于该值时区块内交易采用短哈希广播
+	MinLtBlockTxNum int32 `protobuf:"varint,22,opt,name=minLtBlockTxNum" json:"minLtBlockTxNum,omitempty"`
 }
 
 // RPC 配置

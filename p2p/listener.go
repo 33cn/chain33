@@ -130,17 +130,20 @@ Retry:
 	}
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.UnaryInterceptor(interceptor), grpc.StreamInterceptor(interceptorStream))
-	//区块最多10M
-	msgRecvOp := grpc.MaxRecvMsgSize(11 * 1024 * 1024) //设置最大接收数据大小位11M
-	msgSendOp := grpc.MaxSendMsgSize(11 * 1024 * 1024) //设置最大发送数据大小为11M
+	maxMsgSize := pb.MaxBlockSize + 1024*1024    //最大传输数据 最大区块大小
+	msgRecvOp := grpc.MaxRecvMsgSize(maxMsgSize) //设置最大接收数据
+	msgSendOp := grpc.MaxSendMsgSize(maxMsgSize) //设置最大发送数据
+	kaep := keepalive.EnforcementPolicy{
+		MinTime:             10 * time.Second, //只允许不低于10s频率的ping周期
+		PermitWithoutStream: true,
+	}
 	var keepparm keepalive.ServerParameters
 	keepparm.Time = 5 * time.Minute
 	keepparm.Timeout = 50 * time.Second
-	keepparm.MaxConnectionIdle = 1 * time.Minute
 	maxStreams := grpc.MaxConcurrentStreams(1000)
 	keepOp := grpc.KeepaliveParams(keepparm)
 	StatsOp := grpc.StatsHandler(&statshandler{})
-	opts = append(opts, msgRecvOp, msgSendOp, keepOp, maxStreams, StatsOp)
+	opts = append(opts, msgRecvOp, msgSendOp, grpc.KeepaliveEnforcementPolicy(kaep), keepOp, maxStreams, StatsOp)
 	dl.server = grpc.NewServer(opts...)
 	dl.p2pserver = pServer
 	pb.RegisterP2PgserviceServer(dl.server, pServer)
