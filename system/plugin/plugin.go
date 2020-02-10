@@ -6,9 +6,7 @@
 package plugin
 
 import (
-	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/client/api"
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
@@ -40,44 +38,32 @@ type Plugin interface {
 	CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error)
 	ExecLocal(data *types.BlockDetail) ([]*types.KeyValue, error)
 	ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, error)
-	/*
-		// 设置执行环境相关
-		SetLocalDB(dbm.KVDB)
 
-		GetExecutorAPI() api.ExecutorAPI
+	// Get/Set name
+	GetName() string
+	SetName(string)
 
-		GetName() string
-		SetName(string)
-
-		SetAPI(client.QueueProtocolAPI)
-		SetEnv(height, blocktime int64, difficulty uint64)
-	*/
-	GetBlockTime() int64
-	SetBlockTime(int64)
-	SetLocalDB(dbm.KVDB)
-	SetHeight(int64)
+	// 设置执行环境相关
 	GetLocalDB() dbm.KVDB
-	GetHeight() int64
-
+	SetLocalDB(dbm.KVDB)
 	SetAPI(queueapi client.QueueProtocolAPI)
 	GetAPI() client.QueueProtocolAPI
+
+	SetEnv(height, blocktime int64, difficulty uint64)
+	GetBlockTime() int64
+	GetHeight() int64
+	GetDifficulty() uint64
 }
 
 // Base defines plugin base type
 type Base struct {
-	localdb              dbm.KVDB
-	coinsaccount         *account.DB
-	height               int64
-	blockTime            int64
-	parentHash, mainHash []byte
-	mainHeight           int64
-	name                 string
-	curname              string
-	child                Plugin
-	api                  client.QueueProtocolAPI
-	execapi              api.ExecutorAPI
-	txs                  []*types.Transaction
-	receipts             []*types.ReceiptData
+	name    string
+	localdb dbm.KVDB
+	api     client.QueueProtocolAPI
+
+	height     int64
+	blockTime  int64
+	difficulty uint64
 }
 
 // CheckEnable CheckEnable
@@ -110,9 +96,11 @@ func (b *Base) GetHeight() int64 {
 	return b.height
 }
 
-// SetHeight set height
-func (b *Base) SetHeight(h int64) {
+// SetEnv set block env
+func (b *Base) SetEnv(h, t int64, d uint64) {
 	b.height = h
+	b.blockTime = t
+	b.difficulty = d
 }
 
 // SetAPI set queue protocol api
@@ -125,12 +113,22 @@ func (b *Base) GetAPI() client.QueueProtocolAPI {
 	return b.api
 }
 
-// GetBlockTime set block time
+// GetBlockTime get block time
 func (b *Base) GetBlockTime() int64 {
 	return b.blockTime
 }
 
-// SetBlockTime set block time
-func (b *Base) SetBlockTime(t int64) {
-	b.blockTime = t
+// GetDifficulty get Difficulty
+func (b *Base) GetDifficulty() uint64 {
+	return b.difficulty
+}
+
+// GetName get name
+func (b *Base) GetName() string {
+	return b.name
+}
+
+// SetName set name
+func (b *Base) SetName(n string) {
+	b.name = n
 }
