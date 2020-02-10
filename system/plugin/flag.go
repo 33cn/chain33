@@ -21,7 +21,8 @@ type Flag struct {
 	mu   sync.Mutex
 }
 
-func (f *Flag) checkFlag(plugin Plugin, flagKey []byte, enable bool) (kvset []*types.KeyValue, ok bool, err error) {
+// CheckFlag enable from height zero
+func (f *Flag) CheckFlag(plugin Plugin, flagKey []byte, enable bool) (kvset []*types.KeyValue, ok bool, err error) {
 	if !enable {
 		return nil, false, nil
 	}
