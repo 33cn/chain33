@@ -18,6 +18,7 @@ import (
 	"github.com/33cn/chain33/store"
 	_ "github.com/33cn/chain33/system"
 	drivers "github.com/33cn/chain33/system/dapp"
+	plugins "github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/assert"
@@ -328,12 +329,41 @@ func TestExecutorUpgradeMsg(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+//ErrEnvAPI 测试
+type demoPlugin struct {
+	*plugins.Base
+}
+
+func newDemoPlugin() plugins.Plugin {
+	demo := &demoPlugin{Base: &plugins.Base{}}
+	demo.SetName("plugin-demo")
+	return demo
+}
+
+func (demo *demoPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
+	return nil, enable, nil
+}
+
+func (demo *demoPlugin) ExecLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
+	return nil, nil
+}
+func (demo *demoPlugin) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
+	return nil, nil
+}
+
+func (demo *demoPlugin) Upgrade() error {
+	return nil
+}
+
 func TestExecutorPluginUpgrade(t *testing.T) {
 	exec, q := initEnv(types.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
 	cfg.SetMinFee(0)
 	Register(cfg)
 	execInit(cfg)
+
+	exec.pluginEnable["plugin-demo"] = true
+	plugins.RegisterPlugin("plugin-demo", newDemoPlugin())
 
 	go func() {
 		client := q.Client()
@@ -347,10 +377,13 @@ func TestExecutorPluginUpgrade(t *testing.T) {
 		}
 	}()
 
-	kvset, err := exec.upgradePlugin("demo")
+	err := exec.upgradeExecPlugin("plugin-demo")
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(kvset.GetKV()))
-	kvset, err = exec.upgradePlugin("demof")
-	assert.NotNil(t, err)
-	assert.Nil(t, kvset)
+
+    kvset, err := exec.upgradePlugin("demo")
+    assert.Nil(t, err)
+    assert.Equal(t, 2, len(kvset.GetKV()))
+    kvset, err = exec.upgradePlugin("demof")
+    assert.NotNil(t, err)
+    assert.Nil(t, kvset)
 }
