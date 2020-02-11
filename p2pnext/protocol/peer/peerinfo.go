@@ -42,8 +42,8 @@ type PeerInfoProtol struct {
 }
 
 func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
-	p.BaseProtocol = new(prototypes.BaseProtocol)
-	p.BaseStreamHandler = new(prototypes.BaseStreamHandler)
+	//p.BaseProtocol = new(prototypes.BaseProtocol)
+	//p.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	p.GlobalData = data
 	p.p2pCfg = data.ChainCfg.GetModuleConfig().P2P
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)

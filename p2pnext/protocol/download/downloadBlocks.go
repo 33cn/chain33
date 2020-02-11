@@ -37,13 +37,10 @@ const (
 type DownloadProtol struct {
 	*prototypes.BaseProtocol
 	*prototypes.BaseStreamHandler
-
-	//requests map[string]*types.MessageGetBlocksReq // used to access request data from response handlers
 }
 
 func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
-	//d.BaseProtocol = new(prototypes.BaseProtocol)
-	//d.requests = make(map[string]*types.MessageGetBlocksReq)
+	d.BaseProtocol = new(prototypes.BaseProtocol)
 	d.GlobalData = data
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventFetchBlocks, d.handleEvent)
@@ -51,11 +48,6 @@ func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
 
 type DownloadHander struct {
 	*prototypes.BaseStreamHandler
-}
-
-func (d *DownloadHander) SetProtocol(protocol prototypes.IProtocol) {
-	d.BaseStreamHandler = new(prototypes.BaseStreamHandler)
-	d.Protocol = protocol
 }
 
 //接收Response消息
@@ -110,7 +102,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s net.Str
 
 	}
 	//开始下载指定高度
-	log.Info("OnReq","start",message.GetStartHeight(),"end",message.GetStartHeight())
+	log.Info("OnReq", "start", message.GetStartHeight(), "end", message.GetStartHeight())
 
 	reqblock := &types.ReqBlocks{Start: message.GetStartHeight(), End: message.GetEndHeight()}
 	client := d.GetQueueClient()
@@ -139,12 +131,12 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s net.Str
 	pubkey, _ := d.GetHost().Peerstore().PubKey(peerID).Bytes()
 	blocksResp := &types.MessageGetBlocksResp{MessageData: d.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.InvDatas{p2pInvData}}
-	if s==nil{
-		log.Error("OnReq","stream",s)
+	if s == nil {
+		log.Error("OnReq", "stream", s)
 		return
 	}
 
-	log.Info("OnReq","blocksResp",blocksResp.Message,"stream",s)
+	log.Info("OnReq", "blocksResp", blocksResp.Message, "stream", s)
 	err = d.SendProtoMessage(blocksResp, s)
 	//wlen, err := rw.WriteString(fmt.Sprintf("%v\n", string(types.Encode(blocksResp))))
 	if err != nil {
@@ -168,13 +160,13 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	}
 
 	msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd(),"pids",pids)
+	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
 
 	for _, pid := range pids {
 
 		Pconn := d.ConnManager.Get(pid)
 		if Pconn == nil {
-			log.Error("handleEvent","pid",pid,"ConnManage",Pconn)
+			log.Error("handleEvent", "pid", pid, "ConnManage", Pconn)
 			continue
 		}
 		//具体的下载逻辑
