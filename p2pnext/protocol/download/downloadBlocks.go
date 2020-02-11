@@ -169,8 +169,9 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 				log.Error("handleEvent", "SendProtoMessageErr", err)
 				continue
 			}
+			log.Info("handleEvent", "sendOk", "beforRead")
 			var resp types.MessageGetBlocksResp
-			err := d.ReadProtoMessage(&resp, jStream.Stream)
+			err := d.ReadProtoMessage(resp, jStream.Stream)
 			if err != nil {
 				log.Error("handleEvent", "ReadProtoMessage", err)
 				goto ReDownload
