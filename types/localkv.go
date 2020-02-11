@@ -12,6 +12,7 @@ import (
 // 定义key值
 var (
 	LocalPrefix            = []byte("LODB")
+	LocalPluginPrefix      = []byte("LODBP")
 	FlagTxQuickIndex       = []byte("FLAG:FlagTxQuickIndex")
 	FlagKeyMVCC            = []byte("FLAG:keyMVCCFlag")
 	TxHashPerfix           = []byte("TX:")
@@ -30,6 +31,8 @@ func GetLocalDBKeyList() [][]byte {
 		FlagTxQuickIndex, FlagKeyMVCC, TxHashPerfix, TxShortHashPerfix, FlagReduceLocaldb,
 	}
 }
+
+// key for blockstore
 
 //CalcTxKey local db中保存交易的方法
 func (c *Chain33Config) CalcTxKey(hash []byte) []byte {
@@ -58,6 +61,8 @@ func CalcTxShortKey(hash []byte) []byte {
 	return append(TxShortHashPerfix, hash[0:8]...)
 }
 
+// key for plugin/addrindex
+
 //CalcTxAddrHashKey 用于存储地址相关的hash列表，key=TxAddrHash:addr:height*100000 + index
 //地址下面所有的交易
 func CalcTxAddrHashKey(addr string, heightindex string) []byte {
@@ -74,6 +79,8 @@ func CalcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
 func CalcAddrTxsCountKey(addr string) []byte {
 	return append(AddrTxsCount, []byte(addr)...)
 }
+
+// key for plugin/stat
 
 //StatisticFlag 用于记录统计的key
 func StatisticFlag() []byte {
