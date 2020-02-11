@@ -101,7 +101,7 @@ func (d *DownloadHander) Handle(stream core.Stream) {
 
 }
 
-func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.Stream) {
+func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s net.Stream) {
 
 	//获取headers 信息
 	//允许下载的最大高度区间为256
@@ -132,11 +132,17 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 		invdata.Value = &types.InvData_Block{Block: item.Block}
 		p2pInvData = append(p2pInvData, &invdata)
 	}
+
 	peerID := d.GetHost().ID()
 	pubkey, _ := d.GetHost().Peerstore().PubKey(peerID).Bytes()
 	blocksResp := &types.MessageGetBlocksResp{MessageData: d.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.InvDatas{p2pInvData}}
+	if s==nil{
+		log.Error("OnReq","stream",s)
+		return
+	}
 
+	log.Info("OnReq","blocksResp",blocksResp,"stream",s)
 	err = d.SendProtoMessage(blocksResp, s)
 	//wlen, err := rw.WriteString(fmt.Sprintf("%v\n", string(types.Encode(blocksResp))))
 	if err != nil {
