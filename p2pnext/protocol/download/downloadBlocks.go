@@ -45,7 +45,6 @@ func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
 	//d.BaseProtocol = new(prototypes.BaseProtocol)
 	//d.requests = make(map[string]*types.MessageGetBlocksReq)
 	d.GlobalData = data
-
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventFetchBlocks, d.handleEvent)
 }
@@ -88,7 +87,7 @@ func (d *DownloadHander) Handle(stream core.Stream) {
 	//解析处理
 	if stream.Protocol() == DownloadBlockReq {
 		var data types.MessageGetBlocksReq
-		err := d.BaseStreamHandler.ReadProtoMessage(&data, stream)
+		err := d.ReadProtoMessage(&data, stream)
 		if err != nil {
 			log.Error("Handle", "err", err)
 			return
