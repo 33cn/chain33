@@ -125,10 +125,10 @@ func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
 }
 
-func (s *BaseStreamHandler) SendProtoMessage(data proto.Message, stream core.Stream) error {
+func (s *BaseStreamHandler) SendProtoMessage(data interface{}, stream core.Stream) error {
 	writer := bufio.NewWriter(stream)
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
-	log.Info("SendProtoMessage", "enc", enc, "data", data)
+	//log.Info("SendProtoMessage", "enc", enc, "data", data)
 	err := enc.Encode(data)
 	if err != nil {
 		return err

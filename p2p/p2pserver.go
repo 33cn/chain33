@@ -289,6 +289,7 @@ func (s *P2pserver) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 			for _, item := range blocks.Items {
 				invdata.Ty = msgBlock
 				invdata.Value = &pb.InvData_Block{Block: item.Block}
+				invdata.v
 				p2pInvData = append(p2pInvData, &invdata)
 			}
 

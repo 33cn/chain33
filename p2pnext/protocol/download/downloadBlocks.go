@@ -110,6 +110,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	for _, item := range blockDetails.Items {
 		invdata.Ty = 2 //2 block,1 tx
 		invdata.Value = &types.InvData_Block{Block: item.Block}
+		invdata.XXX_OneofFuncs()
 		p2pInvData = append(p2pInvData, &invdata)
 	}
 
