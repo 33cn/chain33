@@ -110,7 +110,6 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	for _, item := range blockDetails.Items {
 		invdata.Ty = 2 //2 block,1 tx
 		invdata.Value = &types.InvData_Block{Block: item.Block}
-		invdata.XXX_OneofFuncs()
 		p2pInvData = append(p2pInvData, &invdata)
 	}
 
@@ -120,7 +119,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 		Message: &types.InvDatas{p2pInvData}}
 
 	log.Info("OnReq", "blocksResp", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "stream", s)
-	err = d.SendProtoMessage(blocksResp, s)
+	err = d.SendProtoMessage(*blocksResp, s)
 	if err != nil {
 		log.Error("SendProtoMessage", "err", err)
 		d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
