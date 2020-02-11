@@ -188,9 +188,9 @@ func getTxIndex(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptDa
 
 // local keys
 var (
-	TxAddrHash    = []byte("TxAddrHash")
-	TxAddrDirHash = []byte("TxAddrDirHash")
-	AddrTxsCount  = []byte("AddrTxsCount")
+	TxAddrHash    = []byte("H")  // TxAddrHash
+	TxAddrDirHash = []byte("DH") // TxAddrDirHash
+	AddrTxsCount  = []byte("C")  // AddrTxsCount
 )
 
 //CalcTxAddrHashKey 用于存储地址相关的hash列表，key=TxAddrHash:addr:height*100000 + index
