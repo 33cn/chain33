@@ -93,7 +93,7 @@ func (d *DownloadHander) Handle(stream core.Stream) {
 
 }
 
-func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s net.Stream) {
+func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.Stream) {
 
 	//获取headers 信息
 	//允许下载的最大高度区间为256
@@ -131,19 +131,15 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s net.Str
 	pubkey, _ := d.GetHost().Peerstore().PubKey(peerID).Bytes()
 	blocksResp := &types.MessageGetBlocksResp{MessageData: d.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.InvDatas{p2pInvData}}
-	if s == nil {
-		log.Error("OnReq", "stream", s)
-		return
-	}
 
-	log.Info("OnReq", "blocksResp", blocksResp.Message, "stream", s)
+	log.Info("OnReq", "blocksResp", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "stream", s)
 	err = d.SendProtoMessage(blocksResp, s)
-	//wlen, err := rw.WriteString(fmt.Sprintf("%v\n", string(types.Encode(blocksResp))))
 	if err != nil {
 		log.Error("SendProtoMessage", "err", err)
 		d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
 		return
 	}
+
 	log.Info("%s:  send block response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 
 }
