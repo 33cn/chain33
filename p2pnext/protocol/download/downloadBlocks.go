@@ -38,12 +38,12 @@ type DownloadProtol struct {
 	*prototypes.BaseProtocol
 	*prototypes.BaseStreamHandler
 
-	requests map[string]*types.MessageGetBlocksReq // used to access request data from response handlers
+	//requests map[string]*types.MessageGetBlocksReq // used to access request data from response handlers
 }
 
 func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
-	d.BaseProtocol = new(prototypes.BaseProtocol)
-	d.requests = make(map[string]*types.MessageGetBlocksReq)
+	//d.BaseProtocol = new(prototypes.BaseProtocol)
+	//d.requests = make(map[string]*types.MessageGetBlocksReq)
 	d.GlobalData = data
 
 	//注册事件处理函数
@@ -155,25 +155,19 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	req := msg.GetData().(*types.ReqBlocks)
 	pids := req.GetPid()
 	if len(pids) == 0 { //根据指定的pidlist 获取对应的block header
-		log.Debug("GetBlocks:pid is nil")
+		log.Info("GetBlocks:pid is nil")
 		msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{Msg: []byte("no pid")}))
 		return
 	}
 
 	msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd())
+	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd(),"pids",pids)
 
 	for _, pid := range pids {
 
-		data := d.PeerInfoManager.Load(pid)
-		if data == nil {
-			continue
-		}
-		peerinfo := data.(*types.P2PPeerInfo)
-		//去指定的peer上获取对应的blockHeader
-		peerId := peerinfo.GetName()
-		Pconn := d.ConnManager.Get(peerId)
+		Pconn := d.ConnManager.Get(pid)
 		if Pconn == nil {
+			log.Error("handleEvent","pid",pid,"ConnManage",Pconn)
 			continue
 		}
 		//具体的下载逻辑
@@ -201,7 +195,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 			}
 
 			block := resp.GetMessage().GetItems()[0].GetBlock()
-			log.Debug("download", "frompeer", pid, "blockheight", block.GetHeight(), "blockSize", block.Size())
+			log.Info("download", "frompeer", pid, "blockheight", block.GetHeight(), "blockSize", block.Size())
 
 			client := d.GetQueueClient()
 			newmsg := client.NewMessage("blockchain", types.EventSyncBlock, types.BlockPid{Pid: pid, Block: block}) //加入到输出通道)

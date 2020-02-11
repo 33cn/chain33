@@ -95,7 +95,7 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s n
 func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 	req := msg.GetData().(*types.ReqBlocks)
 	pids := req.GetPid()
-	log.Info("handleEvent", "msgxxxxxx", msg, "pid", pids)
+	log.Info("handleEvent", "msg", msg, "pid", pids)
 
 	if len(pids) == 0 { //根据指定的pidlist 获取对应的block header
 		log.Debug("GetHeaders:pid is nil")
@@ -137,9 +137,9 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		var resp types.MessageHeaderResp
 		err = h.ReadProtoMessage(&resp, stream)
 		if err != nil {
-			log.Error("handleEvent", "ReadProtoMessagexxxxxxxxxxxxx", err)
+			log.Error("handleEvent", "ReadProtoMessage", err)
 		}
-		log.Info("handleEvent EventAddBlockHeaders","pid",pid,"headers",resp.GetMessage().GetHeaders())
+		log.Info("handleEvent EventAddBlockHeaders","pid",pid,"headers",resp.GetMessage().GetHeaders()[0])
 		client := h.GetQueueClient()
 		msg := client.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
 		err = client.Send(msg, false)
