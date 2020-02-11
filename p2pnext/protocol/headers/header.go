@@ -14,7 +14,7 @@ import (
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	net "github.com/libp2p/go-libp2p-core/network"
+	//	net "github.com/libp2p/go-libp2p-core/network"
 )
 
 var (
