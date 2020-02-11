@@ -1,13 +1,13 @@
 package download
 
 import (
-	"bufio"
+	//"bufio"
 	"context"
 	"sort"
 	"sync"
 	"time"
 
-	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
+	//protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 
 	"github.com/33cn/chain33/common/log/log15"
 
@@ -119,24 +119,12 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 		Message: &types.InvDatas{p2pInvData}}
 
 	log.Info("OnReq", "blocksResp", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "stream", s)
-	//err = d.SendProtoMessage(blocksResp, s)
-	/*if err != nil {
+	err = d.SendProtoMessage(blocksResp, s)
+	if err != nil {
 		log.Error("SendProtoMessage", "err", err)
 		d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
 		return
-	}*/
-
-	writer := bufio.NewWriter(s)
-	if writer == nil {
-		log.Error("OnReq", "NewWriter", writer)
 	}
-	enc := protobufCodec.Multicodec(nil).Encoder(writer)
-	log.Info("Muticodec", "enc", enc)
-	err = enc.Encode(*blocksResp)
-	if err != nil {
-		return
-	}
-	writer.Flush()
 
 	log.Info("%s:  send block response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 

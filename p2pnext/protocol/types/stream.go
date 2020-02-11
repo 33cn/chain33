@@ -71,7 +71,7 @@ func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 	s.Protocol = protocol
 }
 
-func (s *BaseStreamHandler) Handle(core.Stream)  {
+func (s *BaseStreamHandler) Handle(core.Stream) {
 	return
 }
 
@@ -128,6 +128,7 @@ func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 func (s *BaseStreamHandler) SendProtoMessage(data proto.Message, stream core.Stream) error {
 	writer := bufio.NewWriter(stream)
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
+	log.Info("SendProtoMessage", "enc", enc, "data", data)
 	err := enc.Encode(data)
 	if err != nil {
 		return err
