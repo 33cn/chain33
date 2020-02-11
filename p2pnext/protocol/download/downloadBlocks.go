@@ -1,10 +1,13 @@
 package download
 
 import (
+	"bufio"
 	"context"
 	"sort"
 	"sync"
 	"time"
+
+	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 
 	"github.com/33cn/chain33/common/log/log15"
 
@@ -19,7 +22,7 @@ import (
 )
 
 var (
-	log = log15.New("module", "p2p.peer")
+	log = log15.New("module", "p2p.download")
 )
 
 func init() {
@@ -40,7 +43,7 @@ type DownloadProtol struct {
 }
 
 func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
-	d.BaseProtocol = new(prototypes.BaseProtocol)
+	//d.BaseProtocol = new(prototypes.BaseProtocol)
 	d.GlobalData = data
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventFetchBlocks, d.handleEvent)
@@ -50,23 +53,6 @@ type DownloadHander struct {
 	*prototypes.BaseStreamHandler
 }
 
-//接收Response消息
-func (d *DownloadProtol) OnResp(datas *types.InvDatas, s core.Stream) {
-	client := d.QueueClient
-
-	for _, invdata := range datas.GetItems() {
-		if invdata.Ty != 2 {
-			continue
-		}
-
-		block := invdata.GetBlock()
-		newmsg := client.NewMessage("blockchain", types.EventSyncBlock,
-			&types.BlockPid{Pid: s.Conn().LocalPeer().String(), Block: block})
-		client.SendTimeout(newmsg, false, 20*time.Second)
-
-	}
-
-}
 func (h *DownloadHander) VerifyRequest(data []byte) bool {
 
 	return true
@@ -133,12 +119,20 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 		Message: &types.InvDatas{p2pInvData}}
 
 	log.Info("OnReq", "blocksResp", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "stream", s)
-	err = d.SendProtoMessage(blocksResp, s)
-	if err != nil {
+	//err = d.SendProtoMessage(blocksResp, s)
+	/*if err != nil {
 		log.Error("SendProtoMessage", "err", err)
 		d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
 		return
+	}*/
+
+	writer := bufio.NewWriter(s)
+	enc := protobufCodec.Multicodec(nil).Encoder(writer)
+	err = enc.Encode(blocksResp)
+	if err != nil {
+		return
 	}
+	writer.Flush()
 
 	log.Info("%s:  send block response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 
@@ -181,6 +175,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 
 			if err := d.SendProtoMessage(blockReq, jStream.Stream); err != nil {
 				log.Error("handleEvent", "SendProtoMessageErr", err)
+				continue
 			}
 			var resp types.MessageGetBlocksResp
 			err := d.ReadProtoMessage(&resp, jStream.Stream)

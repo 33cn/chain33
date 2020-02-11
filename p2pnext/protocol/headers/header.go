@@ -39,30 +39,28 @@ type HeaderInfoProtol struct {
 }
 
 func (h *HeaderInfoProtol) InitProtocol(data *prototypes.GlobalData) {
-	//h.BaseProtocol = new(prototypes.BaseProtocol)
-	//h.requests = make(map[string]*types.MessageHeaderReq)
 	h.GlobalData = data
 	prototypes.RegisterEventHandler(types.EventFetchBlockHeaders, h.handleEvent)
 }
 
 //接收RESP消息
-func (h *HeaderInfoProtol) OnResp(headers *types.P2PHeaders, s net.Stream) {
+func (h *HeaderInfoProtol) OnResp(headers *types.P2PHeaders, s core.Stream) {
 
 	client := h.GetQueueClient()
-	log.Info("OnResp","pid",s.Conn().LocalPeer().String(),"headers",headers.GetHeaders())
+	log.Info("OnResp", "pid", s.Conn().LocalPeer().String(), "headers", headers.GetHeaders())
 	msg := client.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: s.Conn().LocalPeer().String(), Headers: &types.Headers{Items: headers.GetHeaders()}})
 	client.Send(msg, false)
 
 }
 
-func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s net.Stream) {
+func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s core.Stream) {
 
 	//获取headers 信息
 	if getheaders.GetEndHeight()-getheaders.GetStartHeight() > 2000 || getheaders.GetEndHeight() < getheaders.GetStartHeight() {
 		return
-
 	}
-	log.Info("OnReq","Start","start", getheaders.GetStartHeight(),"end", getheaders.GetEndHeight())
+
+	log.Info("OnReq", "Start", "start", getheaders.GetStartHeight(), "end", getheaders.GetEndHeight())
 	client := h.GetQueueClient()
 	msg := client.NewMessage("blockchain", types.EventGetHeaders, &types.ReqBlocks{Start: getheaders.GetStartHeight(), End: getheaders.GetEndHeight()})
 	err := client.SendTimeout(msg, true, time.Second*30)
@@ -70,6 +68,7 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s n
 		log.Error("GetHeaders", "Error", err.Error())
 		return
 	}
+
 	blockResp, err := client.WaitTimeout(msg, time.Second*30)
 	if err != nil {
 		log.Error("EventGetHeaders WaitTimeout", "Error", err.Error())
@@ -84,7 +83,10 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s n
 
 	err = h.SendProtoMessage(resp, s)
 	if err == nil {
-		log.Info("%s: Ping response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+		log.Info("%s: Header response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+	} else {
+		log.Error("OnReq", "SendProtoMessage", err)
+		return
 	}
 
 	log.Info("OnReq", "SendProtoMessage", "ok")
@@ -139,7 +141,7 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		if err != nil {
 			log.Error("handleEvent", "ReadProtoMessage", err)
 		}
-		log.Info("handleEvent EventAddBlockHeaders","pid",pid,"headers",resp.GetMessage().GetHeaders()[0])
+		log.Info("handleEvent EventAddBlockHeaders", "pid", pid, "headers", resp.GetMessage().GetHeaders()[0])
 		client := h.GetQueueClient()
 		msg := client.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
 		err = client.Send(msg, false)
@@ -164,7 +166,7 @@ func (d *HeaderInfoHander) Handle(stream core.Stream) {
 
 	//解析处理
 	if stream.Protocol() == HeaderInfoReq {
-		log.Info("Handler","protoID","HeaderInfoReq")
+		log.Info("Handler", "protoID", "HeaderInfoReq")
 		var data types.MessageHeaderReq
 		err := d.ReadProtoMessage(&data, stream)
 		if err != nil {
@@ -185,4 +187,3 @@ func (h *HeaderInfoHander) VerifyRequest(data []byte) bool {
 
 	return true
 }
-
