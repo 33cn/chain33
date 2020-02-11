@@ -130,7 +130,19 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 }
 
 func (exec *Executor) procUpgrade(msg *queue.Message) {
-	var kvset types.LocalDBSet
+	for name, enable := range exec.pluginEnable {
+		elog.Info("begin upgrade exec plugin ", "name", name)
+		if !enable {
+			continue
+		}
+		err := exec.upgradeExecPlugin(name)
+		if err != nil {
+			msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
+			panic(err)
+		}
+	}
+    var kvset types.LocalDBSet
+
 	for _, plugin := range pluginmgr.GetExecList() {
 		elog.Info("begin upgrade plugin ", "name", plugin)
 		kvset1, err := exec.upgradePlugin(plugin)
@@ -146,7 +158,32 @@ func (exec *Executor) procUpgrade(msg *queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventUpgrade, &kvset))
 }
 
-func (exec *Executor) upgradePlugin(plugin string) (*types.LocalDBSet, error) {
+func (exec *Executor) upgradeExecPlugin(name string) error {
+	header, err := exec.qclient.GetLastHeader()
+	if err != nil {
+		return err
+	}
+	plugin, err := plugins.GetPlugin(name)
+	if err != nil {
+		panic(err)
+	}
+	plugin.SetEnv(header.Height, header.BlockTime, uint64(header.Difficulty))
+	plugin.SetAPI(exec.qclient)
+	localdb := NewLocalDB(exec.client)
+	defer localdb.(*LocalDB).Close()
+	plugin.SetLocalDB(localdb)
+
+	localdb.Begin()
+	err = plugin.Upgrade()
+	if err != nil {
+		localdb.Rollback()
+		return err
+	}
+	localdb.Commit()
+	return nil
+}
+
+func (exec *Executor) upgradePlugin(plugin string) error {
 	header, err := exec.qclient.GetLastHeader()
 	if err != nil {
 		return nil, err
@@ -392,7 +429,6 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	}
 
 	for name, enable := range exec.pluginEnable {
-		// TODO setup exec env
 		plugin, err := plugins.GetPlugin(name)
 		if err != nil {
 			panic(err)
@@ -466,7 +502,6 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 		if err != nil {
 			panic(err)
 		}
-		// TODO setup env
 		kvs, ok, err := execute.execDelLocalPlugin(enable, plugin, name, datas)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))

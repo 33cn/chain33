@@ -39,6 +39,8 @@ type Plugin interface {
 	ExecLocal(data *types.BlockDetail) ([]*types.KeyValue, error)
 	ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, error)
 
+	// 数据升级
+	Upgrade() error
 	// Get/Set name
 	GetName() string
 	SetName(string)
@@ -131,4 +133,9 @@ func (b *Base) GetName() string {
 // SetName set name
 func (b *Base) SetName(n string) {
 	b.name = n
+}
+
+// Upgrade upgrade local data
+func (b *Base) Upgrade() error {
+	return nil
 }
