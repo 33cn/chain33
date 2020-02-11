@@ -127,8 +127,12 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	}*/
 
 	writer := bufio.NewWriter(s)
+	if writer == nil {
+		log.Error("OnReq", "NewWriter", writer)
+	}
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
-	err = enc.Encode(blocksResp)
+	log.Info("Muticodec", "enc", enc)
+	err = enc.Encode(*blocksResp)
 	if err != nil {
 		return
 	}
