@@ -110,6 +110,8 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s net.Str
 
 	}
 	//开始下载指定高度
+	log.Info("OnReq","start",message.GetStartHeight(),"end",message.GetStartHeight())
+
 	reqblock := &types.ReqBlocks{Start: message.GetStartHeight(), End: message.GetEndHeight()}
 	client := d.GetQueueClient()
 	msg := client.NewMessage("blockchain", types.EventGetBlocks, reqblock)
@@ -142,7 +144,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s net.Str
 		return
 	}
 
-	log.Info("OnReq","blocksResp",blocksResp,"stream",s)
+	log.Info("OnReq","blocksResp",blocksResp.Message,"stream",s)
 	err = d.SendProtoMessage(blocksResp, s)
 	//wlen, err := rw.WriteString(fmt.Sprintf("%v\n", string(types.Encode(blocksResp))))
 	if err != nil {
