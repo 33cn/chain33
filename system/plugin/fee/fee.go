@@ -5,17 +5,31 @@
 package fee
 
 import (
+	"fmt"
+
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
 )
 
+var (
+	name = "fee"
+)
+
 func init() {
-	plugin.RegisterPlugin("fee", &feePlugin{})
+	plugin.RegisterPlugin(name, newFee())
 }
 
 type feePlugin struct {
-	plugin.Base
+	*plugin.Base
+}
+
+func newFee() *feePlugin {
+	fee := &feePlugin{
+		Base: &plugin.Base{},
+	}
+	fee.SetName(name)
+	return fee
 }
 
 func (p *feePlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
@@ -62,4 +76,9 @@ func saveFee(localdb dbm.KVDB, fee *types.TotalFee, parentHash, hash []byte) (*t
 
 func delFee(localdb dbm.KVDB, hash []byte) (*types.KeyValue, error) {
 	return &types.KeyValue{Key: types.TotalFeeKey(hash)}, nil
+}
+
+// CalcTotalFeeKey 存储地址参与的交易数量。add时加一，del时减一
+func CalcTotalFeeKey(name string, hash []byte) []byte {
+	return []byte(fmt.Sprintf("%s-%s-%s:%s", types.LocalPluginPrefix, name, "Fee", string(hash)))
 }
