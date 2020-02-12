@@ -117,7 +117,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	peerID := d.GetHost().ID()
 	pubkey, _ := d.GetHost().Peerstore().PubKey(peerID).Bytes()
 	blocksResp := &types.MessageGetBlocksResp{MessageData: d.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
-		Message: &types.InvDatas{p2pInvData}}
+		Message: &types.InvDatas{Items: p2pInvData}}
 
 	log.Info("OnReq", "blocksResp", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "stream", s)
 	err = d.SendProtoMessage(blocksResp, s)
