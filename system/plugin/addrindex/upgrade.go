@@ -49,7 +49,7 @@ func CalcAddrTxsCountPrefix(name string) []byte {
 // Upgrade TODO 数量多, 需要测试不分批是否可以
 func (p *addrindexPlugin) Upgrade() error {
 	toVersion := 2
-	elog.Info("Upgrade upgrade start", "to_version", toVersion, "plugin", name)
+	elog.Info("Upgrade start", "to_version", toVersion, "plugin", name)
 	version, err := plugins.GetVersion(p.GetLocalDB(), name)
 	if err != nil {
 		return errors.Wrap(err, "Upgrade get version")
@@ -86,8 +86,12 @@ func (p *addrindexPlugin) Upgrade() error {
 func upgradeOneKey(kvdb dbm.KVDB, oldPrefix, newPrefix []byte) (err error) {
 	kvs, err := kvdb.List(oldPrefix, nil, 0, dbm.ListASC|dbm.ListWithKey)
 	if err != nil {
+		if err == types.ErrNotFound {
+			return nil
+		}
 		return errors.Wrapf(err, "upgradeOneKey list %s", oldPrefix)
 	}
+	elog.Info("upgradeOneKey", "count", len(kvs), "prefix", string(oldPrefix), "to", string(newPrefix))
 	for _, kv := range kvs {
 		var kv2 types.KeyValue
 		err = types.Decode(kv, &kv2)
