@@ -108,6 +108,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	var p2pInvData = make([]*types.InvData, 0)
 	var invdata types.InvData
 	for _, item := range blockDetails.Items {
+		invdata.Reset()
 		invdata.Ty = 2 //2 block,1 tx
 		invdata.Value = &types.InvData_Block{Block: item.Block}
 		p2pInvData = append(p2pInvData, &invdata)
