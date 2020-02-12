@@ -20,9 +20,11 @@ func TestPlugin(t *testing.T) {
 
 	var txs []*types.Transaction
 	_, priv := util.Genaddress()
-	tx := &types.Transaction{Fee: 1000000, Execer: []byte("none")}
+	tx := &types.Transaction{Fee: 1000000, Execer: []byte("none"), To: "15xMtKs3Ca89X1KNoPZibChBtRPa5BYth0"}
 	tx.Sign(types.SECP256K1, priv)
-	txs = append(txs, tx)
+	tx2 := &types.Transaction{Fee: 1000000, Execer: []byte("none"), To: "15xMtKs3Ca89X1KNoPZibChBtRPa5BYth1"}
+	tx.Sign(types.SECP256K1, priv)
+	txs = append(txs, tx, tx2)
 	var stateHash [32]byte
 	stateHash[0] = 30
 
@@ -31,25 +33,30 @@ func TestPlugin(t *testing.T) {
 	api := new(apimock.QueueProtocolAPI)
 	api.On("GetConfig").Return(cfg)
 
-	p := &addrindexPlugin{}
+	p := newAddrindex()
 	p.SetEnv(2, 20, 300)
 	p.SetLocalDB(kvdb)
 	p.SetAPI(api)
 
 	detail := &types.BlockDetail{
 		Block:    &types.Block{Txs: txs, StateHash: stateHash[:]},
-		Receipts: []*types.ReceiptData{{}},
+		Receipts: []*types.ReceiptData{{}, {}},
 	}
 
 	_, _, err := p.CheckEnable(false)
 	assert.NoError(t, err)
 	kvs, err := p.ExecLocal(detail)
+	for _, kv := range kvs {
+		assert.Contains(t, string(kv.Key), "LODBP-"+name+"-")
+	}
 	assert.NoError(t, err)
 	for _, kv := range kvs {
 		err = kvdb.Set(kv.Key, kv.Value)
 		assert.NoError(t, err)
 	}
-	_, err = p.ExecDelLocal(detail)
+	kvs, err = p.ExecDelLocal(detail)
 	assert.NoError(t, err)
-
+	for _, kv := range kvs {
+		assert.Contains(t, string(kv.Key), "LODBP-"+name+"-")
+	}
 }
