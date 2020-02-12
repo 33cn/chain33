@@ -202,7 +202,7 @@ func CalcTxAddrHashKey(name, addr string, heightindex string) []byte {
 //CalcTxAddrDirHashKey 用于存储地址相关的hash列表，key=TxAddrHash:addr:flag:height*100000 + index
 //地址下面某个分类的交易
 func CalcTxAddrDirHashKey(name, addr string, flag int32, heightindex string) []byte {
-	return []byte(fmt.Sprintf("%s-%s-%s:%s:%s", types.LocalPluginPrefix, name, TxAddrDirHash, addr, flag, heightindex))
+	return []byte(fmt.Sprintf("%s-%s-%s:%s:%d:%s", types.LocalPluginPrefix, name, TxAddrDirHash, addr, flag, heightindex))
 }
 
 //CalcAddrTxsCountKey 存储地址参与的交易数量。add时加一，del时减一
