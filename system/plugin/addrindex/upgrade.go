@@ -1,10 +1,8 @@
 package addrindex
 
 import (
-	"bytes"
 	"fmt"
 
-	dbm "github.com/33cn/chain33/common/db"
 	plugins "github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
 	"github.com/pkg/errors"
@@ -68,7 +66,7 @@ func (p *addrindexPlugin) Upgrade() error {
 	}
 
 	for _, prefix := range prefixes {
-		err := upgradeOneKey(p.GetLocalDB(), prefix.from, prefix.to)
+		err := plugins.UpgradeOneKey(p.GetLocalDB(), prefix.from, prefix.to)
 		if err != nil {
 			return err
 		}
@@ -81,33 +79,4 @@ func (p *addrindexPlugin) Upgrade() error {
 
 	elog.Info("Upgrade upgrade done")
 	return nil
-}
-
-func upgradeOneKey(kvdb dbm.KVDB, oldPrefix, newPrefix []byte) (err error) {
-	kvs, err := kvdb.List(oldPrefix, nil, 0, dbm.ListASC|dbm.ListWithKey)
-	if err != nil {
-		if err == types.ErrNotFound {
-			return nil
-		}
-		return errors.Wrapf(err, "upgradeOneKey list %s", oldPrefix)
-	}
-	elog.Info("upgradeOneKey", "count", len(kvs), "prefix", string(oldPrefix), "to", string(newPrefix))
-	for _, kv := range kvs {
-		var kv2 types.KeyValue
-		err = types.Decode(kv, &kv2)
-		if err != nil {
-			return errors.Wrap(err, "upgradeOneKey Decode")
-		}
-
-		key := kv2.Key
-		newKey := genNewKey(key, oldPrefix, newPrefix)
-
-		kvdb.Set(key, nil)
-		kvdb.Set(newKey, kv2.Value)
-	}
-	return nil
-}
-
-func genNewKey(key, prefix1, prefix2 []byte) []byte {
-	return bytes.Replace(key, prefix1, prefix2, 1)
 }
