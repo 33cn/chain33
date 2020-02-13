@@ -9,13 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenNewKey(t *testing.T) {
-	old := []byte("old:1223")
-	x := genNewKey(old, []byte("old:"), []byte("new:"))
-	assert.Equal(t, []byte("new:1223"), x)
-	assert.Equal(t, []byte("old:1223"), old)
-}
-
 func Test_Upgrade(t *testing.T) {
 	dir, db, localdb := util.CreateTestDB()
 	defer util.CloseTestDB(dir, db)
