@@ -182,7 +182,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 			log.Info("download", "frompeer", pid, "blockheight", block.GetHeight(), "blockSize", block.Size())
 
 			client := d.GetQueueClient()
-			newmsg := client.NewMessage("blockchain", types.EventSyncBlock, types.BlockPid{Pid: pid, Block: block}) //加入到输出通道)
+			newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: pid, Block: block}) //加入到输出通道)
 			client.SendTimeout(newmsg, false, 10*time.Second)
 
 		}
