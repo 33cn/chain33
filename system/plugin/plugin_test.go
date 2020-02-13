@@ -61,3 +61,10 @@ func TestPluginFlag(t *testing.T) {
 	_, _, err = flag.CheckFlag(&base, k, true)
 	assert.NoError(t, err)
 }
+
+func TestGenNewKey(t *testing.T) {
+	old := []byte("old:1223")
+	x := genNewKey(old, []byte("old:"), []byte("new:"))
+	assert.Equal(t, []byte("new:1223"), x)
+	assert.Equal(t, []byte("old:1223"), old)
+}
