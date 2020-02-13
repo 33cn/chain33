@@ -9,7 +9,7 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 
-	//"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -126,7 +126,7 @@ func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
 }
 
-func (s *BaseStreamHandler) SendProtoMessage(data interface{}, stream core.Stream) error {
+func (s *BaseStreamHandler) SendProtoMessage(data proto.Message, stream core.Stream) error {
 	writer := bufio.NewWriter(stream)
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
 	err := enc.Encode(data)
@@ -137,7 +137,7 @@ func (s *BaseStreamHandler) SendProtoMessage(data interface{}, stream core.Strea
 	return nil
 }
 
-func (s *BaseStreamHandler) ReadProtoMessage(data interface{}, stream core.Stream) error {
+func (s *BaseStreamHandler) ReadProtoMessage(data proto.Message, stream core.Stream) error {
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(stream))
 	return decoder.Decode(data)
 }
