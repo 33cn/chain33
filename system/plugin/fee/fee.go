@@ -62,7 +62,7 @@ func (p *feePlugin) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, er
 
 func saveFee(localdb dbm.KVDB, fee *types.TotalFee, parentHash, hash []byte) (*types.KeyValue, error) {
 	totalFee := &types.TotalFee{}
-	totalFeeBytes, err := localdb.Get(types.TotalFeeKey(parentHash))
+	totalFeeBytes, err := localdb.Get(CalcTotalFeeKey(name, parentHash))
 	if err == nil {
 		err = types.Decode(totalFeeBytes, totalFee)
 		if err != nil {
@@ -73,11 +73,11 @@ func saveFee(localdb dbm.KVDB, fee *types.TotalFee, parentHash, hash []byte) (*t
 	}
 	totalFee.Fee += fee.Fee
 	totalFee.TxCount += fee.TxCount
-	return &types.KeyValue{Key: types.TotalFeeKey(hash), Value: types.Encode(totalFee)}, nil
+	return &types.KeyValue{Key: CalcTotalFeeKey(name, hash), Value: types.Encode(totalFee)}, nil
 }
 
 func delFee(localdb dbm.KVDB, hash []byte) (*types.KeyValue, error) {
-	return &types.KeyValue{Key: types.TotalFeeKey(hash)}, nil
+	return &types.KeyValue{Key: CalcTotalFeeKey(name, hash)}, nil
 }
 
 // CalcTotalFeeKey 存储地址参与的交易数量。add时加一，del时减一
