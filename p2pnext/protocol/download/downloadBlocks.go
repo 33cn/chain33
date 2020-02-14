@@ -1,6 +1,7 @@
 package download
 
 import (
+	"errors"
 	//"bufio"
 	"context"
 	"sort"
@@ -145,49 +146,66 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
 	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
 
-	for _, pid := range pids {
+	//for _, pid := range pids {
 
-		Pconn := d.ConnManager.Get(pid)
+	/*	Pconn := d.ConnManager.Get(pid)
 		if Pconn == nil {
 			log.Error("handleEvent", "pid", pid, "ConnManage", Pconn)
 			continue
 		}
-		//具体的下载逻辑
-		jobS := d.initStreamJob()
+	*/
+	//具体的下载逻辑
+	jobS := d.initStreamJob()
 
-		for height := req.GetStart(); height <= req.GetEnd(); height++ {
-		ReDownload:
-			jStream := d.getFreeJobStream(jobS)
-			getblocks := &types.P2PGetBlocks{StartHeight: height, EndHeight: height,
-				Version: 0}
-
-			peerID := d.GetHost().ID()
-			pubkey, _ := d.GetHost().Peerstore().PubKey(peerID).Bytes()
-			blockReq := &types.MessageGetBlocksReq{MessageData: d.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
-				Message: getblocks}
-
-			if err := d.SendProtoMessage(blockReq, jStream.Stream); err != nil {
-				log.Error("handleEvent", "SendProtoMessageErr", err)
-				continue
-			}
-			log.Info("handleEvent", "sendOk", "beforRead")
-			var resp types.MessageGetBlocksResp
-			err := d.ReadProtoMessage(&resp, jStream.Stream)
+	for height := req.GetStart(); height <= req.GetEnd(); height++ {
+		go func(blockheight int64, jbs jobs) {
+			err := d.syncDownloadBlock(blockheight, jbs)
 			if err != nil {
-				log.Error("handleEvent", "ReadProtoMessage", err)
-				goto ReDownload
+				log.Error("syncDownloadBlock", "err", err.Error())
+				//TODO 50次下载尝试，失败之后异常处理
 			}
+		}(height, jobS)
 
-			block := resp.GetMessage().GetItems()[0].GetBlock()
-			log.Info("download", "frompeer", pid, "blockheight", block.GetHeight(), "blockSize", block.Size())
-
-			client := d.GetQueueClient()
-			newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: pid, Block: block}) //加入到输出通道)
-			client.SendTimeout(newmsg, false, 10*time.Second)
-
-		}
 	}
+	//}
 
+}
+
+func (d *DownloadProtol) syncDownloadBlock(blockheight int64, jbs jobs) error {
+	var retryCount uint
+ReDownload:
+	retryCount++
+	if retryCount > 50 {
+		return errors.New("beyound max try count 50")
+	}
+	jStream := d.getFreeJobStream(jbs)
+	getblocks := &types.P2PGetBlocks{StartHeight: blockheight, EndHeight: blockheight,
+		Version: 0}
+
+	peerID := d.GetHost().ID()
+	pubkey, _ := d.GetHost().Peerstore().PubKey(peerID).Bytes()
+	blockReq := &types.MessageGetBlocksReq{MessageData: d.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
+		Message: getblocks}
+
+	if err := d.SendProtoMessage(blockReq, jStream.Stream); err != nil {
+		log.Error("handleEvent", "SendProtoMessageErr", err)
+		goto ReDownload
+	}
+	log.Info("handleEvent", "sendOk", "beforRead")
+	var resp types.MessageGetBlocksResp
+	err := d.ReadProtoMessage(&resp, jStream.Stream)
+	if err != nil {
+		log.Error("handleEvent", "ReadProtoMessage", err)
+		goto ReDownload
+	}
+	pid := jStream.Stream.Conn().RemotePeer().String()
+	block := resp.GetMessage().GetItems()[0].GetBlock()
+	log.Info("download+++++", "frompeer", pid, "blockheight", block.GetHeight(), "blockSize", block.Size())
+
+	client := d.GetQueueClient()
+	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: pid, Block: block}) //加入到输出通道)
+	client.SendTimeout(newmsg, false, 10*time.Second)
+	return nil
 }
 
 type JobStream struct {
