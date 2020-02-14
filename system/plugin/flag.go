@@ -61,3 +61,18 @@ func loadFlag(localDB dbm.KVDB, key []byte) (int64, error) {
 	}
 	return 0, err
 }
+
+// UpdateFlag Update Flag
+func UpdateFlag(localdb dbm.KVDB, name string, oldKey []byte) (enable bool, err error) {
+	v, err := localdb.Get(oldKey)
+	if err != nil {
+		if err == types.ErrNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	key := FlagKey(name)
+	localdb.Set(oldKey, nil)
+	localdb.Set(key, v)
+	return true, nil
+}
