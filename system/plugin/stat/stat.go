@@ -2,11 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package executor
+package stat
 
 import (
 	"github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
+)
+
+var (
+	name = "stat"
 )
 
 func init() {
@@ -14,8 +18,17 @@ func init() {
 }
 
 type statPlugin struct {
-	plugin.Base
-	plugin.Flag
+	*plugin.Base
+	*plugin.Flag
+}
+
+func newStat() *statPlugin {
+	p := &statPlugin{
+		Base: &plugin.Base{},
+		Flag: &plugin.Flag{},
+	}
+	p.SetName(name)
+	return p
 }
 
 func (p *statPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
