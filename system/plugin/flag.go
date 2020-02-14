@@ -14,7 +14,7 @@ import (
 
 // FlagKey gen flag key
 func FlagKey(name string) []byte {
-	return []byte(fmt.Sprintf("%s-%s:Flag", types.LocalPluginPrefix, name))
+	return []byte(fmt.Sprintf("%s-%s-Flag", types.LocalPluginPrefix, name))
 }
 
 // Flag check plugin enable for height zero
