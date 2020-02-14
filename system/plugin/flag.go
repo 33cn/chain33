@@ -5,15 +5,17 @@
 package plugin
 
 import (
+	"fmt"
 	"sync"
 
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
 
-// 需要plugin
-// height
-// localDB
+// FlagKey gen flag key
+func FlagKey(name string) []byte {
+	return []byte(fmt.Sprintf("%s-%s:Flag", types.LocalPluginPrefix, name))
+}
 
 // Flag check plugin enable for height zero
 type Flag struct {
