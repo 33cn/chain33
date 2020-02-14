@@ -90,5 +90,5 @@ func CalcTxKey(name string, txHash []byte) []byte {
 
 // CalcTxShortKey Calc Tx Short key
 func CalcTxShortKey(name string, txHash []byte) []byte {
-	return []byte(fmt.Sprintf("%s-%s-%s:", types.LocalPluginPrefix, name, "STX", string(txHash[:8])))
+	return []byte(fmt.Sprintf("%s-%s-%s:%s", types.LocalPluginPrefix, name, "STX", string(txHash[:8])))
 }
