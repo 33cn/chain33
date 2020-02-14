@@ -10,14 +10,25 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-var elog = log.New("module", "system/plugin/txindex")
+var (
+	name = "txindex"
+	elog = log.New("module", "system/plugin/txindex")
+)
 
 func init() {
-	plugin.RegisterPlugin("txindex", &txindexPlugin{})
+	plugin.RegisterPlugin(name, newTxindex())
 }
 
 type txindexPlugin struct {
-	plugin.Base
+	*plugin.Base
+}
+
+func newTxindex() *txindexPlugin {
+	p := &txindexPlugin{
+		Base: &plugin.Base{},
+	}
+	p.SetName(name)
+	return p
 }
 
 func (p *txindexPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
