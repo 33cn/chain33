@@ -5,6 +5,8 @@
 package txindex
 
 import (
+	"fmt"
+
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
@@ -74,9 +76,19 @@ func getTx(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, i
 	txresult.Blocktime = p.GetBlockTime()
 	txresult.ActionName = tx.ActionName()
 	var kvlist []*types.KeyValue
-	kvlist = append(kvlist, &types.KeyValue{Key: cfg.CalcTxKey(txhash), Value: cfg.CalcTxKeyValue(&txresult)})
+	kvlist = append(kvlist, &types.KeyValue{Key: CalcTxKey(name, txhash), Value: cfg.CalcTxKeyValue(&txresult)})
 	if cfg.IsEnable("quickIndex") {
-		kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxShortKey(txhash), Value: []byte("1")})
+		kvlist = append(kvlist, &types.KeyValue{Key: CalcTxShortKey(name, txhash), Value: []byte("1")})
 	}
 	return kvlist
+}
+
+// CalcTxKey Calc Tx key
+func CalcTxKey(name string, txHash []byte) []byte {
+	return []byte(fmt.Sprintf("%s-%s-%s:%s", types.LocalPluginPrefix, name, "TX", string(txHash)))
+}
+
+// CalcTxShortKey Calc Tx Short key
+func CalcTxShortKey(name string, txHash []byte) []byte {
+	return []byte(fmt.Sprintf("%s-%s-%s:", types.LocalPluginPrefix, name, "STX", string(txHash[:8])))
 }
