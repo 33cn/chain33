@@ -156,17 +156,23 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	*/
 	//具体的下载逻辑
 	jobS := d.initStreamJob()
+	var wg sync.WaitGroup
 
 	for height := req.GetStart(); height <= req.GetEnd(); height++ {
+		wg.Add(1)
 		go func(blockheight int64, jbs jobs) {
 			err := d.syncDownloadBlock(blockheight, jbs)
 			if err != nil {
 				log.Error("syncDownloadBlock", "err", err.Error())
 				//TODO 50次下载尝试，失败之后异常处理
 			}
+			wg.Done()
 		}(height, jobS)
 
 	}
+	wg.Wait()
+
+	log.Info("handleEvent", "download process done")
 	//}
 
 }
@@ -179,6 +185,11 @@ ReDownload:
 		return errors.New("beyound max try count 50")
 	}
 	jStream := d.getFreeJobStream(jbs)
+	if jStream == nil {
+		time.Sleep(time.Second)
+		goto ReDownload
+	}
+
 	getblocks := &types.P2PGetBlocks{StartHeight: blockheight, EndHeight: blockheight,
 		Version: 0}
 
