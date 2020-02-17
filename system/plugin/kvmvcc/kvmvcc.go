@@ -10,13 +10,26 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+var (
+	name = "mvcc"
+)
+
 func init() {
-	plugin.RegisterPlugin("mvcc", &mvccPlugin{})
+	plugin.RegisterPlugin(name, newMvcc())
 }
 
 type mvccPlugin struct {
-	plugin.Base
-	plugin.Flag
+	*plugin.Base
+	*plugin.Flag
+}
+
+func newMvcc() *mvccPlugin {
+	p := &mvccPlugin{
+		Base: &plugin.Base{},
+		Flag: &plugin.Flag{},
+	}
+	p.SetName(name)
+	return p
 }
 
 func (p *mvccPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
