@@ -438,38 +438,6 @@ func pad(version int64) []byte {
 	return []byte(s)
 }
 
-/*
-//GetKey 获取键
-func GetKey(key []byte, version int64) ([]byte, error) {
-	newkey := append(GetKeyPerfix(key), pad(version)...)
-	return newkey, nil
-}
-
-//GetKeyPerfix 获取key前缀
-func GetKeyPerfix(key []byte) []byte {
-	b := append([]byte{}, mvccData...)
-	newkey := append(b, key...)
-	newkey = append(newkey, []byte(".")...)
-	return newkey
-}
-
-func getLastKey(key []byte) []byte {
-	b := append([]byte{}, mvccLast...)
-	return append(b, key...)
-}
-
-func getVersionHashKey(hash []byte) []byte {
-	b := append([]byte{}, mvccMeta...)
-	key := append(b, hash...)
-	return key
-}
-
-func getVersionKey(version int64) []byte {
-	b := append([]byte{}, mvccMetaVersion...)
-	key := append(b, pad(version)...)
-	return key
-}*/
-
 // mvccKeyCreator 在指定前缀的时候, 生成的key带前缀, 默认为 mvccPrefix
 type mvccKeyCreator struct {
 	prefix                 []byte
