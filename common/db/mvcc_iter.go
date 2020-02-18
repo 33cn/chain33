@@ -30,7 +30,7 @@ func (m *MVCCIter) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte, 
 	}
 	//添加last
 	for _, v := range kvs {
-		last := getLastKey(v.Key)
+		last := m.keyCreator.getLastKey(v.Key)
 		kv := &types.KeyValue{Key: last, Value: v.Value}
 		kvlist = append(kvlist, kv)
 	}
@@ -52,13 +52,13 @@ func (m *MVCCIter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.Ke
 		if version > 0 {
 			lastv, err := m.GetV(v.Key, version-1)
 			if err == types.ErrNotFound {
-				kvlist = append(kvlist, &types.KeyValue{Key: getLastKey(v.Key)})
+				kvlist = append(kvlist, &types.KeyValue{Key: m.keyCreator.getLastKey(v.Key)})
 				continue
 			}
 			if err != nil {
 				return nil, err
 			}
-			kvlist = append(kvlist, &types.KeyValue{Key: getLastKey(v.Key), Value: lastv})
+			kvlist = append(kvlist, &types.KeyValue{Key: m.keyCreator.getLastKey(v.Key), Value: lastv})
 		}
 	}
 	return kvlist, nil
@@ -69,10 +69,10 @@ func (m *MVCCIter) Iterator(start, end []byte, reserver bool) Iterator {
 	if start == nil {
 		start = mvccLast
 	} else {
-		start = getLastKey(start)
+		start = m.keyCreator.getLastKey(start)
 	}
 	if end != nil {
-		end = getLastKey(end)
+		end = m.keyCreator.getLastKey(end)
 	} else {
 		end = bytesPrefix(start)
 	}
