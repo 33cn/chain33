@@ -224,4 +224,5 @@ func TestAddDelMVCC(t *testing.T) {
 	maxv, err = m.GetMaxVersion()
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), maxv)
+	//assert.NotNil(t, err)
 }

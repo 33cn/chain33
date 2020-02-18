@@ -14,11 +14,14 @@ import (
 )
 
 var mvccPrefix = []byte(".-mvcc-.")
+
+/*
 var mvccMeta = append(mvccPrefix, []byte("m.")...)
 var mvccData = append(mvccPrefix, []byte("d.")...)
 var mvccLast = append(mvccPrefix, []byte("l.")...)
 var mvccMetaVersion = append(mvccMeta, []byte("version.")...)
 var mvccMetaVersionKeyList = append(mvccMeta, []byte("versionkl.")...)
+*/
 
 //MVCC mvcc interface
 type MVCC interface {
@@ -69,7 +72,7 @@ func NewMVCC(db DB) *MVCCHelper {
 //PrintAll 打印全部
 func (m *MVCCHelper) PrintAll() {
 	println("--meta--")
-	it := m.db.Iterator(mvccMeta, nil, true)
+	it := m.db.Iterator(m.keyCreator.mvccMeta, nil, true)
 	defer it.Close()
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
@@ -80,7 +83,7 @@ func (m *MVCCHelper) PrintAll() {
 	}
 
 	println("--data--")
-	it = m.db.Iterator(mvccData, nil, true)
+	it = m.db.Iterator(m.keyCreator.mvccData, nil, true)
 	defer it.Close()
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
@@ -90,7 +93,7 @@ func (m *MVCCHelper) PrintAll() {
 		println(string(it.Key()), string(it.Value()))
 	}
 	println("--last--")
-	it = m.db.Iterator(mvccLast, nil, true)
+	it = m.db.Iterator(m.keyCreator.mvccLast, nil, true)
 	defer it.Close()
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
@@ -103,7 +106,7 @@ func (m *MVCCHelper) PrintAll() {
 
 //Trash del some old kv
 func (m *MVCCHelper) Trash(version int64) error {
-	it := m.db.Iterator(mvccData, nil, true)
+	it := m.db.Iterator(m.keyCreator.mvccData, nil, true)
 	defer it.Close()
 	perfixkey := []byte("--.xxx.--")
 	for it.Rewind(); it.Valid(); it.Next() {
@@ -220,7 +223,7 @@ func (m *SimpleMVCC) GetVersionHash(version int64) ([]byte, error) {
 
 //GetMaxVersion 获取最高版本
 func (m *SimpleMVCC) GetMaxVersion() (int64, error) {
-	vals, err := m.kvdb.List(mvccMetaVersion, nil, 1, ListDESC)
+	vals, err := m.kvdb.List(m.keyCreator.mvccMetaVersion, nil, 1, ListDESC)
 	if err != nil {
 		return 0, err
 	}
@@ -266,11 +269,11 @@ func (m *SimpleMVCC) SetVersionKV(hash []byte, version int64) ([]*types.KeyValue
 	if version < 0 {
 		return nil, types.ErrVersion
 	}
-	key := append(mvccMeta, hash...)
+	key := append(m.keyCreator.mvccMeta, hash...)
 	data := &types.Int64{Data: version}
 	v1 := &types.KeyValue{Key: key, Value: types.Encode(data)}
 
-	k2 := append(mvccMetaVersion, pad(version)...)
+	k2 := append(m.keyCreator.mvccMetaVersion, pad(version)...)
 	v2 := &types.KeyValue{Key: k2, Value: hash}
 	return []*types.KeyValue{v1, v2}, nil
 }
