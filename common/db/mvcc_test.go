@@ -15,9 +15,15 @@ import (
 )
 
 func TestPrefix(t *testing.T) {
-	assert.Equal(t, []byte(".-mvcc-."), mvccPrefix)
-	assert.Equal(t, []byte(".-mvcc-.m."), mvccMeta)
-	assert.Equal(t, []byte(".-mvcc-.d."), mvccData)
+	c := newKeyCreator(nil)
+	assert.Equal(t, []byte(".-mvcc-."), c.prefix)
+	assert.Equal(t, []byte(".-mvcc-.m."), c.mvccMeta)
+	assert.Equal(t, []byte(".-mvcc-.d."), c.mvccData)
+
+	c2 := newKeyCreator([]byte("LODBP-mvcc-"))
+	assert.Equal(t, []byte("LODBP-mvcc-"), c2.prefix)
+	assert.Equal(t, []byte("LODBP-mvcc-m."), c2.mvccMeta)
+	assert.Equal(t, []byte("LODBP-mvcc-d."), c2.mvccData)
 }
 
 func TestMVCC(t *testing.T) {
@@ -186,6 +192,7 @@ func TestAddDelMVCC(t *testing.T) {
 	for _, v := range kvlist {
 		m.db.Set(v.Key, v.Value)
 	}
+	m.PrintAll()
 
 	_, err = m.AddMVCC(genkv(2), hashN(2), hashN(1), 1)
 	assert.Equal(t, err, types.ErrPrevVersion)
@@ -217,5 +224,4 @@ func TestAddDelMVCC(t *testing.T) {
 	maxv, err = m.GetMaxVersion()
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), maxv)
-
 }
