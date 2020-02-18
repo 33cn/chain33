@@ -34,7 +34,7 @@ func TestPlugin(t *testing.T) {
 	api.On("GetConfig").Return(cfg)
 
 	p := newStat()
-	p.SetEnv(2, 20, 300)
+	p.SetEnv(0, 20, 300)
 	p.SetLocalDB(kvdb)
 	p.SetAPI(api)
 
