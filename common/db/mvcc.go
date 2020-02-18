@@ -13,7 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-var mvccPrefix = []byte(".-mvcc-.")
+var mvccDefaultPrefix = []byte(".-mvcc-.")
 
 /*
 var mvccMeta = append(mvccPrefix, []byte("m.")...)
@@ -483,7 +483,7 @@ type mvccKeyCreator struct {
 func newKeyCreator(p []byte) *mvccKeyCreator {
 	var c mvccKeyCreator
 	if p == nil || len(p) == 0 {
-		c = mvccKeyCreator{prefix: mvccPrefix}
+		c = mvccKeyCreator{prefix: mvccDefaultPrefix}
 	} else {
 		c = mvccKeyCreator{prefix: p}
 	}
