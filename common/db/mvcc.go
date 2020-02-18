@@ -55,7 +55,20 @@ type MVCCHelper struct {
 
 //SimpleMVCC kvdb
 type SimpleMVCC struct {
-	kvdb KVDB
+	kvdb       KVDB
+	keyCreator *mvccKeyCreator
+}
+
+// mvccKeyCreator 在指定前缀的时候, 生成的key带前缀, 默认为 mvccPrefix
+type mvccKeyCreator struct {
+	prefix []byte
+}
+
+func newKeyCreator(p []byte) *mvccKeyCreator {
+	if p == nil || len(p) == 0 {
+		return &mvccKeyCreator{prefix: mvccPrefix}
+	}
+	return &mvccKeyCreator{prefix: p}
 }
 
 var mvcclog = log.New("module", "db.mvcc")
@@ -175,7 +188,12 @@ func (m *MVCCHelper) DelV(key []byte, version int64) error {
 
 //NewSimpleMVCC new
 func NewSimpleMVCC(db KVDB) *SimpleMVCC {
-	return &SimpleMVCC{db}
+	return &SimpleMVCC{kvdb: db, keyCreator: newKeyCreator(nil)}
+}
+
+//NewSimpleMVCCWithPrefix new
+func NewSimpleMVCCWithPrefix(db KVDB, prefix []byte) *SimpleMVCC {
+	return &SimpleMVCC{kvdb: db, keyCreator: newKeyCreator(prefix)}
 }
 
 //GetVersion get stateHash and version map
