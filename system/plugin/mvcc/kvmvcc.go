@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	name = "mvcc"
+	name   = "mvcc"
+	prefix = "LODBP-mvcc-"
 )
 
 func init() {
@@ -54,7 +55,7 @@ func (p *mvccPlugin) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, e
 func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	kvs := detail.KV
 	hash := detail.Block.StateHash
-	mvcc := dbm.NewSimpleMVCC(db)
+	mvcc := dbm.NewSimpleMVCCWithPrefix(db, []byte(prefix))
 	//检查版本号是否是连续的
 	kvlist, err := mvcc.AddMVCC(kvs, hash, detail.PrevStatusHash, detail.Block.Height)
 	if err != nil {
@@ -66,7 +67,7 @@ func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) 
 // DelMVCC convert key value to mvcc kv data
 func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	hash := detail.Block.StateHash
-	mvcc := dbm.NewSimpleMVCC(db)
+	mvcc := dbm.NewSimpleMVCCWithPrefix(db, []byte(prefix))
 	kvlist, err := mvcc.DelMVCC(hash, detail.Block.Height, true)
 	if err != nil {
 		panic(err)
