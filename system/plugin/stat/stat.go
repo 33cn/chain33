@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	plugin.RegisterPlugin("stat", &statPlugin{})
+	plugin.RegisterPlugin("stat", newStat())
 }
 
 type statPlugin struct {
