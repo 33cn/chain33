@@ -59,18 +59,6 @@ type SimpleMVCC struct {
 	keyCreator *mvccKeyCreator
 }
 
-// mvccKeyCreator 在指定前缀的时候, 生成的key带前缀, 默认为 mvccPrefix
-type mvccKeyCreator struct {
-	prefix []byte
-}
-
-func newKeyCreator(p []byte) *mvccKeyCreator {
-	if p == nil || len(p) == 0 {
-		return &mvccKeyCreator{prefix: mvccPrefix}
-	}
-	return &mvccKeyCreator{prefix: p}
-}
-
 var mvcclog = log.New("module", "db.mvcc")
 
 //NewMVCC create MVCC object use db DB
@@ -198,7 +186,7 @@ func NewSimpleMVCCWithPrefix(db KVDB, prefix []byte) *SimpleMVCC {
 
 //GetVersion get stateHash and version map
 func (m *SimpleMVCC) GetVersion(hash []byte) (int64, error) {
-	key := getVersionHashKey(hash)
+	key := m.keyCreator.getVersionHashKey(hash)
 	value, err := m.kvdb.Get(key)
 	if err != nil {
 		if err == ErrNotFoundInDb {
@@ -219,7 +207,7 @@ func (m *SimpleMVCC) GetVersion(hash []byte) (int64, error) {
 
 //GetVersionHash 获取版本hash
 func (m *SimpleMVCC) GetVersionHash(version int64) ([]byte, error) {
-	key := getVersionKey(version)
+	key := m.keyCreator.getVersionKey(version)
 	value, err := m.kvdb.Get(key)
 	if err != nil {
 		if err == ErrNotFoundInDb {
@@ -242,7 +230,7 @@ func (m *SimpleMVCC) GetMaxVersion() (int64, error) {
 
 //GetSaveKV only export set key and value with version
 func (m *SimpleMVCC) GetSaveKV(key []byte, value []byte, version int64) (*types.KeyValue, error) {
-	k, err := GetKey(key, version)
+	k, err := m.keyCreator.getKey(key, version)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +239,7 @@ func (m *SimpleMVCC) GetSaveKV(key []byte, value []byte, version int64) (*types.
 
 //GetDelKV only export del key and value with version
 func (m *SimpleMVCC) GetDelKV(key []byte, version int64) (*types.KeyValue, error) {
-	k, err := GetKey(key, version)
+	k, err := m.keyCreator.getKey(key, version)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +248,7 @@ func (m *SimpleMVCC) GetDelKV(key []byte, version int64) (*types.KeyValue, error
 
 //GetDelKVList 获取列表
 func (m *SimpleMVCC) GetDelKVList(version int64) ([]*types.KeyValue, error) {
-	k := getVersionKeyListKey(version)
+	k := m.keyCreator.getVersionKeyListKey(version)
 	data, err := m.kvdb.Get(k)
 	if err != nil {
 		return nil, err
@@ -310,8 +298,8 @@ func (m *SimpleMVCC) SetV(key []byte, value []byte, version int64) error {
 
 //GetV get key with version
 func (m *SimpleMVCC) GetV(key []byte, version int64) ([]byte, error) {
-	prefix := GetKeyPerfix(key)
-	search, err := GetKey(key, version)
+	prefix := m.keyCreator.getKeyPerfix(key)
+	search, err := m.keyCreator.getKey(key, version)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +352,7 @@ func (m *SimpleMVCC) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte
 		}
 		kvlist = append(kvlist, kv)
 	}
-	kvlist = append(kvlist, &types.KeyValue{Key: getVersionKeyListKey(version), Value: types.Encode(delkeys)})
+	kvlist = append(kvlist, &types.KeyValue{Key: m.keyCreator.getVersionKeyListKey(version), Value: types.Encode(delkeys)})
 	return kvlist, nil
 }
 
@@ -447,18 +435,19 @@ func pad(version int64) []byte {
 	return []byte(s)
 }
 
+/*
+//GetKey 获取键
+func GetKey(key []byte, version int64) ([]byte, error) {
+	newkey := append(GetKeyPerfix(key), pad(version)...)
+	return newkey, nil
+}
+
 //GetKeyPerfix 获取key前缀
 func GetKeyPerfix(key []byte) []byte {
 	b := append([]byte{}, mvccData...)
 	newkey := append(b, key...)
 	newkey = append(newkey, []byte(".")...)
 	return newkey
-}
-
-//GetKey 获取键
-func GetKey(key []byte, version int64) ([]byte, error) {
-	newkey := append(GetKeyPerfix(key), pad(version)...)
-	return newkey, nil
 }
 
 func getLastKey(key []byte) []byte {
@@ -476,10 +465,72 @@ func getVersionKey(version int64) []byte {
 	b := append([]byte{}, mvccMetaVersion...)
 	key := append(b, pad(version)...)
 	return key
+}*/
+
+// mvccKeyCreator 在指定前缀的时候, 生成的key带前缀, 默认为 mvccPrefix
+type mvccKeyCreator struct {
+	prefix                 []byte
+	mvccMeta               []byte
+	mvccData               []byte
+	mvccLast               []byte
+	mvccMetaVersion        []byte
+	mvccMetaVersionKeyList []byte
 }
 
-func getVersionKeyListKey(version int64) []byte {
-	b := append([]byte{}, mvccMetaVersionKeyList...)
+func newKeyCreator(p []byte) *mvccKeyCreator {
+	var c mvccKeyCreator
+	if p == nil || len(p) == 0 {
+		c = mvccKeyCreator{prefix: mvccPrefix}
+	} else {
+		c = mvccKeyCreator{prefix: p}
+	}
+	c.initPrifex(c.prefix)
+	return &c
+}
+
+// plugin.mvcc prefix: {LODBP-mvcc-}m.
+// default: {.-mvcc-.}m.
+func (c *mvccKeyCreator) initPrifex(mvccPrefix []byte) {
+	c.mvccMeta = append(mvccPrefix, []byte("m.")...)
+	c.mvccData = append(mvccPrefix, []byte("d.")...)
+	c.mvccLast = append(mvccPrefix, []byte("l.")...)
+	c.mvccMetaVersion = append(c.mvccMeta, []byte("version.")...)
+	c.mvccMetaVersionKeyList = append(c.mvccMeta, []byte("versionkl.")...)
+}
+
+func (c *mvccKeyCreator) getVersionKeyListKey(version int64) []byte {
+	b := append([]byte{}, c.mvccMetaVersionKeyList...)
 	key := append(b, pad(version)...)
 	return key
+}
+
+func (c *mvccKeyCreator) getLastKey(key []byte) []byte {
+	b := append([]byte{}, c.mvccLast...)
+	return append(b, key...)
+}
+
+func (c *mvccKeyCreator) getVersionHashKey(hash []byte) []byte {
+	b := append([]byte{}, c.mvccMeta...)
+	key := append(b, hash...)
+	return key
+}
+
+func (c *mvccKeyCreator) getVersionKey(version int64) []byte {
+	b := append([]byte{}, c.mvccMetaVersion...)
+	key := append(b, pad(version)...)
+	return key
+}
+
+//getKeyPerfix 获取key前缀
+func (c *mvccKeyCreator) getKeyPerfix(key []byte) []byte {
+	b := append([]byte{}, c.mvccData...)
+	newkey := append(b, key...)
+	newkey = append(newkey, []byte(".")...)
+	return newkey
+}
+
+//getKey 获取键
+func (c *mvccKeyCreator) getKey(key []byte, version int64) ([]byte, error) {
+	newkey := append(c.getKeyPerfix(key), pad(version)...)
+	return newkey, nil
 }
