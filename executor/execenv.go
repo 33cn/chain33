@@ -637,8 +637,11 @@ func (e *executor) execLocalPlugin(enable bool, plugin plugins.Plugin, name stri
 	plugin.SetEnv(e.height, e.blocktime, e.difficulty)
 	plugin.SetAPI(e.api)
 	plugin.SetLocalDB(e.localDB)
+	elog.Debug("plugin start", "name", name)
+	kvset = &types.LocalDBSet{}
 	kvs, ok, err := plugin.CheckEnable(enable)
 	if err != nil {
+		elog.Error("plugin go err", "name1", name)
 		panic(err)
 	}
 	if !ok {
@@ -651,7 +654,7 @@ func (e *executor) execLocalPlugin(enable bool, plugin plugins.Plugin, name stri
 	if err != nil {
 		return nil, false, err
 	}
-	if len(kvs) > 0 {
+	if kvs != nil && len(kvs) > 0 {
 		kvset.KV = append(kvset.KV, kvs...)
 	}
 
@@ -665,6 +668,7 @@ func (e *executor) execLocalPlugin(enable bool, plugin plugins.Plugin, name stri
 		return nil, false, err
 	}
 
+	elog.Debug("plugin done", "name", name, "kvs", len(kvset.KV))
 	return kvset, true, nil
 }
 
