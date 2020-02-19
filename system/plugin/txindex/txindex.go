@@ -85,6 +85,8 @@ func getTx(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, i
 
 // CalcTxKey Calc Tx key
 func CalcTxKey(cfg *types.Chain33Config, name string, txHash []byte) []byte {
+	// TODO 升级好都有前缀, 配置 enableTxQuickIndex=true 可以后续删除
+	// return []byte(fmt.Sprintf("%s-%s-%s:%s", types.LocalPluginPrefix, name, "TX", string(txHash)))
 	return []byte(fmt.Sprintf("%s-%s-%s", types.LocalPluginPrefix, name, cfg.CalcTxKey(txHash)))
 }
 
