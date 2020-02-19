@@ -215,6 +215,11 @@ func (exec *Executor) upgradePlugin(plugin string) error {
 	return nil
 }
 
+// TODO 现在数据生成放到执行器插件中, 查询实现在 system/dapp
+// 如果只修复前缀
+// dapp (前缀函数调用)) -> plugin/one-plugin (前缀实现函数) 会有接口依赖具体插件, 不采用
+// 先暂时采用看函数名, 直接调用plugin 注册的query 函数
+// 相关函数 dapp.DriverBase.GetTxsByAddr
 func (exec *Executor) procExecQuery(msg *queue.Message) {
 	//panic 处理
 	defer func() {
@@ -229,7 +234,21 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
 	}
+
 	data := msg.GetData().(*types.ChainExecutor)
+
+	// 原来查询在 system/dapp 中实现, 现在部分查询随插件移动到 system/plugin (即查询插件生成的数据)
+	// 暂时通过查表的形式, 如果在表中存在, 就调用对应的函数, 不然走原来的查询调用
+	if p, err := plugins.QueryPlugin(data.GetFuncName()); err == nil {
+		// TODO set set set query
+		ret, err := p.Query(data.FuncName, data.Param)
+		if err != nil {
+			msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
+			return
+		}
+		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, ret))
+		return
+	}
 	driver, err := drivers.LoadDriverWithClient(exec.qclient, data.Driver, header.GetHeight())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
@@ -427,6 +446,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	}
 
 	for name, enable := range exec.pluginEnable {
+		elog.Info("plugin call", "name", name)
 		plugin, err := plugins.GetPlugin(name)
 		if err != nil {
 			panic(err)
@@ -437,12 +457,14 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 			return
 		}
 		if !ok {
+			elog.Info("plugin continue", "name", name)
 			continue
 		}
 
 		if kvs != nil && len(kvs.KV) > 0 {
 			kvset.KV = append(kvset.KV, kvs.KV...)
 		}
+		elog.Info("plugin done", "name", name)
 	}
 
 	for i := 0; i < len(b.Txs); i++ {
