@@ -5,6 +5,7 @@
 package addrindex
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/33cn/chain33/common/address"
@@ -31,6 +32,18 @@ type addrindexPlugin struct {
 
 func newAddrindex() *addrindexPlugin {
 	return &addrindexPlugin{Base: &plugin.Base{}}
+}
+
+func (p *addrindexPlugin) Query(funcName string, params []byte) (types.Message, error) {
+	if funcName == "GetTxsByAddr" {
+		var req types.ReqAddr
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return p.GetTxsByAddr(&req)
+	}
+	return nil, types.ErrQueryNotSupport
 }
 
 func (p *addrindexPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
@@ -185,6 +198,62 @@ func getTxIndex(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptDa
 	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	txIndexInfo.to = tx.GetRealToAddr()
 	return &txIndexInfo
+}
+
+// impl query
+
+// GetTxsByAddr find all transactions in this address by the addr prefix
+func (p *addrindexPlugin) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
+	db := p.GetLocalDB()
+	var prefix []byte
+	var key []byte
+	var txinfos [][]byte
+	var err error
+	//取最新的交易hash列表
+	if addr.Flag == 0 { //所有的交易hash列表
+		prefix = CalcTxAddrHashKey(name, addr.GetAddr(), "")
+	} else if addr.Flag > 0 { //from的交易hash列表
+		prefix = CalcTxAddrDirHashKey(name, addr.GetAddr(), addr.Flag, "")
+	} else {
+		return nil, errors.New("flag unknown")
+	}
+	if addr.GetHeight() == -1 {
+		txinfos, err = db.List(prefix, nil, addr.Count, addr.GetDirection())
+		if err != nil {
+			return nil, err
+		}
+		if len(txinfos) == 0 {
+			return nil, errors.New("tx does not exist")
+		}
+	} else { //翻页查找指定的txhash列表
+		heightstr := fmt.Sprintf("%018d", addr.GetHeight()*types.MaxTxsPerBlock+addr.GetIndex())
+		//heightstr := HeightIndexStr(addr.GetHeight(), addr.GetIndex())
+		if addr.Flag == 0 {
+			key = CalcTxAddrHashKey(name, addr.GetAddr(), heightstr)
+		} else if addr.Flag > 0 { //from的交易hash列表
+			key = CalcTxAddrDirHashKey(name, addr.GetAddr(), addr.Flag, heightstr)
+		} else {
+			return nil, errors.New("flag unknown")
+		}
+		txinfos, err = db.List(prefix, key, addr.Count, addr.Direction)
+		if err != nil {
+			return nil, err
+		}
+		if len(txinfos) == 0 {
+			return nil, errors.New("tx does not exist")
+		}
+	}
+	var replyTxInfos types.ReplyTxInfos
+	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(txinfos))
+	for index, txinfobyte := range txinfos {
+		var replyTxInfo types.ReplyTxInfo
+		err := types.Decode(txinfobyte, &replyTxInfo)
+		if err != nil {
+			return nil, err
+		}
+		replyTxInfos.TxInfos[index] = &replyTxInfo
+	}
+	return &replyTxInfos, nil
 }
 
 // local keys
