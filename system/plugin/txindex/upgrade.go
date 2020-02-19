@@ -35,6 +35,10 @@ func CalcTxShortPerfix(name string) []byte {
 	return []byte(fmt.Sprintf("%s-%s-%s:", types.LocalPluginPrefix, name, "STX"))
 }
 
+// Upgrade 支持配置quickIndex, 如果没有不能通过前缀列出来
+// TODO
+// 需要通过 block 把 tx 找出来, 逐一升级
+// 相关配置 enableTxQuickIndex=true
 func (p *txindexPlugin) Upgrade() error {
 	toVersion := 2
 	elog.Info("Upgrade start", "to_version", toVersion, "plugin", name)
