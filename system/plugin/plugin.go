@@ -16,6 +16,25 @@ var blog = log.New("module", "plugin.base")
 
 var globalPlugins = make(map[string]Plugin)
 
+// queryName -> pluginName -> call plugin.Query(...)
+var queryFuns = make(map[string]string)
+
+// RegisterQuery Register Query function
+func RegisterQuery(query, plugin string) {
+	if _, ok := queryFuns[query]; ok {
+		panic("query function exist " + query)
+	}
+	queryFuns[query] = plugin
+}
+
+// QueryPlugin by func name
+func QueryPlugin(queryFun string) (p Plugin, err error) {
+	if name, ok := queryFuns[queryFun]; ok {
+		return GetPlugin(name)
+	}
+	return nil, types.ErrUnknowPlugin
+}
+
 // RegisterPlugin register plugin
 func RegisterPlugin(name string, p Plugin) {
 	if _, ok := globalPlugins[name]; ok {
@@ -38,6 +57,8 @@ type Plugin interface {
 	CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error)
 	ExecLocal(data *types.BlockDetail) ([]*types.KeyValue, error)
 	ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, error)
+	// Query
+	Query(funcName string, params []byte) (types.Message, error)
 
 	// 数据升级
 	Upgrade() error
@@ -81,6 +102,11 @@ func (b *Base) ExecLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
 // ExecDelLocal ExecDelLocal
 func (b *Base) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, error) {
 	return nil, nil
+}
+
+// Query query
+func (b *Base) Query(funcName string, params []byte) (types.Message, error) {
+	return nil, types.ErrQueryNotSupport
 }
 
 // SetLocalDB set localdb
