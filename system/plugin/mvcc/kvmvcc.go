@@ -34,7 +34,7 @@ func newMvcc() *mvccPlugin {
 }
 
 func (p *mvccPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
-	kvs, ok, err = p.CheckFlag(p, types.FlagKeyMVCC, enable)
+	kvs, ok, err = p.CheckFlag(p, plugin.FlagKey(name), enable)
 	if err == types.ErrDBFlag {
 		panic("mvcc config is enable, it must be synchronized from 0 height ")
 	}
