@@ -240,7 +240,14 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 	// 原来查询在 system/dapp 中实现, 现在部分查询随插件移动到 system/plugin (即查询插件生成的数据)
 	// 暂时通过查表的形式, 如果在表中存在, 就调用对应的函数, 不然走原来的查询调用
 	if p, err := plugins.QueryPlugin(data.GetFuncName()); err == nil {
-		// TODO set set set query
+		var localdb dbm.KVDB
+		if !exec.disableLocal {
+			localdb = NewLocalDB(exec.client)
+			defer localdb.(*LocalDB).Close()
+			p.SetLocalDB(localdb)
+		}
+		p.SetAPI(exec.qclient)
+		p.SetEnv(header.GetHeight(), header.GetBlockTime(), uint64(header.GetDifficulty()))
 		ret, err := p.Query(data.FuncName, data.Param)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
