@@ -1141,7 +1141,12 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 
 	//批量存储地址对应的所有交易的详细信息到wallet db中
 	newbatch := wallet.walletStore.NewBatch(true)
-	for _, txdetal := range TxDetails.Txs {
+	for i, txdetal := range TxDetails.Txs {
+		if txdetal.GetTx() == nil {
+			walletlog.Error("GetTxDetailByHashs TransactionDetails failed", "hash", common.ToHex(ReqHashes.Hashes[i]), "tx", "is nil")
+			return
+		}
+
 		height := txdetal.GetHeight()
 		txindex := txdetal.GetIndex()
 
