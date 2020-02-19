@@ -6,6 +6,7 @@ import (
 	"context"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	//protobufCodec "github.com/multiformats/go-multicodec/protobuf"
@@ -120,7 +121,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	blocksResp := &types.MessageGetBlocksResp{MessageData: d.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.InvDatas{Items: p2pInvData}}
 
-	log.Info("OnReq", "blocksResp", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "stream", s)
+	log.Info("OnReq", "blocksResp BlockHeight+++++++", blocksResp.Message.GetItems()[0].GetBlock().GetHeight())
 	err = d.SendProtoMessage(blocksResp, s)
 	if err != nil {
 		log.Error("SendProtoMessage", "err", err)
@@ -146,20 +147,18 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
 	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
 
-	//for _, pid := range pids {
-
-	/*	Pconn := d.ConnManager.Get(pid)
-		if Pconn == nil {
-			log.Error("handleEvent", "pid", pid, "ConnManage", Pconn)
-			continue
-		}
-	*/
 	//具体的下载逻辑
 	jobS := d.initStreamJob()
 	var wg sync.WaitGroup
-
+	var maxgoroutin int32
 	for height := req.GetStart(); height <= req.GetEnd(); height++ {
 		wg.Add(1)
+	Wait:
+		if maxgoroutin > 30 {
+			time.Sleep(time.Millisecond * 200)
+			goto Wait
+		}
+		atomic.AddInt32(&maxgoroutin, 1)
 		go func(blockheight int64, jbs jobs) {
 			err := d.syncDownloadBlock(blockheight, jbs)
 			if err != nil {
@@ -167,11 +166,12 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 				//TODO 50次下载尝试，失败之后异常处理
 			}
 			wg.Done()
+			atomic.AddInt32(&maxgoroutin, -11)
+
 		}(height, jobS)
 
 	}
 	wg.Wait()
-
 	log.Info("handleEvent", "download process done")
 	//}
 
@@ -186,7 +186,8 @@ ReDownload:
 	}
 	jStream := d.getFreeJobStream(jbs)
 	if jStream == nil {
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 400)
+
 		goto ReDownload
 	}
 
