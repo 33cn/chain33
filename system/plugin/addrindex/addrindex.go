@@ -22,6 +22,7 @@ var (
 
 func init() {
 	plugin.RegisterPlugin(name, newAddrindex())
+	plugin.RegisterQuery("GetTxsByAddr", name)
 }
 
 type addrindexPlugin struct {
