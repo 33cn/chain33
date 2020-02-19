@@ -76,7 +76,7 @@ func getTx(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, i
 	txresult.Blocktime = p.GetBlockTime()
 	txresult.ActionName = tx.ActionName()
 	var kvlist []*types.KeyValue
-	kvlist = append(kvlist, &types.KeyValue{Key: CalcTxKey(name, txhash), Value: cfg.CalcTxKeyValue(&txresult)})
+	kvlist = append(kvlist, &types.KeyValue{Key: CalcTxKey(cfg, name, txhash), Value: cfg.CalcTxKeyValue(&txresult)})
 	if cfg.IsEnable("quickIndex") {
 		kvlist = append(kvlist, &types.KeyValue{Key: CalcTxShortKey(name, txhash), Value: []byte("1")})
 	}
@@ -84,8 +84,8 @@ func getTx(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, i
 }
 
 // CalcTxKey Calc Tx key
-func CalcTxKey(name string, txHash []byte) []byte {
-	return []byte(fmt.Sprintf("%s-%s-%s:%s", types.LocalPluginPrefix, name, "TX", string(txHash)))
+func CalcTxKey(cfg *types.Chain33Config, name string, txHash []byte) []byte {
+	return []byte(fmt.Sprintf("%s-%s-%s", types.LocalPluginPrefix, name, cfg.CalcTxKey(txHash)))
 }
 
 // CalcTxShortKey Calc Tx Short key
