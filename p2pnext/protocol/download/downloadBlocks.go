@@ -200,9 +200,9 @@ ReDownload:
 	blockReq := &types.MessageGetBlocksReq{MessageData: d.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 		Message: getblocks}
 
-	stream, err := d.Host.NewStream(context.Background(), peer.ID(freeJob.Pid), DownloadBlockReq)
+	stream, err := d.Host.NewStream(context.Background(), freeJob.Pid, DownloadBlockReq)
 	if err != nil {
-		log.Error("NewStream", "err", err)
+		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
 		goto ReDownload
 	}
 	defer stream.Close()
@@ -217,19 +217,19 @@ ReDownload:
 		log.Error("handleEvent", "ReadProtoMessage", err)
 		goto ReDownload
 	}
-	pid := freeJob.Pid
+	remotePid := freeJob.Pid.Pretty()
 	block := resp.GetMessage().GetItems()[0].GetBlock()
-	log.Info("download+++++", "frompeer", pid, "blockheight", block.GetHeight(), "blockSize", block.Size())
+	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(), "blockSize", block.Size())
 
 	client := d.GetQueueClient()
-	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: pid, Block: block}) //加入到输出通道)
+	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: remotePid, Block: block}) //加入到输出通道)
 	client.SendTimeout(newmsg, false, 10*time.Second)
 	return nil
 }
 
 type JobPeerId struct {
 	Limit int
-	Pid   string
+	Pid   peer.ID
 	mtx   sync.Mutex
 }
 
@@ -262,7 +262,8 @@ func (d *DownloadProtol) initJob() jobs {
 		// 	log.Error("NewStream", "err", err)
 		// 	continue
 		// }
-		job.Pid = conn.RemotePeer().Pretty()
+		log.Info("initJob", "pid", conn.RemotePeer().Pretty())
+		job.Pid = conn.RemotePeer()
 		job.Limit = 0
 		JobPeerIds = append(JobPeerIds, &job)
 
