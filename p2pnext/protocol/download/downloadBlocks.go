@@ -181,6 +181,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 
 func (d *DownloadProtol) syncDownloadBlock(blockheight int64, jbs jobs) error {
 	var retryCount uint
+	var downloadStart = time.Now().UnixNano()
 ReDownload:
 	retryCount++
 	if retryCount > 50 {
@@ -217,9 +218,12 @@ ReDownload:
 		log.Error("handleEvent", "ReadProtoMessage", err)
 		goto ReDownload
 	}
-	remotePid := freeJob.Pid.Pretty()
+
 	block := resp.GetMessage().GetItems()[0].GetBlock()
-	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(), "blockSize", block.Size())
+	remotePid := freeJob.Pid.Pretty()
+	costTime := (time.Now().UnixNano() - downloadStart) / 1e6
+	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(),
+		"blockSize (bytes)", block.Size(), "costTime ms", costTime)
 
 	client := d.GetQueueClient()
 	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: remotePid, Block: block}) //加入到输出通道)
@@ -273,7 +277,7 @@ func (d *DownloadProtol) initJob() jobs {
 }
 
 func (d *DownloadProtol) getFreeJobStream(js jobs) *JobPeerId {
-	var MaxJobLimit int = 10
+	var MaxJobLimit int = 100
 	sort.Sort(js)
 	for _, job := range js {
 		if job.Limit < MaxJobLimit {
