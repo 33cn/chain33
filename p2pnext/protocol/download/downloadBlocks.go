@@ -153,6 +153,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	jobS := d.initJob()
 	var wg sync.WaitGroup
 	var maxgoroutin int32
+	var startTime = time.Now().UnixNano()
 	for height := req.GetStart(); height <= req.GetEnd(); height++ {
 		wg.Add(1)
 	Wait:
@@ -174,7 +175,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 
 	}
 	wg.Wait()
-	log.Info("handleEvent", "download process done")
+	log.Info("handleEvent", "download process done", "cost time(ms)", (time.Now().UnixNano()-startTime)/1e6)
 	//}
 
 }
@@ -228,6 +229,7 @@ ReDownload:
 	client := d.GetQueueClient()
 	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: remotePid, Block: block}) //加入到输出通道)
 	client.SendTimeout(newmsg, false, 10*time.Second)
+	d.releaseJobStream(freeJob)
 	return nil
 }
 
