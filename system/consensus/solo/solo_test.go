@@ -17,6 +17,7 @@ import (
 	_ "github.com/33cn/chain33/system/dapp/init"
 	_ "github.com/33cn/chain33/system/mempool/init"
 	_ "github.com/33cn/chain33/system/store/init"
+	_ "github.com/33cn/chain33/system/plugin/init"
 )
 
 // 执行： go test -cover
