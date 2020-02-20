@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	//protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -20,7 +22,7 @@ import (
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	net "github.com/libp2p/go-libp2p-core/network"
+	//net "github.com/libp2p/go-libp2p-core/network"
 )
 
 var (
@@ -148,7 +150,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
 
 	//具体的下载逻辑
-	jobS := d.initStreamJob()
+	jobS := d.initJob()
 	var wg sync.WaitGroup
 	var maxgoroutin int32
 	for height := req.GetStart(); height <= req.GetEnd(); height++ {
@@ -184,10 +186,9 @@ ReDownload:
 	if retryCount > 50 {
 		return errors.New("beyound max try count 50")
 	}
-	jStream := d.getFreeJobStream(jbs)
-	if jStream == nil {
+	freeJob := d.getFreeJobStream(jbs)
+	if freeJob == nil {
 		time.Sleep(time.Millisecond * 400)
-
 		goto ReDownload
 	}
 
@@ -199,18 +200,24 @@ ReDownload:
 	blockReq := &types.MessageGetBlocksReq{MessageData: d.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 		Message: getblocks}
 
-	if err := d.SendProtoMessage(blockReq, jStream.Stream); err != nil {
+	stream, err := d.Host.NewStream(context.Background(), peer.ID(freeJob.Pid), DownloadBlockReq)
+	if err != nil {
+		log.Error("NewStream", "err", err)
+		goto ReDownload
+	}
+	defer stream.Close()
+	if err := d.SendProtoMessage(blockReq, stream); err != nil {
 		log.Error("handleEvent", "SendProtoMessageErr", err)
 		goto ReDownload
 	}
 	log.Info("handleEvent", "sendOk", "beforRead")
 	var resp types.MessageGetBlocksResp
-	err := d.ReadProtoMessage(&resp, jStream.Stream)
+	err = d.ReadProtoMessage(&resp, stream)
 	if err != nil {
 		log.Error("handleEvent", "ReadProtoMessage", err)
 		goto ReDownload
 	}
-	pid := jStream.Stream.Conn().RemotePeer().String()
+	pid := freeJob.Pid
 	block := resp.GetMessage().GetItems()[0].GetBlock()
 	log.Info("download+++++", "frompeer", pid, "blockheight", block.GetHeight(), "blockSize", block.Size())
 
@@ -220,14 +227,14 @@ ReDownload:
 	return nil
 }
 
-type JobStream struct {
-	Limit  int
-	Stream net.Stream
-	mtx    sync.Mutex
+type JobPeerId struct {
+	Limit int
+	Pid   string
+	mtx   sync.Mutex
 }
 
 // jobs datastruct
-type jobs []*JobStream
+type jobs []*JobPeerId
 
 //Len size of the Invs data
 func (i jobs) Len() int {
@@ -244,27 +251,27 @@ func (i jobs) Swap(a, b int) {
 	i[a], i[b] = i[b], i[a]
 }
 
-func (d *DownloadProtol) initStreamJob() jobs {
-	var jobStreams jobs
+func (d *DownloadProtol) initJob() jobs {
+	var JobPeerIds jobs
 	conns := d.ConnManager.Fetch()
 	for _, conn := range conns {
-		var jstream JobStream
+		var job JobPeerId
 
-		stream, err := d.Host.NewStream(context.Background(), conn.RemotePeer(), DownloadBlockReq)
-		if err != nil {
-			log.Error("NewStream", "err", err)
-			continue
-		}
-		jstream.Stream = stream
-		jstream.Limit = 0
-		jobStreams = append(jobStreams, &jstream)
+		// stream, err := d.Host.NewStream(context.Background(), conn.RemotePeer(), DownloadBlockReq)
+		// if err != nil {
+		// 	log.Error("NewStream", "err", err)
+		// 	continue
+		// }
+		job.Pid = conn.RemotePeer().Pretty()
+		job.Limit = 0
+		JobPeerIds = append(JobPeerIds, &job)
 
 	}
 
-	return jobStreams
+	return JobPeerIds
 }
 
-func (d *DownloadProtol) getFreeJobStream(js jobs) *JobStream {
+func (d *DownloadProtol) getFreeJobStream(js jobs) *JobPeerId {
 	var MaxJobLimit int = 10
 	sort.Sort(js)
 	for _, job := range js {
@@ -280,7 +287,7 @@ func (d *DownloadProtol) getFreeJobStream(js jobs) *JobStream {
 
 }
 
-func (d *DownloadProtol) releaseJobStream(js *JobStream) {
+func (d *DownloadProtol) releaseJobStream(js *JobPeerId) {
 	js.mtx.Lock()
 	defer js.mtx.Unlock()
 	js.Limit--
