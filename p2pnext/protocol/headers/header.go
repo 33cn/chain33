@@ -124,12 +124,16 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		//发送请求
 		if err := h.SendProtoMessage(headerReq, stream); err != nil {
 			log.Error("handleEvent", "SendProtoMessage", err)
+			stream.Close()
+			continue
 		}
 
 		var resp types.MessageHeaderResp
 		err = h.ReadProtoMessage(&resp, stream)
 		if err != nil {
 			log.Error("handleEvent", "ReadProtoMessage", err)
+			stream.Close()
+			continue
 		}
 		log.Info("handleEvent EventAddBlockHeaders", "pid", pid, "headers", resp.GetMessage().GetHeaders()[0])
 		client := h.GetQueueClient()
