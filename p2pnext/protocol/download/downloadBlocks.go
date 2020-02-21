@@ -205,6 +205,17 @@ ReDownload:
 	stream, err := d.Host.NewStream(context.Background(), freeJob.Pid, DownloadBlockReq)
 	if err != nil {
 		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
+		//Reconnect
+		if err.Error() == "dial backoff" {
+
+			peerInfo := d.GetHost().Peerstore().PeerInfo(freeJob.Pid)
+			err = d.GetHost().Connect(context.Background(), peerInfo)
+			if err != nil {
+				log.Error("NewStream Connect", "err", err)
+				d.releaseJob(freeJob)
+				goto ReDownload
+			}
+		}
 		d.releaseJob(freeJob)
 		goto ReDownload
 	}
@@ -230,7 +241,9 @@ ReDownload:
 	rate := float64(block.Size()) / float64(costTime)
 
 	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(),
-		"blockSize (bytes)", block.Size(), "costTime ms", costTime, "rate", rate)
+		"blockSize (bytes)", block.Size(), "costTime ms", costTime, "rate MB/s", float64(rate*1000/1024))
+
+	//TODO 日后统计节点现在速率使用
 	freeJob.rmtx.Lock()
 	freeJob.Rate = append(freeJob.Rate, rate)
 	freeJob.rmtx.Unlock()
