@@ -242,7 +242,7 @@ ReDownload:
 	rate := float64(block.Size()) / float64(costTime)
 
 	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(),
-		"blockSize (bytes)", block.Size(), "costTime ms", costTime, "rate", fmt.Sprintf("%f MB/s", float64(rate*1000/1024)))
+		"blockSize (bytes)", block.Size(), "costTime ms", costTime, "rate", fmt.Sprintf("%f KB/s", float64(rate*1000/1024)))
 
 	//TODO 日后统计节点现在速率使用
 	freeJob.rmtx.Lock()

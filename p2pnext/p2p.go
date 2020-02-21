@@ -198,7 +198,6 @@ func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 	if err != nil {
 		return err
 	}
-
 	defer stream.Close()
 	logger.Info("NewStream", "Pid", pr.ID)
 	p.connManag.Add(pr.ID.String(), stream.Conn())
