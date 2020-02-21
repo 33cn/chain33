@@ -99,7 +99,7 @@ func (p *P2P) managePeers() {
 			logger.Info("managePeers", "peerStore,peerID", v)
 		}
 		logger.Info("managePeers", "pid:", peerinfo.ID, "addr", peerinfo.Addrs)
-		_, err = p.newStream(context.Background(), *peerinfo)
+		err = p.newConn(context.Background(), *peerinfo)
 		if err != nil {
 			logger.Error("newStream", err.Error(), "")
 
@@ -130,7 +130,7 @@ func (p *P2P) managePeers() {
 			logger.Info("p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
 				"peer", peer.String())
 
-			p.newStream(context.Background(), peer)
+			p.newConn(context.Background(), peer)
 		Recheck:
 			if p.connManag.Size() >= 25 {
 				//达到连接节点数最大要求
@@ -189,18 +189,20 @@ func (p *P2P) processP2P() {
 	}
 }
 
-func (p *P2P) newStream(ctx context.Context, pr peer.AddrInfo) (core.Stream, error) {
+func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 
 	//可以后续添加 block.ID,mempool.ID,header.ID
 	p.host.Peerstore().AddAddrs(pr.ID, pr.Addrs, peerstore.TempAddrTTL)
 	logger.Info("newStream", "MsgIds size", len(protocol.MsgIDs), "msgIds", protocol.MsgIDs)
 	stream, err := p.host.NewStream(ctx, pr.ID, protocol.MsgIDs...)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	
+
 	defer stream.Close()
 	logger.Info("NewStream", "Pid", pr.ID)
 	p.connManag.Add(pr.ID.String(), stream.Conn())
-	return stream, nil
+	return nil
 
 }

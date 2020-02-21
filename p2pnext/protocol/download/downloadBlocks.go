@@ -276,7 +276,6 @@ func (d *DownloadProtol) initJob() jobs {
 		job.Pid = conn.RemotePeer()
 		job.Limit = 0
 		JobPeerIds = append(JobPeerIds, &job)
-
 	}
 
 	return JobPeerIds
