@@ -192,13 +192,12 @@ func (p *P2P) processP2P() {
 func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 
 	//可以后续添加 block.ID,mempool.ID,header.ID
-	p.host.Peerstore().AddAddrs(pr.ID, pr.Addrs, peerstore.TempAddrTTL)
+	p.host.Peerstore().AddAddrs(pr.ID, pr.Addrs, peerstore.AddressTTL)
 	logger.Info("newStream", "MsgIds size", len(protocol.MsgIDs), "msgIds", protocol.MsgIDs)
 	stream, err := p.host.NewStream(ctx, pr.ID, protocol.MsgIDs...)
 	if err != nil {
 		return err
 	}
-	
 
 	defer stream.Close()
 	logger.Info("NewStream", "Pid", pr.ID)

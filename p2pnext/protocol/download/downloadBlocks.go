@@ -4,6 +4,7 @@ import (
 	"errors"
 	//"bufio"
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -127,7 +128,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	err = d.SendProtoMessage(blocksResp, s)
 	if err != nil {
 		log.Error("SendProtoMessage", "err", err)
-		d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
+		//d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
 		return
 	}
 
@@ -207,7 +208,7 @@ ReDownload:
 		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
 		//Reconnect
 		if err.Error() == "dial backoff" {
-
+			log.Info("NewStream Connect", "reconnect", freeJob.Pid)
 			peerInfo := d.GetHost().Peerstore().PeerInfo(freeJob.Pid)
 			err = d.GetHost().Connect(context.Background(), peerInfo)
 			if err != nil {
@@ -241,7 +242,7 @@ ReDownload:
 	rate := float64(block.Size()) / float64(costTime)
 
 	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(),
-		"blockSize (bytes)", block.Size(), "costTime ms", costTime, "rate MB/s", float64(rate*1000/1024))
+		"blockSize (bytes)", block.Size(), "costTime ms", costTime, "rate", fmt.Sprintf("%f MB/s", float64(rate*1000/1024)))
 
 	//TODO 日后统计节点现在速率使用
 	freeJob.rmtx.Lock()
@@ -282,6 +283,7 @@ func (i jobs) Swap(a, b int) {
 
 func (d *DownloadProtol) initJob() jobs {
 	var JobPeerIds jobs
+	log.Info("initJob", "peersize", d.GetHost().Peerstore().Peers().Len())
 	conns := d.ConnManager.Fetch()
 	for _, conn := range conns {
 		var job JobPeerId
