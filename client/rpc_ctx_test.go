@@ -291,6 +291,18 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.ReplyString) = *reply
 		}
 		errRet = err
+	case "DumpPrivkeysFile":
+		reply, err := rpc.DumpPrivkeysFile(context.Background(), c.Params.(*types.ReqPrivkeysFile))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+		errRet = err
+	case "ImportPrivkeysFile":
+		reply, err := rpc.ImportPrivkeysFile(context.Background(), c.Params.(*types.ReqPrivkeysFile))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+		errRet = err
 	case "Version":
 		reply, err := rpc.Version(context.Background(), c.Params.(*types.ReqNil))
 		if err == nil {

@@ -29,6 +29,7 @@ func TestGet(t *testing.T) {
 	require.True(ty == 2)
 	ty = crypto.GetType("sm2")
 	require.True(ty == 3)
+	require.Panics(func() { crypto.RegisterType("testCrypto", crypto.GetType("secp256k1")) })
 }
 
 func TestRipemd160(t *testing.T) {

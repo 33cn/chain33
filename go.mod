@@ -26,6 +26,7 @@ require (
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/huin/goupnp v1.0.0
+	github.com/influxdata/influxdb v1.7.9
 	github.com/ipfs/go-log v0.0.1
 	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/libp2p/go-libp2p v0.4.0
@@ -41,6 +42,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.1.1
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/pkg/errors v0.8.1
+	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/rs/cors v1.6.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.3.0

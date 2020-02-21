@@ -489,3 +489,171 @@ func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 func Clone(data proto.Message) proto.Message {
 	return proto.Clone(data)
 }
+
+//Clone 添加一个浅拷贝函数
+func (sig *Signature) Clone() *Signature {
+	if sig == nil {
+		return nil
+	}
+	return &Signature{
+		Ty:        sig.Ty,
+		Pubkey:    sig.Pubkey,
+		Signature: sig.Signature,
+	}
+}
+
+//这里要避免用 tmp := *tx 这样就会读 可能被 proto 其他线程修改的 size 字段
+//proto buffer 字段发生更改之后，一定要修改这里，否则可能引起严重的bug
+func cloneTx(tx *Transaction) *Transaction {
+	copytx := &Transaction{}
+	copytx.Execer = tx.Execer
+	copytx.Payload = tx.Payload
+	copytx.Signature = tx.Signature
+	copytx.Fee = tx.Fee
+	copytx.Expire = tx.Expire
+	copytx.Nonce = tx.Nonce
+	copytx.To = tx.To
+	copytx.GroupCount = tx.GroupCount
+	copytx.Header = tx.Header
+	copytx.Next = tx.Next
+	return copytx
+}
+
+//Clone copytx := proto.Clone(tx).(*Transaction) too slow
+func (tx *Transaction) Clone() *Transaction {
+	if tx == nil {
+		return nil
+	}
+	tmp := cloneTx(tx)
+	tmp.Signature = tx.Signature.Clone()
+	return tmp
+}
+
+//Clone 浅拷贝： BlockDetail
+func (b *BlockDetail) Clone() *BlockDetail {
+	if b == nil {
+		return nil
+	}
+	return &BlockDetail{
+		Block:          b.Block.Clone(),
+		Receipts:       cloneReceipts(b.Receipts),
+		KV:             cloneKVList(b.KV),
+		PrevStatusHash: b.PrevStatusHash,
+	}
+}
+
+//Clone 浅拷贝ReceiptData
+func (r *ReceiptData) Clone() *ReceiptData {
+	if r == nil {
+		return nil
+	}
+	return &ReceiptData{
+		Ty:   r.Ty,
+		Logs: cloneReceiptLogs(r.Logs),
+	}
+}
+
+//Clone 浅拷贝 receiptLog
+func (r *ReceiptLog) Clone() *ReceiptLog {
+	if r == nil {
+		return nil
+	}
+	return &ReceiptLog{
+		Ty:  r.Ty,
+		Log: r.Log,
+	}
+}
+
+//Clone KeyValue
+func (kv *KeyValue) Clone() *KeyValue {
+	if kv == nil {
+		return nil
+	}
+	return &KeyValue{
+		Key:   kv.Key,
+		Value: kv.Value,
+	}
+}
+
+//Clone Block 浅拷贝(所有的types.Message 进行了拷贝)
+func (b *Block) Clone() *Block {
+	if b == nil {
+		return nil
+	}
+	return &Block{
+		Version:    b.Version,
+		ParentHash: b.ParentHash,
+		TxHash:     b.TxHash,
+		StateHash:  b.StateHash,
+		Height:     b.Height,
+		BlockTime:  b.BlockTime,
+		Difficulty: b.Difficulty,
+		MainHash:   b.MainHash,
+		MainHeight: b.MainHeight,
+		Signature:  b.Signature.Clone(),
+		Txs:        cloneTxs(b.Txs),
+	}
+}
+
+//Clone BlockBody 浅拷贝(所有的types.Message 进行了拷贝)
+func (b *BlockBody) Clone() *BlockBody {
+	if b == nil {
+		return nil
+	}
+	return &BlockBody{
+		Txs:        cloneTxs(b.Txs),
+		Receipts:   cloneReceipts(b.Receipts),
+		MainHash:   b.MainHash,
+		MainHeight: b.MainHeight,
+		Hash:       b.Hash,
+		Height:     b.Height,
+	}
+}
+
+//cloneReceipts 浅拷贝交易回报
+func cloneReceipts(b []*ReceiptData) []*ReceiptData {
+	if b == nil {
+		return nil
+	}
+	rs := make([]*ReceiptData, len(b))
+	for i := 0; i < len(b); i++ {
+		rs[i] = b[i].Clone()
+	}
+	return rs
+}
+
+//cloneReceiptLogs 浅拷贝 ReceiptLogs
+func cloneReceiptLogs(b []*ReceiptLog) []*ReceiptLog {
+	if b == nil {
+		return nil
+	}
+	rs := make([]*ReceiptLog, len(b))
+	for i := 0; i < len(b); i++ {
+		rs[i] = b[i].Clone()
+	}
+	return rs
+}
+
+//cloneTxs  拷贝 txs
+func cloneTxs(b []*Transaction) []*Transaction {
+	if b == nil {
+		return nil
+	}
+	txs := make([]*Transaction, len(b))
+	for i := 0; i < len(b); i++ {
+		txs[i] = b[i].Clone()
+	}
+	return txs
+}
+
+//cloneKVList 拷贝kv 列表
+func cloneKVList(b []*KeyValue) []*KeyValue {
+	if b == nil {
+		return nil
+	}
+	kv := make([]*KeyValue, len(b))
+	for i := 0; i < len(b); i++ {
+		kv[i] = b[i].Clone()
+	}
+	return kv
+}

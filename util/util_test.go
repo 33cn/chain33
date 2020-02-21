@@ -351,6 +351,7 @@ func TestCheckDupTx(t *testing.T) {
 func TestReportErrEventToFront(t *testing.T) {
 	logger := log.New("test")
 	client := &testClient{}
-	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	client.On("SendTimeout", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	client.On("WaitTimeout", mock.Anything, mock.Anything).Return(&queue.Message{}, nil)
 	ReportErrEventToFront(logger, client, "from", "to", errors.New("test"))
 }

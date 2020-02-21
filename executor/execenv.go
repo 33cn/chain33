@@ -416,7 +416,7 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 	if err != nil {
 		return feelog, err
 	}
-	err = e.execLocalSameTime(tx, feelog, index)
+	err = e.execLocalSameTime(tx, receipt, index)
 	if err != nil {
 		elog.Error("execLocalSameTime", "err", err)
 		errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(err.Error())}

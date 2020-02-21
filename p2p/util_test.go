@@ -3,6 +3,7 @@ package p2p
 import (
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -92,7 +93,7 @@ func TestSortArr(t *testing.T) {
 
 func TestFilter(t *testing.T) {
 	filter := NewFilter(10)
-	go filter.ManageRecvFilter()
+	go filter.ManageRecvFilter(time.Millisecond)
 	defer filter.Close()
 	filter.GetLock()
 
@@ -101,5 +102,6 @@ func TestFilter(t *testing.T) {
 	filter.RemoveRecvData("key")
 	assert.Equal(t, false, filter.QueryRecvData("key"))
 	filter.ReleaseLock()
-
+	assert.False(t, filter.isClose())
+	time.Sleep(time.Millisecond * 10)
 }

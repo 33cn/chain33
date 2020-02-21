@@ -19,162 +19,47 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 		client.Sub(walletKey)
 		for msg := range client.Recv() {
 			switch msg.Ty {
-			case types.EventWalletGetAccountList:
-				msg.Reply(client.NewMessage(walletKey, types.EventWalletAccountList, &types.WalletAccounts{}))
-			case types.EventNewAccount:
-				if req, ok := msg.GetData().(*types.ReqNewAccount); ok {
-					if req.Label == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.WalletAccount{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventWalletTransactionList:
-				if req, ok := msg.GetData().(*types.ReqWalletTransactionList); ok {
-					if req.Direction == 1 {
-						msg.Reply(client.NewMessage(walletKey, types.EventTransactionDetails, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventTransactionDetails, &types.WalletTxDetails{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventWalletImportPrivkey:
-				if req, ok := msg.GetData().(*types.ReqWalletImportPrivkey); ok {
-					if req.Label == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.WalletAccount{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventWalletSendToAddress:
-				if req, ok := msg.GetData().(*types.ReqWalletSendToAddress); ok {
-					if req.Note == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHash{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventWalletSetFee:
-				if req, ok := msg.GetData().(*types.ReqWalletSetFee); ok {
-					if req.Amount == 1000 {
-						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{IsOk: true}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventWalletSetLabel:
-				if req, ok := msg.GetData().(*types.ReqWalletSetLabel); ok {
-					if req.Label == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletAccount, &types.WalletAccount{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventWalletMergeBalance:
-				if req, ok := msg.GetData().(*types.ReqWalletMergeBalance); ok {
-					if req.To == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHashes{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventWalletSetPasswd:
-				if req, ok := msg.GetData().(*types.ReqWalletSetPasswd); ok {
-					if req.GetOldPass() == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventWalletLock:
-				msg.Reply(client.NewMessage(walletKey, types.EventWalletLock, &types.Reply{}))
-			case types.EventWalletUnLock:
-				if req, ok := msg.GetData().(*types.WalletUnLock); ok {
-					if req.Passwd == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletUnLock, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventWalletUnLock, &types.Reply{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventGenSeed:
-				if req, ok := msg.GetData().(*types.GenSeedLang); ok {
-					if req.Lang == 10 {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyGenSeed, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyGenSeed, &types.ReplySeed{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventSaveSeed:
-				if req, ok := msg.GetData().(*types.SaveSeedByPw); ok {
-					if req.Seed == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventGetSeed:
-				if req, ok := msg.GetData().(*types.GetSeedByPw); ok {
-					if req.Passwd == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyGetSeed, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyGetSeed, &types.ReplySeed{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
-			case types.EventGetWalletStatus:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyWalletStatus, &types.WalletStatus{IsWalletLock: true, IsAutoMining: false, IsHasSeed: true, IsTicketLock: false}))
-			case types.EventDumpPrivkey:
-				if req, ok := msg.GetData().(*types.ReqString); ok {
-					if req.Data == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivkey, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivkey, &types.ReplyString{}))
-					}
-				} else {
-					msg.ReplyErr("Do not support", types.ErrInvalidParam)
-				}
 			case types.EventCloseTickets:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHashes{}))
 			case types.EventLocalGet:
 				msg.Reply(client.NewMessage(walletKey, types.EventLocalReplyValue, &types.LocalReplyValue{}))
 			case types.EventLocalList:
 				msg.Reply(client.NewMessage(walletKey, types.EventLocalReplyValue, &types.LocalReplyValue{}))
-			case types.EventSignRawTx:
-				if req, ok := msg.GetData().(*types.ReqSignRawTx); ok {
-					if req.Addr == "case1" {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplySignRawTx, &types.Transaction{}))
-					} else {
-						msg.Reply(client.NewMessage(walletKey, types.EventReplySignRawTx, &types.ReplySignRawTx{}))
+			case types.EventWalletExecutor:
+				if req, ok := msg.GetData().(*types.ChainExecutor); ok {
+					switch req.FuncName {
+					case "WalletGetAccountList":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletAccounts{}))
+					case "NewAccount":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletAccount{}))
+					case "WalletTransactionList":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletTxDetails{}))
+					case "WalletImportPrivkey":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletAccount{}))
+					case "DumpPrivkey":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.ReplyString{}))
+					case "WalletSendToAddress":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.ReplyHash{}))
+					case "WalletSetLabel":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.WalletAccount{}))
+					case "WalletMergeBalance":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.ReplyHashes{}))
+					case "GenSeed":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.ReplySeed{}))
+					case "GetSeed":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.ReplySeed{}))
+					case "GetWalletStatus":
+						msg.Reply(client.NewMessage(walletKey, types.EventReplyWalletStatus, &types.WalletStatus{IsWalletLock: true, IsAutoMining: false, IsHasSeed: true, IsTicketLock: false}))
+					case "SignRawTx":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.ReplySignRawTx{}))
+					case "FatalFailure":
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Int32{}))
+					default:
+						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
 					}
 				} else {
 					msg.ReplyErr("Do not support", types.ErrInvalidParam)
 				}
-			case types.EventFatalFailure:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyFatalFailure, &types.Int32{}))
-			case types.EventWalletExecutor:
-				msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
