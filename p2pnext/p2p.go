@@ -199,7 +199,7 @@ func (p *P2P) newStream(ctx context.Context, pr peer.AddrInfo) (core.Stream, err
 		return nil, err
 	}
 	defer stream.Close()
-	logger.Info("NewStream","Piddddddddd",pr.ID)
+	logger.Info("NewStream", "Pid", pr.ID)
 	p.connManag.Add(pr.ID.String(), stream.Conn())
 	return stream, nil
 
