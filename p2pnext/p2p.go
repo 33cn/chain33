@@ -89,14 +89,14 @@ func (p *P2P) managePeers() {
 
 	for peer := range peerChan {
 		logger.Info("find peer", "peer", peer)
-
 		if peer.ID == p.host.ID() {
-			logger.Info("Find self...")
+			logger.Info("Find self...", p.host.ID(), "")
 			continue
 		}
-		logger.Info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxp2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
+		logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
 			"peer", peer.String())
-
+		peerstore := p.host.Peerstore()
+		logger.Info("xxxxxxxxxxxxxxxxxxxAll Peers", peerstore.Peers(), "")
 		p.newConn(context.Background(), peer)
 	Recheck:
 		if p.connManag.Size() >= 25 {
