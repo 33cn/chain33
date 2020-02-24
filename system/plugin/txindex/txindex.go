@@ -19,6 +19,7 @@ var (
 
 func init() {
 	plugin.RegisterPlugin(name, newTxindex)
+	plugin.RegisterQuery("HasTx", name)
 }
 
 type txindexPlugin struct {
@@ -31,6 +32,18 @@ func newTxindex() plugin.Plugin {
 	}
 	p.SetName(name)
 	return p
+}
+
+func (p *txindexPlugin) Query(funcName string, params []byte) (types.Message, error) {
+	if funcName == "HasTx" {
+		var req types.ReqKey
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return p.HasTx(req.Key)
+	}
+	return nil, types.ErrQueryNotSupport
 }
 
 func (p *txindexPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
@@ -82,6 +95,34 @@ func getTx(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, i
 		kvlist = append(kvlist, &types.KeyValue{Key: CalcTxShortKey(name, txhash), Value: []byte("1")})
 	}
 	return kvlist
+}
+
+// Query impl
+
+//HasTx 是否包含该交易
+func (p *txindexPlugin) HasTx(key []byte) (types.Message, error) {
+	api := p.GetAPI()
+	types.AssertConfig(api)
+	cfg := api.GetConfig()
+
+	if cfg.IsEnable("quickIndex") {
+		if _, err := p.GetLocalDB().Get(CalcTxShortKey(name, key)); err != nil {
+			if err == types.ErrNotFound {
+				return &types.Int32{Data: 0}, nil
+			}
+			return &types.Int32{Data: 0}, err
+		}
+		//通过短hash查询交易存在时，需要再通过全hash索引查询一下。
+		//避免短hash重复，而全hash不一样的情况
+		//return true, nil
+	}
+	if _, err := p.GetLocalDB().Get(CalcTxKey(cfg, name, key)); err != nil {
+		if err == types.ErrNotFound {
+			return &types.Int32{Data: 0}, nil
+		}
+		return &types.Int32{Data: 0}, err
+	}
+	return &types.Int32{Data: 1}, nil
 }
 
 // CalcTxKey Calc Tx key
