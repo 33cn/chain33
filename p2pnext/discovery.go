@@ -63,7 +63,7 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []strin
 
 	}
 
-	routingDiscovery := discovery.NewRoutingDiscovery(kademliaDHT)
+	routingDiscovery := discovery.NewRoutingDiscovery(d.KademliaDHT)
 	discovery.Advertise(ctx, routingDiscovery, RendezvousString)
 
 	// Now, look for others who have announced
