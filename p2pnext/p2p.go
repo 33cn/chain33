@@ -81,37 +81,15 @@ func New(cfg *types.Chain33Config) *P2P {
 }
 
 func (p *P2P) managePeers() {
-	for _, seed := range p.Node.p2pCfg.Seeds {
-		addr, _ := multiaddr.NewMultiaddr(seed)
-		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			panic(err)
-		}
-		err = p.host.Connect(context.Background(), *peerinfo)
-		if err != nil {
-			logger.Error("Host Connect", "err", err)
-			return
-		}
 
-		peers := p.host.Peerstore().Peers()
-
-		for _, v := range peers {
-			logger.Info("managePeers", "peerStore,peerID", v)
-		}
-		logger.Info("managePeers", "pid:", peerinfo.ID, "addr", peerinfo.Addrs)
-		err = p.newConn(context.Background(), *peerinfo)
-		if err != nil {
-			logger.Error("newStream", err.Error(), "")
-
-		}
-
-	}
-	peerChan, err := p.discovery.FindPeers(context.Background(), p.host)
+	peerChan, err := p.discovery.FindPeers(context.Background(), p.host, p.Node.p2pCfg.Seeds)
 	if err != nil {
 		panic("PeerFind Err")
 	}
 
 	for {
+
+		logger.Info("wait for new peer node")
 		select {
 		case <-p.Done:
 			return
@@ -127,7 +105,7 @@ func (p *P2P) managePeers() {
 				logger.Info("Find self...")
 				continue
 			}
-			logger.Info("p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
+			logger.Info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxp2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
 				"peer", peer.String())
 
 			p.newConn(context.Background(), peer)
@@ -137,9 +115,6 @@ func (p *P2P) managePeers() {
 				time.Sleep(time.Second * 10)
 				goto Recheck
 			}
-
-		case <-p.Done:
-			return
 
 		}
 	}

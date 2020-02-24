@@ -4,10 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/peerstore"
+
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 const RendezvousString = "chain33-p2p-findme"
@@ -16,7 +19,20 @@ type Discovery struct {
 	KademliaDHT *dht.IpfsDHT
 }
 
-func (d *Discovery) FindPeers(ctx context.Context, host host.Host) (<-chan peer.AddrInfo, error) {
+func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []string) (<-chan peer.AddrInfo, error) {
+
+	/*peers := p.host.Peerstore().Peers()
+
+	for _, v := range peers {
+		logger.Info("managePeers", "peerStore,peerID", v)
+	}
+	logger.Info("managePeers", "pid:", peerinfo.ID, "addr", peerinfo.Addrs)
+
+	err = p.newConn(context.Background(), *peerinfo)
+	if err != nil {
+		logger.Error("newStream", err.Error(), "")
+
+	}*/
 
 	//开始节点发现
 	kademliaDHT, err := dht.New(ctx, host)
@@ -27,8 +43,24 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host) (<-chan peer.
 
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
-	if err = kademliaDHT.Bootstrap(ctx); err != nil {
+
+	if err = d.KademliaDHT.Bootstrap(ctx); err != nil {
 		panic(err)
+	}
+
+	for _, seed := range seeds {
+		addr, _ := multiaddr.NewMultiaddr(seed)
+		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
+		if err != nil {
+			panic(err)
+		}
+		err = host.Connect(context.Background(), *peerinfo)
+		if err != nil {
+			logger.Error("Host Connect", "err", err)
+			continue
+		}
+		host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.AddressTTL)
+
 	}
 
 	routingDiscovery := discovery.NewRoutingDiscovery(kademliaDHT)
