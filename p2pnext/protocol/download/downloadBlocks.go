@@ -288,7 +288,11 @@ func (d *DownloadProtol) initJob() jobs {
 	for _, pid := range pids {
 		var job JobPeerId
 		log.Info("initJob", "pid", pid)
-		job.Pid = peer.ID(pid)
+		rID, err := peer.IDB58Decode(pid)
+		if err != nil {
+			continue
+		}
+		job.Pid = rID
 		job.Limit = 0
 		JobPeerIds = append(JobPeerIds, &job)
 	}

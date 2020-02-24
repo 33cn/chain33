@@ -117,7 +117,11 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 			Message: p2pgetheaders}
 
 		// headerReq.MessageData.Sign = signature
-		stream, err := h.Host.NewStream(context.Background(), peer.ID(pid), HeaderInfoReq)
+		rID, err := peer.IDB58Decode(pid)
+		if err != nil {
+			continue
+		}
+		stream, err := h.Host.NewStream(context.Background(), rID, HeaderInfoReq)
 		if err != nil {
 			log.Error("NewStream", "err", err, "peerID", pid)
 			h.BaseProtocol.ConnManager.Delete(pid)
