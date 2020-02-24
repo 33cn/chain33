@@ -345,6 +345,7 @@ func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
 }
 
 //HasTx 是否包含该交易
+// TODO
 func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 	cfg := bs.client.GetConfig()
 	if cfg.IsEnable("quickIndex") {
@@ -588,30 +589,6 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 	}
 	storeLog.Debug("DelBlock success", "blockheight", height, "hash", common.ToHex(hash))
 	return lastSequence, nil
-}
-
-//GetTx 通过tx hash 从db数据库中获取tx交易信息
-func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
-	if len(hash) == 0 {
-		err := errors.New("input hash is null")
-		return nil, err
-	}
-	cfg := bs.client.GetConfig()
-	rawBytes, err := bs.db.Get(cfg.CalcTxKey(hash))
-	if rawBytes == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
-		}
-		err = errors.New("tx not exist")
-		return nil, err
-	}
-
-	var txResult types.TxResult
-	err = proto.Unmarshal(rawBytes, &txResult)
-	if err != nil {
-		return nil, err
-	}
-	return bs.getRealTxResult(&txResult), nil
 }
 
 func (bs *BlockStore) getRealTxResult(txr *types.TxResult) *types.TxResult {
