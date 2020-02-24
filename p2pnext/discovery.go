@@ -59,7 +59,7 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []strin
 			logger.Error("Host Connect", "err", err)
 			continue
 		}
-		host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.AddressTTL)
+		host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.PermanentAddrTTL)
 
 	}
 

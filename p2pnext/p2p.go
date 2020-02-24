@@ -96,11 +96,11 @@ func (p *P2P) managePeers() {
 		logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
 			"peer", peer.String())
 
-		p.host.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.AddressTTL)
+		p.host.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.ConnectedAddrTTL)
 
 		peerstore := p.host.Peerstore()
 
-		logger.Info("xxxxxxxxxxxxxxxxxxxAll Peers", peerstore.Peers(), "")
+		logger.Info("xxxxxxxxxxxxxxxxxxxAll Peers", peerstore.PeersWithAddrs(), "")
 		p.newConn(context.Background(), peer)
 	Recheck:
 		if p.connManag.Size() >= 25 {
@@ -159,11 +159,12 @@ func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 
 	//可以后续添加 block.ID,mempool.ID,header.ID
 
-	err = p.host.Connect(context.Background(), *peerinfo)
+	err := p.host.Connect(context.Background(), pr)
 
 	//logger.Info("newStream", "MsgIds size", len(protocol.MsgIDs), "msgIds", protocol.MsgIDs)
 	//stream, err := p.host.NewStream(ctx, pr.ID, protocol.MsgIDs...)
 	if err != nil {
+		logger.Error("newConn", "err", err)
 		return err
 	}
 	//defer stream.Close()

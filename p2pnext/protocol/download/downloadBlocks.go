@@ -284,11 +284,11 @@ func (i jobs) Swap(a, b int) {
 func (d *DownloadProtol) initJob() jobs {
 	var JobPeerIds jobs
 	log.Info("initJob", "peersize", d.GetHost().Peerstore().Peers().Len())
-	conns := d.ConnManager.Fetch()
-	for _, conn := range conns {
+	pids := d.ConnManager.Fetch()
+	for _, pid := range pids {
 		var job JobPeerId
-		log.Info("initJob", "pid", conn.RemotePeer().Pretty())
-		job.Pid = conn.RemotePeer()
+		log.Info("initJob", "pid", pid)
+		job.Pid = peer.ID(pid)
 		job.Limit = 0
 		JobPeerIds = append(JobPeerIds, &job)
 	}
