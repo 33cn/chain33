@@ -14,7 +14,7 @@ import (
 
 var blog = log.New("module", "plugin.base")
 
-var globalPlugins = make(map[string]Plugin)
+var globalPlugins = make(map[string]func() Plugin)
 
 // queryName -> pluginName -> call plugin.Query(...)
 var queryFuns = make(map[string]string)
@@ -36,7 +36,7 @@ func QueryPlugin(queryFun string) (p Plugin, err error) {
 }
 
 // RegisterPlugin register plugin
-func RegisterPlugin(name string, p Plugin) {
+func RegisterPlugin(name string, p func() Plugin) {
 	if _, ok := globalPlugins[name]; ok {
 		panic("plugin exist " + name)
 	}
@@ -46,7 +46,7 @@ func RegisterPlugin(name string, p Plugin) {
 // GetPlugin by name
 func GetPlugin(name string) (p Plugin, err error) {
 	if p, ok := globalPlugins[name]; ok {
-		return p, nil
+		return p(), nil
 	}
 	return nil, types.ErrUnknowPlugin
 }

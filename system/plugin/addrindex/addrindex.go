@@ -22,7 +22,7 @@ var (
 )
 
 func init() {
-	plugin.RegisterPlugin(name, newAddrindex())
+	plugin.RegisterPlugin(name, newAddrindex)
 	plugin.RegisterQuery("GetTxsByAddr", name)
 	plugin.RegisterQuery("GetAddrTxsCount", name)
 }
@@ -31,7 +31,7 @@ type addrindexPlugin struct {
 	*plugin.Base
 }
 
-func newAddrindex() *addrindexPlugin {
+func newAddrindex() plugin.Plugin {
 	return &addrindexPlugin{Base: &plugin.Base{}}
 }
 
