@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	plugin.RegisterPlugin("stat", newStat())
+	plugin.RegisterPlugin("stat", newStat)
 }
 
 type statPlugin struct {
@@ -24,7 +24,7 @@ type statPlugin struct {
 	*plugin.Flag
 }
 
-func newStat() *statPlugin {
+func newStat() plugin.Plugin {
 	p := &statPlugin{
 		Base: &plugin.Base{},
 		Flag: &plugin.Flag{},

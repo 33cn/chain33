@@ -19,14 +19,14 @@ var (
 )
 
 func init() {
-	plugin.RegisterPlugin(name, newFee())
+	plugin.RegisterPlugin(name, newFee)
 }
 
 type feePlugin struct {
 	*plugin.Base
 }
 
-func newFee() *feePlugin {
+func newFee() plugin.Plugin {
 	fee := &feePlugin{
 		Base: &plugin.Base{},
 	}

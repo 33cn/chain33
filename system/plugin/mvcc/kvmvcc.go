@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	plugin.RegisterPlugin(name, newMvcc())
+	plugin.RegisterPlugin(name, newMvcc)
 }
 
 type mvccPlugin struct {
@@ -24,7 +24,7 @@ type mvccPlugin struct {
 	*plugin.Flag
 }
 
-func newMvcc() *mvccPlugin {
+func newMvcc() plugin.Plugin {
 	p := &mvccPlugin{
 		Base: &plugin.Base{},
 		Flag: &plugin.Flag{},
