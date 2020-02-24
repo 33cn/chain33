@@ -87,35 +87,24 @@ func (p *P2P) managePeers() {
 		panic("PeerFind Err")
 	}
 
-	for {
+	for peer := range peerChan {
+		logger.Info("find peer", "peer", peer)
+		if len(peer.Addrs) == 0 {
+			continue
+		}
+		if peer.ID == p.host.ID() {
+			logger.Info("Find self...")
+			continue
+		}
+		logger.Info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxp2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
+			"peer", peer.String())
 
-		logger.Info("wait for new peer node")
-		select {
-		case <-p.Done:
-			return
-		case peer := <-peerChan:
-			if len(peer.Addrs) == 0 {
-				continue
-			}
-			if peer.ID == p.host.ID() {
-				break
-			}
-
-			if peer.ID == p.host.ID() {
-				logger.Info("Find self...")
-				continue
-			}
-			logger.Info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxp2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
-				"peer", peer.String())
-
-			p.newConn(context.Background(), peer)
-		Recheck:
-			if p.connManag.Size() >= 25 {
-				//达到连接节点数最大要求
-				time.Sleep(time.Second * 10)
-				goto Recheck
-			}
-
+		p.newConn(context.Background(), peer)
+	Recheck:
+		if p.connManag.Size() >= 25 {
+			//达到连接节点数最大要求
+			time.Sleep(time.Second * 10)
+			goto Recheck
 		}
 	}
 
