@@ -89,9 +89,7 @@ func (p *P2P) managePeers() {
 
 	for peer := range peerChan {
 		logger.Info("find peer", "peer", peer)
-		if len(peer.Addrs) == 0 {
-			continue
-		}
+
 		if peer.ID == p.host.ID() {
 			logger.Info("Find self...")
 			continue
