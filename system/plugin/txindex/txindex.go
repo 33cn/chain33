@@ -20,6 +20,7 @@ var (
 func init() {
 	plugin.RegisterPlugin(name, newTxindex)
 	plugin.RegisterQuery("HasTx", name)
+	plugin.RegisterQuery("GetTx", name)
 }
 
 type txindexPlugin struct {
@@ -42,6 +43,13 @@ func (p *txindexPlugin) Query(funcName string, params []byte) (types.Message, er
 			return nil, err
 		}
 		return p.HasTx(req.Key)
+	} else if funcName == "GetTx" {
+		var req types.ReqKey
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return p.GetTx(req.Key)
 	}
 	return nil, types.ErrQueryNotSupport
 }
@@ -123,6 +131,25 @@ func (p *txindexPlugin) HasTx(key []byte) (types.Message, error) {
 		return &types.Int32{Data: 0}, err
 	}
 	return &types.Int32{Data: 1}, nil
+}
+
+// GetTx 获得交易
+func (p *txindexPlugin) GetTx(key []byte) (types.Message, error) {
+	api := p.GetAPI()
+	types.AssertConfig(api)
+	cfg := api.GetConfig()
+
+	result, err := p.GetLocalDB().Get(CalcTxKey(cfg, name, key))
+	if err != nil {
+		return nil, err
+	}
+	var r types.TxResult
+	err = types.Decode(result, &r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &r, nil
 }
 
 // CalcTxKey Calc Tx key
