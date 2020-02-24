@@ -6,7 +6,6 @@ package blockchain
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/merkle"
@@ -246,7 +245,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 
 	//新的代码不支持PrefixCount查询地址交易计数，executor/localdb.go PrefixCount
 	//现有的节点都已经升级了localdb，也就是都支持通过GetAddrTxsCount来获取地址交易计数
-	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
+	reqkey.Key = []byte(addr.Addr)
 	count, err := chain.query.Query(cfg.ExecName("coins"), "GetAddrTxsCount", &reqkey)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrTxsCount err", err)
