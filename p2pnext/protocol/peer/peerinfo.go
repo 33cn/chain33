@@ -7,6 +7,10 @@ import (
 
 	"time"
 
+	multiaddr "github.com/multiformats/go-multiaddr"
+
+	"fmt"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -217,6 +221,10 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		log.Info("DetectAddr", "resp", resp)
 		if externalAddr == "" {
 			externalAddr = resp.GetMessage().GetAddrRecv()
+			addrs := p.GetHost().Addrs()
+			saddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", p.p2pCfg.Port))
+			addrs = append(addrs, saddr)
+			//p.GetHost().Peerstore().SetAddrs(p.GetHost().ID(), addrs)
 		}
 
 		break
