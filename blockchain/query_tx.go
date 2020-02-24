@@ -120,7 +120,28 @@ func (chain *BlockChain) HasTx(txhash []byte, onlyquerycache bool) (has bool, er
 	if onlyquerycache {
 		return has, nil
 	}
-	return chain.blockStore.HasTx(txhash)
+	return chain.hasTxDB(txhash)
+}
+
+// 通过插件查找
+func (chain *BlockChain) hasTxDB(txhash []byte) (has bool, err error) {
+	cfg := chain.blockStore.client.GetConfig()
+	var req types.ReqKey
+	req.Key = txhash
+	resp, err := chain.query.Query(cfg.ExecName("coins"), "HasTx", &req)
+	if err != nil {
+		chainlog.Error("hasTxDB", "hasTxDB err", err)
+		return false, err
+	}
+
+	result := resp.(*types.Int32).GetData()
+	if result == 0 {
+		has = false
+	} else {
+		has = true
+	}
+
+	return has, nil
 }
 
 //GetDuplicateTxHashList 获取重复的交易
