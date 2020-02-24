@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"bytes"
+	"errors"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/merkle"
@@ -104,11 +105,23 @@ func getTxHashProofs(Txs []*types.Transaction, index int32) [][]byte {
 //  Receiptdate *ReceiptData
 //}
 func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, err error) {
-	txinfo, err := chain.blockStore.GetTx(txhash)
-	if err != nil {
+	if len(txhash) == 0 {
+		err := errors.New("input hash is null")
 		return nil, err
 	}
-	return txinfo, nil
+
+	// 通过插件获取tx交易信息
+	cfg := chain.blockStore.client.GetConfig()
+	var req types.ReqKey
+	req.Key = txhash
+	resp, err := chain.query.Query(cfg.ExecName("coins"), "GetTx", &req)
+	if err != nil {
+		chainlog.Error("GetTxResultFromDb GetTx", "err", err)
+		return nil, err
+	}
+	result := resp.(*types.TxResult)
+
+	return chain.blockStore.getRealTxResult(result), nil
 }
 
 //HasTx 是否包含该交易
