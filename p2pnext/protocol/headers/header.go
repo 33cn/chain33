@@ -6,6 +6,8 @@ import (
 
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	core "github.com/libp2p/go-libp2p-core"
@@ -101,11 +103,11 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 	for _, pid := range pids {
 
 		log.Info("handleEvent", "pid", pid, "start", req.GetStart(), "end", req.GetEnd())
-		pConn := h.GetConnsManager().Get(pid)
-		if pConn == nil {
-			log.Error("handleEvent", "no is conn from ", pid)
-			continue
-		}
+		// pConn := h.GetConnsManager().Get(pid)
+		// if pConn == nil {
+		// 	log.Error("handleEvent", "no is conn from ", pid)
+		// 	continue
+		// }
 
 		p2pgetheaders := &types.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
 			Version: 0}
@@ -115,10 +117,10 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 			Message: p2pgetheaders}
 
 		// headerReq.MessageData.Sign = signature
-		stream, err := h.Host.NewStream(context.Background(), pConn.RemotePeer(), HeaderInfoReq)
+		stream, err := h.Host.NewStream(context.Background(), peer.ID(pid), HeaderInfoReq)
 		if err != nil {
-			log.Error("NewStream", "err", err, "peerID", pConn.RemotePeer())
-			h.BaseProtocol.ConnManager.Delete(pConn.RemotePeer().Pretty())
+			log.Error("NewStream", "err", err, "peerID", pid)
+			h.BaseProtocol.ConnManager.Delete(pid)
 			continue
 		}
 		//发送请求

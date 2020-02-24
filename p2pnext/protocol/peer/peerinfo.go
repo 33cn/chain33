@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	//	"github.com/33cn/chain33/cmd/tools/gencode/dappcode/proto"
-
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
@@ -136,13 +136,13 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var peerinfos []*types.P2PPeerInfo
-	for _, v := range p.GetConnsManager().Fetch() {
+	for _, remoteId := range p.GetConnsManager().Fetch() {
 
 		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
-		s, err := p.Host.NewStream(context.Background(), v.RemotePeer(), PeerInfoReq)
+		s, err := p.Host.NewStream(context.Background(), peer.ID(remoteId), PeerInfoReq)
 		if err != nil {
 			log.Error("NewStream", "err", err)
-			p.GetConnsManager().Delete(v.RemotePeer().Pretty())
+			p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 
@@ -176,34 +176,34 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		}
 		break
 	}
+	pid := p.GetHost().ID()
 
-	for _, conn := range p.GetConnsManager().Fetch() {
+	for _, remoteId := range p.GetConnsManager().Fetch() {
 		var version types.P2PVersion
-		version.AddrFrom = conn.LocalMultiaddr().String()
-		version.AddrRecv = conn.RemoteMultiaddr().String()
-		pid := p.GetHost().ID()
+		version.AddrFrom = pid.Pretty()
+		version.AddrRecv = remoteId
 		pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 
 		req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
 			Message: &version}
-		s, err := p.Host.NewStream(context.Background(), conn.RemotePeer(), PeerVersionReq)
+		s, err := p.Host.NewStream(context.Background(), peer.ID(remoteId), PeerVersionReq)
 		if err != nil {
 			log.Error("NewStream", "err", err)
-			p.GetConnsManager().Delete(conn.RemotePeer().Pretty())
+			p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 
 		err = p.SendProtoMessage(req, s)
 		if err != nil {
 			log.Error("DetectNodeAddr", "SendProtoMessage err", err)
-			p.GetConnsManager().Delete(conn.RemotePeer().Pretty())
+			p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 		var resp types.MessageP2PVersionResp
 		err = p.ReadProtoMessage(&resp, s)
 		if err != nil {
 			log.Error("DetectNodeAddr", "ReadProtoMessage err", err)
-			p.GetConnsManager().Delete(conn.RemotePeer().Pretty())
+			p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 		log.Info("DetectAddr", "resp", resp)

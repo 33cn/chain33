@@ -95,7 +95,11 @@ func (p *P2P) managePeers() {
 		}
 		logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
 			"peer", peer.String())
+
+		p.host.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.AddressTTL)
+
 		peerstore := p.host.Peerstore()
+
 		logger.Info("xxxxxxxxxxxxxxxxxxxAll Peers", peerstore.Peers(), "")
 		p.newConn(context.Background(), peer)
 	Recheck:
@@ -154,15 +158,19 @@ func (p *P2P) processP2P() {
 func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 
 	//可以后续添加 block.ID,mempool.ID,header.ID
-	p.host.Peerstore().AddAddrs(pr.ID, pr.Addrs, peerstore.AddressTTL)
-	logger.Info("newStream", "MsgIds size", len(protocol.MsgIDs), "msgIds", protocol.MsgIDs)
-	stream, err := p.host.NewStream(ctx, pr.ID, protocol.MsgIDs...)
+
+	err = p.host.Connect(context.Background(), *peerinfo)
+
+	//logger.Info("newStream", "MsgIds size", len(protocol.MsgIDs), "msgIds", protocol.MsgIDs)
+	//stream, err := p.host.NewStream(ctx, pr.ID, protocol.MsgIDs...)
 	if err != nil {
 		return err
 	}
-	defer stream.Close()
+	//defer stream.Close()
+	p.host.ConnManager().TagPeer(pr.ID, "chain33", 1)
+	p.host.ConnManager().Protect(pr.ID, "chain33")
 	logger.Info("NewStream", "Pid", pr.ID)
-	p.connManag.Add(pr.ID.String(), stream.Conn())
+	p.connManag.Add(pr.ID.String(), nil)
 	return nil
 
 }

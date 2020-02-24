@@ -32,23 +32,23 @@ func (s *ConnManager) Get(id string) net.Conn {
 	return nil
 }
 
-func (s *ConnManager) Fetch() []net.Conn {
-	var conns []net.Conn
-
+func (s *ConnManager) Fetch() []string {
+	//var conns []net.Conn
+	var pids []string
 	s.store.Range(func(k, v interface{}) bool {
-		conns = append(conns, v.(net.Conn))
+		pids = append(pids, k.(string))
 		return true
 	})
 
-	return conns
+	return pids
 }
 
 func (s *ConnManager) Size() int {
-	var conns []net.Conn
+	var pids []string
 	s.store.Range(func(k, v interface{}) bool {
-		conns = append(conns, v.(net.Conn))
+		pids = append(pids, k.(string))
 		return true
 	})
 
-	return len(conns)
+	return len(pids)
 }
