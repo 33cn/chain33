@@ -501,7 +501,7 @@ func testAddrTxCount(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blo
 	chainlog.Info("testAddrTxCount begin --------------------")
 	cfg := mock33.GetClient().GetConfig()
 	var reqkey types.ReqKey
-	reqkey.Key = []byte(fmt.Sprintf("LODBP-addrindex-C:%s", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"))
+	reqkey.Key = []byte("14KEKbYtKKQm4wMthSK9J4La4nAiidGozt")
 	count, err := mock33.GetAPI().Query(cfg.ExecName("coins"), "GetAddrTxsCount", &reqkey)
 	if err != nil {
 		t.Error(err)
