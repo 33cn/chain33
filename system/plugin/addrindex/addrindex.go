@@ -18,12 +18,13 @@ import (
 
 var (
 	name = "addrindex"
-	elog = log.New("module", "system/plugin/txindex")
+	elog = log.New("module", "system/plugin/addrindex")
 )
 
 func init() {
 	plugin.RegisterPlugin(name, newAddrindex())
 	plugin.RegisterQuery("GetTxsByAddr", name)
+	plugin.RegisterQuery("GetAddrTxsCount", name)
 }
 
 type addrindexPlugin struct {
@@ -42,6 +43,13 @@ func (p *addrindexPlugin) Query(funcName string, params []byte) (types.Message, 
 			return nil, err
 		}
 		return p.GetTxsByAddr(&req)
+	} else if funcName == "GetAddrTxsCount" {
+		var req types.ReqKey
+		err := types.Decode(params, &req)
+		if err != nil {
+			return nil, err
+		}
+		return p.GetAddrTxsCount(&req)
 	}
 	return nil, types.ErrQueryNotSupport
 }
@@ -88,6 +96,7 @@ func (p *addrindexPlugin) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyVal
 	b := data.Block
 	var set types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
+		elog.Info("txindexPlugin del plugin done", "name", i)
 		tx := b.Txs[i]
 		receipt := data.Receipts[i]
 		//del: addr index
@@ -254,6 +263,29 @@ func (p *addrindexPlugin) GetTxsByAddr(addr *types.ReqAddr) (types.Message, erro
 		replyTxInfos.TxInfos[index] = &replyTxInfo
 	}
 	return &replyTxInfos, nil
+}
+
+// GetAddrTxsCount query the transaction count for the specified address ，for statistical
+// input key is address
+func (p *addrindexPlugin) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error) {
+	var counts types.Int64
+	db := p.GetLocalDB()
+	key := CalcAddrTxsCountKey(name, string(reqkey.Key))
+	TxsCount, err := db.Get(key)
+	if err != nil && err != types.ErrNotFound {
+		counts.Data = 0
+		return &counts, nil
+	}
+	if len(TxsCount) == 0 {
+		counts.Data = 0
+		return &counts, nil
+	}
+	err = types.Decode(TxsCount, &counts)
+	if err != nil {
+		counts.Data = 0
+		return &counts, nil
+	}
+	return &counts, nil
 }
 
 // local keys
