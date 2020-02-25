@@ -249,9 +249,6 @@ func TestDriverBase_Query(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, c.(*types.Int64).Data == 1)
 
-	_, err = demo.GetAddrTxsCount(&types.ReqKey{Key: types.CalcTxAddrHashKey(addr.GetAddr(), "")})
-	assert.NoError(t, err)
-
 	_, err = demo.Query("", nil)
 	assert.Equal(t, types.ErrActionNotSupport, err)
 }

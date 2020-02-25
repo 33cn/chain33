@@ -74,27 +74,6 @@ func (d *DriverBase) GetPrefixCount(key *types.ReqKey) (types.Message, error) {
 	return &counts, nil
 }
 
-// GetAddrTxsCount query the transaction count for the specified address ，for statistical
-func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error) {
-	var counts types.Int64
-	db := d.GetLocalDB()
-	TxsCount, err := db.Get(reqkey.Key)
-	if err != nil && err != types.ErrNotFound {
-		counts.Data = 0
-		return &counts, nil
-	}
-	if len(TxsCount) == 0 {
-		counts.Data = 0
-		return &counts, nil
-	}
-	err = types.Decode(TxsCount, &counts)
-	if err != nil {
-		counts.Data = 0
-		return &counts, nil
-	}
-	return &counts, nil
-}
-
 // Query defines query function
 func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, err error) {
 	funcmap := d.child.GetFuncMap()
