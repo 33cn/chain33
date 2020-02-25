@@ -238,12 +238,6 @@ func TestDriverBase_Query(t *testing.T) {
 	demo.SetLocalDB(kvdb)
 	addr := &types.ReqAddr{Addr: "1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs", Count: 1, Direction: 1}
 	kvdb.Set(types.CalcTxAddrHashKey(addr.GetAddr(), ""), types.Encode(&types.ReplyTxInfo{Height: 1}))
-	_, err := demo.GetTxsByAddr(addr)
-	assert.Equal(t, types.ErrNotFound, err)
-
-	addr.Height = -1
-	_, err = demo.GetTxsByAddr(addr)
-	assert.Equal(t, nil, err)
 
 	c, err := demo.GetPrefixCount(&types.ReqKey{Key: types.CalcTxAddrHashKey(addr.GetAddr(), "")})
 	assert.NoError(t, err)

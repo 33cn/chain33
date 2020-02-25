@@ -5,66 +5,11 @@
 package dapp
 
 import (
-	"errors"
 	"reflect"
 
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
 )
-
-// GetTxsByAddr find all transactions in this address by the addr prefix
-// query transaction are placed by default ：coins in the query
-func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
-	db := d.GetLocalDB()
-	var prefix []byte
-	var key []byte
-	var txinfos [][]byte
-	var err error
-	//取最新的交易hash列表
-	if addr.Flag == 0 { //所有的交易hash列表
-		prefix = types.CalcTxAddrHashKey(addr.GetAddr(), "")
-	} else if addr.Flag > 0 { //from的交易hash列表
-		prefix = types.CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, "")
-	} else {
-		return nil, errors.New("flag unknown")
-	}
-	if addr.GetHeight() == -1 {
-		txinfos, err = db.List(prefix, nil, addr.Count, addr.GetDirection())
-		if err != nil {
-			return nil, err
-		}
-		if len(txinfos) == 0 {
-			return nil, errors.New("tx does not exist")
-		}
-	} else { //翻页查找指定的txhash列表
-		heightstr := HeightIndexStr(addr.GetHeight(), addr.GetIndex())
-		if addr.Flag == 0 {
-			key = types.CalcTxAddrHashKey(addr.GetAddr(), heightstr)
-		} else if addr.Flag > 0 { //from的交易hash列表
-			key = types.CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, heightstr)
-		} else {
-			return nil, errors.New("flag unknown")
-		}
-		txinfos, err = db.List(prefix, key, addr.Count, addr.Direction)
-		if err != nil {
-			return nil, err
-		}
-		if len(txinfos) == 0 {
-			return nil, errors.New("tx does not exist")
-		}
-	}
-	var replyTxInfos types.ReplyTxInfos
-	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(txinfos))
-	for index, txinfobyte := range txinfos {
-		var replyTxInfo types.ReplyTxInfo
-		err := types.Decode(txinfobyte, &replyTxInfo)
-		if err != nil {
-			return nil, err
-		}
-		replyTxInfos.TxInfos[index] = &replyTxInfo
-	}
-	return &replyTxInfos, nil
-}
 
 // GetPrefixCount query the number keys of the specified prefix, for statistical
 func (d *DriverBase) GetPrefixCount(key *types.ReqKey) (types.Message, error) {
