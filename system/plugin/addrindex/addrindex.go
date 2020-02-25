@@ -25,6 +25,7 @@ func init() {
 	plugin.RegisterPlugin(name, newAddrindex)
 	plugin.RegisterQuery("GetTxsByAddr", name)
 	plugin.RegisterQuery("GetAddrTxsCount", name)
+	elog.Info("txindexPlugin init, support Query: GetTxsByAddr GetAddrTxsCount", "name", name)
 }
 
 type addrindexPlugin struct {
@@ -96,7 +97,6 @@ func (p *addrindexPlugin) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyVal
 	b := data.Block
 	var set types.LocalDBSet
 	for i := 0; i < len(b.Txs); i++ {
-		elog.Info("txindexPlugin del plugin done", "name", i)
 		tx := b.Txs[i]
 		receipt := data.Receipts[i]
 		//del: addr index
