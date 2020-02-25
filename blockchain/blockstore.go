@@ -344,30 +344,6 @@ func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
 	return 0, err
 }
 
-//HasTx 是否包含该交易
-// TODO
-func (bs *BlockStore) HasTx(key []byte) (bool, error) {
-	cfg := bs.client.GetConfig()
-	if cfg.IsEnable("quickIndex") {
-		if _, err := bs.db.Get(types.CalcTxShortKey(key)); err != nil {
-			if err == dbm.ErrNotFoundInDb {
-				return false, nil
-			}
-			return false, err
-		}
-		//通过短hash查询交易存在时，需要再通过全hash索引查询一下。
-		//避免短hash重复，而全hash不一样的情况
-		//return true, nil
-	}
-	if _, err := bs.db.Get(cfg.CalcTxKey(key)); err != nil {
-		if err == dbm.ErrNotFoundInDb {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
 //Height 返回BlockStore保存的当前block高度
 func (bs *BlockStore) Height() int64 {
 	return atomic.LoadInt64(&bs.height)
