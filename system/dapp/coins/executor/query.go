@@ -23,11 +23,6 @@ func (c *Coins) Query_GetPrefixCount(in *types.ReqKey) (types.Message, error) {
 	return c.GetPrefixCount(in)
 }
 
-// Query_GetAddrTxsCount query count of  txs in the address
-func (c *Coins) Query_GetAddrTxsCount(in *types.ReqKey) (types.Message, error) {
-	return c.GetAddrTxsCount(in)
-}
-
 // GetAddrReciver get address reciver by address
 func (c *Coins) GetAddrReciver(addr *types.ReqAddr) (types.Message, error) {
 	reciver := types.Int64{}
