@@ -98,11 +98,13 @@ func getTxHashProofs(Txs []*types.Transaction, index int32) [][]byte {
 }
 
 //GetTxResultFromDb 通过txhash 从txindex db中获取tx信息
+// 在不精简的情况下, 插件中就能得到所有数据
+// 在精简的情况下, 还需要去区块中获得交易相关的数据
 //type TxResult struct {
 //	Height int64
 //	Index  int32
-//	Tx     *types.Transaction
-//  Receiptdate *ReceiptData
+//	Tx     *types.Transaction <- 被精简
+//  Receiptdate *ReceiptData  <- 被精简
 //}
 func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, err error) {
 	if len(txhash) == 0 {
@@ -120,6 +122,10 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 		return nil, err
 	}
 	result := resp.(*types.TxResult)
+
+	if !cfg.IsEnable("reduceLocaldb") {
+		return result, nil
+	}
 
 	return chain.blockStore.getRealTxResult(result), nil
 }
