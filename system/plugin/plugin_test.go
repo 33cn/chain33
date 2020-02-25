@@ -23,12 +23,13 @@ func TestPlugin(t *testing.T) {
 	txs = append(txs, tx)
 	var stateHash [32]byte
 	stateHash[0] = 30
-	for _, plugin := range globalPlugins {
+	for _, newPlugin := range globalPlugins {
 		detail := &types.BlockDetail{
 			Block:    &types.Block{Txs: txs, StateHash: stateHash[:]},
 			Receipts: []*types.ReceiptData{{}},
 		}
 
+		plugin := newPlugin()
 		_, _, err := plugin.CheckEnable(false)
 		assert.NoError(t, err)
 		kvs, err := plugin.ExecLocal(detail)
