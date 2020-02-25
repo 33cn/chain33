@@ -60,7 +60,6 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []strin
 	if err != nil {
 		panic(err)
 	}
-
 	return peerChan, nil
 }
 

@@ -26,15 +26,16 @@ import (
 var logger = l.New("module", "p2pnext")
 
 type P2P struct {
-	chainCfg      *types.Chain33Config
-	host          core.Host
-	discovery     *Discovery
-	connManag     *manage.ConnManager
-	peerInfoManag *manage.PeerInfoManager
-	api           client.QueueProtocolAPI
-	client        queue.Client
-	Done          chan struct{}
-	Node          *Node
+	chainCfg         *types.Chain33Config
+	host             core.Host
+	discovery        *Discovery
+	connManag        *manage.ConnManager
+	peerInfoManag    *manage.PeerInfoManager
+	api              client.QueueProtocolAPI
+	client           queue.Client
+	Done             chan struct{}
+	bandwidthTracker *metrics.BandwidthCounter
+	Node             *Node
 }
 
 func New(cfg *types.Chain33Config) *P2P {
@@ -74,10 +75,9 @@ func New(cfg *types.Chain33Config) *P2P {
 	p2p.chainCfg = cfg
 	p2p.discovery = new(Discovery)
 	p2p.Node = NewNode(p2p, cfg)
-
+	p2p.bandwidthTracker = bandwidthTracker
 	logger.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 	return p2p
-
 }
 
 func (p *P2P) managePeers() {
@@ -96,7 +96,7 @@ func (p *P2P) managePeers() {
 		logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
 			"peer", peer.String())
 
-		logger.Info("xxxAll Peers", "PeersWithAddrs", p.host.Peerstore().PeersWithAddrs())
+		logger.Info("All Peers", "PeersWithAddrs", p.host.Peerstore().PeersWithAddrs())
 		p.newConn(context.Background(), peer)
 	Recheck:
 		if p.connManag.Size() >= 25 {
@@ -138,9 +138,21 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 	protocol.Init(globalData)
 	go p.managePeers()
 	go p.processP2P()
+	go p.showBandwidthTracker()
 
 }
+func (p *P2P) showBandwidthTracker() {
+	for {
+		bandByPeer := p.bandwidthTracker.GetBandwidthByPeer()
+		for pid, stat := range bandByPeer {
+			logger.Info("showBandwidthTracker", "pid", pid, "RateIn bytes/seconds", stat.RateIn, "RateOut  bytes/seconds", stat.RateOut,
+				"TotalIn", stat.TotalIn, "TotalOut", stat.TotalOut)
+		}
 
+		time.Sleep(time.Second * 10)
+
+	}
+}
 func (p *P2P) processP2P() {
 
 	p.client.Sub("p2p")
