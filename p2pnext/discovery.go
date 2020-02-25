@@ -21,19 +21,6 @@ type Discovery struct {
 
 func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []string) (<-chan peer.AddrInfo, error) {
 
-	/*peers := p.host.Peerstore().Peers()
-
-	for _, v := range peers {
-		logger.Info("managePeers", "peerStore,peerID", v)
-	}
-	logger.Info("managePeers", "pid:", peerinfo.ID, "addr", peerinfo.Addrs)
-
-	err = p.newConn(context.Background(), *peerinfo)
-	if err != nil {
-		logger.Error("newStream", err.Error(), "")
-
-	}*/
-
 	//开始节点发现
 	kademliaDHT, err := dht.New(ctx, host)
 	if err != nil {

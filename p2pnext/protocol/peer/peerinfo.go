@@ -151,19 +151,15 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		err = p.SendProtoMessage(req, s)
 		if err != nil {
 			log.Error("PeerInfo", "sendProtMessage err", err)
-			s.Close()
 			continue
 		}
 		var resp types.MessagePeerInfoResp
 		err = p.ReadProtoMessage(&resp, s)
 		if err != nil {
 			log.Error("PeerInfo", "ReadProtoMessage err", err)
-			s.Close()
 			continue
 		}
 		peerinfos = append(peerinfos, resp.GetMessage())
-		//p.OnResp(resp.GetMessage(), s)
-		s.Close()
 
 	}
 	return peerinfos
@@ -178,7 +174,6 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		break
 	}
 	pid := p.GetHost().ID()
-
 	for _, remoteId := range p.GetConnsManager().Fetch() {
 		if remoteId == p.GetHost().ID().Pretty() {
 			continue
@@ -200,21 +195,18 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		s, err := p.Host.NewStream(context.Background(), rID, PeerVersionReq)
 		if err != nil {
 			log.Error("NewStream", "err", err)
-			p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 
 		err = p.SendProtoMessage(req, s)
 		if err != nil {
 			log.Error("DetectNodeAddr", "SendProtoMessage err", err)
-			p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 		var resp types.MessageP2PVersionResp
 		err = p.ReadProtoMessage(&resp, s)
 		if err != nil {
 			log.Error("DetectNodeAddr", "ReadProtoMessage err", err)
-			p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 		log.Info("DetectAddr", "resp", resp)
