@@ -7,6 +7,7 @@ import (
 
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
 
 	"fmt"
@@ -46,8 +47,6 @@ type PeerInfoProtol struct {
 }
 
 func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
-	//p.BaseProtocol = new(prototypes.BaseProtocol)
-	//p.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	p.GlobalData = data
 	p.p2pCfg = data.ChainCfg.GetModuleConfig().P2P
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
@@ -224,7 +223,7 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 			addrs := p.GetHost().Addrs()
 			saddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", externalAddr, p.p2pCfg.Port))
 			addrs = append(addrs, saddr)
-			//p.GetHost().Peerstore().SetAddrs(p.GetHost().ID(), addrs)
+			p.GetHost().Peerstore().SetAddrs(p.GetHost().ID(), addrs, peerstore.PermanentAddrTTL)
 		}
 
 		break
