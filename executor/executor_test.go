@@ -363,7 +363,7 @@ func TestExecutorPluginUpgrade(t *testing.T) {
 	execInit(cfg)
 
 	exec.pluginEnable["plugin-demo"] = true
-	plugins.RegisterPlugin("plugin-demo", newDemoPlugin())
+	plugins.RegisterPlugin("plugin-demo", newDemoPlugin)
 
 	go func() {
 		client := q.Client()
