@@ -98,9 +98,7 @@ func (p *P2P) managePeers() {
 
 		p.host.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.ConnectedAddrTTL)
 
-		peerstore := p.host.Peerstore()
-
-		logger.Info("xxxxxxxxxxxxxxxxxxxAll Peers", peerstore.PeersWithAddrs(), "")
+		logger.Info("xxxxxxxxxxxxxxxxxxxAll Peers", "PeersWithAddrs", p.host.Peerstore().PeersWithAddrs())
 		p.newConn(context.Background(), peer)
 	Recheck:
 		if p.connManag.Size() >= 25 {

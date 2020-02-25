@@ -222,7 +222,7 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		if externalAddr == "" {
 			externalAddr = resp.GetMessage().GetAddrRecv()
 			addrs := p.GetHost().Addrs()
-			saddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", p.p2pCfg.Port))
+			saddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", externalAddr, p.p2pCfg.Port))
 			addrs = append(addrs, saddr)
 			//p.GetHost().Peerstore().SetAddrs(p.GetHost().ID(), addrs)
 		}
