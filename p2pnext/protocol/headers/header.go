@@ -98,7 +98,7 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 	}
 
 	msg.Reply(h.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	log.Info("handlerEvent", "conns num", h.GetConnsManager().Fetch())
+	//log.Info("handlerEvent", "conns num", h.GetConnsManager().Fetch())
 
 	for _, pid := range pids {
 
@@ -119,7 +119,10 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		stream, err := h.Host.NewStream(context.Background(), rID, HeaderInfoReq)
 		if err != nil {
 			log.Error("NewStream", "err", err, "peerID", pid)
-			h.BaseProtocol.ConnManager.Delete(pid)
+			if err.Error() == "dial backoff" {
+				h.GetConnsManager().Delete(rID)
+			}
+
 			continue
 		}
 		//发送请求

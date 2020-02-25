@@ -155,11 +155,10 @@ func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 
 	err := p.host.Connect(context.Background(), pr)
 	if err != nil {
-		logger.Error("newConn", "Connect err", err)
+		logger.Error("newConn", "Connect err", err, "remoteID", pr.ID)
 		return err
 	}
-
-	p.host.Peerstore().AddAddrs(pr.ID, pr.Addrs, peerstore.ProviderAddrTTL)
+	p.connManag.Add(pr, peerstore.ProviderAddrTTL)
 
 	return nil
 

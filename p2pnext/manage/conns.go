@@ -3,9 +3,11 @@ package manage
 import (
 	"sync"
 
-	"github.com/libp2p/go-libp2p-core/peerstore"
+	"time"
 
 	net "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 )
 
 type ConnManager struct {
@@ -20,11 +22,13 @@ func NewConnManager(ps peerstore.Peerstore) *ConnManager {
 
 }
 
-func (s *ConnManager) Add(pid string, conn net.Conn) {
+func (s *ConnManager) Add(pr peer.AddrInfo, ttl time.Duration) {
 	//s.store.Store(pid, conn)
+	s.pstore.AddAddrs(pr.ID, pr.Addrs, ttl)
 }
-func (s *ConnManager) Delete(pid string) {
+func (s *ConnManager) Delete(pid peer.ID) {
 	//s.store.Delete(pid)
+	s.pstore.ClearAddrs(pid)
 
 }
 

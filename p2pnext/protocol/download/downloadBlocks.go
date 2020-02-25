@@ -208,14 +208,7 @@ ReDownload:
 		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
 		//Reconnect
 		if err.Error() == "dial backoff" {
-			log.Info("NewStream Connect", "reconnect", freeJob.Pid)
-			peerInfo := d.GetHost().Peerstore().PeerInfo(freeJob.Pid)
-			err = d.GetHost().Connect(context.Background(), peerInfo)
-			if err != nil {
-				log.Error("NewStream Connect", "err", err)
-				d.releaseJob(freeJob)
-				goto ReDownload
-			}
+			d.GetConnsManager().Delete(freeJob.Pid)
 		}
 		d.releaseJob(freeJob)
 		goto ReDownload

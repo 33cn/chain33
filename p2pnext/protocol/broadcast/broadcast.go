@@ -2,7 +2,7 @@ package broadcast
 
 import (
 	"context"
-	"errors"
+	//	"errors"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -147,8 +147,8 @@ func (s *broadCastProtocol) sendStream(stream net.Stream, data interface{}) erro
 	err := s.SendProtoMessage(broadData, stream)
 	if err != nil {
 		stream.Close()
-		s.GetConnsManager().Delete(pid)
-		return errors.New("SendStreamErr")
+		//s.GetConnsManager().Delete(pid)
+		return err
 	}
 
 	return nil
