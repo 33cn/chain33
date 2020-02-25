@@ -103,11 +103,6 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 	for _, pid := range pids {
 
 		log.Info("handleEvent", "pid", pid, "start", req.GetStart(), "end", req.GetEnd())
-		// pConn := h.GetConnsManager().Get(pid)
-		// if pConn == nil {
-		// 	log.Error("handleEvent", "no is conn from ", pid)
-		// 	continue
-		// }
 
 		p2pgetheaders := &types.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
 			Version: 0}
@@ -147,9 +142,12 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		err = client.Send(msg, false)
 		if err != nil {
 			log.Error("handleEvent send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
+			stream.Close()
+			continue
 		}
 
 		stream.Close()
+		break
 
 	}
 

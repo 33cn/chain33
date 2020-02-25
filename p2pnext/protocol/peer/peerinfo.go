@@ -54,14 +54,6 @@ func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
 
 }
 
-func (p *PeerInfoProtol) OnResp(peerinfo *types.P2PPeerInfo, s core.Stream) {
-	peerId := s.Conn().RemotePeer().Pretty()
-
-	p.GetPeerInfoManager().Store(peerId, peerinfo)
-	log.Info("OnResp Received peerinfo response ", "from", s.Conn().RemotePeer(), "to", s.Conn().LocalPeer())
-
-}
-
 func (p *PeerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 	client := p.GetQueueClient()
 	var peerinfo types.P2PPeerInfo
@@ -140,6 +132,9 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var peerinfos []*types.P2PPeerInfo
 	for _, remoteId := range p.GetConnsManager().Fetch() {
+		if remoteId == p.GetHost().ID().Pretty() {
+			continue
+		}
 		rID, err := peer.IDB58Decode(remoteId)
 		if err != nil {
 			continue
@@ -147,8 +142,8 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
 		s, err := p.Host.NewStream(context.Background(), rID, PeerInfoReq)
 		if err != nil {
-			log.Error("GetPeerInfo NewStream", "err", err)
-			p.GetConnsManager().Delete(remoteId)
+			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", rID)
+			//p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 
@@ -185,6 +180,10 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 	pid := p.GetHost().ID()
 
 	for _, remoteId := range p.GetConnsManager().Fetch() {
+		if remoteId == p.GetHost().ID().Pretty() {
+			continue
+		}
+
 		var version types.P2PVersion
 		version.AddrFrom = pid.Pretty()
 		version.AddrRecv = remoteId
@@ -197,6 +196,7 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		if err != nil {
 			continue
 		}
+
 		s, err := p.Host.NewStream(context.Background(), rID, PeerVersionReq)
 		if err != nil {
 			log.Error("NewStream", "err", err)

@@ -286,6 +286,9 @@ func (d *DownloadProtol) initJob() jobs {
 	log.Info("initJob", "peersize", d.GetHost().Peerstore().Peers().Len())
 	pids := d.ConnManager.Fetch()
 	for _, pid := range pids {
+		if pid == d.GetHost().ID().Pretty() {
+			continue
+		}
 		var job JobPeerId
 		log.Info("initJob", "pid", pid)
 		rID, err := peer.IDB58Decode(pid)

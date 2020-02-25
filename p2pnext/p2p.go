@@ -158,18 +158,15 @@ func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 	//可以后续添加 block.ID,mempool.ID,header.ID
 
 	err := p.host.Connect(context.Background(), pr)
-
-	//logger.Info("newStream", "MsgIds size", len(protocol.MsgIDs), "msgIds", protocol.MsgIDs)
-	//stream, err := p.host.NewStream(ctx, pr.ID, protocol.MsgIDs...)
 	if err != nil {
-		logger.Error("newConn", "err", err)
+		logger.Error("newConn", "Connect err", err)
 		return err
 	}
 	//defer stream.Close()
-	p.host.ConnManager().TagPeer(pr.ID, "chain33", 1)
-	p.host.ConnManager().Protect(pr.ID, "chain33")
-	logger.Info("NewStream", "Pid", pr.ID)
-	p.connManag.Add(pr.ID.String(), nil)
+	//p.host.ConnManager().TagPeer(pr.ID, "chain33", 1)
+	//p.host.ConnManager().Protect(pr.ID, "chain33")
+	//logger.Info("NewStream", "Pid", pr.ID)
+	//p.connManag.Add(pr.ID.String(), nil)
 	return nil
 
 }
