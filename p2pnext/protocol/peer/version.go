@@ -62,8 +62,8 @@ func (p *PeerInfoProtol) OnVersionReq(req *types.MessageP2PVersionReq, s core.St
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 
 	mutiAddr := s.Conn().RemoteMultiaddr()
+	log.Info("OnVersionReq", "mutiAddr", mutiAddr.String())
 	var version types.P2PVersion
-
 	version.AddrFrom = externalAddr
 	version.AddrRecv = mutiAddr.String()
 	version.Nonce = rand.Int63n(102400)

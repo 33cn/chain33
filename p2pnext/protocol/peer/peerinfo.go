@@ -181,8 +181,7 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		}
 
 		var version types.P2PVersion
-		version.AddrFrom = pid.Pretty()
-		version.AddrRecv = remoteId
+
 		pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 
 		req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
@@ -201,7 +200,8 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 			}
 			continue
 		}
-
+		version.AddrFrom = s.Conn().LocalMultiaddr().String()
+		version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 		err = p.SendProtoMessage(req, s)
 		if err != nil {
 			log.Error("DetectNodeAddr", "SendProtoMessage err", err)
@@ -214,6 +214,8 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 			continue
 		}
 		log.Info("DetectAddr", "resp", resp)
+		log.Info("DetectNodeAddr", "externalAddr", externalAddr, "GetAddrRecv", resp.GetMessage().GetAddrRecv())
+
 		if externalAddr == "" {
 			externalAddr = resp.GetMessage().GetAddrRecv()
 			log.Info("DetectNodeAddr", "externalAddr", externalAddr)
