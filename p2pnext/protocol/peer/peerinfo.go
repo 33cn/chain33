@@ -7,10 +7,10 @@ import (
 
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	multiaddr "github.com/multiformats/go-multiaddr"
+	//"github.com/libp2p/go-libp2p-core/peerstore"
+	//multiaddr "github.com/multiformats/go-multiaddr"
 
-	"fmt"
+	//"fmt"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
@@ -98,6 +98,7 @@ Jump:
 		peerinfo.Addr = splites[2]
 
 	} else {
+		log.Info("exnalAddr", externalAddr)
 		peerinfo.Addr = strings.Split(externalAddr, "/")[2]
 	}
 	return &peerinfo
@@ -143,9 +144,7 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		s, err := p.Host.NewStream(context.Background(), rID, PeerInfoReq)
 		if err != nil {
 			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", rID)
-			if err.Error() == "dial backoff" {
-				p.GetConnsManager().Delete(rID)
-			}
+			//p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 
@@ -217,10 +216,11 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		log.Info("DetectAddr", "resp", resp)
 		if externalAddr == "" {
 			externalAddr = resp.GetMessage().GetAddrRecv()
-			addrs := p.GetHost().Addrs()
+			log.Info("DetectNodeAddr", "externalAddr", externalAddr)
+			/*addrs := p.GetHost().Addrs()
 			saddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", externalAddr, p.p2pCfg.Port))
 			addrs = append(addrs, saddr)
-			p.GetHost().Peerstore().SetAddrs(p.GetHost().ID(), addrs, peerstore.PermanentAddrTTL)
+			p.GetHost().Peerstore().SetAddrs(p.GetHost().ID(), addrs, peerstore.PermanentAddrTTL)*/
 		}
 
 		break
