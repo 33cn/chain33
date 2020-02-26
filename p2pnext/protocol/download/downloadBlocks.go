@@ -2,9 +2,6 @@ package download
 
 import (
 	"errors"
-	//"bufio"
-	"context"
-	"fmt"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -23,7 +20,6 @@ import (
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	//net "github.com/libp2p/go-libp2p-core/network"
 )
 
 var (
@@ -203,7 +199,7 @@ ReDownload:
 	blockReq := &types.MessageGetBlocksReq{MessageData: d.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 		Message: getblocks}
 
-	stream, err := d.Host.NewStream(context.Background(), freeJob.Pid, DownloadBlockReq)
+	stream, err := d.SendToStream(freeJob.Pid.Pretty(), blockReq, DownloadBlockReq, d.GetHost())
 	if err != nil {
 		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
 		//Reconnect
@@ -214,11 +210,7 @@ ReDownload:
 		goto ReDownload
 	}
 	defer stream.Close()
-	if err := d.SendProtoMessage(blockReq, stream); err != nil {
-		log.Error("handleEvent", "SendProtoMessageErr", err)
-		d.releaseJob(freeJob)
-		goto ReDownload
-	}
+
 	log.Info("handleEvent", "sendOk", "beforRead")
 	var resp types.MessageGetBlocksResp
 	err = d.ReadProtoMessage(&resp, stream)
@@ -232,15 +224,11 @@ ReDownload:
 	remotePid := freeJob.Pid.Pretty()
 	costTime := (time.Now().UnixNano() - downloadStart) / 1e6
 
-	rate := float64(block.Size()) / float64(costTime)
+	//rate := float64(block.Size()) / float64(costTime)
 
 	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(),
-		"blockSize (bytes)", block.Size(), "costTime ms", costTime, "rate", fmt.Sprintf("%f KB/s", float64(rate*1000/1024)))
+		"blockSize (bytes)", block.Size(), "costTime ms", costTime)
 
-	//TODO 日后统计节点现在速率使用
-	freeJob.rmtx.Lock()
-	freeJob.Rate = append(freeJob.Rate, rate)
-	freeJob.rmtx.Unlock()
 	client := d.GetQueueClient()
 	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: remotePid, Block: block}) //加入到输出通道)
 	client.SendTimeout(newmsg, false, 10*time.Second)

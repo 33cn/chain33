@@ -92,7 +92,7 @@ func (h *broadCastHandler) Handle(stream core.Stream) {
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
 	log.Debug("Handle", "pid", pid, "peerAddr", peerAddr)
 	var data types.MessageBroadCast
-	err := h.BaseStreamHandler.ReadProtoMessage(&data, stream)
+	err := h.ReadProtoMessage(&data, stream)
 	if err != nil {
 		log.Error("Handle", "pid", pid, "peerAddr", peerAddr, "err", err)
 		return

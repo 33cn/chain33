@@ -18,12 +18,14 @@ var (
 )
 
 type ConnManager struct {
+	host   core.Host
 	pstore peerstore.Peerstore
 }
 
-func NewConnManager(ps peerstore.Peerstore) *ConnManager {
+func NewConnManager(host core.Host) *ConnManager {
 	connM := &ConnManager{}
-	connM.pstore = ps
+	connM.pstore = host.Peerstore()
+	connM.host = host
 	return connM
 
 }
@@ -68,7 +70,7 @@ func (s *ConnManager) connectSeeds(seeds []string, host core.Host) {
 			panic(err)
 		}
 
-		err = host.Connect(context.Background(), *peerinfo)
+		err = s.host.Connect(context.Background(), *peerinfo)
 		if err != nil {
 			log.Error("ConnectSeeds  Connect", "err", err)
 			continue
@@ -80,6 +82,7 @@ func (s *ConnManager) connectSeeds(seeds []string, host core.Host) {
 func (s *ConnManager) Add(pr peer.AddrInfo, ttl time.Duration) {
 	s.pstore.AddAddrs(pr.ID, pr.Addrs, ttl)
 }
+
 func (s *ConnManager) Delete(pid peer.ID) {
 	s.pstore.ClearAddrs(pid)
 

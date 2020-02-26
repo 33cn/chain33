@@ -47,7 +47,6 @@ func New(cfg *types.Chain33Config) *P2P {
 	}
 	logger.Info("p2p", "InnerBounds", mcfg.InnerBounds)
 
-
 	if mcfg.Port == 0 {
 		mcfg.Port = 13803
 	}
@@ -56,7 +55,6 @@ func New(cfg *types.Chain33Config) *P2P {
 	if err != nil {
 		return nil
 	}
-
 
 	localAddr := getNodeLocalAddr()
 	lm, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", localAddr, mcfg.Port))
@@ -85,7 +83,7 @@ func New(cfg *types.Chain33Config) *P2P {
 		panic(err)
 	}
 	p2p := &P2P{host: host}
-	p2p.connManag = manage.NewConnManager(p2p.host.Peerstore())
+	p2p.connManag = manage.NewConnManager(p2p.host)
 	p2p.peerInfoManag = manage.NewPeerInfoManager()
 	p2p.chainCfg = cfg
 	p2p.discovery = new(Discovery)
@@ -160,12 +158,13 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 }
 func (p *P2P) showBandwidthTracker() {
 	for {
+		logger.Info("------------BandTracker--------------")
 		bandByPeer := p.bandwidthTracker.GetBandwidthByPeer()
 		for pid, stat := range bandByPeer {
-			logger.Info("showBandwidthTracker", "pid", pid, "RateIn bytes/seconds", stat.RateIn, "RateOut  bytes/seconds", stat.RateOut,
+			logger.Info("BandwidthTracker", "pid", pid, "RateIn bytes/seconds", stat.RateIn, "RateOut  bytes/seconds", stat.RateOut,
 				"TotalIn", stat.TotalIn, "TotalOut", stat.TotalOut)
 		}
-
+		logger.Info("-------------------------------------")
 		time.Sleep(time.Second * 10)
 
 	}

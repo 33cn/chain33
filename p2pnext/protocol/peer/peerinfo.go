@@ -8,7 +8,9 @@ import (
 	"time"
 
 	//"github.com/libp2p/go-libp2p-core/peerstore"
-	multiaddr "github.com/multiformats/go-multiaddr"
+	//multiaddr "github.com/multiformats/go-multiaddr"
+	//"github.com/golang/protobuf/proto"
+	//"github.com/libp2p/go-libp2p-core/protocol"
 
 	//"fmt"
 
@@ -20,7 +22,6 @@ import (
 	"github.com/33cn/chain33/types"
 	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
-	//net "github.com/libp2p/go-libp2p-core/network"
 )
 
 const (
@@ -135,23 +136,17 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		if remoteId == p.GetHost().ID().Pretty() {
 			continue
 		}
+
 		rID, err := peer.IDB58Decode(remoteId)
 		if err != nil {
 			continue
 		}
 		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
-		s, err := p.Host.NewStream(context.Background(), rID, PeerInfoReq)
-		if err != nil {
-			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", rID)
-			p.GetConnsManager().Delete(rID)
-			continue
-		}
 
-		log.Info("peerInfo", "s.Proto", s.Protocol())
 		recordStart := time.Now().UnixNano()
-		err = p.SendProtoMessage(req, s)
+		s, err := p.SendToStream(remoteId, req, PeerInfoReq, p.GetHost())
 		if err != nil {
-			log.Error("PeerInfo", "sendProtMessage err", err)
+			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", remoteId)
 			continue
 		}
 		var resp types.MessagePeerInfoResp
@@ -160,6 +155,7 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 			log.Error("PeerInfo", "ReadProtoMessage err", err)
 			continue
 		}
+
 		recordEnd := time.Now().UnixNano()
 		p.GetConnsManager().RecoredLatency(rID, time.Duration((recordEnd-recordStart)/1e6))
 		peerinfos = append(peerinfos, resp.GetMessage())
@@ -222,7 +218,6 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 			continue
 		}
 		log.Info("DetectAddr", "resp", resp)
-		//log.Info("DetectNodeAddr", "externalAddr", externalAddr, "GetAddrRecv", resp.GetMessage().GetAddrRecv())
 
 		//if externalAddr == "" {
 		externalAddr = resp.GetMessage().GetAddrRecv()
