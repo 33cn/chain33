@@ -607,6 +607,22 @@ func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, inde
 	if err != nil {
 		return nil, err
 	}
+	return e.checkLocalKV(tx, kv)
+}
+
+func (e *executor) execDelLocalTx(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	kv, err := e.execDelLocal(tx, r, index)
+	if err == types.ErrActionNotSupport {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return e.checkLocalKV(tx, kv)
+}
+
+// 检测生成的local kv是否合法, 用于调用 execLocal execDelLocal之后
+func (e *executor) checkLocalKV(tx *types.Transaction, kv *types.LocalDBSet) (*types.LocalDBSet, error) {
 	memkvset := e.localDB.(*LocalDB).GetSetKeys()
 	if kv != nil && kv.KV != nil {
 		err := e.checkKV(memkvset, kv.KV)
