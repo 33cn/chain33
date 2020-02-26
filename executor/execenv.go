@@ -736,7 +736,7 @@ func (e *executor) checkPluginKvs(name string, memKeys []string, kvs []*types.Ke
 		if err != nil {
 			return types.ErrNotAllowMemSetLocalKey
 		}
-		prefix := []byte(localPluginPrefix(name))
+		prefix := plugins.Prefix(name)
 		for _, kv := range kvs {
 			has := bytes.HasPrefix(kv.Key, prefix)
 			if !has {
@@ -749,8 +749,4 @@ func (e *executor) checkPluginKvs(name string, memKeys []string, kvs []*types.Ke
 		}
 	}
 	return nil
-}
-
-func localPluginPrefix(name string) string {
-	return "LODBP-" + name
 }
