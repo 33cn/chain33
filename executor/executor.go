@@ -553,11 +553,6 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 			return
 		}
 		if kv != nil && kv.KV != nil {
-			err := execute.checkPrefix(tx.Execer, kv.KV)
-			if err != nil {
-				msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
-				return
-			}
 			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
