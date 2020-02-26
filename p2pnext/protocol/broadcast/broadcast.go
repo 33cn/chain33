@@ -2,6 +2,8 @@ package broadcast
 
 import (
 	"context"
+	"encoding/hex"
+
 	//	"errors"
 	"time"
 
@@ -14,7 +16,6 @@ import (
 	common "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	net "github.com/libp2p/go-libp2p-core/network"
 )
 
 var log = log15.New("module", "p2p.broadcast")
@@ -60,10 +61,23 @@ func (p *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
 	p.totalBlockCache = common.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
 	p.ltBlockCache = common.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
-	p.p2pCfg = p.GetChainCfg().GetModuleConfig().P2P
+	mcfg := p.GetChainCfg().GetModuleConfig().P2P
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventTxBroadcast, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventBlockBroadcast, p.handleEvent)
+
+	//ttl至少设为2
+	if mcfg.LightTxTTL <= 1 {
+		mcfg.LightTxTTL = DefaultLtTxBroadCastTTL
+	}
+	if mcfg.MaxTTL <= 0 {
+		mcfg.MaxTTL = DefaultMaxTxBroadCastTTL
+	}
+
+	if mcfg.MinLtBlockTxNum < DefaultMinLtBlockTxNum {
+		mcfg.MinLtBlockTxNum = DefaultMinLtBlockTxNum
+	}
+	p.p2pCfg = mcfg
 }
 
 type broadCastHandler struct {
@@ -76,11 +90,11 @@ func (h *broadCastHandler) Handle(stream core.Stream) {
 	protocol := h.GetProtocol().(*broadCastProtocol)
 	pid := stream.Conn().RemotePeer().Pretty()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
-
+	log.Debug("Handle", "pid", pid, "peerAddr", peerAddr)
 	var data types.MessageBroadCast
 	err := h.BaseStreamHandler.ReadProtoMessage(&data, stream)
 	if err != nil {
-		log.Error("Handle", "err", err)
+		log.Error("Handle", "pid", pid, "peerAddr", peerAddr, "err", err)
 		return
 	}
 
@@ -100,40 +114,52 @@ func (h *broadCastHandler) VerifyRequest(data []byte) bool {
 //
 func (s *broadCastProtocol) handleEvent(msg *queue.Message) {
 
-	data := msg.GetData()
 	pids := s.GetConnsManager().Fetch()
+	log.Debug("HandleBroadCastEvent", "msgTy", msg.Ty, "msgID", msg.ID, "pids", pids)
+	var sendData interface{}
+	if tx, ok := msg.GetData().(*types.Transaction); ok {
+		txHash := hex.EncodeToString(tx.Hash())
+		//此处使用新分配结构，避免重复修改已保存的ttl
+		route := &types.P2PRoute{TTL: 1}
+		//是否已存在记录，不存在表示本节点发起的交易
+		if ttl, exist := s.txFilter.Get(txHash).(*types.P2PRoute); exist {
+			route.TTL = ttl.GetTTL() + 1
+		} else {
+			s.txFilter.RegRecvData(txHash)
+		}
+		sendData = &types.P2PTx{Tx: tx}
+	}
+	if block, ok := msg.GetData().(*types.Block); ok {
+		s.blockFilter.RegRecvData(hex.EncodeToString(block.Hash(s.GetChainCfg())))
+		sendData = &types.P2PBlock{Block: block}
+	}
+
 	for _, pid := range pids {
-		stream, err := s.Host.NewStream(context.Background(), peer.ID(pid), ID)
-		if err != nil {
-			log.Error("NewStream", "err", err)
+
+		if pid == s.GetHost().ID().Pretty() {
 			continue
 		}
-		//stream, _ := scon.NewStream()
-		s.sendStream(stream, data)
+
+		s.sendStream(pid, sendData)
 	}
 
 }
 
-func (s *broadCastProtocol) queryStream(pid string, data interface{}) error {
+func (s *broadCastProtocol) sendStream(pid string, data interface{}) error {
 
-	scon := s.GetConnsManager().Get(pid)
-	if scon != nil {
-		stream, err := scon.NewStream()
-		if err != nil {
-			return err
-		}
-		stream.SetProtocol(ID)
-		return s.sendStream(stream, data)
+	log.Debug("sendStream", "pid", pid)
+	rawID, err := peer.IDB58Decode(pid)
+	if err != nil {
+		log.Error("sendStream", "decodePeerIDErr", err)
+		return err
 	}
-
-	return nil
-
-}
-
-func (s *broadCastProtocol) sendStream(stream net.Stream, data interface{}) error {
-
-	pid := stream.Conn().RemotePeer().Pretty()
+	stream, err := s.Host.NewStream(context.Background(), rawID, ID)
+	if err != nil {
+		log.Error("sendStream", "NewStreamErr", err)
+		return err
+	}
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
+
 	sendData, doSend := s.handleSend(data, pid, peerAddr)
 	if !doSend {
 		log.Debug("sendStream", "doSend", doSend)
@@ -144,8 +170,9 @@ func (s *broadCastProtocol) sendStream(stream net.Stream, data interface{}) erro
 	broadData := &types.MessageBroadCast{
 		Message: sendData}
 
-	err := s.SendProtoMessage(broadData, stream)
+	err = s.SendProtoMessage(broadData, stream)
 	if err != nil {
+		log.Error("sendStream", "err", err)
 		stream.Close()
 		//s.GetConnsManager().Delete(pid)
 		return err

@@ -108,6 +108,7 @@ func MustWrite(batch Batch) {
 //IteratorSeeker ...
 type IteratorSeeker interface {
 	Rewind() bool
+	// 返回false， 表示系统中没有指定的key，Iterator会指向key附近
 	Seek(key []byte) bool
 	Next() bool
 }

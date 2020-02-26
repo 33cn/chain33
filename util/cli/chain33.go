@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/33cn/chain33/metrics"
+
 	"time"
 
 	"github.com/33cn/chain33/blockchain"
@@ -202,6 +204,7 @@ func RunChain33(name, defCfg string) {
 
 	health := util.NewHealthCheckServer(q.Client())
 	health.Start(cfg.Health)
+	metrics.StartMetrics(chain33Cfg)
 	defer func() {
 		os.Exit(0)
 		//close all module,clean some resource

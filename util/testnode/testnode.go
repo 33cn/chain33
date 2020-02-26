@@ -251,24 +251,24 @@ func newWalletRealize(qAPI client.QueueProtocolAPI) {
 		Seed:   "subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant",
 		Passwd: "123456fuzamei",
 	}
-	reply, err := qAPI.SaveSeed(seed)
-	if !reply.IsOk && err != nil {
+	reply, err := qAPI.ExecWalletFunc("wallet", "SaveSeed", seed)
+	if !reply.(*types.Reply).IsOk && err != nil {
 		panic(err)
 	}
-	reply, err = qAPI.WalletUnLock(&types.WalletUnLock{Passwd: "123456fuzamei"})
-	if !reply.IsOk && err != nil {
+	reply, err = qAPI.ExecWalletFunc("wallet", "WalletUnLock", &types.WalletUnLock{Passwd: "123456fuzamei"})
+	if !reply.(*types.Reply).IsOk && err != nil {
 		panic(err)
 	}
 	for i, priv := range util.TestPrivkeyHex {
 		privkey := &types.ReqWalletImportPrivkey{Privkey: priv, Label: fmt.Sprintf("label%d", i)}
-		acc, err := qAPI.WalletImportprivkey(privkey)
+		acc, err := qAPI.ExecWalletFunc("wallet", "WalletImportPrivkey", privkey)
 		if err != nil {
 			panic(err)
 		}
-		lognode.Info("import", "index", i, "addr", acc.Acc.Addr)
+		lognode.Info("import", "index", i, "addr", acc.(*types.WalletAccount).Acc.Addr)
 	}
 	req := &types.ReqAccountList{WithoutBalance: true}
-	_, err = qAPI.WalletGetAccountList(req)
+	_, err = qAPI.ExecWalletFunc("wallet", "WalletGetAccountList", req)
 	if err != nil {
 		panic(err)
 	}

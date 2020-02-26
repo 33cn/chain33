@@ -22,6 +22,7 @@ type blockNode struct {
 	broadcast  bool
 	pid        string
 	sequence   int64
+	BlockTime  int64
 }
 
 type blockIndex struct {
@@ -43,6 +44,7 @@ func initBlockNode(cfg *types.Chain33Config, node *blockNode, block *types.Block
 		broadcast:  broadcast,
 		pid:        pid,
 		sequence:   sequence,
+		BlockTime:  block.BlockTime,
 	}
 }
 
@@ -62,6 +64,7 @@ func newBlockNodeByHeader(broadcast bool, header *types.Header, pid string, sequ
 		broadcast:  broadcast,
 		pid:        pid,
 		sequence:   sequence,
+		BlockTime:  header.BlockTime,
 	}
 	return node
 }

@@ -521,5 +521,5 @@ func (n *Node) isInBoundPeer(peerName string) (bool, *innerpeer) {
 	}
 	//查询连入的客户端
 	info := n.server.p2pserver.getInBoundPeerInfo(peerName)
-	return info == nil, info
+	return info != nil, info
 }

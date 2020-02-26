@@ -11,6 +11,7 @@ import (
 
 var MsgIDs []protocol.ID
 
+// Init init p2p protocol
 func Init(data *prototypes.GlobalData) {
 	MsgIDs = append(MsgIDs, peer.PeerInfoReq)
 	MsgIDs = append(MsgIDs, broadcast.ID)

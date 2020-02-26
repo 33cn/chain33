@@ -700,6 +700,7 @@ type subModule struct {
 	Consensus map[string]interface{}
 	Wallet    map[string]interface{}
 	Mempool   map[string]interface{}
+	Metrics   map[string]interface{}
 }
 
 func ReadFile(path string) string {
@@ -729,6 +730,7 @@ func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
 	subcfg.Consensus = parseItem(cfg.Consensus)
 	subcfg.Wallet = parseItem(cfg.Wallet)
 	subcfg.Mempool = parseItem(cfg.Mempool)
+	subcfg.Metrics = parseItem(cfg.Metrics)
 	return &subcfg, nil
 }
 

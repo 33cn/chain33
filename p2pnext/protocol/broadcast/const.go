@@ -2,8 +2,9 @@ package broadcast
 
 //TTL
 const (
-	DefaultLtTxBroadCastTTL  = 3
+	DefaultLtTxBroadCastTTL  = 5
 	DefaultMaxTxBroadCastTTL = 25
+	DefaultMinLtBlockTxNum   = 10
 )
 
 // P2pCacheTxSize p2pcache size of transaction

@@ -457,27 +457,11 @@ func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 
 //Hash 交易的hash不包含header的值，引入tx group的概念后，做了修改
 func (tx *Transaction) Hash() []byte {
-	copytx := clone(tx)
+	copytx := tx.Clone()
 	copytx.Signature = nil
 	copytx.Header = nil
 	data := Encode(copytx)
 	return common.Sha256(data)
-}
-
-//clone copytx := proto.Clone(tx).(*Transaction) too slow
-func clone(tx *Transaction) *Transaction {
-	copytx := &Transaction{}
-	copytx.Execer = tx.Execer
-	copytx.Payload = tx.Payload
-	copytx.Signature = tx.Signature
-	copytx.Fee = tx.Fee
-	copytx.Expire = tx.Expire
-	copytx.Nonce = tx.Nonce
-	copytx.To = tx.To
-	copytx.GroupCount = tx.GroupCount
-	copytx.Header = tx.Header
-	copytx.Next = tx.Next
-	return copytx
 }
 
 //Size 交易大小
@@ -825,7 +809,7 @@ func TransactionSort(rawtxs []*Transaction) []*Transaction {
 //FullHash 交易的fullhash包含交易的签名信息，
 //这里做了clone 主要是因为 Encode 可能会修改 tx 的 Size 字段，可能会引起data race
 func (tx *Transaction) FullHash() []byte {
-	copytx := clone(tx)
+	copytx := tx.Clone()
 	data := Encode(copytx)
 	return common.Sha256(data)
 }
