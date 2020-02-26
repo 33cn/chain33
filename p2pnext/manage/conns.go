@@ -89,6 +89,7 @@ func (s *ConnManager) connectSeeds(seeds []string) {
 			log.Error("ConnectSeeds  Connect", "err", err)
 			continue
 		}
+		s.Add(peerinfo)
 		s.pstore.AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.PermanentAddrTTL)
 	}
 }
