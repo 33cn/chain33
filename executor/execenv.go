@@ -220,16 +220,6 @@ func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	return r, err
 }
 
-func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec := e.loadDriver(tx, index)
-	return exec.ExecLocal(tx, r, index)
-}
-
-func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec := e.loadDriver(tx, index)
-	return exec.ExecDelLocal(tx, r, index)
-}
-
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
 	types.AssertConfig(e.api)
 	cfg := e.api.GetConfig()
@@ -600,7 +590,8 @@ func (e *executor) execLocalSameTime(tx *types.Transaction, receipt *types.Recei
 }
 
 func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := e.execLocal(tx, r, index)
+	exec := e.loadDriver(tx, index)
+	kv, err := exec.ExecLocal(tx, r, index)
 	if err == types.ErrActionNotSupport {
 		return nil, nil
 	}
@@ -611,7 +602,8 @@ func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, inde
 }
 
 func (e *executor) execDelLocalTx(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := e.execDelLocal(tx, r, index)
+	exec := e.loadDriver(tx, index)
+	kv, err := exec.ExecDelLocal(tx, r, index)
 	if err == types.ErrActionNotSupport {
 		return nil, nil
 	}
