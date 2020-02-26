@@ -106,8 +106,7 @@ Jump:
 
 //p2pserver 端接收处理事件
 func (p *PeerInfoProtol) OnReq(req *types.MessagePeerInfoReq, s core.Stream) {
-
-	log.Info("OnReq", "peerproto", s.Protocol(), "req", req)
+	log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
 
 	peerinfo := p.getLoacalPeerInfo()
 	peerID := p.GetHost().ID()
@@ -121,8 +120,6 @@ func (p *PeerInfoProtol) OnReq(req *types.MessagePeerInfoReq, s core.Stream) {
 		log.Error("SendProtoMessage", "err", err)
 		return
 	}
-
-	log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String())
 
 }
 
@@ -147,6 +144,7 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		s, err := p.SendToStream(remoteId, req, PeerInfoReq, p.GetHost())
 		if err != nil {
 			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", remoteId)
+			p.GetConnsManager().Delete(rID)
 			continue
 		}
 		var resp types.MessagePeerInfoResp

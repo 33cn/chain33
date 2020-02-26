@@ -6,6 +6,7 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	multiaddr "github.com/multiformats/go-multiaddr"
 
 	//net "github.com/libp2p/go-libp2p-core/network"
@@ -18,14 +19,16 @@ var (
 )
 
 type ConnManager struct {
-	host   core.Host
-	pstore peerstore.Peerstore
+	host             core.Host
+	pstore           peerstore.Peerstore
+	bandwidthTracker *metrics.BandwidthCounter
 }
 
-func NewConnManager(host core.Host) *ConnManager {
+func NewConnManager(host core.Host, tracker *metrics.BandwidthCounter) *ConnManager {
 	connM := &ConnManager{}
 	connM.pstore = host.Peerstore()
 	connM.host = host
+	connM.bandwidthTracker = tracker
 	return connM
 
 }
@@ -52,16 +55,26 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			tduration := s.pstore.LatencyEWMA(pid)
 			log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
 		}
-		log.Info("---------------------------------")
+		log.Info("------------BandTracker--------------")
+		bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
+		for pid, stat := range bandByPeer {
+			log.Info("BandwidthTracker",
+				"pid", pid,
+				"RateIn bytes/seconds", stat.RateIn,
+				"RateOut  bytes/seconds", stat.RateOut,
+				"TotalIn", stat.TotalIn,
+				"TotalOut", stat.TotalOut)
+		}
 
+		log.Info("-------------------------------------")
 		time.Sleep(time.Second * 5)
 		if s.Size() == 0 {
-			s.connectSeeds(seeds, host)
+			s.connectSeeds(seeds)
 		}
 	}
 }
 
-func (s *ConnManager) connectSeeds(seeds []string, host core.Host) {
+func (s *ConnManager) connectSeeds(seeds []string) {
 
 	for _, seed := range seeds {
 		addr, _ := multiaddr.NewMultiaddr(seed)
@@ -95,8 +108,9 @@ func (s *ConnManager) Get(pid peer.ID) peer.AddrInfo {
 func (s *ConnManager) Fetch() []string {
 
 	var pids []string
+	bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 
-	for _, pid := range s.pstore.PeersWithAddrs() {
+	for pid, _ := range bandByPeer {
 		if pid.Validate() == nil {
 			pids = append(pids, pid.Pretty())
 
@@ -106,7 +120,8 @@ func (s *ConnManager) Fetch() []string {
 }
 
 func (s *ConnManager) Size() int {
+	bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 
-	return s.pstore.PeersWithAddrs().Len()
+	return len(bandByPeer)
 
 }

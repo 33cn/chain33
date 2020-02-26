@@ -6,6 +6,7 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	uuid "github.com/google/uuid"
 
@@ -109,6 +110,9 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		stream, err := h.SendToStream(pid, headerReq, HeaderInfoReq, h.GetHost())
 		if err != nil {
 			log.Error("handleEvent", "SendProtoMessage", err)
+			rID, _ := peer.IDB58Decode(pid)
+			h.GetConnsManager().Delete(rID)
+
 			continue
 		}
 		var resp types.MessageHeaderResp

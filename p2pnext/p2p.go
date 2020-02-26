@@ -26,16 +26,15 @@ import (
 var logger = l.New("module", "p2pnext")
 
 type P2P struct {
-	chainCfg         *types.Chain33Config
-	host             core.Host
-	discovery        *Discovery
-	connManag        *manage.ConnManager
-	peerInfoManag    *manage.PeerInfoManager
-	api              client.QueueProtocolAPI
-	client           queue.Client
-	Done             chan struct{}
-	bandwidthTracker *metrics.BandwidthCounter
-	Node             *Node
+	chainCfg      *types.Chain33Config
+	host          core.Host
+	discovery     *Discovery
+	connManag     *manage.ConnManager
+	peerInfoManag *manage.PeerInfoManager
+	api           client.QueueProtocolAPI
+	client        queue.Client
+	Done          chan struct{}
+	Node          *Node
 }
 
 func New(cfg *types.Chain33Config) *P2P {
@@ -83,12 +82,12 @@ func New(cfg *types.Chain33Config) *P2P {
 		panic(err)
 	}
 	p2p := &P2P{host: host}
-	p2p.connManag = manage.NewConnManager(p2p.host)
+	p2p.connManag = manage.NewConnManager(p2p.host, bandwidthTracker)
 	p2p.peerInfoManag = manage.NewPeerInfoManager()
 	p2p.chainCfg = cfg
 	p2p.discovery = new(Discovery)
 	p2p.Node = NewNode(p2p, cfg)
-	p2p.bandwidthTracker = bandwidthTracker
+	//p2p.bandwidthTracker = bandwidthTracker
 	logger.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 	return p2p
 }
@@ -153,22 +152,9 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 	protocol.Init(globalData)
 	go p.managePeers()
 	go p.processP2P()
-	go p.showBandwidthTracker()
 
 }
-func (p *P2P) showBandwidthTracker() {
-	for {
-		logger.Info("------------BandTracker--------------")
-		bandByPeer := p.bandwidthTracker.GetBandwidthByPeer()
-		for pid, stat := range bandByPeer {
-			logger.Info("BandwidthTracker", "pid", pid, "RateIn bytes/seconds", stat.RateIn, "RateOut  bytes/seconds", stat.RateOut,
-				"TotalIn", stat.TotalIn, "TotalOut", stat.TotalOut)
-		}
-		logger.Info("-------------------------------------")
-		time.Sleep(time.Second * 10)
 
-	}
-}
 func (p *P2P) processP2P() {
 
 	p.client.Sub("p2p")
@@ -183,7 +169,7 @@ func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 
 	err := p.host.Connect(context.Background(), pr)
 	if err != nil {
-		logger.Error("newConn", "Connect err", err, "remoteID", pr.ID)
+		//logger.Error("newConn", "Connect err", err, "remoteID", pr.ID)
 		return err
 	}
 	p.connManag.Add(pr, peerstore.RecentlyConnectedAddrTTL)
