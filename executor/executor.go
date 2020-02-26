@@ -526,6 +526,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 
 	for i := len(b.Txs) - 1; i >= 0; i-- {
 		tx := b.Txs[i]
+		execute.localDB.(*LocalDB).StartTx()
 		kv, err := execute.execDelLocalTx(tx, datas.Receipts[i], i)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
