@@ -82,7 +82,7 @@ func New(cfg *types.Chain33Config) *P2P {
 
 func (p *P2P) managePeers() {
 
-	go p.connManag.MonitorAllPeers()
+	go p.connManag.MonitorAllPeers(p.Node.p2pCfg.Seeds, p.host)
 	peerChan, err := p.discovery.FindPeers(context.Background(), p.host, p.Node.p2pCfg.Seeds)
 	if err != nil {
 		panic("PeerFind Err")
@@ -108,6 +108,7 @@ func (p *P2P) managePeers() {
 	}
 
 }
+
 func (p *P2P) Wait() {
 
 }

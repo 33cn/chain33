@@ -8,7 +8,7 @@ import (
 	"time"
 
 	//"github.com/libp2p/go-libp2p-core/peerstore"
-	//multiaddr "github.com/multiformats/go-multiaddr"
+	multiaddr "github.com/multiformats/go-multiaddr"
 
 	//"fmt"
 
@@ -98,7 +98,6 @@ Jump:
 		peerinfo.Addr = splites[2]
 
 	} else {
-		//log.Info("exnalAddr", externalAddr)
 		peerinfo.Addr = strings.Split(externalAddr, "/")[2]
 	}
 	return &peerinfo
@@ -144,11 +143,12 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		s, err := p.Host.NewStream(context.Background(), rID, PeerInfoReq)
 		if err != nil {
 			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", rID)
-			//p.GetConnsManager().Delete(remoteId)
+			p.GetConnsManager().Delete(rID)
 			continue
 		}
 
 		log.Info("peerInfo", "s.Proto", s.Protocol())
+		recordStart := time.Now().UnixNano()
 		err = p.SendProtoMessage(req, s)
 		if err != nil {
 			log.Error("PeerInfo", "sendProtMessage err", err)
@@ -160,6 +160,8 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 			log.Error("PeerInfo", "ReadProtoMessage err", err)
 			continue
 		}
+		recordEnd := time.Now().UnixNano()
+		p.GetConnsManager().RecoredLatency(rID, time.Duration((recordEnd-recordStart)/1e6))
 		peerinfos = append(peerinfos, resp.GetMessage())
 
 	}
@@ -173,6 +175,12 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 			continue
 		}
 		break
+	}
+
+	var seedMap = make(map[string]interface{})
+	for _, seed := range p.p2pCfg.Seeds {
+		seedSplit := strings.Split(seed, "/")
+		seedMap[seedSplit[len(seedSplit)-1]] = seed
 	}
 	pid := p.GetHost().ID()
 	for _, remoteId := range p.GetConnsManager().Fetch() {
@@ -195,9 +203,9 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		s, err := p.Host.NewStream(context.Background(), rID, PeerVersionReq)
 		if err != nil {
 			log.Error("NewStream", "err", err, "remoteID", rID)
-			if err.Error() == "dial backoff" {
-				p.GetConnsManager().Delete(rID)
-			}
+			//if err.Error() == "dial backoff" {
+			p.GetConnsManager().Delete(rID)
+			//}
 			continue
 		}
 		version.AddrFrom = s.Conn().LocalMultiaddr().String()
@@ -214,18 +222,18 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 			continue
 		}
 		log.Info("DetectAddr", "resp", resp)
-		log.Info("DetectNodeAddr", "externalAddr", externalAddr, "GetAddrRecv", resp.GetMessage().GetAddrRecv())
+		//log.Info("DetectNodeAddr", "externalAddr", externalAddr, "GetAddrRecv", resp.GetMessage().GetAddrRecv())
 
-		if externalAddr == "" {
-			externalAddr = resp.GetMessage().GetAddrRecv()
-			log.Info("DetectNodeAddr", "externalAddr", externalAddr)
-			/*addrs := p.GetHost().Addrs()
-			saddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", externalAddr, p.p2pCfg.Port))
-			addrs = append(addrs, saddr)
-			p.GetHost().Peerstore().SetAddrs(p.GetHost().ID(), addrs, peerstore.PermanentAddrTTL)*/
+		//if externalAddr == "" {
+		externalAddr = resp.GetMessage().GetAddrRecv()
+		log.Info("DetectNodeAddr", "externalAddr", externalAddr)
+		//要判断是否是自身局域网的其他节点
+		if _, ok := seedMap[remoteId]; !ok {
+			continue
 		}
 
 		break
+		//	}
 
 	}
 

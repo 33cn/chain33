@@ -1,13 +1,14 @@
 package manage
 
 import (
-	"sync"
-
+	"context"
 	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
+	core "github.com/libp2p/go-libp2p-core"
+	multiaddr "github.com/multiformats/go-multiaddr"
 
-	net "github.com/libp2p/go-libp2p-core/network"
+	//net "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 )
@@ -17,7 +18,6 @@ var (
 )
 
 type ConnManager struct {
-	store  sync.Map
 	pstore peerstore.Peerstore
 }
 
@@ -27,43 +27,72 @@ func NewConnManager(ps peerstore.Peerstore) *ConnManager {
 	return connM
 
 }
-func (s *ConnManager) MonitorAllPeers() {
+
+func (s *ConnManager) RecoredLatency(pid peer.ID, ttl time.Duration) {
+	s.pstore.RecordLatency(pid, ttl)
+}
+
+func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration {
+	var tds = make(map[string]time.Duration)
+	for _, pid := range pids {
+		duration := s.pstore.LatencyEWMA(pid)
+		tds[pid.Pretty()] = duration
+	}
+
+	return tds
+}
+
+func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	for {
+		log.Info("--------------时延--------------------")
 		for _, pid := range s.pstore.PeersWithAddrs() {
+			//统计每个节点的时延
 			tduration := s.pstore.LatencyEWMA(pid)
-			log.Info("MonitorAllPeers", "timeDuration", tduration)
+			log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
 		}
+		log.Info("---------------------------------")
+
 		time.Sleep(time.Second * 5)
+		if s.Size() == 0 {
+			s.connectSeeds(seeds, host)
+		}
+	}
+}
+
+func (s *ConnManager) connectSeeds(seeds []string, host core.Host) {
+
+	for _, seed := range seeds {
+		addr, _ := multiaddr.NewMultiaddr(seed)
+		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
+		if err != nil {
+			panic(err)
+		}
+
+		err = host.Connect(context.Background(), *peerinfo)
+		if err != nil {
+			log.Error("ConnectSeeds  Connect", "err", err)
+			continue
+		}
+		s.pstore.AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.PermanentAddrTTL)
 	}
 }
 
 func (s *ConnManager) Add(pr peer.AddrInfo, ttl time.Duration) {
-	//s.store.Store(pid, conn)
 	s.pstore.AddAddrs(pr.ID, pr.Addrs, ttl)
 }
 func (s *ConnManager) Delete(pid peer.ID) {
-	//s.store.Delete(pid)
 	s.pstore.ClearAddrs(pid)
 
 }
 
-func (s *ConnManager) Get(id string) net.Conn {
-	v, ok := s.store.Load(id)
-	if ok {
-		return v.(net.Conn)
-	}
-	return nil
+func (s *ConnManager) Get(pid peer.ID) peer.AddrInfo {
+	return s.pstore.PeerInfo(pid)
 }
 
 func (s *ConnManager) Fetch() []string {
 
 	var pids []string
-	/*s.store.Range(func(k, v interface{}) bool {
-		pids = append(pids, k.(string))
-		return true
-	})
 
-	return pids*/
 	for _, pid := range s.pstore.PeersWithAddrs() {
 		if pid.Validate() == nil {
 			pids = append(pids, pid.Pretty())
@@ -74,13 +103,7 @@ func (s *ConnManager) Fetch() []string {
 }
 
 func (s *ConnManager) Size() int {
-	/*	var pids []string
-		s.store.Range(func(k, v interface{}) bool {
-			pids = append(pids, k.(string))
-			return true
-		})
 
-		return len(pids)*/
 	return s.pstore.PeersWithAddrs().Len()
 
 }
