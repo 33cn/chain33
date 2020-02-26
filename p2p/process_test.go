@@ -119,7 +119,7 @@ func Test_processP2P(t *testing.T) {
 		for !ltBlockCache.Contains(blockHash) {
 		}
 
-		cpBlock := *ltBlockCache.get(blockHash).(*types.Block)
+		cpBlock := *ltBlockCache.Get(blockHash).(*types.Block)
 		assert.True(t, bytes.Equal(rootHash, merkle.CalcMerkleRoot(cfg, cpBlock.Height, cpBlock.Txs)))
 
 		//query tx
