@@ -19,7 +19,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
+
+	//"github.com/libp2p/go-libp2p-core/peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
@@ -172,7 +173,7 @@ func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 		logger.Error("NewStream", "Connect err", err, "remoteID", pr.ID)
 		return err
 	}
-	p.connManag.Add(pr)
+	p.connManag.Add(&pr)
 
 	return nil
 
