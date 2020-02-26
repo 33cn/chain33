@@ -93,7 +93,7 @@ func (s *ConnManager) connectSeeds(seeds []string) {
 }
 
 func (s *ConnManager) Add(pr *peer.AddrInfo) {
-	s.store.Store(pr.String(), pr)
+	s.store.Store(pr.ID.Pretty(), pr)
 	//s.pstore.AddAddrs(pr.ID, pr.Addrs, ttl)
 }
 
