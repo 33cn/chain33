@@ -524,6 +524,18 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 		}
 	}
 
+	for i := len(b.Txs) - 1; i >= 0; i-- {
+		tx := b.Txs[i]
+		kv, err := execute.execDelLocalTx(tx, datas.Receipts[i], i)
+		if err != nil {
+			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
+			return
+		}
+		if kv != nil && kv.KV != nil {
+			kvset.KV = append(kvset.KV, kv.KV...)
+		}
+	}
+
 	for name, enable := range exec.pluginEnable {
 		plugin, err := plugins.GetPlugin(name)
 		if err != nil {
@@ -540,18 +552,6 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 
 		if kvs != nil && len(kvs.KV) > 0 {
 			kvset.KV = append(kvset.KV, kvs.KV...)
-		}
-	}
-
-	for i := len(b.Txs) - 1; i >= 0; i-- {
-		tx := b.Txs[i]
-		kv, err := execute.execDelLocalTx(tx, datas.Receipts[i], i)
-		if err != nil {
-			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
-			return
-		}
-		if kv != nil && kv.KV != nil {
-			kvset.KV = append(kvset.KV, kv.KV...)
 		}
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventDelBlock, &kvset))
