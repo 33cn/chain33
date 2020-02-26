@@ -83,6 +83,6 @@ func (s *broadCastProtocol) recvLtTx(tx *types.LightTx, pid, peerAddr string) {
 			},
 		}
 		//发布到指定的节点
-		s.queryStream(pid, query)
+		s.sendStream(pid, query)
 	}
 }

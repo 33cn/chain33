@@ -40,12 +40,27 @@ type P2P struct {
 
 func New(cfg *types.Chain33Config) *P2P {
 
-	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.GetModuleConfig().P2P.Port))
+	mcfg := cfg.GetModuleConfig().P2P
+	//TODO 增加P2P channel
+	if mcfg.InnerBounds == 0 {
+		mcfg.InnerBounds = 500
+	}
+	logger.Info("p2p", "InnerBounds", mcfg.InnerBounds)
+
+
+	if mcfg.Port == 0 {
+		mcfg.Port = 13803
+	}
+
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", mcfg.Port))
 	if err != nil {
 		return nil
 	}
+
+
 	localAddr := getNodeLocalAddr()
-	lm, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", localAddr, cfg.GetModuleConfig().P2P.Port))
+	lm, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", localAddr, mcfg.Port))
+	logger.Info("NewMulti", "addr", m.String(), "laddr", lm.String())
 	var addrlist []multiaddr.Multiaddr
 	addrlist = append(addrlist, m)
 	addrlist = append(addrlist, lm)

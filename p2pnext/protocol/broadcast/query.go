@@ -46,7 +46,7 @@ func (s *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid, peerAd
 		}
 		//再次发送完整交易至节点, ttl重设为1
 		p2pTx.Route = &types.P2PRoute{TTL: 1}
-		s.queryStream(pid, p2pTx)
+		s.sendStream(pid, p2pTx)
 
 	} else if blcReq := query.GetBlockTxReq(); blcReq != nil {
 
@@ -63,7 +63,7 @@ func (s *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid, peerAd
 			if len(blockRep.TxIndices) == 0 {
 				blockRep.Txs = block.Txs
 			}
-			s.queryStream(pid, blockRep)
+			s.sendStream(pid, blockRep)
 		}
 	}
 }
@@ -87,7 +87,7 @@ func (s *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid, peer
 	}
 
 	//计算的root hash是否一致
-	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(s.BaseProtocol.ChainCfg,block.GetHeight(),block.Txs)) {
+	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(s.BaseProtocol.ChainCfg, block.GetHeight(), block.Txs)) {
 
 		log.Debug("recvQueryReplyBlock", "blockHeight", block.GetHeight(), "peerAddr", peerAddr,
 			"block size(KB)", float32(block.Size())/1024, "blockHash", rep.BlockHash)
@@ -107,7 +107,7 @@ func (s *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid, peer
 			},
 		}
 		//pub to specified peer
-		s.queryStream(pid, query)
+		s.sendStream(pid, query)
 		block.Txs = nil
 		s.ltBlockCache.Add(rep.BlockHash, block, int64(block.Size()))
 	}
