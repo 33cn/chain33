@@ -639,7 +639,6 @@ func (e *executor) checkLocalKV(tx *types.Transaction, kv *types.LocalDBSet) (*t
 	return kv, nil
 }
 
-// TODO setup plugin env
 func (e *executor) execLocalPlugin(enable bool, plugin plugins.Plugin, name string, datas *types.BlockDetail) (kvset *types.LocalDBSet, ok bool, err error) {
 	e.localDB.(*LocalDB).StartTx()
 	plugin.SetEnv(e.height, e.blocktime, e.difficulty)
@@ -655,7 +654,7 @@ func (e *executor) execLocalPlugin(enable bool, plugin plugins.Plugin, name stri
 	if !ok {
 		return nil, ok, nil
 	}
-	if len(kvs) > 0 {
+	if kvs != nil && len(kvs) > 0 {
 		kvset.KV = append(kvset.KV, kvs...)
 	}
 	kvs, err = plugin.ExecLocal(datas)
@@ -693,14 +692,14 @@ func (e *executor) execDelLocalPlugin(enable bool, plugin plugins.Plugin, name s
 	if !ok {
 		return nil, ok, nil
 	}
-	if len(kvs) > 0 {
+	if kvs != nil && len(kvs) > 0 {
 		kvset.KV = append(kvset.KV, kvs...)
 	}
 	kvs, err = plugin.ExecDelLocal(datas)
 	if err != nil {
 		return nil, false, err
 	}
-	if len(kvs) > 0 {
+	if kvs != nil && len(kvs) > 0 {
 		kvset.KV = append(kvset.KV, kvs...)
 	}
 
