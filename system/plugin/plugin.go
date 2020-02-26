@@ -6,6 +6,8 @@
 package plugin
 
 import (
+	"fmt"
+
 	"github.com/33cn/chain33/client"
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -18,6 +20,11 @@ var globalPlugins = make(map[string]func() Plugin)
 
 // queryName -> pluginName -> call plugin.Query(...)
 var queryFuns = make(map[string]string)
+
+// Prefix 插件前缀
+func Prefix(name string) []byte {
+	return []byte(fmt.Sprintf("%s-%s-", types.LocalPluginPrefix, name))
+}
 
 // RegisterQuery Register Query function
 func RegisterQuery(query, plugin string) {
