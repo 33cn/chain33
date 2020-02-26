@@ -6,6 +6,8 @@ import (
 
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	core "github.com/libp2p/go-libp2p-core"
@@ -96,16 +98,11 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 	}
 
 	msg.Reply(h.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	log.Info("handlerEvent", "conns num", h.GetConnsManager().Fetch())
+	//log.Info("handlerEvent", "conns num", h.GetConnsManager().Fetch())
 
 	for _, pid := range pids {
 
 		log.Info("handleEvent", "pid", pid, "start", req.GetStart(), "end", req.GetEnd())
-		pConn := h.GetConnsManager().Get(pid)
-		if pConn == nil {
-			log.Error("handleEvent", "no is conn from ", pid)
-			continue
-		}
 
 		p2pgetheaders := &types.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
 			Version: 0}
@@ -115,21 +112,32 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 			Message: p2pgetheaders}
 
 		// headerReq.MessageData.Sign = signature
-		stream, err := h.Host.NewStream(context.Background(), pConn.RemotePeer(), HeaderInfoReq)
+		rID, err := peer.IDB58Decode(pid)
 		if err != nil {
-			log.Error("NewStream", "err", err, "peerID", pConn.RemotePeer())
-			h.BaseProtocol.ConnManager.Delete(pConn.RemotePeer().Pretty())
+			continue
+		}
+		stream, err := h.Host.NewStream(context.Background(), rID, HeaderInfoReq)
+		if err != nil {
+			log.Error("NewStream", "err", err, "peerID", pid)
+			if err.Error() == "dial backoff" {
+				h.GetConnsManager().Delete(rID)
+			}
+
 			continue
 		}
 		//发送请求
 		if err := h.SendProtoMessage(headerReq, stream); err != nil {
 			log.Error("handleEvent", "SendProtoMessage", err)
+			stream.Close()
+			continue
 		}
 
 		var resp types.MessageHeaderResp
 		err = h.ReadProtoMessage(&resp, stream)
 		if err != nil {
 			log.Error("handleEvent", "ReadProtoMessage", err)
+			stream.Close()
+			continue
 		}
 		log.Info("handleEvent EventAddBlockHeaders", "pid", pid, "headers", resp.GetMessage().GetHeaders()[0])
 		client := h.GetQueueClient()
@@ -137,9 +145,12 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		err = client.Send(msg, false)
 		if err != nil {
 			log.Error("handleEvent send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
+			stream.Close()
+			continue
 		}
 
 		stream.Close()
+		break
 
 	}
 

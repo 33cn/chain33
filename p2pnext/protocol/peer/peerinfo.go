@@ -5,9 +5,14 @@ import (
 	"strconv"
 	"strings"
 
-	//	"github.com/33cn/chain33/cmd/tools/gencode/dappcode/proto"
-
 	"time"
+
+	//"github.com/libp2p/go-libp2p-core/peerstore"
+	//multiaddr "github.com/multiformats/go-multiaddr"
+
+	//"fmt"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
@@ -42,20 +47,10 @@ type PeerInfoProtol struct {
 }
 
 func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
-	//p.BaseProtocol = new(prototypes.BaseProtocol)
-	//p.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	p.GlobalData = data
 	p.p2pCfg = data.ChainCfg.GetModuleConfig().P2P
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 	go p.DetectNodeAddr()
-
-}
-
-func (p *PeerInfoProtol) OnResp(peerinfo *types.P2PPeerInfo, s core.Stream) {
-	peerId := s.Conn().RemotePeer().Pretty()
-
-	p.GetPeerInfoManager().Store(peerId, peerinfo)
-	log.Info("OnResp Received peerinfo response ", "from", s.Conn().RemotePeer(), "to", s.Conn().LocalPeer())
 
 }
 
@@ -103,6 +98,7 @@ Jump:
 		peerinfo.Addr = splites[2]
 
 	} else {
+		log.Info("exnalAddr", externalAddr)
 		peerinfo.Addr = strings.Split(externalAddr, "/")[2]
 	}
 	return &peerinfo
@@ -136,13 +132,19 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var peerinfos []*types.P2PPeerInfo
-	for _, v := range p.GetConnsManager().Fetch() {
-
-		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
-		s, err := p.Host.NewStream(context.Background(), v.RemotePeer(), PeerInfoReq)
+	for _, remoteId := range p.GetConnsManager().Fetch() {
+		if remoteId == p.GetHost().ID().Pretty() {
+			continue
+		}
+		rID, err := peer.IDB58Decode(remoteId)
 		if err != nil {
-			log.Error("NewStream", "err", err)
-			p.GetConnsManager().Delete(v.RemotePeer().Pretty())
+			continue
+		}
+		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
+		s, err := p.Host.NewStream(context.Background(), rID, PeerInfoReq)
+		if err != nil {
+			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", rID)
+			//p.GetConnsManager().Delete(remoteId)
 			continue
 		}
 
@@ -150,19 +152,15 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		err = p.SendProtoMessage(req, s)
 		if err != nil {
 			log.Error("PeerInfo", "sendProtMessage err", err)
-			s.Close()
 			continue
 		}
 		var resp types.MessagePeerInfoResp
 		err = p.ReadProtoMessage(&resp, s)
 		if err != nil {
 			log.Error("PeerInfo", "ReadProtoMessage err", err)
-			s.Close()
 			continue
 		}
 		peerinfos = append(peerinfos, resp.GetMessage())
-		//p.OnResp(resp.GetMessage(), s)
-		s.Close()
 
 	}
 	return peerinfos
@@ -176,39 +174,55 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		}
 		break
 	}
+	pid := p.GetHost().ID()
+	for _, remoteId := range p.GetConnsManager().Fetch() {
+		if remoteId == p.GetHost().ID().Pretty() {
+			continue
+		}
 
-	for _, conn := range p.GetConnsManager().Fetch() {
 		var version types.P2PVersion
-		version.AddrFrom = conn.LocalMultiaddr().String()
-		version.AddrRecv = conn.RemoteMultiaddr().String()
-		pid := p.GetHost().ID()
+
 		pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 
 		req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
 			Message: &version}
-		s, err := p.Host.NewStream(context.Background(), conn.RemotePeer(), PeerVersionReq)
+
+		rID, err := peer.IDB58Decode(remoteId)
 		if err != nil {
-			log.Error("NewStream", "err", err)
-			p.GetConnsManager().Delete(conn.RemotePeer().Pretty())
 			continue
 		}
 
+		s, err := p.Host.NewStream(context.Background(), rID, PeerVersionReq)
+		if err != nil {
+			log.Error("NewStream", "err", err, "remoteID", rID)
+			if err.Error() == "dial backoff" {
+				p.GetConnsManager().Delete(rID)
+			}
+			continue
+		}
+		version.AddrFrom = s.Conn().LocalMultiaddr().String()
+		version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 		err = p.SendProtoMessage(req, s)
 		if err != nil {
 			log.Error("DetectNodeAddr", "SendProtoMessage err", err)
-			p.GetConnsManager().Delete(conn.RemotePeer().Pretty())
 			continue
 		}
 		var resp types.MessageP2PVersionResp
 		err = p.ReadProtoMessage(&resp, s)
 		if err != nil {
 			log.Error("DetectNodeAddr", "ReadProtoMessage err", err)
-			p.GetConnsManager().Delete(conn.RemotePeer().Pretty())
 			continue
 		}
 		log.Info("DetectAddr", "resp", resp)
+		log.Info("DetectNodeAddr", "externalAddr", externalAddr, "GetAddrRecv", resp.GetMessage().GetAddrRecv())
+
 		if externalAddr == "" {
 			externalAddr = resp.GetMessage().GetAddrRecv()
+			log.Info("DetectNodeAddr", "externalAddr", externalAddr)
+			/*addrs := p.GetHost().Addrs()
+			saddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", externalAddr, p.p2pCfg.Port))
+			addrs = append(addrs, saddr)
+			p.GetHost().Peerstore().SetAddrs(p.GetHost().ID(), addrs, peerstore.PermanentAddrTTL)*/
 		}
 
 		break

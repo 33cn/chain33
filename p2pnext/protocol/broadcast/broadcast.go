@@ -2,10 +2,10 @@ package broadcast
 
 import (
 	"context"
-	"errors"
+	//	"errors"
 	"time"
 
-	//uuid "github.com/google/uuid"
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	core "github.com/libp2p/go-libp2p-core"
@@ -101,9 +101,9 @@ func (h *broadCastHandler) VerifyRequest(data []byte) bool {
 func (s *broadCastProtocol) handleEvent(msg *queue.Message) {
 
 	data := msg.GetData()
-	conns := s.GetConnsManager().Fetch()
-	for _, scon := range conns {
-		stream, err := s.Host.NewStream(context.Background(), scon.RemotePeer(), ID)
+	pids := s.GetConnsManager().Fetch()
+	for _, pid := range pids {
+		stream, err := s.Host.NewStream(context.Background(), peer.ID(pid), ID)
 		if err != nil {
 			log.Error("NewStream", "err", err)
 			continue
@@ -147,8 +147,8 @@ func (s *broadCastProtocol) sendStream(stream net.Stream, data interface{}) erro
 	err := s.SendProtoMessage(broadData, stream)
 	if err != nil {
 		stream.Close()
-		s.GetConnsManager().Delete(pid)
-		return errors.New("SendStreamErr")
+		//s.GetConnsManager().Delete(pid)
+		return err
 	}
 
 	return nil

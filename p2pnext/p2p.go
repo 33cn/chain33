@@ -26,15 +26,16 @@ import (
 var logger = l.New("module", "p2pnext")
 
 type P2P struct {
-	chainCfg      *types.Chain33Config
-	host          core.Host
-	discovery     *Discovery
-	connManag     *manage.ConnManager
-	peerInfoManag *manage.PeerInfoManager
-	api           client.QueueProtocolAPI
-	client        queue.Client
-	Done          chan struct{}
-	Node          *Node
+	chainCfg         *types.Chain33Config
+	host             core.Host
+	discovery        *Discovery
+	connManag        *manage.ConnManager
+	peerInfoManag    *manage.PeerInfoManager
+	api              client.QueueProtocolAPI
+	client           queue.Client
+	Done             chan struct{}
+	bandwidthTracker *metrics.BandwidthCounter
+	Node             *Node
 }
 
 func New(cfg *types.Chain33Config) *P2P {
@@ -69,78 +70,39 @@ func New(cfg *types.Chain33Config) *P2P {
 		panic(err)
 	}
 	p2p := &P2P{host: host}
-	p2p.connManag = manage.NewConnManager()
+	p2p.connManag = manage.NewConnManager(p2p.host.Peerstore())
 	p2p.peerInfoManag = manage.NewPeerInfoManager()
 	p2p.chainCfg = cfg
 	p2p.discovery = new(Discovery)
 	p2p.Node = NewNode(p2p, cfg)
-
+	p2p.bandwidthTracker = bandwidthTracker
 	logger.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 	return p2p
-
 }
 
 func (p *P2P) managePeers() {
-	for _, seed := range p.Node.p2pCfg.Seeds {
-		addr, _ := multiaddr.NewMultiaddr(seed)
-		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			panic(err)
-		}
-		err = p.host.Connect(context.Background(), *peerinfo)
-		if err != nil {
-			logger.Error("Host Connect", "err", err)
-			return
-		}
 
-		peers := p.host.Peerstore().Peers()
-
-		for _, v := range peers {
-			logger.Info("managePeers", "peerStore,peerID", v)
-		}
-		logger.Info("managePeers", "pid:", peerinfo.ID, "addr", peerinfo.Addrs)
-		_, err = p.newStream(context.Background(), *peerinfo)
-		if err != nil {
-			logger.Error("newStream", err.Error(), "")
-
-		}
-
-	}
-	peerChan, err := p.discovery.FindPeers(context.Background(), p.host)
+	peerChan, err := p.discovery.FindPeers(context.Background(), p.host, p.Node.p2pCfg.Seeds)
 	if err != nil {
 		panic("PeerFind Err")
 	}
 
-	for {
-		select {
-		case <-p.Done:
-			return
-		case peer := <-peerChan:
-			if len(peer.Addrs) == 0 {
-				continue
-			}
-			if peer.ID == p.host.ID() {
-				break
-			}
+	for peer := range peerChan {
+		logger.Info("find peer", "peer", peer)
+		if peer.ID.Pretty() == p.host.ID().Pretty() {
+			logger.Info("Find self...", p.host.ID(), "")
+			continue
+		}
+		logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
+			"peer", peer.String())
 
-			if peer.ID == p.host.ID() {
-				logger.Info("Find self...")
-				continue
-			}
-			logger.Info("p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
-				"peer", peer.String())
-
-			p.newStream(context.Background(), peer)
-		Recheck:
-			if p.connManag.Size() >= 25 {
-				//达到连接节点数最大要求
-				time.Sleep(time.Second * 10)
-				goto Recheck
-			}
-
-		case <-p.Done:
-			return
-
+		logger.Info("All Peers", "PeersWithAddrs", p.host.Peerstore().PeersWithAddrs())
+		p.newConn(context.Background(), peer)
+	Recheck:
+		if p.connManag.Size() >= 25 {
+			//达到连接节点数最大要求
+			time.Sleep(time.Second * 10)
+			goto Recheck
 		}
 	}
 
@@ -176,9 +138,21 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 	protocol.Init(globalData)
 	go p.managePeers()
 	go p.processP2P()
+	go p.showBandwidthTracker()
 
 }
+func (p *P2P) showBandwidthTracker() {
+	for {
+		bandByPeer := p.bandwidthTracker.GetBandwidthByPeer()
+		for pid, stat := range bandByPeer {
+			logger.Info("showBandwidthTracker", "pid", pid, "RateIn bytes/seconds", stat.RateIn, "RateOut  bytes/seconds", stat.RateOut,
+				"TotalIn", stat.TotalIn, "TotalOut", stat.TotalOut)
+		}
 
+		time.Sleep(time.Second * 10)
+
+	}
+}
 func (p *P2P) processP2P() {
 
 	p.client.Sub("p2p")
@@ -189,18 +163,15 @@ func (p *P2P) processP2P() {
 	}
 }
 
-func (p *P2P) newStream(ctx context.Context, pr peer.AddrInfo) (core.Stream, error) {
+func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 
-	//可以后续添加 block.ID,mempool.ID,header.ID
-	p.host.Peerstore().AddAddrs(pr.ID, pr.Addrs, peerstore.TempAddrTTL)
-	logger.Info("newStream", "MsgIds size", len(protocol.MsgIDs), "msgIds", protocol.MsgIDs)
-	stream, err := p.host.NewStream(ctx, pr.ID, protocol.MsgIDs...)
+	err := p.host.Connect(context.Background(), pr)
 	if err != nil {
-		return nil, err
+		logger.Error("newConn", "Connect err", err, "remoteID", pr.ID)
+		return err
 	}
-	defer stream.Close()
-	logger.Info("NewStream","Piddddddddd",pr.ID)
-	p.connManag.Add(pr.ID.String(), stream.Conn())
-	return stream, nil
+	p.connManag.Add(pr, peerstore.ProviderAddrTTL)
+
+	return nil
 
 }

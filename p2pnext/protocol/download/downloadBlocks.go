@@ -4,6 +4,7 @@ import (
 	"errors"
 	//"bufio"
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -127,7 +128,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	err = d.SendProtoMessage(blocksResp, s)
 	if err != nil {
 		log.Error("SendProtoMessage", "err", err)
-		d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
+		//d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
 		return
 	}
 
@@ -157,7 +158,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	for height := req.GetStart(); height <= req.GetEnd(); height++ {
 		wg.Add(1)
 	Wait:
-		if maxgoroutin > 30 {
+		if maxgoroutin > 50 {
 			time.Sleep(time.Millisecond * 200)
 			goto Wait
 		}
@@ -188,7 +189,7 @@ ReDownload:
 	if retryCount > 50 {
 		return errors.New("beyound max try count 50")
 	}
-	freeJob := d.getFreeJobStream(jbs)
+	freeJob := d.getFreeJob(jbs)
 	if freeJob == nil {
 		time.Sleep(time.Millisecond * 400)
 		goto ReDownload
@@ -205,11 +206,17 @@ ReDownload:
 	stream, err := d.Host.NewStream(context.Background(), freeJob.Pid, DownloadBlockReq)
 	if err != nil {
 		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
+		//Reconnect
+		if err.Error() == "dial backoff" {
+			d.GetConnsManager().Delete(freeJob.Pid)
+		}
+		d.releaseJob(freeJob)
 		goto ReDownload
 	}
 	defer stream.Close()
 	if err := d.SendProtoMessage(blockReq, stream); err != nil {
 		log.Error("handleEvent", "SendProtoMessageErr", err)
+		d.releaseJob(freeJob)
 		goto ReDownload
 	}
 	log.Info("handleEvent", "sendOk", "beforRead")
@@ -217,26 +224,36 @@ ReDownload:
 	err = d.ReadProtoMessage(&resp, stream)
 	if err != nil {
 		log.Error("handleEvent", "ReadProtoMessage", err)
+		d.releaseJob(freeJob)
 		goto ReDownload
 	}
 
 	block := resp.GetMessage().GetItems()[0].GetBlock()
 	remotePid := freeJob.Pid.Pretty()
 	costTime := (time.Now().UnixNano() - downloadStart) / 1e6
-	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(),
-		"blockSize (bytes)", block.Size(), "costTime ms", costTime)
 
+	rate := float64(block.Size()) / float64(costTime)
+
+	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(),
+		"blockSize (bytes)", block.Size(), "costTime ms", costTime, "rate", fmt.Sprintf("%f KB/s", float64(rate*1000/1024)))
+
+	//TODO 日后统计节点现在速率使用
+	freeJob.rmtx.Lock()
+	freeJob.Rate = append(freeJob.Rate, rate)
+	freeJob.rmtx.Unlock()
 	client := d.GetQueueClient()
 	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: remotePid, Block: block}) //加入到输出通道)
 	client.SendTimeout(newmsg, false, 10*time.Second)
-	d.releaseJobStream(freeJob)
+	d.releaseJob(freeJob)
 	return nil
 }
 
 type JobPeerId struct {
 	Limit int
 	Pid   peer.ID
+	Rate  []float64 //max 128
 	mtx   sync.Mutex
+	rmtx  sync.Mutex
 }
 
 // jobs datastruct
@@ -259,26 +276,27 @@ func (i jobs) Swap(a, b int) {
 
 func (d *DownloadProtol) initJob() jobs {
 	var JobPeerIds jobs
-	conns := d.ConnManager.Fetch()
-	for _, conn := range conns {
+	log.Info("initJob", "peersize", d.GetHost().Peerstore().Peers().Len())
+	pids := d.ConnManager.Fetch()
+	for _, pid := range pids {
+		if pid == d.GetHost().ID().Pretty() {
+			continue
+		}
 		var job JobPeerId
-
-		// stream, err := d.Host.NewStream(context.Background(), conn.RemotePeer(), DownloadBlockReq)
-		// if err != nil {
-		// 	log.Error("NewStream", "err", err)
-		// 	continue
-		// }
-		log.Info("initJob", "pid", conn.RemotePeer().Pretty())
-		job.Pid = conn.RemotePeer()
+		log.Info("initJob", "pid", pid)
+		rID, err := peer.IDB58Decode(pid)
+		if err != nil {
+			continue
+		}
+		job.Pid = rID
 		job.Limit = 0
 		JobPeerIds = append(JobPeerIds, &job)
-
 	}
 
 	return JobPeerIds
 }
 
-func (d *DownloadProtol) getFreeJobStream(js jobs) *JobPeerId {
+func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
 	var MaxJobLimit int = 100
 	sort.Sort(js)
 	for _, job := range js {
@@ -294,7 +312,7 @@ func (d *DownloadProtol) getFreeJobStream(js jobs) *JobPeerId {
 
 }
 
-func (d *DownloadProtol) releaseJobStream(js *JobPeerId) {
+func (d *DownloadProtol) releaseJob(js *JobPeerId) {
 	js.mtx.Lock()
 	defer js.mtx.Unlock()
 	js.Limit--
