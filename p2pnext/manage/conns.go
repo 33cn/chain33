@@ -68,7 +68,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 
 		log.Info("-------------------------------------")
 		time.Sleep(time.Second * 5)
-		if s.Size() == 0 {
+		if s.Size() <= 25 {
 			s.connectSeeds(seeds)
 		}
 	}
@@ -77,6 +77,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 func (s *ConnManager) connectSeeds(seeds []string) {
 
 	for _, seed := range seeds {
+
 		addr, _ := multiaddr.NewMultiaddr(seed)
 		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
 		if err != nil {
@@ -136,4 +137,17 @@ func (s *ConnManager) Size() int {
 
 	return len(s.Fetch())
 
+}
+
+func convertPeers(peers []string) map[string]*peer.AddrInfo {
+	pinfos := make(map[string]*peer.AddrInfo, len(peers))
+	for _, addr := range peers {
+		maddr := multiaddr.StringCast(addr)
+		p, err := peer.AddrInfoFromP2pAddr(maddr)
+		if err != nil {
+			log.Error("convertPeers", "AddrInfoFromP2pAddr", err)
+		}
+		pinfos[p.ID.Pretty()] = p
+	}
+	return pinfos
 }
