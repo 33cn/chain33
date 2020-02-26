@@ -83,12 +83,15 @@ func (s *ConnManager) connectSeeds(seeds []string) {
 		if err != nil {
 			panic(err)
 		}
-
+		if s.Get(peerinfo.ID.Pretty()) != nil {
+			continue
+		}
 		err = s.host.Connect(context.Background(), *peerinfo)
 		if err != nil {
 			log.Error("ConnectSeeds  Connect", "err", err)
 			continue
 		}
+
 		s.Add(peerinfo)
 		s.pstore.AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.PermanentAddrTTL)
 	}
