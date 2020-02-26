@@ -203,9 +203,9 @@ ReDownload:
 	if err != nil {
 		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
 		//Reconnect
-		if err.Error() == "dial backoff" {
-			d.GetConnsManager().Delete(freeJob.Pid)
-		}
+		//if err.Error() == "dial backoff" {
+		d.GetConnsManager().Delete(freeJob.Pid.Pretty())
+		//}
 		d.releaseJob(freeJob)
 		goto ReDownload
 	}

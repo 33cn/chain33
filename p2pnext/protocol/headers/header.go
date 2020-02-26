@@ -111,7 +111,7 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		if err != nil {
 			log.Error("handleEvent", "SendProtoMessage", err)
 			rID, _ := peer.IDB58Decode(pid)
-			h.GetConnsManager().Delete(rID)
+			h.GetConnsManager().Delete(rID.Pretty())
 
 			continue
 		}

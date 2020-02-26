@@ -144,7 +144,12 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		s, err := p.SendToStream(remoteId, req, PeerInfoReq, p.GetHost())
 		if err != nil {
 			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", remoteId)
-			p.GetConnsManager().Delete(rID)
+			if err.Error() == "dial backoff" {
+				maddr := p.GetHost().Peerstore().Addrs(rID)
+				peerinfo, _ := peer.AddrInfoFromP2pAddr(maddr[0])
+				p.GetHost().Connect(context.Background(), *peerinfo)
+			}
+			p.GetConnsManager().Delete(rID.Pretty())
 			continue
 		}
 		var resp types.MessagePeerInfoResp
@@ -198,7 +203,7 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		if err != nil {
 			log.Error("NewStream", "err", err, "remoteID", rID)
 			//if err.Error() == "dial backoff" {
-			p.GetConnsManager().Delete(rID)
+			p.GetConnsManager().Delete(rID.Pretty())
 			//}
 			continue
 		}

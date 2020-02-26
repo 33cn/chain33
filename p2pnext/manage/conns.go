@@ -2,16 +2,15 @@ package manage
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/metrics"
-	multiaddr "github.com/multiformats/go-multiaddr"
-
-	//net "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
+	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 var (
@@ -19,6 +18,7 @@ var (
 )
 
 type ConnManager struct {
+	store            sync.Map
 	host             core.Host
 	pstore           peerstore.Peerstore
 	bandwidthTracker *metrics.BandwidthCounter
@@ -50,7 +50,7 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	for {
 		log.Info("--------------时延--------------------")
-		for _, pid := range s.pstore.PeersWithAddrs() {
+		for _, pid := range s.pstore.Peers() {
 			//统计每个节点的时延
 			tduration := s.pstore.LatencyEWMA(pid)
 			log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
@@ -92,36 +92,48 @@ func (s *ConnManager) connectSeeds(seeds []string) {
 	}
 }
 
-func (s *ConnManager) Add(pr peer.AddrInfo, ttl time.Duration) {
-	s.pstore.AddAddrs(pr.ID, pr.Addrs, ttl)
+func (s *ConnManager) Add(pr *peer.AddrInfo) {
+	s.store.Store(pr.String(), pr)
+	//s.pstore.AddAddrs(pr.ID, pr.Addrs, ttl)
 }
 
-func (s *ConnManager) Delete(pid peer.ID) {
-	s.pstore.ClearAddrs(pid)
+func (s *ConnManager) Delete(pid string) {
+	s.store.Delete(pid)
 
 }
 
-func (s *ConnManager) Get(pid peer.ID) peer.AddrInfo {
-	return s.pstore.PeerInfo(pid)
+func (s *ConnManager) Get(pid string) *peer.AddrInfo {
+	v, ok := s.store.Load(pid)
+	if ok {
+		return v.(*peer.AddrInfo)
+	}
+	return nil
 }
 
 func (s *ConnManager) Fetch() []string {
 
 	var pids []string
-	bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 
-	for pid, _ := range bandByPeer {
-		if pid.Validate() == nil {
-			pids = append(pids, pid.Pretty())
+	s.store.Range(func(k interface{}, v interface{}) bool {
+		pids = append(pids, k.(string))
+		return true
 
-		}
-	}
+	})
+	// bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
+
+	// for pid, _ := range bandByPeer {
+
+	// 	if pid.Validate() == nil {
+	// 		pids = append(pids, pid.Pretty())
+
+	// 	}
+	// }
 	return pids
 }
 
 func (s *ConnManager) Size() int {
-	bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
+	//bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 
-	return len(bandByPeer)
+	return len(s.Fetch())
 
 }

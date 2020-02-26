@@ -108,8 +108,8 @@ func (p *P2P) managePeers() {
 		}
 		logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
 			"peer", peer.String())
-
-		logger.Info("All Peers", "PeersWithAddrs", p.host.Peerstore().PeersWithAddrs())
+		logger.Info("All Peers", "Peers", p.host.Peerstore().Peers(),
+			"peersWithAddress size", len(p.host.Peerstore().PeersWithAddrs()))
 		p.newConn(context.Background(), peer)
 	Recheck:
 		if p.connManag.Size() >= 25 {
@@ -167,12 +167,12 @@ func (p *P2P) processP2P() {
 
 func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 
-	err := p.host.Connect(context.Background(), pr)
+	_, err := p.host.NewStream(context.Background(), pr.ID, protocol.MsgIDs...)
 	if err != nil {
-		//logger.Error("newConn", "Connect err", err, "remoteID", pr.ID)
+		logger.Error("NewStream", "Connect err", err, "remoteID", pr.ID)
 		return err
 	}
-	p.connManag.Add(pr, peerstore.RecentlyConnectedAddrTTL)
+	p.connManag.Add(pr)
 
 	return nil
 

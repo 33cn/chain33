@@ -136,12 +136,12 @@ func (s *BaseStreamHandler) SendToStream(pid string, data proto.Message, msgID p
 	}
 	stream, err := host.NewStream(context.Background(), rID, msgID)
 	if err != nil {
-		log.Error("GetPeerInfo NewStream", "err", err, "remoteID", rID)
+		log.Error(" SendToStream NewStream", "err", err, "remoteID", rID)
 		return nil, err
 	}
 	err = s.SendProtoMessage(data, stream)
 	if err != nil {
-		log.Error("PeerInfo", "sendProtMessage err", err)
+		log.Error("SendToStream", "sendProtMessage err", err)
 	}
 
 	return stream, err
