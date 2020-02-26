@@ -98,7 +98,7 @@ Jump:
 		peerinfo.Addr = splites[2]
 
 	} else {
-		log.Info("exnalAddr", externalAddr)
+		//log.Info("exnalAddr", externalAddr)
 		peerinfo.Addr = strings.Split(externalAddr, "/")[2]
 	}
 	return &peerinfo

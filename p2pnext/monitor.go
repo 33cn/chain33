@@ -8,6 +8,10 @@ import (
 type Monitor struct {
 }
 
+func (m *Monitor) MonitorPstore() {
+	//
+}
+
 func getNodeLocalAddr() string {
 	conn, err := net.Dial("udp", "114.114.114.114:80")
 	if err != nil {

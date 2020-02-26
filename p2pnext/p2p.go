@@ -82,6 +82,7 @@ func New(cfg *types.Chain33Config) *P2P {
 
 func (p *P2P) managePeers() {
 
+	go p.connManag.MonitorAllPeers()
 	peerChan, err := p.discovery.FindPeers(context.Background(), p.host, p.Node.p2pCfg.Seeds)
 	if err != nil {
 		panic("PeerFind Err")
@@ -90,7 +91,7 @@ func (p *P2P) managePeers() {
 	for peer := range peerChan {
 		logger.Info("find peer", "peer", peer)
 		if peer.ID.Pretty() == p.host.ID().Pretty() {
-			logger.Info("Find self...", p.host.ID(), "")
+			logger.Info("Find self...", "ID", p.host.ID())
 			continue
 		}
 		logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
@@ -170,7 +171,7 @@ func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
 		logger.Error("newConn", "Connect err", err, "remoteID", pr.ID)
 		return err
 	}
-	p.connManag.Add(pr, peerstore.ProviderAddrTTL)
+	p.connManag.Add(pr, peerstore.RecentlyConnectedAddrTTL)
 
 	return nil
 

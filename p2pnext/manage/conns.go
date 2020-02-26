@@ -5,9 +5,15 @@ import (
 
 	"time"
 
+	"github.com/33cn/chain33/common/log/log15"
+
 	net "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
+)
+
+var (
+	log = log15.New("module", "p2p.manage")
 )
 
 type ConnManager struct {
@@ -20,6 +26,15 @@ func NewConnManager(ps peerstore.Peerstore) *ConnManager {
 	connM.pstore = ps
 	return connM
 
+}
+func (s *ConnManager) MonitorAllPeers() {
+	for {
+		for _, pid := range s.pstore.PeersWithAddrs() {
+			tduration := s.pstore.LatencyEWMA(pid)
+			log.Info("MonitorAllPeers", "timeDuration", tduration)
+		}
+		time.Sleep(time.Second * 5)
+	}
 }
 
 func (s *ConnManager) Add(pr peer.AddrInfo, ttl time.Duration) {
