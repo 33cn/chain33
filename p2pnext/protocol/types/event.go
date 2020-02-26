@@ -12,7 +12,7 @@ var (
 	eventHandlerMap = make(map[int64]EventHandler)
 )
 
-//注册消息处理函数
+// RegisterEventHandler 注册消息处理函数
 func RegisterEventHandler(eventID int64, handler EventHandler) {
 
 	if handler == nil {
@@ -24,6 +24,7 @@ func RegisterEventHandler(eventID int64, handler EventHandler) {
 	eventHandlerMap[eventID] = handler
 }
 
+// GetEventHandler get event handler
 func GetEventHandler(eventID int64) (EventHandler, bool) {
 	handler, ok := eventHandlerMap[eventID]
 

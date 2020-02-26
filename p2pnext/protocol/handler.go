@@ -7,6 +7,7 @@ import (
 	"github.com/33cn/chain33/queue"
 )
 
+// HandleEvent handle p2p event
 func HandleEvent(msg *queue.Message) {
 
 	if eventHander, ok := types.GetEventHandler(msg.Ty); ok {
