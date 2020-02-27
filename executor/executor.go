@@ -217,11 +217,8 @@ func (exec *Executor) upgradePlugin(plugin string) error {
 	return kvset, nil
 }
 
-// TODO 现在数据生成放到执行器插件中, 查询实现在 system/dapp
-// 如果只修复前缀
-// dapp (前缀函数调用)) -> plugin/one-plugin (前缀实现函数) 会有接口依赖具体插件, 不采用
+// 查询先看是否是查询插件, 不是再查询合约
 // 先暂时采用看函数名, 直接调用plugin 注册的query 函数
-// 相关函数 dapp.DriverBase.GetTxsByAddr
 func (exec *Executor) procExecQuery(msg *queue.Message) {
 	//panic 处理
 	defer func() {
