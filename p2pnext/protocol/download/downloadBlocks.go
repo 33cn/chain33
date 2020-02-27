@@ -120,15 +120,13 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	blocksResp := &types.MessageGetBlocksResp{MessageData: d.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.InvDatas{Items: p2pInvData}}
 
-	log.Info("OnReq", "blocksResp BlockHeight+++++++", blocksResp.Message.GetItems()[0].GetBlock().GetHeight())
 	err = d.SendProtoMessage(blocksResp, s)
 	if err != nil {
 		log.Error("SendProtoMessage", "err", err)
-		//d.GetConnsManager().Delete(s.Conn().RemotePeer().Pretty())
 		return
 	}
 
-	log.Info("%s:  send block response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+	log.Info("OnReq", "blocksResp BlockHeight+++++++", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "send block response to", s.Conn().RemotePeer().String())
 
 }
 
@@ -207,7 +205,6 @@ ReDownload:
 	}
 	defer stream.Close()
 
-	log.Info("handleEvent", "sendOk", "beforRead")
 	var resp types.MessageGetBlocksResp
 	err = d.ReadProtoMessage(&resp, stream)
 	if err != nil {
@@ -222,7 +219,7 @@ ReDownload:
 
 	//rate := float64(block.Size()) / float64(costTime)
 
-	log.Info("download+++++", "to", remotePid, "blockheight", block.GetHeight(),
+	log.Info("download+++++", "from", remotePid, "blockheight", block.GetHeight(),
 		"blockSize (bytes)", block.Size(), "costTime ms", costTime)
 
 	client := d.GetQueueClient()
@@ -291,12 +288,13 @@ func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
 		jb.Latency = latency[jb.Pid.Pretty()]
 	}
 	sort.Sort(js)
+	log.Info("show sort result", js)
 	for _, job := range js {
 		if job.Limit < MaxJobLimit {
 			job.mtx.Lock()
 			job.Limit++
 			job.mtx.Unlock()
-			log.Info("getFreeJob", "job limit", job.Limit, "job latency", job.Latency)
+			log.Info("getFreeJob", " limit", job.Limit, "latency", job.Latency, "peerid", job.Pid)
 			return job
 		}
 	}

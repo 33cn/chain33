@@ -49,11 +49,14 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	for {
+		var peers []string
+		peers = append(peers, seeds)
 		log.Info("--------------时延--------------------")
 		for _, pid := range s.pstore.Peers() {
 			//统计每个节点的时延
 			tduration := s.pstore.LatencyEWMA(pid)
 			log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
+			peers = append(peers, pid.Pretty())
 		}
 		log.Info("------------BandTracker--------------")
 		bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
@@ -68,20 +71,20 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 
 		log.Info("-------------------------------------")
 		time.Sleep(time.Second * 5)
-		if s.Size() <= 25 {
-			s.connectSeeds(seeds)
+		if s.Size() <= 25 { //尝试连接种子节点
+			s.connectPeers(peers, peerstore.ProviderAddrTTL)
 		}
 	}
 }
 
-func (s *ConnManager) connectSeeds(seeds []string) {
+func (s *ConnManager) connectPeers(peers []string, ttl time.Duration) {
 
-	for _, seed := range seeds {
+	for _, peer := range peers {
 
-		addr, _ := multiaddr.NewMultiaddr(seed)
+		addr, _ := multiaddr.NewMultiaddr(peer)
 		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
 		if err != nil {
-			panic(err)
+			continue
 		}
 		if s.Get(peerinfo.ID.Pretty()) != nil {
 			continue
@@ -93,7 +96,7 @@ func (s *ConnManager) connectSeeds(seeds []string) {
 		}
 
 		s.Add(peerinfo)
-		s.pstore.AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.PermanentAddrTTL)
+		s.pstore.AddAddrs(peerinfo.ID, peerinfo.Addrs, ttl)
 	}
 }
 
