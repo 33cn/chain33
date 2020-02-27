@@ -392,6 +392,7 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 	return feelog, nil
 }
 
+// 判断memset, 都有在kvs 里面. 规避合约或插件执行后, 将kv设置在内存中, 但不返回.
 func (e *executor) checkKV(memset []string, kvs []*types.KeyValue) error {
 	keys := make(map[string]bool)
 	for _, kv := range kvs {
