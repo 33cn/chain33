@@ -307,21 +307,6 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 	return receipts, nil
 }
 
-func (e *executor) loadFlag(key []byte) (int64, error) {
-	flag := &types.Int64{}
-	flagBytes, err := e.localDB.Get(key)
-	if err == nil {
-		err = types.Decode(flagBytes, flag)
-		if err != nil {
-			return 0, err
-		}
-		return flag.GetData(), nil
-	} else if err == types.ErrNotFound {
-		return 0, nil
-	}
-	return 0, err
-}
-
 func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	execer := string(tx.Execer)
