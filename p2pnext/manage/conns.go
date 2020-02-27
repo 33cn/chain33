@@ -50,7 +50,7 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	for {
 		var peers []string
-		peers = append(peers, seeds)
+		peers = append(peers, seeds...)
 		log.Info("--------------时延--------------------")
 		for _, pid := range s.pstore.Peers() {
 			//统计每个节点的时延
@@ -77,11 +77,11 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	}
 }
 
-func (s *ConnManager) connectPeers(peers []string, ttl time.Duration) {
+func (s *ConnManager) connectPeers(pids []string, ttl time.Duration) {
 
-	for _, peer := range peers {
+	for _, pid := range pids {
 
-		addr, _ := multiaddr.NewMultiaddr(peer)
+		addr, _ := multiaddr.NewMultiaddr(pid)
 		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
 		if err != nil {
 			continue
