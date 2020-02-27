@@ -173,7 +173,6 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	}
 	wg.Wait()
 	log.Info("handleEvent", "download process done", "cost time(ms)", (time.Now().UnixNano()-startTime)/1e6)
-	//}
 
 }
 
@@ -202,10 +201,7 @@ ReDownload:
 	stream, err := d.SendToStream(freeJob.Pid.Pretty(), blockReq, DownloadBlockReq, d.GetHost())
 	if err != nil {
 		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
-		//Reconnect
-		//if err.Error() == "dial backoff" {
 		d.GetConnsManager().Delete(freeJob.Pid.Pretty())
-		//}
 		d.releaseJob(freeJob)
 		goto ReDownload
 	}
@@ -237,11 +233,10 @@ ReDownload:
 }
 
 type JobPeerId struct {
-	Limit int
-	Pid   peer.ID
-	Rate  []float64 //max 128
-	mtx   sync.Mutex
-	rmtx  sync.Mutex
+	Limit   int
+	Pid     peer.ID
+	Latency time.Duration //max 128
+	mtx     sync.Mutex
 }
 
 // jobs datastruct
@@ -254,7 +249,7 @@ func (i jobs) Len() int {
 
 //Less Sort from low to high
 func (i jobs) Less(a, b int) bool {
-	return i[a].Limit < i[b].Limit
+	return i[a].Latency < i[b].Latency
 }
 
 //Swap  the param
@@ -286,12 +281,22 @@ func (d *DownloadProtol) initJob() jobs {
 
 func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
 	var MaxJobLimit int = 100
+	//配置各个节点的速率
+	var peerIDs []peer.ID
+	for _, job := range js {
+		peerIDs = append(peerIDs, job.Pid)
+	}
+	latency := d.GetConnsManager().GetLatencyByPeer(peerIDs)
+	for _, jb := range js {
+		jb.Latency = latency[jb.Pid.Pretty()]
+	}
 	sort.Sort(js)
 	for _, job := range js {
 		if job.Limit < MaxJobLimit {
 			job.mtx.Lock()
 			job.Limit++
 			job.mtx.Unlock()
+			log.Info("getFreeJob", "job limit", job.Limit, "job latency", job.Latency)
 			return job
 		}
 	}

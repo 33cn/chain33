@@ -9,7 +9,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+
+	//rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
@@ -34,8 +35,7 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []strin
 	if err = d.KademliaDHT.Bootstrap(ctx); err != nil {
 		panic(err)
 	}
-	routedHost := rhost.Wrap(host, d.KademliaDHT)
-	host = routedHost
+	//host = rhost.Wrap(host, d.KademliaDHT)
 	for _, seed := range seeds {
 		addr, _ := multiaddr.NewMultiaddr(seed)
 		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)

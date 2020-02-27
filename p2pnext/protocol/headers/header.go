@@ -76,8 +76,6 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s c
 		return
 	}
 
-	log.Info("OnReq", "SendProtoMessage", "ok")
-
 }
 
 //GetHeaders 接收来自chain33 blockchain模块发来的请求
