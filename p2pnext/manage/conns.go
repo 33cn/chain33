@@ -94,7 +94,9 @@ func (s *ConnManager) connectPeers(pids []string, ttl time.Duration) {
 			log.Error("ConnectSeeds  Connect", "err", err)
 			continue
 		}
-
+		if s.Size() >= 25 {
+			break
+		}
 		s.Add(peerinfo)
 		s.pstore.AddAddrs(peerinfo.ID, peerinfo.Addrs, ttl)
 	}
@@ -153,6 +155,7 @@ func convertPeers(peers []string) map[string]*peer.AddrInfo {
 		p, err := peer.AddrInfoFromP2pAddr(maddr)
 		if err != nil {
 			log.Error("convertPeers", "AddrInfoFromP2pAddr", err)
+			continue
 		}
 		pinfos[p.ID.Pretty()] = p
 	}

@@ -20,8 +20,7 @@ var (
 
 func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &HeaderInfoProtol{})
-	var hander = new(HeaderInfoHander)
-	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, hander)
+	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, &HeaderInfoHander{})
 }
 
 const (

@@ -41,12 +41,6 @@ type P2P struct {
 func New(cfg *types.Chain33Config) *P2P {
 
 	mcfg := cfg.GetModuleConfig().P2P
-	//TODO 增加P2P channel
-	if mcfg.InnerBounds == 0 {
-		mcfg.InnerBounds = 500
-	}
-	logger.Info("p2p", "InnerBounds", mcfg.InnerBounds)
-
 	if mcfg.Port == 0 {
 		mcfg.Port = 13803
 	}
@@ -56,14 +50,10 @@ func New(cfg *types.Chain33Config) *P2P {
 		return nil
 	}
 
-	localAddr := getNodeLocalAddr()
-	lm, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", localAddr, mcfg.Port))
-	logger.Info("NewMulti", "addr", m.String(), "laddr", lm.String())
-	var addrlist []multiaddr.Multiaddr
-	addrlist = append(addrlist, m)
-	addrlist = append(addrlist, lm)
+	logger.Info("NewMulti", "addr", m.String())
 	keystr, _ := NewAddrBook(cfg.GetModuleConfig().P2P).GetPrivPubKey()
 	logger.Info("loadPrivkey:", keystr)
+
 	//key string convert to crpyto.Privkey
 	key, _ := hex.DecodeString(keystr)
 	priv, err := crypto.UnmarshalSecp256k1PrivateKey(key)
@@ -73,7 +63,7 @@ func New(cfg *types.Chain33Config) *P2P {
 
 	bandwidthTracker := metrics.NewBandwidthCounter()
 	host, err := libp2p.New(context.Background(),
-		libp2p.ListenAddrs(addrlist...),
+		libp2p.ListenAddrs(m),
 		libp2p.Identity(priv),
 		libp2p.BandwidthReporter(bandwidthTracker),
 		libp2p.NATPortMap(),
@@ -88,7 +78,6 @@ func New(cfg *types.Chain33Config) *P2P {
 	p2p.chainCfg = cfg
 	p2p.discovery = new(Discovery)
 	p2p.Node = NewNode(p2p, cfg)
-	//p2p.bandwidthTracker = bandwidthTracker
 	logger.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 	return p2p
 }

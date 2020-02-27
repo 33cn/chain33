@@ -23,13 +23,13 @@ import (
 )
 
 var (
-	log = log15.New("module", "p2p.download")
+	log             = log15.New("module", "p2p.download")
+	MaxJobLimit int = 100
 )
 
 func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &DownloadProtol{})
-	var downloadHandler = new(DownloadHander)
-	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockReq, downloadHandler)
+	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockReq, &DownloadHander{})
 }
 
 const (
@@ -48,6 +48,7 @@ func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
 	d.GlobalData = data
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventFetchBlocks, d.handleEvent)
+
 }
 
 type DownloadHander struct {
@@ -232,7 +233,7 @@ ReDownload:
 type JobPeerId struct {
 	Limit   int
 	Pid     peer.ID
-	Latency time.Duration //max 128
+	Latency time.Duration
 	mtx     sync.Mutex
 }
 
@@ -277,7 +278,6 @@ func (d *DownloadProtol) initJob() jobs {
 }
 
 func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
-	var MaxJobLimit int = 100
 	//配置各个节点的速率
 	var peerIDs []peer.ID
 	for _, job := range js {
@@ -288,7 +288,7 @@ func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
 		jb.Latency = latency[jb.Pid.Pretty()]
 	}
 	sort.Sort(js)
-	log.Info("show sort result", js)
+	log.Info("show sort result", "sort of jobs", js)
 	for _, job := range js {
 		if job.Limit < MaxJobLimit {
 			job.mtx.Lock()
