@@ -88,27 +88,26 @@ func (p *P2P) managePeers() {
 
 	go p.connManag.MonitorAllPeers(p.Node.p2pCfg.Seeds, p.host)
 	p.discovery.InitDht(context.Background(), p.host, p.Node.p2pCfg.Seeds)
-	peerChan, err := p.discovery.FindPeers()
-	if err != nil {
-		panic("PeerFind Err")
-	}
-
-	for peer := range peerChan {
-		logger.Info("find peer", "peer", peer)
-		if peer.ID.Pretty() == p.host.ID().Pretty() {
-			logger.Info("Find self...", "ID", p.host.ID())
-			continue
-		}
-		logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers", "addrs", peer.Addrs, "id", peer.ID.String(),
-			"peer", peer.String())
-		logger.Info("All Peers", "Peers", p.host.Peerstore().Peers(),
-			"peersWithAddress size", len(p.host.Peerstore().PeersWithAddrs()))
-		p.newConn(context.Background(), peer)
-	Recheck:
-		if p.connManag.Size() >= 25 {
-			//达到连接节点数最大要求
-			time.Sleep(time.Second * 10)
-			goto Recheck
+	for {
+		time.Sleep(time.Second * 5)
+		tables := p.discovery.RoutingTale()
+		for _, peer := range tables {
+			logger.Info("find peer", "peer", peer)
+			if peer.Pretty() == p.host.ID().Pretty() {
+				logger.Info("Find self...", "ID", p.host.ID())
+				continue
+			}
+			logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers",
+				"peer", peer.String())
+			logger.Info("All Peers", "Peers", p.host.Peerstore().Peers(),
+				"peersWithAddress size", len(p.host.Peerstore().PeersWithAddrs()))
+			p.newConn(context.Background(), peer)
+		Recheck:
+			if p.connManag.Size() >= 25 {
+				//达到连接节点数最大要求
+				time.Sleep(time.Second * 10)
+				goto Recheck
+			}
 		}
 	}
 
@@ -135,6 +134,7 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 	if p.client == nil {
 		p.client = cli
 	}
+	//提供给其他插件使用的共享接口
 	globalData := &prototypes.GlobalData{
 		ChainCfg:        p.chainCfg,
 		QueueClient:     p.client,
@@ -159,14 +159,15 @@ func (p *P2P) processP2P() {
 	}
 }
 
-func (p *P2P) newConn(ctx context.Context, pr peer.AddrInfo) error {
+func (p *P2P) newConn(ctx context.Context, pid peer.ID) error {
 
-	_, err := p.host.NewStream(context.Background(), pr.ID, protocol.MsgIDs...)
+	_, err := p.host.NewStream(context.Background(), pid, protocol.MsgIDs...)
 	if err != nil {
-		logger.Error("NewStream", "Connect err", err, "remoteID", pr.ID)
+		logger.Error("NewStream", "Connect err", err, "remoteID", pid)
 		return err
 	}
-	p.connManag.Add(&pr)
+	pinfo, err := p.discovery.FindSpecialPeer(pid)
+	p.connManag.Add(pinfo)
 
 	return nil
 
