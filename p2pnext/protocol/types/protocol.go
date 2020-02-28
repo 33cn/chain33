@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/33cn/chain33/p2pnext/dht"
 	"github.com/33cn/chain33/p2pnext/manage"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -50,6 +51,7 @@ type GlobalData struct {
 	Host            core.Host
 	ConnManager     *manage.ConnManager
 	PeerInfoManager *manage.PeerInfoManager
+	Discovery       *dht.Discovery
 }
 
 // BaseProtocol store public data

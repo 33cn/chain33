@@ -9,7 +9,9 @@ import (
 
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/p2pnext/dht"
 	"github.com/33cn/chain33/p2pnext/manage"
+
 	"github.com/33cn/chain33/p2pnext/protocol"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	"github.com/33cn/chain33/queue"
@@ -29,7 +31,7 @@ var logger = l.New("module", "p2pnext")
 type P2P struct {
 	chainCfg      *types.Chain33Config
 	host          core.Host
-	discovery     *Discovery
+	discovery     *dht.Discovery
 	connManag     *manage.ConnManager
 	peerInfoManag *manage.PeerInfoManager
 	api           client.QueueProtocolAPI
@@ -76,7 +78,7 @@ func New(cfg *types.Chain33Config) *P2P {
 	p2p.connManag = manage.NewConnManager(p2p.host, bandwidthTracker)
 	p2p.peerInfoManag = manage.NewPeerInfoManager()
 	p2p.chainCfg = cfg
-	p2p.discovery = new(Discovery)
+	p2p.discovery = new(dht.Discovery)
 	p2p.Node = NewNode(p2p, cfg)
 	logger.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 	return p2p
@@ -85,7 +87,8 @@ func New(cfg *types.Chain33Config) *P2P {
 func (p *P2P) managePeers() {
 
 	go p.connManag.MonitorAllPeers(p.Node.p2pCfg.Seeds, p.host)
-	peerChan, err := p.discovery.FindPeers(context.Background(), p.host, p.Node.p2pCfg.Seeds)
+	p.discovery.InitDht(context.Background(), p.host, p.Node.p2pCfg.Seeds)
+	peerChan, err := p.discovery.FindPeers()
 	if err != nil {
 		panic("PeerFind Err")
 	}
@@ -137,6 +140,7 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 		QueueClient:     p.client,
 		Host:            p.host,
 		ConnManager:     p.connManag,
+		Discovery:       p.discovery,
 		PeerInfoManager: p.peerInfoManag,
 	}
 	protocol.Init(globalData)

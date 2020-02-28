@@ -1,8 +1,10 @@
-package p2pnext
+package dht
 
 import (
 	"context"
 	"time"
+
+	"github.com/33cn/chain33/common/log/log15"
 
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -10,17 +12,21 @@ import (
 	"github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 
-	//rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	multiaddr "github.com/multiformats/go-multiaddr"
+)
+
+var (
+	log = log15.New("module", "p2p.manage")
 )
 
 const RendezvousString = "chain33-p2p-findme"
 
 type Discovery struct {
 	KademliaDHT *dht.IpfsDHT
+	routingDis  *discovery.RoutingDiscovery
 }
 
-func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []string) (<-chan peer.AddrInfo, error) {
+func (d *Discovery) InitDht(ctx context.Context, host host.Host, seeds []string) {
 
 	//开始节点发现
 	kademliaDHT, err := dht.New(ctx, host)
@@ -44,7 +50,7 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []strin
 		host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.PermanentAddrTTL)
 		err = host.Connect(context.Background(), *peerinfo)
 		if err != nil {
-			logger.Error("Host Connect", "err", err)
+			log.Error("Host Connect", "err", err)
 			continue
 		}
 
@@ -52,11 +58,13 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []strin
 
 	routingDiscovery := discovery.NewRoutingDiscovery(d.KademliaDHT)
 	discovery.Advertise(ctx, routingDiscovery, RendezvousString)
+	d.routingDis = routingDiscovery
+}
 
-	// Now, look for others who have announced
-	// This is like your friend telling you the location to meet you.
-	logger.Debug("Searching for other peers...")
-	peerChan, err := routingDiscovery.FindPeers(ctx, RendezvousString)
+//
+func (d *Discovery) FindPeers() (<-chan peer.AddrInfo, error) {
+
+	peerChan, err := d.routingDis.FindPeers(context.Background(), RendezvousString)
 	if err != nil {
 		panic(err)
 	}
@@ -96,7 +104,7 @@ func (d *Discovery) FindSpecailLocalPeer(pid peer.ID) peer.AddrInfo {
 
 }
 
-//获取连接指定的peerId的peers信息
+//获取连接指定的peerId的peers信息,查找连接PID=A的所有节点
 
 func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo, error) {
 	ctx := context.Background()
