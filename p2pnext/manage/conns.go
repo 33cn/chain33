@@ -98,12 +98,12 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 }
 
 func (s *ConnManager) connectPeers(pinfo []*peer.AddrInfo, ttl time.Duration) {
-	log.Info("connectPeers", "pids num", len(pinfo))
+	log.Info("connectPeers", "pids ", pinfo)
 	for _, pinfo := range pinfo {
 
 		err := s.host.Connect(context.Background(), *pinfo)
 		if err != nil {
-			log.Error("ConnectSeeds  Connect", "err", err)
+			log.Error("connectPeers  Connect", "err", err)
 			continue
 		}
 		if s.Size() >= 25 {

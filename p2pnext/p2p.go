@@ -91,18 +91,22 @@ func (p *P2P) managePeers() {
 	for {
 		time.Sleep(time.Second * 5)
 		tables := p.discovery.RoutingTale()
-		logger.Info("managePeers", "RoutingTale show", tables)
-		for _, peer := range tables {
+		logger.Info("managePeers", "RoutingTale show peerlist>>>>>>>>>", tables)
+		peerchan, err := p.discovery.FindPeers()
+		if err != nil {
+			panic(err)
+		}
+		for peer := range peerchan {
 			logger.Info("find peer", "peer", peer)
-			if peer.Pretty() == p.host.ID().Pretty() {
+			if peer.ID.Pretty() == p.host.ID().Pretty() {
 				logger.Info("Find self...", "ID", p.host.ID())
 				continue
 			}
 			logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers",
-				"peer", peer.String())
-			logger.Info("All Peers", "Peers", p.host.Peerstore().Peers(),
+				"peer", peer.ID.Pretty())
+			logger.Info("All Peers", "Peerstore Peers", p.host.Peerstore().Peers(),
 				"peersWithAddress size", len(p.host.Peerstore().PeersWithAddrs()))
-			p.newConn(context.Background(), peer)
+			p.newConn(context.Background(), peer.ID)
 		Recheck:
 			if p.connManag.Size() >= 25 {
 				//达到连接节点数最大要求
@@ -164,7 +168,7 @@ func (p *P2P) newConn(ctx context.Context, pid peer.ID) error {
 
 	_, err := p.host.NewStream(context.Background(), pid, protocol.MsgIDs...)
 	if err != nil {
-		logger.Error("NewStream", "Connect err", err, "remoteID", pid)
+		logger.Error("newConn", "Connect err", err, "remoteID", pid)
 		return err
 	}
 	pinfo, err := p.discovery.FindSpecialPeer(pid)
