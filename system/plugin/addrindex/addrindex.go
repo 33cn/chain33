@@ -25,7 +25,6 @@ func init() {
 	plugin.RegisterPlugin(name, newAddrindex)
 	plugin.RegisterQuery("GetTxsByAddr", name)
 	plugin.RegisterQuery("GetAddrTxsCount", name)
-	elog.Info("txindexPlugin init, support Query: GetTxsByAddr GetAddrTxsCount", "name", name)
 }
 
 type addrindexPlugin struct {
