@@ -90,23 +90,23 @@ func (p *P2P) managePeers() {
 	p.discovery.InitDht(context.Background(), p.host, p.Node.p2pCfg.Seeds)
 	for {
 		time.Sleep(time.Second * 5)
-		tables := p.discovery.RoutingTale()
-		logger.Info("managePeers", "RoutingTale show peerlist>>>>>>>>>", tables)
-		peerchan, err := p.discovery.FindPeers()
-		if err != nil {
-			panic(err)
-		}
-		for peer := range peerchan {
+		peerlist := p.discovery.RoutingTale()
+		logger.Info("managePeers", "RoutingTale show peerlist>>>>>>>>>", peerlist,
+			"table size", p.discovery.RoutingTableSize())
+
+		for _, peer := range peerlist {
 			logger.Info("find peer", "peer", peer)
-			if peer.ID.Pretty() == p.host.ID().Pretty() {
+			if peer.Pretty() == p.host.ID().Pretty() {
 				logger.Info("Find self...", "ID", p.host.ID())
 				continue
 			}
+			if p.connManag.Get(peer.Pretty()) != nil {
+				continue
+			}
 			logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers",
-				"peer", peer.ID.Pretty())
-			logger.Info("All Peers", "Peerstore Peers", p.host.Peerstore().Peers(),
-				"peersWithAddress size", len(p.host.Peerstore().PeersWithAddrs()))
-			p.newConn(context.Background(), peer.ID)
+				"peer", peer.Pretty())
+
+			p.newConn(context.Background(), peer)
 		Recheck:
 			if p.connManag.Size() >= 25 {
 				//达到连接节点数最大要求

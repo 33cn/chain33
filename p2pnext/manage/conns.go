@@ -50,6 +50,7 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	var seedInfos []*peer.AddrInfo
 	for _, seed := range seeds {
+
 		addr, err := multiaddr.NewMultiaddr(seed)
 		if err != nil {
 			continue
@@ -59,13 +60,15 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			log.Info("connectPeers", "err", err, "pid", peerinfo.ID.Pretty())
 			continue
 		}
+		if s.Get(peerinfo.ID.Pretty()) != nil {
+			continue
+		}
 		seedInfos = append(seedInfos, peerinfo)
 
 	}
-	for {
-		var peerInfos []*peer.AddrInfo
 
-		peerInfos = append(peerInfos, seedInfos...)
+	for {
+
 		log.Info("--------------时延--------------------")
 		for _, pid := range s.pstore.Peers() {
 			//统计每个节点的时延
@@ -74,8 +77,8 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 				continue
 			}
 			log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
-			info := s.pstore.PeerInfo(pid)
-			peerInfos = append(peerInfos, &info)
+			//info := s.pstore.PeerInfo(pid)
+			//peerInfos = append(peerInfos, &info)
 		}
 		log.Info("------------BandTracker--------------")
 		bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
@@ -92,7 +95,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 		log.Info("MounitorAllPeers", "peerstore peers", s.pstore.Peers(), "connPeer num", s.Size())
 		time.Sleep(time.Second * 5)
 		if s.Size() <= 25 { //尝试连接种子节点
-			s.connectPeers(peerInfos, peerstore.ProviderAddrTTL)
+			s.connectPeers(seedInfos, peerstore.ProviderAddrTTL)
 		}
 	}
 }
@@ -116,7 +119,6 @@ func (s *ConnManager) connectPeers(pinfo []*peer.AddrInfo, ttl time.Duration) {
 
 func (s *ConnManager) Add(pr *peer.AddrInfo) {
 	s.store.Store(pr.ID.Pretty(), pr)
-	//s.pstore.AddAddrs(pr.ID, pr.Addrs, ttl)
 }
 
 func (s *ConnManager) Delete(pid string) {
@@ -141,20 +143,11 @@ func (s *ConnManager) Fetch() []string {
 		return true
 
 	})
-	// bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 
-	// for pid, _ := range bandByPeer {
-
-	// 	if pid.Validate() == nil {
-	// 		pids = append(pids, pid.Pretty())
-
-	// 	}
-	// }
 	return pids
 }
 
 func (s *ConnManager) Size() int {
-	//bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 
 	return len(s.Fetch())
 
