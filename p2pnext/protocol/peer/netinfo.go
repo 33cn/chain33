@@ -6,6 +6,7 @@ import (
 )
 
 func (p *PeerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
+	log.Info("PeerInfoProtol", "net info", msg)
 	var netinfo types.NodeNetInfo
 	netinfo.Externaladdr = externalAddr
 	netinfo.Localaddr = p.GetHost().Addrs()[0].String()

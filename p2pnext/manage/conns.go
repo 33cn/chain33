@@ -55,6 +55,9 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 		for _, pid := range s.pstore.Peers() {
 			//统计每个节点的时延
 			tduration := s.pstore.LatencyEWMA(pid)
+			if tduration == 0 {
+				continue
+			}
 			log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
 			peers = append(peers, pid.Pretty())
 		}
@@ -70,6 +73,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 		}
 
 		log.Info("-------------------------------------")
+		log.Info("MounitorAllPeers", "peerstore peers", s.pstore.Peers())
 		time.Sleep(time.Second * 5)
 		if s.Size() <= 25 { //尝试连接种子节点
 			s.connectPeers(peers, peerstore.ProviderAddrTTL)
