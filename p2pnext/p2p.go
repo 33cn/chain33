@@ -91,6 +91,7 @@ func (p *P2P) managePeers() {
 	for {
 		time.Sleep(time.Second * 5)
 		tables := p.discovery.RoutingTale()
+		logger.Info("managePeers", "RoutingTale show", tables)
 		for _, peer := range tables {
 			logger.Info("find peer", "peer", peer)
 			if peer.Pretty() == p.host.ID().Pretty() {

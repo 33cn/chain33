@@ -22,8 +22,8 @@ var (
 const RendezvousString = "chain33-p2p-findme"
 
 type Discovery struct {
-	KademliaDHT *dht.IpfsDHT
-	routingDis  *discovery.RoutingDiscovery
+	KademliaDHT      *dht.IpfsDHT
+	routingDiscovery *discovery.RoutingDiscovery
 }
 
 func (d *Discovery) InitDht(ctx context.Context, host host.Host, seeds []string) {
@@ -56,15 +56,14 @@ func (d *Discovery) InitDht(ctx context.Context, host host.Host, seeds []string)
 
 	}
 
-	routingDiscovery := discovery.NewRoutingDiscovery(d.KademliaDHT)
-	discovery.Advertise(ctx, routingDiscovery, RendezvousString)
-	d.routingDis = routingDiscovery
+	d.routingDiscovery = discovery.NewRoutingDiscovery(d.KademliaDHT)
+	discovery.Advertise(ctx, d.routingDiscovery, RendezvousString)
 }
 
 //
 func (d *Discovery) FindPeers() (<-chan peer.AddrInfo, error) {
 
-	peerChan, err := d.routingDis.FindPeers(context.Background(), RendezvousString)
+	peerChan, err := d.routingDiscovery.FindPeers(context.Background(), RendezvousString)
 	if err != nil {
 		panic(err)
 	}
