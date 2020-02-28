@@ -51,11 +51,11 @@ func (p *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
 	p.GlobalData = data
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
 	p.txFilter = common.NewFilter(TxRecvFilterCacheNum)
-	p.blockFilter = common.NewFilter(BlockFilterCacheNum)
+	p.blockFilter = common.NewFilter(BlockRecvFilterCacheNum)
 
 	//发送交易和区块时过滤缓存, 解决冗余广播发送
 	p.txSendFilter = common.NewFilter(TxSendFilterCacheNum)
-	p.blockSendFilter = common.NewFilter(BlockFilterCacheNum)
+	p.blockSendFilter = common.NewFilter(BlockSendFilterCacheNum)
 
 	//在本地暂时缓存一些区块数据, 限制最大大小
 	p.totalBlockCache = common.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
