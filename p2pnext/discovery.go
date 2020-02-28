@@ -35,7 +35,6 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []strin
 	if err = d.KademliaDHT.Bootstrap(ctx); err != nil {
 		panic(err)
 	}
-	//host = rhost.Wrap(host, d.KademliaDHT)
 	for _, seed := range seeds {
 		addr, _ := multiaddr.NewMultiaddr(seed)
 		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
@@ -61,7 +60,18 @@ func (d *Discovery) FindPeers(ctx context.Context, host host.Host, seeds []strin
 	if err != nil {
 		panic(err)
 	}
+
 	return peerChan, nil
+}
+
+//routingTable 路由表的节点信息
+func (d *Discovery) RoutingTale() []peer.ID {
+	return d.KademliaDHT.RoutingTable().ListPeers()
+}
+
+//routingTable size
+func (d *Discovery) RoutingTableSize() int {
+	return d.KademliaDHT.RoutingTable().Size()
 }
 
 //根据指定的peerID ,查找指定的peer,
