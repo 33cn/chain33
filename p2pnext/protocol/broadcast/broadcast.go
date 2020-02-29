@@ -136,11 +136,11 @@ func (s *broadCastProtocol) handleEvent(msg *queue.Message) {
 
 	for _, pid := range pids {
 
-		if pid == s.GetHost().ID().Pretty() {
+		if pid.Pretty() == s.GetHost().ID().Pretty() {
 			continue
 		}
 
-		s.sendStream(pid, sendData)
+		s.sendStream(pid.Pretty(), sendData)
 	}
 
 }

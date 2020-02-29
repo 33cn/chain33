@@ -14,7 +14,7 @@ import (
 
 	//"fmt"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	//"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
@@ -130,21 +130,16 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var peerinfos []*types.P2PPeerInfo
 	for _, remoteId := range p.GetConnsManager().Fetch() {
-		if remoteId == p.GetHost().ID().Pretty() {
+		if remoteId.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
 
-		rID, err := peer.IDB58Decode(remoteId)
-		if err != nil {
-			continue
-		}
 		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
 
 		recordStart := time.Now().UnixNano()
-		s, err := p.SendToStream(remoteId, req, PeerInfoReq, p.GetHost())
+		s, err := p.SendToStream(remoteId.Pretty(), req, PeerInfoReq, p.GetHost())
 		if err != nil {
 			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", remoteId)
-			p.GetConnsManager().Delete(rID.Pretty())
 			continue
 		}
 		var resp types.MessagePeerInfoResp
@@ -155,7 +150,7 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		}
 
 		recordEnd := time.Now().UnixNano()
-		p.GetConnsManager().RecoredLatency(rID, time.Duration((recordEnd-recordStart)/1e6))
+		p.GetConnsManager().RecoredLatency(remoteId, time.Duration((recordEnd-recordStart)/1e6))
 		peerinfos = append(peerinfos, resp.GetMessage())
 
 	}
@@ -178,7 +173,7 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 	}
 	pid := p.GetHost().ID()
 	for _, remoteId := range p.GetConnsManager().Fetch() {
-		if remoteId == p.GetHost().ID().Pretty() {
+		if remoteId.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
 
@@ -189,15 +184,9 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
 			Message: &version}
 
-		rID, err := peer.IDB58Decode(remoteId)
+		s, err := p.Host.NewStream(context.Background(), remoteId, PeerVersionReq)
 		if err != nil {
-			continue
-		}
-
-		s, err := p.Host.NewStream(context.Background(), rID, PeerVersionReq)
-		if err != nil {
-			log.Error("NewStream", "err", err, "remoteID", rID)
-			p.GetConnsManager().Delete(rID.Pretty())
+			log.Error("NewStream", "err", err, "remoteID", remoteId)
 			continue
 		}
 		version.AddrFrom = s.Conn().LocalMultiaddr().String()
@@ -219,7 +208,7 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		externalAddr = resp.GetMessage().GetAddrRecv()
 		log.Info("DetectNodeAddr", "externalAddr", externalAddr)
 		//要判断是否是自身局域网的其他节点
-		if _, ok := seedMap[remoteId]; !ok {
+		if _, ok := seedMap[remoteId.Pretty()]; !ok {
 			continue
 		}
 

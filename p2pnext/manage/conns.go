@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/33cn/chain33/p2pnext/dht"
+
 	"github.com/33cn/chain33/common/log/log15"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/metrics"
@@ -22,12 +24,14 @@ type ConnManager struct {
 	host             core.Host
 	pstore           peerstore.Peerstore
 	bandwidthTracker *metrics.BandwidthCounter
+	discovery        *dht.Discovery
 }
 
-func NewConnManager(host core.Host, tracker *metrics.BandwidthCounter) *ConnManager {
+func NewConnManager(host core.Host, discovery *dht.Discovery, tracker *metrics.BandwidthCounter) *ConnManager {
 	connM := &ConnManager{}
 	connM.pstore = host.Peerstore()
 	connM.host = host
+	connM.discovery = discovery
 	connM.bandwidthTracker = tracker
 	return connM
 
@@ -48,24 +52,6 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 }
 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
-	var seedInfos []*peer.AddrInfo
-	for _, seed := range seeds {
-
-		addr, err := multiaddr.NewMultiaddr(seed)
-		if err != nil {
-			continue
-		}
-		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			log.Info("connectPeers", "err", err, "pid", peerinfo.ID.Pretty())
-			continue
-		}
-		if s.Get(peerinfo.ID.Pretty()) != nil {
-			continue
-		}
-		seedInfos = append(seedInfos, peerinfo)
-
-	}
 
 	for {
 
@@ -77,8 +63,6 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 				continue
 			}
 			log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
-			//info := s.pstore.PeerInfo(pid)
-			//peerInfos = append(peerInfos, &info)
 		}
 		log.Info("------------BandTracker--------------")
 		bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
@@ -93,10 +77,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 
 		log.Info("-------------------------------------")
 		log.Info("MounitorAllPeers", "peerstore peers", s.pstore.Peers(), "connPeer num", s.Size())
-		time.Sleep(time.Second * 5)
-		if s.Size() <= 25 { //尝试连接种子节点
-			s.connectPeers(seedInfos, peerstore.ProviderAddrTTL)
-		}
+
 	}
 }
 
@@ -112,44 +93,39 @@ func (s *ConnManager) connectPeers(pinfo []*peer.AddrInfo, ttl time.Duration) {
 		if s.Size() >= 25 {
 			break
 		}
-		s.Add(pinfo)
+		//s.Add(pinfo)
 		s.pstore.AddAddrs(pinfo.ID, pinfo.Addrs, ttl)
 	}
 }
 
 func (s *ConnManager) Add(pr *peer.AddrInfo) {
-	s.store.Store(pr.ID.Pretty(), pr)
+	//s.store.Store(pr.ID.Pretty(), pr)
+	//s.pstore.AddAddrs(pr.ID, pr.Addrs, ttl)
 }
 
 func (s *ConnManager) Delete(pid string) {
-	s.store.Delete(pid)
+	//s.store.Delete(pid)
 
 }
 
-func (s *ConnManager) Get(pid string) *peer.AddrInfo {
-	v, ok := s.store.Load(pid)
+func (s *ConnManager) Get(pid peer.ID) *peer.AddrInfo {
+	/*v, ok := s.store.Load(pid)
 	if ok {
 		return v.(*peer.AddrInfo)
 	}
-	return nil
+	return nil*/
+	peerinfo := s.discovery.FindSpecailLocalPeer(pid)
+	return &peerinfo
 }
 
-func (s *ConnManager) Fetch() []string {
+func (s *ConnManager) Fetch() []peer.ID {
+	return s.discovery.FindNearestPeers(s.host.ID(), 25)
 
-	var pids []string
-
-	s.store.Range(func(k interface{}, v interface{}) bool {
-		pids = append(pids, k.(string))
-		return true
-
-	})
-
-	return pids
 }
 
 func (s *ConnManager) Size() int {
 
-	return len(s.Fetch())
+	return s.discovery.RoutingTableSize()
 
 }
 

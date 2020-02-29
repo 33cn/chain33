@@ -260,16 +260,13 @@ func (d *DownloadProtol) initJob() jobs {
 	log.Info("initJob", "peersize", d.GetHost().Peerstore().Peers().Len())
 	pids := d.ConnManager.Fetch()
 	for _, pid := range pids {
-		if pid == d.GetHost().ID().Pretty() {
+		if pid.Pretty() == d.GetHost().ID().Pretty() {
 			continue
 		}
 		var job JobPeerId
 		log.Info("initJob", "pid", pid)
-		rID, err := peer.IDB58Decode(pid)
-		if err != nil {
-			continue
-		}
-		job.Pid = rID
+
+		job.Pid = pid
 		job.Limit = 0
 		JobPeerIds = append(JobPeerIds, &job)
 	}
@@ -288,7 +285,7 @@ func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
 		jb.Latency = latency[jb.Pid.Pretty()]
 	}
 	sort.Sort(js)
-	log.Info("show sort result", "sort of jobs", js)
+	//log.Info("show sort result", "sort of jobs", js)
 	for _, job := range js {
 		if job.Limit < MaxJobLimit {
 			job.mtx.Lock()

@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"time"
-
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2pnext/dht"
@@ -75,10 +73,11 @@ func New(cfg *types.Chain33Config) *P2P {
 		panic(err)
 	}
 	p2p := &P2P{host: host}
-	p2p.connManag = manage.NewConnManager(p2p.host, bandwidthTracker)
 	p2p.peerInfoManag = manage.NewPeerInfoManager()
 	p2p.chainCfg = cfg
 	p2p.discovery = new(dht.Discovery)
+	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
+
 	p2p.Node = NewNode(p2p, cfg)
 	logger.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 	return p2p
@@ -89,30 +88,11 @@ func (p *P2P) managePeers() {
 	go p.connManag.MonitorAllPeers(p.Node.p2pCfg.Seeds, p.host)
 	p.discovery.InitDht(context.Background(), p.host, p.Node.p2pCfg.Seeds)
 	for {
-		time.Sleep(time.Second * 5)
 		peerlist := p.discovery.RoutingTale()
 		logger.Info("managePeers", "RoutingTale show peerlist>>>>>>>>>", peerlist,
 			"table size", p.discovery.RoutingTableSize())
-
-		for _, peer := range peerlist {
-			logger.Info("find peer", "peer", peer)
-			if peer.Pretty() == p.host.ID().Pretty() {
-				logger.Info("Find self...", "ID", p.host.ID())
-				continue
-			}
-			if p.connManag.Get(peer.Pretty()) != nil {
-				continue
-			}
-			logger.Info("+++++++++++++++++++++++++++++p2p.FindPeers",
-				"peer", peer.Pretty())
-
-			p.newConn(context.Background(), peer)
-		Recheck:
-			if p.connManag.Size() >= 25 {
-				//达到连接节点数最大要求
-				time.Sleep(time.Second * 10)
-				goto Recheck
-			}
+		for _, paddrs := range p.host.Peerstore().Peers() {
+			p.discovery.UPdate(paddrs)
 		}
 	}
 
