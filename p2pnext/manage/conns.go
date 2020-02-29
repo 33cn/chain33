@@ -1,13 +1,11 @@
 package manage
 
 import (
-	"context"
 	"sync"
 	"time"
 
-	"github.com/33cn/chain33/p2pnext/dht"
-
 	"github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/p2pnext/dht"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -56,7 +54,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	for {
 
 		log.Info("--------------时延--------------------")
-		for _, pid := range s.pstore.Peers() {
+		for _, pid := range s.Fetch() {
 			//统计每个节点的时延
 			tduration := s.pstore.LatencyEWMA(pid)
 			if tduration == 0 {
@@ -81,40 +79,17 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	}
 }
 
-func (s *ConnManager) connectPeers(pinfo []*peer.AddrInfo, ttl time.Duration) {
-	log.Info("connectPeers", "pids ", pinfo)
-	for _, pinfo := range pinfo {
-
-		err := s.host.Connect(context.Background(), *pinfo)
-		if err != nil {
-			log.Error("connectPeers  Connect", "err", err)
-			continue
-		}
-		if s.Size() >= 25 {
-			break
-		}
-		//s.Add(pinfo)
-		s.pstore.AddAddrs(pinfo.ID, pinfo.Addrs, ttl)
-	}
-}
-
 func (s *ConnManager) Add(pr *peer.AddrInfo) {
-	//s.store.Store(pr.ID.Pretty(), pr)
-	//s.pstore.AddAddrs(pr.ID, pr.Addrs, ttl)
+
 }
 
-func (s *ConnManager) Delete(pid string) {
-	//s.store.Delete(pid)
+func (s *ConnManager) Delete(pid peer.ID) {
 
 }
 
 func (s *ConnManager) Get(pid peer.ID) *peer.AddrInfo {
-	/*v, ok := s.store.Load(pid)
-	if ok {
-		return v.(*peer.AddrInfo)
-	}
-	return nil*/
-	peerinfo := s.discovery.FindSpecailLocalPeer(pid)
+
+	peerinfo := s.discovery.FindLocalPeer(pid)
 	return &peerinfo
 }
 

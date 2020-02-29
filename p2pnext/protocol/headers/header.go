@@ -6,7 +6,8 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/peer"
+
+	//"github.com/libp2p/go-libp2p-core/peer"
 
 	uuid "github.com/google/uuid"
 
@@ -46,7 +47,7 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s c
 		return
 	}
 
-	log.Info("OnReq", "Start", "start", getheaders.GetStartHeight(), "end", getheaders.GetEndHeight())
+	log.Info("OnReq", "start", getheaders.GetStartHeight(), "end", getheaders.GetEndHeight())
 	client := h.GetQueueClient()
 	msg := client.NewMessage("blockchain", types.EventGetHeaders, &types.ReqBlocks{Start: getheaders.GetStartHeight(), End: getheaders.GetEndHeight()})
 	err := client.SendTimeout(msg, true, time.Second*30)
@@ -107,9 +108,6 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 		stream, err := h.SendToStream(pid, headerReq, HeaderInfoReq, h.GetHost())
 		if err != nil {
 			log.Error("handleEvent", "SendProtoMessage", err)
-			rID, _ := peer.IDB58Decode(pid)
-			h.GetConnsManager().Delete(rID.Pretty())
-
 			continue
 		}
 		var resp types.MessageHeaderResp

@@ -165,7 +165,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 				//TODO 50次下载尝试，失败之后异常处理
 			}
 			wg.Done()
-			atomic.AddInt32(&maxgoroutin, -11)
+			atomic.AddInt32(&maxgoroutin, -1)
 
 		}(height, jobS)
 
@@ -200,7 +200,6 @@ ReDownload:
 	stream, err := d.SendToStream(freeJob.Pid.Pretty(), blockReq, DownloadBlockReq, d.GetHost())
 	if err != nil {
 		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
-		d.GetConnsManager().Delete(freeJob.Pid.Pretty())
 		d.releaseJob(freeJob)
 		goto ReDownload
 	}

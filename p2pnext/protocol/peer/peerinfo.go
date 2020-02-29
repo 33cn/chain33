@@ -272,7 +272,3 @@ func (p *PeerInfoHandler) VerifyRequest(data []byte) bool {
 
 	return true
 }
-func (p *PeerInfoHandler) SetProtocol(protocol prototypes.IProtocol) {
-	p.BaseStreamHandler = new(prototypes.BaseStreamHandler)
-	p.Protocol = protocol
-}

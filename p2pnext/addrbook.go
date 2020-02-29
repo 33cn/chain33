@@ -1,13 +1,16 @@
 package p2pnext
 
 import (
+	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"sync"
 
-	"github.com/33cn/chain33/types"
-
-	"github.com/33cn/chain33/common/crypto"
+	//"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
+	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 const (
@@ -30,6 +33,7 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 		cfg:  cfg,
 		Quit: make(chan struct{}, 1),
 	}
+	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
 
 	if !a.loadDb() {
 		a.initKey()
@@ -38,8 +42,28 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 
 }
 
+func (a *AddrBook) AddrsInfo() []peer.AddrInfo {
+	var addrsInfo []peer.AddrInfo
+	if a.bookDb == nil {
+		return addrsInfo
+	}
+
+	addrsInfoBs, err := a.bookDb.Get([]byte(addrkeyTag))
+	if err != nil {
+		logger.Error("LoadAddrsInfo", " Get addrkeyTag", err.Error())
+		return addrsInfo
+	}
+
+	err = json.Unmarshal(addrsInfoBs, &addrsInfo)
+	if err != nil {
+		logger.Error("LoadAddrsInfo", "Unmarshal err", err.Error())
+	}
+
+	return addrsInfo
+}
+
 func (a *AddrBook) loadDb() bool {
-	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
+
 	privkey, err := a.bookDb.Get([]byte(privKeyTag))
 	if len(privkey) != 0 && err == nil {
 		pubkey, err := genPubkey(string(privkey))
@@ -50,6 +74,8 @@ func (a *AddrBook) loadDb() bool {
 		a.setKey(string(privkey), pubkey)
 		return true
 	}
+
+	//loading addrinfos
 
 	return false
 
@@ -83,6 +109,22 @@ func (a *AddrBook) SaveKey(priv, pub string) {
 	}
 }
 
+func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	keybytes, err := hex.DecodeString(a.privkey)
+	if err != nil {
+		logger.Error("GetPrivkey", "DecodeString Error", err.Error())
+		return nil
+	}
+	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
+	if err != nil {
+		logger.Error("GetPrivkey", "PrivKeyUnmarshaller", err.Error())
+		return nil
+	}
+	return privkey
+}
+
 // GetPrivPubKey return privkey and pubkey
 func (a *AddrBook) GetPrivPubKey() (string, string) {
 	a.mtx.Lock()
@@ -98,41 +140,54 @@ func (a *AddrBook) setKey(privkey, pubkey string) {
 
 }
 
-// GenPrivPubkey return key and pubkey in bytes
-func GenPrivPubkey() ([]byte, []byte, error) {
-	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
-	if err != nil {
-		logger.Error("CryPto Error", "Error", err.Error())
-		return nil, nil, err
-	}
+func (a *AddrBook) SaveAddr(addrinfos []peer.AddrInfo) {
 
-	key, err := cr.GenKey()
+	jsonBytes, err := json.Marshal(addrinfos)
 	if err != nil {
-		logger.Error("GenKey", "Error", err)
-		return nil, nil, err
+		logger.Error("Failed to save AddrBook to file", "err", err)
+		return
 	}
-	return key.Bytes(), key.PubKey().Bytes(), nil
+	logger.Debug("saveToDb", "addrs", string(jsonBytes))
+	err = a.bookDb.Set([]byte(addrkeyTag), jsonBytes)
+
 }
 
-func genPubkey(privkey string) (string, error) {
-
-	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+// GenPrivPubkey return key and pubkey in bytes
+func GenPrivPubkey() ([]byte, []byte, error) {
+	priv, pub, err := p2pcrypto.GenerateKeyPairWithReader(p2pcrypto.Secp256k1, 2048, rand.Reader)
 	if err != nil {
-		logger.Error("CryPto Error", "Error", err.Error())
-		return "", err
+		return nil, nil, err
 	}
+	privkey, err := priv.Bytes()
+	if err != nil {
+		return nil, nil, err
 
-	pribyts, err := hex.DecodeString(privkey)
+	}
+	pubkey, err := pub.Bytes()
+	if err != nil {
+		return nil, nil, err
+
+	}
+	return privkey, pubkey, nil
+
+}
+
+func genPubkey(key string) (string, error) {
+	keybytes, err := hex.DecodeString(key)
 	if err != nil {
 		logger.Error("DecodeString Error", "Error", err.Error())
 		return "", err
 	}
-	priv, err := cr.PrivKeyFromBytes(pribyts)
+	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
 	if err != nil {
-		logger.Error("Load PrivKey", "Error", err.Error())
+		logger.Error("genPubkey", "PrivKeyUnmarshaller", err.Error())
 		return "", err
 	}
-
-	return hex.EncodeToString(priv.PubKey().Bytes()), nil
+	pubkey, err := privkey.GetPublic().Bytes()
+	if err != nil {
+		logger.Error("genPubkey", "GetPubkey", err.Error())
+		return "", err
+	}
+	return hex.EncodeToString(pubkey), nil
 
 }

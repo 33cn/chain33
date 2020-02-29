@@ -2,8 +2,8 @@ package p2pnext
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log/log15"
@@ -16,10 +16,11 @@ import (
 	"github.com/33cn/chain33/types"
 	libp2p "github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/metrics"
-	"github.com/libp2p/go-libp2p-core/peer"
 
+	//"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/metrics"
+
+	//"github.com/libp2p/go-libp2p-core/peer"
 	//"github.com/libp2p/go-libp2p-core/peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
@@ -35,6 +36,7 @@ type P2P struct {
 	api           client.QueueProtocolAPI
 	client        queue.Client
 	Done          chan struct{}
+	addrbook      *AddrBook
 	Node          *Node
 }
 
@@ -51,15 +53,8 @@ func New(cfg *types.Chain33Config) *P2P {
 	}
 
 	logger.Info("NewMulti", "addr", m.String())
-	keystr, _ := NewAddrBook(cfg.GetModuleConfig().P2P).GetPrivPubKey()
-	logger.Info("loadPrivkey:", keystr)
-
-	//key string convert to crpyto.Privkey
-	key, _ := hex.DecodeString(keystr)
-	priv, err := crypto.UnmarshalSecp256k1PrivateKey(key)
-	if err != nil {
-		panic(err)
-	}
+	addrbook := NewAddrBook(cfg.GetModuleConfig().P2P)
+	priv := addrbook.GetPrivkey()
 
 	bandwidthTracker := metrics.NewBandwidthCounter()
 	host, err := libp2p.New(context.Background(),
@@ -75,6 +70,7 @@ func New(cfg *types.Chain33Config) *P2P {
 	p2p := &P2P{host: host}
 	p2p.peerInfoManag = manage.NewPeerInfoManager()
 	p2p.chainCfg = cfg
+	p2p.addrbook = addrbook
 	p2p.discovery = new(dht.Discovery)
 	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
 
@@ -86,27 +82,27 @@ func New(cfg *types.Chain33Config) *P2P {
 func (p *P2P) managePeers() {
 
 	go p.connManag.MonitorAllPeers(p.Node.p2pCfg.Seeds, p.host)
-	p.discovery.InitDht(context.Background(), p.host, p.Node.p2pCfg.Seeds)
+	p.discovery.InitDht(p.host, p.Node.p2pCfg.Seeds, p.addrbook.AddrsInfo())
+
 	for {
 		peerlist := p.discovery.RoutingTale()
 		logger.Info("managePeers", "RoutingTale show peerlist>>>>>>>>>", peerlist,
 			"table size", p.discovery.RoutingTableSize())
-		for _, paddrs := range p.host.Peerstore().Peers() {
-			p.discovery.UPdate(paddrs)
+
+		select {
+		case <-time.After(time.Minute):
+			for _, paddrs := range p.host.Peerstore().Peers() {
+				p.discovery.UPdate(paddrs)
+			}
+			//Reflash addrbook
+			peersInfo := p.discovery.FindLocalPeers(p.connManag.Fetch())
+			p.addrbook.SaveAddr(peersInfo)
+
+		case <-p.Done:
+			return
 		}
 	}
 
-}
-
-func (p *P2P) Wait() {
-
-}
-
-func (p *P2P) Close() {
-	close(p.Done)
-	logger.Info("p2p closed")
-
-	return
 }
 
 // SetQueueClient
@@ -144,16 +140,13 @@ func (p *P2P) processP2P() {
 	}
 }
 
-func (p *P2P) newConn(ctx context.Context, pid peer.ID) error {
+func (p *P2P) Wait() {
 
-	_, err := p.host.NewStream(context.Background(), pid, protocol.MsgIDs...)
-	if err != nil {
-		logger.Error("newConn", "Connect err", err, "remoteID", pid)
-		return err
-	}
-	pinfo, err := p.discovery.FindSpecialPeer(pid)
-	p.connManag.Add(pinfo)
+}
 
-	return nil
+func (p *P2P) Close() {
+	close(p.Done)
+	logger.Info("p2p closed")
 
+	return
 }
