@@ -52,30 +52,33 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 
 	for {
+		select {
+		case <-time.After(time.Second * 10):
 
-		log.Info("--------------时延--------------------")
-		for _, pid := range s.Fetch() {
-			//统计每个节点的时延
-			tduration := s.pstore.LatencyEWMA(pid)
-			if tduration == 0 {
-				continue
+			log.Info("--------------时延--------------------")
+			for _, pid := range s.Fetch() {
+				//统计每个节点的时延
+				tduration := s.pstore.LatencyEWMA(pid)
+				if tduration == 0 {
+					continue
+				}
+				log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
 			}
-			log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
-		}
-		log.Info("------------BandTracker--------------")
-		bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
-		for pid, stat := range bandByPeer {
-			log.Info("BandwidthTracker",
-				"pid", pid,
-				"RateIn bytes/seconds", stat.RateIn,
-				"RateOut  bytes/seconds", stat.RateOut,
-				"TotalIn", stat.TotalIn,
-				"TotalOut", stat.TotalOut)
-		}
+			log.Info("------------BandTracker--------------")
+			bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
+			for pid, stat := range bandByPeer {
+				log.Info("BandwidthTracker",
+					"pid", pid,
+					"RateIn bytes/seconds", stat.RateIn,
+					"RateOut  bytes/seconds", stat.RateOut,
+					"TotalIn", stat.TotalIn,
+					"TotalOut", stat.TotalOut)
+			}
 
-		log.Info("-------------------------------------")
-		log.Info("MounitorAllPeers", "peerstore peers", s.pstore.Peers(), "connPeer num", s.Size())
+			log.Info("-------------------------------------")
+			log.Info("MounitorAllPeers", "peerstore peers", s.pstore.Peers(), "connPeer num", s.Size())
 
+		}
 	}
 }
 

@@ -57,6 +57,7 @@ func (a *AddrBook) AddrsInfo() []peer.AddrInfo {
 	err = json.Unmarshal(addrsInfoBs, &addrsInfo)
 	if err != nil {
 		logger.Error("LoadAddrsInfo", "Unmarshal err", err.Error())
+		return nil
 	}
 
 	return addrsInfo

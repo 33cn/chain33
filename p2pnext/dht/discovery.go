@@ -31,6 +31,9 @@ type Discovery struct {
 }
 
 func (d *Discovery) InitDht(host host.Host, seeds []string, peersInfo []peer.AddrInfo) {
+	// Make the DHT
+	kademliaDHT, _ := dht.New(context.Background(), host)
+	d.KademliaDHT = kademliaDHT
 
 	for _, seed := range seeds {
 		addr, _ := multiaddr.NewMultiaddr(seed)
@@ -55,9 +58,6 @@ func (d *Discovery) InitDht(host host.Host, seeds []string, peersInfo []peer.Add
 		}
 	}
 
-	// Make the DHT
-	kademliaDHT, _ := dht.New(context.Background(), host)
-	d.KademliaDHT = kademliaDHT
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
 	if err := d.KademliaDHT.Bootstrap(context.Background()); err != nil {

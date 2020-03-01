@@ -80,9 +80,9 @@ func New(cfg *types.Chain33Config) *P2P {
 }
 
 func (p *P2P) managePeers() {
+	p.discovery.InitDht(p.host, p.Node.p2pCfg.Seeds, p.addrbook.AddrsInfo())
 
 	go p.connManag.MonitorAllPeers(p.Node.p2pCfg.Seeds, p.host)
-	p.discovery.InitDht(p.host, p.Node.p2pCfg.Seeds, p.addrbook.AddrsInfo())
 
 	for {
 		peerlist := p.discovery.RoutingTale()

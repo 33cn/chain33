@@ -159,6 +159,8 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 }
 func (p *PeerInfoProtol) DetectNodeAddr() {
 	for {
+		time.Sleep(time.Second * 2)
+
 		if p.GetConnsManager().Size() == 0 {
 			time.Sleep(time.Second)
 			continue
