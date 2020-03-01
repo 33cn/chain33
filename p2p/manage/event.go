@@ -58,13 +58,13 @@ func (mgr *P2PMgr) handleP2PSub() {
 }
 
 // PubBroadCast 兼容多种类型p2p广播消息, 避免重复接交易或者区块
-func (mgr *P2PMgr) PubBroadCast(hash string, data interface{}, eventTy int) {
+func (mgr *P2PMgr) PubBroadCast(hash string, data interface{}, eventTy int) error {
 
 	exist, _ := mgr.broadcastFilter.ContainsOrAdd(hash, true)
 	// eventTy, 交易=1, 区块=54
 	log.Debug("PubBroadCast", "eventTy", eventTy, "hash", hash)
 	if exist {
-		return
+		return nil
 	}
 	var err error
 	if eventTy == types.EventTx {
@@ -75,6 +75,7 @@ func (mgr *P2PMgr) PubBroadCast(hash string, data interface{}, eventTy int) {
 	if err != nil {
 		log.Error("PubBroadCast", "eventTy", eventTy, "sendMsgErr", err)
 	}
+	return err
 }
 
 //

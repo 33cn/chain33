@@ -36,7 +36,8 @@ type AddrBook struct {
 	mtx      sync.Mutex
 	ourAddrs map[string]*NetAddress
 	addrPeer map[string]*KnownAddress
-	cfg      *types.P2P
+	p2pCfg   *types.P2P
+	cfg      *subConfig
 	keymtx   sync.Mutex
 	privkey  string
 	pubkey   string
@@ -80,13 +81,14 @@ func (a *AddrBook) setAddrStat(addr string, run bool) (*KnownAddress, bool) {
 }
 
 // NewAddrBook create a addrbook
-func NewAddrBook(cfg *types.P2P) *AddrBook {
+func NewAddrBook(cfg *types.P2P, subCfg *subConfig) *AddrBook {
 	a := &AddrBook{
 
 		ourAddrs: make(map[string]*NetAddress),
 		addrPeer: make(map[string]*KnownAddress),
-		cfg:      cfg,
+		p2pCfg:   cfg,
 		Quit:     make(chan struct{}, 1),
+		cfg:      subCfg,
 	}
 	err := a.Start()
 	if err != nil {
@@ -235,7 +237,7 @@ func (a *AddrBook) genPubkey(privkey string) string {
 // cmn.Panics if file is corrupt.
 
 func (a *AddrBook) loadDb() bool {
-	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
+	a.bookDb = db.NewDB("addrbook", a.p2pCfg.Driver, a.p2pCfg.DbPath, a.p2pCfg.DbCache)
 	privkey, err := a.bookDb.Get([]byte(privKeyTag))
 	if len(privkey) != 0 && err == nil {
 		a.setKey(string(privkey), a.genPubkey(string(privkey)))
@@ -249,7 +251,7 @@ func (a *AddrBook) loadDb() bool {
 			dec := json.NewDecoder(strings.NewReader(string(iteror.Value())))
 			err := dec.Decode(aJSON)
 			if err != nil {
-				log.Crit("Error reading file %s: %v", a.cfg.DbPath, err)
+				log.Crit("Error reading file %s: %v", a.p2pCfg.DbPath, err)
 			}
 
 			for _, ka := range aJSON.Addrs {

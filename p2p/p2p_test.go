@@ -2,10 +2,14 @@ package p2p
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/p2p/manage"
 
 	"os"
 	"strings"
@@ -111,52 +115,53 @@ func processMsg(q queue.Queue) {
 
 //new p2p
 func newP2p(cfg *types.Chain33Config, port int32, dbpath string, q queue.Queue) *P2p {
-	pcfg := cfg.GetModuleConfig().P2P
+	p2pCfg := cfg.GetModuleConfig().P2P
+	p2pCfg.Enable = true
+	p2pCfg.DbPath = dbpath
+	p2pCfg.DbCache = 4
+	p2pCfg.Driver = "leveldb"
+	p2pMgr := manage.NewP2PMgr(cfg)
+	p2pMgr.Client = q.Client()
+	p2pMgr.SysApi, _ = client.New(p2pMgr.Client, nil)
+
+	pcfg := &subConfig{}
+	types.MustDecode(cfg.GetSubConfig().Mempool[manage.GossipTypeName], pcfg)
 	pcfg.Port = port
-	pcfg.Enable = true
-	pcfg.DbPath = dbpath
-	pcfg.DbCache = 4
 	pcfg.Channel = testChannel
 	pcfg.ServerStart = true
-	pcfg.Driver = "leveldb"
+	pcfg.MinLtBlockTxNum = 1
+	subCfgBytes, _ := json.Marshal(pcfg)
+	p2pcli := New(p2pMgr, subCfgBytes).(*P2p)
 
-	p2pcli := New(cfg)
 	p2pcli.node.nodeInfo.addrBook.initKey()
 	privkey, _ := p2pcli.node.nodeInfo.addrBook.GetPrivPubKey()
 	p2pcli.node.nodeInfo.addrBook.bookDb.Set([]byte(privKeyTag), []byte(privkey))
 	p2pcli.node.nodeInfo.SetServiceTy(7)
-	p2pcli.SetQueueClient(q.Client())
+	p2pcli.StartP2P()
 	return p2pcli
 }
 
 //free P2p
 func freeP2p(p2p *P2p) {
-	p2p.Close()
-	if err := os.RemoveAll(p2p.cfg.DbPath); err != nil {
+	p2p.CloseP2P()
+	if err := os.RemoveAll(p2p.p2pCfg.DbPath); err != nil {
 		log.Error("removeTestDbErr", "err", err)
 	}
 }
 
-func testP2PEvent(t *testing.T, qcli queue.Client) {
-	msg := qcli.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{})
-	qcli.Send(msg, false)
+func testP2PEvent(t *testing.T, p2p *P2p) {
+	msgs := make([]*queue.Message, 0)
+	msgs = append(msgs, p2p.client.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{}))
+	msgs = append(msgs, p2p.client.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{}))
+	msgs = append(msgs, p2p.client.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{}))
+	msgs = append(msgs, p2p.client.NewMessage("p2p", types.EventGetMempool, nil))
+	msgs = append(msgs, p2p.client.NewMessage("p2p", types.EventPeerInfo, nil))
+	msgs = append(msgs, p2p.client.NewMessage("p2p", types.EventGetNetInfo, nil))
+	msgs = append(msgs, p2p.client.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{}))
 
-	msg = qcli.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{})
-	qcli.Send(msg, false)
-	msg = qcli.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{})
-	qcli.Send(msg, false)
-
-	msg = qcli.NewMessage("p2p", types.EventGetMempool, nil)
-	qcli.Send(msg, false)
-
-	msg = qcli.NewMessage("p2p", types.EventPeerInfo, nil)
-	qcli.Send(msg, false)
-
-	msg = qcli.NewMessage("p2p", types.EventGetNetInfo, nil)
-	qcli.Send(msg, false)
-
-	msg = qcli.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{})
-	qcli.Send(msg, false)
+	for _, msg := range msgs {
+		p2p.mgr.PubSub.Pub(msg, manage.GossipTypeName)
+	}
 
 }
 func testNetInfo(t *testing.T, p2p *P2p) {
@@ -430,7 +435,7 @@ func Test_p2p(t *testing.T) {
 	p2p.Wait()
 	defer freeP2p(p2p)
 	defer q.Close()
-	testP2PEvent(t, q.Client())
+	testP2PEvent(t, p2p)
 	testNetInfo(t, p2p)
 	testPeer(t, p2p, q)
 	testGrpcConns(t)

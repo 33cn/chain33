@@ -20,7 +20,8 @@ type NodeInfo struct {
 	monitorChan    chan *Peer
 	natNoticeChain chan struct{}
 	natResultChain chan bool
-	cfg            *types.P2P
+	p2pCfg         *types.P2P
+	cfg            *subConfig
 	client         queue.Client
 	blacklist      *BlackList
 	peerInfos      *PeerInfos
@@ -32,19 +33,20 @@ type NodeInfo struct {
 }
 
 // NewNodeInfo new a node object
-func NewNodeInfo(cfg *types.P2P) *NodeInfo {
+func NewNodeInfo(p2pCfg *types.P2P, subCfg *subConfig) *NodeInfo {
 	nodeInfo := new(NodeInfo)
 	nodeInfo.monitorChan = make(chan *Peer, 1024)
 	nodeInfo.natNoticeChain = make(chan struct{}, 1)
 	nodeInfo.natResultChain = make(chan bool, 1)
 	nodeInfo.blacklist = &BlackList{badPeers: make(map[string]int64)}
-	nodeInfo.cfg = cfg
+	nodeInfo.p2pCfg = p2pCfg
+	nodeInfo.cfg = subCfg
 	nodeInfo.peerInfos = new(PeerInfos)
 	nodeInfo.peerInfos.infos = make(map[string]*types.Peer)
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
-	nodeInfo.addrBook = NewAddrBook(cfg)
-	nodeInfo.channelVersion = calcChannelVersion(cfg.Channel)
+	nodeInfo.addrBook = NewAddrBook(p2pCfg, subCfg)
+	nodeInfo.channelVersion = calcChannelVersion(subCfg.Channel)
 	return nodeInfo
 }
 

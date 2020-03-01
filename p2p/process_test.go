@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/common/merkle"
+	"github.com/33cn/chain33/p2p/manage"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -107,11 +108,11 @@ func Test_processP2P(t *testing.T) {
 		subChan := node.pubsub.Sub(pid)
 		//normal
 		sendChan <- &versionData{peerName: pid + "1", rawData: &types.P2PTx{Tx: tx, Route: &types.P2PRoute{}}, version: lightBroadCastVersion - 1}
-		assert.Nil(t, client.Send(client.NewMessage("p2p", types.EventTxBroadcast, tx), false))
+		p2p.mgr.PubSub.Pub(client.NewMessage("p2p", types.EventTxBroadcast, tx), manage.GossipTypeName)
 		sendChan <- &versionData{peerName: pid + "1", rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion - 1}
 		//light broadcast
 		txHashFilter.Add(hex.EncodeToString(tx1.Hash()), &types.P2PRoute{TTL: DefaultLtTxBroadCastTTL})
-		_ = client.Send(client.NewMessage("p2p", types.EventTxBroadcast, tx1), false)
+		p2p.mgr.PubSub.Pub(client.NewMessage("p2p", types.EventTxBroadcast, tx1), manage.GossipTypeName)
 		sendChan <- &versionData{peerName: pid + "2", rawData: &types.P2PTx{Tx: tx, Route: &types.P2PRoute{TTL: DefaultLtTxBroadCastTTL}}, version: lightBroadCastVersion}
 		<-subChan //query tx
 		sendChan <- &versionData{peerName: pid + "2", rawData: &types.P2PBlock{Block: block}, version: lightBroadCastVersion}
@@ -161,7 +162,7 @@ func Test_processP2P(t *testing.T) {
 		assert.False(t, doSend)
 		close(testDone)
 	}()
-	ticker := time.NewTicker(time.Minute * 5)
+	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 	for {
 		select {
