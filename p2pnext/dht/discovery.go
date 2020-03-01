@@ -136,3 +136,8 @@ func (d *Discovery) UPdate(pid peer.ID) error {
 func (d *Discovery) FindNearestPeers(pid peer.ID, count int) []peer.ID {
 	return d.KademliaDHT.RoutingTable().NearestPeers(kbt.ConvertPeerID(pid), count)
 }
+
+func (d *Discovery) Remove(pid peer.ID) {
+	d.KademliaDHT.RoutingTable().Remove(pid)
+
+}

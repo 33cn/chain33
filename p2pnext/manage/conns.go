@@ -8,6 +8,7 @@ import (
 	"github.com/33cn/chain33/p2pnext/dht"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
@@ -87,7 +88,7 @@ func (s *ConnManager) Add(pr *peer.AddrInfo) {
 }
 
 func (s *ConnManager) Delete(pid peer.ID) {
-
+	s.discovery.Remove(pid)
 }
 
 func (s *ConnManager) Get(pid peer.ID) *peer.AddrInfo {
@@ -103,7 +104,45 @@ func (s *ConnManager) Fetch() []peer.ID {
 
 func (s *ConnManager) Size() int {
 
-	return s.discovery.RoutingTableSize()
+	return len(s.host.Network().Conns())
+
+}
+
+func (s *ConnManager) InboundSize() int {
+	var inboundSize int
+	for _, con := range s.host.Network().Conns() {
+		if con.Stat().Direction == network.DirInbound {
+			inboundSize++
+		}
+	}
+	return inboundSize
+
+}
+
+func (s *ConnManager) OutboundSize() int {
+	var outboundSize int
+	for _, con := range s.host.Network().Conns() {
+		if con.Stat().Direction == network.DirOutbound {
+			outboundSize++
+		}
+	}
+	return outboundSize
+
+}
+
+func (s *ConnManager) BoundSize() (int, int) {
+	var outboundSize int
+	var inboundSize int
+	for _, con := range s.host.Network().Conns() {
+		if con.Stat().Direction == network.DirOutbound {
+			outboundSize++
+		}
+		if con.Stat().Direction == network.DirInbound {
+			inboundSize++
+		}
+	}
+
+	return inboundSize, outboundSize
 
 }
 

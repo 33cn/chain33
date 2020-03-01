@@ -136,7 +136,6 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 
 		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
 
-		recordStart := time.Now().UnixNano()
 		s, err := p.SendToStream(remoteId.Pretty(), req, PeerInfoReq, p.GetHost())
 		if err != nil {
 			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", remoteId)
@@ -149,8 +148,6 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 			continue
 		}
 
-		recordEnd := time.Now().UnixNano()
-		p.GetConnsManager().RecoredLatency(remoteId, time.Duration((recordEnd-recordStart)/1e6))
 		peerinfos = append(peerinfos, resp.GetMessage())
 
 	}
