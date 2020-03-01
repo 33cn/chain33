@@ -2,9 +2,12 @@ package types
 
 import (
 	"bufio"
+	"context"
 
 	"reflect"
 	"strings"
+
+	"github.com/libp2p/go-libp2p-core/protocol"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
@@ -126,6 +129,23 @@ func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
 }
 
+func (s *BaseStreamHandler) SendToStream(pid string, data proto.Message, msgID protocol.ID, host core.Host) (core.Stream, error) {
+	rID, err := peer.IDB58Decode(pid)
+	if err != nil {
+		return nil, err
+	}
+	stream, err := host.NewStream(context.Background(), rID, msgID)
+	if err != nil {
+		log.Error(" SendToStream NewStream", "err", err, "remoteID", rID)
+		return nil, err
+	}
+	err = s.SendProtoMessage(data, stream)
+	if err != nil {
+		log.Error("SendToStream", "sendProtMessage err", err)
+	}
+
+	return stream, err
+}
 func (s *BaseStreamHandler) SendProtoMessage(data proto.Message, stream core.Stream) error {
 	writer := bufio.NewWriter(stream)
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)

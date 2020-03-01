@@ -92,7 +92,7 @@ func (h *broadCastHandler) Handle(stream core.Stream) {
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
 	log.Debug("Handle", "pid", pid, "peerAddr", peerAddr)
 	var data types.MessageBroadCast
-	err := h.BaseStreamHandler.ReadProtoMessage(&data, stream)
+	err := h.ReadProtoMessage(&data, stream)
 	if err != nil {
 		log.Error("Handle", "pid", pid, "peerAddr", peerAddr, "err", err)
 		return
@@ -136,11 +136,11 @@ func (s *broadCastProtocol) handleEvent(msg *queue.Message) {
 
 	for _, pid := range pids {
 
-		if pid == s.GetHost().ID().Pretty() {
+		if pid.Pretty() == s.GetHost().ID().Pretty() {
 			continue
 		}
 
-		s.sendStream(pid, sendData)
+		s.sendStream(pid.Pretty(), sendData)
 	}
 
 }

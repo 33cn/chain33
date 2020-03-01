@@ -9,10 +9,12 @@ import (
 
 	//"github.com/libp2p/go-libp2p-core/peerstore"
 	//multiaddr "github.com/multiformats/go-multiaddr"
+	//"github.com/golang/protobuf/proto"
+	//"github.com/libp2p/go-libp2p-core/protocol"
 
 	//"fmt"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	//"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
@@ -20,7 +22,6 @@ import (
 	"github.com/33cn/chain33/types"
 	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
-	//net "github.com/libp2p/go-libp2p-core/network"
 )
 
 const (
@@ -33,9 +34,8 @@ var log = log15.New("module", "p2p.peer")
 
 func init() {
 	prototypes.RegisterProtocolType(protoTypeID, &PeerInfoProtol{})
-	var hander = new(PeerInfoHandler)
-	prototypes.RegisterStreamHandlerType(protoTypeID, PeerInfoReq, hander)
-	prototypes.RegisterStreamHandlerType(protoTypeID, PeerVersionReq, hander)
+	prototypes.RegisterStreamHandlerType(protoTypeID, PeerInfoReq, &PeerInfoHandler{})
+	prototypes.RegisterStreamHandlerType(protoTypeID, PeerVersionReq, &PeerInfoHandler{})
 
 }
 
@@ -50,6 +50,7 @@ func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
 	p.GlobalData = data
 	p.p2pCfg = data.ChainCfg.GetModuleConfig().P2P
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
+	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
 	go p.DetectNodeAddr()
 
 }
@@ -98,7 +99,6 @@ Jump:
 		peerinfo.Addr = splites[2]
 
 	} else {
-		//log.Info("exnalAddr", externalAddr)
 		peerinfo.Addr = strings.Split(externalAddr, "/")[2]
 	}
 	return &peerinfo
@@ -106,8 +106,7 @@ Jump:
 
 //p2pserver 端接收处理事件
 func (p *PeerInfoProtol) OnReq(req *types.MessagePeerInfoReq, s core.Stream) {
-
-	log.Info("OnReq", "peerproto", s.Protocol(), "req", req)
+	log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
 
 	peerinfo := p.getLoacalPeerInfo()
 	peerID := p.GetHost().ID()
@@ -122,8 +121,6 @@ func (p *PeerInfoProtol) OnReq(req *types.MessagePeerInfoReq, s core.Stream) {
 		return
 	}
 
-	log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String())
-
 }
 
 // PeerInfo 向对方节点请求peerInfo信息
@@ -133,25 +130,16 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var peerinfos []*types.P2PPeerInfo
 	for _, remoteId := range p.GetConnsManager().Fetch() {
-		if remoteId == p.GetHost().ID().Pretty() {
-			continue
-		}
-		rID, err := peer.IDB58Decode(remoteId)
-		if err != nil {
-			continue
-		}
-		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
-		s, err := p.Host.NewStream(context.Background(), rID, PeerInfoReq)
-		if err != nil {
-			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", rID)
-			//p.GetConnsManager().Delete(remoteId)
+		if remoteId.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
 
-		log.Info("peerInfo", "s.Proto", s.Protocol())
-		err = p.SendProtoMessage(req, s)
+		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
+
+		recordStart := time.Now().UnixNano()
+		s, err := p.SendToStream(remoteId.Pretty(), req, PeerInfoReq, p.GetHost())
 		if err != nil {
-			log.Error("PeerInfo", "sendProtMessage err", err)
+			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", remoteId)
 			continue
 		}
 		var resp types.MessagePeerInfoResp
@@ -160,6 +148,9 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 			log.Error("PeerInfo", "ReadProtoMessage err", err)
 			continue
 		}
+
+		recordEnd := time.Now().UnixNano()
+		p.GetConnsManager().RecoredLatency(remoteId, time.Duration((recordEnd-recordStart)/1e6))
 		peerinfos = append(peerinfos, resp.GetMessage())
 
 	}
@@ -168,15 +159,23 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 }
 func (p *PeerInfoProtol) DetectNodeAddr() {
 	for {
+		time.Sleep(time.Second * 2)
+
 		if p.GetConnsManager().Size() == 0 {
 			time.Sleep(time.Second)
 			continue
 		}
 		break
 	}
+
+	var seedMap = make(map[string]interface{})
+	for _, seed := range p.p2pCfg.Seeds {
+		seedSplit := strings.Split(seed, "/")
+		seedMap[seedSplit[len(seedSplit)-1]] = seed
+	}
 	pid := p.GetHost().ID()
 	for _, remoteId := range p.GetConnsManager().Fetch() {
-		if remoteId == p.GetHost().ID().Pretty() {
+		if remoteId.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
 
@@ -187,17 +186,9 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
 			Message: &version}
 
-		rID, err := peer.IDB58Decode(remoteId)
+		s, err := p.Host.NewStream(context.Background(), remoteId, PeerVersionReq)
 		if err != nil {
-			continue
-		}
-
-		s, err := p.Host.NewStream(context.Background(), rID, PeerVersionReq)
-		if err != nil {
-			log.Error("NewStream", "err", err, "remoteID", rID)
-			if err.Error() == "dial backoff" {
-				p.GetConnsManager().Delete(rID)
-			}
+			log.Error("NewStream", "err", err, "remoteID", remoteId)
 			continue
 		}
 		version.AddrFrom = s.Conn().LocalMultiaddr().String()
@@ -214,18 +205,17 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 			continue
 		}
 		log.Info("DetectAddr", "resp", resp)
-		log.Info("DetectNodeAddr", "externalAddr", externalAddr, "GetAddrRecv", resp.GetMessage().GetAddrRecv())
 
-		if externalAddr == "" {
-			externalAddr = resp.GetMessage().GetAddrRecv()
-			log.Info("DetectNodeAddr", "externalAddr", externalAddr)
-			/*addrs := p.GetHost().Addrs()
-			saddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%d", externalAddr, p.p2pCfg.Port))
-			addrs = append(addrs, saddr)
-			p.GetHost().Peerstore().SetAddrs(p.GetHost().ID(), addrs, peerstore.PermanentAddrTTL)*/
+		//if externalAddr == "" {
+		externalAddr = resp.GetMessage().GetAddrRecv()
+		log.Info("DetectNodeAddr", "externalAddr", externalAddr)
+		//要判断是否是自身局域网的其他节点
+		if _, ok := seedMap[remoteId.Pretty()]; !ok {
+			continue
 		}
 
 		break
+		//	}
 
 	}
 
@@ -234,7 +224,6 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 //接收chain33其他模块发来的请求消息
 func (p *PeerInfoProtol) handleEvent(msg *queue.Message) {
 	pinfos := p.GetPeerInfo()
-	//peers := p.PeerInfoManager.FetchPeers()
 	var peers []*types.Peer
 	var peer types.Peer
 	for _, pinfo := range pinfos {
@@ -284,8 +273,4 @@ func (h *PeerInfoHandler) Handle(stream core.Stream) {
 func (p *PeerInfoHandler) VerifyRequest(data []byte) bool {
 
 	return true
-}
-func (p *PeerInfoHandler) SetProtocol(protocol prototypes.IProtocol) {
-	p.BaseStreamHandler = new(prototypes.BaseStreamHandler)
-	p.Protocol = protocol
 }
