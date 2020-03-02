@@ -30,3 +30,7 @@ func GetEventHandler(eventID int64) (EventHandler, bool) {
 
 	return handler, ok
 }
+
+func ClearEventHandler() {
+	eventHandlerMap = make(map[int64]EventHandler)
+}

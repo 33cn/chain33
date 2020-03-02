@@ -8,6 +8,7 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 
 	//"github.com/libp2p/go-libp2p-core/peer"
+	proto "github.com/gogo/protobuf/proto"
 
 	uuid "github.com/google/uuid"
 
@@ -41,7 +42,7 @@ func (h *HeaderInfoProtol) InitProtocol(data *prototypes.GlobalData) {
 }
 
 func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s core.Stream) {
-
+	defer s.Close()
 	//获取headers 信息
 	if getheaders.GetEndHeight()-getheaders.GetStartHeight() > 2000 || getheaders.GetEndHeight() < getheaders.GetStartHeight() {
 		return
@@ -151,15 +152,18 @@ func (d *HeaderInfoHander) Handle(stream core.Stream) {
 		//TODO checkCommonData
 		//protocol.CheckMessage(data.GetMessageData().GetId())
 		recvData := data.Message
+		request, err := proto.Marshal(&data)
+		if err != nil {
+			return
+		}
+		if !d.VerifyRequest(request, data.GetMessageData()) {
+			log.Error("Handle", "VerifyRequest", "faild")
+			//TODO 增加消息验证
+		}
 		protocol.OnReq(data.GetMessageData().GetId(), recvData, stream)
 		return
 	}
 
 	return
 
-}
-
-func (h *HeaderInfoHander) VerifyRequest(data []byte) bool {
-
-	return true
 }

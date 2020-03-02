@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	addrkeyTag = "addrs"
+	addrkeyTag = "mutiaddrs"
 	privKeyTag = "privkey"
 )
 
@@ -25,13 +25,11 @@ type AddrBook struct {
 	privkey string
 	pubkey  string
 	bookDb  db.DB
-	Quit    chan struct{}
 }
 
 func NewAddrBook(cfg *types.P2P) *AddrBook {
 	a := &AddrBook{
-		cfg:  cfg,
-		Quit: make(chan struct{}, 1),
+		cfg: cfg,
 	}
 	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
 
@@ -50,13 +48,13 @@ func (a *AddrBook) AddrsInfo() []peer.AddrInfo {
 
 	addrsInfoBs, err := a.bookDb.Get([]byte(addrkeyTag))
 	if err != nil {
-		logger.Error("LoadAddrsInfo", " Get addrkeyTag", err.Error())
+		log.Error("LoadAddrsInfo", " Get addrkeyTag", err.Error())
 		return addrsInfo
 	}
 
 	err = json.Unmarshal(addrsInfoBs, &addrsInfo)
 	if err != nil {
-		logger.Error("LoadAddrsInfo", "Unmarshal err", err.Error())
+		log.Error("LoadAddrsInfo", "Unmarshal err", err.Error())
 		return nil
 	}
 
@@ -67,16 +65,14 @@ func (a *AddrBook) loadDb() bool {
 
 	privkey, err := a.bookDb.Get([]byte(privKeyTag))
 	if len(privkey) != 0 && err == nil {
-		pubkey, err := genPubkey(string(privkey))
+		pubkey, err := GenPubkey(string(privkey))
 		if err != nil {
-			logger.Error("genPubkey", "err", err.Error())
+			log.Error("genPubkey", "err", err.Error())
 			panic(err)
 		}
 		a.setKey(string(privkey), pubkey)
 		return true
 	}
-
-	//loading addrinfos
 
 	return false
 
@@ -115,12 +111,12 @@ func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
 	defer a.mtx.Unlock()
 	keybytes, err := hex.DecodeString(a.privkey)
 	if err != nil {
-		logger.Error("GetPrivkey", "DecodeString Error", err.Error())
+		log.Error("GetPrivkey", "DecodeString Error", err.Error())
 		return nil
 	}
 	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
 	if err != nil {
-		logger.Error("GetPrivkey", "PrivKeyUnmarshaller", err.Error())
+		log.Error("GetPrivkey", "PrivKeyUnmarshaller", err.Error())
 		return nil
 	}
 	return privkey
@@ -141,15 +137,15 @@ func (a *AddrBook) setKey(privkey, pubkey string) {
 
 }
 
-func (a *AddrBook) SaveAddr(addrinfos []peer.AddrInfo) {
+func (a *AddrBook) SaveAddr(addrinfos []peer.AddrInfo) error {
 
 	jsonBytes, err := json.Marshal(addrinfos)
 	if err != nil {
-		logger.Error("Failed to save AddrBook to file", "err", err)
-		return
+		log.Error("Failed to save AddrBook to file", "err", err)
+		return nil
 	}
-	logger.Debug("saveToDb", "addrs", string(jsonBytes))
-	err = a.bookDb.Set([]byte(addrkeyTag), jsonBytes)
+	log.Debug("saveToDb", "addrs", string(jsonBytes))
+	return a.bookDb.Set([]byte(addrkeyTag), jsonBytes)
 
 }
 
@@ -173,20 +169,20 @@ func GenPrivPubkey() ([]byte, []byte, error) {
 
 }
 
-func genPubkey(key string) (string, error) {
+func GenPubkey(key string) (string, error) {
 	keybytes, err := hex.DecodeString(key)
 	if err != nil {
-		logger.Error("DecodeString Error", "Error", err.Error())
+		log.Error("DecodeString Error", "Error", err.Error())
 		return "", err
 	}
 	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
 	if err != nil {
-		logger.Error("genPubkey", "PrivKeyUnmarshaller", err.Error())
+		log.Error("genPubkey", "PrivKeyUnmarshaller", err.Error())
 		return "", err
 	}
 	pubkey, err := privkey.GetPublic().Bytes()
 	if err != nil {
-		logger.Error("genPubkey", "GetPubkey", err.Error())
+		log.Error("genPubkey", "GetPubkey", err.Error())
 		return "", err
 	}
 	return hex.EncodeToString(pubkey), nil

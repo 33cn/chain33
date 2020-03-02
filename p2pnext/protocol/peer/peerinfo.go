@@ -106,6 +106,8 @@ Jump:
 
 //p2pserver 端接收处理事件
 func (p *PeerInfoProtol) OnReq(req *types.MessagePeerInfoReq, s core.Stream) {
+	defer s.Close()
+
 	log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
 
 	peerinfo := p.getLoacalPeerInfo()
@@ -267,7 +269,7 @@ func (h *PeerInfoHandler) Handle(stream core.Stream) {
 
 }
 
-func (p *PeerInfoHandler) VerifyRequest(data []byte) bool {
+func (p *PeerInfoHandler) VerifyRequest(data []byte, messageComm *types.MessageComm) bool {
 
 	return true
 }

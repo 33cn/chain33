@@ -106,7 +106,7 @@ func (b *broadCastHandler) SetProtocol(protocol prototypes.IProtocol) {
 	b.Protocol = protocol
 }
 
-func (h *broadCastHandler) VerifyRequest(data []byte) bool {
+func (h *broadCastHandler) VerifyRequest(data []byte, messageComm *types.MessageComm) bool {
 
 	return true
 }

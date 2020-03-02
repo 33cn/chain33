@@ -3,6 +3,7 @@ package types
 import (
 	"bufio"
 	"context"
+	"time"
 
 	"reflect"
 	"strings"
@@ -11,10 +12,9 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
+	proto "github.com/gogo/protobuf/proto"
 
-	"github.com/golang/protobuf/proto"
 	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
@@ -61,7 +61,7 @@ type StreamHandler interface {
 	// SetProtocol 初始化公共结构, 内部通过protocol获取外部依赖公共类, 如queue.client等
 	SetProtocol(protocol IProtocol)
 	// VerifyRequest  验证请求数据
-	VerifyRequest(request []byte) bool
+	VerifyRequest(request []byte, messageComm *types.MessageComm) bool
 	// Handle 处理请求
 	Handle(stream core.Stream)
 }
@@ -79,43 +79,16 @@ func (s *BaseStreamHandler) Handle(core.Stream) {
 	return
 }
 
-func (s *BaseStreamHandler) VerifyRequest(request []byte) bool {
+func (s *BaseStreamHandler) VerifyRequest(request []byte, messageComm *types.MessageComm) bool {
 	//基类统一验证数据, 不需要验证,重写该方法直接返回true
-	//TODO, verify request
-	//获取对应的消息结构package
 
-	return true
-
-}
-
-func (s *BaseStreamHandler) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyData []byte) bool {
-	key, err := crypto.UnmarshalPublicKey(pubKeyData)
+	peerID, err := peer.IDB58Decode(messageComm.GetNodeId())
 	if err != nil {
-		log.Error("verifyData", err, "Failed to extract key from message key data")
 		return false
 	}
 
-	// extract node id from the provided public key
-	idFromKey, err := peer.IDFromPublicKey(key)
+	return verifyData(request, messageComm.GetSign(), peerID, messageComm.GetNodePubKey())
 
-	if err != nil {
-		log.Error("verifyData", err, "Failed to extract peer id from public key")
-		return false
-	}
-
-	// verify that message author node id matches the provided node public key
-	if idFromKey != peerId {
-		log.Error("verifyData", err, "Node id and provided public key mismatch")
-		return false
-	}
-
-	res, err := key.Verify(data, signature)
-	if err != nil {
-		log.Error("verifyData", err, "Error authenticating data")
-		return false
-	}
-
-	return res
 }
 
 func (s *BaseStreamHandler) GetProtocol() IProtocol {
@@ -125,6 +98,7 @@ func (s *BaseStreamHandler) GetProtocol() IProtocol {
 //stream事件预处理函数
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 	log.Info("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
+	//TODO verify校验放在这里
 	s.child.Handle(stream)
 
 }
@@ -146,7 +120,9 @@ func (s *BaseStreamHandler) SendToStream(pid string, data proto.Message, msgID p
 
 	return stream, err
 }
+
 func (s *BaseStreamHandler) SendProtoMessage(data proto.Message, stream core.Stream) error {
+	stream.SetWriteDeadline(time.Now().Add(30 * time.Second))
 	writer := bufio.NewWriter(stream)
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
 	err := enc.Encode(data)
@@ -158,6 +134,7 @@ func (s *BaseStreamHandler) SendProtoMessage(data proto.Message, stream core.Str
 }
 
 func (s *BaseStreamHandler) ReadProtoMessage(data proto.Message, stream core.Stream) error {
+	stream.SetReadDeadline(time.Now().Add(30 * time.Second))
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(stream))
 	return decoder.Decode(data)
 }

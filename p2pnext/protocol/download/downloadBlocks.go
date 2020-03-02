@@ -2,6 +2,7 @@ package download
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -54,7 +55,7 @@ type DownloadHander struct {
 	*prototypes.BaseStreamHandler
 }
 
-func (h *DownloadHander) VerifyRequest(data []byte) bool {
+func (h *DownloadHander) VerifyRequest(data []byte, messageComm *types.MessageComm) bool {
 
 	return true
 }
@@ -81,7 +82,7 @@ func (d *DownloadHander) Handle(stream core.Stream) {
 }
 
 func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.Stream) {
-
+	defer s.Close()
 	//获取headers 信息
 	//允许下载的最大高度区间为256
 	if message.GetEndHeight()-message.GetStartHeight() > 256 || message.GetEndHeight() < message.GetStartHeight() {
@@ -142,13 +143,17 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	}
 
 	msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
+	var jobID = uuid.New().String() + "+" + fmt.Sprintf("%d-%d", req.GetStart(), req.GetEnd())
+
+	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids, "jobID", jobID)
 
 	//具体的下载逻辑
-	jobS := d.initJob()
+	jobS := d.initJob(pids, jobID)
 	var wg sync.WaitGroup
 	var maxgoroutin int32
+	var reDownload sync.Map
 	var startTime = time.Now().UnixNano()
+
 	for height := req.GetStart(); height <= req.GetEnd(); height++ {
 		wg.Add(1)
 	Wait:
@@ -161,7 +166,18 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 			err := d.syncDownloadBlock(blockheight, jbs)
 			if err != nil {
 				log.Error("syncDownloadBlock", "err", err.Error())
-				//TODO 50次下载尝试，失败之后异常处理
+				v, ok := reDownload.Load(jobID)
+				if ok {
+					faildJob := v.(map[int64]bool)
+					faildJob[blockheight] = false
+					reDownload.Store(jobID, faildJob)
+
+				} else {
+					faildJob := make(map[int64]bool)
+					faildJob[blockheight] = false
+					reDownload.Store(jobID, faildJob)
+
+				}
 			}
 			wg.Done()
 			atomic.AddInt32(&maxgoroutin, -1)
@@ -169,24 +185,46 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 		}(height, jobS)
 
 	}
+
 	wg.Wait()
+	d.CheckJob(jobID, pids, reDownload)
 	log.Info("handleEvent", "download process done", "cost time(ms)", (time.Now().UnixNano()-startTime)/1e6)
+
+}
+func (d *DownloadProtol) CheckJob(jobID string, pids []string, faildJobs sync.Map) {
+	defer faildJobs.Delete(jobID)
+	v, ok := faildJobs.Load(jobID)
+	if !ok {
+		return
+	}
+	faildJob := v.(map[int64]bool)
+	log.Info("CheckJob", "jobID", jobID, "faildJobNum", len(faildJob))
+	for blockheight := range faildJob {
+		//redownload blocks
+		jobS := d.initJob(pids, jobID)
+		d.syncDownloadBlock(blockheight, jobS)
+	}
 
 }
 
 func (d *DownloadProtol) syncDownloadBlock(blockheight int64, jbs jobs) error {
 	var retryCount uint
-	var downloadStart = time.Now().UnixNano()
+	sort.Sort(jbs)
+
 ReDownload:
 	retryCount++
 	if retryCount > 50 {
 		return errors.New("beyound max try count 50")
 	}
+
 	freeJob := d.getFreeJob(jbs)
 	if freeJob == nil {
-		time.Sleep(time.Millisecond * 400)
+		time.Sleep(time.Millisecond * 800)
 		goto ReDownload
 	}
+	defer d.releaseJob(freeJob)
+
+	var downloadStart = time.Now().UnixNano()
 
 	getblocks := &types.P2PGetBlocks{StartHeight: blockheight, EndHeight: blockheight,
 		Version: 0}
@@ -199,16 +237,15 @@ ReDownload:
 	stream, err := d.SendToStream(freeJob.Pid.Pretty(), blockReq, DownloadBlockReq, d.GetHost())
 	if err != nil {
 		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
-		d.releaseJob(freeJob)
+		jbs = append(jbs[:freeJob.Index], jbs[freeJob.Index+1:]...)
 		goto ReDownload
 	}
-	defer stream.Close()
 
 	var resp types.MessageGetBlocksResp
 	err = d.ReadProtoMessage(&resp, stream)
 	if err != nil {
 		log.Error("handleEvent", "ReadProtoMessage", err)
-		d.releaseJob(freeJob)
+		jbs = append(jbs[:freeJob.Index], jbs[freeJob.Index+1:]...)
 		goto ReDownload
 	}
 
@@ -222,19 +259,20 @@ ReDownload:
 	client := d.GetQueueClient()
 	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: remotePid, Block: block}) //加入到输出通道)
 	client.SendTimeout(newmsg, false, 10*time.Second)
-	d.releaseJob(freeJob)
 	return nil
 }
 
-type JobPeerId struct {
+type JobInfo struct {
+	Id      string
 	Limit   int
 	Pid     peer.ID
+	Index   int
 	Latency time.Duration
 	mtx     sync.Mutex
 }
 
 // jobs datastruct
-type jobs []*JobPeerId
+type jobs []*JobInfo
 
 //Len size of the Invs data
 func (i jobs) Len() int {
@@ -251,18 +289,37 @@ func (i jobs) Swap(a, b int) {
 	i[a], i[b] = i[b], i[a]
 }
 
-func (d *DownloadProtol) initJob() jobs {
+func (d *DownloadProtol) initJob(pids []string, jobId string) jobs {
 	var JobPeerIds jobs
-	log.Info("initJob", "peersize", d.GetHost().Peerstore().Peers().Len())
-	pids := d.ConnManager.Fetch()
+	var pIDs []peer.ID
 	for _, pid := range pids {
-		if pid.Pretty() == d.GetHost().ID().Pretty() {
+		pID, err := peer.IDB58Decode(pid)
+		if err != nil {
 			continue
 		}
-		var job JobPeerId
-		log.Info("initJob", "pid", pid)
+		pIDs = append(pIDs, pID)
+	}
+	if len(pIDs) == 0 {
+		pIDs = d.ConnManager.Fetch()
 
-		job.Pid = pid
+	}
+	latency := d.GetConnsManager().GetLatencyByPeer(pIDs)
+	for _, pID := range pIDs {
+		if pID.Pretty() == d.GetHost().ID().Pretty() {
+			continue
+		}
+		var job JobInfo
+		job.Pid = pID
+		job.Id = jobId
+		log.Info("initJob", "pid", pID)
+		var ok bool
+		latency, ok := latency[job.Pid.Pretty()]
+		if ok {
+			if latency == 0 {
+				continue
+			}
+			job.Latency = latency
+		}
 		job.Limit = 0
 		JobPeerIds = append(JobPeerIds, &job)
 	}
@@ -270,28 +327,20 @@ func (d *DownloadProtol) initJob() jobs {
 	return JobPeerIds
 }
 
-func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
-	//配置各个节点的速率
-	var peerIDs []peer.ID
+func (d *DownloadProtol) getFreeJob(js jobs) *JobInfo {
+
 	var limit int
-	for _, job := range js {
-		peerIDs = append(peerIDs, job.Pid)
-	}
-	latency := d.GetConnsManager().GetLatencyByPeer(peerIDs)
-	for _, jb := range js {
-		jb.Latency = latency[jb.Pid.Pretty()]
-	}
-	sort.Sort(js)
 	if len(js) > 10 {
 		limit = 20 //节点数大于10，每个节点限制最大下载任务数为20个
 	} else {
 		limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
 	}
-	for _, job := range js {
+	for i, job := range js {
 		if job.Limit < limit {
 			job.mtx.Lock()
 			job.Limit++
 			job.mtx.Unlock()
+			job.Index = i
 			log.Info("getFreeJob", " limit", job.Limit, "latency", job.Latency, "peerid", job.Pid)
 			return job
 		}
@@ -301,7 +350,7 @@ func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
 
 }
 
-func (d *DownloadProtol) releaseJob(js *JobPeerId) {
+func (d *DownloadProtol) releaseJob(js *JobInfo) {
 	js.mtx.Lock()
 	defer js.mtx.Unlock()
 	js.Limit--
