@@ -2,7 +2,6 @@ package p2pnext
 
 import (
 	p2pty "github.com/33cn/chain33/p2pnext/types"
-	"log"
 	"sync"
 	"time"
 
@@ -39,7 +38,7 @@ func (n *Node) AuthenticateMessage(message proto.Message, data *types.MessageCom
 	// marshall data without the signature to protobufs3 binary format
 	bin, err := proto.Marshal(message)
 	if err != nil {
-		log.Println(err, "failed to marshal pb message")
+		log.Error("failed to marshal pb message")
 		return false
 	}
 
@@ -49,7 +48,7 @@ func (n *Node) AuthenticateMessage(message proto.Message, data *types.MessageCom
 	// restore peer id binary format from base58 encoded node id data
 	peerId, err := peer.IDB58Decode(data.NodeId)
 	if err != nil {
-		log.Println(err, "Failed to decode node id from base58")
+		log.Error("Failed to decode node id from base58")
 		return false
 	}
 
@@ -82,7 +81,7 @@ func (n *Node) signData(data []byte) ([]byte, error) {
 func (n *Node) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
-		log.Println(err, "Failed to extract key from message key data")
+		log.Error("Failed to extract key from message key data", "err", err)
 		return false
 	}
 
@@ -90,19 +89,19 @@ func (n *Node) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyD
 	idFromKey, err := peer.IDFromPublicKey(key)
 
 	if err != nil {
-		log.Println(err, "Failed to extract peer id from public key")
+		log.Error("Failed to extract peer id from public key", "err", err)
 		return false
 	}
 
 	// verify that message author node id matches the provided node public key
 	if idFromKey != peerId {
-		log.Println(err, "Node id and provided public key mismatch")
+		log.Error("Node id and provided public key mismatch", "err", err)
 		return false
 	}
 
 	res, err := key.Verify(data, signature)
 	if err != nil {
-		log.Println(err, "Error authenticating data")
+		log.Error("Error authenticating data", "err", err)
 		return false
 	}
 
@@ -135,7 +134,7 @@ func (n *Node) SendProtoMessage(s net.Stream, p protocol.ID, data proto.Message)
 	writer := ggio.NewFullWriter(s)
 	err := writer.WriteMsg(data)
 	if err != nil {
-		log.Println(err)
+		log.Error(err.Error())
 		s.Reset()
 		return false
 	}
