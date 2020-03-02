@@ -30,12 +30,26 @@ func (mgr *P2PMgr) handleSysEvent() {
 		case types.EventFetchBlocks, types.EventGetMempool, types.EventFetchBlockHeaders:
 			mgr.pub2P2P(msg, mgr.p2pCfg.Types[0])
 		case types.EventPeerInfo:
-			// TODO 支持多种类型p2p 查询
-			mgr.pub2P2P(msg, mgr.p2pCfg.Types[0])
+			// 采用默认配置
+			p2pTy := mgr.p2pCfg.Types[0]
+			req, _ := msg.Data.(*types.P2PGetPeerReq)
+			for _, ty := range mgr.p2pCfg.Types {
+				if ty == req.GetP2PType() {
+					p2pTy = req.GetP2PType()
+				}
+			}
+			mgr.pub2P2P(msg, p2pTy)
 
 		case types.EventGetNetInfo:
-			// TODO 支持多种类型p2p 查询
-			mgr.pub2P2P(msg, mgr.p2pCfg.Types[0])
+			// 采用默认配置
+			p2pTy := mgr.p2pCfg.Types[0]
+			req, _:= msg.Data.(*types.P2PGetNetInfoReq)
+			for _, ty := range mgr.p2pCfg.Types {
+				if ty == req.GetP2PType() {
+					p2pTy = req.GetP2PType()
+				}
+			}
+			mgr.pub2P2P(msg, p2pTy)
 
 		default:
 			log.Warn("unknown msgtype", "msg", msg)
@@ -62,7 +76,7 @@ func (mgr *P2PMgr) PubBroadCast(hash string, data interface{}, eventTy int) erro
 
 	exist, _ := mgr.broadcastFilter.ContainsOrAdd(hash, true)
 	// eventTy, 交易=1, 区块=54
-	log.Debug("PubBroadCast", "eventTy", eventTy, "hash", hash)
+	log.Debug("PubBroadCast", "eventTy", eventTy, "hash", hash, "exist", exist)
 	if exist {
 		return nil
 	}

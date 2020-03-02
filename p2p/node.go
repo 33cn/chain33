@@ -117,7 +117,7 @@ func NewNode(mgr *manage.P2PMgr, mcfg *subConfig) (*Node, error) {
 	}
 
 	for _, seed := range mcfg.Seeds {
-		node.cfgSeeds.Store(seed, "p2pCfg")
+		node.cfgSeeds.Store(seed, "cfg")
 	}
 	node.nodeInfo = NewNodeInfo(cfg.GetModuleConfig().P2P, mcfg)
 	if mcfg.ServerStart {

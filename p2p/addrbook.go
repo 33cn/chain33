@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/33cn/chain33/p2p/manage"
 	"strings"
 	"sync"
 	"time"
@@ -237,7 +238,8 @@ func (a *AddrBook) genPubkey(privkey string) string {
 // cmn.Panics if file is corrupt.
 
 func (a *AddrBook) loadDb() bool {
-	a.bookDb = db.NewDB("addrbook", a.p2pCfg.Driver, a.p2pCfg.DbPath, a.p2pCfg.DbCache)
+	dbPath := a.p2pCfg.DbPath + "/" + manage.GossipTypeName
+	a.bookDb = db.NewDB("addrbook", a.p2pCfg.Driver, dbPath, a.p2pCfg.DbCache)
 	privkey, err := a.bookDb.Get([]byte(privKeyTag))
 	if len(privkey) != 0 && err == nil {
 		a.setKey(string(privkey), a.genPubkey(string(privkey)))

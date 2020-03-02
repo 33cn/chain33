@@ -175,8 +175,8 @@ func TestQueryChain(t *testing.T) {
 }
 
 func testGetPeerInfoOK(t *testing.T) {
-	qapi.On("PeerInfo").Return(nil, nil)
-	data, err := g.GetPeerInfo(getOkCtx(), nil)
+	qapi.On("PeerInfo", mock.Anything).Return(nil, nil)
+	data, err := g.GetPeerInfo(getOkCtx(), &types.P2PGetPeerReq{})
 	assert.Nil(t, err, "the error should be nil")
 	assert.Nil(t, data)
 }
@@ -186,8 +186,8 @@ func TestGetPeerInfo(t *testing.T) {
 }
 
 func testNetInfoOK(t *testing.T) {
-	qapi.On("GetNetInfo").Return(nil, nil)
-	data, err := g.NetInfo(getOkCtx(), nil)
+	qapi.On("GetNetInfo", mock.Anything).Return(nil, nil)
+	data, err := g.NetInfo(getOkCtx(), &types.P2PGetNetInfoReq{})
 	assert.Nil(t, err, "the error should be nil")
 	assert.Nil(t, data)
 }
