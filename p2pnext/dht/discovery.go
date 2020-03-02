@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	log = log15.New("module", "p2p.manage")
+	log = log15.New("module", "p2p.dht")
 )
 
 const RendezvousString = "chain33-p2p-findme"

@@ -14,6 +14,7 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	common "github.com/33cn/chain33/p2p"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
@@ -41,7 +42,7 @@ type broadCastProtocol struct {
 	blockSendFilter *common.Filterdata
 	totalBlockCache *common.SpaceLimitCache
 	ltBlockCache    *common.SpaceLimitCache
-	p2pCfg          *types.P2P
+	p2pCfg          *p2pty.P2PSubConfig
 }
 
 //New
@@ -61,7 +62,7 @@ func (p *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
 	p.totalBlockCache = common.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
 	p.ltBlockCache = common.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
-	mcfg := p.GetChainCfg().GetModuleConfig().P2P
+	mcfg := data.SubConfig
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventTxBroadcast, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventBlockBroadcast, p.handleEvent)

@@ -1,6 +1,7 @@
 package p2pnext
 
 import (
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"log"
 	"sync"
 	"time"
@@ -19,14 +20,12 @@ import (
 type Node struct {
 	PeersInfo sync.Map
 	Host      host.Host
-	chainCfg *types.Chain33Config
-	p2pCfg   *types.P2P
+	subCfg    *p2pty.P2PSubConfig
 }
 
-func NewNode(p *P2P, cfg *types.Chain33Config) *Node {
+func NewNode(p *P2P, cfg *p2pty.P2PSubConfig) *Node {
 	node := &Node{Host: p.host}
-	node.chainCfg = cfg
-	node.p2pCfg = cfg.GetModuleConfig().P2P
+	node.subCfg = cfg
 	return node
 }
 
@@ -143,10 +142,3 @@ func (n *Node) SendProtoMessage(s net.Stream, p protocol.ID, data proto.Message)
 	return true
 }
 
-func (n *Node) GetChainCfg() *types.Chain33Config {
-	return n.chainCfg
-}
-
-func (n *Node) GetP2pCfg() *types.P2P {
-	return n.p2pCfg
-}

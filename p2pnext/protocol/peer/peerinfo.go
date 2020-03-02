@@ -22,6 +22,7 @@ import (
 	"github.com/33cn/chain33/types"
 	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 )
 
 const (
@@ -43,12 +44,12 @@ func init() {
 type PeerInfoProtol struct {
 	*prototypes.BaseProtocol
 	*prototypes.BaseStreamHandler
-	p2pCfg *types.P2P
+	p2pCfg *p2pty.P2PSubConfig
 }
 
 func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
 	p.GlobalData = data
-	p.p2pCfg = data.ChainCfg.GetModuleConfig().P2P
+	p.p2pCfg = data.SubConfig
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
 	go p.DetectNodeAddr()

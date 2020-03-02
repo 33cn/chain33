@@ -3,10 +3,11 @@ package p2pnext
 import (
 	"context"
 	"fmt"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"time"
 
 	"github.com/33cn/chain33/client"
-	l "github.com/33cn/chain33/common/log/log15"
+	logger "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2pnext/dht"
 	"github.com/33cn/chain33/p2pnext/manage"
 
@@ -23,9 +24,16 @@ import (
 	//"github.com/libp2p/go-libp2p-core/peer"
 	//"github.com/libp2p/go-libp2p-core/peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
+	p2pmgr "github.com/33cn/chain33/p2p/manage"
 )
 
-var logger = l.New("module", "p2pnext")
+var log = logger.New("module", "p2pnext")
+
+func init() {
+	p2pmgr.RegisterP2PCreate(p2pmgr.DHTTypeName, New)
+}
+
+
 
 type P2P struct {
 	chainCfg      *types.Chain33Config
@@ -38,11 +46,18 @@ type P2P struct {
 	Done          chan struct{}
 	addrbook      *AddrBook
 	Node          *Node
+	p2pCfg   *types.P2P
+	subCfg   *p2pty.P2PSubConfig
+	mgr      *p2pmgr.P2PMgr
+	subChan  chan interface{}
 }
 
-func New(cfg *types.Chain33Config) *P2P {
+func New(mgr *p2pmgr.P2PMgr, subCfg []byte) p2pmgr.IP2P {
 
-	mcfg := cfg.GetModuleConfig().P2P
+	chainCfg := mgr.ChainCfg
+	p2pCfg := chainCfg.GetModuleConfig().P2P
+	mcfg := &p2pty.P2PSubConfig{}
+	types.MustDecode(subCfg, mcfg)
 	if mcfg.Port == 0 {
 		mcfg.Port = 13803
 	}
@@ -52,8 +67,8 @@ func New(cfg *types.Chain33Config) *P2P {
 		return nil
 	}
 
-	logger.Info("NewMulti", "addr", m.String())
-	addrbook := NewAddrBook(cfg.GetModuleConfig().P2P)
+	log.Info("NewMulti", "addr", m.String())
+	addrbook := NewAddrBook(p2pCfg)
 	priv := addrbook.GetPrivkey()
 
 	bandwidthTracker := metrics.NewBandwidthCounter()
@@ -67,25 +82,30 @@ func New(cfg *types.Chain33Config) *P2P {
 	if err != nil {
 		panic(err)
 	}
-	p2p := &P2P{host: host}
-	p2p.peerInfoManag = manage.NewPeerInfoManager()
-	p2p.chainCfg = cfg
-	p2p.addrbook = addrbook
-	p2p.discovery = new(dht.Discovery)
+	p2p := &P2P{
+		host : host,
+		peerInfoManag: manage.NewPeerInfoManager(),
+		chainCfg:chainCfg,
+		subCfg: mcfg,
+		p2pCfg:p2pCfg,
+		client:mgr.Client,
+		api: mgr.SysApi,
+		discovery: &dht.Discovery{},
+		addrbook:addrbook,
+	}
 	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
-
-	p2p.Node = NewNode(p2p, cfg)
-	logger.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
+	p2p.Node = NewNode(p2p, mcfg)
+	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 	return p2p
 }
 
 func (p *P2P) managePeers() {
-	p.discovery.InitDht(p.host, p.Node.p2pCfg.Seeds, p.addrbook.AddrsInfo())
-	go p.connManag.MonitorAllPeers(p.Node.p2pCfg.Seeds, p.host)
+	p.discovery.InitDht(p.host, p.Node.subCfg.Seeds, p.addrbook.AddrsInfo())
+	go p.connManag.MonitorAllPeers(p.Node.subCfg.Seeds, p.host)
 
 	for {
 		peerlist := p.discovery.RoutingTale()
-		logger.Info("managePeers", "RoutingTale show peerlist>>>>>>>>>", peerlist,
+		log.Info("managePeers", "RoutingTale show peerlist>>>>>>>>>", peerlist,
 			"table size", p.discovery.RoutingTableSize())
 
 		select {
@@ -102,15 +122,8 @@ func (p *P2P) managePeers() {
 }
 
 // SetQueueClient
-func (p *P2P) SetQueueClient(cli queue.Client) {
-	var err error
-	p.api, err = client.New(cli, nil)
-	if err != nil {
-		panic("SetQueueClient client.New err")
-	}
-	if p.client == nil {
-		p.client = cli
-	}
+func (p *P2P) StartP2P() {
+
 	//提供给其他插件使用的共享接口
 	globalData := &prototypes.GlobalData{
 		ChainCfg:        p.chainCfg,
@@ -119,6 +132,8 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 		ConnManager:     p.connManag,
 		Discovery:       p.discovery,
 		PeerInfoManager: p.peerInfoManag,
+		P2PManager:p.mgr,
+		SubConfig:p.subCfg,
 	}
 	protocol.Init(globalData)
 	go p.managePeers()
@@ -128,11 +143,19 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 
 func (p *P2P) processP2P() {
 
-	p.client.Sub("p2p")
+	p.subChan = p.mgr.PubSub.Sub(p2pmgr.DHTTypeName)
 
 	//TODO, control goroutine num
-	for msg := range p.client.Recv() {
-		go protocol.HandleEvent(msg)
+	for data := range p.subChan {
+		msg, ok := data.(*queue.Message)
+
+		if ok {
+			log.Debug("processP2P", "recv msg ty", msg.Ty)
+			go protocol.HandleEvent(msg)
+		}else {
+			log.Error("processP2P", "recv invalid msg, data=", data)
+		}
+
 	}
 }
 
@@ -140,9 +163,9 @@ func (p *P2P) Wait() {
 
 }
 
-func (p *P2P) Close() {
+func (p *P2P) CloseP2P() {
 	close(p.Done)
-	logger.Info("p2p closed")
-
+	p.mgr.PubSub.Unsub(p.subChan)
+	log.Info("p2p closed")
 	return
 }

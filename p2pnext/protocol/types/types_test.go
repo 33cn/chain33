@@ -1,15 +1,14 @@
 package types
 
-
 import (
-"context"
-"github.com/33cn/chain33/queue"
-"github.com/libp2p/go-libp2p"
-"github.com/stretchr/testify/assert"
-"reflect"
-"testing"
-)
+	"context"
+	"reflect"
+	"testing"
 
+	"github.com/33cn/chain33/queue"
+	"github.com/libp2p/go-libp2p"
+	"github.com/stretchr/testify/assert"
+)
 
 func initProtocolMap() {
 
@@ -34,7 +33,6 @@ type testStreamHandler2 struct {
 	*BaseStreamHandler
 }
 
-
 func testRegisterProtocolPanic(typeName string, protocol IProtocol) (isPanic bool) {
 
 	defer func() {
@@ -46,7 +44,6 @@ func testRegisterProtocolPanic(typeName string, protocol IProtocol) (isPanic boo
 	RegisterProtocolType(typeName, protocol)
 	return false
 }
-
 
 func TestRegisterProtocolType(t *testing.T) {
 
