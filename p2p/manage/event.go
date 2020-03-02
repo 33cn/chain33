@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	log = log15.New("module", "p2pMgr")
+	log = log15.New("module", "p2p.manage")
 )
 
 /** 处理系统发送至p2p模块的事件, 包含下载, 交易及区块广播等

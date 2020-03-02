@@ -30,6 +30,7 @@ var (
 	log = l.New("module", "p2p")
 )
 
+// p2p 子配置
 type subConfig struct {
 	// P2P服务监听端口号
 	Port int32 `protobuf:"varint,1,opt,name=port" json:"port,omitempty"`
