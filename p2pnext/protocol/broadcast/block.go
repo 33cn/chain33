@@ -59,7 +59,7 @@ func (s *broadCastProtocol) recvBlock(block *types.P2PBlock, pid, peerAddr strin
 		return
 	}
 	//发送至blockchain执行
-	if err := s.postBlockChain(block.GetBlock(), pid); err != nil {
+	if err := s.postBlockChain(blockHash, pid, block.GetBlock()); err != nil {
 		log.Error("recvBlock", "send block to blockchain Error", err.Error())
 	}
 
@@ -141,7 +141,7 @@ func (s *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr
 		log.Debug("recvLtBlockBuildSuccess", "buildHeight", block.GetHeight(), "peerAddr", peerAddr,
 			"blockHash", blockHash, "blockSize(KB)", float32(ltBlock.Size)/1024)
 		//发送至blockchain执行
-		if err := s.postBlockChain(block, pid); err != nil {
+		if err := s.postBlockChain(blockHash, pid, block); err != nil {
 			log.Error("recvLtBlock", "send block to blockchain Error", err.Error())
 		}
 

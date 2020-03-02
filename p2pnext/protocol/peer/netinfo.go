@@ -10,8 +10,15 @@ func (p *PeerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 	insize, outsize := p.ConnManager.BoundSize()
 
 	var netinfo types.NodeNetInfo
-	netinfo.Externaladdr = externalAddr
-	netinfo.Localaddr = p.GetHost().Addrs()[0].String()
+	for i, addr := range p.GetHost().Addrs() {
+		if i == 0 {
+			netinfo.Localaddr = addr.String()
+		}else {
+			netinfo.Externaladdr += ( addr.String() + " " )
+		}
+	}
+	//netinfo.Externaladdr = externalAddr
+	//netinfo.Localaddr = p.GetHost().Addrs()[0].String()
 	netinfo.Service = true
 	netinfo.Outbounds = int32(outsize)
 	netinfo.Inbounds = int32(insize)

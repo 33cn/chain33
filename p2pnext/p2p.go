@@ -92,6 +92,7 @@ func New(mgr *p2pmgr.P2PMgr, subCfg []byte) p2pmgr.IP2P {
 		api: mgr.SysApi,
 		discovery: &dht.Discovery{},
 		addrbook:addrbook,
+		mgr:mgr,
 	}
 	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
 	p2p.Node = NewNode(p2p, mcfg)

@@ -92,7 +92,7 @@ func (s *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid, peer
 		log.Debug("recvQueryReplyBlock", "blockHeight", block.GetHeight(), "peerAddr", peerAddr,
 			"block size(KB)", float32(block.Size())/1024, "blockHash", rep.BlockHash)
 		//发送至blockchain执行
-		if err := s.postBlockChain(block, pid); err != nil {
+		if err := s.postBlockChain(rep.BlockHash, pid, block); err != nil {
 			log.Error("recvQueryReplyBlock", "send block to blockchain Error", err.Error())
 		}
 	} else if len(rep.TxIndices) != 0 {

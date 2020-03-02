@@ -124,7 +124,7 @@ func (s *BaseStreamHandler) GetProtocol() IProtocol {
 
 //stream事件预处理函数
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
-	log.Info("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
+	//log.Debug("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
 	s.child.Handle(stream)
 
 }

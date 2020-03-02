@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/33cn/chain33/p2p/manage"
 	"sync"
 
 	//"github.com/33cn/chain33/common/crypto"
@@ -33,7 +34,8 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 		cfg:  cfg,
 		Quit: make(chan struct{}, 1),
 	}
-	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, a.cfg.DbPath, a.cfg.DbCache)
+	dbPath := cfg.DbPath + "/" + manage.DHTTypeName
+	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, dbPath, a.cfg.DbCache)
 
 	if !a.loadDb() {
 		a.initKey()

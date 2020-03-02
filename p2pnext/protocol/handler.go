@@ -1,7 +1,6 @@
 package protocol
 
 import (
-	"fmt"
 	"github.com/33cn/chain33/common/log/log15"
 
 	"github.com/33cn/chain33/p2pnext/protocol/types"
@@ -16,7 +15,6 @@ var (
 func HandleEvent(msg *queue.Message) {
 
 	if eventHander, ok := types.GetEventHandler(msg.Ty); ok {
-		fmt.Println("HandleEvent", msg.Ty)
 		log.Debug("HandleEvent", "msgTy", msg.Ty)
 		eventHander(msg)
 	} else {

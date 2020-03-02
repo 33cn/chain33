@@ -259,16 +259,12 @@ func (s *broadCastProtocol) sendToMempool(ty int64, data interface{}) (interface
 	return resp.Data, nil
 }
 
-func (s *broadCastProtocol) postBlockChain(block *types.Block, pid string) error {
+func (s *broadCastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {
+	return s.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
+}
 
-	client := s.GetQueueClient()
-	msg := client.NewMessage("blockchain", types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
-	err := client.Send(msg, false)
-	if err != nil {
-		log.Error("postBlockChain", "send to blockchain Error", err.Error())
-		return err
-	}
-	return nil
+func (s *broadCastProtocol) postMempool(txHash string, tx *types.Transaction) error {
+	return s.P2PManager.PubBroadCast(txHash, tx, types.EventTx)
 }
 
 //同时收到多个节点相同交易, 需要加锁保证原子操作, 检测是否存在以及添加过滤

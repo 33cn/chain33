@@ -62,7 +62,7 @@ func (s *broadCastProtocol) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 		tx.Route = &types.P2PRoute{TTL: 1}
 	}
 	s.txFilter.Add(txHash, tx.GetRoute())
-	s.sendToMempool(types.EventTx, tx.GetTx())
+	s.postMempool(txHash,  tx.GetTx())
 
 }
 
