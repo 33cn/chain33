@@ -18,12 +18,46 @@ import (
 	"github.com/33cn/chain33/types"
 
 	// register gzip
+	"github.com/33cn/chain33/p2p/manage"
 	_ "google.golang.org/grpc/encoding/gzip"
 )
+
+func init() {
+	manage.RegisterP2PCreate(manage.GossipTypeName, New)
+}
 
 var (
 	log = l.New("module", "p2p")
 )
+
+// p2p 子配置
+type subConfig struct {
+	// P2P服务监听端口号
+	Port int32 `protobuf:"varint,1,opt,name=port" json:"port,omitempty"`
+	// 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=
+	Seeds []string `protobuf:"bytes,2,rep,name=seeds" json:"seeds,omitempty"`
+	// 是否为种子节点
+	IsSeed bool `protobuf:"varint,3,opt,name=isSeed" json:"isSeed,omitempty"`
+	//固定连接节点，只连接配置项seeds中的节点
+	FixedSeed bool `protobuf:"varint,4,opt,name=fixedSeed" json:"fixedSeed,omitempty"`
+	// 是否使用内置的种子节点
+	InnerSeedEnable bool `protobuf:"varint,5,opt,name=innerSeedEnable" json:"innerSeedEnable,omitempty"`
+	// 是否使用Github获取种子节点
+	UseGithub bool `protobuf:"varint,6,opt,name=useGithub" json:"useGithub,omitempty"`
+	// 是否作为服务端，对外提供服务
+	ServerStart bool `protobuf:"varint,7,opt,name=serverStart" json:"serverStart,omitempty"`
+	// 最多的接入节点个数
+	InnerBounds int32 `protobuf:"varint,8,opt,name=innerBounds" json:"innerBounds,omitempty"`
+	//交易开始采用哈希广播的ttl
+	LightTxTTL int32 `protobuf:"varint,9,opt,name=lightTxTTL" json:"lightTxTTL,omitempty"`
+	// 最大传播ttl, ttl达到该值将停止继续向外发送
+	MaxTTL int32 `protobuf:"varint,10,opt,name=maxTTL" json:"maxTTL,omitempty"`
+	// p2p网络频道,用于区分主网/测试网/其他网络
+	Channel int32 `protobuf:"varint,11,opt,name=channel" json:"channel,omitempty"`
+	//区块轻广播的最低打包交易数, 大于该值时区块内交易采用短哈希广播
+	MinLtBlockTxNum int32 `protobuf:"varint,12,opt,name=minLtBlockTxNum" json:"minLtBlockTxNum,omitempty"`
+	//指定p2p类型, 支持gossip, dht
+}
 
 // P2p interface
 type P2p struct {
@@ -37,14 +71,21 @@ type P2p struct {
 	waitRestart  chan struct{}
 	taskGroup    *sync.WaitGroup
 
-	closed  int32
-	restart int32
-	cfg     *types.P2P
+	closed   int32
+	restart  int32
+	chainCfg *types.Chain33Config
+	p2pCfg   *types.P2P
+	subCfg   *subConfig
+	mgr      *manage.P2PMgr
+	subChan  chan interface{}
 }
 
 // New produce a p2p object
-func New(cfg *types.Chain33Config) *P2p {
-	mcfg := cfg.GetModuleConfig().P2P
+func New(mgr *manage.P2PMgr, subCfg []byte) manage.IP2P {
+	cfg := mgr.ChainCfg
+	p2pCfg := cfg.GetModuleConfig().P2P
+	mcfg := &subConfig{}
+	types.MustDecode(subCfg, mcfg)
 	//主网的channel默认设为0, 测试网未配置时设为默认
 	if cfg.IsTestNet() && mcfg.Channel == 0 {
 		mcfg.Channel = defaultTestNetChannel
@@ -57,7 +98,7 @@ func New(cfg *types.Chain33Config) *P2p {
 		mcfg.MaxTTL = DefaultMaxTxBroadCastTTL
 	}
 
-	if mcfg.MinLtBlockTxNum < DefaultMinLtBlockTxNum {
+	if mcfg.MinLtBlockTxNum <= 0 {
 		mcfg.MinLtBlockTxNum = DefaultMinLtBlockTxNum
 	}
 
@@ -67,7 +108,7 @@ func New(cfg *types.Chain33Config) *P2p {
 	}
 	log.Info("p2p", "InnerBounds", mcfg.InnerBounds)
 
-	node, err := NewNode(cfg)
+	node, err := NewNode(mgr, mcfg)
 	if err != nil {
 		log.Error(err.Error())
 		return nil
@@ -79,7 +120,11 @@ func New(cfg *types.Chain33Config) *P2p {
 	p2p.otherFactory = make(chan struct{}, 1000) //other task 1000
 	p2p.waitRestart = make(chan struct{}, 1)
 	p2p.txCapcity = 1000
-	p2p.cfg = mcfg
+	p2p.p2pCfg = p2pCfg
+	p2p.subCfg = mcfg
+	p2p.client = mgr.Client
+	p2p.mgr = mgr
+	p2p.api = mgr.SysApi
 	p2p.taskGroup = &sync.WaitGroup{}
 	return p2p
 }
@@ -96,29 +141,18 @@ func (network *P2p) isRestart() bool {
 }
 
 // Close network client
-func (network *P2p) Close() {
+func (network *P2p) CloseP2P() {
 	log.Info("p2p network start shutdown")
 	atomic.StoreInt32(&network.closed, 1)
 	//等待业务协程停止
 	network.waitTaskDone()
 	network.node.Close()
-	if network.client != nil {
-		network.client.Close()
-	}
+	network.mgr.PubSub.Unsub(network.subChan)
 }
 
 // SetQueueClient set the queue
-func (network *P2p) SetQueueClient(cli queue.Client) {
-	var err error
-	if network.client == nil {
-		network.client = cli
-
-	}
-	network.api, err = client.New(cli, nil)
-	if err != nil {
-		panic("SetQueueClient client.New err")
-	}
-	network.node.SetQueueClient(cli)
+func (network *P2p) StartP2P() {
+	network.node.SetQueueClient(network.client)
 
 	go func(p2p *P2p) {
 
@@ -134,7 +168,7 @@ func (network *P2p) SetQueueClient(cli queue.Client) {
 		key, pub := p2p.node.nodeInfo.addrBook.GetPrivPubKey()
 		log.Debug("key pub:", pub, "")
 		if key == "" {
-			if p2p.cfg.WaitPid { //key为空，则为初始钱包，阻塞模式，一直等到钱包导入助记词，解锁
+			if p2p.p2pCfg.WaitPid { //key为空，则为初始钱包，阻塞模式，一直等到钱包导入助记词，解锁
 				if p2p.genAirDropKeyFromWallet() != nil {
 					return
 				}
@@ -289,13 +323,12 @@ func (network *P2p) ReStart() {
 	log.Info("p2p restart, wait p2p task done")
 	network.waitTaskDone()
 	network.node.Close()
-	types.AssertConfig(network.client)
-	node, err := NewNode(network.client.GetConfig()) //创建新的node节点
+	node, err := NewNode(network.mgr, network.subCfg) //创建新的node节点
 	if err != nil {
 		panic(err.Error())
 	}
 	network.node = node
-	network.SetQueueClient(network.client)
+	network.StartP2P()
 
 }
 
@@ -308,9 +341,15 @@ func (network *P2p) subP2pMsg() {
 	go func() {
 
 		var taskIndex int64
-		network.client.Sub("p2p")
-		for msg := range network.client.Recv() {
+		//从p2p manger获取pub的系统消息
+		network.subChan = network.mgr.PubSub.Sub(manage.GossipTypeName)
+		for data := range network.subChan {
 
+			msg, ok := data.(*queue.Message)
+			if !ok {
+				log.Debug("subP2pMsg", "assetMsg", ok)
+				continue
+			}
 			if network.isClose() {
 				log.Debug("subP2pMsg", "loop", "done")
 				close(network.otherFactory)

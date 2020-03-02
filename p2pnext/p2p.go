@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+
 	"time"
 
 	"github.com/33cn/chain33/client"
-	l "github.com/33cn/chain33/common/log/log15"
+	logger "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2pnext/dht"
 	"github.com/33cn/chain33/p2pnext/manage"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 
 	"github.com/33cn/chain33/p2pnext/protocol"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
@@ -23,10 +25,15 @@ import (
 
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 
+	p2pmgr "github.com/33cn/chain33/p2p/manage"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
-var log = l.New("module", "p2pnext")
+var log = logger.New("module", "p2pnext")
+
+func init() {
+	p2pmgr.RegisterP2PCreate(p2pmgr.DHTTypeName, New)
+}
 
 type P2P struct {
 	chainCfg      *types.Chain33Config
@@ -39,41 +46,48 @@ type P2P struct {
 	addrbook      *AddrBook
 	taskGroup     *sync.WaitGroup
 
-	closed int32
+	closed  int32
+	p2pCfg  *types.P2P
+	subCfg  *p2pty.P2PSubConfig
+	mgr     *p2pmgr.P2PMgr
+	subChan chan interface{}
 }
 
-func New(cfg *types.Chain33Config) *P2P {
+func New(mgr *p2pmgr.P2PMgr, subCfg []byte) p2pmgr.IP2P {
 
-	mcfg := cfg.GetModuleConfig().P2P
+	chainCfg := mgr.ChainCfg
+	p2pCfg := chainCfg.GetModuleConfig().P2P
+	mcfg := &p2pty.P2PSubConfig{}
+	types.MustDecode(subCfg, mcfg)
 	if mcfg.Port == 0 {
 		mcfg.Port = 13803
 	}
 
-	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", mcfg.Port))
-	if err != nil {
-		return nil
-	}
-
-	log.Info("NewMulti", "addr", m.String())
-	addrbook := NewAddrBook(cfg.GetModuleConfig().P2P)
+	addrbook := NewAddrBook(p2pCfg)
 	priv := addrbook.GetPrivkey()
 
 	bandwidthTracker := metrics.NewBandwidthCounter()
-	host := newHost(cfg.GetModuleConfig().P2P, priv, bandwidthTracker)
-	p2p := &P2P{host: host}
-	p2p.peerInfoManag = manage.NewPeerInfoManager()
-	p2p.chainCfg = cfg
-	p2p.addrbook = addrbook
-	p2p.discovery = new(dht.Discovery)
-	p2p.discovery.InitDht(p2p.host, cfg.GetModuleConfig().P2P.Seeds, p2p.addrbook.AddrsInfo())
-	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
-	p2p.taskGroup = &sync.WaitGroup{}
+	host := newHost(mcfg, priv, bandwidthTracker)
+	p2p := &P2P{
+		host:          host,
+		peerInfoManag: manage.NewPeerInfoManager(),
+		chainCfg:      chainCfg,
+		subCfg:        mcfg,
+		p2pCfg:        p2pCfg,
+		client:        mgr.Client,
+		api:           mgr.SysApi,
+		discovery:     &dht.Discovery{},
+		addrbook:      addrbook,
+		mgr:           mgr,
+		taskGroup:     &sync.WaitGroup{},
+	}
 
+	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
 	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 	return p2p
 }
 
-func newHost(cfg *types.P2P, priv p2pcrypto.PrivKey, bandwidthTracker *metrics.BandwidthCounter) core.Host {
+func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker *metrics.BandwidthCounter) core.Host {
 	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
 	if err != nil {
 		return nil
@@ -98,7 +112,7 @@ func newHost(cfg *types.P2P, priv p2pcrypto.PrivKey, bandwidthTracker *metrics.B
 }
 
 func (p *P2P) managePeers() {
-	go p.connManag.MonitorAllPeers(p.chainCfg.GetModuleConfig().P2P.Seeds, p.host)
+	go p.connManag.MonitorAllPeers(p.subCfg.Seeds, p.host)
 
 	for {
 		peerlist := p.discovery.RoutingTale()
@@ -120,16 +134,8 @@ func (p *P2P) managePeers() {
 
 }
 
-// SetQueueClient
-func (p *P2P) SetQueueClient(cli queue.Client) {
-	var err error
-	p.api, err = client.New(cli, nil)
-	if err != nil {
-		//panic("SetQueueClient client.New err")
-	}
-	if p.client == nil {
-		p.client = cli
-	}
+func (p *P2P) StartP2P() {
+
 	//提供给其他插件使用的共享接口
 	globalData := &prototypes.GlobalData{
 		ChainCfg:        p.chainCfg,
@@ -138,8 +144,12 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 		ConnManager:     p.connManag,
 		Discovery:       p.discovery,
 		PeerInfoManager: p.peerInfoManag,
+		P2PManager:      p.mgr,
+		SubConfig:       p.subCfg,
 	}
 	protocol.Init(globalData)
+	//初始化dht列表需要优先执行, 否则放在协程中有先后秩序问题, 导致未初始化在其他协程中被使用
+	p.discovery.InitDht(p.host, p.subCfg.Seeds, p.addrbook.AddrsInfo())
 	go p.managePeers()
 	go p.processP2P()
 
@@ -147,19 +157,26 @@ func (p *P2P) SetQueueClient(cli queue.Client) {
 
 func (p *P2P) processP2P() {
 
-	p.client.Sub("p2p")
-
+	p.subChan = p.mgr.PubSub.Sub(p2pmgr.DHTTypeName)
 	//TODO, control goroutine num
-	for msg := range p.client.Recv() {
+	for data := range p.subChan {
 		if p.isClose() {
 			return
 		}
+		msg, ok := data.(*queue.Message)
+		if !ok {
+			log.Error("processP2P", "recv invalid msg, data=", data)
+		}
 		p.taskGroup.Add(1)
-		go func() {
+		go func(qmsg *queue.Message) {
 			defer p.taskGroup.Done()
-			protocol.HandleEvent(msg)
 
-		}()
+			log.Debug("processP2P", "recv msg ty", qmsg.Ty)
+
+			protocol.HandleEvent(qmsg)
+
+		}(msg)
+
 	}
 }
 
@@ -168,23 +185,23 @@ func (p *P2P) Wait() {
 }
 
 func (p *P2P) ReStart() {
-	client := p.client
-
+	/*client := p.client
 	p.Close()
 	p = New(p.chainCfg)
-	p.SetQueueClient(client)
+	p.client = client
+	p.StartP2P()*/
 
 }
 
-func (p *P2P) Close() {
+func (p *P2P) CloseP2P() {
 	log.Info("p2p closed")
+	p.mgr.PubSub.Unsub(p.subChan)
 	atomic.StoreInt32(&p.closed, 1)
 	p.waitTaskDone()
 	p.connManag.Close()
 	p.host.Close()
 	prototypes.ClearEventHandler()
 
-	return
 }
 
 func (p *P2P) isClose() bool {

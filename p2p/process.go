@@ -76,7 +76,7 @@ func (n *Node) processRecvP2P(data *types.BroadCastData, pid string, pubPeerFunc
 
 func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, peerVersion int32, pid, peerAddr string) (doSend bool) {
 
-	byteHash := block.Block.Hash(n.cfg)
+	byteHash := block.Block.Hash(n.chainCfg)
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送
 	ignoreSend := n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
@@ -90,7 +90,7 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 
 		ltBlock := &types.LightBlock{}
 		ltBlock.Size = int64(types.Size(block.Block))
-		ltBlock.Header = block.Block.GetHeader(n.cfg)
+		ltBlock.Header = block.Block.GetHeader(n.chainCfg)
 		ltBlock.Header.Hash = byteHash[:]
 		ltBlock.Header.Signature = block.Block.Signature
 		ltBlock.MinerTx = block.Block.Txs[0]
@@ -181,10 +181,9 @@ func (n *Node) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 	}
 	txHashFilter.Add(txHash, tx.GetRoute())
 
-	msg := n.nodeInfo.client.NewMessage("mempool", types.EventTx, tx.GetTx())
-	errs := n.nodeInfo.client.Send(msg, false)
+	errs := n.postMempool(txHash, tx.GetTx())
 	if errs != nil {
-		log.Error("recvTx", "process EventTx msg Error", errs.Error())
+		log.Error("recvTx", "process post mempool EventTx msg Error", errs.Error())
 	}
 
 }
@@ -215,7 +214,7 @@ func (n *Node) recvBlock(block *types.P2PBlock, pid, peerAddr string) {
 	if block.GetBlock() == nil {
 		return
 	}
-	blockHash := hex.EncodeToString(block.GetBlock().Hash(n.cfg))
+	blockHash := hex.EncodeToString(block.GetBlock().Hash(n.chainCfg))
 	//将节点id添加到发送过滤, 避免冗余发送
 	n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
 	//如果重复接收, 则不再发到blockchain执行
@@ -226,7 +225,7 @@ func (n *Node) recvBlock(block *types.P2PBlock, pid, peerAddr string) {
 		return
 	}
 	//发送至blockchain执行
-	if err := n.postBlockChain(block.GetBlock(), pid); err != nil {
+	if err := n.postBlockChain(blockHash, pid, block.GetBlock()); err != nil {
 		log.Error("recvBlock", "send block to blockchain Error", err.Error())
 	}
 
@@ -299,11 +298,11 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string, pubP
 	nilTxLen := len(nilTxIndices)
 	//需要比较交易根哈希是否一致, 不一致需要请求区块内所有的交易
 	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) {
-		if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(n.cfg, block.Height, block.Txs)) {
+		if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(n.chainCfg, block.Height, block.Txs)) {
 			log.Debug("recvLtBlock", "height", block.GetHeight(), "peerAddr", peerAddr,
 				"blockHash", blockHash, "block size(KB)", float32(ltBlock.Size)/1024)
 			//发送至blockchain执行
-			if err := n.postBlockChain(block, pid); err != nil {
+			if err := n.postBlockChain(blockHash, pid, block); err != nil {
 				log.Error("recvLtBlock", "send block to blockchain Error", err.Error())
 			}
 			return
@@ -400,12 +399,12 @@ func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string, 
 	}
 
 	//计算的root hash是否一致
-	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(n.cfg, block.Height, block.Txs)) {
+	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(n.chainCfg, block.Height, block.Txs)) {
 
 		log.Debug("recvQueryReplyBlock", "blockHeight", block.GetHeight(), "peerAddr", peerAddr,
 			"block size(KB)", float32(block.Size())/1024, "blockHash", rep.BlockHash)
 		//发送至blockchain执行
-		if err := n.postBlockChain(block, pid); err != nil {
+		if err := n.postBlockChain(rep.BlockHash, pid, block); err != nil {
 			log.Error("recvQueryReplyBlock", "send block to blockchain Error", err.Error())
 		}
 	} else if len(rep.TxIndices) != 0 {
@@ -442,15 +441,12 @@ func (n *Node) queryMempool(ty int64, data interface{}) (interface{}, error) {
 	return resp.Data, nil
 }
 
-func (n *Node) postBlockChain(block *types.Block, pid string) error {
+func (n *Node) postBlockChain(blockHash, pid string, block *types.Block) error {
+	return n.p2pMgr.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
+}
 
-	msg := n.nodeInfo.client.NewMessage("blockchain", types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
-	err := n.nodeInfo.client.Send(msg, false)
-	if err != nil {
-		log.Error("postBlockChain", "send to blockchain Error", err.Error())
-		return err
-	}
-	return nil
+func (n *Node) postMempool(txHash string, tx *types.Transaction) error {
+	return n.p2pMgr.PubBroadCast(txHash, tx, types.EventTx)
 }
 
 //同时收到多个节点相同交易, 需要加锁保证原子操作, 检测是否存在以及添加过滤

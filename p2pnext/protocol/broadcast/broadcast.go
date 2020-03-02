@@ -14,6 +14,7 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	common "github.com/33cn/chain33/p2p"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
@@ -41,7 +42,7 @@ type broadCastProtocol struct {
 	blockSendFilter *common.Filterdata
 	totalBlockCache *common.SpaceLimitCache
 	ltBlockCache    *common.SpaceLimitCache
-	p2pCfg          *types.P2P
+	p2pCfg          *p2pty.P2PSubConfig
 }
 
 //New
@@ -51,17 +52,17 @@ func (p *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
 	p.GlobalData = data
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
 	p.txFilter = common.NewFilter(TxRecvFilterCacheNum)
-	p.blockFilter = common.NewFilter(BlockFilterCacheNum)
+	p.blockFilter = common.NewFilter(BlockRecvFilterCacheNum)
 
 	//发送交易和区块时过滤缓存, 解决冗余广播发送
 	p.txSendFilter = common.NewFilter(TxSendFilterCacheNum)
-	p.blockSendFilter = common.NewFilter(BlockFilterCacheNum)
+	p.blockSendFilter = common.NewFilter(BlockSendFilterCacheNum)
 
 	//在本地暂时缓存一些区块数据, 限制最大大小
 	p.totalBlockCache = common.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
 	p.ltBlockCache = common.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
-	mcfg := p.GetChainCfg().GetModuleConfig().P2P
+	mcfg := data.SubConfig
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventTxBroadcast, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventBlockBroadcast, p.handleEvent)
@@ -258,16 +259,12 @@ func (s *broadCastProtocol) sendToMempool(ty int64, data interface{}) (interface
 	return resp.Data, nil
 }
 
-func (s *broadCastProtocol) postBlockChain(block *types.Block, pid string) error {
+func (s *broadCastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {
+	return s.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
+}
 
-	client := s.GetQueueClient()
-	msg := client.NewMessage("blockchain", types.EventBroadcastAddBlock, &types.BlockPid{Pid: pid, Block: block})
-	err := client.Send(msg, false)
-	if err != nil {
-		log.Error("postBlockChain", "send to blockchain Error", err.Error())
-		return err
-	}
-	return nil
+func (s *broadCastProtocol) postMempool(txHash string, tx *types.Transaction) error {
+	return s.P2PManager.PubBroadCast(txHash, tx, types.EventTx)
 }
 
 //同时收到多个节点相同交易, 需要加锁保证原子操作, 检测是否存在以及添加过滤

@@ -162,8 +162,6 @@ type BlockChain struct {
 
 // P2P 配置
 type P2P struct {
-	// P2P服务监听端口号
-	Port int32 `protobuf:"varint,1,opt,name=port" json:"port,omitempty"`
 	// 使用的数据库类型
 	Driver string `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
 	// 数据库文件目录
@@ -172,33 +170,12 @@ type P2P struct {
 	DbCache int32 `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
 	// GRPC请求日志文件
 	GrpcLogFile string `protobuf:"bytes,5,opt,name=grpcLogFile" json:"grpcLogFile,omitempty"`
-	// 是否为种子节点
-	IsSeed bool `protobuf:"varint,6,opt,name=isSeed" json:"isSeed,omitempty"`
-	// 是否作为服务端，对外提供服务
-	ServerStart bool `protobuf:"varint,7,opt,name=serverStart" json:"serverStart,omitempty"`
-	// 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=
-	Seeds []string `protobuf:"bytes,8,rep,name=seeds" json:"seeds,omitempty"`
 	// 是否启动P2P服务
-	Enable       bool  `protobuf:"varint,9,opt,name=enable" json:"enable,omitempty"`
-	MsgCacheSize int32 `protobuf:"varint,10,opt,name=msgCacheSize" json:"msgCacheSize,omitempty"`
-	// 是否使用内置的种子节点
-	InnerSeedEnable bool `protobuf:"varint,14,opt,name=innerSeedEnable" json:"innerSeedEnable,omitempty"`
-	// 最多的接入节点个数
-	InnerBounds int32 `protobuf:"varint,15,opt,name=innerBounds" json:"innerBounds,omitempty"`
-	// 是否使用Github获取种子节点
-	UseGithub bool `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
+	Enable bool `protobuf:"varint,9,opt,name=enable" json:"enable,omitempty"`
 	//是否等待Pid
 	WaitPid bool `protobuf:"varint,17,opt,name=waitPid" json:"waitPid,omitempty"`
-	//交易开始采用哈希广播的ttl
-	LightTxTTL int32 `protobuf:"varint,18,opt,name=lightTxTTL" json:"lightTxTTL,omitempty"`
-	// 最大传播ttl, ttl达到该值将停止继续向外发送
-	MaxTTL int32 `protobuf:"varint,19,opt,name=maxTTL" json:"maxTTL,omitempty"`
-	// p2p网络频道,用于区分主网/测试网/其他网络
-	Channel int32 `protobuf:"varint,20,opt,name=channel" json:"channel,omitempty"`
-	//固定连接节点，只连接配置项seeds中的节点
-	FixedSeed bool `protobuf:"varint,21,opt,name=fixedSeed" json:"fixedSeed,omitempty"`
-	//区块轻广播的最低打包交易数, 大于该值时区块内交易采用短哈希广播
-	MinLtBlockTxNum int32 `protobuf:"varint,22,opt,name=minLtBlockTxNum" json:"minLtBlockTxNum,omitempty"`
+	//指定p2p类型, 支持gossip, dht
+	Types []string `protobuf:"bytes,23,rep,name=types" json:"types,omitempty"`
 }
 
 // RPC 配置

@@ -68,9 +68,6 @@ service chain33 {
     //给钱包解锁
     rpc UnLock(WalletUnLock) returns (Reply) {}
 
-    //获取当前节点连接的其他节点信息
-    rpc GetPeerInfo(ReqNil) returns (PeerList) {}
-
     //获取最新的Mempool
     rpc GetLastMemPool(ReqNil) returns (ReplyTxList) {}
 
@@ -118,11 +115,14 @@ service chain33 {
     //是否同步
     rpc IsSync(ReqNil) returns (Reply) {}
 
-    // ntpclock是否同步
-    rpc IsNtpClockSync(ReqNil) returns (Reply) {}
+    //获取当前节点连接的其他节点信息
+    rpc GetPeerInfo(P2PGetPeerReq) returns (PeerList) {}
 
     //获取当前节点的网络信息
-    rpc NetInfo(ReqNil) returns (NodeNetInfo) {}
+    rpc NetInfo(P2PGetNetInfoReq) returns (NodeNetInfo) {}
+
+    // ntpclock是否同步
+    rpc IsNtpClockSync(ReqNil) returns (Reply) {}
 
     //获取系统致命故障信息
     rpc GetFatalFailure(types.ReqNil) returns (Int32) {}

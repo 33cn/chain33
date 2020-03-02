@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	log = log15.New("module", "p2p.manage")
+	log = log15.New("module", "p2p.connManage")
 )
 
 type ConnManager struct {
@@ -42,7 +42,6 @@ func (s *ConnManager) Close() {
 
 	defer func() {
 		if recover() != nil {
-			// close(ch) panic occur
 			log.Error("channel reclosed")
 		}
 	}()

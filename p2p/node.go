@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/33cn/chain33/p2p/manage"
+
 	//"strings"
 	"sync/atomic"
 
@@ -78,7 +80,8 @@ type Node struct {
 	cfgSeeds   sync.Map
 	closed     int32
 	pubsub     *pubsub.PubSub
-	cfg        *types.Chain33Config
+	chainCfg   *types.Chain33Config
+	p2pMgr     *manage.P2PMgr
 }
 
 // SetQueueClient return client for nodeinfo
@@ -87,12 +90,14 @@ func (n *Node) SetQueueClient(client queue.Client) {
 }
 
 // NewNode produce a node object
-func NewNode(cfg *types.Chain33Config) (*Node, error) {
-	mcfg := cfg.GetModuleConfig().P2P
+func NewNode(mgr *manage.P2PMgr, mcfg *subConfig) (*Node, error) {
+
+	cfg := mgr.ChainCfg
 	node := &Node{
 		outBound:   make(map[string]*Peer),
 		cacheBound: make(map[string]*Peer),
 		pubsub:     pubsub.NewPubSub(10200),
+		p2pMgr:     mgr,
 	}
 	node.listenPort = 13802
 	if mcfg.Port != 0 && mcfg.Port <= 65535 && mcfg.Port > 1024 {
@@ -114,11 +119,11 @@ func NewNode(cfg *types.Chain33Config) (*Node, error) {
 	for _, seed := range mcfg.Seeds {
 		node.cfgSeeds.Store(seed, "cfg")
 	}
-	node.nodeInfo = NewNodeInfo(mcfg)
+	node.nodeInfo = NewNodeInfo(cfg.GetModuleConfig().P2P, mcfg)
 	if mcfg.ServerStart {
 		node.server = newListener(protocol, node)
 	}
-	node.cfg = cfg
+	node.chainCfg = cfg
 	return node, nil
 }
 

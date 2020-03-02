@@ -1,6 +1,8 @@
 package peer
 
 import (
+	"strings"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
@@ -9,8 +11,9 @@ func (p *PeerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 	log.Debug("PeerInfoProtol", "net info", msg)
 	insize, outsize := p.ConnManager.BoundSize()
 	var netinfo types.NodeNetInfo
-	netinfo.Externaladdr = externalAddr
-	netinfo.Localaddr = p.GetHost().Addrs()[0].String()
+	//外网地址只有一个，显示太多，意义不大
+	netinfo.Externaladdr = strings.Split(externalAddr, "/")[2]
+	netinfo.Localaddr = strings.Split(p.GetHost().Addrs()[0].String(), "/")[2]
 	netinfo.Outbounds = int32(outsize)
 	netinfo.Inbounds = int32(insize)
 	netinfo.Service = false

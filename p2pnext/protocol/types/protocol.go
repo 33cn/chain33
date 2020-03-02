@@ -5,8 +5,11 @@ import (
 	"reflect"
 	"time"
 
+	p2pmanage "github.com/33cn/chain33/p2p/manage"
+
 	"github.com/33cn/chain33/p2pnext/dht"
 	"github.com/33cn/chain33/p2pnext/manage"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
@@ -20,6 +23,7 @@ type IProtocol interface {
 	InitProtocol(*GlobalData)
 }
 
+// RegisterProtocolType 注册协议类型
 func RegisterProtocolType(typeName string, proto IProtocol) {
 
 	if proto == nil {
@@ -41,10 +45,12 @@ func init() {
 	RegisterProtocolType("BaseProtocol", &BaseProtocol{})
 }
 
+// ProtocolManager 协议管理
 type ProtocolManager struct {
 	protoMap map[string]IProtocol
 }
 
+// GlobalData p2p全局公共变量
 type GlobalData struct {
 	ChainCfg        *types.Chain33Config
 	QueueClient     queue.Client
@@ -52,6 +58,8 @@ type GlobalData struct {
 	ConnManager     *manage.ConnManager
 	PeerInfoManager *manage.PeerInfoManager
 	Discovery       *dht.Discovery
+	P2PManager      *p2pmanage.P2PMgr
+	SubConfig       *p2pty.P2PSubConfig
 }
 
 // BaseProtocol store public data
@@ -59,11 +67,7 @@ type BaseProtocol struct {
 	*GlobalData
 }
 
-func (p *BaseProtocol) InitProtocol(data *GlobalData) {
-
-	p.GlobalData = data
-}
-
+// Init 初始化
 func (p *ProtocolManager) Init(data *GlobalData) {
 	p.protoMap = make(map[string]IProtocol)
 	//每个P2P实例都重新分配相关的protocol结构
@@ -103,6 +107,12 @@ func (p *ProtocolManager) Init(data *GlobalData) {
 		data.Host.SetStreamHandler(core.ProtocolID(msgID), baseHander.HandleStream)
 	}
 
+}
+
+// InitProtocol 初始化协议
+func (p *BaseProtocol) InitProtocol(data *GlobalData) {
+
+	p.GlobalData = data
 }
 
 func (s *BaseProtocol) NewMessageCommon(messageId, pid string, nodePubkey []byte, gossip bool) *types.MessageComm {

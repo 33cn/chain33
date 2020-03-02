@@ -7,20 +7,17 @@ import (
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 
 	"github.com/33cn/chain33/common/log/log15"
-	//ds "github.com/ipfs/go-datastore"
-	//dsync "github.com/ipfs/go-datastore/sync"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 
-	//rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 var (
-	log = log15.New("module", "p2p.manage")
+	log = log15.New("module", "p2p.dht")
 )
 
 const RendezvousString = "chain33-p2p-findme"

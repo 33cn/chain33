@@ -1,13 +1,12 @@
 package p2pnext
 
 import (
-	"encoding/hex"
-
 	"testing"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	pmgr "github.com/33cn/chain33/p2p/manage"
 
 	l "github.com/33cn/chain33/common/log"
+	"github.com/33cn/chain33/p2p/manage"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -99,9 +98,11 @@ func processMsg(q queue.Queue) {
 	}()
 }
 
-func NewP2p(cfg *types.Chain33Config, q queue.Queue) *P2P {
-	p2p := New(cfg)
-	p2p.SetQueueClient(q.Client())
+func NewP2p(cfg *types.Chain33Config) pmgr.IP2P {
+	p2pmgr := manage.NewP2PMgr(cfg)
+	subCfg := p2pmgr.ChainCfg.GetSubConfig().P2P
+	p2p := New(p2pmgr, subCfg[pmgr.DHTTypeName])
+	p2p.StartP2P()
 	return p2p
 }
 
@@ -136,29 +137,6 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 
 }
 
-func testAddrBook(t *testing.T, p2p *P2P) {
-	assert.True(t, p2p.addrbook.GetPrivkey() != nil)
-	privstr, pubstr := p2p.addrbook.GetPrivPubKey()
-	assert.NotEmpty(t, privstr)
-	assert.NotEmpty(t, pubstr)
-	pubkey, err := GenPubkey(privstr)
-	assert.NoError(t, err)
-	assert.Equal(t, pubkey, pubstr)
-	privb, pubb, err := GenPrivPubkey()
-	assert.NoError(t, err)
-
-	genpriv := hex.EncodeToString(privb)
-	genpub := hex.EncodeToString(pubb)
-	p2p.addrbook.SaveKey(privstr, pubstr)
-	assert.NotEqual(t, genpriv, privstr)
-	assert.NotEqual(t, genpub, pubkey)
-	var addrinfo peer.AddrInfo
-
-	err = p2p.addrbook.SaveAddr([]peer.AddrInfo{addrinfo})
-	assert.NoError(t, err)
-
-}
-
 func testRandStr(t *testing.T, n int) {
 	rstr := RandStr(n)
 	assert.True(t, len(rstr) == n)
@@ -170,16 +148,9 @@ func testgenAirDropAddr(t *testing.T, p2p *P2P) {
 
 }
 
-func testP2PClose(t *testing.T, p2p *P2P) {
-	p2p.Close()
+func testP2PClose(t *testing.T, p2p pmgr.IP2P) {
+	p2p.CloseP2P()
 
-}
-func testP2PReStart(t *testing.T, p2p *P2P) {
-	p2p.ReStart()
-}
-
-func testP2PWait(t *testing.T, p2p *P2P) {
-	p2p.Wait()
 }
 
 func Test_p2p(t *testing.T) {
@@ -188,13 +159,10 @@ func Test_p2p(t *testing.T) {
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	processMsg(q)
-	p2p := NewP2p(cfg, q)
+	p2p := NewP2p(cfg)
 	testRandStr(t, 5)
-	testP2PEvent(t, p2p.client)
-	testAddrBook(t, p2p)
+	testP2PEvent(t, q.Client())
 
 	testP2PClose(t, p2p)
-	testP2PWait(t, p2p)
-	testP2PReStart(t, p2p)
 
 }

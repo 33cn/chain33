@@ -99,6 +99,7 @@ func (s *BaseStreamHandler) GetProtocol() IProtocol {
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 	log.Info("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
 	//TODO verify校验放在这里
+
 	s.child.Handle(stream)
 
 }
