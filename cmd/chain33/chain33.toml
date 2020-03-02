@@ -67,6 +67,8 @@ dbPath="datadir/addrbook"
 dbCache=4
 # GRPC请求日志文件
 grpcLogFile="grpc33.log"
+#waitPid 等待seed导入
+waitPid=false
 
 
 [p2p.sub.gossip]
@@ -80,8 +82,7 @@ serverStart=true
 useGithub=true
 # 最多的接入节点个数
 innerBounds=300
-#waitPid 等待seed导入
-waitPid=false
+
 
 [p2p.sub.dht]
 seeds=["/ip4/52.229.200.231/tcp/13802/ipfs/16Uiu2HAmQPsneAp4RSNXJbzsMfP3y576UiAVv1NyLHPjpWELmAxY"]
