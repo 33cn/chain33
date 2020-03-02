@@ -63,13 +63,13 @@ func (d *Discovery) InitDht(host host.Host, seeds []string, peersInfo []peer.Add
 	if err := d.KademliaDHT.Bootstrap(context.Background()); err != nil {
 		panic(err)
 	}
-	d.routingDiscovery = discovery.NewRoutingDiscovery(d.KademliaDHT)
-	discovery.Advertise(context.Background(), d.routingDiscovery, RendezvousString)
+
 	return
 }
 
 func (d *Discovery) FindPeers() (<-chan peer.AddrInfo, error) {
-
+	d.routingDiscovery = discovery.NewRoutingDiscovery(d.KademliaDHT)
+	discovery.Advertise(context.Background(), d.routingDiscovery, RendezvousString)
 	peerChan, err := d.routingDiscovery.FindPeers(context.Background(), RendezvousString)
 	if err != nil {
 		panic(err)
@@ -135,4 +135,9 @@ func (d *Discovery) UPdate(pid peer.ID) error {
 
 func (d *Discovery) FindNearestPeers(pid peer.ID, count int) []peer.ID {
 	return d.KademliaDHT.RoutingTable().NearestPeers(kbt.ConvertPeerID(pid), count)
+}
+
+func (d *Discovery) Remove(pid peer.ID) {
+	d.KademliaDHT.RoutingTable().Remove(pid)
+
 }

@@ -7,12 +7,14 @@ import (
 
 func (p *PeerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 	log.Info("PeerInfoProtol", "net info", msg)
+	insize, outsize := p.ConnManager.BoundSize()
+
 	var netinfo types.NodeNetInfo
 	netinfo.Externaladdr = externalAddr
 	netinfo.Localaddr = p.GetHost().Addrs()[0].String()
 	netinfo.Service = true
-	netinfo.Outbounds = int32(p.GetConnsManager().Size())
-	netinfo.Inbounds = int32(p.GetConnsManager().Size())
+	netinfo.Outbounds = int32(outsize)
+	netinfo.Inbounds = int32(insize)
 	msg.Reply(p.GetQueueClient().NewMessage("rpc", types.EventReplyNetInfo, &netinfo))
 
 }

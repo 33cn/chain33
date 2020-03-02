@@ -81,7 +81,6 @@ func New(cfg *types.Chain33Config) *P2P {
 
 func (p *P2P) managePeers() {
 	p.discovery.InitDht(p.host, p.Node.p2pCfg.Seeds, p.addrbook.AddrsInfo())
-
 	go p.connManag.MonitorAllPeers(p.Node.p2pCfg.Seeds, p.host)
 
 	for {
@@ -90,11 +89,8 @@ func (p *P2P) managePeers() {
 			"table size", p.discovery.RoutingTableSize())
 
 		select {
-		case <-time.After(time.Minute):
-			for _, paddrs := range p.host.Peerstore().Peers() {
-				p.discovery.UPdate(paddrs)
-			}
-			//Reflash addrbook
+		case <-time.After(time.Minute * 10):
+			//Reflesh addrbook
 			peersInfo := p.discovery.FindLocalPeers(p.connManag.Fetch())
 			p.addrbook.SaveAddr(peersInfo)
 
