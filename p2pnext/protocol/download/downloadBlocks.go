@@ -23,8 +23,7 @@ import (
 )
 
 var (
-	log             = log15.New("module", "p2p.download")
-	MaxJobLimit int = 100
+	log = log15.New("module", "p2p.download")
 )
 
 func init() {
@@ -217,8 +216,6 @@ ReDownload:
 	remotePid := freeJob.Pid.Pretty()
 	costTime := (time.Now().UnixNano() - downloadStart) / 1e6
 
-	//rate := float64(block.Size()) / float64(costTime)
-
 	log.Info("download+++++", "from", remotePid, "blockheight", block.GetHeight(),
 		"blockSize (bytes)", block.Size(), "costTime ms", costTime)
 
@@ -276,6 +273,7 @@ func (d *DownloadProtol) initJob() jobs {
 func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
 	//配置各个节点的速率
 	var peerIDs []peer.ID
+	var limit int
 	for _, job := range js {
 		peerIDs = append(peerIDs, job.Pid)
 	}
@@ -284,9 +282,13 @@ func (d *DownloadProtol) getFreeJob(js jobs) *JobPeerId {
 		jb.Latency = latency[jb.Pid.Pretty()]
 	}
 	sort.Sort(js)
-	//log.Info("show sort result", "sort of jobs", js)
+	if len(js) > 10 {
+		limit = 20 //节点数大于10，每个节点限制最大下载任务数为20个
+	} else {
+		limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
+	}
 	for _, job := range js {
-		if job.Limit < MaxJobLimit {
+		if job.Limit < limit {
 			job.mtx.Lock()
 			job.Limit++
 			job.mtx.Unlock()
