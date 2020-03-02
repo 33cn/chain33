@@ -36,26 +36,35 @@ enableTxQuickIndex=false
 enableReExecLocal=false
 
 [p2p]
+# p2p类型
+types=["gossip", "dht"]
+# 是否启动P2P服务
+enable=true
+# 使用的数据库类型
+dbPath="datadir/addrbook"
+# 数据库缓存大小
+dbCache=4
+# GRPC请求日志文件
+grpcLogFile="grpc33.log"
+
+
+[p2p.sub.gossip]
 # P2P服务监听端口号
 port=13802
 # 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=["10.0.0.1:13802","10.0.0.2:13802","10.0.0.3:13802"]
 seeds=[]
 # 是否为种子节点
 isSeed=false
-# 是否使用内置的种子节点
-innerSeedEnable=true
 # 是否使用Github获取种子节点
 useGithub=true
 # 最多的接入节点个数
 innerBounds=300
-# 数据库文件目录
-dbPath="datadir/addrbook"
-# 数据库缓存大小
-dbCache=4
-# GRPC请求日志文件
-grpcLogFile="grpc33.log"
 #waitPid 等待seed导入
 waitPid=false
+
+[p2p.sub.dht]
+# P2P服务监听端口号
+port=13803
 
 [rpc]
 # jrpc绑定地址
