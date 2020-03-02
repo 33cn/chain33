@@ -101,7 +101,6 @@ func New(mgr *p2pmgr.P2PMgr, subCfg []byte) p2pmgr.IP2P {
 }
 
 func (p *P2P) managePeers() {
-	p.discovery.InitDht(p.host, p.Node.subCfg.Seeds, p.addrbook.AddrsInfo())
 	go p.connManag.MonitorAllPeers(p.Node.subCfg.Seeds, p.host)
 
 	for {
@@ -137,6 +136,8 @@ func (p *P2P) StartP2P() {
 		SubConfig:p.subCfg,
 	}
 	protocol.Init(globalData)
+	//初始化dht列表需要优先执行, 否则放在协程中有先后秩序问题, 导致未初始化在其他协程中被使用
+	p.discovery.InitDht(p.host, p.Node.subCfg.Seeds, p.addrbook.AddrsInfo())
 	go p.managePeers()
 	go p.processP2P()
 
