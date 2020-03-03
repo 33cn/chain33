@@ -48,7 +48,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 
 	var key crypto.PrivKey
 	if unsigned.GetAddr() != "" {
-		ok, err := wallet.CheckWalletStatus()
+		ok, err := wallet.checkWalletStatus()
 		if !ok {
 			return "", err
 		}
@@ -246,7 +246,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return nil, err
 	}
@@ -404,13 +404,12 @@ func (wallet *Wallet) ProcWalletTxList(TxList *types.ReqWalletTransactionList) (
 func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-
 	walletaccount, err := wallet.procImportPrivKey(PrivKey)
 	return walletaccount, err
 }
 
 func (wallet *Wallet) procImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return nil, err
 	}
@@ -517,7 +516,7 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 		return nil, types.ErrInvalidParam
 	}
 
-	ok, err := wallet.IsTransfer(SendToAddress.GetTo())
+	ok, err := wallet.isTransfer(SendToAddress.GetTo())
 	if !ok {
 		return nil, err
 	}
@@ -656,7 +655,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return nil, err
 	}
@@ -781,7 +780,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	isok, err := wallet.CheckWalletStatus()
+	isok, err := wallet.checkWalletStatus()
 	if !isok && err == types.ErrSaveSeedFirst {
 		return err
 	}
@@ -1193,9 +1192,17 @@ func (wallet *Wallet) GenSeed(lang int32) (*types.ReplySeed, error) {
 	return wallet.genSeed(lang)
 }
 
+//GetSeed:获取seed种子, 通过钱包密码
+func (wallet *Wallet) GetSeed(password string) (string, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	return wallet.getSeed(password)
+}
+
 //获取seed种子, 通过钱包密码
 func (wallet *Wallet) getSeed(password string) (string, error) {
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return "", err
 	}
@@ -1290,7 +1297,7 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return "", err
 	}
@@ -1346,7 +1353,7 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return "", err
 	}
@@ -1513,7 +1520,7 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return err
 	}
@@ -1572,7 +1579,7 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
+	ok, err := wallet.checkWalletStatus()
 	if !ok {
 		return err
 	}
