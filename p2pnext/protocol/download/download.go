@@ -184,7 +184,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 
 	wg.Wait()
 	d.CheckJob(jobID, pids, reDownload)
-	log.Info("handleEvent", "jobID", jobID, "download process done", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6))
+	log.Info("handleEvent Job Complete!", "jobID", jobID, "download process done", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6))
 
 }
 

@@ -67,7 +67,7 @@ func (d *DownloadProtol) initJob(pids []string, jobId string) jobs {
 		var job JobInfo
 		job.Pid = pID
 		job.Id = jobId
-		log.Info("initJob", "pid", pID)
+		//log.Info("initJob", "pid", pID)
 		var ok bool
 		latency, ok := latency[job.Pid.Pretty()]
 		if ok {
@@ -90,7 +90,7 @@ func (d *DownloadProtol) CheckJob(jobID string, pids []string, faildJobs sync.Ma
 		return
 	}
 	faildJob := v.(map[int64]bool)
-	log.Info("CheckJob", "jobID", jobID, "faildJobNum", len(faildJob))
+	log.Warn("CheckJob", "jobID", jobID, "faildJobNum", len(faildJob), "faildJob", faildJob)
 	for blockheight := range faildJob {
 		//redownload blocks
 		jobS := d.initJob(pids, jobID)
@@ -113,7 +113,7 @@ func (d *DownloadProtol) availbJob(js jobs) *JobInfo {
 			job.Limit++
 			job.mtx.Unlock()
 			job.Index = i
-			log.Info("getFreeJob", " limit", job.Limit, "latency", job.Latency, "peerid", job.Pid)
+			log.Debug("getFreeJob", " limit", job.Limit, "latency", job.Latency, "peerid", job.Pid)
 			return job
 		}
 	}
