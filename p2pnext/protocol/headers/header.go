@@ -3,6 +3,8 @@ package headers
 import (
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	"github.com/33cn/chain33/queue"
@@ -101,14 +103,19 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 			Message: p2pgetheaders}
 
 		// headerReq.MessageData.Sign = signature
+		rID, err := peer.IDB58Decode(pid)
+		if err != nil {
+			log.Error("handleEvent", "err", err)
+			continue
+		}
 		req := &prototypes.StreamRequst{
-			PeerID:  peerID,
+			PeerID:  rID,
 			Host:    h.GetHost(),
 			Data:    headerReq,
 			ProtoID: HeaderInfoReq,
 		}
 		var resp types.MessageHeaderResp
-		err := h.StreamSendHandler(req, &resp)
+		err = h.StreamSendHandler(req, &resp)
 		if err != nil {
 			log.Error("handleEvent", "SendProtoMessage", err)
 			continue

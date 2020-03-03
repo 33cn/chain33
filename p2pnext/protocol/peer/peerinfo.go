@@ -14,8 +14,6 @@ import (
 
 	//"fmt"
 
-	//"github.com/libp2p/go-libp2p-core/peer"
-
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	p2pty "github.com/33cn/chain33/p2pnext/types"
