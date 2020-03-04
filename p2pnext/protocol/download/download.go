@@ -98,7 +98,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	}
 	resp, err := client.WaitTimeout(msg, time.Second*20)
 	if err != nil {
-		log.Error("GetBlocks Err", "Err", err.Error())
+		log.Error("GetBlocks Err", "blockchain Err", err.Error(), "blockheight", message.GetStartHeight())
 		return
 	}
 
@@ -131,6 +131,12 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 
 	req := msg.GetData().(*types.ReqBlocks)
+	if req.GetStart() > req.GetEnd() {
+		log.Error("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd())
+
+		msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{Msg: []byte("start>end")}))
+		return
+	}
 	pids := req.GetPid()
 	if len(pids) == 0 { //根据指定的pidlist 获取对应的block header
 		log.Info("GetBlocks:pid is nil")
@@ -146,6 +152,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	//具体的下载逻辑
 	jobS := d.initJob(pids, jobID)
 	var wg sync.WaitGroup
+	var mutex sync.Mutex
 	var maxgoroutin int32
 	var reDownload sync.Map
 	var startTime = time.Now().UnixNano()
@@ -161,6 +168,9 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 		go func(blockheight int64, jbs jobs) {
 			err := d.syncDownloadBlock(blockheight, jbs)
 			if err != nil {
+				mutex.Lock()
+				defer mutex.Unlock()
+
 				log.Error("syncDownloadBlock", "err", err.Error())
 				v, ok := reDownload.Load(jobID)
 				if ok {
@@ -184,7 +194,9 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 
 	wg.Wait()
 	d.CheckJob(jobID, pids, reDownload)
-	log.Info("handleEvent Job Complete!", "jobID++++++++++++++", jobID, "download process done", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6))
+	log.Info("Download Job Complete!", "TaskID++++++++++++++", jobID,
+		"cost time", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6),
+		"from", pids)
 
 }
 
@@ -192,13 +204,15 @@ func (d *DownloadProtol) syncDownloadBlock(blockheight int64, jbs jobs) error {
 	var retryCount uint
 	jbs.Sort() //对任务节点时延进行排序，优先选择时延低的节点进行下载
 ReDownload:
+	if jbs.Size() == 0 {
+		return errors.New("no peer for download")
+	}
+
 	retryCount++
 	if retryCount > 50 {
 		return errors.New("beyound max try count 50")
 	}
-	if jbs.Size() == 0 {
-		return errors.New("no peer for download")
-	}
+
 	freeJob := d.availbJob(jbs)
 	if freeJob == nil {
 		time.Sleep(time.Millisecond * 800)
@@ -225,7 +239,7 @@ ReDownload:
 	var resp types.MessageGetBlocksResp
 	err := d.StreamSendHandler(req, &resp)
 	if err != nil {
-		log.Error("handleEvent", "StreamSendHandler", err)
+		log.Error("handleEvent", "StreamSendHandler", err, "pid", freeJob.Pid)
 		jbs.Remove(freeJob.Index)
 		goto ReDownload
 	}

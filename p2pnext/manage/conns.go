@@ -69,14 +69,14 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	for {
 		select {
 		case <-time.After(time.Second * 10):
-			var LatencyInfo string = "--------------时延--------------------" + "\n"
+			var LatencyInfo string = fmt.Sprintln("--------------时延--------------------")
 			for _, pid := range s.Fetch() {
 				//统计每个节点的时延,统计最多25个
 				tduration := s.pstore.LatencyEWMA(pid)
 				if tduration == 0 {
 					continue
 				}
-				LatencyInfo += fmt.Sprintln("PeerID:%s,LatencyEWMA:%v", pid.Pretty(), tduration)
+				LatencyInfo += fmt.Sprintln("PeerID:", pid.Pretty(), "LatencyEWMA:", tduration)
 			}
 			log.Info(LatencyInfo)
 
@@ -95,7 +95,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 					break
 				}
 			}
-			trackerInfo += fmt.Sprintln("peerstoreNum:%d,connNum:%v", len(s.pstore.Peers()), s.Size())
+			trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.pstore.Peers()), ",connNum:", s.Size())
 			trackerInfo += "-------------------------------------"
 
 			log.Info(trackerInfo)
