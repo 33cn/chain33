@@ -5,7 +5,6 @@ import (
 
 	plugins "github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
-	"github.com/pkg/errors"
 )
 
 /*
@@ -45,38 +44,12 @@ func CalcAddrTxsCountPrefix(name string) []byte {
 }
 
 // Upgrade TODO 数量多, 需要测试不分批是否可以
-func (p *addrindexPlugin) Upgrade() error {
+func (p *addrindexPlugin) Upgrade(count int32) (bool, error) {
 	toVersion := 2
-	elog.Info("Upgrade start", "to_version", toVersion, "plugin", name)
-	version, err := plugins.GetVersion(p.GetLocalDB(), name)
-	if err != nil {
-		return errors.Wrap(err, "Upgrade get version")
-	}
-	if version >= toVersion {
-		elog.Debug("Upgrade not need to upgrade", "current_version", version, "to_version", toVersion)
-		return nil
-	}
-	prefixes := []struct {
-		from []byte
-		to   []byte
-	}{
+	prefixes := []plugins.Prefixes{
 		{CalcAddrTxsCountPrefixOld(), CalcAddrTxsCountPrefix(name)},
 		{CalcTxAddrDirHashPrefixOld(), CalcTxAddrDirHashPrefix(name)},
 		{CalcAddrTxsCountPrefixOld(), CalcAddrTxsCountPrefix(name)},
 	}
-
-	for _, prefix := range prefixes {
-		err := plugins.UpgradeOneKey(p.GetLocalDB(), prefix.from, prefix.to)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = plugins.SetVersion(p.GetLocalDB(), name, toVersion)
-	if err != nil {
-		return errors.Wrap(err, "Upgrade setVersion")
-	}
-
-	elog.Info("Upgrade upgrade done")
-	return nil
+	return plugins.Upgrade(p.GetLocalDB(), name, toVersion, prefixes, count)
 }

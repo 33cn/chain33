@@ -7,10 +7,8 @@ package txindex
 import (
 	"fmt"
 
-	"github.com/33cn/chain33/system/plugin"
 	plugins "github.com/33cn/chain33/system/plugin"
 	"github.com/33cn/chain33/types"
-	"github.com/pkg/errors"
 )
 
 // 这个是value cfg.CalcTxKeyValue(&txresult)
@@ -35,41 +33,13 @@ func CalcTxShortPerfix(name string) []byte {
 	return []byte(fmt.Sprintf("%s-%s-%s:", types.LocalPluginPrefix, name, "STX"))
 }
 
-// Upgrade 支持配置quickIndex, 如果没有不能通过前缀列出来
-// TODO
-// 需要通过 block 把 tx 找出来, 逐一升级
-// 相关配置 enableTxQuickIndex=true
-func (p *txindexPlugin) Upgrade() error {
+// Upgrade 支持配置quickIndex, 如果没有不能通过前缀列出来(确认过, 现在已经没有quickIndex=false的))
+func (p *txindexPlugin) Upgrade(count int32) (bool, error) {
 	toVersion := 2
-	elog.Info("Upgrade start", "to_version", toVersion, "plugin", name)
-	version, err := plugins.GetVersion(p.GetLocalDB(), name)
-	if err != nil {
-		return errors.Wrap(err, "Upgrade get version")
-	}
-	if version >= toVersion {
-		elog.Debug("Upgrade not need to upgrade", "current_version", version, "to_version", toVersion)
-		return nil
-	}
-	prefixes := []struct {
-		from []byte
-		to   []byte
-	}{
-		{CalcTxPrefixOld(), CalcTxPrefix(name)},
-		{CalcTxShortHashPerfixOld(), CalcTxShortPerfix(name)},
+	prefixes := []plugins.Prefixes{
+		plugins.Prefixes{CalcTxPrefixOld(), CalcTxPrefix(name)},
+		plugins.Prefixes{CalcTxShortHashPerfixOld(), CalcTxShortPerfix(name)},
 	}
 
-	for _, prefix := range prefixes {
-		err := plugin.UpgradeOneKey(p.GetLocalDB(), prefix.from, prefix.to)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = plugins.SetVersion(p.GetLocalDB(), name, toVersion)
-	if err != nil {
-		return errors.Wrap(err, "Upgrade setVersion")
-	}
-
-	elog.Info("Upgrade upgrade done")
-	return nil
+	return plugins.Upgrade(p.GetLocalDB(), name, toVersion, prefixes, count)
 }
