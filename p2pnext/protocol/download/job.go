@@ -97,8 +97,9 @@ func (d *DownloadProtol) CheckJob(jobID string, pids []string, faildJobs sync.Ma
 	faildJob.Range(func(k, v interface{}) bool {
 		blockheight := k.(int64)
 		jobS := d.initJob(pids, jobID)
-		d.syncDownloadBlock(blockheight, jobS)
 		log.Warn("CheckJob<<<<<<<<<<", "jobID", jobID, "faildJob", blockheight)
+
+		d.syncDownloadBlock(blockheight, jobS)
 
 		return true
 
@@ -106,7 +107,7 @@ func (d *DownloadProtol) CheckJob(jobID string, pids []string, faildJobs sync.Ma
 
 }
 
-func (d *DownloadProtol) availbJob(js jobs) *JobInfo {
+func (d *DownloadProtol) availbJob(js jobs, blockheight int64) *JobInfo {
 
 	var limit int
 	if len(js) > 10 {
@@ -115,6 +116,16 @@ func (d *DownloadProtol) availbJob(js jobs) *JobInfo {
 		limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
 	}
 	for i, job := range js {
+		//check blockheight
+		peerInfo := d.GetPeerInfoManager().Load(job.Pid.Pretty())
+		if peerInfo != nil {
+			if peerInfo.GetHeader().GetHeight() < blockheight {
+				continue
+			}
+		} else {
+			continue
+		}
+
 		if job.Limit < limit {
 			job.mtx.Lock()
 			job.Limit++

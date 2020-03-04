@@ -213,12 +213,11 @@ ReDownload:
 		return errors.New("beyound max try count 50")
 	}
 
-	freeJob := d.availbJob(jbs)
+	freeJob := d.availbJob(jbs, blockheight)
 	if freeJob == nil {
 		time.Sleep(time.Millisecond * 800)
 		goto ReDownload
 	}
-	defer d.releaseJob(freeJob)
 
 	var downloadStart = time.Now().UnixNano()
 
@@ -240,6 +239,7 @@ ReDownload:
 	err := d.StreamSendHandler(req, &resp)
 	if err != nil {
 		log.Error("handleEvent", "StreamSendHandler", err, "pid", freeJob.Pid)
+		d.releaseJob(freeJob)
 		jbs.Remove(freeJob.Index)
 		goto ReDownload
 	}
@@ -254,5 +254,7 @@ ReDownload:
 	client := d.GetQueueClient()
 	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: remotePid, Block: block}) //加入到输出通道)
 	client.SendTimeout(newmsg, false, 10*time.Second)
+	d.releaseJob(freeJob)
+
 	return nil
 }

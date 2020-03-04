@@ -80,7 +80,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			}
 			log.Info(LatencyInfo)
 
-			var trackerInfo string = "------------BandTracker--------------\n"
+			var trackerInfo string = fmt.Sprintln("------------BandTracker--------------")
 			var showNum int
 			bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 			for pid, stat := range bandByPeer {
@@ -96,7 +96,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 				}
 			}
 			trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.pstore.Peers()), ",connNum:", s.Size())
-			trackerInfo += "-------------------------------------"
+			trackerInfo += fmt.Sprintln("-------------------------------------")
 
 			log.Info(trackerInfo)
 		case <-s.Done:
