@@ -14,15 +14,13 @@ import (
 
 	//"fmt"
 
-	//"github.com/libp2p/go-libp2p-core/peer"
-
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
-	p2pty "github.com/33cn/chain33/p2pnext/types"
 )
 
 const (
@@ -78,17 +76,16 @@ func (p *PeerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 	err = client.SendTimeout(msg, true, time.Minute)
 	if err != nil {
 		log.Error("GetPeerInfo EventGetLastHeader", "Error", err.Error())
-		goto Jump
+		return nil
 
 	}
 	resp, err = client.WaitTimeout(msg, time.Second*10)
 	if err != nil {
 		log.Error("GetPeerInfo EventGetLastHeader", "Error", err.Error())
 
-		goto Jump
+		return nil
 
 	}
-Jump:
 	header := resp.GetData().(*types.Header)
 	peerinfo.Header = header
 	peerinfo.Name = p.Host.ID().Pretty()
@@ -137,17 +134,18 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 			continue
 		}
 
-		req := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
+		msgReq := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
 
-		s, err := p.SendToStream(remoteId.Pretty(), req, PeerInfoReq, p.GetHost())
-		if err != nil {
-			log.Error("GetPeerInfo NewStream", "err", err, "remoteID", remoteId)
-			continue
+		req := &prototypes.StreamRequst{
+			PeerID:  remoteId,
+			Host:    p.GetHost(),
+			Data:    msgReq,
+			ProtoID: PeerInfoReq,
 		}
 		var resp types.MessagePeerInfoResp
-		err = p.ReadProtoMessage(&resp, s)
+		err := p.StreamSendHandler(req, &resp)
 		if err != nil {
-			log.Error("PeerInfo", "ReadProtoMessage err", err)
+			log.Error("handleEvent", "SendProtoMessage", err)
 			continue
 		}
 

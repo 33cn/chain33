@@ -52,9 +52,14 @@ func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 }
 
 type StreamResponse struct {
-	Stream  core.Stream
-	protoID string
-	Msg     types.Message
+	data proto.Message
+}
+
+type StreamRequst struct {
+	PeerID  peer.ID
+	Host    core.Host
+	Data    proto.Message
+	ProtoID protocol.ID
 }
 
 // StreamHandler stream handler
@@ -105,6 +110,14 @@ func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
 	s.child.Handle(stream)
 
+}
+
+func (s *BaseStreamHandler) StreamSendHandler(in *StreamRequst, result proto.Message) error {
+	stream, err := s.SendToStream(in.PeerID.Pretty(), in.Data, in.ProtoID, in.Host)
+	if err != nil {
+		return err
+	}
+	return s.ReadProtoMessage(result, stream)
 }
 
 func (s *BaseStreamHandler) SendToStream(pid string, data proto.Message, msgID protocol.ID, host core.Host) (core.Stream, error) {

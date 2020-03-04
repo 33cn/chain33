@@ -3,12 +3,9 @@ package download
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/libp2p/go-libp2p-core/peer"
 
 	//protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 
@@ -44,7 +41,6 @@ type DownloadProtol struct {
 }
 
 func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
-	//d.BaseProtocol = new(prototypes.BaseProtocol)
 	d.GlobalData = data
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventFetchBlocks, d.handleEvent)
@@ -102,7 +98,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	}
 	resp, err := client.WaitTimeout(msg, time.Second*20)
 	if err != nil {
-		log.Error("GetBlocks Err", "Err", err.Error())
+		log.Error("GetBlocks Err", "blockchain Err", err.Error(), "blockheight", message.GetStartHeight())
 		return
 	}
 
@@ -127,7 +123,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 		return
 	}
 
-	log.Info("OnReq", "blocksResp BlockHeight+++++++", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "send block response to", s.Conn().RemotePeer().String())
+	log.Info("OnReq", "Send Block Height+++++++", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "send  to", s.Conn().RemotePeer().String())
 
 }
 
@@ -135,6 +131,12 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 
 	req := msg.GetData().(*types.ReqBlocks)
+	if req.GetStart() > req.GetEnd() {
+		log.Error("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd())
+
+		msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{Msg: []byte("start>end")}))
+		return
+	}
 	pids := req.GetPid()
 	if len(pids) == 0 { //根据指定的pidlist 获取对应的block header
 		log.Info("GetBlocks:pid is nil")
@@ -145,11 +147,12 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
 	var jobID = uuid.New().String() + "+" + fmt.Sprintf("%d-%d", req.GetStart(), req.GetEnd())
 
-	log.Info("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids, "jobID", jobID)
+	log.Info("handleEvent", "jobID", jobID, "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
 
 	//具体的下载逻辑
 	jobS := d.initJob(pids, jobID)
 	var wg sync.WaitGroup
+	var mutex sync.Mutex
 	var maxgoroutin int32
 	var reDownload sync.Map
 	var startTime = time.Now().UnixNano()
@@ -165,16 +168,19 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 		go func(blockheight int64, jbs jobs) {
 			err := d.syncDownloadBlock(blockheight, jbs)
 			if err != nil {
+				mutex.Lock()
+				defer mutex.Unlock()
+
 				log.Error("syncDownloadBlock", "err", err.Error())
 				v, ok := reDownload.Load(jobID)
 				if ok {
-					faildJob := v.(map[int64]bool)
-					faildJob[blockheight] = false
+					faildJob := v.(sync.Map)
+					faildJob.Store(blockheight, false)
 					reDownload.Store(jobID, faildJob)
 
 				} else {
-					faildJob := make(map[int64]bool)
-					faildJob[blockheight] = false
+					var faildJob sync.Map
+					faildJob.Store(blockheight, false)
 					reDownload.Store(jobID, faildJob)
 
 				}
@@ -188,41 +194,30 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 
 	wg.Wait()
 	d.CheckJob(jobID, pids, reDownload)
-	log.Info("handleEvent", "download process done", "cost time(ms)", (time.Now().UnixNano()-startTime)/1e6)
-
-}
-func (d *DownloadProtol) CheckJob(jobID string, pids []string, faildJobs sync.Map) {
-	defer faildJobs.Delete(jobID)
-	v, ok := faildJobs.Load(jobID)
-	if !ok {
-		return
-	}
-	faildJob := v.(map[int64]bool)
-	log.Info("CheckJob", "jobID", jobID, "faildJobNum", len(faildJob))
-	for blockheight := range faildJob {
-		//redownload blocks
-		jobS := d.initJob(pids, jobID)
-		d.syncDownloadBlock(blockheight, jobS)
-	}
+	log.Info("Download Job Complete!", "TaskID++++++++++++++", jobID,
+		"cost time", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6),
+		"from", pids)
 
 }
 
 func (d *DownloadProtol) syncDownloadBlock(blockheight int64, jbs jobs) error {
 	var retryCount uint
-	sort.Sort(jbs)
-
+	jbs.Sort() //对任务节点时延进行排序，优先选择时延低的节点进行下载
 ReDownload:
+	if jbs.Size() == 0 {
+		return errors.New("no peer for download")
+	}
+
 	retryCount++
 	if retryCount > 50 {
 		return errors.New("beyound max try count 50")
 	}
 
-	freeJob := d.getFreeJob(jbs)
+	freeJob := d.availbJob(jbs, blockheight)
 	if freeJob == nil {
 		time.Sleep(time.Millisecond * 800)
 		goto ReDownload
 	}
-	defer d.releaseJob(freeJob)
 
 	var downloadStart = time.Now().UnixNano()
 
@@ -234,18 +229,18 @@ ReDownload:
 	blockReq := &types.MessageGetBlocksReq{MessageData: d.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 		Message: getblocks}
 
-	stream, err := d.SendToStream(freeJob.Pid.Pretty(), blockReq, DownloadBlockReq, d.GetHost())
-	if err != nil {
-		log.Error("NewStream", "err", err, "remotePid", freeJob.Pid)
-		jbs = append(jbs[:freeJob.Index], jbs[freeJob.Index+1:]...)
-		goto ReDownload
+	req := &prototypes.StreamRequst{
+		PeerID:  freeJob.Pid,
+		Host:    d.GetHost(),
+		Data:    blockReq,
+		ProtoID: DownloadBlockReq,
 	}
-
 	var resp types.MessageGetBlocksResp
-	err = d.ReadProtoMessage(&resp, stream)
+	err := d.StreamSendHandler(req, &resp)
 	if err != nil {
-		log.Error("handleEvent", "ReadProtoMessage", err)
-		jbs = append(jbs[:freeJob.Index], jbs[freeJob.Index+1:]...)
+		log.Error("handleEvent", "StreamSendHandler", err, "pid", freeJob.Pid)
+		d.releaseJob(freeJob)
+		jbs.Remove(freeJob.Index)
 		goto ReDownload
 	}
 
@@ -253,108 +248,13 @@ ReDownload:
 	remotePid := freeJob.Pid.Pretty()
 	costTime := (time.Now().UnixNano() - downloadStart) / 1e6
 
-	log.Info("download+++++", "from", remotePid, "blockheight", block.GetHeight(),
+	log.Debug("download+++++", "from", remotePid, "blockheight", block.GetHeight(),
 		"blockSize (bytes)", block.Size(), "costTime ms", costTime)
 
 	client := d.GetQueueClient()
 	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: remotePid, Block: block}) //加入到输出通道)
 	client.SendTimeout(newmsg, false, 10*time.Second)
-	return nil
-}
-
-type JobInfo struct {
-	Id      string
-	Limit   int
-	Pid     peer.ID
-	Index   int
-	Latency time.Duration
-	mtx     sync.Mutex
-}
-
-// jobs datastruct
-type jobs []*JobInfo
-
-//Len size of the Invs data
-func (i jobs) Len() int {
-	return len(i)
-}
-
-//Less Sort from low to high
-func (i jobs) Less(a, b int) bool {
-	return i[a].Latency < i[b].Latency
-}
-
-//Swap  the param
-func (i jobs) Swap(a, b int) {
-	i[a], i[b] = i[b], i[a]
-}
-
-func (d *DownloadProtol) initJob(pids []string, jobId string) jobs {
-	var JobPeerIds jobs
-	var pIDs []peer.ID
-	for _, pid := range pids {
-		pID, err := peer.IDB58Decode(pid)
-		if err != nil {
-			continue
-		}
-		pIDs = append(pIDs, pID)
-	}
-	if len(pIDs) == 0 {
-		pIDs = d.ConnManager.Fetch()
-
-	}
-	latency := d.GetConnsManager().GetLatencyByPeer(pIDs)
-	for _, pID := range pIDs {
-		if pID.Pretty() == d.GetHost().ID().Pretty() {
-			continue
-		}
-		var job JobInfo
-		job.Pid = pID
-		job.Id = jobId
-		log.Info("initJob", "pid", pID)
-		var ok bool
-		latency, ok := latency[job.Pid.Pretty()]
-		if ok {
-			if latency == 0 {
-				continue
-			}
-			job.Latency = latency
-		}
-		job.Limit = 0
-		JobPeerIds = append(JobPeerIds, &job)
-	}
-
-	return JobPeerIds
-}
-
-func (d *DownloadProtol) getFreeJob(js jobs) *JobInfo {
-
-	var limit int
-	if len(js) > 10 {
-		limit = 20 //节点数大于10，每个节点限制最大下载任务数为20个
-	} else {
-		limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
-	}
-	for i, job := range js {
-		if job.Limit < limit {
-			job.mtx.Lock()
-			job.Limit++
-			job.mtx.Unlock()
-			job.Index = i
-			log.Info("getFreeJob", " limit", job.Limit, "latency", job.Latency, "peerid", job.Pid)
-			return job
-		}
-	}
+	d.releaseJob(freeJob)
 
 	return nil
-
-}
-
-func (d *DownloadProtol) releaseJob(js *JobInfo) {
-	js.mtx.Lock()
-	defer js.mtx.Unlock()
-	js.Limit--
-	if js.Limit < 0 {
-		js.Limit = 0
-	}
 }

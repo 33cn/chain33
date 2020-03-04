@@ -137,17 +137,6 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 
 }
 
-func testRandStr(t *testing.T, n int) {
-	rstr := RandStr(n)
-	assert.True(t, len(rstr) == n)
-}
-
-func testgenAirDropAddr(t *testing.T, p2p *P2P) {
-	err := p2p.genAirDropKeyFromWallet()
-	assert.NoError(t, err)
-
-}
-
 func testP2PClose(t *testing.T, p2p pmgr.IP2P) {
 	p2p.CloseP2P()
 
@@ -160,9 +149,6 @@ func Test_p2p(t *testing.T) {
 	q.SetConfig(cfg)
 	processMsg(q)
 	p2p := NewP2p(cfg)
-	testRandStr(t, 5)
 	testP2PEvent(t, q.Client())
-
 	testP2PClose(t, p2p)
-
 }
