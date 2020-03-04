@@ -346,8 +346,8 @@ func (demo *demoPlugin) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue
 	return nil, nil
 }
 
-func (demo *demoPlugin) Upgrade() error {
-	return nil
+func (demo *demoPlugin) Upgrade(count int32) (bool, error) {
+	return true, nil
 }
 
 func TestExecutorPluginUpgrade(t *testing.T) {
