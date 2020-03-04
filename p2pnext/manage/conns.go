@@ -1,6 +1,7 @@
 package manage
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -68,29 +69,36 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	for {
 		select {
 		case <-time.After(time.Second * 10):
-
-			log.Info("--------------时延--------------------")
+			var LatencyInfo string = "--------------时延--------------------" + "\n"
 			for _, pid := range s.Fetch() {
-				//统计每个节点的时延
+				//统计每个节点的时延,统计最多25个
 				tduration := s.pstore.LatencyEWMA(pid)
 				if tduration == 0 {
 					continue
 				}
-				log.Info("MonitorAllPeers", "LatencyEWMA timeDuration", tduration, "pid", pid)
+				LatencyInfo += fmt.Sprintf("PeerID:%s,LatencyEWMA:%v\n", pid.Pretty(), tduration)
 			}
-			log.Info("------------BandTracker--------------")
+			log.Info(LatencyInfo + "\n")
+
+			var trackerInfo string = "------------BandTracker--------------\n"
+			var showNum int
 			bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 			for pid, stat := range bandByPeer {
-				log.Info("BandwidthTracker",
-					"pid", pid,
-					"RateIn bytes/seconds", stat.RateIn,
-					"RateOut  bytes/seconds", stat.RateOut,
-					"TotalIn", stat.TotalIn,
-					"TotalOut", stat.TotalOut)
+				trackerInfo += fmt.Sprintf("PeerID:%s,RateIn:%d bytes/s,RateOut:%d bytes/s,totalIn:%d bytes,totalOut:%d\n",
+					pid,
+					stat.RateIn,
+					stat.RateOut,
+					stat.TotalIn,
+					stat.TotalOut)
+				showNum++
+				if showNum > 30 {
+					break
+				}
 			}
+			trackerInfo += fmt.Sprintf("peerstoreNum:%d,connNum:%v\n", len(s.pstore.Peers()), s.Size())
+			trackerInfo += "-------------------------------------"
 
-			log.Info("-------------------------------------")
-			log.Info("MounitorAllPeers", "peerstore peers", s.pstore.Peers(), "connPeer num", s.Size())
+			log.Info(trackerInfo)
 		case <-s.Done:
 			return
 

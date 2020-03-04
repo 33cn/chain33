@@ -3,17 +3,15 @@ package headers
 import (
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
-	core "github.com/libp2p/go-libp2p-core"
-
-	//"github.com/libp2p/go-libp2p-core/peer"
-	proto "github.com/gogo/protobuf/proto"
-
-	uuid "github.com/google/uuid"
-
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	proto "github.com/gogo/protobuf/proto"
+	uuid "github.com/google/uuid"
+	core "github.com/libp2p/go-libp2p-core"
 )
 
 var (
@@ -105,19 +103,24 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 			Message: p2pgetheaders}
 
 		// headerReq.MessageData.Sign = signature
-
-		stream, err := h.SendToStream(pid, headerReq, HeaderInfoReq, h.GetHost())
+		rID, err := peer.IDB58Decode(pid)
+		if err != nil {
+			log.Error("handleEvent", "err", err)
+			continue
+		}
+		req := &prototypes.StreamRequst{
+			PeerID:  rID,
+			Host:    h.GetHost(),
+			Data:    headerReq,
+			ProtoID: HeaderInfoReq,
+		}
+		var resp types.MessageHeaderResp
+		err = h.StreamSendHandler(req, &resp)
 		if err != nil {
 			log.Error("handleEvent", "SendProtoMessage", err)
 			continue
 		}
-		var resp types.MessageHeaderResp
-		err = h.ReadProtoMessage(&resp, stream)
-		if err != nil {
-			log.Error("handleEvent", "ReadProtoMessage", err)
-			continue
-		}
-		//	log.Info("handleEvent EventAddBlockHeaders", "pid", pid)
+
 		client := h.GetQueueClient()
 		msg := client.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
 		err = client.Send(msg, false)
@@ -140,7 +143,6 @@ type HeaderInfoHander struct {
 func (d *HeaderInfoHander) Handle(stream core.Stream) {
 
 	protocol := d.GetProtocol().(*HeaderInfoProtol)
-
 	//解析处理
 	if stream.Protocol() == HeaderInfoReq {
 		log.Info("Handler", "protoID", "HeaderInfoReq")
