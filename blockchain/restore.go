@@ -33,10 +33,21 @@ func (chain *BlockChain) UpgradePlugin() {
 	if err != nil {
 		panic(err)
 	}
-	_, err = chain.client.Wait(msg)
+	resp, err := chain.client.Wait(msg)
 	if err != nil {
 		panic(err)
 	}
+	kv := resp.GetData().(*types.LocalDBSet)
+
+	batch := chain.blockStore.NewBatch(false)
+	for i := 0; i < len(kv.KV); i++ {
+		if kv.KV[i].Value == nil {
+			batch.Delete(kv.KV[i].Key)
+		} else {
+			batch.Set(kv.KV[i].Key, kv.KV[i].Value)
+		}
+	}
+	dbm.MustWrite(batch)
 }
 
 //UpgradeStore 升级storedb
