@@ -68,7 +68,8 @@ type Plugin interface {
 	Query(funcName string, params []byte) (types.Message, error)
 
 	// 数据升级
-	Upgrade() error
+	// 升级数据过多, 需要多次升级 done=true 为完成, done=false 需要多次调用
+	Upgrade(count int32) (done bool, err error)
 	// Get/Set name
 	GetName() string
 	SetName(string)
@@ -169,6 +170,6 @@ func (b *Base) SetName(n string) {
 }
 
 // Upgrade upgrade local data
-func (b *Base) Upgrade() error {
-	return nil
+func (b *Base) Upgrade(count int32) (bool, error) {
+	return true, nil
 }
