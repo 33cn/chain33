@@ -1,3 +1,6 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 package p2p
 
 import (
@@ -78,8 +81,8 @@ func Test_processP2P(t *testing.T) {
 			verData, ok := data.(*versionData)
 			assert.True(t, ok)
 			sendData, doSend := node.processSendP2P(verData.rawData, verData.version, verData.peerName, "testIP:port")
-			txHashFilter.regRData.Remove(txHash)
-			blockHashFilter.regRData.Remove(blockHash)
+			txHashFilter.Remove(txHash)
+			blockHashFilter.Remove(blockHash)
 			assert.True(t, doSend, "sendData:", verData.rawData)
 			recvChan <- sendData
 		}
@@ -87,8 +90,8 @@ func Test_processP2P(t *testing.T) {
 	//测试接收
 	go func() {
 		for data := range recvChan {
-			txHashFilter.regRData.Remove(txHash)
-			blockHashFilter.regRData.Remove(blockHash)
+			txHashFilter.Remove(txHash)
+			blockHashFilter.Remove(blockHash)
 			handled := node.processRecvP2P(data, pid, node.pubToPeer, "testIP:port")
 			assert.True(t, handled)
 		}

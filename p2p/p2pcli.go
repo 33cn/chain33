@@ -11,6 +11,8 @@ import (
 	"math/rand"
 	"net"
 
+	"github.com/33cn/chain33/p2p/utils"
+
 	"sync/atomic"
 	"time"
 
@@ -80,10 +82,11 @@ func (m *Cli) BroadCastTx(msg *queue.Message, taskindex int64) {
 		//此处使用新分配结构，避免重复修改已保存的ttl
 		route := &pb.P2PRoute{TTL: 1}
 		//是否已存在记录，不存在表示本节点发起的交易
-		if ttl, exist := txHashFilter.Get(txHash).(*pb.P2PRoute); exist {
+		data, exist := txHashFilter.Get(txHash)
+		if ttl, ok := data.(*pb.P2PRoute); exist && ok {
 			route.TTL = ttl.GetTTL() + 1
 		} else {
-			txHashFilter.RegRecvData(txHash)
+			txHashFilter.Add(txHash, true)
 		}
 		m.network.node.pubsub.FIFOPub(&pb.P2PTx{Tx: tx, Route: route}, "tx")
 		msg.Reply(m.network.client.NewMessage("mempool", pb.EventReply, pb.Reply{IsOk: true, Msg: []byte("ok")}))
@@ -103,7 +106,7 @@ func (m *Cli) GetMemPool(msg *queue.Message, taskindex int64) {
 	for _, peer := range peers {
 		//获取远程 peer invs
 		resp, err := peer.mconn.gcli.GetMemPool(context.Background(),
-			&pb.P2PGetMempool{Version: m.network.node.nodeInfo.channelVersion}, grpc.FailFast(true))
+			&pb.P2PGetMempool{Version: int32(m.network.node.nodeInfo.channelVersion)}, grpc.FailFast(true))
 		P2pComm.CollectPeerStat(err, peer)
 		if err != nil {
 			if err == pb.ErrVersion {
@@ -135,7 +138,7 @@ func (m *Cli) GetMemPool(msg *queue.Message, taskindex int64) {
 		}
 		//获取真正的交易Tx call GetData
 		datacli, dataerr := peer.mconn.gcli.GetData(context.Background(),
-			&pb.P2PGetData{Invs: ableInv, Version: m.network.node.nodeInfo.channelVersion}, grpc.FailFast(true))
+			&pb.P2PGetData{Invs: ableInv, Version: int32(m.network.node.nodeInfo.channelVersion)}, grpc.FailFast(true))
 		P2pComm.CollectPeerStat(dataerr, peer)
 		if dataerr != nil {
 			continue
@@ -261,7 +264,7 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	}
 	addrfrom := nodeinfo.GetExternalAddr().String()
 
-	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.channelVersion, Service: int64(nodeinfo.ServiceTy()), Timestamp: pb.Now().Unix(),
+	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: int32(nodeinfo.channelVersion), Service: int64(nodeinfo.ServiceTy()), Timestamp: pb.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight}, grpc.FailFast(true))
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
@@ -276,7 +279,7 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 
 	P2pComm.CollectPeerStat(err, peer)
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
-	_, ver := decodeChannelVersion(resp.GetVersion())
+	_, ver := utils.DecodeChannelVersion(resp.GetVersion())
 	peer.version.SetVersion(ver)
 
 	ip, _, err := net.SplitHostPort(resp.GetAddrRecv())
@@ -533,7 +536,7 @@ func (m *Cli) BlockBroadcast(msg *queue.Message, taskindex int64) {
 
 	if block, ok := msg.GetData().(*pb.Block); ok {
 		pb.AssertConfig(m.network.client)
-		blockHashFilter.RegRecvData(hex.EncodeToString(block.Hash(m.network.client.GetConfig())))
+		blockHashFilter.Add(hex.EncodeToString(block.Hash(m.network.client.GetConfig())), true)
 		m.network.node.pubsub.FIFOPub(&pb.P2PBlock{Block: block}, "block")
 	}
 }

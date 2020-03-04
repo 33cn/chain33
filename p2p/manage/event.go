@@ -43,7 +43,7 @@ func (mgr *P2PMgr) handleSysEvent() {
 		case types.EventGetNetInfo:
 			// 采用默认配置
 			p2pTy := mgr.p2pCfg.Types[0]
-			req, _:= msg.Data.(*types.P2PGetNetInfoReq)
+			req, _ := msg.Data.(*types.P2PGetNetInfoReq)
 			for _, ty := range mgr.p2pCfg.Types {
 				if ty == req.GetP2PType() {
 					p2pTy = req.GetP2PType()

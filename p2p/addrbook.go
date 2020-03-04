@@ -8,10 +8,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/33cn/chain33/p2p/manage"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/p2p/manage"
 
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"

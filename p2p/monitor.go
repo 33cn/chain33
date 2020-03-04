@@ -11,7 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/33cn/chain33/p2p/utils"
+
 	"github.com/33cn/chain33/types"
+)
+
+var (
+	peerAddrFilter = utils.NewFilter(PeerAddrCacheNum)
 )
 
 func (n *Node) destroyPeer(peer *Peer) {
@@ -200,7 +206,7 @@ func (n *Node) getAddrFromOnline() {
 					continue
 				}
 
-				if !n.nodeInfo.blacklist.Has(addr) || !peerAddrFilter.QueryRecvData(addr) {
+				if !n.nodeInfo.blacklist.Has(addr) || !peerAddrFilter.Contains(addr) {
 					if ticktimes < 10 {
 						//如果连接了其他节点，优先不连接种子节点
 						if _, ok := n.innerSeeds.Load(addr); !ok {
@@ -449,7 +455,7 @@ func (n *Node) monitorDialPeers() {
 			log.Info("monitorDialPeers", "loop", "done")
 			return
 		}
-		if peerAddrFilter.QueryRecvData(addr.(string)) {
+		if peerAddrFilter.Contains(addr.(string)) {
 			//先查询有没有注册进去，避免同时重复连接相同的地址
 			continue
 		}
@@ -486,10 +492,10 @@ func (n *Node) monitorDialPeers() {
 		}
 		dialCount++
 		//把待连接的节点增加到过滤容器中
-		peerAddrFilter.RegRecvData(addr.(string))
+		peerAddrFilter.Add(addr.(string), types.Now().Unix())
 		log.Debug("monitorDialPeer", "dialCount", dialCount)
 		go func(netAddr *NetAddress) {
-			defer peerAddrFilter.RemoveRecvData(netAddr.String())
+			defer peerAddrFilter.Remove(netAddr.String())
 			peer, err := P2pComm.dialPeer(netAddr, n)
 			if err != nil {
 				//连接失败后

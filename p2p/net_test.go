@@ -1,8 +1,13 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 package p2p
 
 import (
 	"net"
 	"testing"
+
+	"github.com/33cn/chain33/p2p/utils"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +28,7 @@ func TestNetAddress(t *testing.T) {
 }
 
 func TestAddrRouteble(t *testing.T) {
-	resp := P2pComm.AddrRouteble([]string{"114.55.101.159:13802"}, calcChannelVersion(119))
+	resp := P2pComm.AddrRouteble([]string{"114.55.101.159:13802"}, int32(utils.CalcChannelVersion(119, VERSION)))
 	t.Log(resp)
 }
 

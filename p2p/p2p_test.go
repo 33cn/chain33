@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"sort"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/p2p/utils"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/p2p/manage"
@@ -221,8 +224,8 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	localP2P.node.pubToPeer(&types.P2PTx{Tx: tx1}, peer.GetPeerName())
 	p2p.node.server.p2pserver.pubToStream(&types.P2PTx{Tx: tx2}, info.name)
 	t.Log("WaitRegisterTxFilterStart...")
-	for !(txHashFilter.QueryRecvData(hex.EncodeToString(tx1.Hash())) &&
-		txHashFilter.QueryRecvData(hex.EncodeToString(tx1.Hash()))) {
+	for !(txHashFilter.Contains(hex.EncodeToString(tx1.Hash())) &&
+		txHashFilter.Contains(hex.EncodeToString(tx1.Hash()))) {
 		time.Sleep(time.Millisecond * 10)
 	}
 	t.Log("WaitRegisterTxFilterStop")
@@ -359,7 +362,7 @@ func testGrpcStreamConns(t *testing.T, p2p *P2p) {
 
 func testP2pComm(t *testing.T, p2p *P2p) {
 
-	addrs := P2pComm.AddrRouteble([]string{"localhost:53802"}, calcChannelVersion(testChannel))
+	addrs := P2pComm.AddrRouteble([]string{"localhost:53802"}, utils.CalcChannelVersion(testChannel, VERSION))
 	t.Log(addrs)
 	i32 := P2pComm.BytesToInt32([]byte{0xff})
 	t.Log(i32)
@@ -443,4 +446,49 @@ func Test_p2p(t *testing.T) {
 	testP2pComm(t, p2p)
 	testAddrBook(t, p2p)
 	testRestart(t, p2p)
+}
+
+func Test_AddDelStream(t *testing.T) {
+
+	s := NewP2pServer()
+	peerName := "testpeer"
+	delChan := s.addStreamHandler(peerName)
+	//replace
+	dataChan := s.addStreamHandler(peerName)
+
+	_, ok := <-delChan
+	assert.False(t, ok)
+
+	//del old
+	s.deleteStream(peerName, delChan)
+	_, ok = s.streams[peerName]
+	assert.True(t, ok)
+	//del nil
+	s.deleteStream("", delChan)
+	//del exist
+	s.deleteStream(peerName, dataChan)
+
+	_, ok = s.streams[peerName]
+	assert.False(t, ok)
+}
+
+func TestRandStr(t *testing.T) {
+	t.Log(P2pComm.RandStr(5))
+}
+
+func TestBytesToInt32(t *testing.T) {
+
+	t.Log(P2pComm.BytesToInt32([]byte{0xff}))
+	t.Log(P2pComm.Int32ToBytes(255))
+}
+
+func TestSortArr(t *testing.T) {
+	var Inventorys = make(Invs, 0)
+	for i := 100; i >= 0; i-- {
+		var inv types.Inventory
+		inv.Ty = 111
+		inv.Height = int64(i)
+		Inventorys = append(Inventorys, &inv)
+	}
+	sort.Sort(Inventorys)
 }

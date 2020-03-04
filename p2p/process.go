@@ -1,3 +1,6 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 package p2p
 
 import (
@@ -5,9 +8,32 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/33cn/chain33/p2p/utils"
+
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
 )
+
+var (
+
+	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
+	txHashFilter    = utils.NewFilter(TxRecvFilterCacheNum)
+	blockHashFilter = utils.NewFilter(BlockFilterCacheNum)
+
+	//发送交易和区块时过滤缓存, 解决冗余广播发送
+	txSendFilter    = utils.NewFilter(TxSendFilterCacheNum)
+	blockSendFilter = utils.NewFilter(BlockFilterCacheNum)
+
+	//发送交易短哈希广播,在本地暂时缓存一些区块数据, 限制最大大小
+	totalBlockCache = utils.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
+	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
+	ltBlockCache = utils.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
+)
+
+type sendFilterInfo struct {
+	//记录广播交易或区块时需要忽略的节点, 这些节点可能是交易的来源节点,也可能节点间维护了多条连接, 冗余发送
+	ignoreSendPeers map[string]bool
+}
 
 type pubFuncType func(interface{}, string)
 
@@ -170,7 +196,7 @@ func (n *Node) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 	//将节点id添加到发送过滤, 避免冗余发送
 	n.addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
 	//重复接收
-	isDuplicate := n.checkAndRegFilterAtomic(txHashFilter, txHash)
+	isDuplicate := txHashFilter.AddWithCheckAtomic(txHash, true)
 	log.Debug("recvTx", "tx", txHash, "ttl", tx.GetRoute().GetTTL(), "peerAddr", peerAddr, "duplicateTx", isDuplicate)
 	if isDuplicate {
 		return
@@ -193,7 +219,7 @@ func (n *Node) recvLtTx(tx *types.LightTx, pid, peerAddr string, pubPeerFunc pub
 	txHash := hex.EncodeToString(tx.TxHash)
 	//将节点id添加到发送过滤, 避免冗余发送
 	n.addIgnoreSendPeerAtomic(txSendFilter, txHash, pid)
-	exist := txHashFilter.QueryRecvData(txHash)
+	exist := txHashFilter.Contains(txHash)
 	log.Debug("recvLtTx", "txHash", txHash, "ttl", tx.GetRoute().GetTTL(), "peerAddr", peerAddr, "exist", exist)
 	//本地不存在, 需要向对端节点发起完整交易请求. 如果存在则表示本地已经接收过此交易, 不做任何操作
 	if !exist {
@@ -218,7 +244,7 @@ func (n *Node) recvBlock(block *types.P2PBlock, pid, peerAddr string) {
 	//将节点id添加到发送过滤, 避免冗余发送
 	n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
 	//如果重复接收, 则不再发到blockchain执行
-	isDuplicate := n.checkAndRegFilterAtomic(blockHashFilter, blockHash)
+	isDuplicate := blockHashFilter.AddWithCheckAtomic(blockHash, true)
 	log.Debug("recvBlock", "blockHeight", block.GetBlock().GetHeight(), "peerAddr", peerAddr,
 		"block size(KB)", float32(block.Block.Size())/1024, "blockHash", blockHash, "duplicateBlock", isDuplicate)
 	if isDuplicate {
@@ -237,7 +263,7 @@ func (n *Node) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string, pubP
 	//将节点id添加到发送过滤, 避免冗余发送
 	n.addIgnoreSendPeerAtomic(blockSendFilter, blockHash, pid)
 	//检测是否已经收到此block
-	isDuplicate := n.checkAndRegFilterAtomic(blockHashFilter, blockHash)
+	isDuplicate := blockHashFilter.AddWithCheckAtomic(blockHash, true)
 	log.Debug("recvLtBlock", "blockHash", blockHash, "blockHeight", ltBlock.GetHeader().GetHeight(),
 		"peerAddr", peerAddr, "duplicateBlock", isDuplicate)
 	if isDuplicate {
@@ -449,29 +475,18 @@ func (n *Node) postMempool(txHash string, tx *types.Transaction) error {
 	return n.p2pMgr.PubBroadCast(txHash, tx, types.EventTx)
 }
 
-//同时收到多个节点相同交易, 需要加锁保证原子操作, 检测是否存在以及添加过滤
-func (n *Node) checkAndRegFilterAtomic(filter *Filterdata, key string) (exist bool) {
-
-	filter.GetLock()
-	defer filter.ReleaseLock()
-	if filter.QueryRecvData(key) {
-		return true
-	}
-	filter.RegRecvData(key)
-	return false
-}
-
 //检测是否冗余发送, 或者添加到发送过滤(内部存在直接修改读写保护的数据, 对filter lru的读写需要外层锁保护)
-func (n *Node) addIgnoreSendPeerAtomic(filter *Filterdata, key, pid string) (exist bool) {
+func (n *Node) addIgnoreSendPeerAtomic(filter *utils.Filterdata, key, pid string) (exist bool) {
 
-	filter.GetLock()
-	defer filter.ReleaseLock()
+	filter.GetAtomicLock()
+	defer filter.ReleaseAtomicLock()
 	var info *sendFilterInfo
-	if !filter.QueryRecvData(key) {
+	if !filter.Contains(key) {
 		info = &sendFilterInfo{ignoreSendPeers: make(map[string]bool)}
 		filter.Add(key, info)
 	} else {
-		info = filter.Get(key).(*sendFilterInfo)
+		data, _ := filter.Get(key)
+		info = data.(*sendFilterInfo)
 	}
 	_, exist = info.ignoreSendPeers[pid]
 	info.ignoreSendPeers[pid] = true

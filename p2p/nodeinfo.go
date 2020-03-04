@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/33cn/chain33/p2p/utils"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
@@ -46,7 +48,7 @@ func NewNodeInfo(p2pCfg *types.P2P, subCfg *subConfig) *NodeInfo {
 	nodeInfo.externalAddr = new(NetAddress)
 	nodeInfo.listenAddr = new(NetAddress)
 	nodeInfo.addrBook = NewAddrBook(p2pCfg, subCfg)
-	nodeInfo.channelVersion = calcChannelVersion(subCfg.Channel)
+	nodeInfo.channelVersion = utils.CalcChannelVersion(subCfg.Channel, VERSION)
 	return nodeInfo
 }
 

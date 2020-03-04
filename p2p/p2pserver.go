@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/p2p/utils"
+
 	"github.com/33cn/chain33/common/version"
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
@@ -124,7 +126,7 @@ func (s *P2pserver) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 // Version2 p2pserver version
 func (s *P2pserver) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
 
-	channel, ver := decodeChannelVersion(in.GetVersion())
+	channel, ver := utils.DecodeChannelVersion(in.GetVersion())
 	log.Debug("p2pServer Version2", "p2pChannel", channel, "p2p version", ver)
 
 	if !s.node.verifyP2PChannel(channel) {
@@ -187,7 +189,7 @@ func (s *P2pserver) BroadCastTx(ctx context.Context, in *pb.P2PTx) (*pb.Reply, e
 // GetBlocks get blocks of p2pserver
 func (s *P2pserver) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2PInv, error) {
 
-	channel, ver := decodeChannelVersion(in.GetVersion())
+	channel, ver := utils.DecodeChannelVersion(in.GetVersion())
 	log.Debug("p2pServer GetBlocks", "p2pChannel", channel, "p2p version", ver)
 	if !s.node.verifyP2PChannel(channel) {
 		return nil, pb.ErrP2PChannel
@@ -218,7 +220,7 @@ func (s *P2pserver) GetBlocks(ctx context.Context, in *pb.P2PGetBlocks) (*pb.P2P
 
 // GetMemPool p2pserver queries the local mempool
 func (s *P2pserver) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P2PInv, error) {
-	channel, ver := decodeChannelVersion(in.GetVersion())
+	channel, ver := utils.DecodeChannelVersion(in.GetVersion())
 	log.Debug("p2pServer GetMemPool", "p2pChannel", channel, "p2p version", ver)
 	if !s.node.verifyP2PChannel(channel) {
 		return nil, pb.ErrP2PChannel
@@ -240,7 +242,7 @@ func (s *P2pserver) GetMemPool(ctx context.Context, in *pb.P2PGetMempool) (*pb.P
 // GetData get data of p2pserver
 func (s *P2pserver) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServer) error {
 
-	channel, ver := decodeChannelVersion(in.GetVersion())
+	channel, ver := utils.DecodeChannelVersion(in.GetVersion())
 	log.Debug("p2pServer Recv GetDataTx", "p2pChannel", channel, "p2p version", ver)
 	if !s.node.verifyP2PChannel(channel) {
 		return pb.ErrP2PChannel
@@ -315,7 +317,7 @@ func (s *P2pserver) GetData(in *pb.P2PGetData, stream pb.P2Pgservice_GetDataServ
 // GetHeaders ger headers of p2pServer
 func (s *P2pserver) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P2PHeaders, error) {
 
-	channel, ver := decodeChannelVersion(in.GetVersion())
+	channel, ver := utils.DecodeChannelVersion(in.GetVersion())
 	log.Debug("p2pServer GetHeaders", "p2pChannel", channel, "p2p version", ver)
 	if !s.node.verifyP2PChannel(channel) {
 		return nil, pb.ErrP2PChannel
@@ -344,7 +346,7 @@ func (s *P2pserver) GetHeaders(ctx context.Context, in *pb.P2PGetHeaders) (*pb.P
 
 // GetPeerInfo get peer information of p2pServer
 func (s *P2pserver) GetPeerInfo(ctx context.Context, in *pb.P2PGetPeerInfo) (*pb.P2PPeerInfo, error) {
-	channel, ver := decodeChannelVersion(in.GetVersion())
+	channel, ver := utils.DecodeChannelVersion(in.GetVersion())
 	log.Debug("p2pServer GetPeerInfo", "p2pChannel", channel, "p2p version", ver)
 	if !s.node.verifyP2PChannel(channel) {
 		return nil, pb.ErrP2PChannel
@@ -484,7 +486,7 @@ func (s *P2pserver) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			peername = ver.GetPeername()
 			softversion := ver.GetSoftversion()
 			innerpeer := s.getInBoundPeerInfo(peername)
-			channel, p2pVersion := decodeChannelVersion(ver.GetP2Pversion())
+			channel, p2pVersion := utils.DecodeChannelVersion(ver.GetP2Pversion())
 			if !s.node.verifyP2PChannel(channel) {
 				return pb.ErrP2PChannel
 			}
