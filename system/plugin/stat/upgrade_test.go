@@ -21,12 +21,12 @@ func Test_Upgrade(t *testing.T) {
 	// test empty db
 	p := newStat()
 	p.SetLocalDB(localdb)
-	err := p.Upgrade()
+	_, err := p.Upgrade(10)
 	assert.Nil(t, err)
 
 	// test again
 	plugins.SetVersion(localdb, name, 1)
-	err = p.Upgrade()
+	_, err = p.Upgrade(10)
 	assert.Nil(t, err)
 
 	// test with data
@@ -35,16 +35,17 @@ func Test_Upgrade(t *testing.T) {
 	localdb.Set(types.StatisticFlag(), v)
 
 	plugins.SetVersion(localdb, name, 1)
-	err = p.Upgrade()
+	done, err := p.Upgrade(10)
 	assert.Nil(t, err)
+	assert.True(t, done)
 
 	// 已经是升级后的版本了， 不需要再升级
-	err = p.Upgrade()
+	_, err = p.Upgrade(10)
 	assert.Nil(t, err)
 
 	// 先修改版本去升级，但数据已经升级了， 所以处理数据量为0
 	plugins.SetVersion(localdb, name, 1)
-	err = p.Upgrade()
+	_, err = p.Upgrade(10)
 	assert.Nil(t, err)
 
 	// just print log
