@@ -179,8 +179,7 @@ func (exec *Executor) upgradeExecPlugin(name string) error {
 		localdb.Rollback()
 		return err
 	}
-	localdb.Commit()
-	return nil
+	return localdb.Commit()
 }
 
 func (exec *Executor) upgradePlugin(plugin string) error {
@@ -235,6 +234,8 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 	}
 
 	data := msg.GetData().(*types.ChainExecutor)
+
+	elog.Debug("executor query", "exec", data.GetDriver(), "func", data.GetFuncName(), "param", string(data.Param))
 
 	// 原来查询在 system/dapp 中实现, 现在部分查询随插件移动到 system/plugin (即查询插件生成的数据)
 	// 暂时通过查表的形式, 如果在表中存在, 就调用对应的函数, 不然走原来的查询调用
