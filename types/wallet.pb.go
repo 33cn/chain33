@@ -3,13 +3,9 @@
 
 package types // import "github.com/33cn/chain33/types"
 
-import (
-	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -53,7 +49,7 @@ func (m *WalletTxDetail) Reset()         { *m = WalletTxDetail{} }
 func (m *WalletTxDetail) String() string { return proto.CompactTextString(m) }
 func (*WalletTxDetail) ProtoMessage()    {}
 func (*WalletTxDetail) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{0}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{0}
 }
 func (m *WalletTxDetail) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WalletTxDetail.Unmarshal(m, b)
@@ -154,7 +150,7 @@ func (m *WalletTxDetails) Reset()         { *m = WalletTxDetails{} }
 func (m *WalletTxDetails) String() string { return proto.CompactTextString(m) }
 func (*WalletTxDetails) ProtoMessage()    {}
 func (*WalletTxDetails) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{1}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{1}
 }
 func (m *WalletTxDetails) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WalletTxDetails.Unmarshal(m, b)
@@ -200,7 +196,7 @@ func (m *WalletAccountStore) Reset()         { *m = WalletAccountStore{} }
 func (m *WalletAccountStore) String() string { return proto.CompactTextString(m) }
 func (*WalletAccountStore) ProtoMessage()    {}
 func (*WalletAccountStore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{2}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{2}
 }
 func (m *WalletAccountStore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WalletAccountStore.Unmarshal(m, b)
@@ -263,7 +259,7 @@ func (m *WalletPwHash) Reset()         { *m = WalletPwHash{} }
 func (m *WalletPwHash) String() string { return proto.CompactTextString(m) }
 func (*WalletPwHash) ProtoMessage()    {}
 func (*WalletPwHash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{3}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{3}
 }
 func (m *WalletPwHash) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WalletPwHash.Unmarshal(m, b)
@@ -316,7 +312,7 @@ func (m *WalletStatus) Reset()         { *m = WalletStatus{} }
 func (m *WalletStatus) String() string { return proto.CompactTextString(m) }
 func (*WalletStatus) ProtoMessage()    {}
 func (*WalletStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{4}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{4}
 }
 func (m *WalletStatus) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WalletStatus.Unmarshal(m, b)
@@ -375,7 +371,7 @@ func (m *WalletAccounts) Reset()         { *m = WalletAccounts{} }
 func (m *WalletAccounts) String() string { return proto.CompactTextString(m) }
 func (*WalletAccounts) ProtoMessage()    {}
 func (*WalletAccounts) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{5}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{5}
 }
 func (m *WalletAccounts) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WalletAccounts.Unmarshal(m, b)
@@ -414,7 +410,7 @@ func (m *WalletAccount) Reset()         { *m = WalletAccount{} }
 func (m *WalletAccount) String() string { return proto.CompactTextString(m) }
 func (*WalletAccount) ProtoMessage()    {}
 func (*WalletAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{6}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{6}
 }
 func (m *WalletAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WalletAccount.Unmarshal(m, b)
@@ -465,7 +461,7 @@ func (m *WalletUnLock) Reset()         { *m = WalletUnLock{} }
 func (m *WalletUnLock) String() string { return proto.CompactTextString(m) }
 func (*WalletUnLock) ProtoMessage()    {}
 func (*WalletUnLock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{7}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{7}
 }
 func (m *WalletUnLock) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WalletUnLock.Unmarshal(m, b)
@@ -517,7 +513,7 @@ func (m *GenSeedLang) Reset()         { *m = GenSeedLang{} }
 func (m *GenSeedLang) String() string { return proto.CompactTextString(m) }
 func (*GenSeedLang) ProtoMessage()    {}
 func (*GenSeedLang) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{8}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{8}
 }
 func (m *GenSeedLang) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GenSeedLang.Unmarshal(m, b)
@@ -555,7 +551,7 @@ func (m *GetSeedByPw) Reset()         { *m = GetSeedByPw{} }
 func (m *GetSeedByPw) String() string { return proto.CompactTextString(m) }
 func (*GetSeedByPw) ProtoMessage()    {}
 func (*GetSeedByPw) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{9}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{9}
 }
 func (m *GetSeedByPw) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetSeedByPw.Unmarshal(m, b)
@@ -597,7 +593,7 @@ func (m *SaveSeedByPw) Reset()         { *m = SaveSeedByPw{} }
 func (m *SaveSeedByPw) String() string { return proto.CompactTextString(m) }
 func (*SaveSeedByPw) ProtoMessage()    {}
 func (*SaveSeedByPw) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{10}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{10}
 }
 func (m *SaveSeedByPw) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SaveSeedByPw.Unmarshal(m, b)
@@ -642,7 +638,7 @@ func (m *ReplySeed) Reset()         { *m = ReplySeed{} }
 func (m *ReplySeed) String() string { return proto.CompactTextString(m) }
 func (*ReplySeed) ProtoMessage()    {}
 func (*ReplySeed) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{11}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{11}
 }
 func (m *ReplySeed) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplySeed.Unmarshal(m, b)
@@ -681,7 +677,7 @@ func (m *ReqWalletSetPasswd) Reset()         { *m = ReqWalletSetPasswd{} }
 func (m *ReqWalletSetPasswd) String() string { return proto.CompactTextString(m) }
 func (*ReqWalletSetPasswd) ProtoMessage()    {}
 func (*ReqWalletSetPasswd) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{12}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{12}
 }
 func (m *ReqWalletSetPasswd) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqWalletSetPasswd.Unmarshal(m, b)
@@ -726,7 +722,7 @@ func (m *ReqNewAccount) Reset()         { *m = ReqNewAccount{} }
 func (m *ReqNewAccount) String() string { return proto.CompactTextString(m) }
 func (*ReqNewAccount) ProtoMessage()    {}
 func (*ReqNewAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{13}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{13}
 }
 func (m *ReqNewAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqNewAccount.Unmarshal(m, b)
@@ -772,7 +768,7 @@ func (m *ReqWalletTransactionList) Reset()         { *m = ReqWalletTransactionLi
 func (m *ReqWalletTransactionList) String() string { return proto.CompactTextString(m) }
 func (*ReqWalletTransactionList) ProtoMessage()    {}
 func (*ReqWalletTransactionList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{14}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{14}
 }
 func (m *ReqWalletTransactionList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqWalletTransactionList.Unmarshal(m, b)
@@ -826,7 +822,7 @@ func (m *ReqWalletImportPrivkey) Reset()         { *m = ReqWalletImportPrivkey{}
 func (m *ReqWalletImportPrivkey) String() string { return proto.CompactTextString(m) }
 func (*ReqWalletImportPrivkey) ProtoMessage()    {}
 func (*ReqWalletImportPrivkey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{15}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{15}
 }
 func (m *ReqWalletImportPrivkey) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqWalletImportPrivkey.Unmarshal(m, b)
@@ -881,7 +877,7 @@ func (m *ReqWalletSendToAddress) Reset()         { *m = ReqWalletSendToAddress{}
 func (m *ReqWalletSendToAddress) String() string { return proto.CompactTextString(m) }
 func (*ReqWalletSendToAddress) ProtoMessage()    {}
 func (*ReqWalletSendToAddress) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{16}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{16}
 }
 func (m *ReqWalletSendToAddress) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqWalletSendToAddress.Unmarshal(m, b)
@@ -954,7 +950,7 @@ func (m *ReqWalletSetFee) Reset()         { *m = ReqWalletSetFee{} }
 func (m *ReqWalletSetFee) String() string { return proto.CompactTextString(m) }
 func (*ReqWalletSetFee) ProtoMessage()    {}
 func (*ReqWalletSetFee) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{17}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{17}
 }
 func (m *ReqWalletSetFee) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqWalletSetFee.Unmarshal(m, b)
@@ -993,7 +989,7 @@ func (m *ReqWalletSetLabel) Reset()         { *m = ReqWalletSetLabel{} }
 func (m *ReqWalletSetLabel) String() string { return proto.CompactTextString(m) }
 func (*ReqWalletSetLabel) ProtoMessage()    {}
 func (*ReqWalletSetLabel) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{18}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{18}
 }
 func (m *ReqWalletSetLabel) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqWalletSetLabel.Unmarshal(m, b)
@@ -1038,7 +1034,7 @@ func (m *ReqWalletMergeBalance) Reset()         { *m = ReqWalletMergeBalance{} }
 func (m *ReqWalletMergeBalance) String() string { return proto.CompactTextString(m) }
 func (*ReqWalletMergeBalance) ProtoMessage()    {}
 func (*ReqWalletMergeBalance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{19}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{19}
 }
 func (m *ReqWalletMergeBalance) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqWalletMergeBalance.Unmarshal(m, b)
@@ -1082,7 +1078,7 @@ func (m *ReqTokenPreCreate) Reset()         { *m = ReqTokenPreCreate{} }
 func (m *ReqTokenPreCreate) String() string { return proto.CompactTextString(m) }
 func (*ReqTokenPreCreate) ProtoMessage()    {}
 func (*ReqTokenPreCreate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{20}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{20}
 }
 func (m *ReqTokenPreCreate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqTokenPreCreate.Unmarshal(m, b)
@@ -1164,7 +1160,7 @@ func (m *ReqTokenFinishCreate) Reset()         { *m = ReqTokenFinishCreate{} }
 func (m *ReqTokenFinishCreate) String() string { return proto.CompactTextString(m) }
 func (*ReqTokenFinishCreate) ProtoMessage()    {}
 func (*ReqTokenFinishCreate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{21}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{21}
 }
 func (m *ReqTokenFinishCreate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqTokenFinishCreate.Unmarshal(m, b)
@@ -1218,7 +1214,7 @@ func (m *ReqTokenRevokeCreate) Reset()         { *m = ReqTokenRevokeCreate{} }
 func (m *ReqTokenRevokeCreate) String() string { return proto.CompactTextString(m) }
 func (*ReqTokenRevokeCreate) ProtoMessage()    {}
 func (*ReqTokenRevokeCreate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{22}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{22}
 }
 func (m *ReqTokenRevokeCreate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqTokenRevokeCreate.Unmarshal(m, b)
@@ -1273,7 +1269,7 @@ func (m *ReqModifyConfig) Reset()         { *m = ReqModifyConfig{} }
 func (m *ReqModifyConfig) String() string { return proto.CompactTextString(m) }
 func (*ReqModifyConfig) ProtoMessage()    {}
 func (*ReqModifyConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{23}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{23}
 }
 func (m *ReqModifyConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqModifyConfig.Unmarshal(m, b)
@@ -1344,7 +1340,7 @@ func (m *ReqSignRawTx) Reset()         { *m = ReqSignRawTx{} }
 func (m *ReqSignRawTx) String() string { return proto.CompactTextString(m) }
 func (*ReqSignRawTx) ProtoMessage()    {}
 func (*ReqSignRawTx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{24}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{24}
 }
 func (m *ReqSignRawTx) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqSignRawTx.Unmarshal(m, b)
@@ -1431,7 +1427,7 @@ func (m *ReplySignRawTx) Reset()         { *m = ReplySignRawTx{} }
 func (m *ReplySignRawTx) String() string { return proto.CompactTextString(m) }
 func (*ReplySignRawTx) ProtoMessage()    {}
 func (*ReplySignRawTx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{25}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{25}
 }
 func (m *ReplySignRawTx) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplySignRawTx.Unmarshal(m, b)
@@ -1471,7 +1467,7 @@ func (m *ReportErrEvent) Reset()         { *m = ReportErrEvent{} }
 func (m *ReportErrEvent) String() string { return proto.CompactTextString(m) }
 func (*ReportErrEvent) ProtoMessage()    {}
 func (*ReportErrEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{26}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{26}
 }
 func (m *ReportErrEvent) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReportErrEvent.Unmarshal(m, b)
@@ -1523,7 +1519,7 @@ func (m *Int32) Reset()         { *m = Int32{} }
 func (m *Int32) String() string { return proto.CompactTextString(m) }
 func (*Int32) ProtoMessage()    {}
 func (*Int32) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{27}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{27}
 }
 func (m *Int32) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Int32.Unmarshal(m, b)
@@ -1561,7 +1557,7 @@ func (m *ReqAccountList) Reset()         { *m = ReqAccountList{} }
 func (m *ReqAccountList) String() string { return proto.CompactTextString(m) }
 func (*ReqAccountList) ProtoMessage()    {}
 func (*ReqAccountList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{28}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{28}
 }
 func (m *ReqAccountList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqAccountList.Unmarshal(m, b)
@@ -1600,7 +1596,7 @@ func (m *ReqPrivkeysFile) Reset()         { *m = ReqPrivkeysFile{} }
 func (m *ReqPrivkeysFile) String() string { return proto.CompactTextString(m) }
 func (*ReqPrivkeysFile) ProtoMessage()    {}
 func (*ReqPrivkeysFile) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_b6f36e079cc30afe, []int{29}
+	return fileDescriptor_wallet_9f0e7628eddcdc70, []int{29}
 }
 func (m *ReqPrivkeysFile) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqPrivkeysFile.Unmarshal(m, b)
@@ -1667,9 +1663,9 @@ func init() {
 	proto.RegisterType((*ReqPrivkeysFile)(nil), "types.ReqPrivkeysFile")
 }
 
-func init() { proto.RegisterFile("wallet.proto", fileDescriptor_wallet_b6f36e079cc30afe) }
+func init() { proto.RegisterFile("wallet.proto", fileDescriptor_wallet_9f0e7628eddcdc70) }
 
-var fileDescriptor_wallet_b6f36e079cc30afe = []byte{
+var fileDescriptor_wallet_9f0e7628eddcdc70 = []byte{
 	// 1242 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0x5d, 0x6e, 0x1b, 0x37,
 	0x10, 0xc6, 0x4a, 0x96, 0x6d, 0xd1, 0xb2, 0x93, 0x10, 0x49, 0xb0, 0x70, 0x9b, 0x46, 0x61, 0x91,

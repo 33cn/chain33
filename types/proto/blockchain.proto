@@ -356,3 +356,19 @@ message CmpBlock {
     Block block   = 1;
     bytes cmpHash = 2;
 }
+
+message SubscribeTxReceipt {
+    string name          = 1;
+    string URL           = 2;
+    string encode        = 3;
+    bool   isHeader      = 4;
+    int64  lastSequence  = 5;
+    int64  lastHeight    = 6;
+    string lastBlockHash = 7;
+    string contract      = 8;
+}
+
+message ReplySubTxReceipt {
+    bool     isOk          = 1;
+    bytes    msg           = 2;
+}

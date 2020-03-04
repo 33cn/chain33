@@ -23,11 +23,12 @@ import (
 //var
 var (
 	//cache 存贮的block个数
-	MaxSeqCB             int64 = 20
-	zeroHash             [32]byte
-	InitBlockNum         int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
-	chainlog                   = log.New("module", "blockchain")
-	FutureBlockDelayTime int64 = 1
+	MaxSeqCB               int64 = 20
+	MaxTxReceiptSubscriber int64 = 100
+	zeroHash               [32]byte
+	InitBlockNum           int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
+	chainlog                     = log.New("module", "blockchain")
+	FutureBlockDelayTime   int64 = 1
 )
 
 const maxFutureBlocks = 256
@@ -37,9 +38,10 @@ type BlockChain struct {
 	client queue.Client
 	cache  *BlockCache
 	// 永久存储数据到db中
-	blockStore  *BlockStore
-	pushseq     *pushseq
-	pushservice *PushService1
+	blockStore    *BlockStore
+	pushseq       *pushseq
+	pushservice   *PushService1
+	pushTxReceipt *PushTxReceiptService
 	//cache  缓存block方便快速查询
 	cfg          *types.BlockChain
 	syncTask     *Task
@@ -239,6 +241,8 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 
 	chain.pushservice = newPushService(chain.blockStore, chain.blockStore)
 	chain.pushseq = newpushseq(chain.blockStore, chain.pushservice.pushStore)
+
+	chain.pushTxReceipt = newpushTxReceiptService(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	//startTime
 	chain.startTime = types.Now()
 

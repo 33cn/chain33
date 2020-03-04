@@ -103,6 +103,9 @@ func (chain *BlockChain) ProcRecvMsg() {
 			//通过区块高度列表+title获取平行链交易
 		case types.EventGetParaTxByTitleAndHeight:
 			go chain.processMsg(msg, reqnum, chain.getParaTxByTitleAndHeight)
+			//订阅指定类型的交易回执
+		case types.EventSubscribeTxReceipt:
+			go chain.processMsg(msg, reqnum, chain.subscribeTxReceipt)
 
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
@@ -644,4 +647,20 @@ func (chain *BlockChain) getParaTxByTitleAndHeight(msg *queue.Message) {
 		return
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
+}
+
+func (chain *BlockChain) subscribeTxReceipt(msg *queue.Message) {
+	reply := &types.ReplySubTxReceipt{
+		IsOk: true,
+	}
+	subReq := (msg.Data).(*types.SubscribeTxReceipt)
+	err := chain.procSubscribeTxReceipt(subReq)
+	if err != nil {
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplySubscribeTxReceipt, reply))
+		return
+	}
+
+	msg.Reply(chain.client.NewMessage("rpc", types.EventReplySubscribeTxReceipt, reply))
 }

@@ -3,13 +3,9 @@
 
 package types // import "github.com/33cn/chain33/types"
 
-import (
-	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -34,7 +30,7 @@ func (m *Reply) Reset()         { *m = Reply{} }
 func (m *Reply) String() string { return proto.CompactTextString(m) }
 func (*Reply) ProtoMessage()    {}
 func (*Reply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{0}
+	return fileDescriptor_common_9412dc831ce4114d, []int{0}
 }
 func (m *Reply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Reply.Unmarshal(m, b)
@@ -79,7 +75,7 @@ func (m *ReqString) Reset()         { *m = ReqString{} }
 func (m *ReqString) String() string { return proto.CompactTextString(m) }
 func (*ReqString) ProtoMessage()    {}
 func (*ReqString) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{1}
+	return fileDescriptor_common_9412dc831ce4114d, []int{1}
 }
 func (m *ReqString) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqString.Unmarshal(m, b)
@@ -117,7 +113,7 @@ func (m *ReplyString) Reset()         { *m = ReplyString{} }
 func (m *ReplyString) String() string { return proto.CompactTextString(m) }
 func (*ReplyString) ProtoMessage()    {}
 func (*ReplyString) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{2}
+	return fileDescriptor_common_9412dc831ce4114d, []int{2}
 }
 func (m *ReplyString) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyString.Unmarshal(m, b)
@@ -155,7 +151,7 @@ func (m *ReplyStrings) Reset()         { *m = ReplyStrings{} }
 func (m *ReplyStrings) String() string { return proto.CompactTextString(m) }
 func (*ReplyStrings) ProtoMessage()    {}
 func (*ReplyStrings) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{3}
+	return fileDescriptor_common_9412dc831ce4114d, []int{3}
 }
 func (m *ReplyStrings) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyStrings.Unmarshal(m, b)
@@ -193,7 +189,7 @@ func (m *ReqInt) Reset()         { *m = ReqInt{} }
 func (m *ReqInt) String() string { return proto.CompactTextString(m) }
 func (*ReqInt) ProtoMessage()    {}
 func (*ReqInt) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{4}
+	return fileDescriptor_common_9412dc831ce4114d, []int{4}
 }
 func (m *ReqInt) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqInt.Unmarshal(m, b)
@@ -231,7 +227,7 @@ func (m *Int64) Reset()         { *m = Int64{} }
 func (m *Int64) String() string { return proto.CompactTextString(m) }
 func (*Int64) ProtoMessage()    {}
 func (*Int64) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{5}
+	return fileDescriptor_common_9412dc831ce4114d, []int{5}
 }
 func (m *Int64) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Int64.Unmarshal(m, b)
@@ -270,7 +266,7 @@ func (m *ReqHash) Reset()         { *m = ReqHash{} }
 func (m *ReqHash) String() string { return proto.CompactTextString(m) }
 func (*ReqHash) ProtoMessage()    {}
 func (*ReqHash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{6}
+	return fileDescriptor_common_9412dc831ce4114d, []int{6}
 }
 func (m *ReqHash) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqHash.Unmarshal(m, b)
@@ -315,7 +311,7 @@ func (m *ReplyHash) Reset()         { *m = ReplyHash{} }
 func (m *ReplyHash) String() string { return proto.CompactTextString(m) }
 func (*ReplyHash) ProtoMessage()    {}
 func (*ReplyHash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{7}
+	return fileDescriptor_common_9412dc831ce4114d, []int{7}
 }
 func (m *ReplyHash) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyHash.Unmarshal(m, b)
@@ -352,7 +348,7 @@ func (m *ReqNil) Reset()         { *m = ReqNil{} }
 func (m *ReqNil) String() string { return proto.CompactTextString(m) }
 func (*ReqNil) ProtoMessage()    {}
 func (*ReqNil) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{8}
+	return fileDescriptor_common_9412dc831ce4114d, []int{8}
 }
 func (m *ReqNil) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqNil.Unmarshal(m, b)
@@ -383,7 +379,7 @@ func (m *ReqHashes) Reset()         { *m = ReqHashes{} }
 func (m *ReqHashes) String() string { return proto.CompactTextString(m) }
 func (*ReqHashes) ProtoMessage()    {}
 func (*ReqHashes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{9}
+	return fileDescriptor_common_9412dc831ce4114d, []int{9}
 }
 func (m *ReqHashes) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqHashes.Unmarshal(m, b)
@@ -421,7 +417,7 @@ func (m *ReplyHashes) Reset()         { *m = ReplyHashes{} }
 func (m *ReplyHashes) String() string { return proto.CompactTextString(m) }
 func (*ReplyHashes) ProtoMessage()    {}
 func (*ReplyHashes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{10}
+	return fileDescriptor_common_9412dc831ce4114d, []int{10}
 }
 func (m *ReplyHashes) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyHashes.Unmarshal(m, b)
@@ -460,7 +456,7 @@ func (m *KeyValue) Reset()         { *m = KeyValue{} }
 func (m *KeyValue) String() string { return proto.CompactTextString(m) }
 func (*KeyValue) ProtoMessage()    {}
 func (*KeyValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{11}
+	return fileDescriptor_common_9412dc831ce4114d, []int{11}
 }
 func (m *KeyValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_KeyValue.Unmarshal(m, b)
@@ -505,7 +501,7 @@ func (m *TxHash) Reset()         { *m = TxHash{} }
 func (m *TxHash) String() string { return proto.CompactTextString(m) }
 func (*TxHash) ProtoMessage()    {}
 func (*TxHash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{12}
+	return fileDescriptor_common_9412dc831ce4114d, []int{12}
 }
 func (m *TxHash) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TxHash.Unmarshal(m, b)
@@ -545,7 +541,7 @@ func (m *TimeStatus) Reset()         { *m = TimeStatus{} }
 func (m *TimeStatus) String() string { return proto.CompactTextString(m) }
 func (*TimeStatus) ProtoMessage()    {}
 func (*TimeStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{13}
+	return fileDescriptor_common_9412dc831ce4114d, []int{13}
 }
 func (m *TimeStatus) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TimeStatus.Unmarshal(m, b)
@@ -597,7 +593,7 @@ func (m *ReqKey) Reset()         { *m = ReqKey{} }
 func (m *ReqKey) String() string { return proto.CompactTextString(m) }
 func (*ReqKey) ProtoMessage()    {}
 func (*ReqKey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{14}
+	return fileDescriptor_common_9412dc831ce4114d, []int{14}
 }
 func (m *ReqKey) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqKey.Unmarshal(m, b)
@@ -638,7 +634,7 @@ func (m *ReqRandHash) Reset()         { *m = ReqRandHash{} }
 func (m *ReqRandHash) String() string { return proto.CompactTextString(m) }
 func (*ReqRandHash) ProtoMessage()    {}
 func (*ReqRandHash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{15}
+	return fileDescriptor_common_9412dc831ce4114d, []int{15}
 }
 func (m *ReqRandHash) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqRandHash.Unmarshal(m, b)
@@ -702,7 +698,7 @@ func (m *VersionInfo) Reset()         { *m = VersionInfo{} }
 func (m *VersionInfo) String() string { return proto.CompactTextString(m) }
 func (*VersionInfo) ProtoMessage()    {}
 func (*VersionInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_common_11b060eba823ca7b, []int{16}
+	return fileDescriptor_common_9412dc831ce4114d, []int{16}
 }
 func (m *VersionInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_VersionInfo.Unmarshal(m, b)
@@ -770,9 +766,9 @@ func init() {
 	proto.RegisterType((*VersionInfo)(nil), "types.VersionInfo")
 }
 
-func init() { proto.RegisterFile("common.proto", fileDescriptor_common_11b060eba823ca7b) }
+func init() { proto.RegisterFile("common.proto", fileDescriptor_common_9412dc831ce4114d) }
 
-var fileDescriptor_common_11b060eba823ca7b = []byte{
+var fileDescriptor_common_9412dc831ce4114d = []byte{
 	// 456 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x53, 0xdf, 0x8b, 0xd3, 0x40,
 	0x10, 0xa6, 0xcd, 0xb5, 0x97, 0xcc, 0xe5, 0x41, 0x82, 0x48, 0x38, 0x4f, 0xae, 0xae, 0x0a, 0x7d,

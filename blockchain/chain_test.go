@@ -786,7 +786,7 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 		}
 	}
 	if !exist {
-		t.Error("testAddBlockSeqCB  listSeqCB fail", "cb", cb, "cbs", cbs)
+		t.Error("testAddBlockSeqCB  listSeqCB fail", "subscribe", cb, "cbs", cbs)
 	}
 	num := chain.ProcGetSeqCBLastNum(cb.Name)
 	if num != -1 {
@@ -811,7 +811,7 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 		}
 	}
 	if !exist {
-		t.Error("testAddBlockSeqCB  listSeqCB fail", "cb", cb1, "cbs", cbs)
+		t.Error("testAddBlockSeqCB  listSeqCB fail", "subscribe", cb1, "cbs", cbs)
 	}
 	num = chain.ProcGetSeqCBLastNum(cb1.Name)
 	if num != -1 {
@@ -826,7 +826,7 @@ func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
 
 	_, err = chain.ProcAddBlockSeqCB(cb2)
 	if err != types.ErrTooManySeqCB {
-		t.Error("testAddBlockSeqCB", "cb", cb2, "err", err)
+		t.Error("testAddBlockSeqCB", "subscribe", cb2, "err", err)
 	}
 
 	chainlog.Info("testAddBlockSeqCB end -------------------------")

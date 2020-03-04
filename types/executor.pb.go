@@ -3,13 +3,9 @@
 
 package types // import "github.com/33cn/chain33/types"
 
-import (
-	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -33,7 +29,7 @@ func (m *Genesis) Reset()         { *m = Genesis{} }
 func (m *Genesis) String() string { return proto.CompactTextString(m) }
 func (*Genesis) ProtoMessage()    {}
 func (*Genesis) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{0}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{0}
 }
 func (m *Genesis) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Genesis.Unmarshal(m, b)
@@ -79,7 +75,7 @@ func (m *ExecTxList) Reset()         { *m = ExecTxList{} }
 func (m *ExecTxList) String() string { return proto.CompactTextString(m) }
 func (*ExecTxList) ProtoMessage()    {}
 func (*ExecTxList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{1}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{1}
 }
 func (m *ExecTxList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ExecTxList.Unmarshal(m, b)
@@ -175,7 +171,7 @@ func (m *Query) Reset()         { *m = Query{} }
 func (m *Query) String() string { return proto.CompactTextString(m) }
 func (*Query) ProtoMessage()    {}
 func (*Query) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{2}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{2}
 }
 func (m *Query) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Query.Unmarshal(m, b)
@@ -229,7 +225,7 @@ func (m *CreateTxIn) Reset()         { *m = CreateTxIn{} }
 func (m *CreateTxIn) String() string { return proto.CompactTextString(m) }
 func (*CreateTxIn) ProtoMessage()    {}
 func (*CreateTxIn) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{3}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{3}
 }
 func (m *CreateTxIn) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateTxIn.Unmarshal(m, b)
@@ -282,7 +278,7 @@ func (m *ArrayConfig) Reset()         { *m = ArrayConfig{} }
 func (m *ArrayConfig) String() string { return proto.CompactTextString(m) }
 func (*ArrayConfig) ProtoMessage()    {}
 func (*ArrayConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{4}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{4}
 }
 func (m *ArrayConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ArrayConfig.Unmarshal(m, b)
@@ -320,7 +316,7 @@ func (m *StringConfig) Reset()         { *m = StringConfig{} }
 func (m *StringConfig) String() string { return proto.CompactTextString(m) }
 func (*StringConfig) ProtoMessage()    {}
 func (*StringConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{5}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{5}
 }
 func (m *StringConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StringConfig.Unmarshal(m, b)
@@ -358,7 +354,7 @@ func (m *Int32Config) Reset()         { *m = Int32Config{} }
 func (m *Int32Config) String() string { return proto.CompactTextString(m) }
 func (*Int32Config) ProtoMessage()    {}
 func (*Int32Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{6}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{6}
 }
 func (m *Int32Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Int32Config.Unmarshal(m, b)
@@ -403,7 +399,7 @@ func (m *ConfigItem) Reset()         { *m = ConfigItem{} }
 func (m *ConfigItem) String() string { return proto.CompactTextString(m) }
 func (*ConfigItem) ProtoMessage()    {}
 func (*ConfigItem) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{7}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{7}
 }
 func (m *ConfigItem) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConfigItem.Unmarshal(m, b)
@@ -601,7 +597,7 @@ func (m *ModifyConfig) Reset()         { *m = ModifyConfig{} }
 func (m *ModifyConfig) String() string { return proto.CompactTextString(m) }
 func (*ModifyConfig) ProtoMessage()    {}
 func (*ModifyConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{8}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{8}
 }
 func (m *ModifyConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ModifyConfig.Unmarshal(m, b)
@@ -661,7 +657,7 @@ func (m *ReceiptConfig) Reset()         { *m = ReceiptConfig{} }
 func (m *ReceiptConfig) String() string { return proto.CompactTextString(m) }
 func (*ReceiptConfig) ProtoMessage()    {}
 func (*ReceiptConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{9}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{9}
 }
 func (m *ReceiptConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReceiptConfig.Unmarshal(m, b)
@@ -707,7 +703,7 @@ func (m *ReplyConfig) Reset()         { *m = ReplyConfig{} }
 func (m *ReplyConfig) String() string { return proto.CompactTextString(m) }
 func (*ReplyConfig) ProtoMessage()    {}
 func (*ReplyConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{10}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{10}
 }
 func (m *ReplyConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyConfig.Unmarshal(m, b)
@@ -756,7 +752,7 @@ func (m *HistoryCertStore) Reset()         { *m = HistoryCertStore{} }
 func (m *HistoryCertStore) String() string { return proto.CompactTextString(m) }
 func (*HistoryCertStore) ProtoMessage()    {}
 func (*HistoryCertStore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executor_e9cb68658a5e3670, []int{11}
+	return fileDescriptor_executor_1ce0300b073dc2e5, []int{11}
 }
 func (m *HistoryCertStore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HistoryCertStore.Unmarshal(m, b)
@@ -826,9 +822,9 @@ func init() {
 	proto.RegisterType((*HistoryCertStore)(nil), "types.HistoryCertStore")
 }
 
-func init() { proto.RegisterFile("executor.proto", fileDescriptor_executor_e9cb68658a5e3670) }
+func init() { proto.RegisterFile("executor.proto", fileDescriptor_executor_1ce0300b073dc2e5) }
 
-var fileDescriptor_executor_e9cb68658a5e3670 = []byte{
+var fileDescriptor_executor_1ce0300b073dc2e5 = []byte{
 	// 665 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xed, 0x6a, 0xdb, 0x4a,
 	0x10, 0xbd, 0x92, 0xec, 0x38, 0x1e, 0xfb, 0x86, 0x64, 0xef, 0xa5, 0x88, 0xd0, 0x26, 0x46, 0x49,

@@ -60,14 +60,14 @@ func (p *pushseq) updateLastSeq(name string) {
 	notify.seq <- last
 }
 
-// AddTask 每个name 有一个task, 通知新增推送
+// addTask 每个name 有一个task, 通知新增推送
 func (p *pushseq) AddTask(cb *types.BlockSeqCB) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if notify, ok := p.cmds[cb.Name]; ok {
 		notify.cb <- cb
 		if cb.URL == "" {
-			chainlog.Debug("delete callback", "cb", cb)
+			chainlog.Debug("delete callback", "subscribe", cb)
 			delete(p.cmds, cb.Name)
 		}
 		return
@@ -82,7 +82,7 @@ func (p *pushseq) AddTask(cb *types.BlockSeqCB) {
 	//更新最新的seq
 	p.updateLastSeq(cb.Name)
 
-	chainlog.Debug("runTask callback", "cb", cb)
+	chainlog.Debug("runTask callback", "subscribe", cb)
 }
 
 // UpdateSeq sequence 更新通知
@@ -193,10 +193,10 @@ func (p *pushseq) postData(cb *types.BlockSeqCB, postdata []byte, seq int64) (er
 		return err
 	}
 	if string(body) != "ok" && string(body) != "OK" {
-		chainlog.Error("postData fail", "cb.name", cb.Name, "body", string(body))
+		chainlog.Error("postData fail", "subscribe.name", cb.Name, "body", string(body))
 		return types.ErrPushSeqPostData
 	}
-	chainlog.Debug("postData success", "cb.name", cb.Name, "updateSeq", seq)
+	chainlog.Debug("postData success", "subscribe.name", cb.Name, "updateSeq", seq)
 	return p.pushseqStore.SetLastPushSeq([]byte(cb.Name), seq)
 }
 

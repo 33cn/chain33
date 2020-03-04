@@ -157,6 +157,9 @@ const (
 	EventGetParaTxByTitleAndHeight = 310
 	//比较当前区块和新广播的区块最优区块
 	EventCmpBestBlock = 311
+
+	EventSubscribeTxReceipt           = 312
+	EventReplySubscribeTxReceipt      = 313
 )
 
 var eventName = map[int]string{
@@ -297,4 +300,6 @@ var eventName = map[int]string{
 	EventGetParaTxByTitleAndHeight:  "EventGetParaTxByTitleAndHeight",
 	EventCmpBestBlock:               "EventCmpBestBlock",
 	EventUpgrade:                    "EventUpgrade",
+	EventSubscribeTxReceipt:         "EventSubscribeTxReceipt",
+	EventReplySubscribeTxReceipt:    "EventReplySubscribeTxReceipt",
 }

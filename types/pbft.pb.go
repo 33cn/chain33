@@ -3,13 +3,9 @@
 
 package types // import "github.com/33cn/chain33/types"
 
-import (
-	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -33,7 +29,7 @@ func (m *Operation) Reset()         { *m = Operation{} }
 func (m *Operation) String() string { return proto.CompactTextString(m) }
 func (*Operation) ProtoMessage()    {}
 func (*Operation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{0}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{0}
 }
 func (m *Operation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Operation.Unmarshal(m, b)
@@ -72,7 +68,7 @@ func (m *Checkpoint) Reset()         { *m = Checkpoint{} }
 func (m *Checkpoint) String() string { return proto.CompactTextString(m) }
 func (*Checkpoint) ProtoMessage()    {}
 func (*Checkpoint) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{1}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{1}
 }
 func (m *Checkpoint) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Checkpoint.Unmarshal(m, b)
@@ -119,7 +115,7 @@ func (m *Entry) Reset()         { *m = Entry{} }
 func (m *Entry) String() string { return proto.CompactTextString(m) }
 func (*Entry) ProtoMessage()    {}
 func (*Entry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{2}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{2}
 }
 func (m *Entry) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Entry.Unmarshal(m, b)
@@ -172,7 +168,7 @@ func (m *ViewChange) Reset()         { *m = ViewChange{} }
 func (m *ViewChange) String() string { return proto.CompactTextString(m) }
 func (*ViewChange) ProtoMessage()    {}
 func (*ViewChange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{3}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{3}
 }
 func (m *ViewChange) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ViewChange.Unmarshal(m, b)
@@ -218,7 +214,7 @@ func (m *Summary) Reset()         { *m = Summary{} }
 func (m *Summary) String() string { return proto.CompactTextString(m) }
 func (*Summary) ProtoMessage()    {}
 func (*Summary) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{4}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{4}
 }
 func (m *Summary) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Summary.Unmarshal(m, b)
@@ -263,7 +259,7 @@ func (m *Result) Reset()         { *m = Result{} }
 func (m *Result) String() string { return proto.CompactTextString(m) }
 func (*Result) ProtoMessage()    {}
 func (*Result) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{5}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{5}
 }
 func (m *Result) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Result.Unmarshal(m, b)
@@ -310,7 +306,7 @@ func (m *Request) Reset()         { *m = Request{} }
 func (m *Request) String() string { return proto.CompactTextString(m) }
 func (*Request) ProtoMessage()    {}
 func (*Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{6}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{6}
 }
 func (m *Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Request.Unmarshal(m, b)
@@ -646,7 +642,7 @@ func (m *RequestClient) Reset()         { *m = RequestClient{} }
 func (m *RequestClient) String() string { return proto.CompactTextString(m) }
 func (*RequestClient) ProtoMessage()    {}
 func (*RequestClient) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{7}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{7}
 }
 func (m *RequestClient) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RequestClient.Unmarshal(m, b)
@@ -701,7 +697,7 @@ func (m *RequestPrePrepare) Reset()         { *m = RequestPrePrepare{} }
 func (m *RequestPrePrepare) String() string { return proto.CompactTextString(m) }
 func (*RequestPrePrepare) ProtoMessage()    {}
 func (*RequestPrePrepare) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{8}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{8}
 }
 func (m *RequestPrePrepare) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RequestPrePrepare.Unmarshal(m, b)
@@ -763,7 +759,7 @@ func (m *RequestPrepare) Reset()         { *m = RequestPrepare{} }
 func (m *RequestPrepare) String() string { return proto.CompactTextString(m) }
 func (*RequestPrepare) ProtoMessage()    {}
 func (*RequestPrepare) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{9}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{9}
 }
 func (m *RequestPrepare) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RequestPrepare.Unmarshal(m, b)
@@ -824,7 +820,7 @@ func (m *RequestCommit) Reset()         { *m = RequestCommit{} }
 func (m *RequestCommit) String() string { return proto.CompactTextString(m) }
 func (*RequestCommit) ProtoMessage()    {}
 func (*RequestCommit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{10}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{10}
 }
 func (m *RequestCommit) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RequestCommit.Unmarshal(m, b)
@@ -878,7 +874,7 @@ func (m *RequestCheckpoint) Reset()         { *m = RequestCheckpoint{} }
 func (m *RequestCheckpoint) String() string { return proto.CompactTextString(m) }
 func (*RequestCheckpoint) ProtoMessage()    {}
 func (*RequestCheckpoint) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{11}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{11}
 }
 func (m *RequestCheckpoint) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RequestCheckpoint.Unmarshal(m, b)
@@ -935,7 +931,7 @@ func (m *RequestViewChange) Reset()         { *m = RequestViewChange{} }
 func (m *RequestViewChange) String() string { return proto.CompactTextString(m) }
 func (*RequestViewChange) ProtoMessage()    {}
 func (*RequestViewChange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{12}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{12}
 }
 func (m *RequestViewChange) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RequestViewChange.Unmarshal(m, b)
@@ -1011,7 +1007,7 @@ func (m *RequestAck) Reset()         { *m = RequestAck{} }
 func (m *RequestAck) String() string { return proto.CompactTextString(m) }
 func (*RequestAck) ProtoMessage()    {}
 func (*RequestAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{13}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{13}
 }
 func (m *RequestAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RequestAck.Unmarshal(m, b)
@@ -1073,7 +1069,7 @@ func (m *RequestNewView) Reset()         { *m = RequestNewView{} }
 func (m *RequestNewView) String() string { return proto.CompactTextString(m) }
 func (*RequestNewView) ProtoMessage()    {}
 func (*RequestNewView) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{14}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{14}
 }
 func (m *RequestNewView) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RequestNewView.Unmarshal(m, b)
@@ -1136,7 +1132,7 @@ func (m *ClientReply) Reset()         { *m = ClientReply{} }
 func (m *ClientReply) String() string { return proto.CompactTextString(m) }
 func (*ClientReply) ProtoMessage()    {}
 func (*ClientReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pbft_b4170fb66865ad36, []int{15}
+	return fileDescriptor_pbft_eda369d5e248c3c3, []int{15}
 }
 func (m *ClientReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClientReply.Unmarshal(m, b)
@@ -1210,9 +1206,9 @@ func init() {
 	proto.RegisterType((*ClientReply)(nil), "types.ClientReply")
 }
 
-func init() { proto.RegisterFile("pbft.proto", fileDescriptor_pbft_b4170fb66865ad36) }
+func init() { proto.RegisterFile("pbft.proto", fileDescriptor_pbft_eda369d5e248c3c3) }
 
-var fileDescriptor_pbft_b4170fb66865ad36 = []byte{
+var fileDescriptor_pbft_eda369d5e248c3c3 = []byte{
 	// 677 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0x5f, 0x6b, 0xdb, 0x30,
 	0x10, 0xaf, 0xe3, 0xc4, 0x69, 0x2e, 0x4d, 0x69, 0xc5, 0x36, 0x44, 0xd9, 0x58, 0x30, 0x14, 0xfa,

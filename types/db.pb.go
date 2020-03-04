@@ -3,13 +3,9 @@
 
 package types // import "github.com/33cn/chain33/types"
 
-import (
-	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -37,7 +33,7 @@ func (m *LeafNode) Reset()         { *m = LeafNode{} }
 func (m *LeafNode) String() string { return proto.CompactTextString(m) }
 func (*LeafNode) ProtoMessage()    {}
 func (*LeafNode) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{0}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{0}
 }
 func (m *LeafNode) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LeafNode.Unmarshal(m, b)
@@ -99,7 +95,7 @@ func (m *InnerNode) Reset()         { *m = InnerNode{} }
 func (m *InnerNode) String() string { return proto.CompactTextString(m) }
 func (*InnerNode) ProtoMessage()    {}
 func (*InnerNode) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{1}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{1}
 }
 func (m *InnerNode) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InnerNode.Unmarshal(m, b)
@@ -160,7 +156,7 @@ func (m *MAVLProof) Reset()         { *m = MAVLProof{} }
 func (m *MAVLProof) String() string { return proto.CompactTextString(m) }
 func (*MAVLProof) ProtoMessage()    {}
 func (*MAVLProof) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{2}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{2}
 }
 func (m *MAVLProof) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MAVLProof.Unmarshal(m, b)
@@ -217,7 +213,7 @@ func (m *StoreNode) Reset()         { *m = StoreNode{} }
 func (m *StoreNode) String() string { return proto.CompactTextString(m) }
 func (*StoreNode) ProtoMessage()    {}
 func (*StoreNode) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{3}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{3}
 }
 func (m *StoreNode) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StoreNode.Unmarshal(m, b)
@@ -291,7 +287,7 @@ func (m *LocalDBSet) Reset()         { *m = LocalDBSet{} }
 func (m *LocalDBSet) String() string { return proto.CompactTextString(m) }
 func (*LocalDBSet) ProtoMessage()    {}
 func (*LocalDBSet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{4}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{4}
 }
 func (m *LocalDBSet) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LocalDBSet.Unmarshal(m, b)
@@ -340,7 +336,7 @@ func (m *LocalDBList) Reset()         { *m = LocalDBList{} }
 func (m *LocalDBList) String() string { return proto.CompactTextString(m) }
 func (*LocalDBList) ProtoMessage()    {}
 func (*LocalDBList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{5}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{5}
 }
 func (m *LocalDBList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LocalDBList.Unmarshal(m, b)
@@ -407,7 +403,7 @@ func (m *LocalDBGet) Reset()         { *m = LocalDBGet{} }
 func (m *LocalDBGet) String() string { return proto.CompactTextString(m) }
 func (*LocalDBGet) ProtoMessage()    {}
 func (*LocalDBGet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{6}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{6}
 }
 func (m *LocalDBGet) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LocalDBGet.Unmarshal(m, b)
@@ -452,7 +448,7 @@ func (m *LocalReplyValue) Reset()         { *m = LocalReplyValue{} }
 func (m *LocalReplyValue) String() string { return proto.CompactTextString(m) }
 func (*LocalReplyValue) ProtoMessage()    {}
 func (*LocalReplyValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{7}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{7}
 }
 func (m *LocalReplyValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LocalReplyValue.Unmarshal(m, b)
@@ -492,7 +488,7 @@ func (m *StoreSet) Reset()         { *m = StoreSet{} }
 func (m *StoreSet) String() string { return proto.CompactTextString(m) }
 func (*StoreSet) ProtoMessage()    {}
 func (*StoreSet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{8}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{8}
 }
 func (m *StoreSet) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StoreSet.Unmarshal(m, b)
@@ -545,7 +541,7 @@ func (m *StoreDel) Reset()         { *m = StoreDel{} }
 func (m *StoreDel) String() string { return proto.CompactTextString(m) }
 func (*StoreDel) ProtoMessage()    {}
 func (*StoreDel) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{9}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{9}
 }
 func (m *StoreDel) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StoreDel.Unmarshal(m, b)
@@ -592,7 +588,7 @@ func (m *StoreSetWithSync) Reset()         { *m = StoreSetWithSync{} }
 func (m *StoreSetWithSync) String() string { return proto.CompactTextString(m) }
 func (*StoreSetWithSync) ProtoMessage()    {}
 func (*StoreSetWithSync) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{10}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{10}
 }
 func (m *StoreSetWithSync) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StoreSetWithSync.Unmarshal(m, b)
@@ -645,7 +641,7 @@ func (m *StoreGet) Reset()         { *m = StoreGet{} }
 func (m *StoreGet) String() string { return proto.CompactTextString(m) }
 func (*StoreGet) ProtoMessage()    {}
 func (*StoreGet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{11}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{11}
 }
 func (m *StoreGet) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StoreGet.Unmarshal(m, b)
@@ -690,7 +686,7 @@ func (m *StoreReplyValue) Reset()         { *m = StoreReplyValue{} }
 func (m *StoreReplyValue) String() string { return proto.CompactTextString(m) }
 func (*StoreReplyValue) ProtoMessage()    {}
 func (*StoreReplyValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{12}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{12}
 }
 func (m *StoreReplyValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StoreReplyValue.Unmarshal(m, b)
@@ -733,7 +729,7 @@ func (m *StoreList) Reset()         { *m = StoreList{} }
 func (m *StoreList) String() string { return proto.CompactTextString(m) }
 func (*StoreList) ProtoMessage()    {}
 func (*StoreList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{13}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{13}
 }
 func (m *StoreList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StoreList.Unmarshal(m, b)
@@ -814,7 +810,7 @@ func (m *StoreListReply) Reset()         { *m = StoreListReply{} }
 func (m *StoreListReply) String() string { return proto.CompactTextString(m) }
 func (*StoreListReply) ProtoMessage()    {}
 func (*StoreListReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{14}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{14}
 }
 func (m *StoreListReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StoreListReply.Unmarshal(m, b)
@@ -909,7 +905,7 @@ func (m *PruneData) Reset()         { *m = PruneData{} }
 func (m *PruneData) String() string { return proto.CompactTextString(m) }
 func (*PruneData) ProtoMessage()    {}
 func (*PruneData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{15}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{15}
 }
 func (m *PruneData) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PruneData.Unmarshal(m, b)
@@ -948,7 +944,7 @@ func (m *StoreValuePool) Reset()         { *m = StoreValuePool{} }
 func (m *StoreValuePool) String() string { return proto.CompactTextString(m) }
 func (*StoreValuePool) ProtoMessage()    {}
 func (*StoreValuePool) Descriptor() ([]byte, []int) {
-	return fileDescriptor_db_047bfac85997c8d2, []int{16}
+	return fileDescriptor_db_2d4f98fc4da24c44, []int{16}
 }
 func (m *StoreValuePool) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StoreValuePool.Unmarshal(m, b)
@@ -995,9 +991,9 @@ func init() {
 	proto.RegisterType((*StoreValuePool)(nil), "types.StoreValuePool")
 }
 
-func init() { proto.RegisterFile("db.proto", fileDescriptor_db_047bfac85997c8d2) }
+func init() { proto.RegisterFile("db.proto", fileDescriptor_db_2d4f98fc4da24c44) }
 
-var fileDescriptor_db_047bfac85997c8d2 = []byte{
+var fileDescriptor_db_2d4f98fc4da24c44 = []byte{
 	// 654 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x55, 0xc1, 0x6a, 0xdb, 0x40,
 	0x10, 0x45, 0x92, 0x9d, 0x48, 0x93, 0xd0, 0x18, 0x11, 0x8a, 0x08, 0x29, 0x49, 0x75, 0x72, 0x29,

@@ -24,22 +24,24 @@ import (
 
 //var
 var (
-	blockLastHeight       = []byte("blockLastHeight")
-	bodyPrefix            = []byte("Body:")
-	LastSequence          = []byte("LastSequence")
-	headerPrefix          = []byte("Header:")
-	heightToHeaderPrefix  = []byte("HH:")
-	hashPrefix            = []byte("Hash:")
-	tdPrefix              = []byte("TD:")
-	heightToHashKeyPrefix = []byte("Height:")
-	seqToHashKey          = []byte("Seq:")
-	HashToSeqPrefix       = []byte("HashToSeq:")
-	seqCBPrefix           = []byte("SCB:")
-	seqCBLastNumPrefix    = []byte("SCBL:")
-	paraSeqToHashKey      = []byte("ParaSeq:")
-	HashToParaSeqPrefix   = []byte("HashToParaSeq:")
-	LastParaSequence      = []byte("LastParaSequence")
-	storeLog              = chainlog.New("submodule", "store")
+	blockLastHeight           = []byte("blockLastHeight")
+	bodyPrefix                = []byte("Body:")
+	LastSequence              = []byte("LastSequence")
+	headerPrefix              = []byte("Header:")
+	heightToHeaderPrefix      = []byte("HH:")
+	hashPrefix                = []byte("Hash:")
+	tdPrefix                  = []byte("TD:")
+	heightToHashKeyPrefix     = []byte("Height:")
+	seqToHashKey              = []byte("Seq:")
+	HashToSeqPrefix           = []byte("HashToSeq:")
+	seqCBPrefix               = []byte("SCB:")
+	seqCBLastNumPrefix        = []byte("SCBL:")
+	txReceiptPrefix           = "TxReceipt:"
+	txReceiptLastSeqNumPrefix = "TxReceiptLSN:"
+	paraSeqToHashKey          = []byte("ParaSeq:")
+	HashToParaSeqPrefix       = []byte("HashToParaSeq:")
+	LastParaSequence          = []byte("LastParaSequence")
+	storeLog                  = chainlog.New("submodule", "store")
 )
 
 //GetLocalDBKeyList 获取本地键值列表
@@ -67,6 +69,14 @@ func calcSeqCBKey(name []byte) []byte {
 //并发访问的可能性(每次开辟新内存)
 func calcSeqCBLastNumKey(name []byte) []byte {
 	return append(append([]byte{}, seqCBLastNumPrefix...), name...)
+}
+
+func calcTxReceiptKey(name, contract string) []byte {
+	return []byte(txReceiptPrefix + name + "-" + contract)
+}
+
+func calcTxReceiptLastSeqNumKey(name, contract string) []byte {
+	return []byte(txReceiptLastSeqNumPrefix + name + "-" + contract)
 }
 
 //存储block hash对应的header信息

@@ -3,13 +3,9 @@
 
 package types // import "github.com/33cn/chain33/types"
 
-import (
-	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -41,7 +37,7 @@ func (m *Account) Reset()         { *m = Account{} }
 func (m *Account) String() string { return proto.CompactTextString(m) }
 func (*Account) ProtoMessage()    {}
 func (*Account) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{0}
+	return fileDescriptor_account_26612c48e8e7f171, []int{0}
 }
 func (m *Account) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Account.Unmarshal(m, b)
@@ -106,7 +102,7 @@ func (m *ReceiptExecAccountTransfer) Reset()         { *m = ReceiptExecAccountTr
 func (m *ReceiptExecAccountTransfer) String() string { return proto.CompactTextString(m) }
 func (*ReceiptExecAccountTransfer) ProtoMessage()    {}
 func (*ReceiptExecAccountTransfer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{1}
+	return fileDescriptor_account_26612c48e8e7f171, []int{1}
 }
 func (m *ReceiptExecAccountTransfer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReceiptExecAccountTransfer.Unmarshal(m, b)
@@ -162,7 +158,7 @@ func (m *ReceiptAccountTransfer) Reset()         { *m = ReceiptAccountTransfer{}
 func (m *ReceiptAccountTransfer) String() string { return proto.CompactTextString(m) }
 func (*ReceiptAccountTransfer) ProtoMessage()    {}
 func (*ReceiptAccountTransfer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{2}
+	return fileDescriptor_account_26612c48e8e7f171, []int{2}
 }
 func (m *ReceiptAccountTransfer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReceiptAccountTransfer.Unmarshal(m, b)
@@ -211,7 +207,7 @@ func (m *ReceiptAccountMint) Reset()         { *m = ReceiptAccountMint{} }
 func (m *ReceiptAccountMint) String() string { return proto.CompactTextString(m) }
 func (*ReceiptAccountMint) ProtoMessage()    {}
 func (*ReceiptAccountMint) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{3}
+	return fileDescriptor_account_26612c48e8e7f171, []int{3}
 }
 func (m *ReceiptAccountMint) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReceiptAccountMint.Unmarshal(m, b)
@@ -257,7 +253,7 @@ func (m *ReceiptAccountBurn) Reset()         { *m = ReceiptAccountBurn{} }
 func (m *ReceiptAccountBurn) String() string { return proto.CompactTextString(m) }
 func (*ReceiptAccountBurn) ProtoMessage()    {}
 func (*ReceiptAccountBurn) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{4}
+	return fileDescriptor_account_26612c48e8e7f171, []int{4}
 }
 func (m *ReceiptAccountBurn) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReceiptAccountBurn.Unmarshal(m, b)
@@ -309,7 +305,7 @@ func (m *ReqBalance) Reset()         { *m = ReqBalance{} }
 func (m *ReqBalance) String() string { return proto.CompactTextString(m) }
 func (*ReqBalance) ProtoMessage()    {}
 func (*ReqBalance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{5}
+	return fileDescriptor_account_26612c48e8e7f171, []int{5}
 }
 func (m *ReqBalance) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqBalance.Unmarshal(m, b)
@@ -376,7 +372,7 @@ func (m *Accounts) Reset()         { *m = Accounts{} }
 func (m *Accounts) String() string { return proto.CompactTextString(m) }
 func (*Accounts) ProtoMessage()    {}
 func (*Accounts) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{6}
+	return fileDescriptor_account_26612c48e8e7f171, []int{6}
 }
 func (m *Accounts) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Accounts.Unmarshal(m, b)
@@ -415,7 +411,7 @@ func (m *ExecAccount) Reset()         { *m = ExecAccount{} }
 func (m *ExecAccount) String() string { return proto.CompactTextString(m) }
 func (*ExecAccount) ProtoMessage()    {}
 func (*ExecAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{7}
+	return fileDescriptor_account_26612c48e8e7f171, []int{7}
 }
 func (m *ExecAccount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ExecAccount.Unmarshal(m, b)
@@ -461,7 +457,7 @@ func (m *AllExecBalance) Reset()         { *m = AllExecBalance{} }
 func (m *AllExecBalance) String() string { return proto.CompactTextString(m) }
 func (*AllExecBalance) ProtoMessage()    {}
 func (*AllExecBalance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{8}
+	return fileDescriptor_account_26612c48e8e7f171, []int{8}
 }
 func (m *AllExecBalance) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AllExecBalance.Unmarshal(m, b)
@@ -512,7 +508,7 @@ func (m *ReqAllExecBalance) Reset()         { *m = ReqAllExecBalance{} }
 func (m *ReqAllExecBalance) String() string { return proto.CompactTextString(m) }
 func (*ReqAllExecBalance) ProtoMessage()    {}
 func (*ReqAllExecBalance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_account_b4600cbae444b855, []int{9}
+	return fileDescriptor_account_26612c48e8e7f171, []int{9}
 }
 func (m *ReqAllExecBalance) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqAllExecBalance.Unmarshal(m, b)
@@ -580,9 +576,9 @@ func init() {
 	proto.RegisterType((*ReqAllExecBalance)(nil), "types.ReqAllExecBalance")
 }
 
-func init() { proto.RegisterFile("account.proto", fileDescriptor_account_b4600cbae444b855) }
+func init() { proto.RegisterFile("account.proto", fileDescriptor_account_26612c48e8e7f171) }
 
-var fileDescriptor_account_b4600cbae444b855 = []byte{
+var fileDescriptor_account_26612c48e8e7f171 = []byte{
 	// 434 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x54, 0xcd, 0x6e, 0x13, 0x31,
 	0x10, 0x96, 0xf3, 0xd3, 0x74, 0x27, 0x50, 0x09, 0x1f, 0x2a, 0xab, 0xa2, 0x62, 0xf1, 0x69, 0x0f,

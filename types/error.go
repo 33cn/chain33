@@ -195,4 +195,6 @@ var (
 	ErrMaxCountPerTime   = errors.New("ErrMaxCountPerTime")
 	ErrInValidFileHeader = errors.New("ErrInValidFileHeader")
 	ErrFileExists        = errors.New("ErrFileExists")
+	ErrSubscriberExist   = errors.New("ErrSubscriberExist")
+	ErrTooManySubscriber = errors.New("ErrTooManySubscriber")
 )

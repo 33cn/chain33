@@ -67,7 +67,7 @@ func Test_PushServiceRPC(t *testing.T) {
 	}
 
 	s := newPushService(seqStore, pushStore)
-	work.On("AddTask", mock.Anything).Return()
+	work.On("addTask", mock.Anything).Return()
 	pushStore.On("PrefixCount", mock.Anything).Return(int64(0), nil).Once()
 	pushStore.On("SetSync", calcSeqCBKey([]byte(cb1.Name)), types.Encode(&cb1)).Return(nil)
 	seq1, err1 := s.AddCallback(work, &cb1)
@@ -141,7 +141,7 @@ func Test_PushServiceAdd(t *testing.T) {
 	s := newPushService(seqStore, pushStore)
 
 	// 模拟只注册了cb1
-	work.On("AddTask", mock.Anything).Return()
+	work.On("addTask", mock.Anything).Return()
 	pushStore.On("GetKey", calcSeqCBKey([]byte(cb1.Name))).Return(nil, nil)
 	pushStore.On("GetKey", mock.Anything).Return(nil, types.ErrNotFound)
 	pushStore.On("PrefixCount", mock.Anything).Return(int64(1), nil)
@@ -158,7 +158,7 @@ func Test_PushServiceAdd(t *testing.T) {
 		seqStore.On("GetBlockHeaderByHash", []byte(fmt.Sprintf("match%d", i))).Return(&header, nil)
 	}
 
-	work.On("AddTask", mock.Anything).Return()
+	work.On("addTask", mock.Anything).Return()
 	pushStore.On("SetSync", calcSeqCBLastNumKey([]byte(cb2.Name)), mock.Anything).Return(nil)
 	pushStore.On("SetSync", calcSeqCBKey([]byte(cb2.Name)), mock.Anything).Return(nil)
 

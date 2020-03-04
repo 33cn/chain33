@@ -3,13 +3,9 @@
 
 package types // import "github.com/33cn/chain33/types"
 
-import (
-	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -35,7 +31,7 @@ func (m *TotalFee) Reset()         { *m = TotalFee{} }
 func (m *TotalFee) String() string { return proto.CompactTextString(m) }
 func (*TotalFee) ProtoMessage()    {}
 func (*TotalFee) Descriptor() ([]byte, []int) {
-	return fileDescriptor_statistic_605d9f4b66b1368d, []int{0}
+	return fileDescriptor_statistic_77be35034ded47b5, []int{0}
 }
 func (m *TotalFee) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TotalFee.Unmarshal(m, b)
@@ -85,7 +81,7 @@ func (m *ReqGetTotalCoins) Reset()         { *m = ReqGetTotalCoins{} }
 func (m *ReqGetTotalCoins) String() string { return proto.CompactTextString(m) }
 func (*ReqGetTotalCoins) ProtoMessage()    {}
 func (*ReqGetTotalCoins) Descriptor() ([]byte, []int) {
-	return fileDescriptor_statistic_605d9f4b66b1368d, []int{1}
+	return fileDescriptor_statistic_77be35034ded47b5, []int{1}
 }
 func (m *ReqGetTotalCoins) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqGetTotalCoins.Unmarshal(m, b)
@@ -155,7 +151,7 @@ func (m *ReplyGetTotalCoins) Reset()         { *m = ReplyGetTotalCoins{} }
 func (m *ReplyGetTotalCoins) String() string { return proto.CompactTextString(m) }
 func (*ReplyGetTotalCoins) ProtoMessage()    {}
 func (*ReplyGetTotalCoins) Descriptor() ([]byte, []int) {
-	return fileDescriptor_statistic_605d9f4b66b1368d, []int{2}
+	return fileDescriptor_statistic_77be35034ded47b5, []int{2}
 }
 func (m *ReplyGetTotalCoins) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyGetTotalCoins.Unmarshal(m, b)
@@ -218,7 +214,7 @@ func (m *IterateRangeByStateHash) Reset()         { *m = IterateRangeByStateHash
 func (m *IterateRangeByStateHash) String() string { return proto.CompactTextString(m) }
 func (*IterateRangeByStateHash) ProtoMessage()    {}
 func (*IterateRangeByStateHash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_statistic_605d9f4b66b1368d, []int{3}
+	return fileDescriptor_statistic_77be35034ded47b5, []int{3}
 }
 func (m *IterateRangeByStateHash) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IterateRangeByStateHash.Unmarshal(m, b)
@@ -278,7 +274,7 @@ func (m *TotalAmount) Reset()         { *m = TotalAmount{} }
 func (m *TotalAmount) String() string { return proto.CompactTextString(m) }
 func (*TotalAmount) ProtoMessage()    {}
 func (*TotalAmount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_statistic_605d9f4b66b1368d, []int{4}
+	return fileDescriptor_statistic_77be35034ded47b5, []int{4}
 }
 func (m *TotalAmount) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TotalAmount.Unmarshal(m, b)
@@ -323,7 +319,7 @@ func (m *ReqGetExecBalance) Reset()         { *m = ReqGetExecBalance{} }
 func (m *ReqGetExecBalance) String() string { return proto.CompactTextString(m) }
 func (*ReqGetExecBalance) ProtoMessage()    {}
 func (*ReqGetExecBalance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_statistic_605d9f4b66b1368d, []int{5}
+	return fileDescriptor_statistic_77be35034ded47b5, []int{5}
 }
 func (m *ReqGetExecBalance) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReqGetExecBalance.Unmarshal(m, b)
@@ -405,7 +401,7 @@ func (m *ExecBalanceItem) Reset()         { *m = ExecBalanceItem{} }
 func (m *ExecBalanceItem) String() string { return proto.CompactTextString(m) }
 func (*ExecBalanceItem) ProtoMessage()    {}
 func (*ExecBalanceItem) Descriptor() ([]byte, []int) {
-	return fileDescriptor_statistic_605d9f4b66b1368d, []int{6}
+	return fileDescriptor_statistic_77be35034ded47b5, []int{6}
 }
 func (m *ExecBalanceItem) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ExecBalanceItem.Unmarshal(m, b)
@@ -462,7 +458,7 @@ func (m *ReplyGetExecBalance) Reset()         { *m = ReplyGetExecBalance{} }
 func (m *ReplyGetExecBalance) String() string { return proto.CompactTextString(m) }
 func (*ReplyGetExecBalance) ProtoMessage()    {}
 func (*ReplyGetExecBalance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_statistic_605d9f4b66b1368d, []int{7}
+	return fileDescriptor_statistic_77be35034ded47b5, []int{7}
 }
 func (m *ReplyGetExecBalance) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplyGetExecBalance.Unmarshal(m, b)
@@ -528,9 +524,9 @@ func init() {
 	proto.RegisterType((*ReplyGetExecBalance)(nil), "types.ReplyGetExecBalance")
 }
 
-func init() { proto.RegisterFile("statistic.proto", fileDescriptor_statistic_605d9f4b66b1368d) }
+func init() { proto.RegisterFile("statistic.proto", fileDescriptor_statistic_77be35034ded47b5) }
 
-var fileDescriptor_statistic_605d9f4b66b1368d = []byte{
+var fileDescriptor_statistic_77be35034ded47b5 = []byte{
 	// 460 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x53, 0xc1, 0x6e, 0xd3, 0x40,
 	0x10, 0xd5, 0xe2, 0x38, 0x6d, 0xa7, 0x95, 0x1a, 0x96, 0xa8, 0x58, 0x08, 0x44, 0x65, 0x2e, 0x3d,
