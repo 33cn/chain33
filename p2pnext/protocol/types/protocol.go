@@ -1,7 +1,11 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// package types protocol and stream register	`
 package types
 
 import (
-	"fmt"
 	"reflect"
 	"time"
 
@@ -72,7 +76,7 @@ func (p *ProtocolManager) Init(data *GlobalData) {
 	p.protoMap = make(map[string]IProtocol)
 	//每个P2P实例都重新分配相关的protocol结构
 	for id, protocolType := range protocolTypeMap {
-		fmt.Println("protoTy id", id)
+		log.Debug("InitProtocolManager", "protoTy id", id)
 		protoVal := reflect.New(protocolType)
 		baseValue := protoVal.Elem().FieldByName("BaseProtocol")
 		//指针形式继承,需要初始化BaseProtocol结构
@@ -88,7 +92,7 @@ func (p *ProtocolManager) Init(data *GlobalData) {
 
 	//每个P2P实例都重新分配相关的handler结构
 	for id, handlerType := range streamHandlerTypeMap {
-		fmt.Println("stream msg id", id)
+		log.Debug("InitProtocolManager", "stream handler id", id)
 		handlerValue := reflect.New(handlerType)
 		baseValue := handlerValue.Elem().FieldByName("BaseStreamHandler")
 		//指针形式继承,需要初始化BaseStreamHandler结构
@@ -110,12 +114,12 @@ func (p *ProtocolManager) Init(data *GlobalData) {
 }
 
 // InitProtocol 初始化协议
-func (p *BaseProtocol) InitProtocol(data *GlobalData) {
+func (base *BaseProtocol) InitProtocol(data *GlobalData) {
 
-	p.GlobalData = data
+	base.GlobalData = data
 }
 
-func (s *BaseProtocol) NewMessageCommon(messageId, pid string, nodePubkey []byte, gossip bool) *types.MessageComm {
+func (base *BaseProtocol) NewMessageCommon(messageId, pid string, nodePubkey []byte, gossip bool) *types.MessageComm {
 	return &types.MessageComm{Version: "",
 		NodeId:     pid,
 		NodePubKey: nodePubkey,
@@ -125,28 +129,28 @@ func (s *BaseProtocol) NewMessageCommon(messageId, pid string, nodePubkey []byte
 
 }
 
-func (p *BaseProtocol) GetChainCfg() *types.Chain33Config {
+func (base *BaseProtocol) GetChainCfg() *types.Chain33Config {
 
-	return p.ChainCfg
-
-}
-
-func (p *BaseProtocol) GetQueueClient() queue.Client {
-
-	return p.QueueClient
-}
-
-func (p *BaseProtocol) GetHost() core.Host {
-
-	return p.Host
+	return base.ChainCfg
 
 }
 
-func (p *BaseProtocol) GetConnsManager() *manage.ConnManager {
-	return p.ConnManager
+func (base *BaseProtocol) GetQueueClient() queue.Client {
+
+	return base.QueueClient
+}
+
+func (base *BaseProtocol) GetHost() core.Host {
+
+	return base.Host
 
 }
 
-func (p *BaseProtocol) GetPeerInfoManager() *manage.PeerInfoManager {
-	return p.PeerInfoManager
+func (base *BaseProtocol) GetConnsManager() *manage.ConnManager {
+	return base.ConnManager
+
+}
+
+func (base *BaseProtocol) GetPeerInfoManager() *manage.PeerInfoManager {
+	return base.PeerInfoManager
 }

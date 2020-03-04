@@ -128,7 +128,7 @@ func newP2p(cfg *types.Chain33Config, port int32, dbpath string, q queue.Queue) 
 	p2pMgr.SysApi, _ = client.New(p2pMgr.Client, nil)
 
 	pcfg := &subConfig{}
-	types.MustDecode(cfg.GetSubConfig().Mempool[manage.GossipTypeName], pcfg)
+	types.MustDecode(cfg.GetSubConfig().P2P[manage.GossipTypeName], pcfg)
 	pcfg.Port = port
 	pcfg.Channel = testChannel
 	pcfg.ServerStart = true
