@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/33cn/chain33/queue"
+
 	"github.com/33cn/chain33/types"
 )
 
@@ -11,17 +13,19 @@ import (
 
 type PeerInfoManager struct {
 	peerInfo sync.Map
+	client   queue.Client
+	done     chan struct{}
 }
 
 type peerStoreInfo struct {
 	storeTime time.Duration
-	peerInfo  *types.P2PPeerInfo
+	peer      *types.Peer
 }
 
-func (p *PeerInfoManager) Store(pid string, info *types.P2PPeerInfo) {
+func (p *PeerInfoManager) Add(pid string, info *types.Peer) {
 	var storeInfo peerStoreInfo
 	storeInfo.storeTime = time.Duration(time.Now().Unix())
-	storeInfo.peerInfo = info
+	storeInfo.peer = info
 	p.peerInfo.Store(pid, &storeInfo)
 }
 func (p *PeerInfoManager) Copy(dest *types.Peer, source *types.P2PPeerInfo) {
@@ -33,7 +37,7 @@ func (p *PeerInfoManager) Copy(dest *types.Peer, source *types.P2PPeerInfo) {
 	dest.Port = source.GetPort()
 }
 
-func (p *PeerInfoManager) Load(key string) *types.P2PPeerInfo {
+func (p *PeerInfoManager) Get(key string) *types.Peer {
 	v, ok := p.peerInfo.Load(key)
 	if !ok {
 		return nil
@@ -43,7 +47,7 @@ func (p *PeerInfoManager) Load(key string) *types.P2PPeerInfo {
 		p.peerInfo.Delete(key)
 		return nil
 	}
-	return info.peerInfo
+	return info.peer
 }
 
 func (p *PeerInfoManager) FetchPeers() []*types.Peer {
@@ -55,16 +59,63 @@ func (p *PeerInfoManager) FetchPeers() []*types.Peer {
 			p.peerInfo.Delete(key)
 			return true
 		}
-		var peer types.Peer
-		p.Copy(&peer, info.peerInfo)
-		peers = append(peers, &peer)
+
+		peers = append(peers, info.peer)
 		return true
 	})
 
 	return peers
 }
 
-func NewPeerInfoManager() *PeerInfoManager {
+func (p *PeerInfoManager) MonitorPeerInfos() {
+	for {
+		select {
+		case <-time.After(time.Second * 30):
 
-	return &PeerInfoManager{}
+			msg := p.client.NewMessage("p2p", types.EventPeerInfo, nil)
+			p.client.Send(msg, false)
+			resp, err := p.client.Wait(msg)
+			if err != nil {
+				continue
+			}
+
+			if peerlist, ok := resp.GetData().(*types.PeerList); ok {
+				for _, peer := range peerlist.GetPeers() {
+					p.Add(peer.GetName(), peer)
+				}
+
+			}
+
+		case <-time.After(time.Minute):
+			p.peerInfo.Range(func(k, v interface{}) bool {
+				info := v.(*peerStoreInfo)
+				if time.Duration(time.Now().Unix())-info.storeTime > 50 {
+					p.peerInfo.Delete(k)
+					return true
+				}
+				return true
+			})
+
+		case <-p.done:
+			return
+
+		}
+	}
+}
+
+func (p *PeerInfoManager) Close() {
+	defer func() {
+		if recover() != nil {
+			log.Error("channel reclosed")
+		}
+	}()
+
+	close(p.done)
+}
+
+func NewPeerInfoManager(cli queue.Client) *PeerInfoManager {
+
+	peerInfoManage := &PeerInfoManager{done: make(chan struct{})}
+	go peerInfoManage.MonitorPeerInfos()
+	return peerInfoManage
 }

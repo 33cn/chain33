@@ -150,7 +150,6 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 		}
 
 		peerinfos = append(peerinfos, resp.GetMessage())
-		p.GetPeerInfoManager().Store(remoteId.Pretty(), resp.GetMessage())
 
 	}
 	return peerinfos

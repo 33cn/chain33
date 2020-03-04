@@ -117,12 +117,13 @@ func (d *DownloadProtol) availbJob(js jobs, blockheight int64) *JobInfo {
 	}
 	for i, job := range js {
 		//check blockheight
-		peerInfo := d.GetPeerInfoManager().Load(job.Pid.Pretty())
+		peerInfo := d.GetPeerInfoManager().Get(job.Pid.Pretty())
 		if peerInfo != nil {
 			if peerInfo.GetHeader().GetHeight() < blockheight {
 				continue
 			}
 		} else {
+			log.Error("CheckAvailbJob", "PeerInfoManager No ths Peer info...", job.Pid.Pretty())
 			continue
 		}
 

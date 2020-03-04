@@ -70,7 +70,7 @@ func New(mgr *p2pmgr.P2PMgr, subCfg []byte) p2pmgr.IP2P {
 	host := newHost(mcfg, priv, bandwidthTracker)
 	p2p := &P2P{
 		host:          host,
-		peerInfoManag: manage.NewPeerInfoManager(),
+		peerInfoManag: manage.NewPeerInfoManager(mgr.Client),
 		chainCfg:      chainCfg,
 		subCfg:        mcfg,
 		p2pCfg:        p2pCfg,
@@ -170,7 +170,6 @@ func (p *P2P) processP2P() {
 		p.taskGroup.Add(1)
 		go func(qmsg *queue.Message) {
 			defer p.taskGroup.Done()
-
 			log.Debug("processP2P", "recv msg ty", qmsg.Ty)
 
 			protocol.HandleEvent(qmsg)
@@ -185,11 +184,6 @@ func (p *P2P) Wait() {
 }
 
 func (p *P2P) ReStart() {
-	/*client := p.client
-	p.Close()
-	p = New(p.chainCfg)
-	p.client = client
-	p.StartP2P()*/
 
 }
 
@@ -199,6 +193,7 @@ func (p *P2P) CloseP2P() {
 	atomic.StoreInt32(&p.closed, 1)
 	p.waitTaskDone()
 	p.connManag.Close()
+	p.peerInfoManag.Close()
 	p.host.Close()
 	prototypes.ClearEventHandler()
 
