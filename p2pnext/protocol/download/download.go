@@ -164,14 +164,11 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 				log.Error("syncDownloadBlock", "err", err.Error())
 				v, ok := reDownload.Load(jobID)
 				if ok {
-
 					faildJob := v.(sync.Map)
-
 					faildJob.Store(blockheight, false)
 					reDownload.Store(jobID, faildJob)
 
 				} else {
-
 					var faildJob sync.Map
 					faildJob.Store(blockheight, false)
 					reDownload.Store(jobID, faildJob)
@@ -199,7 +196,9 @@ ReDownload:
 	if retryCount > 50 {
 		return errors.New("beyound max try count 50")
 	}
-
+	if jbs.Size() == 0 {
+		return errors.New("no peer for download")
+	}
 	freeJob := d.availbJob(jbs)
 	if freeJob == nil {
 		time.Sleep(time.Millisecond * 800)

@@ -76,15 +76,15 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 				if tduration == 0 {
 					continue
 				}
-				LatencyInfo += fmt.Sprintf("PeerID:%s,LatencyEWMA:%v\n", pid.Pretty(), tduration)
+				LatencyInfo += fmt.Sprintln("PeerID:%s,LatencyEWMA:%v", pid.Pretty(), tduration)
 			}
-			log.Info(LatencyInfo + "\n")
+			log.Info(LatencyInfo)
 
 			var trackerInfo string = "------------BandTracker--------------\n"
 			var showNum int
 			bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 			for pid, stat := range bandByPeer {
-				trackerInfo += fmt.Sprintf("PeerID:%s,RateIn:%d bytes/s,RateOut:%d bytes/s,totalIn:%d bytes,totalOut:%d\n",
+				trackerInfo += fmt.Sprintf("PeerID:%s,RateIn:%f bytes/s,RateOut:%f bytes/s,totalIn:%d bytes,totalOut:%d\n",
 					pid,
 					stat.RateIn,
 					stat.RateOut,
@@ -95,7 +95,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 					break
 				}
 			}
-			trackerInfo += fmt.Sprintf("peerstoreNum:%d,connNum:%v\n", len(s.pstore.Peers()), s.Size())
+			trackerInfo += fmt.Sprintln("peerstoreNum:%d,connNum:%v", len(s.pstore.Peers()), s.Size())
 			trackerInfo += "-------------------------------------"
 
 			log.Info(trackerInfo)

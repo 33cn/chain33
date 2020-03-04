@@ -45,6 +45,10 @@ func (i jobs) Sort() jobs {
 	return i
 }
 
+func (i jobs) Size() int {
+	return len(i)
+}
+
 func (d *DownloadProtol) initJob(pids []string, jobId string) jobs {
 	var JobPeerIds jobs
 	var pIDs []peer.ID
@@ -88,13 +92,17 @@ func (d *DownloadProtol) CheckJob(jobID string, pids []string, faildJobs sync.Ma
 	if !ok {
 		return
 	}
-	faildJob := v.(map[int64]bool)
-	log.Warn("CheckJob<<<<<<<<<<", "jobID", jobID, "faildJobNum", len(faildJob), "faildJob", faildJob)
-	for blockheight := range faildJob {
-		//redownload blocks
+	faildJob := v.(sync.Map)
+
+	faildJob.Range(func(k, v interface{}) bool {
+		blockheight := k.(int64)
 		jobS := d.initJob(pids, jobID)
 		d.syncDownloadBlock(blockheight, jobS)
-	}
+		log.Warn("CheckJob<<<<<<<<<<", "jobID", jobID, "faildJob", blockheight)
+
+		return true
+
+	})
 
 }
 
