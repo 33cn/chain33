@@ -116,6 +116,7 @@ func (p *PeerInfoManager) Close() {
 func NewPeerInfoManager(cli queue.Client) *PeerInfoManager {
 
 	peerInfoManage := &PeerInfoManager{done: make(chan struct{})}
+	peerInfoManage.client = cli
 	go peerInfoManage.MonitorPeerInfos()
 	return peerInfoManage
 }
