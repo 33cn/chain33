@@ -37,8 +37,8 @@ func CalcTxShortPerfix(name string) []byte {
 func (p *txindexPlugin) Upgrade(count int32) (bool, error) {
 	toVersion := 2
 	prefixes := []plugins.Prefixes{
-		plugins.Prefixes{CalcTxPrefixOld(), CalcTxPrefix(name)},
-		plugins.Prefixes{CalcTxShortHashPerfixOld(), CalcTxShortPerfix(name)},
+		{CalcTxPrefixOld(), CalcTxPrefix(name)},
+		{CalcTxShortHashPerfixOld(), CalcTxShortPerfix(name)},
 	}
 
 	return plugins.Upgrade(p.GetLocalDB(), name, toVersion, prefixes, count)
