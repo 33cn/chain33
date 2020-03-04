@@ -43,21 +43,67 @@ func versionKey(name string) []byte {
 	return append(types.LocalPluginPrefix, []byte(fmt.Sprintf("%s-%s", name, versionPrefix))...)
 }
 
+// Prefixes 前缀
+type Prefixes struct {
+	From []byte
+	To   []byte
+}
+
+// Upgrade 升级前缀
+func Upgrade(kvdb dbm.KVDB, name string, toVersion int, prefixes []Prefixes, count int32) (bool, error) {
+	elog.Info("Upgrade start", "plugin", name, "to_version", toVersion)
+	version, err := GetVersion(kvdb, name)
+	if err != nil {
+		return false, errors.Wrapf(err, "Upgrade get version: %s", name)
+	}
+	if version >= toVersion {
+		elog.Debug("Upgrade not need to upgrade", "current_version", version, "to_version", toVersion)
+		return true, nil
+	}
+	/*
+		prefixes := []struct {
+			from []byte
+			to   []byte
+		}{
+			{CalcTxPrefixOld(), CalcTxPrefix(name)},
+			{CalcTxShortHashPerfixOld(), CalcTxShortPerfix(name)},
+		}*/
+
+	for _, prefix := range prefixes {
+		done, err := UpgradeOneKey(kvdb, prefix.From, prefix.To, count)
+		if err != nil {
+			return done, err
+		}
+		// 未完成, 意味着数据量处理够了, 先返回
+		if done == false {
+			return done, nil
+		}
+	}
+
+	err = SetVersion(kvdb, name, toVersion)
+	if err != nil {
+		return false, errors.Wrapf(err, "Upgrade setVersion: %s", name)
+	}
+
+	elog.Info("Upgrade upgrade done")
+	return true, nil
+}
+
 // UpgradeOneKey 更新 key 的命名: 变前缀, value不变
-func UpgradeOneKey(kvdb dbm.KVDB, oldPrefix, newPrefix []byte) (err error) {
-	kvs, err := kvdb.List(oldPrefix, nil, 0, dbm.ListASC|dbm.ListWithKey)
+func UpgradeOneKey(kvdb dbm.KVDB, oldPrefix, newPrefix []byte, count int32) (done bool, err error) {
+	kvs, err := kvdb.List(oldPrefix, nil, count, dbm.ListASC|dbm.ListWithKey)
 	if err != nil {
 		if err == types.ErrNotFound {
-			return nil
+			return true, nil
 		}
-		return errors.Wrapf(err, "upgradeOneKey list %s", oldPrefix)
+		return false, errors.Wrapf(err, "upgradeOneKey list %s", oldPrefix)
 	}
 	elog.Info("upgradeOneKey", "count", len(kvs), "prefix", string(oldPrefix), "to", string(newPrefix))
 	for _, kv := range kvs {
 		var kv2 types.KeyValue
 		err = types.Decode(kv, &kv2)
 		if err != nil {
-			return errors.Wrap(err, "upgradeOneKey Decode")
+			return false, errors.Wrap(err, "upgradeOneKey Decode")
 		}
 
 		key := kv2.Key
@@ -66,7 +112,7 @@ func UpgradeOneKey(kvdb dbm.KVDB, oldPrefix, newPrefix []byte) (err error) {
 		kvdb.Set(key, nil)
 		kvdb.Set(newKey, kv2.Value)
 	}
-	return nil
+	return int32(len(kvs)) != count, nil
 }
 
 func genNewKey(key, prefix1, prefix2 []byte) []byte {
