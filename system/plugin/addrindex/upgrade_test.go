@@ -17,13 +17,15 @@ func Test_Upgrade(t *testing.T) {
 	// test empty db
 	p := newAddrindex()
 	p.SetLocalDB(localdb)
-	err := p.Upgrade()
+	done, err := p.Upgrade(100)
 	assert.Nil(t, err)
+	assert.True(t, done)
 
 	// test again
 	plugins.SetVersion(localdb, name, 1)
-	err = p.Upgrade()
+	done, err = p.Upgrade(100)
 	assert.Nil(t, err)
+	assert.True(t, done)
 
 	// test with data
 	addresses := []string{"addr1", "addr2", "addr3"}
@@ -36,17 +38,24 @@ func Test_Upgrade(t *testing.T) {
 	}
 
 	plugins.SetVersion(localdb, name, 1)
-	err = p.Upgrade()
+	done, err = p.Upgrade(2)
 	assert.Nil(t, err)
+	assert.False(t, done)
+
+	done, err = p.Upgrade(10)
+	assert.Nil(t, err)
+	assert.True(t, done)
 
 	// 已经是升级后的版本了， 不需要再升级
-	err = p.Upgrade()
+	done, err = p.Upgrade(2)
 	assert.Nil(t, err)
+	assert.True(t, done)
 
 	// 先修改版本去升级，但数据已经升级了， 所以处理数据量为0
 	plugins.SetVersion(localdb, name, 1)
-	err = p.Upgrade()
+	done, err = p.Upgrade(2)
 	assert.Nil(t, err)
+	assert.True(t, done)
 
 	// just print log
 	//assert.NotNil(t, nil)
