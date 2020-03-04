@@ -173,13 +173,22 @@ func (exec *Executor) upgradeExecPlugin(name string) error {
 	defer localdb.(*LocalDB).Close()
 	plugin.SetLocalDB(localdb)
 
-	localdb.Begin()
-	err = plugin.Upgrade()
-	if err != nil {
-		localdb.Rollback()
-		return err
+	for true {
+		localdb.Begin()
+		done, err := plugin.Upgrade(100000)
+		if err != nil {
+			localdb.Rollback()
+			return err
+		}
+		err = localdb.Commit()
+		if err != nil {
+			return err
+		}
+		if done {
+			return nil
+		}
 	}
-	return localdb.Commit()
+	return nil
 }
 
 func (exec *Executor) upgradePlugin(plugin string) error {
