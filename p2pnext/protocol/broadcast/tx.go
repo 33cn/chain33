@@ -1,3 +1,7 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package broadcast
 
 import (
@@ -6,17 +10,17 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func (s *broadCastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, peerAddr string) (doSend bool) {
+func (protocol *broadCastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, peerAddr string) (doSend bool) {
 
 	txHash := hex.EncodeToString(tx.Tx.Hash())
 	ttl := tx.GetRoute().GetTTL()
-	isLightSend := ttl >= s.p2pCfg.LightTxTTL
+	isLightSend := ttl >= protocol.p2pCfg.LightTxTTL
 	//检测冗余发送
 	ignoreSend := false
 
 	//短哈希广播不记录发送过滤
 	if !isLightSend {
-		ignoreSend = addIgnoreSendPeerAtomic(s.txSendFilter, txHash, pid)
+		ignoreSend = addIgnoreSendPeerAtomic(protocol.txSendFilter, txHash, pid)
 	}
 
 	log.Debug("P2PSendTx", "txHash", txHash, "ttl", ttl, "isLightSend", isLightSend,
@@ -26,7 +30,7 @@ func (s *broadCastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData
 		return false
 	}
 	//超过最大的ttl, 不再发送
-	if ttl > s.p2pCfg.MaxTTL { //超过最大发送次数
+	if ttl > protocol.p2pCfg.MaxTTL { //超过最大发送次数
 		return false
 	}
 
@@ -44,15 +48,15 @@ func (s *broadCastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData
 	return true
 }
 
-func (s *broadCastProtocol) recvTx(tx *types.P2PTx, pid, peerAddr string) {
+func (protocol *broadCastProtocol) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 	if tx.GetTx() == nil {
 		return
 	}
 	txHash := hex.EncodeToString(tx.GetTx().Hash())
 	//将节点id添加到发送过滤, 避免冗余发送
-	addIgnoreSendPeerAtomic(s.txSendFilter, txHash, pid)
+	addIgnoreSendPeerAtomic(protocol.txSendFilter, txHash, pid)
 	//避免重复接收
-	isDuplicate := checkAndRegFilterAtomic(s.txFilter, txHash)
+	isDuplicate := protocol.txFilter.AddWithCheckAtomic(txHash, true)
 	log.Debug("recvTx", "tx", txHash, "ttl", tx.GetRoute().GetTTL(), "peerAddr", peerAddr, "duplicateTx", isDuplicate)
 	if isDuplicate {
 		return
@@ -61,17 +65,17 @@ func (s *broadCastProtocol) recvTx(tx *types.P2PTx, pid, peerAddr string) {
 	if tx.GetRoute() == nil {
 		tx.Route = &types.P2PRoute{TTL: 1}
 	}
-	s.txFilter.Add(txHash, tx.GetRoute())
-	s.postMempool(txHash,  tx.GetTx())
+	protocol.txFilter.Add(txHash, tx.GetRoute())
+	protocol.postMempool(txHash, tx.GetTx())
 
 }
 
-func (s *broadCastProtocol) recvLtTx(tx *types.LightTx, pid, peerAddr string) {
+func (protocol *broadCastProtocol) recvLtTx(tx *types.LightTx, pid, peerAddr string) {
 
 	txHash := hex.EncodeToString(tx.TxHash)
 	//将节点id添加到发送过滤, 避免冗余发送
-	addIgnoreSendPeerAtomic(s.txSendFilter, txHash, pid)
-	exist := s.txFilter.QueryRecvData(txHash)
+	addIgnoreSendPeerAtomic(protocol.txSendFilter, txHash, pid)
+	exist := protocol.txFilter.Contains(txHash)
 	log.Debug("recvLtTx", "txHash", txHash, "ttl", tx.GetRoute().GetTTL(), "peerAddr", peerAddr, "exist", exist)
 	//本地不存在, 需要向对端节点发起完整交易请求. 如果存在则表示本地已经接收过此交易, 不做任何操作
 	if !exist {
@@ -83,6 +87,6 @@ func (s *broadCastProtocol) recvLtTx(tx *types.LightTx, pid, peerAddr string) {
 			},
 		}
 		//发布到指定的节点
-		s.sendStream(pid, query)
+		protocol.sendStream(pid, query)
 	}
 }
