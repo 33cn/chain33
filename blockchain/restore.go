@@ -45,15 +45,7 @@ func (chain *BlockChain) UpgradePlugin() {
 		return
 	}
 
-	batch := chain.blockStore.NewBatch(false)
-	for i := 0; i < len(kv.KV); i++ {
-		if kv.KV[i].Value == nil {
-			batch.Delete(kv.KV[i].Key)
-		} else {
-			batch.Set(kv.KV[i].Key, kv.KV[i].Value)
-		}
-	}
-	dbm.MustWrite(batch)
+	chain.blockStore.mustSaveKvset(kv)
 }
 
 //UpgradeStore 升级storedb

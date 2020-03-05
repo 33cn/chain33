@@ -1509,3 +1509,15 @@ func (bs *BlockStore) saveReduceLocaldbFlag() {
 		panic(err)
 	}
 }
+
+func (bs *BlockStore) mustSaveKvset(kv *types.LocalDBSet) {
+	batch := bs.NewBatch(false)
+	for i := 0; i < len(kv.KV); i++ {
+		if kv.KV[i].Value == nil {
+			batch.Delete(kv.KV[i].Key)
+		} else {
+			batch.Set(kv.KV[i].Key, kv.KV[i].Value)
+		}
+	}
+	dbm.MustWrite(batch)
+}
