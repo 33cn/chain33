@@ -34,8 +34,8 @@ type HeaderInfoProtol struct {
 	*prototypes.BaseStreamHandler
 }
 
-func (h *HeaderInfoProtol) InitProtocol(data *prototypes.GlobalData) {
-	h.GlobalData = data
+func (h *HeaderInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
+	h.P2PEnv = env
 	prototypes.RegisterEventHandler(types.EventFetchBlockHeaders, h.handleEvent)
 }
 

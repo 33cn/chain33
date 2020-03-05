@@ -12,6 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// AuthenticateMessage auth msg
 func AuthenticateMessage(message proto.Message, data *types.MessageComm) bool {
 	// store a temp ref to signature and remove it from message data
 	// sign is a string to allow easy reset to zero-value (empty string)
@@ -40,7 +41,7 @@ func AuthenticateMessage(message proto.Message, data *types.MessageComm) bool {
 	return verifyData(bin, []byte(sign), peerId, data.NodePubKey)
 }
 
-// sign an outgoing p2p message payload
+// SignProtoMessage sign an outgoing p2p message payload
 func SignProtoMessage(message proto.Message, host core.Host) ([]byte, error) {
 	data, err := proto.Marshal(message)
 	if err != nil {

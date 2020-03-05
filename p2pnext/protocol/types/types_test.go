@@ -139,7 +139,7 @@ func TestProtocolManager_Init(t *testing.T) {
 	RegisterStreamHandlerType("test2", "stream5", &testStreamHandler{})
 	RegisterStreamHandlerType("test2", "stream6", &testStreamHandler2{})
 
-	global := &GlobalData{}
+	global := &P2PEnv{}
 	global.Host, _ = libp2p.New(context.Background())
 	manager := &ProtocolManager{}
 	manager.Init(global)

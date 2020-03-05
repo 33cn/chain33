@@ -52,10 +52,10 @@ type broadCastProtocol struct {
 }
 
 // InitProtocol init protocol
-func (protocol *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
+func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 	protocol.BaseProtocol = new(prototypes.BaseProtocol)
 
-	protocol.GlobalData = data
+	protocol.P2PEnv = env
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
 	protocol.txFilter = utils.NewFilter(txRecvFilterCacheNum)
 	protocol.blockFilter = utils.NewFilter(blockRecvFilterCacheNum)
@@ -69,7 +69,7 @@ func (protocol *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
 	protocol.ltBlockCache = utils.NewSpaceLimitCache(blockCacheNum/2, maxBlockCacheByteSize/2)
 	// 单独复制一份， 避免data race
-	subCfg := *(data.SubConfig)
+	subCfg := *(env.SubConfig)
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventTxBroadcast, protocol.handleEvent)
 	prototypes.RegisterEventHandler(types.EventBlockBroadcast, protocol.handleEvent)

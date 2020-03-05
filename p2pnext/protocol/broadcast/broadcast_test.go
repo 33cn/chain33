@@ -37,7 +37,7 @@ var (
 	testPid  = "testPeerID"
 )
 
-func newTestEnv(q queue.Queue) *prototypes.GlobalData {
+func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
 	q.SetConfig(cfg)
@@ -51,7 +51,7 @@ func newTestEnv(q queue.Queue) *prototypes.GlobalData {
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pmgr.DHTTypeName], subCfg)
 	subCfg.MinLtBlockTxNum = 1
 
-	env := &prototypes.GlobalData{
+	env := &prototypes.P2PEnv{
 		ChainCfg:        cfg,
 		QueueClient:     q.Client(),
 		Host:            nil,
