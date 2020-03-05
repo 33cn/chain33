@@ -28,6 +28,7 @@ func (p *PeerInfoManager) Add(pid string, info *types.Peer) {
 	storeInfo.peer = info
 	p.peerInfo.Store(pid, &storeInfo)
 }
+
 func (p *PeerInfoManager) Copy(dest *types.Peer, source *types.P2PPeerInfo) {
 	dest.Addr = source.GetAddr()
 	dest.Name = source.GetName()
@@ -43,7 +44,7 @@ func (p *PeerInfoManager) Get(key string) *types.Peer {
 		return nil
 	}
 	info := v.(*peerStoreInfo)
-	if time.Duration(time.Now().Unix())-info.storeTime > 50 {
+	if time.Duration(time.Now().Unix())-info.storeTime > 60 {
 		p.peerInfo.Delete(key)
 		return nil
 	}
@@ -55,7 +56,7 @@ func (p *PeerInfoManager) FetchPeers() []*types.Peer {
 	var peers []*types.Peer
 	p.peerInfo.Range(func(key interface{}, value interface{}) bool {
 		info := value.(*peerStoreInfo)
-		if time.Duration(time.Now().Unix())-info.storeTime > 50 {
+		if time.Duration(time.Now().Unix())-info.storeTime > 60 {
 			p.peerInfo.Delete(key)
 			return true
 		}
@@ -73,9 +74,10 @@ func (p *PeerInfoManager) MonitorPeerInfos() {
 		case <-time.After(time.Second * 30):
 
 			msg := p.client.NewMessage("p2p", types.EventPeerInfo, nil)
-			p.client.Send(msg, false)
-			resp, err := p.client.Wait(msg)
+			p.client.SendTimeout(msg, true, time.Second*5)
+			resp, err := p.client.WaitTimeout(msg, time.Second*20)
 			if err != nil {
+				log.Error("MonitorPeerInfos", "err----------->", err)
 				continue
 			}
 
@@ -87,14 +89,18 @@ func (p *PeerInfoManager) MonitorPeerInfos() {
 			}
 
 		case <-time.After(time.Minute):
+			var peerNum int
 			p.peerInfo.Range(func(k, v interface{}) bool {
 				info := v.(*peerStoreInfo)
-				if time.Duration(time.Now().Unix())-info.storeTime > 50 {
+				if time.Duration(time.Now().Unix())-info.storeTime > 60 {
 					p.peerInfo.Delete(k)
 					return true
 				}
+				peerNum++
 				return true
 			})
+
+			log.Info("MonitorPeerInfos", "Num", peerNum)
 
 		case <-p.done:
 			return
