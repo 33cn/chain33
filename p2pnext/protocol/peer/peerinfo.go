@@ -88,11 +88,11 @@ func (p *PeerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 	port, _ := strconv.Atoi(splites[len(splites)-1])
 	peerinfo.Port = int32(port)
 	//TODO 需要返回自身的外网地址
-	if externalAddr == "" {
+	if p.GetExternalAddr() == "" {
 		peerinfo.Addr = splites[2]
 
 	} else {
-		peerinfo.Addr = strings.Split(externalAddr, "/")[2]
+		peerinfo.Addr = p.GetExternalAddr()
 	}
 	return &peerinfo
 }

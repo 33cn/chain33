@@ -12,7 +12,7 @@ func (p *PeerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 	insize, outsize := p.ConnManager.BoundSize()
 	var netinfo types.NodeNetInfo
 	//外网地址只有一个，显示太多，意义不大
-	netinfo.Externaladdr = strings.Split(externalAddr, "/")[2]
+	netinfo.Externaladdr = p.GetExternalAddr()
 	netinfo.Localaddr = strings.Split(p.GetHost().Addrs()[0].String(), "/")[2]
 	netinfo.Outbounds = int32(outsize)
 	netinfo.Inbounds = int32(insize)
