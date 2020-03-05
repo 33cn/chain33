@@ -48,7 +48,7 @@ func (protocol *broadCastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadC
 	return true
 }
 
-func (protocol *broadCastProtocol) recvTx(tx *types.P2PTx, pid, peerAddr string) {
+func (protocol *broadCastProtocol) recvTx(tx *types.P2PTx, pid, peerAddr string) (err error) {
 	if tx.GetTx() == nil {
 		return
 	}
@@ -66,11 +66,11 @@ func (protocol *broadCastProtocol) recvTx(tx *types.P2PTx, pid, peerAddr string)
 		tx.Route = &types.P2PRoute{TTL: 1}
 	}
 	protocol.txFilter.Add(txHash, tx.GetRoute())
-	protocol.postMempool(txHash, tx.GetTx())
+	return protocol.postMempool(txHash, tx.GetTx())
 
 }
 
-func (protocol *broadCastProtocol) recvLtTx(tx *types.LightTx, pid, peerAddr string) {
+func (protocol *broadCastProtocol) recvLtTx(tx *types.LightTx, pid, peerAddr string) (err error) {
 
 	txHash := hex.EncodeToString(tx.TxHash)
 	//将节点id添加到发送过滤, 避免冗余发送
@@ -87,6 +87,12 @@ func (protocol *broadCastProtocol) recvLtTx(tx *types.LightTx, pid, peerAddr str
 			},
 		}
 		//发布到指定的节点
-		protocol.sendStream(pid, query)
+		err = protocol.sendStream(pid, query)
+		if err != nil {
+			log.Error("recvLtTx", "pid", pid, "sendStreamErr", err)
+			return errSendStream
+		}
 	}
+
+	return
 }

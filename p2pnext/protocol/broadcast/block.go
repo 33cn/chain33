@@ -46,10 +46,10 @@ func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *typ
 	return true
 }
 
-func (protocol *broadCastProtocol) recvBlock(block *types.P2PBlock, pid, peerAddr string) {
+func (protocol *broadCastProtocol) recvBlock(block *types.P2PBlock, pid, peerAddr string) error {
 
 	if block.GetBlock() == nil {
-		return
+		return types.ErrInvalidParam
 	}
 	blockHash := hex.EncodeToString(block.GetBlock().Hash(protocol.GetChainCfg()))
 	//将节点id添加到发送过滤, 避免冗余发送
@@ -59,16 +59,17 @@ func (protocol *broadCastProtocol) recvBlock(block *types.P2PBlock, pid, peerAdd
 	log.Debug("recvBlock", "blockHeight", block.GetBlock().GetHeight(), "peerAddr", peerAddr,
 		"block size(KB)", float32(block.Block.Size())/1024, "blockHash", blockHash, "duplicateBlock", isDuplicate)
 	if isDuplicate {
-		return
+		return nil
 	}
 	//发送至blockchain执行
 	if err := protocol.postBlockChain(blockHash, pid, block.GetBlock()); err != nil {
 		log.Error("recvBlock", "send block to blockchain Error", err.Error())
+		return errSendBlockChain
 	}
-
+	return nil
 }
 
-func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string) {
+func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string) error {
 
 	blockHash := hex.EncodeToString(ltBlock.Header.Hash)
 	//将节点id添加到发送过滤, 避免冗余发送
@@ -78,7 +79,7 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 	log.Debug("recvLtBlock", "blockHash", blockHash, "blockHeight", ltBlock.GetHeader().GetHeight(),
 		"peerAddr", peerAddr, "duplicateBlock", isDuplicate, "txCount", ltBlock.Header.TxCount)
 	if isDuplicate {
-		return
+		return nil
 	}
 	//组装block
 	block := &types.Block{}
@@ -101,7 +102,7 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 			&types.ReqTxHashList{Hashes: ltBlock.STxHashes, IsShortHash: true})
 		if err != nil {
 			log.Error("recvLtBlock", "queryTxListByHashErr", err)
-			return
+			return errRecvMempool
 		}
 
 		txList, ok = resp.(*types.ReplyTxList)
@@ -116,7 +117,6 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 			//tx not exist in mempool
 			nilTxIndices = append(nilTxIndices, int32(i+1))
 			tx = &types.Transaction{}
-			block.Txs = append(block.Txs, tx)
 		} else if count := tx.GetGroupCount(); count > 0 {
 
 			group, err := tx.GetTxGroup()
@@ -129,8 +129,9 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 			block.Txs = append(block.Txs, group.Txs...)
 			//跳过遍历
 			i += len(group.Txs) - 1
+			continue
 		}
-
+		block.Txs = append(block.Txs, tx)
 	}
 	nilTxLen := len(nilTxIndices)
 	log.Debug("recvLtBlock", "missTxCount", nilTxLen, "existTxCount", len(block.Txs),
@@ -146,9 +147,10 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 		//发送至blockchain执行
 		if err := protocol.postBlockChain(blockHash, pid, block); err != nil {
 			log.Error("recvLtBlock", "send block to blockchain Error", err.Error())
+			return errSendBlockChain
 		}
 
-		return
+		return nil
 	}
 	// 缺失的交易个数大于总数1/3 或者缺失数据大小大于2/3, 触发请求区块所有交易数据
 	if nilTxLen > 0 && (float32(nilTxLen) > float32(ltBlock.Header.TxCount)/3 ||
@@ -168,7 +170,13 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 		},
 	}
 	//pub to specified peer
-	protocol.sendStream(pid, query)
+	err := protocol.sendStream(pid, query)
+	if err != nil {
+		log.Error("recvLtBlock", "pid", pid, "sendStreamErr", err)
+		protocol.blockFilter.Remove(blockHash)
+		return errSendStream
+	}
 	//需要将不完整的block预存
 	protocol.ltBlockCache.Add(blockHash, block, int64(block.Size()))
+	return nil
 }
