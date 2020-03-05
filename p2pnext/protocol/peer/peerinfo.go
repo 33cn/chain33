@@ -154,10 +154,10 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 func (p *PeerInfoProtol) SetExternalAddr(addr string) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	if len(strings.Split(externalAddr, "/")) < 2 {
+	if len(strings.Split(addr, "/")) < 2 {
 		return
 	}
-	p.externalAddr = strings.Split(externalAddr, "/")[2]
+	p.externalAddr = strings.Split(addr, "/")[2]
 }
 
 func (p *PeerInfoProtol) GetExternalAddr() string {
