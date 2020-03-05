@@ -305,6 +305,7 @@ func TestMustSaveKvset(t *testing.T) {
 		KV: []*types.KeyValue{
 			{Key: []byte("000"), Value: []byte("000")},
 			{Key: []byte("111"), Value: []byte("111")},
+			{Key: []byte("222"), Value: nil},
 		},
 	}
 
@@ -317,6 +318,7 @@ func TestMustSaveKvset(t *testing.T) {
 	chain := InitEnv()
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
 	assert.NotNil(t, blockStore)
+	blockStore.Set([]byte("222"), []byte("222"))
 
 	blockStore.mustSaveKvset(&kvset)
 
@@ -327,4 +329,7 @@ func TestMustSaveKvset(t *testing.T) {
 	v, err = blockStoreDB.Get([]byte("111"))
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("111"), v)
+
+	_, err = blockStoreDB.Get([]byte("222"))
+	assert.Equal(t, types.ErrNotFound, err)
 }
