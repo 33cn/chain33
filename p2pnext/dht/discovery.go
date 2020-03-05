@@ -20,11 +20,12 @@ var (
 	log = log15.New("module", "p2p.dht")
 )
 
-const RendezvousString = "chain33-p2p-findme"
+const RendezvousString = "chain33-let's play!"
 
 type Discovery struct {
 	KademliaDHT      *dht.IpfsDHT
 	routingDiscovery *discovery.RoutingDiscovery
+	mndsService      *mdns
 }
 
 func (d *Discovery) InitDht(host host.Host, seeds []string, peersInfo []peer.AddrInfo) {
@@ -47,7 +48,7 @@ func (d *Discovery) InitDht(host host.Host, seeds []string, peersInfo []peer.Add
 	}
 
 	for _, peerinfo := range peersInfo {
-		host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.ProviderAddrTTL)
+		host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.TempAddrTTL)
 		err := host.Connect(context.Background(), peerinfo)
 		if err != nil {
 			log.Error("Host Connect", "err", err)
@@ -73,6 +74,22 @@ func (d *Discovery) FindPeers() (<-chan peer.AddrInfo, error) {
 	}
 
 	return peerChan, nil
+}
+
+//查找局域网内的其他节点
+func (d *Discovery) FindLANPeers(host host.Host, serviceTag string) (<-chan peer.AddrInfo, error) {
+	mdns, err := initMDNS(context.Background(), host, serviceTag)
+	if err != nil {
+		return nil, err
+	}
+	d.mndsService = mdns
+	return d.mndsService.PeerChan(), nil
+}
+
+func (d *Discovery) CloseFindLANPeers() {
+	if d.mndsService != nil {
+		d.mndsService.Service.UnregisterNotifee(d.mndsService.notifee)
+	}
 }
 
 //routingTable 路由表的节点信息

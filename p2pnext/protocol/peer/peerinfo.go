@@ -4,15 +4,8 @@ import (
 	"context"
 	"strconv"
 	"strings"
-
+	"sync"
 	"time"
-
-	//"github.com/libp2p/go-libp2p-core/peerstore"
-	//multiaddr "github.com/multiformats/go-multiaddr"
-	//"github.com/golang/protobuf/proto"
-	//"github.com/libp2p/go-libp2p-core/protocol"
-
-	//"fmt"
 
 	"github.com/33cn/chain33/common/log/log15"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
@@ -42,7 +35,9 @@ func init() {
 type PeerInfoProtol struct {
 	*prototypes.BaseProtocol
 	*prototypes.BaseStreamHandler
-	p2pCfg *p2pty.P2PSubConfig
+	p2pCfg       *p2pty.P2PSubConfig
+	externalAddr string
+	mutex        sync.Mutex
 }
 
 func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
@@ -155,10 +150,24 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 	return peerinfos
 
 }
+
+func (p *PeerInfoProtol) SetExternalAddr(addr string) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	if len(strings.Split(externalAddr, "/")) < 2 {
+		return
+	}
+	p.externalAddr = strings.Split(externalAddr, "/")[2]
+}
+
+func (p *PeerInfoProtol) GetExternalAddr() string {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.externalAddr
+}
+
 func (p *PeerInfoProtol) DetectNodeAddr() {
 	for {
-		time.Sleep(time.Second * 2)
-
 		if p.GetConnsManager().Size() == 0 {
 			time.Sleep(time.Second)
 			continue
@@ -171,9 +180,14 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		seedSplit := strings.Split(seed, "/")
 		seedMap[seedSplit[len(seedSplit)-1]] = seed
 	}
+
 	pid := p.GetHost().ID()
 	for _, remoteId := range p.GetConnsManager().Fetch() {
 		if remoteId.Pretty() == p.GetHost().ID().Pretty() {
+			continue
+		}
+
+		if p.GetConnsManager().IsNeighbors(remoteId) {
 			continue
 		}
 
@@ -189,6 +203,7 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 			log.Error("NewStream", "err", err, "remoteID", remoteId)
 			continue
 		}
+
 		version.AddrFrom = s.Conn().LocalMultiaddr().String()
 		version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 		err = p.SendProtoMessage(req, s)
@@ -204,16 +219,14 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		}
 		log.Info("DetectAddr", "resp", resp)
 
-		//if externalAddr == "" {
-		externalAddr = resp.GetMessage().GetAddrRecv()
-		log.Info("DetectNodeAddr", "externalAddr", externalAddr)
+		p.SetExternalAddr(resp.GetMessage().GetAddrRecv())
+		log.Info("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
 		//要判断是否是自身局域网的其他节点
 		if _, ok := seedMap[remoteId.Pretty()]; !ok {
 			continue
 		}
 
 		break
-		//	}
 
 	}
 

@@ -20,7 +20,7 @@ var (
 )
 
 type ConnManager struct {
-	store            sync.Map
+	neighborStore    sync.Map
 	host             core.Host
 	pstore           peerstore.Peerstore
 	bandwidthTracker *metrics.BandwidthCounter
@@ -106,8 +106,17 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	}
 }
 
-func (s *ConnManager) Add(pr *peer.AddrInfo) {
+func (s *ConnManager) AddNeighbors(pr *peer.AddrInfo) {
+	s.neighborStore.Store(pr.ID.Pretty(), pr)
+}
 
+func (s *ConnManager) IsNeighbors(pid peer.ID) bool {
+	_, ok := s.neighborStore.Load(pid.Pretty())
+	if ok {
+		return true
+	}
+
+	return false
 }
 
 func (s *ConnManager) Delete(pid peer.ID) {
@@ -169,7 +178,7 @@ func (s *ConnManager) BoundSize() (int, int) {
 
 }
 
-func convertPeers(peers []string) map[string]*peer.AddrInfo {
+func ConvertPeers(peers []string) map[string]*peer.AddrInfo {
 	pinfos := make(map[string]*peer.AddrInfo, len(peers))
 	for _, addr := range peers {
 		maddr := multiaddr.StringCast(addr)

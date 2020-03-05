@@ -12,10 +12,9 @@ import (
 	logger "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2pnext/dht"
 	"github.com/33cn/chain33/p2pnext/manage"
-	p2pty "github.com/33cn/chain33/p2pnext/types"
-
 	"github.com/33cn/chain33/p2pnext/protocol"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	libp2p "github.com/libp2p/go-libp2p"
@@ -152,7 +151,30 @@ func (p *P2P) StartP2P() {
 	p.discovery.InitDht(p.host, p.subCfg.Seeds, p.addrbook.AddrsInfo())
 	go p.managePeers()
 	go p.handleP2PEvent()
+	go p.findLANPeers()
 
+}
+
+//查询本局域网内是否有节点
+func (p *P2P) findLANPeers() {
+	peerChan, err := p.discovery.FindLANPeers(p.host, "hello,is anyone here ?")
+	if err != nil {
+		log.Error("findLANPeers", "err", err.Error())
+		return
+	}
+
+	for neighbors := range peerChan {
+		log.Info(">>>>>>>>>>>>>>>>>>>^_^! Well,Let's Play ^_^!<<<<<<<<<<<<<<<<<<<<<<<<<<")
+		//发现局域网内的邻居节点
+		err := p.host.Connect(context.Background(), neighbors)
+		if err != nil {
+			log.Error("findLANPeers", "err", err.Error())
+			continue
+		}
+
+		p.connManag.AddNeighbors(&neighbors)
+
+	}
 }
 
 func (p *P2P) handleP2PEvent() {
