@@ -371,17 +371,13 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid, peerAddr string, pu
 			return
 		}
 
-		p2pTx := &types.P2PTx{}
-		txList, ok := resp.(*types.ReplyTxList)
-		//返回的交易数组实际大小只有一个, for循环能省略空值等情况判断
-		for i := 0; ok && i < len(txList.Txs); i++ {
-			p2pTx.Tx = txList.Txs[i]
-		}
-
-		if p2pTx.GetTx() == nil {
+		txList, _ := resp.(*types.ReplyTxList)
+		//返回的数据检测
+		if len(txList.GetTxs()) != 1 || txList.GetTxs()[0] == nil {
 			log.Error("recvQueryTx", "txHash", txHash, "err", "recvNilTxFromMempool")
 			return
 		}
+		p2pTx := &types.P2PTx{Tx:txList.Txs[0]}
 		//再次发送完整交易至节点, ttl重设为1
 		p2pTx.Route = &types.P2PRoute{TTL: 1}
 		pubPeerFunc(p2pTx, pid)
@@ -409,7 +405,7 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid, peerAddr string, pu
 func (n *Node) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string, pubPeerFunc pubFuncType) {
 
 	log.Debug("recvQueryReplyBlock", "blockHash", rep.GetBlockHash(), "queryTxsCount", len(rep.GetTxIndices()), "peerAddr", peerAddr)
-	val, exist := ltBlockCache.Del(rep.BlockHash)
+	val, exist := ltBlockCache.Remove(rep.BlockHash)
 	block, _ := val.(*types.Block)
 	//not exist in cache or nil block
 	if !exist || block == nil {
