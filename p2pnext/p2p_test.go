@@ -1,12 +1,19 @@
 package p2pnext
 
 import (
+	"context"
 	"testing"
 
-	pmgr "github.com/33cn/chain33/p2p/manage"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+
+	"crypto/rand"
 
 	l "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/p2p/manage"
+	pmgr "github.com/33cn/chain33/p2p/manage"
+	core "github.com/libp2p/go-libp2p-core"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -142,6 +149,88 @@ func testP2PClose(t *testing.T, p2p pmgr.IP2P) {
 
 }
 
+func testStreamEOFReSet(t *testing.T) {
+	r := rand.Reader
+	prvKey1, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	if err != nil {
+		panic(err)
+	}
+	r = rand.Reader
+	prvKey2, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	if err != nil {
+		panic(err)
+	}
+
+	r = rand.Reader
+	prvKey3, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	if err != nil {
+		panic(err)
+	}
+
+	msgID := "/streamTest"
+	h1 := newHost(12345, prvKey1, nil)
+	h2 := newHost(12346, prvKey2, nil)
+	h3 := newHost(12347, prvKey3, nil)
+	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
+		t.Log("Meow! It worked!")
+		var buf []byte
+		_, err := s.Read(buf)
+		if err != nil {
+			t.Log("readStreamErr", err)
+		}
+		s.Close()
+	})
+
+	h2.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
+		t.Log("H2 Stream! It worked!")
+		s.Close()
+	})
+
+	h3.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
+		t.Log("H3 Stream! It worked!")
+		s.Conn().Close()
+	})
+
+	h2info := peer.AddrInfo{
+		ID:    h2.ID(),
+		Addrs: h2.Addrs(),
+	}
+	err = h1.Connect(context.Background(), h2info)
+	assert.NoError(t, err)
+
+	s, err := h1.NewStream(context.Background(), h2.ID(), protocol.ID(msgID))
+	assert.NoError(t, err)
+
+	s.Write([]byte("hello"))
+	var buf = make([]byte, 128)
+	_, err = s.Read(buf)
+	assert.True(t, err != nil)
+	if err != nil {
+		//在stream关闭的时候返回EOF
+		t.Log("readStream from H2 Err", err)
+		assert.Equal(t, err.Error(), "EOF")
+	}
+
+	h3info := peer.AddrInfo{
+		ID:    h3.ID(),
+		Addrs: h3.Addrs(),
+	}
+	err = h1.Connect(context.Background(), h3info)
+	assert.NoError(t, err)
+	s, err = h1.NewStream(context.Background(), h3.ID(), protocol.ID(msgID))
+	assert.NoError(t, err)
+
+	s.Write([]byte("hello"))
+	_, err = s.Read(buf)
+	assert.True(t, err != nil)
+	if err != nil {
+		//在连接断开的时候，返回 stream reset
+		t.Log("readStream from H3 Err", err)
+		assert.Equal(t, err.Error(), "stream reset")
+	}
+
+}
+
 func Test_p2p(t *testing.T) {
 
 	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
@@ -151,4 +240,5 @@ func Test_p2p(t *testing.T) {
 	p2p := NewP2p(cfg)
 	testP2PEvent(t, q.Client())
 	testP2PClose(t, p2p)
+	testStreamEOFReSet(t)
 }
