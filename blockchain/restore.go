@@ -37,7 +37,13 @@ func (chain *BlockChain) UpgradePlugin() {
 	if err != nil {
 		panic(err)
 	}
+	if resp == nil {
+		return
+	}
 	kv := resp.GetData().(*types.LocalDBSet)
+	if kv == nil || len(kv.KV) == 0 {
+		return
+	}
 
 	batch := chain.blockStore.NewBatch(false)
 	for i := 0; i < len(kv.KV); i++ {
