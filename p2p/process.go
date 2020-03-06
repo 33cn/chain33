@@ -377,7 +377,7 @@ func (n *Node) recvQueryData(query *types.P2PQueryData, pid, peerAddr string, pu
 			log.Error("recvQueryTx", "txHash", txHash, "err", "recvNilTxFromMempool")
 			return
 		}
-		p2pTx := &types.P2PTx{Tx:txList.Txs[0]}
+		p2pTx := &types.P2PTx{Tx: txList.Txs[0]}
 		//再次发送完整交易至节点, ttl重设为1
 		p2pTx.Route = &types.P2PRoute{TTL: 1}
 		pubPeerFunc(p2pTx, pid)

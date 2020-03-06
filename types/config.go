@@ -701,7 +701,7 @@ type subModule struct {
 	Wallet    map[string]interface{}
 	Mempool   map[string]interface{}
 	Metrics   map[string]interface{}
-	P2P		  map[string]interface{}
+	P2P       map[string]interface{}
 }
 
 func ReadFile(path string) string {
