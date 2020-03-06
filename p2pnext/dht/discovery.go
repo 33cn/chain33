@@ -2,18 +2,20 @@ package dht
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
+
+	p2pty "github.com/33cn/chain33/p2pnext/types"
+	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 
 	"github.com/33cn/chain33/common/log/log15"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-
-	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 var (
@@ -21,6 +23,7 @@ var (
 )
 
 const RendezvousString = "chain33-let's play!"
+const DhtProtoID = "/ipfs/kad/chain33/1.0.0"
 
 type Discovery struct {
 	KademliaDHT      *dht.IpfsDHT
@@ -28,33 +31,13 @@ type Discovery struct {
 	mndsService      *mdns
 }
 
-func (d *Discovery) InitDht(host host.Host, seeds []string, peersInfo []peer.AddrInfo) {
-	// Make the DHT
-	kademliaDHT, _ := dht.New(context.Background(), host)
+func (d *Discovery) InitDht(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig, isTestNet bool) {
+	// Make the DHT,不同的ID进入不同的网络
+	opt := opts.Protocols(protocol.ID(DhtProtoID + "/" + fmt.Sprintf("%d", cfg.Channel)))
+	kademliaDHT, _ := dht.New(context.Background(), host, opt)
 	d.KademliaDHT = kademliaDHT
 
-	for _, seed := range seeds {
-		addr, _ := multiaddr.NewMultiaddr(seed)
-		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			panic(err)
-		}
-		host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.PermanentAddrTTL)
-		err = host.Connect(context.Background(), *peerinfo)
-		if err != nil {
-			log.Error("Host Connect", "err", err)
-			continue
-		}
-	}
-
-	for _, peerinfo := range peersInfo {
-		host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.TempAddrTTL)
-		err := host.Connect(context.Background(), peerinfo)
-		if err != nil {
-			log.Error("Host Connect", "err", err)
-			continue
-		}
-	}
+	initInnerPeers(host, peersInfo, cfg, isTestNet)
 
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.

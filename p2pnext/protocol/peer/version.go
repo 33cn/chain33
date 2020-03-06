@@ -30,8 +30,6 @@ const (
 	versionMask           = 0xFFFF
 )
 
-var externalAddr string
-
 // channelVersion = channel << 16 + version
 func calcChannelVersion(channel int32) int32 {
 	return channel<<16 + VERSION
@@ -46,9 +44,9 @@ func decodeChannelVersion(channelVersion int32) (channel int32, version int32) {
 func (p *PeerInfoProtol) OnVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
 
 	log.Info("OnVersionReq", "peerproto", s.Protocol(), "req", req)
-	if externalAddr == "" {
-		externalAddr = req.GetMessage().GetAddrRecv()
-		log.Info("OnVersionReq", "externalAddr", externalAddr)
+	if p.GetExternalAddr() == "" {
+		p.SetExternalAddr(req.GetMessage().GetAddrRecv())
+		log.Info("OnVersionReq", "externalAddr", p.GetExternalAddr())
 	}
 
 	channel, _ := decodeChannelVersion(req.GetMessage().GetVersion())
@@ -64,7 +62,7 @@ func (p *PeerInfoProtol) OnVersionReq(req *types.MessageP2PVersionReq, s core.St
 	mutiAddr := s.Conn().RemoteMultiaddr()
 	log.Info("OnVersionReq", "mutiAddr", mutiAddr.String())
 	var version types.P2PVersion
-	version.AddrFrom = externalAddr
+	version.AddrFrom = p.GetExternalAddr()
 	version.AddrRecv = mutiAddr.String()
 	version.Nonce = rand.Int63n(102400)
 	version.Timestamp = time.Now().Unix()
@@ -78,6 +76,6 @@ func (p *PeerInfoProtol) OnVersionReq(req *types.MessageP2PVersionReq, s core.St
 		return
 	}
 
-	log.Info(" OnVersionReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String())
+	log.Info("OnVersionReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String())
 
 }

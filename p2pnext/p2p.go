@@ -148,7 +148,7 @@ func (p *P2P) StartP2P() {
 	}
 	protocol.Init(env)
 	//初始化dht列表需要优先执行, 否则放在协程中有先后秩序问题, 导致未初始化在其他协程中被使用
-	p.discovery.InitDht(p.host, p.subCfg.Seeds, p.addrbook.AddrsInfo())
+	p.discovery.InitDht(p.host, p.addrbook.AddrsInfo(), p.subCfg, p.chainCfg.IsTestNet())
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()

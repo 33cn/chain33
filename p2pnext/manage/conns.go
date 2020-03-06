@@ -12,7 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	multiaddr "github.com/multiformats/go-multiaddr"
+	//multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 var (
@@ -176,18 +176,4 @@ func (s *ConnManager) BoundSize() (int, int) {
 
 	return inboundSize, outboundSize
 
-}
-
-func ConvertPeers(peers []string) map[string]*peer.AddrInfo {
-	pinfos := make(map[string]*peer.AddrInfo, len(peers))
-	for _, addr := range peers {
-		maddr := multiaddr.StringCast(addr)
-		p, err := peer.AddrInfoFromP2pAddr(maddr)
-		if err != nil {
-			log.Error("convertPeers", "AddrInfoFromP2pAddr", err)
-			continue
-		}
-		pinfos[p.ID.Pretty()] = p
-	}
-	return pinfos
 }

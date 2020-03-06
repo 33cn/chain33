@@ -38,7 +38,8 @@ func (p *PeerInfoManager) Copy(dest *types.Peer, source *types.P2PPeerInfo) {
 	dest.Port = source.GetPort()
 }
 
-func (p *PeerInfoManager) Get(key string) *types.Peer {
+//只获取
+func (p *PeerInfoManager) GetPeerInfoInMin(key string) *types.Peer {
 	v, ok := p.peerInfo.Load(key)
 	if !ok {
 		return nil
@@ -51,7 +52,7 @@ func (p *PeerInfoManager) Get(key string) *types.Peer {
 	return info.peer
 }
 
-func (p *PeerInfoManager) FetchPeerInfos() []*types.Peer {
+func (p *PeerInfoManager) FetchPeerInfosInMin() []*types.Peer {
 
 	var peers []*types.Peer
 	p.peerInfo.Range(func(key interface{}, value interface{}) bool {
@@ -88,21 +89,10 @@ func (p *PeerInfoManager) getPeerInfos() {
 func (p *PeerInfoManager) MonitorPeerInfos() {
 	for {
 		select {
-		case <-time.After(time.Second * 30):
+		case <-time.After(time.Second * 30): //每30秒主动刷新
 			p.getPeerInfos()
 		case <-time.After(time.Minute):
-			var peerNum int
-			p.peerInfo.Range(func(k, v interface{}) bool {
-				info := v.(*peerStoreInfo)
-				if time.Duration(time.Now().Unix())-info.storeTime > 60 {
-					p.peerInfo.Delete(k)
-					return true
-				}
-				peerNum++
-				return true
-			})
-
-			log.Info("MonitorPeerInfos", "Num", peerNum)
+			log.Info("MonitorPeerInfos", "Num", len(p.FetchPeerInfosInMin()))
 
 		case <-p.done:
 			return

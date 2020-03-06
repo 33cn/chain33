@@ -8,20 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-/*
-// jobs datastruct
-	type jobs []*JobInfo
-
-	type JobInfo struct {
-		Id      string        //一次下载任务的任务ID
-		Limit   int           //节点同时最大处理任务数量
-		Pid     peer.ID       //节点ID
-		Index   int           // 任务在任务列表中索引
-		Latency time.Duration // 任务所在节点的时延
-		mtx     sync.Mutex
-	}
-
-*/
 func testJobs(t *testing.T) {
 	pid1, _ := peer.IDB58Decode("16Uiu2HAmGpMpYDDidb27555ALTx7a1aZbqYDa7B2EUwwCiBcL67M")
 	pid2, _ := peer.IDB58Decode("16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")

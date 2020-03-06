@@ -119,7 +119,7 @@ func (d *DownloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
 	}
 	for i, task := range ts {
 		//check blockheight
-		peerInfo := d.GetPeerInfoManager().Get(task.Pid.Pretty())
+		peerInfo := d.GetPeerInfoManager().GetPeerInfoInMin(task.Pid.Pretty())
 		if peerInfo != nil {
 			if peerInfo.GetHeader().GetHeight() < blockheight {
 				continue

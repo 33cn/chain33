@@ -104,7 +104,6 @@ func (p *ProtocolManager) Init(env *P2PEnv) {
 		protoID, msgID := decodeHandlerTypeID(id)
 		protol := p.protoMap[protoID]
 		newHandler.SetProtocol(protol)
-
 		var baseHander BaseStreamHandler
 		baseHander.child = newHandler
 		baseHander.SetProtocol(p.protoMap[protoID])
