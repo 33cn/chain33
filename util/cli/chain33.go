@@ -15,12 +15,13 @@ package cli
 import (
 	"flag"
 	"fmt"
-	p2pmgr "github.com/33cn/chain33/p2p/manage"
 	"net/http"
 	_ "net/http/pprof" //
 	"os"
 	"path/filepath"
 	"runtime"
+
+	p2pmgr "github.com/33cn/chain33/p2p/manage"
 
 	"github.com/33cn/chain33/metrics"
 
