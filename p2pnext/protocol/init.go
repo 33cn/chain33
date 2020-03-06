@@ -10,7 +10,7 @@ import (
 )
 
 // Init init p2p protocol
-func Init(data *prototypes.GlobalData) {
+func Init(data *prototypes.P2PEnv) {
 	manager := &prototypes.ProtocolManager{}
 	manager.Init(data)
 }

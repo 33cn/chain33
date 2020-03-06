@@ -27,7 +27,7 @@ var (
 	streamHandlerTypeMap = make(map[string]reflect.Type)
 )
 
-//注册typeName,msgID,处理函数
+// RegisterStreamHandlerType 注册typeName,msgID,处理函数
 func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 
 	if handler == nil {
@@ -76,15 +76,18 @@ type StreamHandler interface {
 	Handle(stream core.Stream)
 }
 
+// BaseStreamHandler base stream handler
 type BaseStreamHandler struct {
 	Protocol IProtocol
 	child    StreamHandler
 }
 
+// SetProtocol set protocol
 func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 	s.Protocol = protocol
 }
 
+// Handle handle stream
 func (s *BaseStreamHandler) Handle(core.Stream) {
 	return
 }
@@ -100,11 +103,12 @@ func (s *BaseStreamHandler) VerifyRequest(message proto.Message, messageComm *ty
 
 }
 
+// GetProtocol get protocol
 func (s *BaseStreamHandler) GetProtocol() IProtocol {
 	return s.Protocol
 }
 
-//stream事件预处理函数
+// HandleStream stream事件预处理函数
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 	log.Debug("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
 	//TODO verify校验放在这里

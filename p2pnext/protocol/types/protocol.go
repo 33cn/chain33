@@ -24,7 +24,7 @@ var (
 )
 
 type IProtocol interface {
-	InitProtocol(*GlobalData)
+	InitProtocol(*P2PEnv)
 }
 
 // RegisterProtocolType 注册协议类型
@@ -54,8 +54,8 @@ type ProtocolManager struct {
 	protoMap map[string]IProtocol
 }
 
-// GlobalData p2p全局公共变量
-type GlobalData struct {
+// P2PEnv p2p全局公共变量
+type P2PEnv struct {
 	ChainCfg        *types.Chain33Config
 	QueueClient     queue.Client
 	Host            core.Host
@@ -68,11 +68,11 @@ type GlobalData struct {
 
 // BaseProtocol store public data
 type BaseProtocol struct {
-	*GlobalData
+	*P2PEnv
 }
 
 // Init 初始化
-func (p *ProtocolManager) Init(data *GlobalData) {
+func (p *ProtocolManager) Init(env *P2PEnv) {
 	p.protoMap = make(map[string]IProtocol)
 	//每个P2P实例都重新分配相关的protocol结构
 	for id, protocolType := range protocolTypeMap {
@@ -85,7 +85,7 @@ func (p *ProtocolManager) Init(data *GlobalData) {
 		}
 
 		protocol := protoVal.Interface().(IProtocol)
-		protocol.InitProtocol(data)
+		protocol.InitProtocol(env)
 		p.protoMap[id] = protocol
 
 	}
@@ -108,17 +108,18 @@ func (p *ProtocolManager) Init(data *GlobalData) {
 		var baseHander BaseStreamHandler
 		baseHander.child = newHandler
 		baseHander.SetProtocol(p.protoMap[protoID])
-		data.Host.SetStreamHandler(core.ProtocolID(msgID), baseHander.HandleStream)
+		env.Host.SetStreamHandler(core.ProtocolID(msgID), baseHander.HandleStream)
 	}
 
 }
 
 // InitProtocol 初始化协议
-func (base *BaseProtocol) InitProtocol(data *GlobalData) {
+func (base *BaseProtocol) InitProtocol(data *P2PEnv) {
 
-	base.GlobalData = data
+	base.P2PEnv = data
 }
 
+// NewMessageCommon new msg common struct
 func (base *BaseProtocol) NewMessageCommon(messageId, pid string, nodePubkey []byte, gossip bool) *types.MessageComm {
 	return &types.MessageComm{Version: "",
 		NodeId:     pid,
@@ -129,28 +130,33 @@ func (base *BaseProtocol) NewMessageCommon(messageId, pid string, nodePubkey []b
 
 }
 
+// GetChainCfg get chain cfg
 func (base *BaseProtocol) GetChainCfg() *types.Chain33Config {
 
 	return base.ChainCfg
 
 }
 
+// GetQueueClient get chain33 msg queue client
 func (base *BaseProtocol) GetQueueClient() queue.Client {
 
 	return base.QueueClient
 }
 
+// GetHost get local host
 func (base *BaseProtocol) GetHost() core.Host {
 
 	return base.Host
 
 }
 
+// GetConnsManager get connection manager
 func (base *BaseProtocol) GetConnsManager() *manage.ConnManager {
 	return base.ConnManager
 
 }
 
+// GetPeerInfoManager get peer info manager
 func (base *BaseProtocol) GetPeerInfoManager() *manage.PeerInfoManager {
 	return base.PeerInfoManager
 }

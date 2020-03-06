@@ -9,6 +9,7 @@ import (
 	"github.com/33cn/chain33/queue"
 )
 
+// EventHandler handle chain33 event
 type EventHandler func(*queue.Message)
 
 var (
@@ -34,6 +35,7 @@ func GetEventHandler(eventID int64) (EventHandler, bool) {
 	return handler, ok
 }
 
+// ClearEventHandler clear event handler map
 func ClearEventHandler() {
 	eventHandlerMap = make(map[int64]EventHandler)
 }

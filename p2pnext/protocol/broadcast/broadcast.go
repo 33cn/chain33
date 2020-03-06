@@ -53,39 +53,39 @@ type broadCastProtocol struct {
 	p2pCfg          *p2pty.P2PSubConfig
 }
 
-//New
-func (protocol *broadCastProtocol) InitProtocol(data *prototypes.GlobalData) {
+// InitProtocol init protocol
+func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 	protocol.BaseProtocol = new(prototypes.BaseProtocol)
 
-	protocol.GlobalData = data
+	protocol.P2PEnv = env
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
-	protocol.txFilter = utils.NewFilter(TxRecvFilterCacheNum)
-	protocol.blockFilter = utils.NewFilter(BlockRecvFilterCacheNum)
+	protocol.txFilter = utils.NewFilter(txRecvFilterCacheNum)
+	protocol.blockFilter = utils.NewFilter(blockRecvFilterCacheNum)
 
 	//发送交易和区块时过滤缓存, 解决冗余广播发送
-	protocol.txSendFilter = utils.NewFilter(TxSendFilterCacheNum)
-	protocol.blockSendFilter = utils.NewFilter(BlockSendFilterCacheNum)
+	protocol.txSendFilter = utils.NewFilter(txSendFilterCacheNum)
+	protocol.blockSendFilter = utils.NewFilter(blockSendFilterCacheNum)
 
 	//在本地暂时缓存一些区块数据, 限制最大大小
-	protocol.totalBlockCache = utils.NewSpaceLimitCache(BlockCacheNum, MaxBlockCacheByteSize)
+	protocol.totalBlockCache = utils.NewSpaceLimitCache(blockCacheNum, maxBlockCacheByteSize)
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
-	protocol.ltBlockCache = utils.NewSpaceLimitCache(BlockCacheNum/2, MaxBlockCacheByteSize/2)
+	protocol.ltBlockCache = utils.NewSpaceLimitCache(blockCacheNum/2, maxBlockCacheByteSize/2)
 	// 单独复制一份， 避免data race
-	subCfg := *(data.SubConfig)
+	subCfg := *(env.SubConfig)
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventTxBroadcast, protocol.handleEvent)
 	prototypes.RegisterEventHandler(types.EventBlockBroadcast, protocol.handleEvent)
 
 	//ttl至少设为2
 	if subCfg.LightTxTTL <= 1 {
-		subCfg.LightTxTTL = DefaultLtTxBroadCastTTL
+		subCfg.LightTxTTL = defaultLtTxBroadCastTTL
 	}
 	if subCfg.MaxTTL <= 0 {
-		subCfg.MaxTTL = DefaultMaxTxBroadCastTTL
+		subCfg.MaxTTL = defaultMaxTxBroadCastTTL
 	}
 
 	if subCfg.MinLtBlockTxNum <= 0 {
-		subCfg.MinLtBlockTxNum = DefaultMinLtBlockTxNum
+		subCfg.MinLtBlockTxNum = defaultMinLtBlockTxNum
 	}
 	protocol.p2pCfg = &subCfg
 }
@@ -111,11 +111,14 @@ func (handler *broadCastHandler) Handle(stream core.Stream) {
 	_ = protocol.handleReceive(data.Message, pid, peerAddr)
 	return
 }
+
+// SetProtocol set protocol
 func (handler *broadCastHandler) SetProtocol(protocol prototypes.IProtocol) {
 	handler.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	handler.Protocol = protocol
 }
 
+// VerifyRequest verify request
 func (handler *broadCastHandler) VerifyRequest(message proto.Message, messageComm *types.MessageComm) bool {
 
 	return true
@@ -224,7 +227,7 @@ func (protocol *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr
 	return
 }
 
-func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid string, peerAddr string) (handled bool) {
+func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid string, peerAddr string) (err error) {
 
 	//接收网络数据不可靠
 	defer func() {
@@ -233,26 +236,20 @@ func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid 
 		}
 	}()
 	log.Debug("handleReceive", "peerID", pid, "peerAddr", peerAddr)
-	if pid == "" {
-		return false
-	}
-	handled = true
 	if tx := data.GetTx(); tx != nil {
-		protocol.recvTx(tx, pid, peerAddr)
+		err = protocol.recvTx(tx, pid, peerAddr)
 	} else if ltTx := data.GetLtTx(); ltTx != nil {
-		protocol.recvLtTx(ltTx, pid, peerAddr)
+		err = protocol.recvLtTx(ltTx, pid, peerAddr)
 	} else if ltBlc := data.GetLtBlock(); ltBlc != nil {
-		protocol.recvLtBlock(ltBlc, pid, peerAddr)
+		err = protocol.recvLtBlock(ltBlc, pid, peerAddr)
 	} else if blc := data.GetBlock(); blc != nil {
-		protocol.recvBlock(blc, pid, peerAddr)
+		err = protocol.recvBlock(blc, pid, peerAddr)
 	} else if query := data.GetQuery(); query != nil {
-		protocol.recvQueryData(query, pid, peerAddr)
+		err = protocol.recvQueryData(query, pid, peerAddr)
 	} else if rep := data.GetBlockRep(); rep != nil {
-		protocol.recvQueryReply(rep, pid, peerAddr)
-	} else {
-		handled = false
+		err = protocol.recvQueryReply(rep, pid, peerAddr)
 	}
-	log.Debug("handleReceive", "peerAddr", peerAddr, "handled", handled)
+	log.Debug("handleReceive", "peerAddr", peerAddr, "err", err)
 	return
 }
 

@@ -40,9 +40,9 @@ type PeerInfoProtol struct {
 	mutex        sync.Mutex
 }
 
-func (p *PeerInfoProtol) InitProtocol(data *prototypes.GlobalData) {
-	p.GlobalData = data
-	p.p2pCfg = data.SubConfig
+func (p *PeerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
+	p.P2PEnv = env
+	p.p2pCfg = env.SubConfig
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
 	go p.DetectNodeAddr()

@@ -136,7 +136,7 @@ func (p *P2P) managePeers() {
 func (p *P2P) StartP2P() {
 
 	//提供给其他插件使用的共享接口
-	globalData := &prototypes.GlobalData{
+	env := &prototypes.P2PEnv{
 		ChainCfg:        p.chainCfg,
 		QueueClient:     p.client,
 		Host:            p.host,
@@ -146,7 +146,7 @@ func (p *P2P) StartP2P() {
 		P2PManager:      p.mgr,
 		SubConfig:       p.subCfg,
 	}
-	protocol.Init(globalData)
+	protocol.Init(env)
 	//初始化dht列表需要优先执行, 否则放在协程中有先后秩序问题, 导致未初始化在其他协程中被使用
 	p.discovery.InitDht(p.host, p.subCfg.Seeds, p.addrbook.AddrsInfo())
 	go p.managePeers()

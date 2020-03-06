@@ -18,6 +18,7 @@ type SpaceLimitCache struct {
 	lock     *sync.RWMutex
 }
 
+// NewSpaceLimitCache new space limit cache
 func NewSpaceLimitCache(num int, maxByteSize int64) *SpaceLimitCache {
 
 	cache := &SpaceLimitCache{maxSize: maxByteSize}
@@ -31,6 +32,7 @@ func NewSpaceLimitCache(num int, maxByteSize int64) *SpaceLimitCache {
 	return cache
 }
 
+// Add add key val
 func (c *SpaceLimitCache) Add(key interface{}, val interface{}, size int64) bool {
 
 	c.lock.Lock()
@@ -67,12 +69,14 @@ func (c *SpaceLimitCache) Add(key interface{}, val interface{}, size int64) bool
 	return true
 }
 
+// Get get key
 func (c *SpaceLimitCache) Get(key interface{}) interface{} {
 	v, _ := c.data.Get(key)
 	return v
 }
 
-func (c *SpaceLimitCache) Del(key interface{}) (interface{}, bool) {
+// Remove remove key
+func (c *SpaceLimitCache) Remove(key interface{}) (interface{}, bool) {
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -85,6 +89,7 @@ func (c *SpaceLimitCache) Del(key interface{}) (interface{}, bool) {
 	return val, exist
 }
 
+// Contains check if exist
 func (c *SpaceLimitCache) Contains(key interface{}) bool {
 
 	return c.data.Contains(key)

@@ -91,7 +91,7 @@ func (mgr *P2PMgr) Close() {
 		p2p = nil
 	}
 	mgr.p2ps = nil
-	mgr.PubSub.Unsub(mgr.subChan)
+	//mgr.PubSub.Unsub(mgr.subChan)
 	if mgr.Client != nil {
 		mgr.Client.Close()
 	}

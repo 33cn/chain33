@@ -40,8 +40,8 @@ type DownloadProtol struct {
 	*prototypes.BaseStreamHandler
 }
 
-func (d *DownloadProtol) InitProtocol(data *prototypes.GlobalData) {
-	d.GlobalData = data
+func (d *DownloadProtol) InitProtocol(env *prototypes.P2PEnv) {
+	d.P2PEnv = env
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventFetchBlocks, d.handleEvent)
 

@@ -24,9 +24,9 @@ func Test_spaceLimitCache(t *testing.T) {
 	assert.True(t, c.Add(7, 7, 10))
 	assert.True(t, c.Contains(7))
 	assert.Equal(t, 1, c.data.Len())
-	_, exist := c.Del(7)
+	_, exist := c.Remove(7)
 	assert.True(t, exist)
-	_, exist = c.Del(6)
+	_, exist = c.Remove(6)
 	assert.False(t, exist)
 }
 

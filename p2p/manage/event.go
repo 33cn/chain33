@@ -63,7 +63,7 @@ func (mgr *P2PMgr) handleSysEvent() {
 // 处理p2p内部向外发送的消息, 主要是为了兼容多种类型p2p广播消息, 避免重复接交易或者区块
 func (mgr *P2PMgr) handleP2PSub() {
 
-	mgr.subChan = mgr.PubSub.Sub("p2p")
+	//mgr.subChan = mgr.PubSub.Sub("p2p")
 	log.Debug("P2PMgr handleP2PSub start")
 	//for msg := range mgr.subChan {
 	//
