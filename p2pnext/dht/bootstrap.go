@@ -14,34 +14,27 @@ import (
 var DefaultBootstrapPeers = make(map[string]*peer.AddrInfo)
 
 func initMainNet() {
-	for _, s := range []string{
-
-		//上线后添加种子节点
-
-	} {
-		maddr := multiaddr.StringCast(s)
-		p, err := peer.AddrInfoFromP2pAddr(maddr)
+	//上线后添加种子节点
+	for _, s := range []string{} {
+		addr, _ := multiaddr.NewMultiaddr(s)
+		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
 		if err != nil {
-			log.Error("convertPeers", "AddrInfoFromP2pAddr", err)
-			continue
+			panic(err)
 		}
-		DefaultBootstrapPeers[p.ID.Pretty()] = p
+		DefaultBootstrapPeers[peerinfo.ID.Pretty()] = peerinfo
 	}
 }
 
 func initTestNet() {
-	for _, s := range []string{
-		"/ip4/52.229.200.231/tcp/13803/p2p/16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg",
-		"/ip4/120.76.102.61/tcp/13803/p2p/16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk3",
-		//上线后添加种子节点
-	} {
-		maddr := multiaddr.StringCast(s)
-		p, err := peer.AddrInfoFromP2pAddr(maddr)
+
+	//上线后添加种子节点
+	for _, s := range []string{} {
+		addr, _ := multiaddr.NewMultiaddr(s)
+		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
 		if err != nil {
-			log.Error("convertPeers", "AddrInfoFromP2pAddr", err)
-			continue
+			panic(err)
 		}
-		DefaultBootstrapPeers[p.ID.Pretty()] = p
+		DefaultBootstrapPeers[peerinfo.ID.Pretty()] = peerinfo
 	}
 }
 
@@ -82,13 +75,13 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 func ConvertPeers(peers []string) map[string]*peer.AddrInfo {
 	pinfos := make(map[string]*peer.AddrInfo, len(peers))
 	for _, addr := range peers {
-		maddr := multiaddr.StringCast(addr)
-		p, err := peer.AddrInfoFromP2pAddr(maddr)
+		addr, _ := multiaddr.NewMultiaddr(addr)
+		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
 		if err != nil {
-			log.Error("convertPeers", "AddrInfoFromP2pAddr", err)
-			continue
+			log.Error("ConvertPeers", "err", err)
+
 		}
-		pinfos[p.ID.Pretty()] = p
+		pinfos[peerinfo.ID.Pretty()] = peerinfo
 	}
 	return pinfos
 }

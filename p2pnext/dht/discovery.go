@@ -32,12 +32,12 @@ type Discovery struct {
 }
 
 func (d *Discovery) InitDht(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig, isTestNet bool) {
+
+	initInnerPeers(host, peersInfo, cfg, isTestNet)
 	// Make the DHT,不同的ID进入不同的网络
 	opt := opts.Protocols(protocol.ID(DhtProtoID + "/" + fmt.Sprintf("%d", cfg.Channel)))
 	kademliaDHT, _ := dht.New(context.Background(), host, opt)
 	d.KademliaDHT = kademliaDHT
-
-	initInnerPeers(host, peersInfo, cfg, isTestNet)
 
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
