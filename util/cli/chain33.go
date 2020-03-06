@@ -207,7 +207,6 @@ func RunChain33(name, defCfg string) {
 	health.Start(cfg.Health)
 	metrics.StartMetrics(chain33Cfg)
 	defer func() {
-		os.Exit(0)
 		//close all module,clean some resource
 		log.Info("begin close health module")
 		health.Close()
