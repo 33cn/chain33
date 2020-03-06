@@ -15,8 +15,8 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
-	proto "github.com/gogo/protobuf/proto"
 
+	proto "github.com/gogo/protobuf/proto"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"

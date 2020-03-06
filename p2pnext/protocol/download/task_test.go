@@ -13,29 +13,29 @@ func testJobs(t *testing.T) {
 	pid2, _ := peer.IDB58Decode("16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
 	pid3, _ := peer.IDB58Decode("16Uiu2HAm45QtjUVYxnc3eqfHoE4eSFovSh99SgsoF6Qm1eRXTd5W")
 
-	t1 := &JobInfo{
+	t1 := &TaskInfo{
 		Id:      "123456",
-		Limit:   10,
+		TaskNum: 10,
 		Pid:     pid1,
 		Index:   0,
 		Latency: time.Duration(time.Second * 10),
 	}
-	t2 := &JobInfo{
+	t2 := &TaskInfo{
 		Id:      "123456",
-		Limit:   11,
+		TaskNum: 11,
 		Pid:     pid2,
 		Index:   1,
 		Latency: time.Duration(time.Second * 5),
 	}
-	t3 := &JobInfo{
+	t3 := &TaskInfo{
 		Id:      "123456",
-		Limit:   14,
+		TaskNum: 14,
 		Pid:     pid3,
 		Index:   2,
 		Latency: time.Duration(time.Second * 20),
 	}
 
-	var myjobs jobs
+	var myjobs Tasks
 	assert.Equal(t, myjobs.Len(), 0)
 	myjobs = append(myjobs, t1, t2, t3)
 	assert.Equal(t, myjobs.Len(), 3)
