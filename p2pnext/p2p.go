@@ -125,7 +125,7 @@ func (p *P2P) managePeers() {
 		select {
 		case <-time.After(time.Minute * 10):
 			//Reflesh addrbook
-			peersInfo := p.discovery.FindLocalPeers(p.connManag.Fetch())
+			peersInfo := p.discovery.FindLocalPeers(p.connManag.FindNearestPeers())
 			p.addrbook.SaveAddr(peersInfo)
 
 		}

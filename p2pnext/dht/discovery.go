@@ -2,6 +2,7 @@ package dht
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -33,12 +34,15 @@ type Discovery struct {
 
 func (d *Discovery) InitDht(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig, isTestNet bool) {
 
-	initInnerPeers(host, peersInfo, cfg, isTestNet)
-	// Make the DHT,不同的ID进入不同的网络
+	// Make the DHT,不同的ID进入不同的网络。
+	//如果不修改DHTProto 则有可能会连入IPFS网络，dhtproto=/ipfs/kad/1.0.0
+
 	opt := opts.Protocols(protocol.ID(DhtProtoID + "/" + fmt.Sprintf("%d", cfg.Channel)))
 	kademliaDHT, _ := dht.New(context.Background(), host, opt)
 	d.KademliaDHT = kademliaDHT
 
+	//连接内置种子，以及addrbook存储的节点
+	initInnerPeers(host, peersInfo, cfg, isTestNet)
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
 	if err := d.KademliaDHT.Bootstrap(context.Background()); err != nil {
@@ -77,17 +81,26 @@ func (d *Discovery) CloseFindLANPeers() {
 
 //routingTable 路由表的节点信息
 func (d *Discovery) RoutingTale() []peer.ID {
+	if d.KademliaDHT == nil {
+		return nil
+	}
 	return d.KademliaDHT.RoutingTable().ListPeers()
 
 }
 
 //routingTable size
 func (d *Discovery) RoutingTableSize() int {
+	if d.KademliaDHT == nil {
+		return 0
+	}
 	return d.KademliaDHT.RoutingTable().Size()
 }
 
 //根据指定的peerID ,查找指定的peer,
 func (d *Discovery) FindSpecialPeer(pid peer.ID) (*peer.AddrInfo, error) {
+	if d.KademliaDHT == nil {
+		return nil, errors.New("empty ptr")
+	}
 	ctx := context.Background()
 	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -103,7 +116,9 @@ func (d *Discovery) FindSpecialPeer(pid peer.ID) (*peer.AddrInfo, error) {
 
 //根据pid 查找当前DHT内部的peer信息
 func (d *Discovery) FindLocalPeer(pid peer.ID) peer.AddrInfo {
-
+	if d.KademliaDHT == nil {
+		return peer.AddrInfo{}
+	}
 	return d.KademliaDHT.FindLocal(pid)
 }
 
@@ -118,6 +133,11 @@ func (d *Discovery) FindLocalPeers(pids []peer.ID) []peer.AddrInfo {
 //获取连接指定的peerId的peers信息,查找连接PID=A的所有节点
 
 func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo, error) {
+	if d.KademliaDHT == nil {
+		return nil, errors.New("empty ptr")
+
+	}
+
 	ctx := context.Background()
 	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -131,10 +151,17 @@ func (d *Discovery) UPdate(pid peer.ID) error {
 }
 
 func (d *Discovery) FindNearestPeers(pid peer.ID, count int) []peer.ID {
+	if d.KademliaDHT == nil {
+		return nil
+	}
+
 	return d.KademliaDHT.RoutingTable().NearestPeers(kbt.ConvertPeerID(pid), count)
 }
 
 func (d *Discovery) Remove(pid peer.ID) {
+	if d.KademliaDHT == nil {
+		return
+	}
 	d.KademliaDHT.RoutingTable().Remove(pid)
 
 }

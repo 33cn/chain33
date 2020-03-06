@@ -70,8 +70,8 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 		select {
 		case <-time.After(time.Second * 10):
 			var LatencyInfo string = fmt.Sprintln("--------------时延--------------------")
-			for _, pid := range s.Fetch() {
-				//统计每个节点的时延,统计最多25个
+			for _, pid := range s.FindNearestPeers() {
+				//统计每个节点的时延,统计最多50个
 				tduration := s.pstore.LatencyEWMA(pid)
 				if tduration == 0 {
 					continue
@@ -129,7 +129,7 @@ func (s *ConnManager) Get(pid peer.ID) *peer.AddrInfo {
 	return &peerinfo
 }
 
-func (s *ConnManager) Fetch() []peer.ID {
+func (s *ConnManager) FindNearestPeers() []peer.ID {
 	return s.discovery.FindNearestPeers(s.host.ID(), 50)
 
 }

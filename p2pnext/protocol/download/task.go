@@ -64,7 +64,7 @@ func (d *DownloadProtol) initJob(pids []string, jobId string) Tasks {
 		pIDs = append(pIDs, pID)
 	}
 	if len(pIDs) == 0 {
-		pIDs = d.ConnManager.Fetch()
+		pIDs = d.ConnManager.FindNearestPeers()
 
 	}
 	latency := d.GetConnsManager().GetLatencyByPeer(pIDs)

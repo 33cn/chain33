@@ -124,7 +124,7 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var peerinfos []*types.P2PPeerInfo
-	for _, remoteId := range p.GetConnsManager().Fetch() {
+	for _, remoteId := range p.GetConnsManager().FindNearestPeers() {
 		if remoteId.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
@@ -168,7 +168,7 @@ func (p *PeerInfoProtol) GetExternalAddr() string {
 
 func (p *PeerInfoProtol) DetectNodeAddr() {
 	for {
-		if p.GetConnsManager().Size() == 0 {
+		if len(p.GetConnsManager().FindNearestPeers()) == 0 {
 			time.Sleep(time.Second)
 			continue
 		}
@@ -182,7 +182,7 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 	}
 
 	pid := p.GetHost().ID()
-	for _, remoteId := range p.GetConnsManager().Fetch() {
+	for _, remoteId := range p.GetConnsManager().FindNearestPeers() {
 		if remoteId.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
