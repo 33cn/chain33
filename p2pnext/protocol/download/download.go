@@ -51,11 +51,6 @@ type DownloadHander struct {
 	*prototypes.BaseStreamHandler
 }
 
-func (h *DownloadHander) VerifyRequest(data []byte, messageComm *types.MessageComm) bool {
-
-	return true
-}
-
 //Handle 处理请求
 func (d *DownloadHander) Handle(stream core.Stream) {
 	protocol := d.GetProtocol().(*DownloadProtol)
@@ -145,12 +140,12 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	}
 
 	msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	var jobID = uuid.New().String() + "+" + fmt.Sprintf("%d-%d", req.GetStart(), req.GetEnd())
+	var taskID = uuid.New().String() + "+" + fmt.Sprintf("%d-%d", req.GetStart(), req.GetEnd())
 
-	log.Info("handleEvent", "jobID", jobID, "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
+	log.Info("handleEvent", "taskID", taskID, "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
 
 	//具体的下载逻辑
-	jobS := d.initJob(pids, jobID)
+	jobS := d.initJob(pids, taskID)
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	var maxgoroutin int32
@@ -165,23 +160,23 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 			goto Wait
 		}
 		atomic.AddInt32(&maxgoroutin, 1)
-		go func(blockheight int64, jbs jobs) {
-			err := d.syncDownloadBlock(blockheight, jbs)
+		go func(blockheight int64, tasks Tasks) {
+			err := d.downloadBlock(blockheight, tasks)
 			if err != nil {
 				mutex.Lock()
 				defer mutex.Unlock()
 
 				log.Error("syncDownloadBlock", "err", err.Error())
-				v, ok := reDownload.Load(jobID)
+				v, ok := reDownload.Load(taskID)
 				if ok {
 					faildJob := v.(sync.Map)
 					faildJob.Store(blockheight, false)
-					reDownload.Store(jobID, faildJob)
+					reDownload.Store(taskID, faildJob)
 
 				} else {
 					var faildJob sync.Map
 					faildJob.Store(blockheight, false)
-					reDownload.Store(jobID, faildJob)
+					reDownload.Store(taskID, faildJob)
 
 				}
 			}
@@ -193,18 +188,18 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	}
 
 	wg.Wait()
-	d.CheckJob(jobID, pids, reDownload)
-	log.Info("Download Job Complete!", "TaskID++++++++++++++", jobID,
+	d.CheckTask(taskID, pids, reDownload)
+	log.Info("Download Job Complete!", "TaskID++++++++++++++", taskID,
 		"cost time", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6),
 		"from", pids)
 
 }
 
-func (d *DownloadProtol) syncDownloadBlock(blockheight int64, jbs jobs) error {
+func (d *DownloadProtol) downloadBlock(blockheight int64, tasks Tasks) error {
 	var retryCount uint
-	jbs.Sort() //对任务节点时延进行排序，优先选择时延低的节点进行下载
+	tasks.Sort() //对任务节点时延进行排序，优先选择时延低的节点进行下载
 ReDownload:
-	if jbs.Size() == 0 {
+	if tasks.Size() == 0 {
 		return errors.New("no peer for download")
 	}
 
@@ -213,9 +208,9 @@ ReDownload:
 		return errors.New("beyound max try count 50")
 	}
 
-	freeJob := d.availbJob(jbs, blockheight)
-	if freeJob == nil {
-		time.Sleep(time.Millisecond * 800)
+	task := d.availbTask(tasks, blockheight)
+	if task == nil {
+		time.Sleep(time.Millisecond * 400)
 		goto ReDownload
 	}
 
@@ -230,7 +225,7 @@ ReDownload:
 		Message: getblocks}
 
 	req := &prototypes.StreamRequst{
-		PeerID:  freeJob.Pid,
+		PeerID:  task.Pid,
 		Host:    d.GetHost(),
 		Data:    blockReq,
 		ProtoID: DownloadBlockReq,
@@ -238,14 +233,14 @@ ReDownload:
 	var resp types.MessageGetBlocksResp
 	err := d.StreamSendHandler(req, &resp)
 	if err != nil {
-		log.Error("handleEvent", "StreamSendHandler", err, "pid", freeJob.Pid)
-		d.releaseJob(freeJob)
-		jbs.Remove(freeJob.Index)
+		log.Error("handleEvent", "StreamSendHandler", err, "pid", task.Pid)
+		d.releaseJob(task)
+		tasks = tasks.Remove(task.Index)
 		goto ReDownload
 	}
 
 	block := resp.GetMessage().GetItems()[0].GetBlock()
-	remotePid := freeJob.Pid.Pretty()
+	remotePid := task.Pid.Pretty()
 	costTime := (time.Now().UnixNano() - downloadStart) / 1e6
 
 	log.Debug("download+++++", "from", remotePid, "blockheight", block.GetHeight(),
@@ -254,7 +249,7 @@ ReDownload:
 	client := d.GetQueueClient()
 	newmsg := client.NewMessage("blockchain", types.EventSyncBlock, &types.BlockPid{Pid: remotePid, Block: block}) //加入到输出通道)
 	client.SendTimeout(newmsg, false, 10*time.Second)
-	d.releaseJob(freeJob)
+	d.releaseJob(task)
 
 	return nil
 }

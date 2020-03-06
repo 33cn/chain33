@@ -12,13 +12,11 @@ import (
 	l "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/p2p/manage"
 	pmgr "github.com/33cn/chain33/p2p/manage"
-	core "github.com/libp2p/go-libp2p-core"
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
-
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet"
-
+	core "github.com/libp2p/go-libp2p-core"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/stretchr/testify/assert"
 )
 

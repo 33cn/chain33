@@ -51,7 +51,7 @@ func (p *PeerInfoManager) Get(key string) *types.Peer {
 	return info.peer
 }
 
-func (p *PeerInfoManager) FetchPeers() []*types.Peer {
+func (p *PeerInfoManager) FetchPeerInfos() []*types.Peer {
 
 	var peers []*types.Peer
 	p.peerInfo.Range(func(key interface{}, value interface{}) bool {
@@ -68,26 +68,28 @@ func (p *PeerInfoManager) FetchPeers() []*types.Peer {
 	return peers
 }
 
+func (p *PeerInfoManager) getPeerInfos() {
+
+	msg := p.client.NewMessage("p2p", types.EventPeerInfo, nil)
+	p.client.SendTimeout(msg, true, time.Second*5)
+	resp, err := p.client.WaitTimeout(msg, time.Second*20)
+	if err != nil {
+		log.Error("MonitorPeerInfos", "err----------->", err)
+		return
+	}
+
+	if peerlist, ok := resp.GetData().(*types.PeerList); ok {
+		for _, peer := range peerlist.GetPeers() {
+			p.Add(peer.GetName(), peer)
+		}
+
+	}
+}
 func (p *PeerInfoManager) MonitorPeerInfos() {
 	for {
 		select {
 		case <-time.After(time.Second * 30):
-
-			msg := p.client.NewMessage("p2p", types.EventPeerInfo, nil)
-			p.client.SendTimeout(msg, true, time.Second*5)
-			resp, err := p.client.WaitTimeout(msg, time.Second*20)
-			if err != nil {
-				log.Error("MonitorPeerInfos", "err----------->", err)
-				continue
-			}
-
-			if peerlist, ok := resp.GetData().(*types.PeerList); ok {
-				for _, peer := range peerlist.GetPeers() {
-					p.Add(peer.GetName(), peer)
-				}
-
-			}
-
+			p.getPeerInfos()
 		case <-time.After(time.Minute):
 			var peerNum int
 			p.peerInfo.Range(func(k, v interface{}) bool {

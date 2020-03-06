@@ -14,6 +14,8 @@ import (
 	//	"errors"
 	"time"
 
+	proto "github.com/gogo/protobuf/proto"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
@@ -114,7 +116,7 @@ func (handler *broadCastHandler) SetProtocol(protocol prototypes.IProtocol) {
 	handler.Protocol = protocol
 }
 
-func (handler *broadCastHandler) VerifyRequest(data []byte, messageComm *types.MessageComm) bool {
+func (handler *broadCastHandler) VerifyRequest(message proto.Message, messageComm *types.MessageComm) bool {
 
 	return true
 }

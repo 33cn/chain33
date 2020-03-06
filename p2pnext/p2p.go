@@ -157,7 +157,7 @@ func (p *P2P) StartP2P() {
 
 //查询本局域网内是否有节点
 func (p *P2P) findLANPeers() {
-	peerChan, err := p.discovery.FindLANPeers(p.host, "hello,is anyone here ?")
+	peerChan, err := p.discovery.FindLANPeers(p.host, "hello-chain33?")
 	if err != nil {
 		log.Error("findLANPeers", "err", err.Error())
 		return

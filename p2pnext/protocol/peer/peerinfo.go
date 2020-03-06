@@ -241,11 +241,14 @@ func (p *PeerInfoProtol) handleEvent(msg *queue.Message) {
 		var peer types.Peer
 		p.PeerInfoManager.Copy(&peer, pinfo)
 		peers = append(peers, &peer)
+		//增加peerInfo 到peerInfoManager
+		p.PeerInfoManager.Add(peer.GetName(), &peer)
 	}
 	peerinfo := p.getLoacalPeerInfo()
 	p.PeerInfoManager.Copy(&peer, peerinfo)
 	peer.Self = true
 	peers = append(peers, &peer)
+
 	msg.Reply(p.GetQueueClient().NewMessage("blockchain", types.EventPeerList, &types.PeerList{Peers: peers}))
 
 }
@@ -279,9 +282,4 @@ func (h *PeerInfoHandler) Handle(stream core.Stream) {
 
 	}
 
-}
-
-func (p *PeerInfoHandler) VerifyRequest(data []byte, messageComm *types.MessageComm) bool {
-
-	return true
 }

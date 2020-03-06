@@ -8,49 +8,53 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// jobs datastruct
-type jobs []*JobInfo
+// task datastruct
+type Tasks []*TaskInfo
 
-type JobInfo struct {
+type TaskInfo struct {
 	Id      string        //一次下载任务的任务ID
-	Limit   int           //节点同时最大处理任务数量
+	TaskNum int           //节点同时最大处理任务数量
 	Pid     peer.ID       //节点ID
-	Index   int           // 任务在任务列表中索引
+	Index   int           // 节点在任务列表中索引，方便下载失败后，把该节点从下载列表中删除
 	Latency time.Duration // 任务所在节点的时延
 	mtx     sync.Mutex
 }
 
 //Len size of the Invs data
-func (i jobs) Len() int {
+func (i Tasks) Len() int {
 	return len(i)
 }
 
 //Less Sort from low to high
-func (i jobs) Less(a, b int) bool {
+func (i Tasks) Less(a, b int) bool {
 	return i[a].Latency < i[b].Latency
 }
 
 //Swap  the param
-func (i jobs) Swap(a, b int) {
+func (i Tasks) Swap(a, b int) {
 	i[a], i[b] = i[b], i[a]
 }
 
-func (j jobs) Remove(index int) jobs {
+func (j Tasks) Remove(index int) Tasks {
+	if index+1 > j.Size() {
+		return j
+	}
+
 	j = append(j[:index], j[index+1:]...)
 	return j
 
 }
-func (i jobs) Sort() jobs {
+func (i Tasks) Sort() Tasks {
 	sort.Sort(i)
 	return i
 }
 
-func (i jobs) Size() int {
+func (i Tasks) Size() int {
 	return len(i)
 }
 
-func (d *DownloadProtol) initJob(pids []string, jobId string) jobs {
-	var JobPeerIds jobs
+func (d *DownloadProtol) initJob(pids []string, jobId string) Tasks {
+	var JobPeerIds Tasks
 	var pIDs []peer.ID
 	for _, pid := range pids {
 		pID, err := peer.IDB58Decode(pid)
@@ -68,7 +72,7 @@ func (d *DownloadProtol) initJob(pids []string, jobId string) jobs {
 		if pID.Pretty() == d.GetHost().ID().Pretty() {
 			continue
 		}
-		var job JobInfo
+		var job TaskInfo
 		job.Pid = pID
 		job.Id = jobId
 		var ok bool
@@ -79,16 +83,16 @@ func (d *DownloadProtol) initJob(pids []string, jobId string) jobs {
 			}
 			job.Latency = latency
 		}
-		job.Limit = 0
+		job.TaskNum = 0
 		JobPeerIds = append(JobPeerIds, &job)
 	}
 
 	return JobPeerIds
 }
 
-func (d *DownloadProtol) CheckJob(jobID string, pids []string, faildJobs sync.Map) {
-	defer faildJobs.Delete(jobID)
-	v, ok := faildJobs.Load(jobID)
+func (d *DownloadProtol) CheckTask(taskID string, pids []string, faildJobs sync.Map) {
+	defer faildJobs.Delete(taskID)
+	v, ok := faildJobs.Load(taskID)
 	if !ok {
 		return
 	}
@@ -96,44 +100,42 @@ func (d *DownloadProtol) CheckJob(jobID string, pids []string, faildJobs sync.Ma
 
 	faildJob.Range(func(k, v interface{}) bool {
 		blockheight := k.(int64)
-		jobS := d.initJob(pids, jobID)
-		log.Warn("CheckJob<<<<<<<<<<", "jobID", jobID, "faildJob", blockheight)
-
-		d.syncDownloadBlock(blockheight, jobS)
-
+		jobS := d.initJob(pids, taskID)
+		log.Warn("CheckTask<<<<<<<<<<", "taskID", taskID, "faildJob", blockheight)
+		d.downloadBlock(blockheight, jobS)
 		return true
 
 	})
 
 }
 
-func (d *DownloadProtol) availbJob(js jobs, blockheight int64) *JobInfo {
+func (d *DownloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
 
 	var limit int
-	if len(js) > 10 {
+	if len(ts) > 10 {
 		limit = 20 //节点数大于10，每个节点限制最大下载任务数为20个
 	} else {
 		limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
 	}
-	for i, job := range js {
+	for i, task := range ts {
 		//check blockheight
-		peerInfo := d.GetPeerInfoManager().Get(job.Pid.Pretty())
+		peerInfo := d.GetPeerInfoManager().Get(task.Pid.Pretty())
 		if peerInfo != nil {
 			if peerInfo.GetHeader().GetHeight() < blockheight {
 				continue
 			}
 		} else {
-			log.Error("CheckAvailbJob", "PeerInfoManager No ths Peer info...", job.Pid.Pretty())
+			log.Error("CheckAvailbJob", "PeerInfoManager No ths Peer info...", task.Pid.Pretty())
 			continue
 		}
 
-		if job.Limit < limit {
-			job.mtx.Lock()
-			job.Limit++
-			job.mtx.Unlock()
-			job.Index = i
-			log.Debug("getFreeJob", " limit", job.Limit, "latency", job.Latency, "peerid", job.Pid)
-			return job
+		if task.TaskNum < limit {
+			task.mtx.Lock()
+			task.TaskNum++
+			task.mtx.Unlock()
+			task.Index = i
+			log.Debug("getFreeJob", " taskNum", task.TaskNum, "latency", task.Latency, "peerid", task.Pid)
+			return task
 		}
 	}
 
@@ -141,11 +143,11 @@ func (d *DownloadProtol) availbJob(js jobs, blockheight int64) *JobInfo {
 
 }
 
-func (d *DownloadProtol) releaseJob(js *JobInfo) {
+func (d *DownloadProtol) releaseJob(js *TaskInfo) {
 	js.mtx.Lock()
 	defer js.mtx.Unlock()
-	js.Limit--
-	if js.Limit < 0 {
-		js.Limit = 0
+	js.TaskNum--
+	if js.TaskNum < 0 {
+		js.TaskNum = 0
 	}
 }

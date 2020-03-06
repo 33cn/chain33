@@ -130,7 +130,7 @@ func (s *ConnManager) Get(pid peer.ID) *peer.AddrInfo {
 }
 
 func (s *ConnManager) Fetch() []peer.ID {
-	return s.discovery.FindNearestPeers(s.host.ID(), 25)
+	return s.discovery.FindNearestPeers(s.host.ID(), 50)
 
 }
 

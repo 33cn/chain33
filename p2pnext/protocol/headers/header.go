@@ -9,7 +9,6 @@ import (
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	proto "github.com/gogo/protobuf/proto"
 	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
 )
@@ -18,15 +17,15 @@ var (
 	log = log15.New("module", "p2p.headers")
 )
 
-func init() {
-	prototypes.RegisterProtocolType(protoTypeID, &HeaderInfoProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, &HeaderInfoHander{})
-}
-
 const (
 	protoTypeID   = "HeadersProtocolType"
 	HeaderInfoReq = "/chain33/headerinfoReq/1.0.0"
 )
+
+func init() {
+	prototypes.RegisterProtocolType(protoTypeID, &HeaderInfoProtol{})
+	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, &HeaderInfoHander{})
+}
 
 //type Istream
 type HeaderInfoProtol struct {
@@ -145,23 +144,14 @@ func (d *HeaderInfoHander) Handle(stream core.Stream) {
 	protocol := d.GetProtocol().(*HeaderInfoProtol)
 	//解析处理
 	if stream.Protocol() == HeaderInfoReq {
-		log.Info("Handler", "protoID", "HeaderInfoReq")
 		var data types.MessageHeaderReq
 		err := d.ReadProtoMessage(&data, stream)
 		if err != nil {
 			return
 		}
 		//TODO checkCommonData
-		//protocol.CheckMessage(data.GetMessageData().GetId())
 		recvData := data.Message
-		request, err := proto.Marshal(&data)
-		if err != nil {
-			return
-		}
-		if !d.VerifyRequest(request, data.GetMessageData()) {
-			log.Error("Handle", "VerifyRequest", "faild")
-			//TODO 增加消息验证
-		}
+
 		protocol.OnReq(data.GetMessageData().GetId(), recvData, stream)
 		return
 	}
