@@ -5,8 +5,6 @@
 package executor
 
 import (
-	"encoding/hex"
-
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -22,7 +20,6 @@ type StateDB struct {
 	stateHash []byte
 	version   int64
 	height    int64
-	local     *db.SimpleMVCC
 	opt       *StateDBOption
 }
 
@@ -45,26 +42,12 @@ func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *Sta
 		stateHash: stateHash,
 		height:    opt.Height,
 		version:   -1,
-		local:     db.NewSimpleMVCC(localdb),
 		opt:       opt,
 	}
 	return db
 }
 
 func (s *StateDB) enableMVCC(hash []byte) {
-	opt := s.opt
-	if opt.EnableMVCC {
-		if hash == nil {
-			hash = s.stateHash
-		}
-		v, err := s.local.GetVersion(hash)
-		if err == nil && v >= 0 {
-			s.version = v
-		} else if s.height > 0 {
-			println("init state db", "height", s.height, "err", err.Error(), "v", v, "stateHash", hex.EncodeToString(s.stateHash))
-			panic("mvcc get version error,config set enableMVCC=true, it must be synchronized from 0 height")
-		}
-	}
 }
 
 // Begin 开启内存事务处理
@@ -121,12 +104,7 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 	if value, ok := s.cache[skey]; ok {
 		return value, nil
 	}
-	//mvcc 是有效的情况下，直接从mvcc中获取
-	if s.version >= 0 {
-		data, err := s.local.GetV(key, s.version)
-		//TODO 这里需要一个标志，数据是否是从0开始同步的
-		return data, err
-	}
+
 	if s.client == nil {
 		return nil, types.ErrNotFound
 	}
