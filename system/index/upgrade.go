@@ -12,7 +12,7 @@ import (
 
 var (
 	versionPrefix = "version"
-	elog          = log.New("module", "system/plugin")
+	elog          = log.New("module", "system/index")
 )
 
 // GetVersion plugin localdb Version

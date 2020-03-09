@@ -6,7 +6,7 @@ package mvcc
 
 import (
 	dbm "github.com/33cn/chain33/common/db"
-	"github.com/33cn/chain33/system/plugin"
+	"github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 )
 

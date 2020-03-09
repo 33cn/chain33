@@ -14,7 +14,7 @@ import (
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	drivers "github.com/33cn/chain33/system/dapp"
-	plugins "github.com/33cn/chain33/system/plugin"
+	plugins "github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
 )

@@ -7,7 +7,7 @@ package fee
 import (
 	"fmt"
 
-	plugins "github.com/33cn/chain33/system/plugin"
+	plugins "github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 )
 

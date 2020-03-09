@@ -8,13 +8,13 @@ import (
 	"fmt"
 
 	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/system/plugin"
+	"github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 )
 
 var (
 	name = "txindex"
-	elog = log.New("module", "system/plugin/txindex")
+	elog = log.New("module", "system/index/txindex")
 )
 
 func init() {

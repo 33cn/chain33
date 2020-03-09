@@ -5,7 +5,7 @@
 package stat
 
 import (
-	plugins "github.com/33cn/chain33/system/plugin"
+	plugins "github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 	"github.com/pkg/errors"
 )

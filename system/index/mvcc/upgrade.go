@@ -8,11 +8,11 @@ import (
 	"fmt"
 
 	log "github.com/33cn/chain33/common/log/log15"
-	plugins "github.com/33cn/chain33/system/plugin"
+	plugins "github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 )
 
-var elog = log.New("module", "system/plugin/mvcc")
+var elog = log.New("module", "system/index/mvcc")
 
 // PrefixOld 获得老的前缀
 func PrefixOld() []byte {

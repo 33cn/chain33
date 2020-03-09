@@ -9,13 +9,13 @@ import (
 
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/system/plugin"
+	"github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 )
 
 var (
 	name = "fee"
-	elog = log.New("module", "system/plugin/fee")
+	elog = log.New("module", "system/index/fee")
 )
 
 func init() {

@@ -17,7 +17,7 @@ import (
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/rpc/grpcclient"
 	drivers "github.com/33cn/chain33/system/dapp"
-	plugins "github.com/33cn/chain33/system/plugin"
+	plugins "github.com/33cn/chain33/system/index"
 
 	// register drivers
 	"github.com/33cn/chain33/client"
@@ -246,7 +246,7 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 
 	elog.Debug("executor query", "exec", data.GetDriver(), "func", data.GetFuncName(), "param", string(data.Param))
 
-	// 原来查询在 system/dapp 中实现, 现在部分查询随插件移动到 system/plugin (即查询插件生成的数据)
+	// 原来查询在 system/dapp 中实现, 现在部分查询随插件移动到 system/index (即查询插件生成的数据)
 	// 暂时通过查表的形式, 如果在表中存在, 就调用对应的函数, 不然走原来的查询调用
 	if p, err := plugins.QueryPlugin(data.GetFuncName()); err == nil {
 		var localdb dbm.KVDB
