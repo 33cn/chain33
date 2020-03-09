@@ -711,22 +711,23 @@ func (e *executor) setPluginKvs(kvs []*types.KeyValue) error {
 }
 
 func (e *executor) checkPluginKvs(name string, memKeys []string, kvs []*types.KeyValue) error {
-	if kvs != nil {
-		err := e.checkKV(memKeys, kvs)
-		if err != nil {
-			return types.ErrNotAllowMemSetLocalKey
-		}
-		prefix := plugins.Prefix(name)
-		for _, kv := range kvs {
-			has := bytes.HasPrefix(kv.Key, prefix)
-			if !has {
-				return types.ErrLocalPrefix
-			}
-		}
-	} else {
+	if kvs == nil {
 		if len(memKeys) > 0 {
 			return types.ErrNotAllowMemSetLocalKey
 		}
 	}
+
+	err := e.checkKV(memKeys, kvs)
+	if err != nil {
+		return types.ErrNotAllowMemSetLocalKey
+	}
+	prefix := plugins.Prefix(name)
+	for _, kv := range kvs {
+		has := bytes.HasPrefix(kv.Key, prefix)
+		if !has {
+			return types.ErrLocalPrefix
+		}
+	}
+
 	return nil
 }
