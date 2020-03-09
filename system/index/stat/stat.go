@@ -6,7 +6,7 @@ package stat
 
 import (
 	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/system/index"
+	plugin "github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 )
 
@@ -34,7 +34,7 @@ func newStat() plugin.Plugin {
 }
 
 func (p *statPlugin) CheckEnable(enable bool) (kvs []*types.KeyValue, ok bool, err error) {
-	kvs, ok, err = p.CheckFlag(p, plugin.FlagKey(name), enable)
+	kvs, ok, err = p.CheckFlag(p, types.StatisticFlag(), enable)
 	if err == types.ErrDBFlag {
 		panic("stat config is enable, it must be synchronized from 0 height ")
 	}
