@@ -40,12 +40,35 @@ func DisableLog() {
 
 // Executor executor struct
 type Executor struct {
-	disableLocal bool
-	client       queue.Client
-	qclient      client.QueueProtocolAPI
-	grpccli      types.Chain33Client
-	pluginEnable map[string]bool
-	alias        map[string]string
+	disableLocal   bool
+	client         queue.Client
+	qclient        client.QueueProtocolAPI
+	grpccli        types.Chain33Client
+	pluginEnable   map[string]bool
+	alias          map[string]string
+	indexKVChecker *indexPerfixChecker
+}
+
+// 执行器索引插件期望的前缀为 LODBP-indexName-key
+// 由于历史原因, 存在数据为自定义前缀, 所有在检查插件生成数据时有白名单
+type indexPerfixChecker struct {
+	// 插件名为key, value 对应其可能的前缀
+	// 不存在这里的插件, 统计检测标准前缀 LODBP-indexName
+	whitelist map[string][]string
+}
+
+func defaultIndexCheck() *indexPerfixChecker {
+	index := indexPerfixChecker{whitelist: make(map[string][]string)}
+	index.whitelist["fee"] = []string{"TotalFeeKey:"}
+	index.whitelist["addrindex"] = []string{"AddrTxsCount:", "TxAddrHash:", "TxAddrDirHash:"}
+	index.whitelist["txindex"] = []string{"TX:", "STX:"}
+	index.whitelist["stat"] = []string{"Statistics:"}
+	return &index
+}
+
+// TODO
+func (index *indexPerfixChecker) checkKV() error {
+	return nil
 }
 
 func execInit(cfg *typ.Chain33Config) {
@@ -82,6 +105,7 @@ func New(cfg *typ.Chain33Config) *Executor {
 		}
 		exec.alias[data[0]] = data[1]
 	}
+	exec.indexKVChecker = defaultIndexCheck()
 	return exec
 }
 
