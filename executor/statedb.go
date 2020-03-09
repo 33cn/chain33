@@ -23,7 +23,7 @@ type StateDB struct {
 	opt       *StateDBOption
 }
 
-// StateDBOption state db option enable mvcc
+// StateDBOption state db option
 type StateDBOption struct {
 	Height int64
 }
