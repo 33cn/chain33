@@ -49,8 +49,7 @@ type executorCtx struct {
 
 func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
 	client := exec.client
-	enableMVCC := exec.pluginEnable["mvcc"]
-	opt := &StateDBOption{EnableMVCC: enableMVCC, Height: ctx.height}
+	opt := &StateDBOption{Height: ctx.height}
 	types.AssertConfig(client)
 	e := &executor{
 		stateDB:      NewStateDB(client, ctx.stateHash, opt),

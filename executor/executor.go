@@ -279,7 +279,7 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 		defer localdb.(*LocalDB).Close()
 		driver.SetLocalDB(localdb)
 	}
-	opt := &StateDBOption{EnableMVCC: exec.pluginEnable["mvcc"], Height: header.GetHeight()}
+	opt := &StateDBOption{Height: header.GetHeight()}
 
 	db := NewStateDB(exec.client, data.StateHash, opt)
 	db.(*StateDB).enableMVCC(nil)

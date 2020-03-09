@@ -25,8 +25,7 @@ type StateDB struct {
 
 // StateDBOption state db option enable mvcc
 type StateDBOption struct {
-	EnableMVCC bool
-	Height     int64
+	Height int64
 }
 
 // NewStateDB new state db
