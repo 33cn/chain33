@@ -721,13 +721,55 @@ func (e *executor) checkPluginKvs(name string, memKeys []string, kvs []*types.Ke
 	if err != nil {
 		return types.ErrNotAllowMemSetLocalKey
 	}
-	prefix := plugins.Prefix(name)
+
+	return indexCheck.checkKV(name, memKeys, kvs)
+}
+
+var indexCheck = defaultIndexCheck()
+
+// 执行器索引插件期望的前缀为 LODBP-indexName-key
+// 由于历史原因, 存在数据为自定义前缀, 所有在检查插件生成数据时有白名单
+type indexPerfixChecker struct {
+	// 插件名为key, value 对应其可能的前缀
+	// 不存在这里的插件, 统计检测标准前缀 LODBP-indexName
+	whitelist map[string][][]byte
+}
+
+func defaultIndexCheck() *indexPerfixChecker {
+	index := indexPerfixChecker{whitelist: make(map[string][][]byte)}
+	/*
+		index.whitelist["fee"] = [][]byte{[]byte("TotalFeeKey:")}
+		index.whitelist["addrindex"] = [][]byte{[]byte("AddrTxsCount:"), []byte("TxAddrHash:"), []byte("TxAddrDirHash:")}
+		index.whitelist["txindex"] = [][]byte{[]byte("TX:"), []byte("STX:")}
+		index.whitelist["stat"] = [][]byte{[]byte("Statistics:")}
+	*/
+	return &index
+}
+
+func (index *indexPerfixChecker) checkKV(name string, memKeys []string, kvs []*types.KeyValue) error {
+	prefixes, found := index.whitelist[name]
+	if !found {
+		prefix := plugins.Prefix(name)
+		for _, kv := range kvs {
+			has := bytes.HasPrefix(kv.Key, prefix)
+			if !has {
+				return types.ErrLocalPrefix
+			}
+		}
+		return nil
+	}
+
 	for _, kv := range kvs {
-		has := bytes.HasPrefix(kv.Key, prefix)
+		has := false
+		for _, prefix := range prefixes {
+			has = bytes.HasPrefix(kv.Key, prefix)
+			if has {
+				break
+			}
+		}
 		if !has {
 			return types.ErrLocalPrefix
 		}
 	}
-
 	return nil
 }
