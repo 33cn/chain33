@@ -738,9 +738,10 @@ type indexPerfixChecker struct {
 func defaultIndexCheck() *indexPerfixChecker {
 	index := indexPerfixChecker{whitelist: make(map[string][][]byte)}
 	index.whitelist["fee"] = [][]byte{[]byte("TotalFeeKey:")}
+	index.whitelist["addrindex"] = [][]byte{[]byte("AddrTxsCount:"), []byte("TxAddrHash:"), []byte("TxAddrDirHash:")}
 	/*
 
-		index.whitelist["addrindex"] = [][]byte{[]byte("AddrTxsCount:"), []byte("TxAddrHash:"), []byte("TxAddrDirHash:")}
+
 		index.whitelist["txindex"] = [][]byte{[]byte("TX:"), []byte("STX:")}
 		index.whitelist["stat"] = [][]byte{[]byte("Statistics:")}
 	*/
