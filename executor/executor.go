@@ -64,7 +64,6 @@ func New(cfg *typ.Chain33Config) *Executor {
 	exec := &Executor{}
 	exec.pluginEnable = make(map[string]bool)
 	exec.pluginEnable["stat"] = mcfg.EnableStat
-	exec.pluginEnable["mvcc"] = mcfg.EnableMVCC
 	exec.pluginEnable["addrindex"] = !mcfg.DisableAddrIndex
 	exec.pluginEnable["txindex"] = true
 	exec.pluginEnable["fee"] = true
