@@ -69,10 +69,6 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 	return e
 }
 
-func (e *executor) enableMVCC(hash []byte) {
-	e.stateDB.(*StateDB).enableMVCC(hash)
-}
-
 //隐私交易费扣除规则：
 //1.公对私交易：直接从coin合约中扣除
 //2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除

@@ -46,9 +46,6 @@ func NewStateDB(client queue.Client, stateHash []byte, opt *StateDBOption) db.KV
 	return db
 }
 
-func (s *StateDB) enableMVCC(hash []byte) {
-}
-
 // Begin 开启内存事务处理
 func (s *StateDB) Begin() {
 	s.intx = true
