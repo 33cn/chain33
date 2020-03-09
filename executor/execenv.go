@@ -737,8 +737,9 @@ type indexPerfixChecker struct {
 
 func defaultIndexCheck() *indexPerfixChecker {
 	index := indexPerfixChecker{whitelist: make(map[string][][]byte)}
+	index.whitelist["fee"] = [][]byte{[]byte("TotalFeeKey:")}
 	/*
-		index.whitelist["fee"] = [][]byte{[]byte("TotalFeeKey:")}
+
 		index.whitelist["addrindex"] = [][]byte{[]byte("AddrTxsCount:"), []byte("TxAddrHash:"), []byte("TxAddrDirHash:")}
 		index.whitelist["txindex"] = [][]byte{[]byte("TX:"), []byte("STX:")}
 		index.whitelist["stat"] = [][]byte{[]byte("Statistics:")}
@@ -768,6 +769,7 @@ func (index *indexPerfixChecker) checkKV(name string, memKeys []string, kvs []*t
 			}
 		}
 		if !has {
+			elog.Error("index prefix check", "name", name, "key", string(kv.Key))
 			return types.ErrLocalPrefix
 		}
 	}

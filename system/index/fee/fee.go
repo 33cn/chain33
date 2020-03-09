@@ -5,11 +5,9 @@
 package fee
 
 import (
-	"fmt"
-
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/system/index"
+	plugin "github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 )
 
@@ -62,7 +60,7 @@ func (p *feePlugin) ExecDelLocal(data *types.BlockDetail) ([]*types.KeyValue, er
 
 func saveFee(localdb dbm.KVDB, fee *types.TotalFee, parentHash, hash []byte) (*types.KeyValue, error) {
 	totalFee := &types.TotalFee{}
-	totalFeeBytes, err := localdb.Get(CalcTotalFeeKey(name, parentHash))
+	totalFeeBytes, err := localdb.Get(types.TotalFeeKey(parentHash))
 	if err == nil {
 		err = types.Decode(totalFeeBytes, totalFee)
 		if err != nil {
@@ -73,14 +71,9 @@ func saveFee(localdb dbm.KVDB, fee *types.TotalFee, parentHash, hash []byte) (*t
 	}
 	totalFee.Fee += fee.Fee
 	totalFee.TxCount += fee.TxCount
-	return &types.KeyValue{Key: CalcTotalFeeKey(name, hash), Value: types.Encode(totalFee)}, nil
+	return &types.KeyValue{Key: types.TotalFeeKey(hash), Value: types.Encode(totalFee)}, nil
 }
 
 func delFee(localdb dbm.KVDB, hash []byte) (*types.KeyValue, error) {
-	return &types.KeyValue{Key: CalcTotalFeeKey(name, hash)}, nil
-}
-
-// CalcTotalFeeKey 存储地址参与的交易数量。add时加一，del时减一
-func CalcTotalFeeKey(name string, hash []byte) []byte {
-	return []byte(fmt.Sprintf("%s-%s-%s:%s", types.LocalPluginPrefix, name, "Fee", string(hash)))
+	return &types.KeyValue{Key: types.TotalFeeKey(hash)}, nil
 }
