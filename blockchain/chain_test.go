@@ -487,7 +487,7 @@ func testGetSeqByHash(t *testing.T, blockchain *blockchain.BlockChain) {
 func testPrefixCount(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testPrefixCount begin --------------------")
 
-	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventLocalPrefixCount, &types.ReqKey{Key: []byte("LODBP-addrindex-H:14KEKbYtKKQm4wMthSK9J4La4nAiidGozt:")})
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventLocalPrefixCount, &types.ReqKey{Key: []byte("TxAddrHash:14KEKbYtKKQm4wMthSK9J4La4nAiidGozt:")})
 	mock33.GetClient().Send(msgGen, true)
 	Res, _ := mock33.GetClient().Wait(msgGen)
 	count := Res.GetData().(*types.Int64).Data
