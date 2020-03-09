@@ -208,8 +208,6 @@ type RPC struct {
 type Exec struct {
 	// 是否开启stat插件
 	EnableStat bool `protobuf:"varint,3,opt,name=enableStat" json:"enableStat,omitempty"`
-	// 是否开启MVCC插件
-	EnableMVCC       bool     `protobuf:"varint,4,opt,name=enableMVCC" json:"enableMVCC,omitempty"`
 	DisableAddrIndex bool     `protobuf:"varint,7,opt,name=disableAddrIndex" json:"disableAddrIndex,omitempty"`
 	Alias            []string `protobuf:"bytes,5,rep,name=alias" json:"alias,omitempty"`
 	// 是否保存token交易信息
