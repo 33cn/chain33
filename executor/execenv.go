@@ -53,7 +53,7 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 	opt := &StateDBOption{EnableMVCC: enableMVCC, Height: ctx.height}
 	types.AssertConfig(client)
 	e := &executor{
-		stateDB:      NewStateDB(client, ctx.stateHash, localdb, opt),
+		stateDB:      NewStateDB(client, ctx.stateHash, opt),
 		localDB:      localdb,
 		coinsAccount: account.NewCoinsAccount(client.GetConfig()),
 		height:       ctx.height,

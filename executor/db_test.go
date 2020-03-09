@@ -19,7 +19,7 @@ import (
 func newStateDbForTest(height int64, cfg *types.Chain33Config) dbm.KV {
 	q := queue.New("channel")
 	q.SetConfig(cfg)
-	return NewStateDB(q.Client(), nil, nil, &StateDBOption{Height: height})
+	return NewStateDB(q.Client(), nil, &StateDBOption{Height: height})
 }
 func TestStateDBGet(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
@@ -57,7 +57,7 @@ func TestStateDBTxGetOld(t *testing.T) {
 	s := store.New(cfg)
 	s.SetQueueClient(q.Client())
 	// exec
-	db := NewStateDB(q.Client(), nil, nil, &StateDBOption{Height: cfg.GetFork("ForkExecRollback") - 1})
+	db := NewStateDB(q.Client(), nil, &StateDBOption{Height: cfg.GetFork("ForkExecRollback") - 1})
 	defer func() {
 		s.Close()
 		q.Close()

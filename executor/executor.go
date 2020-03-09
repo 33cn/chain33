@@ -281,7 +281,7 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 	}
 	opt := &StateDBOption{EnableMVCC: exec.pluginEnable["mvcc"], Height: header.GetHeight()}
 
-	db := NewStateDB(exec.client, data.StateHash, localdb, opt)
+	db := NewStateDB(exec.client, data.StateHash, opt)
 	db.(*StateDB).enableMVCC(nil)
 	driver.SetStateDB(db)
 	driver.SetAPI(exec.qclient)

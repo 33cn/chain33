@@ -30,7 +30,7 @@ type StateDBOption struct {
 }
 
 // NewStateDB new state db
-func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *StateDBOption) db.KV {
+func NewStateDB(client queue.Client, stateHash []byte, opt *StateDBOption) db.KV {
 	if opt == nil {
 		opt = &StateDBOption{}
 	}
