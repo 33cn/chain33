@@ -5,10 +5,8 @@
 package txindex
 
 import (
-	"fmt"
-
 	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/system/index"
+	plugin "github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 )
 
@@ -98,9 +96,9 @@ func getTx(p plugin.Plugin, tx *types.Transaction, receipt *types.ReceiptData, i
 	txresult.Blocktime = p.GetBlockTime()
 	txresult.ActionName = tx.ActionName()
 	var kvlist []*types.KeyValue
-	kvlist = append(kvlist, &types.KeyValue{Key: CalcTxKey(cfg, name, txhash), Value: cfg.CalcTxKeyValue(&txresult)})
+	kvlist = append(kvlist, &types.KeyValue{Key: cfg.CalcTxKey(txhash), Value: cfg.CalcTxKeyValue(&txresult)})
 	if cfg.IsEnable("quickIndex") {
-		kvlist = append(kvlist, &types.KeyValue{Key: CalcTxShortKey(name, txhash), Value: []byte("1")})
+		kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxShortKey(txhash), Value: []byte("1")})
 	}
 	return kvlist
 }
@@ -114,7 +112,7 @@ func (p *txindexPlugin) HasTx(key []byte) (types.Message, error) {
 	cfg := api.GetConfig()
 
 	if cfg.IsEnable("quickIndex") {
-		if _, err := p.GetLocalDB().Get(CalcTxShortKey(name, key)); err != nil {
+		if _, err := p.GetLocalDB().Get(types.CalcTxShortKey(key)); err != nil {
 			if err == types.ErrNotFound {
 				return &types.Int32{Data: 0}, nil
 			}
@@ -124,7 +122,7 @@ func (p *txindexPlugin) HasTx(key []byte) (types.Message, error) {
 		//避免短hash重复，而全hash不一样的情况
 		//return true, nil
 	}
-	if _, err := p.GetLocalDB().Get(CalcTxKey(cfg, name, key)); err != nil {
+	if _, err := p.GetLocalDB().Get(cfg.CalcTxKey(key)); err != nil {
 		if err == types.ErrNotFound {
 			return &types.Int32{Data: 0}, nil
 		}
@@ -139,7 +137,7 @@ func (p *txindexPlugin) GetTx(key []byte) (types.Message, error) {
 	types.AssertConfig(api)
 	cfg := api.GetConfig()
 
-	result, err := p.GetLocalDB().Get(CalcTxKey(cfg, name, key))
+	result, err := p.GetLocalDB().Get(cfg.CalcTxKey(key))
 	if err != nil {
 		return nil, err
 	}
@@ -150,14 +148,4 @@ func (p *txindexPlugin) GetTx(key []byte) (types.Message, error) {
 	}
 
 	return &r, nil
-}
-
-// CalcTxKey Calc Tx key
-func CalcTxKey(cfg *types.Chain33Config, name string, txHash []byte) []byte {
-	return []byte(fmt.Sprintf("%s-%s-%s:%s", types.LocalPluginPrefix, name, "TX", string(txHash)))
-}
-
-// CalcTxShortKey Calc Tx Short key
-func CalcTxShortKey(name string, txHash []byte) []byte {
-	return []byte(fmt.Sprintf("%s-%s-%s:%s", types.LocalPluginPrefix, name, "STX", string(txHash[:8])))
 }

@@ -48,7 +48,7 @@ func TestPlugin(t *testing.T) {
 	kvs, err := p.ExecLocal(detail)
 	assert.NoError(t, err)
 	for _, kv := range kvs {
-		assert.Contains(t, string(kv.Key), "LODBP-"+name+"-")
+		assert.NotContains(t, string(kv.Key), "LODBP-"+name+"-")
 	}
 	for _, kv := range kvs {
 		err = kvdb.Set(kv.Key, kv.Value)
@@ -81,6 +81,6 @@ func TestPlugin(t *testing.T) {
 	kvs, err = p.ExecDelLocal(detail)
 	assert.NoError(t, err)
 	for _, kv := range kvs {
-		assert.Contains(t, string(kv.Key), "LODBP-"+name+"-")
+		assert.NotContains(t, string(kv.Key), "LODBP-"+name+"-")
 	}
 }
