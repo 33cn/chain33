@@ -107,7 +107,7 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 			log.Error("handleEvent", "err", err)
 			continue
 		}
-		req := &prototypes.StreamRequst{
+		req := &prototypes.StreamRequest{
 			PeerID:  rID,
 			Host:    h.GetHost(),
 			Data:    headerReq,

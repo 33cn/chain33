@@ -131,7 +131,7 @@ func (p *peerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 
 		msgReq := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
 
-		req := &prototypes.StreamRequst{
+		req := &prototypes.StreamRequest{
 			PeerID:  remoteID,
 			Host:    p.GetHost(),
 			Data:    msgReq,

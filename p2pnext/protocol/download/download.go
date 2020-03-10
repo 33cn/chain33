@@ -223,7 +223,7 @@ ReDownload:
 	blockReq := &types.MessageGetBlocksReq{MessageData: d.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 		Message: getblocks}
 
-	req := &prototypes.StreamRequst{
+	req := &prototypes.StreamRequest{
 		PeerID:  task.Pid,
 		Host:    d.GetHost(),
 		Data:    blockReq,
