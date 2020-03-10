@@ -27,7 +27,7 @@ const RendezvousString = "chain33-let's play!"
 const DhtProtoID = "/ipfs/kad/chain33/1.0.0"
 
 type Discovery struct {
-	KademliaDHT      *dht.IpfsDHT
+	kademliaDHT      *dht.IpfsDHT
 	routingDiscovery *discovery.RoutingDiscovery
 	mndsService      *mdns
 }
@@ -39,13 +39,13 @@ func (d *Discovery) InitDht(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pt
 
 	opt := opts.Protocols(protocol.ID(DhtProtoID + "/" + fmt.Sprintf("%d", cfg.Channel)))
 	kademliaDHT, _ := dht.New(context.Background(), host, opt)
-	d.KademliaDHT = kademliaDHT
+	d.kademliaDHT = kademliaDHT
 
 	//连接内置种子，以及addrbook存储的节点
 	initInnerPeers(host, peersInfo, cfg, isTestNet)
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
-	if err := d.KademliaDHT.Bootstrap(context.Background()); err != nil {
+	if err := d.kademliaDHT.Bootstrap(context.Background()); err != nil {
 		panic(err)
 	}
 
@@ -53,7 +53,7 @@ func (d *Discovery) InitDht(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pt
 }
 
 func (d *Discovery) FindPeers() (<-chan peer.AddrInfo, error) {
-	d.routingDiscovery = discovery.NewRoutingDiscovery(d.KademliaDHT)
+	d.routingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
 	discovery.Advertise(context.Background(), d.routingDiscovery, RendezvousString)
 	peerChan, err := d.routingDiscovery.FindPeers(context.Background(), RendezvousString)
 	if err != nil {
@@ -81,31 +81,31 @@ func (d *Discovery) CloseFindLANPeers() {
 
 //routingTable 路由表的节点信息
 func (d *Discovery) RoutingTale() []peer.ID {
-	if d.KademliaDHT == nil {
+	if d.kademliaDHT == nil {
 		return nil
 	}
-	return d.KademliaDHT.RoutingTable().ListPeers()
+	return d.kademliaDHT.RoutingTable().ListPeers()
 
 }
 
 //routingTable size
 func (d *Discovery) RoutingTableSize() int {
-	if d.KademliaDHT == nil {
+	if d.kademliaDHT == nil {
 		return 0
 	}
-	return d.KademliaDHT.RoutingTable().Size()
+	return d.kademliaDHT.RoutingTable().Size()
 }
 
 //根据指定的peerID ,查找指定的peer,
 func (d *Discovery) FindSpecialPeer(pid peer.ID) (*peer.AddrInfo, error) {
-	if d.KademliaDHT == nil {
+	if d.kademliaDHT == nil {
 		return nil, errors.New("empty ptr")
 	}
 	ctx := context.Background()
 	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	peerInfo, err := d.KademliaDHT.FindPeer(pctx, pid)
+	peerInfo, err := d.kademliaDHT.FindPeer(pctx, pid)
 	if err != nil {
 		return nil, err
 	}
@@ -116,10 +116,10 @@ func (d *Discovery) FindSpecialPeer(pid peer.ID) (*peer.AddrInfo, error) {
 
 //根据pid 查找当前DHT内部的peer信息
 func (d *Discovery) FindLocalPeer(pid peer.ID) peer.AddrInfo {
-	if d.KademliaDHT == nil {
+	if d.kademliaDHT == nil {
 		return peer.AddrInfo{}
 	}
-	return d.KademliaDHT.FindLocal(pid)
+	return d.kademliaDHT.FindLocal(pid)
 }
 
 func (d *Discovery) FindLocalPeers(pids []peer.ID) []peer.AddrInfo {
@@ -133,7 +133,7 @@ func (d *Discovery) FindLocalPeers(pids []peer.ID) []peer.AddrInfo {
 //获取连接指定的peerId的peers信息,查找连接PID=A的所有节点
 
 func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo, error) {
-	if d.KademliaDHT == nil {
+	if d.kademliaDHT == nil {
 		return nil, errors.New("empty ptr")
 
 	}
@@ -141,27 +141,27 @@ func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo
 	ctx := context.Background()
 	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	return d.KademliaDHT.FindPeersConnectedToPeer(pctx, pid)
+	return d.kademliaDHT.FindPeersConnectedToPeer(pctx, pid)
 
 }
 
 func (d *Discovery) UPdate(pid peer.ID) error {
-	_, err := d.KademliaDHT.RoutingTable().Update(pid)
+	_, err := d.kademliaDHT.RoutingTable().Update(pid)
 	return err
 }
 
 func (d *Discovery) FindNearestPeers(pid peer.ID, count int) []peer.ID {
-	if d.KademliaDHT == nil {
+	if d.kademliaDHT == nil {
 		return nil
 	}
 
-	return d.KademliaDHT.RoutingTable().NearestPeers(kbt.ConvertPeerID(pid), count)
+	return d.kademliaDHT.RoutingTable().NearestPeers(kbt.ConvertPeerID(pid), count)
 }
 
 func (d *Discovery) Remove(pid peer.ID) {
-	if d.KademliaDHT == nil {
+	if d.kademliaDHT == nil {
 		return
 	}
-	d.KademliaDHT.RoutingTable().Remove(pid)
+	d.kademliaDHT.RoutingTable().Remove(pid)
 
 }
