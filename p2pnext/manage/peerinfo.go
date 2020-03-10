@@ -69,28 +69,10 @@ func (p *PeerInfoManager) FetchPeerInfosInMin() []*types.Peer {
 	return peers
 }
 
-func (p *PeerInfoManager) getPeerInfos() {
-
-	msg := p.client.NewMessage("p2p", types.EventPeerInfo, nil)
-	p.client.SendTimeout(msg, true, time.Second*5)
-	resp, err := p.client.WaitTimeout(msg, time.Second*20)
-	if err != nil {
-		log.Error("MonitorPeerInfos", "err----------->", err)
-		return
-	}
-
-	if peerlist, ok := resp.GetData().(*types.PeerList); ok {
-		for _, peer := range peerlist.GetPeers() {
-			p.Add(peer.GetName(), peer)
-		}
-
-	}
-}
 func (p *PeerInfoManager) MonitorPeerInfos() {
 	for {
 		select {
-		case <-time.After(time.Second * 30): //每30秒主动刷新
-			p.getPeerInfos()
+
 		case <-time.After(time.Minute):
 			log.Info("MonitorPeerInfos", "Num", len(p.FetchPeerInfosInMin()))
 
