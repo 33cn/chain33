@@ -456,7 +456,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	}
 
 	for name, enable := range exec.pluginEnable {
-		elog.Info("plugin call", "name", name)
+		elog.Debug("plugin call", "name", name)
 		plugin, err := plugins.GetPlugin(name)
 		if err != nil {
 			panic(err)
@@ -467,14 +467,14 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 			return
 		}
 		if !ok {
-			elog.Info("plugin continue", "name", name)
+			elog.Debug("plugin continue", "name", name)
 			continue
 		}
 
 		if kvs != nil && len(kvs.KV) > 0 {
 			kvset.KV = append(kvset.KV, kvs.KV...)
 		}
-		elog.Info("plugin done", "name", name)
+		elog.Debug("plugin done", "name", name)
 	}
 
 	for i := 0; i < len(b.Txs); i++ {
