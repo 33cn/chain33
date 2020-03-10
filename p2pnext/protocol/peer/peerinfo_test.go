@@ -96,7 +96,7 @@ func newTestProtocol() *peerInfoProtol {
 	return newTestProtocolWithQueue(q)
 }
 
-func TestheaderInfoProtol_InitProtocol(t *testing.T) {
+func TestPeerInfoProtol_InitProtocol(t *testing.T) {
 
 	protocol := newTestProtocol()
 	assert.NotNil(t, protocol)

@@ -60,7 +60,7 @@ func newTestProtocol() *headerInfoProtol {
 	return newTestProtocolWithQueue(q)
 }
 
-func TestheaderInfoProtol_InitProtocol(t *testing.T) {
+func TestHeaderInfoProtol_InitProtocol(t *testing.T) {
 
 	protocol := newTestProtocol()
 	assert.NotNil(t, protocol)
