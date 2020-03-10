@@ -722,7 +722,7 @@ func (e *executor) checkPluginKvs(name string, memKeys []string, kvs []*types.Ke
 		return types.ErrNotAllowMemSetLocalKey
 	}
 
-	return indexCheck.checkKV(name, memKeys, kvs)
+	return indexCheck.checkKV(name, kvs)
 }
 
 var indexCheck = defaultIndexCheck()
@@ -744,7 +744,7 @@ func defaultIndexCheck() *indexPerfixChecker {
 	return &index
 }
 
-func (index *indexPerfixChecker) checkKV(name string, memKeys []string, kvs []*types.KeyValue) error {
+func (index *indexPerfixChecker) checkKV(name string, kvs []*types.KeyValue) error {
 	prefixes, found := index.whitelist[name]
 	if !found {
 		prefix := plugins.Prefix(name)
