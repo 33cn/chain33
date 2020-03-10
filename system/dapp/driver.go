@@ -73,7 +73,7 @@ type Driver interface {
 	GetExecutorType() types.ExecutorType
 	CheckReceiptExecOk() bool
 	ExecutorOrder() int64
-	Upgrade() error
+	Upgrade() (*types.LocalDBSet, error)
 }
 
 // DriverBase defines driverbase type
@@ -99,9 +99,9 @@ type DriverBase struct {
 }
 
 //Upgrade default upgrade only print a message
-func (d *DriverBase) Upgrade() error {
+func (d *DriverBase) Upgrade() (*types.LocalDBSet, error) {
 	blog.Info("upgrade ", "dapp", d.GetName())
-	return nil
+	return nil, nil
 }
 
 // GetPayloadValue define get payload func

@@ -33,10 +33,19 @@ func (chain *BlockChain) UpgradePlugin() {
 	if err != nil {
 		panic(err)
 	}
-	_, err = chain.client.Wait(msg)
+	resp, err := chain.client.Wait(msg)
 	if err != nil {
 		panic(err)
 	}
+	if resp == nil {
+		return
+	}
+	kv := resp.GetData().(*types.LocalDBSet)
+	if kv == nil || len(kv.KV) == 0 {
+		return
+	}
+
+	chain.blockStore.mustSaveKvset(kv)
 }
 
 //UpgradeStore 升级storedb

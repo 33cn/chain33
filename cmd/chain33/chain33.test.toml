@@ -222,7 +222,7 @@ unSyncMaxTimes=2
 
 [metrics]
 #是否使能发送metrics数据的发送
-enableMetrics=true
+enableMetrics=false
 #数据保存模式
 dataEmitMode="influxdb"
 

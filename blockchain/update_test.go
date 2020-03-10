@@ -31,10 +31,13 @@ func TestUpgradePlugin(t *testing.T) {
 		m1   *client.Message
 		send error
 		wait error
+		resp *client.Message
 	}{
-		{msg, nil, nil},
-		{msg, errSend, nil},
-		{msg, nil, errWait},
+		{msg, nil, nil, nil},
+		{msg, nil, nil, &client.Message{Data: &types.LocalDBSet{}}},
+		{msg, nil, nil, &client.Message{Data: &types.LocalDBSet{KV: []*types.KeyValue{}}}},
+		{msg, errSend, nil, nil},
+		{msg, nil, errWait, nil},
 	}
 
 	for _, c := range cases {
@@ -60,8 +63,7 @@ func TestUpgradePlugin(t *testing.T) {
 			cli.On("Send", msg, true).Return(c1.send).Once()
 			cli.On("SendTimeout", mock.Anything, mock.Anything, mock.Anything).Return(c1.send).Once()
 			if c1.send == nil {
-				cli.On("Wait", msg).Return(nil, c1.wait).Once()
-
+				cli.On("Wait", msg).Return(c1.resp, c1.wait).Once()
 			}
 			chain := New(cfg)
 			chain.client = cli
