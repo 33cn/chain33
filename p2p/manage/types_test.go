@@ -25,10 +25,10 @@ func newTestP2P(mgr *P2PMgr, subCfg []byte) IP2P {
 
 func (p *testP2P) StartP2P() {}
 
-func (P *testP2P) CloseP2P() {}
+func (p *testP2P) CloseP2P() {}
 
 func initRegP2P() {
-	p2pRegTypes = make(map[string]createP2P, 0)
+	p2pRegTypes = make(map[string]CreateP2P)
 }
 
 func TestRegisterLoad(t *testing.T) {

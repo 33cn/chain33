@@ -109,7 +109,6 @@ func (handler *broadCastHandler) Handle(stream core.Stream) {
 	}
 
 	_ = protocol.handleReceive(data.Message, pid, peerAddr)
-	return
 }
 
 // SetProtocol set protocol

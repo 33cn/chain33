@@ -45,7 +45,7 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
 	mgr := p2pmgr.NewP2PMgr(cfg)
 	mgr.Client = q.Client()
-	mgr.SysApi, _ = client.New(mgr.Client, nil)
+	mgr.SysAPI, _ = client.New(mgr.Client, nil)
 
 	subCfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pmgr.DHTTypeName], subCfg)

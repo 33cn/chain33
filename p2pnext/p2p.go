@@ -74,7 +74,7 @@ func New(mgr *p2pmgr.P2PMgr, subCfg []byte) p2pmgr.IP2P {
 		subCfg:        mcfg,
 		p2pCfg:        p2pCfg,
 		client:        mgr.Client,
-		api:           mgr.SysApi,
+		api:           mgr.SysAPI,
 		addrbook:      addrbook,
 		mgr:           mgr,
 		taskGroup:     &sync.WaitGroup{},
@@ -86,7 +86,7 @@ func New(mgr *p2pmgr.P2PMgr, subCfg []byte) p2pmgr.IP2P {
 	return p2p
 }
 
-func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker *metrics.BandwidthCounter) core.Host {
+func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter) core.Host {
 	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
 	if err != nil {
 		return nil
@@ -122,13 +122,10 @@ func (p *P2P) managePeers() {
 
 			return
 		}
-		select {
-		case <-time.After(time.Minute * 10):
-			//Reflesh addrbook
-			peersInfo := p.discovery.FindLocalPeers(p.connManag.FindNearestPeers())
-			p.addrbook.SaveAddr(peersInfo)
-
-		}
+		<-time.After(time.Minute * 10)
+		//Reflesh addrbook
+		peersInfo := p.discovery.FindLocalPeers(p.connManag.FindNearestPeers())
+		p.addrbook.SaveAddr(peersInfo)
 	}
 
 }

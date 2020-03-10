@@ -119,12 +119,12 @@ func (base *BaseProtocol) InitProtocol(data *P2PEnv) {
 }
 
 // NewMessageCommon new msg common struct
-func (base *BaseProtocol) NewMessageCommon(messageId, pid string, nodePubkey []byte, gossip bool) *types.MessageComm {
+func (base *BaseProtocol) NewMessageCommon(msgID, pid string, nodePubkey []byte, gossip bool) *types.MessageComm {
 	return &types.MessageComm{Version: "",
 		NodeId:     pid,
 		NodePubKey: nodePubkey,
 		Timestamp:  time.Now().Unix(),
-		Id:         messageId,
+		Id:         msgID,
 		Gossip:     gossip}
 
 }

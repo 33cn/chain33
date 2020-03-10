@@ -179,7 +179,7 @@ func (p *Peer) GetInBouns() int32 {
 
 // GetPeerInfo get peer information of peer
 func (p *Peer) GetPeerInfo() (*pb.P2PPeerInfo, error) {
-	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: int32(p.node.nodeInfo.channelVersion)}, grpc.FailFast(true))
+	return p.mconn.gcli.GetPeerInfo(context.Background(), &pb.P2PGetPeerInfo{Version: p.node.nodeInfo.channelVersion}, grpc.FailFast(true))
 }
 
 func (p *Peer) sendStream() {
@@ -225,7 +225,7 @@ func (p *Peer) sendStream() {
 
 		//send softversion&p2pversion
 		_, peerName := p.node.nodeInfo.addrBook.GetPrivPubKey()
-		p2pdata.Value = &pb.BroadCastData_Version{Version: &pb.Versions{P2Pversion: int32(p.node.nodeInfo.channelVersion),
+		p2pdata.Value = &pb.BroadCastData_Version{Version: &pb.Versions{P2Pversion: p.node.nodeInfo.channelVersion,
 			Softversion: v.GetVersion(), Peername: peerName}}
 
 		if err := resp.Send(p2pdata); err != nil {

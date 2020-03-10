@@ -28,7 +28,7 @@ func TestNetAddress(t *testing.T) {
 }
 
 func TestAddrRouteble(t *testing.T) {
-	resp := P2pComm.AddrRouteble([]string{"114.55.101.159:13802"}, int32(utils.CalcChannelVersion(119, VERSION)))
+	resp := P2pComm.AddrRouteble([]string{"114.55.101.159:13802"}, utils.CalcChannelVersion(119, VERSION))
 	t.Log(resp)
 }
 

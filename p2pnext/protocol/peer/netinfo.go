@@ -7,8 +7,8 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func (p *PeerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
-	log.Debug("PeerInfoProtol", "net info", msg)
+func (p *peerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
+	log.Debug("peerInfoProtol", "net info", msg)
 	insize, outsize := p.ConnManager.BoundSize()
 	var netinfo types.NodeNetInfo
 	//外网地址只有一个，显示太多，意义不大

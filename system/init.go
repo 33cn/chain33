@@ -6,7 +6,7 @@
 package system
 
 import (
-	_ "github.com/33cn/chain33/p2p"
+	_ "github.com/33cn/chain33/p2p" // init p2p
 	_ "github.com/33cn/chain33/p2pnext"
 	_ "github.com/33cn/chain33/system/consensus/init" //register consensus init package
 	_ "github.com/33cn/chain33/system/crypto/init"

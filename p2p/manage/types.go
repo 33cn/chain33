@@ -21,27 +21,28 @@ type IP2P interface {
 
 // P2PMgr p2p manager
 type P2PMgr struct {
-	SysApi          client.QueueProtocolAPI
-	Client          queue.Client
-	ChainCfg        *types.Chain33Config
-	PubSub          *pubsub.PubSub
-	subChan         chan interface{}
+	SysAPI   client.QueueProtocolAPI
+	Client   queue.Client
+	ChainCfg *types.Chain33Config
+	PubSub   *pubsub.PubSub
+	//subChan         chan interface{}
 	broadcastFilter *lru.Cache
 	p2ps            []IP2P
 	p2pCfg          *types.P2P
 }
 
-type createP2P func(mgr *P2PMgr, subCfg []byte) IP2P
+// CreateP2P p2p creator
+type CreateP2P func(mgr *P2PMgr, subCfg []byte) IP2P
 
 var (
-	p2pRegTypes = make(map[string]createP2P)
+	p2pRegTypes = make(map[string]CreateP2P)
 )
 
 // RegisterP2PCreate register p2p create func
-func RegisterP2PCreate(p2pType string, create createP2P) {
+func RegisterP2PCreate(p2pType string, create CreateP2P) {
 
 	if create == nil {
-		panic("RegisterP2P, nil createP2P, p2pType = " + p2pType)
+		panic("RegisterP2P, nil CreateP2P, p2pType = " + p2pType)
 	}
 	if _, ok := p2pRegTypes[p2pType]; ok {
 		panic("RegisterP2P, duplicate, p2pType = " + p2pType)
@@ -51,7 +52,7 @@ func RegisterP2PCreate(p2pType string, create createP2P) {
 }
 
 // LoadP2PCreate load p2p create func
-func LoadP2PCreate(p2pType string) createP2P {
+func LoadP2PCreate(p2pType string) CreateP2P {
 
 	if create, ok := p2pRegTypes[p2pType]; ok {
 		return create
@@ -100,7 +101,7 @@ func (mgr *P2PMgr) Close() {
 // SetQueueClient set the queue
 func (mgr *P2PMgr) SetQueueClient(cli queue.Client) {
 	var err error
-	mgr.SysApi, err = client.New(cli, nil)
+	mgr.SysAPI, err = client.New(cli, nil)
 	if err != nil {
 		panic("SetQueueClient client.New err:" + err.Error())
 	}

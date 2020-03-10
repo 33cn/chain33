@@ -51,10 +51,6 @@ func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 	streamHandlerTypeMap[typeID] = handlerType
 }
 
-type StreamResponse struct {
-	data proto.Message
-}
-
 type StreamRequst struct {
 	PeerID  peer.ID
 	Host    core.Host
@@ -89,7 +85,6 @@ func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 
 // Handle handle stream
 func (s *BaseStreamHandler) Handle(core.Stream) {
-	return
 }
 
 func (s *BaseStreamHandler) SignProtoMessage(message proto.Message, host core.Host) ([]byte, error) {

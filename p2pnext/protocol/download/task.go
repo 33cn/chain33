@@ -12,7 +12,7 @@ import (
 type Tasks []*TaskInfo
 
 type TaskInfo struct {
-	Id      string        //一次下载任务的任务ID
+	ID      string        //一次下载任务的任务ID
 	TaskNum int           //节点同时最大处理任务数量
 	Pid     peer.ID       //节点ID
 	Index   int           // 节点在任务列表中索引，方便下载失败后，把该节点从下载列表中删除
@@ -21,39 +21,39 @@ type TaskInfo struct {
 }
 
 //Len size of the Invs data
-func (i Tasks) Len() int {
-	return len(i)
+func (t Tasks) Len() int {
+	return len(t)
 }
 
 //Less Sort from low to high
-func (i Tasks) Less(a, b int) bool {
-	return i[a].Latency < i[b].Latency
+func (t Tasks) Less(a, b int) bool {
+	return t[a].Latency < t[b].Latency
 }
 
 //Swap  the param
-func (i Tasks) Swap(a, b int) {
-	i[a], i[b] = i[b], i[a]
+func (t Tasks) Swap(a, b int) {
+	t[a], t[b] = t[b], t[a]
 }
 
-func (j Tasks) Remove(index int) Tasks {
-	if index+1 > j.Size() {
-		return j
+func (t Tasks) Remove(index int) Tasks {
+	if index+1 > t.Size() {
+		return t
 	}
 
-	j = append(j[:index], j[index+1:]...)
-	return j
+	t = append(t[:index], t[index+1:]...)
+	return t
 
 }
-func (i Tasks) Sort() Tasks {
-	sort.Sort(i)
-	return i
+func (t Tasks) Sort() Tasks {
+	sort.Sort(t)
+	return t
 }
 
-func (i Tasks) Size() int {
-	return len(i)
+func (t Tasks) Size() int {
+	return len(t)
 }
 
-func (d *DownloadProtol) initJob(pids []string, jobId string) Tasks {
+func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
 	var JobPeerIds Tasks
 	var pIDs []peer.ID
 	for _, pid := range pids {
@@ -74,7 +74,7 @@ func (d *DownloadProtol) initJob(pids []string, jobId string) Tasks {
 		}
 		var job TaskInfo
 		job.Pid = pID
-		job.Id = jobId
+		job.ID = jobID
 		var ok bool
 		latency, ok := latency[job.Pid.Pretty()]
 		if ok {
@@ -90,7 +90,7 @@ func (d *DownloadProtol) initJob(pids []string, jobId string) Tasks {
 	return JobPeerIds
 }
 
-func (d *DownloadProtol) CheckTask(taskID string, pids []string, faildJobs map[string]interface{}) {
+func (d *downloadProtol) CheckTask(taskID string, pids []string, faildJobs map[string]interface{}) {
 	v, ok := faildJobs[taskID]
 	if !ok {
 		return
@@ -104,10 +104,9 @@ func (d *DownloadProtol) CheckTask(taskID string, pids []string, faildJobs map[s
 		d.downloadBlock(blockheight, jobS)
 
 	}
-	return
 }
 
-func (d *DownloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
+func (d *downloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
 
 	var limit int
 	if len(ts) > 10 {
@@ -141,7 +140,7 @@ func (d *DownloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
 
 }
 
-func (d *DownloadProtol) releaseJob(js *TaskInfo) {
+func (d *downloadProtol) releaseJob(js *TaskInfo) {
 	js.mtx.Lock()
 	defer js.mtx.Unlock()
 	js.TaskNum--

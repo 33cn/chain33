@@ -7,7 +7,7 @@ import (
 )
 
 func testSetExternalAddr(t *testing.T) {
-	var peerinfoProto = new(PeerInfoProtol)
+	var peerinfoProto = new(peerInfoProtol)
 
 	peerinfoProto.SetExternalAddr("192.168.1.1")
 	assert.Empty(t, peerinfoProto.GetExternalAddr())

@@ -79,7 +79,7 @@ func (f *Filterdata) ManageRecvFilter(tickTime time.Duration) {
 				log.Warn("Not found in regRData", "Key", key)
 				continue
 			}
-			if now-int64(regtime.(int64)) < timeout {
+			if now-regtime.(int64) < timeout {
 				break
 			}
 			f.regRData.Remove(key)

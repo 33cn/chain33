@@ -153,9 +153,5 @@ func (d *HeaderInfoHander) Handle(stream core.Stream) {
 		recvData := data.Message
 
 		protocol.OnReq(data.GetMessageData().GetId(), recvData, stream)
-		return
 	}
-
-	return
-
 }

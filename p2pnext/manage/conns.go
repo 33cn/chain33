@@ -112,11 +112,7 @@ func (s *ConnManager) AddNeighbors(pr *peer.AddrInfo) {
 
 func (s *ConnManager) IsNeighbors(pid peer.ID) bool {
 	_, ok := s.neighborStore.Load(pid.Pretty())
-	if ok {
-		return true
-	}
-
-	return false
+	return ok
 }
 
 func (s *ConnManager) Delete(pid peer.ID) {

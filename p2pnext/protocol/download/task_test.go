@@ -14,25 +14,25 @@ func testJobs(t *testing.T) {
 	pid3, _ := peer.IDB58Decode("16Uiu2HAm45QtjUVYxnc3eqfHoE4eSFovSh99SgsoF6Qm1eRXTd5W")
 
 	t1 := &TaskInfo{
-		Id:      "123456",
+		ID:      "123456",
 		TaskNum: 10,
 		Pid:     pid1,
 		Index:   0,
-		Latency: time.Duration(time.Second * 10),
+		Latency: time.Second * 10,
 	}
 	t2 := &TaskInfo{
-		Id:      "123456",
+		ID:      "123456",
 		TaskNum: 11,
 		Pid:     pid2,
 		Index:   1,
-		Latency: time.Duration(time.Second * 5),
+		Latency: time.Second * 5,
 	}
 	t3 := &TaskInfo{
-		Id:      "123456",
+		ID:      "123456",
 		TaskNum: 14,
 		Pid:     pid3,
 		Index:   2,
-		Latency: time.Duration(time.Second * 20),
+		Latency: time.Second * 20,
 	}
 
 	var myjobs Tasks

@@ -106,7 +106,7 @@ func (m *Cli) GetMemPool(msg *queue.Message, taskindex int64) {
 	for _, peer := range peers {
 		//获取远程 peer invs
 		resp, err := peer.mconn.gcli.GetMemPool(context.Background(),
-			&pb.P2PGetMempool{Version: int32(m.network.node.nodeInfo.channelVersion)}, grpc.FailFast(true))
+			&pb.P2PGetMempool{Version: m.network.node.nodeInfo.channelVersion}, grpc.FailFast(true))
 		P2pComm.CollectPeerStat(err, peer)
 		if err != nil {
 			if err == pb.ErrVersion {
@@ -138,7 +138,7 @@ func (m *Cli) GetMemPool(msg *queue.Message, taskindex int64) {
 		}
 		//获取真正的交易Tx call GetData
 		datacli, dataerr := peer.mconn.gcli.GetData(context.Background(),
-			&pb.P2PGetData{Invs: ableInv, Version: int32(m.network.node.nodeInfo.channelVersion)}, grpc.FailFast(true))
+			&pb.P2PGetData{Invs: ableInv, Version: m.network.node.nodeInfo.channelVersion}, grpc.FailFast(true))
 		P2pComm.CollectPeerStat(dataerr, peer)
 		if dataerr != nil {
 			continue
@@ -264,7 +264,7 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	}
 	addrfrom := nodeinfo.GetExternalAddr().String()
 
-	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: int32(nodeinfo.channelVersion), Service: int64(nodeinfo.ServiceTy()), Timestamp: pb.Now().Unix(),
+	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.channelVersion, Service: int64(nodeinfo.ServiceTy()), Timestamp: pb.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight}, grpc.FailFast(true))
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())

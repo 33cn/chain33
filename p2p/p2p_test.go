@@ -125,7 +125,7 @@ func newP2p(cfg *types.Chain33Config, port int32, dbpath string, q queue.Queue) 
 	p2pCfg.Driver = "leveldb"
 	p2pMgr := manage.NewP2PMgr(cfg)
 	p2pMgr.Client = q.Client()
-	p2pMgr.SysApi, _ = client.New(p2pMgr.Client, nil)
+	p2pMgr.SysAPI, _ = client.New(p2pMgr.Client, nil)
 
 	pcfg := &subConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[manage.GossipTypeName], pcfg)
@@ -293,7 +293,6 @@ func testPeer(t *testing.T, p2p *P2p, q queue.Queue) {
 	job.CancelJob()
 
 	localP2P.node.addPeer(peer)
-	assert.True(t, localP2P.node.Has(peer.Addr()))
 	assert.True(t, localP2P.node.needMore())
 	peer.Close()
 	localP2P.node.remove(peer.peerAddr.String())

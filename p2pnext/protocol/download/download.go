@@ -25,8 +25,8 @@ var (
 )
 
 func init() {
-	prototypes.RegisterProtocolType(protoTypeID, &DownloadProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockReq, &DownloadHander{})
+	prototypes.RegisterProtocolType(protoTypeID, &downloadProtol{})
+	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockReq, &downloadHander{})
 }
 
 const (
@@ -35,25 +35,25 @@ const (
 )
 
 //type Istream
-type DownloadProtol struct {
+type downloadProtol struct {
 	*prototypes.BaseProtocol
 	*prototypes.BaseStreamHandler
 }
 
-func (d *DownloadProtol) InitProtocol(env *prototypes.P2PEnv) {
+func (d *downloadProtol) InitProtocol(env *prototypes.P2PEnv) {
 	d.P2PEnv = env
 	//注册事件处理函数
 	prototypes.RegisterEventHandler(types.EventFetchBlocks, d.handleEvent)
 
 }
 
-type DownloadHander struct {
+type downloadHander struct {
 	*prototypes.BaseStreamHandler
 }
 
 //Handle 处理请求
-func (d *DownloadHander) Handle(stream core.Stream) {
-	protocol := d.GetProtocol().(*DownloadProtol)
+func (d *downloadHander) Handle(stream core.Stream) {
+	protocol := d.GetProtocol().(*downloadProtol)
 
 	//解析处理
 	if stream.Protocol() == DownloadBlockReq {
@@ -65,14 +65,11 @@ func (d *DownloadHander) Handle(stream core.Stream) {
 		}
 		recvData := data.Message
 		protocol.OnReq(data.MessageData.Id, recvData, stream)
-		return
 	}
-
-	return
 
 }
 
-func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.Stream) {
+func (d *downloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.Stream) {
 	defer s.Close()
 	//获取headers 信息
 	//允许下载的最大高度区间为256
@@ -123,7 +120,7 @@ func (d *DownloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 }
 
 //GetBlocks 接收来自chain33 blockchain模块发来的请求
-func (d *DownloadProtol) handleEvent(msg *queue.Message) {
+func (d *downloadProtol) handleEvent(msg *queue.Message) {
 
 	req := msg.GetData().(*types.ReqBlocks)
 	if req.GetStart() > req.GetEnd() {
@@ -197,7 +194,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 
 }
 
-func (d *DownloadProtol) downloadBlock(blockheight int64, tasks Tasks) error {
+func (d *downloadProtol) downloadBlock(blockheight int64, tasks Tasks) error {
 	var retryCount uint
 	tasks.Sort() //对任务节点时延进行排序，优先选择时延低的节点进行下载
 ReDownload:

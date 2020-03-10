@@ -275,11 +275,8 @@ func (n *Node) Size() int {
 func (n *Node) Has(paddr string) bool {
 	n.omtx.Lock()
 	defer n.omtx.Unlock()
-
-	if _, ok := n.outBound[paddr]; ok {
-		return true
-	}
-	return false
+	_, ok := n.outBound[paddr]
+	return ok
 }
 
 // GetRegisterPeer return one peer according to paddr
