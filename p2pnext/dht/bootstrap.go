@@ -79,7 +79,7 @@ func ConvertPeers(peers []string) map[string]*peer.AddrInfo {
 		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
 		if err != nil {
 			log.Error("ConvertPeers", "err", err)
-
+			continue
 		}
 		pinfos[peerinfo.ID.Pretty()] = peerinfo
 	}

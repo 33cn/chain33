@@ -85,7 +85,7 @@ innerBounds=300
 
 
 [p2p.sub.dht]
-seeds=["/ip4/52.229.200.231/tcp/13802/ipfs/16Uiu2HAmQPsneAp4RSNXJbzsMfP3y576UiAVv1NyLHPjpWELmAxY"]
+seeds=[""]
 
 [rpc]
 # jrpc绑定地址
