@@ -57,10 +57,12 @@ func (p *PeerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 	err := client.SendTimeout(msg, true, time.Second*10)
 	if err != nil {
 		log.Error("GetPeerInfo mempool", "Error", err.Error())
+		return nil
 	}
 	resp, err := client.WaitTimeout(msg, time.Second*10)
 	if err != nil {
 		log.Error("GetPeerInfo EventGetLastHeader", "Error", err.Error())
+		return nil
 
 	} else {
 		meminfo := resp.GetData().(*types.MempoolSize)
@@ -144,6 +146,9 @@ func (p *PeerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 			continue
 		}
 
+		if resp.GetMessage() == nil {
+			continue
+		}
 		peerinfos = append(peerinfos, resp.GetMessage())
 
 	}
@@ -167,6 +172,14 @@ func (p *PeerInfoProtol) GetExternalAddr() string {
 }
 
 func (p *PeerInfoProtol) DetectNodeAddr() {
+
+	var seedMap = make(map[string]interface{})
+	for _, seed := range p.p2pCfg.Seeds {
+		seedSplit := strings.Split(seed, "/")
+		seedMap[seedSplit[len(seedSplit)-1]] = seed
+	}
+	pid := p.GetHost().ID()
+
 	for {
 		if len(p.GetConnsManager().FindNearestPeers()) == 0 {
 			time.Sleep(time.Second)
@@ -175,15 +188,8 @@ func (p *PeerInfoProtol) DetectNodeAddr() {
 		break
 	}
 
-	var seedMap = make(map[string]interface{})
-	for _, seed := range p.p2pCfg.Seeds {
-		seedSplit := strings.Split(seed, "/")
-		seedMap[seedSplit[len(seedSplit)-1]] = seed
-	}
-
-	pid := p.GetHost().ID()
 	for _, remoteId := range p.GetConnsManager().FindNearestPeers() {
-		if remoteId.Pretty() == p.GetHost().ID().Pretty() {
+		if remoteId.Pretty() == pid.Pretty() {
 			continue
 		}
 
@@ -238,6 +244,9 @@ func (p *PeerInfoProtol) handleEvent(msg *queue.Message) {
 	var peers []*types.Peer
 	var peer types.Peer
 	for _, pinfo := range pinfos {
+		if pinfo == nil {
+			continue
+		}
 		var peer types.Peer
 		p.PeerInfoManager.Copy(&peer, pinfo)
 		peers = append(peers, &peer)
