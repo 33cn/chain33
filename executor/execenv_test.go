@@ -53,3 +53,25 @@ func TestLoadDriverFork(t *testing.T) {
 		assert.Equal(t, c.cacheSize, len(execute.execCache))
 	}
 }
+
+func TestIndexKVCheck(t *testing.T) {
+
+	cases := []struct {
+		name string
+		kvs  []*types.KeyValue
+		err  error
+	}{
+		// 通过, 不通过, 混合的情况, 例外和非例外
+		{"x", []*types.KeyValue{{Key: []byte("LODBP-x-a")}, {Key: []byte("LODBP-x-b")}}, nil},
+		{"x", []*types.KeyValue{{Key: []byte("LODBP-y-a")}, {Key: []byte("LODBP-z-b")}}, types.ErrLocalPrefix},
+		{"x", []*types.KeyValue{{Key: []byte("LODBP-x-a")}, {Key: []byte("LODBP-z-b")}}, types.ErrLocalPrefix},
+		{"fee", []*types.KeyValue{{Key: []byte("LODBP-fee-a")}, {Key: []byte("LODBP-fee-b")}}, types.ErrLocalPrefix},
+		{"fee", []*types.KeyValue{{Key: []byte("LODBP-fee-a")}, {Key: []byte("TotalFeeKey:b")}}, types.ErrLocalPrefix},
+		{"fee", []*types.KeyValue{{Key: []byte("TotalFeeKey:a")}, {Key: []byte("TotalFeeKey:b")}}, nil},
+	}
+
+	for _, c := range cases {
+		err := indexCheck.checkKV(c.name, c.kvs)
+		assert.Equal(t, c.err, err)
+	}
+}
