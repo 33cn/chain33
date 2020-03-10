@@ -96,17 +96,14 @@ func (d *DownloadProtol) CheckTask(taskID string, pids []string, faildJobs sync.
 	if !ok {
 		return
 	}
-	faildJob := v.(sync.Map)
-
-	faildJob.Range(func(k, v interface{}) bool {
-		blockheight := k.(int64)
+	faildJob := v.(map[int64]bool)
+	for blockheight := range faildJob {
 		jobS := d.initJob(pids, taskID)
 		log.Warn("CheckTask<<<<<<<<<<", "taskID", taskID, "faildJob", blockheight)
 		d.downloadBlock(blockheight, jobS)
-		return true
 
-	})
-
+	}
+	return
 }
 
 func (d *DownloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {

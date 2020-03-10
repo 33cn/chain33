@@ -169,13 +169,15 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 				log.Error("syncDownloadBlock", "err", err.Error())
 				v, ok := reDownload.Load(taskID)
 				if ok {
-					faildJob := v.(sync.Map)
-					faildJob.Store(blockheight, false)
+					faildJob := v.(map[int64]bool)
+					faildJob[blockheight] = false
+					//faildJob.Store(blockheight, false)
 					reDownload.Store(taskID, faildJob)
 
 				} else {
-					var faildJob sync.Map
-					faildJob.Store(blockheight, false)
+					var faildJob = make(map[int64]bool)
+					faildJob[blockheight] = false
+					//faildJob.Store(blockheight, false)
 					reDownload.Store(taskID, faildJob)
 
 				}
