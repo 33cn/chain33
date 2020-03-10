@@ -126,6 +126,8 @@ func New(mgr *manage.P2PMgr, subCfg []byte) manage.IP2P {
 	p2p.mgr = mgr
 	p2p.api = mgr.SysApi
 	p2p.taskGroup = &sync.WaitGroup{}
+	//从p2p manger获取pub的系统消息
+	p2p.subChan = p2p.mgr.PubSub.Sub(manage.GossipTypeName)
 	return p2p
 }
 
@@ -341,8 +343,6 @@ func (network *P2p) subP2pMsg() {
 	go func() {
 
 		var taskIndex int64
-		//从p2p manger获取pub的系统消息
-		network.subChan = network.mgr.PubSub.Sub(manage.GossipTypeName)
 		for data := range network.subChan {
 
 			msg, ok := data.(*queue.Message)
