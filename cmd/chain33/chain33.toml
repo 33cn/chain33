@@ -99,7 +99,7 @@ jrpcFuncWhitelist=["*"]
 # grpc方法请求白名单，默认是“*”，允许访问所有RPC方法
 grpcFuncWhitelist=["*"]
 # 是否开启https
-enableTLS=false
+enableTLS=true
 # 证书文件，证书和私钥文件可以用cli工具生成
 certFile="cert.pem"
 # 私钥文件
