@@ -450,7 +450,7 @@ type mvccKeyCreator struct {
 
 func newKeyCreator(p []byte) *mvccKeyCreator {
 	var c mvccKeyCreator
-	if p == nil || len(p) == 0 {
+	if len(p) == 0 {
 		c = mvccKeyCreator{prefix: mvccDefaultPrefix}
 	} else {
 		c = mvccKeyCreator{prefix: p}

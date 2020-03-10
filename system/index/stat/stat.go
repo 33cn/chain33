@@ -5,14 +5,12 @@
 package stat
 
 import (
-	log "github.com/33cn/chain33/common/log/log15"
 	plugin "github.com/33cn/chain33/system/index"
 	"github.com/33cn/chain33/types"
 )
 
 var (
 	name = "stat"
-	elog = log.New("module", "system/index/stat")
 )
 
 func init() {

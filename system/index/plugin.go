@@ -10,11 +10,8 @@ import (
 
 	"github.com/33cn/chain33/client"
 	dbm "github.com/33cn/chain33/common/db"
-	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 )
-
-var blog = log.New("module", "plugin.base")
 
 var globalPlugins = make(map[string]func() Plugin)
 

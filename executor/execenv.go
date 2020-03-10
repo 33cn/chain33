@@ -635,14 +635,14 @@ func (e *executor) execLocalPlugin(enable bool, plugin plugins.Plugin, name stri
 	if !ok {
 		return nil, ok, nil
 	}
-	if kvs != nil && len(kvs) > 0 {
+	if len(kvs) > 0 {
 		kvset.KV = append(kvset.KV, kvs...)
 	}
 	kvs, err = plugin.ExecLocal(datas)
 	if err != nil {
 		return nil, false, err
 	}
-	if kvs != nil && len(kvs) > 0 {
+	if len(kvs) > 0 {
 		kvset.KV = append(kvset.KV, kvs...)
 	}
 

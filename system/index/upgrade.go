@@ -60,14 +60,6 @@ func Upgrade(kvdb dbm.KVDB, name string, toVersion int, prefixes []Prefixes, cou
 		elog.Debug("Upgrade not need to upgrade", "current_version", version, "to_version", toVersion)
 		return true, nil
 	}
-	/*
-		prefixes := []struct {
-			from []byte
-			to   []byte
-		}{
-			{CalcTxPrefixOld(), CalcTxPrefix(name)},
-			{CalcTxShortHashPerfixOld(), CalcTxShortPerfix(name)},
-		}*/
 
 	for _, prefix := range prefixes {
 		done, err := UpgradeOneKey(kvdb, prefix.From, prefix.To, count)
@@ -75,7 +67,7 @@ func Upgrade(kvdb dbm.KVDB, name string, toVersion int, prefixes []Prefixes, cou
 			return done, err
 		}
 		// 未完成, 意味着数据量处理够了, 先返回
-		if done == false {
+		if !done {
 			return done, nil
 		}
 	}
