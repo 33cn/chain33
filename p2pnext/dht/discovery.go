@@ -32,11 +32,11 @@ type Discovery struct {
 	mndsService      *mdns
 }
 
-func (d *Discovery) InitDht(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig, isTestNet bool) {
+func InitDhtDiscovery(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig, isTestNet bool) *Discovery {
 
 	// Make the DHT,不同的ID进入不同的网络。
 	//如果不修改DHTProto 则有可能会连入IPFS网络，dhtproto=/ipfs/kad/1.0.0
-
+	d := new(Discovery)
 	opt := opts.Protocols(protocol.ID(DhtProtoID + "/" + fmt.Sprintf("%d", cfg.Channel)))
 	kademliaDHT, _ := dht.New(context.Background(), host, opt)
 	d.kademliaDHT = kademliaDHT
@@ -49,7 +49,7 @@ func (d *Discovery) InitDht(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pt
 		panic(err)
 	}
 
-	return
+	return d
 }
 
 func (d *Discovery) FindPeers() (<-chan peer.AddrInfo, error) {
