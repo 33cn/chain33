@@ -149,7 +149,7 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	var maxgoroutin int32
-	var reDownload sync.Map
+	var reDownload = make(map[string]interface{})
 	var startTime = time.Now().UnixNano()
 
 	for height := req.GetStart(); height <= req.GetEnd(); height++ {
@@ -167,18 +167,18 @@ func (d *DownloadProtol) handleEvent(msg *queue.Message) {
 				defer mutex.Unlock()
 
 				log.Error("syncDownloadBlock", "err", err.Error())
-				v, ok := reDownload.Load(taskID)
+				v, ok := reDownload[taskID]
 				if ok {
 					faildJob := v.(map[int64]bool)
 					faildJob[blockheight] = false
 					//faildJob.Store(blockheight, false)
-					reDownload.Store(taskID, faildJob)
+					reDownload[taskID] = faildJob
 
 				} else {
 					var faildJob = make(map[int64]bool)
 					faildJob[blockheight] = false
 					//faildJob.Store(blockheight, false)
-					reDownload.Store(taskID, faildJob)
+					reDownload[taskID] = faildJob
 
 				}
 			}

@@ -90,12 +90,13 @@ func (d *DownloadProtol) initJob(pids []string, jobId string) Tasks {
 	return JobPeerIds
 }
 
-func (d *DownloadProtol) CheckTask(taskID string, pids []string, faildJobs sync.Map) {
-	defer faildJobs.Delete(taskID)
-	v, ok := faildJobs.Load(taskID)
+func (d *DownloadProtol) CheckTask(taskID string, pids []string, faildJobs map[string]interface{}) {
+	v, ok := faildJobs[taskID]
 	if !ok {
 		return
 	}
+	defer delete(faildJobs, taskID)
+
 	faildJob := v.(map[int64]bool)
 	for blockheight := range faildJob {
 		jobS := d.initJob(pids, taskID)

@@ -128,7 +128,7 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 	qcli.Send(msg, false)
 	assert.True(t, qcli.Send(msg, false) == nil)
 
-	msg = qcli.NewMessage("p2p", types.EventPeerInfo, nil)
+	msg = qcli.NewMessage("p2p", types.EventPeerInfo, &types.P2PGetPeerReq{P2PType: "DHT"})
 	qcli.Send(msg, false)
 	assert.True(t, qcli.Send(msg, false) == nil)
 
