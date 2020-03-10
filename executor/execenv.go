@@ -722,6 +722,10 @@ func (e *executor) checkPluginKvs(name string, memKeys []string, kvs []*types.Ke
 		return types.ErrNotAllowMemSetLocalKey
 	}
 
+	// 原来的txindex数据没有前缀
+	if !e.api.GetConfig().IsEnable("quickIndex") && name == "txindex" {
+		return nil
+	}
 	return indexCheck.checkKV(name, kvs)
 }
 
