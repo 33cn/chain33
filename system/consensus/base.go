@@ -38,6 +38,7 @@ type Miner interface {
 	CreateGenesisTx() []*types.Transaction
 	GetGenesisBlockTime() int64
 	CreateBlock()
+	AddBlock(b *types.Block) error
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	AddBlock(b *types.Block) error
 	ProcEvent(msg *queue.Message) bool
@@ -89,6 +90,11 @@ func (bc *BaseClient) GetAPI() client.QueueProtocolAPI {
 //SetAPI ...
 func (bc *BaseClient) SetAPI(api client.QueueProtocolAPI) {
 	bc.api = api
+}
+
+//AddBlock 添加区块的时候，通知系统做处理
+func (bc *BaseClient) AddBlock(b *types.Block) error {
+	return nil
 }
 
 //InitClient 初始化

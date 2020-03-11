@@ -260,13 +260,9 @@ type ReqHashes struct {
 
 // ReqWalletTransactionList require wallet transaction list
 type ReqWalletTransactionList struct {
-	FromTx          string `json:"fromTx"`
-	Count           int32  `json:"count"`
-	Direction       int32  `json:"direction"`
-	Mode            int32  `json:"mode,omitempty"`
-	SendRecvPrivacy int32  `json:"sendRecvPrivacy,omitempty"`
-	Address         string `json:"address,omitempty"`
-	TokenName       string `json:"tokenname,omitempty"`
+	FromTx    string `json:"fromTx"`
+	Count     int32  `json:"count"`
+	Direction int32  `json:"direction"`
 }
 
 // WalletTxDetails wallet tx details
@@ -324,13 +320,6 @@ type NodeNetinfo struct {
 	Service      bool   `json:"service"`
 	Outbounds    int32  `json:"outbounds"`
 	Inbounds     int32  `json:"inbounds"`
-}
-
-// ReplyPrivacyPkPair   reply privekey pubkey pair
-type ReplyPrivacyPkPair struct {
-	ShowSuccessful bool   `json:"showSuccessful,omitempty"`
-	ViewPub        string `json:"viewPub,omitempty"`
-	SpendPub       string `json:"spendPub,omitempty"`
 }
 
 // ReplyCacheTxList reply cache tx list

@@ -129,32 +129,34 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 }
 
 func (exec *Executor) procUpgrade(msg *queue.Message) {
+	var kvset types.LocalDBSet
 	for _, plugin := range pluginmgr.GetExecList() {
 		elog.Info("begin upgrade plugin ", "name", plugin)
-		err := exec.upgradePlugin(plugin)
+		kvset1, err := exec.upgradePlugin(plugin)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
 			panic(err)
 		}
+		if kvset1 != nil && kvset1.KV != nil && len(kvset1.KV) > 0 {
+			kvset.KV = append(kvset.KV, kvset1.KV...)
+		}
 	}
 	elog.Info("upgrade plugin success")
-	msg.Reply(exec.client.NewMessage("", types.EventUpgrade, &types.Reply{
-		IsOk: true,
-	}))
+	msg.Reply(exec.client.NewMessage("", types.EventUpgrade, &kvset))
 }
 
-func (exec *Executor) upgradePlugin(plugin string) error {
+func (exec *Executor) upgradePlugin(plugin string) (*types.LocalDBSet, error) {
 	header, err := exec.qclient.GetLastHeader()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	driver, err := drivers.LoadDriverWithClient(exec.qclient, plugin, header.GetHeight())
 	if err == types.ErrUnknowDriver { //已经注册插件，但是没有启动
 		elog.Info("upgrade ignore ", "name", plugin)
-		return nil
+		return nil, nil
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
@@ -168,13 +170,13 @@ func (exec *Executor) upgradePlugin(plugin string) error {
 	driver.SetExecutorAPI(exec.qclient, exec.grpccli)
 	driver.SetEnv(header.GetHeight(), header.GetBlockTime(), uint64(header.GetDifficulty()))
 	localdb.Begin()
-	err = driver.Upgrade()
+	kvset, err := driver.Upgrade()
 	if err != nil {
 		localdb.Rollback()
-		return err
+		return nil, err
 	}
 	localdb.Commit()
-	return nil
+	return kvset, nil
 }
 
 func (exec *Executor) procExecQuery(msg *queue.Message) {
