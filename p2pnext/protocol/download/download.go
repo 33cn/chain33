@@ -64,37 +64,30 @@ func (d *downloadHander) Handle(stream core.Stream) {
 			return
 		}
 		recvData := data.Message
-		protocol.OnReq(data.MessageData.Id, recvData, stream)
+		protocol.onReq(data.GetMessageData().GetId(), recvData, stream)
 	}
 
 }
 
-func (d *downloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.Stream) {
-	defer s.Close()
-	//获取headers 信息
+func (d *downloadProtol) processReq(id string, message *types.P2PGetBlocks) (*types.MessageGetBlocksResp, error) {
+
 	//允许下载的最大高度区间为256
 	if message.GetEndHeight()-message.GetStartHeight() > 256 || message.GetEndHeight() < message.GetStartHeight() {
-		return
+		return nil, errors.New("param error")
 
 	}
 	//开始下载指定高度
 	log.Info("OnReq", "start", message.GetStartHeight(), "end", message.GetStartHeight())
 
 	reqblock := &types.ReqBlocks{Start: message.GetStartHeight(), End: message.GetEndHeight()}
-	client := d.GetQueueClient()
-	msg := client.NewMessage("blockchain", types.EventGetBlocks, reqblock)
-	err := client.Send(msg, true)
+
+	resp, err := d.SendToBlockChain(types.EventGetBlocks, reqblock)
 	if err != nil {
-		log.Error("GetBlocks", "Error", err.Error())
-		return
-	}
-	resp, err := client.WaitTimeout(msg, time.Second*20)
-	if err != nil {
-		log.Error("GetBlocks Err", "blockchain Err", err.Error(), "blockheight", message.GetStartHeight())
-		return
+		log.Error("sendToBlockChain", "Error", err.Error())
+		return nil, err
 	}
 
-	blockDetails := resp.Data.(*types.BlockDetails)
+	blockDetails := resp.(*types.BlockDetails)
 	var p2pInvData = make([]*types.InvData, 0)
 	var invdata types.InvData
 	for _, item := range blockDetails.Items {
@@ -109,13 +102,25 @@ func (d *downloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 	blocksResp := &types.MessageGetBlocksResp{MessageData: d.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.InvDatas{Items: p2pInvData}}
 
-	err = d.SendProtoMessage(blocksResp, s)
+	return blocksResp, nil
+
+}
+
+func (d *downloadProtol) onReq(id string, message *types.P2PGetBlocks, s core.Stream) {
+	defer s.Close()
+
+	blockdata, err := d.processReq(id, message)
+	if err != nil {
+		log.Error("processReq", "err", err)
+		return
+	}
+	err = d.SendProtoMessage(blockdata, s)
 	if err != nil {
 		log.Error("SendProtoMessage", "err", err)
 		return
 	}
 
-	log.Debug("OnReq", "Send Block Height+++++++", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "send  to", s.Conn().RemotePeer().String())
+	log.Debug("OnReq", "Send Block Height+++++++", blockdata.Message.GetItems()[0].GetBlock().GetHeight(), "send  to", s.Conn().RemotePeer().String())
 
 }
 
@@ -125,7 +130,6 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 	req := msg.GetData().(*types.ReqBlocks)
 	if req.GetStart() > req.GetEnd() {
 		log.Error("handleEvent", "download start", req.GetStart(), "download end", req.GetEnd())
-
 		msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{Msg: []byte("start>end")}))
 		return
 	}
@@ -143,6 +147,7 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 
 	//具体的下载逻辑
 	jobS := d.initJob(pids, taskID)
+	log.Info("handleEvent", "jobs", jobS)
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	var maxgoroutin int32

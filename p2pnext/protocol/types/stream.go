@@ -86,10 +86,12 @@ func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 func (s *BaseStreamHandler) Handle(core.Stream) {
 }
 
+//SignProtoMessage sign data
 func (s *BaseStreamHandler) SignProtoMessage(message types.Message, host core.Host) ([]byte, error) {
 	return SignProtoMessage(message, host)
 }
 
+//VerifyRequest verify data
 func (s *BaseStreamHandler) VerifyRequest(message types.Message, messageComm *types.MessageComm) bool {
 	//基类统一验证数据, 不需要验证,重写该方法直接返回true
 
@@ -111,6 +113,7 @@ func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
 }
 
+//StreamSendHandler send  and recv
 func (s *BaseStreamHandler) StreamSendHandler(in *StreamRequest, result types.Message) error {
 	stream, err := s.SendToStream(in.PeerID.Pretty(), in.Data, in.ProtoID, in.Host)
 	if err != nil {
@@ -119,6 +122,7 @@ func (s *BaseStreamHandler) StreamSendHandler(in *StreamRequest, result types.Me
 	return s.ReadProtoMessage(result, stream)
 }
 
+//SendToStream send data
 func (s *BaseStreamHandler) SendToStream(pid string, data types.Message, msgID protocol.ID, host core.Host) (core.Stream, error) {
 	rID, err := peer.IDB58Decode(pid)
 	if err != nil {
@@ -137,6 +141,7 @@ func (s *BaseStreamHandler) SendToStream(pid string, data types.Message, msgID p
 	return stream, err
 }
 
+//SendProtoMessage send data to stream
 func (s *BaseStreamHandler) SendProtoMessage(data types.Message, stream core.Stream) error {
 	stream.SetWriteDeadline(time.Now().Add(30 * time.Second))
 	writer := bufio.NewWriter(stream)
@@ -149,6 +154,7 @@ func (s *BaseStreamHandler) SendProtoMessage(data types.Message, stream core.Str
 	return nil
 }
 
+//ReadProtoMessage  read data from stream
 func (s *BaseStreamHandler) ReadProtoMessage(data types.Message, stream core.Stream) error {
 	stream.SetReadDeadline(time.Now().Add(30 * time.Second))
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(stream))

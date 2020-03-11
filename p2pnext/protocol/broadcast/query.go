@@ -31,7 +31,7 @@ func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid,
 		txHash := hex.EncodeToString(txReq.TxHash)
 		log.Debug("recvQueryTx", "txHash", txHash, "peerAddr", peerAddr)
 		//向mempool请求交易
-		resp, err := protocol.sendToMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
+		resp, err := protocol.SendToMemPool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
 		if err != nil {
 			log.Error("recvQuery", "queryMempoolErr", err)
 			return errSendMempool

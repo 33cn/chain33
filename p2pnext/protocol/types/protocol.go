@@ -159,3 +159,33 @@ func (base *BaseProtocol) GetConnsManager() *manage.ConnManager {
 func (base *BaseProtocol) GetPeerInfoManager() *manage.PeerInfoManager {
 	return base.PeerInfoManager
 }
+
+// SendToMemPool send to mempool for request
+func (base *BaseProtocol) SendToMemPool(ty int64, data interface{}) (interface{}, error) {
+	client := base.GetQueueClient()
+	msg := client.NewMessage("mempool", ty, data)
+	err := client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.WaitTimeout(msg, time.Second*10)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData(), nil
+}
+
+// SendToBlockChain send to blockchain for request
+func (base *BaseProtocol) SendToBlockChain(ty int64, data interface{}) (interface{}, error) {
+	client := base.GetQueueClient()
+	msg := client.NewMessage("blockchain", ty, data)
+	err := client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.WaitTimeout(msg, time.Second*10)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetData(), nil
+}

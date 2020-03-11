@@ -1,14 +1,13 @@
 package peer
 
 import (
+	"errors"
 	"time"
-	//prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
-	//"github.com/33cn/chain33/queue"
+
 	"math/rand"
 
 	"github.com/33cn/chain33/types"
 
-	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
 )
 
@@ -35,36 +34,45 @@ func decodeChannelVersion(channelVersion int32) (channel int32, version int32) {
 	return
 }
 
-func (p *peerInfoProtol) OnVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
-
-	log.Info("OnVersionReq", "peerproto", s.Protocol(), "req", req)
-	if p.GetExternalAddr() == "" {
-		p.SetExternalAddr(req.GetMessage().GetAddrRecv())
-		log.Info("OnVersionReq", "externalAddr", p.GetExternalAddr())
+func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr string) (*types.MessageP2PVersionResp, error) {
+	if p.getExternalAddr() == "" {
+		p.setExternalAddr(req.GetMessage().GetAddrRecv())
+		log.Info("OnVersionReq", "externalAddr", p.getExternalAddr())
 	}
 
 	channel, _ := decodeChannelVersion(req.GetMessage().GetVersion())
 	if channel < p.p2pCfg.Channel {
 		//TODO 协议不匹配
 		log.Error("OnVersionReq", "channel err", channel)
-		return
+		return nil, errors.New("channel err")
 	}
 
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 
-	mutiAddr := s.Conn().RemoteMultiaddr()
-	log.Info("OnVersionReq", "mutiAddr", mutiAddr.String())
 	var version types.P2PVersion
-	version.AddrFrom = p.GetExternalAddr()
-	version.AddrRecv = mutiAddr.String()
+	version.AddrFrom = p.getExternalAddr()
+	version.AddrRecv = muaddr
 	version.Nonce = rand.Int63n(102400)
 	version.Timestamp = time.Now().Unix()
 
-	resp := &types.MessageP2PVersionResp{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
+	resp := &types.MessageP2PVersionResp{MessageData: p.NewMessageCommon(req.GetMessageData().GetId(), pid.Pretty(), pubkey, false),
 		Message: &version}
+	return resp, nil
+}
 
-	err := p.SendProtoMessage(resp, s)
+func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
+	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
+
+	defer s.Close()
+	remoteMAddr := s.Conn().RemoteMultiaddr()
+
+	senddata, err := p.processVerReq(req, remoteMAddr.String())
+	if err != nil {
+		log.Error("onVersionReq", "err", err.Error())
+		return
+	}
+	err = p.SendProtoMessage(senddata, s)
 	if err != nil {
 		log.Error("SendProtoMessage", "err", err)
 		return

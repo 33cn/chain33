@@ -45,60 +45,46 @@ func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	p.p2pCfg = env.SubConfig
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
-	go p.DetectNodeAddr()
+	go p.detectNodeAddr()
 
 }
 
 func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
-	client := p.GetQueueClient()
 	var peerinfo types.P2PPeerInfo
 
-	msg := client.NewMessage("mempool", types.EventGetMempoolSize, nil)
-	err := client.SendTimeout(msg, true, time.Second*10)
+	resp, err := p.SendToMemPool(types.EventGetMempoolSize, nil)
 	if err != nil {
-		log.Error("GetPeerInfo mempool", "Error", err.Error())
+		log.Error("getlocalPeerInfo", "sendToMempool", err)
 		return nil
 	}
-	resp, err := client.WaitTimeout(msg, time.Second*10)
-	if err != nil {
-		log.Error("GetPeerInfo EventGetLastHeader", "Error", err.Error())
-		return nil
-	}
-	meminfo := resp.GetData().(*types.MempoolSize)
+
+	meminfo := resp.(*types.MempoolSize)
 	peerinfo.MempoolSize = int32(meminfo.GetSize())
 
-	msg = client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	err = client.SendTimeout(msg, true, time.Minute)
+	resp, err = p.SendToBlockChain(types.EventGetLastHeader, nil)
 	if err != nil {
-		log.Error("GetPeerInfo EventGetLastHeader", "Error", err.Error())
+		log.Error("getlocalPeerInfo", "sendToBlockChain", err)
 		return nil
-
 	}
-	resp, err = client.WaitTimeout(msg, time.Second*10)
-	if err != nil {
-		log.Error("GetPeerInfo EventGetLastHeader", "Error", err.Error())
 
-		return nil
-
-	}
-	header := resp.GetData().(*types.Header)
+	header := resp.(*types.Header)
 	peerinfo.Header = header
 	peerinfo.Name = p.Host.ID().Pretty()
 	splites := strings.Split(p.Host.Addrs()[0].String(), "/")
 	port, _ := strconv.Atoi(splites[len(splites)-1])
 	peerinfo.Port = int32(port)
 	//TODO 需要返回自身的外网地址
-	if p.GetExternalAddr() == "" {
+	if p.getExternalAddr() == "" {
 		peerinfo.Addr = splites[2]
 
 	} else {
-		peerinfo.Addr = p.GetExternalAddr()
+		peerinfo.Addr = p.getExternalAddr()
 	}
 	return &peerinfo
 }
 
 //p2pserver 端接收处理事件
-func (p *peerInfoProtol) OnReq(req *types.MessagePeerInfoReq, s core.Stream) {
+func (p *peerInfoProtol) onReq(req *types.MessagePeerInfoReq, s core.Stream) {
 	defer s.Close()
 
 	log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
@@ -119,7 +105,7 @@ func (p *peerInfoProtol) OnReq(req *types.MessagePeerInfoReq, s core.Stream) {
 }
 
 // PeerInfo 向对方节点请求peerInfo信息
-func (p *peerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
+func (p *peerInfoProtol) getPeerInfo() []*types.P2PPeerInfo {
 
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
@@ -154,7 +140,7 @@ func (p *peerInfoProtol) GetPeerInfo() []*types.P2PPeerInfo {
 
 }
 
-func (p *peerInfoProtol) SetExternalAddr(addr string) {
+func (p *peerInfoProtol) setExternalAddr(addr string) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	if len(strings.Split(addr, "/")) < 2 {
@@ -163,13 +149,13 @@ func (p *peerInfoProtol) SetExternalAddr(addr string) {
 	p.externalAddr = strings.Split(addr, "/")[2]
 }
 
-func (p *peerInfoProtol) GetExternalAddr() string {
+func (p *peerInfoProtol) getExternalAddr() string {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.externalAddr
 }
 
-func (p *peerInfoProtol) DetectNodeAddr() {
+func (p *peerInfoProtol) detectNodeAddr() {
 
 	var seedMap = make(map[string]interface{})
 	for _, seed := range p.p2pCfg.Seeds {
@@ -223,7 +209,7 @@ func (p *peerInfoProtol) DetectNodeAddr() {
 		}
 		log.Info("DetectAddr", "resp", resp)
 
-		p.SetExternalAddr(resp.GetMessage().GetAddrRecv())
+		p.setExternalAddr(resp.GetMessage().GetAddrRecv())
 		log.Info("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
 		//要判断是否是自身局域网的其他节点
 		if _, ok := seedMap[remoteID.Pretty()]; !ok {
@@ -238,7 +224,7 @@ func (p *peerInfoProtol) DetectNodeAddr() {
 
 //接收chain33其他模块发来的请求消息
 func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
-	pinfos := p.GetPeerInfo()
+	pinfos := p.getPeerInfo()
 	var peers []*types.Peer
 	var peer types.Peer
 	for _, pinfo := range pinfos {
@@ -276,7 +262,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 		if err != nil {
 			return
 		}
-		protocol.OnReq(&req, stream)
+		protocol.onReq(&req, stream)
 		return
 	} else if stream.Protocol() == PeerVersionReq {
 		var req types.MessageP2PVersionReq
@@ -285,7 +271,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 			return
 		}
 
-		protocol.OnVersionReq(&req, stream)
+		protocol.onVersionReq(&req, stream)
 
 	}
 

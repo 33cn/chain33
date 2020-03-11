@@ -1,7 +1,7 @@
 package headers
 
 import (
-	"time"
+	"errors"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
@@ -38,35 +38,35 @@ func (h *headerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	prototypes.RegisterEventHandler(types.EventFetchBlockHeaders, h.handleEvent)
 }
 
-func (h *headerInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s core.Stream) {
-	defer s.Close()
+func (h *headerInfoProtol) processReq(id string, getheaders *types.P2PGetHeaders) (*types.MessageHeaderResp, error) {
 	//获取headers 信息
+	log.Debug("processReq", "start", getheaders.GetStartHeight(), "end", getheaders.GetEndHeight())
+
 	if getheaders.GetEndHeight()-getheaders.GetStartHeight() > 2000 || getheaders.GetEndHeight() < getheaders.GetStartHeight() {
-		return
+		return nil, errors.New("param err")
 	}
 
-	log.Info("OnReq", "start", getheaders.GetStartHeight(), "end", getheaders.GetEndHeight())
-	client := h.GetQueueClient()
-	msg := client.NewMessage("blockchain", types.EventGetHeaders, &types.ReqBlocks{Start: getheaders.GetStartHeight(), End: getheaders.GetEndHeight()})
-	err := client.SendTimeout(msg, true, time.Second*30)
+	blockResp, err := h.SendToBlockChain(types.EventGetHeaders, &types.ReqBlocks{Start: getheaders.GetStartHeight(), End: getheaders.GetEndHeight()})
 	if err != nil {
-		log.Error("GetHeaders", "Error", err.Error())
-		return
+		return nil, err
 	}
-
-	blockResp, err := client.WaitTimeout(msg, time.Second*30)
-	if err != nil {
-		log.Error("EventGetHeaders WaitTimeout", "Error", err.Error())
-		return
-	}
-
-	headers := blockResp.GetData().(*types.Headers)
+	headers := blockResp.(*types.Headers)
 	peerID := h.GetHost().ID()
 	pubkey, _ := h.GetHost().Peerstore().PubKey(peerID).Bytes()
 	resp := &types.MessageHeaderResp{MessageData: h.NewMessageCommon(id, peerID.Pretty(), pubkey, false),
 		Message: &types.P2PHeaders{Headers: headers.GetItems()}}
+	return resp, nil
+}
 
-	err = h.SendProtoMessage(resp, s)
+func (h *headerInfoProtol) onReq(id string, getheaders *types.P2PGetHeaders, s core.Stream) {
+	defer s.Close()
+	senddata, err := h.processReq(id, getheaders)
+	if err != nil {
+		log.Error("onReq", "processReq", err)
+		return
+	}
+
+	err = h.SendProtoMessage(senddata, s)
 	if err == nil {
 		log.Info(" Header response ", "from", s.Conn().LocalPeer().String(), "to", s.Conn().RemotePeer().String(), "height", getheaders.GetStartHeight())
 	} else {
@@ -120,13 +120,7 @@ func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 			continue
 		}
 
-		client := h.GetQueueClient()
-		msg := client.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
-		err = client.Send(msg, false)
-		if err != nil {
-			log.Error("handleEvent send", "to blockchain EventAddBlockHeaders msg Err", err.Error())
-			continue
-		}
+		h.SendToBlockChain(types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
 
 		break
 
@@ -152,6 +146,6 @@ func (d *headerInfoHander) Handle(stream core.Stream) {
 		//TODO checkCommonData
 		recvData := data.Message
 
-		protocol.OnReq(data.GetMessageData().GetId(), recvData, stream)
+		protocol.onReq(data.GetMessageData().GetId(), recvData, stream)
 	}
 }

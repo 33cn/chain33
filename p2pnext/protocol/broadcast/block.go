@@ -98,7 +98,7 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 	ok := false
 	//get tx list from mempool
 	if len(ltBlock.STxHashes) > 0 {
-		resp, err := protocol.sendToMempool(types.EventTxListByHash,
+		resp, err := protocol.SendToMemPool(types.EventTxListByHash,
 			&types.ReqTxHashList{Hashes: ltBlock.STxHashes, IsShortHash: true})
 		if err != nil {
 			log.Error("recvLtBlock", "queryTxListByHashErr", err)

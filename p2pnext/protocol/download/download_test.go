@@ -1,8 +1,7 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
-package headers
+package download
 
 import (
 	"testing"
@@ -10,7 +9,10 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"time"
 
+	"github.com/33cn/chain33/p2pnext/dht"
+	"github.com/33cn/chain33/p2pnext/manage"
 	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 
@@ -62,17 +64,20 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		QueueClient:     q.Client(),
 		Host:            host,
 		ConnManager:     nil,
-		PeerInfoManager: nil,
+		PeerInfoManager: manage.NewPeerInfoManager(mgr.Client),
 		Discovery:       nil,
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
 	}
+
+	env.Discovery = dht.InitDhtDiscovery(host, nil, subCfg, true)
+	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil)
 	return env
 }
 
-func newTestProtocolWithQueue(q queue.Queue) *headerInfoProtol {
+func newTestProtocolWithQueue(q queue.Queue) *downloadProtol {
 	env := newTestEnv(q)
-	protocol := &headerInfoProtol{}
+	protocol := &downloadProtol{}
 	protocol.BaseProtocol = new(prototypes.BaseProtocol)
 	protocol.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	prototypes.ClearEventHandler()
@@ -81,7 +86,7 @@ func newTestProtocolWithQueue(q queue.Queue) *headerInfoProtol {
 	return protocol
 }
 
-func newTestProtocol(q queue.Queue) *headerInfoProtol {
+func newTestProtocol(q queue.Queue) *downloadProtol {
 
 	return newTestProtocolWithQueue(q)
 }
@@ -94,7 +99,7 @@ func TestHeaderInfoProtol_InitProtocol(t *testing.T) {
 
 }
 
-func testHandleEvent(protocol *headerInfoProtol, msg *queue.Message) {
+func testHandleEvent(protocol *downloadProtol, msg *queue.Message) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -104,28 +109,40 @@ func testHandleEvent(protocol *headerInfoProtol, msg *queue.Message) {
 	protocol.handleEvent(msg)
 }
 
-func TestFetchHeaderEvent(t *testing.T) {
+func TestFetchBlockEvent(t *testing.T) {
 	q := queue.New("test")
 
 	protocol := newTestProtocol(q)
+	testBlockReq(q)
+
 	msgs := make([]*queue.Message, 0)
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{
 		Pid:      []string{}, //[]string{"16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk3"},
 		Start:    1,
-		End:      1,
+		End:      257,
 		IsDetail: false,
 	}))
 
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{
-		Pid:      []string{"16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk3"},
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{
+		Pid:      []string{"16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk4"},
 		Start:    1,
-		End:      1,
+		End:      10,
 		IsDetail: false,
 	}))
+
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{
+		Pid:      []string{"16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk4"},
+		Start:    100000,
+		End:      100000,
+		IsDetail: false,
+	}))
+	protocol.GetPeerInfoManager().Add("16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk4", &types.Peer{Header: &types.Header{Height: 10000}})
 
 	for _, msg := range msgs {
 		testHandleEvent(protocol, msg)
 	}
+
+	time.Sleep(time.Second * 4)
 
 }
 
@@ -133,18 +150,23 @@ func Test_util(t *testing.T) {
 
 	q := queue.New("test")
 	protocol := newTestProtocol(q)
-	handler := &headerInfoHander{}
+	handler := &downloadHander{}
 	handler.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	handler.SetProtocol(protocol)
-	p2pgetheaders := &types.P2PGetHeaders{StartHeight: 1, EndHeight: 1,
-		Version: 0}
-	headerReq := &types.MessageHeaderReq{MessageData: protocol.NewMessageCommon("uid122222", "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg", []byte("322222222222222"), false),
-		Message: p2pgetheaders}
-	ok := handler.VerifyRequest(headerReq, headerReq.MessageData)
-	assert.False(t, ok)
-	testBlockReq(q)
-	testHeaderReq(t, protocol)
 
+	testBlockReq(q)
+
+	p2pgetblocks := &types.P2PGetBlocks{StartHeight: 1, EndHeight: 1,
+		Version: 0}
+	blockReq := &types.MessageGetBlocksReq{MessageData: protocol.NewMessageCommon("uid122222", "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg", []byte("322222222222222"), false),
+		Message: p2pgetblocks}
+	ok := handler.VerifyRequest(blockReq, blockReq.MessageData)
+	assert.False(t, ok)
+
+	protocol.processReq("uid122222", p2pgetblocks)
+
+	resp, _ := protocol.SendToBlockChain(types.EventGetBlocks, blockReq)
+	assert.NotNil(t, resp)
 }
 
 func testBlockReq(q queue.Queue) {
@@ -152,18 +174,8 @@ func testBlockReq(q queue.Queue) {
 	client.Sub("blockchain")
 	go func() {
 		for msg := range client.Recv() {
-			msg.Reply(client.NewMessage("p2p", types.EventGetHeaders, &types.Headers{Items: []*types.Header{}}))
+			msg.Reply(client.NewMessage("p2p", types.EventFetchBlocks, &types.BlockDetails{Items: []*types.BlockDetail{}}))
 		}
 	}()
-
-}
-
-func testHeaderReq(t *testing.T, protocol *headerInfoProtol) {
-
-	_, err := protocol.processReq("1231212", &types.P2PGetHeaders{StartHeight: 1, EndHeight: 3000})
-	assert.NotNil(t, err)
-
-	_, err = protocol.processReq("1231212", &types.P2PGetHeaders{StartHeight: 1, EndHeight: 10})
-	assert.Nil(t, err)
 
 }

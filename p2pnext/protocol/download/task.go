@@ -59,6 +59,7 @@ func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
 	for _, pid := range pids {
 		pID, err := peer.IDB58Decode(pid)
 		if err != nil {
+			log.Error("initJob", "IDB58Decode", err)
 			continue
 		}
 		pIDs = append(pIDs, pID)
@@ -78,15 +79,14 @@ func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
 		var ok bool
 		latency, ok := latency[job.Pid.Pretty()]
 		if ok {
-			if latency == 0 {
-				continue
+			if latency != 0 {
+				job.Latency = latency
+
 			}
-			job.Latency = latency
 		}
 		job.TaskNum = 0
 		JobPeerIds = append(JobPeerIds, &job)
 	}
-
 	return JobPeerIds
 }
 

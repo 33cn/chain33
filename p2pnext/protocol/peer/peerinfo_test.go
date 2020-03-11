@@ -22,7 +22,6 @@ import (
 	"github.com/33cn/chain33/p2pnext/dht"
 	multiaddr "github.com/multiformats/go-multiaddr"
 
-	//"github.com/33cn/chain33/p2pnext/manage"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
@@ -90,15 +89,37 @@ func newTestProtocolWithQueue(q queue.Queue) *peerInfoProtol {
 	return protocol
 }
 
-func newTestProtocol() *peerInfoProtol {
+func newTestProtocol(q queue.Queue) *peerInfoProtol {
 
-	q := queue.New("test")
 	return newTestProtocolWithQueue(q)
 }
 
-func TestPeerInfoProtol_InitProtocol(t *testing.T) {
+func testBlockReq(q queue.Queue) {
+	client := q.Client()
+	client.Sub("blockchain")
+	go func() {
+		for msg := range client.Recv() {
+			msg.Reply(client.NewMessage("p2p", types.EventGetLastHeader, &types.Header{}))
+		}
+	}()
 
-	protocol := newTestProtocol()
+}
+
+func testMempoolReq(q queue.Queue) {
+	client := q.Client()
+	client.Sub("mempool")
+	go func() {
+		for msg := range client.Recv() {
+			msg.Reply(client.NewMessage("p2p", types.EventGetMempoolSize, &types.MempoolSize{Size: 10}))
+
+		}
+	}()
+
+}
+
+func TestPeerInfoProtol_InitProtocol(t *testing.T) {
+	q := queue.New("test")
+	protocol := newTestProtocol(q)
 	assert.NotNil(t, protocol)
 
 }
@@ -123,7 +144,10 @@ func testNetInfoHandleEvent(protocol *peerInfoProtol, msg *queue.Message) {
 }
 
 func TestPeerInfoEvent(t *testing.T) {
-	protocol := newTestProtocol()
+	q := queue.New("test")
+	protocol := newTestProtocol(q)
+	testMempoolReq(q)
+	testBlockReq(q)
 	msgs := make([]*queue.Message, 0)
 	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventPeerInfo, &types.P2PGetPeerReq{P2PType: "DHT"}))
 	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventGetNetInfo, nil))
@@ -132,20 +156,29 @@ func TestPeerInfoEvent(t *testing.T) {
 }
 
 func Test_util(t *testing.T) {
-
-	proto := newTestProtocol()
+	q := queue.New("test")
+	proto := newTestProtocol(q)
 	handler := &peerInfoHandler{}
 	handler.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	handler.SetProtocol(proto)
-	//peerReq := &types.P2PGetPeerReq{P2PType: "DHT"}
 	msgReq := &types.MessagePeerInfoReq{MessageData: proto.NewMessageCommon("uid122222", "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg", []byte("322222222222222"), false)}
-
 	ok := handler.VerifyRequest(msgReq, msgReq.MessageData)
 	assert.False(t, ok)
-	decodeChannelVersion(255)
+	testMempoolReq(q)
+	testBlockReq(q)
+	peerinfo := proto.getLoacalPeerInfo()
+	assert.NotNil(t, peerinfo)
+	//----验证versionReq
+	p2pVerReq := &types.MessageP2PVersionReq{MessageData: proto.NewMessageCommon("uid122222", "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg", []byte("322222222222222"), false),
+		Message: &types.P2PVersion{Version: 255, AddrRecv: "/ip4/127.0.0.1/13802", AddrFrom: "/ip4/192.168.0.1/13802"}}
+	resp, _ := proto.processVerReq(p2pVerReq, "/ip4/192.168.0.1/13802")
+	assert.NotNil(t, resp)
 
-	proto.SetExternalAddr("192.168.1.1")
-	assert.Empty(t, proto.GetExternalAddr())
-	proto.SetExternalAddr("/ip4/192.168.1.1/13802")
-	assert.Equal(t, "192.168.1.1", proto.GetExternalAddr())
+	//-----------------
+	decodeChannelVersion(255)
+	proto.getPeerInfo()
+	proto.setExternalAddr("192.168.1.1")
+	assert.NotEmpty(t, proto.getExternalAddr())
+	proto.setExternalAddr("/ip4/192.168.1.1/13802")
+	assert.Equal(t, "192.168.1.1", proto.getExternalAddr())
 }

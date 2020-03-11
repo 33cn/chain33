@@ -11,9 +11,6 @@ import (
 
 	"github.com/33cn/chain33/p2p/utils"
 
-	//	"errors"
-	"time"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
@@ -248,21 +245,6 @@ func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid 
 	}
 	log.Debug("handleReceive", "peerAddr", peerAddr, "err", err)
 	return
-}
-
-func (protocol *broadCastProtocol) sendToMempool(ty int64, data interface{}) (interface{}, error) {
-
-	client := protocol.GetQueueClient()
-	msg := client.NewMessage("mempool", ty, data)
-	err := client.Send(msg, true)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := client.WaitTimeout(msg, time.Second*10)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Data, nil
 }
 
 func (protocol *broadCastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {
