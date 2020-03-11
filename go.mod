@@ -22,7 +22,7 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20180109070241-2de33835d102
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/protobuf v1.3.0
+	github.com/golang/protobuf v1.3.4
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.0
