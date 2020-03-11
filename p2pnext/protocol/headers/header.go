@@ -23,22 +23,22 @@ const (
 )
 
 func init() {
-	prototypes.RegisterProtocolType(protoTypeID, &HeaderInfoProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, &HeaderInfoHander{})
+	prototypes.RegisterProtocolType(protoTypeID, &headerInfoProtol{})
+	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, &headerInfoHander{})
 }
 
 //type Istream
-type HeaderInfoProtol struct {
+type headerInfoProtol struct {
 	*prototypes.BaseProtocol
 	*prototypes.BaseStreamHandler
 }
 
-func (h *HeaderInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
+func (h *headerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	h.P2PEnv = env
 	prototypes.RegisterEventHandler(types.EventFetchBlockHeaders, h.handleEvent)
 }
 
-func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s core.Stream) {
+func (h *headerInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s core.Stream) {
 	defer s.Close()
 	//获取headers 信息
 	if getheaders.GetEndHeight()-getheaders.GetStartHeight() > 2000 || getheaders.GetEndHeight() < getheaders.GetStartHeight() {
@@ -77,7 +77,7 @@ func (h *HeaderInfoProtol) OnReq(id string, getheaders *types.P2PGetHeaders, s c
 }
 
 //GetHeaders 接收来自chain33 blockchain模块发来的请求
-func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
+func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 	req := msg.GetData().(*types.ReqBlocks)
 	pids := req.GetPid()
 	log.Info("handleEvent", "msg", msg, "pid", pids, "req header start", req.GetStart(), "req header end", req.GetEnd())
@@ -134,14 +134,14 @@ func (h *HeaderInfoProtol) handleEvent(msg *queue.Message) {
 
 }
 
-type HeaderInfoHander struct {
+type headerInfoHander struct {
 	*prototypes.BaseStreamHandler
 }
 
 //Handle 处理请求
-func (d *HeaderInfoHander) Handle(stream core.Stream) {
+func (d *headerInfoHander) Handle(stream core.Stream) {
 
-	protocol := d.GetProtocol().(*HeaderInfoProtol)
+	protocol := d.GetProtocol().(*headerInfoProtol)
 	//解析处理
 	if stream.Protocol() == HeaderInfoReq {
 		var data types.MessageHeaderReq

@@ -115,7 +115,7 @@ func (d *downloadProtol) OnReq(id string, message *types.P2PGetBlocks, s core.St
 		return
 	}
 
-	log.Info("OnReq", "Send Block Height+++++++", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "send  to", s.Conn().RemotePeer().String())
+	log.Debug("OnReq", "Send Block Height+++++++", blocksResp.Message.GetItems()[0].GetBlock().GetHeight(), "send  to", s.Conn().RemotePeer().String())
 
 }
 
