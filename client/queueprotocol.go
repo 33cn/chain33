@@ -1026,3 +1026,18 @@ func (q *QueueProtocol) GetConfig() *types.Chain33Config {
 	}
 	return cfg
 }
+
+// AddSeqCallBack Add Seq CallBack
+func (q *QueueProtocol) AddSubscribeTxReceipt(param *types.SubscribeTxReceipt) (*types.ReplySubTxReceipt, error) {
+	msg, err := q.send(blockchainKey, types.EventSubscribeTxReceipt, param)
+	if err != nil {
+		log.Error("AddSubscribeTxReceipt", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplySubTxReceipt); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+
