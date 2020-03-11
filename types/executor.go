@@ -333,27 +333,14 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 		return
 	}
 	base.actionFunList = ListMethod(action)
-
-	useNew := false
-	mp, ok := base.actionFunList["XXX_OneofFuncs"]
-	if !ok {
-		mp, ok = base.actionFunList["XXX_OneofWrappers"]
-		if !ok {
-			return
-		}
-		useNew = true
+	if _, ok := base.actionFunList["XXX_OneofWrappers"]; !ok {
+		return
 	}
-	var list map[string]reflect.Type
-	if useNew {
-		retval := mp.Func.Call([]reflect.Value{reflect.ValueOf(action)})
-		list = ListType(retval[0].Interface().([]interface{}))
-	} else {
-		retval := mp.Func.Call([]reflect.Value{reflect.ValueOf(action)})
-		if len(retval) != 4 {
-			panic("err XXX_OneofFuncs")
-		}
-		list = ListType(retval[3].Interface().([]interface{}))
+	retval := base.actionFunList["XXX_OneofWrappers"].Func.Call([]reflect.Value{reflect.ValueOf(action)})
+	if len(retval) != 1 {
+		panic("err XXX_OneofWrappers")
 	}
+	list := ListType(retval[0].Interface().([]interface{}))
 
 	for k, v := range list {
 		data := strings.Split(k, "_")
