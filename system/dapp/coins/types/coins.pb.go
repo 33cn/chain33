@@ -5,12 +5,10 @@ package types
 
 import (
 	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
 	math "math"
 
 	types "github.com/33cn/chain33/types"
+	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -22,7 +20,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // message for execs.coins
 type CoinsAction struct {
@@ -42,16 +40,17 @@ func (m *CoinsAction) Reset()         { *m = CoinsAction{} }
 func (m *CoinsAction) String() string { return proto.CompactTextString(m) }
 func (*CoinsAction) ProtoMessage()    {}
 func (*CoinsAction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_coins_62a28f0f42170aa2, []int{0}
+	return fileDescriptor_da4483c99519c66a, []int{0}
 }
+
 func (m *CoinsAction) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CoinsAction.Unmarshal(m, b)
 }
 func (m *CoinsAction) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CoinsAction.Marshal(b, m, deterministic)
 }
-func (dst *CoinsAction) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CoinsAction.Merge(dst, src)
+func (m *CoinsAction) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CoinsAction.Merge(m, src)
 }
 func (m *CoinsAction) XXX_Size() int {
 	return xxx_messageInfo_CoinsAction.Size(m)
@@ -132,9 +131,9 @@ func (m *CoinsAction) GetTy() int32 {
 	return 0
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*CoinsAction) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _CoinsAction_OneofMarshaler, _CoinsAction_OneofUnmarshaler, _CoinsAction_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*CoinsAction) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*CoinsAction_Transfer)(nil),
 		(*CoinsAction_Withdraw)(nil),
 		(*CoinsAction_Genesis)(nil),
@@ -142,115 +141,15 @@ func (*CoinsAction) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) e
 	}
 }
 
-func _CoinsAction_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*CoinsAction)
-	// value
-	switch x := m.Value.(type) {
-	case *CoinsAction_Transfer:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Transfer); err != nil {
-			return err
-		}
-	case *CoinsAction_Withdraw:
-		b.EncodeVarint(4<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Withdraw); err != nil {
-			return err
-		}
-	case *CoinsAction_Genesis:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Genesis); err != nil {
-			return err
-		}
-	case *CoinsAction_TransferToExec:
-		b.EncodeVarint(5<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.TransferToExec); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("CoinsAction.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _CoinsAction_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*CoinsAction)
-	switch tag {
-	case 1: // value.transfer
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(types.AssetsTransfer)
-		err := b.DecodeMessage(msg)
-		m.Value = &CoinsAction_Transfer{msg}
-		return true, err
-	case 4: // value.withdraw
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(types.AssetsWithdraw)
-		err := b.DecodeMessage(msg)
-		m.Value = &CoinsAction_Withdraw{msg}
-		return true, err
-	case 2: // value.genesis
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(types.AssetsGenesis)
-		err := b.DecodeMessage(msg)
-		m.Value = &CoinsAction_Genesis{msg}
-		return true, err
-	case 5: // value.transferToExec
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(types.AssetsTransferToExec)
-		err := b.DecodeMessage(msg)
-		m.Value = &CoinsAction_TransferToExec{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _CoinsAction_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*CoinsAction)
-	// value
-	switch x := m.Value.(type) {
-	case *CoinsAction_Transfer:
-		s := proto.Size(x.Transfer)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *CoinsAction_Withdraw:
-		s := proto.Size(x.Withdraw)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *CoinsAction_Genesis:
-		s := proto.Size(x.Genesis)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *CoinsAction_TransferToExec:
-		s := proto.Size(x.TransferToExec)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
-}
-
 func init() {
 	proto.RegisterType((*CoinsAction)(nil), "types.CoinsAction")
 }
 
-func init() { proto.RegisterFile("coins.proto", fileDescriptor_coins_62a28f0f42170aa2) }
+func init() {
+	proto.RegisterFile("coins.proto", fileDescriptor_da4483c99519c66a)
+}
 
-var fileDescriptor_coins_62a28f0f42170aa2 = []byte{
+var fileDescriptor_da4483c99519c66a = []byte{
 	// 214 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4e, 0xce, 0xcf, 0xcc,
 	0x2b, 0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x2d, 0xa9, 0x2c, 0x48, 0x2d, 0x96, 0x12,
