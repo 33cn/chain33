@@ -31,8 +31,6 @@ func init() {
 //NewGoBadgerDB new
 func NewGoBadgerDB(name string, dir string, cache int) (*GoBadgerDB, error) {
 	opts := badger.DefaultOptions(dir)
-	//opts.Dir = dir
-	//opts.ValueDir = dir
 	if cache <= 128 {
 		opts.ValueLogLoadingMode = options.FileIO
 		//opts.MaxTableSize = int64(cache) << 18 // cache = 128, MaxTableSize = 32M
