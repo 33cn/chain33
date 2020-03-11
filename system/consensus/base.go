@@ -40,7 +40,6 @@ type Miner interface {
 	CreateBlock()
 	AddBlock(b *types.Block) error
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
-	AddBlock(b *types.Block) error
 	ProcEvent(msg *queue.Message) bool
 	CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool
 }
@@ -221,10 +220,6 @@ func (bc *BaseClient) ExecConsensus(data *types.ChainExecutor) (types.Message, e
 		return nil, err
 	}
 	return QueryData.Call(data.Driver, data.FuncName, param)
-}
-
-func (bc *BaseClient) AddBlock(b *types.Block) error {
-	return nil
 }
 
 //EventLoop 准备新区块
