@@ -210,11 +210,7 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	if c.forks == nil {
 		c.forks = &Forks{}
 	}
-	if c.title == "YCC" {
-		c.forks.SetPos33NetFork()
-	} else {
-		c.forks.SetTestNetFork()
-	}
+	c.forks.SetTestNetFork()
 
 	if cfg != nil {
 		if c.isLocal() {
