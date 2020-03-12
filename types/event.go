@@ -159,16 +159,14 @@ const (
 	EventCmpBestBlock = 311
 	// 广播归档数据索引
 	EventChunkRecordBroadcast = 312
-	// 通知其它节点进行数据归档
-	EventNotifyArchiveChunk   = 313
 	// 通知P2Pstore模块进行存储
-	EventStoreChunk           = 314
+	EventStoreChunk           = 313
 	// 获取chunkBlock数据
-	EventGetChunkBlock        = 315
+	EventGetChunkBlock        = 314
 	// 获取chunkBody数据
-	EventGetChunkBlockBody    = 316
+	EventGetChunkBlockBody    = 315
 	// 获取ChunkRecord
-	EventGetChunkRecord       = 317
+	EventGetChunkRecord       = 316
 )
 
 var eventName = map[int]string{
