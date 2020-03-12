@@ -53,9 +53,9 @@ func testJobs(t *testing.T) {
 	assert.Equal(t, myjobs[2].Pid, pid3)
 
 	//test delete
-	myjobs = myjobs.Remove(4)
+	myjobs = myjobs.Remove(&TaskInfo{Index: 4})
 	assert.Equal(t, 3, myjobs.Len())
-	myjobs = myjobs.Remove(0)
+	myjobs = myjobs.Remove(&TaskInfo{Index: 0})
 	assert.Equal(t, 2, myjobs.Len())
 
 }
