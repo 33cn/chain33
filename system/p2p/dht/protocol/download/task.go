@@ -125,15 +125,16 @@ func (d *downloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
 			log.Error("CheckAvailbJob", "PeerInfoManager No ths Peer info...", task.Pid.Pretty())
 			continue
 		}
-
+		task.mtx.Lock()
 		if task.TaskNum < limit {
-			task.mtx.Lock()
 			task.TaskNum++
-			task.mtx.Unlock()
 			task.Index = i
 			log.Debug("getFreeJob", " taskNum", task.TaskNum, "latency", task.Latency, "peerid", task.Pid)
+			task.mtx.Unlock()
+
 			return task
 		}
+		task.mtx.Unlock()
 	}
 
 	return nil
