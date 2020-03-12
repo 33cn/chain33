@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p2p
+package gossip
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/common/pubsub"
-	"github.com/33cn/chain33/p2p/nat"
+	"github.com/33cn/chain33/p2p/gossip/nat"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
