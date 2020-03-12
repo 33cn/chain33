@@ -380,3 +380,10 @@ message ReqChunkBlockBody {
     int64    start      = 2;
     int64    end        = 3;
 }
+
+// NotifyArchiveChunk 通知对端节点归档
+message NotifyArchiveChunk {
+    int64    chunkNum    = 1;
+    int64    startHeight = 2;
+    int64    endHeight   = 3;
+}
