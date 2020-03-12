@@ -39,23 +39,13 @@ enableTxQuickIndex=false
 
 [p2p]
 # p2p类型
-types=["gossip", "dht"]
+types=[ "dht"]
 enable=true
 driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
 waitPid=false
-
-[p2p.sub.gossip]
-# 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=["10.0.0.1:13802","10.0.0.2:13802","10.0.0.3:13802"]
-seeds=[]
-# 是否为种子节点
-isSeed=false
-# 是否使用Github获取种子节点
-useGithub=true
-# 最多的接入节点个数
-innerBounds=300
 
 [p2p.sub.dht]
 

@@ -45,17 +45,12 @@ isRecordBlockSequence=false
 enableTxQuickIndex=false
 
 [p2p]
+types=["dht"]
 enable=true
 driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-
-[p2p.sub.gossip]
-isSeed=false
-serverStart=true
-innerSeedEnable=true
-innerBounds=300
 
 [p2p.sub.dht]
 

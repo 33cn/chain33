@@ -40,19 +40,14 @@ enableTxQuickIndex=false
 
 
 [p2p]
-port=13802
-seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
+types=[ "dht"]
 enable=true
-isSeed=true
-serverStart=true
-msgCacheSize=10240
 driver="memdb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-version=216
-verMix=216
-verMax=217
+
+[p2p.sub.dht]
 
 [rpc]
 jrpcBindAddr="localhost:8801"

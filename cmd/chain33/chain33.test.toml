@@ -40,17 +40,12 @@ enableTxQuickIndex=false
 
 
 [p2p]
-types=["gossip", "dht"]
+types=[ "dht"]
 enable=true
 driver="memdb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-
-[p2p.sub.gossip]
-isSeed=true
-serverStart=true
-channel=216
 
 [p2p.sub.dht]
 
