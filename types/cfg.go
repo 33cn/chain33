@@ -158,6 +158,10 @@ type BlockChain struct {
 	OnChainTimeout int64 `protobuf:"varint,17,opt,name=onChainTimeout" json:"onChainTimeout,omitempty"`
 	// 使能精简localdb
 	EnableReduceLocaldb bool `protobuf:"varint,18,opt,name=enableReduceLocaldb" json:"enableReduceLocaldb,omitempty"`
+	// 使能开启分片存储
+	EnableShard bool `protobuf:"varint,19,opt,name=enableShard" json:"enableShard,omitempty"`
+	// 分片存储中每个大块包含的区块数
+	ChunkblockNum int64 `protobuf:"varint,20,opt,name=chunkblockNum" json:"chunkblockNum,omitempty"`
 }
 
 // P2P 配置

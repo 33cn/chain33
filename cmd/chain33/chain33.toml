@@ -53,6 +53,10 @@ enableTxQuickIndex=false
 enableReExecLocal=false
 # 使能精简localdb
 enableReduceLocaldb=true
+# 使能开启分片存储
+enableShard=true
+# 分片存储中每个大块包含的区块数
+chunkblockNum=1000
 
 [p2p]
 # P2P服务监听端口号

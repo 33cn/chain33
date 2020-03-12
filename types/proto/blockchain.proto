@@ -356,3 +356,27 @@ message CmpBlock {
     Block block   = 1;
     bytes cmpHash = 2;
 }
+
+// BlockBodys
+message BlockBodys {
+    repeated BlockBody items = 1;
+}
+
+// ChunkRecords
+message ChunkRecords {
+    repeated KeyValue kvs = 1;
+}
+
+// ChunkBlocks ----> reply Blocks 主要用于同步数据
+message ReqChunkBlock {
+    bytes    chunkHash  = 1;
+    int64    start      = 2;
+    int64    end        = 3;
+}
+
+// ChunkBlockBodys ----> reply BlockBodys 主要用于查询数据
+message ReqChunkBlockBody {
+    bytes    chunkHash  = 1;
+    int64    start      = 2;
+    int64    end        = 3;
+}
