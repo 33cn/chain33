@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/p2pnext/dht"
+	"github.com/33cn/chain33/system/p2p/dht/net"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -24,11 +24,11 @@ type ConnManager struct {
 	host             core.Host
 	pstore           peerstore.Peerstore
 	bandwidthTracker *metrics.BandwidthCounter
-	discovery        *dht.Discovery
+	discovery        *net.Discovery
 	Done             chan struct{}
 }
 
-func NewConnManager(host core.Host, discovery *dht.Discovery, tracker *metrics.BandwidthCounter) *ConnManager {
+func NewConnManager(host core.Host, discovery *net.Discovery, tracker *metrics.BandwidthCounter) *ConnManager {
 	connM := &ConnManager{}
 	connM.pstore = host.Peerstore()
 	connM.host = host

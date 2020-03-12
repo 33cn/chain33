@@ -17,10 +17,10 @@ var (
 /** 处理系统发送至p2p模块的事件, 包含下载, 交易及区块广播等
  * 主要是为了兼容多种类型p2p, 为不同的事件指定路由策略
  */
-func (mgr *P2PMgr) handleSysEvent() {
+func (mgr *Manager) handleSysEvent() {
 
 	mgr.Client.Sub("p2p")
-	log.Debug("P2PMgr handleSysEvent start")
+	log.Debug("Manager handleSysEvent start")
 	for msg := range mgr.Client.Recv() {
 
 		switch msg.Ty {
@@ -57,14 +57,14 @@ func (mgr *P2PMgr) handleSysEvent() {
 			continue
 		}
 	}
-	log.Debug("P2PMgr handleSysEvent stop")
+	log.Debug("Manager handleSysEvent stop")
 }
 
 // 处理p2p内部向外发送的消息, 主要是为了兼容多种类型p2p广播消息, 避免重复接交易或者区块
-func (mgr *P2PMgr) handleP2PSub() {
+func (mgr *Manager) handleP2PSub() {
 
 	//mgr.subChan = mgr.PubSub.Sub("p2p")
-	log.Debug("P2PMgr handleP2PSub start")
+	log.Debug("Manager handleP2PSub start")
 	//for msg := range mgr.subChan {
 	//
 	//}
@@ -72,7 +72,7 @@ func (mgr *P2PMgr) handleP2PSub() {
 }
 
 // PubBroadCast 兼容多种类型p2p广播消息, 避免重复接交易或者区块
-func (mgr *P2PMgr) PubBroadCast(hash string, data interface{}, eventTy int) error {
+func (mgr *Manager) PubBroadCast(hash string, data interface{}, eventTy int) error {
 
 	exist, _ := mgr.broadcastFilter.ContainsOrAdd(hash, true)
 	// eventTy, 交易=1, 区块=54
@@ -93,7 +93,7 @@ func (mgr *P2PMgr) PubBroadCast(hash string, data interface{}, eventTy int) erro
 }
 
 //
-func (mgr *P2PMgr) pub2All(msg *queue.Message) {
+func (mgr *Manager) pub2All(msg *queue.Message) {
 
 	for _, ty := range mgr.p2pCfg.Types {
 		mgr.PubSub.Pub(msg, ty)
@@ -102,7 +102,7 @@ func (mgr *P2PMgr) pub2All(msg *queue.Message) {
 }
 
 //
-func (mgr *P2PMgr) pub2P2P(msg *queue.Message, p2pType string) {
+func (mgr *Manager) pub2P2P(msg *queue.Message, p2pType string) {
 
 	mgr.PubSub.Pub(msg, p2pType)
 }

@@ -4,18 +4,20 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/33cn/chain33/p2p"
 	"net"
 	"sort"
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/p2p"
+
 	"github.com/33cn/chain33/p2p/utils"
 
-	"github.com/33cn/chain33/client"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/33cn/chain33/client"
 
 	l "github.com/33cn/chain33/common/log"
 

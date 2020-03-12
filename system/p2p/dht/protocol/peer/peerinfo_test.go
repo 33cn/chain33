@@ -5,33 +5,34 @@
 package peer
 
 import (
-	"github.com/33cn/chain33/p2p"
 	"testing"
+
+	"github.com/33cn/chain33/p2p"
 
 	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 
 	"crypto/rand"
 
-	"github.com/33cn/chain33/p2pnext/manage"
+	"github.com/33cn/chain33/system/p2p/dht/manage"
 
 	"context"
 	"fmt"
 
 	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/p2pnext/dht"
+	"github.com/33cn/chain33/system/p2p/dht/net"
 	multiaddr "github.com/multiformats/go-multiaddr"
 
-	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
-	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
-	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
+	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	q.SetConfig(cfg)
 	go q.Start()
 
@@ -72,7 +73,7 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
 	}
-	env.Discovery = dht.InitDhtDiscovery(host, nil, subCfg, true)
+	env.Discovery = net.InitDhtDiscovery(host, nil, subCfg, true)
 	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil)
 
 	return env

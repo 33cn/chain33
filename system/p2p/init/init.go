@@ -1,12 +1,9 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-package types
 
-const (
+package init
 
-	// DHTTypeName p2p插件名称，底层基于libp2p框架, dht结构化网络
-	DHTTypeName    = "dht"
+import (
+	_ "github.com/33cn/chain33/system/p2p/dht" //基于libp2p dht网络
 )
-
-

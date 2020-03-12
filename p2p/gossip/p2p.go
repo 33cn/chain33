@@ -7,11 +7,12 @@ package gossip
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/p2p"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/p2p"
 
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log/log15"
@@ -77,12 +78,12 @@ type P2p struct {
 	restart int32
 	p2pCfg  *types.P2P
 	subCfg  *subConfig
-	mgr     *p2p.P2PMgr
+	mgr     *p2p.Manager
 	subChan chan interface{}
 }
 
 // New produce a p2p object
-func New(mgr *p2p.P2PMgr, subCfg []byte) p2p.IP2P {
+func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	cfg := mgr.ChainCfg
 	p2pCfg := cfg.GetModuleConfig().P2P
 	mcfg := &subConfig{}

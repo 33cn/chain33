@@ -1,22 +1,28 @@
-package p2pnext
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package dht 基于libp2p实现p2p 插件
+package dht
 
 import (
 	"context"
 	"fmt"
-	"github.com/33cn/chain33/p2p"
 	"sync"
 	"sync/atomic"
+
+	"github.com/33cn/chain33/p2p"
 
 	"time"
 
 	"github.com/33cn/chain33/client"
 	logger "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/p2pnext/dht"
-	"github.com/33cn/chain33/p2pnext/manage"
-	"github.com/33cn/chain33/p2pnext/protocol"
-	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
-	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/system/p2p/dht/manage"
+	"github.com/33cn/chain33/system/p2p/dht/net"
+	"github.com/33cn/chain33/system/p2p/dht/protocol"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	libp2p "github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
@@ -34,10 +40,11 @@ func init() {
 	p2p.RegisterP2PCreate(p2pty.DHTTypeName, New)
 }
 
+// P2P p2p struct
 type P2P struct {
 	chainCfg      *types.Chain33Config
 	host          core.Host
-	discovery     *dht.Discovery
+	discovery     *net.Discovery
 	connManag     *manage.ConnManager
 	peerInfoManag *manage.PeerInfoManager
 	api           client.QueueProtocolAPI
@@ -48,18 +55,19 @@ type P2P struct {
 	closed  int32
 	p2pCfg  *types.P2P
 	subCfg  *p2pty.P2PSubConfig
-	mgr     *p2p.P2PMgr
+	mgr     *p2p.Manager
 	subChan chan interface{}
 }
 
-func New(mgr *p2p.P2PMgr, subCfg []byte) p2p.IP2P {
+// New new dht p2p network
+func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 
 	chainCfg := mgr.ChainCfg
 	p2pCfg := chainCfg.GetModuleConfig().P2P
 	mcfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(subCfg, mcfg)
 	if mcfg.Port == 0 {
-		mcfg.Port = 13803
+		mcfg.Port = p2pty.DefaultP2PPort
 	}
 
 	addrbook := NewAddrBook(p2pCfg)
@@ -80,7 +88,7 @@ func New(mgr *p2p.P2PMgr, subCfg []byte) p2p.IP2P {
 		taskGroup:     &sync.WaitGroup{},
 	}
 
-	p2p.discovery = dht.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.subCfg, p2p.chainCfg.IsTestNet())
+	p2p.discovery = net.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.subCfg, p2p.chainCfg.IsTestNet())
 	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
 	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 	return p2p

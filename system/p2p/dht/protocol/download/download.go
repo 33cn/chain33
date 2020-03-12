@@ -13,7 +13,7 @@ import (
 
 	core "github.com/libp2p/go-libp2p-core"
 
-	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	uuid "github.com/google/uuid"
 
 	"github.com/33cn/chain33/queue"

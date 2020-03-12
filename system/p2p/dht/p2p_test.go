@@ -1,10 +1,11 @@
-package p2pnext
+package dht
 
 import (
 	"context"
-	p2p2 "github.com/33cn/chain33/p2p"
-	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"testing"
+
+	p2p2 "github.com/33cn/chain33/p2p"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -231,7 +232,7 @@ func testStreamEOFReSet(t *testing.T) {
 
 func Test_p2p(t *testing.T) {
 
-	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
+	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	processMsg(q)

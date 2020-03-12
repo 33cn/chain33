@@ -3,8 +3,8 @@ package protocol
 import (
 	"github.com/33cn/chain33/common/log/log15"
 
-	"github.com/33cn/chain33/p2pnext/protocol/types"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/system/p2p/dht/protocol/types"
 )
 
 var (

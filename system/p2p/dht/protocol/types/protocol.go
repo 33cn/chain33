@@ -6,14 +6,15 @@
 package types
 
 import (
-	"github.com/33cn/chain33/p2p"
 	"reflect"
 	"time"
 
-	"github.com/33cn/chain33/p2pnext/dht"
-	"github.com/33cn/chain33/p2pnext/manage"
-	p2pty "github.com/33cn/chain33/p2pnext/types"
+	"github.com/33cn/chain33/p2p"
+
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/system/p2p/dht/manage"
+	"github.com/33cn/chain33/system/p2p/dht/net"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
 )
@@ -60,8 +61,8 @@ type P2PEnv struct {
 	Host            core.Host
 	ConnManager     *manage.ConnManager
 	PeerInfoManager *manage.PeerInfoManager
-	Discovery       *dht.Discovery
-	P2PManager      *p2p.P2PMgr
+	Discovery       *net.Discovery
+	P2PManager      *p2p.Manager
 	SubConfig       *p2pty.P2PSubConfig
 }
 

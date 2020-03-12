@@ -1,4 +1,4 @@
-package dht
+package net
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 
-	p2pty "github.com/33cn/chain33/p2pnext/types"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 

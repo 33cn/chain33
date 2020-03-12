@@ -18,7 +18,7 @@ var (
 type testP2P struct {
 }
 
-func newTestP2P(mgr *P2PMgr, subCfg []byte) IP2P {
+func newTestP2P(mgr *Manager, subCfg []byte) IP2P {
 
 	return &testP2P{}
 }

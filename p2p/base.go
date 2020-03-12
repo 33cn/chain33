@@ -19,8 +19,8 @@ type IP2P interface {
 	CloseP2P()
 }
 
-// P2PMgr p2p manager
-type P2PMgr struct {
+// Manager p2p manager
+type Manager struct {
 	SysAPI   client.QueueProtocolAPI
 	Client   queue.Client
 	ChainCfg *types.Chain33Config
@@ -32,7 +32,7 @@ type P2PMgr struct {
 }
 
 // CreateP2P p2p creator
-type CreateP2P func(mgr *P2PMgr, subCfg []byte) IP2P
+type CreateP2P func(mgr *Manager, subCfg []byte) IP2P
 
 var (
 	p2pRegTypes = make(map[string]CreateP2P)
@@ -61,8 +61,8 @@ func LoadP2PCreate(p2pType string) CreateP2P {
 }
 
 // NewP2PMgr new p2p manager
-func NewP2PMgr(cfg *types.Chain33Config) *P2PMgr {
-	mgr := &P2PMgr{
+func NewP2PMgr(cfg *types.Chain33Config) *Manager {
+	mgr := &Manager{
 		PubSub: pubsub.NewPubSub(1024),
 	}
 	var err error
@@ -81,10 +81,10 @@ func NewP2PMgr(cfg *types.Chain33Config) *P2PMgr {
 }
 
 // Wait wait p2p
-func (mgr *P2PMgr) Wait() {}
+func (mgr *Manager) Wait() {}
 
 // Close close p2p
-func (mgr *P2PMgr) Close() {
+func (mgr *Manager) Close() {
 
 	for _, p2p := range mgr.p2ps {
 		p2p.CloseP2P()
@@ -98,7 +98,7 @@ func (mgr *P2PMgr) Close() {
 }
 
 // SetQueueClient set the queue
-func (mgr *P2PMgr) SetQueueClient(cli queue.Client) {
+func (mgr *Manager) SetQueueClient(cli queue.Client) {
 	var err error
 	mgr.SysAPI, err = client.New(cli, nil)
 	if err != nil {

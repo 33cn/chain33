@@ -6,8 +6,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/33cn/chain33/common/log/log15"
-	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	"github.com/33cn/chain33/queue"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	"github.com/33cn/chain33/types"
 	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"

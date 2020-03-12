@@ -1,26 +1,25 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-package download
+
+package headers
 
 import (
-	"github.com/33cn/chain33/p2p"
 	"testing"
+
+	"github.com/33cn/chain33/p2p"
 
 	"context"
 	"crypto/rand"
 	"fmt"
-	"time"
 
-	"github.com/33cn/chain33/p2pnext/dht"
-	"github.com/33cn/chain33/p2pnext/manage"
 	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 
 	"github.com/33cn/chain33/client"
-	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
-	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	multiaddr "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +27,7 @@ import (
 
 func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
-	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
+	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	q.SetConfig(cfg)
 	go q.Start()
 
@@ -64,20 +63,17 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		QueueClient:     q.Client(),
 		Host:            host,
 		ConnManager:     nil,
-		PeerInfoManager: manage.NewPeerInfoManager(mgr.Client),
+		PeerInfoManager: nil,
 		Discovery:       nil,
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
 	}
-
-	env.Discovery = dht.InitDhtDiscovery(host, nil, subCfg, true)
-	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil)
 	return env
 }
 
-func newTestProtocolWithQueue(q queue.Queue) *downloadProtol {
+func newTestProtocolWithQueue(q queue.Queue) *headerInfoProtol {
 	env := newTestEnv(q)
-	protocol := &downloadProtol{}
+	protocol := &headerInfoProtol{}
 	protocol.BaseProtocol = new(prototypes.BaseProtocol)
 	protocol.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	prototypes.ClearEventHandler()
@@ -86,7 +82,7 @@ func newTestProtocolWithQueue(q queue.Queue) *downloadProtol {
 	return protocol
 }
 
-func newTestProtocol(q queue.Queue) *downloadProtol {
+func newTestProtocol(q queue.Queue) *headerInfoProtol {
 
 	return newTestProtocolWithQueue(q)
 }
@@ -99,7 +95,7 @@ func TestHeaderInfoProtol_InitProtocol(t *testing.T) {
 
 }
 
-func testHandleEvent(protocol *downloadProtol, msg *queue.Message) {
+func testHandleEvent(protocol *headerInfoProtol, msg *queue.Message) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -109,40 +105,28 @@ func testHandleEvent(protocol *downloadProtol, msg *queue.Message) {
 	protocol.handleEvent(msg)
 }
 
-func TestFetchBlockEvent(t *testing.T) {
+func TestFetchHeaderEvent(t *testing.T) {
 	q := queue.New("test")
 
 	protocol := newTestProtocol(q)
-	testBlockReq(q)
-
 	msgs := make([]*queue.Message, 0)
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{
 		Pid:      []string{}, //[]string{"16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk3"},
 		Start:    1,
-		End:      257,
+		End:      1,
 		IsDetail: false,
 	}))
 
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{
-		Pid:      []string{"16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk4"},
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{
+		Pid:      []string{"16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk3"},
 		Start:    1,
-		End:      10,
+		End:      1,
 		IsDetail: false,
 	}))
-
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{
-		Pid:      []string{"16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk4"},
-		Start:    100000,
-		End:      100000,
-		IsDetail: false,
-	}))
-	protocol.GetPeerInfoManager().Add("16Uiu2HAmHffWU9fXzNUG3hiCCgpdj8Y9q1BwbbK7ZBsxSsnaDXk4", &types.Peer{Header: &types.Header{Height: 10000}})
 
 	for _, msg := range msgs {
 		testHandleEvent(protocol, msg)
 	}
-
-	time.Sleep(time.Second * 4)
 
 }
 
@@ -150,23 +134,18 @@ func Test_util(t *testing.T) {
 
 	q := queue.New("test")
 	protocol := newTestProtocol(q)
-	handler := &downloadHander{}
+	handler := &headerInfoHander{}
 	handler.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	handler.SetProtocol(protocol)
-
-	testBlockReq(q)
-
-	p2pgetblocks := &types.P2PGetBlocks{StartHeight: 1, EndHeight: 1,
+	p2pgetheaders := &types.P2PGetHeaders{StartHeight: 1, EndHeight: 1,
 		Version: 0}
-	blockReq := &types.MessageGetBlocksReq{MessageData: protocol.NewMessageCommon("uid122222", "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg", []byte("322222222222222"), false),
-		Message: p2pgetblocks}
-	ok := handler.VerifyRequest(blockReq, blockReq.MessageData)
+	headerReq := &types.MessageHeaderReq{MessageData: protocol.NewMessageCommon("uid122222", "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg", []byte("322222222222222"), false),
+		Message: p2pgetheaders}
+	ok := handler.VerifyRequest(headerReq, headerReq.MessageData)
 	assert.False(t, ok)
+	testBlockReq(q)
+	testHeaderReq(t, protocol)
 
-	protocol.processReq("uid122222", p2pgetblocks)
-
-	resp, _ := protocol.SendToBlockChain(types.EventGetBlocks, blockReq)
-	assert.NotNil(t, resp)
 }
 
 func testBlockReq(q queue.Queue) {
@@ -174,8 +153,18 @@ func testBlockReq(q queue.Queue) {
 	client.Sub("blockchain")
 	go func() {
 		for msg := range client.Recv() {
-			msg.Reply(client.NewMessage("p2p", types.EventFetchBlocks, &types.BlockDetails{Items: []*types.BlockDetail{}}))
+			msg.Reply(client.NewMessage("p2p", types.EventGetHeaders, &types.Headers{Items: []*types.Header{}}))
 		}
 	}()
+
+}
+
+func testHeaderReq(t *testing.T, protocol *headerInfoProtol) {
+
+	_, err := protocol.processReq("1231212", &types.P2PGetHeaders{StartHeight: 1, EndHeight: 3000})
+	assert.NotNil(t, err)
+
+	_, err = protocol.processReq("1231212", &types.P2PGetHeaders{StartHeight: 1, EndHeight: 10})
+	assert.Nil(t, err)
 
 }

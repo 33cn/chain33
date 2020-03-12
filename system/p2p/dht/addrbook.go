@@ -1,11 +1,12 @@
-package p2pnext
+package dht
 
 import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"sync"
+
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"

@@ -1,9 +1,9 @@
-package dht
+package net
 
 import (
 	"context"
 
-	p2pty "github.com/33cn/chain33/p2pnext/types"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 

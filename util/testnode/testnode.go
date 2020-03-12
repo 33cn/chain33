@@ -8,12 +8,13 @@ package testnode
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/p2p"
 	"math/rand"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/p2p"
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/blockchain"
