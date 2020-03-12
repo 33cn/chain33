@@ -43,7 +43,7 @@ func TestRegisterLoad(t *testing.T) {
 
 func TestEvent(t *testing.T) {
 
-	cfg := types.NewChain33Config(types.ReadFile("../../cmd/chain33/chain33.test.toml"))
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	go q.Start()
