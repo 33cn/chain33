@@ -6,9 +6,8 @@ package gossip
 
 import (
 	"fmt"
+	"github.com/33cn/chain33/p2p"
 	"math/rand"
-
-	"github.com/33cn/chain33/p2p/manage"
 
 	//"strings"
 	"sync/atomic"
@@ -81,7 +80,7 @@ type Node struct {
 	closed     int32
 	pubsub     *pubsub.PubSub
 	chainCfg   *types.Chain33Config
-	p2pMgr     *manage.P2PMgr
+	p2pMgr     *p2p.P2PMgr
 }
 
 // SetQueueClient return client for nodeinfo
@@ -90,7 +89,7 @@ func (n *Node) SetQueueClient(client queue.Client) {
 }
 
 // NewNode produce a node object
-func NewNode(mgr *manage.P2PMgr, mcfg *subConfig) (*Node, error) {
+func NewNode(mgr *p2p.P2PMgr, mcfg *subConfig) (*Node, error) {
 
 	cfg := mgr.ChainCfg
 	node := &Node{

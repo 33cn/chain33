@@ -5,6 +5,7 @@
 package peer
 
 import (
+	"github.com/33cn/chain33/p2p"
 	"testing"
 
 	libp2p "github.com/libp2p/go-libp2p"
@@ -18,7 +19,6 @@ import (
 	"fmt"
 
 	"github.com/33cn/chain33/client"
-	p2pmgr "github.com/33cn/chain33/p2p/manage"
 	"github.com/33cn/chain33/p2pnext/dht"
 	multiaddr "github.com/multiformats/go-multiaddr"
 
@@ -35,12 +35,12 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 	q.SetConfig(cfg)
 	go q.Start()
 
-	mgr := p2pmgr.NewP2PMgr(cfg)
+	mgr := p2p.NewP2PMgr(cfg)
 	mgr.Client = q.Client()
 	mgr.SysAPI, _ = client.New(mgr.Client, nil)
 
 	subCfg := &p2pty.P2PSubConfig{}
-	types.MustDecode(cfg.GetSubConfig().P2P[p2pmgr.DHTTypeName], subCfg)
+	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], subCfg)
 	subCfg.MinLtBlockTxNum = 1
 	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
 	if err != nil {

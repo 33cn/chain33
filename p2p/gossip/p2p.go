@@ -7,6 +7,7 @@ package gossip
 
 import (
 	"fmt"
+	"github.com/33cn/chain33/p2p"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -17,12 +18,14 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 
-	"github.com/33cn/chain33/p2p/manage"
 	_ "google.golang.org/grpc/encoding/gzip" // register gzip
 )
 
+// P2PTypeName p2p plugin name for gossip
+const P2PTypeName = "gossip"
+
 func init() {
-	manage.RegisterP2PCreate(manage.GossipTypeName, New)
+	p2p.RegisterP2PCreate(P2PTypeName, New)
 }
 
 var (
@@ -74,12 +77,12 @@ type P2p struct {
 	restart int32
 	p2pCfg  *types.P2P
 	subCfg  *subConfig
-	mgr     *manage.P2PMgr
+	mgr     *p2p.P2PMgr
 	subChan chan interface{}
 }
 
 // New produce a p2p object
-func New(mgr *manage.P2PMgr, subCfg []byte) manage.IP2P {
+func New(mgr *p2p.P2PMgr, subCfg []byte) p2p.IP2P {
 	cfg := mgr.ChainCfg
 	p2pCfg := cfg.GetModuleConfig().P2P
 	mcfg := &subConfig{}
@@ -125,7 +128,7 @@ func New(mgr *manage.P2PMgr, subCfg []byte) manage.IP2P {
 	p2p.api = mgr.SysAPI
 	p2p.taskGroup = &sync.WaitGroup{}
 	//从p2p manger获取pub的系统消息
-	p2p.subChan = p2p.mgr.PubSub.Sub(manage.GossipTypeName)
+	p2p.subChan = p2p.mgr.PubSub.Sub(P2PTypeName)
 	return p2p
 }
 

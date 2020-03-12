@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // package manage 实现多种类型p2p兼容管理
-package manage
+package p2p
 
 import (
 	"github.com/33cn/chain33/client"
@@ -74,8 +74,7 @@ func NewP2PMgr(cfg *types.Chain33Config) *P2PMgr {
 	mgr.p2pCfg = cfg.GetModuleConfig().P2P
 	// set default p2p config
 	if len(mgr.p2pCfg.Types) == 0 {
-		//默认设置为老版本p2p协议
-		mgr.p2pCfg.Types = append(mgr.p2pCfg.Types, defaultP2PType)
+		panic("NewP2PBasePanic, Missing config p2p.types")
 	}
 
 	return mgr

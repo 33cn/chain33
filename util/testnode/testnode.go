@@ -8,13 +8,12 @@ package testnode
 
 import (
 	"fmt"
+	"github.com/33cn/chain33/p2p"
 	"math/rand"
 	"os"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/33cn/chain33/p2p/manage"
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/blockchain"
@@ -116,7 +115,7 @@ func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolA
 	mock.mem.Wait()
 	lognode.Info("init mempool")
 	if mfg.P2P.Enable {
-		mock.network = manage.NewP2PMgr(cfg)
+		mock.network = p2p.NewP2PMgr(cfg)
 		mock.network.SetQueueClient(q.Client())
 	} else {
 		mock.network = &mockP2P{}

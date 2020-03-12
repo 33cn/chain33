@@ -15,13 +15,12 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"github.com/33cn/chain33/p2p"
 	"net/http"
 	_ "net/http/pprof" //
 	"os"
 	"path/filepath"
 	"runtime"
-
-	p2pmgr "github.com/33cn/chain33/p2p/manage"
 
 	"github.com/33cn/chain33/metrics"
 
@@ -197,7 +196,7 @@ func RunChain33(name, defCfg string) {
 	log.Info("loading p2p module")
 	var network queue.Module
 	if cfg.P2P.Enable && !chain33Cfg.IsPara() {
-		network = p2pmgr.NewP2PMgr(chain33Cfg)
+		network = p2p.NewP2PMgr(chain33Cfg)
 	} else {
 		network = &util.MockModule{Key: "p2p"}
 	}

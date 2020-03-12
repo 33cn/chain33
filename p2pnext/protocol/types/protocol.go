@@ -6,10 +6,9 @@
 package types
 
 import (
+	"github.com/33cn/chain33/p2p"
 	"reflect"
 	"time"
-
-	p2pmanage "github.com/33cn/chain33/p2p/manage"
 
 	"github.com/33cn/chain33/p2pnext/dht"
 	"github.com/33cn/chain33/p2pnext/manage"
@@ -62,7 +61,7 @@ type P2PEnv struct {
 	ConnManager     *manage.ConnManager
 	PeerInfoManager *manage.PeerInfoManager
 	Discovery       *dht.Discovery
-	P2PManager      *p2pmanage.P2PMgr
+	P2PManager      *p2p.P2PMgr
 	SubConfig       *p2pty.P2PSubConfig
 }
 

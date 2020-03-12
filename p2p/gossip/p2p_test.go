@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/33cn/chain33/p2p"
 	"net"
 	"sort"
 	"sync/atomic"
@@ -12,8 +13,6 @@ import (
 	"github.com/33cn/chain33/p2p/utils"
 
 	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/p2p/manage"
-
 	"os"
 	"strings"
 	"testing"
@@ -123,12 +122,12 @@ func newP2p(cfg *types.Chain33Config, port int32, dbpath string, q queue.Queue) 
 	p2pCfg.DbPath = dbpath
 	p2pCfg.DbCache = 4
 	p2pCfg.Driver = "leveldb"
-	p2pMgr := manage.NewP2PMgr(cfg)
+	p2pMgr := p2p.NewP2PMgr(cfg)
 	p2pMgr.Client = q.Client()
 	p2pMgr.SysAPI, _ = client.New(p2pMgr.Client, nil)
 
 	pcfg := &subConfig{}
-	types.MustDecode(cfg.GetSubConfig().P2P[manage.GossipTypeName], pcfg)
+	types.MustDecode(cfg.GetSubConfig().P2P[P2PTypeName], pcfg)
 	pcfg.Port = port
 	pcfg.Channel = testChannel
 	pcfg.ServerStart = true
@@ -163,7 +162,7 @@ func testP2PEvent(t *testing.T, p2p *P2p) {
 	msgs = append(msgs, p2p.client.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{}))
 
 	for _, msg := range msgs {
-		p2p.mgr.PubSub.Pub(msg, manage.GossipTypeName)
+		p2p.mgr.PubSub.Pub(msg, P2PTypeName)
 	}
 
 }

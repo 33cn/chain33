@@ -2,6 +2,8 @@ package p2pnext
 
 import (
 	"context"
+	p2p2 "github.com/33cn/chain33/p2p"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"testing"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -10,8 +12,6 @@ import (
 	"crypto/rand"
 
 	l "github.com/33cn/chain33/common/log"
-	"github.com/33cn/chain33/p2p/manage"
-	pmgr "github.com/33cn/chain33/p2p/manage"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet"
@@ -103,10 +103,10 @@ func processMsg(q queue.Queue) {
 	}()
 }
 
-func NewP2p(cfg *types.Chain33Config) pmgr.IP2P {
-	p2pmgr := manage.NewP2PMgr(cfg)
+func NewP2p(cfg *types.Chain33Config) p2p2.IP2P {
+	p2pmgr := p2p2.NewP2PMgr(cfg)
 	subCfg := p2pmgr.ChainCfg.GetSubConfig().P2P
-	p2p := New(p2pmgr, subCfg[pmgr.DHTTypeName])
+	p2p := New(p2pmgr, subCfg[p2pty.DHTTypeName])
 	p2p.StartP2P()
 	return p2p
 }
@@ -142,7 +142,7 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 
 }
 
-func testP2PClose(t *testing.T, p2p pmgr.IP2P) {
+func testP2PClose(t *testing.T, p2p p2p2.IP2P) {
 	p2p.CloseP2P()
 
 }

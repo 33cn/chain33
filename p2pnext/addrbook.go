@@ -4,9 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"sync"
-
-	"github.com/33cn/chain33/p2p/manage"
 
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
@@ -32,7 +31,7 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 	a := &AddrBook{
 		cfg: cfg,
 	}
-	dbPath := cfg.DbPath + "/" + manage.DHTTypeName
+	dbPath := cfg.DbPath + "/" + p2pty.DHTTypeName
 	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, dbPath, a.cfg.DbCache)
 
 	if !a.loadDb() {

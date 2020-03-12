@@ -6,10 +6,10 @@ package broadcast
 
 import (
 	"encoding/hex"
+	"github.com/33cn/chain33/p2p"
 	"testing"
 
 	"github.com/33cn/chain33/client"
-	p2pmgr "github.com/33cn/chain33/p2p/manage"
 	prototypes "github.com/33cn/chain33/p2pnext/protocol/types"
 	p2pty "github.com/33cn/chain33/p2pnext/types"
 	"github.com/33cn/chain33/queue"
@@ -43,12 +43,12 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 	q.SetConfig(cfg)
 	go q.Start()
 
-	mgr := p2pmgr.NewP2PMgr(cfg)
+	mgr := p2p.NewP2PMgr(cfg)
 	mgr.Client = q.Client()
 	mgr.SysAPI, _ = client.New(mgr.Client, nil)
 
 	subCfg := &p2pty.P2PSubConfig{}
-	types.MustDecode(cfg.GetSubConfig().P2P[p2pmgr.DHTTypeName], subCfg)
+	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], subCfg)
 	subCfg.MinLtBlockTxNum = 1
 
 	env := &prototypes.P2PEnv{

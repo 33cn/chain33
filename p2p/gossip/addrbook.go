@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/33cn/chain33/p2p/manage"
-
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
@@ -239,7 +237,7 @@ func (a *AddrBook) genPubkey(privkey string) string {
 // cmn.Panics if file is corrupt.
 
 func (a *AddrBook) loadDb() bool {
-	dbPath := a.p2pCfg.DbPath + "/" + manage.GossipTypeName
+	dbPath := a.p2pCfg.DbPath + "/" + P2PTypeName
 	a.bookDb = db.NewDB("addrbook", a.p2pCfg.Driver, dbPath, a.p2pCfg.DbCache)
 	privkey, err := a.bookDb.Get([]byte(privKeyTag))
 	if len(privkey) != 0 && err == nil {

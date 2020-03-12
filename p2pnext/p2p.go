@@ -3,6 +3,7 @@ package p2pnext
 import (
 	"context"
 	"fmt"
+	"github.com/33cn/chain33/p2p"
 	"sync"
 	"sync/atomic"
 
@@ -24,14 +25,13 @@ import (
 
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 
-	p2pmgr "github.com/33cn/chain33/p2p/manage"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 var log = logger.New("module", "p2pnext")
 
 func init() {
-	p2pmgr.RegisterP2PCreate(p2pmgr.DHTTypeName, New)
+	p2p.RegisterP2PCreate(p2pty.DHTTypeName, New)
 }
 
 type P2P struct {
@@ -48,11 +48,11 @@ type P2P struct {
 	closed  int32
 	p2pCfg  *types.P2P
 	subCfg  *p2pty.P2PSubConfig
-	mgr     *p2pmgr.P2PMgr
+	mgr     *p2p.P2PMgr
 	subChan chan interface{}
 }
 
-func New(mgr *p2pmgr.P2PMgr, subCfg []byte) p2pmgr.IP2P {
+func New(mgr *p2p.P2PMgr, subCfg []byte) p2p.IP2P {
 
 	chainCfg := mgr.ChainCfg
 	p2pCfg := chainCfg.GetModuleConfig().P2P
@@ -174,7 +174,7 @@ func (p *P2P) findLANPeers() {
 
 func (p *P2P) handleP2PEvent() {
 
-	p.subChan = p.mgr.PubSub.Sub(p2pmgr.DHTTypeName)
+	p.subChan = p.mgr.PubSub.Sub(p2pty.DHTTypeName)
 	//TODO, control goroutine num
 	for data := range p.subChan {
 		if p.isClose() {
