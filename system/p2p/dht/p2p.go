@@ -87,7 +87,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		mgr:           mgr,
 		taskGroup:     &sync.WaitGroup{},
 	}
-
+	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
 	p2p.discovery = net.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.subCfg, p2p.chainCfg.IsTestNet())
 	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
 	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
@@ -182,7 +182,6 @@ func (p *P2P) findLANPeers() {
 
 func (p *P2P) handleP2PEvent() {
 
-	p.subChan = p.mgr.PubSub.Sub(p2pty.DHTTypeName)
 	//TODO, control goroutine num
 	for data := range p.subChan {
 		if p.isClose() {
