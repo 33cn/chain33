@@ -239,7 +239,7 @@ ReDownload:
 	if err != nil {
 		log.Error("handleEvent", "StreamSendHandler", err, "pid", task.Pid)
 		d.releaseJob(task)
-		tasks = tasks.Remove(task.Index)
+		tasks = tasks.Remove(task)
 		goto ReDownload
 	}
 

@@ -23,7 +23,6 @@ var (
 	log = log15.New("module", "p2p.dht")
 )
 
-const RendezvousString = "chain33-let's play!"
 const DhtProtoID = "/ipfs/kad/chain33/1.0.0"
 
 type Discovery struct {
@@ -52,7 +51,7 @@ func InitDhtDiscovery(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PS
 	return d
 }
 
-func (d *Discovery) FindPeers() (<-chan peer.AddrInfo, error) {
+func (d *Discovery) FindPeers(RendezvousString string) (<-chan peer.AddrInfo, error) {
 	d.routingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
 	discovery.Advertise(context.Background(), d.routingDiscovery, RendezvousString)
 	peerChan, err := d.routingDiscovery.FindPeers(context.Background(), RendezvousString)
