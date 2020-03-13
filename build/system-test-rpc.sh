@@ -145,7 +145,7 @@ chain33_GetNetInfo() {
     if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
-        http_req '{"method":"Chain33.GetNetInfo", "params":[]}' ${MAIN_HTTP} '(.result.externalAddr| length > 0) and (.result.service == true)' "$FUNCNAME"
+        http_req '{"method":"Chain33.GetNetInfo", "params":[]}' ${MAIN_HTTP} '(.result.externalAddr| length > 0)' "$FUNCNAME"
     fi
 }
 
