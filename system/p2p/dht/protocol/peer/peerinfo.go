@@ -159,7 +159,9 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 	//通常libp2p监听的地址列表，第一个为127，第二个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
-	p.setExternalAddr(strings.Split(addrs[len(addrs)-1].String(), "/")[2])
+	if len(addrs) > 0 {
+		p.setExternalAddr(addrs[len(addrs)-1].String())
+	}
 	var seedMap = make(map[string]interface{})
 	for _, seed := range p.p2pCfg.Seeds {
 		seedSplit := strings.Split(seed, "/")
