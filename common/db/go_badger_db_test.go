@@ -55,10 +55,7 @@ func TestBadgerDB(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(dir)
 
-	opts := badger.DefaultOptions
-	opts.Dir = dir
-	opts.ValueDir = dir
-
+	opts := badger.DefaultOptions(dir)
 	badgerdb, err := badger.Open(opts)
 	require.NoError(t, err)
 	defer badgerdb.Close()
@@ -74,7 +71,7 @@ func TestBadgerDB(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		val, err := item.Value()
+		val, err := item.ValueCopy(nil)
 		if err != nil {
 			return err
 		}

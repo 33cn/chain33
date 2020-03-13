@@ -38,19 +38,16 @@ isRecordBlockSequence=false
 enableTxQuickIndex=false
 
 [p2p]
-port=13802
-seeds=[]
+# p2p类型
+types=[ "dht"]
 enable=true
-isSeed=false
-serverStart=true
-innerSeedEnable=true
-useGithub=true
-innerBounds=300
-msgCacheSize=10240
 driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
+waitPid=false
+
+[p2p.sub.dht]
 
 [rpc]
 jrpcBindAddr="localhost:8801"

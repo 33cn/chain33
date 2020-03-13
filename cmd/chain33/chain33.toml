@@ -55,23 +55,10 @@ enableReExecLocal=false
 enableReduceLocaldb=true
 
 [p2p]
-# P2P服务监听端口号
-port=13802
-# 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=["10.0.0.1:13802","10.0.0.2:13802","10.0.0.3:13802"]
-seeds=[]
+# p2p类型
+types=[ "dht"]
 # 是否启动P2P服务
 enable=true
-# 是否为种子节点
-isSeed=false
-# 是否作为服务端，对外提供服务
-serverStart=true
-# 是否使用内置的种子节点
-innerSeedEnable=true
-# 是否使用Github获取种子节点
-useGithub=true
-# 最多的接入节点个数
-innerBounds=300
-msgCacheSize=10240
 # 使用的数据库类型
 driver="leveldb"
 # 使用的数据库类型
@@ -83,11 +70,15 @@ grpcLogFile="grpc33.log"
 #waitPid 等待seed导入
 waitPid=false
 
+
+[p2p.sub.dht]
+seeds=[""]
+
 [rpc]
 # jrpc绑定地址
-jrpcBindAddr="localhost:8801"
+jrpcBindAddr="localhost:8803"
 # grpc绑定地址
-grpcBindAddr="localhost:8802"
+grpcBindAddr="localhost:8804"
 # 白名单列表，允许访问的IP地址，默认是“*”，允许所有IP访问
 whitelist=["127.0.0.1"]
 # jrpc方法请求白名单，默认是“*”，允许访问所有RPC方法
