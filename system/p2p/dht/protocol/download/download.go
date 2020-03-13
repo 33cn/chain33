@@ -157,7 +157,7 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 	for height := req.GetStart(); height <= req.GetEnd(); height++ {
 		wg.Add(1)
 	Wait:
-		if maxgoroutin > 50 {
+		if atomic.LoadInt32(&maxgoroutin) > 50 {
 			time.Sleep(time.Millisecond * 200)
 			goto Wait
 		}
