@@ -1286,3 +1286,17 @@ func fmtTxProofs(txProofs []*types.TxProof) []*rpctypes.TxProof {
 	}
 	return result
 }
+
+// AddSeqCallBack  add Seq CallBack
+func (c *Chain33) AddSubscribeTxReceipt(in *types.SubscribeTxReceipt, result *interface{}) error {
+	reply, err := c.cli.AddSubscribeTxReceipt(in)
+	if err != nil {
+		log.Error("AddSubscribeTxReceipt", "err", err, "reply", reply)
+		return err
+	}
+	var resp rpctypes.Reply
+	resp.IsOk = reply.GetIsOk()
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
+	return nil
+}

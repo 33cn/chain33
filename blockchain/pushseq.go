@@ -14,6 +14,7 @@ import (
 const (
 	pushMaxSeq  = 100
 	pushMaxSize = 100 * 1024 * 1024
+    waitNewBlock = 1000 * time.Millisecond
 )
 
 //pushNotify push Notify

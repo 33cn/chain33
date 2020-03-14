@@ -652,6 +652,7 @@ func (chain *BlockChain) getParaTxByTitleAndHeight(msg *queue.Message) {
 func (chain *BlockChain) subscribeTxReceipt(msg *queue.Message) {
 	reply := &types.ReplySubTxReceipt{
 		IsOk: true,
+		Msg:[]byte("Succeed"),
 	}
 	subReq := (msg.Data).(*types.SubscribeTxReceipt)
 	err := chain.procSubscribeTxReceipt(subReq)

@@ -10,6 +10,11 @@ import (
 	"sync"
 	"time"
 )
+
+const (
+	NotRunning = iota+99
+	Running
+)
 //当前的实现是为每个订阅者单独启动一个协程goroute，然后单独为每个subscriber分别过滤指定类型的交易，
 //进行归类，这种方式集成了区块推送方式的处理机制，但是对于订阅者数量大的情况，势必会浪费cpu的开销，
 //数据库的读取开销不会额外增加明星，因为会有cach
@@ -18,12 +23,13 @@ import (
 type pushTxReceiptNotify struct {
 	subscribe chan *types.SubscribeTxReceipt
 	seq       chan int64
+	status    int32
 }
 
 type PushTxReceiptService struct {
 	store         CommonStore
 	sequenceStore SequenceStore
-	tasks         map[string]pushTxReceiptNotify
+	tasks         map[string]*pushTxReceiptNotify
 	mu            sync.Mutex
 	client        *http.Client
 	cfg           *types.Chain33Config
@@ -45,6 +51,7 @@ func (push *PushTxReceiptService) addTxReceiptSubscriber(subscribe *types.Subscr
 		return types.ErrInvalidParam
 	}
 
+	//如果需要配置起始的块的信息，则为了保持一致性，三项缺一不可
 	if subscribe.LastBlockHash != "" || subscribe.LastSequence != 0 || subscribe.LastHeight != 0 {
 		if subscribe.LastBlockHash == "" || subscribe.LastSequence == 0 || subscribe.LastHeight == 0 {
 			chainlog.Error("addTxReceiptSubscriber ErrInvalidParam", "seq", subscribe.LastSequence, "height", subscribe.LastHeight, "hash", subscribe.LastBlockHash)
@@ -52,9 +59,9 @@ func (push *PushTxReceiptService) addTxReceiptSubscriber(subscribe *types.Subscr
 		}
 	}
 
+	//如果该用户已经注册了订阅请求，则只是确认是否需用重新启动，否则就直接返回
 	if push.hasSubscriberExist(subscribe) {
-		chainlog.Error("addTxReceiptSubscriber error due to the same name and contract has existed already", "name:", subscribe.Name, "contract", subscribe.Contract)
-		return types.ErrSubscriberExist
+		return push.check2ResumePush(subscribe)
 	}
 
 	if push.subscriberCount() >= MaxTxReceiptSubscriber {
@@ -94,20 +101,49 @@ func (push *PushTxReceiptService) addTxSubscriber(subscribe *types.SubscribeTxRe
 	}
 	key := calcTxReceiptKey(subscribe.Name, subscribe.Contract)
 	storeLog.Info("addTxSubscriber", "key", string(key), "subscribe", subscribe)
+	push.addTask(subscribe)
 	return push.store.SetSync(key, types.Encode(subscribe))
+}
+
+func (push *PushTxReceiptService) check2ResumePush(subscribe *types.SubscribeTxReceipt) error {
+	if len(subscribe.Name) > 128 || len(subscribe.URL) > 1024 || len(subscribe.Contract) > 128 {
+		storeLog.Error("Invalid para to addTxSubscriber due to wrong length", "len(subscribe.Name)=", len(subscribe.Name),
+			"len(subscribe.URL)=", len(subscribe.URL), "len(subscribe.Contract)=", len(subscribe.Contract))
+		return types.ErrInvalidParam
+	}
+	push.mu.Lock()
+	defer push.mu.Unlock()
+
+	key := calcTxReceiptKey(subscribe.Name, subscribe.Contract)
+	storeLog.Info("check2ResumePush", "key", string(key), "subscribe", subscribe)
+	//push.addTask(subscribe)
+
+	keyStr := string(calcTxReceiptKey(subscribe.Name, subscribe.Contract))
+	notify := push.tasks[keyStr]
+	if Running == notify.status {
+		storeLog.Info("Is already in state:Running")
+		return nil
+	}
+	push.runTask(push.tasks[keyStr])
+	//更新最新的seq
+	push.updateLastSeq(keyStr)
+	return nil
 }
 
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
 func newpushTxReceiptService(commonStore CommonStore, seqStore SequenceStore, cfg *types.Chain33Config) *PushTxReceiptService {
-	tasks := make(map[string]pushTxReceiptNotify)
-	return &PushTxReceiptService{store: commonStore,
+	tasks := make(map[string]*pushTxReceiptNotify)
+	service := &PushTxReceiptService{store: commonStore,
 		sequenceStore:seqStore,
 		tasks:tasks,
 		client:&http.Client{},
 		cfg:cfg,
 	}
+	service.init()
+
+	return service
 }
 
 //初始化: 从数据库读出seq的数目
@@ -116,6 +152,9 @@ func (push *PushTxReceiptService) init() {
 	values, err := push.store.List([]byte(txReceiptPrefix))
 	if err != dbm.ErrNotFoundInDb {
 		chainlog.Error("PushTxReceiptService init", "err", err)
+		return
+	}
+	if 0 == len(values) {
 		return
 	}
 	for _, value := range values {
@@ -157,9 +196,10 @@ func (push *PushTxReceiptService) addTask(subscribe *types.SubscribeTxReceipt) {
 		}
 		return
 	}
-	push.tasks[keyStr] = pushTxReceiptNotify{
+	push.tasks[keyStr] = &pushTxReceiptNotify{
 		subscribe: make(chan *types.SubscribeTxReceipt, 10),
 		seq:       make(chan int64, 10),
+		status:    NotRunning,
 	}
 	push.tasks[keyStr].subscribe <- subscribe
 	push.runTask(push.tasks[keyStr])
@@ -196,12 +236,13 @@ func (push *PushTxReceiptService) trigeRun(run chan struct{}, sleep time.Duratio
 	}()
 }
 
-func (push *PushTxReceiptService) runTask(input pushTxReceiptNotify) {
-	go func(in pushTxReceiptNotify) {
+func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
+	go func(in *pushTxReceiptNotify) {
 		var lastProcessedseq int64 = -1
 		var lastesBlockSeq int64 = -1
 		var subscribe *types.SubscribeTxReceipt
 		var run = make(chan struct{}, 10)
+		var continueFailCount int32 = 0
 
 		subscribe = <-in.subscribe
 		if subscribe.URL == "" {
@@ -210,6 +251,7 @@ func (push *PushTxReceiptService) runTask(input pushTxReceiptNotify) {
 		}
 		push.trigeRun(run, 0)
 		lastProcessedseq = push.getLastPushSeq(subscribe)
+		in.status = Running
 		for {
 			select {
 			case lastesBlockSeq = <-in.seq:
@@ -219,11 +261,12 @@ func (push *PushTxReceiptService) runTask(input pushTxReceiptNotify) {
 					push.trigeRun(run, time.Second)
 					continue
 				}
-
+				//没有更新的区块，则不进行处理，同时等待一定的时间
 				if lastProcessedseq >= lastesBlockSeq {
-					push.trigeRun(run, 100*time.Millisecond)
+					push.trigeRun(run, waitNewBlock)
 					continue
 				}
+				//确定一次推送的数量，如果需要更新的数量少于门限值，则一次只推送一个区块的交易数据
 				seqCount := pushMaxSeq
 				if lastProcessedseq+int64(seqCount) > lastesBlockSeq {
 					seqCount = 1
@@ -239,13 +282,19 @@ func (push *PushTxReceiptService) runTask(input pushTxReceiptNotify) {
 				if data != nil {
 					err = push.postData(subscribe, data, updateSeq)
 					if err != nil {
-						chainlog.Error("postdata", "err", err, "lastProcessedseq", lastProcessedseq,
-							"Name", subscribe.Name, "contract:", subscribe.Contract)
+						continueFailCount++
+						chainlog.Error("postdata failed", "err", err, "lastProcessedseq", lastProcessedseq,
+							"Name", subscribe.Name, "contract:", subscribe.Contract, "continueFailCount", continueFailCount)
+						if continueFailCount >= 3 {
+							in.status = NotRunning
+							return
+						}
 						//sleep 60s
 						push.trigeRun(run, 60000*time.Millisecond)
 						continue
 					}
 				}
+				continueFailCount = 0
 				//update seqid
 				lastProcessedseq = updateSeq
 				push.trigeRun(run, 0)
@@ -269,11 +318,13 @@ func (push *PushTxReceiptService) getTxReceipts(subscribe *types.SubscribeTxRece
 		}
 
 		txReceiptsPerBlk := &types.TxReceipts4SubscribePerBlk{}
+		chainlog.Info("getTxReceipts", "tx numbers:", len(detail.Block.Txs), "Receipts numbers:", len(detail.Receipts))
 		for txIndex, tx := range detail.Block.Txs {
 			if string(tx.Execer) == subscribe.Contract {
+				chainlog.Info("getTxReceipts", "txIndex:", txIndex)
 				txReceiptsPerBlk.Tx = append(txReceiptsPerBlk.Tx, tx)
 				txReceiptsPerBlk.ReceiptData = append(txReceiptsPerBlk.ReceiptData, detail.Receipts[txIndex])
-				txReceiptsPerBlk.KV = append(txReceiptsPerBlk.KV, detail.KV[txIndex])
+				//txReceiptsPerBlk.KV = append(txReceiptsPerBlk.KV, detail.KV[txIndex])
 			}
 		}
 		if len(txReceiptsPerBlk.Tx) > 0 {
