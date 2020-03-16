@@ -21,7 +21,7 @@ const (
 //TODO：后续需要考虑将区块推送和交易执行回执推送进行重构，提高并行推送效率
 //pushNotify push Notify
 type pushTxReceiptNotify struct {
-	subscribe chan *types.SubscribeTxReceipt
+	subscribe *types.SubscribeTxReceipt
 	seq       chan int64
 	status    int32
 }
@@ -120,13 +120,22 @@ func (push *PushTxReceiptService) check2ResumePush(subscribe *types.SubscribeTxR
 
 	keyStr := string(calcTxReceiptKey(subscribe.Name, subscribe.Contract))
 	notify := push.tasks[keyStr]
+	//TODO:支持直接从运行状态将其删除注册
 	if Running == notify.status {
 		storeLog.Info("Is already in state:Running")
 		return nil
 	}
+
+	if subscribe.URL == "" {
+		chainlog.Debug("delete Tx Receipt Subscriber", "subscribe", subscribe)
+		delete(push.tasks, keyStr)
+		_ = push.store.SetSync([]byte(keyStr), nil)
+		return nil
+	}
+
 	push.runTask(push.tasks[keyStr])
 	//更新最新的seq
-	push.updateLastSeq(keyStr)
+	//push.updateLastSeq(keyStr)
 	return nil
 }
 
@@ -188,22 +197,21 @@ func (push *PushTxReceiptService) addTask(subscribe *types.SubscribeTxReceipt) {
 	push.mu.Lock()
 	defer push.mu.Unlock()
 	keyStr := string(calcTxReceiptKey(subscribe.Name, subscribe.Contract))
-	if notify, ok := push.tasks[keyStr]; ok {
-		notify.subscribe <- subscribe
+	if _, ok := push.tasks[keyStr]; ok {
 		if subscribe.URL == "" {
 			chainlog.Debug("delete Tx Receipt Subscriber", "subscribe", subscribe)
 			delete(push.tasks, keyStr)
+			_ = push.store.SetSync([]byte(keyStr), nil)
 		}
 		return
 	}
 	push.tasks[keyStr] = &pushTxReceiptNotify{
-		subscribe: make(chan *types.SubscribeTxReceipt, 10),
+		subscribe: subscribe,
 		seq:       make(chan int64, 10),
 		status:    NotRunning,
 	}
-	push.tasks[keyStr].subscribe <- subscribe
-	push.runTask(push.tasks[keyStr])
 
+	push.runTask(push.tasks[keyStr])
 	//更新最新的seq
 	push.updateLastSeq(keyStr)
 	chainlog.Debug("runTask to push tx receipt", "subscribe", subscribe)
@@ -244,25 +252,25 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 		var run = make(chan struct{}, 10)
 		var continueFailCount int32 = 0
 
-		subscribe = <-in.subscribe
-		if subscribe.URL == "" {
-			chainlog.Debug("runTask to push tx receipt", "subscribe", subscribe)
-			return
-		}
+		subscribe = in.subscribe
 		push.trigeRun(run, 0)
 		lastProcessedseq = push.getLastPushSeq(subscribe)
 		in.status = Running
+		chainlog.Debug("runTask to push tx receipt", "subscribe", subscribe)
 		for {
 			select {
 			case lastesBlockSeq = <-in.seq:
 				push.trigeRun(run, 0)
 			case <-run:
+				chainlog.Debug("runTask to push tx receipt", "run1")
 				if subscribe == nil {
 					push.trigeRun(run, time.Second)
+					chainlog.Debug("runTask to push tx receipt", "run2")
 					continue
 				}
 				//没有更新的区块，则不进行处理，同时等待一定的时间
 				if lastProcessedseq >= lastesBlockSeq {
+					chainlog.Debug("runTask to push tx receipt", "run3")
 					push.trigeRun(run, waitNewBlock)
 					continue
 				}
@@ -271,6 +279,7 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 				if lastProcessedseq+int64(seqCount) > lastesBlockSeq {
 					seqCount = 1
 				}
+				chainlog.Debug("runTask to push tx receipt", "run4")
 				data, updateSeq, err := push.getTxReceipts(subscribe, lastProcessedseq+1, seqCount, pushMaxSize)
 				if err != nil {
 					chainlog.Error("getTxReceipts", "err", err, "seq", lastProcessedseq+1, "maxSeq", seqCount,
@@ -287,6 +296,7 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 							"Name", subscribe.Name, "contract:", subscribe.Contract, "continueFailCount", continueFailCount)
 						if continueFailCount >= 3 {
 							in.status = NotRunning
+							chainlog.Error("postdata failed exceed 3 times", "in.status", in.status, )
 							return
 						}
 						//sleep 60s
@@ -318,7 +328,7 @@ func (push *PushTxReceiptService) getTxReceipts(subscribe *types.SubscribeTxRece
 		}
 
 		txReceiptsPerBlk := &types.TxReceipts4SubscribePerBlk{}
-		chainlog.Info("getTxReceipts", "tx numbers:", len(detail.Block.Txs), "Receipts numbers:", len(detail.Receipts))
+		chainlog.Info("getTxReceipts", "height:", detail.Block.Height, "tx numbers:", len(detail.Block.Txs), "Receipts numbers:", len(detail.Receipts))
 		for txIndex, tx := range detail.Block.Txs {
 			if string(tx.Execer) == subscribe.Contract {
 				chainlog.Info("getTxReceipts", "txIndex:", txIndex)
