@@ -109,6 +109,10 @@ func (chain *BlockChain) ProcRecvMsg() {
 			// 获取chunk record
 		case types.EventAddChunkRecord:
 			go chain.processMsg(msg, reqnum, chain.addChunkRecord)
+			// 从localdb中获取Chunk BlockBody
+		case types.EventGetChunkBlockBody:
+			go chain.processMsg(msg, reqnum, chain.getChunkBlockBody)
+
 
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
@@ -657,7 +661,7 @@ func (chain *BlockChain) getChunkRecord(msg *queue.Message) {
 	req := (msg.Data).(*types.ReqChunkRecords)
 	reply, err := chain.GetChunkRecord(req)
 	if err != nil {
-		chainlog.Error("getChunkRecord", "req", req, "err", err.Error())
+		chainlog.Error("GetChunkRecord", "req", req, "err", err.Error())
 		msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, err))
 		return
 	}
@@ -669,4 +673,16 @@ func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
 	req := (msg.Data).(*types.ChunkRecords)
 	chain.AddChunkRecord(req)
 	msg.Reply(chain.client.NewMessage("", types.EventAddChunkRecord, &types.Reply{IsOk: true}))
+}
+
+// getChunkBlockBody // 获取chunk BlockBody
+func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqChunkBlockBody)
+	reply, err := chain.GenChunkBlockBody(req)
+	if err != nil {
+		chainlog.Error("GenChunkBlockBody", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, reply))
 }

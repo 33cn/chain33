@@ -43,6 +43,7 @@ var (
 	BodyHashToChunk       = []byte("BodyHashToChunk:")
 	BodyHeightToChunk     = []byte("BodyHeightToChunk:")
 	ChunkNumToHash        = []byte("ChunkNumToHash:")
+	ChunkHashToNum        = []byte("ChunkHashToNum:")
 	// TODO 需要在本地保存一份记录当前已经归档的高度，即和ChunkNumToHash做区别
 	RecvChunkNumToHash    = []byte("RecvChunkNumToHash:")
 	storeLog              = chainlog.New("submodule", "store")
@@ -57,7 +58,7 @@ func GetLocalDBKeyList() [][]byte {
 		hashPrefix, tdPrefix, heightToHashKeyPrefix, seqToHashKey, HashToSeqPrefix,
 		seqCBPrefix, seqCBLastNumPrefix, tempBlockKey, lastTempBlockKey, LastParaSequence,
 		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix, chainReceiptPrefix,
-		BodyHashToChunk, BodyHeightToChunk, ChunkNumToHash, RecvChunkNumToHash,
+		BodyHashToChunk, BodyHeightToChunk, ChunkNumToHash, ChunkHashToNum, RecvChunkNumToHash,
 	}
 }
 
@@ -146,6 +147,11 @@ func calcHeightToChunkHash(height int64) []byte {
 // 存储归档索引 chunkNum--->chunkhash
 func calcChunkNumToHash(chunkNum int64) []byte {
 	return append(ChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
+}
+
+// 存储归档索引 chunkNum--->chunkhash
+func calcChunkHashToNum(hash []byte) []byte {
+	return append(ChunkHashToNum, hash...)
 }
 
 // 存储归档索引 chunkNum--->chunkhash 从对端节点同步过来的归档索引

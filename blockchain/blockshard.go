@@ -54,13 +54,19 @@ func (chain *BlockChain) ShardDataHandle(height int64) {
 	}
 	start := chunkNum * chain.cfg.ChunkblockNum
 	end   := start + chain.cfg.ChunkblockNum - 1
-	chunkHash, bodys, err := chain.getChunkBlocks(start, end)
+	chunkHash, bodys, err := chain.genChunkBlocks(start, end)
 	if err != nil {
 		storeLog.Error("ShardDataHandle", "chunkNum", chunkNum, "start", start, "end", end, "err", err)
 		return
 	}
 	// TODO 归档数据失败的话可以等到下次在发送，每次挖矿节点需要检查一下上次需要归档的数据是否已经发出去
-	chain.storeChunkToP2Pstore(chunkHash, bodys)
+	data := &types.NotifyStoreChunk{
+		ChunkNum: chunkNum,
+		ChunkHash: chunkHash,
+		StartHeight: start,
+		EndHeight: end,
+	}
+	chain.notifyStoreChunkToP2P(data)
 	// 生成归档记录
 	reqBlock := &types.ReqChunkBlock{
 		ChunkHash: chunkHash,
@@ -72,7 +78,7 @@ func (chain *BlockChain) ShardDataHandle(height int64) {
 	chain.saveChunkRecord(chunkRds)
 }
 
-// ShardDataHandle 分片数据处理
+// triggerShardDataHandle 分片数据处理
 // 由外部网络触发进行归档
 func (chain *BlockChain) triggerShardDataHandle(chunkNum int64, chunkHash []byte) {
 	// 1 从block中查询出当前索引档
@@ -88,13 +94,19 @@ func (chain *BlockChain) triggerShardDataHandle(chunkNum int64, chunkHash []byte
 	}
 	start := chunkNum * chain.cfg.ChunkblockNum
 	end   := start + chain.cfg.ChunkblockNum - 1
-	chunkHash, bodys, err := chain.getChunkBlocks(start, end)
+	chunkHash, bodys, err := chain.genChunkBlocks(start, end)
 	if err != nil {
 		storeLog.Error("ShardDataHandle", "chunkNum", chunkNum, "start", start, "end", end, "err", err)
 		return
 	}
 	// TODO 触发发送可以归档数据失败的话可以等到下次在发送，每次挖矿节点需要检查一下上次需要归档的数据是否已经发出去
-	chain.storeChunkToP2Pstore(chunkHash, bodys)
+	data := &types.NotifyStoreChunk{
+		ChunkNum: chunkNum,
+		ChunkHash: chunkHash,
+		StartHeight: start,
+		EndHeight: end,
+	}
+	chain.notifyStoreChunkToP2P(data)
 	// 生成归档记录
 	reqBlock := &types.ReqChunkBlock{
 		ChunkHash: chunkHash,
@@ -131,23 +143,20 @@ func (chain *BlockChain) triggerShardDataHandle(chunkNum int64, chunkHash []byte
 //	return
 //}
 
-func (chain *BlockChain) storeChunkToP2Pstore(chunkHash []byte, data *types.BlockBodys) {
+func (chain *BlockChain) notifyStoreChunkToP2P(data *types.NotifyStoreChunk) {
 	if chain.client == nil {
 		chainlog.Error("storeChunkToP2Pstore: chain client not bind message queue.")
 		return
 	}
 
-	chainlog.Debug("storeChunkToP2Pstore", "chunk block num", len(data.Items), "chunk hash", common.ToHex(chunkHash))
+	chainlog.Debug("storeChunkToP2Pstore", "chunknum", data.ChunkNum, "block start height",
+		data.StartHeight, "block end height", data.EndHeight,"chunk hash", common.ToHex(data.ChunkHash))
 
-	kv := &types.KeyValue{
-		Key: chunkHash,
-		Value: types.Encode(data),
-	}
-
-	msg := chain.client.NewMessage("p2p", types.EventNotifyStoreChunk, kv)
+	msg := chain.client.NewMessage("p2p", types.EventNotifyStoreChunk, data)
 	err := chain.client.Send(msg, true)
 	if err != nil {
-		chainlog.Error("storeChunkToP2Pstore", "chunk block num", len(data.Items), "chunk hash", common.ToHex(chunkHash), "err", err)
+		chainlog.Error("storeChunkToP2Pstore", "chunknum", data.ChunkNum, "block start height",
+			data.StartHeight, "block end height", data.EndHeight,"chunk hash", common.ToHex(data.ChunkHash), "err", err)
 	}
 	_, err = chain.client.Wait(msg)
 	if err != nil {
@@ -158,7 +167,7 @@ func (chain *BlockChain) storeChunkToP2Pstore(chunkHash []byte, data *types.Bloc
 }
 
 // calcChunkHash
-func (chain *BlockChain) getChunkBlocks(start, end int64) ([]byte, *types.BlockBodys, error){
+func (chain *BlockChain) genChunkBlocks(start, end int64) ([]byte, *types.BlockBodys, error){
 	var hashs types.ReplyHashes
 	var bodys types.BlockBodys
 	for i := start; i <= end; i++ {
@@ -180,6 +189,23 @@ func (chain *BlockChain) saveChunkRecord(chunkRds *types.ChunkRecords) {
 		newbatch.Set(kv.Key, kv.Value)
 	}
 	db.MustWrite(newbatch)
+}
+
+func (chain *BlockChain) GenChunkBlockBody(req *types.ReqChunkBlockBody) (*types.BlockBodys, error) {
+	if req == nil || len(req.ChunkHash) == 0 {
+		return nil, types.ErrInvalidParam
+	}
+	value, err := chain.blockStore.GetKey(calcChunkHashToNum(req.ChunkHash))
+	if err != nil {
+		return nil, err
+	}
+	no := &types.NotifyStoreChunk{}
+	err = types.Decode(value, no)
+	if err != nil {
+		return nil, err
+	}
+	_, bodys, err := chain.genChunkBlocks(no.StartHeight, no.EndHeight)
+	return bodys, err
 }
 
 // 从P2P网络中获取Chunk blcoks数据，主要用于区块链同步
@@ -248,6 +274,13 @@ func genChunkRecord(chunkNum int64, chunk *types.ReqChunkBlock, bodys *types.Blo
 		chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcHeightToChunkHash(body.Height), Value: chunk.ChunkHash})
 	}
 	chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcChunkNumToHash(chunkNum), Value: types.Encode(chunk)})
+	no := &types.NotifyStoreChunk{
+		ChunkNum: chunkNum,
+		ChunkHash: chunk.ChunkHash,
+		StartHeight: chunk.Start,
+		EndHeight: chunk.End,
+	}
+	chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcChunkHashToNum(chunk.ChunkHash), Value: types.Encode(no)})
 	return chunkRds
 }
 
