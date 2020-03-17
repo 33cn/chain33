@@ -34,6 +34,10 @@ func (chain *BlockChain) DeleteHaveShardData() {
 	}
 }
 
+func (chain *BlockChain) deleteShardBody() {
+	chain.blockStore.GetKey(calcChunkNumToHash(chunkHeight))
+}
+
 
 func (chain *BlockChain) ShardDataHandle(height int64) {
 	// 1 从block中查询出当前索引档
@@ -100,34 +104,32 @@ func (chain *BlockChain) triggerShardDataHandle(chunkNum int64, chunkHash []byte
 	chunkRds := genChunkRecord(chunkNum, reqBlock, bodys)
 	// 将归档记录先保存在本地
 	chain.saveChunkRecord(chunkRds)
-	// 将归档记录广播出去
-	chain.SendChunkRecordBroadcast(chunkRds, chunkNum)
 }
 
 //SendChunkRecordBroadcast blockchain模块广播ChunkRecords到网络中
-func (chain *BlockChain) SendChunkRecordBroadcast(chunkRds *types.ChunkRecords, chunkNum int64) {
-	if chain.client == nil {
-		chainlog.Error("SendChunkRecordBroadcast: chain client not bind message queue.")
-		return
-	}
-	if chunkRds == nil {
-		chainlog.Error("SendChunkRecordBroadcast chunkRds is null")
-		return
-	}
-	chainlog.Debug("SendChunkRecordBroadcast", "chunkNum", chunkNum)
-
-	msg := chain.client.NewMessage("p2p", types.EventChunkRecordBroadcast, chunkRds)
-	err := chain.client.Send(msg, true)
-	if err != nil {
-		chainlog.Error("SendChunkRecordBroadcast", "chunkNum", chunkNum, "err", err)
-	}
-	_, err = chain.client.Wait(msg)
-	if err != nil {
-		synlog.Error("SendChunkRecordBroadcast", "client.Wait err:", err)
-		return
-	}
-	return
-}
+//func (chain *BlockChain) SendChunkRecordBroadcast(chunkRds *types.ChunkRecords, chunkNum int64) {
+//	if chain.client == nil {
+//		chainlog.Error("SendChunkRecordBroadcast: chain client not bind message queue.")
+//		return
+//	}
+//	if chunkRds == nil {
+//		chainlog.Error("SendChunkRecordBroadcast chunkRds is null")
+//		return
+//	}
+//	chainlog.Debug("SendChunkRecordBroadcast", "chunkNum", chunkNum)
+//
+//	msg := chain.client.NewMessage("p2p", types.EventChunkRecordBroadcast, chunkRds)
+//	err := chain.client.Send(msg, true)
+//	if err != nil {
+//		chainlog.Error("SendChunkRecordBroadcast", "chunkNum", chunkNum, "err", err)
+//	}
+//	_, err = chain.client.Wait(msg)
+//	if err != nil {
+//		synlog.Error("SendChunkRecordBroadcast", "client.Wait err:", err)
+//		return
+//	}
+//	return
+//}
 
 func (chain *BlockChain) storeChunkToP2Pstore(chunkHash []byte, data *types.BlockBodys) {
 	if chain.client == nil {
@@ -142,7 +144,7 @@ func (chain *BlockChain) storeChunkToP2Pstore(chunkHash []byte, data *types.Bloc
 		Value: types.Encode(data),
 	}
 
-	msg := chain.client.NewMessage("p2p", types.EventStoreChunk, kv)
+	msg := chain.client.NewMessage("p2p", types.EventNotifyStoreChunk, kv)
 	err := chain.client.Send(msg, true)
 	if err != nil {
 		chainlog.Error("storeChunkToP2Pstore", "chunk block num", len(data.Items), "chunk hash", common.ToHex(chunkHash), "err", err)
