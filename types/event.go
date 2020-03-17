@@ -167,6 +167,8 @@ const (
 	EventGetChunkBlockBody    = 315
 	// 获取ChunkRecord
 	EventGetChunkRecord       = 316
+	// 添加ChunkRecord
+	EventAddChunkRecord       = 317
 )
 
 var eventName = map[int]string{

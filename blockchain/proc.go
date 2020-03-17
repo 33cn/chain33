@@ -103,6 +103,12 @@ func (chain *BlockChain) ProcRecvMsg() {
 			//通过区块高度列表+title获取平行链交易
 		case types.EventGetParaTxByTitleAndHeight:
 			go chain.processMsg(msg, reqnum, chain.getParaTxByTitleAndHeight)
+			// 获取chunk record
+		case types.EventGetChunkRecord:
+			go chain.processMsg(msg, reqnum, chain.getChunkRecord)
+			// 获取chunk record
+		case types.EventAddChunkRecord:
+			go chain.processMsg(msg, reqnum, chain.addChunkRecord)
 
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
@@ -644,4 +650,23 @@ func (chain *BlockChain) getParaTxByTitleAndHeight(msg *queue.Message) {
 		return
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
+}
+
+// getChunkRecord // 获取当前chunk record
+func (chain *BlockChain) getChunkRecord(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqChunkRecords)
+	reply, err := chain.GetChunkRecord(req)
+	if err != nil {
+		chainlog.Error("getChunkRecord", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, reply))
+}
+
+// addChunkRecord // 添加chunk record
+func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
+	req := (msg.Data).(*types.ChunkRecords)
+	chain.AddChunkRecord(req)
+	msg.Reply(chain.client.NewMessage("", types.EventAddChunkRecord, &types.Reply{IsOk: true}))
 }

@@ -151,6 +151,9 @@ func (chain *BlockChain) SynRoutine() {
 	//2分钟尝试检测一次最优链，确保本节点在最优链
 	checkBestChainTicker := time.NewTicker(120 * time.Second)
 
+	//60s尝试从peer节点请求ChunkRecord
+	chunkRecordSynTicker := time.NewTicker(60 * time.Second)
+
 	//节点启动后首先尝试开启快速下载模式,目前默认开启
 	if chain.GetDownloadSyncStatus() {
 		go chain.FastDownLoadBlocks()
@@ -195,6 +198,11 @@ func (chain *BlockChain) SynRoutine() {
 		case <-checkBestChainTicker.C:
 			chain.tickerwg.Add(1)
 			go chain.CheckBestChain(false)
+
+			//定时检查ChunkRecord的同步情况
+		case <-chunkRecordSynTicker.C:
+			chain.tickerwg.Add(1)
+			go chain.ChunkRecordSync()
 		}
 	}
 }
@@ -1072,4 +1080,78 @@ func (chain *BlockChain) CheckBestChainProc(headers *types.Headers, pid string) 
 			synlog.Debug("CheckBestChainProc NotBestChain", "Height", headers.Items[0].Height, "pid", pid)
 		}
 	}
+}
+
+func (chain *BlockChain) ChunkRecordSync() {
+
+	curheight := chain.GetBlockHeight()
+	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
+	recvChunk := chain.GetCurRecvChunkNum()
+
+	//如果任务正常，那么不重复启动任务
+	if chain.syncTask.InProgress() {
+		synlog.Info("chain syncTask InProgress")
+		return
+	}
+	//如果此时系统正在处理回滚，不启动同步的任务。
+	//等分叉回滚处理结束之后再启动同步任务继续同步
+	if chain.downLoadTask.InProgress() {
+		synlog.Info("chain downLoadTask InProgress")
+		return
+	}
+	//获取peers的最新高度.处理没有收到广播block的情况
+	//落后超过2个区块时主动同步区块，落后一个区块时需要判断是否超时
+	peerMaxChunk := chain.CaclChunkNum(peerMaxBlkHeight)
+	curShouldChunk := chain.CaclChunkNum(curheight)
+
+	if curShouldChunk >= peerMaxChunk || //证明已经同步上来了不需要再进行chunk请求
+		recvChunk >= peerMaxChunk {
+		return
+	}
+
+	synlog.Info("SynBlocksFromPeers", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight,
+		"recvChunk", recvChunk, "curShouldChunk", curShouldChunk)
+
+	pids := chain.GetBestChainPids()
+	if pids != nil {
+		endChunk := peerMaxChunk - recvChunk
+		if endChunk > 1000 { // 每次请求最大1000个chunk的record
+			endChunk = 1000
+		}
+		err := chain.FetchChunkRecords(recvChunk+1, recvChunk+endChunk, pids[0])
+		if err != nil {
+			synlog.Error("SynBlocksFromPeers FetchBlock", "err", err)
+		}
+	} else {
+		synlog.Info("SynBlocksFromPeers GetBestChainPids is nil")
+	}
+}
+
+//FetchChunkRecords 从指定pid获取start到end之间的ChunkRecord,只需要获取存储归档索引 blockHeight--->chunkhash
+func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid string) (err error) {
+	if chain.client == nil {
+		synlog.Error("FetchChunkRecords chain client not bind message queue.")
+		return types.ErrClientNotBindQueue
+	}
+
+	chainlog.Debug("FetchChunkRecords", "StartHeight", start, "EndHeight", end, "pid", pid)
+
+	var reqRec types.ReqChunkRecords
+	reqRec.Start = start
+	reqRec.End = end
+	reqRec.IsDetail = false
+	reqRec.Pid = []string{pid}
+
+	msg := chain.client.NewMessage("p2p", types.EventGetChunkRecord, &reqRec)
+	Err := chain.client.Send(msg, true)
+	if Err != nil {
+		synlog.Error("FetchChunkRecords", "client.Send err:", Err)
+		return err
+	}
+	resp, err := chain.client.Wait(msg)
+	if err != nil {
+		synlog.Error("FetchChunkRecords", "client.Wait err:", err)
+		return err
+	}
+	return resp.Err()
 }

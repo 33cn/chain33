@@ -42,6 +42,9 @@ var (
 	LastParaSequence      = []byte("LastParaSequence")
 	BodyHashToChunk       = []byte("BodyHashToChunk:")
 	BodyHeightToChunk     = []byte("BodyHeightToChunk:")
+	ChunkNumToHash        = []byte("ChunkNumToHash:")
+	// TODO 需要在本地保存一份记录当前已经归档的高度，即和ChunkNumToHash做区别
+	RecvChunkNumToHash    = []byte("RecvChunkNumToHash:")
 	storeLog              = chainlog.New("submodule", "store")
 )
 
@@ -53,7 +56,8 @@ func GetLocalDBKeyList() [][]byte {
 		blockLastHeight, bodyPrefix, LastSequence, headerPrefix, heightToHeaderPrefix,
 		hashPrefix, tdPrefix, heightToHashKeyPrefix, seqToHashKey, HashToSeqPrefix,
 		seqCBPrefix, seqCBLastNumPrefix, tempBlockKey, lastTempBlockKey, LastParaSequence,
-		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix, chainReceiptPrefix, BodyHashToChunk, BodyHeightToChunk,
+		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix, chainReceiptPrefix,
+		BodyHashToChunk, BodyHeightToChunk, ChunkNumToHash, RecvChunkNumToHash,
 	}
 }
 
@@ -134,9 +138,19 @@ func calcBlockHashToChunkHash(hash []byte) []byte {
 	return append(BodyHashToChunk, hash...)
 }
 
-// 存储归档索引 blockHeight--->chunkhash
+// 存储归档索引 blockheight--->chunkhash
 func calcHeightToChunkHash(height int64) []byte {
 	return append(BodyHeightToChunk, []byte(fmt.Sprintf("%012d", height))...)
+}
+
+// 存储归档索引 chunkNum--->chunkhash
+func calcChunkNumToHash(chunkNum int64) []byte {
+	return append(ChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
+}
+
+// 存储归档索引 chunkNum--->chunkhash 从对端节点同步过来的归档索引
+func calcRecvChunkNumToHash(chunkNum int64) []byte {
+	return append(RecvChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
 }
 
 //BlockStore 区块存储
@@ -1598,4 +1612,18 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 		return nil, err
 	}
 	return &bodys, nil
+}
+
+func (bs *BlockStore) getCurChunkNum(prefix []byte) int64 {
+	it := bs.db.Iterator(prefix, nil, true)
+	defer it.Close()
+	height := -1
+	var err error
+	if it.Rewind() && it.Valid() {
+		height, err = strconv.Atoi(string(bytes.TrimPrefix(it.Key(), prefix)))
+		if err != nil {
+			return -1
+		}
+	}
+	return int64(height)
 }
