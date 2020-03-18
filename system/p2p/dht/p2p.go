@@ -113,7 +113,6 @@ func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Report
 		libp2p.NATPortMap(),
 	)
 
-
 	if err != nil {
 		panic(err)
 	}
