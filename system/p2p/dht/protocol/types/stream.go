@@ -11,12 +11,12 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/libp2p/go-libp2p-core/protocol"
-
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
 
@@ -109,16 +109,21 @@ func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 	log.Debug("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
 	//TODO verify校验放在这里
 
+	//defer stream.Close()
 	s.child.Handle(stream)
+	helpers.FullClose(stream)
 
 }
 
 //StreamSendHandler send  and recv
 func (s *BaseStreamHandler) StreamSendHandler(in *StreamRequest, result types.Message) error {
+
 	stream, err := s.SendToStream(in.PeerID.Pretty(), in.Data, in.ProtoID, in.Host)
 	if err != nil {
 		return err
 	}
+	//defer stream.Close()
+	defer helpers.FullClose(stream)
 	return s.ReadProtoMessage(result, stream)
 }
 
@@ -128,6 +133,7 @@ func (s *BaseStreamHandler) SendToStream(pid string, data types.Message, msgID p
 	if err != nil {
 		return nil, err
 	}
+
 	stream, err := host.NewStream(context.Background(), rID, msgID)
 	if err != nil {
 		log.Error("SendToStream NewStream", "err", err, "remoteID", rID)
@@ -156,6 +162,7 @@ func (s *BaseStreamHandler) SendProtoMessage(data types.Message, stream core.Str
 
 //ReadProtoMessage  read data from stream
 func (s *BaseStreamHandler) ReadProtoMessage(data types.Message, stream core.Stream) error {
+
 	stream.SetReadDeadline(time.Now().Add(30 * time.Second))
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(stream))
 	return decoder.Decode(data)

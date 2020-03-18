@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"os"
 	"sync"
 
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
@@ -149,6 +151,24 @@ func (a *AddrBook) SaveAddr(addrinfos []peer.AddrInfo) error {
 	log.Debug("saveToDb", "addrs", string(jsonBytes))
 	return a.bookDb.Set([]byte(addrkeyTag), jsonBytes)
 
+}
+
+func (a *AddrBook) StoreHostId(id peer.ID, path string) {
+	dbPath := path + "/" + p2pty.DHTTypeName
+	if os.Mkdir(dbPath, 0755) != nil {
+		return
+	}
+
+	pf, err := os.Create(fmt.Sprintf("%v/%v", dbPath, id.Pretty()))
+	if err != nil {
+		log.Error("StoreHostId", "Create file", err.Error())
+		return
+	}
+
+	defer pf.Close()
+	pf.WriteString(id.Pretty())
+
+	return
 }
 
 // GenPrivPubkey return key and pubkey in bytes

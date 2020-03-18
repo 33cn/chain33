@@ -44,8 +44,8 @@ func (t Tasks) Remove(task *TaskInfo) Tasks {
 
 	t = append(t[:task.Index], t[task.Index+1:]...)
 	return t
-
 }
+
 func (t Tasks) Sort() Tasks {
 	sort.Sort(t)
 	return t
@@ -67,7 +67,7 @@ func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
 		pIDs = append(pIDs, pID)
 	}
 	if len(pIDs) == 0 {
-		pIDs = d.ConnManager.FindNearestPeers()
+		pIDs = d.ConnManager.FetchConnPeers()
 
 	}
 	latency := d.GetConnsManager().GetLatencyByPeer(pIDs)
