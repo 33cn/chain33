@@ -153,7 +153,8 @@ func (a *AddrBook) SaveAddr(addrinfos []peer.AddrInfo) error {
 
 }
 
-func (a *AddrBook) StoreHostId(id peer.ID, path string) {
+// StoreHostID store host id into file
+func (a *AddrBook) StoreHostID(id peer.ID, path string) {
 	dbPath := path + "/" + p2pty.DHTTypeName
 	if os.Mkdir(dbPath, 0755) != nil {
 		return
@@ -168,7 +169,6 @@ func (a *AddrBook) StoreHostId(id peer.ID, path string) {
 	defer pf.Close()
 	pf.WriteString(id.Pretty())
 
-	return
 }
 
 // GenPrivPubkey return key and pubkey in bytes
