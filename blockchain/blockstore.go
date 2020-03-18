@@ -1596,6 +1596,7 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 	}
 	req := &types.ReqChunkBlockBody{
 		ChunkHash:value,
+		Filter: true,
 		Start: start,
 		End:end,
 	}
