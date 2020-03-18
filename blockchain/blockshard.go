@@ -210,18 +210,6 @@ func (chain *BlockChain) GetChunkBlockBody(req *types.ReqChunkBlockBody) (*types
 	return bodys, err
 }
 
-func (chain *BlockChain) StoreChunkBlockBody(req *types.ChunkInfo) (*types.BlockBodys, error) {
-	if req == nil || len(req.ChunkHash) == 0 {
-		return nil, types.ErrInvalidParam
-	}
-	height := chain.GetBlockHeight()
-	if height - MaxRollBlockNum  < req.End {
-		return nil, ErrNoBlockToChunk
-	}
-	_, bodys, err := chain.genChunkBlocks(req.Start, req.End)
-	return bodys, err
-}
-
 // 从P2P网络中获取Chunk blcoks数据，主要用于区块链同步
 func (chain *BlockChain) GetChunkBlocks(reqBlock *types.ReqChunkBlock) ([]*types.Block, error) {
 	if reqBlock == nil {
