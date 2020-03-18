@@ -77,7 +77,6 @@ func (d *downloadProtol) processReq(id string, message *types.P2PGetBlocks) (*ty
 
 	}
 	//开始下载指定高度
-	log.Info("OnReq", "start", message.GetStartHeight(), "end", message.GetStartHeight())
 
 	reqblock := &types.ReqBlocks{Start: message.GetStartHeight(), End: message.GetEndHeight()}
 
@@ -107,16 +106,16 @@ func (d *downloadProtol) processReq(id string, message *types.P2PGetBlocks) (*ty
 }
 
 func (d *downloadProtol) onReq(id string, message *types.P2PGetBlocks, s core.Stream) {
-	defer s.Close()
+	log.Debug("OnReq", "start", message.GetStartHeight(), "end", message.GetStartHeight(), "remoteId", s.Conn().RemotePeer().String(), "id", id)
 
 	blockdata, err := d.processReq(id, message)
 	if err != nil {
-		log.Error("processReq", "err", err)
+		log.Error("processReq", "err", err, "pid", s.Conn().RemotePeer().String())
 		return
 	}
 	err = d.SendProtoMessage(blockdata, s)
 	if err != nil {
-		log.Error("SendProtoMessage", "err", err)
+		log.Error("SendProtoMessage", "err", err, "pid", s.Conn().RemotePeer().String())
 		return
 	}
 
@@ -173,13 +172,11 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 				if ok {
 					faildJob := v.(map[int64]bool)
 					faildJob[blockheight] = false
-					//faildJob.Store(blockheight, false)
 					reDownload[taskID] = faildJob
 
 				} else {
 					var faildJob = make(map[int64]bool)
 					faildJob[blockheight] = false
-					//faildJob.Store(blockheight, false)
 					reDownload[taskID] = faildJob
 
 				}

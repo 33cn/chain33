@@ -90,7 +90,9 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
 	p2p.discovery = net.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.subCfg, p2p.chainCfg.IsTestNet())
 	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
+	p2p.addrbook.StoreHostId(p2p.host.ID(), p2pCfg.DbPath)
 	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
+
 	return p2p
 }
 
@@ -111,6 +113,7 @@ func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Report
 		libp2p.NATPortMap(),
 	)
 
+
 	if err != nil {
 		panic(err)
 	}
@@ -123,7 +126,7 @@ func (p *P2P) managePeers() {
 
 	for {
 		peerlist := p.discovery.RoutingTale()
-		log.Info("managePeers", "RoutingTale show peerlist>>>>>>>>>", peerlist,
+		log.Debug("managePeers", "RoutingTale show peerlist>>>>>>>>>", peerlist,
 			"table size", p.discovery.RoutingTableSize())
 		if p.isClose() {
 			log.Info("managePeers", "p2p", "closed")
@@ -132,7 +135,7 @@ func (p *P2P) managePeers() {
 		}
 		<-time.After(time.Minute * 10)
 		//Reflesh addrbook
-		peersInfo := p.discovery.FindLocalPeers(p.connManag.FindNearestPeers())
+		peersInfo := p.discovery.FindLocalPeers(p.connManag.FetchNearestPeers())
 		p.addrbook.SaveAddr(peersInfo)
 	}
 
@@ -160,7 +163,7 @@ func (p *P2P) StartP2P() {
 
 //查询本局域网内是否有节点
 func (p *P2P) findLANPeers() {
-	peerChan, err := p.discovery.FindLANPeers(p.host, "hello-chain33?")
+	peerChan, err := p.discovery.FindLANPeers(p.host, "hello-chain33/")
 	if err != nil {
 		log.Error("findLANPeers", "err", err.Error())
 		return

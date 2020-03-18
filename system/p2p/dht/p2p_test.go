@@ -214,6 +214,7 @@ func testStreamEOFReSet(t *testing.T) {
 		ID:    h3.ID(),
 		Addrs: h3.Addrs(),
 	}
+
 	err = h1.Connect(context.Background(), h3info)
 	assert.NoError(t, err)
 	s, err = h1.NewStream(context.Background(), h3.ID(), protocol.ID(msgID))

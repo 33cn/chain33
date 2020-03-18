@@ -59,7 +59,6 @@ func (h *headerInfoProtol) processReq(id string, getheaders *types.P2PGetHeaders
 }
 
 func (h *headerInfoProtol) onReq(id string, getheaders *types.P2PGetHeaders, s core.Stream) {
-	defer s.Close()
 	senddata, err := h.processReq(id, getheaders)
 	if err != nil {
 		log.Error("onReq", "processReq", err)

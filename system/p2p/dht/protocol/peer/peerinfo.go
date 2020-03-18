@@ -85,9 +85,7 @@ func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 
 //p2pserver 端接收处理事件
 func (p *peerInfoProtol) onReq(req *types.MessagePeerInfoReq, s core.Stream) {
-	defer s.Close()
-
-	log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
+	log.Debug(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
 
 	peerinfo := p.getLoacalPeerInfo()
 	peerID := p.GetHost().ID()
@@ -110,7 +108,7 @@ func (p *peerInfoProtol) getPeerInfo() []*types.P2PPeerInfo {
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var peerinfos []*types.P2PPeerInfo
-	for _, remoteID := range p.GetConnsManager().FindNearestPeers() {
+	for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
 		if remoteID.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
@@ -156,7 +154,6 @@ func (p *peerInfoProtol) getExternalAddr() string {
 }
 
 func (p *peerInfoProtol) detectNodeAddr() {
-
 	//通常libp2p监听的地址列表，第一个为127，第二个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
 	if len(addrs) > 0 {
@@ -170,14 +167,14 @@ func (p *peerInfoProtol) detectNodeAddr() {
 	pid := p.GetHost().ID()
 
 	for {
-		if len(p.GetConnsManager().FindNearestPeers()) == 0 {
+		if len(p.GetConnsManager().FetchConnPeers()) == 0 {
 			time.Sleep(time.Second)
 			continue
 		}
 		break
 	}
 
-	for _, remoteID := range p.GetConnsManager().FindNearestPeers() {
+	for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
 		if remoteID.Pretty() == pid.Pretty() {
 			continue
 		}

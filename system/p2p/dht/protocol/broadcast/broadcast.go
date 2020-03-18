@@ -148,7 +148,7 @@ func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 func (protocol *broadCastProtocol) sendAllStream(data interface{}) {
 
 	log.Debug("sendAllStream")
-	pds := protocol.GetConnsManager().FindNearestPeers()
+	pds := protocol.GetConnsManager().FetchConnPeers()
 
 	for _, pid := range pds {
 
