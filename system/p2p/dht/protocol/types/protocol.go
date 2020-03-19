@@ -25,6 +25,7 @@ var (
 
 type IProtocol interface {
 	InitProtocol(*P2PEnv)
+	GetP2PEnv() *P2PEnv
 }
 
 // RegisterProtocolType 注册协议类型
@@ -127,6 +128,11 @@ func (base *BaseProtocol) NewMessageCommon(msgID, pid string, nodePubkey []byte,
 		Id:         msgID,
 		Gossip:     gossip}
 
+}
+
+// GetP2PEnv get p2p env
+func (base *BaseProtocol) GetP2PEnv() *P2PEnv {
+	return base.P2PEnv
 }
 
 // GetChainCfg get chain cfg

@@ -94,9 +94,9 @@ func (p *peerInfoProtol) onReq(req *types.MessagePeerInfoReq, s core.Stream) {
 	resp := &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 		Message: peerinfo}
 
-	err := p.SendProtoMessage(resp, s)
+	err := p.WriteStream(resp, s)
 	if err != nil {
-		log.Error("SendProtoMessage", "err", err)
+		log.Error("WriteStream", "err", err)
 		return
 	}
 
@@ -116,15 +116,14 @@ func (p *peerInfoProtol) getPeerInfo() []*types.P2PPeerInfo {
 		msgReq := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
 
 		req := &prototypes.StreamRequest{
-			PeerID:  remoteID,
-			Host:    p.GetHost(),
-			Data:    msgReq,
-			ProtoID: PeerInfoReq,
+			PeerID: remoteID,
+			Data:   msgReq,
+			MsgID:  PeerInfoReq,
 		}
 		var resp types.MessagePeerInfoResp
-		err := p.StreamSendHandler(req, &resp)
+		err := p.SendRecvPeer(req, &resp)
 		if err != nil {
-			log.Error("handleEvent", "SendProtoMessage", err)
+			log.Error("handleEvent", "WriteStream", err)
 			continue
 		}
 
@@ -198,15 +197,15 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 		version.AddrFrom = s.Conn().LocalMultiaddr().String()
 		version.AddrRecv = s.Conn().RemoteMultiaddr().String()
-		err = p.SendProtoMessage(req, s)
+		err = p.WriteStream(req, s)
 		if err != nil {
-			log.Error("DetectNodeAddr", "SendProtoMessage err", err)
+			log.Error("DetectNodeAddr", "WriteStream err", err)
 			continue
 		}
 		var resp types.MessageP2PVersionResp
-		err = p.ReadProtoMessage(&resp, s)
+		err = p.ReadStream(&resp, s)
 		if err != nil {
-			log.Error("DetectNodeAddr", "ReadProtoMessage err", err)
+			log.Error("DetectNodeAddr", "ReadStream err", err)
 			continue
 		}
 		log.Info("DetectAddr", "resp", resp)
@@ -260,7 +259,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 	log.Info("PeerInfo Handler", "stream proto", stream.Protocol())
 	if stream.Protocol() == PeerInfoReq {
 		var req types.MessagePeerInfoReq
-		err := h.ReadProtoMessage(&req, stream)
+		err := h.ReadStream(&req, stream)
 		if err != nil {
 			return
 		}
@@ -268,7 +267,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 		return
 	} else if stream.Protocol() == PeerVersionReq {
 		var req types.MessageP2PVersionReq
-		err := h.ReadProtoMessage(&req, stream)
+		err := h.ReadStream(&req, stream)
 		if err != nil {
 			return
 		}

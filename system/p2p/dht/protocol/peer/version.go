@@ -72,9 +72,9 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 		log.Error("onVersionReq", "err", err.Error())
 		return
 	}
-	err = p.SendProtoMessage(senddata, s)
+	err = p.WriteStream(senddata, s)
 	if err != nil {
-		log.Error("SendProtoMessage", "err", err)
+		log.Error("WriteStream", "err", err)
 		return
 	}
 
