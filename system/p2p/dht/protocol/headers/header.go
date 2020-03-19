@@ -65,11 +65,11 @@ func (h *headerInfoProtol) onReq(id string, getheaders *types.P2PGetHeaders, s c
 		return
 	}
 
-	err = h.SendProtoMessage(senddata, s)
+	err = h.WriteStream(senddata, s)
 	if err == nil {
 		log.Info(" Header response ", "from", s.Conn().LocalPeer().String(), "to", s.Conn().RemotePeer().String(), "height", getheaders.GetStartHeight())
 	} else {
-		log.Error("OnReq", "SendProtoMessage", err)
+		log.Error("OnReq", "WriteStream", err)
 		return
 	}
 
@@ -107,15 +107,14 @@ func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 			continue
 		}
 		req := &prototypes.StreamRequest{
-			PeerID:  rID,
-			Host:    h.GetHost(),
-			Data:    headerReq,
-			ProtoID: HeaderInfoReq,
+			PeerID: rID,
+			Data:   headerReq,
+			MsgID:  HeaderInfoReq,
 		}
 		var resp types.MessageHeaderResp
-		err = h.StreamSendHandler(req, &resp)
+		err = h.SendRecvPeer(req, &resp)
 		if err != nil {
-			log.Error("handleEvent", "SendProtoMessage", err)
+			log.Error("handleEvent", "WriteStream", err)
 			continue
 		}
 
@@ -138,7 +137,7 @@ func (d *headerInfoHander) Handle(stream core.Stream) {
 	//解析处理
 	if stream.Protocol() == HeaderInfoReq {
 		var data types.MessageHeaderReq
-		err := d.ReadProtoMessage(&data, stream)
+		err := d.ReadStream(&data, stream)
 		if err != nil {
 			return
 		}

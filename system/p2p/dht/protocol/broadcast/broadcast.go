@@ -97,7 +97,7 @@ func (handler *broadCastHandler) Handle(stream core.Stream) {
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
 	log.Debug("Handle", "pid", pid, "peerAddr", peerAddr)
 	var data types.MessageBroadCast
-	err := handler.ReadProtoMessage(&data, stream)
+	err := handler.ReadStream(&data, stream)
 	if err != nil {
 		log.Error("Handle", "pid", pid, "peerAddr", peerAddr, "err", err)
 		return
@@ -182,7 +182,7 @@ func (protocol *broadCastProtocol) sendStream(pid string, data interface{}) erro
 	broadData := &types.MessageBroadCast{
 		Message: sendData}
 
-	err = protocol.SendProtoMessage(broadData, stream)
+	err = protocol.WriteStream(broadData, stream)
 	if err != nil {
 		log.Error("sendStream", "peerAddr", peerAddr, "send msg err", err)
 		_ = stream.Close()

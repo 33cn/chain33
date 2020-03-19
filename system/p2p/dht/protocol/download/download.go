@@ -58,7 +58,7 @@ func (d *downloadHander) Handle(stream core.Stream) {
 	//解析处理
 	if stream.Protocol() == DownloadBlockReq {
 		var data types.MessageGetBlocksReq
-		err := d.ReadProtoMessage(&data, stream)
+		err := d.ReadStream(&data, stream)
 		if err != nil {
 			log.Error("Handle", "err", err)
 			return
@@ -113,9 +113,9 @@ func (d *downloadProtol) onReq(id string, message *types.P2PGetBlocks, s core.St
 		log.Error("processReq", "err", err, "pid", s.Conn().RemotePeer().String())
 		return
 	}
-	err = d.SendProtoMessage(blockdata, s)
+	err = d.WriteStream(blockdata, s)
 	if err != nil {
-		log.Error("SendProtoMessage", "err", err, "pid", s.Conn().RemotePeer().String())
+		log.Error("WriteStream", "err", err, "pid", s.Conn().RemotePeer().String())
 		return
 	}
 
@@ -226,15 +226,14 @@ ReDownload:
 		Message: getblocks}
 
 	req := &prototypes.StreamRequest{
-		PeerID:  task.Pid,
-		Host:    d.GetHost(),
-		Data:    blockReq,
-		ProtoID: DownloadBlockReq,
+		PeerID: task.Pid,
+		Data:   blockReq,
+		MsgID:  DownloadBlockReq,
 	}
 	var resp types.MessageGetBlocksResp
-	err := d.StreamSendHandler(req, &resp)
+	err := d.SendRecvPeer(req, &resp)
 	if err != nil {
-		log.Error("handleEvent", "StreamSendHandler", err, "pid", task.Pid)
+		log.Error("handleEvent", "SendRecvPeer", err, "pid", task.Pid)
 		d.releaseJob(task)
 		tasks = tasks.Remove(task)
 		goto ReDownload
