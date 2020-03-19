@@ -134,7 +134,7 @@ func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 		} else {
 			protocol.txFilter.Add(txHash, true)
 		}
-		sendData = &types.P2PTx{Tx: tx}
+		sendData = &types.P2PTx{Tx: tx, Route: route}
 	} else if block, ok := msg.GetData().(*types.Block); ok {
 		protocol.blockFilter.Add(hex.EncodeToString(block.Hash(protocol.GetChainCfg())), true)
 		sendData = &types.P2PBlock{Block: block}
