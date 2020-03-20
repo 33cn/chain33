@@ -39,7 +39,7 @@ func decodeChannelVersion(channelVersion int32) (channel int32, version int32) {
 func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr string) (*types.MessageP2PVersionResp, error) {
 	if p.getExternalAddr() == "" {
 		p.setExternalAddr(req.GetMessage().GetAddrRecv())
-		log.Info("OnVersionReq", "externalAddr", p.getExternalAddr())
+		log.Debug("OnVersionReq", "externalAddr", p.getExternalAddr())
 	}
 
 	channel, _ := decodeChannelVersion(req.GetMessage().GetVersion())
@@ -80,6 +80,6 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 		return
 	}
 
-	log.Info("OnVersionReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String())
+	log.Debug("OnVersionReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String())
 
 }

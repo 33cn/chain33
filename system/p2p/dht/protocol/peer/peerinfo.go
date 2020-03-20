@@ -207,10 +207,10 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			log.Error("DetectNodeAddr", "ReadStream err", err)
 			continue
 		}
-		log.Info("DetectAddr", "resp", resp)
+		log.Debug("DetectAddr", "resp", resp)
 
 		p.setExternalAddr(resp.GetMessage().GetAddrRecv())
-		log.Info("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
+		log.Debug("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
 		//要判断是否是自身局域网的其他节点
 		if _, ok := seedMap[remoteID.Pretty()]; !ok {
 			continue
@@ -259,7 +259,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 	protocol := h.GetProtocol().(*peerInfoProtol)
 
 	//解析处理
-	log.Info("PeerInfo Handler", "stream proto", stream.Protocol())
+	log.Debug("PeerInfo Handler", "stream proto", stream.Protocol())
 	if stream.Protocol() == PeerInfoReq {
 		var req types.MessagePeerInfoReq
 		err := prototypes.ReadStream(&req, stream)

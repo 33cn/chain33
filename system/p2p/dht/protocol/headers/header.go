@@ -66,7 +66,7 @@ func (h *headerInfoProtol) onReq(id string, getheaders *types.P2PGetHeaders, s c
 
 	err = prototypes.WriteStream(senddata, s)
 	if err == nil {
-		log.Info(" Header response ", "from", s.Conn().LocalPeer().String(), "to", s.Conn().RemotePeer().String(), "height", getheaders.GetStartHeight())
+		log.Debug(" Header response ", "from", s.Conn().LocalPeer().String(), "to", s.Conn().RemotePeer().String(), "height", getheaders.GetStartHeight())
 	} else {
 		log.Error("OnReq", "WriteStream", err)
 		return
@@ -78,7 +78,7 @@ func (h *headerInfoProtol) onReq(id string, getheaders *types.P2PGetHeaders, s c
 func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 	req := msg.GetData().(*types.ReqBlocks)
 	pids := req.GetPid()
-	log.Info("handleEvent", "msg", msg, "pid", pids, "req header start", req.GetStart(), "req header end", req.GetEnd())
+	log.Debug("handleEvent", "msg", msg, "pid", pids, "req header start", req.GetStart(), "req header end", req.GetEnd())
 
 	if len(pids) == 0 { //根据指定的pidlist 获取对应的block header
 		log.Debug("GetHeaders:pid is nil")
@@ -90,7 +90,7 @@ func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 
 	for _, pid := range pids {
 
-		log.Info("handleEvent", "pid", pid, "start", req.GetStart(), "end", req.GetEnd())
+		log.Debug("handleEvent", "pid", pid, "start", req.GetStart(), "end", req.GetEnd())
 
 		p2pgetheaders := &types.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
 			Version: 0}

@@ -133,7 +133,7 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 	}
 	pids := req.GetPid()
 	if len(pids) == 0 { //根据指定的pidlist 获取对应的block header
-		log.Info("GetBlocks:pid is nil")
+		log.Debug("GetBlocks:pid is nil")
 		msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{Msg: []byte("no pid")}))
 		return
 	}
@@ -141,11 +141,11 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 	msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
 	var taskID = uuid.New().String() + "+" + fmt.Sprintf("%d-%d", req.GetStart(), req.GetEnd())
 
-	log.Info("handleEvent", "taskID", taskID, "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
+	log.Debug("handleEvent", "taskID", taskID, "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
 
 	//具体的下载逻辑
 	jobS := d.initJob(pids, taskID)
-	log.Info("handleEvent", "jobs", jobS)
+	log.Debug("handleEvent", "jobs", jobS)
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	var maxgoroutin int32
@@ -189,7 +189,7 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 
 	wg.Wait()
 	d.CheckTask(taskID, pids, reDownload)
-	log.Info("Download Job Complete!", "TaskID++++++++++++++", taskID,
+	log.Debug("Download Job Complete!", "TaskID++++++++++++++", taskID,
 		"cost time", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6),
 		"from", pids)
 
