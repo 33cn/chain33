@@ -1,7 +1,6 @@
 package peer
 
 import (
-	"context"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,7 +33,6 @@ func init() {
 //type Istream
 type peerInfoProtol struct {
 	*prototypes.BaseProtocol
-	*prototypes.BaseStreamHandler
 	p2pCfg       *p2pty.P2PSubConfig
 	externalAddr string
 	mutex        sync.Mutex
@@ -94,7 +92,7 @@ func (p *peerInfoProtol) onReq(req *types.MessagePeerInfoReq, s core.Stream) {
 	resp := &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
 		Message: peerinfo}
 
-	err := p.WriteStream(resp, s)
+	err := prototypes.WriteStream(resp, s)
 	if err != nil {
 		log.Error("WriteStream", "err", err)
 		return
@@ -173,6 +171,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		break
 	}
 
+	openedStreams := make([]core.Stream, 0)
 	for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
 		if remoteID.Pretty() == pid.Pretty() {
 			continue
@@ -189,21 +188,21 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
 			Message: &version}
 
-		s, err := p.Host.NewStream(context.Background(), remoteID, PeerVersionReq)
+		s, err := prototypes.NewStream(p.Host, remoteID, PeerVersionReq)
 		if err != nil {
 			log.Error("NewStream", "err", err, "remoteID", remoteID)
 			continue
 		}
-
+		openedStreams = append(openedStreams, s)
 		version.AddrFrom = s.Conn().LocalMultiaddr().String()
 		version.AddrRecv = s.Conn().RemoteMultiaddr().String()
-		err = p.WriteStream(req, s)
+		err = prototypes.WriteStream(req, s)
 		if err != nil {
 			log.Error("DetectNodeAddr", "WriteStream err", err)
 			continue
 		}
 		var resp types.MessageP2PVersionResp
-		err = p.ReadStream(&resp, s)
+		err = prototypes.ReadStream(&resp, s)
 		if err != nil {
 			log.Error("DetectNodeAddr", "ReadStream err", err)
 			continue
@@ -219,6 +218,10 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 		break
 
+	}
+	// 统一关闭stream
+	for _, stream := range openedStreams {
+		prototypes.CloseStream(stream)
 	}
 
 }
@@ -259,7 +262,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 	log.Info("PeerInfo Handler", "stream proto", stream.Protocol())
 	if stream.Protocol() == PeerInfoReq {
 		var req types.MessagePeerInfoReq
-		err := h.ReadStream(&req, stream)
+		err := prototypes.ReadStream(&req, stream)
 		if err != nil {
 			return
 		}
@@ -267,7 +270,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 		return
 	} else if stream.Protocol() == PeerVersionReq {
 		var req types.MessageP2PVersionReq
-		err := h.ReadStream(&req, stream)
+		err := prototypes.ReadStream(&req, stream)
 		if err != nil {
 			return
 		}

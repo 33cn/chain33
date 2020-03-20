@@ -87,7 +87,7 @@ func (protocol *broadCastProtocol) recvLtTx(tx *types.LightTx, pid, peerAddr str
 			},
 		}
 		//发布到指定的节点
-		err = protocol.sendStream(pid, query)
+		err = protocol.sendPeer(pid, query)
 		if err != nil {
 			log.Error("recvLtTx", "pid", pid, "sendStreamErr", err)
 			return errSendStream

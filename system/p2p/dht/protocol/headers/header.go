@@ -30,7 +30,6 @@ func init() {
 //type Istream
 type headerInfoProtol struct {
 	*prototypes.BaseProtocol
-	*prototypes.BaseStreamHandler
 }
 
 func (h *headerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
@@ -65,7 +64,7 @@ func (h *headerInfoProtol) onReq(id string, getheaders *types.P2PGetHeaders, s c
 		return
 	}
 
-	err = h.WriteStream(senddata, s)
+	err = prototypes.WriteStream(senddata, s)
 	if err == nil {
 		log.Info(" Header response ", "from", s.Conn().LocalPeer().String(), "to", s.Conn().RemotePeer().String(), "height", getheaders.GetStartHeight())
 	} else {
@@ -137,7 +136,7 @@ func (d *headerInfoHander) Handle(stream core.Stream) {
 	//解析处理
 	if stream.Protocol() == HeaderInfoReq {
 		var data types.MessageHeaderReq
-		err := d.ReadStream(&data, stream)
+		err := prototypes.ReadStream(&data, stream)
 		if err != nil {
 			return
 		}

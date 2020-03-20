@@ -68,7 +68,7 @@ func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid,
 	}
 
 	if reply != nil {
-		err := protocol.sendStream(pid, reply)
+		err := protocol.sendPeer(pid, reply)
 		if err != nil {
 			log.Error("recvQueryData", "pid", pid, "sendStreamErr", err)
 			return errSendStream
@@ -123,7 +123,7 @@ func (protocol *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pi
 		},
 	}
 	//pub to specified peer
-	err = protocol.sendStream(pid, query)
+	err = protocol.sendPeer(pid, query)
 	if err != nil {
 		log.Error("recvQueryReply", "pid", pid, "sendStreamErr", err)
 		return errSendStream
