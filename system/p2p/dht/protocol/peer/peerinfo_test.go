@@ -83,7 +83,6 @@ func newTestProtocolWithQueue(q queue.Queue) *peerInfoProtol {
 	env := newTestEnv(q)
 	protocol := &peerInfoProtol{}
 	protocol.BaseProtocol = new(prototypes.BaseProtocol)
-	protocol.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	prototypes.ClearEventHandler()
 	protocol.InitProtocol(env)
 

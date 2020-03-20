@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+
 	"math/rand"
 
 	"github.com/33cn/chain33/types"
@@ -72,7 +74,7 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 		log.Error("onVersionReq", "err", err.Error())
 		return
 	}
-	err = p.WriteStream(senddata, s)
+	err = prototypes.WriteStream(senddata, s)
 	if err != nil {
 		log.Error("WriteStream", "err", err)
 		return

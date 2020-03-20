@@ -4,19 +4,12 @@
 package types
 
 import (
-	"bufio"
-	"context"
-	"time"
-
 	"reflect"
 	"strings"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/helpers"
-	"github.com/libp2p/go-libp2p-core/peer"
-	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
 
 var (
@@ -46,16 +39,6 @@ func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
 		handlerType = handlerType.Elem()
 	}
 	streamHandlerTypeMap[typeID] = handlerType
-}
-
-// StreamRequest stream request
-type StreamRequest struct {
-	// PeerID peer id
-	PeerID peer.ID
-	// MsgID stream msg id
-	MsgID string
-	// Data request data
-	Data types.Message
 }
 
 // StreamHandler stream handler
@@ -105,15 +88,6 @@ func (s *BaseStreamHandler) GetProtocol() IProtocol {
 	return s.Protocol
 }
 
-// CloseStream 关闭流， 存在超时阻塞情况
-func (s *BaseStreamHandler) CloseStream(stream core.Stream) {
-	err := helpers.FullClose(stream)
-	if err != nil {
-		//这个错误不影响流程，只做记录
-		log.Debug("CloseStream", "err", err)
-	}
-}
-
 // HandleStream stream事件预处理函数
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 	log.Debug("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
@@ -121,84 +95,8 @@ func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 
 	//defer stream.Close()
 	s.child.Handle(stream)
-	s.CloseStream(stream)
+	CloseStream(stream)
 
-}
-
-// SendPeer send data to peer with peer id
-func (s *BaseStreamHandler) SendPeer(req *StreamRequest) error {
-	stream, err := s.NewStream(req.PeerID, req.MsgID)
-	if err != nil {
-		return err
-	}
-	err = s.WriteStream(req.Data, stream)
-	if err != nil {
-		return err
-	}
-
-	s.CloseStream(stream)
-	return nil
-}
-
-//SendRecvPeer send request to peer and wait response
-func (s *BaseStreamHandler) SendRecvPeer(req *StreamRequest, resp types.Message) error {
-
-	stream, err := s.NewStream(req.PeerID, req.MsgID)
-	if err != nil {
-		return err
-	}
-	err = s.WriteStream(req.Data, stream)
-	if err != nil {
-		return err
-	}
-	err = s.ReadStream(resp, stream)
-	if err != nil {
-		return err
-	}
-
-	s.CloseStream(stream)
-	return nil
-}
-
-//SendToStream send data
-func (s *BaseStreamHandler) NewStream(pid core.PeerID, msgID string) (core.Stream, error) {
-
-	stream, err := s.GetProtocol().GetP2PEnv().Host.NewStream(context.Background(), pid, core.ProtocolID(msgID))
-	if err != nil {
-		log.Error("NewStream", "pid", pid.Pretty(), "msgID", msgID, " err", err)
-		return nil, err
-	}
-	return stream, nil
-}
-
-//WriteStream send data to stream
-func (s *BaseStreamHandler) WriteStream(data types.Message, stream core.Stream) error {
-	_ = stream.SetWriteDeadline(time.Now().Add(30 * time.Second))
-	writer := bufio.NewWriter(stream)
-	enc := protobufCodec.Multicodec(nil).Encoder(writer)
-	err := enc.Encode(data)
-	if err != nil {
-		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "msgID", stream.Protocol(), "encode err", err)
-		return err
-	}
-	err = writer.Flush()
-	if err != nil {
-		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "msgID", stream.Protocol(), "flush err", err)
-	}
-	return nil
-}
-
-//ReadStream  read data from stream
-func (s *BaseStreamHandler) ReadStream(data types.Message, stream core.Stream) error {
-
-	_ = stream.SetReadDeadline(time.Now().Add(30 * time.Second))
-	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(stream))
-	err := decoder.Decode(data)
-	if err != nil {
-		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "msgID", stream.Protocol(), "decode err", err)
-		return err
-	}
-	return nil
 }
 
 func formatHandlerTypeID(protocolType, msgID string) string {

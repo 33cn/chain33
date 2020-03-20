@@ -37,7 +37,6 @@ const (
 //type Istream
 type downloadProtol struct {
 	*prototypes.BaseProtocol
-	*prototypes.BaseStreamHandler
 }
 
 func (d *downloadProtol) InitProtocol(env *prototypes.P2PEnv) {
@@ -58,7 +57,7 @@ func (d *downloadHander) Handle(stream core.Stream) {
 	//解析处理
 	if stream.Protocol() == DownloadBlockReq {
 		var data types.MessageGetBlocksReq
-		err := d.ReadStream(&data, stream)
+		err := prototypes.ReadStream(&data, stream)
 		if err != nil {
 			log.Error("Handle", "err", err)
 			return
@@ -113,7 +112,7 @@ func (d *downloadProtol) onReq(id string, message *types.P2PGetBlocks, s core.St
 		log.Error("processReq", "err", err, "pid", s.Conn().RemotePeer().String())
 		return
 	}
-	err = d.WriteStream(blockdata, s)
+	err = prototypes.WriteStream(blockdata, s)
 	if err != nil {
 		log.Error("WriteStream", "err", err, "pid", s.Conn().RemotePeer().String())
 		return

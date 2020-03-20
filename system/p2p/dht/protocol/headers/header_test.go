@@ -75,7 +75,6 @@ func newTestProtocolWithQueue(q queue.Queue) *headerInfoProtol {
 	env := newTestEnv(q)
 	protocol := &headerInfoProtol{}
 	protocol.BaseProtocol = new(prototypes.BaseProtocol)
-	protocol.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	prototypes.ClearEventHandler()
 	protocol.InitProtocol(env)
 

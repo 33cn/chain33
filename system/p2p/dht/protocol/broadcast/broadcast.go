@@ -6,7 +6,6 @@
 package broadcast
 
 import (
-	"context"
 	"encoding/hex"
 
 	"github.com/33cn/chain33/p2p/utils"
@@ -37,7 +36,6 @@ func init() {
 //
 type broadCastProtocol struct {
 	*prototypes.BaseProtocol
-	*prototypes.BaseStreamHandler
 
 	txFilter        *utils.Filterdata
 	blockFilter     *utils.Filterdata
@@ -97,7 +95,7 @@ func (handler *broadCastHandler) Handle(stream core.Stream) {
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
 	log.Debug("Handle", "pid", pid, "peerAddr", peerAddr)
 	var data types.MessageBroadCast
-	err := handler.ReadStream(&data, stream)
+	err := prototypes.ReadStream(&data, stream)
 	if err != nil {
 		log.Error("Handle", "pid", pid, "peerAddr", peerAddr, "err", err)
 		return
@@ -142,54 +140,48 @@ func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 		return
 	}
 
-	protocol.sendAllStream(sendData)
+	protocol.broadcast(sendData)
 }
 
-func (protocol *broadCastProtocol) sendAllStream(data interface{}) {
+func (protocol *broadCastProtocol) broadcast(data interface{}) {
 
-	log.Debug("sendAllStream")
 	pds := protocol.GetConnsManager().FetchConnPeers()
-
+	log.Debug("broadcast", "peerNum", len(pds))
 	for _, pid := range pds {
 
-		err := protocol.sendStream(pid.Pretty(), data)
+		err := protocol.sendPeer(pid.Pretty(), data)
 		if err != nil {
-			log.Debug("sendAllStream", "sendStreamErr", err)
+			log.Error("broadcast", "send peer err", err)
 		}
 	}
 }
 
-func (protocol *broadCastProtocol) sendStream(pid string, data interface{}) error {
+func (protocol *broadCastProtocol) sendPeer(pid string, data interface{}) error {
 
-	rawID, err := peer.IDB58Decode(pid)
-	if err != nil {
-		log.Error("sendStream", "id", pid, "decodePeerIDErr", err)
-		return err
-	}
-	stream, err := protocol.Host.NewStream(context.Background(), rawID, ID)
-	if err != nil {
-		log.Error("sendStream", "id", pid, "NewStreamErr", err)
-		return err
-	}
-	peerAddr := stream.Conn().RemoteMultiaddr().String()
-	sendData, doSend := protocol.handleSend(data, pid, peerAddr)
-	log.Debug("sendStream", "pid", pid, "peerAddr", peerAddr, doSend)
+	sendData, doSend := protocol.handleSend(data, pid, pid)
+	log.Debug("sendPeer", "pid", pid, doSend)
 	if !doSend {
 		return nil
 	}
-
+	rawID, err := peer.IDB58Decode(pid)
+	if err != nil {
+		log.Error("sendPeer", "id", pid, "decodePeerIDErr", err)
+		return err
+	}
+	stream, err := prototypes.NewStream(protocol.Host, rawID, ID)
+	if err != nil {
+		log.Error("sendPeer", "id", pid, "NewStreamErr", err)
+		return err
+	}
 	//包装一层MessageBroadCast
 	broadData := &types.MessageBroadCast{
 		Message: sendData}
-
-	err = protocol.WriteStream(broadData, stream)
+	err = prototypes.WriteStream(broadData, stream)
 	if err != nil {
-		log.Error("sendStream", "peerAddr", peerAddr, "send msg err", err)
-		_ = stream.Close()
-		return err
+		log.Error("sendPeer", "pid", pid, "WriteStream err", err)
 	}
-
-	return nil
+	prototypes.CloseStream(stream)
+	return err
 }
 
 // handleSend 对数据进行处理，包装成BroadCast结构

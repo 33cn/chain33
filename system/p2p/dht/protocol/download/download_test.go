@@ -80,7 +80,6 @@ func newTestProtocolWithQueue(q queue.Queue) *downloadProtol {
 	env := newTestEnv(q)
 	protocol := &downloadProtol{}
 	protocol.BaseProtocol = new(prototypes.BaseProtocol)
-	protocol.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	prototypes.ClearEventHandler()
 	protocol.InitProtocol(env)
 
