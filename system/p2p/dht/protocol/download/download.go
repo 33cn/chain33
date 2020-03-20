@@ -25,8 +25,8 @@ var (
 )
 
 func init() {
-	prototypes.RegisterProtocolType(protoTypeID, &downloadProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockReq, &downloadHander{})
+	prototypes.RegisterProtocol(protoTypeID, &downloadProtol{})
+	prototypes.RegisterStreamHandler(protoTypeID, DownloadBlockReq, &downloadHander{})
 }
 
 const (

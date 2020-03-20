@@ -29,8 +29,8 @@ const (
 )
 
 func init() {
-	prototypes.RegisterProtocolType(protoTypeID, &broadCastProtocol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, ID, &broadCastHandler{})
+	prototypes.RegisterProtocol(protoTypeID, &broadCastProtocol{})
+	prototypes.RegisterStreamHandler(protoTypeID, ID, &broadCastHandler{})
 }
 
 //
@@ -106,7 +106,6 @@ func (handler *broadCastHandler) Handle(stream core.Stream) {
 
 // SetProtocol set protocol
 func (handler *broadCastHandler) SetProtocol(protocol prototypes.IProtocol) {
-	handler.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	handler.Protocol = protocol
 }
 

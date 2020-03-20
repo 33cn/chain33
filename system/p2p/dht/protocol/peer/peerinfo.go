@@ -24,9 +24,9 @@ const (
 var log = log15.New("module", "p2p.peer")
 
 func init() {
-	prototypes.RegisterProtocolType(protoTypeID, &peerInfoProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, PeerInfoReq, &peerInfoHandler{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, PeerVersionReq, &peerInfoHandler{})
+	prototypes.RegisterProtocol(protoTypeID, &peerInfoProtol{})
+	prototypes.RegisterStreamHandler(protoTypeID, PeerInfoReq, &peerInfoHandler{})
+	prototypes.RegisterStreamHandler(protoTypeID, PeerVersionReq, &peerInfoHandler{})
 
 }
 
