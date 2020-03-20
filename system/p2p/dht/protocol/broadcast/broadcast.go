@@ -157,6 +157,8 @@ func (protocol *broadCastProtocol) broadcast(data interface{}) {
 
 func (protocol *broadCastProtocol) sendPeer(pid string, data interface{}) error {
 
+	//这里传peeraddr用pid替代不会影响，内部只做log记录， 暂时不更改代码
+	//TODO：增加peer addr获取渠道
 	sendData, doSend := protocol.handleSend(data, pid, pid)
 	log.Debug("sendPeer", "pid", pid, doSend)
 	if !doSend {
