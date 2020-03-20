@@ -117,6 +117,7 @@ func TestBroadCastEvent(t *testing.T) {
 func Test_util(t *testing.T) {
 	proto := newTestProtocol()
 	handler := &broadCastHandler{}
+	handler.BaseStreamHandler = &prototypes.BaseStreamHandler{}
 	handler.SetProtocol(proto)
 	ok := handler.VerifyRequest(nil, nil)
 	assert.True(t, ok)

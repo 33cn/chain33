@@ -17,15 +17,15 @@ var (
 	streamHandlerTypeMap = make(map[string]reflect.Type)
 )
 
-// RegisterStreamHandlerType 注册typeName,msgID,处理函数
-func RegisterStreamHandlerType(typeName, msgID string, handler StreamHandler) {
+// RegisterStreamHandler 注册typeName,msgID,处理函数
+func RegisterStreamHandler(typeName, msgID string, handler StreamHandler) {
 
 	if handler == nil {
-		panic("RegisterStreamHandlerType, handler is nil, msgId=" + msgID)
+		panic("RegisterStreamHandler, handler is nil, msgId=" + msgID)
 	}
 
 	if _, exist := protocolTypeMap[typeName]; !exist {
-		panic("RegisterStreamHandlerType, protocol type not exist, msgId=" + msgID)
+		panic("RegisterStreamHandler, protocol type not exist, msgId=" + msgID)
 	}
 
 	typeID := formatHandlerTypeID(typeName, msgID)

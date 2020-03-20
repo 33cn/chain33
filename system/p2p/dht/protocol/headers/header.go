@@ -23,8 +23,8 @@ const (
 )
 
 func init() {
-	prototypes.RegisterProtocolType(protoTypeID, &headerInfoProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, &headerInfoHander{})
+	prototypes.RegisterProtocol(protoTypeID, &headerInfoProtol{})
+	prototypes.RegisterStreamHandler(protoTypeID, HeaderInfoReq, &headerInfoHander{})
 }
 
 //type Istream
