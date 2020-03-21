@@ -175,7 +175,6 @@ func Test_util(t *testing.T) {
 	assert.NotNil(t, resp)
 
 	//-----------------
-	decodeChannelVersion(255)
 	proto.getPeerInfo()
 	proto.setExternalAddr("192.168.1.1")
 	assert.NotEmpty(t, proto.getExternalAddr())
