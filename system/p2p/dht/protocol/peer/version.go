@@ -13,28 +13,7 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 )
 
-//p2p版本区间 10020, 11000
-
-//历史版本
-const (
-	//p2p广播交易哈希而非完整区块数据
-	lightBroadCastVersion = 10030
-)
-
-// VERSION number
-const VERSION = lightBroadCastVersion
-
 // MainNet Channel = 0x0000
-
-const (
-	versionMask = 0xFFFF
-)
-
-func decodeChannelVersion(channelVersion int32) (channel int32, version int32) {
-	channel = channelVersion >> 16
-	version = channelVersion & versionMask
-	return
-}
 
 func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr string) (*types.MessageP2PVersionResp, error) {
 	if p.getExternalAddr() == "" {
@@ -42,7 +21,7 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 		log.Debug("OnVersionReq", "externalAddr", p.getExternalAddr())
 	}
 
-	channel, _ := decodeChannelVersion(req.GetMessage().GetVersion())
+	channel := req.GetMessage().GetVersion()
 	if channel != p.p2pCfg.Channel {
 		//TODO 协议不匹配
 		log.Error("OnVersionReq", "channel err", channel)

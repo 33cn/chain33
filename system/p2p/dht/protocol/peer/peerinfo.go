@@ -194,6 +194,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			continue
 		}
 		openedStreams = append(openedStreams, s)
+		version.Version = p.p2pCfg.Channel
 		version.AddrFrom = s.Conn().LocalMultiaddr().String()
 		version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 		err = prototypes.WriteStream(req, s)
