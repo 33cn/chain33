@@ -88,7 +88,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		taskGroup:     &sync.WaitGroup{},
 	}
 	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
-	p2p.discovery = net.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.subCfg, p2p.chainCfg.IsTestNet())
+	p2p.discovery = net.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.chainCfg, p2p.subCfg)
 	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
 	p2p.addrbook.StoreHostID(p2p.host.ID(), p2pCfg.DbPath)
 	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
@@ -162,7 +162,7 @@ func (p *P2P) StartP2P() {
 
 //查询本局域网内是否有节点
 func (p *P2P) findLANPeers() {
-	peerChan, err := p.discovery.FindLANPeers(p.host, "hello-chain33/")
+	peerChan, err := p.discovery.FindLANPeers(p.host, fmt.Sprintf("/%s-mdns/%d", p.chainCfg.GetTitle(), p.subCfg.Channel))
 	if err != nil {
 		log.Error("findLANPeers", "err", err.Error())
 		return
