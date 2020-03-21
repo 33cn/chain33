@@ -43,7 +43,7 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 	}
 
 	channel, _ := decodeChannelVersion(req.GetMessage().GetVersion())
-	if channel < p.p2pCfg.Channel {
+	if channel != p.p2pCfg.Channel {
 		//TODO 协议不匹配
 		log.Error("OnVersionReq", "channel err", channel)
 		return nil, errors.New("channel err")
@@ -65,8 +65,6 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
 	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
-
-	defer s.Close()
 	remoteMAddr := s.Conn().RemoteMultiaddr()
 
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
