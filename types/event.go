@@ -161,12 +161,14 @@ const (
 	EventNotifyStoreChunk     = 312
 	// 获取chunkBlock数据
 	EventGetChunkBlock        = 313
+	// 添加addChunkBlock
+	EventAddChunkBlock        = 314
 	// 获取chunkBody数据
-	EventGetChunkBlockBody    = 314
+	EventGetChunkBlockBody    = 315
 	// 获取ChunkRecord
-	EventGetChunkRecord       = 315
+	EventGetChunkRecord       = 316
 	// 添加ChunkRecord
-	EventAddChunkRecord       = 316
+	EventAddChunkRecord       = 317
 )
 
 var eventName = map[int]string{

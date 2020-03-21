@@ -761,7 +761,7 @@ func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testProcBlockChainFork begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
-	blockchain.ProcDownLoadBlocks(curheight-1, curheight+256, []string{"self"})
+	blockchain.ProcDownLoadBlocks(curheight-1, curheight+256, false, []string{"self"})
 	chainlog.Info("testProcBlockChainFork end --------------------")
 }
 

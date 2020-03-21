@@ -154,10 +154,9 @@ func (chain *BlockChain) SynRoutine() {
 	//60s尝试从peer节点请求ChunkRecord
 	chunkRecordSynTicker := time.NewTicker(60 * time.Second)
 
-	//节点启动后首先尝试开启快速下载模式,目前默认开启
-	if chain.GetDownloadSyncStatus() {
-		go chain.FastDownLoadBlocks()
-	}
+	//节点下载模式
+	go chain.DownLoadBlocks()
+
 	for {
 		select {
 		case <-chain.quit:
@@ -165,7 +164,7 @@ func (chain *BlockChain) SynRoutine() {
 			return
 		case <-blockSynTicker.C:
 			//synlog.Info("blockSynTicker")
-			if !chain.GetDownloadSyncStatus() {
+			if chain.GetDownloadSyncStatus() == normalDownLoadMode {
 				go chain.SynBlocksFromPeers()
 			}
 
@@ -252,7 +251,7 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 			}
 			chain.UpdateDownLoadStartHeight(requestblock.End + 1)
 			//快速下载时需要及时更新bestpeer，防止下载侧链的block
-			if chain.GetDownloadSyncStatus() {
+			if chain.GetDownloadSyncStatus() == fastDownLoadMode {
 				chain.UpdateDownLoadPids()
 			}
 		} else { // 所有DownLoad block已请求结束，恢复DownLoadInfo为默认值
@@ -821,7 +820,7 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	//在快速下载block阶段不处理fork的处理
 	//如果在普通同步阶段出现了分叉
 	//需要暂定同步解决分叉回滚之后再继续开启普通同步
-	if !chain.GetDownloadSyncStatus() {
+	if chain.GetDownloadSyncStatus() == normalDownLoadMode {
 		if chain.syncTask.InProgress() {
 			err = chain.syncTask.Cancel()
 			synlog.Info("ProcBlockHeaders: cancel syncTask start fork process downLoadTask!", "err", err)
@@ -830,7 +829,7 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 		if tipheight < peermaxheight {
 			endHeight = tipheight + 1
 		}
-		go chain.ProcDownLoadBlocks(ForkHeight, endHeight, []string{pid})
+		go chain.ProcDownLoadBlocks(ForkHeight, endHeight, false, []string{pid})
 	}
 	return nil
 }
@@ -1082,23 +1081,12 @@ func (chain *BlockChain) CheckBestChainProc(headers *types.Headers, pid string) 
 	}
 }
 
+// ChunkRecordSync 同步chunkrecord
 func (chain *BlockChain) ChunkRecordSync() {
-
 	curheight := chain.GetBlockHeight()
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 	recvChunk := chain.GetCurRecvChunkNum()
 
-	//如果任务正常，那么不重复启动任务
-	if chain.syncTask.InProgress() {
-		synlog.Info("chain syncTask InProgress")
-		return
-	}
-	//如果此时系统正在处理回滚，不启动同步的任务。
-	//等分叉回滚处理结束之后再启动同步任务继续同步
-	if chain.downLoadTask.InProgress() {
-		synlog.Info("chain downLoadTask InProgress")
-		return
-	}
 	//获取peers的最新高度.处理没有收到广播block的情况
 	//落后超过2个区块时主动同步区块，落后一个区块时需要判断是否超时
 	peerMaxChunk, _, _ := chain.CaclChunkInfo(peerMaxBlkHeight)
@@ -1109,21 +1097,21 @@ func (chain *BlockChain) ChunkRecordSync() {
 		return
 	}
 
-	synlog.Info("SynBlocksFromPeers", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight,
+	synlog.Info("ChunkRecordSync", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight,
 		"recvChunk", recvChunk, "curShouldChunk", curShouldChunk)
 
 	pids := chain.GetBestChainPids()
 	if pids != nil {
 		endChunk := peerMaxChunk - recvChunk
-		if endChunk > 1000 { // 每次请求最大1000个chunk的record
-			endChunk = 1000
+		if endChunk > int64(MaxReqChunkRecord) { // 每次请求最大MaxReqChunkRecord个chunk的record
+			endChunk = int64(MaxReqChunkRecord)
 		}
 		err := chain.FetchChunkRecords(recvChunk+1, recvChunk+endChunk, pids[0])
 		if err != nil {
-			synlog.Error("SynBlocksFromPeers FetchBlock", "err", err)
+			synlog.Error("ChunkRecordSync FetchChunkRecords", "err", err)
 		}
 	} else {
-		synlog.Info("SynBlocksFromPeers GetBestChainPids is nil")
+		synlog.Info("ChunkRecordSync GetBestChainPids is nil")
 	}
 }
 

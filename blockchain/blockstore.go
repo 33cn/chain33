@@ -1634,3 +1634,18 @@ func (bs *BlockStore) getCurChunkNum(prefix []byte) int64 {
 	}
 	return int64(height)
 }
+
+func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
+	value, err := bs.GetKey(calcRecvChunkNumToHash(chunkNum))
+	if err != nil {
+		storeLog.Error("getChunkHash", "chunkNum", chunkNum, "error", err)
+		return nil, err
+	}
+	var chunk types.ChunkInfo
+	err = types.Decode(value, &chunk)
+	if err != nil {
+		synlog.Error("getChunkHash", "decode err:", err)
+		return nil, err
+	}
+	return chunk.ChunkHash, err
+}

@@ -98,7 +98,7 @@ type BlockChain struct {
 
 	//downLoad block info
 	downLoadInfo       *DownLoadInfo
-	isFastDownloadSync bool //当本节点落后很多时，可以先下载区块到db，启动单独的goroutine去执行block
+	downloadMode          int //当本节点落后很多时，可以先下载区块到db，启动单独的goroutine去执行block
 
 	isRecordBlockSequence bool //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
 	isParaChain           bool //是否是平行链。平行链需要记录Sequence信息
@@ -111,7 +111,7 @@ type BlockChain struct {
 	faultpeerlock       sync.Mutex
 	bestpeerlock        sync.Mutex
 	downLoadlock        sync.Mutex
-	fastDownLoadSynLock sync.Mutex
+	downLoadModeLock    sync.Mutex
 	isNtpClockSync      bool //ntp时间是否同步
 
 	//cfg
@@ -166,7 +166,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		isNtpClockSync:      true,
 		MaxFetchBlockNum:    128 * 6, //一次最多申请获取block个数
 		TimeoutSeconds:      2,
-		isFastDownloadSync:  true,
+		downloadMode:        chunkDownLoadMode,
 		blockOnChain:        &BlockOnChain{},
 		onChainTimeout:      0,
 	}

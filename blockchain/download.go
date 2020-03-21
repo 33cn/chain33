@@ -27,7 +27,12 @@ const (
 
 	//快速下载时需要的最少peer数量
 	bestPeerCount = 2
+
+    normalDownLoadMode = 0
+	fastDownLoadMode   = 1
+	chunkDownLoadMode  = 2
 )
+
 
 //DownLoadInfo blockchain模块下载block处理结构体
 type DownLoadInfo struct {
@@ -53,17 +58,17 @@ func calcLastTempBlockHeightKey() []byte {
 }
 
 //GetDownloadSyncStatus 获取下载区块的同步模式
-func (chain *BlockChain) GetDownloadSyncStatus() bool {
-	chain.fastDownLoadSynLock.Lock()
-	defer chain.fastDownLoadSynLock.Unlock()
-	return chain.isFastDownloadSync
+func (chain *BlockChain) GetDownloadSyncStatus() int {
+	chain.downLoadModeLock.Lock()
+	defer chain.downLoadModeLock.Unlock()
+	return chain.downloadMode
 }
 
 //UpdateDownloadSyncStatus 更新下载区块的同步模式
-func (chain *BlockChain) UpdateDownloadSyncStatus(Sync bool) {
-	chain.fastDownLoadSynLock.Lock()
-	defer chain.fastDownLoadSynLock.Unlock()
-	chain.isFastDownloadSync = Sync
+func (chain *BlockChain) UpdateDownloadSyncStatus(mode int) {
+	chain.downLoadModeLock.Lock()
+	defer chain.downLoadModeLock.Unlock()
+	chain.downloadMode = mode
 }
 
 //FastDownLoadBlocks 开启快速下载区块的模式
@@ -89,16 +94,16 @@ func (chain *BlockChain) FastDownLoadBlocks() {
 		pids := chain.GetBestChainPids()
 		//节点启动时只有落后最优链batchsyncblocknum个区块时才开启这种下载模式
 		if pids != nil && peerMaxBlkHeight != -1 && curheight+batchsyncblocknum >= peerMaxBlkHeight {
-			chain.UpdateDownloadSyncStatus(false)
+			chain.UpdateDownloadSyncStatus(normalDownLoadMode)
 			synlog.Info("FastDownLoadBlocks:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight)
 			break
 		} else if curheight+batchsyncblocknum < peerMaxBlkHeight && len(pids) >= bestPeerCount {
 			synlog.Info("start download blocks!FastDownLoadBlocks", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight)
-			go chain.ProcDownLoadBlocks(curheight, peerMaxBlkHeight, pids)
+			go chain.ProcDownLoadBlocks(curheight, peerMaxBlkHeight, false, pids)
 			go chain.ReadBlockToExec(peerMaxBlkHeight, true)
 			break
 		} else if types.Since(startTime) > waitTimeDownLoad*time.Second || chain.cfg.SingleMode {
-			chain.UpdateDownloadSyncStatus(false)
+			chain.UpdateDownloadSyncStatus(normalDownLoadMode)
 			synlog.Info("FastDownLoadBlocks:waitTimeDownLoad:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight, "pids", pids)
 			break
 		} else {
@@ -126,7 +131,7 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 			atomic.CompareAndSwapInt32(&chain.isbatchsync, 0, 1)
 		}
 		if (curheight >= peerMaxBlkHeight && peerMaxBlkHeight != -1) || curheight >= height {
-			chain.cancelFastDownLoadFlag(isNewStart)
+			chain.cancelDownLoadFlag(isNewStart)
 			synlog.Info("ReadBlockToExec complete!", "curheight", curheight, "height", height, "peerMaxBlkHeight", peerMaxBlkHeight)
 			break
 		}
@@ -142,7 +147,7 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 						waitCount.Count = 1
 					}
 					if waitCount.Count >= 120 {
-						chain.cancelFastDownLoadFlag(isNewStart)
+						chain.cancelDownLoadFlag(isNewStart)
 						synlog.Error("ReadBlockToExec:ReadBlockByHeight:timeout", "height", curheight+1, "peerMaxBlkHeight", peerMaxBlkHeight, "err", err)
 						break
 					}
@@ -154,7 +159,7 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 					continue
 				}
 			} else {
-				chain.cancelFastDownLoadFlag(isNewStart)
+				chain.cancelDownLoadFlag(isNewStart)
 				synlog.Error("ReadBlockToExec:ReadBlockByHeight", "height", curheight+1, "peerMaxBlkHeight", peerMaxBlkHeight, "err", err)
 				break
 			}
@@ -169,7 +174,7 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 				}
 				chain.DefaultDownLoadInfo()
 			}
-			chain.cancelFastDownLoadFlag(isNewStart)
+			chain.cancelDownLoadFlag(isNewStart)
 			synlog.Error("ReadBlockToExec:ProcessBlock:err!", "height", block.Height, "hash", common.ToHex(block.Hash(cfg)), "isNewStart", isNewStart, "err", err)
 			break
 		}
@@ -177,10 +182,10 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 	}
 }
 
-//CancelFastDownLoadFlag 清除快速下载模式的一些标志
-func (chain *BlockChain) cancelFastDownLoadFlag(isNewStart bool) {
+//CancelDownLoadFlag 清除快速下载模式的一些标志
+func (chain *BlockChain) cancelDownLoadFlag(isNewStart bool) {
 	if isNewStart {
-		chain.UpdateDownloadSyncStatus(false)
+		chain.UpdateDownloadSyncStatus(normalDownLoadMode)
 	}
 	chain.DelLastTempBlockHeight()
 	synlog.Info("cancelFastDownLoadFlag", "isNewStart", isNewStart)
@@ -263,7 +268,7 @@ func (chain *BlockChain) DelLastTempBlockHeight() {
 }
 
 //ProcDownLoadBlocks 处理下载blocks
-func (chain *BlockChain) ProcDownLoadBlocks(StartHeight int64, EndHeight int64, pids []string) {
+func (chain *BlockChain) ProcDownLoadBlocks(StartHeight int64, EndHeight int64, chunkDown bool, pids []string) {
 	info := chain.GetDownLoadInfo()
 
 	//可能存在上次DownLoad处理过程中下载区块超时，DownLoad任务退出，但DownLoad没有恢复成默认值
@@ -273,7 +278,11 @@ func (chain *BlockChain) ProcDownLoadBlocks(StartHeight int64, EndHeight int64, 
 
 	chain.DefaultDownLoadInfo()
 	chain.InitDownLoadInfo(StartHeight, EndHeight, pids)
-	chain.ReqDownLoadBlocks()
+	if chunkDown {
+		chain.ReqDownLoadChunkBlocks()
+	} else {
+		chain.ReqDownLoadBlocks()
+	}
 }
 
 //InitDownLoadInfo 开始新的DownLoad处理
@@ -369,6 +378,173 @@ func (chain *BlockChain) DownLoadTimeOutProc(height int64) {
 		err := chain.FetchBlock(info.StartHeight, info.EndHeight, info.Pids, true)
 		if err != nil {
 			synlog.Error("DownLoadTimeOutProc:FetchBlock", "err", err)
+		}
+	}
+}
+
+// DownLoadBlocks 下载区块
+func (chain *BlockChain) DownLoadBlocks() {
+	// 1.节点开启时候首先尝试进行chunkDownLoad下载
+	if chain.GetDownloadSyncStatus() == chunkDownLoadMode {
+		chain.ChunkDownLoadBlocks()
+	}
+	// 2.其次尝试开启快速下载模式,目前默认开启
+	if chain.GetDownloadSyncStatus() == fastDownLoadMode {
+		chain.FastDownLoadBlocks()
+	}
+}
+
+//ChunkDownLoadBlocks 开启快速下载区块的模式
+func (chain *BlockChain) ChunkDownLoadBlocks() {
+	curHeight := chain.GetBlockHeight()
+	lastTempHight := chain.GetLastTempBlockHeight()
+
+	synlog.Info("ChunkDownLoadBlocks", "curHeight", curHeight, "lastTempHight", lastTempHight)
+
+	//需要执行完上次已经下载并临时存贮在db中的blocks
+	if lastTempHight != -1 && lastTempHight > curHeight {
+		chain.ReadBlockToExec(lastTempHight, false)
+	}
+	//1：落后区块数量大于MaxRollBlockNum个开启chunk同步，否则开启快速同步
+	//2：启动二分钟如果还不满足chunk同步，则进行快速同步
+
+	startTime := types.Now()
+
+	for {
+		curheight := chain.GetBlockHeight()
+		peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
+		pids := chain.GetBestChainPids()
+		//节点启动时只有落后最优链batchsyncblocknum个区块时才开启这种下载模式
+		if pids != nil && peerMaxBlkHeight != -1 && curheight+batchsyncblocknum >= peerMaxBlkHeight {
+			synlog.Info("ChunkDownLoadBlocks:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight)
+			chain.UpdateDownloadSyncStatus(normalDownLoadMode)
+			break
+		} else if curheight+MaxRollBlockNum < peerMaxBlkHeight && pids != nil {
+			synlog.Info("start download blocks!ChunkDownLoadBlocks", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight)
+			go chain.ProcDownLoadBlocks(curheight, peerMaxBlkHeight, true, pids)
+			// 下载chunk后在该进程执行临时区块
+			chain.ReadBlockToExec(peerMaxBlkHeight, true)
+			// 执行完成chunk之后将模式切换到fastDownLoadMode
+			chain.UpdateDownloadSyncStatus(fastDownLoadMode)
+			break
+		} else if types.Since(startTime) > waitTimeDownLoad*time.Second || chain.cfg.SingleMode {
+			synlog.Info("ChunkDownLoadBlocks:waitTimeDownLoad:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight, "pids", pids)
+			chain.UpdateDownloadSyncStatus(fastDownLoadMode)
+			break
+		} else {
+			synlog.Info("ChunkDownLoadBlocks task sleep 1 second !")
+			time.Sleep(time.Second)
+		}
+	}
+}
+
+//ReqDownLoadBlocks 请求DownLoad处理的blocks
+func (chain *BlockChain) ReqDownLoadChunkBlocks() {
+	info := chain.GetDownLoadInfo()
+	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {
+		synlog.Info("ReqDownLoadChunkBlocks", "StartHeight", info.StartHeight, "EndHeight", info.EndHeight, "pids", len(info.Pids))
+		err := chain.FetchChunkBlock(info.StartHeight, info.EndHeight, info.Pids)
+		if err != nil {
+			synlog.Error("ReqDownLoadChunkBlocks:FetchBlock", "err", err)
+		}
+	}
+}
+
+/*
+FetchChunkBlock 函数功能：
+通过向P2P模块送 EventGetChunkBlock(types.RequestGetBlock)，向其他节点主动请求区块，
+P2P区块收到这个消息后，会向blockchain 模块回复， EventReply。
+其他节点如果有这个范围的区块，P2P模块收到其他节点发来的数据，
+会发送送EventAddBlocks(types.Blocks) 给 blockchain 模块，
+blockchain 模块回复 EventReply
+*/
+func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []string) (err error) {
+	if chain.client == nil {
+		synlog.Error("FetchChunkBlock chain client not bind message queue.")
+		return types.ErrClientNotBindQueue
+	}
+
+	synlog.Debug("FetchChunkBlock input", "StartHeight", startHeight, "EndHeight", endHeight, "pid", pid)
+	blockcount := startHeight - endHeight
+	if blockcount < 0 {
+		return types.ErrStartBigThanEnd
+	}
+	chunkNum, start, end := chain.CaclChunkInfo(startHeight)
+
+	var chunkhash []byte
+	for i := 0; i < waitTimeDownLoad; i++ {
+		chunkhash, err = chain.blockStore.getRecvChunkHash(chunkNum)
+		if err != nil {
+			// 目前没有chunkNum需要继续等待
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	if err != nil {
+		return ErrNoChunkInfoToDownLoad
+	}
+
+	// 以chunk为单位同步block
+	var requestblock types.ReqChunkBlock
+	requestblock.ChunkHash = chunkhash
+	requestblock.Start = start
+	requestblock.End = endHeight
+	if endHeight > end {
+		requestblock.End = end
+	}
+
+	var cb func()
+	var timeoutcb func(chunkNum int64)
+	//还有区块需要请求，挂接钩子回调函数
+	if requestblock.End < chain.downLoadInfo.EndHeight {
+		cb = func() {
+			chain.ReqDownLoadChunkBlocks()
+		}
+		timeoutcb = func(chunkNum int64) {
+			chain.DownLoadChunkTimeOutProc(chunkNum)
+		}
+		chain.UpdateDownLoadStartHeight(requestblock.End + 1)
+		// TODO 目前P2Pstore暂时不需要Pids 快速下载时需要及时更新bestpeer，防止下载侧链的block
+		//if chain.GetDownloadSyncStatus() == chunkDownLoadMode{
+		//	chain.UpdateDownLoadPids()
+		//}
+	} else { // 所有DownLoad block已请求结束，恢复DownLoadInfo为默认值
+		chain.DefaultDownLoadInfo()
+	}
+	//chunk下载只是每次只下载一个chunk, TODO 后续再做并发请求下载
+	err = chain.downLoadTask.Start(chunkNum, chunkNum, cb, timeoutcb)
+	if err != nil {
+		return err
+	}
+	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End)
+	msg := chain.client.NewMessage("p2p", types.EventGetChunkBlock, &requestblock)
+	Err := chain.client.Send(msg, true)
+	if Err != nil {
+		synlog.Error("FetchChunkBlock", "client.Send err:", Err)
+		return err
+	}
+	resp, err := chain.client.Wait(msg)
+	if err != nil {
+		synlog.Error("FetchChunkBlock", "client.Wait err:", err)
+		return err
+	}
+	return resp.Err()
+}
+
+//DownLoadChunkTimeOutProc 快速下载模式下载区块超时的处理函数
+func (chain *BlockChain) DownLoadChunkTimeOutProc(chunkNum int64) {
+	info := chain.GetDownLoadInfo()
+	synlog.Info("DownLoadChunkTimeOutProc", "chunkNum", chunkNum, "StartHeight", info.StartHeight, "EndHeight", info.EndHeight)
+	// 下载超时需要检测下载的pid是否存在，如果所有下载peer都失连，需要退出本次下载
+	// 在处理分叉时从指定节点下载区块超时时，可能是节点失连导致，此时需要退出本次下载
+	// TODO 后续可能需要策略上面的修改
+	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {
+		//从超时的高度继续下载区块
+		synlog.Info("DownLoadChunkTimeOutProc:FetchChunkBlock", "StartHeight", info.StartHeight, "EndHeight", info.EndHeight, "pids", len(info.Pids))
+		err := chain.FetchChunkBlock(info.StartHeight, info.EndHeight, info.Pids)
+		if err != nil {
+			synlog.Error("DownLoadChunkTimeOutProc:FetchChunkBlock", "err", err)
 		}
 	}
 }
