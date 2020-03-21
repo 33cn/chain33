@@ -13,7 +13,6 @@ import (
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
@@ -56,20 +55,22 @@ func newHostPair(port1, port2 int32) (h1, h2 core.Host) {
 	h1 = newHost(port1, prvKey1)
 	h2 = newHost(port2, prvKey2)
 	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
-		helpers.FullClose(s)
+		CloseStream(s)
 	})
 	h1.SetStreamHandler(protocol.ID(msgID2), func(s core.Stream) {
-		helpers.FullClose(s)
+		CloseStream(s)
 	})
 
 	h2.SetStreamHandler(protocol.ID(msgID2), func(s core.Stream) {
 		tx := &types.Transaction{}
 		ReadStream(tx, s)
 		WriteStream(tx, s)
-		helpers.FullClose(s)
+		CloseStream(s)
 	})
 	h2.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
-		helpers.FullClose(s)
+		tx := &types.Transaction{}
+		ReadStream(tx, s)
+		CloseStream(s)
 	})
 	return
 }
@@ -108,7 +109,7 @@ func TestStream(t *testing.T) {
 	CloseStream(stream)
 }
 
-// 5000	    258002 ns/op
+// BenchmarkNewStream-8   	   20000	     68432 ns/op
 func BenchmarkNewStream(b *testing.B) {
 
 	h1, h2 := newHostPair(13804, 13805)
@@ -123,16 +124,7 @@ func BenchmarkNewStream(b *testing.B) {
 	assert.Nil(b, err)
 	proto := &testProtocol{}
 	proto.P2PEnv = &P2PEnv{Host: h1}
-	//start := types.Now().UnixNano()
 	for i := 0; i < b.N; i++ {
-
-		s, err := NewStream(h1, h2.ID(), msgID)
-		if err != nil {
-			continue
-		}
-		_ = WriteStream(&types.Transaction{}, s)
-		CloseStream(s)
+		NewStream(h1, h2.ID(), msgID)
 	}
-	//end := types.Now().UnixNano()
-	//fmt.Println("spend time(us)", float64(end -start)/1000000/100000)
 }
