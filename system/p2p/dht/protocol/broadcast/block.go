@@ -170,7 +170,7 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 		},
 	}
 	//pub to specified peer
-	err := protocol.sendPeer(pid, query)
+	_, err := protocol.sendPeer(pid, query, false)
 	if err != nil {
 		log.Error("recvLtBlock", "pid", pid, "sendStreamErr", err)
 		protocol.blockFilter.Remove(blockHash)

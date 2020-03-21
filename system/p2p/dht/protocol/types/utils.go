@@ -9,9 +9,10 @@ import (
 	"io"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/helpers"
+
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
 
@@ -64,8 +65,9 @@ func (base *BaseProtocol) SendRecvPeer(req *StreamRequest, resp types.Message) e
 func NewStream(host core.Host, pid core.PeerID, msgID string) (core.Stream, error) {
 
 	stream, err := host.NewStream(context.Background(), pid, core.ProtocolID(msgID))
-	// 测试发现，频繁新建可能会导致连接关闭， 增加一次重试
+	// EOF表示底层连接断开， 增加一次重试
 	if err == io.EOF {
+		log.Debug("NewStream", "msg", "RetryConnectEOF")
 		stream, err = host.NewStream(context.Background(), pid, core.ProtocolID(msgID))
 	}
 	if err != nil {
@@ -75,8 +77,11 @@ func NewStream(host core.Host, pid core.PeerID, msgID string) (core.Stream, erro
 	return stream, nil
 }
 
-// CloseStream 关闭流， 存在超时阻塞情况
+// CloseStream 关闭流， 存在超时阻塞情况, 对于并行情况，可以优先处理读写，最后统一关闭
 func CloseStream(stream core.Stream) {
+	if stream == nil {
+		return
+	}
 	err := helpers.FullClose(stream)
 	if err != nil {
 		//这个错误不影响流程，只做记录

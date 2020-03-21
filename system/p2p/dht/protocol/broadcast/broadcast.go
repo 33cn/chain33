@@ -146,43 +146,56 @@ func (protocol *broadCastProtocol) broadcast(data interface{}) {
 
 	pds := protocol.GetConnsManager().FetchConnPeers()
 	log.Debug("broadcast", "peerNum", len(pds))
+	openedStreams := make([]core.Stream, 0)
 	for _, pid := range pds {
 
-		err := protocol.sendPeer(pid.Pretty(), data)
+		stream, err := protocol.sendPeer(pid.Pretty(), data, true)
 		if err != nil {
 			log.Error("broadcast", "send peer err", err)
 		}
+		if stream != nil {
+			openedStreams = append(openedStreams, stream)
+		}
+	}
+
+	// 广播发送数据结束后，统一关闭打开的stream
+	for _, stream := range openedStreams {
+		prototypes.CloseStream(stream)
 	}
 }
 
-func (protocol *broadCastProtocol) sendPeer(pid string, data interface{}) error {
+// 发送广播数据到节点, 支持延迟关闭内部stream，主要考虑多个节点并行发送情况，不需要等待关闭
+func (protocol *broadCastProtocol) sendPeer(pid string, data interface{}, delayStreamClose bool) (core.Stream, error) {
 
 	//这里传peeraddr用pid替代不会影响，内部只做log记录， 暂时不更改代码
 	//TODO：增加peer addr获取渠道
 	sendData, doSend := protocol.handleSend(data, pid, pid)
-	log.Debug("sendPeer", "pid", pid, doSend)
+	log.Debug("sendPeer", "pid", pid, "doSend", doSend)
 	if !doSend {
-		return nil
-	}
-	rawID, err := peer.IDB58Decode(pid)
-	if err != nil {
-		log.Error("sendPeer", "id", pid, "decodePeerIDErr", err)
-		return err
-	}
-	stream, err := prototypes.NewStream(protocol.Host, rawID, ID)
-	if err != nil {
-		log.Error("sendPeer", "id", pid, "NewStreamErr", err)
-		return err
+		return nil, nil
 	}
 	//包装一层MessageBroadCast
 	broadData := &types.MessageBroadCast{
 		Message: sendData}
+	rawID, err := peer.IDB58Decode(pid)
+	if err != nil {
+		log.Error("sendPeer", "id", pid, "decodePeerIDErr", err)
+		return nil, err
+	}
+	stream, err := prototypes.NewStream(protocol.Host, rawID, ID)
+	if err != nil {
+		log.Error("sendPeer", "id", pid, "NewStreamErr", err)
+		return nil, err
+	}
+
 	err = prototypes.WriteStream(broadData, stream)
 	if err != nil {
 		log.Error("sendPeer", "pid", pid, "WriteStream err", err)
 	}
-	prototypes.CloseStream(stream)
-	return err
+	if !delayStreamClose {
+		prototypes.CloseStream(stream)
+	}
+	return stream, err
 }
 
 // handleSend 对数据进行处理，包装成BroadCast结构

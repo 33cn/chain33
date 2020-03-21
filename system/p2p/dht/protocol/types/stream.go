@@ -92,11 +92,8 @@ func (s *BaseStreamHandler) GetProtocol() IProtocol {
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 	log.Debug("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
 	//TODO verify校验放在这里
-
-	//defer stream.Close()
 	s.child.Handle(stream)
 	CloseStream(stream)
-
 }
 
 func formatHandlerTypeID(protocolType, msgID string) string {
