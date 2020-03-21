@@ -6,6 +6,7 @@ package broadcast
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
 )
