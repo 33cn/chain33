@@ -194,6 +194,7 @@ func (protocol *broadCastProtocol) sendPeer(pid string, data interface{}, delayS
 	}
 	if !delayStreamClose {
 		prototypes.CloseStream(stream)
+		stream = nil
 	}
 	return stream, err
 }
