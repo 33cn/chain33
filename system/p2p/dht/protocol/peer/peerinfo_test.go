@@ -73,7 +73,7 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
 	}
-	env.Discovery = net.InitDhtDiscovery(host, nil, subCfg, true)
+	env.Discovery = net.InitDhtDiscovery(host, nil, cfg, subCfg)
 	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil)
 
 	return env
@@ -83,7 +83,6 @@ func newTestProtocolWithQueue(q queue.Queue) *peerInfoProtol {
 	env := newTestEnv(q)
 	protocol := &peerInfoProtol{}
 	protocol.BaseProtocol = new(prototypes.BaseProtocol)
-	protocol.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	prototypes.ClearEventHandler()
 	protocol.InitProtocol(env)
 
@@ -176,7 +175,6 @@ func Test_util(t *testing.T) {
 	assert.NotNil(t, resp)
 
 	//-----------------
-	decodeChannelVersion(255)
 	proto.getPeerInfo()
 	proto.setExternalAddr("192.168.1.1")
 	assert.NotEmpty(t, proto.getExternalAddr())

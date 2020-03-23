@@ -25,8 +25,8 @@ var (
 )
 
 func init() {
-	prototypes.RegisterProtocolType(protoTypeID, &downloadProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, DownloadBlockReq, &downloadHander{})
+	prototypes.RegisterProtocol(protoTypeID, &downloadProtol{})
+	prototypes.RegisterStreamHandler(protoTypeID, DownloadBlockReq, &downloadHander{})
 }
 
 const (
@@ -37,7 +37,6 @@ const (
 //type Istream
 type downloadProtol struct {
 	*prototypes.BaseProtocol
-	*prototypes.BaseStreamHandler
 }
 
 func (d *downloadProtol) InitProtocol(env *prototypes.P2PEnv) {
@@ -58,7 +57,7 @@ func (d *downloadHander) Handle(stream core.Stream) {
 	//解析处理
 	if stream.Protocol() == DownloadBlockReq {
 		var data types.MessageGetBlocksReq
-		err := d.ReadProtoMessage(&data, stream)
+		err := prototypes.ReadStream(&data, stream)
 		if err != nil {
 			log.Error("Handle", "err", err)
 			return
@@ -113,9 +112,9 @@ func (d *downloadProtol) onReq(id string, message *types.P2PGetBlocks, s core.St
 		log.Error("processReq", "err", err, "pid", s.Conn().RemotePeer().String())
 		return
 	}
-	err = d.SendProtoMessage(blockdata, s)
+	err = prototypes.WriteStream(blockdata, s)
 	if err != nil {
-		log.Error("SendProtoMessage", "err", err, "pid", s.Conn().RemotePeer().String())
+		log.Error("WriteStream", "err", err, "pid", s.Conn().RemotePeer().String())
 		return
 	}
 
@@ -134,7 +133,7 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 	}
 	pids := req.GetPid()
 	if len(pids) == 0 { //根据指定的pidlist 获取对应的block header
-		log.Info("GetBlocks:pid is nil")
+		log.Debug("GetBlocks:pid is nil")
 		msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{Msg: []byte("no pid")}))
 		return
 	}
@@ -142,11 +141,11 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 	msg.Reply(d.GetQueueClient().NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
 	var taskID = uuid.New().String() + "+" + fmt.Sprintf("%d-%d", req.GetStart(), req.GetEnd())
 
-	log.Info("handleEvent", "taskID", taskID, "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
+	log.Debug("handleEvent", "taskID", taskID, "download start", req.GetStart(), "download end", req.GetEnd(), "pids", pids)
 
 	//具体的下载逻辑
 	jobS := d.initJob(pids, taskID)
-	log.Info("handleEvent", "jobs", jobS)
+	log.Debug("handleEvent", "jobs", jobS)
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	var maxgoroutin int32
@@ -190,7 +189,7 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 
 	wg.Wait()
 	d.CheckTask(taskID, pids, reDownload)
-	log.Info("Download Job Complete!", "TaskID++++++++++++++", taskID,
+	log.Debug("Download Job Complete!", "TaskID++++++++++++++", taskID,
 		"cost time", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6),
 		"from", pids)
 
@@ -226,15 +225,14 @@ ReDownload:
 		Message: getblocks}
 
 	req := &prototypes.StreamRequest{
-		PeerID:  task.Pid,
-		Host:    d.GetHost(),
-		Data:    blockReq,
-		ProtoID: DownloadBlockReq,
+		PeerID: task.Pid,
+		Data:   blockReq,
+		MsgID:  DownloadBlockReq,
 	}
 	var resp types.MessageGetBlocksResp
-	err := d.StreamSendHandler(req, &resp)
+	err := d.SendRecvPeer(req, &resp)
 	if err != nil {
-		log.Error("handleEvent", "StreamSendHandler", err, "pid", task.Pid)
+		log.Error("handleEvent", "SendRecvPeer", err, "pid", task.Pid)
 		d.releaseJob(task)
 		tasks = tasks.Remove(task)
 		goto ReDownload

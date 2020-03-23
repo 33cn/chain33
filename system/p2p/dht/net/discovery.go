@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/33cn/chain33/types"
+
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
@@ -23,7 +25,7 @@ var (
 	log = log15.New("module", "p2p.dht")
 )
 
-const DhtProtoID = "/ipfs/kad/chain33/1.0.0"
+const DhtProtoID = "/ipfs/kad/%s/1.0.0/%d"
 
 type Discovery struct {
 	kademliaDHT      *dht.IpfsDHT
@@ -31,17 +33,17 @@ type Discovery struct {
 	mndsService      *mdns
 }
 
-func InitDhtDiscovery(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig, isTestNet bool) *Discovery {
+func InitDhtDiscovery(host host.Host, peersInfo []peer.AddrInfo, chainCfg *types.Chain33Config, subCfg *p2pty.P2PSubConfig) *Discovery {
 
 	// Make the DHT,不同的ID进入不同的网络。
 	//如果不修改DHTProto 则有可能会连入IPFS网络，dhtproto=/ipfs/kad/1.0.0
 	d := new(Discovery)
-	opt := opts.Protocols(protocol.ID(DhtProtoID + "/" + fmt.Sprintf("%d", cfg.Channel)))
+	opt := opts.Protocols(protocol.ID(fmt.Sprintf(DhtProtoID, chainCfg.GetTitle(), subCfg.Channel)))
 	kademliaDHT, _ := dht.New(context.Background(), host, opt)
 	d.kademliaDHT = kademliaDHT
 
 	//连接内置种子，以及addrbook存储的节点
-	initInnerPeers(host, peersInfo, cfg, isTestNet)
+	initInnerPeers(host, peersInfo, subCfg, chainCfg.IsTestNet())
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
 	if err := d.kademliaDHT.Bootstrap(context.Background()); err != nil {

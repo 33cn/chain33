@@ -71,7 +71,7 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		SubConfig:       subCfg,
 	}
 
-	env.Discovery = net.InitDhtDiscovery(host, nil, subCfg, true)
+	env.Discovery = net.InitDhtDiscovery(host, nil, cfg, subCfg)
 	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil)
 	return env
 }
@@ -80,7 +80,6 @@ func newTestProtocolWithQueue(q queue.Queue) *downloadProtol {
 	env := newTestEnv(q)
 	protocol := &downloadProtol{}
 	protocol.BaseProtocol = new(prototypes.BaseProtocol)
-	protocol.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	prototypes.ClearEventHandler()
 	protocol.InitProtocol(env)
 

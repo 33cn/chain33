@@ -23,14 +23,13 @@ const (
 )
 
 func init() {
-	prototypes.RegisterProtocolType(protoTypeID, &headerInfoProtol{})
-	prototypes.RegisterStreamHandlerType(protoTypeID, HeaderInfoReq, &headerInfoHander{})
+	prototypes.RegisterProtocol(protoTypeID, &headerInfoProtol{})
+	prototypes.RegisterStreamHandler(protoTypeID, HeaderInfoReq, &headerInfoHander{})
 }
 
 //type Istream
 type headerInfoProtol struct {
 	*prototypes.BaseProtocol
-	*prototypes.BaseStreamHandler
 }
 
 func (h *headerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
@@ -65,11 +64,11 @@ func (h *headerInfoProtol) onReq(id string, getheaders *types.P2PGetHeaders, s c
 		return
 	}
 
-	err = h.SendProtoMessage(senddata, s)
+	err = prototypes.WriteStream(senddata, s)
 	if err == nil {
-		log.Info(" Header response ", "from", s.Conn().LocalPeer().String(), "to", s.Conn().RemotePeer().String(), "height", getheaders.GetStartHeight())
+		log.Debug(" Header response ", "from", s.Conn().LocalPeer().String(), "to", s.Conn().RemotePeer().String(), "height", getheaders.GetStartHeight())
 	} else {
-		log.Error("OnReq", "SendProtoMessage", err)
+		log.Error("OnReq", "WriteStream", err)
 		return
 	}
 
@@ -79,7 +78,7 @@ func (h *headerInfoProtol) onReq(id string, getheaders *types.P2PGetHeaders, s c
 func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 	req := msg.GetData().(*types.ReqBlocks)
 	pids := req.GetPid()
-	log.Info("handleEvent", "msg", msg, "pid", pids, "req header start", req.GetStart(), "req header end", req.GetEnd())
+	log.Debug("handleEvent", "msg", msg, "pid", pids, "req header start", req.GetStart(), "req header end", req.GetEnd())
 
 	if len(pids) == 0 { //根据指定的pidlist 获取对应的block header
 		log.Debug("GetHeaders:pid is nil")
@@ -91,7 +90,7 @@ func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 
 	for _, pid := range pids {
 
-		log.Info("handleEvent", "pid", pid, "start", req.GetStart(), "end", req.GetEnd())
+		log.Debug("handleEvent", "pid", pid, "start", req.GetStart(), "end", req.GetEnd())
 
 		p2pgetheaders := &types.P2PGetHeaders{StartHeight: req.GetStart(), EndHeight: req.GetEnd(),
 			Version: 0}
@@ -107,15 +106,14 @@ func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 			continue
 		}
 		req := &prototypes.StreamRequest{
-			PeerID:  rID,
-			Host:    h.GetHost(),
-			Data:    headerReq,
-			ProtoID: HeaderInfoReq,
+			PeerID: rID,
+			Data:   headerReq,
+			MsgID:  HeaderInfoReq,
 		}
 		var resp types.MessageHeaderResp
-		err = h.StreamSendHandler(req, &resp)
+		err = h.SendRecvPeer(req, &resp)
 		if err != nil {
-			log.Error("handleEvent", "SendProtoMessage", err)
+			log.Error("handleEvent", "WriteStream", err)
 			continue
 		}
 
@@ -138,7 +136,7 @@ func (d *headerInfoHander) Handle(stream core.Stream) {
 	//解析处理
 	if stream.Protocol() == HeaderInfoReq {
 		var data types.MessageHeaderReq
-		err := d.ReadProtoMessage(&data, stream)
+		err := prototypes.ReadStream(&data, stream)
 		if err != nil {
 			return
 		}

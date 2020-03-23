@@ -44,16 +44,16 @@ func testRegisterProtocolPanic(typeName string, protocol IProtocol) (isPanic boo
 		}
 	}()
 
-	RegisterProtocolType(typeName, protocol)
+	RegisterProtocol(typeName, protocol)
 	return false
 }
 
 func TestRegisterProtocolType(t *testing.T) {
 
 	initProtocolMap()
-	RegisterProtocolType("test1", &testProtocol{})
-	RegisterProtocolType("test2", &testProtocol2{})
-	RegisterProtocolType("test3", testProtocol2{})
+	RegisterProtocol("test1", &testProtocol{})
+	RegisterProtocol("test2", &testProtocol2{})
+	RegisterProtocol("test3", testProtocol2{})
 	assert.True(t, testRegisterProtocolPanic("test1", &testProtocol{}))
 	assert.True(t, testRegisterProtocolPanic("test", nil))
 	assert.Equal(t, int(3), len(protocolTypeMap))
@@ -70,17 +70,17 @@ func testRegisterStreamPanic(typeName, msgID string, stream StreamHandler) (isPa
 		}
 	}()
 
-	RegisterStreamHandlerType(typeName, msgID, stream)
+	RegisterStreamHandler(typeName, msgID, stream)
 	return false
 }
 
 func TestRegisterStreamHandlerType(t *testing.T) {
 
 	initProtocolMap()
-	RegisterProtocolType("test", &testProtocol{})
-	RegisterStreamHandlerType("test", "stream1", &testStreamHandler{})
-	RegisterStreamHandlerType("test", "stream2", testStreamHandler2{})
-	RegisterStreamHandlerType("test", "stream3", &testStreamHandler2{})
+	RegisterProtocol("test", &testProtocol{})
+	RegisterStreamHandler("test", "stream1", &testStreamHandler{})
+	RegisterStreamHandler("test", "stream2", testStreamHandler2{})
+	RegisterStreamHandler("test", "stream3", &testStreamHandler2{})
 
 	//invalid protocol type
 	assert.True(t, testRegisterStreamPanic("test1", "stream", &testStreamHandler{}))
@@ -127,17 +127,17 @@ func TestProtocolManager_Init(t *testing.T) {
 
 	initProtocolMap()
 
-	RegisterProtocolType("base", &BaseProtocol{})
-	RegisterProtocolType("test1", &testProtocol{})
-	RegisterProtocolType("test2", &testProtocol2{})
+	RegisterProtocol("base", &BaseProtocol{})
+	RegisterProtocol("test1", &testProtocol{})
+	RegisterProtocol("test2", &testProtocol2{})
 
-	RegisterStreamHandlerType("base", "base", &BaseStreamHandler{})
-	RegisterStreamHandlerType("base", "stream1", &testStreamHandler{})
-	RegisterStreamHandlerType("base", "stream2", &testStreamHandler2{})
-	RegisterStreamHandlerType("test1", "stream3", &testStreamHandler{})
-	RegisterStreamHandlerType("test1", "stream4", &testStreamHandler2{})
-	RegisterStreamHandlerType("test2", "stream5", &testStreamHandler{})
-	RegisterStreamHandlerType("test2", "stream6", &testStreamHandler2{})
+	RegisterStreamHandler("base", "base", &BaseStreamHandler{})
+	RegisterStreamHandler("base", "stream1", &testStreamHandler{})
+	RegisterStreamHandler("base", "stream2", &testStreamHandler2{})
+	RegisterStreamHandler("test1", "stream3", &testStreamHandler{})
+	RegisterStreamHandler("test1", "stream4", &testStreamHandler2{})
+	RegisterStreamHandler("test2", "stream5", &testStreamHandler{})
+	RegisterStreamHandler("test2", "stream6", &testStreamHandler2{})
 
 	global := &P2PEnv{}
 	global.Host, _ = libp2p.New(context.Background())

@@ -25,16 +25,17 @@ var (
 
 type IProtocol interface {
 	InitProtocol(*P2PEnv)
+	GetP2PEnv() *P2PEnv
 }
 
-// RegisterProtocolType 注册协议类型
-func RegisterProtocolType(typeName string, proto IProtocol) {
+// RegisterProtocol 注册协议类型
+func RegisterProtocol(typeName string, proto IProtocol) {
 
 	if proto == nil {
-		panic("RegisterProtocolType, protocol is nil, msgId=" + typeName)
+		panic("RegisterProtocol, protocol is nil, msgId=" + typeName)
 	}
 	if _, dup := protocolTypeMap[typeName]; dup {
-		panic("RegisterProtocolType, protocol is nil, msgId=" + typeName)
+		panic("RegisterProtocol, protocol is nil, msgId=" + typeName)
 	}
 
 	protoType := reflect.TypeOf(proto)
@@ -46,7 +47,7 @@ func RegisterProtocolType(typeName string, proto IProtocol) {
 }
 
 func init() {
-	RegisterProtocolType("BaseProtocol", &BaseProtocol{})
+	RegisterProtocol("BaseProtocol", &BaseProtocol{})
 }
 
 // ProtocolManager 协议管理
@@ -102,12 +103,12 @@ func (p *ProtocolManager) Init(env *P2PEnv) {
 
 		newHandler := handlerValue.Interface().(StreamHandler)
 		protoID, msgID := decodeHandlerTypeID(id)
-		protol := p.protoMap[protoID]
-		newHandler.SetProtocol(protol)
-		var baseHander BaseStreamHandler
-		baseHander.child = newHandler
-		baseHander.SetProtocol(p.protoMap[protoID])
-		env.Host.SetStreamHandler(core.ProtocolID(msgID), baseHander.HandleStream)
+		proto := p.protoMap[protoID]
+		newHandler.SetProtocol(proto)
+		var baseHandler BaseStreamHandler
+		baseHandler.child = newHandler
+		baseHandler.SetProtocol(p.protoMap[protoID])
+		env.Host.SetStreamHandler(core.ProtocolID(msgID), baseHandler.HandleStream)
 	}
 
 }
@@ -127,6 +128,11 @@ func (base *BaseProtocol) NewMessageCommon(msgID, pid string, nodePubkey []byte,
 		Id:         msgID,
 		Gossip:     gossip}
 
+}
+
+// GetP2PEnv get p2p env
+func (base *BaseProtocol) GetP2PEnv() *P2PEnv {
+	return base.P2PEnv
 }
 
 // GetChainCfg get chain cfg
