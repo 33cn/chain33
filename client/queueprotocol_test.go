@@ -7,6 +7,7 @@ package client_test
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/version"
@@ -39,8 +40,8 @@ func TestMain(m *testing.M) {
 
 func TestQueueProtocolAPI(t *testing.T) {
 	var option client.QueueProtocolOption
-	option.SendTimeout = 100
-	option.WaitTimeout = 200
+	option.SendTimeout = time.Millisecond
+	option.WaitTimeout = 2 * time.Millisecond
 
 	_, err := client.New(nil, nil)
 	if err == nil {
