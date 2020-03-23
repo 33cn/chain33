@@ -2,6 +2,7 @@ package peer
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
@@ -24,8 +25,8 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 	channel := req.GetMessage().GetVersion()
 	if channel != p.p2pCfg.Channel {
 		//TODO 协议不匹配
-		log.Error("OnVersionReq", "channel err", channel)
-		return nil, errors.New("channel err")
+		log.Error("OnVersionReq", "channel err", channel, "cfg channel", p.p2pCfg.Channel)
+		return nil, errors.New(fmt.Sprintf("channel err,cfg channel:%d", p.p2pCfg.Channel))
 	}
 
 	pid := p.GetHost().ID()
