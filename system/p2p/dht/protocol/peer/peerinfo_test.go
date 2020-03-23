@@ -170,7 +170,7 @@ func Test_util(t *testing.T) {
 	assert.NotNil(t, peerinfo)
 	//----验证versionReq
 	p2pVerReq := &types.MessageP2PVersionReq{MessageData: proto.NewMessageCommon("uid122222", "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg", []byte("322222222222222"), false),
-		Message: &types.P2PVersion{Version: 255, AddrRecv: "/ip4/127.0.0.1/13802", AddrFrom: "/ip4/192.168.0.1/13802"}}
+		Message: &types.P2PVersion{Version: 0, AddrRecv: "/ip4/127.0.0.1/13802", AddrFrom: "/ip4/192.168.0.1/13802"}}
 	resp, _ := proto.processVerReq(p2pVerReq, "/ip4/192.168.0.1/13802")
 	assert.NotNil(t, resp)
 
