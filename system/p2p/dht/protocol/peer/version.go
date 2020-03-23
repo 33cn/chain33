@@ -1,7 +1,6 @@
 package peer
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -26,7 +25,8 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 	if channel != p.p2pCfg.Channel {
 		//TODO 协议不匹配
 		log.Error("OnVersionReq", "channel err", channel, "cfg channel", p.p2pCfg.Channel)
-		return nil, errors.New(fmt.Sprintf("channel err,cfg channel:%d", p.p2pCfg.Channel))
+		return nil, fmt.Errorf("channel err,cfg channel:%d", p.p2pCfg.Channel)
+
 	}
 
 	pid := p.GetHost().ID()
