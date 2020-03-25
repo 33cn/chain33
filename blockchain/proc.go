@@ -702,18 +702,27 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 		return
 	}
 
-	for _, blk := range blocks.Items {
-		err := chain.WriteBlockToDbTemp(blk, true)
-		if err != nil {
-			chainlog.Error("WriteBlockToDbTemp", "height", blk.Height, "err", err.Error())
-			reply.IsOk = false
-			reply.Msg = []byte(err.Error())
+	if chain.GetDownloadSyncStatus() == chunkDownLoadMode {
+		for _, blk := range blocks.Items {
+			chain.WriteBlockToDbTemp(blk, true)
 		}
-	}
-	//downLoadTask 运行时设置对应的blockdone
-	if chain.downLoadTask.InProgress() {
-		chunkNum, _, _ := chain.CaclChunkInfo(blocks.Items[0].Height)
-		chain.downLoadTask.Done(chunkNum)
+		//downLoadTask 运行时设置对应的blockdone
+		if chain.downLoadTask.InProgress() {
+			chunkNum, _, _ := chain.CaclChunkInfo(blocks.Items[0].Height)
+			chain.downLoadTask.Done(chunkNum)
+		}
+	} else {
+		for _, blk := range blocks.Items {
+			_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blk}, "-self") //这里认为非自己节点
+			if err != nil {
+				chainlog.Error("ProcAddBlockMsg", "height", blk.Height, "err", err.Error())
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+				msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
+				return
+			}
+			chainlog.Debug("EventAddBlock", "height", blk.Height, "pid", "success", "ok")
+		}
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
 }

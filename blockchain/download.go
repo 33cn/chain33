@@ -443,93 +443,11 @@ func (chain *BlockChain) ReqDownLoadChunkBlocks() {
 	info := chain.GetDownLoadInfo()
 	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {
 		synlog.Info("ReqDownLoadChunkBlocks", "StartHeight", info.StartHeight, "EndHeight", info.EndHeight, "pids", len(info.Pids))
-		err := chain.FetchChunkBlock(info.StartHeight, info.EndHeight, info.Pids)
+		err := chain.FetchChunkBlock(info.StartHeight, info.EndHeight, info.Pids, true)
 		if err != nil {
 			synlog.Error("ReqDownLoadChunkBlocks:FetchBlock", "err", err)
 		}
 	}
-}
-
-/*
-FetchChunkBlock 函数功能：
-通过向P2P模块送 EventGetChunkBlock(types.RequestGetBlock)，向其他节点主动请求区块，
-P2P区块收到这个消息后，会向blockchain 模块回复， EventReply。
-其他节点如果有这个范围的区块，P2P模块收到其他节点发来的数据，
-会发送送EventAddBlocks(types.Blocks) 给 blockchain 模块，
-blockchain 模块回复 EventReply
-*/
-func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []string) (err error) {
-	if chain.client == nil {
-		synlog.Error("FetchChunkBlock chain client not bind message queue.")
-		return types.ErrClientNotBindQueue
-	}
-
-	synlog.Debug("FetchChunkBlock input", "StartHeight", startHeight, "EndHeight", endHeight, "pid", pid)
-	blockcount := startHeight - endHeight
-	if blockcount < 0 {
-		return types.ErrStartBigThanEnd
-	}
-	chunkNum, start, end := chain.CaclChunkInfo(startHeight)
-
-	var chunkhash []byte
-	for i := 0; i < waitTimeDownLoad; i++ {
-		chunkhash, err = chain.blockStore.getRecvChunkHash(chunkNum)
-		if err != nil {
-			// 目前没有chunkNum需要继续等待
-			time.Sleep(time.Second)
-			continue
-		}
-		break
-	}
-	if err != nil {
-		return ErrNoChunkInfoToDownLoad
-	}
-
-	// 以chunk为单位同步block
-	var requestblock types.ReqChunkBlock
-	requestblock.ChunkHash = chunkhash
-	requestblock.Start = start
-	requestblock.End = endHeight
-	if endHeight > end {
-		requestblock.End = end
-	}
-
-	var cb func()
-	var timeoutcb func(chunkNum int64)
-	//还有区块需要请求，挂接钩子回调函数
-	if requestblock.End < chain.downLoadInfo.EndHeight {
-		cb = func() {
-			chain.ReqDownLoadChunkBlocks()
-		}
-		timeoutcb = func(chunkNum int64) {
-			chain.DownLoadChunkTimeOutProc(chunkNum)
-		}
-		chain.UpdateDownLoadStartHeight(requestblock.End + 1)
-		// TODO 目前P2Pstore暂时不需要Pids 快速下载时需要及时更新bestpeer，防止下载侧链的block
-		//if chain.GetDownloadSyncStatus() == chunkDownLoadMode{
-		//	chain.UpdateDownLoadPids()
-		//}
-	} else { // 所有DownLoad block已请求结束，恢复DownLoadInfo为默认值
-		chain.DefaultDownLoadInfo()
-	}
-	//chunk下载只是每次只下载一个chunk, TODO 后续再做并发请求下载
-	err = chain.downLoadTask.Start(chunkNum, chunkNum, cb, timeoutcb)
-	if err != nil {
-		return err
-	}
-	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End)
-	msg := chain.client.NewMessage("p2p", types.EventGetChunkBlock, &requestblock)
-	Err := chain.client.Send(msg, true)
-	if Err != nil {
-		synlog.Error("FetchChunkBlock", "client.Send err:", Err)
-		return err
-	}
-	resp, err := chain.client.Wait(msg)
-	if err != nil {
-		synlog.Error("FetchChunkBlock", "client.Wait err:", err)
-		return err
-	}
-	return resp.Err()
 }
 
 //DownLoadChunkTimeOutProc 快速下载模式下载区块超时的处理函数
@@ -542,7 +460,7 @@ func (chain *BlockChain) DownLoadChunkTimeOutProc(chunkNum int64) {
 	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {
 		//从超时的高度继续下载区块
 		synlog.Info("DownLoadChunkTimeOutProc:FetchChunkBlock", "StartHeight", info.StartHeight, "EndHeight", info.EndHeight, "pids", len(info.Pids))
-		err := chain.FetchChunkBlock(info.StartHeight, info.EndHeight, info.Pids)
+		err := chain.FetchChunkBlock(info.StartHeight, info.EndHeight, info.Pids, true)
 		if err != nil {
 			synlog.Error("DownLoadChunkTimeOutProc:FetchChunkBlock", "err", err)
 		}

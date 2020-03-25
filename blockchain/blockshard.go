@@ -62,7 +62,7 @@ func (chain *BlockChain) DeleteHaveChunkData() {
 func (chain *BlockChain) TriggerCheckChunkNum() []int64 {
 	var Nums []int64
 	curChunkNum := chain.GetCurChunkNum()
-	for i := 1; i <= MaxCheckForwardChunkNum; i++ {
+	for i := 1; i <= int(MaxCheckForwardChunkNum); i++ {
 		chunkNum := curChunkNum - int64(i)
 		if chunkNum >= 0 {
 			_, err := chain.blockStore.GetKey(calcChunkNumToHash(chunkNum))

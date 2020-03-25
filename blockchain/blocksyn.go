@@ -628,9 +628,19 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		synlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 		pids := chain.GetBestChainPids()
 		if pids != nil {
-			err := chain.FetchBlock(curheight+1, peerMaxBlkHeight, pids, false)
-			if err != nil {
-				synlog.Error("SynBlocksFromPeers FetchBlock", "err", err)
+			recvChunk := chain.GetCurRecvChunkNum()
+			curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
+			if curheight + MaxRollBlockNum < peerMaxBlkHeight && recvChunk >= curShouldChunk {
+				// 当前节点落后最高MaxRollBlockNum且收到recvChunk
+				err := chain.FetchChunkBlock(curheight+1, peerMaxBlkHeight, pids, false)
+				if err != nil {
+					synlog.Error("SynBlocksFromPeers FetchChunkBlock", "err", err)
+				}
+			} else {
+				err := chain.FetchBlock(curheight+1, peerMaxBlkHeight, pids, false)
+				if err != nil {
+					synlog.Error("SynBlocksFromPeers FetchBlock", "err", err)
+				}
 			}
 		} else {
 			synlog.Info("SynBlocksFromPeers GetBestChainPids is nil")
@@ -1136,10 +1146,102 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid string) (
 		synlog.Error("FetchChunkRecords", "client.Send err:", Err)
 		return err
 	}
-	resp, err := chain.client.Wait(msg)
+	_, err = chain.client.Wait(msg)
 	if err != nil {
 		synlog.Error("FetchChunkRecords", "client.Wait err:", err)
 		return err
 	}
-	return resp.Err()
+	return err
+}
+
+/*
+FetchChunkBlock 函数功能：
+通过向P2P模块送 EventGetChunkBlock(types.RequestGetBlock)，向其他节点主动请求区块，
+P2P区块收到这个消息后，会向blockchain 模块回复， EventReply。
+其他节点如果有这个范围的区块，P2P模块收到其他节点发来的数据，
+会发送送EventAddBlocks(types.Blocks) 给 blockchain 模块，
+blockchain 模块回复 EventReply
+*/
+func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []string, isDownLoad bool) (err error) {
+	if chain.client == nil {
+		synlog.Error("FetchChunkBlock chain client not bind message queue.")
+		return types.ErrClientNotBindQueue
+	}
+
+	synlog.Debug("FetchChunkBlock input", "StartHeight", startHeight, "EndHeight", endHeight, "pid", pid)
+	blockcount := startHeight - endHeight
+	if blockcount < 0 {
+		return types.ErrStartBigThanEnd
+	}
+	chunkNum, start, end := chain.CaclChunkInfo(startHeight)
+
+	var chunkhash []byte
+	for i := 0; i < waitTimeDownLoad; i++ {
+		chunkhash, err = chain.blockStore.getRecvChunkHash(chunkNum)
+		if err != nil && isDownLoad { // downLoac模式下会进行多次尝试
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	if err != nil {
+		return ErrNoChunkInfoToDownLoad
+	}
+
+	// 以chunk为单位同步block
+	var requestblock types.ReqChunkBlock
+	requestblock.ChunkHash = chunkhash
+	requestblock.Start = start
+	requestblock.End = endHeight
+	if endHeight > end {
+		requestblock.End = end
+	}
+
+	var cb func()
+	var timeoutcb func(chunkNum int64)
+	if isDownLoad {
+		//还有区块需要请求，挂接钩子回调函数
+		if requestblock.End < chain.downLoadInfo.EndHeight {
+			cb = func() {
+				chain.ReqDownLoadChunkBlocks()
+			}
+			timeoutcb = func(chunkNum int64) {
+				chain.DownLoadChunkTimeOutProc(chunkNum)
+			}
+			chain.UpdateDownLoadStartHeight(requestblock.End + 1)
+		} else { // 所有DownLoad block已请求结束，恢复DownLoadInfo为默认值
+			chain.DefaultDownLoadInfo()
+		}
+		// chunk下载只是每次只下载一个chunk
+		// TODO 后续再做并发请求下载
+		err = chain.downLoadTask.Start(chunkNum, chunkNum, cb, timeoutcb)
+		if err != nil {
+			return err
+		}
+	} else {
+		if chain.GetPeerMaxBlkHeight()-requestblock.End > BackBlockNum {
+			cb = func() {
+				chain.SynBlocksFromPeers()
+			}
+		}
+		// chunk下载只是每次只下载一个chunk
+		// TODO 后续再做并发请求下载
+		err = chain.syncTask.Start(chunkNum, chunkNum, cb, timeoutcb)
+		if err != nil {
+			return err
+		}
+	}
+	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End)
+	msg := chain.client.NewMessage("p2p", types.EventGetChunkBlock, &requestblock)
+	err = chain.client.Send(msg, true)
+	if err != nil {
+		synlog.Error("FetchChunkBlock", "client.Send err:", err)
+		return err
+	}
+	_, err = chain.client.Wait(msg)
+	if err != nil {
+		synlog.Error("FetchChunkBlock", "client.Wait err:", err)
+		return err
+	}
+	return err
 }
