@@ -7,6 +7,7 @@ package client_test
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/version"
@@ -39,8 +40,8 @@ func TestMain(m *testing.M) {
 
 func TestQueueProtocolAPI(t *testing.T) {
 	var option client.QueueProtocolOption
-	option.SendTimeout = 100
-	option.WaitTimeout = 200
+	option.SendTimeout = time.Millisecond
+	option.WaitTimeout = 2 * time.Millisecond
 
 	_, err := client.New(nil, nil)
 	if err == nil {
@@ -468,7 +469,7 @@ func testGetHeaders(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testPeerInfo(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.PeerInfo()
+	_, err := api.PeerInfo(&types.P2PGetPeerReq{})
 	if err != nil {
 		t.Error("Call PeerInfo Failed.", err)
 	}
@@ -655,7 +656,7 @@ func testGetWalletStatusJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 func testGetNetInfoJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res rpctypes.NodeNetinfo
 	err := rpc.newRPCCtx("Chain33.GetNetInfo",
-		nil, &res)
+		types.P2PGetNetInfoReq{}, &res)
 	if err != nil {
 		t.Error("testGetNetInfoJSONRPC failed. Error", err)
 	}
@@ -682,7 +683,7 @@ func testIsNtpClockSyncJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 func testGetPeerInfoJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res types.PeerList
 	err := rpc.newRPCCtx("Chain33.GetPeerInfo",
-		nil, &res)
+		types.P2PGetPeerReq{}, &res)
 	if err != nil {
 		t.Error("testGetPeerInfoJSONRPC failed. Error", err)
 	}
@@ -841,7 +842,7 @@ func TestGRPC(t *testing.T) {
 
 func testNetInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.NodeNetInfo
-	err := rpc.newRPCCtx("NetInfo", &types.ReqNil{}, &res)
+	err := rpc.newRPCCtx("NetInfo", &types.P2PGetNetInfoReq{}, &res)
 	if err != nil {
 		t.Error("Call NetInfo Failed.", err)
 	}
@@ -994,7 +995,7 @@ func testGetProperFeeGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testGetPeerInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.PeerList
-	err := rpc.newRPCCtx("GetPeerInfo", &types.ReqNil{}, &res)
+	err := rpc.newRPCCtx("GetPeerInfo", &types.P2PGetPeerReq{}, &res)
 	if err != nil {
 		t.Error("Call GetPeerInfo Failed.", err)
 	}

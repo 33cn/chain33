@@ -5,7 +5,7 @@
 // Package version 软件版本号
 package version
 
-const version = "6.3.0"
+const version = "6.4.0"
 
 //var
 var (
@@ -103,3 +103,6 @@ func SetAppVersion(version string) {
 
 //v6.2.0
 //性能加速+mempool 阶梯手续费防止大区块攻击
+
+//v6.4.0
+//优化存储结构，减少存储数据量

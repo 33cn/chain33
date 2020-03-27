@@ -895,10 +895,10 @@ func TestChain33_GetPeerInfo(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	testChain33 := newTestChain33(api)
 
-	api.On("PeerInfo").Return(nil, errors.New("error value"))
+	api.On("PeerInfo", mock.Anything).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
-	actual := types.ReqNil{}
+	actual := types.P2PGetPeerReq{}
 	err := testChain33.GetPeerInfo(actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
@@ -919,9 +919,9 @@ func TestChain33_GetPeerInfoOk(t *testing.T) {
 	}
 	peerlist.Peers = append(peerlist.Peers, pr)
 
-	api.On("PeerInfo").Return(&peerlist, nil)
+	api.On("PeerInfo", mock.Anything).Return(&peerlist, nil)
 	var testResult interface{}
-	var in types.ReqNil
+	var in types.P2PGetPeerReq
 	_ = testChain33.GetPeerInfo(in, &testResult)
 	assert.Equal(t, testResult.(*rpctypes.PeerList).Peers[0].Addr, peerlist.Peers[0].Addr)
 }

@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/33cn/chain33/p2p"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/client"
@@ -26,7 +28,6 @@ import (
 	"github.com/33cn/chain33/consensus"
 	"github.com/33cn/chain33/executor"
 	"github.com/33cn/chain33/mempool"
-	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/rpc"
@@ -115,7 +116,7 @@ func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolA
 	mock.mem.Wait()
 	lognode.Info("init mempool")
 	if mfg.P2P.Enable {
-		mock.network = p2p.New(cfg)
+		mock.network = p2p.NewP2PMgr(cfg)
 		mock.network.SetQueueClient(q.Client())
 	} else {
 		mock.network = &mockP2P{}

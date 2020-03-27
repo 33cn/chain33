@@ -208,7 +208,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "GetPeerInfo":
-		reply, err := rpc.GetPeerInfo(context.Background(), c.Params.(*types.ReqNil))
+		reply, err := rpc.GetPeerInfo(context.Background(), c.Params.(*types.P2PGetPeerReq))
 		if err == nil {
 			*c.Res.(*types.PeerList) = *reply
 		}
@@ -322,7 +322,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "NetInfo":
-		reply, err := rpc.NetInfo(context.Background(), c.Params.(*types.ReqNil))
+		reply, err := rpc.NetInfo(context.Background(), c.Params.(*types.P2PGetNetInfoReq))
 		if err == nil {
 			*c.Res.(*types.NodeNetInfo) = *reply
 		}

@@ -449,13 +449,13 @@ func (_m *QueueProtocolAPI) GetMempool(req *types.ReqGetMempool) (*types.ReplyTx
 	return r0, r1
 }
 
-// GetNetInfo provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
-	ret := _m.Called()
+// GetNetInfo provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetNetInfo(param *types.P2PGetNetInfoReq) (*types.NodeNetInfo, error) {
+	ret := _m.Called(param)
 
 	var r0 *types.NodeNetInfo
-	if rf, ok := ret.Get(0).(func() *types.NodeNetInfo); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(*types.P2PGetNetInfoReq) *types.NodeNetInfo); ok {
+		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.NodeNetInfo)
@@ -463,8 +463,8 @@ func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(*types.P2PGetNetInfoReq) error); ok {
+		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -926,13 +926,13 @@ func (_m *QueueProtocolAPI) Notify(topic string, ty int64, data interface{}) (*q
 	return r0, r1
 }
 
-// PeerInfo provides a mock function with given fields:
-func (_m *QueueProtocolAPI) PeerInfo() (*types.PeerList, error) {
-	ret := _m.Called()
+// PeerInfo provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) PeerInfo(param *types.P2PGetPeerReq) (*types.PeerList, error) {
+	ret := _m.Called(param)
 
 	var r0 *types.PeerList
-	if rf, ok := ret.Get(0).(func() *types.PeerList); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(*types.P2PGetPeerReq) *types.PeerList); ok {
+		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.PeerList)
@@ -940,8 +940,8 @@ func (_m *QueueProtocolAPI) PeerInfo() (*types.PeerList, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(*types.P2PGetPeerReq) error); ok {
+		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
 	}

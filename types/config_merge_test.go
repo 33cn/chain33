@@ -92,8 +92,6 @@ singleMode=false
 
 [p2p]
 enable=true
-serverStart=true
-msgCacheSize=10240
 driver="leveldb"
 
 [mempool]

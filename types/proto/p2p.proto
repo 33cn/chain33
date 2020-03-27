@@ -347,6 +347,20 @@ message PeerList {
 }
 
 /**
+ * p2p get peer req
+ */
+message P2PGetPeerReq {
+    string p2pType = 1;
+}
+
+/**
+ * p2p get net info req
+ */
+message P2PGetNetInfoReq {
+    string p2pType = 1;
+}
+
+/**
  *当前节点的网络信息
  */
 message NodeNetInfo {

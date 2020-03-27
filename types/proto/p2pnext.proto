@@ -1,0 +1,214 @@
+syntax = "proto3";
+
+import "p2p.proto";
+
+package types;
+option go_package = "github.com/33cn/chain33/types";
+
+/**
+ * 通用消息体
+ */
+
+message MessageComm {
+    // shared between all requests
+    string version    = 1; // client version
+    int64  timestamp  = 2; // unix time
+    string id         = 3; // allows requesters to use request data when processing a response
+    bool   gossip     = 4; // true to have receiver peer gossip the message to neighbors
+    string nodeId     = 5; // id of node that created the message (not the peer that may have sent it). =base58(multihash(nodePubKey))
+    bytes  nodePubKey = 6; // Authoring node Secp256k1 public key (32bytes) - protobufs serielized
+    bytes  sign       = 7; // signature of message data + method specific data by message authoring node.
+}
+
+message MessageUtil {
+    MessageComm common = 1;
+    oneof       value {
+        P2PPeerInfo     peerInfo   = 2;
+        P2PVersion      version    = 3;
+        P2PVerAck       versionAck = 4;
+        P2PExternalInfo external   = 5;
+        P2PGetBlocks    getblocks  = 6;
+        InvDatas        invdatas   = 7;
+    }
+}
+
+/**
+ * 请求获取远程节点的节点信息
+ */
+message MessagePeerInfoReq {
+    /// p2p版本
+    MessageComm messageData = 1;
+}
+
+/**
+ * 节点信息
+ */
+
+message MessagePeerInfoResp {
+    MessageComm messageData = 1;
+    P2PPeerInfo message     = 2;
+}
+
+/**
+ * p2p节点间发送版本数据结构
+ */
+
+message MessageP2PVersionReq {
+    MessageComm messageData = 1;
+    P2PVersion  message     = 2;
+}
+
+/**
+ * P2P 版本返回
+ */
+
+message MessageP2PVersionResp {
+    MessageComm messageData = 1;
+    P2PVersion  message     = 2;
+}
+
+/**
+ * P2P 心跳包
+ */
+
+message MessagePingReq {
+    MessageComm messageData = 1;
+    P2PPing     message     = 2;
+}
+/**
+ * 心跳返回包
+ */
+
+message MessagePingResp {
+    MessageComm messageData = 1;
+    P2PPong     message     = 2;
+}
+/**
+ * 获取对方节点所连接的其他节点地址的请求包
+ */
+
+message MessageAddrReq {
+    MessageComm messageData = 1;
+    P2PGetAddr  message     = 2;
+}
+
+/**
+ * 返回请求地址列表的社保
+ */
+
+message MessageAddrResp {
+    MessageComm messageData = 1;
+    P2PAddr     message     = 2;
+}
+/**
+ * 返回包括地址以及响应地址高度的列表信息
+ **/
+
+message MessageAddrList {
+    MessageComm messageData = 1;
+    P2PAddrList message     = 2;
+}
+/**
+ * 节点外网信息
+ */
+
+message MessageExternalNetReq {
+    MessageComm messageData = 1;
+}
+
+message MessageExternalNetResp {
+    MessageComm     messageData = 1;
+    P2PExternalInfo message     = 2;
+}
+/**
+ * 获取区间区块
+ */
+
+message MessageGetBlocksReq {
+    MessageComm  messageData = 1;
+    P2PGetBlocks message     = 2;
+}
+
+message MessageGetBlocksResp {
+    MessageComm messageData = 1;
+    InvDatas    message     = 2;
+}
+/**
+ * 获取mempool
+ */
+
+message MessageGetMempoolReq {
+    MessageComm   messageData = 1;
+    P2PGetMempool message     = 2;
+}
+
+/**
+ * p2p 协议和软件版本
+ */
+
+message MessageVersion {
+    MessageComm messageData = 1;
+    Versions    message     = 2;
+}
+
+/**
+ * p2p 获取区块区间头部信息协议
+ */
+
+message MessageHeaderReq {
+    MessageComm   messageData = 1;
+    P2PGetHeaders message     = 2;
+}
+/**
+ * p2p 区块头传输协议
+ */
+
+message MessageHeaderResp {
+    MessageComm messageData = 1;
+    P2PHeaders  message     = 2;
+}
+
+/**
+ * inv 请求协议
+ */
+
+message MessageInvDataReq {
+    MessageComm messageData = 1;
+    InvData     message     = 2;
+}
+
+/**
+ * peer 列表
+ */
+
+message MessagePeerList {
+    MessageComm messageData = 1;
+    PeerList    message     = 2;
+}
+
+/**
+ *当前节点的网络信息
+ */
+
+message MessageNetInfo {
+    MessageComm messageData = 1;
+    NodeNetInfo message     = 2;
+}
+
+/**
+ * p2p节点扫描返回的结构数据
+ */
+
+message MessagePeersReply {
+    MessageComm common     = 1;
+    PeersReply  peersReply = 2;
+}
+
+/**
+ * p2p 广播
+ */
+
+message MessageBroadCast {
+    MessageComm   common  = 1;
+    BroadCastData message = 2;
+}
