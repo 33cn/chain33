@@ -11,88 +11,97 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
 
 var (
 	ErrNoBlockToChunk        = errors.New("ErrNoBlockToChunk")
 	ErrNoChunkInfoToDownLoad = errors.New("ErrNoChunkInfoToDownLoad")
+	ErrNoChunkNumSerial      = errors.New("ErrNoChunkNumSerial")
 	triggerChunkFlag         bool
 )
 
 const (
-	MaxCheckForwardChunkNum  int32 = 10
+	// 每次检测最大生成chunk数
+	OnceMaxChunkNum          int32 = 10
+	// 删除小于当前chunk为DelRollbackChunkNum
+	DelRollbackChunkNum      int32 = 2
+	// 每次请求最大MaxReqChunkRecord个chunk的record
 	MaxReqChunkRecord        int32 = 500
 )
 
 func (chain *BlockChain) DeleteHaveChunkData() {
 	defer chain.tickerwg.Done()
-	// 1.60s检测一次是否可以进行归档，删除本地的body数据
-	// 2.60s检测一次是否可以触发归档操作，这个触发需要上个挖矿节点内部进行触发(主要针对比如网络分布式节点刚刚启动时
-	// 候需要分布式处理，或者上次挖矿节点没有将归档请求发出)
-	checkTicker := time.NewTicker(60 * time.Second)
-	trigChunkTicker := time.NewTicker(60 * time.Second) //主动查询当前未归档，然后进行触发
-	// 3.最大查询距离当前chunkNum范围MaxCheckForwardChunkNum之内是否已经归档
-	// 4. TODO 如果DHT中链接的单独一个节点则挖矿节点需要存储否则，不存储（这个可以通过检测节点）
-	// 5. TODO 触发升级如果么有升级之前，则进行之前的触发升级
+
+	// 1.60s检测一次是否可以删除本地的body数据
+	// 2.60s检测一次是否可以触发归档操作
+
+	checkDelTicker := time.NewTicker(60 * time.Second)
+	checkGenChunkTicker := time.NewTicker(60 * time.Second) //主动查询当前未归档，然后进行触发
 	for {
 		select {
 		case <-chain.quit:
 			return
-		case <-checkTicker.C:
-			height := chain.GetBlockHeight()
-			curChunkNum := chain.GetCurChunkNum()
-			chunkNum, _, _ := chain.CaclChunkInfo(height)
-			if chunkNum > curChunkNum+1 {
-				chain.DeleteLocalBlockBody(chunkNum) // TODO 同步进行删除，可以在notify之后返回参数是否可以删除，
-				                                     // TODO 否则TriggerCheckChunkNum下无法准确删除(这种情况下需要记录发出时候的高度， 然后可删除高度 > curChunkNum+1)
-			}
-		case <-trigChunkTicker.C:
-			if getTriggerChunkFlag() {
-				chain.TriggerCheckChunkNum() //TODO 该种情况下的body数据也需要删除
-				//置位
-				setTriggerChunkFlag(false)
+		case <-checkDelTicker.C:
+			// 6.5版本先不做删除
+			//chain.CheckDeleteBlockBody()
+		case <-checkGenChunkTicker.C:
+			chain.CheckGenChunkNum()
+		}
+	}
+}
+
+// CheckGenChunkNum 检测是否需要生成chunkNum
+func (chain *BlockChain) CheckGenChunkNum() {
+	curMaxSerialChunkNum := chain.getMaxSerialChunkNum()
+	height               := chain.GetBlockHeight()
+	curChunkNum          := chain.GetCurChunkNum()
+	chunkNum, _, _       := chain.CaclChunkInfo(height)
+	if curMaxSerialChunkNum == curChunkNum && curChunkNum >= 0 {
+		return
+	}
+	for i := int32(0); i < OnceMaxChunkNum; i++ {
+		num := chain.getMaxSerialChunkNum() + 1
+		if num < chunkNum {
+			_, err := chain.blockStore.GetKey(calcChunkNumToHash(num))
+			if err == nil {
+				// 如果存在说明已经进行过归档，则更新连续号
+				chain.updateMaxSerialChunkNum(num)
+			} else {
+				chunk := &types.ChunkInfo{
+					ChunkNum: num,
+					Start: num * chain.cfg.ChunkblockNum,
+					End: (num + 1)* chain.cfg.ChunkblockNum - 1,
+				}
+				chain.ShardChunkHandle(chunk, true)
 			}
 		}
 	}
 }
 
-// TriggerCheckChunkNum 触发检测chunkNum的连续性，如果不连续则处理
-func (chain *BlockChain) TriggerCheckChunkNum() []int64 {
-	var Nums []int64
-	curChunkNum := chain.GetCurChunkNum()
-	for i := 1; i <= int(MaxCheckForwardChunkNum); i++ {
-		chunkNum := curChunkNum - int64(i)
-		if chunkNum >= 0 {
-			_, err := chain.blockStore.GetKey(calcChunkNumToHash(chunkNum))
-			if err != nil {
-				Nums = append(Nums, chunkNum)
-			}
-		}
+// CheckDeleteBlockBody 检测是否需要删除已经归档BlockBody
+func (chain *BlockChain) CheckDeleteBlockBody() {
+	height := chain.GetBlockHeight()
+	maxHeight := chain.GetPeerMaxBlkHeight()
+	if maxHeight == -1 {
+		return
 	}
-	if len(Nums) > 0 {
-		for _, num := range Nums  {
-			chunk := &types.ChunkInfo{
-				ChunkNum: num,
-				Start: num * chain.cfg.ChunkblockNum,
-				End: (num + 1)* chain.cfg.ChunkblockNum - 1,
-			}
-			chain.ShardChunkHandle(chunk, true)
-		}
+	if height > maxHeight {
+		maxHeight = height
 	}
-	return Nums
+	chain.blockStore.walkOverDeleteChunk(maxHeight, chain.DeleteBlockBody, chain.CaclChunkInfo)
 }
 
-func (chain *BlockChain) DeleteLocalBlockBody(chunkNum int64) {
+// DeleteBlockBody del chunk body
+func (chain *BlockChain) DeleteBlockBody(chunkNum int64) []*types.KeyValue {
 	value, err := chain.blockStore.GetKey(calcChunkNumToHash(chunkNum))
 	if err != nil {
-		return
+		return nil
 	}
 	chunk := &types.ChunkInfo{}
 	err = types.Decode(value, chunk)
 	if err != nil {
-		return
+		return nil
 	}
 	var kvs []*types.KeyValue
 	for i := chunk.Start; i <= chunk.End; i++ {
@@ -102,13 +111,7 @@ func (chain *BlockChain) DeleteLocalBlockBody(chunkNum int64) {
 		}
 		kvs = append(kvs, kv...)
 	}
-	batch := chain.blockStore.NewBatch(true)
-	for _, kv := range kvs {
-		if kv.GetValue() == nil {
-			batch.Delete(kv.GetKey())
-		}
-	}
-	db.MustWrite(batch)
+	return kvs
 }
 
 func (chain *BlockChain) deleteBlockBody(height int64) (kvs []*types.KeyValue, err error) {
@@ -125,6 +128,7 @@ func (chain *BlockChain) deleteBlockBody(height int64) (kvs []*types.KeyValue, e
 	return kvs, err
 }
 
+// IsNeedChunk is need chunk
 func (chain *BlockChain) IsNeedChunk(height int64) (isNeed bool, chunk *types.ChunkInfo) {
 	chunkNum, start, end := chain.CaclChunkInfo(height)
 	chunk = &types.ChunkInfo{
@@ -132,15 +136,18 @@ func (chain *BlockChain) IsNeedChunk(height int64) (isNeed bool, chunk *types.Ch
 		Start:    start,
 		End:      end,
 	}
-	return chain.curChunkNum < chunkNum, chunk
+	curMaxChunkNum := chain.GetCurChunkNum()
+	return curMaxChunkNum < chunkNum, chunk
 }
 
+// ShardChunkHandle
 func (chain *BlockChain) ShardChunkHandle(chunk *types.ChunkInfo, isNotifyChunk bool) {
-	// 1 从block中查询出当前索引档
-	// 2 从block中读取当前配置的需要归档大小以及将这些block做hash处理，计算出归档hash，然后本地保存，并且将归档hash广播出去
-	// 3
-	// getChunkBlocks在blockchain需要在广播的时候主动生成，或者收到通知的时候主动生成
-	// 类似与provide时候需要提供两种命令一种是挖矿产生的给对端节点通知哪些节点需要生成，另外一种命令就是平衡的时候给予对端节点实际数据
+	// 1、计算当前chunk信息；
+	// 2、通知p2p,如果是挖矿节点则通知，否则则不通知；
+	// 3、生成归档记录；
+	// 4、生成辅助删除信息；
+	// 5、保存归档记录信息；
+	// 6、更新chunk最大连续序列号
 	start := chunk.Start
 	end := chunk.End
 	chunkHash, bodys, err := chain.genChunkBlocks(start, end)
@@ -151,15 +158,41 @@ func (chain *BlockChain) ShardChunkHandle(chunk *types.ChunkInfo, isNotifyChunk 
 	chunk.ChunkHash = chunkHash
 	if isNotifyChunk {
 		chain.notifyStoreChunkToP2P(chunk)
-		// 设置该节点有权利触发接下来onceTriggerChunkCount的归档数据
-		setTriggerChunkFlag(true)
 	}
-	// 生成归档记录
 	chunkRds := genChunkRecord(chunk, bodys)
-	// 将归档记录先保存在本地，归档记录在这里可以不保存或者通过接受广播数据进行归档
+	kv := chain.genToDeleteChunkSign(chunk.ChunkNum)
+	chunkRds.Kvs = append(chunkRds.Kvs, kv)
 	chain.saveChunkRecord(chunkRds)
-	// updata chain.curChunkNum
-	chain.curChunkNum = chunk.ChunkNum
+	chain.updateMaxSerialChunkNum(chunk.ChunkNum)
+}
+
+func (chain *BlockChain) genToDeleteChunkSign(chunkNum int64) *types.KeyValue {
+	maxHeight := chain.GetPeerMaxBlkHeight()
+	if maxHeight != -1 && chain.GetBlockHeight() > maxHeight {
+		maxHeight = chain.GetBlockHeight()
+	}
+	kv := &types.KeyValue{
+		Key: calcToDeleteChunkSign(chunkNum),
+		Value: types.Encode(&types.Int64{Data:maxHeight}),
+	}
+	return kv
+}
+
+func (chain *BlockChain) getMaxSerialChunkNum() int64 {
+	chain.maxSeriallock.Lock()
+	defer chain.maxSeriallock.Unlock()
+	serial := chain.maxSerialChunkNum
+	return serial
+}
+
+func (chain *BlockChain) updateMaxSerialChunkNum(chunkNum int64) error {
+	chain.maxSeriallock.Lock()
+	defer chain.maxSeriallock.Unlock()
+	if chain.maxSerialChunkNum + 1 != chunkNum {
+		return ErrNoChunkNumSerial
+	}
+	chain.maxSerialChunkNum = chunkNum
+	return chain.blockStore.SetMaxSerialChunkNum(chunkNum)
 }
 
 func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
@@ -185,7 +218,6 @@ func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
 	return
 }
 
-// calcChunkHash
 func (chain *BlockChain) genChunkBlocks(start, end int64) ([]byte, *types.BlockBodys, error) {
 	var hashs types.ReplyHashes
 	var bodys types.BlockBodys
@@ -201,13 +233,8 @@ func (chain *BlockChain) genChunkBlocks(start, end int64) ([]byte, *types.BlockB
 	return hashs.Hash(), &bodys, nil
 }
 
-// 保存归档索引 1:blockhash--->chunkhash 2:blockHeight--->chunkhash
 func (chain *BlockChain) saveChunkRecord(chunkRds *types.ChunkRecords) {
-	newbatch := chain.blockStore.NewBatch(true)
-	for _, kv := range chunkRds.Kvs {
-		newbatch.Set(kv.Key, kv.Value)
-	}
-	db.MustWrite(newbatch)
+	chain.blockStore.mustSaveKvset(&types.LocalDBSet{KV: chunkRds.GetKvs()})
 }
 
 // GetChunkBlockBody 从localdb本地获取chunkbody
@@ -283,19 +310,11 @@ func (chain *BlockChain) CaclChunkInfo(height int64) (chunkNum, start, end int64
 	return chunkNum, start, end
 }
 
-func setTriggerChunkFlag(flag bool) {
-	triggerChunkFlag = flag
-}
-
-func getTriggerChunkFlag() bool {
-	return triggerChunkFlag
-}
-
+// genChunkRecord 生成归档索引 1:blockhash--->chunkhash 2:blockHeight--->chunkhash
 func genChunkRecord(chunk *types.ChunkInfo, bodys *types.BlockBodys) *types.ChunkRecords {
 	chunkRds := &types.ChunkRecords{}
 	for _, body := range bodys.Items {
 		chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcBlockHashToChunkHash(body.Hash), Value: chunk.ChunkHash})
-		chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcHeightToChunkHash(body.Height), Value: chunk.ChunkHash})
 	}
 	chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcChunkNumToHash(chunk.ChunkNum), Value: types.Encode(chunk)})
 	chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcChunkHashToNum(chunk.ChunkHash), Value: types.Encode(chunk)})

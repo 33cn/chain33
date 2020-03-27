@@ -57,6 +57,9 @@ enableReduceLocaldb=true
 enableShard=true
 # 分片存储中每个大块包含的区块数
 chunkblockNum=1000
+# TODO 仅仅从分布式中取数据选项
+only
+
 
 [p2p]
 # P2P服务监听端口号

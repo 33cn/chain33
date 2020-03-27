@@ -40,12 +40,13 @@ var (
 	paraSeqToHashKey      = []byte("ParaSeq:")
 	HashToParaSeqPrefix   = []byte("HashToParaSeq:")
 	LastParaSequence      = []byte("LastParaSequence")
+	// chunk相关
 	BodyHashToChunk       = []byte("BodyHashToChunk:")
-	BodyHeightToChunk     = []byte("BodyHeightToChunk:")
 	ChunkNumToHash        = []byte("ChunkNumToHash:")
 	ChunkHashToNum        = []byte("ChunkHashToNum:")
-	// TODO 需要在本地保存一份记录当前已经归档的高度，即和ChunkNumToHash做区别
 	RecvChunkNumToHash    = []byte("RecvChunkNumToHash:")
+	MaxSerialChunkNum     = []byte("MaxSilChunkNum:")
+	ToDeleteChunkSign     = []byte("ToDelChunkSign:")
 	storeLog              = chainlog.New("submodule", "store")
 )
 
@@ -58,7 +59,8 @@ func GetLocalDBKeyList() [][]byte {
 		hashPrefix, tdPrefix, heightToHashKeyPrefix, seqToHashKey, HashToSeqPrefix,
 		seqCBPrefix, seqCBLastNumPrefix, tempBlockKey, lastTempBlockKey, LastParaSequence,
 		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix, chainReceiptPrefix,
-		BodyHashToChunk, BodyHeightToChunk, ChunkNumToHash, ChunkHashToNum, RecvChunkNumToHash,
+		BodyHashToChunk, ChunkNumToHash, ChunkHashToNum, RecvChunkNumToHash,
+		MaxSerialChunkNum, ToDeleteChunkSign,
 	}
 }
 
@@ -139,11 +141,6 @@ func calcBlockHashToChunkHash(hash []byte) []byte {
 	return append(BodyHashToChunk, hash...)
 }
 
-// 存储归档索引 blockheight--->chunkhash
-func calcHeightToChunkHash(height int64) []byte {
-	return append(BodyHeightToChunk, []byte(fmt.Sprintf("%012d", height))...)
-}
-
 // 存储归档索引 chunkNum--->chunkhash
 func calcChunkNumToHash(chunkNum int64) []byte {
 	return append(ChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
@@ -157,6 +154,11 @@ func calcChunkHashToNum(hash []byte) []byte {
 // 存储归档索引 chunkNum--->chunkhash 从对端节点同步过来的归档索引
 func calcRecvChunkNumToHash(chunkNum int64) []byte {
 	return append(RecvChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
+}
+
+// 辅助 chunkNum--->MaxPeerHeight 用于记录在生成chunk时候当前网络最高节点高度，主要用于后续删除操作
+func calcToDeleteChunkSign(chunkNum int64) []byte {
+	return append(ToDeleteChunkSign, []byte(fmt.Sprintf("%012d", chunkNum))...)
 }
 
 //BlockStore 区块存储
@@ -1377,6 +1379,7 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 			return nil, types.ErrHashNotExist
 		}
 		// 开启分片的情况下需要在网络中查找
+		// TODO 这里需要考虑reduce时候尽量要在reduce之后进行数据归档
 		bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
 		if bodys == nil || len(bodys.Items) == 0 || err != nil {
 			if err != dbm.ErrNotFoundInDb {
@@ -1567,21 +1570,6 @@ func (bs *BlockStore) mustSaveKvset(kv *types.LocalDBSet) {
 	dbm.MustWrite(batch)
 }
 
-func (bs *BlockStore) getCurChunkHeight() int64 {
-	prefix := []byte(BodyHeightToChunk)
-	it := bs.db.Iterator(prefix, nil, true)
-	defer it.Close()
-	height := -1
-	var err error
-	if it.Rewind() && it.Valid() {
-		height, err = strconv.Atoi(string(bytes.TrimPrefix(it.Key(), BodyHeightToChunk)))
-		if err != nil {
-			return -1
-		}
-	}
-	return int64(height)
-}
-
 func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types.BlockBodys, error) {
 	value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
 	if value == nil || err != nil {
@@ -1624,15 +1612,15 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 func (bs *BlockStore) getCurChunkNum(prefix []byte) int64 {
 	it := bs.db.Iterator(prefix, nil, true)
 	defer it.Close()
-	height := -1
+	height := int64(-1)
 	var err error
 	if it.Rewind() && it.Valid() {
-		height, err = strconv.Atoi(string(bytes.TrimPrefix(it.Key(), prefix)))
+		height, err = strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), prefix)), 10, 64)
 		if err != nil {
 			return -1
 		}
 	}
-	return int64(height)
+	return height
 }
 
 func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
@@ -1648,4 +1636,135 @@ func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
 		return nil, err
 	}
 	return chunk.ChunkHash, err
+}
+
+// SequenceInfo 连续信息
+type SequenceInfo struct {
+	seq   bool
+	start int64
+	end   int64
+}
+// checkSequence 检查是否连续连续性
+func (bs *BlockStore) checkSequence(prefix []byte, key []byte) (*SequenceInfo, error) {
+	it := bs.db.Iterator(prefix, nil, false)
+	defer it.Close()
+
+	if len(key) == 0 {
+		it.Rewind()
+	} else {
+		it.Seek(key)
+	}
+
+	var err error
+	if !it.Valid() {
+		err = types.ErrNotFound
+		return nil, err
+	}
+	lastHeight, err := strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), prefix)), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	seqIno := &SequenceInfo{}
+	for it.Next(); it.Valid(); it.Next() {
+		height, err := strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), prefix)), 10, 64)
+		if err != nil {
+			seqIno.seq = false
+			seqIno.start = lastHeight
+			seqIno.end   = lastHeight
+			return seqIno, nil
+		}
+		if lastHeight != height+1 {
+			seqIno.seq = false
+			seqIno.start = lastHeight
+			seqIno.end   = height
+			return seqIno, nil
+		}
+		lastHeight = height
+	}
+	seqIno.seq = true
+	seqIno.start = lastHeight
+	seqIno.end   = lastHeight
+	return seqIno, nil
+}
+
+func (bs *BlockStore) GetMaxSerialChunkNum() int64 {
+	value, err := bs.db.Get(MaxSerialChunkNum)
+	if err != nil {
+		return -1
+	}
+	chunkNum := &types.Int64{}
+	err = types.Decode(value, chunkNum)
+	if err != nil {
+		return -1
+	}
+	return chunkNum.Data
+}
+
+func (bs *BlockStore) SetMaxSerialChunkNum(chunkNum int64) error {
+	data := &types.Int64{
+		Data: chunkNum,
+	}
+	err := bs.db.Set(MaxSerialChunkNum, types.Encode(data))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 通过遍历ToDeleteChunkSign 去删除归档body
+func (bs *BlockStore) walkOverDeleteChunk(maxBlkHeight int64,
+	fnDel func(chunkNum int64)([]*types.KeyValue),
+	fnCal func(height int64)(chunkNum, start, end int64)) {
+
+	it := bs.db.Iterator(ToDeleteChunkSign, nil, false)
+	defer it.Close()
+	var kvs []*types.KeyValue
+	// 每次walkOverDeleteChunk的最大删除chunk个数
+	const onceDelChunkNum = 100
+	batch := bs.NewBatch(true)
+	count := 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		value := it.Value()
+		data := &types.Int64{}
+		err := types.Decode(value, data)
+		if err != nil {
+			continue
+		}
+		chunkNum, err := strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), ToDeleteChunkSign)), 10, 64)
+		if err != nil {
+			continue
+		}
+		key := make([]byte, len(it.Key()))
+		copy(key, it.Key())
+		if data.Data < 0 {
+			data.Data = maxBlkHeight
+			kvs = append(kvs, &types.KeyValue{Key: key, Value: types.Encode(data)})
+		} else {
+			delChunkNum, _, _ := fnCal(data.Data)
+			maxBlkChunkNum, _, _ := fnCal(maxBlkHeight)
+			if maxBlkChunkNum > delChunkNum + int64(DelRollbackChunkNum) {
+				kvs = append(kvs, &types.KeyValue{Key: key, Value: nil}) // 将相应的ToDeleteChunkSign进行删除
+				kv := fnDel(chunkNum)
+				if len(kv) > 0 {
+					kvs = append(kvs, kv...)
+				}
+			}
+		}
+		// 批量写入数据库
+		if len(kvs) > 0 {
+			batch.Reset()
+			for _, kv := range kvs {
+				if kv.GetValue() == nil {
+					batch.Delete(kv.GetKey())
+				} else {
+					batch.Set(kv.GetKey(), kv.GetValue())
+				}
+			}
+			dbm.MustWrite(batch)
+		}
+		count++
+		if count > onceDelChunkNum {
+			break
+		}
+	}
 }

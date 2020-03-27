@@ -53,9 +53,6 @@ type BlockChain struct {
 	//记录本节点已经同步的block高度,用于节点追赶active链,处理节点分叉不同步的场景
 	synBlockHeight int64
 
-	//记录当前已经chunk的高度
-	curChunkNum  int64
-
 	//记录peer的最新block高度,用于节点追赶active链
 	peerList PeerInfoList
 	recvwg   *sync.WaitGroup
@@ -123,6 +120,10 @@ type BlockChain struct {
 
 	blockOnChain   *BlockOnChain
 	onChainTimeout int64
+
+	//记录当前已经连续的最高高度
+	maxSerialChunkNum  int64
+	maxSeriallock      sync.Mutex
 }
 
 //New new
@@ -141,7 +142,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		DefCacheSize:       defCacheSize,
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
-		curChunkNum:        -1,
+		maxSerialChunkNum:  -1,
 		peerList:           nil,
 		cfg:                mcfg,
 		recvwg:             &sync.WaitGroup{},
@@ -245,8 +246,8 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.pushseq = newpushseq(chain.blockStore, chain.pushservice.pushStore)
 	//startTime
 	chain.startTime = types.Now()
-	// 获取当前chunk高度
-	chain.curChunkNum = chain.GetCurChunkNum()
+	// 获取当前最大chunk连续高度
+	chain.maxSerialChunkNum = chain.blockStore.GetMaxSerialChunkNum()
 
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
 	chain.recvwg.Add(1)
