@@ -384,13 +384,17 @@ func (chain *BlockChain) DownLoadTimeOutProc(height int64) {
 
 // DownLoadBlocks 下载区块
 func (chain *BlockChain) DownLoadBlocks() {
-	// 1.节点开启时候首先尝试进行chunkDownLoad下载
-	if chain.GetDownloadSyncStatus() == chunkDownLoadMode {
-		chain.ChunkDownLoadBlocks()
-	}
-	// 2.其次尝试开启快速下载模式,目前默认开启
-	if chain.GetDownloadSyncStatus() == fastDownLoadMode {
-		chain.FastDownLoadBlocks()
+	if chain.cfg.EnableFetchP2pstore {
+		// 1.节点开启时候首先尝试进行chunkDownLoad下载
+		chain.UpdateDownloadSyncStatus(chunkDownLoadMode) // 默认模式是fastDownLoadMode
+		if chain.GetDownloadSyncStatus() == chunkDownLoadMode {
+			chain.ChunkDownLoadBlocks()
+		}
+	} else {
+		// 2.其次尝试开启快速下载模式,目前默认开启
+		if chain.GetDownloadSyncStatus() == fastDownLoadMode {
+			chain.FastDownLoadBlocks()
+		}
 	}
 }
 
@@ -423,13 +427,11 @@ func (chain *BlockChain) ChunkDownLoadBlocks() {
 			synlog.Info("start download blocks!ChunkDownLoadBlocks", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight)
 			go chain.ProcDownLoadBlocks(curheight, peerMaxBlkHeight, true, pids)
 			// 下载chunk后在该进程执行临时区块
-			chain.ReadBlockToExec(peerMaxBlkHeight, true)
-			// 执行完成chunk之后将模式切换到fastDownLoadMode
-			chain.UpdateDownloadSyncStatus(fastDownLoadMode)
+			go chain.ReadBlockToExec(peerMaxBlkHeight, true)
 			break
 		} else if types.Since(startTime) > waitTimeDownLoad*time.Second || chain.cfg.SingleMode {
 			synlog.Info("ChunkDownLoadBlocks:waitTimeDownLoad:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight, "pids", pids)
-			chain.UpdateDownloadSyncStatus(fastDownLoadMode)
+			chain.UpdateDownloadSyncStatus(normalDownLoadMode)
 			break
 		} else {
 			synlog.Info("ChunkDownLoadBlocks task sleep 1 second !")

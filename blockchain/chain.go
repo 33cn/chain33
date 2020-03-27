@@ -167,7 +167,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		isNtpClockSync:      true,
 		MaxFetchBlockNum:    128 * 6, //一次最多申请获取block个数
 		TimeoutSeconds:      2,
-		downloadMode:        chunkDownLoadMode,
+		downloadMode:        fastDownLoadMode,
 		blockOnChain:        &BlockOnChain{},
 		onChainTimeout:      0,
 	}
@@ -308,10 +308,10 @@ func (chain *BlockChain) InitBlockChain() {
 		// 定时处理futureblock
 		go chain.UpdateRoutine()
 	}
-	if chain.cfg.EnableShard {
-		chain.tickerwg.Add(1)
-		go chain.DeleteHaveChunkData()
-	}
+
+	chain.tickerwg.Add(1)
+	go chain.ChunkProcessRoutine()
+
 	//初始化默认DownLoadInfo
 	chain.DefaultDownLoadInfo()
 }

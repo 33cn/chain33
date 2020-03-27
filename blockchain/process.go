@@ -383,13 +383,12 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		}
 	}
 
-	// 使能分片存储情况下进行分片处理
-	if b.cfg.EnableShard {
-		isNeed, chunkInfo := b.IsNeedChunk(block.Height)
-		if isNeed {
-			b.ShardChunkHandle(chunkInfo, node.pid == "self")
-		}
+	// chunk 处理
+	isNeed, chunkInfo := b.IsNeedChunk(block.Height)
+	if isNeed {
+		b.ChunkShardHandle(chunkInfo, node.pid == "self")
 	}
+
 	//目前非平行链并开启isRecordBlockSequence功能
 	if b.isRecordBlockSequence {
 		b.pushseq.UpdateSeq(lastSequence)

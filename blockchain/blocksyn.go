@@ -630,7 +630,8 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		if pids != nil {
 			recvChunk := chain.GetCurRecvChunkNum()
 			curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
-			if curheight + MaxRollBlockNum < peerMaxBlkHeight && recvChunk >= curShouldChunk {
+			if chain.cfg.EnableFetchP2pstore &&
+				curheight+MaxRollBlockNum < peerMaxBlkHeight && recvChunk >= curShouldChunk {
 				// 当前节点落后最高MaxRollBlockNum且收到recvChunk
 				err := chain.FetchChunkBlock(curheight+1, peerMaxBlkHeight, pids, false)
 				if err != nil {

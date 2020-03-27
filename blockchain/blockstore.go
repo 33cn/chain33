@@ -41,13 +41,13 @@ var (
 	HashToParaSeqPrefix   = []byte("HashToParaSeq:")
 	LastParaSequence      = []byte("LastParaSequence")
 	// chunk相关
-	BodyHashToChunk       = []byte("BodyHashToChunk:")
-	ChunkNumToHash        = []byte("ChunkNumToHash:")
-	ChunkHashToNum        = []byte("ChunkHashToNum:")
-	RecvChunkNumToHash    = []byte("RecvChunkNumToHash:")
-	MaxSerialChunkNum     = []byte("MaxSilChunkNum:")
-	ToDeleteChunkSign     = []byte("ToDelChunkSign:")
-	storeLog              = chainlog.New("submodule", "store")
+	BodyHashToChunk    = []byte("BodyHashToChunk:")
+	ChunkNumToHash     = []byte("ChunkNumToHash:")
+	ChunkHashToNum     = []byte("ChunkHashToNum:")
+	RecvChunkNumToHash = []byte("RecvChunkNumToHash:")
+	MaxSerialChunkNum  = []byte("MaxSilChunkNum:")
+	ToDeleteChunkSign  = []byte("ToDelChunkSign:")
+	storeLog           = chainlog.New("submodule", "store")
 )
 
 //GetLocalDBKeyList 获取本地键值列表
@@ -1370,25 +1370,9 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 	}
 
 	//获取body
-	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
+	blockbody, err := bs.multiGetBody(blockheader, indexName, prefix, primaryKey)
 	if blockbody == nil || err != nil {
-		if !cfg.GetModuleConfig().BlockChain.EnableShard {
-			if err != dbm.ErrNotFoundInDb {
-				storeLog.Error("loadBlockByIndex:getBodyByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
-			}
-			return nil, types.ErrHashNotExist
-		}
-		// 开启分片的情况下需要在网络中查找
-		// TODO 这里需要考虑reduce时候尽量要在reduce之后进行数据归档
-		bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
-		if bodys == nil || len(bodys.Items) == 0 || err != nil {
-			if err != dbm.ErrNotFoundInDb {
-				storeLog.Error("loadBlockByIndex:getBodyFromP2Pstore", "indexName", indexName, "prefix", prefix,
-					"primaryKey", primaryKey, "err", err, "hash", common.ToHex(blockheader.Hash))
-			}
-			return nil, types.ErrHashNotExist
-		}
-		blockbody = bodys.Items[0]
+		return nil, err
 	}
 
 	blockreceipt := blockbody.Receipts
@@ -1570,11 +1554,70 @@ func (bs *BlockStore) mustSaveKvset(kv *types.LocalDBSet) {
 	dbm.MustWrite(batch)
 }
 
+func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, prefix []byte, primaryKey []byte) (*types.BlockBody, error) {
+	cfg := bs.client.GetConfig()
+	chainCfg := cfg.GetModuleConfig().BlockChain
+
+	//获取body
+	var blockbody *types.BlockBody
+	if chainCfg.EnableIfDelLocalChunk { // 测试完成之后该分支进行删除
+		serialChunkNum := bs.GetMaxSerialChunkNum()
+		chunkNum := blockheader.Height / chainCfg.ChunkblockNum
+		if serialChunkNum > chunkNum {
+			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
+			if bodys == nil || len(bodys.Items) == 0 || err != nil {
+				if err != dbm.ErrNotFoundInDb {
+					storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
+						"serialChunkNum", serialChunkNum, "hash", common.ToHex(blockheader.Hash), "err", err,)
+				}
+				return nil, types.ErrHashNotExist
+			}
+			blockbody = bodys.Items[0]
+			return blockbody, nil
+		}
+
+		storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
+			"serialChunkNum", serialChunkNum, "hash", common.ToHex(blockheader.Hash), )
+
+		blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
+		if blockbody == nil || err != nil {
+			if err != dbm.ErrNotFoundInDb {
+				storeLog.Error("multiGetBody:getBodyByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+			}
+			return nil, types.ErrHashNotExist
+		}
+		return blockbody, nil
+	}
+
+	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
+	if blockbody == nil || err != nil {
+		if chainCfg.EnableFetchP2pstore {
+			// TODO 这里需要考虑reduce时候尽量要在reduce之后进行数据归档
+			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
+			if bodys == nil || len(bodys.Items) == 0 || err != nil {
+				if err != dbm.ErrNotFoundInDb {
+					storeLog.Error("multiGetBody:getBodyFromP2Pstore", "indexName", indexName, "prefix", prefix,
+						"primaryKey", primaryKey, "err", err, "hash", common.ToHex(blockheader.Hash))
+				}
+				return nil, types.ErrHashNotExist
+			}
+			blockbody = bodys.Items[0]
+			return blockbody, nil
+		}
+
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("multiGetBody:getBodyByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+		}
+		return nil, types.ErrHashNotExist
+	}
+	return blockbody, nil
+}
+
 func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types.BlockBodys, error) {
 	value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
 	if value == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("getBodyFromP2Pstore:calcBlockHashToChunkHash", "hash", common.ToHex(hash), "err", err)
+			storeLog.Error("getBodyFromP2Pstore:calcBlockHashToChunkHash", "hash", common.ToHex(hash), "chunkhash", common.ToHex(value),"err", err)
 		}
 		return nil, types.ErrHashNotExist
 	}
@@ -1583,10 +1626,10 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 		return nil, types.ErrClientNotBindQueue
 	}
 	req := &types.ReqChunkBlockBody{
-		ChunkHash:value,
-		Filter: true,
-		Start: start,
-		End:end,
+		ChunkHash: value,
+		Filter:    true,
+		Start:     start,
+		End:       end,
 	}
 	msg := bs.client.NewMessage("p2p", types.EventGetChunkBlockBody, req)
 	err = bs.client.Send(msg, true)
@@ -1644,6 +1687,7 @@ type SequenceInfo struct {
 	start int64
 	end   int64
 }
+
 // checkSequence 检查是否连续连续性
 func (bs *BlockStore) checkSequence(prefix []byte, key []byte) (*SequenceInfo, error) {
 	it := bs.db.Iterator(prefix, nil, false)
@@ -1670,20 +1714,20 @@ func (bs *BlockStore) checkSequence(prefix []byte, key []byte) (*SequenceInfo, e
 		if err != nil {
 			seqIno.seq = false
 			seqIno.start = lastHeight
-			seqIno.end   = lastHeight
+			seqIno.end = lastHeight
 			return seqIno, nil
 		}
 		if lastHeight != height+1 {
 			seqIno.seq = false
 			seqIno.start = lastHeight
-			seqIno.end   = height
+			seqIno.end = height
 			return seqIno, nil
 		}
 		lastHeight = height
 	}
 	seqIno.seq = true
 	seqIno.start = lastHeight
-	seqIno.end   = lastHeight
+	seqIno.end = lastHeight
 	return seqIno, nil
 }
 
@@ -1713,8 +1757,8 @@ func (bs *BlockStore) SetMaxSerialChunkNum(chunkNum int64) error {
 
 // 通过遍历ToDeleteChunkSign 去删除归档body
 func (bs *BlockStore) walkOverDeleteChunk(maxBlkHeight int64,
-	fnDel func(chunkNum int64)([]*types.KeyValue),
-	fnCal func(height int64)(chunkNum, start, end int64)) {
+	fnDel func(chunkNum int64) []*types.KeyValue,
+	fnCal func(height int64) (chunkNum, start, end int64)) {
 
 	it := bs.db.Iterator(ToDeleteChunkSign, nil, false)
 	defer it.Close()
@@ -1742,7 +1786,7 @@ func (bs *BlockStore) walkOverDeleteChunk(maxBlkHeight int64,
 		} else {
 			delChunkNum, _, _ := fnCal(data.Data)
 			maxBlkChunkNum, _, _ := fnCal(maxBlkHeight)
-			if maxBlkChunkNum > delChunkNum + int64(DelRollbackChunkNum) {
+			if maxBlkChunkNum > delChunkNum+int64(DelRollbackChunkNum) {
 				kvs = append(kvs, &types.KeyValue{Key: key, Value: nil}) // 将相应的ToDeleteChunkSign进行删除
 				kv := fnDel(chunkNum)
 				if len(kv) > 0 {

@@ -30,7 +30,7 @@ const (
 	MaxReqChunkRecord        int32 = 500
 )
 
-func (chain *BlockChain) DeleteHaveChunkData() {
+func (chain *BlockChain) ChunkProcessRoutine() {
 	defer chain.tickerwg.Done()
 
 	// 1.60s检测一次是否可以删除本地的body数据
@@ -73,7 +73,7 @@ func (chain *BlockChain) CheckGenChunkNum() {
 					Start: num * chain.cfg.ChunkblockNum,
 					End: (num + 1)* chain.cfg.ChunkblockNum - 1,
 				}
-				chain.ShardChunkHandle(chunk, true)
+				chain.ChunkShardHandle(chunk, true)
 			}
 		}
 	}
@@ -141,7 +141,7 @@ func (chain *BlockChain) IsNeedChunk(height int64) (isNeed bool, chunk *types.Ch
 }
 
 // ShardChunkHandle
-func (chain *BlockChain) ShardChunkHandle(chunk *types.ChunkInfo, isNotifyChunk bool) {
+func (chain *BlockChain) ChunkShardHandle(chunk *types.ChunkInfo, isNotifyChunk bool) {
 	// 1、计算当前chunk信息；
 	// 2、通知p2p,如果是挖矿节点则通知，否则则不通知；
 	// 3、生成归档记录；
@@ -280,7 +280,7 @@ func (chain *BlockChain) GetChunkRecord(req *types.ReqChunkRecords) (*types.Chun
 	rep := &types.ChunkRecords{}
 	// TODO req.IsDetail 后面需要再加
 	for i := req.Start; i <= req.End; i++ {
-		key := calcChunkNumToHash(i)
+		key := append([]byte{}, calcChunkNumToHash(i)...)
 		value, err := chain.blockStore.GetKey(key)
 		if err != nil {
 			return rep, types.ErrNotFound
