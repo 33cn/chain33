@@ -19,16 +19,15 @@ var (
 	ErrNoBlockToChunk        = errors.New("ErrNoBlockToChunk")
 	ErrNoChunkInfoToDownLoad = errors.New("ErrNoChunkInfoToDownLoad")
 	ErrNoChunkNumSerial      = errors.New("ErrNoChunkNumSerial")
-	triggerChunkFlag         bool
 )
 
 const (
 	// 每次检测最大生成chunk数
-	OnceMaxChunkNum int32 = 10
+	OnceMaxChunkNum     int32 = 10
 	// 删除小于当前chunk为DelRollbackChunkNum
 	DelRollbackChunkNum int32 = 2
 	// 每次请求最大MaxReqChunkRecord个chunk的record
-	MaxReqChunkRecord int32 = 500
+	MaxReqChunkRecord   int32 = 500
 )
 
 func (chain *BlockChain) ChunkProcessRoutine() {
@@ -216,7 +215,6 @@ func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
 		synlog.Error("storeChunkToP2Pstore", "client.Wait err:", err)
 		return
 	}
-	return
 }
 
 func (chain *BlockChain) genChunkBlocks(start, end int64) ([]byte, *types.BlockBodys, error) {
@@ -274,7 +272,6 @@ func (chain *BlockChain) AddChunkRecord(req *types.ChunkRecords) {
 		}
 	}
 	chain.blockStore.mustSaveKvset(dbset)
-	return
 }
 
 func (chain *BlockChain) GetChunkRecord(req *types.ReqChunkRecords) (*types.ChunkRecords, error) {
@@ -294,20 +291,27 @@ func (chain *BlockChain) GetChunkRecord(req *types.ReqChunkRecords) (*types.Chun
 	return rep, nil
 }
 
-// TODO GetCurRecvChunkNum 后续需要放入结构体中，且在内存中保存一份
+// GetCurRecvChunkNum TODO 后续需要放入结构体中，且在内存中保存一份
 func (chain *BlockChain) GetCurRecvChunkNum() int64 {
 	return chain.blockStore.getCurChunkNum(RecvChunkNumToHash)
 }
 
-// TODO GetCurChunkNum 后续需要放入结构体中，且在内存中保存一份
+// GetCurChunkNum TODO 后续需要放入结构体中，且在内存中保存一份
 func (chain *BlockChain) GetCurChunkNum() int64 {
 	return chain.blockStore.getCurChunkNum(ChunkNumToHash)
 }
 
 func (chain *BlockChain) CaclChunkInfo(height int64) (chunkNum, start, end int64) {
-	chunkNum = height / chain.cfg.ChunkblockNum
-	start = chunkNum * chain.cfg.ChunkblockNum
-	end = start + chain.cfg.ChunkblockNum - 1
+	return caclChunkInfo(chain.cfg, height)
+}
+
+func caclChunkInfo(cfg *types.BlockChain, height int64) (chunkNum, start, end int64) {
+	if cfg.ChunkblockNum == 0 {
+		panic("toml chunkblockNum can be zero or have't cfg")
+	}
+	chunkNum = height / cfg.ChunkblockNum
+	start = chunkNum * cfg.ChunkblockNum
+	end = start + cfg.ChunkblockNum - 1
 	return chunkNum, start, end
 }
 

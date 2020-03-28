@@ -1560,9 +1560,9 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 
 	//获取body
 	var blockbody *types.BlockBody
-	if chainCfg.EnableIfDelLocalChunk { // 测试完成之后该分支进行删除
+	if chainCfg.EnableIfDelLocalChunk { // 6.6之后，测试完成之后该分支进行删除
 		serialChunkNum := bs.GetMaxSerialChunkNum()
-		chunkNum := blockheader.Height / chainCfg.ChunkblockNum
+		chunkNum, _, _ := caclChunkInfo(chainCfg, blockheader.Height)
 		if serialChunkNum > chunkNum {
 			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
 			if bodys == nil || len(bodys.Items) == 0 || err != nil {
@@ -1592,7 +1592,6 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
 	if blockbody == nil || err != nil {
 		if chainCfg.EnableFetchP2pstore {
-			// TODO 这里需要考虑reduce时候尽量要在reduce之后进行数据归档
 			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
 			if bodys == nil || len(bodys.Items) == 0 || err != nil {
 				if err != dbm.ErrNotFoundInDb {

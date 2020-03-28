@@ -137,6 +137,9 @@ func New(cfg *types.Chain33Config) *BlockChain {
 	if mcfg.DefCacheSize > 0 {
 		defCacheSize = mcfg.DefCacheSize
 	}
+	if atomic.LoadInt64(&mcfg.ChunkblockNum) == 0 {
+		atomic.StoreInt64(&mcfg.ChunkblockNum, 1)
+	}
 	blockchain := &BlockChain{
 		cache:              NewBlockCache(cfg, defCacheSize),
 		DefCacheSize:       defCacheSize,
