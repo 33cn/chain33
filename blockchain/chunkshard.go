@@ -7,9 +7,10 @@ package blockchain
 import (
 	"bytes"
 	"errors"
-	"github.com/33cn/chain33/common"
 	"strconv"
 	"time"
+
+	"github.com/33cn/chain33/common"
 
 	"github.com/33cn/chain33/types"
 )
@@ -23,11 +24,11 @@ var (
 
 const (
 	// 每次检测最大生成chunk数
-	OnceMaxChunkNum          int32 = 10
+	OnceMaxChunkNum int32 = 10
 	// 删除小于当前chunk为DelRollbackChunkNum
-	DelRollbackChunkNum      int32 = 2
+	DelRollbackChunkNum int32 = 2
 	// 每次请求最大MaxReqChunkRecord个chunk的record
-	MaxReqChunkRecord        int32 = 500
+	MaxReqChunkRecord int32 = 500
 )
 
 func (chain *BlockChain) ChunkProcessRoutine() {
@@ -54,9 +55,9 @@ func (chain *BlockChain) ChunkProcessRoutine() {
 // CheckGenChunkNum 检测是否需要生成chunkNum
 func (chain *BlockChain) CheckGenChunkNum() {
 	curMaxSerialChunkNum := chain.getMaxSerialChunkNum()
-	height               := chain.GetBlockHeight()
-	curChunkNum          := chain.GetCurChunkNum()
-	chunkNum, _, _       := chain.CaclChunkInfo(height)
+	height := chain.GetBlockHeight()
+	curChunkNum := chain.GetCurChunkNum()
+	chunkNum, _, _ := chain.CaclChunkInfo(height)
 	if curMaxSerialChunkNum == curChunkNum && curChunkNum >= 0 {
 		return
 	}
@@ -70,8 +71,8 @@ func (chain *BlockChain) CheckGenChunkNum() {
 			} else {
 				chunk := &types.ChunkInfo{
 					ChunkNum: num,
-					Start: num * chain.cfg.ChunkblockNum,
-					End: (num + 1)* chain.cfg.ChunkblockNum - 1,
+					Start:    num * chain.cfg.ChunkblockNum,
+					End:      (num+1)*chain.cfg.ChunkblockNum - 1,
 				}
 				chain.ChunkShardHandle(chunk, true)
 			}
@@ -172,8 +173,8 @@ func (chain *BlockChain) genToDeleteChunkSign(chunkNum int64) *types.KeyValue {
 		maxHeight = chain.GetBlockHeight()
 	}
 	kv := &types.KeyValue{
-		Key: calcToDeleteChunkSign(chunkNum),
-		Value: types.Encode(&types.Int64{Data:maxHeight}),
+		Key:   calcToDeleteChunkSign(chunkNum),
+		Value: types.Encode(&types.Int64{Data: maxHeight}),
 	}
 	return kv
 }
@@ -188,7 +189,7 @@ func (chain *BlockChain) getMaxSerialChunkNum() int64 {
 func (chain *BlockChain) updateMaxSerialChunkNum(chunkNum int64) error {
 	chain.maxSeriallock.Lock()
 	defer chain.maxSeriallock.Unlock()
-	if chain.maxSerialChunkNum + 1 != chunkNum {
+	if chain.maxSerialChunkNum+1 != chunkNum {
 		return ErrNoChunkNumSerial
 	}
 	chain.maxSerialChunkNum = chunkNum

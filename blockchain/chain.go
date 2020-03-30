@@ -94,22 +94,22 @@ type BlockChain struct {
 	futureBlocks *lru.Cache // future blocks are broadcast later processing
 
 	//downLoad block info
-	downLoadInfo       *DownLoadInfo
-	downloadMode          int //当本节点落后很多时，可以先下载区块到db，启动单独的goroutine去执行block
+	downLoadInfo *DownLoadInfo
+	downloadMode int //当本节点落后很多时，可以先下载区块到db，启动单独的goroutine去执行block
 
 	isRecordBlockSequence bool //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
 	isParaChain           bool //是否是平行链。平行链需要记录Sequence信息
 	isStrongConsistency   bool
 	//lock
-	synBlocklock        sync.Mutex
-	peerMaxBlklock      sync.Mutex
-	castlock            sync.Mutex
-	ntpClockSynclock    sync.Mutex
-	faultpeerlock       sync.Mutex
-	bestpeerlock        sync.Mutex
-	downLoadlock        sync.Mutex
-	downLoadModeLock    sync.Mutex
-	isNtpClockSync      bool //ntp时间是否同步
+	synBlocklock     sync.Mutex
+	peerMaxBlklock   sync.Mutex
+	castlock         sync.Mutex
+	ntpClockSynclock sync.Mutex
+	faultpeerlock    sync.Mutex
+	bestpeerlock     sync.Mutex
+	downLoadlock     sync.Mutex
+	downLoadModeLock sync.Mutex
+	isNtpClockSync   bool //ntp时间是否同步
 
 	//cfg
 	MaxFetchBlockNum int64 //一次最多申请获取block个数
@@ -122,8 +122,8 @@ type BlockChain struct {
 	onChainTimeout int64
 
 	//记录当前已经连续的最高高度
-	maxSerialChunkNum  int64
-	maxSeriallock      sync.Mutex
+	maxSerialChunkNum int64
+	maxSeriallock     sync.Mutex
 }
 
 //New new

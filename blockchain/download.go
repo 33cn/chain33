@@ -28,11 +28,10 @@ const (
 	//快速下载时需要的最少peer数量
 	bestPeerCount = 2
 
-    normalDownLoadMode = 0
+	normalDownLoadMode = 0
 	fastDownLoadMode   = 1
 	chunkDownLoadMode  = 2
 )
-
 
 //DownLoadInfo blockchain模块下载block处理结构体
 type DownLoadInfo struct {

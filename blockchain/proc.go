@@ -693,7 +693,7 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
 	blocks := (msg.Data).(*types.Blocks)
-	if blocks == nil || len(blocks.Items)  == 0 {
+	if blocks == nil || len(blocks.Items) == 0 {
 		str := "blocks is nil"
 		chainlog.Error("addChunkBlock", "err", str)
 		reply.IsOk = false

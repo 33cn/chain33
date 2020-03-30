@@ -158,19 +158,19 @@ const (
 	//比较当前区块和新广播的区块最优区块
 	EventCmpBestBlock = 311
 	// 通知其它节点进行数据归档存储
-	EventNotifyStoreChunk     = 312
+	EventNotifyStoreChunk = 312
 	// 获取chunkBlock数据
-	EventGetChunkBlock        = 313
+	EventGetChunkBlock = 313
 	// 添加addChunkBlock
-	EventAddChunkBlock        = 314
+	EventAddChunkBlock = 314
 	// 获取chunkBody数据
-	EventGetChunkBlockBody    = 315
+	EventGetChunkBlockBody = 315
 	// 添加chunkBody数据从blockchain--->P2Pstore
-	EventAddChunkBlockBody    = 316
+	EventAddChunkBlockBody = 316
 	// 获取ChunkRecord
-	EventGetChunkRecord       = 317
+	EventGetChunkRecord = 317
 	// 添加ChunkRecord
-	EventAddChunkRecord       = 318
+	EventAddChunkRecord = 318
 )
 
 var eventName = map[int]string{

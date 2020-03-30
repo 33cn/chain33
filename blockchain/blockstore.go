@@ -1568,7 +1568,7 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 			if bodys == nil || len(bodys.Items) == 0 || err != nil {
 				if err != dbm.ErrNotFoundInDb {
 					storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
-						"serialChunkNum", serialChunkNum, "hash", common.ToHex(blockheader.Hash), "err", err,)
+						"serialChunkNum", serialChunkNum, "hash", common.ToHex(blockheader.Hash), "err", err)
 				}
 				return nil, types.ErrHashNotExist
 			}
@@ -1577,7 +1577,7 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 		}
 
 		storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
-			"serialChunkNum", serialChunkNum, "hash", common.ToHex(blockheader.Hash), )
+			"serialChunkNum", serialChunkNum, "hash", common.ToHex(blockheader.Hash))
 
 		blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
 		if blockbody == nil || err != nil {
@@ -1617,7 +1617,7 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 	value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
 	if value == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("getBodyFromP2Pstore:calcBlockHashToChunkHash", "hash", common.ToHex(hash), "chunkhash", common.ToHex(value),"err", err)
+			storeLog.Error("getBodyFromP2Pstore:calcBlockHashToChunkHash", "hash", common.ToHex(hash), "chunkhash", common.ToHex(value), "err", err)
 		}
 		return nil, types.ErrHashNotExist
 	}
