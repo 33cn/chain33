@@ -12,7 +12,7 @@ require (
 	github.com/XiaoMi/pegasus-go-client v0.0.0-20181029071519-9400942c5d1c
 	github.com/apache/thrift v0.0.0-20171203172758-327ebb6c2b6d // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
-	github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
+	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/coreos/bbolt v1.3.0 // indirect
 	github.com/dchest/blake256 v1.0.0 // indirect
 	github.com/decred/base58 v1.0.0
@@ -28,23 +28,24 @@ require (
 	github.com/influxdata/influxdb v1.7.9
 	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/libp2p/go-libp2p v0.4.0
-	github.com/libp2p/go-libp2p-core v0.2.3
+	github.com/libp2p/go-libp2p-connmgr v0.2.0
+	github.com/libp2p/go-libp2p-core v0.2.5
 	github.com/libp2p/go-libp2p-discovery v0.1.0
 	github.com/libp2p/go-libp2p-kad-dht v0.2.1
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
 
 	github.com/mattn/go-colorable v0.1.1
-	github.com/mr-tron/base58 v1.1.2
-	github.com/multiformats/go-multiaddr v0.1.1
+	github.com/mr-tron/base58 v1.1.3
+	github.com/multiformats/go-multiaddr v0.2.0
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/pkg/errors v0.8.1
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/rs/cors v1.6.0
 	github.com/spf13/cobra v0.0.5
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tjfoc/gmsm v0.0.0-20171124023159-98aa888b79d8
-	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 	google.golang.org/genproto v0.0.0-20200310143817-43be25429f5a // indirect
