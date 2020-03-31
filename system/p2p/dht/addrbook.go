@@ -156,7 +156,7 @@ func (a *AddrBook) SaveAddr(addrinfos []peer.AddrInfo) error {
 // StoreHostID store host id into file
 func (a *AddrBook) StoreHostID(id peer.ID, path string) {
 	dbPath := path + "/" + p2pty.DHTTypeName
-	if os.Mkdir(dbPath, 0755) != nil {
+	if os.MkdirAll(dbPath, 0755) != nil {
 		return
 	}
 
