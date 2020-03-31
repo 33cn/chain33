@@ -142,7 +142,7 @@ func (p *peerInfoProtol) getPeerInfo() {
 			}
 			var dest types.Peer
 			p.PeerInfoManager.Copy(&dest, resp.GetMessage())
-			p.PeerInfoManager.Add(remoteID.Pretty(), &dest)
+			p.PeerInfoManager.Add(peerid.Pretty(), &dest)
 		}(remoteID)
 
 	}
@@ -253,7 +253,7 @@ func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
 			continue
 		}
 
-		peers = append(peers, &peer)
+		peers = append(peers, pinfo)
 
 	}
 	peerinfo := p.getLoacalPeerInfo()
