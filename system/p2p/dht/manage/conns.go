@@ -22,7 +22,7 @@ var (
 const (
 	MinBounds    = 15 //最少连接节点数，包含连接被连接
 	MaxBounds    = 50 //最大连接数包含连接被连接
-	MaxOutBounds = 35 //对外连接的最大节点数量
+	MaxOutBounds = 30 //对外连接的最大节点数量
 )
 
 type ConnManager struct {
@@ -80,7 +80,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 			var trackerInfo = fmt.Sprintln("------------BandTracker--------------")
 			for _, pid := range peers {
-				//统计每个节点的时延,统计最多30个
+				//统计每个节点的时延,统计最多MaxBounds个
 				tduration := s.pstore.LatencyEWMA(pid)
 				if tduration == 0 {
 					continue
