@@ -690,7 +690,7 @@ func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
 
 // addChunkBlock // 添加chunk Block
 func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
-	var reply types.Reply
+	reply := &types.Reply{}
 	reply.IsOk = true
 	blocks := (msg.Data).(*types.Blocks)
 	if blocks == nil || len(blocks.Items) == 0 {

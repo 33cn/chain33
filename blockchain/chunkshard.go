@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/common"
-
+	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
 
@@ -89,8 +89,65 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 	if height > maxHeight {
 		maxHeight = height
 	}
-	chain.blockStore.walkOverDeleteChunk(maxHeight, chain.DeleteBlockBody, chain.CaclChunkInfo)
+	chain.walkOverDeleteChunk(maxHeight)
 }
+
+// 通过遍历ToDeleteChunkSign 去删除归档body
+func (chain *BlockChain) walkOverDeleteChunk(maxBlkHeight int64) {
+	db := chain.GetDB()
+	it := db.Iterator(ToDeleteChunkSign, nil, false)
+	defer it.Close()
+	var kvs []*types.KeyValue
+	// 每次walkOverDeleteChunk的最大删除chunk个数
+	const onceDelChunkNum = 100
+	batch := db.NewBatch(true)
+	count := 0
+	for it.Rewind(); it.Valid(); it.Next() {
+		value := it.Value()
+		data := &types.Int64{}
+		err := types.Decode(value, data)
+		if err != nil {
+			continue
+		}
+		chunkNum, err := strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), ToDeleteChunkSign)), 10, 64)
+		if err != nil {
+			continue
+		}
+		key := make([]byte, len(it.Key()))
+		copy(key, it.Key())
+		if data.Data < 0 {
+			data.Data = maxBlkHeight
+			kvs = append(kvs, &types.KeyValue{Key: key, Value: types.Encode(data)})
+		} else {
+			delChunkNum, _, _ := chain.CaclChunkInfo(data.Data)
+			maxBlkChunkNum, _, _ := chain.CaclChunkInfo(maxBlkHeight)
+			if maxBlkChunkNum > delChunkNum+int64(DelRollbackChunkNum) {
+				kvs = append(kvs, &types.KeyValue{Key: key, Value: nil}) // 将相应的ToDeleteChunkSign进行删除
+				kv := chain.DeleteBlockBody(chunkNum)
+				if len(kv) > 0 {
+					kvs = append(kvs, kv...)
+				}
+			}
+		}
+		// 批量写入数据库
+		if len(kvs) > 0 {
+			batch.Reset()
+			for _, kv := range kvs {
+				if kv.GetValue() == nil {
+					batch.Delete(kv.GetKey())
+				} else {
+					batch.Set(kv.GetKey(), kv.GetValue())
+				}
+			}
+			dbm.MustWrite(batch)
+		}
+		count++
+		if count > onceDelChunkNum {
+			break
+		}
+	}
+}
+
 
 // DeleteBlockBody del chunk body
 func (chain *BlockChain) DeleteBlockBody(chunkNum int64) []*types.KeyValue {

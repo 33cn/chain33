@@ -165,12 +165,10 @@ const (
 	EventAddChunkBlock = 314
 	// 获取chunkBody数据
 	EventGetChunkBlockBody = 315
-	// 添加chunkBody数据从blockchain--->P2Pstore
-	EventAddChunkBlockBody = 316
 	// 获取ChunkRecord
-	EventGetChunkRecord = 317
+	EventGetChunkRecord = 316
 	// 添加ChunkRecord
-	EventAddChunkRecord = 318
+	EventAddChunkRecord = 317
 )
 
 var eventName = map[int]string{
