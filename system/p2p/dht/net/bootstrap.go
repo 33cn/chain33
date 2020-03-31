@@ -11,45 +11,13 @@ import (
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
-var DefaultBootstrapPeers = make(map[string]*peer.AddrInfo)
-
-func initMainNet() {
-	//上线后添加种子节点
-	for _, s := range []string{} {
-		addr, _ := multiaddr.NewMultiaddr(s)
-		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			panic(err)
-		}
-		DefaultBootstrapPeers[peerinfo.ID.Pretty()] = peerinfo
-	}
-}
-
-func initTestNet() {
-
-	//上线后添加种子节点
-	for _, s := range []string{} {
-		addr, _ := multiaddr.NewMultiaddr(s)
-		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			panic(err)
-		}
-		DefaultBootstrapPeers[peerinfo.ID.Pretty()] = peerinfo
-	}
-}
-
 func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig, isTestNet bool) {
-	if isTestNet {
-		initTestNet()
-	} else {
-		initMainNet()
-	}
-	for _, peer := range DefaultBootstrapPeers {
+
+	for _, peer := range ConvertPeers(cfg.BootStraps) {
 		host.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 		err := host.Connect(context.Background(), *peer)
 		if err != nil {
 			log.Error("Host Connect", "err", err)
-			delete(DefaultBootstrapPeers, peer.ID.Pretty())
 			continue
 		}
 	}
@@ -61,6 +29,8 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 			log.Error("Host Connect", "err", err, "peer", seed.ID)
 			continue
 		}
+		//加保护
+		host.ConnManager().Protect(seed.ID, "seed")
 	}
 
 	for _, peerinfo := range peersInfo {

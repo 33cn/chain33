@@ -75,7 +75,7 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 }
 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
-
+	bootstraps := net.ConvertPeers(s.cfg.BootStraps)
 	for {
 		select {
 		case <-time.After(time.Minute):
@@ -115,10 +115,9 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 				continue
 			}
 			nearestPeers := s.convertArrToMap(s.FetchNearestPeers())
-			bootStrapNodes := net.ConvertPeers(s.cfg.Seeds)
 			//close from seed
 			for _, pid := range s.OutBounds() {
-				if _, ok := bootStrapNodes[pid.Pretty()]; ok {
+				if _, ok := bootstraps[pid.Pretty()]; ok {
 					// 判断是否是最近nearest的30个节点
 					if _, ok := nearestPeers[pid.Pretty()]; !ok {
 						s.host.Network().ClosePeer(pid)

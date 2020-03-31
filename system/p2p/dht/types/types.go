@@ -32,5 +32,6 @@ type P2PSubConfig struct {
 	//区块轻广播的最低打包交易数, 大于该值时区块内交易采用短哈希广播
 	MinLtBlockTxNum int32 `protobuf:"varint,12,opt,name=minLtBlockTxNum" json:"minLtBlockTxNum,omitempty"`
 	//指定p2p类型, 支持gossip, dht
-	MaxConnnectNum int32 `protobuf:"varint,13,opt,name=maxConnnectNum" json:"maxConnnectNum,omitempty"`
+	MaxConnnectNum int32    `protobuf:"varint,13,opt,name=maxConnnectNum" json:"maxConnnectNum,omitempty"`
+	BootStraps     []string `protobuf:"bytes,14,rep,name=bootStraps" json:"bootStraps,omitempty"`
 }
