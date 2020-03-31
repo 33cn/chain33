@@ -167,9 +167,9 @@ func testStreamEOFReSet(t *testing.T) {
 	}
 
 	msgID := "/streamTest"
-	h1 := newHost(12345, prvKey1, nil)
-	h2 := newHost(12346, prvKey2, nil)
-	h3 := newHost(12347, prvKey3, nil)
+	h1 := newHost(12345, prvKey1, nil, 0)
+	h2 := newHost(12346, prvKey2, nil, 0)
+	h3 := newHost(12347, prvKey3, nil, 0)
 	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("Meow! It worked!")
 		var buf []byte

@@ -106,31 +106,37 @@ func (p *peerInfoProtol) getPeerInfo() []*types.P2PPeerInfo {
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var peerinfos []*types.P2PPeerInfo
+	var wg sync.WaitGroup
 	for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
 		if remoteID.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
+		//修改为并发获取peerinfo信息
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			msgReq := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
 
-		msgReq := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
+			req := &prototypes.StreamRequest{
+				PeerID: remoteID,
+				Data:   msgReq,
+				MsgID:  PeerInfoReq,
+			}
+			var resp types.MessagePeerInfoResp
+			err := p.SendRecvPeer(req, &resp)
+			if err != nil {
+				log.Error("handleEvent", "WriteStream", err)
+				return
+			}
 
-		req := &prototypes.StreamRequest{
-			PeerID: remoteID,
-			Data:   msgReq,
-			MsgID:  PeerInfoReq,
-		}
-		var resp types.MessagePeerInfoResp
-		err := p.SendRecvPeer(req, &resp)
-		if err != nil {
-			log.Error("handleEvent", "WriteStream", err)
-			continue
-		}
-
-		if resp.GetMessage() == nil {
-			continue
-		}
-		peerinfos = append(peerinfos, resp.GetMessage())
+			if resp.GetMessage() == nil {
+				return
+			}
+			peerinfos = append(peerinfos, resp.GetMessage())
+		}()
 
 	}
+	wg.Wait()
 	return peerinfos
 
 }
