@@ -147,8 +147,6 @@ func (p *peerInfoProtol) getPeerInfo() {
 
 	}
 	wg.Wait()
-	return
-
 }
 
 func (p *peerInfoProtol) setExternalAddr(addr string) {
