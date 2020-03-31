@@ -21,8 +21,8 @@ var (
 
 const (
 	MinBounds    = 15 //最少连接节点数，包含连接被连接
-	MaxBounds    = 30 //最大连接数包含连接被连接
-	MaxOutBounds = 25 //对外连接的最大节点数量
+	MaxBounds    = 50 //最大连接数包含连接被连接
+	MaxOutBounds = 35 //对外连接的最大节点数量
 )
 
 type ConnManager struct {
