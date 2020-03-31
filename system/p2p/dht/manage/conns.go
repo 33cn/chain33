@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
+
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	core "github.com/libp2p/go-libp2p-core"
@@ -31,15 +33,17 @@ type ConnManager struct {
 	pstore           peerstore.Peerstore
 	bandwidthTracker *metrics.BandwidthCounter
 	discovery        *net.Discovery
+	cfg              *p2pty.P2PSubConfig
 	Done             chan struct{}
 }
 
-func NewConnManager(host core.Host, discovery *net.Discovery, tracker *metrics.BandwidthCounter) *ConnManager {
+func NewConnManager(host core.Host, discovery *net.Discovery, tracker *metrics.BandwidthCounter, cfg *p2pty.P2PSubConfig) *ConnManager {
 	connM := &ConnManager{}
 	connM.pstore = host.Peerstore()
 	connM.host = host
 	connM.discovery = discovery
 	connM.bandwidthTracker = tracker
+	connM.cfg = cfg
 	connM.Done = make(chan struct{}, 1)
 	return connM
 
@@ -111,9 +115,10 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 				continue
 			}
 			nearestPeers := s.convertArrToMap(s.FetchNearestPeers())
+			bootStrapNodes := net.ConvertPeers(s.cfg.Seeds)
 			//close from seed
 			for _, pid := range s.OutBounds() {
-				if _, ok := net.DefaultBootstrapPeers[pid.Pretty()]; ok {
+				if _, ok := bootStrapNodes[pid.Pretty()]; ok {
 					// 判断是否是最近nearest的30个节点
 					if _, ok := nearestPeers[pid.Pretty()]; !ok {
 						s.host.Network().ClosePeer(pid)
