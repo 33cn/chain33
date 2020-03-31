@@ -86,7 +86,7 @@ func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
 
 			}
 		} else { //如果查询不到节点对应的时延，就设置非常大
-			job.Latency = time.Duration(time.Second)
+			job.Latency = time.Second
 		}
 		job.TaskNum = 0
 		JobPeerIds = append(JobPeerIds, &job)
