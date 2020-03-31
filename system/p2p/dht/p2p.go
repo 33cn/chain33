@@ -104,7 +104,7 @@ func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Report
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
-	if maxconnect < 100 {
+	if maxconnect <= 0 {
 		maxconnect = 100
 	}
 	host, err := libp2p.New(context.Background(),
@@ -113,7 +113,7 @@ func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Report
 		libp2p.BandwidthReporter(bandwidthTracker),
 		libp2p.NATPortMap(),
 
-		//connmgr 默认最大连接100个，最少3/4*maxconnect个
+		//connmgr 默认连接100个，最少3/4*maxconnect个
 		libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect*3/4, maxconnect, 0)),
 	)
 	if err != nil {
