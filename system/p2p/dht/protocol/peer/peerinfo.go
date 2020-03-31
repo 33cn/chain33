@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 const (
@@ -113,12 +114,12 @@ func (p *peerInfoProtol) getPeerInfo() []*types.P2PPeerInfo {
 		}
 		//修改为并发获取peerinfo信息
 		wg.Add(1)
-		go func() {
+		go func(peerid peer.ID) {
 			defer wg.Done()
 			msgReq := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
 
 			req := &prototypes.StreamRequest{
-				PeerID: remoteID,
+				PeerID: peerid,
 				Data:   msgReq,
 				MsgID:  PeerInfoReq,
 			}
@@ -133,7 +134,7 @@ func (p *peerInfoProtol) getPeerInfo() []*types.P2PPeerInfo {
 				return
 			}
 			peerinfos = append(peerinfos, resp.GetMessage())
-		}()
+		}(remoteID)
 
 	}
 	wg.Wait()
