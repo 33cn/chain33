@@ -27,6 +27,7 @@ import (
 	libp2p "github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 
+	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
@@ -73,7 +74,12 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	priv := addrbook.GetPrivkey()
 
 	bandwidthTracker := metrics.NewBandwidthCounter()
-	host := newHost(mcfg.Port, priv, bandwidthTracker, int(mcfg.MaxConnnectNum))
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", mcfg.Port))
+	if err != nil {
+		panic(err)
+	}
+	log.Info("NewMulti", "addr", maddr.String())
+	host := newHost(mcfg, priv, bandwidthTracker, maddr)
 	p2p := &P2P{
 		host:          host,
 		peerInfoManag: manage.NewPeerInfoManager(mgr.Client),
@@ -95,27 +101,42 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	return p2p
 }
 
-func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maxconnect int) core.Host {
-	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
-	if err != nil {
-		return nil
-	}
-	log.Info("NewMulti", "addr", m.String())
+func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) core.Host {
+
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
-	if maxconnect <= 0 {
+	var maxconnect = 0
+	if cfg.MaxConnnectNum <= 0 {
 		maxconnect = 100
 	}
-	host, err := libp2p.New(context.Background(),
-		libp2p.ListenAddrs(m),
-		libp2p.Identity(priv),
-		libp2p.BandwidthReporter(bandwidthTracker),
-		libp2p.NATPortMap(),
 
-		//connmgr 默认连接100个，最少3/4*maxconnect个
-		libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect*3/4, maxconnect, 0)),
-	)
+	var relayOpt = make([]circuit.RelayOpt, 3)
+	if cfg.Relay_Active {
+		relayOpt = append(relayOpt, circuit.OptActive)
+	}
+	if cfg.Relay_Hop {
+		relayOpt = append(relayOpt, circuit.OptHop)
+	}
+	if cfg.Relay_Discovery {
+		relayOpt = append(relayOpt, circuit.OptDiscovery)
+	}
+	var options []libp2p.Option
+	options = append(options, libp2p.NATPortMap())
+	if maddr != nil {
+		options = append(options, libp2p.ListenAddrs(maddr))
+	}
+	if priv != nil {
+		options = append(options, libp2p.Identity(priv))
+	}
+	if bandwidthTracker != nil {
+		options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
+	}
+
+	options = append(options, libp2p.EnableRelay(relayOpt...))
+	options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect*3/4, maxconnect, 0)))
+
+	host, err := libp2p.New(context.Background(), options...)
 	if err != nil {
 		panic(err)
 	}
