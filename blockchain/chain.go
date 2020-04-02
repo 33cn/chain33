@@ -42,8 +42,9 @@ type BlockChain struct {
 	pushservice *PushService1
 	//cache  缓存block方便快速查询
 	cfg          *types.BlockChain
-	syncTask     *Task
-	downLoadTask *Task
+	syncTask        *Task
+	downLoadTask    *Task
+	chunkRecordTask *Task
 
 	query *Query
 
@@ -152,8 +153,9 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		tickerwg:           &sync.WaitGroup{},
 		reducewg:           &sync.WaitGroup{},
 
-		syncTask:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
-		downLoadTask: newTask(300 * time.Second),
+		syncTask:        newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
+		downLoadTask:    newTask(300 * time.Second),
+		chunkRecordTask: newTask(120 * time.Second),
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),

@@ -27,7 +27,7 @@ const (
 	// 删除小于当前chunk为DelRollbackChunkNum
 	DelRollbackChunkNum int32 = 2
 	// 每次请求最大MaxReqChunkRecord个chunk的record
-	MaxReqChunkRecord   int32 = 500
+	MaxReqChunkRecord   int32 = 1000
 )
 
 func (chain *BlockChain) ChunkProcessRoutine() {
@@ -216,14 +216,13 @@ func (chain *BlockChain) ChunkShardHandle(chunk *types.ChunkInfo, isNotifyChunk 
 	if isNotifyChunk {
 		chain.notifyStoreChunkToP2P(chunk)
 	}
-	chunkRds := genChunkRecord(chunk, bodys)
-	kv := chain.genToDeleteChunkSign(chunk.ChunkNum)
-	chunkRds.Kvs = append(chunkRds.Kvs, kv)
-	chain.saveChunkRecord(chunkRds)
+	kvs := genChunkRecord(chunk, bodys)
+	kvs = append(kvs, chain.genDeleteChunkSign(chunk.ChunkNum))
+	chain.saveChunkRecord(kvs)
 	chain.updateMaxSerialChunkNum(chunk.ChunkNum)
 }
 
-func (chain *BlockChain) genToDeleteChunkSign(chunkNum int64) *types.KeyValue {
+func (chain *BlockChain) genDeleteChunkSign(chunkNum int64) *types.KeyValue {
 	maxHeight := chain.GetPeerMaxBlkHeight()
 	if maxHeight != -1 && chain.GetBlockHeight() > maxHeight {
 		maxHeight = chain.GetBlockHeight()
@@ -243,13 +242,21 @@ func (chain *BlockChain) getMaxSerialChunkNum() int64 {
 }
 
 func (chain *BlockChain) updateMaxSerialChunkNum(chunkNum int64) error {
+	err := chain.setMaxSerialChunkNum(chunkNum)
+	if err != nil {
+		return err
+	}
+	return chain.blockStore.SetMaxSerialChunkNum(chunkNum)
+}
+
+func (chain *BlockChain) setMaxSerialChunkNum(chunkNum int64) error {
 	chain.maxSeriallock.Lock()
 	defer chain.maxSeriallock.Unlock()
 	if chain.maxSerialChunkNum+1 != chunkNum {
 		return ErrNoChunkNumSerial
 	}
 	chain.maxSerialChunkNum = chunkNum
-	return chain.blockStore.SetMaxSerialChunkNum(chunkNum)
+	return nil
 }
 
 func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
@@ -289,8 +296,8 @@ func (chain *BlockChain) genChunkBlocks(start, end int64) ([]byte, *types.BlockB
 	return hashs.Hash(), &bodys, nil
 }
 
-func (chain *BlockChain) saveChunkRecord(chunkRds *types.ChunkRecords) {
-	chain.blockStore.mustSaveKvset(&types.LocalDBSet{KV: chunkRds.GetKvs()})
+func (chain *BlockChain) saveChunkRecord(kvs []*types.KeyValue) {
+	chain.blockStore.mustSaveKvset(&types.LocalDBSet{KV: kvs})
 }
 
 // GetChunkBlockBody 从localdb本地获取chunkbody
@@ -316,11 +323,21 @@ func (chain *BlockChain) GetChunkBlockBody(req *types.ReqChunkBlockBody) (*types
 
 func (chain *BlockChain) AddChunkRecord(req *types.ChunkRecords) {
 	dbset := &types.LocalDBSet{}
+	chunkNum := int64(-1)
+	var first bool
 	for _, kv := range req.Kvs {
 		if bytes.Contains(kv.Key, ChunkNumToHash) {
-			height, err := strconv.Atoi(string(bytes.TrimPrefix(kv.Key, ChunkNumToHash)))
-			if err == nil {
+			height, err := strconv.ParseInt(string(bytes.TrimPrefix(kv.Key, ChunkNumToHash)), 10, 64)
+			if err != nil {
 				continue
+			}
+			// 获取最小chunkNum作为确认号
+			if !first {
+				chunkNum = height
+				first = true
+			}
+			if chunkNum < height {
+				chunkNum = height
 			}
 			dbset.KV = append(dbset.KV, &types.KeyValue{Key: calcRecvChunkNumToHash(int64(height)), Value: kv.Value})
 		} else {
@@ -328,12 +345,15 @@ func (chain *BlockChain) AddChunkRecord(req *types.ChunkRecords) {
 			dbset.KV = append(dbset.KV, kv)
 		}
 	}
+	// 通知此chunk请求已经处理完
+	if first {
+		chain.chunkRecordTask.Done(chunkNum)
+	}
 	chain.blockStore.mustSaveKvset(dbset)
 }
 
 func (chain *BlockChain) GetChunkRecord(req *types.ReqChunkRecords) (*types.ChunkRecords, error) {
 	rep := &types.ChunkRecords{}
-	// TODO req.IsDetail 后面需要再加
 	for i := req.Start; i <= req.End; i++ {
 		key := append([]byte{}, calcChunkNumToHash(i)...)
 		value, err := chain.blockStore.GetKey(key)
@@ -348,12 +368,12 @@ func (chain *BlockChain) GetChunkRecord(req *types.ReqChunkRecords) (*types.Chun
 	return rep, nil
 }
 
-// GetCurRecvChunkNum TODO 后续需要放入结构体中，且在内存中保存一份
+// GetCurRecvChunkNum
 func (chain *BlockChain) GetCurRecvChunkNum() int64 {
 	return chain.blockStore.getCurChunkNum(RecvChunkNumToHash)
 }
 
-// GetCurChunkNum TODO 后续需要放入结构体中，且在内存中保存一份
+// GetCurChunkNum
 func (chain *BlockChain) GetCurChunkNum() int64 {
 	return chain.blockStore.getCurChunkNum(ChunkNumToHash)
 }
@@ -373,12 +393,12 @@ func caclChunkInfo(cfg *types.BlockChain, height int64) (chunkNum, start, end in
 }
 
 // genChunkRecord 生成归档索引 1:blockhash--->chunkhash 2:blockHeight--->chunkhash
-func genChunkRecord(chunk *types.ChunkInfo, bodys *types.BlockBodys) *types.ChunkRecords {
-	chunkRds := &types.ChunkRecords{}
+func genChunkRecord(chunk *types.ChunkInfo, bodys *types.BlockBodys) []*types.KeyValue {
+	var kvs []*types.KeyValue
 	for _, body := range bodys.Items {
-		chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcBlockHashToChunkHash(body.Hash), Value: chunk.ChunkHash})
+		kvs = append(kvs, &types.KeyValue{Key: calcBlockHashToChunkHash(body.Hash), Value: chunk.ChunkHash})
 	}
-	chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcChunkNumToHash(chunk.ChunkNum), Value: types.Encode(chunk)})
-	chunkRds.Kvs = append(chunkRds.Kvs, &types.KeyValue{Key: calcChunkHashToNum(chunk.ChunkHash), Value: types.Encode(chunk)})
-	return chunkRds
+	kvs = append(kvs, &types.KeyValue{Key: calcChunkNumToHash(chunk.ChunkNum), Value: types.Encode(chunk)})
+	kvs = append(kvs, &types.KeyValue{Key: calcChunkHashToNum(chunk.ChunkHash), Value: types.Encode(chunk)})
+	return kvs
 }

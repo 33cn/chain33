@@ -1641,14 +1641,13 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 		synlog.Error("EventGetChunkBlockBody", "client.Wait err:", err)
 		return nil, err
 	}
-	data := resp.Data.([]byte)
-	var bodys types.BlockBodys
-	err = types.Decode(data, &bodys)
-	if err != nil {
-		synlog.Error("EventGetChunkBlockBody", "Decode BlockBody err:", err)
+	bodys, ok := resp.Data.(*types.BlockBodys)
+	if !ok {
+		err = types.ErrNotFound
+		synlog.Error("EventGetChunkBlockBody", "client.Wait err:", err)
 		return nil, err
 	}
-	return &bodys, nil
+	return bodys, nil
 }
 
 func (bs *BlockStore) getCurChunkNum(prefix []byte) int64 {
@@ -1678,56 +1677,6 @@ func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
 		return nil, err
 	}
 	return chunk.ChunkHash, err
-}
-
-// SequenceInfo 连续信息
-type SequenceInfo struct {
-	seq   bool
-	start int64
-	end   int64
-}
-
-// checkSequence 检查是否连续连续性
-func (bs *BlockStore) checkSequence(prefix []byte, key []byte) (*SequenceInfo, error) {
-	it := bs.db.Iterator(prefix, nil, false)
-	defer it.Close()
-
-	if len(key) == 0 {
-		it.Rewind()
-	} else {
-		it.Seek(key)
-	}
-
-	var err error
-	if !it.Valid() {
-		err = types.ErrNotFound
-		return nil, err
-	}
-	lastHeight, err := strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), prefix)), 10, 64)
-	if err != nil {
-		return nil, err
-	}
-	seqIno := &SequenceInfo{}
-	for it.Next(); it.Valid(); it.Next() {
-		height, err := strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), prefix)), 10, 64)
-		if err != nil {
-			seqIno.seq = false
-			seqIno.start = lastHeight
-			seqIno.end = lastHeight
-			return seqIno, nil
-		}
-		if lastHeight != height+1 {
-			seqIno.seq = false
-			seqIno.start = lastHeight
-			seqIno.end = height
-			return seqIno, nil
-		}
-		lastHeight = height
-	}
-	seqIno.seq = true
-	seqIno.start = lastHeight
-	seqIno.end = lastHeight
-	return seqIno, nil
 }
 
 func (bs *BlockStore) GetMaxSerialChunkNum() int64 {
