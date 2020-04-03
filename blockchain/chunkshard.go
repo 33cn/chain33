@@ -56,13 +56,14 @@ func (chain *BlockChain) CheckGenChunkNum() {
 	curMaxSerialChunkNum := chain.getMaxSerialChunkNum()
 	height := chain.GetBlockHeight()
 	curChunkNum := chain.GetCurChunkNum()
-	chunkNum, _, _ := chain.CaclChunkInfo(height)
-	if curMaxSerialChunkNum == curChunkNum && curChunkNum >= 0 {
+	saftyChunkNum, _, _ := chain.CaclChunkInfo(height - MaxRollBlockNum)
+	if curMaxSerialChunkNum == curChunkNum && curChunkNum >= 0  ||
+		saftyChunkNum < 0 {
 		return
 	}
 	for i := int32(0); i < OnceMaxChunkNum; i++ {
 		num := chain.getMaxSerialChunkNum() + 1
-		if num < chunkNum {
+		if num < saftyChunkNum {
 			_, err := chain.blockStore.GetKey(calcChunkNumToHash(num))
 			if err == nil {
 				// 如果存在说明已经进行过归档，则更新连续号
@@ -187,7 +188,12 @@ func (chain *BlockChain) deleteBlockBody(height int64) (kvs []*types.KeyValue, e
 
 // IsNeedChunk is need chunk
 func (chain *BlockChain) IsNeedChunk(height int64) (isNeed bool, chunk *types.ChunkInfo) {
-	chunkNum, start, end := chain.CaclChunkInfo(height)
+	// 保证安全性需要减去回退高度
+	caclHeight := height - MaxRollBlockNum
+	if caclHeight < 0 {
+		return false, nil
+	}
+	chunkNum, start, end := chain.CaclChunkInfo(caclHeight)
 	chunk = &types.ChunkInfo{
 		ChunkNum: chunkNum,
 		Start:    start,
@@ -302,20 +308,21 @@ func (chain *BlockChain) saveChunkRecord(kvs []*types.KeyValue) {
 
 // GetChunkBlockBody 从localdb本地获取chunkbody
 func (chain *BlockChain) GetChunkBlockBody(req *types.ReqChunkBlockBody) (*types.BlockBodys, error) {
-	if req == nil {
+	if req == nil || req.Start > req.End {
 		return nil, types.ErrInvalidParam
 	}
 	start := req.Start
 	end := req.End
-	value, err := chain.blockStore.GetKey(calcChunkHashToNum(req.ChunkHash))
-	if err == nil {
-		chunk := &types.ChunkInfo{}
-		err = types.Decode(value, chunk)
-		if err != nil {
-			return nil, err
+	if !req.Filter { // 不开启filter情况下需要获取
+		value, err := chain.blockStore.GetKey(calcChunkHashToNum(req.ChunkHash))
+		if err == nil {
+			chunk := &types.ChunkInfo{}
+			err = types.Decode(value, chunk)
+			if err == nil {
+				start = chunk.Start
+				end = chunk.End
+			}
 		}
-		start = chunk.Start
-		end = chunk.End
 	}
 	_, bodys, err := chain.genChunkBlocks(start, end)
 	return bodys, err
@@ -353,17 +360,20 @@ func (chain *BlockChain) AddChunkRecord(req *types.ChunkRecords) {
 }
 
 func (chain *BlockChain) GetChunkRecord(req *types.ReqChunkRecords) (*types.ChunkRecords, error) {
+	if req.Start > req.End {
+		return nil, types.ErrInvalidParam
+	}
 	rep := &types.ChunkRecords{}
 	for i := req.Start; i <= req.End; i++ {
 		key := append([]byte{}, calcChunkNumToHash(i)...)
 		value, err := chain.blockStore.GetKey(key)
 		if err != nil {
-			return rep, types.ErrNotFound
+			return nil, types.ErrNotFound
 		}
 		rep.Kvs = append(rep.Kvs, &types.KeyValue{Key: key, Value: value})
 	}
 	if len(rep.Kvs) == 0 {
-		return rep, types.ErrNotFound
+		return nil, types.ErrNotFound
 	}
 	return rep, nil
 }
