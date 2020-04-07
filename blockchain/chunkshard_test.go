@@ -92,7 +92,7 @@ func TestDeleteBlockBody(t *testing.T) {
 		assert.Error(t, err, types.ErrNotFound)
 	}
 	for i := 11; i <= 15; i++ {
-		_, err = getBodyByIndex(blockStore.db, "", calcHeightHashKey(int64(i), hashs[int(i)]), nil)
+		_, err = getBodyByIndex(blockStore.db, "", calcHeightHashKey(int64(i), hashs[i]), nil)
 		assert.NoError(t, err)
 	}
 }

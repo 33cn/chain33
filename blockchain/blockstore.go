@@ -146,7 +146,7 @@ func calcChunkNumToHash(chunkNum int64) []byte {
 	return append(ChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
 }
 
-// 存储归档索引 chunkNum--->chunkhash
+// 存储归档索引 chunkhash--->chunkNum
 func calcChunkHashToNum(hash []byte) []byte {
 	return append(ChunkHashToNum, hash...)
 }

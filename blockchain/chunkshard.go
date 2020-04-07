@@ -344,7 +344,7 @@ func (chain *BlockChain) AddChunkRecord(req *types.ChunkRecords) {
 			if chunkNum < height {
 				chunkNum = height
 			}
-			dbset.KV = append(dbset.KV, &types.KeyValue{Key: calcRecvChunkNumToHash(int64(height)), Value: kv.Value})
+			dbset.KV = append(dbset.KV, &types.KeyValue{Key: calcRecvChunkNumToHash(height), Value: kv.Value})
 		} else {
 			// TODO 其它的前缀暂时不去处理
 			dbset.KV = append(dbset.KV, kv)
@@ -386,6 +386,7 @@ func (chain *BlockChain) GetCurChunkNum() int64 {
 	return chain.blockStore.getCurChunkNum(ChunkNumToHash)
 }
 
+// CaclChunkInfo
 func (chain *BlockChain) CaclChunkInfo(height int64) (chunkNum, start, end int64) {
 	return caclChunkInfo(chain.cfg, height)
 }
