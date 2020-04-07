@@ -632,9 +632,9 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		if pids != nil {
 			recvChunk := chain.GetCurRecvChunkNum()
 			curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
+			// TODO 后期可修改为同步节点不使用FetchChunkBlock，即让对端节点去查找具体的chunk，这里不做区分
 			if !chain.cfg.DisableShard && chain.cfg.EnableFetchP2pstore &&
 				curheight+MaxRollBlockNum < peerMaxBlkHeight && recvChunk >= curShouldChunk {
-				// 当前节点落后最高MaxRollBlockNum且收到recvChunk
 				err := chain.FetchChunkBlock(curheight+1, peerMaxBlkHeight, pids, false)
 				if err != nil {
 					synlog.Error("SynBlocksFromPeers FetchChunkBlock", "err", err)
@@ -1100,13 +1100,10 @@ func (chain *BlockChain) ChunkRecordSync() {
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 	recvChunk := chain.GetCurRecvChunkNum()
 
-	//获取peers的最新高度.处理没有收到广播block的情况
-	//落后超过2个区块时主动同步区块，落后一个区块时需要判断是否超时
-	peerMaxChunk, _, _ := chain.CaclChunkInfo(peerMaxBlkHeight)
 	curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
-	targetChunk := peerMaxChunk - 1
-
-	if curShouldChunk >= targetChunk || //证明已经同步上来了不需要再进行chunk请求
+	targetChunk, _, _ := chain.CaclChunkInfo(peerMaxBlkHeight-MaxRollBlockNum)
+	if targetChunk < 0                ||
+		curShouldChunk >= targetChunk || //说明已同步上来了不需要再进行chunk请求
 		recvChunk >= targetChunk {
 		return
 	}
@@ -1204,7 +1201,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 	if blockcount < 0 {
 		return types.ErrStartBigThanEnd
 	}
-	chunkNum, start, end := chain.CaclChunkInfo(startHeight)
+	chunkNum, _, end := chain.CaclChunkInfo(startHeight)
 
 	var chunkhash []byte
 	for i := 0; i < waitTimeDownLoad; i++ {
@@ -1222,7 +1219,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 	// 以chunk为单位同步block
 	var requestblock types.ReqChunkBlock
 	requestblock.ChunkHash = chunkhash
-	requestblock.Start = start
+	requestblock.Start = startHeight
 	requestblock.End = endHeight
 	if endHeight > end {
 		requestblock.End = end
