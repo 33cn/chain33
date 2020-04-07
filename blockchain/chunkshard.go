@@ -55,9 +55,8 @@ func (chain *BlockChain) ChunkProcessRoutine() {
 func (chain *BlockChain) CheckGenChunkNum() {
 	curMaxSerialChunkNum := chain.getMaxSerialChunkNum()
 	height := chain.GetBlockHeight()
-	curChunkNum := chain.GetCurChunkNum()
 	saftyChunkNum, _, _ := chain.CaclChunkInfo(height - MaxRollBlockNum)
-	if curMaxSerialChunkNum == curChunkNum && curChunkNum >= 0  ||
+	if curMaxSerialChunkNum >= saftyChunkNum  ||
 		saftyChunkNum < 0 {
 		return
 	}
