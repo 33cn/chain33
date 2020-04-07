@@ -383,7 +383,7 @@ func (chain *BlockChain) DownLoadTimeOutProc(height int64) {
 
 // DownLoadBlocks 下载区块
 func (chain *BlockChain) DownLoadBlocks() {
-	if chain.cfg.EnableFetchP2pstore {
+	if !chain.cfg.DisableShard && chain.cfg.EnableFetchP2pstore {
 		// 1.节点开启时候首先尝试进行chunkDownLoad下载
 		chain.UpdateDownloadSyncStatus(chunkDownLoadMode) // 默认模式是fastDownLoadMode
 		if chain.GetDownloadSyncStatus() == chunkDownLoadMode {

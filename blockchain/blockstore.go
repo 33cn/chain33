@@ -1591,7 +1591,7 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 
 	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
 	if blockbody == nil || err != nil {
-		if chainCfg.EnableFetchP2pstore {
+		if !chainCfg.DisableShard && chainCfg.EnableFetchP2pstore {
 			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
 			if bodys == nil || len(bodys.Items) == 0 || err != nil {
 				if err != dbm.ErrNotFoundInDb {

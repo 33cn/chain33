@@ -200,8 +200,10 @@ func (chain *BlockChain) SynRoutine() {
 
 			//定时检查ChunkRecord的同步情况
 		case <-chunkRecordSynTicker.C:
-			chain.tickerwg.Add(1)
-			go chain.ChunkRecordSync()
+			if !chain.cfg.DisableShard {
+				chain.tickerwg.Add(1)
+				go chain.ChunkRecordSync()
+			}
 		}
 	}
 }
@@ -630,7 +632,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		if pids != nil {
 			recvChunk := chain.GetCurRecvChunkNum()
 			curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
-			if chain.cfg.EnableFetchP2pstore &&
+			if !chain.cfg.DisableShard && chain.cfg.EnableFetchP2pstore &&
 				curheight+MaxRollBlockNum < peerMaxBlkHeight && recvChunk >= curShouldChunk {
 				// 当前节点落后最高MaxRollBlockNum且收到recvChunk
 				err := chain.FetchChunkBlock(curheight+1, peerMaxBlkHeight, pids, false)

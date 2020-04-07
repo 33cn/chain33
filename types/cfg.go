@@ -158,12 +158,14 @@ type BlockChain struct {
 	OnChainTimeout int64 `protobuf:"varint,17,opt,name=onChainTimeout" json:"onChainTimeout,omitempty"`
 	// 使能精简localdb
 	EnableReduceLocaldb bool `protobuf:"varint,18,opt,name=enableReduceLocaldb" json:"enableReduceLocaldb,omitempty"`
+	// 关闭分片存储,默认开启分片存储为false;平行链不需要分片需要修改此默认参数为true
+	DisableShard bool `protobuf:"varint,19,opt,name=disableShard" json:"disableShard,omitempty"`
 	// 分片存储中每个大块包含的区块数
-	ChunkblockNum int64 `protobuf:"varint,19,opt,name=chunkblockNum" json:"chunkblockNum,omitempty"`
+	ChunkblockNum int64 `protobuf:"varint,20,opt,name=chunkblockNum" json:"chunkblockNum,omitempty"`
 	// 使能从P2pStore中获取数据
-	EnableFetchP2pstore bool `protobuf:"varint,20,opt,name=enableFetchP2pstore" json:"enableFetchP2pstore,omitempty"`
+	EnableFetchP2pstore bool `protobuf:"varint,21,opt,name=enableFetchP2pstore" json:"enableFetchP2pstore,omitempty"`
 	// 使能假设已删除已归档数据后,获取数据情况
-	EnableIfDelLocalChunk bool `protobuf:"varint,21,opt,name=enableIfDelLocalChunk" json:"enableIfDelLocalChunk,omitempty"`
+	EnableIfDelLocalChunk bool `protobuf:"varint,22,opt,name=enableIfDelLocalChunk" json:"enableIfDelLocalChunk,omitempty"`
 }
 
 // P2P 配置
