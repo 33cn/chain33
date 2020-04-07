@@ -2,10 +2,11 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/mock"
 
 	"github.com/33cn/chain33/util"
 
@@ -368,10 +369,10 @@ func TestGetCurChunkNumAndRecvChunkHash(t *testing.T) {
 	assert.Equal(t, err, types.ErrNotFound)
 	hash := []byte("11111111111111111")
 	blockStore.Set(calcRecvChunkNumToHash(15), types.Encode(&types.ChunkInfo{
-		ChunkNum: 1,
+		ChunkNum:  1,
 		ChunkHash: hash,
-		Start:1,
-		End:2,
+		Start:     1,
+		End:       2,
 	}))
 	v, err := blockStore.getRecvChunkHash(15)
 	assert.Nil(t, err)
@@ -415,7 +416,7 @@ func TestGetBodyFromP2Pstore(t *testing.T) {
 	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{})
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{&types.BlockBody{}, &types.BlockBody{}},}}
+	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
 	client.On("Wait", mock.Anything).Return(rspMsg, nil)
 
 	blcokHash := []byte("111111111111111")
@@ -426,14 +427,14 @@ func TestGetBodyFromP2Pstore(t *testing.T) {
 	assert.Equal(t, len(bodys.Items), 2)
 
 	blockheader := &types.Header{
-		Hash: blcokHash,
+		Hash:   blcokHash,
 		Height: 1,
 	}
-	body, err := blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blcokHash),  nil)
+	body, err := blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blcokHash), nil)
 	assert.Equal(t, err, types.ErrHashNotExist)
 	bcConfig := cfg.GetModuleConfig().BlockChain
 	bcConfig.EnableFetchP2pstore = true
-	body, err = blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blcokHash),  nil)
+	body, err = blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blcokHash), nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, body)
 }

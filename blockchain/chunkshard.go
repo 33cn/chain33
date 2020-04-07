@@ -23,11 +23,11 @@ var (
 
 const (
 	// 每次检测最大生成chunk数
-	OnceMaxChunkNum     int32 = 10
+	OnceMaxChunkNum int32 = 10
 	// 删除小于当前chunk为DelRollbackChunkNum
 	DelRollbackChunkNum int32 = 2
 	// 每次请求最大MaxReqChunkRecord个chunk的record
-	MaxReqChunkRecord   int32 = 1000
+	MaxReqChunkRecord int32 = 1000
 )
 
 func (chain *BlockChain) ChunkProcessRoutine() {
@@ -56,7 +56,7 @@ func (chain *BlockChain) CheckGenChunkNum() {
 	curMaxSerialChunkNum := chain.getMaxSerialChunkNum()
 	height := chain.GetBlockHeight()
 	saftyChunkNum, _, _ := chain.CaclChunkInfo(height - MaxRollBlockNum)
-	if curMaxSerialChunkNum >= saftyChunkNum  ||
+	if curMaxSerialChunkNum >= saftyChunkNum ||
 		saftyChunkNum < 0 {
 		return
 	}
@@ -147,7 +147,6 @@ func (chain *BlockChain) walkOverDeleteChunk(maxBlkHeight int64) {
 		}
 	}
 }
-
 
 // DeleteBlockBody del chunk body
 func (chain *BlockChain) DeleteBlockBody(chunkNum int64) []*types.KeyValue {

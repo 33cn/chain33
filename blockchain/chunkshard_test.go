@@ -5,13 +5,14 @@
 package blockchain
 
 import (
-	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/types"
-	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"os"
 	"sync/atomic"
 	"testing"
+
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
+	"github.com/stretchr/testify/mock"
 
 	dbm "github.com/33cn/chain33/common/db"
 	qmocks "github.com/33cn/chain33/queue/mocks"
@@ -33,9 +34,9 @@ func TestCheckGenChunkNum(t *testing.T) {
 	client := &qmocks.Client{}
 	chain.client = client
 	data := &types.ChunkInfo{}
-	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data:data})
+	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data: data})
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{&types.BlockBody{}, &types.BlockBody{}},}}
+	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
 	client.On("Wait", mock.Anything).Return(rspMsg, nil)
 	// set config
 	chain.cfg.ChunkblockNum = 5
@@ -44,11 +45,11 @@ func TestCheckGenChunkNum(t *testing.T) {
 		atomic.StoreInt64(&MaxRollBlockNum, 10000)
 	}()
 	start := int64(0)
-	end   := int64(150)
+	end := int64(150)
 	saveBlockToDB(chain, start, end)
 	// check
 	lastChunkNum := int64(0)
-	for i := 0; i < 5; i++  {
+	for i := 0; i < 5; i++ {
 		chain.CheckGenChunkNum()
 		// check
 		serChunkNum := chain.getMaxSerialChunkNum()
@@ -75,7 +76,7 @@ func TestDeleteBlockBody(t *testing.T) {
 	assert.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	start := int64(0)
-	end   := int64(15)
+	end := int64(15)
 	saveBlockToDB(chain, start, end)
 	var hashs [][]byte
 	for i := start; i <= end; i++ {
@@ -83,15 +84,15 @@ func TestDeleteBlockBody(t *testing.T) {
 		assert.NoError(t, err)
 		hashs = append(hashs, head.Hash)
 	}
-	blockStore.Set(calcChunkNumToHash(1), types.Encode(&types.ChunkInfo{Start:0, End:10}))
+	blockStore.Set(calcChunkNumToHash(1), types.Encode(&types.ChunkInfo{Start: 0, End: 10}))
 	kvs := chain.DeleteBlockBody(1)
-	chain.blockStore.mustSaveKvset(&types.LocalDBSet{KV:kvs})
+	chain.blockStore.mustSaveKvset(&types.LocalDBSet{KV: kvs})
 	for i := start; i <= 10; i++ {
-		_, err = getBodyByIndex(blockStore.db, "", calcHeightHashKey(i, hashs[int(i)]),  nil)
+		_, err = getBodyByIndex(blockStore.db, "", calcHeightHashKey(i, hashs[int(i)]), nil)
 		assert.Error(t, err, types.ErrNotFound)
 	}
-	for i := 11; i <= 15; i++  {
-		_, err = getBodyByIndex(blockStore.db, "", calcHeightHashKey(int64(i), hashs[int(i)]),  nil)
+	for i := 11; i <= 15; i++ {
+		_, err = getBodyByIndex(blockStore.db, "", calcHeightHashKey(int64(i), hashs[int(i)]), nil)
 		assert.NoError(t, err)
 	}
 }
@@ -108,28 +109,28 @@ func TestIsNeedChunk(t *testing.T) {
 	assert.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	chain.cfg.ChunkblockNum = 2
-	setChunkInfo :=  &types.ChunkInfo{
+	setChunkInfo := &types.ChunkInfo{
 		ChunkNum: 6,
 	}
 	blockStore.Set(calcChunkNumToHash(6), types.Encode(setChunkInfo))
 	// check
 	// 当前数据库中最大chunNum=6 高度为3的区块计算的chunkNum为1
-	isNeed, chunk := chain.IsNeedChunk(MaxRollBlockNum+3)
+	isNeed, chunk := chain.IsNeedChunk(MaxRollBlockNum + 3)
 	assert.Equal(t, isNeed, false)
 	assert.Equal(t, chunk.Start, int64(2))
 	assert.Equal(t, chunk.End, int64(3))
-    // 当前数据库中最大chunNum=6 高度为12的区块计算的chunkNum为6
-	isNeed, chunk = chain.IsNeedChunk(MaxRollBlockNum+12)
+	// 当前数据库中最大chunNum=6 高度为12的区块计算的chunkNum为6
+	isNeed, chunk = chain.IsNeedChunk(MaxRollBlockNum + 12)
 	assert.Equal(t, isNeed, false)
 	assert.Equal(t, chunk.Start, int64(12))
 	assert.Equal(t, chunk.End, int64(13))
 	// 当前数据库中最大chunNum=6 高度为13的区块计算的chunkNum为6
-	isNeed, chunk = chain.IsNeedChunk(MaxRollBlockNum+13)
+	isNeed, chunk = chain.IsNeedChunk(MaxRollBlockNum + 13)
 	assert.Equal(t, isNeed, false)
 	assert.Equal(t, chunk.Start, int64(12))
 	assert.Equal(t, chunk.End, int64(13))
 	// 当前数据库中最大chunNum=6 高度为14的区块计算的chunkNum为7
-	isNeed, chunk = chain.IsNeedChunk(MaxRollBlockNum+14)
+	isNeed, chunk = chain.IsNeedChunk(MaxRollBlockNum + 14)
 	assert.Equal(t, isNeed, true)
 	assert.Equal(t, chunk.Start, int64(14))
 	assert.Equal(t, chunk.End, int64(15))
@@ -191,22 +192,22 @@ func TestMaxSerialChunkNum(t *testing.T) {
 		assert.Equal(t, int64(i), chunkNum)
 	}
 	// test error
-	err = chain.updateMaxSerialChunkNum(int64(end+5))
+	err = chain.updateMaxSerialChunkNum(int64(end + 5))
 	assert.Error(t, err, ErrNoChunkNumSerial)
 }
 
 func TestNotifyStoreChunkToP2P(t *testing.T) {
 	client := &qmocks.Client{}
-	chain := BlockChain{client:client}
+	chain := BlockChain{client: client}
 	data := &types.ChunkInfo{
-		ChunkNum: 1,
+		ChunkNum:  1,
 		ChunkHash: []byte("1111111111111"),
-		Start: 1,
-		End: 2,
+		Start:     1,
+		End:       2,
 	}
-	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data:data})
+	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data: data})
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{&types.BlockBody{}, &types.BlockBody{}},}}
+	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
 	client.On("Wait", mock.Anything).Return(rspMsg, nil)
 	chain.notifyStoreChunkToP2P(data)
 }
@@ -223,12 +224,12 @@ func TestGenChunkBlocks(t *testing.T) {
 	assert.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	start := int64(0)
-	end   := int64(10)
+	end := int64(10)
 	saveBlockToDB(chain, start, end)
 	chunkHash, bodys, err := chain.genChunkBlocks(start, end)
 	assert.NoError(t, err)
 	assert.NotNil(t, chunkHash)
-	assert.Equal(t, int(end - start + 1),len(bodys.Items))
+	assert.Equal(t, int(end-start+1), len(bodys.Items))
 	// for error
 	end = int64(11)
 	chunkHash, bodys, err = chain.genChunkBlocks(start, end)
@@ -250,8 +251,8 @@ func TestGetChunkBlockBody(t *testing.T) {
 	chain.blockStore = blockStore
 	req := &types.ReqChunkBlockBody{
 		ChunkHash: nil,
-		Start: 2,
-		End: 0,
+		Start:     2,
+		End:       0,
 	}
 	body, err := chain.GetChunkBlockBody(req)
 	assert.Error(t, err, types.ErrInvalidParam)
@@ -270,25 +271,25 @@ func TestGetChunkRecord(t *testing.T) {
 	assert.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	value := []byte("11111111111")
-	for i := 0; i < 5; i++  {
+	for i := 0; i < 5; i++ {
 		blockStore.Set(calcChunkNumToHash(int64(i)), value)
 	}
 	req := &types.ReqChunkRecords{
-		Start:                2,
-		End:                  1,
-		IsDetail:             false,
-		Pid:                  nil,
+		Start:    2,
+		End:      1,
+		IsDetail: false,
+		Pid:      nil,
 	}
 	record, err := chain.GetChunkRecord(req)
 	assert.Error(t, err, types.ErrInvalidParam)
 	assert.Nil(t, record)
 	req.Start = 0
-	req.End   = 0
+	req.End = 0
 	record, err = chain.GetChunkRecord(req)
 	assert.NoError(t, err)
 	assert.Equal(t, len(record.Kvs), 1)
 	req.Start = 0
-	req.End   = 4
+	req.End = 4
 	record, err = chain.GetChunkRecord(req)
 	assert.NoError(t, err)
 	assert.Equal(t, len(record.Kvs), 5)
@@ -296,7 +297,7 @@ func TestGetChunkRecord(t *testing.T) {
 		assert.Equal(t, calcChunkNumToHash(int64(i)), kv.Key)
 		assert.Equal(t, value, kv.Value)
 	}
-	req.End   = 5
+	req.End = 5
 	record, err = chain.GetChunkRecord(req)
 	assert.Error(t, err, types.ErrNotFound)
 }
@@ -347,15 +348,15 @@ func TestCaclChunkInfo(t *testing.T) {
 
 func TestGenChunkRecord(t *testing.T) {
 	chunk := &types.ChunkInfo{
-		ChunkNum: 1,
+		ChunkNum:  1,
 		ChunkHash: []byte("111111111111111111111"),
-		Start: 1,
-		End: 10,
+		Start:     1,
+		End:       10,
 	}
 	bodys := &types.BlockBodys{
 		Items: []*types.BlockBody{
-			&types.BlockBody{Hash:[]byte("123")},
-			&types.BlockBody{Hash:[]byte("456")},
+			{Hash: []byte("123")},
+			{Hash: []byte("456")},
 		},
 	}
 	kvs := genChunkRecord(chunk, bodys)
@@ -376,8 +377,8 @@ func saveBlockToDB(chain *BlockChain, start, end int64) {
 	for i := start; i <= end; i++ {
 		blockdetail := &types.BlockDetail{
 			Block: &types.Block{
-				Version:  0,
-				Height:   i,
+				Version: 0,
+				Height:  i,
 			},
 		}
 		batch.Reset()

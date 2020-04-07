@@ -1102,12 +1102,12 @@ func (chain *BlockChain) ChunkRecordSync() {
 
 	//获取peers的最新高度.处理没有收到广播block的情况
 	//落后超过2个区块时主动同步区块，落后一个区块时需要判断是否超时
-	peerMaxChunk, _, _   := chain.CaclChunkInfo(peerMaxBlkHeight)
+	peerMaxChunk, _, _ := chain.CaclChunkInfo(peerMaxBlkHeight)
 	curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
-	targetChunk          := peerMaxChunk - 1
+	targetChunk := peerMaxChunk - 1
 
 	if curShouldChunk >= targetChunk || //证明已经同步上来了不需要再进行chunk请求
-		recvChunk     >= targetChunk {
+		recvChunk >= targetChunk {
 		return
 	}
 
@@ -1157,7 +1157,7 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 
 	var cb func()
 	var timeoutcb func(chunkNum int64)
-	peerMaxChunk, _, _   := chain.CaclChunkInfo(chain.GetPeerMaxBlkHeight())
+	peerMaxChunk, _, _ := chain.CaclChunkInfo(chain.GetPeerMaxBlkHeight())
 	curShouldChunk, _, _ := chain.CaclChunkInfo(chain.GetBlockHeight())
 	if peerMaxChunk >= curShouldChunk {
 		cb = func() {
