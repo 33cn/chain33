@@ -81,7 +81,7 @@ func (d *Discovery) CloseFindLANPeers() {
 }
 
 //routingTable 路由表的节点信息
-func (d *Discovery) RoutingTale() []peer.ID {
+func (d *Discovery) RoutingTable() []peer.ID {
 	if d.kademliaDHT == nil {
 		return nil
 	}

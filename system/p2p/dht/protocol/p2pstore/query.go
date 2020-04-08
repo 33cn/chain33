@@ -13,7 +13,7 @@ import (
 )
 
 func (s *StoreProtocol) getHeaders(param *types.ReqBlocks) *types.Headers {
-	for _, pid := range s.Discovery.RoutingTale() {
+	for _, pid := range s.Discovery.RoutingTable() {
 		headers, err := s.getHeadersFromPeer(param, pid)
 		if err != nil {
 			log.Error("getHeaders", "peer", pid, "error", err)
@@ -58,7 +58,7 @@ func (s *StoreProtocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) 
 }
 
 func (s *StoreProtocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
-	for _, pid := range s.Discovery.RoutingTale() {
+	for _, pid := range s.Discovery.RoutingTable() {
 		records, err := s.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
 			log.Error("getChunkRecords", "peer", pid, "error", err)
