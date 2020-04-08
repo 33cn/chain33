@@ -447,7 +447,7 @@ func TestFetchChunkRecords(t *testing.T) {
 	chain.ChunkRecordSync()
 	// case 2 peerMaxBlkHeight - MaxRollBlockNum > curheight
 	// 设置从0开始
-	end := int64(MaxRollBlockNum + 6000)
+	end := MaxRollBlockNum + 6000
 	chain.blockStore.UpdateHeight2(-1)
 	chain.peerList[0].Height = end
 	// check for updata
