@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	NotRunning = iota+99
+	NotRunning = iota + 99
 	Running
 )
+
 //当前的实现是为每个订阅者单独启动一个协程goroute，然后单独为每个subscriber分别过滤指定类型的交易，
 //进行归类，这种方式集成了区块推送方式的处理机制，但是对于订阅者数量大的情况，势必会浪费cpu的开销，
 //数据库的读取开销不会额外增加明星，因为会有cach
@@ -145,10 +146,10 @@ func (push *PushTxReceiptService) check2ResumePush(subscribe *types.SubscribeTxR
 func newpushTxReceiptService(commonStore CommonStore, seqStore SequenceStore, cfg *types.Chain33Config) *PushTxReceiptService {
 	tasks := make(map[string]*pushTxReceiptNotify)
 	service := &PushTxReceiptService{store: commonStore,
-		sequenceStore:seqStore,
-		tasks:tasks,
-		client:&http.Client{},
-		cfg:cfg,
+		sequenceStore: seqStore,
+		tasks:         tasks,
+		client:        &http.Client{},
+		cfg:           cfg,
 	}
 	service.init()
 
@@ -296,7 +297,7 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 							"Name", subscribe.Name, "contract:", subscribe.Contract, "continueFailCount", continueFailCount)
 						if continueFailCount >= 3 {
 							in.status = NotRunning
-							chainlog.Error("postdata failed exceed 3 times", "in.status", in.status, )
+							chainlog.Error("postdata failed exceed 3 times", "in.status", in.status)
 							return
 						}
 						//sleep 60s
@@ -351,7 +352,7 @@ func (push *PushTxReceiptService) getTxReceipts(subscribe *types.SubscribeTxRece
 			totalSize += size
 			chainlog.Debug("get Tx Receipts subscribed for pushing", "Name", subscribe.Name, "contract:", subscribe.Contract,
 				"height=", txReceiptsPerBlk.Height)
-		} else {
+		} else if totalSize+size > maxSize {
 			break
 		}
 		actualIterCount++
