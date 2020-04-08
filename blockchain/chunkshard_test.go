@@ -5,10 +5,12 @@
 package blockchain
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -370,6 +372,104 @@ func TestGenChunkRecord(t *testing.T) {
 	assert.Equal(t, kvs[2].Value, types.Encode(chunk))
 	assert.Equal(t, kvs[3].Key, calcChunkHashToNum(chunk.ChunkHash))
 	assert.Equal(t, kvs[3].Value, types.Encode(chunk))
+}
+
+func TestFetchChunkBlock(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	chain := InitEnv()
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
+	assert.NotNil(t, blockStore)
+	chain.blockStore = blockStore
+	// mock client
+	client := &qmocks.Client{}
+	chain.client = client
+	data := &types.ChunkInfo{}
+	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data: data})
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
+	client.On("Wait", mock.Anything).Return(rspMsg, nil)
+	// set config
+	chain.cfg.ChunkblockNum = 5
+	start := int64(0)
+	end   := int64(51)
+	chain.InitDownLoadInfo(start, end, []string{"1", "2"})
+	// set RecvChunkHash
+	for i := start; i <= end; i++ {
+		chain.blockStore.Set(calcRecvChunkNumToHash(i), types.Encode(&types.ChunkInfo{ChunkHash:[]byte("hash")}))
+	}
+	// check for updata
+	go func() {
+		for i := int64(0); i <= end/chain.cfg.ChunkblockNum; i++{
+			time.Sleep(time.Microsecond*500)
+			chain.downLoadTask.Done(i)
+			fmt.Println("done i", i)
+		}
+	}()
+	chain.ReqDownLoadChunkBlocks()
+	time.Sleep(time.Second)
+}
+
+func TestFetchChunkRecords(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	chain := InitEnv()
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
+	assert.NotNil(t, blockStore)
+	chain.blockStore = blockStore
+	// mock client
+	client := &qmocks.Client{}
+	chain.client = client
+	data := &types.ChunkInfo{}
+	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data: data})
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
+	client.On("Wait", mock.Anything).Return(rspMsg, nil)
+
+	// set config
+	chain.cfg.ChunkblockNum = 5
+	atomic.StoreInt64(&MaxRollBlockNum, 10)
+	defer func() {
+		atomic.StoreInt64(&MaxRollBlockNum, 10000)
+	}()
+	// 设置最大对端节点高度
+	peerInfo := &PeerInfo{
+		Name: "123",
+		Height: 9,
+	}
+	chain.peerList = PeerInfoList{peerInfo}
+	chain.bestChainPeerList["123"] = &BestPeerInfo{Peer: peerInfo, IsBestChain:true}
+
+	// case 1 peerMaxBlkHeight < curheight
+	chain.blockStore.UpdateHeight2(100)
+	chain.ChunkRecordSync()
+	// case 2 peerMaxBlkHeight - MaxRollBlockNum > curheight
+	// 设置从0开始
+	end := int64(6000)
+	chain.blockStore.UpdateHeight2(-1)
+	chain.peerList[0].Height = end
+	// check for updata
+	go func() {
+		count := end/chain.cfg.ChunkblockNum/int64(MaxReqChunkRecord)
+		for i := int64(0); i <= count; i++{
+			time.Sleep(time.Microsecond*200)
+			for j := i*int64(MaxReqChunkRecord); j < (i+1)*int64(MaxReqChunkRecord); j++ {
+				chain.blockStore.Set(calcRecvChunkNumToHash(j), types.Encode(&types.ChunkInfo{ChunkHash:[]byte("hash")}))
+			}
+			chain.chunkRecordTask.Done(i)
+			fmt.Println("done i", i)
+		}
+	}()
+	chain.ChunkRecordSync()
+	time.Sleep(time.Second)
 }
 
 func saveBlockToDB(chain *BlockChain, start, end int64) {

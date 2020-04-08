@@ -350,11 +350,11 @@ func (chain *BlockChain) AddChunkRecord(req *types.ChunkRecords) {
 			dbset.KV = append(dbset.KV, kv)
 		}
 	}
+	chain.blockStore.mustSaveKvset(dbset)
 	// 通知此chunk请求已经处理完
 	if first {
 		chain.chunkRecordTask.Done(chunkNum)
 	}
-	chain.blockStore.mustSaveKvset(dbset)
 }
 
 func (chain *BlockChain) GetChunkRecord(req *types.ReqChunkRecords) (*types.ChunkRecords, error) {

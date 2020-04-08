@@ -1136,30 +1136,26 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 	}
 
 	synlog.Debug("FetchChunkRecords", "StartHeight", start, "EndHeight", end, "pid", pid)
+
 	count := end - start
 	if count < 0 {
 		return types.ErrStartBigThanEnd
 	}
-
-	var reqRec types.ReqChunkRecords
-	reqRec.Start = start
-	reqRec.End = end
-	reqRec.IsDetail = false
-	reqRec.Pid = pid
-	if count >= int64(MaxReqChunkRecord) { // 每次请求最大MaxReqChunkRecord个chunk的record
-		reqRec.End = reqRec.Start + int64(MaxReqChunkRecord) - 1
-	} else {
-		reqRec.End = end
+	reqRec := &types.ReqChunkRecords{
+		Start: start,
+		End: end,
+		IsDetail: false,
+		Pid: pid,
 	}
-
 	var cb func()
 	var timeoutcb func(chunkNum int64)
-	peerMaxChunk, _, _ := chain.CaclChunkInfo(chain.GetPeerMaxBlkHeight())
-	curShouldChunk, _, _ := chain.CaclChunkInfo(chain.GetBlockHeight())
-	if peerMaxChunk >= curShouldChunk {
+	if count >= int64(MaxReqChunkRecord) { // 每次请求最大MaxReqChunkRecord个chunk的record
+		reqRec.End = reqRec.Start + int64(MaxReqChunkRecord) - 1
 		cb = func() {
 			chain.ChunkRecordSync()
 		}
+	} else {
+		reqRec.End = end
 	}
 	// 目前数据量小可在一个节点下载多个chunk记录
 	// TODO 后续可以多个节点并发下载
@@ -1168,7 +1164,7 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 		return err
 	}
 
-	msg := chain.client.NewMessage("p2p", types.EventGetChunkRecord, &reqRec)
+	msg := chain.client.NewMessage("p2p", types.EventGetChunkRecord, reqRec)
 	Err := chain.client.Send(msg, true)
 	if Err != nil {
 		synlog.Error("FetchChunkRecords", "client.Send err:", Err)
@@ -1197,7 +1193,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 	}
 
 	synlog.Debug("FetchChunkBlock input", "StartHeight", startHeight, "EndHeight", endHeight, "pid", pid)
-	blockcount := startHeight - endHeight
+	blockcount := endHeight - startHeight
 	if blockcount < 0 {
 		return types.ErrStartBigThanEnd
 	}
