@@ -27,10 +27,9 @@ import (
 	libp2p "github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 
-	"github.com/libp2p/go-libp2p-core/metrics"
-
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
-
+	"github.com/libp2p/go-libp2p-core/metrics"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
@@ -74,7 +73,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	priv := addrbook.GetPrivkey()
 
 	bandwidthTracker := metrics.NewBandwidthCounter()
-	host := newHost(mcfg.Port, priv, bandwidthTracker)
+	host := newHost(mcfg.Port, priv, bandwidthTracker, int(mcfg.MaxConnnectNum))
 	p2p := &P2P{
 		host:          host,
 		peerInfoManag: manage.NewPeerInfoManager(mgr.Client),
@@ -89,14 +88,14 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	}
 	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
 	p2p.discovery = net.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.chainCfg, p2p.subCfg)
-	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker)
+	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker, p2p.subCfg)
 	p2p.addrbook.StoreHostID(p2p.host.ID(), p2pCfg.DbPath)
 	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 
 	return p2p
 }
 
-func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter) core.Host {
+func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maxconnect int) core.Host {
 	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
 	if err != nil {
 		return nil
@@ -105,14 +104,18 @@ func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Report
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
-
+	if maxconnect <= 0 {
+		maxconnect = 100
+	}
 	host, err := libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m),
 		libp2p.Identity(priv),
 		libp2p.BandwidthReporter(bandwidthTracker),
 		libp2p.NATPortMap(),
-	)
 
+		//connmgr 默认连接100个，最少3/4*maxconnect个
+		libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect*3/4, maxconnect, 0)),
+	)
 	if err != nil {
 		panic(err)
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 const (
@@ -44,9 +45,17 @@ func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
 	go p.detectNodeAddr()
+	go p.fetchPeersInfo()
 
 }
 
+func (p *peerInfoProtol) fetchPeersInfo() {
+	for {
+		<-time.After(time.Second * 10)
+		p.getPeerInfo()
+
+	}
+}
 func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 	var peerinfo types.P2PPeerInfo
 
@@ -101,38 +110,43 @@ func (p *peerInfoProtol) onReq(req *types.MessagePeerInfoReq, s core.Stream) {
 }
 
 // PeerInfo 向对方节点请求peerInfo信息
-func (p *peerInfoProtol) getPeerInfo() []*types.P2PPeerInfo {
+func (p *peerInfoProtol) getPeerInfo() {
 
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
-	var peerinfos []*types.P2PPeerInfo
+	var wg sync.WaitGroup
 	for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
 		if remoteID.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
+		//修改为并发获取peerinfo信息
+		wg.Add(1)
+		go func(peerid peer.ID) {
+			defer wg.Done()
+			msgReq := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
 
-		msgReq := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
+			req := &prototypes.StreamRequest{
+				PeerID: peerid,
+				Data:   msgReq,
+				MsgID:  PeerInfoReq,
+			}
+			var resp types.MessagePeerInfoResp
+			err := p.SendRecvPeer(req, &resp)
+			if err != nil {
+				log.Error("handleEvent", "WriteStream", err)
+				return
+			}
 
-		req := &prototypes.StreamRequest{
-			PeerID: remoteID,
-			Data:   msgReq,
-			MsgID:  PeerInfoReq,
-		}
-		var resp types.MessagePeerInfoResp
-		err := p.SendRecvPeer(req, &resp)
-		if err != nil {
-			log.Error("handleEvent", "WriteStream", err)
-			continue
-		}
-
-		if resp.GetMessage() == nil {
-			continue
-		}
-		peerinfos = append(peerinfos, resp.GetMessage())
+			if resp.GetMessage() == nil {
+				return
+			}
+			var dest types.Peer
+			p.PeerInfoManager.Copy(&dest, resp.GetMessage())
+			p.PeerInfoManager.Add(peerid.Pretty(), &dest)
+		}(remoteID)
 
 	}
-	return peerinfos
-
+	wg.Wait()
 }
 
 func (p *peerInfoProtol) setExternalAddr(addr string) {
@@ -229,18 +243,16 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 //接收chain33其他模块发来的请求消息
 func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
-	pinfos := p.getPeerInfo()
+	pinfos := p.PeerInfoManager.FetchPeerInfosInMin()
 	var peers []*types.Peer
 	var peer types.Peer
 	for _, pinfo := range pinfos {
 		if pinfo == nil {
 			continue
 		}
-		var peer types.Peer
-		p.PeerInfoManager.Copy(&peer, pinfo)
-		peers = append(peers, &peer)
-		//增加peerInfo 到peerInfoManager
-		p.PeerInfoManager.Add(peer.GetName(), &peer)
+
+		peers = append(peers, pinfo)
+
 	}
 	peerinfo := p.getLoacalPeerInfo()
 	p.PeerInfoManager.Copy(&peer, peerinfo)
