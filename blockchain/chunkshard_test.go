@@ -46,7 +46,7 @@ func TestCheckGenChunkNum(t *testing.T) {
 	end := int64(150)
 	saveBlockToDB(chain, start, end)
 	//just for test
-	chain.blockStore.UpdateHeight2(MaxRollBlockNum+150)
+	chain.blockStore.UpdateHeight2(MaxRollBlockNum + 150)
 	// check
 	lastChunkNum := int64(0)
 	for i := 0; i < 5; i++ {
@@ -443,11 +443,11 @@ func TestFetchChunkRecords(t *testing.T) {
 	chain.bestChainPeerList["123"] = &BestPeerInfo{Peer: peerInfo, IsBestChain: true}
 
 	// case 1 peerMaxBlkHeight < curheight
-	chain.blockStore.UpdateHeight2(MaxRollBlockNum+100)
+	chain.blockStore.UpdateHeight2(MaxRollBlockNum + 100)
 	chain.ChunkRecordSync()
 	// case 2 peerMaxBlkHeight - MaxRollBlockNum > curheight
 	// 设置从0开始
-	end := int64(MaxRollBlockNum+6000)
+	end := int64(MaxRollBlockNum + 6000)
 	chain.blockStore.UpdateHeight2(-1)
 	chain.peerList[0].Height = end
 	// check for updata
