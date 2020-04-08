@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "p2p.proto";
+import "blockchain.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
@@ -211,4 +212,35 @@ message MessagePeersReply {
 message MessageBroadCast {
     MessageComm   common  = 1;
     BroadCastData message = 2;
+}
+
+/**
+* p2p 分布式存储
+*/
+
+message P2PStoreRequest {
+    string protocolID = 1;
+    oneof data {
+        ReqChunkBlockBody reqChunkBlockBody = 2;
+        ReqBlocks reqBlocks = 3;
+        ReqChunkRecords reqChunkRecords = 4;
+        ChunkInfo chunkInfo = 5;
+    }
+}
+
+message P2PStoreResponse {
+    string errorInfo = 1;
+    oneof result {
+        BlockBodys blockBodys = 2;
+        Headers headers = 3;
+        ChunkRecords chunkRecords = 4;
+        bytes addrInfo = 5;
+    }
+}
+
+message P2PStoreData {
+    int64 time = 1;
+    oneof data {
+        BlockBodys blockBodys = 2;
+    }
 }
