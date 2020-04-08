@@ -80,6 +80,10 @@ func (d *Discovery) CloseFindLANPeers() {
 	}
 }
 
+func (d *Discovery) KAD() *dht.IpfsDHT {
+	return d.kademliaDHT
+}
+
 //routingTable 路由表的节点信息
 func (d *Discovery) RoutingTale() []peer.ID {
 	if d.kademliaDHT == nil {

@@ -8,13 +8,13 @@ package dht
 import (
 	"context"
 	"fmt"
+	"github.com/33cn/chain33/system/p2p/dht/protocol/p2pstore"
 	"sync"
 	"sync/atomic"
-
-	"github.com/33cn/chain33/p2p"
-
 	"time"
 
+	"github.com/33cn/chain33/p2p"
+	ds "github.com/ipfs/go-datastore"
 	"github.com/33cn/chain33/client"
 	logger "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -26,7 +26,6 @@ import (
 	"github.com/33cn/chain33/types"
 	libp2p "github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
-
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
@@ -56,6 +55,9 @@ type P2P struct {
 	subCfg  *p2pty.P2PSubConfig
 	mgr     *p2p.Manager
 	subChan chan interface{}
+
+	db  ds.Datastore
+	env *protocol.P2PEnv
 }
 
 // New new dht p2p network
@@ -157,6 +159,22 @@ func (p *P2P) StartP2P() {
 		SubConfig:       p.subCfg,
 	}
 	protocol.Init(env)
+
+	//debug new
+	env2 := &protocol.P2PEnv{
+		ChainCfg:        p.chainCfg,
+		QueueClient:     p.client,
+		Host:            p.host,
+		ConnManager:     p.connManag,
+		Discovery:       p.discovery,
+		PeerInfoManager: p.peerInfoManag,
+		P2PManager:      p.mgr,
+		SubConfig:       p.subCfg,
+		DB:              p.db,
+	}
+	p.env = env2
+	p2pstore.Init(env2)
+
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()
