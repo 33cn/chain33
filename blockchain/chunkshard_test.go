@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -42,13 +41,12 @@ func TestCheckGenChunkNum(t *testing.T) {
 	client.On("Wait", mock.Anything).Return(rspMsg, nil)
 	// set config
 	chain.cfg.ChunkblockNum = 5
-	atomic.StoreInt64(&MaxRollBlockNum, 10)
-	defer func() {
-		atomic.StoreInt64(&MaxRollBlockNum, 10000)
-	}()
+
 	start := int64(0)
 	end := int64(150)
 	saveBlockToDB(chain, start, end)
+	//just for test
+	chain.blockStore.UpdateHeight2(MaxRollBlockNum+150)
 	// check
 	lastChunkNum := int64(0)
 	for i := 0; i < 5; i++ {
@@ -436,10 +434,6 @@ func TestFetchChunkRecords(t *testing.T) {
 
 	// set config
 	chain.cfg.ChunkblockNum = 5
-	atomic.StoreInt64(&MaxRollBlockNum, 10)
-	defer func() {
-		atomic.StoreInt64(&MaxRollBlockNum, 10000)
-	}()
 	// 设置最大对端节点高度
 	peerInfo := &PeerInfo{
 		Name:   "123",
@@ -449,11 +443,11 @@ func TestFetchChunkRecords(t *testing.T) {
 	chain.bestChainPeerList["123"] = &BestPeerInfo{Peer: peerInfo, IsBestChain: true}
 
 	// case 1 peerMaxBlkHeight < curheight
-	chain.blockStore.UpdateHeight2(100)
+	chain.blockStore.UpdateHeight2(MaxRollBlockNum+100)
 	chain.ChunkRecordSync()
 	// case 2 peerMaxBlkHeight - MaxRollBlockNum > curheight
 	// 设置从0开始
-	end := int64(6000)
+	end := int64(MaxRollBlockNum+6000)
 	chain.blockStore.UpdateHeight2(-1)
 	chain.peerList[0].Height = end
 	// check for updata
