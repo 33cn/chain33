@@ -146,7 +146,7 @@ func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo
 
 }
 
-func (d *Discovery) UPdate(pid peer.ID) error {
+func (d *Discovery) Update(pid peer.ID) error {
 	_, err := d.kademliaDHT.RoutingTable().Update(pid)
 	return err
 }
