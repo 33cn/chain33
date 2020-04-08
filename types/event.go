@@ -157,6 +157,19 @@ const (
 	EventGetParaTxByTitleAndHeight = 310
 	//比较当前区块和新广播的区块最优区块
 	EventCmpBestBlock = 311
+	// 通知其它节点进行数据归档存储
+	EventNotifyStoreChunk = 312
+	// 获取chunkBlock数据
+	EventGetChunkBlock = 313
+	// 获取chunkBody数据
+	EventGetChunkBlockBody = 314
+	// 获取ChunkRecord
+	EventGetChunkRecord = 315
+	// 添加ChunkRecord
+	EventAddChunkRecord = 316
+
+	// p2p模块异步回复blockchain
+	EventAddChunkBlock = 317
 )
 
 var eventName = map[int]string{
