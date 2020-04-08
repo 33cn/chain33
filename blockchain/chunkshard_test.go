@@ -396,16 +396,16 @@ func TestFetchChunkBlock(t *testing.T) {
 	// set config
 	chain.cfg.ChunkblockNum = 5
 	start := int64(0)
-	end   := int64(51)
+	end := int64(51)
 	chain.InitDownLoadInfo(start, end, []string{"1", "2"})
 	// set RecvChunkHash
 	for i := start; i <= end; i++ {
-		chain.blockStore.Set(calcRecvChunkNumToHash(i), types.Encode(&types.ChunkInfo{ChunkHash:[]byte("hash")}))
+		chain.blockStore.Set(calcRecvChunkNumToHash(i), types.Encode(&types.ChunkInfo{ChunkHash: []byte("hash")}))
 	}
 	// check for updata
 	go func() {
-		for i := int64(0); i <= end/chain.cfg.ChunkblockNum; i++{
-			time.Sleep(time.Microsecond*500)
+		for i := int64(0); i <= end/chain.cfg.ChunkblockNum; i++ {
+			time.Sleep(time.Microsecond * 500)
 			chain.downLoadTask.Done(i)
 			fmt.Println("done i", i)
 		}
@@ -442,11 +442,11 @@ func TestFetchChunkRecords(t *testing.T) {
 	}()
 	// 设置最大对端节点高度
 	peerInfo := &PeerInfo{
-		Name: "123",
+		Name:   "123",
 		Height: 9,
 	}
 	chain.peerList = PeerInfoList{peerInfo}
-	chain.bestChainPeerList["123"] = &BestPeerInfo{Peer: peerInfo, IsBestChain:true}
+	chain.bestChainPeerList["123"] = &BestPeerInfo{Peer: peerInfo, IsBestChain: true}
 
 	// case 1 peerMaxBlkHeight < curheight
 	chain.blockStore.UpdateHeight2(100)
@@ -458,11 +458,11 @@ func TestFetchChunkRecords(t *testing.T) {
 	chain.peerList[0].Height = end
 	// check for updata
 	go func() {
-		count := end/chain.cfg.ChunkblockNum/int64(MaxReqChunkRecord)
-		for i := int64(0); i <= count; i++{
-			time.Sleep(time.Microsecond*200)
-			for j := i*int64(MaxReqChunkRecord); j < (i+1)*int64(MaxReqChunkRecord); j++ {
-				chain.blockStore.Set(calcRecvChunkNumToHash(j), types.Encode(&types.ChunkInfo{ChunkHash:[]byte("hash")}))
+		count := end / chain.cfg.ChunkblockNum / int64(MaxReqChunkRecord)
+		for i := int64(0); i <= count; i++ {
+			time.Sleep(time.Microsecond * 200)
+			for j := i * int64(MaxReqChunkRecord); j < (i+1)*int64(MaxReqChunkRecord); j++ {
+				chain.blockStore.Set(calcRecvChunkNumToHash(j), types.Encode(&types.ChunkInfo{ChunkHash: []byte("hash")}))
 			}
 			chain.chunkRecordTask.Done(i)
 			fmt.Println("done i", i)

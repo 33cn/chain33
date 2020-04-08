@@ -1101,8 +1101,8 @@ func (chain *BlockChain) ChunkRecordSync() {
 	recvChunk := chain.GetCurRecvChunkNum()
 
 	curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
-	targetChunk, _, _ := chain.CaclChunkInfo(peerMaxBlkHeight-MaxRollBlockNum)
-	if targetChunk < 0                ||
+	targetChunk, _, _ := chain.CaclChunkInfo(peerMaxBlkHeight - MaxRollBlockNum)
+	if targetChunk < 0 ||
 		curShouldChunk >= targetChunk || //说明已同步上来了不需要再进行chunk请求
 		recvChunk >= targetChunk {
 		return
@@ -1142,10 +1142,10 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 		return types.ErrStartBigThanEnd
 	}
 	reqRec := &types.ReqChunkRecords{
-		Start: start,
-		End: end,
+		Start:    start,
+		End:      end,
 		IsDetail: false,
-		Pid: pid,
+		Pid:      pid,
 	}
 	var cb func()
 	var timeoutcb func(chunkNum int64)
