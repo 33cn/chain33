@@ -21,8 +21,8 @@ func (s *StoreProtocol) StoreChunk(req *types.ChunkInfo) error {
 	}
 
 	//路由表中存在比当前节点更近的节点，说明当前节点不是局部最优节点，不需要保存数据
-	pid := s.Discovery.KAD().RoutingTable().NearestPeer(kb.ConvertKey(genChunkPath(req.ChunkHash)))
-	if pid != "" && kb.Closer(pid, s.Host.ID(), genChunkPath(req.ChunkHash)) {
+	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), 1)
+	if len(peers) == 1 && kb.Closer(peers[0], s.Host.ID(), genChunkPath(req.ChunkHash)) {
 		return nil
 	}
 	log.Info("StoreChunk", "local pid", s.Host.ID(), "chunk num", req.ChunkNum)
@@ -70,7 +70,7 @@ func (s *StoreProtocol) GetChunk(req *types.ReqChunkBlockBody) (*types.BlockBody
 
 	//本地数据不存在或已过期，则向临近节点查询
 	//首先从本地路由表获取 *3* 个最近的节点
-	peers := s.Discovery.KAD().RoutingTable().NearestPeers(kb.ConvertKey(genChunkPath(req.ChunkHash)), AlphaValue)
+	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), AlphaValue)
 	//递归查询时间上限一小时
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
@@ -113,7 +113,7 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ReqChunkBl
 	}
 
 	//本地没有数据或本地数据已过期
-	peers := s.Discovery.KAD().RoutingTable().NearestPeers(kb.ConvertPeerID(s.Host.ID()), AlphaValue)
+	peers := s.Discovery.FindNearestPeers(s.Host.ID(), AlphaValue)
 	var addrInfos []peer.AddrInfo
 	for _, pid := range peers {
 		addrInfos = append(addrInfos, peer.AddrInfo{

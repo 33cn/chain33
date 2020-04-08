@@ -10,7 +10,6 @@ import (
 	"github.com/33cn/chain33/types"
 
 	"github.com/libp2p/go-libp2p-core/peer"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
 func (s *StoreProtocol) startRepublish() {
@@ -41,7 +40,7 @@ func (s *StoreProtocol) republish() error {
 
 // 通知最近的 *BackUp* 个节点备份数据
 func (s *StoreProtocol) notifyStoreChunk(req *types.ChunkInfo) {
-	peers := s.Discovery.KAD().RoutingTable().NearestPeers(kb.ConvertKey(genChunkPath(req.ChunkHash)), Backup)
+	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), Backup)
 	for _, pid := range peers {
 		err := s.storeChunkOnPeer(req, pid)
 		if err != nil {
