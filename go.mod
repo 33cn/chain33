@@ -24,9 +24,8 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.3
-	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.7.9
-	github.com/jackpal/go-nat-pmp v1.0.1
+	github.com/ipfs/go-datastore v0.1.0
 	github.com/libp2p/go-libp2p v0.4.0
 	github.com/libp2p/go-libp2p-connmgr v0.2.0
 	github.com/libp2p/go-libp2p-core v0.2.5
