@@ -62,7 +62,7 @@ func (chain *BlockChain) CheckGenChunkNum() {
 	}
 	for i := int32(0); i < OnceMaxChunkNum; i++ {
 		num := chain.getMaxSerialChunkNum() + 1
-		if num < saftyChunkNum {
+		if num <= saftyChunkNum {
 			_, err := chain.blockStore.GetKey(calcChunkNumToHash(num))
 			if err == nil {
 				// 如果存在说明已经进行过归档，则更新连续号
@@ -224,8 +224,8 @@ func (chain *BlockChain) ChunkShardHandle(chunk *types.ChunkInfo, isNotifyChunk 
 	kvs := genChunkRecord(chunk, bodys)
 	kvs = append(kvs, chain.genDeleteChunkSign(chunk.ChunkNum))
 	chain.saveChunkRecord(kvs)
-	chain.updateMaxSerialChunkNum(chunk.ChunkNum)
-	chainlog.Info("ChunkShardHandle", "chunkNum", chunk.ChunkNum, "start", start, "end", end, "chunkHash", common.ToHex(chunkHash))
+	err = chain.updateMaxSerialChunkNum(chunk.ChunkNum)
+	chainlog.Info("ChunkShardHandle", "chunkNum", chunk.ChunkNum, "start", start, "end", end, "chunkHash", common.ToHex(chunkHash), "error", err)
 }
 
 func (chain *BlockChain) genDeleteChunkSign(chunkNum int64) *types.KeyValue {
