@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -39,7 +40,14 @@ var (
 	paraSeqToHashKey      = []byte("ParaSeq:")
 	HashToParaSeqPrefix   = []byte("HashToParaSeq:")
 	LastParaSequence      = []byte("LastParaSequence")
-	storeLog              = chainlog.New("submodule", "store")
+	// chunk相关
+	BodyHashToChunk    = []byte("BodyHashToChunk:")
+	ChunkNumToHash     = []byte("ChunkNumToHash:")
+	ChunkHashToNum     = []byte("ChunkHashToNum:")
+	RecvChunkNumToHash = []byte("RecvChunkNumToHash:")
+	MaxSerialChunkNum  = []byte("MaxSilChunkNum:")
+	ToDeleteChunkSign  = []byte("ToDelChunkSign:")
+	storeLog           = chainlog.New("submodule", "store")
 )
 
 //GetLocalDBKeyList 获取本地键值列表
@@ -51,6 +59,8 @@ func GetLocalDBKeyList() [][]byte {
 		hashPrefix, tdPrefix, heightToHashKeyPrefix, seqToHashKey, HashToSeqPrefix,
 		seqCBPrefix, seqCBLastNumPrefix, tempBlockKey, lastTempBlockKey, LastParaSequence,
 		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix, chainReceiptPrefix,
+		BodyHashToChunk, ChunkNumToHash, ChunkHashToNum, RecvChunkNumToHash,
+		MaxSerialChunkNum, ToDeleteChunkSign,
 	}
 }
 
@@ -124,6 +134,31 @@ func calcHashToMainSequenceKey(hash []byte) []byte {
 //存储block操作序列号对应的block hash,KEY=MainSeq:sequence
 func calcMainSequenceToHashKey(sequence int64) []byte {
 	return append(seqToHashKey, []byte(fmt.Sprintf("%v", sequence))...)
+}
+
+// 存储归档索引 blockhash--->chunkhash
+func calcBlockHashToChunkHash(hash []byte) []byte {
+	return append(BodyHashToChunk, hash...)
+}
+
+// 存储归档索引 chunkNum--->chunkhash
+func calcChunkNumToHash(chunkNum int64) []byte {
+	return append(ChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
+}
+
+// 存储归档索引 chunkhash--->chunkNum
+func calcChunkHashToNum(hash []byte) []byte {
+	return append(ChunkHashToNum, hash...)
+}
+
+// 存储归档索引 chunkNum--->chunkhash 从对端节点同步过来的归档索引
+func calcRecvChunkNumToHash(chunkNum int64) []byte {
+	return append(RecvChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
+}
+
+// 辅助 chunkNum--->MaxPeerHeight 用于记录在生成chunk时候当前网络最高节点高度，主要用于后续删除操作
+func calcToDeleteChunkSign(chunkNum int64) []byte {
+	return append(ToDeleteChunkSign, []byte(fmt.Sprintf("%012d", chunkNum))...)
 }
 
 //BlockStore 区块存储
@@ -1335,12 +1370,9 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 	}
 
 	//获取body
-	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
+	blockbody, err := bs.multiGetBody(blockheader, indexName, prefix, primaryKey)
 	if blockbody == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("loadBlockByIndex:getBodyByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
-		}
-		return nil, types.ErrHashNotExist
+		return nil, err
 	}
 
 	blockreceipt := blockbody.Receipts
@@ -1520,4 +1552,153 @@ func (bs *BlockStore) mustSaveKvset(kv *types.LocalDBSet) {
 		}
 	}
 	dbm.MustWrite(batch)
+}
+
+func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, prefix []byte, primaryKey []byte) (*types.BlockBody, error) {
+	cfg := bs.client.GetConfig()
+	chainCfg := cfg.GetModuleConfig().BlockChain
+
+	//获取body
+	var blockbody *types.BlockBody
+	if chainCfg.EnableIfDelLocalChunk { // 6.6之后，测试完成之后该分支进行删除
+		serialChunkNum := bs.GetMaxSerialChunkNum()
+		chunkNum, _, _ := caclChunkInfo(chainCfg, blockheader.Height)
+		if serialChunkNum > chunkNum {
+			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
+			if bodys == nil || len(bodys.Items) == 0 || err != nil {
+				if err != dbm.ErrNotFoundInDb {
+					storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
+						"serialChunkNum", serialChunkNum, "hash", common.ToHex(blockheader.Hash), "err", err)
+				}
+				return nil, types.ErrHashNotExist
+			}
+			blockbody = bodys.Items[0]
+			return blockbody, nil
+		}
+
+		storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
+			"serialChunkNum", serialChunkNum, "hash", common.ToHex(blockheader.Hash))
+
+		blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
+		if blockbody == nil || err != nil {
+			if err != dbm.ErrNotFoundInDb {
+				storeLog.Error("multiGetBody:getBodyByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+			}
+			return nil, types.ErrHashNotExist
+		}
+		return blockbody, nil
+	}
+
+	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
+	if blockbody == nil || err != nil {
+		if !chainCfg.DisableShard && chainCfg.EnableFetchP2pstore {
+			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
+			if bodys == nil || len(bodys.Items) == 0 || err != nil {
+				if err != dbm.ErrNotFoundInDb {
+					storeLog.Error("multiGetBody:getBodyFromP2Pstore", "indexName", indexName, "prefix", prefix,
+						"primaryKey", primaryKey, "err", err, "hash", common.ToHex(blockheader.Hash))
+				}
+				return nil, types.ErrHashNotExist
+			}
+			blockbody = bodys.Items[0]
+			return blockbody, nil
+		}
+
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("multiGetBody:getBodyByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+		}
+		return nil, types.ErrHashNotExist
+	}
+	return blockbody, nil
+}
+
+func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types.BlockBodys, error) {
+	value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
+	if value == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("getBodyFromP2Pstore:calcBlockHashToChunkHash", "hash", common.ToHex(hash), "chunkhash", common.ToHex(value), "err", err)
+		}
+		return nil, types.ErrHashNotExist
+	}
+	if bs.client == nil {
+		storeLog.Error("getBodyFromP2Pstore: chain client not bind message queue.")
+		return nil, types.ErrClientNotBindQueue
+	}
+	req := &types.ReqChunkBlockBody{
+		ChunkHash: value,
+		Filter:    true,
+		Start:     start,
+		End:       end,
+	}
+	msg := bs.client.NewMessage("p2p", types.EventGetChunkBlockBody, req)
+	err = bs.client.Send(msg, true)
+	if err != nil {
+		storeLog.Error("EventGetChunkBlockBody", "chunk hash", common.ToHex(value), "hash", common.ToHex(hash), "err", err)
+		return nil, err
+	}
+	resp, err := bs.client.Wait(msg)
+	if err != nil {
+		storeLog.Error("EventGetChunkBlockBody", "client.Wait err:", err)
+		return nil, err
+	}
+	bodys, ok := resp.Data.(*types.BlockBodys)
+	if !ok {
+		err = types.ErrNotFound
+		storeLog.Error("EventGetChunkBlockBody", "client.Wait err:", err)
+		return nil, err
+	}
+	return bodys, nil
+}
+
+func (bs *BlockStore) getCurChunkNum(prefix []byte) int64 {
+	it := bs.db.Iterator(prefix, nil, true)
+	defer it.Close()
+	height := int64(-1)
+	var err error
+	if it.Rewind() && it.Valid() {
+		height, err = strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), prefix)), 10, 64)
+		if err != nil {
+			return -1
+		}
+	}
+	return height
+}
+
+func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
+	value, err := bs.GetKey(calcRecvChunkNumToHash(chunkNum))
+	if err != nil {
+		storeLog.Info("getRecvChunkHash", "chunkNum", chunkNum, "error", err)
+		return nil, err
+	}
+	var chunk types.ChunkInfo
+	err = types.Decode(value, &chunk)
+	if err != nil {
+		storeLog.Error("getRecvChunkHash", "decode err:", err)
+		return nil, err
+	}
+	return chunk.ChunkHash, err
+}
+
+func (bs *BlockStore) GetMaxSerialChunkNum() int64 {
+	value, err := bs.db.Get(MaxSerialChunkNum)
+	if err != nil {
+		return -1
+	}
+	chunkNum := &types.Int64{}
+	err = types.Decode(value, chunkNum)
+	if err != nil {
+		return -1
+	}
+	return chunkNum.Data
+}
+
+func (bs *BlockStore) SetMaxSerialChunkNum(chunkNum int64) error {
+	data := &types.Int64{
+		Data: chunkNum,
+	}
+	err := bs.db.Set(MaxSerialChunkNum, types.Encode(data))
+	if err != nil {
+		return err
+	}
+	return nil
 }

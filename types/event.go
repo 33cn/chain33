@@ -161,15 +161,15 @@ const (
 	EventNotifyStoreChunk = 312
 	// 获取chunkBlock数据
 	EventGetChunkBlock = 313
-	// 获取chunkBody数据
-	EventGetChunkBlockBody = 314
-	// 获取ChunkRecord
-	EventGetChunkRecord = 315
-	// 添加ChunkRecord
-	EventAddChunkRecord = 316
 
-	// p2p模块异步回复blockchain
-	EventAddChunkBlock = 317
+	// 添加addChunkBlock
+	EventAddChunkBlock = 314
+	// 获取chunkBody数据
+	EventGetChunkBlockBody = 315
+	// 获取ChunkRecord
+	EventGetChunkRecord = 316
+	// 添加ChunkRecord
+	EventAddChunkRecord = 317
 )
 
 var eventName = map[int]string{

@@ -103,7 +103,18 @@ func (chain *BlockChain) ProcRecvMsg() {
 			//通过区块高度列表+title获取平行链交易
 		case types.EventGetParaTxByTitleAndHeight:
 			go chain.processMsg(msg, reqnum, chain.getParaTxByTitleAndHeight)
-
+			// 获取chunk record
+		case types.EventGetChunkRecord:
+			go chain.processMsg(msg, reqnum, chain.getChunkRecord)
+			// 获取chunk record
+		case types.EventAddChunkRecord:
+			go chain.processMsg(msg, reqnum, chain.addChunkRecord)
+			// 从localdb中获取Chunk BlockBody
+		case types.EventGetChunkBlockBody:
+			go chain.processMsg(msg, reqnum, chain.getChunkBlockBody)
+			// 用于chunk同步区块
+		case types.EventAddChunkBlock:
+			go chain.processMsg(msg, reqnum, chain.addChunkBlock)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -176,7 +187,7 @@ func (chain *BlockChain) addBlock(msg *queue.Message) {
 	reply.IsOk = true
 	blockpid := msg.Data.(*types.BlockPid)
 	//chainlog.Error("addBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid)
-	if chain.GetDownloadSyncStatus() {
+	if chain.GetDownloadSyncStatus() == fastDownLoadMode {
 		err := chain.WriteBlockToDbTemp(blockpid.Block, true)
 		if err != nil {
 			chainlog.Error("WriteBlockToDbTemp", "height", blockpid.Block.Height, "err", err.Error())
@@ -644,4 +655,74 @@ func (chain *BlockChain) getParaTxByTitleAndHeight(msg *queue.Message) {
 		return
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
+}
+
+// getChunkRecord // 获取当前chunk record
+func (chain *BlockChain) getChunkRecord(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqChunkRecords)
+	reply, err := chain.GetChunkRecord(req)
+	if err != nil {
+		chainlog.Error("GetChunkRecord", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, reply))
+}
+
+// addChunkRecord // 添加chunk record
+func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
+	req := (msg.Data).(*types.ChunkRecords)
+	chain.AddChunkRecord(req)
+	msg.Reply(chain.client.NewMessage("", types.EventAddChunkRecord, &types.Reply{IsOk: true}))
+}
+
+// getChunkBlockBody // 获取chunk BlockBody
+func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqChunkBlockBody)
+	reply, err := chain.GetChunkBlockBody(req)
+	if err != nil {
+		chainlog.Error("GenChunkBlockBody", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, reply))
+}
+
+// addChunkBlock // 添加chunk Block
+func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
+	reply := &types.Reply{}
+	reply.IsOk = true
+	blocks := (msg.Data).(*types.Blocks)
+	if blocks == nil || len(blocks.Items) == 0 {
+		str := "blocks is nil"
+		chainlog.Error("addChunkBlock", "err", str)
+		reply.IsOk = false
+		reply.Msg = []byte(str)
+		msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
+		return
+	}
+
+	if chain.GetDownloadSyncStatus() == chunkDownLoadMode {
+		for _, blk := range blocks.Items {
+			chain.WriteBlockToDbTemp(blk, true)
+		}
+		//downLoadTask 运行时设置对应的blockdone
+		if chain.downLoadTask.InProgress() {
+			chunkNum, _, _ := chain.CaclChunkInfo(blocks.Items[0].Height)
+			chain.downLoadTask.Done(chunkNum)
+		}
+	} else {
+		for _, blk := range blocks.Items {
+			_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blk}, "-self") //这里认为非自己节点
+			if err != nil {
+				chainlog.Error("ProcAddBlockMsg", "height", blk.Height, "err", err.Error())
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+				msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
+				return
+			}
+			chainlog.Debug("EventAddBlock", "height", blk.Height, "pid", "success", "ok")
+		}
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
 }

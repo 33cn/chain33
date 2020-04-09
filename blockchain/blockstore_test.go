@@ -6,11 +6,14 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
+	qmocks "github.com/33cn/chain33/queue/mocks"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -332,4 +335,106 @@ func TestMustSaveKvset(t *testing.T) {
 
 	_, err = blockStoreDB.Get([]byte("222"))
 	assert.Equal(t, types.ErrNotFound, err)
+}
+
+func TestGetCurChunkNumAndRecvChunkHash(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+
+	chain := InitEnv()
+	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
+	assert.NotNil(t, blockStore)
+	height := blockStore.getCurChunkNum(ChunkNumToHash)
+	assert.Equal(t, height, int64(-1))
+	height = blockStore.getCurChunkNum(RecvChunkNumToHash)
+	assert.Equal(t, height, int64(-1))
+	blockStore.Set(calcChunkNumToHash(1), []byte("1111"))
+	blockStore.Set(calcChunkNumToHash(8), []byte("8888"))
+	height = blockStore.getCurChunkNum(ChunkNumToHash)
+	assert.Equal(t, height, int64(8))
+	blockStore.Set(calcRecvChunkNumToHash(1), []byte("1111"))
+	blockStore.Set(calcRecvChunkNumToHash(8), []byte("1111"))
+	height = blockStore.getCurChunkNum(RecvChunkNumToHash)
+	assert.Equal(t, height, int64(8))
+
+	blockStore.Set(append(ChunkNumToHash, []byte("jfakjl")...), []byte("8888"))
+	height = blockStore.getCurChunkNum(ChunkNumToHash)
+	assert.Equal(t, height, int64(-1))
+
+	// test getRecvChunkHash
+	_, err = blockStore.getRecvChunkHash(15)
+	assert.Equal(t, err, types.ErrNotFound)
+	hash := []byte("11111111111111111")
+	blockStore.Set(calcRecvChunkNumToHash(15), types.Encode(&types.ChunkInfo{
+		ChunkNum:  1,
+		ChunkHash: hash,
+		Start:     1,
+		End:       2,
+	}))
+	v, err := blockStore.getRecvChunkHash(15)
+	assert.Nil(t, err)
+	assert.Equal(t, v, hash)
+}
+
+func TestGetSetSerialChunkNum(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+
+	chain := InitEnv()
+	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
+
+	height := blockStore.GetMaxSerialChunkNum()
+	assert.Equal(t, height, int64(-1))
+
+	err = blockStore.SetMaxSerialChunkNum(10)
+	assert.Nil(t, err)
+	height = blockStore.GetMaxSerialChunkNum()
+	assert.Equal(t, height, int64(10))
+}
+
+func TestGetBodyFromP2Pstore(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	q := queue.New("channel")
+	q.SetConfig(cfg)
+	chain := New(cfg)
+	client := &qmocks.Client{}
+	chain.client = client
+
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+
+	client.On("GetConfig").Return(cfg)
+	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{})
+	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
+	client.On("Send", mock.Anything, mock.Anything).Return(nil)
+	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
+	client.On("Wait", mock.Anything).Return(rspMsg, nil)
+
+	blcokHash := []byte("111111111111111")
+	chunkHash := []byte("222222222222222")
+	blockStoreDB.Set(calcBlockHashToChunkHash(blcokHash), chunkHash)
+	bodys, err := blockStore.getBodyFromP2Pstore(blcokHash, 1, 10)
+	assert.Nil(t, err)
+	assert.Equal(t, len(bodys.Items), 2)
+
+	blockheader := &types.Header{
+		Hash:   blcokHash,
+		Height: 1,
+	}
+	body, err := blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blcokHash), nil)
+	assert.Equal(t, err, types.ErrHashNotExist)
+	bcConfig := cfg.GetModuleConfig().BlockChain
+	bcConfig.EnableFetchP2pstore = true
+	body, err = blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blcokHash), nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, body)
 }
