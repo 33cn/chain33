@@ -1621,7 +1621,7 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 		return nil, types.ErrHashNotExist
 	}
 	if bs.client == nil {
-		chainlog.Error("getBodyFromP2Pstore: chain client not bind message queue.")
+		storeLog.Error("getBodyFromP2Pstore: chain client not bind message queue.")
 		return nil, types.ErrClientNotBindQueue
 	}
 	req := &types.ReqChunkBlockBody{
@@ -1633,18 +1633,18 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 	msg := bs.client.NewMessage("p2p", types.EventGetChunkBlockBody, req)
 	err = bs.client.Send(msg, true)
 	if err != nil {
-		chainlog.Error("EventGetChunkBlockBody", "chunk hash", common.ToHex(value), "hash", common.ToHex(hash), "err", err)
+		storeLog.Error("EventGetChunkBlockBody", "chunk hash", common.ToHex(value), "hash", common.ToHex(hash), "err", err)
 		return nil, err
 	}
 	resp, err := bs.client.Wait(msg)
 	if err != nil {
-		synlog.Error("EventGetChunkBlockBody", "client.Wait err:", err)
+		storeLog.Error("EventGetChunkBlockBody", "client.Wait err:", err)
 		return nil, err
 	}
 	bodys, ok := resp.Data.(*types.BlockBodys)
 	if !ok {
 		err = types.ErrNotFound
-		synlog.Error("EventGetChunkBlockBody", "client.Wait err:", err)
+		storeLog.Error("EventGetChunkBlockBody", "client.Wait err:", err)
 		return nil, err
 	}
 	return bodys, nil
@@ -1667,13 +1667,13 @@ func (bs *BlockStore) getCurChunkNum(prefix []byte) int64 {
 func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
 	value, err := bs.GetKey(calcRecvChunkNumToHash(chunkNum))
 	if err != nil {
-		storeLog.Error("getChunkHash", "chunkNum", chunkNum, "error", err)
+		storeLog.Info("getRecvChunkHash", "chunkNum", chunkNum, "error", err)
 		return nil, err
 	}
 	var chunk types.ChunkInfo
 	err = types.Decode(value, &chunk)
 	if err != nil {
-		synlog.Error("getChunkHash", "decode err:", err)
+		storeLog.Error("getRecvChunkHash", "decode err:", err)
 		return nil, err
 	}
 	return chunk.ChunkHash, err

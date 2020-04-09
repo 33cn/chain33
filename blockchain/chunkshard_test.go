@@ -115,22 +115,23 @@ func TestIsNeedChunk(t *testing.T) {
 	blockStore.Set(calcChunkNumToHash(6), types.Encode(setChunkInfo))
 	// check
 	// 当前数据库中最大chunNum=6 高度为3的区块计算的chunkNum为1
-	isNeed, chunk := chain.IsNeedChunk(MaxRollBlockNum + 3)
+	baseNum := MaxRollBlockNum + chain.cfg.ChunkblockNum
+	isNeed, chunk := chain.IsNeedChunk(baseNum + 3)
 	assert.Equal(t, isNeed, false)
 	assert.Equal(t, chunk.Start, int64(2))
 	assert.Equal(t, chunk.End, int64(3))
 	// 当前数据库中最大chunNum=6 高度为12的区块计算的chunkNum为6
-	isNeed, chunk = chain.IsNeedChunk(MaxRollBlockNum + 12)
+	isNeed, chunk = chain.IsNeedChunk(baseNum + 12)
 	assert.Equal(t, isNeed, false)
 	assert.Equal(t, chunk.Start, int64(12))
 	assert.Equal(t, chunk.End, int64(13))
 	// 当前数据库中最大chunNum=6 高度为13的区块计算的chunkNum为6
-	isNeed, chunk = chain.IsNeedChunk(MaxRollBlockNum + 13)
+	isNeed, chunk = chain.IsNeedChunk(baseNum + 13)
 	assert.Equal(t, isNeed, false)
 	assert.Equal(t, chunk.Start, int64(12))
 	assert.Equal(t, chunk.End, int64(13))
 	// 当前数据库中最大chunNum=6 高度为14的区块计算的chunkNum为7
-	isNeed, chunk = chain.IsNeedChunk(MaxRollBlockNum + 14)
+	isNeed, chunk = chain.IsNeedChunk(baseNum + 14)
 	assert.Equal(t, isNeed, true)
 	assert.Equal(t, chunk.Start, int64(14))
 	assert.Equal(t, chunk.End, int64(15))

@@ -55,7 +55,7 @@ func (chain *BlockChain) ChunkProcessRoutine() {
 func (chain *BlockChain) CheckGenChunkNum() {
 	curMaxSerialChunkNum := chain.getMaxSerialChunkNum()
 	height := chain.GetBlockHeight()
-	saftyChunkNum, _, _ := chain.CaclChunkInfo(height - MaxRollBlockNum)
+	saftyChunkNum, _, _ := chain.CaclSafetyChunkInfo(height)
 	if curMaxSerialChunkNum >= saftyChunkNum ||
 		saftyChunkNum < 0 {
 		return
@@ -75,6 +75,8 @@ func (chain *BlockChain) CheckGenChunkNum() {
 				}
 				chain.ChunkShardHandle(chunk, true)
 			}
+		} else {
+			break
 		}
 	}
 }
@@ -93,7 +95,7 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 }
 
 // 通过遍历ToDeleteChunkSign 去删除归档body
-func (chain *BlockChain) walkOverDeleteChunk(maxBlkHeight int64) {
+func (chain *BlockChain) walkOverDeleteChunk(maxHeight int64) {
 	db := chain.GetDB()
 	it := db.Iterator(ToDeleteChunkSign, nil, false)
 	defer it.Close()
@@ -116,12 +118,12 @@ func (chain *BlockChain) walkOverDeleteChunk(maxBlkHeight int64) {
 		key := make([]byte, len(it.Key()))
 		copy(key, it.Key())
 		if data.Data < 0 {
-			data.Data = maxBlkHeight
+			data.Data = maxHeight
 			kvs = append(kvs, &types.KeyValue{Key: key, Value: types.Encode(data)})
 		} else {
 			delChunkNum, _, _ := chain.CaclChunkInfo(data.Data)
-			maxBlkChunkNum, _, _ := chain.CaclChunkInfo(maxBlkHeight)
-			if maxBlkChunkNum > delChunkNum+int64(DelRollbackChunkNum) {
+			maxChunkNum, _, _ := chain.CaclSafetyChunkInfo(maxHeight)
+			if maxChunkNum > delChunkNum+int64(DelRollbackChunkNum) {
 				kvs = append(kvs, &types.KeyValue{Key: key, Value: nil}) // 将相应的ToDeleteChunkSign进行删除
 				kv := chain.DeleteBlockBody(chunkNum)
 				if len(kv) > 0 {
@@ -187,11 +189,10 @@ func (chain *BlockChain) deleteBlockBody(height int64) (kvs []*types.KeyValue, e
 // IsNeedChunk is need chunk
 func (chain *BlockChain) IsNeedChunk(height int64) (isNeed bool, chunk *types.ChunkInfo) {
 	// 保证安全性需要减去回退高度
-	caclHeight := height - MaxRollBlockNum
-	if caclHeight < 0 {
+	chunkNum, start, end := chain.CaclSafetyChunkInfo(height)
+	if chunkNum < 0 {
 		return false, nil
 	}
-	chunkNum, start, end := chain.CaclChunkInfo(caclHeight)
 	chunk = &types.ChunkInfo{
 		ChunkNum: chunkNum,
 		Start:    start,
@@ -213,7 +214,7 @@ func (chain *BlockChain) ChunkShardHandle(chunk *types.ChunkInfo, isNotifyChunk 
 	end := chunk.End
 	chunkHash, bodys, err := chain.genChunkBlocks(start, end)
 	if err != nil {
-		storeLog.Error("ShardDataHandle", "chunkNum", chunk.ChunkNum, "start", start, "end", end, "err", err)
+		chainlog.Error("ChunkShardHandle", "chunkNum", chunk.ChunkNum, "start", start, "end", end, "err", err)
 		return
 	}
 	chunk.ChunkHash = chunkHash
@@ -224,6 +225,7 @@ func (chain *BlockChain) ChunkShardHandle(chunk *types.ChunkInfo, isNotifyChunk 
 	kvs = append(kvs, chain.genDeleteChunkSign(chunk.ChunkNum))
 	chain.saveChunkRecord(kvs)
 	chain.updateMaxSerialChunkNum(chunk.ChunkNum)
+	chainlog.Info("ChunkShardHandle", "chunkNum", chunk.ChunkNum, "start", start, "end", end, "chunkHash", common.ToHex(chunkHash))
 }
 
 func (chain *BlockChain) genDeleteChunkSign(chunkNum int64) *types.KeyValue {
@@ -280,7 +282,7 @@ func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
 	}
 	_, err = chain.client.Wait(msg)
 	if err != nil {
-		synlog.Error("storeChunkToP2Pstore", "client.Wait err:", err)
+		chainlog.Error("storeChunkToP2Pstore", "client.Wait err:", err)
 		return
 	}
 }
@@ -386,7 +388,16 @@ func (chain *BlockChain) GetCurChunkNum() int64 {
 	return chain.blockStore.getCurChunkNum(ChunkNumToHash)
 }
 
-// CaclChunkInfo
+// CaclSafetyChunkInfo 计算安全的chunkNum用于生成chunk时候或者删除时候
+func (chain *BlockChain) CaclSafetyChunkInfo(height int64) (chunkNum, start, end int64) {
+	height = height - MaxRollBlockNum - chain.cfg.ChunkblockNum
+	if height < 0  {
+		return -1, 0, 0
+	}
+	return caclChunkInfo(chain.cfg, height)
+}
+
+// CaclChunkInfo 主要用于计算验证
 func (chain *BlockChain) CaclChunkInfo(height int64) (chunkNum, start, end int64) {
 	return caclChunkInfo(chain.cfg, height)
 }

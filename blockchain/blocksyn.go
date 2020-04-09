@@ -201,7 +201,6 @@ func (chain *BlockChain) SynRoutine() {
 			//定时检查ChunkRecord的同步情况
 		case <-chunkRecordSynTicker.C:
 			if !chain.cfg.DisableShard {
-				chain.tickerwg.Add(1)
 				go chain.ChunkRecordSync()
 			}
 		}
@@ -1101,7 +1100,7 @@ func (chain *BlockChain) ChunkRecordSync() {
 	recvChunk := chain.GetCurRecvChunkNum()
 
 	curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
-	targetChunk, _, _ := chain.CaclChunkInfo(peerMaxBlkHeight - MaxRollBlockNum)
+	targetChunk, _, _ := chain.CaclSafetyChunkInfo(peerMaxBlkHeight)
 	if targetChunk < 0 ||
 		curShouldChunk >= targetChunk || //说明已同步上来了不需要再进行chunk请求
 		recvChunk >= targetChunk {
