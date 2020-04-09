@@ -2,6 +2,7 @@ package p2pstore
 
 import (
 	"bufio"
+	"sync"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -23,6 +24,8 @@ var log = log15.New("module", "protocol.p2pstore")
 type StoreProtocol struct {
 	protocol.BaseProtocol //default协议实现
 	*protocol.P2PEnv      //协议共享接口变量
+
+	saving sync.Map
 }
 
 func Init(env *protocol.P2PEnv) {
