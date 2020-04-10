@@ -19,7 +19,7 @@ const (
 )
 
 // 保存chunk到本地p2pStore，同时更新本地chunk列表
-func (s *StoreProtocol) addChunkBlock(info *types.ChunkInfo, bodys *types.BlockBodys) error {
+func (s *StoreProtocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBodys) error {
 	//先检查数据是不是正在保存
 	if _, ok := s.saving.LoadOrStore(string(info.ChunkHash), nil); ok {
 		return nil
@@ -38,7 +38,7 @@ func (s *StoreProtocol) addChunkBlock(info *types.ChunkInfo, bodys *types.BlockB
 }
 
 // 更新本地chunk保存时间，chunk不存在则返回error
-func (s *StoreProtocol) updateChunk(req *types.ChunkInfo) error {
+func (s *StoreProtocol) updateChunk(req *types.ChunkInfoMsg) error {
 	//数据正在保存，无需更新时间
 	if _, ok := s.saving.Load(string(req.ChunkHash)); ok {
 		return nil
@@ -89,7 +89,7 @@ func (s *StoreProtocol) deleteChunkBlock(hash []byte) error {
 }
 
 // 保存一个本地chunk hash列表，用于遍历本地数据
-func (s *StoreProtocol) addLocalChunkInfo(info *types.ChunkInfo) error {
+func (s *StoreProtocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
 	hashMap, err := s.getLocalChunkInfoMap()
 	if err != nil {
 		return err
@@ -123,21 +123,21 @@ func (s *StoreProtocol) deleteLocalChunkInfo(hash []byte) error {
 	return s.DB.Put(datastore.NewKey(LocalChunkInfoKey), value)
 }
 
-func (s *StoreProtocol) getLocalChunkInfoMap() (map[string]*types.ChunkInfo, error) {
+func (s *StoreProtocol) getLocalChunkInfoMap() (map[string]*types.ChunkInfoMsg, error) {
 
 	ok, err := s.DB.Has(datastore.NewKey(LocalChunkInfoKey))
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return make(map[string]*types.ChunkInfo), nil
+		return make(map[string]*types.ChunkInfoMsg), nil
 	}
 	value, err := s.DB.Get(datastore.NewKey(LocalChunkInfoKey))
 	if err != nil {
 		return nil, err
 	}
 
-	var chunkInfoMap map[string]*types.ChunkInfo
+	var chunkInfoMap map[string]*types.ChunkInfoMsg
 	err = json.Unmarshal(value, &chunkInfoMap)
 	if err != nil {
 		return nil, err

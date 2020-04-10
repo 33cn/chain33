@@ -39,7 +39,7 @@ func (s *StoreProtocol) republish() error {
 }
 
 // 通知最近的 *BackUp* 个节点备份数据
-func (s *StoreProtocol) notifyStoreChunk(req *types.ChunkInfo) {
+func (s *StoreProtocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
 	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), Backup)
 	for _, pid := range peers {
 		err := s.storeChunkOnPeer(req, pid)
@@ -49,7 +49,7 @@ func (s *StoreProtocol) notifyStoreChunk(req *types.ChunkInfo) {
 	}
 }
 
-func (s *StoreProtocol) storeChunkOnPeer(req *types.ChunkInfo, pid peer.ID) error {
+func (s *StoreProtocol) storeChunkOnPeer(req *types.ChunkInfoMsg, pid peer.ID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	stream, err := s.Host.NewStream(ctx, pid, StoreChunk)
@@ -61,7 +61,7 @@ func (s *StoreProtocol) storeChunkOnPeer(req *types.ChunkInfo, pid peer.ID) erro
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	msg := types.P2PStoreRequest{
 		ProtocolID: StoreChunk,
-		Data:       &types.P2PStoreRequest_ChunkInfo{ChunkInfo: req},
+		Data:       &types.P2PStoreRequest_ChunkInfoMsg{ChunkInfoMsg: req},
 	}
 	return writeMessage(rw.Writer, &msg)
 }

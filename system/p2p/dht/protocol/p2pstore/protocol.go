@@ -73,20 +73,20 @@ func (s *StoreProtocol) Handle(stream network.Stream) {
 		return
 	}
 	//distribute message to corresponding handler
-	switch t := req.Data.(type) {
+	switch req.ProtocolID {
 	//不同的协议交给不同的处理逻辑
-	case *types.P2PStoreRequest_ReqChunkBlockBody:
-		// *types.ReqChunkBlockBody -> *types.BlockBodys
-		s.onFetchChunk(rw.Writer, t.ReqChunkBlockBody)
-	case *types.P2PStoreRequest_ChunkInfo:
-		// *types.ChunkInfo -> none
-		s.onStoreChunk(stream, t.ChunkInfo)
-	case *types.P2PStoreRequest_ReqBlocks:
-		// *types.ReqBlocks -> *types.Headers
-		s.onGetHeader(rw.Writer, t.ReqBlocks)
-	case *types.P2PStoreRequest_ReqChunkRecords:
-		// *types.ReqChunkRecords -> *types.ChunkRecords
-		s.onGetChunkRecord(rw.Writer, t.ReqChunkRecords)
+	case FetchChunk:
+		// reply -> *types.BlockBodys
+		s.onFetchChunk(rw.Writer, req.Data.(*types.P2PStoreRequest_ChunkInfoMsg).ChunkInfoMsg)
+	case StoreChunk:
+		// reply -> none
+		s.onStoreChunk(stream, req.Data.(*types.P2PStoreRequest_ChunkInfoMsg).ChunkInfoMsg)
+	case GetHeader:
+		// reply -> *types.Headers
+		s.onGetHeader(rw.Writer, req.Data.(*types.P2PStoreRequest_ReqBlocks).ReqBlocks)
+	case GetChunkRecord:
+		// reply -> *types.ChunkRecords
+		s.onGetChunkRecord(rw.Writer, req.Data.(*types.P2PStoreRequest_ReqChunkRecords).ReqChunkRecords)
 	default:
 		log.Error("Handle", "error", types2.ErrProtocolNotSupport, "protocol", req.ProtocolID)
 	}
@@ -105,8 +105,7 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 	// 检查本节点是否需要进行区块数据归档
 	case types.EventNotifyStoreChunk:
 		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
-		data := m.GetData().(*types.ChunkInfo)
-		err := s.StoreChunk(data)
+		err := s.StoreChunk(m.GetData().(*types.ChunkInfoMsg))
 		if err != nil {
 			log.Error("HandleEvent", "storeChunk error", err)
 		}
@@ -115,13 +114,8 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 	// 获取chunkBlock数据
 	case types.EventGetChunkBlock:
 		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
-		req := m.GetData().(*types.ReqChunkBlock)
-		bodys, err := s.GetChunk(&types.ReqChunkBlockBody{
-			ChunkHash: req.ChunkHash,
-			Filter:    true,
-			Start:     req.Start,
-			End:       req.End,
-		})
+		req := m.GetData().(*types.ChunkInfoMsg)
+		bodys, err := s.GetChunk(req)
 		if err != nil {
 			log.Error("HandleEvent", "GetChunk error", err)
 			return
@@ -161,8 +155,7 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 
 	// 获取chunkBody数据
 	case types.EventGetChunkBlockBody:
-		req := m.GetData().(*types.ReqChunkBlockBody)
-		blockBodys, err := s.GetChunk(req)
+		blockBodys, err := s.GetChunk(m.GetData().(*types.ChunkInfoMsg))
 		if err != nil {
 			log.Error("HandleEvent", "GetChunkBlockBody error", err)
 			m.ReplyErr("", err)

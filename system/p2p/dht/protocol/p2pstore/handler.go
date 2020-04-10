@@ -3,6 +3,7 @@ package p2pstore
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 
 //StoreChunk handles notification of blockchain,
 // store chunk if this node is the nearest node in the local routing table.
-func (s *StoreProtocol) StoreChunk(req *types.ChunkInfo) error {
+func (s *StoreProtocol) StoreChunk(req *types.ChunkInfoMsg) error {
 	if req == nil {
 		return types2.ErrInvalidParam
 	}
@@ -25,16 +26,13 @@ func (s *StoreProtocol) StoreChunk(req *types.ChunkInfo) error {
 	if len(peers) == 1 && kb.Closer(peers[0], s.Host.ID(), genChunkPath(req.ChunkHash)) {
 		return nil
 	}
-	log.Info("StoreChunk", "local pid", s.Host.ID(), "chunk num", req.ChunkNum)
+	log.Info("StoreChunk", "local pid", s.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
 	//如果p2pStore已保存数据，只更新时间即可
 	if err := s.updateChunk(req); err == nil {
 		return nil
 	}
 	//blockchain通知p2pStore保存数据，则blockchain应该有数据
-	bodys, err := s.getChunkFromBlockchain(&types.ReqChunkBlockBody{
-		ChunkHash:            req.ChunkHash,
-		Filter:               false,
-	})
+	bodys, err := s.getChunkFromBlockchain(req)
 	if err != nil {
 		log.Error("StoreChunk", "getChunkFromBlockchain error", err)
 		return err
@@ -51,7 +49,7 @@ func (s *StoreProtocol) StoreChunk(req *types.ChunkInfo) error {
 }
 
 //GetChunk gets chunk data from p2pStore or other peers.
-func (s *StoreProtocol) GetChunk(req *types.ReqChunkBlockBody) (*types.BlockBodys, error) {
+func (s *StoreProtocol) GetChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
 	if req == nil {
 		return nil, types2.ErrInvalidParam
 	}
@@ -85,7 +83,7 @@ func (s *StoreProtocol) GetChunk(req *types.ReqChunkBlockBody) (*types.BlockBody
 }
 
 // 其他节点向本节点请求数据时，本地存在则直接返回，不存在则返回更近的多个节点
-func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ReqChunkBlockBody) {
+func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ChunkInfoMsg) {
 	var res types.P2PStoreResponse
 	defer func() {
 		err := writeMessage(writer, &res)
@@ -128,7 +126,7 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ReqChunkBl
 		1. 向blockchain模块请求
 		2. blockchain模块没有数据则向对端节点请求
 */
-func (s *StoreProtocol) onStoreChunk(stream network.Stream, req *types.ChunkInfo) {
+func (s *StoreProtocol) onStoreChunk(stream network.Stream, req *types.ChunkInfoMsg) {
 	//检查本地 p2pStore，如果已存在数据则直接更新
 	err := s.updateChunk(req)
 	if err == nil {
@@ -136,15 +134,11 @@ func (s *StoreProtocol) onStoreChunk(stream network.Stream, req *types.ChunkInfo
 	}
 
 	//本地 p2pStore没有数据，向blockchain请求数据
-	bodys, err := s.getChunkFromBlockchain(&types.ReqChunkBlockBody{
-		ChunkHash:            req.ChunkHash,
-		Start:                req.Start,
-		End:                  req.End,
-	})
+	bodys, err := s.getChunkFromBlockchain(req)
 	if err != nil {
 		//本地节点没有数据，则从对端节点请求数据
 		s.Host.Peerstore().AddAddr(stream.Conn().RemotePeer(), stream.Conn().RemoteMultiaddr(), time.Hour)
-		bodys, _, err = s.fetchChunkOrNearerPeers(context.Background(), &types.ReqChunkBlockBody{ChunkHash: req.ChunkHash}, stream.Conn().RemotePeer())
+		bodys, _, err = s.fetchChunkOrNearerPeers(context.Background(), req, stream.Conn().RemotePeer())
 		//对端节点发过来的消息，对端节点一定有数据
 		if err != nil {
 			log.Error("onStoreChunk", "get bodys from remote peer error", err)

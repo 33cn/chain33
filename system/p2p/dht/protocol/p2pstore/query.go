@@ -103,7 +103,7 @@ func (s *StoreProtocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pi
 	return res.Result.(*types.P2PStoreResponse_ChunkRecords).ChunkRecords, nil
 }
 
-func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param *types.ReqChunkBlockBody, peers []peer.ID) (*types.BlockBodys, []peer.ID) {
+func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, []peer.ID) {
 
 	responseCh := make(chan interface{}, AlphaValue)
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
@@ -148,7 +148,7 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 	return nil, peerList
 }
 
-func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.ReqChunkBlockBody, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
+func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
 	childCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	stream, err := s.Host.NewStream(childCtx, pid, FetchChunk)
@@ -160,8 +160,8 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	msg := types.P2PStoreRequest{
 		ProtocolID: FetchChunk,
-		Data: &types.P2PStoreRequest_ReqChunkBlockBody{
-			ReqChunkBlockBody: params,
+		Data: &types.P2PStoreRequest_ChunkInfoMsg{
+			ChunkInfoMsg: params,
 		},
 	}
 	err = writeMessage(rw.Writer, &msg)
@@ -205,7 +205,7 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 	return nil, nil, types2.ErrNotFound
 }
 
-func (s *StoreProtocol) getChunkFromBlockchain(param *types.ReqChunkBlockBody) (*types.BlockBodys, error) {
+func (s *StoreProtocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*types.BlockBodys, error) {
 	msg := s.QueueClient.NewMessage("blockchain", types.EventGetChunkBlockBody, param)
 	err := s.QueueClient.Send(msg, true)
 	if err != nil {
