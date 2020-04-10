@@ -182,9 +182,8 @@ func testGetChunkBlockBodyMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockc
 		start = 0
 	}
 
-	blocks := &types.ReqChunkBlockBody{
+	blocks := &types.ChunkInfoMsg{
 		ChunkHash: []byte{},
-		Filter:    false,
 		Start:     start,
 		End:       end,
 	}
