@@ -367,19 +367,11 @@ message ChunkRecords {
     repeated KeyValue kvs = 1;
 }
 
-// ChunkBlocks ----> reply Blocks 主要用于同步数据
-message ReqChunkBlock {
+// ChunkInfoMsg 用于消息传递
+message ChunkInfoMsg {
     bytes chunkHash = 1;
     int64 start     = 2;
     int64 end       = 3;
-}
-
-// ChunkBlockBodys ----> reply BlockBodys 主要用于查询数据
-message ReqChunkBlockBody {
-    bytes chunkHash = 1;
-    bool  filter    = 2;
-    int64 start     = 3;
-    int64 end       = 4;
 }
 
 // ChunkInfo用于记录chunk的信息

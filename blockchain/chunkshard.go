@@ -271,10 +271,16 @@ func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
 		return
 	}
 
+	req := &types.ChunkInfoMsg{
+		ChunkHash:data.ChunkHash,
+		Start: data.Start,
+		End: data.End,
+	}
+
 	chainlog.Debug("storeChunkToP2Pstore", "chunknum", data.ChunkNum, "block start height",
 		data.Start, "block end height", data.End, "chunk hash", common.ToHex(data.ChunkHash))
 
-	msg := chain.client.NewMessage("p2p", types.EventNotifyStoreChunk, data)
+	msg := chain.client.NewMessage("p2p", types.EventNotifyStoreChunk, req)
 	err := chain.client.Send(msg, true)
 	if err != nil {
 		chainlog.Error("storeChunkToP2Pstore", "chunknum", data.ChunkNum, "block start height",
@@ -307,24 +313,11 @@ func (chain *BlockChain) saveChunkRecord(kvs []*types.KeyValue) {
 }
 
 // GetChunkBlockBody 从localdb本地获取chunkbody
-func (chain *BlockChain) GetChunkBlockBody(req *types.ReqChunkBlockBody) (*types.BlockBodys, error) {
+func (chain *BlockChain) GetChunkBlockBody(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
 	if req == nil || req.Start > req.End {
 		return nil, types.ErrInvalidParam
 	}
-	start := req.Start
-	end := req.End
-	if !req.Filter { // 不开启filter情况下需要获取
-		value, err := chain.blockStore.GetKey(calcChunkHashToNum(req.ChunkHash))
-		if err == nil {
-			chunk := &types.ChunkInfo{}
-			err = types.Decode(value, chunk)
-			if err == nil {
-				start = chunk.Start
-				end = chunk.End
-			}
-		}
-	}
-	_, bodys, err := chain.genChunkBlocks(start, end)
+	_, bodys, err := chain.genChunkBlocks(req.Start, req.End)
 	return bodys, err
 }
 

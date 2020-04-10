@@ -1624,9 +1624,8 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 		storeLog.Error("getBodyFromP2Pstore: chain client not bind message queue.")
 		return nil, types.ErrClientNotBindQueue
 	}
-	req := &types.ReqChunkBlockBody{
+	req := &types.ChunkInfoMsg{
 		ChunkHash: value,
-		Filter:    true,
 		Start:     start,
 		End:       end,
 	}
