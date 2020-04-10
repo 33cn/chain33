@@ -52,9 +52,10 @@ func (mgr *Manager) handleSysEvent() {
 			mgr.pub2P2P(msg, p2pTy)
 
 		default:
-			log.Warn("unknown msgtype", "msg", msg)
-			msg.Reply(mgr.Client.NewMessage("", msg.Ty, types.Reply{Msg: []byte("unknown msgtype")}))
-			continue
+			mgr.pub2P2P(msg, mgr.p2pCfg.Types[0])
+			//log.Warn("unknown msgtype", "msg", msg)
+			//msg.Reply(mgr.Client.NewMessage("", msg.Ty, types.Reply{Msg: []byte("unknown msgtype")}))
+			//continue
 		}
 	}
 	log.Debug("Manager handleSysEvent stop")
