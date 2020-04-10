@@ -221,10 +221,9 @@ message MessageBroadCast {
 message P2PStoreRequest {
     string protocolID = 1;
     oneof data {
-        ReqChunkBlockBody reqChunkBlockBody = 2;
-        ReqBlocks reqBlocks = 3;
-        ReqChunkRecords reqChunkRecords = 4;
-        ChunkInfo chunkInfo = 5;
+        ReqChunkRecords reqChunkRecords = 2;
+        ChunkInfoMsg chunkInfoMsg = 3;
+        ReqBlocks reqBlocks = 4;
     }
 }
 
