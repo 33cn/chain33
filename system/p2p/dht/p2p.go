@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/33cn/chain33/system/p2p/dht/protocol/p2pstore"
+	"github.com/33cn/chain33/system/p2p/dht/store"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -87,6 +88,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		addrbook:      addrbook,
 		mgr:           mgr,
 		taskGroup:     &sync.WaitGroup{},
+		db:            store.NewDataStore(mcfg),
 	}
 	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
 	p2p.discovery = net.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.chainCfg, p2p.subCfg)

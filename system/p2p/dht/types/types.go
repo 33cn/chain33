@@ -34,4 +34,8 @@ type P2PSubConfig struct {
 	//指定p2p类型, 支持gossip, dht
 	MaxConnnectNum int32    `protobuf:"varint,13,opt,name=maxConnnectNum" json:"maxConnnectNum,omitempty"`
 	BootStraps     []string `protobuf:"bytes,14,rep,name=bootStraps" json:"bootStraps,omitempty"`
+
+	DHTDataDriver string `protobuf:"bytes,15,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
+	DHTDataPath   string `protobuf:"bytes,16,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
+	DHTDataCache  int32  `protobuf:"varint,17,opt,name=DHTDataCache" json:"maxConnnectNum,omitempty"`
 }
