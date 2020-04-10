@@ -106,7 +106,7 @@ func TestInit(t *testing.T) {
 		End:   199,
 	})
 	msg = <-msgCh
-	assert.Equal(t, 100, len(msg.Data.(*types.ChunkRecords).Kvs))
+	assert.Equal(t, 100, len(msg.Data.(*types.ChunkRecords).Infos))
 
 	//向host2请求Records
 	testGetRecord(t, client, "p2p", &types.ReqChunkRecords{
@@ -114,7 +114,7 @@ func TestInit(t *testing.T) {
 		End:   1999,
 	})
 	msg = <-msgCh
-	assert.Equal(t, 1000, len(msg.Data.(*types.ChunkRecords).Kvs))
+	assert.Equal(t, 1000, len(msg.Data.(*types.ChunkRecords).Infos))
 
 	err = p2.deleteChunkBlock([]byte("test"))
 	if err != nil {
@@ -196,10 +196,10 @@ func initMockBlockchain(q queue.Queue) <-chan *queue.Message {
 			case types.EventGetChunkRecord:
 				req := msg.Data.(*types.ReqChunkRecords)
 				records := types.ChunkRecords{
-					Kvs: make([]*types.KeyValue, 0, req.End-req.Start+1),
+					Infos: make([]*types.ChunkInfo, 0, req.End-req.Start+1),
 				}
 				for i := req.Start; i <= req.End; i++ {
-					records.Kvs = append(records.Kvs, &types.KeyValue{})
+					records.Infos = append(records.Infos, &types.ChunkInfo{})
 				}
 				msg.Reply(&queue.Message{Data: &records})
 			default:

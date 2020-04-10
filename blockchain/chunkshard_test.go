@@ -271,9 +271,12 @@ func TestGetChunkRecord(t *testing.T) {
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
 	assert.NotNil(t, blockStore)
 	chain.blockStore = blockStore
-	value := []byte("11111111111")
+	chunk := &types.ChunkInfo{
+		ChunkHash: []byte("11111111111"),
+	}
 	for i := 0; i < 5; i++ {
-		blockStore.Set(calcChunkNumToHash(int64(i)), value)
+		chunk.ChunkNum = int64(i)
+		blockStore.Set(calcChunkNumToHash(int64(i)), types.Encode(chunk))
 	}
 	req := &types.ReqChunkRecords{
 		Start:    2,
@@ -288,15 +291,14 @@ func TestGetChunkRecord(t *testing.T) {
 	req.End = 0
 	record, err = chain.GetChunkRecord(req)
 	assert.NoError(t, err)
-	assert.Equal(t, len(record.Kvs), 1)
+	assert.Equal(t, len(record.Infos), 1)
 	req.Start = 0
 	req.End = 4
 	record, err = chain.GetChunkRecord(req)
 	assert.NoError(t, err)
-	assert.Equal(t, len(record.Kvs), 5)
-	for i, kv := range record.Kvs {
-		assert.Equal(t, calcChunkNumToHash(int64(i)), kv.Key)
-		assert.Equal(t, value, kv.Value)
+	assert.Equal(t, len(record.Infos), 5)
+	for i, info := range record.Infos {
+		assert.Equal(t, int64(i), info.ChunkNum)
 	}
 	req.End = 5
 	record, err = chain.GetChunkRecord(req)

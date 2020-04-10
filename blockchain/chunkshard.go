@@ -323,32 +323,15 @@ func (chain *BlockChain) GetChunkBlockBody(req *types.ChunkInfoMsg) (*types.Bloc
 
 func (chain *BlockChain) AddChunkRecord(req *types.ChunkRecords) {
 	dbset := &types.LocalDBSet{}
-	chunkNum := int64(-1)
-	var first bool
-	for _, kv := range req.Kvs {
-		if bytes.Contains(kv.Key, ChunkNumToHash) {
-			height, err := strconv.ParseInt(string(bytes.TrimPrefix(kv.Key, ChunkNumToHash)), 10, 64)
-			if err != nil {
-				continue
-			}
-			// 获取最小chunkNum作为确认号
-			if !first {
-				chunkNum = height
-				first = true
-			}
-			if chunkNum < height {
-				chunkNum = height
-			}
-			dbset.KV = append(dbset.KV, &types.KeyValue{Key: calcRecvChunkNumToHash(height), Value: kv.Value})
-		} else {
-			// TODO 其它的前缀暂时不去处理
-			dbset.KV = append(dbset.KV, kv)
-		}
+	for _, info := range req.Infos {
+		dbset.KV = append(dbset.KV, &types.KeyValue{Key: calcRecvChunkNumToHash(info.ChunkNum), Value: types.Encode(info)})
 	}
-	chain.blockStore.mustSaveKvset(dbset)
+	if len(dbset.KV) > 0 {
+		chain.blockStore.mustSaveKvset(dbset)
+	}
 	// 通知此chunk请求已经处理完
-	if first {
-		chain.chunkRecordTask.Done(chunkNum)
+	if len(req.Infos) > 0 {
+		chain.chunkRecordTask.Done(req.Infos[0].ChunkNum)
 	}
 }
 
@@ -363,9 +346,14 @@ func (chain *BlockChain) GetChunkRecord(req *types.ReqChunkRecords) (*types.Chun
 		if err != nil {
 			return nil, types.ErrNotFound
 		}
-		rep.Kvs = append(rep.Kvs, &types.KeyValue{Key: key, Value: value})
+		chunk := &types.ChunkInfo{}
+		err = types.Decode(value, chunk)
+		if err != nil {
+			return nil, err
+		}
+		rep.Infos = append(rep.Infos, chunk)
 	}
-	if len(rep.Kvs) == 0 {
+	if len(rep.Infos) == 0 {
 		return nil, types.ErrNotFound
 	}
 	return rep, nil
