@@ -98,15 +98,17 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 	switch m.Ty {
 	// 检查本节点是否需要进行区块数据归档
 	case types.EventNotifyStoreChunk:
+		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
 		data := m.GetData().(*types.ChunkInfo)
 		err := s.StoreChunk(data)
 		if err != nil {
 			log.Error("HandleEvent", "storeChunk error", err)
-			return
 		}
+
 
 	// 获取chunkBlock数据
 	case types.EventGetChunkBlock:
+		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
 		req := m.GetData().(*types.ReqChunkBlock)
 		bodys, err := s.GetChunk(&types.ReqChunkBlockBody{
 			ChunkHash: req.ChunkHash,
@@ -144,10 +146,12 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 			blockList = append(blockList, block)
 		}
 		msg := s.QueueClient.NewMessage("blockchain", types.EventAddChunkBlock, &types.Blocks{Items: blockList})
-		err = s.QueueClient.Send(msg, false)
+		err = s.QueueClient.Send(msg, true)
 		if err != nil {
 			log.Error("EventGetChunkBlock", "reply message error", err)
 		}
+		//等待回复
+		_, _ = s.QueueClient.Wait(msg)
 
 	// 获取chunkBody数据
 	case types.EventGetChunkBlockBody:
@@ -162,6 +166,7 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 
 	// 获取归档索引
 	case types.EventGetChunkRecord:
+		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
 		req := m.GetData().(*types.ReqChunkRecords)
 		records := s.getChunkRecords(req)
 		if records == nil {
@@ -169,10 +174,12 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 			return
 		}
 		msg := s.QueueClient.NewMessage("blockchain", types.EventAddChunkRecord, records)
-		err := s.QueueClient.Send(msg, false)
+		err := s.QueueClient.Send(msg, true)
 		if err != nil {
 			log.Error("EventGetChunkBlockBody", "reply message error", err)
 		}
+		//等待回复
+		_, _ = s.QueueClient.Wait(msg)
 	}
 }
 

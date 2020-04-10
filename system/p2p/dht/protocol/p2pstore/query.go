@@ -211,7 +211,7 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 	return nil, nil, types2.ErrNotFound
 }
 
-func (s *StoreProtocol) getChunkFromBlockchain(param *types.ChunkInfo) (*types.BlockBodys, error) {
+func (s *StoreProtocol) getChunkFromBlockchain(param *types.ReqChunkBlockBody) (*types.BlockBodys, error) {
 	msg := s.QueueClient.NewMessage("blockchain", types.EventGetChunkBlockBody, param)
 	err := s.QueueClient.Send(msg, true)
 	if err != nil {

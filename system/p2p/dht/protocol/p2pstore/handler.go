@@ -31,7 +31,10 @@ func (s *StoreProtocol) StoreChunk(req *types.ChunkInfo) error {
 		return nil
 	}
 	//blockchain通知p2pStore保存数据，则blockchain应该有数据
-	bodys, err := s.getChunkFromBlockchain(req)
+	bodys, err := s.getChunkFromBlockchain(&types.ReqChunkBlockBody{
+		ChunkHash:            req.ChunkHash,
+		Filter:               false,
+	})
 	if err != nil {
 		log.Error("StoreChunk", "getChunkFromBlockchain error", err)
 		return err
