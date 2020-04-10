@@ -126,7 +126,7 @@ func (d *downloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
 				continue
 			}
 		} else {
-			log.Error("CheckAvailbJob", "PeerInfoManager No ths Peer info...", task.Pid.Pretty())
+			//log.Error("CheckAvailbJob", "PeerInfoManager No ths Peer info...", task.Pid.Pretty())
 			continue
 		}
 		task.mtx.Lock()

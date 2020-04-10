@@ -23,16 +23,22 @@ require (
 	github.com/golang/protobuf v1.3.4
 	github.com/google/uuid v1.1.1
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
-	github.com/hashicorp/golang-lru v0.5.3
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.7.9
 	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/libp2p/go-libp2p v0.4.0
+	github.com/libp2p/go-libp2p-blankhost v0.1.4
+	github.com/libp2p/go-libp2p-circuit v0.1.3
 	github.com/libp2p/go-libp2p-connmgr v0.2.0
-	github.com/libp2p/go-libp2p-core v0.2.5
-	github.com/libp2p/go-libp2p-discovery v0.1.0
+	github.com/libp2p/go-libp2p-core v0.3.0
+	github.com/libp2p/go-libp2p-discovery v0.2.0
 	github.com/libp2p/go-libp2p-kad-dht v0.2.1
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
+	github.com/libp2p/go-libp2p-peer v0.2.0
+	github.com/libp2p/go-libp2p-peerstore v0.1.3
+	github.com/libp2p/go-libp2p-pubsub v0.2.6
+	github.com/libp2p/go-libp2p-swarm v0.2.2
 
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mr-tron/base58 v1.1.3

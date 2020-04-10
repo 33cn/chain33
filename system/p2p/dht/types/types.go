@@ -37,4 +37,5 @@ type P2PSubConfig struct {
 	Relay_Active    bool     `protobuf:"varint,15,opt,name=relay_Active" json:"relay_Active,omitempty"`
 	Relay_Hop       bool     `protobuf:"varint,16,opt,name=relay_Hop" json:"relay_Hop,omitempty"`
 	Relay_Discovery bool     `protobuf:"varint,17,opt,name=relay_Discovery" json:"relay_Discovery,omitempty"`
+	Publish         bool     `protobuf:"varint,18,opt,name=publish" json:"publish,omitempty"`
 }

@@ -3,26 +3,29 @@ package dht
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
 	"fmt"
+	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
+	"github.com/33cn/chain33/queue"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
+	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/wallet"
+	bhost "github.com/libp2p/go-libp2p-blankhost"
+	circuit "github.com/libp2p/go-libp2p-circuit"
+	core "github.com/libp2p/go-libp2p-core"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
 	"testing"
+	"time"
 
-	"github.com/libp2p/go-libp2p-core/protocol"
-
-	"crypto/rand"
-
-	l "github.com/33cn/chain33/common/log"
-	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/wallet"
-	core "github.com/libp2p/go-libp2p-core"
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -376,7 +379,7 @@ func testRelay_v2(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-
+	prvKey4, _, _ := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
 	var subcfg p2pty.P2PSubConfig
 	subcfg.Port = 12345
 	subcfg.Relay_Discovery = true
@@ -411,6 +414,19 @@ func testRelay_v2(t *testing.T) {
 		s.Close()
 	})
 	//-------------------------------
+	//----------------------------------
+	var subcfg4 p2pty.P2PSubConfig
+	subcfg4.Port = 12349
+
+	h4 := newHost(&subcfg4, prvKey4, nil, nil)
+
+	h4.SetStreamHandler("/relays", func(s network.Stream) {
+		//fmt.Println("Meow! It worked!")
+		t.Log("h4 handler,ReadIn")
+		s.Write([]byte("h4 It worked!\n"))
+		s.Close()
+	})
+	//-------------------------------
 	var maddrs []multiaddr.Multiaddr
 	for _, addr := range h2.Addrs() {
 		astr := addr.String()
@@ -428,6 +444,7 @@ func testRelay_v2(t *testing.T) {
 	t.Log("h1 addrs", h1.Addrs())
 	t.Log("h2 id", h2.ID(), "h2 addrs", h2.Addrs())
 	t.Log("h3 id", h3.ID(), "h3 addrs", h3.Addrs())
+	t.Log("h4 id", h4.ID(), "h4 addrs", h4.Addrs())
 	// Connect both h1 and h3 to h2, but not to each other
 
 	if err := h3.Connect(context.Background(), h2info); err != nil {
@@ -449,6 +466,51 @@ func testRelay_v2(t *testing.T) {
 	t.Log("my read again:", str)
 
 }
+func newTestRelay(t *testing.T, ctx context.Context, host host.Host, opts ...circuit.RelayOpt) *circuit.Relay {
+	r, err := circuit.NewRelay(ctx, host, swarmt.GenUpgrader(host.Network().(*swarm.Swarm)), opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+func getNetHosts(t *testing.T, ctx context.Context, n int) []host.Host {
+	var out []host.Host
+
+	for i := 0; i < n; i++ {
+		netw := swarmt.GenSwarm(t, ctx)
+		h := bhost.NewBlankHost(netw)
+		out = append(out, h)
+	}
+
+	return out
+}
+func connect(t *testing.T, a, b host.Host) {
+	pinfo := a.Peerstore().PeerInfo(a.ID())
+	err := b.Connect(context.Background(), pinfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func testRelay_v3(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	hosts := getNetHosts(t, ctx, 3)
+
+	connect(t, hosts[0], hosts[1])
+	r1 := newTestRelay(t, ctx, hosts[0], circuit.OptDiscovery)
+	newTestRelay(t, ctx, hosts[1], circuit.OptHop)
+
+	rinfo := hosts[1].Peerstore().PeerInfo(hosts[1].ID())
+	dinfo := hosts[2].Peerstore().PeerInfo(hosts[2].ID())
+
+	rctx, rcancel := context.WithTimeout(ctx, time.Second)
+	defer rcancel()
+	_, err := r1.DialPeer(rctx, rinfo, dinfo)
+	assert.NotNil(t, err)
+
+}
 
 func Test_p2p(t *testing.T) {
 
@@ -462,4 +524,5 @@ func Test_p2p(t *testing.T) {
 	testStreamEOFReSet(t)
 	testRelay(t)
 	testRelay_v2(t)
+	testRelay_v3(t)
 }

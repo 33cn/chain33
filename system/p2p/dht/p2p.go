@@ -8,11 +8,10 @@ package dht
 import (
 	"context"
 	"fmt"
-	"sync"
-	"sync/atomic"
-
 	"github.com/33cn/chain33/p2p"
 
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/client"
@@ -45,6 +44,7 @@ type P2P struct {
 	chainCfg      *types.Chain33Config
 	host          core.Host
 	discovery     *net.Discovery
+	pubsub        *net.PubSub
 	connManag     *manage.ConnManager
 	peerInfoManag *manage.PeerInfoManager
 	api           client.QueueProtocolAPI
@@ -57,6 +57,8 @@ type P2P struct {
 	subCfg  *p2pty.P2PSubConfig
 	mgr     *p2p.Manager
 	subChan chan interface{}
+	ctx     context.Context
+	cancel  context.CancelFunc
 }
 
 // New new dht p2p network
@@ -92,10 +94,17 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		mgr:           mgr,
 		taskGroup:     &sync.WaitGroup{},
 	}
+	p2p.ctx, p2p.cancel = context.WithCancel(context.Background())
+	p2p.pubsub, err = net.NewPubSub(p2p.ctx, p2p.host)
+	if err != nil {
+		panic(err)
+	}
+
 	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
-	p2p.discovery = net.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.chainCfg, p2p.subCfg)
+	p2p.discovery = net.InitDhtDiscovery(p2p.ctx, p2p.host, p2p.addrbook.AddrsInfo(), p2p.chainCfg, p2p.subCfg)
 	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker, p2p.subCfg)
 	p2p.addrbook.StoreHostID(p2p.host.ID(), p2pCfg.DbPath)
+
 	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
 
 	return p2p
@@ -121,7 +130,13 @@ func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker m
 	if cfg.Relay_Discovery {
 		relayOpt = append(relayOpt, circuit.OptDiscovery)
 	}
+
 	var options []libp2p.Option
+	if len(relayOpt) != 0 {
+		options = append(options, libp2p.EnableRelay(relayOpt...))
+
+	}
+
 	options = append(options, libp2p.NATPortMap())
 	if maddr != nil {
 		options = append(options, libp2p.ListenAddrs(maddr))
@@ -133,7 +148,6 @@ func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker m
 		options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
 	}
 
-	options = append(options, libp2p.EnableRelay(relayOpt...))
 	options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect*3/4, maxconnect, 0)))
 
 	host, err := libp2p.New(context.Background(), options...)
@@ -181,7 +195,33 @@ func (p *P2P) StartP2P() {
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()
+	go p.pubMessage()
+	go p.subMessage()
 
+}
+
+//测试订阅与发布
+func (p *P2P) pubMessage() {
+	p.pubsub.JoinTopicAndSubTopic("bzTest")
+	if !p.subCfg.Publish {
+		return
+	}
+	for {
+		select {
+		case <-time.After(time.Second * 1):
+			p.pubsub.Publish("bzTest", []byte(fmt.Sprintf("hello,from:%v,Time:%v", p.host.ID(), time.Now().UTC().String())))
+			log.Info("topic", "topicNum", p.pubsub.TopicNum(), "topicPeerNum", len(p.pubsub.FetchTopicPeers("bzTest")))
+		case <-p.ctx.Done():
+			return
+		}
+
+	}
+
+}
+
+//SubMessage Read sub message
+func (p *P2P) subMessage() {
+	p.pubsub.SubMsg()
 }
 
 //查询本局域网内是否有节点
@@ -193,7 +233,7 @@ func (p *P2P) findLANPeers() {
 	}
 
 	for neighbors := range peerChan {
-		log.Info(">>>>>>>>>>>>>>>>>>>^_^! Well,Let's Play ^_^!<<<<<<<<<<<<<<<<<<<<<<<<<<")
+		log.Info("^_^! Well,findLANPeers Let's Play ^_^!<<<<<<<<<<<<<<<<<<<<<<<<<<", "peerName", neighbors.ID)
 		//发现局域网内的邻居节点
 		err := p.host.Connect(context.Background(), neighbors)
 		if err != nil {
@@ -236,6 +276,7 @@ func (p *P2P) CloseP2P() {
 	p.connManag.Close()
 	p.peerInfoManag.Close()
 	p.host.Close()
+	p.cancel()
 	prototypes.ClearEventHandler()
 }
 
