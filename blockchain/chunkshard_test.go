@@ -250,7 +250,7 @@ func TestGetChunkBlockBody(t *testing.T) {
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
 	assert.NotNil(t, blockStore)
 	chain.blockStore = blockStore
-	req := &types.ReqChunkBlockBody{
+	req := &types.ChunkInfoMsg{
 		ChunkHash: nil,
 		Start:     2,
 		End:       0,

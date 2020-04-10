@@ -678,7 +678,7 @@ func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
 
 // getChunkBlockBody // 获取chunk BlockBody
 func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
-	req := (msg.Data).(*types.ReqChunkBlockBody)
+	req := (msg.Data).(*types.ChunkInfoMsg)
 	reply, err := chain.GetChunkBlockBody(req)
 	if err != nil {
 		chainlog.Error("GenChunkBlockBody", "req", req, "err", err.Error())

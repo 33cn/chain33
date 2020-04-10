@@ -1212,7 +1212,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 	}
 
 	// 以chunk为单位同步block
-	var requestblock types.ReqChunkBlock
+	var requestblock types.ChunkInfoMsg
 	requestblock.ChunkHash = chunkhash
 	requestblock.Start = startHeight
 	requestblock.End = endHeight
