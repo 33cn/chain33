@@ -2,6 +2,9 @@ package p2pstore
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
+	"runtime"
 	"sync"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -52,10 +55,12 @@ func (s *StoreProtocol) Handle(stream network.Stream) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("handle stream", "panic error", r)
+			fmt.Println(string(panicTrace(4)))
 			stream.Reset()
 		} else {
 			stream.Close()
 		}
+
 	}()
 
 	// Create a buffer stream for non blocking read and write
@@ -93,6 +98,7 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("handle event", "panic error", r)
+			fmt.Println(string(panicTrace(4)))
 		}
 	}()
 	switch m.Ty {
@@ -192,3 +198,26 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 //func (s *StoreProtocol) SignProtoMessage(message proto.Message) ([]byte, error) {
 //	return nil, nil
 //}
+
+// panicTrace trace panic stack info.
+func panicTrace(kb int) []byte {
+	s := []byte("/src/runtime/panic.go")
+	e := []byte("\ngoroutine ")
+	line := []byte("\n")
+	stack := make([]byte, kb<<10) //4KB
+	length := runtime.Stack(stack, true)
+	start := bytes.Index(stack, s)
+	stack = stack[start:length]
+	start = bytes.Index(stack, line) + 1
+	stack = stack[start:]
+	end := bytes.LastIndex(stack, line)
+	if end != -1 {
+		stack = stack[:end]
+	}
+	end = bytes.Index(stack, e)
+	if end != -1 {
+		stack = stack[:end]
+	}
+	stack = bytes.TrimRight(stack, "\n")
+	return stack
+}

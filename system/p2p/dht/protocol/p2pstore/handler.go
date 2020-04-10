@@ -59,15 +59,9 @@ func (s *StoreProtocol) GetChunk(req *types.ReqChunkBlockBody) (*types.BlockBody
 	//优先获取本地p2pStore数据
 	bodys, err := s.getChunkBlock(req.ChunkHash)
 	if err == nil {
-		if req.Filter {
-			var bodyList []*types.BlockBody
-			for _, body := range bodys.Items {
-				if body.Height >= req.Start && body.Height <= req.End {
-					bodyList = append(bodyList, body)
-				}
-			}
-			bodys.Items = bodyList
-		}
+		l := int64(len(bodys.Items))
+		start, end := req.Start%l, req.End%l+1
+		bodys.Items = bodys.Items[start:end]
 		return bodys, nil
 	}
 
@@ -102,15 +96,9 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ReqChunkBl
 	//优先检查本地是否存在
 	bodys, err := s.getChunkBlock(req.ChunkHash)
 	if err == nil {
-		if req.Filter {
-			var bodyList []*types.BlockBody
-			for _, body := range bodys.Items {
-				if body.Height >= req.Start && body.Height <= req.End {
-					bodyList = append(bodyList, body)
-				}
-			}
-			bodys.Items = bodyList
-		}
+		l := int64(len(bodys.Items))
+		start, end := req.Start%l, req.End%l+1
+		bodys.Items = bodys.Items[start:end]
 		res.Result = &types.P2PStoreResponse_BlockBodys{BlockBodys: bodys}
 		return
 	}
@@ -148,7 +136,11 @@ func (s *StoreProtocol) onStoreChunk(stream network.Stream, req *types.ChunkInfo
 	}
 
 	//本地 p2pStore没有数据，向blockchain请求数据
-	bodys, err := s.getChunkFromBlockchain(req)
+	bodys, err := s.getChunkFromBlockchain(&types.ReqChunkBlockBody{
+		ChunkHash:            req.ChunkHash,
+		Start:                req.Start,
+		End:                  req.End,
+	})
 	if err != nil {
 		//本地节点没有数据，则从对端节点请求数据
 		s.Host.Peerstore().AddAddr(stream.Conn().RemotePeer(), stream.Conn().RemoteMultiaddr(), time.Hour)

@@ -179,15 +179,9 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 
 	switch v := res.Result.(type) {
 	case *types.P2PStoreResponse_BlockBodys:
-		if params.Filter {
-			var bodyList []*types.BlockBody
-			for _, body := range v.BlockBodys.Items {
-				if body.Height >= params.Start && body.Height <= params.End {
-					bodyList = append(bodyList, body)
-				}
-			}
-			v.BlockBodys.Items = bodyList
-		}
+		l := int64(len(v.BlockBodys.Items))
+		start, end := params.Start%l, params.End%l+1
+		v.BlockBodys.Items = v.BlockBodys.Items[start:end]
 		return v.BlockBodys, nil, nil
 	case *types.P2PStoreResponse_AddrInfo:
 		var addrInfos []peer.AddrInfo
