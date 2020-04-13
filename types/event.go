@@ -158,8 +158,8 @@ const (
 	//比较当前区块和新广播的区块最优区块
 	EventCmpBestBlock = 311
 
-	EventSubscribeTxReceipt           = 312
-	EventReplySubscribeTxReceipt      = 313
+	EventSubscribeTxReceipt      = 312
+	EventReplySubscribeTxReceipt = 313
 )
 
 var eventName = map[int]string{

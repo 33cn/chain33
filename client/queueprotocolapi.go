@@ -133,5 +133,5 @@ type QueueProtocolAPI interface {
 	// get chain config
 	GetConfig() *types.Chain33Config
 	// add Subscriber for specified tx receipt
-    AddSubscribeTxReceipt(param *types.SubscribeTxReceipt) (*types.ReplySubTxReceipt, error)
+	AddSubscribeTxReceipt(param *types.SubscribeTxReceipt) (*types.ReplySubTxReceipt, error)
 }

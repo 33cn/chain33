@@ -386,6 +386,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	if b.isRecordBlockSequence {
 		b.pushseq.UpdateSeq(lastSequence)
 		b.pushTxReceipt.UpdateSeq(lastSequence)
+		chainlog.Debug("isRecordBlockSequence", "lastSequence", lastSequence, "height", block.Height)
 	}
 	return blockdetail, nil
 }

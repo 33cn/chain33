@@ -6,6 +6,7 @@ import (
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -148,8 +149,16 @@ func newpushTxReceiptService(commonStore CommonStore, seqStore SequenceStore, cf
 	service := &PushTxReceiptService{store: commonStore,
 		sequenceStore: seqStore,
 		tasks:         tasks,
-		client:        &http.Client{},
-		cfg:           cfg,
+		client: &http.Client{Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: 10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		}},
+		cfg: cfg,
 	}
 	service.init()
 
@@ -191,6 +200,7 @@ func (push *PushTxReceiptService) updateLastSeq(nameContract string) {
 
 	notify := push.tasks[nameContract]
 	notify.seq <- last
+	chainlog.Debug("updateLastSeq", "last", last, "notify.seq", len(notify.seq))
 }
 
 // addTask 每个name 有一个task, 通知新增推送
@@ -223,13 +233,18 @@ func (push *PushTxReceiptService) UpdateSeq(seq int64) {
 	push.mu.Lock()
 	defer push.mu.Unlock()
 	for _, notify := range push.tasks {
-		//如果有seq, 那么先读一个出来
-		select {
-		case <-notify.seq:
-		default:
-		}
+		////如果有seq, 那么先读一个出来
+		//select {
+		//case ss := <-notify.seq:
+		//	chainlog.Info("UpdateSeq", "ss", ss,"length", len(notify.seq))
+		//default:
+		//}
 		//再写入seq（一定不会block，因为加了lock，不存在两个同时写channel的情况）
-		notify.seq <- seq
+		if len(notify.seq) < 10 {
+			notify.seq <- seq
+			chainlog.Info("UpdateSeq", "insert seq", seq, "length", len(notify.seq))
+		}
+		chainlog.Info("UpdateSeq", "seq channel", notify.seq, "seq", seq, "length", len(notify.seq))
 	}
 }
 
@@ -257,10 +272,11 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 		push.trigeRun(run, 0)
 		lastProcessedseq = push.getLastPushSeq(subscribe)
 		in.status = Running
-		chainlog.Debug("runTask to push tx receipt", "subscribe", subscribe)
+		chainlog.Debug("runTask to push tx receipt", "subscribe", subscribe, "in.seq", in.seq)
 		for {
 			select {
 			case lastesBlockSeq = <-in.seq:
+				chainlog.Debug("runTask to push tx receipt in seq", "lastesBlockSeq", lastesBlockSeq, "len", len(in.seq), "in", in.seq)
 				push.trigeRun(run, 0)
 			case <-run:
 				chainlog.Debug("runTask to push tx receipt", "run1")
@@ -271,7 +287,7 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 				}
 				//没有更新的区块，则不进行处理，同时等待一定的时间
 				if lastProcessedseq >= lastesBlockSeq {
-					chainlog.Debug("runTask to push tx receipt", "run3")
+					chainlog.Debug("runTask to push tx receipt run3", "lastProcessedseq", lastProcessedseq, "lastesBlockSeq", lastesBlockSeq)
 					push.trigeRun(run, waitNewBlock)
 					continue
 				}
@@ -280,7 +296,7 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 				if lastProcessedseq+int64(seqCount) > lastesBlockSeq {
 					seqCount = 1
 				}
-				chainlog.Debug("runTask to push tx receipt", "run4")
+				chainlog.Debug("runTask to push tx receipt run4", "lastProcessedseq", lastProcessedseq, "seqCount", seqCount)
 				data, updateSeq, err := push.getTxReceipts(subscribe, lastProcessedseq+1, seqCount, pushMaxSize)
 				if err != nil {
 					chainlog.Error("getTxReceipts", "err", err, "seq", lastProcessedseq+1, "maxSeq", seqCount,
@@ -319,6 +335,7 @@ func (push *PushTxReceiptService) getTxReceipts(subscribe *types.SubscribeTxRece
 	totalSize := 0
 	actualIterCount := 0
 	for i := startSeq; i < startSeq+int64(seqCount); i++ {
+		chainlog.Info("getTxReceipts", "startSeq:", i)
 		seqdata, err := push.sequenceStore.GetBlockSequence(i)
 		if err != nil {
 			return nil, -1, err
@@ -362,6 +379,7 @@ func (push *PushTxReceiptService) getTxReceipts(subscribe *types.SubscribeTxRece
 	if len(txReceipts.TxReceipts) == 0 {
 		return nil, updateSeq, nil
 	}
+	chainlog.Info("getTxReceipts", "updateSeq", updateSeq, "actualIterCount", actualIterCount)
 
 	var postdata []byte
 	var err error
@@ -380,6 +398,7 @@ func (push *PushTxReceiptService) getTxReceipts(subscribe *types.SubscribeTxRece
 //seq= data.Seqs[0].Num+int64(len(data.Seqs))-1
 func (push *PushTxReceiptService) postData(subscribe *types.SubscribeTxReceipt, postdata []byte, seq int64) (err error) {
 	//post data in body
+	chainlog.Info("postData", "seq", seq, "data", string(postdata))
 	var buf bytes.Buffer
 	g := gzip.NewWriter(&buf)
 	if _, err = g.Write(postdata); err != nil {
@@ -396,15 +415,19 @@ func (push *PushTxReceiptService) postData(subscribe *types.SubscribeTxReceipt, 
 
 	req.Header.Set("Content-Type", "text/plain")
 	req.Header.Set("Content-Encoding", "gzip")
+	chainlog.Info("postData", "req", req)
 	resp, err := push.client.Do(req)
 	if err != nil {
+		chainlog.Info("postData", "Do err", err)
 		return err
 	}
 	defer resp.Body.Close()
+	chainlog.Info("postData", "resp", resp)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
+	chainlog.Info("postData", "body", string(body))
 	if string(body) != "ok" && string(body) != "OK" {
 		chainlog.Error("postData fail", "name:", subscribe.Name, "Contract:", subscribe.Contract, "body", string(body))
 		return types.ErrPushSeqPostData

@@ -1039,5 +1039,3 @@ func (q *QueueProtocol) AddSubscribeTxReceipt(param *types.SubscribeTxReceipt) (
 	}
 	return nil, types.ErrTypeAsset
 }
-
-
