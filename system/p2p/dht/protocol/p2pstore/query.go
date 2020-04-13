@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/33cn/chain33/system/p2p/dht/net"
 	"time"
 
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
@@ -58,6 +59,16 @@ func (s *StoreProtocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) 
 }
 
 func (s *StoreProtocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
+	for _, peerInfo := range net.ConvertPeers(param.Pid) {
+		s.Host.Peerstore().AddAddrs(peerInfo.ID, peerInfo.Addrs, time.Hour)
+		records, err := s.getChunkRecordsFromPeer(param, peerInfo.ID)
+		if err != nil {
+			log.Error("getChunkRecords", "peer", peerInfo.ID, "error", err)
+			continue
+		}
+		return records
+	}
+
 	for _, pid := range s.Discovery.RoutingTable() {
 		records, err := s.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
