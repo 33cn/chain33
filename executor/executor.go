@@ -140,7 +140,7 @@ func (exec *Executor) procUpgrade(msg *queue.Message) {
 			panic(err)
 		}
 	}
-    var kvset types.LocalDBSet
+	var kvset types.LocalDBSet
 
 	for _, plugin := range pluginmgr.GetExecList() {
 		elog.Info("begin upgrade plugin ", "name", plugin)

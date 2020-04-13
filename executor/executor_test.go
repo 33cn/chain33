@@ -380,10 +380,10 @@ func TestExecutorPluginUpgrade(t *testing.T) {
 	err := exec.upgradeExecPlugin("plugin-demo")
 	assert.Nil(t, err)
 
-    kvset, err := exec.upgradePlugin("demo")
-    assert.Nil(t, err)
-    assert.Equal(t, 2, len(kvset.GetKV()))
-    kvset, err = exec.upgradePlugin("demof")
-    assert.NotNil(t, err)
-    assert.Nil(t, kvset)
+	kvset, err := exec.upgradePlugin("demo")
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(kvset.GetKV()))
+	kvset, err = exec.upgradePlugin("demof")
+	assert.NotNil(t, err)
+	assert.Nil(t, kvset)
 }

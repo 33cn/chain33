@@ -2,7 +2,6 @@
 # shellcheck disable=SC2207
 set +e
 
-
 OP="${1}"
 path="${2}"
 

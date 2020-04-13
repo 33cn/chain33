@@ -11,6 +11,6 @@ import (
 	_ "github.com/33cn/chain33/system/dapp/init"
 	_ "github.com/33cn/chain33/system/index/init"
 	_ "github.com/33cn/chain33/system/mempool/init"
+	_ "github.com/33cn/chain33/system/p2p/init" // init p2p plugin
 	_ "github.com/33cn/chain33/system/store/init"
-    _ "github.com/33cn/chain33/system/p2p/init" // init p2p plugin
 )
