@@ -20,9 +20,13 @@ var (
 	ErrLength             = errors.New("length not equal")
 	ErrProtocolNotSupport = errors.New("protocol not support")
 	ErrNotFound           = errors.New("not found")
+	ErrExpired            = errors.New("data expired")
 	ErrInvalidParam       = errors.New("invalid parameter")
+	ErrEmptyRoutingTable  = errors.New("empty routing table")
 
-	ExpiredTime     = time.Hour * 24
-	RefreshInterval = time.Hour * 4
+	//ExpiredTime     = time.Hour * 24
+	//RefreshInterval = time.Hour * 4
+	ExpiredTime     = time.Minute * 5
+	RefreshInterval = time.Minute * 1
 )
 

@@ -23,7 +23,10 @@ func (s *StoreProtocol) StoreChunk(req *types.ChunkInfoMsg) error {
 
 	//路由表中存在比当前节点更近的节点，说明当前节点不是局部最优节点，不需要保存数据
 	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), 1)
-	if len(peers) == 1 && kb.Closer(peers[0], s.Host.ID(), genChunkPath(req.ChunkHash)) {
+	if len(peers) == 0 {
+		return types2.ErrEmptyRoutingTable
+	}
+	if kb.Closer(peers[0], s.Host.ID(), genChunkPath(req.ChunkHash)) {
 		return nil
 	}
 	log.Info("StoreChunk", "local pid", s.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))

@@ -3,7 +3,7 @@ package p2pstore
 import (
 	"bufio"
 	"context"
-	"encoding/hex"
+	"fmt"
 	"time"
 
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
@@ -13,6 +13,7 @@ import (
 )
 
 func (s *StoreProtocol) startRepublish() {
+	time.Sleep(time.Second * 3)
 	for range time.Tick(types2.RefreshInterval) {
 		if err := s.republish(); err != nil {
 			log.Error("cycling republish", "error", err)
@@ -26,12 +27,16 @@ func (s *StoreProtocol) republish() error {
 		return err
 	}
 
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	fmt.Println(">>>>>>>>>>>>>>>>>>>> local hash length:", len(chunkInfoMap), ">>>>>>>>>>>")
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	for hash, info := range chunkInfoMap {
-		_, err = s.getChunkBlock([]byte(hash))
-		if err != nil {
-			log.Error("republish get error", "hash", hex.EncodeToString([]byte(hash)), "error", err)
+		_, err = s.getChunkBlock(info.ChunkHash)
+		if err != nil && err != types2.ErrExpired {
+			log.Error("republish get error", "hash", hash, "error", err)
 			continue
 		}
+		fmt.Printf("m[\"%s\"]++\n", hash)
 		s.notifyStoreChunk(info)
 	}
 
