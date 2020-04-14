@@ -18,11 +18,9 @@ var (
  * 主要是为了兼容多种类型p2p, 为不同的事件指定路由策略
  */
 func (mgr *Manager) handleSysEvent() {
-
 	mgr.Client.Sub("p2p")
 	log.Debug("Manager handleSysEvent start")
 	for msg := range mgr.Client.Recv() {
-
 		switch msg.Ty {
 
 		case types.EventTxBroadcast, types.EventBlockBroadcast: //广播

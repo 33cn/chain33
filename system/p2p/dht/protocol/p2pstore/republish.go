@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
@@ -14,6 +15,9 @@ import (
 
 func (s *StoreProtocol) startRepublish() {
 	for range time.Tick(types2.RefreshInterval) {
+		fmt.Println()
+		fmt.Println("tick >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+		fmt.Println()
 		if err := s.republish(); err != nil {
 			log.Error("cycling republish", "error", err)
 		}
@@ -26,12 +30,16 @@ func (s *StoreProtocol) republish() error {
 		return err
 	}
 
-	for hash, info := range chunkInfoMap {
-		_, err = s.getChunkBlock([]byte(hash))
-		if err != nil {
-			log.Error("republish get error", "hash", hex.EncodeToString([]byte(hash)), "error", err)
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	fmt.Println(">>>>>>>>>>>>>>>>>>>> local hash length:", len(chunkInfoMap), ">>>>>>>>>>>")
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	for _, info := range chunkInfoMap {
+		_, err = s.getChunkBlock(info.ChunkHash)
+		if err != nil && err != types2.ErrExpired {
+			log.Error("republish get error", "hash", hex.EncodeToString(info.ChunkHash), "error", err)
 			continue
 		}
+		fmt.Printf("m[\"%s\"]++\n", hex.EncodeToString(info.ChunkHash))
 		s.notifyStoreChunk(info)
 	}
 

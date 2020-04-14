@@ -60,7 +60,6 @@ func (s *StoreProtocol) Handle(stream network.Stream) {
 		} else {
 			stream.Close()
 		}
-
 	}()
 
 	// Create a buffer stream for non blocking read and write

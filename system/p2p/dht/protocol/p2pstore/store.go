@@ -15,7 +15,7 @@ const (
 	LocalChunkInfoKey = "local-chunk-info"
 	ChunkNameSpace    = "chunk"
 	AlphaValue        = 3
-	Backup            = 20
+	Backup            = 3
 )
 
 // 保存chunk到本地p2pStore，同时更新本地chunk列表
@@ -39,10 +39,6 @@ func (s *StoreProtocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.Blo
 
 // 更新本地chunk保存时间，chunk不存在则返回error
 func (s *StoreProtocol) updateChunk(req *types.ChunkInfoMsg) error {
-	//数据正在保存，无需更新时间
-	if _, ok := s.saving.Load(string(req.ChunkHash)); ok {
-		return nil
-	}
 	b, err := s.DB.Get(genChunkKey(req.ChunkHash))
 	if err != nil {
 		return err
@@ -52,8 +48,7 @@ func (s *StoreProtocol) updateChunk(req *types.ChunkInfoMsg) error {
 	if err != nil {
 		return err
 	}
-	data.Time = time.Now().UnixNano()
-	return s.DB.Put(genChunkKey(req.ChunkHash), types.Encode(&data))
+	return s.addChunkBlock(req, data.Data.(*types.P2PStoreData_BlockBodys).BlockBodys)
 }
 
 // 获取本地chunk数据，若数据已过期则删除该数据并返回空
@@ -68,12 +63,12 @@ func (s *StoreProtocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
 		return nil, err
 	}
 	if time.Now().UnixNano()-data.Time > int64(types2.ExpiredTime) {
-		err = s.DB.Delete(genChunkKey(hash))
+		err = s.deleteChunkBlock(hash)
 		if err != nil {
 			log.Error("getChunkBlock", "delete chunk error", err, "hash", hex.EncodeToString(hash))
 			return nil, err
 		}
-		return nil, types2.ErrNotFound
+		return nil, types2.ErrExpired
 	}
 
 	return data.Data.(*types.P2PStoreData_BlockBodys).BlockBodys, nil
@@ -100,12 +95,7 @@ func (s *StoreProtocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
 	}
 
 	hashMap[string(info.ChunkHash)] = info
-	value, err := json.Marshal(hashMap)
-	if err != nil {
-		return err
-	}
-
-	return s.DB.Put(datastore.NewKey(LocalChunkInfoKey), value)
+	return s.saveLocalChunkInfoMap(hashMap)
 }
 
 func (s *StoreProtocol) deleteLocalChunkInfo(hash []byte) error {
@@ -115,26 +105,14 @@ func (s *StoreProtocol) deleteLocalChunkInfo(hash []byte) error {
 	}
 
 	delete(hashMap, string(hash))
-	value, err := json.Marshal(hashMap)
-	if err != nil {
-		return err
-	}
-
-	return s.DB.Put(datastore.NewKey(LocalChunkInfoKey), value)
+	return s.saveLocalChunkInfoMap(hashMap)
 }
 
 func (s *StoreProtocol) getLocalChunkInfoMap() (map[string]*types.ChunkInfoMsg, error) {
 
-	ok, err := s.DB.Has(datastore.NewKey(LocalChunkInfoKey))
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return make(map[string]*types.ChunkInfoMsg), nil
-	}
 	value, err := s.DB.Get(datastore.NewKey(LocalChunkInfoKey))
 	if err != nil {
-		return nil, err
+		return make(map[string]*types.ChunkInfoMsg), nil
 	}
 
 	var chunkInfoMap map[string]*types.ChunkInfoMsg
@@ -144,6 +122,15 @@ func (s *StoreProtocol) getLocalChunkInfoMap() (map[string]*types.ChunkInfoMsg, 
 	}
 
 	return chunkInfoMap, nil
+}
+
+func (s *StoreProtocol) saveLocalChunkInfoMap(m map[string]*types.ChunkInfoMsg) error {
+	value, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	return s.DB.Put(datastore.NewKey(LocalChunkInfoKey), value)
 }
 
 // 适配libp2p，按路径格式生成数据的key值，便于区分多种数据类型的命名空间，以及key值合法性校验
