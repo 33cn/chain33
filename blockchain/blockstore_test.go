@@ -417,7 +417,7 @@ func TestGetBodyFromP2Pstore(t *testing.T) {
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
-	client.On("Wait", mock.Anything).Return(rspMsg, nil)
+	client.On("WaitTimeout", mock.Anything, mock.Anything).Return(rspMsg, nil)
 
 	blcokHash := []byte("111111111111111")
 	chunkHash := []byte("222222222222222")

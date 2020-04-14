@@ -267,7 +267,7 @@ func (chain *BlockChain) setMaxSerialChunkNum(chunkNum int64) error {
 
 func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
 	if chain.client == nil {
-		chainlog.Error("storeChunkToP2Pstore: chain client not bind message queue.")
+		chainlog.Error("notifyStoreChunkToP2P: chain client not bind message queue.")
 		return
 	}
 
@@ -277,18 +277,18 @@ func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
 		End: data.End,
 	}
 
-	chainlog.Debug("storeChunkToP2Pstore", "chunknum", data.ChunkNum, "block start height",
+	chainlog.Debug("notifyStoreChunkToP2P", "chunknum", data.ChunkNum, "block start height",
 		data.Start, "block end height", data.End, "chunk hash", common.ToHex(data.ChunkHash))
 
 	msg := chain.client.NewMessage("p2p", types.EventNotifyStoreChunk, req)
 	err := chain.client.Send(msg, true)
 	if err != nil {
-		chainlog.Error("storeChunkToP2Pstore", "chunknum", data.ChunkNum, "block start height",
+		chainlog.Error("notifyStoreChunkToP2P", "chunknum", data.ChunkNum, "block start height",
 			data.Start, "block end height", data.End, "chunk hash", common.ToHex(data.ChunkHash), "err", err)
 	}
 	_, err = chain.client.Wait(msg)
 	if err != nil {
-		chainlog.Error("storeChunkToP2Pstore", "client.Wait err:", err)
+		chainlog.Error("notifyStoreChunkToP2P", "client.Wait err:", err)
 		return
 	}
 }
@@ -328,10 +328,6 @@ func (chain *BlockChain) AddChunkRecord(req *types.ChunkRecords) {
 	}
 	if len(dbset.KV) > 0 {
 		chain.blockStore.mustSaveKvset(dbset)
-	}
-	// 通知此chunk请求已经处理完
-	if len(req.Infos) > 0 {
-		chain.chunkRecordTask.Done(req.Infos[0].ChunkNum)
 	}
 }
 

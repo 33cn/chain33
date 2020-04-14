@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
@@ -1563,7 +1564,7 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 	if chainCfg.EnableIfDelLocalChunk { // 6.6之后，测试完成之后该分支进行删除
 		serialChunkNum := bs.GetMaxSerialChunkNum()
 		chunkNum, _, _ := caclChunkInfo(chainCfg, blockheader.Height)
-		if serialChunkNum > chunkNum {
+		if serialChunkNum >= chunkNum {
 			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
 			if bodys == nil || len(bodys.Items) == 0 || err != nil {
 				if err != dbm.ErrNotFoundInDb {
@@ -1576,7 +1577,7 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 			return blockbody, nil
 		}
 
-		storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
+		storeLog.Info("multiGetBody", "chunkNum", chunkNum, "height", blockheader.Height,
 			"serialChunkNum", serialChunkNum, "hash", common.ToHex(blockheader.Hash))
 
 		blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
@@ -1613,6 +1614,11 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 }
 
 func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types.BlockBodys, error) {
+	stime := time.Now()
+	defer func() {
+		etime := time.Now()
+		storeLog.Info("getBodyFromP2Pstore", "cost time is:", etime.Sub(stime))
+	}()
 	value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
 	if value == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
@@ -1635,7 +1641,8 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 		storeLog.Error("EventGetChunkBlockBody", "chunk hash", common.ToHex(value), "hash", common.ToHex(hash), "err", err)
 		return nil, err
 	}
-	resp, err := bs.client.Wait(msg)
+	// 网络查询阻塞最长等待3分钟
+	resp, err := bs.client.WaitTimeout(msg, time.Minute*3)
 	if err != nil {
 		storeLog.Error("EventGetChunkBlockBody", "client.Wait err:", err)
 		return nil, err

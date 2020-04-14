@@ -1164,9 +1164,9 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 	}
 
 	msg := chain.client.NewMessage("p2p", types.EventGetChunkRecord, reqRec)
-	Err := chain.client.Send(msg, true)
-	if Err != nil {
-		synlog.Error("FetchChunkRecords", "client.Send err:", Err)
+	err = chain.client.Send(msg, true)
+	if err != nil {
+		synlog.Error("FetchChunkRecords", "client.Send err:", err)
 		return err
 	}
 	_, err = chain.client.Wait(msg)
