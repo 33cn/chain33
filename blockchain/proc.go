@@ -662,10 +662,11 @@ func (chain *BlockChain) getChunkRecord(msg *queue.Message) {
 	req := (msg.Data).(*types.ReqChunkRecords)
 	reply, err := chain.GetChunkRecord(req)
 	if err != nil {
-		chainlog.Error("GetChunkRecord", "req", req, "err", err.Error())
+		chainlog.Error("getChunkRecord", "req", req, "err", err.Error())
 		msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, err))
 		return
 	}
+	chainlog.Debug("getChunkRecord", "start", req.Start, "end", req.End)
 	msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, reply))
 }
 
@@ -673,6 +674,10 @@ func (chain *BlockChain) getChunkRecord(msg *queue.Message) {
 func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
 	req := (msg.Data).(*types.ChunkRecords)
 	chain.AddChunkRecord(req)
+	if len(req.Infos) > 0 {
+		chain.chunkRecordTask.Done(req.Infos[0].ChunkNum)
+		chainlog.Debug("addChunkRecord", "start", req.Infos[0].ChunkNum, "end", req.Infos[len(req.Infos)-1].ChunkNum)
+	}
 	msg.Reply(chain.client.NewMessage("", types.EventAddChunkRecord, &types.Reply{IsOk: true}))
 }
 
@@ -681,10 +686,11 @@ func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
 	req := (msg.Data).(*types.ChunkInfoMsg)
 	reply, err := chain.GetChunkBlockBody(req)
 	if err != nil {
-		chainlog.Error("GenChunkBlockBody", "req", req, "err", err.Error())
+		chainlog.Error("getChunkBlockBody", "req", req, "err", err.Error())
 		msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, err))
 		return
 	}
+	chainlog.Debug("getChunkBlockBody", "start", req.Start, "end", req.End, "chunkHash", common.ToHex(req.ChunkHash))
 	msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, reply))
 }
 
@@ -715,7 +721,7 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 		for _, blk := range blocks.Items {
 			_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blk}, "-self") //这里认为非自己节点
 			if err != nil {
-				chainlog.Error("ProcAddBlockMsg", "height", blk.Height, "err", err.Error())
+				chainlog.Error("addChunkBlock ProcAddBlockMsg", "height", blk.Height, "err", err.Error())
 				reply.IsOk = false
 				reply.Msg = []byte(err.Error())
 				msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
@@ -724,5 +730,6 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 			chainlog.Debug("EventAddBlock", "height", blk.Height, "pid", "success", "ok")
 		}
 	}
+	chainlog.Debug("addChunkBlock", "start", blocks.Items[0].Height, "end", blocks.Items[len(blocks.Items)-1].Height)
 	msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
 }

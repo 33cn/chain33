@@ -364,7 +364,7 @@ message BlockBodys {
 
 // ChunkRecords
 message ChunkRecords {
-    repeated KeyValue kvs = 1;
+    repeated ChunkInfo infos = 1;
 }
 
 // ChunkInfoMsg 用于消息传递

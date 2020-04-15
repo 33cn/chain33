@@ -387,7 +387,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		// chunk 处理
 		isNeed, chunkInfo := b.IsNeedChunk(block.Height)
 		if isNeed {
-			b.ChunkShardHandle(chunkInfo, node.pid == "self")
+			b.ChunkShardHandle(chunkInfo, true)
 		}
 	}
 

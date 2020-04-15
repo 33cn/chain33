@@ -157,9 +157,8 @@ func testGetChunkRecordMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchai
 func testAddChunkRecordMsg(t *testing.T, mock33 *testnode.Chain33Mock, chain *blockchain.BlockChain) {
 	chainlog.Info("testAddChunkRecordMsg begin --------------------")
 
-	key := append(append([]byte{}, blockchain.ChunkNumToHash...), []byte(fmt.Sprintf("%012d", 1))...)
 	records := &types.ChunkRecords{
-		Kvs: []*types.KeyValue{{Key: key, Value: []byte("11111111111")}},
+		Infos: []*types.ChunkInfo{{ChunkNum: 1, ChunkHash: []byte("11111111111")}},
 	}
 
 	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventAddChunkRecord, records)
@@ -182,9 +181,8 @@ func testGetChunkBlockBodyMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockc
 		start = 0
 	}
 
-	blocks := &types.ReqChunkBlockBody{
+	blocks := &types.ChunkInfoMsg{
 		ChunkHash: []byte{},
-		Filter:    false,
 		Start:     start,
 		End:       end,
 	}
