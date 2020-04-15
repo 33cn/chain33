@@ -105,9 +105,12 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ChunkInfoM
 	}
 
 	//本地没有数据或本地数据已过期
-	peers := s.Discovery.FindNearestPeers(s.Host.ID(), AlphaValue)
+	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), AlphaValue)
 	var addrInfos []peer.AddrInfo
 	for _, pid := range peers {
+		if kb.Closer(s.Host.ID(), pid, genChunkPath(req.ChunkHash)) {
+			continue
+		}
 		addrInfos = append(addrInfos, peer.AddrInfo{
 			ID:    pid,
 			Addrs: s.Host.Peerstore().Addrs(pid),
