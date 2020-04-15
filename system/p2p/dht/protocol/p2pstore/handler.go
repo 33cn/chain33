@@ -177,11 +177,16 @@ func (s *StoreProtocol) onGetHeader(writer *bufio.Writer, req *types.ReqBlocks) 
 		return
 	}
 
+	if headers, ok := resp.GetData().(*types.Headers); ok {
+		res.Result = &types.P2PStoreResponse_Headers{Headers: headers}
+		return
+	}
+
 	if reply, ok := resp.GetData().(*types.Reply); ok {
 		res.ErrorInfo = string(reply.Msg)
 		return
 	}
-	res.Result = &types.P2PStoreResponse_Headers{Headers: resp.GetData().(*types.Headers)}
+	res.ErrorInfo = types.ErrNotFound.Error()
 }
 
 func (s *StoreProtocol) onGetChunkRecord(writer *bufio.Writer, req *types.ReqChunkRecords) {
@@ -204,11 +209,15 @@ func (s *StoreProtocol) onGetChunkRecord(writer *bufio.Writer, req *types.ReqChu
 		res.ErrorInfo = err.Error()
 		return
 	}
+	if records, ok := resp.GetData().(*types.ChunkRecords); ok {
+		res.Result = &types.P2PStoreResponse_ChunkRecords{ChunkRecords: records}
+		return
+	}
 	if reply, ok := resp.GetData().(*types.Reply); ok {
 		res.ErrorInfo = string(reply.Msg)
 		return
 	}
-	res.Result = &types.P2PStoreResponse_ChunkRecords{ChunkRecords: resp.GetData().(*types.ChunkRecords)}
+	res.ErrorInfo = types2.ErrNotFound.Error()
 }
 
 func readMessage(reader *bufio.Reader, msg types.Message) error {

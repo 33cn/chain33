@@ -36,7 +36,6 @@ func (s *StoreProtocol) republish() error {
 			log.Error("republish get error", "hash", hash, "error", err)
 			continue
 		}
-		fmt.Printf("m[\"%s\"]++\n", hash)
 		s.notifyStoreChunk(info)
 	}
 

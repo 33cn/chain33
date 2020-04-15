@@ -3,6 +3,7 @@ package p2pstore
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"time"
@@ -128,14 +129,14 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 			continue
 		}
 		go func(pid peer.ID) {
-			bodys, addrInfos, err := s.fetchChunkOrNearerPeers(cancelCtx, param, pid)
+			bodys, pids, err := s.fetchChunkOrNearerPeers(cancelCtx, param, pid)
 			if err != nil {
 				log.Error("fetchChunkOrNearerPeersAsync", "fetchChunkOrNearerPeers error", err, "peer id", pid)
 				responseCh <- nil
 			} else if bodys != nil {
 				responseCh <- bodys
-			} else if len(addrInfos) != 0 {
-				responseCh <- addrInfos
+			} else if len(pids) != 0 {
+				responseCh <- pids
 			}
 		}(peerID)
 	}
@@ -185,10 +186,10 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 	var res types.P2PStoreResponse
 	err = readMessage(rw.Reader, &res)
 	if err != nil {
-		log.Error("fetchChunkFromPeer", "read response error", err, "multiaddr", stream.Conn().LocalMultiaddr())
+		log.Error("fetchChunkFromPeer", "read response error", err, "chunk hash", hex.EncodeToString(params.ChunkHash))
 		return nil, nil, err
 	}
-	log.Info("fetchChunkOrNearerPeers response ok", "remote peer", stream.Conn().RemotePeer().Pretty())
+	log.Info("fetchChunkFromPeer", "remote", pid.Pretty(), "chunk hash", hex.EncodeToString(params.ChunkHash))
 
 	switch v := res.Result.(type) {
 	case *types.P2PStoreResponse_BlockBodys:
@@ -228,8 +229,12 @@ func (s *StoreProtocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*type
 	if err != nil {
 		return nil, err
 	}
+	if bodys, ok := resp.GetData().(*types.BlockBodys); ok {
+		return bodys, nil
+	}
 	if reply, ok := resp.GetData().(*types.Reply); ok {
 		return nil, errors.New(string(reply.Msg))
 	}
-	return resp.GetData().(*types.BlockBodys), nil
+
+	return nil, types2.ErrNotFound
 }
