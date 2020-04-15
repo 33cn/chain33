@@ -58,10 +58,14 @@ func (s *StoreProtocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) 
 }
 
 func (s *StoreProtocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
-	for _, pid := range param.Pid {
-		records, err := s.getChunkRecordsFromPeer(param, peer.ID(pid))
+	for _, prettyID := range param.Pid {
+		pid, err := peer.IDB58Decode(prettyID)
 		if err != nil {
-			log.Error("getChunkRecords", "peer", pid, "addr", s.Host.Peerstore().Addrs(peer.ID(pid)), "error", err)
+			log.Error("getChunkRecords", "decode pid error", err)
+		}
+		records, err := s.getChunkRecordsFromPeer(param, pid)
+		if err != nil {
+			log.Error("getChunkRecords", "peer", pid, "addr", s.Host.Peerstore().Addrs(pid), "error", err)
 			continue
 		}
 		return records
