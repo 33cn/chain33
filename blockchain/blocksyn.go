@@ -1191,7 +1191,8 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 		return types.ErrClientNotBindQueue
 	}
 
-	synlog.Debug("FetchChunkBlock input", "StartHeight", startHeight, "EndHeight", endHeight, "pid", pid)
+	synlog.Debug("FetchChunkBlock input", "StartHeight", startHeight, "EndHeight", endHeight)
+
 	blockcount := endHeight - startHeight
 	if blockcount < 0 {
 		return types.ErrStartBigThanEnd
@@ -1221,15 +1222,15 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 	}
 
 	var cb func()
-	var timeoutcb func(chunkNum int64)
+	var timeoutcb func(height int64)
 	if isDownLoad {
 		//还有区块需要请求，挂接钩子回调函数
 		if requestblock.End < chain.downLoadInfo.EndHeight {
 			cb = func() {
 				chain.ReqDownLoadChunkBlocks()
 			}
-			timeoutcb = func(chunkNum int64) {
-				chain.DownLoadChunkTimeOutProc(chunkNum)
+			timeoutcb = func(height int64) {
+				chain.DownLoadChunkTimeOutProc(height)
 			}
 			chain.UpdateDownLoadStartHeight(requestblock.End + 1)
 		} else { // 所有DownLoad block已请求结束，恢复DownLoadInfo为默认值
@@ -1237,7 +1238,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 		}
 		// chunk下载只是每次只下载一个chunk
 		// TODO 后续再做并发请求下载
-		err = chain.downLoadTask.Start(chunkNum, chunkNum, cb, timeoutcb)
+		err = chain.downLoadTask.Start(startHeight, startHeight, cb, timeoutcb)
 		if err != nil {
 			return err
 		}
@@ -1249,12 +1250,12 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 		}
 		// chunk下载只是每次只下载一个chunk
 		// TODO 后续再做并发请求下载
-		err = chain.syncTask.Start(chunkNum, chunkNum, cb, timeoutcb)
+		err = chain.syncTask.Start(startHeight, startHeight, cb, timeoutcb)
 		if err != nil {
 			return err
 		}
 	}
-	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End)
+	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End, "isDownLoad", isDownLoad)
 	msg := chain.client.NewMessage("p2p", types.EventGetChunkBlock, &requestblock)
 	err = chain.client.Send(msg, true)
 	if err != nil {

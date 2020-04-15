@@ -452,14 +452,20 @@ func (chain *BlockChain) ReqDownLoadChunkBlocks() {
 }
 
 //DownLoadChunkTimeOutProc 快速下载模式下载区块超时的处理函数
-func (chain *BlockChain) DownLoadChunkTimeOutProc(chunkNum int64) {
+func (chain *BlockChain) DownLoadChunkTimeOutProc(height int64) {
 	info := chain.GetDownLoadInfo()
-	synlog.Info("DownLoadChunkTimeOutProc", "chunkNum", chunkNum, "StartHeight", info.StartHeight, "EndHeight", info.EndHeight)
-	// 下载超时需要检测下载的pid是否存在，如果所有下载peer都失连，需要退出本次下载
-	// 在处理分叉时从指定节点下载区块超时时，可能是节点失连导致，此时需要退出本次下载
-	// TODO 后续可能需要策略上面的修改
+	synlog.Info("DownLoadChunkTimeOutProc", "real chunkNum", height, "info.StartHeight", info.StartHeight, "info.EndHeight", info.EndHeight)
+	//  TODO 需要检查当前是否有连接节点,如果没有则可能没有连接节点导致超时
+	if len(chain.GetPeers()) == 0  {
+		synlog.Info("DownLoadChunkTimeOutProc:peers not exist!")
+		return
+	}
 	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {
 		//从超时的高度继续下载区块
+		if info.StartHeight > height {
+			chain.UpdateDownLoadStartHeight(height)
+			info.StartHeight = height
+		}
 		synlog.Info("DownLoadChunkTimeOutProc:FetchChunkBlock", "StartHeight", info.StartHeight, "EndHeight", info.EndHeight, "pids", len(info.Pids))
 		err := chain.FetchChunkBlock(info.StartHeight, info.EndHeight, info.Pids, true)
 		if err != nil {
