@@ -1673,13 +1673,13 @@ func (bs *BlockStore) getCurChunkNum(prefix []byte) int64 {
 func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
 	value, err := bs.GetKey(calcRecvChunkNumToHash(chunkNum))
 	if err != nil {
-		storeLog.Info("getRecvChunkHash", "chunkNum", chunkNum, "error", err)
+		storeLog.Error("getRecvChunkHash", "chunkNum", chunkNum, "error", err)
 		return nil, err
 	}
 	var chunk types.ChunkInfo
 	err = types.Decode(value, &chunk)
 	if err != nil {
-		storeLog.Error("getRecvChunkHash", "decode err:", err)
+		storeLog.Error("getRecvChunkHash", "chunkNum", chunkNum, "decode err:", err)
 		return nil, err
 	}
 	return chunk.ChunkHash, err
