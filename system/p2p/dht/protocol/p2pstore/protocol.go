@@ -3,6 +3,7 @@ package p2pstore
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"runtime"
 	"sync"
@@ -116,7 +117,7 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 		req := m.GetData().(*types.ChunkInfoMsg)
 		bodys, err := s.GetChunk(req)
 		if err != nil {
-			log.Error("HandleEvent", "GetChunk error", err)
+			log.Error("HandleEvent", "chunk hash", hex.EncodeToString(req.ChunkHash), "GetChunk error", err)
 			return
 		}
 		headers := s.getHeaders(&types.ReqBlocks{Start: req.Start, End: req.End})
