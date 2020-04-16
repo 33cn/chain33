@@ -66,12 +66,11 @@ func (s *StoreProtocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
 		err = s.deleteChunkBlock(hash)
 		if err != nil {
 			log.Error("getChunkBlock", "delete chunk error", err, "hash", hex.EncodeToString(hash))
-			return nil, err
 		}
-		return nil, types2.ErrExpired
+		err = types2.ErrExpired
 	}
 
-	return data.Data.(*types.P2PStoreData_BlockBodys).BlockBodys, nil
+	return data.Data.(*types.P2PStoreData_BlockBodys).BlockBodys, err
 
 }
 
