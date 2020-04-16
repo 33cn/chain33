@@ -117,12 +117,29 @@ func (s *StoreProtocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pi
 	return res.Result.(*types.P2PStoreResponse_ChunkRecords).ChunkRecords, nil
 }
 
+func (s *StoreProtocol) mustFetchChunk(req *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, error) {
+	//递归查询时间上限一小时
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+	for {
+		bodys, newPeers := s.fetchChunkOrNearerPeersAsync(ctx, req, peers)
+		if bodys != nil {
+			return bodys, nil
+		}
+		if len(newPeers) == 0 {
+			break
+		}
+		peers = newPeers
+	}
+	return nil, types2.ErrNotFound
+}
+
 func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, []peer.ID) {
 
-	responseCh := make(chan interface{}, AlphaValue)
+	responseCh := make(chan interface{}, len(peers))
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	defer cancelFunc()
-	// *3* 个节点并发请求
+	// 多个节点并发请求
 	for _, peerID := range peers {
 		if peerID == s.Host.ID() {
 			responseCh <- nil
@@ -130,13 +147,13 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 		}
 		go func(pid peer.ID) {
 			bodys, pids, err := s.fetchChunkOrNearerPeers(cancelCtx, param, pid)
-			if err != nil {
-				log.Error("fetchChunkOrNearerPeersAsync", "fetchChunkOrNearerPeers error", err, "peer id", pid)
-				responseCh <- nil
-			} else if bodys != nil {
+			if bodys != nil {
 				responseCh <- bodys
 			} else if len(pids) != 0 {
 				responseCh <- pids
+			} else {
+				responseCh <- nil
+				log.Error("fetchChunkOrNearerPeers", "error", err, "peer id", pid)
 			}
 		}(peerID)
 	}
@@ -150,7 +167,7 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 			return t, nil
 		case []peer.ID:
 			//没查到区块数据，返回了更近的节点信息
-			return nil, t
+			peerList = append(peerList, t...)
 		}
 	}
 
