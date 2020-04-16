@@ -2,9 +2,9 @@ package p2pstore
 
 import (
 	"bufio"
-	"context"
 	"encoding/hex"
 	"encoding/json"
+	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 	"time"
 
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
@@ -58,8 +58,8 @@ func (s *StoreProtocol) GetChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, er
 	}
 
 	//优先获取本地p2pStore数据
-	bodys, err := s.getChunkBlock(req.ChunkHash)
-	if err == nil {
+	bodys, _ := s.getChunkBlock(req.ChunkHash)
+	if bodys != nil {
 		l := int64(len(bodys.Items))
 		start, end := req.Start%l, req.End%l+1
 		bodys.Items = bodys.Items[start:end]
@@ -69,20 +69,7 @@ func (s *StoreProtocol) GetChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, er
 	//本地数据不存在或已过期，则向临近节点查询
 	//首先从本地路由表获取 *3* 个最近的节点
 	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), AlphaValue)
-	//递归查询时间上限一小时
-	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
-	defer cancel()
-	for {
-		bodys, newPeers := s.fetchChunkOrNearerPeersAsync(ctx, req, peers)
-		if bodys != nil {
-			return bodys, nil
-		}
-		if len(newPeers) == 0 {
-			break
-		}
-		peers = newPeers
-	}
-	return nil, types2.ErrNotFound
+	return s.mustFetchChunk(req, peers)
 }
 
 // 其他节点向本节点请求数据时，本地存在则直接返回，不存在则返回更近的多个节点
@@ -95,8 +82,8 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ChunkInfoM
 		}
 	}()
 	//优先检查本地是否存在
-	bodys, err := s.getChunkBlock(req.ChunkHash)
-	if err == nil {
+	bodys, _ := s.getChunkBlock(req.ChunkHash)
+	if bodys != nil {
 		l := int64(len(bodys.Items))
 		start, end := req.Start%l, req.End%l+1
 		bodys.Items = bodys.Items[start:end]
@@ -104,7 +91,7 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ChunkInfoM
 		return
 	}
 
-	//本地没有数据或本地数据已过期
+	//本地没有数据
 	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), AlphaValue)
 	var addrInfos []peer.AddrInfo
 	for _, pid := range peers {
@@ -113,9 +100,12 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ChunkInfoM
 		}
 		addrInfos = append(addrInfos, s.Discovery.FindLocalPeer(pid))
 	}
+
 	addrInfosData, err := json.Marshal(addrInfos)
 	if err != nil {
 		log.Error("onFetchChunk", "addr info marshal error", err)
+		res.ErrorInfo = err.Error()
+		return
 	}
 	res.Result = &types.P2PStoreResponse_AddrInfo{AddrInfo: addrInfosData}
 
@@ -141,8 +131,7 @@ func (s *StoreProtocol) onStoreChunk(stream network.Stream, req *types.ChunkInfo
 	if err != nil {
 		//本地节点没有数据，则从对端节点请求数据
 		s.Host.Peerstore().AddAddr(stream.Conn().RemotePeer(), stream.Conn().RemoteMultiaddr(), time.Hour)
-		bodys, _, err = s.fetchChunkOrNearerPeers(context.Background(), req, stream.Conn().RemotePeer())
-		//对端节点发过来的消息，对端节点一定有数据
+		bodys, err = s.mustFetchChunk(req, []peer.ID{stream.Conn().RemotePeer()})
 		if err != nil {
 			log.Error("onStoreChunk", "get bodys from remote peer error", err)
 			return
@@ -221,26 +210,45 @@ func (s *StoreProtocol) onGetChunkRecord(writer *bufio.Writer, req *types.ReqChu
 }
 
 func readMessage(reader *bufio.Reader, msg types.Message) error {
-	var data []byte
-	for {
-		buf := make([]byte, 1024)
-		n, err := reader.Read(buf)
-		if err != nil {
-			return err
-		}
-		data = append(data, buf[:n]...)
-		if n < 1024 {
-			break
-		}
+	//var data []byte
+	//for {
+	//	buf := make([]byte, 1024)
+	//	n, err := reader.Read(buf)
+	//	if err != nil {
+	//		log.Error("")
+	//		return err
+	//	}
+	//	data = append(data, buf[:n]...)
+	//	if n < 1024 {
+	//		break
+	//	}
+	//}
+	//return types.Decode(data, msg)
+	decoder := protobufCodec.Multicodec(nil).Decoder(reader)
+	err := decoder.Decode(msg)
+	if err != nil {
+		log.Error("ReadStream", "decode err", err)
+		return err
 	}
-	return types.Decode(data, msg)
+	return nil
 }
 
 func writeMessage(writer *bufio.Writer, msg types.Message) error {
-	b := types.Encode(msg)
-	_, err := writer.Write(b)
+	//b := types.Encode(msg)
+	//_, err := writer.Write(b)
+	//if err != nil {
+	//	return err
+	//}
+	//return writer.Flush()
+	enc := protobufCodec.Multicodec(nil).Encoder(writer)
+	err := enc.Encode(msg)
 	if err != nil {
+		log.Error("WriteStream","encode err", err)
 		return err
 	}
-	return writer.Flush()
+	err = writer.Flush()
+	if err != nil {
+		log.Error("WriteStream","flush err", err)
+	}
+	return nil
 }
