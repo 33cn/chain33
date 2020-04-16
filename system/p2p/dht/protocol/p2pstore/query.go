@@ -167,6 +167,10 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 			return t, nil
 		case []peer.ID:
 			//没查到区块数据，返回了更近的节点信息
+			if len(t) == AlphaValue {
+				//直接返回新peer，加快查询速度
+				return nil, t
+			}
 			peerList = append(peerList, t...)
 		}
 	}
@@ -210,9 +214,6 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 
 	switch v := res.Result.(type) {
 	case *types.P2PStoreResponse_BlockBodys:
-		l := int64(len(v.BlockBodys.Items))
-		start, end := params.Start%l, params.End%l+1
-		v.BlockBodys.Items = v.BlockBodys.Items[start:end]
 		return v.BlockBodys, nil, nil
 	case *types.P2PStoreResponse_AddrInfo:
 		var addrInfos []peer.AddrInfo
