@@ -237,7 +237,43 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 	return nil, nil, types2.ErrNotFound
 }
 
+func (s *StoreProtocol) checkLastChunk(in *types.ChunkInfoMsg) {
+	l := in.End - in.Start + 1
+	req := &types.ReqChunkRecords{
+		Start: in.Start/l-1,
+		End:  in.End/l-1,
+	}
+	if req.Start < 0 {
+		return
+	}
+	records, err := s.getChunkRecordFromBlockchain(req)
+	if err != nil {
+		log.Error("checkLastChunk", "getChunkRecordFromBlockchain error", err, "start", req.Start, "end", req.End)
+		return
+	}
+	if len(records.Infos) != 1 {
+		log.Error("checkLastChunk", "record len", len(records.Infos))
+	}
+	info := &types.ChunkInfoMsg{
+		ChunkHash: records.Infos[0].ChunkHash,
+		Start: records.Infos[0].Start,
+		End: records.Infos[0].End,
+	}
+	bodys, err := s.GetChunk(info)
+	if err == nil && bodys != nil && len(bodys.Items) == int(l) {
+		return
+	}
+	err = s.storeChunk(info)
+	if err != nil {
+		log.Error("checkLastChunk", "chunk hash", hex.EncodeToString(info.ChunkHash), "start", info.Start, "end", info.End, "error", err)
+	}
+
+}
+
 func (s *StoreProtocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*types.BlockBodys, error) {
+	if param == nil {
+		return nil, types2.ErrInvalidParam
+	}
 	msg := s.QueueClient.NewMessage("blockchain", types.EventGetChunkBlockBody, param)
 	err := s.QueueClient.Send(msg, true)
 	if err != nil {
@@ -255,4 +291,24 @@ func (s *StoreProtocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*type
 	}
 
 	return nil, types2.ErrNotFound
+}
+
+func (s *StoreProtocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords) (*types.ChunkRecords, error) {
+	if req == nil {
+		return nil, types2.ErrInvalidParam
+	}
+	msg := s.QueueClient.NewMessage("blockchain", types.EventGetChunkRecord, req)
+	err := s.QueueClient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := s.QueueClient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	records, ok := resp.GetData().(*types.ChunkRecords)
+	if !ok {
+		return nil, types2.ErrNotFound
+	}
+	return records, nil
 }

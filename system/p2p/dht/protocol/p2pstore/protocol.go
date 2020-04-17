@@ -106,7 +106,7 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 	case types.EventNotifyStoreChunk:
 		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
 		req := m.GetData().(*types.ChunkInfoMsg)
-		err := s.StoreChunk(req)
+		err := s.CheckStoreChunk(req)
 		if err != nil {
 			log.Error("StoreChunk","chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		}

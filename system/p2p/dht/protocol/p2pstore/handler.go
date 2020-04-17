@@ -16,13 +16,13 @@ import (
 
 //StoreChunk handles notification of blockchain,
 // store chunk if this node is the nearest *BackUp* node in the local routing table.
-func (s *StoreProtocol) StoreChunk(req *types.ChunkInfoMsg) error {
+func (s *StoreProtocol) CheckStoreChunk(req *types.ChunkInfoMsg) error {
 	if req == nil {
 		return types2.ErrInvalidParam
 	}
 
 	//路由表中存在比当前节点更近的节点，说明当前节点不是局部最优节点，不需要保存数据
-	count := 3
+	count := 1
 	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), count)
 	if len(peers) == 0 {
 		return types2.ErrEmptyRoutingTable
@@ -31,6 +31,11 @@ func (s *StoreProtocol) StoreChunk(req *types.ChunkInfoMsg) error {
 		return nil
 	}
 	log.Info("StoreChunk", "local pid", s.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
+	s.checkLastChunk(req)
+	return s.storeChunk(req)
+}
+
+func (s *StoreProtocol) storeChunk(req *types.ChunkInfoMsg) error {
 	//如果p2pStore已保存数据，只更新时间即可
 	if err := s.updateChunk(req); err == nil {
 		return nil
@@ -134,16 +139,11 @@ func (s *StoreProtocol) onStoreChunk(stream network.Stream, req *types.ChunkInfo
 		return
 	}
 
-	//本地 p2pStore没有数据，向blockchain请求数据
-	bodys, err := s.getChunkFromBlockchain(req)
+	s.Host.Peerstore().AddAddr(stream.Conn().RemotePeer(), stream.Conn().RemoteMultiaddr(), time.Hour)
+	bodys, err := s.mustFetchChunk(req, []peer.ID{stream.Conn().RemotePeer()})
 	if err != nil {
-		//本地节点没有数据，则从对端节点请求数据
-		s.Host.Peerstore().AddAddr(stream.Conn().RemotePeer(), stream.Conn().RemoteMultiaddr(), time.Hour)
-		bodys, err = s.mustFetchChunk(req, []peer.ID{stream.Conn().RemotePeer()})
-		if err != nil {
-			log.Error("onStoreChunk", "get bodys from remote peer error", err)
-			return
-		}
+		log.Error("onStoreChunk", "get bodys from remote peer error", err)
+		return
 	}
 
 	err = s.addChunkBlock(req, bodys)
@@ -197,30 +197,12 @@ func (s *StoreProtocol) onGetChunkRecord(writer *bufio.Writer, req *types.ReqChu
 			log.Error("onGetChunkRecord", "stream write error", err)
 		}
 	}()
-	if req == nil {
-		res.ErrorInfo = types2.ErrInvalidParam.Error()
-		return
-	}
-	msg := s.QueueClient.NewMessage("blockchain", types.EventGetChunkRecord, req)
-	err := s.QueueClient.Send(msg, true)
+	records, err := s.getChunkRecordFromBlockchain(req)
 	if err != nil {
 		res.ErrorInfo = err.Error()
 		return
 	}
-	resp, err := s.QueueClient.Wait(msg)
-	if err != nil {
-		res.ErrorInfo = err.Error()
-		return
-	}
-	if records, ok := resp.GetData().(*types.ChunkRecords); ok {
-		res.Result = &types.P2PStoreResponse_ChunkRecords{ChunkRecords: records}
-		return
-	}
-	if reply, ok := resp.GetData().(*types.Reply); ok {
-		res.ErrorInfo = string(reply.Msg)
-		return
-	}
-	res.ErrorInfo = types2.ErrNotFound.Error()
+	res.Result = &types.P2PStoreResponse_ChunkRecords{ChunkRecords: records}
 }
 
 func readMessage(reader *bufio.Reader, msg types.Message) error {
