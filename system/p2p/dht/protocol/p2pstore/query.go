@@ -167,11 +167,11 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 			return t, nil
 		case []peer.ID:
 			//没查到区块数据，返回了更近的节点信息
-			if len(t) == AlphaValue {
+			peerList = append(peerList, t...)
+			if len(peerList) >= AlphaValue {
 				//直接返回新peer，加快查询速度
 				return nil, t
 			}
-			peerList = append(peerList, t...)
 		}
 	}
 
