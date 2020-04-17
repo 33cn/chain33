@@ -3,6 +3,7 @@ package p2pstore
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"time"
@@ -116,26 +117,43 @@ func (s *StoreProtocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pi
 	return res.Result.(*types.P2PStoreResponse_ChunkRecords).ChunkRecords, nil
 }
 
+func (s *StoreProtocol) mustFetchChunk(req *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, error) {
+	//递归查询时间上限一小时
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+	for {
+		bodys, newPeers := s.fetchChunkOrNearerPeersAsync(ctx, req, peers)
+		if bodys != nil {
+			return bodys, nil
+		}
+		if len(newPeers) == 0 {
+			break
+		}
+		peers = newPeers
+	}
+	return nil, types2.ErrNotFound
+}
+
 func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, []peer.ID) {
 
-	responseCh := make(chan interface{}, AlphaValue)
+	responseCh := make(chan interface{}, len(peers))
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	defer cancelFunc()
-	// *3* 个节点并发请求
+	// 多个节点并发请求
 	for _, peerID := range peers {
 		if peerID == s.Host.ID() {
 			responseCh <- nil
 			continue
 		}
 		go func(pid peer.ID) {
-			bodys, addrInfos, err := s.fetchChunkOrNearerPeers(cancelCtx, param, pid)
-			if err != nil {
-				log.Error("fetchChunkOrNearerPeersAsync", "fetchChunkOrNearerPeers error", err, "peer id", pid)
-				responseCh <- nil
-			} else if bodys != nil {
+			bodys, pids, err := s.fetchChunkOrNearerPeers(cancelCtx, param, pid)
+			if bodys != nil {
 				responseCh <- bodys
-			} else if len(addrInfos) != 0 {
-				responseCh <- addrInfos
+			} else if len(pids) != 0 {
+				responseCh <- pids
+			} else {
+				responseCh <- nil
+				log.Error("fetchChunkOrNearerPeers", "error", err, "peer id", pid)
 			}
 		}(peerID)
 	}
@@ -149,7 +167,11 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 			return t, nil
 		case []peer.ID:
 			//没查到区块数据，返回了更近的节点信息
-			return nil, t
+			peerList = append(peerList, t...)
+			if len(peerList) >= AlphaValue {
+				//直接返回新peer，加快查询速度
+				return nil, t
+			}
 		}
 	}
 
@@ -185,16 +207,13 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 	var res types.P2PStoreResponse
 	err = readMessage(rw.Reader, &res)
 	if err != nil {
-		log.Error("fetchChunkFromPeer", "read response error", err, "multiaddr", stream.Conn().LocalMultiaddr())
+		log.Error("fetchChunkFromPeer", "read response error", err, "chunk hash", hex.EncodeToString(params.ChunkHash))
 		return nil, nil, err
 	}
-	log.Info("fetchChunkOrNearerPeers response ok", "remote peer", stream.Conn().RemotePeer().Pretty())
+	log.Info("fetchChunkFromPeer", "remote", pid.Pretty(), "chunk hash", hex.EncodeToString(params.ChunkHash))
 
 	switch v := res.Result.(type) {
 	case *types.P2PStoreResponse_BlockBodys:
-		l := int64(len(v.BlockBodys.Items))
-		start, end := params.Start%l, params.End%l+1
-		v.BlockBodys.Items = v.BlockBodys.Items[start:end]
 		return v.BlockBodys, nil, nil
 	case *types.P2PStoreResponse_AddrInfo:
 		var addrInfos []peer.AddrInfo
@@ -228,8 +247,12 @@ func (s *StoreProtocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*type
 	if err != nil {
 		return nil, err
 	}
+	if bodys, ok := resp.GetData().(*types.BlockBodys); ok {
+		return bodys, nil
+	}
 	if reply, ok := resp.GetData().(*types.Reply); ok {
 		return nil, errors.New(string(reply.Msg))
 	}
-	return resp.GetData().(*types.BlockBodys), nil
+
+	return nil, types2.ErrNotFound
 }

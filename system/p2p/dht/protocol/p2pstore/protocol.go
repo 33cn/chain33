@@ -3,6 +3,7 @@ package p2pstore
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"runtime"
 	"sync"
@@ -104,9 +105,10 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 	// 检查本节点是否需要进行区块数据归档
 	case types.EventNotifyStoreChunk:
 		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
-		err := s.StoreChunk(m.GetData().(*types.ChunkInfoMsg))
+		req := m.GetData().(*types.ChunkInfoMsg)
+		err := s.StoreChunk(req)
 		if err != nil {
-			log.Error("HandleEvent", "storeChunk error", err)
+			log.Error("StoreChunk","chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		}
 
 
@@ -116,12 +118,12 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 		req := m.GetData().(*types.ChunkInfoMsg)
 		bodys, err := s.GetChunk(req)
 		if err != nil {
-			log.Error("HandleEvent", "GetChunk error", err)
+			log.Error("GetChunkBlock", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 			return
 		}
 		headers := s.getHeaders(&types.ReqBlocks{Start: req.Start, End: req.End})
 		if len(headers.Items) != len(bodys.Items) {
-			log.Error("GetBlockHeader", "error", types2.ErrLength, "header length", len(headers.Items), "body length", len(bodys.Items))
+			log.Error("GetBlockHeader", "error", types2.ErrLength, "header length", len(headers.Items), "body length", len(bodys.Items), "start", req.Start, "end", req.End)
 			return
 		}
 
@@ -154,9 +156,10 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 
 	// 获取chunkBody数据
 	case types.EventGetChunkBlockBody:
-		blockBodys, err := s.GetChunk(m.GetData().(*types.ChunkInfoMsg))
+		req := m.GetData().(*types.ChunkInfoMsg)
+		blockBodys, err := s.GetChunk(req)
 		if err != nil {
-			log.Error("HandleEvent", "GetChunkBlockBody error", err)
+			log.Error("GetChunkBlockBody", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 			m.ReplyErr("", err)
 			return
 		}
@@ -168,7 +171,7 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 		req := m.GetData().(*types.ReqChunkRecords)
 		records := s.getChunkRecords(req)
 		if records == nil {
-			log.Error("HandleEvent", "GetChunkRecord error", types2.ErrNotFound)
+			log.Error("GetChunkRecord", "error", types2.ErrNotFound)
 			return
 		}
 		msg := s.QueueClient.NewMessage("blockchain", types.EventAddChunkRecord, records)
