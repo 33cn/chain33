@@ -23,7 +23,6 @@ import (
 
 //HOST1 ID: Qma91H212PWtAFcioW7h9eKiosJtwHsb9x3RmjqRWTwciZ
 //HOST2 ID: QmbazrBU4HthhnQWcUTiJLnj5ihbFHXsAkGAG6QfmrqJDs
-
 func TestInit(t *testing.T) {
 	var err error
 	q := queue.New("test")
@@ -35,14 +34,14 @@ func TestInit(t *testing.T) {
 	var msg *queue.Message
 	//向host1请求数据
 	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test"),
+		ChunkHash: []byte("test0"),
 		Start:     0,
 		End:       999,
 	})
 	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
 	//向host2请求数据
 	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test"),
+		ChunkHash: []byte("test0"),
 		Start:     500,
 		End:       999,
 	})
@@ -50,13 +49,13 @@ func TestInit(t *testing.T) {
 
 	// 通知host1保存数据
 	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test"),
+		ChunkHash: []byte("test0"),
 		Start:     0,
 		End:       999,
 	})
 	// 通知host2保存数据
 	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test"),
+		ChunkHash: []byte("test0"),
 		Start:     0,
 		End:       999,
 	})
@@ -69,72 +68,131 @@ func TestInit(t *testing.T) {
 
 	//向host1请求BlockBody
 	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test"),
+		ChunkHash: []byte("test0"),
 		Start:     0,
 		End:       99,
 	})
 	assert.Equal(t, 100, len(msg.Data.(*types.BlockBodys).Items))
 	//向host2请求BlockBody
 	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test"),
+		ChunkHash: []byte("test0"),
 		Start:     666,
 		End:       888,
 	})
 	assert.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
 
+	//向host1请求数据
+	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test1"),
+		Start:     1000,
+		End:       1999,
+	})
+	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
+	//向host2请求数据
+	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test1"),
+		Start:     1500,
+		End:       1999,
+	})
+	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
+
+
 	//向host1请求Block
 	testGetBlock(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test"),
+		ChunkHash: []byte("test0"),
 		Start:     0,
 		End:       499,
 	})
 	msg = <-msgCh
+	msg.Reply(nil)
 	assert.Equal(t, 500, len(msg.Data.(*types.Blocks).Items))
+
 
 	//向host2请求Block
 	testGetBlock(t, client, "p2p2", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test"),
+		ChunkHash: []byte("test0"),
 		Start:     111,
 		End:       666,
 	})
 	msg = <-msgCh
+	msg.Reply(nil)
 	assert.Equal(t, 556, len(msg.Data.(*types.Blocks).Items))
 
 	//向host1请求Records
 	testGetRecord(t, client, "p2p", &types.ReqChunkRecords{
-		Start: 100,
-		End:   199,
+		Start: 1,
+		End:   100,
 	})
 	msg = <-msgCh
+	msg.Reply(nil)
 	assert.Equal(t, 100, len(msg.Data.(*types.ChunkRecords).Infos))
 
 	//向host2请求Records
 	testGetRecord(t, client, "p2p", &types.ReqChunkRecords{
-		Start: 1000,
-		End:   1999,
+		Start: 50,
+		End:   60,
 	})
 	msg = <-msgCh
-	assert.Equal(t, 1000, len(msg.Data.(*types.ChunkRecords).Infos))
+	msg.Reply(nil)
+	assert.Equal(t, 11, len(msg.Data.(*types.ChunkRecords).Infos))
 
-	err = p2.deleteChunkBlock([]byte("test"))
+	err = p2.deleteChunkBlock([]byte("test0"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	//向host2请求BlockBody
 	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test"),
+		ChunkHash: []byte("test0"),
 		Start:     0,
 		End:       999,
 	})
 	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 
+
+	//保存2000~2999的block,会检查1000~1999的block并保存
+	// 通知host1保存数据
+	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test2"),
+		Start:     2000,
+		End:       2999,
+	})
+	// 通知host2保存数据
+	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test2"),
+		Start:     2000,
+		End:       2999,
+	})
+	time.Sleep(time.Second)
+	//数据保存之后应该可以查到数据了
+
+	//向host1请求BlockBody
+	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test2"),
+		Start:     2000,
+		End:       2999,
+	})
+	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	//向host2请求BlockBody
+	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test1"),
+		Start:     1666,
+		End:       1888,
+	})
+	assert.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
+
 }
 
-func testStoreChunk(t *testing.T, client queue.Client, topic string, req *types.ChunkInfoMsg) {
-	err := client.Send(client.NewMessage(topic, types.EventNotifyStoreChunk, req), false)
+func testStoreChunk(t *testing.T, client queue.Client, topic string, req *types.ChunkInfoMsg) *queue.Message {
+	msg := client.NewMessage(topic, types.EventNotifyStoreChunk, req)
+	err := client.Send(msg, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+	msg, err = client.Wait(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return msg
 }
 
 func testGetBody(t *testing.T, client queue.Client, topic string, req *types.ChunkInfoMsg) *queue.Message {
@@ -150,20 +208,30 @@ func testGetBody(t *testing.T, client queue.Client, topic string, req *types.Chu
 	return msg
 }
 
-func testGetBlock(t *testing.T, client queue.Client, topic string, req *types.ChunkInfoMsg) {
+func testGetBlock(t *testing.T, client queue.Client, topic string, req *types.ChunkInfoMsg) *queue.Message {
 	msg := client.NewMessage(topic, types.EventGetChunkBlock, req)
-	err := client.Send(msg, false)
+	err := client.Send(msg, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+	msg, err = client.Wait(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return msg
 }
 
-func testGetRecord(t *testing.T, client queue.Client, topic string, req *types.ReqChunkRecords) {
+func testGetRecord(t *testing.T, client queue.Client, topic string, req *types.ReqChunkRecords) *queue.Message {
 	msg := client.NewMessage(topic, types.EventGetChunkRecord, req)
-	err := client.Send(msg, false)
+	err := client.Send(msg, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+	msg, err = client.Wait(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return msg
 }
 
 func initMockBlockchain(q queue.Queue) <-chan *queue.Message {
@@ -174,19 +242,20 @@ func initMockBlockchain(q queue.Queue) <-chan *queue.Message {
 		for msg := range client.Recv() {
 			switch msg.Ty {
 			case types.EventGetChunkBlockBody:
-				bodys := &types.BlockBodys{Items: make([]*types.BlockBody, 0, 1000)}
-				for i := 0; i < 1000; i++ {
+				req := msg.Data.(*types.ChunkInfoMsg)
+				bodys := &types.BlockBodys{Items: make([]*types.BlockBody, 0, req.End-req.Start+1)}
+				for i := req.Start; i <= req.End; i++ {
 					bodys.Items = append(bodys.Items, &types.BlockBody{
-						Height: int64(i),
+						Height: i,
 					})
 				}
 				msg.Reply(queue.NewMessage(0, "", 0, bodys))
 			case types.EventGetHeaders:
 				req := msg.Data.(*types.ReqBlocks)
-				items := make([]*types.Header, 0, 1000)
+				items := make([]*types.Header, 0, req.End-req.Start+1)
 				for i := req.Start; i <= req.End; i++ {
 					items = append(items, &types.Header{
-						Height: int64(i),
+						Height: i,
 					})
 				}
 				headers := &types.Headers{
@@ -195,11 +264,13 @@ func initMockBlockchain(q queue.Queue) <-chan *queue.Message {
 				msg.Reply(queue.NewMessage(0, "", 0, headers))
 			case types.EventGetChunkRecord:
 				req := msg.Data.(*types.ReqChunkRecords)
-				records := types.ChunkRecords{
-					Infos: make([]*types.ChunkInfo, 0, req.End-req.Start+1),
-				}
+				records := types.ChunkRecords{}
 				for i := req.Start; i <= req.End; i++ {
-					records.Infos = append(records.Infos, &types.ChunkInfo{})
+					records.Infos = append(records.Infos, &types.ChunkInfo{
+						ChunkHash: []byte(fmt.Sprintf("test%d", i)),
+						Start: i*1000,
+						End: i*1000+999,
+					})
 				}
 				msg.Reply(&queue.Message{Data: &records})
 			default:
