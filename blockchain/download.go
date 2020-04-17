@@ -429,7 +429,7 @@ func (chain *BlockChain) ChunkDownLoadBlocks() {
 			// 下载chunk后在该进程执行临时区块
 			go chain.ReadBlockToExec(targetHeight, true)
 			break
-		} else if types.Since(startTime) > waitTimeDownLoad*time.Second || chain.cfg.SingleMode {
+		} else if types.Since(startTime) > waitTimeDownLoad*time.Second*3 || chain.cfg.SingleMode {
 			synlog.Info("ChunkDownLoadBlocks:waitTimeDownLoad:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight, "pids", pids)
 			chain.UpdateDownloadSyncStatus(normalDownLoadMode)
 			break
