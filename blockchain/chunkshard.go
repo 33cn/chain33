@@ -367,11 +367,15 @@ func (chain *BlockChain) GetCurChunkNum() int64 {
 
 // CaclSafetyChunkInfo 计算安全的chunkNum用于生成chunk时候或者删除时候
 func (chain *BlockChain) CaclSafetyChunkInfo(height int64) (chunkNum, start, end int64) {
-	height = height - MaxRollBlockNum - chain.cfg.ChunkblockNum
+	height = chain.caclSafetyChunkHeight(height)
 	if height < 0  {
 		return -1, 0, 0
 	}
 	return caclChunkInfo(chain.cfg, height)
+}
+
+func (chain *BlockChain) caclSafetyChunkHeight(height int64) int64 {
+	return height - MaxRollBlockNum - chain.cfg.ChunkblockNum
 }
 
 // CaclChunkInfo 主要用于计算验证
