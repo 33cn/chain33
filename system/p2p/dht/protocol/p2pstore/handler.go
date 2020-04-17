@@ -15,7 +15,7 @@ import (
 )
 
 //StoreChunk handles notification of blockchain,
-// store chunk if this node is the nearest node in the local routing table.
+// store chunk if this node is the nearest *BackUp* node in the local routing table.
 func (s *StoreProtocol) StoreChunk(req *types.ChunkInfoMsg) error {
 	if req == nil {
 		return types2.ErrInvalidParam
@@ -82,6 +82,10 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ChunkInfoM
 			log.Error("onFetchChunk", "stream write error", err)
 		}
 	}()
+	if req == nil {
+		res.ErrorInfo = types2.ErrInvalidParam.Error()
+		return
+	}
 	//优先检查本地是否存在
 	bodys, _ := s.getChunkBlock(req.ChunkHash)
 	if bodys != nil {
@@ -121,6 +125,9 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ChunkInfoM
 		2. blockchain模块没有数据则向对端节点请求
 */
 func (s *StoreProtocol) onStoreChunk(stream network.Stream, req *types.ChunkInfoMsg) {
+	if req == nil {
+		return
+	}
 	//检查本地 p2pStore，如果已存在数据则直接更新
 	err := s.updateChunk(req)
 	if err == nil {
@@ -154,7 +161,10 @@ func (s *StoreProtocol) onGetHeader(writer *bufio.Writer, req *types.ReqBlocks) 
 			log.Error("onGetHeader", "stream write error", err)
 		}
 	}()
-
+	if req == nil {
+		res.ErrorInfo = types2.ErrInvalidParam.Error()
+		return
+	}
 	msg := s.QueueClient.NewMessage("blockchain", types.EventGetHeaders, req)
 	err := s.QueueClient.Send(msg, true)
 	if err != nil {
@@ -187,7 +197,10 @@ func (s *StoreProtocol) onGetChunkRecord(writer *bufio.Writer, req *types.ReqChu
 			log.Error("onGetChunkRecord", "stream write error", err)
 		}
 	}()
-
+	if req == nil {
+		res.ErrorInfo = types2.ErrInvalidParam.Error()
+		return
+	}
 	msg := s.QueueClient.NewMessage("blockchain", types.EventGetChunkRecord, req)
 	err := s.QueueClient.Send(msg, true)
 	if err != nil {
