@@ -630,7 +630,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		pids := chain.GetBestChainPids()
 		if pids != nil {
 			recvChunk := chain.GetCurRecvChunkNum()
-			curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
+			curShouldChunk, _, _ := chain.CaclChunkInfo(curheight+1)
 			// TODO 后期可修改为同步节点不使用FetchChunkBlock，即让对端节点去查找具体的chunk，这里不做区分
 			if !chain.cfg.DisableShard && chain.cfg.EnableFetchP2pstore &&
 				curheight+MaxRollBlockNum < peerMaxBlkHeight && recvChunk >= curShouldChunk {
@@ -1255,7 +1255,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 			return err
 		}
 	}
-	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End, "isDownLoad", isDownLoad)
+	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End, "isDownLoad", isDownLoad, "chunkhash", common.ToHex(chunkhash))
 	msg := chain.client.NewMessage("p2p", types.EventGetChunkBlock, &requestblock)
 	err = chain.client.Send(msg, true)
 	if err != nil {

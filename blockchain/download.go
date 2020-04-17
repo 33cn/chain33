@@ -416,17 +416,18 @@ func (chain *BlockChain) ChunkDownLoadBlocks() {
 	for {
 		curheight := chain.GetBlockHeight()
 		peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
+		targetHeight := chain.caclSafetyChunkHeight(peerMaxBlkHeight) // 节点生成chunk的高度滞后于当前高度
 		pids := chain.GetBestChainPids()
 		//节点启动时只有落后最优链batchsyncblocknum个区块时才开启这种下载模式
 		if pids != nil && peerMaxBlkHeight != -1 && curheight+batchsyncblocknum >= peerMaxBlkHeight {
 			synlog.Info("ChunkDownLoadBlocks:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight)
 			chain.UpdateDownloadSyncStatus(normalDownLoadMode)
 			break
-		} else if curheight+MaxRollBlockNum < peerMaxBlkHeight && pids != nil {
-			synlog.Info("start download blocks!ChunkDownLoadBlocks", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight)
-			go chain.ProcDownLoadBlocks(curheight, peerMaxBlkHeight, true, pids)
+		} else if curheight < targetHeight && pids != nil {
+			synlog.Info("start download blocks!ChunkDownLoadBlocks", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight, "targetHeight", targetHeight)
+			go chain.ProcDownLoadBlocks(curheight, targetHeight, true, pids)
 			// 下载chunk后在该进程执行临时区块
-			go chain.ReadBlockToExec(peerMaxBlkHeight, true)
+			go chain.ReadBlockToExec(targetHeight, true)
 			break
 		} else if types.Since(startTime) > waitTimeDownLoad*time.Second || chain.cfg.SingleMode {
 			synlog.Info("ChunkDownLoadBlocks:waitTimeDownLoad:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight, "pids", pids)
