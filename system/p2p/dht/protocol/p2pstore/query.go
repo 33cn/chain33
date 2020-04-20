@@ -1,17 +1,38 @@
 package p2pstore
 
 import (
-	"bufio"
 	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"time"
 
+	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+//getChunk gets chunk data from p2pStore or other peers.
+func (s *StoreProtocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
+	if req == nil {
+		return nil, types2.ErrInvalidParam
+	}
+
+	//优先获取本地p2pStore数据
+	bodys, _ := s.getChunkBlock(req.ChunkHash)
+	if bodys != nil {
+		l := int64(len(bodys.Items))
+		start, end := req.Start%l, req.End%l+1
+		bodys.Items = bodys.Items[start:end]
+		return bodys, nil
+	}
+
+	//本地数据不存在或已过期，则向临近节点查询
+	//首先从本地路由表获取 *3* 个最近的节点
+	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), AlphaValue)
+	return s.mustFetchChunk(req, peersToMap(peers))
+}
 
 func (s *StoreProtocol) getHeaders(param *types.ReqBlocks) *types.Headers {
 	for _, pid := range s.Discovery.RoutingTable() {
@@ -35,27 +56,25 @@ func (s *StoreProtocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) 
 		return nil, err
 	}
 	defer stream.Close()
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	msg := types.P2PStoreRequest{
-		ProtocolID: GetHeader,
-		Data: &types.P2PStoreRequest_ReqBlocks{
+	msg := types.P2PRequest{
+		Request: &types.P2PRequest_ReqBlocks{
 			ReqBlocks: param,
 		},
 	}
-	err = writeMessage(rw.Writer, &msg)
+	err = protocol.SignAndWriteStream(&msg, stream)
 	if err != nil {
-		log.Error("getHeadersFromPeer", "stream write error", err)
+		log.Error("getHeadersFromPeer", "SignAndWriteStream error", err)
 		return nil, err
 	}
-	var res types.P2PStoreResponse
-	err = readMessage(rw.Reader, &res)
+	var res types.P2PResponse
+	err = protocol.ReadResponseAndAuthenticate(&res, stream)
 	if err != nil {
 		return nil, err
 	}
-	if res.ErrorInfo != "" {
-		return nil, errors.New(res.ErrorInfo)
+	if res.Error != "" {
+		return nil, errors.New(res.Error)
 	}
-	return res.Result.(*types.P2PStoreResponse_Headers).Headers, nil
+	return res.Response.(*types.P2PResponse_BlockHeaders).BlockHeaders, nil
 }
 
 func (s *StoreProtocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
@@ -93,31 +112,29 @@ func (s *StoreProtocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pi
 		return nil, err
 	}
 	defer stream.Close()
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	msg := types.P2PStoreRequest{
-		ProtocolID: GetChunkRecord,
-		Data: &types.P2PStoreRequest_ReqChunkRecords{
+	msg := types.P2PRequest{
+		Request: &types.P2PRequest_ReqChunkRecords{
 			ReqChunkRecords: param,
 		},
 	}
-	err = writeMessage(rw.Writer, &msg)
+	err = protocol.SignAndWriteStream(&msg, stream)
 	if err != nil {
-		log.Error("getChunkRecordsFromPeer", "stream write error", err)
+		log.Error("getChunkRecordsFromPeer", "SignAndWriteStream error", err)
 		return nil, err
 	}
 
-	var res types.P2PStoreResponse
-	err = readMessage(rw.Reader, &res)
+	var res types.P2PResponse
+	err = protocol.ReadResponseAndAuthenticate(&res, stream)
 	if err != nil {
 		return nil, err
 	}
-	if res.ErrorInfo != "" {
-		return nil, errors.New(res.ErrorInfo)
+	if res.Error != "" {
+		return nil, errors.New(res.Error)
 	}
-	return res.Result.(*types.P2PStoreResponse_ChunkRecords).ChunkRecords, nil
+	return res.Response.(*types.P2PResponse_ChunkRecords).ChunkRecords, nil
 }
 
-func (s *StoreProtocol) mustFetchChunk(req *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, error) {
+func (s *StoreProtocol) mustFetchChunk(req *types.ChunkInfoMsg, peers map[peer.ID]struct{}) (*types.BlockBodys, error) {
 	//递归查询时间上限一小时
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
@@ -134,13 +151,13 @@ func (s *StoreProtocol) mustFetchChunk(req *types.ChunkInfoMsg, peers []peer.ID)
 	return nil, types2.ErrNotFound
 }
 
-func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, []peer.ID) {
+func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param *types.ChunkInfoMsg, peerMap map[peer.ID]struct{}) (*types.BlockBodys, map[peer.ID]struct{}) {
 
-	responseCh := make(chan interface{}, len(peers))
+	responseCh := make(chan interface{}, len(peerMap))
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	defer cancelFunc()
 	// 多个节点并发请求
-	for _, peerID := range peers {
+	for peerID := range peerMap {
 		if peerID == s.Host.ID() {
 			responseCh <- nil
 			continue
@@ -158,8 +175,9 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 		}(peerID)
 	}
 
-	var peerList []peer.ID
-	for range peers {
+	//map用于去重
+	newPeerMap := make(map[peer.ID]struct{})
+	for range peerMap {
 		res := <-responseCh
 		switch t := res.(type) {
 		case *types.BlockBodys:
@@ -167,20 +185,19 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 			return t, nil
 		case []peer.ID:
 			//没查到区块数据，返回了更近的节点信息
-			peerList = append(peerList, t...)
-			if len(peerList) >= AlphaValue {
-				//直接返回新peer，加快查询速度
-				return nil, t
+			for _, newPeer := range t {
+				//过滤掉已经查询过的节点
+				if _, ok := peerMap[newPeer]; !ok {
+					newPeerMap[newPeer] = struct{}{}
+				}
+				if len(newPeerMap) == AlphaValue {
+					//直接返回新peer，加快查询速度
+					return nil, newPeerMap
+				}
 			}
 		}
 	}
-
-	//TODO 若超过3个，排序选择最优的三个节点
-	if len(peerList) > AlphaValue {
-		peerList = peerList[:AlphaValue]
-	}
-
-	return nil, peerList
+	return nil, newPeerMap
 }
 
 func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
@@ -192,30 +209,28 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 		return nil, nil, err
 	}
 	defer stream.Close()
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	msg := types.P2PStoreRequest{
-		ProtocolID: FetchChunk,
-		Data: &types.P2PStoreRequest_ChunkInfoMsg{
+	msg := types.P2PRequest{
+		Request: &types.P2PRequest_ChunkInfoMsg{
 			ChunkInfoMsg: params,
 		},
 	}
-	err = writeMessage(rw.Writer, &msg)
+	err = protocol.SignAndWriteStream(&msg, stream)
 	if err != nil {
-		log.Error("fetchChunkOrNearerPeers", "stream write error", err)
+		log.Error("fetchChunkOrNearerPeers", "SignAndWriteStream error", err)
 		return nil, nil, err
 	}
-	var res types.P2PStoreResponse
-	err = readMessage(rw.Reader, &res)
+	var res types.P2PResponse
+	err = protocol.ReadResponseAndAuthenticate(&res, stream)
 	if err != nil {
 		log.Error("fetchChunkFromPeer", "read response error", err, "chunk hash", hex.EncodeToString(params.ChunkHash))
 		return nil, nil, err
 	}
 	log.Info("fetchChunkFromPeer", "remote", pid.Pretty(), "chunk hash", hex.EncodeToString(params.ChunkHash))
 
-	switch v := res.Result.(type) {
-	case *types.P2PStoreResponse_BlockBodys:
+	switch v := res.Response.(type) {
+	case *types.P2PResponse_BlockBodys:
 		return v.BlockBodys, nil, nil
-	case *types.P2PStoreResponse_AddrInfo:
+	case *types.P2PResponse_AddrInfo:
 		var addrInfos []peer.AddrInfo
 		err = json.Unmarshal(v.AddrInfo, &addrInfos)
 		if err != nil {
@@ -229,15 +244,73 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 		}
 		return nil, peerList, nil
 	default:
-		if res.ErrorInfo != "" {
-			return nil, nil, errors.New(res.ErrorInfo)
+		if res.Error != "" {
+			return nil, nil, errors.New(res.Error)
 		}
 	}
 
 	return nil, nil, types2.ErrNotFound
 }
 
+func (s *StoreProtocol) checkLastChunk(in *types.ChunkInfoMsg) {
+	l := in.End - in.Start + 1
+	req := &types.ReqChunkRecords{
+		Start: in.Start/l - 1,
+		End:   in.End/l - 1,
+	}
+	if req.Start < 0 {
+		return
+	}
+	records, err := s.getChunkRecordFromBlockchain(req)
+	if err != nil || len(records.Infos) != 1 {
+		log.Error("checkLastChunk", "getChunkRecordFromBlockchain error", err, "start", req.Start, "end", req.End, "records", records)
+		return
+	}
+	info := &types.ChunkInfoMsg{
+		ChunkHash: records.Infos[0].ChunkHash,
+		Start:     records.Infos[0].Start,
+		End:       records.Infos[0].End,
+	}
+	bodys, err := s.getChunk(info)
+	if err == nil && bodys != nil && len(bodys.Items) == int(l) {
+		return
+	}
+	//网络中找不到上一个chunk,先把上一个chunk保存到本地p2pstore
+	log.Debug("checkLastChunk", "chunk num", info.Start, "chunk hash", hex.EncodeToString(info.ChunkHash))
+	err = s.storeChunk(info)
+	if err != nil {
+		log.Error("checkLastChunk", "chunk hash", hex.EncodeToString(info.ChunkHash), "start", info.Start, "end", info.End, "error", err)
+	}
+}
+
+func (s *StoreProtocol) storeChunk(req *types.ChunkInfoMsg) error {
+	//先检查上个chunk是否可以在网络中查到
+	s.checkLastChunk(req)
+	//如果p2pStore已保存数据，只更新时间即可
+	if err := s.updateChunk(req); err == nil {
+		return nil
+	}
+	//blockchain通知p2pStore保存数据，则blockchain应该有数据
+	bodys, err := s.getChunkFromBlockchain(req)
+	if err != nil {
+		log.Error("StoreChunk", "getChunkFromBlockchain error", err)
+		return err
+	}
+	err = s.addChunkBlock(req, bodys)
+	if err != nil {
+		log.Error("StoreChunk", "addChunkBlock error", err)
+		return err
+	}
+
+	//本地存储之后立即到其他节点做一次备份
+	s.notifyStoreChunk(req)
+	return nil
+}
+
 func (s *StoreProtocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*types.BlockBodys, error) {
+	if param == nil {
+		return nil, types2.ErrInvalidParam
+	}
 	msg := s.QueueClient.NewMessage("blockchain", types.EventGetChunkBlockBody, param)
 	err := s.QueueClient.Send(msg, true)
 	if err != nil {
@@ -250,9 +323,33 @@ func (s *StoreProtocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*type
 	if bodys, ok := resp.GetData().(*types.BlockBodys); ok {
 		return bodys, nil
 	}
-	if reply, ok := resp.GetData().(*types.Reply); ok {
-		return nil, errors.New(string(reply.Msg))
+	return nil, types2.ErrNotFound
+}
+
+func (s *StoreProtocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords) (*types.ChunkRecords, error) {
+	if req == nil {
+		return nil, types2.ErrInvalidParam
+	}
+	msg := s.QueueClient.NewMessage("blockchain", types.EventGetChunkRecord, req)
+	err := s.QueueClient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := s.QueueClient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	if records, ok := resp.GetData().(*types.ChunkRecords); ok {
+		return records, nil
 	}
 
 	return nil, types2.ErrNotFound
+}
+
+func peersToMap(peers []peer.ID) map[peer.ID]struct{} {
+	m := make(map[peer.ID]struct{})
+	for _, pid := range peers {
+		m[pid] = struct{}{}
+	}
+	return m
 }
