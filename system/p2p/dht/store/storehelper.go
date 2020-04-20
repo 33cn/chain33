@@ -8,10 +8,10 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 )
 
-type StoreHelper struct {
+type Helper struct {
 }
 
-func (s *StoreHelper) PutBlock(routing *dht.IpfsDHT, block *types.Block, blockHash []byte) error {
+func (s *Helper) PutBlock(routing *dht.IpfsDHT, block *types.Block, blockHash []byte) error {
 	key := MakeBlockHashAsKey(blockHash)
 	value, err := proto.Marshal(block)
 	if err != nil {
@@ -20,7 +20,7 @@ func (s *StoreHelper) PutBlock(routing *dht.IpfsDHT, block *types.Block, blockHa
 	return routing.PutValue(context.Background(), key, value)
 }
 
-func (s *StoreHelper) GetBlockByHash(routing *dht.IpfsDHT, blockHash []byte) (*types.Block, error) {
+func (s *Helper) GetBlockByHash(routing *dht.IpfsDHT, blockHash []byte) (*types.Block, error) {
 	key := MakeBlockHashAsKey(blockHash)
 	value, err := routing.GetValue(context.Background(), key)
 	if err != nil {

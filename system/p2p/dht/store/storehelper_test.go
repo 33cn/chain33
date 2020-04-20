@@ -57,7 +57,7 @@ func TestStoreHelper(t *testing.T) {
 	block1.MainHash = block1.HashNew()
 	block1.Height = 99999
 
-	storeHelper := &StoreHelper{}
+	storeHelper := &Helper{}
 	err1 := storeHelper.PutBlock(dhtRouting1, block1, block1.MainHash)
 	assert.NoError(t, err1)
 
