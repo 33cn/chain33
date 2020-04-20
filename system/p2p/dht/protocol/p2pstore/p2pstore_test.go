@@ -59,7 +59,7 @@ func TestInit(t *testing.T) {
 		Start:     0,
 		End:       999,
 	})
-	time.Sleep(time.Second)
+	time.Sleep(time.Second/2)
 	err = p2.republish()
 	if err != nil {
 		t.Fatal(err)
@@ -149,20 +149,20 @@ func TestInit(t *testing.T) {
 	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 
 
-	//保存2000~2999的block,会检查1000~1999的block并保存
+	//保存4000~4999的block,会检查0~3999的blockchunk是否能查到
 	// 通知host1保存数据
 	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test2"),
-		Start:     2000,
-		End:       2999,
+		ChunkHash: []byte("test4"),
+		Start:     4000,
+		End:       4999,
 	})
 	// 通知host2保存数据
 	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test2"),
-		Start:     2000,
-		End:       2999,
+		ChunkHash: []byte("test4"),
+		Start:     4000,
+		End:       4999,
 	})
-	time.Sleep(time.Second)
+	time.Sleep(time.Second/2)
 	//数据保存之后应该可以查到数据了
 
 	//向host1请求BlockBody
@@ -170,6 +170,30 @@ func TestInit(t *testing.T) {
 		ChunkHash: []byte("test2"),
 		Start:     2000,
 		End:       2999,
+	})
+	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test1"),
+		Start:     1000,
+		End:       1999,
+	})
+	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test2"),
+		Start:     2000,
+		End:       2999,
+	})
+	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test3"),
+		Start:     3000,
+		End:       3999,
+	})
+	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test4"),
+		Start:     4000,
+		End:       4999,
 	})
 	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 	//向host2请求BlockBody
