@@ -247,12 +247,9 @@ func (s *StoreProtocol) checkLastChunk(in *types.ChunkInfoMsg) {
 		return
 	}
 	records, err := s.getChunkRecordFromBlockchain(req)
-	if err != nil {
-		log.Error("checkLastChunk", "getChunkRecordFromBlockchain error", err, "start", req.Start, "end", req.End)
+	if err != nil || len(records.Infos) != 1 {
+		log.Error("checkLastChunk", "getChunkRecordFromBlockchain error", err, "start", req.Start, "end", req.End, "record len", len(records.Infos))
 		return
-	}
-	if len(records.Infos) != 1 {
-		log.Error("checkLastChunk", "record len", len(records.Infos))
 	}
 	info := &types.ChunkInfoMsg{
 		ChunkHash: records.Infos[0].ChunkHash,
@@ -263,6 +260,7 @@ func (s *StoreProtocol) checkLastChunk(in *types.ChunkInfoMsg) {
 	if err == nil && bodys != nil && len(bodys.Items) == int(l) {
 		return
 	}
+	log.Debug("checkLastChunk", "chunk num", info.Start, "chunk hash", hex.EncodeToString(info.ChunkHash))
 	err = s.storeChunk(info)
 	if err != nil {
 		log.Error("checkLastChunk", "chunk hash", hex.EncodeToString(info.ChunkHash), "start", info.Start, "end", info.End, "error", err)

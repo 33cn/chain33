@@ -31,11 +31,12 @@ func (s *StoreProtocol) CheckStoreChunk(req *types.ChunkInfoMsg) error {
 		return nil
 	}
 	log.Info("StoreChunk", "local pid", s.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
-	s.checkLastChunk(req)
 	return s.storeChunk(req)
 }
 
 func (s *StoreProtocol) storeChunk(req *types.ChunkInfoMsg) error {
+	//先检查上个chunk是否可以在网络中查到
+	s.checkLastChunk(req)
 	//如果p2pStore已保存数据，只更新时间即可
 	if err := s.updateChunk(req); err == nil {
 		return nil
@@ -109,6 +110,11 @@ func (s *StoreProtocol) onFetchChunk(writer *bufio.Writer, req *types.ChunkInfoM
 			continue
 		}
 		addrInfos = append(addrInfos, s.Discovery.FindLocalPeer(pid))
+	}
+
+	if len(addrInfos) == 0 {
+		res.ErrorInfo = types2.ErrNotFound.Error()
+		return
 	}
 
 	addrInfosData, err := json.Marshal(addrInfos)
