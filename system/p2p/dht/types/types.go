@@ -37,5 +37,5 @@ type P2PSubConfig struct {
 
 	DHTDataDriver string `protobuf:"bytes,15,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
 	DHTDataPath   string `protobuf:"bytes,16,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
-	DHTDataCache  int32  `protobuf:"varint,17,opt,name=DHTDataCache" json:"maxConnnectNum,omitempty"`
+	DHTDataCache  int32  `protobuf:"varint,17,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
 }
