@@ -38,7 +38,8 @@ func Test_recvQueryData(t *testing.T) {
 			TxReq: &types.P2PTxReq{TxHash: tx.Hash()}}}
 	sendData, _ := proto.handleSend(query, testPid, testAddr)
 	memTxs := []*types.Transaction{nil}
-	go testHandleMempool(q, &memTxs)
+	done := startHandleMempool(q, &memTxs)
+	<-done
 	err := proto.handleReceive(sendData, testPid, testAddr)
 	assert.Equal(t, errRecvMempool, err)
 	memTxs = []*types.Transaction{tx}
