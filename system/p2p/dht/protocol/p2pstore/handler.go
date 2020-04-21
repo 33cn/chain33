@@ -61,7 +61,7 @@ func (s *StoreProtocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types
 	}
 
 	//本地没有数据
-	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(param.ChunkHash)), AlphaValue)
+	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(param.ChunkHash)), AlphaValue*2)
 	var addrInfos []peer.AddrInfo
 	for _, pid := range peers {
 		if kb.Closer(s.Host.ID(), pid, genChunkPath(param.ChunkHash)) {
@@ -86,9 +86,7 @@ func (s *StoreProtocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types
 /*
 检查本节点p2pStore是否保存了数据，
 	1）若已保存则只更新时间即可
-	2）若未保存：
-		1. 向blockchain模块请求
-		2. blockchain模块没有数据则向对端节点请求
+	2）若未保存则从网络中请求chunk数据
 */
 func (s *StoreProtocol) HandleStreamStoreChunk(req *types.P2PRequest) {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
@@ -99,7 +97,7 @@ func (s *StoreProtocol) HandleStreamStoreChunk(req *types.P2PRequest) {
 	}
 
 	pids := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(param.ChunkHash)), AlphaValue)
-	bodys, err := s.mustFetchChunk(param, pids)
+	bodys, err := s.mustFetchChunk(param, peersToMap(pids))
 	if err != nil {
 		log.Error("onStoreChunk", "get bodys from remote peer error", err)
 		return
@@ -146,14 +144,14 @@ func (s *StoreProtocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *t
 func (s *StoreProtocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ChunkInfoMsg)
-	//路由表中存在比当前节点更近的节点，说明当前节点不是局部最优节点，不需要保存数据
-	count := 1
+	//如果本节点是本地路由表中距离该chunk最近的 *count* 个节点之一，则保存数据；否则不需要保存数据
+	count := Backup
 	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), count)
 	if len(peers) == 0 {
 		log.Error("HandleEventNotifyStoreChunk", "error", types2.ErrEmptyRoutingTable)
 		return
 	}
-	if len(peers) >= count && kb.Closer(peers[count-1], s.Host.ID(), genChunkPath(req.ChunkHash)) {
+	if len(peers) == count && kb.Closer(peers[count-1], s.Host.ID(), genChunkPath(req.ChunkHash)) {
 		return
 	}
 	err := s.storeChunk(req)

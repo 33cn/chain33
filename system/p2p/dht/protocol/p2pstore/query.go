@@ -31,7 +31,7 @@ func (s *StoreProtocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, er
 	//本地数据不存在或已过期，则向临近节点查询
 	//首先从本地路由表获取 *3* 个最近的节点
 	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), AlphaValue)
-	return s.mustFetchChunk(req, peers)
+	return s.mustFetchChunk(req, peersToMap(peers))
 }
 
 func (s *StoreProtocol) getHeaders(param *types.ReqBlocks) *types.Headers {
@@ -134,7 +134,7 @@ func (s *StoreProtocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pi
 	return res.Response.(*types.P2PResponse_ChunkRecords).ChunkRecords, nil
 }
 
-func (s *StoreProtocol) mustFetchChunk(req *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, error) {
+func (s *StoreProtocol) mustFetchChunk(req *types.ChunkInfoMsg, peers map[peer.ID]struct{}) (*types.BlockBodys, error) {
 	//递归查询时间上限一小时
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
@@ -151,13 +151,13 @@ func (s *StoreProtocol) mustFetchChunk(req *types.ChunkInfoMsg, peers []peer.ID)
 	return nil, types2.ErrNotFound
 }
 
-func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, []peer.ID) {
+func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param *types.ChunkInfoMsg, peerMap map[peer.ID]struct{}) (*types.BlockBodys, map[peer.ID]struct{}) {
 
-	responseCh := make(chan interface{}, len(peers))
+	responseCh := make(chan interface{}, len(peerMap))
 	cancelCtx, cancelFunc := context.WithCancel(ctx)
 	defer cancelFunc()
 	// 多个节点并发请求
-	for _, peerID := range peers {
+	for peerID := range peerMap {
 		if peerID == s.Host.ID() {
 			responseCh <- nil
 			continue
@@ -175,8 +175,9 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 		}(peerID)
 	}
 
-	var peerList []peer.ID
-	for range peers {
+	//map用于去重
+	newPeerMap := make(map[peer.ID]struct{})
+	for range peerMap {
 		res := <-responseCh
 		switch t := res.(type) {
 		case *types.BlockBodys:
@@ -184,20 +185,19 @@ func (s *StoreProtocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param 
 			return t, nil
 		case []peer.ID:
 			//没查到区块数据，返回了更近的节点信息
-			peerList = append(peerList, t...)
-			if len(peerList) >= AlphaValue {
-				//直接返回新peer，加快查询速度
-				return nil, t
+			for _, newPeer := range t {
+				//过滤掉已经查询过的节点
+				if _, ok := peerMap[newPeer]; !ok {
+					newPeerMap[newPeer] = struct{}{}
+				}
+				if len(newPeerMap) == AlphaValue {
+					//直接返回新peer，加快查询速度
+					return nil, newPeerMap
+				}
 			}
 		}
 	}
-
-	//TODO 若超过3个，排序选择最优的三个节点
-	if len(peerList) > AlphaValue {
-		peerList = peerList[:AlphaValue]
-	}
-
-	return nil, peerList
+	return nil, newPeerMap
 }
 
 func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
@@ -214,7 +214,6 @@ func (s *StoreProtocol) fetchChunkOrNearerPeers(ctx context.Context, params *typ
 			ChunkInfoMsg: params,
 		},
 	}
-
 	err = protocol.SignAndWriteStream(&msg, stream)
 	if err != nil {
 		log.Error("fetchChunkOrNearerPeers", "SignAndWriteStream error", err)
@@ -276,6 +275,7 @@ func (s *StoreProtocol) checkLastChunk(in *types.ChunkInfoMsg) {
 	if err == nil && bodys != nil && len(bodys.Items) == int(l) {
 		return
 	}
+	//网络中找不到上一个chunk,先把上一个chunk保存到本地p2pstore
 	log.Debug("checkLastChunk", "chunk num", info.Start, "chunk hash", hex.EncodeToString(info.ChunkHash))
 	err = s.storeChunk(info)
 	if err != nil {
@@ -323,10 +323,6 @@ func (s *StoreProtocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*type
 	if bodys, ok := resp.GetData().(*types.BlockBodys); ok {
 		return bodys, nil
 	}
-	if reply, ok := resp.GetData().(*types.Reply); ok {
-		return nil, errors.New(string(reply.Msg))
-	}
-
 	return nil, types2.ErrNotFound
 }
 
@@ -343,9 +339,17 @@ func (s *StoreProtocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords)
 	if err != nil {
 		return nil, err
 	}
-	records, ok := resp.GetData().(*types.ChunkRecords)
-	if !ok {
-		return nil, types2.ErrNotFound
+	if records, ok := resp.GetData().(*types.ChunkRecords); ok {
+		return records, nil
 	}
-	return records, nil
+
+	return nil, types2.ErrNotFound
+}
+
+func peersToMap(peers []peer.ID) map[peer.ID]struct{} {
+	m := make(map[peer.ID]struct{})
+	for _, pid := range peers {
+		m[pid] = struct{}{}
+	}
+	return m
 }
