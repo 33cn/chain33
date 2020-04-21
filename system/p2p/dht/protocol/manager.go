@@ -34,4 +34,3 @@ func GetEventHandler(eventID int64) EventHandler {
 	defer eventHandlerMutex.RUnlock()
 	return eventHandlerMap[eventID]
 }
-

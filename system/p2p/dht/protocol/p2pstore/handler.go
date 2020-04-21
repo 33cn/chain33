@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
-	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 	"time"
+
+	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -244,12 +245,12 @@ func writeMessage(writer *bufio.Writer, msg types.Message) error {
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
 	err := enc.Encode(msg)
 	if err != nil {
-		log.Error("WriteStream","encode err", err)
+		log.Error("WriteStream", "encode err", err)
 		return err
 	}
 	err = writer.Flush()
 	if err != nil {
-		log.Error("WriteStream","flush err", err)
+		log.Error("WriteStream", "flush err", err)
 	}
 	return nil
 }

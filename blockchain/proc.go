@@ -663,7 +663,7 @@ func (chain *BlockChain) getChunkRecord(msg *queue.Message) {
 	reply, err := chain.GetChunkRecord(req)
 	if err != nil {
 		chainlog.Error("getChunkRecord", "req", req, "err", err.Error())
-		msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, &types.Reply{IsOk: false, Msg:[]byte(err.Error())}))
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
 		return
 	}
 	chainlog.Debug("getChunkRecord", "start", req.Start, "end", req.End)
@@ -687,7 +687,7 @@ func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
 	reply, err := chain.GetChunkBlockBody(req)
 	if err != nil {
 		chainlog.Error("getChunkBlockBody", "start", req.Start, "end", req.End, "chunkHash", common.ToHex(req.ChunkHash), "err", err.Error())
-		msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, &types.Reply{IsOk: false, Msg:[]byte(err.Error())}))
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
 		return
 	}
 	chainlog.Debug("getChunkBlockBody", "start", req.Start, "end", req.End, "chunkHash", common.ToHex(req.ChunkHash))

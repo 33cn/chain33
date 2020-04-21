@@ -104,17 +104,16 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 	switch m.Ty {
 	// 检查本节点是否需要进行区块数据归档
 	case types.EventNotifyStoreChunk:
-		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
+		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 		req := m.GetData().(*types.ChunkInfoMsg)
 		err := s.StoreChunk(req)
 		if err != nil {
-			log.Error("StoreChunk","chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
+			log.Error("StoreChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		}
-
 
 	// 获取chunkBlock数据
 	case types.EventGetChunkBlock:
-		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
+		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 		req := m.GetData().(*types.ChunkInfoMsg)
 		bodys, err := s.GetChunk(req)
 		if err != nil {
@@ -167,7 +166,7 @@ func (s *StoreProtocol) HandleEvent(m *queue.Message) {
 
 	// 获取归档索引
 	case types.EventGetChunkRecord:
-		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk:true}))
+		m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 		req := m.GetData().(*types.ReqChunkRecords)
 		records := s.getChunkRecords(req)
 		if records == nil {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"time"
 )
+
 const (
 
 	// DHTTypeName p2p插件名称，底层基于libp2p框架, dht结构化网络
@@ -29,4 +30,3 @@ var (
 	ExpiredTime     = time.Minute * 5
 	RefreshInterval = time.Minute * 1
 )
-

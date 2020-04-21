@@ -457,7 +457,7 @@ func (chain *BlockChain) DownLoadChunkTimeOutProc(height int64) {
 	info := chain.GetDownLoadInfo()
 	synlog.Info("DownLoadChunkTimeOutProc", "real chunkNum", height, "info.StartHeight", info.StartHeight, "info.EndHeight", info.EndHeight)
 	//  TODO 需要检查当前是否有连接节点,如果没有则可能没有连接节点导致超时
-	if len(chain.GetPeers()) == 0  {
+	if len(chain.GetPeers()) == 0 {
 		synlog.Info("DownLoadChunkTimeOutProc:peers not exist!")
 		return
 	}
