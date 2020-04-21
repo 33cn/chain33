@@ -59,7 +59,7 @@ func TestInit(t *testing.T) {
 		Start:     0,
 		End:       999,
 	})
-	time.Sleep(time.Second/2)
+	time.Sleep(time.Second / 2)
 	err = p2.republish()
 	if err != nil {
 		t.Fatal(err)
@@ -96,7 +96,6 @@ func TestInit(t *testing.T) {
 	})
 	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
 
-
 	//向host1请求Block
 	testGetBlock(t, client, "p2p", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
@@ -106,7 +105,6 @@ func TestInit(t *testing.T) {
 	msg = <-msgCh
 	msg.Reply(nil)
 	assert.Equal(t, 500, len(msg.Data.(*types.Blocks).Items))
-
 
 	//向host2请求Block
 	testGetBlock(t, client, "p2p2", &types.ChunkInfoMsg{
@@ -136,19 +134,6 @@ func TestInit(t *testing.T) {
 	msg.Reply(nil)
 	assert.Equal(t, 11, len(msg.Data.(*types.ChunkRecords).Infos))
 
-	err = p2.deleteChunkBlock([]byte("test0"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	//向host2请求BlockBody
-	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test0"),
-		Start:     0,
-		End:       999,
-	})
-	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
-
-
 	//保存4000~4999的block,会检查0~3999的blockchunk是否能查到
 	// 通知host1保存数据
 	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
@@ -162,7 +147,7 @@ func TestInit(t *testing.T) {
 		Start:     4000,
 		End:       4999,
 	})
-	time.Sleep(time.Second/2)
+	time.Sleep(time.Second / 2)
 	//数据保存之后应该可以查到数据了
 
 	//向host1请求BlockBody
@@ -203,6 +188,18 @@ func TestInit(t *testing.T) {
 		End:       1888,
 	})
 	assert.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
+
+	err = p2.deleteChunkBlock([]byte("test1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	//向host2请求BlockBody
+	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test1"),
+		Start:     1000,
+		End:       1999,
+	})
+	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 
 }
 
@@ -292,8 +289,8 @@ func initMockBlockchain(q queue.Queue) <-chan *queue.Message {
 				for i := req.Start; i <= req.End; i++ {
 					records.Infos = append(records.Infos, &types.ChunkInfo{
 						ChunkHash: []byte(fmt.Sprintf("test%d", i)),
-						Start: i*1000,
-						End: i*1000+999,
+						Start:     i * 1000,
+						End:       i*1000 + 999,
 					})
 				}
 				msg.Reply(&queue.Message{Data: &records})
@@ -353,10 +350,10 @@ func initEnv(t *testing.T, q queue.Queue) *StoreProtocol {
 		P2PEnv: &env2,
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	p.Host.SetStreamHandler(StoreChunk, p.Handle)
-	p.Host.SetStreamHandler(FetchChunk, p.Handle)
-	p.Host.SetStreamHandler(GetHeader, p.Handle)
-	p.Host.SetStreamHandler(GetChunkRecord, p.Handle)
+	p.Host.SetStreamHandler(StoreChunk, protocol.HandlerWithRead(p.HandleStreamStoreChunk))
+	p.Host.SetStreamHandler(FetchChunk, protocol.HandlerWithRW(p.HandleStreamFetchChunk))
+	p.Host.SetStreamHandler(GetHeader, protocol.HandlerWithRW(p.HandleStreamGetHeader))
+	p.Host.SetStreamHandler(GetChunkRecord, protocol.HandlerWithRW(p.HandleStreamGetChunkRecord))
 
 	client1.Sub("p2p")
 	client2.Sub("p2p2")
@@ -367,7 +364,16 @@ func initEnv(t *testing.T, q queue.Queue) *StoreProtocol {
 	}()
 	go func() {
 		for msg := range client2.Recv() {
-			p.HandleEvent(msg)
+			switch msg.Ty {
+			case types.EventNotifyStoreChunk:
+				protocol.EventHandlerWithRecover(p.HandleEventNotifyStoreChunk)(msg)
+			case types.EventGetChunkBlock:
+				protocol.EventHandlerWithRecover(p.HandleEventGetChunkBlock)(msg)
+			case types.EventGetChunkBlockBody:
+				protocol.EventHandlerWithRecover(p.HandleEventGetChunkBlockBody)(msg)
+			case types.EventGetChunkRecord:
+				protocol.EventHandlerWithRecover(p.HandleEventGetChunkRecord)(msg)
+			}
 		}
 	}()
 
