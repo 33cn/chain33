@@ -77,8 +77,8 @@ func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 		subCfg.MaxTTL = defaultMaxTxBroadCastTTL
 	}
 
-	if subCfg.MinLtBlockTxNum <= 0 {
-		subCfg.MinLtBlockTxNum = defaultMinLtBlockTxNum
+	if subCfg.MinLtBlockSize <= 0 {
+		subCfg.MinLtBlockSize = defaultMinLtBlockSize
 	}
 	protocol.p2pCfg = &subCfg
 }

@@ -11,8 +11,8 @@ const (
 	defaultLtTxBroadCastTTL = 3
 	// 默认交易最大的广播发送ttl， 大于该值不再向外发送
 	defaultMaxTxBroadCastTTL = 25
-	// 默认区块轻广播的最小交易数
-	defaultMinLtBlockTxNum = 5
+	// 默认最小区块轻广播的大小， 100KB
+	defaultMinLtBlockSize = 100
 )
 
 // P2pCacheTxSize p2pcache size of transaction

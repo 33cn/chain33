@@ -15,15 +15,15 @@ func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *typ
 	byteHash := block.Block.Hash(protocol.GetChainCfg())
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送
-	ignoreSend := addIgnoreSendPeerAtomic(protocol.blockSendFilter, blockHash, pid)
-	lightSend := len(block.Block.Txs) >= int(protocol.p2pCfg.MinLtBlockTxNum)
-	log.Debug("P2PSendBlock", "blockHash", blockHash, "peerAddr", peerAddr, "ignoreSend", ignoreSend, "lightSend", lightSend)
-	if ignoreSend {
+	if addIgnoreSendPeerAtomic(protocol.blockSendFilter, blockHash, pid) {
 		return false
 	}
-	if lightSend {
+	blockSize := types.Size(block.Block)
+	log.Debug("P2PSendBlock", "blockHash", blockHash, "peerAddr", peerAddr, "blockSize(KB)", float32(blockSize)/1024)
+	//区块内交易采用哈希广播
+	if blockSize >= int(protocol.p2pCfg.MinLtBlockSize*1024) {
 		ltBlock := &types.LightBlock{}
-		ltBlock.Size = int64(types.Size(block.Block))
+		ltBlock.Size = int64(blockSize)
 		ltBlock.Header = block.Block.GetHeader(protocol.GetChainCfg())
 		ltBlock.Header.Hash = byteHash[:]
 		ltBlock.Header.Signature = block.Block.Signature

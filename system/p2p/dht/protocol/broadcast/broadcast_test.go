@@ -11,6 +11,7 @@ import (
 	"github.com/33cn/chain33/p2p"
 
 	"github.com/33cn/chain33/client"
+	commlog "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/queue"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
@@ -18,16 +19,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	commlog.SetLogLevel("error")
+}
+
 var (
 	payload = []byte("testpayload")
 	minerTx = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 14600, Expire: 200}
 	tx      = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 4600, Expire: 2}
 	tx1     = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 460000000, Expire: 0}
 	tx2     = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 100, Expire: 1}
-	//txGroup, _ = types.CreateTxGroup([]*types.Transaction{tx1, tx2}, cfg.GetMinTxFeeRate())
-	//gtx := txGroup.Tx()
-	txList = append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
-	//memTxList := append([]*types.Transaction{}, tx, gtx)
+	txList  = append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
 
 	testBlock = &types.Block{
 		TxHash: []byte("test"),
@@ -39,7 +41,6 @@ var (
 )
 
 func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
-
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	q.SetConfig(cfg)
 	go q.Start()
@@ -50,8 +51,6 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
 	subCfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], subCfg)
-	subCfg.MinLtBlockTxNum = 1
-
 	env := &prototypes.P2PEnv{
 		ChainCfg:        cfg,
 		QueueClient:     q.Client(),
@@ -82,7 +81,7 @@ func newTestProtocol() *broadCastProtocol {
 func TestBroadCastProtocol_InitProtocol(t *testing.T) {
 
 	protocol := newTestProtocol()
-	assert.Equal(t, int32(1), protocol.p2pCfg.MinLtBlockTxNum)
+	assert.Equal(t, defaultMinLtBlockSize, int(protocol.p2pCfg.MinLtBlockSize))
 	assert.Equal(t, defaultLtTxBroadCastTTL, int(protocol.p2pCfg.LightTxTTL))
 }
 
