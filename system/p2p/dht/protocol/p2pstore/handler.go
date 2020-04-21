@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-	kb "github.com/libp2p/go-libp2p-kbucket"
-
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p-core/peer"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
@@ -25,7 +24,6 @@ const (
 var log = log15.New("module", "protocol.p2pstore")
 
 type StoreProtocol struct {
-	//protocol.BaseProtocol //default协议实现
 	*protocol.P2PEnv //协议共享接口变量
 
 	saving sync.Map
@@ -50,7 +48,7 @@ func Init(env *protocol.P2PEnv) {
 	go p.startRepublish()
 }
 
-func (s *StoreProtocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PResponse) {
+func (s *StoreProtocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PResponse) error {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	//优先检查本地是否存在
 	bodys, _ := s.getChunkBlock(param.ChunkHash)
@@ -59,7 +57,7 @@ func (s *StoreProtocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types
 		start, end := param.Start%l, param.End%l+1
 		bodys.Items = bodys.Items[start:end]
 		res.Response = &types.P2PResponse_BlockBodys{BlockBodys: bodys}
-		return
+		return nil
 	}
 
 	//本地没有数据
@@ -73,16 +71,15 @@ func (s *StoreProtocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types
 	}
 
 	if len(addrInfos) == 0 {
-		res.Error = types2.ErrNotFound.Error()
-		return
+		return types2.ErrNotFound
 	}
 
 	addrInfosData, err := json.Marshal(addrInfos)
 	if err != nil {
-		res.Error = err.Error()
-		return
+		return err
 	}
 	res.Response = &types.P2PResponse_AddrInfo{AddrInfo: addrInfosData}
+	return nil
 }
 
 // 对端节点通知本节点保存数据
@@ -115,35 +112,33 @@ func (s *StoreProtocol) HandleStreamStoreChunk(req *types.P2PRequest) {
 	}
 }
 
-func (s *StoreProtocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse) {
+func (s *StoreProtocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse) error {
 	param := req.Request.(*types.P2PRequest_ReqBlocks)
 	msg := s.QueueClient.NewMessage("blockchain", types.EventGetHeaders, param.ReqBlocks)
 	err := s.QueueClient.Send(msg, true)
 	if err != nil {
-		res.Error = err.Error()
-		return
+		return err
 	}
 	resp, err := s.QueueClient.Wait(msg)
 	if err != nil {
-		res.Error = err.Error()
-		return
+		return err
 	}
 
 	if headers, ok := resp.GetData().(*types.Headers); ok {
 		res.Response = &types.P2PResponse_BlockHeaders{BlockHeaders: headers}
-		return
+		return nil
 	}
-	res.Error = types.ErrNotFound.Error()
+	return types.ErrNotFound
 }
 
-func (s *StoreProtocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse) {
+func (s *StoreProtocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse) error {
 	param := req.Request.(*types.P2PRequest_ReqChunkRecords).ReqChunkRecords
 	records, err := s.getChunkRecordFromBlockchain(param)
 	if err != nil {
-		res.Error = err.Error()
-		return
+		return err
 	}
 	res.Response = &types.P2PResponse_ChunkRecords{ChunkRecords: records}
+	return nil
 }
 
 //HandleEventNotifyStoreChunk handles notification of blockchain,

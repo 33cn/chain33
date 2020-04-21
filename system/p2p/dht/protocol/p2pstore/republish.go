@@ -1,14 +1,12 @@
 package p2pstore
 
 import (
-	"bufio"
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -27,9 +25,6 @@ func (s *StoreProtocol) republish() error {
 		return err
 	}
 
-	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-	fmt.Println(">>>>>>>>>>>>>>>>>>>> local hash length:", len(chunkInfoMap), ">>>>>>>>>>>")
-	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	for hash, info := range chunkInfoMap {
 		_, err = s.getChunkBlock(info.ChunkHash)
 		if err != nil && err != types2.ErrExpired {
@@ -38,7 +33,6 @@ func (s *StoreProtocol) republish() error {
 		}
 		s.notifyStoreChunk(info)
 	}
-
 	return nil
 }
 
@@ -62,10 +56,8 @@ func (s *StoreProtocol) storeChunkOnPeer(req *types.ChunkInfoMsg, pid peer.ID) e
 		return err
 	}
 	defer stream.Close()
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	msg := types.P2PStoreRequest{
-		ProtocolID: StoreChunk,
-		Data:       &types.P2PStoreRequest_ChunkInfoMsg{ChunkInfoMsg: req},
+	msg := types.P2PRequest{
+		Request: &types.P2PRequest_ChunkInfoMsg{ChunkInfoMsg: req},
 	}
-	return writeMessage(rw.Writer, &msg)
+	return protocol.SignAndWriteStream(&msg, stream)
 }
