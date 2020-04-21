@@ -7,8 +7,10 @@ import (
 	"errors"
 	"time"
 )
-const (
 
+const (
+	// P2P client version
+	Version = "1.0.0"
 	// DHTTypeName p2p插件名称，底层基于libp2p框架, dht结构化网络
 	DHTTypeName = "dht"
 
@@ -18,15 +20,15 @@ const (
 
 var (
 	ErrLength             = errors.New("length not equal")
-	ErrProtocolNotSupport = errors.New("protocol not support")
+	ErrInvalidMessageType = errors.New("invalid message type")
 	ErrNotFound           = errors.New("not found")
 	ErrExpired            = errors.New("data expired")
 	ErrInvalidParam       = errors.New("invalid parameter")
 	ErrEmptyRoutingTable  = errors.New("empty routing table")
+	ErrWrongSignature     = errors.New("wrong signature")
 
 	//ExpiredTime     = time.Hour * 24
 	//RefreshInterval = time.Hour * 4
 	ExpiredTime     = time.Minute * 5
 	RefreshInterval = time.Minute * 1
 )
-
