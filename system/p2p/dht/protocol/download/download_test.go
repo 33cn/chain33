@@ -164,7 +164,7 @@ func Test_util(t *testing.T) {
 
 	protocol.processReq("uid122222", p2pgetblocks)
 
-	resp, _ := protocol.SendToBlockChain(types.EventGetBlocks, blockReq)
+	resp, _ := protocol.QueryBlockChain(types.EventGetBlocks, blockReq)
 	assert.NotNil(t, resp)
 }
 

@@ -79,7 +79,7 @@ func (d *downloadProtol) processReq(id string, message *types.P2PGetBlocks) (*ty
 
 	reqblock := &types.ReqBlocks{Start: message.GetStartHeight(), End: message.GetEndHeight()}
 
-	resp, err := d.SendToBlockChain(types.EventGetBlocks, reqblock)
+	resp, err := d.QueryBlockChain(types.EventGetBlocks, reqblock)
 	if err != nil {
 		log.Error("sendToBlockChain", "Error", err.Error())
 		return nil, err
