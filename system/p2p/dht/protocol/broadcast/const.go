@@ -31,7 +31,9 @@ const (
 
 // 内部自定义错误
 var (
-	errSendMempool      = errors.New("errSendMempool")
+	errQueryMempool     = errors.New("errQueryMempool")
+	errQueryBlockChain  = errors.New("errQueryBlockChain")
+	errRecvBlockChain   = errors.New("errRecvBlockChain")
 	errRecvMempool      = errors.New("errRecvMempool")
 	errSendStream       = errors.New("errSendStream")
 	errSendBlockChain   = errors.New("errSendBlockChain")

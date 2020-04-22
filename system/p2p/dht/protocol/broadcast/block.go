@@ -33,11 +33,6 @@ func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *typ
 			ltBlock.STxHashes = append(ltBlock.STxHashes, types.CalcTxShortHash(tx.Hash()))
 		}
 
-		// cache block
-		if !protocol.totalBlockCache.Contains(blockHash) {
-			protocol.totalBlockCache.Add(blockHash, block.Block, ltBlock.Size)
-		}
-
 		p2pData.Value = &types.BroadCastData_LtBlock{LtBlock: ltBlock}
 	} else {
 		p2pData.Value = &types.BroadCastData_Block{Block: block}
