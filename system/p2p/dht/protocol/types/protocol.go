@@ -166,25 +166,20 @@ func (base *BaseProtocol) GetPeerInfoManager() *manage.PeerInfoManager {
 	return base.PeerInfoManager
 }
 
-// SendToMemPool send to mempool for request
-func (base *BaseProtocol) SendToMemPool(ty int64, data interface{}) (interface{}, error) {
-	client := base.GetQueueClient()
-	msg := client.NewMessage("mempool", ty, data)
-	err := client.Send(msg, true)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := client.WaitTimeout(msg, time.Second*10)
-	if err != nil {
-		return nil, err
-	}
-	return resp.GetData(), nil
+// QueryMempool query mempool
+func (base *BaseProtocol) QueryMempool(ty int64, req interface{}) (interface{}, error) {
+	return base.QueryModule("mempool", ty, req)
 }
 
-// SendToBlockChain send to blockchain for request
-func (base *BaseProtocol) SendToBlockChain(ty int64, data interface{}) (interface{}, error) {
+// QueryBlockChain query blockchain
+func (base *BaseProtocol) QueryBlockChain(ty int64, req interface{}) (interface{}, error) {
+	return base.QueryModule("blockchain", ty, req)
+}
+// QueryModule query msg queue module
+func (base *BaseProtocol) QueryModule(module string, msgTy int64, req interface{}) (interface{}, error) {
+
 	client := base.GetQueueClient()
-	msg := client.NewMessage("blockchain", ty, data)
+	msg := client.NewMessage(module, msgTy, req)
 	err := client.Send(msg, true)
 	if err != nil {
 		return nil, err
