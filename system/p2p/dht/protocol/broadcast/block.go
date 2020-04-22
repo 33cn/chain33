@@ -169,14 +169,16 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 			},
 		},
 	}
+
+	//需要将不完整的block预存
+	protocol.ltBlockCache.Add(blockHash, block, int64(block.Size()))
 	//pub to specified peer
 	_, err := protocol.sendPeer(pid, query, false)
 	if err != nil {
 		log.Error("recvLtBlock", "pid", pid, "sendStreamErr", err)
 		protocol.blockFilter.Remove(blockHash)
+		protocol.ltBlockCache.Remove(blockHash)
 		return errSendStream
 	}
-	//需要将不完整的block预存
-	protocol.ltBlockCache.Add(blockHash, block, int64(block.Size()))
 	return nil
 }
