@@ -13,6 +13,8 @@ const (
 	defaultMaxTxBroadCastTTL = 25
 	// 默认最小区块轻广播的大小， 100KB
 	defaultMinLtBlockSize = 100
+	// 默认轻广播组装临时区块缓存， 50M
+	defaultLtBlockCacheSize = 50
 )
 
 // P2pCacheTxSize p2pcache size of transaction
@@ -23,7 +25,7 @@ const (
 	//发送过滤主要用于发送时冗余检测, 发送完即可以被删除, 维护较小缓存数
 	txSendFilterCacheNum    = 500
 	blockSendFilterCacheNum = 50
-	blockCacheNum           = 10
+	ltBlockCacheNum         = 1000
 	maxBlockCacheByteSize   = 100 * 1024 * 1024
 )
 
@@ -34,4 +36,5 @@ var (
 	errSendStream       = errors.New("errSendStream")
 	errSendBlockChain   = errors.New("errSendBlockChain")
 	errBuildBlockFailed = errors.New("errBuildBlockFailed")
+	errLtBlockNotExist  = errors.New("errLtBlockNotExist")
 )

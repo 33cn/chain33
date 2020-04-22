@@ -79,10 +79,10 @@ func Test_recvQueryReply(t *testing.T) {
 	}
 	sendData, _ := proto.handleSend(reply, testPid, testAddr)
 	err := proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	assert.Equal(t, errLtBlockNotExist, err)
 	proto.ltBlockCache.Add(blockHash, nil, 1)
 	err = proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	assert.Equal(t, errLtBlockNotExist, err)
 	proto.ltBlockCache.Add(blockHash, block, 1)
 	//block组装失败,重新请求
 	reply.Txs = []*types.Transaction{tx}

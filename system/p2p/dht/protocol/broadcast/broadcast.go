@@ -60,9 +60,7 @@ func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 	protocol.blockSendFilter = utils.NewFilter(blockSendFilterCacheNum)
 
 	//在本地暂时缓存一些区块数据, 限制最大大小
-	protocol.totalBlockCache = utils.NewSpaceLimitCache(blockCacheNum, maxBlockCacheByteSize)
-	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
-	protocol.ltBlockCache = utils.NewSpaceLimitCache(blockCacheNum/2, maxBlockCacheByteSize/2)
+	protocol.totalBlockCache = utils.NewSpaceLimitCache(ltBlockCacheNum, maxBlockCacheByteSize)
 	// 单独复制一份， 避免data race
 	subCfg := *(env.SubConfig)
 	//注册事件处理函数
@@ -76,10 +74,16 @@ func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 	if subCfg.MaxTTL <= 0 {
 		subCfg.MaxTTL = defaultMaxTxBroadCastTTL
 	}
-
 	if subCfg.MinLtBlockSize <= 0 {
 		subCfg.MinLtBlockSize = defaultMinLtBlockSize
 	}
+	if subCfg.LtBlockCacheSize <= 0 {
+		subCfg.LtBlockCacheSize = defaultLtBlockCacheSize
+	}
+
+	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
+	//内部组装成功失败或成功都会进行清理，实际运行并不会长期占用内存，只要限制极端情况最大值
+	protocol.ltBlockCache = utils.NewSpaceLimitCache(ltBlockCacheNum, int64(subCfg.LtBlockCacheSize*1024*1024))
 	protocol.p2pCfg = &subCfg
 }
 
