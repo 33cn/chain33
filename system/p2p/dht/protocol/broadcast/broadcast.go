@@ -41,7 +41,6 @@ type broadCastProtocol struct {
 	blockFilter     *utils.Filterdata
 	txSendFilter    *utils.Filterdata
 	blockSendFilter *utils.Filterdata
-	totalBlockCache *utils.SpaceLimitCache
 	ltBlockCache    *utils.SpaceLimitCache
 	p2pCfg          *p2pty.P2PSubConfig
 }
@@ -59,8 +58,6 @@ func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 	protocol.txSendFilter = utils.NewFilter(txSendFilterCacheNum)
 	protocol.blockSendFilter = utils.NewFilter(blockSendFilterCacheNum)
 
-	//在本地暂时缓存一些区块数据, 限制最大大小
-	protocol.totalBlockCache = utils.NewSpaceLimitCache(ltBlockCacheNum, maxBlockCacheByteSize)
 	// 单独复制一份， 避免data race
 	subCfg := *(env.SubConfig)
 	//注册事件处理函数
@@ -115,7 +112,6 @@ func (handler *broadCastHandler) SetProtocol(protocol prototypes.IProtocol) {
 
 // VerifyRequest verify request
 func (handler *broadCastHandler) VerifyRequest(types.Message, *types.MessageComm) bool {
-
 	return true
 }
 

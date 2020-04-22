@@ -26,8 +26,6 @@ func Test_sendBlock(t *testing.T) {
 	assert.True(t, ok)
 	assert.True(t, ltBlock.MinerTx == minerTx)
 	assert.Equal(t, 3, len(ltBlock.STxHashes))
-	blockHash := hex.EncodeToString(testBlock.Hash(proto.ChainCfg))
-	assert.True(t, proto.totalBlockCache.Contains(blockHash))
 }
 
 func Test_recvBlock(t *testing.T) {
@@ -68,6 +66,22 @@ func startHandleMempool(q queue.Queue, txList *[]*types.Transaction) chan struct
 		close(done)
 		for msg := range client.Recv() {
 			msg.Reply(client.NewMessage("p2p", types.EventTxListByHash, &types.ReplyTxList{Txs: *txList}))
+		}
+	}()
+	return done
+}
+
+func handleTestMsgReply(cli queue.Client, ty int64, reply interface{}, once bool) chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		close(done)
+		for msg := range cli.Recv() {
+			if msg.Ty == ty {
+				msg.Reply(cli.NewMessage("p2p", ty, reply))
+				if once {
+					return
+				}
+			}
 		}
 	}()
 	return done

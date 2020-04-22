@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"encoding/hex"
 
+	"github.com/33cn/chain33/common"
+
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
 )
@@ -34,7 +36,7 @@ func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid,
 		resp, err := protocol.QueryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
 		if err != nil {
 			log.Error("recvQuery", "queryMempoolErr", err)
-			return errSendMempool
+			return errQueryMempool
 		}
 
 		txList, _ := resp.(*types.ReplyTxList)
@@ -51,10 +53,20 @@ func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid,
 	} else if blcReq := query.GetBlockTxReq(); blcReq != nil {
 
 		log.Debug("recvQueryBlockTx", "blockHash", blcReq.BlockHash, "queryTxCount", len(blcReq.TxIndices), "peerAddr", peerAddr)
-		if block, ok := protocol.totalBlockCache.Get(blcReq.BlockHash).(*types.Block); ok {
-
+		blcHash, _ := common.FromHex(blcReq.BlockHash)
+		if blcHash != nil {
+			resp, err := protocol.QueryBlockChain(types.EventGetBlockByHashes, &types.ReqHashes{Hashes: [][]byte{blcHash}})
+			if err != nil {
+				log.Error("recvQueryBlockTx", "queryBlockChainErr", err)
+				return errQueryBlockChain
+			}
+			blocks, ok := resp.(*types.BlockDetails)
+			if !ok || len(blocks.Items) != 1 || blocks.Items[0].Block == nil {
+				log.Error("recvQueryBlockTx", "blockHash", blcReq.BlockHash, "err", "blockNotExist")
+				return errRecvBlockChain
+			}
+			block := blocks.Items[0].Block
 			blockRep := &types.P2PBlockTxReply{BlockHash: blcReq.BlockHash}
-
 			blockRep.TxIndices = blcReq.TxIndices
 			for _, idx := range blcReq.TxIndices {
 				blockRep.Txs = append(blockRep.Txs, block.Txs[idx])
