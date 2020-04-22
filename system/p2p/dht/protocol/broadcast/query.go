@@ -136,7 +136,7 @@ func (protocol *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pi
 		},
 	}
 	block.Txs = nil
-	protocol.ltBlockCache.Add(rep.BlockHash, block, int64(block.Size()))
+	protocol.ltBlockCache.Add(rep.BlockHash, block, block.Size())
 	//query peer
 	_, err = protocol.sendPeer(pid, query, false)
 	if err != nil {

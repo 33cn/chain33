@@ -80,7 +80,7 @@ func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
 	//内部组装成功失败或成功都会进行清理，实际运行并不会长期占用内存，只要限制极端情况最大值
-	protocol.ltBlockCache = utils.NewSpaceLimitCache(ltBlockCacheNum, int64(subCfg.LtBlockCacheSize*1024*1024))
+	protocol.ltBlockCache = utils.NewSpaceLimitCache(ltBlockCacheNum, int(subCfg.LtBlockCacheSize*1024*1024))
 	protocol.p2pCfg = &subCfg
 }
 
