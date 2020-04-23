@@ -1,8 +1,10 @@
 package p2pstore
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -10,15 +12,16 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
-	FetchChunk     = "/chain33/fetch-chunk/1.0.0"
-	StoreChunk     = "/chain33/store-chunk/1.0.0"
-	GetHeader      = "/chain33/headers/1.0.0"
-	GetChunkRecord = "/chain33/chunk-record/1.0.0"
+	FetchChunk     = "/chain33/fetch-chunk/" + types2.Version
+	StoreChunk     = "/chain33/store-chunk/" + types2.Version
+	GetHeader      = "/chain33/headers/" + types2.Version
+	GetChunkRecord = "/chain33/chunk-record/" + types2.Version
 )
 
 var log = log15.New("module", "protocol.p2pstore")
@@ -26,7 +29,8 @@ var log = log15.New("module", "protocol.p2pstore")
 type StoreProtocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
-	saving sync.Map
+	saving    sync.Map
+	notifying sync.Map
 }
 
 func Init(env *protocol.P2PEnv) {
@@ -61,17 +65,13 @@ func (s *StoreProtocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types
 	}
 
 	//本地没有数据
-	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(param.ChunkHash)), AlphaValue*2)
+	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(param.ChunkHash)), Backup)
 	var addrInfos []peer.AddrInfo
 	for _, pid := range peers {
 		if kb.Closer(s.Host.ID(), pid, genChunkPath(param.ChunkHash)) {
 			continue
 		}
 		addrInfos = append(addrInfos, s.Discovery.FindLocalPeer(pid))
-	}
-
-	if len(addrInfos) == 0 {
-		return types2.ErrNotFound
 	}
 
 	addrInfosData, err := json.Marshal(addrInfos)
@@ -88,19 +88,33 @@ func (s *StoreProtocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types
 	1）若已保存则只更新时间即可
 	2）若未保存则从网络中请求chunk数据
 */
-func (s *StoreProtocol) HandleStreamStoreChunk(req *types.P2PRequest) {
+func (s *StoreProtocol) HandleStreamStoreChunk(stream network.Stream, req *types.P2PRequest) {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
+	chunkHashHex := hex.EncodeToString(param.ChunkHash)
+	//该chunk正在保存
+	if _, ok := s.saving.Load(chunkHashHex); ok {
+		return
+	}
+	//已有其他节点通知该节点保存该chunk，正在网络中查找数据, 避免接收到多个节点的通知后重复查询数据
+	if _, ok := s.notifying.LoadOrStore(chunkHashHex, nil); ok {
+		return
+	}
+	defer s.notifying.Delete(chunkHashHex)
+
 	//检查本地 p2pStore，如果已存在数据则直接更新
-	err := s.updateChunk(param)
-	if err == nil {
+	if err := s.updateChunk(param); err == nil {
 		return
 	}
 
-	pids := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(param.ChunkHash)), AlphaValue)
-	bodys, err := s.mustFetchChunk(param, peersToMap(pids))
-	if err != nil {
-		log.Error("onStoreChunk", "get bodys from remote peer error", err)
-		return
+	//对端节点通知本节点保存数据，则对端节点应该有数据
+	bodys, _, err := s.fetchChunkOrNearerPeers(context.Background(), param, stream.Conn().RemotePeer())
+	if err != nil || bodys == nil {
+		//对端节点没有数据，则从网络中搜索数据
+		bodys, err = s.mustFetchChunk(param)
+		if err != nil {
+			log.Error("onStoreChunk", "get bodys from remote peer error", err)
+			return
+		}
 	}
 
 	err = s.addChunkBlock(param, bodys)
@@ -157,6 +171,7 @@ func (s *StoreProtocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	err := s.storeChunk(req)
 	if err != nil {
 		log.Error("StoreChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
+		return
 	}
 	log.Info("StoreChunk", "local pid", s.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
 }
@@ -215,6 +230,7 @@ func (s *StoreProtocol) HandleEventGetChunkBlockBody(m *queue.Message) {
 }
 
 func (s *StoreProtocol) HandleEventGetChunkRecord(m *queue.Message) {
+	fmt.Println(" >>>>>>>>>>>>>>>  into HandleEventGetChunkRecord")
 	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ReqChunkRecords)
 	records := s.getChunkRecords(req)
@@ -227,6 +243,8 @@ func (s *StoreProtocol) HandleEventGetChunkRecord(m *queue.Message) {
 	if err != nil {
 		log.Error("EventGetChunkBlockBody", "reply message error", err)
 	}
+	fmt.Println(" >>>>>>>>>>>>>>>  HandleEventGetChunkRecord reply success")
 	//等待回复
 	_, _ = s.QueueClient.Wait(msg)
+	fmt.Println(" >>>>>>>>>>>>>>>  HandleEventGetChunkRecord over")
 }

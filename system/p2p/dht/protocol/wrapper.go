@@ -27,7 +27,7 @@ func ReadStream(data types.Message, stream network.Stream) error {
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(stream))
 	err := decoder.Decode(data)
 	if err != nil {
-		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "msgID", stream.Protocol(), "decode err", err)
+		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "decode err", err)
 		return err
 	}
 	return nil
@@ -39,12 +39,12 @@ func WriteStream(data types.Message, stream network.Stream) error {
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
 	err := enc.Encode(data)
 	if err != nil {
-		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "msgID", stream.Protocol(), "encode err", err)
+		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "encode err", err)
 		return err
 	}
 	err = writer.Flush()
 	if err != nil {
-		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "msgID", stream.Protocol(), "flush err", err)
+		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "flush err", err)
 	}
 	return nil
 }
@@ -177,7 +177,7 @@ func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 }
 
 // HandlerWithRead wraps handler with read, close stream and recover from panic.
-func HandlerWithRead(f func(request *types.P2PRequest)) network.StreamHandler {
+func HandlerWithRead(f func(stream network.Stream, request *types.P2PRequest)) network.StreamHandler {
 	readFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
@@ -187,7 +187,7 @@ func HandlerWithRead(f func(request *types.P2PRequest)) network.StreamHandler {
 		if !AuthenticateRequest(&req, stream) {
 			return
 		}
-		f(&req)
+		f(stream, &req)
 	}
 	return HandlerWithClose(readFunc)
 }
