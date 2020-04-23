@@ -8,16 +8,16 @@ package dht
 import (
 	"context"
 	"fmt"
-	"github.com/33cn/chain33/system/p2p/dht/protocol/p2pstore"
-	"github.com/33cn/chain33/system/p2p/dht/store"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/33cn/chain33/p2p"
-	ds "github.com/ipfs/go-datastore"
+	"github.com/33cn/chain33/system/p2p/dht/protocol/p2pstore"
+	"github.com/33cn/chain33/system/p2p/dht/store"
+
 	"github.com/33cn/chain33/client"
 	logger "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/manage"
 	"github.com/33cn/chain33/system/p2p/dht/net"
@@ -25,9 +25,10 @@ import (
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	ds "github.com/ipfs/go-datastore"
 	libp2p "github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
+	core "github.com/libp2p/go-libp2p-core"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	multiaddr "github.com/multiformats/go-multiaddr"
@@ -131,7 +132,7 @@ func (p *P2P) managePeers() {
 	go p.connManag.MonitorAllPeers(p.subCfg.Seeds, p.host)
 
 	for {
-		peerlist := p.discovery.RoutingTable()
+		peerlist := p.discovery.ListPeers()
 		log.Debug("managePeers", "RoutingTable show peerlist>>>>>>>>>", peerlist,
 			"table size", p.discovery.RoutingTableSize())
 		if p.isClose() {
@@ -164,15 +165,13 @@ func (p *P2P) StartP2P() {
 
 	//debug new
 	env2 := &protocol.P2PEnv{
-		ChainCfg:        p.chainCfg,
-		QueueClient:     p.client,
-		Host:            p.host,
-		ConnManager:     p.connManag,
-		Discovery:       p.discovery,
-		PeerInfoManager: p.peerInfoManag,
-		P2PManager:      p.mgr,
-		SubConfig:       p.subCfg,
-		DB:              p.db,
+		ChainCfg:     p.chainCfg,
+		QueueClient:  p.client,
+		Host:         p.host,
+		P2PManager:   p.mgr,
+		SubConfig:    p.subCfg,
+		DB:           p.db,
+		RoutingTable: p.discovery,
 	}
 	p.env = env2
 	p2pstore.Init(env2)
