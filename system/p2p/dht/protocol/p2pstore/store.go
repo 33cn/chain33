@@ -9,6 +9,7 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/ipfs/go-datastore"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
@@ -19,27 +20,27 @@ const (
 )
 
 // 保存chunk到本地p2pStore，同时更新本地chunk列表
-func (s *StoreProtocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBodys) error {
+func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBodys) error {
 	//先检查数据是不是正在保存
-	if _, ok := s.saving.LoadOrStore(hex.EncodeToString(info.ChunkHash), nil); ok {
+	if _, ok := p.saving.LoadOrStore(hex.EncodeToString(info.ChunkHash), nil); ok {
 		return nil
 	}
-	defer s.saving.Delete(hex.EncodeToString(info.ChunkHash))
+	defer p.saving.Delete(hex.EncodeToString(info.ChunkHash))
 	b := types.Encode(&types.P2PStoreData{
 		Time: time.Now().UnixNano(),
 		Data: &types.P2PStoreData_BlockBodys{BlockBodys: bodys},
 	})
 
-	err := s.addLocalChunkInfo(info)
+	err := p.addLocalChunkInfo(info)
 	if err != nil {
 		return err
 	}
-	return s.DB.Put(genChunkKey(info.ChunkHash), b)
+	return p.DB.Put(genChunkKey(info.ChunkHash), b)
 }
 
 // 更新本地chunk保存时间，chunk不存在则返回error
-func (s *StoreProtocol) updateChunk(req *types.ChunkInfoMsg) error {
-	b, err := s.DB.Get(genChunkKey(req.ChunkHash))
+func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
+	b, err := p.DB.Get(genChunkKey(req.ChunkHash))
 	if err != nil {
 		return err
 	}
@@ -48,12 +49,12 @@ func (s *StoreProtocol) updateChunk(req *types.ChunkInfoMsg) error {
 	if err != nil {
 		return err
 	}
-	return s.addChunkBlock(req, data.Data.(*types.P2PStoreData_BlockBodys).BlockBodys)
+	return p.addChunkBlock(req, data.Data.(*types.P2PStoreData_BlockBodys).BlockBodys)
 }
 
 // 获取本地chunk数据，若数据已过期则删除该数据并返回空
-func (s *StoreProtocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
-	b, err := s.DB.Get(genChunkKey(hash))
+func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
+	b, err := p.DB.Get(genChunkKey(hash))
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func (s *StoreProtocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
 		return nil, err
 	}
 	if time.Now().UnixNano()-data.Time > int64(types2.ExpiredTime) {
-		err = s.deleteChunkBlock(hash)
+		err = p.deleteChunkBlock(hash)
 		if err != nil {
 			log.Error("getChunkBlock", "delete chunk error", err, "hash", hex.EncodeToString(hash))
 		}
@@ -74,17 +75,17 @@ func (s *StoreProtocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
 
 }
 
-func (s *StoreProtocol) deleteChunkBlock(hash []byte) error {
-	err := s.deleteLocalChunkInfo(hash)
+func (p *Protocol) deleteChunkBlock(hash []byte) error {
+	err := p.deleteLocalChunkInfo(hash)
 	if err != nil {
 		return err
 	}
-	return s.DB.Delete(genChunkKey(hash))
+	return p.DB.Delete(genChunkKey(hash))
 }
 
 // 保存一个本地chunk hash列表，用于遍历本地数据
-func (s *StoreProtocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
-	hashMap, err := s.getLocalChunkInfoMap()
+func (p *Protocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
+	hashMap, err := p.getLocalChunkInfoMap()
 	if err != nil {
 		return err
 	}
@@ -94,21 +95,21 @@ func (s *StoreProtocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
 	}
 
 	hashMap[hex.EncodeToString(info.ChunkHash)] = info
-	return s.saveLocalChunkInfoMap(hashMap)
+	return p.saveLocalChunkInfoMap(hashMap)
 }
 
-func (s *StoreProtocol) deleteLocalChunkInfo(hash []byte) error {
-	hashMap, err := s.getLocalChunkInfoMap()
+func (p *Protocol) deleteLocalChunkInfo(hash []byte) error {
+	hashMap, err := p.getLocalChunkInfoMap()
 	if err != nil {
 		return err
 	}
 	delete(hashMap, hex.EncodeToString(hash))
-	return s.saveLocalChunkInfoMap(hashMap)
+	return p.saveLocalChunkInfoMap(hashMap)
 }
 
-func (s *StoreProtocol) getLocalChunkInfoMap() (map[string]*types.ChunkInfoMsg, error) {
+func (p *Protocol) getLocalChunkInfoMap() (map[string]*types.ChunkInfoMsg, error) {
 
-	value, err := s.DB.Get(datastore.NewKey(LocalChunkInfoKey))
+	value, err := p.DB.Get(datastore.NewKey(LocalChunkInfoKey))
 	if err != nil {
 		return make(map[string]*types.ChunkInfoMsg), nil
 	}
@@ -122,13 +123,13 @@ func (s *StoreProtocol) getLocalChunkInfoMap() (map[string]*types.ChunkInfoMsg, 
 	return chunkInfoMap, nil
 }
 
-func (s *StoreProtocol) saveLocalChunkInfoMap(m map[string]*types.ChunkInfoMsg) error {
+func (p *Protocol) saveLocalChunkInfoMap(m map[string]*types.ChunkInfoMsg) error {
 	value, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 
-	return s.DB.Put(datastore.NewKey(LocalChunkInfoKey), value)
+	return p.DB.Put(datastore.NewKey(LocalChunkInfoKey), value)
 }
 
 // 适配libp2p，按路径格式生成数据的key值，便于区分多种数据类型的命名空间，以及key值合法性校验
@@ -138,4 +139,8 @@ func genChunkPath(hash []byte) string {
 
 func genChunkKey(hash []byte) datastore.Key {
 	return datastore.NewKey(genChunkPath(hash))
+}
+
+func genDHTID(chunkHash []byte) kb.ID {
+	return kb.ConvertKey(genChunkPath(chunkHash))
 }

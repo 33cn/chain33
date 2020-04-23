@@ -35,6 +35,11 @@ func ReadStream(data types.Message, stream network.Stream) error {
 
 // WriteStream writes message to stream.
 func WriteStream(data types.Message, stream network.Stream) error {
+	switch data.(type) {
+	case *types.P2PRequest, *types.P2PResponse:
+	default:
+		return types2.ErrInvalidMessageType
+	}
 	writer := bufio.NewWriter(stream)
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
 	err := enc.Encode(data)
@@ -49,7 +54,7 @@ func WriteStream(data types.Message, stream network.Stream) error {
 	return nil
 }
 
-// CloseStream closes the stream after write, and wait for the EOF.
+// CloseStream closes the stream after writing, and wait for the EOF.
 func CloseStream(stream network.Stream) {
 	if stream == nil {
 		return
@@ -161,7 +166,7 @@ func SignAndWriteStream(message types.Message, stream network.Stream) error {
 	return WriteStream(message, stream)
 }
 
-//HandlerWithClose wraps handler with close stream and recover from panic.
+//HandlerWithClose wraps handler with closing stream and recovering from panic.
 func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 	return func(stream network.Stream) {
 		defer func() {
@@ -176,12 +181,25 @@ func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 	}
 }
 
-// HandlerWithRead wraps handler with read, close stream and recover from panic.
+// HandlerWithRead wraps handler with reading, closing stream and recovering from panic.
 func HandlerWithRead(f func(stream network.Stream, request *types.P2PRequest)) network.StreamHandler {
 	readFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
-			log.Error("HandlerWithRW", "read stream error", err)
+			log.Error("HandlerWithSignCheck", "read stream error", err)
+			return
+		}
+		f(stream, &req)
+	}
+	return HandlerWithClose(readFunc)
+}
+
+// HandlerWithAuth wraps handler with reading, closing stream and recovering from panic.
+func HandlerWithAuth(f func(stream network.Stream, request *types.P2PRequest)) network.StreamHandler {
+	readFunc := func(stream network.Stream) {
+		var req types.P2PRequest
+		if err := ReadStream(&req, stream); err != nil {
+			log.Error("HandlerWithSignCheck", "read stream error", err)
 			return
 		}
 		if !AuthenticateRequest(&req, stream) {
@@ -192,12 +210,39 @@ func HandlerWithRead(f func(stream network.Stream, request *types.P2PRequest)) n
 	return HandlerWithClose(readFunc)
 }
 
-// HandlerWithRW wraps handler with read, write, close stream and recover from panic.
+// HandlerWithRW wraps handler with reading, writing, closing stream and recovering from panic.
 func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
 	rwFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
-			log.Error("HandlerWithRW", "read stream error", err)
+			log.Error("HandlerWithSignCheck", "read stream error", err)
+			return
+		}
+		var res types.P2PResponse
+		err := f(&req, &res)
+		if err != nil {
+			res.Response = nil
+			res.Error = err.Error()
+		}
+		res.Headers = &types.P2PMessageHeaders{
+			Version:   types2.Version,
+			Timestamp: time.Now().Unix(),
+			Id:        rand.Int63(),
+		}
+		if err := WriteStream(&res, stream); err != nil {
+			log.Error("HandlerWithSignCheck", "write stream error", err)
+			return
+		}
+	}
+	return HandlerWithClose(rwFunc)
+}
+
+// HandlerWithSignCheck wraps handler with signature and authenticating besides reading, writing, closing stream and recovering from panic.
+func HandlerWithSignCheck(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
+	rwFunc := func(stream network.Stream) {
+		var req types.P2PRequest
+		if err := ReadStream(&req, stream); err != nil {
+			log.Error("HandlerWithSignCheck", "read stream error", err)
 			return
 		}
 		if !AuthenticateRequest(&req, stream) {
@@ -216,12 +261,12 @@ func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse
 		}
 		sign, err := SignProtoMessage(&res, stream)
 		if err != nil {
-			log.Error("HandlerWithRW", "SignProtoMessage error", err)
+			log.Error("HandlerWithSignCheck", "SignProtoMessage error", err)
 			return
 		}
 		res.Headers.Sign = sign
 		if err := WriteStream(&res, stream); err != nil {
-			log.Error("HandlerWithRW", "write stream error", err)
+			log.Error("HandlerWithSignCheck", "write stream error", err)
 			return
 		}
 	}
@@ -247,7 +292,7 @@ func EventHandlerWithRecover(f func(m *queue.Message)) func(m *queue.Message) {
 //TODO
 // Any developer can define his own event handler wrapper.
 
-// panicTrace trace panic stack info.
+// panicTrace traces panic stack info.
 func panicTrace(kb int) []byte {
 	s := []byte("/src/runtime/panic.go")
 	e := []byte("\ngoroutine ")
