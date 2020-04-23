@@ -1158,7 +1158,7 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 	}
 	// 目前数据量小可在一个节点下载多个chunk记录
 	// TODO 后续可以多个节点并发下载
-	err = chain.chunkRecordTask.Start(reqRec.Start, reqRec.Start, cb, timeoutcb)
+	err = chain.chunkRecordTask.Start(reqRec.Start, reqRec.End, cb, timeoutcb)
 	if err != nil {
 		return err
 	}
@@ -1238,7 +1238,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 		}
 		// chunk下载只是每次只下载一个chunk
 		// TODO 后续再做并发请求下载
-		err = chain.downLoadTask.Start(startHeight, startHeight, cb, timeoutcb)
+		err = chain.downLoadTask.Start(requestblock.Start, requestblock.End, cb, timeoutcb)
 		if err != nil {
 			return err
 		}
@@ -1250,7 +1250,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 		}
 		// chunk下载只是每次只下载一个chunk
 		// TODO 后续再做并发请求下载
-		err = chain.syncTask.Start(startHeight, startHeight, cb, timeoutcb)
+		err = chain.syncTask.Start(requestblock.Start, requestblock.End, cb, timeoutcb)
 		if err != nil {
 			return err
 		}

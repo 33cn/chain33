@@ -674,9 +674,9 @@ func (chain *BlockChain) getChunkRecord(msg *queue.Message) {
 func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
 	req := (msg.Data).(*types.ChunkRecords)
 	chain.AddChunkRecord(req)
-	if len(req.Infos) > 0 {
-		chain.chunkRecordTask.Done(req.Infos[0].ChunkNum)
-		chainlog.Debug("addChunkRecord", "start", req.Infos[0].ChunkNum, "end", req.Infos[len(req.Infos)-1].ChunkNum)
+	for _, info := range req.Infos {
+		chain.chunkRecordTask.Done(info.ChunkNum)
+		chainlog.Debug("addChunkRecord", "chunkNum", info.ChunkNum, "chunkHash", common.ToHex(info.ChunkHash))
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventAddChunkRecord, &types.Reply{IsOk: true}))
 }
@@ -711,10 +711,10 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 	if chain.GetDownloadSyncStatus() == chunkDownLoadMode {
 		for _, blk := range blocks.Items {
 			chain.WriteBlockToDbTemp(blk, true)
-		}
-		//downLoadTask 运行时设置对应的blockdone
-		if chain.downLoadTask.InProgress() {
-			chain.downLoadTask.Done(blocks.Items[0].Height)
+			//downLoadTask 运行时设置对应的blockdone
+			if chain.downLoadTask.InProgress() {
+				chain.downLoadTask.Done(blk.Height)
+			}
 		}
 	} else {
 		for _, blk := range blocks.Items {
