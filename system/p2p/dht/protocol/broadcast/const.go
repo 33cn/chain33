@@ -26,7 +26,6 @@ const (
 	txSendFilterCacheNum    = 500
 	blockSendFilterCacheNum = 50
 	ltBlockCacheNum         = 1000
-	maxBlockCacheByteSize   = 100 * 1024 * 1024
 )
 
 // 内部自定义错误
