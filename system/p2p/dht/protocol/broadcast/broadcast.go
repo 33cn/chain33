@@ -94,11 +94,10 @@ func (handler *broadCastHandler) Handle(stream core.Stream) {
 	protocol := handler.GetProtocol().(*broadCastProtocol)
 	pid := stream.Conn().RemotePeer().Pretty()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
-	log.Debug("Handle", "pid", pid, "peerAddr", peerAddr)
 	var data types.MessageBroadCast
 	err := prototypes.ReadStream(&data, stream)
 	if err != nil {
-		log.Error("Handle", "pid", pid, "peerAddr", peerAddr, "err", err)
+		log.Error("Handle", "pid", pid, "addr", peerAddr, "err", err)
 		return
 	}
 
@@ -118,7 +117,7 @@ func (handler *broadCastHandler) VerifyRequest(types.Message, *types.MessageComm
 //
 func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 
-	log.Debug("HandleBroadCastEvent", "msgTy", msg.Ty, "msgID", msg.ID)
+	//log.Debug("HandleBroadCastEvent", "msgTy", msg.Ty, "msgID", msg.ID)
 	var sendData interface{}
 	if tx, ok := msg.GetData().(*types.Transaction); ok {
 		txHash := hex.EncodeToString(tx.Hash())
@@ -145,7 +144,7 @@ func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 func (protocol *broadCastProtocol) broadcast(data interface{}) {
 
 	pds := protocol.GetConnsManager().FetchConnPeers()
-	log.Debug("broadcast", "peerNum", len(pds))
+	//log.Debug("broadcast", "peerNum", len(pds))
 	openedStreams := make([]core.Stream, 0)
 	for _, pid := range pds {
 
@@ -170,7 +169,6 @@ func (protocol *broadCastProtocol) sendPeer(pid string, data interface{}, delayS
 	//这里传peeraddr用pid替代不会影响，内部只做log记录， 暂时不更改代码
 	//TODO：增加peer addr获取渠道
 	sendData, doSend := protocol.handleSend(data, pid, pid)
-	log.Debug("sendPeer", "pid", pid, "doSend", doSend)
 	if !doSend {
 		return nil, nil
 	}
@@ -204,11 +202,10 @@ func (protocol *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr
 	//出错处理
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("handleSend_Panic", "sendData", rawData, "peerAddr", peerAddr, "recoverErr", r)
+			log.Error("handleSend_Panic", "sendData", rawData, "pid", pid, "recoverErr", r)
 			doSend = false
 		}
 	}()
-	log.Debug("ProcessSendP2PBegin", "peerID", pid, "peerAddr", peerAddr)
 	sendData = &types.BroadCastData{}
 
 	doSend = false
@@ -224,7 +221,6 @@ func (protocol *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr
 		doSend = true
 		sendData.Value = &types.BroadCastData_Ping{Ping: ping}
 	}
-	log.Debug("handleSend", "peerAddr", peerAddr, "doSend", doSend)
 	return
 }
 
@@ -233,10 +229,9 @@ func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid 
 	//接收网络数据不可靠
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("handleReceive_Panic", "recvData", data, "peerAddr", peerAddr, "recoverErr", r)
+			log.Error("handleReceive_Panic", "recvData", data, "pid", pid, "addr", peerAddr, "recoverErr", r)
 		}
 	}()
-	log.Debug("handleReceive", "peerID", pid, "peerAddr", peerAddr)
 	if tx := data.GetTx(); tx != nil {
 		err = protocol.recvTx(tx, pid, peerAddr)
 	} else if ltTx := data.GetLtTx(); ltTx != nil {
@@ -250,7 +245,9 @@ func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid 
 	} else if rep := data.GetBlockRep(); rep != nil {
 		err = protocol.recvQueryReply(rep, pid, peerAddr)
 	}
-	log.Debug("handleReceive", "peerAddr", peerAddr, "err", err)
+	if err != nil {
+		log.Error("handleReceive", "pid", pid, "addr", peerAddr, "recvData", data.Value, "err", err)
+	}
 	return
 }
 

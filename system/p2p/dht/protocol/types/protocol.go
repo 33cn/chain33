@@ -175,6 +175,7 @@ func (base *BaseProtocol) QueryMempool(ty int64, req interface{}) (interface{}, 
 func (base *BaseProtocol) QueryBlockChain(ty int64, req interface{}) (interface{}, error) {
 	return base.QueryModule("blockchain", ty, req)
 }
+
 // QueryModule query msg queue module
 func (base *BaseProtocol) QueryModule(module string, msgTy int64, req interface{}) (interface{}, error) {
 

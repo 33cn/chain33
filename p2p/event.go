@@ -76,7 +76,7 @@ func (mgr *Manager) PubBroadCast(hash string, data interface{}, eventTy int) err
 
 	exist, _ := mgr.broadcastFilter.ContainsOrAdd(hash, true)
 	// eventTy, 交易=1, 区块=54
-	log.Debug("PubBroadCast", "eventTy", eventTy, "hash", hash, "exist", exist)
+	//log.Debug("PubBroadCast", "eventTy", eventTy, "hash", hash, "exist", exist)
 	if exist {
 		return nil
 	}
