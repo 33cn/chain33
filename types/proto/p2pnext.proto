@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "p2p.proto";
 import "blockchain.proto";
+import "common.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
@@ -271,6 +272,8 @@ message P2PResponse {
         ChunkRecords chunkRecords = 5;
         bytes addrInfo = 6;
         //新的协议可以继续添加response类型
+        Reply reply = 7;
+        Header lastHeader = 8;
     }
 
 }
