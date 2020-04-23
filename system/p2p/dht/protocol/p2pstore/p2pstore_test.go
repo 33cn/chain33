@@ -14,7 +14,7 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/ipfs/go-datastore"
-	dsq "github.com/ipfs/go-datastore/query"
+	"github.com/ipfs/go-datastore/query"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
@@ -414,7 +414,7 @@ func (db *TestDB) GetSize(key datastore.Key) (size int, err error) {
 	return len(v), nil
 }
 
-func (db *TestDB) Query(q dsq.Query) (dsq.Results, error) {
+func (db *TestDB) Query(q query.Query) (query.Results, error) {
 	return nil, nil
 }
 
