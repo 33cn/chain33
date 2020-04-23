@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/system/p2p/dht/protocol/healthy"
+
 	"github.com/33cn/chain33/system/p2p/dht/protocol/p2pstore"
 	"github.com/33cn/chain33/system/p2p/dht/store"
 
@@ -175,6 +177,7 @@ func (p *P2P) StartP2P() {
 	}
 	p.env = env2
 	p2pstore.Init(env2)
+	healthy.Init(env2)
 
 	go p.managePeers()
 	go p.handleP2PEvent()
