@@ -2,6 +2,7 @@ package p2pstore
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -11,7 +12,9 @@ import (
 )
 
 func (p *Protocol) startRepublish() {
-	time.Sleep(time.Second * 3)
+	rand.Seed(time.Now().UnixNano())
+	//避免多个节点同时启动时，republish时间过于接近导致网络拥堵
+	time.Sleep(types2.RefreshInterval * time.Duration(rand.Intn(10000)) / 10000)
 	for range time.Tick(types2.RefreshInterval) {
 		if err := p.republish(); err != nil {
 			log.Error("cycling republish", "error", err)
@@ -31,7 +34,7 @@ func (p *Protocol) republish() error {
 			log.Error("republish get error", "hash", hash, "error", err)
 			continue
 		}
-		p.notifyStoreChunk(info)
+		p.notifyStoreChunk(info.ChunkInfoMsg)
 	}
 	return nil
 }

@@ -19,6 +19,11 @@ const (
 	Backup            = 3
 )
 
+type LocalChunkInfo struct {
+	*types.ChunkInfoMsg
+	Time time.Time
+}
+
 // 保存chunk到本地p2pStore，同时更新本地chunk列表
 func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBodys) error {
 	//先检查数据是不是正在保存
@@ -26,52 +31,70 @@ func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBod
 		return nil
 	}
 	defer p.saving.Delete(hex.EncodeToString(info.ChunkHash))
-	b := types.Encode(&types.P2PStoreData{
-		Time: time.Now().UnixNano(),
-		Data: &types.P2PStoreData_BlockBodys{BlockBodys: bodys},
-	})
 
 	err := p.addLocalChunkInfo(info)
 	if err != nil {
 		return err
 	}
-	return p.DB.Put(genChunkKey(info.ChunkHash), b)
+	return p.DB.Put(genChunkKey(info.ChunkHash), types.Encode(bodys))
 }
 
-// 更新本地chunk保存时间，chunk不存在则返回error
+// 更新本地chunk保存时间，只更新索引即可
 func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
-	b, err := p.DB.Get(genChunkKey(req.ChunkHash))
+	m, err := p.getLocalChunkInfoMap()
 	if err != nil {
 		return err
 	}
-	var data types.P2PStoreData
-	err = types.Decode(b, &data)
-	if err != nil {
-		return err
+	mapKey := hex.EncodeToString(req.ChunkHash)
+	if _, ok := m[mapKey]; ok {
+		m[mapKey].Time = time.Now()
+		return p.saveLocalChunkInfoMap(m)
 	}
-	return p.addChunkBlock(req, data.Data.(*types.P2PStoreData_BlockBodys).BlockBodys)
+
+	return types2.ErrNotFound
 }
 
-// 获取本地chunk数据，若数据已过期则删除该数据并返回空
+// 获取本地chunk数据
+//	本地不存在，返回not found
+//  本地存在：
+//		数据未过期：返回数据
+//		数据已过期：返回数据并从数据库中删除，同时返回数据已过期的error
 func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
+	m, err := p.getLocalChunkInfoMap()
+	if err != nil {
+		log.Error("getChunkBlock", "getLocalChunkInfoMap error", err)
+		return nil, err
+	}
+	info, ok := m[hex.EncodeToString(hash)]
+	if !ok {
+		return nil, types2.ErrNotFound
+	}
+
 	b, err := p.DB.Get(genChunkKey(hash))
 	if err != nil {
 		return nil, err
 	}
-	var data types.P2PStoreData
-	err = types.Decode(b, &data)
+	var bodys types.BlockBodys
+	err = types.Decode(b, &bodys)
 	if err != nil {
 		return nil, err
 	}
-	if time.Now().UnixNano()-data.Time > int64(types2.ExpiredTime) {
-		err = p.deleteChunkBlock(hash)
-		if err != nil {
-			log.Error("getChunkBlock", "delete chunk error", err, "hash", hex.EncodeToString(hash))
-		}
+	if time.Since(info.Time) > types2.ExpiredTime {
+		go func() {
+			delete(m, hex.EncodeToString(hash))
+			err := p.saveLocalChunkInfoMap(m)
+			if err != nil {
+				log.Error("getChunkBlock", "saveLocalChunkInfoMap error", err)
+			}
+			err = p.DB.Delete(genChunkKey(hash))
+			if err != nil {
+				log.Error("getChunkBlock", "delete chunk error", err, "hash", hex.EncodeToString(hash))
+			}
+		}()
 		err = types2.ErrExpired
 	}
 
-	return data.Data.(*types.P2PStoreData_BlockBodys).BlockBodys, err
+	return &bodys, err
 
 }
 
@@ -94,7 +117,10 @@ func (p *Protocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
 		return nil
 	}
 
-	hashMap[hex.EncodeToString(info.ChunkHash)] = info
+	hashMap[hex.EncodeToString(info.ChunkHash)] = &LocalChunkInfo{
+		ChunkInfoMsg: info,
+		Time:         time.Now(),
+	}
 	return p.saveLocalChunkInfoMap(hashMap)
 }
 
@@ -107,14 +133,14 @@ func (p *Protocol) deleteLocalChunkInfo(hash []byte) error {
 	return p.saveLocalChunkInfoMap(hashMap)
 }
 
-func (p *Protocol) getLocalChunkInfoMap() (map[string]*types.ChunkInfoMsg, error) {
+func (p *Protocol) getLocalChunkInfoMap() (map[string]*LocalChunkInfo, error) {
 
 	value, err := p.DB.Get(datastore.NewKey(LocalChunkInfoKey))
 	if err != nil {
-		return make(map[string]*types.ChunkInfoMsg), nil
+		return make(map[string]*LocalChunkInfo), nil
 	}
 
-	var chunkInfoMap map[string]*types.ChunkInfoMsg
+	var chunkInfoMap map[string]*LocalChunkInfo
 	err = json.Unmarshal(value, &chunkInfoMap)
 	if err != nil {
 		return nil, err
@@ -123,7 +149,7 @@ func (p *Protocol) getLocalChunkInfoMap() (map[string]*types.ChunkInfoMsg, error
 	return chunkInfoMap, nil
 }
 
-func (p *Protocol) saveLocalChunkInfoMap(m map[string]*types.ChunkInfoMsg) error {
+func (p *Protocol) saveLocalChunkInfoMap(m map[string]*LocalChunkInfo) error {
 	value, err := json.Marshal(m)
 	if err != nil {
 		return err
