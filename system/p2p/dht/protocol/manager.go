@@ -7,6 +7,23 @@ import (
 	"github.com/33cn/chain33/queue"
 )
 
+//TODO
+type Initializer func(env *P2PEnv)
+
+var (
+	protocolInitializerArray []Initializer
+)
+
+func RegisterProtocolInitializer(initializer Initializer) {
+	protocolInitializerArray = append(protocolInitializerArray, initializer)
+}
+
+func InitAllProtocol(env *P2PEnv) {
+	for _, initializer := range protocolInitializerArray {
+		initializer(env)
+	}
+}
+
 // EventHandler handle chain33 event
 type EventHandler func(*queue.Message)
 

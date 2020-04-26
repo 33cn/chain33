@@ -10,47 +10,47 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (s *StoreProtocol) startRepublish() {
+func (p *Protocol) startRepublish() {
 	time.Sleep(time.Second * 3)
 	for range time.Tick(types2.RefreshInterval) {
-		if err := s.republish(); err != nil {
+		if err := p.republish(); err != nil {
 			log.Error("cycling republish", "error", err)
 		}
 	}
 }
 
-func (s *StoreProtocol) republish() error {
-	chunkInfoMap, err := s.getLocalChunkInfoMap()
+func (p *Protocol) republish() error {
+	chunkInfoMap, err := p.getLocalChunkInfoMap()
 	if err != nil {
 		return err
 	}
-
+	log.Info("republish", ">>>>>>>>>>>>>> record amount:", len(chunkInfoMap))
 	for hash, info := range chunkInfoMap {
-		_, err = s.getChunkBlock(info.ChunkHash)
+		_, err = p.getChunkBlock(info.ChunkHash)
 		if err != nil && err != types2.ErrExpired {
 			log.Error("republish get error", "hash", hash, "error", err)
 			continue
 		}
-		s.notifyStoreChunk(info)
+		p.notifyStoreChunk(info)
 	}
 	return nil
 }
 
 // 通知最近的 *BackUp* 个节点备份数据
-func (s *StoreProtocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
-	peers := s.Discovery.FindNearestPeers(peer.ID(genChunkPath(req.ChunkHash)), Backup)
+func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
+	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup)
 	for _, pid := range peers {
-		err := s.storeChunkOnPeer(req, pid)
+		err := p.storeChunkOnPeer(req, pid)
 		if err != nil {
 			log.Error("notifyStoreChunk", "peer id", pid, "error", err)
 		}
 	}
 }
 
-func (s *StoreProtocol) storeChunkOnPeer(req *types.ChunkInfoMsg, pid peer.ID) error {
+func (p *Protocol) storeChunkOnPeer(req *types.ChunkInfoMsg, pid peer.ID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	stream, err := s.Host.NewStream(ctx, pid, StoreChunk)
+	stream, err := p.Host.NewStream(ctx, pid, protocol.StoreChunk)
 	if err != nil {
 		log.Error("new stream error when store chunk", "peer id", pid, "error", err)
 		return err
