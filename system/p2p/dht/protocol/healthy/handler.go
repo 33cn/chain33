@@ -3,6 +3,7 @@ package healthy
 import (
 	"context"
 	"errors"
+	"math/rand"
 	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -13,8 +14,7 @@ import (
 )
 
 const (
-	MaxConn       = 50
-	MaxFallBehind = 50
+	MaxQuery = 50
 )
 
 var log = log15.New("module", "protocol.sync")
@@ -36,8 +36,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 
 func (p *Protocol) HandleStreamIsSync(req *types.P2PRequest, res *types.P2PResponse) error {
 	peers := p.Host.Network().Peers()
-	if len(peers) > MaxConn {
-		peers = peers[:MaxConn]
+	if len(peers) > MaxQuery {
+		peers = peers[:MaxQuery]
 	}
 
 	maxHeight := int64(-1)
@@ -70,9 +70,12 @@ func (p *Protocol) HandleStreamIsSync(req *types.P2PRequest, res *types.P2PRespo
 }
 
 func (p *Protocol) HandleStreamIsHealthy(req *types.P2PRequest, res *types.P2PResponse) error {
+	maxFallBehind := req.Request.(*types.P2PRequest_HealthyHeight).HealthyHeight
 	peers := p.Host.Network().Peers()
-	if len(peers) > MaxConn {
-		peers = peers[:MaxConn]
+	if len(peers) > MaxQuery {
+		//打乱顺序
+		shuffle(peers)
+		peers = peers[:MaxQuery]
 	}
 
 	maxHeight := int64(-1)
@@ -93,7 +96,7 @@ func (p *Protocol) HandleStreamIsHealthy(req *types.P2PRequest, res *types.P2PRe
 	}
 
 	var isHealthy bool
-	if header.Height >= maxHeight-MaxFallBehind {
+	if header.Height >= maxHeight-maxFallBehind {
 		isHealthy = true
 	}
 	res.Response = &types.P2PResponse_Reply{
@@ -116,7 +119,7 @@ func (p *Protocol) HandleStreamLastHeader(req *types.P2PRequest, res *types.P2PR
 }
 
 func (p *Protocol) getLastHeaderFromPeer(pid peer.ID) (*types.Header, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	stream, err := p.Host.NewStream(ctx, pid, protocol.GetLastHeader)
 	if err != nil {
@@ -155,4 +158,14 @@ func (p *Protocol) getLastHeaderFromBlockChain() (*types.Header, error) {
 		return header, nil
 	}
 	return nil, types2.ErrNotFound
+}
+
+func shuffle(slice []peer.ID) {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	for len(slice) > 0 {
+		n := len(slice)
+		randIndex := r.Intn(n)
+		slice[n-1], slice[randIndex] = slice[randIndex], slice[n-1]
+		slice = slice[:n-1]
+	}
 }

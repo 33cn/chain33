@@ -38,7 +38,11 @@ func (p *Protocol) checkPeerHealth(id peer.ID) error {
 	if err != nil {
 		return err
 	}
-	err = protocol2.WriteStream(&types.P2PRequest{}, stream)
+	err = protocol2.WriteStream(&types.P2PRequest{
+		Request: &types.P2PRequest_HealthyHeight{
+			HealthyHeight: 50,
+		},
+	}, stream)
 	if err != nil {
 		return err
 	}

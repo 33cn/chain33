@@ -234,6 +234,7 @@ message P2PRequest {
         ChunkInfoMsg    chunkInfoMsg    = 3;
         ReqBlocks       reqBlocks       = 4;
         //新的协议可以继续添加request类型
+        int64           healthyHeight   = 5;
     }
 }
 
@@ -250,3 +251,7 @@ message P2PResponse {
         Header lastHeader = 8;
     }
 }
+
+//message healthyHeight {
+//    int64 height = 1;
+//}
