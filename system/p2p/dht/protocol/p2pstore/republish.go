@@ -39,9 +39,9 @@ func (p *Protocol) republish() error {
 	return nil
 }
 
-// 通知最近的 *BackUp* 个节点备份数据
+// 通知最近的 *BackUp-1* 个节点备份数据，加上本节点共Backup个
 func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
-	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup)
+	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup-1)
 	for _, pid := range peers {
 		err := p.storeChunkOnPeer(req, pid)
 		if err != nil {

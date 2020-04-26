@@ -16,7 +16,7 @@ const (
 	LocalChunkInfoKey = "local-chunk-info"
 	ChunkNameSpace    = "chunk"
 	AlphaValue        = 3
-	Backup            = 3
+	Backup            = 20
 )
 
 type LocalChunkInfo struct {
