@@ -331,7 +331,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		RoutingTable: net.InitDhtDiscovery(host1, nil, cfg, &types2.P2PSubConfig{Channel: 888}),
 		DB:           newTestDB(),
 	}
-	Init(&env1)
+	InitProtocol(&env1)
 	host1.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 
 	m2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 13807))

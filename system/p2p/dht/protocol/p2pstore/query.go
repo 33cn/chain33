@@ -65,7 +65,7 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 		return nil, err
 	}
 	var res types.P2PResponse
-	err = protocol.ReadResponseAndAuthenticate(&res, stream)
+	err = protocol.ReadStreamAndAuthenticate(&res, stream)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid pee
 	}
 
 	var res types.P2PResponse
-	err = protocol.ReadResponseAndAuthenticate(&res, stream)
+	err = protocol.ReadStreamAndAuthenticate(&res, stream)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 		return nil, nil, err
 	}
 	var res types.P2PResponse
-	err = protocol.ReadResponseAndAuthenticate(&res, stream)
+	err = protocol.ReadStreamAndAuthenticate(&res, stream)
 	if err != nil {
 		log.Error("fetchChunkFromPeer", "read response error", err, "chunk hash", hex.EncodeToString(params.ChunkHash))
 		return nil, nil, err

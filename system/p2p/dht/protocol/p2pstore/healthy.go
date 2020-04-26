@@ -5,6 +5,7 @@ import (
 	"time"
 
 	protocol2 "github.com/33cn/chain33/system/p2p/dht/protocol"
+	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -17,7 +18,7 @@ func (p *Protocol) startUpdateHealthyRoutingTable() {
 	}
 	time.Sleep(time.Second * 1)
 	p.updateHealthyRoutingTable()
-	for range time.Tick(time.Minute * 5) {
+	for range time.Tick(types2.CheckHealthyInterval) {
 		p.updateHealthyRoutingTable()
 	}
 }

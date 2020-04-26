@@ -14,7 +14,7 @@ import (
 
 const (
 	MaxConn       = 50
-	MaxFallBehind = 5
+	MaxFallBehind = 50
 )
 
 var log = log15.New("module", "protocol.sync")
@@ -23,10 +23,15 @@ type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 }
 
-func Init(env *protocol.P2PEnv) {
+func init() {
+	protocol.RegisterProtocolInitializer(InitProtocol)
+}
+
+func InitProtocol(env *protocol.P2PEnv) {
 	s := Protocol{env}
 	s.Host.SetStreamHandler(protocol.IsSync, protocol.HandlerWithRW(s.HandleStreamIsSync))
 	s.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(s.HandleStreamIsHealthy))
+	s.Host.SetStreamHandler(protocol.GetLastHeader, protocol.HandlerWithRW(s.HandleStreamLastHeader))
 }
 
 func (p *Protocol) HandleStreamIsSync(req *types.P2PRequest, res *types.P2PResponse) error {
@@ -74,7 +79,7 @@ func (p *Protocol) HandleStreamIsHealthy(req *types.P2PRequest, res *types.P2PRe
 	for _, pid := range peers {
 		header, err := p.getLastHeaderFromPeer(pid)
 		if err != nil {
-			log.Error("HandleStreamIsSync", "getLastHeader error", err, "pid", pid)
+			log.Error("HandleStreamIsHealthy", "getLastHeader error", err, "pid", pid)
 			continue
 		}
 		if header.Height > maxHeight {
@@ -118,13 +123,13 @@ func (p *Protocol) getLastHeaderFromPeer(pid peer.ID) (*types.Header, error) {
 		return nil, err
 	}
 	msg := types.P2PRequest{}
-	err = protocol.SignAndWriteStream(&msg, stream)
+	err = protocol.WriteStream(&msg, stream)
 	if err != nil {
 		return nil, err
 	}
 
 	var res types.P2PResponse
-	err = protocol.ReadResponseAndAuthenticate(&res, stream)
+	err = protocol.ReadStream(&res, stream)
 	if err != nil {
 		return nil, err
 	}

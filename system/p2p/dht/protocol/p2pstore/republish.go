@@ -24,7 +24,7 @@ func (p *Protocol) republish() error {
 	if err != nil {
 		return err
 	}
-
+	log.Info("republish", ">>>>>>>>>>>>>> record amount:", len(chunkInfoMap))
 	for hash, info := range chunkInfoMap {
 		_, err = p.getChunkBlock(info.ChunkHash)
 		if err != nil && err != types2.ErrExpired {

@@ -28,7 +28,11 @@ type Protocol struct {
 	healthyRoutingTable *kb.RoutingTable
 }
 
-func Init(env *protocol.P2PEnv) {
+func init() {
+	protocol.RegisterProtocolInitializer(InitProtocol)
+}
+
+func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
 		P2PEnv:              env,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
@@ -158,10 +162,6 @@ func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	//如果本节点是本地路由表中距离该chunk最近的 *count* 个节点之一，则保存数据；否则不需要保存数据
 	count := Backup
 	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), count)
-	if len(peers) == 0 {
-		log.Error("HandleEventNotifyStoreChunk", "error", types2.ErrEmptyRoutingTable)
-		return
-	}
 	if len(peers) == count && kb.Closer(peers[count-1], p.Host.ID(), genChunkPath(req.ChunkHash)) {
 		return
 	}

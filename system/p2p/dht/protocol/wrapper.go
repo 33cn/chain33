@@ -14,7 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
 
@@ -35,11 +34,6 @@ func ReadStream(data types.Message, stream network.Stream) error {
 
 // WriteStream writes message to stream.
 func WriteStream(data types.Message, stream network.Stream) error {
-	switch data.(type) {
-	case *types.P2PRequest, *types.P2PResponse:
-	default:
-		return types2.ErrInvalidMessageType
-	}
 	writer := bufio.NewWriter(stream)
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
 	err := enc.Encode(data)
@@ -54,7 +48,7 @@ func WriteStream(data types.Message, stream network.Stream) error {
 	return nil
 }
 
-// CloseStream closes the stream after writing, and wait for the EOF.
+// CloseStream closes the stream after writing, and waits for the EOF.
 func CloseStream(stream network.Stream) {
 	if stream == nil {
 		return
@@ -66,40 +60,33 @@ func CloseStream(stream network.Stream) {
 	}
 }
 
-// AuthenticateMessage auth p2p request
-func AuthenticateRequest(req *types.P2PRequest, stream network.Stream) bool {
+// AuthenticateMessage authenticates p2p message.
+func AuthenticateMessage(message types.Message, stream network.Stream) bool {
+	var sign, bin []byte
 	// store a temp ref to signature and remove it from message data
 	// sign is a string to allow easy reset to zero-value (empty string)
-	sign := req.Headers.Sign
-	req.Headers.Sign = nil
-
-	// marshall data without the signature to protobuf3 binary format
-	bin := types.Encode(req)
-
-	// restore sig in message data (for possible future use)
-	req.Headers.Sign = sign
+	switch t := message.(type) {
+	case *types.P2PRequest:
+		sign = t.Headers.Sign
+		t.Headers.Sign = nil
+		// marshall data without the signature to protobuf3 binary format
+		bin = types.Encode(t)
+		// restore sig in message data (for possible future use)
+		t.Headers.Sign = sign
+	case *types.P2PResponse:
+		sign = t.Headers.Sign
+		t.Headers.Sign = nil
+		// marshall data without the signature to protobuf3 binary format
+		bin = types.Encode(t)
+		// restore sig in message data (for possible future use)
+		t.Headers.Sign = sign
+	default:
+		return false
+	}
 
 	// verify the data was authored by the signing peer identified by the public key
 	// and signature included in the message
-	return verifyData(bin, sign, stream.Conn().RemotePeer(), stream.Conn().RemotePublicKey())
-}
-
-// AuthenticateMessage auth p2p request
-func AuthenticateResponse(res *types.P2PResponse, stream network.Stream) bool {
-	// store a temp ref to signature and remove it from message data
-	// sign is a string to allow easy reset to zero-value (empty string)
-	sign := res.Headers.Sign
-	res.Headers.Sign = nil
-
-	// marshall data without the signature to protobuf3 binary format
-	bin := types.Encode(res)
-
-	// restore sig in message data (for possible future use)
-	res.Headers.Sign = sign
-
-	// verify the data was authored by the signing peer identified by the public key
-	// and signature included in the message
-	return verifyData(bin, sign, stream.Conn().RemotePeer(), stream.Conn().RemotePublicKey())
+	return verifyData(bin, sign, stream.Conn().RemotePublicKey())
 }
 
 // Verify incoming p2p message data integrity
@@ -107,7 +94,7 @@ func AuthenticateResponse(res *types.P2PResponse, stream network.Stream) bool {
 // signature: author signature provided in the message payload
 // id: node id of remote peer
 // pubKey: public key of remote peer
-func verifyData(data []byte, signature []byte, id peer.ID, pubKey crypto.PubKey) bool {
+func verifyData(data []byte, signature []byte, pubKey crypto.PubKey) bool {
 	res, err := pubKey.Verify(data, signature)
 	if err != nil {
 		log.Error("Error authenticating data", "err", err)
@@ -117,19 +104,20 @@ func verifyData(data []byte, signature []byte, id peer.ID, pubKey crypto.PubKey)
 	return res
 }
 
-// ReadResponseAndAuthenticate verifies the message after reading it from the stream.
-func ReadResponseAndAuthenticate(res *types.P2PResponse, stream network.Stream) error {
-	if err := ReadStream(res, stream); err != nil {
+// ReadStreamAndAuthenticate verifies the message after reading it from the stream.
+func ReadStreamAndAuthenticate(message types.Message, stream network.Stream) error {
+	if err := ReadStream(message, stream); err != nil {
 		return err
 	}
-	if !AuthenticateResponse(res, stream) {
+	if !AuthenticateMessage(message, stream) {
 		return types2.ErrWrongSignature
 	}
+
 	return nil
 }
 
-// SignProtoMessage sign an outgoing p2p message payload
-func SignProtoMessage(message types.Message, stream network.Stream) ([]byte, error) {
+// signProtoMessage signs an outgoing p2p message payload.
+func signProtoMessage(message types.Message, stream network.Stream) ([]byte, error) {
 	privKey := stream.Conn().LocalPrivateKey()
 	return privKey.Sign(types.Encode(message))
 }
@@ -143,7 +131,7 @@ func SignAndWriteStream(message types.Message, stream network.Stream) error {
 			Timestamp: time.Now().Unix(),
 			Id:        rand.Int63(),
 		}
-		sign, err := SignProtoMessage(t, stream)
+		sign, err := signProtoMessage(t, stream)
 		if err != nil {
 			return err
 		}
@@ -154,7 +142,7 @@ func SignAndWriteStream(message types.Message, stream network.Stream) error {
 			Timestamp: time.Now().Unix(),
 			Id:        rand.Int63(),
 		}
-		sign, err := SignProtoMessage(t, stream)
+		sign, err := signProtoMessage(t, stream)
 		if err != nil {
 			return err
 		}
@@ -166,7 +154,7 @@ func SignAndWriteStream(message types.Message, stream network.Stream) error {
 	return WriteStream(message, stream)
 }
 
-//HandlerWithClose wraps handler with closing stream and recovering from panic.
+// HandlerWithClose wraps handler with closing stream and recovering from panic.
 func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 	return func(stream network.Stream) {
 		defer func() {
@@ -194,7 +182,7 @@ func HandlerWithRead(f func(stream network.Stream, request *types.P2PRequest)) n
 	return HandlerWithClose(readFunc)
 }
 
-// HandlerWithAuth wraps handler with reading, closing stream and recovering from panic.
+// HandlerWithAuth wraps HandlerWithRead with authenticating.
 func HandlerWithAuth(f func(stream network.Stream, request *types.P2PRequest)) network.StreamHandler {
 	readFunc := func(stream network.Stream) {
 		var req types.P2PRequest
@@ -202,7 +190,7 @@ func HandlerWithAuth(f func(stream network.Stream, request *types.P2PRequest)) n
 			log.Error("HandlerWithSignCheck", "read stream error", err)
 			return
 		}
-		if !AuthenticateRequest(&req, stream) {
+		if !AuthenticateMessage(&req, stream) {
 			return
 		}
 		f(stream, &req)
@@ -215,7 +203,7 @@ func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse
 	rwFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
-			log.Error("HandlerWithSignCheck", "read stream error", err)
+			log.Error("HandlerWithRW", "read stream error", err)
 			return
 		}
 		var res types.P2PResponse
@@ -237,7 +225,7 @@ func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse
 	return HandlerWithClose(rwFunc)
 }
 
-// HandlerWithSignCheck wraps handler with signature and authenticating besides reading, writing, closing stream and recovering from panic.
+// HandlerWithSignCheck wraps HandlerWithRW with signing and authenticating.
 func HandlerWithSignCheck(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
 	rwFunc := func(stream network.Stream) {
 		var req types.P2PRequest
@@ -245,7 +233,7 @@ func HandlerWithSignCheck(f func(request *types.P2PRequest, response *types.P2PR
 			log.Error("HandlerWithSignCheck", "read stream error", err)
 			return
 		}
-		if !AuthenticateRequest(&req, stream) {
+		if !AuthenticateMessage(&req, stream) {
 			return
 		}
 		var res types.P2PResponse
@@ -259,9 +247,9 @@ func HandlerWithSignCheck(f func(request *types.P2PRequest, response *types.P2PR
 			Timestamp: time.Now().Unix(),
 			Id:        rand.Int63(),
 		}
-		sign, err := SignProtoMessage(&res, stream)
+		sign, err := signProtoMessage(&res, stream)
 		if err != nil {
-			log.Error("HandlerWithSignCheck", "SignProtoMessage error", err)
+			log.Error("HandlerWithSignCheck", "signProtoMessage error", err)
 			return
 		}
 		res.Headers.Sign = sign
@@ -276,7 +264,7 @@ func HandlerWithSignCheck(f func(request *types.P2PRequest, response *types.P2PR
 //TODO
 // Any developer can define his own stream handler wrapper.
 
-// EventHandlerWithRecover warps the event handler with recover for catching the panic while processing.
+// EventHandlerWithRecover warps the event handler with recover for catching the panic while processing message.
 func EventHandlerWithRecover(f func(m *queue.Message)) func(m *queue.Message) {
 	return func(m *queue.Message) {
 		defer func() {
