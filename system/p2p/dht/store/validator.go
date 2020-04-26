@@ -1,7 +1,6 @@
 package store
 
 type Validator struct {
-
 }
 
 func (Validator) Validate(_ string, _ []byte) error {

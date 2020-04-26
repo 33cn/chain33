@@ -272,9 +272,9 @@ func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
 	}
 
 	req := &types.ChunkInfoMsg{
-		ChunkHash:data.ChunkHash,
-		Start: data.Start,
-		End: data.End,
+		ChunkHash: data.ChunkHash,
+		Start:     data.Start,
+		End:       data.End,
 	}
 
 	chainlog.Debug("notifyStoreChunkToP2P", "chunknum", data.ChunkNum, "block start height",
@@ -368,7 +368,7 @@ func (chain *BlockChain) GetCurChunkNum() int64 {
 // CaclSafetyChunkInfo 计算安全的chunkNum用于生成chunk时候或者删除时候
 func (chain *BlockChain) CaclSafetyChunkInfo(height int64) (chunkNum, start, end int64) {
 	height = chain.caclSafetyChunkHeight(height)
-	if height < 0  {
+	if height < 0 {
 		return -1, 0, 0
 	}
 	return caclChunkInfo(chain.cfg, height)

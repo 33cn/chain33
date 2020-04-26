@@ -405,7 +405,7 @@ func TestFetchChunkBlock(t *testing.T) {
 	}
 	// check for updata
 	go func() {
-		for i := int64(0); i <= end/chain.cfg.ChunkblockNum; i++ {
+		for i := int64(0); i <= end; i++ {
 			time.Sleep(time.Microsecond * 500)
 			chain.downLoadTask.Done(i)
 			fmt.Println("done i", i)
@@ -455,7 +455,7 @@ func TestFetchChunkRecords(t *testing.T) {
 	chain.peerList[0].Height = end
 	// check for updata
 	go func() {
-		count := end / chain.cfg.ChunkblockNum / int64(MaxReqChunkRecord)
+		count := end / chain.cfg.ChunkblockNum/ int64(MaxReqChunkRecord)
 		for i := int64(0); i <= count; i++ {
 			time.Sleep(time.Microsecond * 200)
 			for j := i * int64(MaxReqChunkRecord); j < (i+1)*int64(MaxReqChunkRecord); j++ {

@@ -150,7 +150,7 @@ func testGetChunkRecordMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchai
 	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventGetChunkRecord, records)
 	mock33.GetClient().Send(msgGen, true)
 	_, err := mock33.GetClient().Wait(msgGen)
-	assert.Equal(t, err, types.ErrNotFound)
+	assert.NoError(t, err)
 	chainlog.Info("testGetChunkRecordMsg end --------------------")
 }
 

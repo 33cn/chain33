@@ -429,7 +429,7 @@ func (chain *BlockChain) ChunkDownLoadBlocks() {
 			// 下载chunk后在该进程执行临时区块
 			go chain.ReadBlockToExec(targetHeight, true)
 			break
-		} else if types.Since(startTime) > waitTimeDownLoad*time.Second || chain.cfg.SingleMode {
+		} else if types.Since(startTime) > waitTimeDownLoad*time.Second*3 || chain.cfg.SingleMode {
 			synlog.Info("ChunkDownLoadBlocks:waitTimeDownLoad:quit!", "curheight", curheight, "peerMaxBlkHeight", peerMaxBlkHeight, "pids", pids)
 			chain.UpdateDownloadSyncStatus(normalDownLoadMode)
 			break
@@ -457,7 +457,7 @@ func (chain *BlockChain) DownLoadChunkTimeOutProc(height int64) {
 	info := chain.GetDownLoadInfo()
 	synlog.Info("DownLoadChunkTimeOutProc", "real chunkNum", height, "info.StartHeight", info.StartHeight, "info.EndHeight", info.EndHeight)
 	//  TODO 需要检查当前是否有连接节点,如果没有则可能没有连接节点导致超时
-	if len(chain.GetPeers()) == 0  {
+	if len(chain.GetPeers()) == 0 {
 		synlog.Info("DownLoadChunkTimeOutProc:peers not exist!")
 		return
 	}

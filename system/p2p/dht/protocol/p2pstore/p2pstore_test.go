@@ -35,9 +35,8 @@ func TestInit(t *testing.T) {
 	msgCh := initMockBlockchain(q)
 	client := q.Client()
 	//client用来模拟blockchain模块向p2p模块发消息，host1接收topic为p2p的消息，host2接收topic为p2p2的消息
-	var msg *queue.Message
 	//向host1请求数据
-	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
+	msg := testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
 		Start:     0,
 		End:       999,
