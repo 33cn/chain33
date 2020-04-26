@@ -219,32 +219,6 @@ message MessageBroadCast {
 * p2p 分布式存储
 */
 
-message P2PStoreRequest {
-    string protocolID = 1;
-    oneof  data {
-        ReqChunkRecords reqChunkRecords = 2;
-        ChunkInfoMsg    chunkInfoMsg    = 3;
-        ReqBlocks       reqBlocks       = 4;
-    }
-}
-
-message P2PStoreResponse {
-    string errorInfo = 1;
-    oneof  result {
-        BlockBodys   blockBodys   = 2;
-        Headers      headers      = 3;
-        ChunkRecords chunkRecords = 4;
-        bytes        addrInfo     = 5;
-    }
-}
-
-message P2PStoreData {
-    int64 time = 1;
-    oneof data {
-        BlockBodys blockBodys = 2;
-    }
-}
-
 message P2PMessageHeaders {
     // shared between all requests
     string version   = 1; // client version

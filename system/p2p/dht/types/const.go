@@ -24,7 +24,6 @@ var (
 	ErrNotFound           = errors.New("not found")
 	ErrExpired            = errors.New("data expired")
 	ErrInvalidParam       = errors.New("invalid parameter")
-	ErrEmptyRoutingTable  = errors.New("empty routing table")
 	ErrWrongSignature     = errors.New("wrong signature")
 
 	//ExpiredTime     = time.Hour * 24
