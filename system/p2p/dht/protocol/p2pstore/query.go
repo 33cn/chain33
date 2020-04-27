@@ -165,46 +165,6 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, e
 	return nil, types2.ErrNotFound
 }
 
-//func (s *Protocol) fetchChunkOrNearerPeersAsync(ctx context.Context, param *types.ChunkInfoMsg, peers []peer.ID) (*types.BlockBodys, error) {
-//	//用于遍历查询
-//	peerCh := make(chan peer.ID, 1024)
-//	//保存查询过的节点，防止二次查询
-//	peersMap := make(map[peer.ID]struct{})
-//	peersMap[s.Host.ID()] = struct{}{}
-//	//用于接收并发查询的回复
-//	responseCh := make(chan *types.BlockBodys, 1)
-//	for _, pid := range peers {
-//		peersMap[pid] = struct{}{}
-//		peerCh <- pid
-//	}
-//	cancelCtx, cancelFunc := context.WithCancel(ctx)
-//	defer cancelFunc()
-//	// 多个节点并发请求
-//	for peerID := range peerCh {
-//		bodys, pids, err := s.fetchChunkOrNearerPeers(cancelCtx, param, peerID)
-//		if err != nil {
-//			log.Error("fetchChunkOrNearerPeersAsync", "fetch error", err, "peer id", peerID)
-//			continue
-//		}
-//		responseCh <- bodys
-//		//没查到区块数据，返回了更近的节点信息
-//		for _, newPeer := range pids {
-//			//过滤掉已经查询过的节点
-//			if _, ok := peersMap[newPeer]; !ok {
-//				peersMap[newPeer] = struct{}{}
-//				peerCh <- newPeer
-//			}
-//		}
-//
-//		bodys := <-responseCh
-//		if bodys != nil {
-//			return bodys, nil
-//		}
-//	}
-//
-//	return nil, newPeerMap
-//}
-
 func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
 	childCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
@@ -348,11 +308,3 @@ func (p *Protocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords) (*ty
 
 	return nil, types2.ErrNotFound
 }
-
-//func peersToMap(peers []peer.ID) map[peer.ID]struct{} {
-//	m := make(map[peer.ID]struct{})
-//	for _, pid := range peers {
-//		m[pid] = struct{}{}
-//	}
-//	return m
-//}

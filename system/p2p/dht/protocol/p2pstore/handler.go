@@ -53,7 +53,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.startUpdateHealthyRoutingTable()
 }
 
-func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PResponse) error {
+func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	//优先检查本地是否存在
 	bodys, _ := p.getChunkBlock(param.ChunkHash)
@@ -89,7 +89,7 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PR
 	1）若已保存则只更新时间即可
 	2）若未保存则从网络中请求chunk数据
 */
-func (p *Protocol) HandleStreamStoreChunk(stream network.Stream, req *types.P2PRequest) {
+func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.Stream) {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	chunkHashHex := hex.EncodeToString(param.ChunkHash)
 	//该chunk正在保存
@@ -125,7 +125,7 @@ func (p *Protocol) HandleStreamStoreChunk(stream network.Stream, req *types.P2PR
 	}
 }
 
-func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse) error {
+func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	param := req.Request.(*types.P2PRequest_ReqBlocks)
 	msg := p.QueueClient.NewMessage("blockchain", types.EventGetHeaders, param.ReqBlocks)
 	err := p.QueueClient.Send(msg, true)
@@ -144,7 +144,7 @@ func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PRe
 	return types.ErrNotFound
 }
 
-func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse) error {
+func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	param := req.Request.(*types.P2PRequest_ReqChunkRecords).ReqChunkRecords
 	records, err := p.getChunkRecordFromBlockchain(param)
 	if err != nil {

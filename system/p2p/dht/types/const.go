@@ -25,10 +25,11 @@ var (
 	ErrExpired            = errors.New("data expired")
 	ErrInvalidParam       = errors.New("invalid parameter")
 	ErrWrongSignature     = errors.New("wrong signature")
+	ErrUnknown            = errors.New("unknown error")
 
 	//ExpiredTime     = time.Hour * 24
 	//RefreshInterval = time.Hour * 4
-	ExpiredTime          = time.Minute * 5
-	RefreshInterval      = time.Minute * 1
-	CheckHealthyInterval = time.Minute * 1
+	ExpiredTime          = time.Hour * 4
+	RefreshInterval      = time.Hour * 1
+	CheckHealthyInterval = time.Minute * 10
 )

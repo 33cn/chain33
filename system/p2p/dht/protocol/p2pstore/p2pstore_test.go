@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/network"
+
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 
@@ -386,7 +388,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	return p
 }
 
-func handleStreamIsHealthy(req *types.P2PRequest, res *types.P2PResponse) error {
+func handleStreamIsHealthy(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	res.Response = &types.P2PResponse_Reply{
 		Reply: &types.Reply{
 			IsOk: true,
