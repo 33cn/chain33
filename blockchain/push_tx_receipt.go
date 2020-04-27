@@ -276,13 +276,10 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 		for {
 			select {
 			case lastesBlockSeq = <-in.seq:
-				chainlog.Debug("runTask to push tx receipt in seq", "lastesBlockSeq", lastesBlockSeq, "len", len(in.seq), "in", in.seq)
 				push.trigeRun(run, 0)
 			case <-run:
-				chainlog.Debug("runTask to push tx receipt", "run1")
 				if subscribe == nil {
 					push.trigeRun(run, time.Second)
-					chainlog.Debug("runTask to push tx receipt", "run2")
 					continue
 				}
 				//没有更新的区块，则不进行处理，同时等待一定的时间
@@ -346,7 +343,6 @@ func (push *PushTxReceiptService) getTxReceipts(subscribe *types.SubscribeTxRece
 		}
 
 		txReceiptsPerBlk := &types.TxReceipts4SubscribePerBlk{}
-		chainlog.Info("getTxReceipts", "height:", detail.Block.Height, "tx numbers:", len(detail.Block.Txs), "Receipts numbers:", len(detail.Receipts))
 		for txIndex, tx := range detail.Block.Txs {
 			if string(tx.Execer) == subscribe.Contract {
 				chainlog.Info("getTxReceipts", "txIndex:", txIndex)
