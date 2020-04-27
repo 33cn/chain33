@@ -52,12 +52,6 @@ func TestInit(t *testing.T) {
 	})
 	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
 
-	// 通知host1保存数据
-	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test0"),
-		Start:     0,
-		End:       999,
-	})
 	// 通知host2保存数据
 	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
@@ -142,12 +136,6 @@ func TestInit(t *testing.T) {
 	//保存4000~4999的block,会检查0~3999的blockchunk是否能查到
 	// 通知host1保存数据
 	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test4"),
-		Start:     4000,
-		End:       4999,
-	})
-	// 通知host2保存数据
-	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test4"),
 		Start:     4000,
 		End:       4999,
