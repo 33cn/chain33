@@ -40,25 +40,15 @@ enableTxQuickIndex=false
 
 
 [p2p]
-port=13802
-seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
+types=[ "dht"]
 enable=true
-isSeed=true
-serverStart=true
-msgCacheSize=10240
 driver="memdb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-channel=216
-#waitPid 等待seed导入
-waitPid=false
-#交易开始采用哈希传播的ttl
-lightTxTTL=3
-#最大交易传播ttl
-maxTTL=20
-#是否固定只连接seeds中配置的节点
-fixedSeed=false
+
+[p2p.sub.dht]
+
 
 [rpc]
 jrpcBindAddr="localhost:8801"

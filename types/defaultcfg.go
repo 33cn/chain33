@@ -46,14 +46,7 @@ isParaChain=false
 enableTxQuickIndex=true
 
 [p2p]
-seeds=[]
 enable=false
-isSeed=false
-serverStart=true
-innerSeedEnable=true
-useGithub=true
-innerBounds=300
-msgCacheSize=10240
 driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4

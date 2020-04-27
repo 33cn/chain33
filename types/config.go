@@ -701,6 +701,7 @@ type subModule struct {
 	Wallet    map[string]interface{}
 	Mempool   map[string]interface{}
 	Metrics   map[string]interface{}
+	P2P       map[string]interface{}
 }
 
 func ReadFile(path string) string {
@@ -731,6 +732,7 @@ func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
 	subcfg.Wallet = parseItem(cfg.Wallet)
 	subcfg.Mempool = parseItem(cfg.Mempool)
 	subcfg.Metrics = parseItem(cfg.Metrics)
+	subcfg.P2P = parseItem(cfg.P2P)
 	return &subcfg, nil
 }
 

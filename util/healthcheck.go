@@ -100,7 +100,7 @@ func (s *HealthCheckServer) getHealth(sync bool) (bool, error) {
 		return false, err
 	}
 
-	peerList, err := s.api.PeerInfo()
+	peerList, err := s.api.PeerInfo(&types.P2PGetPeerReq{})
 	if err != nil {
 		return false, err
 	}
