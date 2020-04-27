@@ -369,6 +369,6 @@ message SubscribeTxReceipt {
 }
 
 message ReplySubTxReceipt {
-    bool     isOk          = 1;
-    bytes    msg           = 2;
+    bool  isOk = 1;
+    bytes msg  = 2;
 }

@@ -3,13 +3,14 @@ package blockchain
 import (
 	"bytes"
 	"compress/gzip"
-	dbm "github.com/33cn/chain33/common/db"
-	"github.com/33cn/chain33/types"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
 )
 
 const (
