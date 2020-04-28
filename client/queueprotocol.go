@@ -7,6 +7,7 @@ package client
 
 import (
 	"fmt"
+	"github.com/33cn/chain33/common"
 	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -118,6 +119,7 @@ func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	if ok {
 		if reply.GetIsOk() {
 			reply.Msg = param.Hash()
+			log.Info("SendTx", "hash", common.ToHex(param.Hash()))
 		} else {
 			msg := string(reply.Msg)
 			err = fmt.Errorf(msg)
