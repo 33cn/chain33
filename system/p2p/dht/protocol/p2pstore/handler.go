@@ -160,7 +160,7 @@ func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ChunkInfoMsg)
 	//如果本节点是本地路由表中距离该chunk最近的 *count* 个节点之一，则保存数据；否则不需要保存数据
-	count := Backup
+	count := Backup / 2
 	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), count)
 	if len(peers) == count && kb.Closer(peers[count-1], p.Host.ID(), genChunkPath(req.ChunkHash)) {
 		return
