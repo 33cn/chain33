@@ -726,7 +726,6 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 				msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
 				return
 			}
-			chainlog.Debug("EventAddBlock", "height", blk.Height, "pid", "success", "ok")
 		}
 	}
 	chainlog.Debug("addChunkBlock", "start", blocks.Items[0].Height, "end", blocks.Items[len(blocks.Items)-1].Height)
