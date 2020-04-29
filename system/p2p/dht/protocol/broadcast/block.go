@@ -15,15 +15,15 @@ func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *typ
 	byteHash := block.Block.Hash(protocol.GetChainCfg())
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送
-	ignoreSend := addIgnoreSendPeerAtomic(protocol.blockSendFilter, blockHash, pid)
-	lightSend := len(block.Block.Txs) >= int(protocol.p2pCfg.MinLtBlockTxNum)
-	log.Debug("P2PSendBlock", "blockHash", blockHash, "peerAddr", peerAddr, "ignoreSend", ignoreSend, "lightSend", lightSend)
-	if ignoreSend {
+	if addIgnoreSendPeerAtomic(protocol.blockSendFilter, blockHash, pid) {
 		return false
 	}
-	if lightSend {
+	blockSize := types.Size(block.Block)
+	//log.Debug("P2PSendBlock", "blockHash", blockHash, "peerAddr", peerAddr, "blockSize(KB)", float32(blockSize)/1024)
+	//区块内交易采用哈希广播
+	if blockSize >= int(protocol.p2pCfg.MinLtBlockSize*1024) {
 		ltBlock := &types.LightBlock{}
-		ltBlock.Size = int64(types.Size(block.Block))
+		ltBlock.Size = int64(blockSize)
 		ltBlock.Header = block.Block.GetHeader(protocol.GetChainCfg())
 		ltBlock.Header.Hash = byteHash[:]
 		ltBlock.Header.Signature = block.Block.Signature
@@ -31,11 +31,6 @@ func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *typ
 		for _, tx := range block.Block.Txs[1:] {
 			//tx short hash
 			ltBlock.STxHashes = append(ltBlock.STxHashes, types.CalcTxShortHash(tx.Hash()))
-		}
-
-		// cache block
-		if !protocol.totalBlockCache.Contains(blockHash) {
-			protocol.totalBlockCache.Add(blockHash, block.Block, ltBlock.Size)
 		}
 
 		p2pData.Value = &types.BroadCastData_LtBlock{LtBlock: ltBlock}
@@ -55,12 +50,10 @@ func (protocol *broadCastProtocol) recvBlock(block *types.P2PBlock, pid, peerAdd
 	//将节点id添加到发送过滤, 避免冗余发送
 	addIgnoreSendPeerAtomic(protocol.blockSendFilter, blockHash, pid)
 	//如果重复接收, 则不再发到blockchain执行
-	isDuplicate := protocol.blockFilter.AddWithCheckAtomic(blockHash, true)
-	log.Debug("recvBlock", "blockHeight", block.GetBlock().GetHeight(), "peerAddr", peerAddr,
-		"block size(KB)", float32(block.Block.Size())/1024, "blockHash", blockHash, "duplicateBlock", isDuplicate)
-	if isDuplicate {
+	if protocol.blockFilter.AddWithCheckAtomic(blockHash, true) {
 		return nil
 	}
+	log.Debug("recvBlock", "height", block.GetBlock().GetHeight(), "size(KB)", float32(types.Size(block.GetBlock()))/1024)
 	//发送至blockchain执行
 	if err := protocol.postBlockChain(blockHash, pid, block.GetBlock()); err != nil {
 		log.Error("recvBlock", "send block to blockchain Error", err.Error())
@@ -75,12 +68,10 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 	//将节点id添加到发送过滤, 避免冗余发送
 	addIgnoreSendPeerAtomic(protocol.blockSendFilter, blockHash, pid)
 	//检测是否已经收到此block
-	isDuplicate := protocol.blockFilter.AddWithCheckAtomic(blockHash, true)
-	log.Debug("recvLtBlock", "blockHash", blockHash, "blockHeight", ltBlock.GetHeader().GetHeight(),
-		"peerAddr", peerAddr, "duplicateBlock", isDuplicate, "txCount", ltBlock.Header.TxCount)
-	if isDuplicate {
+	if protocol.blockFilter.AddWithCheckAtomic(blockHash, true) {
 		return nil
 	}
+
 	//组装block
 	block := &types.Block{}
 	block.TxHash = ltBlock.Header.TxHash
@@ -98,7 +89,7 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 	ok := false
 	//get tx list from mempool
 	if len(ltBlock.STxHashes) > 0 {
-		resp, err := protocol.SendToMemPool(types.EventTxListByHash,
+		resp, err := protocol.QueryMempool(types.EventTxListByHash,
 			&types.ReqTxHashList{Hashes: ltBlock.STxHashes, IsShortHash: true})
 		if err != nil {
 			log.Error("recvLtBlock", "queryTxListByHashErr", err)
@@ -134,31 +125,28 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 		block.Txs = append(block.Txs, tx)
 	}
 	nilTxLen := len(nilTxIndices)
-	log.Debug("recvLtBlock", "missTxCount", nilTxLen, "existTxCount", len(block.Txs),
-		"buildBlockSize(KB)", float32(block.Size())/1024,
-		"totalBlockSize", float32(ltBlock.Size)/1024)
 
 	//需要比较交易根哈希是否一致, 不一致需要请求区块内所有的交易
-	if nilTxLen == 0 && len(block.Txs) == int(ltBlock.Header.TxCount) &&
-		bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(protocol.BaseProtocol.ChainCfg, block.GetHeight(), block.Txs)) {
+	if nilTxLen == 0 && bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(protocol.BaseProtocol.ChainCfg, block.GetHeight(), block.Txs)) {
 
-		log.Debug("recvLtBlockBuildSuccess", "buildHeight", block.GetHeight(), "peerAddr", peerAddr,
-			"blockHash", blockHash, "blockSize(KB)", float32(ltBlock.Size)/1024)
+		log.Debug("recvLtBlock", "height", block.GetHeight(), "txCount", ltBlock.Header.TxCount, "size(KB)", float32(ltBlock.Size)/1024)
 		//发送至blockchain执行
 		if err := protocol.postBlockChain(blockHash, pid, block); err != nil {
 			log.Error("recvLtBlock", "send block to blockchain Error", err.Error())
 			return errSendBlockChain
 		}
-
 		return nil
 	}
+	//本地缺失交易或者根哈希不同(nilTxLen==0)
+	log.Debug("recvLtBlock", "height", ltBlock.Header.Height, "hash", blockHash,
+		"txCount", ltBlock.Header.TxCount, "missTxCount", nilTxLen,
+		"blockSize(KB)", float32(ltBlock.Size)/1024, "buildBlockSize(KB)", float32(block.Size())/1024)
 	// 缺失的交易个数大于总数1/3 或者缺失数据大小大于2/3, 触发请求区块所有交易数据
 	if nilTxLen > 0 && (float32(nilTxLen) > float32(ltBlock.Header.TxCount)/3 ||
 		float32(block.Size()) < float32(ltBlock.Size)/3) {
+		//空的TxIndices表示请求区块内所有交易
 		nilTxIndices = nilTxIndices[:0]
 	}
-	log.Debug("recvLtBlock", "queryBlockHash", blockHash,
-		"queryHeight", ltBlock.GetHeader().GetHeight(), "queryTxNum", len(nilTxIndices))
 
 	// query not exist txs
 	query := &types.P2PQueryData{
@@ -169,14 +157,16 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, p
 			},
 		},
 	}
+
+	//需要将不完整的block预存
+	protocol.ltBlockCache.Add(blockHash, block, block.Size())
 	//pub to specified peer
 	_, err := protocol.sendPeer(pid, query, false)
 	if err != nil {
-		log.Error("recvLtBlock", "pid", pid, "sendStreamErr", err)
+		log.Error("recvLtBlock", "pid", pid, "addr", peerAddr, "err", err)
 		protocol.blockFilter.Remove(blockHash)
+		protocol.ltBlockCache.Remove(blockHash)
 		return errSendStream
 	}
-	//需要将不完整的block预存
-	protocol.ltBlockCache.Add(blockHash, block, int64(block.Size()))
 	return nil
 }

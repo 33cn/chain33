@@ -45,7 +45,7 @@ func (h *headerInfoProtol) processReq(id string, getheaders *types.P2PGetHeaders
 		return nil, errors.New("param err")
 	}
 
-	blockResp, err := h.SendToBlockChain(types.EventGetHeaders, &types.ReqBlocks{Start: getheaders.GetStartHeight(), End: getheaders.GetEndHeight()})
+	blockResp, err := h.QueryBlockChain(types.EventGetHeaders, &types.ReqBlocks{Start: getheaders.GetStartHeight(), End: getheaders.GetEndHeight()})
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 			continue
 		}
 
-		h.SendToBlockChain(types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
+		h.QueryBlockChain(types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid, Headers: &types.Headers{Items: resp.GetMessage().GetHeaders()}})
 
 		break
 

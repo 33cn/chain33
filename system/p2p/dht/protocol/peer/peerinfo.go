@@ -59,7 +59,7 @@ func (p *peerInfoProtol) fetchPeersInfo() {
 func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 	var peerinfo types.P2PPeerInfo
 
-	resp, err := p.SendToMemPool(types.EventGetMempoolSize, nil)
+	resp, err := p.QueryMempool(types.EventGetMempoolSize, nil)
 	if err != nil {
 		log.Error("getlocalPeerInfo", "sendToMempool", err)
 		return nil
@@ -68,7 +68,7 @@ func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 	meminfo := resp.(*types.MempoolSize)
 	peerinfo.MempoolSize = int32(meminfo.GetSize())
 
-	resp, err = p.SendToBlockChain(types.EventGetLastHeader, nil)
+	resp, err = p.QueryBlockChain(types.EventGetLastHeader, nil)
 	if err != nil {
 		log.Error("getlocalPeerInfo", "sendToBlockChain", err)
 		return nil
