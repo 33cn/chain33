@@ -9,9 +9,9 @@ import (
 )
 
 func testJobs(t *testing.T) {
-	pid1, _ := peer.IDB58Decode("16Uiu2HAmGpMpYDDidb27555ALTx7a1aZbqYDa7B2EUwwCiBcL67M")
-	pid2, _ := peer.IDB58Decode("16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
-	pid3, _ := peer.IDB58Decode("16Uiu2HAm45QtjUVYxnc3eqfHoE4eSFovSh99SgsoF6Qm1eRXTd5W")
+	pid1, _ := peer.Decode("16Uiu2HAmGpMpYDDidb27555ALTx7a1aZbqYDa7B2EUwwCiBcL67M")
+	pid2, _ := peer.Decode("16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
+	pid3, _ := peer.Decode("16Uiu2HAm45QtjUVYxnc3eqfHoE4eSFovSh99SgsoF6Qm1eRXTd5W")
 
 	t1 := &TaskInfo{
 		ID:      "123456",

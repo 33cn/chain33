@@ -6,6 +6,7 @@
 package types
 
 import (
+	"context"
 	"reflect"
 	"time"
 
@@ -65,6 +66,8 @@ type P2PEnv struct {
 	Discovery       *net.Discovery
 	P2PManager      *p2p.Manager
 	SubConfig       *p2pty.P2PSubConfig
+	Ctx             context.Context
+	Cancel          context.CancelFunc
 }
 
 // BaseProtocol store public data

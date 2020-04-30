@@ -44,7 +44,6 @@ type P2P struct {
 	chainCfg      *types.Chain33Config
 	host          core.Host
 	discovery     *net.Discovery
-	pubsub        *net.PubSub
 	connManag     *manage.ConnManager
 	peerInfoManag *manage.PeerInfoManager
 	api           client.QueueProtocolAPI
@@ -95,10 +94,6 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		taskGroup:     &sync.WaitGroup{},
 	}
 	p2p.ctx, p2p.cancel = context.WithCancel(context.Background())
-	p2p.pubsub, err = net.NewPubSub(p2p.ctx, p2p.host)
-	if err != nil {
-		panic(err)
-	}
 
 	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
 	p2p.discovery = net.InitDhtDiscovery(p2p.ctx, p2p.host, p2p.addrbook.AddrsInfo(), p2p.chainCfg, p2p.subCfg)
@@ -190,38 +185,13 @@ func (p *P2P) StartP2P() {
 		PeerInfoManager: p.peerInfoManag,
 		P2PManager:      p.mgr,
 		SubConfig:       p.subCfg,
+		Ctx:             p.ctx,
+		Cancel:          p.cancel,
 	}
 	protocol.Init(env)
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()
-	go p.pubMessage()
-	go p.subMessage()
-
-}
-
-//测试订阅与发布
-func (p *P2P) pubMessage() {
-	p.pubsub.JoinTopicAndSubTopic("bzTest")
-	if !p.subCfg.Publish {
-		return
-	}
-	for {
-		select {
-		case <-time.After(time.Second * 1):
-			p.pubsub.Publish("bzTest", []byte(fmt.Sprintf("hello,from:%v,Time:%v", p.host.ID(), time.Now().UTC().String())))
-			log.Info("topic", "topicNum", p.pubsub.TopicNum(), "topicPeerNum", len(p.pubsub.FetchTopicPeers("bzTest")))
-		case <-p.ctx.Done():
-			return
-		}
-
-	}
-
-}
-
-//SubMessage Read sub message
-func (p *P2P) subMessage() {
-	p.pubsub.SubMsg()
 }
 
 //查询本局域网内是否有节点

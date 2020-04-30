@@ -157,6 +157,13 @@ const (
 	EventGetParaTxByTitleAndHeight = 310
 	//比较当前区块和新广播的区块最优区块
 	EventCmpBestBlock = 311
+
+	//p2p 其他接收事件
+	EventSubTopic       = 350
+	EventPubTopicMsg    = 351
+	EventFetchTopics    = 352
+	EventRemoveTopic    = 353
+	EventReceiveSubData = 354
 )
 
 var eventName = map[int]string{

@@ -20,6 +20,7 @@ const (
 	protoTypeID    = "PeerProtocolType"
 	PeerInfoReq    = "/chain33/peerinfoReq/1.0.0"
 	PeerVersionReq = "/chain33/peerVersion/1.0.0"
+	pubsubTypeID   = "PubSubProtoType"
 )
 
 var log = log15.New("module", "p2p.peer")
@@ -28,6 +29,7 @@ func init() {
 	prototypes.RegisterProtocol(protoTypeID, &peerInfoProtol{})
 	prototypes.RegisterStreamHandler(protoTypeID, PeerInfoReq, &peerInfoHandler{})
 	prototypes.RegisterStreamHandler(protoTypeID, PeerVersionReq, &peerInfoHandler{})
+	prototypes.RegisterProtocol(pubsubTypeID, &peerPubSub{})
 
 }
 
@@ -44,6 +46,7 @@ func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	p.p2pCfg = env.SubConfig
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
+
 	go p.detectNodeAddr()
 	go p.fetchPeersInfo()
 

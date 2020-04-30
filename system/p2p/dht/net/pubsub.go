@@ -9,16 +9,33 @@ import (
 	"sync"
 )
 
-type TopicMap map[string]*pubsub.Topic
-type SubMap map[string]*pubsub.Subscription
+type TopicMap map[string]*topicinfo
 
+type topicinfo struct {
+	pubtopic *pubsub.Topic
+	sub      *pubsub.Subscription
+	ctx      context.Context
+	cancel   context.CancelFunc
+	topic    string
+}
+
+type subinfo struct {
+	sub    *pubsub.Subscription
+	ctx    context.Context
+	cancel context.CancelFunc
+	topic  string
+}
 type PubSub struct {
-	ps           *pubsub.PubSub
-	topics       TopicMap
-	topicMutex   sync.Mutex
-	subscription SubMap
-	subMutex     sync.Mutex
-	ctx          context.Context
+	ps         *pubsub.PubSub
+	topics     TopicMap
+	topicMutex sync.Mutex
+	ctx        context.Context
+}
+
+type SubMsg struct {
+	Data  []byte
+	Topic string
+	From  string
 }
 
 func NewPubSub(ctx context.Context, host host.Host) (*PubSub, error) {
@@ -34,29 +51,43 @@ func NewPubSub(ctx context.Context, host host.Host) (*PubSub, error) {
 
 	p.ps = ps
 	p.ctx = ctx
-	p.subscription = make(SubMap)
 	p.topics = make(TopicMap)
 	return p, nil
 }
 
+func (p *PubSub) GetTopics() []string {
+	return p.ps.GetTopics()
+}
+
+func (p *PubSub) HasTopic(topic string) bool {
+	_, ok := p.topics[topic]
+	return ok
+}
+
 //加入topic&subTopic
-func (p *PubSub) JoinTopicAndSubTopic(topic string, opts ...pubsub.TopicOpt) error {
+func (p *PubSub) JoinTopicAndSubTopic(topic string, mchan chan interface{}, opts ...pubsub.TopicOpt) error {
 	Topic, err := p.ps.Join(topic, opts...)
 	if err != nil {
 		return err
 	}
+
 	subscription, err := Topic.Subscribe()
 	if err != nil {
 		return err
 	}
 	//p.topics = append(p.topics, Topic)
+	ctx, cancel := context.WithCancel(p.ctx)
+
 	p.topicMutex.Lock()
-	p.topics[topic] = Topic
+	p.topics[topic] = &topicinfo{
+		pubtopic: Topic,
+		ctx:      ctx,
+		topic:    topic,
+		cancel:   cancel,
+		sub:      subscription,
+	}
 	p.topicMutex.Unlock()
 
-	p.subMutex.Lock()
-	p.subscription[topic] = subscription
-	p.subMutex.Unlock()
 	return nil
 }
 
@@ -70,7 +101,7 @@ func (p *PubSub) Publish(topic string, msg []byte) bool {
 		return false
 	}
 
-	err := t.Publish(p.ctx, msg)
+	err := t.pubtopic.Publish(t.ctx, msg)
 	if err != nil {
 		log.Error("publish", "err", err)
 		return false
@@ -78,43 +109,51 @@ func (p *PubSub) Publish(topic string, msg []byte) bool {
 	return true
 }
 
-func (p *PubSub) SubMsg() {
-	p.subMutex.Lock()
-	defer p.subMutex.Unlock()
+func (p *PubSub) SubTopic(msg chan interface{}) {
+	p.topicMutex.Lock()
+	defer p.topicMutex.Unlock()
 
-	for _, sub := range p.subscription {
+	for _, info := range p.topics {
 
-		go func(subscription *pubsub.Subscription) {
+		go func(info *topicinfo) {
 			for {
-
-				got, err := subscription.Next(p.ctx)
+				topic := info.sub.Topic()
+				got, err := info.sub.Next(info.ctx)
 				if err != nil {
-					log.Error("SubMsg", "topic msg err", err, "topic", subscription.Topic())
+					log.Error("SubMsg", "topic msg err", err, "topic", topic)
 					if err == p.ctx.Err() {
 						return
 					}
 				}
 				log.Info("SubMsg", "readData", string(got.GetData()), "msgID")
+				var data SubMsg
+				data.Data = got.GetData()
+				data.Topic = topic
+				data.From = got.GetFrom().String()
+				msg <- data
 			}
-		}(sub)
+		}(info)
 	}
 }
 
 func (p *PubSub) RemoveTopic(topic string) {
 
-	p.subMutex.Lock()
-	defer p.subMutex.Unlock()
-	sub, ok := p.subscription[topic]
-	if ok {
-		sub.Cancel() //取消对topic的订阅
-	}
-
 	p.topicMutex.Lock()
 	defer p.topicMutex.Unlock()
-	v, ok := p.topics[topic]
+
+	info, ok := p.topics[topic]
 	if ok {
-		v.Close()
+		log.Info("RemoveTopic", topic)
+		info.cancel()
+		info.sub.Cancel()
+		err := info.pubtopic.Close()
+		if err != nil {
+			log.Error("RemoveTopic", "topic", err)
+		}
+
 	}
+
+	delete(p.topics, topic)
 
 }
 
@@ -123,23 +162,27 @@ func (p *PubSub) FetchTopicPeers(topic string) []peer.ID {
 	defer p.topicMutex.Unlock()
 	topicobj, ok := p.topics[topic]
 	if ok {
-		return topicobj.ListPeers()
+		return topicobj.pubtopic.ListPeers()
 	}
 	return nil
 }
 
 func (p *PubSub) FetchTopics() []string {
-	p.topicMutex.Lock()
+	return p.ps.GetTopics()
+	/*p.topicMutex.Lock()
 	defer p.topicMutex.Unlock()
 	var topics []string
 	for topic := range p.topics {
 		topics = append(topics, topic)
 	}
-	return topics
+	return topics*/
 }
 
 func (p *PubSub) TopicNum() int {
-	p.topicMutex.Lock()
-	defer p.topicMutex.Unlock()
-	return len(p.topics)
+	return len(p.ps.GetTopics())
+	/*
+		p.topicMutex.Lock()
+		defer p.topicMutex.Unlock()
+		return len(p.topics)
+	*/
 }
