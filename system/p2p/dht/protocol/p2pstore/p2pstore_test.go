@@ -59,10 +59,7 @@ func TestInit(t *testing.T) {
 		End:       999,
 	})
 	time.Sleep(time.Second / 2)
-	err = p2.republish()
-	if err != nil {
-		t.Fatal(err)
-	}
+	p2.republish()
 	//数据保存之后应该可以查到数据了
 
 	//向host1请求BlockBody
@@ -343,6 +340,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	p := &Protocol{
 		P2PEnv:              &env2,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env2.Host.ID()), time.Minute, env2.Host.Peerstore()),
+		localChunkInfo:      make(map[string]LocalChunkInfo),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
 	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
