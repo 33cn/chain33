@@ -26,6 +26,8 @@ type Protocol struct {
 	saving              sync.Map
 	notifying           sync.Map
 	healthyRoutingTable *kb.RoutingTable
+	localChunkInfo      map[string]LocalChunkInfo
+	localChunkInfoMutex sync.RWMutex
 }
 
 func init() {
@@ -36,6 +38,12 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
 		P2PEnv:              env,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
+	}
+	p.initLocalChunkInfoMap()
+
+	for k, v := range p.localChunkInfo {
+		v.Time = time.Now()
+		p.localChunkInfo[k] = v
 	}
 
 	//注册p2p通信协议，用于处理节点之间请求

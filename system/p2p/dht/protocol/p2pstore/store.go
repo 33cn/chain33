@@ -41,14 +41,13 @@ func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBod
 
 // 更新本地chunk保存时间，只更新索引即可
 func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
-	m, err := p.getLocalChunkInfoMap()
-	if err != nil {
-		return err
-	}
 	mapKey := hex.EncodeToString(req.ChunkHash)
-	if _, ok := m[mapKey]; ok {
-		m[mapKey].Time = time.Now()
-		return p.saveLocalChunkInfoMap(m)
+	p.localChunkInfoMutex.Lock()
+	defer p.localChunkInfoMutex.Unlock()
+	if info, ok := p.localChunkInfo[mapKey]; ok {
+		info.Time = time.Now()
+		p.localChunkInfo[mapKey] = info
+		return nil
 	}
 
 	return types2.ErrNotFound
@@ -60,12 +59,8 @@ func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
 //		数据未过期：返回数据
 //		数据已过期：返回数据并从数据库中删除，同时返回数据已过期的error
 func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
-	m, err := p.getLocalChunkInfoMap()
-	if err != nil {
-		log.Error("getChunkBlock", "getLocalChunkInfoMap error", err)
-		return nil, err
-	}
-	info, ok := m[hex.EncodeToString(hash)]
+
+	info, ok := p.getChunkInfoByHash(hash)
 	if !ok {
 		return nil, types2.ErrNotFound
 	}
@@ -80,17 +75,10 @@ func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
 		return nil, err
 	}
 	if time.Since(info.Time) > types2.ExpiredTime {
-		go func() {
-			delete(m, hex.EncodeToString(hash))
-			err := p.saveLocalChunkInfoMap(m)
-			if err != nil {
-				log.Error("getChunkBlock", "saveLocalChunkInfoMap error", err)
-			}
-			err = p.DB.Delete(genChunkKey(hash))
-			if err != nil {
-				log.Error("getChunkBlock", "delete chunk error", err, "hash", hex.EncodeToString(hash))
-			}
-		}()
+		err = p.deleteChunkBlock(hash)
+		if err != nil {
+			log.Error("getChunkBlock", "deleteChunkBlock error", err, "hash", hex.EncodeToString(hash))
+		}
 		err = types2.ErrExpired
 	}
 
@@ -108,54 +96,54 @@ func (p *Protocol) deleteChunkBlock(hash []byte) error {
 
 // 保存一个本地chunk hash列表，用于遍历本地数据
 func (p *Protocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
-	hashMap, err := p.getLocalChunkInfoMap()
-	if err != nil {
-		return err
-	}
+	p.localChunkInfoMutex.Lock()
+	defer p.localChunkInfoMutex.Unlock()
 
-	if _, ok := hashMap[hex.EncodeToString(info.ChunkHash)]; ok {
-		return nil
-	}
-
-	hashMap[hex.EncodeToString(info.ChunkHash)] = &LocalChunkInfo{
+	p.localChunkInfo[hex.EncodeToString(info.ChunkHash)] = LocalChunkInfo{
 		ChunkInfoMsg: info,
 		Time:         time.Now(),
 	}
-	return p.saveLocalChunkInfoMap(hashMap)
+	return p.saveLocalChunkInfoMap(p.localChunkInfo)
 }
 
 func (p *Protocol) deleteLocalChunkInfo(hash []byte) error {
-	hashMap, err := p.getLocalChunkInfoMap()
-	if err != nil {
-		return err
-	}
-	delete(hashMap, hex.EncodeToString(hash))
-	return p.saveLocalChunkInfoMap(hashMap)
+	p.localChunkInfoMutex.Lock()
+	defer p.localChunkInfoMutex.Unlock()
+	delete(p.localChunkInfo, hex.EncodeToString(hash))
+	return p.saveLocalChunkInfoMap(p.localChunkInfo)
 }
 
-func (p *Protocol) getLocalChunkInfoMap() (map[string]*LocalChunkInfo, error) {
-
+func (p *Protocol) initLocalChunkInfoMap() {
+	p.localChunkInfo = make(map[string]LocalChunkInfo)
 	value, err := p.DB.Get(datastore.NewKey(LocalChunkInfoKey))
 	if err != nil {
-		return make(map[string]*LocalChunkInfo), nil
+		return
 	}
 
-	var chunkInfoMap map[string]*LocalChunkInfo
-	err = json.Unmarshal(value, &chunkInfoMap)
+	err = json.Unmarshal(value, &p.localChunkInfo)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-
-	return chunkInfoMap, nil
+	for k, v := range p.localChunkInfo {
+		v.Time = time.Now()
+		p.localChunkInfo[k] = v
+	}
 }
 
-func (p *Protocol) saveLocalChunkInfoMap(m map[string]*LocalChunkInfo) error {
+func (p *Protocol) saveLocalChunkInfoMap(m map[string]LocalChunkInfo) error {
 	value, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 
 	return p.DB.Put(datastore.NewKey(LocalChunkInfoKey), value)
+}
+
+func (p *Protocol) getChunkInfoByHash(hash []byte) (LocalChunkInfo, bool) {
+	p.localChunkInfoMutex.RLock()
+	defer p.localChunkInfoMutex.RUnlock()
+	info, ok := p.localChunkInfo[hex.EncodeToString(hash)]
+	return info, ok
 }
 
 // 适配libp2p，按路径格式生成数据的key值，便于区分多种数据类型的命名空间，以及key值合法性校验

@@ -12,27 +12,26 @@ import (
 
 func (p *Protocol) startRepublish() {
 	for range time.Tick(types2.RefreshInterval) {
-		if err := p.republish(); err != nil {
-			log.Error("cycling republish", "error", err)
-		}
+		p.republish()
 	}
 }
 
-func (p *Protocol) republish() error {
-	chunkInfoMap, err := p.getLocalChunkInfoMap()
-	if err != nil {
-		return err
+func (p *Protocol) republish() {
+	m := make(map[string]LocalChunkInfo)
+	p.localChunkInfoMutex.RLock()
+	for k, v := range p.localChunkInfo {
+		m[k] = v
 	}
-	log.Info("republish", ">>>>>>>>>>>>>> record amount:", len(chunkInfoMap))
-	for hash, info := range chunkInfoMap {
-		_, err = p.getChunkBlock(info.ChunkHash)
-		if err != nil && err != types2.ErrExpired {
-			log.Error("republish get error", "hash", hash, "error", err)
-			continue
+	p.localChunkInfoMutex.RUnlock()
+	log.Info("republish", ">>>>>>>>>>>>>> record amount:", len(m))
+	for hash, info := range m {
+		if time.Since(info.Time) > types2.ExpiredTime {
+			if err := p.deleteChunkBlock(info.ChunkHash); err != nil {
+				log.Error("republish deleteChunkBlock error", "hash", hash, "error", err)
+			}
 		}
 		p.notifyStoreChunk(info.ChunkInfoMsg)
 	}
-	return nil
 }
 
 // 通知最近的 *BackUp-1* 个节点备份数据，加上本节点共Backup个
