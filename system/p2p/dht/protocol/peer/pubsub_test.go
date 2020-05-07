@@ -93,9 +93,26 @@ func testSubTopic(t *testing.T, protocol *peerPubSub) {
 		Topic:  "rtopic",
 	}))
 
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventSubTopic, &types.SubTopic{
+		Module: "rpc",
+		Topic:  "rtopic",
+	}))
+
 	//发送订阅请求
 	for _, msg := range msgs {
 		testHandleSubTopicEvent(protocol, msg)
+		replyMsg, err := protocol.GetQueueClient().Wait(msg)
+		assert.Nil(t, err)
+
+		subReply, ok := replyMsg.GetData().(*types.SubTopicReply)
+		if ok {
+			t.Log("subReply status", subReply.GetStatus(), "msg", subReply.GetMsg())
+			continue
+		}
+		//订阅失败
+		rpy := replyMsg.GetData().(*types.Reply)
+		t.Log("Reply,isok", rpy.IsOk, "msg", rpy.GetMsg())
+
 	}
 
 }

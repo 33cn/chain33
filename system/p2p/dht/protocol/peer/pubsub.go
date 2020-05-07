@@ -54,7 +54,7 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 		err := p.pubsubOp.JoinTopicAndSubTopic(topic, p.msgChan) //订阅topic
 		if err != nil {
 			log.Error("peerPubSub", "err", err)
-			msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, types.Reply{Msg: []byte(err.Error())}))
+			msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, types.Reply{IsOk: false, Msg: []byte(err.Error())}))
 			return
 		}
 	}

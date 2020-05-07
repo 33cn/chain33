@@ -1,6 +1,8 @@
 package peer
 
 import (
+	"fmt"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,6 +16,7 @@ import (
 	uuid "github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
+	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 const (
@@ -158,7 +161,25 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 	if len(strings.Split(addr, "/")) < 2 {
 		return
 	}
-	p.externalAddr = strings.Split(addr, "/")[2]
+	spliteAddr := strings.Split(addr, "/")[2]
+	if spliteAddr == p.externalAddr {
+		return
+	}
+	p.externalAddr = spliteAddr
+	//增加外网地址
+	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d/p2p/%v", p.externalAddr, p.p2pCfg.Port, p.GetHost().ID().String())
+	newmAddr, err := multiaddr.NewMultiaddr(selfExternalAddr)
+	if err != nil {
+		return
+	}
+	peerinfo, err := peer.AddrInfoFromP2pAddr(newmAddr)
+	if err != nil {
+		return
+	}
+
+	addrs := p.Host.Peerstore().Addrs(p.Host.ID())
+	addrs = append(addrs, peerinfo.Addrs...)
+	p.Host.Peerstore().SetAddrs(p.GetHost().ID(), addrs, peerstore.PermanentAddrTTL)
 }
 
 func (p *peerInfoProtol) getExternalAddr() string {
