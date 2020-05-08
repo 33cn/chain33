@@ -239,8 +239,8 @@ func (q *QueueProtocol) GetMempool(req *types.ReqGetMempool) (*types.ReplyTxList
 }
 
 // PeerInfo query peer list
-func (q *QueueProtocol) PeerInfo() (*types.PeerList, error) {
-	msg, err := q.send(p2pKey, types.EventPeerInfo, &types.ReqNil{})
+func (q *QueueProtocol) PeerInfo(req *types.P2PGetPeerReq) (*types.PeerList, error) {
+	msg, err := q.send(p2pKey, types.EventPeerInfo, req)
 	if err != nil {
 		log.Error("PeerInfo", "Error", err.Error())
 		return nil, err
@@ -591,8 +591,8 @@ func (q *QueueProtocol) Version() (*types.VersionInfo, error) {
 }
 
 // GetNetInfo get the net information
-func (q *QueueProtocol) GetNetInfo() (*types.NodeNetInfo, error) {
-	msg, err := q.send(p2pKey, types.EventGetNetInfo, &types.ReqNil{})
+func (q *QueueProtocol) GetNetInfo(req *types.P2PGetNetInfoReq) (*types.NodeNetInfo, error) {
+	msg, err := q.send(p2pKey, types.EventGetNetInfo, req)
 	if err != nil {
 		log.Error("GetNetInfo", "Error", err.Error())
 		return nil, err

@@ -242,7 +242,7 @@ func mergeBalance(cmd *cobra.Command, args []string) {
 func AutoMineCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auto_mine",
-		Short: "Set auto mine on/off",
+		Short: "Set auto mine on/off. Deprecated",
 		Run:   autoMine,
 	}
 	addAutoMineFlags(cmd)

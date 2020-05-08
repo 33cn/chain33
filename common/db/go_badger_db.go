@@ -30,9 +30,7 @@ func init() {
 
 //NewGoBadgerDB new
 func NewGoBadgerDB(name string, dir string, cache int) (*GoBadgerDB, error) {
-	opts := badger.DefaultOptions
-	opts.Dir = dir
-	opts.ValueDir = dir
+	opts := badger.DefaultOptions(dir)
 	if cache <= 128 {
 		opts.ValueLogLoadingMode = options.FileIO
 		//opts.MaxTableSize = int64(cache) << 18 // cache = 128, MaxTableSize = 32M
@@ -66,7 +64,8 @@ func (db *GoBadgerDB) Get(key []byte) ([]byte, error) {
 			return err
 
 		}
-		val, err = item.Value()
+		//xxxx
+		val, err = item.ValueCopy(nil)
 		if err != nil {
 			blog.Error("Get", "item.Value.error", err)
 			return err
@@ -166,7 +165,7 @@ func (db *GoBadgerDB) Print() {
 		for it.Rewind(); it.Valid(); it.Next() {
 			item := it.Item()
 			k := item.Key()
-			v, err := item.Value()
+			v, err := item.ValueCopy(nil)
 			if err != nil {
 				return err
 			}
@@ -251,7 +250,7 @@ func (it *goBadgerDBIt) Key() []byte {
 }
 
 func (it *goBadgerDBIt) Value() []byte {
-	value, err := it.Item().Value()
+	value, err := it.Item().ValueCopy(nil)
 	if err != nil {
 		it.err = err
 	}
@@ -310,7 +309,7 @@ func (mBatch *GoBadgerDBBatch) Delete(key []byte) {
 func (mBatch *GoBadgerDBBatch) Write() error {
 	defer mBatch.batch.Discard()
 
-	if err := mBatch.batch.Commit(nil); err != nil {
+	if err := mBatch.batch.Commit(); err != nil {
 		blog.Error("Write", "error", err)
 		return err
 	}

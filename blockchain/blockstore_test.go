@@ -299,3 +299,37 @@ func TestGetRealTxResult(t *testing.T) {
 	assert.Equal(t, txr.Tx.Nonce, txs[0].Nonce)
 	assert.Equal(t, txr.Receiptdate.Ty, blockdetail.Receipts[0].Ty)
 }
+
+func TestMustSaveKvset(t *testing.T) {
+	kvset := types.LocalDBSet{
+		KV: []*types.KeyValue{
+			{Key: []byte("000"), Value: []byte("000")},
+			{Key: []byte("111"), Value: []byte("111")},
+			{Key: []byte("222"), Value: nil},
+		},
+	}
+
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
+
+	chain := InitEnv()
+	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
+	assert.NotNil(t, blockStore)
+	blockStore.Set([]byte("222"), []byte("222"))
+
+	blockStore.mustSaveKvset(&kvset)
+
+	v, err := blockStoreDB.Get([]byte("000"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("000"), v)
+
+	v, err = blockStoreDB.Get([]byte("111"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("111"), v)
+
+	_, err = blockStoreDB.Get([]byte("222"))
+	assert.Equal(t, types.ErrNotFound, err)
+}

@@ -553,8 +553,8 @@ func (c *Chain33) UnLock(in types.WalletUnLock, result *interface{}) error {
 }
 
 // GetPeerInfo get peer information
-func (c *Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
-	reply, err := c.cli.PeerInfo()
+func (c *Chain33) GetPeerInfo(in types.P2PGetPeerReq, result *interface{}) error {
+	reply, err := c.cli.PeerInfo(&in)
 	if err != nil {
 		return err
 	}
@@ -992,8 +992,8 @@ func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
 }
 
 // GetNetInfo get net information
-func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
-	resp, err := c.cli.GetNetInfo()
+func (c *Chain33) GetNetInfo(in types.P2PGetNetInfoReq, result *interface{}) error {
+	resp, err := c.cli.GetNetInfo(&in)
 	if err != nil {
 		return err
 	}

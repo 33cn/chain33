@@ -888,7 +888,7 @@ func (_m *Chain33Client) GetParaTxByTitle(ctx context.Context, in *types.ReqPara
 }
 
 // GetPeerInfo provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) GetPeerInfo(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.PeerList, error) {
+func (_m *Chain33Client) GetPeerInfo(ctx context.Context, in *types.P2PGetPeerReq, opts ...grpc.CallOption) (*types.PeerList, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -899,7 +899,7 @@ func (_m *Chain33Client) GetPeerInfo(ctx context.Context, in *types.ReqNil, opts
 	ret := _m.Called(_ca...)
 
 	var r0 *types.PeerList
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqNil, ...grpc.CallOption) *types.PeerList); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.P2PGetPeerReq, ...grpc.CallOption) *types.PeerList); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -908,7 +908,7 @@ func (_m *Chain33Client) GetPeerInfo(ctx context.Context, in *types.ReqNil, opts
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.P2PGetPeerReq, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -1308,7 +1308,7 @@ func (_m *Chain33Client) MergeBalance(ctx context.Context, in *types.ReqWalletMe
 }
 
 // NetInfo provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) NetInfo(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.NodeNetInfo, error) {
+func (_m *Chain33Client) NetInfo(ctx context.Context, in *types.P2PGetNetInfoReq, opts ...grpc.CallOption) (*types.NodeNetInfo, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -1319,7 +1319,7 @@ func (_m *Chain33Client) NetInfo(ctx context.Context, in *types.ReqNil, opts ...
 	ret := _m.Called(_ca...)
 
 	var r0 *types.NodeNetInfo
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqNil, ...grpc.CallOption) *types.NodeNetInfo); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.P2PGetNetInfoReq, ...grpc.CallOption) *types.NodeNetInfo); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -1328,7 +1328,7 @@ func (_m *Chain33Client) NetInfo(ctx context.Context, in *types.ReqNil, opts ...
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.P2PGetNetInfoReq, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

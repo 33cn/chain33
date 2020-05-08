@@ -12,4 +12,5 @@ type ConfigSubModule struct {
 	Wallet    map[string][]byte
 	Mempool   map[string][]byte
 	Metrics   map[string][]byte
+	P2P       map[string][]byte
 }

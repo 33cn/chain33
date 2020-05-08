@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/types"
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,18 +48,18 @@ func TestCoinsType(t *testing.T) {
 }
 
 func TestCoinsPb(t *testing.T) {
-	b := &proto.Buffer{}
+	var b []byte
 	ca := &CoinsAction{Value: &CoinsAction_Transfer{&types.AssetsTransfer{}}}
 	var err error
 
 	transfer := ca.GetTransfer()
 	assert.NotNil(t, transfer)
-	err = _CoinsAction_OneofMarshaler(ca, b)
+	_, err = xxx_messageInfo_CoinsAction.Marshal(b, ca, true)
 	assert.NoError(t, err)
 
 	ca.Value = &CoinsAction_Genesis{&types.AssetsGenesis{}}
 	genesis := ca.GetGenesis()
 	assert.NotNil(t, genesis)
-	err = _CoinsAction_OneofMarshaler(ca, b)
+	_, err = xxx_messageInfo_CoinsAction.Marshal(b, ca, true)
 	assert.NoError(t, err)
 }

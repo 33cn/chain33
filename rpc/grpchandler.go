@@ -253,8 +253,8 @@ func (g *Grpc) UnLock(ctx context.Context, in *pb.WalletUnLock) (*pb.Reply, erro
 }
 
 // GetPeerInfo get peer information
-func (g *Grpc) GetPeerInfo(ctx context.Context, in *pb.ReqNil) (*pb.PeerList, error) {
-	return g.cli.PeerInfo()
+func (g *Grpc) GetPeerInfo(ctx context.Context, req *pb.P2PGetPeerReq) (*pb.PeerList, error) {
+	return g.cli.PeerInfo(req)
 }
 
 // GetHeaders return headers
@@ -418,9 +418,9 @@ func (g *Grpc) IsNtpClockSync(ctx context.Context, in *pb.ReqNil) (*pb.Reply, er
 }
 
 // NetInfo net information
-func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, error) {
+func (g *Grpc) NetInfo(ctx context.Context, in *pb.P2PGetNetInfoReq) (*pb.NodeNetInfo, error) {
 
-	return g.cli.GetNetInfo()
+	return g.cli.GetNetInfo(in)
 }
 
 // GetFatalFailure return  fatal of failure
