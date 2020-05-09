@@ -132,7 +132,16 @@ func testPushMsg(t *testing.T, protocol *peerPubSub) {
 	resp, err := protocol.GetQueueClient().WaitTimeout(pubTopicMsg, time.Second*10)
 	assert.Nil(t, err)
 	rpy := resp.GetData().(*types.Reply)
-	t.Log("isok", rpy.IsOk, "msg", string(rpy.GetMsg()))
+	t.Log("bzTest isok", rpy.IsOk, "msg", string(rpy.GetMsg()))
+	assert.True(t, rpy.IsOk)
+	//换个不存在的topic测试
+	pubTopicMsg = protocol.QueueClient.NewMessage("p2p", types.EventPubTopicMsg, &types.PublishTopicMsg{Topic: "bzTest2", Msg: []byte("one two tree four")})
+	testHandlerPubMsg(protocol, pubTopicMsg)
+	resp, err = protocol.GetQueueClient().WaitTimeout(pubTopicMsg, time.Second*10)
+	assert.Nil(t, err)
+	rpy = resp.GetData().(*types.Reply)
+	t.Log("bzTest2 isok", rpy.IsOk, "msg", string(rpy.GetMsg()))
+	assert.False(t, rpy.IsOk)
 }
 
 //测试获取topiclist
