@@ -2,6 +2,8 @@ package net
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 
@@ -92,21 +94,21 @@ func (p *PubSub) JoinTopicAndSubTopic(topic string, mchan chan interface{}, opts
 }
 
 //Publish 发布消息
-func (p *PubSub) Publish(topic string, msg []byte) bool {
+func (p *PubSub) Publish(topic string, msg []byte) error {
 	p.topicMutex.Lock()
 	defer p.topicMutex.Unlock()
 	t, ok := p.topics[topic]
 	if !ok {
 		log.Error("publish", "no this topic", topic)
-		return false
+		return errors.New(fmt.Sprintf("no this topic:%v", topic))
 	}
 
 	err := t.pubtopic.Publish(t.ctx, msg)
 	if err != nil {
 		log.Error("publish", "err", err)
-		return false
+		return err
 	}
-	return true
+	return nil
 }
 
 func (p *PubSub) SubTopic(msg chan interface{}) {

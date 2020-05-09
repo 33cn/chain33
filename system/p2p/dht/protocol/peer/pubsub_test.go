@@ -75,6 +75,15 @@ func testHandleGetTopicsEvent(protocol *peerPubSub, msg *queue.Message) {
 
 }
 
+//测试pubmsg
+func testHandlerPubMsg(protocol *peerPubSub, msg *queue.Message) {
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
+
+	protocol.handlePubMsg(msg)
+}
 func testSubTopic(t *testing.T, protocol *peerPubSub) {
 
 	msgs := make([]*queue.Message, 0)
@@ -115,6 +124,15 @@ func testSubTopic(t *testing.T, protocol *peerPubSub) {
 
 	}
 
+}
+
+func testPushMsg(t *testing.T, protocol *peerPubSub) {
+	pubTopicMsg := protocol.QueueClient.NewMessage("p2p", types.EventPubTopicMsg, &types.PublishTopicMsg{Topic: "bzTest", Msg: []byte("one two tree four")})
+	testHandlerPubMsg(protocol, pubTopicMsg)
+	resp, err := protocol.GetQueueClient().WaitTimeout(pubTopicMsg, time.Second*10)
+	assert.Nil(t, err)
+	rpy := resp.GetData().(*types.Reply)
+	t.Log("isok", rpy.IsOk, "msg", string(rpy.GetMsg()))
 }
 
 //测试获取topiclist
@@ -200,8 +218,10 @@ func TestPubSub(t *testing.T) {
 
 	topics := testFetchTopics(t, protocol) //获取topic list
 	assert.Equal(t, len(topics), 2)
-	testSendTopicData(t, protocol) //推送消息
+	testSendTopicData(t, protocol) //通过chan推送接收到的消息
 	time.Sleep(time.Second)
+
+	testPushMsg(t, protocol)                                   //发布消息
 	testRemoveModuleTopic(t, protocol, "bzTest", "blockchain") //删除某一个模块的topic
 	topics = testFetchTopics(t, protocol)                      //获取topic list
 	assert.Equal(t, len(topics), 2)

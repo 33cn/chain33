@@ -163,7 +163,7 @@ const (
 	EventPubTopicMsg    = 351
 	EventFetchTopics    = 352
 	EventRemoveTopic    = 353
-	EventReceiveSubData = 354
+	EventReceiveSubData = 355
 )
 
 var eventName = map[int]string{

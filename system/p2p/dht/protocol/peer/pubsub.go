@@ -38,6 +38,8 @@ func (p *peerPubSub) InitProtocol(env *prototypes.P2PEnv) {
 	prototypes.RegisterEventHandler(types.EventFetchTopics, p.handleGetTopics)
 	//移除订阅主题
 	prototypes.RegisterEventHandler(types.EventRemoveTopic, p.handleRemoveTopc)
+	//发布消息
+	prototypes.RegisterEventHandler(types.EventPubTopicMsg, p.handlePubMsg)
 	go p.ReceiveChanData()
 }
 
@@ -106,6 +108,7 @@ func (p *peerPubSub) ReceiveChanData() {
 func (p *peerPubSub) handleGetTopics(msg *queue.Message) {
 	_, ok := msg.GetData().(*types.FetchTopicList)
 	if !ok {
+		msg.Reply(p.GetQueueClient().NewMessage("", types.EventFetchTopics, &types.Reply{IsOk: false, Msg: []byte("need *types.FetchTopicList")}))
 		return
 	}
 	//获取topic列表
@@ -124,13 +127,13 @@ func (p *peerPubSub) handleRemoveTopc(msg *queue.Message) {
 
 	vmdoules, ok := p.topicMoudle.Load(v.GetTopic())
 	if !ok || len(vmdoules.(map[string]bool)) == 0 {
-		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, types.RemoveTopicReply{Topic: v.GetTopic(), Status: true, Msg: "this module no sub this topic"}))
+		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &types.RemoveTopicReply{Topic: v.GetTopic(), Status: true, Msg: "this module no sub this topic"}))
 		return
 	}
 	modules := vmdoules.(map[string]bool)
 	delete(modules, v.GetModule()) //删除消息推送的module
 	if len(modules) != 0 {
-		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, types.RemoveTopicReply{Topic: v.GetTopic(), Status: true}))
+		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &types.RemoveTopicReply{Topic: v.GetTopic(), Status: true}))
 		return
 	}
 
@@ -139,4 +142,22 @@ func (p *peerPubSub) handleRemoveTopc(msg *queue.Message) {
 	reply.Topic = v.GetTopic()
 	reply.Status = true
 	msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &reply))
+}
+
+//发布Topic消息
+func (p *peerPubSub) handlePubMsg(msg *queue.Message) {
+	v, ok := msg.GetData().(*types.PublishTopicMsg)
+	if !ok {
+		msg.Reply(p.GetQueueClient().NewMessage("", types.EventPubTopicMsg, &types.Reply{IsOk: false, Msg: []byte("need *types.PublishTopicMsg")}))
+		return
+	}
+	var isok bool = true
+	var replyinfo string = "push success"
+	err := p.pubsubOp.Publish(v.GetTopic(), v.GetMsg())
+	if err != nil {
+		//publish msg success
+		isok = false
+		replyinfo = err.Error()
+	}
+	msg.Reply(p.GetQueueClient().NewMessage("", types.EventPubTopicMsg, &types.Reply{IsOk: isok, Msg: []byte(replyinfo)}))
 }
