@@ -23,9 +23,10 @@ const (
 //TODO：后续需要考虑将区块推送和交易执行回执推送进行重构，提高并行推送效率
 //pushNotify push Notify
 type pushTxReceiptNotify struct {
-	subscribe *types.SubscribeTxReceipt
-	seq       chan int64
-	status    int32
+	subscribe           *types.SubscribeTxReceipt
+	seq                 chan int64
+	status              int32
+	postFailSleepSecond int32
 }
 
 type PushTxReceiptService struct {
@@ -124,7 +125,8 @@ func (push *PushTxReceiptService) check2ResumePush(subscribe *types.SubscribeTxR
 	notify := push.tasks[keyStr]
 	//TODO:支持直接从运行状态将其删除注册
 	if Running == notify.status {
-		storeLog.Info("Is already in state:Running")
+		storeLog.Info("Is already in state:Running", "postFailSleepSecond", notify.postFailSleepSecond)
+		notify.postFailSleepSecond = 0
 		return nil
 	}
 
@@ -268,6 +270,7 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 		var run = make(chan struct{}, 10)
 		var continueFailCount int32 = 0
 
+		input.postFailSleepSecond = 0
 		subscribe = in.subscribe
 		push.trigeRun(run, 0)
 		lastProcessedseq = push.getLastPushSeq(subscribe)
@@ -276,18 +279,26 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 		for {
 			select {
 			case lastesBlockSeq = <-in.seq:
-				chainlog.Debug("runTask to push tx receipt in seq", "lastesBlockSeq", lastesBlockSeq, "len", len(in.seq), "in", in.seq)
+				chainlog.Debug("runTask to push tx receipt in seq", "name", in.subscribe.Name, "lastesBlockSeq", lastesBlockSeq, "len", len(in.seq), "in", in.seq)
 				push.trigeRun(run, 0)
 			case <-run:
-				chainlog.Debug("runTask to push tx receipt", "run1")
+				input.postFailSleepSecond--
+				if input.postFailSleepSecond > 0 {
+					//每次sleep 1s，重复被激活
+					push.trigeRun(run, 1000*time.Millisecond)
+					chainlog.Debug("Another 1 second sleep for post fail", "postFailSleepSecond", input.postFailSleepSecond, "name", in.subscribe.Name)
+					continue
+				}
+				input.postFailSleepSecond = 0
+
 				if subscribe == nil {
 					push.trigeRun(run, time.Second)
-					chainlog.Debug("runTask to push tx receipt", "run2")
+					chainlog.Debug("nil subscribe")
 					continue
 				}
 				//没有更新的区块，则不进行处理，同时等待一定的时间
 				if lastProcessedseq >= lastesBlockSeq {
-					chainlog.Debug("runTask to push tx receipt run3", "lastProcessedseq", lastProcessedseq, "lastesBlockSeq", lastesBlockSeq)
+					chainlog.Debug("lastProcessedseq >= lastesBlockSeq", "lastProcessedseq", lastProcessedseq, "lastesBlockSeq", lastesBlockSeq)
 					push.trigeRun(run, waitNewBlock)
 					continue
 				}
@@ -296,7 +307,6 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 				if lastProcessedseq+int64(seqCount) > lastesBlockSeq {
 					seqCount = 1
 				}
-				chainlog.Debug("runTask to push tx receipt run4", "lastProcessedseq", lastProcessedseq, "seqCount", seqCount)
 				data, updateSeq, err := push.getTxReceipts(subscribe, lastProcessedseq+1, seqCount, pushMaxSize)
 				if err != nil {
 					chainlog.Error("getTxReceipts", "err", err, "seq", lastProcessedseq+1, "maxSeq", seqCount,
@@ -316,8 +326,9 @@ func (push *PushTxReceiptService) runTask(input *pushTxReceiptNotify) {
 							chainlog.Error("postdata failed exceed 3 times", "in.status", in.status)
 							return
 						}
-						//sleep 60s
-						push.trigeRun(run, 60000*time.Millisecond)
+						//sleep 60s，每次1s，总计60次，在每次结束时，等待接收方重新进行请求推送
+						push.trigeRun(run, 1000*time.Millisecond)
+						input.postFailSleepSecond = 60
 						continue
 					}
 				}
