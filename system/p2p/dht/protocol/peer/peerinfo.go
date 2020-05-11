@@ -210,7 +210,10 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		//启动后间隔1分钟，刷新5次，以充分获得节点外网地址
 		if rangeCount < 5 {
 			rangeCount++
-			time.Sleep(time.Minute)
+			if rangeCount != 0 {
+				time.Sleep(time.Minute)
+			}
+
 		} else {
 			break
 		}
