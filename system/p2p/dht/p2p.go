@@ -75,12 +75,14 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	priv := addrbook.GetPrivkey()
 
 	bandwidthTracker := metrics.NewBandwidthCounter()
+
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", mcfg.Port))
 	if err != nil {
 		panic(err)
 	}
 	log.Info("NewMulti", "addr", maddr.String())
 	host := newHost(mcfg, priv, bandwidthTracker, maddr)
+
 	p2p := &P2P{
 		host:          host,
 		peerInfoManag: manage.NewPeerInfoManager(mgr.Client),
@@ -111,7 +113,7 @@ func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker m
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
 	var maxconnect = 0
-	if cfg.MaxConnnectNum <= 0 {
+	if cfg.MaxConnectNum <= 0 {
 		maxconnect = 100
 	}
 

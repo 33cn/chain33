@@ -41,7 +41,6 @@ type broadCastProtocol struct {
 	blockFilter     *utils.Filterdata
 	txSendFilter    *utils.Filterdata
 	blockSendFilter *utils.Filterdata
-	totalBlockCache *utils.SpaceLimitCache
 	ltBlockCache    *utils.SpaceLimitCache
 	p2pCfg          *p2pty.P2PSubConfig
 }
@@ -59,10 +58,6 @@ func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 	protocol.txSendFilter = utils.NewFilter(txSendFilterCacheNum)
 	protocol.blockSendFilter = utils.NewFilter(blockSendFilterCacheNum)
 
-	//在本地暂时缓存一些区块数据, 限制最大大小
-	protocol.totalBlockCache = utils.NewSpaceLimitCache(blockCacheNum, maxBlockCacheByteSize)
-	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
-	protocol.ltBlockCache = utils.NewSpaceLimitCache(blockCacheNum/2, maxBlockCacheByteSize/2)
 	// 单独复制一份， 避免data race
 	subCfg := *(env.SubConfig)
 	//注册事件处理函数
@@ -76,10 +71,16 @@ func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 	if subCfg.MaxTTL <= 0 {
 		subCfg.MaxTTL = defaultMaxTxBroadCastTTL
 	}
-
-	if subCfg.MinLtBlockTxNum <= 0 {
-		subCfg.MinLtBlockTxNum = defaultMinLtBlockTxNum
+	if subCfg.MinLtBlockSize <= 0 {
+		subCfg.MinLtBlockSize = defaultMinLtBlockSize
 	}
+	if subCfg.LtBlockCacheSize <= 0 {
+		subCfg.LtBlockCacheSize = defaultLtBlockCacheSize
+	}
+
+	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
+	//内部组装成功失败或成功都会进行清理，实际运行并不会长期占用内存，只要限制极端情况最大值
+	protocol.ltBlockCache = utils.NewSpaceLimitCache(ltBlockCacheNum, int(subCfg.LtBlockCacheSize*1024*1024))
 	protocol.p2pCfg = &subCfg
 }
 
@@ -93,11 +94,10 @@ func (handler *broadCastHandler) Handle(stream core.Stream) {
 	protocol := handler.GetProtocol().(*broadCastProtocol)
 	pid := stream.Conn().RemotePeer().Pretty()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
-	log.Debug("Handle", "pid", pid, "peerAddr", peerAddr)
 	var data types.MessageBroadCast
 	err := prototypes.ReadStream(&data, stream)
 	if err != nil {
-		log.Error("Handle", "pid", pid, "peerAddr", peerAddr, "err", err)
+		log.Error("Handle", "pid", pid, "addr", peerAddr, "err", err)
 		return
 	}
 
@@ -111,14 +111,13 @@ func (handler *broadCastHandler) SetProtocol(protocol prototypes.IProtocol) {
 
 // VerifyRequest verify request
 func (handler *broadCastHandler) VerifyRequest(types.Message, *types.MessageComm) bool {
-
 	return true
 }
 
 //
 func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 
-	log.Debug("HandleBroadCastEvent", "msgTy", msg.Ty, "msgID", msg.ID)
+	//log.Debug("HandleBroadCastEvent", "msgTy", msg.Ty, "msgID", msg.ID)
 	var sendData interface{}
 	if tx, ok := msg.GetData().(*types.Transaction); ok {
 		txHash := hex.EncodeToString(tx.Hash())
@@ -145,7 +144,7 @@ func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 func (protocol *broadCastProtocol) broadcast(data interface{}) {
 
 	pds := protocol.GetConnsManager().FetchConnPeers()
-	log.Debug("broadcast", "peerNum", len(pds))
+	//log.Debug("broadcast", "peerNum", len(pds))
 	openedStreams := make([]core.Stream, 0)
 	for _, pid := range pds {
 
@@ -170,7 +169,6 @@ func (protocol *broadCastProtocol) sendPeer(pid string, data interface{}, delayS
 	//这里传peeraddr用pid替代不会影响，内部只做log记录， 暂时不更改代码
 	//TODO：增加peer addr获取渠道
 	sendData, doSend := protocol.handleSend(data, pid, pid)
-	log.Debug("sendPeer", "pid", pid, "doSend", doSend)
 	if !doSend {
 		return nil, nil
 	}
@@ -204,11 +202,10 @@ func (protocol *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr
 	//出错处理
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("handleSend_Panic", "sendData", rawData, "peerAddr", peerAddr, "recoverErr", r)
+			log.Error("handleSend_Panic", "sendData", rawData, "pid", pid, "recoverErr", r)
 			doSend = false
 		}
 	}()
-	log.Debug("ProcessSendP2PBegin", "peerID", pid, "peerAddr", peerAddr)
 	sendData = &types.BroadCastData{}
 
 	doSend = false
@@ -224,7 +221,6 @@ func (protocol *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr
 		doSend = true
 		sendData.Value = &types.BroadCastData_Ping{Ping: ping}
 	}
-	log.Debug("handleSend", "peerAddr", peerAddr, "doSend", doSend)
 	return
 }
 
@@ -233,10 +229,9 @@ func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid 
 	//接收网络数据不可靠
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("handleReceive_Panic", "recvData", data, "peerAddr", peerAddr, "recoverErr", r)
+			log.Error("handleReceive_Panic", "recvData", data, "pid", pid, "addr", peerAddr, "recoverErr", r)
 		}
 	}()
-	log.Debug("handleReceive", "peerID", pid, "peerAddr", peerAddr)
 	if tx := data.GetTx(); tx != nil {
 		err = protocol.recvTx(tx, pid, peerAddr)
 	} else if ltTx := data.GetLtTx(); ltTx != nil {
@@ -250,7 +245,9 @@ func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid 
 	} else if rep := data.GetBlockRep(); rep != nil {
 		err = protocol.recvQueryReply(rep, pid, peerAddr)
 	}
-	log.Debug("handleReceive", "peerAddr", peerAddr, "err", err)
+	if err != nil {
+		log.Error("handleReceive", "pid", pid, "addr", peerAddr, "recvData", data.Value, "err", err)
+	}
 	return
 }
 

@@ -3,6 +3,11 @@ package dht
 import (
 	"bufio"
 	"context"
+
+	"os"
+
+	"github.com/33cn/chain33/util"
+
 	"crypto/rand"
 	"fmt"
 	l "github.com/33cn/chain33/common/log"
@@ -516,9 +521,15 @@ func Test_p2p(t *testing.T) {
 
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
+	datadir := util.ResetDatadir(cfg.GetModuleConfig(), "$TEMP/")
 	q.SetConfig(cfg)
 	processMsg(q)
 	p2p := NewP2p(cfg)
+	defer func(path string) {
+		if err := os.RemoveAll(path); err != nil {
+			log.Error("removeTestDatadir", "err", err)
+		}
+	}(datadir)
 	testP2PEvent(t, q.Client())
 	testP2PClose(t, p2p)
 	testStreamEOFReSet(t)
