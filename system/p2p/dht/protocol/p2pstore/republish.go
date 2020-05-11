@@ -53,7 +53,7 @@ func (p *Protocol) storeChunkOnPeer(req *types.ChunkInfoMsg, pid peer.ID) error 
 		log.Error("new stream error when store chunk", "peer id", pid, "error", err)
 		return err
 	}
-	defer stream.Close()
+	defer protocol.CloseStream(stream)
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ChunkInfoMsg{ChunkInfoMsg: req},
 	}

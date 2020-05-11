@@ -53,7 +53,7 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 	if err != nil {
 		return nil, err
 	}
-	defer stream.Close()
+	defer protocol.CloseStream(stream)
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ReqBlocks{
 			ReqBlocks: param,
@@ -109,7 +109,7 @@ func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid pee
 	if err != nil {
 		return nil, err
 	}
-	defer stream.Close()
+	defer protocol.CloseStream(stream)
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ReqChunkRecords{
 			ReqChunkRecords: param,
@@ -173,7 +173,7 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 		log.Error("getBlocksFromRemote", "error", err)
 		return nil, nil, err
 	}
-	defer stream.Close()
+	defer protocol.CloseStream(stream)
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ChunkInfoMsg{
 			ChunkInfoMsg: params,

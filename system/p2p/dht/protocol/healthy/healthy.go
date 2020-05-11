@@ -58,6 +58,7 @@ func (p *Protocol) getLastHeaderFromPeer(pid peer.ID) (*types.Header, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer protocol.CloseStream(stream)
 	msg := types.P2PRequest{}
 	err = protocol.WriteStream(&msg, stream)
 	if err != nil {

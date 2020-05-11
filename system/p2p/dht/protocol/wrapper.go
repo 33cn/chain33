@@ -163,9 +163,9 @@ func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 				fmt.Println(string(panicTrace(4)))
 				_ = stream.Reset()
 			}
-			CloseStream(stream)
 		}()
 		f(stream)
+		CloseStream(stream)
 	}
 }
 
