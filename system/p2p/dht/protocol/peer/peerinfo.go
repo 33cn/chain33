@@ -194,73 +194,81 @@ func (p *peerInfoProtol) detectNodeAddr() {
 	if len(addrs) > 0 {
 		p.setExternalAddr(addrs[len(addrs)-1].String())
 	}
-	var seedMap = make(map[string]interface{})
-	for _, seed := range p.p2pCfg.Seeds {
-		seedSplit := strings.Split(seed, "/")
-		seedMap[seedSplit[len(seedSplit)-1]] = seed
+	var innerNodes = make(map[string]interface{})
+	allConfNodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
+	for _, node := range allConfNodes {
+		nodeSplit := strings.Split(node, "/")
+		innerNodes[nodeSplit[len(nodeSplit)-1]] = node
 	}
 	pid := p.GetHost().ID()
-
+	var rangeCount int
 	for {
 		if len(p.GetConnsManager().FetchConnPeers()) == 0 {
 			time.Sleep(time.Second)
 			continue
 		}
-		break
-	}
-
-	openedStreams := make([]core.Stream, 0)
-	for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
-		if remoteID.Pretty() == pid.Pretty() {
-			continue
+		//启动后间隔1分钟，刷新5次，以充分获得节点外网地址
+		if rangeCount < 5 {
+			rangeCount++
+			time.Sleep(time.Minute)
+		} else {
+			break
 		}
+		//}
 
-		if p.GetConnsManager().IsNeighbors(remoteID) {
-			continue
+		openedStreams := make([]core.Stream, 0)
+		for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
+			if remoteID.Pretty() == pid.Pretty() {
+				continue
+			}
+
+			if p.GetConnsManager().IsNeighbors(remoteID) {
+				continue
+			}
+
+			var version types.P2PVersion
+
+			pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
+
+			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
+				Message: &version}
+
+			s, err := prototypes.NewStream(p.Host, remoteID, PeerVersionReq)
+			if err != nil {
+				log.Error("NewStream", "err", err, "remoteID", remoteID)
+				continue
+			}
+			openedStreams = append(openedStreams, s)
+			version.Version = p.p2pCfg.Channel
+			version.AddrFrom = s.Conn().LocalMultiaddr().String()
+			version.AddrRecv = s.Conn().RemoteMultiaddr().String()
+			err = prototypes.WriteStream(req, s)
+			if err != nil {
+				log.Error("DetectNodeAddr", "WriteStream err", err)
+				continue
+			}
+			var resp types.MessageP2PVersionResp
+			err = prototypes.ReadStream(&resp, s)
+			if err != nil {
+				log.Error("DetectNodeAddr", "ReadStream err", err)
+				continue
+			}
+			log.Debug("DetectAddr", "resp", resp)
+
+			p.setExternalAddr(resp.GetMessage().GetAddrRecv())
+			log.Debug("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
+			//要判断是否是自身局域网的其他节点
+			if _, ok := innerNodes[remoteID.Pretty()]; !ok {
+				continue
+			}
+
+			break
+
 		}
-
-		var version types.P2PVersion
-
-		pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
-
-		req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
-			Message: &version}
-
-		s, err := prototypes.NewStream(p.Host, remoteID, PeerVersionReq)
-		if err != nil {
-			log.Error("NewStream", "err", err, "remoteID", remoteID)
-			continue
+		// 统一关闭stream
+		for _, stream := range openedStreams {
+			prototypes.CloseStream(stream)
 		}
-		openedStreams = append(openedStreams, s)
-		version.Version = p.p2pCfg.Channel
-		version.AddrFrom = s.Conn().LocalMultiaddr().String()
-		version.AddrRecv = s.Conn().RemoteMultiaddr().String()
-		err = prototypes.WriteStream(req, s)
-		if err != nil {
-			log.Error("DetectNodeAddr", "WriteStream err", err)
-			continue
-		}
-		var resp types.MessageP2PVersionResp
-		err = prototypes.ReadStream(&resp, s)
-		if err != nil {
-			log.Error("DetectNodeAddr", "ReadStream err", err)
-			continue
-		}
-		log.Debug("DetectAddr", "resp", resp)
-
-		p.setExternalAddr(resp.GetMessage().GetAddrRecv())
-		log.Debug("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
-		//要判断是否是自身局域网的其他节点
-		if _, ok := seedMap[remoteID.Pretty()]; !ok {
-			continue
-		}
-
-		break
-
-	}
-	// 统一关闭stream
-	for _, stream := range openedStreams {
-		prototypes.CloseStream(stream)
 	}
 
 }

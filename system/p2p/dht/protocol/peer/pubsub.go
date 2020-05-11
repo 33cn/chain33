@@ -122,6 +122,7 @@ func (p *peerPubSub) handleGetTopics(msg *queue.Message) {
 func (p *peerPubSub) handleRemoveTopc(msg *queue.Message) {
 	v, ok := msg.GetData().(*types.RemoveTopic)
 	if !ok {
+		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &types.Reply{IsOk: false, Msg: []byte("need *types.RemoveTopic")}))
 		return
 	}
 
