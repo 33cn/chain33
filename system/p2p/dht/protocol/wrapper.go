@@ -1,20 +1,19 @@
 package protocol
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"math/rand"
 	"runtime"
 	"time"
 
+	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
+
 	"github.com/33cn/chain33/queue"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
-	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
 
 func init() {
@@ -23,7 +22,7 @@ func init() {
 
 // ReadStream reads message from stream.
 func ReadStream(data types.Message, stream network.Stream) error {
-	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(stream))
+	decoder := protobufCodec.Multicodec(nil).Decoder(stream)
 	err := decoder.Decode(data)
 	if err != nil {
 		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "decode err", err)
@@ -34,16 +33,11 @@ func ReadStream(data types.Message, stream network.Stream) error {
 
 // WriteStream writes message to stream.
 func WriteStream(data types.Message, stream network.Stream) error {
-	writer := bufio.NewWriter(stream)
-	enc := protobufCodec.Multicodec(nil).Encoder(writer)
+	enc := protobufCodec.Multicodec(nil).Encoder(stream)
 	err := enc.Encode(data)
 	if err != nil {
 		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "encode err", err)
 		return err
-	}
-	err = writer.Flush()
-	if err != nil {
-		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "flush err", err)
 	}
 	return nil
 }
@@ -53,7 +47,8 @@ func CloseStream(stream network.Stream) {
 	if stream == nil {
 		return
 	}
-	err := helpers.FullClose(stream)
+	//err := helpers.FullClose(stream)
+	err := stream.Close()
 	if err != nil {
 		//just log it because it dose not matter
 		log.Debug("CloseStream", "err", err)

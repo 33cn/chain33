@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -185,9 +186,25 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 		return nil, nil, err
 	}
 	var res types.P2PResponse
-	err = protocol.ReadStreamAndAuthenticate(&res, stream)
+	//err = protocol.ReadStreamAndAuthenticate(&res, stream)
+	//if err != nil {
+	//	log.Error("fetchChunkFromPeer", "read response error", err, "chunk hash", hex.EncodeToString(params.ChunkHash))
+	//	return nil, nil, err
+	//}
+	var result []byte
+	for {
+		buf := make([]byte, 1024)
+		n, err := stream.Read(buf)
+		result = append(result, buf[:n]...)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	err = types.Decode(result, &res)
 	if err != nil {
-		log.Error("fetchChunkFromPeer", "read response error", err, "chunk hash", hex.EncodeToString(params.ChunkHash))
 		return nil, nil, err
 	}
 	log.Info("fetchChunkFromPeer", "remote", pid.Pretty(), "chunk hash", hex.EncodeToString(params.ChunkHash))
@@ -306,5 +323,21 @@ func (p *Protocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords) (*ty
 		return records, nil
 	}
 
+	return nil, types2.ErrNotFound
+}
+
+func (p *Protocol) getLastHeaderFromBlockChain() (*types.Header, error) {
+	msg := p.QueueClient.NewMessage("blockchain", types.EventGetLastHeader, nil)
+	err := p.QueueClient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	reply, err := p.QueueClient.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	if header, ok := reply.Data.(*types.Header); ok {
+		return header, nil
+	}
 	return nil, types2.ErrNotFound
 }

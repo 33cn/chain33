@@ -47,7 +47,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	}
 
 	//注册p2p通信协议，用于处理节点之间请求
-	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithSignCheck(p.HandleStreamFetchChunk))
+	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk)) //数据较大，采用特殊写入方式
 	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
 	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithSignCheck(p.HandleStreamGetHeader))
 	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithSignCheck(p.HandleStreamGetChunkRecord))
@@ -61,7 +61,15 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.startUpdateHealthyRoutingTable()
 }
 
-func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.Stream) {
+	var res types.P2PResponse
+	defer func() {
+		_, err := stream.Write(types.Encode(&res))
+		if err != nil {
+			log.Error("HandleStreamFetchChunk", "write stream error", err)
+			return
+		}
+	}()
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	//优先检查本地是否存在
 	bodys, _ := p.getChunkBlock(param.ChunkHash)
@@ -70,7 +78,7 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PR
 		start, end := param.Start%l, param.End%l+1
 		bodys.Items = bodys.Items[start:end]
 		res.Response = &types.P2PResponse_BlockBodys{BlockBodys: bodys}
-		return nil
+		return
 	}
 
 	//本地没有数据
@@ -85,10 +93,10 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PR
 
 	addrInfosData, err := json.Marshal(addrInfos)
 	if err != nil {
-		return err
+		log.Error("HandleStreamFetchChunk", "marshal error", err)
+		return
 	}
 	res.Response = &types.P2PResponse_AddrInfo{AddrInfo: addrInfosData}
-	return nil
 }
 
 // 对端节点通知本节点保存数据
@@ -115,15 +123,33 @@ func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.
 		return
 	}
 
-	//对端节点通知本节点保存数据，则对端节点应该有数据
-	bodys, _, err := p.fetchChunkOrNearerPeers(context.Background(), param, stream.Conn().RemotePeer())
-	if err != nil || bodys == nil {
-		//对端节点没有数据，则从网络中搜索数据
-		bodys, err = p.mustFetchChunk(param)
+	var bodys *types.BlockBodys
+	var err error
+	//blockchain模块可能有数据，blockchain模块保存了最新的20000个区块
+	//如果请求的区块高度在 [lastHeight-15000, lastHeight] 之间，则到blockchain模块去请求区块，否则到网络中请求
+	//通常chunk区间在[lastHeight-11000, lastHeight-10000]，因此判断区间取15000而不是20000，从而规避一些边界处理问题
+	lastHeader, _ := p.getLastHeaderFromBlockChain()
+	if lastHeader != nil && param.Start >= lastHeader.Height-15000 && param.End < lastHeader.Height {
+		bodys, err = p.getChunkFromBlockchain(param)
 		if err != nil {
-			log.Error("onStoreChunk", "get bodys from remote peer error", err)
+			log.Error("onStoreChunk", "getChunkFromBlockchain error", err)
 			return
 		}
+	} else {
+		//对端节点通知本节点保存数据，则对端节点应该有数据
+		bodys, _, err = p.fetchChunkOrNearerPeers(context.Background(), param, stream.Conn().RemotePeer())
+		if err != nil || bodys == nil {
+			//对端节点没有数据，则从网络中搜索数据
+			bodys, err = p.mustFetchChunk(param)
+			if err != nil {
+				log.Error("onStoreChunk", "get bodys from remote peer error", err)
+				return
+			}
+		}
+	}
+	if bodys == nil {
+		log.Error("onStoreChunk", "fetch body error", "body is nil")
+		return
 	}
 
 	err = p.addChunkBlock(param, bodys)
