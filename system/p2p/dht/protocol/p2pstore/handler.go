@@ -47,7 +47,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	}
 
 	//注册p2p通信协议，用于处理节点之间请求
-	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk)) //数据较大，采用特殊写入方式
+	p.Host.SetStreamHandler(protocol.FetchChunk, p.HandleStreamFetchChunk) //数据较大，采用特殊写入方式
 	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
 	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithSignCheck(p.HandleStreamGetHeader))
 	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithSignCheck(p.HandleStreamGetChunkRecord))
@@ -61,7 +61,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.startUpdateHealthyRoutingTable()
 }
 
-func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.Stream) {
+func (p *Protocol) HandleStreamFetchChunk(stream network.Stream) {
 	var res types.P2PResponse
 	defer func() {
 		_, err := stream.Write(types.Encode(&res))
@@ -69,7 +69,17 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.
 			log.Error("HandleStreamFetchChunk", "write stream error", err)
 			return
 		}
+		_ = stream.Close()
 	}()
+	var req types.P2PRequest
+	if err := protocol.ReadStream(&req, stream); err != nil {
+		log.Error("HandleStreamFetchChunk", "read stream error", err)
+		return
+	}
+	if !protocol.AuthenticateMessage(&req, stream) {
+		log.Error("HandleStreamFetchChunk authenticateMessage failed")
+		return
+	}
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	//优先检查本地是否存在
 	bodys, _ := p.getChunkBlock(param.ChunkHash)
@@ -125,11 +135,11 @@ func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.
 
 	var bodys *types.BlockBodys
 	var err error
-	//blockchain模块可能有数据，blockchain模块保存了最新的20000个区块
-	//如果请求的区块高度在 [lastHeight-15000, lastHeight] 之间，则到blockchain模块去请求区块，否则到网络中请求
-	//通常chunk区间在[lastHeight-11000, lastHeight-10000]，因此判断区间取15000而不是20000，从而规避一些边界处理问题
+	//blockchain模块可能有数据，blockchain模块保存了最新的10000+2*chunk_len个区块
+	//如果请求的区块高度在 [lastHeight-10000-2*chunk_len, lastHeight] 之间，则到blockchain模块去请求区块，否则到网络中请求
 	lastHeader, _ := p.getLastHeaderFromBlockChain()
-	if lastHeader != nil && param.Start >= lastHeader.Height-15000 && param.End < lastHeader.Height {
+	chunkLen := param.End - param.Start
+	if lastHeader != nil && param.Start >= lastHeader.Height-10000-2*chunkLen && param.End < lastHeader.Height {
 		bodys, err = p.getChunkFromBlockchain(param)
 		if err != nil {
 			log.Error("onStoreChunk", "getChunkFromBlockchain error", err)
