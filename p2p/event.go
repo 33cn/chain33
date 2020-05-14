@@ -51,6 +51,10 @@ func (mgr *Manager) handleSysEvent() {
 			}
 			mgr.pub2P2P(msg, p2pTy)
 
+		case types.EventPubTopicMsg, types.EventFetchTopics, types.EventRemoveTopic, types.EventSubTopic:
+			p2pTy := mgr.p2pCfg.Types[0]
+			mgr.pub2P2P(msg, p2pTy)
+
 		default:
 			log.Warn("unknown msgtype", "msg", msg)
 			msg.Reply(mgr.Client.NewMessage("", msg.Ty, types.Reply{Msg: []byte("unknown msgtype")}))
