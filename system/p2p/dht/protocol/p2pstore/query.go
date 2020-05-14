@@ -192,8 +192,8 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 	//	return nil, nil, err
 	//}
 	var result []byte
+	buf := make([]byte, 1024)
 	for {
-		buf := make([]byte, 1024)
 		n, err := stream.Read(buf)
 		result = append(result, buf[:n]...)
 		if err == io.EOF {
