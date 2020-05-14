@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/libp2p/go-libp2p-pubsub"
 	"sync"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 type TopicMap map[string]*topicinfo

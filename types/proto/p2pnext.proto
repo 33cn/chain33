@@ -217,67 +217,62 @@ message MessageBroadCast {
  * p2p 订阅topic
  */
 
-message SubTopic{
-    string topic=1;
-    string module=2;
+message SubTopic {
+    string topic  = 1;
+    string module = 2;
 }
 
-message SubTopicReply{
-	bool status=1;
-	string msg=2;
+message SubTopicReply {
+    bool   status = 1;
+    string msg    = 2;
 }
 
 /**
  * p2p 发布topic消息
  */
 
- message PublishTopicMsg{
-    string topic=1;
-    bytes  msg=2;
- }
+message PublishTopicMsg {
+    string topic = 1;
+    bytes  msg   = 2;
+}
 
-message PublishTopicMsgReply{
-	string topic=1;
-	bool status=2;
-	string msg=3;
-	
+message PublishTopicMsgReply {
+    string topic  = 1;
+    bool   status = 2;
+    string msg    = 3;
 }
 /**
  * p2p 接收topic消息
  */
-message TopicData{
-    string topic=1;
-    string from=2;
-    bytes data=3;
+message TopicData {
+    string topic = 1;
+    string from  = 2;
+    bytes  data  = 3;
 }
-
 
 /**
  * p2p 获取topic列表
  */
- 
-message FetchTopicList{
-	string module=1;
-	
+
+message FetchTopicList {
+    string module = 1;
 }
 
-message TopicList{
-	repeated string topics=1;
+message TopicList {
+    repeated string topics = 1;
 }
-
 
 /**
  * p2p 删除topic
  */
 
-message RemoveTopic{
-	string topic =1;
-	string module=2;
+message RemoveTopic {
+    string topic  = 1;
+    string module = 2;
 }
 
-
-message RemoveTopicReply{
-	string topic=1;
-	bool status=2;
-	string msg=3;
+message RemoveTopicReply {
+    string topic  = 1;
+    bool   status = 2;
+    string msg    = 3;
 }

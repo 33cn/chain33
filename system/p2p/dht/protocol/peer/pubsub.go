@@ -3,12 +3,13 @@ package peer
 import (
 	"fmt"
 	//"github.com/33cn/chain33/client"
+	"sync"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"sync"
 )
 
 type peerPubSub struct {
@@ -95,7 +96,7 @@ func (p *peerPubSub) ReceiveChanData() {
 		if !ok {
 			continue
 		}
-		for moudleName, _ := range moudles.(map[string]bool) {
+		for moudleName := range moudles.(map[string]bool) {
 			client := p.GetQueueClient()
 			newmsg := client.NewMessage(moudleName, types.EventReceiveSubData, &types.TopicData{Topic: msg.Topic, From: msg.From, Data: msg.Data}) //加入到输出通道)
 			client.Send(newmsg, false)

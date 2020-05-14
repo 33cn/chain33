@@ -2,6 +2,8 @@ package net
 
 import (
 	"context"
+	"time"
+
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	coredis "github.com/libp2p/go-libp2p-core/discovery"
 	host "github.com/libp2p/go-libp2p-core/host"
@@ -10,7 +12,6 @@ import (
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	relay "github.com/libp2p/go-libp2p/p2p/host/relay"
-	"time"
 )
 
 type Relay struct {

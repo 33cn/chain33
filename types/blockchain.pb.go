@@ -5,8 +5,9 @@ package types
 
 import (
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
 	math "math"
+
+	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -2635,7 +2636,9 @@ func init() {
 	proto.RegisterType((*CmpBlock)(nil), "types.CmpBlock")
 }
 
-func init() { proto.RegisterFile("blockchain.proto", fileDescriptor_e9ac6287ce250c9a) }
+func init() {
+	proto.RegisterFile("blockchain.proto", fileDescriptor_e9ac6287ce250c9a)
+}
 
 var fileDescriptor_e9ac6287ce250c9a = []byte{
 	// 1630 bytes of a gzipped FileDescriptorProto
