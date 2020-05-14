@@ -77,6 +77,7 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 		return
 	}
 	p.topicMoudle.Store(topic, moudles)
+
 	//接收订阅的消息
 }
 

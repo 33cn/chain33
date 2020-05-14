@@ -70,6 +70,10 @@ func (p *PubSub) HasTopic(topic string) bool {
 
 //加入topic&subTopic
 func (p *PubSub) JoinTopicAndSubTopic(topic string, mchan chan interface{}, opts ...pubsub.TopicOpt) error {
+	//先检查有没有订阅该topic
+	if p.HasTopic(topic) {
+		return nil
+	}
 	Topic, err := p.ps.Join(topic, opts...)
 	if err != nil {
 		return err
@@ -91,7 +95,7 @@ func (p *PubSub) JoinTopicAndSubTopic(topic string, mchan chan interface{}, opts
 		sub:      subscription,
 	}
 	p.topicMutex.Unlock()
-
+	go p.subTopic(ctx, subscription, mchan)
 	return nil
 }
 
@@ -113,31 +117,29 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 	return nil
 }
 
-func (p *PubSub) SubTopic(msg chan interface{}) {
-	p.topicMutex.Lock()
-	defer p.topicMutex.Unlock()
+func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, msg chan interface{}) {
+	//p.topicMutex.Lock()
+	//defer p.topicMutex.Unlock()
 
-	for _, info := range p.topics {
+	//for _, info := range p.topics {
 
-		go func(info *topicinfo) {
-			for {
-				topic := info.sub.Topic()
-				got, err := info.sub.Next(info.ctx)
-				if err != nil {
-					log.Error("SubMsg", "topic msg err", err, "topic", topic)
-					if err == p.ctx.Err() {
-						return
-					}
-				}
-				log.Info("SubMsg", "readData", string(got.GetData()), "msgID")
-				var data SubMsg
-				data.Data = got.GetData()
-				data.Topic = topic
-				data.From = got.GetFrom().String()
-				msg <- data
-			}
-		}(info)
+	//	go func(info *topicinfo) {
+	for {
+		topic := sub.Topic()
+		got, err := sub.Next(ctx)
+		if err != nil {
+			log.Error("SubMsg", "topic msg err", err, "topic", topic)
+			return
+		}
+		log.Info("SubMsg", "readData", string(got.GetData()))
+		var data SubMsg
+		data.Data = got.GetData()
+		data.Topic = topic
+		data.From = got.GetFrom().String()
+		msg <- data
 	}
+	//}(info)
+	//}
 }
 
 func (p *PubSub) RemoveTopic(topic string) {
