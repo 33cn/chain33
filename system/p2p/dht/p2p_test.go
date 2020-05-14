@@ -10,6 +10,9 @@ import (
 
 	"crypto/rand"
 	"fmt"
+	"testing"
+	"time"
+
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
@@ -27,8 +30,6 @@ import (
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
-	"testing"
-	"time"
 
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/stretchr/testify/assert"

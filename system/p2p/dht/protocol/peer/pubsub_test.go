@@ -1,16 +1,18 @@
 package peer
 
 import (
+	"time"
+
 	l "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/queue"
-	"time"
 
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 
 	"github.com/33cn/chain33/types"
 
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
