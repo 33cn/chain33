@@ -2,11 +2,12 @@ package peer
 
 import (
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/peerstore"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -194,14 +195,10 @@ func (p *peerInfoProtol) detectNodeAddr() {
 	if len(addrs) > 0 {
 		p.setExternalAddr(addrs[len(addrs)-1].String())
 	}
-	var innerNodes = make(map[string]interface{})
-	allConfNodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
-	for _, node := range allConfNodes {
-		nodeSplit := strings.Split(node, "/")
-		innerNodes[nodeSplit[len(nodeSplit)-1]] = node
-	}
+
 	pid := p.GetHost().ID()
 	var rangeCount int
+	var externalCheck = make(map[string]int)
 	for {
 		if len(p.GetConnsManager().FetchConnPeers()) == 0 {
 			time.Sleep(time.Second)
@@ -217,7 +214,6 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		} else {
 			break
 		}
-		//}
 
 		openedStreams := make([]core.Stream, 0)
 		for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
@@ -257,17 +253,25 @@ func (p *peerInfoProtol) detectNodeAddr() {
 				continue
 			}
 			log.Debug("DetectAddr", "resp", resp)
-
-			p.setExternalAddr(resp.GetMessage().GetAddrRecv())
-			log.Debug("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
-			//要判断是否是自身局域网的其他节点
-			if _, ok := innerNodes[remoteID.Pretty()]; !ok {
-				continue
+			if v, ok := externalCheck[resp.GetMessage().GetAddrRecv()]; ok {
+				v = v + 1
+				externalCheck[resp.GetMessage().GetAddrRecv()] = v
+			} else {
+				externalCheck[resp.GetMessage().GetAddrRecv()] = 1
 			}
 
-			break
+			log.Debug("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
 
 		}
+		var maxCount int
+		for addr, count := range externalCheck {
+			if maxCount < count {
+				maxCount = count
+				p.setExternalAddr(addr)
+			}
+
+		}
+
 		// 统一关闭stream
 		for _, stream := range openedStreams {
 			prototypes.CloseStream(stream)

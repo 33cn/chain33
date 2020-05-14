@@ -159,12 +159,10 @@ func (p *P2P) managePeers() {
 	go p.connManag.MonitorAllPeers(p.subCfg.Seeds, p.host)
 
 	for {
-		peerlist := p.discovery.RoutingTale()
-		log.Debug("managePeers", "RoutingTale show peerlist>>>>>>>>>", peerlist,
-			"table size", p.discovery.RoutingTableSize())
+
+		log.Debug("managePeers", "table size", p.discovery.RoutingTableSize())
 		if p.isClose() {
 			log.Info("managePeers", "p2p", "closed")
-
 			return
 		}
 		<-time.After(time.Minute * 10)
