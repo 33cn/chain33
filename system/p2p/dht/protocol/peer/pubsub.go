@@ -89,7 +89,7 @@ func (p *peerPubSub) ReceiveChanData() {
 			log.Info("ReceiveChanData", "PubSubMsgChan", "closed")
 			return
 		}
-		msg, ok := v.(*types.TopicData)
+		msg, ok := v.(*net.SubMsg)
 		if !ok {
 			continue
 		}

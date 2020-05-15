@@ -118,12 +118,7 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 }
 
 func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, msg chan interface{}) {
-	//p.topicMutex.Lock()
-	//defer p.topicMutex.Unlock()
 
-	//for _, info := range p.topics {
-
-	//	go func(info *topicinfo) {
 	for {
 		topic := sub.Topic()
 		got, err := sub.Next(ctx)
@@ -131,15 +126,14 @@ func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, msg cha
 			log.Error("SubMsg", "topic msg err", err, "topic", topic)
 			return
 		}
-		log.Info("SubMsg", "readData", string(got.GetData()))
+		log.Info("SubMsg", "readData size", len(got.GetData()))
 		var data SubMsg
 		data.Data = got.GetData()
 		data.Topic = topic
 		data.From = got.GetFrom().String()
 		msg <- data
 	}
-	//}(info)
-	//}
+
 }
 
 func (p *PubSub) RemoveTopic(topic string) {
