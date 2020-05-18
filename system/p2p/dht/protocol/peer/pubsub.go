@@ -57,7 +57,7 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 		err := p.pubsubOp.JoinTopicAndSubTopic(topic, p.msgChan) //订阅topic
 		if err != nil {
 			log.Error("peerPubSub", "err", err)
-			msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+			msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
 			return
 		}
 	}
@@ -65,7 +65,7 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 	var reply types.SubTopicReply
 	reply.Status = true
 	reply.Msg = fmt.Sprintf("subtopic %v success", topic)
-	msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, &reply))
+	msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, &types.Reply{IsOk: true, Msg: types.Encode(&reply)}))
 	//存储topic关联的moduleName
 	moudles, ok := p.topicMoudle.Load(topic)
 	if ok {
@@ -117,34 +117,36 @@ func (p *peerPubSub) handleGetTopics(msg *queue.Message) {
 	topics := p.pubsubOp.GetTopics()
 	var reply types.TopicList
 	reply.Topics = topics
-	msg.Reply(p.GetQueueClient().NewMessage("", types.EventFetchTopics, &reply))
+	msg.Reply(p.GetQueueClient().NewMessage("", types.EventFetchTopics, &types.Reply{IsOk: true, Msg: types.Encode(&reply)}))
 }
 
 //删除已经订阅的某一个topic
 func (p *peerPubSub) handleRemoveTopc(msg *queue.Message) {
 	v, ok := msg.GetData().(*types.RemoveTopic)
 	if !ok {
+
 		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &types.Reply{IsOk: false, Msg: []byte("need *types.RemoveTopic")}))
 		return
 	}
 
 	vmdoules, ok := p.topicMoudle.Load(v.GetTopic())
 	if !ok || len(vmdoules.(map[string]bool)) == 0 {
-		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &types.RemoveTopicReply{Topic: v.GetTopic(), Status: true, Msg: "this module no sub this topic"}))
+		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &types.Reply{IsOk: false, Msg: []byte("this module no sub this topic")}))
 		return
 	}
 	modules := vmdoules.(map[string]bool)
 	delete(modules, v.GetModule()) //删除消息推送的module
+	var reply types.RemoveTopicReply
+	reply.Topic = v.GetTopic()
+	reply.Status = true
+
 	if len(modules) != 0 {
-		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &types.RemoveTopicReply{Topic: v.GetTopic(), Status: true}))
+		msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &types.Reply{IsOk: true, Msg: types.Encode(&reply)}))
 		return
 	}
 
 	p.pubsubOp.RemoveTopic(v.GetTopic())
-	var reply types.RemoveTopicReply
-	reply.Topic = v.GetTopic()
-	reply.Status = true
-	msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &reply))
+	msg.Reply(p.GetQueueClient().NewMessage("", types.EventRemoveTopic, &types.Reply{IsOk: true, Msg: types.Encode(&reply)}))
 }
 
 //发布Topic消息

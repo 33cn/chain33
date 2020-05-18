@@ -169,20 +169,10 @@ func (p *PubSub) FetchTopicPeers(topic string) []peer.ID {
 
 func (p *PubSub) FetchTopics() []string {
 	return p.ps.GetTopics()
-	/*p.topicMutex.Lock()
-	defer p.topicMutex.Unlock()
-	var topics []string
-	for topic := range p.topics {
-		topics = append(topics, topic)
-	}
-	return topics*/
+
 }
 
 func (p *PubSub) TopicNum() int {
 	return len(p.ps.GetTopics())
-	/*
-		p.topicMutex.Lock()
-		defer p.topicMutex.Unlock()
-		return len(p.topics)
-	*/
+
 }

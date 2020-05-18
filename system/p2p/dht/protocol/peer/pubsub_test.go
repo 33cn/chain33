@@ -154,8 +154,11 @@ func testFetchTopics(t *testing.T, protocol *peerPubSub) []string {
 	resp, err := protocol.GetQueueClient().WaitTimeout(fetchTopicMsg, time.Second*10)
 	assert.Nil(t, err)
 	//获取topiclist
-	topiclist, ok := resp.GetData().(*types.TopicList)
-	assert.Equal(t, ok, true)
+	assert.True(t, resp.GetData().(*types.Reply).GetIsOk())
+	var topiclist types.TopicList
+	err = types.Decode(resp.GetData().(*types.Reply).GetMsg(), &topiclist)
+	assert.Nil(t, err)
+
 	t.Log("topiclist", topiclist.GetTopics())
 	return topiclist.GetTopics()
 }
