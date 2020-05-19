@@ -295,17 +295,17 @@ func (chain *BlockChain) broadcastAddBlock(msg *queue.Message) {
 	backWardMaximum := curheight > MaxRollBlockNum && castheight < curheight-MaxRollBlockNum
 
 	if futureMaximum || backWardMaximum {
-		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash(chain.client.GetConfig())), "pid", blockwithpid.Pid, "result", "Do not handle broad cast Block in sync")
+		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash(chain.client.GetConfig())), "pid", blockwithpid.Pid)
 		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 		return
 	}
 	_, err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: blockwithpid.Block}, blockwithpid.Pid)
 	if err != nil {
-		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
+		chainlog.Error("EventBroadcastAddBlock", "height", castheight, "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}
-	chainlog.Debug("EventBroadcastAddBlock", "height", blockwithpid.Block.Height, "hash", common.ToHex(blockwithpid.Block.Hash(chain.client.GetConfig())), "pid", blockwithpid.Pid, "success", "ok")
+	chainlog.Debug("EventBroadcastAddBlock", "height", castheight, "hash", common.ToHex(blockwithpid.Block.Hash(chain.client.GetConfig())), "pid", blockwithpid.Pid)
 
 	msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 }
@@ -726,7 +726,6 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 				msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
 				return
 			}
-			chainlog.Debug("EventAddBlock", "height", blk.Height, "pid", "success", "ok")
 		}
 	}
 	chainlog.Debug("addChunkBlock", "start", blocks.Items[0].Height, "end", blocks.Items[len(blocks.Items)-1].Height)

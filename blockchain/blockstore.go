@@ -1563,7 +1563,7 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 	var blockbody *types.BlockBody
 	if chainCfg.EnableIfDelLocalChunk { // 6.6之后，测试完成之后该分支进行删除
 		chunkNum, _, _ := caclChunkInfo(chainCfg, blockheader.Height)
-		if bs.Height() > blockheader.Height + MaxRollBlockNum + chainCfg.ChunkblockNum + int64(DelRollbackChunkNum) { // 这里模拟删除情况下去网络中查找
+		if bs.Height() > blockheader.Height+MaxRollBlockNum+chainCfg.ChunkblockNum+int64(DelRollbackChunkNum) { // 这里模拟删除情况下去网络中查找
 			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
 			if bodys == nil || len(bodys.Items) == 0 || err != nil {
 				if err != dbm.ErrNotFoundInDb {
@@ -1579,7 +1579,7 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 		}
 
 		storeLog.Info("multiGetBody", "chunkNum", chunkNum, "height", blockheader.Height,
-			 "hash", common.ToHex(blockheader.Hash))
+			"hash", common.ToHex(blockheader.Hash))
 		blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
 		if blockbody == nil || err != nil {
 			if err != dbm.ErrNotFoundInDb {

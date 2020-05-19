@@ -5,6 +5,7 @@ package broadcast
 
 import (
 	"encoding/hex"
+	"errors"
 	"testing"
 
 	"github.com/33cn/chain33/common/merkle"
@@ -38,7 +39,7 @@ func Test_recvQueryData(t *testing.T) {
 			TxReq: &types.P2PTxReq{TxHash: tx.Hash()}}}
 	sendData, _ := proto.handleSend(query, testPid, testAddr)
 	memTxs := []*types.Transaction{nil}
-	go testHandleMempool(q, &memTxs)
+	<-startHandleMempool(q, &memTxs)
 	err := proto.handleReceive(sendData, testPid, testAddr)
 	assert.Equal(t, errRecvMempool, err)
 	memTxs = []*types.Transaction{tx}
@@ -46,7 +47,8 @@ func Test_recvQueryData(t *testing.T) {
 	assert.Equal(t, errSendStream, err)
 
 	blockHash := hex.EncodeToString(testBlock.Hash(proto.ChainCfg))
-	proto.totalBlockCache.Add(blockHash, testBlock, int64(testBlock.Size()))
+	blockChainCli := q.Client()
+	blockChainCli.Sub("blockchain")
 	req := &types.P2PBlockTxReq{
 		BlockHash: blockHash,
 		TxIndices: []int32{0, 1, 2},
@@ -57,6 +59,13 @@ func Test_recvQueryData(t *testing.T) {
 		},
 	}
 	sendData, _ = proto.handleSend(query, testPid, testAddr)
+	<-handleTestMsgReply(blockChainCli, types.EventGetBlockByHashes, errors.New("errTest"), true)
+	err = proto.handleReceive(sendData, testPid, testAddr)
+	assert.Equal(t, errQueryBlockChain, err)
+	<-handleTestMsgReply(blockChainCli, types.EventGetBlockByHashes, &types.BlockDetails{Items: []*types.BlockDetail{{}}}, true)
+	err = proto.handleReceive(sendData, testPid, testAddr)
+	assert.Equal(t, errRecvBlockChain, err)
+	<-handleTestMsgReply(blockChainCli, types.EventGetBlockByHashes, &types.BlockDetails{Items: []*types.BlockDetail{{Block: testBlock}}}, false)
 	err = proto.handleReceive(sendData, testPid, testAddr)
 	assert.Equal(t, errSendStream, err)
 	req.TxIndices = nil
@@ -78,10 +87,10 @@ func Test_recvQueryReply(t *testing.T) {
 	}
 	sendData, _ := proto.handleSend(reply, testPid, testAddr)
 	err := proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	assert.Equal(t, errLtBlockNotExist, err)
 	proto.ltBlockCache.Add(blockHash, nil, 1)
 	err = proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	assert.Equal(t, errLtBlockNotExist, err)
 	proto.ltBlockCache.Add(blockHash, block, 1)
 	//block组装失败,重新请求
 	reply.Txs = []*types.Transaction{tx}

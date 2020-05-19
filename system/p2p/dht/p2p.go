@@ -75,7 +75,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	priv := addrbook.GetPrivkey()
 
 	bandwidthTracker := metrics.NewBandwidthCounter()
-	host := newHost(mcfg.Port, priv, bandwidthTracker, int(mcfg.MaxConnnectNum))
+	host := newHost(mcfg.Port, priv, bandwidthTracker, int(mcfg.MaxConnectNum))
 	p2p := &P2P{
 		host:          host,
 		peerInfoManag: manage.NewPeerInfoManager(mgr.Client),

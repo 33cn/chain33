@@ -11,18 +11,19 @@ import (
 
 // lru缓存封装, 控制占用空间大小
 type SpaceLimitCache struct {
-	maxSize  int64
-	currSize int64
-	sizeMap  map[interface{}]int64
+	capacity int
+	maxSize  int
+	currSize int
+	sizeMap  map[interface{}]int
 	data     *lru.Cache
 	lock     *sync.RWMutex
 }
 
 // NewSpaceLimitCache new space limit cache
-func NewSpaceLimitCache(num int, maxByteSize int64) *SpaceLimitCache {
+func NewSpaceLimitCache(num, maxByteSize int) *SpaceLimitCache {
 
-	cache := &SpaceLimitCache{maxSize: maxByteSize}
-	cache.sizeMap = make(map[interface{}]int64)
+	cache := &SpaceLimitCache{capacity: num, maxSize: maxByteSize}
+	cache.sizeMap = make(map[interface{}]int)
 	cache.lock = &sync.RWMutex{}
 	var err error
 	cache.data, err = lru.New(num)
@@ -33,7 +34,7 @@ func NewSpaceLimitCache(num int, maxByteSize int64) *SpaceLimitCache {
 }
 
 // Add add key val
-func (c *SpaceLimitCache) Add(key interface{}, val interface{}, size int64) bool {
+func (c *SpaceLimitCache) Add(key interface{}, val interface{}, size int) bool {
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -50,22 +51,19 @@ func (c *SpaceLimitCache) Add(key interface{}, val interface{}, size int64) bool
 		return false
 	}
 	c.currSize += size
-	keys := c.data.Keys()
 
 	//超过最大大小, 移除最早的值
-	for i := 0; i < len(keys) && c.currSize > c.maxSize; i++ {
-		c.currSize -= c.sizeMap[keys[i]]
-		c.data.RemoveOldest()
-		delete(c.sizeMap, keys[i])
+	for c.currSize > c.maxSize || c.data.Len() >= c.capacity {
+		k, _, ok := c.data.RemoveOldest()
+		if !ok {
+			break
+		}
+		c.currSize -= c.sizeMap[k]
+		delete(c.sizeMap, k)
 	}
 
-	evicted := c.data.Add(key, val)
+	c.data.Add(key, val)
 	c.sizeMap[key] = size
-	//触发最早数据被移除, 更新目前大小
-	if evicted {
-		c.currSize -= c.sizeMap[keys[0]]
-		delete(c.sizeMap, keys[0])
-	}
 	return true
 }
 

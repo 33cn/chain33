@@ -42,7 +42,6 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
 	subCfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], subCfg)
-	subCfg.MinLtBlockTxNum = 1
 	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
 	if err != nil {
 		return nil
