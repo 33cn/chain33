@@ -136,8 +136,19 @@ func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport)
 	if wallet.mineStatusReporter != nil {
 		return errors.New("ReporterIsExisted")
 	}
-	wallet.mineStatusReporter = reporter
+	consensus := wallet.client.GetConfig().GetModuleConfig().Consensus.Name
+
+	if !isConflict(consensus, reporter.PolicyName()) {
+		wallet.mineStatusReporter = reporter
+	}
 	return nil
+}
+
+//检测当policy和Consensus有冲突时，不挂接对应的reporter
+func isConflict(curConsensus string, policy string) bool {
+	walletlog.Info("isConflict", "curConsensus", curConsensus, "policy", policy)
+
+	return curConsensus == "ticket" && policy == "pos33" || curConsensus == "pos33" && policy == "ticket"
 }
 
 // GetConfig 获取钱包配置
