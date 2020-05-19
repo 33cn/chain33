@@ -252,6 +252,8 @@ func initMockBlockchain(q queue.Queue) <-chan *queue.Message {
 	go func() {
 		for msg := range client.Recv() {
 			switch msg.Ty {
+			case types.EventGetLastHeader:
+				msg.Reply(queue.NewMessage(0, "", 0, &types.Header{Height: 14000}))
 			case types.EventGetChunkBlockBody:
 				req := msg.Data.(*types.ChunkInfoMsg)
 				bodys := &types.BlockBodys{Items: make([]*types.BlockBody, 0, req.End-req.Start+1)}
@@ -344,7 +346,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	}
 	//注册p2p通信协议，用于处理节点之间请求
 	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
-	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithSignCheck(p.HandleStreamFetchChunk))
+	p.Host.SetStreamHandler(protocol.FetchChunk, p.HandleStreamFetchChunk)
 	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithSignCheck(p.HandleStreamGetHeader))
 	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithSignCheck(p.HandleStreamGetChunkRecord))
 	p.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
